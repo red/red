@@ -1566,16 +1566,47 @@ update-combo-box: func [
 		hWnd [integer!]
 		nstr [integer!]
 		str  [red-string!]
+		sel  [red-integer!]
+		blk  [red-block!]
+		data [red-block!]
+		val  [red-value!]
+		i n	 [integer!]
 ][
 	hWnd: get-face-handle face
 	switch TYPE_OF(value) [
 		TYPE_BLOCK [
+			;-- caculate the index in native widget, e.g.
+			;-- we have data: ["abc" 32 "zyz" 8 "xxx"]   index: 4
+			;-- the actual insertion index: 2
+			val: block/rs-head as red-block! (object/get-values face) + FACE_OBJ_DATA
+			i: 0 n: 0
+			while [n < index][
+				if TYPE_OF(val) = TYPE_STRING [i: i + 1]
+				val: val + 1
+				n: n + 1
+			]
+
+			blk: as red-block! value
 			case [
 				any [
 					sym = words/_remove/symbol
 					sym = words/_take/symbol
 					sym = words/_clear/symbol
+					sym = words/_reverse/symbol
+					sym = words/_put/symbol
+					sym = words/_poke/symbol
+					sym = words/_move/symbol
 				][
+					data: as red-block! new
+					if all [
+						sym = words/_move/symbol
+						data/node <> blk/node		;-- move to another block
+					][
+						;@@ TBD handle it properly
+						;@@ need to trigger event for origin block in `move` action
+						exit
+					]
+
 					ownership/unbind-each as red-block! value index part
 
 					either all [
@@ -1590,20 +1621,23 @@ update-combo-box: func [
 							objc_msgSend [hWnd sel_getUid "setStringValue:" nstr]
 						]
 					][
-						if list? [index: index + 1]
+						if list? [i: i + 1]
+						str: as red-string! block/rs-abs-at blk index
 						loop part [
-							objc_msgSend [hWnd sel_getUid "removeItemAtIndex:" index]
+							if TYPE_OF(str) = TYPE_STRING [
+								objc_msgSend [hWnd sel_getUid "removeItemAtIndex:" i]
+							]
 						]
 					]
 				]
 				any [
 					sym = words/_inserted/symbol
-					sym = words/_poke/symbol
-					sym = words/_put/symbol
-					sym = words/_reverse/symbol
+					sym = words/_appended/symbol
+					sym = words/_poked/symbol
+					sym = words/_put-ed/symbol
+					sym = words/_reversed/symbol
+					sym = words/_moved/symbol
 				][
-					;ownership/unbind-each as red-block! value index part
-
 					str: as red-string! either any [
 						null? new
 						TYPE_OF(new) = TYPE_BLOCK
@@ -1612,12 +1646,14 @@ update-combo-box: func [
 					][
 						new
 					]
+
+					ownership/unbind-each as red-block! value index part
 					loop part [
-						if sym <> words/_inserted/symbol [
-							objc_msgSend [hWnd sel_getUid "removeItemAtIndex:" index]
+						if TYPE_OF(str) = TYPE_STRING [
+							insert-list-item hWnd str i list?
+							i: i + 1
+							ownership/bind as red-value! str face _data
 						]
-						insert-list-item hWnd str index list?
-						if sym = words/_reverse/symbol [index: index + 1]
 						str: str + 1
 					]
 				]
@@ -1625,11 +1661,18 @@ update-combo-box: func [
 			]
 		]
 		TYPE_STRING [
+			if any [sym = words/_lowercase/symbol sym = words/_uppercase/symbol][
+				sel: as red-integer! (object/get-values face) + FACE_OBJ_SELECTED
+				index: sel/value - 1
+			]
+			i: index
+			if list? [index: index + 1]
 			objc_msgSend [hWnd sel_getUid "removeItemAtIndex:" index]
-			insert-list-item hWnd as red-string! value index list?
+			insert-list-item hWnd as red-string! value i list?
 		]
 		default [assert false]			;@@ raise a runtime error
 	]
+	objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
 ]
 
 update-scroller: func [
@@ -2328,7 +2371,6 @@ OS-update-facet: func [
 		word [red-word!]
 		sym	 [integer!]
 		type [integer!]
-		hWnd [handle!]
 ][
 	sym: symbol/resolve facet/symbol
 
