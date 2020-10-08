@@ -2844,6 +2844,75 @@ Red [
 		--assert [a] = parse [][collect keep pick ('a)]
 		--assert [[a b]] = parse [][collect keep pick ([a b])]
 
+	--test-- "#4200"
+		word:  'foo
+		block: []
+		mark:  block
+		
+		parse block [mark: change mark word]			;-- word's value
+		--assert block = [foo]		
+		clear block
+		
+		parse block [mark: change mark (word)]			;-- result of expression
+		--assert block = [foo]
+		clear block
+		
+		parse block [mark: change mark ('foo)]			;-- result of expression
+		--assert block = [foo]
+		clear block
+		
+		parse block [mark: change mark ([foo])]			;-- result of expression
+		--assert block = [foo]
+		clear block
+		
+		parse block [mark: change only mark ([foo])]	;--result of expression
+		--assert block = [[foo]]
+		clear block
+		
+		parse block [mark: change mark #foo]			;-- literal value
+		--assert block = [#foo]
+		clear block
+		
+		parse block [mark: change mark [#foo]]			;-- literal value
+		--assert block = [#foo]
+		clear block
+		
+		parse block [mark: change only mark [#foo]]		;-- literal value
+		--assert block = [[#foo]]
+		clear block
+		
+		parse block [change none word]					;-- word's value
+		--assert block = [foo]
+		clear block
+		
+		parse block [change none (word)]				;-- result of expression
+		--assert block = [foo]
+		clear block
+		
+		parse block [change none ('foo)]				;-- result of expression
+		--assert block = [foo]
+		clear block
+		
+		parse block [change none ([foo])]				;-- result of expression
+		--assert block = [foo]
+		clear block
+		
+		parse block [change only none ([foo])]			;-- result of expression
+		--assert block = [[foo]]
+		clear block
+		
+		parse block [change none #foo]					;-- literal value
+		--assert block = [#foo]
+		clear block
+		
+		parse block [change none [#foo]]				;-- literal value
+		--assert block = [#foo]
+		clear block
+		
+		parse block [change only none [#foo]]			;-- literal value
+		--assert block = [[#foo]]
+		clear block
+
 	--test-- "#4591"
 		--assert not parse " " [0 0 space]
 		--assert not parse [x] [0 0 'x]
@@ -2852,7 +2921,7 @@ Red [
 		--assert parse [][0 0 [ignore me]]
 		--assert parse [][0   "ignore me"]
 		--assert parse [][0   [ignore me]]
-    
+
 ===end-group===
     
 ~~~end-file~~~
