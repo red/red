@@ -1865,11 +1865,13 @@ natives: context [
 		check? [logic!]
 		/local
 			value  [red-value!]
+			type   [integer!]
 			result [red-logic!]
 	][
 		#typecheck value?
 		value: stack/arguments
-		if TYPE_OF(value) = TYPE_WORD [
+		type: TYPE_OF(value)
+		if ANY_WORD?(type) [
 			value: _context/get as red-word! stack/arguments
 		]
 		result: as red-logic! stack/arguments
