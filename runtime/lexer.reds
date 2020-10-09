@@ -608,7 +608,7 @@ lexer: context [
 			if all [
 				any [
 					type <> TYPE_SET_PATH 
-					all [type = TYPE_SET_PATH stype = TYPE_LIT_PATH]
+					all [type = TYPE_SET_PATH any [stype = TYPE_LIT_PATH stype = TYPE_GET_PATH]]
 				]
 				not all [stype = TYPE_MAP type = TYPE_PAREN];-- paren can close a map
 				stype <> type							;-- saved type <> closing type => error

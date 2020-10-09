@@ -638,9 +638,10 @@ Red [
 	--test-- "tro-160"  --assert error? try [transcode/one ":x::"]
 	--test-- "tro-161"  --assert error? try [transcode/one "1:2:"]
 	--test-- "tro-162"  --assert error? try [transcode/one "'a/b:"]
-	--test-- "tro-163"  --assert error? try [transcode/one "123#"]
-	--test-- "tro-164"  --assert error? try [transcode/one "9h"]
-	--test-- "tro-165"  --assert error? try [transcode/one "FACEFEEDDEADBEEFh"]
+	--test-- "tro-163"  --assert error? try [transcode/one ":a/b:"]
+	--test-- "tro-164"  --assert error? try [transcode/one "123#"]
+	--test-- "tro-165"  --assert error? try [transcode/one "9h"]
+	--test-- "tro-166"  --assert error? try [transcode/one "FACEFEEDDEADBEEFh"]
 
 ===end-group===
 ===start-group=== "transcode/next"
@@ -779,6 +780,7 @@ Red [
 	--test-- "scan-80" --assert error!   = scan "123#"
 	--test-- "scan-81" --assert error!   = scan "9h"
 	--test-- "scan-82" --assert error!   = scan "FACEFEEDDEADBEEFh"
+	--test-- "scan-83" --assert error!   = scan ":a/b:"
 
 ===end-group===
 ===start-group=== "scan/fast"
