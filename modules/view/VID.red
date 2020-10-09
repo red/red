@@ -761,7 +761,7 @@ system/view/VID: context [
 
 		if all [focal-face find panel/pane focal-face not parent][panel/selected: focal-face]
 
-		if options [set/some panel make object! user-opts]
+		if options [set/any panel make object! user-opts]
 		if flags [panel/flags: either panel/flags [unique union to-block panel/flags to-block flgs][flgs]]
 		if block? panel/actors [panel/actors: context panel/actors]
 		
