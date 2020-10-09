@@ -182,9 +182,9 @@ object: context [
 			][
 				get-values as red-object! value
 			]
-			
-			unless only? [									;-- pre-check of unset values
-				i: 0
+
+			i: 0
+			if all [not only? not some?][					;-- pre-check of unset values
 				while [word < tail2][
 					if all [not any? TYPE_OF(values2) = TYPE_UNSET][
 						fire [TO_ERROR(script need-value) word]
