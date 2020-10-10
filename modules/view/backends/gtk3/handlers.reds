@@ -399,11 +399,11 @@ transparent-base?: func [
 ][
 	either all [
 		TYPE_OF(color) = TYPE_TUPLE
-		any [
-			TUPLE_SIZE?(color) = 3 
-			color/array1 and FF000000h = 0
+		all [
+			TUPLE_SIZE?(color) = 4 
+			color/array1 and FF000000h = FF000000h
 		]
-	][false][true]
+	][true][false]
 ]
 
 base-event-after: func [
