@@ -2986,7 +2986,13 @@ comment {
 		--assert not tail? i4056
 		--assert tail? next next next next i4056
 		--assert tail? next back next tail i4056
-
+	
+	--test-- "#4196"
+		clear body-of :as-ipv4
+		--assert 1.3.3.7 == as-ipv4 1 3 3 7
+		clear spec-of :as-ipv4
+		--assert error? do [try [as-ipv4 1 3 3 7]]
+	
 	--test-- "#4205 - seed random with precise time!"
 		anded4205: to integer! #{FFFFFFFF}
 		loop 10 [
