@@ -390,21 +390,23 @@ word: context [
 			dt		[red-datatype!]
 			bool	[red-logic!]
 			str		[red-string!]
+			word	[red-word!]
 			name	[names!]
 			cstr	[c-string!]
 			len		[integer!]
+			index	[integer!]
 			val		[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/to"]]
 
 		switch TYPE_OF(spec) [
-			TYPE_WORD
-			TYPE_SET_WORD
-			TYPE_GET_WORD
-			TYPE_LIT_WORD
-			TYPE_REFINEMENT [proto: spec]
+			TYPE_ANY_WORD [proto: spec]
+			TYPE_REFINEMENT
 			TYPE_ISSUE [
-				check-1st-char as red-word! spec
+				word: as red-word! spec
+				if TYPE_OF(spec) = TYPE_ISSUE [check-1st-char word]
+				index: _context/bind-word TO_CTX(global-ctx) word	;-- issue #4537
+				assert index >= 0
 				proto: spec
 			]
 			TYPE_STRING [
