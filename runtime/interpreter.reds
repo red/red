@@ -262,6 +262,10 @@ interpreter: context [
 			value: s/offset
 			tail:  s/tail
 			
+			if all [value = tail args <> 0][			;-- issue #4196
+				fire [TO_ERROR(script bad-routine-def) block/push-only* 0]
+			]
+			
 			until [										;-- scan forward for end of arguments
 				switch TYPE_OF(value) [
 					TYPE_SET_WORD
