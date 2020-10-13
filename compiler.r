@@ -3584,7 +3584,8 @@ red: context [
 				either path? call [						;-- call with refinements?
 					ctx: copy spec/4					;-- get a new context block
 					foreach ref next call [
-						option: to refinement! either integer? ref [form ref][ref]
+						unless word? ref [throw-error ["incompatible type" ref "in" call]]
+						option: to refinement! ref
 						
 						unless pos: find/skip spec/4 option 3 [
 							throw-error [call/1 "has no refinement called" ref]
