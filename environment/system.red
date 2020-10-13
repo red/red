@@ -119,6 +119,7 @@ system: context [
 				bad-func-def:		["invalid function definition:" :arg1]
 				bad-func-arg:		["function argument" :arg1 "is not valid"]
 				bad-func-extern:	["invalid /extern value:" :arg1]
+				bad-routine-def:	["invalid routine definition:" :arg1]
 				no-refine:			[:arg1 "has no refinement called" :arg2]
 				bad-refines:		"incompatible or invalid refinements"
 				bad-refine:			["incompatible refinement:" :arg1]
