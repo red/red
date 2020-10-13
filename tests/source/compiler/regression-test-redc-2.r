@@ -242,6 +242,10 @@ print ["remainder of division of over 5 is: " remain-value]
 }
 		--assert compiled?
 
+	--test-- "#650"
+		--compile-this-red {f: func [/1][] f/1}
+		--assert not compiled?
+
 	--test-- "#659"
 		--compile-and-run-this-red {
 f: does [parse [] []]

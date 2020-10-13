@@ -733,10 +733,11 @@ Red [
 	--test-- "#647"
 		--assert error? try [load "type? quote '1" ]
 
-	; --test-- "#650"
-		; FIXME: still a bug, crashes test
-	;	f: func [/1]
-	;	probe f/1
+	--test-- "#650"
+		do [								;-- interpreter only, compiler case is in compiler regression tests.
+			f650: func [/1][none]
+			--assert error? try [f650/1]
+		]
 
 	--test-- "#651"
 		--assert equal? [1 []] load "1[]"
