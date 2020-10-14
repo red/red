@@ -13,6 +13,7 @@ Red/System [
 ;; ===== Extra slots usage in Window structs =====
 ;;
 ;;		-60  :							<- TOP
+;;		-32	 : base: mouse capture count
 ;;		-28  : Cursor handle
 ;;		-24  : Direct2D target interface
 ;;			   base-layered: caret's owner handle
@@ -70,7 +71,6 @@ hIMCtx:			as handle! 0
 ime-open?:		no
 ime-font:		as tagLOGFONT allocate 92
 base-down-hwnd: as handle! 0
-request-file?:	no
 
 dpi-factor:		100
 log-pixels-x:	0
