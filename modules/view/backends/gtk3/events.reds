@@ -1051,6 +1051,7 @@ connect-widget-events: func [
 		connect-notify-events cont widget
 		connect-common-events cont widget
 	][
+		connect-notify-events evbox widget
 		connect-common-events evbox widget
 	]
 	connect-focus-events evbox widget sym
