@@ -321,7 +321,6 @@ OS-text-box-layout: func [
 		parent	[red-object!]
 		cached?	[logic!]
 		attrs	[handle!]
-		new?	[logic!]
 		int		[red-integer!]
 		layout	[handle!]
 		para	[handle!]
@@ -371,10 +370,8 @@ OS-text-box-layout: func [
 		TYPE_OF(font) = TYPE_OBJECT
 	][
 		attrs: create-pango-attrs box font
-		new?: yes
 	][
-		new?: no
-		attrs: default-attrs
+		attrs: pango_attr_list_new		;-- or pango_attr_list_copy default-attrs
 	]
 	len: -1
 	str: unicode/to-utf8 text :len
@@ -401,8 +398,6 @@ OS-text-box-layout: func [
 		parse-text-styles target as handle! lc styles text catch?
 	]
 	pango_layout_set_attributes layout attrs
-	if new? [
-		pango_attr_list_unref attrs
-	]
+	pango_attr_list_unref attrs
 	layout
 ]
