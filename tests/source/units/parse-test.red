@@ -2922,6 +2922,11 @@ Red [
 		--assert parse [][0   "ignore me"]
 		--assert parse [][0   [ignore me]]
 
+	--test-- "#4678"
+		--assert false == parse to binary! "["  [none!]
+		--assert false == parse to binary! "("  [none!]
+		--assert false == parse to binary! "#(" [none!]
+
 ===end-group===
     
 ~~~end-file~~~
