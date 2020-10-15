@@ -2309,7 +2309,7 @@ lexer: context [
 					lex/closing: p/y
 					catch RED_THROWN_ERROR [throw-error lex lex/input + p/z lex/in-end ERR_CLOSING]
 					either system/thrown <= LEX_ERR [
-						dst/header: TYPE_NONE
+						if dst <> null [dst/header: TYPE_NONE] ;-- no dst when called from Parse, #4678
 						system/thrown: 0
 						clean-up
 						return lex/scanned
