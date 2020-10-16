@@ -2073,6 +2073,7 @@ OS-update-view: func [
 		flags	[integer!]
 		flags-flags	[integer!]
 		type	[integer!]
+		par		[red-object!]
 ][
 	ctx: GET_CTX(face)
 	s: as series! ctx/values/value
@@ -2132,7 +2133,12 @@ OS-update-view: func [
 		]
 	]
 	if flags and FACET_FLAG_DRAW  <> 0 [
-		gtk_widget_queue_draw widget
+		either any [type = base type = panel type = rich-text][
+			par: as red-object! values + FACE_OBJ_PARENT
+			gtk_widget_queue_draw get-face-handle par
+		][
+			gtk_widget_queue_draw widget
+		]
 		force-redraw?: yes
 		; 0
 	]
