@@ -2005,10 +2005,10 @@ lexer: context [
 		either load? [
 			load-string lex s - 1 e flags yes			;-- compensate for lack of starting delimiter
 			if flags and C_FLAG_PERCENT <> 0 [convert-percents lex]
-			lex/in-pos: e 								;-- reset the input position to delimiter byte
 		][
 			scan-string lex s - 1 e flags no
 		]
+		lex/in-pos: e 									;-- reset the input position to delimiter byte
 	]
 	
 	load-email: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
@@ -2016,17 +2016,17 @@ lexer: context [
 			flags: flags and not C_FLAG_CARET			;-- clears caret flag
 			lex/type: TYPE_EMAIL
 			load-string lex s - 1 e flags load?			;-- compensate for lack of starting delimiter
-			lex/in-pos: e 								;-- reset the input position to delimiter byte
 		]
+		lex/in-pos: e 									;-- reset the input position to delimiter byte
 	]
 	
 	load-ref: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
 		if load? [
 			flags: flags and not C_FLAG_CARET			;-- clears caret flag
-			lex/type: TYPE_REF
+			lex/type: TYPE_REF		
 			load-string lex s e flags load?
-			lex/in-pos: e 								;-- reset the input position to delimiter byte
 		]
+		lex/in-pos: e 									;-- reset the input position to delimiter byte		
 	]
 	
 	load-hex: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]

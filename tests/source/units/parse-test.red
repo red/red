@@ -2927,6 +2927,13 @@ Red [
 		--assert false == parse to binary! "("  [none!]
 		--assert false == parse to binary! "#(" [none!]
 
+	--test-- "#4682"
+		parse to binary! {https://example.org"} [copy match url! (--assert https://example.org == to url! match)]
+		parse to binary! {a@b.com"} [copy match email! (--assert a@b.com == to email! to string! match)]
+		
+		;; non-passing test, match == @@ref
+		;parse to binary! {@ref"} [copy match ref! (--assert @ref == to ref! to string! match)]
+
 ===end-group===
     
 ~~~end-file~~~
