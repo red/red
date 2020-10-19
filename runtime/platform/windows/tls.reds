@@ -654,6 +654,25 @@ tls: context [
 		null
 	]
 
+	validate?: func [
+		data		[tls-data!]
+		return:		[logic!]
+		/local
+			values		[red-value!]
+			extra		[red-block!]
+			invalid?	[red-logic!]
+	][
+		values: object/get-values data/port
+		extra: as red-block! values + port/field-extra
+		if TYPE_OF(extra) <> TYPE_BLOCK [return false]
+		invalid?: as red-logic! block/select-word extra word/load "accept-invalid-cert" no
+		if all [
+			TYPE_OF(invalid?) = TYPE_LOGIC
+			invalid?/value
+		][return true]
+		false
+	]
+
 	negotiate: func [
 		data		[tls-data!]
 		return:		[integer!]		;-- 0: continue, 1: success, -1: error
@@ -815,6 +834,9 @@ tls: context [
 					]
 
 					if ret = SEC_OK [
+						if client? [
+							unless validate? data [return 0]
+						]
 						data/state: state or IO_STATE_TLS_DONE
 						platform/SSPI/QueryContextAttributesW
 							sec-handle
