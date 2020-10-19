@@ -19,7 +19,8 @@ client: open tls://127.0.0.1:8123
 client/extra: [
     domain: "red-lang.org"
     ;-- temporary
-    accept-invalid-cert: true
+    accept-invalid-cert: false
+    disable-builtin-roots: false
     min-protocol: 0302h             ;-- min protocol sslv3,
     max-protocol: 0303h             ;-- max protocol tls1.2
 ]
