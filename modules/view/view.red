@@ -12,7 +12,9 @@ Red [
 
 #system [
 	#include %../../runtime/datatypes/event.reds
+	red/boot?: yes
 	event/init
+	red/boot?: no
 ]
 
 #include %utils.red
