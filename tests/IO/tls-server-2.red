@@ -122,9 +122,8 @@ new-client: func [port /local data] [
 ]
 
 server: open tls://:58123
-server/extra: compose [
-    cert: (cert)
-    chain-cert: (chain)
+server/extra: compose/deep [
+    certs: [(cert) (chain)]
     key: (key)
 ]
 

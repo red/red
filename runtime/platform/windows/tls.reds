@@ -307,17 +307,12 @@ tls: context [
 
 	save-cert: func [
 		cert		[CERT_CONTEXT]
-		client?		[logic!]
 		return:		[logic!]
 		/local
 			flags	[integer!]
 			store	[int-ptr!]
 	][
-		;either client? [
-			flags: CERT_SYSTEM_STORE_CURRENT_USER
-		;][
-		;	flags: CERT_SYSTEM_STORE_LOCAL_MACHINE				;-- this need Administrator rights
-		;]
+		flags: CERT_SYSTEM_STORE_CURRENT_USER
 		store: CertOpenStore 10 0 null flags #u16 "My"
 		if null? store [return false]
 		unless CertAddCertificateContextToStore store cert CERT_STORE_ADD_REPLACE_EXISTING null [
@@ -330,6 +325,7 @@ tls: context [
 		ctx			[CERT_CONTEXT]
 		key			[red-string!]
 		pwd			[red-string!]
+		return:		[integer!]
 		/local
 			klen	[integer!]
 			type	[integer!]
@@ -338,6 +334,7 @@ tls: context [
 	][
 		klen: 0 type: 0
 		pkey: decode-key key :klen :type
+		ret: -1
 		unless null? pkey [
 			ret: either type = X509_ECC_PRIVATE_KEY [
 				link-ecc-key ctx pkey klen
@@ -347,45 +344,146 @@ tls: context [
 			;-- print-line ["link-private-key: " as int-ptr! ret]
 			free pkey
 		]
+		ret
 	]
 
-	create-cert-ctx: func [
+	store-identity: func [
 		data		[tls-data!]
-		client?		[logic!]
-		return:		[CERT_CONTEXT]
+		return:		[logic!]
 		/local
 			values	[red-value!]
 			extra	[red-block!]
-			cert	[red-string!]
-			chain	[red-string!]
+			certs	[red-block!]
+			head	[red-string!]
+			tail	[red-string!]
+			first	[CERT_CONTEXT]
+			ctx		[CERT_CONTEXT]
 			key		[red-string!]
 			pwd		[red-string!]
-			ctx		[CERT_CONTEXT]
-			ctx2	[CERT_CONTEXT]
 	][
 		values: object/get-values data/port
 		extra: as red-block! values + port/field-extra
-		if TYPE_OF(extra) <> TYPE_BLOCK [return null]
-		cert: as red-string! block/select-word extra word/load "cert" no
-		if TYPE_OF(cert) <> TYPE_STRING [return null]
-		chain: as red-string! block/select-word extra word/load "chain-cert" no
-		key: as red-string! block/select-word extra word/load "key" no
-		pwd: as red-string! block/select-word extra word/load "password" no
-		ctx: load-cert cert
-		if null? ctx [
-			IODebug("create-cert-ctx failed!!!")
+		if TYPE_OF(extra) <> TYPE_BLOCK [return false]
+		certs: as red-block! block/select-word extra word/load "certs" no
+		if TYPE_OF(certs) <> TYPE_BLOCK [return false]
+		head: as red-string! block/rs-head certs
+		tail: as red-string! block/rs-tail certs
+		first: null
+		while [head < tail][
+			if TYPE_OF(head) = TYPE_STRING [
+				ctx: load-cert head
+				if null? ctx [
+					IODebug("load cert failed!!!")
+					return false
+				]
+				either null? first [
+					first: ctx
+					data/cert-ctx: ctx
+					key: as red-string! block/select-word extra word/load "key" no
+					pwd: as red-string! block/select-word extra word/load "password" no
+					if 0 <> link-private-key ctx key pwd [
+						IODebug("link key failed!!!")
+						return false
+					]
+				][
+					save-cert ctx
+					CertFreeCertificateContext ctx
+				]
+			]
+			head: head + 1
+		]
+		first <> null
+	]
+
+	store-roots: func [
+		data		[tls-data!]
+		return:		[logic!]
+		/local
+			values	[red-value!]
+			extra	[red-block!]
+			certs	[red-block!]
+			store	[handle!]
+			head	[red-string!]
+			tail	[red-string!]
+			ctx		[CERT_CONTEXT]
+			roots	[red-block!]
+	][
+		values: object/get-values data/port
+		extra: as red-block! values + port/field-extra
+		if TYPE_OF(extra) <> TYPE_BLOCK [return false]
+		roots: as red-block! block/select-word extra word/load "root" no
+		if TYPE_OF(roots) = TYPE_BLOCK [
+			store: CertOpenStore 2 0 null 0 null				;-- CERT_STORE_PROV_MEMORY
+			if null? store [return false]
+			head: as red-string! block/rs-head roots
+			tail: as red-string! block/rs-tail roots
+			while [head < tail][
+				if TYPE_OF(head) = TYPE_STRING [
+					ctx: load-cert head
+					if null? ctx [
+						IODebug("load cert failed!!!")
+						return false
+					]
+					unless CertAddCertificateContextToStore store ctx CERT_STORE_ADD_REPLACE_EXISTING null [
+						IODebug("store cert failed!!!")
+					]
+					CertFreeCertificateContext ctx
+				]
+				head: head + 1
+			]
+			if null? ctx [
+				CertCloseStore store 0
+				return false
+			]
+			data/root-store: store
+		]
+		true
+	]
+
+	get-certs: func [
+		store		[handle!]
+		plen		[int-ptr!]
+		return:		[int-ptr!]
+		/local
+			ctx		[CERT_CONTEXT]
+			size	[integer!]
+			cnt		[integer!]
+			certs	[int-ptr!]
+			p		[int-ptr!]
+	][
+		if null? store [
+			plen/1: 0
 			return null
 		]
-		link-private-key ctx key pwd
-		save-cert ctx client?
-		if TYPE_OF(chain) = TYPE_STRING [
-			ctx2: load-cert chain
-			unless null? ctx2 [
-				save-cert ctx2 client?
-				CertFreeCertificateContext ctx2
-			]
+		ctx: null
+		size: 0
+		until [
+			ctx: CertEnumCertificatesInStore store ctx
+			size: size + 1
+			null? ctx
 		]
-		ctx
+		cnt: size - 1
+		if cnt <= 0 [
+			plen/1: 0
+			return null
+		]
+		plen/1: cnt
+		certs: as int-ptr! allocate size * 4
+		p: certs
+		ctx: null
+		loop size [
+			ctx: CertEnumCertificatesInStore store ctx
+			p/1: as integer! ctx
+			p: p + 1
+			null? ctx
+		]
+		certs
+	]
+
+	free-certs: func [
+		certs		[int-ptr!]
+	][
+		free as byte-ptr! certs
 	]
 
 	get-domain: func [
@@ -499,17 +597,18 @@ tls: context [
 			expiry	[tagFILETIME value]
 			flags	[integer!]
 	][
-		ctx: as integer! data/cert-ctx
-		if zero? ctx [
-			data/cert-ctx: create-cert-ctx data client?
-			ctx: as integer! data/cert-ctx
-		]
-
 		zero-memory as byte-ptr! :scred size? SCHANNEL_CRED
 		scred/dwVersion: 4		;-- SCHANNEL_CRED_VERSION
 
+		ctx: as integer! data/cert-ctx
+		if all [
+			ctx = 0
+			store-identity data
+		][
+			ctx: as integer! data/cert-ctx
+		]
 		if ctx <> 0 [
-			scred/cCreds: 1				;-- TODO: free ctxs, CertFreeCertificateContext
+			scred/cCreds: 1
 			scred/paCred: :ctx
 		]
 		
@@ -563,97 +662,6 @@ tls: context [
 		platform/SSPI/DeleteSecurityContext :data/security
 	]
 
-	find-certificate: func [
-		user-store? [logic!]
-		return:		[CERT_CONTEXT]
-		/local
-			cert-ctx	[CERT_CONTEXT]
-			eku			[CERT_ENHKEY_USAGE value]
-			err			[integer!]
-			store		[int-ptr!]
-			flags		[integer!]
-			auth		[ptr-value!]
-	][
-		either user-store? [
-			store: user-store
-			flags: 0001C000h		;-- CERT_STORE_OPEN_EXISTING_FLAG or CERT_STORE_READONLY_FLAG or CERT_SYSTEM_STORE_CURRENT_USER
-			auth/value: as int-ptr! "1.3.6.1.5.5.7.3.2"		;-- szOID_PKIX_KP_CLIENT_AUTH
-		][
-			store: machine-store
-			flags: 0002C000h		;-- CERT_STORE_OPEN_EXISTING_FLAG or CERT_STORE_READONLY_FLAG or CERT_SYSTEM_STORE_LOCAL_MACHINE
-			auth/value: as int-ptr! "1.3.6.1.5.5.7.3.1"		;-- szOID_PKIX_KP_SERVER_AUTH
-		]
-
-		eku/rgpszUsageIdentifier: as c-string! :auth
-		store: CertOpenStore
-			10						;-- CERT_STORE_PROV_SYSTEM
-			0
-			null
-			flags
-			#u16 "My"
-
-		if null? store [
-			err: GetLastError
-			probe ["open Cert store error: " err]
-		]
-		either user-store? [user-store: store][machine-store: store]
-
-		cert-ctx: null
-		eku/cUsageIdentifier: 1
-		while [
-			cert-ctx: CertFindCertificateInStore
-				store
-				1			;-- X509_ASN_ENCODING
-				1			;-- CERT_FIND_OPTIONAL_ENHKEY_USAGE_FLAG
-				000A0000h	;-- CERT_FIND_ENHKEY_USAGE
-				as byte-ptr! :eku
-				cert-ctx
-			cert-ctx <> null
-		][
-			return cert-ctx
-		]
-		null
-	]
-
-	get-credential: func [
-		data		[tls-data!]
-		user-store? [logic!]
-		return:		[CERT_CONTEXT]
-		/local
-			issuer-list	[SecPkgContext_IssuerListInfoEx! value]
-			cred		[SecHandle! value]
-			status		[integer!]
-			cert-ctx	[CERT_CONTEXT]
-			eku			[CERT_ENHKEY_USAGE value]
-			err			[integer!]
-			store		[int-ptr!]
-			flags		[integer!]
-	][
-		;-- Read list of trusted issuers from schannel.
-		;-- 
-		;-- Note the a server will NOT send an issuer list if it has the registry key
-		;-- HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL
-		;-- has a DWORD value called SendTrustedIssuerList set to 0
-		status: platform/SSPI/QueryContextAttributesW
-			as SecHandle! :data/security
-			59h			;-- SECPKG_ATTR_ISSUER_LIST_EX
-			as byte-ptr! :issuer-list
-
-		if status <> 0 [
-			probe ["Querying issuer list info failed: " status]
-			return null
-		]
-
-		;-- Now go ask for the client credentials
-		either issuer-list/cIssuers <> 0 [
-			0		;-- TBD get certificate by issuer
-
-		][			;-- Select any valid certificate, regardless of issuer
-			return find-certificate user-store?
-		]
-		null
-	]
-
 	validate?: func [
 		data		[tls-data!]
 		return:		[logic!]
@@ -663,8 +671,6 @@ tls: context [
 			invalid?	[red-logic!]
 			builtin?	[red-logic!]
 			not-sys		[logic!]
-			add-root	[red-string!]
-			add-chain	[red-string!]
 			add-store	[handle!]
 	][
 		values: object/get-values data/port
@@ -680,7 +686,6 @@ tls: context [
 			TYPE_OF(builtin?) = TYPE_LOGIC
 			builtin?/value
 		][not-sys: true][not-sys: false]
-		chain: as red-string! block/select-word extra word/load "chain-cert" no
 		false
 	]
 

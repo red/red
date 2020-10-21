@@ -1274,6 +1274,11 @@ DNS_RECORD!: alias struct! [
 			flags				[integer!]
 			return:				[logic!]
 		]
+		CertEnumCertificatesInStore: "CertEnumCertificatesInStore" [
+			store				[int-ptr!]
+			ctx					[CERT_CONTEXT]
+			return:				[CERT_CONTEXT]
+		]
 		CertAddCertificateContextToStore: "CertAddCertificateContextToStore" [
 			store				[int-ptr!]
 			ctx					[CERT_CONTEXT]
@@ -1314,6 +1319,13 @@ DNS_RECORD!: alias struct! [
 			propID				[integer!]
 			dwFlags				[integer!]
 			pvData				[byte-ptr!]
+			return:				[logic!]
+		]
+		CertGetCertificateContextProperty: "CertGetCertificateContextProperty" [
+			ctx					[CERT_CONTEXT]
+			propID				[integer!]
+			pvData				[byte-ptr!]
+			pcbData				[int-ptr!]
 			return:				[logic!]
 		]
 		CryptStringToBinaryA: "CryptStringToBinaryA" [

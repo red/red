@@ -88,19 +88,8 @@ new-client: func [port /local data] [
 
 server: open tls://:8123
 
-comment {
-server/extra: [
-    cert: load %cert.pem
-    ;chain-cert: load %chain.pem
-    key: load %key.pem
-    ;password: "mypass"
-    protocol: [tls1.2 tls1.1]
-]
-}
-
-server/extra: compose [
-    cert: (cert)
-    chain-cert: (chain)
+server/extra: compose/deep [
+    certs: [(cert) (chain)]
     key: (key)
     ;password: "mypass"
     ;-- temporary
