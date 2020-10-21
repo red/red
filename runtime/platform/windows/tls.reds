@@ -661,6 +661,11 @@ tls: context [
 			values		[red-value!]
 			extra		[red-block!]
 			invalid?	[red-logic!]
+			builtin?	[red-logic!]
+			not-sys		[logic!]
+			add-root	[red-string!]
+			add-chain	[red-string!]
+			add-store	[handle!]
 	][
 		values: object/get-values data/port
 		extra: as red-block! values + port/field-extra
@@ -670,6 +675,12 @@ tls: context [
 			TYPE_OF(invalid?) = TYPE_LOGIC
 			invalid?/value
 		][return true]
+		builtin?: as red-logic! block/select-word extra word/load "disable-builtin-roots" no
+		either all [
+			TYPE_OF(builtin?) = TYPE_LOGIC
+			builtin?/value
+		][not-sys: true][not-sys: false]
+		chain: as red-string! block/select-word extra word/load "chain-cert" no
 		false
 	]
 

@@ -2,7 +2,7 @@ Red [
     title: "Basic Secure TCP test client"
 ]
 
-cert: {
+root-cert: {
 -----BEGIN CERTIFICATE-----
 MIIEDDCCAvSgAwIBAgIIZLM7o/nXzsgwDQYJKoZIhvcNAQELBQAwgYgxCzAJBgNV
 BAYTAkNOMRUwEwYDVQQKEwxiaXRiZWdpbi5jb20xHzAdBgNVBAsTFmJpdGJlZ2lu
@@ -29,6 +29,33 @@ VWbx33V8buqISWiaIADGdKYY44Wny1aq4xCYSqfQDw4=
 -----END CERTIFICATE-----
 }
 
+root-chain: {
+-----BEGIN CERTIFICATE-----
+MIIESDCCAzCgAwIBAgIIJoJioe5Xq7gwDQYJKoZIhvcNAQELBQAwgYgxCzAJBgNV
+BAYTAkNOMRUwEwYDVQQKEwxiaXRiZWdpbi5jb20xHzAdBgNVBAsTFmJpdGJlZ2lu
+IHRlc3QgcnNhIHJvb3QxHjAcBgNVBAMTFXJzYS5yb290LmJpdGJlZ2luLmNvbTEh
+MB8GCSqGSIb3DQEJAQwSYml0YmVnaW5AZ21haWwuY29tMB4XDTIwMDczMDAzMzYy
+MVoXDTIxMDczMDAzMzYyMVowgYQxCzAJBgNVBAYTAkNOMRUwEwYDVQQKEwxiaXRi
+ZWdpbi5jb20xHTAbBgNVBAsTFGJpdGJlZ2luIHRlc3QgcnNhIGNhMRwwGgYDVQQD
+ExNyc2EuY2EuYml0YmVnaW4uY29tMSEwHwYJKoZIhvcNAQkBDBJiaXRiZWdpbkBn
+bWFpbC5jb20wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC1F909bb1a
+vnxSKIx+vFrDAXKB79Y+OT2XZLUCpYRRrTJpVTv/yfyRuEtYg7SsUDsdBVrebF9M
+LVd6bowe7qekkSCDdhzBeDkyQVMbHZODz6GLW9cPOivWGFjPfChjroOX6L36x78P
+4XvlqAka8+rWRteNre+fRnHbB443QDNI2zV0iY6pD9OioqNXZ1sAvTf9ruK8hwR2
+GSMnG2SUtUvD70UQF/m9RNTok9jZVmes1rwW68nkqJBa2wCy2E9VpoX72fjnR2eU
+OxLLkBpqc6EtpieWkvQQ4BGy0YoVAdLr6/pbWzOZqIg3pnGNwnQbyLSFWH+P0Lp/
+PZFZSRPUcMx1AgMBAAGjgbcwgbQwDgYDVR0PAQH/BAQDAgWgMB0GA1UdJQQWMBQG
+CCsGAQUFBwMBBggrBgEFBQcDAjAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBSp
+/mmonOZQiS1WB1roOvL9jSC2HzAfBgNVHSMEGDAWgBRKsjiyxs0LKPSUGChglCC/
+EFb28TAyBgNVHREEKzApghNyc2EuY2EuYml0YmVnaW4uY29tgRJiaXRiZWdpbkBn
+bWFpbC5jb20wDQYJKoZIhvcNAQELBQADggEBAB9JLHIWFnCsqogxZ4dRkyXEtGDF
+dsefaLtUf+R1mjOQd7ns4L9oPap3f+n9drw4pokxXL3+HOC9pkzaU3bCajmOYhl2
+K+OJefC6E+rCrh/9FhvRn09Jt8WUDrHZ7+hXAa9pUS6Shl6v/LSTay9GBpudidgy
+FQowC5nRDmdI08yBHlSlblg7zw8PRnANcvJbZScpHNEPsJsE8mxvxiAJqWrTL+dD
+zX9R1ROr5EWbnXV6Tm+FWR352isyWIcmye0FZ9PzhETJ4WaT2KowJ0bbsHS+GGTV
+oCBWtJdAzVvXJqOqJ4tQj+izJODndGXI9LQ4Sfga8h94oDeb8otlAmlP+6k=
+-----END CERTIFICATE-----
+}
 
 do [
 
@@ -47,9 +74,9 @@ client: open tls://127.0.0.1:8123
 client/extra: compose [
     domain: "red-lang.org"
     ;-- temporary
-    accept-invalid-cert: false
-    disable-builtin-roots: true
-    root-cert: (cert)
+    accept-invalid-cert: (false)
+    disable-builtin-roots: (true)
+    root-cert: (root-cert)
     ;chain-cert: (chain)            ;-- maybe support chain
     min-protocol: 0302h             ;-- min protocol sslv3,
     max-protocol: 0303h             ;-- max protocol tls1.2
