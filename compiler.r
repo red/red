@@ -61,6 +61,7 @@ red: context [
 	sym-table:	   make block! 1000
 	literals:	   make block! 1000
 	declarations:  make block! 1000
+	boot-extras:   make block! 100
 	bodies:		   make block! 1000
 	ssa-names: 	   make block! 10						;-- unique names lookup table (SSA form)
 	types-cache:   make hash!  100						;-- store compiled typesets [types array name...]
@@ -258,7 +259,8 @@ red: context [
 		case [
 			pos: find extracts/currencies code [index? pos]
 			all [currencies pos: find currencies code][(index? pos) + length? extracts/currencies]
-			'else [0]
+			code = '... [0]
+			'else [throw-error ["unknown money! currency" code ", add it to the Currencies: header."]]
 		]
 	]
 	
@@ -4608,6 +4610,7 @@ red: context [
 		unless job/red-help? [clear-docstrings pc]
 		booting?: yes
 		comp-block
+		append output boot-extras
 		booting?: no
 		
 		mods: tail output
@@ -4828,6 +4831,11 @@ red: context [
 				if any [not word? c 3 <> length? form c][
 					throw-error ["invalid header currencies field:" spec]
 				]
+				append boot-extras compose [
+					block/rs-append 
+						as red-block! #get system/locale/currencies/list
+						as red-value! word/load (mold c)
+				]
 			]
 			currencies: copy spec
 		]
@@ -4895,6 +4903,7 @@ red: context [
 		clear sym-table
 		clear literals
 		clear declarations
+		clear boot-extras
 		clear bodies
 		clear actions
 		clear op-actions
