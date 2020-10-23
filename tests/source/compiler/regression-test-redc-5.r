@@ -6,7 +6,6 @@ REBOL [
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
-
 ; cd %../
 ;--separate-log-file
 
@@ -256,12 +255,12 @@ test
 		--assert 3 = load qt/output
 	
 	--test-- "#4613"
-		--compile-and-run-this "Red [] probe bug$0"
+		--compile-this "Red [] probe bug$0"
 		--assert compilation-error?
 		
 		--compile-and-run-this "Red [Currencies: [bug]] probe bug$0"
 		--assert compiled?
-		--assert "BUG$0.00" = qt/output
+		--assert bug$0 = load qt/output
 		
 		--compile-and-run-this {
 			Red [Currencies: [bug]]
