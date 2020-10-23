@@ -549,6 +549,65 @@ CERT_CHAIN_PARA: alias struct! [
 	flags				[integer!]
 ]
 
+CERT_TRUST_STATUS: alias struct! [
+	dwErrorStatus		[integer!]
+	dwInfoStatus		[integer!]
+]
+
+CERT_CHAIN_ELEMENT: alias struct! [
+	cbSize				[integer!]
+	pCertContext		[CERT_CONTEXT]
+	TrustStatus			[CERT_TRUST_STATUS value]
+	pRevocationInfo		[int-ptr!]
+	pIssuanceUsage		[CERT_ENHKEY_USAGE]
+	pApplicationUsage	[CERT_ENHKEY_USAGE]
+	ErrorInfo			[byte-ptr!]
+]
+
+CERT_SIMPLE_CHAIN: alias struct! [
+	cbSize				[integer!]
+	TrustStatus			[CERT_TRUST_STATUS value]
+	cElement			[integer!]
+	rgpElement			[int-ptr!]
+	pTrustListInfo		[integer!]
+	has-time			[logic!]
+	time				[integer!]
+]
+
+CERT_CHAIN_CONTEXT: alias struct! [
+	cbSize				[integer!]
+	TrustStatus			[CERT_TRUST_STATUS value]
+	cChain				[integer!]
+	rgpChain			[int-ptr!]
+	cLower				[integer!]
+	rgpLower			[int-ptr!]
+	has-time			[logic!]
+	time				[integer!]
+	flags				[integer!]
+	ChainId				[tagGUID value]
+]
+
+CERT_CHAIN_POLICY_PARA: alias struct! [
+	cbSize				[integer!]
+	flags				[integer!]
+	extra				[byte-ptr!]
+]
+
+HTTPSPolicyCallbackData: alias struct! [
+	cbSize				[integer!]
+	dwAuthType			[integer!]
+	fdwChecks			[integer!]
+	pwszServerName		[byte-ptr!]
+]
+
+CERT_CHAIN_POLICY_STATUS: alias struct! [
+	cbSize				[integer!]
+	dwError				[integer!]
+	lChainIndex			[integer!]
+	lElementIndex		[integer!]
+	pvExtraPolicyStatus	[byte-ptr!]
+]
+
 AcquireCredentialsHandleW!: alias function! [
 	pszPrincipal		[c-string!]
 	pszPackage			[c-string!]
@@ -1364,6 +1423,13 @@ DNS_RECORD!: alias struct! [
 			flags				[integer!]
 			reserved			[integer!]
 			pChain				[int-ptr!]
+			return:				[logic!]
+		]
+		CertVerifyCertificateChainPolicy: "CertVerifyCertificateChainPolicy" [
+			iod					[int-ptr!]
+			pChainContext		[CERT_CHAIN_CONTEXT]
+			pPolicyPara			[CERT_CHAIN_POLICY_PARA]
+			pPolicyStatus		[CERT_CHAIN_POLICY_STATUS]
 			return:				[logic!]
 		]
 		CryptStringToBinaryA: "CryptStringToBinaryA" [

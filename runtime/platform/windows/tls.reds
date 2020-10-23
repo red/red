@@ -56,6 +56,19 @@ Red/System [
 #define CERT_CHAIN_REVOCATION_CHECK_CACHE_ONLY 80000000h
 #define CERT_CHAIN_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT 40000000h
 
+
+#define CERT_CHAIN_POLICY_ALLOW_UNKNOWN_CA_FLAG 00000010h
+#define CERT_CHAIN_POLICY_IGNORE_END_REV_UNKNOWN_FLAG 00000100h
+#define CERT_CHAIN_POLICY_IGNORE_CTL_SIGNER_REV_UNKNOWN_FLAG 00000200h
+#define CERT_CHAIN_POLICY_IGNORE_CA_REV_UNKNOWN_FLAG 00000400h
+#define CERT_CHAIN_POLICY_IGNORE_ROOT_REV_UNKNOWN_FLAG 00000800h
+#define CERT_CHAIN_POLICY_IGNORE_ALL_REV_UNKNOWN_FLAGS [
+	CERT_CHAIN_POLICY_IGNORE_END_REV_UNKNOWN_FLAG or
+	CERT_CHAIN_POLICY_IGNORE_CTL_SIGNER_REV_UNKNOWN_FLAG or
+	CERT_CHAIN_POLICY_IGNORE_CA_REV_UNKNOWN_FLAG or
+	CERT_CHAIN_POLICY_IGNORE_ROOT_REV_UNKNOWN_FLAG
+]
+
 #define SecIsValidHandle(x)	[
 	all [x/dwLower <> (as int-ptr! -1) x/dwUpper <> (as int-ptr! -1)]
 ]
@@ -446,6 +459,34 @@ tls: context [
 		true
 	]
 
+	ctx-equal?: func [
+		ctx1		[CERT_CONTEXT]
+		ctx2		[CERT_CONTEXT]
+		return:		[logic!]
+	][
+		if ctx1/cbCertEncoded <> ctx2/cbCertEncoded [return false]
+		0 = compare-memory ctx1/pbCertEncoded ctx2/pbCertEncoded ctx1/cbCertEncoded
+	]
+
+	find-ctx?: func [
+		store		[handle!]
+		cmp			[CERT_CONTEXT]
+		return:		[logic!]
+		/local
+			ctx		[CERT_CONTEXT]
+	][
+		ctx: null
+		while [
+			ctx: CertEnumCertificatesInStore store ctx
+			not null? ctx
+		][
+			if ctx-equal? ctx cmp [
+				return true
+			]
+		]
+		false
+	]
+
 	get-domain: func [
 		data		[tls-data!]
 		return:		[c-string!]
@@ -656,8 +697,19 @@ tls: context [
 			store		[handle!]
 			para		[CERT_CHAIN_PARA value]
 			flags		[integer!]
+			user?		[logic!]
 			ids			[int-ptr!]
 			cert-chain	[integer!]
+			chain		[CERT_CHAIN_CONTEXT]
+			last-chain	[CERT_SIMPLE_CHAIN]
+			index		[integer!]
+			elem-n		[integer!]
+			elem		[int-ptr!]
+			elem-p		[CERT_CHAIN_ELEMENT]
+			extra_para	[HTTPSPolicyCallbackData value]
+			domain		[red-string!]
+			policy		[CERT_CHAIN_POLICY_PARA value]
+			status		[CERT_CHAIN_POLICY_STATUS value]
 	][
 		values: object/get-values data/port
 		extra: as red-block! values + port/field-extra
@@ -707,15 +759,66 @@ tls: context [
 			   CERT_CHAIN_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT
 		cert-chain: 0
 		unless CertGetCertificateChain null ctx null store para flags null :cert-chain [
-			print "get error: "
+			print "CertGetCertificateChain error: "
 			print-line as int-ptr! GetLastError
 			CertCloseStore store 0
 			return false
 		]
-		
+		flags: CERT_CHAIN_POLICY_IGNORE_ALL_REV_UNKNOWN_FLAGS
+		user?: no
+		chain: as CERT_CHAIN_CONTEXT cert-chain
+		unless null? data/root-store [
+			index: chain/cChain
+			if index > 0 [
+				last-chain: as CERT_SIMPLE_CHAIN chain/rgpChain/index
+				elem-n: last-chain/cElement
+				elem: last-chain/rgpElement
+				loop elem-n [
+					elem-p: as CERT_CHAIN_ELEMENT elem/1
+					if find-ctx? data/root-store elem-p/pCertContext [
+						user?: yes
+					]
+					elem: elem + 1
+				]
+			]
+		]
+		if all [not-sys not user?] [
+			CertCloseStore store 0
+			return false
+		]
+		if user? [
+			flags: flags or CERT_CHAIN_POLICY_ALLOW_UNKNOWN_CA_FLAG
+		]
+		set-memory as byte-ptr! extra_para null-byte size? HTTPSPolicyCallbackData
+		extra_para/cbSize: size? HTTPSPolicyCallbackData
+		extra_para/dwAuthType: 2		;-- AUTHTYPE_SERVER
+		domain: as red-string! block/select-word extra word/load "domain" no
+		if TYPE_OF(domain) = TYPE_STRING [
+			extra_para/pwszServerName: as byte-ptr! unicode/to-utf16 domain
+		]
+		policy/cbSize: size? CERT_CHAIN_POLICY_PARA
+		policy/flags: flags
+		policy/extra: as byte-ptr! extra_para
+		set-memory as byte-ptr! status null-byte size? CERT_CHAIN_POLICY_STATUS
+		status/cbSize: size? CERT_CHAIN_POLICY_STATUS
+
+		;-- CERT_CHAIN_POLICY_SSL
+		unless CertVerifyCertificateChainPolicy as int-ptr! 4 chain policy status [
+			print "CertVerifyCertificateChainPolicy error: "
+			print-line as int-ptr! GetLastError
+			CertCloseStore store 0
+			return false
+		]
+
+		if status/dwError <> 0 [
+			print "CertVerifyCertificateChainPolicy failed: "
+			print-line as int-ptr! status/dwError
+			CertCloseStore store 0
+			return false
+		]
 
 		CertCloseStore store 0
-		false
+		true
 	]
 
 	negotiate: func [
