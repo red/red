@@ -227,14 +227,6 @@ test
 	--test-- "#3891"
 		--compile-and-run-this-red {probe load "a<=>"}
 		--assert not crashed?
-	
-	--test-- "#4526"
-		--compile-and-run-this {
-			Red []
-			do bind [probe 1 ** 2] context [**: make op! func [x y][x + y]]
-		}
-		--assert compiled?
-		--assert 3 = load qt/output
 		
 ===end-group===
 
@@ -250,7 +242,35 @@ test
 		}
 		--assert not crashed?
 		--assert true? find qt/output "boom"
+		
+===end-group===
 
+===start-group=== "Red regressions #4501 - #5000"
+
+	--test-- "#4526"
+		--compile-and-run-this {
+			Red []
+			do bind [probe 1 ** 2] context [**: make op! func [x y][x + y]]
+		}
+		--assert compiled?
+		--assert 3 = load qt/output
+	
+	--test-- "#4613"
+		--compile-and-run-this "Red [] probe bug$0"
+		--assert compilation-error?
+		
+		--compile-and-run-this "Red [Currencies: [bug]] probe bug$0"
+		--assert compiled?
+		--assert "BUG$0.00" = qt/output
+		
+		--compile-and-run-this {
+			Red [Currencies: [bug]]
+			append system/locale/currencies/list 'bug
+			probe bug$0
+		}
+		--assert compiled?
+		--assert script-error?
+		
 ===end-group===
 
 ~~~end-file~~~ 
