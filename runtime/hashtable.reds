@@ -772,7 +772,7 @@ _hashtable: context [
 			;@@ if h/n-buckets > new-buckets []			;-- shrink the hash table
 			h/flags: new-flags-node
 			h/n-buckets: new-buckets
-			h/n-occupied: h/size
+			if h/type <> HASH_TABLE_MAP [h/n-occupied: h/size]
 			h/upper-bound: new-size
 		]
 	]
