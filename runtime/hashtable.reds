@@ -31,7 +31,7 @@ array: context [
 			s	[series!]
 	][
 		s: as series! node/value
-		s/offset: s/tail
+		s/tail: s/offset
 	]
 
 	append-int: func [
@@ -1352,6 +1352,21 @@ _hashtable: context [
 		hh/keys: copy-series as series! h/keys/value
 		hh/blk: blk
 		new
+	]
+
+	clear-map: func [
+		node	[node!]
+		/local
+			s	[series!]
+			h	[hashtable!]
+	][
+		s: as series! node/value
+		h: as hashtable! s/offset
+		h/size: 0
+		h/n-occupied: 0
+		array/clear h/blk
+		s: as series! h/flags/value
+		fill as byte-ptr! s/offset as byte-ptr! s/tail #"^(AA)"
 	]
 
 	clear: func [				;-- only for clear hash! datatype
