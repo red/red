@@ -54,6 +54,21 @@ Red [
   
 ===end-group===
 
+===start-group=== "advanced repeat tests"
+
+	--test-- "repeat counter mess"
+  		rcm-n: 0
+		repeat rcm-i 10 [
+			repeat rcm-i 5 [
+				rcm-i: rcm-i + 3
+				rcm-n: rcm-n + 1
+			]
+		]
+		--assert 50 = rcm-n
+		unset [rcm-i rcm-n]
+
+===end-group===
+
 ===start-group=== "basic until tests"
 
   --test-- "bu1"
@@ -240,7 +255,20 @@ Red [
     ]
     issue427-f
   --assert 15 = issue427-acc
-  
+
+	--test-- "issue #3361"
+  		s3361: copy []
+		f3361: func [n /local i] [
+			repeat i 3 [
+				repend s3361 [n i]
+				all [i = 1 n = 1 f3361 2]
+				all [i = 2 n = 2 f3361 3]
+			]
+		]
+		f3361 1
+		--assert s3361 = [1 1  2 1 2 2  3 1 3 2 3 3  2 3  1 2 1 3]
+		unset [f3361 s3361]
+
 ===end-group===
     
 ~~~end-file~~~

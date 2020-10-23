@@ -2471,13 +2471,15 @@ red: context [
 		]
 		foreach idx [-2 -5 -7 -8][insert-lf idx]
 		emit-stack-reset
-		
+
+		emit [integer/push 0]		
 		emit-open-frame 'repeat
 		emit compose/deep [
 			while [
 				;-- set word 1 + get word
 				;-- TBD: set word next get word
-				(set-cnt) (cnt) + 1
+				(set-cnt) 1 + integer/get stack/arguments - 1	;-- fixes #3361
+				integer/make-at stack/arguments - 1 (cnt)
 				;-- (get word) < value
 				;-- TBD: not tail? get word
 				(cnt) <= (lim)
@@ -2491,6 +2493,7 @@ red: context [
 		pop-call
 		insert last output reduce [action name cnt]
 		new-line last output on
+		emit [copy-cell stack/arguments stack/arguments - 1]	;-- override the counter with the body result
 		emit-close-frame
 		emit-close-frame
 		depth: depth - 1
