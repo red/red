@@ -71,13 +71,12 @@ print "Secure TCP client"
 client: open tls://127.0.0.1:8123
 ;client: open tls://192.168.1.15:8123
 
-client/extra: compose [
+client/extra: compose/deep [
     domain: "red-lang.org"
     ;-- temporary
     accept-invalid-cert: (false)
     disable-builtin-roots: (true)
-    root-cert: (root-cert)
-    ;chain-cert: (chain)            ;-- maybe support chain
+    roots: [(root-cert)]
     min-protocol: 0302h             ;-- min protocol sslv3,
     max-protocol: 0303h             ;-- max protocol tls1.2
 ]

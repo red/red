@@ -50,6 +50,12 @@ Red/System [
 #define SP_PROT_DEFAULT_SERVER			[SP_PROT_TLS1_2_SERVER or SP_PROT_TLS1_3_SERVER]
 #define SP_PROT_DEFAULT_CLINET			[SP_PROT_TLS1_2_CLIENT or SP_PROT_TLS1_3_CLIENT]
 
+#define USAGE_MATCH_TYPE_OR				00000001h
+
+#define CERT_CHAIN_CACHE_END_CERT		00000001h
+#define CERT_CHAIN_REVOCATION_CHECK_CACHE_ONLY 80000000h
+#define CERT_CHAIN_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT 40000000h
+
 #define SecIsValidHandle(x)	[
 	all [x/dwLower <> (as int-ptr! -1) x/dwUpper <> (as int-ptr! -1)]
 ]
@@ -411,7 +417,7 @@ tls: context [
 		values: object/get-values data/port
 		extra: as red-block! values + port/field-extra
 		if TYPE_OF(extra) <> TYPE_BLOCK [return false]
-		roots: as red-block! block/select-word extra word/load "root" no
+		roots: as red-block! block/select-word extra word/load "roots" no
 		if TYPE_OF(roots) = TYPE_BLOCK [
 			store: CertOpenStore 2 0 null 0 null				;-- CERT_STORE_PROV_MEMORY
 			if null? store [return false]
@@ -438,52 +444,6 @@ tls: context [
 			data/root-store: store
 		]
 		true
-	]
-
-	get-certs: func [
-		store		[handle!]
-		plen		[int-ptr!]
-		return:		[int-ptr!]
-		/local
-			ctx		[CERT_CONTEXT]
-			size	[integer!]
-			cnt		[integer!]
-			certs	[int-ptr!]
-			p		[int-ptr!]
-	][
-		if null? store [
-			plen/1: 0
-			return null
-		]
-		ctx: null
-		size: 0
-		until [
-			ctx: CertEnumCertificatesInStore store ctx
-			size: size + 1
-			null? ctx
-		]
-		cnt: size - 1
-		if cnt <= 0 [
-			plen/1: 0
-			return null
-		]
-		plen/1: cnt
-		certs: as int-ptr! allocate size * 4
-		p: certs
-		ctx: null
-		loop size [
-			ctx: CertEnumCertificatesInStore store ctx
-			p/1: as integer! ctx
-			p: p + 1
-			null? ctx
-		]
-		certs
-	]
-
-	free-certs: func [
-		certs		[int-ptr!]
-	][
-		free as byte-ptr! certs
 	]
 
 	get-domain: func [
@@ -662,8 +622,26 @@ tls: context [
 		platform/SSPI/DeleteSecurityContext :data/security
 	]
 
+	merge-store: func [
+		from		[handle!]
+		to			[handle!]
+		/local
+			ctx		[CERT_CONTEXT]
+	][
+		ctx: null
+		while [
+			ctx: CertEnumCertificatesInStore from ctx
+			not null? ctx
+		][
+			unless CertAddCertificateContextToStore to ctx CERT_STORE_ADD_REPLACE_EXISTING null [
+				IODebug("merge cert failed!!!")
+			]
+		]
+	]
+
 	validate?: func [
 		data		[tls-data!]
+		sec-handle	[SecHandle!]
 		return:		[logic!]
 		/local
 			values		[red-value!]
@@ -671,7 +649,15 @@ tls: context [
 			invalid?	[red-logic!]
 			builtin?	[red-logic!]
 			not-sys		[logic!]
-			add-store	[handle!]
+			rctx		[integer!]
+			ret			[integer!]
+			ctx			[CERT_CONTEXT]
+			rstore		[handle!]
+			store		[handle!]
+			para		[CERT_CHAIN_PARA value]
+			flags		[integer!]
+			ids			[int-ptr!]
+			cert-chain	[integer!]
 	][
 		values: object/get-values data/port
 		extra: as red-block! values + port/field-extra
@@ -686,6 +672,49 @@ tls: context [
 			TYPE_OF(builtin?) = TYPE_LOGIC
 			builtin?/value
 		][not-sys: true][not-sys: false]
+		if all [
+			not-sys
+			null? data/root-store
+		][return false]
+		rctx: 0
+		ret: platform/SSPI/QueryContextAttributesW
+			sec-handle
+			53h			;-- SECPKG_ATTR_REMOTE_CERT_CONTEXT
+			as byte-ptr! :rctx
+		if ret <> 0 [return false]
+		if rctx = 0 [return false]
+		ctx: as CERT_CONTEXT rctx
+		rstore: ctx/hCertStore
+		either null? rstore [
+			store: CertOpenStore 2 0 null 0 null				;-- CERT_STORE_PROV_MEMORY
+		][
+			store: CertDuplicateStore rstore
+		]
+		unless null? data/root-store [
+			merge-store data/root-store store
+		]
+		set-memory as byte-ptr! para null-byte size? CERT_CHAIN_PARA
+		para/cbSize: size? CERT_CHAIN_PARA
+		para/usage/type: USAGE_MATCH_TYPE_OR
+		ids: system/stack/allocate 3
+		ids/1: as integer! "1.3.6.1.5.5.7.3.1"
+		ids/2: as integer! "1.3.6.1.4.1.311.10.3.3"
+		ids/3: as integer! "2.16.840.1.113730.4.1"
+		para/usage/usage/cUsageIdentifier: 1
+		para/usage/usage/rgpszUsageIdentifier: ids
+		flags: CERT_CHAIN_CACHE_END_CERT or
+			   CERT_CHAIN_REVOCATION_CHECK_CACHE_ONLY or
+			   CERT_CHAIN_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT
+		cert-chain: 0
+		unless CertGetCertificateChain null ctx null store para flags null :cert-chain [
+			print "get error: "
+			print-line as int-ptr! GetLastError
+			CertCloseStore store 0
+			return false
+		]
+		
+
+		CertCloseStore store 0
 		false
 	]
 
@@ -851,7 +880,10 @@ tls: context [
 
 					if ret = SEC_OK [
 						if client? [
-							unless validate? data [return 0]
+							if null? data/root-store [
+								store-roots data
+							]
+							unless validate? data sec-handle [return 0]
 						]
 						data/state: state or IO_STATE_TLS_DONE
 						platform/SSPI/QueryContextAttributesW

@@ -523,7 +523,30 @@ SecPkgContext_StreamSizes: alias struct! [
 
 CERT_ENHKEY_USAGE: alias struct! [
 	cUsageIdentifier		[integer!]
-	rgpszUsageIdentifier	[c-string!]
+	rgpszUsageIdentifier	[int-ptr!]
+]
+
+CERT_STRONG_SIGN_PARA: alias struct! [
+	cbSize				[integer!]
+	choice				[integer!]
+	u					[int-ptr!]
+]
+
+CERT_USAGE_MATCH: alias struct! [
+	type				[integer!]
+	usage				[CERT_ENHKEY_USAGE value]
+]
+
+CERT_CHAIN_PARA: alias struct! [
+	cbSize				[integer!]
+	usage				[CERT_USAGE_MATCH value]
+	policy				[CERT_USAGE_MATCH value]
+	timeout				[integer!]
+	check-time			[logic!]
+	time				[integer!]
+	resync				[tagFILETIME]
+	strong				[CERT_STRONG_SIGN_PARA]
+	flags				[integer!]
 ]
 
 AcquireCredentialsHandleW!: alias function! [
@@ -1274,6 +1297,10 @@ DNS_RECORD!: alias struct! [
 			flags				[integer!]
 			return:				[logic!]
 		]
+		CertDuplicateStore: "CertDuplicateStore" [
+			store				[int-ptr!]
+			return:				[int-ptr!]
+		]
 		CertEnumCertificatesInStore: "CertEnumCertificatesInStore" [
 			store				[int-ptr!]
 			ctx					[CERT_CONTEXT]
@@ -1326,6 +1353,17 @@ DNS_RECORD!: alias struct! [
 			propID				[integer!]
 			pvData				[byte-ptr!]
 			pcbData				[int-ptr!]
+			return:				[logic!]
+		]
+		CertGetCertificateChain: "CertGetCertificateChain" [
+			engine				[int-ptr!]
+			ctx					[CERT_CONTEXT]
+			time				[int-ptr!]
+			add-store			[int-ptr!]
+			para				[CERT_CHAIN_PARA]
+			flags				[integer!]
+			reserved			[integer!]
+			pChain				[int-ptr!]
 			return:				[logic!]
 		]
 		CryptStringToBinaryA: "CryptStringToBinaryA" [
