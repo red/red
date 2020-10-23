@@ -4834,7 +4834,7 @@ red: context [
 				append boot-extras compose [
 					block/rs-append 
 						as red-block! #get system/locale/currencies/list
-						as red-value! word/load (mold c)
+						as red-value! word/load (uppercase mold c)
 				]
 			]
 			currencies: copy spec
