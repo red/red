@@ -254,7 +254,23 @@ test
 		}
 		--assert compiled?
 		--assert 3 = load qt/output
-
+	
+	--test-- "#4613"
+		--compile-and-run-this "Red [] probe bug$0"
+		--assert compilation-error?
+		
+		--compile-and-run-this "Red [Currencies: [bug]] probe bug$0"
+		--assert compiled?
+		--assert "BUG$0.00" = qt/output
+		
+		--compile-and-run-this {
+			Red [Currencies: [bug]]
+			append system/locale/currencies/list 'bug
+			probe bug$0
+		}
+		--assert compiled?
+		--assert script-error?
+		
 ===end-group===
 
 ~~~end-file~~~ 
