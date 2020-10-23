@@ -405,7 +405,6 @@
 	red/string/make-at
 	red/unicode/load-utf8-buffer
 	red/ownership/bind
-	red/integer/make-at
 	red/string/load
 	red/set-type
 	red/unicode/load-utf8-stream
