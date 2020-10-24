@@ -69,6 +69,8 @@ Red/System [
 	CERT_CHAIN_POLICY_IGNORE_ROOT_REV_UNKNOWN_FLAG
 ]
 
+#define CERT_CHAIN_POLICY_SSL			4
+
 #define SecIsValidHandle(x)	[
 	all [x/dwLower <> (as int-ptr! -1) x/dwUpper <> (as int-ptr! -1)]
 ]
@@ -802,8 +804,7 @@ tls: context [
 		set-memory as byte-ptr! status null-byte size? CERT_CHAIN_POLICY_STATUS
 		status/cbSize: size? CERT_CHAIN_POLICY_STATUS
 
-		;-- CERT_CHAIN_POLICY_SSL
-		unless CertVerifyCertificateChainPolicy as int-ptr! 4 chain policy status [
+		unless CertVerifyCertificateChainPolicy as int-ptr! CERT_CHAIN_POLICY_SSL chain policy status [
 			print "CertVerifyCertificateChainPolicy error: "
 			print-line as int-ptr! GetLastError
 			CertCloseStore store 0
