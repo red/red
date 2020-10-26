@@ -40,10 +40,12 @@ do [if all [system/view value? 'image! datatype? get 'image!] [
 	--test-- "dwim1" --assert i = draw i/size [image i]
 	--test-- "dwim2" --assert i = draw i/size [matrix [1 0 0 1 0 0] image i]
 	
-	--test-- "dwim3" --assert i' = draw i/size [matrix [0 1 -1 0 4 0] image i]	; clockwise rot 90
+	if  system/platform <> 'macOS [
+		--test-- "dwim3" --assert i' = draw i/size [matrix [0 1 -1 0 4 0] image i]	; clockwise rot 90
+		--test-- "dwim5" --assert i' = draw i/size [reset-matrix matrix [0 1 -1 0 4 0] image i]
+	]
 	--test-- "dwim4" --assert i = draw i/size [matrix [0 -1 1 0 0 4] image i']	; counter-clockwise
-	
-	--test-- "dwim5" --assert i' = draw i/size [reset-matrix matrix [0 1 -1 0 4 0] image i]
+
 	--test-- "dwim6" --assert i = draw i/size [reset-matrix matrix [0 -1 1 0 0 4] image i']
 	
 	--test-- "dwim7" --assert i'' = draw i/size [clip 1x1 4x4 image i']
