@@ -1381,6 +1381,15 @@ DNS_RECORD!: alias struct! [
 			pPrevCertContext	[CERT_CONTEXT]
 			return:				[CERT_CONTEXT]
 		]
+		CertGetNameStringA: "CertGetNameStringA" [
+			ctx					[CERT_CONTEXT]
+			type				[integer!]
+			flags				[integer!]
+			para				[int-ptr!]
+			name				[c-string!]
+			len					[integer!]
+			return:				[integer!]
+		]
 		CertCreateCertificateContext: "CertCreateCertificateContext" [
 			dwCertEncodingType	[integer!]
 			pbCertEncoded		[byte-ptr!]

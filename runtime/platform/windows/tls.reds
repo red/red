@@ -682,6 +682,16 @@ tls: context [
 		]
 	]
 
+	print-ctx: func [
+		ctx		[CERT_CONTEXT]
+		/local
+			buf	[c-string!]
+	][
+		buf: as c-string! system/stack/allocate 64
+		CertGetNameStringA ctx 4 0 null buf 256
+		print-line buf
+	]
+
 	validate?: func [
 		data		[tls-data!]
 		sec-handle	[SecHandle!]
