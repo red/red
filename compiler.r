@@ -3899,6 +3899,7 @@ red: context [
 					pc: back pc
 					throw-error ["undefined word" pc/1]
 				][
+					add-symbol to word! first back pc
 					do emit-word
 				]
 			]
