@@ -854,6 +854,24 @@ errno: as int-ptr! 0
 			ctx		[int-ptr!]
 			return: [integer!]
 		]
+		SSL_CTX_set_verify: "SSL_CTX_set_verify" [
+			ctx		[int-ptr!]
+			mode	[integer!]
+			cb		[int-ptr!]
+		]
+		SSL_CTX_set_cert_store: "SSL_CTX_set_cert_store" [
+			ctx		[int-ptr!]
+			store	[int-ptr!]
+		]
+		SSL_CTX_get_cert_store: "SSL_CTX_get_cert_store" [
+			ctx		[int-ptr!]
+			return:	[int-ptr!]
+		]
+		X509_STORE_add_cert: "X509_STORE_add_cert" [
+			store	[int-ptr!]
+			x509	[int-ptr!]
+			return:	[integer!]
+		]
 		SSL_get_shutdown: "SSL_get_shutdown" [
 			ssl		[int-ptr!]
 			return: [integer!]
@@ -976,6 +994,9 @@ errno: as int-ptr! 0
 			pkey	[int-ptr!]
 			m		[int-ptr!]
 			return: [integer!]
+		]
+		X509_STORE_new: "X509_STORE_new" [
+			return: [int-ptr!]
 		]
 		EVP_sha1: "EVP_sha1" [
 			return: [int-ptr!]

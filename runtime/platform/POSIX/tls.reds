@@ -169,6 +169,68 @@ tls: context [
 		not first?
 	]
 
+	store-roots: func [
+		data		[tls-data!]
+		ssl_ctx		[int-ptr!]
+		return:		[logic!]
+		/local
+			values	[red-value!]
+			extra	[red-block!]
+			accept?	[red-logic!]
+			builtin? [red-logic!]
+			roots	[red-block!]
+			store	[int-ptr!]
+			head	[red-string!]
+			tail	[red-string!]
+			len		[integer!]
+			str		[c-string!]
+			bio		[int-ptr!]
+			x509	[int-ptr!]
+	][
+		values: object/get-values data/port
+		extra: as red-block! values + port/field-extra
+		if TYPE_OF(extra) <> TYPE_BLOCK [return false]
+		accept?: as red-logic! block/select-word extra word/load "accept-invalid-cert" no
+		if all [
+			TYPE_OF(accept?) = TYPE_LOGIC
+			accept?/value
+		][
+			SSL_CTX_set_verify ssl_ctx 0 null
+			return true
+		]
+		builtin?: as red-logic! block/select-word extra word/load "disable-builtin-roots" no
+		if all [
+			TYPE_OF(builtin?) = TYPE_LOGIC
+			builtin?/value
+		][
+			store: X509_STORE_new
+			SSL_CTX_set_cert_store ssl_ctx store
+		]
+		roots: as red-block! block/select-word extra word/load "roots" no
+		if TYPE_OF(roots) = TYPE_BLOCK [
+			store: SSL_CTX_get_cert_store ssl_ctx
+			head: as red-string! block/rs-head roots
+			tail: as red-string! block/rs-tail roots
+			while [head < tail][
+				if TYPE_OF(head) = TYPE_STRING [
+					len: -1
+					str: unicode/to-utf8 head :len
+
+					bio: BIO_new_mem_buf str len
+					if null? bio [head: head + 1 continue]
+					x509: PEM_read_bio_X509 bio null null null
+					BIO_free bio
+					if null? x509 [
+						head: head + 1 continue
+					]
+					X509_STORE_add_cert store x509
+				]
+				head: head + 1
+			]
+		]
+		true
+	]
+
 	get-domain: func [
 		data		[tls-data!]
 		return:		[c-string!]
@@ -218,6 +280,7 @@ tls: context [
 						SSL_CTX_use_certificate server-ctx cert
 						SSL_CTX_use_PrivateKey server-ctx pk
 					]
+					store-roots td server-ctx
 					SSL_CTX_set_mode(server-ctx 5)
 					SSL_CTX_set_cipher_list server-ctx "ECDHE+AES:@STRENGTH:+AES256"
 				]
