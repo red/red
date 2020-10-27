@@ -1109,6 +1109,7 @@ red: context [
 			any [
 				word! 		(return no)
 				| lit-word! (return yes)
+				| get-word! (return yes)
 				| /local	(return no)
 				| skip
 			]
