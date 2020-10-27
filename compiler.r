@@ -1206,6 +1206,7 @@ red: context [
 		][
 			pos/1: none
 		]
+		true
 	]
 	
 	check-func-name: func [name [word!] /local new pos][
@@ -3778,6 +3779,7 @@ red: context [
 			all [
 				any [word? pc/1 all [path? pc/1 not get-word? pc/1/1]]
 				do take-frame
+				any [not find [object context construct] pc/1 check-redefined name original]
 				defer: dispatch-ctx-keywords/with original pc/1
 			][]
 			'else [
