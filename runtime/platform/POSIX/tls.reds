@@ -133,6 +133,7 @@ tls: context [
 		/local
 			values	[red-value!]
 			extra	[red-block!]
+			proto	[red-integer!]
 			certs	[red-block!]
 			head	[red-string!]
 			tail	[red-string!]
@@ -143,6 +144,14 @@ tls: context [
 		values: object/get-values data/port
 		extra: as red-block! values + port/field-extra
 		if TYPE_OF(extra) <> TYPE_BLOCK [return false]
+		proto: as red-integer! block/select-word extra word/load "min-protocol" no
+		if TYPE_OF(proto) = TYPE_INTEGER [
+			SSL_CTX_ctrl ssl_ctx SSL_CTRL_SET_MIN_PROTO_VERSION proto/value null
+		]
+		proto: as red-integer! block/select-word extra word/load "max-protocol" no
+		if TYPE_OF(proto) = TYPE_INTEGER [
+			SSL_CTX_ctrl ssl_ctx SSL_CTRL_SET_MAX_PROTO_VERSION proto/value null
+		]
 		certs: as red-block! block/select-word extra word/load "certs" no
 		if TYPE_OF(certs) <> TYPE_BLOCK [return false]
 		head: as red-string! block/rs-head certs

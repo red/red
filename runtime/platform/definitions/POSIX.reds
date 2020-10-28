@@ -867,9 +867,8 @@ errno: as int-ptr! 0
 			ctx		[int-ptr!]
 			return:	[int-ptr!]
 		]
-		X509_STORE_add_cert: "X509_STORE_add_cert" [
-			store	[int-ptr!]
-			x509	[int-ptr!]
+		SSL_get_verify_result: "SSL_get_verify_result" [
+			ssl		[int-ptr!]
 			return:	[integer!]
 		]
 		SSL_get_shutdown: "SSL_get_shutdown" [
@@ -943,6 +942,11 @@ errno: as int-ptr! 0
 		X509_get_serialNumber: "X509_get_serialNumber" [
 			a		[int-ptr!]
 			return: [int-ptr!]
+		]
+		X509_STORE_add_cert: "X509_STORE_add_cert" [
+			store	[int-ptr!]
+			x509	[int-ptr!]
+			return:	[integer!]
 		]
 		ASN1_INTEGER_set: "ASN1_INTEGER_set" [
 			a		[int-ptr!]
