@@ -253,6 +253,10 @@ test
 		}
 		--assert compiled?
 		--assert 3 = load qt/output
+
+	--test-- "#4568"
+		--compile-this {Red [Config: [red-strict-check?: off]] :foo}
+		--assert compiled?
 	
 	--test-- "#4613"
 		--compile-this "Red [] probe bug$0"
