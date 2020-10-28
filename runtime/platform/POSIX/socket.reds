@@ -72,7 +72,7 @@ socket: context [
 	][
 		ret: LibC.listen sock backlog
 		data/event: IO_EVT_ACCEPT
-		data/state: EPOLLIN
+		data/state: data/state or EPOLLIN
 		iocp/add data/io-port sock EPOLLIN or EPOLLET data
 		ret
 	]
@@ -134,7 +134,7 @@ socket: context [
 		saddr/sa_data1: 0
 		saddr/sa_data2: 0
 		either zero? LibC.connect sock as int-ptr! :saddr size? saddr [
-			data/state: IO_STATE_CONNECTED
+			data/state: data/state or IO_STATE_CONNECTED
 			iocp/post data/io-port data
 		][
 			ret: errno/value
@@ -143,7 +143,7 @@ socket: context [
 				EINPROGRESS	
 				EAGAIN
 				EALREADY [
-					data/state: EPOLLOUT
+					data/state: data/state or EPOLLOUT
 					iocp/add data/io-port sock EPOLLOUT or EPOLLET data
 				]
 				default [
@@ -164,7 +164,7 @@ socket: context [
 		either zero? LibC.connect sock as int-ptr! saddr addr-sz [
 			iocp/post data/io-port data
 		][
-			data/state: EPOLLOUT
+			data/state: data/state or EPOLLOUT
 			iocp/add data/io-port sock EPOLLOUT or EPOLLET data
 		]
 	]
@@ -216,7 +216,7 @@ probe ["socket/recv " n " state: " state]
 				data/read-buflen: length
 				case [
 					zero? (state and IO_STATE_RW) [
-						data/state: IO_STATE_PENDING_READ
+						data/state: state or IO_STATE_PENDING_READ
 						iocp/add data/io-port sock EPOLLIN or EPOLLET data
 					]
 					state and EPOLLIN = 0 [
