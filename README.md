@@ -11,9 +11,9 @@ Red Programming Language
 
 **Red** is a new programming language strongly inspired by [Rebol](http://rebol.com), but with a broader field of usage thanks to its native-code compiler, from system programming to high-level scripting, while providing modern support for concurrency and multi-core CPUs.
 
-Red has its own complete cross-platform toolchain, featuring two compilers, an interpreter and a linker, not depending on any third-party library, except for a Rebol2 interpreter, required during the bootstrap phase. Once complete, Red will be [self-hosted](http://en.wikipedia.org/wiki/Self-hosting).
+Red has its own complete cross-platform toolchain, featuring two compilers, an interpreter, and a linker, not depending on any third-party library, except for a Rebol2 interpreter, required during the bootstrap phase. Once complete, Red will be [self-hosted](http://en.wikipedia.org/wiki/Self-hosting).
 
-The Red software stack also contains another language, **Red/System**, which is a low-level dialect of Red. It is a limited C-level language with a Red look'n feel, required to build Red's runtime library and be the target language of Red's compiler. More information at [red-lang.org](http://www.red-lang.org).
+The Red software stack also contains another language, **Red/System**, which is a low-level dialect of Red. It is a limited C-level language with a Red look'n' feel, required to build Red's runtime library and be the target language of Red's compiler. More information at [red-lang.org](http://www.red-lang.org).
 
 Making a Red "Hello World"
 ------------------------
@@ -191,7 +191,7 @@ The compiler and linker are currently written in Rebol. Please follow the instru
 
 1. Download a Rebol interpreter suitable for your OS: [Windows](http://www.rebol.com/downloads/v278/rebol-core-278-3-1.exe), [Linux](http://www.maxvessi.net/rebsite/Linux/) (or [Linux](http://www.rebol.com/downloads/v278/rebol-core-278-4-2.tar.gz)), [Mac OS X](http://www.rebol.com/downloads/v278/rebol-core-278-2-5.tar.gz), [FreeBSD](http://www.rebol.com/downloads/v278/rebol-core-278-7-2.tar.gz), [OpenBSD](http://www.rebol.com/downloads/v278/rebol-core-278-9-4.tar.gz), [Solaris](http://www.rebol.com/downloads/v276/rebol-core-276-10-1.gz).
 
-1. Extract the `rebol` binary, put it in root folder, that's all!
+1. Extract the `rebol` binary, put it in the root folder, that's all!
 
 1. Let's test it: run `./rebol`, you'll see a `>>` prompt appear. Windows users need to double-click on the `rebol.exe` file to run it.
 
@@ -216,7 +216,7 @@ To compile the Windows GUI console from source:
 Note: the `-c` argument is not necessary when launching the Red toolchain from sources, as the default action is to compile the input script (the toolchain in binary form default action is to run the input script through the interpreter).
 The `-r` argument is needed when compiling the Red console to make additional runtime functions available.
 
-Note: The red git repository does not include a `.gitignore` file. If you run the automated tests a number of files will be created that are not stored in the repository. Installing and renaming a copy of [`.gitignore-sample`](https://github.com/red/red/blob/master/.gitignore-sample) file will ignore these generated files.
+Note: The red git repository does not include a `.gitignore` file. If you run the automated tests, several files will be created that are not stored in the repository. Installing and renaming a copy of [`.gitignore-sample`](https://github.com/red/red/blob/master/.gitignore-sample) file will ignore these generated files.
 
 Contributing
 -------------------------
@@ -226,7 +226,7 @@ It is usually a good idea to inform the Red team about what changes you are goin
 
 Satisfied with the results of your change and want to issue a pull request on Github?
 
-Make sure the changes pass all the existing tests, add relevant tests to the test-suite and please test on as many platforms as you can. You can run all the tests using (from Rebol console, at repository root):
+Make sure the changes pass all the existing tests, add relevant tests to the test-suite, and please test on as many platforms as you can. You can run all the tests using (from Rebol console, at repository root):
 
         >> do %run-all.r
 

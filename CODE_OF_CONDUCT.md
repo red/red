@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-We strive to provide a friendly, safe, and welcoming environment for all, generate positive experiences, and make the world a better place. 
+We strive to provide a friendly, safe, and welcoming environment for all, generate positive experiences and make the world a better place. 
 
 ## 2. Goal of this Document
 
@@ -33,7 +33,7 @@ The following behaviors are considered harassment and are unacceptable within ou
  * Inappropriate photography or recording.
  * Inappropriate physical contact. You should have someone's consent before touching them.
  * Unwelcome sexual attention, including sexualized comments or jokes, inappropriate touching, and sexual advances.
- * Deliberate intimidation, stalking or following (online or in person).
+ * Deliberate intimidation, stalking or following (online or in-person).
  * Advocating for, or encouraging, any of the above behavior.
  * Sustained disruption of community events, including talks and presentations.
 
