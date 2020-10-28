@@ -140,6 +140,7 @@ object: context [
 		only? [logic!]
 		some? [logic!]
 		/local
+			smudge  [subroutine!]
 			ctx		[red-context!]
 			ctx2	[red-context!]
 			obj2	[red-object!]
@@ -158,6 +159,8 @@ object: context [
 			type	[integer!]
 			on-set?	[logic!]
 	][
+		smudge: [word/header: word/header or flag-word-dirty]
+	
 		ctx:	GET_CTX(obj)
 		s:		as series! ctx/values/value
 		values: s/offset
@@ -212,6 +215,7 @@ object: context [
 						][
 							copy-cell new values
 						]
+						smudge
 					]
 					i: i + 1
 					word: word + 1
@@ -234,6 +238,7 @@ object: context [
 							][
 								copy-cell new values
 							]
+							smudge
 						]
 					]
 					word: word + 1
@@ -252,6 +257,7 @@ object: context [
 				][
 					copy-cell value values
 				]
+				smudge
 				i: i + 1
 				word: word + 1
 				values: values + 1
