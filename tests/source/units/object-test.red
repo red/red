@@ -2146,6 +2146,58 @@ Red [
 
 ===end-group===
 
+===start-group=== "changed fields"
+	
+	reset: func [foo [object!]][modify foo 'changed none]
+	ebbs?: func [foo [object!]][reflect foo 'changed]
+	
+	foo: reset object [x: y: 0]						;@@ RESET is required to trick the compiler
+
+	--test-- "changed-1"		
+		--assert [] = ebbs? foo
+		foo/x: 1
+		--assert [x] = ebbs? foo
+		
+	--test-- "changed-2"
+		put foo 'y 2
+		--assert [x y] = ebbs? foo
+		--assert [] = ebbs? reset foo
+	
+	--test-- "changed-3"
+		do bind [x: y: 0] foo
+		--assert [x y] = ebbs? foo
+		
+	--test-- "changed-4"
+		set in reset foo 'y 1
+		--assert [y] = ebbs? foo
+		
+	--test-- "changed-5"
+		set 'foo/x 2
+		--assert [x y] = ebbs? foo
+		--assert [] = ebbs? reset foo
+	
+	--test-- "changed-6"
+		set foo [bar]
+		--assert [x y] = ebbs? foo					;-- Y was set to NONE
+	
+	--test-- "changed-7"
+		set/some reset foo [bar]
+		--assert [x] = ebbs? foo					;-- Y was ignored
+	
+	--test-- "changed-8"
+		set reset foo object []
+		--assert [] = ebbs? foo
+	
+	--test-- "changed-9"
+		set reset foo object [y: 2]
+		--assert [y] = ebbs? foo
+	
+	--test-- "changed-10"
+		set reset foo object [x: 1 y: 2]
+		--assert [x y] = ebbs? foo
+	
+===end-group===
+
 ===start-group=== "set"
 
 	--test-- "os1"
