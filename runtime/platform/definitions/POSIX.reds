@@ -812,6 +812,20 @@ errno: as int-ptr! 0
 		TLS_server_method: "TLS_server_method" [
 			return: [int-ptr!]
 		]
+		SSL_CTX_set_options: "SSL_CTX_set_options" [
+			ctx		[int-ptr!]
+			opts	[integer!]
+			return:	[integer!]
+		]
+		SSL_CTX_set_security_level: "SSL_CTX_set_security_level" [
+			ctx		[int-ptr!]
+			level	[integer!]
+			return:	[integer!]
+		]
+		SSL_CTX_get_security_level: "SSL_CTX_get_security_level" [
+			ctx		[int-ptr!]
+			return:	[integer!]
+		]
 		SSL_CTX_build_cert_chain: "SSL_CTX_build_cert_chain" [
 			ctx		[int-ptr!]
 			flags	[integer!]

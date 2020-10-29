@@ -373,11 +373,16 @@ tls: context [
 		]
 	]
 
-	check-errors: func [code [integer!]][
+	check-errors: func [code [integer!] /local buf [c-string!]][
 		IODebug(["check errors" code])
+		buf: as c-string! system/stack/allocate 64
 		until [				;-- clear the error stack in openssl
 			code: ERR_get_error
-			if code <> 0 [ERR_error_string code null]
+			if code <> 0 [
+				buf/1: null-byte
+				ERR_error_string code buf
+				IODebug(buf)
+			]
 			zero? code
 		]
 		IODebug("check errors finish")
