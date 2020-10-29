@@ -88,6 +88,14 @@ kOXkDJTRdJrs5wMGiwvE5qH3L6FFbi+czciJzXnbn5dyAMWfBkgc6g==
 -----END RSA PRIVATE KEY-----
 }
 
+protos: [
+	sslv3	0300h
+	tls1.0	0301h
+	tls1.1	0302h
+	tls1.2	0303h
+	tls1.3	0304h
+]
+
 do [
 
 debug: :print
@@ -130,9 +138,8 @@ server/extra: compose/deep [
     certs: [(cert) (chain)]
     key: (key)
     ;password: "mypass"
-    ;-- temporary
-    min-protocol: 0302h             ;-- min protocol sslv3,
-    max-protocol: 0303h             ;-- max protocol tls1.2
+    min-protocol: (protos/tls1.1)
+    max-protocol: (protos/tls1.3)
 ]
 
 server/awake: func [event] [

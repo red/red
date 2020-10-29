@@ -2,6 +2,14 @@ Red [
     title: "Basic Secure TCP test client"
 ]
 
+protos: [
+	sslv3	0300h
+	tls1.0	0301h
+	tls1.1	0302h
+	tls1.2	0303h
+	tls1.3	0304h
+]
+
 do [
 
 ;debug: :print
@@ -18,10 +26,9 @@ client: open tls://127.0.0.1:8123
 
 client/extra: [
     domain: "red-lang.org"
-    ;-- temporary
-    accept-invalid-cert: #[false]
-    min-protocol: 0302h             ;-- min protocol sslv3,
-    max-protocol: 0303h             ;-- max protocol tls1.2
+    accept-invalid-cert: #[true]
+    min-protocol: (protos/tls1.2)
+    max-protocol: (protos/tls1.2)
 ]
 
 start: now/precise
