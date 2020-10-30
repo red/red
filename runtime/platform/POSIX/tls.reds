@@ -214,10 +214,10 @@ tls: context [
 			TYPE_OF(accept?) = TYPE_LOGIC
 			accept?/value
 		][
-			SSL_CTX_set_verify ssl_ctx 0 null
+			SSL_CTX_set_verify ssl_ctx SSL_VERIFY_NONE null
 			return true
 		]
-		SSL_CTX_set_verify ssl_ctx 2 null ;as int-ptr! :verify-cb
+		SSL_CTX_set_verify ssl_ctx SSL_VERIFY_PEER null ;as int-ptr! :verify-cb
 		builtin?: as red-logic! block/select-word extra word/load "disable-builtin-roots" no
 		either all [
 			TYPE_OF(builtin?) = TYPE_LOGIC
@@ -225,11 +225,9 @@ tls: context [
 		][
 			store: X509_STORE_new
 			SSL_CTX_set_cert_store ssl_ctx store
-			print-line ["store1 num: " store/1]
 		][
 			store: SSL_CTX_get_cert_store ssl_ctx
 			X509_STORE_set_default_paths store
-			print-line ["store2 num: " store/1]
 		]
 		roots: as red-block! block/select-word extra word/load "roots" no
 		if TYPE_OF(roots) = TYPE_BLOCK [

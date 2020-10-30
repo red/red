@@ -790,6 +790,9 @@ errno: as int-ptr! 0
 #define TLSEXT_NAMETYPE_host_name				0
 #define SSL_MODE_ENABLE_PARTIAL_WRITE 			1
 
+#define SSL_VERIFY_NONE							0
+#define SSL_VERIFY_PEER							1
+
 #define SSL_CTX_set_mode(ctx mode) [SSL_CTX_ctrl ctx 33 mode null]
 
 #import [
