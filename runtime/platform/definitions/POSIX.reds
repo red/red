@@ -962,6 +962,10 @@ errno: as int-ptr! 0
 			x509	[int-ptr!]
 			return:	[integer!]
 		]
+		X509_STORE_set_default_paths: "X509_STORE_set_default_paths" [
+			store	[int-ptr!]
+			return:	[integer!]
+		]
 		ASN1_INTEGER_set: "ASN1_INTEGER_set" [
 			a		[int-ptr!]
 			v		[integer!]
