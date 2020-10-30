@@ -258,6 +258,29 @@ test
 		--compile-this {Red [Config: [red-strict-check?: off]] :foo}
 		--assert compiled?
 	
+	--test-- "#4569"
+		--compile-and-run-this {
+			Red []
+
+			bind 'foo has [foo]['WTF]
+			foo: object []
+
+			probe foo
+			probe :foo
+		}
+		--assert compiled?
+		--assert [make object! [] make object! []] = load qt/output
+		
+		--compile-and-run-this {
+			Red []
+
+			block: reduce ['foo func [/bar]["Definitely not bar."]]
+			foo:  context [bar: does ['bar]]
+			print foo/bar
+		}
+		--assert compiled?
+		--assert 'bar = load qt/output
+		
 	--test-- "#4613"
 		--compile-this "Red [] probe bug$0"
 		--assert compilation-error?
