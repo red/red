@@ -342,7 +342,7 @@ tls: context [
 			if state <> evt [iocp/modify td/io-port as-integer td/device evt or EPOLLET as iocp-data! td]
 		]
 		probe ["update-td: " state " " evt]
-		td/state: evt
+		td/state: state or evt
 	]
 
 	negotiate: func [
