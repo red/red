@@ -281,6 +281,12 @@ test
 		--assert compiled?
 		--assert 'bar = load qt/output
 		
+	--test-- "#4570"
+		--compile-and-run-this {Red [] quote + 0 0}
+		--assert not script-error?
+		--compile-and-run-this {Red [] quote >> 0 0}
+		--assert not crashed?
+  
 	--test-- "#4613"
 		--compile-this "Red [] probe bug$0"
 		--assert compilation-error?
