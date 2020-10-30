@@ -1599,6 +1599,16 @@ Red [
 		--assert [1 2]			= exclude a b
 		--assert [5 6]			= exclude b a
 
+	--test-- "set-op-blk-2"
+		a: [[1] [2] [3] [4] [5]]
+		b: [[3] [4] [5] [6] [7]]
+		--assert [[3] [4] [5]] = intersect a b
+		--assert [[1] [2] [3] [4] [5] [6] [7]] = union a b
+		--assert [[1] [2] [3]]= unique [[1] [2] [1] [2] [3]]
+		--assert [[1] [2] [6] [7]] = difference a b
+		--assert [[1] [2]] = exclude a b
+		--assert [[6] [7]] = exclude b a
+
 	--test-- "set-op-hash"
 		a: make hash! [5 6 7 8]
 		b: skip a 2
