@@ -1784,6 +1784,7 @@ block: context [
 			len		[integer!]
 			step	[integer!]
 			head	[integer!]
+			type	[integer!]
 			table	[node!]
 			hash	[node!]
 			check?	[logic!]
@@ -1794,6 +1795,7 @@ block: context [
 			blk?	[logic!]
 			hash?	[logic!]
 			saved	[logic!]
+			any-blk? [logic!]
 	][
 		step: 1
 		if OPTION?(skip-arg) [
@@ -1850,16 +1852,25 @@ block: context [
 
 			while [value < tail] [			;-- iterate over first series
 				append?: no
+				type: TYPE_OF(value)
+				any-blk?: ANY_BLOCK?(type)
 				if check? [
-					find?: null <> _hashtable/get hash value head step comp-op no no
+					either any-blk? [		;-- fallback to use block/find
+						key: block/find blk2 value null yes no no no null null no no no no
+						find?: TYPE_OF(key) <> TYPE_NONE
+					][
+						find?: null <> _hashtable/get hash value head step comp-op no no
+					]
 					if invert? [find?: not find?]
 				]
-				if all [
-					find?
-					null = _hashtable/get table value 0 step comp-op no no
-				][
-					append?: yes
-					_hashtable/put table rs-append new value
+				if find? [
+					either any-blk? [
+						key: block/find new value null yes no no no null null no no no no
+						append?: TYPE_OF(key) = TYPE_NONE
+					][
+						append?: null = _hashtable/get table value 0 step comp-op no no
+					]
+					if append? [_hashtable/put table rs-append new value]
 				]
 
 				i: 1
