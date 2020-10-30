@@ -140,6 +140,7 @@ object: context [
 		only? [logic!]
 		some? [logic!]
 		/local
+			smudge  [subroutine!]
 			ctx		[red-context!]
 			ctx2	[red-context!]
 			obj2	[red-object!]
@@ -148,6 +149,7 @@ object: context [
 			values2	[red-value!]
 			tail	[red-value!]
 			tail2   [red-value!]
+			end		[red-value!]
 			new		[red-value!]
 			old		[red-value!]
 			int		[red-integer!]
@@ -158,15 +160,18 @@ object: context [
 			type	[integer!]
 			on-set?	[logic!]
 	][
-		ctx:	GET_CTX(obj)
-		s:		as series! ctx/values/value
-		values: s/offset
-		tail:	s/tail
-		type:	TYPE_OF(value)
+		smudge: [word/header: word/header or flag-word-dirty]
+	
+		ctx:	 GET_CTX(obj)
+		s:		 as series! ctx/values/value				;-- object values
+		values:  s/offset
+		tail:	 s/tail
+		type:	 TYPE_OF(value)
 		on-set?: obj/on-set <> null
-		s: _hashtable/get-ctx-words ctx
-		word: as red-word! s/offset
-		tail2: s/tail
+		
+		s:       _hashtable/get-ctx-words ctx				;-- object symbols
+		word:    as red-word! s/offset
+		tail2:   s/tail
 		
 		if on-set? [
 			s: as series! obj/on-set/value
@@ -177,15 +182,21 @@ object: context [
 		]
 
 		either all [not only? any [type = TYPE_BLOCK type = TYPE_OBJECT]][
-			values2: either type = TYPE_BLOCK [				;-- first value slot
-				block/rs-head as red-block! value
+			either type = TYPE_BLOCK [				;-- first value slot
+				end:     block/rs-tail as red-block! value
+				values2: block/rs-head as red-block! value
 			][
-				get-values as red-object! value
+				obj2:    as red-object! value
+				ctx:     GET_CTX(obj2)
+				s:       as series! ctx/values/value 
+				end:     s/tail
+				values2: s/offset
 			]
-
+			
 			i: 0
 			if all [not only? not some?][					;-- pre-check of unset values
 				while [word < tail2][
+					if values2 = end [break]				;-- reached the end of the rightmost argument
 					if all [not any? TYPE_OF(values2) = TYPE_UNSET][
 						fire [TO_ERROR(script need-value) word]
 					]
@@ -212,6 +223,7 @@ object: context [
 						][
 							copy-cell new values
 						]
+						smudge
 					]
 					i: i + 1
 					word: word + 1
@@ -234,6 +246,7 @@ object: context [
 							][
 								copy-cell new values
 							]
+							smudge
 						]
 					]
 					word: word + 1
@@ -252,6 +265,7 @@ object: context [
 				][
 					copy-cell value values
 				]
+				smudge
 				i: i + 1
 				word: word + 1
 				values: values + 1
