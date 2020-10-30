@@ -797,6 +797,10 @@ errno: as int-ptr! 0
 
 #import [
 	LIBSSL-file cdecl [
+		SSL_CTX_set_default_verify_paths: "SSL_CTX_set_default_verify_paths" [
+			ctx		[int-ptr!]
+			return: [integer!]
+		]
 		SSL_CTX_set_cipher_list: "SSL_CTX_set_cipher_list" [
 			ctx		[int-ptr!]
 			str		[c-string!]

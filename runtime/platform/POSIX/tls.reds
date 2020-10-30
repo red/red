@@ -219,15 +219,12 @@ tls: context [
 		]
 		SSL_CTX_set_verify ssl_ctx SSL_VERIFY_PEER null ;as int-ptr! :verify-cb
 		builtin?: as red-logic! block/select-word extra word/load "disable-builtin-roots" no
-		either all [
+		if all [
 			TYPE_OF(builtin?) = TYPE_LOGIC
 			builtin?/value
 		][
 			store: X509_STORE_new
 			SSL_CTX_set_cert_store ssl_ctx store
-		][
-			store: SSL_CTX_get_cert_store ssl_ctx
-			X509_STORE_set_default_paths store
 		]
 		roots: as red-block! block/select-word extra word/load "roots" no
 		if TYPE_OF(roots) = TYPE_BLOCK [
@@ -292,6 +289,8 @@ tls: context [
 					store-identity td client-ctx
 					store-roots td client-ctx
 					SSL_CTX_set_mode(client-ctx 5)
+					SSL_CTX_set_default_verify_paths client-ctx
+					SSL_CTX_set_cipher_list client-ctx "DEFAULT:!aNULL:!eNULL:!MD5:!3DES:!DES:!RC4:!IDEA:!SEED:!aDSS:!SRP:!PSK"
 				]
 				ctx: client-ctx
 			][
