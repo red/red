@@ -233,6 +233,7 @@ tls: context [
 						head: head + 1 continue
 					]
 					X509_STORE_add_cert store x509
+					X509_free x509
 				]
 				head: head + 1
 			]
@@ -276,6 +277,7 @@ tls: context [
 				if null? client-ctx [
 					client-ctx: SSL_CTX_new TLS_client_method
 					store-identity td client-ctx
+					store-roots td client-ctx
 					SSL_CTX_set_mode(client-ctx 5)
 				]
 				ctx: client-ctx
@@ -289,7 +291,6 @@ tls: context [
 						SSL_CTX_use_certificate server-ctx cert
 						SSL_CTX_use_PrivateKey server-ctx pk
 					]
-					store-roots td server-ctx
 					SSL_CTX_set_mode(server-ctx 5)
 					SSL_CTX_set_cipher_list server-ctx "ECDHE+AES:@STRENGTH:+AES256"
 				]
