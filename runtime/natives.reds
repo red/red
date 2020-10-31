@@ -3199,12 +3199,9 @@ natives: context [
 				]
 				TYPE_IMAGE [
 					#case [
-						any [OS = 'Windows OS = 'macOS] [
+						any [OS = 'Windows OS = 'macOS OS = 'Linux] [
 							image/set-many blk as red-image! series size
 						]
-						OS = 'Linux [#if modules contains 'View [
-							image/set-many blk as red-image! series size
-						]]
 						true [--NOT_IMPLEMENTED--]
 					]
 				]

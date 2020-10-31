@@ -33,9 +33,9 @@ OS-image: context [
 	]
 
 	#either OS = 'Windows [
-		#define LIBGDK-file		"libgtk-3-0.dll" ;or libgdk-3-0.dll
+		#define LIBGDK-file		"libgdk_pixbuf-2.0.dll" ;or libgdk-3-0.dll
 	][
-		#define LIBGDK-file		"libgtk-3.so.0" ;or libgdk-3.so.0
+		#define LIBGDK-file		"libgdk_pixbuf-2.0.so.0" ;or libgdk-3.so.0
 	]
 
 	#import [
