@@ -8,7 +8,7 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
 [options]:
 
     -c, --compile                  : Generate an executable in the working
-                                     folder, using libRedRT. (developement mode)
+                                     folder, using libRedRT. (development mode)
 
     -d, --debug, --debug-stabs     : Compile source file in debug mode. STABS
                                      is supported for Linux targets.
@@ -49,15 +49,18 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
     --cli                          : Run the command-line REPL instead of the
                                      graphical console.
 
-	--no-console                   : Do not launch the REPL after console compilation. 
-
     --config [...]                 : Provides compilation settings as a block
                                      of `name: value` pairs.
+
+	--no-console                   : Do not launch the REPL after console compilation. 
 
     --no-compress                  : Omit Redbin format compression.
 
     --no-runtime                   : Do not include runtime during Red/System
                                      source compilation.
+
+    --no-view                      : Do not include VIEW module in the CLI console
+                                     and the libRedRT.
 
     --red-only                     : Stop just after Red-level compilation.
                                      Use higher verbose level to see compiler
