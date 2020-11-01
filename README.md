@@ -100,23 +100,23 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
     -V, --version                  : Output Red's executable version in x.y.z
                                      format.
 
-    --config [...]                 : Provides compilation settings as a block
-                                     of `name: value` pairs.
-
-    --no-compress                  : Omit Redbin format compression.
-
     --catch                        : Stay in the REPL after the script finishes.
 
     --cli                          : Run the command-line REPL instead of the
                                      graphical console.
-								 
+
+    --config [...]                 : Provides compilation settings as a block
+                                     of `name: value` pairs.
+
 	--no-console                   : Do not launch the REPL after console compilation. 
 
-    --no-view                      : Do not include VIEW module in the CLI console
-                                     and the libRedRT.
+    --no-compress                  : Omit Redbin format compression.
 
     --no-runtime                   : Do not include runtime during Red/System
                                      source compilation.
+
+    --no-view                      : Do not include VIEW module in the CLI console
+                                     and the libRedRT.
 
     --red-only                     : Stop just after Red-level compilation.
                                      Use higher verbose level to see compiler
@@ -124,7 +124,6 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
 
     --show-func-map                : Output an address/name map of Red/System
                                      functions, for debugging purposes.
-
 
 `[command]`
 
