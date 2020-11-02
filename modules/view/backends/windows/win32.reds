@@ -121,6 +121,7 @@ Red/System [
 #define CBS_DROPDOWN		0002h
 #define CBS_DROPDOWNLIST	0003h
 #define CBS_HASSTRINGS		0200h
+#define CBS_AUTOHSCROLL		0040h
 
 #define TBS_HORZ			0000h
 #define TBS_VERT			0002h
