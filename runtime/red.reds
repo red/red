@@ -59,7 +59,7 @@ red: context [
 				#include %platform/image-rs.reds
 			]
 		]
-		#default [#include %platform/image-rs.reds]
+		#default []
 	]
 	
 	#include %datatypes/datatype.reds
