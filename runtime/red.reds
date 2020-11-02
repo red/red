@@ -51,12 +51,15 @@ red: context [
 	;--------------------------------------------
 	#switch OS [
 		Windows  [#include %platform/image-gdiplus.reds]
-		Syllable []
 		macOS	 [#include %platform/image-quartz.reds]
-		Linux	 [#if modules contains 'View [#include %platform/image-gdk.reds]]
-		FreeBSD  []
-		NetBSD   []
-		#default []
+		Linux	 [
+			#either modules contains 'View [
+				#include %platform/image-gdk.reds	
+			][
+				#include %platform/image-rs.reds
+			]
+		]
+		#default [#include %platform/image-rs.reds]
 	]
 	
 	#include %datatypes/datatype.reds
@@ -111,9 +114,7 @@ red: context [
 	#include %datatypes/ref.reds
 	#if OS = 'Windows [#include %datatypes/image.reds]	;-- temporary
 	#if OS = 'macOS   [#include %datatypes/image.reds]	;-- temporary
-	#if OS = 'Linux   [
-		#if modules contains 'View [#include %datatypes/image.reds]
-	]
+	#if OS = 'Linux   [#include %datatypes/image.reds]
 
 	;-- Debugging helpers --
 	
