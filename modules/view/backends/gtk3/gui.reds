@@ -31,7 +31,6 @@ unicode-cp:			0
 im-preedit?:		no
 im-need-reset?:		no
 window-ready?:		no
-force-redraw?:		no
 settings:			as handle! 0
 pango-context:		as handle! 0
 default-font-name:	as c-string! 0
@@ -2139,8 +2138,6 @@ OS-update-view: func [
 		][
 			gtk_widget_queue_draw widget
 		]
-		force-redraw?: yes
-		; 0
 	]
 	if flags and FACET_FLAG_COLOR <> 0 [
 		change-color widget as red-tuple! values + FACE_OBJ_COLOR type
