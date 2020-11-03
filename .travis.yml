@@ -118,7 +118,7 @@ install:
     if [[ ${OS} == "linux" ]]; then
     printf
     'ENV DISPLAY :0\n
-    apt-get install -y libcurl4 libgtk-3-0 xvfb &&
+    RUN apt-get install -y libcurl4 libgtk-3-0 xvfb\n
     ' >> Dockerfile ;
     fi
   # build docker image
