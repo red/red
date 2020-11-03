@@ -448,7 +448,7 @@ OS-image: context [
 		pixbuf: gdk_pixbuf_new 0 yes 8 w h
 		buf: gdk_pixbuf_get_pixels pixbuf
 		revert as byte-ptr! node/buffer buf w h 4
-		as int-ptr! pixbuf
+		pixbuf
 	]
 
 	to-pixbuf: func [
