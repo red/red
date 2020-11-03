@@ -124,7 +124,7 @@ install:
   # build docker image
   - >
     if [[ ${TRAVIS_OS_NAME} == "linux" ]]; then
-    docker build -t i386/debian:red .
+    docker build -t i386/debian:red . ;
     fi
   # ARMel: build tests on i386
   - >
