@@ -103,23 +103,28 @@ install:
   # Linux: hook up qemu, build 32bit image including curl and rebol
   - >
     if [[ ${TRAVIS_OS_NAME} == "linux" ]]; then
-        docker run --rm --privileged
-        multiarch/qemu-user-static:register &&
-        printf
-        'FROM i386/debian:latest\n
-        RUN apt-get update &&
-        apt-get install -y curl &&
-        curl -o /bin/rebol https://static.red-lang.org/tmp/rebol &&
-        chmod +x /bin/rebol\n
-        ' > Dockerfile
-
-        if [[ ${OS} == "linux" ]]; then
-            printf
-            'ENV DISPLAY :0\n
-            apt-get install -y libcurl4 libgtk-3-0 xvfb\n
-            ' >> Dockerfile
-        fi
-        docker build -t i386/debian:red . ;
+    docker run --rm --privileged
+    multiarch/qemu-user-static:register &&
+    printf
+    'FROM i386/debian:latest\n
+    RUN apt-get update &&
+    apt-get install -y curl &&
+    curl -o /bin/rebol https://static.red-lang.org/tmp/rebol &&
+    chmod +x /bin/rebol\n
+    ' > Dockerfile ;
+    fi
+  # extra libs for x86 backend, install libgtk
+  - >
+    if [[ ${OS} == "linux" ]]; then
+    printf
+    'ENV DISPLAY :0\n
+    apt-get install -y libcurl4 libgtk-3-0 xvfb &&
+    ' >> Dockerfile ;
+    fi
+  # build docker image
+  - >
+    if [[ ${TRAVIS_OS_NAME} == "linux" ]]; then
+    docker build -t i386/debian:red .
     fi
   # ARMel: build tests on i386
   - >
