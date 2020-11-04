@@ -50,8 +50,10 @@ url: context [
 		open?	[logic!]
 		return:	[red-value!]
 		/local
-			p [red-object!]
+			p	[red-object!]
+			v	[red-value! value]
 	][
+		copy-cell as red-value! url :v
 		#call [url-parser/parse-url url]
 		p: as red-object! stack/arguments
 
@@ -59,7 +61,7 @@ url: context [
 			p: port/make none-value as red-value! p TYPE_NONE
 			if open? [actions/open as red-value! p new? read? write? seek? allow]
 		][
-			0 ;TBD: error invalid url
+			fire [TO_ERROR(script invalid-arg) :v]
 		]
 		as red-value! p
 	]
