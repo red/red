@@ -535,7 +535,7 @@ crypto: context [
 				ALG_SHA384  [CALG_SHA_384]
 				ALG_SHA512  [CALG_SHA_512]
 				default [
-					fire [TO_ERROR(script invalid-arg) type]
+					fire [TO_ERROR(script invalid-arg) integer/push type]
 					0	;-- Either need to leave out this default or make the compiler happy by not changing type's datatype.
 				]
 			]
@@ -663,7 +663,7 @@ crypto: context [
 				ALG_SHA384  ["sha384"]
 				ALG_SHA512  ["sha512"]
 				default [
-					fire [TO_ERROR(script invalid-arg) type]
+					fire [TO_ERROR(script invalid-arg) integer/push type]
 					""	;-- Either need to leave out this default or make the compiler happy by not changing type's datatype.
 				]
 			]
@@ -758,7 +758,7 @@ crypto: context [
 				ALG_SHA384  [compute-sha384 data len hash]
 				ALG_SHA512  [compute-sha512 data len hash]
 				default [
-					fire [TO_ERROR(script invalid-arg) type]
+					fire [TO_ERROR(script invalid-arg) integer/push type]
 					0	;-- Either need to leave out this default or make the compiler happy by not changing type's datatype.
 				]
 			]
