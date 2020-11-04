@@ -42,6 +42,41 @@ context [
 			CheckSum	[struct! [n [integer!]]]
 			return:		[integer!]
 		] Imagehlplib "MapFileAndCheckSumA"
+
+		on-file-written: func [job [object!] file [file!] /local file-sum chk-sum offset buffer res][
+			either redc/load-lib? [
+				file-sum: make struct! int-ptr! [0]
+				chk-sum:  make struct! int-ptr! [0]
+
+				res: MapFileAndCheckSum
+					to-local-file get-modes file 'full-path
+					file-sum
+					chk-sum
+
+				if res <> 0 [
+					print [
+						"*** Linker Error: checksum calculation failed^/"
+						"*** Reason: " select res [
+							1 "Could not open the file."
+							2 "Could not map the file."
+							3 "Could not map a view of the file."
+							4 "Could not convert the file name to Unicode."
+						]
+					]
+				]
+
+				offset: (length? defs/image/MSDOS-header) + ((5 + 17) * 4) + 1
+
+				buffer: read/binary file
+				pointer/value: chk-sum/n
+				change/part at buffer offset form-struct pointer 4
+				write/binary file buffer
+			][
+				if job/type = 'drv [
+					make error! "Rebol/View or a Rebol kernel with /Library component is required!"
+				]
+			]
+		]
 	]
 	
 	defs: [
@@ -1166,41 +1201,6 @@ context [
 			pad: pad-size? spec/2
 			append job/buffer spec/2
 			insert/dup tail job/buffer null pad
-		]
-	]
-	
-	on-file-written: func [job [object!] file [file!] /local file-sum chk-sum offset buffer res][
-		either redc/load-lib? [
-			file-sum: make struct! int-ptr! [0]
-			chk-sum:  make struct! int-ptr! [0]
-
-			res: MapFileAndCheckSum
-				to-local-file get-modes file 'full-path
-				file-sum
-				chk-sum
-
-			if res <> 0 [
-				print [
-					"*** Linker Error: checksum calculation failed^/"
-					"*** Reason: " select res [
-						1 "Could not open the file."
-						2 "Could not map the file."
-						3 "Could not map a view of the file."
-						4 "Could not convert the file name to Unicode."
-					]
-				]
-			]
-
-			offset: (length? defs/image/MSDOS-header) + ((5 + 17) * 4) + 1
-
-			buffer: read/binary file
-			pointer/value: chk-sum/n
-			change/part at buffer offset form-struct pointer 4
-			write/binary file buffer
-		][
-			if job/type = 'drv [
-				make error! "Rebol/View or a Rebol kernel with /Library component is required!"
-			]
 		]
 	]
 ]
