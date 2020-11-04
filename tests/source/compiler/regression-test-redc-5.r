@@ -125,7 +125,6 @@ test
 		write qt-tmp-file "1 + 2"
 		qt/source-file?: yes
 		qt/compile qt-temp-file
-		qt/run/pgm qt-temp-file
 		--assert probe not compiler-error?
 		--assert probe syntax-error "Invalid Red program"
 
