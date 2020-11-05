@@ -2281,7 +2281,7 @@ make-profilable make target-class [
 						if load? [emit-load/alt args/2]
 					]
 				]
-				if compiler/job/debug? [
+				if all [not opt? compiler/job/debug?][
 					spec: emitter/symbols/***-on-div-error
 					foreach opcode [
 						#{e3510000}			; CMP r1, #0			; if divisor = 0

@@ -958,6 +958,7 @@ object [
 
 	paint: func [/local txt str cmds y n h cnt delta num end styles][
 		if empty? lines [exit]
+
 		cmds: [pen color text 0x0 text-box]
 		cmds/2: foreground
 		cmds/4/x: pad-left

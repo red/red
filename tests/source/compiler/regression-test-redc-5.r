@@ -1,11 +1,10 @@
 REBOL [
 	Title:   "Regression tests script for Red Compiler"
 	Author:  "Boleslav Březovský"
-	File: 	 %regression-test-redc.r
+	File: 	 %regression-test-redc-5.r
 	Rights:  "Copyright (C) 2016 Boleslav Březovský. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
-
 
 ; cd %../
 ;--separate-log-file
@@ -101,13 +100,38 @@ test
 	--test-- "#2538"
 		--compile-and-run-this-red {probe system/console/size}
 		--assert not crashed?
+	
+	--test-- "#2671"
+		--compile-this {Red [] #"^^(0000001)"}
+		--assert syntax-error "Invalid char! value"
 
+		--compile-this {Red [] "^^(0000001)"}
+		--assert syntax-error "Invalid string! value"
+		
+		--compile-this {Red [] #"^^(skibadee-skibadanger)"}
+		--assert syntax-error "Invalid char! value"
+		
+		--compile-this {Red [] "^^(skibadee-skibadanger)"}
+		--assert syntax-error "Invalid string! value"
+	
 ===end-group===
 
 ; ===start-group=== "Red regressions #3001 - #3500"
 ; ===end-group===
 
 ===start-group=== "Red regressions #3501 - #4000"
+
+	--test-- "#3670"
+		write qt-tmp-file "1 + 2"
+		qt/source-file?: yes
+		qt/compile qt-temp-file
+		qt/run/pgm qt-temp-file
+		--assert probe not compiler-error?
+		--assert probe syntax-error "Invalid Red program"
+
+	--test-- "#3624"
+		--compile-and-run-this-red {probe replace/case/all quote :a/b/A/a/B [a] 'x}
+		--assert qt/output = ":x/b/A/x/B^/"
 	
 	;; for this test it doesn't matter if it errors out or outputs a result
 	--test-- "#3714"
@@ -202,8 +226,83 @@ test
 	--test-- "#3891"
 		--compile-and-run-this-red {probe load "a<=>"}
 		--assert not crashed?
+		
+===end-group===
 
+===start-group=== "Red regressions #4001 - #4500"
 
+	--test-- "#4190"
+		--compile-and-run-this-red {
+			fc: make face! [
+				fn: does [self/parent: 'boom]
+			]
+			fc/fn
+			print fc/parent
+		}
+		--assert not crashed?
+		--assert true? find qt/output "boom"
+		
+===end-group===
+
+===start-group=== "Red regressions #4501 - #5000"
+
+	--test-- "#4526"
+		--compile-and-run-this {
+			Red []
+			do bind [probe 1 ** 2] context [**: make op! func [x y][x + y]]
+		}
+		--assert compiled?
+		--assert 3 = load qt/output
+
+	--test-- "#4568"
+		--compile-this {Red [Config: [red-strict-check?: off]] :foo}
+		--assert compiled?
+	
+	--test-- "#4569"
+		--compile-and-run-this {
+			Red []
+
+			bind 'foo has [foo]['WTF]
+			foo: object []
+
+			probe foo
+			probe :foo
+		}
+		--assert compiled?
+		--assert [make object! [] make object! []] = load qt/output
+		
+		--compile-and-run-this {
+			Red []
+
+			block: reduce ['foo func [/bar]["Definitely not bar."]]
+			foo:  context [bar: does ['bar]]
+			print foo/bar
+		}
+		--assert compiled?
+		--assert 'bar = load qt/output
+		
+	--test-- "#4570"
+		--compile-and-run-this {Red [] quote + 0 0}
+		--assert not script-error?
+		--compile-and-run-this {Red [] quote >> 0 0}
+		--assert not crashed?
+  
+	--test-- "#4613"
+		--compile-this "Red [] probe bug$0"
+		--assert compilation-error?
+		
+		--compile-and-run-this "Red [Currencies: [bug]] probe bug$0"
+		--assert compiled?
+		--assert bug$0 = load qt/output
+		
+		--compile-and-run-this {
+			Red [Currencies: [bug]]
+			append system/locale/currencies/list 'bug
+			probe bug$0
+		}
+		--assert compiled?
+		--assert script-error?
+		
 ===end-group===
 
 ~~~end-file~~~ 

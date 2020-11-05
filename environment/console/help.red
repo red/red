@@ -165,7 +165,7 @@ help-ctx: context [
 		value: get/any word
 		rejoin [
 			uppercase mold :word " is " a-an/pre mold type? :value " value"
-			either only [dot][append copy ": " mold :value]
+			either only [dot][append copy ": " form-value :value]
 		]
 	]
 
@@ -179,7 +179,8 @@ help-ctx: context [
 		"Returns name, type, and doc-string for the given word in the spec."
 		spec [block!]
 		word [word!]
-		return: [block!] "[name type doc-string]"
+		;FIXME: Doesn't work interpreted in 0.6.4
+		;return: [block!] "[name type doc-string]"
 	][
 		t: d: 0										; index of type and doc string. 0 means none.
 		if pos: find spec word [

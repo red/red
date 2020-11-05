@@ -17,7 +17,7 @@ Red/System [
 #define OS_POLLIN 		1
 
 #case [
-	any [OS = 'macOS OS = 'FreeBSD] [
+	any [OS = 'macOS OS = 'FreeBSD OS = 'NetBSD] [
 		#define TIOCGWINSZ		40087468h
 		#define TERM_TCSADRAIN	1
 		#define TERM_VTIME		18
@@ -474,7 +474,7 @@ init-console: func [
 			TERM_ECHO or TERM_ICANON or TERM_IEXTEN or TERM_ISIG
 		)
 		#case [
-			any [OS = 'macOS OS = 'FreeBSD] [
+			any [OS = 'macOS OS = 'FreeBSD OS = 'NetBSD] [
 				cc: (as byte-ptr! term) + (4 * size? integer!)
 			]
 			true [cc: (as byte-ptr! term) + (4 * size? integer!) + 1]

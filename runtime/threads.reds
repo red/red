@@ -162,10 +162,19 @@ thread: context [
 		nsec   [integer!] ;Nanoseconds
 	]
 
-	#either OS = 'macOS [
-		#define LIBPTHREAD-file "libpthread.dylib"
-	][
-		#define LIBPTHREAD-file "libpthread.so.0"
+	#switch OS [
+		macOS [
+			#define LIBPTHREAD-file "libpthread.dylib"
+		]
+		NetBSD [
+			#define LIBPTHREAD-file "libpthread.so"
+		]
+		FreeBSD [
+			#define LIBPTHREAD-file "libpthread.so"
+		]
+		#default [
+			#define LIBPTHREAD-file "libpthread.so.0"
+		]
 	]
 
 	#import [

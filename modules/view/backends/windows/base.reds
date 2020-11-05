@@ -36,6 +36,7 @@ init-base-face: func [
 	SetWindowLong handle wc-offset - 16 parent
 	SetWindowLong handle wc-offset - 20 0
 	SetWindowLong handle wc-offset - 24 0
+	SetWindowLong handle wc-offset - 32 0
 	pt/x: dpi-scale offset/x
 	pt/y: dpi-scale offset/y
 	either alpha? [
@@ -459,8 +460,16 @@ BaseWndProc: func [
 				return 3							;-- do not make it activated when click it
 			]
 		]
-		WM_LBUTTONDOWN	 [unless request-file? [SetCapture hWnd return 0] request-file?: no]
-		WM_LBUTTONUP	 [ReleaseCapture return 0]
+		WM_LBUTTONDOWN	 [
+			w: GetWindowLong hWnd wc-offset - 32
+			SetWindowLong hWnd wc-offset - 32 w + 1
+			if zero? w [SetCapture hWnd return 0]
+		]
+		WM_LBUTTONUP	 [
+			w: GetWindowLong hWnd wc-offset - 32
+			SetWindowLong hWnd wc-offset - 32 w - 1
+			ReleaseCapture return 0
+		]
 		WM_ERASEBKGND	 [return 1]					;-- drawing in WM_PAINT to avoid flicker
 		WM_SIZE  [
 			either (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D = 0 [

@@ -161,7 +161,6 @@ get-screen-size: func [
 get-text-size: func [
 	face 	[red-object!]
 	text	[red-string!]
-	hFont	[handle!]
 	p		[red-pair!]
 	return: [red-pair!]
 ][

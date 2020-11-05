@@ -1445,7 +1445,7 @@ WndProc: func [
 					if flags and FACET_FLAGS_MODAL <> 0 [
 						;SetActiveWindow GetWindow hWnd GW_OWNER
 						p-int: as handle! GetWindowLong hWnd wc-offset - 20
-						if p-int <> null [SetFocus p-int]
+						if p-int <> null [prev-focus: p-int]
 					]
 					clean-up
 				][
@@ -1659,5 +1659,6 @@ do-events: func [
 		exit-loop: exit-loop - 1
 		if exit-loop > 0 [PostQuitMessage 0]
 	]
+	if prev-focus <> null [SetFocus prev-focus prev-focus: null]
 	msg?
 ]

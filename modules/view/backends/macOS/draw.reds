@@ -1536,7 +1536,8 @@ OS-matrix-set: func [
 	m/d: get-float32 val + 3
 	m/tx: get-float32 val + 4
 	m/ty: get-float32 val + 5
-	CGContextConcatCTM dc/raw m
+	m: CGAffineTransformConcat m dc/ctx-matrix
+	CGContextSetCTM dc/raw m
 ]
 
 OS-set-matrix-order: func [

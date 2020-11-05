@@ -35,6 +35,17 @@ Red [
 qt-file-name: none
 qt-verbose: false
 
+;; temp file for tests involving `write` and `save`
+qt-temp-file: qt-tmp-file: append copy tmp: dirize to-red-file any [get-env 'tmp %.] %testfile.txt
+change-dir also what-dir 
+  unless attempt [
+    write qt-tmp-file "test"                            ;-- test if can write into it
+    change-dir tmp                                      ;-- test if can CD into %TMP% (needed by do-file)
+  ][
+    append clear qt-tmp-file %./testfile.txt            ;-- fallback to local dir if %TMP% is closed
+  ]
+unset 'tmp
+
 ;; group switches
 qt-group-name-not-printed: true
 qt-group?: false

@@ -1,7 +1,7 @@
 Red [
 	Title:   "Red loading test script"
 	Author:  "Nenad Rakocevic & Peter W A Wood"
-	File: 	 %load-test.reds
+	File: 	 %load-test.red
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2015 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
@@ -56,17 +56,20 @@ Red [
 	--test-- "load-36"	--assert "12.3"			= mold load ".123E2"
 	--test-- "load-37"	--assert "-0.3"			= mold load "-.3"
 	--test-- "load-38"	--assert "1.#NaN"		= mold load "1.#nan"
-	--test-- "load-39"	--assert "1.#INF"		= mold load "1.#INF"
-	--test-- "load-40"	--assert "-1.#INF"		= mold load "-1.#Inf"
-	--test-- "load-41"	--assert "1.0e23"		= mold load "0.99999999999999999999999999999999999999999e+23"
-	--test-- "load-42"	--assert "-9.3e-9"		= mold load "-93E-10"
-	--test-- "load-43"	--assert "0.0"			= mold load "2183167012312112312312.23538020374420446192e-370"
-	--test-- "load-44"	--assert 1.3			== load "1,3"
-	--test-- "load-45"	--assert 2147483648.0	== load "2147483648"
-	--test-- "load-46"	--assert -2147483649.0	== load "-2147483649"
+	--test-- "load-39"	--assert "1.#NaN"		= mold load "-1.#nan"
+	--test-- "load-40"	--assert "1.#NaN"		= mold load "+1.#nan"
+	--test-- "load-41"	--assert "1.#INF"		= mold load "1.#INF"
+	--test-- "load-42"	--assert "-1.#INF"		= mold load "-1.#Inf"
+	--test-- "load-43"	--assert "1.#INF"		= mold load "+1.#Inf"
+	--test-- "load-44"	--assert "1.0e23"		= mold load "0.99999999999999999999999999999999999999999e+23"
+	--test-- "load-45"	--assert "-9.3e-9"		= mold load "-93E-10"
+	--test-- "load-46"	--assert "0.0"			= mold load "2183167012312112312312.23538020374420446192e-370"
+	--test-- "load-47"	--assert 1.3			== load "1,3"
+	--test-- "load-48"	--assert 2147483648.0	== load "2147483648"
+	--test-- "load-49"	--assert -2147483649.0	== load "-2147483649"
 	;-- issue #3243
 	f3243: 11.651178950846456
-	--test-- "load-47"	--assert f3243 == load mold f3243
+	--test-- "load-50"	--assert f3243 == load mold f3243
 
 ===end-group===
 

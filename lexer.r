@@ -238,6 +238,7 @@ lexer: context [
 	get-word-rule: [
 		#":" (type: get-word!) s: begin-symbol-rule [
 			path-rule (
+				if set-path? :value [throw-error]
 				value/1: to get-word! value/1		;-- workaround missing get-path! in R2
 			)
 			| (
@@ -251,10 +252,13 @@ lexer: context [
 		#"'" (type: word!) [
 			s: some #"/" e: (type: lit-word! value: copy/part s e)
 			| s: begin-symbol-rule [
-				path-rule (type: lit-path!)				;-- path matched
+				path-rule (
+					if set-path? :value [throw-error]
+					type: lit-path!					;-- path matched
+				)
 				| (
 					type: lit-word!
-					value: copy/part s e				;-- word matched
+					value: copy/part s e			;-- word matched
 				)
 			]
 		][s: #":" :s (throw-error) | none]
@@ -476,11 +480,15 @@ lexer: context [
 				| "esc"  (value: #"^(1B)")
 				| "del"	 (value: #"^~")
 			]
-			| pos: [2 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
-					either rs? [
-						value: to-char to-integer debase/base copy/part pos e 16
-					][value: encode-UTF8-char pos e]
+			| pos: [1 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
+				if e/1 <> #")" [throw-error]		;-- more than 6 hexadecimal digits
+				value: either rs? [
+					to-char to-integer to-issue copy/part pos e
+				][
+					encode-UTF8-char pos e
+				]
 			)
+			| (throw-error)							;-- invalid syntax
 		] #")"
 		| #"^^" [
 			[
@@ -574,8 +582,8 @@ lexer: context [
 	file-rule: [
 		pos: #"%" (type: file! stop: [not-file-char | ws-no-count]) [
 			#"{" (throw-error)
-			| line-string e: (value: encode-file s e)
-			| s: any UTF8-filtered-char e: (value: copy/part s e)
+			| line-string e: (value: to file! load-string s e)
+			| s: any UTF8-filtered-char e: (value: to file! dehex copy/part s e)
 		]
 	]
 	
@@ -638,7 +646,7 @@ lexer: context [
 			| get-word-rule	  (stack/push to type value)
 			| refinement-rule (stack/push to refinement! copy/part s e)
 			| slash-rule	  (stack/push to type		 copy/part s e)
-			| file-rule		  (stack/push load-file value)
+			| file-rule		  (stack/push value)
 			| char-rule		  (stack/push decode-UTF8-char value)
 			| block-rule	  (stack/push value)
 			| paren-rule	  (stack/push value)
@@ -817,7 +825,7 @@ lexer: context [
 	]
 	
 	decode-hexa: func [s [string!]][
-		to integer! debase/base s 16
+		to integer! to issue! s
 	]
 	
 	as-time: func [h [integer!] m [integer!] s [integer! decimal!] neg? [logic!] /local t][
@@ -928,18 +936,20 @@ lexer: context [
 		to file! replace/all dehex s #"\" #"/"
 	]
 	
-	encode-file: func [s [string!] e [string!]][
-		replace/all copy/part s back e "%" "%25"
-	]
-	
-	identify-header: func [src /local p ws found? pos][
+	identify-header: func [src /local p ws found?][
 		ws: charset " ^-^M^/"
 		rs?: no
 		pos: src
 		until [
-			unless pos: find/tail pos "Red" [throw-error/with "Invalid Red program"]
-			if all [pos find/match pos "/System"][rs?: yes pos: skip pos 7]
-			while [find/match ws pos/1][pos: next pos]
+			pos: any [
+				find/tail pos "Red"						;-- don't set pos to none before throw-error
+				throw-error/with "Invalid Red program"
+			]
+			if find/match pos "/System" [rs?: yes pos: skip pos 7]
+			pos: any [
+				find pos negate ws
+				pos
+			]
 			found?: pos/1 = #"["
 		]	
 		unless found? [throw-error/with "Invalid Red program"]

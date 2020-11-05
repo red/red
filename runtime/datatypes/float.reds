@@ -241,6 +241,7 @@ float: context [
 				]
 			]
 			OP_REM [
+				if any [left = -INF left = +INF right = 0.0][return QNaN]	;-- issue #4574
 				either all [0.0 = right not NaN? right][
 					fire [TO_ERROR(math zero-divide)]
 					0.0									;-- pass the compiler's type-checking
@@ -754,7 +755,6 @@ float: context [
 				if money/float-overflow?  left [return 1]
 				return money/compare money/from-float left as red-money! value2 op
 			]
-			TYPE_CHAR
 			TYPE_INTEGER [
 				int: as red-integer! value2
 				right: as-float int/value

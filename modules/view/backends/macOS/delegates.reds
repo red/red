@@ -794,6 +794,7 @@ object-for-table: func [
 	data: (as red-block! get-face-values obj) + FACE_OBJ_DATA
 	head: block/rs-head data
 	tail: block/rs-tail data
+
 	idx: -1
 	while [all [row >= 0 head < tail]][
 		type: TYPE_OF(head)
@@ -801,6 +802,9 @@ object-for-table: func [
 		head: head + 1
 		idx: idx + 1
 	]
+
+	if any [idx = -1 row >= 0][return 0]
+
 	font: (as red-object! get-face-values obj) + FACE_OBJ_FONT
 	str: to-NSString as red-string! block/rs-abs-at data idx
 	if TYPE_OF(font) = TYPE_OBJECT [

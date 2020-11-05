@@ -89,11 +89,15 @@ req-dir-callback: func [
 	0
 ]
 
-check-base-capture: func [/local word [red-word!]][
-	request-file?: no
-	if all [base-down-hwnd <> null not no-face? base-down-hwnd][
-		word: (as red-word! get-face-values base-down-hwnd) + FACE_OBJ_TYPE
-		if base = symbol/resolve word/symbol [request-file?: yes exit]
+check-base-capture: func [/local word [red-word!] hwnd [handle!] n [integer!]][
+	hwnd: base-down-hwnd
+	if all [hwnd <> null not no-face? hwnd][
+		word: (as red-word! get-face-values hwnd) + FACE_OBJ_TYPE
+		if base = symbol/resolve word/symbol [
+			n: GetWindowLong hwnd wc-offset - 32
+			SetWindowLong hwnd wc-offset - 32 n - 1
+			exit
+		]
 	]
 	base-down-hwnd: null
 ]

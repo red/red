@@ -1,7 +1,7 @@
 ﻿Red [
 	Title:   "Red local contexts binding test script"
 	Author:  "Nenad Rakocevic & Peter W A Wood"
-	File: 	 %binding-test.reds
+	File: 	 %binding-test.red
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2015 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"

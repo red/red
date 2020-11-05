@@ -10,7 +10,9 @@ REBOL [
 ;;-------------------------------------------
 ;;     Compilation Target Options
 ;;-------------------------------------------
-;;	OS:				'Windows | 'Linux | 'macOS | 'Syllable	;-- operating system name
+;;	OS:				'Windows | 'Linux | 'macOS
+;;					| 'Syllable	| 'FreeBSD
+;;					| 'NetBSD | 'Android 		;-- operating system name
 ;;	format:			'PE  | 'ELF | 'Mach-o		;-- file format
 ;;	type:			'exe | 'dll | 'drv			;-- file type
 ;;	target:			'IA-32 | 'ARM				;-- CPU or VM target
@@ -97,6 +99,14 @@ Linux [									; Linux default target
 	dynamic-linker: "/lib/ld-linux.so.2"
 	stack-align-16?: yes
 ]
+Linux-GTK [								; Linux GUI target
+	OS:			'Linux
+	format: 	'ELF
+	type:		'exe
+	dynamic-linker: "/lib/ld-linux.so.2"
+	stack-align-16?: yes
+	sub-system: 'GUI
+]
 Linux-musl [
 	OS:			'Linux
 	format: 	'ELF
@@ -161,6 +171,17 @@ RPi [
 	base-address: 32768					; 8000h
 	dynamic-linker: "/lib/ld-linux-armhf.so.3"
 ]
+RPi-GTK [
+	OS:			'Linux
+	format:		'ELF
+	target:		'ARM
+	ABI:		'hard-float
+	type:		'exe
+	cpu-version: 7.0
+	base-address: 32768					; 8000h
+	dynamic-linker: "/lib/ld-linux-armhf.so.3"
+	sub-system: 'GUI
+]
 ;-------------------------
 Syllable [
 	OS:			'Syllable
@@ -176,6 +197,16 @@ FreeBSD [
 	dynamic-linker: "/usr/libexec/ld-elf.so.1"
 	syscall: 'BSD
 	target: 'IA-32
+]
+;-------------------------
+NetBSD [
+	OS:				'NetBSD
+	format: 		'ELF
+	type:			'exe
+	dynamic-linker: "/usr/libexec/ld.elf_so"
+	syscall: 		'BSD
+	target: 		'IA-32
+	PIC?:			 yes
 ]
 ;-------------------------
 Darwin [

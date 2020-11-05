@@ -1,7 +1,7 @@
 Red [
 	Title:   "Red function test script"
 	Author:  "Nenad Rakocevic & Peter W A Wood"
-	File: 	 %function-test.reds
+	File: 	 %function-test.red
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2015 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
@@ -302,7 +302,7 @@ Red [
 	
 	--test-- "fun-ref-3"
 		blk: clean-strings spec-of :set	
-		--assert blk = [word [any-word! block! object! path!] value [any-type!] /any /case /only /some return: [any-type!]]
+		--assert blk = [word [any-word! block! object! any-path!] value [any-type!] /any /case /only /some return: [any-type!]]
 		
 	--test-- "fun-ref-4"
 		blk: clean-strings spec-of :<

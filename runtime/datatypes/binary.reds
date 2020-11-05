@@ -854,7 +854,8 @@ binary: context [
 			size   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/serialize"]]
-
+		
+		if part < 0 [part: 0]
 		s: GET_BUFFER(bin)
 		head: (as byte-ptr! s/offset) + bin/head
 		tail: as byte-ptr! s/tail
@@ -862,7 +863,7 @@ binary: context [
 
 		string/concatenate-literal buffer "#{"
 		bytes: 0
-		if size > 30 [
+		if all [size > 30 not flat?][
 			string/append-char GET_BUFFER(buffer) as-integer lf
 			part: part - 1
 		]
@@ -870,7 +871,7 @@ binary: context [
 		while [head < tail][
 			string/concatenate-literal buffer string/byte-to-hex as-integer head/value
 			bytes: bytes + 1
-			if bytes % 32 = 0 [
+			if all [bytes % 32 = 0 not flat?][
 				string/append-char GET_BUFFER(buffer) as-integer lf
 				part: part - 1
 			]
@@ -878,7 +879,7 @@ binary: context [
 			if all [OPTION?(arg) part <= 0][return part]
 			head: head + 1
 		]
-		if all [size > 30 bytes % 32 <> 0] [
+		if all [size > 30 bytes % 32 <> 0 not flat?][
 			string/append-char GET_BUFFER(buffer) as-integer lf
 			part: part - 1
 		]

@@ -242,7 +242,7 @@ typeset: context [
 			array	[byte-ptr!]
 			id		[integer!]
 			name	[names!]
-			pos		[byte-ptr!]								;-- required by BS_TEST_BIT
+			pos		[byte-ptr!]							;-- required by BS_TEST_BIT
 			set?	[logic!]							;-- required by BS_TEST_BIT
 	][
 		array: (as byte-ptr! sets) + 4

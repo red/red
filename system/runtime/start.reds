@@ -27,10 +27,10 @@ system: declare struct! [							;-- trimmed down temporary system definition
 ]
 
 
-#switch OS [
-	Windows []										;-- nothing to do, initialization occurs in DLL init entry point
-	macOS   []										;-- nothing to do @@
-	FreeBSD [
+#case [
+	OS = 'Windows []										;-- nothing to do, initialization occurs in DLL init entry point
+	OS = 'macOS   []										;-- nothing to do @@
+	any [OS = 'FreeBSD OS = 'NetBSD] [
 		#import [ LIBC-file cdecl [
 			***__atexit: "atexit" [fun [pointer! [byte!]]]
 			***__exit: "exit" [code [integer!]]]
@@ -67,7 +67,7 @@ system: declare struct! [							;-- trimmed down temporary system definition
 		#export [environ __progname]
 	]
 
-	Syllable [
+	OS = 'Syllable [
 		#import [LIBC-file cdecl [
 			libc-start: "__libc_start_main" [
 				main 			[function! []]
@@ -108,7 +108,7 @@ system: declare struct! [							;-- trimmed down temporary system definition
 		libc-start :***_start ***__argv ***__envp null null ***__stack_end		
 	]
 	
-	Android [
+	OS = 'Android [
 		#import [LIBC-file cdecl [
 			libc-init: "__libc_init" [
 				args 			[pointer! [integer!]]
@@ -140,7 +140,7 @@ system: declare struct! [							;-- trimmed down temporary system definition
 		libc-init ***__argv - 1 null :***_start ***__argv - 16
 	]
 	
-	#default [										;-- for SVR4 fully conforming UNIX platforms
+	true [										;-- for SVR4 fully conforming UNIX platforms
 		#import [LIBC-file cdecl [
 			libc-start: "__libc_start_main" [
 				main 			[function! []]

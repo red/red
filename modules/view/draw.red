@@ -30,7 +30,6 @@ Red/System [
 		line-join:		symbol/make "line-join"
 		line-cap:		symbol/make "line-cap"
 		matrix:			symbol/make "matrix"
-		_matrix-order:  symbol/make "matrix-order"
 		_append:        symbol/make "append"
 		prepend:        symbol/make "prepend"
 		invert-matrix:	symbol/make "invert-matrix"
@@ -914,16 +913,6 @@ Red/System [
 							sym = shape [
 								DRAW_FETCH_VALUE(TYPE_BLOCK)
 								parse-shape DC as red-block! cmd true catch?
-							]
-							sym = _matrix-order [
-								DRAW_FETCH_VALUE(TYPE_WORD)
-								word: as red-word! start
-								m-order: symbol/resolve word/symbol
-								unless any [
-									m-order = _append
-									m-order = prepend
-								][ throw-draw-error cmds cmd catch? ]
-								OS-set-matrix-order DC m-order
 							]
 							sym = rotate [
 								DRAW_FETCH_OPT_TRANSFORM
