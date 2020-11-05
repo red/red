@@ -37,7 +37,7 @@ Red [
 		also body parse body rule
 	]
 	
-	scan: func [datatype [datatype!] /only /local value][
+	redbin-scan: func [datatype [datatype!] /only /local value][
 		collect [
 			foreach word words-of system/words [
 				set/any 'value get/any word 
@@ -54,7 +54,7 @@ Red [
 			--assert none == test none
 		
 		--test-- "datatype"
-			datatypes: scan datatype!
+			datatypes: redbin-scan datatype!
 			forall datatypes [--assert datatypes/1 == test datatypes/1]
 		
 		--test-- "logic"
@@ -168,7 +168,7 @@ Red [
 			]
 		
 		--test-- "typeset"
-			typesets: scan typeset!
+			typesets: redbin-scan typeset!
 			forall typesets [--assert typesets/1 == test typesets/1]
 			--assert strict-equal? make typeset! [] test make typeset! []
 		
@@ -304,11 +304,11 @@ Red [
 			]
 		
 		--test-- "action"
-			actions: scan action!
+			actions: redbin-scan action!
 			forall actions [--assert :actions/1 == test :actions/1]
 
 		--test-- "native"
-			natives: scan native!
+			natives: redbin-scan native!
 			forall natives [--assert :natives/1 == test :natives/1]
 		
 		--test-- "object"
@@ -359,7 +359,7 @@ Red [
 		;]
 		
 		--test-- "op"
-			ops: scan op!
+			ops: redbin-scan op!
 			clear find/tail ops :is ;@@ find something more adequate
 			;@@ #4562, #4570
 			ops: exclude ops reduce [:>> :>>> get load "<<" :is ://]
@@ -387,7 +387,7 @@ Red [
 				--assert strict-equal? spec-of :/// spec-of ://
 			]
 			
-			unset [operator ///]					;-- hide from scanner
+			unset [operator ///]					;-- hide from redbin-scanner
 		
 	===end-group===
 	
@@ -782,7 +782,7 @@ Red [
 			--assert equal? spec-of :bar spec-of :block/1
 			--assert equal-func? :foo :block/2
 			
-			unset 'bar								;-- hide from scanner
+			unset 'bar								;-- hide from redbin-scanner
 		]
 	
 	===end-group===
