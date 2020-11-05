@@ -333,7 +333,7 @@ Red [
 			forall errors [--assert :errors/1 = test :errors/1]
 		
 		;do [										;@@ #4568
-		;--test-- "function"
+		;--test-- "function"						;@@ ???
 		;	functions: redbin-scan/only function!
 		;	clear find/tail functions 'red-complete-input ;@@ find something more adequate
 		;	functions: exclude functions [
@@ -426,16 +426,17 @@ Red [
 			--assert ctx == context? foo/2
 			--assert equal? context? foo/1 context? foo/2
 		
+		do [											;@@ ???
 		--test-- "binding-4"
 			word: test bind 'foo has [foo][bar]
 		
 			--assert word? word
 			--assert 'foo = word
 			--assert equal-func? has [foo][bar] context? word
-		
+		]
 	===end-group===
 
-	;===start-group=== "Header flags"
+	;===start-group=== "Header flags"					;@@ ???
 	;	--test-- "newline"			
 	;		block: [
 	;			#a
