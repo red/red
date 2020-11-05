@@ -332,31 +332,31 @@ Red [
 			
 			forall errors [--assert :errors/1 = test :errors/1]
 		
-		do [										;@@ #4568
-		--test-- "function"
-			functions: scan/only function!
-			clear find/tail functions 'red-complete-input ;@@ find something more adequate
-			functions: exclude functions [
-				:expand-directives					;-- routine
-				:scan								;-- routine
-			]
-			
-			forall functions [
-				attempt [							;@@ #4552
-					--assert equal-func? get :functions/1 test get :functions/1
-				]
-			]
-			
-			collect*: test :collect
-			block: collect* [repeat i 10 [keep i]]
-			--assert block == collect [repeat i 10 [keep i]]
-			
-			load-json*: test :load-json
-			map: load-json* {{"a": [1, 2, {"b": "c"}]}}
-			--assert map == load-json {{"a": [1, 2, {"b": "c"}]}}
-			
-			unset [collect* load-json*]
-		]
+		;do [										;@@ #4568
+		;--test-- "function"
+		;	functions: redbin-scan/only function!
+		;	clear find/tail functions 'red-complete-input ;@@ find something more adequate
+		;	functions: exclude functions [
+		;		:expand-directives					;-- routine
+		;		:redbin-scan						;-- routine
+		;	]
+		;	
+		;	forall functions [
+		;		attempt [							;@@ #4552
+		;			--assert equal-func? get :functions/1 test get :functions/1
+		;		]
+		;	]
+		;	
+		;	collect*: test :collect
+		;	block: collect* [repeat i 10 [keep i]]
+		;	--assert block == collect [repeat i 10 [keep i]]
+		;	
+		;	load-json*: test :load-json
+		;	map: load-json* {{"a": [1, 2, {"b": "c"}]}}
+		;	--assert map == load-json {{"a": [1, 2, {"b": "c"}]}}
+		;	
+		;	unset [collect* load-json*]
+		;]
 		
 		--test-- "op"
 			ops: scan op!
@@ -435,39 +435,39 @@ Red [
 		
 	===end-group===
 
-	===start-group=== "Header flags"
-		--test-- "newline"			
-			block: [
-				#a
-				b /c
-				:d e: 'f
-				
-				1
-				2.0 3x4
-				$5.6 7% 8.9.10.11
-				
-				"foo"
-				<bar> baz@qux
-				%foo @bar baz://qux
-				
-				[
-					a/b
-					:c/d/e 'f/g/(
-						i
-					)
-					j/k/l: (
-						#(
-							foo: bar
-						)
-						#[none] #"n"
-						#[true]
-						#[false]
-					)
-				]
-			]
-			
-			--assert (mold block) = mold test block
-	===end-group===
+	;===start-group=== "Header flags"
+	;	--test-- "newline"			
+	;		block: [
+	;			#a
+	;			b /c
+	;			:d e: 'f
+	;			
+	;			1
+	;			2.0 3x4
+	;			$5.6 7% 8.9.10.11
+	;			
+	;			"foo"
+	;			<bar> baz@qux
+	;			%foo @bar baz://qux
+	;			
+	;			[
+	;				a/b
+	;				:c/d/e 'f/g/(
+	;					i
+	;				)
+	;				j/k/l: (
+	;					#(
+	;						foo: bar
+	;					)
+	;					#[none] #"n"
+	;					#[true]
+	;					#[false]
+	;				)
+	;			]
+	;		]
+	;		
+	;		--assert (mold block) = mold test block
+	;===end-group===
 	
 	===start-group=== "Cycles & References"
 		--test-- "cycle-1"
