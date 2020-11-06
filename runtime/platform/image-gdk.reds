@@ -279,28 +279,27 @@ OS-image: context [
 
 	;-- ARGB(image! buffer) <-> ABGR(gtk)
 	revert: func [
-		src		[int-ptr!]
-		dst		[int-ptr!]
-		count	[integer!]
-		alpha?	[logic!]
+		src		[byte-ptr!]
+		dst		[byte-ptr!]
+		w		[integer!]
+		h		[integer!]
+		chs		[integer!]
 		/local
-			offset	[integer!]
-			old		[integer!]
-			p		[byte-ptr!]
-			b		[byte!]
+			count	[integer!]
 	][
-		offset: 1
+		count: w * h
 		loop count [
-			old: src/offset
-			p: as byte-ptr! :old
-			b: p/1
-			p/1: p/3
-			p/3: b
-			unless alpha? [
-				p/4: #"^(FF)"
+			dst/1: src/3
+			dst/2: src/2
+			dst/3: src/1
+			either chs = 3 [
+				dst/4: #"^(FF)"
+				src: src + 3
+			][
+				dst/4: src/4
+				src: src + 4
 			]
-			dst/offset: old
-			offset: offset + 1
+			dst: dst + 4
 		]
 	]
 
@@ -308,23 +307,19 @@ OS-image: context [
 		pixbuf			[int-ptr!]
 		return:			[int-ptr!]
 		/local
-			alpha?		[logic!]
 			width		[integer!]
 			height		[integer!]
 			channels	[integer!]
-			count		[integer!]
-			buff		[int-ptr!]
-			p			[int-ptr!]
+			buff		[byte-ptr!]
+			p			[byte-ptr!]
 	][
-		alpha?: gdk_pixbuf_get_has_alpha pixbuf
 		width: gdk_pixbuf_get_width pixbuf
 		height: gdk_pixbuf_get_height pixbuf
 		channels: gdk_pixbuf_get_n_channels pixbuf
-		count: width * height
-		buff: as int-ptr! allocate count * 4
-		p: as int-ptr! gdk_pixbuf_get_pixels pixbuf
-		revert p buff count channels = 4
-		buff
+		buff: allocate width * height * 4
+		p: gdk_pixbuf_get_pixels pixbuf
+		revert p buff width height channels
+		as int-ptr! buff
 	]
 
 	load-binary: func [
@@ -452,7 +447,7 @@ OS-image: context [
 		h: IMAGE_HEIGHT(image/size)
 		pixbuf: gdk_pixbuf_new 0 yes 8 w h
 		buf: gdk_pixbuf_get_pixels pixbuf
-		revert node/buffer as int-ptr! buf w * h yes
+		revert as byte-ptr! node/buffer buf w h 4
 		pixbuf
 	]
 

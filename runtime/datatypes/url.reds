@@ -50,8 +50,10 @@ url: context [
 		open?	[logic!]
 		return:	[red-value!]
 		/local
-			p [red-object!]
+			p	[red-object!]
+			v	[red-value! value]
 	][
+		copy-cell as red-value! url :v
 		#call [url-parser/parse-url url]
 		p: as red-object! stack/arguments
 
@@ -59,7 +61,7 @@ url: context [
 			p: port/make none-value as red-value! p TYPE_NONE
 			if open? [actions/open as red-value! p new? read? write? seek? allow]
 		][
-			0 ;TBD: error invalid url
+			fire [TO_ERROR(script invalid-arg) :v]
 		]
 		as red-value! p
 	]
@@ -294,10 +296,10 @@ url: context [
 				--NOT_IMPLEMENTED--
 			]
 
+			header: null
 			either TYPE_OF(data) = TYPE_BLOCK [
 				blk: as red-block! data
 				either 0 = block/rs-length? blk [
-					header: null
 					action: words/get
 				][
 					method: as red-word! block/rs-head blk
@@ -305,7 +307,7 @@ url: context [
 						fire [TO_ERROR(script invalid-arg) method]
 					]
 					action: symbol/resolve method/symbol
-					either block/rs-next blk [null][
+					unless block/rs-next blk [
 						header: as red-block! block/rs-head blk
 						if TYPE_OF(header) <> TYPE_BLOCK [
 							fire [TO_ERROR(script invalid-arg) header]
@@ -314,7 +316,6 @@ url: context [
 					data: as red-value! either block/rs-next blk [null][block/rs-head blk]
 				]
 			][
-				header: null
 				action: words/post
 			]
 
