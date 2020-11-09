@@ -989,6 +989,11 @@ tls: context [
 			i		[integer!]
 			pbuffer	[byte-ptr!]
 	][
+		if zero? data/transferred [	;-- peer socket was closed
+			data/event: IO_EVT_CLOSE
+			return yes
+		]
+
 		bin: as red-binary! (object/get-values as red-object! :data/port) + port/field-data
 		s: GET_BUFFER(bin)
 		pbuffer: as byte-ptr! s/offset
