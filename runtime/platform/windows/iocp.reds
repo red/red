@@ -218,14 +218,10 @@ iocp: context [
 									continue
 								]
 							]
-							IO_EVT_WRITE [
-								if data/state and IO_STATE_WRITING <> 0 [
-									data/state: IO_STATE_TLS_DONE
-									td: as tls-data! data
-									io/unpin-memory td/send-buf
-									i: i + 1
-									continue
-								]
+							IO_EVT_ACCEPT [
+								data/state: IO_STATE_TLS_DONE
+								td: as tls-data! data
+								io/unpin-memory td/send-buf
 							]
 							default [0]
 						]
