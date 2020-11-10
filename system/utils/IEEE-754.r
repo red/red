@@ -97,6 +97,10 @@ IEEE-754: context [
 				exp: 0
 			]
 			frac: to integer! frac + .5
+			if frac = 8388608 [							;-- 8388608 = 2 ** 23
+				frac: 0
+				exp: exp + 1
+			]
 		]
 		reduce [sign exp frac]
 	]
