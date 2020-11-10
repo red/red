@@ -173,10 +173,10 @@ iocp: context [
 
 		cnt: 0
 		res: GetQueuedCompletionStatusEx p/port p/events p/evt-cnt :cnt timeout no
-?? res
 ?? cnt
 		if zero? res [
 			err: GetLastError
+			?? err
 			return 0
 		]
 
@@ -219,8 +219,10 @@ iocp: context [
 									continue
 								]
 							]
-							IO_EVT_WRITE [
-								0
+							IO_EVT_ACCEPT [
+								data/state: IO_STATE_TLS_DONE
+								td: as tls-data! data
+								io/unpin-memory td/send-buf
 							]
 							default [0]
 						]

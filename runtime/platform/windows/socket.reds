@@ -147,7 +147,7 @@ socket: context [
 			wsbuf	[WSABUF! value]
 			err		[integer!]
 	][
-		#if debug? = yes [if verbose > 0 [io/debug "socket/write"]]
+		#if debug? = yes [if verbose > 0 [io/debug "socket/send"]]
 
 		wsbuf/len: length
 		wsbuf/buf: buffer
@@ -170,6 +170,7 @@ socket: context [
 			wsbuf	[WSABUF! value]
 			flags	[integer!]
 	][
+		#if debug? = yes [if verbose > 0 [io/debug "socket/recv"]]
 		wsbuf/len: length
 		wsbuf/buf: buffer
 		data/event: IO_EVT_READ

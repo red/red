@@ -858,7 +858,9 @@ tls: context [
 			credential	[SecHandle! value]
 			cert		[CERT_CONTEXT]
 			ctx-size	[SecPkgContext_StreamSizes value]
+			finished	[integer!]
 	][
+		finished: 1
 		state: data/state
 		client?: state and IO_STATE_CLIENT <> 0
 
@@ -981,7 +983,12 @@ tls: context [
 						outbuf-1/cbBuffer > 0
 						outbuf-1/pvBuffer <> null
 					][
+						io/pin-memory data/send-buf
 						data/state: state or IO_STATE_READING
+						if ret = SEC_OK [
+							finished: 0
+							data/state: state or IO_STATE_WRITING
+						]
 						if 0 > socket/send
 							as-integer data/device
 							outbuf-1/pvBuffer
@@ -989,6 +996,7 @@ tls: context [
 							as iocp-data! data [
 								probe "handshake send error"
 								release-context data
+								;TBD post close event to port
 							]
 					]
 
@@ -1019,10 +1027,7 @@ tls: context [
 						][
 							data/event: IO_EVT_ACCEPT
 						]
-						io/pin-memory data/send-buf
-
-						OS-Sleep 100
-						return 1
+						return finished
 					]
 
 					either all [
@@ -1168,6 +1173,11 @@ tls: context [
 			i		[integer!]
 			pbuffer	[byte-ptr!]
 	][
+		if zero? data/transferred [	;-- peer socket was closed
+			data/event: IO_EVT_CLOSE
+			return yes
+		]
+
 		bin: as red-binary! (object/get-values as red-object! :data/port) + port/field-data
 		s: GET_BUFFER(bin)
 		pbuffer: as byte-ptr! s/offset
