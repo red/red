@@ -1894,7 +1894,7 @@ make-profilable make target-class [
 				;; for floats only: use conds that are false given NaN
 				;; in unflipped state: unsigned for < <= , signed for > >=
 				;; (ref: clause A8.3 of ARM Architecture Reference Manual)
-				flip?: flip? xor true? all [parity find [< <=] op/1]
+				flip?: flip? xor (true? find [< <=] op/1) and parity
 				pick op pick [2 3] signed? xor flip?	;-- choose code between signed and unsigned
 			]
 		]
