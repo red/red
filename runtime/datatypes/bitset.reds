@@ -679,7 +679,7 @@ bitset: context [
 		string/append-char GET_BUFFER(buffer) as-integer #"}"
 		
 		either not? [
-			string/append-char GET_BUFFER(buffer)as-integer #"]"
+			string/append-char GET_BUFFER(buffer) as-integer #"]"
 			part - 7									;-- account for extra chars
 		][
 			part - 1

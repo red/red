@@ -155,10 +155,7 @@ collector: context [
 				]
 				TYPE_BLOCK
 				TYPE_PAREN
-				TYPE_PATH
-				TYPE_LIT_PATH
-				TYPE_GET_PATH
-				TYPE_SET_PATH [
+				TYPE_ANY_PATH [
 					series: as red-series! value
 					if series/node <> null [			;-- can happen in routine
 						#if debug? = yes [if verbose > 1 [print ["len: " block/rs-length? as red-block! series]]]

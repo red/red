@@ -39,6 +39,7 @@ write %build/bin/sources.r set-cache [
 			%PNG.red
 			%CSV.red
 			%JSON.red
+			%redbin.red
 		]
 		%console/ [
 			%auto-complete.red

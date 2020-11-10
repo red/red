@@ -234,7 +234,7 @@ system: context [
 				;security:			["security violation:" :arg1 " (refer to SECURE function)"]
 				;security-level:	["attempt to lower security to" :arg1]
 				;security-error:	["invalid" :arg1 "security policy:" :arg2]
-				;no-codec:			["cannot decode or encode (no codec):" :arg1]
+				no-codec:			["cannot decode or encode (no codec):" :arg1]
 				bad-media:			["bad media data (corrupt image, sound, video)"]
 				;no-extension:		["cannot open extension:" :arg1]
 				;bad-extension:		["invalid extension format:" :arg1]
@@ -264,7 +264,7 @@ system: context [
 				wrong-mem:			"failed to release memory"
 				stack-overflow:		"stack overflow"
 				;bad-series:		"invalid series"
-				;limit-hit:			["internal limit reached:" :arg1]
+				limit-hit:			["internal limit reached:" :arg1]
 				;bad-sys-func:		["invalid or missing system function:" :arg1]
 				too-deep:			"block or paren series is too deep to display"
 				no-cycle:			"circular reference not allowed"
