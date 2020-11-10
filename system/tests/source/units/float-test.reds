@@ -1117,127 +1117,126 @@ Red/System [
 		--assert not failed
 
 
-	;; FIXME: cannot test case return until #810 is resolved
 	;; check point 11 - case & switch logic return values from nan comparison
-	; --test-- "case return nan 1"
-	; 	failed: yes  b: case [true [one <> one]]  unless b [failed: no]
-	; 	--assert not failed
+	--test-- "case return nan 1"
+		failed: yes  b: case [true [one <> one]]  unless b [failed: no]
+		--assert not failed
 
-	; --test-- "case return nan 2"
-	; 	failed: yes  b: case [true [one <> two]]      if b [failed: no]
-	; 	--assert not failed
+	--test-- "case return nan 2"
+		failed: yes  b: case [true [one <> two]]      if b [failed: no]
+		--assert not failed
 
-	; --test-- "case return nan 3"
-	; 	failed: yes  b: case [true [nan <> nan]]      if b [failed: no]
-	; 	--assert not failed
+	--test-- "case return nan 3"
+		failed: yes  b: case [true [nan <> nan]]      if b [failed: no]
+		--assert not failed
 
-	; --test-- "case return nan 4"
-	; 	failed: yes  b: case [true [one <> nan]]      if b [failed: no]
-	; 	--assert not failed
+	--test-- "case return nan 4"
+		failed: yes  b: case [true [one <> nan]]      if b [failed: no]
+		--assert not failed
 
-	; --test-- "case return nan 5"
-	; 	failed: yes  b: case [true [nan <> one]]      if b [failed: no]
-	; 	--assert not failed
+	--test-- "case return nan 5"
+		failed: yes  b: case [true [nan <> one]]      if b [failed: no]
+		--assert not failed
 
-	; --test-- "case return nan 6"
-	; 	failed: yes  b: case [true [one =  one]]      if b [failed: no]
-	; 	--assert not failed
+	--test-- "case return nan 6"
+		failed: yes  b: case [true [one =  one]]      if b [failed: no]
+		--assert not failed
 
-	; --test-- "case return nan 7"
-	; 	failed: yes  b: case [true [one =  two]]  unless b [failed: no]
-	; 	--assert not failed
+	--test-- "case return nan 7"
+		failed: yes  b: case [true [one =  two]]  unless b [failed: no]
+		--assert not failed
 
-	; --test-- "case return nan 8"
-	; 	failed: yes  b: case [true [nan =  nan]]  unless b [failed: no]
-	; 	--assert not failed
+	--test-- "case return nan 8"
+		failed: yes  b: case [true [nan =  nan]]  unless b [failed: no]
+		--assert not failed
 
-	; --test-- "case return nan 9"
-	; 	failed: yes  b: case [true [one =  nan]]  unless b [failed: no]
-	; 	--assert not failed
+	--test-- "case return nan 9"
+		failed: yes  b: case [true [one =  nan]]  unless b [failed: no]
+		--assert not failed
 
-	; --test-- "case return nan 10"
-	; 	failed: yes  b: case [true [nan =  one]]  unless b [failed: no]
-	; 	--assert not failed
+	--test-- "case return nan 10"
+		failed: yes  b: case [true [nan =  one]]  unless b [failed: no]
+		--assert not failed
 
-	; --test-- "case return nan 11"
-	; 	failed: yes  b: case [true [one <  one]]  unless b [failed: no]
-	; 	--assert not failed
+	--test-- "case return nan 11"
+		failed: yes  b: case [true [one <  one]]  unless b [failed: no]
+		--assert not failed
 
-	; --test-- "case return nan 12"
-	; 	failed: yes  b: case [true [one <  two]]      if b [failed: no]
-	; 	--assert not failed
+	--test-- "case return nan 12"
+		failed: yes  b: case [true [one <  two]]      if b [failed: no]
+		--assert not failed
 
-	; --test-- "case return nan 13"
-	; 	failed: yes  b: case [true [nan <  nan]]  unless b [failed: no]
-	; 	--assert not failed
+	--test-- "case return nan 13"
+		failed: yes  b: case [true [nan <  nan]]  unless b [failed: no]
+		--assert not failed
 
-	; --test-- "case return nan 14"
-	; 	failed: yes  b: case [true [one <  nan]]  unless b [failed: no]
-	; 	--assert not failed
+	--test-- "case return nan 14"
+		failed: yes  b: case [true [one <  nan]]  unless b [failed: no]
+		--assert not failed
 
-	; --test-- "case return nan 15"
-	; 	failed: yes  b: case [true [nan <  one]]  unless b [failed: no]
-	; 	--assert not failed
+	--test-- "case return nan 15"
+		failed: yes  b: case [true [nan <  one]]  unless b [failed: no]
+		--assert not failed
 
-	; --test-- "case return nan 16"
-	; 	failed: yes  b: case [true [one  > one]]  unless b [failed: no]
-	; 	--assert not failed
+	--test-- "case return nan 16"
+		failed: yes  b: case [true [one  > one]]  unless b [failed: no]
+		--assert not failed
 
-	; --test-- "case return nan 17"
-	; 	failed: yes  b: case [true [one  > two]]  unless b [failed: no]
-	; 	--assert not failed
+	--test-- "case return nan 17"
+		failed: yes  b: case [true [one  > two]]  unless b [failed: no]
+		--assert not failed
 
-	; --test-- "case return nan 18"
-	; 	failed: yes  b: case [true [nan  > nan]]  unless b [failed: no]
-	; 	--assert not failed
+	--test-- "case return nan 18"
+		failed: yes  b: case [true [nan  > nan]]  unless b [failed: no]
+		--assert not failed
 
-	; --test-- "case return nan 19"
-	; 	failed: yes  b: case [true [one  > nan]]  unless b [failed: no]
-	; 	--assert not failed
+	--test-- "case return nan 19"
+		failed: yes  b: case [true [one  > nan]]  unless b [failed: no]
+		--assert not failed
 
-	; --test-- "case return nan 20"
-	; 	failed: yes  b: case [true [nan  > one]]  unless b [failed: no]
-	; 	--assert not failed
+	--test-- "case return nan 20"
+		failed: yes  b: case [true [nan  > one]]  unless b [failed: no]
+		--assert not failed
 
-	; --test-- "case return nan 21"
-	; 	failed: yes  b: case [true [one <= one]]      if b [failed: no]
-	; 	--assert not failed
+	--test-- "case return nan 21"
+		failed: yes  b: case [true [one <= one]]      if b [failed: no]
+		--assert not failed
 
-	; --test-- "case return nan 22"
-	; 	failed: yes  b: case [true [one <= two]]      if b [failed: no]
-	; 	--assert not failed
+	--test-- "case return nan 22"
+		failed: yes  b: case [true [one <= two]]      if b [failed: no]
+		--assert not failed
 
-	; --test-- "case return nan 23"
-	; 	failed: yes  b: case [true [nan <= nan]]  unless b [failed: no]
-	; 	--assert not failed
+	--test-- "case return nan 23"
+		failed: yes  b: case [true [nan <= nan]]  unless b [failed: no]
+		--assert not failed
 
-	; --test-- "case return nan 24"
-	; 	failed: yes  b: case [true [one <= nan]]  unless b [failed: no]
-	; 	--assert not failed
+	--test-- "case return nan 24"
+		failed: yes  b: case [true [one <= nan]]  unless b [failed: no]
+		--assert not failed
 
-	; --test-- "case return nan 25"
-	; 	failed: yes  b: case [true [nan <= one]]  unless b [failed: no]
-	; 	--assert not failed
+	--test-- "case return nan 25"
+		failed: yes  b: case [true [nan <= one]]  unless b [failed: no]
+		--assert not failed
 
-	; --test-- "case return nan 26"
-	; 	failed: yes  b: case [true [one >= one]]      if b [failed: no]
-	; 	--assert not failed
+	--test-- "case return nan 26"
+		failed: yes  b: case [true [one >= one]]      if b [failed: no]
+		--assert not failed
 
-	; --test-- "case return nan 27"
-	; 	failed: yes  b: case [true [one >= two]]  unless b [failed: no]
-	; 	--assert not failed
+	--test-- "case return nan 27"
+		failed: yes  b: case [true [one >= two]]  unless b [failed: no]
+		--assert not failed
 
-	; --test-- "case return nan 28"
-	; 	failed: yes  b: case [true [nan >= nan]]  unless b [failed: no]
-	; 	--assert not failed
+	--test-- "case return nan 28"
+		failed: yes  b: case [true [nan >= nan]]  unless b [failed: no]
+		--assert not failed
 
-	; --test-- "case return nan 29"
-	; 	failed: yes  b: case [true [one >= nan]]  unless b [failed: no]
-	; 	--assert not failed
+	--test-- "case return nan 29"
+		failed: yes  b: case [true [one >= nan]]  unless b [failed: no]
+		--assert not failed
 
-	; --test-- "case return nan 30"
-	; 	failed: yes  b: case [true [nan >= one]]  unless b [failed: no]
-	; 	--assert not failed
+	--test-- "case return nan 30"
+		failed: yes  b: case [true [nan >= one]]  unless b [failed: no]
+		--assert not failed
 
 
 	--test-- "switch return nan 1"
