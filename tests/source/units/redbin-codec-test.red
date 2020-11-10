@@ -230,6 +230,7 @@ Red [
 				--assert (index? value) == index? test value
 			]
 		
+		if value? 'image! [
 		--test-- "image"
 			loop 10 [
 				value: skip make image! reduce [
@@ -240,6 +241,7 @@ Red [
 				--assert value == test value
 				--assert (index? value) == index? test value
 			]
+		]
 			
 		--test-- "any-string"
 			strings: [{} "string" <tag> email@address url:// %file @reference]
@@ -296,12 +298,12 @@ Red [
 			values: [a 'b :c d: /e #f]
 			forall values [--assert values/1 == test values/1]
 			
-			loop 10 [
-				string: rejoin collect [loop random 100 [keep to char! random 10'000]]
-				value: to get random/only to block! all-word! string
-				
-				--assert value == test value
-			]
+			;loop 10 [
+			;	string: rejoin collect [loop random 100 [keep to char! random 10'000]]
+			;	value: to get random/only to block! all-word! string
+			;	
+			;	--assert value == test value
+			;]
 		
 		--test-- "action"
 			actions: redbin-scan action!
@@ -622,6 +624,7 @@ Red [
 			--assert block/1 =? block/2
 			--assert bitset? block/1
 		
+		if value? 'image! [
 		--test-- "reference-6"
 			img1: make image! [123x456 1.2.3]
 			img2: at img1 4
@@ -633,6 +636,7 @@ Red [
 			--assert 4 == index? block/2
 			--assert block/2/size == 123x456
 			--assert block/1/1 == 1.2.3.0
+		]
 		
 		--test-- "reference-7"
 			block1: reduce [:append :append reduce [:append]] 
