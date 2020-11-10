@@ -26,6 +26,10 @@ Red/System [
 		f: as float32! 1.0
 		f1: f
 		--assert f1 = as float32! 1.0
+	--test-- "float32-5"
+		f: as float32! 2147483647.0
+		f1: f
+		--assert f1 = as float32! 2147483647.99999
 ===end-group===
 
 ===start-group=== "float argument to external function"
