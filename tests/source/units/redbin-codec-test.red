@@ -230,7 +230,6 @@ Red [
 				--assert (index? value) == index? test value
 			]
 		
-		if value? 'image! [
 		--test-- "image"
 			loop 10 [
 				value: skip make image! reduce [
@@ -241,7 +240,6 @@ Red [
 				--assert value == test value
 				--assert (index? value) == index? test value
 			]
-		]
 			
 		--test-- "any-string"
 			strings: [{} "string" <tag> email@address url:// %file @reference]
@@ -624,7 +622,6 @@ Red [
 			--assert block/1 =? block/2
 			--assert bitset? block/1
 		
-		if value? 'image! [
 		--test-- "reference-6"
 			img1: make image! [123x456 1.2.3]
 			img2: at img1 4
@@ -636,7 +633,6 @@ Red [
 			--assert 4 == index? block/2
 			--assert block/2/size == 123x456
 			--assert block/1/1 == 1.2.3.0
-		]
 		
 		--test-- "reference-7"
 			block1: reduce [:append :append reduce [:append]] 
