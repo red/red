@@ -103,7 +103,7 @@ case [
 i: 0  f: 5.0  g: 0.0
 until [
 	i: i + 1
-	f: f - 1
+	f: f - 1.0
 	g: 0.0 / f
 	g <> zero
 ]
@@ -112,7 +112,7 @@ unless i = 5 [print-line ["FAILED: until g <> zero with i=" i " f=" f]]
 i: 0  f: 5.0
 until [
 	i: i + 1
-	f: f - 1
+	f: f - 1.0
 	0.0 / f <> 0.0
 ]
 unless i = 5 [print-line ["FAILED: until 0.0 / f <> 0.0 with i=" i " f=" f]]
@@ -120,7 +120,7 @@ unless i = 5 [print-line ["FAILED: until 0.0 / f <> 0.0 with i=" i " f=" f]]
 i: 0  f: 5.0
 until [
 	i: i + 1
-	f: f - 1
+	f: f - 1.0
 	not (0.0 / f <= +inf)
 ]
 unless i = 5 [print-line ["FAILED: until not (0.0 / f <= +inf) with i=" i " f=" f]]
@@ -128,30 +128,30 @@ unless i = 5 [print-line ["FAILED: until not (0.0 / f <= +inf) with i=" i " f=" 
 i: 0  f: 5.0
 until [
 	i: i + 1
-	f: f - 1
+	f: f - 1.0
 	not (f * +inf <= +inf)
 ]
 unless i = 5 [print-line ["FAILED: until not (f * +inf <= +inf) with i=" i " f=" f]]
 
 ;; check point 6 - while's enter-condition
 i: 0  f: 5.0  g: 0.0
-while [g = 0.0] [i: i + 1  f: f - 1  g: 0.0 / f]
+while [g =  0.0] [i: i + 1  f: f - 1.0  g: 0.0 / f]
 unless i = 5 [print-line ["FAILED: while g = zero with i=" i " f=" f]]
 
 i: 0  f: 5.0  g: 0.0
-while [g <= +inf] [i: i + 1  f: f - 1  g: 0.0 / f]
+while [g <= +inf] [i: i + 1  f: f - 1.0  g: 0.0 / f]
 unless i = 5 [print-line ["FAILED: while g <= +inf with i=" i " f=" f]]
 
 i: 0  f: 5.0  g: 0.0
-while [g >= -inf] [i: i + 1  f: f - 1  g: 0.0 / f]
+while [g >= -inf] [i: i + 1  f: f - 1.0  g: 0.0 / f]
 unless i = 5 [print-line ["FAILED: while g >= -inf with i=" i " f=" f]]
 
 i: 0  f: 5.0  g: 0.0
-while [-inf <= g] [i: i + 1  f: f - 1  g: 0.0 / f]
+while [-inf <= g] [i: i + 1  f: f - 1.0  g: 0.0 / f]
 unless i = 5 [print-line ["FAILED: while -inf <= g with i=" i " f=" f]]
 
 i: 0  f: 5.0  g: 0.0
-while [+inf >= g] [i: i + 1  f: f - 1  g: 0.0 / f]
+while [+inf >= g] [i: i + 1  f: f - 1.0  g: 0.0 / f]
 unless i = 5 [print-line ["FAILED: while +inf >= g with i=" i " f=" f]]
 
 ;; check point 7 - all's

@@ -620,7 +620,7 @@ Red/System [
 		i: 0  f: five  g: zero
 		until [
 			i: i + 1
-			f: f - 1
+			f: f - 1.0
 			g: zero / f
 			g <> zero
 		]
@@ -630,7 +630,7 @@ Red/System [
 		i: 0  f: five
 		until [
 			i: i + 1
-			f: f - 1
+			f: f - 1.0
 			zero / f <> zero
 		]
 		--assert i = 5
@@ -639,7 +639,7 @@ Red/System [
 		i: 0  f: five
 		until [
 			i: i + 1
-			f: f - 1
+			f: f - 1.0
 			not (zero / f <= +inf)
 		]
 		--assert i = 5
@@ -648,7 +648,7 @@ Red/System [
 		i: 0  f: five
 		until [
 			i: i + 1
-			f: f - 1
+			f: f - 1.0
 			not (f * +inf <= +inf)
 		]
 		--assert i = 5
@@ -656,27 +656,27 @@ Red/System [
 	;; check point 6 - while's enter-condition
 	--test-- "while nan 1"
 		i: 0  f: five  g: zero
-		while [g = zero] [i: i + 1  f: f - 1  g: zero / f]
+		while [g =  zero] [i: i + 1  f: f - 1.0  g: zero / f]
 		--assert i = 5
 
 	--test-- "while nan 2"
 		i: 0  f: five  g: zero
-		while [g <= +inf] [i: i + 1  f: f - 1  g: zero / f]
+		while [g <= +inf] [i: i + 1  f: f - 1.0  g: zero / f]
 		--assert i = 5
 
 	--test-- "while nan 3"
 		i: 0  f: five  g: zero
-		while [g >= -inf] [i: i + 1  f: f - 1  g: zero / f]
+		while [g >= -inf] [i: i + 1  f: f - 1.0  g: zero / f]
 		--assert i = 5
 
 	--test-- "while nan 4"
 		i: 0  f: five  g: zero
-		while [-inf <= g] [i: i + 1  f: f - 1  g: zero / f]
+		while [-inf <= g] [i: i + 1  f: f - 1.0  g: zero / f]
 		--assert i = 5
 
 	--test-- "while nan 5"
 		i: 0  f: five  g: zero
-		while [+inf >= g] [i: i + 1  f: f - 1  g: zero / f]
+		while [+inf >= g] [i: i + 1  f: f - 1.0  g: zero / f]
 		--assert i = 5
 
 	;; check point 7 - all's
