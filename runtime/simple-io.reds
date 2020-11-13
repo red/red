@@ -690,6 +690,8 @@ simple-io: context [
 		return:	 [integer!]
 		/local
 			s	 [stat! value]
+			cur	 [integer!]
+			pos	 [integer!]
 	][
 		#case [
 			OS = 'Windows [
@@ -700,8 +702,10 @@ simple-io: context [
 				s/st_size
 			]
 			true [ ; else
-				_stat 3 file s
-				s/st_size
+				cur: lseek file 0 1			;-- SEEK_CUR
+				pos: lseek file 0 2			;-- SEEK_END
+				lseek file cur 0			;-- SEEK_SET
+				pos
 			]
 		]
 	]
