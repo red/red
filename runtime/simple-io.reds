@@ -501,7 +501,7 @@ simple-io: context [
 				#import [
 					LIBC-file cdecl [
 						;-- http://refspecs.linuxbase.org/LSB_3.0.0/LSB-Core-generic/LSB-Core-generic/baselib-xstat-1.html
-						_stat:	"__fxstat" [
+						_stat:	"__fxstat64" [
 							version		[integer!]
 							file		[integer!]
 							restrict	[stat!]
