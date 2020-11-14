@@ -365,6 +365,7 @@ Red/System [
 	#define O_WRONLY	1
 	#define O_RDWR		2
 	#define O_BINARY	0
+	#define O_DIRECTORY 00010000h
 
 	#define S_IREAD		256
 	#define S_IWRITE    128

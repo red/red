@@ -23,6 +23,7 @@ Red/System [
 	#define SC_PAGE_SIZE	1Eh
 ]
 
+#define SYSCALL_GETDENTS64	220
 #define SYSCALL_MMAP2		192
 #define SYSCALL_MUNMAP		91
 #define SYSCALL_MMAP		SYSCALL_MMAP2
@@ -70,6 +71,12 @@ platform: context [
 		munmap: SYSCALL_MUNMAP [
 			address		[byte-ptr!]
 			size		[integer!]
+			return:		[integer!]
+		]
+		getdents64: SYSCALL_GETDENTS64 [
+			fd			[integer!]
+			dirp		[byte-ptr!]
+			count		[integer!]
 			return:		[integer!]
 		]
 	]
