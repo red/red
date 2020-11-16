@@ -2384,7 +2384,7 @@ gradient-transform: func [
 		either gradient/type = GRADIENT_LINEAR [
 			GdipRotateMatrix
 				gradient/matrix
-				as-float32 0 - gradient-deviation gradient/data gradient/data + 1
+				(as-float32 0.0) - gradient-deviation gradient/data gradient/data + 1
 				GDIPLUS_MATRIX_PREPEND
 			GdipSetLineTransform brush gradient/matrix      ;-- this function resets angle of position points
 		][
@@ -2558,7 +2558,7 @@ gradient-linear: func [
 	if gradient/transformed? [
 		GdipRotateMatrix
 			gradient/matrix
-			as-float32 0 - gradient-deviation point-1 point-2
+			(as-float32 0.0) - gradient-deviation point-1 point-2
 			GDIPLUS_MATRIX_PREPEND
 		GdipSetLineTransform brush gradient/matrix      ;-- this function resets angle of position points
 		gradient/transformed?: false
@@ -2655,7 +2655,7 @@ check-gradient: func [
 ][
 	INIT_GRADIENT_DATA(upper lower radius)
 	if all [ gradient = ctx/other/gradient-pen ctx/pen-width > as float32! 1.0 ] [
-		gradient/extra: as-integer ctx/pen-width / 2
+		gradient/extra: as-integer ctx/pen-width / as float32! 2
 	]
 	case [
 		gradient/type = GRADIENT_LINEAR [

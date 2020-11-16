@@ -667,7 +667,7 @@ system-dialect: make-profilable context [
 		]
 		
 		any-float?: func [type [block!]][
-			find any-float! type/1
+			to logic! find any-float! type/1
 		]
 		
 		any-pointer?: func [type [block!]][
@@ -3333,6 +3333,10 @@ system-dialect: make-profilable context [
 					if any [string? list/1 string? list/2][
 						backtrack first find/reverse pc string!
 						throw-error "literal string values cannot be used with operators"
+					]
+					if ((any-float? get-type list/1) xor any-float? get-type list/2) [
+						backtrack args/1
+						throw-error "incompatible operand types in math or bitwise operation"
 					]
 					if block? unbox list/1 [comp-expression list/1 yes]	;-- nested call
 					left:  unbox list/1
