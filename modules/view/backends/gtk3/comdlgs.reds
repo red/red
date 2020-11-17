@@ -27,6 +27,8 @@ _request-file: func [
 	dir?		[logic!]
 	return:		[red-value!]
 	/local
+		len		[integer!]
+		buf		[c-string!]
 		widget 	[handle!]
 		window	[handle!]
 		new?	[logic!]
@@ -36,9 +38,11 @@ _request-file: func [
 		str		[red-string!]
 		ret		[red-value!]
 ][
+	len: -1
+	buf: unicode/to-utf8 title :len
 	ret: as red-value! none-value
 	widget: gtk_file_chooser_dialog_new [
-		"FileChooserDialog"
+		buf
 		null
 		either dir? [GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER][GTK_FILE_CHOOSER_ACTION_OPEN]
 		"Cancel"
