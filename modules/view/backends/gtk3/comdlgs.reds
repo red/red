@@ -37,6 +37,10 @@ _request-file: func [
 		size	[integer!]
 		str		[red-string!]
 		ret		[red-value!]
+		pattern	[handle!]
+		s		[series!]
+		start	[red-string!]
+		end		[red-string!]
 ][
 	len: -1
 	buf: unicode/to-utf8 title :len
@@ -57,6 +61,19 @@ _request-file: func [
 	][
 		gtk_file_chooser_set_filename widget buf
 	]
+	pattern: gtk_file_filter_new
+	s: GET_BUFFER(filter)
+	start: as red-string! s/offset + filter/head
+	end: as red-string! s/tail
+	while [start < end][
+		if TYPE_OF(start) = TYPE_STRING [
+			len: -1
+			buf: unicode/to-utf8 start :len
+			gtk_file_filter_add_pattern pattern buf
+		]
+		start: start + 1
+	]
+	gtk_file_chooser_add_filter widget pattern
 	gobj_signal_connect(widget "file-activated" :request-file-double-clicked null)
 	window: find-active-window
 	new?: false
