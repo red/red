@@ -285,7 +285,7 @@ collector: context [
 			file	[c-string!]
 			saved	[integer!]
 			buf		[c-string!]
-			tm tm1
+			tm tm1	[float!]
 		]
 			cb
 	][
@@ -372,7 +372,7 @@ collector: context [
 
 		#if debug? = yes [
 			tm: (platform/get-time yes yes) - tm - tm1
-			sprintf [buf ", mark: %.1fms, sweep: %.1fms" tm1 * 1000 tm * 1000]
+			sprintf [buf ", mark: %.1fms, sweep: %.1fms" tm1 * 1000.0 tm * 1000.0]
 			probe [" => " memory-info null 1 buf]
 			if verbose > 1 [
 				simple-io/close-file stdout
