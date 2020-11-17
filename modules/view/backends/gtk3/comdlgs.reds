@@ -51,6 +51,12 @@ _request-file: func [
 		GTK_RESPONSE_ACCEPT
 		null
 	]
+	buf: file/to-OS-path path
+	either dir? [
+		gtk_file_chooser_set_current_folder widget buf
+	][
+		gtk_file_chooser_set_filename widget buf
+	]
 	gobj_signal_connect(widget "file-activated" :request-file-double-clicked null)
 	window: find-active-window
 	new?: false

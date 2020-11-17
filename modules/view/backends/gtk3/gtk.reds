@@ -1325,6 +1325,16 @@ GPtrArray!: alias struct! [
 			widget 		[handle!]
 			resp  		[integer!]
 		]
+		gtk_file_chooser_set_current_folder: "gtk_file_chooser_set_current_folder" [
+			widget		[handle!]
+			file		[c-string!]
+			return:		[logic!]
+		]
+		gtk_file_chooser_set_filename: "gtk_file_chooser_set_filename" [
+			widget		[handle!]
+			file		[c-string!]
+			return:		[logic!]
+		]
 		gtk_file_chooser_get_filename: "gtk_file_chooser_get_filename" [
 			widget 		[handle!]
 			return:		[c-string!]
