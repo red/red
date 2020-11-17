@@ -1330,6 +1330,17 @@ GPtrArray!: alias struct! [
 			file		[c-string!]
 			return:		[logic!]
 		]
+		gtk_file_chooser_add_filter: "gtk_file_chooser_add_filter" [
+			widget		[handle!]
+			filter		[handle!]
+		]
+		gtk_file_filter_new: "gtk_file_filter_new" [
+			return:		[handle!]
+		]
+		gtk_file_filter_add_pattern: "gtk_file_filter_add_pattern" [
+			filter		[handle!]
+			str			[c-string!]
+		]
 		gtk_file_chooser_set_filename: "gtk_file_chooser_set_filename" [
 			widget		[handle!]
 			file		[c-string!]
