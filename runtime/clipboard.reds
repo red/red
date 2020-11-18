@@ -413,52 +413,57 @@ clipboard: context [
 
 				TYPE_IMAGE	[
 					img: as red-image! data
-					if IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) > 0 [
-						;-- put image in the "PNG" format for it's better portability
-						;; see https://stackoverflow.com/a/15691001 on rationale
-						fmts/1: RegisterClipboardFormat "PNG"
-						assert fmts/1 <> 0
-						bin: as red-binary! image/encode img none-value IMAGE_PNG
-						len: binary/rs-length? bin
-						hMem/1: GlobalAlloc 2 len
-						if hMem/1 <> 0 [
-							p1: GlobalLock hMem/1
-							unless null? p1 [
-								copy-memory p1 binary/rs-head bin len
-								GlobalUnlock hMem/1
+					len: IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size)
+					case [
+						len > 0 [
+							;-- put image in the "PNG" format for it's better portability
+							;; see https://stackoverflow.com/a/15691001 on rationale
+							fmts/1: RegisterClipboardFormat "PNG"
+							assert fmts/1 <> 0
+							bin: as red-binary! image/encode img none-value IMAGE_PNG
+							len: binary/rs-length? bin
+							hMem/1: GlobalAlloc 2 len
+							if hMem/1 <> 0 [
+								p1: GlobalLock hMem/1
+								unless null? p1 [
+									copy-memory p1 binary/rs-head bin len
+									GlobalUnlock hMem/1
+								]
 							]
-						]
 
-						;-- also put the image in DIB format for compatibility
-						fmts/2: CF_DIBV5
-						bmdata: as BitmapData! OS-image/lock-bitmap img no
-						assert not null? bmdata
-						len: bmdata/width * bmdata/height * 4
-						hMem/2: GlobalAlloc 2 len + size? BITMAPV5HEADER!
-						if hMem/2 <> 0 [
-							p: GlobalLock hMem/2
-							unless null? p [
-								set-memory p #"^@" size? BITMAPV5HEADER!
-								hdr: as BITMAPV5HEADER! p
-								hdr/Size: size? BITMAPV5HEADER!
-								hdr/Width: bmdata/width
-								hdr/Height: 0 - bmdata/height	;-- top-down image
-								hdr/PlanesBitCount: 00200001h	;-- 32 bpp, 1 plane
-								hdr/Compression: 3				;-- BI_BITFIELDS
-								hdr/SizeImage: len
-								hdr/AlphaMask: FF000000h
-								hdr/RedMask:   00FF0000h
-								hdr/GreenMask: 0000FF00h
-								hdr/BlueMask:  000000FFh
-								hdr/CSType: 57696E20h			;-- "Win " = LCS_WINDOWS_COLOR_SPACE
-								hdr/Intent: 4					;-- 4 = LCS_GM_IMAGES
-								assert bmdata/pixelFormat = PixelFormat32bppARGB
-								copy-memory p + hdr/Size bmdata/scan0 len
-								GlobalUnlock hMem/2
+							;-- also put the image in DIB format for compatibility
+							fmts/2: CF_DIBV5
+							bmdata: as BitmapData! OS-image/lock-bitmap img no
+							assert not null? bmdata
+							len: bmdata/width * bmdata/height * 4
+							hMem/2: GlobalAlloc 2 len + size? BITMAPV5HEADER!
+							if hMem/2 <> 0 [
+								p: GlobalLock hMem/2
+								unless null? p [
+									set-memory p #"^@" size? BITMAPV5HEADER!
+									hdr: as BITMAPV5HEADER! p
+									hdr/Size: size? BITMAPV5HEADER!
+									hdr/Width: bmdata/width
+									hdr/Height: 0 - bmdata/height	;-- top-down image
+									hdr/PlanesBitCount: 00200001h	;-- 32 bpp, 1 plane
+									hdr/Compression: 3				;-- BI_BITFIELDS
+									hdr/SizeImage: len
+									hdr/AlphaMask: FF000000h
+									hdr/RedMask:   00FF0000h
+									hdr/GreenMask: 0000FF00h
+									hdr/BlueMask:  000000FFh
+									hdr/CSType: 57696E20h			;-- "Win " = LCS_WINDOWS_COLOR_SPACE
+									hdr/Intent: 4					;-- 4 = LCS_GM_IMAGES
+									assert bmdata/pixelFormat = PixelFormat32bppARGB
+									copy-memory p + hdr/Size bmdata/scan0 len
+									GlobalUnlock hMem/2
+								]
 							]
-						]
-						OS-image/unlock-bitmap img as integer! bmdata
-					];; if IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) > 0
+							OS-image/unlock-bitmap img as integer! bmdata
+						];; if IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) > 0
+						zero? len [p: as byte-ptr! 1] ;-- empty clipboard in case of empty image
+						true [fire [TO_ERROR(script invalid-arg) data]]
+					]
 				];; TYPE_IMAGE
 
 				default		[fire [TO_ERROR(script invalid-arg) data]]
