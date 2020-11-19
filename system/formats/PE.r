@@ -247,6 +247,7 @@ context [
 			trademarks			"LegalTrademarks"
 			Author				"PrivateBuild"
 			ProductName			"ProductName"
+			ProductVersion		"ProductVersion"
 		]
 	]
 
@@ -1017,6 +1018,9 @@ context [
 
 		foreach [key key-str] defs/resource-version-info [
 			if value: select info key [
+				if all [key = 'ProductVersion issue? value][ ;-- convert it back to tuple!
+					value: to tuple! debase/base next value 16
+				]
 				build-res-string tail buf key-str to string! value
 			]
 		]
@@ -1057,18 +1061,22 @@ context [
 		change buf to-bin16 length? buf
 	]
 
-	build-res-file-info: func [info [block!] type [word!] /local f ver v][
+	build-res-file-info: func [info [block!] type [word!] /local f ver pver v pv][
 		ver: 0.0.0.0
+		pver: 0.0.0.0
 		if all [v: select info 'version issue? v][
 			ver: ver or to tuple! debase/base next v 16
+		]
+		if all [pv: select info 'ProductVersion issue? pv][
+			pver: pver or to tuple! debase/base next pv 16
 		]
 		f: make-struct vs-fixed-fileinfo none
 		f/signature:			to-integer #{FEEF04BD}
 		f/struct-version:		to-integer #{00010000}
 		f/file-version-ms: 		ver/2 or shift/left ver/1 16
 		f/file-version-ls: 		ver/4 or shift/left ver/3 16
-		f/product-version-ms:	ver/2 or shift/left ver/1 16
-		f/product-version-ls:	ver/4 or shift/left ver/3 16
+		f/product-version-ms:	pver/2 or shift/left pver/1 16
+		f/product-version-ls:	pver/4 or shift/left pver/3 16
 		f/OS: 					to-integer #{00000004}	;-- VOS__WINDOWS32
 		f/type:					switch/default type [dll [2] drv [3]][1] ;-- exe
 		form-struct f
