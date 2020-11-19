@@ -4178,7 +4178,7 @@ system-dialect: make-profilable context [
 
 		version-info-key: [
 			Title: Version: Company: Comments: Notes:
-			Rights: Trademarks: Author: ProductName: ProductVersion:
+			Rights: Trademarks: ProductName: ProductVersion:
 		]
 		foreach name version-info-key [
 			if value: select header name [

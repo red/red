@@ -245,7 +245,7 @@ context [
 			version				"FileVersion"
 			rights				"LegalCopyright"
 			trademarks			"LegalTrademarks"
-			Author				"PrivateBuild"
+			;Author				"PrivateBuild"
 			ProductName			"ProductName"
 			ProductVersion		"ProductVersion"
 		]
