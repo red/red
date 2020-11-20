@@ -529,6 +529,7 @@ system/view/VID: context [
 		begin:		  tail list
 		size:		  none								;-- user-set panel's size
 		max-sz:		  0									;-- maximum width/height of current column/row
+		last-size:    none								;-- last laid out face's size
 		global?: 	  yes								;-- TRUE: panel options expected
 		below?: 	  no
 		
@@ -559,6 +560,7 @@ system/view/VID: context [
 		]
 		
 		reset: [
+			if last-size [cursor/:anti: cursor/:anti - last-size/:anti]
 			bound: max bound cursor
 			if zero? max-sz [							;-- if empty row/col, make some room
 				max-sz: spacing/:anti
@@ -567,6 +569,7 @@ system/view/VID: context [
 			do re-align
 			cursor: as-pair origin/:axis spacing/:anti + max bound/:anti cursor/:anti + max-sz 
 			if direction = 'below [cursor: reverse cursor]
+			last-size: none
 			max-sz: 0
 		]
 		
@@ -616,19 +619,22 @@ system/view/VID: context [
 				below
 				across [
 					below?: value = 'below
+					saved: attempt [select last list 'offset]
 					do re-align
-					all [
-						direction <> value 				;-- if direction changed
-						anti2: pick [y x] value = 'across
-						cursor/:anti2 <> origin/:anti2	;-- and if not close to opposite edge
-						cursor/:anti2: cursor/:anti2 + spacing/:anti2 ;-- ensure proper spacing when changing direction
+					max-sz: 0
+					if direction <> value [				;-- row & column intersect at this face
+						begin: back begin				;-- so it has to be aligned along both axes
+						if begin/1 [
+							cursor: cursor - saved + begin/1/offset		;-- re-align may have moved the last face
+							max-sz: begin/1/size/(pick [x y] below?)
+							if divides [throw-error spec]	;-- forbid change of direction in grid mode
+						]
 					]
 					direction: value
 					bound: max bound cursor
-					max-sz: 0
 				]
 				space	[spacing: fetch-argument pair! spec]
-				origin	[origin: cursor: pad + top-left: fetch-argument pair! spec]
+				origin	[origin: cursor: pad + top-left: fetch-argument pair! spec  last-size: none]
 				at		[at-offset: fetch-expr 'spec spec: back spec]
 				pad		[cursor: cursor + fetch-argument pair! spec]
 				do		[do-safe bind fetch-argument block! spec panel]
@@ -710,13 +716,14 @@ system/view/VID: context [
 						][
 							do reset
 						][								;-- flow layout
-							if all [max-sz > 0 cursor/:axis <> origin/:axis][
+							if last-size [
 								cursor/:axis: cursor/:axis + spacing/:axis
+								cursor/:anti: cursor/:anti - last-size/:anti
 							]
 						]
 						max-sz: max max-sz face/size/:anti
 						face/offset: cursor
-						cursor/:axis: cursor/:axis + face/size/:axis
+						cursor: cursor + last-size: face/size
 						
 						if all [divide? index > 0][
 							index: index + 1
