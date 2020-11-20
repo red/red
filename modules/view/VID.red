@@ -549,7 +549,6 @@ system/view/VID: context [
 			]
 			align-faces begin direction align max-sz
 			begin: tail list
-		probe length? limit
 			unless empty? limit [begin: back begin]		;-- allow to realign the last face (e.g. below -> across -> across bottom)
 			
 			words: pick [[left center right][top middle bottom]] below?
@@ -626,7 +625,7 @@ system/view/VID: context [
 					do re-align
 					max-sz: 0
 					if begin/1 [						;-- last face is still subject to alignment?
-						cursor: cursor - (probe saved) + probe begin/1/offset		;-- re-align may have moved the last face
+						cursor: cursor - saved + begin/1/offset		;-- re-align may have moved the last face
 						max-sz: begin/1/size/(pick [x y] below?)
 						if divides [throw-error spec]	;-- forbid change of direction in grid mode
 					]
