@@ -529,7 +529,6 @@ system/view/VID: context [
 		begin:		  tail list
 		size:		  none								;-- user-set panel's size
 		max-sz:		  0									;-- maximum width/height of current column/row
-		current:	  0									;-- layout's cursor position
 		global?: 	  yes								;-- TRUE: panel options expected
 		below?: 	  no
 		
