@@ -24,11 +24,11 @@ print "Secure TCP client"
 client: open tls://127.0.0.1:8123
 ;client: open tls://192.168.1.15:8123
 
-client/extra: [
+client/extra: compose [
     domain: "red-lang.org"
     accept-invalid-cert: #[true]
-    min-protocol: (protos/tls1.2)
-    max-protocol: (protos/tls1.2)
+    min-protocol: (protos/tls1.1)
+    max-protocol: (protos/tls1.3)
 ]
 
 start: now/precise

@@ -88,6 +88,14 @@ kOXkDJTRdJrs5wMGiwvE5qH3L6FFbi+czciJzXnbn5dyAMWfBkgc6g==
 -----END RSA PRIVATE KEY-----
 }
 
+protos: [
+	sslv3	0300h
+	tls1.0	0301h
+	tls1.1	0302h
+	tls1.2	0303h
+	tls1.3	0304h
+]
+
 debug: :print
 ;debug: :comment
 
@@ -122,10 +130,11 @@ new-client: func [port /local data] [
 ]
 
 server: open tls://:58123
-server/extra: compose [
-    cert: (cert)
-    chain-cert: (chain)
+server/extra: compose/deep [
+    certs: [(cert) (chain)]
     key: (key)
+    min-protocol: (protos/tls1.1)
+    max-protocol: (protos/tls1.3)
 ]
 
 server/awake: func [event] [

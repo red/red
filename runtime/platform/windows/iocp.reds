@@ -64,7 +64,8 @@ tls-data!: alias struct! [
 	credential	[SecHandle! value]		;-- credential handle
 	security	[int-ptr!]				;-- security context handle lower
 	security2	[int-ptr!]				;-- security context handle upper
-	cert-ctx	[CERT_CONTEXT]			;-- saved cert ctx for now, it need a key for server mode
+	cert-ctx	[CERT_CONTEXT]			;-- certificate with a key
+	root-store	[handle!]				;-- root certs for client mode
 	;-- SecPkgContext_StreamSizes
 	ctx-max-msg	[integer!]
 	ctx-header	[integer!]

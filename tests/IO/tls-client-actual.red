@@ -24,9 +24,10 @@ print "Secure TCP client"
 client: open tls://127.0.0.1:8123
 ;client: open tls://192.168.1.15:8123
 
-client/extra: [
-    domain: "red-lang.org"
-    accept-invalid-cert: #[true]
+client/extra: compose/deep [
+    ;domain: "bitbegin.com"
+    accept-invalid-cert: (false)
+    disable-builtin-roots: (false)
     min-protocol: (protos/tls1.2)
     max-protocol: (protos/tls1.2)
 ]

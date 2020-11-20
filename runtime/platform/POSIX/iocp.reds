@@ -479,7 +479,7 @@ probe ["events: " cnt " " p/n-ports]
 							bind p as int-ptr! fd
 							td/accept-sock: as-integer td/device
 							td/device: as int-ptr! fd
-							td/state: 0
+							td/state: td/state and IO_STATE_CLIENT
 							tls/create td no
 							data: as iocp-data! td
 						]

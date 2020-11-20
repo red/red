@@ -50,6 +50,14 @@ oXZZNPoHyZTEX+OsRo8EKY59XsIadNpNmQ==
 -----END EC PRIVATE KEY-----
 }
 
+protos: [
+	sslv3	0300h
+	tls1.0	0301h
+	tls1.1	0302h
+	tls1.2	0303h
+	tls1.3	0304h
+]
+
 do [
 
 debug: :print
@@ -88,24 +96,12 @@ new-client: func [port /local data] [
 
 server: open tls://:8123
 
-comment {
-server/extra: [
-    cert: load %cert.pem
-    ;chain-cert: load %chain.pem
-    key: load %key.pem
-    ;password: "mypass"
-    protocol: [tls1.2 tls1.1]
-]
-}
-
-server/extra: compose [
-    cert: (cert)
-    chain-cert: (chain)
+server/extra: compose/deep [
+    certs: [(cert) (chain)]
     key: (key)
     ;password: "mypass"
-    ;-- temporary
-    min-protocol: 0302h             ;-- min protocol sslv3,
-    max-protocol: 0303h             ;-- max protocol tls1.2
+    min-protocol: (protos/tls1.1)
+    max-protocol: (protos/tls1.3)
 ]
 
 server/awake: func [event] [

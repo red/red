@@ -126,44 +126,129 @@ tls: context [
 		0
 	]
 
-	create-cert-ctx: func [
+	store-identity: func [
 		data		[tls-data!]
-		ctx			[int-ptr!]
-		return:		[integer!]
+		ssl_ctx		[int-ptr!]
+		return:		[logic!]
 		/local
 			values	[red-value!]
-			proto	[red-integer!]
 			extra	[red-block!]
-			cert	[red-string!]
-			chain	[red-string!]
+			proto	[red-integer!]
+			certs	[red-block!]
+			head	[red-string!]
+			tail	[red-string!]
+			first?	[logic!]
 			key		[red-string!]
 			pwd		[red-string!]
-			ret		[integer!]
 	][
 		values: object/get-values data/port
 		extra: as red-block! values + port/field-extra
-		if TYPE_OF(extra) <> TYPE_BLOCK [return 1]
+		if TYPE_OF(extra) <> TYPE_BLOCK [return false]
 		proto: as red-integer! block/select-word extra word/load "min-protocol" no
 		if TYPE_OF(proto) = TYPE_INTEGER [
-			SSL_CTX_ctrl ctx SSL_CTRL_SET_MIN_PROTO_VERSION proto/value null
+			SSL_CTX_ctrl ssl_ctx SSL_CTRL_SET_MIN_PROTO_VERSION proto/value null
 		]
 		proto: as red-integer! block/select-word extra word/load "max-protocol" no
 		if TYPE_OF(proto) = TYPE_INTEGER [
-			SSL_CTX_ctrl ctx SSL_CTRL_SET_MAX_PROTO_VERSION proto/value null
+			SSL_CTX_ctrl ssl_ctx SSL_CTRL_SET_MAX_PROTO_VERSION proto/value null
 		]
-		cert: as red-string! block/select-word extra word/load "cert" no
-		if TYPE_OF(cert) <> TYPE_STRING [return 2]
-		chain: as red-string! block/select-word extra word/load "chain-cert" no
-		key: as red-string! block/select-word extra word/load "key" no
-		pwd: as red-string! block/select-word extra word/load "password" no
-		if 0 <> load-cert ctx cert no [
-			return 3
+		certs: as red-block! block/select-word extra word/load "certs" no
+		if TYPE_OF(certs) <> TYPE_BLOCK [return false]
+		head: as red-string! block/rs-head certs
+		tail: as red-string! block/rs-tail certs
+		first?: yes
+		while [head < tail][
+			if TYPE_OF(head) = TYPE_STRING [
+				if 0 <> load-cert ssl_ctx head not first? [
+					IODebug("load cert failed!!!")
+					return false
+				]
+				if first? [
+					first?: no
+					key: as red-string! block/select-word extra word/load "key" no
+					pwd: as red-string! block/select-word extra word/load "password" no
+					if 0 <> link-private-key ssl_ctx key pwd [
+						IODebug("link key failed!!!")
+						return false
+					]
+				]
+			]
+			head: head + 1
 		]
-		link-private-key ctx key pwd
-		if TYPE_OF(chain) = TYPE_STRING [
-			load-cert ctx chain yes
+		not first?
+	]
+
+	verify-cb: func [
+		[cdecl]
+		ok		[integer!]
+		ctx		[int-ptr!]
+		return:	[integer!]
+	][
+		print-line ["verify: " ok]
+		ok
+	]
+
+	store-roots: func [
+		data		[tls-data!]
+		ssl_ctx		[int-ptr!]
+		return:		[logic!]
+		/local
+			values	[red-value!]
+			extra	[red-block!]
+			accept?	[red-logic!]
+			builtin? [red-logic!]
+			roots	[red-block!]
+			store	[int-ptr!]
+			head	[red-string!]
+			tail	[red-string!]
+			len		[integer!]
+			str		[c-string!]
+			bio		[int-ptr!]
+			x509	[int-ptr!]
+	][
+		values: object/get-values data/port
+		extra: as red-block! values + port/field-extra
+		if TYPE_OF(extra) <> TYPE_BLOCK [return false]
+		accept?: as red-logic! block/select-word extra word/load "accept-invalid-cert" no
+		if all [
+			TYPE_OF(accept?) = TYPE_LOGIC
+			accept?/value
+		][
+			SSL_CTX_set_verify ssl_ctx SSL_VERIFY_NONE null
+			return true
 		]
-		return 0
+		SSL_CTX_set_verify ssl_ctx SSL_VERIFY_PEER null ;as int-ptr! :verify-cb
+		builtin?: as red-logic! block/select-word extra word/load "disable-builtin-roots" no
+		if all [
+			TYPE_OF(builtin?) = TYPE_LOGIC
+			builtin?/value
+		][
+			store: X509_STORE_new
+			SSL_CTX_set_cert_store ssl_ctx store
+		]
+		roots: as red-block! block/select-word extra word/load "roots" no
+		if TYPE_OF(roots) = TYPE_BLOCK [
+			head: as red-string! block/rs-head roots
+			tail: as red-string! block/rs-tail roots
+			while [head < tail][
+				if TYPE_OF(head) = TYPE_STRING [
+					len: -1
+					str: unicode/to-utf8 head :len
+
+					bio: BIO_new_mem_buf str len
+					if null? bio [head: head + 1 continue]
+					x509: PEM_read_bio_X509 bio null null null
+					BIO_free bio
+					if null? x509 [
+						head: head + 1 continue
+					]
+					X509_STORE_add_cert store x509
+					X509_free x509
+				]
+				head: head + 1
+			]
+		]
+		true
 	]
 
 	get-domain: func [
@@ -201,14 +286,18 @@ tls: context [
 			either client? [
 				if null? client-ctx [
 					client-ctx: SSL_CTX_new TLS_client_method
-					create-cert-ctx td client-ctx
+					store-identity td client-ctx
+					store-roots td client-ctx
 					SSL_CTX_set_mode(client-ctx 5)
+					SSL_CTX_set_default_verify_paths client-ctx
+					SSL_CTX_set_cipher_list client-ctx "DEFAULT:!aNULL:!eNULL:!MD5:!3DES:!DES:!RC4:!IDEA:!SEED:!aDSS:!SRP:!PSK"
 				]
 				ctx: client-ctx
 			][
 				if null? server-ctx [
 					server-ctx: SSL_CTX_new TLS_server_method
-					if 0 <> create-cert-ctx td server-ctx [ ;-- create an internal cert if no cert specified
+					unless store-identity td server-ctx [ ;-- create an internal cert if no cert specified
+						;-- bitbegin note: default cert should be provided by upper
 						pk: create-private-key
 						cert: create-certificate pk
 						SSL_CTX_use_certificate server-ctx cert
@@ -250,7 +339,7 @@ tls: context [
 			if state <> evt [iocp/modify td/io-port as-integer td/device evt or EPOLLET as iocp-data! td]
 		]
 		probe ["update-td: " state " " evt]
-		td/state: evt
+		td/state: state or evt
 	]
 
 	negotiate: func [
@@ -297,11 +386,16 @@ tls: context [
 		]
 	]
 
-	check-errors: func [code [integer!]][
+	check-errors: func [code [integer!] /local buf [c-string!]][
 		IODebug(["check errors" code])
+		buf: as c-string! system/stack/allocate 64
 		until [				;-- clear the error stack in openssl
 			code: ERR_get_error
-			if code <> 0 [ERR_error_string code null]
+			if code <> 0 [
+				buf/1: null-byte
+				ERR_error_string code buf
+				IODebug(buf)
+			]
 			zero? code
 		]
 		IODebug("check errors finish")

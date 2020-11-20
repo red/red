@@ -523,7 +523,89 @@ SecPkgContext_StreamSizes: alias struct! [
 
 CERT_ENHKEY_USAGE: alias struct! [
 	cUsageIdentifier		[integer!]
-	rgpszUsageIdentifier	[c-string!]
+	rgpszUsageIdentifier	[int-ptr!]
+]
+
+CERT_STRONG_SIGN_PARA: alias struct! [
+	cbSize				[integer!]
+	choice				[integer!]
+	u					[int-ptr!]
+]
+
+CERT_USAGE_MATCH: alias struct! [
+	type				[integer!]
+	usage				[CERT_ENHKEY_USAGE value]
+]
+
+CERT_CHAIN_PARA: alias struct! [
+	cbSize				[integer!]
+	usage				[CERT_USAGE_MATCH value]
+	policy				[CERT_USAGE_MATCH value]
+	timeout				[integer!]
+	check-time			[logic!]
+	time				[integer!]
+	resync				[tagFILETIME]
+	strong				[CERT_STRONG_SIGN_PARA]
+	flags				[integer!]
+]
+
+CERT_TRUST_STATUS: alias struct! [
+	dwErrorStatus		[integer!]
+	dwInfoStatus		[integer!]
+]
+
+CERT_CHAIN_ELEMENT: alias struct! [
+	cbSize				[integer!]
+	pCertContext		[CERT_CONTEXT]
+	TrustStatus			[CERT_TRUST_STATUS value]
+	pRevocationInfo		[int-ptr!]
+	pIssuanceUsage		[CERT_ENHKEY_USAGE]
+	pApplicationUsage	[CERT_ENHKEY_USAGE]
+	ErrorInfo			[byte-ptr!]
+]
+
+CERT_SIMPLE_CHAIN: alias struct! [
+	cbSize				[integer!]
+	TrustStatus			[CERT_TRUST_STATUS value]
+	cElement			[integer!]
+	rgpElement			[int-ptr!]
+	pTrustListInfo		[integer!]
+	has-time			[logic!]
+	time				[integer!]
+]
+
+CERT_CHAIN_CONTEXT: alias struct! [
+	cbSize				[integer!]
+	TrustStatus			[CERT_TRUST_STATUS value]
+	cChain				[integer!]
+	rgpChain			[int-ptr!]
+	cLower				[integer!]
+	rgpLower			[int-ptr!]
+	has-time			[logic!]
+	time				[integer!]
+	flags				[integer!]
+	ChainId				[tagGUID value]
+]
+
+CERT_CHAIN_POLICY_PARA: alias struct! [
+	cbSize				[integer!]
+	flags				[integer!]
+	extra				[byte-ptr!]
+]
+
+HTTPSPolicyCallbackData: alias struct! [
+	cbSize				[integer!]
+	dwAuthType			[integer!]
+	fdwChecks			[integer!]
+	pwszServerName		[byte-ptr!]
+]
+
+CERT_CHAIN_POLICY_STATUS: alias struct! [
+	cbSize				[integer!]
+	dwError				[integer!]
+	lChainIndex			[integer!]
+	lElementIndex		[integer!]
+	pvExtraPolicyStatus	[byte-ptr!]
 ]
 
 AcquireCredentialsHandleW!: alias function! [
@@ -1274,6 +1356,15 @@ DNS_RECORD!: alias struct! [
 			flags				[integer!]
 			return:				[logic!]
 		]
+		CertDuplicateStore: "CertDuplicateStore" [
+			store				[int-ptr!]
+			return:				[int-ptr!]
+		]
+		CertEnumCertificatesInStore: "CertEnumCertificatesInStore" [
+			store				[int-ptr!]
+			ctx					[CERT_CONTEXT]
+			return:				[CERT_CONTEXT]
+		]
 		CertAddCertificateContextToStore: "CertAddCertificateContextToStore" [
 			store				[int-ptr!]
 			ctx					[CERT_CONTEXT]
@@ -1289,6 +1380,15 @@ DNS_RECORD!: alias struct! [
 			pvFindPara			[byte-ptr!]
 			pPrevCertContext	[CERT_CONTEXT]
 			return:				[CERT_CONTEXT]
+		]
+		CertGetNameStringA: "CertGetNameStringA" [
+			ctx					[CERT_CONTEXT]
+			type				[integer!]
+			flags				[integer!]
+			para				[int-ptr!]
+			name				[c-string!]
+			len					[integer!]
+			return:				[integer!]
 		]
 		CertCreateCertificateContext: "CertCreateCertificateContext" [
 			dwCertEncodingType	[integer!]
@@ -1314,6 +1414,31 @@ DNS_RECORD!: alias struct! [
 			propID				[integer!]
 			dwFlags				[integer!]
 			pvData				[byte-ptr!]
+			return:				[logic!]
+		]
+		CertGetCertificateContextProperty: "CertGetCertificateContextProperty" [
+			ctx					[CERT_CONTEXT]
+			propID				[integer!]
+			pvData				[byte-ptr!]
+			pcbData				[int-ptr!]
+			return:				[logic!]
+		]
+		CertGetCertificateChain: "CertGetCertificateChain" [
+			engine				[int-ptr!]
+			ctx					[CERT_CONTEXT]
+			time				[int-ptr!]
+			add-store			[int-ptr!]
+			para				[CERT_CHAIN_PARA]
+			flags				[integer!]
+			reserved			[integer!]
+			pChain				[int-ptr!]
+			return:				[logic!]
+		]
+		CertVerifyCertificateChainPolicy: "CertVerifyCertificateChainPolicy" [
+			iod					[int-ptr!]
+			pChainContext		[CERT_CHAIN_CONTEXT]
+			pPolicyPara			[CERT_CHAIN_POLICY_PARA]
+			pPolicyStatus		[CERT_CHAIN_POLICY_STATUS]
 			return:				[logic!]
 		]
 		CryptStringToBinaryA: "CryptStringToBinaryA" [
