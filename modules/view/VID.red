@@ -520,7 +520,7 @@ system/view/VID: context [
 		/local axis anti								;-- defined in a SET block
 	][
 		background!:  make typeset! [image! file! url! tuple! word! issue!]
-		list:		  make block! 4						;-- panel's pane block
+		limit: list:  make block! 4						;-- panel's pane block
 		reactors:     make block! 10					;-- reactors of this particular layout
 		local-styles: any [css make block! 2]			;-- panel-local styles definitions
 		pane-size:	  0x0								;-- panel's content dynamic size
@@ -549,6 +549,8 @@ system/view/VID: context [
 			]
 			align-faces begin direction align max-sz
 			begin: tail list
+		probe length? limit
+			unless empty? limit [begin: back begin]		;-- allow to realign the last face (e.g. below -> across -> across bottom)
 			
 			words: pick [[left center right][top middle bottom]] below?
 			align: any [								;-- set new alignment
@@ -566,6 +568,7 @@ system/view/VID: context [
 				max-sz: spacing/:anti
 				cursor/:anti: cursor/:anti + max-sz
 			]
+			limit: tail list							;-- exclude placed items from further alignment
 			do re-align
 			cursor: as-pair origin/:axis spacing/:anti + max bound/:anti cursor/:anti + max-sz 
 			if direction = 'below [cursor: reverse cursor]
@@ -622,13 +625,10 @@ system/view/VID: context [
 					saved: attempt [select last list 'offset]
 					do re-align
 					max-sz: 0
-					if direction <> value [				;-- row & column intersect at this face
-						begin: back begin				;-- so it has to be aligned along both axes
-						if begin/1 [
-							cursor: cursor - saved + begin/1/offset		;-- re-align may have moved the last face
-							max-sz: begin/1/size/(pick [x y] below?)
-							if divides [throw-error spec]	;-- forbid change of direction in grid mode
-						]
+					if begin/1 [						;-- last face is still subject to alignment?
+						cursor: cursor - (probe saved) + probe begin/1/offset		;-- re-align may have moved the last face
+						max-sz: begin/1/size/(pick [x y] below?)
+						if divides [throw-error spec]	;-- forbid change of direction in grid mode
 					]
 					direction: value
 					bound: max bound cursor
