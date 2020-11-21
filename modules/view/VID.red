@@ -633,7 +633,12 @@ system/view/VID: context [
 					bound: max bound cursor
 				]
 				space	[spacing: fetch-argument pair! spec]
-				origin	[origin: cursor: pad + top-left: fetch-argument pair! spec  last-size: none]
+				origin	[
+					origin: cursor: pad + top-left: fetch-argument pair! spec
+					do re-align
+					limit: tail list
+					last-size: none
+				]
 				at		[at-offset: fetch-expr 'spec spec: back spec]
 				pad		[cursor: cursor + fetch-argument pair! spec]
 				do		[do-safe bind fetch-argument block! spec panel]
@@ -750,6 +755,7 @@ system/view/VID: context [
 			]
 			spec: next spec
 		]
+		if last-size [cursor/:anti: cursor/:anti - last-size/:anti]
 		do re-align
 		process-reactors reactors						;-- Needs to be after [set name face]
 		
