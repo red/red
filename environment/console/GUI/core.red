@@ -125,6 +125,7 @@ object [
 
 	vprint: func [str [string!] lf? [logic!] /local s cnt first-prin?][
 		unless console/state [exit]
+		unless gui-console-ctx/win/visible? [gui-console-ctx/win/visible?: yes]
 
 		if all [not lf? newline?][newline?: no first-prin?: yes]
 		if lf? [newline?: yes]

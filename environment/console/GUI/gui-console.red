@@ -221,7 +221,7 @@ gui-console-ctx: context [
 		view/flags/no-wait win [resize]		;-- create window instance
 		console/init
 		load-cfg
-		win/visible?: yes
+		if empty? system/script/args [win/visible?: yes]
 
 		svs: system/view/screens/1
 		svs/pane: next svs/pane				;-- proctect itself from unview/all
