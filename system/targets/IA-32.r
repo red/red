@@ -1323,10 +1323,10 @@ make-profilable make target-class [
 		op [word! none!] "operator to constuct for, NONE for unconditional jump, 'parity for parity jump"
 		psize [word!] "word 'size set to jump size"
 		back? [logic! none!]
-		/local opcode o jmpofs short? size
+		/local opcode o short? size dir
 	][
 		size: get psize
-		o: do jmpofs: [size * pick [-1 1] yes = back?]	;-- convert size to signed jump offset
+		o: size * dir: pick [-1 1] yes = back?		;-- convert size to signed jump offset
 		short?: to logic! all [-126 <= o  o <= 127]	;-- account for 2bytes of Jxx opcode when short-jumping back
 		opcode: pick pick [
 			[#{EB} #{E9}]							;-- JMP short/near
@@ -1340,7 +1340,7 @@ make-profilable make target-class [
 		if back? [									;-- when jumping back, offset should account for the jump instruction size
 			size: size + (length? opcode) + (pick [1 4] short?)
 			set psize size							;-- update size in the caller
-			o: do jmpofs							;-- recalculate offset with new size
+			o: size * dir							;-- recalculate offset with new size
 		]
 		o: either short? [to-bin8 o][to-bin32 o]	;-- make binary signed offset
 		rejoin [opcode o]
