@@ -1320,29 +1320,29 @@ make-profilable make target-class [
 
 	construct-jump: func [
 		"construct the jump instruction binary (internal! for use within emit-branch only!)"
-		ctx [word!] "any word of emit-branch"
-		/cond "conditional jump (using <op>) or just JMP?"
-		/parity "parity jump (JP) - cannot be used with /cond"
-		/local opcode o jmpofs short? back? size op
+		op [word! none!] "operator to constuct for, NONE for unconditional jump, 'parity for parity jump"
+		psize [word!] "word 'size set to jump size"
+		back? [logic! none!]
+		/local opcode o jmpofs short? size
 	][
-		;; import values from the emit function
-		set [op size back?] reduce bind [op size back?] bind? ctx
-		o: do jmpofs: [size * pick [-1 1] yes = back?]		;-- convert size to signed jump offset
-		;; test if qualifies for a short jump
+		size: get psize
+		o: do jmpofs: [size * pick [-1 1] yes = back?]	;-- convert size to signed jump offset
 		short?: to logic! all [-126 <= o  o <= 127]	;-- account for 2bytes of Jxx opcode when short-jumping back
 		opcode: pick pick [
 			[#{EB} #{E9}]							;-- JMP short/near
-			[#{7A} #{0F8A}]							;-- JP short/near
 			[#{70} #{0F80}]							;-- Jcc short/near
-		]	either yes = cond [ 3 ][ not parity ]	;-- pick row: 1 = normal, 2 = parity, 3 = conditional
+			[#{7A} #{0F8A}]							;-- JP  short/near
+		]	either op = 'parity [ 3 ][ none? op ]	;-- pick row: 1 = normal, 2 = conditional, 3 = parity
 			short? 									;-- pick column
-		if cond [opcode: add-condition op copy opcode]	;-- use `op` to modify the conditional jump Jcc
+		if all [op op <> 'parity] [
+			opcode: add-condition op copy opcode	;-- use `op` to modify the conditional jump Jcc
+		]
 		if back? [									;-- when jumping back, offset should account for the jump instruction size
 			size: size + (length? opcode) + (pick [1 4] short?)
-			set  bind 'size bind? ctx  size			;-- export size back to emit function
+			set psize size							;-- update size in the caller
 			o: do jmpofs							;-- recalculate offset with new size
 		]
-		o: do reduce [pick [to-bin8 to-bin32] short?  'o]	;-- make binary signed offset
+		o: either short? [to-bin8 o][to-bin32 o]	;-- make binary signed offset
 		rejoin [opcode o]
 	]
 
@@ -1352,14 +1352,13 @@ make-profilable make target-class [
 		offset [integer! none!]
 		parity [none! logic!] "yes = also emit parity check for unordered (NaN) comparison"
 		/back?
-		/local size jump jxx jcc jxx-cond jxx-parity unord=true flip?
+		/local size jump jxx jcc jp unord=true flip?
 	][
 		if verbose >= 3 [print [">>>inserting branch" either op [join "cc: " mold op][""]]]
 		size: (length? code) - any [offset 0]			;-- offset from the code's head
 		jump: copy #{}									;-- resulting binary
-		jxx:        [construct-jump        'local]
-		jxx-cond:   [construct-jump/cond   'local]
-		jxx-parity: [construct-jump/parity 'local]
+		jxx: [construct-jump op      'size back?]
+		jp:  [construct-jump 'parity 'size back?]
 
 		either none? op [								;-- explicitly test for none
 			append jump do jxx							;-- JMP offset 	; 8/32-bit displacement
@@ -1397,7 +1396,7 @@ make-profilable make target-class [
 			] [parity: no]
 
 			either not parity [
-				append jump do jxx-cond					;-- Jcc offset 	; 8/32-bit displacement
+				append jump do jxx						;-- Jcc offset 	; 8/32-bit displacement
 			][
 				either back? [							;-- in `back?` mode size is adjusted by jxx automatically
 					either unord=true [
@@ -1407,8 +1406,8 @@ make-profilable make target-class [
 						;;   Jcc _true		; short/far
 						;; _false:
 
-						append jump do jxx-parity		;-- append JP _true
-						append jump do jxx-cond			;-- append Jcc _true
+						append jump do jp				;-- append JP _true
+						append jump do jxx				;-- append Jcc _true
 					][
 						;; _true:
 						;;   <code>
@@ -1417,7 +1416,7 @@ make-profilable make target-class [
 						;; _false:
 
 						size: size + 2					;-- manually skip 2 bytes of the JP
-						jcc: do jxx-cond 				;-- lay out Jcc _true
+						jcc: do jxx 					;-- lay out Jcc _true
 						append jump rejoin [#{7A} to-bin8 length? jcc]	;-- append JP _false, over the Jcc size
 						append jump jcc					;-- append Jcc _true
 					]
@@ -1429,9 +1428,9 @@ make-profilable make target-class [
 						;;   <code>
 						;; _true:
 
-						jcc: do jxx-cond 				;-- lay out Jcc _true
+						jcc: do jxx 					;-- lay out Jcc _true
 						size: size + length? jcc 		;-- manually skip it's size for the JP
-						append jump do jxx-parity 		;-- append JP _true
+						append jump do jp 				;-- append JP _true
 						append jump jcc 				;-- append Jcc _true
 					][
 						;;   JP _false		; short - needs to know Jcc size
@@ -1440,7 +1439,7 @@ make-profilable make target-class [
 						;;   <code>
 						;; _true:
 
-						jcc: do jxx-cond 				;-- lay out Jcc _true
+						jcc: do jxx						;-- lay out Jcc _true
 						append jump rejoin [#{7A} to-bin8 length? jcc]	;-- append JP _false, over the Jcc size
 						append jump jcc					;-- append Jcc _true
 					]
