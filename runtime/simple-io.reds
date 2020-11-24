@@ -444,7 +444,8 @@ simple-io: context [
 				]
 			]
 			true [ ; else
-				;-- http://lxr.free-electrons.com/source/arch/x86/include/uapi/asm/stat.h
+				;-- https://elixir.bootlin.com/linux/latest/source/arch/arm/include/uapi/asm/stat.h#L57
+				;-- https://elixir.bootlin.com/linux/v5.9.10/source/arch/x86/include/uapi/asm/stat.h
 				stat!: alias struct! [					;-- stat64 struct
 					st_dev_l	  [integer!]
 					st_dev_h	  [integer!]
@@ -458,8 +459,10 @@ simple-io: context [
 					st_rdev_h	  [integer!]
 					pad1		  [integer!]
 					st_size		  [integer!]
+					st_size_h	  [integer!]
 					st_blksize	  [integer!]
 					st_blocks	  [integer!]
+					st_blocks_h	  [integer!]
 					st_atime	  [timespec! value]
 					st_mtime	  [timespec! value]
 					st_ctime	  [timespec! value]
