@@ -1202,12 +1202,12 @@ render-text: func [
 	m: make-CGMatrix 1 0 0 -1 0 0
 	case [
 		flags and 1 <> 0 [m/tx: sz/w - rc/x]
-		flags and 2 <> 0 [temp: sz/w - rc/x m/tx: temp / 2]
+		flags and 2 <> 0 [temp: sz/w - rc/x m/tx: temp / as float32! 2.0]
 		true [0]
 	]
 
 	case [
-		flags and 4 <> 0 [temp: sz/h - rc/y m/ty: temp / 2]
+		flags and 4 <> 0 [temp: sz/h - rc/y m/ty: temp / as float32! 2.0]
 		flags and 8 <> 0 [m/ty: sz/h - rc/y]
 		true [0]
 	]
