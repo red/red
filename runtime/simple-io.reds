@@ -706,7 +706,7 @@ simple-io: context [
 		file	 [integer!]
 		return:	 [integer!]
 		/local
-			s	 [stat! value]
+			s	 [stat!]
 	][
 		#case [
 			OS = 'Windows [
@@ -717,6 +717,7 @@ simple-io: context [
 				s/st_size
 			]
 			true [ ; else
+				s: as stat! system/stack/allocate 36	;-- ensures stat! fits using a max value of 144 bytes
 				_stat 3 file s
 				s/st_size
 			]
@@ -1021,9 +1022,9 @@ simple-io: context [
 			name [c-string!]
 			dt   [red-date!]
 			time [float!]
-			s	 [stat! value]
 			fd   [integer!]
 			tm   [systemtime!]
+			s	 [stat!]
 	][
 		name: file/to-OS-path filename
 		;o: object/copy #get system/standard/file-info
@@ -1045,6 +1046,7 @@ simple-io: context [
 				(systime/data4 and FFFFh) ;seconds
 				1000000 * (systime/data4 >> 16) ;ns - posix is using nanoseconds so lets use it too
 		][
+			s: as stat! system/stack/allocate 36		;-- ensures stat! fits using a max value of 144 bytes
 			fd: open-file file/to-OS-path filename RIO_READ yes
 			if fd < 0 [	return none/push ]
 			#either any [OS = 'macOS OS = 'FreeBSD OS = 'NetBSD OS = 'Android] [
