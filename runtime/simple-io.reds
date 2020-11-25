@@ -468,7 +468,6 @@ simple-io: context [
 					st_ctime	  [timespec! value]
 					st_ino_h	  [integer!]
 					st_ino_l	  [integer!]
-					;...optional padding skipped
 				]
 
 				#either dynamic-linker = "/lib/ld-musl-i386.so.1" [
@@ -705,8 +704,7 @@ simple-io: context [
 	file-size?: func [
 		file	 [integer!]
 		return:	 [integer!]
-		/local
-			s	 [stat!]
+		/local #either OS = 'Linux [s [stat!]][s [stat! value]]
 	][
 		#case [
 			OS = 'Windows [
@@ -1024,7 +1022,7 @@ simple-io: context [
 			time [float!]
 			fd   [integer!]
 			tm   [systemtime!]
-			s	 [stat!]
+			#either OS = 'Linux [s [stat!]][s [stat! value]]
 	][
 		name: file/to-OS-path filename
 		;o: object/copy #get system/standard/file-info
