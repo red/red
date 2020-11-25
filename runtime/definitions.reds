@@ -365,7 +365,6 @@ Red/System [
 	#define O_WRONLY	1
 	#define O_RDWR		2
 	#define O_BINARY	0
-	#define O_DIRECTORY 00010000h
 
 	#define S_IREAD		256
 	#define S_IWRITE    128
@@ -386,13 +385,18 @@ Red/System [
 			
 			#define DIRENT_NAME_OFFSET 8
 		]
-		true [
+		true [	;-- Linux
 			#define O_CREAT		64
 			#define O_EXCL		128
 			#define O_TRUNC		512
 			#define O_APPEND	1024
 			#define	O_NONBLOCK	2048
 			#define	O_CLOEXEC	524288
+			#either target = 'ARM [
+				#define O_DIRECTORY 4000h
+			][
+				#define O_DIRECTORY 00010000h
+			]
 		]
 	]
 	
