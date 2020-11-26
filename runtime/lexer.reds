@@ -1529,8 +1529,7 @@ lexer: context [
 	]
 
 	load-file: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
-		flags: flags and not C_FLAG_CARET				;-- as the lexer can't decode utf8 url, so we don't use it anymore
-		if s/2 = #"^"" [s: s + 1]						;-- skip "
+		either s/2 = #"^"" [s: s + 1][flags: flags and not C_FLAG_CARET]
 		lex/type: TYPE_FILE
 		either load? [
 			load-string lex s e flags yes
