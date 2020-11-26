@@ -373,6 +373,8 @@ Red/System [
 	#define S_IROTH		4
 
 	#define	DT_DIR		#"^(04)"
+	#define S_IFDIR		4000h
+	#define S_IFREG		8000h
 	
 	#case [
 		any [OS = 'FreeBSD OS = 'macOS OS = 'NetBSD] [

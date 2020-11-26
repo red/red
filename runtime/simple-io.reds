@@ -444,30 +444,59 @@ simple-io: context [
 				]
 			]
 			true [ ; else
-				;-- https://elixir.bootlin.com/linux/latest/source/arch/arm/include/uapi/asm/stat.h#L57
-				;-- https://elixir.bootlin.com/linux/v5.9.10/source/arch/x86/include/uapi/asm/stat.h
-				stat!: alias struct! [					;-- stat64 struct
-					st_dev_l	  [integer!]
-					st_dev_h	  [integer!]
-					pad0		  [integer!]
-					__st_ino	  [integer!]
-					st_mode		  [integer!]
-					st_nlink	  [integer!]
-					st_uid		  [integer!]
-					st_gid		  [integer!]
-					st_rdev_l	  [integer!]
-					st_rdev_h	  [integer!]
-					pad1		  [integer!]
-					st_size		  [integer!]
-					st_size_h	  [integer!]
-					st_blksize	  [integer!]
-					st_blocks	  [integer!]
-					st_blocks_h	  [integer!]
-					st_atime	  [timespec! value]
-					st_mtime	  [timespec! value]
-					st_ctime	  [timespec! value]
-					st_ino_h	  [integer!]
-					st_ino_l	  [integer!]
+				#either target = 'ARM [
+					;-- https://github.com/torvalds/linux/blob/master/include/uapi/asm-generic/stat.h#L49
+					stat!: alias struct! [					;-- stat64 struct, 104 bytes
+						st_dev_l	  [integer!]
+						st_dev_h	  [integer!]
+						pad0		  [integer!]
+						__st_ino	  [integer!]
+						st_mode		  [integer!]
+						st_nlink	  [integer!]
+						st_uid		  [integer!]
+						st_gid		  [integer!]
+						st_rdev_l	  [integer!]
+						st_rdev_h	  [integer!]
+						pad1		  [integer!]
+						pad2		  [integer!]
+						st_size		  [integer!]
+						st_size_h	  [integer!]
+						st_blksize	  [integer!]
+						pad3		  [integer!]
+						st_blocks	  [integer!]
+						st_blocks_h	  [integer!]
+						st_atime	  [timespec! value]
+						st_mtime	  [timespec! value]
+						st_ctime	  [timespec! value]
+						st_ino_h	  [integer!]
+						st_ino_l	  [integer!]
+					]
+				][
+					;-- https://elixir.bootlin.com/linux/latest/source/arch/arm/include/uapi/asm/stat.h#L57
+					;-- https://elixir.bootlin.com/linux/v5.9.10/source/arch/x86/include/uapi/asm/stat.h
+					stat!: alias struct! [					;-- stat64 struct, 96 bytes
+						st_dev_l	  [integer!]
+						st_dev_h	  [integer!]
+						pad0		  [integer!]
+						__st_ino	  [integer!]
+						st_mode		  [integer!]
+						st_nlink	  [integer!]
+						st_uid		  [integer!]
+						st_gid		  [integer!]
+						st_rdev_l	  [integer!]
+						st_rdev_h	  [integer!]
+						pad1		  [integer!]
+						st_size		  [integer!]
+						st_size_h	  [integer!]
+						st_blksize	  [integer!]
+						st_blocks	  [integer!]
+						st_blocks_h	  [integer!]
+						st_atime	  [timespec! value]
+						st_mtime	  [timespec! value]
+						st_ctime	  [timespec! value]
+						st_ino_h	  [integer!]
+						st_ino_l	  [integer!]
+					]
 				]
 
 				#either dynamic-linker = "/lib/ld-musl-i386.so.1" [
@@ -711,13 +740,17 @@ simple-io: context [
 				GetFileSize file null
 			]
 			any [OS = 'macOS OS = 'FreeBSD OS = 'NetBSD OS = 'Android] [
-				_stat file s
-				s/st_size
+				either zero? _stat file s [				
+					s/st_size
+				][-1]
 			]
 			true [ ; else
 				s: as stat! system/stack/allocate 36	;-- ensures stat! fits using a max value of 144 bytes
-				_stat 3 file s
-				s/st_size
+				either zero? _stat 3 file s [
+					either s/st_mode and S_IFREG <> 0 [	;-- file type
+						s/st_size
+					][-1]
+				][-1]
 			]
 		]
 	]
@@ -853,6 +886,7 @@ simple-io: context [
 		if file < 0 [return none-value]
 
 		size: file-size? file
+		if size < 0 [close-file file return none-value]
 
 		if zero? size [				;-- /proc filesystem give 0 size
 			if null? read-buf [read-buf: allocate 65536]
@@ -863,15 +897,14 @@ simple-io: context [
 				size: size + len
 			]
 			if offset < 0 [seek-file file 0]
-		]
-
-		if size <= 0 [
-			close-file file
-			val: stack/push*
-			string/rs-make-at val 1
-			type: either binary? [TYPE_BINARY][TYPE_STRING]
-			set-type val type
-			return val
+			if zero? size [			;-- empty file
+				close-file file
+				val: stack/push*
+				string/rs-make-at val 1
+				type: either binary? [TYPE_BINARY][TYPE_STRING]
+				set-type val type
+				return val
+			]
 		]
 
 		if offset >= 0 [
