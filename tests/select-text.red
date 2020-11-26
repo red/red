@@ -21,8 +21,7 @@ view [
 			f/parent/selected: f
 			f/selected: 1x5
 		]
-		across
-		text "Field:" 30 text "" left react [face/data: f/selected] return
+		text "Field:" 30 across text "" left react [face/data: f/selected] return
 		text "Area:"  30 text "" left react [face/data: a/selected]
 	]
 ]
