@@ -363,7 +363,7 @@ Red [
 			clear find/tail ops :is ;@@ find something more adequate
 			;@@ #4562, #4570
 			ops: exclude ops reduce [:>> :>>> get load "<<" :is ://]
-			forall ops [--assert equal? :ops/1 test :ops/1]
+			forall ops [--assert strict-equal? spec-of :ops/1 spec-of test :ops/1]
 		
 			ops: reduce [							;@@ #4540
 				() []
