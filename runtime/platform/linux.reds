@@ -23,7 +23,12 @@ Red/System [
 	#define SC_PAGE_SIZE	1Eh
 ]
 
-#define SYSCALL_GETDENTS64	220
+#either target = 'ARM [
+	#define SYSCALL_GETDENTS64	217
+][
+	#define SYSCALL_GETDENTS64	220
+]
+
 #define SYSCALL_MMAP2		192
 #define SYSCALL_MUNMAP		91
 #define SYSCALL_MMAP		SYSCALL_MMAP2
