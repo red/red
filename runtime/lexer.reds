@@ -1878,6 +1878,7 @@ lexer: context [
 			index class x y [integer!]
 			p [byte-ptr!]
 	][
+		if flags and C_FLAG_DOT <> 0 [throw-error lex s e TYPE_PAIR]
 		p: s
 		until [
 			p: p + 1									;-- x separator cannot be at start

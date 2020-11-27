@@ -431,8 +431,11 @@ lexer: context [
 					value2: to pair! reduce [value 0]
 				)
 				[s: integer-number-rule | (type: pair! throw-error)]
-				mark: [pair-end | ws-no-count | end | (type: pair! throw-error)] :mark
-				(value2/2: load-number copy/part s e value: value2)
+				mark: [pair-end | ws-no-count | end | (type: pair! throw-error)] :mark (
+					value2/2: load-number copy/part s e
+					if any [decimal? value decimal? value2][type: pair! throw-error]
+					value: value2
+				)
 			]
 			e: opt [#":" [time-rule | (unless in-path? [throw-error]) :e]]
 	]
