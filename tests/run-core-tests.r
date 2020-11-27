@@ -48,7 +48,9 @@ qt/script-header: "Red []"
 
 ***start-run-quiet*** join "Red Test Suite" info
 
-do %source/units/run-pre-extra-tests.r
+unless release-mode [
+	do %source/units/run-pre-extra-tests.r
+]
 
 ===start-group=== "Main Red Tests"
     either any [each-mode ci-each][
@@ -60,7 +62,10 @@ do %source/units/run-pre-extra-tests.r
         --run-test-file-quiet %source/units/auto-tests/run-all-interp.red
     ]
 ===end-group===
-do %source/units/run-post-extra-tests.r
+
+unless release-mode [
+	do %source/units/run-post-extra-tests.r
+]
 
 ***end-run-quiet***
 
