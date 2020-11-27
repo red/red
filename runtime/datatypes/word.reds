@@ -393,7 +393,6 @@ word: context [
 			word	[red-word!]
 			name	[names!]
 			cstr	[c-string!]
-			len		[integer!]
 			index	[integer!]
 			val		[red-value!]
 	][
@@ -410,18 +409,15 @@ word: context [
 				proto: spec
 			]
 			TYPE_STRING [
-				len: 0
-				val: as red-value! :len
-				copy-cell spec val					;-- save spec, load-value will change it
 				proto: load-value as red-string! spec
-				unless any-word? TYPE_OF(proto) [fire [TO_ERROR(syntax bad-char) val]]
+				unless any-word? TYPE_OF(proto) [fire [TO_ERROR(script invalid-chars)]]
 			]
 			TYPE_CHAR [
 				char: as red-char! spec
 				str: string/make-at stack/push* 1 Latin1
 				string/append-char GET_BUFFER(str) char/value
 				proto: load-value str
-				unless any-word? TYPE_OF(proto) [fire [TO_ERROR(syntax bad-char) str]]
+				unless any-word? TYPE_OF(proto) [fire [TO_ERROR(script invalid-chars)]]
 			]
 			TYPE_DATATYPE [
 				dt: as red-datatype! spec

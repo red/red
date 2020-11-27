@@ -351,9 +351,12 @@ load-single-value: func [
 	/local
 		blk	  [red-block!]
 		value [red-value!]
+		len	  [integer!]
 ][
-	lexer/scan-alt slot str -1 yes yes yes yes null null null
-
+	len: 0
+	lexer/scan-alt slot str -1 yes yes yes yes :len null null
+	if len < string/rs-length? str [return as red-value! none-value] ;-- extra characters case
+	
 	blk: as red-block! slot
 	assert TYPE_OF(blk) = TYPE_BLOCK
 
