@@ -10,10 +10,11 @@ REBOL [
 each-mode: batch-mode: ci-each: debug-mode: no
 
 if args: any [system/script/args system/options/args][
-	batch-mode: find args "--batch"
-	each-mode:  find args "--each"
-	ci-each:  find args "--ci-each"
-	debug-mode: find args "--debug"
+	batch-mode:		find args "--batch"
+	each-mode:		find args "--each"
+	release-mode:	find args "--release"
+	ci-each:		find args "--ci-each"
+	debug-mode:		find args "--debug"
 ]
 
 ;; supress script messages
@@ -35,6 +36,10 @@ info: ""
 if debug-mode [
 	qt/compile-flag: " -d "
 	info: " (Debug Mode)"
+]
+if release-mode [
+	qt/compile-flag: join qt/compile-flag " -r "
+	info: join info " -r"
 ]
 
 qt/script-header: "Red []"
