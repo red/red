@@ -64,15 +64,19 @@ system/console: context [
 		unless exists? rebol [			;-- extract toolchain
 			write/binary rebol red-toolchain/1
 			write-srcs red-toolchain/2
+			#if config/OS <> 'Windows [
+				call/wait append "chmod +x " rebol
+			]
 		]
+
 		change-dir cwd
 		print "Compiling, please wait a while..."
 		out: make string! 1000
 		err: make string! 1000
 		call/output/error rejoin [
-			#"^"" to-string to-local-file rebol #"^""
+			#"^"" to-local-file rebol #"^""
 			" -cqs "
-			to-string to-local-file tool-dir/red.r " "
+			to-local-file tool-dir/red.r " "
 			system/script/args
 		] out err
 		unless empty? out [print out]
