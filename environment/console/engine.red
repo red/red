@@ -53,7 +53,12 @@ system/console: context [
 	]
 
 	call-toolchain: function [][
-		if 1 = length? split system/script/args #" " [return false]
+		args: split system/script/args #" "
+		switch?: all [1 = length? args #"-" = first args/1]
+		if all [	;-- file pathname
+			1 = length? args
+			#"-" <> first args/1
+		][return false]
 
 		tool-dir: append copy system/options/cache
 				#either config/OS = 'Windows [%RedToolChain/][%.RedToolChain/]
@@ -70,7 +75,13 @@ system/console: context [
 		]
 
 		change-dir cwd
-		print "Compiling, please wait a while..."
+		unless switch? [
+			print "Compiling, please wait a while..."
+			#if config/gui-console? [
+				vt: gui-console-ctx/terminal
+				loop 50 [vt/do-ask-loop/no-wait]
+			]
+		]
 		out: make string! 1000
 		err: make string! 1000
 		call/output/error rejoin [
@@ -86,7 +97,7 @@ system/console: context [
 	
 	read-argument: function [/local value][
 		if red-toolchain? [
-			if call-toolchain [quit-return 0]
+			if call-toolchain [return "Red []"]
 			unset red-toolchain
 		]
 		if args: system/script/args [

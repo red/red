@@ -56,7 +56,7 @@ save-files red-repo src-files
 
 script: [Red [
 	Title: "Red Programming Language"
-	Version: 0.6.6
+	Version: 0.6.4
 	Rights:  "Copyright (C) 2014-2020 Red Foundation. All rights reserved."
 	Needs: view
 	]
