@@ -7,6 +7,20 @@ Rebol [
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
+comment {
+1. Open a Rebol console, and CD to the **%build/** folder.
+
+        >> change-dir %<path-to-Red>/build/
+
+2. Run the build script from the console:
+
+        >> do/args %build-red.r "path-to-rebol"
+        
+3. After a few seconds, a new **red** binary will be available in the **build/bin/** folder.
+
+4. Enjoy!
+}
+
 rebol-bin: read/binary to-rebol-file system/script/args
 src-files: pick load %includes.r 8
 
@@ -42,3 +56,7 @@ save red-src script
 print "Encapping..."
 system/options/args: none
 do/args %../red.r join "-r " red-src
+
+if system/version/4 <> 3 [	;-- Unix OSes
+	call/wait "chmod 755 ./red"
+]
