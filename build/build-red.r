@@ -13,15 +13,27 @@ comment {
         >> change-dir %<path-to-Red>/build/
 
 2. Run the build script from the console:
-
-        >> do/args %build-red.r "path-to-rebol"
+		; do/args %build-red.r "path-to-rebol" [target-OS] [noview]	;-- args order matters
+		
+        >> do/args %build-red.r "path-to-rebol"			;-- generate for the current OS
+        >> do/args %build-red.r "path-to-rebol" Linux	;-- generate for Linux OS
+        >> do/args %build-red.r "path-to-rebol" Linux noview  ;-- for Linux OS without view module
         
 3. After a few seconds, a new **red** binary will be available in the **build/bin/** folder.
 
 4. Enjoy!
 }
 
-rebol-bin: read/binary to-rebol-file system/script/args
+args: parse/all system/script/args " "
+noview?: args/3 = "noview"
+target: args/2
+Windows?: any [
+	all [none? target system/version/4 = 3]
+	target = "windows"
+]
+if all [Windows? none? target][target: "Windows"]
+
+rebol-bin: read/binary to-rebol-file args/1
 src-files: pick load %includes.r 8
 
 ;-- save source files
@@ -42,12 +54,33 @@ save-files: func [out src-files /local f][
 change-dir %..		;-- change to the root directory of red repo
 save-files red-repo src-files
 
-script: [Red [Needs: view]
+script: [Red [
+	Title: "Red Programming Language"
+	Version: 0.6.6
+	Rights:  "Copyright (C) 2014-2020 Red Foundation. All rights reserved."
+	Needs: view
+	]
 	red-toolchain: none
 	red-toolchain?: yes
-	#include %../environment/console/CLI/console.red
+	#include
 ]
 poke script 4 reduce [rebol-bin red-repo]
+
+either noview? [
+	clear skip tail script/2 -2
+	append script %../environment/console/CLI/console.red
+][
+	append script either Windows? [
+		append script/2 [
+			Config: [gui-console?: yes red-help?: yes]
+		]
+		%../environment/console/GUI/gui-console.red	
+	][
+		%../environment/console/CLI/console.red
+	]
+]
+
+new-line/all skip tail script -1 no
 
 change-dir %build/
 red-src: %red.red
@@ -55,8 +88,15 @@ save red-src script
 
 print "Encapping..."
 system/options/args: none
-do/args %../red.r join "-r " red-src
+cmd: either target [
+	rejoin ["-r -t " target " " red-src]
+][
+	join "-r " red-src
+]
 
-if system/version/4 <> 3 [	;-- Unix OSes
+do/args %../red.r cmd
+
+if all [not Windows? target <> "MSDOS"] [	;-- Unix OSes
+	print "chmod 755 ./red"
 	call/wait "chmod 755 ./red"
 ]
