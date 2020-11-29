@@ -38,8 +38,53 @@ system/console: context [
 	ws:			charset " ^/^M^-"
 
 	gui?:	#system [logic/box #either gui-console? = yes [yes][no]]
+
+	write-srcs: function [blk][
+		foreach [f b] blk [
+			either block? b [
+				make-dir f
+				change-dir f
+				write-srcs b
+				change-dir %..
+			][
+				write/binary f b
+			]
+		]
+	]
+
+	call-toolchain: function [][
+		if 1 = length? split system/script/args #" " [return false]
+
+		tool-dir: append copy system/options/cache
+				#either config/OS = 'Windows [%RedToolChain/][%.RedToolChain/]
+		unless exists? tool-dir [make-dir/deep tool-dir]
+		rebol: append copy tool-dir #either config/OS = 'Windows [%rebol.exe][%rebol]
+		cwd: what-dir
+		change-dir tool-dir
+		unless exists? rebol [			;-- extract toolchain
+			write/binary rebol red-toolchain/1
+			write-srcs red-toolchain/2
+		]
+		change-dir cwd
+		print "Compiling, please wait a while..."
+		out: make string! 1000
+		err: make string! 1000
+		call/output/error rejoin [
+			#"^"" to-string to-local-file rebol #"^""
+			" -cqs "
+			to-string to-local-file tool-dir/red.r " "
+			system/script/args
+		] out err
+		unless empty? out [print out]
+		unless empty? err [print err]
+		true
+	]
 	
 	read-argument: function [/local value][
+		if red-toolchain? [
+			if call-toolchain [quit-return 0]
+			unset red-toolchain
+		]
 		if args: system/script/args [
 
 			args: system/options/args
