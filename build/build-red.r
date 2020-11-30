@@ -13,7 +13,7 @@ comment {
         >> change-dir %<path-to-Red>/build/
 
 2. Run the build script from the console:
-		; do/args %build-red.r "path-to-rebol" [target-OS] [noview]	;-- args order matters
+		; do/args %build-red.r "path-to-rebol" [target] [noview|GUI]	;-- args order matters
 		
         >> do/args %build-red.r "path-to-rebol"			;-- generate for the current OS
         >> do/args %build-red.r "path-to-rebol" Linux	;-- generate for Linux OS
@@ -24,8 +24,11 @@ comment {
 4. Enjoy!
 }
 
+git-file:		%git.r
+
 args: parse/all system/script/args " "
 noview?: args/3 = "noview"
+GUI?: args/3 = "GUI"
 target: args/2
 Windows?: any [
 	all [none? target system/version/4 = 3]
@@ -35,6 +38,9 @@ if all [Windows? none? target][target: "Windows"]
 
 rebol-bin: read/binary to-rebol-file args/1
 src-files: pick load %includes.r 8
+
+;-- Try to get version data from git repository
+save git-file do %git-version.r
 
 ;-- save source files
 red-repo: make block! 20
@@ -58,10 +64,10 @@ script: [Red [
 	Title: "Red Programming Language"
 	Version: 0.6.4
 	Rights:  "Copyright (C) 2014-2020 Red Foundation. All rights reserved."
+	Config: [gui-console?: no unicode?: yes red-help?: yes toolchain?: yes]
 	Needs: view
 	]
 	red-toolchain: none
-	red-toolchain?: yes
 	#include
 ]
 poke script 4 reduce [rebol-bin red-repo]
@@ -70,10 +76,8 @@ either noview? [
 	clear skip tail script/2 -2
 	append script %../environment/console/CLI/console.red
 ][
-	append script either Windows? [
-		append script/2 [
-			Config: [gui-console?: yes red-help?: yes]
-		]
+	append script either any [GUI? Windows?][
+		poke script/2/8 2 'yes
 		%../environment/console/GUI/gui-console.red	
 	][
 		%../environment/console/CLI/console.red

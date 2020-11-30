@@ -699,6 +699,21 @@ make-dir: function [
 	path
 ]
 
+delete-dir:	func [
+	"Deletes a directory including all files and subdirectories."
+	dir	[file! url!] 
+	/local files
+][
+	if all [
+		dir? dir 
+		dir: dirize	dir	
+		attempt	[files:	read dir]
+	] [
+		foreach	file files [delete-dir dir/:file]
+	] 
+	attempt	[delete	dir]
+]
+
 extract: function [
 	"Extracts a value from a series at regular intervals"
 	series	[series!]

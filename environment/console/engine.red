@@ -60,18 +60,32 @@ system/console: context [
 			#"-" <> first args/1
 		][return false]
 
+		extract?: no
 		tool-dir: append copy system/options/cache
 				#either config/OS = 'Windows [%RedToolChain/][%.RedToolChain/]
-		unless exists? tool-dir [make-dir/deep tool-dir]
+
+		ts-file: tool-dir/timestamp.red
+		if all [	;-- delete the older version
+			exists? ts-file
+			system/build/date > load ts-file
+		][
+			delete-dir tool-dir
+		]
+		unless exists? tool-dir [
+			extract?: yes
+			make-dir/deep tool-dir
+		]
+
 		rebol: append copy tool-dir #either config/OS = 'Windows [%rebol.exe][%rebol]
 		cwd: what-dir
 		change-dir tool-dir
-		unless exists? rebol [			;-- extract toolchain
+		if extract? [			;-- extract toolchain
 			write/binary rebol red-toolchain/1
 			write-srcs red-toolchain/2
 			#if config/OS <> 'Windows [
 				call/wait append "chmod +x " rebol
 			]
+			write ts-file system/build/date
 		]
 
 		change-dir cwd
@@ -96,7 +110,7 @@ system/console: context [
 	]
 	
 	read-argument: function [/local value][
-		if red-toolchain? [
+		#if config/toolchain? [
 			if call-toolchain [return "Red []"]
 			unset red-toolchain
 		]

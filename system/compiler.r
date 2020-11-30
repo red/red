@@ -76,6 +76,7 @@ system-dialect: make-profilable context [
 		show:				none
 		command-line:		none
 		show-func-map?:		no							;-- yes => output the functions address/name map
+		toolchain?:			no							;-- yes => toolchain mode
 	]
 	
 	compiler: make-profilable context [
