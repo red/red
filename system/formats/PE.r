@@ -27,23 +27,24 @@ context [
 		6BCDE15CE62DA773B3D6FF400856B7081D48F3DF605AC821FC700DAE8816E3E2
 		D22B72E7CAC21E9B7C3EFC3F23437BB958040000
 	}
-	if all [
-		system/version/4 = 3							;-- only when running the toolchain on Windows
-		find system/components 'Library 
-	][
-		path: to-rebol-file get-env "SystemRoot"		;-- workaround issues on 64-bit editions
-		Imagehlplib: load/library path/System32/Imagehlp.dll
 
-		int-ptr!: make struct! [n [integer!]] none
+	on-file-written: func [job [object!] file [file!] /local file-sum chk-sum offset buffer res][
+		if all [
+			system/version/4 = 3							;-- only when running the toolchain on Windows
+			find system/components 'Library 
+		][
+			path: to-rebol-file get-env "SystemRoot"		;-- workaround issues on 64-bit editions
+			Imagehlplib: load/library path/System32/Imagehlp.dll
 
-		MapFileAndCheckSum: make routine! [
-			Filename	[string!]
-			HeaderSum	[struct! [n [integer!]]]
-			CheckSum	[struct! [n [integer!]]]
-			return:		[integer!]
-		] Imagehlplib "MapFileAndCheckSumA"
+			int-ptr!: make struct! [n [integer!]] none
 
-		on-file-written: func [job [object!] file [file!] /local file-sum chk-sum offset buffer res][
+			MapFileAndCheckSum: make routine! [
+				Filename	[string!]
+				HeaderSum	[struct! [n [integer!]]]
+				CheckSum	[struct! [n [integer!]]]
+				return:		[integer!]
+			] Imagehlplib "MapFileAndCheckSumA"
+
 			either redc/load-lib? [
 				file-sum: make struct! int-ptr! [0]
 				chk-sum:  make struct! int-ptr! [0]
@@ -66,7 +67,6 @@ context [
 				]
 
 				offset: (length? defs/image/MSDOS-header) + ((5 + 17) * 4) + 1
-
 				buffer: read/binary file
 				pointer/value: chk-sum/n
 				change/part at buffer offset form-struct pointer 4
@@ -78,7 +78,7 @@ context [
 			]
 		]
 	]
-	
+
 	defs: [
 		PE-signature #{50450000}						;-- "PE^@^@"
 		image [
