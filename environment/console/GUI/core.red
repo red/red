@@ -132,7 +132,10 @@ object [
 		s: find str lf
 		either s [
 			cnt: 0
-			unless all [lf? not prin?][
+			if all [
+				not all [lf? not prin?]
+				not same? head line last lines
+			][
 				vprin copy/part str s
 				str: skip s 1
 				s: find str lf
