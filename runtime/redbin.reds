@@ -1516,7 +1516,7 @@ redbin: context [
 		]
 		
 		if id = end [
-			_symbol: as red-symbol! symbol/get data/data2
+			_symbol: symbol/get data/data2
 			string:  as c-string! (as series! _symbol/cache/value) + 1
 			length:  binary/rs-length? strings
 			
