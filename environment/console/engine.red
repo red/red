@@ -38,83 +38,12 @@ system/console: context [
 	ws:			charset " ^/^M^-"
 
 	gui?:	#system [logic/box #either gui-console? = yes [yes][no]]
-
-	write-srcs: function [blk][
-		foreach [f b] blk [
-			either block? b [
-				make-dir f
-				change-dir f
-				write-srcs b
-				change-dir %..
-			][
-				write/binary f b
-			]
-		]
-	]
-
-	call-toolchain: function [][
-		args: split system/script/args #" "
-		switch?: all [1 = length? args #"-" = first args/1]
-		if all [	;-- file pathname
-			1 = length? args
-			#"-" <> first args/1
-		][return false]
-
-		extract?: no
-		tool-dir: append copy system/options/cache
-				#either config/OS = 'Windows [%RedToolChain/][%.RedToolChain/]
-
-		ts-file: tool-dir/timestamp.red
-		if all [	;-- delete the older version
-			exists? ts-file
-			system/build/date > load ts-file
-		][
-			delete-dir tool-dir
-		]
-		unless exists? tool-dir [
-			extract?: yes
-			make-dir/deep tool-dir
-		]
-
-		rebol: append copy tool-dir #either config/OS = 'Windows [%rebol.exe][%rebol]
-		cwd: what-dir
-		change-dir tool-dir
-		if extract? [			;-- extract toolchain
-			write/binary rebol red-toolchain/1
-			write-srcs red-toolchain/2
-			#if config/OS <> 'Windows [
-				call/wait append "chmod +x " rebol
-			]
-			write ts-file system/build/date
-		]
-
-		change-dir cwd
-		unless switch? [
-			print "Compiling, please wait a while..."
-			#if config/gui-console? [
-				vt: gui-console-ctx/terminal
-				loop 50 [vt/do-ask-loop/no-wait]
-			]
-		]
-		out: make string! 1000
-		err: make string! 1000
-		call/output/error rejoin [
-			#"^"" to-local-file rebol #"^""
-			" -cqs "
-			to-local-file tool-dir/red.r " "
-			system/script/args
-		] out err
-		unless empty? out [print out]
-		unless empty? err [print err]
-		true
-	]
 	
 	read-argument: function [/local value][
-		#if config/toolchain? [
-			if call-toolchain [return "Red []"]
-			unset red-toolchain
-		]
 		if args: system/script/args [
+			#if config/toolchain? [
+				if system/toolchain/run args [return "Red []"]
+			]
 
 			args: system/options/args
 			--catch: "--catch"
