@@ -68,6 +68,7 @@ script: [Red [
 	Needs: view
 	]
 	red-toolchain: none
+	#include %toolchain.red
 	#include
 ]
 poke script 4 reduce [rebol-bin red-repo]
