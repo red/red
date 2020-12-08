@@ -178,6 +178,8 @@ Red [
 			pos:  head
 		]
 		
+		mark: does [if pos > head [collector/mark-values head pos + 1]]
+		
 		destroy: does [free as byte-ptr! head]
 	]
 	
@@ -269,6 +271,16 @@ Red [
 		])
 	]
 	
+	mark-series: func [/local err [red-object!]][
+		collector/mark-block cmd-blk
+		collector/mark-block extern-blk
+		if last-error <> null [
+			err: as red-object! last-error
+			if TYPE_OF(err) = TYPE_ERROR [collector/mark-context err/ctx]
+		]
+		ring/mark
+	]
+	
 	;====================================
 	;=========== Exported API ===========
 	;====================================
@@ -283,6 +295,7 @@ Red [
 			block/make-at cmd-blk 10
 			block/make-at extern-blk 1
 			block/rs-append extern-blk as red-value! names/extern
+			collector/register as int-ptr! :mark-series
 			lib-opened?: yes
 		]
 	]
@@ -337,6 +350,7 @@ Red [
 		CHECK_LIB_OPENED
 		#if OS = 'Windows [#if modules contains 'View [gui/cleanup]]
 		
+		collector/unregister as int-ptr! :mark-series
 		ring/destroy
 		ext-ring/destroy
 		red/cleanup

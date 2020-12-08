@@ -23,6 +23,7 @@ int main() {
 	int	  o_b = redSymbol("o_b");
 	int	    b = redSymbol("b");
 	red_value  obj;
+	redDo("recycle");
 
 	redSet(o_b, redLoadPath("o/b"));
 	redDo("?? o_b");
