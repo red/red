@@ -1475,6 +1475,10 @@ hit-test: func [
 		h		[integer!]
 		ratio	[float32!]
 		vals	[red-value!]
+		clr		[red-tuple!]
+		rc		[NSRect! value]
+		rep		[integer!]
+		alpha	[float!]
 ][
 	super/receiver: self
 	super/superclass: objc_msgSend [self sel_getUid "superclass"]
@@ -1495,7 +1499,28 @@ hit-test: func [
 			ratio: (as float32! h) / (as float32! sz/y)
 			y: as-integer pt/y * ratio
 			pixel: OS-image/get-pixel img/node y * w + x
-			if pixel >>> 24 = 0 [v: 0]
+			if pixel >>> 24 = 0 [return 0]
+		]
+
+		clr: (as red-tuple! vals) + FACE_OBJ_COLOR
+		if any [	;-- full transparent color
+			TYPE_OF(clr) = TYPE_NONE
+			all [
+				TYPE_OF(clr) = TYPE_TUPLE
+				TUPLE_SIZE?(clr) = 4
+				clr/array1 >>> 24 = 255
+			]
+		][
+			rc: objc_msgSend_rect [self sel_getUid "bounds"]
+			rep: objc_msgSend [self sel_getUid "bitmapImageRepForCachingDisplayInRect:" rc/x rc/y rc/w rc/h]
+			objc_msgSend [self sel_getUid "cacheDisplayInRect:toBitmapImageRep:" rc/x rc/y rc/w rc/h rep]
+			pt: objc_msgSend_pt [
+				self sel_getUid "convertPoint:fromView:" x y
+				objc_msgSend [self sel_getUid "superview"]
+			]
+			pixel: objc_msgSend [rep sel_getUid "colorAtX:y:" as-integer pt/x as-integer pt/y]
+			alpha: objc_msgSend_fpret [pixel sel_getUid "alphaComponent"]
+			if alpha = 0.0 [return 0]
 		]
 	]
 	v
