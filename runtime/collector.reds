@@ -348,8 +348,10 @@ collector: context [
 		#if debug? = yes [if verbose > 1 [probe "marking globals from optional modules"]]
 		p: ext-markers
 		while [p < ext-top][
-			cb: as function! [] p/value
-			cb
+			if p/value <> 0 [							;-- check if not unregistered
+				cb: as function! [] p/value
+				cb
+			]
 			p: p + 1
 		]
 		
@@ -389,8 +391,16 @@ collector: context [
 	
 	register: func [cb [int-ptr!]][
 		assert (as-integer ext-top - ext-markers) >> 2 < ext-size
-		ext-top/value: as integer! cb
+		ext-top/value: as-integer cb
 		ext-top: ext-top + 1
+	]
+	
+	unregister: func [cb [int-ptr!] /local p [int-ptr!]][
+		p: ext-markers
+		while [p < ext-top][
+			if p/value = as-integer cb [p/value: 0 exit]
+			p: p + 1
+		]
 	]
 	
 ]
