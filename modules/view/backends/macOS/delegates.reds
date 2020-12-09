@@ -794,6 +794,7 @@ object-for-table: func [
 	data: (as red-block! get-face-values obj) + FACE_OBJ_DATA
 	head: block/rs-head data
 	tail: block/rs-tail data
+
 	idx: -1
 	while [all [row >= 0 head < tail]][
 		type: TYPE_OF(head)
@@ -801,6 +802,9 @@ object-for-table: func [
 		head: head + 1
 		idx: idx + 1
 	]
+
+	if any [idx = -1 row >= 0][return 0]
+
 	font: (as red-object! get-face-values obj) + FACE_OBJ_FONT
 	str: to-NSString as red-string! block/rs-abs-at data idx
 	if TYPE_OF(font) = TYPE_OBJECT [
@@ -1198,12 +1202,12 @@ render-text: func [
 	m: make-CGMatrix 1 0 0 -1 0 0
 	case [
 		flags and 1 <> 0 [m/tx: sz/w - rc/x]
-		flags and 2 <> 0 [temp: sz/w - rc/x m/tx: temp / 2]
+		flags and 2 <> 0 [temp: sz/w - rc/x m/tx: temp / as float32! 2.0]
 		true [0]
 	]
 
 	case [
-		flags and 4 <> 0 [temp: sz/h - rc/y m/ty: temp / 2]
+		flags and 4 <> 0 [temp: sz/h - rc/y m/ty: temp / as float32! 2.0]
 		flags and 8 <> 0 [m/ty: sz/h - rc/y]
 		true [0]
 	]
@@ -1471,6 +1475,10 @@ hit-test: func [
 		h		[integer!]
 		ratio	[float32!]
 		vals	[red-value!]
+		clr		[red-tuple!]
+		rc		[NSRect! value]
+		rep		[integer!]
+		alpha	[float!]
 ][
 	super/receiver: self
 	super/superclass: objc_msgSend [self sel_getUid "superclass"]
@@ -1491,7 +1499,28 @@ hit-test: func [
 			ratio: (as float32! h) / (as float32! sz/y)
 			y: as-integer pt/y * ratio
 			pixel: OS-image/get-pixel img/node y * w + x
-			if pixel >>> 24 = 0 [v: 0]
+			if pixel >>> 24 = 0 [return 0]
+		]
+
+		clr: (as red-tuple! vals) + FACE_OBJ_COLOR
+		if any [	;-- full transparent color
+			TYPE_OF(clr) = TYPE_NONE
+			all [
+				TYPE_OF(clr) = TYPE_TUPLE
+				TUPLE_SIZE?(clr) = 4
+				clr/array1 >>> 24 = 255
+			]
+		][
+			rc: objc_msgSend_rect [self sel_getUid "bounds"]
+			rep: objc_msgSend [self sel_getUid "bitmapImageRepForCachingDisplayInRect:" rc/x rc/y rc/w rc/h]
+			objc_msgSend [self sel_getUid "cacheDisplayInRect:toBitmapImageRep:" rc/x rc/y rc/w rc/h rep]
+			pt: objc_msgSend_pt [
+				self sel_getUid "convertPoint:fromView:" x y
+				objc_msgSend [self sel_getUid "superview"]
+			]
+			pixel: objc_msgSend [rep sel_getUid "colorAtX:y:" as-integer pt/x as-integer pt/y]
+			alpha: objc_msgSend_fpret [pixel sel_getUid "alphaComponent"]
+			if alpha = 0.0 [return 0]
 		]
 	]
 	v

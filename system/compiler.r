@@ -667,7 +667,7 @@ system-dialect: make-profilable context [
 		]
 		
 		any-float?: func [type [block!]][
-			find any-float! type/1
+			to logic! find any-float! type/1
 		]
 		
 		any-pointer?: func [type [block!]][
@@ -1765,7 +1765,7 @@ system-dialect: make-profilable context [
 		]
 		
 		process-export: has [defs cc ns entry spec list name sym][
-			if all [job/type = 'exe job/OS <> 'FreeBSD][
+			if all [job/type = 'exe job/OS <> 'FreeBSD job/OS <> 'NetBSD][
 				throw-error "#export directive requires a library compilation mode"
 			]
 			if word? pc/2 [
@@ -2200,8 +2200,8 @@ system-dialect: make-profilable context [
 			][
 				if path? value: pc/2 [value: to word! form value]
 				
-				unless all [word? value resolve-aliased reduce [value]][
-					throw-error ["declaring literal for type" value "not supported"]
+				unless all [word? value resolve-aliased/silent reduce [value]][
+					throw-error ["DECLARE argument type" value "not found or not supported"]
 				]
 				if all [ns-path ns: find-aliased/prefix value][value: ns]
 				offset: 2
@@ -3229,7 +3229,7 @@ system-dialect: make-profilable context [
 				any [
 					all [1 < slots job/target = 'ARM]	 ;-- ARM requires it only for struct > 4 bytes
 					all [
-						not find [Windows macOS FreeBSD] job/OS	 ;-- fallback on Linux ABI
+						not find [Windows macOS FreeBSD NetBSD] job/OS	 ;-- fallback on Linux ABI
 						job/target <> 'ARM
 					]
 				]
@@ -3333,6 +3333,10 @@ system-dialect: make-profilable context [
 					if any [string? list/1 string? list/2][
 						backtrack first find/reverse pc string!
 						throw-error "literal string values cannot be used with operators"
+					]
+					if ((any-float? get-type list/1) xor any-float? get-type list/2) [
+						backtrack args/1
+						throw-error "incompatible operand types in math or bitwise operation"
 					]
 					if block? unbox list/1 [comp-expression list/1 yes]	;-- nested call
 					left:  unbox list/1
@@ -4174,7 +4178,7 @@ system-dialect: make-profilable context [
 
 		version-info-key: [
 			Title: Version: Company: Comments: Notes:
-			Rights: Trademarks: Author: ProductName:
+			Rights: Trademarks: ProductName: ProductVersion:
 		]
 		foreach name version-info-key [
 			if value: select header name [

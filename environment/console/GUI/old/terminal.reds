@@ -1482,6 +1482,7 @@ terminal: context [
 			Android  []
 			macOS    []
 			FreeBSD  []
+			NetBSD   []
 			Syllable []
 			#default []									;-- Linux
 		]

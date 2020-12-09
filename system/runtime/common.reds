@@ -149,6 +149,7 @@ re-throw: func [/local id [integer!]][
 	macOS	 [#include %darwin.reds]
 	Android	 [#include %android.reds]
 	FreeBSD	 [#include %freebsd.reds]
+	NetBSD	 [#include %netbsd.reds]
 	#default [#include %linux.reds]
 ]
 

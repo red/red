@@ -233,19 +233,28 @@ block: context [
 			head   [red-value!]
 			s	   [series!]
 			size   [integer!]
+			hs	   [red-hash!]
 	][
+		hs: as red-hash! blk
 		s: GET_BUFFER(blk)
 		size: as-integer s/tail + 1 - s/offset
 		if size > s/size [s: expand-series s size * 2]
 		head: s/offset + blk/head
-		
-		move-memory										;-- make space
-			as byte-ptr! head + 1
-			as byte-ptr! head
-			as-integer s/tail - head
-			
+
+		if head <> s/tail [
+			move-memory										;-- make space
+				as byte-ptr! head + 1
+				as byte-ptr! head
+				as-integer s/tail - head
+
+			if TYPE_OF(hs) = TYPE_HASH [
+				_hashtable/refresh hs/table 1 blk/head (as-integer s/tail - head) >> 4 yes
+			]
+		]
+
 		s/tail: s/tail + 1	
-		copy-cell value head
+		value: copy-cell value head
+		if TYPE_OF(hs) = TYPE_HASH [_hashtable/put hs/table value]
 		blk/head: blk/head + 1
 		blk
 	]
@@ -304,6 +313,8 @@ block: context [
 	append-thru: func [
 		/local
 			arg	[red-block!]
+			val [red-value!]
+			hs	[red-hash!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/append-thru"]]
 
@@ -311,9 +322,14 @@ block: context [
 			arg: as red-block! stack/arguments - 1
 			;assert TYPE_OF(arg) = TYPE_BLOCK			;@@ disabled until we have ANY_BLOCK check
 
-			copy-cell
+			val: copy-cell
 				as cell! arg + 1
 				ALLOC_TAIL(arg)
+
+			if TYPE_OF(arg) = TYPE_HASH [
+				hs: as red-hash! arg
+				_hashtable/put hs/table val
+			]
 		]
 	]
 	
@@ -379,7 +395,7 @@ block: context [
 		either fixed? [
 			blk/node: alloc-fixed-series size 16 0
 		][
-			blk/node: alloc-unset-cells size 16 0
+			blk/node: alloc-unset-cells size
 		]
 		blk/extra:  0
 		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
@@ -418,7 +434,7 @@ block: context [
 			_root
 		][
 			type: TYPE_OF(parent)
-			assert ANY_BLOCK?(type)
+			assert any [ANY_BLOCK?(type) type = TYPE_MAP]
 			as red-block! ALLOC_TAIL(parent)
 		]
 		make-at blk size
@@ -640,7 +656,7 @@ block: context [
 			TYPE_OBJECT   [object/reflect as red-object! spec words/body]
 			TYPE_MAP	  [map/reflect as red-hash! spec words/body]
 			TYPE_VECTOR   [vector/to-block as red-vector! spec proto]
-			TYPE_STRING   [lexer/scan-alt as red-value! proto as red-string! spec -1 no yes yes no null null as red-series! spec]
+			TYPE_STRING   [lexer/scan-alt as red-value! proto as red-string! spec -1 no yes yes no null null null]
 			TYPE_TYPESET  [typeset/to-block as red-typeset! spec proto]
 			TYPE_ANY_PATH
 			TYPE_ANY_LIST [proto: clone as red-block! spec no no]
@@ -870,7 +886,7 @@ block: context [
 		part?: no
 		
 		if OPTION?(skip) [
-			assert TYPE_OF(skip) = TYPE_INTEGER
+			unless TYPE_OF(skip) = TYPE_INTEGER [ERR_INVALID_REFINEMENT_ARG(refinements/_skip skip)]
 			step: skip/value
 			unless positive? step [
 				fire [TO_ERROR(script out-of-range) skip]
@@ -1496,7 +1512,7 @@ block: context [
 			action: words/_insert
 			h
 		]
-		chk?: ownership/check as red-value! blk action value index part
+		chk?: ownership/check as red-value! blk action value index slots
 
 		unless tail? [									;TBD: process head? case separately
 			size: as-integer s/tail + slots - s/offset
@@ -1552,7 +1568,7 @@ block: context [
 		]
 		if chk? [
 			action: either append? [words/_appended][words/_inserted]
-			ownership/check as red-value! blk action value index part
+			ownership/check as red-value! blk action value index slots
 		]
 		either append? [blk/head: 0][
 			blk/head: h + slots
@@ -1768,6 +1784,7 @@ block: context [
 			len		[integer!]
 			step	[integer!]
 			head	[integer!]
+			type	[integer!]
 			table	[node!]
 			hash	[node!]
 			check?	[logic!]
@@ -1778,6 +1795,7 @@ block: context [
 			blk?	[logic!]
 			hash?	[logic!]
 			saved	[logic!]
+			any-blk? [logic!]
 	][
 		step: 1
 		if OPTION?(skip-arg) [
@@ -1834,16 +1852,25 @@ block: context [
 
 			while [value < tail] [			;-- iterate over first series
 				append?: no
+				type: TYPE_OF(value)
+				any-blk?: ANY_BLOCK?(type)
 				if check? [
-					find?: null <> _hashtable/get hash value head step comp-op no no
+					either any-blk? [		;-- fallback to use block/find
+						key: block/find blk2 value null yes no no no null null no no no no
+						find?: TYPE_OF(key) <> TYPE_NONE
+					][
+						find?: null <> _hashtable/get hash value head step comp-op no no
+					]
 					if invert? [find?: not find?]
 				]
-				if all [
-					find?
-					null = _hashtable/get table value 0 step comp-op no no
-				][
-					append?: yes
-					_hashtable/put table rs-append new value
+				if find? [
+					either any-blk? [
+						key: block/find new value null yes no no no null null no no no no
+						append?: TYPE_OF(key) = TYPE_NONE
+					][
+						append?: null = _hashtable/get table value 0 step comp-op no no
+					]
+					if append? [_hashtable/put table rs-append new value]
 				]
 
 				i: 1

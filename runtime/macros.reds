@@ -195,6 +195,7 @@ Red/System [
 	NAT_EXCLUDE
 	NAT_COMPLEMENT?
 	NAT_DEHEX
+	NAT_ENHEX
 	NAT_NEGATIVE?
 	NAT_POSITIVE?
 	NAT_MAX
@@ -395,6 +396,14 @@ Red/System [
 		type = TYPE_BLOCK
 		type = TYPE_PAREN
 		type = TYPE_HASH
+	]
+]
+
+#define ANY_SERIES_PARSE?(type) [			;-- any-series! types that can be processed by Parse
+	all [
+		ANY_SERIES?(type)
+		type <> TYPE_IMAGE
+		type <> TYPE_VECTOR
 	]
 ]
 

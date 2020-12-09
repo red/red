@@ -39,6 +39,7 @@ write %build/bin/sources.r set-cache [
 			%PNG.red
 			%CSV.red
 			%JSON.red
+			%redbin.red
 		]
 		%console/ [
 			%auto-complete.red
@@ -164,6 +165,7 @@ write %build/bin/sources.r set-cache [
 			%android.reds
 			%darwin.reds
 			%freebsd.reds
+			%netbsd.reds
 			%linux.reds
 			%POSIX.reds
 			%syllable.reds
@@ -171,6 +173,7 @@ write %build/bin/sources.r set-cache [
 			%COM.reds
 			%image-wic.reds
 			%image-gdiplus.reds
+			%image-gdk.reds
 			%image-quartz.reds
 			%win32-ansi.reds
 			%win32-print.reds
@@ -228,6 +231,26 @@ write %build/bin/sources.r set-cache [
 					%tab-panel.reds
 					%text-box.reds
 				]
+				%gtk3/ [
+					%camera.reds
+					%camera-dev.reds
+					%color.reds
+					%comdlgs.reds
+					%css.reds
+					%draw.reds
+					%events.reds
+					%font.reds
+					%gtk.reds
+					%gui.reds
+					%handlers.reds
+					%menu.reds
+					%para.reds
+					%rules.red
+					%tab-panel.reds
+					%text-box.reds
+					%text-list.reds
+					%v4l2.reds
+				]
 				%test/ [
 					%draw.reds
 					%events.reds
@@ -273,6 +296,7 @@ write %build/bin/sources.r set-cache [
 			%darwin.reds
 			%debug.reds
 			%freebsd.reds
+			%netbsd.reds
 			%libc.reds
 			%lib-names.reds
 			%lib-natives.reds

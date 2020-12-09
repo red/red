@@ -61,6 +61,7 @@ red: context [
 	sym-table:	   make block! 1000
 	literals:	   make block! 1000
 	declarations:  make block! 1000
+	boot-extras:   make block! 100
 	bodies:		   make block! 1000
 	ssa-names: 	   make block! 10						;-- unique names lookup table (SSA form)
 	types-cache:   make hash!  100						;-- store compiled typesets [types array name...]
@@ -105,7 +106,7 @@ red: context [
 	
 	standard-modules: [
 	;-- Name ------ Entry file -------------- OS availability -----
-		View		%modules/view/view.red	  [Windows macOS]
+		View		%modules/view/view.red	  [Windows macOS Linux]
 	]
 
 	func-constructors: [
@@ -258,7 +259,8 @@ red: context [
 		case [
 			pos: find extracts/currencies code [index? pos]
 			all [currencies pos: find currencies code][(index? pos) + length? extracts/currencies]
-			'else [0]
+			code = '... [0]
+			'else [throw-error ["unknown money! currency" code ", add it to the Currencies: header."]]
 		]
 	]
 	
@@ -405,7 +407,7 @@ red: context [
 	]
 	
 	emit-push-word: func [name [any-word!] original [any-word!] /local type ctx obj][
-		type: to word! form type? name
+		type: to word! form type? :name
 		name: to word! :name
 		
 		either all [
@@ -1107,6 +1109,7 @@ red: context [
 			any [
 				word! 		(return no)
 				| lit-word! (return yes)
+				| get-word! (return yes)
 				| /local	(return no)
 				| skip
 			]
@@ -1204,6 +1207,7 @@ red: context [
 		][
 			pos/1: none
 		]
+		true
 	]
 	
 	check-func-name: func [name [word!] /local new pos][
@@ -1407,7 +1411,7 @@ red: context [
 		invalid-spec: [throw-error ["invalid argument function to make op!:" mold copy/part at pos 4 2]]
 		
 		name: to word! pos/1
-		if find functions name [exit]					;-- mainly intended for 'make (hardcoded)
+		if find functions name [return none]			;-- mainly intended for 'make (hardcoded)
 
 		switch type: pos/3 [
 			native! [nat?: yes if find intrinsics name [type: 'intrinsic!]]
@@ -1461,7 +1465,7 @@ red: context [
 		]
 		pos: tail output
 		
-		if path/1 = last obj-stack [remove path]		;-- remove temp object prefix inserted by object-access?
+		if all [1 <> length? obj-stack path/1 = last obj-stack][remove path]		;-- remove temp object prefix inserted by object-access? (mind #4567!)
 		
 		if set? [
 			emit [object/path-parent/header: TYPE_NONE]
@@ -1844,11 +1848,11 @@ red: context [
 					insert-lf -3
 				]
 				path! set-path!	[
-					idx: do make-block
 					case [
 						inactive [
-							either get-word? pc/1/1 [
+							either get-word? pc/1/1 [	;-- R2 doesn't have get-path!
 								emit 'get-path/push
+								pc/1/1: to word! pc/1/1
 							][
 								emit to path! reduce [to word! form type? pc/1 'push]
 								if path? pc/1 [emit [as red-path!]]
@@ -1863,6 +1867,7 @@ red: context [
 							if path? pc/1 [emit [as red-path!]]
 						]
 					]
+					idx: do make-block
 					emit reduce ['get-root idx]
 					insert-lf -3
 				]
@@ -2468,13 +2473,15 @@ red: context [
 		]
 		foreach idx [-2 -5 -7 -8][insert-lf idx]
 		emit-stack-reset
-		
+
+		emit [integer/push 0]		
 		emit-open-frame 'repeat
 		emit compose/deep [
 			while [
 				;-- set word 1 + get word
 				;-- TBD: set word next get word
-				(set-cnt) (cnt) + 1
+				(set-cnt) 1 + integer/get stack/arguments - 1	;-- fixes #3361
+				integer/make-at stack/arguments - 1 (cnt)
 				;-- (get word) < value
 				;-- TBD: not tail? get word
 				(cnt) <= (lim)
@@ -2488,6 +2495,7 @@ red: context [
 		pop-call
 		insert last output reduce [action name cnt]
 		new-line last output on
+		emit [copy-cell stack/arguments stack/arguments - 1]	;-- override the counter with the body result
 		emit-close-frame
 		emit-close-frame
 		depth: depth - 1
@@ -3408,14 +3416,24 @@ red: context [
 					object/fire-on-set*
 				] to logic! local-word? first back back tail path
 				
-				parent: either 2 < length? path [		;-- extract word from parent context
-					breaks: [-12 -9 -6 -1]
-					set [obj fpath] object-access? copy/part path (length? path) - 1
-					ctx: second obj: find objects obj
-					['word/from ctx get-word-index/with pick tail path -2 ctx]
-				][
-					breaks: [-10 -7 -4 -1]				;-- word is in global context
-					[decorate-symbol path/1]
+				parent: case [
+					2 < length? path [						;-- extract word from parent context
+						breaks: [-12 -9 -6 -1]
+						set [obj fpath] object-access? copy/part path (length? path) - 1
+						ctx: second obj: find objects obj
+						['word/from ctx get-word-index/with pick tail path -2 ctx]
+					]
+					self? [									;-- self/field
+						breaks: [-10 -7 -4 -1]
+						set [obj fpath] object-access? copy/part path 1
+						ctx: second obj: find objects obj
+						fire: 'object/loc-ctx-fire-on-set*
+						[ctx]
+					]
+					'else [
+						breaks: [-10 -7 -4 -1]				;-- word is in global context
+						[decorate-symbol path/1]
+					]
 				]
 				repend any [mark last output] compose [
 					fire
@@ -3573,7 +3591,8 @@ red: context [
 				either path? call [						;-- call with refinements?
 					ctx: copy spec/4					;-- get a new context block
 					foreach ref next call [
-						option: to refinement! either integer? ref [form ref][ref]
+						unless word? ref [throw-error ["incompatible type" ref "in" call]]
+						option: to refinement! ref
 						
 						unless pos: find/skip spec/4 option 3 [
 							throw-error [call/1 "has no refinement called" ref]
@@ -3761,6 +3780,7 @@ red: context [
 			all [
 				any [word? pc/1 all [path? pc/1 not get-word? pc/1/1]]
 				do take-frame
+				any [not find [object context construct] pc/1 check-redefined name original]
 				defer: dispatch-ctx-keywords/with original pc/1
 			][]
 			'else [
@@ -3879,6 +3899,7 @@ red: context [
 					pc: back pc
 					throw-error ["undefined word" pc/1]
 				][
+					add-symbol to word! first back pc
 					do emit-word
 				]
 			]
@@ -4596,6 +4617,7 @@ red: context [
 		unless job/red-help? [clear-docstrings pc]
 		booting?: yes
 		comp-block
+		append output boot-extras
 		booting?: no
 		
 		mods: tail output
@@ -4816,6 +4838,11 @@ red: context [
 				if any [not word? c 3 <> length? form c][
 					throw-error ["invalid header currencies field:" spec]
 				]
+				append boot-extras compose [
+					block/rs-append 
+						as red-block! #get system/locale/currencies/list
+						as red-value! word/load (uppercase mold c)
+				]
 			]
 			currencies: copy spec
 		]
@@ -4883,6 +4910,7 @@ red: context [
 		clear sym-table
 		clear literals
 		clear declarations
+		clear boot-extras
 		clear bodies
 		clear actions
 		clear op-actions

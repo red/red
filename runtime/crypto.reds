@@ -387,6 +387,14 @@ crypto: context [
 				]
 			]]
 		]
+		OS = 'NetBSD [
+			#import [
+			LIBC-file cdecl [
+				get-errno-ptr: "__errno" [
+					return: [int-ptr!]
+				]
+			]]
+		]
 		true [
 			#import [
 			LIBC-file cdecl [
@@ -527,7 +535,7 @@ crypto: context [
 				ALG_SHA384  [CALG_SHA_384]
 				ALG_SHA512  [CALG_SHA_512]
 				default [
-					fire [TO_ERROR(script invalid-arg) type]
+					fire [TO_ERROR(script invalid-arg) integer/push type]
 					0	;-- Either need to leave out this default or make the compiler happy by not changing type's datatype.
 				]
 			]
@@ -655,7 +663,7 @@ crypto: context [
 				ALG_SHA384  ["sha384"]
 				ALG_SHA512  ["sha512"]
 				default [
-					fire [TO_ERROR(script invalid-arg) type]
+					fire [TO_ERROR(script invalid-arg) integer/push type]
 					""	;-- Either need to leave out this default or make the compiler happy by not changing type's datatype.
 				]
 			]
@@ -679,6 +687,9 @@ crypto: context [
 			]
 			FreeBSD [
 				#define LIBCRYPTO-file "libcrypto.so.8"
+			]
+			NetBSD [
+				#define LIBCRYPTO-file "libcrypto.so"
 			]
 			#default [
 				#switch config-name [
@@ -747,7 +758,7 @@ crypto: context [
 				ALG_SHA384  [compute-sha384 data len hash]
 				ALG_SHA512  [compute-sha512 data len hash]
 				default [
-					fire [TO_ERROR(script invalid-arg) type]
+					fire [TO_ERROR(script invalid-arg) integer/push type]
 					0	;-- Either need to leave out this default or make the compiler happy by not changing type's datatype.
 				]
 			]

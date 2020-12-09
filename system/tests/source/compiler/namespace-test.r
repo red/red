@@ -86,9 +86,9 @@ change-dir %../
       s: declare s!
       s/val: 100
     ]
-    p: declare s!               
+    p: declare s!
   }
-  --assert-msg? "*** Compilation Error: unknown type: none"
+  --assert-msg? "*** Compilation Error: DECLARE argument type s! not found or not supported"
   
 ===end-group===
        

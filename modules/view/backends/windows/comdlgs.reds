@@ -88,7 +88,20 @@ req-dir-callback: func [
 	]
 	0
 ]
-		
+
+check-base-capture: func [/local word [red-word!] hwnd [handle!] n [integer!]][
+	hwnd: base-down-hwnd
+	if all [hwnd <> null not no-face? hwnd][
+		word: (as red-word! get-face-values hwnd) + FACE_OBJ_TYPE
+		if base = symbol/resolve word/symbol [
+			n: GetWindowLong hwnd wc-offset - 32
+			SetWindowLong hwnd wc-offset - 32 n - 1
+			exit
+		]
+	]
+	base-down-hwnd: null
+]
+
 OS-request-dir: func [
 	title	[red-string!]
 	dir		[red-file!]
@@ -105,6 +118,8 @@ OS-request-dir: func [
 		pbuf	[byte-ptr!]
 		bInfo	[tagBROWSEINFO]
 ][
+	check-base-capture
+
 	bInfo: declare tagBROWSEINFO
 	pbuf: null
 	buffer: allocate 520
@@ -161,6 +176,8 @@ OS-request-file: func [
 		pbuf	[byte-ptr!]
 		ofn		[tagOFNW]
 ][
+	check-base-capture
+
 	ofn: declare tagOFNW
 	filters: #u16 "All files^@*.*^@Red scripts^@*.red;*.reds^@REBOL scripts^@*.r^@Text files^@*.txt^@"
 	buffer: allocate MAX_FILE_REQ_BUF

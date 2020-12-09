@@ -306,7 +306,7 @@ _function: context [
 		while [value < tail][							;-- 1st pass: detect if out-of-order (ooo?)
 			word:  as red-word! value
 			if TYPE_OF(value) <> TYPE_WORD [
-				fire [TO_ERROR(script no-refine) fname word]
+				fire [TO_ERROR(script bad-refine) word]
 			]
 
 			unless ooo? [
@@ -740,7 +740,7 @@ _function: context [
 		]
 	]
 	
-	validate: func [									;-- temporary mimalist spec checking
+	validate: func [									;-- temporary minimalist spec checking
 		spec [red-block!]
 		/local
 			value  [red-value!]

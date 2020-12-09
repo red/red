@@ -125,13 +125,17 @@ object [
 
 	vprint: func [str [string!] lf? [logic!] /local s cnt first-prin?][
 		unless console/state [exit]
+		unless gui-console-ctx/win/visible? [gui-console-ctx/win/visible?: yes]
 
 		if all [not lf? newline?][newline?: no first-prin?: yes]
 		if lf? [newline?: yes]
 		s: find str lf
 		either s [
 			cnt: 0
-			unless all [lf? not prin?][
+			if all [
+				not all [lf? not prin?]
+				not same? head line last lines
+			][
 				vprin copy/part str s
 				str: skip s 1
 				s: find str lf
@@ -958,6 +962,7 @@ object [
 
 	paint: func [/local txt str cmds y n h cnt delta num end styles][
 		if empty? lines [exit]
+
 		cmds: [pen color text 0x0 text-box]
 		cmds/2: foreground
 		cmds/4/x: pad-left

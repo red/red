@@ -247,7 +247,7 @@ simple-io: context [
 		]
 
 		#case [
-			OS = 'FreeBSD [
+			any [OS = 'FreeBSD OS = 'NetBSD][
 				;-- http://fxr.watson.org/fxr/source/sys/stat.h?v=FREEBSD10
 				stat!: alias struct! [
 					st_dev		[integer!]
@@ -444,31 +444,66 @@ simple-io: context [
 				]
 			]
 			true [ ; else
-				;-- http://lxr.free-electrons.com/source/arch/x86/include/uapi/asm/stat.h
-				stat!: alias struct! [					;-- stat64 struct
-					st_dev_l	  [integer!]
-					st_dev_h	  [integer!]
-					pad0		  [integer!]
-					__st_ino	  [integer!]
-					st_mode		  [integer!]
-					st_nlink	  [integer!]
-					st_uid		  [integer!]
-					st_gid		  [integer!]
-					st_rdev_l	  [integer!]
-					st_rdev_h	  [integer!]
-					pad1		  [integer!]
-					st_size		  [integer!]
-					st_blksize	  [integer!]
-					st_blocks	  [integer!]
-					st_atime	  [timespec! value]
-					st_mtime	  [timespec! value]
-					st_ctime	  [timespec! value]
-					st_ino_h	  [integer!]
-					st_ino_l	  [integer!]
-					;...optional padding skipped
+				#either target = 'ARM [
+					;-- https://github.com/torvalds/linux/blob/master/include/uapi/asm-generic/stat.h#L49
+					stat!: alias struct! [					;-- stat64 struct, 104 bytes
+						st_dev_l	  [integer!]
+						st_dev_h	  [integer!]
+						pad0		  [integer!]
+						__st_ino	  [integer!]
+						st_mode		  [integer!]
+						st_nlink	  [integer!]
+						st_uid		  [integer!]
+						st_gid		  [integer!]
+						st_rdev_l	  [integer!]
+						st_rdev_h	  [integer!]
+						pad1		  [integer!]
+						pad2		  [integer!]
+						st_size		  [integer!]
+						st_size_h	  [integer!]
+						st_blksize	  [integer!]
+						pad3		  [integer!]
+						st_blocks	  [integer!]
+						st_blocks_h	  [integer!]
+						st_atime	  [timespec! value]
+						st_mtime	  [timespec! value]
+						st_ctime	  [timespec! value]
+						st_ino_h	  [integer!]
+						st_ino_l	  [integer!]
+					]
+				][
+					;-- https://elixir.bootlin.com/linux/latest/source/arch/arm/include/uapi/asm/stat.h#L57
+					;-- https://elixir.bootlin.com/linux/v5.9.10/source/arch/x86/include/uapi/asm/stat.h
+					stat!: alias struct! [					;-- stat64 struct, 96 bytes
+						st_dev_l	  [integer!]
+						st_dev_h	  [integer!]
+						pad0		  [integer!]
+						__st_ino	  [integer!]
+						st_mode		  [integer!]
+						st_nlink	  [integer!]
+						st_uid		  [integer!]
+						st_gid		  [integer!]
+						st_rdev_l	  [integer!]
+						st_rdev_h	  [integer!]
+						pad1		  [integer!]
+						st_size		  [integer!]
+						st_size_h	  [integer!]
+						st_blksize	  [integer!]
+						st_blocks	  [integer!]
+						st_blocks_h	  [integer!]
+						st_atime	  [timespec! value]
+						st_mtime	  [timespec! value]
+						st_ctime	  [timespec! value]
+						st_ino_h	  [integer!]
+						st_ino_l	  [integer!]
+					]
 				]
 
-				#define DIRENT_NAME_OFFSET 11
+				#either dynamic-linker = "/lib/ld-musl-i386.so.1" [
+					#define DIRENT_NAME_OFFSET 19
+				][
+					#define DIRENT_NAME_OFFSET 11
+				]
 				dirent!: alias struct! [
 					d_ino			[integer!]
 					d_off			[integer!]
@@ -477,11 +512,25 @@ simple-io: context [
 					d_type			[byte!]
 					;d_name			[byte! [256]]
 				]
+
+				#define LINUX_DIRENT64_NAME_OFFSET	19
+				linux_dirent64!: alias struct! [
+					d_ino_1			[integer!]		;-- 64-bit inode number
+					d_ino_2			[integer!]
+					d_off_1			[integer!]		;-- 64-bit offset to next structure
+					d_off_2			[integer!]
+					d_reclen		[byte!]
+					d_reclen_pad	[byte!]
+					d_type			[byte!]	
+					;d_reclen		[integer!]		;-- uint16! size of this dirent
+					;d_type			[byte!]			;-- file type
+					;d_name			[char!]			;-- filename (null-terminated)
+				]
 			]
 		]
 
 		#case [
-			any [OS = 'macOS OS = 'FreeBSD OS = 'Android] [
+			any [OS = 'macOS OS = 'FreeBSD OS = 'NetBSD OS = 'Android] [
 				#import [
 					LIBC-file cdecl [
 						;-- https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/10.6/man2/stat.2.html?useVersion=10.6
@@ -497,7 +546,7 @@ simple-io: context [
 				#import [
 					LIBC-file cdecl [
 						;-- http://refspecs.linuxbase.org/LSB_3.0.0/LSB-Core-generic/LSB-Core-generic/baselib-xstat-1.html
-						_stat:	"__fxstat" [
+						_stat:	"__fxstat64" [
 							version		[integer!]
 							file		[integer!]
 							restrict	[stat!]
@@ -680,24 +729,28 @@ simple-io: context [
 		if file = -1 [return -1]
 		file
 	]
-	
+
 	file-size?: func [
 		file	 [integer!]
 		return:	 [integer!]
-		/local
-			s	 [stat! value]
+		/local #either OS = 'Linux [s [stat!]][s [stat! value]]
 	][
 		#case [
 			OS = 'Windows [
 				GetFileSize file null
 			]
-			any [OS = 'macOS OS = 'FreeBSD OS = 'Android] [
-				_stat file s
-				s/st_size
+			any [OS = 'macOS OS = 'FreeBSD OS = 'NetBSD OS = 'Android] [
+				either zero? _stat file s [				
+					s/st_size
+				][-1]
 			]
 			true [ ; else
-				_stat 3 file s
-				s/st_size
+				s: as stat! system/stack/allocate 36	;-- ensures stat! fits using a max value of 144 bytes
+				either zero? _stat 3 file s [
+					either s/st_mode and S_IFREG <> 0 [	;-- file type
+						s/st_size
+					][-1]
+				][-1]
 			]
 		]
 	]
@@ -833,6 +886,7 @@ simple-io: context [
 		if file < 0 [return none-value]
 
 		size: file-size? file
+		if size < 0 [close-file file return none-value]
 
 		if zero? size [				;-- /proc filesystem give 0 size
 			if null? read-buf [read-buf: allocate 65536]
@@ -843,15 +897,14 @@ simple-io: context [
 				size: size + len
 			]
 			if offset < 0 [seek-file file 0]
-		]
-
-		if size <= 0 [
-			close-file file
-			val: stack/push*
-			string/rs-make-at val 1
-			type: either binary? [TYPE_BINARY][TYPE_STRING]
-			set-type val type
-			return val
+			if zero? size [			;-- empty file
+				close-file file
+				val: stack/push*
+				string/rs-make-at val 1
+				type: either binary? [TYPE_BINARY][TYPE_STRING]
+				set-type val type
+				return val
+			]
 		]
 
 		if offset >= 0 [
@@ -976,13 +1029,13 @@ simple-io: context [
 			]
 		]
 	]
-	
+
 	delete: func [
 		filename [red-file!]
 		return:  [logic!]
 		/local
 			name [c-string!]
-			res  [integer!]	
+			res  [integer!]
 	][
 		name: file/to-OS-path filename
 		#either OS = 'Windows [
@@ -1000,13 +1053,13 @@ simple-io: context [
 			name [c-string!]
 			dt   [red-date!]
 			time [float!]
-			s	 [stat! value]
 			fd   [integer!]
 			tm   [systemtime!]
+			#either OS = 'Linux [s [stat!]][s [stat! value]]
 	][
 		name: file/to-OS-path filename
 		;o: object/copy #get system/standard/file-info
-		
+
 		#either OS = 'Windows [
 			if any [
 				1 <> GetFileAttributesExW name 0 filedata
@@ -1024,11 +1077,13 @@ simple-io: context [
 				(systime/data4 and FFFFh) ;seconds
 				1000000 * (systime/data4 >> 16) ;ns - posix is using nanoseconds so lets use it too
 		][
+			s: as stat! system/stack/allocate 36		;-- ensures stat! fits using a max value of 144 bytes
 			fd: open-file file/to-OS-path filename RIO_READ yes
 			if fd < 0 [	return none/push ]
-			#either any [OS = 'macOS OS = 'FreeBSD OS = 'Android] [
+			#either any [OS = 'macOS OS = 'FreeBSD OS = 'NetBSD OS = 'Android] [
 				_stat   fd s
 			][	_stat 3 fd s]
+			close-file fd
 			tm: gmtime as int-ptr! s/st_mtime
 			dt: as red-date! stack/push*
 			date/set-all dt (1900 + tm/year) (1 + tm/mon) tm/mday tm/hour tm/min tm/sec s/st_mtime/nsec
@@ -1048,6 +1103,8 @@ simple-io: context [
 			str		[red-string!]
 			len		[integer!]
 			i		[integer!]
+			sz		[integer!]
+			pint	[int-ptr!]
 			cp		[byte!]
 			s		[series!]
 			info
@@ -1057,106 +1114,149 @@ simple-io: context [
 		cp: as byte! string/rs-abs-at as red-string! filename len
 		if cp = #"." [string/append-char GET_BUFFER(filename) as-integer #"/"]
 
-		#either OS = 'Windows [
-			blk: block/push-only* 1
-			if all [zero? len cp = #"/"][
-				len: 1 + GetLogicalDriveStrings 0 null	;-- add NUL terminal
-				buf: allocate len << 1
-				GetLogicalDriveStrings len buf
-				i: 0
-				name: buf
-				p: name
-				len: len - 2
-				until [
-					if all [name/1 = #"^@" name/2 = #"^@"][
-						name: name - 4
-						name/1: #"/"
-						name/3: #"^@"
-						str: string/load-in as-c-string p lstrlen p blk UTF-16LE
-						str/header: TYPE_FILE
-						name: name + 4
-						p: name + 2
+		#case [
+			OS = 'Windows [
+				blk: block/push-only* 1
+				if all [zero? len cp = #"/"][
+					len: 1 + GetLogicalDriveStrings 0 null	;-- add NUL terminal
+					buf: allocate len << 1
+					GetLogicalDriveStrings len buf
+					i: 0
+					name: buf
+					p: name
+					len: len - 2
+					until [
+						if all [name/1 = #"^@" name/2 = #"^@"][
+							name: name - 4
+							name/1: #"/"
+							name/3: #"^@"
+							str: string/load-in as-c-string p lstrlen p blk UTF-16LE
+							str/header: TYPE_FILE
+							name: name + 4
+							p: name + 2
+						]
+						name: name + 2
+						i: i + 1
+						i = len
 					]
-					name: name + 2
-					i: i + 1
-					i = len
+					free buf
+					return blk
 				]
-				free buf
-				return blk
-			]
 
-			s: string/append-char GET_BUFFER(filename) as-integer #"*"
+				s: string/append-char GET_BUFFER(filename) as-integer #"*"
 
-			info: as WIN32_FIND_DATA allocate WIN32_FIND_DATA_SIZE
-			handle: FindFirstFile file/to-OS-path filename info
-			len: either cp = #"." [1][0]
-			s/tail: as cell! (as byte-ptr! s/tail) - (GET_UNIT(s) << len)
+				info: as WIN32_FIND_DATA allocate WIN32_FIND_DATA_SIZE
+				handle: FindFirstFile file/to-OS-path filename info
+				len: either cp = #"." [1][0]
+				s/tail: as cell! (as byte-ptr! s/tail) - (GET_UNIT(s) << len)
 
-			if handle = -1 [fire [TO_ERROR(access cannot-open) filename]]
+				if handle = -1 [fire [TO_ERROR(access cannot-open) filename]]
 
-			name: (as byte-ptr! info) + 44
-			until [
-				unless any [							;-- skip over the . and .. dir case
-					name = null
-					all [
-						(string/get-char name UCS-2) = as-integer #"."
-						any [
-							zero? string/get-char name + 2 UCS-2
-							all [
-								(string/get-char name + 2 UCS-2) = as-integer #"."
-								zero? string/get-char name + 4 UCS-2
+				name: (as byte-ptr! info) + 44
+				until [
+					unless any [							;-- skip over the . and .. dir case
+						name = null
+						all [
+							(string/get-char name UCS-2) = as-integer #"."
+							any [
+								zero? string/get-char name + 2 UCS-2
+								all [
+									(string/get-char name + 2 UCS-2) = as-integer #"."
+									zero? string/get-char name + 4 UCS-2
+								]
 							]
 						]
+					][
+						str: string/load-in as-c-string name lstrlen name blk UTF-16LE
+						if info/dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY <> 0 [
+							string/append-char GET_BUFFER(str) as-integer #"/"
+						]
+						set-type as red-value! str TYPE_FILE
 					]
-				][
-					str: string/load-in as-c-string name lstrlen name blk UTF-16LE
-					if info/dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY <> 0 [
-						string/append-char GET_BUFFER(str) as-integer #"/"
-					]
-					set-type as red-value! str TYPE_FILE
+					zero? FindNextFile handle info
 				]
-				zero? FindNextFile handle info
+				FindClose handle
+				free as byte-ptr! info
+				blk
 			]
-			FindClose handle
-			free as byte-ptr! info
-			blk
-		][
-			handle: opendir file/to-OS-path filename
-			if zero? handle [fire [TO_ERROR(access cannot-open) filename]]
-			blk: block/push-only* 1
-			while [
-				info: readdir handle
-				info <> null
-			][
-				name: (as byte-ptr! info) + DIRENT_NAME_OFFSET
-				unless any [							;-- skip over the . and .. dir case
-					name = null
-					all [
-						name/1 = #"."
-						any [
-							name/2 = #"^@"
-							all [name/2 = #"." name/3 = #"^@"]
+			OS = 'Linux [
+				handle: _open file/to-OS-path filename O_RDONLY or O_DIRECTORY S_IREAD
+				if handle = -1 [fire [TO_ERROR(access cannot-open) filename]]
+
+				buf: as byte-ptr! system/stack/allocate 256	;-- allocate 1KB on stack
+				blk: block/push-only* 1
+				until [
+					len: getdents64 handle buf 1024
+					if len = -1 [fire [TO_ERROR(access cannot-open) filename]]
+
+					i: 0
+					while [i < len][
+						info: as linux_dirent64! buf + i
+						pint: :info/d_reclen
+						sz: pint/value and FFFFh	;-- dirent size
+						i: i + sz
+						name: (as byte-ptr! info) + LINUX_DIRENT64_NAME_OFFSET						
+						unless all [		;-- skip over the . and .. dir case
+							name/1 = #"."
+							any [
+								name/2 = #"^@"
+								all [name/2 = #"." name/3 = #"^@"]
+							]
+						][
+							str: string/load-in as-c-string name length? as-c-string name blk UTF-8
+							if info/d_type = DT_DIR [
+								string/append-char GET_BUFFER(str) as-integer #"/"
+							]
+							set-type as red-value! str TYPE_FILE
 						]
 					]
-				][
-					#either OS = 'macOS [
-						len: as-integer info/d_namlen
-					][
-						len: length? as-c-string name
-					]
-					str: string/load-in as-c-string name len blk UTF-8
-					if info/d_type = DT_DIR [
-						string/append-char GET_BUFFER(str) as-integer #"/"
-					]
-					set-type as red-value! str TYPE_FILE
+					zero? len
 				]
+				if cp = #"." [
+					s: GET_BUFFER(filename)
+					s/tail: as cell! (as byte-ptr! s/tail) - GET_UNIT(s)
+				]
+				close-file handle
+				blk
 			]
-			if cp = #"." [
-				s: GET_BUFFER(filename)
-				s/tail: as cell! (as byte-ptr! s/tail) - GET_UNIT(s)
+			true [
+				handle: opendir file/to-OS-path filename
+				if zero? handle [fire [TO_ERROR(access cannot-open) filename]]
+				blk: block/push-only* 1
+				while [
+					info: readdir handle
+					info <> null
+				][
+					name: (as byte-ptr! info) + DIRENT_NAME_OFFSET
+					unless any [							;-- skip over the . and .. dir case
+						name = null
+						all [
+							name/1 = #"."
+							any [
+								name/2 = #"^@"
+								all [name/2 = #"." name/3 = #"^@"]
+							]
+						]
+					][
+						#either OS = 'macOS [
+							len: as-integer info/d_namlen
+						][
+							len: length? as-c-string name
+						]
+						str: string/load-in as-c-string name len blk UTF-8
+						if info/d_type = DT_DIR [
+							string/append-char GET_BUFFER(str) as-integer #"/"
+						]
+						set-type as red-value! str TYPE_FILE
+					]
+				]
+				if cp = #"." [
+					s: GET_BUFFER(filename)
+					s/tail: as cell! (as byte-ptr! s/tail) - GET_UNIT(s)
+				]
+				closedir handle
+				blk
 			]
-			closedir handle
-			blk
 		]
 	]
 
@@ -1286,7 +1386,7 @@ simple-io: context [
 	#either OS = 'Windows [
 		IID_IWinHttpRequest:			[06F29373h 4B545C5Ah F16E25B0h 0EBF8ABFh]
 		IID_IStream:					[0000000Ch 00000000h 0000000Ch 46000000h]
-		
+
 		IWinHttpRequest: alias struct! [
 			QueryInterface			[QueryInterface!]
 			AddRef					[AddRef!]
@@ -1552,7 +1652,7 @@ simple-io: context [
 				hr: http/ResponseBody IH/ptr :body
 			]
 
-			if hr >= 0 [				
+			if hr >= 0 [
 				array: body/data3
 				if all [
 					VT_ARRAY or VT_UI1 = body/data1
@@ -1813,7 +1913,7 @@ simple-io: context [
 				]
 				s: s + 1
 			]
-			len				
+			len
 		]
 
 		request-http: func [
@@ -1878,7 +1978,7 @@ simple-io: context [
 			curl_easy_setopt curl CURLOPT_URL as-integer unicode/to-utf8 as red-string! url :len
 			curl_easy_setopt curl CURLOPT_NOPROGRESS 1
 			curl_easy_setopt curl CURLOPT_FOLLOWLOCATION 1
-			
+
 			curl_easy_setopt curl CURLOPT_WRITEFUNCTION as-integer :get-http-response
 			curl_easy_setopt curl CURLOPT_WRITEDATA as-integer bin
 

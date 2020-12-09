@@ -1383,11 +1383,11 @@ OS-matrix-scale: func [
 ][
 	sy: sx + 1
 	either pen = -1 [
-		if sx <> as red-integer! center [
+		if TYPE_OF(center) = TYPE_PAIR [
 			_OS-matrix-translate dc/raw center/x center/y
 		]
 		CGContextScaleCTM dc/raw get-float32 sx get-float32 sy
-		if sx <> as red-integer! center [
+		if TYPE_OF(center) = TYPE_PAIR [
 			_OS-matrix-translate dc/raw 0 - center/x 0 - center/y
 		]
 	][
@@ -1429,14 +1429,11 @@ OS-matrix-skew: func [
 ][
 	sy: sx + 1
 	xv: get-float sx
-	yv: either all [
-		sy <= center
+	yv: either any [
+		sx = center
 		TYPE_OF(sy) = TYPE_PAIR
-	][
-		get-float sy
-	][
-		0.0
-	]
+	][0.0][get-float sy]
+
 	m/a: as float32! 1.0
 	m/b: as float32! either yv = 0.0 [0.0][tan degree-to-radians yv TYPE_TANGENT]
 	m/c: as float32! tan degree-to-radians xv TYPE_TANGENT
@@ -1537,7 +1534,8 @@ OS-matrix-set: func [
 	m/d: get-float32 val + 3
 	m/tx: get-float32 val + 4
 	m/ty: get-float32 val + 5
-	CGContextConcatCTM dc/raw m
+	m: CGAffineTransformConcat m dc/ctx-matrix
+	CGContextSetCTM dc/raw m
 ]
 
 OS-set-matrix-order: func [

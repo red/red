@@ -82,6 +82,71 @@ Red/System [
 #define F32_0	[as float32! 0.0]
 #define F32_1	[as float32! 1.0]
 
+#if OS = 'Linux [
+
+	tagPOINT: alias struct! [
+		x		[integer!]
+		y		[integer!]
+	]
+
+	tagMATRIX: alias struct! [
+		xx		[float!]
+		yx		[float!]
+		xy		[float!]
+		yy		[float!]
+		x0		[float!]
+		y0		[float!]
+	]
+
+	gradient!: alias struct! [
+		on?				[logic!]
+		spread			[integer!]
+		type			[integer!]								;-- gradient on fly (just before drawing figure)
+		matrix-on?		[logic!]
+		matrix			[tagMATRIX value]
+		colors			[int-ptr!]								;-- always on
+		colors-pos		[float32-ptr!]							;-- always on
+		count			[integer!]								;-- gradient stops count
+		zero-base?		[logic!]
+		offset-on?		[logic!]
+		offset			[tagPOINT value]						;-- figure coordinates
+		offset2			[tagPOINT value]
+		focal-on?		[logic!]
+		focal			[tagPOINT value]
+		pattern-on?		[logic!]
+		pattern			[int-ptr!]
+	]
+
+	draw-ctx!: alias struct! [
+		cr				[handle!]
+		matrix-order	[integer!]
+		device-matrix	[tagMATRIX value]
+		pattern?		[logic!]
+		pen-join		[integer!]
+		pen-cap			[integer!]
+		pen-style		[integer!]
+		pen-color		[integer!]					;-- 00bbggrr format
+		brush-color		[integer!]					;-- 00bbggrr format
+		font-color		[integer!]
+		grad-pen		[gradient! value]
+		grad-brush		[gradient! value]
+		pen?			[logic!]
+		brush?			[logic!]
+		on-image?		[logic!]
+		control-x		[float32!]
+		control-y		[float32!]
+		shape-curve?	[logic!]
+		font-attrs		[handle!]					;-- pango attrs for fonts
+		font-opts		[handle!]					;-- cairo opts for fonts
+	]
+
+	layout-ctx!: alias struct! [
+		layout			[handle!]					;-- Only for rich-text
+		text			[c-string!]
+		attrs			[handle!]
+	]
+]
+
 #if OS = 'macOS [
 	CGAffineTransform!: alias struct! [
 		a		[float32!]
@@ -385,9 +450,11 @@ Red/System [
 	#define S_IROTH		4
 
 	#define	DT_DIR		#"^(04)"
+	#define S_IFDIR		4000h
+	#define S_IFREG		8000h
 	
 	#case [
-		any [OS = 'FreeBSD OS = 'macOS] [
+		any [OS = 'FreeBSD OS = 'macOS OS = 'NetBSD] [
 			#define O_CREAT		0200h
 			#define O_TRUNC		0400h
 			#define O_EXCL		0800h
@@ -397,13 +464,18 @@ Red/System [
 			
 			#define DIRENT_NAME_OFFSET 8
 		]
-		true [
+		true [	;-- Linux
 			#define O_CREAT		64
 			#define O_EXCL		128
 			#define O_TRUNC		512
 			#define O_APPEND	1024
 			#define	O_NONBLOCK	2048
 			#define	O_CLOEXEC	524288
+			#either target = 'ARM [
+				#define O_DIRECTORY 4000h
+			][
+				#define O_DIRECTORY 00010000h
+			]
 		]
 	]
 	

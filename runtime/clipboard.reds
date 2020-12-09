@@ -409,58 +409,63 @@ clipboard: context [
 
 				TYPE_IMAGE	[
 					img: as red-image! data
-					if IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) > 0 [
-						;-- put image in the "PNG" format for it's better portability
-						;; see https://stackoverflow.com/a/15691001 on rationale
-						fmts/1: RegisterClipboardFormat "PNG"
-						assert fmts/1 <> 0
-						bin: as red-binary! image/encode img none-value IMAGE_PNG
-						len: binary/rs-length? bin
-						hMem/1: GlobalAlloc 2 len
-						if hMem/1 <> 0 [
-							p1: GlobalLock hMem/1
-							unless null? p1 [
-								copy-memory p1 binary/rs-head bin len
-								GlobalUnlock hMem/1
+					len: IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size)
+					case [
+						len > 0 [
+							;-- put image in the "PNG" format for it's better portability
+							;; see https://stackoverflow.com/a/15691001 on rationale
+							fmts/1: RegisterClipboardFormat "PNG"
+							assert fmts/1 <> 0
+							bin: as red-binary! image/encode img none-value IMAGE_PNG
+							len: binary/rs-length? bin
+							hMem/1: GlobalAlloc 2 len
+							if hMem/1 <> 0 [
+								p1: GlobalLock hMem/1
+								unless null? p1 [
+									copy-memory p1 binary/rs-head bin len
+									GlobalUnlock hMem/1
+								]
 							]
-						]
 
-						;-- also put the image in DIB format for compatibility
-						fmts/2: CF_DIBV5
-						bmdata: OS-image/lock-bitmap img no
-						assert 0 <> bmdata
-						w: OS-image/width? as int-ptr! bmdata
-						h: OS-image/height? as int-ptr! bmdata
-						s: 0
-						scan0: as byte-ptr! OS-image/get-data bmdata :s
-						len: w * h * 4
-						format: 0
-						OS-image/get-data-pixel-format bmdata :format
-						hMem/2: GlobalAlloc 2 len + size? BITMAPV5HEADER!
-						if hMem/2 <> 0 [
-							p: GlobalLock hMem/2
-							unless null? p [
-								set-memory p #"^@" size? BITMAPV5HEADER!
-								hdr: as BITMAPV5HEADER! p
-								hdr/Size: size? BITMAPV5HEADER!
-								hdr/Width: w
-								hdr/Height: 0 - h				;-- top-down image
-								hdr/PlanesBitCount: 00200001h	;-- 32 bpp, 1 plane
-								hdr/Compression: 3				;-- BI_BITFIELDS
-								hdr/SizeImage: len
-								hdr/AlphaMask: FF000000h
-								hdr/RedMask:   00FF0000h
-								hdr/GreenMask: 0000FF00h
-								hdr/BlueMask:  000000FFh
-								hdr/CSType: 57696E20h			;-- "Win " = LCS_WINDOWS_COLOR_SPACE
-								hdr/Intent: 4					;-- 4 = LCS_GM_IMAGES
-								assert OS-image/fixed-format? format
-								copy-memory p + hdr/Size scan0 len
-								GlobalUnlock hMem/2
+							;-- also put the image in DIB format for compatibility
+							fmts/2: CF_DIBV5
+							bmdata: OS-image/lock-bitmap img no
+							assert 0 <> bmdata
+							w: OS-image/width? as int-ptr! bmdata
+							h: OS-image/height? as int-ptr! bmdata
+							s: 0
+							scan0: as byte-ptr! OS-image/get-data bmdata :s
+							len: w * h * 4
+							format: 0
+							OS-image/get-data-pixel-format bmdata :format
+							hMem/2: GlobalAlloc 2 len + size? BITMAPV5HEADER!
+							if hMem/2 <> 0 [
+								p: GlobalLock hMem/2
+								unless null? p [
+									set-memory p #"^@" size? BITMAPV5HEADER!
+									hdr: as BITMAPV5HEADER! p
+									hdr/Size: size? BITMAPV5HEADER!
+									hdr/Width: w
+									hdr/Height: 0 - h				;-- top-down image
+									hdr/PlanesBitCount: 00200001h	;-- 32 bpp, 1 plane
+									hdr/Compression: 3				;-- BI_BITFIELDS
+									hdr/SizeImage: len
+									hdr/AlphaMask: FF000000h
+									hdr/RedMask:   00FF0000h
+									hdr/GreenMask: 0000FF00h
+									hdr/BlueMask:  000000FFh
+									hdr/CSType: 57696E20h			;-- "Win " = LCS_WINDOWS_COLOR_SPACE
+									hdr/Intent: 4					;-- 4 = LCS_GM_IMAGES
+									assert OS-image/fixed-format? format
+									copy-memory p + hdr/Size scan0 len
+									GlobalUnlock hMem/2
+								]
 							]
-						]
-						OS-image/unlock-bitmap img bmdata
-					];; if IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) > 0
+							OS-image/unlock-bitmap img bmdata
+						];; if IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) > 0
+						zero? len [p: as byte-ptr! 1] ;-- empty clipboard in case of empty image
+						true [fire [TO_ERROR(script invalid-arg) data]]
+					]
 				];; TYPE_IMAGE
 
 				default		[fire [TO_ERROR(script invalid-arg) data]]
@@ -588,6 +593,102 @@ clipboard: context [
 			as logic! res
 		]
 	]
+	Linux [
+	#either modules contains 'View [
+		;; Depends on GTK
+		#import [
+			"libgtk-3.so.0" cdecl [
+				gdk_atom_intern_static_string: "gdk_atom_intern_static_string" [
+					name 		[c-string!]
+					return:		[handle!]
+				]
+				gtk_clipboard_get: "gtk_clipboard_get" [
+					atom 		[handle!]
+					return: 	[handle!]
+				]
+				gtk_clipboard_set_text: "gtk_clipboard_set_text" [
+					clipboard 	[handle!]
+					text 		[c-string!]
+					len 		[integer!]
+				]
+				gtk_clipboard_set_image: "gtk_clipboard_set_image" [
+					clipboard 	[handle!]
+					img 		[handle!]
+				]
+				gtk_clipboard_wait_for_text: "gtk_clipboard_wait_for_text" [
+					clipboard 	[handle!]
+					return: 	[c-string!]
+				]
+				gtk_clipboard_wait_for_image: "gtk_clipboard_wait_for_image" [
+					clipboard 	[handle!]
+					return: 	[handle!]
+				]
+			]
+		]
+
+		to-red-string: func [
+			cstr	[c-string!]
+			slot	[red-value!]
+			return:	[red-string!]
+			/local
+				str		[red-string!]
+				size	[integer!]
+		][
+			size: length? cstr
+			if null? slot [slot: stack/push*]
+			str: string/make-at slot size Latin1
+			unicode/load-utf8-stream cstr size str null
+			str
+		]
+
+		read: func [
+			return:		[red-value!]
+			/local
+				clipboard 	[handle!]
+				str 		[c-string!]
+		][
+			clipboard: gtk_clipboard_get gdk_atom_intern_static_string "CLIPBOARD"
+			str: gtk_clipboard_wait_for_text clipboard
+			as red-value! to-red-string str null
+		]
+
+		write: func [
+			data		[red-value!]
+			return:		[logic!]
+			/local
+				clipboard 	[handle!]
+				text		[red-string!]
+				str 		[c-string!]
+				strlen 		[integer!]
+		][
+			clipboard: gtk_clipboard_get gdk_atom_intern_static_string "CLIPBOARD"
+			switch TYPE_OF(data) [
+				TYPE_STRING [ 
+					text: as red-string! data
+					strlen: -1
+					str: unicode/to-utf8 text :strlen
+					gtk_clipboard_set_text clipboard str strlen
+				]
+				TYPE_IMAGE	[0]
+				default		[0]
+			]
+			true
+		]
+	][
+		read: func [
+			return:		[red-value!]
+		][
+			none-value
+		]
+
+		write: func [
+			data		[red-value!]
+			return:		[logic!]
+		][
+			true
+		]
+	]
+	]
 	#default [
 		read: func [
 			return:		[red-value!]
@@ -601,5 +702,5 @@ clipboard: context [
 		][
 			true
 		]
-	]											;-- Linux...
+	]
 ]]

@@ -1,7 +1,7 @@
 Red [
 	Title:   "Red TO action test script"
 	Author:  ["Oldes" "Peter W A Wood"]
-	File: 	 convert-test.red
+	File: 	 %convert-test.red
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2017 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"

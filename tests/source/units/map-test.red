@@ -272,6 +272,37 @@ Red [
 		remove/key m 'a
 		--assert [b] = keys-of m
 
+	--test-- "issue-4686"
+		map-bug: func [/local out][
+			out: #()
+			foreach [k v] [
+		        "Parker" 1
+		        "Star Valley" 2
+		        "Tombstone" 3
+			][put out k v]
+		    clear out
+			foreach [k v] [
+		        "Porterville" 1
+		        "Reedley" 2
+			][put out k v]
+			clear out
+			foreach [k v] [
+		        "Ada County"		1
+		        "American Falls"	2
+		        "Bellevue"			3
+		        "Blackfoot"			4
+		        "Boise" 			5
+		        "Challis" 			6
+		        "Council" 			7
+		        "Dalton Gardens" 	8
+		        "Eden" 				9
+		        "Filer" 			10
+		        "Franklin" 			11
+		        "Genesee" 			12
+		    ][put out k v]
+		   	length? out
+		]
+		--assert 12 = map-bug
 ===end-group===
 
 ~~~end-file~~~

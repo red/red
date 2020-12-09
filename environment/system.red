@@ -173,6 +173,7 @@ system: context [
 				parse-stack:		"PARSE - stack limit reached"
 				parse-keep:			"PARSE - KEEP is used without a wrapping COLLECT"
 				parse-into-bad:		"PARSE - COLLECT INTO/AFTER expects a series! argument"
+				parse-into-type:    "PARSE - COLLECT INTO/AFTER expects a series! of compatible datatype"
 				invalid-draw:		["invalid Draw dialect input at:" :arg1]
 				invalid-data-facet: ["invalid DATA facet content" :arg1]
 				face-type:			["VIEW - invalid face type:" :arg1]
@@ -233,7 +234,7 @@ system: context [
 				;security:			["security violation:" :arg1 " (refer to SECURE function)"]
 				;security-level:	["attempt to lower security to" :arg1]
 				;security-error:	["invalid" :arg1 "security policy:" :arg2]
-				;no-codec:			["cannot decode or encode (no codec):" :arg1]
+				no-codec:			["cannot decode or encode (no codec):" :arg1]
 				bad-media:			["bad media data (corrupt image, sound, video)"]
 				;no-extension:		["cannot open extension:" :arg1]
 				;bad-extension:		["invalid extension format:" :arg1]
@@ -263,7 +264,7 @@ system: context [
 				wrong-mem:			"failed to release memory"
 				stack-overflow:		"stack overflow"
 				;bad-series:		"invalid series"
-				;limit-hit:			["internal limit reached:" :arg1]
+				limit-hit:			["internal limit reached:" :arg1]
 				;bad-sys-func:		["invalid or missing system function:" :arg1]
 				too-deep:			"block or paren series is too deep to display"
 				no-cycle:			"circular reference not allowed"
@@ -438,6 +439,18 @@ system: context [
 			'eof error! block! block! paren! paren! string! string! map! path! datatype!
 			'comment string! word! issue! integer! refinement! char! file! binary! percent!
 			float! float! tuple! date! pair! time! money! tag! url! email! 'hex 'rawstring ref!
+		]
+		
+		tracer: lex: func [
+		  event  [word!]                  				;-- event name
+		  input  [string! binary!]            			;-- input series at current loading position
+		  type   [datatype! word! none!]       		 	;-- type of token or value currently processed.
+		  line   [integer!]               				;-- current input line number
+		  token                      					;-- current token as an input slice (pair!) or a loaded value.
+		  return: [logic!]                				;-- YES: continue to next lexing stage, NO: cancel current token lexing
+		][
+		  print [event type token line mold/part input 16]
+		  either event = 'error [input: next input no][yes]
 		]
 	]
 	

@@ -62,6 +62,7 @@ hScreen:		as handle! 0
 hInstance:		as handle! 0
 default-font:	as handle! 0
 hover-saved:	as handle! 0							;-- last window under mouse cursor
+prev-focus:		as handle! 0
 version-info: 	declare OSVERSIONINFO
 current-msg: 	as tagMSG 0
 wc-extra:		80										;-- reserve 64 bytes for win32 internal usage (arbitrary)
@@ -73,6 +74,7 @@ win-state:		0
 hIMCtx:			as handle! 0
 ime-open?:		no
 ime-font:		as tagLOGFONT allocate 92
+base-down-hwnd: as handle! 0
 
 dpi-factor:		100
 log-pixels-x:	0
@@ -282,12 +284,14 @@ get-gesture-info: func [
 get-text-size: func [
 	face 	[red-object!]
 	str		[red-string!]
-	hFont	[handle!]
 	pair	[red-pair!]
 	return: [tagSIZE]
 	/local
 		saved 	[handle!]
 		values 	[red-value!]
+		font	[red-object!]
+		state	[red-block!]
+		hFont	[handle!]
 		hwnd 	[handle!]
 		dc 		[handle!]
 		size 	[tagSIZE]
@@ -304,7 +308,13 @@ get-text-size: func [
 	]
 	values: object/get-values face
 	dc: GetWindowDC hwnd
-
+	font: as red-object! values + FACE_OBJ_FONT
+	hFont: null
+	if TYPE_OF(font) = TYPE_OBJECT [
+		state: as red-block! values + FONT_OBJ_STATE
+		if TYPE_OF(state) <> TYPE_BLOCK [hFont: get-font-handle font 0]
+		if null? hFont [hFont: make-font face font]
+	]
 	if null? hFont [hFont: default-font]
 	saved: SelectObject hwnd hFont
 	GetClientRect hWnd rc
@@ -317,8 +327,8 @@ get-text-size: func [
 	size/height: as integer! ceil as float! bbox/height
 
 	if pair <> null [
-		pair/x: as integer! ceil as float! bbox/width  * 100 / dpi-factor
-		pair/y: as integer! ceil as float! bbox/height * 100 / dpi-factor
+		pair/x: as integer! ceil as float! bbox/width  * (as float32! 100) / (as float32! dpi-factor)
+		pair/y: as integer! ceil as float! bbox/height * (as float32! 100) / (as float32! dpi-factor)
 	]
 
 	size
@@ -1419,7 +1429,7 @@ OS-make-view: func [
 		]
 		sym = drop-down [
 			class: #u16 "RedCombo"
-			flags: flags or CBS_DROPDOWN or CBS_HASSTRINGS ;or WS_OVERLAPPED
+			flags: flags or CBS_DROPDOWN or CBS_HASSTRINGS or CBS_AUTOHSCROLL ;or WS_OVERLAPPED
 		]
 		sym = drop-list [
 			class: #u16 "RedCombo"

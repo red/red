@@ -422,6 +422,8 @@ reverse: make action! [[
 		series	 [series! port! pair! tuple!]
 		/part "Limits to a given length or position"
 			length [number! series!]
+		/skip "Treat the series as fixed size records"
+			size [integer!]
 		return:  [series! port! pair! tuple!]
 	]
 	#get-definition ACT_REVERSE

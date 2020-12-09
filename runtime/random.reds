@@ -108,12 +108,20 @@ _random: context [
 			rnd		 [integer!]
 			neg?	 [logic!]
 	] [
-		if max = 0 [return 0]
-		either max < 0 [
-			max: 0 - max
-			neg?: true
-		] [
-			neg?: false
+		case [
+			max > 0 [neg?: false]
+			max < 0 [
+				;-- Special case
+				;-- when max is -2147483648, we generate number in maxiumn range.
+				;-- the randomness only depends on the rand function.
+				if max = -2147483648 [
+					rnd: either secure? [rand-secure] [rand]
+					return -1 - rnd
+				]
+				max: 0 - max
+				neg?: true
+			]
+			max = 0 [return 0]
 		]
 		limit: 2147483647 / max * max
 		until [
@@ -121,11 +129,7 @@ _random: context [
 			limit > rnd
 		]
 		rnd: rnd % max + 1
-		either neg? [
-			0 - rnd
-		] [
-			rnd
-		]
+		either neg? [0 - rnd][rnd]
 	]
 
 	init: does [

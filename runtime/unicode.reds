@@ -824,7 +824,7 @@ unicode: context [
 				buf/4: as-byte unit >> 8
 				2
 			]
-			true [print "Error: to-utf16 codepoint overflow" 0]
+			true [#if debug? = yes [print-line "Error: to-utf16 codepoint overflow"] 0]
 		]
 	]
 
@@ -931,7 +931,10 @@ unicode: context [
 							dst: dst + 4
 							part: part + 1
 						]
-						true [print "Error: to-utf16 codepoint overflow" return null]
+						true [
+							#if debug? = yes [print-line "Error: to-utf16 codepoint overflow"]
+							return null
+						]
 					]
 					src: src + 4
 				]

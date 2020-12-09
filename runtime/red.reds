@@ -23,6 +23,7 @@ red: context [
 		Syllable [#include %platform/syllable.reds]
 		macOS	 [#include %platform/darwin.reds]
 		FreeBSD  [#include %platform/freebsd.reds]
+		NetBSD   [#include %platform/netbsd.reds]
 		#default [#include %platform/linux.reds]
 	]
 	
@@ -58,7 +59,9 @@ red: context [
 		]
 		Syllable []
 		macOS	 [#include %platform/image-quartz.reds]
+		Linux	 [#include %platform/image-gdk.reds]
 		FreeBSD  []
+		NetBSD   []
 		#default []
 	]
 	
@@ -114,6 +117,7 @@ red: context [
 	#include %datatypes/ref.reds
 	#if OS = 'Windows [#include %datatypes/image.reds]	;-- temporary
 	#if OS = 'macOS   [#include %datatypes/image.reds]	;-- temporary
+	#if OS = 'Linux   [#include %datatypes/image.reds]
 
 	;-- Debugging helpers --
 	
@@ -217,6 +221,7 @@ red: context [
 			image/init
 		]
 		#if OS = 'macOS   [image/init]					;-- temporary
+		#if OS = 'Linux   [image/init]					;-- temporary
 		
 		actions/init
 		
@@ -314,6 +319,8 @@ red: context [
 		free as byte-ptr! action-table
 		free as byte-ptr! cycles/stack
 		free as byte-ptr! crypto/crc32-table
+		free as byte-ptr! redbin/path/stack
+		free as byte-ptr! redbin/reference/list
 	]
 	
 	#if type = 'dll [
