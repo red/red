@@ -431,8 +431,8 @@ clipboard: context [
 							fmts/2: CF_DIBV5
 							bmdata: OS-image/lock-bitmap img no
 							assert 0 <> bmdata
-							w: OS-image/width? as int-ptr! bmdata
-							h: OS-image/height? as int-ptr! bmdata
+							w: OS-image/width? img/node
+							h: OS-image/height? img/node
 							s: 0
 							scan0: as byte-ptr! OS-image/get-data bmdata :s
 							len: w * h * 4
