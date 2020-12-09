@@ -1034,14 +1034,11 @@ update-window: func [
 			word: as red-word! values + FACE_OBJ_TYPE
 			type: symbol/resolve word/symbol
 			case [
-				all [
-					type = rich-text
-					(GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D <> 0
-				][
-					len: GetWindowLong hWnd wc-offset - 32
+				type = rich-text [
+					len: GetWindowLong hWnd wc-offset - 36
 					if len <> 0 [
 						d2d-release-target as render-target! len
-						SetWindowLong hWnd wc-offset - 32 0
+						SetWindowLong hWnd wc-offset - 36 0
 					]
 				]
 				type = group-box [
@@ -1148,8 +1145,8 @@ WndProc: func [
 		]
 		WM_MOVE
 		WM_SIZE [
-			if (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D <> 0 [
-				target: as render-target! GetWindowLong hWnd wc-offset - 32
+			if msg = WM_SIZE [
+				target: as render-target! GetWindowLong hWnd wc-offset - 36
 				if target <> null [
 					DX-resize-buffer target WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
 					InvalidateRect hWnd null 1
@@ -1362,11 +1359,8 @@ WndProc: func [
 		WM_PAINT [
 			draw: (as red-block! values) + FACE_OBJ_DRAW
 			if TYPE_OF(draw) = TYPE_BLOCK [
-				either zero? GetWindowLong hWnd wc-offset - 4 [
-					do-draw hWnd null draw no yes yes yes
-				][
-					bitblt-memory-dc hWnd no null 0 0
-				]
+				do-draw hWnd null draw no yes yes yes
+				ValidateRect hWnd null
 				return 0
 			]
 		]
@@ -1474,9 +1468,9 @@ WndProc: func [
 			if hidden-hwnd <> null [
 				values: (get-face-values hidden-hwnd) + FACE_OBJ_EXT3
 				values/header: TYPE_NONE
-				target: as render-target! GetWindowLong hidden-hwnd wc-offset - 32
+				target: as render-target! GetWindowLong hidden-hwnd wc-offset - 36
 				if target <> null [d2d-release-target target]
-				SetWindowLong hidden-hwnd wc-offset - 32 0
+				SetWindowLong hidden-hwnd wc-offset - 36 0
 			]
 			RedrawWindow hWnd null null 4 or 1			;-- RDW_ERASE | RDW_INVALIDATE
 		]

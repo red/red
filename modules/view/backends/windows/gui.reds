@@ -13,7 +13,8 @@ Red/System [
 ;; ===== Extra slots usage in Window structs =====
 ;;
 ;;		-60  :							<- TOP
-;;		-32  : Direct2D render target
+;;		-36  : Direct2D render target
+;;		-32	 : base: mouse capture count
 ;;		-28  : Cursor handle
 ;;		-24  : base-layered: caret's owner handle
 ;;		-20  : evolved-base-layered: child handle, window: previous focused handle
@@ -22,10 +23,8 @@ Red/System [
 ;;		 -8  : base: pos X/Y in pixel
 ;;			   window: pos X/Y in pixel
 ;;		 -4  : camera: camera!
-;;			   console: terminal!
-;;			   base: bitmap cache
-;;			   draw: old-dc
 ;;			   group-box: frame hWnd
+;;			   window destroy flag
 ;;		  0  : |
 ;;		  4  : |__ face!
 ;;		  8  : |
@@ -637,7 +636,7 @@ free-faces: func [
 			]
 		]
 		any [sym = window sym = panel sym = base sym = rich-text][
-			dc: GetWindowLong handle wc-offset - 32
+			dc: GetWindowLong handle wc-offset - 36
 			if dc <> 0 [d2d-release-target as render-target! dc]
 			if (GetWindowLong handle wc-offset - 12) and BASE_FACE_IME <> 0 [
 				DestroyCaret
@@ -912,6 +911,7 @@ init-window: func [										;-- post-creation settings
 	SetWindowLong handle wc-offset - 4 0
 	SetWindowLong handle wc-offset - 16 0
 	SetWindowLong handle wc-offset - 32 0
+	SetWindowLong handle wc-offset - 36 0
 ]
 
 get-selected-handle: func [
@@ -1604,7 +1604,7 @@ OS-make-view: func [
 		]
 		panel? [
 			adjust-parent handle as handle! parent offset/x offset/y
-			SetWindowLong handle wc-offset - 32 0
+			SetWindowLong handle wc-offset - 36 0
 		]
 		sym = slider [
 			vertical?: size/y > size/x

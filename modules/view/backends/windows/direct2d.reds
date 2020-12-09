@@ -1782,7 +1782,7 @@ get-hwnd-render-target: func [
 	/local
 		target	[render-target!]
 ][
-	target: as render-target! GetWindowLong hWnd wc-offset - 32
+	target: as render-target! GetWindowLong hWnd wc-offset - 36
 	if null? target [
 		target: as render-target! alloc0 size? render-target!
 		either layered? [
@@ -1791,7 +1791,7 @@ get-hwnd-render-target: func [
 			create-render-target hWnd target
 		]
 		target/brushes: as int-ptr! allocate D2D_MAX_BRUSHES * 2 * size? int-ptr!
-		SetWindowLong hWnd wc-offset - 32 as-integer target
+		SetWindowLong hWnd wc-offset - 36 as-integer target
 	]
 	target
 ]

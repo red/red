@@ -307,16 +307,17 @@ draw-end: func [
 		hr: sc/Present this 0 0
 
 		switch hr [
-			COM_S_OK [ValidateRect hWnd null]
+			COM_S_OK [0]
 			DXGI_ERROR_DEVICE_REMOVED
 			DXGI_ERROR_DEVICE_RESET [
 				d2d-release-target rt
 				ctx/dc: null
-				SetWindowLong hWnd wc-offset - 32 0
+				SetWindowLong hWnd wc-offset - 36 0
 				DX-create-dev
 				InvalidateRect hWnd null 0
 			]
 			default [
+				probe ["draw-end error: " hr]
 				0			;@@ TBD log error!!!
 			]
 		]

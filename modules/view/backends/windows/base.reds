@@ -32,14 +32,15 @@ init-base-face: func [
 	opts:	as red-block! values + FACE_OBJ_OPTIONS
 
 	SetWindowLong handle wc-offset - 4 0
-	SetWindowLong handle wc-offset - 12 0
 	SetWindowLong handle wc-offset - 16 parent
 	SetWindowLong handle wc-offset - 20 0
 	SetWindowLong handle wc-offset - 24 0
 	SetWindowLong handle wc-offset - 32 0
+	SetWindowLong handle wc-offset - 36 0
 	pt/x: dpi-scale offset/x
 	pt/y: dpi-scale offset/y
 	either alpha? [
+		SetWindowLong handle wc-offset - 12 0
 		unless win8+? [
 			position-base handle as handle! parent :pt
 		]
@@ -52,6 +53,7 @@ init-base-face: func [
 		]
 	][
 		SetWindowLong handle wc-offset - 8 WIN32_MAKE_LPARAM(pt/x pt/y)
+		SetWindowLong handle wc-offset - 12 BASE_FACE_D2D
 	]
 
 	if TYPE_OF(opts) = TYPE_BLOCK [
@@ -477,7 +479,7 @@ BaseWndProc: func [
 					update-base hWnd null null get-face-values hWnd
 				]
 			][
-				target: as render-target! GetWindowLong hWnd wc-offset - 32
+				target: as render-target! GetWindowLong hWnd wc-offset - 36
 				if target <> null [
 					DX-resize-buffer target WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
 					InvalidateRect hWnd null 1
@@ -492,11 +494,7 @@ BaseWndProc: func [
 			if (WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) = 0 [
 				draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
 				either TYPE_OF(draw) = TYPE_BLOCK [
-					either zero? GetWindowLong hWnd wc-offset - 4 [
-						do-draw hWnd null draw no yes yes yes
-					][
-						bitblt-memory-dc hWnd no null 0 0
-					]
+					do-draw hWnd null draw no yes yes yes
 				][
 					if null? current-msg [return -1]
 					system/thrown: 0
@@ -511,6 +509,7 @@ BaseWndProc: func [
 					]
 					system/thrown: 0
 				]
+				ValidateRect hWnd null
 				return 0
 			]
 		]
@@ -773,15 +772,6 @@ update-base: func [
 		hdc		[ptr-value!]
 ][
 	if (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D <> 0 [
-		InvalidateRect hWnd null 0
-		exit
-	]
-
-	flags: GetWindowLong hWnd GWL_EXSTYLE
-	if zero? (flags and WS_EX_LAYERED) [
-		graphic: GetWindowLong hWnd wc-offset - 4
-		DeleteDC as handle! graphic
-		SetWindowLong hWnd wc-offset - 4 0
 		InvalidateRect hWnd null 0
 		exit
 	]
