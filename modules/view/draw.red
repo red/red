@@ -932,7 +932,6 @@ Red/System [
 									OS-draw-state-pop DC :state
 								][
 									OS-set-clip DC as red-pair! start as red-pair! value rect? clip-mode
-									OS-clip-end DC
 								]
 							]
 							sym = shape [

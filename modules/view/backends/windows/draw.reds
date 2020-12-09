@@ -291,6 +291,8 @@ draw-end: func [
 		rt		[render-target!]
 		hr		[integer!]
 ][
+	if ctx/clip-layer <> null [OS-clip-end ctx]
+
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
 	dc/EndDraw this null null
