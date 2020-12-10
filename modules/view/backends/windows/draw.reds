@@ -2184,7 +2184,7 @@ OS-set-clip: func [
 	matrix2d/identity para/trans
 	para/opacity: as float32! 1.0
 	para/brush: null
-	para/opts: 0
+	para/opts: 1	;-- D2D1_LAYER_OPTIONS_INITIALIZE_FOR_CLEARTYPE
 	para/mask: null
 	either rect? [
 		para/bounds/left: as float32! u/x
