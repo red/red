@@ -40,6 +40,7 @@ put system/codecs 'redbin context [
 		if 16 >= binary/rs-length? bin [fire [TO_ERROR(script invalid-data) payload]]
 		
 		blk: block/push-only* 0
+		redbin/codec?: yes
 		redbin/decode binary/rs-head bin blk yes
 		if 1 = block/rs-length? blk [blk: as red-block! block/rs-head blk]
 		
