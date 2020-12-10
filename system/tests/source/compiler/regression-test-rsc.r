@@ -458,10 +458,10 @@ print [y lf]
 		--assert not crashed?
 		--compile-and-run-this {
 Red/System []
-fabs: func [x [float!] return: [float!] ][
+_fabs: func [x [float!] return: [float!] ][
 	either x < 0.0 [0.0 - x][x]
 ]
-print [fabs -3.14 lf]
+print [_fabs -3.14 lf]
 }
 		--assert not crashed?		
 
