@@ -27,7 +27,7 @@ object [
 	ime-pos:	0
 
 	top:		1								;-- index of the first visible line in the line buffer
-	line:		none							;-- current editing line
+	line:		""								;-- current editing line
 	line-pos:	0								;-- current editing line's position in lines
 	pos:		0								;-- insert position of the current editing line
 
