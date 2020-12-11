@@ -1920,19 +1920,15 @@ create-text-format: func [
 set-text-format: func [
 	fmt		[this!]
 	para	[red-object!]
-	flags	[integer!]		;-- use flags instead of para if flags <> 0
+	flags	[integer!]		;-- default flags
 	/local
 		h-align [integer!]
 		v-align [integer!]
 		wrap	[integer!]
 		format	[IDWriteTextFormat]
 ][
-	if zero? flags [
-		flags: either TYPE_OF(para) = TYPE_OBJECT [
-			get-para-flags rich-text para
-		][
-			0
-		]
+	if TYPE_OF(para) = TYPE_OBJECT [
+		flags: get-para-flags rich-text para
 	]
 	case [
 		flags and 1 <> 0 [h-align: 2]
