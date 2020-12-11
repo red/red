@@ -1921,6 +1921,7 @@ set-text-format: func [
 	fmt		[this!]
 	para	[red-object!]
 	flags	[integer!]		;-- default flags
+	type	[integer!]		;-- face type
 	/local
 		h-align [integer!]
 		v-align [integer!]
@@ -1928,7 +1929,7 @@ set-text-format: func [
 		format	[IDWriteTextFormat]
 ][
 	if TYPE_OF(para) = TYPE_OBJECT [
-		flags: get-para-flags rich-text para
+		flags: get-para-flags type para
 	]
 	case [
 		flags and 1 <> 0 [h-align: 2]
@@ -2049,7 +2050,7 @@ draw-text-d2d: func [
 		m		[D2D_MATRIX_3X2_F value]
 ][
 	fmt: as this! create-text-format font null
-	set-text-format fmt para 5
+	set-text-format fmt para 5 base
 
 	layout: create-text-layout text fmt rc/right rc/bottom
 

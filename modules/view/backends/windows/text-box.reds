@@ -354,7 +354,7 @@ OS-text-box-layout: func [
 	vec: target/styles
 	if vec <> null [vector/rs-clear vec]
 
-	set-text-format fmt as red-object! values + FACE_OBJ_PARA para
+	set-text-format fmt as red-object! values + FACE_OBJ_PARA para sym
 	if sym = rich-text [
 		set-tab-size fmt as red-integer! values + FACE_OBJ_EXT1
 		set-line-spacing fmt as red-integer! values + FACE_OBJ_EXT2
