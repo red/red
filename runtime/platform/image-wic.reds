@@ -317,6 +317,7 @@ OS-image: context [
 
 	get-handle: func [
 		img			[red-image!]
+		premul?		[logic!]
 		return:		[this!]
 		/local
 			inode	[img-node!]
@@ -327,7 +328,7 @@ OS-image: context [
 		h: inode/handle
 		if any [null? h inode/flags and IMG_NODE_MODIFIED <> 0][
 			if h <> null [COM_SAFE_RELEASE(unk h)]
-			h: to-bgra inode/buffer yes
+			h: to-bgra inode/buffer premul?
 			inode/handle: h
 			inode/flags: IMG_NODE_HAS_BUFFER
 		]
@@ -345,7 +346,7 @@ OS-image: context [
 			bitmap	[com-ptr! value]
 	][
 		inode: as img-node! (as series! img/node/value) + 1
-		h: get-handle img
+		h: get-handle img yes
 		either inode/flags and IMG_NODE_WICBITMAP <> 0 [h][
 			IFAC: as IWICImagingFactory wic-factory/vtbl
 			IFAC/CreateBitmapFromSource wic-factory h WICBitmapCacheOnLoad :bitmap
@@ -669,7 +670,7 @@ OS-image: context [
 			scale	[IWICBitmapScaler]
 			bitmap	[com-ptr! value]
 	][
-		this: get-handle img
+		this: get-handle img no
 		IFAC: as IWICImagingFactory wic-factory/vtbl
 		IFAC/CreateBitmapScaler wic-factory :iscale
 		sthis: iscale/value
@@ -682,6 +683,7 @@ OS-image: context [
 		IFAC		[IWICImagingFactory]
 		idec		[com-ptr!]
 		idx			[integer!]
+		premul?		[logic!]
 		return:		[node!]
 		/local
 			this	[this!]
@@ -695,6 +697,7 @@ OS-image: context [
 			iconv	[com-ptr! value]
 			cthis	[this!]
 			conv	[IWICFormatConverter]
+			fmt		[int-ptr!]
 	][
 		this: idec/value
 		dec: as IWICBitmapDecoder this/vtbl
@@ -712,7 +715,12 @@ OS-image: context [
 		IFAC/CreateFormatConverter wic-factory :iconv
 		cthis: iconv/value
 		conv: as IWICFormatConverter cthis/vtbl
-		conv/Initialize cthis fthis as int-ptr! GUID_WICPixelFormat32bppPBGRA 0 null 0.0 0
+		fmt: as int-ptr! either premul? [
+			GUID_WICPixelFormat32bppPBGRA
+		][
+			GUID_WICPixelFormat32bppBGRA
+		]
+		conv/Initialize cthis fthis fmt 0 null 0.0 0
 		frame/Release fthis
 		dec/Release this
 		make-node cthis null 0 w h 
@@ -724,10 +732,30 @@ OS-image: context [
 		/local
 			IFAC	[IWICImagingFactory]
 			II		[com-ptr! value]
+			node	[node!]
+			inode	[img-node!]
+			bitmap	[com-ptr! value]
+			unk		[IUnknown]
+			h		[this!]
 	][
 		IFAC: as IWICImagingFactory wic-factory/vtbl
-		IFAC/CreateDecoderFromFilename wic-factory file/to-OS-path src null GENERIC_READ 0 :II
-		get-frame IFAC as com-ptr! :II 0
+		if 0 <> IFAC/CreateDecoderFromFilename
+			wic-factory
+			file/to-OS-path src
+			null
+			GENERIC_READ
+			1	;-- WICDecodeMetadataCacheOnLoad
+			:II [return null]
+		node: get-frame IFAC as com-ptr! :II 0 no
+		inode: as img-node! (as series! node/value) + 1
+		h: as this! inode/handle
+		if 0 <> IFAC/CreateBitmapFromSource
+			wic-factory h WICBitmapCacheOnLoad :bitmap [return null]
+		COM_SAFE_RELEASE(unk h)
+		inode/handle: null
+		inode/buffer: bitmap/value
+		inode/flags: IMG_NODE_HAS_BUFFER
+		node
 	]
 
 	make-image: func [
@@ -837,7 +865,7 @@ OS-image: context [
 
 		IFAC: as IWICImagingFactory wic-factory/vtbl
 		IFAC/CreateDecoderFromStream wic-factory as int-ptr! s null 1 :idec
-		get-frame IFAC as com-ptr! :idec 0
+		get-frame IFAC as com-ptr! :idec 0 no
 	]
 
 	encode: func [
@@ -901,7 +929,7 @@ OS-image: context [
 		rect/w: IMAGE_WIDTH(image/size)
 		rect/h: IMAGE_HEIGHT(image/size)
 		hr: frame/Initialize fthis null
-		hr: frame/WriteSource fthis get-handle image rect
+		hr: frame/WriteSource fthis get-handle image no rect
 		hr: frame/Commit fthis
 		hr: enc/Commit ethis
 		frame/Release fthis
@@ -965,7 +993,7 @@ OS-image: context [
 		]
 
 		offset: src/head
-		this: get-handle src
+		this: get-handle src no
 		IFAC: as IWICImagingFactory wic-factory/vtbl
 		if all [zero? offset not part?][
 			IFAC/CreateBitmapFromSource wic-factory this WICBitmapCacheOnDemand :bitmap

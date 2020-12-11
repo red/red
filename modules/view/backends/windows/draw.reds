@@ -1675,7 +1675,7 @@ OS-draw-image: func [
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
-	ithis: OS-image/get-handle image
+	ithis: OS-image/get-handle image yes
 	dc/CreateBitmapFromWicBitmap2 this ithis null :bmp
 	bthis: as this! bmp/value
 	d2db: as IUnknown bthis/vtbl
@@ -1861,7 +1861,7 @@ OS-draw-brush-bitmap: func [
 	height: OS-image/height? img/node
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
-	ithis: OS-image/get-handle img
+	ithis: OS-image/get-handle img yes
 	dc/CreateBitmapFromWicBitmap2 this ithis null :bmp
 	_OS-draw-brush-bitmap ctx as this! bmp/value width height crop-1 crop-2 mode brush?
 	COM_SAFE_RELEASE(unk ithis)
