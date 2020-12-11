@@ -3082,14 +3082,23 @@ comment {
 		--assert "2.3.4.5.6" = mold 2.3.4.5.6
 		--assert "1.2.3.4.5.6" = mold 1.2.3.4.5.6
 
-	--test-- "#4627"		
-		--assert to logic! find 
+	--test-- "#4627"
+		--assert to logic! find
 			form try [transcode "]"]
 			"(line 1) missing [ at ]"
 		
-		--assert to logic! find 
+		--assert to logic! find
 			form try [null < []]
 			%{#"^@" with []}%
+
+	--test-- "4756"
+		write %test.red {Red[] load/as %test.redbin 'redbin}
+		save/as %test.redbin #(
+			%ab/cd #(url: http://example.org date: 1-2-1934/5:6:7)
+		) 'redbin
+		--assert zero? call/output "red test.red" ""
+		delete %test.red
+		delete %test.redbin
 
 ===end-group===
 
