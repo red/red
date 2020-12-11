@@ -747,6 +747,7 @@ OS-image: context [
 			1	;-- WICDecodeMetadataCacheOnLoad
 			:II [return null]
 		node: get-frame IFAC as com-ptr! :II 0 no
+		if null? node [return null]
 		inode: as img-node! (as series! node/value) + 1
 		h: as this! inode/handle
 		if 0 <> IFAC/CreateBitmapFromSource
@@ -864,7 +865,9 @@ OS-image: context [
 		CreateStreamOnHGlobal hMem true :s
 
 		IFAC: as IWICImagingFactory wic-factory/vtbl
-		IFAC/CreateDecoderFromStream wic-factory as int-ptr! s null 1 :idec
+		if 0 <> IFAC/CreateDecoderFromStream wic-factory as int-ptr! s null 1 :idec [
+			return null
+		]
 		get-frame IFAC as com-ptr! :idec 0 no
 	]
 
