@@ -306,11 +306,16 @@ OS-text-box-layout: func [
 		obj		[red-object!]
 		w		[integer!]
 		h		[integer!]
+		sym		[integer!]
+		type	[red-word!]
+		para	[integer!]
 		fmt		[this!]
 		layout	[this!]
 ][
 	values: object/get-values box
-	state: as red-block! values + FACE_OBJ_EXT3
+	type: as red-word! values + FACE_OBJ_TYPE
+	sym: symbol/resolve type/symbol
+
 	fmt: as this! create-text-format as red-object! values + FACE_OBJ_FONT box
 
 	if null? target [
@@ -325,29 +330,35 @@ OS-text-box-layout: func [
 		target: get-hwnd-render-target hWnd no
 	]
 
-	either TYPE_OF(state) = TYPE_BLOCK [
-		pval: block/rs-head state
-		int: as red-integer! pval
-		layout: as this! int/value
-		COM_SAFE_RELEASE(IUnk layout)		;-- release previous text layout
-		bool: as red-logic! int + 3
-		bool/value: false
-	][
-		block/make-at state 4
-		none/make-in state					;-- 1: text layout
-		handle/make-in state 0				;-- 2: target
-		none/make-in state					;-- 3: text
-		logic/make-in state false			;-- 4: layout?
-		pval: block/rs-head state
-	]
-
-	handle/make-at pval + 1 as-integer target
+	pval: null
+	para: either sym = rich-text [
+		state: as red-block! values + FACE_OBJ_EXT3
+		either TYPE_OF(state) = TYPE_BLOCK [
+			pval: block/rs-head state
+			int: as red-integer! pval
+			layout: as this! int/value
+			COM_SAFE_RELEASE(IUnk layout)		;-- release previous text layout
+			bool: as red-logic! int + 3
+			bool/value: false
+		][
+			block/make-at state 4
+			none/make-in state					;-- 1: text layout
+			handle/make-in state 0				;-- 2: target
+			none/make-in state					;-- 3: text
+			logic/make-in state false			;-- 4: layout?
+			pval: block/rs-head state
+		]
+		handle/make-at pval + 1 as-integer target
+		0
+	][5]	;-- base face
 	vec: target/styles
 	if vec <> null [vector/rs-clear vec]
 
-	set-text-format fmt as red-object! values + FACE_OBJ_PARA
-	set-tab-size fmt as red-integer! values + FACE_OBJ_EXT1
-	set-line-spacing fmt as red-integer! values + FACE_OBJ_EXT2
+	set-text-format fmt as red-object! values + FACE_OBJ_PARA para
+	if sym = rich-text [
+		set-tab-size fmt as red-integer! values + FACE_OBJ_EXT1
+		set-line-spacing fmt as red-integer! values + FACE_OBJ_EXT2
+	]
 
 	str: as red-string! values + FACE_OBJ_TEXT
 	size: as red-pair! values + FACE_OBJ_SIZE
@@ -357,9 +368,9 @@ OS-text-box-layout: func [
 		w: 0 h: 0
 	]
 
-	copy-cell as red-value! str pval + 2			;-- save text
+	if pval <> null [copy-cell as red-value! str pval + 2]		;-- save text
 	layout: create-text-layout str fmt w h
-	handle/make-at pval as-integer layout
+	if pval <> null [handle/make-at pval as-integer layout]
 
 	styles: as red-block! values + FACE_OBJ_DATA
 	if all [

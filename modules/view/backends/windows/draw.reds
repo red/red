@@ -174,6 +174,7 @@ draw-begin: func [
 		clr		[red-tuple!]
 		text	[red-string!]
 		red-img [red-image!]
+		font	[red-object!]
 		pos		[red-pair! value]
 		pos2	[red-pair!]
 		rt		[com-ptr! value]
@@ -259,7 +260,15 @@ draw-begin: func [
 		text: as red-string! values + FACE_OBJ_TEXT
 		if TYPE_OF(text) = TYPE_STRING [
 			pos/x: 0 pos/y: 0
+			font: as red-object! values + FACE_OBJ_FONT
+			clr: as red-tuple! (object/get-values font) + FONT_OBJ_COLOR
+			if TYPE_OF(clr) = TYPE_TUPLE [
+				ctx/font-color: clr/array1
+				ctx/font-color?: yes
+			]
 			OS-draw-text ctx :pos as red-string! get-face-obj hWnd yes
+			ctx/font-color: 0
+			ctx/font-color?: no
 		]
 	]
 	ctx
