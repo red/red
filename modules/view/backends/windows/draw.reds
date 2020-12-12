@@ -180,9 +180,7 @@ draw-begin: func [
 		rt		[com-ptr! value]
 		wic-bmp	[this!]
 		IUnk	[IUnknown]
-		gdi		[com-ptr! value]
-		pp		[com-ptr!]
-		pdc		[this!]
+		t-mode	[integer!]
 		props	[D2D1_RENDER_TARGET_PROPERTIES value]
 		factory [ID2D1Factory]
 ][
@@ -194,6 +192,7 @@ draw-begin: func [
 	ctx/hwnd:		hWnd
 	update-pen-style ctx
 
+	t-mode: 1	;-- ClearType
 	this: d2d-ctx
 	dc: as ID2D1DeviceContext this/vtbl
 
@@ -201,6 +200,7 @@ draw-begin: func [
 		target: get-hwnd-render-target hWnd on-graphic?
 		dc/SetTarget this target/bitmap
 		dc/setDpi this dpi-x dpi-y
+		if on-graphic? [t-mode: 2]	;-- gray scale for full transparent target
 	][
 		wic-bmp: OS-image/get-wicbitmap img
 		;-- create a bitmap target
@@ -225,7 +225,7 @@ draw-begin: func [
 	ctx/target: as int-ptr! target
 
 	dc/BeginDraw this
-	dc/SetTextAntialiasMode this 1				;-- ClearType
+	dc/SetTextAntialiasMode this t-mode
 	dc/SetAntialiasMode this 0					;-- D2D1_ANTIALIAS_MODE_PER_PRIMITIVE
 
 	matrix2d/identity m
@@ -261,10 +261,12 @@ draw-begin: func [
 		if TYPE_OF(text) = TYPE_STRING [
 			pos/x: 0 pos/y: 0
 			font: as red-object! values + FACE_OBJ_FONT
-			clr: as red-tuple! (object/get-values font) + FONT_OBJ_COLOR
-			if TYPE_OF(clr) = TYPE_TUPLE [
-				ctx/font-color: clr/array1
-				ctx/font-color?: yes
+			if TYPE_OF(font) = TYPE_OBJECT [
+				clr: as red-tuple! (object/get-values font) + FONT_OBJ_COLOR
+				if TYPE_OF(clr) = TYPE_TUPLE [
+					ctx/font-color: clr/array1
+					ctx/font-color?: yes
+				]
 			]
 			OS-draw-text ctx :pos as red-string! get-face-obj hWnd yes
 			ctx/font-color: 0
