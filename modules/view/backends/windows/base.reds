@@ -771,7 +771,7 @@ update-base: func [
 		rt-dc	[ID2D1GdiInteropRenderTarget]
 		hdc		[ptr-value!]
 ][
-	if (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D <> 0 [
+	if zero? (WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) [
 		InvalidateRect hWnd null 0
 		exit
 	]
