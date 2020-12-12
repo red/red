@@ -374,7 +374,7 @@ OS-image: context [
 		if inode/flags and IMG_NODE_HAS_BUFFER = 0 [
 			h: to-bgra inode/handle no
 			IFAC: as IWICImagingFactory wic-factory/vtbl
-			IFAC/CreateBitmapFromSource wic-factory h 0 :bitmap
+			IFAC/CreateBitmapFromSource wic-factory h WICBitmapCacheOnDemand :bitmap
 			COM_SAFE_RELEASE(unk h)
 			h: bitmap/value
 			inode/buffer: h
@@ -1003,7 +1003,7 @@ OS-image: context [
 			dst/size: src/size
 			dst/header: TYPE_IMAGE
 			dst/head: 0
-			dst/node: make-node bitmap/value null 0 width height
+			dst/node: make-node null bitmap/value IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED width height
 			return dst
 		]
 
@@ -1037,9 +1037,9 @@ OS-image: context [
 			rect/x: x rect/y: y
 			rect/w: w rect/h: h
 			clip/Initialize cthis this rect
-			IFAC/CreateBitmapFromSource wic-factory cthis 0 :bitmap
+			IFAC/CreateBitmapFromSource wic-factory cthis WICBitmapCacheOnLoad :bitmap
 			clip/Release cthis
-			dst/node: make-node bitmap/value null 0 w h
+			dst/node: make-node null bitmap/value IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED w h
 			dst/size: h << 16 or w
 		]
 		dst/header: TYPE_IMAGE
