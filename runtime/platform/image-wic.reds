@@ -24,6 +24,7 @@ Red/System [
 #define IMG_NODE_MODIFIED		2
 #define IMG_NODE_GC_MARKED		4
 #define IMG_NODE_WICBITMAP		8
+#define IMG_NODE_PREMULTIPLIED	16
 
 OS-image: context [
 
@@ -323,14 +324,30 @@ OS-image: context [
 			inode	[img-node!]
 			unk		[IUnknown]
 			h		[this!]
+			new-h	[this!]
+			pre?	[logic!]
 	][
 		inode: as img-node! (as series! img/node/value) + 1
 		h: inode/handle
-		if any [null? h inode/flags and IMG_NODE_MODIFIED <> 0][
+		pre?: inode/flags and IMG_NODE_PREMULTIPLIED <> 0
+		if any [
+			null? h
+			inode/flags and IMG_NODE_MODIFIED <> 0
+			premul? <> pre?
+		][
+			new-h: either null? inode/buffer [
+				to-bgra h premul?
+			][
+				to-bgra inode/buffer premul?
+			]
 			if h <> null [COM_SAFE_RELEASE(unk h)]
-			h: to-bgra inode/buffer premul?
-			inode/handle: h
-			inode/flags: IMG_NODE_HAS_BUFFER
+			h: new-h
+			inode/handle: new-h
+			inode/flags: either premul? [
+				inode/flags or IMG_NODE_PREMULTIPLIED
+			][
+				inode/flags and (not IMG_NODE_PREMULTIPLIED)
+			]
 		]
 		h
 	]
@@ -353,7 +370,7 @@ OS-image: context [
 			inode/handle: bitmap/value
 			if inode/buffer <> null [
 				COM_SAFE_RELEASE(unk inode/buffer)
-				inode/flags: IMG_NODE_WICBITMAP
+				inode/flags: IMG_NODE_WICBITMAP or IMG_NODE_PREMULTIPLIED
 			]
 			bitmap/value
 		]
@@ -378,7 +395,7 @@ OS-image: context [
 			COM_SAFE_RELEASE(unk h)
 			h: bitmap/value
 			inode/buffer: h
-			inode/flags: IMG_NODE_HAS_BUFFER
+			inode/flags: inode/flags or IMG_NODE_HAS_BUFFER
 		]
 		h
 	]
