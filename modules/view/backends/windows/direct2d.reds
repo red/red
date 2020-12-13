@@ -1481,11 +1481,14 @@ DX-resize-buffer: func [
 	COM_SAFE_RELEASE(unk rt/bitmap)
 
 	this: rt/swapchain
-	sc: as IDXGISwapChain1 this/vtbl
-	hr: sc/ResizeBuffers this 0 width height 87 0
-	if hr <> 0 [probe "resizing failed" exit]
-
-	DX-create-buffer rt this
+	either null? this [
+		rt/bitmap: create-d2d-bitmap d2d-ctx width height 9
+	][
+		sc: as IDXGISwapChain1 this/vtbl
+		hr: sc/ResizeBuffers this 0 width height 87 0
+		if hr <> 0 [probe "resizing failed" exit]
+		DX-create-buffer rt this
+	]
 ]
 
 DX-create-dev: func [
@@ -1878,8 +1881,11 @@ create-text-format: func [
 			len: string/rs-length? str
 			if len > 31 [len: 31]
 			unicode/to-utf16-len str :len yes
-		][null]
-		
+		][
+			str: as red-string! #get system/view/fonts/system
+			unicode/to-utf16 str
+		]
+
 		w: as red-word! values + FONT_OBJ_STYLE
 		len: switch TYPE_OF(w) [
 			TYPE_BLOCK [
