@@ -183,6 +183,7 @@ draw-begin: func [
 		t-mode	[integer!]
 		props	[D2D1_RENDER_TARGET_PROPERTIES value]
 		factory [ID2D1Factory]
+		rc		[RECT_F! value]
 ][
 	zero-memory as byte-ptr! ctx size? draw-ctx!
 	ctx/pen-width:	as float32! 1.0
@@ -200,7 +201,7 @@ draw-begin: func [
 		target: get-hwnd-render-target hWnd on-graphic?
 		dc/SetTarget this target/bitmap
 		dc/setDpi this dpi-x dpi-y
-		if on-graphic? [t-mode: 2]	;-- gray scale for full transparent target
+		if on-graphic? [t-mode: 2]	;-- gray scale for transparent target
 	][
 		wic-bmp: OS-image/get-wicbitmap img
 		;-- create a bitmap target
@@ -227,6 +228,14 @@ draw-begin: func [
 	dc/BeginDraw this
 	dc/SetTextAntialiasMode this t-mode
 	dc/SetAntialiasMode this 0					;-- D2D1_ANTIALIAS_MODE_PER_PRIMITIVE
+
+	if ctx/image <> null [						;-- draw on image!
+		rc/left: F32_0
+		rc/top: F32_0
+		rc/right: as float32! IMAGE_WIDTH(img/size)
+		rc/bottom: as float32! IMAGE_HEIGHT(img/size)
+		dc/PushAxisAlignedClip this :rc 0		;-- draw text properly on transparent bitmap
+	]
 
 	matrix2d/identity m
 	dc/SetTransform this :m						;-- set to identity matrix
@@ -306,6 +315,7 @@ draw-end: func [
 
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
+	if ctx/image <> null [dc/PopAxisAlignedClip this]
 	dc/EndDraw this null null
 	if hWnd <> null [dc/SetTarget this null]
 

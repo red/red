@@ -388,10 +388,8 @@ Red/System [
 			hwnd			[int-ptr!]			;-- Window's handle
 			pen-width		[float32!]
 			pen-style		[this!]
-			bitmap			[int-ptr!]
 			image			[int-ptr!]			;-- original image handle
 			pre-order?		[logic!]			;-- matrix order, default pre-order for row-major vector
-			on-image?		[logic!]			;-- drawing on image?
 			font-color?		[logic!]
 			shadow?			[logic!]
 			text-format		[this!]
