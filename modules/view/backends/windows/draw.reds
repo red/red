@@ -250,7 +250,6 @@ draw-begin: func [
 	ctx/brush-type:	DRAW_BRUSH_NONE
 
 	ctx/pre-order?: yes
-	ctx/clip-layer: null
 
 	if hWnd <> null [
 		values: get-face-values hWnd
@@ -290,9 +289,6 @@ release-ctx: func [
 	/local
 		IUnk	[IUnknown]
 ][
-	unless null? ctx/clip-layer [
-		COM_SAFE_RELEASE(IUnk ctx/clip-layer)
-	]
 	COM_SAFE_RELEASE(IUnk ctx/pen)
 	COM_SAFE_RELEASE(IUnk ctx/brush)
 	release-pen-style ctx
@@ -311,7 +307,8 @@ draw-end: func [
 		rt		[render-target!]
 		hr		[integer!]
 ][
-	if ctx/clip-layer <> null [OS-clip-end ctx]
+	loop ctx/clip-cnt [OS-clip-end ctx]
+	ctx/clip-cnt: 0
 
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
@@ -1905,6 +1902,8 @@ OS-draw-brush-pattern: func [
 		cthis	[this!]
 		cmd		[ID2D1CommandList]
 		old-rt	[com-ptr! value]
+		clip-n	[integer!]
+		n		[integer!]
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
@@ -1913,7 +1912,13 @@ OS-draw-brush-pattern: func [
 
 	dc/GetTarget this :old-rt
 	dc/SetTarget this cthis
+	clip-n: ctx/clip-cnt
 	parse-draw ctx block no
+	n: ctx/clip-cnt - clip-n
+	loop n [
+		OS-clip-end ctx
+	]
+	ctx/clip-cnt: clip-n
 	cmd: as ID2D1CommandList cthis/vtbl
 	cmd/Close cthis
 	dc/SetTarget this old-rt/value
@@ -2193,13 +2198,9 @@ OS-set-clip: func [
 		inf2	[integer!]
 		inf1	[integer!]
 ][
+	ctx/clip-cnt: ctx/clip-cnt + 1
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
-	if null? ctx/clip-layer [
-		hr: dc/CreateLayer this null :layer
-		ctx/clip-layer: as this! layer/value
-	]
-	lthis: ctx/clip-layer
 
 	para/mode: 0
 	matrix2d/identity para/trans
@@ -2233,7 +2234,7 @@ OS-set-clip: func [
 		]
 	]
 
-	dc/PushLayer2 this :para as int-ptr! lthis
+	dc/PushLayer2 this :para null
 ]
 
 OS-clip-end: func [
