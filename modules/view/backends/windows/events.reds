@@ -908,6 +908,7 @@ bitblt-memory-dc: func [
 	dc		[handle!]
 	dstx	[integer!]
 	dsty	[integer!]
+	src-dc	[handle!]
 	/local
 		rect	[RECT_STRUCT value]
 		width	[integer!]
@@ -917,8 +918,9 @@ bitblt-memory-dc: func [
 		bf		[tagBLENDFUNCTION]
 		paint? 	[logic!]
 ][
-	if dc = null [dc: BeginPaint hWnd paint  paint?: yes]
+	if dc = null [dc: BeginPaint hWnd paint paint?: yes]
 	hBackDC: as handle! GetWindowLong hWnd wc-offset - 4
+	if null? hBackDC [hBackDC: src-dc]
 	GetClientRect hWnd rect
 	width: rect/right - rect/left
 	height: rect/bottom - rect/top
@@ -1081,6 +1083,38 @@ TimerProc: func [
 ][
 	current-msg/hWnd: hWnd
 	make-event current-msg 0 EVT_TIME
+]
+
+draw-window: func [
+	hWnd		[handle!]
+	cmds		[red-block!]
+	/local
+		ctx		[draw-ctx! value]
+		this	[this!]
+		dc		[ID2D1DeviceContext]
+		rt-dc	[ID2D1GdiInteropRenderTarget]
+		hdc		[ptr-value!]
+		pdc		[com-ptr! value]
+][
+	system/thrown: 0
+	catch RED_THROWN_ERROR [
+		draw-begin ctx hWnd null yes yes
+		parse-draw ctx cmds yes
+
+		this: as this! ctx/dc
+		dc: as ID2D1DeviceContext this/vtbl
+
+		dc/QueryInterface this IID_IDGdiInterop :pdc
+		this: pdc/value
+		rt-dc: as ID2D1GdiInteropRenderTarget this/vtbl
+		rt-dc/GetDC this 0 :hdc
+
+		bitblt-memory-dc hWnd no null 0 0 hdc/value
+		
+		rt-dc/ReleaseDC this null
+		draw-end ctx hWnd yes no yes
+	]
+	system/thrown: 0
 ]
 
 WndProc: func [
@@ -1359,8 +1393,7 @@ WndProc: func [
 		WM_PAINT [
 			draw: (as red-block! values) + FACE_OBJ_DRAW
 			if TYPE_OF(draw) = TYPE_BLOCK [
-				do-draw hWnd null draw no yes yes yes
-				ValidateRect hWnd null
+				draw-window hWnd draw
 				return 0
 			]
 		]

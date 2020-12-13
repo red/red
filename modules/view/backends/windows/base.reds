@@ -860,13 +860,14 @@ imprint-layers-deep: func [
 	sym: symbol/resolve type/symbol
 	if all [sym = base  layered-win? hwnd][
 		draw: as red-block! values + FACE_OBJ_DRAW
-		either all [bx = 0 by = 0] [
+		;TBD make it work
+		;either all [bx = 0 by = 0] [
 			;-- paint directly to DC
-			do-draw hwnd as red-image! dc draw no no no yes
-		][
-			do-draw hwnd null draw no yes no yes 		;-- paint into RAM
-			bitblt-memory-dc hwnd yes dc bx by 			;-- blend back
-		]
+		;	do-draw hwnd as red-image! dc draw no no no yes
+		;][
+		;	do-draw hwnd null draw no yes no yes 		;-- paint into RAM
+		;	bitblt-memory-dc hwnd yes dc bx by 			;-- blend back
+		;]
 	]
 
 	;-- imprint hwnd's children if any
