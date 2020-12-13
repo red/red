@@ -680,7 +680,7 @@ system/view: context [
 		
 		set/any 'result do-actor face event event/type
 		
-		if all [face/parent not find [done continue] :result][
+		if all [face/parent not find [stop done continue] :result][
 			set/any 'result system/view/awake/with event face/parent ;-- event bubbling
 			if :result = 'stop [return 'stop]
 		]
@@ -722,7 +722,9 @@ stop-events: function [
 ]
 
 do-safe: func ["Internal Use Only" code [block!] /local result][
-	if error? set/any 'result try/all code [print :result]
+	if error? set/any 'result try/all [
+		either 'halt-request = set/any 'result catch/name code 'console ['stop][:result]
+	][print :result]
 	get/any 'result
 ]
 
