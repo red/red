@@ -1904,12 +1904,14 @@ OS-draw-brush-pattern: func [
 		old-rt	[com-ptr! value]
 		clip-n	[integer!]
 		n		[integer!]
+		m		[D2D_MATRIX_3X2_F value]
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
 	dc/CreateCommandList this :list
 	cthis: list/value
 
+	dc/GetTransform this :m		;-- save old matrix, in case it's changed in pattern
 	dc/GetTarget this :old-rt
 	dc/SetTarget this cthis
 	clip-n: ctx/clip-cnt
@@ -1922,6 +1924,7 @@ OS-draw-brush-pattern: func [
 	cmd: as ID2D1CommandList cthis/vtbl
 	cmd/Close cthis
 	dc/SetTarget this old-rt/value
+	dc/SetTransform this :m
 
 	_OS-draw-brush-bitmap ctx cthis size/x size/y crop-1 crop-2 mode brush?
 	cmd/Release cthis
