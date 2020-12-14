@@ -580,7 +580,7 @@ make-event: func [
 		sym: symbol/resolve res/symbol
 		case [
 			sym = done [state: EVT_DISPATCH]			;-- prevent other high-level events
-			sym = stop [exit-requested?: yes state: EVT_NO_DISPATCH] ;-- prevent all other events
+			sym = stop [state: EVT_NO_DISPATCH] 		;-- prevent all other events
 			true 	   [0]								;-- ignore others
 		]
 	]
@@ -1624,8 +1624,6 @@ process: func [
 	]
 ]
 
-exit-requested?: no
-
 do-events: func [
 	no-wait? [logic!]
 	return:  [logic!]
@@ -1654,10 +1652,6 @@ do-events: func [
 			TranslateMessage :msg
 			DispatchMessage :msg
 			current-msg: saved
-		]
-		if exit-requested? [
-			exit-requested?: no
-			break
 		]
 		if no-wait? [return msg?]
 	]

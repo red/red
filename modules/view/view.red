@@ -723,7 +723,9 @@ stop-events: function [
 
 do-safe: func ["Internal Use Only" code [block!] /local result][
 	if error? set/any 'result try/all [
-		either 'halt-request = set/any 'result catch/name code 'console ['stop][:result]
+		either 'halt-request = set/any 'result catch/name code 'console [
+			stop-events
+		][:result]
 	][print :result]
 	get/any 'result
 ]
