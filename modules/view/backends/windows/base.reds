@@ -474,16 +474,17 @@ BaseWndProc: func [
 		]
 		WM_ERASEBKGND	 [return 1]					;-- drawing in WM_PAINT to avoid flicker
 		WM_SIZE  [
-			either (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D = 0 [
-				unless zero? GetWindowLong hWnd wc-offset + 4 [
-					update-base hWnd null null get-face-values hWnd
-				]
+			target: as render-target! GetWindowLong hWnd wc-offset - 36
+			if target <> null [
+				DX-resize-buffer target WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
+			]
+			either all [
+				(GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D = 0
+				0 <> GetWindowLong hWnd wc-offset + 4
 			][
-				target: as render-target! GetWindowLong hWnd wc-offset - 36
-				if target <> null [
-					DX-resize-buffer target WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
-					InvalidateRect hWnd null 1
-				]
+				update-base hWnd null null get-face-values hWnd
+			][
+				InvalidateRect hWnd null 1
 			]
 			return 0
 		]

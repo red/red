@@ -321,7 +321,7 @@ draw-end: func [
 	if on-graphic? [exit]
 
 	rt: as render-target! ctx/target
-	either hWnd <> null [	;-- window target
+	either hWnd <> null [		;-- window target
 		this: rt/swapchain
 		sc: as IDXGISwapChain1 this/vtbl
 		hr: sc/Present this 0 0

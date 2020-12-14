@@ -1658,7 +1658,6 @@ create-render-target: func [
 		sc		[IDXGISwapChain1]
 		this	[this!]
 		hr		[integer!]
-		buf		[integer!]
 		unk		[IUnknown]
 ][
 	GetClientRect hWnd :rc
@@ -1670,11 +1669,11 @@ create-render-target: func [
 	desc/SampleCount: 1
 	desc/BufferUsage: 20h	;-- DXGI_USAGE_RENDER_TARGET_OUTPUT
 	desc/BufferCount: 2
+	desc/Scaling: 1			;-- DXGI_SCALING_NONE
 	desc/AlphaMode: 0
 	desc/SwapEffect: 3		;-- DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL
 
 	int: 0
-	buf: 0
 	dxgi: as IDXGIFactory2 dxgi-factory/vtbl
 	hr: dxgi/CreateSwapChainForHwnd dxgi-factory d3d-device hWnd desc null null :int
 	assert zero? hr
