@@ -1770,8 +1770,8 @@ OS-draw-image: func [
 		true [0]
 	]
 
-	;-- D2D1_INTERPOLATION_MODE_DEFINITION_LINEAR
-	dc/DrawBitmap2 this as int-ptr! bthis dst as float32! 1.0 1 src trans
+	;-- D2D1_INTERPOLATION_MODE_DEFINITION_HIGH_QUALITY_CUBIC: 5
+	dc/DrawBitmap2 this as int-ptr! bthis dst as float32! 1.0 5 src trans
 
 	d2db/Release bthis
 ]
