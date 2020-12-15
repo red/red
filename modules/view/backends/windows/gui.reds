@@ -322,12 +322,12 @@ get-text-size: func [
 	SelectObject hwnd saved
 	ReleaseDC hwnd dc
 	
-	size/width:  as integer! ceil as float! bbox/width
+	size/width:  as integer! ceil (as float! bbox/width) * 0.96	;-- scale to match Direct2D's width
 	size/height: as integer! ceil as float! bbox/height
 
 	if pair <> null [
-		pair/x: as integer! ceil as float! bbox/width  * (as float32! 100) / (as float32! dpi-factor)
-		pair/y: as integer! ceil as float! bbox/height * (as float32! 100) / (as float32! dpi-factor)
+		pair/x: as integer! ceil as float! bbox/width  * (as float32! 96.0) / (as float32! dpi-factor)
+		pair/y: as integer! ceil as float! bbox/height * (as float32! 96.0) / (as float32! dpi-factor)
 	]
 
 	size
