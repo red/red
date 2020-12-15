@@ -39,7 +39,8 @@ IID_IDXGISurface:		 [CAFCB56Ch 48896AC3h 239E47BFh EC60D2BBh]
 IID_IDXGIDevice1:		 [77DB970Fh 48BA6276h 010728BAh 2C39B443h]
 ;IID_ID2D1Factory:		 [06152247h 465A6F50h 8B114592h 07603BFDh]
 IID_ID2D1Factory1:		 [BB12D362h 4B9ADAEEh BA141DAAh 1FFA1C40h]
-IID_IDWriteFactory:		 [B859EE5Ah 4B5BD838h DC1AE8A2h 48DB937Dh]
+;IID_IDWriteFactory:	 [B859EE5Ah 4B5BD838h DC1AE8A2h 48DB937Dh]
+IID_IDWriteFactory1:	 [30572F99h 41DBDAC6h 86046EA1h 6A607E30h]
 IID_IDXGIFactory2:		 [50C83A1Ch 4C48E072h 3036B087h D0A636FAh]
 IID_IDCompositionDevice: [C37EA93Ah 450DE7AAh 46976FB1h F30704CBh]
 IID_IDGdiInterop: 		 [E0DB51C3h 4BAE6F77h 75E4D5B3h 3858B309h]
@@ -1263,6 +1264,10 @@ IDWriteTextLayout: alias struct! [
 	HitTestPoint					[HitTestPoint*]
 	HitTestTextPosition				[HitTestTextPosition*]
 	HitTestTextRange				[HitTestTextRange*]
+	SetPairKerning					[int-ptr!]
+	GetPairKerning					[int-ptr!]
+	SetCharacterSpacing				[int-ptr!]
+	GetCharacterSpacing				[int-ptr!]
 ]
 
 IDWriteFontFace: alias struct! [
@@ -1419,7 +1424,7 @@ DX-init: func [
 	d2d-factory: as this! factory/value
 
 	;-- create DWrite factory
-	hr: DWriteCreateFactory 0 IID_IDWriteFactory :factory		;-- DWRITE_FACTORY_TYPE_SHARED: 0
+	hr: DWriteCreateFactory 0 IID_IDWriteFactory1 :factory		;-- DWRITE_FACTORY_TYPE_SHARED: 0
 	assert zero? hr
 	dwrite-factory: as this! factory/value
 	str: string/rs-make-at ALLOC_TAIL(root) 1024
