@@ -768,9 +768,9 @@ update-base: func [
 		ctx		[draw-ctx! value]
 		pdc		[com-ptr! value]
 		this	[this!]
-		dc		[ID2D1DeviceContext]
-		rt-dc	[ID2D1GdiInteropRenderTarget]
+		surf	[IDXGISurface1]
 		hdc		[ptr-value!]
+		rc		[RECT_STRUCT value]
 ][
 	if zero? (WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) [
 		InvalidateRect hWnd null 0
@@ -791,23 +791,14 @@ update-base: func [
 	flags: 2
 
 	either TYPE_OF(cmds) = TYPE_BLOCK [
-		system/thrown: 0
-		catch RED_THROWN_ERROR [
-			draw-begin ctx hWnd null yes yes
-			parse-draw ctx cmds yes
-
-			this: as this! ctx/dc
-			dc: as ID2D1DeviceContext this/vtbl
-			dc/QueryInterface this IID_IDGdiInterop :pdc
-			this: pdc/value
-			rt-dc: as ID2D1GdiInteropRenderTarget this/vtbl
-			rt-dc/GetDC this 0 :hdc
-			UpdateLayeredWindow hWnd null ptDst size hdc/value :ptSrc 0 :bf flags
-			rt-dc/ReleaseDC this null
-
-			draw-end ctx hWnd yes no yes
-		]
-		system/thrown: 0
+		do-draw hWnd null cmds yes no no yes
+		this: get-surface hWnd
+		surf: as IDXGISurface1 this/vtbl
+		surf/GetDC this 0 :hdc
+		UpdateLayeredWindow hWnd null ptDst size hdc/value :ptSrc 0 :bf flags
+		rc/left: 0 rc/top: 0 rc/right: 0 rc/bottom: 0	;-- empty RECT
+		surf/ReleaseDC this :rc
+		surf/Release this
 	][
 		img:	as red-image!  values + FACE_OBJ_IMAGE
 		color:	as red-tuple!  values + FACE_OBJ_COLOR

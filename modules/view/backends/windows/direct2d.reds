@@ -1360,9 +1360,10 @@ render-target!: alias struct! [
 	styles			[red-vector!]
 	bitmap			[this!]
 	swapchain		[this!]
-	dcomp-device	[this!]
-	dcomp-target	[this!]
-	dcomp-visual	[this!]
+	flags			[integer!]
+	;dcomp-device	[this!]
+	;dcomp-target	[this!]
+	;dcomp-visual	[this!]
 ]
 
 #import [
@@ -1551,7 +1552,7 @@ DX-report: func [
 		iid/data2: 490BDA80h
 		iid/data3: E943E687h
 		iid/data4: 08DACFA9h
-		probe as int-ptr! d/ReportLiveObjects dxgi-debug iid DXGI_DEBUG_RLO_ALL
+		d/ReportLiveObjects dxgi-debug iid DXGI_DEBUG_RLO_ALL
 	]]
 ]
 
@@ -1678,58 +1679,60 @@ pixel-to-logical: func [
 	(as-float32 num * 96) / dpi-value
 ]
 
-create-dcomp: func [
-	target			[render-target!]
-	hWnd			[handle!]
-	/local
-		dev			[integer!]
-		d2d-device	[this!]
-		hr			[integer!]
-		unk			[IUnknown]
-		dcomp-dev	[IDCompositionDevice]
-		dcomp		[IDCompositionTarget]
-		this		[this!]
-		tg			[this!]
-		visual		[IDCompositionVisual]
-		d2d-dc		[ID2D1DeviceContext]
-		DCompositionCreateDevice2 [DCompositionCreateDevice2!]
-][
-	dev: 0
-	d2d-dc: as ID2D1DeviceContext d2d-ctx/vtbl
-	d2d-dc/GetDevice d2d-ctx :dev
-	d2d-device: as this! dev
-	DCompositionCreateDevice2: as DCompositionCreateDevice2! pfnDCompositionCreateDevice2
-	hr: DCompositionCreateDevice2 d2d-device IID_IDCompositionDevice :dev
-	COM_SAFE_RELEASE(unk d2d-device)
-	assert hr = 0
+;-- Win8+ only
+;create-dcomp: func [
+;	target			[render-target!]
+;	hWnd			[handle!]
+;	/local
+;		dev			[integer!]
+;		d2d-device	[this!]
+;		hr			[integer!]
+;		unk			[IUnknown]
+;		dcomp-dev	[IDCompositionDevice]
+;		dcomp		[IDCompositionTarget]
+;		this		[this!]
+;		tg			[this!]
+;		visual		[IDCompositionVisual]
+;		d2d-dc		[ID2D1DeviceContext]
+;		DCompositionCreateDevice2 [DCompositionCreateDevice2!]
+;][
+;	dev: 0
+;	d2d-dc: as ID2D1DeviceContext d2d-ctx/vtbl
+;	d2d-dc/GetDevice d2d-ctx :dev
+;	d2d-device: as this! dev
+;	DCompositionCreateDevice2: as DCompositionCreateDevice2! pfnDCompositionCreateDevice2
+;	hr: DCompositionCreateDevice2 d2d-device IID_IDCompositionDevice :dev
+;	COM_SAFE_RELEASE(unk d2d-device)
+;	assert hr = 0
 
-	this: as this! dev
-	target/dcomp-device: this
+;	this: as this! dev
+;	target/dcomp-device: this
 
-	dcomp-dev: as IDCompositionDevice this/vtbl
-	hr: dcomp-dev/CreateTargetForHwnd this hWnd yes :dev
-	assert zero? hr
-	tg: as this! dev
-	target/dcomp-target: tg
+;	dcomp-dev: as IDCompositionDevice this/vtbl
+;	hr: dcomp-dev/CreateTargetForHwnd this hWnd yes :dev
+;	assert zero? hr
+;	tg: as this! dev
+;	target/dcomp-target: tg
 
-	hr: dcomp-dev/CreateVisual this :dev
-	assert zero? hr
-	this: as this! dev
-	target/dcomp-visual: this
+;	hr: dcomp-dev/CreateVisual this :dev
+;	assert zero? hr
+;	this: as this! dev
+;	target/dcomp-visual: this
 
-	visual: as IDCompositionVisual this/vtbl
-	visual/SetContent this target/swapchain
+;	visual: as IDCompositionVisual this/vtbl
+;	visual/SetContent this target/swapchain
 
-	dcomp: as IDCompositionTarget tg/vtbl
-	hr: dcomp/SetRoot tg this
-	assert zero? hr
-	hr: dcomp-dev/Commit target/dcomp-device
-	assert zero? hr
-]
+;	dcomp: as IDCompositionTarget tg/vtbl
+;	hr: dcomp/SetRoot tg this
+;	assert zero? hr
+;	hr: dcomp-dev/Commit target/dcomp-device
+;	assert zero? hr
+;]
 
 create-render-target: func [
 	hWnd		[handle!]
 	rt			[render-target!]
+	gdi?		[logic!]
 	/local
 		rc		[RECT_STRUCT value]
 		desc	[DXGI_SWAP_CHAIN_DESC1 value]
@@ -1752,6 +1755,8 @@ create-render-target: func [
 	desc/Scaling: 1			;-- DXGI_SCALING_NONE
 	desc/AlphaMode: 0
 	desc/SwapEffect: 3		;-- DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL
+	if gdi? [desc/Flags: 4]	;-- DXGI_SWAP_CHAIN_FLAG_GDI_COMPATIBLE: 4
+	rt/flags: desc/Flags
 
 	int: 0
 	dxgi: as IDXGIFactory2 dxgi-factory/vtbl
@@ -1814,9 +1819,9 @@ d2d-release-target: func [
 	]
 	COM_SAFE_RELEASE(obj target/bitmap)
 	COM_SAFE_RELEASE(obj target/swapchain)
-	COM_SAFE_RELEASE(obj target/dcomp-visual)
-	COM_SAFE_RELEASE(obj target/dcomp-target)
-	COM_SAFE_RELEASE(obj target/dcomp-device)
+	;COM_SAFE_RELEASE(obj target/dcomp-visual)
+	;COM_SAFE_RELEASE(obj target/dcomp-target)
+	;COM_SAFE_RELEASE(obj target/dcomp-device)
 	free as byte-ptr! target
 ]
 
@@ -1859,7 +1864,7 @@ create-hwnd-render-target: func [
 
 get-hwnd-render-target: func [
 	hWnd		[handle!]
-	layered?	[logic!]
+	gdi?		[logic!]			;-- GDI compatible?
 	return:		[render-target!]
 	/local
 		target	[render-target!]
@@ -1867,15 +1872,31 @@ get-hwnd-render-target: func [
 	target: as render-target! GetWindowLong hWnd wc-offset - 36
 	if null? target [
 		target: as render-target! alloc0 size? render-target!
-		either layered? [
-			create-bitmap-target hwnd target
-		][
-			create-render-target hWnd target
-		]
+		create-render-target hWnd target gdi?
 		target/brushes: as int-ptr! allocate D2D_MAX_BRUSHES * 2 * size? int-ptr!
 		SetWindowLong hWnd wc-offset - 36 as-integer target
 	]
 	target
+]
+
+get-surface: func [
+	hwnd		[handle!]
+	return:		[this!]
+	/local
+		target	[render-target!]
+		sc		[IDXGISwapChain1]
+		this	[this!]
+		buf		[ptr-value!]
+		hr		[integer!]
+][
+	target: as render-target! GetWindowLong hWnd wc-offset - 36
+	if target <> null [
+		this: target/swapchain
+		sc: as IDXGISwapChain1 this/vtbl
+		hr: sc/GetBuffer this 0 IID_IDXGISurface1 :buf
+		if zero? hr [return as this! buf/value]
+	]
+	null
 ]
 
 create-dc-render-target: func [
