@@ -1037,6 +1037,10 @@ OS-draw-box: func [
 		w		[integer!]
 		h		[integer!]
 		scale	[float32!]
+		up-x	[integer!]
+		up-y	[integer!]
+		low-x	[integer!]
+		low-y	[integer!]
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
@@ -1048,11 +1052,13 @@ OS-draw-box: func [
 		rc/radiusY: rc/radiusX
 		lower:  lower - 1
 	]
-	if upper/x > lower/x [t: upper/x upper/x: lower/x lower/x: t]
-	if upper/y > lower/y [t: upper/y upper/y: lower/y lower/y: t]
 
-	w: lower/x - upper/x
-	h: lower/y - upper/y
+	up-x: upper/x up-y: upper/y low-x: lower/x low-y: lower/y
+	if up-x > low-x [t: up-x up-x: low-x low-x: t]
+	if up-y > low-y [t: up-y up-y: low-y low-y: t]
+
+	w: low-x - up-x
+	h: low-y - up-y
 	either ctx/shadow? [
 		scale: dpi-value / as float32! 96.0
 		rc/left: as float32! 0.5
@@ -1067,10 +1073,10 @@ OS-draw-box: func [
 				1
 		dc/SetTarget this bmp
 	][
-		rc/left: as float32! upper/x
-		rc/top: as float32! upper/y
-		rc/right: as float32! lower/x
-		rc/bottom: as float32! lower/y
+		rc/left: as float32! up-x
+		rc/top: as float32! up-y
+		rc/right: as float32! low-x
+		rc/bottom: as float32! low-y
 	]
 
 	type: ctx/brush-type
