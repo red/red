@@ -662,6 +662,7 @@ Red/System [
 							]
 							sym = qcurv [
 								DRAW_FETCH_SOME_PAIR
+								if cmd < start [throw-draw-error cmds cmd - 1 catch?]
 								OS-draw-shape-qcurv DC as red-pair! start as red-pair! cmd rel?
 							]
 							sym = close-shape [OS-draw-shape-close DC]
