@@ -13,6 +13,9 @@ Red [
 system/view/platform: context [
 
 	#system [
+
+		view-log-level: 0
+
 		gui: context [
 			#enum facet! [
 				FACE_OBJ_TYPE

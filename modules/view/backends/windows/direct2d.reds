@@ -10,6 +10,7 @@ Red/System [
 	}
 ]
 
+#if debug? = yes [dxgi-debug: as this! 0]
 d3d-device:		as this! 0
 d3d-ctx:		as this! 0
 d2d-ctx:		as this! 0
@@ -29,13 +30,16 @@ dwrite-str-cache: as node! 0
 
 #define D2D_MAX_BRUSHES 64
 
+#define DXGI_DEBUG_RLO_ALL	 7
 #define DXGI_FORMAT_A8_UNORM 65
 #define D2DERR_RECREATE_TARGET 8899000Ch
 #define DXGI_ERROR_DEVICE_REMOVED 887A0005h
 #define DXGI_ERROR_DEVICE_RESET	887A0007h
 #define FLT_MAX	[as float32! 3.402823466e38]
 
-IID_IDXGISurface:		 [CAFCB56Ch 48896AC3h 239E47BFh EC60D2BBh]
+IID_IDXGIDebug:			 [119E7452h 40FEDE9Eh F9880688h 41B4120Ch]
+;IID_IDXGISurface:		 [CAFCB56Ch 48896AC3h 239E47BFh EC60D2BBh]
+IID_IDXGISurface1:		 [4AE63092h 4C1B6327h E1BFAE80h 862BA32Eh]
 IID_IDXGIDevice1:		 [77DB970Fh 48BA6276h 010728BAh 2C39B443h]
 ;IID_ID2D1Factory:		 [06152247h 465A6F50h 8B114592h 07603BFDh]
 IID_ID2D1Factory1:		 [BB12D362h 4B9ADAEEh BA141DAAh 1FFA1C40h]
@@ -48,9 +52,17 @@ IID_ID2D1DeviceContext:	 [E8F7FE7Ah 466D191Ch 569795ADh 98A9BD78h]
 CLSID_D2D1UnPremultiply: [FB9AC489h 41EDAD8Dh 63BB9999h F710D147h]
 CLSID_D2D1Scale:		 [9DAF9369h 4D0E3846h 600C4EA4h D7A53479h]
 CLSID_D2D1Shadow:		 [C67EA361h 4E691863h 5D69DB89h 6B5B9A3Eh]
+DXGI_DEBUG_ALL:			 [E48AE283h 490BDA80h E943E687h 08DACFA9h]
 
 D2D1_FACTORY_OPTIONS: alias struct! [
 	debugLevel	[integer!]
+]
+
+IDXGIDebug: alias struct! [
+	QueryInterface		[QueryInterface!]
+	AddRef				[AddRef!]
+	Release				[Release!]
+	ReportLiveObjects	[function! [this [this!] apiid [tagGUID value] flags [integer!] return: [integer!]]]
 ]
 
 D3DCOLORVALUE: alias struct! [
@@ -558,7 +570,7 @@ IDXGISwapChain1: alias struct! [
 	GetParent						[function! [this [this!] riid [int-ptr!] parent [int-ptr!] return: [integer!]]]
 	GetDevice						[function! [this [this!] riid [int-ptr!] device [int-ptr!] return: [integer!]]]
 	Present							[function! [this [this!] SyncInterval [integer!] PresentFlags [integer!] return: [integer!]]]
-	GetBuffer						[function! [this [this!] idx [integer!] riid [int-ptr!] buffer [int-ptr!] return: [integer!]]]
+	GetBuffer						[function! [this [this!] idx [integer!] riid [int-ptr!] buffer [ptr-ptr!] return: [integer!]]]
 	SetFullscreenState				[int-ptr!]
 	GetFullscreenState				[int-ptr!]
 	GetDesc							[int-ptr!]
@@ -946,6 +958,22 @@ ID2D1DeviceContext: alias struct! [
     FillOpacityMask2				[integer!]
 ]
 
+IDXGISurface1: alias struct! [
+	QueryInterface					[QueryInterface!]
+	AddRef							[AddRef!]
+	Release							[Release!]
+	SetPrivateData					[int-ptr!]
+	SetPrivateDataInterface			[int-ptr!]
+	GetPrivateData					[int-ptr!]
+	GetParent						[int-ptr!]
+	GetDevice						[int-ptr!]
+	GetDesc							[int-ptr!]
+	Map								[int-ptr!]
+	Unmap							[int-ptr!]
+	GetDC							[function! [this [this!] discard [integer!] hDC [ptr-ptr!] return: [integer!]]]
+	ReleaseDC						[function! [this [this!] update [RECT_STRUCT] return: [integer!]]]
+]
+
 ID2D1GdiInteropRenderTarget: alias struct! [
 	QueryInterface					[QueryInterface!]
 	AddRef							[AddRef!]
@@ -1298,6 +1326,12 @@ DCompositionCreateDevice2!: alias function! [
 	return:		[integer!]
 ]
 
+DXGIGetDebugInterface!: alias function! [
+	iid			[int-ptr!]
+	result		[ptr-ptr!]
+	return:		[integer!]
+]
+
 D2D1CreateFactory!: alias function! [
 	type		[integer!]
 	riid		[int-ptr!]
@@ -1419,6 +1453,7 @@ DX-init: func [
 
 	;-- create D2D factory
 	options: 0													;-- debugLevel
+	#if debug? = yes [if view-log-level > 2 [options: 3]]		;-- D2D1_DEBUG_LEVEL_INFORMATION
 	hr: D2D1CreateFactory 0 IID_ID2D1Factory1 :options :factory	;-- D2D1_FACTORY_TYPE_SINGLE_THREADED: 0
 	assert zero? hr
 	d2d-factory: as this! factory/value
@@ -1440,7 +1475,7 @@ DX-create-buffer: func [
 		sc		[IDXGISwapChain1]
 		this	[this!]
 		hr		[integer!]
-		buf		[integer!]
+		buf		[ptr-value!]
 		props	[D2D1_BITMAP_PROPERTIES1 value]
 		bmp		[integer!]
 		d2d		[ID2D1DeviceContext]
@@ -1449,8 +1484,7 @@ DX-create-buffer: func [
 	;-- get back buffer from the swap chain
 	this: as this! swapchain
 	sc: as IDXGISwapChain1 this/vtbl
-	buf: 0
-	hr: sc/GetBuffer this 0 IID_IDXGISurface :buf
+	hr: sc/GetBuffer this 0 IID_IDXGISurface1 :buf
 	assert zero? hr
 
 	;-- create a bitmap from the buffer
@@ -1463,14 +1497,26 @@ DX-create-buffer: func [
 	bmp: 0
 	d2d: as ID2D1DeviceContext d2d-ctx/vtbl
 	d2d/setDpi d2d-ctx dpi-x dpi-y
-	hr: d2d/CreateBitmapFromDxgiSurface d2d-ctx as int-ptr! buf props :bmp
+	hr: d2d/CreateBitmapFromDxgiSurface d2d-ctx buf/value props :bmp
 	assert hr = 0
 	
 	rt/dc: d2d-ctx
 	rt/swapchain: swapchain
 	rt/bitmap: as this! bmp
 
-	COM_SAFE_RELEASE_OBJ(unk buf)
+	this: as this! buf/value
+	COM_SAFE_RELEASE(unk this)
+]
+
+get-ref-cnt: func [
+	this 	[this!]
+	return:	[integer!]
+	/local
+		unk [IUnknown]
+][
+	unk: as IUnknown this/vtbl
+	unk/AddRef this
+	unk/Release this
 ]
 
 DX-resize-buffer: func [
@@ -1496,6 +1542,19 @@ DX-resize-buffer: func [
 	]
 ]
 
+DX-report: func [
+	/local iid [tagGUID value] d [IDXGIDebug]
+][
+	#if debug? = yes [if view-log-level > 3 [
+		d: as IDXGIDebug dxgi-debug/vtbl
+		iid/data1: E48AE283h
+		iid/data2: 490BDA80h
+		iid/data3: E943E687h
+		iid/data4: 08DACFA9h
+		probe as int-ptr! d/ReportLiveObjects dxgi-debug iid DXGI_DEBUG_RLO_ALL
+	]]
+]
+
 DX-create-dev: func [
 	/local
 		factory 			[ptr-value!]
@@ -1507,19 +1566,28 @@ DX-create-dev: func [
 		ctx					[ptr-value!]
 		unk					[IUnknown]
 		d2d-device			[this!]
-		hr					[integer!]
+		hr flags			[integer!]
 		dll					[handle!]
+		GetDebugInterface	[DXGIGetDebugInterface!]
 ][
 	if win8+? [
 		dll: LoadLibraryA "dcomp.dll"
 		pfnDCompositionCreateDevice2: GetProcAddress dll "DCompositionCreateDevice2"
+		#if debug? = yes [if view-log-level > 3 [
+			dll: LoadLibraryA "dxgidebug.dll"
+			either dll <> null [
+				GetDebugInterface: as DXGIGetDebugInterface! GetProcAddress dll "DXGIGetDebugInterface"
+			][GetDebugInterface: null]
+		]]
 	]
 
+	flags: 33	;-- D3D11_CREATE_DEVICE_BGRA_SUPPORT or D3D11_CREATE_DEVICE_SINGLETHREADED
+	#if debug? = yes [if view-log-level > 2 [flags: flags or 2]]
 	hr: D3D11CreateDevice
 		null
 		1		;-- D3D_DRIVER_TYPE_HARDWARE
 		null
-		33		;-- D3D11_CREATE_DEVICE_BGRA_SUPPORT or D3D11_CREATE_DEVICE_SINGLETHREADED
+		flags
 		null
 		0
 		7		;-- D3D11_SDK_VERSION
@@ -1568,9 +1636,16 @@ DX-create-dev: func [
 	assert zero? hr
 	dxgi-factory: as this! factory/value
 
+	#if debug? = yes [if view-log-level > 3 [
+		factory/value: null
+		hr: GetDebugInterface IID_IDXGIDebug :factory
+		assert zero? hr
+		dxgi-debug: as this! factory/value
+	]]
+
 	COM_SAFE_RELEASE(unk dxgi-device)
 	COM_SAFE_RELEASE(unk d2d-device)
-	COM_SAFE_RELEASE(unk dxgi-adapter)	
+	COM_SAFE_RELEASE(unk dxgi-adapter)
 ]
 
 DX-release-dev: func [
