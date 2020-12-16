@@ -1882,7 +1882,6 @@ OS-draw-brush-bitmap: func [
 	ithis: OS-image/get-handle img yes
 	dc/CreateBitmapFromWicBitmap2 this ithis null :bmp
 	_OS-draw-brush-bitmap ctx as this! bmp/value width height crop-1 crop-2 mode brush?
-	COM_SAFE_RELEASE(unk ithis)
 	ithis: as this! bmp/value
 	COM_SAFE_RELEASE(unk ithis)
 ]
@@ -1901,29 +1900,34 @@ OS-draw-brush-pattern: func [
 		list	[com-ptr! value]
 		cthis	[this!]
 		cmd		[ID2D1CommandList]
-		old-rt	[com-ptr! value]
 		clip-n	[integer!]
 		n		[integer!]
 		m		[D2D_MATRIX_3X2_F value]
+		rt		[render-target!]
 ][
+	rt: as render-target! ctx/target
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
+	dc/EndDraw this null null
 	dc/CreateCommandList this :list
 	cthis: list/value
 
 	dc/GetTransform this :m		;-- save old matrix, in case it's changed in pattern
-	dc/GetTarget this :old-rt
-	dc/SetTarget this cthis
 	clip-n: ctx/clip-cnt
+
+	dc/SetTarget this cthis
+	dc/BeginDraw this
 	parse-draw ctx block no
 	n: ctx/clip-cnt - clip-n
-	loop n [
-		OS-clip-end ctx
-	]
-	ctx/clip-cnt: clip-n
+	loop n [OS-clip-end ctx]
+	dc/EndDraw this null null
+
 	cmd: as ID2D1CommandList cthis/vtbl
 	cmd/Close cthis
-	dc/SetTarget this old-rt/value
+
+	ctx/clip-cnt: clip-n
+	dc/SetTarget this rt/bitmap
+	dc/BeginDraw this
 	dc/SetTransform this :m
 
 	_OS-draw-brush-bitmap ctx cthis size/x size/y crop-1 crop-2 mode brush?
