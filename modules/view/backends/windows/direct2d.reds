@@ -1655,7 +1655,7 @@ DX-resize-buffer: func [
 		rt/bitmap: create-d2d-bitmap d2d-ctx width height 9
 	][
 		sc: as IDXGISwapChain1 this/vtbl
-		hr: sc/ResizeBuffers this 0 width height 87 0
+		hr: sc/ResizeBuffers this 0 width height 87 rt/flags
 		if hr <> 0 [probe "resizing failed" exit]
 		DX-create-buffer rt this
 	]
