@@ -120,7 +120,7 @@ draw-geometry: func [
 	dc: as ID2D1DeviceContext this/vtbl
 	either ctx/brush-type > DRAW_BRUSH_GRADIENT [		;-- fill-pen
 		bounds?: yes
-		gpath/GetBounds path null :bounds
+		gpath/GetWidenedBounds path ctx/pen-width ctx/pen-style null as float32! 0.25 :bounds
 		calc-brush-position
 			ctx/brush
 			ctx/brush-grad-type
@@ -136,7 +136,7 @@ draw-geometry: func [
 	either ctx/pen-type > DRAW_BRUSH_GRADIENT [			;-- pen
 		unless bounds? [
 			bounds?: yes
-			gpath/GetBounds path null :bounds
+			gpath/GetWidenedBounds path ctx/pen-width ctx/pen-style null as float32! 0.25 :bounds
 		]
 		calc-brush-position
 			ctx/pen

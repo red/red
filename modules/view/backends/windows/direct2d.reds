@@ -1118,7 +1118,7 @@ ID2D1PathGeometry: alias struct! [
 	Release							[Release!]
 	GetFactory						[integer!]
 	GetBounds						[function! [this [this!] trans [D2D_MATRIX_3X2_F] bounds [RECT_F!] return: [integer!]]]
-	GetWidenedBounds				[integer!]
+	GetWidenedBounds				[function! [this [this!] strokewidth [float32!] s-style [this!] trans [D2D_MATRIX_3X2_F] Tolerance [float32!] bounds [RECT_F!] return: [integer!]]]
 	StrokeContainsPoint				[integer!]
 	FillContainsPoint				[integer!]
 	CompareWithGeometry				[integer!]
