@@ -938,7 +938,7 @@ transcode: make native! [[
 		/part			"Translates only part of the input buffer"
 			length [integer! binary!] "Length in bytes or tail position"
 		/into			"Optionally provides an output block"
-			dst	[block! none!]
+			dst	[block!]
 		/trace
 			callback [function! [
 				event	[word!]
