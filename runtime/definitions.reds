@@ -361,6 +361,7 @@ Red/System [
 		]
 
 		#define DRAW_STATE_DATA [
+			state			[this!]
 			pen				[this!]
 			brush			[this!]
 			pen-type		[integer!]
@@ -377,7 +378,6 @@ Red/System [
 		]
 
 		draw-state!: alias struct! [
-			block			[this!]
 			DRAW_STATE_DATA
 		]
 
@@ -393,7 +393,6 @@ Red/System [
 			font-color?		[logic!]
 			shadow?			[logic!]
 			text-format		[this!]
-			state			[this!]				;-- current draw state
 			sub				[sub-path! value]
 			shadows			[shadow! value]
 			clip-cnt		[integer!]
