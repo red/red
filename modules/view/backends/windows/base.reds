@@ -824,7 +824,6 @@ update-base: func [
 	]
 ]
 
-
 ;-- blends the image of every encountered visible layered window into the DC
 imprint-layers-deep: func [
 	dc 			[handle!]

@@ -184,6 +184,7 @@ draw-begin: func [
 		props	[D2D1_RENDER_TARGET_PROPERTIES value]
 		factory [ID2D1Factory]
 		rc		[RECT_F! value]
+		font-clr? [logic!]
 ][
 	zero-memory as byte-ptr! ctx size? draw-ctx!
 	ctx/pen-width:	as float32! 1.0
@@ -269,16 +270,19 @@ draw-begin: func [
 		if TYPE_OF(text) = TYPE_STRING [
 			pos/x: 0 pos/y: 0
 			font: as red-object! values + FACE_OBJ_FONT
+			font-clr?: no
 			if TYPE_OF(font) = TYPE_OBJECT [
 				clr: as red-tuple! (object/get-values font) + FONT_OBJ_COLOR
 				if TYPE_OF(clr) = TYPE_TUPLE [
 					ctx/font-color: clr/array1
-					ctx/font-color?: yes
+					font-clr?: yes
 				]
+			]
+			unless font-clr? [		;-- use system's setting
+				ctx/font-color: GetSysColor COLOR_WINDOWTEXT
 			]
 			OS-draw-text ctx :pos as red-string! get-face-obj hWnd yes
 			ctx/font-color: 0
-			ctx/font-color?: no
 		]
 	]
 	ctx
