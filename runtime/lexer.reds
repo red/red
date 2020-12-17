@@ -1250,7 +1250,9 @@ lexer: context [
 			either flags and C_FLAG_QUOTE = 0 [			;-- no quote, faster path
 				if len > 10 [promote]
 				loop len [
-					i: 10 * i + as-integer (p/1 - #"0")
+					i: 10 * i
+					o?: o? or system/cpu/overflow?
+					i: i + as-integer (p/1 - #"0")
 					o?: o? or system/cpu/overflow?
 					p: p + 1
 				]
@@ -1259,7 +1261,9 @@ lexer: context [
 				loop len [
 					either p/1 <> #"'" [
 						c: c + 1
-						i: 10 * i + as-integer (p/1 - #"0")
+						i: 10 * i
+						o?: o? or system/cpu/overflow?
+						i: i + as-integer (p/1 - #"0")
 						o?: o? or system/cpu/overflow?
 					][
 						if any [p + 1 = e p/2 = #"'"][throw-error lex s e TYPE_INTEGER]
