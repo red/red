@@ -848,8 +848,12 @@ simple-io: context [
 		until [
 			if src/1 = lf [
 				end: src - 1
-				if end/1 <> cr [end: src]
-				string/load-in as-c-string start as-integer end - start blk UTF-8
+				either zero? (as-integer src - start) [	;-- empty line
+					string/rs-make-at ALLOC_TAIL(blk) 1
+				][
+					if end/1 <> cr [end: src]
+					string/load-in as-c-string start as-integer end - start blk UTF-8
+				]
 				start: src + 1
 			]
 			size: size - 1
