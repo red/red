@@ -25,6 +25,7 @@ Red/System [
 #define IMG_NODE_GC_MARKED		4
 #define IMG_NODE_WICBITMAP		8
 #define IMG_NODE_PREMULTIPLIED	16
+#define IMG_NODE_UPDATE_BUFFER	32
 
 OS-image: context [
 
@@ -343,6 +344,7 @@ OS-image: context [
 			if h <> null [COM_SAFE_RELEASE(unk h)]
 			h: new-h
 			inode/handle: new-h
+			inode/flags: inode/flags and (not IMG_NODE_WICBITMAP)
 			inode/flags: either premul? [
 				inode/flags or IMG_NODE_PREMULTIPLIED
 			][
@@ -388,6 +390,9 @@ OS-image: context [
 	][
 		inode: as img-node! (as series! img/value) + 1
 		h: inode/buffer
+		if inode/flags and IMG_NODE_UPDATE_BUFFER <> 0 [
+			inode/flags: inode/flags and (not (IMG_NODE_UPDATE_BUFFER or IMG_NODE_HAS_BUFFER))
+		]
 		if inode/flags and IMG_NODE_HAS_BUFFER = 0 [
 			h: to-bgra inode/handle no
 			IFAC: as IWICImagingFactory wic-factory/vtbl
@@ -548,6 +553,15 @@ OS-image: context [
 		this: as this! data
 		lock: as IWICBitmapLock this/vtbl
 		lock/Release this
+	]
+
+	mark-updated: func [
+		img			[red-image!]
+		/local
+			inode	[img-node!]
+	][
+		inode: as img-node! (as series! img/node/value) + 1
+		inode/flags: inode/flags or IMG_NODE_UPDATE_BUFFER
 	]
 
 	get-data: func [

@@ -205,6 +205,7 @@ draw-begin: func [
 		if on-graphic? [t-mode: 2]	;-- gray scale for transparent target
 	][
 		wic-bmp: OS-image/get-wicbitmap img
+		OS-image/mark-updated img
 		;-- create a bitmap target
 		target: as render-target! alloc0 size? render-target!
 		target/brushes: as int-ptr! allocate D2D_MAX_BRUSHES * 2 * size? int-ptr!
