@@ -3100,6 +3100,20 @@ comment {
 1000000201000000830100002F00000080201D0FC0EFD14000000000
 } 'redbin
 
+	--test-- "#4766"
+		saved-dir: what-dir
+		change-dir qt-tmp-dir
+		make-dir %tmp$
+		files: []
+		blk4766: []
+		repeat i 20 [
+			append files f4766: rejoin [%tmp$/drw i ".red"]
+			write/binary f4766 append/dup copy {^/} "11 ^/^/" i
+		]
+		attempt [foreach f4766 files [blk4766: read/lines f4766]]
+		change-dir saved-dir
+		--assert 41 = length? blk4766
+
 ===end-group===
 
 ~~~end-file~~~
