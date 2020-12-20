@@ -73,25 +73,55 @@ tuple: context [
 		/local
 			len  [integer!]
 			str  [red-string!]
-			bin  [red-binary!]
 			s	 [series!]
-			unit [integer!]
+			p table [byte-ptr!]
+			unit r g b a acc c hex [integer!]
+			do-err decode-char [subroutine!]
 	][
+		do-err: [fire [TO_ERROR(script invalid-data) issue]]
+		decode-char: [
+			c: 7Fh and string/get-char p unit
+			if any [c = -1 c < as-integer space][do-err]
+			c: c + 1
+			hex: as-integer table/c
+			if hex > 15 [do-err]
+			p: p + unit
+			hex
+		]
+		table: string/escape-url-chars
 		str: as red-string! stack/push as red-value! symbol/get issue/symbol
-		str/head: 0								;-- /head = -1 (casted from symbol!)
+		str/head: 0										;-- /head = -1 (casted from symbol!)
 		s: GET_BUFFER(str)
 		unit: GET_UNIT(s)
 		len: string/rs-length? str
-		if len > 24 [len: 24]
-
-		str/node: binary/decode-16 
-			(as byte-ptr! s/offset) + (str/head << (unit >> 1))
-			len
-			unit
-		if null? str/node [fire [TO_ERROR(script invalid-data) issue]]
-		tp: from-binary as red-binary! str tp
-		stack/pop 1
-		tp
+		r: g: b: hex: 0
+		a: -1
+		p: as byte-ptr! s/offset
+		
+		switch len [
+			3 [
+				decode-char
+				r: hex << 4 or hex
+				decode-char
+				g: hex << 4 or hex
+				decode-char
+				b: hex << 4 or hex
+			]
+			6 8 [
+				acc: decode-char
+				r: acc << 4 or decode-char
+				acc: decode-char
+				g: acc << 4 or decode-char
+				acc: decode-char
+				b: acc << 4 or decode-char
+				if len = 8 [
+					acc: decode-char
+					a: acc << 4 or decode-char
+				]
+			]
+			default [do-err]
+		]
+		make-rgba stack/push* r g b a
 	]
 	
 	make-rgba: func [
@@ -330,7 +360,7 @@ tuple: context [
 				proto: from-binary as red-binary! spec proto
 			]
 			TYPE_ISSUE [
-				from-issue as red-word! spec proto
+				proto: from-issue as red-word! spec proto
 			]
 			TYPE_ANY_STRING [
 				i: 0
