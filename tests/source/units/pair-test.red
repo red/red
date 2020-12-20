@@ -69,10 +69,10 @@ Red [
 	--test-- "pb-8"			--assert equal? none attempt [as-pair 10]
 	--test-- "pb-9"			--assert equal? 10x10 make pair! 10
 
-	--test-- "pb-6"			--assert error? try [as-pair 1 -1.#inf]
-	--test-- "pb-6"			--assert error? try [as-pair 1  1.#inf]
-	--test-- "pb-6"			--assert error? try [as-pair 1 -1.#nan]
-	--test-- "pb-6"			--assert error? try [as-pair -1.#inf 1]
+	--test-- "pb-10"		--assert error? try [as-pair 1 -1.#inf]
+	--test-- "pb-11"		--assert error? try [as-pair 1  1.#inf]
+	--test-- "pb-12"		--assert error? try [as-pair 1  1.#nan]
+	--test-- "pb-13"		--assert error? try [as-pair -1.#inf 1]
 		
 ===end-group===
 
