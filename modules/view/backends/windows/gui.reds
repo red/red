@@ -327,7 +327,7 @@ get-text-size: func [
 
 	if pair <> null [
 		pair/x: as integer! ceil as float! bbox/width  * (as float32! 96.0) / (as float32! dpi-factor)
-		pair/y: as integer! ceil as float! bbox/height * (as float32! 96.0) / (as float32! dpi-factor)
+		pair/y: as integer! ceil as float! bbox/height * (as float32! 100.0) / (as float32! dpi-factor)
 	]
 
 	size
