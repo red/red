@@ -1870,7 +1870,7 @@ create-render-target: func [
 	desc/SampleCount: 1
 	desc/BufferUsage: 20h	;-- DXGI_USAGE_RENDER_TARGET_OUTPUT
 	desc/BufferCount: 2
-	desc/Scaling: 1			;-- DXGI_SCALING_NONE
+	desc/Scaling: as-integer win8+?	;-- win7: DXGI_SCALING_STRETCH: 0 win8+: DXGI_SCALING_NONE: 1
 	desc/AlphaMode: 0
 	desc/SwapEffect: 3		;-- DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL
 	if gdi? [desc/Flags: 4]	;-- DXGI_SWAP_CHAIN_FLAG_GDI_COMPATIBLE: 4
