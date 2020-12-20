@@ -3114,6 +3114,9 @@ comment {
 		change-dir saved-dir
 		--assert 41 = length? blk4766
 
+	--test-- "#4768"
+		--assert block? body-of :is
+
 ===end-group===
 
 ~~~end-file~~~
