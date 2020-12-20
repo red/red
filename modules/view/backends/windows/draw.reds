@@ -401,12 +401,10 @@ OS-draw-pen: func [
 
 	unless ctx/font-color? [ctx/font-color: color]	;-- if no font, use pen color for text color
 	either ctx/pen-type = DRAW_BRUSH_COLOR [
-		if ctx/pen-color <> color [
-			ctx/pen-color: color
-			this: as this! ctx/pen
-			brush: as ID2D1SolidColorBrush this/vtbl
-			brush/SetColor this to-dx-color color null
-		]
+		ctx/pen-color: color
+		this: as this! ctx/pen
+		brush: as ID2D1SolidColorBrush this/vtbl
+		brush/SetColor this to-dx-color color null
 	][
 		COM_SAFE_RELEASE(unk ctx/pen)
 		this: as this! ctx/dc
@@ -922,12 +920,10 @@ OS-draw-fill-pen: func [
 	if off? [ctx/brush-type: DRAW_BRUSH_NONE exit]
 	
 	either ctx/brush-type = DRAW_BRUSH_COLOR [
-		if ctx/brush-color <> color [
-			ctx/brush-color: color
-			this: ctx/brush
-			brush: as ID2D1SolidColorBrush this/vtbl
-			brush/SetColor this to-dx-color color null
-		]
+		ctx/brush-color: color
+		this: ctx/brush
+		brush: as ID2D1SolidColorBrush this/vtbl
+		brush/SetColor this to-dx-color color null
 	][
 		this: as this! ctx/dc
 		dc: as ID2D1DeviceContext this/vtbl
@@ -2484,6 +2480,8 @@ OS-draw-state-pop: func [
 	COM_SAFE_RELEASE(IUnk ctx/brush)
 	copy-memory as byte-ptr! :ctx/state as byte-ptr! draw-state size? draw-state!
 	ctx/state: null
+	if ctx/pen-type = DRAW_BRUSH_COLOR [OS-draw-pen ctx ctx/pen-color no]
+	if ctx/brush-type = DRAW_BRUSH_COLOR [OS-draw-fill-pen ctx ctx/brush-color no yes]
 	update-pen-style ctx
 ]
 
