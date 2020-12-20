@@ -221,6 +221,7 @@ draw-begin: func [
 		this: rt/value
 		dc: as ID2D1DeviceContext this/vtbl
 		dc/QueryInterface this IID_ID2D1DeviceContext :rt	;-- Query ID2D1DeviceContext interface
+		dc/Release this			;-- QueryInterface will increase the refcnt
 		this: rt/value
 		dc: as ID2D1DeviceContext this/vtbl
 	]
@@ -1702,11 +1703,15 @@ OS-draw-image: func [
 		src*	[RECT_F! value]
 		src		[RECT_F!]
 		crop2	[red-pair!]
+		same-img? [logic!]
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
+	same-img?: ctx/image = image/node
+	if same-img? [dc/EndDraw this null null] ;-- same image as the drawing target, unlock the image
 	ithis: OS-image/get-handle image yes
 	dc/CreateBitmapFromWicBitmap2 this ithis null :bmp
+	if same-img? [dc/BeginDraw this]
 	bthis: as this! bmp/value
 	d2db: as IUnknown bthis/vtbl
 	either null? start [x: 0 y: 0][x: start/x y: start/y]
