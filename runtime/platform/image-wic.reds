@@ -1114,6 +1114,7 @@ OS-image: context [
 
 	from-HBITMAP: func [
 		hBitmap		[integer!]
+		alpha		[integer!]
 		return:		[red-image!]
 		/local
 			IFAC	[IWICImagingFactory]
@@ -1125,12 +1126,9 @@ OS-image: context [
 			h		[integer!]
 	][
 		IFAC: as IWICImagingFactory wic-factory/vtbl
-		hr: IFAC/CreateBitmapFromHBITMAP wic-factory as int-ptr! hBitmap null 0 :bitmap
-		if hr < 0 [
-			return as red-image! none-value
-		]
-		
-		this: bitmap/value
+		either zero? IFAC/CreateBitmapFromHBITMAP wic-factory as int-ptr! hBitmap null alpha :bitmap [
+			this: bitmap/value
+		][return as red-image! none-value]
 		IB: as IWICBitmap this/vtbl
 		w: 0 h: 0
 		IB/GetSize this :w :h
@@ -1154,7 +1152,13 @@ OS-image: context [
 			size	[integer!]
 			data	[integer!]
 			bitmap	[integer!]
+			inode	[img-node!]
 	][
+		inode: as img-node! (as series! image/node/value) + 1
+		;-- alpha channel is 0 when image is copied from mspaint
+		;-- so we need to regenerate buffer
+		get-handle image no
+		inode/flags: inode/flags or IMG_NODE_UPDATE_BUFFER
 		this: get-buffer image/node
 		IB: as IWICBitmap this/vtbl
 		w: IMAGE_WIDTH(image/size)

@@ -293,11 +293,21 @@ clipboard: context [
 							assert all [0 = OS-image/get-pixel-format bmp :i  OS-image/fixed-format? i]
 							OS-image/create-bitmap-from-scan0 hdr/Width hdr/Height 0 OS-image/fixed-format p :bmp
 						][								;-- will have to convert, losing the alpha data if any
-							OS-image/create-bitmap-from-gdidib
-								p  p + hdr/Size + (hdr/ClrUsed * 4) + hdr/ProfileSize  :bmp
+							#either legacy = none [
+								GlobalUnlock hMem
+								hMem: GetClipboardData CF_BITMAP
+								val: as red-value! OS-image/from-HBITMAP hMem 2	;-- WICBitmapIgnoreAlpha
+								hMem: 0
+							][
+								OS-image/create-bitmap-from-gdidib
+									p  p + hdr/Size + (hdr/ClrUsed * 4) + hdr/ProfileSize :bmp
+							]
 						]
-						val: as red-value! image/init-image as red-image! stack/push* as int-ptr! bmp
-						GlobalUnlock hMem
+						if hMem <> 0 [
+							if zero? bmp [return as red-value! none-value]
+							val: as red-value! image/init-image as red-image! stack/push* as int-ptr! bmp
+							GlobalUnlock hMem
+						]
 					]
 					break
 				]

@@ -2640,7 +2640,7 @@ OS-to-image: func [
 		]
 	]
 
-	img: OS-image/from-HBITMAP as integer! bmp
+	img: OS-image/from-HBITMAP as integer! bmp 0
 
     DeleteDC mdc
     DeleteObject bmp
