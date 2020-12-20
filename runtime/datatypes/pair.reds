@@ -43,6 +43,7 @@ pair: context [
 			TYPE_FLOAT TYPE_PERCENT [
 				fl: as red-float! right
 				f: fl/value
+				if float/special? f [fire [TO_ERROR(script invalid-arg) right]]
 				switch op [
 					OP_MUL [
 						left/x: as-integer (as-float left/x) * f

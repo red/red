@@ -658,6 +658,13 @@ float: context [
 			]
 		][false]
 	]
+	
+	special?: func [
+		value	[float!]
+		return: [logic!]
+	][
+		any [value = 1.#INF value = -1.#INF NaN? value]
+	]
 
 	;@@ using 64bit integer will simplify it significantly.
 	;-- returns false if either number is (or both are) NAN.
