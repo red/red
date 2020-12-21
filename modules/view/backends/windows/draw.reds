@@ -1702,6 +1702,7 @@ OS-draw-image: func [
 		dst		[RECT_F!]
 		src*	[RECT_F! value]
 		src		[RECT_F!]
+		fval	[float32!]
 		crop2	[red-pair!]
 		same-img? [logic!]
 ][
@@ -1725,8 +1726,24 @@ OS-draw-image: func [
 		src*/right: as float32! crop1/x + crop2/x
 		src*/bottom: as float32! crop1/y + crop2/y
 		src: :src*
-		size/width: as float32! crop2/x
-		size/height: as float32! crop2/y
+		;-- sanitizing
+		if src/left > src/right [
+			fval: src/left
+			src/left: src/right
+			src/right: fval
+		]
+		if src/top > src/bottom [
+			fval: src/top
+			src/top: src/bottom
+			src/bottom: fval
+		]
+		if any [src/right <= F32_0 src/bottom <= F32_0][exit]
+		if src/left <= F32_0 [src/left: F32_0]
+		if src/top <= F32_0 [src/top: F32_0]
+		size/width: src/right - src/left
+		size/height: src/bottom - src/top
+		width: as-integer size/width
+		height: as-integer size/height
 	][
 		src: null
 		size/width: as float32! width
