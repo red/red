@@ -241,6 +241,13 @@ ask: function [
 	/hide
 	return:  [string!]
 ][
+	if all [
+		gui-console-ctx/console/state
+		not gui-console-ctx/win/visible?
+	][
+		gui-console-ctx/win/visible?: yes
+	]
+
 	gui-console-ctx/show-caret
 
 	line: make string! 8
