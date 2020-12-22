@@ -27,7 +27,7 @@ _request-file: func [
 	dir?		[logic!]
 	return:		[red-value!]
 	/local
-		len		[integer!]
+		len	n	[integer!]
 		buf		[c-string!]
 		widget 	[handle!]
 		window	[handle!]
@@ -41,11 +41,15 @@ _request-file: func [
 		s		[series!]
 		start	[red-string!]
 		end		[red-string!]
+		strarr	[int-ptr!]
 ][
 	len: -1
-	buf: either TYPE_OF(title) = TYPE_STRING [
-		unicode/to-utf8 title :len
-	]["FileChooserDialog"]
+	buf: "Open File"
+	either TYPE_OF(title) = TYPE_STRING [
+		buf: unicode/to-utf8 title :len
+	][
+		if dir? [buf: "Open Folder"]
+	]
 	ret: as red-value! none-value
 	widget: gtk_file_chooser_dialog_new [
 		buf
@@ -69,20 +73,36 @@ _request-file: func [
 		]
 	]
 	if TYPE_OF(filter) = TYPE_BLOCK [
-		pattern: gtk_file_filter_new
 		s: GET_BUFFER(filter)
 		start: as red-string! s/offset + filter/head
 		end: as red-string! s/tail
-		while [start < end][
-			unless any [TYPE_OF(start) = TYPE_STRING TYPE_OF(start) = TYPE_FILE][
-				fire [TO_ERROR(script invalid-arg) start]
+		while [start + 1 < end][
+			str: start + 1	;-- filter pattern
+			if any [
+				TYPE_OF(start) <> TYPE_STRING
+				all [TYPE_OF(str) <> TYPE_STRING TYPE_OF(str) <> TYPE_FILE]
+			][
+				fire [TO_ERROR(script invalid-arg) filter]
 			]
+			pattern: gtk_file_filter_new
 			len: -1
-			buf: unicode/to-utf8 start :len
-			gtk_file_filter_add_pattern pattern buf
-			start: start + 1
+			buf: unicode/to-utf8 start :len	;-- filter name
+			if len > 0 [gtk_file_filter_set_name pattern buf]
+
+			len: -1
+			buf: unicode/to-utf8 str :len
+			if len > 0 [
+				strarr: g_strsplit buf ";" -1
+				n: 1
+				while [strarr/n <> 0][
+					gtk_file_filter_add_pattern pattern as c-string! strarr/n
+					n: n + 1
+				]
+				g_strfreev strarr
+				gtk_file_chooser_add_filter widget pattern
+			]
+			start: start + 2
 		]
-		gtk_file_chooser_add_filter widget pattern
 	]
 	gobj_signal_connect(widget "file-activated" :request-file-double-clicked null)
 	window: find-active-window
