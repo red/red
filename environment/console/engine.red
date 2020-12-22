@@ -308,8 +308,11 @@ system/console: context [
 				]
 			][
 				print "*** Error: Red header not found!"
-			]	
-			if any [catch? all [gui? gui-console-ctx/win/visible?]][run/no-banner]
+			]
+			if any [catch? all [gui? gui-console-ctx/win/visible?]][
+				if all [catch? gui?][gui-console-ctx/win/visible?: yes]
+				run/no-banner
+			]
 		][
 			run
 		]
