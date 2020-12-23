@@ -1738,8 +1738,18 @@ OS-draw-image: func [
 			src/bottom: fval
 		]
 		if any [src/right <= F32_0 src/bottom <= F32_0][exit]
-		if src/left <= F32_0 [src/left: F32_0]
-		if src/top <= F32_0 [src/top: F32_0]
+		if src/left <= F32_0 [
+			x: x - (as-integer src/left)
+			src/left: F32_0
+		]
+		if src/top <= F32_0 [
+			y: y - (as-integer src/top)
+			src/top: F32_0
+		]
+		size/width: as float32! width
+		size/height: as float32! height
+		if src/right > size/width [src/right: size/width]
+		if src/bottom > size/height [src/bottom: size/height]
 		size/width: src/right - src/left
 		size/height: src/bottom - src/top
 		width: as-integer size/width
