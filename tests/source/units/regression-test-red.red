@@ -3082,14 +3082,40 @@ comment {
 		--assert "2.3.4.5.6" = mold 2.3.4.5.6
 		--assert "1.2.3.4.5.6" = mold 1.2.3.4.5.6
 
-	--test-- "#4627"		
-		--assert to logic! find 
+	--test-- "#4627"
+		--assert to logic! find
 			form try [transcode "]"]
 			"(line 1) missing [ at ]"
 		
-		--assert to logic! find 
+		--assert to logic! find
 			form try [null < []]
 			%{#"^@" with []}%
+
+	--test-- "4756"
+			load/as #{
+52454442494E0204010000006C00000002000000100000000000000008000000
+75726C0000000000646174650000000028000000020000000801000000000000
+0500000061622F63640000002800000004000000100000020000000090010000
+090100000000000012000000687474703A2F2F6578616D706C652E6F72670000
+1000000201000000830100002F00000080201D0FC0EFD14000000000
+} 'redbin
+
+	--test-- "#4766"
+		saved-dir: what-dir
+		change-dir qt-tmp-dir
+		make-dir %tmp$
+		files: []
+		blk4766: []
+		repeat i 20 [
+			append files f4766: rejoin [%tmp$/drw i ".red"]
+			write/binary f4766 append/dup copy {^/} "11 ^/^/" i
+		]
+		attempt [foreach f4766 files [blk4766: read/lines f4766]]
+		change-dir saved-dir
+		--assert 41 = length? blk4766
+
+	--test-- "#4768"
+		--assert block? body-of :is
 
 ===end-group===
 

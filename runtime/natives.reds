@@ -1981,6 +1981,7 @@ natives: context [
 			]
 			TYPE_FLOAT	 [
 				fl: as red-float! arg
+				if float/special? fl/value [fire [TO_ERROR(script invalid-arg) arg]]
 				pair/x: as-integer fl/value
 			]
 			default		 [assert false]
@@ -1993,6 +1994,7 @@ natives: context [
 			]
 			TYPE_FLOAT	 [
 				fl: as red-float! arg
+				if float/special? fl/value [fire [TO_ERROR(script invalid-arg) arg]]
 				pair/y: as-integer fl/value
 			]
 			default		[assert false]

@@ -125,7 +125,10 @@ object [
 
 	vprint: func [str [string!] lf? [logic!] /local s cnt first-prin?][
 		unless console/state [exit]
-		unless gui-console-ctx/win/visible? [gui-console-ctx/win/visible?: yes]
+		unless gui-console-ctx/win/visible? [
+			gui-console-ctx/win/visible?: yes
+			show gui-console-ctx/win		;-- force a show in case auto-sync? is off
+		]
 
 		if all [not lf? newline?][newline?: no first-prin?: yes]
 		if lf? [newline?: yes]

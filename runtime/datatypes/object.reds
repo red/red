@@ -748,13 +748,7 @@ object: context [
 
 		;-- 1st pass: fill and eventually extend the context
 		while [syms < tail][
-			value: _context/add-with ctx as red-word! syms vals
-			
-			if null? value [
-				word: as red-word! syms
-				value: s/offset + _context/find-word ctx word/symbol yes
-				copy-cell vals value
-			]
+			value: _context/add-and-set ctx as red-word! syms vals
 			syms: syms + 1
 			vals: vals + 1
 		]

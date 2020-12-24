@@ -119,27 +119,36 @@ integer: context [
 		issue	[red-word!]
 		return: [integer!]
 		/local
-			len  [integer!]
-			str  [red-string!]
-			bin  [red-binary!]
-			s	 [series!]
-			unit [integer!]
+			len hex acc c [integer!]
+			str		[red-string!]
+			s		[series!]
+			table p [byte-ptr!]
+			unit	[integer!]
+			do-err	[subroutine!]
 	][
+		do-err: [fire [TO_ERROR(script invalid-data) issue]]
+		table: string/escape-url-chars
 		str: as red-string! stack/push as red-value! symbol/get issue/symbol
-		str/head: 0								;-- /head = -1 (casted from symbol!)
+		str/head: 0										;-- /head = -1 (casted from symbol!)
 		s: GET_BUFFER(str)
 		unit: GET_UNIT(s)
 		len: string/rs-length? str
-		if len > 8 [len: 8]
-
-		str/node: binary/decode-16 
-			(as byte-ptr! s/offset) + (str/head << (unit >> 1))
-			len
-			unit
-		if null? str/node [fire [TO_ERROR(script invalid-data) issue]]
-		len: from-binary as red-binary! str
-		stack/pop 1
-		len
+		if len > 8 [do-err]
+		
+		acc: 0
+		p: as byte-ptr! s/offset
+		until [
+			c: 7Fh and string/get-char p unit
+			if any [c = -1 c < as-integer space][do-err]
+			c: c + 1
+			hex: as-integer table/c
+			if hex > 15 [do-err]
+			acc: acc << 4 + hex
+			p: p + unit
+			len: len - 1
+			zero? len
+		] 
+		acc
 	]
 
 	form-signed: func [									;@@ replace with sprintf() call?

@@ -45,6 +45,7 @@ change-dir also what-dir
     append clear qt-tmp-file %./testfile.txt            ;-- fallback to local dir if %TMP% is closed
   ]
 unset 'tmp
+qt-tmp-dir: first split-path qt-tmp-file
 
 ;; group switches
 qt-group-name-not-printed: true

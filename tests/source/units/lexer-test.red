@@ -406,6 +406,8 @@ Red [
 	--test-- "tr-46" --assert [/ #a // #a /// #a hello #a + #a - #a] == transcode {/#a //#a ///#a hello#a +#a -#a}
 	--test-- "tr-47" --assert error? try [transcode "(#abc:)"]
 
+	--test-- "tr-48" --assert [4294967296.0 6442450943.0 8589934592.0 9999999999] == transcode "4294967296 6442450943 8589934592 9999999999"
+
 ===end-group===
 ===start-group=== "transcode/one"
 	--test-- "tro-1"  --assert 8		== transcode/one "8"
