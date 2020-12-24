@@ -819,7 +819,7 @@ red: context [
 	]
 	
 	decorate-symbol: func [name [word!] /no-alias /local pos][
-		if all [not no-alias pos: find/case/skip aliases name 2][name: pos/2]
+		if all [not no-alias not local-word? name pos: find/case/skip aliases name 2][name: pos/2]
 		to word! join "~" clean-lf-flag name
 	]
 	
