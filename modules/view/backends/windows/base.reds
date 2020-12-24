@@ -766,7 +766,6 @@ update-base: func [
 		graphic [integer!]
 		flags	[integer!]
 		ctx		[draw-ctx! value]
-		pdc		[com-ptr! value]
 		this	[this!]
 		surf	[IDXGISurface1]
 		hdc		[ptr-value!]
@@ -843,6 +842,10 @@ imprint-layers-deep: func [
 	cofs 		[red-pair!]		;-- "child" offset - it's position inside the parent
 	chwnd 		[handle!]
 	cvalues		[red-value!]
+	this		[this!]
+	surf		[IDXGISurface1]
+	hdc			[ptr-value!]
+	rc			[RECT_STRUCT value]
 ][
 	if null = values [values: get-face-values hwnd]
 
@@ -851,14 +854,24 @@ imprint-layers-deep: func [
 	sym: symbol/resolve type/symbol
 	if all [sym = base  layered-win? hwnd][
 		draw: as red-block! values + FACE_OBJ_DRAW
-		;TBD make it work
-		;either all [bx = 0 by = 0] [
+#either all [legacy find legacy 'GDI+][
+		either all [bx = 0 by = 0] [
 			;-- paint directly to DC
-		;	do-draw hwnd as red-image! dc draw no no no yes
-		;][
-		;	do-draw hwnd null draw no yes no yes 		;-- paint into RAM
-		;	bitblt-memory-dc hwnd yes dc bx by 			;-- blend back
-		;]
+			do-draw hwnd as red-image! dc draw no no no yes
+		][
+			do-draw hwnd null draw no yes no yes 		;-- paint into RAM
+			bitblt-memory-dc hwnd yes dc bx by null		;-- blend back
+		]
+][	;-- Direct2D backend
+		do-draw hwnd null draw yes no no yes
+		this: get-surface hwnd
+		surf: as IDXGISurface1 this/vtbl
+		surf/GetDC this 0 :hdc
+		bitblt-memory-dc hwnd yes dc bx by hdc/value	;-- blend back
+		rc/left: 0 rc/top: 0 rc/right: 0 rc/bottom: 0	;-- empty RECT
+		surf/ReleaseDC this :rc
+		surf/Release this
+]
 	]
 
 	;-- imprint hwnd's children if any
