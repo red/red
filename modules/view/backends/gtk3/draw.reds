@@ -2016,7 +2016,7 @@ OS-matrix-transform: func [
 	]
 ]
 
-OS-matrix-push: func [
+OS-draw-state-push: func [
 	dc			[draw-ctx!]
 	state		[draw-state!]
 ][
@@ -2024,7 +2024,7 @@ OS-matrix-push: func [
 	copy-memory as byte-ptr! state (as byte-ptr! dc) + 4 size? draw-state!
 ]
 
-OS-matrix-pop: func [
+OS-draw-state-pop: func [
 	dc			[draw-ctx!]
 	state		[draw-state!]
 ][
@@ -2162,6 +2162,10 @@ OS-set-clip: func [
 	cairo_clip cr
 	ctx-matrix-unadapt dc saved
 ]
+
+OS-clip-end: func [
+	ctx		[draw-ctx!]
+][]
 
 ;-- shape sub command --
 
@@ -2625,3 +2629,12 @@ OS-draw-brush-pattern: func [
 
 	cairo_surface_destroy surf
 ]
+
+OS-draw-shadow: func [
+	ctx		[draw-ctx!]
+	offset	[red-pair!]
+	blur	[integer!]
+	spread	[integer!]
+	color	[integer!]
+	inset?	[logic!]
+][0]

@@ -2048,3 +2048,12 @@ OS-draw-brush-pattern: func [
 		dc/grad-pen: -1
 	]
 ]
+
+OS-draw-shadow: func [
+	ctx		[draw-ctx!]
+	offset	[red-pair!]
+	blur	[integer!]
+	spread	[integer!]
+	color	[integer!]
+	inset?	[logic!]
+][0]

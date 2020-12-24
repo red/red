@@ -257,7 +257,7 @@ OS-image: context [
 			node	[img-node!]
 	][
 		node: as img-node! handle
-		stride/value: width/value * 4
+		stride/value: IMAGE_WIDTH(node/size) * 4
 		node/buffer
 	]
 
