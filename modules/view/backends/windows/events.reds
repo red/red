@@ -1167,12 +1167,15 @@ WndProc: func [
 		WM_MOVE
 		WM_SIZE [
 			if msg = WM_SIZE [
+			#either all [legacy find legacy 'GDI+][
+				DX-resize-rt hWnd WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
+			][
 				target: as render-target! GetWindowLong hWnd wc-offset - 36
 				if target <> null [
 					DX-resize-buffer target WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
 					InvalidateRect hWnd null 1
 				]
-			]
+			]]
 			if type = window [
 				if null? current-msg [init-current-msg]
 				if wParam <> SIZE_MINIMIZED [
@@ -1380,7 +1383,15 @@ WndProc: func [
 		WM_PAINT [
 			draw: (as red-block! values) + FACE_OBJ_DRAW
 			if TYPE_OF(draw) = TYPE_BLOCK [
+			#either all [legacy find legacy 'GDI+][
+				either zero? GetWindowLong hWnd wc-offset - 4 [
+					do-draw hWnd null draw no yes yes yes
+				][
+					bitblt-memory-dc hWnd no null 0 0 null
+				]
+			][	
 				draw-window hWnd draw
+			]
 				return 0
 			]
 		]

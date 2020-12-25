@@ -244,8 +244,9 @@ collector: context [
 				#if any [OS = 'macOS OS = 'Linux OS = 'Windows][
 				TYPE_IMAGE [
 					image: as red-image! value
+				#if any [not legacy not find legacy 'GDI+][
 					if image/node <> null [keep image/node]
-				]]
+				]]]
 				default [0]
 			]
 			value: value + 1

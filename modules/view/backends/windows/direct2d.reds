@@ -1638,6 +1638,28 @@ get-ref-cnt: func [
 	unk/Release this
 ]
 
+DX-resize-rt: func [
+	hwnd		[handle!]
+	lParam		[integer!]
+	/local
+		target	[int-ptr!]
+		this	[this!]
+		rt		[ID2D1HwndRenderTarget]
+		y x		[integer!]
+][
+	if (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D <> 0 [
+		target: as int-ptr! GetWindowLong hWnd wc-offset - 36
+		if target <> null [
+			this: as this! target/value
+			rt: as ID2D1HwndRenderTarget this/vtbl
+			x: WIN32_LOWORD(lParam)
+			y: WIN32_HIWORD(lParam)
+			rt/Resize this as tagSIZE :x
+			InvalidateRect hWnd null 1
+		]
+	]
+]
+
 DX-resize-buffer: func [
 	rt				[render-target!]
 	width			[uint!]
@@ -1940,6 +1962,9 @@ d2d-release-target: func [
 	;COM_SAFE_RELEASE(obj target/dcomp-visual)
 	;COM_SAFE_RELEASE(obj target/dcomp-target)
 	;COM_SAFE_RELEASE(obj target/dcomp-device)
+	#if all [legacy find legacy 'GDI+][
+		COM_SAFE_RELEASE(obj target/dc)
+	]
 	free as byte-ptr! target
 ]
 

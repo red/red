@@ -32,6 +32,7 @@ init-base-face: func [
 	opts:	as red-block! values + FACE_OBJ_OPTIONS
 
 	SetWindowLong handle wc-offset - 4 0
+	SetWindowLong handle wc-offset - 12 0
 	SetWindowLong handle wc-offset - 16 parent
 	SetWindowLong handle wc-offset - 20 0
 	SetWindowLong handle wc-offset - 24 0
@@ -40,7 +41,6 @@ init-base-face: func [
 	pt/x: dpi-scale offset/x
 	pt/y: dpi-scale offset/y
 	either alpha? [
-		SetWindowLong handle wc-offset - 12 0
 		unless win8+? [
 			position-base handle as handle! parent :pt
 		]
@@ -53,7 +53,6 @@ init-base-face: func [
 		]
 	][
 		SetWindowLong handle wc-offset - 8 WIN32_MAKE_LPARAM(pt/x pt/y)
-		SetWindowLong handle wc-offset - 12 BASE_FACE_D2D
 	]
 
 	if TYPE_OF(opts) = TYPE_BLOCK [
@@ -474,18 +473,29 @@ BaseWndProc: func [
 		]
 		WM_ERASEBKGND	 [return 1]					;-- drawing in WM_PAINT to avoid flicker
 		WM_SIZE  [
+		#either all [legacy find legacy 'GDI+][
+			either (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D = 0 [
+				unless zero? GetWindowLong hWnd wc-offset + 4 [
+					update-base hWnd null null get-face-values hWnd
+				]
+			][
+				DX-resize-rt hWnd lParam
+			]
+		][
+			;-- Direct2D backend
 			target: as render-target! GetWindowLong hWnd wc-offset - 36
 			if target <> null [
 				DX-resize-buffer target WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
 			]
 			either all [
-				(GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D = 0
+				(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) <> 0
 				0 <> GetWindowLong hWnd wc-offset + 4
 			][
 				update-base hWnd null null get-face-values hWnd
 			][
 				InvalidateRect hWnd null 1
 			]
+		]
 			return 0
 		]
 		0317h	;-- WM_PRINT 			;-- these messages are not actually being used
@@ -495,6 +505,11 @@ BaseWndProc: func [
 			if (WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) = 0 [
 				draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
 				either TYPE_OF(draw) = TYPE_BLOCK [
+					#if all [legacy find legacy 'GDI+][
+					if 0 <> GetWindowLong hWnd wc-offset - 4 [
+						bitblt-memory-dc hWnd no null 0 0 null
+						return 0
+					]]
 					do-draw hWnd null draw no yes yes yes
 				][
 					if null? current-msg [return -1]
@@ -743,6 +758,82 @@ scale-graphic: func [
 	]
 ]
 
+#either all [legacy find legacy 'GDI+][
+update-base: func [
+	hWnd	[handle!]
+	parent	[handle!]
+	ptDst	[tagPOINT]
+	values	[red-value!]
+	/local
+		img		[red-image!]
+		color	[red-tuple!]
+		cmds	[red-block!]
+		text	[red-string!]
+		font	[red-object!]
+		para	[red-object!]
+		sz		[red-pair!]
+		height	[integer!]
+		width	[integer!]
+		size	[tagSIZE]
+		hBitmap [handle!]
+		hBackDC [handle!]
+		ptSrc	[tagPOINT value]
+		bf		[tagBLENDFUNCTION value]
+		graphic [integer!]
+		flags	[integer!]
+][
+	if (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D <> 0 [
+		InvalidateRect hWnd null 0
+		exit
+	]
+
+	flags: GetWindowLong hWnd GWL_EXSTYLE
+	if zero? (flags and WS_EX_LAYERED) [
+		graphic: GetWindowLong hWnd wc-offset - 4
+		DeleteDC as handle! graphic
+		SetWindowLong hWnd wc-offset - 4 0
+		InvalidateRect hWnd null 0
+		exit
+	]
+
+	img:	as red-image!  values + FACE_OBJ_IMAGE
+	color:	as red-tuple!  values + FACE_OBJ_COLOR
+	cmds:	as red-block!  values + FACE_OBJ_DRAW
+	text:	as red-string! values + FACE_OBJ_TEXT
+	font:	as red-object! values + FACE_OBJ_FONT
+	para:	as red-object! values + FACE_OBJ_PARA
+	sz:		as red-pair!   values + FACE_OBJ_SIZE
+	graphic: 0
+
+	width: dpi-scale sz/x
+	height: dpi-scale sz/y
+	hBackDC: CreateCompatibleDC hScreen
+	hBitmap: CreateCompatibleBitmap hScreen width height
+	SelectObject hBackDC hBitmap
+	GdipCreateFromHDC hBackDC :graphic
+	if TYPE_OF(color) = TYPE_TUPLE [				;-- update background
+		update-base-background graphic color width height
+	]
+	GdipSetSmoothingMode graphic GDIPLUS_ANTIALIAS
+	update-base-image graphic img width height
+	update-base-text hWnd graphic hBackDC text font para width height null
+	do-draw null as red-image! graphic cmds yes no no yes
+
+	ptSrc/x: 0
+	ptSrc/y: 0
+	size: as tagSIZE :width
+	bf/BlendOp: as-byte 0
+	bf/BlendFlags: as-byte 0
+	bf/SourceConstantAlpha: as-byte 255
+	bf/AlphaFormat: as-byte 1
+	flags: 2
+	UpdateLayeredWindow hWnd null ptDst size hBackDC :ptSrc 0 :bf flags
+
+	GdipDeleteGraphics graphic
+	DeleteObject hBitmap
+	DeleteDC hBackDC
+]][
+;-- Direct2D backend
 update-base: func [
 	hWnd	[handle!]
 	parent	[handle!]
@@ -821,7 +912,7 @@ update-base: func [
 		DeleteObject hBitmap
 		DeleteDC hBackDC
 	]
-]
+]]
 
 ;-- blends the image of every encountered visible layered window into the DC
 imprint-layers-deep: func [

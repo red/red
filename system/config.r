@@ -37,6 +37,8 @@ REBOL [
 ;;	GUI-engine:		'native						;-- native | test | GTK | ...
 ;;  legacy:			block! of words				;-- flags for OS legacy features support
 ;;		- stat32								;-- use the older stat struct for 32-bit file access.
+;;		- no-touch								;-- no touch support
+;;		- GDI+									;-- use GDI/GDI+ instead of Direct2D
 ;;-------------------------------------------
 
 ;-------------------------
@@ -58,7 +60,7 @@ WindowsXP [
 	format: 	'PE
 	type:		'exe
 	sub-system: 'GUI
-	legacy:		[no-touch]
+	legacy:		[no-touch GDI+]
 ]
 MSDOS-Old [								; pre-Pentium 4 target
 	OS:			'Windows

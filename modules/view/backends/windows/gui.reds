@@ -47,10 +47,10 @@ Red/System [
 #include %text-list.reds
 #include %button.reds
 #include %calendar.reds
-#either legacy = none [
-	#include %draw.reds
+#either all [legacy find legacy 'GDI+][
+	#include %draw-gdi.reds
 ][
-	#include %draw-gdi.reds ;-- for WinXP
+	#include %draw.reds
 ]
 #include %comdlgs.reds
 
@@ -321,12 +321,20 @@ get-text-size: func [
 
 	SelectObject hwnd saved
 	ReleaseDC hwnd dc
-	
+
+#either all [legacy find legacy 'GDI+][
+	size/width:  as integer! ceil (as float! bbox/width)
+][
 	size/width:  as integer! ceil (as float! bbox/width) * 0.96	;-- scale to match Direct2D's width
+]
 	size/height: as integer! ceil as float! bbox/height
 
 	if pair <> null [
+	#either all [legacy find legacy 'GDI+][
+		pair/x: as integer! ceil as float! bbox/width  * (as float32! 100.0) / (as float32! dpi-factor)	
+	][
 		pair/x: as integer! ceil as float! bbox/width  * (as float32! 96.0) / (as float32! dpi-factor)
+	]
 		pair/y: as integer! ceil as float! bbox/height * (as float32! 100.0) / (as float32! dpi-factor)
 	]
 

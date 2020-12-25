@@ -51,10 +51,10 @@ red: context [
 	;--------------------------------------------
 	#switch OS [
 		Windows  [
-			#either legacy = none [
-				#include %platform/image-wic.reds
-			][
+			#either all [legacy find legacy 'GDI+][
 				#include %platform/image-gdiplus.reds
+			][
+				#include %platform/image-wic.reds
 			]
 		]
 		Syllable []
@@ -215,7 +215,7 @@ red: context [
 		money/init
 		ref/init
 		#if OS = 'Windows [								;-- temporary
-			#if legacy = none [
+			#if any [not legacy not find legacy 'GDI+] [
 				OS-image/init
 			]
 			image/init

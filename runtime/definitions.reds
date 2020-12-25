@@ -331,7 +331,7 @@ Red/System [
 		pattern-image-pen		[integer!]
 	]
 
-	#either legacy = none [
+#either any [not legacy not find legacy 'GDI+][
 		sub-path!: alias struct! [
 			path			[integer!]
 			sink			[integer!]

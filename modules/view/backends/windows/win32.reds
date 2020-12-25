@@ -12,7 +12,7 @@ Red/System [
 
 #if dev-mode? = yes [
 	#include %../../../../runtime/platform/COM.reds
-	#either legacy = none [
+	#either all [legacy find legacy 'GDI+][
 		#include %../../../../runtime/platform/image-wic.reds
 	][
 		#include %../../../../runtime/platform/image-gdiplus.reds
@@ -2398,12 +2398,6 @@ XFORM!: alias struct! [
 			y			[integer!]
 			width		[integer!]
 			height		[integer!]
-			return:		[integer!]
-		]
-		GdipCreateBitmapFromHBITMAP: "GdipCreateBitmapFromHBITMAP" [
-			hbmp		[handle!]
-			palette		[integer!]
-			bitmap		[int-ptr!]
 			return:		[integer!]
 		]
 		GdipCreateFromHWND: "GdipCreateFromHWND" [

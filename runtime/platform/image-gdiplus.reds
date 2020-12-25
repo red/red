@@ -230,6 +230,12 @@ OS-image: context [
 				background	[integer!]
 				return:		[integer!]
 			]
+			GdipCreateBitmapFromHBITMAP: "GdipCreateBitmapFromHBITMAP" [
+				hbmp		[handle!]
+				palette		[integer!]
+				bitmap		[int-ptr!]
+				return:		[integer!]
+			]
 		]
 	]
 
@@ -767,16 +773,18 @@ OS-image: context [
 			bitmap	[integer!]
 	][
 		bitmap: 0
-		GdipCreateHBITMAPFromBitmap as-integer img/node :bitmap 0
+		GdipCreateHBITMAPFromBitmap as-integer image/node :bitmap 0
 		bitmap
 	]
 
 	from-HBITMAP: func [
 		hBitmap		[integer!]
 		return:		[red-image!]
+		/local
+			bitmap	[integer!]
 	][
 		bitmap: 0
-		GdipCreateBitmapFromHBITMAP hBitmap 0 :bitmap
+		GdipCreateBitmapFromHBITMAP as handle! hBitmap 0 :bitmap
 		if zero? bitmap [return as red-image! none-value]
 
 		image/init-image as red-image! stack/push* as int-ptr! bitmap
