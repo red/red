@@ -644,11 +644,25 @@ free-faces: func [
 			]
 		]
 		any [sym = window sym = panel sym = base sym = rich-text][
+			#either all [legacy find legacy 'GDI+][
+			if zero? (WS_EX_LAYERED and GetWindowLong handle GWL_EXSTYLE) [
+				dc: GetWindowLong handle wc-offset - 4
+				if dc <> 0 [DeleteDC as handle! dc]			;-- delete cached dc
+			]
+			dc: GetWindowLong handle wc-offset - 36
+			if dc <> 0 [
+				either (GetWindowLong handle wc-offset - 12) and BASE_FACE_IME <> 0 [
+					d2d-release-target as int-ptr! dc
+				][											;-- caret
+					DestroyCaret
+				]
+			]][
+			;-- Direct2D backend
 			dc: GetWindowLong handle wc-offset - 36
 			if dc <> 0 [d2d-release-target as render-target! dc]
 			if (GetWindowLong handle wc-offset - 12) and BASE_FACE_IME <> 0 [
 				DestroyCaret
-			]
+			]]
 		]
 		true [
 			0
