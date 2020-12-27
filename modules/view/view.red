@@ -721,11 +721,16 @@ stop-events: function [
 	system/view/platform/exit-event-loop
 ]
 
-do-safe: func ["Internal Use Only" code [block!] /local result][
-	if error? set/any 'result try/all code [
-		either 'halt-request = set/any 'result catch/name code 'console [stop-events][:result]
-	][print :result]
-	get/any 'result
+do-safe: func ["Internal Use Only" code [block!] /local result error][
+	unset 'result
+	if error? error: try/all [
+		if 'halt-request = catch/name [
+			set/any 'result do code
+			none										;-- catch/name shouldn't be triggered by a word returned
+		] 'console [stop-events]
+		none											;-- try/all shouldn't be triggered by whatever stop-events returns
+	][print :error]
+	:result												;-- unset or result of actor evaluation
 ]
 
 do-actor: function ["Internal Use Only" face [object!] event [event! none!] type [word!] /local result][
