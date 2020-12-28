@@ -120,6 +120,8 @@ Red/System [
 			len		[integer!]
 	][
 		env: as int-ptr! platform/environ
+		#if target = 'ARM [env: as int-ptr! env/value] ;@@ ???
+
 		blk: null
 		len: 0
 
