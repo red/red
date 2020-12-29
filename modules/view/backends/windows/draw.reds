@@ -2082,15 +2082,16 @@ OS-draw-grad-pen-old: func [
 		lprops/startPoint.y: as float32! y
 		lprops/endPoint.x: as float32! x + stop
 		lprops/endPoint.y: as float32! y
-		dc/CreateLinearGradientBrush this lprops null sc/value :brush
+		dc/CreateLinearGradientBrush this :lprops null sc/value :brush
 	][
 		gprops/center.x: as float32! x
 		gprops/center.y: as float32! y
 		gprops/radius.x: as float32! stop - start
 		gprops/radius.y: gprops/radius.x
 		gprops/offset.x: as float32! 0.0
-		gprops/offset.x: as float32! 0.0
-		dc/CreateRadialGradientBrush this gprops null sc/value :brush
+		gprops/offset.y: as float32! 0.0
+		dc/CreateRadialGradientBrush this :gprops null sc/value :brush
+		probe brush/value
 	]
 
 	bthis: brush/value
@@ -2186,7 +2187,13 @@ OS-draw-grad-pen: func [
 
 	dc/CreateGradientStopCollection this grad-stops count 0 wrap :sc
 	either type = linear [
-		either skip-pos? [gtype: DRAW_BRUSH_GRADIENT_SMART][
+		either skip-pos? [
+			gtype: DRAW_BRUSH_GRADIENT_SMART
+			lprops/startPoint.x: F32_0
+			lprops/startPoint.y: F32_0
+			lprops/endPoint.x: as float32! 1.0
+			lprops/endPoint.y: F32_0
+		][
 			gtype: DRAW_BRUSH_GRADIENT
 			pt: as red-pair! positions
 			lprops/startPoint.x: as float32! pt/x
@@ -2197,7 +2204,15 @@ OS-draw-grad-pen: func [
 		]
 		dc/CreateLinearGradientBrush this lprops null sc/value :brush
 	][
-		either skip-pos? [gtype: DRAW_BRUSH_GRADIENT_SMART][
+		either skip-pos? [
+			gtype: DRAW_BRUSH_GRADIENT_SMART
+			gprops/center.x: as float32! 1.0
+			gprops/center.y: as float32! 1.0
+			gprops/radius.x: as float32! 1.0
+			gprops/radius.y: as float32! 1.0
+			gprops/offset.x: as float32! 0.0
+			gprops/offset.y: as float32! 0.0
+		][
 			gtype: DRAW_BRUSH_GRADIENT
 			pt: as red-pair! positions
 			gprops/center.x: as float32! pt/x
@@ -2207,10 +2222,10 @@ OS-draw-grad-pen: func [
 			either focal? [
 				pt: pt + 2
 				gprops/offset.x: as float32! pt/x
-				gprops/offset.x: as float32! pt/y
+				gprops/offset.y: as float32! pt/y
 			][
 				gprops/offset.x: as float32! 0.0
-				gprops/offset.x: as float32! 0.0
+				gprops/offset.y: as float32! 0.0
 			]
 		]
 		dc/CreateRadialGradientBrush this gprops null sc/value :brush
