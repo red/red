@@ -130,8 +130,17 @@ OS-image: context [
 				err 		[handle!]
 				return: 	[logic!]
 			]
-			gdk_pixbuf_save: "gdk_pixbuf_save" [
-				[variadic]
+			;gdk_pixbuf_save: "gdk_pixbuf_save" [
+			;	[variadic]
+			;	return: 	[logic!]
+			;]
+			gdk_pixbuf_savev: "gdk_pixbuf_savev" [
+				pixbuf		[handle!]
+				filename	[c-string!]
+				type		[c-string!]
+				keys		[int-ptr!]
+				values		[int-ptr!]
+				error		[int-ptr!]
 				return: 	[logic!]
 			]
 			gdk_pixbuf_scale_simple: "gdk_pixbuf_scale_simple"  [
@@ -480,8 +489,10 @@ OS-image: context [
 			path		[c-string!]
 			pixbuf		[handle!]
 			err 		[GError!]
+			perr		[ptr-value!]
+			keys		[integer!]
+			vals		[integer!]
 	][
-		err: declare GError!
 		switch format [
 			IMAGE_BMP  [type: "bmp"]
 			IMAGE_PNG  [type: "png"]
@@ -496,7 +507,11 @@ OS-image: context [
 			TYPE_URL
 			TYPE_FILE [
 				path: file/to-OS-path as red-string! slot
-				gdk_pixbuf_save [pixbuf path type err null]
+				keys: 0 vals: 0
+				unless gdk_pixbuf_savev pixbuf path type :keys :vals :perr [
+					err: as GError! perr/value
+					probe ["OS-image/encode error: " err/domain " " err/code " " err/message]
+				]
 			]
 			default [0]
 		]
