@@ -211,6 +211,7 @@ img: make image! 2x2
 		img2: copy img
 		--assert img = img2
 
+	#if config/target <> 'ARM [
 	--test-- "#3769 (#1555 regression)"
 		test-png: qt-tmp-dir/test1555.png
 		save test-png make image! 10x10
@@ -218,6 +219,7 @@ img: make image! 2x2
 		save test-png img
 		delete test-png
 		--assert true
+	]
 
 	--test-- "#4421 case 1"
 		i: make image! [1x1 #{111111}]

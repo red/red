@@ -495,6 +495,7 @@ OS-image: context [
 		switch TYPE_OF(slot) [
 			TYPE_URL
 			TYPE_FILE [
+				perr/value: null
 				path: file/to-OS-path as red-string! slot
 				unless gdk_pixbuf_save [pixbuf path type :perr null] [
 					err: as GError! perr/value
