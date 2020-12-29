@@ -480,8 +480,8 @@ OS-image: context [
 			path		[c-string!]
 			pixbuf		[handle!]
 			err 		[GError!]
+			perr		[ptr-value!]
 	][
-		err: declare GError!
 		switch format [
 			IMAGE_BMP  [type: "bmp"]
 			IMAGE_PNG  [type: "png"]
@@ -496,7 +496,10 @@ OS-image: context [
 			TYPE_URL
 			TYPE_FILE [
 				path: file/to-OS-path as red-string! slot
-				gdk_pixbuf_save [pixbuf path type err null]
+				unless gdk_pixbuf_save [pixbuf path type :perr null] [
+					err: as GError! perr/value
+					probe ["OS-image/encode error: " err/domain " " err/code " " err/message]
+				]
 			]
 			default [0]
 		]
