@@ -561,7 +561,7 @@ reactor!: context [
 		;;  src-word [reaction] none                	 -- used by react (evaluates reaction)
 		;;  src-word [reaction] set-word/object     	 -- used by react/with (evaluates reaction, assigns to a set-word only)
 		relations: []									;-- relations placeholder (hash is ~10x times slower)
-		system/reactivity/on-change-handler context? word word :old :new
+		system/reactivity/on-change-handler self word :old :new
 	]
 ]
 
