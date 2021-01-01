@@ -248,6 +248,27 @@ system/reactivity: context [
 		--measure-- [peak longest-flush time/save]
 	]
 	
+	on-change-handler: function [owner [object!] word [word! set-word!] old [any-type!] new [any-type!]] [
+		sr: system/reactivity
+		sr/--debug-print--/full ["-- react: on-change --" word "FROM" type? :old "TO" type? :new]
+		sr/--measure-- [incr events]
+		if all [
+			not empty? srs: sr/source
+			srs/1 =? owner
+			srs/2 = word
+		][
+			set-quiet in owner word :old				;-- force the old value
+			sr/--measure-- [incr skipped]
+			sr/--debug-print-- ["-- react: protected --" word "VALUE" :old "IN" owner]
+			exit
+		]
+		unless all [series? :old series? :new same? head :old head :new][
+			if any [series? :old object? :old][modify old 'owned none]
+			if any [series? :new object? :new][modify new 'owned reduce [owner word]]
+		]
+		sr/check owner word
+	]
+
 	set 'stop-reactor function [
 		"Forget all relations involving reactor OBJ"
 		obj [object!] "Face or reactor"
@@ -533,37 +554,19 @@ system/reactivity: context [
 ];; system/reactivity
 
 reactor!: context [
-	on-change*: function [word old [any-type!] new [any-type!]] [
+	on-change*: func [word [word! set-word!] old [any-type!] new [any-type!]] [
 		;-- relations format: [reactor word reaction targets]
 		;;  src-word [reaction] set-word            	 -- used by `is` (evaluates reaction, assigns to target)
 		;;  src-word function [func obj1 obj2...]   	 -- used by react/link (evaluates target), one relation for every reactor in both list and func's body
 		;;  src-word [reaction] none                	 -- used by react (evaluates reaction)
 		;;  src-word [reaction] set-word/object     	 -- used by react/with (evaluates reaction, assigns to a set-word only)
 		relations: []									;-- relations placeholder (hash is ~10x times slower)
-
-		sr: system/reactivity		
-		sr/--debug-print--/full ["-- react: on-change --" word "FROM" type? :old "TO" type? :new]
-		sr/--measure-- [incr events]
-		if all [
-			not empty? srs: sr/source
-			srs/1 =? self
-			srs/2 = word
-		][
-			set-quiet in self word :old					;-- force the old value
-			sr/--measure-- [incr skipped]
-			sr/--debug-print-- ["-- react: protected --" word "VALUE" :old "IN" self]
-			exit
-		]
-		unless all [series? :old series? :new same? head :old head :new][
-			if any [series? :old object? :old][modify old 'owned none]
-			if any [series? :new object? :new][modify new 'owned reduce [self word]]
-		]
-		sr/check self word
+		system/reactivity/on-change-handler context? word word :old :new
 	]
 ]
 
 deep-reactor!: make reactor! [
-	on-deep-change*: function [owner word target action new [any-type!] index part][
+	on-deep-change*: func [owner word target action new [any-type!] index part][
 		system/reactivity/check owner word
 	]
 ]
