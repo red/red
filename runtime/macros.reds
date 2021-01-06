@@ -596,9 +596,6 @@ Red/System [
 	] actions/get-action-ptr value ACT_COMPARE
 ]
 
-#define IMAGE_WIDTH(size)  (size and FFFFh) 
-#define IMAGE_HEIGHT(size) (size >> 16)
-
 #if debug? = yes [
 	#define dump4	[dump-hex4 as int-ptr!]
 	#define dump1	[dump-hex  as byte-ptr!]
