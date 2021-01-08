@@ -1774,7 +1774,18 @@ simple-io: context [
 				CFRelease url
 			]
 			path
-		]][#define libcurl-file "libcurl.so.4"]
+		]][
+			#define libcurl-file "libcurl.so.4"
+			#import [
+				LIBC-file cdecl [
+					strcpy: "strcpy" [					"Copy string including tail marker, return target."
+						target			[c-string!]
+						source			[c-string!]
+						return:			[c-string!]
+					]
+				]
+			]
+		]
 
 		#define CURLOPT_URL				10002
 		#define CURLOPT_HTTPGET			80
@@ -1943,12 +1954,12 @@ simple-io: context [
 				slist	[integer!]
 				mp		[red-hash!]
 				blk		[red-block!]
-				str1	[red-string! value]
 				act-str [c-string!]
+				cstr 	[c-string!]
 				saved	[int-ptr!]
 		][
 			case [
-				method = words/get [action: CURLOPT_HTTPGET]
+				method = words/get  [action: CURLOPT_HTTPGET]
 				method = words/post [action: CURLOPT_POST]
 				method = words/head [action: CURLOPT_NOBODY]
 				true [action: CURLOPT_CUSTOMREQUEST]
@@ -1967,14 +1978,12 @@ simple-io: context [
 			bin: binary/make-at stack/push* 4096
 
 			either action = CURLOPT_CUSTOMREQUEST [
-				len: -1
-				s: GET_BUFFER(symbols)
-				copy-cell s/offset + method - 1 as cell! str1
-				str1/header: TYPE_STRING
-				str1/head: 0
-				str1/cache: null
-				act-str: strupr unicode/to-utf8 str1 :len
+				symbol/get method						;-- allocates a node for it
+				cstr: symbol/get-c-string method
+				act-str: as c-string! allocate length? cstr
+				act-str: strupr strcpy act-str cstr
 				curl_easy_setopt curl CURLOPT_CUSTOMREQUEST as-integer act-str
+				free as byte-ptr! act-str
 			][
 				curl_easy_setopt curl action 1
 			]
