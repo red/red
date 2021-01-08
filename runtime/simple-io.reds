@@ -1774,18 +1774,7 @@ simple-io: context [
 				CFRelease url
 			]
 			path
-		]][
-			#define libcurl-file "libcurl.so.4"
-			#import [
-				LIBC-file cdecl [
-					strcpy: "strcpy" [					"Copy string including tail marker, return target."
-						target			[c-string!]
-						source			[c-string!]
-						return:			[c-string!]
-					]
-				]
-			]
-		]
+		]][#define libcurl-file "libcurl.so.4"]
 
 		#define CURLOPT_URL				10002
 		#define CURLOPT_HTTPGET			80
@@ -1811,6 +1800,13 @@ simple-io: context [
 
 		;-- use libcurl, may need to install it on some distros
 		#import [
+			LIBC-file cdecl [
+				strcpy: "strcpy" [					"Copy string including tail marker, return target."
+					target			[c-string!]
+					source			[c-string!]
+					return:			[c-string!]
+				]
+			]
 			libcurl-file cdecl [
 				curl_global_init: "curl_global_init" [
 					flags	[integer!]
