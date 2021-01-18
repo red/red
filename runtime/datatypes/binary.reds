@@ -1088,6 +1088,7 @@ binary: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/compare"]]
 
+		if TYPE_OF(bin2) <> TYPE_BINARY [RETURN_COMPARE_OTHER]
 		equal? bin1 bin2 op no
 	]
 
