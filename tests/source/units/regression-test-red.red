@@ -3117,6 +3117,12 @@ comment {
 	--test-- "#4768"
 		--assert block? body-of :is
 
+	--test-- "#4799"
+		--assert not equal? "foo" #{666F6F}
+		--assert not equal? #{666F6F} "foo"
+		--assert not strict-equal? "foo" #{666F6F}
+		--assert not strict-equal? #{666F6F} "foo"
+
 ===end-group===
 
 ~~~end-file~~~
