@@ -49,8 +49,6 @@ red: context [
 	;-- 	return:  [integer!]
 	;-- ]
 	;--------------------------------------------
-	#define IMAGE_WIDTH(size)  (size and FFFFh) 
-	#define IMAGE_HEIGHT(size) (size >>> 16)
 
 	#switch OS [
 		Windows  [#include %platform/image-gdiplus.reds]

@@ -415,6 +415,9 @@ Red/System [
 	IMAGE_TIFF
 ]
 
+#define IMAGE_WIDTH(size)  (size and FFFFh) 
+#define IMAGE_HEIGHT(size) (size >>> 16)
+
 ;=== Misc definitions ===
 
 lexer-dt-array!: alias struct! [
