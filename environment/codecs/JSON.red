@@ -29,49 +29,6 @@ put system/codecs 'json context [
 
 context [
 	;-----------------------------------------------------------
-	;-- Generic support funcs
-
-	translit: func [
-		"Transliterate sub-strings in a string"
-		string [string!] "Input (modified)"
-		rule   [block! bitset!] "What to change"
-		xlat   [block! function!] "Translation table or function. MUST map a string! to a string!."
-		/local val
-	][
-		parse string [
-			some [
-				change copy val rule (val either block? :xlat [xlat/:val][xlat val])
-				| skip
-			]
-		]
-		string
-	]
-
-	;-----------------------------------------------------------
-	;-- JSON backslash escaping
-
-	;TBD: I think this can be improved. --Gregg
-		
-	json-to-red-escape-table: [
-	;   JSON Red
-		{\"} "^""
-		{\\} "\"
-		{\/} "/"
-		{\b} "^H"   ; #"^(back)"
-		{\f} "^L"   ; #"^(page)"
-		{\n} "^/"
-		{\r} "^M"
-		{\t} "^-"
-	]
-
-	json-esc-ch: charset {"t\/nrbf}             ; Backslash escaped JSON chars
-	json-escaped: [#"\" json-esc-ch]			; Backslash escape rule
-
-	decode-backslash-escapes: func [string [string!] "(modified)"][
-		translit string json-escaped json-to-red-escape-table
-	]
-
-	;-----------------------------------------------------------
 	;-- JSON decoder
 	;-----------------------------------------------------------
 
@@ -113,8 +70,7 @@ context [
 			if not empty? _str: any [_str copy ""] [
 				;!! If we reverse the decode-backslash-escapes and replace-unicode-escapes
 				;!! calls, the string gets munged (extra U+ chars). Need to investigate.
-				decode-backslash-escapes _str			; _str is modified
-				replace-unicode-escapes _str			; _str is modified
+				unescape _str
 				;replace-unicode-escapes decode-backslash-escapes _str
 			]
 		)
@@ -129,19 +85,48 @@ context [
 		attempt [load head change at buf 5 ch]			; Replace 0000 section in buf
 	]
 
-	replace-unicode-escapes: func [
-		s [string!] "(modified)"
-		/local c
+	json-to-red-escape-table: [
+	;   JSON Red
+		{\"} "^""
+		{\\} "\"
+		{\/} "/"
+		{\b} "^H"   ; #"^(back)"
+		{\f} "^L"   ; #"^(page)"
+		{\n} "^/"
+		{\r} "^M"
+		{\t} "^-"
+	]
+
+	json-esc-ch: charset {"t\/nrbf}             ; Backslash escaped JSON chars
+	json-escaped: [#"\" json-esc-ch]			; Backslash escape rule
+
+	translit: func [
+		"Transliterate sub-strings in a string"
+		string [string!] "Input (modified)"
+		rule   [block! bitset!] "What to change"
+		xlat   [block! function!] "Translation table or function. MUST map a string! to a string!."
+		/local val
 	][
-		parse s [
-			any [
-				some chars								; Pass over unescaped chars
-				| json-escaped							; Pass over simple backslash escapes
-				| change ["\u" copy c 4 hex-char] (decode-unicode-char c) ()
-				;| "\u" followed by anything else is an invalid \uXXXX escape
+		parse string [
+			some [
+				change copy val rule (val either block? :xlat [xlat/:val][xlat val])
+				| skip
 			]
 		]
-		s
+		string
+	]
+
+	unescape: function [string [string!] "(modified)"][
+		xlat: json-to-red-escape-table
+		parse string [
+			any [
+				some chars
+			|	change copy val json-escaped (either block? :xlat [xlat/:val][xlat val])
+			|	change ["\u" copy c 4 hex-char] (decode-unicode-char c)
+			|	skip
+			]
+		]
+		string
 	]
 
 	;-----------------------------------------------------------
