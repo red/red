@@ -373,6 +373,7 @@ Red/System [
 			pen-cap			[integer!]
 			pen-grad-type	[integer!]
 			brush-grad-type	[integer!]
+			pen-width		[float32!]
 			pen-offset		[POINT_2F value]
 			brush-offset	[POINT_2F value]
 		]
@@ -386,7 +387,6 @@ Red/System [
 			DRAW_STATE_DATA
 			target			[int-ptr!]
 			hwnd			[int-ptr!]			;-- Window's handle
-			pen-width		[float32!]
 			pen-style		[this!]
 			image			[int-ptr!]			;-- original image handle
 			pre-order?		[logic!]			;-- matrix order, default pre-order for row-major vector

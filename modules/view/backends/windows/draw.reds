@@ -1952,7 +1952,7 @@ OS-draw-brush-pattern: func [
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
-	dc/EndDraw this null null
+	;dc/EndDraw this null null
 	dc/CreateCommandList this :list
 	cthis: list/value
 
@@ -1960,20 +1960,20 @@ OS-draw-brush-pattern: func [
 	clip-n: ctx/clip-cnt
 
 	dc/SetTarget this cthis
-	dc/BeginDraw this
+	;dc/BeginDraw this
 	OS-draw-state-push ctx :state
 	parse-draw ctx block no
 	n: ctx/clip-cnt - clip-n
 	loop n [OS-clip-end ctx]
 	OS-draw-state-pop ctx :state
-	dc/EndDraw this null null
+	;dc/EndDraw this null null
 
 	cmd: as ID2D1CommandList cthis/vtbl
 	cmd/Close cthis
 
 	ctx/clip-cnt: clip-n
 	dc/SetTarget this old-bmp/value	
-	dc/BeginDraw this
+	;dc/BeginDraw this
 
 	_OS-draw-brush-bitmap ctx cthis size/x size/y crop-1 crop-2 mode brush?
 	cmd/Release cthis
@@ -2313,6 +2313,7 @@ OS-clip-end: func [
 		dc		[ID2D1DeviceContext]
 		this	[this!]
 ][
+	ctx/clip-cnt: ctx/clip-cnt - 1
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
 	dc/PopLayer this
