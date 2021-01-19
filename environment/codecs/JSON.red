@@ -10,21 +10,6 @@ Red [
 	}
 ]
 
-put system/codecs 'json context [
-    Title:     "JSON codec"
-    Name:      'JSON
-    Mime-Type: [application/json]
-    Suffixes:  [%.json]
-    encode: func [data [any-type!] where [file! url! none!]] [
-        to-json data
-    ]
-    decode: func [text [string! binary! file!]] [
-        if file? text [text: read text]
-        if binary? text [text: to string! text]
-        load-json text
-    ]
-]
-
 ; -- load-json
 
 context [
@@ -67,7 +52,7 @@ context [
 		#"^"" _s:
 			any [some chars | #"\" [#"u" 4 hex-char | json-esc-ch]]
 		_e: #"^""
-		(_str: either _s =? _e [copy ""][unescape _s _e])
+		(_str: either _s =? _e [copy ""][unescape copy/part _s _e])
 	]
 
 	decode-unicode-char: func [
@@ -96,17 +81,70 @@ context [
 		]
 	]
 
-	unescape: function ["returns a new string" s [string!] e [string!]][
-		r: make string! offset? s e
-		rule: [
-			collect into r any [
-				keep some chars
-			|	json-to-red-escape-table
-			|	keep skip
+	unescape: routine [
+		str [string!] "(modified)"
+		return: [string!]
+		/local
+			s s2 [series!]
+			src tail [byte-ptr!]
+			unit index c1 c2 dst [integer!]
+	][
+		s: GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		src: (as byte-ptr! s/offset) + (str/head << (log-b unit))
+		dst: str/head
+		tail: as byte-ptr! s/tail
+		while [src < tail] [
+			c1: string/get-char src unit
+			as-byte c1
+			src: src + unit
+			either c1 <> as-integer #"\" [
+				string/overwrite-char s dst c1
+				dst: dst + 1
+			][
+				c2: string/get-char src unit
+				as-byte c2
+				src: src + unit
+				c2: switch c2 [
+					#"^"" #"\" #"/" [c2]
+					#"b" #"B" [as-integer #"^H"]   ; #"^(back)"
+					#"f" #"F" [as-integer #"^L"]   ; #"^(page)"
+					#"n" #"N" [as-integer #"^/"]
+					#"r" #"R" [as-integer #"^M"]
+					#"t" #"T" [as-integer #"^-"]
+					#"u" #"U" [
+						c2: 0
+						loop 4 [
+							c1: string/get-char src unit
+							src: src + unit
+							case [
+								all [(as-integer #"0") <= c1 c1 <= (as-integer #"9")] [c1: c1 - as-integer #"0"]
+								all [(as-integer #"A") <= c1 c1 <= (as-integer #"F")] [c1: c1 - as-integer #"7"]	;-- #"7" = #"A" - 10
+								all [(as-integer #"a") <= c1 c1 <= (as-integer #"f")] [c1: c1 - as-integer #"W"]	;-- #"W" = #"a" - 10
+								true [fire [TO_ERROR(script invalid-char) char/push c1]]
+							]
+							c2: c2 << 4 + c1
+						]
+						c2
+					]
+					default [							;-- pass both chars
+						string/overwrite-char s dst c1
+						dst: dst + 1
+					]
+				]
+				s2: string/overwrite-char s dst c2
+				dst: dst + 1
+				if s <> s2 [							;-- 's' could have been expanded
+					index: (as-integer src - (as byte-ptr! s/offset)) >> (log-b unit)
+					unit: GET_UNIT(s2)
+					src: (as byte-ptr! s2/offset) + (index << (log-b unit))
+					tail: as byte-ptr! s2/tail
+					s: s2
+				]
 			]
 		]
-		parse/part s rule e
-		r
+		s/tail: as red-value! (as byte-ptr! s/offset) + (dst << (log-b unit))
+		str
 	]
 
 	;-----------------------------------------------------------
@@ -344,5 +382,20 @@ context [
         result: make string! 4000
         init-state indent ascii
         red-to-json-value result data
+    ]
+]
+
+put system/codecs 'json context [
+    Title:     "JSON codec"
+    Name:      'JSON
+    Mime-Type: [application/json]
+    Suffixes:  [%.json]
+    encode: func [data [any-type!] where [file! url! none!]] [
+        to-json data
+    ]
+    decode: func [text [string! binary! file!]] [
+        if file? text [text: read text]
+        if binary? text [text: to string! text]
+        load-json text
     ]
 ]
