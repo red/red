@@ -64,16 +64,10 @@ context [
 	;-----------------------------------------------------------
 	;-- String
 	string-literal: [
-		#"^"" copy _str [
+		#"^"" _s:
 			any [some chars | #"\" [#"u" 4 hex-char | json-esc-ch]]
-		] #"^"" (
-			if not empty? _str: any [_str copy ""] [
-				;!! If we reverse the decode-backslash-escapes and replace-unicode-escapes
-				;!! calls, the string gets munged (extra U+ chars). Need to investigate.
-				unescape _str
-				;replace-unicode-escapes decode-backslash-escapes _str
-			]
-		)
+		_e: #"^""
+		(_str: either _s =? _e [copy ""][unescape _s _e])
 	]
 
 	decode-unicode-char: func [
@@ -81,52 +75,38 @@ context [
 		ch [string!] "4 hex digits"
 	][
 		buf: {#"^^(0000)"}								; Don't COPY buffer, reuse it
-		if not parse ch [4 hex-char] [return none]		; Validate input data
-		attempt [load head change at buf 5 ch]			; Replace 0000 section in buf
-	]
-
-	json-to-red-escape-table: [
-	;   JSON Red
-		{\"} "^""
-		{\\} "\"
-		{\/} "/"
-		{\b} "^H"   ; #"^(back)"
-		{\f} "^L"   ; #"^(page)"
-		{\n} "^/"
-		{\r} "^M"
-		{\t} "^-"
+		append append/part clear at buf 5 ch 4 {)"}		; Replace 0000 section in buf
+		attempt [transcode/one buf]
 	]
 
 	json-esc-ch: charset {"t\/nrbf}             ; Backslash escaped JSON chars
 	json-escaped: [#"\" json-esc-ch]			; Backslash escape rule
 
-	translit: func [
-		"Transliterate sub-strings in a string"
-		string [string!] "Input (modified)"
-		rule   [block! bitset!] "What to change"
-		xlat   [block! function!] "Translation table or function. MUST map a string! to a string!."
-		/local val
-	][
-		parse string [
-			some [
-				change copy val rule (val either block? :xlat [xlat/:val][xlat val])
-				| skip
-			]
+	json-to-red-escape-table: [
+		#"\" [
+			keep #"^""
+		|	keep #"\"
+		|	keep #"/"
+		|	#"b"  keep (#"^H")   ; #"^(back)"
+		|	#"f"  keep (#"^L")   ; #"^(page)"
+		|	#"n"  keep (#"^/")
+		|	#"r"  keep (#"^M")
+		|	#"t"  keep (#"^-")
+		|	#"u"  _s: 4 hex-char keep (decode-unicode-char _s)
 		]
-		string
 	]
 
-	unescape: function [string [string!] "(modified)"][
-		xlat: json-to-red-escape-table
-		parse string [
-			any [
-				some chars
-			|	change copy val json-escaped (either block? :xlat [xlat/:val][xlat val])
-			|	change ["\u" copy c 4 hex-char] (decode-unicode-char c)
-			|	skip
+	unescape: function ["returns a new string" s [string!] e [string!]][
+		r: make string! offset? s e
+		rule: [
+			collect into r any [
+				keep some chars
+			|	json-to-red-escape-table
+			|	keep skip
 			]
 		]
-		string
+		parse/part s rule e
+		r
 	]
 
 	;-----------------------------------------------------------
@@ -201,6 +181,7 @@ context [
 	_res: none	; The current output position where new values are inserted
 	_tmp: none  ; Temporary
 	_str: none	; Where string value parse results go               
+	_s: _e: none	; String end markers
 	mark: none	; Current parse position
 	
 	; Add a new value to our output target, and set the position for
