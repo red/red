@@ -214,6 +214,15 @@ Red [
     --test-- "json-codec-3"
         --assert {{"a":{"b":{"c":3,"d":4}}}} = save/as none #("a" #("b" #("c" 3 "d" 4))) 'json
 
+    --test-- "json-codec-4"
+        str: copy ""
+        random/seed 1337
+        loop 1'000'000 [append str random #"^(110)"]
+        save/as bin: #{} str 'json
+        str2: load/as bin 'json
+        --assert str == str2
+        unset [str str2 bin]
+
 ===end-group===
 
 ~~~end-file~~~
