@@ -31,34 +31,6 @@ context [
 	;-----------------------------------------------------------
 	;-- Generic support funcs
 
-	BOM: [
-		UTF-8		#{EFBBBF}
-		UTF-16-BE	#{FEFF}
-		UTF-16-LE	#{FFFE}
-		UTF-32-BE	#{0000FEFF}
-		UTF-32-LE	#{FFFE0000}
-	]
-
-	BOM-UTF-16?: func [data [string! binary!]][
-		any [find/match data BOM/UTF-16-BE  find/match data BOM/UTF-16-LE]
-	]
-
-	BOM-UTF-32?: func [data [string! binary!]][
-		any [find/match data BOM/UTF-32-BE  find/match data BOM/UTF-32-LE]
-	]
-
-
-	; MOLD adds quotes string!, but not all any-string! values.
-	enquote: func [str [string!] "(modified)"][append insert str {"} {"}]
-
-	high-surrogate?: func [codepoint [integer!]][
-        all [codepoint >= D800h  codepoint <= DBFFh]
-    ]
-    
-	low-surrogate?: func [codepoint [integer!]][
-        all [codepoint >= DC00h  codepoint <= DFFFh]
-    ]
-    
 	translit: func [
 		"Transliterate sub-strings in a string"
 		string [string!] "Input (modified)"
@@ -91,21 +63,14 @@ context [
 		{\r} "^M"
 		{\t} "^-"
 	]
-	red-to-json-escape-table: reverse copy json-to-red-escape-table
-	
+
 	json-esc-ch: charset {"t\/nrbf}             ; Backslash escaped JSON chars
 	json-escaped: [#"\" json-esc-ch]			; Backslash escape rule
-	red-esc-ch: charset {^"^-\/^/^M^H^L}        ; Red chars requiring JSON backslash escapes
 
 	decode-backslash-escapes: func [string [string!] "(modified)"][
 		translit string json-escaped json-to-red-escape-table
 	]
 
-	encode-backslash-escapes: func [string [string!] "(modified)"][
-		translit string red-esc-ch red-to-json-escape-table
-	]
-
-	ctrl-char: charset [#"^@" - #"^_"]			; Control chars 0-31
 	;-----------------------------------------------------------
 	;-- JSON decoder
 	;-----------------------------------------------------------
@@ -178,9 +143,6 @@ context [
 		]
 		s
 	]
-	;str: {\/\\\"\uCAFE\uBABE\uAB98\uFCDE\ubcda\uef4A\b\f\n\r\t`1~!@#$%&*()_+-=[]{}|;:',./<>?}
-	;mod-str: decode-backslash-escapes json-ctx/replace-unicode-escapes copy str
-	;mod-str: json-ctx/replace-unicode-escapes decode-backslash-escapes copy str
 
 	;-----------------------------------------------------------
 	;-- Object		
