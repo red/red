@@ -107,12 +107,12 @@ context [
 				src: src + unit
 				c2: switch c2 [
 					#"^"" #"\" #"/" [c2]
-					#"b" #"B" [as-integer #"^H"]   ; #"^(back)"
-					#"f" #"F" [as-integer #"^L"]   ; #"^(page)"
-					#"n" #"N" [as-integer #"^/"]
-					#"r" #"R" [as-integer #"^M"]
-					#"t" #"T" [as-integer #"^-"]
-					#"u" #"U" [
+					#"b" [as-integer #"^H"]   ; #"^(back)"
+					#"f" [as-integer #"^L"]   ; #"^(page)"
+					#"n" [as-integer #"^/"]
+					#"r" [as-integer #"^M"]
+					#"t" [as-integer #"^-"]
+					#"u" [
 						c2: 0
 						loop 4 [
 							c1: string/get-char src unit
