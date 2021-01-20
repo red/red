@@ -193,6 +193,14 @@ Red [
         str: {{"tag":"value","<tag":"value",">tag":"value","tag<":"value","<tag<":"value",">tag<":"value","tag>":"value","<tag>":"value",">tag>":"value","a<tag>b":"value"}}
         --assert res = load-json str
 
+    --test-- "load-json-23"         ;-- crash test for strings divisable by 16
+        s: "1234567812345678"
+        --assert s = load/as mold s 'json
+
+    --test-- "load-json-24"         ;-- crash test
+        o: load/as {{"location": "関西    ↓詳しいプロ↓"}} 'json
+        --assert o/location = "関西    ↓詳しいプロ↓"
+
 ===end-group===
 
 ===start-group=== "json-codec"
