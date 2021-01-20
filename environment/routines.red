@@ -151,6 +151,31 @@ count-chars: routine [
 	c
 ]
 
+stack-size?: routine [return: [integer!]][
+	(as-integer stack/top - stack/bottom) >> 4
+]
+
+pick-stack: routine [
+	idx [integer!]
+][
+	either all [idx > 0 idx < stack-size?][
+		stack/set-last stack/bottom + idx - 1
+	][
+		SET_RETURN(none-value)
+	]
+]
+
+get-frame-symbol: routine [
+	idx [integer!]
+][
+	
+]
+
+frame-index?: routine [return: [integer!]][
+	(as-integer stack/arguments - stack/bottom) >> 4
+]
+
+
 ;-- Temporary definition --
 
 read-clipboard: routine [

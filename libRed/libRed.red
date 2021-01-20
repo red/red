@@ -329,7 +329,7 @@ Red [
 		
 		TRAP_ERRORS(names/redDoFile [
 			stack/push as red-value! file
-			natives/do* yes -1 -1 -1
+			natives/do* yes -1 -1 -1 -1
 			stack/unwind-last
 		])
 	]

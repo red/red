@@ -720,6 +720,14 @@ words: context [
 	_load:			as red-word! 0
 	_error:			as red-word! 0
 	_comment:		as red-word! 0
+
+	;-- interpreter events
+	_exec:			as red-word! 0
+	_return:		as red-word! 0
+	_begin:			as red-word! 0
+	_enter:			as red-word! 0
+	_exit:			as red-word! 0
+	_tracer:		as red-word! 0
 	
 	errors: context [
 		_throw:		as red-word! 0
@@ -976,6 +984,14 @@ words: context [
 		_load:			word/load "load"
 		_error:			word/load "error"
 		_comment:		word/load "comment"
+
+		;-- interpreter events
+		_exec:			word/load "exec"
+		_return:		word/load "return"
+		_begin:			word/load "begin"
+		_enter:			word/load "enter"
+		_exit:			word/load "exit"
+		_tracer:		word/load "tracer"
 		
 		errors/throw:	 word/load "throw"
 		errors/note:	 word/load "note"

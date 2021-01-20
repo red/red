@@ -282,9 +282,23 @@ system: context [
 		interpreted?: func ["Return TRUE if called from the interpreter"][
 			#system [logic/box stack/eval? null no]
 		]
-		
+		stack: make block! 20
 		last-error: none
 		trace: 1										;-- 0: disabled
+		
+		tracer: function [
+			event [word!]
+			code  [block! none!]
+			value [any-type!]
+			frame [pair!]               ;-- current frame start, top
+		][
+			print ["->" event all [code index? code] mold/part get/any 'value 12]
+			if frame/1 <> frame/2 [
+				print "^---- stack ---"
+				repeat i frame/2 - frame/1 [prin tab print mold/part/flat pick-stack i + frame/1 50]
+				print "^----"
+				]
+		]
 	]
 	
 	modules: make block! 8

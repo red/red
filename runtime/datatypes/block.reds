@@ -100,6 +100,20 @@ block: context [
 		copy-cell value ALLOC_TAIL(blk)
 	]
 	
+	rs-remove-last: func [
+		blk 	[red-block!]
+		/local
+			s	[series!]
+	][
+		s: GET_BUFFER(blk)
+		if s/offset < s/tail [
+			s/tail: s/tail - 1
+			if s/offset + blk/head > s/tail [
+				blk/head: (as-integer s/tail - s/offset) >> 4
+			]
+		]
+	]
+	
 	rs-append-block: func [
 		blk		[red-block!]
 		blk2	[red-block!]

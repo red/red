@@ -533,31 +533,40 @@ natives: context [
 		expand? [integer!]
 		args 	[integer!]
 		next	[integer!]
+		trace	[integer!]
 		return: [integer!]
 		/local
 			cframe [byte-ptr!]
 			arg	   [red-value!]
 			do-arg [red-value!]
+			fun	   [red-function!]
 			slot   [red-value!]
 			blk	   [red-block!]
 			job	   [red-value!]
 			pos	   [integer!]
 	][
-		#typecheck [do expand? args next]
+		#typecheck [do expand? args next trace]
 		arg: stack/arguments
 		cframe: stack/get-ctop							;-- save the current call frame pointer
 		do-arg: stack/arguments + args
+		fun: 	as red-function! stack/arguments + trace
 		
 		if OPTION?(do-arg) [
 			copy-cell do-arg #get system/script/args
 		]
+		if OPTION?(fun) [
+			;if interpreter/trace-fun <> null [fire [TO_ERROR()...]]
+			interpreter/fun-locs: _function/count-locals fun/spec 0 no
+			interpreter/trace-fun: fun
+			interpreter/trace?: yes
+		]
 		if next > 0 [slot: _context/get as red-word! stack/arguments + next]
 		
-		catch RED_THROWN_BREAK [
+		catch RED_THROWN_ERROR [
 			switch TYPE_OF(arg) [
 				TYPE_BLOCK [DO_EVAL_BLOCK]
 				TYPE_PATH  [
-					interpreter/eval-path arg arg arg + 1 no no no no
+					interpreter/eval-path arg arg arg + 1 null no no no no
 				]
 				TYPE_STRING [
 					lexer/scan-alt arg as red-string! arg -1 no yes yes no null null null
@@ -568,9 +577,12 @@ natives: context [
 				TYPE_ERROR [
 					stack/throw-error as red-object! arg
 				]
-				default [interpreter/eval-expression arg arg + 1 no no yes]
+				default [interpreter/eval-expression arg arg + 1 null no no yes]
 			]
 		]
+		interpreter/trace-fun: null						;-- force it in case `stop` was used
+		interpreter/trace?: no
+		
 		switch system/thrown [
 			RED_THROWN_BREAK
 			RED_THROWN_CONTINUE
@@ -600,7 +612,7 @@ natives: context [
 		
 		switch TYPE_OF(value) [
 			TYPE_ANY_PATH [
-				interpreter/eval-path value null null no yes no case? <> -1
+				interpreter/eval-path value null null null no yes no case? <> -1
 			]
 			TYPE_OBJECT [
 				object/reflect as red-object! value words/values
@@ -643,7 +655,7 @@ natives: context [
 			TYPE_ANY_PATH [
 				value: stack/push stack/arguments
 				copy-cell stack/arguments + 1 stack/arguments
-				interpreter/eval-path value null null yes yes no case? <> -1
+				interpreter/eval-path value null null null yes yes no case? <> -1
 			]
 			TYPE_OBJECT [
 				object/set-many as red-object! w value any? only? some?
@@ -931,7 +943,7 @@ natives: context [
 			][
 				stack/set-last arg
 			][
-				interpreter/eval-expression arg arg + 1 no yes no ;-- for non block! values
+				interpreter/eval-expression arg arg + 1 null no yes no ;-- for non block! values
 			]
 			if into? [either append? [block/append*][actions/insert* -1 0 -1]]
 		]
