@@ -1167,7 +1167,7 @@ WndProc: func [
 		WM_MOVE
 		WM_SIZE [
 			if msg = WM_SIZE [
-			#either all [legacy find legacy 'GDI+][
+			#either draw-engine = 'GDI+ [
 				DX-resize-rt hWnd WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
 			][
 				target: as render-target! GetWindowLong hWnd wc-offset - 36
@@ -1383,7 +1383,7 @@ WndProc: func [
 		WM_PAINT [
 			draw: (as red-block! values) + FACE_OBJ_DRAW
 			if TYPE_OF(draw) = TYPE_BLOCK [
-			#either all [legacy find legacy 'GDI+][
+			#either draw-engine = 'GDI+ [
 				either zero? GetWindowLong hWnd wc-offset - 4 [
 					do-draw hWnd null draw no yes yes yes
 				][

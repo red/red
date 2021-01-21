@@ -473,7 +473,7 @@ BaseWndProc: func [
 		]
 		WM_ERASEBKGND	 [return 1]					;-- drawing in WM_PAINT to avoid flicker
 		WM_SIZE  [
-		#either all [legacy find legacy 'GDI+][
+		#either draw-engine = 'GDI+ [
 			either (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D = 0 [
 				unless zero? GetWindowLong hWnd wc-offset + 4 [
 					update-base hWnd null null get-face-values hWnd
@@ -505,7 +505,7 @@ BaseWndProc: func [
 			if (WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) = 0 [
 				draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
 				either TYPE_OF(draw) = TYPE_BLOCK [
-					#if all [legacy find legacy 'GDI+][
+					#if draw-engine = 'GDI+ [
 					if 0 <> GetWindowLong hWnd wc-offset - 4 [
 						bitblt-memory-dc hWnd no null 0 0 null
 						return 0
@@ -758,7 +758,7 @@ scale-graphic: func [
 	]
 ]
 
-#either all [legacy find legacy 'GDI+][
+#either draw-engine = 'GDI+ [
 update-base: func [
 	hWnd	[handle!]
 	parent	[handle!]
@@ -945,7 +945,7 @@ imprint-layers-deep: func [
 	sym: symbol/resolve type/symbol
 	if all [sym = base  layered-win? hwnd][
 		draw: as red-block! values + FACE_OBJ_DRAW
-#either all [legacy find legacy 'GDI+][
+#either draw-engine = 'GDI+ [
 		either all [bx = 0 by = 0] [
 			;-- paint directly to DC
 			do-draw hwnd as red-image! dc draw no no no yes

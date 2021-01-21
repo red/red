@@ -35,10 +35,10 @@ REBOL [
 ;;  red-help?:		no							;-- yes => keep doc-strings from boot.red
 ;;	gui-console?:	no							;-- yes => redirect printing to gui console (temporary)
 ;;	GUI-engine:		'native						;-- native | test | GTK | ...
+;;	draw-engine:	none						;-- none => use the best one on the OS, GDI+ => use GDI+ on Windows
 ;;  legacy:			block! of words				;-- flags for OS legacy features support
 ;;		- stat32								;-- use the older stat struct for 32-bit file access.
 ;;		- no-touch								;-- no touch support
-;;		- GDI+									;-- use GDI/GDI+ instead of Direct2D
 ;;-------------------------------------------
 
 ;-------------------------
@@ -60,7 +60,8 @@ WindowsXP [
 	format: 	'PE
 	type:		'exe
 	sub-system: 'GUI
-	legacy:		[no-touch GDI+]
+	legacy:		[no-touch]
+	draw-engine: 'GDI+
 ]
 MSDOS-Old [								; pre-Pentium 4 target
 	OS:			'Windows

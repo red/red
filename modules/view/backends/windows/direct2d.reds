@@ -1962,7 +1962,7 @@ d2d-release-target: func [
 	;COM_SAFE_RELEASE(obj target/dcomp-visual)
 	;COM_SAFE_RELEASE(obj target/dcomp-target)
 	;COM_SAFE_RELEASE(obj target/dcomp-device)
-	#if all [legacy find legacy 'GDI+][
+	#if draw-engine = 'GDI+ [
 		COM_SAFE_RELEASE(obj target/dc)
 	]
 	free as byte-ptr! target

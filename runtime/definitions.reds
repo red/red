@@ -331,7 +331,7 @@ Red/System [
 		pattern-image-pen		[integer!]
 	]
 
-#either any [not legacy not find legacy 'GDI+][
+#either draw-engine = none [
 		sub-path!: alias struct! [
 			path			[integer!]
 			sink			[integer!]

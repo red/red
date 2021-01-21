@@ -51,10 +51,9 @@ red: context [
 	;--------------------------------------------
 	#switch OS [
 		Windows  [
-			#either all [legacy find legacy 'GDI+][
-				#include %platform/image-gdiplus.reds
-			][
-				#include %platform/image-wic.reds
+			#switch draw-engine [
+				GDI+	 [#include %platform/image-gdiplus.reds]
+				#default [#include %platform/image-wic.reds]
 			]
 		]
 		Syllable []
@@ -215,9 +214,7 @@ red: context [
 		money/init
 		ref/init
 		#if OS = 'Windows [								;-- temporary
-			#if any [not legacy not find legacy 'GDI+] [
-				OS-image/init
-			]
+			#if draw-engine <> 'GDI+ [OS-image/init]
 			image/init
 		]
 		#if OS = 'macOS   [image/init]					;-- temporary

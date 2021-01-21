@@ -12,10 +12,9 @@ Red/System [
 
 #if dev-mode? = yes [
 	#include %../../../../runtime/platform/COM.reds
-	#either all [legacy find legacy 'GDI+][
-		#include %../../../../runtime/platform/image-gdiplus.reds
-	][
-		#include %../../../../runtime/platform/image-wic.reds
+	#switch draw-engine [
+		GDI+	 [#include %../../../../runtime/platform/image-gdiplus.reds]
+		#default [#include %../../../../runtime/platform/image-wic.reds]
 	]
 ]
 

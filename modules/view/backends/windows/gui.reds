@@ -47,7 +47,7 @@ Red/System [
 #include %text-list.reds
 #include %button.reds
 #include %calendar.reds
-#either all [legacy find legacy 'GDI+][
+#either draw-engine = 'GDI+ [
 	#include %draw-gdi.reds
 ][
 	#include %draw.reds
@@ -322,7 +322,7 @@ get-text-size: func [
 	SelectObject hwnd saved
 	ReleaseDC hwnd dc
 
-#either all [legacy find legacy 'GDI+][
+#either draw-engine = 'GDI+ [
 	size/width:  as integer! ceil (as float! bbox/width)
 ][
 	size/width:  as integer! ceil (as float! bbox/width) * 0.96	;-- scale to match Direct2D's width
@@ -330,7 +330,7 @@ get-text-size: func [
 	size/height: as integer! ceil as float! bbox/height
 
 	if pair <> null [
-	#either all [legacy find legacy 'GDI+][
+	#either draw-engine = 'GDI+ [
 		pair/x: as integer! ceil as float! bbox/width  * (as float32! 100.0) / (as float32! dpi-factor)	
 	][
 		pair/x: as integer! ceil as float! bbox/width  * (as float32! 96.0) / (as float32! dpi-factor)
@@ -644,7 +644,7 @@ free-faces: func [
 			]
 		]
 		any [sym = window sym = panel sym = base sym = rich-text][
-			#either all [legacy find legacy 'GDI+][
+			#either draw-engine = 'GDI+ [
 			if zero? (WS_EX_LAYERED and GetWindowLong handle GWL_EXSTYLE) [
 				dc: GetWindowLong handle wc-offset - 4
 				if dc <> 0 [DeleteDC as handle! dc]			;-- delete cached dc
@@ -652,7 +652,7 @@ free-faces: func [
 			dc: GetWindowLong handle wc-offset - 36
 			if dc <> 0 [
 				either (GetWindowLong handle wc-offset - 12) and BASE_FACE_IME <> 0 [
-					d2d-release-target as int-ptr! dc
+					d2d-release-target as render-target! dc
 				][											;-- caret
 					DestroyCaret
 				]

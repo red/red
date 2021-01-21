@@ -2091,7 +2091,6 @@ OS-draw-grad-pen-old: func [
 		gprops/offset.x: as float32! 0.0
 		gprops/offset.y: as float32! 0.0
 		dc/CreateRadialGradientBrush this :gprops null sc/value :brush
-		probe brush/value
 	]
 
 	bthis: brush/value
