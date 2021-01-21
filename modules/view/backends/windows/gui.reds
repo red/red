@@ -1585,6 +1585,7 @@ OS-make-view: func [
 			sym = toggle
 		][
 			init-button handle values
+			if sym = toggle [set-logic-state handle as red-logic! data no]
 		]
 		sym = group-box [
 			flags: flags or WS_GROUP or BS_GROUPBOX
