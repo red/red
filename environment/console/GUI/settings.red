@@ -226,6 +226,6 @@ load-cfg: func [/local cfg-content gui-default][
 		append cfg [history: []]
 	]
 	apply-cfg
-	win/selected: console
 	system/view/auto-sync?: yes
+	win/selected: console
 ]
