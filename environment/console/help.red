@@ -131,7 +131,7 @@ help-ctx: context [
 			any-object? value    [fmt words-of value]
 			map? value           [fmt keys-of value]
 			image? value         [fmt form reduce ["size:" value/size]]
-			typeset? value       [fmt to block! value]
+			typeset? value       [fmt mold to block! value] ; blockify to remove "make typeset!" part, mold so fmt doesn't truncate it.
 			string? value        [fmt/molded value]
 			'else                [fmt :value]
 		]
