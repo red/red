@@ -1090,7 +1090,6 @@ change-selection: func [
 			objc_msgSend [
 				hWnd sel_getUid "selectRowIndexes:byExtendingSelection:" idx no
 			]
-			objc_msgSend [idx sel_getUid "release"]
 		]
 		any [type = drop-list type = drop-down][
 			sz: -1 + objc_msgSend [hWnd sel_getUid "numberOfItems"]
