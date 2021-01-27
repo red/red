@@ -556,10 +556,11 @@ pad: func [
 	return:	[string!]	"Modified input string at head"
 ][
 	unless string? str [str: form str]
-	head insert/dup
+	insert/dup
 		any [all [left str] tail str]
 		any [c #" "]
 		(n - length? str)
+	str													;-- returns the string at original offset
 ]
 
 mod: func [
