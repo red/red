@@ -16,13 +16,12 @@ view [
 
    	below left
    	button "ok" base green text "4" 
+   	button "ok"
+    across base yellow 350x250 text "5"
 
-   	across 
-   	button "ok" base yellow 350x250 text "5"
+   	button "ok"
+    below center base green text "6" return
 
-    below center
-   	button "ok" base green text "6" return
-
-   	below right
-   	button "ok" base green text "7" return
+   	button "ok"
+    below right base green text "7" return
 ]

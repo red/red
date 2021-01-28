@@ -681,8 +681,6 @@ board: layout [
     below
     label: text "" 400 font [size: 16]
     canvas: base 700x400
-    below
-    across
     btn-prev: button "previous" [ 
         unless btn-next/enabled? [ btn-next/enabled?: true ]
         either index > 2 [
@@ -692,6 +690,7 @@ board: layout [
             show canvas
         ][ btn-prev/enabled?: false ]
     ]
+    across
     btn-next: button "next" [
         unless btn-prev/enabled? [ btn-prev/enabled?: true ]
         either index < length? drawings [

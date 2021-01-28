@@ -31,13 +31,14 @@ view [
 		"tab2" [at 80x10 text "two"]
 	]
 	
-	below
 	slider 5%
+	below
 	pad 10x0 bar: progress 50% 130
 	base 255.0.0.138 50x50 draw [fill-pen blue circle 25x25 15]
 	across
 	return middle
 	
+	pad 0x20
 	check "option 1" font-size 14
 	check "option 2" font-color orange
 	radio "option 3" font-name "Times New Roman"
