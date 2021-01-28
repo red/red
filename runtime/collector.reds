@@ -241,10 +241,10 @@ collector: context [
 						mark-block-node as node! native/code
 					]
 				]
-				#if any [OS = 'macOS OS = 'Linux][
+				#if any [OS = 'macOS OS = 'Linux OS = 'Windows][
 				TYPE_IMAGE [
 					image: as red-image! value
-					keep image/node
+					#if draw-engine <> 'GDI+ [if image/node <> null [keep image/node]]
 				]]
 				default [0]
 			]

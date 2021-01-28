@@ -3,7 +3,7 @@ Red/System [
 	Author: "Xie Qingtian"
 	File: 	%text-box.reds
 	Tabs: 	4
-	Dependency: %draw-d2d.reds
+	Dependency: %draw.reds
 	Rights: "Copyright (C) 2016 Xie Qingtian. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
@@ -24,23 +24,25 @@ line-metrics: as DWRITE_LINE_METRICS 0
 max-line-cnt: 0
 
 OS-text-box-color: func [
-	dc		[handle!]
+	target	[handle!]
 	layout	[handle!]
 	pos		[integer!]
 	len		[integer!]
 	color	[integer!]
 	/local
 		this	[this!]
-		rt		[ID2D1HwndRenderTarget]
+		rt		[render-target!]
+		dc		[ID2D1DeviceContext]
 		dl		[IDWriteTextLayout]
 		brush	[integer!]
 ][
-	brush: select-brush dc + 1 color
+	brush: select-brush target + 1 color
 	if zero? brush [
-		this: as this! dc/value
-		rt: as ID2D1HwndRenderTarget this/vtbl
-		rt/CreateSolidColorBrush this to-dx-color color null null :brush
-		put-brush dc + 1 color brush
+		rt: as render-target! target
+		this: rt/dc
+		dc: as ID2D1DeviceContext this/vtbl
+		dc/CreateSolidColorBrush this to-dx-color color null null as ptr-ptr! :brush
+		put-brush target + 1 color brush
 	]
 
 	this: as this! layout
@@ -49,28 +51,30 @@ OS-text-box-color: func [
 ]
 
 OS-text-box-background: func [
-	dc		[handle!]
+	target	[handle!]
 	layout	[handle!]
 	pos		[integer!]
 	len		[integer!]
 	color	[integer!]
 	/local
 		this	[this!]
-		rt		[ID2D1HwndRenderTarget]
+		rt		[render-target!]
+		dc		[ID2D1DeviceContext]
 		cache	[red-vector!]
 		brush	[integer!]
 ][
-	cache: as red-vector! dc/4
+	rt: as render-target! target
+	cache: rt/styles
 	if null? cache [
 		cache: vector/make-at ALLOC_TAIL(root) 128 TYPE_INTEGER 4
-		dc/4: as-integer cache
+		rt/styles: cache
 	]
-	brush: select-brush dc + 1 color
+	brush: select-brush target + 1 color
 	if zero? brush [
-		this: as this! dc/value
-		rt: as ID2D1HwndRenderTarget this/vtbl
-		rt/CreateSolidColorBrush this to-dx-color color null null :brush
-		put-brush dc + 1 color brush
+		this: rt/dc
+		dc: as ID2D1DeviceContext this/vtbl
+		dc/CreateSolidColorBrush this to-dx-color color null null as ptr-ptr! :brush
+		put-brush target + 1 color brush
 	]
 	
 	vector/rs-append-int cache pos
@@ -273,7 +277,9 @@ OS-text-box-metrics: func [
 			metrics: as DWRITE_TEXT_METRICS :left
 			hr: dl/GetMetrics this metrics
 			either type = TBOX_METRICS_SIZE [
-				pair/push as-integer metrics/width as-integer metrics/height
+				pair/push 
+					as-integer (metrics/width + as float32! 0.5)
+					as-integer (metrics/height + as float32! 0.5)
 			][
 				integer/push metrics/lineCount
 			]
@@ -283,7 +289,7 @@ OS-text-box-metrics: func [
 
 OS-text-box-layout: func [
 	box		[red-object!]
-	target	[int-ptr!]
+	target	[render-target!]
 	ft-clr	[integer!]
 	catch?	[logic!]
 	return: [this!]
@@ -302,11 +308,16 @@ OS-text-box-layout: func [
 		obj		[red-object!]
 		w		[integer!]
 		h		[integer!]
+		sym		[integer!]
+		type	[red-word!]
+		para	[integer!]
 		fmt		[this!]
 		layout	[this!]
 ][
 	values: object/get-values box
-	state: as red-block! values + FACE_OBJ_EXT3
+	type: as red-word! values + FACE_OBJ_TYPE
+	sym: symbol/resolve type/symbol
+
 	fmt: as this! create-text-format as red-object! values + FACE_OBJ_FONT box
 
 	if null? target [
@@ -318,32 +329,38 @@ OS-text-box-layout: func [
 			]
 			hWnd: hidden-hwnd
 		]
-		target: get-hwnd-render-target hWnd
+		target: get-hwnd-render-target hWnd no
 	]
 
-	either TYPE_OF(state) = TYPE_BLOCK [
-		pval: block/rs-head state
-		int: as red-integer! pval
-		layout: as this! int/value
-		COM_SAFE_RELEASE(IUnk layout)		;-- release previous text layout
-		bool: as red-logic! int + 3
-		bool/value: false
-	][
-		block/make-at state 4
-		none/make-in state					;-- 1: text layout
-		handle/make-in state 0				;-- 2: target
-		none/make-in state					;-- 3: text
-		logic/make-in state false			;-- 4: layout?
-		pval: block/rs-head state
-	]
-
-	handle/make-at pval + 1 as-integer target
-	vec: as red-vector! target/4
+	pval: null
+	para: either sym = rich-text [
+		state: as red-block! values + FACE_OBJ_EXT3
+		either TYPE_OF(state) = TYPE_BLOCK [
+			pval: block/rs-head state
+			int: as red-integer! pval
+			layout: as this! int/value
+			COM_SAFE_RELEASE(IUnk layout)		;-- release previous text layout
+			bool: as red-logic! int + 3
+			bool/value: false
+		][
+			block/make-at state 4
+			none/make-in state					;-- 1: text layout
+			handle/make-in state 0				;-- 2: target
+			none/make-in state					;-- 3: text
+			logic/make-in state false			;-- 4: layout?
+			pval: block/rs-head state
+		]
+		handle/make-at pval + 1 as-integer target
+		0
+	][5]	;-- base face
+	vec: target/styles
 	if vec <> null [vector/rs-clear vec]
 
-	set-text-format fmt as red-object! values + FACE_OBJ_PARA
-	set-tab-size fmt as red-integer! values + FACE_OBJ_EXT1
-	set-line-spacing fmt as red-integer! values + FACE_OBJ_EXT2
+	set-text-format fmt as red-object! values + FACE_OBJ_PARA para sym
+	if sym = rich-text [
+		set-tab-size fmt as red-integer! values + FACE_OBJ_EXT1
+		set-line-spacing fmt as red-integer! values + FACE_OBJ_EXT2
+	]
 
 	str: as red-string! values + FACE_OBJ_TEXT
 	size: as red-pair! values + FACE_OBJ_SIZE
@@ -353,16 +370,16 @@ OS-text-box-layout: func [
 		w: 0 h: 0
 	]
 
-	copy-cell as red-value! str pval + 2			;-- save text
+	if pval <> null [copy-cell as red-value! str pval + 2]		;-- save text
 	layout: create-text-layout str fmt w h
-	handle/make-at pval as-integer layout
+	if pval <> null [handle/make-at pval as-integer layout]
 
 	styles: as red-block! values + FACE_OBJ_DATA
 	if all [
 		TYPE_OF(styles) = TYPE_BLOCK
 		1 < block/rs-length? styles
 	][
-		parse-text-styles target as handle! layout styles str catch?
+		parse-text-styles as int-ptr! target as handle! layout styles str catch?
 	]
 	layout
 ]
@@ -373,7 +390,7 @@ txt-box-draw-background: func [
 	layout	[this!]
 	/local
 		this		[this!]
-		rt			[ID2D1HwndRenderTarget]
+		dc			[ID2D1DeviceContext]
 		styles		[red-vector!]
 		line-cnt	[integer!]
 		dl			[IDWriteTextLayout]
@@ -388,7 +405,7 @@ txt-box-draw-background: func [
 		width		[integer!]
 		top			[integer!]
 		left		[integer!]
-		rc			[D2D_RECT_F]
+		rc			[RECT_F!]
 ][
 	styles: as red-vector! target/4
 	if any [
@@ -396,8 +413,8 @@ txt-box-draw-background: func [
 		zero? vector/rs-length? styles
 	][exit]
 
-	this: as this! target/value
-	rt: as ID2D1HwndRenderTarget this/vtbl
+	this: d2d-ctx
+	dc: as ID2D1DeviceContext this/vtbl
 	dl: as IDWriteTextLayout layout/vtbl
 
 	line-cnt: 0
@@ -411,7 +428,7 @@ txt-box-draw-background: func [
 	hits: as DWRITE_HIT_TEST_METRICS line-metrics
 
 	left: 0
-	rc: as D2D_RECT_F :left
+	rc: as RECT_F! :left
 	x: as float32! pos/x
 	y: as float32! pos/y
 	s: GET_BUFFER(styles)
@@ -429,7 +446,7 @@ txt-box-draw-background: func [
 			rc/bottom: as float32! top + height
 			rc/top: as float32! top
 			rc/left: as float32! left
-			rt/FillRectangle this rc p/3
+			dc/FillRectangle this rc as this! p/3
 			hit: hit + 1
 		]
 		p: p + 3

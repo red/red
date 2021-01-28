@@ -13,8 +13,6 @@ Red/System [
 #include %text-box.reds
 
 #define DRAW_FLOAT_MAX		[as float32! 3.4e38]
-#define F32_0				[as float32! 0.0]
-#define F32_1				[as float32! 1.0]
 
 max-colors: 256												;-- max number of colors for gradient
 max-edges: 1000												;-- max number of edges for a polygon
@@ -1473,7 +1471,7 @@ OS-matrix-transform: func [
 	OS-matrix-rotate dc pen rotate center
 ]
 
-OS-matrix-push: func [dc [draw-ctx!] state [draw-state!]][
+OS-draw-state-push: func [dc [draw-ctx!] state [draw-state!]][
 	CGContextSaveGState dc/raw
 	state/pen-clr: dc/pen-color
 	state/brush-clr: dc/brush-color
@@ -1485,7 +1483,7 @@ OS-matrix-push: func [dc [draw-ctx!] state [draw-state!]][
 	state/a-brush?: dc/grad-brush?
 ]
 
-OS-matrix-pop: func [dc [draw-ctx!] state [draw-state!]][
+OS-draw-state-pop: func [dc [draw-ctx!] state [draw-state!]][
 	CGContextRestoreGState dc/raw
 	dc/pen-color: state/pen-clr
 	dc/brush-color: state/brush-clr
@@ -1591,6 +1589,10 @@ OS-set-clip: func [
 	]
 	CGContextClip ctx
 ]
+
+OS-clip-end: func [
+	ctx		[draw-ctx!]
+][]
 
 ;-- shape sub command --
 
@@ -2046,3 +2048,12 @@ OS-draw-brush-pattern: func [
 		dc/grad-pen: -1
 	]
 ]
+
+OS-draw-shadow: func [
+	ctx		[draw-ctx!]
+	offset	[red-pair!]
+	blur	[integer!]
+	spread	[integer!]
+	color	[integer!]
+	inset?	[logic!]
+][0]

@@ -51,7 +51,12 @@ red: context [
 	;--------------------------------------------
 
 	#switch OS [
-		Windows  [#include %platform/image-gdiplus.reds]
+		Windows  [
+			#switch draw-engine [
+				GDI+	 [#include %platform/image-gdiplus.reds]
+				#default [#include %platform/image-wic.reds]
+			]
+		]
 		Syllable []
 		macOS	 [#include %platform/image-quartz.reds]
 		Linux	 [#include %platform/image-gdk.reds]
@@ -209,7 +214,10 @@ red: context [
 		port/init
 		money/init
 		ref/init
-		#if OS = 'Windows [image/init]					;-- temporary
+		#if OS = 'Windows [								;-- temporary
+			#if draw-engine <> 'GDI+ [OS-image/init]
+			image/init
+		]
 		#if OS = 'macOS   [image/init]					;-- temporary
 		#if OS = 'Linux   [image/init]					;-- temporary
 		

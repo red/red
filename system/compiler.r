@@ -72,6 +72,7 @@ system-dialect: make-profilable context [
 		libRedRT?: 			no
 		libRedRT-update?:	no
 		GUI-engine:			'native						;-- native | test | GTK | ...
+		draw-engine:		none						;-- none | GDI+ | ...
 		modules:			none
 		show:				none
 		command-line:		none

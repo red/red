@@ -143,6 +143,10 @@ Red/System [
 			value		[float!]
 			return:		[float!]
 		]
+		fabs:		"fabs" [
+			value		[float!]
+			return:		[float!]
+		]
 		fmod:		"fmod" [
 			x           [float!]
 			y           [float!]
@@ -165,6 +169,13 @@ Red/System [
 		]
 		libc.copy-memory target source size
 	]
+]
+
+alloc0: func [
+	size		[integer!]
+	return:		[byte-ptr!]
+][
+	set-memory allocate size null-byte size
 ]
 
 #either unicode? = yes [

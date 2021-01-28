@@ -113,15 +113,6 @@ clipboard: context [
 			fWide				[logic!]
 		]
 
-		BitmapData!: alias struct! [
-			width		[integer!]
-			height		[integer!]
-			stride		[integer!]
-			pixelFormat	[integer!]
-			scan0		[byte-ptr!]
-			reserved	[integer!]
-		]
-
 		BITMAPV5HEADER!: alias struct! [
   			Size			[integer!]
   			Width			[integer!]
@@ -299,14 +290,24 @@ clipboard: context [
 							hdr/BlueMask  = 000000FFh
 						][								;-- can copy the data directly
 							if hdr/Height < 0 [hdr/Height: 0 - hdr/Height]
-							assert all [0 = OS-image/GdipGetImagePixelFormat bmp :i  i = PixelFormat32bppARGB]
-							OS-image/GdipCreateBitmapFromScan0 hdr/Width hdr/Height 0 PixelFormat32bppARGB p :bmp
+							assert all [0 = OS-image/get-pixel-format bmp :i  OS-image/fixed-format? i]
+							OS-image/create-bitmap-from-scan0 hdr/Width hdr/Height 0 OS-image/fixed-format p :bmp
 						][								;-- will have to convert, losing the alpha data if any
-							OS-image/GdipCreateBitmapFromGdiDib
-								p  p + hdr/Size + (hdr/ClrUsed * 4) + hdr/ProfileSize  :bmp
+							#either draw-engine = 'GDI+ [
+								OS-image/create-bitmap-from-gdidib
+									p  p + hdr/Size + (hdr/ClrUsed * 4) + hdr/ProfileSize :bmp
+							][
+								GlobalUnlock hMem
+								hMem: GetClipboardData CF_BITMAP
+								val: as red-value! OS-image/from-HBITMAP hMem 2	;-- WICBitmapIgnoreAlpha
+								hMem: 0
+							]
 						]
-						val: as red-value! image/init-image as red-image! stack/push* as int-ptr! bmp
-						GlobalUnlock hMem
+						if hMem <> 0 [
+							if zero? bmp [return as red-value! none-value]
+							val: as red-value! image/init-image as red-image! stack/push* as int-ptr! bmp
+							GlobalUnlock hMem
+						]
 					]
 					break
 				]
@@ -339,7 +340,12 @@ clipboard: context [
 				blk		[red-block!]
 				img		[red-image!]
 				df		[DROPFILES!]
-				bmdata	[BitmapData!]
+				bmdata	[integer!]
+				w		[integer!]
+				h		[integer!]
+				s		[integer!]
+				scan0	[byte-ptr!]
+				format	[integer!]
 				hdr		[BITMAPV5HEADER!]
 				msg		[tagMSG value]
 		][
@@ -433,9 +439,15 @@ clipboard: context [
 
 							;-- also put the image in DIB format for compatibility
 							fmts/2: CF_DIBV5
-							bmdata: as BitmapData! OS-image/lock-bitmap img no
-							assert not null? bmdata
-							len: bmdata/width * bmdata/height * 4
+							bmdata: OS-image/lock-bitmap img no
+							assert 0 <> bmdata
+							w: OS-image/width? img/node
+							h: OS-image/height? img/node
+							s: 0
+							scan0: as byte-ptr! OS-image/get-data bmdata :s
+							len: w * h * 4
+							format: 0
+							OS-image/get-data-pixel-format bmdata :format
 							hMem/2: GlobalAlloc 2 len + size? BITMAPV5HEADER!
 							if hMem/2 <> 0 [
 								p: GlobalLock hMem/2
@@ -443,8 +455,8 @@ clipboard: context [
 									set-memory p #"^@" size? BITMAPV5HEADER!
 									hdr: as BITMAPV5HEADER! p
 									hdr/Size: size? BITMAPV5HEADER!
-									hdr/Width: bmdata/width
-									hdr/Height: 0 - bmdata/height	;-- top-down image
+									hdr/Width: w
+									hdr/Height: 0 - h				;-- top-down image
 									hdr/PlanesBitCount: 00200001h	;-- 32 bpp, 1 plane
 									hdr/Compression: 3				;-- BI_BITFIELDS
 									hdr/SizeImage: len
@@ -454,12 +466,12 @@ clipboard: context [
 									hdr/BlueMask:  000000FFh
 									hdr/CSType: 57696E20h			;-- "Win " = LCS_WINDOWS_COLOR_SPACE
 									hdr/Intent: 4					;-- 4 = LCS_GM_IMAGES
-									assert bmdata/pixelFormat = PixelFormat32bppARGB
-									copy-memory p + hdr/Size bmdata/scan0 len
+									assert OS-image/fixed-format? format
+									copy-memory p + hdr/Size scan0 len
 									GlobalUnlock hMem/2
 								]
 							]
-							OS-image/unlock-bitmap img as integer! bmdata
+							OS-image/unlock-bitmap img bmdata
 						];; if IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) > 0
 						zero? len [p: as byte-ptr! 1] ;-- empty clipboard in case of empty image
 						true [fire [TO_ERROR(script invalid-arg) data]]
