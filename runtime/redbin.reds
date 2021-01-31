@@ -150,13 +150,19 @@ redbin: context [
 	reset: does [path/reset reference/reset]
 	
 	path: context [
-		size:  1'000										;-- arbitrary
-		stack: as int-ptr! allocate size * size? integer!	;-- offset
+		stack: as int-ptr! 0
 		top:   stack
-		end:   stack + size
+		end:   stack
 		
-		push: does [
-			if top + 1 >= end [reset fire [TO_ERROR(internal limit-hit) integer/push path/size]]
+		push: func [/local newsz [integer!] new [int-ptr!]] [
+			if top + 1 > end [
+				newsz: (as-integer end - stack) * 3 / 2				;-- +50% of current size
+				new: as int-ptr! realloc as byte-ptr! stack newsz
+				if null? new [reset fire [TO_ERROR(internal no-memory)]]
+				top: new + (top - stack)
+				end: new + (newsz / size? integer!)
+				stack: new
+			]
 			top/value: offset
 			top: top + 1
 			offset: 0
@@ -168,14 +174,24 @@ redbin: context [
 			offset: top/value
 		]
 		
-		reset: does [top: stack]
+		reset: func [/local min-size [integer!]] [
+			min-size: 1024
+			if (as-integer end - stack) > (min-size * size? integer!) [	;-- free the extra RAM
+				free as byte-ptr! stack
+				stack: as int-ptr! 0
+			]
+			if null? stack [
+				stack: as int-ptr! allocate min-size * size? integer!
+				end: stack + min-size
+			]
+			top: stack
+		]
 	]
 	
 	reference: context [
-		size: 20'000										;-- arbitrary
-		list: as int-ptr! allocate size * size? integer!	;-- node, size, offset * size
+		list: as int-ptr! 0
 		top:  list
-		end:  list + size
+		end:  list
 		
 		fetch: func [
 			node    [node!]
@@ -195,10 +211,22 @@ redbin: context [
 		store: func [
 			node [node!]
 			/local
-				size [integer!]
+				size  [integer!]
+				newsz [integer!]
+				reqsz [integer!]
+				new   [int-ptr!]
 		][
 			size: (as integer! path/top - path/stack) >> log-b size? integer!
-			if top + size + 2 >= end [reset fire [TO_ERROR(internal limit-hit) integer/push reference/size]]
+			if top + size + 2 > end [
+				reqsz: (as-integer (top + size + 2) - list) + 8'192		;-- min. required + reserve for later
+				newsz: (as-integer end - list) * 3 / 2					;-- +50% of current size
+				if newsz < reqsz [newsz: reqsz]
+				new: as int-ptr! realloc as byte-ptr! list newsz
+				if null? new [reset fire [TO_ERROR(internal no-memory)]]
+				top: new + (top - list)
+				end: new + (newsz / size? integer!)
+				list: new
+			]
 			top/1: as integer! node
 			top/2: size
 			top: top + 2
@@ -206,7 +234,18 @@ redbin: context [
 			top: top + size
 		]
 		
-		reset: does [top: list]
+		reset: func [/local min-size] [
+			min-size: 16'384
+			if (as-integer end - list) > (min-size * size? integer!) [	;-- free the extra RAM
+				free as byte-ptr! list
+				list: as int-ptr! 0
+			]
+			if null? list [
+				list: as int-ptr! allocate min-size * size? integer!
+				end: list + min-size
+			]
+			top: list
+		]
 	]
 	
 	encode-reference: func [
