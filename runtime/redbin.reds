@@ -189,7 +189,7 @@ redbin: context [
 	]
 	
 	reference: context [
-		;-- a map of integer! -> red-integer!
+		;-- a map of node! -> offset in 'list'
 		map:  as node! 0								;-- initialized in 'reset'
 		list: as int-ptr! 0								;-- as well
 		top:  list
