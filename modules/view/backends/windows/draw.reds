@@ -441,6 +441,7 @@ OS-draw-text: func [
 		if null? ctx/text-format [
 			ctx/text-format: as this! create-text-format as red-object! text null
 		]
+		set-line-spacing ctx/text-format null
 		create-text-layout text ctx/text-format 0 0
 	]
 	color?: no
