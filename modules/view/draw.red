@@ -822,7 +822,7 @@ Red/System [
 								DRAW_FETCH_NAMED_VALUE(TYPE_IMAGE)
 								start: value
 								pos: cmd + 1
-								pair?: TYPE_OF(pos) = TYPE_PAIR
+								pair?: all [pos < tail TYPE_OF(pos) = TYPE_PAIR]
 								point: either pair? [as red-pair! pos][null]
 								end: null
 								if pair? [
