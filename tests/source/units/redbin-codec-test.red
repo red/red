@@ -834,8 +834,9 @@ Red [
 
 		--test-- "stress-2"
 			s2m: make #() 100'000
+			s2bin: #{}
 			repeat s2i 100'000 [put s2m s2i form s2i]
-			s2t: dt [save/as s2bin: #{} s2m 'redbin]
+			s2t: dt [save/as s2bin s2m 'redbin]
 			s2m2: load/as s2bin 'redbin
 			--assert s2m == s2m2
 			--assert s2t < 0:0:5						;-- should be ~300ms
