@@ -2020,12 +2020,13 @@ red: context [
 			words:  third obj/1
 			
 			unless find [context object object!] pc/1 [
-				unless new: is-object? pc/2 [
+				if all [not new: is-object? pc/2 not passive][
 					comp-call 'make select functions 'make ;-- fallback to runtime creation
 					return none
 				]
 				
-				ctx2: select objects new				;-- multiple inheritance case
+				if all [passive not new][new: proto/1]
+				ctx2: select objects new proto/1		;-- multiple inheritance case
 				spec: union spec next first new
 				insert proto new
 				
@@ -2206,7 +2207,7 @@ red: context [
 	
 	comp-object: :comp-context
 	
-	comp-construct: has [only? with? obj][
+	comp-construct: has [only? with? obj defer][
 		only?: with?: no
 		
 		if all [
@@ -2215,14 +2216,21 @@ red: context [
 		][
 			throw-error "Invalid CONSTRUCT refinement"
 		]
-		either with? [
-			unless obj: is-object? pc/3 [--not-implemented--]
-			also 
-				comp-context/passive/extend only? obj
-				pc: next pc
+		either any [
+			all [not with? not find [block! word!] type?/word pc/2]
+			all [with? not obj: is-object? pc/3]
 		][
-			comp-context/passive only?
-		]												;-- return object deferred block
+			;fallback
+		][
+			either with? [
+				unless obj: is-object? pc/3 [--not-implemented--]
+				defer: comp-context/passive/extend only? obj
+				pc: next pc
+			][
+				defer: comp-context/passive only?
+			]
+			defer										;-- return object deferred block
+		]
 	]
 	
 	comp-try: has [all? mark body call handlers][
