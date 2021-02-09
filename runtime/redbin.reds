@@ -147,16 +147,22 @@ redbin: context [
 	
 	;-- Reference sub-system --
 	
-	reset: does [path/reset reference/reset]
+	reset: does [path/reset reference/reset]			;-- should be called before & after `encode`
 	
 	path: context [
-		size:  1'000										;-- arbitrary
-		stack: as int-ptr! allocate size * size? integer!	;-- offset
+		stack: as int-ptr! 0							;-- initialized by 'reset'
 		top:   stack
-		end:   stack + size
+		end:   stack
 		
-		push: does [
-			if top + 1 >= end [reset fire [TO_ERROR(internal limit-hit) integer/push path/size]]
+		push: func [/local newsz [integer!] new [int-ptr!]] [
+			if top + 1 > end [
+				newsz: (as-integer end - stack) * 3 / 2					;-- +50% of current size
+				new: as int-ptr! realloc as byte-ptr! stack newsz
+				if null? new [reset fire [TO_ERROR(internal no-memory)]]
+				top: new + (top - stack)
+				end: new + (newsz / size? integer!)
+				stack: new
+			]
 			top/value: offset
 			top: top + 1
 			offset: 0
@@ -168,47 +174,90 @@ redbin: context [
 			offset: top/value
 		]
 		
-		reset: does [top: stack]
+		reset: func [/local min-size [integer!]] [
+			min-size: 1024
+			if (as-integer end - stack) > (min-size * size? integer!) [	;-- free the extra RAM
+				free as byte-ptr! stack
+				stack: as int-ptr! 0
+			]
+			if null? stack [											;-- start with the min. size
+				stack: as int-ptr! allocate min-size * size? integer!
+				end: stack + min-size
+			]
+			top: stack
+		]
 	]
 	
 	reference: context [
-		size: 20'000										;-- arbitrary
-		list: as int-ptr! allocate size * size? integer!	;-- node, size, offset * size
+		;-- a map of node! -> offset in 'list'
+		map:  as node! 0								;-- initialized in 'reset'
+		list: as int-ptr! 0								;-- as well
 		top:  list
-		end:  list + size
+		end:  list
 		
 		fetch: func [
 			node    [node!]
 			return: [int-ptr!]
 			/local
 				here [int-ptr!]
+				slot [red-integer!]
 		][
-			here: list
-			while [here <> top][
-				if node = as node! here/value [return here + 1]
-				here: here + here/2 + 2
-			]
-			
-			null
+			slot: as red-integer! _hashtable/get-value map as-integer node
+			if null? slot [return null]
+			list + slot/value
 		]
 		
 		store: func [
 			node [node!]
 			/local
-				size [integer!]
+				size  [integer!]
+				newsz [integer!]
+				reqsz [integer!]
+				new   [int-ptr!]
+				slot  [red-integer!]
 		][
 			size: (as integer! path/top - path/stack) >> log-b size? integer!
-			if top + size + 2 >= end [reset fire [TO_ERROR(internal limit-hit) integer/push reference/size]]
-			top/1: as integer! node
-			top/2: size
-			top: top + 2
-			copy-memory as byte-ptr! top as byte-ptr! path/stack size * size? integer!
-			top: top + size
+			if top + size + 1 > end [									;-- (node=1) + size
+				reqsz: (as-integer (top + size + 1) - list) + 8'192		;-- min. required + reserve for later
+				newsz: (as-integer end - list) * 3 / 2					;-- +50% of current size
+				if newsz < reqsz [newsz: reqsz]
+				new: as int-ptr! realloc as byte-ptr! list newsz
+				if null? new [reset fire [TO_ERROR(internal no-memory)]]
+				top: new + (top - list)
+				end: new + (newsz / size? integer!)
+				list: new
+			]
+			assert not null? map
+			slot: as red-integer! _hashtable/put-key map as-integer node
+			assert not null? slot
+			integer/make-at as cell! slot (as-integer top - list) / size? integer!
+			top/1: size
+			copy-memory as byte-ptr! top + 1 as byte-ptr! path/stack size * size? integer!
+			top: top + size + 1
 		]
+
+		on-gc-mark: does [_hashtable/mark map]
 		
-		reset: does [top: list]
+		reset: func [/local min-size] [
+			min-size: 16'384
+			if (as-integer end - list) > (min-size * size? integer!) [	;-- free the extra RAM
+				free as byte-ptr! list
+				list: as int-ptr! 0
+			]
+			if null? list [												;-- start with the min. size
+				list: as int-ptr! allocate min-size * size? integer!
+				end: list + min-size
+			]
+			top: list
+			either null? map [
+				map: _hashtable/init 1024 null HASH_TABLE_INTEGER 1
+				collector/register as int-ptr! :on-gc-mark
+			][
+				_hashtable/clear-map map
+			]
+		]
 	]
-	
+
 	encode-reference: func [
 		reference [int-ptr!]
 		payload   [red-binary!]
@@ -342,7 +391,7 @@ redbin: context [
 		symbols: binary/make-at stack/push* 4
 		table:   binary/make-at stack/push* 4
 		strings: binary/make-at stack/push* 4
-		
+
 		encode-value data payload symbols table strings
 		size: binary/rs-length? payload
 		
@@ -369,6 +418,7 @@ redbin: context [
 		
 		stack/pop 4
 		
+		reset
 		payload
 	]
 	
@@ -400,7 +450,6 @@ redbin: context [
 			p/4 = #"B" p/5 = #"I" p/6 = #"N"
 		][
 			either codec? [
-				reset
 				fire [TO_ERROR(script invalid-data) stack/arguments]
 			][
 				print-line "Error: Not a Redbin file!"
@@ -492,7 +541,7 @@ redbin: context [
 			TYPE_MONEY [(money/get-sign as red-money! data) << 20]
 			default    [0]
 		]
-		
+
 		switch type [
 			TYPE_UNSET
 			TYPE_NONE		[store payload header]
@@ -554,7 +603,7 @@ redbin: context [
 				unless global? [either null? ref [path/pop][encode-reference ref payload]]
 			]
 		]
-		
+
 		offset: offset + 1
 	]
 	

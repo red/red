@@ -817,4 +817,31 @@ Red [
 			
 	===end-group===
 
+	===start-group=== "Stress tests"
+
+		--test-- "stress-1"
+			s1b: make [] 100000
+			s1bin: #{}
+			loop 10 [
+				repeat s1i 5000 [append s1b form s1i]
+				s1t: dt [save/as clear s1bin s1b 'redbin]
+				s1b2: load/as s1bin 'redbin
+				recycle
+				--assert s1b == s1b2
+				--assert s1t < 0:0:1					;-- should be ~40ms
+			]
+			unset [s1b s1b2 s1bin]
+
+		--test-- "stress-2"
+			s2m: make #() 100'000
+			s2bin: #{}
+			repeat s2i 100'000 [put s2m s2i form s2i]
+			s2t: dt [save/as s2bin s2m 'redbin]
+			s2m2: load/as s2bin 'redbin
+			--assert s2m == s2m2
+			--assert s2t < 0:0:5						;-- should be ~300ms
+			recycle
+
+	===end-group===
+
 ~~~end-file~~~
