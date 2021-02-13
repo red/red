@@ -599,10 +599,10 @@ redc: context [
 		
 		if result/2 [
 			print [
+				"...global words     :" words rejoin [#"(" to-percent words / 32894 "%)^/"]
 				"...linking time     :" format-time result/2 "ms^/"
 				"...output file size :" result/3 "bytes^/"
 				"...output file      :" to-local-file result/4 lf
-				"...global words     :" words rejoin [#"(" to-percent words / 32894 "%)^/"]
 			]
 		]
 	]
