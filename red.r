@@ -591,14 +591,18 @@ redc: context [
 		]
 	]
 	
-	show-stats: func [result][
+	to-percent: func [v [decimal!]][copy/part mold v * 100 5]
+	
+	show-stats: func [result /local words][
 		print ["...compilation time :" format-time result/1 "ms"]
+		words: length? first system/words
 		
 		if result/2 [
 			print [
 				"...linking time     :" format-time result/2 "ms^/"
 				"...output file size :" result/3 "bytes^/"
 				"...output file      :" to-local-file result/4 lf
+				"...global words     :" words rejoin [#"(" to-percent words / 32894 "%)^/"]
 			]
 		]
 	]
