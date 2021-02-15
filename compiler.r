@@ -1474,7 +1474,7 @@ red: context [
 		]												;-- path should be at head again
 		
 		words: clear []
-		blk: []
+		blk:   make block! 20
 		forall path [
 			append words either integer? item: path/1 [item][
 				get?: to logic! any [head? path get-word? item]
