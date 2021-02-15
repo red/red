@@ -2644,6 +2644,7 @@ OS-draw-shadow: func [
 	either ctx/shadow? [
 		either chain? [
 			s: as shadow! allocate size? shadow!
+			s/next: null
 			ss: ctx/shadows/next
 			either null? ss [ctx/shadows/next: s][
 				ss/next: s
