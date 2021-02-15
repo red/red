@@ -1950,6 +1950,7 @@ OS-draw-brush-pattern: func [
 		n		[integer!]
 		state	[draw-state! value]
 		unk		[IUnknown]
+		m		[D2D_MATRIX_3X2_F value]
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
@@ -1963,6 +1964,8 @@ OS-draw-brush-pattern: func [
 	dc/SetTarget this cthis
 	;dc/BeginDraw this
 	OS-draw-state-push ctx :state
+	matrix2d/identity m
+	dc/SetTransform this :m			;-- set to identity matrix
 	parse-draw ctx block no
 	n: ctx/clip-cnt - clip-n
 	loop n [OS-clip-end ctx]
