@@ -2519,9 +2519,12 @@ OS-draw-state-pop: func [
 		this	[this!]
 		dc		[ID2D1DeviceContext]
 		IUnk	[IUnknown]
+		n		[integer!]
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
+	n: ctx/clip-cnt - draw-state/clip-cnt
+	loop n [OS-clip-end ctx]
 	dc/RestoreDrawingState this draw-state/state
 	COM_SAFE_RELEASE(IUnk draw-state/state)
 	COM_SAFE_RELEASE(IUnk ctx/pen)

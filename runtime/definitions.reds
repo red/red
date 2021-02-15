@@ -376,6 +376,7 @@ Red/System [
 			pen-width		[float32!]
 			pen-offset		[POINT_2F value]
 			brush-offset	[POINT_2F value]
+			clip-cnt		[integer!]
 		]
 
 		draw-state!: alias struct! [
@@ -395,7 +396,6 @@ Red/System [
 			text-format		[this!]
 			sub				[sub-path! value]
 			shadows			[shadow! value]
-			clip-cnt		[integer!]
 		]
 	][
 		draw-ctx!: alias struct! [
