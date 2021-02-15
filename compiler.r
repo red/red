@@ -471,8 +471,8 @@ red: context [
 			either get? [
 				append blk decorate-symbol/no-alias name ;-- local word, point to value slot
 			][
-				append blk [stack/push as cell!]
-				append/only blk prefix-exec name
+				append blk [as cell! get-root]
+				append blk redbin/emit-word/root name select objects obj none
 			]
 		][
 			if all [new: select-ssa name not find-function new new][name: new]
@@ -492,8 +492,8 @@ red: context [
 					append/only blk prefix-exec name
 				]
 			][
-				append blk [stack/push as cell!]
-				append/only blk prefix-exec name
+				append blk [as cell! get-root]
+				append blk redbin/emit-word/root name none none
 			]
 			
 		]

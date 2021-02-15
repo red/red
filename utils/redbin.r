@@ -287,6 +287,7 @@ context [
 			if debug? [print [index ": word :" mold word]]
 			unless set? [index: index + 1]
 		]
+		index - 1
 	]
 	
 	emit-block: func [
