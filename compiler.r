@@ -4554,7 +4554,7 @@ red: context [
 					insert/part tail prolog p 2
 					p: remove/part p 2
 				) :p
-				| p: #include (pc: p comp-include/only p)
+				| p: #include (pc: p comp-include/only p) :p
 				| p: [block! | paren!] :p into rule
 				| skip
 			]
