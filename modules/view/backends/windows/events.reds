@@ -638,6 +638,7 @@ process-command-event: func [
 		type   [red-word!]
 		values [red-value!]
 		int	   [red-integer!]
+		fstate [red-value!]
 		idx	   [integer!]
 		res	   [integer!]
 		sym    [integer!]
@@ -754,6 +755,9 @@ process-command-event: func [
 				idx + 1 = int/value
 			][exit]										;-- do not send event if select the same item
 			res: make-event current-msg idx EVT_SELECT
+
+			fstate: values + FACE_OBJ_STATE
+			if TYPE_OF(fstate) <> TYPE_BLOCK [exit]		;-- widget destroyed
 
 			idx: as-integer SendMessage child widget 0 0 ;-- user may change select item in on-select handler
 			if all [									;-- if user change it back to the preview item, exit
