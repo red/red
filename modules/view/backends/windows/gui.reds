@@ -16,7 +16,7 @@ Red/System [
 ;;		-36  : Direct2D render target
 ;;		-32	 : base: mouse capture count
 ;;		-28  : Cursor handle
-;;		-24  : base-layered: caret's owner handle
+;;		-24  : base-layered: caret's owner handle, Window: modal loop type for moving and resizing
 ;;		-20  : evolved-base-layered: child handle, window: previous focused handle
 ;;		-16  : base-layered: owner handle, window: border width and height
 ;;		-12  : base-layered: clipped? flag, caret? flag, d2d? flag, ime? flag
@@ -932,6 +932,7 @@ init-window: func [										;-- post-creation settings
 ][
 	SetWindowLong handle wc-offset - 4 0
 	SetWindowLong handle wc-offset - 16 0
+	SetWindowLong handle wc-offset - 24 0
 	SetWindowLong handle wc-offset - 32 0
 	SetWindowLong handle wc-offset - 36 0
 ]

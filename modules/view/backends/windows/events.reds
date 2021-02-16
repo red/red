@@ -1202,6 +1202,7 @@ WndProc: func [
 						SetWindowLong hWnd wc-offset - 8 lParam
 						EVT_MOVING
 					][EVT_SIZING]
+					SetWindowLong hWnd wc-offset - 24 modal-loop-type
 					current-msg/hWnd: hWnd
 					current-msg/lParam: lParam
 					make-event current-msg 0 modal-loop-type
@@ -1247,7 +1248,8 @@ WndProc: func [
 		WM_EXITSIZEMOVE [
 			if type = window [
 				win-state: 0
-				type: either modal-loop-type = EVT_MOVING [EVT_MOVE][EVT_SIZE]
+				res: GetWindowLong hWnd wc-offset - 24
+				type: either res = EVT_MOVING [EVT_MOVE][EVT_SIZE]
 				current-msg/hWnd: hWnd
 				make-event current-msg 0 type
 				return 0
