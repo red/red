@@ -638,8 +638,8 @@ system/view/platform: context [
 
 	do-event-loop: routine [no-wait? [logic!] /local bool [red-logic!]][
 		bool: as red-logic! stack/arguments
-		bool/header: TYPE_LOGIC
 		bool/value:  gui/do-events no-wait?
+		bool/header: TYPE_LOGIC
 	]
 
 	exit-event-loop: routine [][
