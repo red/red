@@ -2342,6 +2342,38 @@ Red [
 		
 ===end-group===
 
+===start-group=== "construct"
+
+	--test-- "oc1"
+		oc1: construct [b: 2 c: print]
+		--assert (body-of oc1) == [b: 2 c: 'print]
+
+	--test-- "oc2"
+		oc2: construct/with [d: append] oc1
+		--assert (body-of oc2) == [b: 2 c: 'print d: 'append]
+
+	--test-- "oc3"
+		spec: [z: 3 y: insert]
+		oc3: construct/with spec oc1
+		--assert (body-of oc3) == [b: 2 c: 'print z: 3 y: 'insert]
+
+	--test-- "oc4"
+		blk: [b: 2 c: print]
+		oc4: construct blk
+		--assert (body-of oc4) == [b: 2 c: 'print]
+
+	--test-- "oc5"
+		blk: [b: 2 c: print]
+		oc5: object [a: 1]
+		oc51: construct/with blk oc5
+		--assert (body-of oc51) == [a: 1 b: 2 c: 'print]
+
+	--test-- "oc6"
+		blk: [b: 6 c: print]
+		oc6: construct/with blk object [a: 5]
+		--assert (body-of oc6) == [a: 5 b: 6 c: 'print]
+
+===end-group===
 
 ===start-group=== "regression tests"
 

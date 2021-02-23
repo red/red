@@ -2086,7 +2086,7 @@ red: context [
 			]
 		]
 		if body? [bind body obj]
-		
+		if passive [return []]
 
 		unless all [empty? locals-stack not iterator-pending?][	;-- in a function or iteration block
 			emit compose [
@@ -2197,7 +2197,7 @@ red: context [
 	
 	comp-object: :comp-context
 	
-	comp-construct: has [only? with? obj defer][
+	comp-construct: has [only? with? body? obj defer mark][
 		only?: with?: no
 		
 		if all [
@@ -2206,21 +2206,28 @@ red: context [
 		][
 			throw-error "Invalid CONSTRUCT refinement"
 		]
-		either any [
-			all [not with? not find [block! word!] type?/word pc/2]
+		body?: block? pc/2
+		unless any [
+			all [not with? body?]
 			all [with? not obj: is-object? pc/3]
 		][
-			;fallback
-		][
 			either with? [
-				unless obj: is-object? pc/3 [--not-implemented--]
-				defer: comp-context/passive/extend only? obj
-				pc: next pc
+				comp-context/passive/extend only? obj
 			][
-				defer: comp-context/passive only?
+				comp-context/passive only?
+				pc: skip pc -2
 			]
-			defer										;-- return object deferred block
 		]
+		pc: next pc
+		mark: tail output
+		emit-open-frame 'construct
+		comp-expression
+		if with? [comp-expression]
+		emit-native/with 'construct reduce [pick [1 -1] with? pick [0 -1] only?]
+		emit-close-frame
+		defer: copy mark
+		clear mark
+		defer											;-- return object deferred block
 	]
 	
 	comp-try: has [all? mark body call handlers][
