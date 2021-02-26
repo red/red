@@ -31,7 +31,7 @@ array: context [
 			s	[series!]
 	][
 		s: as series! node/value
-		s/offset: s/tail
+		s/tail: s/offset
 	]
 
 	append-int: func [
@@ -772,7 +772,7 @@ _hashtable: context [
 			;@@ if h/n-buckets > new-buckets []			;-- shrink the hash table
 			h/flags: new-flags-node
 			h/n-buckets: new-buckets
-			h/n-occupied: h/size
+			if h/type <> HASH_TABLE_MAP [h/n-occupied: h/size]
 			h/upper-bound: new-size
 		]
 	]
@@ -1083,8 +1083,8 @@ _hashtable: context [
 		]
 		if type = HASH_TABLE_HASH [
 			s: as series! h/indexes/value
-			if s/size >> 2 = idx [
-				s: expand-series-filled s s/size << 1 #"^(FF)"
+			if idx << 2 >= s/size [
+				s: expand-series-filled s idx << 3 #"^(FF)"
 				s/tail: as cell! (as byte-ptr! s/offset) + s/size
 			]
 			indexes: as int-ptr! s/offset
@@ -1354,6 +1354,21 @@ _hashtable: context [
 		new
 	]
 
+	clear-map: func [
+		node	[node!]
+		/local
+			s	[series!]
+			h	[hashtable!]
+	][
+		s: as series! node/value
+		h: as hashtable! s/offset
+		h/size: 0
+		h/n-occupied: 0
+		array/clear h/blk
+		s: as series! h/flags/value
+		fill as byte-ptr! s/offset as byte-ptr! s/tail #"^(AA)"
+	]
+
 	clear: func [				;-- only for clear hash! datatype
 		node	[node!]
 		head	[integer!]
@@ -1483,7 +1498,7 @@ _hashtable: context [
 			][								;-- may need to expand indexes
 				s: as series! h/indexes/value
 				if size + head + offset << 2 > s/size [
-					s: expand-series-filled s size + head + offset << 2 #"^(FF)"
+					s: expand-series-filled s size + head + offset << 3 #"^(FF)"
 					indexes: as int-ptr! s/offset
 					s/tail: as cell! (as byte-ptr! s/offset) + s/size
 				]

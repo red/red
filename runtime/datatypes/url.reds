@@ -13,35 +13,23 @@ Red/System [
 url: context [
 	verbose: 0
 
-	rs-load: func [
-		src		 [c-string!]							;-- UTF-8 source string buffer
-		size	 [integer!]
-		return:  [red-string!]
-	][
-		load-in src size root
-	]
-
-	load-in: func [
-		src		 [c-string!]							;-- UTF-8 source string buffer
-		size	 [integer!]
-		blk		 [red-block!]
-		return:  [red-string!]
-		/local
-			cell [red-string!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "url/load"]]
-
-		cell: string/load-in src size blk UTF-8
-		cell/header: TYPE_URL							;-- implicit reset of all header flags
-		cell
-	]
-
 	load: func [
 		src		 [c-string!]							;-- UTF-8 source string buffer
 		size	 [integer!]
 		return:  [red-string!]
+		/local
+			str  [red-string!]
+			ret  [red-string!]
+			len  [integer!]
 	][
-		load-in src size null
+		#if debug? = yes [if verbose > 0 [print-line "url/load"]]
+		str: string/load src size UTF-8
+		ret: as red-string! stack/push*
+		len: string/rs-length? str
+		string/make-at as red-value! ret len Latin1
+		string/decode-url str ret
+		stack/set-last as red-value! ret
+		ret
 	]
 
 	push: func [
@@ -62,8 +50,10 @@ url: context [
 		open?	[logic!]
 		return:	[red-value!]
 		/local
-			p [red-object!]
+			p	[red-object!]
+			v	[red-value! value]
 	][
+		copy-cell as red-value! url :v
 		#call [url-parser/parse-url url]
 		p: as red-object! stack/arguments
 
@@ -71,7 +61,7 @@ url: context [
 			p: port/make none-value as red-value! p TYPE_NONE
 			if open? [actions/open as red-value! p new? read? write? seek? allow]
 		][
-			0 ;TBD: error invalid url
+			fire [TO_ERROR(script invalid-arg) :v]
 		]
 		as red-value! p
 	]
@@ -89,10 +79,10 @@ url: context [
 		#if debug? = yes [if verbose > 0 [print-line "url/make"]]
 		
 		type2: TYPE_OF(spec)
-		either all [type = TYPE_URL ANY_LIST?(type2)][ ;-- file! inherits from url!
+		as red-url! either all [type = TYPE_URL ANY_LIST?(type2)][ ;-- file! inherits from url!
 			to proto spec type
 		][
-			as red-url! string/make as red-string! proto spec type
+			string/make as red-string! proto spec type
 		]
 	]
 
@@ -107,46 +97,43 @@ url: context [
 		indent	[integer!]
 		return: [integer!]
 		/local
-			int	   [red-integer!]
-			limit  [integer!]
-			s	   [series!]
-			unit   [integer!]
-			cp	   [integer!]
-			p	   [byte-ptr!]
-			p4	   [int-ptr!]
-			head   [byte-ptr!]
-			tail   [byte-ptr!]
+			int		[red-integer!]
+			limit?	[logic!]
+			slen	[integer!]
+			data	[byte-ptr!]
+			end		[byte-ptr!]
+			size	[integer!]
+			p		[byte-ptr!]
+			num		[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "url/mold"]]
 
-		limit: either OPTION?(arg) [
-			int: as red-integer! arg
-			int/value
-		][0]
+		limit?: OPTION?(arg)
 
-		s: GET_BUFFER(url)
-		unit: GET_UNIT(s)
-		p: (as byte-ptr! s/offset) + (url/head << (log-b unit))
-		head: p
+		slen: -1
+		data: as byte-ptr! unicode/to-utf8 url :slen
+		if slen = 0 [return 0]
+		end: data + slen
 
-		tail: either zero? limit [						;@@ rework that part
-			as byte-ptr! s/tail
-		][
-			either negative? part [p][p + (part << (log-b unit))]
-		]
-		if tail > as byte-ptr! s/tail [tail: as byte-ptr! s/tail]
-
-		while [p < tail][
-			cp: switch unit [
-				Latin1 [as-integer p/value]
-				UCS-2  [(as-integer p/2) << 8 + p/1]
-				UCS-4  [p4: as int-ptr! p p4/value]
+		num: 0
+		size: 0
+		while [data < end][
+			p: string/encode-url-char string/ESC_URL data :size
+			loop size [
+				string/append-char GET_BUFFER(buffer) as-integer p/1
+				num: num + 1
+				if all [
+					limit?
+					num >= part
+				][
+					return 0
+				]
+				p: p + 1
 			]
-			string/append-escaped-char buffer cp string/ESC_URL all?
-			p: p + unit
+			data: data + 1
 		]
 
-		return part - ((as-integer tail - head) >> (log-b unit))
+		0
 	]
 	
 	to: func [
@@ -169,7 +156,7 @@ url: context [
 		either all [type = TYPE_URL ANY_LIST?(type2)][ ;-- file! inherits from url!
 			buffer: string/make-at proto 16 1
 			buffer/header: TYPE_URL
-			
+
 			blk: as red-block! spec
 			s: GET_BUFFER(blk)
 			value: s/offset + blk/head
@@ -309,10 +296,10 @@ url: context [
 				--NOT_IMPLEMENTED--
 			]
 
+			header: null
 			either TYPE_OF(data) = TYPE_BLOCK [
 				blk: as red-block! data
 				either 0 = block/rs-length? blk [
-					header: null
 					action: words/get
 				][
 					method: as red-word! block/rs-head blk
@@ -320,7 +307,7 @@ url: context [
 						fire [TO_ERROR(script invalid-arg) method]
 					]
 					action: symbol/resolve method/symbol
-					either block/rs-next blk [null][
+					unless block/rs-next blk [
 						header: as red-block! block/rs-head blk
 						if TYPE_OF(header) <> TYPE_BLOCK [
 							fire [TO_ERROR(script invalid-arg) header]
@@ -329,7 +316,6 @@ url: context [
 					data: as red-value! either block/rs-next blk [null][block/rs-head blk]
 				]
 			][
-				header: null
 				action: words/post
 			]
 

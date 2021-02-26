@@ -109,6 +109,21 @@ vbar-value-changed: func [
 	]
 ]
 
+scroller-value-changed: func [
+	[cdecl]
+	adj			[handle!]
+	widget		[handle!]
+	/local
+		values	[red-value!]
+		pos		[integer!]
+][
+	values: get-face-values widget
+	pos: as-integer gtk_adjustment_get_value adj
+	pos: pos << 4
+
+	make-event widget 2 or pos EVT_SCROLL
+]
+
 button-toggled: func [
 	[cdecl]
 	evbox  [handle!]
@@ -137,9 +152,9 @@ button-toggled: func [
 		if toggled? [
 			gtk_toggle_button_set_inconsistent button not mixed?			;-- flip on each toggle
 			unless mixed? [													;--		 N		 Y
-				g_signal_handler_block button check-handler					;-- [ ] <-> [v] <-> [-]
+				g_signal_handlers_block_by_func(evbox :button-toggled button)
 				gtk_toggle_button_set_active button no						;--  |--- emulate ---^
-				g_signal_handler_unblock button check-handler
+				g_signal_handlers_unblock_by_func(evbox :button-toggled button)
 				bool/header: TYPE_NONE
 			]
 		]
@@ -415,6 +430,7 @@ base-event-after: func [
 		size2	[red-pair!]
 		dx		[float!]
 		dy		[float!]
+		scroll	[GdkEventScroll!]
 		motion	[GdkEventMotion!]
 		button	[GdkEventButton!]
 		key		[GdkEventKey!]
@@ -429,6 +445,7 @@ base-event-after: func [
 		etype = GDK_BUTTON_RELEASE
 		etype = GDK_KEY_PRESS
 		etype = GDK_KEY_RELEASE
+		etype = GDK_SCROLL
 	][exit]
 	face: get-face-obj widget
 	values: object/get-values face
@@ -465,6 +482,17 @@ base-event-after: func [
 						offset2/y + size2/y > offset/y
 					][continue]
 					case [
+						etype = GDK_SCROLL [
+							scroll: as GdkEventScroll! event
+							dx: as float! offset/x - offset2/x
+							dy: as float! offset/y - offset2/y
+							scroll/x: scroll/x + dx
+							scroll/y: scroll/y + dy
+							scroll/x_root: scroll/x_root + dx
+							scroll/y_root: scroll/y_root + dy
+							gtk_widget_event target as handle! event
+							SET-RESEND-EVENT(target target)
+						]
 						etype = GDK_MOTION_NOTIFY [
 							motion: as GdkEventMotion! event
 							dx: as float! offset/x - offset2/x
@@ -1220,7 +1248,11 @@ widget-scroll-event: func [
 	widget		[handle!]
 	return:		[integer!]
 ][
-	if evbox <> gtk_get_event_widget as handle! event [return EVT_NO_DISPATCH]
+	either null? GET-RESEND-EVENT(evbox) [
+		if evbox <> gtk_get_event_widget as handle! event [return EVT_NO_DISPATCH]
+	][
+		SET-RESEND-EVENT(evbox null)
+	]
 	g_object_set_qdata widget red-event-id as handle! event
 	if any [event/delta_y < -0.01 event/delta_y > 0.01][
 		return make-event widget check-down-flags event/state EVT_WHEEL

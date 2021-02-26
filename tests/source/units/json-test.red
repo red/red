@@ -193,6 +193,14 @@ Red [
         str: {{"tag":"value","<tag":"value",">tag":"value","tag<":"value","<tag<":"value",">tag<":"value","tag>":"value","<tag>":"value",">tag>":"value","a<tag>b":"value"}}
         --assert res = load-json str
 
+    --test-- "load-json-23"         ;-- crash test for strings divisable by 16
+        s: "1234567812345678"
+        --assert s = load/as mold s 'json
+
+    --test-- "load-json-24"         ;-- crash test
+        o: load/as {{"location": "関西    ↓詳しいプロ↓"}} 'json
+        --assert o/location = "関西    ↓詳しいプロ↓"
+
 ===end-group===
 
 ===start-group=== "json-codec"
@@ -213,6 +221,15 @@ Red [
 
     --test-- "json-codec-3"
         --assert {{"a":{"b":{"c":3,"d":4}}}} = save/as none #("a" #("b" #("c" 3 "d" 4))) 'json
+
+    --test-- "json-codec-4"
+        str: copy ""
+        random/seed 1337
+        loop 1'000'000 [append str random #"^(110)"]
+        save/as bin: #{} str 'json
+        str2: load/as bin 'json
+        --assert str == str2
+        unset [str str2 bin]
 
 ===end-group===
 

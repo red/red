@@ -558,10 +558,9 @@ natives: context [
 				TYPE_BLOCK [DO_EVAL_BLOCK]
 				TYPE_PATH  [
 					interpreter/eval-path arg arg arg + 1 no no no no
-					stack/set-last arg + 1
 				]
 				TYPE_STRING [
-					lexer/scan-alt arg as red-string! arg -1 no yes yes no null null as red-string! arg
+					lexer/scan-alt arg as red-string! arg -1 no yes yes no null null null
 					DO_EVAL_BLOCK
 				]
 				TYPE_URL 
@@ -600,10 +599,7 @@ natives: context [
 		value: stack/arguments
 		
 		switch TYPE_OF(value) [
-			TYPE_PATH
-			TYPE_GET_PATH
-			TYPE_SET_PATH
-			TYPE_LIT_PATH [
+			TYPE_ANY_PATH [
 				interpreter/eval-path value null null no yes no case? <> -1
 			]
 			TYPE_OBJECT [
@@ -621,7 +617,7 @@ natives: context [
 	
 	set*: func [
 		check? [logic!]
-		any?   [integer!]
+		_any?  [integer!]
 		case?  [integer!]
 		_only? [integer!]
 		_some? [integer!]
@@ -629,37 +625,34 @@ natives: context [
 			w	   [red-word!]
 			value  [red-value!]
 			blk	   [red-block!]
+			any?   [logic!]
 			only?  [logic!]
 			some?  [logic!]
 	][
-		#typecheck [set any? case? _only? _some?]
+		#typecheck [set _any? case? _only? _some?]
 		
 		w: as red-word! stack/arguments
 		value: stack/arguments + 1
+		any?:  _any?  <> -1
 		only?: _only? <> -1
 		some?: _some? <> -1
 		
-		if all [any? = -1 TYPE_OF(value) = TYPE_UNSET][
-			fire [TO_ERROR(script need-value) w]
-		]
+		if all [not any? TYPE_OF(value) = TYPE_UNSET][fire [TO_ERROR(script need-value) w]]
 		
 		switch TYPE_OF(w) [
-			TYPE_PATH
-			TYPE_GET_PATH
-			TYPE_SET_PATH
-			TYPE_LIT_PATH [
+			TYPE_ANY_PATH [
 				value: stack/push stack/arguments
 				copy-cell stack/arguments + 1 stack/arguments
 				interpreter/eval-path value null null yes yes no case? <> -1
 			]
 			TYPE_OBJECT [
-				object/set-many as red-object! w value only? some?
+				object/set-many as red-object! w value any? only? some?
 				stack/set-last value
 			]
 			TYPE_BLOCK [
 				blk: as red-block! w
 				stack/mark-native words/_anon
-				set-many blk value block/rs-length? blk only? some?
+				set-many blk value block/rs-length? blk any? only? some?
 				stack/unwind
 				stack/set-last value
 			]
@@ -1362,46 +1355,40 @@ natives: context [
 		check?  [logic!]
 		return: [red-string!]
 		/local
-			str		[red-string!]
-			buffer	[red-string!]
-			s		[series!]
-			p		[byte-ptr!]
-			p4		[int-ptr!]
-			tail	[byte-ptr!]
-			unit	[integer!]
-			cp		[integer!]
-			len		[integer!]
+			str	[red-string!]
+			ret	[red-string!]
+			len	[integer!]
 	][
 		#typecheck dehex
 		str: as red-string! stack/arguments
-		s: GET_BUFFER(str)
-		unit: GET_UNIT(s)
-		p: (as byte-ptr! s/offset) + (str/head << (log-b unit))
-		tail: as byte-ptr! s/tail
-		if p = tail [return str]						;-- empty string case
-
+		ret: as red-string! stack/push*
 		len: string/rs-length? str
-		stack/keep										;-- keep last value
-		buffer: string/rs-make-at stack/push* len * unit
+		string/make-at as red-value! ret len Latin1
+		string/decode-url str ret
+		stack/set-last as red-value! ret
+		ret
+	]
 
-		while [p < tail][
-			cp: switch unit [
-				Latin1 [as-integer p/value]
-				UCS-2  [(as-integer p/2) << 8 + p/1]
-				UCS-4  [p4: as int-ptr! p p4/value]
-			]
-
-			p: p + unit
-			if all [
-				cp = as-integer #"%"
-				p + unit < tail							;-- must be %xx
-			][
-				p: string/decode-utf8-hex p unit :cp false
-			]
-			string/append-char GET_BUFFER(buffer) cp unit
+	enhex*: func [
+		check?  [logic!]
+		return: [red-string!]
+		/local
+			str	[red-string!]
+			ret	[red-string!]
+			len	[integer!]
+	][
+		#typecheck enhex
+		str: as red-string! stack/arguments
+		ret: as red-string! stack/push*
+		len: string/rs-length? str
+		string/make-at as red-value! ret len Latin1
+		either TYPE_OF(str) = TYPE_STRING [
+			string/encode-url str ret string/ESC_URI
+		][
+			string/encode-url str ret string/ESC_URL
 		]
-		stack/set-last as red-value! buffer
-		buffer
+		stack/set-last as red-value! ret
+		ret
 	]
 
 	debase*: func [
@@ -1878,11 +1865,13 @@ natives: context [
 		check? [logic!]
 		/local
 			value  [red-value!]
+			type   [integer!]
 			result [red-logic!]
 	][
 		#typecheck value?
 		value: stack/arguments
-		if TYPE_OF(value) = TYPE_WORD [
+		type: TYPE_OF(value)
+		if ANY_WORD?(type) [
 			value: _context/get as red-word! stack/arguments
 		]
 		result: as red-logic! stack/arguments
@@ -1992,6 +1981,7 @@ natives: context [
 			]
 			TYPE_FLOAT	 [
 				fl: as red-float! arg
+				if float/special? fl/value [fire [TO_ERROR(script invalid-arg) arg]]
 				pair/x: as-integer fl/value
 			]
 			default		 [assert false]
@@ -2004,6 +1994,7 @@ natives: context [
 			]
 			TYPE_FLOAT	 [
 				fl: as red-float! arg
+				if float/special? fl/value [fire [TO_ERROR(script invalid-arg) arg]]
 				pair/y: as-integer fl/value
 			]
 			default		[assert false]
@@ -2500,6 +2491,12 @@ natives: context [
 			n	[integer!]
 	][
 		#typecheck [now year month day time zone _date weekday yearday precise utc]
+		if all [
+			any [time = -1 precise = -1]													;-- not /time/precise both
+			year + month + day + time + zone + _date + weekday + yearday + precise >= -7 	;-- (-9 + 2) - 2 refs at once
+		][
+			fire [TO_ERROR(script bad-refines)]
+		]
 
 		dt: as red-date! stack/arguments
 		dt/header: TYPE_DATE
@@ -2787,9 +2784,9 @@ natives: context [
 			next? one? all? scan? load? [logic!]
 			slot arg [red-value!]
 			bin	bin2 [red-binary!]
+			blk	out  [red-block!]
 			int	  [red-integer!]
 			str	  [red-string!]
-			blk	  [red-block!]
 			dt	  [red-datatype!]
 			fun	  [red-function!]
 			s	  [series!]
@@ -2807,6 +2804,7 @@ natives: context [
 			s/tail: s/offset + 2
 			slot: s/offset
 		]
+		out: either into < 0 [null][stack/arguments + into]
 		offset: 0
 		len: -1
 		bin: as red-binary! stack/arguments
@@ -2837,11 +2835,11 @@ natives: context [
 		one?: any [next? not all? not load?]
 		either type = TYPE_BINARY [
 			if len < 0 [len: binary/rs-length? bin]
-			type: lexer/scan slot binary/rs-head bin len one? scan? load? no :offset fun as red-series! bin
+			type: lexer/scan slot binary/rs-head bin len one? scan? load? no :offset fun as red-series! bin out
 		][
 			str: as red-string! bin
 			if len < 0 [len: string/rs-length? str]
-			type: lexer/scan-alt slot str len one? scan? load? no :offset fun as red-series! str
+			type: lexer/scan-alt slot str len one? scan? load? no :offset fun out
 		]
 		
 		if any [not scan? not load?][
@@ -2858,7 +2856,7 @@ natives: context [
 			bin/head: bin/head + offset
 			slot: as red-value! blk
 		]
-		stack/set-last slot
+		either null? out [stack/set-last slot][stack/set-last as red-value! out]
 	]
 
 	;--- Natives helper functions ---
@@ -3074,6 +3072,7 @@ natives: context [
 		words [red-block!]
 		value [red-value!]
 		size  [integer!]
+		any?  [logic!]
 		only? [logic!]
 		some? [logic!]
 		/local
@@ -3084,24 +3083,35 @@ natives: context [
 			type	[integer!]
 			block?	[logic!]
 	][
-		i: 1
 		type: TYPE_OF(value)
 		block?: any [type = TYPE_BLOCK type = TYPE_PAREN type = TYPE_HASH type = TYPE_MAP type = TYPE_PATH]
 		if block? [blk: as red-block! value]
 		
+		i: 1
+		if all [block? not only?][							;-- pre-check of unset values and non-words
+			while [i <= size][
+				v: _series/pick as red-series! blk i null	;-- NONE if accessed over the tail
+				w: as red-word! _series/pick as red-series! words i null
+				type: TYPE_OF(w)
+				unless ANY_WORD?(type) [					;-- cannot set non-word
+					fire [TO_ERROR(script invalid-arg) w]
+				]
+				
+				if all [not any? TYPE_OF(v) = TYPE_UNSET][	;-- requires /any refinement
+					fire [TO_ERROR(script need-value) w]
+				]
+				
+				i: i + 1
+			]
+		]
+		
+		i: 1
 		while [i <= size][
 			v: either all [block? not only?][_series/pick as red-series! blk i null][value]
 			unless all [some? TYPE_OF(v) = TYPE_NONE][
 				w: as red-word! _series/pick as red-series! words i null
 				type: TYPE_OF(w)
-				unless any [
-					type = TYPE_WORD
-					type = TYPE_GET_WORD
-					type = TYPE_SET_WORD
-					type = TYPE_LIT_WORD
-				][
-					fire [TO_ERROR(script invalid-arg) w]
-				]
+				unless ANY_WORD?(type) [fire [TO_ERROR(script invalid-arg) w]]
 				stack/keep								;-- avoid object event handler overwritting stack slots
 				_context/set w v						;-- can trigger object event handler
 			]
@@ -3196,17 +3206,14 @@ natives: context [
 				]
 				TYPE_IMAGE [
 					#case [
-						any [OS = 'Windows OS = 'macOS] [
+						any [OS = 'Windows OS = 'macOS OS = 'Linux] [
 							image/set-many blk as red-image! series size
 						]
-						OS = 'Linux [#if modules contains 'View [
-							image/set-many blk as red-image! series size
-						]]
 						true [--NOT_IMPLEMENTED--]
 					]
 				]
 				default [
-					set-many blk as red-value! series size no no
+					set-many blk as red-value! series size yes no no	;@@ allow set/any semantics
 				]
 			]
 		]
@@ -3388,6 +3395,7 @@ natives: context [
 			:exclude*
 			:complement?*
 			:dehex*
+			:enhex*
 			:negative?*
 			:positive?*
 			:max*

@@ -351,9 +351,12 @@ load-single-value: func [
 	/local
 		blk	  [red-block!]
 		value [red-value!]
+		len	  [integer!]
 ][
-	lexer/scan-alt slot str -1 yes yes yes yes null null as red-series! str
-
+	len: 0
+	lexer/scan-alt slot str -1 yes yes yes yes :len null null
+	if len < string/rs-length? str [return as red-value! none-value] ;-- extra characters case
+	
 	blk: as red-block! slot
 	assert TYPE_OF(blk) = TYPE_BLOCK
 
@@ -500,7 +503,8 @@ words: context [
 	syllable:		-1
 	macOS:			-1
 	linux:			-1
-	
+	netbsd:			-1
+ 
 	any*:			-1
 	break*:			-1
 	copy:			-1
@@ -600,7 +604,8 @@ words: context [
 	_syllable:		as red-word! 0
 	_macOS:			as red-word! 0
 	_linux:			as red-word! 0
-	
+	_netbsd:		as red-word! 0
+ 
 	_push:			as red-word! 0
 	_pop:			as red-word! 0
 	_fetch:			as red-word! 0
@@ -750,6 +755,7 @@ words: context [
 		syllable:		symbol/make "Syllable"
 		macOS:			symbol/make "macOS"
 		linux:			symbol/make "Linux"
+		netbsd:			symbol/make "NetBSD"
 		
 		repeat:			symbol/make "repeat"
 		foreach:		symbol/make "foreach"
@@ -859,6 +865,7 @@ words: context [
 		_syllable:		_context/add-global syllable
 		_macOS:			_context/add-global macOS
 		_linux:			_context/add-global linux
+		_netbsd:		_context/add-global netbsd
 		
 		_to:			_context/add-global to
 		_thru:			_context/add-global thru

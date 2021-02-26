@@ -72,12 +72,13 @@ Red/System [
 #define S_IROTH		4
 
 #define	DT_DIR		#"^(04)"
+#define S_IFDIR		4000h
+#define S_IFREG		8000h
 
 #define BFFM_SETEXPANDED 1130
 
 #define SIGPIPE 13
 #define SIG_IGN [as int-ptr! 1]
-
 
 ; Wordexp types
 wordexp-type!: alias struct! [
@@ -155,6 +156,7 @@ res_state!: alias struct! [	;-- size: 512 bytes
 #switch OS [							;-- loading OS-specific bindings
 	macOS	 [#include %darwin.reds]
 	FreeBSD  [#include %freebsd.reds]
+	NetBSD   [#include %netbsd.reds]
 	Syllable [#include %syllable.reds]
 	#default [#include %linux.reds]
 ]
@@ -478,7 +480,7 @@ res_state!: alias struct! [	;-- size: 512 bytes
 errno: as int-ptr! 0
 
 #case [
-	any [OS = 'macOS OS = 'FreeBSD OS = 'Android] [
+	any [OS = 'macOS OS = 'FreeBSD OS = 'NetBSD OS = 'Android] [
 		#import [
 			LIBC-file cdecl [
 				;-- https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/10.6/man2/stat.2.html?useVersion=10.6
@@ -608,7 +610,7 @@ errno: as int-ptr! 0
 ]
 
 #case [
-	any [OS = 'macOS OS = 'FreeBSD] [
+	any [OS = 'macOS OS = 'FreeBSD OS = 'NetBSD] [
 		#define O_CREAT		0200h
 		#define O_TRUNC		0400h
 		#define O_EXCL		0800h
@@ -695,6 +697,11 @@ errno: as int-ptr! 0
 		#define O_APPEND	1024
 		#define	O_NONBLOCK	2048
 		#define	O_CLOEXEC	524288
+		#either target = 'ARM [
+			#define O_DIRECTORY 4000h
+		][
+			#define O_DIRECTORY 00010000h
+		]
 
 		epoll_event!: alias struct! [
 			events		[integer!]

@@ -395,10 +395,10 @@ Red/System [
 		y: either x < 0.0 [0.0 - x][x]
 		--assert y = 1.0
 		
-		fabs: func [x [float!] return: [float!] ][
+		_fabs: func [x [float!] return: [float!] ][
 		    either x < 0.0 [0.0 - x][x]
 		]
-		--assert 3.14 = fabs -3.14
+		--assert 3.14 = _fabs -3.14
 
 ===end-group===
 

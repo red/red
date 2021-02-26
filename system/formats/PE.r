@@ -27,23 +27,58 @@ context [
 		6BCDE15CE62DA773B3D6FF400856B7081D48F3DF605AC821FC700DAE8816E3E2
 		D22B72E7CAC21E9B7C3EFC3F23437BB958040000
 	}
-	if all [
-		system/version/4 = 3							;-- only when running the toolchain on Windows
-		find system/components 'Library 
-	][
-		path: to-rebol-file get-env "SystemRoot"		;-- workaround issues on 64-bit editions
-		Imagehlplib: load/library path/System32/Imagehlp.dll
 
-		int-ptr!: make struct! [n [integer!]] none
+	on-file-written: func [job [object!] file [file!] /local file-sum chk-sum offset buffer res][
+		if all [
+			system/version/4 = 3							;-- only when running the toolchain on Windows
+			find system/components 'Library 
+		][
+			path: to-rebol-file get-env "SystemRoot"		;-- workaround issues on 64-bit editions
+			Imagehlplib: load/library path/System32/Imagehlp.dll
 
-		MapFileAndCheckSum: make routine! [
-			Filename	[string!]
-			HeaderSum	[struct! [n [integer!]]]
-			CheckSum	[struct! [n [integer!]]]
-			return:		[integer!]
-		] Imagehlplib "MapFileAndCheckSumA"
+			int-ptr!: make struct! [n [integer!]] none
+
+			MapFileAndCheckSum: make routine! [
+				Filename	[string!]
+				HeaderSum	[struct! [n [integer!]]]
+				CheckSum	[struct! [n [integer!]]]
+				return:		[integer!]
+			] Imagehlplib "MapFileAndCheckSumA"
+
+			either redc/load-lib? [
+				file-sum: make struct! int-ptr! [0]
+				chk-sum:  make struct! int-ptr! [0]
+
+				res: MapFileAndCheckSum
+					to-local-file get-modes file 'full-path
+					file-sum
+					chk-sum
+
+				if res <> 0 [
+					print [
+						"*** Linker Error: checksum calculation failed^/"
+						"*** Reason: " select res [
+							1 "Could not open the file."
+							2 "Could not map the file."
+							3 "Could not map a view of the file."
+							4 "Could not convert the file name to Unicode."
+						]
+					]
+				]
+
+				offset: (length? defs/image/MSDOS-header) + ((5 + 17) * 4) + 1
+				buffer: read/binary file
+				pointer/value: chk-sum/n
+				change/part at buffer offset form-struct pointer 4
+				write/binary file buffer
+			][
+				if job/type = 'drv [
+					make error! "Rebol/View or a Rebol kernel with /Library component is required!"
+				]
+			]
+		]
 	]
-	
+
 	defs: [
 		PE-signature #{50450000}						;-- "PE^@^@"
 		image [
@@ -210,8 +245,9 @@ context [
 			version				"FileVersion"
 			rights				"LegalCopyright"
 			trademarks			"LegalTrademarks"
-			Author				"PrivateBuild"
+			;Author				"PrivateBuild"
 			ProductName			"ProductName"
+			ProductVersion		"ProductVersion"
 		]
 	]
 
@@ -982,6 +1018,9 @@ context [
 
 		foreach [key key-str] defs/resource-version-info [
 			if value: select info key [
+				if all [key = 'ProductVersion issue? value][ ;-- convert it back to tuple!
+					value: to tuple! debase/base next value 16
+				]
 				build-res-string tail buf key-str to string! value
 			]
 		]
@@ -1022,18 +1061,22 @@ context [
 		change buf to-bin16 length? buf
 	]
 
-	build-res-file-info: func [info [block!] type [word!] /local f ver v][
+	build-res-file-info: func [info [block!] type [word!] /local f ver pver v pv][
 		ver: 0.0.0.0
+		pver: 0.0.0.0
 		if all [v: select info 'version issue? v][
 			ver: ver or to tuple! debase/base next v 16
+		]
+		if all [pv: select info 'ProductVersion issue? pv][
+			pver: pver or to tuple! debase/base next pv 16
 		]
 		f: make-struct vs-fixed-fileinfo none
 		f/signature:			to-integer #{FEEF04BD}
 		f/struct-version:		to-integer #{00010000}
 		f/file-version-ms: 		ver/2 or shift/left ver/1 16
 		f/file-version-ls: 		ver/4 or shift/left ver/3 16
-		f/product-version-ms:	ver/2 or shift/left ver/1 16
-		f/product-version-ls:	ver/4 or shift/left ver/3 16
+		f/product-version-ms:	pver/2 or shift/left pver/1 16
+		f/product-version-ls:	pver/4 or shift/left pver/3 16
 		f/OS: 					to-integer #{00000004}	;-- VOS__WINDOWS32
 		f/type:					switch/default type [dll [2] drv [3]][1] ;-- exe
 		form-struct f
@@ -1166,41 +1209,6 @@ context [
 			pad: pad-size? spec/2
 			append job/buffer spec/2
 			insert/dup tail job/buffer null pad
-		]
-	]
-	
-	on-file-written: func [job [object!] file [file!] /local file-sum chk-sum offset buffer res][
-		either redc/load-lib? [
-			file-sum: make struct! int-ptr! [0]
-			chk-sum:  make struct! int-ptr! [0]
-
-			res: MapFileAndCheckSum
-				to-local-file get-modes file 'full-path
-				file-sum
-				chk-sum
-
-			if res <> 0 [
-				print [
-					"*** Linker Error: checksum calculation failed^/"
-					"*** Reason: " select res [
-						1 "Could not open the file."
-						2 "Could not map the file."
-						3 "Could not map a view of the file."
-						4 "Could not convert the file name to Unicode."
-					]
-				]
-			]
-
-			offset: (length? defs/image/MSDOS-header) + ((5 + 17) * 4) + 1
-
-			buffer: read/binary file
-			pointer/value: chk-sum/n
-			change/part at buffer offset form-struct pointer 4
-			write/binary file buffer
-		][
-			if job/type = 'drv [
-				make error! "Rebol/View or a Rebol kernel with /Library component is required!"
-			]
 		]
 	]
 ]

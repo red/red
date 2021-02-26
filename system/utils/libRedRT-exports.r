@@ -133,12 +133,14 @@
 	red/object/init-push
 	red/object/init-events
 	red/object/loc-fire-on-set*
+	red/object/loc-ctx-fire-on-set*
 	red/object/fire-on-set*
 	red/object/get-values
 
 	red/integer/get-any*
 	red/integer/get*
 	red/integer/get
+	red/integer/make-at
 	red/integer/form-signed
 	red/logic/get
 	red/float/get
@@ -325,6 +327,7 @@
 	red/natives/exclude*
 	red/natives/complement?*
 	red/natives/dehex*
+	red/natives/enhex*
 	red/natives/negative?*
 	red/natives/positive?*
 	red/natives/max*
@@ -402,7 +405,6 @@
 	red/string/make-at
 	red/unicode/load-utf8-buffer
 	red/ownership/bind
-	red/integer/make-at
 	red/string/load
 	red/set-type
 	red/unicode/load-utf8-stream

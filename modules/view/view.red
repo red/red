@@ -12,7 +12,9 @@ Red [
 
 #system [
 	#include %../../runtime/datatypes/event.reds
+	red/boot?: yes
 	event/init
+	red/boot?: no
 ]
 
 #include %utils.red
@@ -283,12 +285,25 @@ on-face-deep-change*: function ["Internal use only" owner word target action new
 							all [owner/options owner/options/default]
 						]
 					]
-					if all [find [text-list drop-list drop-down] owner/type string? target][
-						target: head target
-						index: (index? find/same owner/data target) - 1
-						part: 1
+					either all [word = 'data find [text-list drop-list drop-down] owner/type][
+						if string? target [
+							target: head target
+							index: (index? find/same owner/data target) - 1
+							part: 1
+						]
+						if any [
+							string? target
+							all [
+								block? target
+								same? (head owner/data) (head target)
+								not find [insert append cleared removed taken] action
+							]
+						][
+							system/view/platform/on-change-facet owner word target action new index part
+						]	
+					][
+						system/view/platform/on-change-facet owner word target action new index part
 					]
-					system/view/platform/on-change-facet owner word target action new index part
 				]
 			]
 			system/reactivity/check/only owner word
@@ -472,6 +487,7 @@ face!: object [				;-- keep in sync with facet! enum
 	]
 	
 	on-deep-change*: function [owner word target action new index part][
+		if unset? :new [new: none]
 		on-face-deep-change* owner word target action new index part state no
 	]
 ]
@@ -705,9 +721,16 @@ stop-events: function [
 	system/view/platform/exit-event-loop
 ]
 
-do-safe: func ["Internal Use Only" code [block!] /local result][
-	if error? set/any 'result try/all code [print :result]
-	get/any 'result
+do-safe: func ["Internal Use Only" code [block!] /local result error][
+	unset 'result
+	if error? error: try/all [
+		if 'halt-request = catch/name [
+			set/any 'result do code
+			none										;-- catch/name shouldn't be triggered by a word returned
+		] 'console [stop-events]
+		none											;-- try/all shouldn't be triggered by whatever stop-events returns
+	][print :error]
+	:result												;-- unset or result of actor evaluation
 ]
 
 do-actor: function ["Internal Use Only" face [object!] event [event! none!] type [word!] /local result][
@@ -859,7 +882,7 @@ view: function [
 	
 	if block? spec [spec: either tight [layout/tight spec][layout spec]]
 	if spec/type <> 'window [cause-error 'script 'not-window []]
-	if options [set spec make object! opts]
+	if options [set/any spec make object! opts]
 	if flags [spec/flags: either spec/flags [unique union to-block spec/flags to-block flgs][flgs]]
 	
 	unless spec/text   [spec/text: "Red: untitled"]
@@ -926,9 +949,10 @@ make-face: func [
 	unless spec [blk: []]
 	opts: svv/opts-proto
 	css: make block! 2
-	spec: svv/fetch-options/no-skip face opts model blk css no
+	reactors: make block! 4
+	spec: svv/fetch-options/no-skip face opts model blk css reactors no
 	if model/init [do bind model/init 'face]
-	svv/process-reactors
+	svv/process-reactors reactors
 
 	if offset [face/offset: xy]
 	if size [face/size: wh]

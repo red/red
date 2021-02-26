@@ -130,14 +130,16 @@ error: context [
 		obj		[red-object!]
 		return: [red-block!]
 		/local
-			value  [red-value!]
-			tail   [red-value!]
-			buffer [red-string!]
-			type   [integer!]
+			value   [red-value!]
+			tail    [red-value!]
+			buffer  [red-string!]
+			type    [integer!]
+			syntax? [logic!]
 	][
 		value: block/rs-head blk
 		tail:  block/rs-tail blk
 		
+		syntax?: words/errors/syntax/symbol = get-type obj
 		while [value < tail][
 			type: TYPE_OF(value)
 			if any [
@@ -146,7 +148,11 @@ error: context [
 			][
 				buffer: string/rs-make-at stack/push* 16
 				stack/mark-native words/_body
-				actions/form object/rs-select obj value buffer null 0
+				either syntax? [
+					actions/form object/rs-select obj value buffer null 0
+				][
+					actions/mold object/rs-select obj value buffer no no yes null 0 0
+				]
 				stack/unwind
 				copy-cell as red-value! buffer value
 				stack/pop 1

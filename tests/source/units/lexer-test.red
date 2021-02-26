@@ -1,7 +1,7 @@
 Red [
 	Title:   "Red lexer test script"
 	Author:  "Nenad Rakocevic"
-	File: 	 %lexer-test.reds
+	File: 	 %lexer-test.red
 	Tabs:	 4
 	Rights:  "Copyright (C) 2020 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
@@ -406,6 +406,10 @@ Red [
 	--test-- "tr-46" --assert [/ #a // #a /// #a hello #a + #a - #a] == transcode {/#a //#a ///#a hello#a +#a -#a}
 	--test-- "tr-47" --assert error? try [transcode "(#abc:)"]
 
+	--test-- "tr-48" --assert [4294967296.0 6442450943.0 8589934592.0 9999999999] == transcode "4294967296 6442450943 8589934592 9999999999"
+
+	--test-- "tr-49" --assert error? try [transcode #{8B}]
+
 ===end-group===
 ===start-group=== "transcode/one"
 	--test-- "tro-1"  --assert 8		== transcode/one "8"
@@ -638,6 +642,10 @@ Red [
 	--test-- "tro-160"  --assert error? try [transcode/one ":x::"]
 	--test-- "tro-161"  --assert error? try [transcode/one "1:2:"]
 	--test-- "tro-162"  --assert error? try [transcode/one "'a/b:"]
+	--test-- "tro-163"  --assert error? try [transcode/one ":a/b:"]
+	--test-- "tro-164"  --assert error? try [transcode/one "123#"]
+	--test-- "tro-165"  --assert error? try [transcode/one "9h"]
+	--test-- "tro-166"  --assert error? try [transcode/one "FACEFEEDDEADBEEFh"]
 
 ===end-group===
 ===start-group=== "transcode/next"
@@ -655,6 +663,31 @@ Red [
 		--assert map? out/1
 
 ===end-group===
+===start-group=== "transcode/into"
+
+	--test-- "ti-1"
+		out: make block! 1 
+		--assert [123] == transcode/into "123" out
+		--assert [123] == out
+
+	--test-- "ti-2"
+		out: [] 
+		--assert [456] == transcode/into "456" out
+		--assert [456] == out
+		
+	--test-- "ti-3"
+		out: make block! 1
+		--assert [789 456 123] == transcode/into "789 456 123" out
+		--assert [789 456 123] == out
+
+	--test-- "ti-4"
+		out: tail [a b c]
+		--assert [789 456 123] == transcode/into "789 456 123" out
+		--assert [789 456 123] == out
+		--assert [a b c 789 456 123] == head out
+
+===end-group===
+
 ===start-group=== "scan"
 
 	--test-- "scan-1"  --assert (reduce [integer! " hello"]) == scan/next "123 hello"
@@ -748,6 +781,10 @@ Red [
 	--test-- "scan-77" --assert [#[none] ""] == scan/next " "
 	--test-- "scan-78" --assert none? scan/next ""
 	--test-- "scan-79" --assert error!   = scan "1:2:"
+	--test-- "scan-80" --assert error!   = scan "123#"
+	--test-- "scan-81" --assert error!   = scan "9h"
+	--test-- "scan-82" --assert error!   = scan "FACEFEEDDEADBEEFh"
+	--test-- "scan-83" --assert error!   = scan ":a/b:"
 
 ===end-group===
 ===start-group=== "scan/fast"
@@ -1422,6 +1459,22 @@ Red [
 		    prescan word! datatype! 1 5x6 
 		    scan word! datatype! 1 5x6 
 		    load word! datatype! 1 c
+		]
+
+	--test-- "tt-31"
+		clear logs
+		--assert [] == transcode/trace ";-- comment" :lex-logger
+		--assert logs = [
+			prescan comment word! 1 1x12 
+			scan comment word! 1 1x12
+		]
+
+	--test-- "tt-32"
+		clear logs
+		--assert [] == transcode/trace %%{"dd^}%% :lex-logger
+		--assert logs = [
+			prescan error! datatype! 1 1x5
+			error string! datatype! 1 1x5
 		]
 
 ===end-group===

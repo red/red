@@ -23,6 +23,7 @@ red: context [
 		Syllable [#include %platform/Syllable/syllable.reds]
 		macOS	 [#include %platform/darwin/darwin.reds]
 		FreeBSD  [#include %platform/freebsd/freebsd.reds]
+		NetBSD   [#include %platform/netbsd/netbsd.reds]
 		#default [#include %platform/linux/linux.reds]	;-- Linux or Android
 	]
 
@@ -51,11 +52,19 @@ red: context [
 	;-- 	return:  [integer!]
 	;-- ]
 	;--------------------------------------------
+
 	#switch OS [
-		Windows  [#include %platform/windows/image-gdiplus.reds]
+		Windows  [
+			#switch draw-engine [
+				GDI+	 [#include %platform/windows/image-gdiplus.reds]
+				#default [#include %platform/windows/image-wic.reds]
+			]
+		]
+		Syllable []
 		macOS	 [#include %platform/darwin/image-quartz.reds]
-		Linux	 [#if modules contains 'View [#include %platform/linux/image-gdk.reds]]
+		Linux	 [#include %platform/linux/image-gdk.reds]
 		FreeBSD  []
+		NetBSD   []
 		#default []
 	]
 	
@@ -112,9 +121,7 @@ red: context [
 	#if OS = 'Windows [#include %datatypes/image.reds]	;-- temporary
 	#if OS = 'macOS   [#include %datatypes/image.reds]	;-- temporary
 	#either modules contains 'View [][#include %datatypes/event.reds]
-	#if OS = 'Linux   [
-		#if modules contains 'View [#include %datatypes/image.reds]
-	]
+	#if OS = 'Linux   [#include %datatypes/image.reds]
 
 	;-- Debugging helpers --
 	
@@ -213,9 +220,12 @@ red: context [
 		port/init
 		money/init
 		ref/init
-		#if OS = 'Windows [image/init]					;-- temporary
+		#if OS = 'Windows [								;-- temporary
+			#if draw-engine <> 'GDI+ [OS-image/init]
+			image/init
+		]
 		#if OS = 'macOS   [image/init]					;-- temporary
-		#if OS = 'Linux   [#if modules contains 'View [image/init]]	;-- temporary
+		#if OS = 'Linux   [image/init]					;-- temporary
 		#either modules contains 'View [][event/init]
 		
 		actions/init
@@ -316,6 +326,8 @@ red: context [
 		free as byte-ptr! action-table
 		free as byte-ptr! cycles/stack
 		free as byte-ptr! crypto/crc32-table
+		free as byte-ptr! redbin/path/stack
+		free as byte-ptr! redbin/reference/list
 	]
 	
 	#if type = 'dll [

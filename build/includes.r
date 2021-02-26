@@ -39,6 +39,7 @@ write %build/bin/sources.r set-cache [
 			%PNG.red
 			%CSV.red
 			%JSON.red
+			%redbin.red
 		]
 		%console/ [
 			%auto-complete.red
@@ -165,12 +166,14 @@ write %build/bin/sources.r set-cache [
 				%COM.reds
 				%darwin.reds
 				%freebsd.reds
+				%netbsd.reds
 				%linux.reds
 				%POSIX.reds
 				%syllable.reds
 				%windows.reds
 			]
 			%definitions.reds
+			%image-wic.reds
 			%image-gdiplus.reds
 			%image-gdk.reds
 			%image-quartz.reds
@@ -205,7 +208,8 @@ write %build/bin/sources.r set-cache [
 					%classes.reds
 					%comdlgs.reds
 					%direct2d.reds
-					%draw-d2d.reds
+					%matrix2d.reds
+					%draw-gdi.reds
 					%draw.reds
 					%events.reds
 					%font.reds
@@ -301,6 +305,7 @@ write %build/bin/sources.r set-cache [
 			%darwin.reds
 			%debug.reds
 			%freebsd.reds
+			%netbsd.reds
 			%libc.reds
 			%lib-names.reds
 			%lib-natives.reds

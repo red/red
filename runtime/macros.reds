@@ -195,6 +195,7 @@ Red/System [
 	NAT_EXCLUDE
 	NAT_COMPLEMENT?
 	NAT_DEHEX
+	NAT_ENHEX
 	NAT_NEGATIVE?
 	NAT_POSITIVE?
 	NAT_MAX
@@ -398,6 +399,14 @@ Red/System [
 	]
 ]
 
+#define ANY_SERIES_PARSE?(type) [			;-- any-series! types that can be processed by Parse
+	all [
+		ANY_SERIES?(type)
+		type <> TYPE_IMAGE
+		type <> TYPE_VECTOR
+	]
+]
+
 #define ANY_PATH?(type)	[
 	any [
 		type = TYPE_PATH
@@ -586,9 +595,6 @@ Red/System [
 		return: [integer!]
 	] actions/get-action-ptr value ACT_COMPARE
 ]
-
-#define IMAGE_WIDTH(size)  (size and FFFFh) 
-#define IMAGE_HEIGHT(size) (size >> 16)
 
 #if debug? = yes [
 	#define dump4	[dump-hex4 as int-ptr!]

@@ -561,10 +561,10 @@ OS-image: context [
 			y			[integer!]
 			scan0		[int-ptr!]
 			pos			[integer!]
-			rgb		[byte-ptr!]
-			alpha	[byte-ptr!]
-			len		[integer!]
-			len2	[integer!]
+			rgb			[byte-ptr!]
+			alpha		[byte-ptr!]
+			len			[integer!]
+			len2		[integer!]
 	][
 		scan0: as int-ptr! allocate width * height * 4
 		y: 0
@@ -813,9 +813,9 @@ OS-image: context [
 
 		if all [zero? offset not part?][
 			either null? handle0 [
-				scan0: as int-ptr! allocate inode0/size
+				scan0: as int-ptr! allocate part * 4
 				dst/node: make-node null scan0 IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED width height
-				copy-memory as byte-ptr! scan0 as byte-ptr! inode0/buffer inode0/size
+				copy-memory as byte-ptr! scan0 as byte-ptr! inode0/buffer part * 4
 			][
 				handle: CGImageCreateCopy handle0
 				dst/node: make-node handle null 0 width height

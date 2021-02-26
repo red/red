@@ -89,7 +89,6 @@ op: context [
 			;type = TYPE_BLOCK
 			type = TYPE_ACTION					;@@ replace with ANY_NATIVE? when available
 			type = TYPE_NATIVE
-			type = TYPE_OP
 			type = TYPE_FUNCTION
 			type = TYPE_ROUTINE
 		][fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(spec)]]
@@ -102,8 +101,7 @@ op: context [
 			;	blk/node
 			;]
 			TYPE_ACTION
-			TYPE_NATIVE
-			TYPE_OP [
+			TYPE_NATIVE [
 				flag: flag-native-op
 				native: as red-native! spec
 				unless binary? native/spec [fire [TO_ERROR(script bad-op-spec)]]

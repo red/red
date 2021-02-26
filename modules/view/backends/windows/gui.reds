@@ -13,19 +13,18 @@ Red/System [
 ;; ===== Extra slots usage in Window structs =====
 ;;
 ;;		-60  :							<- TOP
+;;		-36  : Direct2D render target
+;;		-32	 : base: mouse capture count
 ;;		-28  : Cursor handle
-;;		-24  : Direct2D target interface
-;;			   base-layered: caret's owner handle
+;;		-24  : base-layered: caret's owner handle, Window: modal loop type for moving and resizing
 ;;		-20  : evolved-base-layered: child handle, window: previous focused handle
 ;;		-16  : base-layered: owner handle, window: border width and height
 ;;		-12  : base-layered: clipped? flag, caret? flag, d2d? flag, ime? flag
 ;;		 -8  : base: pos X/Y in pixel
 ;;			   window: pos X/Y in pixel
 ;;		 -4  : camera: camera!
-;;			   console: terminal!
-;;			   base: bitmap cache
-;;			   draw: old-dc
 ;;			   group-box: frame hWnd
+;;			   window destroy flag
 ;;		  0  : |
 ;;		  4  : |__ face!
 ;;		  8  : |
@@ -34,6 +33,7 @@ Red/System [
 
 #include %win32.reds
 #include %direct2d.reds
+#include %matrix2d.reds
 #include %classes.reds
 #include %events.reds
 
@@ -47,8 +47,11 @@ Red/System [
 #include %text-list.reds
 #include %button.reds
 #include %calendar.reds
-#include %draw-d2d.reds
-#include %draw.reds
+#either draw-engine = 'GDI+ [
+	#include %draw-gdi.reds
+][
+	#include %draw.reds
+]
 #include %comdlgs.reds
 
 exit-loop:		0
@@ -58,6 +61,7 @@ hScreen:		as handle! 0
 hInstance:		as handle! 0
 default-font:	as handle! 0
 hover-saved:	as handle! 0							;-- last window under mouse cursor
+prev-focus:		as handle! 0
 version-info: 	declare OSVERSIONINFO
 current-msg: 	as tagMSG 0
 wc-extra:		80										;-- reserve 64 bytes for win32 internal usage (arbitrary)
@@ -70,7 +74,6 @@ hIMCtx:			as handle! 0
 ime-open?:		no
 ime-font:		as tagLOGFONT allocate 92
 base-down-hwnd: as handle! 0
-request-file?:	no
 
 dpi-factor:		100
 log-pixels-x:	0
@@ -318,13 +321,21 @@ get-text-size: func [
 
 	SelectObject hwnd saved
 	ReleaseDC hwnd dc
-	
-	size/width:  as integer! ceil as float! bbox/width
+
+#either draw-engine = 'GDI+ [
+	size/width:  as integer! ceil (as float! bbox/width)
+][
+	size/width:  as integer! ceil (as float! bbox/width) * 0.96	;-- scale to match Direct2D's width
+]
 	size/height: as integer! ceil as float! bbox/height
 
 	if pair <> null [
-		pair/x: as integer! ceil as float! bbox/width  * 100 / dpi-factor
-		pair/y: as integer! ceil as float! bbox/height * 100 / dpi-factor
+	#either draw-engine = 'GDI+ [
+		pair/x: as integer! ceil as float! bbox/width  * (as float32! 100.0) / (as float32! dpi-factor)	
+	][
+		pair/x: as integer! ceil as float! bbox/width  * (as float32! 96.0) / (as float32! dpi-factor)
+	]
+		pair/y: as integer! ceil as float! bbox/height * (as float32! 100.0) / (as float32! dpi-factor)
 	]
 
 	size
@@ -633,18 +644,25 @@ free-faces: func [
 			]
 		]
 		any [sym = window sym = panel sym = base sym = rich-text][
+			#either draw-engine = 'GDI+ [
 			if zero? (WS_EX_LAYERED and GetWindowLong handle GWL_EXSTYLE) [
 				dc: GetWindowLong handle wc-offset - 4
 				if dc <> 0 [DeleteDC as handle! dc]			;-- delete cached dc
 			]
-			dc: GetWindowLong handle wc-offset - 24
+			dc: GetWindowLong handle wc-offset - 36
 			if dc <> 0 [
 				either (GetWindowLong handle wc-offset - 12) and BASE_FACE_IME <> 0 [
-					d2d-release-target as int-ptr! dc
+					d2d-release-target as render-target! dc
 				][											;-- caret
 					DestroyCaret
 				]
-			]
+			]][
+			;-- Direct2D backend
+			dc: GetWindowLong handle wc-offset - 36
+			if dc <> 0 [d2d-release-target as render-target! dc]
+			if (GetWindowLong handle wc-offset - 12) and BASE_FACE_IME <> 0 [
+				DestroyCaret
+			]]
 		]
 		true [
 			0
@@ -855,6 +873,7 @@ init: func [
 
 cleanup: does [
 	unregister-classes hInstance
+	DX-release-dev
 	DX-cleanup
 ]
 
@@ -914,6 +933,8 @@ init-window: func [										;-- post-creation settings
 	SetWindowLong handle wc-offset - 4 0
 	SetWindowLong handle wc-offset - 16 0
 	SetWindowLong handle wc-offset - 24 0
+	SetWindowLong handle wc-offset - 32 0
+	SetWindowLong handle wc-offset - 36 0
 ]
 
 get-selected-handle: func [
@@ -1431,7 +1452,7 @@ OS-make-view: func [
 		]
 		sym = drop-down [
 			class: #u16 "RedCombo"
-			flags: flags or CBS_DROPDOWN or CBS_HASSTRINGS ;or WS_OVERLAPPED
+			flags: flags or CBS_DROPDOWN or CBS_HASSTRINGS or CBS_AUTOHSCROLL ;or WS_OVERLAPPED
 		]
 		sym = drop-list [
 			class: #u16 "RedCombo"
@@ -1584,6 +1605,7 @@ OS-make-view: func [
 			sym = toggle
 		][
 			init-button handle values
+			if sym = toggle [set-logic-state handle as red-logic! data no]
 		]
 		sym = group-box [
 			flags: flags or WS_GROUP or BS_GROUPBOX
@@ -1606,7 +1628,7 @@ OS-make-view: func [
 		]
 		panel? [
 			adjust-parent handle as handle! parent offset/x offset/y
-			SetWindowLong handle wc-offset - 24 0
+			SetWindowLong handle wc-offset - 36 0
 		]
 		sym = slider [
 			vertical?: size/y > size/x
@@ -2591,7 +2613,6 @@ OS-to-image: func [
 		width	[integer!]
 		height	[integer!]
 		bmp		[handle!]
-		bitmap	[integer!]
 		img		[red-image!]
 		word	[red-word!]
 		size	[red-pair!]
@@ -2643,12 +2664,7 @@ OS-to-image: func [
 		]
 	]
 
-	bitmap: 0
-	GdipCreateBitmapFromHBITMAP bmp 0 :bitmap
-
-	either zero? bitmap [img: as red-image! none-value][
-		img: image/init-image as red-image! stack/push* as int-ptr! bitmap
-	]
+	img: OS-image/from-HBITMAP as integer! bmp 0
 
     DeleteDC mdc
     DeleteObject bmp

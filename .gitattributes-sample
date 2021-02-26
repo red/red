@@ -1,0 +1,40 @@
+# Auto detect
+# Handle line endings automatically for files detected as
+# text and leave all files detected as binary untouched.
+# This will handle all files NOT defined below.
+*		    text=auto
+
+# Overwrite the default settings for some known files:
+
+*.bas		text
+*.bat		text eol=crlf
+*.cmd		text eol=crlf
+*.def		text
+*.dex		binary
+*.dll		binary
+*.dylib		binary
+*.icns		binary
+*.ico		binary
+*.java		text
+*.lib		binary
+*.md		text
+*.plist		text
+*.r			text
+*.red		text
+*.reds		text
+*.sample	text
+*.sh		text eol=lf
+*.so		binary
+*.tests		text
+*.xlsm		binary
+*.xlsx		binary
+*.xml		text
+*.yml		text
+
+# Image files
+
+*.png		binary
+*.jpg		binary
+*.jpeg		binary
+*.gif		binary
+*.tif		binary

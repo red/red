@@ -27,7 +27,7 @@ object [
 	ime-pos:	0
 
 	top:		1								;-- index of the first visible line in the line buffer
-	line:		none							;-- current editing line
+	line:		""								;-- current editing line
 	line-pos:	0								;-- current editing line's position in lines
 	pos:		0								;-- insert position of the current editing line
 
@@ -125,13 +125,20 @@ object [
 
 	vprint: func [str [string!] lf? [logic!] /local s cnt first-prin?][
 		unless console/state [exit]
+		unless gui-console-ctx/win/visible? [
+			gui-console-ctx/win/visible?: yes
+			show gui-console-ctx/win		;-- force a show in case auto-sync? is off
+		]
 
 		if all [not lf? newline?][newline?: no first-prin?: yes]
 		if lf? [newline?: yes]
 		s: find str lf
 		either s [
 			cnt: 0
-			unless all [lf? not prin?][
+			if all [
+				not all [lf? not prin?]
+				not same? head line last lines
+			][
 				vprin copy/part str s
 				str: skip s 1
 				s: find str lf

@@ -1,7 +1,7 @@
 Red [
 	Title:   "Red recycle test script"
 	Author:  "Peter W A Wood"
-	File: 	 %recycle-test.reds
+	File: 	 %recycle-test.red
 	Tabs:	 4
 	Rights:  "Copyright (C) 2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"

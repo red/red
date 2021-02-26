@@ -64,13 +64,13 @@ matrix:
       docker run -v ${PWD}:/red
       -w /red/quick-test/runnable/arm-tests/red/
       --entrypoint /red/quick-test/runnable/arm-tests/red/run-all.sh
-      balenalib/armv5e-debian:latest
+      balenalib/armv5e-debian:red
     - >
       travis_wait 15 docker run -v ${PWD}:/red
       -e LD_LIBRARY_PATH='$LD_LIBRARY_PATH:/red/quick-test/runnable/arm-tests/system/'
       -w /red/quick-test/runnable/arm-tests/system/
       --entrypoint /red/quick-test/runnable/arm-tests/system/run-all.sh
-      balenalib/armv5e-debian:latest
+      balenalib/armv5e-debian:red
 
 
   ### ARMhf ############################################################
@@ -80,13 +80,13 @@ matrix:
       docker run -v ${PWD}:/red
       -w /red/quick-test/runnable/arm-tests/red/
       --entrypoint /red/quick-test/runnable/arm-tests/red/run-all.sh
-      balenalib/raspberry-pi2-debian:latest
+      balenalib/raspberry-pi2-debian:red
     - >
       travis_wait 15 docker run -v ${PWD}:/red
       -e LD_LIBRARY_PATH='$LD_LIBRARY_PATH:/red/quick-test/runnable/arm-tests/system/'
       -w /red/quick-test/runnable/arm-tests/system/
       --entrypoint /red/quick-test/runnable/arm-tests/system/run-all.sh
-      balenalib/raspberry-pi2-debian:latest
+      balenalib/raspberry-pi2-debian:red
 
 
   ### macOS ############################################################
@@ -107,12 +107,23 @@ install:
     multiarch/qemu-user-static:register &&
     printf
     'FROM i386/debian:latest\n
-    ENV DISPLAY :0\n
     RUN apt-get update &&
-    apt-get install -y curl libcurl4 libgtk-3-0 xvfb &&
+    apt-get install -y curl &&
     curl -o /bin/rebol https://static.red-lang.org/tmp/rebol &&
     chmod +x /bin/rebol\n
-    ' > Dockerfile &&
+    ' > Dockerfile ;
+    fi
+  # extra libs for x86 backend, install libgtk
+  - >
+    if [[ ${OS} == "linux" ]]; then
+    printf
+    'ENV DISPLAY :0\n
+    RUN apt-get install -y libcurl4 libgtk-3-0 xvfb\n
+    ' >> Dockerfile ;
+    fi
+  # build docker image
+  - >
+    if [[ ${TRAVIS_OS_NAME} == "linux" ]]; then
     docker build -t i386/debian:red . ;
     fi
   # ARMel: build tests on i386
@@ -122,7 +133,12 @@ install:
     i386/debian:red rebol -qws tests/build-arm-tests.r '-t Linux-ARM' &&
     docker run -v ${PWD}:/red -w /red
     i386/debian:red rebol -qws system/tests/build-arm-tests.r '-t Linux-ARM' &&
-    docker pull balenalib/armv5e-debian:latest ;
+    printf
+    'FROM balenalib/armv5e-debian:latest\n
+    RUN apt-get update &&
+    apt-get install -y libgdk-pixbuf2.0-0
+    ' > Dockerfile &&
+    docker build -t balenalib/armv5e-debian:red . ;
     fi
   # ARMhf: build tests on i386
   - >
@@ -131,7 +147,12 @@ install:
     i386/debian:red rebol -qws tests/build-arm-tests.r '-t RPi' &&
     docker run -v ${PWD}:/red -w /red
     i386/debian:red rebol -qws system/tests/build-arm-tests.r '-t RPi' &&
-    docker pull balenalib/raspberry-pi2-debian:latest ;
+    printf
+    'FROM balenalib/raspberry-pi2-debian:latest\n
+    RUN apt-get update &&
+    apt-get install -y libgdk-pixbuf2.0-0
+    ' > Dockerfile &&
+    docker build -t balenalib/raspberry-pi2-debian:red . ;
     fi
   # macOS: install rebol
   - >

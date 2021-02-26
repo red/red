@@ -638,6 +638,7 @@ process-command-event: func [
 		type   [red-word!]
 		values [red-value!]
 		int	   [red-integer!]
+		fstate [red-value!]
 		idx	   [integer!]
 		res	   [integer!]
 		sym    [integer!]
@@ -754,6 +755,9 @@ process-command-event: func [
 				idx + 1 = int/value
 			][exit]										;-- do not send event if select the same item
 			res: make-event current-msg idx EVT_SELECT
+
+			fstate: values + FACE_OBJ_STATE
+			if TYPE_OF(fstate) <> TYPE_BLOCK [exit]		;-- widget destroyed
 
 			idx: as-integer SendMessage child widget 0 0 ;-- user may change select item in on-select handler
 			if all [									;-- if user change it back to the preview item, exit
@@ -908,6 +912,7 @@ bitblt-memory-dc: func [
 	dc		[handle!]
 	dstx	[integer!]
 	dsty	[integer!]
+	src-dc	[handle!]
 	/local
 		rect	[RECT_STRUCT value]
 		width	[integer!]
@@ -917,8 +922,9 @@ bitblt-memory-dc: func [
 		bf		[tagBLENDFUNCTION]
 		paint? 	[logic!]
 ][
-	if dc = null [dc: BeginPaint hWnd paint  paint?: yes]
+	if dc = null [dc: BeginPaint hWnd paint paint?: yes]
 	hBackDC: as handle! GetWindowLong hWnd wc-offset - 4
+	if null? hBackDC [hBackDC: src-dc]
 	GetClientRect hWnd rect
 	width: rect/right - rect/left
 	height: rect/bottom - rect/top
@@ -1034,14 +1040,11 @@ update-window: func [
 			word: as red-word! values + FACE_OBJ_TYPE
 			type: symbol/resolve word/symbol
 			case [
-				all [
-					type = rich-text
-					(GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D <> 0
-				][
-					len: GetWindowLong hWnd wc-offset - 24
+				type = rich-text [
+					len: GetWindowLong hWnd wc-offset - 36
 					if len <> 0 [
-						d2d-release-target as int-ptr! len
-						SetWindowLong hWnd wc-offset - 24 0
+						d2d-release-target as render-target! len
+						SetWindowLong hWnd wc-offset - 36 0
 					]
 				]
 				type = group-box [
@@ -1086,6 +1089,25 @@ TimerProc: func [
 	make-event current-msg 0 EVT_TIME
 ]
 
+draw-window: func [
+	hWnd		[handle!]
+	cmds		[red-block!]
+	/local
+		this	[this!]
+		surf	[IDXGISurface1]
+		hdc		[ptr-value!]
+		rc		[RECT_STRUCT value]
+][
+	do-draw hWnd null cmds yes no no yes
+	this: get-surface hWnd
+	surf: as IDXGISurface1 this/vtbl
+	surf/GetDC this 0 :hdc
+	bitblt-memory-dc hWnd no null 0 0 hdc/value
+	rc/left: 0 rc/top: 0 rc/right: 0 rc/bottom: 0	;-- empty RECT
+	surf/ReleaseDC this :rc
+	surf/Release this
+]
+
 WndProc: func [
 	[stdcall]
 	hWnd	[handle!]
@@ -1094,7 +1116,7 @@ WndProc: func [
 	lParam	[integer!]
 	return: [integer!]
 	/local
-		target [int-ptr!]
+		target [render-target!]
 		this   [this!]
 		rt	   [ID2D1HwndRenderTarget]
 		res	   [integer!]
@@ -1148,17 +1170,16 @@ WndProc: func [
 		]
 		WM_MOVE
 		WM_SIZE [
-			if (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D <> 0 [
-				target: as int-ptr! GetWindowLong hWnd wc-offset - 24
+			if msg = WM_SIZE [
+			#either draw-engine = 'GDI+ [
+				DX-resize-rt hWnd WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
+			][
+				target: as render-target! GetWindowLong hWnd wc-offset - 36
 				if target <> null [
-					this: as this! target/value
-					rt: as ID2D1HwndRenderTarget this/vtbl
-					color: WIN32_LOWORD(lParam)
-					res: WIN32_HIWORD(lParam)
-					rt/Resize this as tagSIZE :color
+					DX-resize-buffer target WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
 					InvalidateRect hWnd null 1
 				]
-			]
+			]]
 			if type = window [
 				if null? current-msg [init-current-msg]
 				if wParam <> SIZE_MINIMIZED [
@@ -1185,6 +1206,7 @@ WndProc: func [
 						SetWindowLong hWnd wc-offset - 8 lParam
 						EVT_MOVING
 					][EVT_SIZING]
+					SetWindowLong hWnd wc-offset - 24 modal-loop-type
 					current-msg/hWnd: hWnd
 					current-msg/lParam: lParam
 					make-event current-msg 0 modal-loop-type
@@ -1230,7 +1252,8 @@ WndProc: func [
 		WM_EXITSIZEMOVE [
 			if type = window [
 				win-state: 0
-				type: either modal-loop-type = EVT_MOVING [EVT_MOVE][EVT_SIZE]
+				res: GetWindowLong hWnd wc-offset - 24
+				type: either res = EVT_MOVING [EVT_MOVE][EVT_SIZE]
 				current-msg/hWnd: hWnd
 				make-event current-msg 0 type
 				return 0
@@ -1366,11 +1389,15 @@ WndProc: func [
 		WM_PAINT [
 			draw: (as red-block! values) + FACE_OBJ_DRAW
 			if TYPE_OF(draw) = TYPE_BLOCK [
+			#either draw-engine = 'GDI+ [
 				either zero? GetWindowLong hWnd wc-offset - 4 [
 					do-draw hWnd null draw no yes yes yes
 				][
-					bitblt-memory-dc hWnd no null 0 0
+					bitblt-memory-dc hWnd no null 0 0 null
 				]
+			][	
+				draw-window hWnd draw
+			]
 				return 0
 			]
 		]
@@ -1445,7 +1472,7 @@ WndProc: func [
 					if flags and FACET_FLAGS_MODAL <> 0 [
 						;SetActiveWindow GetWindow hWnd GW_OWNER
 						p-int: as handle! GetWindowLong hWnd wc-offset - 20
-						if p-int <> null [SetFocus p-int]
+						if p-int <> null [prev-focus: p-int]
 					]
 					clean-up
 				][
@@ -1478,9 +1505,9 @@ WndProc: func [
 			if hidden-hwnd <> null [
 				values: (get-face-values hidden-hwnd) + FACE_OBJ_EXT3
 				values/header: TYPE_NONE
-				target: as int-ptr! GetWindowLong hidden-hwnd wc-offset - 24
+				target: as render-target! GetWindowLong hidden-hwnd wc-offset - 36
 				if target <> null [d2d-release-target target]
-				SetWindowLong hidden-hwnd wc-offset - 24 0
+				SetWindowLong hidden-hwnd wc-offset - 36 0
 			]
 			RedrawWindow hWnd null null 4 or 1			;-- RDW_ERASE | RDW_INVALIDATE
 		]
@@ -1661,5 +1688,6 @@ do-events: func [
 		exit-loop: exit-loop - 1
 		if exit-loop > 0 [PostQuitMessage 0]
 	]
+	if prev-focus <> null [SetFocus prev-focus prev-focus: null]
 	msg?
 ]

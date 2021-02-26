@@ -142,6 +142,28 @@ _context: context [
 		value/header: TYPE_UNSET
 		word
 	]
+
+	add-and-set: func [
+		ctx		[red-context!]
+		word	[red-word!]
+		value	[red-value!]
+		return: [red-value!]
+		/local
+			id		[integer!]
+			new-id	[integer!]
+			s		[series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "_context/add-and-set"]]
+
+		new-id: 0
+		id: find-or-store ctx word/symbol yes ctx/self :new-id
+		either id = -1 [
+			copy-cell value alloc-tail as series! ctx/values/value
+		][
+			s: as series! ctx/values/value
+			copy-cell value s/offset + id
+		]
+	]
 	
 	add-with: func [
 		ctx		[red-context!]

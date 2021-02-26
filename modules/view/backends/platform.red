@@ -13,6 +13,9 @@ Red [
 system/view/platform: context [
 
 	#system [
+
+		view-log-level: 0
+
 		gui: context [
 			#enum facet! [
 				FACE_OBJ_TYPE
@@ -635,8 +638,8 @@ system/view/platform: context [
 
 	do-event-loop: routine [no-wait? [logic!] /local bool [red-logic!]][
 		bool: as red-logic! stack/arguments
-		bool/header: TYPE_LOGIC
 		bool/value:  gui/do-events no-wait?
+		bool/header: TYPE_LOGIC
 	]
 
 	exit-event-loop: routine [][
@@ -838,16 +841,26 @@ system/view/platform: context [
 		set fonts:
 			bind [fixed sans-serif serif] system/view/fonts
 			switch system/platform [
+				;-- references:
+				;-- https://fontsarena.com/blog/operating-systems-default-serif-fonts/
+				;-- https://fontsarena.com/blog/operating-systems-default-sans-serif-fonts/
+				;-- https://www.granneman.com/webdev/coding/css/fonts-and-formatting/default-fonts
 				Windows [
-					either version/1 >= 6 [
-						["Consolas" "Arial" "Times"]
-					][
-						["Courier New" "Arial" "Times"]
+					case [
+						version >= 6.0.0 [["Consolas" "Segoe UI" "Times New Roman"]]
+						'xp              [["Courier New" "Tahoma" "Times New Roman"]]
 					]
 				]
-				macOS [["Menlo" "Arial" "Times"]]
+				macOS [
+					case [
+						version >= 10.11.0 [["SF Mono" "San Francisco" "Times"]]
+						version >= 10.10.0 [["Menlo" "Helvetica Neue" "Times"]]
+						'older             [["Menlo" "Lucida Grande" "Times"]]
+					]
+				]
 				;-- use "Monospace" on Linux, we let the system use the default one
-				Linux [["Monospace" "DejaVu Sans" "DejaVu Serif"]]
+				Linux [["Monospace" "DejaVu Sans" "Times New Roman"]]
+				Android [["Roboto Mono" "Roboto" "Noto Serif"]]
 			]
 		
 		set [font-fixed font-sans-serif font-serif] reduce fonts

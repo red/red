@@ -45,6 +45,12 @@ platform: context [
 			size		[integer!]
 			return:		[integer!]
 		]
+		getdents64: SYSCALL_GETDENTS64 [
+			fd			[integer!]
+			dirp		[byte-ptr!]
+			count		[integer!]
+			return:		[integer!]
+		]
 	]
 	
 	;-------------------------------------------

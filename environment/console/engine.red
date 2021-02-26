@@ -281,8 +281,7 @@ system/console: context [
 
 	launch: function [/local result][
 		either script: src: read-argument [
-			parse script [some [[pos: "Red" any ws #"[" to end] | skip]]
-		
+			parse/case script [some [[pos: "Red" opt "/System" any ws #"[" to end] | skip]]
 			either script: pos [
 				either error? script: try-do [load script][
 					print :script
@@ -309,8 +308,11 @@ system/console: context [
 				]
 			][
 				print "*** Error: Red header not found!"
-			]	
-			if any [catch? gui?][run/no-banner]
+			]
+			if any [catch? all [gui? gui-console-ctx/win/visible?]][
+				if all [catch? gui?][gui-console-ctx/win/visible?: yes]
+				run/no-banner
+			]
 		][
 			run
 		]

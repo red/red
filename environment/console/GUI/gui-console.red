@@ -139,8 +139,8 @@ gui-console-ctx: context [
 	show-caret: func [][unless caret/enabled? [caret/enabled?: yes]]
 
 	setup-faces: does [
-		console/pane: reduce [caret]
-		append win/pane reduce [console tips]
+		;console/pane: reduce [caret]
+		append win/pane reduce [console caret tips]
 		win/menu: [
 			"File" [
 				"Run..."			run-file
@@ -221,7 +221,7 @@ gui-console-ctx: context [
 		view/flags/no-wait win [resize]		;-- create window instance
 		console/init
 		load-cfg
-		win/visible?: yes
+		if empty? system/script/args [win/visible?: yes]
 
 		svs: system/view/screens/1
 		svs/pane: next svs/pane				;-- proctect itself from unview/all
@@ -241,6 +241,13 @@ ask: function [
 	/hide
 	return:  [string!]
 ][
+	if all [
+		gui-console-ctx/console/state
+		not gui-console-ctx/win/visible?
+	][
+		gui-console-ctx/win/visible?: yes
+	]
+
 	gui-console-ctx/show-caret
 
 	line: make string! 8

@@ -1284,15 +1284,18 @@ actions: context [
 
 	reverse*: func [
 		part [integer!]
+		skip [integer!]
 	][
 		reverse
 			as red-series! stack/arguments
 			stack/arguments + part
+			stack/arguments + skip
 	]
 
 	reverse: func [
 		series  [red-series!]
 		part	[red-value!]
+		skip    [red-value!]
 		return:	[red-value!]
 		/local
 			action-reverse
@@ -1302,10 +1305,11 @@ actions: context [
 		action-reverse: as function! [
 			series	[red-series!]
 			part	[red-value!]
+			skip    [red-value!]
 			return:	[red-value!]
 		] get-action-ptr as red-value! series ACT_REVERSE
 
-		action-reverse series part
+		action-reverse series part skip
 	]
 	
 	select*: func [

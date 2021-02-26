@@ -560,26 +560,10 @@ map: context [
 	clear: func [
 		map		[red-hash!]
 		return:	[red-value!]
-		/local
-			s		[series!]
-			value	[red-value!]
-			i		[integer!]
-			size	[int-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/clear"]]
 
-		s: GET_BUFFER(map)
-		i: 0
-		while [
-			value: s/offset + i
-			value < s/tail
-		][
-			_hashtable/delete map/table value
-			i: i + 2
-		]
-		s: as series! map/table/value
-		size: as int-ptr! s/offset
-		size/value: 0
+		_hashtable/clear-map map/table
 		as red-value! map
 	]
 

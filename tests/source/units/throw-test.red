@@ -1,7 +1,7 @@
 Red [
   Title:   "Red CATCH/THROW test script"
   Author:  "Nenad Rakocevic"
-  File:    %throw-test.reds
+  File:    %throw-test.red
   Tabs:    4
   Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
   License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"

@@ -12,7 +12,10 @@ Red/System [
 
 #if dev-mode? = yes [
 	#include %../../../../runtime/platform/definitions/COM.reds
-	#include %../../../../runtime/platform/windows/image-gdiplus.reds
+	#switch draw-engine [
+		GDI+	 [#include %../../../../runtime/platform/windows/image-gdiplus.reds]
+		#default [#include %../../../../runtime/platform/image-wic.reds]
+	]
 ]
 
 #define NM_CUSTOMDRAW			-12
@@ -121,6 +124,7 @@ Red/System [
 #define CBS_DROPDOWN		0002h
 #define CBS_DROPDOWNLIST	0003h
 #define CBS_HASSTRINGS		0200h
+#define CBS_AUTOHSCROLL		0040h
 
 #define TBS_HORZ			0000h
 #define TBS_VERT			0002h
@@ -2395,20 +2399,14 @@ XFORM!: alias struct! [
 			height		[integer!]
 			return:		[integer!]
 		]
-		GdipCreateBitmapFromHBITMAP: "GdipCreateBitmapFromHBITMAP" [
-			hbmp		[handle!]
-			palette		[integer!]
-			bitmap		[int-ptr!]
-			return:		[integer!]
-		]
 		GdipCreateFromHWND: "GdipCreateFromHWND" [
 			hwnd		[handle!]
-			graphics	[GpGraphics!]
+			graphics	[int-ptr!]
 			return:		[integer!]
 		]
 		GdipCreateFromHDC: "GdipCreateFromHDC" [
 			hDC			[handle!]
-			graphics	[GpGraphics!]
+			graphics	[int-ptr!]
 			return:		[integer!]
 		]
 		GdipDeleteGraphics: "GdipDeleteGraphics" [
@@ -2825,6 +2823,21 @@ XFORM!: alias struct! [
 			return:		[logic!]
 		]
 	]
+	"d3d11.dll" stdcall [
+		D3D11CreateDevice: "D3D11CreateDevice" [
+			adapter		[int-ptr!]
+			DriverType	[integer!]
+			Software	[int-ptr!]
+			Flags		[integer!]
+			pFeatures	[int-ptr!]
+			Features	[integer!]
+			SDKVersion	[integer!]
+			ppDevice	[ptr-ptr!]
+			pFeatLevel	[int-ptr!]
+			ppContext	[ptr-ptr!]
+			return:		[integer!]
+		]
+	]
 	"ole32.dll" stdcall [
 		CoTaskMemFree: "CoTaskMemFree" [
 			pv		[integer!]
@@ -2921,4 +2934,34 @@ utf16-length?: func [
 	base: s
 	while [any [s/1 <> null-byte s/2 <> null-byte]][s: s + 2]
 	(as-integer s - base) >>> 1							;-- do not count the terminal zero
+]
+
+to-gdiplus-color: func [
+	color	[integer!]
+	return: [integer!]
+	/local
+		red   [integer!]
+		green [integer!]
+		blue  [integer!]
+		alpha [integer!]
+][
+	red: color and FFh << 16
+	green: color and FF00h
+	blue: color >> 16 and FFh
+	alpha: FF000000h and not color
+	red or green or blue or alpha
+]
+
+;-- see https://stackoverflow.com/questions/4258295/aero-how-to-draw-solid-opaque-colors-on-glass
+;   and https://stackoverflow.com/questions/5647322/gdi-font-rendering-especially-in-layered-windows
+;   GDI+ is often buggy when alpha=255 (fully opaque)
+to-gdiplus-color-fixed: func [
+	color	[integer!]
+	return: [integer!]
+	/local
+		r   [integer!]
+][
+	r: to-gdiplus-color color
+	if r >>> 24 = FFh [r: r xor 01000000h]
+	r
 ]

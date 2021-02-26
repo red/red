@@ -186,7 +186,11 @@ native: context [
 		field	[integer!]
 		return:	[red-block!]
 		/local
-			blk [red-block!]
+			blk   [red-block!]
+			table [int-ptr!]
+			index [integer!]
+			node  [node!]
+			s	  [series!]
 	][
 		case [
 			field = words/spec [
@@ -194,6 +198,22 @@ native: context [
 				blk/header: TYPE_BLOCK					;-- implicit reset of all header flags
 				blk/node:	native/spec
 				blk/head:	0
+			]
+			field = words/body [
+				either all [TYPE_OF(native) = TYPE_OP native/header and body-flag <> 0][
+					node: as node! native/code
+					either null? node [
+						stack/set-last none-value
+					][
+						s: as series! node/value
+						stack/set-last s/offset
+					]
+				][
+					table: either TYPE_OF(native) = TYPE_NATIVE [natives/table][actions/table]
+					index: 0
+					until [index: index + 1 native/code = table/index]
+					return as red-block! integer/box index
+				]
 			]
 			field = words/words [
 				--NOT_IMPLEMENTED--						;@@ build the words block from spec

@@ -10,102 +10,9 @@ Red [
 	}
 ]
 
-put system/codecs 'json context [
-    Title:     "JSON codec"
-    Name:      'JSON
-    Mime-Type: [application/json]
-    Suffixes:  [%.json]
-    encode: func [data [any-type!] where [file! url! none!]] [
-        to-json data
-    ]
-    decode: func [text [string! binary! file!]] [
-        if file? text [text: read text]
-        if binary? text [text: to string! text]
-        load-json text
-    ]
-]
-
 ; -- load-json
 
 context [
-	;-----------------------------------------------------------
-	;-- Generic support funcs
-
-	BOM: [
-		UTF-8		#{EFBBBF}
-		UTF-16-BE	#{FEFF}
-		UTF-16-LE	#{FFFE}
-		UTF-32-BE	#{0000FEFF}
-		UTF-32-LE	#{FFFE0000}
-	]
-
-	BOM-UTF-16?: func [data [string! binary!]][
-		any [find/match data BOM/UTF-16-BE  find/match data BOM/UTF-16-LE]
-	]
-
-	BOM-UTF-32?: func [data [string! binary!]][
-		any [find/match data BOM/UTF-32-BE  find/match data BOM/UTF-32-LE]
-	]
-
-
-	; MOLD adds quotes string!, but not all any-string! values.
-	enquote: func [str [string!] "(modified)"][append insert str {"} {"}]
-
-	high-surrogate?: func [codepoint [integer!]][
-        all [codepoint >= D800h  codepoint <= DBFFh]
-    ]
-    
-	low-surrogate?: func [codepoint [integer!]][
-        all [codepoint >= DC00h  codepoint <= DFFFh]
-    ]
-    
-	translit: func [
-		"Transliterate sub-strings in a string"
-		string [string!] "Input (modified)"
-		rule   [block! bitset!] "What to change"
-		xlat   [block! function!] "Translation table or function. MUST map a string! to a string!."
-		/local val
-	][
-		parse string [
-			some [
-				change copy val rule (val either block? :xlat [xlat/:val][xlat val])
-				| skip
-			]
-		]
-		string
-	]
-
-	;-----------------------------------------------------------
-	;-- JSON backslash escaping
-
-	;TBD: I think this can be improved. --Gregg
-		
-	json-to-red-escape-table: [
-	;   JSON Red
-		{\"} "^""
-		{\\} "\"
-		{\/} "/"
-		{\b} "^H"   ; #"^(back)"
-		{\f} "^L"   ; #"^(page)"
-		{\n} "^/"
-		{\r} "^M"
-		{\t} "^-"
-	]
-	red-to-json-escape-table: reverse copy json-to-red-escape-table
-	
-	json-esc-ch: charset {"t\/nrbf}             ; Backslash escaped JSON chars
-	json-escaped: [#"\" json-esc-ch]			; Backslash escape rule
-	red-esc-ch: charset {^"^-\/^/^M^H^L}        ; Red chars requiring JSON backslash escapes
-
-	decode-backslash-escapes: func [string [string!] "(modified)"][
-		translit string json-escaped json-to-red-escape-table
-	]
-
-	encode-backslash-escapes: func [string [string!] "(modified)"][
-		translit string red-esc-ch red-to-json-escape-table
-	]
-
-	ctrl-char: charset [#"^@" - #"^_"]			; Control chars 0-31
 	;-----------------------------------------------------------
 	;-- JSON decoder
 	;-----------------------------------------------------------
@@ -142,17 +49,10 @@ context [
 	;-----------------------------------------------------------
 	;-- String
 	string-literal: [
-		#"^"" copy _str [
+		#"^"" _s:
 			any [some chars | #"\" [#"u" 4 hex-char | json-esc-ch]]
-		] #"^"" (
-			if not empty? _str: any [_str copy ""] [
-				;!! If we reverse the decode-backslash-escapes and replace-unicode-escapes
-				;!! calls, the string gets munged (extra U+ chars). Need to investigate.
-				decode-backslash-escapes _str			; _str is modified
-				replace-unicode-escapes _str			; _str is modified
-				;replace-unicode-escapes decode-backslash-escapes _str
-			]
-		)
+		_e: #"^""
+		(_str: either _s =? _e [copy ""][unescape copy/part _s _e])
 	]
 
 	decode-unicode-char: func [
@@ -160,27 +60,92 @@ context [
 		ch [string!] "4 hex digits"
 	][
 		buf: {#"^^(0000)"}								; Don't COPY buffer, reuse it
-		if not parse ch [4 hex-char] [return none]		; Validate input data
-		attempt [load head change at buf 5 ch]			; Replace 0000 section in buf
+		append append/part clear at buf 5 ch 4 {)"}		; Replace 0000 section in buf
+		attempt [transcode/one buf]
 	]
 
-	replace-unicode-escapes: func [
-		s [string!] "(modified)"
-		/local c
+	json-esc-ch: charset {"t\/nrbf}             ; Backslash escaped JSON chars
+	json-escaped: [#"\" json-esc-ch]			; Backslash escape rule
+
+	json-to-red-escape-table: [
+		#"\" [
+			keep #"^""
+		|	keep #"\"
+		|	keep #"/"
+		|	#"b"  keep (#"^H")   ; #"^(back)"
+		|	#"f"  keep (#"^L")   ; #"^(page)"
+		|	#"n"  keep (#"^/")
+		|	#"r"  keep (#"^M")
+		|	#"t"  keep (#"^-")
+		|	#"u"  _s: 4 hex-char keep (decode-unicode-char _s)
+		]
+	]
+
+	unescape: routine [
+		str [string!] "(modified)"
+		return: [string!]
+		/local
+			s s2 [series!]
+			src tail [byte-ptr!]
+			unit index c1 c2 dst [integer!]
 	][
-		parse s [
-			any [
-				some chars								; Pass over unescaped chars
-				| json-escaped							; Pass over simple backslash escapes
-				| change ["\u" copy c 4 hex-char] (decode-unicode-char c) ()
-				;| "\u" followed by anything else is an invalid \uXXXX escape
+		s: GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		src: (as byte-ptr! s/offset) + (str/head << (log-b unit))
+		dst: str/head
+		tail: as byte-ptr! s/tail
+		while [src < tail] [
+			c1: string/get-char src unit
+			as-byte c1
+			src: src + unit
+			either c1 <> as-integer #"\" [
+				string/overwrite-char s dst c1
+				dst: dst + 1
+			][
+				c2: string/get-char src unit
+				as-byte c2
+				src: src + unit
+				c2: switch c2 [
+					#"^"" #"\" #"/" [c2]
+					#"b" [as-integer #"^H"]   ; #"^(back)"
+					#"f" [as-integer #"^L"]   ; #"^(page)"
+					#"n" [as-integer #"^/"]
+					#"r" [as-integer #"^M"]
+					#"t" [as-integer #"^-"]
+					#"u" [
+						c2: 0
+						loop 4 [
+							c1: string/get-char src unit
+							src: src + unit
+							case [
+								all [(as-integer #"0") <= c1 c1 <= (as-integer #"9")] [c1: c1 - as-integer #"0"]
+								all [(as-integer #"A") <= c1 c1 <= (as-integer #"F")] [c1: c1 - as-integer #"7"]	;-- #"7" = #"A" - 10
+								all [(as-integer #"a") <= c1 c1 <= (as-integer #"f")] [c1: c1 - as-integer #"W"]	;-- #"W" = #"a" - 10
+								true [fire [TO_ERROR(script invalid-char) char/push c1]]
+							]
+							c2: c2 << 4 + c1
+						]
+						c2
+					]
+					default [							;-- pass both chars
+						string/overwrite-char s dst c1
+						dst: dst + 1
+					]
+				]
+				s2: string/overwrite-char s dst c2
+				dst: dst + 1
+				if s <> s2 [							;-- 's' could have been expanded
+					index: (as-integer src - (as byte-ptr! s/offset)) >> (log-b unit)
+					unit: GET_UNIT(s2)
+					src: (as byte-ptr! s2/offset) + (index << (log-b unit))
+					tail: as byte-ptr! s2/tail
+					s: s2
+				]
 			]
 		]
-		s
+		s/tail: as red-value! (as byte-ptr! s/offset) + (dst << (log-b unit))
+		str
 	]
-	;str: {\/\\\"\uCAFE\uBABE\uAB98\uFCDE\ubcda\uef4A\b\f\n\r\t`1~!@#$%&*()_+-=[]{}|;:',./<>?}
-	;mod-str: decode-backslash-escapes json-ctx/replace-unicode-escapes copy str
-	;mod-str: json-ctx/replace-unicode-escapes decode-backslash-escapes copy str
 
 	;-----------------------------------------------------------
 	;-- Object		
@@ -254,6 +219,7 @@ context [
 	_res: none	; The current output position where new values are inserted
 	_tmp: none  ; Temporary
 	_str: none	; Where string value parse results go               
+	_s: _e: none	; String end markers
 	mark: none	; Current parse position
 	
 	; Add a new value to our output target, and set the position for
@@ -416,5 +382,20 @@ context [
         result: make string! 4000
         init-state indent ascii
         red-to-json-value result data
+    ]
+]
+
+put system/codecs 'json context [
+    Title:     "JSON codec"
+    Name:      'JSON
+    Mime-Type: [application/json]
+    Suffixes:  [%.json]
+    encode: func [data [any-type!] where [file! url! none!]] [
+        to-json data
+    ]
+    decode: func [text [string! binary! file!]] [
+        if file? text [text: read text]
+        if binary? text [text: to string! text]
+        load-json text
     ]
 ]

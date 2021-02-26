@@ -58,7 +58,7 @@ cell!: alias struct! [
 ;	19:		complement						;-- complement flag for bitsets
 ;	18:		UTF-16 cache					;-- signifies that the string cache is UTF-16 encoded (UTF-8 by default)
 ;	17:		owned							;-- series is owned by an object
-;	16-3: 	<reserved>
+;	16-5: 	<reserved>
 ;	4-0:	unit							;-- size in bytes of atomic element stored in buffer
 											;-- 0: UTF-8, 1: Latin1/binary, 2: UCS-2, 4: UCS-4, 16: block! cell
 series-buffer!: alias struct! [
@@ -548,6 +548,7 @@ compact-series-frame: func [
 				s/flags: s/flags and not flag-gc-mark	;-- clear mark flag
 				s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
 				tail?: s >= heap
+				;@@ test tail? first, otherwise s/flags may crash if s = heap
 				any [tail? s/flags and flag-gc-mark = 0]
 			]
 			;probe ["gap found at: " s]
@@ -650,8 +651,8 @@ cross-compact-frame: func [
 				ss: s						;-- save previous series pointer
 				s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
 				tail?: s >= heap
-				any [
-					tail?
+				any [	;@@ test tail? first, otherwise s/flags may crash if s = heap
+					tail?	
 					all [cross? size >= free-sz]
 					s/flags and flag-gc-mark = 0
 				]

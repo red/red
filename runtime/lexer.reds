@@ -34,7 +34,7 @@ lexer: context [
 		C_FLAG_SIGN:	00200000h
 		C_FLAG_LESSER:	00100000h
 		C_FLAG_GREATER: 00080000h
-		C_FLAG_ESC_HEX: 00000100h						;-- percent-escaped mode
+		C_FLAG_PERCENT: 00040000h
 	]
 	
 	#define FL_UCS4		[(C_WORD or C_FLAG_UCS4)]
@@ -185,7 +185,7 @@ lexer: context [
 		C_DBL_QUOTE										;-- 22		"
 		(C_SHARP or C_FLAG_SHARP)						;-- 23		#
 		C_MONEY											;-- 24		$
-		C_PERCENT										;-- 25		%
+		(C_PERCENT or C_FLAG_PERCENT)					;-- 25		%
 		C_WORD											;-- 26		&
 		(C_QUOTE or C_FLAG_QUOTE)						;-- 27		'
 		C_PAREN_OP										;-- 28		(
@@ -540,23 +540,28 @@ lexer: context [
 		slot
 	]
 	
-	store-any-block: func [slot [cell!] src [cell!] items [integer!] type [integer!]
+	store-any-block: func [slot [cell!] src [cell!] items [integer!] type [integer!] blk [red-block!]
 		/local
-			blk [red-block!]
-			s	[series!]
+			s	 [series!]
+			size [integer!]
 	][
-		either zero? items [
-			blk: block/make-at as red-block! slot 1
-			blk/header: blk/header and type-mask or type
+		size: either zero? items [1][items]
+		either null? blk [
+			blk: block/make-at as red-block! slot size
+			blk/head: 0
 		][
-			blk: block/make-at as red-block! slot items
-			blk/header: blk/header and type-mask or type
+			s: GET_BUFFER(blk)
+			if s/size >> 4 - blk/head < size [expand-series GET_BUFFER(blk) size + blk/head << 4]
+		]
+		blk/header: blk/header and type-mask or type
+
+		if items <> 0 [
 			s: GET_BUFFER(blk)
 			copy-memory 
-				as byte-ptr! s/offset
+				as byte-ptr! s/offset + blk/head
 				as byte-ptr! src
 				items << 4
-			s/tail: s/offset + items
+			s/tail: s/offset + blk/head + items
 		]
 	]
 	
@@ -603,7 +608,7 @@ lexer: context [
 			if all [
 				any [
 					type <> TYPE_SET_PATH 
-					all [type = TYPE_SET_PATH stype = TYPE_LIT_PATH]
+					all [type = TYPE_SET_PATH any [stype = TYPE_LIT_PATH stype = TYPE_GET_PATH]]
 				]
 				not all [stype = TYPE_MAP type = TYPE_PAREN];-- paren can close a map
 				stype <> type							;-- saved type <> closing type => error
@@ -616,7 +621,7 @@ lexer: context [
 		len: (as-integer lex/tail - lex/head) >> 4
 		head: lex/head
 		lex/head: as cell! p - p/x
-		store-any-block as cell! p head len type	;-- p slot gets overwritten here
+		store-any-block as cell! p head len type null	;-- p slot gets overwritten here
 		lex/tail: head
 		lex/scanned: type
 		
@@ -758,6 +763,20 @@ lexer: context [
 		if flip <> 0 [return s]
 		if load? [ser/tail: as red-value! p]
 		null
+	]
+
+	convert-percents: func [lex [state!]
+		/local
+			str [red-string!]
+			vl	[red-string! value]
+			len [integer!]
+	][
+		str: as red-string! lex/tail - 1
+		len: string/rs-length? str
+		string/make-at as red-value! :vl len Latin1
+		string/decode-url str :vl
+		str/node: vl/node
+		str/cache: null
 	]
 	
 	grab-integer: func [s e [byte-ptr!] flags [integer!] dst err [int-ptr!]
@@ -1169,14 +1188,13 @@ lexer: context [
 	]
 	
 	scan-issue: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
-		if s + 1 = e [throw-error lex s e TYPE_ISSUE]
+		if any [s + 1 = e s/1 <> #"#"][throw-error lex s e TYPE_ISSUE]
 		lex/type: TYPE_ISSUE
 	]
 	
 	scan-string: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local
 			len unit cp type [integer!]
-			esc	[byte!]
 	][
 		s: s + 1										;-- skip start delimiter
 		unit: 1 << (flags >>> 30)
@@ -1193,14 +1211,9 @@ lexer: context [
 			]
 		][
 			cp: -1
-			esc: either flags and C_FLAG_ESC_HEX = 0 [#"^^"][#"%"]
 			while [s < e][
-				s: either s/1 = esc [
-					either esc = #"^^" [
-						scan-escaped-char s + 1 e :cp
-					][
-						scan-percent-char s + 1 e :cp
-					]
+				s: either s/1 = #"^^" [
+					scan-escaped-char s + 1 e :cp
 				][
 					unicode/fast-decode-utf8-char s :cp
 				]
@@ -1237,7 +1250,9 @@ lexer: context [
 			either flags and C_FLAG_QUOTE = 0 [			;-- no quote, faster path
 				if len > 10 [promote]
 				loop len [
-					i: 10 * i + as-integer (p/1 - #"0")
+					i: 10 * i
+					o?: o? or system/cpu/overflow?
+					i: i + as-integer (p/1 - #"0")
 					o?: o? or system/cpu/overflow?
 					p: p + 1
 				]
@@ -1246,7 +1261,9 @@ lexer: context [
 				loop len [
 					either p/1 <> #"'" [
 						c: c + 1
-						i: 10 * i + as-integer (p/1 - #"0")
+						i: 10 * i
+						o?: o? or system/cpu/overflow?
+						i: i + as-integer (p/1 - #"0")
 						o?: o? or system/cpu/overflow?
 					][
 						if any [p + 1 = e p/2 = #"'"][throw-error lex s e TYPE_INTEGER]
@@ -1310,7 +1327,7 @@ lexer: context [
 			ser	   [series!]
 			p pos  [byte-ptr!]
 			p4	   [int-ptr!]
-			esc	c  [byte!]
+			c	   [byte!]
 			w?	   [logic!]
 	][
 		s: s + 1										;-- skip start delimiter
@@ -1354,7 +1371,7 @@ lexer: context [
 		][
 			;-- prescan the string for determining unit and accurate final codepoints count
 			extra: 0									;-- count extra bytes used by escape sequences
-			if all [unit < UCS-4 flags and C_FLAG_ESC_HEX = 0][
+			if unit < UCS-4 [
 				p: s
 				;-- check if any escaped codepoint requires higher unit
 				while [p < e][
@@ -1392,7 +1409,6 @@ lexer: context [
 					][p: p + 1]
 				]
 			]
-			esc: either flags and C_FLAG_ESC_HEX = 0 [#"^^"][#"%"]
 
 			str: string/make-at alloc-slot lex len - extra unit
 			ser: GET_BUFFER(str)
@@ -1400,12 +1416,8 @@ lexer: context [
 				UCS-1 [
 					p: as byte-ptr! ser/offset
 					while [s < e][
-						either s/1 = esc [
-							s: either esc = #"^^" [
-								scan-escaped-char s + 1 e :cp
-							][
-								scan-percent-char s + 1 e :cp
-							]
+						either s/1 = #"^^" [
+							s: scan-escaped-char s + 1 e :cp
 							if cp = -1 [throw-error lex s e type]
 							p/value: as-byte cp
 						][
@@ -1420,12 +1432,8 @@ lexer: context [
 					cp: -1
 					p: as byte-ptr! ser/offset
 					while [s < e][
-						s: either s/1 = esc [
-							either esc = #"^^" [
-								scan-escaped-char s + 1 e :cp
-							][
-								scan-percent-char s + 1 e :cp
-							]
+						s: either s/1 = #"^^" [
+							scan-escaped-char s + 1 e :cp
 						][
 							unicode/fast-decode-utf8-char s :cp
 						]
@@ -1440,12 +1448,8 @@ lexer: context [
 					cp: -1
 					p4: as int-ptr! ser/offset
 					while [s < e][
-						s: either s/1 = esc [
-							either esc = #"^^" [
-								scan-escaped-char s + 1 e :cp
-							][
-								scan-percent-char s + 1 e :cp
-							]
+						s: either s/1 = #"^^" [
+							scan-escaped-char s + 1 e :cp
 						][
 							unicode/fast-decode-utf8-char s :cp
 						]
@@ -1529,14 +1533,15 @@ lexer: context [
 	]
 
 	load-file: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
-		flags: flags and not C_FLAG_CARET				;-- clears caret flag
-		if s/2 = #"^"" [s: s + 1]						;-- skip "
+		either s/2 = #"^"" [s: s + 1][flags: flags and not C_FLAG_CARET]
 		lex/type: TYPE_FILE
 		either load? [
 			load-string lex s e flags yes
-			if s/1 = #"^"" [
+			either s/1 = #"^"" [
 				if e/1 <> #"^"" [throw-error lex s e TYPE_FILE]
 				e: e + 1
+			][
+				if flags and C_FLAG_PERCENT <> 0 [convert-percents lex]
 			]
 		][
 			scan-string lex s e flags no
@@ -1634,15 +1639,15 @@ lexer: context [
 			fl	 [red-float!]
 			p	 [byte-ptr!]
 			f	 [float!]
-			neg? [logic!]
+			sig? [logic!]
 	][
 		p: s
-		neg?: either p/1 = #"-" [p: p + 1 yes][no]
+		sig?: either any [p/1 = #"-" p/1 = #"+"] [p: p + 1 yes][no]
 		if any [p/1 <> #"1" p/2 <> #"." p/3 <> #"#"][throw-error lex s e TYPE_FLOAT]
 		p: p + 3
 		either zero? strnicmp p as byte-ptr! "NAN" 3 [f: 1.#NAN][
 			either zero? strnicmp p as byte-ptr! "INF" 3 [
-				f: either neg? [-1.#INF][1.#INF]
+				f: either all [sig? s/1 = #"-"] [-1.#INF][1.#INF]
 			][
 				throw-error lex s e TYPE_FLOAT
 			]
@@ -1877,6 +1882,7 @@ lexer: context [
 			index class x y [integer!]
 			p [byte-ptr!]
 	][
+		if flags and C_FLAG_DOT <> 0 [throw-error lex s e TYPE_PAIR]
 		p: s
 		until [
 			p: p + 1									;-- x separator cannot be at start
@@ -1992,23 +1998,21 @@ lexer: context [
 	
 	load-url: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local
-			p	 [byte-ptr!]
 			type [integer!]
 	][
 		if any [s/1 = #":" s/1 = #"'"][
 			type: either s/1 = #":" [TYPE_GET_WORD][TYPE_LIT_WORD]
 			throw-error lex s e type
 		]
-		flags: flags and not C_FLAG_CARET				;-- clears caret flag
-		p: s while [all [p/1 <> #"%" p < e]][p: p + 1] 	;-- check if any %xx 
-		if p < e [flags: flags or C_FLAG_ESC_HEX or C_FLAG_CARET]
+		flags: flags and not C_FLAG_CARET				;-- as the lexer can't decode utf8 url, so we don't use it anymore
 		lex/type: TYPE_URL
 		either load? [
 			load-string lex s - 1 e flags yes			;-- compensate for lack of starting delimiter
-			lex/in-pos: e 								;-- reset the input position to delimiter byte
+			if flags and C_FLAG_PERCENT <> 0 [convert-percents lex]
 		][
 			scan-string lex s - 1 e flags no
 		]
+		lex/in-pos: e 									;-- reset the input position to delimiter byte
 	]
 	
 	load-email: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
@@ -2016,26 +2020,26 @@ lexer: context [
 			flags: flags and not C_FLAG_CARET			;-- clears caret flag
 			lex/type: TYPE_EMAIL
 			load-string lex s - 1 e flags load?			;-- compensate for lack of starting delimiter
-			lex/in-pos: e 								;-- reset the input position to delimiter byte
 		]
+		lex/in-pos: e 									;-- reset the input position to delimiter byte
 	]
 	
 	load-ref: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
 		if load? [
 			flags: flags and not C_FLAG_CARET			;-- clears caret flag
-			lex/type: TYPE_REF
+			lex/type: TYPE_REF		
 			load-string lex s e flags load?
-			lex/in-pos: e 								;-- reset the input position to delimiter byte
 		]
+		lex/in-pos: e 									;-- reset the input position to delimiter byte		
 	]
 	
 	load-hex: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local
-			do-error [subroutine!]
-			int		 [red-integer!]
-			saved	 [byte-ptr!]
-			i index  [integer!]
-			cb		 [byte!]
+			do-error	[subroutine!]
+			int			[red-integer!]
+			saved		[byte-ptr!]
+			i len index [integer!]
+			cb			[byte!]
 	][
 		do-error: [throw-error lex saved e TYPE_INTEGER]
 		i: 0
@@ -2046,7 +2050,8 @@ lexer: context [
 			throw-error lex s e TYPE_WORD
 		]
 		saved: s
-		if any [s/1 = #"-" s/1 = #"+"][do-error]
+		len: as-integer e - s
+		if any [s/1 = #"-" s/1 = #"+" len > 8 len < 2][do-error]
 		while [s < e][
 			if s/1 = #"'" [do-error]
 			index: 1 + as-integer s/1					;-- converts the 2 hex chars using a lookup table
@@ -2241,6 +2246,7 @@ lexer: context [
 		len		[int-ptr!]								;-- return the consumed input length
 		fun		[red-function!]							;-- optional callback function
 		ser		[red-series!]							;-- optional input series back-reference
+		out		[red-block!]							;-- /into destination block or null
 		return: [integer!]								;-- scanned type when one? is set, else zero
 		/local
 			blk	  	 [red-block!]
@@ -2307,7 +2313,7 @@ lexer: context [
 					lex/closing: p/y
 					catch RED_THROWN_ERROR [throw-error lex lex/input + p/z lex/in-end ERR_CLOSING]
 					either system/thrown <= LEX_ERR [
-						dst/header: TYPE_NONE
+						if dst <> null [dst/header: TYPE_NONE] ;-- no dst when called from Parse, #4678
 						system/thrown: 0
 						clean-up
 						return lex/scanned
@@ -2320,9 +2326,10 @@ lexer: context [
 		]
 		if load? [
 			either all [one? not wrap? slots > 0][
+				if out <> null [dst: ALLOC_TAIL(out)]
 				copy-cell lex/buffer dst				;-- copy first loaded value only
 			][
-				store-any-block dst lex/buffer slots TYPE_BLOCK
+				store-any-block dst lex/buffer slots TYPE_BLOCK out
 			]
 		]
 		clean-up
@@ -2339,6 +2346,7 @@ lexer: context [
 		wrap?	[logic!]
 		len		[int-ptr!]
 		fun		[red-function!]							;-- optional callback function
+		out		[red-block!]							;-- /into destination block or null
 		return: [integer!]								;-- scanned type when one? is set, else zero
 		/local
 			unit buf-size ignore type used [integer!]
@@ -2362,7 +2370,7 @@ lexer: context [
 		utf8-buf-tail: utf8-buf-tail + size + 1			;-- move at tail for new buffer; +1 for terminal NUL
 
 		if null? len [len: :ignore]
-		catch RED_THROWN_ERROR [type: scan dst base size one? scan? load? wrap? len fun as red-series! str]
+		catch RED_THROWN_ERROR [type: scan dst base size one? scan? load? wrap? len fun as red-series! str out]
 		utf8-buf-tail: utf8-buffer + used				;-- move back to original tail
 		if extra <> null [free extra]
 		if system/thrown <> 0 [re-throw]				;-- clean place to rethrow errors

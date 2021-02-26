@@ -19,6 +19,14 @@ Red/System [
 	g_signal_connect_data instance signal as-integer handler data null 1
 ]
 
+#define g_signal_handlers_block_by_func(instance handler data) [
+	g_signal_handlers_block_matched instance 8 + 16 0 0 null as-integer handler data
+]
+
+#define g_signal_handlers_unblock_by_func(instance handler data) [
+	g_signal_handlers_unblock_matched instance 8 + 16 0 0 null as-integer handler data
+]
+
 #define g_signal_handlers_disconnect_by_data(instance data) [
 	g_signal_handlers_disconnect_matched instance 16 0 0 null null data
 ]
@@ -686,6 +694,26 @@ GPtrArray!: alias struct! [
 			object  [handle!]
 			handler [integer!]
 		]
+		g_signal_handlers_block_matched: "g_signal_handlers_block_matched" [
+			object		[handle!]
+			mask		[integer!]
+			sig_id		[integer!]
+			detail		[integer!]
+			closure		[int-ptr!]
+			handle		[integer!]
+			data		[int-ptr!]
+			return:		[integer!]
+		]
+		g_signal_handlers_unblock_matched: "g_signal_handlers_unblock_matched" [
+			object		[handle!]
+			mask		[integer!]
+			sig_id		[integer!]
+			detail		[integer!]
+			closure		[int-ptr!]
+			handle		[integer!]
+			data		[int-ptr!]
+			return:		[integer!]
+		]
 		g_object_ref: "g_object_ref" [
 			object		[int-ptr!]
 			return:		[int-ptr!]
@@ -1296,6 +1324,31 @@ GPtrArray!: alias struct! [
 		gtk_dialog_response: "gtk_dialog_response" [
 			widget 		[handle!]
 			resp  		[integer!]
+		]
+		gtk_file_chooser_set_current_folder: "gtk_file_chooser_set_current_folder" [
+			widget		[handle!]
+			file		[c-string!]
+			return:		[logic!]
+		]
+		gtk_file_chooser_add_filter: "gtk_file_chooser_add_filter" [
+			widget		[handle!]
+			filter		[handle!]
+		]
+		gtk_file_filter_new: "gtk_file_filter_new" [
+			return:		[handle!]
+		]
+		gtk_file_filter_add_pattern: "gtk_file_filter_add_pattern" [
+			filter		[handle!]
+			str			[c-string!]
+		]
+		gtk_file_filter_set_name: "gtk_file_filter_set_name" [
+			filter		[handle!]
+			str			[c-string!]
+		]
+		gtk_file_chooser_set_filename: "gtk_file_chooser_set_filename" [
+			widget		[handle!]
+			file		[c-string!]
+			return:		[logic!]
 		]
 		gtk_file_chooser_get_filename: "gtk_file_chooser_get_filename" [
 			widget 		[handle!]
@@ -2706,6 +2759,10 @@ GPtrArray!: alias struct! [
 		gtk_scrollbar_new: "gtk_scrollbar_new" [
 			orientation	[integer!]
 			adjust		[handle!]
+			return:		[handle!]
+		]
+		gtk_range_get_adjustment: "gtk_range_get_adjustment" [
+			range		[handle!]
 			return:		[handle!]
 		]
 		gtk_adjustment_new: "gtk_adjustment_new" [
