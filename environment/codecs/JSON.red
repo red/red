@@ -18,7 +18,8 @@ context [
 	;-----------------------------------------------------------
 
 	;# Basic rules
-	ws:  charset " ^-^/^M"						; Whitespace
+	non-line-ws: charset " ^-^M"	; Whitespace, not counted as line breaks.
+	ws:  [non-line-ws | #"^/" last-lf: (line-ct: line-ct + 1) mark:]
 	ws*: [any ws]
 	ws+: [some ws]
 	sep: [ws* #"," ws*]							; JSON value separator
@@ -174,7 +175,7 @@ context [
 	
 	property-list: [property any [sep property]]
 	property: [json-name (emit either parse _str [word-1st any word-char] [to word! _str] [_str]) json-value]
-	json-name: [ws* string-literal ws* #":"]
+	json-name: [ws* string-literal ws* #":" mark:]
 	
 	;-----------------------------------------------------------
 	;-- List
@@ -195,14 +196,13 @@ context [
 	json-value: [
 		ws*
 		[
-			"true"    (emit true)							; Literals must be lowercase
-			| "false" (emit false)
-			| "null"  (emit none)
-			| json-object
-			| json-array
-			| string-literal (emit _str)
-			| copy _str numeric-literal (emit load _str)	; Number
-			mark:   										; Set mark for failure location
+			"true"    (emit true)  mark:			; Literals must be lowercase
+			| "false" (emit false) mark:
+			| "null"  (emit none)  mark:
+			| json-object          mark:
+			| json-array           mark:
+			| string-literal (emit _str) mark:
+			| copy _str numeric-literal (emit load _str) mark:	; Number
 		]
 		ws*
 	]
@@ -221,6 +221,10 @@ context [
 	_str: none	; Where string value parse results go               
 	_s: _e: none	; String end markers
 	mark: none	; Current parse position
+	line-ct: none	; Line counter
+	last-lf: none	; Position of last LF seen
+	
+	;mark>>: does [print ["line:" line-ct "index:" index? mark  "data:" copy/part mark 16]]
 	
 	; Add a new value to our output target, and set the position for
 	; the next emit to the tail of the insertion.
@@ -235,11 +239,15 @@ context [
         input [string!] "The JSON string"
     ] [
 		_out: _res: copy []		; These point to the same position to start with
-		mark: input
+		mark: last-lf: input
+		line-ct: 1
 		either parse/case input json-value [pick _out 1] [
 			make error! form reduce [
-				"Invalid json string. Near:"
-				either tail? mark ["<end of input>"] [mold copy/part mark 40]
+				"Invalid JSON string."
+				"Line:"   line-ct
+				"Index:"  index? mark
+				"Column:" offset? last-lf mark
+				"Near:"   either tail? mark ["<end of input>"] [mold copy/part mark 40]
 			]
 		]
 	]
