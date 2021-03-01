@@ -1004,7 +1004,7 @@ to-NSColor: func [
 	return: [integer!]
 ][
 	if TYPE_OF(color) <> TYPE_TUPLE [return 0]
-	rs-to-NSColor color/array1
+	rs-to-NSColor get-tuple-color color
 ]
 
 make-CGMatrix: func [

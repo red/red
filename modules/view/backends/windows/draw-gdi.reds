@@ -72,7 +72,7 @@ draw-begin-d2d: func [
 
 	values: get-face-values hWnd
 	clr: as red-tuple! values + FACE_OBJ_COLOR
-	bg-clr: either TYPE_OF(clr) = TYPE_TUPLE [clr/array1][-1]
+	bg-clr: either TYPE_OF(clr) = TYPE_TUPLE [get-tuple-color clr][-1]
 	if bg-clr <> -1 [							;-- paint background
 		rt/Clear this to-dx-color bg-clr null
 	]
@@ -1887,7 +1887,7 @@ OS-draw-font: func [
 	update-gdiplus-font ctx
 	ctx/font-color?: either TYPE_OF(color) = TYPE_TUPLE [
 		SetTextColor ctx/dc color/array1
-		update-gdiplus-font-color ctx color/array1
+		update-gdiplus-font-color ctx get-tuple-color color
 		yes
 	][
 		no
@@ -3262,7 +3262,7 @@ OS-draw-grad-pen-old: func [
 	head: as red-value! int
 	loop count [
 		clr: as red-tuple! either TYPE_OF(head) = TYPE_WORD [_context/get as red-word! head][head]
-		color/value: to-gdiplus-color clr/array1
+		color/value: to-gdiplus-color get-tuple-color clr
 		next: head + 1
 		if TYPE_OF(next) = TYPE_FLOAT [head: next f: as red-float! head p: f/value]
 		pos/value: as float32! p
@@ -3417,7 +3417,7 @@ OS-draw-grad-pen: func [
 	head: stops
 	loop count [
 		clr: as red-tuple! either TYPE_OF(head) = TYPE_WORD [_context/get as red-word! head][head]
-		color/value: to-gdiplus-color clr/array1
+		color/value: to-gdiplus-color get-tuple-color clr
 		next: head + 1
 		if TYPE_OF(next) = TYPE_FLOAT [head: next f: as red-float! head p: f/value]
 		pos/value: either mode = linear [ as float32! p ][ as float32! ( 1.0 - p ) ]

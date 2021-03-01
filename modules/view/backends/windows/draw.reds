@@ -257,10 +257,8 @@ draw-begin: func [
 	if hWnd <> null [
 		values: get-face-values hWnd
 		clr: as red-tuple! values + FACE_OBJ_COLOR
-		bg-clr: either TYPE_OF(clr) = TYPE_TUPLE [clr/array1][-1]
-		if any [on-graphic? bg-clr <> -1][		;-- paint background
-			dc/Clear this to-dx-color bg-clr null
-		]
+		bg-clr: either TYPE_OF(clr) = TYPE_TUPLE [get-tuple-color clr][00FFFFFFh]
+		dc/Clear this to-dx-color bg-clr null
 
 		red-img: as red-image! values + FACE_OBJ_IMAGE
 		if TYPE_OF(red-img) = TYPE_IMAGE [
@@ -276,7 +274,7 @@ draw-begin: func [
 			if TYPE_OF(font) = TYPE_OBJECT [
 				clr: as red-tuple! (object/get-values font) + FONT_OBJ_COLOR
 				if TYPE_OF(clr) = TYPE_TUPLE [
-					ctx/font-color: clr/array1
+					ctx/font-color: get-tuple-color clr
 					font-clr?: yes
 				]
 			]
@@ -1400,7 +1398,7 @@ OS-draw-font: func [
 	;-- set font color
 	clr: as red-tuple! (object/get-values font) + FONT_OBJ_COLOR
 	if TYPE_OF(clr) = TYPE_TUPLE [
-		ctx/font-color: clr/array1
+		ctx/font-color: get-tuple-color clr
 		ctx/font-color?: yes
 	]
 ]
@@ -2063,7 +2061,7 @@ OS-draw-grad-pen-old: func [
 	loop count [
 		clr: as red-tuple! either TYPE_OF(head) = TYPE_WORD [_context/get as red-word! head][head]
 		next: head + 1
-		to-dx-color clr/array1 as D3DCOLORVALUE (as int-ptr! gstops) + 1
+		to-dx-color get-tuple-color clr as D3DCOLORVALUE (as int-ptr! gstops) + 1
 		if TYPE_OF(next) = TYPE_FLOAT [head: next f: as red-float! head p: f/value]
 		gstops/position: as float32! p
 		if next <> head [p: p + delta]
@@ -2173,7 +2171,7 @@ OS-draw-grad-pen: func [
 	loop count [
 		clr: as red-tuple! either TYPE_OF(head) = TYPE_WORD [_context/get as red-word! head][head]
 		next: head + 1
-		to-dx-color clr/array1 as D3DCOLORVALUE (as int-ptr! gstops) + 1
+		to-dx-color get-tuple-color clr as D3DCOLORVALUE (as int-ptr! gstops) + 1
 		if TYPE_OF(next) = TYPE_FLOAT [head: next f: as red-float! head p: f/value]
 		gstops/position: as float32! p
 		if next <> head [p: p + delta]

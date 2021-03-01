@@ -522,6 +522,17 @@ system/view/platform: context [
 				]
 			]]
 
+			get-tuple-color: func [
+				tp		[red-tuple!]
+				return: [integer!]
+				/local
+					color [integer!]
+			][
+				color: tp/array1
+				if TUPLE_SIZE?(tp) = 3 [color: color and 00FFFFFFh]
+				color
+			]
+
 			#switch GUI-engine [
 				native [
 					;#include %android/gui.reds

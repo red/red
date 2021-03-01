@@ -1507,7 +1507,7 @@ hit-test: func [
 			TYPE_OF(clr) = TYPE_NONE
 			all [
 				TYPE_OF(clr) = TYPE_TUPLE
-				TUPLE_SIZE?(clr) = 4
+				TUPLE_SIZE?(clr) > 3
 				clr/array1 >>> 24 = 255
 			]
 		][
@@ -1566,7 +1566,7 @@ draw-rect: func [
 	sym: symbol/resolve type/symbol
 
 	if TYPE_OF(clr) = TYPE_TUPLE [
-		paint-background ctx clr/array1 x y width height
+		paint-background ctx get-tuple-color clr x y width height
 	]
 	if TYPE_OF(img) = TYPE_IMAGE [
 		CG-draw-image ctx OS-image/to-cgimage img 0 0 size/x size/y

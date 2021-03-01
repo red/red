@@ -1655,7 +1655,7 @@ OS-draw-grad-pen-old: func [
 	head: as red-value! int
 	loop count [
 		clr: as red-tuple! either TYPE_OF(head) = TYPE_WORD [_context/get as red-word! head][head]
-		color/value: clr/array1
+		color/value: get-tuple-color clr
 		next: head + 1
 		if TYPE_OF(next) = TYPE_FLOAT [head: next f: as red-float! head p: f/value]
 		pos/value: as float32! p
@@ -1780,7 +1780,7 @@ OS-draw-grad-pen: func [
 	head: stops
 	loop count [
 		clr: as red-tuple! either TYPE_OF(head) = TYPE_WORD [_context/get as red-word! head][head]
-		color/value: clr/array1
+		color/value: get-tuple-color clr
 		next: head + 1
 		if TYPE_OF(next) = TYPE_FLOAT [head: next f: as red-float! head p: f/value]
 		pos/value: as float32! p

@@ -629,7 +629,7 @@ update-base-background: func [
 		clr		[integer!]
 		brush	[integer!]
 ][
-	clr: to-gdiplus-color-fixed color/array1
+	clr: to-gdiplus-color-fixed get-tuple-color color
 	brush: 0
 	GdipCreateSolidFill clr :brush
 	GdipFillRectangleI graphic brush 0 0 width height
@@ -692,7 +692,7 @@ update-base-text: func [
 			hFont: as-integer make-font get-face-obj hWnd font
 		]
 		if TYPE_OF(color) = TYPE_TUPLE [
-			clr: color/array1
+			clr: get-tuple-color color
 			default-color: no
 		]
 	]

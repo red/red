@@ -820,7 +820,7 @@ paint-background: func [
 	][
 		;-- GDI+ alpha aware fill is required for W7 layered windows capture via OS-to-image
 		either TYPE_OF(color) = TYPE_TUPLE [
-			gdiclr: color/array1
+			gdiclr: get-tuple-color color
 		][
 			if (GetWindowLong hWnd GWL_STYLE) and WS_CHILD <> 0 [return false]
 			gdiclr: GetSysColor COLOR_3DFACE

@@ -658,7 +658,7 @@ change-color: func [
 	case [
 		type = area [
 			hWnd: objc_msgSend [hWnd sel_getUid "documentView"]
-			clr: either t = TYPE_NONE [00FFFFFFh][color/array1]
+			clr: either t = TYPE_NONE [00FFFFFFh][get-tuple-color color]
 			set-caret-color hWnd clr
 			if t = TYPE_NONE [clr: objc_msgSend [objc_getClass "NSColor" sel_getUid "textBackgroundColor"]]
 		]

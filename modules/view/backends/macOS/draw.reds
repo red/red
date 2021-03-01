@@ -1218,7 +1218,7 @@ OS-draw-grad-pen-old: func [
 
 	loop count [
 		clr: as red-tuple! either TYPE_OF(head) = TYPE_WORD [_context/get as red-word! head][head]
-		val: clr/array1
+		val: get-tuple-color clr
 		color/1: (as float32! val and FFh) / 255.0
 		color/2: (as float32! val >> 8 and FFh) / 255.0
 		color/3: (as float32! val >> 16 and FFh) / 255.0
@@ -1294,7 +1294,7 @@ OS-draw-grad-pen: func [
 	head: stops
 	loop count [
 		clr: as red-tuple! either TYPE_OF(head) = TYPE_WORD [_context/get as red-word! head][head]
-		val: clr/array1
+		val: get-tuple-color clr
 		color/1: (as float32! val and FFh) / 255.0
 		color/2: (as float32! val >> 8 and FFh) / 255.0
 		color/3: (as float32! val >> 16 and FFh) / 255.0

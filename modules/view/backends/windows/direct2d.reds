@@ -2317,7 +2317,7 @@ draw-text-d2d: func [
 
 	clr: either TYPE_OF(font) = TYPE_OBJECT [
 		color: as red-tuple! (object/get-values font) + FONT_OBJ_COLOR
-		color/array1
+		get-tuple-color color
 	][
 		0											;-- black
 	]
