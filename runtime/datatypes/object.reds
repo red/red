@@ -280,6 +280,8 @@ object: context [
 			node [node!]
 			s	 [series!]
 	][
+		_context/set-in words/_self obj GET_CTX(obj) no
+
 		node: alloc-cells 1								;-- hidden object value storage used by SELF
 		s: as series! node/value
 		copy-cell as red-value! obj s/offset

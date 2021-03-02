@@ -598,6 +598,7 @@ words: context [
 	
 	changed:		-1
 
+	_self:			as red-word! 0
 	_body:			as red-word! 0
 	_windows:		as red-word! 0
 	_syllable:		as red-word! 0
@@ -987,6 +988,8 @@ words: context [
 		errors/internal: word/load "internal"
 		
 		changed:		_changed/symbol
+
+		_self:			word/load "self"
 	]
 ]
 

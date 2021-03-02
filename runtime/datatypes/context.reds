@@ -397,9 +397,11 @@ _context: context [
 			slot [red-value!]
 			node [node!]
 			vals [node!]
+			id	 [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/create"]]
-		
+
+		slots: slots + 1								;-- +1 slot for 'self
 		if zero? slots [slots: 1]
 		node: alloc-cells 2
 		cell: as red-context! alloc-tail as series! node/value
@@ -420,6 +422,9 @@ _context: context [
 		]
 		SET_CTX_TYPE(cell type)
 		if self? [cell/header: cell/header or flag-self-mask]
+
+		id: 0
+		find-or-store cell words/self yes node :id		;-- put 'self into context
 		node
 	]
 	
