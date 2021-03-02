@@ -1121,6 +1121,7 @@ OS-image: context [
 			bitmap	[com-ptr! value]
 			hr		[integer!]
 			this	[this!]
+			handle	[this!]
 			IB		[IWICBitmap]
 			w		[integer!]
 			h		[integer!]
@@ -1132,9 +1133,11 @@ OS-image: context [
 		IB: as IWICBitmap this/vtbl
 		w: 0 h: 0
 		IB/GetSize this :w :h
+		handle: to-bgra this no
+		IB/Release this
 		image/init-image
 			as red-image! stack/push*
-			make-node null this 3 w h
+			make-node handle null 0 w h
 	]
 
 	to-gpbitmap: func [
