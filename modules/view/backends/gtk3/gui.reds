@@ -385,12 +385,12 @@ get-child-from-xy: func [
 
 get-text-size: func [
 	face		[red-object!]
+	font		[red-object!]
 	str			[red-string!]
 	pair		[red-pair!]
 	return:		[tagSIZE]
 	/local
 		values	[red-value!]
-		font	[red-object!]
 		state	[red-block!]
 		hFont	[handle!]
 		text	[c-string!]
@@ -398,14 +398,16 @@ get-text-size: func [
 		size	[tagSIZE]
 ][
 	values: object/get-values face
-	font: as red-object! values + FACE_OBJ_FONT
+	if null? font [print ["null-font" lf]  font: as red-object! values + FACE_OBJ_FONT]
 	hFont: null
+	print ["font type: " TYPE_OF(font) lf]
 	if TYPE_OF(font) = TYPE_OBJECT [
+		print ["font-object" lf]
 		state: as red-block! values + FONT_OBJ_STATE
-		if TYPE_OF(state) <> TYPE_BLOCK [hFont: get-font-handle font 0]
-		if null? hFont [hFont: make-font face font]
+		if TYPE_OF(state) <> TYPE_BLOCK [print ["state-block" lf]  hFont: get-font-handle font 0]
+		if null? hFont [print ["null-hfont 1" lf]  hFont: make-font face font]
 	]
-	if null? hFont [hFont: default-attrs]
+	if null? hFont [print ["null-hfont 2" lf]  hFont: default-attrs]
 
 	len: -1
 	text: unicode/to-utf8 str :len

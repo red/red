@@ -107,6 +107,7 @@ render-base: func [
 		values	[red-value!]
 		img		[red-image!]
 		w		[red-word!]
+		font	[red-object!]
 		rc		[RECT_STRUCT value]
 		graphic	[integer!]
 		type	[integer!]
@@ -118,6 +119,7 @@ render-base: func [
 	values: get-face-values hWnd
 	w: as red-word! values + FACE_OBJ_TYPE
 	img: as red-image! values + FACE_OBJ_IMAGE
+	font: as red-object! values + FACE_OBJ_FONT
 
 	GetClientRect hWnd :rc
 	if TYPE_OF(img) = TYPE_IMAGE [
@@ -133,7 +135,7 @@ render-base: func [
 	type: symbol/resolve w/symbol
 	if all [
 		type = base
-		render-text values hWnd hDC :rc null null
+		render-text values font hWnd hDC :rc null null
 	][
 		res: true
 	]
@@ -142,6 +144,7 @@ render-base: func [
 
 render-text: func [
 	values	[red-value!]
+	font	[red-object!]
 	hWnd	[handle!]
 	hDC		[handle!]
 	rc		[RECT_STRUCT]
@@ -149,17 +152,15 @@ render-text: func [
 	bbox 	[RECT_STRUCT_FLOAT32] 		; renders if = null, measures otherwise
 	return: [logic!]
 	/local
-		font	[red-object!]
 		para	[red-object!]
 		res		[logic!]
 		graphic	[integer!]
 ][
-	;unless winxp? [return render-text-d2d values hDC rc]
+	;unless winxp? [return render-text-d2d values font hDC rc]
 	res: false
 	if text = null [text: as red-string! values + FACE_OBJ_TEXT]
 	para: as red-object! values + FACE_OBJ_PARA
 	if TYPE_OF(text) = TYPE_STRING [
-		font: as red-object! values + FACE_OBJ_FONT
 		graphic: 0
 		GdipCreateFromHDC hDC :graphic
 		; GdipSetSmoothingMode graphic GDIPLUS_ANTIALIAS

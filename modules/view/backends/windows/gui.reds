@@ -282,13 +282,13 @@ get-gesture-info: func [
 
 get-text-size: func [
 	face 	[red-object!]
+	font	[red-object!]
 	str		[red-string!]
 	pair	[red-pair!]
 	return: [tagSIZE]
 	/local
 		saved 	[handle!]
 		values 	[red-value!]
-		font	[red-object!]
 		state	[red-block!]
 		hFont	[handle!]
 		hwnd 	[handle!]
@@ -306,8 +306,7 @@ get-text-size: func [
 		hwnd: GetDesktopWindow
 	]
 	values: object/get-values face
-	dc: GetWindowDC hwnd
-	font: as red-object! values + FACE_OBJ_FONT
+	if null? font [font: as red-object! values + FACE_OBJ_FONT]
 	hFont: null
 	if TYPE_OF(font) = TYPE_OBJECT [
 		state: as red-block! values + FONT_OBJ_STATE
@@ -317,7 +316,8 @@ get-text-size: func [
 	if null? hFont [hFont: default-font]
 	saved: SelectObject hwnd hFont
 	GetClientRect hWnd rc
-	render-text values hwnd dc rc str :bbox
+	dc: GetWindowDC hwnd
+	render-text values font hwnd dc rc str :bbox
 
 	SelectObject hwnd saved
 	ReleaseDC hwnd dc

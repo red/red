@@ -583,9 +583,42 @@ system/view/platform: context [
 
 		pair: as red-pair! stack/arguments
 		pair/header: TYPE_PAIR
-		gui/get-text-size face text pair
+		gui/get-text-size face null text pair
 	]
-	
+
+	size-string:  routine [
+		font  [object!]
+		value
+		/local
+			text   [red-string!]
+			pair   [red-pair!]
+			screens	[red-block!]
+			screen1	[red-object!]
+			f [int-ptr!]
+	][
+		switch TYPE_OF(value) [
+			TYPE_STRING [text: as red-string! value]
+			default     [fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(value)]]
+		]
+		if TYPE_OF(text) <> TYPE_STRING [
+			SET_RETURN(none-value)
+			exit
+		]
+
+		screens: as red-block! #get system/view/screens
+		if null? screens [fire [TO_ERROR(script face-type) screens]]
+		screen1: as red-object! block/rs-head screens
+		if null? screen1 [fire [TO_ERROR(script face-type) screen1]]
+
+		pair: as red-pair! stack/arguments
+		pair/header: TYPE_PAIR
+
+		f: as int-ptr! font
+		dump-hex4 f
+		print ["font type1: " TYPE_OF(font) " ptr: " f " val: " f/value lf]
+		gui/get-text-size screen1 font text pair
+	]
+
 	on-change-facet: routine [
 		owner  [object!]
 		word   [word!]
