@@ -647,7 +647,7 @@ Red/System [
 							]
 							sym = curve [
 								DRAW_FETCH_SOME_PAIR
-								if (as-integer cmd - start) < 32 [throw-draw-error cmds cmd - 2 catch?]
+								if (as-integer cmd - start) < 32 [throw-draw-error cmds start catch?]
 								OS-draw-shape-curve DC as red-pair! start as red-pair! cmd rel?
 							]
 							sym = curv [
