@@ -37,6 +37,7 @@ size-text: function [
 	return:  [pair! none!]	"Return the text's size or NONE if failed"
 ][
 	either face/type = 'rich-text [
+		if block? h: face/handles [poke h length? h true]
 		system/view/platform/text-box-metrics face 0 3
 	][
 		system/view/platform/size-text face text
