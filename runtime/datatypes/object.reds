@@ -280,8 +280,6 @@ object: context [
 			node [node!]
 			s	 [series!]
 	][
-		_context/set-in words/_self obj GET_CTX(obj) no
-
 		node: alloc-cells 1								;-- hidden object value storage used by SELF
 		s: as series! node/value
 		copy-cell as red-value! obj s/offset
@@ -1035,8 +1033,7 @@ object: context [
 				obj/on-set: null						;-- avoid GC marking previous value
 				blk: as red-block! spec
 				new?: _context/collect-set-words ctx blk
-				self: save-self-object obj
-				_context/bind blk ctx self yes			;-- bind spec block
+				_context/bind blk ctx null yes			;-- bind spec block
 				if p-obj? [duplicate proto/ctx obj/ctx no] ;-- clone and rebind proto's series
 				interpreter/eval blk no
 				
@@ -1044,11 +1041,12 @@ object: context [
 				obj/class: either any [new? not p-obj?][get-new-id][proto/class]
 				obj/on-set: on-set-defined? ctx
 				if on-deep? obj [ownership/set-owner as red-value! obj obj null]
-				s: as series! self/value
+				s: as series! obj/ctx/value
 				copy-cell as red-value! obj s/offset
 			]
 			default [fire [TO_ERROR(syntax malconstruct) spec]]
 		]
+		_context/set-in words/_self as red-value! obj GET_CTX(obj) no
 		obj
 	]
 	

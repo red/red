@@ -146,11 +146,7 @@ collector: context [
 					word: as red-word! value
 					if word/ctx <> null [
 						#if debug? = yes [if verbose > 1 [print-symbol word]]
-						either word/symbol = words/self [
-							mark-block-node word/ctx
-						][
-							mark-context word/ctx
-						]
+						mark-context word/ctx
 					]
 				]
 				TYPE_BLOCK
@@ -336,12 +332,7 @@ collector: context [
 			if w/ctx <> null [
 				;print-symbol w
 				;print "^/"
-				either w/symbol = words/self [
-					;probe "self"
-					mark-block-node w/ctx
-				][
-					mark-context w/ctx
-				]
+				mark-context w/ctx
 			]
 		]
 		

@@ -307,31 +307,22 @@ _context: context [
 		/local
 			values [series!]
 			s	   [series!]
+			idx	   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/get-in"]]
-
-		if all [
-			TYPE_OF(ctx) = TYPE_OBJECT					;-- test special ctx pointer for SELF
-			word/index = -1
-			word/symbol = words/self
-		][
-			s: as series! word/ctx/value
-			return s/offset								;-- return original object value
-		]
-		if any [										;-- ensure word is properly bound to a context
-			null? ctx
-			word/index = -1
-		][
+		
+		idx: word/index
+		if any [null? ctx idx = -1][					;-- ensure word is properly bound to a context
 			fire [TO_ERROR(script no-value) word]
 		]
 		if null? ctx/values [
 			fire [TO_ERROR(script not-in-context) word]
 		]
 		either ON_STACK?(ctx) [
-			(as red-value! ctx/values) + word/index
+			(as red-value! ctx/values) + idx
 		][
 			values: as series! ctx/values/value
-			values/offset + word/index
+			values/offset + idx
 		]
 	]
 
@@ -498,7 +489,6 @@ _context: context [
 		/local
 			value [red-value!]
 			end	  [red-value!]
-			w	  [red-word!]
 	][
 		if cycles/find? body/node [return body]
 		cycles/push body/node
@@ -511,22 +501,8 @@ _context: context [
 				TYPE_GET_WORD
 				TYPE_SET_WORD
 				TYPE_LIT_WORD
-				TYPE_REFINEMENT [
-					w: as red-word! value
-					either all [						;-- special processing of SELF word	
-						self?
-						TYPE_OF(value) = TYPE_WORD
-						w/symbol = words/self
-					][
-						w/ctx: obj						;-- make SELF refer to the original object
-						w/index: -1						;-- make it fail if resolved out of context
-					][
-						bind-word ctx w
-					]
-				]
-				TYPE_ANY_BLOCK	[
-					bind as red-block! value ctx obj self?
-				]
+				TYPE_REFINEMENT [bind-word ctx as red-word! value]
+				TYPE_ANY_BLOCK	[bind as red-block! value ctx obj self?]
 				default [0]
 			]
 			value: value + 1

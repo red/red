@@ -1091,17 +1091,13 @@ natives: context [
 			obj	  [node!]
 			word  [red-word!]
 			ctx	  [node!]
-			self? [logic!]
 			idx	  [integer!]
 	][
 		#typecheck [bind copy]
 		value: stack/arguments
 		ref: value + 1
 		
-		either any [
-			TYPE_OF(ref) = TYPE_FUNCTION
-			;TYPE_OF(ref) = TYPE_OBJECT
-		][
+		either TYPE_OF(ref) = TYPE_FUNCTION [
 			fun: as red-function! ref
 			ctx: fun/ctx
 		][
@@ -1110,22 +1106,16 @@ natives: context [
 		]
 		
 		either TYPE_OF(value) = TYPE_BLOCK [
-			obj: either TYPE_OF(ref) = TYPE_OBJECT [
-				self?: yes
-				object/save-self-object as red-object! ref
-			][
-				self?: no
-				null
-			]
+			obj: either TYPE_OF(ref) = TYPE_OBJECT [ctx][null]
 			either negative? copy [
-				_context/bind as red-block! value TO_CTX(ctx) obj self?
+				_context/bind as red-block! value TO_CTX(ctx) obj no
 			][
 				stack/set-last 
 					as red-value! _context/bind
 						block/clone as red-block! value yes yes
 						TO_CTX(ctx)
 						obj
-						self?
+						no
 			]
 		][
 			word: as red-word! value
