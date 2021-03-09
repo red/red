@@ -1957,7 +1957,7 @@ lexer: context [
 		either p = cur [cur: null][if cur + 3 <> p [do-error]]
 		
 		assert p/1 = #"$"
-		if any [p/2 = #"." p/2 = #"," p/2 = #"'"][do-error]
+		if any [p + 1 = e p/2 = #"." p/2 = #"," p/2 = #"'"][do-error]
 		until [p: p + 1 any [p = e all [p/1 <> #"0" p/1 <> #"'"]]]
 		if any [p >= e p/1 = #"."][p: p - 1]			;-- backtrack if $0 or $0.
 		st: p - 1
