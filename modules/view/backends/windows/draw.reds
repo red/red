@@ -684,10 +684,15 @@ draw-curve: func [
 				p1x: dx
 				p1y: dy
 			]
+			start: start - 1
 		]
 		if rel? [
-			pf: :p1x
-			loop num [
+			unless short? [				;-- p1 is already absolute coordinate if short?
+				p1x: p1x + dx
+				p1y: p1y + dy
+			]
+			pf: :p2x
+			loop num - 1 [
 				pf/1: pf/1 + dx			;-- x
 				pf/2: pf/2 + dy			;-- y
 				pf: pf + 2
@@ -720,7 +725,7 @@ draw-curve: func [
 			ctx/sub/last-pt-x: p2x
 			ctx/sub/last-pt-y: p2y
 		]
-		start: start + num - 1
+		start: start + num
 	]
 ]
 
