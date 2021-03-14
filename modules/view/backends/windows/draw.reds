@@ -257,7 +257,7 @@ draw-begin: func [
 	if hWnd <> null [
 		values: get-face-values hWnd
 		clr: as red-tuple! values + FACE_OBJ_COLOR
-		bg-clr: either TYPE_OF(clr) = TYPE_TUPLE [get-tuple-color clr][00FFFFFFh]
+		bg-clr: either TYPE_OF(clr) = TYPE_TUPLE [get-tuple-color clr][-1]
 		dc/Clear this to-dx-color bg-clr null
 
 		red-img: as red-image! values + FACE_OBJ_IMAGE
