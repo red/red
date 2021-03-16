@@ -603,13 +603,13 @@ help-ctx: context [
 	set 'about func [
 		"Print Red version information"
 		/debug "Print full Red and OS version information suitable for submitting issues"
-		/local git plt
+		/local git plt txt
 	][
 		git: system/build/git
 		plt: os-info
 		either debug [
-			print either git [
-				compose [
+			txt: either git [
+				form reduce [
 					"-----------RED & PLATFORM VERSION-----------" lf
 					"RED: [ branch:" mold git/branch "tag:" mold git/tag "ahead:" git/ahead
 					"date:" to-UTC-date git/date "commit:" mold git/commit "]^/"
@@ -622,16 +622,18 @@ help-ctx: context [
 				"Looks like this Red binary has been built from source.^/Please download latest build from our website:^/https://www.red-lang.org/p/download.html^/and try your code on it before submitting an issue."
 			]
 		][
-			prin [
+			txt: reduce [
 				'Red system/version
 				'for system/platform
 				'built any [all [git git/date] system/build/date]
 			]
 			if git [
-				prin [ " commit" copy/part mold system/build/git/commit 8]
+				repend txt [" commit" copy/part mold system/build/git/commit 8]
 			]
-			print lf
+			txt: form txt
 		]
+		write-clipboard txt
+		print txt
 	]
 
 ]
