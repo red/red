@@ -408,4 +408,19 @@ Red [
 
 ===end-group===
 
+===start-group=== "FIND issue #4165"
+
+	a: object [x: 1]
+	b: object [x: 2]
+	xs: reduce ['x in a 'x in b 'x]
+
+	--test-- "issue-4165-1"
+		--assert 2 = index? find/same xs in a 'x
+	--test-- "issue-4165-2"
+		--assert 3 = index? find/same xs in b 'x
+	--test-- "issue-4165-3"
+		--assert 2 = index? find/same xs next xs
+
+===end-group===
+
 ~~~end-file~~~
