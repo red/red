@@ -603,6 +603,7 @@ help-ctx: context [
 	set 'about func [
 		"Print Red version information"
 		/debug "Print full Red and OS version information suitable for submitting issues"
+		/cc "Also Copy the result into Clipboard"
 		/local git plt txt
 	][
 		git: system/build/git
@@ -632,7 +633,7 @@ help-ctx: context [
 			]
 			txt: form txt
 		]
-		write-clipboard txt
+		if cc [write-clipboard txt]
 		print txt
 	]
 
