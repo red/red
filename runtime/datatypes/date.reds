@@ -1090,8 +1090,8 @@ date: context [
 		if type <> TYPE_DATE [RETURN_COMPARE_OTHER]
 		d1: DATE_CLEAR_TIME_FLAG(value1/date) >> 7		;-- remove TZ, clear time? flag
 		d2: DATE_CLEAR_TIME_FLAG(value2/date) >> 7
-		t1: floor value1/time + 0.5						;-- in UTC already, round to integer
-		t2: floor value2/time + 0.5
+		t1: value1/time
+		t2: value2/time
 		
 		eq?: all [d1 = d2 t1 = t2]
 		
