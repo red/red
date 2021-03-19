@@ -1710,54 +1710,58 @@ draw-curve: func [
 		pf		[float32-ptr!]
 		pt		[red-pair!]
 ][
-	pt: start + 1
-	p1x: as float32! start/x
-	p1y: as float32! start/y
-	p2x: as float32! pt/x
-	p2y: as float32! pt/y
-	if num = 3 [					;-- cubic Bézier
-		pt: start + 2
-		p3x: as float32! pt/x
-		p3y: as float32! pt/y
-	]
-
-	dx: dc/last-pt-x
-	dy: dc/last-pt-y
-	if rel? [
-		pf: :p1x
-		loop num [
-			pf/1: pf/1 + dx			;-- x
-			pf/2: pf/2 + dy			;-- y
-			pf: pf + 2
+	while [ start < end ][
+		pt: start + 1
+		p1x: as float32! start/x
+		p1y: as float32! start/y
+		p2x: as float32! pt/x
+		p2y: as float32! pt/y
+		if num = 3 [					;-- cubic Bézier
+			pt: start + 2
+			p3x: as float32! pt/x
+			p3y: as float32! pt/y
 		]
-	]
 
-	if short? [
-		either dc/shape-curve? [
-			;-- The control point is assumed to be the reflection of the control point
-			;-- on the previous command relative to the current point
-			p1x: dx * 2.0 - dc/control-x
-			p1y: dy * 2.0 - dc/control-y
-		][
-			;-- if previous command is not curve/curv/qcurve/qcurv, use current point
-			p1x: dx
-			p1y: dy
+		dx: dc/last-pt-x
+		dy: dc/last-pt-y
+		if rel? [
+			pf: :p1x
+			loop num [
+				pf/1: pf/1 + dx			;-- x
+				pf/2: pf/2 + dy			;-- y
+				pf: pf + 2
+			]
 		]
-	]
 
-	dc/shape-curve?: yes
-	either num = 3 [				;-- cubic Bézier
-		CGPathAddCurveToPoint dc/path null p1x p1y p2x p2y p3x p3y
-		dc/control-x: p2x
-		dc/control-y: p2y
-		dc/last-pt-x: p3x
-		dc/last-pt-y: p3y
-	][								;-- quadratic Bézier
-		CGPathAddQuadCurveToPoint dc/path null p1x p1y p2x p2y
-		dc/control-x: p1x
-		dc/control-y: p1y
-		dc/last-pt-x: p2x
-		dc/last-pt-y: p2y
+		if short? [
+			either dc/shape-curve? [
+				;-- The control point is assumed to be the reflection of the control point
+				;-- on the previous command relative to the current point
+				p1x: dx * (as float32! 2.0) - dc/control-x
+				p1y: dy * (as float32! 2.0) - dc/control-y
+			][
+				;-- if previous command is not curve/curv/qcurve/qcurv, use current point
+				p1x: dx
+				p1y: dy
+			]
+			start: start - 1
+		]
+
+		dc/shape-curve?: yes
+		either num = 3 [				;-- cubic Bézier
+			CGPathAddCurveToPoint dc/path null p1x p1y p2x p2y p3x p3y
+			dc/control-x: p2x
+			dc/control-y: p2y
+			dc/last-pt-x: p3x
+			dc/last-pt-y: p3y
+		][								;-- quadratic Bézier
+			CGPathAddQuadCurveToPoint dc/path null p1x p1y p2x p2y
+			dc/control-x: p1x
+			dc/control-y: p1y
+			dc/last-pt-x: p2x
+			dc/last-pt-y: p2y
+		]
+		start: start + num
 	]
 ]
 
