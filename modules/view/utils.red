@@ -45,7 +45,7 @@ overlap?: function [
 	"Return TRUE if the two faces bounding boxes are overlapping"
 	A		[object!] "First face"
 	B		[object!] "Second face"
-	; return: [logic!]  "TRUE if overlapping"
+	return: [logic!]  "TRUE if overlapping"
 ][
 	A1: A/offset
 	B1: B/offset
