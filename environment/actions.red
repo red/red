@@ -63,7 +63,7 @@ mold: make action! [[
 		value	  [any-type!]
 		/only "Exclude outer brackets if value is a block"
 		/all  "TBD: Return value in loadable format"
-		/flat "TBD: Exclude all indentation"
+		/flat "Exclude all indentation"
 		/part "Limit the length of the result"
 			limit [integer!]
 		return:	  [string!]
