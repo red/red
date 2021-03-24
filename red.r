@@ -211,9 +211,9 @@ redc: context [
 	
 	get-lib-suffix: does [
 		case [
-			Windows? 			 [%.dll]
-			system/version/4 = 2 [%.dylib]
-			'else 				 [%.so]
+			Windows? [%.dll]
+			macOS?   [%.dylib]
+			'else    [%.so]
 		]
 	]
 
@@ -335,11 +335,11 @@ redc: context [
 			not SSE3?
 			any [
 				all [Windows? opts/OS = 'Windows]
-				all [system/version/4 = 4 opts/OS = 'Linux]
+				all [Linux?   opts/OS = 'Linux]
 			]
 			opts/cpu-version: 1.0
 		]
-		if system/version/4 = 2 [						;-- macOS version extraction
+		if macOS? [						;-- macOS version extraction
 			out: make string! 128
 			call/output "sw_vers -productVersion" out
 			attempt [
