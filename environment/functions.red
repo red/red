@@ -397,7 +397,7 @@ load: function [
 	/into "Put results in out block, instead of creating a new block"
 		out [block!] "Target block for results"
 	/as   "Specify the type of data; use NONE to load as code"
-		type [word! none!] "E.g. bmp, gif, jpeg, png"
+		type [word! none!] "E.g. bmp, gif, jpeg, png, redbin, json, csv"
 ][
 	if as [
 		if word? type [
@@ -472,7 +472,7 @@ save: function [
 	/all    "TBD: Save in serialized format"
 	/length "Save the length of the script content in the header"
 	/as     "Specify the format of data; use NONE to save as plain text"
-		format [word! none!] "E.g. bmp, gif, jpeg, png"
+		format [word! none!] "E.g. bmp, gif, jpeg, png, redbin, json, csv"
 ][
 	dst: either any [file? where url? where][where][none]
 	either system/words/all [as  word? format] [				;-- Be aware of [all as] word shadowing
