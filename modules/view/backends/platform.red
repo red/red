@@ -567,7 +567,7 @@ system/view/platform: context [
 		/local
 			values [red-value!]
 			text   [red-string!]
-			pair   [red-pair!]
+			pair   [red-pair! value]
 	][
 		;@@ check if object is a face?
 		values: object/get-values face
@@ -581,9 +581,10 @@ system/view/platform: context [
 			exit
 		]
 
-		pair: as red-pair! stack/arguments
+		;pair: as red-pair! stack/arguments		;@@ wrong! overwrite face
 		pair/header: TYPE_PAIR
-		gui/get-text-size face text pair
+		gui/get-text-size face text :pair
+		stack/set-last as red-value! :pair
 	]
 	
 	on-change-facet: routine [
