@@ -746,6 +746,8 @@ float: context [
 			left  [float!]
 			right [float!] 
 			res	  [integer!]
+			ip1   [int-ptr!]
+			ip2   [int-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/compare"]]
 
@@ -774,6 +776,11 @@ float: context [
 		switch op [
 			COMP_EQUAL
 			COMP_NOT_EQUAL 	[res: as-integer not almost-equal left right]
+			COMP_SAME [
+				ip1: as int-ptr! :left
+				ip2: as int-ptr! :right
+				res: as-integer any [ip1/1 <> ip2/1  ip1/2 <> ip2/2]
+			]
 			default [
 				res: SIGN_COMPARE_RESULT(left right)
 			]
