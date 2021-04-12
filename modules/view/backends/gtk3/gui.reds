@@ -930,7 +930,7 @@ change-pane: func [
 		unless null? list [
 			g_list_free list
 		]
-		gtk_widget_grab_focus focus
+		if focus <> null [gtk_widget_grab_focus focus]
 	]
 ]
 
