@@ -419,6 +419,7 @@ system/view/VID: context [
 		all [											;-- preprocess RTD inputs
 			face/type = 'rich-text
 			opts/data
+			not pair? opts/data/1
 			rtd-layout/with opts/data face
 			opts/data: none
 		]
