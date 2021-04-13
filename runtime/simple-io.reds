@@ -600,7 +600,7 @@ simple-io: context [
 				blk
 			]
 			OS = 'Linux [
-				handle: _open file/to-OS-path filename O_RDONLY or O_DIRECTORY S_IREAD
+				handle: LibC.open file/to-OS-path filename O_RDONLY or O_DIRECTORY S_IREAD
 				if handle = -1 [fire [TO_ERROR(access cannot-open) filename]]
 
 				buf: as byte-ptr! system/stack/allocate 256	;-- allocate 1KB on stack
