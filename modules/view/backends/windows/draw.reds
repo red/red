@@ -295,6 +295,7 @@ release-ctx: func [
 ][
 	COM_SAFE_RELEASE(IUnk ctx/pen)
 	COM_SAFE_RELEASE(IUnk ctx/brush)
+	COM_SAFE_RELEASE(IUnk ctx/text-format)
 	release-pen-style ctx
 ]
 
@@ -429,13 +430,17 @@ OS-draw-text: func [
 		brush	[ID2D1SolidColorBrush]
 		color?	[logic!]
 		pen		[this!]
+		release? [logic!]
+		unk		[IUnknown]
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
 
 	layout: either TYPE_OF(text) = TYPE_OBJECT [				;-- text-box!
+		release?: no
 		OS-text-box-layout as red-object! text as render-target! ctx/target 0 yes
 	][
+		release?: yes
 		if null? ctx/text-format [
 			ctx/text-format: as this! create-text-format as red-object! text null
 		]
@@ -454,6 +459,7 @@ OS-draw-text: func [
 	if color? [
 		brush/SetColor pen to-dx-color ctx/pen-color null
 	]
+	if release? [COM_SAFE_RELEASE(unk layout)]
 	true
 ]
 
