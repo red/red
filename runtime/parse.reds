@@ -1613,7 +1613,7 @@ parser: context [
 							]
 							value: block/rs-head input
 							type: TYPE_OF(value)
-							either ANY_SERIES_PARSE?(type) [
+							either all [not block/rs-tail? input ANY_SERIES_PARSE?(type)][
 								input: as red-series! block/rs-append series value
 								min:  R_NONE
 								type: R_INTO

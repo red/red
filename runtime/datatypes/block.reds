@@ -48,6 +48,7 @@ block: context [
 			s	[series!]
 	][
 		s: GET_BUFFER(blk)
+		assert s/tail > (s/offset + blk/head)
 		s/offset + blk/head
 	]
 	
