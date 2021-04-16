@@ -384,11 +384,12 @@ iocp: context [
 		]
 
 		cnt: LibC.kevent p/epfd null 0 p/events p/nevents tm
-		if cnt < 0 [return 0]
 	][
 		cnt: epoll_wait p/epfd p/events p/nevents timeout
-		if all [cnt < 0 errno/value = EINTR][return 0]
 	]
+		if cnt < 0 [				;-- error
+			either errno/value = EINTR [return p/n-ports][return 0]
+		]
 
 		if cnt = p/nevents [		;-- TBD: extend events buffer
 			0
