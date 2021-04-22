@@ -388,7 +388,10 @@ iocp: context [
 		cnt: epoll_wait p/epfd p/events p/nevents timeout
 	]
 		if cnt < 0 [				;-- error
-			either errno/value = EINTR [return p/n-ports][return 0]
+			either errno/value = EINTR [return p/n-ports][
+				probe ["wait error: " errno/value]
+				return 0
+			]
 		]
 
 		if cnt = p/nevents [		;-- TBD: extend events buffer
