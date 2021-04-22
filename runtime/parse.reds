@@ -1611,17 +1611,23 @@ parser: context [
 							if TYPE_OF(value) <> TYPE_BLOCK [
 								PARSE_ERROR [TO_ERROR(script parse-end) words/_into]
 							]
-							value: block/rs-head input
-							type: TYPE_OF(value)
-							either ANY_SERIES_PARSE?(type) [
-								input: as red-series! block/rs-append series value
-								min:  R_NONE
-								type: R_INTO
-								state: ST_PUSH_RULE
-							][
+							PARSE_CHECK_INPUT_EMPTY?
+							either end? [
 								match?: no
-								PARSE_TRACE(_match)
 								state: ST_CHECK_PENDING
+							][
+								value: block/rs-head input
+								type: TYPE_OF(value)
+								either ANY_SERIES_PARSE?(type) [
+									input: as red-series! block/rs-append series value
+									min:  R_NONE
+									type: R_INTO
+									state: ST_PUSH_RULE
+								][
+									match?: no
+									PARSE_TRACE(_match)
+									state: ST_CHECK_PENDING
+								]
 							]
 						]
 						sym = words/insert [			;-- INSERT
