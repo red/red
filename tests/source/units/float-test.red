@@ -395,6 +395,12 @@ Red [
 		--assert 0:00:16 = round/to 15.0 0:0:2
 		--assert 12.9 = round/to 13.0 30%
 
+	--test-- "round22"
+		--assert 23.0 == round/to         23.0 0.0
+		--assert 23%  == round/to         23%  0%
+		--assert 23.0 == round/to/ceiling 23.0 0.0
+		--assert 23.0 == round/to/floor   23.0 0.0
+
 ===end-group===
 
 ===start-group=== "various regression tests from bugtracker"
