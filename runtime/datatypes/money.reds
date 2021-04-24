@@ -1710,7 +1710,7 @@ money: context [
 			]
 		]
 		
-		if zero-money? scale [fire [TO_ERROR(math overflow)]]
+		if zero-money? scale [return value]
 		value: absolute-money value
 		
 		lower: divide-money as red-money! stack/push as red-value! value scale yes no

@@ -914,7 +914,6 @@ float: context [
 				sc: abs scale/value
 			]
 			if TYPE_OF(f) = TYPE_PERCENT [sc: sc / 100.0]
-			if sc = 0.0 [fire [TO_ERROR(math overflow)]]
 		]
 		if sc < ldexp abs dec -53 [return value]		;-- is scale negligible?
 
