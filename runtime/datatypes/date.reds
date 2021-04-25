@@ -1093,7 +1093,7 @@ date: context [
 		t1: value1/time
 		t2: value2/time
 		
-		eq?: all [d1 = d2 t1 = t2]
+		eq?: all [d1 = d2 float/almost-equal t1 t2]
 		
 		switch op [
 			COMP_EQUAL
