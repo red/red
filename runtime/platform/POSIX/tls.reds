@@ -372,6 +372,7 @@ tls: context [
 					][
 						td/event: IO_EVT_ERROR
 						SSL_free ssl
+						td/ssl: null
 						if td/state <> 0 [
 							iocp/remove td/io-port as-integer td/device td/state as iocp-data! td
 						]
@@ -442,7 +443,7 @@ tls: context [
 
 		;-- the close_notify was sent
 		;-- we don't care about the reply from the peer
-		if ssl <> null [SSL_free ssl]
+		if ssl <> null [SSL_free ssl td/ssl: null]
 		socket/close as-integer td/device
 		td/device: IO_INVALID_DEVICE
 		IODebug("native tls free handle done")
