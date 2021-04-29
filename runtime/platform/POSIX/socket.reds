@@ -73,7 +73,7 @@ socket: context [
 		ret: LibC.listen sock backlog
 		data/event: IO_EVT_ACCEPT
 		data/state: data/state or EPOLLIN
-		iocp/add data/io-port sock EPOLLIN or EPOLLET data
+		iocp/add data/io-port sock EPOLLIN data
 		ret
 	]
 
