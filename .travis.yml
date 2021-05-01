@@ -148,11 +148,11 @@ install:
     docker run -v ${PWD}:/red -w /red
     i386/debian:red rebol -qws system/tests/build-arm-tests.r '-t RPi' &&
     printf
-    'FROM balenalib/raspberry-pi2-debian:latest\n
+    'FROM balenalib/raspberrypi3-debian:latest\n
     RUN apt-get update &&
     apt-get install -y libgdk-pixbuf2.0-0
     ' > Dockerfile &&
-    docker build -t balenalib/raspberry-pi2-debian:red . ;
+    docker build -t balenalib/raspberrypi3-debian:red . ;
     fi
   # macOS: install rebol
   - >
