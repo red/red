@@ -4739,6 +4739,7 @@ red: context [
 			***-root-size: <root-size>
 
 			with red [
+				stk-bottom: system/stack/top			;-- reset stk-bottom set by libRedRT to allow GC to mark all pointers on stack
 				root-base: redbin/boot-load system/boot-data yes
 				exec: context <script>
 			]

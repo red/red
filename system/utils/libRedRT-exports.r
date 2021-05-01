@@ -423,6 +423,7 @@
 	red/string/load-at
 ][
 	red/root				red-block!
+	red/stk-bottom			int-ptr!
 	red/object/path-parent	cell!
 	red/object/field-parent	cell!
 	red/stack/arguments		cell!
