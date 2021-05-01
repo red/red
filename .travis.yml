@@ -77,6 +77,8 @@ matrix:
   - env: OS=armhf
     script:                                          # Run ARMv7hf tests
     - >
+      more /proc/cpuinfo
+    - >
       docker run -v ${PWD}:/red
       -w /red/quick-test/runnable/arm-tests/red/
       --entrypoint /red/quick-test/runnable/arm-tests/red/run-all.sh
