@@ -143,7 +143,7 @@ install:
   # ARMhf: build tests on i386
   - >
     if [[ ${OS} == "armhf" ]]; then
-    more /proc/cpuinfo
+    docker run -v more /proc/cpuinfo
     docker run -v ${PWD}:/red -w /red
     i386/debian:red rebol -qws tests/build-arm-tests.r '-t RPi' &&
     docker run -v ${PWD}:/red -w /red
