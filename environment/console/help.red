@@ -520,7 +520,7 @@ help-ctx: context [
 
 	set 'help-string function [
 		"Returns information about functions, values, objects, and datatypes."
-		'word [any-type!]
+		'word [any-type!] "Omit the word arg for HELP usage."
 	][
 		clear output-buffer
 		case [
