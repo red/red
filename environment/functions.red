@@ -594,12 +594,11 @@ to-red-file: func [
 	return: [file!]
 	/local colon? slash? len i c dst
 ][
-	colon?: slash?: no
-	len: length? path
-	dst: make file! len
-	if zero? len [return dst]
-	i: 1
 	#either config/OS = 'Windows [
+		len: length? path
+		dst: make file! len
+		if zero? len [return dst]
+		i: 1
 		until [
 			c: pick path i
 			i: i + 1
@@ -624,10 +623,10 @@ to-red-file: func [
 			i > len
 		]
 		if colon? [insert dst #"/"]
+		dst
 	][
-		insert dst path
+		to file! path
 	]
-	dst
 ]
 
 dir?: func ["Returns TRUE if the value looks like a directory spec" file [file! url!]][#"/" = last file]
