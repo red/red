@@ -1083,6 +1083,8 @@ date: context [
 			t1	 [float!]
 			t2	 [float!]
 			eq?	 [logic!]
+			ip1  [int-ptr!]
+			ip2  [int-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "date/compare"]]
 
@@ -1098,9 +1100,13 @@ date: context [
 		switch op [
 			COMP_EQUAL
 			COMP_FIND
-			COMP_SAME
 			COMP_NOT_EQUAL
 			COMP_STRICT_EQUAL [res: as-integer not eq?]
+			COMP_SAME [
+				ip1: as int-ptr! :t1
+				ip2: as int-ptr! :t2
+				res: as-integer any [d1 <> d2  ip1/1 <> ip2/1  ip1/2 <> ip2/2]
+			]
 			default [
 				either eq? [res: 0][
 					res: SIGN_COMPARE_RESULT(d1 d2)

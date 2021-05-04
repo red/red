@@ -176,5 +176,16 @@ Red [
   --assert none = select/skip "12345166661234557890" "6" 5
 ===end-group===
 
+===start-group=== "SELECT issue #4165"
+
+	--test-- "select-issue-4165"
+		a: object [x: 1]
+		b: object [x: 2]
+		xs: reduce ['x in a 'x in b 'x]
+		--assert none? select/same xs in b 'x
+		--assert (in b 'x) =? select/same xs in a 'x
+
+===end-group===
+
 ~~~end-file~~~
 

@@ -477,11 +477,17 @@ word: context [
 			COMP_FIND [
 				res: as-integer not EQUAL_WORDS?(arg1 arg2)
 			]
-			COMP_SAME
 			COMP_STRICT_EQUAL [
 				res: as-integer any [
 					type <> TYPE_OF(arg1)
 					arg1/symbol <> arg2/symbol
+				]
+			]
+			COMP_SAME [
+				res: as-integer any [
+					arg1/symbol <> arg2/symbol
+					arg1/ctx    <> arg2/ctx
+					type <> TYPE_OF(arg1)
 				]
 			]
 			COMP_STRICT_EQUAL_WORD [

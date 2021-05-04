@@ -721,6 +721,7 @@ bitset: context [
 		#if debug? = yes [if verbose > 0 [print-line "bitset/compare"]]
 
 		if TYPE_OF(bs2) <> TYPE_BITSET [RETURN_COMPARE_OTHER]
+		if op = COMP_SAME [return as-integer bs1/node <> bs2/node]
 		
 		s: 	  GET_BUFFER(bs1)
 		head: as byte-ptr! s/offset
