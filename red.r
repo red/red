@@ -420,7 +420,7 @@ redc: context [
 		/with file [string!]
 		/local 
 			opts result script filename exe console console-root files files2
-			source con-ui gui-target td winxp? old-td
+			source con-ui gui-target td winxp? old-td status
 	][
 		script: rejoin [temp-dir pick [%GUI/ %CLI/] gui? %gui-console.red]
 		filename: decorate-name pick [%gui-console %console] gui?
@@ -508,15 +508,16 @@ redc: context [
 		]
 		exe: safe-to-local-file exe
 		
+		status: 0
 		if console? [ 
-			either all [Windows? gui?][
+			status: either all [Windows? gui?][
 				gui-sys-call exe any [all [file form-args file] ""]
 			][
 				if with [repend exe [" " form-args file]]
 				sys-call exe								;-- replace the buggy CALL native
 			]
 		]
-		quit/return 0
+		quit/return status
 	]
 	
 	build-libRedRT: func [opts [object!] /local script result file path][
