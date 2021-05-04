@@ -1,5 +1,5 @@
 Red/System [
-	Title:   "Image routine functions using wic"
+	Title:   "Image routine functions using Windows Imaging Component"
 	Author:  "bitbegin"
 	File: 	 %image-wic.reds
 	Tabs:	 4
