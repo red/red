@@ -122,6 +122,9 @@ Red [
 	--test-- "cmp15" --assert not 10/5/-1970 >= 1/1/-1950
 	--test-- "cmp16" --assert not 10/5/-1970/10:10:10+4:00 >= 1/1/1950/2:2:2+8:00
 	--test-- "cmp17" --assert not 10/5/-1970/10:10:10+4:00 >= 1/1/-1950/2:2:2+8:00
+	--test-- "cmp18"
+		t: now/precise
+		--assert t + 0:0:0.01 > t
 	
 	--test-- "cmp30"
 		--assert [
