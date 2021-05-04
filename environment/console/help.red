@@ -330,6 +330,11 @@ help-ctx: context [
 		? "pri"
 		? "issue!"
 
+	To buffer and return output, rather than printing results, 
+	use help-string:
+
+		help-string append
+
 	Other useful functions:
 
 		??     - Display a word and the value it references
