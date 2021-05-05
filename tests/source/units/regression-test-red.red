@@ -2988,6 +2988,26 @@ comment {
 		--assert tail? next next next next i4056
 		--assert tail? next back next tail i4056
 
+    --test-- "#4203"
+		test-file: to-file rejoin [runnable-dir "test.red"]
+		write test-file {
+			Red []
+			; without this line there's no string corruption (any unicode char does the trick):
+			; ☺
+			; at least one argument in spec must be 2 or more chars long
+			spec: [yz [float!]]
+			collect [
+				=arg=: [
+					set name word!
+					set types block!
+					(keep reduce [name make typeset! types])
+				]
+				parse spec [any [=arg=]]
+			]}
+		compose-result: compose [yz (make typeset! [float!])]
+		--assert equal? do test-file compose-result
+		unset 'test-file
+
 	--test-- "#4205 - seed random with precise time!"
 		anded4205: to integer! #{FFFFFFFF}
 		loop 10 [

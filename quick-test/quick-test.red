@@ -7,6 +7,14 @@ Red [
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
+;; runnable dir for test scripts
+split-base-path: split-path base-path: system/options/path
+runnable-dir: to-file rejoin [
+	; Handle cases of the test files being loaded from different paths
+	either "tests/" = last split-base-path [first split-base-path][base-path] 
+	"quick-test/runnable/"
+]
+
 ;; counters
 #either any [
 	not in system 'state
