@@ -1261,6 +1261,8 @@ parse-common-opts: func [
 		img		[red-image!]
 		len		[integer!]
 		sym		[integer!]
+		bitmap	[integer!]
+		lock	[com-ptr! value]
 ][
 	SetWindowLong hWnd wc-offset - 28 0
 	if TYPE_OF(options) = TYPE_BLOCK [
@@ -1274,7 +1276,9 @@ parse-common-opts: func [
 					w: word + 1
 					either TYPE_OF(w) = TYPE_IMAGE [
 						img: as red-image! w
-						GdipCreateHICONFromBitmap as-integer img/node :sym
+						bitmap: OS-image/to-gpbitmap img :lock
+						GdipCreateHICONFromBitmap bitmap :sym
+						OS-image/release-gpbitmap bitmap :lock
 					][
 						sym: symbol/resolve w/symbol
 						sym: case [
