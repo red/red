@@ -718,8 +718,9 @@ process-command-event: func [
 			]
 			0
 		]
-		EN_SETFOCUS
-		CBN_SETFOCUS [
+		CBN_SETFOCUS
+		LBN_SETFOCUS
+		EN_SETFOCUS [
 			values: get-face-values hWnd
 			if values <> null [
 				make-at 
@@ -736,8 +737,9 @@ process-command-event: func [
 			]
 			make-event current-msg 0 EVT_FOCUS
 		]
-		EN_KILLFOCUS
-		CBN_KILLFOCUS [
+		CBN_KILLFOCUS
+		LBN_KILLFOCUS
+		EN_KILLFOCUS [
 			current-msg/hWnd: child
 			make-event current-msg 0 EVT_UNFOCUS
 		]
