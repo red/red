@@ -14,6 +14,7 @@ runnable-dir: to-file rejoin [
 	either "tests/" = last split-base-path [first split-base-path][base-path] 
 	"quick-test/runnable/"
 ]
+make-dir/deep runnable-dir
 
 ;; counters
 #either any [
