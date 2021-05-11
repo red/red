@@ -1058,6 +1058,9 @@ OS-draw-box: func [
 		up-y	[integer!]
 		low-x	[integer!]
 		low-y	[integer!]
+		m0		[D2D_MATRIX_3X2_F value]
+		m		[D2D_MATRIX_3X2_F value]
+		offset	[float32!]
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
@@ -1077,18 +1080,22 @@ OS-draw-box: func [
 	w: low-x - up-x
 	h: low-y - up-y
 	either ctx/shadow? [
+		offset: ctx/pen-width / (as float32! 2.0)
 		scale: dpi-value / as float32! 96.0
-		rc/left: as float32! 0.5
-		rc/top:  as float32! 0.5
-		rc/right:  (as float32! w) + (as float32! 0.5)
-		rc/bottom: (as float32! h) + (as float32! 0.5)
+		rc/left: offset
+		rc/top:  offset
+		rc/right:  (as float32! w) + offset
+		rc/bottom: (as float32! h) + offset
 
 		bmp: create-d2d-bitmap		;-- create an intermediate bitmap
 				this
-				as-integer (as float32! w + 1) * scale
-				as-integer (as float32! h + 1) * scale
+				as-integer ((as float32! w) + ctx/pen-width) * scale
+				as-integer ((as float32! h) + ctx/pen-width) * scale
 				1
+		dc/GetTransform this :m0
 		dc/SetTarget this bmp
+		matrix2d/identity :m
+		dc/SetTransform this :m			;-- set to identity matrix
 	][
 		rc/left: as float32! up-x
 		rc/top: as float32! up-y
@@ -1130,7 +1137,10 @@ OS-draw-box: func [
 	]
 	if type > DRAW_BRUSH_GRADIENT [post-process-brush ctx/pen ctx/pen-offset]
 
-	if ctx/shadow? [draw-shadow ctx bmp upper/x upper/y w h]
+	if ctx/shadow? [
+		dc/SetTransform this :m0
+		draw-shadow ctx bmp upper/x upper/y w h
+	]
 ]
 
 OS-draw-triangle: func [
@@ -1296,6 +1306,9 @@ do-draw-ellipse: func [
 		ellipse	[D2D1_ELLIPSE value]
 		scale	[float32!]
 		bmp		[this!]
+		m0		[D2D_MATRIX_3X2_F value]
+		m		[D2D_MATRIX_3X2_F value]
+		offset	[float32!]
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
@@ -1307,15 +1320,19 @@ do-draw-ellipse: func [
 	rx: dx / as float32! 2.0
 	ry: dy / as float32! 2.0
 	either ctx/shadow? [
+		offset: ctx/pen-width / (as float32! 2.0)
 		scale: dpi-value / as float32! 96.0
-		ellipse/x: rx + as float32! 0.5
-		ellipse/y: ry + as float32! 0.5
+		ellipse/x: rx + offset
+		ellipse/y: ry + offset
 		bmp: create-d2d-bitmap		;-- create an intermediate bitmap
 				this
-				as-integer (as float32! width + 1) * scale
-				as-integer (as float32! height + 1) * scale
+				as-integer ((as float32! width) + ctx/pen-width) * scale
+				as-integer ((as float32! height) + ctx/pen-width) * scale
 				1
+		dc/GetTransform this :m0
 		dc/SetTarget this bmp
+		matrix2d/identity :m
+		dc/SetTransform this :m			;-- set to identity matrix
 	][
 		ellipse/x: cx + rx
 		ellipse/y: cy + ry
@@ -1348,7 +1365,10 @@ do-draw-ellipse: func [
 			dc/DrawEllipse this ellipse ctx/pen ctx/pen-width ctx/pen-style
 		]
 	]
-	if ctx/shadow? [draw-shadow ctx bmp x y width height]
+	if ctx/shadow? [
+		dc/SetTransform this :m0
+		draw-shadow ctx bmp x y width height
+	]
 ]
 
 OS-draw-circle: func [
