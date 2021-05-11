@@ -639,6 +639,7 @@ system/view/platform: context [
 	]
 
 	draw-image: routine [image [image!] cmds [block!]][
+		if any [zero? IMAGE_WIDTH(image/size) zero? IMAGE_HEIGHT(image/size)][exit]
 		gui/OS-do-draw image cmds
 		ownership/check as red-value! image words/_poke as red-value! image -1 -1
 	]
