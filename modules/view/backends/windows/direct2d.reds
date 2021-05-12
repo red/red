@@ -2275,8 +2275,8 @@ create-text-layout: func [
 		len: 0
 	]
 	lay: 0
-	w: either zero? width  [FLT_MAX][(as float32! width) + (as float32! 0.5)]
-	h: either zero? height [FLT_MAX][(as float32! height) + (as float32! 0.5)]
+	w: either width <= 0 [FLT_MAX][(as float32! width) + (as float32! 0.5)]
+	h: either height <= 0 [FLT_MAX][(as float32! height) + (as float32! 0.5)]
 
 	dw: as IDWriteFactory dwrite-factory/vtbl
 	dw/CreateTextLayout dwrite-factory str len fmt w h :lay
