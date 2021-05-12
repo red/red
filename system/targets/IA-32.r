@@ -1352,7 +1352,7 @@ make-profilable make target-class [
 		offset [integer! none!]
 		parity [none! logic!] "yes = also emit parity check for unordered (NaN) comparison"
 		/back?
-		/local size jump jxx jcc jp unord=true flip?
+		/local size jump jxx jcc jp unord-jumps-to-true? flip?
 	][
 		if verbose >= 3 [print [">>>inserting branch" either op [join "cc: " mold op][""]]]
 		size: (length? code) - any [offset 0]			;-- offset from the code's head
@@ -1378,7 +1378,7 @@ make-profilable make target-class [
 				]
 			]
 
-			unord=true: either flip? [					;-- should unordered JP jump lead to true branch?
+			unord-jumps-to-true?: either flip? [		;-- should unordered JP jump lead to true branch?
 				op <> '=
 			][	op = first [<>]
 			]
@@ -1386,7 +1386,7 @@ make-profilable make target-class [
 			;-- optimization: JNx jumps fail on NaNs anyways, Jx - succeed; no need for parity tests
 			if all [
 				parity									;-- with NaN: CF=PF=ZF=1
-				either unord=true [
+				either unord-jumps-to-true? [
 					;-- JP can be left off if Jcc always succeeds on P=1: JC(<), JZ(=), JBE(<=)
 					find [< = <=]  op
 				][
@@ -1399,7 +1399,7 @@ make-profilable make target-class [
 				append jump do jxx						;-- Jcc offset 	; 8/32-bit displacement
 			][
 				either back? [							;-- in `back?` mode size is adjusted by jxx automatically
-					either unord=true [
+					either unord-jumps-to-true? [
 						;; _true:
 						;;   <code>
 						;;   JP _true		; short/far
@@ -1421,7 +1421,7 @@ make-profilable make target-class [
 						append jump jcc					;-- append Jcc _true
 					]
 				][										;-- forward jumps, no auto size adjustment
-					either unord=true [
+					either unord-jumps-to-true? [
 						;;   JP _true		; short/far - needs to know Jcc size
 						;;   Jcc _true		; short/far
 						;; _false:
