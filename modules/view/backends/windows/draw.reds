@@ -295,7 +295,7 @@ release-ctx: func [
 ][
 	COM_SAFE_RELEASE(IUnk ctx/pen)
 	COM_SAFE_RELEASE(IUnk ctx/brush)
-	COM_SAFE_RELEASE(IUnk ctx/text-format)
+	unless ctx/font? [COM_SAFE_RELEASE(IUnk ctx/text-format)]
 	release-pen-style ctx
 ]
 
@@ -432,6 +432,7 @@ OS-draw-text: func [
 		pen		[this!]
 		release? [logic!]
 		unk		[IUnknown]
+		flags	[integer!]
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
@@ -455,7 +456,8 @@ OS-draw-text: func [
 		color?: yes
 	]
 	txt-box-draw-background ctx/target pos layout
-	dc/DrawTextLayout this as float32! pos/x as float32! pos/y layout ctx/pen 0
+	flags: either win8+? [4][0]	;-- 4: D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT
+	dc/DrawTextLayout this as float32! pos/x as float32! pos/y layout ctx/pen flags
 	if color? [
 		brush/SetColor pen to-dx-color ctx/pen-color null
 	]
@@ -1425,6 +1427,7 @@ OS-draw-font: func [
 	/local
 		clr [red-tuple!]
 ][
+	ctx/font?: yes
 	ctx/text-format: as this! create-text-format font null
 	;-- set font color
 	clr: as red-tuple! (object/get-values font) + FONT_OBJ_COLOR

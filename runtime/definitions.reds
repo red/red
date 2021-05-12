@@ -393,6 +393,7 @@ Red/System [
 			pre-order?		[logic!]			;-- matrix order, default pre-order for row-major vector
 			font-color?		[logic!]
 			shadow?			[logic!]
+			font?			[logic!]
 			text-format		[this!]
 			sub				[sub-path! value]
 			shadows			[shadow! value]
