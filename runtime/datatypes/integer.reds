@@ -759,7 +759,7 @@ integer: context [
 			]
 			sc: abs scale/value
 		]
-		if zero? sc [fire [TO_ERROR(math overflow)]]
+		if zero? sc [return value]
 
 		n: abs num
 		r: n % sc

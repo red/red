@@ -380,6 +380,9 @@ Red [
 		--assert 12:34:56.1 = round/to 12:34:56 0.3
 		--assert 12:34:56.1 = round/to 12:34:56 30%
 
+	--test-- "round 5"
+		--assert 12:34:56.7 = round/to 12:34:56.7 0
+
 ===end-group===
 
 ===start-group=== "Rudolf Meijer's Test Cases"
