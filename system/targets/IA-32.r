@@ -1321,11 +1321,10 @@ make-profilable make target-class [
 	construct-jump: func [
 		"construct the jump instruction binary (internal! for use within emit-branch only!)"
 		op [word! none!] "operator to constuct for, NONE for unconditional jump, 'parity for parity jump"
-		psize [word!] "word 'size set to jump size"
+		size [integer!] "jump size"
 		back? [logic! none!]
 		/local opcode o short? size dir
 	][
-		size: get psize
 		o: size * dir: pick [-1 1] yes = back?		;-- convert size to signed jump offset
 		short?: to logic! all [-126 <= o  o <= 127]	;-- account for 2bytes of Jxx opcode when short-jumping back
 		opcode: pick pick [
@@ -1339,11 +1338,10 @@ make-profilable make target-class [
 		]
 		if back? [									;-- when jumping back, offset should account for the jump instruction size
 			size: size + (length? opcode) + (pick [1 4] short?)
-			set psize size							;-- update size in the caller
 			o: size * dir							;-- recalculate offset with new size
 		]
 		o: either short? [to-bin8 o][to-bin32 o]	;-- make binary signed offset
-		rejoin [opcode o]
+		reduce [size rejoin [opcode o]]
 	]
 
 	emit-branch: func [
@@ -1352,13 +1350,13 @@ make-profilable make target-class [
 		offset [integer! none!]
 		parity [none! logic!] "yes = also emit parity check for unordered (NaN) comparison"
 		/back?
-		/local size jump jxx jcc jp unord-jumps-to-true? flip?
+		/local size jump jxx jcc jp unord-jumps-to-true? flip? jump-code
 	][
 		if verbose >= 3 [print [">>>inserting branch" either op [join "cc: " mold op][""]]]
 		size: (length? code) - any [offset 0]			;-- offset from the code's head
 		jump: copy #{}									;-- resulting binary
-		jxx: [construct-jump op      'size back?]
-		jp:  [construct-jump 'parity 'size back?]
+		jxx: [second set [size jump-code] construct-jump op      size back?]
+		jp:  [second set [size jump-code] construct-jump 'parity size back?]
 
 		either none? op [								;-- explicitly test for none
 			append jump do jxx							;-- JMP offset 	; 8/32-bit displacement
