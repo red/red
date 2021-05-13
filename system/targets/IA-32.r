@@ -1323,7 +1323,7 @@ make-profilable make target-class [
 		op [word! none!] "operator to constuct for, NONE for unconditional jump, 'parity for parity jump"
 		size [integer!] "jump size"
 		back? [logic! none!]
-		/local opcode o short? size dir
+		/local opcode o short? dir
 	][
 		o: size * dir: pick [-1 1] yes = back?		;-- convert size to signed jump offset
 		short?: to logic! all [-126 <= o  o <= 127]	;-- account for 2bytes of Jxx opcode when short-jumping back
