@@ -161,7 +161,7 @@ object [
 			]
 		]
 		prin?: not lf?
-		system/view/platform/redraw console
+		refresh
 		()				;-- return unset!
 	]
 
