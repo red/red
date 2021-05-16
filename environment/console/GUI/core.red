@@ -108,10 +108,7 @@ object [
 		system/view/platform/exit-event-loop
 	]
 
-	refresh: func [][
-		system/view/platform/redraw console
-		loop 10 [do-ask-loop/no-wait]
-	]
+	refresh: func [][system/view/platform/redraw console]
 
 	vprin: func [str [string!]][
 		either empty? lines [
