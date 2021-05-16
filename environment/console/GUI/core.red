@@ -110,7 +110,7 @@ object [
 
 	refresh: func [][
 		system/view/platform/redraw console
-		do-ask-loop/no-wait
+		loop 10 [do-ask-loop/no-wait]
 	]
 
 	vprin: func [str [string!]][
