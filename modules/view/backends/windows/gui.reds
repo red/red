@@ -1304,7 +1304,10 @@ parse-common-opts: func [
 	]
 ]
 
-OS-redraw: func [hWnd [integer!]][RedrawWindow as handle! hWnd null null 0101h] ;-- RDW_UPDATENOW | RDW_INVALIDATE
+OS-redraw: func [hWnd [integer!]][
+	InvalidateRect as handle! hWnd null 0
+	UpdateWindow as handle! hWnd
+]
 
 OS-refresh-window: func [hWnd [integer!]][UpdateWindow as handle! hWnd]
 
