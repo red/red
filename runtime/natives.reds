@@ -2179,6 +2179,7 @@ natives: context [
 		]
 		val/header: TYPE_NONE
 		platform/wait seconds
+		#if modules contains 'View [exec/gui/do-events yes]
 	]
 
 	checksum*: func [

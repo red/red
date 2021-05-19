@@ -25,7 +25,6 @@ object [
 	mouse-up?:	yes
 	ime-open?:	no
 	ime-pos:	0
-	in-loop?:	no
 
 	top:		1								;-- index of the first visible line in the line buffer
 	line:		""								;-- current editing line
@@ -109,14 +108,7 @@ object [
 		system/view/platform/exit-event-loop
 	]
 
-	refresh: func [][
-		system/view/platform/redraw console
-		unless in-loop? [
-			in-loop?: yes
-			do-ask-loop/no-wait
-			in-loop?: no
-		]
-	]
+	refresh: func [][system/view/platform/redraw console]
 
 	vprin: func [str [string!]][
 		either empty? lines [
