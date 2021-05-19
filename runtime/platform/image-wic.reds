@@ -374,6 +374,7 @@ OS-image: context [
 				COM_SAFE_RELEASE(unk inode/buffer)
 				inode/flags: IMG_NODE_WICBITMAP or IMG_NODE_PREMULTIPLIED
 			]
+			COM_SAFE_RELEASE(unk h)
 			bitmap/value
 		]
 	]
