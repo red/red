@@ -32,7 +32,7 @@ redc: context [
 		temp-dir: switch/default system/version/4 [
 			2 [											;-- MacOS X
 				libc: load/library %libc.dylib
-				sys-call: make routine! [cmd [string!]] libc "system"
+				sys-call: make routine! [cmd [string!] return: [integer!]] libc "system"
 				join any [attempt [to-rebol-file get-env "HOME"] %/tmp] %/.red/
 			]
 			3 [											;-- Windows
@@ -102,7 +102,7 @@ redc: context [
 					]
 					append dirize to-rebol-file trim path %Red/
 				][
-					sys-call: func [cmd][call/wait cmd]
+					sys-call: func [cmd [string!]][call/wait cmd]
 					append to-rebol-file get-env "ALLUSERSPROFILE" %/Red/
 				]
 			]
@@ -125,7 +125,7 @@ redc: context [
 				exists? libc: %/lib/libc.so.5
 			]
 			libc: load/library libc
-			sys-call: make routine! [cmd [string!]] libc "system"
+			sys-call: make routine! [cmd [string!] return: [integer!]] libc "system"
 			join any [attempt [to-rebol-file get-env "HOME"] %/tmp] %/.red/
 		]
 	]
