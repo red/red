@@ -1869,28 +1869,34 @@ make-profilable make target-class [
 		code 	[binary!]
 		op 		[word! block! logic! none!]
 		offset  [integer! none!]
+		parity	[logic! none!]	"yes = also emit a check for unordered (NaN) comparison"
 		/back?
-		/local distance opcode jmp
+		/local distance opcode jmp flip?
 	][
 		distance: (length? code) - (any [offset 0]) - 4	;-- offset from the code's head
 		if back? [distance: negate distance + 12]	;-- 8 (PC offset) + one instruction
 		
-		op: either not none? op [					;-- explicitly test for none
+		either none? op [							;-- explicitly test for none
+			op: #{e0}								;-- unconditional jump
+		][
+			flip?: no								;-- is condition reversed? (affects NaN handling)
 			op: case [
 				block? op [							;-- [cc] => keep
 					op: op/1
 					either logic? op [pick [= <>] op][op]	;-- [logic!] or [cc]
 				]
 				logic? op [pick [= <>] op]			;-- test for TRUE/FALSE
-				'else 	  [opposite? op]			;-- 'cc => invert condition
+				'else [flip?: yes  opposite? op]	;-- 'cc => invert condition
 			]
-			either '- = third op: find conditions op [	;-- lookup the code for the condition
+			op: either '- = third op: find conditions op [	;-- lookup the code for the condition
 				op/2								;-- condition defined only for signed
 			][
-				pick op pick [2 3] signed?			;-- choose code between signed and unsigned
+				;; for floats only: use conds that are false given NaN
+				;; in unflipped state: unsigned for < <= , signed for > >=
+				;; (ref: clause A8.3 of ARM Architecture Reference Manual)
+				flip?: flip? xor (true? find [< <=] op/1) and parity
+				pick op pick [2 3] signed? xor flip?	;-- choose code between signed and unsigned
 			]
-		][
-			#{e0}									;-- unconditional jump
 		]
 		unless back? [
 			if same? head code emitter/code-buf [

@@ -2793,6 +2793,64 @@ b}
 		--assert not error? try [3151391351465.995 // 1.0]
 		unset 'true?
 
+	--test-- "#2431"									;-- FIXME: add `load` tests when it's fixed
+		write qt-tmp-file {Red []}
+		--assert unset? do qt-tmp-file					;-- should skip the header
+		write qt-tmp-file {Red [] Red []}
+		--assert [] = do qt-tmp-file					;-- should skip the 1st header only
+
+	--test-- "#2567"
+		--assert not negative? 1.#NaN
+		--assert not positive? 1.#NaN
+		--assert not     zero? 1.#NaN
+
+	--test-- "#2650"
+		--assert     0.0 <> null
+		--assert not 0.0 =  null
+		--assert not 0.0 == null
+		--assert not 0.0 =? null
+		
+		--assert     null <> 0.0
+		--assert not null =  0.0
+		--assert not null == 0.0
+		--assert not null =? 0.0
+		
+		--assert error? try [65.0  < #"A"]
+		--assert error? try [66.0  > #"B"]
+		--assert error? try [-1.0 >= #"c"]
+		--assert error? try [+1.0 <= #"d"]
+		
+		--assert error? try [#"A"  > 65.0]
+		--assert error? try [#"B"  > 66.0]
+		--assert error? try [#"c" <= -1.0]
+		--assert error? try [#"d" >= +1.0]
+
+	--test-- "#2671"
+		--assert equal?
+			"^(0) ^(1) ^(2) ^(3) ^(4) ^(5) ^(6) ^(7) ^(8) ^(9) ^(A) ^(B) ^(C) ^(D) ^(E) ^(F)"
+			"^@ ^A ^B ^C ^D ^E ^F ^G ^H ^- ^/ ^K ^L ^M ^N ^O"
+		
+		--assert equal?
+			"^A ^A ^A ^A ^A ^A"
+			"^(1) ^(01) ^(001) ^(0001) ^(00001) ^(000001)"
+		
+		--assert error? try [transcode {"^^(0000001)"}]
+		--assert error? try [transcode {"^^(skibadee-skibadanger)"}]
+
+	--test-- "#3098"
+		block: reduce ['foo func [/bar][pick [baz qux] bar]]
+		--assert 'qux = do [block/('foo)]				;-- wrapper makes sure that it's not a sub-expression
+		--assert 'baz = do [block/('foo)/bar]
+		
+		block: reduce [block]
+		--assert 'qux = do [block/1/('foo)]
+		--assert 'baz = do [block/1/('foo)/bar]
+	
+	--test-- "#3156"
+		ctx3156: context [foo3156: does ['bar3156]]
+		bar3156: ctx3156/foo3156
+		--assert 'bar3156 == bar3156
+
 	--test-- "#3385"
 		refs3385: [utc precise time year month day yearday weekday zone date]
 		types3385: reduce [
@@ -2816,64 +2874,6 @@ b}
 			]
 		]
 
-	--test-- "#3098"
-		block: reduce ['foo func [/bar][pick [baz qux] bar]]
-		--assert 'qux = do [block/('foo)]				;-- wrapper makes sure that it's not a sub-expression
-		--assert 'baz = do [block/('foo)/bar]
-		
-		block: reduce [block]
-		--assert 'qux = do [block/1/('foo)]
-		--assert 'baz = do [block/1/('foo)/bar]
-	
-	--test-- "#3156"
-		ctx3156: context [foo3156: does ['bar3156]]
-		bar3156: ctx3156/foo3156
-		--assert 'bar3156 == bar3156
-
-	--test-- "#2650"
-		--assert     0.0 <> null
-		--assert not 0.0 =  null
-		--assert not 0.0 == null
-		--assert not 0.0 =? null
-		
-		--assert     null <> 0.0
-		--assert not null =  0.0
-		--assert not null == 0.0
-		--assert not null =? 0.0
-		
-		--assert error? try [65.0  < #"A"]
-		--assert error? try [66.0  > #"B"]
-		--assert error? try [-1.0 >= #"c"]
-		--assert error? try [+1.0 <= #"d"]
-		
-		--assert error? try [#"A"  > 65.0]
-		--assert error? try [#"B"  > 66.0]
-		--assert error? try [#"c" <= -1.0]
-		--assert error? try [#"d" >= +1.0]
-
-	--test-- "#2431"									;-- FIXME: add `load` tests when it's fixed
-		write qt-tmp-file {Red []}
-		--assert unset? do qt-tmp-file					;-- should skip the header
-		write qt-tmp-file {Red [] Red []}
-		--assert [] = do qt-tmp-file					;-- should skip the 1st header only
-
-	--test-- "#2671"
-		--assert equal?
-			"^(0) ^(1) ^(2) ^(3) ^(4) ^(5) ^(6) ^(7) ^(8) ^(9) ^(A) ^(B) ^(C) ^(D) ^(E) ^(F)"
-			"^@ ^A ^B ^C ^D ^E ^F ^G ^H ^- ^/ ^K ^L ^M ^N ^O"
-		
-		--assert equal?
-			"^A ^A ^A ^A ^A ^A"
-			"^(1) ^(01) ^(001) ^(0001) ^(00001) ^(000001)"
-		
-		--assert error? try [transcode {"^^(0000001)"}]
-		--assert error? try [transcode {"^^(skibadee-skibadanger)"}]
-
-	--test-- "#3603"
-		bu3603: reduce [()]
-		rest3603: none
-		--assert bu3603 = back change block3603: [] do/next block3603 'rest3603
-
 	--test-- "#3362"
 		do [											;-- FIXME: compiler doesn't like this
 			spec3362-1: [return 100]
@@ -2885,14 +2885,24 @@ b}
 			unset [spec3362-1 spec3362-2]
 		]
 	
-	--test-- "3662"
-		--assert equal?
-			[16  256  4096  65536  1048576 16777216 268435456]
-			[10h 100h 1000h 10000h 100000h 1000000h 10000000h]
-	
-	--test-- "3669"
-		--assert not equal? <a> <a^>
-		--assert equal?     <a> load {<a^>}
+	--test-- "#3407"
+		--assert "0:00:00.1"      = form 0:00:01 / 10
+		--assert "0:00:00.01"     = form 0:00:01 / 100
+		--assert "0:00:00.001"    = form 0:00:01 / 1000
+		--assert "0:00:00.0001"   = form 0:00:01 / 10000
+		--assert "0:00:00.00001"  = form 0:00:01 / 100000
+		--assert "0:00:00.000001" = form 0:00:01 / 1000000
+		--assert "0:00:00"        = form 0:00:01 / 10000000
+
+	--test-- "#3561"
+		a: reduce ['b does [1 + 2] 'x 'y]
+		--assert do [3 = a/b]							;-- do[] else compiler will not eval `does [1 + 2]`
+		--assert 3 = do 'a/b
+		--assert 3 = do quote a/b
+		--assert 'a/b = do quote 'a/b
+		--assert 'y = a/x
+		--assert 'y = do 'a/x
+		--assert 'y = do quote a/x
 
 	--test-- "#3588"
 		x3588: []
@@ -2907,34 +2917,14 @@ b}
 		--assert bu3603 = back change block3603: [] do/next block3603 'rest3603
 		unset [bu3603 rest3603 block3603]
 
-	--test-- "#3407"
-		--assert "0:00:00.1"      = form 0:00:01 / 10
-		--assert "0:00:00.01"     = form 0:00:01 / 100
-		--assert "0:00:00.001"    = form 0:00:01 / 1000
-		--assert "0:00:00.0001"   = form 0:00:01 / 10000
-		--assert "0:00:00.00001"  = form 0:00:01 / 100000
-		--assert "0:00:00.000001" = form 0:00:01 / 1000000
-		--assert "0:00:00"        = form 0:00:01 / 10000000
-
-	--test-- "#3603"
-		bu3603: reduce [()]
-		rest3603: none
-		--assert bu3603 = back change block3603: [] do/next block3603 'rest3603
-
-	--test-- "#3561"
-		a: reduce ['b does [1 + 2] 'x 'y]
-		--assert do [3 = a/b]							;-- do[] else compiler will not eval `does [1 + 2]`
-		--assert 3 = do 'a/b
-		--assert 3 = do quote a/b
-		--assert 'a/b = do quote 'a/b
-		--assert 'y = a/x
-		--assert 'y = do 'a/x
-		--assert 'y = do quote a/x
-
-	--test-- "#3603"
-		bu3603: reduce [()]
-		rest3603: none
-		--assert bu3603 = back change block3603: [] do/next block3603 'rest3603
+	--test-- "#3662"
+		--assert equal?
+			[16  256  4096  65536  1048576 16777216 268435456]
+			[10h 100h 1000h 10000h 100000h 1000000h 10000000h]
+	
+	--test-- "#3669"
+		--assert not equal? <a> <a^>
+		--assert equal?     <a> load {<a^>}
 
 	--test-- "#3739"
 		reactor3739: func [spec] [make deep-reactor! spec]
