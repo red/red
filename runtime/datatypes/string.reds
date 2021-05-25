@@ -92,7 +92,7 @@ string: context [
 		00 FF 00 FF FF 00 FF FF ;-- 27h
 		FF FF FF FF FF FF FF FF ;-- 2Fh
 		FF FF FF FF FF FF FF FF ;-- 37h
-		FF FF FF FF 00 FF 00 FF ;-- 3Fh
+		FF FF FF 00 00 FF 00 FF ;-- 3Fh
 		FF FF FF FF FF FF FF FF ;-- 47h
 		FF FF FF FF FF FF FF FF ;-- 4Fh
 		FF FF FF FF FF FF FF FF ;-- 57h
