@@ -429,7 +429,7 @@ system/reactivity: context [
 		reactor	[object!]	"Object to check"
 		field	[word!]		"Field to check"
 		/target				"Check if it's a target instead of a source"
-		; return: [block! function! word! none!] "Returns reaction, type or NONE"
+		return: [block! function! word! none!] "Returns reaction, type or NONE"
 	][
 		if pos: relations-of reactor [
 			either target [
@@ -480,7 +480,7 @@ system/reactivity: context [
 	;-- used by `react` to determine valid reactive sources (should also support custom ones)
 	;-- which are: objects that define on-change* and eventually call `check`
 	;-- but last condition can't be verified, because check may be buried in other function calls, so..
-	set 'reactor? function ["Check if object is a reactor" obj [any-type!]] [
+	reactor?: function ["Check if object is a reactor" obj [any-type!]] [
 		all [
 			object? :obj
 			oc: in obj 'on-change*
@@ -498,7 +498,7 @@ system/reactivity: context [
 		/later							"Run the reaction on next change instead of now"
 		/with							"Specifies an optional face object (internal use)"
 			ctx		[object! set-word! none!] "Optional context for VID faces or target set-word"
-		; return:		[block! function! none!] "The reactive relation or NONE if no relation was processed"
+		return:		[block! function! none!] "The reactive relation or NONE if no relation was processed"
 		/local item
 	][
 		case [
