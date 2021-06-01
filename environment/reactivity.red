@@ -471,8 +471,6 @@ system/reactivity: context [
 
 		at-reaction: find-reaction :reaction
 		remove find/same objs: at-reaction/2 reactor
-		remove find/same at-reaction/2 reactor
-		remove find/same at-reaction/2 reactor
 		if empty? objs [remove-part at-reaction REACTIONS-PERIOD]		;-- don't lock it from GC
 		found?
 	]
