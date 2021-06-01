@@ -223,8 +223,10 @@ Red [
 		--assert a3091/c = 2
 
 	--test-- "#4022"
-		a4022: make reactor! [i: repeat i 2 [i]]
-		--assert a4022/i = 2
+		do [											;@@ FIXME: compiler can't handle this - see comments in #1706
+			a4022: make reactor! [i: repeat i 2 [i]]
+			--assert a4022/i = 2
+		]
 
 	--test-- "#4166-1"
 		r4166: make reactor! [x: y: 1]
