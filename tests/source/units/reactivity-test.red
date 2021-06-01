@@ -7,6 +7,8 @@ Red [
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
+
+;#include %../../../environment/reactivity.red
 #include  %../../../quick-test/quick-test.red
 
 ~~~start-file~~~ "reactivity"
@@ -154,7 +156,7 @@ Red [
 		rf-6r: make reactor! [x: 1]
 		rf-6c: context [ x: is [rf-6r/x] ]
 		--assert 1 = system/reactivity/relations-count 		;-- should only be a single reaction
-		--assert rf-6r =? :system/reactivity/index/2/1 		;-- `rf-6r` should be the source object
+		--assert rf-6r =? :system/reactivity/reactions/2/1	;-- `rf-6r` should be the source object
 		unset [rf-6c rf-6r]
 
 	--test-- "rf-7"										;-- #3333 triple-reaction case
@@ -162,7 +164,7 @@ Red [
 		rf-7r: make reactor! [x: 1]
 		rf-7x: is [rf-7r/x]
 		--assert 1 = system/reactivity/relations-count 		;-- should only be a single reaction
-		--assert rf-7r = :system/reactivity/index/2/1 		;-- `rf-7r` should be the source object
+		--assert rf-7r = :system/reactivity/reactions/2/1	;-- `rf-7r` should be the source object
 		unset [rf-7r rf-7x]
 
 	--test-- "rf-8"										;-- correct path recognition
