@@ -7,8 +7,6 @@ Red [
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
-
-;#include %../../../environment/reactivity.red
 #include  %../../../quick-test/quick-test.red
 
 ~~~start-file~~~ "reactivity"
