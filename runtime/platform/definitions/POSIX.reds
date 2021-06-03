@@ -80,6 +80,8 @@ Red/System [
 #define SIGPIPE 13
 #define SIG_IGN [as int-ptr! 1]
 
+#define INET6_ADDRSTRLEN 46
+
 ; Wordexp types
 wordexp-type!: alias struct! [
 	we_wordc  [integer!]
@@ -173,6 +175,13 @@ res_state!: alias struct! [	;-- size: 512 bytes
 			pszAddrString		[c-string!]
 			pAddrBuf			[sockaddr_in6!]
 			return:				[integer!]
+		]
+		inet_ntop: "inet_ntop" [
+			family		[integer!]
+			src			[byte-ptr!]
+			dst			[c-string!]
+			size		[integer!]
+			return:		[c-string!]
 		]
 		strncmp: "strncmp" [
 			str1		[c-string!]

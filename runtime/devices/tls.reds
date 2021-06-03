@@ -19,10 +19,13 @@ TLS-device: context [
 			p		[red-object!]
 			msg		[red-object!]
 			td		[tls-data!]
+			tcp		[sockdata!]
 			type	[integer!]
 			bin		[red-binary!]
 			s		[series!]
 			fd		[integer!]
+			saddr	[sockaddr_in!]
+			num		[integer!]
 	][
 		td: as tls-data! data
 		p: as red-object! :td/port
@@ -72,6 +75,17 @@ TLS-device: context [
 					socket/acceptex as-integer td/device :td/addr :td/addr-sz as iocp-data! td
 				]
 			]
+			IO_EVT_LOOKUP [
+				tcp: as sockdata! data
+				saddr: as sockaddr_in! :tcp/addr
+				num: htons tcp/accept-sock	;-- port number saved in accept-sock
+				saddr/sin_family: num << 16 or AF_INET
+				saddr/sa_data1: 0
+				saddr/sa_data2: 0
+				io/close-port p
+				tls-client p saddr size? sockaddr_in!
+				exit
+			]
 			default [data/event: IO_EVT_NONE]
 		]
 
@@ -119,14 +133,12 @@ TLS-device: context [
 		]
 	]
 
-	tcp-client: func [
+	tls-client: func [
 		port	[red-object!]
-		host	[red-string!]
-		num		[red-integer!]
+		saddr	[sockaddr_in!]
+		addr-sz	[integer!]
 		/local
 			fd		[integer!]
-			n		[integer!]
-			addr	[c-string!]
 			data	[tls-data!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tls client"]]
@@ -135,14 +147,12 @@ TLS-device: context [
 		iocp/bind g-iocp as int-ptr! fd
 		socket/bind fd 0 AF_INET
 
-		n: -1
-		addr: unicode/to-utf8 host :n
 		data: create-tls-data port fd
 		data/state: IO_STATE_CLIENT
-		socket/connect fd addr num/value AF_INET as iocp-data! data
+		socket/connect2 fd saddr addr-sz as iocp-data! data
 	]
 
-	tcp-server: func [
+	tls-server: func [
 		port	[red-object!]
 		num		[red-integer!]
 		/local
@@ -176,6 +186,10 @@ probe ["server listen fd: " fd]
 			state	[red-handle!]
 			host	[red-string!]
 			num		[red-integer!]
+			n		[integer!]
+			n-port	[integer!]
+			addr	[c-string!]
+			addrbuf [sockaddr_in6! value]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tls/open"]]
 
@@ -189,9 +203,17 @@ probe ["server listen fd: " fd]
 		num:	as red-integer! values + 3		;-- port number
 
 		either zero? string/rs-length? host [	;-- e.g. open tcp://:8000
-			tcp-server red-port num
+			tls-server red-port num
 		][
-			tcp-client red-port host num
+			n: -1
+			addr: unicode/to-utf8 host :n
+			either TYPE_OF(num) = TYPE_INTEGER [n-port: num/value][n-port: 443]
+			either 1 = inet_pton AF_INET addr :addrbuf [
+				make-sockaddr as sockaddr_in! :addrbuf addr n-port AF_INET
+				tls-client red-port as sockaddr_in! :addrbuf size? sockaddr_in!
+			][
+				tcp-device/resolve-name red-port addr n-port
+			]
 		]
 		as red-value! red-port
 	]

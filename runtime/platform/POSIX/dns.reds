@@ -96,6 +96,7 @@ dns: context [
 			i		[integer!]
 			type	[int-ptr!]
 			rdata	[int-ptr!]
+			str-addr [c-string!]
 	][
 		io/unpin-memory data/send-buf
 		s: as series! data/send-buf/value
@@ -105,6 +106,7 @@ dns: context [
 		n: msg/counts >>> 16
 
 		record: as byte-ptr! system/stack/allocate 262
+		str-addr: as c-string! system/stack/allocate 12
 		i: 0
 		while [i < n][
 			if 0 <> ns_parserr msg 1 i record [break]
@@ -116,6 +118,10 @@ dns: context [
 					rdata: pp/value
 					dns-addr: as sockaddr_in! :data/addr
 					dns-addr/sin_addr: rdata/value
+#if debug? = yes [
+	inet_ntop AF_INET as byte-ptr! rdata str-addr INET6_ADDRSTRLEN
+	print-line ["DNS resolved: " str-addr]
+]
 					return yes
 				]
 				28	[		;-- IPv6 address
