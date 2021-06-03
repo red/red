@@ -81,6 +81,7 @@ tcp-device: context [
 		]
 
 		io/call-awake p msg type
+		if type = IO_EVT_CLOSE [close p]
 	]
 
 	create-red-port: func [
