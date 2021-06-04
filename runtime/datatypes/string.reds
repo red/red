@@ -25,25 +25,27 @@ string: context [
 
 	#enum escape-type! [
 		ESC_CHAR: FDh
-		ESC_URI:  FEh		;-- RFC 3986
-		ESC_URL:  FFh		;-- similar encodeURI
+		ESC_URI:  FEh			;-- RFC 3986
+		ESC_URL:  FFh			;-- similar encodeURI
 	]
 
-	escape-chars: [
-		#"^(40)" #"^(41)" #"^(42)" #"^(43)" #"^(44)" #"^(45)" #"^(46)" #"^(47)" ;-- 07h
-		#"^(48)" #"-"     #"/"     #"^(4B)" #"^(4C)" #"^(4D)" #"^(4E)" #"^(4F)" ;-- 0Fh
-		#"^(50)" #"^(51)" #"^(52)" #"^(53)" #"^(54)" #"^(55)" #"^(56)" #"^(57)" ;-- 17h
-		#"^(58)" #"^(59)" #"^(5A)" #"^(5B)" #"^(5C)" #"^(5D)" #"^(5E)" #"^(5F)" ;-- 1Fh
-		#"^(00)" #"^(00)" #"^""    #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 27h
-		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 2Fh
-		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 37h
-		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 3Fh
-		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 47h
-		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 4Fh
-		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 57h
-		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^^"	   #"^(00)" ;-- 5Fh
-	]
-
+	;-- Non-printable characters escaping table (dots are just placeholders for no-op)
+	escape-chars: #{
+		40 41 42 43 44 45 46 47 ;-- 07h		@ A B C D E F G
+		48 2D 2F 4B 4C 4D 4E 4F ;-- 0Fh		H - / K L M N O
+		50 51 52 53 54 55 56 57 ;-- 17h		P Q R S T U V W
+		58 59 5A 5B 5C 5D 5E 5F ;-- 1Fh		X Y Z [ \ ] ^ _
+		00 00 22 00 00 00 00 00 ;-- 27h		. . " . . . . .
+		00 00 00 00 00 00 00 00 ;-- 2Fh		. . . . . . . .
+		00 00 00 00 00 00 00 00 ;-- 37h		. . . . . . . .
+		00 00 00 00 00 00 00 00 ;-- 3Fh		. . . . . . . .
+		00 00 00 00 00 00 00 00 ;-- 47h		. . . . . . . .
+		00 00 00 00 00 00 00 00 ;-- 4Fh		. . . . . . . .
+		00 00 00 00 00 00 00 00 ;-- 57h		. . . . . . . .
+		00 00 00 00 00 00 5E 00 ;-- 5Fh		. . . . . . ^ .
+	}
+	
+	;-- Hex values encoding table for special characters in URLs (FF => no-op)
 	escape-url-chars: #{								;-- ESC_URL: #"^(FF)"
 		FF FF FF FF FF FF FF FF ;-- 07h
 		FF FF FF FF FF FF FF FF ;-- 0Fh
@@ -51,19 +53,20 @@ string: context [
 		FF FF FF FF FF FF FF FF ;-- 1Fh
 		FF FF FF FF FF FF FF FF ;-- 27h
 		FF FF FF FF FF FF FF FF ;-- 2Fh
-		00 01 02 03 04 05 06 07 ;-- 37h
+		00 01 02 03 04 05 06 07 ;-- 37h		#"0"-#"9" => 0-9
 		08 09 FF FF FF FF FF FF ;-- 3Fh
-		FF 0A 0B 0C 0D 0E 0F FF ;-- 47h
+		FF 0A 0B 0C 0D 0E 0F FF ;-- 47h		#"A"-#"F" => 10-15
 		FF FF FF FF FF FF FF FF ;-- 4Fh
 		FF FF FF FF FF FF FF FF ;-- 57h
 		FF FF FF FF FF FF FF FF ;-- 5Fh
-		FF 0A 0B 0C 0D 0E 0F FF ;-- 67h
+		FF 0A 0B 0C 0D 0E 0F FF ;-- 67h		#"a"-#"f" => 10-15
 		FF FF FF FF FF FF FF FF ;-- 6Fh
 		FF FF FF FF FF FF FF FF ;-- 77h
 		FF FF FF FF FF FF FF FF ;-- 7Fh
 	}
 
-	;-- RFC3986
+	;-- URI special characters encoding table (RFC3986 rules)
+	;-- FF: pass-thru, 00: escape character
 	uri-encode-tbl: #{
 		00 00 00 00 00 00 00 00 ;-- 07h
 		00 00 00 00 00 00 00 00 ;-- 0Fh
@@ -83,7 +86,8 @@ string: context [
 		FF FF FF 00 00 00 FF 00 ;-- 7Fh
 	}
 
-	;-- similar encodeURI
+	;-- URL special characters encoding table (encodeURI rules)
+	;-- FF: pass-thru, 00: escape character
 	url-encode-tbl: #{
 		00 00 00 00 00 00 00 00 ;-- 07h
 		00 00 00 00 00 00 00 00 ;-- 0Fh
