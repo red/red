@@ -688,7 +688,7 @@ interpreter: context [
 				unless sub? [stack/set-last stack/top]
 				return pc
 			]
-			TYPE_UNSET [fire [TO_ERROR(script no-value)	head]]
+			TYPE_UNSET [fire [TO_ERROR(script invalid-path) head path]]
 			default	   [0]
 		]
 		if set? [object/path-parent/header: TYPE_NONE]	;-- disables owner checking
@@ -704,7 +704,7 @@ interpreter: context [
 				]
 				default [item]
 			]
-			if TYPE_OF(value) = TYPE_UNSET [fire [TO_ERROR(script no-value) item]]
+			if TYPE_OF(value) = TYPE_UNSET [fire [TO_ERROR(script invalid-path) item path]]
 			#if debug? = yes [if verbose > 0 [print-line ["eval: path item: " TYPE_OF(value)]]]
 			
 			gparent: parent								;-- save grand-parent reference
