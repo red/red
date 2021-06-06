@@ -1541,7 +1541,7 @@ OS-draw-arc: func [
 	arc/size/width: rad-x
 	arc/size/height: rad-y
 	arc/angle: as float32! 0.0
-	arc/direction: 1							;-- D2D1_SWEEP_DIRECTION_CLOCKWISE
+	arc/direction: as-integer sweep >= 0
 	arc/arcSize: either sweep >= 180 [1][0]
 	hr: gsink/AddArc sthis arc
 	gsink/EndFigure sthis either closed? [1][0]
