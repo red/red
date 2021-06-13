@@ -24,6 +24,7 @@ hash: context [
 			hash	[red-hash!]
 			size	[integer!]
 			int		[red-integer!]
+			fl		[red-float!]
 			table	[node!]
 			blk		[red-block!]
 			blk?	[logic!]
@@ -32,10 +33,10 @@ hash: context [
 
 		blk?: no
 		switch TYPE_OF(spec) [
-			TYPE_INTEGER [
-				int: as red-integer! spec
-				size: int/value
-				if negative? size [fire [TO_ERROR(script out-of-range) spec]]
+			TYPE_INTEGER
+			TYPE_FLOAT [
+				GET_INT_FROM(size spec)
+				if size <= 0 [size: 1]
 			]
 			TYPE_BLOCK [
 				size: block/rs-length? as red-block! spec
