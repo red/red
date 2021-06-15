@@ -124,6 +124,7 @@ system: context [
 				bad-refine:			["incompatible refinement:" :arg1]
 				word-first:			["path must start with a word:" :arg1]
 				empty-path:			"cannot evaluate an empty path value"
+				unset-path:			[:arg2 "is unset in path" :arg1]
 				invalid-path:		["cannot access" :arg2 "in path" :arg1]
 				invalid-path-set:	["unsupported type in" :arg1 "set-path"]
 				invalid-path-get:	["unsupported type in" :arg1 "get-path"]

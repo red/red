@@ -45,6 +45,8 @@ email: context [
 		value	[red-value!]
 		path	[red-value!]
 		case?	[logic!]
+		get?	[logic!]
+		tail?	[logic!]
 		return:	[red-value!]
 		/local
 			part  [red-value!]
@@ -64,7 +66,7 @@ email: context [
 				]
 			]
 			TYPE_INTEGER [
-				return string/eval-path parent element value path case?
+				return string/eval-path parent element value path case? get? tail?
 			]
 			default [fire [TO_ERROR(script invalid-path) path element]]
 		]

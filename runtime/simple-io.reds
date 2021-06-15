@@ -1451,7 +1451,7 @@ simple-io: context [
 					new?: no
 					s/1: null-byte
 					w: as red-value! word/push* symbol/make as-c-string p
-					res: map/eval-path mp w null null no
+					res: map/eval-path mp w null null no no no
 					either TYPE_OF(res) = TYPE_NONE [
 						new?: yes
 					][
@@ -1893,7 +1893,7 @@ simple-io: context [
 					new?: no
 					s/1: null-byte
 					w: as red-value! word/push* symbol/make as-c-string p
-					res: map/eval-path mp w null null no
+					res: map/eval-path mp w null null no no no
 					either TYPE_OF(res) = TYPE_NONE [
 						new?: yes
 					][

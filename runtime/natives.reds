@@ -600,7 +600,7 @@ natives: context [
 		
 		switch TYPE_OF(value) [
 			TYPE_ANY_PATH [
-				interpreter/eval-path value null null no yes no case? <> -1
+				interpreter/eval-path value null null no any? <> -1 no case? <> -1
 			]
 			TYPE_OBJECT [
 				object/reflect as red-object! value words/values

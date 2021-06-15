@@ -378,12 +378,14 @@ error: context [
 		value	[red-value!]
 		path	[red-value!]
 		case?	[logic!]
+		get?	[logic!]
+		tail?	[logic!]
 		return:	[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "error/eval-path"]]
 		
 		if value <> null [fire [TO_ERROR(script invalid-path-set) path]]
-		object/eval-path parent element value path case?
+		object/eval-path parent element value path case? get? tail?
 	]
 	
 	compare: func [

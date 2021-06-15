@@ -488,6 +488,8 @@ map: context [
 		value	[red-value!]
 		path	[red-value!]
 		case?	[logic!]
+		get?	[logic!]
+		tail?	[logic!]
 		return:	[red-value!]
 		/local
 			table	[node!]
@@ -553,7 +555,7 @@ map: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/put"]]
 		
-		eval-path map field value as red-value! none-value case?
+		eval-path map field value as red-value! none-value case? no yes
 		value
 	]
 

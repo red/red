@@ -243,7 +243,7 @@ set-path*: func [
 	parent  [red-value!]
 	element [red-value!]
 ][
-	stack/set-last actions/eval-path parent element stack/arguments null no
+	stack/set-last actions/eval-path parent element stack/arguments null no no yes
 	object/path-parent/header: TYPE_NONE				;-- disables owner checking
 ]
 
@@ -257,6 +257,8 @@ set-int-path*: func [
 		stack/arguments									;-- value to set
 		null
 		no
+		no
+		yes
 	object/path-parent/header: TYPE_NONE				;-- disables owner checking
 ]
 
@@ -264,7 +266,7 @@ eval-path*: func [
 	parent  [red-value!]
 	element [red-value!]
 ][
-	stack/set-last actions/eval-path parent element null null no ;-- no value to set
+	stack/set-last actions/eval-path parent element null null no no yes ;-- no value to set
 ]
 
 eval-path: func [
@@ -272,7 +274,7 @@ eval-path: func [
 	element [red-value!]
 	return: [red-value!]
 ][
-	actions/eval-path parent element null null no 		;-- pass the value reference directly (no copying!)
+	actions/eval-path parent element null null no no no ;-- pass the value reference directly (no copying!)
 ]
 
 eval-int-path*: func [
@@ -282,7 +284,7 @@ eval-int-path*: func [
 		int	[red-value!]
 ][
 	int: as red-value! integer/push index
-	stack/set-last actions/eval-path parent int null null no ;-- no value to set
+	stack/set-last actions/eval-path parent int null null no no yes ;-- no value to set
 ]
 
 eval-int-path: func [
@@ -293,7 +295,7 @@ eval-int-path: func [
 		int	[red-value!]
 ][
 	int: as red-value! integer/push index
-	actions/eval-path parent int null null no			;-- pass the value reference directly (no copying!)
+	actions/eval-path parent int null null no no no		;-- pass the value reference directly (no copying!)
 ]
 
 select-key*: func [										;-- called by compiler for SWITCH

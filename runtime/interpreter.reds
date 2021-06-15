@@ -662,6 +662,7 @@ interpreter: context [
 			gparent	[red-value!]
 			saved	[red-value!]
 			arg		[red-value!]
+			tail?	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "eval: path"]]
 		
@@ -688,7 +689,7 @@ interpreter: context [
 				unless sub? [stack/set-last stack/top]
 				return pc
 			]
-			TYPE_UNSET [fire [TO_ERROR(script invalid-path) head path]]
+			TYPE_UNSET [fire [TO_ERROR(script unset-path) path head]]
 			default	   [0]
 		]
 		if set? [object/path-parent/header: TYPE_NONE]	;-- disables owner checking
@@ -704,12 +705,13 @@ interpreter: context [
 				]
 				default [item]
 			]
-			if TYPE_OF(value) = TYPE_UNSET [fire [TO_ERROR(script invalid-path) item path]]
+			if TYPE_OF(value) = TYPE_UNSET [fire [TO_ERROR(script invalid-path) path item]]
 			#if debug? = yes [if verbose > 0 [print-line ["eval: path item: " TYPE_OF(value)]]]
 			
 			gparent: parent								;-- save grand-parent reference
-			arg: either all [set? item + 1 = tail][stack/arguments][null]
-			parent: actions/eval-path parent value arg path case?
+			tail?: item + 1 = tail
+			arg: either all [set? tail?][stack/arguments][null]
+			parent: actions/eval-path parent value arg path case? get? tail?
 			
 			unless get? [
 				switch TYPE_OF(parent) [
