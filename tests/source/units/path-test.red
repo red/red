@@ -142,7 +142,6 @@ Red [
 		]
 
 	--test-- "issue #2525"
-		
 		u: %a/b
 		--assert %a/b/1 = u/1
 		--assert %a/b/c/1 = u/c/1
@@ -158,9 +157,17 @@ Red [
 		--assert face2525/size/y = 60
 
 	--test-- "issue #3845"
-
 		u: ["b" ["c" ["d" 1]]]
 		--assert 1 = u/("b")/("c")/("d")
+
+	--test-- "issue #4910"
+		o4910: object [unset a: 'a]
+		--assert unset? get/any 'o4910/a
+
+		a4910: context [b: context [c: 123]]
+		--assert 123 = get 'a4910/b/c
+		--assert unset? get/any 'a4910/b/zz
+		--assert error? try [get 'a4910/zz/c]
 
 ===end-group===
 
