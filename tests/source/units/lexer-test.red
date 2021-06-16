@@ -1480,4 +1480,11 @@ Red [
 
 ===end-group===
 
+===start-group=== "issues"
+
+	--test-- "issue-4914"
+		--assert error? try [transcode {#(a: 22 b: 33 c: x: a)}]
+
+===end-group===
+	
 ~~~end-file~~~
