@@ -722,6 +722,12 @@ system-dialect: make-profilable context [
 			]
 		]
 		
+		is-small-struct-float?: func [spec [block!] /local ret type][
+			ret: select spec return-def
+			unless ret/1 = 'struct! [ret: second resolve-aliased ret]
+			either any-float? type: ret/2 [type][none]
+		]
+		
 		with-alias-resolution: func [mode [logic!] body [block!] /local saved][
 			saved: resolve-alias?
 			resolve-alias?: mode	

@@ -2441,21 +2441,33 @@ make-profilable make target-class [
 
 	emit-epilog: func [
 		name [word!] locals [block!] args-size [integer!] locals-size [integer!] /with slots [integer! none!]
-		/local fspec attribs vars offset cdecl? SysVABI? clean-hidden-ptr?
+		/local fspec attribs vars offset cdecl? SysVABI? macOSABI? clean-hidden-ptr? type
 	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
 		
 		fspec: select compiler/functions name
 		
 		if slots [
-			SysVABI?: all [compiler/job/OS = 'Linux fspec/3 = 'cdecl]
+			SysVABI?:  all [compiler/job/OS = 'Linux fspec/3 = 'cdecl]
+			macOSABI?: all [compiler/job/OS = 'macOS fspec/3 = 'cdecl]
 			case [
 				all [not SysVABI? slots = 1][
 					emit #{8B00}					;-- MOV eax, [eax]
+					if all [macOSABI? type: compiler/is-small-struct-float? fspec/4 type/1 = 'float32!][
+						emit #{50}					;-- PUSH eax
+						emit #{D90424}				;-- FLD dword [esp]		; load as 32-bit
+						emit #{83C404} 				;-- ADD esp, 4
+					]
 				]
 				all [not SysVABI? slots = 2][
 					emit #{8B5004}					;-- MOV edx, [eax+4]
 					emit #{8B00}					;-- MOV eax, [eax]
+					if all [macOSABI? type: compiler/is-small-struct-float? fspec/4 find [float! float64!] type/1][
+						emit #{52}					;-- PUSH edx
+						emit #{50}					;-- PUSH eax
+						emit #{DD0424}				;-- FLD qword [esp]		; load as 64-bit
+						emit #{83C408} 				;-- ADD esp, 8
+					]
 				]
 				'else [
 					vars: emitter/stack
