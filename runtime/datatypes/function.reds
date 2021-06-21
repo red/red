@@ -454,17 +454,16 @@ _function: context [
 					]
 				]
 				TYPE_REFINEMENT [
-					if all [required? function?][
-						block/rs-append list as red-value! issues/ooo
-						block/rs-append list as red-value! none-value
-					]
-					required?: no
-					either function? [
-						block/rs-append list value
-						block/rs-append list as red-value! false-value
-					][
-						vector/rs-append-int vec -1
-					]
+					;if all [required? function?][
+					;	block/rs-append list as red-value! issues/ooo
+					;	block/rs-append list as red-value! none-value
+					;]
+					;required?: no
+					;either function? [
+					block/rs-append list value
+					block/rs-append list as red-value! false-value
+					;][
+					unless function? [vector/rs-append-int vec -1]
 				]
 				TYPE_SET_WORD [
 					w: as red-word! value

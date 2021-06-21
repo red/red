@@ -101,7 +101,7 @@ Red/System [
 ]
 
 interpreter: context [
-	verbose: 0
+	verbose: 2
 	
 	log: func [msg [c-string!]][
 		print "eval: "
@@ -450,20 +450,23 @@ interpreter: context [
 			fname	  [red-word!]
 			blk		  [red-block!]
 			vec		  [red-vector!]
+			ref		  [red-refinement!]
 			bool	  [red-logic!]
+			ctx		  [red-context!]
 			arg		  [red-value!]
 			ext-args  [red-value!]
 			saved	  [red-value!]
 			base	  [red-value!]
 			s-value	  [red-value!]
+			rpos	  [red-value!]
 			s		  [series!]
 			required? [logic!]
 			args	  [node!]
 			p		  [int-ptr!]
 			ref-array [int-ptr!]
 			extras	  [int-ptr!]
-			offset	  [int-ptr!]
 			v-tail	  [int-ptr!]
+			offset	  [integer!]
 			index	  [integer!]
 			size	  [integer!]
 			type	  [integer!]
@@ -472,6 +475,7 @@ interpreter: context [
 			bits 	  [byte-ptr!]
 			ordered?  [logic!]
 			set? 	  [logic!]
+			push-argument [subroutine!]
 			call
 	][
 		routine?:  TYPE_OF(native) = TYPE_ROUTINE
@@ -501,84 +505,168 @@ interpreter: context [
 				origin/args: args
 			]
 		]
-		
+?? path		
 		unless null? path [
 			path-end: block/rs-tail as red-block! path
 			fname: as red-word! ref-pos
 			
-			if ref-pos + 1 < path-end [					;-- test if refinements are following the function
-				either null? path/args [
-					args: _function/preprocess-options native path ref-pos args fname function?
-					path/args: args
-				][
-					args: path/args
+			if all [ref-pos + 1 < path-end path/args <> fun/ctx][	;-- test if refinements are following the function
+				;args: _function/preprocess-options native path ref-pos args fname function?
+				path/args: fun/ctx
+				ctx: GET_CTX(fun)
+				rpos: ref-pos
+				while [rpos < path-end][
+					if TYPE_OF(rpos) = TYPE_WORD [
+						_context/bind-word ctx as red-word! rpos	;-- rebind each refinement to function's context
+					]
+					rpos: rpos + 1
 				]
 			]
 			fname: as red-word! path
 		]
 		
+		push-argument: [
+			assert TYPE_OF(expected) = TYPE_TYPESET
+			bits: (as byte-ptr! expected) + 4
+			BS_TEST_BIT(bits TYPE_UNSET set?)
+
+			either all [
+				set?					;-- if unset! is accepted
+				pc >= end				;-- if no more values to fetch
+				TYPE_OF(value) = TYPE_LIT_WORD ;-- and if spec argument is a lit-word!
+			][
+				unset/push				;-- then, supply an unset argument
+			][
+				FETCH_ARGUMENT
+				arg:  stack/top - 1
+				type: TYPE_OF(arg)
+				BS_TEST_BIT(bits type set?)
+				unless set? [
+					index: offset - 1
+					ERR_EXPECT_ARGUMENT(type index)
+				]
+			]
+		]
+		
+		;; process return:
+		;; process native array
+		
 		s: as series! args/value
-		value:	   s/offset
+		base:	   s/offset
 		tail:	   s/tail
+		value:	   base
+		offset:	   0
+		
+		while [value < tail][							;-- loop cache array to get mandatory arguments
+			if any [
+				TYPE_OF(value) = TYPE_SET_WORD
+				TYPE_OF(value) = TYPE_REFINEMENT
+				TYPE_OF(value) = TYPE_NONE
+			][break]
+			expected: value + 1
+			push-argument
+			offset: offset + 1
+			value: value + 2
+		]
+		
+		if path <> null [								;-- loop refs in path for optional arguments
+			rpos: ref-pos
+			while [rpos < path-end][
+				ref: as red-refinement! value
+				stack/push expected
+				bool: as red-logic! expected
+				either bool/value [
+				
+				][
+				
+				]
+				value: base + (ref/index * 2 - 1)
+				while [value < tail][					;-- fetch all arguments for that refinement
+					expected: base + (offset * 2 - 1)
+					push-argument
+				]
+				rpos: rpos + 1
+			]
+		]
+		
+		s: as series! args/value
+		base:	   s/offset
+		tail:	   s/tail
+		value:	   base
 		required?: yes
+		;refs?:	   no
 		index: 	   0
 		extras:	   null
-		ordered?:  yes
-		
+		;ordered?:  yes
+		offset:	   0
+dump-memory as byte-ptr! s 4 16
 		while [value < tail][
 			expected: value + 1
-			
+probe [TYPE_OF(value) " : " TYPE_OF(expected)]
 			switch TYPE_OF(value) [
-				TYPE_ISSUE [
-					vec: as red-vector! expected
-					if TYPE_OF(vec) = TYPE_VECTOR [
-						extras: as int-ptr! vector/rs-head vec
-						v-tail: as int-ptr! vector/rs-tail vec
-						ext-size: (as-integer v-tail - extras) >>> 2 - 1
-						offset: extras
-						ordered?: no
-						
-						saved: stack/top				;-- move stack/top beyond current frame for ooo args
-						stack/top: stack/top + offset/value
-						ext-args: stack/top
-						offset: offset + 1
-						base: s/offset + 2				;-- skip ooo entry
-						s-value: value
-						
-						while [offset < v-tail][
-							expected: base + (offset/value * 2 - 1)
-							value: expected - 1
-							assert TYPE_OF(expected) = TYPE_TYPESET
-							bits: (as byte-ptr! expected) + 4
-							BS_TEST_BIT(bits TYPE_UNSET set?)
+				TYPE_REFINEMENT [
+					;stack/push expected
+					;bool: as red-logic! expected
+					;required?: bool/value
+					;vec: as red-vector! expected
+					;if TYPE_OF(vec) = TYPE_VECTOR [
+					;extras: as int-ptr! vector/rs-head vec
+					;v-tail: as int-ptr! vector/rs-tail vec
+					;ext-size: (as-integer v-tail - extras) >>> 2 - 1
+					;offset: extras
+					;ordered?: no
+					ref: as red-refinement! value
+					offset: ref/index
 
-							either all [
-								set?					;-- if unset! is accepted
-								pc >= end				;-- if no more values to fetch
-								TYPE_OF(value) = TYPE_LIT_WORD ;-- and if spec argument is a lit-word!
-							][
-								unset/push				;-- then, supply an unset argument
-							][
-								FETCH_ARGUMENT
-								arg:  stack/top - 1
-								type: TYPE_OF(arg)
-								BS_TEST_BIT(bits type set?)
-								unless set? [
-									index: offset/value - 1
-									ERR_EXPECT_ARGUMENT(type index)
-								]
-							]
-							offset: offset + 1
-						]
-						value: s-value
-						stack/top: saved
-					]
+					;saved: stack/top				;-- move stack/top beyond current frame for ooo args
+					;stack/top: stack/top + offset
+					ext-args: stack/top
+					;offset: offset + 1
+					;base: s/offset + 2				;-- skip ooo entry
+					;s-value: value
+
+					;value: value + 2 				;-- skip /refinement entry
+					;while [all [
+					;	value < tail
+					;	TYPE_OF(value) <> TYPE_REFINEMENT
+					;	TYPE_OF(value) <> TYPE_SET_WORD
+					;	TYPE_OF(value) <> TYPE_NONE
+					;]][
+						
+					;	expected: base + (offset * 2 - 1)
+					;	value: expected - 1
+					;	assert TYPE_OF(expected) = TYPE_TYPESET
+					;	bits: (as byte-ptr! expected) + 4
+					;	BS_TEST_BIT(bits TYPE_UNSET set?)
+
+					;	either all [
+					;		set?					;-- if unset! is accepted
+					;		pc >= end				;-- if no more values to fetch
+					;		TYPE_OF(value) = TYPE_LIT_WORD ;-- and if spec argument is a lit-word!
+					;	][
+					;		unset/push				;-- then, supply an unset argument
+					;	][
+					;		FETCH_ARGUMENT
+					;		arg:  stack/top - 1
+					;		type: TYPE_OF(arg)
+					;		BS_TEST_BIT(bits type set?)
+					;		unless set? [
+					;			index: offset - 1
+					;			ERR_EXPECT_ARGUMENT(type index)
+					;		]
+					;	]
+					;	offset: offset + 1
+						;value: value + 1
+					;]
+					;value: s-value
+					;stack/top: saved
+					;]
 				]
 				TYPE_SET_WORD [0]
 				default [
 					switch TYPE_OF(expected) [
 						TYPE_TYPESET [
-							either all [required? ordered?][
+							either required? [
 								bits: (as byte-ptr! expected) + 4
 								BS_TEST_BIT(bits TYPE_UNSET set?)
 
@@ -621,20 +709,20 @@ interpreter: context [
 							system/stack/top: ref-array		;-- reserve space on native stack for refs array
 							copy-memory as byte-ptr! ref-array as byte-ptr! p size * 4
 						]
-						default [assert false]				;-- trap it, if stack corrupted 
+						default [dump4 expected assert false]				;-- trap it, if stack corrupted 
 					]
 				]
 			]
 			value: value + 2
 		]
-		unless ordered? [
-			offset: extras + 1
-			loop ext-size [
-				copy-cell ext-args stack/arguments + offset/value - 1
-				offset: offset + 1
-				ext-args: ext-args + 1
-			]
-		]
+		;unless ordered? [
+		;	offset: extras + 1
+		;	loop ext-size [
+		;		copy-cell ext-args stack/arguments + offset/value - 1
+		;		offset: offset + 1
+		;		ext-args: ext-args + 1
+		;	]
+		;]
 		unless function? [
 			unless null? ref-array [system/stack/top: ref-array] ;-- reset native stack to our custom arguments frame
 			if TYPE_OF(native) = TYPE_NATIVE [push no]	;-- avoid 2nd type-checking for natives.
