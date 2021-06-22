@@ -1729,7 +1729,7 @@ string: context [
 				]
 			]
 			TYPE_WORD [
-				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(element)]
+				fire [TO_ERROR(script invalid-path) path element]
 				null
 			]
 			default [
