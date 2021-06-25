@@ -154,6 +154,7 @@ __print-debug-stack: func [
 ]
 
 stack-trace: func [][
+	__set-stack-on-crash
 	__print-debug-stack system/pc
 ]
 
