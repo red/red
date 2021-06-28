@@ -988,6 +988,7 @@ connect-focus-events: func [
 		sym = rich-text
 		sym = field
 		sym = area
+		sym = base	
 	][
 		gtk_widget_set_can_focus widget yes
 		gtk_widget_set_focus_on_click widget yes
