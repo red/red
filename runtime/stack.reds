@@ -408,6 +408,7 @@ stack: context [										;-- call stack
 	][
 		base: object/get-values err
 		int: as red-integer! base + error/get-stack-id
+		if TYPE_OF(int) = TYPE_BLOCK [exit]				;-- call stack already captured
 		int/header: TYPE_INTEGER
 		int/value:  as-integer ctop
 	]

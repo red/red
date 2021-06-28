@@ -902,7 +902,7 @@ do-file: function ["Internal Use Only" file [file! url!]][
 	][
 		foreach c list [append system/locale/currencies/list c]
 	]
-	set/any 'code try/all code
+	set/any 'code try/all/save code
 	if file? file [change-dir saved]
 	if error? :code [do :code]							;-- rethrow the error
 	:code

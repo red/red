@@ -109,6 +109,7 @@ error: context [
 			level [integer!]
 			ptr	  [integer!]
 	][
+		if TYPE_OF(err) <> TYPE_ERROR [exit]			;-- error! not created yet, give up.
 		field: as red-integer! (object/get-values err) + field-stack
 		if TYPE_OF(field) = TYPE_INTEGER [
 			level: 1
@@ -319,8 +320,14 @@ error: context [
 			str		[red-string!]
 			blk		[red-block!]
 			int		[red-integer!]
+			print-stack-header [subroutine!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "error/form"]]
+		
+		print-stack-header: [
+			string/concatenate-literal buffer "^/*** Stack: "
+			part: part - 12
+		]
 		
 		base: object/get-values obj
 		string/concatenate-literal buffer "*** "
@@ -365,9 +372,16 @@ error: context [
 		int: as red-integer! #get system/state/trace
 		if all [TYPE_OF(int) = TYPE_INTEGER int/value > 0][
 			value: base + field-stack
-			if TYPE_OF(value) = TYPE_INTEGER [
-				string/concatenate-literal buffer "^/*** Stack: "
-				part: stack/trace int/value as red-integer! value buffer part - 12
+			switch TYPE_OF(value) [
+				TYPE_INTEGER [
+					print-stack-header
+					part: stack/trace int/value as red-integer! value buffer part
+				]
+				TYPE_BLOCK [
+					print-stack-header
+					part: actions/form value buffer arg part
+				]
+				default [0]
 			]
 		]
 		part
