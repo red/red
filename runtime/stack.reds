@@ -332,6 +332,31 @@ stack: context [										;-- call stack
 		check-call
 	]
 	
+	trace-in: func [
+		level	[integer!]
+		list	[red-block!]							;-- optional call stack storage block
+		stk		[integer!]
+		/local
+			fun	  [red-value!]
+			top	  [call-frame!]
+			base  [call-frame!]
+			sym	  [integer!]
+	][
+		top: as call-frame! stk
+		base: cbottom
+		until [
+			sym: base/header >> 8 and FFFFh
+			if all [sym <> body-symbol sym <> anon-symbol][
+				fun: _context/get-any sym base/ctx
+				if any [level > 1 TYPE_OF(fun) = TYPE_FUNCTION][
+					 word/make-at sym ALLOC_TAIL(list)
+				]
+			]
+			base: base + 1
+			base >= top									;-- defensive exit condition
+		]
+	]
+	
 	trace: func [
 		level	[integer!]
 		int		[red-integer!]

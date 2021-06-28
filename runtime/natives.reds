@@ -1900,13 +1900,14 @@ natives: context [
 	try*: func [
 		check?  [logic!]
 		_all	[integer!]
+		save	[integer!]
 		return: [integer!]
 		/local
 			arg	   [red-value!]
 			cframe [byte-ptr!]
 			result [integer!]
 	][
-		#typecheck [try _all]
+		#typecheck [try _all save]
 		arg: stack/arguments
 		system/thrown: 0								;@@ To be removed
 		cframe: stack/get-ctop							;-- save the current call frame pointer
@@ -1942,6 +1943,7 @@ natives: context [
 		][												;-- TRY/ALL case, catch everything
 			stack/adjust-post-try
 		]
+		if save <> -1 [error/capture as red-object! stack/arguments]
 		system/thrown: 0
 		result
 	]

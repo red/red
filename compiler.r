@@ -2230,8 +2230,13 @@ red: context [
 		defer											;-- return object deferred block
 	]
 	
-	comp-try: has [all? mark body call handlers][
-		call: pick [try-all try] to logic! all?: path? pc/-1
+	comp-try: has [path all? save? mark body call handlers][
+		all?: save?: no
+		if path? path: pc/-1 [
+			all?:  to logic! find path 'all
+			save?: to logic! find path 'save
+		]
+		call: pick [try-all try] all?
 		
 		emit-open-frame 'body
 		either block? pc/1 [
@@ -2275,7 +2280,7 @@ red: context [
 				emit 'switch
 				insert-lf -1
 			]
-			emit-native/with 'try reduce [pick [0 -1] all?]
+			emit-native/with 'try reduce [pick [0 -1] all? pick [0 -1] save?]
 			new-line back tail output no
 			unless all? [emit build-exception-handler]
 			emit-close-frame

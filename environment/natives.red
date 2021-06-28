@@ -636,7 +636,8 @@ value?: make native! [[
 try: make native! [[
 		"Tries to DO a block and returns its value or an error"
 		block	[block!]
-		/all "Catch also BREAK, CONTINUE, RETURN, EXIT and THROW exceptions"
+		/all  "Catch also BREAK, CONTINUE, RETURN, EXIT and THROW exceptions"
+		/save "Capture and save the call stack in the error object"
 	]
 	#get-definition NAT_TRY
 ]

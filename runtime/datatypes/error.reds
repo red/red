@@ -100,6 +100,27 @@ error: context [
 		words/_anon										;-- return anonymous name
 	]
 	
+	capture: func [
+		err	[red-object!]
+		/local
+			field [red-integer!]
+			blk	  [red-block!]
+			int	  [red-integer!]
+			level [integer!]
+			ptr	  [integer!]
+	][
+		field: as red-integer! (object/get-values err) + field-stack
+		if TYPE_OF(field) = TYPE_INTEGER [
+			level: 1
+			int: as red-integer! #get system/state/trace
+			if all [TYPE_OF(int) = TYPE_INTEGER int/value > 0][level: int/value]
+			ptr: field/value
+			blk: as red-block! field
+			block/make-at blk 20
+			stack/trace-in level blk ptr
+		]
+	]
+	
 	create: func [
 		cat		[red-value!]							;-- expects a word!
 		id		[red-value!]							;-- expects a word!
