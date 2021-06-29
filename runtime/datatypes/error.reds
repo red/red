@@ -29,10 +29,11 @@ error: context [
 		error [red-object!]
 		value [red-value!]
 		/local
-			base [red-value!]
+			base slot [red-value!]
 	][
 		base: object/get-values error
-		copy-cell value base + field-where
+		slot: base + field-where
+		if TYPE_OF(slot) = TYPE_NONE [copy-cell value slot]	;-- don't overwrite if previously set
 	]
 	
 	get-type: func [
