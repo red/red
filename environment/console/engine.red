@@ -62,7 +62,7 @@ system/console: context [
 			unless tail? args [
 				file: to-red-file args/1
 				
-				either error? set/any 'src try [read file][
+				either error? set/any 'src try/keep [read file][
 					print src
 					src: none
 					;quit/return -1
@@ -189,7 +189,7 @@ system/console: context [
 	]
 	
 	try-do: func [code /local result return: [any-type!]][
-		set/any 'result try/all [
+		set/any 'result try/all/keep [
 			either 'halt-request = set/any 'result catch/name code 'console [
 				print "(halted)"						;-- return an unset value
 			][
@@ -205,7 +205,7 @@ system/console: context [
 	mode:   'mono
 
 	do-command: function [/local result err][
-		if error? code: try [load/all buffer][print code]
+		if error? code: try/keep [load/all buffer][print code]
 
 		unless any [error? code tail? code][
 			set/any 'result try-do code
@@ -214,7 +214,7 @@ system/console: context [
 					print [result lf]
 				]
 				not unset? :result [
-					if error? set/any 'err try [		;-- catch eventual MOLD errors
+					if error? set/any 'err try/keep [	;-- catch eventual MOLD errors
 						limit: size/x - 13
 						result: either float? :result [form/part :result limit][
 							mold/part :result limit
