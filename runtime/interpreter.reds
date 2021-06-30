@@ -565,7 +565,12 @@ interpreter: context [
 								BS_TEST_BIT(bits type set?)
 								unless set? [
 									index: offset/value - 1
-									ERR_EXPECT_ARGUMENT(type index)
+									fire [
+										TO_ERROR(script expect-arg)
+										fname
+										datatype/push type
+										error/get-call-argument index
+									]
 								]
 							]
 							offset: offset + 1
@@ -596,7 +601,7 @@ interpreter: context [
 									unless set? [
 										fire [
 											TO_ERROR(script expect-arg)
-											stack/get-call
+											fname
 											datatype/push type
 											value
 										]
