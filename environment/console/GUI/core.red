@@ -785,7 +785,10 @@ object [
 					idx: 0
 				]
 				if n > 0 [
-					if start-idx < end-idx [pos: pos - n]
+					if start-idx < end-idx [
+						pos: pos - n
+						if pos < 0 [pos: 0]
+					]
 					s: copy/part skip line idx n
 					reduce/into [idx s] undo-stack
 					remove/part skip line idx n
