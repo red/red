@@ -3133,6 +3133,11 @@ comment {
 		--assert not strict-equal? "foo" #{666F6F}
 		--assert not strict-equal? #{666F6F} "foo"
 
+	--test-- "#4260"
+		catch [throw 1]
+		err4260: try [add none none]
+		--assert to-logic find form err4260 "add does not"
+
 ===end-group===
 
 ~~~end-file~~~
