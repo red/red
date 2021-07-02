@@ -1943,8 +1943,8 @@ natives: context [
 		][												;-- TRY/ALL case, catch everything
 			stack/adjust-post-try
 		]
-		if keep <> -1 [error/capture as red-object! stack/arguments]
 		system/thrown: 0
+		if keep <> -1 [error/capture as red-object! stack/arguments]
 		result
 	]
 
