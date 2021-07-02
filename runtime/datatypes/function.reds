@@ -796,8 +796,23 @@ _function: context [
 					]
 					value: next
 				]
+				TYPE_REFINEMENT [
+					next: value + 1
+					if next < end [
+						if all [
+							TYPE_OF(next) <> TYPE_WORD
+							TYPE_OF(next) <> TYPE_GET_WORD
+							TYPE_OF(next) <> TYPE_LIT_WORD
+							TYPE_OF(next) <> TYPE_REFINEMENT
+							TYPE_OF(next) <> TYPE_SET_WORD
+							TYPE_OF(next) <> TYPE_STRING
+						][
+							fire [TO_ERROR(script bad-func-def) next]
+						]
+					]
+					value: value + 1
+				]
 				TYPE_LIT_WORD
-				TYPE_REFINEMENT
 				TYPE_BLOCK
 				TYPE_STRING [
 					value: value + 1
