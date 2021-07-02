@@ -231,6 +231,7 @@ _function: context [
 		][
 			fctx: GET_CTX(fun)
 			saved: fctx/values
+			assert system/thrown = 0
 			catch RED_THROWN_ERROR [
 				either ctx = global-ctx [
 					call: as function! [] native/code

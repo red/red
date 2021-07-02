@@ -2302,6 +2302,7 @@ lexer: context [
 			lex/fun-locs: _function/count-locals fun/spec 0 no
 			lex/fun-evts: decode-filter fun
 		]
+		assert system/thrown = 0
 		
 		catch RED_THROWN_ERROR [scan-tokens lex one? not scan?]
 		if system/thrown > LEX_ERR [clean-up re-throw]
@@ -2314,6 +2315,7 @@ lexer: context [
 			][
 				if TYPE_OF(p) = TYPE_POINT [			;-- unclosed any-block series case
 					lex/closing: p/y
+					assert system/thrown = 0
 					catch RED_THROWN_ERROR [throw-error lex lex/input + p/z lex/in-end ERR_CLOSING]
 					either system/thrown <= LEX_ERR [
 						if dst <> null [dst/header: TYPE_NONE] ;-- no dst when called from Parse, #4678
@@ -2373,6 +2375,7 @@ lexer: context [
 		utf8-buf-tail: utf8-buf-tail + size + 1			;-- move at tail for new buffer; +1 for terminal NUL
 
 		if null? len [len: :ignore]
+		assert system/thrown = 0
 		catch RED_THROWN_ERROR [type: scan dst base size one? scan? load? wrap? len fun as red-series! str out]
 		utf8-buf-tail: utf8-buffer + used				;-- move back to original tail
 		if extra <> null [free extra]

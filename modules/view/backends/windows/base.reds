@@ -513,7 +513,8 @@ BaseWndProc: func [
 					do-draw hWnd null draw no yes yes yes
 				][
 					if null? current-msg [return -1]
-					system/thrown: 0
+					;system/thrown: 0
+					assert system/thrown = 0
 					DC: declare draw-ctx!				;@@ should declare it on stack
 					catch RED_THROWN_ERROR [
 						draw-begin DC hWnd null no yes

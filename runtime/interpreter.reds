@@ -179,6 +179,7 @@ interpreter: context [
 		saved: ctx/values
 		ctx/values: as node! stack/arguments
 		stack/set-in-func-flag yes
+		assert system/thrown = 0
 		
 		catch RED_THROWN_ERROR [eval body yes]
 		
