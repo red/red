@@ -1886,7 +1886,7 @@ parser: context [
 	]
 
 	init: does [
-		series: block/make-in root 8
+		series: block/make-in root 40
 		rules:  block/make-in root 100
 	]
 ]
