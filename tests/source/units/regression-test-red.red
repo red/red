@@ -3008,6 +3008,11 @@ comment {
 		all-equal?4205: anded4205 = last-random4205
 		--assert not all-equal?4205
 		unset [anded4205 last-random4205 all-equal?4205]
+
+	--test-- "#4260"
+		catch [throw 1]
+		err4260: try [add none none]
+		--assert to-logic find form err4260 "add does not"
 	
 	--test-- "#4451"
 		path: quote :foo/bar
@@ -3132,11 +3137,6 @@ comment {
 		--assert not equal? #{666F6F} "foo"
 		--assert not strict-equal? "foo" #{666F6F}
 		--assert not strict-equal? #{666F6F} "foo"
-
-	--test-- "#4260"
-		catch [throw 1]
-		err4260: try [add none none]
-		--assert to-logic find form err4260 "add does not"
 
 ===end-group===
 
