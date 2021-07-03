@@ -245,7 +245,7 @@ float: context [
 					0.0 * right = 0.0 [fmod left right]	;-- finite right part - no special case
 					NaN? right [QNaN]
 					0.0 * left = 0.0 [left]				;-- finite % +-infinity - special case for #4900
-					true [QNaN]							;-- +-infinity % +-infinity = NaN
+					true [QNaN]							;-- (+-infinity or NaN) % +-infinity = NaN
 				]
 			]
 			default [
