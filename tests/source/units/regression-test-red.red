@@ -3009,6 +3009,11 @@ comment {
 		--assert not all-equal?4205
 		unset [anded4205 last-random4205 all-equal?4205]
 	
+	--test-- "#4260"
+		catch [throw 1]
+		err4260: try [add none none]
+		--assert to-logic find form err4260 "add does not"
+
 	--test-- "#4451"
 		path: quote :foo/bar
 		--assert ":foo/bar" = mold path
@@ -3133,10 +3138,23 @@ comment {
 		--assert not strict-equal? "foo" #{666F6F}
 		--assert not strict-equal? #{666F6F} "foo"
 
-	--test-- "#4260"
-		catch [throw 1]
-		err4260: try [add none none]
-		--assert to-logic find form err4260 "add does not"
+	--test-- "#4900"
+		--assert 1.0 = (    1.0 %  1.#inf)
+		--assert 1.0 = (    1.0 % -1.#inf)
+		--assert nan?  (    1.0 %  1.#nan)
+		--assert nan?  ( 1.#inf %  1.#inf)
+		--assert nan?  ( 1.#inf % -1.#inf)
+		--assert nan?  ( 1.#inf %  1.#nan)
+		--assert nan?  (-1.#inf %  1.#inf)
+		--assert nan?  (-1.#inf % -1.#inf)
+		--assert nan?  (-1.#inf %  1.#nan)
+		--assert nan?  ( 1.#nan %     1.0)
+		--assert nan?  ( 1.#nan %  1.#inf)
+		--assert nan?  ( 1.#nan % -1.#inf)
+		--assert nan?  ( 1.#nan % -1.#nan)
+		; --assert 2x3   = (2x3   % 1.#inf)				;@@ FIXME: throws an error, unlike tuple
+		--assert 1.2.3 = (1.2.3 % 1.#inf)
+		--assert (make vector! [1.0 2.0]) = ((make vector! [1.0 2.0]) % 1.#inf)
 
 ===end-group===
 
