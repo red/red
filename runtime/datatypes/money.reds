@@ -1770,6 +1770,8 @@ money: context [
 			int    [red-integer!]
 			index  [integer!]
 	][
+		if value <> null [fire [TO_ERROR(script bad-path-set) path element]]
+		
 		index: switch TYPE_OF(element) [
 			TYPE_WORD    [resolve-accessor as red-word! element]
 			TYPE_INTEGER [int: as red-integer! element int/value]
