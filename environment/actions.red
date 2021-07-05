@@ -291,10 +291,10 @@ copy: make action! [[
 find: make action! [[
 		"Returns the series where a value is found, or NONE"
 		series	 [series! bitset! typeset! port! map! none!]
-		value 	 [any-type!]
+		value 	 [any-type!] "Typesets and datatypes can be used to search by datatype"
 		/part "Limit the length of the search"
 			length [number! series!]
-		/only "Treat a series search value as a single value"
+		/only "Treat series and typeset value arguments as single values"
 		/case "Perform a case-sensitive search"
 		/same {Use "same?" as comparator}
 		/any  "TBD: Use * and ? wildcards in string searches"
