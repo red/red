@@ -770,7 +770,7 @@ parser: context [
 	]
 
 	process: func [
-		input	[red-series!]
+		in-root	[red-series!]
 		rule	[red-block!]
 		comp-op	[integer!]
 		;strict? [logic!]
@@ -778,6 +778,7 @@ parser: context [
 		fun		[red-function!]
 		return: [red-value!]
 		/local
+			input	 [red-series! value]
 			new		 [red-series!]
 			int		 [red-integer!]
 			int2	 [red-integer!]
@@ -845,12 +846,15 @@ parser: context [
 		fun-locs:  0
 		state:    ST_PUSH_BLOCK
 
+;	s: GET_BUFFER(series)
+;		if s/offset = s/tail [gc-saved: collector/active? collector/active?: no]		
+
 		if OPTION?(fun) [fun-locs: _function/count-locals fun/spec 0 no]
 		
 		saved?: save-stack
 		base: stack/push*								;-- slot on stack for COPY/SET operations (until OPTION?() is fixed)
 		base/header: TYPE_UNSET
-		input: as red-series! block/rs-append series as red-value! input ;-- input now points to the series stack entry
+		copy-cell (block/rs-append series as red-value! in-root) as red-value! input
 		cmd: (block/rs-head rule) - 1					;-- decrement to compensate for starting increment
 		tail: block/rs-tail rule						;TBD: protect current rule block from changes
 		
@@ -1192,7 +1196,7 @@ parser: context [
 								
 								s: GET_BUFFER(series)
 								s/tail: s/tail - 1
-								input: as red-series! s/tail - 1
+								copy-cell s/tail - 1 as red-value! input
 								unless ended? [match?: no]
 								if match? [input/head: input/head + 1]	;-- skip parsed series
 								
@@ -1618,7 +1622,10 @@ parser: context [
 								value: block/rs-head input
 								type: TYPE_OF(value)
 								either ANY_SERIES_PARSE?(type) [
-									input: as red-series! block/rs-append series value
+									s: GET_BUFFER(series)
+									new: as red-series! s/tail - 1
+									new/head: input/head
+									copy-cell block/rs-append series value as red-value! input
 									min:  R_NONE
 									type: R_INTO
 									state: ST_PUSH_RULE
@@ -1877,6 +1884,9 @@ parser: context [
 			state = ST_EXIT
 		]
 		reset saved?
+		
+;s: GET_BUFFER(series)
+;if s/offset = s/tail [collector/active?: gc-saved]		
 
 		either collect? [
 			base + 1
