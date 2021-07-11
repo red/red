@@ -113,7 +113,7 @@ stack: context [										;-- call stack
 		#if debug? = yes [if verbose > 0 [print-line "stack/mark"]]
 
 		if ctop >= c-end [
-			top: top - 4								;-- make space within the stack for error processing
+			top: top - 5								;-- make space within the stack for error processing
 			fire [TO_ERROR(internal stack-overflow)]
 		]
 		ctop/header: type or (fun/symbol << 8)
@@ -123,7 +123,8 @@ stack: context [										;-- call stack
 		ctop/saved:  null
 		ctop: ctop + 1
 		arguments: top								;-- top of stack becomes frame base
-
+		assert top >= bottom
+		
 		#if debug? = yes [if verbose > 1 [dump]]
 	]
 	
@@ -137,7 +138,7 @@ stack: context [										;-- call stack
 		#if debug? = yes [if verbose > 0 [print-line "stack/mark-func"]]
 
 		if ctop >= c-end [
-			top: top - 4								;-- make space within the stack for error processing
+			top: top - 5								;-- make space within the stack for error processing
 			fire [TO_ERROR(internal stack-overflow)]
 		]
 		values: either null? ctx-name [null][			;-- null only happens in some libRedRT cases
@@ -152,6 +153,7 @@ stack: context [										;-- call stack
 		ctop/saved:  values
 		ctop: ctop + 1
 		arguments: top								;-- top of stack becomes frame base
+		assert top >= bottom
 
 		#if debug? = yes [if verbose > 1 [dump]]
 	]
@@ -166,6 +168,7 @@ stack: context [										;-- call stack
 		#if debug? = yes [if verbose > 0 [print-line "stack/reset"]]
 		
 		either acc-mode? [check-dyn-call][top: arguments]
+		assert top >= bottom
 		arguments
 	]
 	
@@ -234,6 +237,8 @@ stack: context [										;-- call stack
 			top: arguments
 			arguments: ctop/prev
 		]
+		assert top >= bottom
+		assert arguments >= bottom
 		
 		#if debug? = yes [if verbose > 1 [dump]]
 	]
@@ -249,6 +254,8 @@ stack: context [										;-- call stack
 			arguments: ctop/prev
 		]
 		top: top - 1
+		assert top >= bottom
+		assert arguments >= bottom
 
 		#if debug? = yes [if verbose > 1 [dump]]
 	]
@@ -260,6 +267,7 @@ stack: context [										;-- call stack
 		ctop: ctop - 1
 		top: arguments + 1
 		arguments: ctop/prev
+		assert arguments >= bottom
 		if acc-mode? [check-dyn-call]
 		
 		#if debug? = yes [if verbose > 1 [dump]]
@@ -274,6 +282,7 @@ stack: context [										;-- call stack
 
 		last: arguments
 		unwind
+		assert arguments >= bottom
 		copy-cell last arguments
 	]
 	
@@ -316,6 +325,7 @@ stack: context [										;-- call stack
 
 		last: arguments
 		unroll-frames flags no
+		assert ctop/prev >= bottom
 		copy-cell last ctop/prev
 		arguments: ctop/prev
 		top: arguments
@@ -328,6 +338,7 @@ stack: context [										;-- call stack
 	
 	adjust: does [
 		top: top - 1
+		assert top >= bottom
 		copy-cell top top - 1
 		check-call
 	]
@@ -438,6 +449,7 @@ stack: context [										;-- call stack
 			natives/print* no
 			quit -2
 		]
+		assert top >= bottom
 		push as red-value! err
 		throw RED_THROWN_ERROR
 	]
@@ -450,6 +462,7 @@ stack: context [										;-- call stack
 			save-top  [red-value!]
 			save-ctop [call-frame!]
 	][
+		assert top >= bottom
 		result:	   arguments
 		save-top:  top
 		save-ctop: ctop
@@ -475,6 +488,7 @@ stack: context [										;-- call stack
 			ctop: ctop + 1
 			arguments: ctop/prev
 			top: arguments
+			assert top >= bottom
 			either all [return? not cont?][set-last result][unset/push-last]
 			either cont? [
 				throw RED_THROWN_CONTINUE
@@ -491,6 +505,7 @@ stack: context [										;-- call stack
 			save-top  [red-value!]
 			save-ctop [call-frame!]
 	][
+		assert top >= bottom
 		result:	   arguments
 		save-top:  top
 		save-ctop: ctop
@@ -516,6 +531,7 @@ stack: context [										;-- call stack
 			ctop: ctop + 1
 			arguments: ctop/prev
 			top: arguments
+			assert top >= bottom
 			either return? [
 				set-last result
 				throw RED_THROWN_RETURN
@@ -533,6 +549,7 @@ stack: context [										;-- call stack
 			save-top  [red-value!]
 			save-ctop [call-frame!]
 	][
+		assert top >= bottom
 		result:	   arguments
 		save-top:  top
 		save-ctop: ctop
@@ -560,6 +577,7 @@ stack: context [										;-- call stack
 			ctop: ctop + 1
 			arguments: ctop/prev
 			top: arguments
+			assert top >= bottom
 			push result
 			push result + 1								;-- get back the NAME argument too
 			throw id
@@ -567,7 +585,10 @@ stack: context [										;-- call stack
 	]
 	
 	adjust-post-try: does [
-		if top-type? = TYPE_ERROR [set-last top - 1]
+		if top-type? = TYPE_ERROR [
+			assert top - 1 >= bottom
+			set-last top - 1
+		]
 		top: arguments + 1
 	]
 	
@@ -639,6 +660,7 @@ stack: context [										;-- call stack
 			value [red-value!]
 	][
 		value: top - 1
+		assert value >= bottom
 		TYPE_OF(value)
 	]
 	
@@ -653,6 +675,7 @@ stack: context [										;-- call stack
 			type  [integer!]
 	][
 		value: top - 1
+		assert value >= bottom
 		type: TYPE_OF(value)
 		any [											;@@ replace with ANY_FUNCTION?
 			type = TYPE_FUNCTION
