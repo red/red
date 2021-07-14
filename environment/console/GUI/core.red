@@ -21,7 +21,7 @@ object [
 	full?:		no								;-- is line buffer full?
 	ask?:		no								;-- is it in ask loop
 	prin?:		no								;-- start prin?
-	newline?:	no								;-- start a new line?
+	newline?:	yes								;-- start a new line?
 	mouse-up?:	yes
 	ime-open?:	no
 	ime-pos:	0
