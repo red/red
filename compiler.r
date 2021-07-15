@@ -1622,7 +1622,25 @@ red: context [
 		]
 	]
 	
-	emit-routine: func [name [word!] spec [block!] /local type cnt offset alter][
+	emit-routine: func [name [word!] spec [block!] /local type cnt offset alter idx pos][
+		idx: 0
+		if block? spec/1 [spec: next spec]
+		forall spec [
+			if any [spec/1 = /local set-word? spec/1][break] ;-- avoid processing local variable
+			if block? spec/1 [
+				type: spec/1/1
+?? spec
+probe spec/-1
+				if pos: find/match form type "red-" [type: to word! pos]
+probe make-typeset type find/reverse back spec refinement! back spec yes
+				emit emit-type-checking/native to word! spec/-1 back spec
+				emit idx
+				emit 'stack/arguments
+				insert-lf -7
+				idx: idx + 1
+			]
+		]
+		spec: head spec
 		declare-variable/init 'r_arg to paren! [as red-value! 0]
 		emit [r_arg: stack/arguments]
 		insert-lf -2

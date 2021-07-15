@@ -215,7 +215,11 @@ interpreter: context [
 			count	[integer!]
 			cnt 	[integer!]
 			args	[integer!]
+			type	[integer!]
 			saved	[int-ptr!]
+			pos		[byte-ptr!]
+			bits 	[byte-ptr!]
+			set? 	[logic!]
 			extern?	[logic!]
 			call callf callex
 	][
@@ -283,8 +287,14 @@ interpreter: context [
 					
 					if sym <> words/any-type! [			;-- type-checking argument
 						dt: as red-datatype! _context/get w
-						if TYPE_OF(arg) <> dt/value [
-							ERR_EXPECT_ARGUMENT(dt/value count)
+						case [
+							TYPE_OF(dt)	= TYPE_TYPESET [
+								bits: (as byte-ptr! dt) + 4
+								type: TYPE_OF(arg)
+								BS_TEST_BIT(bits type set?)
+								unless set? [ERR_EXPECT_ARGUMENT(dt/value count)]
+							]
+							TYPE_OF(arg) <> dt/value [ERR_EXPECT_ARGUMENT(dt/value count)]
 						]
 					]
 					case [
@@ -782,7 +792,7 @@ interpreter: context [
 			]
 			TYPE_ROUTINE [
 				#if debug? = yes [if verbose > 0 [log "pushing routine frame"]]
-				stack/mark-interp-native name
+				stack/mark-interp-native name				
 				pc: eval-arguments caller pc end path slot origin
 				exec-routine as red-routine! caller
 				either sub? [stack/unwind][stack/unwind-last]
