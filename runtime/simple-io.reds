@@ -227,6 +227,11 @@ simple-io: context [
 					str		[c-string!]
 					return:	[c-string!]
 				]
+				_rename: "_wrename" [
+					old		[c-string!]
+					new		[c-string!]
+					return:	[integer!]
+				]
 			]
 		]
 	][
@@ -584,6 +589,11 @@ simple-io: context [
 		]
 		#import [
 			LIBC-file cdecl [
+				_rename: "rename" [
+					old		[c-string!]
+					new		[c-string!]
+					return:	[integer!]
+				]
 				_access: "access" [
 					filename	[c-string!]
 					mode		[integer!]
@@ -2076,5 +2086,17 @@ simple-io: context [
 			]
 			as red-value! bin
 		]
+	]
+
+	rename: func[
+		from	[red-value!]
+		to		[red-value!]
+		return:  [logic!]
+		/local
+			old new [c-string!]
+	][
+		old: file/to-OS-path as red-file! from
+		new: file/to-OS-path as red-file! to
+		zero? _rename old new
 	]
 ]
