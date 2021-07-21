@@ -2864,7 +2864,7 @@ natives: context [
 		if all [next? any [one < 0 not load?]][
 			bin: as red-binary! copy-cell as red-value! bin s/offset + 1
 			s: GET_BUFFER(bin)
-			bin/head: bin/head + (offset >> (log-b GET_UNIT(s))) ;-- move the input after the lexed token
+			bin/head: bin/head + offset					;-- move the input after the lexed token
 			slot: as red-value! blk
 		]
 		either null? out [stack/set-last slot][stack/set-last as red-value! out]
