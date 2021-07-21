@@ -1413,6 +1413,68 @@ probe [this that]
 		--compile-this {Red/System [] "^^(skibadee-skibadanger)"}
 		--assert syntax-error "Invalid string! value"
 		
+
+	--test-- "#4931-1"									;-- allowed case
+		--compile-and-run-this {
+			Red/System []
+			f: func [return: [integer!] /local sr [subroutine!] x][
+				sr: [x: 1]
+				sr
+				x
+			]
+			probe f			
+		}
+		--assert compiled?
+		--assert "1" = trim/all qt/output
+
+	--test-- "#4931-2"									;-- not allowed case
+		--compile-this {
+			Red/System []
+			f: func [return: [integer!] /local sr [subroutine!] x][
+				x: 1
+				sr: [x: x * 2]
+				sr
+				x
+			]
+			probe f			
+		}
+		--assert not compiler-error?
+		--assert compilation-error "type declaration missing"
+
+	--test-- "#4931-3"									;-- not allowed case
+		--compile-this {
+			Red/System []
+			f: func [
+				x [float!]
+				return: [integer!]
+				/local sr [subroutine!] y
+			][
+				y: as integer! x
+				sr: [y]
+				0
+			]
+			probe f 100.0
+		}
+		--assert not compiler-error?
+		--assert compilation-error "type declaration missing"
+
+	--test-- "#4931-4"									;-- not allowed case
+		--compile-this {
+			Red/System []
+			f: func [
+				x [float!]
+				return: [integer!]
+				/local sr [subroutine!] y
+			][
+				y: as integer! x
+				sr: [push as integer! y]
+				0
+			]
+			probe f 100.0
+		}
+		--assert not compiler-error?
+		--assert compilation-error "type declaration missing"
+
 ===end-group===
 
 
