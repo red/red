@@ -63,7 +63,7 @@ get-current-dir: routine ["Returns the platform’s current directory for the pr
 	stack/set-last as red-value! file/get-current-dir
 ]
 
-set-current-dir: routine ["Sets the platform’s current process directory" path [string!] /local dir [red-file!]][
+set-current-dir: routine ["Sets the platform’s current process directory" path [file!] /local dir [red-file!]][
 	dir: as red-file! stack/arguments
 	unless platform/set-current-dir file/to-OS-path dir [
 		fire [TO_ERROR(access cannot-open) dir]
