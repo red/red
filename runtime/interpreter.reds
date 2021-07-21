@@ -294,7 +294,8 @@ interpreter: context [
 								BS_TEST_BIT(bits type set?)
 								unless set? [ERR_EXPECT_ARGUMENT(dt/value count)]
 							]
-							TYPE_OF(arg) <> dt/value [ERR_EXPECT_ARGUMENT(dt/value count)]
+							TYPE_OF(arg) = dt/value [0]	;-- all good, do nothing
+							true [ERR_EXPECT_ARGUMENT(dt/value count)]
 						]
 					]
 					case [
