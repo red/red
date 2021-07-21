@@ -364,13 +364,22 @@ system-dialect: make-profilable context [
 			not any [word? value get-word? value path? value block? value value = <last>]
 		]
 		
-		not-initialized?: func [name [word!] /local pos][
+		not-typed?: func [name [word!] /local pos][
+			all [
+				locals
+				pos: find locals /local
+				pos: find next pos name
+				not block? pick pos 2
+			]
+		]
+		
+		not-initialized?: func [name [word!] /set /local pos][
 			all [
 				locals
 				pos: find locals /local
 				pos: find next pos name
 				not find locals-init name
-				not in-subroutine?
+				any [set not in-subroutine?]
 			]
 		]
 		
@@ -3162,6 +3171,9 @@ system-dialect: make-profilable context [
 					if not-initialized? name [
 						throw-error ["local variable" name "used before being initialized!"]
 					]
+					if all [in-subroutine? not-typed? name][
+						throw-error ["type declaration missing for variable" name "used in subroutine" in-subroutine?]
+					]
 					last-type: resolve-type name
 					unless check [also name pc: next pc]
 				]
@@ -3460,7 +3472,7 @@ system-dialect: make-profilable context [
 				backtrack set-word
 				throw-error "name already used for as an alias definition"
 			]
-			if not-initialized? name [
+			if not-initialized?/set name [
 				init-local name expr casted				;-- mark as initialized and infer type if required
 			]
 
