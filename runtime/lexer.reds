@@ -2246,7 +2246,7 @@ lexer: context [
 		scan?	[logic!]								;-- NO: disable value scanning, only prescanning
 		load?	[logic!]								;-- NO: disable value loading, only scanning
 		wrap?	[logic!]								;-- force returned loaded value(s) in a block
-		len		[int-ptr!]								;-- return the consumed input length
+		len		[int-ptr!]								;-- return the consumed input length in bytes (binary) or characters (string)
 		fun		[red-function!]							;-- optional callback function
 		ser		[red-series!]							;-- optional input series back-reference
 		out		[red-block!]							;-- /into destination block or null
@@ -2276,7 +2276,11 @@ lexer: context [
 		]
 		clean-up: [
 			either null? root-state/next [root-state: null][lex/back/next: null]
-			len/value: as-integer lex/in-pos - lex/input
+			either all [ser <> null TYPE_OF(ser) = TYPE_STRING][
+				len/value: unicode/count-chars lex/input lex/in-pos
+			][
+				len/value: as-integer lex/in-pos - lex/input
+			]
 		]
 		
 		lex/next:		null							;-- last element of the states linked list
