@@ -1482,8 +1482,12 @@ Red [
 
 ===start-group=== "issues"
 
-	--test-- "issue-4914"
+	--test-- "#4914"
 		--assert error? try [transcode {#(a: 22 b: 33 c: x: a)}]
+
+	--test-- "#4933"
+		--assert [фывапр " abcdef"] == transcode/next "фывапр abcdef"
+		--assert ["Gab’s Books" "^/Work In P"] == transcode/next {"Gab’s Books"^/Work In P}
 
 ===end-group===
 	
