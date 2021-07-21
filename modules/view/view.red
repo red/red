@@ -791,7 +791,7 @@ show: function [
 			if all [object? face/actors in face/actors 'on-create][
 				do-safe [face/actors/on-create face none]
 			]
-			p: either with [parent/state/1][0]
+			p: either with [parent/state/1][null-handle]
 
 			#if config/OS = 'macOS [					;@@ remove this system specific code
 				if all [face/type = 'tab-panel face/pane][
