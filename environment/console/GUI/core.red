@@ -21,7 +21,7 @@ object [
 	full?:		no								;-- is line buffer full?
 	ask?:		no								;-- is it in ask loop
 	prin?:		no								;-- start prin?
-	newline?:	no								;-- start a new line?
+	newline?:	yes								;-- start a new line?
 	mouse-up?:	yes
 	ime-open?:	no
 	ime-pos:	0
@@ -86,6 +86,32 @@ object [
 		url!		[0.0.255 underline]
 		comment!	[128.128.128]
 	)
+
+	ask: func [question [string!] hide?][
+		either prin? [
+			line: append last lines question
+			line: tail line
+		][
+			line: make string! 8
+			line: insert line question
+			add-line head line
+		]
+		pos: 0
+		line-pos: length? lines
+		ask?: yes
+		reset-top/force
+		clear-stack
+		set-flag hide?
+		either paste/resume [
+			do-ask-loop/no-wait
+		][
+			system/view/platform/redraw gui-console-ctx/console
+			system/view/auto-sync?: yes
+			do-events
+		]
+		ask?: no
+		line
+	]
 
 	do-ask-loop: function [/no-wait][
 		system/view/platform/do-event-loop no-wait

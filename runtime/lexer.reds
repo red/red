@@ -2246,7 +2246,7 @@ lexer: context [
 		scan?	[logic!]								;-- NO: disable value scanning, only prescanning
 		load?	[logic!]								;-- NO: disable value loading, only scanning
 		wrap?	[logic!]								;-- force returned loaded value(s) in a block
-		len		[int-ptr!]								;-- return the consumed input length
+		len		[int-ptr!]								;-- return the consumed input length in bytes (binary) or characters (string)
 		fun		[red-function!]							;-- optional callback function
 		ser		[red-series!]							;-- optional input series back-reference
 		out		[red-block!]							;-- /into destination block or null
@@ -2276,7 +2276,11 @@ lexer: context [
 		]
 		clean-up: [
 			either null? root-state/next [root-state: null][lex/back/next: null]
-			len/value: as-integer lex/in-pos - lex/input
+			either all [ser <> null TYPE_OF(ser) = TYPE_STRING][
+				len/value: unicode/count-chars lex/input lex/in-pos
+			][
+				len/value: as-integer lex/in-pos - lex/input
+			]
 		]
 		
 		lex/next:		null							;-- last element of the states linked list
@@ -2302,6 +2306,7 @@ lexer: context [
 			lex/fun-locs: _function/count-locals fun/spec 0 no
 			lex/fun-evts: decode-filter fun
 		]
+		assert system/thrown = 0
 		
 		catch RED_THROWN_ERROR [scan-tokens lex one? not scan?]
 		if system/thrown > LEX_ERR [clean-up re-throw]
@@ -2314,6 +2319,7 @@ lexer: context [
 			][
 				if TYPE_OF(p) = TYPE_POINT [			;-- unclosed any-block series case
 					lex/closing: p/y
+					assert system/thrown = 0
 					catch RED_THROWN_ERROR [throw-error lex lex/input + p/z lex/in-end ERR_CLOSING]
 					either system/thrown <= LEX_ERR [
 						if dst <> null [dst/header: TYPE_NONE] ;-- no dst when called from Parse, #4678
@@ -2373,6 +2379,7 @@ lexer: context [
 		utf8-buf-tail: utf8-buf-tail + size + 1			;-- move at tail for new buffer; +1 for terminal NUL
 
 		if null? len [len: :ignore]
+		assert system/thrown = 0
 		catch RED_THROWN_ERROR [type: scan dst base size one? scan? load? wrap? len fun as red-series! str out]
 		utf8-buf-tail: utf8-buffer + used				;-- move back to original tail
 		if extra <> null [free extra]

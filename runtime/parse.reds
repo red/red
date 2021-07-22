@@ -693,6 +693,7 @@ parser: context [
 		stack/push as red-value! rules
 		if positive? locals [_function/init-locals 1 + locals]	;-- +1 for /local refinement
 		rule/head: offset
+		assert system/thrown = 0
 		
 		catch RED_THROWN_ERROR [_function/call fun ctx]
 
@@ -759,6 +760,7 @@ parser: context [
 	][
 		PARSE_SAVE_SERIES
 		saved: stack/top
+		assert system/thrown = 0
 		catch RED_THROWN_ERROR [interpreter/eval as red-block! code no]
 		PARSE_RESTORE_SERIES							;-- restore localy saved series/head first
 		if system/thrown <> 0 [reset saved? re-throw]

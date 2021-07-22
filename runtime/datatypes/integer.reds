@@ -667,6 +667,7 @@ integer: context [
 			negative? exp/value
 		]
 		unless up? [
+			assert system/thrown = 0
 			catch RED_INT_OVERFLOW [
 				base/value: int-power base/value exp/value
 			]

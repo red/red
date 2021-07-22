@@ -1089,6 +1089,7 @@ Red/System [
 			system/thrown: 0
 			draw-begin :DC handle img on-graphic? paint?
 			if TYPE_OF(cmds) = TYPE_BLOCK [
+				assert system/thrown = 0
 				catch RED_THROWN_ERROR [parse-draw DC cmds catch?]
 			]
 			draw-end :DC handle on-graphic? cache? paint?

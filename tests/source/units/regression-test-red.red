@@ -3008,6 +3008,11 @@ comment {
 		all-equal?4205: anded4205 = last-random4205
 		--assert not all-equal?4205
 		unset [anded4205 last-random4205 all-equal?4205]
+
+	--test-- "#4260"
+		catch [throw 1]
+		err4260: try [add none none]
+		--assert to-logic find form err4260 "add does not"
 	
 	--test-- "#4260"
 		catch [throw 1]

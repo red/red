@@ -138,6 +138,7 @@ natives: context [
 		
 		stack/mark-loop words/_body
 		while [
+			assert system/thrown = 0
 			catch RED_THROWN_BREAK [interpreter/eval cond yes]
 			switch system/thrown [
 				RED_THROWN_BREAK
@@ -151,6 +152,7 @@ natives: context [
 			logic/true?
 		][
 			stack/reset
+			assert system/thrown = 0
 			catch RED_THROWN_BREAK [interpreter/eval body yes]
 			switch system/thrown [
 				RED_THROWN_BREAK	[system/thrown: 0 break]
@@ -175,6 +177,7 @@ natives: context [
 		stack/mark-loop words/_body
 		until [
 			stack/reset
+			assert system/thrown = 0
 			catch RED_THROWN_BREAK	[interpreter/eval body yes]
 			switch system/thrown [
 				RED_THROWN_BREAK	[system/thrown: 0 break]
@@ -243,6 +246,7 @@ natives: context [
 		until [
 			stack/reset
 			_context/set w as red-value! count
+			assert system/thrown = 0
 			catch RED_THROWN_BREAK [interpreter/eval body yes]
 			switch system/thrown [
 				RED_THROWN_BREAK [system/thrown: 0 break]
@@ -269,6 +273,7 @@ natives: context [
 		
 		stack/mark-loop words/_body
 		forever [
+			assert system/thrown = 0
 			catch RED_THROWN_BREAK	[interpreter/eval body no]
 			switch system/thrown [
 				RED_THROWN_BREAK	[system/thrown: 0 break]
@@ -305,6 +310,7 @@ natives: context [
 			
 			while [foreach-next-block size][			;-- foreach [..]
 				stack/reset
+				assert system/thrown = 0
 				catch RED_THROWN_BREAK	[interpreter/eval body no]
 				switch system/thrown [
 					RED_THROWN_BREAK	[system/thrown: 0 break]
@@ -318,6 +324,7 @@ natives: context [
 			
 			while [foreach-next][						;-- foreach <word!>
 				stack/reset
+				assert system/thrown = 0
 				catch RED_THROWN_BREAK	[interpreter/eval body no]
 				switch system/thrown [
 					RED_THROWN_BREAK	[system/thrown: 0 break]
@@ -360,6 +367,7 @@ natives: context [
 			loop? series
 		][
 			stack/reset
+			assert system/thrown = 0
 			catch RED_THROWN_BREAK	[interpreter/eval body no]
 			switch system/thrown [
 				RED_THROWN_BREAK	[system/thrown: 0 break?: yes break]
@@ -407,6 +415,7 @@ natives: context [
 		]
 		while [either multi? [foreach-next-block size][foreach-next]][	;-- each [...] / each <word!>
 			stack/reset
+			assert system/thrown = 0
 			catch RED_THROWN_BREAK	[interpreter/eval body no]
 			switch system/thrown [
 				RED_THROWN_BREAK	[system/thrown: 0 break]
@@ -553,6 +562,7 @@ natives: context [
 		]
 		if next > 0 [slot: _context/get as red-word! stack/arguments + next]
 		
+		assert system/thrown = 0
 		catch RED_THROWN_BREAK [
 			switch TYPE_OF(arg) [
 				TYPE_BLOCK [DO_EVAL_BLOCK]
@@ -1219,6 +1229,7 @@ natives: context [
 		]
 		cframe: stack/get-ctop							;-- save the current call frame pointer
 		
+		assert system/thrown = 0
 		catch RED_THROWN_BREAK [
 			res: parser/process
 				input
@@ -1909,7 +1920,6 @@ natives: context [
 	][
 		#typecheck [try _all keep]
 		arg: stack/arguments
-		system/thrown: 0								;@@ To be removed
 		cframe: stack/get-ctop							;-- save the current call frame pointer
 		result: 0
 		
@@ -1918,6 +1928,7 @@ natives: context [
 		][
 			stack/mark-try-all words/_try
 		]
+		assert system/thrown = 0
 		catch RED_THROWN_ERROR [
 			interpreter/eval as red-block! arg yes
 			stack/unwind-last							;-- bypass it in case of error
@@ -2086,6 +2097,7 @@ natives: context [
 		if name <> -1 [c-name: as red-word! arg + name]
 		
 		stack/mark-catch words/_body
+		assert system/thrown = 0
 		catch RED_THROWN_THROW [interpreter/eval as red-block! arg yes]
 		t-name: as red-word! stack/arguments + 1
 		stack/unwind-last
@@ -2851,7 +2863,8 @@ natives: context [
 		]
 		if all [next? any [one < 0 not load?]][
 			bin: as red-binary! copy-cell as red-value! bin s/offset + 1
-			bin/head: bin/head + offset
+			s: GET_BUFFER(bin)
+			bin/head: bin/head + offset					;-- move the input after the lexed token
 			slot: as red-value! blk
 		]
 		either null? out [stack/set-last slot][stack/set-last as red-value! out]

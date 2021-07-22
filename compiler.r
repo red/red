@@ -556,8 +556,8 @@ red: context [
 				]
 			][
 				append body [
-					RED_THROWN_BREAK    [break]
-					RED_THROWN_CONTINUE [continue]
+					RED_THROWN_BREAK    [system/thrown: 0 break]
+					RED_THROWN_CONTINUE [system/thrown: 0 continue]
 				]
 			]
 		]
@@ -599,7 +599,12 @@ red: context [
 	]
 	
 	emit-native: func [name [word!] /with options [block!] /local wrap? pos body][
-		if wrap?: to logic! find [parse do] name [emit 'switch]
+		if wrap?: to logic! find [parse do] name [
+			emit [
+				assert system/thrown = 0
+				switch
+			]
+		]
 		emit join natives-prefix to word! join name #"*"
 		emit 'true										;-- request run-time type-checking
 		pos: either with [
@@ -609,7 +614,12 @@ red: context [
 			-2
 		]
 		insert-lf pos - pick [1 0] wrap?
-		if wrap? [emit build-exception-handler]
+		if wrap? [
+			emit build-exception-handler
+			emit [
+				system/thrown: 0
+			]
+		]
 	]
 	
 	emit-exit-function: does [
@@ -2241,7 +2251,10 @@ red: context [
 		emit-open-frame 'body
 		either block? pc/1 [
 			emit-open-frame call
-			emit [catch RED_THROWN_ERROR]
+			emit [
+				assert system/thrown = 0
+				catch RED_THROWN_ERROR
+			]
 			insert-lf -2
 			body: comp-sub-block 'try
 			if body/1 = 'stack/reset [remove body]
