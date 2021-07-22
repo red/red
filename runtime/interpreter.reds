@@ -281,7 +281,7 @@ interpreter: context [
 				value: value - 1
 				if TYPE_OF(value) =	TYPE_BLOCK [
 					w: as red-word! block/rs-head as red-block! value
-					assert TYPE_OF(w) = TYPE_WORD
+					if TYPE_OF(w) <> TYPE_WORD [fire [TO_ERROR(script invalid-type-spec) w]]
 					sym: w/symbol
 					arg: stack/arguments + count
 					
