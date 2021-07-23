@@ -886,7 +886,7 @@ lexer: context [
 				if s = "-0.0" [s: "0-"]					;-- re-encoded for consistency
 				either #"%" = last s [s: to issue! s][
 					s: to issue! join "." s
-					if neg? [append s #"-"]
+					if all [neg? not find s "nan"][append s #"-"]
 				]
 			]
 		][
