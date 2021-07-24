@@ -3536,9 +3536,10 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		comp-expression: func [expr keep? [logic!] /local variable boxed casting new? type spec store? subrc?][
-			store?: no
-			
+		comp-expression: func [
+			expr keep? [logic!]
+			/local variable boxed casting new? type spec store? subrc? set-thru?
+		][
 			;-- preprocessing expression
 			if all [block? expr find [set-word! set-path!] type?/word expr/1][
 				variable: expr/1
@@ -3639,9 +3640,15 @@ system-dialect: make-profilable context [
 					emitter/logic-to-integer/parity		;-- runtime logic! conversion before storing
 						expr/1 floats-in-condition? expr
 				]
-				if all [not variable boxed][last-type: boxed/type] ;-- enforces type casting on calling expression
+				set-thru?: all [						;-- let type-castings pass through some reserved words
+					find [either switch case] pick tail expr-call-stack -3
+					find [set-word! set-path!] type?/word  pick tail expr-call-stack -4
+				]
+				if all [not variable not set-thru? boxed][
+					last-type: boxed/type				;-- enforces type casting on calling expression
+				]
 				if all [
-					variable boxed						;-- process casting if result assigned to variable
+					any [variable set-thru?] boxed		;-- process casting if result assigned to variable
 					find [logic! byte! integer! float! float32! float64!] last-type/1
 					find [logic! byte! integer! float! float32! float64!] boxed/type	;-- fixes #967
 					last-type/1 <> boxed/type
