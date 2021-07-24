@@ -589,7 +589,7 @@ system/view/platform: context [
 	
 	on-change-facet: routine [
 		owner  [object!]
-		word   [word!]
+		word   [any-word!]
 		value  [any-type!]
 		action [word!]
 		new	   [any-type!]
