@@ -126,14 +126,13 @@ url: context [
 					limit?
 					num >= part
 				][
-					return 0
+					return part - num
 				]
 				p: p + 1
 			]
 			data: data + 1
 		]
-
-		0
+		part - num
 	]
 	
 	to: func [

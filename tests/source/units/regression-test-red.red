@@ -3143,6 +3143,12 @@ comment {
 		--assert not strict-equal? "foo" #{666F6F}
 		--assert not strict-equal? #{666F6F} "foo"
 
+	--test-- "#4879"
+		--assert "x" == form/part object [x: 1 u: u://rl] 1
+		--assert "m" == mold/part object [x: 1 u: u://rl] 1
+		--assert "[http:// 1 2 3]" == mold [http:// 1 2 3]
+		--assert "[http:// 1 2 3]" == mold/part [http:// 1 2 3] 999
+
 	--test-- "#4900"
 		--assert 1.0 = (    1.0 %  1.#inf)
 		--assert 1.0 = (    1.0 % -1.#inf)
