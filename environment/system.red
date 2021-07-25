@@ -363,7 +363,7 @@ system: context [
 		
 		;-- change the way float numbers are processed
 		float: context [
-			pretty?: false
+			pretty?: true
 			full?: 	 false
 			
 			on-change*: func [word old new][
