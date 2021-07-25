@@ -718,6 +718,9 @@ Red/System [
 				ncmd		[red-value!]
 				ntail		[red-value!]
 		][
+			if cycles/find? cmds/node [cycles/reset fire [TO_ERROR(internal no-cycle)]]
+			cycles/push cmds/node
+
 			cmd:  block/rs-head cmds
 			tail: block/rs-tail cmds
 
@@ -1068,6 +1071,8 @@ Red/System [
 				]
 				cmd: cmd + 1
 			]
+
+			cycles/pop
 		]
 
 		do-draw: func [
