@@ -3143,6 +3143,10 @@ comment {
 		--assert not strict-equal? "foo" #{666F6F}
 		--assert not strict-equal? #{666F6F} "foo"
 
+	--test-- "#4865"
+		--assert error? try [to word! to issue! "<s>"]
+		--assert error? try [to word! /1]
+
 	--test-- "#4879"
 		--assert "x" == form/part object [x: 1 u: u://rl] 1
 		--assert "m" == mold/part object [x: 1 u: u://rl] 1
