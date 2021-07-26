@@ -466,6 +466,7 @@ stack: context [										;-- call stack
 		result:	   arguments
 		save-top:  top
 		save-ctop: ctop
+		if ctop > cbottom  [ctop: ctop - 1]
 		
 		;-- unwind the stack and determine the outcome of a break/continue exception
 		until [
@@ -509,7 +510,8 @@ stack: context [										;-- call stack
 		result:	   arguments
 		save-top:  top
 		save-ctop: ctop
-
+		if ctop > cbottom  [ctop: ctop - 1]
+		
 		;-- unwind the stack and determine the outcome of an exit/return exception
 		until [
 			if CALL_STACK_TYPE?(ctop FRAME_TRY_ALL) [
@@ -553,6 +555,7 @@ stack: context [										;-- call stack
 		result:	   arguments
 		save-top:  top
 		save-ctop: ctop
+		if ctop > cbottom  [ctop: ctop - 1]
 		
 		if where-ctop = null [where-ctop: ctop]
 		
