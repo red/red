@@ -371,8 +371,13 @@ load-single-value: func [
 	value
 ]
 
-load-value: func [str [red-string!] return: [red-value!]][
-	load-single-value str stack/arguments
+load-value: func [str [red-string!] return: [red-value!] /local s [series!]][
+	s: GET_BUFFER(str)
+	either lexer/is-blank? string/rs-head str GET_UNIT(s) [
+		as red-value! unset-value
+	][
+		load-single-value str stack/arguments
+	]
 ]
 
 form-value: func [

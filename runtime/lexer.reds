@@ -501,6 +501,20 @@ lexer: context [
 		cont?
 	]
 	
+	
+	is-blank?: func [
+		p		[byte-ptr!]
+		unit	[integer!]
+		return: [logic!]
+		/local
+			p4	[int-ptr!]
+			index class [integer!]
+	][
+		index: string/get-char p unit
+		class: lex-classes/index and FFh				;-- mask the flags
+		any [class = C_BLANK class = C_LINE]
+	]
+	
 	mark-buffers: func [/local s [state!]][
 		if root-state <> null [
 			s: root-state

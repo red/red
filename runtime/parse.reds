@@ -207,6 +207,7 @@ parser: context [
 		s: GET_BUFFER(input)
 		buf: (as byte-ptr! s/offset) + input/head
 		size: as-integer (as byte-ptr! s/tail) - buf
+		if lexer/is-blank? buf GET_UNIT(s) [return false] ;-- leading blank character => no match
 		type: lexer/scan null buf size yes yes no no :len null null null
 		
 		match?: either dt-type = TYPE_TYPESET [BS_TEST_BIT_ALT(dt type)][type = dt/value]
