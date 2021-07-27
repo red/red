@@ -267,6 +267,7 @@ binary: context [
 			end		[byte-ptr!]
 			type	[integer!]
 			same?	[logic!]
+			c1 c2 	[integer!]
 	][
 		type: TYPE_OF(bin2)
 		if all [
@@ -311,9 +312,22 @@ binary: context [
 		p1: (as byte-ptr! s1/offset) + bin1/head
 		p2: (as byte-ptr! s2/offset) + bin2/head
 
-		while [all [p2 < end p1/1 = p2/1]][
-			p1: p1 + 1
-			p2: p2 + 1
+		either op = COMP_EQUAL [
+			while [
+				either p2 < end [
+					c1: case-folding/change-char as-integer p1/1 yes	;-- uppercase c1
+					c2: case-folding/change-char as-integer p2/1 yes	;-- uppercase c2
+					c1 = c2
+				][no]
+			][
+				p1: p1 + 1
+				p2: p2 + 1
+			]
+		][
+			while [all [p2 < end p1/1 = p2/1]][
+				p1: p1 + 1
+				p2: p2 + 1
+			]
 		]
 		either p2 = end [
 			if match? [
@@ -358,7 +372,8 @@ binary: context [
 		op		[integer!]
 		return:	[logic!]
 		/local
-			char [red-char!]
+			char  [red-char!]
+			c1 c2 [integer!]
 	][
 		switch TYPE_OF(value) [
 			TYPE_BINARY
@@ -367,7 +382,13 @@ binary: context [
 			]
 			TYPE_CHAR [
 				char: as red-char! value
-				char/value = rs-abs-at bin bin/head
+				either op = COMP_EQUAL [
+					c1: case-folding/change-char as-integer char/value yes				;-- uppercase c1
+					c2: case-folding/change-char as-integer rs-abs-at bin bin/head yes	;-- uppercase c2
+					c1 = c2
+				][
+					char/value = rs-abs-at bin bin/head
+				]
 			]
 			default [no]
 		]
