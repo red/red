@@ -1122,9 +1122,9 @@ dt: function [
 	body	[block!]
 	return: [time!]
 ][
-	t0: now/time/precise
+	t0: now/precise
 	do body
-	difference now/time/precise t0
+	difference now/precise t0
 ]
 
 time-it: :dt
