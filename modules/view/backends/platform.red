@@ -670,28 +670,38 @@ system/view/platform: context [
 		]
 	]
 
-	request-font: routine [font [object!] selected [object!] mono? [logic!]][
-		gui/OS-request-font font selected mono?
+	request-font: routine [font [object!] selected [any-type!] mono? [logic!]][
+		gui/OS-request-font font as red-object! selected mono?
 	]
 
 	request-file: routine [
-		title	[string!]
-		name	[file!]
-		filter	[block!]
+		title	[any-type!]
+		name	[any-type!]
+		filter	[any-type!]
 		save?	[logic!]
 		multi?	[logic!]
 	][
-		stack/set-last gui/OS-request-file title name filter save? multi?
+		stack/set-last gui/OS-request-file
+			as red-string! title
+			as red-file! name
+			as red-block! filter
+			save?
+			multi?
 	]
 
 	request-dir: routine [
-		title	[string!]
-		dir		[file!]
-		filter	[block!]
+		title	[any-type!]
+		dir		[any-type!]
+		filter	[any-type!]
 		keep?	[logic!]
 		multi?	[logic!]
 	][
-		stack/set-last gui/OS-request-dir title dir filter keep? multi?
+		stack/set-last gui/OS-request-dir
+			as red-string! title
+			as red-file! dir
+			as red-block! filter
+			keep?
+			multi?
 	]
 
 	text-box-metrics: routine [
