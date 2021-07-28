@@ -1124,8 +1124,10 @@ dt: function [
 ][
 	t0: now/time/precise
 	do body
-	now/time/precise - t0
+	difference now/time/precise t0
 ]
+
+time-it: :dt
 
 ;------------------------------------------
 ;-				Aliases					  -
