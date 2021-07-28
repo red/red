@@ -2408,7 +2408,7 @@ system-dialect: make-profilable context [
 			][
 				pc: either all [expr = 'pointer! block? pc/2][skip pc 2][next pc]
 			][
-				expr: fetch-expression/final 'size?
+				expr: fetch-expression 'size?
 				type: resolve-expr-type expr
 			]
 			emitter/get-size type expr
