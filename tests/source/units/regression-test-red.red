@@ -3147,29 +3147,34 @@ comment {
 		--assert error? try [to word! to issue! "<s>"]
 		--assert error? try [to word! /1]
 
-	--test-- "#4875"
-		#system [
-			gt4875: func [
-				return: [float!]
-				/local
-					nano [integer!]
-					mi	 [float!]
-			][
-				nano: 123
-				mi: as-float nano
-				mi: mi / 1e+9
-				mi
-			]
-
-			f4875: func [a [float!] return: [float!]][
-				gt4875
-				loop 7 [size? a]
-				gt4875
-			]
+	#do [ if not value? 'interpreted? [
+			interpreted?: attempt [ system/state/interpreted? ]
 		]
-		rt4875: routine [return: [float!]][f4875 1.0]
-		--assert 1.23e-7 == rt4875
+	]
+	#if not interpreted? [
+		--test-- "#4875"
+			#system [
+				gt4875: func [
+					return: [float!]
+					/local
+						nano [integer!]
+						mi	 [float!]
+				][
+					nano: 123
+					mi: as-float nano
+					mi: mi / 1e+9
+					mi
+				]
 
+				f4875: func [a [float!] return: [float!]][
+					gt4875
+					loop 7 [size? a]
+					gt4875
+				]
+			]
+			rt4875: routine [return: [float!]][f4875 1.0]
+			--assert 1.23e-7 == rt4875
+	]
 
 	--test-- "#4879"
 		--assert "x" == form/part object [x: 1 u: u://rl] 1
