@@ -219,9 +219,10 @@ alloc0: func [
 	][
 		d: as int-ptr! :f
 		case [
-			d/2 = 7FF80000h [
-				prin "1.#NaN"
-			]
+			all [d/2 = 7FF00000h d/1 = 0][prin "1.#INF"]
+			d/2 >= 7FF00000h [prin "1.#NaN"]
+			all [d/2 = FFF00000h d/1 = 0][prin "-1.#INF"]
+			all [d/2 < 0 d/2 >= FFF00000h][prin "1.#NaN"]
 			f - (floor f) = 0.0 [
 				s: "                        "				;-- 23 + 1 for NUL
 				sprintf [s "%g.0" f]
@@ -243,9 +244,10 @@ alloc0: func [
 	prin-float32: func [f32 [float32!] return: [float32!] /local f [float!] d [int-ptr!]][
 		d: as int-ptr! :f32
 		case [
-			d/1 = 7FC00000h [prin "1.#NaN"]
 			d/1 = 7F800000h [prin "1.#INF"]
+			d/1 > 7F800000h [prin "1.#NaN"]
 			d/1 = FF800000h [prin "-1.#INF"]
+			all [d/1 < 0 d/1 > FF800000h][prin "1.#NaN"]
 			true [
 				f: as float! f32
 				either f - (floor f) = 0.0 [
