@@ -1598,6 +1598,7 @@ OS-clip-end: func [
 
 OS-draw-shape-beginpath: func [
 	dc          [draw-ctx!]
+	draw?		[logic!]
 ][
 	dc/path: CGPathCreateMutable
 	CGPathMoveToPoint dc/path null F32_0 F32_0

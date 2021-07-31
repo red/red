@@ -2171,6 +2171,7 @@ OS-clip-end: func [
 
 OS-draw-shape-beginpath: func [
 	dc			[draw-ctx!]
+	draw?		[logic!]
 ][
 	cairo_move_to dc/cr 0.0 0.0
 ]

@@ -593,7 +593,7 @@ Red/System [
 			tail: block/rs-tail cmds
 
 			close?: no
-			OS-draw-shape-beginpath DC
+			OS-draw-shape-beginpath DC draw?
 			while [cmd < tail][
 				case [
 					any [ TYPE_OF(cmd) = TYPE_WORD TYPE_OF(cmd) = TYPE_LIT_WORD ][

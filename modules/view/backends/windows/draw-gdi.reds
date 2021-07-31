@@ -960,6 +960,7 @@ draw-short-curves: func [
 
 OS-draw-shape-beginpath: func [
 	ctx			[draw-ctx!]
+	draw?		[logic!]
 	/local
 		path	[integer!]
 ][

@@ -394,6 +394,7 @@ Red/System [
 			font-color?		[logic!]
 			shadow?			[logic!]
 			font?			[logic!]
+			draw-shape?		[logic!]
 			text-format		[this!]
 			sub				[sub-path! value]
 			shadows			[shadow! value]

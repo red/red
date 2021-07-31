@@ -467,6 +467,7 @@ OS-draw-text: func [
 
 OS-draw-shape-beginpath: func [
 	ctx			[draw-ctx!]
+	draw?		[logic!]
 	/local
 		d2d		[ID2D1Factory]
 		path	[ptr-value!]
@@ -477,6 +478,7 @@ OS-draw-shape-beginpath: func [
 		sthis	[this!]
 		gsink	[ID2D1GeometrySink]
 		vpoint	[POINT_2F value]
+		figure	[integer!]
 ][
 	d2d: as ID2D1Factory d2d-factory/vtbl
 	hr: d2d/CreatePathGeometry d2d-factory :path
@@ -486,6 +488,7 @@ OS-draw-shape-beginpath: func [
 	sthis: as this! sink/value
 	gsink: as ID2D1GeometrySink sthis/vtbl
 
+	ctx/draw-shape?: draw?
 	ctx/sub/path: as integer! pthis
 	ctx/sub/sink: as integer! sthis
 	ctx/sub/last-pt-x: as float32! 0.0
@@ -493,7 +496,11 @@ OS-draw-shape-beginpath: func [
 	ctx/sub/shape-curve?: no
 	vpoint/x: ctx/sub/last-pt-x
 	vpoint/y: ctx/sub/last-pt-y
-	gsink/BeginFigure sthis vpoint as-integer ctx/brush-type = DRAW_BRUSH_NONE
+	figure: either draw? [as-integer ctx/brush-type = DRAW_BRUSH_NONE][
+		gsink/SetFillMode sthis 1
+		0
+	]
+	gsink/BeginFigure sthis vpoint figure
 ]
 
 OS-draw-shape-endpath: func [
@@ -553,6 +560,7 @@ OS-draw-shape-moveto: func [
 		sthis	[this!]
 		gsink	[ID2D1GeometrySink]
 		vpoint	[POINT_2F value]
+		figure	[integer!]
 ][
 	dx: as float32! coord/x
 	dy: as float32! coord/y
@@ -568,7 +576,8 @@ OS-draw-shape-moveto: func [
 	gsink/EndFigure sthis 0
 	vpoint/x: ctx/sub/last-pt-x
 	vpoint/y: ctx/sub/last-pt-y
-	gsink/BeginFigure sthis vpoint as-integer ctx/brush-type = DRAW_BRUSH_NONE
+	figure: either ctx/draw-shape? [as-integer ctx/brush-type = DRAW_BRUSH_NONE][0]
+	gsink/BeginFigure sthis vpoint figure
 	ctx/sub/shape-curve?: no
 ]
 
@@ -2319,23 +2328,20 @@ OS-set-clip: func [
 		para/bounds/right: as float32! l/x
 		para/bounds/bottom: as float32! l/y
 	][
-		inf1: FF800000h
-		inf2: FF800000h
-		inf3: 7F800000h
-		inf4: 7F800000h
-		copy-memory as byte-ptr! para/bounds as byte-ptr! :inf1 16
+		inf1: FF7FFFFFh
+		inf2: FF7FFFFFh
+		inf3: 7F7FFFFFh
+		inf4: 7F7FFFFFh
+		copy-memory as byte-ptr! :para/bounds as byte-ptr! :inf1 16
 
-		;-- TDB: as the shape path are auto closed, so need a way to reserve path
 		if ctx/sub/path <> 0 [
-			pthis: as this! ctx/sub/path
-			gpath: as ID2D1PathGeometry pthis/vtbl
 			sthis: as this! ctx/sub/sink
 			gsink: as ID2D1GeometrySink sthis/vtbl
 			gsink/EndFigure sthis 1
 			hr: gsink/Close sthis
 			gsink/Release sthis
 
-			para/mask: as int-ptr! pthis
+			para/mask: as int-ptr! ctx/sub/path
 		]
 	]
 
