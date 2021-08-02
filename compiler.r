@@ -244,6 +244,13 @@ red: context [
 		clear next mark									;-- remove code at "upper" level
 	]
 	
+	insert-head-last: func [body [block!] /local mark][
+		mark: tail output
+		do body
+		insert mark/-1 mark
+		clear mark
+	]
+	
 	to-nibbles: func [src [string!] /local out][
 		out: make string! 11
 		foreach [high low] src [
@@ -382,6 +389,25 @@ red: context [
 			head? list
 		]
 		throw-error ["Should not happen: not found context for word: " mold name]
+	]
+	
+	emit-word-ref: func [name [any-word!] /no-prefix /local obj idx ctx][
+		case [
+			rebol-gctx = obj: bind? name [
+				emit either no-prefix [decorate-symbol name][prefix-exec name]
+			]
+			all [ctx: select objects obj attempt [idx: get-word-index/with name ctx]][
+				emit 'word/push-local
+				emit either parent-object? obj ['octx][ctx] ;-- optional parametrized context reference (octx)
+				emit idx
+			]
+			ctx: select shadow-funcs obj [
+				emit 'word/push-local
+				emit ctx
+				emit get-word-index name					;@@ replace that
+			]
+			'else [throw-error ["Should not happen: undefined context for word:" name]]
+		]
 	]
 	
 	emit-push-from: func [
@@ -2478,74 +2504,40 @@ red: context [
 		emit-close-frame
 	]
 	
-	comp-repeat: has [name word cnt set-cnt lim set-lim action][
-		unless any-word? word: pc/1 [
+	comp-repeat: has [name][
+		unless any-word? name: pc/1 [
 			pc: back pc
 			throw-error "REPEAT expects a word as first argument"
 		]
-		emit-open-frame 'repeat
+		add-symbol name
+		add-global name
 		
-		add-symbol word
-		add-global word
-		name: decorate-symbol word
-		action: either local-word? word [
-			'natives/repeat-set							;-- set the value slot on stack
-		][
-			'_context/set-integer						;-- set the word value in global context
-		]
-		
-		depth: depth + 1
-		if depth > max-depth [max-depth: depth]
-
-		emit-stack-reset
-		
+		emit-open-frame 'set
+		emit-push-word name name						;-- push the word
 		pc: next pc
-		comp-expression/close-path						;-- compile 2nd argument
-		emit-argument-type-check 1 'repeat 'stack/arguments
-		
-		set [cnt set-cnt] declare-variable join "r" depth		;-- integer counter
-		set [lim set-lim] declare-variable join "rlim" depth	;-- counter limit
-		emit reduce either local-word? word [					;@@ only integer! argument supported
-			[
-				set-lim 'natives/repeat-init* name
-				set-cnt 0
-			]
-		][
-			[
-				'natives/coerce-counter*
-				set-lim 'integer/get*
-				'_context/set-integer name lim
-				set-cnt 0
-			]
+		emit [
+			integer/push 0
+			word/set									;-- initialize the counter word to 0
 		]
-		foreach idx [-2 -5 -7 -8][insert-lf idx]
-		emit-stack-reset
+		emit-close-frame
 
-		emit [integer/push 0]		
 		emit-open-frame 'repeat
-		emit compose/deep [
-			while [
-				;-- set word 1 + get word
-				;-- TBD: set word next get word
-				(set-cnt) 1 + integer/get stack/arguments - 1	;-- fixes #3361
-				integer/make-at stack/arguments - 1 (cnt)
-				;-- (get word) < value
-				;-- TBD: not tail? get word
-				(cnt) <= (lim)
-			]
-		]
-		new-line last output on
-		new-line skip tail last output -3 on
-		
+		comp-expression									;-- fetch the upper limit for the counter
+		emit 'natives/coerce-counter*					;-- eventually convert float to integer
+		insert-lf -1
+		emit-argument-type-check 1 'repeat 'stack/arguments
+		emit [loop integer/get stack/arguments]
+		insert-lf -3
 		push-call 'repeat
 		comp-sub-block 'repeat-body
 		pop-call
-		insert last output reduce [action name cnt]
-		new-line last output on
-		emit [copy-cell stack/arguments stack/arguments - 1]	;-- override the counter with the body result
-		emit-close-frame
-		emit-close-frame
-		depth: depth - 1
+		insert-head-last [								;-- inject code at loop's head to pre-increment counter
+			emit [										;-- forces a newline marker
+				natives/inc-counter as red-word!		;-- increments the counter
+			]
+			emit-word-ref name
+		]
+		emit-close-frame/last
 	]
 	
 	comp-forever: does [

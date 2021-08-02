@@ -3311,31 +3311,6 @@ natives: context [
 		series/head: changed/head
 	]
 	
-	repeat-init*: func [
-		cell  	[red-value!]
-		return: [integer!]
-		/local
-			int [red-integer!]
-	][
-		copy-cell stack/arguments cell
-		int: as red-integer! cell
-		int/value										;-- overlapping /value field for integer! and char!
-	]
-	
-	repeat-set: func [
-		cell  [red-value!]
-		value [integer!]
-		/local
-			int [red-integer!]
-	][
-		assert any [
-			TYPE_OF(cell) = TYPE_INTEGER
-			TYPE_OF(cell) = TYPE_CHAR
-		]
-		int: as red-integer! cell
-		int/value: value								;-- overlapping /value field for integer! and char!
-	]
-	
 	coerce-counter: func [
 		slot 	[red-value!]
 		/local
@@ -3352,7 +3327,15 @@ natives: context [
 		]
 	]
 	
-	coerce-counter*: func [][coerce-counter stack/arguments]
+	coerce-counter*: does [coerce-counter stack/arguments]
+	
+	inc-counter: func [w [red-word!] /local int [red-integer!]][
+		assert TYPE_OF(w) = TYPE_WORD
+		int: as red-integer! _context/get w
+		assert TYPE_INTEGER = TYPE_OF(int)
+		int/value: int/value + 1
+		_context/set w as red-value! int
+	]
 	
 	init: does [
 		table: as int-ptr! allocate NATIVES_NB * size? integer!

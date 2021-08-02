@@ -206,8 +206,6 @@
 	red/object/unchanged?
 	red/object/unchanged2?
 
-	red/natives/repeat-init*
-	red/natives/repeat-set
 	red/natives/remove-each-init
 	red/natives/remove-each-next
 	red/natives/foreach-next-block
@@ -217,6 +215,7 @@
 	red/natives/forall-end
 	red/natives/forall-end-adjust
 	red/natives/coerce-counter*
+	red/natives/inc-counter
 
 	red/actions/make*
 	red/actions/random*
