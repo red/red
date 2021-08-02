@@ -262,7 +262,7 @@ re-throw: func [/local id [integer!]][
 			#either debug? = yes [
 				if null? system/debug [__set-stack-on-crash]
 				__print-debug-line  as byte-ptr! address
-				__print-debug-stack as byte-ptr! address
+				__print-debug-stack as byte-ptr! address status
 			][
 				print [lf "*** at: " as byte-ptr! address "h" lf]
 			]
