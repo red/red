@@ -2511,21 +2511,22 @@ red: context [
 		]
 		add-symbol name
 		add-global name
+		pc: next pc
 		
+		emit-open-frame 'repeat
+		comp-expression									;-- fetch the upper limit for the counter
+		emit 'natives/coerce-counter*					;-- eventually convert float to integer
+		insert-lf -1
+		emit-argument-type-check 1 'repeat 'stack/arguments
+
 		emit-open-frame 'set
 		emit-push-word name name						;-- push the word
-		pc: next pc
 		emit [
 			integer/push 0
 			word/set									;-- initialize the counter word to 0
 		]
 		emit-close-frame
 
-		emit-open-frame 'repeat
-		comp-expression									;-- fetch the upper limit for the counter
-		emit 'natives/coerce-counter*					;-- eventually convert float to integer
-		insert-lf -1
-		emit-argument-type-check 1 'repeat 'stack/arguments
 		emit [loop integer/get stack/arguments]
 		insert-lf -3
 		push-call 'repeat

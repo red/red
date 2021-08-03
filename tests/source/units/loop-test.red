@@ -56,7 +56,7 @@ Red [
 
 ===start-group=== "advanced repeat tests"
 
-	--test-- "repeat counter mess"
+	--test-- "advr1"
   		rcm-n: 0
 		repeat rcm-i 10 [
 			repeat rcm-i 5 [
@@ -66,6 +66,11 @@ Red [
 		]
 		--assert 50 = rcm-n
 		unset [rcm-i rcm-n]
+
+	--test-- "advr2"
+		c123: "string"
+		try [repeat c123 1.2.3.4 [--assert false]]  ; don't set counter word on error
+		--assert c123 == "string"
 
 ===end-group===
 
