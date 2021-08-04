@@ -117,8 +117,7 @@ Red/System [
 		pattern			[int-ptr!]
 	]
 
-	draw-ctx!: alias struct! [
-		cr				[handle!]
+	#define DRAW_STATE_DATA [
 		matrix-order	[integer!]
 		device-matrix	[tagMATRIX value]
 		pattern?		[logic!]
@@ -133,6 +132,15 @@ Red/System [
 		pen?			[logic!]
 		brush?			[logic!]
 		on-image?		[logic!]
+	]
+
+	draw-state!: alias struct! [
+		DRAW_STATE_DATA
+	]
+
+	draw-ctx!: alias struct! [
+		cr				[handle!]
+		DRAW_STATE_DATA
 		control-x		[float32!]
 		control-y		[float32!]
 		shape-curve?	[logic!]

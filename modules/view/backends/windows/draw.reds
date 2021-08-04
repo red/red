@@ -1682,13 +1682,8 @@ OS-draw-line-pattern: func [
 	ctx/pen-pattern: null
 	ctx/pen-pattern-cnt: 0
 
-	cnt: 0
-	p: start
-	while [p <= end][
-		cnt: cnt + 1
-		p: p + 1
-	]
-	if cnt > 1 [
+	cnt: (as-integer end - start) / 16 + 1
+	if cnt > 0 [
 		arr: as float32-ptr! allocate cnt * size? float32!
 		p: start
 		pf32: arr

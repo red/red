@@ -3053,6 +3053,12 @@ GPtrArray!: alias struct! [
 			cr			[handle!]
 			line_join	[integer!]
 		]
+		cairo_set_dash: "cairo_set_dash" [
+			cr			[handle!]
+			dashes		[float-ptr!]
+			num			[integer!]
+			offset		[float!]
+		]
 		cairo_set_source: "cairo_set_source" [
 			cr			[handle!]
 			source		[handle!]

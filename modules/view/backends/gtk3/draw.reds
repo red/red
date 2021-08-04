@@ -12,20 +12,6 @@ Red/System [
 
 #include %text-box.reds
 
-draw-state!: alias struct! [
-	pen-join		[integer!]
-	pen-cap			[integer!]
-	pen-style		[integer!]
-	pen-color		[integer!]					;-- 00bbggrr format
-	brush-color		[integer!]					;-- 00bbggrr format
-	font-color		[integer!]
-	grad-pen		[gradient! value]
-	grad-brush		[gradient! value]
-	pen?			[logic!]
-	brush?			[logic!]
-	on-image?		[logic!]
-]
-
 #define MAX_COLORS				256		;-- max number of colors for gradient
 
 #enum cairo_operator_t! [
@@ -1409,6 +1395,29 @@ OS-draw-line-cap: func [
 			style = square		[2]
 			true				[0]
 		]
+]
+
+OS-draw-line-pattern: func [
+	dc			[draw-ctx!]
+	start		[red-integer!]
+	end			[red-integer!]
+	/local
+		p		[red-integer!]
+		cnt		[integer!]
+		dashes	[float-ptr!]
+		pf		[float-ptr!]
+][
+	cnt: (as-integer end - start) / 16 + 1
+	if cnt > 0 [
+		dashes: as float-ptr! system/stack/allocate cnt * 2
+		pf: dashes
+		while [start <= end][
+			pf/1: as float! start/value
+			pf: pf + 1
+			start: start + 1
+		]
+	]
+	cairo_set_dash dc/cr dashes cnt 0.0
 ]
 
 GDK-draw-image: func [
