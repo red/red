@@ -377,11 +377,11 @@ update-pen-style: func [
 	prop/dashCap: ctx/pen-cap
 	prop/lineJoin: ctx/pen-join
 	prop/miterLimit: as float32! 10.0
-	prop/dashStyle: 0
+	prop/dashStyle: either zero? ctx/pen-pattern-cnt [0][5]
 	prop/dashOffset: as float32! 0.0
 
 	d2d: as ID2D1Factory d2d-factory/vtbl
-	hr: d2d/CreateStrokeStyle d2d-factory prop null 0 :style
+	hr: d2d/CreateStrokeStyle d2d-factory prop ctx/pen-pattern ctx/pen-pattern-cnt :style
 	ctx/pen-style: as this! style/value
 ]
 
@@ -1668,6 +1668,41 @@ OS-draw-line-cap: func [
 	update-pen-style ctx
 ]
 
+OS-draw-line-pattern: func [
+	ctx			[draw-ctx!]
+	start		[red-integer!]
+	end			[red-integer!]
+	/local
+		p		[red-integer!]
+		cnt		[integer!]
+		arr		[float32-ptr!]
+		pf32	[float32-ptr!]
+][
+	if ctx/pen-pattern <> null [free as byte-ptr! ctx/pen-pattern]
+	ctx/pen-pattern: null
+	ctx/pen-pattern-cnt: 0
+
+	cnt: 0
+	p: start
+	while [p <= end][
+		cnt: cnt + 1
+		p: p + 1
+	]
+	if cnt > 1 [
+		arr: as float32-ptr! allocate cnt * size? float32!
+		p: start
+		pf32: arr
+		while [p <= end][
+			pf32/1: as float32! p/value
+			pf32: pf32 + 1
+			p: p + 1
+		]
+		ctx/pen-pattern: arr
+		ctx/pen-pattern-cnt: cnt
+	]
+	update-pen-style ctx
+]
+
 create-4p-matrix: func [
 	size		[SIZE_F!]
 	ul			[POINT_2F]
@@ -2551,6 +2586,7 @@ OS-draw-state-push: func [
 	draw-state/state: as this! blk/value
 	COM_ADD_REF(unk draw-state/pen)
 	COM_ADD_REF(unk draw-state/brush)
+	COM_ADD_REF(unk draw-state/pen-style)
 ]
 
 OS-draw-state-pop: func [
@@ -2570,11 +2606,12 @@ OS-draw-state-pop: func [
 	COM_SAFE_RELEASE(IUnk draw-state/state)
 	COM_SAFE_RELEASE(IUnk ctx/pen)
 	COM_SAFE_RELEASE(IUnk ctx/brush)
+	COM_SAFE_RELEASE(IUnk ctx/pen-style)
+	if ctx/pen-pattern <> null [free as byte-ptr! ctx/pen-pattern]
 	copy-memory as byte-ptr! :ctx/state as byte-ptr! draw-state size? draw-state!
 	ctx/state: null
 	if ctx/pen-type = DRAW_BRUSH_COLOR [OS-draw-pen ctx ctx/pen-color no]
 	if ctx/brush-type = DRAW_BRUSH_COLOR [OS-draw-fill-pen ctx ctx/brush-color no yes]
-	update-pen-style ctx
 ]
 
 OS-matrix-reset: func [

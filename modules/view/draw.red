@@ -29,6 +29,7 @@ Red/System [
 		spline:			symbol/make "spline"
 		line-join:		symbol/make "line-join"
 		line-cap:		symbol/make "line-cap"
+		line-pattern:	symbol/make "line-pattern"
 		matrix:			symbol/make "matrix"
 		_append:        symbol/make "append"
 		prepend:        symbol/make "prepend"
@@ -565,6 +566,10 @@ Red/System [
 					word: as red-word! start
 					OS-draw-line-cap DC symbol/resolve word/symbol
 				]
+				sym = line-pattern [
+					DRAW_FETCH_SOME(TYPE_INTEGER)
+					OS-draw-line-pattern DC as red-integer! start as red-integer! cmd
+				]
 			]
 			cmd
 		]
@@ -615,7 +620,7 @@ Red/System [
 								DRAW_FETCH_SOME_PAIR
 								OS-draw-shape-line DC as red-pair! start as red-pair! cmd rel?
 							]
-							any [sym = line-width sym = line-join sym = line-cap][
+							any [sym = line-width sym = line-join sym = line-cap sym = line-pattern][
 								cmd: check-line DC cmds start tail cmd sym catch?
 							]
 							any [ sym = hline sym = vline ][
@@ -747,7 +752,7 @@ Red/System [
 								if start = cmd [throw-draw-error cmds cmd catch?]
 								OS-draw-line DC as red-pair! start as red-pair! cmd
 							]
-							any [sym = line-width sym = line-join sym = line-cap][
+							any [sym = line-width sym = line-join sym = line-cap sym = line-pattern][
 								cmd: check-line DC cmds start tail cmd sym catch?
 							]
 							sym = triangle [

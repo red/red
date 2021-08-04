@@ -364,6 +364,7 @@ Red/System [
 			state			[this!]
 			pen				[this!]
 			brush			[this!]
+			pen-style		[this!]
 			pen-type		[integer!]
 			brush-type		[integer!]
 			pen-color		[integer!]
@@ -371,6 +372,8 @@ Red/System [
 			font-color		[integer!]
 			pen-join		[integer!]
 			pen-cap			[integer!]
+			pen-pattern		[float32-ptr!]
+			pen-pattern-cnt [integer!]
 			pen-grad-type	[integer!]
 			brush-grad-type	[integer!]
 			pen-width		[float32!]
@@ -388,7 +391,6 @@ Red/System [
 			DRAW_STATE_DATA
 			target			[int-ptr!]
 			hwnd			[int-ptr!]			;-- Window's handle
-			pen-style		[this!]
 			image			[int-ptr!]			;-- original image handle
 			pre-order?		[logic!]			;-- matrix order, default pre-order for row-major vector
 			font-color?		[logic!]
