@@ -349,7 +349,7 @@ list-dir: function [
 			prin tab
 			prin pad form name max-sz
 			prin " "
-			if tail? list: next list [exit]
+			if tail? list: next list [break]
 		]
 		prin lf
 	]
