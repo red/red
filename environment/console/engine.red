@@ -341,6 +341,7 @@ list-dir: function [
 		22 - n
 	]
 
+	#if config/gui-console? [gui-console-ctx/terminal/refresh?: no]
 	while [not tail? list][
 		loop n [
 			if max-sz <= length? name: list/1 [
@@ -353,6 +354,7 @@ list-dir: function [
 		]
 		prin lf
 	]
+	#if config/gui-console? [gui-console-ctx/terminal/refresh?: yes]
 	()
 ]
 

@@ -22,6 +22,7 @@ object [
 	ask?:		no								;-- is it in ask loop
 	prin?:		no								;-- start prin?
 	newline?:	yes								;-- start a new line?
+	refresh?:	yes
 	mouse-up?:	yes
 	ime-open?:	no
 	ime-pos:	0
@@ -99,7 +100,7 @@ object [
 		pos: 0
 		line-pos: length? lines
 		ask?: yes
-		reset-top/force
+		reset-top
 		clear-stack
 		set-flag hide?
 		either paste/resume [
@@ -134,7 +135,7 @@ object [
 		system/view/platform/exit-event-loop
 	]
 
-	refresh: func [][system/view/platform/redraw console]
+	refresh: func [/force][if any [force refresh?] [system/view/platform/redraw console]]
 
 	vprin: func [str [string!]][
 		either empty? lines [
@@ -171,7 +172,7 @@ object [
 				str: skip s 1
 				cnt: cnt + 1
 				if cnt = 100 [
-					refresh
+					refresh/force
 					cnt: 0
 				]
 				s: find str lf
@@ -282,7 +283,7 @@ object [
 		if delta >= 0 [reset-top]
 	]
 
-	reset-top: func [/force /local n][
+	reset-top: func [/local n][
 		n: line-cnt - page-cnt
 		if any [
 			scroller/position <= n
