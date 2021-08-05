@@ -296,7 +296,9 @@ release-ctx: func [
 	COM_SAFE_RELEASE(IUnk ctx/pen)
 	COM_SAFE_RELEASE(IUnk ctx/brush)
 	unless ctx/font? [COM_SAFE_RELEASE(IUnk ctx/text-format)]
+	if ctx/pen-pattern <> null [free as byte-ptr! ctx/pen-pattern]
 	release-pen-style ctx
+	free-shadow ctx
 ]
 
 draw-end: func [
@@ -2703,6 +2705,21 @@ OS-set-matrix-order: func [
 	]
 ]
 
+free-shadow: func [
+	ctx		[draw-ctx!]
+	/local
+		s		[shadow!]
+		ss		[shadow!]
+][
+	ss: ctx/shadows/next
+	while [ss <> null][
+		s: ss
+		ss: ss/next
+		free as byte-ptr! s
+	]
+	ctx/shadows/next: null
+]
+
 OS-draw-shadow: func [
 	ctx		[draw-ctx!]
 	offset	[red-pair!]
@@ -2736,12 +2753,6 @@ OS-draw-shadow: func [
 		s/color: color
 		s/inset?: inset?
 	][
-		ss: ctx/shadows/next
-		while [ss <> null][
-			s: ss
-			ss: ss/next
-			free as byte-ptr! s
-		]
-		ctx/shadows/next: null
+		free-shadow ctx
 	]
 ]
