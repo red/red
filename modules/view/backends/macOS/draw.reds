@@ -228,6 +228,30 @@ OS-draw-line-width: func [
 	CGContextSetLineWidth dc/raw width-v
 ]
 
+OS-draw-line-pattern: func [
+	dc			[draw-ctx!]
+	start		[red-integer!]
+	end			[red-integer!]
+	/local
+		p		[red-integer!]
+		cnt		[integer!]
+		dashes	[float32-ptr!]
+		pf		[float32-ptr!]
+][
+	cnt: (as-integer end - start) / 16 + 1
+	dashes: null
+	if cnt > 0 [
+		dashes: as float32-ptr! system/stack/allocate cnt
+		pf: dashes
+		while [start <= end][
+			pf/1: as float32! start/value
+			pf: pf + 1
+			start: start + 1
+		]
+	]
+	CGContextSetLineDash dc/raw as float32! 0.0 dashes cnt
+]
+
 get-shape-center: func [
 	start			[CGPoint!]
 	count			[integer!]

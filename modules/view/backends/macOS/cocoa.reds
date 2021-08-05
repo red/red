@@ -600,6 +600,12 @@ tagSIZE: alias struct! [
 			c			[handle!]
 			cap			[integer!]
 		]
+		CGContextSetLineDash: "CGContextSetLineDash" [
+			c			[handle!]
+			phase		[float32!]
+			lengths		[float32-ptr!]
+			count		[integer!]
+		]
 		CGContextSetAllowsAntialiasing: "CGContextSetAllowsAntialiasing" [
 			c			[handle!]
 			anti-alias? [logic!]
