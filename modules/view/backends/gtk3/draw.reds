@@ -95,10 +95,9 @@ draw-begin: func [
 		grad	[gradient!]
 ][
 	ctx/cr:				cr
-	ctx/pen-style:		0
+	ctx/pen-pattern:	null
+	ctx/pen-width:		1.0
 	ctx/pen-color:		0						;-- default: black
-	ctx/pen-join:		miter
-	ctx/pen-cap:		flat
 	ctx/brush-color:	0
 	ctx/font-color:		0
 	ctx/pen?:			yes
@@ -826,6 +825,27 @@ OS-draw-fill-pen: func [
 	]
 ]
 
+_set-line-dash: func [
+	dc		[draw-ctx!]
+	/local
+		cnt		[integer!]
+		pint	[int-ptr!]
+		pf		[float-ptr!]
+		dashes	[float-ptr!]
+][
+	if dc/pen-pattern <> null [
+		pint: as int-ptr! dc/pen-pattern
+		cnt: pint/value
+		dashes: dc/pen-pattern + 1
+		pf: as float-ptr! system/stack/allocate cnt * 2
+		while [cnt > 0][
+			pf/cnt: dashes/cnt * dc/pen-width
+			cnt: cnt - 1
+		]
+		cairo_set_dash dc/cr pf pint/value 0.0
+	]
+]
+
 OS-draw-line-width: func [
 	dc			[draw-ctx!]
 	width		[red-value!]
@@ -834,7 +854,10 @@ OS-draw-line-width: func [
 ][
 	w: get-float as red-integer! width
 	if w <= 0.0 [w: 1.0]
+	dc/pen-width: w
 	cairo_set_line_width dc/cr w
+
+	_set-line-dash dc
 ]
 
 OS-draw-box: func [
@@ -1372,7 +1395,6 @@ OS-draw-line-join: func [
 	dc			[draw-ctx!]
 	style		[integer!]
 ][
-	dc/pen-join: style
 	cairo_set_line_join dc/cr
 		case [
 			style = miter		[0]
@@ -1387,7 +1409,6 @@ OS-draw-line-cap: func [
 	dc			[draw-ctx!]
 	style		[integer!]
 ][
-	dc/pen-cap: style
 	cairo_set_line_cap dc/cr
 		case [
 			style = flat		[0]
@@ -1406,18 +1427,29 @@ OS-draw-line-pattern: func [
 		cnt		[integer!]
 		dashes	[float-ptr!]
 		pf		[float-ptr!]
+		pint	[int-ptr!]
 ][
+	if dc/pen-pattern <> null [
+		free as byte-ptr! dc/pen-pattern
+		dc/pen-pattern: null
+	]
 	cnt: (as-integer end - start) / 16 + 1
+	dashes: null
 	if cnt > 0 [
-		dashes: as float-ptr! system/stack/allocate cnt * 2
+		dashes: as float-ptr! allocate (cnt + 1) * size? float!
+		dc/pen-pattern: dashes
+		;-- save count in the first slot
+		pint: as int-ptr! dashes
+		pint/1: cnt
+		dashes: dashes + 1
 		pf: dashes
 		while [start <= end][
-			pf/1: as float! start/value
+			either zero? start/value [pf/1: 0.0001][pf/1: as float! start/value]
 			pf: pf + 1
 			start: start + 1
 		]
 	]
-	cairo_set_dash dc/cr dashes cnt 0.0
+	_set-line-dash dc
 ]
 
 GDK-draw-image: func [
@@ -2038,6 +2070,7 @@ OS-draw-state-pop: func [
 	state		[draw-state!]
 ][
 	cairo_restore dc/cr
+	if dc/pen-pattern <> null [free as byte-ptr! dc/pen-pattern]
 	copy-memory (as byte-ptr! dc) + 4 as byte-ptr! state size? draw-state!
 ]
 

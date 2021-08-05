@@ -121,9 +121,8 @@ Red/System [
 		matrix-order	[integer!]
 		device-matrix	[tagMATRIX value]
 		pattern?		[logic!]
-		pen-join		[integer!]
-		pen-cap			[integer!]
-		pen-style		[integer!]
+		pen-width		[float!]
+		pen-pattern		[float-ptr!]
 		pen-color		[integer!]					;-- 00bbggrr format
 		brush-color		[integer!]					;-- 00bbggrr format
 		font-color		[integer!]
