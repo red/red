@@ -27,7 +27,7 @@ Red [
 	--test-- "select-7" 
 	--assert #"2" = select "12345" #"1"
 	--test-- "select-8"
-	--assert none = select "12345" 1
+	--assert #"2" = select "12345" 1
 	--test-- "select-9" 
 	--assert #"2" = select "12345" "1"
 	--test-- "select-10" 

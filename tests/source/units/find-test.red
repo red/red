@@ -27,7 +27,7 @@ Red [
 	--test-- "find-7" 
 		--assert "12345" = find "12345" #"1"
 	--test-- "find-8" 							
-		--assert none = find "12345" 1
+		--assert "12345" = find "12345" 1
 	--test-- "find-9" 
 		--assert "12345" = find "12345" "1"
 	--test-- "find-10" 

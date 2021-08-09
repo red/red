@@ -2003,8 +2003,17 @@ string: context [
 			bs?		[logic!]
 			type	[integer!]
 			found?	[logic!]
+			get2	[subroutine!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/find"]]
+		
+		get2: [
+			s2: GET_BUFFER(str2)
+			unit2: GET_UNIT(s2)
+			pattern: (as byte-ptr! s2/offset) + (head2 << (unit2 >> 1))
+			end2:    (as byte-ptr! s2/tail)
+			sz2: 	 (as-integer end2 - pattern) >> (unit2 >> 1)
+		]
 
 		result: stack/push as red-value! str
 		
@@ -2102,7 +2111,11 @@ string: context [
 				bs?:   yes
 				case?: no
 			]
-			TYPE_ANY_STRING
+			TYPE_STRING
+			TYPE_FILE
+			TYPE_URL
+			TYPE_EMAIL
+			TYPE_REF
 			TYPE_BINARY
 			TYPE_WORD [
 				either TYPE_OF(value) = TYPE_WORD [
@@ -2112,11 +2125,7 @@ string: context [
 					str2: as red-string! value
 					head2: str2/head
 				]
-				s2: GET_BUFFER(str2)
-				unit2: GET_UNIT(s2)
-				pattern: (as byte-ptr! s2/offset) + (head2 << (unit2 >> 1))
-				end2:    (as byte-ptr! s2/tail)
-				sz2: (as-integer end2 - pattern) >> (unit2 >> 1)
+				get2
 			]
 			default [
 				either all [
@@ -2129,8 +2138,10 @@ string: context [
 					char: as red-char! value
 					c2: char/value
 				][
-					result/header: TYPE_NONE
-					return result
+					str2: string/rs-make-at stack/push* 16
+					actions/form value str2 null 0
+					head2: 0
+					get2
 				]
 			]
 		]
