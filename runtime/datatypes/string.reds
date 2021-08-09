@@ -2092,6 +2092,7 @@ string: context [
 		step: step << (unit >> 1)
 		pattern: null
 		bs?: no
+		sz2: 0
 		
 		;-- Value argument processing --
 		
