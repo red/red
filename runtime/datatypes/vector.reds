@@ -937,6 +937,114 @@ vector: context [
 			]
 		]
 	]
+	
+	find: func [
+		vec			[red-vector!]
+		value		[red-value!]
+		part		[red-value!]
+		only?		[logic!]
+		case?		[logic!]
+		same?		[logic!]
+		any?		[logic!]
+		with-arg	[red-string!]
+		skip		[red-integer!]
+		last?		[logic!]
+		reverse?	[logic!]
+		tail?		[logic!]
+		match?		[logic!]
+		return:		[red-value!]
+		/local
+			s				 [series!]
+			unit width steps [integer!]
+			token val cnt	 [integer!]
+			tokenf f			 [float!]
+			head tail 		 [byte-ptr!]
+			slot slot2		 [byte-ptr!]
+			p4			 	 [int-ptr!]
+			pf32			 [float32-ptr!]
+			pf				 [float-ptr!]
+			fl				 [red-float!]
+			int				 [red-integer!]
+			token8			 [byte!]
+			found?			 [logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "vector/find"]]
+		
+		if vec/type <> TYPE_OF(value) [fire [TO_ERROR(script invalid-arg) value]]
+		s: GET_BUFFER(vec)
+		unit: GET_UNIT(s)
+		width: log-b GET_UNIT(s)	
+		steps: either OPTION?(skip) [skip/value * unit][unit]
+		
+		head: (as byte-ptr! s/offset) + (vec/head << width)
+		slot: head
+		tail: as byte-ptr! s/tail
+		cnt: (as-integer tail - head) / steps
+		
+		found?: no
+		either any [
+			vec/type = TYPE_FLOAT
+			vec/type = TYPE_PERCENT
+		][
+			fl: as red-float! value
+			tokenf: fl/value
+			switch unit [
+				4 [										;-- 32 bit float/percent
+					loop cnt [
+						pf32: as float32-ptr! slot
+						f: as-float pf32/value			;-- @@ can't inline that expression, breaks loop's counter on stack				
+						if f = tokenf [found?: yes break]
+						slot: slot + steps
+						assert slot <= tail
+					]
+				]
+				8 [										;-- 64 bit float/percent
+					loop cnt [
+						pf: as float-ptr! slot
+						if pf/value = tokenf [found?: yes break]
+						slot: slot + steps
+						assert slot <= tail
+					]
+				]
+			]
+		][
+			int: as red-integer! value
+			token: int/value
+			switch unit [
+				1 [										;-- 8 bit integer/char
+					token8: as-byte token
+					loop cnt [
+						if slot/value = token8 [found?: yes break]
+						slot: slot + steps
+						assert slot <= tail
+					]
+				]
+				2 [										;-- 16 bit integer/char
+					loop cnt [
+						val: as-integer slot/value 
+						slot2: slot + 1
+						if (val + ((as-integer slot2/value) << 8)) = token [found?: yes break]
+						slot: slot + steps						
+						assert slot <= tail
+					]				
+				]
+				4 [										;-- 32 bit integer/char
+					loop cnt [
+						p4: as int-ptr! slot
+						if p4/value = token [found?: yes break]
+						slot: slot + steps
+						assert slot <= tail
+					]
+				]
+			]
+		]
+		either found? [
+			vec/head: vec/head + ((as-integer slot - head) >> width)
+		][
+			vec/header: TYPE_NONE						;-- return NONE if not found
+		]
+		as red-value! vec
+	]
 
 	;--- Modifying actions ---
 			
@@ -1130,7 +1238,7 @@ vector: context [
 			INHERIT_ACTION	;change
 			INHERIT_ACTION	;clear
 			INHERIT_ACTION	;copy
-			INHERIT_ACTION	;find
+			:find
 			INHERIT_ACTION	;head
 			INHERIT_ACTION	;head?
 			INHERIT_ACTION	;index?
