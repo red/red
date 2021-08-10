@@ -713,6 +713,7 @@ red: context [
 
 			foreach type spec [
 				unless block? type [
+					if type = 'red/cell! [type: 'any-type!]	;-- coming from routines
 					type: either word: in extracts/scalars type [get word][reduce [type]]
 
 					foreach word type [
