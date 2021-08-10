@@ -2090,9 +2090,9 @@ string: context [
 		if same? [case?: no]
 		reverse?: any [reverse? last?]					;-- reduce both flags to one
 		step: step << (unit >> 1)
-		pattern: null
+		pattern: end2: null
 		bs?: no
-		sz2: 0
+		sz2: unit2: 0
 		
 		;-- Value argument processing --
 		
