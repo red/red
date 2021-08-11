@@ -198,37 +198,37 @@ Red [
 
 ===start-group=== "find/match"
 	--test-- "find/match-1"
-		--assert [and now] = find/match [here and now] 'here
+		--assert [here and now] = find/match [here and now] 'here
 	--test-- "find/match-2"
 		--assert none = find/match [here and now] 'her
 	--test-- "find/match-3"
 		--assert none = find/match [her and now] 'here
 	--test-- "find/match-4"
-		--assert " and now" = find/match "here and now" "here"
+		--assert "here and now" = find/match "here and now" "here"
 	--test-- "find/match-5"
-		--assert "andnow" = find/match "hereandnow" "here"
+		--assert "hereandnow" = find/match "hereandnow" "here"
 	--test-- "find/match-6"
 		--assert none = find/match "her and now" "here"
 	--test-- "find/match-7"
-		--assert " and now" = find/match "here✐ and now" "here✐"
+		--assert "here✐ and now" = find/match "here✐ and now" "here✐"
 	--test-- "find/match-8"
-		--assert "✐andnow" = find/match "here✐andnow" "here"
+		--assert "here✐andnow" = find/match "here✐andnow" "here"
 	--test-- "find/match-9"
 		--assert none = find/match "her and now" "he✐r"
 	--test-- "find/match-10"
 		--assert none = find/match "here and now" "✐here"
 	--test-- "find/match-11"
-		--assert "^(010000)andnow" = find/match "here^(010000)andnow" "here"
+		--assert "here^(010000)andnow" = find/match "here^(010000)andnow" "here"
 	--test-- "find/match-12"
 		--assert none = find/match "her and now" "here^(010000)"
 	--test-- "find/match-13"
-		--assert " and now" = find/match "here^(010000) and now" "here^(010000)"
+		--assert "here^(010000) and now" = find/match "here^(010000) and now" "here^(010000)"
 	--test-- "find/match-14"
-		--assert "andnow" = find/match "^(010000)hereandnow" "^(010000)here"
+		--assert "^(010000)hereandnow" = find/match "^(010000)hereandnow" "^(010000)here"
 	--test-- "find/match-15"
 		--assert none = find/match "her^(010000) and now" "here^(010000)"
 	--test-- "find/match-16"
-		--assert [and now] = find/match [he✐re and now] 'he✐re
+		--assert [he✐re and now] = find/match [he✐re and now] 'he✐re
 ===end-group===
 
 ===start-group=== "find/tail"

@@ -426,7 +426,7 @@ Red [
 		--assert (make vector! [5 6]) = find/tail make vector! [1 2 3 4 5 6] 4
 		
 	--test-- "vector-find-14"
-		--assert (make vector! [3 4]) = find/match next make vector! [1 2 3 4] 2
+		--assert (make vector! [3 4]) = find/match/tail next make vector! [1 2 3 4] 2
 		
 ===end-group===
 

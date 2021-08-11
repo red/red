@@ -2100,9 +2100,7 @@ string: context [
 			TYPE_CHAR [
 				char: as red-char! value
 				c2: char/value
-				if case? [
-					c2: case-folding/change-char c2 yes ;-- uppercase c2
-				]
+				if case? [c2: case-folding/change-char c2 yes] ;-- uppercase c2
 			]
 			TYPE_BITSET [
 				bits:  as red-bitset! value
@@ -2155,9 +2153,8 @@ string: context [
 					UCS-2  [c1: (as-integer buffer/2) << 8 + buffer/1]
 					UCS-4  [p4: as int-ptr! buffer c1: p4/1]
 				]
-				if case? [
-					c1: case-folding/change-char c1 yes ;-- uppercase c1
-				]
+				if case? [c1: case-folding/change-char c1 yes] ;-- uppercase c1
+				
 				either bs? [
 					either c1 < sz [
 						BS_TEST_BIT(pbits c1 found?)
@@ -2166,11 +2163,8 @@ string: context [
 					]
 				][
 					found?: c1 = c2
-				]			
-				if any [
-					match?								;-- /match option returns tail of match (no loop)
-					all [found? tail? not reverse?]		;-- /tail option too, but only when found pattern
-				][
+				]
+				if all [found? tail? not reverse?][		;-- /tail option too, but only when found pattern
 					buffer: buffer + step
 				]
 			][
@@ -2216,7 +2210,7 @@ string: context [
 
 				if found? [
 					if reverse? [buffer: end1 - (sz2 << (unit >> 1))]
-					if any [match? tail?] [buffer: p1]
+					if tail? [buffer: p1]
 				]
 			]
 			buffer: buffer + step

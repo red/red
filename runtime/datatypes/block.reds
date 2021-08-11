@@ -987,7 +987,6 @@ block: context [
 						ts?  [BS_TEST_BIT_ALT(value stype)]	;-- attempt matching a typeset! value
 						true [actions/compare slot value op];-- atomic comparison
 					]
-					if match? [slot: slot + 1]				;-- /match option returns tail of match
 				][
 					n: 0
 					slot2: slot
@@ -1003,7 +1002,6 @@ block: context [
 						]
 					]
 					if all [n < values slot2 >= end][found?: no] ;-- partial match case, make it fail
-					if all [match? found?][slot: slot2]		;-- slot2 points to tail of match
 				]
 				slot: slot + step
 				any [

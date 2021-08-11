@@ -622,16 +622,16 @@ Red [
 		--assert 6 = index? find/only a 'a/b
 
 	--test-- "series-find-51"
-		--assert 2 = index? find/match a 2
+		--assert 2 = index? find/match/tail a 2
 
 	--test-- "series-find-52"
-		--assert none? find/match a 3
+		--assert none? find/match/tail a 3
 
 	--test-- "series-find-53"
-		--assert 4 = index? find/match a [2 3 5]
+		--assert 4 = index? find/match/tail a [2 3 5]
 
 	--test-- "series-find-54"
-		--assert none? find/match next a [2 3 5]
+		--assert none? find/match/tail next a [2 3 5]
 		
 	--test-- "series-find-55"
 		--assert 4 = index? find/tail a 5
@@ -677,22 +677,22 @@ Red [
 		--assert 5 = index? find/part s #"o" 5
 
 	--test-- "series-find-69"
-		--assert 2 = index? find/match s #"h"
+		--assert 2 = index? find/match/tail s #"h"
 
 	--test-- "series-find-70"
-		--assert 5 = index? find/match s "hell"
+		--assert 5 = index? find/match/tail s "hell"
 
 	--test-- "series-find-71"
-		--assert 5 = index? find/match s "Hell"
+		--assert 5 = index? find/match/tail s "Hell"
 
 	--test-- "series-find-72"
-		--assert none? find/match/case s "hell"
+		--assert none? find/match/case/tail s "hell"
 
 	--test-- "series-find-73"
-		--assert 5 = index? find/match/case s "Hell"
+		--assert 5 = index? find/match/case/tail s "Hell"
 
 	--test-- "series-find-74"
-		--assert none? find/match next s "hell"
+		--assert none? find/match/tail next s "hell"
 
 	--test-- "series-find-75"
 		--assert 8 = index? find/case s "Red"
@@ -748,16 +748,16 @@ Red [
 		--assert 6 = index? find/only hs-fd-1 'a/b
 
 	--test-- "series-find-92"
-		--assert 2 = index? find/match hs-fd-1 2
+		--assert 2 = index? find/match/tail hs-fd-1 2
 
 	--test-- "series-find-93"
-		--assert none? find/match hs-fd-1 3
+		--assert none? find/match/tail hs-fd-1 3
 
 	--test-- "series-find-94"
-		--assert 4 = index? find/match hs-fd-1 [2 3 5]
+		--assert 4 = index? find/match/tail hs-fd-1 [2 3 5]
 
 	--test-- "series-find-95"
-		--assert none? find/match next hs-fd-1 [2 3 5]
+		--assert none? find/match/tail next hs-fd-1 [2 3 5]
 		
 	--test-- "series-find-96"
 		--assert 4 = index? find/tail hs-fd-1 5
