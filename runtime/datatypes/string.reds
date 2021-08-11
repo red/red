@@ -2070,7 +2070,8 @@ string: context [
 			last? [
 				step: 0 - step
 				end: buffer
-				buffer: (as byte-ptr! either part? [buffer + limit][s/tail]) - unit
+				buffer: either part? [buffer + limit][as byte-ptr! s/tail]
+				buffer: buffer - unit
 			]
 			reverse? [
 				step: 0 - step
