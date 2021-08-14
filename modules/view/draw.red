@@ -41,7 +41,7 @@ Red/System [
 		replace:        symbol/make "replace"
 		intersect:      symbol/make "intersect"
 		union:          symbol/make "union"
-		_xor:            symbol/make "xor"
+		_xor:           symbol/make "xor"
 		exclude:        symbol/make "exclude"
 		complement:     symbol/make "complement"
 		rotate:			symbol/make "rotate"
