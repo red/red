@@ -964,11 +964,7 @@ float: context [
 				int/header: TYPE_INTEGER
 				int/value: as integer! dec
 			][
-				value/header: either TYPE_OF(scale) = TYPE_PERCENT [
-					TYPE_FLOAT
-				][
-					TYPE_OF(scale)
-				]
+				value/header: TYPE_OF(scale)
 			]
 		]
 		value
