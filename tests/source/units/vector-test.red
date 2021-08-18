@@ -383,7 +383,7 @@ Red [
 ===start-group=== "vector find"
 
 	--test-- "vector-find-1"
-		--assert none = find make vector! [1 2 3 4] "five"
+		--assert error? try [find make vector! [1 2 3 4] "five"]
 
 	--test-- "vector-find-2"
 		--assert none = find next make vector! [1 2 3 4] 1
@@ -433,7 +433,7 @@ Red [
 ===start-group=== "vector select"
 
 	--test-- "vector-select-1"
-		--assert none = select make vector! [1 2 3 4] "five"
+		--assert error? try [select make vector! [1 2 3 4] "five"]
 
 	--test-- "vector-select-2"
 		--assert none = select next make vector! [1 2 3 4] 1

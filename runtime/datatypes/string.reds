@@ -1431,7 +1431,7 @@ string: context [
 			TYPE_OF(spec) = TYPE_INTEGER
 			TYPE_OF(spec) = TYPE_FLOAT
 		][
-			GET_INT_FROM(size spec)
+			size: get-int-from spec
 			if size < 0 [fire [TO_ERROR(script out-of-range) spec]]
 			proto/header: TYPE_UNSET						;-- implicit reset of all header flags
 			proto/head: 0

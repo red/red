@@ -392,6 +392,29 @@ form-value: func [
 	buffer
 ]
 
+get-int-from: func [
+	spec	[red-value!]
+	return: [integer!]
+	/local
+		fl  [red-float!]
+		int [red-integer!]
+][
+	either TYPE_OF(spec) = TYPE_FLOAT [
+		fl: as red-float! spec
+		if any [
+			fl/value >  2147483647.0
+			fl/value < -2147483648.0
+			fl/value <> fl/value						;-- NaN check (;
+		][
+			fire [TO_ERROR(script out-of-range) fl]
+		]
+		as-integer fl/value
+	][
+		int: as red-integer! spec
+		int/value
+	]
+]
+
 cycles: context [
 	size: 1000											;-- max depth allowed (arbitrary)
 	stack: as node! allocate size * size? node!			;-- cycles detection stack
