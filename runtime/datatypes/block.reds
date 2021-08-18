@@ -618,12 +618,10 @@ block: context [
 			fl   [red-float!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/make"]]
-
-		size: 0
 		switch TYPE_OF(spec) [
 			TYPE_INTEGER
 			TYPE_FLOAT [
-				GET_INT_FROM(size spec)
+				size: get-int-from spec
 				if size <= 0 [size: 1]
 				make-at proto size
 				proto/header: type

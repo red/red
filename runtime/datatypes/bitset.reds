@@ -568,8 +568,7 @@ bitset: context [
 				if cmd = CMD_TO [
 					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_BITSET spec]
 				]
-				size: 0
-				GET_INT_FROM(size spec)
+				size: get-int-from spec
 				if size < 0 [
 					fire [
 						TO_ERROR(script out-of-range)

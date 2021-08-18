@@ -35,7 +35,7 @@ hash: context [
 		switch TYPE_OF(spec) [
 			TYPE_INTEGER
 			TYPE_FLOAT [
-				GET_INT_FROM(size spec)
+				size: get-int-from spec
 				if size <= 0 [size: 1]
 			]
 			TYPE_BLOCK [
