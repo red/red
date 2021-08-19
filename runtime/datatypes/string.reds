@@ -1981,16 +1981,17 @@ string: context [
 			result	[red-value!]
 			int		[red-integer!]
 			char	[red-char!]
+			fl		[red-float!]
 			str2	[red-string!]
 			bits	[red-bitset!]
 			unit	[encoding!]
 			unit2	[encoding!]
 			head2	[integer!]
-			p1		[byte-ptr!]
-			p2		[byte-ptr!]
+			p1 p2	[byte-ptr!]
 			p4		[int-ptr!]
-			c1		[integer!]
-			c2		[integer!]
+			pf		[float-ptr!]
+			c1 c2	[integer!]
+			cf1 cf2	[float!]
 			step	[integer!]
 			sz		[integer!]
 			sz2		[integer!]
@@ -2003,6 +2004,7 @@ string: context [
 			bs?		[logic!]
 			type	[integer!]
 			found?	[logic!]
+			float?	[logic!]
 			get2	[subroutine!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/find"]]
@@ -2010,16 +2012,16 @@ string: context [
 		get2: [
 			s2: GET_BUFFER(str2)
 			unit2: GET_UNIT(s2)
-			pattern: (as byte-ptr! s2/offset) + (head2 << (unit2 >> 1))
+			pattern: (as byte-ptr! s2/offset) + (head2 << (log-b unit2))
 			end2:    (as byte-ptr! s2/tail)
-			sz2: 	 (as-integer end2 - pattern) >> (unit2 >> 1)
+			sz2: 	 (as-integer end2 - pattern) >> (log-b unit2)
 		]
 
 		result: stack/push as red-value! str
 		
 		s: GET_BUFFER(str)
 		unit: GET_UNIT(s)
-		buffer: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+		buffer: (as byte-ptr! s/offset) + (str/head << (log-b unit))
 		end: as byte-ptr! s/tail
 		len: rs-length? str
 
@@ -2064,7 +2066,7 @@ string: context [
 			]
 			if sz > len [sz: len]
 			part?: yes
-			limit: sz << (unit >> 1)
+			limit: sz << log-b unit
 		]
 		case [
 			last? [
@@ -2075,7 +2077,7 @@ string: context [
 			]
 			reverse? [
 				step: 0 - step
-				buffer: (as byte-ptr! s/offset) + (str/head - 1 << (unit >> 1))
+				buffer: (as byte-ptr! s/offset) + (str/head - 1 << (log-b unit))
 				end: either part? [buffer - limit + unit][as byte-ptr! s/offset]
 				if any [buffer < end match?][			;-- early exit if str/head = 0
 					result/header: TYPE_NONE
@@ -2090,9 +2092,10 @@ string: context [
 		case?: either ANY_STRING?(type) [not case?][no]
 		if same? [case?: no]
 		reverse?: any [reverse? last?]					;-- reduce both flags to one
-		step: step << (unit >> 1)
+		step: step << (log-b unit)
 		pattern: end2: null
 		bs?: no
+		float?: TYPE_OF(value) = TYPE_FLOAT
 		sz2: unit2: 0
 		
 		;-- Value argument processing --
@@ -2133,10 +2136,15 @@ string: context [
 						TYPE_OF(str) = TYPE_VECTOR
 						TYPE_OF(str) = TYPE_BINARY
 					]
-					TYPE_OF(value) = TYPE_INTEGER
+					any [TYPE_OF(value) = TYPE_INTEGER float?]
 				][
-					char: as red-char! value
-					c2: char/value
+					either float? [
+						fl: as red-float! value
+						cf2: fl/value
+					][
+						char: as red-char! value
+						c2: char/value
+					]
 				][
 					str2: string/rs-make-at stack/push* 16
 					actions/form value str2 null 0
@@ -2145,7 +2153,6 @@ string: context [
 				]
 			]
 		]
-		
 		;-- Search loop --
 		until [
 			either pattern = null [
@@ -2153,9 +2160,11 @@ string: context [
 					Latin1 [c1: as-integer buffer/1]
 					UCS-2  [c1: (as-integer buffer/2) << 8 + buffer/1]
 					UCS-4  [p4: as int-ptr! buffer c1: p4/1]
+					8	   [pf: as float-ptr! buffer cf1: pf/value]	;-- vector of float64! case
 				]
-				if case? [c1: case-folding/change-char c1 yes] ;-- uppercase c1
-				
+				if all [case? not float?][
+					c1: case-folding/change-char c1 yes ;-- uppercase c1
+				]
 				either bs? [
 					either c1 < sz [
 						BS_TEST_BIT(pbits c1 found?)
@@ -2163,7 +2172,7 @@ string: context [
 						found?: as logic! sbits/flags and flag-bitset-not
 					]
 				][
-					found?: c1 = c2
+					found?: either float? [cf1 = cf2][c1 = c2]
 				]
 				if all [found? tail? not reverse?][		;-- /tail option too, but only when found pattern
 					buffer: buffer + step
@@ -2172,9 +2181,9 @@ string: context [
 				p1: buffer
 				end1: end
 				if reverse? [
-					sz: (as-integer p1 - end) >> (unit >> 1) + 1
+					sz: (as-integer p1 - end) >> (log-b unit) + 1
 					if sz < sz2 [found?: no break] 
-					p1: p1 - (sz2 - 1 << (unit >> 1))
+					p1: p1 - (sz2 - 1 << (log-b unit))
 					end1: buffer + unit
 				]
 				p2: pattern
@@ -2210,7 +2219,7 @@ string: context [
 				][found?: no] 							;-- partial match case, make it fail
 
 				if found? [
-					if reverse? [buffer: end1 - (sz2 << (unit >> 1))]
+					if reverse? [buffer: end1 - (sz2 << (log-b unit))]
 					if tail? [buffer: p1]
 				]
 			]
@@ -2229,7 +2238,7 @@ string: context [
 		
 		either found? [
 			str: as red-string! result
-			str/head: (as-integer buffer - s/offset) >> (unit >> 1)	;-- just change the head position on stack
+			str/head: (as-integer buffer - s/offset) >> (log-b unit) ;-- just change the head position on stack
 		][
 			result/header: TYPE_NONE					;-- change the stack 1st argument to none.
 		]
