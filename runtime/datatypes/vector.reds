@@ -1130,7 +1130,7 @@ vector: context [
 			INHERIT_ACTION	;change
 			INHERIT_ACTION	;clear
 			INHERIT_ACTION	;copy
-			INHERIT_ACTION	;find
+			INHERIT_ACTION
 			INHERIT_ACTION	;head
 			INHERIT_ACTION	;head?
 			INHERIT_ACTION	;index?
