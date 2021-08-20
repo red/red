@@ -902,7 +902,13 @@ do-file: function ["Internal Use Only" file [file! url!]][
 	][
 		foreach c list [append system/locale/currencies/list c]
 	]
-	set/any 'code try/all/keep code
+	set/any 'code try/all/keep [
+		either 'halt-request = set/any 'code catch/name code 'console [
+			print "(halted)"							;-- returns an unset value
+		][
+			:code
+		]
+	]
 	if file? file [change-dir saved]
 	if error? :code [do :code]							;-- rethrow the error
 	:code
