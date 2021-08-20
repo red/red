@@ -1187,6 +1187,10 @@ lexer: context [
 			if type = TYPE_SET_WORD [throw-error lex s e TYPE_LIT_WORD]
 			type: TYPE_LIT_WORD
 		]
+		while [s < e][
+			s: unicode/fast-decode-utf8-char s :cp
+			if cp = -1 [throw-error lex s e type]
+		]
 		lex/scanned: type
 	]
 	
@@ -1503,6 +1507,7 @@ lexer: context [
 			]
 		]
 		if load? [
+			
 			cell: alloc-slot lex
 			word/make-at symbol/make-alt-utf8 s as-integer e - s cell
 			set-type cell type

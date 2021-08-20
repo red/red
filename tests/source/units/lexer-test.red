@@ -408,8 +408,9 @@ Red [
 
 	--test-- "tr-48" --assert [4294967296.0 6442450943.0 8589934592.0 9999999999] == transcode "4294967296 6442450943 8589934592 9999999999"
 
-	--test-- "tr-49" --assert error? try [transcode #{8B}]
+	--test-- "tr-49" --assert error? try [transcode #{8B}]				  ; #4790
 	--test-- "tr-50" --assert error? try [transcode "-$"]
+	--test-- "tr-51" --assert error? try [transcode #{42137E26C646365C}]  ; #4790
 
 ===end-group===
 ===start-group=== "transcode/one"
