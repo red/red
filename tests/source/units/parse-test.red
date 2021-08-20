@@ -2934,6 +2934,15 @@ Red [
 		;; non-passing test, match == @@ref
 		;parse to binary! {@ref"} [copy match ref! (--assert @ref == to ref! to string! match)]
 
+	--test-- "#4863"
+		--assert parse to-binary "word" [word!]
+		--assert parse to-binary "   word" [word!]
+		--assert parse to-binary "123" [integer!]
+		--assert not parse to-binary "123.456" [integer!]
+		--assert parse to-binary "    123" [integer!]
+		--assert parse to-binary "hello 123 world" [word! integer! word!]
+		--assert parse to-binary "hello 123 world" [word! space integer! space word!]
+
 ===end-group===
     
 ~~~end-file~~~
