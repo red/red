@@ -29,8 +29,10 @@ Red [
 
 system/console: context [
 
-	prompt:		">> "
-	result:		"=="
+	def-prompt: ">> "
+	def-result: "=="
+	prompt:		def-prompt
+	result:		def-result
 	history:	make block! 200
 	size:		0x0
 	catch?:		no										;-- YES: force script to fallback into the console
@@ -204,7 +206,7 @@ system/console: context [
 	cue:    none
 	mode:   'mono
 
-	do-command: function [/local result err][
+	do-command: function [/local result err p][
 		if error? code: try/keep [load/all buffer][print code]
 
 		unless any [error? code tail? code][
@@ -223,7 +225,11 @@ system/console: context [
 							clear back tail result
 							append result "..."
 						]
-						print [system/console/result result]
+						prefix: any [
+							all [string? set/any 'p try/all [do [system/console/result]] :p]
+							all [error? :p p/where: "system/console/result" print form :p def-result]
+						]
+						print [prefix result]
 					][
 						print :err
 					]
@@ -273,7 +279,8 @@ system/console: context [
 		forever [
 			eval-command ask any [
 				cue
-				all [string? set/any 'p do [prompt] :p]
+				all [string? set/any 'p try/all [do [prompt]] :p]
+				all [error? :p p/where: "system/console/prompt" print :p def-prompt]
 				form :p
 			]
 		]
