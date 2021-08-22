@@ -458,6 +458,9 @@ Red [
 	--test-- "special-arithmetic-14" --assert "1.#NaN"  = to string! 1.#inf % 1.0
 	--test-- "special-arithmetic-15" --assert "1.#NaN"  = to string! -1.#inf % 1.0
 	--test-- "special-arithmetic-16" --assert "1.#NaN"  = to string! 1.#inf % 0.0
+	;-- issue #4950
+	--test-- "special-arithmetic-17" --assert "-1.#INF"  = to string! 1.0 / -0.0
+	
 ===end-group===
 
 ===start-group=== "special value equality (NaNs and INF)"
