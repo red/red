@@ -317,6 +317,7 @@ error: context [
 		/local
 			base	[red-value!]
 			errors	[red-object!]
+			catalog [red-object!]
 			value	[red-value!]
 			str		[red-string!]
 			blk		[red-block!]
@@ -334,20 +335,32 @@ error: context [
 		string/concatenate-literal buffer "*** "
 		part: part - 4
 		
-		errors: as red-object! #get system/catalog/errors
-		errors: as red-object! object/rs-select errors base + field-type
-		if TYPE_Of(errors) = TYPE_NONE [fire [TO_ERROR(internal invalid-error) base + field-type]]
+		catalog: as red-object! #get system/catalog/errors
+		errors: as red-object! object/rs-select catalog base + field-type
+		if TYPE_Of(errors) = TYPE_NONE [				;-- invalid /type field, overwrite error object
+			copy-cell base + field-type base + field-arg1
+			copy-cell as red-value! words/errors/internal base + field-type
+			copy-cell as red-value! words/errors/invalid-error base + field-id
+			errors: as red-object! object/rs-select catalog as red-value! words/errors/internal
+			assert TYPE_Of(errors) <> TYPE_NONE
+		]
+		value: object/rs-select errors base + field-id
+		if TYPE_Of(value) = TYPE_NONE [				;-- invalid /id field, overwrite error object
+			copy-cell base + field-id base + field-arg1
+			copy-cell as red-value! words/errors/internal base + field-type
+			copy-cell as red-value! words/errors/invalid-error base + field-id
+			errors: as red-object! object/rs-select catalog as red-value! words/errors/internal
+			assert TYPE_Of(errors) <> TYPE_NONE
+			value: object/rs-select errors base + field-id
+			assert TYPE_Of(value) <> TYPE_NONE
+		]
 		
-		str: as red-string! object/rs-select errors as red-value! words/_type
+		str: as red-string! object/rs-select errors as red-value! words/_type ;-- get the error-class banner string
 		assert TYPE_OF(str) = TYPE_STRING
-		
 		string/concatenate buffer str -1 0 yes no
 		part: part - string/rs-length? str
 		string/concatenate-literal buffer ": "
 		part: part - 2
-		
-		value: object/rs-select errors base + field-id
-		if TYPE_Of(value) = TYPE_NONE [fire [TO_ERROR(internal invalid-error) base + field-id]]
 		
 		either TYPE_OF(value) = TYPE_STRING [
 			str: as red-string! value
@@ -362,14 +375,20 @@ error: context [
 		string/concatenate-literal buffer "^/*** Where: "
 		part: part - 12
 		value: base + field-where
-		
-		either TYPE_OF(value) = TYPE_WORD [
-			part: word/form as red-word! value buffer arg part
-		][
-			string/concatenate-literal buffer "???"
-			part: part - 3
+		switch TYPE_OF(value) [
+			TYPE_WORD [
+				part: word/form as red-word! value buffer arg part
+			]
+			TYPE_STRING [
+				str: as red-string! value
+				string/concatenate buffer str -1 0 yes no
+				part: part - string/rs-length? str
+			]
+			default [
+				string/concatenate-literal buffer "???"
+				part: part - 3
+			]
 		]
-		
 		int: as red-integer! #get system/state/trace
 		if all [TYPE_OF(int) = TYPE_INTEGER int/value > 0][
 			value: base + field-stack
@@ -417,10 +436,15 @@ error: context [
 		get?	[logic!]
 		tail?	[logic!]
 		return:	[red-value!]
+		/local
+			w	[red-word!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "error/eval-path"]]
 		
-		if value <> null [fire [TO_ERROR(script invalid-path-set) path]]
+		w: as red-word! element
+		if all [TYPE_OF(w) = TYPE_WORD words/stack = symbol/resolve w/symbol][
+			fire [TO_ERROR(script invalid-path-set) path]
+		]
 		object/eval-path parent element value path case? get? tail?
 	]
 	

@@ -620,6 +620,7 @@ words: context [
 	
 	system:			-1
 	system-global:	-1
+	stack:			-1
 	
 	changed:		-1
 
@@ -755,6 +756,7 @@ words: context [
 		access:		as red-word! 0
 		user:		as red-word! 0
 		internal:	as red-word! 0
+		invalid-error: as red-word! 0
 	]
 
 	build: does [
@@ -878,6 +880,7 @@ words: context [
 		
 		system:			symbol/make "system"
 		system-global:	symbol/make "system-global"
+		stack			symbol/make "stack"
 
 		_windows:		_context/add-global windows
 		_syllable:		_context/add-global syllable
@@ -1010,6 +1013,7 @@ words: context [
 		errors/access:	 word/load "access"
 		errors/user:	 word/load "user"
 		errors/internal: word/load "internal"
+		errors/invalid-error: word/load "invalid-error"
 		
 		changed:		_changed/symbol
 	]
