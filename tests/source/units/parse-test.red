@@ -2827,7 +2827,8 @@ Red [
 		x4197: make string! 0
 		--assert error? try [parse [][collect into x4197 []]]
 		x4197: make binary! 0
-		--assert error? try [parse #{}[collect into x4197 []]]
+		--assert parse #{}[collect into x4197 []]		;-- changed by #4732
+		--assert x4197 == #{}
 		x4197: make vector! 0
 		--assert error? try [parse "" [collect into x4197 []]]
 		x4197: make block! 3

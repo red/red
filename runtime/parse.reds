@@ -1049,7 +1049,7 @@ parser: context [
 									if into? [
 										blk: as red-block! _context/get as red-word! blk
 										type: TYPE_OF(blk)
-										unless ANY_SERIES_PARSE?(type) [
+										if all [type <> TYPE_OF(input) not ANY_SERIES_PARSE?(type)][
 											PARSE_ERROR [TO_ERROR(script parse-into-type)]
 										]
 									]
@@ -1787,13 +1787,15 @@ parser: context [
 										value: _context/get w		;-- #4197
 										type:  TYPE_OF(value)
 										type2: TYPE_OF(input)
-										if any [
-											type = TYPE_BINARY
-											all [ANY_STRING?(type) ANY_BLOCK?(type2)]
+										if all [
+											type <> type2
+											any [
+												type = TYPE_BINARY
+												all [ANY_STRING?(type) ANY_BLOCK?(type2)]
+											]
 										][
 											PARSE_ERROR [TO_ERROR(script parse-into-type)]
 										]
-										
 										get-word/push w
 									]
 									
@@ -1803,7 +1805,7 @@ parser: context [
 							either into? [
 								blk: as red-block! _context/get w
 								type: TYPE_OF(blk)
-								unless ANY_SERIES_PARSE?(type) [
+								if all [type <> TYPE_OF(input) not ANY_SERIES_PARSE?(type)][
 									PARSE_ERROR [TO_ERROR(script parse-into-type)]
 								]
 								max: either sym = words/after [-1][blk/head] ;-- save block cursor
