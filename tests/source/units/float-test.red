@@ -74,6 +74,8 @@ Red [
 		--assertf~= -1.5707963267949  atan2 -1 0 1E-13
 		--assertf~= -0.78539816339745 atan2 -1 1 1E-13
 		--assertf~= -0.78539816339745 atan2 -1.5 1.5 1E-13
+		--assertf~=  3.1415926535898  atan2 0.0 -0.0 1E-13
+		--assertf~= -3.1415926535898  atan2 -0.0 -0.0 1E-13
 
 	--test-- "float-arctangent3"
 		--assertf~=  3.1415926535898  arctangent2/radians 0 -1 1E-13
@@ -460,7 +462,25 @@ Red [
 	--test-- "special-arithmetic-16" --assert "1.#NaN"  = to string! 1.#inf % 0.0
 	;-- issue #4950
 	--test-- "special-arithmetic-17" --assert "-1.#INF"  = to string! 1.0 / -0.0
-	
+	--test-- "special-arithmetic-18"  --assert 1.0 *  0.0  =?  0.0
+	--test-- "special-arithmetic-19"  --assert -1.0 *  0.0 =? -0.0
+	--test-- "special-arithmetic-20"  --assert -0.0 *  1.0 =? -0.0
+	--test-- "special-arithmetic-21"  --assert -0.0 /  1.0 =? -0.0
+	--test-- "special-arithmetic-22"  --assert -0.0 * -0.0 =?  0.0
+	--test-- "special-arithmetic-23"  --assert 1.0 + -0.0  =?  1.0
+	--test-- "special-arithmetic-24"  --assert 1.0 +  0.0  =?  1.0
+	--test-- "special-arithmetic-25"  --assert -0.0 + -0.0 =? -0.0
+	--test-- "special-arithmetic-26"  --assert 0.0 +  0.0  =?  0.0
+	--test-- "special-arithmetic-27"  --assert 0.0  =? absolute -0.0
+	--test-- "special-arithmetic-28"  --assert -0.0 =? sqrt    -0.0
+	--test-- "special-arithmetic-29"  --assert -0.0 / -1.#INF =? 0.0
+	--test-- "special-arithmetic-30"  --assert NaN?  0.0 * -1.#INF
+	--test-- "special-arithmetic-31"  --assert NaN? -0.0 * -1.#INF
+	--test-- "special-arithmetic-32"  --assert NaN?  0.0 * -1.#INF
+	--test-- "special-arithmetic-33"  --assert NaN? -0.0 * -1.#INF
+	--test-- "special-arithmetic-34"  --assert NaN? -0.0 / -0.0
+	--test-- "special-arithmetic-35"  --assert NaN? -0.0 /  0.0
+	--test-- "special-arithmetic-36"  --assert NaN?  0.0 / -0.0
 ===end-group===
 
 ===start-group=== "special value equality (NaNs and INF)"
@@ -481,7 +501,12 @@ Red [
 	--test-- "special-equality-12"  --assert [1 1.#NaN] = [1 1.#NaN]	= false
 	--test-- "special-equality-13"  --assert 1.#INF = 1.#NaN			= false
 	--test-- "special-equality-14"  --assert 1.23 = 1.#NaN				= false
-	
+
+	--test-- "special-equality-15"  --assert 0.0 == -0.0
+	--test-- "special-equality-16"  --assert -0.0 == 0.0
+	--test-- "special-equality-17"  --assert not 0.0 =? -0.0
+	--test-- "special-equality-18"  --assert not -0.0 =? 0.0
+
 ===end-group===
 
 ===start-group=== "other math functions"

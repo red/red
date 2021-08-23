@@ -233,13 +233,7 @@ float: context [
 			OP_ADD [left + right]
 			OP_SUB [left - right]
 			OP_MUL [left * right]
-			OP_DIV [
-				 either all [0.0 = right 0.0 = left not NaN? right][
-					QNaN
-				][
-					left / right
-				]
-			]
+			OP_DIV [left / right]
 			OP_REM [
 				case [
 					0.0 * right = 0.0 [fmod left right]	;-- finite right part - no special case
