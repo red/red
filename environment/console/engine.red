@@ -170,7 +170,10 @@ system/console: context [
 					append delimiters #"<"
 					throw 'break
 				]
-				if all [type = binary! input/1 <> #"}"][ ;-- binary! haven't open-event
+				if all [
+					type = binary!						 ;-- binary! haven't open-event
+					#"}" <> pick tail input -2
+				][
 					append delimiters #"{"
 					throw 'break
 				]
