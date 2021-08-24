@@ -570,7 +570,7 @@ help-ctx: context [
 	][
 		set/any 'val get/any word
 		print case [
-			function? :val [[append mold word #":" mold :val]]
+			find [op! function!] type?/word :val [[append mold word #":" mold :val]]
 			routine? :val [[
 				";" uppercase mold :word "is a routine! value; its body is Red/System code.^/"
 				append mold word #":" mold :val
