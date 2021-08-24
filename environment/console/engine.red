@@ -126,6 +126,13 @@ system/console: context [
 		set-path!	#"/"
 	]
 	
+	count: function [s [string!] c [char!] /reverse return: [integer!]][
+		cnt: 0
+		step: pick [-1 1] reverse
+		loop length? head s [either s/1 = c [cnt: cnt + 1 s: skip s step][return cnt]]
+		cnt
+	]
+	
 	delimiter-lex: function [
 		event	[word!]
 		input	[string! binary!]
@@ -169,8 +176,12 @@ system/console: context [
 				]
 				if type = string! [
 					either input/(token/x - token/y) = #"%" [ ;-- raw-string! haven't open-event
-						append delimiters #"{"
-						throw 'break
+						begin: count head input #"%"
+						end: count/reverse back back tail input #"%" ;-- skip ending LF
+						if begin > end [
+							append delimiters #"{"
+							throw 'break
+						]
 					][
 						if delimiter-map/:type = last delimiters [ ;-- other string! if have open-event, do match
 							throw 'break
