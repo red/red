@@ -22,6 +22,10 @@ Red/System [
 	DRAW_BRUSH_IMAGE_SMART
 ]
 
+#define SET_FIGURE_MODE(ctx mode) [
+	either ctx/draw-shape? [mode: as-integer ctx/brush-type = DRAW_BRUSH_NONE][mode: 0]
+]
+
 grad-stops: as D2D1_GRADIENT_STOP allocate 256 * size? D2D1_GRADIENT_STOP
 
 calc-brush-position: func [
@@ -498,9 +502,9 @@ OS-draw-shape-beginpath: func [
 	ctx/sub/shape-curve?: no
 	vpoint/x: ctx/sub/last-pt-x
 	vpoint/y: ctx/sub/last-pt-y
-	figure: either draw? [as-integer ctx/brush-type = DRAW_BRUSH_NONE][
+	either draw? [figure: as-integer ctx/brush-type = DRAW_BRUSH_NONE][
 		gsink/SetFillMode sthis 1
-		0
+		figure: 0
 	]
 	gsink/BeginFigure sthis vpoint figure
 ]
@@ -543,13 +547,15 @@ OS-draw-shape-close: func [
 		sthis	[this!]
 		gsink	[ID2D1GeometrySink]
 		vpoint	[POINT_2F value]
+		mode	[integer!]
 ][
 	sthis: as this! ctx/sub/sink
 	gsink: as ID2D1GeometrySink sthis/vtbl
 	gsink/EndFigure sthis 1
 	vpoint/x: ctx/sub/last-pt-x
 	vpoint/y: ctx/sub/last-pt-y
-	gsink/BeginFigure sthis vpoint as-integer ctx/brush-type = DRAW_BRUSH_NONE
+	SET_FIGURE_MODE(ctx mode)
+	gsink/BeginFigure sthis vpoint mode
 ]
 
 OS-draw-shape-moveto: func [
@@ -578,7 +584,7 @@ OS-draw-shape-moveto: func [
 	gsink/EndFigure sthis 0
 	vpoint/x: ctx/sub/last-pt-x
 	vpoint/y: ctx/sub/last-pt-y
-	figure: either ctx/draw-shape? [as-integer ctx/brush-type = DRAW_BRUSH_NONE][0]
+	SET_FIGURE_MODE(ctx figure)
 	gsink/BeginFigure sthis vpoint figure
 	ctx/sub/shape-curve?: no
 ]
