@@ -305,7 +305,7 @@ find: make action! [[
 		/last "Find the last occurrence of value, from the tail"
 		/reverse "Find the last occurrence of value, from the current index"
 		/tail "Return the tail of the match found, rather than the head"
-		/match "Match at current index only and return tail of match"
+		/match "Match at current index only"
 	]
 	#get-definition ACT_FIND
 ]
