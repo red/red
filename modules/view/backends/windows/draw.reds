@@ -10,6 +10,8 @@ Red/System [
 	}
 ]
 
+g_standby?: no
+
 #define GAUSSIAN_SCALE_FACTOR 1.87997120597325
 
 #include %text-box.reds
@@ -317,6 +319,7 @@ draw-end: func [
 		sc		[IDXGISwapChain1]
 		rt		[render-target!]
 		hr		[integer!]
+		flags	[integer!]
 ][
 	loop ctx/clip-cnt [OS-clip-end ctx]
 	ctx/clip-cnt: 0
@@ -335,10 +338,11 @@ draw-end: func [
 	either hWnd <> null [		;-- window target
 		this: rt/swapchain
 		sc: as IDXGISwapChain1 this/vtbl
-		hr: sc/Present this 0 0
+		flags: either g_standby? [DXGI_PRESENT_TEST][0]
+		hr: sc/Present this 0 flags
 
 		switch hr [
-			COM_S_OK [0]
+			COM_S_OK [g_standby?: no]
 			DXGI_ERROR_DEVICE_REMOVED
 			DXGI_ERROR_DEVICE_RESET [
 				d2d-release-target rt
@@ -347,6 +351,7 @@ draw-end: func [
 				DX-create-dev
 				InvalidateRect hWnd null 0
 			]
+			DXGI_STATUS_OCCLUDED [g_standby?: yes]
 			default [
 				probe ["draw-end error: " hr]
 				0			;@@ TBD log error!!!
