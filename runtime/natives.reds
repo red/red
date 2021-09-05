@@ -191,7 +191,6 @@ natives: context [
 	]
 	
 	loop*: func [
-		[catch]
 		check? [logic!]
 		/local
 			body  [red-block!]
@@ -208,10 +207,7 @@ natives: context [
 		stack/mark-loop words/_body		
 		loop count [
 			stack/reset
-			saved: system/stack/top						;--	FIXME: solve loop/catch conflict
-			interpreter/eval body yes
-			system/stack/top: saved
-			
+			catch RED_THROWN_BREAK [interpreter/eval body yes]
 			switch system/thrown [
 				RED_THROWN_BREAK	[system/thrown: 0 break]
 				RED_THROWN_CONTINUE	[system/thrown: 0 continue]
