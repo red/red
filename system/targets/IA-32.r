@@ -1291,13 +1291,33 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-start-loop: does [
-		emit #{50}									;-- PUSH eax
+	emit-start-loop: func [spec [block! none!] name [word! none!] /local offset][
+		either spec [
+			emit pick [
+				#{8983}									;-- MOV [ebx+disp], eax	 ; PIC
+				#{A3}									;-- MOV [<counter>], eax ; global			
+			] PIC?
+			emit-reloc-addr spec/2
+		][			
+			offset: stack-encode emitter/local-offset? name
+			emit adjust-disp32 #{8945} offset			;-- MOV [ebp+n], eax	; local
+			emit offset
+		]
 	]
 	
-	emit-end-loop: does [
-		emit #{58} 									;-- POP eax
-		emit #{83E801}								;-- SUB eax, 1
+	emit-end-loop: func [spec [block! none!] name [word! none!] /local offset][
+		either spec [
+			emit pick [
+				#{8B83}									;-- MOV eax, [ebx+disp]	 ; PIC
+				#{A1}									;-- MOV eax, [<counter>] ; global			
+			] PIC?
+			emit-reloc-addr spec/2
+		][
+			offset: stack-encode emitter/local-offset? name
+			emit adjust-disp32 #{8B45} offset			;-- MOV eax, [ebp+n]	; local
+			emit offset
+		]
+		emit #{83E801}									;-- SUB eax, 1
 	]
 
 	patch-sub-call: func [buffer [binary!] ptr [integer!] offset [integer!]][

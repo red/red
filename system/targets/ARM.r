@@ -759,7 +759,7 @@ make-profilable make target-class [
 		name  [word! object!]
 		gcode [binary! block! none!]
 		pcode [binary! block! none!]
-		lcode [binary! block!]
+		lcode [binary! block! none!]
 		/alt										;-- use alternative register (r1)
 		/local offset opcode Rn
 	][
@@ -1832,12 +1832,36 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-start-loop: does [
-		emit-i32 #{e92d0001}						;-- PUSH {r0}
+	emit-start-loop: func [spec [block! none!] name [word! none!] /local offset][
+		either spec [
+			emit-i32 #{e59f0100}					;-- LDR r1, [pc, #0]	; offset 0 => value
+			emit-i32 #{ea000000}					;-- B <after_value>
+			emit-reloc-addr spec/3					;-- address slot
+			emit-i32 pick [
+				#{e7810009}							;-- STR r0, [r1]		; global
+				#{e5010000}							;-- STR r0, [r1, sb]	; PIC
+			] PIC?
+		][
+			emit-load-local
+				#{e58b0000}							;-- STR r0, [fp, #[-]n]	; local	
+				emitter/local-offset? name
+		]
 	]
-
-	emit-end-loop: does [
-		emit-i32 #{e8bd0001}						;-- POP {r0}
+								
+	emit-end-loop: func [spec [block! none!] name [word! none!] /local offset][
+		either spec [
+			emit-i32 #{e59f0100}					;-- LDR r1, [pc, #0]	; offset 0 => value
+			emit-i32 #{ea000000}					;-- B <after_value>
+			emit-reloc-addr spec/3					;-- address slot
+			emit-i32 pick [
+				#{e5900000} 						;-- LDR r0, [r0]		; global
+				#{e7900009}							;-- LDR r0, [r0, sb]	; PIC
+			] PIC?
+		][
+			emit-load-local
+				#{e59b0000}							;-- LDR r0, [fp, #[-]n]	; local
+				emitter/local-offset? name
+		]		
 		emit-i32 #{e2500001}		 				;-- SUBS r0, r0, #1	; update Z flag
 	]
 	

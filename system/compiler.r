@@ -1068,11 +1068,6 @@ system-dialect: make-profilable context [
 		
 		pop-calls: does [clear expr-call-stack]
 		
-		count-outer-loops: has [n][
-			n: 0
-			parse loop-stack [any ['loop (n: n + 1) | skip]]
-			n
-		]
 		
 		cast: func [obj [object!] /quiet /local value ctype type][
 			value: obj/data
@@ -2438,7 +2433,7 @@ system-dialect: make-profilable context [
 			ret
 		]
 
-		comp-catch: has [offset locals-size unused chunk start end cb? cnt][
+		comp-catch: has [offset locals-size unused chunk start end cb?][
 			pc: next pc
 			fetch-expression/keep/final 'catch
 			if any [not last-type last-type <> [integer!]][
@@ -2459,7 +2454,6 @@ system-dialect: make-profilable context [
 			
 			locals-size: any [all [locals func-locals-sz] 0]
 			cb?: to logic! all [locals 'callback = last functions/:func-name]
-			unless zero? cnt: count-outer-loops [locals-size: locals-size + (4 * cnt)]
 			
 			end: comp-chunked [emitter/target/emit-close-catch locals-size not locals cb?]
 			chunk: emitter/chunks/join chunk end
@@ -2735,10 +2729,7 @@ system-dialect: make-profilable context [
 		
 		comp-break: does [
 			if empty? loop-stack [throw-error "BREAK used with no loop"]
-			switch last loop-stack [
-				while-cond [throw-error "BREAK cannot be used in WHILE condition block"]
-				loop	   [emitter/target/emit-pop]
-			]
+			if 'while-cond = last loop-stack [throw-error "BREAK cannot be used in WHILE condition block"]
 			emitter/target/emit-jump-point last emitter/breaks
 			pc: next pc
 			none
@@ -2757,9 +2748,24 @@ system-dialect: make-profilable context [
 			pc: next pc
 			none
 		]
+
+		inject-loop-variable: func [spec [block!] body [block!] /local loops inject rule pos][
+			loops: 0
+			inject: quote (
+				unless issue? pos/-2 [
+					loops: loops + 1
+					insert pos append copy <L> loops	;-- store counter name as tag! just after 'loop
+					pos: next pos
+				]
+			)
+			parse body rule: [any ['loop pos: inject | into rule | skip]]
+			unless pos: find spec /local [pos: append spec /local]
+			repeat i loops [append pos reduce [to-word form append copy <L> i [integer!]]] ;-- add counters to locals
+		]
 		
-		comp-loop: has [expr body start][
+		comp-loop: has [name expr body start counter vars pos][		
 			pc: next pc
+			if tag? pc/1 [name: to-word form pc/1 remove pc] ;-- process loop's hidden counter variable
 			
 			fetch-expression/keep/final 'loop			;-- compile expression
 			if any [none? last-type last-type/1 <> 'integer!][
@@ -2769,14 +2775,15 @@ system-dialect: make-profilable context [
 			emitter/target/emit-integer-operation '= [<last> 0]	;-- insert counter comparison to 0 (skipping)
 			
 			emitter/init-loop-jumps
-			push-loop 'loop
-			start: comp-chunked [emitter/target/emit-start-loop]
+			push-loop 'loop			
+			either locals [vars: name][counter: emitter/store-value none 0 [integer!]]
+			start: comp-chunked [emitter/target/emit-start-loop counter vars]
 			set [expr body] comp-block-chunked
 			pop-loop
 			
 			body: emitter/chunks/join start body
 			emitter/resolve-loop-jumps body 'cont-next
-			body: emitter/chunks/join body comp-chunked [emitter/target/emit-end-loop]
+			body: emitter/chunks/join body comp-chunked [emitter/target/emit-end-loop counter vars]
 			emitter/target/signed?: yes					;-- force signed comparison for the counter
 			emitter/branch/back/on body less-or-equal
 			emitter/resolve-loop-jumps body 'breaks
@@ -3842,6 +3849,7 @@ system-dialect: make-profilable context [
 			name [word!] spec [block!] body [block!]
 			/local args-sz local-sz expr ret
 		][
+			inject-loop-variable spec body
 			init-struct-values spec
 			locals: spec
 			func-name: name
