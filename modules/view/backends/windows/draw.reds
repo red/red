@@ -10,6 +10,8 @@ Red/System [
 	}
 ]
 
+g_standby?: no
+
 #define GAUSSIAN_SCALE_FACTOR 1.87997120597325
 
 #include %text-box.reds
@@ -20,6 +22,10 @@ Red/System [
 	DRAW_BRUSH_GRADIENT
 	DRAW_BRUSH_GRADIENT_SMART
 	DRAW_BRUSH_IMAGE_SMART
+]
+
+#define SET_FIGURE_MODE(ctx mode) [
+	either ctx/draw-shape? [mode: as-integer ctx/brush-type = DRAW_BRUSH_NONE][mode: 0]
 ]
 
 grad-stops: as D2D1_GRADIENT_STOP allocate 256 * size? D2D1_GRADIENT_STOP
@@ -313,6 +319,7 @@ draw-end: func [
 		sc		[IDXGISwapChain1]
 		rt		[render-target!]
 		hr		[integer!]
+		flags	[integer!]
 ][
 	loop ctx/clip-cnt [OS-clip-end ctx]
 	ctx/clip-cnt: 0
@@ -331,10 +338,11 @@ draw-end: func [
 	either hWnd <> null [		;-- window target
 		this: rt/swapchain
 		sc: as IDXGISwapChain1 this/vtbl
-		hr: sc/Present this 0 0
+		flags: either g_standby? [DXGI_PRESENT_TEST][0]
+		hr: sc/Present this 0 flags
 
 		switch hr [
-			COM_S_OK [0]
+			COM_S_OK [g_standby?: no]
 			DXGI_ERROR_DEVICE_REMOVED
 			DXGI_ERROR_DEVICE_RESET [
 				d2d-release-target rt
@@ -343,6 +351,7 @@ draw-end: func [
 				DX-create-dev
 				InvalidateRect hWnd null 0
 			]
+			DXGI_STATUS_OCCLUDED [g_standby?: yes]
 			default [
 				probe ["draw-end error: " hr]
 				0			;@@ TBD log error!!!
@@ -498,9 +507,9 @@ OS-draw-shape-beginpath: func [
 	ctx/sub/shape-curve?: no
 	vpoint/x: ctx/sub/last-pt-x
 	vpoint/y: ctx/sub/last-pt-y
-	figure: either draw? [as-integer ctx/brush-type = DRAW_BRUSH_NONE][
+	either draw? [figure: as-integer ctx/brush-type = DRAW_BRUSH_NONE][
 		gsink/SetFillMode sthis 1
-		0
+		figure: 0
 	]
 	gsink/BeginFigure sthis vpoint figure
 ]
@@ -543,13 +552,15 @@ OS-draw-shape-close: func [
 		sthis	[this!]
 		gsink	[ID2D1GeometrySink]
 		vpoint	[POINT_2F value]
+		mode	[integer!]
 ][
 	sthis: as this! ctx/sub/sink
 	gsink: as ID2D1GeometrySink sthis/vtbl
 	gsink/EndFigure sthis 1
 	vpoint/x: ctx/sub/last-pt-x
 	vpoint/y: ctx/sub/last-pt-y
-	gsink/BeginFigure sthis vpoint as-integer ctx/brush-type = DRAW_BRUSH_NONE
+	SET_FIGURE_MODE(ctx mode)
+	gsink/BeginFigure sthis vpoint mode
 ]
 
 OS-draw-shape-moveto: func [
@@ -578,7 +589,7 @@ OS-draw-shape-moveto: func [
 	gsink/EndFigure sthis 0
 	vpoint/x: ctx/sub/last-pt-x
 	vpoint/y: ctx/sub/last-pt-y
-	figure: either ctx/draw-shape? [as-integer ctx/brush-type = DRAW_BRUSH_NONE][0]
+	SET_FIGURE_MODE(ctx figure)
 	gsink/BeginFigure sthis vpoint figure
 	ctx/sub/shape-curve?: no
 ]
