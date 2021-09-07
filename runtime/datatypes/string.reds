@@ -2125,6 +2125,9 @@ string: context [
 					str2: as red-string! word/get-buffer as red-word! value
 					head2: 0							;-- str2/head = -1 (casted from symbol!)
 				][
+					if all [TYPE_OF(str) <> TYPE_BINARY TYPE_OF(value) = TYPE_BINARY][
+						fire [TO_ERROR(script invalid-arg) value]						
+					]
 					str2: as red-string! value
 					head2: str2/head
 				]
