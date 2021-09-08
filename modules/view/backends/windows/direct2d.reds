@@ -2016,7 +2016,7 @@ get-hwnd-render-target: func [
 ][
 	target: as render-target! GetWindowLong hWnd wc-offset - 36
 	if null? target [
-		target: as render-target! alloc0 size? render-target!
+		target: as render-target! zero-alloc size? render-target!
 		create-render-target hWnd target gdi?
 		target/brushes: as int-ptr! allocate D2D_MAX_BRUSHES * 2 * size? int-ptr!
 		SetWindowLong hWnd wc-offset - 36 as-integer target
