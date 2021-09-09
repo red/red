@@ -557,7 +557,7 @@ open: make action! [[
 		/read "Open for read access"
 		/write "Open for write access"
 		/seek "Optimize for random access"
-		/allow "Specificies right access attributes"
+		/allow "Specify write access attributes"
 			access [block!]
 	]
 	#get-definition ACT_OPEN
