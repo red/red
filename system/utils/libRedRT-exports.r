@@ -210,12 +210,12 @@
 	red/natives/remove-each-next
 	red/natives/foreach-next-block
 	red/natives/foreach-next
-	red/natives/forall-loop
 	red/natives/forall-next
 	red/natives/forall-end
 	red/natives/forall-end-adjust
 	red/natives/coerce-counter*
 	red/natives/inc-counter
+	red/natives/get-series-length
 
 	red/actions/make*
 	red/actions/random*

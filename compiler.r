@@ -2612,9 +2612,10 @@ red: context [
 		emit make-typeset [series!] none functions/forall/3 yes
 		emit [0 stack/arguments - 2]					;-- index of first argument
 		insert-lf -9
-		emit copy/deep [								;-- copy/deep required for R/S lines injection
-			while [natives/forall-loop]
-		]
+		
+		emit-open-frame 'forall
+		emit [loop natives/get-series-length as red-series! stack/arguments - 2]
+		insert-lf -7
 		push-call 'forall
 		comp-sub-block 'forall-body						;-- compile body
 		pop-call
@@ -2623,6 +2624,7 @@ red: context [
 			natives/forall-next							;-- move series to next position
 		]
 		emit [
+			stack/unwind
 			natives/forall-end							;-- reset series
 			stack/unwind
 		]

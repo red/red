@@ -2602,6 +2602,22 @@ make-profilable make target-class [
 				if all [object? args/2 not conv?][emit-vfp-casting/right args/2]
 			]
 		]
+		all [
+			not conv?
+			not object? args/2
+			any [
+				all [
+					saved = 4
+					width = 8
+					emit-i32 #{eeb71bc1}			;-- FCVTSD s2, d1	; convert to 32-bit
+				]
+				all [
+					saved = 8
+					width = 4
+					emit-i32 #{eeb71ac1}			;-- FCVTDS d1, s2	; convert to 64-bit
+				]
+			]
+		]
 		width: saved
 		
 		case [

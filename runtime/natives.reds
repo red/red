@@ -355,13 +355,8 @@ natives: context [
 		break?: no
 		
 		stack/mark-loop words/_body
-		while [
-			series: as red-series! _context/get w
-			if series/node <> saved/node [
-				fire [TO_ERROR(script bad-loop-series) series]
-			]
-			loop? series
-		][
+		series: as red-series! _context/get w	
+		loop get-series-length series [
 			stack/reset
 			assert system/thrown = 0
 			catch RED_THROWN_BREAK	[interpreter/eval body no]
@@ -370,6 +365,7 @@ natives: context [
 				RED_THROWN_CONTINUE	
 				0 [
 					series: as red-series! _context/get w
+					if series/node <> saved/node [fire [TO_ERROR(script bad-loop-series) series]]
 					series/head: series/head + 1
 					if system/thrown = RED_THROWN_CONTINUE [
 						system/thrown: 0
@@ -3049,6 +3045,30 @@ natives: context [
 		f
 	]
 
+	get-series-length: func [
+		series  [red-series!]
+		return: [integer!]	
+		/local
+			s	 [series!]
+			type [integer!]
+			img  [red-image!]
+	][
+		type: TYPE_OF(series)
+		if type = TYPE_IMAGE [
+			img: as red-image! series
+			return IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) - img/head
+		]
+		s: GET_BUFFER(series)
+		either any [
+			ANY_BLOCK?(type)
+			type = TYPE_MAP
+		][
+			(as-integer s/tail - s/offset) >> 4 - series/head
+		][
+			(as-integer s/tail - s/offset) - series/head << (log-b GET_UNIT(s))
+		]
+	]
+
 	loop?: func [
 		series  [red-series!]
 		return: [logic!]	
@@ -3252,22 +3272,6 @@ natives: context [
 			series/head: series/head + 1
 		]
 		result
-	]
-	
-	forall-loop: func [									;@@ inline?
-		return: [logic!]
-		/local
-			series [red-series!]
-			saved  [red-series!]
-			word   [red-word!]
-	][
-		word: as red-word! stack/arguments - 1
-		assert TYPE_OF(word) = TYPE_WORD
-
-		series: as red-series! _context/get word
-		saved: as red-series! stack/arguments - 2
-		if series/node <> saved/node [fire [TO_ERROR(script bad-loop-series) series]]
-		loop? series
 	]
 	
 	forall-next: func [									;@@ inline?

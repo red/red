@@ -171,7 +171,7 @@ Red/System [
 	]
 ]
 
-alloc0: func [
+zero-alloc: func [
 	size		[integer!]
 	return:		[byte-ptr!]
 ][

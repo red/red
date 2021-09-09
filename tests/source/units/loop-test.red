@@ -274,6 +274,17 @@ Red [
 		--assert s3361 = [1 1  2 1 2 2  3 1 3 2 3 3  2 3  1 2 1 3]
 		unset [f3361 s3361]
 
+	--test-- "#4578"
+			s4578: [1] probe forall s4578 [break]
+			--assert true							;-- check if previous line didn't crash
+
+			a1923: [1 2 3] 
+			forall a1923 [if a1923/1 = 2 [break] try [break] do [break]]
+			repeat i 3 [break continue]
+			foreach a a1923 [break]
+			remove-each a a1923 [break]
+			--assert true							;-- check if previous line didn't crash
+
 ===end-group===
     
 ~~~end-file~~~

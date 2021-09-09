@@ -1490,6 +1490,11 @@ Red [
 		--assert [фывапр " abcdef"] == transcode/next "фывапр abcdef"
 		--assert ["Gab’s Books" "^/Work In P"] == transcode/next {"Gab’s Books"^/Work In P}
 
+	--test-- "#4624"
+		--assert [a b] == load/all "a^(3000)b"
+		--assert [a b] == load/all "^(2002)a^(3000)b"
+		--assert [a b] == load/all "^(2002)^(85)a^(3000)b"
+
 ===end-group===
 	
 ~~~end-file~~~

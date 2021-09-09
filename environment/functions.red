@@ -890,7 +890,9 @@ do-file: function ["Internal Use Only" file [file! url!]][
 	]
 	code: load/all src									;-- don't expand before we check the header
 	if code/1 = 'Red/System [cause-error 'internal 'red-system []]
-	code: next expand-directives next code				;-- skip the Red[/System] part and [block]
+	code: expand-directives next code					;-- skip the Red[/System] value
+	system/script/header: construct/with code/1 system/standard/header	;-- load header metadata
+	code: next code
 	if file? file [
 		new-path: first split-path clean-path file
 		change-dir new-path

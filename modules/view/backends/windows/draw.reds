@@ -213,7 +213,7 @@ draw-begin: func [
 		wic-bmp: OS-image/get-wicbitmap img
 		OS-image/mark-updated img
 		;-- create a bitmap target
-		target: as render-target! alloc0 size? render-target!
+		target: as render-target! zero-alloc size? render-target!
 		target/brushes: as int-ptr! allocate D2D_MAX_BRUSHES * 2 * size? int-ptr!
 
 		zero-memory as byte-ptr! :props size? D2D1_RENDER_TARGET_PROPERTIES
