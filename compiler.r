@@ -1322,15 +1322,16 @@ red: context [
 		]
 	]
 	
-	check-spec: func [spec [block!] /local symbols word pos stop locals return?][
+	check-spec: func [spec [block!] /local symbols word pos stop locals return? loc?][
 		symbols: make block! length? spec
 		locals:  0
+		loc?: no
 		
 		unless parse spec [
 			opt string!
 			any [
-				pos: /local (append symbols 'local) [
-					some [
+				pos: /local (loc?: yes append symbols 'local) [
+					any [
 						pos: word! (
 							unless find symbols word: to word! pos/1 [
 								append symbols word
@@ -1339,10 +1340,6 @@ red: context [
 						)
 						pos: opt block! pos: opt string!
 					]
-					| (
-						remove pos
-						clear back tail symbols
-					)
 				]
 				| set-word! (
 					if any [return? pos/1 <> return-def][stop: [end skip]]
@@ -1350,7 +1347,7 @@ red: context [
 				) stop pos: block! opt string!
 				| [
 					[word! | lit-word! | get-word!] opt block! opt string!
-					| refinement! opt string!
+					| refinement! opt string! (if loc? [stop: [end skip]]) stop
 				] (append symbols to word! pos/1)
 			]
 		][
