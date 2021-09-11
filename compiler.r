@@ -2850,8 +2850,12 @@ red: context [
 		]
 		unless empty? words [
 			pos: tail spec
-			unless find spec /local [append spec /local]
-			append spec words
+			either parse spec [thru /local any word! loc: to end][
+				insert loc words
+			][
+				append spec /local
+				append spec words
+			]
 			new-line pos yes
 			new-line/all next pos no
 		]
