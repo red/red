@@ -40,7 +40,7 @@ Red [
 		nl: reduce [no no no no no no yes yes yes]
 		forall out [--assert nl/1 = new-line? out nl: next nl]
 
-	--test-- "tr-15" --assert [#"^@" #" " #"^/" #"^@"] == transcode {#"^^@" #"^^(20)" #"^^(line)" #""}
+	--test-- "tr-15" --assert [#"^@" #" " #"^/"] == transcode {#"^^@" #"^^(20)" #"^^(line)"}
 	--test-- "tr-16"
 		out: transcode {
 			#{33AA}
@@ -620,7 +620,7 @@ Red [
 	--test-- "tro-141"  --assert -1000000000 == transcode/one "-1'000'000'000"
 	--test-- "tro-142"  --assert -1000000000 == transcode/one "-1000000000"
 
-	--test-- "tro-143"  --assert #"^@" == transcode/one {#""}
+	--test-- "tro-143"  --assert error? try [transcode/one {#""}]
 	--test-- "tro-144"  --assert error? try [transcode/one {"hello^/world"}]
 	--test-- "tro-145"  --assert "hello^Mworld" == transcode/one {"hello^Mworld"}
 	--test-- "tro-146"  --assert "hello^-world" == transcode/one {"hello^-world"}
@@ -763,7 +763,7 @@ Red [
 	--test-- "scan-58" --assert date!	 = scan "29/02/2020"
 	--test-- "scan-59" --assert error!	 = scan "30/02/2020"
 	--test-- "scan-60" --assert none? 	   scan ""
-	--test-- "scan-61" --assert char!	 = scan {#""}
+	--test-- "scan-61" --assert error!	 = scan {#""}
 	--test-- "scan-62" --assert error!	 = scan {"hello^/world"}
 	--test-- "scan-63" --assert string!	 = scan {"hello^Mworld"}
 	--test-- "scan-64" --assert string!	 = scan {"hello^-world"}

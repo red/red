@@ -1374,20 +1374,17 @@ lexer: context [
 			do-error [subroutine!]
 	][
 		do-error: [throw-error lex s e TYPE_CHAR]
-		unless all [s/1 = #"#" s/2 = #"^""][do-error]
+		unless all [s/1 = #"#" s/2 = #"^"" s/3 <> #"^""][do-error]
 		len: as-integer e - s
-		either len = 2 [c: 0][							;-- #"" is a shortcut for #"^@"
-			if e/1 <> #"^"" [do-error]
-			c: -1
-			
-			p: either s/3 = #"^^" [
-				if len = 3 [do-error]					;-- #"^"
-				scan-escaped-char s + 3 e :c
-			][											;-- simple char
-				unicode/fast-decode-utf8-char s + 2 :c
-			]
-			if any [c > 0010FFFFh c = -1 p < e][do-error]
+		if e/1 <> #"^"" [do-error]
+		c: -1
+		p: either s/3 = #"^^" [
+			if len = 3 [do-error]						;-- #"^"
+			scan-escaped-char s + 3 e :c
+		][												;-- simple char
+			unicode/fast-decode-utf8-char s + 2 :c
 		]
+		if any [c > 0010FFFFh c = -1 p < e][do-error]
 		if load? [
 			char: as red-char! alloc-slot lex
 			set-type as cell! char TYPE_CHAR
