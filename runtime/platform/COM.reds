@@ -73,6 +73,13 @@ Red/System [
 #define STGM_CREATE				00001000h
 #define STGM_DELETEONRELEASE	04000000h
 
+GUID!: alias struct! [
+	guid1	[integer!]
+	guid2	[integer!]
+	guid3	[integer!]
+	guid4	[integer!]
+]
+
 tagVARIANT: alias struct! [
 	data1		[integer!]
 	data2		[integer!]
@@ -372,9 +379,22 @@ CLSID_GIF_ENCODER:  [557CF402h 11D31A04h 0000739Ah 2EF31EF8h]
 CLSID_TIFF_ENCODER: [557CF405h 11D31A04h 0000739Ah 2EF31EF8h]
 CLSID_PNG_ENCODER:  [557CF406h 11D31A04h 0000739Ah 2EF31EF8h]
 
+;-- 00000000-0000-0000-C000-000000000046
+IID_IUnknown: [00000000h 00000000h 000000C0h 46000000h]
+
 init-variant: func [
 	var [tagVARIANT]
 ][
 	set-memory as byte-ptr! var null-byte size? tagVARIANT
 	VariantInit var
+]
+
+copy-guid: func [
+	dst		[GUID!]
+	src		[GUID!]
+][
+	dst/guid1: src/guid1
+	dst/guid2: src/guid2
+	dst/guid3: src/guid3
+	dst/guid4: src/guid4
 ]

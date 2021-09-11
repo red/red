@@ -912,6 +912,23 @@ binary: context [
 		make-at ALLOC_TAIL(parent) size
 	]
 
+	load-at: func [
+		slot	 [red-value!]
+		src		 [byte-ptr!]
+		size	 [integer!]
+		return:  [red-binary!]
+		/local
+			bin  [red-binary!]
+			s	 [series!]
+	][
+		bin: make-at slot size
+		
+		s: GET_BUFFER(bin)
+		copy-memory as byte-ptr! s/offset src size
+		s/tail: as cell! (as byte-ptr! s/tail) + size
+		bin
+	]
+
 	load-in: func [
 		src		 [byte-ptr!]
 		size	 [integer!]
@@ -919,16 +936,9 @@ binary: context [
 		return:  [red-binary!]
 		/local
 			slot [red-value!]
-			bin  [red-binary!]
-			s	 [series!]
 	][
 		slot: either null = blk [stack/push*][ALLOC_TAIL(blk)]
-		bin: make-at slot size
-		
-		s: GET_BUFFER(bin)
-		copy-memory as byte-ptr! s/offset src size
-		s/tail: as cell! (as byte-ptr! s/tail) + size
-		bin
+		load-at slot src size
 	]
 	
 	load: func [

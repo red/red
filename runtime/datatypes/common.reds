@@ -727,7 +727,9 @@ words: context [
 	
 	_multiply:		as red-word! 0
 	_browse:		as red-word! 0
-	
+
+	_wait:			as red-word! 0
+
 	;-- I/O actions
 	_open:			as red-word! 0
 	_create:		as red-word! 0
@@ -985,6 +987,8 @@ words: context [
 		
 		_multiply:		word/load "multiply"
 		_browse:		word/load "browse"
+
+		_wait:			word/load "wait"
 		
 		;-- I/O actions
 		_open:			word/load "open"

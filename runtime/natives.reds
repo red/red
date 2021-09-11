@@ -2181,6 +2181,10 @@ natives: context [
 			TYPE_TIME [
 				seconds: val/value
 			]
+			TYPE_PORT [
+				port/do-action-port words/_wait as red-object! val
+				exit
+			]
 			default [fire [TO_ERROR(script invalid-arg) val]]
 		]
 		val/header: TYPE_NONE
