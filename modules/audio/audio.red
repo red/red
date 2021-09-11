@@ -259,6 +259,7 @@ audio-scheme: context [
 
 	audio.play: routine [
 		handle		[any-type!]
+		rate		[integer!]
 		bits		[integer!]
 		bin			[binary!]
 		/local
@@ -292,12 +293,18 @@ audio-scheme: context [
 			dev-sample-type: ASAMPLE-TYPE-F32
 			print-line "warning: using float32! sample format"
 		]
+		unless audio/device/set-sample-rate dev rate [
+			print-line ["can't set rate: " rate]
+			exit
+		]
 
 		;-- send data to the audio port
 		audio-buffer: binary/rs-head bin
 		audio-buffer-end: binary/rs-tail bin
 		unless connected? [
-			audio/device/connect dev as int-ptr! :wave-cb
+			unless audio/device/connect dev as int-ptr! :wave-cb [
+				print-line "can't connect device"
+			]
 			connected?: yes
 		]
 		unless audio/device/start dev null null [
@@ -320,7 +327,7 @@ audio-scheme: context [
 		unless all [block? state: port/state handle? first state][
 			cause-error 'access 'not-open ["port/state is invalid"]
 		]
-		audio.play state/1 data/bits data/data
+		audio.play state/1 data/rate data/bits data/data
 	]
 
 	close: func [port /local handle][

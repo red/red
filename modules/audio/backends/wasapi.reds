@@ -35,7 +35,8 @@ OS-audio: context [
 	KSDATAFORMAT_SUBTYPE_PCM: [00000001h 00100000h AA000080h 719B3800h]
 	;-- 7991EEC9-7E89-4D85-8390-6C703CEC60C0
 	IID_IMMNotificationClient: [7991EEC9h 4D857E89h 706C9083h C060EC3Ch]
-
+	;-- F6E4C0A0-46D9-4FB8-BE21-57A3EF2B626C
+	IID_IAudioClockAdjustment: [F6E4C0A0h 4FB846D9h A35721BEh 6C622BEFh]
 
 	DEVICE-MONITOR-NOTIFY!: alias struct! [
 		list-notify		[this!]
@@ -123,6 +124,7 @@ OS-audio: context [
 		stop-cb			[int-ptr!]
 		running?		[logic!]
 		stop?			[logic!]
+		rate-adjust		[this!]
 		event			[int-ptr!]
 		service			[this!]
 		thread			[int-ptr!]
@@ -264,6 +266,12 @@ OS-audio: context [
 		GetNextPacketSize			[function! [this [this!] pnum [int-ptr!] return: [integer!]]]
 	]
 
+	IAudioClockAdjustment: alias struct! [
+		QueryInterface				[QueryInterface!]
+		AddRef						[AddRef!]
+		Release						[Release!]
+		SetSampleRate				[function! [this [this!] rate [float32!] return: [integer!]]]
+	]
 
 	IPropertyStore: alias struct! [
 		QueryInterface				[QueryInterface!]
@@ -551,7 +559,7 @@ OS-audio: context [
 		buf-time/high: as integer! ft / 4294967296.0
 		ft2: (as float! buf-time/high) * 4294967296.0
 		buf-time/low: as integer! ft - ft2
-		hr: client/Initialize this 0 00140000h buf-time period format null
+		hr: client/Initialize this 0 88140000h buf-time period format null
 		if hr <> 0 [return false]
 		true
 	]
@@ -1153,19 +1161,26 @@ OS-audio: context [
 		/local
 			wdev	[WASAPI-DEVICE!]
 			client	[IAudioClient]
-			tf		[integer!]
-			ext		[WAVEFORMATEXTENSIBLE! value]
+			service	[com-ptr! value]
+			this	[this!]
+			padjust [IAudioClockAdjustment]
 			hr		[integer!]
 	][
 		wdev: as WASAPI-DEVICE! dev
 		if wdev/running? [return false]
-		client: as IAudioClient wdev/client/vtbl
-		tf: 0
-		init-format-with ext wdev/channel rate wdev/format
-		hr: client/IsFormatSupported wdev/client AUDCLNT_SHAREMODE_SHARED :ext :tf
-		if tf <> 0 [CoTaskMemFree tf]
-		if hr <> 0 [return false]
+		if wdev/rate = rate [return true]
+
 		wdev/rate: rate
+		if wdev/service <> null [		;-- already initialized
+			if null? wdev/rate-adjust [
+				client: as IAudioClient wdev/client/vtbl
+				hr: client/GetService wdev/client IID_IAudioClockAdjustment :service
+				if hr = 0 [wdev/rate-adjust: service/value]
+			]
+			this: wdev/rate-adjust
+			padjust: as IAudioClockAdjustment this/vtbl
+			if 0 <> padjust/SetSampleRate this as float32! rate [return false]
+		]
 		true
 	]
 
@@ -1192,12 +1207,12 @@ OS-audio: context [
 	][
 		wdev: as WASAPI-DEVICE! dev
 		if wdev/running? [return false]
-		client: as IAudioClient wdev/client/vtbl
-		tf: 0
-		init-format-with ext wdev/channel wdev/rate type
-		hr: client/IsFormatSupported wdev/client AUDCLNT_SHAREMODE_SHARED :ext :tf
-		if tf <> 0 [CoTaskMemFree tf]
-		if hr <> 0 [return false]
+		;client: as IAudioClient wdev/client/vtbl
+		;tf: 0
+		;init-format-with ext wdev/channel wdev/rate type
+		;hr: client/IsFormatSupported wdev/client AUDCLNT_SHAREMODE_SHARED :ext :tf
+		;if tf <> 0 [CoTaskMemFree tf]
+		;if hr <> 0 [return false]
 		wdev/format: type
 		true
 	]
@@ -1258,20 +1273,13 @@ OS-audio: context [
 		/local
 			wdev	[WASAPI-DEVICE!]
 			client	[IAudioClient]
-			tf		[integer!]
 			ext		[WAVEFORMATEXTENSIBLE! value]
-			hr		[integer!]
 	][
 		wdev: as WASAPI-DEVICE! dev
 		if wdev/running? [probe "connect still running" return false]
 		client: as IAudioClient wdev/client/vtbl
-		;-- check the config is ok
-		tf: 0
+
 		init-format-with ext wdev/channel wdev/rate wdev/format
-		hr: client/IsFormatSupported wdev/client AUDCLNT_SHAREMODE_SHARED :ext :tf
-		if tf <> 0 [CoTaskMemFree tf]
-		if hr <> 0 [return false]
-		;-- init
 		unless init-client-with wdev/client client wdev/buffer-size wdev/rate ext [
 			return false
 		]
@@ -1402,14 +1410,15 @@ OS-audio: context [
 		if wdev/running? [return true]
 
 		pclient: as IAudioClient wdev/client/vtbl
-		p: either wdev/type = ADEVICE-TYPE-OUTPUT [IID_IAudioRenderClient][IID_IAudioCaptureClient]
-		hr: pclient/GetService wdev/client p :service
-		if hr = 0 [
-			wdev/service: service/value
+		if null? wdev/service [
+			p: either wdev/type = ADEVICE-TYPE-OUTPUT [IID_IAudioRenderClient][IID_IAudioCaptureClient]
+			hr: pclient/GetService wdev/client p :service
+			if hr = 0 [wdev/service: service/value]
 		]
+
 		hr: pclient/GetBufferSize wdev/client :wdev/buffer-size
 		if hr <> 0 [return false]
-				
+
 		if null? wdev/event [
 			wdev/event: CreateEvent null no no null
 			hr: pclient/SetEventHandle wdev/client wdev/event
