@@ -1573,7 +1573,6 @@ lexer: context [
 			]
 		]
 		if load? [
-			
 			cell: alloc-slot lex
 			word/make-at symbol/make-alt-utf8 s as-integer e - s cell
 			set-type cell type

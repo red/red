@@ -1495,6 +1495,12 @@ Red [
 		--assert [a b] == load/all "^(2002)a^(3000)b"
 		--assert [a b] == load/all "^(2002)^(85)a^(3000)b"
 
+	--test-- "#4562"
+		--assert [<< '<< <<: :<<] == transcode "<< '<< <<: :<<"
+		--assert ['=<= :=<= =<=:] == transcode "'=<= :=<= =<=:"
+		--assert word? transcode/one "=<="
+		--assert '-<- == transcode/one "-<-"
+
 ===end-group===
 	
 ~~~end-file~~~
