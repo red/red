@@ -397,7 +397,7 @@ poke: make action! [[
 put: make action! [[
 		"Replaces the value following a key, and returns the new value"
 		series	 [series! port! map! object!]
-		key 	 [scalar! any-string! any-word! binary!]
+		key 	 [scalar! any-string! all-word! binary!]
 		value 	 [any-type!]
 		/case "Perform a case-sensitive search"
 		return:  [series! port! map! object!]
