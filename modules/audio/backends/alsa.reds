@@ -1376,7 +1376,7 @@ OS-audio: context [
 					step: step + size
 				]
 				pcb arg abuff
-				hr: snd_pcm_writei adev/pcm adev/buffer avail
+				hr: snd_pcm_writei adev/pcm adev/buffer abuff/buffer/frames-count
 				if hr < 0 [
 					;print-line snd_pcm_state_name snd_pcm_state adev/pcm
 					;print-line ["write: " hr " " snd_strerror hr]

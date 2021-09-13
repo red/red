@@ -163,7 +163,8 @@ type-string: context [
 		free as byte-ptr! str
 	]
 
-	win-print: func [
+#either OS = 'Windows [
+	uprint: func [
 		str			[type-string!]
 		/local
 			buf		[int-ptr!]
@@ -193,8 +194,8 @@ type-string: context [
 			exit
 		]
 	]
-
-	mac-print: func [
+][
+	uprint: func [
 		str			[type-string!]
 		/local
 			buf		[int-ptr!]
@@ -224,14 +225,4 @@ type-string: context [
 			exit
 		]
 	]
-
-	uprint: func [
-		str			[type-string!]
-	][
-#switch OS [
-	Windows [win-print str]
-	#default [mac-print str]
-]
-	]
-
-]
+]]

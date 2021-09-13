@@ -103,6 +103,8 @@ audio-scheme: context [
 				itemp		[integer!]
 				ftemp		[float32!]
 				bp			[byte-ptr!]
+				buf-begin	[byte-ptr!]
+				finished?	[logic!]
 		][
 			if null? io/buffer [exit]
 			out: io/buffer
@@ -110,6 +112,14 @@ audio-scheme: context [
 			sw: either audio-sample-type = ASAMPLE-TYPE-I16 [2][4]
 			rw: either dev-sample-type = ASAMPLE-TYPE-I16 [2][4]
 			charr: as int-ptr! out/channels
+
+			buf-begin: audio-buffer
+			audio-buffer: audio-buffer + (out/frames-count * out/stride * sw)
+			either audio-buffer >= audio-buffer-end [
+				out/frames-count: (as-integer audio-buffer-end - buf-begin) / (out/stride * sw)
+				finished?: yes
+			][finished?: no]
+
 			loop out/frames-count [
 				count: 0
 				soff: frame * out/stride * sw
@@ -120,7 +130,7 @@ audio-scheme: context [
 					rbuf: rbuf + roff
 					rfp: as pointer! [float32!] rbuf
 					rip: as int-ptr! rbuf
-					sch: audio-buffer + (count * sw)
+					sch: buf-begin + (count * sw)
 					sbuf: sch + soff
 					case [
 						dev-sample-type = ASAMPLE-TYPE-F32 [
@@ -207,10 +217,7 @@ audio-scheme: context [
 				]
 				frame: frame + 1
 			]
-			audio-buffer: audio-buffer + (out/frames-count * out/stride * sw)
-			if audio-buffer >= audio-buffer-end [
-				audio/device/inner-stop dev
-			]
+			if finished? [audio/device/inner-stop dev]
 		]
 	]
 
