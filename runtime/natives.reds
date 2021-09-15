@@ -138,6 +138,7 @@ natives: context [
 		
 		stack/mark-loop words/_body
 		while [
+			assert system/thrown = 0
 			catch RED_THROWN_BREAK [interpreter/eval cond yes]
 			switch system/thrown [
 				RED_THROWN_BREAK
@@ -151,6 +152,7 @@ natives: context [
 			logic/true?
 		][
 			stack/reset
+			assert system/thrown = 0
 			catch RED_THROWN_BREAK [interpreter/eval body yes]
 			switch system/thrown [
 				RED_THROWN_BREAK	[system/thrown: 0 break]
@@ -175,6 +177,7 @@ natives: context [
 		stack/mark-loop words/_body
 		until [
 			stack/reset
+			assert system/thrown = 0
 			catch RED_THROWN_BREAK	[interpreter/eval body yes]
 			switch system/thrown [
 				RED_THROWN_BREAK	[system/thrown: 0 break]
@@ -188,7 +191,6 @@ natives: context [
 	]
 	
 	loop*: func [
-		[catch]
 		check? [logic!]
 		/local
 			body  [red-block!]
@@ -205,10 +207,7 @@ natives: context [
 		stack/mark-loop words/_body		
 		loop count [
 			stack/reset
-			saved: system/stack/top						;--	FIXME: solve loop/catch conflict
-			interpreter/eval body yes
-			system/stack/top: saved
-			
+			catch RED_THROWN_BREAK [interpreter/eval body yes]
 			switch system/thrown [
 				RED_THROWN_BREAK	[system/thrown: 0 break]
 				RED_THROWN_CONTINUE	[system/thrown: 0 continue]
@@ -243,6 +242,7 @@ natives: context [
 		until [
 			stack/reset
 			_context/set w as red-value! count
+			assert system/thrown = 0
 			catch RED_THROWN_BREAK [interpreter/eval body yes]
 			switch system/thrown [
 				RED_THROWN_BREAK [system/thrown: 0 break]
@@ -269,6 +269,7 @@ natives: context [
 		
 		stack/mark-loop words/_body
 		forever [
+			assert system/thrown = 0
 			catch RED_THROWN_BREAK	[interpreter/eval body no]
 			switch system/thrown [
 				RED_THROWN_BREAK	[system/thrown: 0 break]
@@ -305,6 +306,7 @@ natives: context [
 			
 			while [foreach-next-block size][			;-- foreach [..]
 				stack/reset
+				assert system/thrown = 0
 				catch RED_THROWN_BREAK	[interpreter/eval body no]
 				switch system/thrown [
 					RED_THROWN_BREAK	[system/thrown: 0 break]
@@ -318,6 +320,7 @@ natives: context [
 			
 			while [foreach-next][						;-- foreach <word!>
 				stack/reset
+				assert system/thrown = 0
 				catch RED_THROWN_BREAK	[interpreter/eval body no]
 				switch system/thrown [
 					RED_THROWN_BREAK	[system/thrown: 0 break]
@@ -352,20 +355,17 @@ natives: context [
 		break?: no
 		
 		stack/mark-loop words/_body
-		while [
-			series: as red-series! _context/get w
-			if series/node <> saved/node [
-				fire [TO_ERROR(script bad-loop-series) series]
-			]
-			loop? series
-		][
+		series: as red-series! _context/get w	
+		loop get-series-length series [
 			stack/reset
+			assert system/thrown = 0
 			catch RED_THROWN_BREAK	[interpreter/eval body no]
 			switch system/thrown [
 				RED_THROWN_BREAK	[system/thrown: 0 break?: yes break]
 				RED_THROWN_CONTINUE	
 				0 [
 					series: as red-series! _context/get w
+					if series/node <> saved/node [fire [TO_ERROR(script bad-loop-series) series]]
 					series/head: series/head + 1
 					if system/thrown = RED_THROWN_CONTINUE [
 						system/thrown: 0
@@ -407,6 +407,7 @@ natives: context [
 		]
 		while [either multi? [foreach-next-block size][foreach-next]][	;-- each [...] / each <word!>
 			stack/reset
+			assert system/thrown = 0
 			catch RED_THROWN_BREAK	[interpreter/eval body no]
 			switch system/thrown [
 				RED_THROWN_BREAK	[system/thrown: 0 break]
@@ -562,7 +563,8 @@ natives: context [
 		]
 		if next > 0 [slot: _context/get as red-word! stack/arguments + next]
 		
-		catch RED_THROWN_ERROR [
+		assert system/thrown = 0
+		catch RED_THROWN_BREAK [
 			switch TYPE_OF(arg) [
 				TYPE_BLOCK [DO_EVAL_BLOCK]
 				TYPE_PATH  [
@@ -612,7 +614,7 @@ natives: context [
 		
 		switch TYPE_OF(value) [
 			TYPE_ANY_PATH [
-				interpreter/eval-path value null null null no yes no case? <> -1
+				interpreter/eval-path value null null null no any? <> -1 no case? <> -1
 			]
 			TYPE_OBJECT [
 				object/reflect as red-object! value words/values
@@ -1231,6 +1233,7 @@ natives: context [
 		]
 		cframe: stack/get-ctop							;-- save the current call frame pointer
 		
+		assert system/thrown = 0
 		catch RED_THROWN_BREAK [
 			res: parser/process
 				input
@@ -1675,10 +1678,15 @@ natives: context [
 	][
 		#typecheck [tangent radians]
 		f: degree-to-radians* radians TYPE_TANGENT
-		either (float/abs f/value) = (PI / 2.0) [
-			fire [TO_ERROR(math overflow)]
+		
+		either f/value = (PI / 2.0) [					;-- see #3441 on `tangent 90` handling
+			f/value: 1.0 / 0.0
 		][
-			f/value: tan f/value
+			either f/value = (PI / -2.0) [
+				f/value: -1.0 / 0.0
+			][
+				f/value: tan f/value
+			]
 		]
 		f
 	]
@@ -1912,15 +1920,15 @@ natives: context [
 	try*: func [
 		check?  [logic!]
 		_all	[integer!]
+		keep	[integer!]
 		return: [integer!]
 		/local
 			arg	   [red-value!]
 			cframe [byte-ptr!]
 			result [integer!]
 	][
-		#typecheck [try _all]
+		#typecheck [try _all keep]
 		arg: stack/arguments
-		system/thrown: 0								;@@ To be removed
 		cframe: stack/get-ctop							;-- save the current call frame pointer
 		result: 0
 		
@@ -1929,6 +1937,7 @@ natives: context [
 		][
 			stack/mark-try-all words/_try
 		]
+		assert system/thrown = 0
 		catch RED_THROWN_ERROR [
 			interpreter/eval as red-block! arg yes
 			stack/unwind-last							;-- bypass it in case of error
@@ -1955,6 +1964,7 @@ natives: context [
 			stack/adjust-post-try
 		]
 		system/thrown: 0
+		if keep <> -1 [error/capture as red-object! stack/arguments]
 		result
 	]
 
@@ -2096,6 +2106,7 @@ natives: context [
 		if name <> -1 [c-name: as red-word! arg + name]
 		
 		stack/mark-catch words/_body
+		assert system/thrown = 0
 		catch RED_THROWN_THROW [interpreter/eval as red-block! arg yes]
 		t-name: as red-word! stack/arguments + 1
 		stack/unwind-last
@@ -2191,6 +2202,7 @@ natives: context [
 		]
 		val/header: TYPE_NONE
 		platform/wait seconds
+		#if modules contains 'View [exec/gui/do-events yes]
 	]
 
 	checksum*: func [
@@ -2860,7 +2872,8 @@ natives: context [
 		]
 		if all [next? any [one < 0 not load?]][
 			bin: as red-binary! copy-cell as red-value! bin s/offset + 1
-			bin/head: bin/head + offset
+			s: GET_BUFFER(bin)
+			bin/head: bin/head + offset					;-- move the input after the lexed token
 			slot: as red-value! blk
 		]
 		either null? out [stack/set-last slot][stack/set-last as red-value! out]
@@ -3035,18 +3048,38 @@ natives: context [
 		f: argument-as-float
 		d: f/value
 
-		either all [type <> TYPE_TANGENT any [d < -1.0 d > 1.0]] [
-			fire [TO_ERROR(math overflow)]
-		][
-			f/value: switch type [
-				TYPE_SINE	 [asin d]
-				TYPE_COSINE  [acos d]
-				TYPE_TANGENT [atan d]
-			]
+		f/value: switch type [
+			TYPE_SINE	 [asin d]
+			TYPE_COSINE  [acos d]
+			TYPE_TANGENT [atan d]
 		]
 
 		if radians < 0 [f/value: f/value * 180.0 / PI]			;-- to degrees
 		f
+	]
+
+	get-series-length: func [
+		series  [red-series!]
+		return: [integer!]	
+		/local
+			s	 [series!]
+			type [integer!]
+			img  [red-image!]
+	][
+		type: TYPE_OF(series)
+		if type = TYPE_IMAGE [
+			img: as red-image! series
+			return IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) - img/head
+		]
+		s: GET_BUFFER(series)
+		either any [
+			ANY_BLOCK?(type)
+			type = TYPE_MAP
+		][
+			(as-integer s/tail - s/offset) >> 4 - series/head
+		][
+			(as-integer s/tail - s/offset) - series/head << (log-b GET_UNIT(s))
+		]
 	]
 
 	loop?: func [
@@ -3254,22 +3287,6 @@ natives: context [
 		result
 	]
 	
-	forall-loop: func [									;@@ inline?
-		return: [logic!]
-		/local
-			series [red-series!]
-			saved  [red-series!]
-			word   [red-word!]
-	][
-		word: as red-word! stack/arguments - 1
-		assert TYPE_OF(word) = TYPE_WORD
-
-		series: as red-series! _context/get word
-		saved: as red-series! stack/arguments - 2
-		if series/node <> saved/node [fire [TO_ERROR(script bad-loop-series) series]]
-		loop? series
-	]
-	
 	forall-next: func [									;@@ inline?
 		/local
 			series [red-series!]
@@ -3307,31 +3324,6 @@ natives: context [
 		series/head: changed/head
 	]
 	
-	repeat-init*: func [
-		cell  	[red-value!]
-		return: [integer!]
-		/local
-			int [red-integer!]
-	][
-		copy-cell stack/arguments cell
-		int: as red-integer! cell
-		int/value										;-- overlapping /value field for integer! and char!
-	]
-	
-	repeat-set: func [
-		cell  [red-value!]
-		value [integer!]
-		/local
-			int [red-integer!]
-	][
-		assert any [
-			TYPE_OF(cell) = TYPE_INTEGER
-			TYPE_OF(cell) = TYPE_CHAR
-		]
-		int: as red-integer! cell
-		int/value: value								;-- overlapping /value field for integer! and char!
-	]
-	
 	coerce-counter: func [
 		slot 	[red-value!]
 		/local
@@ -3348,7 +3340,15 @@ natives: context [
 		]
 	]
 	
-	coerce-counter*: func [][coerce-counter stack/arguments]
+	coerce-counter*: does [coerce-counter stack/arguments]
+	
+	inc-counter: func [w [red-word!] /local int [red-integer!]][
+		assert TYPE_OF(w) = TYPE_WORD
+		int: as red-integer! _context/get w
+		assert TYPE_INTEGER = TYPE_OF(int)
+		int/value: int/value + 1
+		_context/set w as red-value! int
+	]
 	
 	init: does [
 		table: as int-ptr! allocate NATIVES_NB * size? integer!

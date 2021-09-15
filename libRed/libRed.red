@@ -73,6 +73,7 @@ Red [
 	#define TRAP_ERRORS(name body) [
 		last-error: null
 		stack/mark-try-all name
+		assert system/thrown = 0
 		catch RED_THROWN_ERROR body
 		stack/adjust-post-try
 		res: ring/store stack/get-top

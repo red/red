@@ -658,7 +658,7 @@ change-color: func [
 	case [
 		type = area [
 			hWnd: objc_msgSend [hWnd sel_getUid "documentView"]
-			clr: either t = TYPE_NONE [00FFFFFFh][color/array1]
+			clr: either t = TYPE_NONE [00FFFFFFh][get-tuple-color color]
 			set-caret-color hWnd clr
 			if t = TYPE_NONE [clr: objc_msgSend [objc_getClass "NSColor" sel_getUid "textBackgroundColor"]]
 		]
@@ -1090,7 +1090,6 @@ change-selection: func [
 			objc_msgSend [
 				hWnd sel_getUid "selectRowIndexes:byExtendingSelection:" idx no
 			]
-			objc_msgSend [idx sel_getUid "release"]
 		]
 		any [type = drop-list type = drop-down][
 			sz: -1 + objc_msgSend [hWnd sel_getUid "numberOfItems"]
@@ -2507,6 +2506,7 @@ OS-draw-face: func [
 	cmds	[red-block!]
 ][
 	if TYPE_OF(cmds) = TYPE_BLOCK [
+		assert system/thrown = 0
 		catch RED_THROWN_ERROR [parse-draw ctx cmds yes]
 	]
 	if system/thrown = RED_THROWN_ERROR [system/thrown: 0]

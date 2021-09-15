@@ -139,8 +139,8 @@ gui-console-ctx: context [
 	show-caret: func [][unless caret/enabled? [caret/enabled?: yes]]
 
 	setup-faces: does [
-		console/pane: reduce [caret]
-		append win/pane reduce [console tips]
+		;console/pane: reduce [caret]
+		append win/pane reduce [console caret tips]
 		win/menu: [
 			"File" [
 				"Run..."			run-file
@@ -249,27 +249,7 @@ ask: function [
 	]
 
 	gui-console-ctx/show-caret
-
-	line: make string! 8
-	line: insert line question
-
-	vt: gui-console-ctx/terminal
-	vt/line: line
-	vt/pos: 0
-	vt/add-line head line
-	vt/line-pos: length? vt/lines
-	vt/ask?: yes
-	vt/reset-top/force
-	vt/clear-stack
-	vt/set-flag hide
-	either vt/paste/resume [
-		vt/do-ask-loop/no-wait
-	][
-		system/view/platform/redraw gui-console-ctx/console
-		system/view/auto-sync?: yes
-		do-events
-	]
-	vt/ask?: no
+	line: gui-console-ctx/terminal/ask question hide
 	gui-console-ctx/caret/enabled?: no
 	unless gui-console-ctx/console/state [line: "quit"]
 	line

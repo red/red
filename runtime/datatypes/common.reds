@@ -243,7 +243,7 @@ set-path*: func [
 	parent  [red-value!]
 	element [red-value!]
 ][
-	stack/set-last actions/eval-path parent element stack/arguments null no
+	stack/set-last actions/eval-path parent element stack/arguments null no no yes
 	object/path-parent/header: TYPE_NONE				;-- disables owner checking
 ]
 
@@ -257,6 +257,8 @@ set-int-path*: func [
 		stack/arguments									;-- value to set
 		null
 		no
+		no
+		yes
 	object/path-parent/header: TYPE_NONE				;-- disables owner checking
 ]
 
@@ -264,7 +266,7 @@ eval-path*: func [
 	parent  [red-value!]
 	element [red-value!]
 ][
-	stack/set-last actions/eval-path parent element null null no ;-- no value to set
+	stack/set-last actions/eval-path parent element null null no no yes ;-- no value to set
 ]
 
 eval-path: func [
@@ -272,7 +274,7 @@ eval-path: func [
 	element [red-value!]
 	return: [red-value!]
 ][
-	actions/eval-path parent element null null no 		;-- pass the value reference directly (no copying!)
+	actions/eval-path parent element null null no no no ;-- pass the value reference directly (no copying!)
 ]
 
 eval-int-path*: func [
@@ -282,7 +284,7 @@ eval-int-path*: func [
 		int	[red-value!]
 ][
 	int: as red-value! integer/push index
-	stack/set-last actions/eval-path parent int null null no ;-- no value to set
+	stack/set-last actions/eval-path parent int null null no no yes ;-- no value to set
 ]
 
 eval-int-path: func [
@@ -293,7 +295,7 @@ eval-int-path: func [
 		int	[red-value!]
 ][
 	int: as red-value! integer/push index
-	actions/eval-path parent int null null no			;-- pass the value reference directly (no copying!)
+	actions/eval-path parent int null null no no no		;-- pass the value reference directly (no copying!)
 ]
 
 select-key*: func [										;-- called by compiler for SWITCH
@@ -388,6 +390,29 @@ form-value: func [
 		string/truncate-from-tail GET_BUFFER(buffer) limit
 	]
 	buffer
+]
+
+get-int-from: func [
+	spec	[red-value!]
+	return: [integer!]
+	/local
+		fl  [red-float!]
+		int [red-integer!]
+][
+	either TYPE_OF(spec) = TYPE_FLOAT [
+		fl: as red-float! spec
+		if any [
+			fl/value >  2147483647.0
+			fl/value < -2147483648.0
+			fl/value <> fl/value						;-- NaN check (;
+		][
+			fire [TO_ERROR(script out-of-range) fl]
+		]
+		as-integer fl/value
+	][
+		int: as red-integer! spec
+		int/value
+	]
 ]
 
 cycles: context [
@@ -595,6 +620,7 @@ words: context [
 	
 	system:			-1
 	system-global:	-1
+	stack:			-1
 	
 	changed:		-1
 
@@ -738,6 +764,7 @@ words: context [
 		access:		as red-word! 0
 		user:		as red-word! 0
 		internal:	as red-word! 0
+		invalid-error: as red-word! 0
 	]
 
 	build: does [
@@ -861,6 +888,7 @@ words: context [
 		
 		system:			symbol/make "system"
 		system-global:	symbol/make "system-global"
+		stack			symbol/make "stack"
 
 		_windows:		_context/add-global windows
 		_syllable:		_context/add-global syllable
@@ -1001,6 +1029,7 @@ words: context [
 		errors/access:	 word/load "access"
 		errors/user:	 word/load "user"
 		errors/internal: word/load "internal"
+		errors/invalid-error: word/load "invalid-error"
 		
 		changed:		_changed/symbol
 	]

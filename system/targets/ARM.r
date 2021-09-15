@@ -759,7 +759,7 @@ make-profilable make target-class [
 		name  [word! object!]
 		gcode [binary! block! none!]
 		pcode [binary! block! none!]
-		lcode [binary! block!]
+		lcode [binary! block! none!]
 		/alt										;-- use alternative register (r1)
 		/local offset opcode Rn
 	][
@@ -1832,12 +1832,36 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-start-loop: does [
-		emit-i32 #{e92d0001}						;-- PUSH {r0}
+	emit-start-loop: func [spec [block! none!] name [word! none!] /local offset][
+		either spec [
+			emit-i32 #{e59f0100}					;-- LDR r1, [pc, #0]	; offset 0 => value
+			emit-i32 #{ea000000}					;-- B <after_value>
+			emit-reloc-addr spec/3					;-- address slot
+			emit-i32 pick [
+				#{e7810009}							;-- STR r0, [r1]		; global
+				#{e5010000}							;-- STR r0, [r1, sb]	; PIC
+			] PIC?
+		][
+			emit-load-local
+				#{e58b0000}							;-- STR r0, [fp, #[-]n]	; local	
+				emitter/local-offset? name
+		]
 	]
-
-	emit-end-loop: does [
-		emit-i32 #{e8bd0001}						;-- POP {r0}
+								
+	emit-end-loop: func [spec [block! none!] name [word! none!] /local offset][
+		either spec [
+			emit-i32 #{e59f0100}					;-- LDR r1, [pc, #0]	; offset 0 => value
+			emit-i32 #{ea000000}					;-- B <after_value>
+			emit-reloc-addr spec/3					;-- address slot
+			emit-i32 pick [
+				#{e5900000} 						;-- LDR r0, [r0]		; global
+				#{e7900009}							;-- LDR r0, [r0, sb]	; PIC
+			] PIC?
+		][
+			emit-load-local
+				#{e59b0000}							;-- LDR r0, [fp, #[-]n]	; local
+				emitter/local-offset? name
+		]		
 		emit-i32 #{e2500001}		 				;-- SUBS r0, r0, #1	; update Z flag
 	]
 	
@@ -1869,28 +1893,34 @@ make-profilable make target-class [
 		code 	[binary!]
 		op 		[word! block! logic! none!]
 		offset  [integer! none!]
+		parity	[logic! none!]	"yes = also emit a check for unordered (NaN) comparison"
 		/back?
-		/local distance opcode jmp
+		/local distance opcode jmp flip?
 	][
 		distance: (length? code) - (any [offset 0]) - 4	;-- offset from the code's head
 		if back? [distance: negate distance + 12]	;-- 8 (PC offset) + one instruction
 		
-		op: either not none? op [					;-- explicitly test for none
+		either none? op [							;-- explicitly test for none
+			op: #{e0}								;-- unconditional jump
+		][
+			flip?: no								;-- is condition reversed? (affects NaN handling)
 			op: case [
 				block? op [							;-- [cc] => keep
 					op: op/1
 					either logic? op [pick [= <>] op][op]	;-- [logic!] or [cc]
 				]
 				logic? op [pick [= <>] op]			;-- test for TRUE/FALSE
-				'else 	  [opposite? op]			;-- 'cc => invert condition
+				'else [flip?: yes  opposite? op]	;-- 'cc => invert condition
 			]
-			either '- = third op: find conditions op [	;-- lookup the code for the condition
+			op: either '- = third op: find conditions op [	;-- lookup the code for the condition
 				op/2								;-- condition defined only for signed
 			][
-				pick op pick [2 3] signed?			;-- choose code between signed and unsigned
+				;; for floats only: use conds that are false given NaN
+				;; in unflipped state: unsigned for < <= , signed for > >=
+				;; (ref: clause A8.3 of ARM Architecture Reference Manual)
+				flip?: flip? xor (found? find [< <=] op/1) and parity
+				pick op pick [2 3] signed? xor flip?	;-- choose code between signed and unsigned
 			]
-		][
-			#{e0}									;-- unconditional jump
 		]
 		unless back? [
 			if same? head code emitter/code-buf [
@@ -2570,6 +2600,22 @@ make-profilable make target-class [
 					]
 				]
 				if all [object? args/2 not conv?][emit-vfp-casting/right args/2]
+			]
+		]
+		all [
+			not conv?
+			not object? args/2
+			any [
+				all [
+					saved = 4
+					width = 8
+					emit-i32 #{eeb71bc1}			;-- FCVTSD s2, d1	; convert to 32-bit
+				]
+				all [
+					saved = 8
+					width = 4
+					emit-i32 #{eeb71ac1}			;-- FCVTDS d1, s2	; convert to 64-bit
+				]
 			]
 		]
 		width: saved

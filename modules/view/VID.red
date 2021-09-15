@@ -307,6 +307,7 @@ system/view/VID: context [
 				| 'all-over   (set-flag opts 'flags 'all-over)
 				| 'password   (set-flag opts 'flags 'password)
 				| 'tri-state  (set-flag opts 'flags 'tri-state)
+				| 'scrollable (set-flag opts 'flags 'scrollable)
 				| 'hidden	  (opts/visible?: no)
 				| 'disabled	  (opts/enabled?: no)
 				| 'select	  (opts/selected: fetch-argument integer! spec)
@@ -418,6 +419,7 @@ system/view/VID: context [
 		all [											;-- preprocess RTD inputs
 			face/type = 'rich-text
 			opts/data
+			not pair? opts/data/1
 			rtd-layout/with opts/data face
 			opts/data: none
 		]

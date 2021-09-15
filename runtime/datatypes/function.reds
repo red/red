@@ -231,6 +231,7 @@ _function: context [
 		][
 			fctx: GET_CTX(fun)
 			saved: fctx/values
+			assert system/thrown = 0
 			catch RED_THROWN_ERROR [
 				either ctx = global-ctx [
 					call: as function! [] native/code
@@ -748,20 +749,23 @@ _function: context [
 			next   [red-value!]
 			next2  [red-value!]
 			w      [red-word!]
+			local? [logic!]
+			do-error [subroutine!]
 	][
+		do-error: [fire [TO_ERROR(script bad-func-def) spec]]
 		value: block/rs-head spec
 		end:   block/rs-tail spec
+		local?: no
 		
 		while [value < end][
 			switch TYPE_OF(value) [
 				TYPE_WORD
 				TYPE_GET_WORD [
+					if all [local? TYPE_OF(value) = TYPE_GET_WORD][do-error]
 					next: value + 1
 					if all [next < end TYPE_OF(next) = TYPE_STRING][
 						next2: next + 1
-						if all [next2 < end TYPE_OF(next2) = TYPE_BLOCK][
-							fire [TO_ERROR(script bad-func-def)	spec]
-						]
+						if all [next2 < end TYPE_OF(next2) = TYPE_BLOCK][do-error]
 					]
 					value: value + 1
 					if all [
@@ -774,9 +778,7 @@ _function: context [
 				]
 				TYPE_SET_WORD [								 ;-- only return: is allowed as a set-word!
 					w: as red-word! value
-					if words/return* <> symbol/resolve w/symbol [
-						fire [TO_ERROR(script bad-func-def)	w]
-					]
+					if words/return* <> symbol/resolve w/symbol [do-error]
 					next: value + 1
 					next2: next + 1
 					unless all [
@@ -790,20 +792,35 @@ _function: context [
 								next2 + 1 = end
 							]
 						]
-					][
-						fire [TO_ERROR(script bad-func-def) value]
-					]
+					][do-error]
 					value: next
 				]
+				TYPE_REFINEMENT [
+					w: as red-word! value 
+					either refinements/local/symbol = symbol/resolve w/symbol [local?: yes][
+						if local? [do-error]
+					]
+					next: value + 1
+					if next < end [
+						if all [
+							TYPE_OF(next) <> TYPE_WORD
+							TYPE_OF(next) <> TYPE_GET_WORD
+							TYPE_OF(next) <> TYPE_LIT_WORD
+							TYPE_OF(next) <> TYPE_REFINEMENT
+							TYPE_OF(next) <> TYPE_SET_WORD
+							TYPE_OF(next) <> TYPE_STRING
+						][
+							value: next do-error
+						]
+					]
+					value: value + 1
+				]
 				TYPE_LIT_WORD
-				TYPE_REFINEMENT
 				TYPE_BLOCK
 				TYPE_STRING [
 					value: value + 1
 				]
-				default [
-					fire [TO_ERROR(script bad-func-def) value]
-				]
+				default [do-error]
 			]
 		]
 		check-duplicates spec

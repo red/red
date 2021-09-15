@@ -171,6 +171,7 @@ write %build/bin/sources.r set-cache [
 			%syllable.reds
 			%win32.reds
 			%COM.reds
+			%image-wic.reds
 			%image-gdiplus.reds
 			%image-gdk.reds
 			%image-quartz.reds
@@ -198,7 +199,8 @@ write %build/bin/sources.r set-cache [
 					%classes.reds
 					%comdlgs.reds
 					%direct2d.reds
-					%draw-d2d.reds
+					%matrix2d.reds
+					%draw-gdi.reds
 					%draw.reds
 					%events.reds
 					%font.reds

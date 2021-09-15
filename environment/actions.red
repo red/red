@@ -63,7 +63,7 @@ mold: make action! [[
 		value	  [any-type!]
 		/only "Exclude outer brackets if value is a block"
 		/all  "TBD: Return value in loadable format"
-		/flat "TBD: Exclude all indentation"
+		/flat "Exclude all indentation"
 		/part "Limit the length of the result"
 			limit [integer!]
 		return:	  [string!]
@@ -148,7 +148,7 @@ round: make action! [[
 		"Returns the nearest integer. Halves round up (away from zero) by default"
 		n		[number! money! time! pair!]
 		/to		"Return the nearest multiple of the scale parameter"
-		scale	[number! money! time!] "Must be a non-zero value"
+		scale	[number! money! time!] "If zero, returns N unchanged"
 		/even		"Halves round toward even results"
 		/down		"Round toward zero, ignoring discarded digits. (truncate)"
 		/half-down	"Halves round toward zero"
@@ -305,7 +305,7 @@ find: make action! [[
 		/last "Find the last occurrence of value, from the tail"
 		/reverse "Find the last occurrence of value, from the current index"
 		/tail "Return the tail of the match found, rather than the head"
-		/match "Match at current index only and return tail of match"
+		/match "Match at current index only"
 	]
 	#get-definition ACT_FIND
 ]
@@ -397,7 +397,7 @@ poke: make action! [[
 put: make action! [[
 		"Replaces the value following a key, and returns the new value"
 		series	 [series! port! map! object!]
-		key 	 [scalar! any-string! any-word! binary!]
+		key 	 [scalar! any-string! all-word! binary!]
 		value 	 [any-type!]
 		/case "Perform a case-sensitive search"
 		return:  [series! port! map! object!]

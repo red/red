@@ -840,6 +840,8 @@ image: context [
 		value	[red-value!]
 		path	[red-value!]
 		case?	[logic!]
+		get?	[logic!]
+		tail?	[logic!]
 		return:	[red-value!]
 		/local
 			set? [logic!]

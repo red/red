@@ -392,7 +392,9 @@ preprocessor: context [
 					if active? [
 						pos: pick [3 2] keep?
 						if trace? [print ["preproc: eval" mold s/:pos]]
+						saved: s
 						expr: do-code s/:pos s/1
+						s: saved
 						if all [keep? trace?][print ["preproc: ==" mold expr]]
 						either keep? [s: change/part s :expr e][remove/part s e]
 					]

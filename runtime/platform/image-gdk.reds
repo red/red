@@ -480,8 +480,8 @@ OS-image: context [
 			path		[c-string!]
 			pixbuf		[handle!]
 			err 		[GError!]
+			perr		[ptr-value!]
 	][
-		err: declare GError!
 		switch format [
 			IMAGE_BMP  [type: "bmp"]
 			IMAGE_PNG  [type: "png"]
@@ -495,8 +495,12 @@ OS-image: context [
 		switch TYPE_OF(slot) [
 			TYPE_URL
 			TYPE_FILE [
+				perr/value: null
 				path: file/to-OS-path as red-string! slot
-				gdk_pixbuf_save [pixbuf path type err null]
+				unless gdk_pixbuf_save [pixbuf path type :perr null] [
+					err: as GError! perr/value
+					probe ["OS-image/encode error: " err/domain " " err/code " " err/message]
+				]
 			]
 			default [0]
 		]
@@ -571,9 +575,9 @@ OS-image: context [
 
 		if all [zero? offset not part?][
 			either null? handle0 [
-				scan0: as int-ptr! allocate inode0/size
+				scan0: as int-ptr! allocate part * 4
 				dst/node: make-node null scan0 IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED width height
-				copy-memory as byte-ptr! scan0 as byte-ptr! inode0/buffer inode0/size
+				copy-memory as byte-ptr! scan0 as byte-ptr! inode0/buffer part * 4
 			][
 				handle: gdk_pixbuf_copy handle0
 				dst/node: make-node handle null 0 width height

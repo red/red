@@ -36,7 +36,15 @@ Red [
 		--assert 0.0 = cosine 90
 
 	--test-- "float-cosine-3"
-		;--assert 0.0 = cosine/radians pi / 2
+		--assert 0.0 = cosine/radians pi / 2
+
+	--test-- "float-cosine-4"
+		--assert nan? cosine  1.#inf
+		--assert nan? cosine -1.#inf
+
+	--test-- "float-cosine-5"
+		--assert nan? cosine 1.#nan
+
 
 	--test-- "float-sine-1"
 		--assertf~= 0.0 sine/radians pi 1E-13
@@ -44,11 +52,35 @@ Red [
 	--test-- "float-sine-2"
 		--assert 1 = sine 90
 
+	--test-- "float-sine-3"
+		--assert nan? sine  1.#inf
+		--assert nan? sine -1.#inf
+
+	--test-- "float-sine-4"
+		--assert nan? sine 1.#nan
+
+
 	--test-- "float-tangent-1"
 		--assert 0.0 = tangent/radians 0
 
 	--test-- "float-tangent-2"
 		--assert -1 = tangent 135
+
+	--test-- "float-tangent-3"
+		--assert nan? tangent  1.#inf
+		--assert nan? tangent -1.#inf
+
+	--test-- "float-tangent-4"
+		--assert nan? tangent 1.#nan
+
+	--test-- "float-tangent-5"							;-- see #3441
+		--assert  1.#inf = tangent  90
+		--assert -1.#inf = tangent -90
+		--assert  1e10 < tangent 90.0 - 1e-10
+		--assert -1e10 > tangent 90.0 + 1e-10
+		--assert -1e10 > tangent -90.0 + 1e-10
+		--assert  1e10 < tangent -90.0 - 1e-10
+
 
 	--test-- "float-arcsine-1"
 		--assertf~= -1.5707963267949 arcsine/radians -1 1E-13
@@ -56,11 +88,33 @@ Red [
 	--test-- "float-arcsine-2"
 		--assert 90 = arcsine 1
 
+	--test-- "float-arcsine-3"
+		--assert nan? arcsine 2
+
+	--test-- "float-arcsine-4"
+		--assert nan? arcsine  1.#inf
+		--assert nan? arcsine -1.#inf
+
+	--test-- "float-arcsine-5"
+		--assert nan? arcsine 1.#nan
+
+
 	--test-- "float-arccosine-1"
 		--assertf~= 1.5707963267949 arccosine/radians 0 1E-13
 
 	--test-- "float-arccosine-2"
 		--assert 90 = arccosine 0
+		
+	--test-- "float-arccosine-3"
+		--assert nan? arccosine 2
+		
+	--test-- "float-arccosine-4"
+		--assert nan? arccosine  1.#inf
+		--assert nan? arccosine -1.#inf
+		
+	--test-- "float-arccosine-5"
+		--assert nan? arccosine 1.#nan
+		
 
 	--test-- "float-arctangent-1"
 		--assertf~= -0.785398163397448 arctangent/radians -1 1E-13
@@ -68,26 +122,53 @@ Red [
 	--test-- "float-arctangent-2"
 		--assert 45 = arctangent 1
 
-	--test-- "float-arctangent2"
+	--test-- "float-arctangent-3"
+		--assert  90 = arctangent  1.#inf
+		--assert -90 = arctangent -1.#inf
+
+	--test-- "float-arctangent-4"
+		--assert nan? arctangent 1.#nan
+
+	--test-- "float-arctangent-5"
+		--assert  90.0 = arctangent tangent  90
+		--assert -90.0 = arctangent tangent -90
+
+
+	--test-- "float-arctangent2-1"
 		--assertf~=  3.1415926535898  atan2 0 -1 1E-13
 		--assertf~=  3.1415926535898  atan2 0.0 -1.0 1E-13
 		--assertf~= -1.5707963267949  atan2 -1 0 1E-13
 		--assertf~= -0.78539816339745 atan2 -1 1 1E-13
 		--assertf~= -0.78539816339745 atan2 -1.5 1.5 1E-13
+		--assertf~=  3.1415926535898  atan2 0.0 -0.0 1E-13
+		--assertf~= -3.1415926535898  atan2 -0.0 -0.0 1E-13
 
-	--test-- "float-arctangent3"
+	--test-- "float-arctangent2-2"
 		--assertf~=  3.1415926535898  arctangent2/radians 0 -1 1E-13
 		--assertf~=  3.1415926535898  arctangent2/radians 0.0 -1.0 1E-13
 		--assertf~= -1.5707963267949  arctangent2/radians -1 0 1E-13
 		--assertf~= -0.78539816339745 arctangent2/radians -1 1 1E-13
 		--assertf~= -0.78539816339745 arctangent2/radians -1.5 1.5 1E-13
 
-	--test-- "float-arctangent4"
+	--test-- "float-arctangent2-3"
 		--assertf~=  180.0 arctangent2 0 -1 1E-13
 		--assertf~=  180.0 arctangent2 0.0 -1.0 1E-13
 		--assertf~= -90.0  arctangent2 -1 0 1E-13
 		--assertf~= -45.0  arctangent2 -1 1 1E-13
 		--assertf~= -45.0  arctangent2 -1.5 1.5 1E-13
+
+	--test-- "float-arctangent2-4"
+		--assert nan? arctangent2 1 1.#nan
+		--assert nan? arctangent2 1.#nan 1
+
+	--test-- "float-arctangent2-5"
+		--assert nan? arctangent2 1.#inf 1.#inf
+		--assert  90.0 = arctangent2  1.#inf  1
+		--assert  90.0 = arctangent2  1.#inf  0
+		--assert  90.0 = arctangent2  1.#inf -1
+		--assert -90.0 = arctangent2 -1.#inf -1
+		--assert -90.0 = arctangent2 -1.#inf  0
+		--assert -90.0 = arctangent2 -1.#inf  1
 
 ===end-group===
 
@@ -395,6 +476,12 @@ Red [
 		--assert 0:00:16 = round/to 15.0 0:0:2
 		--assert 12.9 = round/to 13.0 30%
 
+	--test-- "round22"
+		--assert 23.0 == round/to         23.0 0.0
+		--assert 23%  == round/to         23%  0%
+		--assert 23.0 == round/to/ceiling 23.0 0.0
+		--assert 23.0 == round/to/floor   23.0 0.0
+
 ===end-group===
 
 ===start-group=== "various regression tests from bugtracker"
@@ -452,6 +539,27 @@ Red [
 	--test-- "special-arithmetic-14" --assert "1.#NaN"  = to string! 1.#inf % 1.0
 	--test-- "special-arithmetic-15" --assert "1.#NaN"  = to string! -1.#inf % 1.0
 	--test-- "special-arithmetic-16" --assert "1.#NaN"  = to string! 1.#inf % 0.0
+	;-- issue #4950
+	--test-- "special-arithmetic-17" --assert "-1.#INF"  = to string! 1.0 / -0.0
+	--test-- "special-arithmetic-18"  --assert 1.0 *  0.0  =?  0.0
+	--test-- "special-arithmetic-19"  --assert -1.0 *  0.0 =? -0.0
+	--test-- "special-arithmetic-20"  --assert -0.0 *  1.0 =? -0.0
+	--test-- "special-arithmetic-21"  --assert -0.0 /  1.0 =? -0.0
+	--test-- "special-arithmetic-22"  --assert -0.0 * -0.0 =?  0.0
+	--test-- "special-arithmetic-23"  --assert 1.0 + -0.0  =?  1.0
+	--test-- "special-arithmetic-24"  --assert 1.0 +  0.0  =?  1.0
+	--test-- "special-arithmetic-25"  --assert -0.0 + -0.0 =? -0.0
+	--test-- "special-arithmetic-26"  --assert 0.0 +  0.0  =?  0.0
+	--test-- "special-arithmetic-27"  --assert 0.0  =? absolute -0.0
+	--test-- "special-arithmetic-28"  --assert -0.0 =? sqrt    -0.0
+	--test-- "special-arithmetic-29"  --assert -0.0 / -1.#INF =? 0.0
+	--test-- "special-arithmetic-30"  --assert NaN?  0.0 * -1.#INF
+	--test-- "special-arithmetic-31"  --assert NaN? -0.0 * -1.#INF
+	--test-- "special-arithmetic-32"  --assert NaN?  0.0 * -1.#INF
+	--test-- "special-arithmetic-33"  --assert NaN? -0.0 * -1.#INF
+	--test-- "special-arithmetic-34"  --assert NaN? -0.0 / -0.0
+	--test-- "special-arithmetic-35"  --assert NaN? -0.0 /  0.0
+	--test-- "special-arithmetic-36"  --assert NaN?  0.0 / -0.0
 ===end-group===
 
 ===start-group=== "special value equality (NaNs and INF)"
@@ -472,7 +580,12 @@ Red [
 	--test-- "special-equality-12"  --assert [1 1.#NaN] = [1 1.#NaN]	= false
 	--test-- "special-equality-13"  --assert 1.#INF = 1.#NaN			= false
 	--test-- "special-equality-14"  --assert 1.23 = 1.#NaN				= false
-	
+
+	--test-- "special-equality-15"  --assert 0.0 == -0.0
+	--test-- "special-equality-16"  --assert -0.0 == 0.0
+	--test-- "special-equality-17"  --assert not 0.0 =? -0.0
+	--test-- "special-equality-18"  --assert not -0.0 =? 0.0
+
 ===end-group===
 
 ===start-group=== "other math functions"

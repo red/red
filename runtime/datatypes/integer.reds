@@ -667,6 +667,7 @@ integer: context [
 			negative? exp/value
 		]
 		unless up? [
+			assert system/thrown = 0
 			catch RED_INT_OVERFLOW [
 				base/value: int-power base/value exp/value
 			]
@@ -759,7 +760,7 @@ integer: context [
 			]
 			sc: abs scale/value
 		]
-		if zero? sc [fire [TO_ERROR(math overflow)]]
+		if zero? sc [return value]
 
 		n: abs num
 		r: n % sc

@@ -451,7 +451,8 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 		--assert -$4.0  == round/to/floor -$2.4 2.0
 		--assert -$1.0  == round/to -$0.50 1
 		--assert $0.0   == round/to -$0.49 1
-		--assert error? try [round/to $123 0]
+		--assert $123.4 == round/to  $123.4 0
+		--assert error? try [round/to $123 1e-10]	;-- out of money's representation range
 		--assert error? try [round/to $123 100%]
 		--assert error? try [round/to $123 1:2:3]
 

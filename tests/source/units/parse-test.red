@@ -2827,7 +2827,8 @@ Red [
 		x4197: make string! 0
 		--assert error? try [parse [][collect into x4197 []]]
 		x4197: make binary! 0
-		--assert error? try [parse #{}[collect into x4197 []]]
+		--assert parse #{}[collect into x4197 []]		;-- changed by #4732
+		--assert x4197 == #{}
 		x4197: make vector! 0
 		--assert error? try [parse "" [collect into x4197 []]]
 		x4197: make block! 3
@@ -2933,6 +2934,15 @@ Red [
 		
 		;; non-passing test, match == @@ref
 		;parse to binary! {@ref"} [copy match ref! (--assert @ref == to ref! to string! match)]
+
+	--test-- "#4863"
+		--assert parse to-binary "word" [word!]
+		--assert parse to-binary "   word" [word!]
+		--assert parse to-binary "123" [integer!]
+		--assert not parse to-binary "123.456" [integer!]
+		--assert parse to-binary "    123" [integer!]
+		--assert parse to-binary "hello 123 world" [word! integer! word!]
+		--assert parse to-binary "hello 123 world" [word! space integer! space word!]
 
 ===end-group===
     

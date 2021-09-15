@@ -262,6 +262,7 @@ interpreter: context [
 		saved: ctx/values
 		ctx/values: as node! stack/arguments
 		stack/set-in-func-flag yes
+		assert system/thrown = 0
 		
 		catch RED_THROWN_ERROR [eval body yes]
 		
@@ -298,7 +299,11 @@ interpreter: context [
 			count	[integer!]
 			cnt 	[integer!]
 			args	[integer!]
+			type	[integer!]
 			saved	[int-ptr!]
+			pos		[byte-ptr!]
+			bits 	[byte-ptr!]
+			set? 	[logic!]
 			extern?	[logic!]
 			call callf callex
 	][
@@ -360,14 +365,21 @@ interpreter: context [
 				value: value - 1
 				if TYPE_OF(value) =	TYPE_BLOCK [
 					w: as red-word! block/rs-head as red-block! value
-					assert TYPE_OF(w) = TYPE_WORD
+					if TYPE_OF(w) <> TYPE_WORD [fire [TO_ERROR(script invalid-type-spec) w]]
 					sym: w/symbol
 					arg: stack/arguments + count
 					
 					if sym <> words/any-type! [			;-- type-checking argument
 						dt: as red-datatype! _context/get w
-						if TYPE_OF(arg) <> dt/value [
-							ERR_EXPECT_ARGUMENT(dt/value count)
+						case [
+							TYPE_OF(dt)	= TYPE_TYPESET [
+								bits: (as byte-ptr! dt) + 4
+								type: TYPE_OF(arg)
+								BS_TEST_BIT(bits type set?)
+								unless set? [ERR_EXPECT_ARGUMENT(dt/value count)]
+							]
+							TYPE_OF(arg) = dt/value [0]	;-- all good, do nothing
+							true [ERR_EXPECT_ARGUMENT(dt/value count)]
 						]
 					]
 					case [
@@ -654,7 +666,12 @@ interpreter: context [
 								BS_TEST_BIT(bits type set?)
 								unless set? [
 									index: offset/value - 1
-									ERR_EXPECT_ARGUMENT(type index)
+									fire [
+										TO_ERROR(script expect-arg)
+										fname
+										datatype/push type
+										error/get-call-argument index
+									]
 								]
 							]
 							offset: offset + 1
@@ -685,7 +702,7 @@ interpreter: context [
 									unless set? [
 										fire [
 											TO_ERROR(script expect-arg)
-											stack/get-call
+											fname
 											datatype/push type
 											value
 										]
@@ -753,6 +770,7 @@ interpreter: context [
 			gparent	[red-value!]
 			saved	[red-value!]
 			arg		[red-value!]
+			tail?	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "eval: path"]]
 		
@@ -779,7 +797,7 @@ interpreter: context [
 				unless sub? [stack/set-last stack/top]
 				return pc
 			]
-			TYPE_UNSET [fire [TO_ERROR(script no-value)	head]]
+			TYPE_UNSET [fire [TO_ERROR(script unset-path) path head]]
 			default	   [0]
 		]
 		if set? [object/path-parent/header: TYPE_NONE]	;-- disables owner checking
@@ -795,12 +813,13 @@ interpreter: context [
 				]
 				default [item]
 			]
-			if TYPE_OF(value) = TYPE_UNSET [fire [TO_ERROR(script no-value) item]]
+			if TYPE_OF(value) = TYPE_UNSET [fire [TO_ERROR(script invalid-path) path item]]
 			#if debug? = yes [if verbose > 0 [print-line ["eval: path item: " TYPE_OF(value)]]]
 			
 			gparent: parent								;-- save grand-parent reference
-			arg: either all [set? item + 1 = tail][stack/arguments][null]
-			parent: actions/eval-path parent value arg path case?
+			tail?: item + 1 = tail
+			arg: either all [set? tail?][stack/arguments][null]
+			parent: actions/eval-path parent value arg path case? get? tail?
 			
 			unless get? [
 				switch TYPE_OF(parent) [
@@ -867,7 +886,7 @@ interpreter: context [
 			]
 			TYPE_ROUTINE [
 				#if debug? = yes [if verbose > 0 [log "pushing routine frame"]]
-				stack/mark-interp-native name
+				stack/mark-interp-native name				
 				pc: eval-arguments caller pc end code path slot origin
 				exec-routine as red-routine! caller
 				either sub? [stack/unwind][stack/unwind-last]

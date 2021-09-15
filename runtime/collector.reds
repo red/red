@@ -103,12 +103,14 @@ collector: context [
 		node [node!]
 		/local
 			ctx  [red-context!]
+			slot [red-value!]
 	][
-		;probe "context"
 		if keep node [
-			ctx: TO_CTX(node)
+			ctx: TO_CTX(node)							;-- [context! function!|object!]
+			slot: as red-value! ctx
 			_hashtable/mark ctx/symbols
 			unless ON_STACK?(ctx) [mark-block-node ctx/values]
+			mark-values slot + 1 slot + 2				;-- mark the back-reference value (2nd value)
 		]
 	]
 
@@ -241,10 +243,10 @@ collector: context [
 						mark-block-node as node! native/code
 					]
 				]
-				#if any [OS = 'macOS OS = 'Linux][
+				#if any [OS = 'macOS OS = 'Linux OS = 'Windows][
 				TYPE_IMAGE [
 					image: as red-image! value
-					keep image/node
+					#if draw-engine <> 'GDI+ [if image/node <> null [keep image/node]]
 				]]
 				default [0]
 			]

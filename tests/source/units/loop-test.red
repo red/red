@@ -56,7 +56,7 @@ Red [
 
 ===start-group=== "advanced repeat tests"
 
-	--test-- "repeat counter mess"
+	--test-- "advr1"
   		rcm-n: 0
 		repeat rcm-i 10 [
 			repeat rcm-i 5 [
@@ -66,6 +66,11 @@ Red [
 		]
 		--assert 50 = rcm-n
 		unset [rcm-i rcm-n]
+
+	--test-- "advr2"
+		c123: "string"
+		try [repeat c123 1.2.3.4 [--assert false]]  ; don't set counter word on error
+		--assert c123 == "string"
 
 ===end-group===
 
@@ -268,6 +273,17 @@ Red [
 		f3361 1
 		--assert s3361 = [1 1  2 1 2 2  3 1 3 2 3 3  2 3  1 2 1 3]
 		unset [f3361 s3361]
+
+	--test-- "#4578"
+			s4578: [1] probe forall s4578 [break]
+			--assert true							;-- check if previous line didn't crash
+
+			a1923: [1 2 3] 
+			forall a1923 [if a1923/1 = 2 [break] try [break] do [break]]
+			repeat i 3 [break continue]
+			foreach a a1923 [break]
+			remove-each a a1923 [break]
+			--assert true							;-- check if previous line didn't crash
 
 ===end-group===
     

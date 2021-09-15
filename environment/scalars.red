@@ -29,6 +29,8 @@ pi: 3.141592653589793
 
 Rebol: false											;-- makes loading Rebol scripts easier
 
+null-handle: #system [handle/push-null]
+
 ;-- warning: following typeset definitions are processed by the compiler, do not change them
 ;-- unless you know what you are doing!
 

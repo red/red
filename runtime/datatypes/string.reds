@@ -25,25 +25,27 @@ string: context [
 
 	#enum escape-type! [
 		ESC_CHAR: FDh
-		ESC_URI:  FEh		;-- RFC 3986
-		ESC_URL:  FFh		;-- similar encodeURI
+		ESC_URI:  FEh			;-- RFC 3986
+		ESC_URL:  FFh			;-- similar encodeURI
 	]
 
-	escape-chars: [
-		#"^(40)" #"^(41)" #"^(42)" #"^(43)" #"^(44)" #"^(45)" #"^(46)" #"^(47)" ;-- 07h
-		#"^(48)" #"-"     #"/"     #"^(4B)" #"^(4C)" #"^(4D)" #"^(4E)" #"^(4F)" ;-- 0Fh
-		#"^(50)" #"^(51)" #"^(52)" #"^(53)" #"^(54)" #"^(55)" #"^(56)" #"^(57)" ;-- 17h
-		#"^(58)" #"^(59)" #"^(5A)" #"^(5B)" #"^(5C)" #"^(5D)" #"^(5E)" #"^(5F)" ;-- 1Fh
-		#"^(00)" #"^(00)" #"^""    #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 27h
-		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 2Fh
-		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 37h
-		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 3Fh
-		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 47h
-		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 4Fh
-		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 57h
-		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^^"	   #"^(00)" ;-- 5Fh
-	]
-
+	;-- Non-printable characters escaping table (dots are just placeholders for no-op)
+	escape-chars: #{
+		40 41 42 43 44 45 46 47 ;-- 07h		@ A B C D E F G
+		48 2D 2F 4B 4C 4D 4E 4F ;-- 0Fh		H - / K L M N O
+		50 51 52 53 54 55 56 57 ;-- 17h		P Q R S T U V W
+		58 59 5A 5B 5C 5D 5E 5F ;-- 1Fh		X Y Z [ \ ] ^ _
+		00 00 22 00 00 00 00 00 ;-- 27h		. . " . . . . .
+		00 00 00 00 00 00 00 00 ;-- 2Fh		. . . . . . . .
+		00 00 00 00 00 00 00 00 ;-- 37h		. . . . . . . .
+		00 00 00 00 00 00 00 00 ;-- 3Fh		. . . . . . . .
+		00 00 00 00 00 00 00 00 ;-- 47h		. . . . . . . .
+		00 00 00 00 00 00 00 00 ;-- 4Fh		. . . . . . . .
+		00 00 00 00 00 00 00 00 ;-- 57h		. . . . . . . .
+		00 00 00 00 00 00 5E 00 ;-- 5Fh		. . . . . . ^ .
+	}
+	
+	;-- Hex values encoding table for special characters in URLs (FF => no-op)
 	escape-url-chars: #{								;-- ESC_URL: #"^(FF)"
 		FF FF FF FF FF FF FF FF ;-- 07h
 		FF FF FF FF FF FF FF FF ;-- 0Fh
@@ -51,19 +53,20 @@ string: context [
 		FF FF FF FF FF FF FF FF ;-- 1Fh
 		FF FF FF FF FF FF FF FF ;-- 27h
 		FF FF FF FF FF FF FF FF ;-- 2Fh
-		00 01 02 03 04 05 06 07 ;-- 37h
+		00 01 02 03 04 05 06 07 ;-- 37h		#"0"-#"9" => 0-9
 		08 09 FF FF FF FF FF FF ;-- 3Fh
-		FF 0A 0B 0C 0D 0E 0F FF ;-- 47h
+		FF 0A 0B 0C 0D 0E 0F FF ;-- 47h		#"A"-#"F" => 10-15
 		FF FF FF FF FF FF FF FF ;-- 4Fh
 		FF FF FF FF FF FF FF FF ;-- 57h
 		FF FF FF FF FF FF FF FF ;-- 5Fh
-		FF 0A 0B 0C 0D 0E 0F FF ;-- 67h
+		FF 0A 0B 0C 0D 0E 0F FF ;-- 67h		#"a"-#"f" => 10-15
 		FF FF FF FF FF FF FF FF ;-- 6Fh
 		FF FF FF FF FF FF FF FF ;-- 77h
 		FF FF FF FF FF FF FF FF ;-- 7Fh
 	}
 
-	;-- RFC3986
+	;-- URI special characters encoding table (RFC3986 rules)
+	;-- FF: pass-thru, 00: escape character
 	uri-encode-tbl: #{
 		00 00 00 00 00 00 00 00 ;-- 07h
 		00 00 00 00 00 00 00 00 ;-- 0Fh
@@ -83,7 +86,8 @@ string: context [
 		FF FF FF 00 00 00 FF 00 ;-- 7Fh
 	}
 
-	;-- similar encodeURI
+	;-- URL special characters encoding table (encodeURI rules)
+	;-- FF: pass-thru, 00: escape character
 	url-encode-tbl: #{
 		00 00 00 00 00 00 00 00 ;-- 07h
 		00 00 00 00 00 00 00 00 ;-- 0Fh
@@ -92,7 +96,7 @@ string: context [
 		00 FF 00 FF FF 00 FF FF ;-- 27h
 		FF FF FF FF FF FF FF FF ;-- 2Fh
 		FF FF FF FF FF FF FF FF ;-- 37h
-		FF FF FF FF 00 FF 00 FF ;-- 3Fh
+		FF FF FF 00 00 FF 00 FF ;-- 3Fh
 		FF FF FF FF FF FF FF FF ;-- 47h
 		FF FF FF FF FF FF FF FF ;-- 4Fh
 		FF FF FF FF FF FF FF FF ;-- 57h
@@ -674,12 +678,16 @@ string: context [
 			UCS-4 [0]
 		]
 		unit: GET_UNIT(s)
-		
-		if ((as byte-ptr! s/tail) + unit) > ((as byte-ptr! s + 1) + s/size) [
-			s: expand-series s 0
+
+		loop 2 [
+			p: (as byte-ptr! s/offset) + (offset << (log-b unit))
+			either (p + unit) > ((as byte-ptr! s/offset) + s/size) [
+				s: expand-series s 0
+			][
+				break
+			]
 		]
 
-		p: (as byte-ptr! s/offset) + (offset << (log-b unit))
 		poke-char s p cp
 		if p >= as byte-ptr! s/tail [s/tail: as cell! p + unit]
 		s
@@ -1423,7 +1431,7 @@ string: context [
 			TYPE_OF(spec) = TYPE_INTEGER
 			TYPE_OF(spec) = TYPE_FLOAT
 		][
-			GET_INT_FROM(size spec)
+			size: get-int-from spec
 			if size < 0 [fire [TO_ERROR(script out-of-range) spec]]
 			proto/header: TYPE_UNSET						;-- implicit reset of all header flags
 			proto/head: 0
@@ -1702,6 +1710,8 @@ string: context [
 		value	[red-value!]
 		path	[red-value!]
 		case?	[logic!]
+		get?	[logic!]
+		tail?	[logic!]
 		return:	[red-value!]
 		/local
 			int  [red-integer!]
@@ -1719,7 +1729,7 @@ string: context [
 				]
 			]
 			TYPE_WORD [
-				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(element)]
+				fire [TO_ERROR(script invalid-path) path element]
 				null
 			]
 			default [
@@ -1971,16 +1981,17 @@ string: context [
 			result	[red-value!]
 			int		[red-integer!]
 			char	[red-char!]
+			fl		[red-float!]
 			str2	[red-string!]
 			bits	[red-bitset!]
 			unit	[encoding!]
 			unit2	[encoding!]
 			head2	[integer!]
-			p1		[byte-ptr!]
-			p2		[byte-ptr!]
+			p1 p2	[byte-ptr!]
 			p4		[int-ptr!]
-			c1		[integer!]
-			c2		[integer!]
+			pf		[float-ptr!]
+			c1 c2	[integer!]
+			cf1 cf2	[float!]
 			step	[integer!]
 			sz		[integer!]
 			sz2		[integer!]
@@ -1993,14 +2004,24 @@ string: context [
 			bs?		[logic!]
 			type	[integer!]
 			found?	[logic!]
+			float?	[logic!]
+			get2	[subroutine!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/find"]]
+		
+		get2: [
+			s2: GET_BUFFER(str2)
+			unit2: GET_UNIT(s2)
+			pattern: (as byte-ptr! s2/offset) + (head2 << (log-b unit2))
+			end2:    (as byte-ptr! s2/tail)
+			sz2: 	 (as-integer end2 - pattern) >> (log-b unit2)
+		]
 
 		result: stack/push as red-value! str
 		
 		s: GET_BUFFER(str)
 		unit: GET_UNIT(s)
-		buffer: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+		buffer: (as byte-ptr! s/offset) + (str/head << (log-b unit))
 		end: as byte-ptr! s/tail
 		len: rs-length? str
 
@@ -2045,17 +2066,18 @@ string: context [
 			]
 			if sz > len [sz: len]
 			part?: yes
-			limit: sz << (unit >> 1)
+			limit: sz << log-b unit
 		]
 		case [
 			last? [
 				step: 0 - step
 				end: buffer
-				buffer: (as byte-ptr! either part? [buffer + limit][s/tail]) - unit
+				buffer: either part? [buffer + limit][as byte-ptr! s/tail]
+				buffer: buffer - unit
 			]
 			reverse? [
 				step: 0 - step
-				buffer: (as byte-ptr! s/offset) + (str/head - 1 << (unit >> 1))
+				buffer: (as byte-ptr! s/offset) + (str/head - 1 << (log-b unit))
 				end: either part? [buffer - limit + unit][as byte-ptr! s/offset]
 				if any [buffer < end match?][			;-- early exit if str/head = 0
 					result/header: TYPE_NONE
@@ -2070,9 +2092,11 @@ string: context [
 		case?: either ANY_STRING?(type) [not case?][no]
 		if same? [case?: no]
 		reverse?: any [reverse? last?]					;-- reduce both flags to one
-		step: step << (unit >> 1)
-		pattern: null
+		step: step << (log-b unit)
+		pattern: end2: null
 		bs?: no
+		float?: TYPE_OF(value) = TYPE_FLOAT
+		sz2: unit2: 0
 		
 		;-- Value argument processing --
 		
@@ -2080,9 +2104,7 @@ string: context [
 			TYPE_CHAR [
 				char: as red-char! value
 				c2: char/value
-				if case? [
-					c2: case-folding/change-char c2 yes ;-- uppercase c2
-				]
+				if case? [c2: case-folding/change-char c2 yes] ;-- uppercase c2
 			]
 			TYPE_BITSET [
 				bits:  as red-bitset! value
@@ -2092,21 +2114,24 @@ string: context [
 				bs?:   yes
 				case?: no
 			]
-			TYPE_ANY_STRING
+			TYPE_STRING
+			TYPE_FILE
+			TYPE_URL
+			TYPE_EMAIL
+			TYPE_REF
 			TYPE_BINARY
 			TYPE_WORD [
 				either TYPE_OF(value) = TYPE_WORD [
 					str2: as red-string! word/get-buffer as red-word! value
 					head2: 0							;-- str2/head = -1 (casted from symbol!)
 				][
+					if all [TYPE_OF(str) <> TYPE_BINARY TYPE_OF(value) = TYPE_BINARY][
+						fire [TO_ERROR(script invalid-arg) value]						
+					]
 					str2: as red-string! value
 					head2: str2/head
 				]
-				s2: GET_BUFFER(str2)
-				unit2: GET_UNIT(s2)
-				pattern: (as byte-ptr! s2/offset) + (head2 << (unit2 >> 1))
-				end2:    (as byte-ptr! s2/tail)
-				sz2: (as-integer end2 - pattern) >> (unit2 >> 1)
+				get2
 			]
 			default [
 				either all [
@@ -2114,17 +2139,23 @@ string: context [
 						TYPE_OF(str) = TYPE_VECTOR
 						TYPE_OF(str) = TYPE_BINARY
 					]
-					TYPE_OF(value) = TYPE_INTEGER
+					any [TYPE_OF(value) = TYPE_INTEGER float?]
 				][
-					char: as red-char! value
-					c2: char/value
+					either float? [
+						fl: as red-float! value
+						cf2: fl/value
+					][
+						char: as red-char! value
+						c2: char/value
+					]
 				][
-					result/header: TYPE_NONE
-					return result
+					str2: string/rs-make-at stack/push* 16
+					actions/form value str2 null 0
+					head2: 0
+					get2
 				]
 			]
 		]
-		
 		;-- Search loop --
 		until [
 			either pattern = null [
@@ -2132,8 +2163,9 @@ string: context [
 					Latin1 [c1: as-integer buffer/1]
 					UCS-2  [c1: (as-integer buffer/2) << 8 + buffer/1]
 					UCS-4  [p4: as int-ptr! buffer c1: p4/1]
+					8	   [pf: as float-ptr! buffer cf1: pf/value]	;-- vector of float64! case
 				]
-				if case? [
+				if all [case? not float?][
 					c1: case-folding/change-char c1 yes ;-- uppercase c1
 				]
 				either bs? [
@@ -2143,21 +2175,18 @@ string: context [
 						found?: as logic! sbits/flags and flag-bitset-not
 					]
 				][
-					found?: c1 = c2
-				]			
-				if any [
-					match?								;-- /match option returns tail of match (no loop)
-					all [found? tail? not reverse?]		;-- /tail option too, but only when found pattern
-				][
+					found?: either float? [cf1 = cf2][c1 = c2]
+				]
+				if all [found? tail? not reverse?][		;-- /tail option too, but only when found pattern
 					buffer: buffer + step
 				]
 			][
 				p1: buffer
 				end1: end
 				if reverse? [
-					sz: (as-integer p1 - end) >> (unit >> 1) + 1
+					sz: (as-integer p1 - end) >> (log-b unit) + 1
 					if sz < sz2 [found?: no break] 
-					p1: p1 - (sz2 - 1 << (unit >> 1))
+					p1: p1 - (sz2 - 1 << (log-b unit))
 					end1: buffer + unit
 				]
 				p2: pattern
@@ -2193,8 +2222,8 @@ string: context [
 				][found?: no] 							;-- partial match case, make it fail
 
 				if found? [
-					if reverse? [buffer: end1 - (sz2 << (unit >> 1))]
-					if any [match? tail?] [buffer: p1]
+					if reverse? [buffer: end1 - (sz2 << (log-b unit))]
+					if tail? [buffer: p1]
 				]
 			]
 			buffer: buffer + step
@@ -2212,7 +2241,7 @@ string: context [
 		
 		either found? [
 			str: as red-string! result
-			str/head: (as-integer buffer - s/offset) >> (unit >> 1)	;-- just change the head position on stack
+			str/head: (as-integer buffer - s/offset) >> (log-b unit) ;-- just change the head position on stack
 		][
 			result/header: TYPE_NONE					;-- change the stack 1st argument to none.
 		]

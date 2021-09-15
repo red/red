@@ -117,6 +117,15 @@ Red [
 	--test-- "tta71" --assert type+id? syntax missing try/all [do "["]
 
 ===end-group===
-	
+
+===start-group=== "try issues"
+
+	--test-- "#4880"
+		do [do [do [try/all [1]]]]       ;) depth on which try is invoked is important here
+		loop 1 [loop 1 [continue]]
+		--assert true
+
+===end-group===
+
 ~~~end-file~~~
 

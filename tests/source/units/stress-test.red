@@ -16,13 +16,13 @@ Red [
 	--test-- "stress-deep-recursive"	;-- issue #3628
 	k: 500
 
-	add: func [x y][
+	add3628: func [x y][
 		unique cache: [] ; <-- UNIQUE is the culprit
 		last append cache x + y
 	]
 
 	--assert integer? do collect [
-		repeat i k [keep reduce ['add random i]]
+		repeat i k [keep reduce ['add3628 random i]]
 		keep 0
 	]
 

@@ -376,6 +376,8 @@ actions: context [
 			value
 			null
 			no
+			no
+			yes
 		
 		if set? [object/path-parent/header: TYPE_NONE]	;-- disables owner checking
 		value
@@ -387,6 +389,8 @@ actions: context [
 		value	[red-value!]
 		path	[red-path!]
 		case?	[logic!]
+		get?	[logic!]
+		tail?	[logic!]
 		return:	[red-value!]
 		/local
 			action-path
@@ -399,10 +403,12 @@ actions: context [
 			value	[red-value!]
 			path	[red-value!]
 			case?	[logic!]
+			get?	[logic!]
+			tail?	[logic!]
 			return:	[red-value!]
 		] get-action-ptr-path parent ACT_EVALPATH as red-value! path
 		
-		action-path parent element value as red-value! path case?
+		action-path parent element value as red-value! path case? get? tail?
 	]
 	
 	set-path*: func [][]

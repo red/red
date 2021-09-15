@@ -227,6 +227,11 @@ simple-io: context [
 					str		[c-string!]
 					return:	[c-string!]
 				]
+				_rename: "_wrename" [
+					old		[c-string!]
+					new		[c-string!]
+					return:	[integer!]
+				]
 			]
 		]
 	][
@@ -584,6 +589,11 @@ simple-io: context [
 		]
 		#import [
 			LIBC-file cdecl [
+				_rename: "rename" [
+					old		[c-string!]
+					new		[c-string!]
+					return:	[integer!]
+				]
 				_access: "access" [
 					filename	[c-string!]
 					mode		[integer!]
@@ -1451,7 +1461,7 @@ simple-io: context [
 					new?: no
 					s/1: null-byte
 					w: as red-value! word/push* symbol/make as-c-string p
-					res: map/eval-path mp w null null no
+					res: map/eval-path mp w null null no no no
 					either TYPE_OF(res) = TYPE_NONE [
 						new?: yes
 					][
@@ -1800,6 +1810,13 @@ simple-io: context [
 
 		;-- use libcurl, may need to install it on some distros
 		#import [
+			LIBC-file cdecl [
+				strcpy: "strcpy" [					"Copy string including tail marker, return target."
+					target			[c-string!]
+					source			[c-string!]
+					return:			[c-string!]
+				]
+			]
 			libcurl-file cdecl [
 				curl_global_init: "curl_global_init" [
 					flags	[integer!]
@@ -1886,7 +1903,7 @@ simple-io: context [
 					new?: no
 					s/1: null-byte
 					w: as red-value! word/push* symbol/make as-c-string p
-					res: map/eval-path mp w null null no
+					res: map/eval-path mp w null null no no no
 					either TYPE_OF(res) = TYPE_NONE [
 						new?: yes
 					][
@@ -1943,12 +1960,12 @@ simple-io: context [
 				slist	[integer!]
 				mp		[red-hash!]
 				blk		[red-block!]
-				str1	[red-string! value]
 				act-str [c-string!]
+				cstr 	[c-string!]
 				saved	[int-ptr!]
 		][
 			case [
-				method = words/get [action: CURLOPT_HTTPGET]
+				method = words/get  [action: CURLOPT_HTTPGET]
 				method = words/post [action: CURLOPT_POST]
 				method = words/head [action: CURLOPT_NOBODY]
 				true [action: CURLOPT_CUSTOMREQUEST]
@@ -1967,14 +1984,12 @@ simple-io: context [
 			bin: binary/make-at stack/push* 4096
 
 			either action = CURLOPT_CUSTOMREQUEST [
-				len: -1
-				s: GET_BUFFER(symbols)
-				copy-cell s/offset + method - 1 as cell! str1
-				str1/header: TYPE_STRING
-				str1/head: 0
-				str1/cache: null
-				act-str: strupr unicode/to-utf8 str1 :len
+				symbol/get method						;-- allocates a node for it
+				cstr: symbol/get-c-string method
+				act-str: as c-string! allocate length? cstr
+				act-str: strupr strcpy act-str cstr
 				curl_easy_setopt curl CURLOPT_CUSTOMREQUEST as-integer act-str
+				free as byte-ptr! act-str
 			][
 				curl_easy_setopt curl action 1
 			]
@@ -2071,5 +2086,17 @@ simple-io: context [
 			]
 			as red-value! bin
 		]
+	]
+
+	rename: func[
+		from	[red-value!]
+		to		[red-value!]
+		return:  [logic!]
+		/local
+			old new [c-string!]
+	][
+		old: file/to-OS-path as red-file! from
+		new: file/to-OS-path as red-file! to
+		zero? _rename old new
 	]
 ]

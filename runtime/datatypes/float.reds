@@ -233,20 +233,13 @@ float: context [
 			OP_ADD [left + right]
 			OP_SUB [left - right]
 			OP_MUL [left * right]
-			OP_DIV [
-				either all [0.0 = right not NaN? right][
-					either left > 0.0 [+INF][either left = 0.0 [QNaN][-INF]]
-				][
-					left / right
-				]
-			]
+			OP_DIV [left / right]
 			OP_REM [
-				if any [left = -INF left = +INF right = 0.0][return QNaN]	;-- issue #4574
-				either all [0.0 = right not NaN? right][
-					fire [TO_ERROR(math zero-divide)]
-					0.0									;-- pass the compiler's type-checking
-				][
-					fmod left right
+				case [
+					0.0 * right = 0.0 [fmod left right]	;-- finite right part - no special case
+					NaN? right [QNaN]
+					0.0 * left = 0.0 [left]				;-- finite % +-infinity - special case for #4900
+					true [QNaN]							;-- (+-infinity or NaN) % +-infinity = NaN
 				]
 			]
 			default [
@@ -746,6 +739,8 @@ float: context [
 			left  [float!]
 			right [float!] 
 			res	  [integer!]
+			ip1   [int-ptr!]
+			ip2   [int-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/compare"]]
 
@@ -774,6 +769,11 @@ float: context [
 		switch op [
 			COMP_EQUAL
 			COMP_NOT_EQUAL 	[res: as-integer not almost-equal left right]
+			COMP_SAME [
+				ip1: as int-ptr! :left
+				ip2: as int-ptr! :right
+				res: as-integer any [ip1/1 <> ip2/1  ip1/2 <> ip2/2]
+			]
 			default [
 				res: SIGN_COMPARE_RESULT(left right)
 			]
@@ -914,7 +914,6 @@ float: context [
 				sc: abs scale/value
 			]
 			if TYPE_OF(f) = TYPE_PERCENT [sc: sc / 100.0]
-			if sc = 0.0 [fire [TO_ERROR(math overflow)]]
 		]
 		if sc < ldexp abs dec -53 [return value]		;-- is scale negligible?
 
@@ -959,11 +958,7 @@ float: context [
 				int/header: TYPE_INTEGER
 				int/value: as integer! dec
 			][
-				value/header: either TYPE_OF(scale) = TYPE_PERCENT [
-					TYPE_FLOAT
-				][
-					TYPE_OF(scale)
-				]
+				value/header: TYPE_OF(scale)
 			]
 		]
 		value

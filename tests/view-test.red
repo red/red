@@ -780,7 +780,7 @@ win/pane: reduce [
 		actors: object [
 			on-wheel: func [face [object!] event [event!]][
 				print [face/type event/picked]
-				canvas/offset/y: canvas/offset/y + event/picked
+				canvas/offset/y: canvas/offset/y + to-integer event/picked
 				unless live? [show canvas]
 			]
 		]

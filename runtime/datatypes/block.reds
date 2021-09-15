@@ -48,6 +48,7 @@ block: context [
 			s	[series!]
 	][
 		s: GET_BUFFER(blk)
+		assert s/tail >= (s/offset + blk/head)
 		s/offset + blk/head
 	]
 	
@@ -631,12 +632,10 @@ block: context [
 			fl   [red-float!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/make"]]
-
-		size: 0
 		switch TYPE_OF(spec) [
 			TYPE_INTEGER
 			TYPE_FLOAT [
-				GET_INT_FROM(size spec)
+				size: get-int-from spec
 				if size <= 0 [size: 1]
 				make-at proto size
 				proto/header: type
@@ -790,6 +789,8 @@ block: context [
 		value	[red-value!]
 		path	[red-value!]
 		case?	[logic!]
+		get?	[logic!]
+		tail?	[logic!]
 		return:	[red-value!]
 		/local
 			int  [red-integer!]
@@ -998,7 +999,6 @@ block: context [
 						ts?  [BS_TEST_BIT_ALT(value stype)]	;-- attempt matching a typeset! value
 						true [actions/compare slot value op];-- atomic comparison
 					]
-					if match? [slot: slot + 1]				;-- /match option returns tail of match
 				][
 					n: 0
 					slot2: slot
@@ -1014,7 +1014,6 @@ block: context [
 						]
 					]
 					if all [n < values slot2 >= end][found?: no] ;-- partial match case, make it fail
-					if all [match? found?][slot: slot2]		;-- slot2 points to tail of match
 				]
 				slot: slot + step
 				any [

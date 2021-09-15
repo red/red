@@ -221,7 +221,7 @@ map: context [
 				if type = -1 [					;-- called by TO
 					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_MAP spec]
 				]
-				GET_INT_FROM(size spec)
+				size: get-int-from spec
 				if negative? size [fire [TO_ERROR(script out-of-range) spec]]
 			]
 			TYPE_ANY_LIST [
@@ -488,6 +488,8 @@ map: context [
 		value	[red-value!]
 		path	[red-value!]
 		case?	[logic!]
+		get?	[logic!]
+		tail?	[logic!]
 		return:	[red-value!]
 		/local
 			table	[node!]
@@ -553,7 +555,7 @@ map: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/put"]]
 		
-		eval-path map field value as red-value! none-value case?
+		eval-path map field value as red-value! none-value case? no yes
 		value
 	]
 
