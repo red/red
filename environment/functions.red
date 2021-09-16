@@ -269,11 +269,12 @@ replace: function [
 		]
 		size: either many? [length? :pattern][1]
 		seek: reduce [pick [find/case find] case 'series quote :pattern]
-		
+
+		active?: any-function? :value
 		until [											;-- find does not support image!
 			not system/words/all [
 				series: do seek
-				series: change/part series value size
+				series: change/part series either active? [do [value]][value] size
 				all
 			]
 		]

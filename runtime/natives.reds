@@ -3062,23 +3062,13 @@ natives: context [
 		series  [red-series!]
 		return: [integer!]	
 		/local
-			s	 [series!]
-			type [integer!]
 			img  [red-image!]
 	][
-		type: TYPE_OF(series)
-		if type = TYPE_IMAGE [
+		either TYPE_OF(series) = TYPE_IMAGE [
 			img: as red-image! series
-			return IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) - img/head
-		]
-		s: GET_BUFFER(series)
-		either any [
-			ANY_BLOCK?(type)
-			type = TYPE_MAP
+			IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) - img/head
 		][
-			(as-integer s/tail - s/offset) >> 4 - series/head
-		][
-			(as-integer s/tail - s/offset) - series/head << (log-b GET_UNIT(s))
+			_series/get-length series no
 		]
 	]
 
