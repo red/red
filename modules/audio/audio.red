@@ -268,7 +268,8 @@ audio-scheme: context [
 		handle		[any-type!]
 		rate		[integer!]
 		bits		[integer!]
-		bin			[binary!]
+		bin			[any-type!]
+		float?		[logic!]
 		/local
 			h		[red-handle!]
 			dev 	[int-ptr!]
@@ -287,7 +288,7 @@ audio-scheme: context [
 		;-- setting the device
 		case [
 			bits = 16 [stype: ASAMPLE-TYPE-I16]
-			bits = 32 [stype: ASAMPLE-TYPE-I32]
+			bits = 32 [stype: either float? [ASAMPLE-TYPE-F32][ASAMPLE-TYPE-I32]]
 			true [stype: ASAMPLE-TYPE-F32]
 		]
 		audio-sample-type: stype
@@ -306,8 +307,18 @@ audio-scheme: context [
 		]
 
 		;-- send data to the audio port
-		audio-buffer: binary/rs-head bin
-		audio-buffer-end: binary/rs-tail bin
+		switch TYPE_OF(bin) [
+			TYPE_BINARY [
+				audio-buffer: binary/rs-head as red-binary! bin
+				audio-buffer-end: binary/rs-tail as red-binary! bin
+			]
+			TYPE_VECTOR [
+				audio-buffer: vector/rs-head as red-vector! bin
+				audio-buffer-end: vector/rs-tail as red-vector! bin
+			]
+			default [exit]
+		]
+
 		unless connected? [
 			unless audio/device/connect dev as int-ptr! :wave-cb [
 				print-line "can't connect device"
@@ -334,7 +345,7 @@ audio-scheme: context [
 		unless all [block? state: port/state handle? first state][
 			cause-error 'access 'not-open ["port/state is invalid"]
 		]
-		audio.play state/1 data/rate data/bits data/data
+		audio.play state/1 data/rate data/bits data/data data/sample-type = float!
 	]
 
 	close: func [port /local handle][
