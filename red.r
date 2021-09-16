@@ -514,7 +514,7 @@ redc: context [
 				gui-sys-call exe any [all [file form-args file] ""]
 			][
 				if with [repend exe [" " form-args file]]
-				sys-call exe								;-- replace the buggy CALL native
+				sys-call exe
 			]
 		]
 		quit/return status
