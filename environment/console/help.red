@@ -120,7 +120,7 @@ help-ctx: context [
 		case [
 			unset? :value		 [""]
 			any-function? :value [fmt any [doc-string :value  spec-of :value]]
-			any-block? value     [
+			any [any-block? value  vector? value] [
 				fmt form reduce [
 					"length:" length? value
 					; Bolek's idea
@@ -547,7 +547,7 @@ help-ctx: context [
 					datatype? :value [show-datatype-help :value]
 					object? :value [show-object-help word]
 					map? :value [show-map-help word]
-					all [ref-given?  block? :value] [_print/fit [word-is-value-str/only :word DEF_SEP form-value :value]]
+					all [ref-given?  any [any-block? :value  vector? :value]] [_print/fit [word-is-value-str/only :word DEF_SEP form-value :value]]
 					image? :value [
 						either all [in system 'view  :system/view] [view [image value]][
 							_print/fit form-value value
