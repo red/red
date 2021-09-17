@@ -1501,6 +1501,9 @@ Red [
 		--assert word? transcode/one "=<="
 		--assert '-<- == transcode/one "-<-"
 
+	--test-- "#4781"
+		--assert 3:3:3.3 == transcode/one "3:3:3,3"
+
 ===end-group===
 	
 ~~~end-file~~~
