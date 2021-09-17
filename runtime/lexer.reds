@@ -1997,8 +1997,11 @@ lexer: context [
 		if all [p = e p/0 = #":"][do-error]
 	
 		if p < e [
-			if any [all [p/0 <> #"." p/0 <> #":"] flags and C_FLAG_EXP <> 0][do-error]
-			if p/0 = #"." [
+			if any [
+				all [p/0 <> #"." p/0 <> #"," p/0 <> #":"]
+				flags and C_FLAG_EXP <> 0
+			][do-error]
+			if any [p/0 = #"." p/0 = #","][
 				min: hour
 				hour: 0
 				p: mark
