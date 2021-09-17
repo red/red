@@ -340,8 +340,10 @@ natives: context [
 			body   [red-block!]
 			saved  [red-series!]
 			series [red-series!]
+			img	   [red-image!]
 			type   [integer!]
 			break? [logic!]
+			end?   [logic!]
 	][
 		#typecheck forall
 		w:    as red-word!  stack/arguments
@@ -367,6 +369,13 @@ natives: context [
 					series: as red-series! _context/get w
 					if series/node <> saved/node [fire [TO_ERROR(script bad-loop-series) series]]
 					series/head: series/head + 1
+					end?: either TYPE_OF(series) = TYPE_IMAGE [
+						img: as red-image! series
+						IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) <= img/head
+					][
+						_series/rs-tail? series
+					]
+					if end? [break]
 					if system/thrown = RED_THROWN_CONTINUE [
 						system/thrown: 0
 						continue
@@ -3265,12 +3274,20 @@ natives: context [
 		result
 	]
 	
-	forall-next: func [									;@@ inline?
+	forall-next?: func [									;@@ inline?
+		return: [logic!]
 		/local
 			series [red-series!]
+			img	   [red-image!]
 	][
 		series: as red-series! _context/get as red-word! stack/arguments - 1
 		series/head: series/head + 1
+		either TYPE_OF(series) = TYPE_IMAGE [
+			img: as red-image! series
+			IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) <= img/head
+		][
+			_series/rs-tail? series
+		]
 	]
 	
 	forall-end: func [									;@@ inline?

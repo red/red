@@ -2618,7 +2618,7 @@ red: context [
 		pop-call
 		
 		append last output [							;-- inject at tail of body block
-			natives/forall-next							;-- move series to next position
+			if natives/forall-next? [break]				;-- move series to next position
 		]
 		emit [
 			stack/unwind
