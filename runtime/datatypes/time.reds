@@ -149,7 +149,8 @@ time: context [
 			blk	 [red-block!]
 			len	 [integer!]
 			i	 [integer!]
-			t	 [float!]
+			t f	 [float!]
+			neg? [logic!]
 			val  [red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "time/to"]]
@@ -177,20 +178,25 @@ time: context [
 				fl: null
 				t: 0.0
 				i: 1
+				neg?: no
 				loop len [
-					either all [i = 3 TYPE_OF(int) = TYPE_FLOAT][
+					f: either all [i = 3 TYPE_OF(int) = TYPE_FLOAT][
 						fl: as red-float! int 
+						fl/value
 					][
 						if TYPE_OF(int) <> TYPE_INTEGER [throw-error spec]
+						as-float int/value
 					]
+					if f < 0.0 [either i = 1 [f: 0.0 - f neg?: yes][throw-error spec]]
 					t: switch i [
-						1 [t + ((as-float int/value) * 3600.0)]
-						2 [t + ((as-float int/value) * 60.0)]
-						3 [either fl = null [t +  as-float int/value][t + fl/value]]
+						1 [t + (f * 3600.0)]
+						2 [t + (f * 60.0)]
+						3 [t + f]
 					]
 					int: int + 1
 					i: i + 1
-				]
+				]		
+				if neg? [t: 0.0 - t]
 				tm/time: t
 			]
 			TYPE_ANY_STRING [
