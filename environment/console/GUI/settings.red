@@ -96,6 +96,18 @@ display-about: function [][
 	view/flags lay [modal no-title]
 ]
 
+recreate-widgets: func [
+	GPU?		[logic!]
+][
+	cfg/use-GPU?: GPU?
+	if system/view/GPU? <> GPU? [
+		remove/part win/pane 2
+		system/view/GPU?: GPU?
+		insert win/pane reduce [console caret]
+		console/init
+	]
+]
+
 show-cfg-dialog: function [][
 	lay: layout [
 		title "Settings"
@@ -105,7 +117,7 @@ show-cfg-dialog: function [][
 		style fbox: bbox on-down [
 			set-font-color cfg-forecolor/data: face/color
 		]
-		style hex-field: field 90 center font [name: font/name]
+		style hex-field: field 90x21 center font [name: font/name]
 
 		group-box "Background color" [
 			bbox #000000 bbox #002b36 bbox #073642 bbox #293955
@@ -124,8 +136,11 @@ show-cfg-dialog: function [][
 		]
 		return
 
-		pad 150x10 text "Buffer Lines" 80
-		pad -17x0 cfg-buffers: hex-field right return
+		text "Buffer Lines" 80
+		pad -17x0 cfg-buffers: hex-field right
+		check "Hardware Acceleration" [
+			recreate-widgets face/data
+		] on-create [face/data: cfg/use-GPU?] return
 
 		pad 90x20
 		button "OK" [
@@ -147,6 +162,7 @@ show-cfg-dialog: function [][
 ]
 
 apply-cfg: function [][
+	system/view/auto-sync?: no
 	win/offset:   cfg/win-pos
 	win/size:     cfg/win-size
 	font: make font! [
@@ -163,6 +179,8 @@ apply-cfg: function [][
 	set-font-color cfg/font-color
 	system/console/history: cfg/history
 	terminal/history: cfg/history
+	system/view/auto-sync?: yes
+	win/selected: console
 ]
 
 save-cfg: function [][
@@ -175,7 +193,7 @@ save-cfg: function [][
 	cfg/font-name: console/font/name
 	cfg/font-size: console/font/size
 	clear skip cfg/history 100
-	save/header cfg-path cfg [Purpose: "Red Console Configuration File"]
+	save/all/header cfg-path cfg [Purpose: "Red Console Configuration File"]
 ]
 
 check-cfg: function [gui-default][
@@ -193,7 +211,6 @@ check-cfg: function [gui-default][
 ]
 
 load-cfg: func [/local cfg-content gui-default][
-	system/view/auto-sync?: no
 	cfg-dir: append copy system/options/cache
 			#either config/OS = 'Windows [%Red-Console/][%.Red-Console/]
 
@@ -201,7 +218,7 @@ load-cfg: func [/local cfg-content gui-default][
 	cfg-path: append copy cfg-dir %console-cfg.red
 
 	gui-default: compose [
-		win-pos:	  (win/offset)
+		win-pos:	  0x0
 		win-size:	  640x480
 
 		font-name:	  (font/name)
@@ -225,7 +242,9 @@ load-cfg: func [/local cfg-content gui-default][
 	unless find cfg 'history [
 		append cfg [history: []]
 	]
-	apply-cfg
-	system/view/auto-sync?: yes
-	win/selected: console
+	either find cfg 'use-GPU? [
+		if cfg/use-GPU? <> system/view/GPU? [system/view/GPU?: cfg/use-GPU?]
+	][
+		append cfg compose [use-GPU?: (system/view/GPU?)]
+	]
 ]

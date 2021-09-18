@@ -1712,7 +1712,11 @@ DX-create-dev: func [
 		hr flags			[integer!]
 		dll					[handle!]
 		GetDebugInterface	[DXGIGetDebugInterface!]
+		GPU?				[red-logic!]
+		driver-type			[integer!]
 ][
+	if d3d-device <> null [DX-release-dev]
+
 	if win8+? [
 		dll: LoadLibraryA "dcomp.dll"
 		pfnDCompositionCreateDevice2: GetProcAddress dll "DCompositionCreateDevice2"
@@ -1724,11 +1728,14 @@ DX-create-dev: func [
 		]]
 	]
 
+	GPU?: as red-logic! #get system/view/GPU?
+	driver-type: either GPU?/value [1][5]	;-- D3D_DRIVER_TYPE_HARDWARE: 1, D3D_DRIVER_TYPE_WRAP: 5
+
 	flags: 33	;-- D3D11_CREATE_DEVICE_BGRA_SUPPORT or D3D11_CREATE_DEVICE_SINGLETHREADED
 	#if debug? = yes [if view-log-level > 2 [flags: flags or 2]]
 	hr: D3D11CreateDevice
 		null
-		1		;-- D3D_DRIVER_TYPE_HARDWARE
+		driver-type
 		null
 		flags
 		null

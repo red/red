@@ -697,6 +697,13 @@ system/view: context [
 	auto-sync?: yes										;-- refresh faces on changes automatically
 	debug?: 	no										;-- output verbose logs
 	silent?:	no										;-- do not report errors (livecoding)
+	GPU?:		yes										;-- hardware acceleration in GPU?
+
+	on-change*: function [word old new][
+		if all [word = 'GPU? old <> new][
+			system/view/platform/setup-GPU
+		]
+	]
 ]
 
 #include %backends/platform.red

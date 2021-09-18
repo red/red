@@ -218,9 +218,11 @@ gui-console-ctx: context [
 		setup-faces
 		win/visible?: no					;-- hide it first to avoid flicker
 
+		load-cfg
 		view/flags/no-wait win [resize]		;-- create window instance
 		console/init
-		load-cfg
+		apply-cfg
+
 		if empty? system/script/args [win/visible?: yes]
 
 		svs: system/view/screens/1

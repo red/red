@@ -728,6 +728,15 @@ system/view/platform: context [
 		SET_RETURN(none-value)
 	]
 
+	setup-GPU: routine [][
+		#switch OS [
+			Windows  [gui/DX-create-dev]
+			macOS    []
+			Linux    []
+			#default [0]
+		]
+	]
+
 	init: func [/local svs colors fonts][
 		system/view/screens: svs: make block! 6
 
