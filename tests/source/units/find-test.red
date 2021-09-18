@@ -482,4 +482,41 @@ Red [
 
 ===end-group===
 
+===start-group=== "FIND issue #4911"
+
+	tss: reduce [1 integer! 2.0 number! 3]
+	hss: make hash! tss
+
+	--test-- "issue-4911-1"
+		--assert 1 = index? find      tss 1
+	--test-- "issue-4911-2"
+		--assert 1 = index? find      tss integer!
+	--test-- "issue-4911-3"
+		--assert 1 = index? find      tss number!
+	--test-- "issue-4911-4"
+		--assert 1 = index? find/same tss integer!
+	--test-- "issue-4911-5"
+		--assert 1 = index? find/same tss number!
+	--test-- "issue-4911-6"
+		--assert 2 = index? find/only tss integer!
+	--test-- "issue-4911-7"
+		--assert 4 = index? find/only tss number!
+
+	--test-- "issue-4911-8"
+		--assert 1 = index? find      hss 1
+	--test-- "issue-4911-9"
+		--assert 1 = index? find      hss integer!
+	--test-- "issue-4911-10"
+		--assert 1 = index? find      hss number!
+	--test-- "issue-4911-11"
+		--assert 1 = index? find/same hss integer!
+	--test-- "issue-4911-12"
+		--assert 1 = index? find/same hss number!
+	--test-- "issue-4911-13"
+		--assert 2 = index? find/only hss integer!
+	--test-- "issue-4911-14"
+		--assert 4 = index? find/only hss number!
+
+===end-group===
+
 ~~~end-file~~~
