@@ -2787,7 +2787,7 @@ red: context [
 				throw-error ["duplicate word definition in function:" pc/1]
 			]
 		]
-		;-- Remove local words that are duplicates of lit/get-word arguments
+		;-- Check if local words are duplicates of lit/get-word arguments
 		if loc: find spec /local [
 			pos: loc
 			while [not tail? pos][
@@ -2798,7 +2798,7 @@ red: context [
 						find/part spec to get-word! pos/1 loc
 					]
 				][
-					remove pos
+					throw-error ["duplicate word definition in function:" pos/1]
 				][
 					pos: next pos
 				]
