@@ -628,8 +628,8 @@ Red [
 
 	--test-- "#586"
 		t586: reduce [block!]
-		--assert equal? reduce [block!] find t586 block!
-		--assert equal? reduce [block!] find t586 type? []
+		--assert equal? reduce [block!] find/only t586 block!
+		--assert equal? reduce [block!] find/only t586 type? []
 		unset 't586
 
 	--test-- "#592"
@@ -2630,7 +2630,7 @@ b}
 		; GUI
 
 	--test-- "#2125"
-		--assert 2 = length? find reduce [integer! 1] integer!
+		--assert 2 = length? find/only reduce [integer! 1] integer!
 
 	; --test-- "#2133"
 		; OPEN
