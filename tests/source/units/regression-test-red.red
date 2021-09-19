@@ -2254,6 +2254,10 @@ Red [
 	; --test-- "#1853"
 		; GUI
 
+	--test-- "#1858"
+		f1858: func [][f1858]
+		--assert error? try [f1858]
+
 	--test-- "#1865"
 		--assert not equal? 2 (a: 'ok 1 + 1 :a)
 		--assert equal? 'ok (a: 'ok 1 + 1 :a)
