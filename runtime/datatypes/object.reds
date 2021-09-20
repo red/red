@@ -1364,11 +1364,12 @@ object: context [
 		size:   as-integer src/tail - src/offset
 		slots:	size >> 4
 		
+		type: TYPE_OF(obj)
 		copy-cell as cell! obj as cell! new
 		new/header: TYPE_UNSET
 		new/ctx: _context/create slots no yes ctx CONTEXT_OBJECT
 		new/class: obj/class
-		new/header: TYPE_OBJECT
+		new/header: type
 
 		nctx: GET_CTX(new)
 		copy-cell as red-value! new as red-value! nctx + 1	;-- set back-reference
