@@ -126,7 +126,6 @@ _request-file: func [
 	if new? [
 		gtk_widget_destroy window
 	]
-	while [gtk_events_pending][gtk_main_iteration]
 	ret
 ]
 
