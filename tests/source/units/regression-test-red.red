@@ -3023,12 +3023,6 @@ comment {
 		err4260: try [add none none]
 		--assert to-logic find form err4260 "add does not"
 
-	--test-- "#4451"
-		path: quote :foo/bar
-		--assert ":foo/bar" = mold path
-		--assert get-path! = type? path
-		--assert word! = type? path/1
-	
 	--test-- "#4305"
 		block: reduce ['foo func [/bar][pick [baz qux] bar]]
 		id:    func [value][value]
@@ -3042,7 +3036,17 @@ comment {
 		--assert 'baz == id block/1/('foo)/bar
 		--assert 'baz == baz: block/1/('foo)/bar
 		--assert 'baz == baz
-		
+
+	--test-- "#4451"
+		path: quote :foo/bar
+		--assert ":foo/bar" = mold path
+		--assert get-path! = type? path
+		--assert word! = type? path/1
+
+
+	--test-- "#4489"
+		--assert [1 1 1 1 1 2 2 3 3 3 3 4 4 4 4 4 5] = sort/compare/stable [1 4 1 1 4 3 1 3 4 4 4 3 1 2 2 5 3] func [a b] [a <= b]
+
 	--test-- "#4505"
 		do [
 			saved: :find
