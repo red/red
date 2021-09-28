@@ -1016,7 +1016,6 @@ set-window-info: func [
 
 update-window: func [
 	child	[red-block!]
-	hdwp	[handle!]
 	/local
 		face	[red-object!]
 		tail	[red-object!]
@@ -1027,35 +1026,38 @@ update-window: func [
 		word	[red-word!]
 		type	[integer!]
 		hWnd	[handle!]
-		end?	[logic!]
-		len		[integer!]
+		hdwp	[handle!]
+		target	[integer!]
 ][
-	end?: null? hdwp
-	if null? hdwp [hdwp: BeginDeferWindowPos 1]
-
 	face: as red-object! block/rs-head child
 	tail: as red-object! block/rs-tail child
+	hdwp: BeginDeferWindowPos 32
 	while [face < tail][
 		hWnd: face-handle? face
 		if hWnd <> null [
 			values: get-face-values hWnd
+			sz: as red-pair! values + FACE_OBJ_SIZE
+			pos: as red-pair! values + FACE_OBJ_OFFSET
 			word: as red-word! values + FACE_OBJ_TYPE
 			type: symbol/resolve word/symbol
 			case [
 				type = rich-text [
-					len: GetWindowLong hWnd wc-offset - 36
-					if len <> 0 [
-						d2d-release-target as render-target! len
+					target: GetWindowLong hWnd wc-offset - 36
+					if target <> 0 [
+						d2d-release-target as render-target! target
 						SetWindowLong hWnd wc-offset - 36 0
 					]
 				]
 				type = group-box [
-					0
+					SetWindowPos
+						as handle! GetWindowLong hWnd wc-offset - 4	;-- frame
+						null
+						0 0
+						dpi-scale sz/x dpi-scale sz/y
+						SWP_NOZORDER or SWP_NOACTIVATE
 				]
 				true [0]
 			]
-			sz: as red-pair! values + FACE_OBJ_SIZE
-			pos: as red-pair! values + FACE_OBJ_OFFSET
 			hdwp: DeferWindowPos
 				hdwp
 				hWnd
@@ -1064,20 +1066,21 @@ update-window: func [
 				dpi-scale sz/x  dpi-scale sz/y
 				SWP_NOZORDER or SWP_NOACTIVATE
 
+			child: as red-block! values + FACE_OBJ_PANE
+			if TYPE_OF(child) = TYPE_BLOCK [
+				EndDeferWindowPos hdwp
+				update-window child
+				hdwp: BeginDeferWindowPos 32
+			]
 			font: as red-object! values + FACE_OBJ_FONT
 			if TYPE_OF(font) = TYPE_OBJECT [
 				free-font font
-				make-font null font
-			]
-			child: as red-block! values + FACE_OBJ_PANE
-			if TYPE_OF(child) = TYPE_BLOCK [
-				update-window child hdwp
+				set-font hWnd null values
 			]
 		]
 		face: face + 1
 	]
-
-	if end? [EndDeferWindowPos hdwp]
+	EndDeferWindowPos hdwp
 ]
 
 TimerProc: func [
@@ -1491,6 +1494,8 @@ WndProc: func [
 		WM_DPICHANGED [
 			log-pixels-x: WIN32_LOWORD(wParam)			;-- new DPI
 			log-pixels-y: log-pixels-x
+			dpi-x: as float32! log-pixels-x
+			dpi-y: dpi-x
 			dpi-factor: log-pixels-x * 100 / 96
 			rc: as RECT_STRUCT lParam
 			SetWindowPos 
@@ -1503,7 +1508,7 @@ WndProc: func [
 			if all [
 				type = window
 				TYPE_OF(values) = TYPE_BLOCK
-			][update-window as red-block! values null]
+			][update-window as red-block! values]
 			if hidden-hwnd <> null [
 				values: (get-face-values hidden-hwnd) + FACE_OBJ_EXT3
 				values/header: TYPE_NONE
