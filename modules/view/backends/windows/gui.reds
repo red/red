@@ -76,6 +76,7 @@ ime-font:		as tagLOGFONT allocate 92
 base-down-hwnd: as handle! 0
 
 dpi-factor:		100
+inital-dpi:		96
 log-pixels-x:	0
 log-pixels-y:	0
 screen-size-x:	0
@@ -693,6 +694,8 @@ set-defaults: func [
 		metrics [tagNONCLIENTMETRICS value]
 		theme?	[logic!]
 ][
+	if default-font-name <> null [free as byte-ptr! default-font-name default-font-name: null]
+
 	theme?: IsThemeActive
 	res: -1
 	either theme? [
@@ -717,11 +720,12 @@ set-defaults: func [
 			len
 			#get system/view/fonts/system
 			UTF-16LE
-		
+
+		font/lfHeight: font/lfHeight * log-pixels-y / inital-dpi	;-- font/lfHeight isn't affected by DPI change, we update it manually
 		integer/make-at 
 			#get system/view/fonts/size
 			0 - (font/lfHeight * 72 / log-pixels-y)
-			
+
 		default-font: CreateFontIndirect font
 
 		if theme? [CloseThemeData hTheme]
@@ -773,6 +777,7 @@ get-dpi: func [
 		log-pixels-x: GetDeviceCaps hScreen 88			;-- LOGPIXELSX
 		log-pixels-y: GetDeviceCaps hScreen 90			;-- LOGPIXELSY
 	]
+	inital-dpi: log-pixels-x
 	dpi-factor: log-pixels-x * 100 / 96
 ]
 

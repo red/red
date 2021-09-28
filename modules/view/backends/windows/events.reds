@@ -1016,6 +1016,7 @@ set-window-info: func [
 
 update-window: func [
 	child	[red-block!]
+	fonts	[node!]				;-- font handle array
 	/local
 		face	[red-object!]
 		tail	[red-object!]
@@ -1028,7 +1029,15 @@ update-window: func [
 		hWnd	[handle!]
 		hdwp	[handle!]
 		target	[integer!]
+		hfont	[handle!]
 ][
+	if null? fonts [
+		set-defaults
+		fonts: alloc-bytes 32 * size? int-ptr!
+	]
+
+	if TYPE_OF(child) <> TYPE_BLOCK [exit]
+
 	face: as red-object! block/rs-head child
 	tail: as red-object! block/rs-tail child
 	hdwp: BeginDeferWindowPos 32
@@ -1069,14 +1078,18 @@ update-window: func [
 			child: as red-block! values + FACE_OBJ_PANE
 			if TYPE_OF(child) = TYPE_BLOCK [
 				EndDeferWindowPos hdwp
-				update-window child
+				update-window child fonts
 				hdwp: BeginDeferWindowPos 32
 			]
 			font: as red-object! values + FACE_OBJ_FONT
 			if TYPE_OF(font) = TYPE_OBJECT [
-				free-font font
-				set-font hWnd null values
+				if -1 = array/find-ptr fonts get-font-handle font 0 [	;-- not find
+					free-font font
+					make-font null font
+					array/append-ptr fonts get-font-handle font 0
+				]
 			]
+			set-font hWnd null values
 		]
 		face: face + 1
 	]
@@ -1505,10 +1518,7 @@ WndProc: func [
 				rc/right - rc/left rc/bottom - rc/top
 				SWP_NOZORDER or SWP_NOACTIVATE
 			values: values + FACE_OBJ_PANE
-			if all [
-				type = window
-				TYPE_OF(values) = TYPE_BLOCK
-			][update-window as red-block! values]
+			if type = window [update-window as red-block! values null]
 			if hidden-hwnd <> null [
 				values: (get-face-values hidden-hwnd) + FACE_OBJ_EXT3
 				values/header: TYPE_NONE
@@ -1518,7 +1528,10 @@ WndProc: func [
 			]
 			RedrawWindow hWnd null null 4 or 1			;-- RDW_ERASE | RDW_INVALIDATE
 		]
-		WM_THEMECHANGED [set-defaults]
+		WM_THEMECHANGED [
+			values: values + FACE_OBJ_PANE
+			if type = window [update-window as red-block! values null]
+		]
 		default [0]
 	]
 	if ext-parent-proc? [call-custom-proc hWnd msg wParam lParam]
