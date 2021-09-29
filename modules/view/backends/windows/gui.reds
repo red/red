@@ -603,6 +603,7 @@ free-faces: func [
 		flags	[integer!]
 		cam		[camera!]
 		handle	[handle!]
+		hFont	[handle!]
 ][
 	handle: face-handle? face
 	#if debug? = yes [if null? handle [probe "VIEW: WARNING: free null window handle!"]]
@@ -672,6 +673,9 @@ free-faces: func [
 		]
 	]
 	either sym = window [
+		hFont: as handle! GetWindowLong handle wc-offset - 32	;-- default font
+		if hFont <> null [DeleteObject hFont]
+
 		state: values + FACE_OBJ_SELECTED
 		state/header: TYPE_NONE
 		SetWindowLong handle wc-offset - 4 -1
