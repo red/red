@@ -1837,7 +1837,8 @@ make-profilable make target-class [
 		either spec [
 			emit-i32 #{e59f1000}					;-- LDR r1, [pc, #0]	; offset 0 => value
 			emit-i32 #{ea000000}					;-- B <after_value>			
-			emit-reloc-addr spec/2					;-- address slot
+			emit-reloc-addr spec/2/3
+			emit-i32 #{00000000}					;-- address slot
 			emit-i32 pick [
 				#{e7810009}							;-- STR r0, [r1]		; global
 				#{e5010000}							;-- STR r0, [r1, sb]	; PIC
@@ -1852,12 +1853,13 @@ make-profilable make target-class [
 	emit-end-loop: func [spec [block! none!] name [word! none!] /local offset][
 		if verbose >= 3 [print ">>>emitting end loop"]
 		either spec [
-			emit-i32 #{e59f1000}					;-- LDR r1, [pc, #0]	; offset 0 => value
+			emit-i32 #{e59f0000}					;-- LDR r0, [pc, #0]	; offset 0 => value
 			emit-i32 #{ea000000}					;-- B <after_value>
-			emit-reloc-addr spec/2					;-- address slot
+			emit-reloc-addr spec/2/3
+			emit-i32 #{00000000}					;-- address slot
 			emit-i32 pick [
-				#{e5900000} 						;-- LDR r0, [r0]		; global
 				#{e7900009}							;-- LDR r0, [r0, sb]	; PIC
+				#{e5900000} 						;-- LDR r0, [r0]		; global
 			] PIC?
 		][
 			emit-load-local
