@@ -1031,10 +1031,7 @@ update-window: func [
 		target	[integer!]
 		hfont	[handle!]
 ][
-	if null? fonts [
-		set-defaults
-		fonts: alloc-bytes 32 * size? int-ptr!
-	]
+	if null? fonts [fonts: alloc-bytes 32 * size? int-ptr!]
 
 	if TYPE_OF(child) <> TYPE_BLOCK [exit]
 
@@ -1049,23 +1046,12 @@ update-window: func [
 			pos: as red-pair! values + FACE_OBJ_OFFSET
 			word: as red-word! values + FACE_OBJ_TYPE
 			type: symbol/resolve word/symbol
-			case [
-				type = rich-text [
-					target: GetWindowLong hWnd wc-offset - 36
-					if target <> 0 [
-						d2d-release-target as render-target! target
-						SetWindowLong hWnd wc-offset - 36 0
-					]
+			if type = rich-text [
+				target: GetWindowLong hWnd wc-offset - 36
+				if target <> 0 [
+					d2d-release-target as render-target! target
+					SetWindowLong hWnd wc-offset - 36 0
 				]
-				type = group-box [
-					SetWindowPos
-						as handle! GetWindowLong hWnd wc-offset - 4	;-- frame
-						null
-						0 0
-						dpi-scale sz/x dpi-scale sz/y
-						SWP_NOZORDER or SWP_NOACTIVATE
-				]
-				true [0]
 			]
 			hdwp: DeferWindowPos
 				hdwp
@@ -1090,6 +1076,16 @@ update-window: func [
 				]
 			]
 			set-font hWnd null values
+			if type = group-box [
+				hWnd: as handle! GetWindowLong hWnd wc-offset - 4	;-- frame of the group box
+				set-font hWnd null values
+				SetWindowPos
+					hWnd
+					null
+					0 0
+					dpi-scale sz/x dpi-scale sz/y
+					SWP_NOZORDER or SWP_NOACTIVATE
+			]
 		]
 		face: face + 1
 	]
@@ -1518,7 +1514,10 @@ WndProc: func [
 				rc/right - rc/left rc/bottom - rc/top
 				SWP_NOZORDER or SWP_NOACTIVATE
 			values: values + FACE_OBJ_PANE
-			if type = window [update-window as red-block! values null]
+			if type = window [
+				set-defaults hWnd
+				update-window as red-block! values null
+			]
 			if hidden-hwnd <> null [
 				values: (get-face-values hidden-hwnd) + FACE_OBJ_EXT3
 				values/header: TYPE_NONE
@@ -1530,7 +1529,10 @@ WndProc: func [
 		]
 		WM_THEMECHANGED [
 			values: values + FACE_OBJ_PANE
-			if type = window [update-window as red-block! values null]
+			if type = window [
+				set-defaults hWnd
+				update-window as red-block! values null
+			]
 		]
 		default [0]
 	]

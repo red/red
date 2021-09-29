@@ -15,11 +15,12 @@ Red/System [
 ;;		-60  :							<- TOP
 ;;		-36  : Direct2D render target
 ;;		-32	 : base: mouse capture count
+;;			 : window: default font
 ;;		-28  : Cursor handle
 ;;		-24  : base-layered: caret's owner handle, Window: modal loop type for moving and resizing
 ;;		-20  : evolved-base-layered: child handle, window: previous focused handle
 ;;		-16  : base-layered: owner handle, window: border width and height
-;;		-12  : base-layered: clipped? flag, caret? flag, d2d? flag, ime? flag
+;;		-12  : clipped? flag, caret? flag, d2d? flag, ime? flag
 ;;		 -8  : base: pos X/Y in pixel
 ;;			   window: pos X/Y in pixel
 ;;		 -4  : camera: camera!
@@ -684,7 +685,9 @@ free-faces: func [
 ]
 
 set-defaults: func [
+	hWnd		[handle!]
 	/local
+		hFont	[handle!]
 		hTheme	[handle!]
 		font	[tagLOGFONT]
 		ft		[tagLOGFONT value]
@@ -695,6 +698,10 @@ set-defaults: func [
 		theme?	[logic!]
 ][
 	if default-font-name <> null [free as byte-ptr! default-font-name default-font-name: null]
+	if hWnd <> null [
+		hFont: as handle! GetWindowLong hWnd wc-offset - 32
+		if hFont <> null [DeleteObject hFont]
+	]
 
 	theme?: IsThemeActive
 	res: -1
@@ -732,6 +739,7 @@ set-defaults: func [
 	]
 
 	if null? default-font [default-font: GetStockObject DEFAULT_GUI_FONT]
+	if hWnd <> null [SetWindowLong hWnd wc-offset - 32 as-integer default-font]
 ]
 
 enable-visual-styles: func [
@@ -859,7 +867,7 @@ init: func [
 
 	get-dpi
 	unless winxp? [DX-init]
-	set-defaults
+	set-defaults null
 
 	register-classes hInstance
 
