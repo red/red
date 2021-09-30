@@ -1737,7 +1737,18 @@ natives: context [
 		][
 			x: f/value
 		]
-		f/value: atan2 y x
+		#either OS = 'Windows [
+			f/value: atan2 y x
+		][
+			either all [								;-- bugfix for libc (all Linux versions)
+				x - x <> 0.0							;-- if both x and y are infinite (or NaN)
+				y - y <> 0.0
+			][
+				f/value: x - x							;-- then the result should be NaN
+			][
+				f/value: atan2 y x
+			]
+		]
 		if radians < 0 [f/value: 180.0 / PI * f/value]			;-- to degrees
 		stack/set-last as red-value! f
 	]
