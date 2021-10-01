@@ -1067,7 +1067,7 @@ lexer: context [
 			if lex/load? [
 				blk: as red-block! lex/tail - 1
 				if (block/rs-length? blk) % 2 <> 0 [
-					fire [TO_ERROR(script invalid-arg) blk]
+					throw-error lex s e TYPE_MAP
 				]
 				value: block/rs-head blk
 				tail:  block/rs-tail blk
