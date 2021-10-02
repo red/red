@@ -2618,7 +2618,7 @@ red: context [
 		pop-call
 		
 		append last output [							;-- inject at tail of body block
-			natives/forall-next							;-- move series to next position
+			if natives/forall-next? [break]				;-- move series to next position
 		]
 		emit [
 			stack/unwind
@@ -2697,7 +2697,7 @@ red: context [
 			throw-error "CONTINUE used with no loop"
 		]
 		if 'forall = last loops [
-			emit 'natives/forall-next					;-- move series to next position
+			emit 'natives/forall-next?					;-- move series to next position
 			insert-lf -1
 		]
 		emit [stack/unroll-loop yes continue]
@@ -2787,7 +2787,7 @@ red: context [
 				throw-error ["duplicate word definition in function:" pc/1]
 			]
 		]
-		;-- Remove local words that are duplicates of lit/get-word arguments
+		;-- Check if local words are duplicates of lit/get-word arguments
 		if loc: find spec /local [
 			pos: loc
 			while [not tail? pos][
@@ -2798,7 +2798,7 @@ red: context [
 						find/part spec to get-word! pos/1 loc
 					]
 				][
-					remove pos
+					throw-error ["duplicate word definition in function:" pos/1]
 				][
 					pos: next pos
 				]

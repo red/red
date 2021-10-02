@@ -285,6 +285,19 @@ Red [
 			remove-each a a1923 [break]
 			--assert true							;-- check if previous line didn't crash
 
+	--test-- "#4967"
+			b4967: [1 2 3 4]
+			out4967: make block! 3
+			forall b4967 [append out4967 index? b4967 b4967: next b4967 b4967/1: b4967/1 * 2]
+			--assert b4967 == [1 4 3 8]
+			--assert out4967 == [1 3]
+
+			i4967: make image! 2x2
+			out4967: make block! 3
+			forall i4967 [append out4967 index? i4967 i4967: next i4967 i4967/1: black]
+			--assert i4967 == make image! [2x2 #{FFFFFF000000FFFFFF000000}]
+			--assert out4967 == [1 3]
+
 ===end-group===
     
 ~~~end-file~~~

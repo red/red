@@ -210,7 +210,7 @@
 	red/natives/remove-each-next
 	red/natives/foreach-next-block
 	red/natives/foreach-next
-	red/natives/forall-next
+	red/natives/forall-next?
 	red/natives/forall-end
 	red/natives/forall-end-adjust
 	red/natives/coerce-counter*

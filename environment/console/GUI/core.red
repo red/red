@@ -148,6 +148,12 @@ object [
 	]
 
 	vprint: func [str [string!] lf? [logic!] /local s cnt first-prin?][
+		if 100'000 < length? str [			;-- truncate very long string
+			s: skip tail str -10'000
+			str: append copy/part str 90'000 "^/...^/"
+			append str s
+		]
+
 		unless console/state [exit]
 		unless gui-console-ctx/win/visible? [
 			gui-console-ctx/win/visible?: yes

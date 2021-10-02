@@ -1067,7 +1067,7 @@ lexer: context [
 			if lex/load? [
 				blk: as red-block! lex/tail - 1
 				if (block/rs-length? blk) % 2 <> 0 [
-					fire [TO_ERROR(script invalid-arg) blk]
+					throw-error lex null e TYPE_MAP
 				]
 				value: block/rs-head blk
 				tail:  block/rs-tail blk
@@ -1997,8 +1997,11 @@ lexer: context [
 		if all [p = e p/0 = #":"][do-error]
 	
 		if p < e [
-			if any [all [p/0 <> #"." p/0 <> #":"] flags and C_FLAG_EXP <> 0][do-error]
-			if p/0 = #"." [
+			if any [
+				all [p/0 <> #"." p/0 <> #"," p/0 <> #":"]
+				flags and C_FLAG_EXP <> 0
+			][do-error]
+			if any [p/0 = #"." p/0 = #","][
 				min: hour
 				hour: 0
 				p: mark

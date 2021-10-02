@@ -628,8 +628,8 @@ Red [
 
 	--test-- "#586"
 		t586: reduce [block!]
-		--assert equal? reduce [block!] find t586 block!
-		--assert equal? reduce [block!] find t586 type? []
+		--assert equal? reduce [block!] find/only t586 block!
+		--assert equal? reduce [block!] find/only t586 type? []
 		unset 't586
 
 	--test-- "#592"
@@ -2254,6 +2254,10 @@ Red [
 	; --test-- "#1853"
 		; GUI
 
+	--test-- "#1858"
+		f1858: func [][f1858]
+		--assert error? try [f1858]
+
 	--test-- "#1865"
 		--assert not equal? 2 (a: 'ok 1 + 1 :a)
 		--assert equal? 'ok (a: 'ok 1 + 1 :a)
@@ -2630,7 +2634,7 @@ b}
 		; GUI
 
 	--test-- "#2125"
-		--assert 2 = length? find reduce [integer! 1] integer!
+		--assert 2 = length? find/only reduce [integer! 1] integer!
 
 	; --test-- "#2133"
 		; OPEN
@@ -3019,12 +3023,6 @@ comment {
 		err4260: try [add none none]
 		--assert to-logic find form err4260 "add does not"
 
-	--test-- "#4451"
-		path: quote :foo/bar
-		--assert ":foo/bar" = mold path
-		--assert get-path! = type? path
-		--assert word! = type? path/1
-	
 	--test-- "#4305"
 		block: reduce ['foo func [/bar][pick [baz qux] bar]]
 		id:    func [value][value]
@@ -3038,7 +3036,17 @@ comment {
 		--assert 'baz == id block/1/('foo)/bar
 		--assert 'baz == baz: block/1/('foo)/bar
 		--assert 'baz == baz
-		
+
+	--test-- "#4451"
+		path: quote :foo/bar
+		--assert ":foo/bar" = mold path
+		--assert get-path! = type? path
+		--assert word! = type? path/1
+
+
+	--test-- "#4489"
+		--assert [1 1 1 1 1 2 2 3 3 3 3 4 4 4 4 4 5] = sort/compare/stable [1 4 1 1 4 3 1 3 4 4 4 3 1 2 2 5 3] func [a b] [a <= b]
+
 	--test-- "#4505"
 		do [
 			saved: :find

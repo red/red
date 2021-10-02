@@ -195,12 +195,12 @@ unless system/console [
 			s: GET_BUFFER(str)
 			unit: GET_UNIT(s)
 			if unit < 2 [unit: 2]			;-- always treat string as widechar string
-			size: (string/rs-abs-length? str) << (log-b unit)
-			size: size + (string/rs-abs-length? prompt) << (log-b unit)
+			size: (string/rs-abs-length? str) + (string/rs-abs-length? prompt) << (log-b unit)
 			if size > buf-size [
 				buf-size: size
 				free buffer
 				buffer: allocate size
+				if null? buffer [probe ["Cannot allocate memory: init-buffer: " size] halt]
 			]
 			pbuffer: buffer
 		]
