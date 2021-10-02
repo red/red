@@ -2697,7 +2697,7 @@ red: context [
 			throw-error "CONTINUE used with no loop"
 		]
 		if 'forall = last loops [
-			emit 'natives/forall-next					;-- move series to next position
+			emit 'natives/forall-next?					;-- move series to next position
 			insert-lf -1
 		]
 		emit [stack/unroll-loop yes continue]
