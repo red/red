@@ -1031,7 +1031,10 @@ update-window: func [
 		target	[integer!]
 		hfont	[handle!]
 ][
-	if null? fonts [fonts: alloc-bytes 32 * size? int-ptr!]
+	if null? fonts [
+		get-metrics
+		fonts: alloc-bytes 32 * size? int-ptr!
+	]
 
 	if TYPE_OF(child) <> TYPE_BLOCK [exit]
 
