@@ -1,0 +1,49 @@
+name: RPi
+
+on: push
+
+jobs:
+  Build-RPi-Tests:
+    runs-on: ubuntu-latest
+    name: Build RPi Tests
+    steps:
+    # To use this repository's private action, check out the repository
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Build Tests
+      uses: ./CI/Linux-32 # Uses an action in the CI directory
+      with:
+        command: rebol -qws tests/build-arm-tests.r -t RPi
+    - uses: actions/upload-artifact@v2
+      with:
+        name: rpi-tests-bin
+        path: quick-test/runnable/arm-tests/red
+        retention-days: 3
+
+  Run-RPi-Tests:
+
+    runs-on: [self-hosted, linux, arm]
+    needs: Build-RPi-Tests
+    
+    steps:
+    - name: Clean working directory
+      run: |
+        echo "Cleaning up previous run"
+        rm -rf ${{ github.workspace }}/*
+
+    - name: Retrieve tests
+      uses: actions/download-artifact@v2
+      with:
+        name: rpi-tests-bin
+
+    - name: Run tests
+      run: |
+        chmod +x run-all.sh
+        ./run-all.sh
+
+    # upload log file if any test failed
+    - uses: actions/upload-artifact@v2
+      if: failure()
+      with:
+        name: RPi-Tests-log
+        path: quick-test.log

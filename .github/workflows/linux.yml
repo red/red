@@ -1,0 +1,23 @@
+name: Linux-x86
+
+on: push
+
+jobs:
+  Linux-Tests:
+    runs-on: ubuntu-latest
+    name: Run Linux-x86 Tests
+    steps:
+    # To use this repository's private action, check out the repository
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Build Tests
+      uses: ./CI/Linux-gtk
+      with:
+        command: /sbin/start-stop-daemon --start --quiet --background --exec /usr/bin/Xvfb && sleep 3 && rebol -qws tests/run-all.r --batch
+
+    # upload log file if any test failed
+    - uses: actions/upload-artifact@v2
+      if: failure()
+      with:
+        name: Linux-Tests-log
+        path: quick-test/quick-test.log
