@@ -566,7 +566,7 @@ natives: context [
 		assert system/thrown = 0
 		catch RED_THROWN_BREAK [
 			switch TYPE_OF(arg) [
-				TYPE_BLOCK [DO_EVAL_BLOCK]
+				TYPE_ANY_LIST [DO_EVAL_BLOCK]
 				TYPE_PATH  [
 					interpreter/eval-path arg arg arg + 1 no no no no
 				]
