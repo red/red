@@ -4,16 +4,23 @@ on: push
 
 jobs:
   Build-RPi-Tests:
-    runs-on: ubuntu-latest
+    runs-on: windows-2016
     name: Build RPi Tests
     steps:
     # To use this repository's private action, check out the repository
     - name: Checkout
       uses: actions/checkout@v2
+
+    - name: Download Rebol
+      run: |
+        $url = "http://static.red-lang.org/build/rebview.exe"
+        $output = "$Env:GITHUB_WORKSPACE\rebview.exe"
+        (New-Object System.Net.WebClient).DownloadFile($url, $output)
+
     - name: Build Tests
-      uses: ./CI/Linux-32 # Uses an action in the CI directory
-      with:
-        command: rebol -qws tests/build-arm-tests.r -t RPi
+      run: rebview.exe -qws tests/build-arm-tests.r -t RPi
+      shell: cmd
+
     - uses: actions/upload-artifact@v2
       with:
         name: rpi-tests-bin
