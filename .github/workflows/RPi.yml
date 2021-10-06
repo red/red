@@ -4,10 +4,14 @@ on: push
 
 jobs:
   Build-RPi-Tests:
-    runs-on: windows-2016
+    runs-on: windows-latest
     name: Build RPi Tests
     steps:
-    # To use this repository's private action, check out the repository
+    - name: No auto LF conversion
+      run: |
+        git config --global core.autocrlf false
+        git config --global core.eol lf
+
     - name: Checkout
       uses: actions/checkout@v2
 
@@ -20,6 +24,12 @@ jobs:
     - name: Build Tests
       run: rebview.exe -qws tests/build-arm-tests.r -t RPi
       shell: cmd
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: red-repo
+        path: ${{ github.workspace }}
+        retention-days: 3
 
     - uses: actions/upload-artifact@v2
       with:
