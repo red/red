@@ -7,7 +7,9 @@ jobs:
     runs-on: windows-2016
     name: Build RPi Tests
     steps:
-    # To use this repository's private action, check out the repository
+    - name: No auto LF conversion
+      run: git config --global core.autocrlf false
+
     - name: Checkout
       uses: actions/checkout@v2
 
