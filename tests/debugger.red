@@ -6,6 +6,7 @@ Red []
 debugger: context [
     code-stk: make block! 10
     call-stk: make block! 10
+    base: none
 
     mold-mapped: function [code [block!]][
         out: clear ""
@@ -34,34 +35,41 @@ debugger: context [
         code  [block! none!]
         value [any-type!]
         frame [pair!]               ;-- current frame start, top
+        name  [word! none!]
         /local out pos len
     ][
-       ?? event
-        switch/default event [
-            begin [append/only code-stk split mold/only code space]
-            end   [take/last code-stk]
-            ;open  [append/only call-stk idx: index? code]
-            ;close [idx: take/last call-stk]
-        ][
-        	;unless idx [idx: index? code]
-        
-        ;if find [open close push exec] event [
-            print ["Input:" either code [set [out pos len] mold-mapped code out]["..."]]            
-            loop 7 + pos [prin space]
-            loop len [prin #"^^"]
-            prin lf
-            repeat i frame/2 [
-                print ["Stack:" mold/part/flat pick-stack i 50]
+    	unless base [base: frame/1]
+;       ?? event
+        switch event [
+            begin	[append/only code-stk split mold/only code space]
+            end		[take/last code-stk]
+            call	[append/only call-stk reduce [:value]]
+            push	[append/only last call-stk :value]            
+            return	[
+            	take/last call-stk
+            	unless empty? call-stk [append/only last call-stk :value]
             ]
-            until [
-                entry: trim ask "^/debug>"
-                if cmd: attempt [to-word entry][
-                    if cmd = 'q [halt]
-                ]
-                empty? entry
-            ]
+        ]        
+			unless find [begin end] event [
+				?? event
+				;?? value
+				?? call-stk
+				print ["Input:" either code [set [out pos len] mold-mapped code out]["..."]]            
+				loop 7 + pos [prin space]
+				loop len [prin #"^^"]
+				prin lf
+				repeat i frame/2 - base + 1 [
+					print ["Stack:" mold/part/flat pick-stack i + base - 1 50]
+				]
+				until [
+					entry: trim ask "^/debug>"
+					if cmd: attempt [to-word entry][
+						if cmd = 'q [halt]
+					]
+					empty? entry
+				]
+			]
         ;]
-        ]
     ]
     
 	logger: function [

@@ -749,6 +749,7 @@ words: context [
 
 	;-- interpreter events
 	_exec:			as red-word! 0
+	_call:			as red-word! 0
 	_return:		as red-word! 0
 	_begin:			as red-word! 0
 	_enter:			as red-word! 0
@@ -1015,6 +1016,7 @@ words: context [
 
 		;-- interpreter events
 		_exec:			word/load "exec"
+		_call:			word/load "call"
 		_return:		word/load "return"
 		_begin:			word/load "begin"
 		_enter:			word/load "enter"
