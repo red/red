@@ -527,7 +527,10 @@ interpreter: context [
 		next: as red-word! pc
 		CHECK_INFIX
 		if infix? [
-			if trace? [fire-event EVT_CALL code pc pc 0]
+			if trace? [
+				fire-event EVT_FETCH code pc pc 0
+				fire-event EVT_CALL code pc pc 0
+			]
 			pc: eval-infix value pc end code sub?
 		]
 		pc
@@ -973,7 +976,10 @@ interpreter: context [
 			next: as red-word! pc + 1
 			CHECK_INFIX
 			if infix? [
-				if trace? [fire-event EVT_CALL code as red-value! next as red-value! next 0]
+				if trace? [
+					fire-event EVT_FETCH code as red-value! next as red-value! next 0
+					fire-event EVT_CALL  code as red-value! next as red-value! next 0
+				]
 				stack/mark-interp-native next
 				sub?: yes								;-- force sub? for infix expressions
 				op: copy-cell value saved

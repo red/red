@@ -29,6 +29,18 @@ debugger: context [
         append out #"]"
         reduce [out pos len]
     ]
+    
+    show-stack: function [][
+    	indent: 0
+    	foreach frame call-stk [
+    		foreach value frame [
+				prin "Stack: "
+				loop indent [prin "  "]
+				print mold/part/flat :value 50
+			]
+			indent: indent + 1
+    	]
+    ]
 
     tracer: function [
         event [word!]
@@ -53,14 +65,12 @@ debugger: context [
 			unless find [begin end] event [
 				?? event
 				;?? value
-				?? call-stk
+				;?? call-stk
 				print ["Input:" either code [set [out pos len] mold-mapped code out]["..."]]            
 				loop 7 + pos [prin space]
 				loop len [prin #"^^"]
 				prin lf
-				repeat i frame/2 - base + 1 [
-					print ["Stack:" mold/part/flat pick-stack i + base - 1 50]
-				]
+				show-stack
 				until [
 					entry: trim ask "^/debug>"
 					if cmd: attempt [to-word entry][
@@ -79,10 +89,10 @@ debugger: context [
 		frame [pair!]               ;-- current frame start, top
 	][
 		switch event [
-			begin [append/only code-stk split mold/only code space]
-			end   [take/last code-stk]
-			open  [append/only call-stk idx: index? code]
-			close [idx: take/last call-stk]
+			begin	[append/only code-stk split mold/only code space]
+			end		[take/last code-stk]
+			call	[append/only call-stk idx: index? code]
+			return	[idx: take/last call-stk]
         ]
         unless idx [idx: all [code index? code]]
 		print [event idx mold/part/flat :value 20 frame]
