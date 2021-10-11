@@ -748,8 +748,9 @@ interpreter: context [
 				ext-args: ext-args + 1
 			]
 		]
+		if trace? [fire-event EVT_EXEC code call-pos as red-value! native 0]
+		
 		unless function? [
-			if trace? [fire-event EVT_EXEC code call-pos as red-value! native 0]
 			unless null? ref-array [system/stack/top: ref-array] ;-- reset native stack to our custom arguments frame
 			if TYPE_OF(native) = TYPE_NATIVE [push no]	;-- avoid 2nd type-checking for natives.
 			call: as function! [] native/code			;-- direct call for actions/natives

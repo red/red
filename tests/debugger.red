@@ -33,12 +33,12 @@ debugger: context [
     show-stack: function [][
     	indent: 0
     	foreach frame call-stk [
-    		foreach value frame [
+    		forall frame [
 				prin "Stack: "
 				loop indent [prin "  "]
-				print mold/part/flat :value 50
+				print mold/part/flat first frame 50
+				if head? frame [indent: indent + 1]
 			]
-			indent: indent + 1
     	]
     ]
 
@@ -56,30 +56,36 @@ debugger: context [
             begin	[append/only code-stk split mold/only code space]
             end		[take/last code-stk]
             call	[append/only call-stk reduce [:value]]
-            push	[append/only last call-stk :value]            
+            push	[
+            	either find [set-word! set-path!] type?/word :value [
+					append/only call-stk reduce [:value]
+				][
+					if event = 'push [append/only last call-stk :value]
+				]
+            ]
+            set 
             return	[
             	take/last call-stk
             	unless empty? call-stk [append/only last call-stk :value]
             ]
-        ]        
-			unless find [begin end] event [
-				?? event
-				;?? value
-				;?? call-stk
-				print ["Input:" either code [set [out pos len] mold-mapped code out]["..."]]            
-				loop 7 + pos [prin space]
-				loop len [prin #"^^"]
-				prin lf
-				show-stack
-				until [
-					entry: trim ask "^/debug>"
-					if cmd: attempt [to-word entry][
-						if cmd = 'q [halt]
-					]
-					empty? entry
+        ]
+		unless find [begin end] event [
+			?? event
+			;?? value
+			?? call-stk
+			print ["Input:" either code [set [out pos len] mold-mapped code out]["..."]]            
+			loop 7 + pos [prin space]
+			loop len [prin #"^^"]
+			prin lf
+			show-stack
+			until [
+				entry: trim ask "^/debug>"
+				if cmd: attempt [to-word entry][
+					if cmd = 'q [halt]
 				]
+				empty? entry
 			]
-        ;]
+		]
     ]
     
 	logger: function [
@@ -99,6 +105,12 @@ debugger: context [
 	]
 ]
 
-do/trace [print 1 + length? mold 'hello] :debugger/tracer
+;do/trace [print 1 + length? mold 'hello] :debugger/tracer
 ;do/trace [print 1 + length? mold 'hello] :debugger/logger
+
+
+do/trace [print 3 4 5] :debugger/tracer
+
+;foo: function [a [integer!]][print either result: odd? a ["ODD"]["EVEN"] result]
+;do/trace [foo 4] :debugger/tracer
 
