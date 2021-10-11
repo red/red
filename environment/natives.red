@@ -902,21 +902,21 @@ browse: make native! [[
 ]
 
 compress: make native! [[
-		"compresses data. return GZIP format (RFC 1952) by default"
-		data		[any-string! binary!]
-		/zlib		"Return ZLIB format (RFC 1950)"
-		/deflate	"Return DEFLATE format (RFC 1951)"
+		"Compresses data"
+		data	[any-string! binary!]
+		method	[word!]	"zlib deflate gzip"
+		return: [binary!]
 	]
 	#get-definition NAT_COMPRESS
 ]
 
 decompress: make native! [[
-		"Decompresses data. Data in GZIP format (RFC 1952) by default"
-		data		[binary!]
-		/zlib		"Data in ZLIB format (RFC 1950)"
-		size		[integer!] "Uncompressed data size. Use 0 if don't know"
-		/deflate	"Data in DEFLATE format (RFC 1951)"
-		size		[integer!] "Uncompressed data size. Use 0 if don't know"
+		"Decompresses data"
+		data	[binary!]
+		method	[word!]	"zlib deflate gzip"
+		/size "Specify an uncompressed data size (ignored for GZIP)"
+			sz [integer!] "Uncompressed data size; must not be negative"
+		return: [binary!]
 	]
 	#get-definition NAT_DECOMPRESS
 ]
