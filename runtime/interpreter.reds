@@ -109,8 +109,8 @@ interpreter: context [
 	dbg-stk-top: 0
 
 	#enum events! [
-		EVT_BEGIN
-		EVT_END
+		EVT_ENTER
+		EVT_EXIT
 		EVT_CALL
 		EVT_RETURN
 		EVT_FETCH
@@ -153,8 +153,8 @@ interpreter: context [
 		ctx: either TYPE_OF(int) = TYPE_INTEGER [as node! int/value][global-ctx]
 		stack/mark-func words/_body	trace-fun/ctx		;@@ find something more adequate
 		evt: switch event [
-			EVT_BEGIN	[words/_begin]
-			EVT_END		[words/_end]
+			EVT_ENTER	[words/_enter]
+			EVT_EXIT	[words/_exit]
 			EVT_FETCH	[words/_fetch]
 			EVT_PUSH	[words/_push]
 			EVT_CALL	[words/_call]
@@ -1214,18 +1214,18 @@ interpreter: context [
 		chain? [logic!]									;-- chain it with previous stack frame
 		/local
 			value head tail arg [red-value!]
-			stk	   [red-block!]
-			offset [integer!]
+			;stk	   [red-block!]
+			;offset [integer!]
 	][
-		stk: as red-block! #get system/state/stack
-		assert TYPE_OF(stk) = TYPE_BLOCK
-		code: as red-block! block/rs-append stk as red-value! code
+		;stk: as red-block! #get system/state/stack
+		;assert TYPE_OF(stk) = TYPE_BLOCK
+		;code: as red-block! block/rs-append stk as red-value! code
 		
 		head: block/rs-head code
 		tail: block/rs-tail code
 
 		stack/mark-eval words/_body						;-- outer stack frame
-		if trace? [fire-event EVT_BEGIN code head null 0]
+		if trace? [fire-event EVT_ENTER code head null 0]
 		either head = tail [
 			arg: stack/arguments
 			arg/header: TYPE_UNSET
@@ -1234,18 +1234,18 @@ interpreter: context [
 			while [value < tail][
 				#if debug? = yes [if verbose > 0 [log "root loop..."]]
 				catch RED_THROWN_ERROR [value: eval-expression value tail code no no no]
-				offset: (as-integer value - head) >> 4
-				code/head: code/head + offset
+				;offset: (as-integer value - head) >> 4
+				;code/head: code/head + offset
 				if system/thrown <> 0 [
-					block/rs-remove-last stk
+				;	block/rs-remove-last stk
 					re-throw
 				]
 				if value + 1 <= tail [stack/reset]
 			]
 		]
-		if trace? [fire-event EVT_END code tail null 0]
+		if trace? [fire-event EVT_EXIT code tail null 0]
 		either chain? [stack/unwind-last][stack/unwind]
-		block/rs-remove-last stk
+		;block/rs-remove-last stk
 	]
 	
 ]
