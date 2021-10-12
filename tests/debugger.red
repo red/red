@@ -5,7 +5,7 @@ Red []
 
 debugger: context [
     code-stk: make block! 10
-    call-stk: make block! 10
+    expr-stk: make block! 10
     base: none
 
     mold-mapped: function [code [block!]][
@@ -32,7 +32,7 @@ debugger: context [
     
     show-stack: function [][
     	indent: 0
-    	foreach frame call-stk [
+    	foreach frame expr-stk [
     		forall frame [
 				prin "Stack: "
 				loop indent [prin "  "]
@@ -48,31 +48,44 @@ debugger: context [
         value [any-type!]
         frame [pair!]               ;-- current frame start, top
         name  [word! none!]
-        /local out pos len
+        /extern expr-stk
+        /local out pos len entry
     ][
     	unless base [base: frame/1]
-;       ?? event
+		print ["Event:" uppercase mold event]
+		
         switch event [
-            begin	[append/only code-stk split mold/only code space]
-            end		[take/last code-stk]
-            call	[append/only call-stk reduce [:value]]
+            enter	[
+            	append/only code-stk split mold/only code space
+            	unless empty? expr-stk [
+            		append expr-stk length? expr-stk
+            		expr-stk: tail expr-stk
+            	]
+            ]
+            exit	[
+            	take/last code-stk
+            	unless head? expr-stk [expr-stk: at head expr-stk take/last back expr-stk]
+            ]
+            call	[
+            	append/only expr-stk reduce [:value]
+            ]
             push	[
             	either find [set-word! set-path!] type?/word :value [
-					append/only call-stk reduce [:value]
+					append/only expr-stk reduce [:value]
 				][
-					if event = 'push [append/only last call-stk :value]
+					unless empty? expr-stk [append/only last expr-stk :value]
 				]
             ]
             set 
             return	[
-            	take/last call-stk
-            	unless empty? call-stk [append/only last call-stk :value]
+            	set/any 'entry take/last expr-stk
+            	if event = 'set [print ["Word:" to lit-word! :entry/1]]
+            	unless empty? expr-stk [append/only last expr-stk :value]
             ]
         ]
-		unless find [begin end] event [
-			?? event
-			;?? value
-			?? call-stk
+		unless find [enter exit] event [
+			print ["Value:" mold/part/flat :value 40]
+			;?? expr-stk
 			print ["Input:" either code [set [out pos len] mold-mapped code out]["..."]]            
 			loop 7 + pos [prin space]
 			loop len [prin #"^^"]
@@ -95,10 +108,10 @@ debugger: context [
 		frame [pair!]               ;-- current frame start, top
 	][
 		switch event [
-			begin	[append/only code-stk split mold/only code space]
-			end		[take/last code-stk]
-			call	[append/only call-stk idx: index? code]
-			return	[idx: take/last call-stk]
+			enter	[append/only code-stk split mold/only code space]
+			exit	[take/last code-stk]
+			call	[append/only expr-stk idx: index? code]
+			return	[idx: take/last expr-stk]
         ]
         unless idx [idx: all [code index? code]]
 		print [event idx mold/part/flat :value 20 frame]
@@ -106,10 +119,12 @@ debugger: context [
 ]
 
 ;do/trace [print 1 + length? mold 'hello] :debugger/tracer
-;do/trace [print 1 + length? mold 'hello] :debugger/logger
 
 
-do/trace [print 3 4 5] :debugger/tracer
+;do/trace [print 77 88 99] :debugger/tracer
+
+a: 4
+do/trace [either result: odd? a [print "ODD"][print "EVEN"]] :debugger/tracer
 
 ;foo: function [a [integer!]][print either result: odd? a ["ODD"]["EVEN"] result]
 ;do/trace [foo 4] :debugger/tracer
