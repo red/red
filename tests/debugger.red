@@ -4,11 +4,12 @@ Red []
 
 
 debugger: context [
+	fun-stk:  make block! 10
 	code-stk: make block! 10
 	expr-stk: make block! 10
 	base: none
 
-	mold-mapped: function [code [block!]][
+	mold-mapped: function [code [block! paren!]][
 		out: clear ""
 		pos: 1
 		len: 0
@@ -31,13 +32,17 @@ debugger: context [
 	]
 	
 	show-stack: function [][
+		foreach entry fun-stk [print ["Calls:" mold/only/flat/part entry 72]]
+		prin lf
 		indent: 0
-		foreach frame expr-stk [
-			forall frame [
-				prin "Stack: "
-				loop indent [prin "  "]
-				print mold/part/flat first frame 50
-				if head? frame [indent: indent + 1]
+		foreach frame head expr-stk [
+			unless integer? frame [
+				forall frame [
+					prin "Stack: "
+					loop indent [prin "  "]
+					print mold/part/flat first frame 50
+					if head? frame [indent: indent + 1]
+				]
 			]
 		]
 	]
@@ -56,13 +61,14 @@ debugger: context [
 		
 		switch event [
 			enter	[
-				append/only code-stk split mold/only code space
+				append/only code-stk split mold/only/flat code space
 				unless empty? expr-stk [
 					append expr-stk length? expr-stk
 					expr-stk: tail expr-stk
 				]
 			]
 			exit	[
+				if all [function? :value not empty? fun-stk][take/last fun-stk]
 				take/last code-stk
 				unless head? expr-stk [expr-stk: at head expr-stk take/last back expr-stk]
 			]
@@ -76,6 +82,9 @@ debugger: context [
 					unless empty? expr-stk [append/only last expr-stk :value]
 				]
 			]
+			exec [
+				if function? :value [append/only fun-stk last expr-stk]
+			]
 			set 
 			return	[
 				set/any 'entry take/last expr-stk
@@ -86,6 +95,7 @@ debugger: context [
 		unless find [enter exit] event [
 			print ["Value:" mold/part/flat :value 40]
 			;?? expr-stk
+			;?? fun-stk
 			print ["Input:" either code [set [out pos len] mold-mapped code out]["..."]]
 			loop 7 + pos [prin space]
 			loop len [prin #"^^"]
@@ -118,14 +128,18 @@ debugger: context [
 	]
 ]
 
+;do/trace %demo.red :debugger/tracer
+
 ;do/trace [print 1 + length? mold 'hello] :debugger/tracer
 
 
 ;do/trace [print 77 88 99] :debugger/tracer
 
-a: 4
-do/trace [either result: odd? a [print "ODD"][print "EVEN"]] :debugger/tracer
+;a: 4
+;do/trace [either result: odd? a [print "ODD"][print "EVEN"]] :debugger/tracer
 
-;foo: function [a [integer!]][print either result: odd? a ["ODD"]["EVEN"] result]
-;do/trace [foo 4] :debugger/tracer
+foo: function [a [integer!]][print either result: odd? a ["ODD"]["EVEN"] result]
+bar: function [s [string!]][(length? s) + to-integer foo 4]
+baz: function [][print bar "hello"]
+do/trace [baz] :debugger/tracer
 
