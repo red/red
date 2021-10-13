@@ -111,14 +111,15 @@ interpreter: context [
 	#enum events! [
 		EVT_ENTER
 		EVT_EXIT
-		EVT_CALL
+		EVT_OPEN
 		EVT_RETURN
 		EVT_FETCH
 		EVT_PUSH
 		EVT_SET
-		EVT_EXEC
+		EVT_CALL
 		EVT_ERROR
 		EVT_THROW
+		EVT_CATCH
 		EVT_EVAL_PATH
 		EVT_SET_PATH
 	]
@@ -157,10 +158,10 @@ interpreter: context [
 			EVT_EXIT	[words/_exit]
 			EVT_FETCH	[words/_fetch]
 			EVT_PUSH	[words/_push]
-			EVT_CALL	[words/_call]
+			EVT_OPEN	[words/_open]
 			EVT_RETURN	[words/_return]
 			EVT_SET		[words/_set]
-			EVT_EXEC	[words/_exec]
+			EVT_CALL	[words/_call]
 			EVT_ERROR	[words/_error]
 			default		[assert false null]
 		]
@@ -500,7 +501,7 @@ interpreter: context [
 			BS_TEST_BIT(bits type set?)
 			unless set? [ERR_EXPECT_ARGUMENT(type 1)]
 		]
-		if trace? [fire-event EVT_EXEC code op-pos as red-value! op 0]
+		if trace? [fire-event EVT_CALL code op-pos as red-value! op 0]
 		
 		either fun <> null [
 			either TYPE_OF(fun) = TYPE_ROUTINE [
@@ -529,7 +530,7 @@ interpreter: context [
 		if infix? [
 			if trace? [
 				fire-event EVT_FETCH code pc pc 0
-				fire-event EVT_CALL code pc pc 0
+				fire-event EVT_OPEN code pc pc 0
 			]
 			pc: eval-infix value pc end code sub?
 		]
@@ -748,7 +749,7 @@ interpreter: context [
 				ext-args: ext-args + 1
 			]
 		]
-		if trace? [fire-event EVT_EXEC code call-pos as red-value! native 0]
+		if trace? [fire-event EVT_CALL code call-pos as red-value! native 0]
 		
 		unless function? [
 			unless null? ref-array [system/stack/top: ref-array] ;-- reset native stack to our custom arguments frame
@@ -874,7 +875,7 @@ interpreter: context [
 	][
 		pos: pc - 1
 		name: as red-word! either null? slot [pos][slot]
-		if trace? [fire-event EVT_CALL code pos as red-value! name 0]
+		if trace? [fire-event EVT_OPEN code pos as red-value! name 0]
 
 		if TYPE_OF(name) <> TYPE_WORD [name: words/_anon]
 		caller: as red-native! stack/push value			;-- prevent word's value slot to be corrupted #2199
@@ -930,7 +931,7 @@ interpreter: context [
 				if trace? [
 					s: as series! fun/more/value
 					origin: as red-native! s/offset + 2
-					if origin/code <> 0 [fire-event EVT_EXEC code pos value 0]
+					if origin/code <> 0 [fire-event EVT_CALL code pos value 0]
 				]
 				_function/call as red-function! caller ctx
 				either sub? [stack/unwind][stack/unwind-last]
@@ -979,7 +980,7 @@ interpreter: context [
 			if infix? [
 				if trace? [
 					fire-event EVT_FETCH code as red-value! next as red-value! next 0
-					fire-event EVT_CALL  code as red-value! next as red-value! next 0
+					fire-event EVT_OPEN  code as red-value! next as red-value! next 0
 				]
 				stack/mark-interp-native next
 				sub?: yes								;-- force sub? for infix expressions

@@ -33,7 +33,7 @@ debugger: context [
 	
 	show-stack: function [][
 		foreach entry fun-stk [print ["Calls:" mold/only/flat/part entry 72]]
-		prin lf
+		unless empty? fun-stk [prin lf]
 		indent: 0
 		foreach frame head expr-stk [
 			unless integer? frame [
@@ -57,13 +57,12 @@ debugger: context [
 		/local out pos len entry
 	][
 		unless base [base: frame/1]
-		print ["Event:" uppercase mold event]
 		
 		switch event [
 			enter	[
 				append/only code-stk split mold/only/flat code space
 				unless empty? expr-stk [
-					append expr-stk length? expr-stk
+					append expr-stk index? expr-stk
 					expr-stk: tail expr-stk
 				]
 			]
@@ -72,7 +71,7 @@ debugger: context [
 				take/last code-stk
 				unless head? expr-stk [expr-stk: at head expr-stk take/last back expr-stk]
 			]
-			call	[
+			open	[
 				append/only expr-stk reduce [:value]
 			]
 			push	[
@@ -82,7 +81,7 @@ debugger: context [
 					unless empty? expr-stk [append/only last expr-stk :value]
 				]
 			]
-			exec [
+			call [
 				if function? :value [append/only fun-stk last expr-stk]
 			]
 			set 
@@ -92,9 +91,10 @@ debugger: context [
 				unless empty? expr-stk [append/only last expr-stk :value]
 			]
 		]
-		unless find [enter exit] event [
-			print ["Value:" mold/part/flat :value 40]
-			;?? expr-stk
+		unless find [enter exit fetch] event [
+			if any-function? :value [value: type? :value]
+			print ["----->" uppercase mold event mold/part/flat :value 60]
+			;probe head expr-stk
 			;?? fun-stk
 			print ["Input:" either code [set [out pos len] mold-mapped code out]["..."]]
 			loop 7 + pos [prin space]
@@ -120,7 +120,7 @@ debugger: context [
 		switch event [
 			enter	[append/only code-stk split mold/only code space]
 			exit	[take/last code-stk]
-			call	[append/only expr-stk idx: index? code]
+			open	[append/only expr-stk idx: index? code]
 			return	[idx: take/last expr-stk]
 		]
 		unless idx [idx: all [code index? code]]
@@ -138,8 +138,14 @@ debugger: context [
 ;a: 4
 ;do/trace [either result: odd? a [print "ODD"][print "EVEN"]] :debugger/tracer
 
+fibo: func [n [integer!] return: [integer!]][
+	either n < 1 [0][either n < 2 [1][(fibo n - 2) + (fibo n - 1)]]
+]
+do/trace [print fibo 4] :debugger/tracer
+quit
+
 foo: function [a [integer!]][print either result: odd? a ["ODD"]["EVEN"] result]
-bar: function [s [string!]][(length? s) + to-integer foo 4]
+bar: function [s [string!]][(length? s) + make integer! foo 4]
 baz: function [][print bar "hello"]
 do/trace [baz] :debugger/tracer
 
