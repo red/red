@@ -3,11 +3,15 @@ Red []
 ;#include %../environment/console/CLI/input.red
 
 
-debugger: context [
+event-handlers: context [
 	fun-stk:  make block! 10
 	code-stk: make block! 10
 	expr-stk: make block! 10
 	base: none
+	
+	options: context [
+		stack?: no
+	]
 
 	mold-mapped: function [code [block! paren!]][
 		out: clear ""
@@ -45,9 +49,10 @@ debugger: context [
 				]
 			]
 		]
+		prin lf
 	]
 
-	tracer: function [
+	debugger: function [
 		event [word!]
 		code  [block! none!]
 		value [any-type!]
@@ -94,15 +99,13 @@ debugger: context [
 		unless find [enter exit fetch] event [
 			if any-function? :value [value: type? :value]
 			print ["----->" uppercase mold event mold/part/flat :value 60]
-			;probe head expr-stk
-			;?? fun-stk
 			print ["Input:" either code [set [out pos len] mold-mapped code out]["..."]]
 			loop 7 + pos [prin space]
 			loop len [prin #"^^"]
 			prin lf
-			show-stack
+			if options/stack? [show-stack]
 			until [
-				entry: trim ask "^/debug>"
+				entry: trim ask "debug>"
 				if cmd: attempt [to-word entry][
 					if cmd = 'q [halt]
 				]
@@ -111,7 +114,7 @@ debugger: context [
 		]
 	]
 	
-	logger: function [
+	dumper: function [
 		event [word!]
 		code  [block! none!]
 		value [any-type!]
@@ -126,26 +129,38 @@ debugger: context [
 		unless idx [idx: all [code index? code]]
 		print [event idx mold/part/flat :value 20 frame]
 	]
+	
+	tracer: function [
+		event [word!]
+		code  [block! none!]
+		value [any-type!]
+		frame [pair!]				;-- current frame start, top
+	][
+		unless find [enter exit fetch] event [
+			if any-function? :value [value: type? :value]
+			print ["->" uppercase mold event mold/part/flat :value 60]
+		]
+	]
 ]
 
-;do/trace %demo.red :debugger/tracer
+;do/trace %demo.red :event-handlers/tracer
 
-;do/trace [print 1 + length? mold 'hello] :debugger/tracer
+do/trace [print 1 + length? mold 'hello] :event-handlers/tracer
+quit
 
-
-;do/trace [print 77 88 99] :debugger/tracer
+;do/trace [print 77 88 99] :event-handlers/tracer
 
 ;a: 4
-;do/trace [either result: odd? a [print "ODD"][print "EVEN"]] :debugger/tracer
+;do/trace [either result: odd? a [print "ODD"][print "EVEN"]] :event-handlers/tracer
 
 fibo: func [n [integer!] return: [integer!]][
 	either n < 1 [0][either n < 2 [1][(fibo n - 2) + (fibo n - 1)]]
 ]
-do/trace [print fibo 4] :debugger/tracer
+do/trace [print fibo 4] :event-handlers/tracer
 quit
 
 foo: function [a [integer!]][print either result: odd? a ["ODD"]["EVEN"] result]
 bar: function [s [string!]][(length? s) + make integer! foo 4]
 baz: function [][print bar "hello"]
-do/trace [baz] :debugger/tracer
+do/trace [baz] :event-handlers/tracer
 
