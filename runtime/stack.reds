@@ -208,6 +208,24 @@ stack: context [										;-- call stack
 		]
 	]
 	
+	collect-calls: func [
+		dst [red-block!]
+		/local
+			p	  [call-frame!]
+			sym	  [integer!]
+	][
+		p: ctop - 1
+		until [
+			sym: p/header >> 8 and FFFFh
+			if all [sym <> body-symbol	sym <> anon-symbol][
+				block/rs-append dst as red-value! word/at p/ctx sym
+				integer/make-at ALLOC_TAIL(dst) (as-integer p/prev - stack/bottom) >> 4
+			]
+			p: p - 1
+			p <= cbottom
+		]
+	]
+	
 	get-call: func [
 		return: [red-word!]
 		/local

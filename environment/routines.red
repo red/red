@@ -175,6 +175,7 @@ frame-index?: routine [return: [integer!]][
 	(as-integer stack/arguments - stack/bottom) >> 4
 ]
 
+collect-calls: routine [blk [block!]][stack/collect-calls blk]
 
 ;-- Temporary definition --
 
