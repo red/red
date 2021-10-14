@@ -593,15 +593,15 @@ natives: context [
 				default [interpreter/eval-expression arg arg + 1 null no no yes]
 			]
 		]
-		thrown: system/thrown
-		system/thrown: 0
-		
 		if interpreter/trace? [
+			thrown: system/thrown
+			system/thrown: 0
 			interpreter/fire-end
 			interpreter/trace-fun: null					;-- force it in case `stop` was used
 			interpreter/trace?: no
+			system/thrown: thrown
 		]
-		switch thrown [
+		switch system/thrown [
 			RED_THROWN_BREAK
 			RED_THROWN_CONTINUE
 			RED_THROWN_RETURN
@@ -610,14 +610,11 @@ natives: context [
 					re-throw 							;-- let the exception pass through
 					0									;-- 0 to make compiler happy
 				][
-					thrown								;-- request an early exit from caller
+					system/thrown						;-- request an early exit from caller
 				]
 			]
 			0			[0]
-			default 	[
-				system/thrown: thrown
-				re-throw 0								;-- 0 to make compiler happy
-			]
+			default 	[re-throw 0]					;-- 0 to make compiler happy
 		]
 	]
 	
