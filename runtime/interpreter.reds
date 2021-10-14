@@ -109,6 +109,8 @@ interpreter: context [
 	dbg-stk-top: 0
 
 	#enum events! [
+		EVT_INIT
+		EVT_END
 		EVT_ENTER
 		EVT_EXIT
 		EVT_OPEN
@@ -163,6 +165,8 @@ interpreter: context [
 			EVT_SET		[words/_set]
 			EVT_CALL	[words/_call]
 			EVT_ERROR	[words/_error]
+			EVT_INIT	[words/_init]
+			EVT_END		[words/_end]
 			default		[assert false null]
 		]
 		stack/push as red-value! evt					;-- event name
@@ -189,6 +193,9 @@ interpreter: context [
 		stack/unwind
 		stack/top: saved
 	]
+	
+	fire-init: does [fire-event EVT_INIT null null null 0]
+	fire-end:  does [fire-event EVT_END  null null null 0]
 	
 	literal-first-arg?: func [
 		native 	[red-native!]
@@ -457,7 +464,6 @@ interpreter: context [
 		][
 			pc: eval-expression pc end code yes yes no	;-- eval right operand
 		]
-		;if trace? [fire-event EVT_PUSH code op-pos stack/get-top 0]
 		op: as red-op! value
 		fun: null
 		native?: op/header and flag-native-op <> 0

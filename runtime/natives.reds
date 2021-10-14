@@ -554,6 +554,7 @@ natives: context [
 			blk	   [red-block!]
 			job	   [red-value!]
 			pos	   [integer!]
+			thrown [integer!]
 	][
 		#typecheck [do expand? args next trace]
 		arg: stack/arguments
@@ -569,6 +570,7 @@ natives: context [
 			interpreter/fun-locs: _function/count-locals fun/spec 0 no
 			interpreter/trace-fun: fun
 			interpreter/trace?: yes
+			interpreter/fire-init
 		]
 		if next > 0 [slot: _context/get as red-word! stack/arguments + next]
 		
@@ -591,10 +593,15 @@ natives: context [
 				default [interpreter/eval-expression arg arg + 1 null no no yes]
 			]
 		]
-		interpreter/trace-fun: null						;-- force it in case `stop` was used
-		interpreter/trace?: no
+		thrown: system/thrown
+		system/thrown: 0
 		
-		switch system/thrown [
+		if interpreter/trace? [
+			interpreter/fire-end
+			interpreter/trace-fun: null					;-- force it in case `stop` was used
+			interpreter/trace?: no
+		]
+		switch thrown [
 			RED_THROWN_BREAK
 			RED_THROWN_CONTINUE
 			RED_THROWN_RETURN
@@ -603,11 +610,14 @@ natives: context [
 					re-throw 							;-- let the exception pass through
 					0									;-- 0 to make compiler happy
 				][
-					system/thrown						;-- request an early exit from caller
+					thrown								;-- request an early exit from caller
 				]
 			]
 			0			[0]
-			default 	[re-throw 0]					;-- 0 to make compiler happy
+			default 	[
+				system/thrown: thrown
+				re-throw 0								;-- 0 to make compiler happy
+			]
 		]
 	]
 	

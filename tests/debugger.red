@@ -138,7 +138,7 @@ event-handlers: context [
 		frame [pair!]				;-- current frame start, top
 		/extern indent
 	][
-		either event = 'init [indent: 0][
+		either find [init end] event [indent: 0][		;-- eat END event too
 			unless find [enter exit fetch] event [
 				if event = 'open [indent: indent + 1]
 				if any-function? :value [value: type? :value]
