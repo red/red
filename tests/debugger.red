@@ -8,6 +8,7 @@ event-handlers: context [
 	code-stk: make block! 10
 	expr-stk: make block! 10
 	base: none
+	indent: 0
 	
 	options: context [
 		stack?: no
@@ -64,22 +65,22 @@ event-handlers: context [
 		unless base [base: frame/1]
 		
 		switch event [
-			enter	[
+			enter [
 				append/only code-stk split mold/only/flat code space
 				unless empty? expr-stk [
 					append expr-stk index? expr-stk
 					expr-stk: tail expr-stk
 				]
 			]
-			exit	[
+			exit [
 				if all [function? :value not empty? fun-stk][take/last fun-stk]
 				take/last code-stk
 				unless head? expr-stk [expr-stk: at head expr-stk take/last back expr-stk]
 			]
-			open	[
+			open [
 				append/only expr-stk reduce [:value]
 			]
-			push	[
+			push [
 				either find [set-word! set-path!] type?/word :value [
 					append/only expr-stk reduce [:value]
 				][
@@ -90,7 +91,7 @@ event-handlers: context [
 				if function? :value [append/only fun-stk last expr-stk]
 			]
 			set 
-			return	[
+			return [
 				set/any 'entry take/last expr-stk
 				if event = 'set [print ["Word:" to lit-word! :entry/1]]
 				unless empty? expr-stk [append/only last expr-stk :value]
@@ -135,10 +136,17 @@ event-handlers: context [
 		code  [block! none!]
 		value [any-type!]
 		frame [pair!]				;-- current frame start, top
+		/extern indent
 	][
-		unless find [enter exit fetch] event [
-			if any-function? :value [value: type? :value]
-			print ["->" uppercase mold event mold/part/flat :value 60]
+		either event = 'init [indent: 0][
+			unless find [enter exit fetch] event [
+				if event = 'open [indent: indent + 1]
+				if any-function? :value [value: type? :value]
+				prin "->"
+				loop indent [prin space]
+				print [uppercase mold event mold/part/flat :value 60]
+				if event = 'return [indent: indent - 1]
+			]
 		]
 	]
 ]
