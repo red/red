@@ -244,6 +244,7 @@ red: context [
 		parser/init
 		ownership/init
 		crypto/init
+		compressor/init
 		ext-process/init
 		
 		stack/init
