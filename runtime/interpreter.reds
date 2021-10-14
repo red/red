@@ -181,8 +181,10 @@ interpreter: context [
 			]
 		]
 		if any [value = null TYPE_OF(value) = 0][value: unset-value]
-		stack/push value
-		pair/push base top
+		stack/push value								;-- value
+		value: either any [event = EVT_CALL event = EVT_RETURN][pc][none-value]
+		stack/push value								;-- push calling reference (word, path,...)
+		pair/push base top								;-- frame (pair!)
 		if positive? fun-locs [_function/init-locals 1 + fun-locs]	;-- +1 for /local refinement
 
 		trace?: no
@@ -453,8 +455,8 @@ interpreter: context [
 			call-op
 	][
 		stack/keep
-		pc: pc + 1										;-- skip operator
 		op-pos: pc
+		pc: pc + 1										;-- skip operator
 		either all [									;-- is a literal argument is expected?
 			TYPE_OF(pc) = TYPE_WORD
 			literal-first-arg? as red-native! value

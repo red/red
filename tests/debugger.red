@@ -11,7 +11,8 @@ event-handlers: context [
 	indent: 0
 	
 	options: context [
-		stack?: no
+		show-stack?: no
+		flat-trace?: no
 	]
 
 	mold-mapped: function [code [block! paren!]][
@@ -57,8 +58,8 @@ event-handlers: context [
 		event [word!]
 		code  [block! none!]
 		value [any-type!]
+		ref	  [any-type!]
 		frame [pair!]				;-- current frame start, top
-		name  [word! none!]
 		/extern expr-stk
 		/local out pos len entry
 	][
@@ -97,14 +98,14 @@ event-handlers: context [
 				unless empty? expr-stk [append/only last expr-stk :value]
 			]
 		]
-		unless find [enter exit fetch] event [
+		unless find [init end enter exit fetch] event [
 			if any-function? :value [value: type? :value]
 			print ["----->" uppercase mold event mold/part/flat :value 60]
 			print ["Input:" either code [set [out pos len] mold-mapped code out]["..."]]
 			loop 7 + pos [prin space]
 			loop len [prin #"^^"]
 			prin lf
-			if options/stack? [show-stack]
+			if options/show-stack? [show-stack]
 			until [
 				entry: trim ask "debug>"
 				if cmd: attempt [to-word entry][
@@ -119,14 +120,9 @@ event-handlers: context [
 		event [word!]
 		code  [block! none!]
 		value [any-type!]
+		ref	  [any-type!]
 		frame [pair!]				;-- current frame start, top
 	][
-		switch event [
-			enter	[append/only code-stk split mold/only code space]
-			exit	[take/last code-stk]
-			open	[append/only expr-stk idx: index? code]
-			return	[idx: take/last expr-stk]
-		]
 		unless idx [idx: all [code index? code]]
 		print [event idx mold/part/flat :value 20 frame]
 	]
@@ -135,6 +131,7 @@ event-handlers: context [
 		event [word!]
 		code  [block! none!]
 		value [any-type!]
+		ref	  [any-type!]
 		frame [pair!]				;-- current frame start, top
 		/extern indent
 	][
@@ -144,7 +141,8 @@ event-handlers: context [
 				if any-function? :value [value: type? :value]
 				prin "->"
 				loop indent [prin space]
-				print [uppercase mold event mold/part/flat :value 60]
+				prin [uppercase mold event mold/part/flat :value 60]
+				prin either ref [rejoin ["  (" ref #")" lf]][lf]
 				if event = 'return [indent: indent - 1]
 			]
 		]
@@ -153,8 +151,8 @@ event-handlers: context [
 
 ;do/trace %demo.red :event-handlers/tracer
 
-do/trace [print 1 + length? mold 'hello] :event-handlers/tracer
-quit
+;do/trace [print 1 + length? mold 'hello] :event-handlers/debugger
+;quit
 
 ;do/trace [print 77 88 99] :event-handlers/tracer
 
