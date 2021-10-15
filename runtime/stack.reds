@@ -212,13 +212,15 @@ stack: context [										;-- call stack
 		dst [red-block!]
 		/local
 			p	  [call-frame!]
+			ctx	  [node!]
 			sym	  [integer!]
 	][
 		p: ctop - 1
 		until [
 			sym: p/header >> 8 and FFFFh
 			if all [sym <> body-symbol	sym <> anon-symbol][
-				block/rs-append dst as red-value! word/at p/ctx sym
+				ctx: either null? p/fctx [global-ctx][p/fctx]
+				block/rs-append dst as red-value! word/at ctx sym
 				integer/make-at ALLOC_TAIL(dst) (as-integer p/prev - stack/bottom) >> 4
 			]
 			p: p - 1
