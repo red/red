@@ -3588,7 +3588,7 @@ red: context [
 				emit reduce [							;-- special case for path-generated wrapper functions
 					'stack/mark-func 
 					decorate-exec-ctx decorate-symbol name
-					get-func-ctx original ctx-name
+					ctx-name
 				]
 				insert-lf -3
 			][
