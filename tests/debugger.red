@@ -11,8 +11,11 @@ event-handlers: context [
 	indent: 0
 	
 	options: context [
-		show-stack?: no
-		flat-trace?: no
+		show-stack?:	yes
+		show-parents?:	yes
+		detailed?:		yes
+		flat-trace?:	no
+		locals?:		no
 	]
 
 	mold-mapped: function [code [block! paren!]][
@@ -35,6 +38,15 @@ event-handlers: context [
 		]
 		append out #"]"
 		reduce [out pos len]
+	]
+	
+	show-parents: function [][
+		collect-calls list: make block! 10
+		foreach [w pos] reverse/skip list 2 [
+			if all [not unset? get/any w function? get/any w][
+				print ["Calls:" w ":" mold/flat/part pick-stack pos + 2 60]
+			]
+		]
 	]
 	
 	show-stack: function [][
@@ -105,6 +117,7 @@ event-handlers: context [
 			loop 7 + pos [prin space]
 			loop len [prin #"^^"]
 			prin lf
+			if options/show-parents? [show-parents]
 			if options/show-stack? [show-stack]
 			until [
 				entry: trim ask "debug>"
@@ -159,14 +172,14 @@ event-handlers: context [
 ;a: 4
 ;do/trace [either result: odd? a [print "ODD"][print "EVEN"]] :event-handlers/tracer
 
-fibo: func [n [integer!] return: [integer!]][
-	either n < 1 [0][either n < 2 [1][(fibo n - 2) + (fibo n - 1)]]
-]
-do/trace [print fibo 4] :event-handlers/tracer
-quit
+;fibo: func [n [integer!] return: [integer!]][
+;	either n < 1 [0][either n < 2 [1][(fibo n - 2) + (fibo n - 1)]]
+;]
+;do/trace [print fibo 4] :event-handlers/tracer
+;quit
 
 foo: function [a [integer!]][print either result: odd? a ["ODD"]["EVEN"] result]
 bar: function [s [string!]][(length? s) + make integer! foo 4]
 baz: function [][print bar "hello"]
-do/trace [baz] :event-handlers/tracer
+do/trace [baz] :event-handlers/debugger
 
