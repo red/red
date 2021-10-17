@@ -633,6 +633,7 @@ clipboard: context [
 					clipboard 	[handle!]
 					return: 	[handle!]
 				]
+				gtk_clipboard_clear: "gtk_clipboard_clear" [Clipboard [handle!]]
 				g_free: "g_free" [
 					ptr			[handle!]
 				]
@@ -701,6 +702,7 @@ clipboard: context [
 						gtk_clipboard_set_image clipboard img
 					]
 				]
+				TYPE_NONE	[gtk_clipboard_clear clipboard]
 				default		[return false]
 			]
 			true
