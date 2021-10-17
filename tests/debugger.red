@@ -13,9 +13,9 @@ event-handlers: context [
 	options: context [
 		show-stack?:	yes
 		show-parents?:	yes
+		show-locals?:	yes
 		detailed?:		yes
 		flat-trace?:	no
-		locals?:		no
 	]
 
 	mold-mapped: function [code [block! paren!]][
@@ -40,17 +40,32 @@ event-handlers: context [
 		reduce [out pos len]
 	]
 	
-	show-parents: function [][
+	show-context: function [ctx [function! object!]][
+		foreach w words-of :ctx [
+			print [
+				"  >"
+				pad mold :w 10
+				pad rejoin ["(" mold type? get/any :w ")"] 10
+				#":" mold/flat/part get/any :w 60
+			]
+		]
+	]
+	
+	show-parents: function [event [word!]][
 		collect-calls list: make block! 10
+		unless empty? fun-stk [
+			remove/part list find list first first skip tail fun-stk pick -2x-1 event = 'call
+		]
 		foreach [w pos] reverse/skip list 2 [
 			if all [not unset? get/any w function? get/any w][
-				print ["Calls:" w ":" mold/flat/part pick-stack pos + 2 60]
+				print ["Call:" w]
+				if options/show-locals? [show-context get :w]
 			]
 		]
 	]
 	
 	show-stack: function [][
-		foreach entry fun-stk [print ["Calls:" mold/only/flat/part entry 72]]
+		;foreach entry fun-stk [print ["Call:" mold/only/flat/part entry 72]]
 		unless empty? fun-stk [prin lf]
 		indent: 0
 		foreach frame head expr-stk [
@@ -117,7 +132,7 @@ event-handlers: context [
 			loop 7 + pos [prin space]
 			loop len [prin #"^^"]
 			prin lf
-			if options/show-parents? [show-parents]
+			if options/show-parents? [show-parents event]
 			if options/show-stack? [show-stack]
 			until [
 				entry: trim ask "debug>"
