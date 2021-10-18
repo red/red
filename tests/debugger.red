@@ -101,7 +101,6 @@ event-handlers: context [
 				]
 			]
 			exit [
-				if all [function? :value not empty? fun-stk][take/last fun-stk]
 				take/last code-stk
 				unless head? expr-stk [expr-stk: at head expr-stk take/last back expr-stk]
 			]
@@ -115,9 +114,8 @@ event-handlers: context [
 					unless empty? expr-stk [append/only last expr-stk :value]
 				]
 			]
-			call [
-				if function? :value [append/only fun-stk last expr-stk]
-			]
+			prolog [append/only fun-stk last expr-stk]
+			epilog [unless empty? fun-stk [take/last fun-stk]]
 			set 
 			return [
 				set/any 'entry take/last expr-stk
@@ -125,7 +123,7 @@ event-handlers: context [
 				unless empty? expr-stk [append/only last expr-stk :value]
 			]
 		]
-		unless find [init end enter exit fetch] event [
+		unless find [init end enter exit fetch prolog epilog] event [
 			if any-function? :value [value: type? :value]
 			print ["----->" uppercase mold event mold/part/flat :value 60]
 			print ["Input:" either code [set [out pos len] mold-mapped code out]["..."]]

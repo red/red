@@ -754,6 +754,8 @@ words: context [
 	_return:		as red-word! 0
 	_enter:			as red-word! 0
 	_exit:			as red-word! 0
+	_prolog:		as red-word! 0
+	_epilog:		as red-word! 0
 	
 	errors: context [
 		_throw:		as red-word! 0
@@ -1020,6 +1022,8 @@ words: context [
 		_return:		word/load "return"
 		_enter:			word/load "enter"
 		_exit:			word/load "exit"
+		_prolog:		word/load "prolog"
+		_epilog:		word/load "epilog"
 		
 		errors/throw:	 word/load "throw"
 		errors/note:	 word/load "note"

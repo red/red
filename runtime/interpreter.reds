@@ -111,6 +111,8 @@ interpreter: context [
 	#enum events! [
 		EVT_INIT
 		EVT_END
+		EVT_PROLOG
+		EVT_EPILOG
 		EVT_ENTER
 		EVT_EXIT
 		EVT_OPEN
@@ -156,6 +158,8 @@ interpreter: context [
 		ctx: either TYPE_OF(int) = TYPE_INTEGER [as node! int/value][global-ctx]
 		stack/mark-func words/_body	trace-fun/ctx		;@@ find something more adequate
 		evt: switch event [
+			EVT_PROLOG	[words/_prolog]
+			EVT_EPILOG	[words/_epilog]
 			EVT_ENTER	[words/_enter]
 			EVT_EXIT	[words/_exit]
 			EVT_FETCH	[words/_fetch]
@@ -270,10 +274,12 @@ interpreter: context [
 		saved: ctx/values
 		ctx/values: as node! stack/arguments
 		stack/set-in-func-flag yes
+		if trace? [fire-event EVT_PROLOG null as red-value! fun null 0]
 		assert system/thrown = 0
 		
 		catch RED_THROWN_ERROR [eval body yes]
 		
+		if trace? [fire-event EVT_EPILOG null as red-value! fun null 0]
 		stack/set-in-func-flag no
 		ctx/values: saved
 		switch system/thrown [
