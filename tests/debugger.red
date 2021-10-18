@@ -9,6 +9,7 @@ event-handlers: context [
 	expr-stk: make block! 10
 	base: none
 	indent: 0
+	active?: no
 	
 	options: context [
 		show-stack?:	yes
@@ -87,12 +88,16 @@ event-handlers: context [
 		value [any-type!]
 		ref	  [any-type!]
 		frame [pair!]				;-- current frame start, top
-		/extern expr-stk
+		/extern expr-stk active?
 		/local out pos len entry
 	][
 		unless base [base: frame/1]
 		
 		switch event [
+			fetch [
+				if :value = @stop [active?: yes]
+				if :value = @go   [active?: no]
+			]
 			enter [
 				append/only code-stk split mold/only/flat code space
 				unless empty? expr-stk [
@@ -119,11 +124,11 @@ event-handlers: context [
 			set 
 			return [
 				set/any 'entry take/last expr-stk
-				if event = 'set [print ["Word:" to lit-word! :entry/1]]
+				if all [active? event = 'set][print ["Word:" to lit-word! :entry/1]]
 				unless empty? expr-stk [append/only last expr-stk :value]
 			]
 		]
-		unless find [init end enter exit fetch prolog epilog] event [
+		if all [active? not find [init end enter exit fetch prolog epilog] event][
 			if any-function? :value [value: type? :value]
 			print ["----->" uppercase mold event mold/part/flat :value 60]
 			print ["Input:" either code [set [out pos len] mold-mapped code out]["..."]]
@@ -175,6 +180,8 @@ event-handlers: context [
 	]
 ]
 
+debug: func [code [any-type!]][do/trace :code :event-handlers/debugger]
+
 ;do/trace %demo.red :event-handlers/tracer
 
 ;do/trace [print 1 + length? mold 'hello] :event-handlers/debugger
@@ -191,8 +198,8 @@ event-handlers: context [
 ;do/trace [print fibo 4] :event-handlers/tracer
 ;quit
 
-foo: function [a [integer!]][print either result: odd? a ["ODD"]["EVEN"] result]
+foo: function [a [integer!]][@stop print either result: odd? a ["ODD"]["EVEN"] @go result]
 bar: function [s [string!]][(length? s) + make integer! foo 4]
 baz: function [][print bar "hello"]
-do/trace [baz] :event-handlers/debugger
+debug [baz]
 
