@@ -42,12 +42,12 @@ event-handlers: context [
 	
 	show-context: function [ctx [function! object!]][
 		foreach w words-of :ctx [
-			print [
+			prin [
 				"  >"
 				pad mold :w 10
-				pad rejoin ["(" mold type? get/any :w ")"] 10
 				#":" mold/flat/part get/any :w 60
 			]
+			either find [none true false unset] :w [print " (word!)"][prin lf]
 		]
 	]
 	
