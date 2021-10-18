@@ -1223,13 +1223,7 @@ interpreter: context [
 		chain? [logic!]									;-- chain it with previous stack frame
 		/local
 			value head tail arg [red-value!]
-			;stk	   [red-block!]
-			;offset [integer!]
 	][
-		;stk: as red-block! #get system/state/stack
-		;assert TYPE_OF(stk) = TYPE_BLOCK
-		;code: as red-block! block/rs-append stk as red-value! code
-		
 		head: block/rs-head code
 		tail: block/rs-tail code
 
@@ -1243,18 +1237,12 @@ interpreter: context [
 			while [value < tail][
 				#if debug? = yes [if verbose > 0 [log "root loop..."]]
 				catch RED_THROWN_ERROR [value: eval-expression value tail code no no no]
-				;offset: (as-integer value - head) >> 4
-				;code/head: code/head + offset
-				if system/thrown <> 0 [
-				;	block/rs-remove-last stk
-					re-throw
-				]
+				if system/thrown <> 0 [re-throw]
 				if value + 1 <= tail [stack/reset]
 			]
 		]
 		if trace? [fire-event EVT_EXIT code tail null 0]
 		either chain? [stack/unwind-last][stack/unwind]
-		;block/rs-remove-last stk
 	]
 	
 ]
