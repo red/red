@@ -106,7 +106,6 @@ interpreter: context [
 	trace?: no
 	trace-fun: as red-function! 0
 	fun-locs: 0
-	dbg-stk-top: 0
 
 	#enum events! [
 		EVT_INIT
@@ -146,11 +145,13 @@ interpreter: context [
 			more  [series!]
 			ctx	  [node!]
 			len	base top [integer!]
+			csaved [int-ptr!]
 	][
 		assert all [trace-fun <> null TYPE_OF(trace-fun) = TYPE_FUNCTION]
 		base: (as-integer stack/arguments - stack/bottom) >> 4
 		top:  (as-integer stack/top - stack/bottom) >> 4
 		saved: stack/top
+		csaved: as int-ptr! stack/ctop
 		stack/top: stack/top + 1						;-- keep last value
 
 		more: as series! trace-fun/more/value
@@ -193,11 +194,12 @@ interpreter: context [
 
 		trace?: no
 		catch RED_THROWN_ERROR [_function/call trace-fun ctx]
-		if system/thrown <> 0 [trace-fun: null re-throw]
+		if system/thrown <> 0 [re-throw]
 		trace?: yes
 		
 		stack/unwind
 		stack/top: saved
+		stack/set-ctop csaved
 	]
 	
 	fire-init: does [fire-event EVT_INIT null null null 0]
@@ -269,6 +271,7 @@ interpreter: context [
 		/local
 			ctx	  [red-context!]
 			saved [node!]
+			thrown [integer!]
 	][
 		ctx: GET_CTX(fun)
 		saved: ctx/values
@@ -279,7 +282,12 @@ interpreter: context [
 		
 		catch RED_THROWN_ERROR [eval body yes]
 		
-		if trace? [fire-event EVT_EPILOG null as red-value! fun null 0]
+		if trace? [
+			thrown: system/thrown
+			system/thrown: 0
+			fire-event EVT_EPILOG null as red-value! fun null 0
+			system/thrown: thrown
+		]
 		stack/set-in-func-flag no
 		ctx/values: saved
 		switch system/thrown [
@@ -943,6 +951,8 @@ interpreter: context [
 				stack/mark-interp-func name
 				pc: eval-arguments origin pc end code path slot origin
 				if trace? [
+					fun: as red-function! value
+					assert TYPE_OF(fun) = TYPE_FUNCTION
 					s: as series! fun/more/value
 					origin: as red-native! s/offset + 2
 					if origin/code <> 0 [fire-event EVT_CALL code pos value 0]

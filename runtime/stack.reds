@@ -106,6 +106,8 @@ stack: context [										;-- call stack
 		anon-symbol: words/_anon/symbol
 	]
 	
+	set-ctop: func [ptr [int-ptr!]][ctop: as call-frame! ptr]
+	
 	mark: func [
 		fun  [red-word!]
 		type [integer!]

@@ -46,7 +46,7 @@ event-handlers: context [
 			prin [
 				"  >"
 				pad mold :w 10
-				#":" mold/flat/part get/any :w 60
+				#":" mold/flat/part try [get/any :w] 60
 			]
 			either find [none true false unset] :w [print " (word!)"][prin lf]
 		]
@@ -88,7 +88,7 @@ event-handlers: context [
 		value [any-type!]
 		ref	  [any-type!]
 		frame [pair!]				;-- current frame start, top
-		/extern expr-stk active?
+		/extern base expr-stk active?
 		/local out pos len entry
 	][
 		unless base [base: frame/1]
@@ -100,14 +100,18 @@ event-handlers: context [
 			]
 			enter [
 				append/only code-stk split mold/only/flat code space
-				unless empty? expr-stk [
+				unless empty? head expr-stk [
 					append expr-stk index? expr-stk
 					expr-stk: tail expr-stk
 				]
 			]
 			exit [
 				take/last code-stk
-				unless head? expr-stk [expr-stk: at head expr-stk take/last back expr-stk]
+				unless head? expr-stk [
+					idx: first pos: find/reverse tail expr-stk integer!
+					clear pos
+					expr-stk: at head expr-stk idx
+				]
 			]
 			open [
 				append/only expr-stk reduce [:value]
@@ -127,16 +131,27 @@ event-handlers: context [
 				if all [active? event = 'set][print ["Word:" to lit-word! :entry/1]]
 				unless empty? expr-stk [append/only last expr-stk :value]
 			]
+			error [active?: yes]						;-- force debugger on
+			init end  [
+				clear fun-stk
+				clear code-stk
+				clear expr-stk: head expr-stk
+				base: none
+				indent: 0
+			]
 		]
 		if all [active? not find [init end enter exit fetch prolog epilog] event][
 			if any-function? :value [value: type? :value]
 			print ["----->" uppercase mold event mold/part/flat :value 60]
-			print ["Input:" either code [set [out pos len] mold-mapped code out]["..."]]
-			loop 7 + pos [prin space]
-			loop len [prin #"^^"]
-			prin lf
+			if code [
+				print ["Input:" set [out pos len] mold-mapped code out]
+				loop 7 + pos [prin space]
+				loop len [prin #"^^"]
+				prin lf
+			]
 			if options/show-parents? [show-parents event]
 			if options/show-stack? [show-stack]
+			if event = 'error [exit]					;-- don't enter console on thrown errors
 			until [
 				entry: trim ask "debug>"
 				if cmd: attempt [to-word entry][
@@ -198,8 +213,9 @@ debug: func [code [any-type!]][do/trace :code :event-handlers/debugger]
 ;do/trace [print fibo 4] :event-handlers/tracer
 ;quit
 
-foo: function [a [integer!]][@stop print either result: odd? a ["ODD"]["EVEN"] @go result]
-bar: function [s [string!]][(length? s) + make integer! foo 4]
-baz: function [][print bar "hello"]
-debug [baz]
+;foo: function [a [integer!]][@stop print either result: odd? a ["ODD"]["EVEN"] @go result]
+;bar: function [s [string!]][(length? s) + 'e make integer! foo 4]
+;baz: function [][print bar "hello"]
+;
+;debug [baz]
 

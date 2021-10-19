@@ -555,6 +555,7 @@ natives: context [
 			job	   [red-value!]
 			pos	   [integer!]
 			thrown [integer!]
+			fun?   [logic!]
 	][
 		#typecheck [do expand? args next trace]
 		arg: stack/arguments
@@ -565,7 +566,8 @@ natives: context [
 		if OPTION?(do-arg) [
 			copy-cell do-arg #get system/script/args
 		]
-		if OPTION?(fun) [
+		fun?: OPTION?(fun)
+		if fun? [
 			;if interpreter/trace-fun <> null [fire [TO_ERROR()...]]
 			interpreter/fun-locs: _function/count-locals fun/spec 0 no
 			interpreter/trace-fun: fun
@@ -593,7 +595,7 @@ natives: context [
 				default [interpreter/eval-expression arg arg + 1 null no no yes]
 			]
 		]
-		if interpreter/trace? [
+		if fun? [
 			thrown: system/thrown
 			system/thrown: 0
 			interpreter/fire-end

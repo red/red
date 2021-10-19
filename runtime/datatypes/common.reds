@@ -174,6 +174,8 @@ fire: func [
 		arg1 [red-value!]
 		arg2 [red-value!]
 		arg3 [red-value!]
+		err	 [red-object!]
+		saved [integer!]
 ][
 	assert count <= 5
 	arg1: null
@@ -190,7 +192,14 @@ fire: func [
 			unless zero? count [arg3: as red-value! list/5]
 		]
 	]
-	stack/throw-error error/create as red-value! list/1 as red-value! list/2 arg1 arg2 arg3
+	err: error/create as red-value! list/1 as red-value! list/2 arg1 arg2 arg3
+	if interpreter/trace? [
+		saved: system/thrown
+		system/thrown: 0
+		interpreter/fire-event interpreter/EVT_ERROR null null as red-value! err 0
+		system/thrown: saved
+	]
+	stack/throw-error err
 ]
 
 throw-make: func [
