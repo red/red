@@ -15,8 +15,8 @@ event-handlers: context [
 		show-stack?:	yes
 		show-parents?:	yes
 		show-locals?:	yes
+		stack-indent?:	no
 		detailed?:		yes
-		flat-trace?:	no
 	]
 
 	mold-mapped: function [code [block! paren!]][
@@ -66,20 +66,52 @@ event-handlers: context [
 	]
 	
 	show-stack: function [][
-		;foreach entry fun-stk [print ["Call:" mold/only/flat/part entry 72]]
 		unless empty? fun-stk [prin lf]
 		indent: 0
 		foreach frame head expr-stk [
 			unless integer? frame [
 				forall frame [
 					prin "Stack: "
-					loop indent [prin "  "]
+					if options/stack-indent? [loop indent [prin "  "]]
 					print mold/part/flat first frame 50
 					if head? frame [indent: indent + 1]
 				]
 			]
 		]
 		prin lf
+	]
+	
+	do-command: function [][
+		until [
+			cmd: trim ask "debug> "
+			case [
+				cmd = #":" [
+					print ["==" mold get/any load next cmd]
+				]
+				find "+-" cmd/1 [
+					mode?: cmd/1 = #"+"
+					switch load next cmd [
+						watch w [
+						
+						]
+						parents p [options/show-parents?: mode?]
+						stack s	  [options/show-stack?:   mode?]
+						locals l  [options/show-locals?:  mode?]
+						indent i  [options/stack-indent?: mode?]
+					]
+				]
+				'else [
+					unless empty? list: load/all cmd [
+						switch list/1 [
+							next n		[]
+							continue c  [active?: no cmd: ""]
+							q			[halt]
+						]
+					]
+				]
+			]
+			empty? cmd
+		]
 	]
 
 	debugger: function [
@@ -151,14 +183,8 @@ event-handlers: context [
 			]
 			if options/show-parents? [show-parents event]
 			if options/show-stack? [show-stack]
-			if event = 'error [exit]					;-- don't enter console on thrown errors
-			until [
-				entry: trim ask "debug>"
-				if cmd: attempt [to-word entry][
-					if cmd = 'q [halt]
-				]
-				empty? entry
-			]
+			do-command
+			if event = 'error [active?: no]
 		]
 	]
 	
