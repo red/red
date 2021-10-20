@@ -137,7 +137,6 @@ interpreter: context [
 		code	[red-block!]
 		pc		[red-value!]
 		value   [red-value!]
-		idx		[integer!]
 		/local
 			saved head tail [red-value!]
 			evt   [red-word!]
@@ -202,8 +201,8 @@ interpreter: context [
 		stack/set-ctop csaved
 	]
 	
-	fire-init: does [fire-event EVT_INIT null null null 0]
-	fire-end:  does [fire-event EVT_END  null null null 0]
+	fire-init: does [fire-event EVT_INIT null null null]
+	fire-end:  does [fire-event EVT_END  null null null]
 	
 	literal-first-arg?: func [
 		native 	[red-native!]
@@ -277,7 +276,7 @@ interpreter: context [
 		saved: ctx/values
 		ctx/values: as node! stack/arguments
 		stack/set-in-func-flag yes
-		if trace? [fire-event EVT_PROLOG null as red-value! fun null 0]
+		if trace? [fire-event EVT_PROLOG null as red-value! fun null]
 		assert system/thrown = 0
 		
 		catch RED_THROWN_ERROR [eval body yes]
@@ -285,7 +284,7 @@ interpreter: context [
 		if trace? [
 			thrown: system/thrown
 			system/thrown: 0
-			fire-event EVT_EPILOG null as red-value! fun null 0
+			fire-event EVT_EPILOG null as red-value! fun null
 			system/thrown: thrown
 		]
 		stack/set-in-func-flag no
@@ -523,7 +522,7 @@ interpreter: context [
 			BS_TEST_BIT(bits type set?)
 			unless set? [ERR_EXPECT_ARGUMENT(type 1)]
 		]
-		if trace? [fire-event EVT_CALL code op-pos as red-value! op 0]
+		if trace? [fire-event EVT_CALL code op-pos as red-value! op]
 		
 		either fun <> null [
 			either TYPE_OF(fun) = TYPE_ROUTINE [
@@ -538,7 +537,7 @@ interpreter: context [
 			call-op
 			0											;-- @@ to make compiler happy!
 		]
-		if trace? [fire-event EVT_RETURN code op-pos stack/arguments 0]
+		if trace? [fire-event EVT_RETURN code op-pos stack/arguments]
 		
 		#if debug? = yes [
 			if verbose > 0 [
@@ -551,8 +550,8 @@ interpreter: context [
 		CHECK_INFIX
 		if infix? [
 			if trace? [
-				fire-event EVT_FETCH code pc pc 0
-				fire-event EVT_OPEN code pc pc 0
+				fire-event EVT_FETCH code pc pc
+				fire-event EVT_OPEN code pc pc
 			]
 			pc: eval-infix value pc end code sub?
 		]
@@ -771,7 +770,7 @@ interpreter: context [
 				ext-args: ext-args + 1
 			]
 		]
-		if trace? [fire-event EVT_CALL code call-pos as red-value! native 0]
+		if trace? [fire-event EVT_CALL code call-pos as red-value! native]
 		
 		unless function? [
 			unless null? ref-array [system/stack/top: ref-array] ;-- reset native stack to our custom arguments frame
@@ -897,7 +896,7 @@ interpreter: context [
 	][
 		pos: pc - 1
 		name: as red-word! either null? slot [pos][slot]
-		if trace? [fire-event EVT_OPEN code pos as red-value! name 0]
+		if trace? [fire-event EVT_OPEN code pos as red-value! name]
 
 		if TYPE_OF(name) <> TYPE_WORD [name: words/_anon]
 		caller: as red-native! stack/push value			;-- prevent word's value slot to be corrupted #2199
@@ -955,7 +954,7 @@ interpreter: context [
 					assert TYPE_OF(fun) = TYPE_FUNCTION
 					s: as series! fun/more/value
 					origin: as red-native! s/offset + 2
-					if origin/code <> 0 [fire-event EVT_CALL code pos value 0]
+					if origin/code <> 0 [fire-event EVT_CALL code pos value]
 				]
 				_function/call as red-function! caller ctx
 				either sub? [stack/unwind][stack/unwind-last]
@@ -967,7 +966,7 @@ interpreter: context [
 				]
 			]
 		]
-		if trace? [fire-event EVT_RETURN code pos stack/get-top 0]
+		if trace? [fire-event EVT_RETURN code pos stack/get-top]
 		
 		stack/pop 1										;-- slide down the returned value
 		copy-cell stack/top stack/top - 1				;-- replacing the saved value slot
@@ -1003,15 +1002,15 @@ interpreter: context [
 			CHECK_INFIX
 			if infix? [
 				if trace? [
-					fire-event EVT_FETCH code as red-value! next as red-value! next 0
-					fire-event EVT_OPEN  code as red-value! next as red-value! next 0
+					fire-event EVT_FETCH code as red-value! next as red-value! next
+					fire-event EVT_OPEN  code as red-value! next as red-value! next
 				]
 				stack/mark-interp-native next
 				sub?: yes								;-- force sub? for infix expressions
 				op: copy-cell value saved
 			]
 		]
-		if trace? [fire-event EVT_FETCH code pc pc 0]
+		if trace? [fire-event EVT_FETCH code pc pc]
 		
 		switch TYPE_OF(pc) [
 			TYPE_PAREN [
@@ -1027,12 +1026,12 @@ interpreter: context [
 				][
 					stack/mark-interp-native as red-word! pc ;@@ ~set
 					word/push as red-word! pc
-					if trace? [fire-event EVT_PUSH code pc pc 0]
+					if trace? [fire-event EVT_PUSH code pc pc]
 					pos: pc
 					pc: pc + 1
 					if pc >= end [fire [TO_ERROR(script need-value) pc - 1]]
 					pc: eval-expression pc end code no yes no
-					if trace? [fire-event EVT_SET code pos stack/get-top 0]
+					if trace? [fire-event EVT_SET code pos stack/get-top]
 					word/set
 					either sub? [stack/unwind][stack/unwind-last]
 					#if debug? = yes [
@@ -1059,7 +1058,7 @@ interpreter: context [
 				][
 					stack/set-last value				;-- root expression: return value
 				]
-				if trace? [fire-event EVT_PUSH code pc stack/get-top 0]
+				if trace? [fire-event EVT_PUSH code pc stack/get-top]
 				pc: pc + 1
 			]
 			TYPE_LIT_WORD [
@@ -1069,7 +1068,7 @@ interpreter: context [
 					w: as red-word! stack/set-last pc	;-- root expression: return value
 				]
 				w/header: TYPE_WORD						;-- coerce it to a word!
-				if trace? [fire-event EVT_PUSH code pc as red-value! w 0]
+				if trace? [fire-event EVT_PUSH code pc as red-value! w]
 				pc: pc + 1
 			]
 			TYPE_WORD [
@@ -1091,7 +1090,7 @@ interpreter: context [
 						]
 					]
 					TYPE_LIT_WORD [
-						if trace? [fire-event EVT_PUSH code pc - 1 value 0]
+						if trace? [fire-event EVT_PUSH code pc - 1 value]
 						word/push as red-word! value	;-- push lit-word! on stack
 					]
 					TYPE_ACTION							;@@ replace with TYPE_ANY_FUNCTION
@@ -1104,7 +1103,7 @@ interpreter: context [
 						fire [TO_ERROR(script no-op-arg) pc - 1]
 					]
 					default [
-						if trace? [fire-event EVT_PUSH code pc - 1 value 0]
+						if trace? [fire-event EVT_PUSH code pc - 1 value]
 						#if debug? = yes [if verbose > 0 [log "getting word value"]]
 						either sub? [
 							stack/push value			;-- nested expression: push value
@@ -1149,7 +1148,7 @@ interpreter: context [
 					][
 						stack/set-last pc				;-- root expression: return value
 					]
-					if trace? [fire-event EVT_PUSH code pc stack/get-top 0]
+					if trace? [fire-event EVT_PUSH code pc stack/get-top]
 					pc: pc + 1
 				][
 					value: pc + 1
@@ -1179,7 +1178,7 @@ interpreter: context [
 					stack/set-last pc					;-- root expression: return value
 				]
 				pc: pc + 1
-				if trace? [fire-event EVT_PUSH code pc stack/get-top 0]
+				if trace? [fire-event EVT_PUSH code pc stack/get-top]
 			]
 			default [
 				either sub? [
@@ -1188,7 +1187,7 @@ interpreter: context [
 					stack/set-last pc					;-- root expression: return value
 				]
 				pc: pc + 1
-				if trace? [fire-event EVT_PUSH code pc stack/get-top 0]
+				if trace? [fire-event EVT_PUSH code pc stack/get-top]
 			]
 		]
 		
@@ -1244,7 +1243,7 @@ interpreter: context [
 		tail: block/rs-tail code
 
 		stack/mark-eval words/_body						;-- outer stack frame
-		if trace? [fire-event EVT_ENTER code head null 0]
+		if trace? [fire-event EVT_ENTER code head null]
 		either head = tail [
 			arg: stack/arguments
 			arg/header: TYPE_UNSET
@@ -1257,7 +1256,7 @@ interpreter: context [
 				if value + 1 <= tail [stack/reset]
 			]
 		]
-		if trace? [fire-event EVT_EXIT code tail null 0]
+		if trace? [fire-event EVT_EXIT code tail null]
 		either chain? [stack/unwind-last][stack/unwind]
 	]
 	
