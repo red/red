@@ -1,12 +1,11 @@
 Red []
 
-;#include %../environment/console/CLI/input.red
-
-
 event-handlers: context [
 	fun-stk:  make block! 10
 	code-stk: make block! 10
 	expr-stk: make block! 10
+	watching: make block! 10
+	
 	base: none
 	indent: 0
 	active?: no
@@ -81,6 +80,11 @@ event-handlers: context [
 		prin lf
 	]
 	
+	show-watching: function [][
+		foreach w watching [print ["Watch:" pad mold w 10 "=" mold/flat/part get/any w 60]]
+		prin lf
+	]
+	
 	do-command: function [][
 		until [
 			cmd: trim ask "debug> "
@@ -90,9 +94,12 @@ event-handlers: context [
 				]
 				find "+-" cmd/1 [
 					mode?: cmd/1 = #"+"
-					switch load next cmd [
+					switch first list: load/all next cmd [
 						watch w [
-						
+							list: next list
+							either mode? [append watching list][
+								foreach w list [try [remove find watching to-word w]]
+							]
 						]
 						parents p [options/show-parents?: mode?]
 						stack s	  [options/show-stack?:   mode?]
@@ -181,6 +188,7 @@ event-handlers: context [
 				loop len [prin #"^^"]
 				prin lf
 			]
+			show-watching
 			if options/show-parents? [show-parents event]
 			if options/show-stack? [show-stack]
 			do-command
