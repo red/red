@@ -85,7 +85,7 @@ event-handlers: context [
 		unless empty? watching [print lf]
 	]
 	
-	do-command: function [/extern active?][
+	do-command: function [event [word!] /extern active?][
 		until [
 			cmd: trim ask "debug> "
 			case [
@@ -110,6 +110,8 @@ event-handlers: context [
 				'else [
 					unless empty? list: load/all cmd [
 						switch list/1 [
+							parents p	[show-parents event]
+							stack s		[show-stack]
 							next n		[]
 							continue c  [active?: no cmd: ""]
 							q			[halt]
@@ -191,7 +193,7 @@ event-handlers: context [
 			show-watching
 			if options/show-parents? [show-parents event]
 			if options/show-stack? [show-stack]
-			do-command
+			do-command event
 			if event = 'error [active?: no]
 		]
 	]
