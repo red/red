@@ -570,7 +570,7 @@ natives: context [
 		if fun? [
 			;if interpreter/trace-fun <> null [fire [TO_ERROR()...]]
 			interpreter/fun-locs: _function/count-locals fun/spec 0 no
-			interpreter/trace-fun: fun
+			copy-cell as red-value! fun as red-value! interpreter/trace-fun
 			interpreter/trace?: yes
 			interpreter/fire-init
 		]
@@ -599,7 +599,7 @@ natives: context [
 			thrown: system/thrown
 			system/thrown: 0
 			interpreter/fire-end
-			interpreter/trace-fun: null					;-- force it in case `stop` was used
+			copy-cell none-value as red-value! interpreter/trace-fun
 			interpreter/trace?: no
 			system/thrown: thrown
 		]

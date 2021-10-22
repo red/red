@@ -11,9 +11,9 @@ event-handlers: context [
 	active?: no
 	
 	options: context [
-		show-stack?:	yes
-		show-parents?:	yes
-		show-locals?:	yes
+		show-stack?:	no
+		show-parents?:	no
+		show-locals?:	no
 		stack-indent?:	no
 		detailed?:		yes
 	]
@@ -81,11 +81,11 @@ event-handlers: context [
 	]
 	
 	show-watching: function [][
-		foreach w watching [print ["Watch:" pad mold w 10 "=" mold/flat/part get/any w 60]]
-		prin lf
+		foreach w watching [print ["Watch:" mold w ":" mold/flat/part get/any w 60]]
+		unless empty? watching [print lf]
 	]
 	
-	do-command: function [][
+	do-command: function [/extern active?][
 		until [
 			cmd: trim ask "debug> "
 			case [

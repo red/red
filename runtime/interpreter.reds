@@ -1260,4 +1260,7 @@ interpreter: context [
 		either chain? [stack/unwind-last][stack/unwind]
 	]
 	
+	init: does [
+		trace-fun: as red-function! ALLOC_TAIL(root)	;-- keep the tracing func reachable by the GC marker
+	]
 ]
