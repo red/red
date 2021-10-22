@@ -229,9 +229,26 @@ event-handlers: context [
 			]
 		]
 	]
+	
+	profiler: function [
+		event [word!]
+		code  [block! none!]
+		value [any-type!]
+		ref	  [any-type!]
+		frame [pair!]				;-- current frame start, top
+	][
+		if find [open return] event [
+			probe type? :value
+			;?? ref
+			if function? :value [
+				?? ref
+			]
+		]
+	]
 ]
 
-debug: func [code [any-type!]][do/trace :code :event-handlers/debugger]
+debug:   func [code [any-type!]][do/trace :code :event-handlers/debugger]
+profile: func [code [any-type!]][do/trace :code :event-handlers/profiler]
 
 ;do/trace %demo.red :event-handlers/tracer
 
@@ -254,4 +271,6 @@ debug: func [code [any-type!]][do/trace :code :event-handlers/debugger]
 ;baz: function [][print bar "hello"]
 ;
 ;debug [baz]
+
+profile %tests/demo.red
 
