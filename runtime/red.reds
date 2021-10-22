@@ -60,7 +60,7 @@ red: context [
 		Syllable []
 		macOS	 [#include %platform/image-quartz.reds]
 		Linux	 [#include %platform/image-gdk.reds]
-		FreeBSD  []
+		FreeBSD  [#include %platform/image-gdk.reds]
 		NetBSD   []
 		#default []
 	]
@@ -118,6 +118,7 @@ red: context [
 	#if OS = 'Windows [#include %datatypes/image.reds]	;-- temporary
 	#if OS = 'macOS   [#include %datatypes/image.reds]	;-- temporary
 	#if OS = 'Linux   [#include %datatypes/image.reds]
+	#if OS = 'FreeBSD [#include %datatypes/image.reds]
 
 	;-- Debugging helpers --
 	
