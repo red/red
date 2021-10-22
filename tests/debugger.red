@@ -102,9 +102,9 @@ event-handlers: context [
 							]
 						]
 						parents p [options/show-parents?: mode?]
-						stack s	  [options/show-stack?:   mode?]
-						locals l  [options/show-locals?:  mode?]
-						indent i  [options/stack-indent?: mode?]
+						stack   s [options/show-stack?:   mode?]
+						locals  l [options/show-locals?:  mode?]
+						indent  i [options/stack-indent?: mode?]
 					]
 				]
 				'else [
