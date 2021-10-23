@@ -237,11 +237,14 @@ event-handlers: context [
 		ref	  [any-type!]
 		frame [pair!]				;-- current frame start, top
 	][
-		if find [open return] event [
-			probe type? :value
-			;?? ref
-			if function? :value [
-				?? ref
+		switch event [
+			call [
+				if function? :value [
+					probe ref
+				]
+			]
+			return [
+			
 			]
 		]
 	]
@@ -272,5 +275,5 @@ profile: func [code [any-type!]][do/trace :code :event-handlers/profiler]
 ;
 ;debug [baz]
 
-profile %tests/demo.red
+profile %demo.red
 
