@@ -61,7 +61,7 @@ red: context [
 		macOS	 [#include %platform/image-quartz.reds]
 		Linux	 [#include %platform/image-gdk.reds]
 		FreeBSD  [#include %platform/image-gdk.reds]
-		NetBSD   []
+		NetBSD   [#include %platform/image-gdk.reds]
 		#default []
 	]
 	
@@ -119,6 +119,7 @@ red: context [
 	#if OS = 'macOS   [#include %datatypes/image.reds]	;-- temporary
 	#if OS = 'Linux   [#include %datatypes/image.reds]
 	#if OS = 'FreeBSD [#include %datatypes/image.reds]
+	#if OS = 'NetBSD [#include %datatypes/image.reds]
 
 	;-- Debugging helpers --
 	

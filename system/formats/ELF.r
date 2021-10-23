@@ -24,7 +24,7 @@ context [
 
 		base-address	(to-integer #{08048000})
 		page-size		4096
-		rpath			"$ORIGIN"
+		rpath			"$ORIGIN:/usr/pkg/lib"  ;; Additional path is for NetBSD. TODO: consider moving this rpath option to config, instead of hard-coding.
 
 		;; ELF Constants
 
