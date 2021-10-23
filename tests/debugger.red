@@ -1,10 +1,11 @@
 Red []
 
 event-handlers: context [
-	fun-stk:  make block! 10
-	code-stk: make block! 10
-	expr-stk: make block! 10
-	watching: make block! 10
+	fun-stk:   make block! 10
+	code-stk:  make block! 10
+	expr-stk:  make block! 10
+	watching:  make block! 10
+	profiling: make block! 10
 	
 	base: none
 	indent: 0
@@ -16,6 +17,7 @@ event-handlers: context [
 		show-locals?:	no
 		stack-indent?:	no
 		detailed?:		yes
+		count-types:	make typeset! [function! action! native! op!]
 	]
 
 	mold-mapped: function [code [block! paren!]][
@@ -128,7 +130,7 @@ event-handlers: context [
 		code  [block! none!]
 		value [any-type!]
 		ref	  [any-type!]
-		frame [pair!]				;-- current frame start, top
+		frame [pair!]									;-- current frame start, top
 		/extern base expr-stk active?
 		/local out pos len entry
 	][
@@ -203,7 +205,7 @@ event-handlers: context [
 		code  [block! none!]
 		value [any-type!]
 		ref	  [any-type!]
-		frame [pair!]				;-- current frame start, top
+		frame [pair!]									;-- current frame start, top
 	][
 		unless idx [idx: all [code index? code]]
 		print [event idx mold/part/flat :value 20 frame]
@@ -214,7 +216,7 @@ event-handlers: context [
 		code  [block! none!]
 		value [any-type!]
 		ref	  [any-type!]
-		frame [pair!]				;-- current frame start, top
+		frame [pair!]									;-- current frame start, top
 		/extern indent
 	][
 		either find [init end] event [indent: 0][		;-- eat END event too
@@ -235,21 +237,45 @@ event-handlers: context [
 		code  [block! none!]
 		value [any-type!]
 		ref	  [any-type!]
-		frame [pair!]				;-- current frame start, top
+		frame [pair!]									;-- current frame start, top
+		/extern profiling
 	][
 		switch event [
-			call [
-				if function? :value [
-					probe ref
+			call   [
+				if all [options/count-types find options/count-types type? :value][
+					repend fun-stk [ref now/precise]
+					either pos: find/only/skip profiling ref 3 [
+						pos/2: pos/2 + 1
+					][
+						repend profiling [ref 1 0]
+					]
 				]
 			]
 			return [
-			
+				unless empty? fun-stk [
+					entry: skip tail fun-stk -2
+					pos: find/only/skip profiling first entry 3
+					pos/3: pos/3 + difference now/precise entry/2
+					clear entry
+				]
+			]
+			init [
+				clear profiling
+				clear fun-stk
+			]
+			end [
+				sort/skip/reverse/compare profiling 3 2
+				rank: 1
+				foreach [name cnt duration] profiling [
+					print [pad append copy "#" rank 4 pad name 16 #"|" pad cnt 10 #"|" pad duration 10]
+					rank: rank + 1
+				]
 			]
 		]
 	]
 ]
 
+trace:   func [code [any-type!]][do/trace :code :event-handlers/tracer]
 debug:   func [code [any-type!]][do/trace :code :event-handlers/debugger]
 profile: func [code [any-type!]][do/trace :code :event-handlers/profiler]
 
@@ -269,11 +295,12 @@ profile: func [code [any-type!]][do/trace :code :event-handlers/profiler]
 ;do/trace [print fibo 4] :event-handlers/tracer
 ;quit
 
-;foo: function [a [integer!]][@stop print either result: odd? a ["ODD"]["EVEN"] @go result]
-;bar: function [s [string!]][(length? s) + 'e make integer! foo 4]
-;baz: function [][print bar "hello"]
-;
-;debug [baz]
+foo: function [a [integer!]][@stop print either result: odd? a ["ODD"]["EVEN"] @go result]
+bar: function [s [string!]][(length? s) + make integer! foo 4]
+baz: function [][print bar "hello"]
 
-profile %demo.red
+;debug [baz]
+;profile [baz]
+
+;profile %demo.red
 
