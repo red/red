@@ -766,6 +766,8 @@ words: context [
 	_prolog:		as red-word! 0
 	_epilog:		as red-word! 0
 	
+	_interp-cb:		as red-word! 0
+	
 	errors: context [
 		_throw:		as red-word! 0
 		note:		as red-word! 0
@@ -1033,6 +1035,8 @@ words: context [
 		_exit:			word/load "exit"
 		_prolog:		word/load "prolog"
 		_epilog:		word/load "epilog"
+		
+		_interp-cb:		word/load "<interp-callback>"
 		
 		errors/throw:	 word/load "throw"
 		errors/note:	 word/load "note"

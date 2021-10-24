@@ -156,7 +156,7 @@ interpreter: context [
 		more: as series! trace-fun/more/value
 		int: as red-integer! more/offset + 4
 		ctx: either TYPE_OF(int) = TYPE_INTEGER [as node! int/value][global-ctx]
-		stack/mark-func words/_body	trace-fun/ctx		;@@ find something more adequate
+		stack/mark-func words/_interp-cb trace-fun/ctx
 		evt: switch event [
 			EVT_PROLOG	[words/_prolog]
 			EVT_EPILOG	[words/_epilog]
