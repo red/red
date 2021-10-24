@@ -137,7 +137,7 @@ system/tools: context [
 
 	debugger: function [
 		event [word!]
-		code  [block! none!]
+		code  [block! paren! none!]
 		value [any-type!]
 		ref	  [any-type!]
 		frame [pair!]									;-- current frame start, top
@@ -191,6 +191,7 @@ system/tools: context [
 				clear expr-stk: head expr-stk
 				base: none
 				indent: 0
+				if event = 'end [active?: no]
 			]
 		]
 		if all [active? not find [init end enter exit fetch prolog epilog] event][
@@ -212,7 +213,7 @@ system/tools: context [
 	
 	dumper: function [
 		event [word!]
-		code  [block! none!]
+		code  [block! paren! none!]
 		value [any-type!]
 		ref	  [any-type!]
 		frame [pair!]									;-- current frame start, top
@@ -223,7 +224,7 @@ system/tools: context [
 	
 	tracer: function [
 		event [word!]
-		code  [block! none!]
+		code  [block! paren! none!]
 		value [any-type!]
 		ref	  [any-type!]
 		frame [pair!]									;-- current frame start, top
@@ -244,7 +245,7 @@ system/tools: context [
 	
 	profiler: function [
 		event [word!]
-		code  [block! none!]
+		code  [block! paren! none!]
 		value [any-type!]
 		ref	  [any-type!]
 		frame [pair!]									;-- current frame start, top
