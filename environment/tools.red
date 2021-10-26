@@ -98,8 +98,8 @@ system/tools: context [
 	]
 	
 	do-command: function [event [word!] /extern active?][
-		if value? 'ask [
-			do [
+		if value? 'ask [								;-- `ask` needs a console sub-system
+			do [										;-- prevents `ask` from being compiled
 				until [
 					cmd: trim ask "debug> "
 					case [
