@@ -45,7 +45,7 @@ qt-file-name: none
 qt-verbose: false
 
 ;; temp file for tests involving `write` and `save`
-qt-temp-file: qt-tmp-file: append copy tmp: dirize to-red-file any [get-env 'HOME %.] %testfile.txt
+qt-temp-file: qt-tmp-file: append copy tmp: dirize %. %testfile.txt
 change-dir also what-dir 
   unless attempt [
     write qt-tmp-file "test"                            ;-- test if can write into it

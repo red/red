@@ -3208,6 +3208,12 @@ comment {
 		--assert 1.2.3 = (1.2.3 % 1.#inf)
 		--assert (make vector! [1.0 2.0]) = ((make vector! [1.0 2.0]) % 1.#inf)
 
+	--test-- "#4980"
+		--assert 1 == do/next x4980: quote (1 2 3) 'x4980
+		--assert x4980 == quote (2 3)
+		--assert 1 == do/next x4980: make hash! [1 2 3] 'x4980
+		--assert x4980 == make hash! [2 3]		
+
 ===end-group===
 
 ~~~end-file~~~

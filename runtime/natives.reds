@@ -579,7 +579,7 @@ natives: context [
 		assert system/thrown = 0
 		catch RED_THROWN_BREAK [
 			switch TYPE_OF(arg) [
-				TYPE_BLOCK [DO_EVAL_BLOCK]
+				TYPE_ANY_LIST [DO_EVAL_BLOCK]
 				TYPE_PATH  [
 					interpreter/eval-path arg arg arg + 1 null no no no no
 				]
@@ -2694,9 +2694,9 @@ natives: context [
 
 	compress*: func [
 		check?	 [logic!]
-		zlib	 [integer!]
-		_deflate [integer!]
 		/local
+			method	[red-word!]
+			sym		[integer!]
 			arg		[red-binary!]
 			src		[byte-ptr!]
 			srclen	[integer!]
@@ -2706,8 +2706,9 @@ natives: context [
 			s		[series!]
 			dst		[red-binary! value]
 	][
-		#typecheck [compress zlib _deflate]
+		#typecheck compress
 		arg: as red-binary! stack/arguments
+		method: as red-word! arg + 1
 		either TYPE_OF(arg) <> TYPE_BINARY [		;-- any-string!
 			srclen: -1
 			src: as byte-ptr! unicode/to-utf8 as red-string! arg :srclen
@@ -2717,20 +2718,22 @@ natives: context [
 		]
 		buflen: srclen + 32
 
+		sym: symbol/resolve method/symbol
 		loop 2 [	;-- try again in case fails the first time
 			binary/make-at as red-value! dst buflen
 			s: GET_BUFFER(dst)
 			buffer: as byte-ptr! s/offset
 			case [
-				zlib > 0 [
+				compressor/zlib = sym [
 					res: zlib-compress buffer :buflen src srclen
 				]
-				_deflate > 0 [
+				compressor/deflate = sym [
 					res: deflate/compress buffer :buflen src srclen
 				]
-				true [
+				compressor/gzip = sym [
 					res: gzip-compress buffer :buflen src srclen
 				]
+				true [fire [TO_ERROR(script invalid-arg) method]]
 			]
 			if res <> 1 [break]
 		]
@@ -2743,9 +2746,10 @@ natives: context [
 
 	decompress*: func [
 		check?	 [logic!]
-		zlib	 [integer!]
-		_deflate [integer!]
+		size	 [integer!]
 		/local
+			method	[red-word!]
+			sym		[integer!]
 			arg		[red-binary!]
 			sz		[red-integer!]
 			src		[byte-ptr!]
@@ -2756,34 +2760,38 @@ natives: context [
 			s		[series!]
 			buf		[byte-ptr!]
 	][
-		#typecheck [decompress zlib _deflate]
+		#typecheck [decompress size]
 		arg: as red-binary! stack/arguments
+		method: as red-word! arg + 1
 		src: binary/rs-head arg
 		srclen: binary/rs-length? arg
 
+		dstlen: 0
+		if size > 0 [
+			sz: as red-integer! arg + size
+			dstlen: sz/value
+		]
+		sym: symbol/resolve method/symbol
 		case [
-			zlib > 0 [
-				sz: as red-integer! arg + zlib
-				dstlen: sz/value
+			compressor/zlib = sym [
 				if dstlen <= srclen [
 					;-- if dstlen is too small, calculate real buffer size before decompress
 					dstlen: 0
 					zlib-uncompress null :dstlen src srclen
 				]
 			]
-			_deflate > 0 [
-				sz: as red-integer! arg + _deflate
-				dstlen: sz/value
+			compressor/deflate = sym [
 				if dstlen <= srclen [
 					dstlen: 0
 					deflate/uncompress null :dstlen src srclen
 				]
 			]
-			true [
+			compressor/gzip = sym [
 				dstlen: 0
 				;-- get buffer size from gzip format header
 				gzip-uncompress null :dstlen src srclen
 			]
+			true [fire [TO_ERROR(script invalid-arg) method]]
 		]
 
 		loop 2 [	;-- try again in case fails the first time
@@ -2791,9 +2799,9 @@ natives: context [
 			s: GET_BUFFER(dst)
 			buf: as byte-ptr! s/offset
 			res: case [
-				zlib > 0		[zlib-uncompress buf :dstlen src srclen]
-				_deflate > 0	[deflate/uncompress buf :dstlen src srclen]
-				true			[gzip-uncompress buf :dstlen src srclen]
+				sym = compressor/zlib	 [zlib-uncompress buf :dstlen src srclen]
+				sym = compressor/deflate [deflate/uncompress buf :dstlen src srclen]
+				sym = compressor/gzip	 [gzip-uncompress buf :dstlen src srclen]
 			]
 			if res <> 1 [break]
 		]
