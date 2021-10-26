@@ -98,40 +98,44 @@ system/tools: context [
 	]
 	
 	do-command: function [event [word!] /extern active?][
-		until [
-			cmd: trim ask "debug> "
-			case [
-				cmd = #":" [
-					print ["==" mold get/any load next cmd]
-				]
-				find "+-" cmd/1 [
-					mode?: cmd/1 = #"+"
-					switch first list: load/all next cmd [
-						watch w [
-							list: next list
-							either mode? [append watching list][
-								foreach w list [try [remove find watching to-word w]]
+		if value? 'ask [
+			do [
+				until [
+					cmd: trim ask "debug> "
+					case [
+						cmd = #":" [
+							print ["==" mold get/any load next cmd]
+						]
+						find "+-" cmd/1 [
+							mode?: cmd/1 = #"+"
+							switch first list: load/all next cmd [
+								watch w [
+									list: next list
+									either mode? [append watching list][
+										foreach w list [try [remove find watching to-word w]]
+									]
+								]
+								parents p [options/show-parents?: mode?]
+								stack   s [options/show-stack?:   mode?]
+								locals  l [options/show-locals?:  mode?]
+								indent  i [options/stack-indent?: mode?]
 							]
 						]
-						parents p [options/show-parents?: mode?]
-						stack   s [options/show-stack?:   mode?]
-						locals  l [options/show-locals?:  mode?]
-						indent  i [options/stack-indent?: mode?]
-					]
-				]
-				'else [
-					unless empty? list: load/all cmd [
-						switch list/1 [
-							parents p	[show-parents event]
-							stack s		[show-stack]
-							next n		[]
-							continue c  [active?: no cmd: ""]
-							q			[halt]
+						'else [
+							unless empty? list: load/all cmd [
+								switch list/1 [
+									parents p	[show-parents event]
+									stack s		[show-stack]
+									next n		[]
+									continue c  [active?: no cmd: ""]
+									q			[halt]
+								]
+							]
 						]
 					]
+					empty? cmd
 				]
 			]
-			empty? cmd
 		]
 	]
 
