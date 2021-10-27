@@ -103,33 +103,78 @@ Red/System [
 interpreter: context [
 	verbose: 0
 	
-	trace?: no
-	trace-fun: as red-function! 0
-	fun-locs: 0
+	trace?:	    no
+	trace-fun:  as red-function! 0
+	fun-locs:	0
+	fun-evts:	0										;-- bitmask for encoding selected events
+	all-events:	1FFFFh									;-- bit-mask of all events
 
 	#enum events! [
-		EVT_INIT
-		EVT_END
-		EVT_PROLOG
-		EVT_EPILOG
-		EVT_ENTER
-		EVT_EXIT
-		EVT_OPEN
-		EVT_RETURN
-		EVT_FETCH
-		EVT_PUSH
-		EVT_SET
-		EVT_CALL
-		EVT_ERROR
-		EVT_THROW
-		EVT_CATCH
-		EVT_EVAL_PATH
-		EVT_SET_PATH
+		EVT_INIT:			00000001h
+		EVT_END:			00000002h
+		EVT_PROLOG:			00000004h
+		EVT_EPILOG:			00000008h
+		EVT_ENTER:			00000010h
+		EVT_EXIT:			00000020h
+		EVT_OPEN:			00000040h
+		EVT_RETURN:			00000080h
+		EVT_FETCH:			00000100h
+		EVT_PUSH:			00000200h
+		EVT_SET:			00000400h
+		EVT_CALL:			00000800h
+		EVT_ERROR:			00001000h
+		;EVT_THROW:			00002000h					;-- reserved for future use
+		;EVT_CATCH:			00004000h
+		;EVT_EVAL_PATH:		00008000h
+		;EVT_SET_PATH:		00010000h
 	]
 	
 	log: func [msg [c-string!]][
 		print "eval: "
 		print-line msg
+	]
+	
+	decode-filter: func [fun [red-function!] return: [integer!]
+		/local
+			evts flag sym [integer!]
+			value tail [red-word!]
+			blk		   [red-block!]
+			s		   [series!]
+	][
+		s: as series! fun/more/value
+		blk: as red-block! s/offset
+		if any [TYPE_OF(blk) <> TYPE_BLOCK block/rs-tail? blk][return all-events]
+		blk: as red-block! block/rs-head blk
+		if TYPE_OF(blk) <> TYPE_BLOCK [return all-events]
+
+		s: GET_BUFFER(blk)
+		value: as red-word! s/offset + blk/head
+		tail:  as red-word! s/tail
+		evts:  0
+		while [value < tail][
+			if TYPE_OF(value) = TYPE_WORD [
+				sym: symbol/resolve value/symbol
+				flag: case [
+					sym = words/_prolog/symbol	[EVT_PROLOG]
+					sym = words/_epilog/symbol	[EVT_EPILOG]
+					sym = words/_enter/symbol	[EVT_ENTER]
+					sym = words/_exit/symbol	[EVT_EXIT]
+					sym = words/_fetch/symbol	[EVT_FETCH]
+					sym = words/_push/symbol	[EVT_PUSH]
+					sym = words/_open/symbol	[EVT_OPEN]
+					sym = words/_return/symbol	[EVT_RETURN]
+					sym = words/_set/symbol		[EVT_SET]
+					sym = words/_call/symbol	[EVT_CALL]
+					sym = words/_error/symbol	[EVT_ERROR]
+					sym = words/_init/symbol	[EVT_INIT]
+					sym = words/_end/symbol		[EVT_END]
+					true						[0]				;-- ignore invalid names
+				]
+				evts: evts or flag
+			]
+			value: value + 1
+		]
+		evts
 	]
 
 	fire-event: func [
@@ -147,6 +192,8 @@ interpreter: context [
 			csaved [int-ptr!]
 	][
 		assert all [trace-fun <> null TYPE_OF(trace-fun) = TYPE_FUNCTION]
+		if fun-evts and event = 0 [exit]
+		
 		base: (as-integer stack/arguments - stack/bottom) >> 4
 		top:  (as-integer stack/top - stack/bottom) >> 4
 		saved: stack/top

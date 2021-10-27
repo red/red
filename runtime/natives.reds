@@ -570,6 +570,7 @@ natives: context [
 		if fun? [
 			;if interpreter/trace-fun <> null [fire [TO_ERROR()...]]
 			interpreter/fun-locs: _function/count-locals fun/spec 0 no
+			interpreter/fun-evts: interpreter/decode-filter fun
 			copy-cell as red-value! fun as red-value! interpreter/trace-fun
 			interpreter/trace?: yes
 			interpreter/fire-init

@@ -234,6 +234,8 @@ system/tools: context [
 		frame [pair!]									;-- current frame start, top
 		/extern indent
 	][
+		[init end open push call prolog epilog set return error] ;-- only request those events
+		
 		either find [init end] event [indent: 0][		;-- eat END event too
 			unless find [enter exit fetch] event [
 				if event = 'open [indent: indent + 1]
@@ -255,6 +257,8 @@ system/tools: context [
 		frame [pair!]									;-- current frame start, top
 		/extern profiling
 	][
+		[init end call return]							;-- only request those events
+		
 		switch event [
 			call   [
 				if all [options/count-types find options/count-types type? :value][
