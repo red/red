@@ -27,6 +27,7 @@ system/tools: context [
 		show-locals?:	no
 		stack-indent?:	no
 		detailed?:		yes
+		trace-indent?:	yes
 		count-types:	make typeset! [function! action! native! op!]
 	]
 
@@ -238,13 +239,13 @@ system/tools: context [
 		
 		either find [init end] event [indent: 0][		;-- eat END event too
 			unless find [enter exit fetch] event [
-				if event = 'open [indent: indent + 1]
+				if event = 'return [indent: indent - 1]
 				if any-function? :value [value: type? :value]
-				prin "->"
-				loop indent [prin space]
+				prin "-> "
+				if options/trace-indent? [loop indent [prin space]]
 				prin [uppercase mold event mold/part/flat :value 60]
 				prin either ref [rejoin ["  (" ref #")" lf]][lf]
-				if event = 'return [indent: indent - 1]
+				if event = 'open [indent: indent + 1]
 			]
 		]
 	]
