@@ -22,13 +22,16 @@ system/tools: context [
 	active?: no
 	
 	options: context [
-		show-stack?:	no
-		show-parents?:	no
-		show-locals?:	no
-		stack-indent?:	no
-		detailed?:		yes
-		trace-indent?:	yes
-		count-types:	make typeset! [function! action! native! op!]
+		debug: context [
+			show-stack?:	no
+			show-parents?:	no
+			show-locals?:	no
+			stack-indent?:	no
+			types:			make typeset! [function! action! native! op!]
+		]
+		trace: context [
+			indent?:		yes
+		]
 	]
 
 	mold-mapped: function [code [block! paren!]][
@@ -72,7 +75,7 @@ system/tools: context [
 		foreach [w pos] reverse/skip list 2 [
 			if all [not unset? get/any w function? get/any w][
 				print ["Call:" w]
-				if options/show-locals? [show-context get :w]
+				if options/debug/show-locals? [show-context get :w]
 			]
 		]
 	]
@@ -84,7 +87,7 @@ system/tools: context [
 			unless integer? frame [
 				forall frame [
 					prin "Stack: "
-					if options/stack-indent? [loop indent [prin "  "]]
+					if options/debug/stack-indent? [loop indent [prin "  "]]
 					print mold/part/flat first frame 50
 					if head? frame [indent: indent + 1]
 				]
@@ -116,10 +119,10 @@ system/tools: context [
 										foreach w list [try [remove find watching to-word w]]
 									]
 								]
-								parents p [options/show-parents?: mode?]
-								stack   s [options/show-stack?:   mode?]
-								locals  l [options/show-locals?:  mode?]
-								indent  i [options/stack-indent?: mode?]
+								parents p [options/debug/show-parents?: mode?]
+								stack   s [options/debug/show-stack?:   mode?]
+								locals  l [options/debug/show-locals?:  mode?]
+								indent  i [options/debug/stack-indent?: mode?]
 							]
 						]
 						'else [
@@ -209,8 +212,8 @@ system/tools: context [
 				prin lf
 			]
 			show-watching
-			if options/show-parents? [show-parents event]
-			if options/show-stack? [show-stack]
+			if options/debug/show-parents? [show-parents event]
+			if options/debug/show-stack? [show-stack]
 			do-command event
 			if event = 'error [active?: no]
 		]
@@ -242,7 +245,7 @@ system/tools: context [
 				if event = 'return [indent: indent - 1]
 				if any-function? :value [value: type? :value]
 				prin "-> "
-				if options/trace-indent? [loop indent [prin space]]
+				if options/trace/indent? [loop indent [prin space]]
 				prin [uppercase mold event mold/part/flat :value 60]
 				prin either ref [rejoin ["  (" ref #")" lf]][lf]
 				if event = 'open [indent: indent + 1]
@@ -262,7 +265,7 @@ system/tools: context [
 		
 		switch event [
 			call   [
-				if all [options/count-types find options/count-types type? :value][
+				if all [options/debug/types find options/debug/types type? :value][
 					repend fun-stk [ref now/precise]
 					either pos: find/only/skip profiling ref 3 [
 						pos/2: pos/2 + 1
