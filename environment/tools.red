@@ -238,7 +238,7 @@ system/tools: context [
 		frame [pair!]									;-- current frame start, top
 		/extern indent
 	][
-		[init end open push call prolog epilog set return error] ;-- only request those events
+		[init end open push call prolog epilog set return error catch throw] ;-- only request those events
 		
 		either find [init end] event [indent: 0][		;-- eat END event too
 			unless find [enter exit fetch] event [

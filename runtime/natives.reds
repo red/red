@@ -2114,7 +2114,8 @@ natives: context [
 		name   [integer!]
 	][
 		#typecheck [throw name]
-		if name = -1 [unset/push]						;-- fill this slot anyway for CATCH		
+		if interpreter/trace? [interpreter/fire-throw]
+		if name = -1 [unset/push]						;-- fill this slot anyway for CATCH
 		stack/throw-throw RED_THROWN_THROW
 	]
 	
@@ -2170,6 +2171,7 @@ natives: context [
 			system/thrown: 0
 			stack/set-last stack/get-top
 			stack/top: stack/arguments + 1
+			if interpreter/trace? [interpreter/fire-catch]
 		]
 	]
 	

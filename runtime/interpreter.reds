@@ -123,9 +123,9 @@ interpreter: context [
 		EVT_SET:			00000400h
 		EVT_CALL:			00000800h
 		EVT_ERROR:			00001000h
-		;EVT_THROW:			00002000h					;-- reserved for future use
-		;EVT_CATCH:			00004000h
-		;EVT_EVAL_PATH:		00008000h
+		EVT_THROW:			00002000h
+		EVT_CATCH:			00004000h
+		;EVT_EVAL_PATH:		00008000h					;-- reserved for future use
 		;EVT_SET_PATH:		00010000h
 	]
 	
@@ -168,6 +168,8 @@ interpreter: context [
 					sym = words/_error/symbol	[EVT_ERROR]
 					sym = words/_init/symbol	[EVT_INIT]
 					sym = words/_end/symbol		[EVT_END]
+					sym = words/_throw/symbol	[EVT_THROW]
+					sym = words/_catch/symbol	[EVT_CATCH]
 					true						[0]				;-- ignore invalid names
 				]
 				evts: evts or flag
@@ -218,6 +220,8 @@ interpreter: context [
 			EVT_ERROR	[words/_error]
 			EVT_INIT	[words/_init]
 			EVT_END		[words/_end]
+			EVT_THROW	[words/_throw]
+			EVT_CATCH	[words/_catch]
 			default		[assert false null]
 		]
 		stack/push as red-value! evt					;-- event name
@@ -248,8 +252,10 @@ interpreter: context [
 		stack/set-ctop csaved
 	]
 	
-	fire-init: does [fire-event EVT_INIT null null null]
-	fire-end:  does [fire-event EVT_END  null null null]
+	fire-init:	does [fire-event EVT_INIT null null null]
+	fire-end:	does [fire-event EVT_END  null null null]
+	fire-throw:	does [fire-event EVT_THROW null null stack/arguments]
+	fire-catch:	does [fire-event EVT_CATCH null null stack/arguments]
 	
 	literal-first-arg?: func [
 		native 	[red-native!]
