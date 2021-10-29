@@ -252,10 +252,10 @@ interpreter: context [
 		stack/set-ctop csaved
 	]
 	
-	fire-init:	does [fire-event EVT_INIT null null null]
-	fire-end:	does [fire-event EVT_END  null null null]
-	fire-throw:	does [fire-event EVT_THROW null null stack/arguments]
-	fire-catch:	does [fire-event EVT_CATCH null null stack/arguments]
+	fire-init:	does [if trace? [fire-event EVT_INIT null null null]]
+	fire-end:	does [if trace? [fire-event EVT_END  null null null]]
+	fire-throw:	does [if trace? [fire-event EVT_THROW null null stack/arguments]]
+	fire-catch:	does [if trace? [fire-event EVT_CATCH null null stack/arguments]]
 	
 	literal-first-arg?: func [
 		native 	[red-native!]
