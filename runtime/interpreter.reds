@@ -1002,13 +1002,13 @@ interpreter: context [
 				]
 				stack/mark-interp-func name
 				pc: eval-arguments origin pc end code path slot origin
-				if trace? [
-					fun: as red-function! value
-					assert TYPE_OF(fun) = TYPE_FUNCTION
-					s: as series! fun/more/value
-					origin: as red-native! s/offset + 2
-					if origin/code <> 0 [fire-event EVT_CALL code pos value]
-				]
+				;if trace? [
+				;	fun: as red-function! value
+				;	assert TYPE_OF(fun) = TYPE_FUNCTION
+				;	s: as series! fun/more/value
+				;	origin: as red-native! s/offset + 2
+				;	if origin/code <> 0 [fire-event EVT_CALL code pos value]
+				;]
 				_function/call as red-function! caller ctx
 				either sub? [stack/unwind][stack/unwind-last]
 				#if debug? = yes [
