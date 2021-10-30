@@ -226,7 +226,7 @@ interpreter: context [
 			default		[assert false null]
 		]
 		stack/push as red-value! evt					;-- event name
-		either null? code [stack/push none-value][
+		either null? code [stack/push none-value][		;-- code
 			code: as red-block! stack/push as red-value! code
 			head: block/rs-head code
 			tail: block/rs-tail code
