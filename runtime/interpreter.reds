@@ -334,7 +334,12 @@ interpreter: context [
 		saved: ctx/values
 		ctx/values: as node! stack/arguments
 		stack/set-in-func-flag yes
-		if trace? [fire-event EVT_PROLOG body ref as red-value! fun]
+		if trace? [
+			catch RED_THROWN_ERROR [fire-event EVT_PROLOG body ref as red-value! fun]
+			stack/set-in-func-flag no
+			ctx/values: saved
+			re-throw
+		]
 		assert system/thrown = 0
 		
 		catch RED_THROWN_ERROR [eval body yes]
