@@ -247,7 +247,7 @@ interpreter: context [
 		if positive? fun-locs [_function/init-locals 1 + fun-locs]	;-- +1 for /local refinement
 
 		trace?: no
-		catch RED_THROWN_ERROR [_function/call trace-fun ctx]
+		catch RED_THROWN_ERROR [_function/call trace-fun ctx as red-value! words/_interp-cb]
 		if system/thrown <> 0 [re-throw]
 		trace?: yes
 		
@@ -324,6 +324,7 @@ interpreter: context [
 	eval-function: func [
 		fun  [red-function!]
 		body [red-block!]
+		ref  [red-value!]								;-- referent word! or path!
 		/local
 			ctx	  [red-context!]
 			saved [node!]
@@ -333,7 +334,7 @@ interpreter: context [
 		saved: ctx/values
 		ctx/values: as node! stack/arguments
 		stack/set-in-func-flag yes
-		if trace? [fire-event EVT_PROLOG body null as red-value! fun]
+		if trace? [fire-event EVT_PROLOG body ref as red-value! fun]
 		assert system/thrown = 0
 		
 		catch RED_THROWN_ERROR [eval body yes]
@@ -341,7 +342,7 @@ interpreter: context [
 		if trace? [
 			thrown: system/thrown
 			system/thrown: 0
-			fire-event EVT_EPILOG body null as red-value! fun
+			fire-event EVT_EPILOG body ref as red-value! fun
 			system/thrown: thrown
 		]
 		stack/set-in-func-flag no
@@ -586,7 +587,7 @@ interpreter: context [
 				exec-routine as red-routine! fun
 			][
 				set-locals fun
-				eval-function fun as red-block! more
+				eval-function fun as red-block! more op-pos
 			]
 		][
 			if native? [push yes]						;-- type-checking for natives.
@@ -1006,7 +1007,7 @@ interpreter: context [
 				]
 				stack/mark-interp-func name
 				pc: eval-arguments origin pc end code path slot origin
-				_function/call as red-function! caller ctx
+				_function/call as red-function! caller ctx pos
 				either sub? [stack/unwind][stack/unwind-last]
 				#if debug? = yes [
 					if verbose > 0 [

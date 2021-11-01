@@ -768,6 +768,9 @@ words: context [
 	_throw:			as red-word! 0
 	
 	_interp-cb:		as red-word! 0
+	_lexer-cb:		as red-word! 0
+	_parse-cb:		as red-word! 0
+	_compare-cb:	as red-word! 0
 	
 	errors: context [
 		_throw:		as red-word! 0
@@ -1039,6 +1042,9 @@ words: context [
 		_throw:			word/load "throw"
 		
 		_interp-cb:		word/load "<interp-callback>"
+		_lexer-cb:		word/load "<lexer-callback>"
+		_parse-cb:		word/load "<parse-callback>"
+		_compare-cb:	word/load "<compare-callback>"
 		
 		errors/throw:	 word/load "throw"
 		errors/note:	 word/load "note"

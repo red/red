@@ -216,6 +216,7 @@ _function: context [
 	call: func [
 		fun	[red-function!]
 		ctx [node!]
+		ref [red-value!]
 		/local
 			s	   [series!]
 			native [red-native!]
@@ -227,7 +228,7 @@ _function: context [
 
 		native: as red-native! s/offset + 2
 		either zero? native/code [
-			interpreter/eval-function fun as red-block! s/offset
+			interpreter/eval-function fun as red-block! s/offset ref
 		][
 			fctx: GET_CTX(fun)
 			saved: fctx/values

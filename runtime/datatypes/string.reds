@@ -1339,8 +1339,8 @@ string: context [
 		#if debug? = yes [if verbose > 0 [print-line "string/compare-call"]]
 
 		f: as red-function! fun
-		stack/mark-func words/_body	f/ctx				;@@ find something more adequate
-
+		stack/mark-func words/_compare-cb f/ctx
+		
 		unit: flags >>> 2 and 7
 		c1: get-char value1 unit
 		c2: get-char value2 unit
@@ -1366,7 +1366,7 @@ string: context [
 			s2/tail: as red-value! (value2 + (num << (log-b unit)))
 		]
 
-		_function/call f global-ctx						;FIXME: hardcoded origin context
+		_function/call f global-ctx as red-value! words/_compare-cb	;FIXME: hardcoded origin context
 		stack/unwind
 		stack/pop 1
 
