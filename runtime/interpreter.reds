@@ -187,6 +187,7 @@ interpreter: context [
 		/local
 			saved head tail [red-value!]
 			evt   [red-word!]
+			ref	  [red-value!]
 			int	  [red-integer!]
 			more  [series!]
 			ctx	  [node!]
@@ -237,8 +238,11 @@ interpreter: context [
 		]
 		if any [value = null TYPE_OF(value) = 0][value: unset-value]
 		stack/push value								;-- value
-		value: either any [event = EVT_CALL event = EVT_RETURN][pc][none-value]
-		stack/push value								;-- push calling reference (word, path,...)
+		ref: switch event [
+			EVT_CALL EVT_RETURN EVT_PROLOG EVT_EPILOG [pc]	;-- pass reference through pc
+			default [none-value]
+		]
+		stack/push ref									;-- reference (word, path,...)
 		pair/push base top								;-- frame (pair!)
 		if positive? fun-locs [_function/init-locals 1 + fun-locs]	;-- +1 for /local refinement
 
@@ -329,7 +333,7 @@ interpreter: context [
 		saved: ctx/values
 		ctx/values: as node! stack/arguments
 		stack/set-in-func-flag yes
-		if trace? [fire-event EVT_PROLOG null as red-value! fun null]
+		if trace? [fire-event EVT_PROLOG body null as red-value! fun]
 		assert system/thrown = 0
 		
 		catch RED_THROWN_ERROR [eval body yes]
@@ -337,7 +341,7 @@ interpreter: context [
 		if trace? [
 			thrown: system/thrown
 			system/thrown: 0
-			fire-event EVT_EPILOG null as red-value! fun null
+			fire-event EVT_EPILOG body null as red-value! fun
 			system/thrown: thrown
 		]
 		stack/set-in-func-flag no
@@ -1002,13 +1006,6 @@ interpreter: context [
 				]
 				stack/mark-interp-func name
 				pc: eval-arguments origin pc end code path slot origin
-				;if trace? [
-				;	fun: as red-function! value
-				;	assert TYPE_OF(fun) = TYPE_FUNCTION
-				;	s: as series! fun/more/value
-				;	origin: as red-native! s/offset + 2
-				;	if origin/code <> 0 [fire-event EVT_CALL code pos value]
-				;]
 				_function/call as red-function! caller ctx
 				either sub? [stack/unwind][stack/unwind-last]
 				#if debug? = yes [
