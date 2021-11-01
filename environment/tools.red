@@ -227,7 +227,7 @@ system/tools: context [
 		frame [pair!]									;-- current frame start, top
 	][
 		unless idx [idx: all [code index? code]]
-		print [event idx mold/part/flat :value 20 frame]
+		print [uppercase form event idx mold/part/flat :ref 20 mold/part/flat :value 20 frame]
 	]
 	
 	tracer: function [

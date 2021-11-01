@@ -298,6 +298,7 @@ profile: func [code [any-type!]][do/trace :code :event-handlers/profiler]
 foo: function [a [integer!]][@stop print either result: odd? a ["ODD"]["EVEN"] @go result]
 bar: function [s [string!]][(length? s) + make integer! foo 4]
 baz: function [][print bar "hello"]
+do/trace [baz] :system/tools/dumper
 
 ;debug [baz]
 ;profile [baz]
