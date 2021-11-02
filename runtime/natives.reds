@@ -578,7 +578,7 @@ natives: context [
 		if next > 0 [slot: _context/get as red-word! stack/arguments + next]
 		
 		assert system/thrown = 0
-		catch RED_THROWN_BREAK [
+		catch RED_THROWN_ERROR [
 			switch TYPE_OF(arg) [
 				TYPE_ANY_LIST [DO_EVAL_BLOCK]
 				TYPE_PATH  [
@@ -616,8 +616,8 @@ natives: context [
 					system/thrown						;-- request an early exit from caller
 				]
 			]
-			0			[0]
-			default 	[re-throw 0]					;-- 0 to make compiler happy
+			0			[0]								;-- no exception case
+			default 	[re-throw 0]					;-- all other exceptions (0 to make compiler happy)
 		]
 	]
 	
