@@ -1107,6 +1107,7 @@ interpreter: context [
 				if pc >= end [fire [TO_ERROR(script need-value) value]]
 				stack/mark-interp-native words/_set-path
 				pc: eval-expression pc end code no yes no	;-- yes: push value on top of stack
+				if trace? [fire-event EVT_SET code value stack/get-top]
 				pc: eval-path value pc end code yes yes sub? no
 				either sub? [stack/unwind][stack/unwind-last]
 			]
