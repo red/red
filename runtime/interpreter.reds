@@ -336,9 +336,12 @@ interpreter: context [
 		stack/set-in-func-flag yes
 		if trace? [
 			catch RED_THROWN_ERROR [fire-event EVT_PROLOG body ref as red-value! fun]
-			stack/set-in-func-flag no
-			ctx/values: saved
-			re-throw
+			if system/thrown >= RED_THROWN_THROW [
+				stack/set-in-func-flag no
+				ctx/values: saved
+				re-throw
+			]
+			system/thrown: 0
 		]
 		assert system/thrown = 0
 		
