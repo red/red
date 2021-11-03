@@ -1103,6 +1103,7 @@ interpreter: context [
 			]
 			TYPE_SET_PATH [
 				value: pc
+				if trace? [fire-event EVT_PUSH code pc pc]
 				pc: pc + 1
 				if pc >= end [fire [TO_ERROR(script need-value) value]]
 				stack/mark-interp-native words/_set-path
