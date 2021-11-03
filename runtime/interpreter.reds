@@ -239,7 +239,7 @@ interpreter: context [
 		if any [value = null TYPE_OF(value) = 0][value: unset-value]
 		stack/push value								;-- value
 		ref: switch event [
-			EVT_CALL EVT_RETURN EVT_PROLOG EVT_EPILOG [pc]	;-- pass reference through pc
+			EVT_CALL EVT_RETURN EVT_PROLOG EVT_EPILOG EVT_SET [pc]	;-- pass reference through pc
 			default [none-value]
 		]
 		stack/push ref									;-- reference (word, path,...)

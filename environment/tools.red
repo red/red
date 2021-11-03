@@ -203,20 +203,17 @@ system/tools: context [
 		]
 		if all [active? not find [init end enter exit fetch prolog epilog] event][
 			if any-function? :value [value: type? :value]
-			print ["----->" uppercase mold event mold/part/flat :value 60]
+			print either event = 'set [
+				["----->" uppercase mold event ref mold/part/flat :value 60]
+			][
+				["----->" uppercase mold event mold/part/flat :value 60]
+			]
 			if code [
 				set [out pos len] mold-mapped code
 				print ["Input:" out]
 				loop 7 + pos [prin space]
 				loop len [prin #"^^"]
 				prin lf
-			]
-			if event = 'set [
-				print either any-word? first entry [
-					["Word:" to lit-word! :entry/1]
-				][
-					["Path:" to lit-path! first entry]
-				]
 			]
 			show-watching
 			if options/debug/show-parents? [show-parents event]
