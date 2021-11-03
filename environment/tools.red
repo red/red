@@ -189,7 +189,6 @@ system/tools: context [
 			set 
 			return [
 				set/any 'entry take/last expr-stk
-				if all [active? event = 'set][print ["Word:" to lit-word! :entry/1]]
 				unless empty? expr-stk [append/only last expr-stk :value]
 			]
 			error [active?: yes]						;-- forces debug console activation
@@ -206,10 +205,18 @@ system/tools: context [
 			if any-function? :value [value: type? :value]
 			print ["----->" uppercase mold event mold/part/flat :value 60]
 			if code [
-				print ["Input:" set [out pos len] mold-mapped code out]
+				set [out pos len] mold-mapped code
+				print ["Input:" out]
 				loop 7 + pos [prin space]
 				loop len [prin #"^^"]
 				prin lf
+			]
+			if event = 'set [
+				print either any-word? first entry [
+					["Word:" to lit-word! :entry/1]
+				][
+					["Path:" to lit-path! first entry]
+				]
 			]
 			show-watching
 			if options/debug/show-parents? [show-parents event]
@@ -297,7 +304,7 @@ system/tools: context [
 		]
 	]
 	
-	set 'trace   func [code [any-type!]][do/trace :code :tracer]
-	set 'debug   func [code [any-type!]][do/trace :code :debugger]
+	set 'trace   func [code [any-type!] /raw][do/trace :code either raw [:dumper][:tracer]]
+	set 'debug   func [code [any-type!] /later][active?: not later do/trace :code :debugger]
 	set 'profile func [code [any-type!]][do/trace :code :profiler]
 ]
