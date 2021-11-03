@@ -156,8 +156,7 @@ system/tools: context [
 		
 		switch event [
 			fetch [
-				if :value = @stop [active?: yes]
-				if :value = @go   [active?: no]
+				switch :value [@stop [active?: yes]	@go [active?: no]]
 			]
 			enter [
 				append/only code-stk split mold/only/flat code space
