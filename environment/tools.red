@@ -33,20 +33,23 @@ system/tools: context [
 			indent?:		yes
 		]
 	]
+	
+	calc-max: func [used [integer!] return: [integer!]][system/console/size/x - used]
 
 	mold-mapped: function [code [block! paren!]][
 		out: clear ""
 		pos: 1
 		len: 0
 		idx: index? code
+		cols: calc-max 7								;-- account for "Input: "
 
 		code: head last code-stk
 		append out #"["
 		forall code [
 			append out value: code/1
 			unless tail? next code [append out space]
-			if 60 < length? out [
-				append clear at out 57 "..."
+			if cols < length? out [
+				append clear at out cols - 3 "..."
 				break
 			]
 			if idx = index? code [len: length? value]
@@ -58,11 +61,8 @@ system/tools: context [
 	
 	show-context: function [ctx [function! object!]][
 		foreach w words-of :ctx [
-			prin [
-				"  >"
-				pad mold :w 10
-				#":" mold/flat/part try [get/any :w] 60
-			]
+			prin out: rejoin ["  > " pad mold :w 10 ": "]
+			prin mold/flat/part try [get/any :w] calc-max length? out
 			either find [none true false unset] :w [print " (word!)"][prin lf]
 		]
 	]
@@ -88,7 +88,7 @@ system/tools: context [
 				forall frame [
 					prin "Stack: "
 					if options/debug/stack-indent? [loop indent [prin "  "]]
-					print mold/part/flat first frame 50
+					print mold/part/flat first frame calc-max 7 + (indent * 2)
 					if head? frame [indent: indent + 1]
 				]
 			]
@@ -97,7 +97,10 @@ system/tools: context [
 	]
 	
 	show-watching: function [][
-		foreach w watching [print ["Watch:" mold w ":" mold/flat/part get/any w 60]]
+		foreach w watching [
+			prin out: rejoin ["Watch: " mold w ": "]
+			print mold/flat/part get/any w calc-max length? out
+		]
 		unless empty? watching [print lf]
 	]
 	
@@ -155,9 +158,7 @@ system/tools: context [
 		unless base [base: frame/1]
 		
 		switch event [
-			fetch [
-				switch :value [@stop [active?: yes]	@go [active?: no]]
-			]
+			fetch [switch :value [@stop [active?: yes] @go [active?: no]]]
 			enter [
 				append/only code-stk split mold/only/flat code space
 				unless empty? head expr-stk [
@@ -202,11 +203,13 @@ system/tools: context [
 		]
 		if all [active? not find [init end enter exit fetch prolog epilog] event][
 			if any-function? :value [value: type? :value]
-			print either event = 'set [
-				["----->" uppercase mold event ref mold/part/flat :value 60]
-			][
-				["----->" uppercase mold event mold/part/flat :value 60]
+			prin out: rejoin ["-----> " uppercase mold event space]
+			if event = 'set [
+				append out ref: form ref
+				prin ref
 			]
+			print mold/part/flat :value calc-max length? out
+			
 			if code [
 				set [out pos len] mold-mapped code
 				print ["Input:" out]
@@ -214,9 +217,10 @@ system/tools: context [
 				loop len [prin #"^^"]
 				prin lf
 			]
-			show-watching
-			if options/debug/show-parents? [show-parents event]
-			if options/debug/show-stack? [show-stack]
+			unless empty? watching			[show-watching]
+			if options/debug/show-parents?	[show-parents event]
+			if options/debug/show-stack?	[show-stack]
+			
 			do-command event
 			if event = 'error [active?: no]
 		]
@@ -230,7 +234,7 @@ system/tools: context [
 		frame [pair!]									;-- current frame start, top
 	][
 		unless idx [idx: all [code index? code]]
-		print [uppercase form event idx mold/part/flat :ref 20 mold/part/flat :value 20 frame]
+		print [uppercase form event idx mold/part/flat :ref 30 mold/part/flat :value 30 frame]
 	]
 	
 	tracer: function [
@@ -243,14 +247,24 @@ system/tools: context [
 	][
 		[init end open push call prolog epilog set return error catch throw] ;-- only request those events
 		
-		either find [init end] event [indent: 0][		;-- eat END event too
+		either find [init end] event [
+			if event = 'end [prin lf]
+			indent: 0
+		][
 			unless find [enter exit fetch] event [
 				if event = 'return [indent: indent - 1]
 				if any-function? :value [value: type? :value]
-				prin "-> "
-				if options/trace/indent? [loop indent [prin space]]
-				prin [uppercase mold event mold/part/flat :value 60]
-				prin either ref [rejoin ["  (" ref #")" lf]][lf]
+				
+				out: clear ""
+				append out "-> "
+				if options/trace/indent? [append/dup out space indent]
+				append out uppercase mold event
+				ref: either ref [rejoin ["  (" ref #")"]][""]
+				append out space
+				append out mold/part/flat :value calc-max (length? out) + length? ref
+				append out ref
+				print out
+				
 				if event = 'open [indent: indent + 1]
 			]
 		]
