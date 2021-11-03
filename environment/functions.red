@@ -883,7 +883,7 @@ split-path: func [
 	reduce [dir pos]
 ]
 
-do-file: function ["Internal Use Only" file [file! url!]][
+do-file: function ["Internal Use Only" file [file! url!] callback [function! none!]][
 	ws: charset " ^-^M^/"
 	saved: system/options/path
 	unless parse/case read file [some [[src: "Red" opt "/System" any ws #"[" to end] | skip]] [
@@ -905,6 +905,8 @@ do-file: function ["Internal Use Only" file [file! url!]][
 	][
 		foreach c list [append system/locale/currencies/list c]
 	]
+	if :callback [code: compose/only [do/trace (code) :callback]]
+	
 	set/any 'code try/all/keep [
 		either 'halt-request = set/any 'code catch/name code 'console [
 			print "(halted)"							;-- returns an unset value

@@ -205,7 +205,7 @@ system/tools: context [
 			if any-function? :value [value: type? :value]
 			prin out: rejoin ["-----> " uppercase mold event space]
 			if event = 'set [
-				append out ref: form ref
+				append out ref: rejoin [ref space]
 				prin ref
 			]
 			print mold/part/flat :value calc-max length? out
@@ -314,7 +314,16 @@ system/tools: context [
 		]
 	]
 	
-	set 'trace   func [code [any-type!] /raw][do/trace :code either raw [:dumper][:tracer]]
-	set 'debug   func [code [any-type!] /later][active?: not later do/trace :code :debugger]
 	set 'profile func [code [any-type!]][do/trace :code :profiler]
+	
+	set 'trace   func [code [any-type!] /raw][do/trace :code either raw [:dumper][:tracer]]
+	
+	set 'debug   func [code [any-type!] /later][
+		active?: not later
+		either find [file! url!] type?/word :code [
+			do-file code :debugger
+		][
+			do/trace :code :debugger
+		]
+	]
 ]

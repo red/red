@@ -589,7 +589,7 @@ natives: context [
 					DO_EVAL_BLOCK
 				]
 				TYPE_URL 
-				TYPE_FILE  [#call [do-file as red-file! arg]]
+				TYPE_FILE  [#call [do-file as red-file! arg none-value]]
 				TYPE_ERROR [
 					stack/throw-error as red-object! arg
 				]
