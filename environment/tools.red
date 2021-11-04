@@ -276,26 +276,33 @@ system/tools: context [
 		value [any-type!]
 		ref	  [any-type!]
 		frame [pair!]									;-- current frame start, top
-		/extern profiling
 	][
-		[init end call return]							;-- only request those events
+		[init end call return prolog epilog]			;-- only request those events
 		
 		switch event [
+			prolog [									;-- entering a function!
+				time: now/precise
+				poke skip tail fun-stk -2 1 time		;-- update start-time
+			]
+			epilog [									;-- exiting a function!
+				poke back tail fun-stk 1 now/precise	;-- update start-time
+			]
 			call   [
 				if all [options/debug/types find options/debug/types type? :value][
-					repend fun-stk [ref now/precise]
 					either pos: find/only/skip profiling ref 3 [
 						pos/2: pos/2 + 1
 					][
 						repend profiling [ref 1 0]
 					]
+					repend fun-stk [ref now/precise none] ;-- [name start-time end-time]
 				]
 			]
 			return [
+				time: now/precise
 				unless empty? fun-stk [
-					entry: skip tail fun-stk -2
+					entry: skip tail fun-stk -3
 					pos: find/only/skip profiling first entry 3
-					pos/3: pos/3 + difference now/precise entry/2
+					pos/3: pos/3 + difference any [entry/3 time] entry/2
 					clear entry
 				]
 			]
