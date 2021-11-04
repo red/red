@@ -321,16 +321,35 @@ system/tools: context [
 		]
 	]
 	
-	set 'profile func [code [any-type!]][do/trace :code :profiler]
-	
-	set 'trace   func [code [any-type!] /raw][do/trace :code either raw [:dumper][:tracer]]
-	
-	set 'debug   func [code [any-type!] /later][
-		active?: not later
+	do-handler: func [code [any-type!] handler [function!]][
 		either find [file! url!] type?/word :code [
-			do-file code :debugger
+			do-file code :handler						;-- delay handler triggering once resource is acquired
 		][
-			do/trace :code :debugger
+			do/trace :code :handler
 		]
+	]
+	
+	set 'profile func [
+		"Profile the argument code, counting calls and their duration and printing a report"
+		code [any-type!] "Code to profile"
+	][
+		do-handler :code :profiler
+	]
+	
+	set 'trace function [
+		"Runs argument code and prints an evaluation trace"
+		code [any-type!] "Code to trace"
+		/raw			 "Switch to raw interpreter events tracing"
+	][
+		do-handler :code either raw [:dumper][:tracer]
+	]
+	
+	set 'debug func [
+		"Runs argument code through an interactive debugger"
+		code [any-type!] "Code to debug"
+		/later			 "Enters the interactive debugger later, on reading @stop value"
+	][
+		active?: not later
+		do-handler :code :debugger
 	]
 ]
