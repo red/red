@@ -709,6 +709,14 @@ make-profilable make target-class [
 		emit #{9D}									;-- POPFD	(to EFLAGS)
 		emit #{61}									;-- POPAD
 	]
+	
+	emit-clear-slot: func [name [word!] /local opcode offset][
+		opcode: #{C745}								;-- MOV dword [ebp+n], value	; local
+		offset: stack-encode emitter/local-offset? name
+		emit adjust-disp32 opcode offset
+		emit offset
+		emit to-bin32 0
+	]
 
 	emit-log-b: func [type][
 		if type = 'byte! [emit #{25FF000000}]		;-- AND eax, 0xFF

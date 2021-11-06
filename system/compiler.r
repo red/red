@@ -1278,6 +1278,13 @@ system-dialect: make-profilable context [
 			]
 		]
 		
+		;; @@ This function can be removed once precise GC stack scanning is implemented.
+		clean-byte-locals: func [locals [block!] /local list name][
+			list: clear []
+			parse locals [thru /local any [name: word! into ['byte!] (append list name/1) | skip]]
+			foreach name list [emitter/target/emit-clear-slot name]
+		]
+		
 		compare-func-specs: func [
 			f-type [block!] c-type [block!] /with fun [word!] cb [get-word! object!] /local spec pos idx
 		][
@@ -3855,6 +3862,7 @@ system-dialect: make-profilable context [
 			func-name: name
 			set [args-sz local-sz] emitter/enter name locals ;-- build function prolog
 			func-locals-sz: local-sz
+			clean-byte-locals spec
 			preprocess-subroutines spec body
 			pc: body
 			

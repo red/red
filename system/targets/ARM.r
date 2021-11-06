@@ -1270,6 +1270,11 @@ make-profilable make target-class [
 		emit-i32 #{ecbd0b21}						;-- FLDMIAX sp!, {d0-d15}
 		emit-i32 #{e8bd57ff}						;-- LDMFD sp!, {r0-r12,r14}
 	]
+	
+	emit-clear-slot: func [name [word!]][
+		emit-load-imm32 0
+		emit-load-local #{e58b0000} emitter/local-offset? name ;-- STR r0, [fp, #[-]n]		; local
+	]
 
 	emit-io-write: func [type][
 		if verbose >= 3 [print ">>>emitting SYSTEM/IO/WRITE"]
