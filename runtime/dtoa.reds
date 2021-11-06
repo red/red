@@ -1409,11 +1409,11 @@ dtoa: context [
 		s0: s
 		s1: s
 		c: s/1
-		while [true][
+		while [s < end][
 			case [
 				all [c >= #"0" c <= #"9"][s: s + 1]
 				c = #"'" [
-					if s/2 = #"'" [ret/value: 1 return rv]
+					if s/2 = #"'" [ret/value: 999999 return rv]
 					move-memory s s + 1 as-integer end - s
 					end: end - 1
 				]
@@ -1439,14 +1439,14 @@ dtoa: context [
 			]
 			if zero? ndigits [
 				s1: s
-				while [c: s/1 c = #"0"][s: s + 1]
+				while [c: s/1 all [s < end c = #"0"]][s: s + 1]
 				fraclen: fraclen + (s - s1)
 				s0: s
 			]
 			s1: s
 			while [
 				c: s/1
-				all [c >= #"0" c <= #"9"]
+				all [s < end c >= #"0" c <= #"9"]
 			][s: s + 1]
 			ndigits: ndigits + (s - s1)
 			fraclen: fraclen + (s - s1)
@@ -1486,7 +1486,7 @@ dtoa: context [
 		if nd0 <= 0 [nd0: nd]
 
 		;-- finish parsing
-		ret/value: as-integer s <> end
+		ret/value: as-integer end - s
 
 		if zero? nd [return either neg? [d/int2: 80000000h rv][0.0]]
 

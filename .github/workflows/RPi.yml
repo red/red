@@ -8,9 +8,7 @@ jobs:
     name: Build RPi Tests
     steps:
     - name: No auto LF conversion
-      run: |
-        git config --global core.autocrlf false
-        git config --global core.eol lf
+      run: git config --global core.autocrlf false
 
     - name: Checkout
       uses: actions/checkout@v2
