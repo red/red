@@ -19,15 +19,13 @@ jobs:
         $output = "$Env:GITHUB_WORKSPACE\rebview.exe"
         (New-Object System.Net.WebClient).DownloadFile($url, $output)
 
-    - name: Build Tests
+    - name: Build Red Tests
       run: rebview.exe -qws tests/build-arm-tests.r -t RPi
       shell: cmd
 
-    - uses: actions/upload-artifact@v2
-      with:
-        name: red-repo
-        path: ${{ github.workspace }}
-        retention-days: 3
+    - name: Build Red/System Tests
+      run: rebview.exe -qws system/tests/build-arm-tests.r -t RPi
+      shell: cmd
 
     - uses: actions/upload-artifact@v2
       with:
@@ -35,10 +33,45 @@ jobs:
         path: quick-test/runnable/arm-tests/red
         retention-days: 3
 
-  Run-RPi-Tests:
+    - uses: actions/upload-artifact@v2
+      with:
+        name: rpi-rs-bin
+        path: quick-test/runnable/arm-tests/system
+        retention-days: 3
+
+  Run-RPi-RS-Tests:
 
     runs-on: [self-hosted, linux, arm]
     needs: Build-RPi-Tests
+    
+    steps:
+    - name: Clean working directory
+      run: |
+        echo "Cleaning up previous run"
+        rm -rf ${{ github.workspace }}/*
+
+    - name: Retrieve tests
+      uses: actions/download-artifact@v2
+      with:
+        name: rpi-rs-bin
+
+    - name: Run tests
+      run: |
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/.
+        chmod +x run-all.sh
+        ./run-all.sh
+
+    # upload log file if any test failed
+    - uses: actions/upload-artifact@v2
+      if: failure()
+      with:
+        name: RPi-RS-Tests-log
+        path: quick-test.log
+
+  Run-RPi-Tests:
+
+    runs-on: [self-hosted, linux, arm]
+    needs: Run-RPi-RS-Tests
     
     steps:
     - name: Clean working directory
