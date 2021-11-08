@@ -32,6 +32,9 @@ system/tools: context [
 		trace: context [
 			indent?:		yes
 		]
+		profile: context [
+			sort-by: 		'count
+		]
 	]
 	
 	calc-max: func [used [integer!] return: [integer!]][system/console/size/x - used]
@@ -311,7 +314,12 @@ system/tools: context [
 				clear fun-stk
 			]
 			end [
-				sort/skip/reverse/compare profiling 3 2
+				by: select [name 1 count 2 time 3] options/profile/sort-by
+				either by = 1 [
+					sort/skip/compare profiling 3 by	;-- sort in alphabetical order
+				][
+					sort/skip/reverse/compare profiling 3 by ;-- sort count/time in decreasing order
+				]
 				rank: 1
 				foreach [name cnt duration] profiling [
 					print [pad append copy "#" rank 4 pad name 16 #"|" pad cnt 10 #"|" pad duration 10]
@@ -330,9 +338,12 @@ system/tools: context [
 	]
 	
 	set 'profile func [
-		"Profile the argument code, counting calls and their duration and printing a report"
+		"Profile the argument code, counting calls and their cumulative duration, then print a report"
 		code [any-type!] "Code to profile"
+		/by
+			cat [word!]	 "Sort by: 'name, 'count, 'time"
 	][
+		if by [options/profile/sort-by: any [cat 'count]]
 		do-handler :code :profiler
 	]
 	
