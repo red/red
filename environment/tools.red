@@ -17,7 +17,6 @@ system/tools: context [
 	watching:  make block! 10
 	profiling: make block! 10
 	
-	base: none
 	indent: 0
 	active?: no
 	
@@ -155,11 +154,9 @@ system/tools: context [
 		value [any-type!]
 		ref	  [any-type!]
 		frame [pair!]									;-- current frame start, top
-		/extern base expr-stk active?
+		/extern expr-stk active?
 		/local out pos len entry
 	][
-		unless base [base: frame/1]
-		
 		switch event [
 			fetch [switch :value [@stop [active?: yes] @go [active?: no]]]
 			enter [
@@ -199,7 +196,6 @@ system/tools: context [
 				clear fun-stk
 				clear code-stk
 				clear expr-stk: head expr-stk
-				base: none
 				indent: 0
 				if event = 'end [active?: no]
 			]
