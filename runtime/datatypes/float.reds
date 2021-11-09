@@ -769,6 +769,7 @@ float: context [
 		switch op [
 			COMP_EQUAL
 			COMP_NOT_EQUAL 	[res: as-integer not almost-equal left right]
+			COMP_STRICT_EQUAL [res: as-integer not left = right]	;-- SIGN_COMPARE_RESULT cannot handle NaN 
 			COMP_SAME [
 				ip1: as int-ptr! :left
 				ip2: as int-ptr! :right

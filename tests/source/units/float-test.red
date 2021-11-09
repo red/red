@@ -585,6 +585,7 @@ Red [
 	--test-- "special-equality-16"  --assert -0.0 == 0.0
 	--test-- "special-equality-17"  --assert not 0.0 =? -0.0
 	--test-- "special-equality-18"  --assert not -0.0 =? 0.0
+	--test-- "special-equality-19"  --assert not 1.#nan == 1.#nan
 
 ===end-group===
 
