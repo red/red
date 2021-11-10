@@ -18,10 +18,10 @@ system/tools: context [
 	profiling: make block! 10
 	
 	indent: 0
-	active?: no
 	
 	options: context [
 		debug: context [
+			active?:		no
 			show-stack?:	no
 			show-parents?:	no
 			show-locals?:	no
@@ -106,7 +106,7 @@ system/tools: context [
 		unless empty? watching [print lf]
 	]
 	
-	do-command: function [event [word!] /extern active?][
+	do-command: function [event [word!]][
 		if value? 'ask [								;-- `ask` needs a console sub-system
 			do [										;-- prevents `ask` from being compiled
 				until [
@@ -136,7 +136,7 @@ system/tools: context [
 									parents p	[show-parents event]
 									stack s		[show-stack]
 									next n		[]
-									continue c  [active?: no cmd: ""]
+									continue c  [options/debug/active?: no cmd: ""]
 									q			[halt]
 								]
 							]
@@ -154,11 +154,11 @@ system/tools: context [
 		value [any-type!]
 		ref	  [any-type!]
 		frame [pair!]									;-- current frame start, top
-		/extern expr-stk active?
+		/extern expr-stk
 		/local out pos len entry
 	][
 		switch event [
-			fetch [switch :value [@stop [active?: yes] @go [active?: no]]]
+			fetch [switch :value [@stop [options/debug/active?: yes] @go [options/debug/active?: no]]]
 			enter [
 				append/only code-stk split mold/only/flat code space
 				unless empty? head expr-stk [
@@ -191,16 +191,19 @@ system/tools: context [
 				set/any 'entry take/last expr-stk
 				unless empty? expr-stk [append/only last expr-stk :value]
 			]
-			error [active?: yes]						;-- forces debug console activation
+			error [options/debug/active?: yes]			;-- forces debug console activation
 			init end  [
 				clear fun-stk
 				clear code-stk
 				clear expr-stk: head expr-stk
 				indent: 0
-				if event = 'end [active?: no]
+				if event = 'end [options/debug/active?: no]
 			]
 		]
-		if all [active? not find [init end enter exit fetch prolog epilog] event][
+		if all [
+			options/debug/active?
+			not find [init end enter exit fetch prolog epilog] event
+		][
 			if any-function? :value [value: type? :value]
 			prin out: rejoin ["-----> " uppercase mold event space]
 			if event = 'set [
@@ -221,7 +224,7 @@ system/tools: context [
 			if options/debug/show-stack?	[show-stack]
 			
 			do-command event
-			if event = 'error [active?: no]
+			if event = 'error [options/debug/active?: no]
 		]
 	]
 	
@@ -339,8 +342,11 @@ system/tools: context [
 		/by
 			cat [word!]	 "Sort by: 'name, 'count, 'time"
 	][
-		if by [options/profile/sort-by: any [cat 'count]]
+		saved: values-of options/profile
+		options/profile/sort-by: any [cat 'count]
 		do-handler :code :profiler
+		set options/profile saved
+		()
 	]
 	
 	set 'trace function [
@@ -356,7 +362,10 @@ system/tools: context [
 		code [any-type!] "Code to debug"
 		/later			 "Enters the interactive debugger later, on reading @stop value"
 	][
-		active?: not later
+		saved: values-of options/debug
+		options/debug/active?: not later
 		do-handler :code :debugger
+		set options/debug saved
+		()
 	]
 ]
