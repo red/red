@@ -447,6 +447,7 @@ tls: context [
 					]
 					unless CertAddCertificateContextToStore store ctx CERT_STORE_ADD_REPLACE_EXISTING null [
 						IODebug("store cert failed!!!")
+						return false
 					]
 					CertFreeCertificateContext ctx
 				]
@@ -678,6 +679,7 @@ tls: context [
 		][
 			unless CertAddCertificateContextToStore to ctx CERT_STORE_ADD_REPLACE_EXISTING null [
 				IODebug("merge cert failed!!!")
+				continue
 			]
 		]
 	]
