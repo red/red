@@ -590,12 +590,12 @@ string: context [
 
 		s:    GET_BUFFER(str)
 		unit: GET_UNIT(s)
-		head: (as byte-ptr! s/offset) + (offset << (unit >> 1))
+		head: (as byte-ptr! s/offset) + (offset << (log-b unit))
 		tail: as byte-ptr! s/tail
 
 		if head >= tail [return str]					;-- early exit if nothing to remove
 
-		part: part << (unit >> 1)
+		part: part << (log-b unit)
 		if head + part < tail [
 			move-memory 
 				head

@@ -1059,7 +1059,7 @@ alloc-codepoints: func [
 	unit	[integer!]
 	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
 ][
-	if zero? size [size: 16 >> (unit >> 1)]
+	if zero? size [size: 16 >> (log-b unit)]
 	alloc-series size unit 0				;-- optimize by default for tail insertion
 ]
 

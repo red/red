@@ -112,7 +112,7 @@ char: context [
 				ser: as red-series! spec
 				s: GET_BUFFER(ser)
 				unit: GET_UNIT(s)
-				p: (as byte-ptr! s/offset) + (ser/head << (unit >> 1))
+				p: (as byte-ptr! s/offset) + (ser/head << (log-b unit))
 				if p >= as byte-ptr! s/tail [
 					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_CHAR spec]
 				]
