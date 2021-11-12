@@ -173,10 +173,10 @@ iocp: context [
 
 		cnt: 0
 		res: GetQueuedCompletionStatusEx p/port p/events p/evt-cnt :cnt timeout no
-?? cnt
+	
 		if zero? res [
 			err: GetLastError
-			?? err
+			IODebug(["GetQueuedCompletionStatusEx: " err])
 			return 0
 		]
 
