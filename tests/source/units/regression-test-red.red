@@ -3213,6 +3213,10 @@ comment {
 		--assert x4980 == quote (2 3)
 		--assert 1 == do/next x4980: make hash! [1 2 3] 'x4980
 		--assert x4980 == make hash! [2 3]		
+		
+	--test-- "#4994"
+		save qt-tmp-file append/dup "" "§☺" 500000
+		transcode read qt-tmp-file
 
 ===end-group===
 
