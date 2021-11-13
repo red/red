@@ -48,7 +48,7 @@ file: context [
 		len: string/rs-length? as red-string! src
 		s: GET_BUFFER(src)
 		if zero? len [len: 1]
-		str: string/rs-make-at stack/push* len << (log-b GET_UNIT(s))
+		str: string/rs-make-at stack/push* len << (GET_UNIT(s) >> 1)
 		to-local-path src str no
 
 		#either OS = 'Windows [
@@ -99,7 +99,7 @@ file: context [
 	][
 		s: GET_BUFFER(src)
 		unit: GET_UNIT(s)
-		p: (as byte-ptr! s/offset) + (src/head << (log-b unit))
+		p: (as byte-ptr! s/offset) + (src/head << (unit >> 1))
 		end: (as byte-ptr! s/tail)
 		s: GET_BUFFER(out)
 
@@ -148,7 +148,7 @@ file: context [
 	][
 		s: GET_BUFFER(file)
 		unit: GET_UNIT(s)
-		p: (as byte-ptr! s/offset) + (file/head << (log-b unit))
+		p: (as byte-ptr! s/offset) + (file/head << (unit >> 1))
 		tail: as byte-ptr! s/tail
 
 		while [p < tail][
