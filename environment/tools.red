@@ -45,8 +45,7 @@ system/tools: context [
 		idx: index? code
 		cols: calc-max 7								;-- account for "Input: "
 
-		code: head last code-stk
-		append out #"["
+		code: last code-stk
 		forall code [
 			append out value: code/1
 			unless tail? next code [append out space]
@@ -57,7 +56,6 @@ system/tools: context [
 			if idx = index? code [len: length? value]
 			if idx > index? code [pos: pos + 1 + length? value]
 		]
-		append out #"]"
 		reduce [out pos len]
 	]
 	
