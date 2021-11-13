@@ -595,7 +595,7 @@ string: context [
 
 		if head >= tail [return str]					;-- early exit if nothing to remove
 
-		part: part << (unit >> 1)
+		part: part << (log-b unit)
 		if head + part < tail [
 			move-memory 
 				head

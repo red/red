@@ -2434,7 +2434,7 @@ lexer: context [
 		out		[red-block!]							;-- /into destination block or null
 		return: [integer!]								;-- scanned type when one? is set, else zero
 		/local
-			unit buf-size ignore type used [integer!]
+			unit buf-unit buf-size ignore type used [integer!]
 			base extra [byte-ptr!]
 			s [series!]
 	][
@@ -2444,7 +2444,8 @@ lexer: context [
 		unit: GET_UNIT(s)
 		
 		if size = -1 [size: string/rs-length? str]
-		buf-size: size * unit							;-- required (upper estimate)
+		either unit = 4 [buf-unit: unit][buf-unit: unit + 1]
+		buf-size: size * buf-unit						;-- required (upper estimate)
 		used: as-integer utf8-buf-tail - utf8-buffer
 		if buf-size > (utf8-buf-size - used) [
 			extra: allocate buf-size + 1				;-- fallback to a temporary buffer
