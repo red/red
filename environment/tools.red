@@ -12,7 +12,6 @@ Red [
 
 system/tools: context [
 	fun-stk:   make block! 10
-	code-stk:  make block! 10
 	expr-stk:  make block! 10
 	watching:  make block! 10
 	profiling: make block! 10
@@ -22,7 +21,7 @@ system/tools: context [
 	options: context [
 		debug: context [
 			active?:		no
-			show-stack?:	no
+			show-stack?:	yes
 			show-parents?:	no
 			show-locals?:	no
 			stack-indent?:	no
@@ -37,27 +36,6 @@ system/tools: context [
 	]
 	
 	calc-max: func [used [integer!] return: [integer!]][system/console/size/x - used]
-
-	mold-mapped: function [code [block! paren!]][
-		out: clear ""
-		pos: 1
-		len: 0
-		idx: index? code
-		cols: calc-max 7								;-- account for "Input: "
-
-		code: last code-stk
-		forall code [
-			append out value: code/1
-			unless tail? next code [append out space]
-			if cols < length? out [
-				append clear at out cols - 3 "..."
-				break
-			]
-			if idx = index? code [len: length? value]
-			if idx > index? code [pos: pos + 1 + length? value]
-		]
-		reduce [out pos len]
-	]
 	
 	show-context: function [ctx [function! object!]][
 		foreach w words-of :ctx [
@@ -81,7 +59,7 @@ system/tools: context [
 	]
 	
 	show-stack: function [][
-		unless empty? fun-stk [prin lf]
+		unless empty? head expr-stk [prin lf]
 		indent: 0
 		foreach frame head expr-stk [
 			unless integer? frame [
@@ -147,25 +125,24 @@ system/tools: context [
 	]
 
 	debugger: function [
-		event [word!]
-		code  [block! paren! none!]
-		value [any-type!]
-		ref	  [any-type!]
-		frame [pair!]									;-- current frame start, top
+		event  [word!]
+		code   [block! paren! none!]
+		offset [integer!]
+		value  [any-type!]
+		ref	   [any-type!]
+		frame  [pair!]									;-- current frame start, top
 		/extern expr-stk
 		/local out pos len entry
 	][
 		switch event [
 			fetch [switch :value [@stop [options/debug/active?: yes] @go [options/debug/active?: no]]]
 			enter [
-				append/only code-stk split mold/only/flat code space
 				unless empty? head expr-stk [
 					append expr-stk index? expr-stk
 					expr-stk: tail expr-stk
 				]
 			]
 			exit [
-				take/last code-stk
 				unless head? expr-stk [
 					idx: first pos: find/reverse tail expr-stk integer!
 					clear pos
@@ -192,7 +169,6 @@ system/tools: context [
 			error [options/debug/active?: yes]			;-- forces debug console activation
 			init end  [
 				clear fun-stk
-				clear code-stk
 				clear expr-stk: head expr-stk
 				indent: 0
 				if event = 'end [options/debug/active?: no]
@@ -202,21 +178,15 @@ system/tools: context [
 			options/debug/active?
 			not find [init end enter exit fetch prolog epilog] event
 		][
+			if code [print ["^/Input:" mold/only/part/flat skip code offset calc-max 8]]
 			if any-function? :value [value: type? :value]
 			prin out: rejoin ["-----> " uppercase mold event space]
 			if event = 'set [
 				append out ref: rejoin [ref space]
 				prin ref
 			]
-			print mold/part/flat :value calc-max length? out
+			print mold/part/flat :value calc-max (length? out) + 1
 			
-			if code [
-				set [out pos len] mold-mapped code
-				print ["Input:" out]
-				loop 7 + pos [prin space]
-				loop len [prin #"^^"]
-				prin lf
-			]
 			unless empty? watching			[show-watching]
 			if options/debug/show-parents?	[show-parents event]
 			if options/debug/show-stack?	[show-stack]
@@ -227,22 +197,23 @@ system/tools: context [
 	]
 	
 	dumper: function [
-		event [word!]
-		code  [block! paren! none!]
-		value [any-type!]
-		ref	  [any-type!]
-		frame [pair!]									;-- current frame start, top
+		event  [word!]
+		code   [block! paren! none!]
+		offset [integer!]
+		value  [any-type!]
+		ref	   [any-type!]
+		frame  [pair!]									;-- current frame start, top
 	][
-		unless idx [idx: all [code index? code]]
-		print [uppercase form event idx mold/part/flat :ref 30 mold/part/flat :value 30 frame]
+		print [uppercase form event offset mold/part/flat :ref 30 mold/part/flat :value 30 frame]
 	]
 	
 	tracer: function [
-		event [word!]
-		code  [block! paren! none!]
-		value [any-type!]
-		ref	  [any-type!]
-		frame [pair!]									;-- current frame start, top
+		event  [word!]
+		code   [block! paren! none!]
+		offset [integer!]
+		value  [any-type!]
+		ref	   [any-type!]
+		frame  [pair!]									;-- current frame start, top
 		/extern indent
 	][
 		[init end open push call prolog epilog set return error catch throw] ;-- only request those events
@@ -271,11 +242,12 @@ system/tools: context [
 	]
 	
 	profiler: function [
-		event [word!]
-		code  [block! paren! none!]
-		value [any-type!]
-		ref	  [any-type!]
-		frame [pair!]									;-- current frame start, top
+		event  [word!]
+		code   [block! paren! none!]
+		offset [integer!]
+		value  [any-type!]
+		ref	   [any-type!]
+		frame  [pair!]									;-- current frame start, top
 	][
 		[init end call return prolog epilog]			;-- only request those events
 		
