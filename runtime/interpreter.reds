@@ -102,12 +102,6 @@ Red/System [
 
 interpreter: context [
 	verbose: 0
-	
-	trace?:	    no
-	trace-fun:  as red-function! 0
-	fun-locs:	0
-	fun-evts:	0										;-- bitmask for encoding selected events
-	all-events:	1FFFFh									;-- bit-mask of all events
 
 	#enum events! [
 		EVT_INIT:			00000001h
@@ -128,6 +122,19 @@ interpreter: context [
 		;EVT_EVAL_PATH:		00008000h					;-- reserved for future use
 		;EVT_SET_PATH:		00010000h
 	]
+	
+	trace?:	    no
+	trace-fun:  as red-function! 0
+	fun-locs:	0
+	fun-evts:	0										;-- bitmask for encoding selected events
+	all-events:	1FFFFh									;-- bit-mask of all events
+	no-pos-evts: EVT_INIT								;-- events for which input position cannot be calculated
+			 or EVT_END
+			 or EVT_ENTER
+			 or EVT_EXIT
+			 or EVT_ERROR
+			 or EVT_THROW
+			 or EVT_CATCH
 	
 	log: func [msg [c-string!]][
 		print "eval: "
@@ -191,7 +198,7 @@ interpreter: context [
 			int	  [red-integer!]
 			more  [series!]
 			ctx	  [node!]
-			len	base top [integer!]
+			len	base top i [integer!]
 			csaved [int-ptr!]
 	][
 		assert all [trace-fun <> null TYPE_OF(trace-fun) = TYPE_FUNCTION]
@@ -226,15 +233,17 @@ interpreter: context [
 			default		[assert false null]
 		]
 		stack/push as red-value! evt					;-- event name
-		either null? code [stack/push none-value][		;-- code
+		either null? code [
+			stack/push none-value						;-- code
+			integer/push -1								;-- offset
+		][
 			code: as red-block! stack/push as red-value! code
-			head: block/rs-head code
-			tail: block/rs-tail code
-			either all [head <= pc pc <= tail][
-				code/head: (as-integer pc - head) >> 4
-			][
-				code/header: TYPE_NONE
+			i: either event and no-pos-evts <> 0 [-1][
+				head: block/rs-head code
+				tail: block/rs-tail code
+				either all [head <= pc pc <= tail][(as-integer pc - head) >> 4][-1]
 			]
+			integer/push i
 		]
 		if any [value = null TYPE_OF(value) = 0][value: unset-value]
 		stack/push value								;-- value
