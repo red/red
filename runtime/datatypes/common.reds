@@ -196,7 +196,7 @@ fire: func [
 	if interpreter/trace? [
 		saved: system/thrown
 		system/thrown: 0
-		interpreter/fire-event interpreter/EVT_ERROR null null as red-value! err
+		interpreter/fire-event interpreter/EVT_ERROR null null null as red-value! err
 		system/thrown: saved
 	]
 	stack/throw-error err
