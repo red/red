@@ -182,7 +182,7 @@ system/tools: context [
 			
 			prin out: rejoin ["-----> " uppercase mold event space]
 			if event = 'set [
-				append out set-ref: rejoin [set-ref space]
+				append out set-ref: rejoin [ref space]
 				prin set-ref
 			]
 			limit: calc-max (length? out) + 1

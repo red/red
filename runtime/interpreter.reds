@@ -1083,6 +1083,7 @@ interpreter: context [
 			TYPE_SET_WORD [
 				either infix? [
 					either sub? [stack/push pc][stack/set-last pc]
+					if trace? [fire-event EVT_PUSH code pc pc pc]
 					pc: pc + 1
 				][
 					stack/mark-interp-native as red-word! pc ;@@ ~set
@@ -1186,16 +1187,19 @@ interpreter: context [
 				value: pc
 				pc: pc + 1
 				pc: eval-path value pc end code no no sub? no
+				if trace? [fire-event EVT_PUSH code pc pc stack/get-top]
 			]
 			TYPE_GET_PATH [
 				value: pc
 				pc: pc + 1
 				pc: eval-path value pc end code no yes sub? no
+				if trace? [fire-event EVT_PUSH code pc pc stack/get-top]
 			]
 			TYPE_LIT_PATH [
 				value: either sub? [stack/push pc][stack/set-last pc]
 				value/header: TYPE_PATH
 				value/data3: 0							;-- ensures args field is null
+				if trace? [fire-event EVT_PUSH code pc pc pc]
 				pc: pc + 1
 			]
 			TYPE_OP [
