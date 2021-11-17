@@ -179,13 +179,19 @@ system/tools: context [
 			not find [init end enter exit fetch prolog epilog] event
 		][
 			if code [print ["^/Input:" mold/only/part/flat skip code offset calc-max 8]]
-			if any-function? :value [value: type? :value]
+			
 			prin out: rejoin ["-----> " uppercase mold event space]
 			if event = 'set [
-				append out ref: rejoin [ref space]
-				prin ref
+				append out set-ref: rejoin [set-ref space]
+				prin set-ref
 			]
-			print mold/part/flat :value calc-max (length? out) + 1
+			limit: calc-max (length? out) + 1
+			print either any-function? :value [
+				prin mold/part/flat :ref limit
+				rejoin [" (" mold type? :value #")"]
+			][
+				mold/part/flat :value limit
+			]
 			
 			unless empty? watching			[show-watching]
 			if options/debug/show-parents?	[show-parents event]
