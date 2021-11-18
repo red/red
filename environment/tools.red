@@ -176,10 +176,11 @@ system/tools: context [
 		]
 		if all [
 			options/debug/active?
-			not find [init end enter exit fetch prolog epilog] event
+			not find [init end enter exit prolog epilog] event
 		][
 			if code [print ["^/Input:" mold/only/part/flat skip code offset calc-max 8]]
 			
+			if event = 'fetch [event: 'eval]
 			prin out: rejoin ["-----> " uppercase mold event space]
 			if event = 'set [
 				append out set-ref: rejoin [ref space]
