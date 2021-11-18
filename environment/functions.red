@@ -901,10 +901,8 @@ do-file: function ["Internal Use Only" file [file! url!] callback [function! non
 	if all [header? list: select header 'currencies][
 		foreach c list [append system/locale/currencies/list c]
 	]
-	if :callback [
-		if header? [code: next code]
-		code: compose/only [do/trace (code) :callback]
-	]
+	if header? [code: next code]
+	if :callback [code: compose/only [do/trace (code) :callback]]
 	
 	set/any 'code try/all/keep [
 		either 'halt-request = set/any 'code catch/name code 'console [
