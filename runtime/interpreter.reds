@@ -1082,8 +1082,8 @@ interpreter: context [
 			]
 			TYPE_SET_WORD [
 				either infix? [
-					either sub? [stack/push pc][stack/set-last pc]
-					if trace? [fire-event EVT_PUSH code pc pc pc]
+					value: either sub? [stack/push pc][stack/set-last pc]
+					if trace? [fire-event EVT_PUSH code pc pc value]
 					pc: pc + 1
 				][
 					stack/mark-interp-native as red-word! pc ;@@ ~set
@@ -1117,12 +1117,12 @@ interpreter: context [
 			]
 			TYPE_GET_WORD [
 				value: _context/get as red-word! pc
-				either sub? [
+				value: either sub? [
 					stack/push value					;-- nested expression: push value
 				][
 					stack/set-last value				;-- root expression: return value
 				]
-				if trace? [fire-event EVT_PUSH code pc pc stack/get-top]
+				if trace? [fire-event EVT_PUSH code pc pc value]
 				pc: pc + 1
 			]
 			TYPE_LIT_WORD [
@@ -1197,9 +1197,9 @@ interpreter: context [
 			]
 			TYPE_LIT_PATH [
 				value: either sub? [stack/push pc][stack/set-last pc]
+				if trace? [fire-event EVT_PUSH code pc pc value]
 				value/header: TYPE_PATH
 				value/data3: 0							;-- ensures args field is null
-				if trace? [fire-event EVT_PUSH code pc pc pc]
 				pc: pc + 1
 			]
 			TYPE_OP [
@@ -1210,12 +1210,12 @@ interpreter: context [
 			TYPE_ROUTINE
 			TYPE_FUNCTION [
 				either passive? [
-					either sub? [
+					value: either sub? [
 						stack/push pc					;-- nested expression: push value
 					][
 						stack/set-last pc				;-- root expression: return value
 					]
-					if trace? [fire-event EVT_PUSH code pc pc stack/get-top]
+					if trace? [fire-event EVT_PUSH code pc pc value]
 					pc: pc + 1
 				][
 					value: pc + 1
@@ -1239,22 +1239,22 @@ interpreter: context [
 						fire [TO_ERROR(internal red-system)]
 					]
 				]
-				either sub? [
+				value: either sub? [
 					stack/push pc						;-- nested expression: push value
 				][
 					stack/set-last pc					;-- root expression: return value
 				]
 				pc: pc + 1
-				if trace? [fire-event EVT_PUSH code pc pc stack/get-top]
+				if trace? [fire-event EVT_PUSH code pc pc value]
 			]
 			default [
-				either sub? [
+				value: either sub? [
 					stack/push pc						;-- nested expression: push value
 				][
 					stack/set-last pc					;-- root expression: return value
 				]
 				pc: pc + 1
-				if trace? [fire-event EVT_PUSH code pc pc stack/get-top]
+				if trace? [fire-event EVT_PUSH code pc pc value]
 			]
 		]
 		
