@@ -2106,7 +2106,54 @@ lexer: context [
 			lex/type: TYPE_REF		
 			load-string lex s e flags load?
 		]
-		lex/in-pos: e 									;-- reset the input position to delimiter byte		
+		lex/in-pos: e 									;-- reset the input position to delimiter byte
+	]
+	
+	load-ipv6: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
+		/local
+			ip		[red-vector!]
+			ser		[series!]
+			p end	[byte-ptr!]
+			c index	[integer!]
+			dbl?	[logic!]
+			do-error decode-hexa [subroutine!]
+	][
+		do-error: [throw-error lex s e TYPE_IPV6]
+		decode-hexa: [
+			c: 0
+			end: s + 4
+			if end > e [end: e]
+			while [all [s < end s/1 <> #":"]][
+				index: 1 + as-integer s/1
+				if (as-integer bin16-classes/index) <> C_BIN_HEXA [do-error]
+				if load? [c: c << 4 or as-integer hexa-table/index]
+				s: s + 1
+			]
+			if load? [
+				assert p < as byte-ptr! ser/tail
+				assert c <= FFFFh
+				p/1: as-byte c >> 8
+				p/2: as-byte c and FFh
+				p: p + 2
+			]
+		]
+		dbl?: no
+		if s/1 = #":" [
+			if s/2 <> #":" [do-error]
+			s: s + 2
+			dbl?: yes
+		]
+		if load? [
+			ip: ipv6/make-at alloc-slot lex
+			ser: GET_BUFFER(ip)
+			p: as byte-ptr! ser/offset
+		]
+		while [s < e][
+			decode-hexa
+			s: s + 1									;-- jump over `:` separator
+		]
+		if load? [lex/type: TYPE_IPV6]
+		lex/in-pos: e 									;-- reset the input position to delimiter byte
 	]
 	
 	load-hex: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
@@ -2233,7 +2280,7 @@ lexer: context [
 				#if debug? = yes [if verbose > 0 [?? state]]
 			]
 			s: start + offset							;-- real token position start
-			assert state <= T_REF
+			assert state <= T_IPV6
 			assert s <= p
 			
 			lex/in-pos:  p
@@ -2549,6 +2596,7 @@ lexer: context [
 			null				:load-hex				;-- T_HEX
 			null				:load-rawstring			;-- T_RAWSTRING
 			null				:load-ref				;-- T_REF
+			null				:load-ipv6				;-- T_IPV6
 		]
 	]
 

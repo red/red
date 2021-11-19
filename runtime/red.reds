@@ -117,6 +117,7 @@ red: context [
 	#include %datatypes/port.reds
 	#include %datatypes/money.reds
 	#include %datatypes/ref.reds
+	#include %datatypes/ipv6.reds
 	#if OS = 'Windows [#include %datatypes/image.reds]	;-- temporary
 	#if OS = 'macOS   [#include %datatypes/image.reds]	;-- temporary
 	#either modules contains 'View [][#include %datatypes/event.reds]
@@ -221,6 +222,7 @@ red: context [
 		port/init
 		money/init
 		ref/init
+		ipv6/init
 		#if OS = 'Windows [								;-- temporary
 			#if draw-engine <> 'GDI+ [OS-image/init]
 			image/init

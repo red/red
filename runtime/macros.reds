@@ -62,6 +62,7 @@ Red/System [
 	TYPE_PORT											;-- 30		48
 	TYPE_MONEY											;-- 31		49
 	TYPE_REF											;-- 32		50
+	TYPE_IPV6											;-- 33		51
 	TYPE_IMAGE											;-- 34		52		;-- needs to be last
 	TYPE_EVENT
 	TYPE_CLOSURE

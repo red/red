@@ -172,6 +172,7 @@ delimit18: ws | [ | ] | ( | ) | { | } | : | ; | < | > | = | , | @ | / | EOF
 delimit3:  ws | [ | ] | ( | ) | { | } | " | % | ; | < | # | @ | / | \ | ^ | , | : | $ | EOF
 
 hexa:      C_ZERO | C_DIGIT | C_ALPHAX
+alpha:	   C_ALPHAL | C_ALPHAU
 alphaU:    A, B, C, D, F
 s-word:    C_X | T | h | e | C_ALPHAL | > | = | C_BIN | C_WORD
 word1st:   C_X | T | h | e | E | C_ALPHAL | C_ALPHAU | < | > | = | . | + | - | C_BIN | C_WORD
@@ -288,8 +289,8 @@ S_START->digit->S_NUMBER->digit|"'"->S_NUMBER
                                            \               \->"%"|"@"|"^"->T_ERROR
                                             \
                                              \->":"->S_TIME_1ST->digit->S_TIME->digit|":"|"."->S_TIME
-                                              \       \->else->T_ERROR   \->delimit9->T_TIME
-                                               \                          \->else->T_ERROR
+                                              \       \->alpha->S_IPV6   \->delimit9->T_TIME
+                                               \       \->else->T_ERROR   \->else->T_ERROR
                                                 \
                                                  \->"x"|"X"->S_PAIR_1ST->digit|sign->S_PAIR->digit|"."|"e"|"E"->S_PAIR
                                                   \            \->"@"->S_EMAIL        \->"@"->S_EMAIL
@@ -384,17 +385,18 @@ S_START->s-word->S_WORD->delimit16->T_WORD
                   \->":"->S_WORDSET->else->S_URL->delimit22->T_URL
                    \       \                \->">"|"^"->T_ERROR
                     \       \                \->else->S_URL
-                     \       \->delimit16->T_WORD
-                      \       \->"<"->T_ERROR
-                       \
-                        \->"@"->S_EMAIL->else->S_EMAIL
-                         \       \->delimit17->T_EMAIL
-                          \       \->"@"|">"|"="|","|"^"|"$"|":"|"'"|"#"->T_ERROR
-                           \
-                            \->"/"->T_PATH
-                             \->"$"->S_MONEY_1ST
-                              \->","|"%"->T_ERROR
-                               \->else->S_WORD
+                     \       \->":"->S_IPV6
+                      \       \->delimit16->T_WORD
+                       \       \->"<"->T_ERROR
+                        \
+                         \->"@"->S_EMAIL->else->S_EMAIL
+                          \       \->delimit17->T_EMAIL
+                           \       \->"@"|">"|"="|","|"^"|"$"|":"|"'"|"#"->T_ERROR
+                            \
+                             \->"/"->T_PATH
+                              \->"$"->S_MONEY_1ST
+                               \->","|"%"->T_ERROR
+                                \->else->S_WORD
 
 S_START->"@"->S_REF->delimit8->T_REF
                \->"#"|"'"|"\"|">"|"="|","|"@"|"$"|"^"->T_ERROR
