@@ -68,7 +68,7 @@ OS-image: context [
 			]
 			gdk_pixbuf_new_from_file: "gdk_pixbuf_new_from_file" [
 				name		[c-string!]
-				err 		[handle!]
+				err 		[ptr-ptr!]
 				return: 	[handle!]
 			]
 			gdk_pixbuf_copy: "gdk_pixbuf_copy" [
@@ -350,10 +350,17 @@ OS-image: context [
 		/local
 			path	[c-string!]
 			h		[int-ptr!]
+			err 	[GError!]
+			perr	[ptr-value!]
 	][
 		path: file/to-OS-path src
-		h: gdk_pixbuf_new_from_file path null
-		if null? h [return null]
+		perr/value: null
+		h: gdk_pixbuf_new_from_file path :perr
+		if null? h [
+			err: as GError! perr/value
+			probe ["OS-image/load-image error: " err/domain " " err/code " " err/message]
+			return null
+		]
 		make-node h null 0 gdk_pixbuf_get_width h gdk_pixbuf_get_height h
 	]
 
