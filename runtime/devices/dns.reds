@@ -87,7 +87,7 @@ probe "dns event-handler"
 			either data/event = IO_EVT_NONE [		;-- we can reuse this one
 				as dns-data! data
 			][										;-- needs to create a new one
-				new: as dns-data! alloc0 size? dns-data!
+				new: as dns-data! zero-alloc size? dns-data!
 				new/iocp/event-handler: as iocp-event-handler! :event-handler
 				new/iocp/device: data/device
 				new/iocp/accept-sock: PENDING_IO_FLAG ;-- use it as a flag to indicate pending data

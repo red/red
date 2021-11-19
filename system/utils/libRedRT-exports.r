@@ -206,17 +206,16 @@
 	red/object/unchanged?
 	red/object/unchanged2?
 
-	red/natives/repeat-init*
-	red/natives/repeat-set
 	red/natives/remove-each-init
 	red/natives/remove-each-next
 	red/natives/foreach-next-block
 	red/natives/foreach-next
-	red/natives/forall-loop
-	red/natives/forall-next
+	red/natives/forall-next?
 	red/natives/forall-end
 	red/natives/forall-end-adjust
 	red/natives/coerce-counter*
+	red/natives/inc-counter
+	red/natives/get-series-length
 
 	red/actions/make*
 	red/actions/random*
@@ -423,6 +422,7 @@
 	red/string/load-at
 ][
 	red/root				red-block!
+	red/stk-bottom			int-ptr!
 	red/object/path-parent	cell!
 	red/object/field-parent	cell!
 	red/stack/arguments		cell!

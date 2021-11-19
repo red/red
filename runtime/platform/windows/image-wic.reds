@@ -1,5 +1,5 @@
 Red/System [
-	Title:   "Image routine functions using wic"
+	Title:   "Image routine functions using Windows Imaging Component"
 	Author:  "bitbegin"
 	File: 	 %image-wic.reds
 	Tabs:	 4
@@ -374,6 +374,7 @@ OS-image: context [
 				COM_SAFE_RELEASE(unk inode/buffer)
 				inode/flags: IMG_NODE_WICBITMAP or IMG_NODE_PREMULTIPLIED
 			]
+			COM_SAFE_RELEASE(unk h)
 			bitmap/value
 		]
 	]
@@ -821,7 +822,13 @@ OS-image: context [
 	][
 		if any [zero? width zero? height][return null]
 		IFAC: as IWICImagingFactory wic-factory/vtbl
-		IFAC/CreateBitmap wic-factory width height as int-ptr! GUID_WICPixelFormat32bppBGRA WICBitmapCacheOnLoad :bitmap
+		if 0 <> IFAC/CreateBitmap
+					wic-factory
+					width
+					height
+					as int-ptr! GUID_WICPixelFormat32bppBGRA
+					WICBitmapCacheOnLoad
+					:bitmap [fire [TO_ERROR(internal no-memory)]]
 		bthis: bitmap/value
 		bmp: as IWICBitmap bthis/vtbl
 		rect/x: 0 rect/y: 0 rect/w: width rect/h: height
@@ -1121,6 +1128,7 @@ OS-image: context [
 			bitmap	[com-ptr! value]
 			hr		[integer!]
 			this	[this!]
+			handle	[this!]
 			IB		[IWICBitmap]
 			w		[integer!]
 			h		[integer!]
@@ -1132,9 +1140,11 @@ OS-image: context [
 		IB: as IWICBitmap this/vtbl
 		w: 0 h: 0
 		IB/GetSize this :w :h
+		handle: to-bgra this no
+		IB/Release this
 		image/init-image
 			as red-image! stack/push*
-			make-node null this 3 w h
+			make-node handle null 0 w h
 	]
 
 	to-gpbitmap: func [

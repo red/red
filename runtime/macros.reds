@@ -545,19 +545,6 @@ Red/System [
 	]
 ]
 
-#define GET_INT_FROM(n spec) [
-	either TYPE_OF(spec) = TYPE_FLOAT [
-		fl: as red-float! spec
-		if any [fl/value > 2147483647.0 fl/value < -2147483648.0][
-			fire [TO_ERROR(script out-of-range) fl]
-		]
-		n: as-integer fl/value
-	][
-		int: as red-integer! spec
-		n: int/value
-	]
-]
-
 #define ERR_INVALID_REFINEMENT_ARG(refine arg) [
 	fire [
 		TO_ERROR(script invalid-refine-arg)

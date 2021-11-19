@@ -657,7 +657,7 @@ vector: context [
 		
 		switch type [
 			TYPE_INTEGER
-			TYPE_FLOAT [type: TYPE_INTEGER GET_INT_FROM(size spec)]
+			TYPE_FLOAT [type: TYPE_INTEGER size: get-int-from spec]
 			TYPE_BLOCK [
 				size:  block/rs-length? as red-block! spec
 				either zero? size [
@@ -1130,7 +1130,7 @@ vector: context [
 			INHERIT_ACTION	;change
 			INHERIT_ACTION	;clear
 			INHERIT_ACTION	;copy
-			INHERIT_ACTION	;find
+			INHERIT_ACTION
 			INHERIT_ACTION	;head
 			INHERIT_ACTION	;head?
 			INHERIT_ACTION	;index?

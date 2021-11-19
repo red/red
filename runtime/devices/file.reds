@@ -93,7 +93,7 @@ probe ["read data: " data/transferred]
 			either data/event = IO_EVT_NONE [		;-- we can reuse this one
 				as file-data! data
 			][										;-- needs to create a new one
-				new: as file-data! alloc0 size? file-data!
+				new: as file-data! zero-alloc size? file-data!
 				new/event-handler: as iocp-event-handler! :event-handler
 				new/device: data/device
 				new/accept-sock: PENDING_IO_FLAG	;-- use it as a flag to indicate pending data

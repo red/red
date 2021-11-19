@@ -29,5 +29,5 @@ If applicable, add screenshots to help explain your problem.
 **Platform version**
 Please specify the operating system, Red version, and build date with Git commit.
 ```
-This can be done all at once by running `about` command from Red console and pasting its output here.
+This can be done all at once by running `about` command from Red console and pasting its output here. `About/cc` automatically copies the output to the clipboard.
 ```

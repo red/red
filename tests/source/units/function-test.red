@@ -126,7 +126,7 @@ Red [
 
 	--test-- "ooo-2"
 		ooo2: func [cmd /w /o out [block!]][]
-		ooo2/o/w "cmd" o: [] 
+		ooo2/o/w "cmd" o: []
 		--assert true
 
 	--test-- "ooo-3"

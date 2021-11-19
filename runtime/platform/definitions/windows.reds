@@ -792,6 +792,11 @@ DNS_RECORD!: alias struct! [
 			len			[integer!]
 			return:		[integer!]
 		]
+		_rename: "_wrename" [
+			old		[c-string!]
+			new		[c-string!]
+			return:	[integer!]
+		]
 	]
 	"kernel32.dll" stdcall [
 		CreateEventA: "CreateEventA" [

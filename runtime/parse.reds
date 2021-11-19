@@ -693,6 +693,7 @@ parser: context [
 		stack/push as red-value! rules
 		if positive? locals [_function/init-locals 1 + locals]	;-- +1 for /local refinement
 		rule/head: offset
+		assert system/thrown = 0
 		
 		catch RED_THROWN_ERROR [_function/call fun ctx]
 
@@ -759,6 +760,7 @@ parser: context [
 	][
 		PARSE_SAVE_SERIES
 		saved: stack/top
+		assert system/thrown = 0
 		catch RED_THROWN_ERROR [interpreter/eval as red-block! code no]
 		PARSE_RESTORE_SERIES							;-- restore localy saved series/head first
 		if system/thrown <> 0 [reset saved? re-throw]
@@ -768,7 +770,7 @@ parser: context [
 	]
 
 	process: func [
-		input	[red-series!]
+		in-root	[red-series!]
 		rule	[red-block!]
 		comp-op	[integer!]
 		;strict? [logic!]
@@ -776,6 +778,7 @@ parser: context [
 		fun		[red-function!]
 		return: [red-value!]
 		/local
+			input	 [red-series! value]
 			new		 [red-series!]
 			int		 [red-integer!]
 			int2	 [red-integer!]
@@ -843,15 +846,12 @@ parser: context [
 		fun-locs:  0
 		state:    ST_PUSH_BLOCK
 
-		s: GET_BUFFER(series)
-		if s/offset = s/tail [gc-saved: collector/active? collector/active?: no]
-
 		if OPTION?(fun) [fun-locs: _function/count-locals fun/spec 0 no]
 		
 		saved?: save-stack
 		base: stack/push*								;-- slot on stack for COPY/SET operations (until OPTION?() is fixed)
 		base/header: TYPE_UNSET
-		input: as red-series! block/rs-append series as red-value! input ;-- input now points to the series stack entry
+		copy-cell (block/rs-append series as red-value! in-root) as red-value! input
 		cmd: (block/rs-head rule) - 1					;-- decrement to compensate for starting increment
 		tail: block/rs-tail rule						;TBD: protect current rule block from changes
 		
@@ -1049,7 +1049,7 @@ parser: context [
 									if into? [
 										blk: as red-block! _context/get as red-word! blk
 										type: TYPE_OF(blk)
-										unless ANY_SERIES_PARSE?(type) [
+										if all [type <> TYPE_OF(input) not ANY_SERIES_PARSE?(type)][
 											PARSE_ERROR [TO_ERROR(script parse-into-type)]
 										]
 									]
@@ -1193,7 +1193,7 @@ parser: context [
 								
 								s: GET_BUFFER(series)
 								s/tail: s/tail - 1
-								input: as red-series! s/tail - 1
+								copy-cell s/tail - 1 as red-value! input
 								unless ended? [match?: no]
 								if match? [input/head: input/head + 1]	;-- skip parsed series
 								
@@ -1611,17 +1611,26 @@ parser: context [
 							if TYPE_OF(value) <> TYPE_BLOCK [
 								PARSE_ERROR [TO_ERROR(script parse-end) words/_into]
 							]
-							value: block/rs-head input
-							type: TYPE_OF(value)
-							either ANY_SERIES_PARSE?(type) [
-								input: as red-series! block/rs-append series value
-								min:  R_NONE
-								type: R_INTO
-								state: ST_PUSH_RULE
-							][
+							PARSE_CHECK_INPUT_EMPTY?
+							either end? [
 								match?: no
-								PARSE_TRACE(_match)
 								state: ST_CHECK_PENDING
+							][
+								value: block/rs-head input
+								type: TYPE_OF(value)
+								either ANY_SERIES_PARSE?(type) [
+									s: GET_BUFFER(series)
+									new: as red-series! s/tail - 1
+									new/head: input/head
+									copy-cell block/rs-append series value as red-value! input
+									min:  R_NONE
+									type: R_INTO
+									state: ST_PUSH_RULE
+								][
+									match?: no
+									PARSE_TRACE(_match)
+									state: ST_CHECK_PENDING
+								]
 							]
 						]
 						sym = words/insert [			;-- INSERT
@@ -1778,13 +1787,15 @@ parser: context [
 										value: _context/get w		;-- #4197
 										type:  TYPE_OF(value)
 										type2: TYPE_OF(input)
-										if any [
-											type = TYPE_BINARY
-											all [ANY_STRING?(type) ANY_BLOCK?(type2)]
+										if all [
+											type <> type2
+											any [
+												type = TYPE_BINARY
+												all [ANY_STRING?(type) ANY_BLOCK?(type2)]
+											]
 										][
 											PARSE_ERROR [TO_ERROR(script parse-into-type)]
 										]
-										
 										get-word/push w
 									]
 									
@@ -1794,7 +1805,7 @@ parser: context [
 							either into? [
 								blk: as red-block! _context/get w
 								type: TYPE_OF(blk)
-								unless ANY_SERIES_PARSE?(type) [
+								if all [type <> TYPE_OF(input) not ANY_SERIES_PARSE?(type)][
 									PARSE_ERROR [TO_ERROR(script parse-into-type)]
 								]
 								max: either sym = words/after [-1][blk/head] ;-- save block cursor
@@ -1872,9 +1883,6 @@ parser: context [
 			state = ST_EXIT
 		]
 		reset saved?
-
-		s: GET_BUFFER(series)
-		if s/offset = s/tail [collector/active?: gc-saved]
 
 		either collect? [
 			base + 1

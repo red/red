@@ -269,11 +269,12 @@ replace: function [
 		]
 		size: either many? [length? :pattern][1]
 		seek: reduce [pick [find/case find] case 'series quote :pattern]
-		
+
+		active?: any-function? :value
 		until [											;-- find does not support image!
 			not system/words/all [
 				series: do seek
-				series: change/part series value size
+				series: change/part series either active? [do [value]][value] size
 				all
 			]
 		]
@@ -397,7 +398,7 @@ load: function [
 	/into "Put results in out block, instead of creating a new block"
 		out [block!] "Target block for results"
 	/as   "Specify the type of data; use NONE to load as code"
-		type [word! none!] "E.g. bmp, gif, jpeg, png"
+		type [word! none!] "E.g. bmp, gif, jpeg, png, redbin, json, csv"
 ][
 	if as [
 		if word? type [
@@ -472,7 +473,7 @@ save: function [
 	/all    "TBD: Save in serialized format"
 	/length "Save the length of the script content in the header"
 	/as     "Specify the format of data; use NONE to save as plain text"
-		format [word! none!] "E.g. bmp, gif, jpeg, png"
+		format [word! none!] "E.g. bmp, gif, jpeg, png, redbin, json, csv"
 ][
 	dst: either any [file? where url? where][where][none]
 	either system/words/all [as  word? format] [				;-- Be aware of [all as] word shadowing
@@ -594,12 +595,11 @@ to-red-file: func [
 	return: [file!]
 	/local colon? slash? len i c dst
 ][
-	colon?: slash?: no
-	len: length? path
-	dst: make file! len
-	if zero? len [return dst]
-	i: 1
 	#either config/OS = 'Windows [
+		len: length? path
+		dst: make file! len
+		if zero? len [return dst]
+		i: 1
 		until [
 			c: pick path i
 			i: i + 1
@@ -624,10 +624,10 @@ to-red-file: func [
 			i > len
 		]
 		if colon? [insert dst #"/"]
+		dst
 	][
-		insert dst path
+		to file! path
 	]
-	dst
 ]
 
 dir?: func ["Returns TRUE if the value looks like a directory spec" file [file! url!]][#"/" = last file]
@@ -891,7 +891,9 @@ do-file: function ["Internal Use Only" file [file! url!]][
 	]
 	code: load/all src									;-- don't expand before we check the header
 	if code/1 = 'Red/System [cause-error 'internal 'red-system []]
-	code: next expand-directives next code				;-- skip the Red[/System] part and [block]
+	code: expand-directives next code					;-- skip the Red[/System] value
+	system/script/header: construct/with code/1 system/standard/header	;-- load header metadata
+	code: next code
 	if file? file [
 		new-path: first split-path clean-path file
 		change-dir new-path
@@ -903,7 +905,13 @@ do-file: function ["Internal Use Only" file [file! url!]][
 	][
 		foreach c list [append system/locale/currencies/list c]
 	]
-	set/any 'code try/all code
+	set/any 'code try/all/keep [
+		either 'halt-request = set/any 'code catch/name code 'console [
+			print "(halted)"							;-- returns an unset value
+		][
+			:code
+		]
+	]
 	if file? file [change-dir saved]
 	if error? :code [do :code]							;-- rethrow the error
 	:code
@@ -1123,10 +1131,12 @@ dt: function [
 	body	[block!]
 	return: [time!]
 ][
-	t0: now/time/precise
+	t0: now/precise
 	do body
-	now/time/precise - t0
+	difference now/precise t0
 ]
+
+time-it: :dt
 
 ;------------------------------------------
 ;-				Aliases					  -

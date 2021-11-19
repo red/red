@@ -600,6 +600,12 @@ tagSIZE: alias struct! [
 			c			[handle!]
 			cap			[integer!]
 		]
+		CGContextSetLineDash: "CGContextSetLineDash" [
+			c			[handle!]
+			phase		[float32!]
+			lengths		[float32-ptr!]
+			count		[integer!]
+		]
 		CGContextSetAllowsAntialiasing: "CGContextSetAllowsAntialiasing" [
 			c			[handle!]
 			anti-alias? [logic!]
@@ -1004,7 +1010,7 @@ to-NSColor: func [
 	return: [integer!]
 ][
 	if TYPE_OF(color) <> TYPE_TUPLE [return 0]
-	rs-to-NSColor color/array1
+	rs-to-NSColor get-tuple-color color
 ]
 
 make-CGMatrix: func [

@@ -10,6 +10,8 @@ Red/System [
 	}
 ]
 
+g_standby?: no
+
 #define GAUSSIAN_SCALE_FACTOR 1.87997120597325
 
 #include %text-box.reds
@@ -20,6 +22,10 @@ Red/System [
 	DRAW_BRUSH_GRADIENT
 	DRAW_BRUSH_GRADIENT_SMART
 	DRAW_BRUSH_IMAGE_SMART
+]
+
+#define SET_FIGURE_MODE(ctx mode) [
+	either ctx/draw-shape? [mode: as-integer ctx/brush-type = DRAW_BRUSH_NONE][mode: 0]
 ]
 
 grad-stops: as D2D1_GRADIENT_STOP allocate 256 * size? D2D1_GRADIENT_STOP
@@ -207,7 +213,7 @@ draw-begin: func [
 		wic-bmp: OS-image/get-wicbitmap img
 		OS-image/mark-updated img
 		;-- create a bitmap target
-		target: as render-target! alloc0 size? render-target!
+		target: as render-target! zero-alloc size? render-target!
 		target/brushes: as int-ptr! allocate D2D_MAX_BRUSHES * 2 * size? int-ptr!
 
 		zero-memory as byte-ptr! :props size? D2D1_RENDER_TARGET_PROPERTIES
@@ -257,10 +263,8 @@ draw-begin: func [
 	if hWnd <> null [
 		values: get-face-values hWnd
 		clr: as red-tuple! values + FACE_OBJ_COLOR
-		bg-clr: either TYPE_OF(clr) = TYPE_TUPLE [clr/array1][-1]
-		if any [on-graphic? bg-clr <> -1][		;-- paint background
-			dc/Clear this to-dx-color bg-clr null
-		]
+		bg-clr: either TYPE_OF(clr) = TYPE_TUPLE [get-tuple-color clr][-1]
+		dc/Clear this to-dx-color bg-clr null
 
 		red-img: as red-image! values + FACE_OBJ_IMAGE
 		if TYPE_OF(red-img) = TYPE_IMAGE [
@@ -276,7 +280,7 @@ draw-begin: func [
 			if TYPE_OF(font) = TYPE_OBJECT [
 				clr: as red-tuple! (object/get-values font) + FONT_OBJ_COLOR
 				if TYPE_OF(clr) = TYPE_TUPLE [
-					ctx/font-color: clr/array1
+					ctx/font-color: get-tuple-color clr
 					font-clr?: yes
 				]
 			]
@@ -297,7 +301,10 @@ release-ctx: func [
 ][
 	COM_SAFE_RELEASE(IUnk ctx/pen)
 	COM_SAFE_RELEASE(IUnk ctx/brush)
+	unless ctx/font? [COM_SAFE_RELEASE(IUnk ctx/text-format)]
+	if ctx/pen-pattern <> null [free as byte-ptr! ctx/pen-pattern]
 	release-pen-style ctx
+	free-shadow ctx
 ]
 
 draw-end: func [
@@ -312,6 +319,7 @@ draw-end: func [
 		sc		[IDXGISwapChain1]
 		rt		[render-target!]
 		hr		[integer!]
+		flags	[integer!]
 ][
 	loop ctx/clip-cnt [OS-clip-end ctx]
 	ctx/clip-cnt: 0
@@ -330,10 +338,11 @@ draw-end: func [
 	either hWnd <> null [		;-- window target
 		this: rt/swapchain
 		sc: as IDXGISwapChain1 this/vtbl
-		hr: sc/Present this 0 0
+		flags: either g_standby? [DXGI_PRESENT_TEST][0]
+		hr: sc/Present this 0 flags
 
 		switch hr [
-			COM_S_OK [0]
+			COM_S_OK [g_standby?: no]
 			DXGI_ERROR_DEVICE_REMOVED
 			DXGI_ERROR_DEVICE_RESET [
 				d2d-release-target rt
@@ -342,6 +351,7 @@ draw-end: func [
 				DX-create-dev
 				InvalidateRect hWnd null 0
 			]
+			DXGI_STATUS_OCCLUDED [g_standby?: yes]
 			default [
 				probe ["draw-end error: " hr]
 				0			;@@ TBD log error!!!
@@ -378,11 +388,11 @@ update-pen-style: func [
 	prop/dashCap: ctx/pen-cap
 	prop/lineJoin: ctx/pen-join
 	prop/miterLimit: as float32! 10.0
-	prop/dashStyle: 0
+	prop/dashStyle: either zero? ctx/pen-pattern-cnt [0][5]
 	prop/dashOffset: as float32! 0.0
 
 	d2d: as ID2D1Factory d2d-factory/vtbl
-	hr: d2d/CreateStrokeStyle d2d-factory prop null 0 :style
+	hr: d2d/CreateStrokeStyle d2d-factory prop ctx/pen-pattern ctx/pen-pattern-cnt :style
 	ctx/pen-style: as this! style/value
 ]
 
@@ -431,13 +441,18 @@ OS-draw-text: func [
 		brush	[ID2D1SolidColorBrush]
 		color?	[logic!]
 		pen		[this!]
+		release? [logic!]
+		unk		[IUnknown]
+		flags	[integer!]
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
 
 	layout: either TYPE_OF(text) = TYPE_OBJECT [				;-- text-box!
+		release?: no
 		OS-text-box-layout as red-object! text as render-target! ctx/target 0 yes
 	][
+		release?: yes
 		if null? ctx/text-format [
 			ctx/text-format: as this! create-text-format as red-object! text null
 		]
@@ -452,15 +467,18 @@ OS-draw-text: func [
 		color?: yes
 	]
 	txt-box-draw-background ctx/target pos layout
-	dc/DrawTextLayout this as float32! pos/x as float32! pos/y layout ctx/pen 0
+	flags: either win8+? [4][0]	;-- 4: D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT
+	dc/DrawTextLayout this as float32! pos/x as float32! pos/y layout ctx/pen flags
 	if color? [
 		brush/SetColor pen to-dx-color ctx/pen-color null
 	]
+	if release? [COM_SAFE_RELEASE(unk layout)]
 	true
 ]
 
 OS-draw-shape-beginpath: func [
 	ctx			[draw-ctx!]
+	draw?		[logic!]
 	/local
 		d2d		[ID2D1Factory]
 		path	[ptr-value!]
@@ -471,6 +489,7 @@ OS-draw-shape-beginpath: func [
 		sthis	[this!]
 		gsink	[ID2D1GeometrySink]
 		vpoint	[POINT_2F value]
+		figure	[integer!]
 ][
 	d2d: as ID2D1Factory d2d-factory/vtbl
 	hr: d2d/CreatePathGeometry d2d-factory :path
@@ -480,6 +499,7 @@ OS-draw-shape-beginpath: func [
 	sthis: as this! sink/value
 	gsink: as ID2D1GeometrySink sthis/vtbl
 
+	ctx/draw-shape?: draw?
 	ctx/sub/path: as integer! pthis
 	ctx/sub/sink: as integer! sthis
 	ctx/sub/last-pt-x: as float32! 0.0
@@ -487,7 +507,11 @@ OS-draw-shape-beginpath: func [
 	ctx/sub/shape-curve?: no
 	vpoint/x: ctx/sub/last-pt-x
 	vpoint/y: ctx/sub/last-pt-y
-	gsink/BeginFigure sthis vpoint as-integer ctx/brush-type = DRAW_BRUSH_NONE
+	either draw? [figure: as-integer ctx/brush-type = DRAW_BRUSH_NONE][
+		gsink/SetFillMode sthis 1
+		figure: 0
+	]
+	gsink/BeginFigure sthis vpoint figure
 ]
 
 OS-draw-shape-endpath: func [
@@ -528,13 +552,15 @@ OS-draw-shape-close: func [
 		sthis	[this!]
 		gsink	[ID2D1GeometrySink]
 		vpoint	[POINT_2F value]
+		mode	[integer!]
 ][
 	sthis: as this! ctx/sub/sink
 	gsink: as ID2D1GeometrySink sthis/vtbl
 	gsink/EndFigure sthis 1
 	vpoint/x: ctx/sub/last-pt-x
 	vpoint/y: ctx/sub/last-pt-y
-	gsink/BeginFigure sthis vpoint as-integer ctx/brush-type = DRAW_BRUSH_NONE
+	SET_FIGURE_MODE(ctx mode)
+	gsink/BeginFigure sthis vpoint mode
 ]
 
 OS-draw-shape-moveto: func [
@@ -547,6 +573,7 @@ OS-draw-shape-moveto: func [
 		sthis	[this!]
 		gsink	[ID2D1GeometrySink]
 		vpoint	[POINT_2F value]
+		figure	[integer!]
 ][
 	dx: as float32! coord/x
 	dy: as float32! coord/y
@@ -562,7 +589,8 @@ OS-draw-shape-moveto: func [
 	gsink/EndFigure sthis 0
 	vpoint/x: ctx/sub/last-pt-x
 	vpoint/y: ctx/sub/last-pt-y
-	gsink/BeginFigure sthis vpoint as-integer ctx/brush-type = DRAW_BRUSH_NONE
+	SET_FIGURE_MODE(ctx figure)
+	gsink/BeginFigure sthis vpoint figure
 	ctx/sub/shape-curve?: no
 ]
 
@@ -686,10 +714,15 @@ draw-curve: func [
 				p1x: dx
 				p1y: dy
 			]
+			start: start - 1
 		]
 		if rel? [
-			pf: :p1x
-			loop num [
+			unless short? [				;-- p1 is already absolute coordinate if short?
+				p1x: p1x + dx
+				p1y: p1y + dy
+			]
+			pf: :p2x
+			loop num - 1 [
 				pf/1: pf/1 + dx			;-- x
 				pf/2: pf/2 + dy			;-- y
 				pf: pf + 2
@@ -722,7 +755,7 @@ draw-curve: func [
 			ctx/sub/last-pt-x: p2x
 			ctx/sub/last-pt-y: p2y
 		]
-		start: start + num - 1
+		start: start + num
 	]
 ]
 
@@ -1049,6 +1082,9 @@ OS-draw-box: func [
 		up-y	[integer!]
 		low-x	[integer!]
 		low-y	[integer!]
+		m0		[D2D_MATRIX_3X2_F value]
+		m		[D2D_MATRIX_3X2_F value]
+		offset	[float32!]
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
@@ -1068,18 +1104,22 @@ OS-draw-box: func [
 	w: low-x - up-x
 	h: low-y - up-y
 	either ctx/shadow? [
+		offset: ctx/pen-width / (as float32! 2.0)
 		scale: dpi-value / as float32! 96.0
-		rc/left: as float32! 0.5
-		rc/top:  as float32! 0.5
-		rc/right:  (as float32! w) + (as float32! 0.5)
-		rc/bottom: (as float32! h) + (as float32! 0.5)
+		rc/left: offset
+		rc/top:  offset
+		rc/right:  (as float32! w) + offset
+		rc/bottom: (as float32! h) + offset
 
 		bmp: create-d2d-bitmap		;-- create an intermediate bitmap
 				this
-				as-integer (as float32! w + 1) * scale
-				as-integer (as float32! h + 1) * scale
+				as-integer ((as float32! w) + ctx/pen-width) * scale
+				as-integer ((as float32! h) + ctx/pen-width) * scale
 				1
+		dc/GetTransform this :m0
 		dc/SetTarget this bmp
+		matrix2d/identity :m
+		dc/SetTransform this :m			;-- set to identity matrix
 	][
 		rc/left: as float32! up-x
 		rc/top: as float32! up-y
@@ -1121,7 +1161,10 @@ OS-draw-box: func [
 	]
 	if type > DRAW_BRUSH_GRADIENT [post-process-brush ctx/pen ctx/pen-offset]
 
-	if ctx/shadow? [draw-shadow ctx bmp upper/x upper/y w h]
+	if ctx/shadow? [
+		dc/SetTransform this :m0
+		draw-shadow ctx bmp upper/x upper/y w h
+	]
 ]
 
 OS-draw-triangle: func [
@@ -1287,6 +1330,9 @@ do-draw-ellipse: func [
 		ellipse	[D2D1_ELLIPSE value]
 		scale	[float32!]
 		bmp		[this!]
+		m0		[D2D_MATRIX_3X2_F value]
+		m		[D2D_MATRIX_3X2_F value]
+		offset	[float32!]
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
@@ -1298,15 +1344,19 @@ do-draw-ellipse: func [
 	rx: dx / as float32! 2.0
 	ry: dy / as float32! 2.0
 	either ctx/shadow? [
+		offset: ctx/pen-width / (as float32! 2.0)
 		scale: dpi-value / as float32! 96.0
-		ellipse/x: rx + as float32! 0.5
-		ellipse/y: ry + as float32! 0.5
+		ellipse/x: rx + offset
+		ellipse/y: ry + offset
 		bmp: create-d2d-bitmap		;-- create an intermediate bitmap
 				this
-				as-integer (as float32! width + 1) * scale
-				as-integer (as float32! height + 1) * scale
+				as-integer ((as float32! width) + ctx/pen-width) * scale
+				as-integer ((as float32! height) + ctx/pen-width) * scale
 				1
+		dc/GetTransform this :m0
 		dc/SetTarget this bmp
+		matrix2d/identity :m
+		dc/SetTransform this :m			;-- set to identity matrix
 	][
 		ellipse/x: cx + rx
 		ellipse/y: cy + ry
@@ -1339,7 +1389,10 @@ do-draw-ellipse: func [
 			dc/DrawEllipse this ellipse ctx/pen ctx/pen-width ctx/pen-style
 		]
 	]
-	if ctx/shadow? [draw-shadow ctx bmp x y width height]
+	if ctx/shadow? [
+		dc/SetTransform this :m0
+		draw-shadow ctx bmp x y width height
+	]
 ]
 
 OS-draw-circle: func [
@@ -1396,11 +1449,12 @@ OS-draw-font: func [
 	/local
 		clr [red-tuple!]
 ][
+	ctx/font?: yes
 	ctx/text-format: as this! create-text-format font null
 	;-- set font color
 	clr: as red-tuple! (object/get-values font) + FONT_OBJ_COLOR
 	if TYPE_OF(clr) = TYPE_TUPLE [
-		ctx/font-color: clr/array1
+		ctx/font-color: get-tuple-color clr
 		ctx/font-color?: yes
 	]
 ]
@@ -1509,7 +1563,7 @@ OS-draw-arc: func [
 	arc/size/width: rad-x
 	arc/size/height: rad-y
 	arc/angle: as float32! 0.0
-	arc/direction: 1							;-- D2D1_SWEEP_DIRECTION_CLOCKWISE
+	arc/direction: as-integer sweep >= 0
 	arc/arcSize: either sweep >= 180 [1][0]
 	hr: gsink/AddArc sthis arc
 	gsink/EndFigure sthis either closed? [1][0]
@@ -1624,6 +1678,36 @@ OS-draw-line-cap: func [
 		true				[mode: D2D1_CAP_STYLE_FLAT]
 	]
 	ctx/pen-cap: mode
+	update-pen-style ctx
+]
+
+OS-draw-line-pattern: func [
+	ctx			[draw-ctx!]
+	start		[red-integer!]
+	end			[red-integer!]
+	/local
+		p		[red-integer!]
+		cnt		[integer!]
+		arr		[float32-ptr!]
+		pf32	[float32-ptr!]
+][
+	if ctx/pen-pattern <> null [free as byte-ptr! ctx/pen-pattern]
+	ctx/pen-pattern: null
+	ctx/pen-pattern-cnt: 0
+
+	cnt: (as-integer end - start) / 16 + 1
+	if cnt > 0 [
+		arr: as float32-ptr! allocate cnt * size? float32!
+		p: start
+		pf32: arr
+		while [p <= end][
+			pf32/1: as float32! p/value
+			pf32: pf32 + 1
+			p: p + 1
+		]
+		ctx/pen-pattern: arr
+		ctx/pen-pattern-cnt: cnt
+	]
 	update-pen-style ctx
 ]
 
@@ -1839,6 +1923,7 @@ _OS-draw-brush-bitmap: func [
 		wrap-x	[integer!]
 		wrap-y	[integer!]
 		props	[D2D1_IMAGE_BRUSH_PROPERTIES value]
+		bprops	[D2D1_BRUSH_PROPERTIES value]
 		this	[this!]
 		dc		[ID2D1DeviceContext]
 		brush	[ptr-value!]
@@ -1888,9 +1973,12 @@ _OS-draw-brush-bitmap: func [
 	props/extendModeY: wrap-y
 	props/interpolationMode: 1		;-- MODE_LINEAR
 
+	bprops/opacity: as float32! 1.0
+	matrix2d/identity as D2D_MATRIX_3X2_F :bprops/transform
+	matrix2d/set-translation as D2D_MATRIX_3X2_F :bprops/transform F32_0 props/bottom / as float32! 2.0
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
-	dc/CreateImageBrush this bmp :props null :brush
+	dc/CreateImageBrush this bmp :props :bprops :brush
 	either brush? [
 		COM_SAFE_RELEASE(unk ctx/brush)
 		ctx/brush: as this! brush/value
@@ -2063,7 +2151,7 @@ OS-draw-grad-pen-old: func [
 	loop count [
 		clr: as red-tuple! either TYPE_OF(head) = TYPE_WORD [_context/get as red-word! head][head]
 		next: head + 1
-		to-dx-color clr/array1 as D3DCOLORVALUE (as int-ptr! gstops) + 1
+		to-dx-color get-tuple-color clr as D3DCOLORVALUE (as int-ptr! gstops) + 1
 		if TYPE_OF(next) = TYPE_FLOAT [head: next f: as red-float! head p: f/value]
 		gstops/position: as float32! p
 		if next <> head [p: p + delta]
@@ -2173,7 +2261,7 @@ OS-draw-grad-pen: func [
 	loop count [
 		clr: as red-tuple! either TYPE_OF(head) = TYPE_WORD [_context/get as red-word! head][head]
 		next: head + 1
-		to-dx-color clr/array1 as D3DCOLORVALUE (as int-ptr! gstops) + 1
+		to-dx-color get-tuple-color clr as D3DCOLORVALUE (as int-ptr! gstops) + 1
 		if TYPE_OF(next) = TYPE_FLOAT [head: next f: as red-float! head p: f/value]
 		gstops/position: as float32! p
 		if next <> head [p: p + delta]
@@ -2287,23 +2375,20 @@ OS-set-clip: func [
 		para/bounds/right: as float32! l/x
 		para/bounds/bottom: as float32! l/y
 	][
-		inf1: FF800000h
-		inf2: FF800000h
-		inf3: 7F800000h
-		inf4: 7F800000h
-		copy-memory as byte-ptr! para/bounds as byte-ptr! :inf1 16
+		inf1: FF7FFFFFh
+		inf2: FF7FFFFFh
+		inf3: 7F7FFFFFh
+		inf4: 7F7FFFFFh
+		copy-memory as byte-ptr! :para/bounds as byte-ptr! :inf1 16
 
-		;-- TDB: as the shape path are auto closed, so need a way to reserve path
 		if ctx/sub/path <> 0 [
-			pthis: as this! ctx/sub/path
-			gpath: as ID2D1PathGeometry pthis/vtbl
 			sthis: as this! ctx/sub/sink
 			gsink: as ID2D1GeometrySink sthis/vtbl
 			gsink/EndFigure sthis 1
 			hr: gsink/Close sthis
 			gsink/Release sthis
 
-			para/mask: as int-ptr! pthis
+			para/mask: as int-ptr! ctx/sub/path
 		]
 	]
 
@@ -2513,6 +2598,7 @@ OS-draw-state-push: func [
 	draw-state/state: as this! blk/value
 	COM_ADD_REF(unk draw-state/pen)
 	COM_ADD_REF(unk draw-state/brush)
+	COM_ADD_REF(unk draw-state/pen-style)
 ]
 
 OS-draw-state-pop: func [
@@ -2532,11 +2618,12 @@ OS-draw-state-pop: func [
 	COM_SAFE_RELEASE(IUnk draw-state/state)
 	COM_SAFE_RELEASE(IUnk ctx/pen)
 	COM_SAFE_RELEASE(IUnk ctx/brush)
+	COM_SAFE_RELEASE(IUnk ctx/pen-style)
+	if ctx/pen-pattern <> null [free as byte-ptr! ctx/pen-pattern]
 	copy-memory as byte-ptr! :ctx/state as byte-ptr! draw-state size? draw-state!
 	ctx/state: null
 	if ctx/pen-type = DRAW_BRUSH_COLOR [OS-draw-pen ctx ctx/pen-color no]
 	if ctx/brush-type = DRAW_BRUSH_COLOR [OS-draw-fill-pen ctx ctx/brush-color no yes]
-	update-pen-style ctx
 ]
 
 OS-matrix-reset: func [
@@ -2633,6 +2720,21 @@ OS-set-matrix-order: func [
 	]
 ]
 
+free-shadow: func [
+	ctx		[draw-ctx!]
+	/local
+		s		[shadow!]
+		ss		[shadow!]
+][
+	ss: ctx/shadows/next
+	while [ss <> null][
+		s: ss
+		ss: ss/next
+		free as byte-ptr! s
+	]
+	ctx/shadows/next: null
+]
+
 OS-draw-shadow: func [
 	ctx		[draw-ctx!]
 	offset	[red-pair!]
@@ -2666,12 +2768,6 @@ OS-draw-shadow: func [
 		s/color: color
 		s/inset?: inset?
 	][
-		ss: ctx/shadows/next
-		while [ss <> null][
-			s: ss
-			ss: ss/next
-			free as byte-ptr! s
-		]
-		ctx/shadows/next: null
+		free-shadow ctx
 	]
 ]

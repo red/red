@@ -633,6 +633,10 @@ clipboard: context [
 					clipboard 	[handle!]
 					return: 	[handle!]
 				]
+				gtk_clipboard_clear: "gtk_clipboard_clear" [Clipboard [handle!]]
+				g_free: "g_free" [
+					ptr			[handle!]
+				]
 			]
 		]
 
@@ -656,10 +660,22 @@ clipboard: context [
 			/local
 				clipboard 	[handle!]
 				str 		[c-string!]
+				val			[red-value!]
+				img			[handle!]
 		][
+			val: none-value
 			clipboard: gtk_clipboard_get gdk_atom_intern_static_string "CLIPBOARD"
 			str: gtk_clipboard_wait_for_text clipboard
-			as red-value! to-red-string str null
+			if str <> null [
+				val: as red-value! to-red-string str null
+				g_free as handle! str
+				return val
+			]
+			img: gtk_clipboard_wait_for_image clipboard
+			if img <> null [
+				val: as red-value! image/init-image as red-image! stack/push* OS-image/load-pixbuf img
+			]
+			val
 		]
 
 		write: func [
@@ -670,6 +686,7 @@ clipboard: context [
 				text		[red-string!]
 				str 		[c-string!]
 				strlen 		[integer!]
+				img			[handle!]
 		][
 			clipboard: gtk_clipboard_get gdk_atom_intern_static_string "CLIPBOARD"
 			switch TYPE_OF(data) [
@@ -679,8 +696,14 @@ clipboard: context [
 					str: unicode/to-utf8 text :strlen
 					gtk_clipboard_set_text clipboard str strlen
 				]
-				TYPE_IMAGE	[0]
-				default		[0]
+				TYPE_IMAGE	[
+					img: OS-image/to-pixbuf as red-image! data
+					if img <> null [
+						gtk_clipboard_set_image clipboard img
+					]
+				]
+				TYPE_NONE	[gtk_clipboard_clear clipboard]
+				default		[return false]
 			]
 			true
 		]

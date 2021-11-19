@@ -121,7 +121,7 @@ tcp-device: context [
 			either data/event = IO_EVT_NONE [		;-- we can reuse this one
 				as sockdata! data
 			][										;-- needs to create a new one
-				new: as sockdata! alloc0 size? sockdata!
+				new: as sockdata! zero-alloc size? sockdata!
 				new/event-handler: as iocp-event-handler! :event-handler
 				new/device: data/device
 				new/accept-sock: PENDING_IO_FLAG ;-- use it as a flag to indicate pending data

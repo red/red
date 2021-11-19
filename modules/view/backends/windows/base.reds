@@ -513,7 +513,8 @@ BaseWndProc: func [
 					do-draw hWnd null draw no yes yes yes
 				][
 					if null? current-msg [return -1]
-					system/thrown: 0
+					;system/thrown: 0
+					assert system/thrown = 0
 					DC: declare draw-ctx!				;@@ should declare it on stack
 					catch RED_THROWN_ERROR [
 						draw-begin DC hWnd null no yes
@@ -629,7 +630,7 @@ update-base-background: func [
 		clr		[integer!]
 		brush	[integer!]
 ][
-	clr: to-gdiplus-color-fixed color/array1
+	clr: to-gdiplus-color-fixed get-tuple-color color
 	brush: 0
 	GdipCreateSolidFill clr :brush
 	GdipFillRectangleI graphic brush 0 0 width height
@@ -692,7 +693,7 @@ update-base-text: func [
 			hFont: as-integer make-font get-face-obj hWnd font
 		]
 		if TYPE_OF(color) = TYPE_TUPLE [
-			clr: color/array1
+			clr: get-tuple-color color
 			default-color: no
 		]
 	]

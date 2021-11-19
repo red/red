@@ -14,7 +14,7 @@ Red/System [
 	#include %../../../../runtime/platform/definitions/COM.reds
 	#switch draw-engine [
 		GDI+	 [#include %../../../../runtime/platform/windows/image-gdiplus.reds]
-		#default [#include %../../../../runtime/platform/image-wic.reds]
+		#default [#include %../../../../runtime/platform/windows/image-wic.reds]
 	]
 ]
 
@@ -113,6 +113,9 @@ Red/System [
 
 #define LBN_SELCHANGE       1
 #define LBN_DBLCLK          2
+#define LBN_SELCANCEL		3
+#define LBN_SETFOCUS		4
+#define LBN_KILLFOCUS		5
 
 #define EN_CHANGE			0300h
 #define EN_SETFOCUS			0100h

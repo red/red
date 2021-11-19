@@ -522,6 +522,17 @@ system/view/platform: context [
 				]
 			]]
 
+			get-tuple-color: func [
+				tp		[red-tuple!]
+				return: [integer!]
+				/local
+					color [integer!]
+			][
+				color: tp/array1
+				if TUPLE_SIZE?(tp) = 3 [color: color and 00FFFFFFh]
+				color
+			]
+
 			#switch GUI-engine [
 				native [
 					;#include %android/gui.reds
@@ -556,7 +567,7 @@ system/view/platform: context [
 		/local
 			values [red-value!]
 			text   [red-string!]
-			pair   [red-pair!]
+			pair   [red-pair! value]
 	][
 		;@@ check if object is a face?
 		values: object/get-values face
@@ -570,14 +581,15 @@ system/view/platform: context [
 			exit
 		]
 
-		pair: as red-pair! stack/arguments
+		;pair: as red-pair! stack/arguments		;@@ wrong! overwrite face
 		pair/header: TYPE_PAIR
-		gui/get-text-size face text pair
+		gui/get-text-size face text :pair
+		stack/set-last as red-value! :pair
 	]
 	
 	on-change-facet: routine [
 		owner  [object!]
-		word   [word!]
+		word   [any-word!]
 		value  [any-type!]
 		action [word!]
 		new	   [any-type!]
@@ -627,6 +639,7 @@ system/view/platform: context [
 	]
 
 	draw-image: routine [image [image!] cmds [block!]][
+		if any [zero? IMAGE_WIDTH(image/size) zero? IMAGE_HEIGHT(image/size)][exit]
 		gui/OS-do-draw image cmds
 		ownership/check as red-value! image words/_poke as red-value! image -1 -1
 	]
@@ -657,28 +670,38 @@ system/view/platform: context [
 		]
 	]
 
-	request-font: routine [font [object!] selected [object!] mono? [logic!]][
-		gui/OS-request-font font selected mono?
+	request-font: routine [font [object!] selected [any-type!] mono? [logic!]][
+		gui/OS-request-font font as red-object! selected mono?
 	]
 
 	request-file: routine [
-		title	[string!]
-		name	[file!]
-		filter	[block!]
+		title	[any-type!]
+		name	[any-type!]
+		filter	[any-type!]
 		save?	[logic!]
 		multi?	[logic!]
 	][
-		stack/set-last gui/OS-request-file title name filter save? multi?
+		stack/set-last gui/OS-request-file
+			as red-string! title
+			as red-file! name
+			as red-block! filter
+			save?
+			multi?
 	]
 
 	request-dir: routine [
-		title	[string!]
-		dir		[file!]
-		filter	[block!]
+		title	[any-type!]
+		dir		[any-type!]
+		filter	[any-type!]
 		keep?	[logic!]
 		multi?	[logic!]
 	][
-		stack/set-last gui/OS-request-dir title dir filter keep? multi?
+		stack/set-last gui/OS-request-dir
+			as red-string! title
+			as red-file! dir
+			as red-block! filter
+			keep?
+			multi?
 	]
 
 	text-box-metrics: routine [

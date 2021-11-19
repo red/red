@@ -32,7 +32,7 @@ redc: context [
 		temp-dir: switch/default system/version/4 [
 			2 [											;-- MacOS X
 				libc: load/library %libc.dylib
-				sys-call: make routine! [cmd [string!]] libc "system"
+				sys-call: make routine! [cmd [string!] return: [integer!]] libc "system"
 				join any [attempt [to-rebol-file get-env "HOME"] %/tmp] %/.red/
 			]
 			3 [											;-- Windows
@@ -102,7 +102,7 @@ redc: context [
 					]
 					append dirize to-rebol-file trim path %Red/
 				][
-					sys-call: func [cmd][call/wait cmd]
+					sys-call: func [cmd [string!]][call/wait cmd]
 					append to-rebol-file get-env "ALLUSERSPROFILE" %/Red/
 				]
 			]
@@ -125,7 +125,7 @@ redc: context [
 				exists? libc: %/lib/libc.so.5
 			]
 			libc: load/library libc
-			sys-call: make routine! [cmd [string!]] libc "system"
+			sys-call: make routine! [cmd [string!] return: [integer!]] libc "system"
 			join any [attempt [to-rebol-file get-env "HOME"] %/tmp] %/.red/
 		]
 	]
@@ -211,9 +211,9 @@ redc: context [
 	
 	get-lib-suffix: does [
 		case [
-			Windows? 			 [%.dll]
-			system/version/4 = 2 [%.dylib]
-			'else 				 [%.so]
+			Windows? [%.dll]
+			macOS?   [%.dylib]
+			'else    [%.so]
 		]
 	]
 
@@ -335,11 +335,11 @@ redc: context [
 			not SSE3?
 			any [
 				all [Windows? opts/OS = 'Windows]
-				all [system/version/4 = 4 opts/OS = 'Linux]
+				all [Linux?   opts/OS = 'Linux]
 			]
 			opts/cpu-version: 1.0
 		]
-		if system/version/4 = 2 [						;-- macOS version extraction
+		if macOS? [						;-- macOS version extraction
 			out: make string! 128
 			call/output "sw_vers -productVersion" out
 			attempt [
@@ -420,7 +420,7 @@ redc: context [
 		/with file [string!]
 		/local 
 			opts result script filename exe console console-root files files2
-			source con-ui gui-target td winxp? old-td
+			source con-ui gui-target td winxp? old-td status
 	][
 		script: rejoin [temp-dir pick [%GUI/ %CLI/] gui? %gui-console.red]
 		filename: decorate-name pick [%gui-console %console] gui?
@@ -508,15 +508,16 @@ redc: context [
 		]
 		exe: safe-to-local-file exe
 		
+		status: 0
 		if console? [ 
-			either all [Windows? gui?][
+			status: either all [Windows? gui?][
 				gui-sys-call exe any [all [file form-args file] ""]
 			][
 				if with [repend exe [" " form-args file]]
 				sys-call exe								;-- replace the buggy CALL native
 			]
 		]
-		quit/return 0
+		quit/return status
 	]
 	
 	build-libRedRT: func [opts [object!] /local script result file path][

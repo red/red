@@ -56,7 +56,7 @@ Red [
 
 ===start-group=== "advanced repeat tests"
 
-	--test-- "repeat counter mess"
+	--test-- "advr1"
   		rcm-n: 0
 		repeat rcm-i 10 [
 			repeat rcm-i 5 [
@@ -66,6 +66,11 @@ Red [
 		]
 		--assert 50 = rcm-n
 		unset [rcm-i rcm-n]
+
+	--test-- "advr2"
+		c123: "string"
+		try [repeat c123 1.2.3.4 [--assert false]]  ; don't set counter word on error
+		--assert c123 == "string"
 
 ===end-group===
 
@@ -268,6 +273,30 @@ Red [
 		f3361 1
 		--assert s3361 = [1 1  2 1 2 2  3 1 3 2 3 3  2 3  1 2 1 3]
 		unset [f3361 s3361]
+
+	--test-- "#4578"
+			s4578: [1] probe forall s4578 [break]
+			--assert true							;-- check if previous line didn't crash
+
+			a1923: [1 2 3] 
+			forall a1923 [if a1923/1 = 2 [break] try [break] do [break]]
+			repeat i 3 [break continue]
+			foreach a a1923 [break]
+			remove-each a a1923 [break]
+			--assert true							;-- check if previous line didn't crash
+
+	--test-- "#4967"
+			b4967: [1 2 3 4]
+			out4967: make block! 3
+			forall b4967 [append out4967 index? b4967 b4967: next b4967 b4967/1: b4967/1 * 2]
+			--assert b4967 == [1 4 3 8]
+			--assert out4967 == [1 3]
+
+			i4967: make image! 2x2
+			out4967: make block! 3
+			forall i4967 [append out4967 index? i4967 i4967: next i4967 i4967/1: black]
+			--assert i4967 == make image! [2x2 #{FFFFFF000000FFFFFF000000}]
+			--assert out4967 == [1 3]
 
 ===end-group===
     

@@ -374,9 +374,7 @@ ext-process: context [
 
 		init: does [
 			shell-name: getenv "SHELL"
-			if null? shell-name [	;-- if $SHELL is not defined
-				shell-name: "/bin/bash"
-			]
+			if null? shell-name [shell-name: "/bin/sh"]	;-- if $SHELL is not defined
 			init-global
 		]
 

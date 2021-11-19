@@ -57,10 +57,6 @@ simple-io: context [
 		str
 	]
 
-				#either dynamic-linker = "/lib/ld-musl-i386.so.1" [
-					#define DIRENT_NAME_OFFSET 19
-				][
-				]
 	make-dir: func [
 		path	[c-string!]
 		return: [logic!]
@@ -867,7 +863,7 @@ simple-io: context [
 					new?: no
 					s/1: null-byte
 					w: as red-value! word/push* symbol/make as-c-string p
-					res: map/eval-path mp w null null no
+					res: map/eval-path mp w null null no no no
 					either TYPE_OF(res) = TYPE_NONE [
 						new?: yes
 					][
@@ -1309,7 +1305,7 @@ simple-io: context [
 					new?: no
 					s/1: null-byte
 					w: as red-value! word/push* symbol/make as-c-string p
-					res: map/eval-path mp w null null no
+					res: map/eval-path mp w null null no no no
 					either TYPE_OF(res) = TYPE_NONE [
 						new?: yes
 					][
@@ -1492,5 +1488,17 @@ simple-io: context [
 			]
 			as red-value! bin
 		]
+	]
+
+	rename: func[
+		from	[red-value!]
+		to		[red-value!]
+		return:  [logic!]
+		/local
+			old new [c-string!]
+	][
+		old: file/to-OS-path as red-file! from
+		new: file/to-OS-path as red-file! to
+		zero? _rename old new
 	]
 ]

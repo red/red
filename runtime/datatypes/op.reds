@@ -153,11 +153,25 @@ op: context [
 		part	[integer!]
 		indent	[integer!]
 		return: [integer!]
+		/local
+			more [red-value!]
+			fun	 [red-function!]
+			blk	 [red-block!]
+			node [node!]
+			s	 [series!]
+			pre	 [c-string!]
+			body?[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "op/mold"]]
 
-		string/concatenate-literal buffer "make op! ["
+		string/concatenate-literal buffer "make op! "
+		part: part - 9
+		body?: op/header and body-flag <> 0
+		pre: either body? ["func "]["["]
+		string/concatenate-literal buffer pre
+		part: part - length? pre
 		
+		stack/mark-native words/_anon					;-- avoid block/mold corrupting current stack frame
 		part: block/mold								;-- mold spec
 			native/reflect op words/spec
 			buffer
@@ -167,16 +181,26 @@ op: context [
 			arg
 			part - 10
 			indent
+		stack/unwind
 		
-		string/concatenate-literal buffer "]"
-		part - 1
-
+		either body? [										;-- mold body if available
+			node: as node! op/code
+			s: as series! node/value
+			blk: as red-block! s/offset
+			if TYPE_OF(blk) = TYPE_BLOCK [
+				part: block/mold blk buffer no all? flat? arg part indent
+			]
+		][
+			string/concatenate-literal buffer "]"
+			part: part - 1
+		]
+		part
 	]
 
 	compare: func [
-		arg1	[red-op!]							;-- first operand
-		arg2	[red-op!]							;-- second operand
-		op		[integer!]							;-- type of comparison
+		arg1	[red-op!]								;-- first operand
+		arg2	[red-op!]								;-- second operand
+		op		[integer!]								;-- type of comparison
 		return:	[integer!]
 		/local
 			type  [integer!]

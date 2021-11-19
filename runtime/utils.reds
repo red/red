@@ -406,6 +406,83 @@ check-arg-type: func [
 		free as byte-ptr! buf
 	]]
 
+	FreeBSD [
+	utsname!: alias struct! [
+		sysname		[c-string!]
+		nodename	[c-string!]
+		release		[c-string!]
+		version		[c-string!]
+		machine		[c-string!]
+	]
+
+	#import [
+		LIBC-file cdecl [
+			uname: "uname" [
+				buf		[utsname!]
+				return: [integer!]
+			]
+			strchr: "strchr" [
+				str			[c-string!]
+				c			[byte!]
+				return:		[c-string!]
+			]
+		]
+	]
+
+	__get-OS-info: func [
+		/local
+			obj		[red-object!]
+			ctx		[red-context!]
+			val		[red-value!]
+			int		[red-integer!]
+			pbuf	[byte-ptr!]
+			str		[c-string!]
+			p		[c-string!]
+			err		[integer!]
+			major	[integer!]
+			minor	[integer!]
+			bugfix	[integer!]
+			file	[integer!]
+			len		[integer!]
+			buf		[utsname!]
+	][
+		obj: object/make-at as red-object! stack/push* 8
+		val: stack/push*
+		ctx: GET_CTX(obj)
+
+		buf: as utsname! allocate size? utsname!
+		uname buf
+
+		str: (as c-string! buf) + 32
+		string/load-at str length? str val UTF-8
+		_context/add-with ctx _context/add-global symbol/make "name" val
+
+		str: as c-string! buf
+		word/make-at symbol/make str + (32 * 4) val
+		_context/add-with ctx _context/add-global symbol/make "arch" val
+
+		err: 0
+		str: str + (32 * 2)
+		p: strchr str #"."
+		major: tokenizer/scan-integer as byte-ptr! str as-integer p - str 1 :err
+
+		str: p + 1
+		p: strchr str #"-"
+		minor: tokenizer/scan-integer as byte-ptr! str as-integer p - str 1 :err
+		bugfix: 0		
+
+		val/header: TYPE_TUPLE or (2 << 19)
+		val/data1: minor << 8 or major
+		_context/add-with ctx _context/add-global symbol/make "version" val
+
+		str: (as c-string! buf) + (32 * 3)
+		string/load-at str length? str val UTF-8
+		_context/add-with ctx _context/add-global symbol/make "build" val
+
+		stack/pop 2
+		free as byte-ptr! buf
+	]]
+
 	#default [
 	utsname!: alias struct! [
 		_pad0	[float!]

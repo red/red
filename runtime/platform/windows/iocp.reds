@@ -106,7 +106,7 @@ iocp: context [
 		/local
 			p	[iocp!]
 	][
-		p: as iocp! alloc0 size? iocp!
+		p: as iocp! zero-alloc size? iocp!
 		p/maxn: 65536
 		p/port: CreateIoCompletionPort INVALID_HANDLE null null 0
 		assert p/port <> INVALID_HANDLE

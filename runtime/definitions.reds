@@ -122,14 +122,12 @@ Red/System [
 		pattern			[int-ptr!]
 	]
 
-	draw-ctx!: alias struct! [
-		cr				[handle!]
+	#define DRAW_STATE_DATA [
 		matrix-order	[integer!]
 		device-matrix	[tagMATRIX value]
 		pattern?		[logic!]
-		pen-join		[integer!]
-		pen-cap			[integer!]
-		pen-style		[integer!]
+		pen-width		[float!]
+		pen-pattern		[float-ptr!]
 		pen-color		[integer!]					;-- 00bbggrr format
 		brush-color		[integer!]					;-- 00bbggrr format
 		font-color		[integer!]
@@ -138,6 +136,15 @@ Red/System [
 		pen?			[logic!]
 		brush?			[logic!]
 		on-image?		[logic!]
+	]
+
+	draw-state!: alias struct! [
+		DRAW_STATE_DATA
+	]
+
+	draw-ctx!: alias struct! [
+		cr				[handle!]
+		DRAW_STATE_DATA
 		control-x		[float32!]
 		control-y		[float32!]
 		shape-curve?	[logic!]
@@ -291,6 +298,7 @@ Red/System [
 			state			[this!]
 			pen				[this!]
 			brush			[this!]
+			pen-style		[this!]
 			pen-type		[integer!]
 			brush-type		[integer!]
 			pen-color		[integer!]
@@ -298,6 +306,8 @@ Red/System [
 			font-color		[integer!]
 			pen-join		[integer!]
 			pen-cap			[integer!]
+			pen-pattern		[float32-ptr!]
+			pen-pattern-cnt [integer!]
 			pen-grad-type	[integer!]
 			brush-grad-type	[integer!]
 			pen-width		[float32!]
@@ -315,11 +325,12 @@ Red/System [
 			DRAW_STATE_DATA
 			target			[int-ptr!]
 			hwnd			[int-ptr!]			;-- Window's handle
-			pen-style		[this!]
 			image			[int-ptr!]			;-- original image handle
 			pre-order?		[logic!]			;-- matrix order, default pre-order for row-major vector
 			font-color?		[logic!]
 			shadow?			[logic!]
+			font?			[logic!]
+			draw-shape?		[logic!]
 			text-format		[this!]
 			sub				[sub-path! value]
 			shadows			[shadow! value]

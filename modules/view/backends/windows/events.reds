@@ -718,8 +718,9 @@ process-command-event: func [
 			]
 			0
 		]
-		EN_SETFOCUS
-		CBN_SETFOCUS [
+		CBN_SETFOCUS
+		LBN_SETFOCUS
+		EN_SETFOCUS [
 			values: get-face-values hWnd
 			if values <> null [
 				make-at 
@@ -736,8 +737,9 @@ process-command-event: func [
 			]
 			make-event current-msg 0 EVT_FOCUS
 		]
-		EN_KILLFOCUS
-		CBN_KILLFOCUS [
+		CBN_KILLFOCUS
+		LBN_KILLFOCUS
+		EN_KILLFOCUS [
 			current-msg/hWnd: child
 			make-event current-msg 0 EVT_UNFOCUS
 		]
@@ -820,7 +822,7 @@ paint-background: func [
 	][
 		;-- GDI+ alpha aware fill is required for W7 layered windows capture via OS-to-image
 		either TYPE_OF(color) = TYPE_TUPLE [
-			gdiclr: color/array1
+			gdiclr: get-tuple-color color
 		][
 			if (GetWindowLong hWnd GWL_STYLE) and WS_CHILD <> 0 [return false]
 			gdiclr: GetSysColor COLOR_3DFACE
@@ -1014,7 +1016,7 @@ set-window-info: func [
 
 update-window: func [
 	child	[red-block!]
-	hdwp	[handle!]
+	fonts	[node!]				;-- font handle array
 	/local
 		face	[red-object!]
 		tail	[red-object!]
@@ -1025,35 +1027,35 @@ update-window: func [
 		word	[red-word!]
 		type	[integer!]
 		hWnd	[handle!]
-		end?	[logic!]
-		len		[integer!]
+		hdwp	[handle!]
+		target	[integer!]
+		hfont	[handle!]
 ][
-	end?: null? hdwp
-	if null? hdwp [hdwp: BeginDeferWindowPos 1]
+	if null? fonts [
+		get-metrics
+		fonts: alloc-bytes 32 * size? int-ptr!
+	]
+
+	if TYPE_OF(child) <> TYPE_BLOCK [exit]
 
 	face: as red-object! block/rs-head child
 	tail: as red-object! block/rs-tail child
+	hdwp: BeginDeferWindowPos 32
 	while [face < tail][
 		hWnd: face-handle? face
 		if hWnd <> null [
 			values: get-face-values hWnd
-			word: as red-word! values + FACE_OBJ_TYPE
-			type: symbol/resolve word/symbol
-			case [
-				type = rich-text [
-					len: GetWindowLong hWnd wc-offset - 36
-					if len <> 0 [
-						d2d-release-target as render-target! len
-						SetWindowLong hWnd wc-offset - 36 0
-					]
-				]
-				type = group-box [
-					0
-				]
-				true [0]
-			]
 			sz: as red-pair! values + FACE_OBJ_SIZE
 			pos: as red-pair! values + FACE_OBJ_OFFSET
+			word: as red-word! values + FACE_OBJ_TYPE
+			type: symbol/resolve word/symbol
+			if type = rich-text [
+				target: GetWindowLong hWnd wc-offset - 36
+				if target <> 0 [
+					d2d-release-target as render-target! target
+					SetWindowLong hWnd wc-offset - 36 0
+				]
+			]
 			hdwp: DeferWindowPos
 				hdwp
 				hWnd
@@ -1062,20 +1064,35 @@ update-window: func [
 				dpi-scale sz/x  dpi-scale sz/y
 				SWP_NOZORDER or SWP_NOACTIVATE
 
-			font: as red-object! values + FACE_OBJ_FONT
-			if TYPE_OF(font) = TYPE_OBJECT [
-				free-font font
-				make-font null font
-			]
 			child: as red-block! values + FACE_OBJ_PANE
 			if TYPE_OF(child) = TYPE_BLOCK [
-				update-window child hdwp
+				EndDeferWindowPos hdwp
+				update-window child fonts
+				hdwp: BeginDeferWindowPos 32
+			]
+			font: as red-object! values + FACE_OBJ_FONT
+			if TYPE_OF(font) = TYPE_OBJECT [
+				if -1 = array/find-ptr fonts get-font-handle font 0 [	;-- not find
+					free-font font
+					make-font null font
+					array/append-ptr fonts get-font-handle font 0
+				]
+			]
+			set-font hWnd null values
+			if type = group-box [
+				hWnd: as handle! GetWindowLong hWnd wc-offset - 4	;-- frame of the group box
+				set-font hWnd null values
+				SetWindowPos
+					hWnd
+					null
+					0 0
+					dpi-scale sz/x dpi-scale sz/y
+					SWP_NOZORDER or SWP_NOACTIVATE
 			]
 		]
 		face: face + 1
 	]
-
-	if end? [EndDeferWindowPos hdwp]
+	EndDeferWindowPos hdwp
 ]
 
 TimerProc: func [
@@ -1489,6 +1506,8 @@ WndProc: func [
 		WM_DPICHANGED [
 			log-pixels-x: WIN32_LOWORD(wParam)			;-- new DPI
 			log-pixels-y: log-pixels-x
+			dpi-x: as float32! log-pixels-x
+			dpi-y: dpi-x
 			dpi-factor: log-pixels-x * 100 / 96
 			rc: as RECT_STRUCT lParam
 			SetWindowPos 
@@ -1498,10 +1517,10 @@ WndProc: func [
 				rc/right - rc/left rc/bottom - rc/top
 				SWP_NOZORDER or SWP_NOACTIVATE
 			values: values + FACE_OBJ_PANE
-			if all [
-				type = window
-				TYPE_OF(values) = TYPE_BLOCK
-			][update-window as red-block! values null]
+			if type = window [
+				set-defaults hWnd
+				update-window as red-block! values null
+			]
 			if hidden-hwnd <> null [
 				values: (get-face-values hidden-hwnd) + FACE_OBJ_EXT3
 				values/header: TYPE_NONE
@@ -1511,7 +1530,13 @@ WndProc: func [
 			]
 			RedrawWindow hWnd null null 4 or 1			;-- RDW_ERASE | RDW_INVALIDATE
 		]
-		WM_THEMECHANGED [set-defaults]
+		WM_THEMECHANGED [
+			values: values + FACE_OBJ_PANE
+			if type = window [
+				set-defaults hWnd
+				update-window as red-block! values null
+			]
+		]
 		default [0]
 	]
 	if ext-parent-proc? [call-custom-proc hWnd msg wParam lParam]

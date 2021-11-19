@@ -29,6 +29,7 @@ Red/System [
 		spline:			symbol/make "spline"
 		line-join:		symbol/make "line-join"
 		line-cap:		symbol/make "line-cap"
+		line-pattern:	symbol/make "line-pattern"
 		matrix:			symbol/make "matrix"
 		_append:        symbol/make "append"
 		prepend:        symbol/make "prepend"
@@ -40,7 +41,7 @@ Red/System [
 		replace:        symbol/make "replace"
 		intersect:      symbol/make "intersect"
 		union:          symbol/make "union"
-		_xor:            symbol/make "xor"
+		_xor:           symbol/make "xor"
 		exclude:        symbol/make "exclude"
 		complement:     symbol/make "complement"
 		rotate:			symbol/make "rotate"
@@ -565,6 +566,10 @@ Red/System [
 					word: as red-word! start
 					OS-draw-line-cap DC symbol/resolve word/symbol
 				]
+				sym = line-pattern [
+					DRAW_FETCH_SOME(TYPE_INTEGER)
+					OS-draw-line-pattern DC as red-integer! start as red-integer! cmd
+				]
 			]
 			cmd
 		]
@@ -593,7 +598,7 @@ Red/System [
 			tail: block/rs-tail cmds
 
 			close?: no
-			OS-draw-shape-beginpath DC
+			OS-draw-shape-beginpath DC draw?
 			while [cmd < tail][
 				case [
 					any [ TYPE_OF(cmd) = TYPE_WORD TYPE_OF(cmd) = TYPE_LIT_WORD ][
@@ -615,7 +620,7 @@ Red/System [
 								DRAW_FETCH_SOME_PAIR
 								OS-draw-shape-line DC as red-pair! start as red-pair! cmd rel?
 							]
-							any [sym = line-width sym = line-join sym = line-cap][
+							any [sym = line-width sym = line-join sym = line-cap sym = line-pattern][
 								cmd: check-line DC cmds start tail cmd sym catch?
 							]
 							any [ sym = hline sym = vline ][
@@ -647,7 +652,7 @@ Red/System [
 							]
 							sym = curve [
 								DRAW_FETCH_SOME_PAIR
-								if (as-integer cmd - start) < 32 [throw-draw-error cmds cmd - 2 catch?]
+								if (as-integer cmd - start) < 32 [throw-draw-error cmds start catch?]
 								OS-draw-shape-curve DC as red-pair! start as red-pair! cmd rel?
 							]
 							sym = curv [
@@ -718,6 +723,9 @@ Red/System [
 				ncmd		[red-value!]
 				ntail		[red-value!]
 		][
+			if cycles/find? cmds/node [cycles/reset fire [TO_ERROR(internal no-cycle)]]
+			cycles/push cmds/node
+
 			cmd:  block/rs-head cmds
 			tail: block/rs-tail cmds
 
@@ -744,7 +752,7 @@ Red/System [
 								if start = cmd [throw-draw-error cmds cmd catch?]
 								OS-draw-line DC as red-pair! start as red-pair! cmd
 							]
-							any [sym = line-width sym = line-join sym = line-cap][
+							any [sym = line-width sym = line-join sym = line-cap sym = line-pattern][
 								cmd: check-line DC cmds start tail cmd sym catch?
 							]
 							sym = triangle [
@@ -1068,6 +1076,8 @@ Red/System [
 				]
 				cmd: cmd + 1
 			]
+
+			cycles/pop
 		]
 
 		do-draw: func [
@@ -1089,6 +1099,7 @@ Red/System [
 			system/thrown: 0
 			draw-begin :DC handle img on-graphic? paint?
 			if TYPE_OF(cmds) = TYPE_BLOCK [
+				assert system/thrown = 0
 				catch RED_THROWN_ERROR [parse-draw DC cmds catch?]
 			]
 			draw-end :DC handle on-graphic? cache? paint?

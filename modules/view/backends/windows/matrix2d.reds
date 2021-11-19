@@ -131,6 +131,14 @@ matrix2d: context [
 		mul m t r pre?
 	]
 
+	set-translation: func [
+		m		[D2D_MATRIX_3X2_F]
+		x		[float32!]
+		y		[float32!]
+	][
+		m/_31: x
+		m/_32: y
+	]
 
 	;-- Assuming row vectors, this is equivalent to `p * M`
 	transform-point: func [

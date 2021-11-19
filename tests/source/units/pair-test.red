@@ -264,6 +264,14 @@ Red [
 
 ===end-group===
 
+===start-group=== "pair - round"
+
+	--test-- "pround-1"		--assert 15x10 = round/to 17x8  5
+	--test-- "pround-3"		--assert 15x10 = round/to 15x10 1
+	--test-- "pround-3"		--assert 15x10 = round/to 15x10 0
+
+===end-group===
+
 
 ===start-group=== "pair - issues"
 

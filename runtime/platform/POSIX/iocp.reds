@@ -109,7 +109,7 @@ iocp: context [
 	][
 		signal SIGPIPE SIG_IGN
 		errno: get-errno-ptr
-		p: as iocp! alloc0 size? iocp!
+		p: as iocp! zero-alloc size? iocp!
 		p/maxn: 65536
 
 		#either OS = 'macOS [
@@ -127,7 +127,7 @@ iocp: context [
 		socket/set-nonblocking p/pair-1
 		socket/set-nonblocking p/pair-2
 
-		ptr: as iocp-data! alloc0 size? iocp-data!
+		ptr: as iocp-data! zero-alloc size? iocp-data!
 		ptr/device: as handle! p/pair-2
 		ptr/event: IO_EVT_PULSE
 		add p p/pair-2 EPOLLIN or EPOLLET ptr

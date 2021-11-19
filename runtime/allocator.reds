@@ -942,6 +942,7 @@ alloc-series-buffer: func [
 	;-- extra space between two adjacent series-buffer!s (ensure s1/tail <> s2)
 	sz: SERIES_BUFFER_PADDING + size + size? series-buffer!
 	flag-big: 0
+	series: null
 	either (as byte-ptr! sz) >= (as byte-ptr! memory/s-max) [ ;-- alloc a big frame if too big for series frames
 		collector/do-cycle					;-- launch a GC pass
 		series: as series-buffer! alloc-big sz
@@ -992,10 +993,11 @@ alloc-series: func [
 	unit	[integer!]						;-- size of atomic elements stored
 	offset	[integer!]						;-- force a given offset for series buffer
 	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
-	/local series [series-buffer!] node [int-ptr!]
+	/local series [series!] node [int-ptr!]
 ][
 ;	#if debug? = yes [print-wide ["allocating series:" size unit offset lf]]
-
+	series: null
+	node: null
 	series: alloc-series-buffer size unit offset
 	node: alloc-node						;-- get a new node
 	series/node: node						;-- link back series to node
@@ -1093,6 +1095,7 @@ alloc-codepoints: func [
 	unit	[integer!]
 	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
 ][
+	assert unit <= 4
 	if zero? size [size: 16 >> (unit >> 1)]
 	alloc-series size unit 0				;-- optimize by default for tail insertion
 ]

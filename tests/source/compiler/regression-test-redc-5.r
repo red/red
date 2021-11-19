@@ -253,6 +253,19 @@ test
 		--assert compiled?
 		--assert 3 = load qt/output
 
+	--test-- "#4527"
+		--compile-and-run-this {
+			Red []
+			f: function [b [block!] /local i return: [default!]] [
+				c: clear []
+				probe c
+				foreach x c [1]
+			]
+			f [a/b]
+		}
+		--assert compiled?
+		--assert [] = load qt/output
+
 	--test-- "#4568"
 		--compile-this {Red [Config: [red-strict-check?: off]] :foo}
 		--assert compiled?

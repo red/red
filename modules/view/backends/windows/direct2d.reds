@@ -30,8 +30,10 @@ dwrite-str-cache: as node! 0
 
 #define D2D_MAX_BRUSHES 64
 
+#define DXGI_PRESENT_TEST 1
 #define DXGI_DEBUG_RLO_ALL	 7
 #define DXGI_FORMAT_A8_UNORM 65
+#define DXGI_STATUS_OCCLUDED 087A0001h
 #define D2DERR_RECREATE_TARGET 8899000Ch
 #define DXGI_ERROR_DEVICE_REMOVED 887A0005h
 #define DXGI_ERROR_DEVICE_RESET	887A0007h
@@ -2014,7 +2016,7 @@ get-hwnd-render-target: func [
 ][
 	target: as render-target! GetWindowLong hWnd wc-offset - 36
 	if null? target [
-		target: as render-target! alloc0 size? render-target!
+		target: as render-target! zero-alloc size? render-target!
 		create-render-target hWnd target gdi?
 		target/brushes: as int-ptr! allocate D2D_MAX_BRUSHES * 2 * size? int-ptr!
 		SetWindowLong hWnd wc-offset - 36 as-integer target
@@ -2275,8 +2277,8 @@ create-text-layout: func [
 		len: 0
 	]
 	lay: 0
-	w: either zero? width  [FLT_MAX][(as float32! width) + (as float32! 0.5)]
-	h: either zero? height [FLT_MAX][(as float32! height) + (as float32! 0.5)]
+	w: either width <= 0 [FLT_MAX][(as float32! width) + (as float32! 0.5)]
+	h: either height <= 0 [FLT_MAX][(as float32! height) + (as float32! 0.5)]
 
 	dw: as IDWriteFactory dwrite-factory/vtbl
 	dw/CreateTextLayout dwrite-factory str len fmt w h :lay
@@ -2317,7 +2319,7 @@ draw-text-d2d: func [
 
 	clr: either TYPE_OF(font) = TYPE_OBJECT [
 		color: as red-tuple! (object/get-values font) + FONT_OBJ_COLOR
-		color/array1
+		get-tuple-color color
 	][
 		0											;-- black
 	]

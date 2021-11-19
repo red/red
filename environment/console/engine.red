@@ -29,8 +29,10 @@ Red [
 
 system/console: context [
 
-	prompt:		">> "
-	result:		"=="
+	def-prompt: ">> "
+	def-result: "=="
+	prompt:		def-prompt
+	result:		def-result
 	history:	make block! 200
 	size:		0x0
 	catch?:		no										;-- YES: force script to fallback into the console
@@ -62,7 +64,7 @@ system/console: context [
 			unless tail? args [
 				file: to-red-file args/1
 				
-				either error? set/any 'src try [read file][
+				either error? set/any 'src try/keep [read file][
 					print src
 					src: none
 					;quit/return -1
@@ -124,6 +126,13 @@ system/console: context [
 		set-path!	#"/"
 	]
 	
+	count: function [s [string!] c [char!] /reverse return: [integer!]][
+		cnt: 0
+		step: pick [-1 1] reverse
+		loop length? head s [either s/1 = c [cnt: cnt + 1 s: skip s step][return cnt]]
+		cnt
+	]
+	
 	delimiter-lex: function [
 		event	[word!]
 		input	[string! binary!]
@@ -161,14 +170,21 @@ system/console: context [
 					append delimiters #"<"
 					throw 'break
 				]
-				if all [type = binary! input/1 <> #"}"][ ;-- binary! haven't open-event
+				if all [
+					type = binary!						 ;-- binary! haven't open-event
+					#"}" <> pick tail input -2
+				][
 					append delimiters #"{"
 					throw 'break
 				]
 				if type = string! [
 					either input/(token/x - token/y) = #"%" [ ;-- raw-string! haven't open-event
-						append delimiters #"{"
-						throw 'break
+						begin: count head input #"%"
+						end: count/reverse back back tail input #"%" ;-- skip ending LF
+						if begin > end [
+							append delimiters #"{"
+							throw 'break
+						]
 					][
 						if delimiter-map/:type = last delimiters [ ;-- other string! if have open-event, do match
 							throw 'break
@@ -189,7 +205,7 @@ system/console: context [
 	]
 	
 	try-do: func [code /local result return: [any-type!]][
-		set/any 'result try/all [
+		set/any 'result try/all/keep [
 			either 'halt-request = set/any 'result catch/name code 'console [
 				print "(halted)"						;-- return an unset value
 			][
@@ -204,8 +220,8 @@ system/console: context [
 	cue:    none
 	mode:   'mono
 
-	do-command: function [/local result err][
-		if error? code: try [load/all buffer][print code]
+	do-command: function [/local result err p][
+		if error? code: try/keep [load/all buffer][print code]
 
 		unless any [error? code tail? code][
 			set/any 'result try-do code
@@ -214,7 +230,7 @@ system/console: context [
 					print [result lf]
 				]
 				not unset? :result [
-					if error? set/any 'err try [		;-- catch eventual MOLD errors
+					if error? set/any 'err try/keep [	;-- catch eventual MOLD errors
 						limit: size/x - 13
 						result: either float? :result [form/part :result limit][
 							mold/part :result limit
@@ -223,7 +239,11 @@ system/console: context [
 							clear back tail result
 							append result "..."
 						]
-						print [system/console/result result]
+						prefix: any [
+							all [string? set/any 'p try/all [do [system/console/result]] :p]
+							all [error? :p p/where: "system/console/result" print form :p def-result]
+						]
+						print [prefix result]
 					][
 						print :err
 					]
@@ -273,7 +293,8 @@ system/console: context [
 		forever [
 			eval-command ask any [
 				cue
-				all [string? set/any 'p do [prompt] :p]
+				all [string? set/any 'p try/all [do [prompt]] :p]
+				all [error? :p p/where: "system/console/prompt" print :p def-prompt]
 				form :p
 			]
 		]
@@ -341,6 +362,7 @@ list-dir: function [
 		22 - n
 	]
 
+	#if config/gui-console? [gui-console-ctx/terminal/refresh?: no]
 	while [not tail? list][
 		loop n [
 			if max-sz <= length? name: list/1 [
@@ -349,10 +371,11 @@ list-dir: function [
 			prin tab
 			prin pad form name max-sz
 			prin " "
-			if tail? list: next list [exit]
+			if tail? list: next list [break]
 		]
 		prin lf
 	]
+	#if config/gui-console? [gui-console-ctx/terminal/refresh?: yes]
 	()
 ]
 

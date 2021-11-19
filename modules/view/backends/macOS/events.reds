@@ -611,21 +611,20 @@ do-events: func [
 	msg?: no
 	timeout: 0
 
-	loop 10 [ ;; FIXME Consume some leftover events. Find a better solution !!!
-		pool: objc_msgSend [objc_getClass "NSAutoreleasePool" sel_getUid "alloc"]
-		objc_msgSend [pool sel_getUid "init"]
-
-		event: as int-ptr! objc_msgSend [
-			NSApp sel_getUid "nextEventMatchingMask:untilDate:inMode:dequeue:"
-			NSAnyEventMask
-			timeout
-			NSDefaultRunLoopMode
-			true
-		]
-	    objc_msgSend [pool sel_getUid "drain"]
-    ]
-
     unless no-wait? [
+		loop 10 [ ;; FIXME Consume some leftover events. Find a better solution !!!
+			pool: objc_msgSend [objc_getClass "NSAutoreleasePool" sel_getUid "alloc"]
+			objc_msgSend [pool sel_getUid "init"]
+
+			event: as int-ptr! objc_msgSend [
+				NSApp sel_getUid "nextEventMatchingMask:untilDate:inMode:dequeue:"
+				NSAnyEventMask
+				timeout
+				NSDefaultRunLoopMode
+				true
+			]
+		    objc_msgSend [pool sel_getUid "drain"]
+	    ]
 	    unless loop-started? [
 		    objc_msgSend [NSApp sel_getUid "activateIgnoringOtherApps:" 1]
 			objc_msgSend [NSApp sel_getUid "finishLaunching"]

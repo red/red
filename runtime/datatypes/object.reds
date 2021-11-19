@@ -1187,6 +1187,8 @@ object: context [
 		value	[red-value!]
 		path	[red-value!]
 		case?	[logic!]
+		get?	[logic!]
+		tail?	[logic!]
 		return:	[red-value!]
 		/local
 			word	 [red-word!]
@@ -1196,20 +1198,27 @@ object: context [
 			save-ctx [node!]
 			save-idx [integer!]
 			on-set?  [logic!]
+			do-error [subroutine!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/eval-path"]]
-		
+	
+		do-error: [
+			case [
+				all [get? tail?][res: as red-value! unset/push]
+				tail? [fire [TO_ERROR(script invalid-path) path element]]
+				true  [fire [TO_ERROR(script unset-path) path element]]
+			]
+		]
 		word: as red-word! element
 		if TYPE_OF(word) <> TYPE_WORD [fire [TO_ERROR(script invalid-path) path element]]
 
+		res: null
 		ctx: GET_CTX(parent)
 		if word/ctx <> parent/ctx [						;-- bind the word to object's context
 			save-idx: word/index
 			save-ctx: word/ctx
 			word/index: _context/find-word ctx word/symbol yes
-			if word/index = -1 [
-				fire [TO_ERROR(script invalid-path) path element]
-			]
+			if word/index = -1 [do-error return res]
 			word/ctx: parent/ctx
 		]
 		on-set?: parent/on-set <> null
@@ -1225,12 +1234,7 @@ object: context [
 				copy-cell as red-value! word   as red-value! field-parent
 			]
 			res: _context/get-in word ctx
-			if TYPE_OF(res) = TYPE_UNSET [
-				if all [path <> null TYPE_OF(path) <> TYPE_GET_PATH][
-					res: either null? path [element][path]
-					fire [TO_ERROR(script no-value) res]
-				]
-			]
+			if TYPE_OF(res) = TYPE_UNSET [do-error]
 		]
 		res
 	]
@@ -1360,11 +1364,12 @@ object: context [
 		size:   as-integer src/tail - src/offset
 		slots:	size >> 4
 		
+		type: TYPE_OF(obj)
 		copy-cell as cell! obj as cell! new
 		new/header: TYPE_UNSET
 		new/ctx: _context/create slots no yes ctx CONTEXT_OBJECT
 		new/class: obj/class
-		new/header: TYPE_OBJECT
+		new/header: type
 
 		nctx: GET_CTX(new)
 		copy-cell as red-value! new as red-value! nctx + 1	;-- set back-reference
@@ -1493,7 +1498,7 @@ object: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/put"]]
 
-		eval-path obj field value as red-value! none-value case?
+		eval-path obj field value as red-value! none-value case? no yes
 		value
 	]
 

@@ -171,7 +171,7 @@ Red/System [
 	]
 ]
 
-alloc0: func [
+zero-alloc: func [
 	size		[integer!]
 	return:		[byte-ptr!]
 ][
@@ -219,8 +219,13 @@ alloc0: func [
 	][
 		d: as int-ptr! :f
 		case [
-			d/2 = 7FF80000h [
-				prin "1.#NaN"
+			d/2 and 7FF00000h = 7FF00000h [ ;-- if biased exponent are all 1 bits, it is INF or NaN
+				either all [				;-- if fraction all 0 bits, it's INF
+					zero? d/1
+					zero? (d/2 and 000FFFFFh)
+				][
+					either zero? (d/2 and 80000000h) [prin "1.#INF"][prin "-1.#INF"] ;-- check sign bit
+				][prin "1.#NaN"] 			;-- otherwise NaN
 			]
 			f - (floor f) = 0.0 [
 				s: "                        "				;-- 23 + 1 for NUL
@@ -243,9 +248,11 @@ alloc0: func [
 	prin-float32: func [f32 [float32!] return: [float32!] /local f [float!] d [int-ptr!]][
 		d: as int-ptr! :f32
 		case [
-			d/1 = 7FC00000h [prin "1.#NaN"]
-			d/1 = 7F800000h [prin "1.#INF"]
-			d/1 = FF800000h [prin "-1.#INF"]
+			d/1 and 7F800000h = 7F800000h [			;-- if biased exponent are all 1 bits, it is INF or NaN
+				either zero? (d/1 and 007FFFFFh) [	;-- if fraction all 0 bits, it's INF
+					either zero? (d/1 and 80000000h) [prin "1.#INF"][prin "-1.#INF"] ;-- check sign bit
+				][prin "1.#NaN"] 					;-- otherwise NaN
+			]
 			true [
 				f: as float! f32
 				either f - (floor f) = 0.0 [

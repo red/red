@@ -40,7 +40,7 @@ Red [
 		nl: reduce [no no no no no no yes yes yes]
 		forall out [--assert nl/1 = new-line? out nl: next nl]
 
-	--test-- "tr-15" --assert [#"^@" #" " #"^/" #"^@"] == transcode {#"^^@" #"^^(20)" #"^^(line)" #""}
+	--test-- "tr-15" --assert [#"^@" #" " #"^/"] == transcode {#"^^@" #"^^(20)" #"^^(line)"}
 	--test-- "tr-16"
 		out: transcode {
 			#{33AA}
@@ -408,7 +408,9 @@ Red [
 
 	--test-- "tr-48" --assert [4294967296.0 6442450943.0 8589934592.0 9999999999] == transcode "4294967296 6442450943 8589934592 9999999999"
 
-	--test-- "tr-49" --assert error? try [transcode #{8B}]
+	--test-- "tr-49" --assert error? try [transcode #{8B}]				  ; #4790
+	--test-- "tr-50" --assert error? try [transcode "-$"]
+	--test-- "tr-51" --assert error? try [transcode #{42137E26C646365C}]  ; #4790
 
 ===end-group===
 ===start-group=== "transcode/one"
@@ -618,7 +620,7 @@ Red [
 	--test-- "tro-141"  --assert -1000000000 == transcode/one "-1'000'000'000"
 	--test-- "tro-142"  --assert -1000000000 == transcode/one "-1000000000"
 
-	--test-- "tro-143"  --assert #"^@" == transcode/one {#""}
+	--test-- "tro-143"  --assert error? try [transcode/one {#""}]
 	--test-- "tro-144"  --assert error? try [transcode/one {"hello^/world"}]
 	--test-- "tro-145"  --assert "hello^Mworld" == transcode/one {"hello^Mworld"}
 	--test-- "tro-146"  --assert "hello^-world" == transcode/one {"hello^-world"}
@@ -761,7 +763,7 @@ Red [
 	--test-- "scan-58" --assert date!	 = scan "29/02/2020"
 	--test-- "scan-59" --assert error!	 = scan "30/02/2020"
 	--test-- "scan-60" --assert none? 	   scan ""
-	--test-- "scan-61" --assert char!	 = scan {#""}
+	--test-- "scan-61" --assert error!	 = scan {#""}
 	--test-- "scan-62" --assert error!	 = scan {"hello^/world"}
 	--test-- "scan-63" --assert string!	 = scan {"hello^Mworld"}
 	--test-- "scan-64" --assert string!	 = scan {"hello^-world"}
@@ -1479,4 +1481,29 @@ Red [
 
 ===end-group===
 
+===start-group=== "issues"
+
+	--test-- "#4914"
+		--assert error? try [transcode {#(a: 22 b: 33 c: x: a)}]
+
+	--test-- "#4933"
+		--assert [фывапр " abcdef"] == transcode/next "фывапр abcdef"
+		--assert ["Gab’s Books" "^/Work In P"] == transcode/next {"Gab’s Books"^/Work In P}
+
+	--test-- "#4624"
+		--assert [a b] == load/all "a^(3000)b"
+		--assert [a b] == load/all "^(2002)a^(3000)b"
+		--assert [a b] == load/all "^(2002)^(85)a^(3000)b"
+
+	--test-- "#4562"
+		--assert [<< '<< <<: :<<] == transcode "<< '<< <<: :<<"
+		--assert ['=<= :=<= =<=:] == transcode "'=<= :=<= =<=:"
+		--assert word? transcode/one "=<="
+		--assert '-<- == transcode/one "-<-"
+
+	--test-- "#4781"
+		--assert 3:3:3.3000000001 = transcode/one "3:3:3,3"
+
+===end-group===
+	
 ~~~end-file~~~

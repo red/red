@@ -63,8 +63,8 @@ red: context [
 		Syllable []
 		macOS	 [#include %platform/darwin/image-quartz.reds]
 		Linux	 [#include %platform/linux/image-gdk.reds]
-		FreeBSD  []
-		NetBSD   []
+		FreeBSD  [#include %platform/linux/image-gdk.reds]
+		NetBSD   [#include %platform/linux/image-gdk.reds]
 		#default []
 	]
 	
@@ -122,6 +122,8 @@ red: context [
 	#if OS = 'macOS   [#include %datatypes/image.reds]	;-- temporary
 	#either modules contains 'View [][#include %datatypes/event.reds]
 	#if OS = 'Linux   [#include %datatypes/image.reds]
+	#if OS = 'FreeBSD [#include %datatypes/image.reds]
+	#if OS = 'NetBSD [#include %datatypes/image.reds]
 
 	;-- Debugging helpers --
 	
@@ -251,6 +253,7 @@ red: context [
 		parser/init
 		ownership/init
 		crypto/init
+		compressor/init
 		ext-process/init
 		
 		stack/init

@@ -718,6 +718,14 @@ Red/System [
 		--assert (as red-object-3961! 01820DB4h) = obj123/test1 01820D60h
 
 
+	--test-- "#4926"
+		thru4926: func [i [integer!] return: [integer!]][i]
+		i: 420
+		--assert 420 = thru4926 i
+		--assert 420.0 = as-float thru4926 i
+		f4926: either true [as-float thru4926 i][3.1415]
+		--assert 420.0 = f4926
+
 ===end-group===
 
 ~~~end-file~~~

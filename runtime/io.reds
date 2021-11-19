@@ -97,7 +97,7 @@ io: context [
 		/local
 			data	[sockdata!]
 	][
-		data: as sockdata! alloc0 size
+		data: as sockdata! zero-alloc size
 		data/event-handler: as iocp-event-handler! handler
 		data/device: as handle! sock
 		data/addr-sz: size? sockaddr_in6!

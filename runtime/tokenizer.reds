@@ -77,6 +77,7 @@ tokenizer: context [
 			s0	 [byte-ptr!]
 	][
 		cur: as byte-ptr! "0000000000000000000000000000000"		;-- 32 bytes including NUL
+		assert unit <= 4
 		tail: p + (len << (unit >> 1))
 
 		if len > 31 [cur: as byte-ptr! system/stack/allocate (len + 1) >> 2 + 1]

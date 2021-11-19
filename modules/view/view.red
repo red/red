@@ -37,6 +37,7 @@ size-text: function [
 	return:  [pair! none!]	"Return the text's size or NONE if failed"
 ][
 	either face/type = 'rich-text [
+		if block? h: face/handles [poke h length? h true]
 		system/view/platform/text-box-metrics face 0 3
 	][
 		system/view/platform/size-text face text
@@ -790,7 +791,7 @@ show: function [
 			if all [object? face/actors in face/actors 'on-create][
 				do-safe [face/actors/on-create face none]
 			]
-			p: either with [parent/state/1][0]
+			p: either with [parent/state/1][null-handle]
 
 			#if config/OS = 'macOS [					;@@ remove this system specific code
 				if all [face/type = 'tab-panel face/pane][

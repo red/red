@@ -14,7 +14,17 @@ Red/System [
 	}
 ]
 
-#define red-value!	cell!
+#define red-value!		cell!
+
+;-- special pseudo-typesets for routine! type declarations (compiler internal use only!)
+#define red-any-word!		red-word!
+#define red-all-word!		red-word!
+#define red-any-list!		red-block!
+#define red-any-path!		red-path!
+#define red-any-block!		red-block!
+#define red-any-function!	red-function!
+#define red-any-object!		red-object!
+#define red-any-string!		red-string!
 
 red-datatype!: alias struct! [
 	header 	[integer!]								;-- cell header

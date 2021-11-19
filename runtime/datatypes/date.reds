@@ -938,6 +938,8 @@ date: context [
 		value	[red-value!]
 		path	[red-value!]
 		case?	[logic!]
+		get?	[logic!]
+		tail?	[logic!]
 		return:	[red-value!]
 		/local
 			word   [red-word!]
@@ -1036,7 +1038,7 @@ date: context [
 						int: as red-integer! element
 						int/value: int/value - 6		;-- normalize accessor for time!
 					]
-					time/eval-path as red-time! dt element value path case?
+					time/eval-path as red-time! dt element value path case? no yes
 					set-time dt dt/time field = 7
 					dt/date: DATE_SET_TIME_FLAG(dt/date)
 				]
@@ -1083,6 +1085,8 @@ date: context [
 			t1	 [float!]
 			t2	 [float!]
 			eq?	 [logic!]
+			ip1  [int-ptr!]
+			ip2  [int-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "date/compare"]]
 
@@ -1090,17 +1094,21 @@ date: context [
 		if type <> TYPE_DATE [RETURN_COMPARE_OTHER]
 		d1: DATE_CLEAR_TIME_FLAG(value1/date) >> 7		;-- remove TZ, clear time? flag
 		d2: DATE_CLEAR_TIME_FLAG(value2/date) >> 7
-		t1: floor value1/time + 0.5						;-- in UTC already, round to integer
-		t2: floor value2/time + 0.5
+		t1: value1/time
+		t2: value2/time
 		
-		eq?: all [d1 = d2 t1 = t2]
+		eq?: all [d1 = d2 float/almost-equal t1 t2]
 		
 		switch op [
 			COMP_EQUAL
 			COMP_FIND
-			COMP_SAME
 			COMP_NOT_EQUAL
 			COMP_STRICT_EQUAL [res: as-integer not eq?]
+			COMP_SAME [
+				ip1: as int-ptr! :t1
+				ip2: as int-ptr! :t2
+				res: as-integer any [d1 <> d2  ip1/1 <> ip2/1  ip1/2 <> ip2/2]
+			]
 			default [
 				either eq? [res: 0][
 					res: SIGN_COMPARE_RESULT(d1 d2)

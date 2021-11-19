@@ -312,6 +312,15 @@ murmur3-x86-32: func [
 	h1
 ]
 
+murmur3-x86-int: func [h1 [integer!] return: [integer!]][
+	h1: h1 >>> 16 xor h1
+	h1: h1 * 85EBCA6Bh
+	h1: h1 >>> 13 xor h1
+	h1: h1 * C2B2AE35h
+	h1: h1 >>> 16 xor h1
+	h1
+]
+
 _hashtable: context [
 	str-buffer: as byte-ptr! 0
 	str-buffer-sz: 256
@@ -437,13 +446,13 @@ _hashtable: context [
 			s      [series!]
 	][
 		switch TYPE_OF(key) [
-			TYPE_INTEGER [key/data2]
+			TYPE_INTEGER [murmur3-x86-int key/data2]
 			TYPE_ALL_WORD [symbol/resolve key/data2]
 			TYPE_SYMBOL [hash-symbol as red-symbol! key]
 			TYPE_ANY_STRING [
 				hash-string as red-string! key case?
 			]
-			TYPE_CHAR [key/data2]
+			TYPE_CHAR [murmur3-x86-int key/data2]
 			TYPE_FLOAT
 			TYPE_PAIR
 			TYPE_PERCENT
@@ -475,7 +484,7 @@ _hashtable: context [
 			TYPE_TUPLE [
 				murmur3-x86-32 (as byte-ptr! key) + 4 TUPLE_SIZE?(key)
 			]
-			TYPE_OBJECT
+			TYPE_OBJECT [murmur3-x86-int key/data1]
 			TYPE_DATATYPE
 			TYPE_LOGIC [key/data1]
 			default [								;-- for any-block!: use head and node

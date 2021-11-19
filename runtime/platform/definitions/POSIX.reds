@@ -483,6 +483,11 @@ res_state!: alias struct! [	;-- size: 512 bytes
 			cp			[c-string!]
 			return:		[integer!]
 		]
+		_rename: "rename" [
+			old		[c-string!]
+			new		[c-string!]
+			return:	[integer!]
+		]
 	]
 ]
 

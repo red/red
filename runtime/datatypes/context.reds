@@ -403,9 +403,9 @@ _context: context [
 		if zero? slots [slots: 1]
 		node: alloc-cells 2
 		cell: as red-context! alloc-tail as series! node/value
+		cell/header: TYPE_UNSET							;-- properly set cell's type before possible GC pass
 		slot: alloc-tail as series! node/value			;-- allocate a slot for obj/func back-reference
-		slot/header: TYPE_UNSET
-		cell/header: TYPE_UNSET							;-- implicit reset of all header flags	
+		slot/header: TYPE_UNSET	
 		cell/self: node
 
 		either stack? [

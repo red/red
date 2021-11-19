@@ -139,6 +139,39 @@ Red [
 		]
         --assert sb14-j = "Red"
 	
+	--test-- "switch-basic-15"
+		sb15-i: integer!
+		sb15-j: "REBOL"
+		switch sb15-i [
+			1 			[sb15-j: "Earl"]
+			integer!	[sb15-j: "Peter"]
+			#[integer!]	[sb15-j: "Red"]
+			#[char!]	[sb15-j: "Blue"]
+		]
+        --assert sb15-j = "Red"
+
+	--test-- "switch-basic-16"
+		sb16-i: number!
+		sb16-j: "REBOL"
+		do [switch sb16-i reduce [
+			1 			[sb16-j: "Earl"]
+			'number!	[sb16-j: "Peter"]
+			number!		[sb16-j: "Red"]					;@@ no idea how to encode a typeset literally, have to evaluate
+			char!		[sb16-j: "Blue"]
+		]]
+        --assert sb16-j = "Red"
+
+	--test-- "switch-basic-17"
+		sb17-j: "REBOL"
+		do [switch () reduce [
+			unset! 		[sb17-j: "Earl"]
+			100			[sb17-j: "Peter"]
+			()			[sb17-j: "Red"]					;@@ no idea how to encode `unset` literally, have to evaluate
+			char!		[sb17-j: "Blue"]
+		]]
+        --assert sb17-j = "Red"
+
+
 ===end-group===
 
 ===start-group=== "switch basics local"    ;; one "direct" type & one "indirect"

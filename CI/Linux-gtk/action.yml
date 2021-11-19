@@ -1,0 +1,12 @@
+name: Run on x86
+description: Run a shell command in an Ubuntu 18.04 x86 container
+inputs:
+  command:
+    description: 'Command to run'
+    required: true
+    default: 'lsb_release -a'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - ${{ inputs.command }}

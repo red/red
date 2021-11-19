@@ -42,6 +42,7 @@ _request-file: func [
 		start	[red-string!]
 		end		[red-string!]
 		strarr	[int-ptr!]
+		action	[integer!]
 ][
 	len: -1
 	buf: "Open File"
@@ -51,10 +52,12 @@ _request-file: func [
 		if dir? [buf: "Open Folder"]
 	]
 	ret: as red-value! none-value
+	action: GTK_FILE_CHOOSER_ACTION_OPEN
+	if dir? [action: GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER]
 	widget: gtk_file_chooser_dialog_new [
 		buf
 		null
-		either dir? [GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER][GTK_FILE_CHOOSER_ACTION_OPEN]
+		action
 		"Cancel"
 		GTK_RESPONSE_CANCEL
 		"Open"
@@ -126,7 +129,6 @@ _request-file: func [
 	if new? [
 		gtk_widget_destroy window
 	]
-	while [gtk_events_pending][gtk_main_iteration]
 	ret
 ]
 

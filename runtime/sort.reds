@@ -349,7 +349,7 @@ _sort: context [
 			cmp K k1 k2 m1 m2 ak
 	][
 		cmp: as cmpfunc! cmpfunc
-		if any [n1 < 3 n2 < 3][
+		if any [n1 < 9 n2 < 9][
 			grail-merge-nobuf base n1 n2 SORT_ARGS_EXT
 			exit
 		]

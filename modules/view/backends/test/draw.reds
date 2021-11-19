@@ -35,6 +35,7 @@ draw-end: func [
 
 OS-draw-shape-beginpath: func [
 	ctx			[draw-ctx!]
+	draw?		[logic!]
 ][
 
 ]

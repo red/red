@@ -146,6 +146,11 @@ Red [
 		--assert  23.1 = round/to 23 30%
 		--assert  0:00:16 = round/to 15 0:0:2
 
+	--test-- "round16"
+		--assert 23 = round/to         23 0
+		--assert 23 = round/to/ceiling 23 0
+		--assert 23 = round/to/floor   23 0
+
 ===end-group===
 
 ===start-group=== "with other datatypes"

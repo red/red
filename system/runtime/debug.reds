@@ -68,10 +68,19 @@ __print-debug-line: func [
 ;-------------------------------------------
 __print-debug-stack: func [
 	address [byte-ptr!]						;-- memory address where the runtime error happened
+	code	[integer!]						;-- internal error type
 	/local
-		pf [float-ptr!]
-		ret funcs records nb next end top frame s value lines
-		unused base
+		pf			[float-ptr!]
+		next-frame	[subroutine!]
+		ret			[int-ptr!]
+		funcs end	[byte-ptr!]
+		records next[__func-record!]
+		nb			[integer!]
+		top frame	[int-ptr!]
+		s			[c-string!]
+		value lines	[integer!]
+		base 		[integer!]
+		unused		[float!]
 ][
 	funcs:	as byte-ptr! __debug-funcs
 	frame:	system/debug/frame
@@ -80,6 +89,15 @@ __print-debug-stack: func [
 	top:	frame + 2
 	lines:	40								;-- max number of lines displayed
 	print-line "***"
+	
+	next-frame: [
+		top: frame
+		frame: as int-ptr! top/value
+		top: top + 1
+		ret: as int-ptr! #either any [type <> 'exe PIC? = yes][top/value - base][top/value]
+		top: frame + 2
+	]
+	if code = 98 [next-frame]				;-- 98 => assertion, jump over the injected ***-on-quit call frame.
 	
 	until [
 		nb: __debug-funcs-nb
@@ -142,19 +160,14 @@ __print-debug-stack: func [
 			print lf
 			lines: lines - 1
 		]
-		
-		top: frame
-		frame: as int-ptr! top/value
-		top: top + 1
-		ret: as int-ptr! #either any [type <> 'exe PIC? = yes][top/value - base][top/value]
-		top: frame + 2
-		
+		next-frame
 		any [zero? nb zero? lines]
 	]
 ]
 
 stack-trace: func [][
-	__print-debug-stack system/pc
+	__set-stack-on-crash
+	__print-debug-stack system/pc 0
 ]
 
 ;-------------------------------------------

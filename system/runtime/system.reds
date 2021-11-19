@@ -168,7 +168,7 @@ system!: alias struct! [					;-- store runtime accessible system values
 ***-exec-image: declare __image!
 system/image: ***-exec-image
 
-***-set-image-base: func [[cdecl] /local p][	;-- defered code generation so system/image is defined
+***-set-image-base: func [[cdecl] /local p][	;-- deferred code generation so system/image is defined
 	p: #switch target [IA-32 [system/cpu/ebx] ARM [system/cpu/r9]]
 	system/image/base: as int-ptr! p - system/image/code
 ]
