@@ -389,7 +389,7 @@ iocp: context [
 	]
 		if cnt < 0 [				;-- error
 			either errno/value = EINTR [return p/n-ports][
-				probe ["wait error: " errno/value]
+				IODebug(["wait error: " errno/value])
 				return 0
 			]
 		]
@@ -397,8 +397,6 @@ iocp: context [
 		if cnt = p/nevents [		;-- TBD: extend events buffer
 			0
 		]
-
-probe ["events: " cnt " " p/n-ports]
 
 		i: 0
 		while [i < cnt][
@@ -710,10 +708,10 @@ IODebug(["wait done: " p/n-ports])
 	][
 		ev/udata: as int-ptr! data
 		ev/events: evts
-		probe ["epoll_ctl fd: " sock " op: " op " evts: " evts]
+		IODebug(["epoll_ctl fd: " sock " op: " op " evts: " as int-ptr! evts])
 		if 0 <> epoll_ctl epfd op sock :ev [
-			probe ["epoll_ctl error! fd: " sock " op: " op " evts: " evts " err: " errno/value]
-			;assert 0 = 1
+			IODebug(["epoll_ctl error! fd: " sock " op: " op " evts: " as int-ptr! evts " err: " errno/value])
+			exit
 		]
 	]
 

@@ -13,8 +13,8 @@ Red/System [
 
 #define handle! int-ptr!
 
-#include %../../../../runtime/threads.reds
 #include %../../../../runtime/queue.reds
+#include %../../../../runtime/threads.reds
 
 #define A_N_THREADS		100
 #define A_N_ITERS		100000
