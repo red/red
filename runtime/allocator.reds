@@ -1080,7 +1080,7 @@ alloc-unset-cells: func [
 ;-- Wrapper on alloc-series for byte buffer allocation
 ;-------------------------------------------
 alloc-bytes: func [
-	size	[integer!]						;-- number of 16 bytes cells to preallocate
+	size	[integer!]						;-- number of bytes to preallocate
 	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
 ][
 	if zero? size [size: 16]
@@ -1104,7 +1104,7 @@ alloc-codepoints: func [
 ;-- Wrapper on alloc-series for byte-filled buffer allocation
 ;-------------------------------------------
 alloc-bytes-filled: func [
-	size	[integer!]						;-- number of 16 bytes cells to preallocate
+	size	[integer!]						;-- number of bytes to preallocate
 	byte	[byte!]
 	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
 	/local
