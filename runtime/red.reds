@@ -27,8 +27,7 @@ red: context [
 		#default [#include %platform/linux/linux.reds]	;-- Linux or Android
 	]
 
-	#include %queue.reds
-	#include %threads.reds
+	#include %threadpool.reds
 	#include %allocator.reds
 	#include %crush.reds
 	
