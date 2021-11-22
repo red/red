@@ -35,6 +35,8 @@ lexer: context [
 		C_FLAG_LESSER:	00100000h
 		C_FLAG_GREATER: 00080000h
 		C_FLAG_PERCENT: 00040000h
+		C_FLAG_SLASH:	00020000h
+		C_FLAG_AT:		00010000h
 	]
 	
 	#define FL_UCS4		[(C_WORD or C_FLAG_UCS4)]
@@ -225,7 +227,7 @@ lexer: context [
 		(C_COMMA or C_FLAG_COMMA)						;-- 2C		,
 		(C_MINUS or C_FLAG_SIGN)						;-- 2D		-
 		(C_DOT or C_FLAG_DOT)							;-- 2E		.
-		C_SLASH											;-- 2F		/
+		(C_SLASH or C_FLAG_SLASH)						;-- 2F		/
 		C_ZERO											;-- 30		0
 		C_DIGIT C_DIGIT C_DIGIT C_DIGIT C_DIGIT			;-- 31-35	1-5
 		C_DIGIT C_DIGIT C_DIGIT C_DIGIT					;-- 36-39	6-9
@@ -235,7 +237,7 @@ lexer: context [
 		C_EQUAL											;-- 3D		=
 		(C_GREATER or C_FLAG_GREATER)					;-- 3E		>
 		C_WORD											;-- 3F		?
-		C_AT											;-- 40		@
+		(C_AT or C_FLAG_AT)								;-- 40		@
 		C_ALPHAU C_ALPHAU C_ALPHAU C_ALPHAU			 	;-- 41-44	A-D
 		(C_E_UP or C_FLAG_EXP)							;-- 45		E
 		C_ALPHAU										;-- 46		F
@@ -350,7 +352,9 @@ lexer: context [
 	spaces:			as byte-ptr! 0						;-- bitmap table for whitespace characters used as word delimiters
 	all-events:		3Fh									;-- bit-mask of all events
 	
-	min-integer: as byte-ptr! "-2147483648"				;-- used in load-integer
+	min-integer: 	as byte-ptr! "-2147483648"			;-- used in load-integer
+	
+	flags-url:		C_FLAG_AT or C_FLAG_SLASH			;-- used in load-url
 	
 	decode-filter: func [fun [red-function!] return: [integer!]
 		/local
@@ -2074,8 +2078,25 @@ lexer: context [
 	
 	load-url: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local
-			type [integer!]
+			c type [integer!]
+			p	   [byte-ptr!]
 	][
+		if flags and flags-url = 0 [					;-- if no `/` or `@` are present, check for IPv6
+			p: s
+			c: 0
+			while [p < e][								;-- identify IPv6 by counting `:` occurrences
+				if p/1 = #":" [
+					c: c + 1
+					if all [p + 1 < e p/2 = #":"][c: c + 8 break]
+				]
+				if c > 3 [break]
+				p: p + 1
+			]
+			if c > 3 [
+				load-ipv6 lex s e flags load?
+				exit
+			]
+		]
 		if any [s/1 = #":" s/1 = #"'"][
 			type: either s/1 = #":" [TYPE_GET_WORD][TYPE_LIT_WORD]
 			throw-error lex s e type
@@ -2115,6 +2136,7 @@ lexer: context [
 			ser		[series!]
 			p end	[byte-ptr!]
 			c index	[integer!]
+			cnt		[integer!]
 			dbl?	[logic!]
 			do-error decode-hexa [subroutine!]
 	][
@@ -2136,8 +2158,10 @@ lexer: context [
 				p/2: as-byte c and FFh
 				p: p + 2
 			]
+			cnt: cnt + 1
 		]
 		dbl?: no
+		cnt: 0
 		if s/1 = #":" [
 			if s/2 <> #":" [do-error]
 			s: s + 2
@@ -2152,6 +2176,7 @@ lexer: context [
 			decode-hexa
 			s: s + 1									;-- jump over `:` separator
 		]
+		if cnt <> 8 [do-error]
 		if load? [lex/type: TYPE_IPV6]
 		lex/in-pos: e 									;-- reset the input position to delimiter byte
 	]
