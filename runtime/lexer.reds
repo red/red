@@ -815,6 +815,27 @@ lexer: context [
 		str/cache: null
 	]
 	
+	detect-ipv6: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!] return: [logic!]
+		/local
+			c [integer!]
+			p [byte-ptr!]
+	][
+		p: s
+		c: 0
+		while [p < e][								;-- identify IPv6 by counting `:` occurrences
+			if p/1 = #":" [
+				c: c + 1
+				if all [p + 1 < e p/2 = #":"][c: c + 8 break]
+			]
+			if c > 3 [break]
+			p: p + 1
+		]
+		either c > 3 [
+			load-ipv6 lex s e flags load?
+			yes
+		][no]
+	]
+	
 	grab-integer: func [s e [byte-ptr!] flags [integer!] dst err [int-ptr!]
 		return: [byte-ptr!]
 		/local
@@ -2001,6 +2022,7 @@ lexer: context [
 		if all [p = e p/0 = #":"][do-error]
 	
 		if p < e [
+			if detect-ipv6 lex s e flags load? [exit]
 			if any [
 				all [p/0 <> #"." p/0 <> #"," p/0 <> #":"]
 				flags and C_FLAG_EXP <> 0
@@ -2082,20 +2104,7 @@ lexer: context [
 			p	   [byte-ptr!]
 	][
 		if flags and flags-url = 0 [					;-- if no `/` or `@` are present, check for IPv6
-			p: s
-			c: 0
-			while [p < e][								;-- identify IPv6 by counting `:` occurrences
-				if p/1 = #":" [
-					c: c + 1
-					if all [p + 1 < e p/2 = #":"][c: c + 8 break]
-				]
-				if c > 3 [break]
-				p: p + 1
-			]
-			if c > 3 [
-				load-ipv6 lex s e flags load?
-				exit
-			]
+			if detect-ipv6 lex s e flags load? [exit]
 		]
 		if any [s/1 = #":" s/1 = #"'"][
 			type: either s/1 = #":" [TYPE_GET_WORD][TYPE_LIT_WORD]
@@ -2134,16 +2143,46 @@ lexer: context [
 		/local
 			ip		[red-vector!]
 			ser		[series!]
-			p end	[byte-ptr!]
+			p q end	[byte-ptr!]
 			c index	[integer!]
 			cnt		[integer!]
+			offset	[integer!]
+			jump	[integer!]
 			dbl?	[logic!]
-			do-error decode-hexa [subroutine!]
+			do-error decompress [subroutine!]
 	][
 		do-error: [throw-error lex s e TYPE_IPV6]
-		decode-hexa: [
+		decompress: [
+			if all [s < e s/2 = #":"][
+				if dbl? [do-error]						;-- compressed pattern can be used once only
+				dbl?: yes
+				q: s + 2
+				offset: either q < e [1][0]
+				while [q < e][if q/1 = #":" [offset: offset + 1] q: q + 1]
+				if cnt + offset > 8 [do-error]
+				jump: 8 - offset - cnt
+				assert jump > 0
+				cnt: cnt + jump	
+				p: p + (jump << 1)
+				s: s + 1								;-- jump over first `:`
+			]
+		]
+
+		dbl?: no
+		cnt: 0
+		if load? [
+			ip: ipv6/make-at alloc-slot lex
+			ser: GET_BUFFER(ip)
+			p: as byte-ptr! ser/offset
+		]
+		if s/1 = #":" [									;-- detect head `::`
+			if s/2 <> #":" [do-error]
+			decompress
+			s: s + 1									;-- jump over second `:`
+		]
+		while [s < e][
 			c: 0
-			end: s + 4
+			end: s + 4									;-- grab up to 4 hex chars
 			if end > e [end: e]
 			while [all [s < end s/1 <> #":"]][
 				index: 1 + as-integer s/1
@@ -2159,21 +2198,7 @@ lexer: context [
 				p: p + 2
 			]
 			cnt: cnt + 1
-		]
-		dbl?: no
-		cnt: 0
-		if s/1 = #":" [
-			if s/2 <> #":" [do-error]
-			s: s + 2
-			dbl?: yes
-		]
-		if load? [
-			ip: ipv6/make-at alloc-slot lex
-			ser: GET_BUFFER(ip)
-			p: as byte-ptr! ser/offset
-		]
-		while [s < e][
-			decode-hexa
+			decompress
 			s: s + 1									;-- jump over `:` separator
 		]
 		if cnt <> 8 [do-error]
