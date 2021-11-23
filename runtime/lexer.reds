@@ -836,6 +836,32 @@ lexer: context [
 		][no]
 	]
 	
+	grab-tuple: func [lex [state!] s e [byte-ptr!] tp [byte-ptr!] load? [logic!] limit [integer!] type [integer!]
+		return: [integer!]
+		/local
+			i pos [integer!]
+			p 	  [byte-ptr!]
+	][
+		pos: 0
+		i: 0
+		p: s
+		loop as-integer e - s [
+			either p/1 = #"." [
+				pos: pos + 1
+				if any [i < 0 i > 255 pos > limit p/2 = #"."][throw-error lex s e type]
+				if load? [tp/pos: as byte! i]
+				i: 0
+			][
+				i: i * 10 + as-integer (p/1 - #"0")
+			]
+			p: p + 1
+		]
+		pos: pos + 1									;-- last number
+		if any [i < 0 i > 255 pos > limit][throw-error lex s e type]
+		if load? [tp/pos: as byte! i]
+		pos
+	]
+	
 	grab-integer: func [s e [byte-ptr!] flags [integer!] dst err [int-ptr!]
 		return: [byte-ptr!]
 		/local
@@ -1760,35 +1786,18 @@ lexer: context [
 	
 	load-tuple: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local
-			cell  [cell!]
-			i pos [integer!]
-			tp p  [byte-ptr!]
+			cell [cell!]
+			tp	 [byte-ptr!]
+			cnt  [integer!]
 	][
+		tp: null
 		if load? [
 			cell: alloc-slot lex
 			tp: (as byte-ptr! cell) + 4
 		]
-		pos: 0
-		i: 0
-		p: s
-
-		loop as-integer e - s [
-			either p/1 = #"." [
-				pos: pos + 1
-				if any [i < 0 i > 255 pos > 12 p/2 = #"."][throw-error lex s e TYPE_TUPLE]
-				if load? [tp/pos: as byte! i]
-				i: 0
-			][
-				i: i * 10 + as-integer (p/1 - #"0")
-			]
-			p: p + 1
-		]
-		pos: pos + 1									;-- last number
-		if any [i < 0 i > 255 pos > 12][throw-error lex s e TYPE_TUPLE]
-		if load? [
-			tp/pos: as byte! i
-			cell/header: cell/header and type-mask or TYPE_TUPLE or (pos << 19)
-		]
+		cnt: grab-tuple lex s e tp load? 12 TYPE_TUPLE
+		
+		if load? [cell/header: cell/header and type-mask or TYPE_TUPLE or (cnt << 19)]
 		lex/in-pos: e									;-- reset the input position to delimiter byte
 	]
 
@@ -2148,7 +2157,7 @@ lexer: context [
 			cnt		[integer!]
 			offset	[integer!]
 			jump	[integer!]
-			dbl?	[logic!]
+			dbl? v4?[logic!]
 			do-error decompress [subroutine!]
 	][
 		do-error: [throw-error lex s e TYPE_IPV6]
@@ -2158,7 +2167,14 @@ lexer: context [
 				dbl?: yes
 				q: s + 2
 				offset: either q < e [1][0]
-				while [q < e][if q/1 = #":" [offset: offset + 1] q: q + 1]
+				while [q < e][
+					switch q/1 [
+						#":"	[offset: offset + 1]
+						#"."	[offset: offset + 1 break] ;-- v4 ending
+						default [0]
+					]
+					q: q + 1
+				]
 				if cnt + offset > 8 [do-error]
 				jump: 8 - offset - cnt
 				assert jump > 0
@@ -2167,9 +2183,10 @@ lexer: context [
 				s: s + 1								;-- jump over first `:`
 			]
 		]
-
 		dbl?: no
-		cnt: 0
+		v4?:  no
+		cnt:  0
+		
 		if load? [
 			ip: ipv6/make-at alloc-slot lex
 			ser: GET_BUFFER(ip)
@@ -2182,14 +2199,25 @@ lexer: context [
 		]
 		while [s < e][
 			c: 0
+			if cnt = 6 [
+				q: s while [q < e][if q/1 = #"." [v4?: yes break] q: q + 1]
+				if v4? [
+					c: grab-tuple lex s e p load? 4 TYPE_IPV6
+					if c <> 4 [do-error]
+					ser/flags: ser/flags or flag-embed-v4
+					cnt: cnt + 2
+					break
+				]
+			]
 			end: s + 4									;-- grab up to 4 hex chars
 			if end > e [end: e]
-			while [all [s < end s/1 <> #":"]][
+			while [all [s < end s/1 <> #":" s/1 <> #"."]][
 				index: 1 + as-integer s/1
 				if (as-integer bin16-classes/index) <> C_BIN_HEXA [do-error]
 				if load? [c: c << 4 or as-integer hexa-table/index]
 				s: s + 1
 			]
+			if all [s < end s/1 = #"." cnt < 5][do-error] ;-- invalid usage of `.` as separator
 			if load? [
 				assert p < as byte-ptr! ser/tail
 				assert c <= FFFFh

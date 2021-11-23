@@ -258,6 +258,32 @@ tuple: context [
 		if swap? [copy-cell as cell! left stack/arguments]
 		left
 	]
+	
+	serialize: func [
+		p		[byte-ptr!]
+		buffer	[red-string!]
+		size	[integer!]
+		part	[integer!]
+		return: [integer!]
+		/local
+			formed [c-string!]
+			value  [byte-ptr!]
+			n	   [integer!]
+	][
+		n: 0
+		until [
+			n: n + 1
+			formed: integer/form-signed as-integer p/n
+			string/concatenate-literal buffer formed
+			unless n = size [
+				part: part - 1
+				string/append-char GET_BUFFER(buffer) as-integer #"."
+			]
+			part: part - system/words/length? formed	;@@ optimize by removing length?
+			n = size
+		]
+		part
+	]
 
 	;-- Actions --
 
@@ -385,30 +411,10 @@ tuple: context [
 		arg		   [red-value!]
 		part 	   [integer!]
 		return:    [integer!]
-		/local
-			formed [c-string!]
-			value  [byte-ptr!]
-			n	   [integer!]
-			size   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tuple/form"]]
 
-		value: (as byte-ptr! tp) + 4
-		size: TUPLE_SIZE?(tp)
-		
-		n: 0
-		until [
-			n: n + 1
-			formed: integer/form-signed as-integer value/n
-			string/concatenate-literal buffer formed
-			unless n = size [
-				part: part - 1
-				string/append-char GET_BUFFER(buffer) as-integer #"."
-			]
-			part: part - system/words/length? formed	;@@ optimize by removing length?
-			n = size
-		]
-		part
+		serialize (as byte-ptr! tp) + 4 buffer TUPLE_SIZE?(tp) part
 	]
 
 	mold: func [

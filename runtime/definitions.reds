@@ -37,6 +37,7 @@ Red/System [
 #define flag-native-op		00010000h		;-- operator is made from a native! function
 #define flag-extern-code	00008000h		;-- routine's body is from FFI
 #define flag-word-dirty		00002000h		;-- word flag indicating if value has been modified
+#define flag-embed-v4		00001000h		;-- IPv4 address embedded in IPv6
 
 #define flag-new-line		40000000h		;-- if set, indicates that a new-line preceeds the value
 #define flag-nl-mask		BFFFFFFFh		;-- mask for new-line flag

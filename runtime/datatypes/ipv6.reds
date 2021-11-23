@@ -98,15 +98,18 @@ ipv6: context [
 		indent	[integer!]
 		return:	[integer!]
 		/local
-			s [series!]
-			p [byte-ptr!]
-			c [integer!]
+			s	  [series!]
+			p	  [byte-ptr!]
+			c cnt [integer!]
+			v4?   [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "ipv6/mold"]]
 		
 		s: GET_BUFFER(vec)
 		p: as byte-ptr! s/offset
-		loop 8 [
+		v4?: s/flags and flag-embed-v4 <> 0
+		cnt: either v4? [6][8]
+		loop cnt [
 			c: (as-integer p/1) << 8 or (as-integer p/2)
 			either zero? c [
 				string/append-char GET_BUFFER(buffer) as-integer #"0"
@@ -116,7 +119,8 @@ ipv6: context [
 			p: p + 2
 			if p < as byte-ptr! s/tail [string/append-char GET_BUFFER(buffer) as-integer #":"]
 		]
-		part - string/rs-length? buffer		
+		if v4? [tuple/serialize p buffer 4 part]
+		part - string/rs-length? buffer
 	]
 
 	;--- Modifying actions ---
