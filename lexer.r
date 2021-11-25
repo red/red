@@ -32,6 +32,7 @@ lexer: context [
 	type:	none									;-- define the type of the new value
 	rs?:	no 										;-- if TRUE, do lexing for Red/System
 	neg?:	no										;-- if TRUE, denotes a negative number value
+	short?: no										;-- shortened IPv6 address flag
 	base:	16										;-- binary base
 	otag: 	none
 	ot:		none
@@ -67,6 +68,7 @@ lexer: context [
 	hexa:		 union digit charset "ABCDEF"
 	hexa-char:	 union hexa charset "abcdef"
 	alpha:		 charset [#"A" - #"Z" #"a" - #"z"]
+	alphanum:	 union alpha digit
 	base64-char: union digit union alpha charset "+/="
 	
 	;-- UTF-8 encoding rules from: http://tools.ietf.org/html/rfc3629#section-4
@@ -289,6 +291,17 @@ lexer: context [
 	]
 
 	tuple-rule: [(type: tuple!) byte dot byte 1 12 [dot byte] e: sticky-word-rule]
+	
+	v6-part: [1 4 alphanum (cnt: cnt + 1)]
+	
+	ipv6-rule: [
+		s: [(cnt: 0)
+			[v6-part (short?: no) 1 7 ["::" (short?: yes) opt v6-part | #":" v6-part]]
+			| ["::" (short?: yes) opt [v6-part 0 6 [#":" v6-part]]]
+		]
+		(fail?: either any [short? cnt > 4][none][[end skip]]) fail?
+		e: (type: 'ipv6! value: load-ipv6 copy/part s e short?)
+	]
 	
 	time-rule: [
 		s: positive-integer-rule [
@@ -639,6 +652,7 @@ lexer: context [
 			| binary-rule	  (stack/push load-binary s e base)
 			| email-rule	  (stack/push to email! value)
 			| date-rule		  (stack/push value)
+			| ipv6-rule		  (stack/push value)
 			| integer-rule	  (stack/push value)
 			| decimal-rule	  (stack/push load-decimal	 copy/part s e)
 			| tag-rule		  (stack/push to tag!		 copy/part s e)
@@ -870,6 +884,22 @@ lexer: context [
 		insert s pick "-+" neg?
 		insert s any [cur "..."]
 		append join make issue! 1 + length? s #"$" s
+	]
+	
+	load-ipv6: func [src [string!] short? [logic!] /local blk chunk][
+		if find/match src "::" [src: next src]		;-- avoid getting "" twice after splitting
+		blk: parse src ":"
+		if short? [
+			loop 8 - ((length? blk) - 1) [insert find blk "" "0"]
+			remove find blk ""
+			if 8 <> length? blk [throw-error]
+		]
+		forall blk [
+			chunk: blk/1
+			if 4 <> length? chunk [insert/dup chunk #"0" 4 - length? chunk]
+			blk/1: debase/base chunk 16
+		]
+		reduce [#!ipv6! rejoin blk]
 	]
 	
 	load-tuple: func [s [string!] /local new byte p e][

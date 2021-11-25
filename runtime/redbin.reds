@@ -690,6 +690,7 @@ redbin: context [
 			TYPE_OP			[decode-op data table parent nl?]
 			TYPE_TUPLE		[decode-tuple data parent nl?]
 			TYPE_MONEY		[decode-money data parent nl?]
+			TYPE_IPV6		[decode-ipv6 data parent nl?]
 			TYPE_BITSET     [decode-bitset data parent nl?]
 			TYPE_VECTOR     [decode-vector data parent nl?]
 			TYPE_IMAGE		[decode-image data parent nl?]
@@ -2064,6 +2065,51 @@ redbin: context [
 	]
 	
 	;-- Misc. --
+	
+	;-- IPv6!
+
+	encode-ipv6: func [
+		data    [red-value!]
+		header  [integer!]
+		payload [red-binary!]
+		/local
+			ip	   [red-vector!]
+			series [series!]
+	][
+		ip: as red-vector! data
+		series: GET_BUFFER(ip)
+		;if FLAG_NOT?(series) [header: header or REDBIN_COMPLEMENT_MASK]
+		store payload header
+		
+		unless header and REDBIN_REFERENCE_MASK <> 0 [
+			emit payload as byte-ptr! series/offset 16
+		]
+	]
+	
+	decode-ipv6: func [
+		data    [int-ptr!]
+		parent  [red-block!]
+		nl?     [logic!]
+		return: [int-ptr!]
+		/local
+			slot   [red-value!]
+			ip     [red-vector!]
+			buffer [series!]
+	][
+		slot: ALLOC_TAIL(parent)
+		ip: as red-vector! slot
+		ip/header: TYPE_UNSET
+		ip/node:   alloc-bytes 16
+		ip/header: TYPE_IPV6
+
+		buffer: GET_BUFFER(ip)
+		;buffer/flags: buffer/flags and flag-unit-mask or unit
+		buffer/tail: buffer/offset + 1			;-- set tail at 16 bytes
+		copy-memory as byte-ptr! buffer/offset as byte-ptr! data + 1 16
+
+		if nl? [ip/header: ip/header or flag-new-line]
+		data + 5
+	]
 	
 	;-- tuple!
 	

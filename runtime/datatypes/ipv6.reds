@@ -35,11 +35,11 @@ ipv6: context [
 	]
 	
 	push: func [
-		vec [red-vector!]
+		ip [red-vector!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "ipv6/push"]]
 
-		copy-cell as red-value! vec stack/push*
+		copy-cell as red-value! ip stack/push*
 	]
 	
 	make-at: func [

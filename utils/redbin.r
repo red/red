@@ -181,6 +181,19 @@ context [
 		emit to integer! copy/part skip bin -8 -4
 	]
 	
+	emit-ipv6: func [address [binary!] /root /local header][
+		header: extracts/definitions/TYPE_IPV6
+		if nl? [header: header or nl-flag]
+		emit header
+		append buffer address
+		
+		if root [
+			if debug? [print [index ": IPv6"]]
+			index: index + 1
+		]
+		index - 1
+	]
+	
 	emit-money: func [value [issue!] /local bin header][
 		value: to string! next value
 		header: extracts/definitions/TYPE_MONEY or shift/left to-integer value/4 = #"-" 20
@@ -308,6 +321,10 @@ context [
 			]
 			blk/1 = #!date! [
 				emit-date/with blk/2 blk/3
+				exit
+			]
+			blk/1 = #!ipv6! [
+				emit-ipv6 blk/2
 				exit
 			]
 			'else [type?/word :blk]

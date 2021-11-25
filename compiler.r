@@ -315,9 +315,9 @@ red: context [
 	ref-value?:		func [value][value/1 = #"@"]
 	percent-value?: func [value][#"%" = last value]
 	
-	date-special?:  func [value][all [block? value value/1 = #!date!]]
-	
-	map-value?: func [value][all [block? value value/1 = #!map!]]
+	date-special?: func [value][all [block? value value/1 = #!date!]]
+	map-value?:	   func [value][all [block? value value/1 = #!map!]]
+	ipv6-value?:   func [value][all [block? value value/1 = #!ipv6!]]
 	
 	insert-lf: func [pos][
 		new-line skip tail output pos yes
@@ -1751,7 +1751,8 @@ red: context [
 
 	comp-literal: func [
 		/inactive /with val
-		/local value char? special? percent? map? tuple? money? ref? dt-special? name w make-block type idx zone
+		/local value char? special? percent? map? tuple? money? ref? dt-special? ipv6?
+			   name w make-block type idx zone
 	][
 		make-block: [
 			value: to block! value
@@ -1763,6 +1764,7 @@ red: context [
 		]
 		value: either with [val][pc/1]					;-- val can be NONE
 		map?: map-value? :value
+		ipv6?: ipv6-value? :value
 		dt-special?: date-special? value
 
 		either any [
@@ -1779,6 +1781,7 @@ red: context [
 			]
 			scalar? :value
 			map?
+			ipv6?
 			dt-special?
 		][
 			case [
@@ -1807,6 +1810,10 @@ red: context [
 					emit-float value
 					insert-lf -3
 				]
+				ipv6? [
+					emit compose [ipv6/push as red-vector! get-root (redbin/emit-ipv6/root value/2)]
+					insert-lf -3
+				]
 				tuple? [
 					bin: tail reverse debase/base next value 16
 					emit 'tuple/push
@@ -1819,7 +1826,7 @@ red: context [
 				money? [
 					emit 'money/push
 					value: to string! next value
-					emit pick [true false] value/4 = #"-"
+					emit pick [true false] value/4 = #"-"  ;-- converts logic! to word!
 					emit to-currency-code copy/part value 3
 					emit to-nibbles copy skip value 4
 				]

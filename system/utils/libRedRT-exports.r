@@ -73,6 +73,7 @@
 	red/get-path/push
 	red/get-word/push
 	red/integer/push
+	red/ipv6/push
 	red/issue/push
 	red/lit-path/push
 	red/lit-word/push
