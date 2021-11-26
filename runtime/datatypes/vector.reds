@@ -174,14 +174,16 @@ vector: context [
 	]
 
 	get-value-int: func [
-		p		[int-ptr!]
+		p4		[int-ptr!]
 		unit	[integer!]
 		return: [integer!]
+		/local
+			p [byte-ptr!]
 	][
 		switch unit [
-			1 [p/value and FFh << 24 >> 24]
-			2 [p/value and FFFFh << 16 >> 16]
-			4 [p/value]
+			1 [p: as byte-ptr! p4 as-integer p/1]
+			2 [p: as byte-ptr! p4 (as-integer p/1) << 8 or (as-integer p/2)]
+			4 [p4/value]
 		]
 	]
 
@@ -239,16 +241,17 @@ vector: context [
 			p4	 [int-ptr!]
 			pf	 [pointer! [float!]]
 			pf32 [pointer! [float32!]]
+			i	 [integer!]
 	][
 		switch TYPE_OF(value) [
 			TYPE_CHAR
 			TYPE_INTEGER [ 			;-- char! and integer! structs are overlapping
 				int: as red-integer! value
-				p4: as int-ptr! p
-				p4/value: switch unit [
-					1 [int/value and FFh or (p4/value and FFFFFF00h)]
-					2 [int/value and FFFFh or (p4/value and FFFF0000h)]
-					4 [int/value]
+				i: int/value
+				switch unit [
+					1 [p/1: as-byte i]
+					2 [p/1: as-byte i >> 8 p/2: as-byte i]
+					4 [p4: as int-ptr! p p4/value: i]
 				]
 			]
 			TYPE_FLOAT
@@ -863,7 +866,7 @@ vector: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "vector/compare"]]
 
-		if TYPE_OF(vec2) <> TYPE_VECTOR [RETURN_COMPARE_OTHER]
+		if all [TYPE_OF(vec2) <> TYPE_VECTOR TYPE_OF(vec2) <> TYPE_IPV6][RETURN_COMPARE_OTHER]
 		if vec1/type <> vec2/type [fire [TO_ERROR(script not-same-type)]]
 
 		same?: all [
@@ -1130,7 +1133,7 @@ vector: context [
 			INHERIT_ACTION	;change
 			INHERIT_ACTION	;clear
 			INHERIT_ACTION	;copy
-			INHERIT_ACTION
+			INHERIT_ACTION	;find
 			INHERIT_ACTION	;head
 			INHERIT_ACTION	;head?
 			INHERIT_ACTION	;index?
