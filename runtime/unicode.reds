@@ -218,7 +218,7 @@ unicode: context [
 		beg: buf
 
 		p:	  string/rs-head str
-		tail: p + (part << (log-b unit))
+		tail: p + (part << (unit >> 1))
 		
 		while [p < tail][
 			cp: switch unit [
@@ -260,7 +260,7 @@ unicode: context [
 		
 		beg:  buf
 		p:	  string/rs-head str
-		tail: p + (part << (log-b unit))
+		tail: p + (part << (unit >> 1))
 
 		switch unit [
 			Latin1 [
@@ -728,7 +728,7 @@ unicode: context [
 		][
 			node: str/node
 			s: GET_BUFFER(str)
-			len: size << (log-b unit)
+			len: size << (unit >> 1)
 			if len > s/size [s: expand-series s len]
 			s/flags: s/flags and flag-unit-mask or unit
 		]
@@ -864,8 +864,8 @@ unicode: context [
 		part: size
 		size: size << 1 + 2								;-- including terminal-NUL
 		
-		src: (as byte-ptr! s/offset) + (str/head << (log-b unit))
-		tail: src + (part << (log-b unit))
+		src: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+		tail: src + (part << (unit >> 1))
 
 		head: as byte-ptr! get-cache str size + count-extras src tail unit
 		dst: head
