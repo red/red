@@ -277,7 +277,7 @@ clear: make action! [[
 
 copy: make action! [[
 		"Returns a copy of a non-scalar value"
-		value	 [series! any-object! bitset! map!]
+		value	 [series! any-object! bitset! map! IPv6!]
 		/part	 "Limit the length of the result"
 			length [number! series! pair!]
 		/deep	 "Copy nested values"
@@ -377,7 +377,7 @@ next: make action! [[
 
 pick: make action! [[
 		"Returns the series value at a given index"
-		series	 [series! port! bitset! pair! tuple! money! date! time!]
+		series	 [series! port! bitset! pair! tuple! money! date! time! IPv6!]
 		index 	 [scalar! any-string! any-word! block! logic! time!]
 		return:  [any-type!]
 	]
@@ -386,7 +386,7 @@ pick: make action! [[
 
 poke: make action! [[
 		"Replaces the series value at a given index, and returns the new value"
-		series	 [series! port! bitset!]
+		series	 [series! port! bitset! IPv6!]
 		index 	 [scalar! any-string! any-word! block! logic!]
 		value 	 [any-type!]
 		return:  [series! port! bitset!]

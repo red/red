@@ -122,8 +122,89 @@ ipv6: context [
 		if v4? [tuple/serialize p buffer 4 part]
 		part - string/rs-length? buffer
 	]
+	
+	eval-path: func [
+		ip		[red-vector!]							;-- implicit type casting
+		element	[red-value!]
+		value	[red-value!]
+		path	[red-value!]
+		case?	[logic!]
+		get?	[logic!]
+		tail?	[logic!]
+		return:	[red-value!]
+		/local
+			int  [red-integer!]
+			set? [logic!]
+	][
+		set?: value <> null
+		either TYPE_OF(element) <> TYPE_INTEGER [
+			fire [TO_ERROR(script invalid-arg) element]
+			null
+		][
+			int: as red-integer! element
+			either set? [
+				poke ip int/value value null
+				value
+			][
+				_series/pick as red-series! ip int/value null
+			]
+		]
+	]
+	
+	pick: func [
+		ip		[red-vector!]
+		index	[integer!]
+		boxed	[red-value!]
+		return:	[red-value!]
+		/local
+			int		[red-integer!]
+			s		[series!]
+			offset	[integer!]
+			p		[byte-ptr!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "IPv6/pick"]]
 
-	;--- Modifying actions ---
+		offset: index - 1					;-- index is one-based
+		either any [zero? index	offset < 0 offset > 8][none-value][
+			s: GET_BUFFER(ip)
+			p: (as byte-ptr! s/offset) + (offset << 1)
+			int: as red-integer! stack/push*
+			int/header: TYPE_INTEGER
+			int/value: (as-integer p/1) << 8 + (as-integer p/2)
+			as red-value! int
+		]
+	]
+
+	poke: func [
+		ip		[red-vector!]
+		index	[integer!]
+		data	[red-value!]
+		boxed	[red-value!]
+		return:	[red-value!]
+		/local
+			int	   [red-integer!]
+			s	   [series!]
+			offset [integer!]
+			p	   [byte-ptr!]
+			i	   [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "IPv6/poke"]]
+
+		offset: index - 1					;-- index is one-based
+		either any [zero? index	offset < 0 offset > 8][
+			fire [TO_ERROR(script out-of-range)	integer/push index]
+		][
+			if TYPE_OF(data) <> TYPE_INTEGER [fire [TO_ERROR(script invalid-arg) data]]
+			s: GET_BUFFER(ip)
+			p: (as byte-ptr! s/offset) + (offset << 1)
+			int: as red-integer! data
+			i: int/value
+			p/1: as-byte i >> 8
+			p/2: as-byte i
+			stack/set-last data
+		]
+		data
+	]
 
 	init: does [
 		datatype/register [
@@ -133,11 +214,11 @@ ipv6: context [
 			;-- General actions --
 			:make
 			INHERIT_ACTION	;random
-			INHERIT_ACTION	;reflect
+			null			;reflect
 			null			;to
 			:form
 			:mold
-			INHERIT_ACTION	;eval-path
+			:eval-path
 			null			;set-path
 			INHERIT_ACTION	;compare
 			;-- Scalar actions --
@@ -163,7 +244,7 @@ ipv6: context [
 			null			;back
 			null			;change
 			null			;clear
-			null			;copy
+			INHERIT_ACTION	;copy
 			null			;find
 			null			;head
 			null			;head?
@@ -172,8 +253,8 @@ ipv6: context [
 			null			;length?
 			null			;move
 			null			;next
-			null			;pick
-			null			;poke
+			:pick
+			:poke
 			null			;put
 			null			;remove
 			null			;reverse

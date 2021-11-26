@@ -591,6 +591,7 @@ redbin: context [
 					TYPE_VECTOR
 					TYPE_BINARY		[encode-string data header payload]
 					TYPE_BITSET		[encode-bitset data header payload]
+					TYPE_IPV6		[encode-ipv6 data header payload]
 					TYPE_IMAGE		[encode-image data header payload]
 					TYPE_ANY_WORD
 					TYPE_REFINEMENT	[encode-word data header payload symbols table strings]
@@ -2101,6 +2102,7 @@ redbin: context [
 		ip: as red-vector! slot
 		ip/header: TYPE_UNSET
 		ip/node:   alloc-bytes 16
+		ip/type:   TYPE_INTEGER
 		ip/header: TYPE_IPV6
 
 		buffer: GET_BUFFER(ip)
