@@ -294,10 +294,12 @@ lexer: context [
 	
 	v6-part: [1 4 alphanum (cnt: cnt + 1)]
 	
+	v4-or-v6: [#":" v6-part | #"." 1 3 digit]
+	
 	ipv6-rule: [
 		s: [(cnt: 0)
-			[v6-part (short?: no) 1 7 ["::" (short?: yes) opt v6-part | #":" v6-part]]
-			| ["::" (short?: yes) opt [v6-part 0 6 [#":" v6-part]]]
+			[v6-part (short?: no) 1 9 ["::" (short?: yes) opt v6-part | v4-or-v6]]
+			| ["::" (short?: yes) opt [v6-part 0 6 v4-or-v6]]
 		]
 		(fail?: either any [short? cnt > 4][none][[end skip]]) fail?
 		e: (type: 'ipv6! value: load-ipv6 copy/part s e short?)
@@ -314,7 +316,7 @@ lexer: context [
 		] (type: time!)
 	]
 
-	month-rule: [(m: none)
+	month-rule: [		(m: none)
 		  "January"		(m: 1)
 		| "February"	(m: 2)
 		| "March"		(m: 3)
@@ -328,7 +330,7 @@ lexer: context [
 		| "November"	(m: 11)
 		| "December"	(m: 12)
 	]
-	mon-rule: [(m: none)
+	mon-rule: [ (m: none)
 		  "Jan" (m: 1)
 		| "Feb" (m: 2)
 		| "Mar" (m: 3)
@@ -886,9 +888,16 @@ lexer: context [
 		append join make issue! 1 + length? s #"$" s
 	]
 	
-	load-ipv6: func [src [string!] short? [logic!] /local blk chunk][
+	load-ipv6: func [src [string!] short? [logic!] /local blk chunk v4?][
 		if find/match src "::" [src: next src]		;-- avoid getting "" twice after splitting
 		blk: parse src ":"
+		
+		if v4?: to-logic find chunk: last blk #"." [ ;-- preprocess v4 tail if present
+			chunk: to binary! to tuple! chunk
+			if 4 <> length? chunk [throw-error]
+			change back tail blk enbase/base copy/part chunk 2 16
+			append blk enbase/base skip chunk 2 16
+		]
 		if short? [
 			loop 8 - ((length? blk) - 1) [insert find blk "" "0"]
 			remove find blk ""
@@ -899,7 +908,7 @@ lexer: context [
 			if 4 <> length? chunk [insert/dup chunk #"0" 4 - length? chunk]
 			blk/1: debase/base chunk 16
 		]
-		reduce [#!ipv6! rejoin blk]
+		reduce [#!ipv6! rejoin blk v4?]
 	]
 	
 	load-tuple: func [s [string!] /local new byte p e][

@@ -1811,7 +1811,7 @@ red: context [
 					insert-lf -3
 				]
 				ipv6? [
-					emit compose [ipv6/push as red-vector! get-root (redbin/emit-ipv6/root value/2)]
+					emit compose [ipv6/push as red-vector! get-root (redbin/emit-ipv6/root value/2 value/3)]
 					insert-lf -3
 				]
 				tuple? [

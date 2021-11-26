@@ -24,6 +24,7 @@ context [
 	chars: 		make block!  10'000
 	decoded: 	make binary! 10'000
 	nl-flag:	to-integer #{80000000}					;-- header's new-line flag
+	v4-flag:	to-integer #{00040000}					;-- header's v4-in-IPv6 flag
 	nl?:		no
 
 	profile: func [blk /local pos][
@@ -181,9 +182,10 @@ context [
 		emit to integer! copy/part skip bin -8 -4
 	]
 	
-	emit-ipv6: func [address [binary!] /root /local header][
+	emit-ipv6: func [address [binary!] v4? [logic!] /root /local header][
 		header: extracts/definitions/TYPE_IPV6
 		if nl? [header: header or nl-flag]
+		if v4? [header: header or v4-flag]
 		emit header
 		append buffer address
 		
@@ -324,7 +326,7 @@ context [
 				exit
 			]
 			blk/1 = #!ipv6! [
-				emit-ipv6 blk/2
+				emit-ipv6 blk/2 blk/3
 				exit
 			]
 			'else [type?/word :blk]

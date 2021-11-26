@@ -34,6 +34,7 @@ redbin: context [
 	#define REDBIN_BODY_MASK			00400000h
 	#define REDBIN_COMPLEMENT_MASK		00200000h
 	#define REDBIN_MONEY_SIGN_MASK		00100000h
+	#define REDBIN_V4_IN_V6_MASK		00040000h
 
 	#define REDBIN_REFERENCE_MASK		00080000h
 	
@@ -2078,7 +2079,7 @@ redbin: context [
 	][
 		ip: as red-vector! data
 		series: GET_BUFFER(ip)
-		;if FLAG_NOT?(series) [header: header or REDBIN_COMPLEMENT_MASK]
+		if series/flags and flag-embed-v4 <> 0 [header: header or REDBIN_V4_IN_V6_MASK]
 		store payload header
 		
 		unless header and REDBIN_REFERENCE_MASK <> 0 [
@@ -2103,7 +2104,10 @@ redbin: context [
 		ip/header: TYPE_IPV6
 
 		buffer: GET_BUFFER(ip)
-		;buffer/flags: buffer/flags and flag-unit-mask or unit
+		buffer/flags: buffer/flags and flag-unit-mask or 2
+		if data/1 and REDBIN_V4_IN_V6_MASK <> 0 [
+			buffer/flags: buffer/flags or flag-embed-v4
+		]
 		buffer/tail: buffer/offset + 1			;-- set tail at 16 bytes
 		copy-memory as byte-ptr! buffer/offset as byte-ptr! data + 1 16
 
