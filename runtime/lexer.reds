@@ -37,6 +37,7 @@ lexer: context [
 		C_FLAG_PERCENT: 00040000h
 		C_FLAG_SLASH:	00020000h
 		C_FLAG_AT:		00010000h
+		C_FLAG_OP_BLK:	00008000h
 	]
 	
 	#define FL_UCS4		[(C_WORD or C_FLAG_UCS4)]
@@ -248,7 +249,7 @@ lexer: context [
 		C_WORD C_WORD C_WORD			 				;-- 55-57	U-W
 		C_X												;-- 58		X
 		C_WORD C_WORD							 		;-- 59-5A	Y-Z
-		C_BLOCK_OP										;-- 5B		[
+		(C_BLOCK_OP or C_FLAG_OP_BLK)					;-- 5B		[
 		C_BSLASH										;-- 5C		\
 		C_BLOCK_CL										;-- 5D		]
 		(C_CARET or C_FLAG_CARET)						;-- 5E		^
@@ -2110,10 +2111,17 @@ lexer: context [
 	load-url: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local
 			c type [integer!]
-			p	   [byte-ptr!]
+			p q	   [byte-ptr!]
 	][
 		if flags and flags-url = 0 [					;-- if no `/` or `@` are present, check for IPv6
 			if detect-ipv6 lex s e flags load? [exit]
+		]
+		if flags and C_FLAG_OP_BLK <> 0 [
+			p: s while [p/1 <> #"["][p: p + 1]
+			either any [p - 4 < s p/0 <> #"/" p/-1 <> #"/" p/-2 <> #":"][e: p][
+				q: p + 1 while [all [q < e q/1 <> #"]"]][q: q + 1]
+				if q < e [load-ipv6 lex p + 1 q flags no]		;-- just verify syntax, don't load it
+			]
 		]
 		if any [s/1 = #":" s/1 = #"'"][
 			type: either s/1 = #":" [TYPE_GET_WORD][TYPE_LIT_WORD]
@@ -2153,6 +2161,7 @@ lexer: context [
 			ip		[red-vector!]
 			ser		[series!]
 			p q end	[byte-ptr!]
+			saved	[byte-ptr!]
 			c index	[integer!]
 			cnt		[integer!]
 			offset	[integer!]
@@ -2160,7 +2169,7 @@ lexer: context [
 			dbl? v4?[logic!]
 			do-error decompress [subroutine!]
 	][
-		do-error: [throw-error lex s e TYPE_IPV6]
+		do-error: [s: saved throw-error lex s e TYPE_IPV6]
 		decompress: [
 			if all [s < e s/2 = #":"][
 				if dbl? [do-error]						;-- compressed pattern can be used once only
@@ -2183,9 +2192,10 @@ lexer: context [
 				s: s + 1								;-- jump over first `:`
 			]
 		]
-		dbl?: no
-		v4?:  no
-		cnt:  0
+		dbl?:  no
+		v4?:   no
+		cnt:   0
+		saved: s
 		
 		if load? [
 			ip: ipv6/make-at alloc-slot lex
@@ -2204,7 +2214,7 @@ lexer: context [
 				if v4? [
 					c: grab-tuple lex s e p load? 4 TYPE_IPV6
 					if c <> 4 [do-error]
-					ser/flags: ser/flags or flag-embed-v4
+					if load? [ser/flags: ser/flags or flag-embed-v4]
 					cnt: cnt + 2
 					break
 				]

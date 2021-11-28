@@ -25,6 +25,7 @@ lexer: context [
 	in-path?: no									;-- flag for path items
 	s:		none									;-- mark start position of new value
 	e:		none									;-- mark end position of new value
+	saved:	none									;-- saved starting position of new value
 	series: none									;-- temporary hold last stack series
 	value:	none									;-- new value
 	value2:	none									;-- secondary new value
@@ -612,8 +613,10 @@ lexer: context [
 	]
 
 	url-rule: [
-		#":" (type: url! stop: [not-url-char | ws-no-count])
-		some UTF8-filtered-char e: (value: dehex copy/part s e)
+		#":" (stop: [not-url-char | ws-no-count] saved: s) [
+			"//[" ipv6-rule #"]" any UTF8-filtered-char
+			| some UTF8-filtered-char
+		] e: (type: url! value: dehex copy/part saved e)
 	]
 
 	escaped-rule: [

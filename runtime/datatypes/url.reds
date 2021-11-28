@@ -105,6 +105,7 @@ url: context [
 			size	[integer!]
 			p		[byte-ptr!]
 			num		[integer!]
+			v6?		[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "url/mold"]]
 
@@ -117,19 +118,22 @@ url: context [
 
 		num: 0
 		size: 0
+		v6?: no
 		while [data < end][
-			p: string/encode-url-char string/ESC_URL data :size
+			if all [data/1 = #":" data/2 = #"/" data/3 = #"/" data/4 = #"["][v6?: yes]
+			either v6? [
+				p: data
+				size: 1
+			][
+				p: string/encode-url-char string/ESC_URL data :size
+			]
 			loop size [
 				string/append-char GET_BUFFER(buffer) as-integer p/1
 				num: num + 1
-				if all [
-					limit?
-					num >= part
-				][
-					return part - num
-				]
+				if all [limit? num >= part][return part - num]
 				p: p + 1
 			]
+			if all [v6? data/1 = #"]"][v6?: no]
 			data: data + 1
 		]
 		part - num

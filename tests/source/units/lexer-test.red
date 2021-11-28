@@ -439,6 +439,13 @@ Red [
 			::ffff:192.0.2.128
 			::192.0.2.128
 			a::192.0.2.128
+			FEDC:BA98:7654:3210:FEDC:BA98:7654:3210
+			1080:0:0:0:8:800:200C:4171
+			3ffe:2a00:100:7031::1
+			1080::8:800:200C:417A
+			::192.9.5.5
+			::FFFF:129.144.52.38
+			2010:836B:4179::836B:4179
 		] == out: load {
 			AB01:0db8:85a3:0000:0000:8a2e:0370:7334
 			2001:0db8:85a3:0000:0000:8a2e:0370:7334
@@ -465,8 +472,35 @@ Red [
 			::ffff:192.0.2.128
 			::192.0.2.128
 			a::192.0.2.128
+			FEDC:BA98:7654:3210:FEDC:BA98:7654:3210
+			1080:0:0:0:8:800:200C:4171
+			3ffe:2a00:100:7031::1
+			1080::8:800:200C:417A
+			::192.9.5.5
+			::FFFF:129.144.52.38
+			2010:836B:4179::836B:4179
 		}
 		forall out [--assert ipv6? out/1]
+
+	--test-- "tr-53"
+		--assert [
+			http://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:80/index.html
+			http://[1080:0:0:0:8:800:200C:417A]/index.html
+			http://[3ffe:2a00:100:7031::1]
+			http://[1080::8:800:200C:417A]/foo
+			http://[::192.9.5.5]/ipng
+			http://[::FFFF:129.144.52.38]:80/index.html
+			http://[2010:836B:4179::836B:4179]
+		] = out: load {
+			http://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:80/index.html
+			http://[1080:0:0:0:8:800:200C:417A]/index.html
+			http://[3ffe:2a00:100:7031::1]
+			http://[1080::8:800:200C:417A]/foo
+			http://[::192.9.5.5]/ipng
+			http://[::FFFF:129.144.52.38]:80/index.html
+			http://[2010:836B:4179::836B:4179]
+		}
+		forall out [--assert url? out/1]
 
 ===end-group===
 ===start-group=== "transcode/one"
@@ -1433,8 +1467,8 @@ Red [
 		    prescan word! datatype! 1 3x8 
 		    scan word! datatype! 1 3x8 
 		    load word! datatype! 1 world 
-		    prescan error! datatype! 1 9x10 
-		    error integer! datatype! 1 9x10 
+		    prescan IPv6! datatype! 1 9x11 
+		    error IPv6! datatype! 1 9x11 
 		    prescan integer! datatype! 1 12x15 
 		    scan integer! datatype! 1 12x15 
 		    load integer! datatype! 1 123
@@ -1483,8 +1517,8 @@ Red [
 		    prescan word! datatype! 1 3x8 " 4a 123" 
 		    scan word! datatype! 1 3x8 " 4a 123" 
 		    load word! datatype! 1 world " 4a 123" 
-		    prescan error! datatype! 1 9x10 "a 123" 
-		    error integer! datatype! 1 9x10 "a 123" 
+		    prescan IPv6! datatype! 1 9x11 " 123" 
+		    error IPv6! datatype! 1 9x11 " 123" 
 		    prescan integer! datatype! 1 12x15 "" 
 		    scan integer! datatype! 1 12x15 "" 
 		    load integer! datatype! 1 123 ""
