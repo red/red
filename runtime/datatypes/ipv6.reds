@@ -69,10 +69,46 @@ ipv6: context [
 		spec	[red-value!]
 		dtype	[integer!]
 		return:	[red-vector!]
+		/local
+			s	   [series!]
+			ip	   [red-vector!]
+			int	   [red-integer!]
+			value  [red-value!]
+			tail   [red-value!]
+			blk    [red-block!]
+			p	   [byte-ptr!]
+			i	   [integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "ipv6/make"]]
+		#if debug? = yes [if verbose > 0 [print-line "IPv6/make-to"]]
 
-		null
+		if TYPE_OF(spec) <> TYPE_BLOCK [
+			fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(spec)]
+		]
+		blk: as red-block! spec
+		s: GET_BUFFER(blk)
+		value: s/offset + blk/head
+		tail:  s/tail
+		
+		ip: make-at stack/push*
+		s: GET_BUFFER(ip)
+		p: as byte-ptr! s/offset
+		
+		while [value < tail][
+			int: as red-integer! value
+			i: int/value
+			if any [TYPE_OF(int) <> TYPE_INTEGER i > FFFFh][
+				fire [TO_ERROR(script bad-to-arg) proto spec]
+			]
+			if p >= as byte-ptr! s/tail [
+				fire [TO_ERROR(script bad-to-arg) proto spec]
+			]
+			p/1: as-byte i >> 8
+			p/2: as-byte i
+			p: p + 2
+			value: value + 1
+		]
+		stack/set-last as red-value! ip
+		ip
 	]
 	
 	form: func [
@@ -215,7 +251,7 @@ ipv6: context [
 			:make
 			INHERIT_ACTION	;random
 			null			;reflect
-			null			;to
+			:make			;to
 			:form
 			:mold
 			:eval-path
@@ -228,7 +264,7 @@ ipv6: context [
 			INHERIT_ACTION	;multiply
 			null			;negate
 			null			;power
-			INHERIT_ACTION	;remainder
+			null			;remainder
 			null			;round
 			INHERIT_ACTION	;subtract
 			null			;even?
