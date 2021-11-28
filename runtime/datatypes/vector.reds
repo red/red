@@ -490,7 +490,7 @@ vector: context [
 				v1: integer/do-math-op v1 v2 op null
 				switch unit [
 					1 [p/value: as-byte v1]
-					2 [p/1: as-byte v1 p/2: as-byte v1 >> 8]
+					2 [p/1: as-byte v1 >> 8 p/2: as-byte v1]
 					4 [p4: as int-ptr! p p4/value: v1]
 				]
 				i: i + 1
@@ -530,7 +530,7 @@ vector: context [
 		left: as red-vector! stack/arguments
 		right: left + 1
 
-		if TYPE_OF(right) <> TYPE_VECTOR [
+		if all [TYPE_OF(right) <> TYPE_VECTOR TYPE_OF(right) <> TYPE_IPV6][
 			return do-math-scalar type left as red-value! right
 		]
 
@@ -580,7 +580,7 @@ vector: context [
 				v1: integer/do-math-op v1 v2 type null
 				switch unit [
 					1 [p/value: as-byte v1]
-					2 [p/1: as-byte v1 p/2: as-byte v1 >> 8]
+					2 [p/1: as-byte v1 >> 8 p/2: as-byte v1]
 					4 [p4: as int-ptr! p p4/value: v1]
 				]
 				i:  i  + 1
