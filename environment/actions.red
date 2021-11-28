@@ -93,27 +93,27 @@ absolute: make action! [[
 
 add: make action! [[
 		"Returns the sum of the two values"
-		value1	 [scalar! vector!] "The augend"
-		value2	 [scalar! vector!] "The addend"
-		return:  [scalar! vector!] "The sum"
+		value1	 [scalar! vector! ipv6!] "The augend"
+		value2	 [scalar! vector! ipv6!] "The addend"
+		return:  [scalar! vector! ipv6!] "The sum"
 	]
 	#get-definition ACT_ADD
 ]
 
 divide: make action! [[
 		"Returns the quotient of two values"
-		value1	 [number! money! char! pair! tuple! vector! time!] "The dividend (numerator)"
-		value2	 [number! money! char! pair! tuple! vector! time!] "The divisor (denominator)"
-		return:  [number! money! char! pair! tuple! vector! time!] "The quotient"
+		value1	 [number! money! char! pair! tuple! vector! time! ipv6!] "The dividend (numerator)"
+		value2	 [number! money! char! pair! tuple! vector! time! ipv6!] "The divisor (denominator)"
+		return:  [number! money! char! pair! tuple! vector! time! ipv6!] "The quotient"
 	]
 	#get-definition ACT_DIVIDE
 ]
 
 multiply: make action! [[
 		"Returns the product of two values"
-		value1	 [number! money! char! pair! tuple! vector! time!] "The multiplicand"
-		value2	 [number! money! char! pair! tuple! vector! time!] "The multiplier"
-		return:  [number! money! char! pair! tuple! vector! time!] "The product"
+		value1	 [number! money! char! pair! tuple! vector! time! ipv6!] "The multiplicand"
+		value2	 [number! money! char! pair! tuple! vector! time! ipv6!] "The multiplier"
+		return:  [number! money! char! pair! tuple! vector! time! ipv6!] "The product"
 	]
 	#get-definition ACT_MULTIPLY
 ]
@@ -161,9 +161,9 @@ round: make action! [[
 
 subtract: make action! [[
 		"Returns the difference between two values"
-		value1	 [scalar! vector!] "The minuend"
-		value2	 [scalar! vector!] "The subtrahend"
-		return:  [scalar! vector!] "The difference"
+		value1	 [scalar! vector! ipv6!] "The minuend"
+		value2	 [scalar! vector! ipv6!] "The subtrahend"
+		return:  [scalar! vector! ipv6!] "The difference"
 	]
 	#get-definition ACT_SUBTRACT
 ]
@@ -188,9 +188,9 @@ odd?: make action! [[
 
 and~: make action! [[
 		"Returns the first value ANDed with the second"
-		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
-		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
-		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
+		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! ipv6!]
+		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! ipv6!]
+		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! ipv6!]
 	]
 	#get-definition ACT_AND~
 ]
@@ -205,18 +205,18 @@ complement: make action! [[
 
 or~: make action! [[
 		"Returns the first value ORed with the second"
-		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
-		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
-		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
+		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! ipv6!]
+		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! ipv6!]
+		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! ipv6!]
 	]
 	#get-definition ACT_OR~
 ]
 
 xor~: make action! [[
 		"Returns the first value exclusive ORed with the second"
-		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
-		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
-		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
+		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! ipv6!]
+		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! ipv6!]
+		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! ipv6!]
 	]
 	#get-definition ACT_XOR~
 ]
