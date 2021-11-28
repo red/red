@@ -76,36 +76,51 @@ ipv6: context [
 			value  [red-value!]
 			tail   [red-value!]
 			blk    [red-block!]
-			p	   [byte-ptr!]
+			tp	   [red-tuple!]
+			p 	   [byte-ptr!]
+			p4 src [int-ptr!]
 			i	   [integer!]
+			alloc-ipv6 [subroutine!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "IPv6/make-to"]]
-
-		if TYPE_OF(spec) <> TYPE_BLOCK [
-			fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(spec)]
+		
+		alloc-ipv6: [
+			ip: make-at stack/push*
+			s: GET_BUFFER(ip)
+			p: as byte-ptr! s/offset
 		]
-		blk: as red-block! spec
-		s: GET_BUFFER(blk)
-		value: s/offset + blk/head
-		tail:  s/tail
-		
-		ip: make-at stack/push*
-		s: GET_BUFFER(ip)
-		p: as byte-ptr! s/offset
-		
-		while [value < tail][
-			int: as red-integer! value
-			i: int/value
-			if any [TYPE_OF(int) <> TYPE_INTEGER i > FFFFh][
-				fire [TO_ERROR(script bad-to-arg) proto spec]
+		switch TYPE_OF(spec) [
+			TYPE_BLOCK [
+				blk: as red-block! spec
+				s: GET_BUFFER(blk)
+				value: s/offset + blk/head
+				tail:  s/tail
+				alloc-ipv6
+
+				while [value < tail][
+					int: as red-integer! value
+					i: int/value
+					if any [TYPE_OF(int) <> TYPE_INTEGER i > FFFFh][
+						fire [TO_ERROR(script bad-to-arg) proto spec]
+					]
+					if p >= as byte-ptr! s/tail [
+						fire [TO_ERROR(script bad-to-arg) proto spec]
+					]
+					p/1: as-byte i >> 8
+					p/2: as-byte i
+					p: p + 2
+					value: value + 1
+				]
 			]
-			if p >= as byte-ptr! s/tail [
-				fire [TO_ERROR(script bad-to-arg) proto spec]
+			TYPE_TUPLE [
+				tp: as red-tuple! spec
+				if TUPLE_SIZE?(spec) <> 4 [fire [TO_ERROR(script bad-to-arg) proto spec]]
+				src: as int-ptr! GET_TUPLE_ARRAY(spec)
+				alloc-ipv6
+				p4: as int-ptr! p
+				p4/4: src/value							;-- skip first 6 chunks (preset to 0)
 			]
-			p/1: as-byte i >> 8
-			p/2: as-byte i
-			p: p + 2
-			value: value + 1
+			default [fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(spec)]]
 		]
 		stack/set-last as red-value! ip
 		ip
