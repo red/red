@@ -229,22 +229,20 @@ system/tools: context [
 			if event = 'end [prin lf]
 			indent: 0
 		][
-			unless find [enter exit fetch] event [
-				if event = 'return [indent: indent - 1]
-				if any-function? :value [value: type? :value]
-				
-				out: clear ""
-				append out "-> "
-				if options/trace/indent? [append/dup out space indent]
-				append out uppercase mold event
-				ref: either ref [rejoin ["  (" ref #")"]][""]
-				append out space
-				append out mold/part/flat :value calc-max (length? out) + length? ref
-				append out ref
-				print out
-				
-				if event = 'open [indent: indent + 1]
-			]
+			if event = 'return [indent: indent - 1]
+			if any-function? :value [value: type? :value]
+
+			out: clear ""
+			append out "-> "
+			if options/trace/indent? [append/dup out space indent]
+			append out uppercase mold event
+			ref: either ref [rejoin ["  (" ref #")"]][""]
+			append out space
+			append out mold/part/flat :value calc-max (length? out) + length? ref
+			append out ref
+			print out
+
+			if event = 'open [indent: indent + 1]
 		]
 	]
 	
