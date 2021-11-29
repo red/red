@@ -208,7 +208,7 @@ probe ["server listen fd: " fd]
 			n: -1
 			addr: unicode/to-utf8 host :n
 			either TYPE_OF(num) = TYPE_INTEGER [n-port: num/value][n-port: 443]
-			either 1 = inet_pton AF_INET addr :addrbuf [
+			either 1 = inet_pton AF_INET addr :addrbuf/sin_addr [
 				make-sockaddr as sockaddr_in! :addrbuf addr n-port AF_INET
 				tls-client red-port as sockaddr_in! :addrbuf size? sockaddr_in!
 			][

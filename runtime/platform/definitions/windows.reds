@@ -1207,7 +1207,7 @@ DNS_RECORD!: alias struct! [
 		inet_pton: "inet_pton" [
 			Family				[integer!]
 			pszAddrString		[c-string!]
-			pAddrBuf			[sockaddr_in6!]
+			pAddrBuf			[int-ptr!]
 			return:				[integer!]
 		]
 		WSAWaitForMultipleEvents: "WSAWaitForMultipleEvents" [

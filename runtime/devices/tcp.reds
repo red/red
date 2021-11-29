@@ -74,7 +74,7 @@ tcp-device: context [
 				saddr/sa_data1: 0
 				saddr/sa_data2: 0
 				io/close-port p
-				tcp-client p saddr size? sockaddr_in!
+				tcp-client p saddr size? sockaddr_in! AF_INET
 				exit
 			]
 			default [data/event: IO_EVT_NONE]
@@ -137,14 +137,15 @@ tcp-device: context [
 		port	[red-object!]
 		saddr	[sockaddr_in!]
 		addr-sz	[integer!]
+		type	[integer!]
 		/local
 			fd	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [io/debug "tcp client"]]
 
-		fd: socket/create AF_INET SOCK_STREAM IPPROTO_TCP
+		fd: socket/create type SOCK_STREAM IPPROTO_TCP
 		iocp/bind g-iocp as int-ptr! fd
-		socket/bind fd 0 AF_INET
+		socket/bind fd 0 type
 
 		socket/connect2 fd saddr addr-sz create-tcp-data port fd
 	]
@@ -209,6 +210,8 @@ tcp-device: context [
 			n		[integer!]
 			addr	[c-string!]
 			addrbuf [sockaddr_in6! value]
+			type	[integer!]
+			sz		[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [io/debug "tcp/open"]]
 
@@ -226,9 +229,19 @@ tcp-device: context [
 		][
 			n: -1
 			addr: unicode/to-utf8 host :n
-			either 1 = inet_pton AF_INET addr :addrbuf [
-				make-sockaddr as sockaddr_in! :addrbuf addr num/value AF_INET
-				tcp-client red-port as sockaddr_in! :addrbuf size? sockaddr_in!
+			either all [addr/1 = #"[" addr/n = #"]"][
+				type: AF_INET6
+				addr/n: #"^@"
+				addr: addr + 1
+				sz: size? sockaddr_in6!
+			][
+				type: AF_INET
+				sz: size? sockaddr_in!
+			]
+
+			either 1 = inet_pton type addr :addrbuf/sin_addr [
+				make-sockaddr as sockaddr_in! :addrbuf addr num/value type
+				tcp-client red-port as sockaddr_in! :addrbuf sz type
 			][
 				resolve-name red-port addr num/value
 			]

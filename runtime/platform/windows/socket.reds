@@ -36,19 +36,15 @@ socket: context [
 		type	[integer!]
 		return: [integer!]
 		/local
-			saddr	[sockaddr_in! value]
-			p		[integer!]
+			saddr	[sockaddr_in6! value]
+			p sz	[integer!]
 	][
-		either type = AF_INET [		;-- IPv4
-			p: htons port
-			saddr/sin_family: p << 16 or type
-			saddr/sin_addr: 0
-			saddr/sa_data1: 0
-			saddr/sa_data2: 0
-			WS2.bind sock as int-ptr! :saddr size? saddr
-		][							;-- IPv6
-			0
-		]
+		zero-memory as byte-ptr! :saddr size? sockaddr_in6!
+		p: htons port
+		saddr/sin_family: p << 16 or type
+		sz: size? sockaddr_in!
+		if type = AF_INET6 [sz: size? sockaddr_in6!]
+		WS2.bind sock as int-ptr! :saddr sz
 	]
 
 	listen: func [

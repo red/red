@@ -173,7 +173,7 @@ res_state!: alias struct! [	;-- size: 512 bytes
 		inet_pton: "inet_pton" [
 			Family				[integer!]
 			pszAddrString		[c-string!]
-			pAddrBuf			[sockaddr_in6!]
+			pAddrBuf			[int-ptr!]
 			return:				[integer!]
 		]
 		inet_ntop: "inet_ntop" [

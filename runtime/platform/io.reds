@@ -38,12 +38,21 @@ make-sockaddr: func [
 	addr	[c-string!]
 	port	[integer!]
 	type	[integer!]
+	/local
+		addr6 [sockaddr_in6!]
 ][
 	port: htons port
 	saddr/sin_family: port << 16 or type
-	saddr/sin_addr: inet_addr addr
-	saddr/sa_data1: 0
-	saddr/sa_data2: 0
+
+	either type = AF_INET [
+		saddr/sin_addr: saddr/sa_data1
+		saddr/sa_data1: 0
+		saddr/sa_data2: 0
+	][
+		addr6: as sockaddr_in6! saddr
+		addr6/sin_flowinfo: 0
+		addr6/sin_scope_id: 0
+	]
 ]
 
 #either OS = 'Windows [
