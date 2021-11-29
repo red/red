@@ -263,6 +263,13 @@ interpreter: context [
 	fire-throw:	does [if trace? [fire-event EVT_THROW null null null stack/arguments]]
 	fire-catch:	does [if trace? [fire-event EVT_CATCH null null null stack/arguments]]
 	
+	fire-call: func [ref [red-value!] fun [red-function!]][
+		fire-event EVT_CALL null null ref as red-value! fun
+	]
+	fire-return: func [ref [red-value!] fun [red-function!]][
+		fire-event EVT_RETURN null null ref stack/arguments
+	]
+	
 	literal-first-arg?: func [
 		native 	[red-native!]
 		return: [logic!]

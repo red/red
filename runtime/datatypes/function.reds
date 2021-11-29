@@ -228,7 +228,9 @@ _function: context [
 
 		native: as red-native! s/offset + 2
 		either zero? native/code [
+			if interpreter/trace? [interpreter/fire-call ref fun]
 			interpreter/eval-function fun as red-block! s/offset ref
+			if interpreter/trace? [interpreter/fire-return ref fun]
 		][
 			fctx: GET_CTX(fun)
 			saved: fctx/values
