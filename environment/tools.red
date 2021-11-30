@@ -178,8 +178,6 @@ system/tools: context [
 			options/debug/active?
 			not find [init end enter exit prolog epilog] event
 		][
-			if code [print ["^/Input:" mold/only/part/flat skip code offset calc-max 8]]
-			
 			if event = 'fetch [event: 'eval]
 			prin out: rejoin ["-----> " uppercase mold event space]
 			if event = 'set [
@@ -193,6 +191,7 @@ system/tools: context [
 			][
 				mold/part/flat :value limit
 			]
+			if code [print ["Input:" mold/only/part/flat skip code offset calc-max 8]]
 			
 			unless empty? watching			[show-watching]
 			if options/debug/show-parents?	[show-parents event]
