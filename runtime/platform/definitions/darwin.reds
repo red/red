@@ -41,6 +41,8 @@ Red/System [
 #define	_SC_NPROCESSORS_CONF	57
 #define	_SC_NPROCESSORS_ONLN	58
 
+#define AF_INET6				30
+
 stat!: alias struct! [
 	st_dev		[integer!]
 	st_ino		[integer!]

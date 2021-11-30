@@ -45,21 +45,17 @@ socket: context [
 		type	[integer!]
 		return: [integer!]
 		/local
-			saddr	[sockaddr_in! value]
-			p		[integer!]
+			saddr	[sockaddr_in6! value]
+			p sz	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "socket/bind"]]
 
-		either type = AF_INET [		;-- IPv4
-			p: htons port
-			saddr/sin_family: p << 16 or type
-			saddr/sin_addr: 0
-			saddr/sa_data1: 0
-			saddr/sa_data2: 0
-			LibC.bind sock as byte-ptr! :saddr size? saddr
-		][							;-- IPv6
-			0
-		]
+		zero-memory as byte-ptr! :saddr size? sockaddr_in6!
+		p: htons port
+		saddr/sin_family: p << 16 or type
+		sz: size? sockaddr_in!
+		if type = AF_INET6 [sz: size? sockaddr_in6!]
+		LibC.bind sock as byte-ptr! :saddr sz
 	]
 
 	listen: func [

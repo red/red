@@ -53,6 +53,8 @@ Red/System [
 #define EPOLL_CTL_DEL	2
 #define EPOLL_CTL_MOD	3
 
+#define AF_INET6		10
+
 #case [
 	all [legacy find legacy 'stat32] [
 		stat!: alias struct! [
