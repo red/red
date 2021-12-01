@@ -32,6 +32,7 @@ write %build/bin/sources.r set-cache [
 		%routines.red
 		%scalars.red
 		%system.red
+		%tools.red
 		%codecs/ [
 			%BMP.red
 			%GIF.red
