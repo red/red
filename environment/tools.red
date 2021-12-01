@@ -17,6 +17,7 @@ system/tools: context [
 	profiling: make block! 10
 	
 	indent: 0
+	hist-length: none
 	
 	options: context [
 		debug: context [
@@ -113,7 +114,7 @@ system/tools: context [
 									stack s		[show-stack]
 									next n		[]
 									continue c  [options/debug/active?: no cmd: ""]
-									q			[halt]
+									quit q		[halt]
 								]
 							]
 						]
@@ -131,7 +132,7 @@ system/tools: context [
 		value  [any-type!]
 		ref	   [any-type!]
 		frame  [pair!]									;-- current frame start, top
-		/extern expr-stk
+		/extern expr-stk hist-length
 		/local out pos len entry
 	][
 		switch event [
@@ -171,7 +172,12 @@ system/tools: context [
 				clear fun-stk
 				clear expr-stk: head expr-stk
 				indent: 0
-				if event = 'end [options/debug/active?: no]
+				sch: system/console/history
+				if event = 'init [hist-length: length? sch]
+				if event = 'end [
+					options/debug/active?: no
+					remove/part sch (length? sch) - hist-length
+				]
 			]
 		]
 		if all [
