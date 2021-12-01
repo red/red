@@ -151,6 +151,8 @@ count-chars: routine [
 	c
 ]
 
+;-- Red stack related accessors (temporary, needs a proper design) --
+
 stack-size?: routine [return: [integer!]][
 	(as-integer stack/top - stack/bottom) >> 4
 ]
@@ -163,12 +165,6 @@ pick-stack: routine [
 	][
 		SET_RETURN(none-value)
 	]
-]
-
-get-frame-symbol: routine [
-	idx [integer!]
-][
-	
 ]
 
 frame-index?: routine [return: [integer!]][
