@@ -301,6 +301,7 @@ system/tools: context [
 				]
 				rank: 1
 				foreach [name cnt duration] profiling [
+					if unset? name [name: "<anonymous>"]
 					print [pad append copy "#" rank 4 pad name 16 #"|" pad cnt 10 #"|" pad duration 10]
 					rank: rank + 1
 				]
