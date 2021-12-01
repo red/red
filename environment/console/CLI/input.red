@@ -610,10 +610,13 @@ ask: function [
 	"Prompt the user for input"
 	question [string!]
 	/hide
+	/history "specify the history block"
+		blk  [block!]
 	return:  [string!]
 ][
 	buffer: make string! 1
-	_set-buffer-history buffer head system/console/history
+	hist-blk: head either history [blk][system/console/history]
+	_set-buffer-history buffer hist-blk
 	_read-input question hide
 	buffer
 ]

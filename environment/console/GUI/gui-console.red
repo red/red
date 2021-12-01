@@ -239,6 +239,8 @@ ask: function [
 	"Prompt the user for input"
 	question [string!]
 	/hide
+	/history "specify the history block"
+		blk  [block!]
 	return:  [string!]
 ][
 	if all [
@@ -249,7 +251,7 @@ ask: function [
 	]
 
 	gui-console-ctx/show-caret
-	line: gui-console-ctx/terminal/ask question hide
+	line: gui-console-ctx/terminal/ask question blk hide
 	gui-console-ctx/caret/enabled?: no
 	unless gui-console-ctx/console/state [line: "quit"]
 	line
