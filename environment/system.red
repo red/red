@@ -283,7 +283,6 @@ system: context [
 		interpreted?: func ["Return TRUE if called from the interpreter"][
 			#system [logic/box stack/eval? null no]
 		]
-		
 		last-error: none
 		trace: 1										;-- 0: disabled
 	]
@@ -458,4 +457,5 @@ system: context [
 	console:	none
 	view:		none
 	reactivity: none
+	tools:		none
 ]

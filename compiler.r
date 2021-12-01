@@ -143,7 +143,7 @@ red: context [
 			either word? err [
 				join uppercase/part mold err 1 " error"
 			][reform err]
-			"^/*** in file:" to-local-file script-name
+			"^/*** in file:" any [attempt [to-local-file script-name] "??"]
 			;either locals [join "^/*** in function: " func-name][""]
 		]
 		if pc [
@@ -1526,116 +1526,6 @@ red: context [
 		emit 'actions/eval-path*
 		emit either set ['true]['false]
 		insert-lf -2
-	]
-	
-	emit-path-func: func [body [block!] octx [word!] cnt [integer!] /local pos f-name rule arity name][
-		pos: body
-		body: copy pos
-		clear pos
-		
-		if all [1 = length? body body/1 = 'stack/reset][clear body]
-		rewrite-locals body
-		
-		name: either pos: find body 'pos [
-			either body = [
-				stack/push pos
-				stack/reset
-			][
-				clear body
-				2
-			][
-				insert body [
-					pos: stack/arguments
-				]
-				4
-			]
-		][2]
-		if #"~" <> first form name: pick body name [
-			name: [words/_anon]
-		]
-		
-		if all [not empty? body 'stack/unwind = last body][
-			change/only back tail body 'stack/unwind-last
-			new-line back tail body yes
-		]
-		unless any [empty? body 1 = length? body][
-			arity: 0
-			parse body rule: [
-				some [
-					'stack/push 'pos pos: '+ (
-						arity: arity + 1
-						either arity = 1 [pos: remove/part pos 2][pos/2: arity - 1]
-					) :pos
-					| into rule
-					| skip
-				]
-			]
-			redirect-to declarations [
-				f-name: decorate-func to word! join "~path" cnt
-				emit reduce [to set-word! f-name 'func [octx [node!] /local pos] body]
-				insert-lf -4
-			]
-			emit compose [
-				stack/defer-call (name) as-integer (to get-word! f-name) (arity) (octx)
-			]
-			f-name
-		]
-	]
-	
-	emit-dynamic-path: func [
-		body [block!]
-		/local path idx mark saved cnt frame? octx blk-idx
-	][
-		octx: pick [octx null] to logic! all [
-			not empty? locals-stack
-			container-obj?
-		]
-		path: first paths-stack
-		blk-idx: redbin/emit-block path
-		
-		if frame?: all [
-			not emit-path-func body octx cnt: get-counter
-			not empty? expr-stack
-			find [<infix> switch case] last expr-stack
-		][
-			emit-open-frame 'dyn-path					;-- wrap it in a stack frame in this case
-		]
-		emit-get-word path/1 path/1
-		insert-lf -2
-		saved: output
-		
-		forall path [
-			emit [either stack/func?]
-			insert-lf -2
-			idx: (index? path) - 1
-			emit compose/deep [[stack/push-call as red-path! get-root (blk-idx) (idx) 0 (octx)]]
-
-			either tail? next path [
-				emit [[stack/adjust]]
-			][
-				mark: tail output
-				unless head? path [
-					emit [
-						stack/top: stack/top - 1
-						copy-cell stack/top stack/top - 1
-					]
-				]
-				emit-open-frame 'eval-path
-				emit [stack/push stack/arguments - 1]
-				insert-lf -4
-				emit append to path! to word! form type? path/2 'push
-				emit prefix-exec path/2
-				insert-lf -2
-				emit-eval-path no
-				emit 'stack/unwind-part
-				insert-lf -1
-				change/only/part mark mark: copy mark tail output
-				output: mark
-			]
-		]
-		remove paths-stack
-		output: saved
-		if frame? [emit-close-frame]
 	]
 	
 	get-return-type: func [spec [block!] /local type][	;-- for routine spec blocks
@@ -3333,7 +3223,7 @@ red: context [
 			
 			unless set? [emit [stack/mark-native words/_body]]	;@@ not clean...
 			emit compose [
-				interpreter/eval-path stack/top - 1 null null (to word! form set?) no (to word! form root?) no
+				interpreter/eval-path stack/top - 1 null null null (to word! form set?) no (to word! form root?) no
 			]
 			unless set? [emit [stack/unwind-last]]
 			
@@ -3588,7 +3478,7 @@ red: context [
 				emit reduce [							;-- special case for path-generated wrapper functions
 					'stack/mark-func 
 					decorate-exec-ctx decorate-symbol name
-					get-func-ctx original ctx-name
+					ctx-name
 				]
 				insert-lf -3
 			][
@@ -4381,15 +4271,6 @@ red: context [
 		
 		unless no-infix [
 			if check-infix-operators root [
-				if all [any [root close-path] paths < length? paths-stack][
-					emit-dynamic-path out
-					push-call <infix>
-					loop length? paths-stack [
-						emit-dynamic-path make block! 0
-					]
-					pop-call
-					if tail? pc [emit-dyn-check]
-				]
 				if all [root 'stack/reset <> last output][
 					emit-stack-reset					;-- clear stack from last root expression result
 				]

@@ -252,6 +252,7 @@ red: context [
 		stack/init
 		lexer/init
 		redbin/boot-load system/boot-data no
+		interpreter/init
 		
 		#if debug? = yes [
 			datatype/verbose:	verbosity

@@ -10,6 +10,8 @@ Red/System [
 	}
 ]
 
+painting?: no
+
 init-base-face: func [
 	handle		[handle!]
 	parent		[integer!]
@@ -502,7 +504,9 @@ BaseWndProc: func [
 		0318h	;-- WM_PRINTCLIENT 		; see https://stackoverflow.com/a/44062144
 		WM_PAINT
 		WM_DISPLAYCHANGE [
+			if painting? [return 0]
 			if (WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) = 0 [
+				painting?: yes
 				draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
 				either TYPE_OF(draw) = TYPE_BLOCK [
 					#if draw-engine = 'GDI+ [
@@ -527,6 +531,7 @@ BaseWndProc: func [
 					system/thrown: 0
 				]
 				ValidateRect hWnd null
+				painting?: no
 				return 0
 			]
 		]

@@ -101,6 +101,20 @@ block: context [
 		copy-cell value ALLOC_TAIL(blk)
 	]
 	
+	rs-remove-last: func [
+		blk 	[red-block!]
+		/local
+			s	[series!]
+	][
+		s: GET_BUFFER(blk)
+		if s/offset < s/tail [
+			s/tail: s/tail - 1
+			if s/offset + blk/head > s/tail [
+				blk/head: (as-integer s/tail - s/offset) >> 4
+			]
+		]
+	]
+	
 	rs-append-block: func [
 		blk		[red-block!]
 		blk2	[red-block!]
@@ -281,11 +295,9 @@ block: context [
 	]
 	
 	insert-thru: does [
-		unless stack/acc-mode? [
-			insert-value
-				as red-block! stack/arguments - 1
-				stack/arguments
-		]
+		insert-value
+			as red-block! stack/arguments - 1
+			stack/arguments
 	]
 	
 	append*: func [
@@ -319,18 +331,16 @@ block: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/append-thru"]]
 
-		unless stack/acc-mode? [
-			arg: as red-block! stack/arguments - 1
-			;assert TYPE_OF(arg) = TYPE_BLOCK			;@@ disabled until we have ANY_BLOCK check
+		arg: as red-block! stack/arguments - 1
+		;assert TYPE_OF(arg) = TYPE_BLOCK			;@@ disabled until we have ANY_BLOCK check
 
-			val: copy-cell
-				as cell! arg + 1
-				ALLOC_TAIL(arg)
+		val: copy-cell
+			as cell! arg + 1
+			ALLOC_TAIL(arg)
 
-			if TYPE_OF(arg) = TYPE_HASH [
-				hs: as red-hash! arg
-				_hashtable/put hs/table val
-			]
+		if TYPE_OF(arg) = TYPE_HASH [
+			hs: as red-hash! arg
+			_hashtable/put hs/table val
 		]
 	]
 	
@@ -1215,7 +1225,7 @@ block: context [
 		#if debug? = yes [if verbose > 0 [print-line "block/compare-call"]]
 
 		f: as red-function! fun
-		stack/mark-func words/_body	f/ctx				;@@ find something more adequate
+		stack/mark-func words/_compare-cb f/ctx
 
 		either flags and sort-reverse-mask = 0 [
 			v2: stack/push value2
@@ -1244,7 +1254,7 @@ block: context [
 			s2/tail: value2 + num
 		]
 
-		_function/call f global-ctx				;FIXME: hardcoded origin context
+		_function/call f global-ctx	as red-value! words/_compare-cb ;FIXME: hardcoded origin context
 		stack/unwind
 		stack/pop 1
 

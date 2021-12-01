@@ -174,6 +174,8 @@ fire: func [
 		arg1 [red-value!]
 		arg2 [red-value!]
 		arg3 [red-value!]
+		err	 [red-object!]
+		saved [integer!]
 ][
 	assert count <= 5
 	arg1: null
@@ -190,7 +192,14 @@ fire: func [
 			unless zero? count [arg3: as red-value! list/5]
 		]
 	]
-	stack/throw-error error/create as red-value! list/1 as red-value! list/2 arg1 arg2 arg3
+	err: error/create as red-value! list/1 as red-value! list/2 arg1 arg2 arg3
+	if interpreter/trace? [
+		saved: system/thrown
+		system/thrown: 0
+		interpreter/fire-event interpreter/EVT_ERROR null null null as red-value! err
+		system/thrown: saved
+	]
+	stack/throw-error err
 ]
 
 throw-make: func [
@@ -746,6 +755,22 @@ words: context [
 	_load:			as red-word! 0
 	_error:			as red-word! 0
 	_comment:		as red-word! 0
+
+	;-- interpreter events
+	_init:			as red-word! 0
+	_exec:			as red-word! 0
+	_call:			as red-word! 0
+	_return:		as red-word! 0
+	_enter:			as red-word! 0
+	_exit:			as red-word! 0
+	_prolog:		as red-word! 0
+	_epilog:		as red-word! 0
+	_throw:			as red-word! 0
+	
+	_interp-cb:		as red-word! 0
+	_lexer-cb:		as red-word! 0
+	_parse-cb:		as red-word! 0
+	_compare-cb:	as red-word! 0
 	
 	errors: context [
 		_throw:		as red-word! 0
@@ -1004,6 +1029,22 @@ words: context [
 		_load:			word/load "load"
 		_error:			word/load "error"
 		_comment:		word/load "comment"
+
+		;-- interpreter events
+		_init:			word/load "init"
+		_exec:			word/load "exec"
+		_call:			word/load "call"
+		_return:		word/load "return"
+		_enter:			word/load "enter"
+		_exit:			word/load "exit"
+		_prolog:		word/load "prolog"
+		_epilog:		word/load "epilog"
+		_throw:			word/load "throw"
+		
+		_interp-cb:		word/load "<interp-callback>"
+		_lexer-cb:		word/load "<lexer-callback>"
+		_parse-cb:		word/load "<parse-callback>"
+		_compare-cb:	word/load "<compare-callback>"
 		
 		errors/throw:	 word/load "throw"
 		errors/note:	 word/load "note"

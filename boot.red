@@ -35,6 +35,7 @@ Red [
 	#include %environment/reactivity.red				;-- requires SET intrinsic
 	#include %environment/networking.red
 	#include %utils/preprocessor.r
+	#include %environment/tools.red
 
 	;-- temporary code --
 	#if not find [Windows macOS Linux] config/OS [

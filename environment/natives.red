@@ -172,6 +172,14 @@ do: make native! [[
 			arg "Args passed to a script (normally a string)"
 		/next "Do next expression only, return it, update block word"
 			position [word!] "Word updated with new block position"
+		/trace
+			callback [function! [
+				event	[word!]
+				code	[any-block!]
+				value 	[any-type!]
+				frame [pair!]			"current frame start/top positions"
+				return: [word! none!]
+			]]
 	]
 	#get-definition NAT_DO
 ]

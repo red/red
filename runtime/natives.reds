@@ -543,44 +543,66 @@ natives: context [
 		expand? [integer!]
 		args 	[integer!]
 		next	[integer!]
+		trace	[integer!]
 		return: [integer!]
 		/local
 			cframe [byte-ptr!]
 			arg	   [red-value!]
 			do-arg [red-value!]
+			fun	   [red-function!]
 			slot   [red-value!]
 			blk	   [red-block!]
 			job	   [red-value!]
 			pos	   [integer!]
+			thrown [integer!]
+			fun?   [logic!]
 	][
-		#typecheck [do expand? args next]
+		#typecheck [do expand? args next trace]
 		arg: stack/arguments
 		cframe: stack/get-ctop							;-- save the current call frame pointer
 		do-arg: stack/arguments + args
+		fun: 	as red-function! stack/arguments + trace
 		
 		if OPTION?(do-arg) [
 			copy-cell do-arg #get system/script/args
 		]
+		fun?: OPTION?(fun)
+		if fun? [
+			;if interpreter/trace-fun <> null [fire [TO_ERROR()...]]
+			interpreter/fun-locs: _function/count-locals fun/spec 0 no
+			interpreter/fun-evts: interpreter/decode-filter fun
+			copy-cell as red-value! fun as red-value! interpreter/trace-fun
+			interpreter/trace?: yes
+			interpreter/fire-init
+		]
 		if next > 0 [slot: _context/get as red-word! stack/arguments + next]
 		
 		assert system/thrown = 0
-		catch RED_THROWN_BREAK [
+		catch RED_THROWN_ERROR [
 			switch TYPE_OF(arg) [
 				TYPE_ANY_LIST [DO_EVAL_BLOCK]
 				TYPE_PATH  [
-					interpreter/eval-path arg arg arg + 1 no no no no
+					interpreter/eval-path arg arg arg + 1 null no no no no
 				]
 				TYPE_STRING [
 					lexer/scan-alt arg as red-string! arg -1 no yes yes no null null null
 					DO_EVAL_BLOCK
 				]
 				TYPE_URL 
-				TYPE_FILE  [#call [do-file as red-file! arg]]
+				TYPE_FILE  [#call [do-file as red-file! arg none-value]]
 				TYPE_ERROR [
 					stack/throw-error as red-object! arg
 				]
-				default [interpreter/eval-expression arg arg + 1 no no yes]
+				default [interpreter/eval-expression arg arg + 1 null no no yes]
 			]
+		]
+		if fun? [
+			thrown: system/thrown
+			system/thrown: 0
+			interpreter/fire-end
+			copy-cell none-value as red-value! interpreter/trace-fun
+			interpreter/trace?: no
+			system/thrown: thrown
 		]
 		switch system/thrown [
 			RED_THROWN_BREAK
@@ -594,8 +616,8 @@ natives: context [
 					system/thrown						;-- request an early exit from caller
 				]
 			]
-			0			[0]
-			default 	[re-throw 0]					;-- 0 to make compiler happy
+			0			[0]								;-- no exception case
+			default 	[re-throw 0]					;-- all other exceptions (0 to make compiler happy)
 		]
 	]
 	
@@ -611,7 +633,7 @@ natives: context [
 		
 		switch TYPE_OF(value) [
 			TYPE_ANY_PATH [
-				interpreter/eval-path value null null no any? <> -1 no case? <> -1
+				interpreter/eval-path value null null null no any? <> -1 no case? <> -1
 			]
 			TYPE_OBJECT [
 				object/reflect as red-object! value words/values
@@ -654,7 +676,7 @@ natives: context [
 			TYPE_ANY_PATH [
 				value: stack/push stack/arguments
 				copy-cell stack/arguments + 1 stack/arguments
-				interpreter/eval-path value null null yes yes no case? <> -1
+				interpreter/eval-path value null null null yes yes no case? <> -1
 			]
 			TYPE_OBJECT [
 				object/set-many as red-object! w value any? only? some?
@@ -942,7 +964,7 @@ natives: context [
 			][
 				stack/set-last arg
 			][
-				interpreter/eval-expression arg arg + 1 no yes no ;-- for non block! values
+				interpreter/eval-expression arg arg + 1 null no yes no ;-- for non block! values
 			]
 			if into? [either append? [block/append*][actions/insert* -1 0 -1]]
 		]
@@ -2092,7 +2114,8 @@ natives: context [
 		name   [integer!]
 	][
 		#typecheck [throw name]
-		if name = -1 [unset/push]						;-- fill this slot anyway for CATCH		
+		if interpreter/trace? [interpreter/fire-throw]
+		if name = -1 [unset/push]						;-- fill this slot anyway for CATCH
 		stack/throw-throw RED_THROWN_THROW
 	]
 	
@@ -2148,6 +2171,7 @@ natives: context [
 			system/thrown: 0
 			stack/set-last stack/get-top
 			stack/top: stack/arguments + 1
+			if interpreter/trace? [interpreter/fire-catch]
 		]
 	]
 	

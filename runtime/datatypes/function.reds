@@ -216,6 +216,7 @@ _function: context [
 	call: func [
 		fun	[red-function!]
 		ctx [node!]
+		ref [red-value!]
 		/local
 			s	   [series!]
 			native [red-native!]
@@ -227,7 +228,9 @@ _function: context [
 
 		native: as red-native! s/offset + 2
 		either zero? native/code [
-			interpreter/eval-function fun as red-block! s/offset
+			if interpreter/trace? [interpreter/fire-call ref fun]
+			interpreter/eval-function fun as red-block! s/offset ref
+			if interpreter/trace? [interpreter/fire-return ref fun]
 		][
 			fctx: GET_CTX(fun)
 			saved: fctx/values
@@ -979,8 +982,10 @@ _function: context [
 		field	[integer!]
 		return:	[red-block!]
 		/local
-			blk [red-block!]
-			s	[series!]
+			blk	 [red-block!]
+			word [red-word!]
+			tail [red-value!]
+			s	 [series!]
 	][
 		case [
 			field = words/spec [
@@ -994,7 +999,18 @@ _function: context [
 				stack/set-last s/offset
 			]
 			field = words/words [
-				--NOT_IMPLEMENTED--						;@@ build the words block from spec
+				blk: as red-block! stack/arguments		;-- overwrite the function slot on stack
+				blk/header: TYPE_BLOCK
+				blk/node: _hashtable/get-ctx-symbols GET_CTX(fun)
+				blk/head: 0
+				blk: block/clone blk no no
+				
+				word: as red-word! block/rs-head blk
+				tail: block/rs-tail blk
+				while [word < as red-word! tail][
+					word/ctx: fun/ctx
+					word: word + 1
+				]
 			]
 			true [
 				--NOT_IMPLEMENTED--						;@@ raise error

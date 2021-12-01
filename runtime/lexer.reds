@@ -482,7 +482,7 @@ lexer: context [
 		int: as red-integer! more/offset + 4
 		ctx: either TYPE_OF(int) = TYPE_INTEGER [as node! int/value][global-ctx]
 		
-		stack/mark-func words/_body	lex/fun-ptr/ctx
+		stack/mark-func words/_lexer-cb	lex/fun-ptr/ctx
 		evt: switch event [
 			EVT_PRESCAN	[words/_prescan]
 			EVT_SCAN	[words/_scan]
@@ -517,7 +517,7 @@ lexer: context [
 		either null? value [pair/push x + 1 y + 1][stack/push value] ;-- token
 
 		if lex/fun-locs > 0 [_function/init-locals 1 + lex/fun-locs] ;-- +1 for /local refinement
-		_function/call lex/fun-ptr ctx
+		_function/call lex/fun-ptr ctx as red-value! words/_lexer-cb
 
 		if ser/head <> ref [							;-- check if callback changed input offset
 			ref: ser/head - lex/in-series/head
