@@ -260,6 +260,7 @@ system/tools: context [
 		frame  [pair!]									;-- current frame start, top
 	][
 		[init end call return prolog epilog]			;-- only request those events
+		anon: [0]
 		
 		switch event [
 			prolog [									;-- entering a function!
@@ -271,6 +272,7 @@ system/tools: context [
 			]
 			call   [
 				if all [options/debug/types find options/debug/types type? :value][
+					if any-function? :ref [ref: append copy <anon> anon/1: anon/1 + 1]
 					either pos: find/only/skip profiling ref 3 [
 						pos/2: pos/2 + 1
 					][
@@ -292,20 +294,6 @@ system/tools: context [
 				clear profiling
 				clear fun-stk
 			]
-			end [
-				by: select [name 1 count 2 time 3] options/profile/sort-by
-				either by = 1 [
-					sort/skip/compare profiling 3 by	;-- sort in alphabetical order
-				][
-					sort/skip/reverse/compare profiling 3 by ;-- sort count/time in decreasing order
-				]
-				rank: 1
-				foreach [name cnt duration] profiling [
-					if unset? name [name: "<anonymous>"]
-					print [pad append copy "#" rank 4 pad name 16 #"|" pad cnt 10 #"|" pad duration 10]
-					rank: rank + 1
-				]
-			]
 		]
 	]
 	
@@ -317,7 +305,7 @@ system/tools: context [
 		]
 	]
 	
-	set 'profile func [
+	set 'profile function [
 		"Profile the argument code, counting calls and their cumulative duration, then print a report"
 		code [any-type!] "Code to profile"
 		/by
@@ -325,7 +313,22 @@ system/tools: context [
 	][
 		saved: values-of options/profile
 		options/profile/sort-by: any [cat 'count]
-		do-handler :code :profiler
+		
+		set/any 'res do-handler :code :profiler
+		print ["==" mold/part :res 80 lf]
+		
+		by: select [name 1 count 2 time 3] options/profile/sort-by
+		either by = 1 [
+			sort/skip/compare profiling 3 by			;-- sort in alphabetical order
+		][
+			sort/skip/reverse/compare profiling 3 by	;-- sort count/time in decreasing order
+		]
+		rank: 1
+		foreach [name cnt duration] profiling [			;-- generate report
+			if unset? name [name: "<anonymous>"]
+			print [pad append copy "#" rank 4 pad name 16 #"|" pad cnt 10 #"|" pad duration 10]
+			rank: rank + 1
+		]
 		set options/profile saved
 		()
 	]
