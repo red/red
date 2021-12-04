@@ -173,6 +173,8 @@ frame-index?: routine [return: [integer!]][
 
 collect-calls: routine [blk [block!]][stack/collect-calls blk]
 
+set-trace: routine [mode? [logic!]][if interpreter/tracing? [interpreter/trace?: mode?]]
+
 ;-- Temporary definition --
 
 read-clipboard: routine [

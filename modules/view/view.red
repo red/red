@@ -668,6 +668,7 @@ system/view: context [
 	]
 	
 	awake: function [event [event!] /with face /local result][	;@@ temporary until event:// is implemented
+		set-trace off
 		unless face [unless face: event/face [exit]]	;-- filter out unbound events
 		
 		unless with [									;-- protect following code from recursion
@@ -689,7 +690,8 @@ system/view: context [
 		if all [event/type = 'close :result <> 'continue][
 			result: pick [stop done] face/state/4		;-- face/state will be none after remove call
 			remove find head system/view/screens/1/pane face
-		]	
+		]
+		unless with [set-trace on]
 		:result
 	]
 	
@@ -741,7 +743,7 @@ do-actor: function ["Internal Use Only" face [object!] event [event! none!] type
 		act: get act
 	][
 		if debug-info? face [print ["calling actor:" name]]
-		
+
 		set/any 'result do-safe [do [act face event]]	;-- compiler can't call act, hence DO
 	]
 	:result
