@@ -125,6 +125,7 @@ interpreter: context [
 	
 	trace?:	    no
 	trace-fun:  as red-function! 0
+	tracing?:	no
 	fun-locs:	0
 	fun-evts:	0										;-- bitmask for encoding selected events
 	all-events:	1FFFFh									;-- bit-mask of all events
