@@ -4832,6 +4832,7 @@ red: context [
 		clear objects
 		obj-stack: to path! 'objects					;-- reset it to original value
 		clear paths-stack
+		clear locals-stack
 		clear output
 		clear sym-table
 		clear literals
