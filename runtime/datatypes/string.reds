@@ -1366,7 +1366,7 @@ string: context [
 			s2/tail: as red-value! (value2 + (num << (log-b unit)))
 		]
 
-		_function/call f global-ctx as red-value! words/_compare-cb	;FIXME: hardcoded origin context
+		_function/call f global-ctx as red-value! words/_compare-cb	CB_SORT ;FIXME: hardcoded origin context
 		stack/unwind
 		stack/pop 1
 

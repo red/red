@@ -568,12 +568,14 @@ natives: context [
 		]
 		fun?: OPTION?(fun)
 		if fun? [
-			;if interpreter/trace-fun <> null [fire [TO_ERROR()...]]
-			interpreter/fun-locs: _function/count-locals fun/spec 0 no
-			interpreter/fun-evts: interpreter/decode-filter fun
-			copy-cell as red-value! fun as red-value! interpreter/trace-fun
-			interpreter/trace?: yes
-			interpreter/fire-init
+			with [interpreter][
+				;if trace-fun <> null [fire [TO_ERROR()...]]
+				fun-locs: _function/count-locals fun/spec 0 no
+				fun-evts: decode-filter fun
+				copy-cell as red-value! fun as red-value! trace-fun
+				trace?: tracing?: yes
+				fire-init
+			]
 		]
 		if next > 0 [slot: _context/get as red-word! stack/arguments + next]
 		
@@ -602,6 +604,7 @@ natives: context [
 			interpreter/fire-end
 			copy-cell none-value as red-value! interpreter/trace-fun
 			interpreter/trace?: no
+			interpreter/tracing?: no
 			system/thrown: thrown
 		]
 		switch system/thrown [

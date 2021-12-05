@@ -214,23 +214,34 @@ _function: context [
 	]
 	
 	call: func [
-		fun	[red-function!]
-		ctx [node!]
-		ref [red-value!]
+		fun	  [red-function!]
+		ctx	  [node!]
+		ref	  [red-value!]
+		class [cb-class!]
 		/local
 			s	   [series!]
 			native [red-native!]
 			saved  [node!]
 			fctx   [red-context!]
-			call ocall
+			int	   [red-integer!]
+			prev?  [logic!]
+			call ocall									;@@ FIXME: avoid 64-bit stack slots, leads to GCing garbage
 	][
+		prev?: interpreter/trace?
+		if prev? [
+			int: as red-integer! #get system/state/callbacks/bits
+			assert TYPE_OF(int) = TYPE_INTEGER
+			if class and int/value = 0 [interpreter/trace?: no]	;-- disable tracing for unwanted internal callbacks
+		]
 		s: as series! fun/more/value
-
 		native: as red-native! s/offset + 2
 		either zero? native/code [
-			if interpreter/trace? [interpreter/fire-call ref fun]
-			interpreter/eval-function fun as red-block! s/offset ref
-			if interpreter/trace? [interpreter/fire-return ref fun]
+			with [interpreter][
+				if trace? [fire-call ref fun]
+				eval-function fun as red-block! s/offset ref
+				if trace? [fire-return ref fun]
+				trace?: prev?
+			]
 		][
 			fctx: GET_CTX(fun)
 			saved: fctx/values
@@ -247,6 +258,7 @@ _function: context [
 				]
 			]
 			fctx/values: saved
+			interpreter/trace?: prev?
 			
 			switch system/thrown [
 				RED_THROWN_ERROR

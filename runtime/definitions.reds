@@ -73,6 +73,16 @@ Red/System [
 	CONTEXT_OBJECT
 ]
 
+#enum cb-class! [							;-- internal callbacks classes used by _function/call
+	CB_INTERPRETER:	0
+	CB_LEXER:		1
+	CB_PARSE:		2
+	CB_SORT:		4
+	CB_OBJ_CHANGE:	8
+	CB_OBJ_DEEP:	16
+	CB_PORT:		32
+]
+
 #enum extract-type! [						;-- image! buffer encodings
 	EXTRACT_ALPHA
 	EXTRACT_RGB

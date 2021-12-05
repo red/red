@@ -250,7 +250,7 @@ interpreter: context [
 		if positive? fun-locs [_function/init-locals 1 + fun-locs]	;-- +1 for /local refinement
 
 		trace?: no
-		catch RED_THROWN_ERROR [_function/call trace-fun ctx as red-value! words/_interp-cb]
+		catch RED_THROWN_ERROR [_function/call trace-fun ctx as red-value! words/_interp-cb CB_INTERPRETER]
 		if system/thrown <> 0 [re-throw]
 		trace?: yes
 		
@@ -1025,7 +1025,7 @@ interpreter: context [
 				]
 				stack/mark-interp-func name
 				pc: eval-arguments origin pc end code path slot origin
-				_function/call as red-function! caller ctx pos
+				_function/call as red-function! caller ctx pos CB_INTERPRETER
 				either sub? [stack/unwind][stack/unwind-last]
 				#if debug? = yes [
 					if verbose > 0 [

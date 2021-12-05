@@ -114,7 +114,7 @@ error: context [
 		field: as red-integer! (object/get-values err) + field-stack
 		if TYPE_OF(field) = TYPE_INTEGER [
 			level: 1
-			int: as red-integer! #get system/state/trace
+			int: as red-integer! #get system/state/stack-trace
 			if all [TYPE_OF(int) = TYPE_INTEGER int/value > 0][level: int/value]
 			ptr: field/value
 			blk: as red-block! field
@@ -389,7 +389,7 @@ error: context [
 				part: part - 3
 			]
 		]
-		int: as red-integer! #get system/state/trace
+		int: as red-integer! #get system/state/stack-trace
 		if all [TYPE_OF(int) = TYPE_INTEGER int/value > 0][
 			value: base + field-stack
 			switch TYPE_OF(value) [

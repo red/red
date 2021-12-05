@@ -283,8 +283,24 @@ system: context [
 		interpreted?: func ["Return TRUE if called from the interpreter"][
 			#system [logic/box stack/eval? null no]
 		]
-		last-error: none
-		trace: 1										;-- 0: disabled
+		last-error:  none
+		stack-trace: 1										;-- 0: disabled
+		
+		callbacks: object [
+			lexer?: 	  no							;-- called by transcode/trace
+			parse?:		  no							;-- called by parse/trace
+			sort?:		  no							;-- called by sort/compare
+			change?:	  no							;-- called by object's on-change*
+			deep?:		  no							;-- called by object's on-deep-change*
+			port?:		  no							;-- called by port's action dispatcher
+			bits:		  0								;-- automatically set
+
+			on-change*: function [word old new][
+				unless integer? bits [set-quiet 'bits 0]	;-- prevents tampering with that field
+				idx: 1 << ((index? in self word) - 1)
+				set-quiet 'bits either new [bits or idx][bits and complement idx]
+			]
+		]
 	]
 	
 	modules: make block! 8

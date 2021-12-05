@@ -517,7 +517,7 @@ lexer: context [
 		either null? value [pair/push x + 1 y + 1][stack/push value] ;-- token
 
 		if lex/fun-locs > 0 [_function/init-locals 1 + lex/fun-locs] ;-- +1 for /local refinement
-		_function/call lex/fun-ptr ctx as red-value! words/_lexer-cb
+		_function/call lex/fun-ptr ctx as red-value! words/_lexer-cb CB_LEXER
 
 		if ser/head <> ref [							;-- check if callback changed input offset
 			ref: ser/head - lex/in-series/head

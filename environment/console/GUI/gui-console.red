@@ -265,8 +265,13 @@ input: function ["Wait for console user input" return: [string!]][ask ""]
 	red-print-gui: func [
 		str		[red-string!]
 		lf?		[logic!]
+		/local
+			t?  [logic!]
 	][
+		t?: interpreter/trace?
+		if t? [interpreter/trace?: no]
 		#call [gui-console-ctx/terminal/vprint str lf?]
+		interpreter/trace?: t?
 	]
 
 	rs-print-gui: func [

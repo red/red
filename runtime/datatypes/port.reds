@@ -36,7 +36,7 @@ port: context [
 		
 		count: _function/calc-arity null actor 0
 		if positive? count [_function/init-locals count]
-		_function/call actor actors/ctx as red-value! action
+		_function/call actor actors/ctx as red-value! action CB_PORT
 		stack/unwind-last
 	]
 	
