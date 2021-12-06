@@ -193,11 +193,13 @@ fire: func [
 		]
 	]
 	err: error/create as red-value! list/1 as red-value! list/2 arg1 arg2 arg3
-	if interpreter/trace? [
-		saved: system/thrown
-		system/thrown: 0
-		interpreter/fire-event interpreter/EVT_ERROR null null null as red-value! err
-		system/thrown: saved
+	with [interpreter][
+		if tracing? [
+			saved: system/thrown
+			system/thrown: 0
+			fire-event EVT_ERROR null null null as red-value! err
+			system/thrown: saved
+		]
 	]
 	stack/throw-error err
 ]
