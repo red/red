@@ -601,10 +601,11 @@ natives: context [
 		if fun? [
 			thrown: system/thrown
 			system/thrown: 0
-			interpreter/fire-end
-			copy-cell none-value as red-value! interpreter/trace-fun
-			interpreter/trace?: no
-			interpreter/tracing?: no
+			with [interpreter][
+				fire-end
+				copy-cell none-value as red-value! trace-fun
+				trace?: tracing?: no
+			]
 			system/thrown: thrown
 		]
 		switch system/thrown [
