@@ -36,7 +36,9 @@ system/tools: context [
 		]
 	]
 	
-	calc-max: func [used [integer!] return: [integer!]][system/console/size/x - used]
+	calc-max: func [used [integer!] return: [integer!]][
+		either system/console [system/console/size/x - used][72 - used]
+	]
 	
 	show-context: function [ctx [function! object!]][
 		foreach w words-of :ctx [
