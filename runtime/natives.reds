@@ -569,12 +569,13 @@ natives: context [
 		fun?: OPTION?(fun)
 		if fun? [
 			with [interpreter][
-				;if trace-fun <> null [fire [TO_ERROR()...]]
-				fun-locs: _function/count-locals fun/spec 0 no
-				fun-evts: decode-filter fun
-				copy-cell as red-value! fun as red-value! trace-fun
-				trace?: tracing?: yes
-				fire-init
+				either tracing? [fun?: no][
+					fun-locs: _function/count-locals fun/spec 0 no
+					fun-evts: decode-filter fun
+					copy-cell as red-value! fun as red-value! trace-fun
+					trace?: tracing?: yes
+					fire-init
+				]
 			]
 		]
 		if next > 0 [slot: _context/get as red-word! stack/arguments + next]
