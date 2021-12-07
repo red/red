@@ -225,10 +225,11 @@ _function: context [
 			fctx   [red-context!]
 			int	   [red-integer!]
 			prev?  [logic!]
+			allow? [logic!]
 			call ocall									;@@ FIXME: avoid 64-bit stack slots, leads to GCing garbage
 	][
 		prev?: interpreter/tracing?
-		if prev? [
+		if all [prev? class <> CB_INTERPRETER][
 			int: as red-integer! #get system/state/callbacks/bits
 			assert TYPE_OF(int) = TYPE_INTEGER
 			if class and int/value = 0 [interpreter/tracing?: no]	;-- disable tracing for unwanted internal callbacks
@@ -237,9 +238,10 @@ _function: context [
 		native: as red-native! s/offset + 2
 		either zero? native/code [
 			with [interpreter][
-				if tracing? [fire-call ref fun]
+				allow?: all [tracing? class <> CB_INTERPRETER] ;-- interpreter is already generating those events
+				if allow? [fire-call ref fun]
 				eval-function fun as red-block! s/offset ref
-				if tracing? [fire-return ref fun]
+				if allow? [fire-return ref fun]
 				tracing?: prev?
 			]
 		][
