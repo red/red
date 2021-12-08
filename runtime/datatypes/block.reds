@@ -922,6 +922,7 @@ block: context [
 				]
 				s/offset + b/head
 			]
+			if part >= s/tail [part: s/tail - 1]
 			part?: yes
 		]
 
