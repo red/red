@@ -58,8 +58,8 @@ redbin: context [
 		52454442494E								;-- REDBIN magic
 		02											;-- version
 		00											;-- placeholder for flags
-		00000000									;-- placeholder for length (bytes)
 		00000000									;-- placeholder for size (number of root records)
+		00000000									;-- placeholder for length (bytes)
 	}
 		
 	;-- Support --
