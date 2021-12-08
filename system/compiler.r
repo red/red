@@ -256,7 +256,6 @@ system-dialect: make-profilable context [
 		
 		calc-line: has [idx head-end prev p header][
 			header: head pc
-			unless pair? header/1 [return 1]			;-- dynamically injected block, no header!
 			idx: (index? pc) - header/1  				;-- calculate real pc position (not counting hidden header)
 			prev: 1
 
