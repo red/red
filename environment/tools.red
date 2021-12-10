@@ -62,7 +62,7 @@ system/tools: context [
 	]
 	
 	show-stack: function [][
-		unless empty? head expr-stk [prin lf]
+		prin either empty? head expr-stk ["^/-empty stack-"][lf]
 		indent: 0
 		foreach frame head expr-stk [
 			unless integer? frame [
@@ -137,8 +137,18 @@ system/tools: context [
 		/extern expr-stk hist-length
 		/local out pos len entry
 	][
+		store: [
+			either empty? expr-stk [
+				append/only expr-stk to-paren reduce [:value]
+			][
+				append/only last expr-stk :value
+			]
+		]
 		switch event [
-			fetch [switch :value [@stop [options/debug/active?: yes] @go [options/debug/active?: no]]]
+			fetch [
+				switch :value [@stop [options/debug/active?: yes] @go [options/debug/active?: no]]
+				if paren? expr-stk/1 [remove expr-stk]
+			]
 			enter [
 				unless empty? head expr-stk [
 					append expr-stk index? expr-stk
@@ -147,9 +157,11 @@ system/tools: context [
 			]
 			exit [
 				unless head? expr-stk [
+					if paren? expr-stk/1 [set/any 'value expr-stk/1/1]
 					idx: first pos: find/reverse tail expr-stk integer!
 					clear pos
 					expr-stk: at head expr-stk idx
+					do store
 				]
 			]
 			open [
@@ -159,15 +171,15 @@ system/tools: context [
 				either find [set-word! set-path!] type?/word :value [
 					append/only expr-stk reduce [:value]
 				][
-					unless empty? expr-stk [append/only last expr-stk :value]
+					do store
 				]
 			]
 			prolog [append/only fun-stk last expr-stk]
 			epilog [unless empty? fun-stk [take/last fun-stk]]
 			set 
 			return [
-				set/any 'entry take/last expr-stk
-				unless empty? expr-stk [append/only last expr-stk :value]
+				take/last expr-stk
+				do store
 			]
 			error [options/debug/active?: yes]			;-- forces debug console activation
 			init end  [
@@ -193,7 +205,7 @@ system/tools: context [
 				prin set-ref
 			]
 			limit: calc-max (length? out) + 1
-			print either any-function? :value [
+			print either all [any-function? :value not find [set return push] event][
 				prin mold/part/flat :ref limit
 				rejoin [" (" mold type? :value #")"]
 			][
