@@ -19,6 +19,25 @@ system/tools: context [
 	indent: 0
 	hist-length: none
 	
+	dbg-usage: next {
+	`help` or `?`: prints a list of debugger's commands.
+	`next` or `n` or just ENTER: evaluate next value.
+	`continue` or `c`: exit debugging console but continue evaluation.
+	`quit` or `q`: exit debugger and stop evaluation.
+	`stack` or `s`: display the current calls and expression stack.
+	`parents` or `p`: display the parents call stack.
+	`:word`: outputs the value of `word`. If it is a `function!`, outputs the local context.
+	`:a/b/c`: outputs the value of `a/b/c` path.
+	`watch <word1> <word2>...`: watch one or more words. `w` can be used as shortcut for `watch`.
+	`-watch <word1> <word2>...`: stop watching one or more words. `-w` can be used as shortcut for `-watch`.
+	`+stack`  or `+s`: outputs expression stack on each new event.
+	`-stack`  or `-s`: do not output expression stack on each new event.
+	`+locals` or `+l`: output local context for each entry in the callstack.
+	`-locals` or `-l`: do not output local context for each entry in the callstack.
+	`+indent` or `+i`: indent the output of the expression stack.
+	`-indent` or `-i`: do not indent the output of the expression stack.
+	}
+	
 	options: context [
 		debug: context [
 			active?:		no
@@ -55,6 +74,7 @@ system/tools: context [
 		]
 		foreach [w pos] reverse/skip list 2 [
 			if all [not unset? get/any w function? get/any w][
+				if :w = 'debug [exit]					;-- avoid showing debugger's own call stack
 				print ["Call:" w]
 				if options/debug/show-locals? [show-context get :w]
 			]
@@ -117,6 +137,7 @@ system/tools: context [
 									next n		[]
 									continue c  [options/debug/active?: no cmd: ""]
 									quit q		[halt]
+									help ?		[print dbg-usage]
 								]
 							]
 						]
