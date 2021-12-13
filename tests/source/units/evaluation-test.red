@@ -531,6 +531,56 @@ Red [
 		    epilog -1 "baz" "func [][ba" 1 
 		    return 1 "baz" "6" 2 
 		    exit 1 #[none] #[none] 1 
+		]
+
+	--test-- "trace-8"
+		b: [x y z]
+		i: 1
+		j: 2
+		clear logs
+		--assert 'x == do/trace [b/:i]		:logger
+		--assert 'x == do/trace [:b/:i]		:logger
+		--assert 'z == do/trace [b/(i + j)]	:logger
+		--assert 'A == do/trace [b/:i: 'A]	:logger
+		--assert 'A == b/1
+		new-line/all/skip logs yes 5
+		check-diff logs [
+		    init -1 #[none] #[none] 2 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] "b/:i" 0 
+		    push 1 #[none] "x" 0 
+		    exit 1 #[none] #[none] 0 
+		    end -1 #[none] #[none] 3 
+		    init -1 #[none] #[none] 2 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] ":b/:i" 0 
+		    push 1 #[none] "x" 0 
+		    exit 1 #[none] #[none] 0 
+		    end -1 #[none] #[none] 3 
+		    init -1 #[none] #[none] 2 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] "b/(i + j)" 0 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] "+" 0 
+		    open 0 #[none] "+" 0 
+		    fetch 0 #[none] "i" 0 
+		    push 1 #[none] "1" 0 
+		    fetch 2 #[none] "j" 1 
+		    push 3 #[none] "2" 1 
+		    call 3 "+" "" 2 
+		    return 3 "+" "3" 2 
+		    exit 3 #[none] #[none] 1 
+		    push 1 #[none] "z" 0 
+		    exit 1 #[none] #[none] 0 
+		    end -1 #[none] #[none] 3 
+		    init -1 #[none] #[none] 2 
+		    enter 0 #[none] #[none] 0
+		    fetch 0 #[none] "b/:i:" 0 
+		    push 0 #[none] "b/:i:" 0 
+		    fetch 1 #[none] "'A" 0 
+		    push 1 #[none] "A" 1 
+		    set 2 "b/:i:" "A" 1 
+		    exit 2 #[none] #[none] 1 
 		    end -1 #[none] #[none] 3
 		]
 

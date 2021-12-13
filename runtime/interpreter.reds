@@ -1195,13 +1195,13 @@ interpreter: context [
 				value: pc
 				pc: pc + 1
 				pc: eval-path value pc end code no no sub? no
-				if tracing? [fire-event EVT_PUSH code pc pc stack/get-top]
+				if tracing? [fire-event EVT_PUSH code pc pc stack/arguments]
 			]
 			TYPE_GET_PATH [
 				value: pc
 				pc: pc + 1
 				pc: eval-path value pc end code no yes sub? no
-				if tracing? [fire-event EVT_PUSH code pc pc stack/get-top]
+				if tracing? [fire-event EVT_PUSH code pc pc stack/arguments]
 			]
 			TYPE_LIT_PATH [
 				value: either sub? [stack/push pc][stack/set-last pc]
