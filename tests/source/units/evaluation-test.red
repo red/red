@@ -148,6 +148,394 @@ Red [
 
 ===end-group===
 
+===start-group=== "do trace"
+
+	logs: make block! 100
+
+	logger: function [
+		event  [word!]
+		code   [block! paren! none!]
+		offset [integer!]
+		value  [any-type!]
+		ref	   [any-type!]
+		frame  [pair!]									;-- current frame start, top
+	][
+		append logs reduce [
+			event
+			offset
+			all [:ref mold/part/flat :ref 10]
+			all [:value mold/part/flat :value 10]
+			frame/y - frame/x
+		]
+	]
+
+	check-diff: function [out [block!] expected [block!]][
+		repeat i length? expected [
+			if out/:i <> expected/:i [
+				print ["** diff failed at:" mold/part at out i 40]
+				print ["** expected :" mold/part at expected i 40]
+				--assert false
+				exit
+			]
+		]
+		--assert true
+	]
+
+	--test-- "trace-1"
+		clear logs
+		--assert unset? do/trace [] :logger
+		new-line/all/skip logs yes 5
+		check-diff logs [
+		    init -1 #[none] #[none] 2 
+		    enter 0 #[none] #[none] 0 
+		    exit 0 #[none] #[none] 0 
+		    end -1 #[none] #[none] 3
+		]
+
+	--test-- "trace-2"
+		clear logs
+		--assert 123 = do/trace [123] :logger
+		new-line/all/skip logs yes 5
+		--assert logs == [
+		    init -1 #[none] #[none] 2 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] "123" 0 
+		    push 1 #[none] "123" 0 
+		    exit 1 #[none] #[none] 0 
+		    end -1 #[none] #[none] 3
+		]
+
+	--test-- "trace-3"
+		clear logs
+		--assert 6 = do/trace [1 + length? mold 'hello] :logger
+		new-line/all/skip logs yes 5
+		--assert logs == [
+		    init -1 #[none] #[none] 2 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] "+" 0 
+		    open 0 #[none] "+" 0 
+		    fetch 0 #[none] "1" 0 
+		    push 1 #[none] "1" 1 
+		    fetch 2 #[none] "length?" 1 
+		    open 3 #[none] "length?" 1 
+		    fetch 3 #[none] "mold" 0 
+		    open 4 #[none] "mold" 0 
+		    fetch 4 #[none] "'hello" 0 
+		    push 4 #[none] "hello" 1 
+		    call 5 "mold" "make actio" 1 
+		    return 5 "mold" {"hello"} 2 
+		    call 5 "length?" "make actio" 1 
+		    return 5 "length?" "5" 3 
+		    call 5 "+" "" 2 
+		    return 5 "+" "6" 2 
+		    exit 5 #[none] #[none] 1 
+		    end -1 #[none] #[none] 3
+		]
+
+	--test-- "trace-4"
+		clear logs
+		--assert 99 = do/trace [77 88 99] :logger
+		new-line/all/skip logs yes 5
+		--assert logs == [
+		    init -1 #[none] #[none] 2 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] "77" 0 
+		    push 1 #[none] "77" 0 
+		    fetch 1 #[none] "88" 0 
+		    push 2 #[none] "88" 0 
+		    fetch 2 #[none] "99" 0 
+		    push 3 #[none] "99" 0 
+		    exit 3 #[none] #[none] 0 
+		    end -1 #[none] #[none] 3
+		]		
+
+	--test-- "trace-5"
+		clear logs
+		--assert 'EVEN = do/trace [a: 4 either result: odd? a [print 'ODD]['EVEN]] :logger
+		new-line/all/skip logs yes 5
+		--assert logs == [
+		    init -1 #[none] #[none] 2 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] "a:" 0 
+		    push 0 #[none] "a:" 1 
+		    fetch 1 #[none] "4" 1 
+		    push 2 #[none] "4" 2 
+		    set 2 "a:" "4" 2 
+		    fetch 2 #[none] "either" 0 
+		    open 3 #[none] "either" 0 
+		    fetch 3 #[none] "result:" 0 
+		    push 3 #[none] "result:" 1 
+		    fetch 4 #[none] "odd?" 1 
+		    open 5 #[none] "odd?" 1 
+		    fetch 5 #[none] "a" 0 
+		    push 6 #[none] "4" 0 
+		    call 6 "odd?" "make actio" 1 
+		    return 6 "odd?" #[none] 3 
+		    set 6 "result:" #[none] 2 
+		    fetch 6 #[none] "[print 'OD" 1 
+		    push 7 #[none] "[print 'OD" 2 
+		    fetch 7 #[none] "['EVEN]" 2 
+		    push 8 #[none] "['EVEN]" 3 
+		    call 8 "either" "make nativ" 3 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] "'EVEN" 0 
+		    push 0 #[none] "EVEN" 0 
+		    exit 1 #[none] #[none] 0 
+		    return 8 "either" "EVEN" 2 
+		    exit 8 #[none] #[none] 1 
+		    end -1 #[none] #[none] 3
+		]
+
+	--test-- "trace-6"
+		do [					;-- only interpreted functions will generate events
+			fibo-tr6: func [n [integer!] return: [integer!]][
+				either n < 1 [0][either n < 2 [1][(fibo-tr6 n - 2) + (fibo-tr6 n - 1)]]
+			]
+		]
+		clear logs
+		--assert 1 = do/trace [fibo-tr6 2] :logger
+		new-line/all/skip logs yes 5
+		check-diff logs [
+		    init -1 #[none] #[none] 2 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] "fibo-tr6" 0 
+		    open 1 #[none] "fibo-tr6" 0 
+		    fetch 1 #[none] "2" 0 
+		    push 2 #[none] "2" 1 
+		    call 2 "fibo-tr6" "func [n [i" 1 
+		    prolog -1 "fibo-tr6" "func [n [i" 1 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] "either" 0 
+		    open 1 #[none] "either" 0 
+		    fetch 1 #[none] "<" 0 
+		    open 1 #[none] "<" 0 
+		    fetch 1 #[none] "n" 0 
+		    push 2 #[none] "2" 0 
+		    fetch 3 #[none] "1" 1 
+		    push 4 #[none] "1" 2 
+		    call 4 "<" "" 2 
+		    return 4 "<" #[none] 2 
+		    fetch 4 #[none] "[0]" 1 
+		    push 5 #[none] "[0]" 2 
+		    fetch 5 #[none] "[either n " 2 
+		    push 6 #[none] "[either n " 3 
+		    call 6 "either" "make nativ" 3 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] "either" 0 
+		    open 1 #[none] "either" 0 
+		    fetch 1 #[none] "<" 0 
+		    open 1 #[none] "<" 0 
+		    fetch 1 #[none] "n" 0 
+		    push 2 #[none] "2" 0 
+		    fetch 3 #[none] "2" 1 
+		    push 4 #[none] "2" 2 
+		    call 4 "<" "" 2 
+		    return 4 "<" #[none] 2 
+		    fetch 4 #[none] "[1]" 1 
+		    push 5 #[none] "[1]" 2 
+		    fetch 5 #[none] "[(fibo-tr6" 2 
+		    push 6 #[none] "[(fibo-tr6" 3 
+		    call 6 "either" "make nativ" 3 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] "+" 0 
+		    open 0 #[none] "+" 0 
+		    fetch 0 #[none] "(fibo-tr6 " 0 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] "fibo-tr6" 0 
+		    open 1 #[none] "fibo-tr6" 0 
+		    fetch 1 #[none] "-" 0 
+		    open 1 #[none] "-" 0 
+		    fetch 1 #[none] "n" 0 
+		    push 2 #[none] "2" 0 
+		    fetch 3 #[none] "2" 1 
+		    push 4 #[none] "2" 2 
+		    call 4 "-" "" 2 
+		    return 4 "-" "0" 2 
+		    call 4 "fibo-tr6" "func [n [i" 1 
+		    prolog -1 "fibo-tr6" "func [n [i" 1 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] "either" 0 
+		    open 1 #[none] "either" 0 
+		    fetch 1 #[none] "<" 0 
+		    open 1 #[none] "<" 0 
+		    fetch 1 #[none] "n" 0 
+		    push 2 #[none] "0" 0 
+		    fetch 3 #[none] "1" 1 
+		    push 4 #[none] "1" 2 
+		    call 4 "<" "" 2 
+		    return 4 "<" "true" 2 
+		    fetch 4 #[none] "[0]" 1 
+		    push 5 #[none] "[0]" 2 
+		    fetch 5 #[none] "[either n " 2 
+		    push 6 #[none] "[either n " 3 
+		    call 6 "either" "make nativ" 3 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] "0" 0 
+		    push 1 #[none] "0" 0 
+		    exit 1 #[none] #[none] 0 
+		    return 6 "either" "0" 2 
+		    exit 6 #[none] #[none] 1 
+		    epilog -1 "fibo-tr6" "func [n [i" 2 
+		    return 4 "fibo-tr6" "0" 2 
+		    exit 4 #[none] #[none] 1 
+		    fetch 2 #[none] "(fibo-tr6 " 1 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] "fibo-tr6" 0 
+		    open 1 #[none] "fibo-tr6" 0 
+		    fetch 1 #[none] "-" 0 
+		    open 1 #[none] "-" 0 
+		    fetch 1 #[none] "n" 0 
+		    push 2 #[none] "2" 0 
+		    fetch 3 #[none] "1" 1 
+		    push 4 #[none] "1" 2 
+		    call 4 "-" "" 2 
+		    return 4 "-" "1" 2 
+		    call 4 "fibo-tr6" "func [n [i" 1 
+		    prolog -1 "fibo-tr6" "func [n [i" 1 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] "either" 0 
+		    open 1 #[none] "either" 0 
+		    fetch 1 #[none] "<" 0 
+		    open 1 #[none] "<" 0 
+		    fetch 1 #[none] "n" 0 
+		    push 2 #[none] "1" 0 
+		    fetch 3 #[none] "1" 1 
+		    push 4 #[none] "1" 2 
+		    call 4 "<" "" 2 
+		    return 4 "<" #[none] 2 
+		    fetch 4 #[none] "[0]" 1 
+		    push 5 #[none] "[0]" 2 
+		    fetch 5 #[none] "[either n " 2 
+		    push 6 #[none] "[either n " 3 
+		    call 6 "either" "make nativ" 3 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] "either" 0 
+		    open 1 #[none] "either" 0 
+		    fetch 1 #[none] "<" 0 
+		    open 1 #[none] "<" 0 
+		    fetch 1 #[none] "n" 0 
+		    push 2 #[none] "1" 0 
+		    fetch 3 #[none] "2" 1 
+		    push 4 #[none] "2" 2 
+		    call 4 "<" "" 2 
+		    return 4 "<" "true" 2 
+		    fetch 4 #[none] "[1]" 1 
+		    push 5 #[none] "[1]" 2 
+		    fetch 5 #[none] "[(fibo-tr6" 2 
+		    push 6 #[none] "[(fibo-tr6" 3 
+		    call 6 "either" "make nativ" 3 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] "1" 0 
+		    push 1 #[none] "1" 0 
+		    exit 1 #[none] #[none] 0 
+		    return 6 "either" "1" 2 
+		    exit 6 #[none] #[none] 1 
+		    return 6 "either" "1" 2 
+		    exit 6 #[none] #[none] 1 
+		    epilog -1 "fibo-tr6" "func [n [i" 2 
+		    return 4 "fibo-tr6" "1" 2 
+		    exit 4 #[none] #[none] 1 
+		    call 3 "+" "" 2 
+		    return 3 "+" "1" 2 
+		    exit 3 #[none] #[none] 1 
+		    return 6 "either" "1" 2 
+		    exit 6 #[none] #[none] 1 
+		    return 6 "either" "1" 2 
+		    exit 6 #[none] #[none] 1 
+		    epilog -1 "fibo-tr6" "func [n [i" 2 
+		    return 2 "fibo-tr6" "1" 2 
+		    exit 2 #[none] #[none] 1 
+		    end -1 #[none] #[none] 3
+		]
+
+	--test-- "trace-7"
+		do [					;-- only interpreted functions will generate events
+			foo: function [a [integer!]][either result: odd? a ["ODD"]["EVEN"] result]
+			bar: function [s [string!]][(length? s) + make integer! foo 1]
+			baz: function [][bar "hello"]
+		]
+		clear logs
+		--assert 6 = do/trace [baz] :logger
+		new-line/all/skip logs yes 5
+		check-diff logs [
+		    init -1 #[none] #[none] 2 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] "baz" 0 
+		    open 1 #[none] "baz" 0 
+		    call 1 "baz" "func [][ba" 0 
+		    prolog -1 "baz" "func [][ba" 0 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] "bar" 0 
+		    open 1 #[none] "bar" 0 
+		    fetch 1 #[none] {"hello"} 0 
+		    push 2 #[none] {"hello"} 1 
+		    call 2 "bar" "func [s [s" 1 
+		    prolog -1 "bar" "func [s [s" 1 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] "+" 0 
+		    open 0 #[none] "+" 0 
+		    fetch 0 #[none] "(length? s" 0 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] "length?" 0 
+		    open 1 #[none] "length?" 0 
+		    fetch 1 #[none] "s" 0 
+		    push 2 #[none] {"hello"} 0 
+		    call 2 "length?" "make actio" 1 
+		    return 2 "length?" "5" 2 
+		    exit 2 #[none] #[none] 1 
+		    fetch 2 #[none] "make" 1 
+		    open 3 #[none] "make" 1 
+		    fetch 3 #[none] "integer!" 0 
+		    push 4 #[none] "integer!" 0 
+		    fetch 4 #[none] "foo" 1 
+		    open 5 #[none] "foo" 1 
+		    fetch 5 #[none] "1" 0 
+		    push 6 #[none] "1" 1 
+		    call 6 "foo" "func [a [i" 3 
+		    prolog -1 "foo" "func [a [i" 3 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] "either" 0 
+		    open 1 #[none] "either" 0 
+		    fetch 1 #[none] "result:" 0 
+		    push 1 #[none] "result:" 1 
+		    fetch 2 #[none] "odd?" 1 
+		    open 3 #[none] "odd?" 1 
+		    fetch 3 #[none] "a" 0 
+		    push 4 #[none] "1" 0 
+		    call 4 "odd?" "make actio" 1 
+		    return 4 "odd?" "true" 3 
+		    set 4 "result:" "true" 2 
+		    fetch 4 #[none] {["ODD"]} 1 
+		    push 5 #[none] {["ODD"]} 2 
+		    fetch 5 #[none] {["EVEN"]} 2 
+		    push 6 #[none] {["EVEN"]} 3 
+		    call 6 "either" "make nativ" 3 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] {"ODD"} 0 
+		    push 1 #[none] {"ODD"} 0 
+		    exit 1 #[none] #[none] 0 
+		    return 6 "either" {"ODD"} 2 
+		    fetch 6 #[none] "result" 0 
+		    push 7 #[none] "true" 0 
+		    exit 7 #[none] #[none] 0 
+		    epilog -1 "foo" "func [a [i" 4 
+		    return 6 "foo" "true" 3 
+		    call 6 "make" "make actio" 2 
+		    return 6 "make" "1" 3 
+		    call 6 "+" "" 2 
+		    return 6 "+" "6" 2 
+		    exit 6 #[none] #[none] 1 
+		    epilog -1 "bar" "func [s [s" 2 
+		    return 2 "bar" "6" 2 
+		    exit 2 #[none] #[none] 1 
+		    epilog -1 "baz" "func [][ba" 1 
+		    return 1 "baz" "6" 2 
+		    exit 1 #[none] #[none] 1 
+		    end -1 #[none] #[none] 3
+		]
+
+===end-group===
+
 ===start-group=== "reduce"
 
 	--test-- "reduce-1"
