@@ -156,7 +156,6 @@ system/tools: context [
 		ref	   [any-type!]
 		frame  [pair!]									;-- current frame start, top
 		/extern expr-stk hist-length
-		/local out pos len entry
 	][
 		store: [
 			either empty? expr-stk [
@@ -369,11 +368,21 @@ system/tools: context [
 	]
 	
 	set 'trace function [
-		"Runs argument code and prints an evaluation trace"
-		code [any-type!] "Code to trace"
+		"Runs argument code and prints an evaluation trace; also turns on/off tracing"
+		code [any-type!] "Code to trace or tracing mode (logic!)"
 		/raw			 "Switch to raw interpreter events tracing"
 	][
-		do-handler :code either raw [:dumper][:tracer]
+		either logic? :code [
+			#system [
+				use [bool [red-logic!]][
+					bool: as red-logic! ~code
+					assert TYPE_OF(bool) = TYPE_LOGIC
+					interpreter/tracing?: bool/value and interpreter/trace?
+				]
+			]
+		][
+			do-handler :code either raw [:dumper][:tracer]
+		]
 	]
 	
 	set 'debug func [
