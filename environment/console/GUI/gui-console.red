@@ -243,6 +243,8 @@ ask: function [
 		blk  [block!]
 	return:  [string!]
 ][
+	t?: tracing?
+	trace off
 	if all [
 		gui-console-ctx/console/state
 		not gui-console-ctx/win/visible?
@@ -254,6 +256,7 @@ ask: function [
 	line: gui-console-ctx/terminal/ask question blk hide
 	gui-console-ctx/caret/enabled?: no
 	unless gui-console-ctx/console/state [line: "quit"]
+	trace t?
 	line
 ]
 
@@ -268,10 +271,10 @@ input: function ["Wait for console user input" return: [string!]][ask ""]
 		/local
 			t?  [logic!]
 	][
-		t?: interpreter/trace?
-		if t? [interpreter/trace?: no]
+		t?: interpreter/tracing?
+		if t? [interpreter/tracing?: no]
 		#call [gui-console-ctx/terminal/vprint str lf?]
-		interpreter/trace?: t?
+		interpreter/tracing?: t?
 	]
 
 	rs-print-gui: func [
