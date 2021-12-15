@@ -1343,7 +1343,7 @@ red: context [
 		
 		unless parse spec [
 			opt string!
-			opt [pos: block! (flags: decode-attributes pos)]
+			opt [pos: block! (flags: decode-attributes pos) opt string!]
 			any [
 				pos: /local (loc?: yes append symbols 'local) [
 					any [
@@ -1382,6 +1382,33 @@ red: context [
 			]
 		]
 		reduce [symbols locals flags]
+	]
+	
+	make-attributs: func [spec [block!] /prolog locals /epilog /local flags trace? no-trace? out][
+		unless all [
+			any [
+				block? flags: spec/1
+				block? flags: spec/2
+			]
+			any [
+				trace?:    find flags 'trace
+				no-trace?: find flags 'no-trace
+			]
+		][return ()]
+		
+		out: copy []
+		either prolog [
+			insert find/tail locals 'saved 'prev
+			append out [
+				prev: interpreter/tracing?
+			]
+			if trace? 	 [append out [interpreter/tracing?: interpreter/trace?]]
+			if no-trace? [append out [interpreter/tracing?: no]]
+		][
+			append out [interpreter/tracing?: prev]
+		]
+		new-line back back tail out yes
+		out
 	]
 	
 	make-refs-table: func [spec [block!] /local mark pos arity arg-rule list ref args][
@@ -2612,11 +2639,12 @@ red: context [
 	
 	comp-func-body: func [
 		name [word!] spec [block!] body [block!] symbols [block!] locals-nb [integer!]
-		/local init locals blk args?
+		/local init locals blk args? tracing
 	][
 		push-locals copy symbols						;-- prepare compiled spec block
 		forall symbols [symbols/1: decorate-symbol/no-alias symbols/1]
 		locals: append copy [/local ctx saved] symbols
+		set/any 'tracing make-attributs/prolog spec locals
 		blk: either container-obj? [head insert copy locals [octx [node!]]][locals]
 		emit reduce [to set-word! decorate-func/strict name 'func blk]
 		insert-lf -3
@@ -2631,6 +2659,7 @@ red: context [
 			ctx: TO_CTX(to paren! last ctx-stack)
 			saved: ctx/values
 			ctx/values: as node! stack/arguments
+			(get/any 'tracing)
 		]
 		new-line skip tail init -4 on
 		args?: yes
@@ -2668,7 +2697,8 @@ red: context [
 		;-- Function's epilog --
 		append last output compose [
 			stack/unwind-last							;-- closing body stack frame, and propagating last value
-			ctx/values: saved			;-- restore context values pointer
+			ctx/values: saved							;-- restore context values pointer
+			(make-attributs/epilog spec)
 		]
 		new-line skip tail last output -4 yes
 		
