@@ -584,6 +584,65 @@ Red [
 		    end -1 #[none] #[none] 3
 		]
 
+	--test-- "trace-9"
+		do [foo-tr9: func [[trace]][1 + 2]]
+		clear logs
+		--assert 17 == do/trace [trace off 4 + 5 foo-tr9 8 + 9]	:logger
+		new-line/all/skip logs yes 5
+		check-diff logs [
+		    init -1 #[none] #[none] 2 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] "trace" 0 
+		    open 1 #[none] "trace" 0 
+		    fetch 1 #[none] "off" 0 
+		    push 2 #[none] #[none] 0 
+		    call 2 "trace" "func [{Run" 4 
+		    prolog -1 "foo-tr9" "func [[tra" 0 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] "+" 0 
+		    open 0 #[none] "+" 0 
+		    fetch 0 #[none] "1" 0 
+		    push 1 #[none] "1" 1 
+		    fetch 2 #[none] "2" 1 
+		    push 3 #[none] "2" 2 
+		    call 3 "+" "" 2 
+		    return 3 "+" "3" 2 
+		    exit 3 #[none] #[none] 1 
+		    epilog -1 "foo-tr9" "func [[tra" 1
+    	]
+
+	--test-- "trace-10"
+		do [foo-tr10: func [[no-trace]][1 + 2]]
+		clear logs
+		--assert 15 == do/trace [4 + 5 foo-tr10 7 + 8] :logger
+		new-line/all/skip logs yes 5
+		check-diff logs [
+		    init -1 #[none] #[none] 2 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] "+" 0 
+		    open 0 #[none] "+" 0 
+		    fetch 0 #[none] "4" 0 
+		    push 1 #[none] "4" 1 
+		    fetch 2 #[none] "5" 1 
+		    push 3 #[none] "5" 2 
+		    call 3 "+" "" 2 
+		    return 3 "+" "9" 2 
+		    fetch 3 #[none] "foo-tr10" 0 
+		    open 4 #[none] "foo-tr10" 0 
+		    call 4 "foo-tr10" "func [[no-" 0 
+		    return 4 "foo-tr10" "3" 2 
+		    fetch 4 #[none] "+" 0 
+		    open 4 #[none] "+" 0 
+		    fetch 4 #[none] "7" 0 
+		    push 5 #[none] "7" 1 
+		    fetch 6 #[none] "8" 1 
+		    push 7 #[none] "8" 2 
+		    call 7 "+" "" 2 
+		    return 7 "+" "15" 2 
+		    exit 7 #[none] #[none] 1 
+		    end -1 #[none] #[none] 3
+    	]
+
 ===end-group===
 
 ===start-group=== "reduce"

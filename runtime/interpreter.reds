@@ -336,17 +336,22 @@ interpreter: context [
 		body [red-block!]
 		ref  [red-value!]								;-- referent word! or path!
 		/local
-			ctx	   [red-context!]
-			saved  [node!]
-			thrown [integer!]
-			prev   [logic!]
+			ctx		 [red-context!]
+			saved	 [node!]
+			thrown	 [integer!]
+			prev	 [logic!]
+			force?	 [logic!]
+			prevent? [logic!]
 	][
 		ctx: GET_CTX(fun)
 		saved: ctx/values
 		ctx/values: as node! stack/arguments
 		stack/set-in-func-flag yes
-		prev: tracing? 
-		if fun/header and flag-force-trace <> 0 [tracing?: trace?] ;-- force tracing only if trace mode enabled
+		prev: tracing?
+		force?:   fun/header and flag-force-trace <> 0
+		prevent?: fun/header and flag-no-trace <> 0
+		if force?   [tracing?: trace?]					;-- force tracing only if trace mode enabled
+		if prevent? [tracing?: no]					;-- force tracing only if trace mode enabled
 		
 		if tracing? [
 			catch RED_THROWN_ERROR [fire-event EVT_PROLOG body null ref as red-value! fun]
@@ -367,7 +372,7 @@ interpreter: context [
 			fire-event EVT_EPILOG body null ref as red-value! fun
 			system/thrown: thrown
 		]
-		if fun/header and flag-force-trace <> 0 [tracing?: prev]
+		if any [force? prevent?][tracing?: prev]
 		stack/set-in-func-flag no
 		ctx/values: saved
 		switch system/thrown [
