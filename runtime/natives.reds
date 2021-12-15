@@ -430,15 +430,16 @@ natives: context [
 		stack/unwind-last
 	]
 	
-	func*: func [check? [logic!]][
+	func*: func [check? [logic!] /local flags [integer!]][
 		#typecheck func
-		_function/validate as red-block! stack/arguments
+		flags: _function/validate as red-block! stack/arguments
 		_function/push 
 			as red-block! stack/arguments
 			as red-block! stack/arguments + 1
 			null
 			0
 			null
+			flags
 		stack/set-last stack/get-top
 	]
 	
@@ -2119,7 +2120,7 @@ natives: context [
 		name   [integer!]
 	][
 		#typecheck [throw name]
-		if interpreter/trace? [interpreter/fire-throw]
+		if interpreter/tracing? [interpreter/fire-throw]
 		if name = -1 [unset/push]						;-- fill this slot anyway for CATCH
 		stack/throw-throw RED_THROWN_THROW
 	]
@@ -2176,7 +2177,7 @@ natives: context [
 			system/thrown: 0
 			stack/set-last stack/get-top
 			stack/top: stack/arguments + 1
-			if interpreter/trace? [interpreter/fire-catch]
+			if interpreter/tracing? [interpreter/fire-catch]
 		]
 	]
 	

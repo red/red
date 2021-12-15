@@ -123,8 +123,8 @@ interpreter: context [
 		;EVT_SET_PATH:		00010000h
 	]
 	
-	trace?:		no										;-- currently enabled/disabled event generation
-	tracing?:	no										;-- yes: event mode active (only set by do/trace)
+	trace?:		no										;-- yes: event mode active (only set by do/trace)
+	tracing?:	no										;-- currently enabled/disabled event generation
 	trace-fun:	as red-function! 0						;-- event handler reference (on stack)
 	fun-locs:	0										;-- event handler locals count
 	fun-evts:	0										;-- bitmask for encoding selected events
@@ -336,14 +336,18 @@ interpreter: context [
 		body [red-block!]
 		ref  [red-value!]								;-- referent word! or path!
 		/local
-			ctx	  [red-context!]
-			saved [node!]
+			ctx	   [red-context!]
+			saved  [node!]
 			thrown [integer!]
+			prev   [logic!]
 	][
 		ctx: GET_CTX(fun)
 		saved: ctx/values
 		ctx/values: as node! stack/arguments
 		stack/set-in-func-flag yes
+		prev: tracing? 
+		if fun/header and flag-force-trace <> 0 [tracing?: trace?] ;-- force tracing only if trace mode enabled
+		
 		if tracing? [
 			catch RED_THROWN_ERROR [fire-event EVT_PROLOG body null ref as red-value! fun]
 			if system/thrown >= RED_THROWN_THROW [
@@ -363,6 +367,7 @@ interpreter: context [
 			fire-event EVT_EPILOG body null ref as red-value! fun
 			system/thrown: thrown
 		]
+		if fun/header and flag-force-trace <> 0 [tracing?: prev]
 		stack/set-in-func-flag no
 		ctx/values: saved
 		switch system/thrown [

@@ -37,6 +37,8 @@ Red/System [
 #define flag-native-op		00010000h		;-- operator is made from a native! function
 #define flag-extern-code	00008000h		;-- routine's body is from FFI
 #define flag-word-dirty		00002000h		;-- word flag indicating if value has been modified
+#define flag-force-trace	00000400h		;-- tracing mode is forced (function attribut)
+#define flag-no-trace		00000200h		;-- tracing mode is disabled (function attribut)
 
 #define flag-new-line		40000000h		;-- if set, indicates that a new-line preceeds the value
 #define flag-nl-mask		BFFFFFFFh		;-- mask for new-line flag

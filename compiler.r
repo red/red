@@ -1206,6 +1206,19 @@ red: context [
 			entry
 		]
 	]
+
+	decode-attributes: func [spec [block!] /local do-error flags][
+		do-error: [throw-error ["invalid function spec block:" mold pos]]
+		flags: 0
+		foreach attrib spec/1 [
+			unless word? attrib [do-error]
+			flags: switch/default attrib [				;-- keep those flags synced with %runtime/definitions.reds
+				trace	 [flags or to-integer #{00000400}]
+				no-trace [flags or to-integer #{00000200}]
+			][do-error]
+		]
+		flags
+	]
 	
 	check-invalid-exit: func [name [word!]][
 		if empty? locals-stack [
@@ -1322,13 +1335,15 @@ red: context [
 		]
 	]
 	
-	check-spec: func [spec [block!] /local symbols word pos stop locals return? loc?][
+	check-spec: func [spec [block!] /local symbols word pos stop locals return? loc? flags][
 		symbols: make block! length? spec
 		locals:  0
-		loc?: no
+		flags:	 0
+		loc?: 	 no
 		
 		unless parse spec [
 			opt string!
+			opt [pos: block! (flags: decode-attributes pos)]
 			any [
 				pos: /local (loc?: yes append symbols 'local) [
 					any [
@@ -1366,7 +1381,7 @@ red: context [
 				throw-error ["duplicate word definition:" s/1]
 			]
 		]
-		reduce [symbols locals]
+		reduce [symbols locals flags]
 	]
 	
 	make-refs-table: func [spec [block!] /local mark pos arity arg-rule list ref args][
@@ -2753,7 +2768,7 @@ red: context [
 		/local
 			name word spec body symbols locals-nb spec-idx body-idx ctx pos octx
 			src-name original global? path obj fpath shadow defer ctx-idx body-code
-			alter entry mark
+			alter entry mark flags
 	][
 		unless all [block? pc/2 any [does block? pc/3]][ ;-- fallback if no literal spec & body blocks
 			word: pc/1
@@ -2806,7 +2821,7 @@ red: context [
 			does	[body: spec spec: make block! 1 pc: back pc]
 			has		[spec: head insert copy spec /local]
 		]
-		set [symbols locals-nb] check-spec spec
+		set [symbols locals-nb flags] check-spec spec
 		add-function name spec
 		if pos: find spec return-def [register-user-type/store name pos/2]
 
@@ -2844,7 +2859,7 @@ red: context [
 		defer: compose [
 			_function/push get-root (spec-idx) (body-code) (ctx)
 			as integer! (to get-word! decorate-func/strict name)
-			(octx)
+			(octx) (flags)
 		]
 		new-line defer yes
 		new-line skip tail defer -4 no

@@ -633,6 +633,9 @@ words: context [
 	system-global:	-1
 	stack:			-1
 	
+	trace:			-1
+	no-trace:		-1
+	
 	changed:		-1
 
 	_body:			as red-word! 0
@@ -908,6 +911,9 @@ words: context [
 		system:			symbol/make "system"
 		system-global:	symbol/make "system-global"
 		stack			symbol/make "stack"
+		
+		trace:			symbol/make "trace"
+		no-trace:		symbol/make "no-trace"
 
 		_windows:		_context/add-global windows
 		_syllable:		_context/add-global syllable

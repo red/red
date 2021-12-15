@@ -490,7 +490,7 @@ system/view/VID: context [
 		unless any [name block? body][throw-error spec]
 		unless obj/actors [obj/actors: make block! 4]
 		
-		spec: [face [object!] event [event! none!]]
+		spec: [[trace] face [object!] event [event! none!]]
 		if all [block? body body/1 = 'local block? body/2][
 			append spec: copy spec /local
 			append spec body/2

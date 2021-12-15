@@ -33,7 +33,9 @@ int-array!: alias struct! [ptr [int-ptr!]]
 ;	14:		sign bit						;-- sign of money
 ;	13:		dirty?							;-- word flag indicating if value has been modified
 ;	12-11:	context type					;-- context-type! value (context! cells only)
-;	10-8:	<reserved>
+;	10:		trace							;-- force tracing mode attribut flag (function! cells only)
+;	9:		no-trace						;-- disable tracing mode attribut flag (function! cells only)
+;	8:		<reserved>
 ;	7-0:	datatype ID						;-- datatype number
 
 cell!: alias struct! [

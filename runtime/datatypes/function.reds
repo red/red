@@ -760,21 +760,56 @@ _function: context [
 		]
 	]
 	
+	decode-attributs: func [
+		list	[red-block!]
+		return: [integer!]
+		/local
+			w	  [red-word!]
+			end	  [red-word!]
+			sym	  [integer!]
+			flags [integer!]
+	][
+		w:   as red-word! block/rs-head list
+		end: as red-word! block/rs-tail list
+		flags: 0
+		
+		while [w < end][
+			if TYPE_OF(w) <> TYPE_WORD [return -1]		;-- error case
+			sym: symbol/resolve w/symbol 
+			case [
+				sym = words/trace 	[flags: flags or flag-force-trace]
+				sym = words/no-trace[flags: flags or flag-no-trace]
+				true 				[return -1]			;-- error case
+			]
+			w: w + 1
+		]
+		flags
+	]
+	
 	validate: func [									;-- temporary minimalist spec checking
-		spec [red-block!]
+		spec	[red-block!]
+		return: [integer!]
 		/local
 			value  [red-value!]
 			end	   [red-value!]
 			next   [red-value!]
 			next2  [red-value!]
 			w      [red-word!]
+			flags  [integer!]
 			local? [logic!]
 			do-error [subroutine!]
 	][
 		do-error: [fire [TO_ERROR(script bad-func-def) spec]]
-		value: block/rs-head spec
-		end:   block/rs-tail spec
+		value:  block/rs-head spec
+		end:    block/rs-tail spec
 		local?: no
+		flags:  0
+		
+		if all [value < end TYPE_OF(value) = TYPE_BLOCK][
+			flags: decode-attributs as red-block! value
+			if flags = -1 [do-error]
+			value: value + 1							;-- skip optional attributs block
+		]
 		
 		while [value < end][
 			switch TYPE_OF(value) [
@@ -812,7 +847,7 @@ _function: context [
 							]
 						]
 					][do-error]
-					value: next
+					value: next2
 				]
 				TYPE_REFINEMENT [
 					w: as red-word! value 
@@ -835,7 +870,6 @@ _function: context [
 					value: value + 1
 				]
 				TYPE_LIT_WORD
-				TYPE_BLOCK
 				TYPE_STRING [
 					value: value + 1
 				]
@@ -843,6 +877,7 @@ _function: context [
 			]
 		]
 		check-duplicates spec
+		flags
 	]
 	
 	count-locals: func [
@@ -901,6 +936,7 @@ _function: context [
 		ctx		 [node!]								;-- if not null, context is predefined by compiler
 		code	 [integer!]
 		obj-ctx	 [node!]
+		flags	 [integer!]
 		return:	 [node!]								;-- return function's local context reference
 		/local
 			fun    [red-function!]
@@ -920,7 +956,7 @@ _function: context [
 		fun/spec:	 spec/node
 		fun/ctx:	 f-ctx
 		fun/more:	 alloc-unset-cells 5
-		fun/header:  TYPE_FUNCTION						;-- implicit reset of all header flags
+		fun/header:  TYPE_FUNCTION or flags
 		
 		s: as series! f-ctx/value
 		copy-cell as red-value! fun s/offset + 1		;-- set back-reference
@@ -967,8 +1003,9 @@ _function: context [
 		type	[integer!]
 		return:	[red-function!]
 		/local
-			spec [red-block!]
-			body [red-block!]
+			spec  [red-block!]
+			body  [red-block!]
+			flags [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "function/make"]]
 		
@@ -983,13 +1020,13 @@ _function: context [
 		if TYPE_OF(spec) <> TYPE_BLOCK [
 			fire [TO_ERROR(script bad-func-def)	list]
 		]
-		validate spec
+		flags: validate spec
 		body: spec + 1
 		
 		if TYPE_OF(body) <> TYPE_BLOCK [
 			fire [TO_ERROR(script bad-func-def)	list]
 		]
-		push spec body null 0 null
+		push spec body null 0 null flags
 		as red-function! stack/get-top
 	]
 	
