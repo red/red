@@ -293,7 +293,7 @@ system: context [
 			change?:	  no							;-- called by object's on-change*
 			deep?:		  no							;-- called by object's on-deep-change*
 			port?:		  no							;-- called by port's action dispatcher
-			bits:		  0								;-- automatically set
+			bits:		  0								;-- (internal) automatically set
 
 			on-change*: function [word old new][
 				unless integer? bits [set-quiet 'bits 0]	;-- prevents tampering with that field

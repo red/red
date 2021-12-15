@@ -265,10 +265,10 @@ interpreter: context [
 	fire-catch:	does [if tracing? [fire-event EVT_CATCH null null null stack/arguments]]
 	
 	fire-call: func [ref [red-value!] fun [red-function!]][
-		fire-event EVT_CALL null null ref as red-value! fun
+		if tracing? [fire-event EVT_CALL null null ref as red-value! fun]
 	]
 	fire-return: func [ref [red-value!] fun [red-function!]][
-		fire-event EVT_RETURN null null ref stack/arguments
+		if tracing? [fire-event EVT_RETURN null null ref stack/arguments]
 	]
 	
 	literal-first-arg?: func [
@@ -351,7 +351,7 @@ interpreter: context [
 		force?:   fun/header and flag-force-trace <> 0
 		prevent?: fun/header and flag-no-trace <> 0
 		if force?   [tracing?: trace?]					;-- force tracing only if trace mode enabled
-		if prevent? [tracing?: no]					;-- force tracing only if trace mode enabled
+		if prevent? [tracing?: no]						;-- force tracing only if trace mode enabled
 		
 		if tracing? [
 			catch RED_THROWN_ERROR [fire-event EVT_PROLOG body null ref as red-value! fun]

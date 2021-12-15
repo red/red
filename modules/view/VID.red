@@ -506,6 +506,7 @@ system/view/VID: context [
 	]
 	
 	set 'layout function [
+		[no-trace]
 		"Return a face with a pane built from a VID description"
 		spec		  [block!]	"Dialect block of styles, attributes, and layouts"
 		/tight					"Zero offset and origin"
