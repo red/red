@@ -779,7 +779,7 @@ _function: context [
 			case [
 				sym = words/trace 	[flags: flags or flag-force-trace]
 				sym = words/no-trace[flags: flags or flag-no-trace]
-				true 				[return -1]			;-- error case
+				true 				[0]
 			]
 			w: w + 1
 		]
