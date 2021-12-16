@@ -959,9 +959,8 @@ interpreter: context [
 			]
 			item: item + 1
 		]
-		if tracing? [fire-event EVT_PUSH as red-block! path item item parent]
 		if set? [object/path-parent/header: TYPE_NONE]	;-- disables owner checking
-		if tracing? [fire-event EVT_EXIT as red-block! path tail null null]
+		if tracing? [fire-event EVT_EXIT as red-block! path tail null parent]
 
 		stack/top: saved
 		either sub? [stack/push parent][stack/set-last parent]
@@ -1349,7 +1348,7 @@ interpreter: context [
 				if value + 1 <= tail [stack/reset]
 			]
 		]
-		if tracing? [fire-event EVT_EXIT code tail null null]
+		if tracing? [fire-event EVT_EXIT code tail null stack/arguments]
 		either chain? [stack/unwind-last][stack/unwind]
 	]
 	

@@ -154,7 +154,7 @@ system/tools: context [
 		offset [integer!]
 		value  [any-type!]
 		ref	   [any-type!]
-		frame  [pair!]									;-- current frame start, top
+		frame  [pair!]
 		/extern expr-stk hist-length
 	][
 		store: [
@@ -176,7 +176,7 @@ system/tools: context [
 				]
 			]
 			exit [
-				unless head? expr-stk [
+				either head? expr-stk [clear expr-stk][
 					if paren? expr-stk/1 [set/any 'value expr-stk/1/1]
 					idx: first pos: find/reverse tail expr-stk integer!
 					clear pos
@@ -248,7 +248,7 @@ system/tools: context [
 		offset [integer!]
 		value  [any-type!]
 		ref	   [any-type!]
-		frame  [pair!]									;-- current frame start, top
+		frame  [pair!]
 	][
 		print [uppercase form event offset mold/part/flat :ref 30 mold/part/flat :value 30 frame]
 	]
@@ -259,10 +259,10 @@ system/tools: context [
 		offset [integer!]
 		value  [any-type!]
 		ref	   [any-type!]
-		frame  [pair!]									;-- current frame start, top
+		frame  [pair!]
 		/extern indent
 	][
-		[init end open push call prolog epilog set return error catch throw] ;-- only request those events
+		[init end open push call prolog epilog set return error catch throw] ;-- request only those events
 		
 		either find [init end] event [
 			if event = 'end [prin lf]
@@ -291,9 +291,9 @@ system/tools: context [
 		offset [integer!]
 		value  [any-type!]
 		ref	   [any-type!]
-		frame  [pair!]									;-- current frame start, top
+		frame  [pair!]
 	][
-		[init end call return prolog epilog]			;-- only request those events
+		[init end call return prolog epilog]			;-- request only those events
 		anon: [0]
 		
 		switch event [
