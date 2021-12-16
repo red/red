@@ -154,7 +154,7 @@ Red [
 
 	logger: function [
 		event  [word!]
-		code   [block! paren! none!]
+		code   [any-block! none!]
 		offset [integer!]
 		value  [any-type!]
 		ref	   [any-type!]
@@ -196,7 +196,7 @@ Red [
 		clear logs
 		--assert 123 = do/trace [123] :logger
 		new-line/all/skip logs yes 5
-		--assert logs == [
+		check-diff logs [
 		    init -1 #[none] #[none] 2 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "123" 0 
@@ -209,7 +209,7 @@ Red [
 		clear logs
 		--assert 6 = do/trace [1 + length? mold 'hello] :logger
 		new-line/all/skip logs yes 5
-		--assert logs == [
+		check-diff logs [
 		    init -1 #[none] #[none] 2 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "+" 0 
@@ -236,7 +236,7 @@ Red [
 		clear logs
 		--assert 99 = do/trace [77 88 99] :logger
 		new-line/all/skip logs yes 5
-		--assert logs == [
+		check-diff logs [
 		    init -1 #[none] #[none] 2 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "77" 0 
@@ -247,13 +247,13 @@ Red [
 		    push 3 #[none] "99" 0 
 		    exit 3 #[none] #[none] 0 
 		    end -1 #[none] #[none] 3
-		]		
+		]
 
 	--test-- "trace-5"
 		clear logs
 		--assert 'EVEN = do/trace [a: 4 either result: odd? a [print 'ODD]['EVEN]] :logger
 		new-line/all/skip logs yes 5
-		--assert logs == [
+		check-diff logs [
 		    init -1 #[none] #[none] 2 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "a:" 0 
@@ -548,18 +548,36 @@ Red [
 		    init -1 #[none] #[none] 2 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "b/:i" 0 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] "b" 0 
+		    push 0 #[none] "[x y z]" 0 
+		    fetch 1 #[none] ":i" 0 
+		    push 1 #[none] "1" 0 
+		    push 2 #[none] "x" 0 
+		    exit 2 #[none] #[none] 0 
 		    push 1 #[none] "x" 0 
 		    exit 1 #[none] #[none] 0 
 		    end -1 #[none] #[none] 3 
 		    init -1 #[none] #[none] 2 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] ":b/:i" 0 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] "b" 0 
+		    push 0 #[none] "[x y z]" 0 
+		    fetch 1 #[none] ":i" 0 
+		    push 1 #[none] "1" 0 
+		    push 2 #[none] "x" 0 
+		    exit 2 #[none] #[none] 0 
 		    push 1 #[none] "x" 0 
 		    exit 1 #[none] #[none] 0 
 		    end -1 #[none] #[none] 3 
 		    init -1 #[none] #[none] 2 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "b/(i + j)" 0 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] "b" 0 
+		    push 0 #[none] "[x y z]" 0 
+		    fetch 1 #[none] "(i + j)" 0 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "+" 0 
 		    open 0 #[none] "+" 0 
@@ -570,16 +588,26 @@ Red [
 		    call 3 "+" "" 2 
 		    return 3 "+" "3" 2 
 		    exit 3 #[none] #[none] 1 
+		    push 1 #[none] "3" 1 
+		    push 2 #[none] "z" 1 
+		    exit 2 #[none] #[none] 1 
 		    push 1 #[none] "z" 0 
 		    exit 1 #[none] #[none] 0 
 		    end -1 #[none] #[none] 3 
 		    init -1 #[none] #[none] 2 
-		    enter 0 #[none] #[none] 0
+		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "b/:i:" 0 
 		    push 0 #[none] "b/:i:" 0 
 		    fetch 1 #[none] "'A" 0 
 		    push 1 #[none] "A" 1 
 		    set 2 "b/:i:" "A" 1 
+		    enter 0 #[none] #[none] 1 
+		    fetch 0 #[none] "b" 1 
+		    push 0 #[none] "[x y z]" 1 
+		    fetch 1 #[none] ":i" 1 
+		    push 1 #[none] "1" 1 
+		    push 2 #[none] "A" 1 
+		    exit 2 #[none] #[none] 1 
 		    exit 2 #[none] #[none] 1 
 		    end -1 #[none] #[none] 3
 		]

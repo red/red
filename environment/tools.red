@@ -150,7 +150,7 @@ system/tools: context [
 
 	debugger: function [
 		event  [word!]
-		code   [block! paren! none!]
+		code   [any-block! none!]
 		offset [integer!]
 		value  [any-type!]
 		ref	   [any-type!]
@@ -231,7 +231,7 @@ system/tools: context [
 			][
 				mold/part/flat :value limit
 			]
-			if code [print ["Input:" mold/only/part/flat skip code offset calc-max 8]]
+			if :code [print ["Input:" mold/only/part/flat skip :code offset calc-max 8]]
 			
 			unless empty? watching			[show-watching]
 			if options/debug/show-parents?	[show-parents event]
@@ -244,7 +244,7 @@ system/tools: context [
 	
 	dumper: function [
 		event  [word!]
-		code   [block! paren! none!]
+		code   [any-block! none!]
 		offset [integer!]
 		value  [any-type!]
 		ref	   [any-type!]
@@ -255,7 +255,7 @@ system/tools: context [
 	
 	tracer: function [
 		event  [word!]
-		code   [block! paren! none!]
+		code   [any-block! none!]
 		offset [integer!]
 		value  [any-type!]
 		ref	   [any-type!]
@@ -287,7 +287,7 @@ system/tools: context [
 	
 	profiler: function [
 		event  [word!]
-		code   [block! paren! none!]
+		code   [any-block! none!]
 		offset [integer!]
 		value  [any-type!]
 		ref	   [any-type!]

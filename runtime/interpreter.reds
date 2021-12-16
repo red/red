@@ -894,6 +894,8 @@ interpreter: context [
 		head:   block/rs-head as red-block! path
 		tail:   block/rs-tail as red-block! path
 		if head = tail [fire [TO_ERROR(script empty-path)]]
+		if tracing? [fire-event EVT_ENTER as red-block! path head null null]
+		if tracing? [fire-event EVT_FETCH as red-block! path head head head]
 		
 		item:   head + 1
 		saved:  stack/top
@@ -917,9 +919,12 @@ interpreter: context [
 			default	   [0]
 		]
 		if set? [object/path-parent/header: TYPE_NONE]	;-- disables owner checking
+		if tracing? [fire-event EVT_PUSH as red-block! path head head parent]
 		
 		while [item < tail][
 			#if debug? = yes [if verbose > 0 [print-line ["eval: path parent: " TYPE_OF(parent)]]]
+			
+			if tracing? [fire-event EVT_FETCH as red-block! path item item item]
 			
 			value: switch TYPE_OF(item) [ 
 				TYPE_GET_WORD [_context/get as red-word! item]
@@ -929,6 +934,7 @@ interpreter: context [
 				]
 				default [item]
 			]
+			if tracing? [fire-event EVT_PUSH as red-block! path item item value]
 			if TYPE_OF(value) = TYPE_UNSET [fire [TO_ERROR(script invalid-path) path item]]
 			#if debug? = yes [if verbose > 0 [print-line ["eval: path item: " TYPE_OF(value)]]]
 			
@@ -953,7 +959,9 @@ interpreter: context [
 			]
 			item: item + 1
 		]
+		if tracing? [fire-event EVT_PUSH as red-block! path item item parent]
 		if set? [object/path-parent/header: TYPE_NONE]	;-- disables owner checking
+		if tracing? [fire-event EVT_EXIT as red-block! path tail null null]
 
 		stack/top: saved
 		either sub? [stack/push parent][stack/set-last parent]
