@@ -1212,7 +1212,10 @@ interpreter: context [
 				value: pc
 				pc: pc + 1
 				pc: eval-path value pc end code no no sub? no
-				if tracing? [fire-event EVT_PUSH code pc pc stack/arguments]
+				if tracing? [
+					value: either sub? [stack/get-top][stack/arguments]
+					fire-event EVT_PUSH code pc pc value
+				]
 			]
 			TYPE_GET_PATH [
 				value: pc

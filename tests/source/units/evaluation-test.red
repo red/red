@@ -667,6 +667,32 @@ Red [
 		    end -1 #[none] #[none] 3
     	]
 
+	--test-- "trace-11"
+		b: [x y z] i: 1 j: 2
+		clear logs
+		--assert false == do/trace ['a = b/:j] :logger
+		new-line/all/skip logs yes 5
+		check-diff logs [
+		    init -1 #[none] #[none] 2 
+		    enter 0 #[none] #[none] 0 
+		    fetch 0 #[none] "=" 0 
+		    open 0 #[none] "=" 0 
+		    fetch 0 #[none] "'a" 0 
+		    push 0 #[none] "a" 1 
+		    fetch 2 #[none] "b/:j" 1 
+		    enter 0 #[none] #[none] 1 
+		    fetch 0 #[none] "b" 1 
+		    push 0 #[none] "[x y z]" 1 
+		    fetch 1 #[none] ":j" 1 
+		    push 1 #[none] "2" 1 
+		    exit 2 #[none] "y" 1 
+		    push 3 #[none] "y" 2 
+		    call 3 "=" "" 2 
+		    return 3 "=" #[none] 2 
+		    exit 3 #[none] #[none] 1 
+		    end -1 #[none] #[none] 3
+		]
+
 ===end-group===
 
 ===start-group=== "reduce"
