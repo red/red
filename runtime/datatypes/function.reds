@@ -814,8 +814,9 @@ _function: context [
 		while [value < end][
 			switch TYPE_OF(value) [
 				TYPE_WORD
-				TYPE_GET_WORD [
-					if all [local? TYPE_OF(value) = TYPE_GET_WORD][do-error]
+				TYPE_GET_WORD
+				TYPE_LIT_WORD [
+					if all [local? any [TYPE_OF(value) = TYPE_GET_WORD TYPE_OF(value) = TYPE_LIT_WORD]][do-error]
 					next: value + 1
 					if all [next < end TYPE_OF(next) = TYPE_STRING][
 						next2: next + 1
@@ -869,7 +870,6 @@ _function: context [
 					]
 					value: value + 1
 				]
-				TYPE_LIT_WORD
 				TYPE_STRING [
 					value: value + 1
 				]
