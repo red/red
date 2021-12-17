@@ -693,6 +693,13 @@ Red [
 		    end -1 #[none] #[none] 3
 		]
 
+		--test-- "trace-11"
+			do [
+				trace11: func [[no-trace] code][do/trace code does []]
+				trace11 [trace11 []]
+			]
+			--assert true					;-- just check if it has not crashed
+
 ===end-group===
 
 ===start-group=== "reduce"

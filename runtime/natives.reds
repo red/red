@@ -570,7 +570,7 @@ natives: context [
 		fun?: OPTION?(fun)
 		if fun? [
 			with [interpreter][
-				either tracing? [fun?: no][				;-- pass-thru, ignore handler if one is in use already
+				either trace? [fun?: no][				;-- pass-thru, ignore handler if one is in use already
 					fun-locs: _function/count-locals fun/spec 0 no
 					fun-evts: decode-filter fun
 					copy-cell as red-value! fun as red-value! trace-fun
