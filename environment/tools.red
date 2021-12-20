@@ -45,13 +45,13 @@ system/tools: context [
 			show-parents?:	no
 			show-locals?:	no
 			stack-indent?:	no
-			types:			make typeset! [function! action! native! op!]
 		]
 		trace: context [
 			indent?:		yes
 		]
 		profile: context [
 			sort-by: 		'count
+			types:			make typeset! [function! action! native! op!]
 		]
 	]
 	
@@ -305,7 +305,7 @@ system/tools: context [
 				poke back tail fun-stk 1 now/precise	;-- update start-time
 			]
 			call   [
-				if all [options/debug/types find options/debug/types type? :value][
+				if all [typeset? opt: options/profile/types find opt type? :value][
 					if any-function? :ref [ref: append copy <anon> anon/1: anon/1 + 1]
 					either pos: find/only/skip profiling ref 3 [
 						pos/2: pos/2 + 1
@@ -349,7 +349,7 @@ system/tools: context [
 		options/profile/sort-by: any [cat 'count]
 		
 		set/any 'res do-handler :code :profiler
-		print ["==" mold/part :res 80 lf]
+		if value? 'res [print ["==" mold/part :res calc-max 2 lf]]
 		
 		by: select [name 1 count 2 time 3] options/profile/sort-by
 		either by = 1 [
