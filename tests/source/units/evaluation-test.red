@@ -226,7 +226,7 @@ Red [
 		    return 5 "mold" {"hello"} 2 
 		    call 5 "length?" "make actio" 1 
 		    return 5 "length?" "5" 3 
-		    call 5 "+" "" 2 
+		    call 5 "+" "make op! [" 2 
 		    return 5 "+" "6" 2 
 		    exit 5 #[none] "6" 1 
 		    end -1 #[none] #[none] 3
@@ -313,7 +313,7 @@ Red [
 		    push 2 #[none] "2" 0 
 		    fetch 3 #[none] "1" 1 
 		    push 4 #[none] "1" 2 
-		    call 4 "<" "" 2 
+		    call 4 "<" "make op! [" 2 
 		    return 4 "<" #[none] 2 
 		    fetch 4 #[none] "[0]" 1 
 		    push 5 #[none] "[0]" 2 
@@ -329,7 +329,7 @@ Red [
 		    push 2 #[none] "2" 0 
 		    fetch 3 #[none] "2" 1 
 		    push 4 #[none] "2" 2 
-		    call 4 "<" "" 2 
+		    call 4 "<" "make op! [" 2 
 		    return 4 "<" #[none] 2 
 		    fetch 4 #[none] "[1]" 1 
 		    push 5 #[none] "[1]" 2 
@@ -349,7 +349,7 @@ Red [
 		    push 2 #[none] "2" 0 
 		    fetch 3 #[none] "2" 1 
 		    push 4 #[none] "2" 2 
-		    call 4 "-" "" 2 
+		    call 4 "-" "make op! [" 2 
 		    return 4 "-" "0" 2 
 		    call 4 "fibo-tr6" "func [n [i" 1 
 		    prolog -1 "fibo-tr6" "func [n [i" 1 
@@ -362,7 +362,7 @@ Red [
 		    push 2 #[none] "0" 0 
 		    fetch 3 #[none] "1" 1 
 		    push 4 #[none] "1" 2 
-		    call 4 "<" "" 2 
+		    call 4 "<" "make op! [" 2 
 		    return 4 "<" "true" 2 
 		    fetch 4 #[none] "[0]" 1 
 		    push 5 #[none] "[0]" 2 
@@ -388,7 +388,7 @@ Red [
 		    push 2 #[none] "2" 0 
 		    fetch 3 #[none] "1" 1 
 		    push 4 #[none] "1" 2 
-		    call 4 "-" "" 2 
+		    call 4 "-" "make op! [" 2 
 		    return 4 "-" "1" 2 
 		    call 4 "fibo-tr6" "func [n [i" 1 
 		    prolog -1 "fibo-tr6" "func [n [i" 1 
@@ -401,7 +401,7 @@ Red [
 		    push 2 #[none] "1" 0 
 		    fetch 3 #[none] "1" 1 
 		    push 4 #[none] "1" 2 
-		    call 4 "<" "" 2 
+		    call 4 "<" "make op! [" 2 
 		    return 4 "<" #[none] 2 
 		    fetch 4 #[none] "[0]" 1 
 		    push 5 #[none] "[0]" 2 
@@ -417,7 +417,7 @@ Red [
 		    push 2 #[none] "1" 0 
 		    fetch 3 #[none] "2" 1 
 		    push 4 #[none] "2" 2 
-		    call 4 "<" "" 2 
+		    call 4 "<" "make op! [" 2 
 		    return 4 "<" "true" 2 
 		    fetch 4 #[none] "[1]" 1 
 		    push 5 #[none] "[1]" 2 
@@ -435,7 +435,7 @@ Red [
 		    epilog -1 "fibo-tr6" "func [n [i" 2 
 		    return 4 "fibo-tr6" "1" 2 
 		    exit 4 #[none] "1" 1 
-		    call 3 "+" "" 2 
+		    call 3 "+" "make op! [" 2 
 		    return 3 "+" "1" 2 
 		    exit 3 #[none] "1" 1 
 		    return 6 "either" "1" 2 
@@ -522,7 +522,7 @@ Red [
 		    return 6 "foo" "true" 3 
 		    call 6 "make" "make actio" 2 
 		    return 6 "make" "1" 3 
-		    call 6 "+" "" 2 
+		    call 6 "+" "make op! [" 2 
 		    return 6 "+" "6" 2 
 		    exit 6 #[none] "6" 1 
 		    epilog -1 "bar" "func [s [s" 2 
@@ -583,7 +583,7 @@ Red [
 		    push 1 #[none] "1" 0 
 		    fetch 2 #[none] "j" 1 
 		    push 3 #[none] "2" 1 
-		    call 3 "+" "" 2 
+		    call 3 "+" "make op! [" 2 
 		    return 3 "+" "3" 2 
 		    exit 3 #[none] "3" 1 
 		    push 1 #[none] "3" 1 
@@ -629,7 +629,7 @@ Red [
 		    push 1 #[none] "1" 1 
 		    fetch 2 #[none] "2" 1 
 		    push 3 #[none] "2" 2 
-		    call 3 "+" "" 2 
+		    call 3 "+" "make op! [" 2 
 		    return 3 "+" "3" 2 
 		    exit 3 #[none] "3" 1 
 		    epilog -1 "foo-tr9" "func [[tra" 1
@@ -649,7 +649,7 @@ Red [
 		    push 1 #[none] "4" 1 
 		    fetch 2 #[none] "5" 1 
 		    push 3 #[none] "5" 2 
-		    call 3 "+" "" 2 
+		    call 3 "+" "make op! [" 2 
 		    return 3 "+" "9" 2 
 		    fetch 3 #[none] "foo-tr10" 0 
 		    open 4 #[none] "foo-tr10" 0 
@@ -661,7 +661,7 @@ Red [
 		    push 5 #[none] "7" 1 
 		    fetch 6 #[none] "8" 1 
 		    push 7 #[none] "8" 2 
-		    call 7 "+" "" 2 
+		    call 7 "+" "make op! [" 2 
 		    return 7 "+" "15" 2 
 		    exit 7 #[none] "15" 1 
 		    end -1 #[none] #[none] 3
@@ -687,7 +687,7 @@ Red [
 		    push 1 #[none] "2" 1 
 		    exit 2 #[none] "y" 1 
 		    push 3 #[none] "y" 2 
-		    call 3 "=" "" 2 
+		    call 3 "=" "make op! [" 2 
 		    return 3 "=" #[none] 2 
 		    exit 3 #[none] #[none] 1 
 		    end -1 #[none] #[none] 3
