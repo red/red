@@ -571,6 +571,8 @@ string: context [
 		assert negative? offset
 		
 		s/tail: as cell! (as byte-ptr! s/tail) + (offset * GET_UNIT(s))
+		assert s/tail >= s/offset
+		if s/tail < s/offset [s/tail: s/offset]
 		s
 	]
 

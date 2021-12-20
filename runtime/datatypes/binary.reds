@@ -855,7 +855,6 @@ binary: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/serialize"]]
 		
-		if part < 0 [part: 0]
 		s: GET_BUFFER(bin)
 		head: (as byte-ptr! s/offset) + bin/head
 		tail: as byte-ptr! s/tail
