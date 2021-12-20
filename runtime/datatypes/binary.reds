@@ -861,12 +861,13 @@ binary: context [
 		size: as-integer tail - head
 
 		string/concatenate-literal buffer "#{"
+		part: part - 2
+
 		bytes: 0
 		if all [size > 30 not flat?][
 			string/append-char GET_BUFFER(buffer) as-integer lf
 			part: part - 1
 		]
-		part: part - 2
 		while [head < tail][
 			string/concatenate-literal buffer string/byte-to-hex as-integer head/value
 			bytes: bytes + 1

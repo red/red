@@ -256,21 +256,30 @@ actions: context [
 			arg	   [red-value!]
 			buffer [red-string!]
 			int    [red-integer!]
-			limit  [integer!]
+			limit expect-part len [integer!]
 	][
 		arg: stack/arguments + part
 		
-		limit: either part >= 0 [
+		either part >= 0 [
 			int: as red-integer! arg
-			int/value
-		][0]
+			limit: int/value
+			if limit <= 0 [
+				string/rs-make-at stack/arguments 1
+				exit
+			]
+		][limit: 0]
+		expect-part: limit
 		
 		stack/keep										;-- keep last value
 		buffer: string/rs-make-at stack/push* 16		;@@ /part argument
 		limit: form stack/arguments buffer arg limit
 		
 		if all [part >= 0 negative? limit][
-			string/truncate-from-tail GET_BUFFER(buffer) limit
+			len: string/rs-length? buffer
+			if len > expect-part [
+				limit: expect-part - len
+				string/truncate-from-tail GET_BUFFER(buffer) limit
+			]
 		]
 		stack/set-last as red-value! buffer
 	]
