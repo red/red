@@ -602,6 +602,8 @@ object: context [
 		cycles/push obj/ctx
 
 		while [sym < s-tail][
+			if all [OPTION?(arg) part <= 0][return part]
+
 			w: as red-word! sym
 			id: symbol/resolve w/symbol
 			
