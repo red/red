@@ -95,6 +95,7 @@ slash:	 #"/"
 esc:	 #"^["
 
 pi: 3.141592653589793
+MAX_INT: 2147483647
 
 str-array!: alias struct! [
 	item [c-string!]

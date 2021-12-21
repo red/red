@@ -256,38 +256,34 @@ actions: context [
 			arg	   [red-value!]
 			buffer [red-string!]
 			int    [red-integer!]
-			limit expect-part len [integer!]
+			limit expected [integer!]
 	][
 		arg: stack/arguments + part
+		expected: 0
 		
 		either part >= 0 [
 			int: as red-integer! arg
+			assert TYPE_OF(int) = TYPE_INTEGER
 			limit: int/value
 			if limit <= 0 [
 				string/rs-make-at stack/arguments 1
 				exit
 			]
-		][limit: 0]
-		expect-part: limit
-		
+			expected: limit
+		][limit: MAX_INT]
+	
 		stack/keep										;-- keep last value
 		buffer: string/rs-make-at stack/push* 16		;@@ /part argument
-		limit: form stack/arguments buffer arg limit
+		form stack/arguments buffer arg limit
 		
-		if all [part >= 0 negative? limit][
-			len: string/rs-length? buffer
-			if len > expect-part [
-				limit: expect-part - len
-				string/truncate-from-tail GET_BUFFER(buffer) limit
-			]
-		]
+		if expected > 0 [string/truncate GET_BUFFER(buffer) expected]
 		stack/set-last as red-value! buffer
 	]
 	
 	form: func [
 		value   [red-value!]							;-- FORM argument
 		buffer  [red-string!]							;-- FORM buffer
-		arg		[red-value!]							;-- max bytes count
+		arg		[red-value!]							;-- max characters count
 		part	[integer!]
 		return: [integer!]
 		/local
@@ -298,7 +294,7 @@ actions: context [
 		action-form: as function! [
 			value	[red-value!]						;-- FORM argument
 			buffer	[red-string!]						;-- FORM buffer
-			arg		[red-value!]						;-- max bytes count
+			arg		[red-value!]						;-- max characters count
 			part	[integer!]
 			return: [integer!]							;-- remaining part count
 		] get-action-ptr value ACT_FORM
@@ -315,23 +311,25 @@ actions: context [
 			arg	   [red-value!]
 			buffer [red-string!]
 			int    [red-integer!]
-			limit expect-part len [integer!]
+			limit expected [integer!]
 	][
 		arg: stack/arguments + part
+		expected: 0
 
 		either part >= 0 [
 			int: as red-integer! arg
+			assert TYPE_OF(int) = TYPE_INTEGER
 			limit: int/value
 			if limit <= 0 [
 				string/rs-make-at stack/arguments 1
 				exit
 			]
-		][limit: 0]
-		expect-part: limit
+			expected: limit
+		][limit: MAX_INT]
 
 		stack/keep										;-- keep last value
 		buffer: string/rs-make-at stack/push* 16		;@@ /part argument
-		limit: mold 
+		mold
 			stack/arguments
 			buffer
 			as logic! only + 1
@@ -341,13 +339,7 @@ actions: context [
 			limit
 			0
 		
-		if all [part >= 0 negative? limit][
-			len: string/rs-length? buffer
-			if len > expect-part [
-				limit: expect-part - len
-				string/truncate-from-tail GET_BUFFER(buffer) limit
-			]
-		]
+		if expected > 0 [string/truncate GET_BUFFER(buffer) expected]
 		stack/set-last as red-value! buffer
 	]
 	
@@ -358,7 +350,7 @@ actions: context [
 		all?	 [logic!]
 		flat?	 [logic!]
 		arg		 [red-value!]
-		part     [integer!]								;-- max bytes count
+		part     [integer!]								;-- max characters count
 		indent	 [integer!]
 		return:  [integer!]
 		/local
@@ -373,7 +365,7 @@ actions: context [
 			all?	 [logic!]
 			flat?	 [logic!]
 			part-arg [red-value!]		
-			part	 [integer!]							;-- max bytes count
+			part	 [integer!]							;-- max characters count
 			indent	 [integer!]
 			return:  [integer!]							;-- remaining part count
 		] get-action-ptr value ACT_MOLD

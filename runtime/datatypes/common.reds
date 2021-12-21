@@ -392,14 +392,11 @@ form-value: func [
 	return: [red-string!]
 	/local
 		buffer [red-string!]
-		limit  [integer!]
 ][
 	buffer: string/rs-make-at stack/push* 16
-	limit: actions/form stack/arguments buffer arg part
+	actions/form stack/arguments buffer arg part
 
-	if all [part >= 0 negative? limit][
-		string/truncate-from-tail GET_BUFFER(buffer) limit
-	]
+	if part > 0 [string/truncate GET_BUFFER(buffer) part]
 	buffer
 ]
 

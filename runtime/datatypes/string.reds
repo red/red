@@ -562,15 +562,20 @@ string: context [
 		str
 	]
 	
-	truncate-from-tail: func [
+	truncate: func [
 		s	    [series!]
-		offset  [integer!]								;-- negative offset from tail
+		part	[integer!]
 		return: [series!]
+		/local
+			p	[cell!]
 	][
-		if zero? offset [return s]
-		assert negative? offset
+		assert part > 0
+		part: part << log-b GET_UNIT(s)
+		if part > s/size [return s]
 		
-		s/tail: as cell! (as byte-ptr! s/tail) + (offset * GET_UNIT(s))
+		p: as cell! (as byte-ptr! s/offset) + part
+		if p < s/tail [s/tail: p]
+		
 		assert s/offset <= s/tail
 		assert (as byte-ptr! s/offset) + s/size >= as byte-ptr! s/tail
 		s
