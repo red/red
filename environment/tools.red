@@ -375,7 +375,7 @@ system/tools: context [
 		either logic? :code [
 			#system [
 				use [bool [red-logic!]][
-					bool: as red-logic! ~code
+					bool: as red-logic! ~code			;@@ implement a clean way to access locals from R/S code
 					assert TYPE_OF(bool) = TYPE_LOGIC
 					interpreter/tracing?: bool/value and interpreter/trace?
 				]
