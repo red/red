@@ -466,7 +466,23 @@ redc: context [
 				view?
 				any [Windows? macOS? Linux?]
 				not gui?
-			][insert find/tail source #"[" "Needs: 'View^/"]
+			][
+				sp: charset " ^-^/^M"
+				parse source [
+					thru #"[" any [
+						p: #"]" :p insert "Needs: View" break	;-- add whole line if no "needs" field
+					|	"Needs:" some sp [						;-- or only add View module to it...
+							opt "'" "View"
+						|   "[" s: to "]" e: [
+								if (find/part s "View" e)
+							|	insert " View"
+							]
+						|	insert "[View " to sp insert "]"
+						] break
+					|	skip 
+					]
+				]
+			]
 
 			files: [%auto-complete.red %engine.red %help.red]
 			foreach f files [write temp-dir/:f read-cache console-root/:f]
