@@ -99,6 +99,13 @@ either each-mode [
 ]
 do %tests/source/units/run-post-extra-tests.r
 
+===start-group=== "Red CLI tests (interpreted)"
+    --run-test-file-quiet %source/cli/cli-test-interp.red
+===end-group===
+===start-group=== "Red CLI tests (compiled)"
+    --run-test-file-quiet %source/cli/cli-test.red
+===end-group===
+
 ===start-group=== "View Engine Tests"
 	--run-test-file-quiet %source/view/base-self-test.red
 ===end-group===
