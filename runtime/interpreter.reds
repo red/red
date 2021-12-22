@@ -96,6 +96,7 @@ Red/System [
 				]
 			]
 			pc: pc + 1
+			;if tracing? [fire-event EVT_PUSH code pc pc value yes]
 		]
 	]
 ]
@@ -119,8 +120,9 @@ interpreter: context [
 		EVT_ERROR:			00001000h
 		EVT_THROW:			00002000h
 		EVT_CATCH:			00004000h
-		;EVT_EVAL_PATH:		00008000h					;-- reserved for future use
-		;EVT_SET_PATH:		00010000h
+		EVT_EXPR:			00008000h
+		;EVT_EVAL_PATH:		00000000h					;-- reserved for future use
+		;EVT_SET_PATH:		00000000h
 	]
 	
 	trace?:		no										;-- yes: event mode active (only set by do/trace)
@@ -166,6 +168,7 @@ interpreter: context [
 					sym = words/_return/symbol	[EVT_RETURN]
 					sym = words/_set/symbol		[EVT_SET]
 					sym = words/_call/symbol	[EVT_CALL]
+					sym = words/_expr/symbol	[EVT_EXPR]
 					sym = words/_error/symbol	[EVT_ERROR]
 					sym = words/_init/symbol	[EVT_INIT]
 					sym = words/_end/symbol		[EVT_END]
@@ -219,6 +222,7 @@ interpreter: context [
 			EVT_RETURN	[words/_return]
 			EVT_SET		[words/_set]
 			EVT_CALL	[words/_call]
+			EVT_EXPR	[words/_expr]
 			EVT_ERROR	[words/_error]
 			EVT_INIT	[words/_init]
 			EVT_END		[words/_end]
@@ -1073,6 +1077,7 @@ interpreter: context [
 			value  [red-value!]
 			left   [red-value!]
 			pos    [red-value!]
+			start  [red-value!]
 			w	   [red-word!]
 			op	   [red-value!]
 			sym	   [integer!]
@@ -1083,6 +1088,7 @@ interpreter: context [
 		
 		lit?: no
 		infix?: no
+		start: pc
 		unless prefix? [
 			next: as red-word! pc + 1
 			CHECK_INFIX
@@ -1104,6 +1110,7 @@ interpreter: context [
 				eval as red-block! pc yes
 				either sub? [stack/unwind][stack/unwind-last]
 				pc: pc + 1
+				if tracing? [value: stack/arguments]
 			]
 			TYPE_SET_WORD [
 				either infix? [
@@ -1118,7 +1125,10 @@ interpreter: context [
 					pc: pc + 1
 					if pc >= end [fire [TO_ERROR(script need-value) pc - 1]]
 					pc: eval-expression pc end code no yes no
-					if tracing? [fire-event EVT_SET code pc pos stack/get-top]
+					if tracing? [
+						value: stack/get-top
+						fire-event EVT_SET code pc pos value
+					]
 					word/set
 					either sub? [stack/unwind][stack/unwind-last]
 					#if debug? = yes [
@@ -1139,6 +1149,7 @@ interpreter: context [
 				if tracing? [fire-event EVT_SET code pc value stack/get-top]
 				pc: eval-path value pc end code yes yes sub? no
 				either sub? [stack/unwind][stack/unwind-last]
+				if tracing? [value: stack/arguments]
 			]
 			TYPE_GET_WORD [
 				value: _context/get as red-word! pc
@@ -1152,12 +1163,15 @@ interpreter: context [
 			]
 			TYPE_LIT_WORD [
 				either sub? [
-					w: word/push as red-word! pc		;-- nested expression: push value
+					w: word/push as red-word! pc			;-- nested expression: push value
 				][
-					w: as red-word! stack/set-last pc	;-- root expression: return value
+					w: as red-word! stack/set-last pc		;-- root expression: return value
 				]
 				w/header: TYPE_WORD						;-- coerce it to a word!
-				if tracing? [fire-event EVT_PUSH code pc pc as red-value! w]
+				if tracing? [
+					value: as red-value! w
+					fire-event EVT_PUSH code pc pc value
+				]
 				pc: pc + 1
 			]
 			TYPE_WORD [
@@ -1172,12 +1186,7 @@ interpreter: context [
 				pc: pc + 1
 				
 				switch TYPE_OF(value) [
-					TYPE_UNSET [
-						fire [
-							TO_ERROR(script no-value)
-							pc - 1
-						]
-					]
+					TYPE_UNSET	  [fire [TO_ERROR(script no-value) pc - 1]]
 					TYPE_LIT_WORD [
 						if tracing? [fire-event EVT_PUSH code pc pc - 1 value]
 						word/push as red-word! value	;-- push lit-word! on stack
@@ -1187,14 +1196,15 @@ interpreter: context [
 					TYPE_ROUTINE
 					TYPE_FUNCTION [
 						pc: eval-code value pc end code sub? null null value
+						if tracing? [value: stack/arguments]
 					]
 					TYPE_OP [
 						fire [TO_ERROR(script no-op-arg) pc - 1]
 					]
 					default [
-						if tracing? [fire-event EVT_PUSH code pc pc - 1 value]
+						if tracing? [fire-event EVT_PUSH code pc - 1 pc - 1 value]
 						#if debug? = yes [if verbose > 0 [log "getting word value"]]
-						either sub? [
+						value: either sub? [
 							stack/push value			;-- nested expression: push value
 						][
 							stack/set-last value		;-- root expression: return value
@@ -1221,13 +1231,16 @@ interpreter: context [
 				value: pc
 				pc: pc + 1
 				pc: eval-path value pc end code no yes sub? no
-				if tracing? [fire-event EVT_PUSH code pc pc stack/arguments]
+				if tracing? [
+					fire-event EVT_PUSH code value value stack/arguments
+					value: stack/arguments
+				]
 			]
 			TYPE_LIT_PATH [
 				value: either sub? [stack/push pc][stack/set-last pc]
-				if tracing? [fire-event EVT_PUSH code pc pc value]
 				value/header: TYPE_PATH
 				value/data3: 0							;-- ensures args field is null
+				if tracing? [fire-event EVT_PUSH code pc pc - 1 value]
 				pc: pc + 1
 			]
 			TYPE_OP [
@@ -1249,6 +1262,7 @@ interpreter: context [
 					value: pc + 1
 					if value >= end [value: end]
 					pc: eval-code pc value end code sub? null null null
+					if tracing? [value: stack/arguments]
 				]
 			]
 			TYPE_ISSUE [
@@ -1272,8 +1286,8 @@ interpreter: context [
 				][
 					stack/set-last pc					;-- root expression: return value
 				]
-				pc: pc + 1
 				if tracing? [fire-event EVT_PUSH code pc pc value]
+				pc: pc + 1
 			]
 			default [
 				value: either sub? [
@@ -1281,8 +1295,8 @@ interpreter: context [
 				][
 					stack/set-last pc					;-- root expression: return value
 				]
-				pc: pc + 1
 				if tracing? [fire-event EVT_PUSH code pc pc value]
+				pc: pc + 1
 			]
 		]
 		
@@ -1290,7 +1304,9 @@ interpreter: context [
 			if pc >= end [fire [TO_ERROR(script no-op-arg) next]]
 			pc: eval-infix op pc end code sub?
 			unless prefix? [either sub? [stack/unwind][stack/unwind-last]]
+			if tracing? [value: either sub? [stack/get-top][stack/arguments]]
 		]
+		if all [tracing? any [not sub? infix?]][fire-event EVT_EXPR code pc start value]
 		pc
 	]
 	

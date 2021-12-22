@@ -768,6 +768,7 @@ words: context [
 	_prolog:		as red-word! 0
 	_epilog:		as red-word! 0
 	_throw:			as red-word! 0
+	_expr:			as red-word! 0
 	
 	_interp-cb:		as red-word! 0
 	_lexer-cb:		as red-word! 0
@@ -1045,6 +1046,7 @@ words: context [
 		_prolog:		word/load "prolog"
 		_epilog:		word/load "epilog"
 		_throw:			word/load "throw"
+		_expr:			word/load "expr"
 		
 		_interp-cb:		word/load "<interp-callback>"
 		_lexer-cb:		word/load "<lexer-callback>"
