@@ -1325,7 +1325,7 @@ interpreter: context [
 			return blk/head
 		]
 		node: blk/node									;-- save node pointer as slot will be overwritten
-		value: eval-next s/offset + blk/head s/tail no
+		value: eval-next blk s/offset + blk/head s/tail no
 		
 		s: as series! node/value						;-- refresh buffer pointer
 		assert all [s/offset <= value value <= s/tail]
@@ -1333,13 +1333,14 @@ interpreter: context [
 	]
 
 	eval-next: func [
+		code	[red-block!]
 		value	[red-value!]
 		tail	[red-value!]
 		sub?	[logic!]
 		return: [red-value!]							;-- return start of next expression
 	][
 		stack/mark-interp-native words/_body			;-- outer stack frame
-		value: eval-expression value tail null no sub? no
+		value: eval-expression value tail code no sub? no
 		either sub? [stack/unwind][stack/unwind-last]
 		value
 	]

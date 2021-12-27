@@ -322,8 +322,7 @@ Red [
 		    fetch 3 #[none] "1" 1 
 		    push 3 #[none] "1" 2 
 		    call 4 "<" "make op! [" 2 
-		    return 4 "<" #[none] 2 
-		    expr 4 #[none] #[none] 1 
+		    return 4 "<" #[none] 2  
 		    fetch 4 #[none] "[0]" 1 
 		    push 4 #[none] "[0]" 2 
 		    fetch 5 #[none] "[either n " 2 
@@ -339,8 +338,7 @@ Red [
 		    fetch 3 #[none] "2" 1 
 		    push 3 #[none] "2" 2 
 		    call 4 "<" "make op! [" 2 
-		    return 4 "<" #[none] 2 
-		    expr 4 #[none] #[none] 1 
+		    return 4 "<" #[none] 2  
 		    fetch 4 #[none] "[1]" 1 
 		    push 4 #[none] "[1]" 2 
 		    fetch 5 #[none] "[(fibo-tr6" 2 
@@ -361,7 +359,6 @@ Red [
 		    push 3 #[none] "2" 2 
 		    call 4 "-" "make op! [" 2 
 		    return 4 "-" "0" 2 
-		    expr 4 #[none] "0" 1 
 		    call 4 "fibo-tr6" "func [n [i" 1 
 		    prolog -1 "fibo-tr6" "func [n [i" 1 
 		    enter 0 #[none] #[none] 0 
@@ -374,8 +371,7 @@ Red [
 		    fetch 3 #[none] "1" 1 
 		    push 3 #[none] "1" 2 
 		    call 4 "<" "make op! [" 2 
-		    return 4 "<" "true" 2 
-		    expr 4 #[none] "true" 1 
+		    return 4 "<" "true" 2  
 		    fetch 4 #[none] "[0]" 1 
 		    push 4 #[none] "[0]" 2 
 		    fetch 5 #[none] "[either n " 2 
@@ -405,7 +401,6 @@ Red [
 		    push 3 #[none] "1" 2 
 		    call 4 "-" "make op! [" 2 
 		    return 4 "-" "1" 2 
-		    expr 4 #[none] "1" 1 
 		    call 4 "fibo-tr6" "func [n [i" 1 
 		    prolog -1 "fibo-tr6" "func [n [i" 1 
 		    enter 0 #[none] #[none] 0 
@@ -418,8 +413,7 @@ Red [
 		    fetch 3 #[none] "1" 1 
 		    push 3 #[none] "1" 2 
 		    call 4 "<" "make op! [" 2 
-		    return 4 "<" #[none] 2 
-		    expr 4 #[none] #[none] 1 
+		    return 4 "<" #[none] 2  
 		    fetch 4 #[none] "[0]" 1 
 		    push 4 #[none] "[0]" 2 
 		    fetch 5 #[none] "[either n " 2 
@@ -436,7 +430,6 @@ Red [
 		    push 3 #[none] "2" 2 
 		    call 4 "<" "make op! [" 2 
 		    return 4 "<" "true" 2 
-		    expr 4 #[none] "true" 1 
 		    fetch 4 #[none] "[1]" 1 
 		    push 4 #[none] "[1]" 2 
 		    fetch 5 #[none] "[(fibo-tr6" 2 

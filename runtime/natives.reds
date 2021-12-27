@@ -89,17 +89,19 @@ natives: context [
 	any*: func [
 		check? [logic!]
 		/local
+			blk	  [red-block!]
 			value [red-value!]
 			tail  [red-value!]
 			bool  [red-logic!]
 			type  [integer!]
 	][
 		#typecheck any
-		value: block/rs-head as red-block! stack/arguments
-		tail:  block/rs-tail as red-block! stack/arguments
+		blk: as red-block! stack/arguments
+		value: block/rs-head blk
+		tail:  block/rs-tail blk
 		
 		while [value < tail][
-			value: interpreter/eval-next value tail no
+			value: interpreter/eval-next blk value tail no
 			
 			bool: as red-logic! stack/arguments
 			type: TYPE_OF(bool)
@@ -111,17 +113,19 @@ natives: context [
 	all*: func [
 		check? [logic!]
 		/local
+			blk	  [red-block!]
 			value [red-value!]
 			tail  [red-value!]
 	][
 		#typecheck all
-		value: block/rs-head as red-block! stack/arguments
-		tail:  block/rs-tail as red-block! stack/arguments
+		blk: as red-block! stack/arguments
+		value: block/rs-head blk
+		tail:  block/rs-tail blk
 		
 		if value = tail [RETURN_NONE]
 		
 		while [value < tail][
-			value: interpreter/eval-next value tail no
+			value: interpreter/eval-next blk value tail no
 			if logic/false? [RETURN_NONE]
 		]
 	]
@@ -509,18 +513,20 @@ natives: context [
 		check?	  [logic!]
 		all? 	  [integer!]
 		/local
+			blk	  [red-block!]
 			value [red-value!]
 			tail  [red-value!]
 			true? [logic!]
 	][
 		#typecheck [case all?]
-		value: block/rs-head as red-block! stack/arguments
-		tail:  block/rs-tail as red-block! stack/arguments
+		blk: as red-block! stack/arguments
+		value: block/rs-head blk
+		tail:  block/rs-tail blk
 		if value = tail [RETURN_NONE]
 
 		true?: false
 		while [value < tail][
-			value: interpreter/eval-next value tail no	;-- eval condition
+			value: interpreter/eval-next blk value tail no	;-- eval condition
 			if value = tail [break]
 			either logic/true? [
 				either TYPE_OF(value) = TYPE_BLOCK [	;-- if true, eval what follows it
@@ -528,7 +534,7 @@ natives: context [
 					interpreter/eval as red-block! value yes
 					value: value + 1
 				][
-					value: interpreter/eval-next value tail no
+					value: interpreter/eval-next blk value tail no
 				]
 				if negative? all? [exit]				;-- early exit with last value on stack (unless /all)
 				true?: yes
@@ -922,6 +928,7 @@ natives: context [
 		check? [logic!]
 		into   [integer!]
 		/local
+			blk	  [red-block!]
 			value	 [red-value!]
 			tail	 [red-value!]
 			arg		 [red-value!]
@@ -934,12 +941,13 @@ natives: context [
 	][
 		#typecheck [reduce into]
 		arg: stack/arguments
+		blk: as red-block! stack/arguments
 		blk?: TYPE_OF(arg) = TYPE_BLOCK
 		into?: into >= 0
 
 		if blk? [
-			value: block/rs-head as red-block! arg
-			tail:  block/rs-tail as red-block! arg
+			value: block/rs-head blk
+			tail:  block/rs-tail blk
 		]
 
 		stack/mark-native words/_body
@@ -954,7 +962,7 @@ natives: context [
 		]
 		either blk? [
 			while [value < tail][
-				value: interpreter/eval-next value tail yes
+				value: interpreter/eval-next blk value tail yes
 				clear-newline stack/arguments + 1
 				either append? [block/append*][actions/insert* -1 0 -1]
 				stack/keep									;-- preserve the reduced block on stack
@@ -970,7 +978,7 @@ natives: context [
 			][
 				stack/set-last arg
 			][
-				interpreter/eval-expression arg arg + 1 null no yes no ;-- for non block! values
+				interpreter/eval-expression arg arg + 1 blk no yes no ;-- for non block! values
 			]
 			if into? [either append? [block/append*][actions/insert* -1 0 -1]]
 		]
