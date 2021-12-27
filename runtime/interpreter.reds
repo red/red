@@ -1083,12 +1083,14 @@ interpreter: context [
 			sym	   [integer!]
 			infix? [logic!]
 			lit?   [logic!]
+			top?   [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line ["eval: fetching value of type " TYPE_OF(pc)]]]
 		
 		lit?: no
 		infix?: no
 		start: pc
+		top?: not sub?
 		unless prefix? [
 			next: as red-word! pc + 1
 			CHECK_INFIX
@@ -1306,7 +1308,7 @@ interpreter: context [
 			unless prefix? [either sub? [stack/unwind][stack/unwind-last]]
 			if tracing? [value: either sub? [stack/get-top][stack/arguments]]
 		]
-		if all [tracing? any [not sub? infix?]][fire-event EVT_EXPR code pc start value]
+		if all [tracing? top?][fire-event EVT_EXPR code pc start value]
 		pc
 	]
 	
