@@ -216,7 +216,7 @@ system/tools: context [
 		]
 		if all [
 			options/debug/active?
-			not find [init end enter exit prolog epilog] event
+			not find [init end enter exit prolog epilog expr] event
 		][
 			if event = 'fetch [event: 'eval]
 			prin out: rejoin ["-----> " uppercase mold event space]
