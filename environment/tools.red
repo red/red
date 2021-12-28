@@ -293,7 +293,7 @@ system/tools: context [
 		ref	   [any-type!]
 		frame  [pair!]
 	][
-		[init end call return prolog epilog]			;-- request only those events
+		[init call return prolog epilog]				;-- request only those events
 		anon: [0]
 		
 		switch event [
