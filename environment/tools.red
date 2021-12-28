@@ -131,13 +131,15 @@ system/tools: context [
 						]
 						'else [
 							unless empty? list: load/all cmd [
-								switch list/1 [
+								switch/default list/1 [
 									parents p	[show-parents event]
 									stack s		[show-stack]
 									next n		[]
 									continue c  [options/debug/active?: no cmd: ""]
 									quit q		[halt]
 									help ?		[print dbg-usage]
+								][
+									print "Unknown command!"
 								]
 							]
 						]
