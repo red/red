@@ -20,7 +20,7 @@ system/tools: context [
 	hist-length: none
 	
 	dbg-usage: next {
-	`help` or `?`: prints a list of debugger's commands.
+	`help` or `?`: print a list of debugger's commands.
 	`next` or `n` or just ENTER: evaluate next value.
 	`continue` or `c`: exit debugging console but continue evaluation.
 	`quit` or `q`: exit debugger and stop evaluation.
