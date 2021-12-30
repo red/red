@@ -322,15 +322,15 @@ Red [
 			
 			forall objectz [--assert objectz/1 == test objectz/1]
 		
-		--test-- "error"
-			errors: reduce [
-				try [1 / 0]
-				try [transcode "$FOO"]
-				make error! "User-defined"
-				make error! 303
-			]
-			
-			forall errors [--assert :errors/1 = test :errors/1]
+		;--test-- "error"
+		;	errors: reduce [
+		;		try [1 / 0]
+		;		try [transcode "$FOO"]
+		;		make error! "User-defined"
+		;		make error! 303
+		;	]
+		;	
+		;	forall errors [--assert :errors/1 = test :errors/1]
 		
 		;do [										;@@ #4568
 		;--test-- "function"						;@@ ???
