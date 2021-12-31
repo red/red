@@ -134,8 +134,8 @@ system/tools: context [
 								switch/default list/1 [
 									parents p	[show-parents event]
 									stack s		[show-stack]
-									next n		[]
-									continue c  [options/debug/active?: no cmd: ""]
+									next n		[clear cmd]
+									continue c  [options/debug/active?: no clear cmd]
 									quit q		[halt]
 									help ?		[print dbg-usage]
 								][
