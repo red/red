@@ -2863,6 +2863,7 @@ natives: context [
 			dt	  [red-datatype!]
 			fun	  [red-function!]
 			s	  [series!]
+			cs    [c-string!]
 	][
 		#typecheck [transcode next one prescan scan part into trace]
 
@@ -2908,7 +2909,18 @@ natives: context [
 		one?: any [next? not all? not load?]
 		either type = TYPE_BINARY [
 			if len < 0 [len: binary/rs-length? bin]
-			type: lexer/scan slot binary/rs-head bin len one? scan? load? no :offset fun as red-series! bin out
+			cs: as c-string! binary/rs-head bin
+			if all [									;-- skip the BOM, don't load it as word
+				len >= 3
+				cs/1 = #"^(EF)"
+				cs/2 = #"^(BB)"
+				cs/3 = #"^(BF)"
+			][
+				len: len - 3
+				cs: cs + 3
+				bin/head: bin/head + 3
+			]
+			type: lexer/scan slot as byte-ptr! cs len one? scan? load? no :offset fun as red-series! bin out
 		][
 			str: as red-string! bin
 			if len < 0 [len: string/rs-length? str]

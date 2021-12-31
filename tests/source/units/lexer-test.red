@@ -1504,6 +1504,9 @@ Red [
 	--test-- "#4781"
 		--assert 3:3:3.3000000001 = transcode/one "3:3:3,3"
 
+	--test-- "#5000"
+		--assert ["s"] == transcode #{EFBBBF227322}
+
 ===end-group===
 	
 ~~~end-file~~~
