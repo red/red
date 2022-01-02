@@ -480,6 +480,7 @@ system/tools: context [
 					][
 						clear change skip tail r -4 "..."
 					]
+					clear skip r part					;-- when part < 3-4
 				]
 				r
 			]		
