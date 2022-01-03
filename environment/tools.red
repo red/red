@@ -257,7 +257,7 @@ system/tools: context [
 			print [uppercase form event offset mold/part/flat :ref 30 mold/part/flat :value 30 frame]
 		]
 		
-		;; helpers to keep code readable, unlike `change/only back back tail series pick tail series -1`
+		;; helpers to keep code readable, unlike `change/only back back tail series last series`
 		x=:  make op! func [s [series!] i [any-type!]] [change/only s :i]
 		+=:  make op! func [s [series!] i [any-type!]] [append s :i]
 		|=:  make op! func [s [series!] i [any-type!]] [append/only s :i]
@@ -395,8 +395,8 @@ system/tools: context [
 						unless code [exit]				;@@ temp workaround for do/next
 						incr/by level <<< 1 -1
 						stkpos: take/last stkexs		;-- update stack with new value
-						append clear evstack <<< length? stkpos :value
-						append clear stkpos :value					
+						append/only clear evstack <<< length? stkpos :value
+						append/only clear stkpos :value					
 						
 						clear orgexs <<< 2
 						clear subexs <<< 2
