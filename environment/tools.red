@@ -429,9 +429,9 @@ system/tools: context [
 						drop evstack length? stkpos 
 						clear stkpos
 						
-						if 0 = last level [change/only back top topexs pop topexs]
-						change/only back top subexs pop subexs
-						change/only back top orgexs pop orgexs
+						if 0 = last level [change/only back top topexs last topexs]
+						change/only back top subexs last subexs
+						change/only back top orgexs last orgexs
 					]
 				]
 				
