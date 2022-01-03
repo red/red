@@ -387,8 +387,8 @@ system/tools: context [
 						unless code [exit]				;@@ temp workaround for do/next
 						incr/by back tail level -1
 						stkpos: take/last stkexs		;-- update stack with new value
-						append clear skip tail evstack negate length? stkpos :value
-						append clear stkpos :value					
+						append/only clear skip tail evstack negate length? stkpos :value
+						append/only clear stkpos :value					
 						
 						clear back back tail orgexs
 						clear back back tail subexs
