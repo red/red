@@ -534,11 +534,20 @@ system/tools: context [
 				level:   level % 10 + 1 * 2				;-- cap at 20 as we don't want indent to occupy whole column
 				
 				either data/isubex? [
-					expr: p: last data/stkexs
+					expr: last data/stkexs
+					isop?: all [
+						3 = length? expr
+						word? :expr/1
+						op? get/any :expr/1
+					]
 					either event = 'push [
 						expr: back tail expr
 					][
 						while [set-word? :expr/-1] [expr: back expr]
+					]
+					if isop? [							;-- locally reorder op calls for more readability
+						expr: copy expr
+						move p: skip tail expr -3 next p
 					]
 				][
 					p: tail data/topexs
