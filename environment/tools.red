@@ -259,7 +259,6 @@ system/tools: context [
 		
 		;; helpers to keep code readable, unlike `change/only back back tail series last series`
 		x=:  make op! func [s [series!] i [any-type!]] [change/only s :i]
-		+=:  make op! func [s [series!] i [any-type!]] [append s :i]
 		|=:  make op! func [s [series!] i [any-type!]] [append/only s :i]
 		||=: make op! func [s [series!] i [any-type!]] [append/only/dup s :i 2]
 
@@ -390,7 +389,7 @@ system/tools: context [
 						subexs ||= skip last blocks offset
 						incr level <<< 1
 					]
-					call [path += any [ref <anon>]]		;-- collect evaluation path
+					call [path |= any [ref <anon>]]		;-- collect evaluation path
 					return [							;-- revert both
 						unless code [exit]				;@@ temp workaround for do/next
 						incr/by level <<< 1 -1
