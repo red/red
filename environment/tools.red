@@ -102,36 +102,37 @@ system/tools: context [
 			prin out: rejoin ["Watch: " mold w ": "]
 			print mold/flat/part get/any w calc-max length? out
 		]
-		unless empty? watching [print lf]
 	]
 	
 	do-command: function [event [word!]][
 		if value? 'ask [								;-- `ask` needs a console sub-system
+			watch: [
+				list: next list
+				either add? [append watching list][
+					foreach w list [try [remove find watching to-word w]]
+				]
+			]
 			do [										;-- prevents `ask` from being compiled
 				until [
 					cmd: trim ask "debug> "
 					case [
-						cmd = #":" [
+						cmd/1 = #":" [
 							print ["==" mold get/any load next cmd]
 						]
 						find "+-" cmd/1 [
-							mode?: cmd/1 = #"+"
+							add?: cmd/1 = #"+"
 							switch first list: load/all next cmd [
-								watch w [
-									list: next list
-									either mode? [append watching list][
-										foreach w list [try [remove find watching to-word w]]
-									]
-								]
-								parents p [options/debug/show-parents?: mode?]
-								stack   s [options/debug/show-stack?:   mode?]
-								locals  l [options/debug/show-locals?:  mode?]
-								indent  i [options/debug/stack-indent?: mode?]
+								watch w	  [do watch]
+								parents p [options/debug/show-parents?: add?]
+								stack   s [options/debug/show-stack?:   add?]
+								locals  l [options/debug/show-locals?:  add?]
+								indent  i [options/debug/stack-indent?: add?]
 							]
 						]
 						'else [
 							unless empty? list: load/all cmd [
 								switch/default list/1 [
+									watch w	  	[add?: yes do watch]
 									parents p	[show-parents event]
 									stack s		[show-stack]
 									next n		[clear cmd]
