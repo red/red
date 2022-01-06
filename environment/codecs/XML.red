@@ -887,3 +887,17 @@ xml: context [
 
 ]
 
+put system/codecs 'xml context [
+    Title:     "XML codec"
+    Name:      'XML
+    Mime-Type: [application/xml]
+    Suffixes:  [%.xml]
+    encode: func [data [any-type!] where [file! url! none!]] [
+        to-xml data
+    ]
+    decode: func [text [string! binary! file!]] [
+        if file? text [text: read text]
+        if binary? text [text: to string! text]
+        load-xml text
+    ]
+]
