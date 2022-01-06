@@ -57,7 +57,7 @@ xml: context [
 	target: []
 	target-stack: []
 
-	decode: func [
+	set 'load-xml func [
 		"Convert XML data to Red format"
 		data [string! file! url!] "XML to convert"
 		/as
@@ -90,8 +90,6 @@ xml: context [
 		]
 		target
 	]
-
-	set 'load-xml :decode
 
 	sq: #"'"
 	dq: #"^""
