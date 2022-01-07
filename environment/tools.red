@@ -476,8 +476,6 @@ system/tools: context [
 
 		inspector: context [
 		
-			widths: object [left: 40 right: 30]			;-- column widths, controllable
-				
 			;; yet another incarnation of this func
 			;@@ remove it when we have smarter `ellipsize` func in runtime
 			mold-part: function [value [any-type!] part [integer!] /only] [
