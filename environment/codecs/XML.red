@@ -45,6 +45,15 @@ xml: context [
 		]
 	]
 
+	break-at: func [
+		"Insert newline at position"
+		series [block!]
+		index [integer!] "Index to insert newline at. Negative indexes are counted from tail."
+	] [
+		if negative? index [series: tail series]
+		new-line skip series index true
+		head series
+	]
 	load-key: none
 
 	value: att-name: att-value: att-length: att-ns: char-data:
@@ -90,6 +99,8 @@ xml: context [
 		]
 		target
 	]
+
+	set 'load-xml :decode
 
 	sq: #"'"
 	dq: #"^""
@@ -313,9 +324,16 @@ xml: context [
 		(cont-val: value)
 	]
 	EmptyElemTag: [
-		#"<" copy value Name any [S+ Attribute] S* "/>"
+		#"<"
+		copy value Name
+		any [
+			S+
+			Attribute
+			store-attributes
+		]
+		S*
+		"/>"
 		(value?: cont-val: copy "")
-		store-attributes
 		push-stack pop-stack
     ]
 	elementdecl: ["<!ELEMENT" S+ Name S+ contentspec S* #">"]
@@ -428,7 +446,7 @@ xml: context [
 				; store latest tag
 				append target load-key value
 				append/only target-stack target
-				new-line back tail target true
+				break-at target -1
 				append/only target copy []
 				append/only target either empty? attributes [
 					none
@@ -517,12 +535,12 @@ xml: context [
 				if namespace [
 					append target to refinement! namespace
 					namespace: none
-					new-line back tail target true
+					break-at target -1
 					nl?: true
 				]
 				append target value
 				unless nl? [
-					new-line back tail target true
+					break-at target -1
 				]
 				append target reduce [copy attributes]
 				append/only target-stack target
@@ -571,42 +589,35 @@ xml: context [
 						#text
 						copy char-data
 					]
-					new-line skip tail target -2 true
+					break-at target -2
 				]
+				clear char-data
 			]
 			'push-stack quote (
 				; store non-eclosed text if exists
 				store-char-data
 				; store latest tag
-				append target load-key value
+				repend target [load-key value copy []]
+				break-at target -2
 				append/only target-stack target
-				new-line back tail target true
-				repend target [
-					copy []
+				repend last target [
 					#attr either empty? attributes [
 						none
 					] [
 						copy attributes
 					]
 				]
-
+				break-at last target -2
 				; do cleanup
 				clear attributes
-				target: first skip tail target -3
+				target: last target
 			)
 			'pop-stack quote (
 				store-char-data
+				unless find target #text [repend target [#text none]]
+				break-at target -2
 				target: take/last target-stack
-				if value? [
-					change skip tail target -3 either empty? cont-val [
-						none
-					] [
-						cont-val
-					]
-					insert skip tail target -3 #text
-				]
 				value?: false
-				clear char-data
 			)
 			'store-attributes quote (
 				if att-name [
@@ -826,11 +837,13 @@ xml: context [
 				ns-rule
 				set tag-name word! (tag-name)
 				init-tag
-				[
-					ahead block! into [any content-rule]
-				|	text-rule
+				into [
+					some [
+						#attr [none! | into [any attr-rule]]
+					|	text-rule
+					|	tag-rule
+					]
 				]
-				#attr [none! | into [any attr-rule]]
 				store-tag
 			]
 			attr-rule: [
@@ -886,16 +899,16 @@ xml: context [
 ]
 
 put system/codecs 'xml context [
-    Title:     "XML codec"
-    Name:      'XML
-    Mime-Type: [application/xml]
-    Suffixes:  [%.xml]
-    encode: func [data [any-type!] where [file! url! none!]] [
-        to-xml data
-    ]
-    decode: func [text [string! binary! file!]] [
-        if file? text [text: read text]
-        if binary? text [text: to string! text]
-        load-xml text
-    ]
+	Title:     "XML codec"
+	Name:      'XML
+	Mime-Type: [application/xml]
+	Suffixes:  [%.xml]
+	encode: func [data [any-type!] where [file! url! none!]] [
+		to-xml data
+	]
+	decode: func [text [string! binary! file!]] [
+		if file? text [text: read text]
+		if binary? text [text: to string! text]
+		load-xml text
+	]
 ]
