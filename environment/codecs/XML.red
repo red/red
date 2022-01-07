@@ -100,8 +100,6 @@ xml: context [
 		target
 	]
 
-	set 'load-xml :decode
-
 	sq: #"'"
 	dq: #"^""
 	caret: #"^^"
