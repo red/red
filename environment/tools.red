@@ -275,32 +275,35 @@ system/tools: context [
 		;; context for trace data collected by 'collector' tracer and it's options
 		data: context [
 			;; input of collector:
-			debug?:   no								;-- /debug refinement (raw events output)
-			inspect:  none								;-- inspect function to call
-			ievents:  none								;-- events accepted by this inspect function (none = unfiltered)
-			iscopes:  none								;-- list of scopes accepted by this inspect fn (none = unfiltered)
-			isubex?:  none								;-- whether to call inspect on subexpressions
+			debug?:        no							;-- /debug refinement (raw events output)
+			inspect:       none							;-- inspect function to call
+			event-filter:  none							;-- events accepted by this inspect function (none = unfiltered)
+			scope-filter:  none							;-- list of scopes accepted by this inspect fn (none = unfiltered)
+			inspect-sub-exprs?: none					;-- whether to call inspect on subexpressions
 			;; entered blocks/parens/paths stack:
-			blocks:   []								;-- copied
-			orgblk:   []								;-- original
+			copied-blocks: []							;-- copied
+			orig-blocks:   []							;-- original
 			;; depth tracking:
-			fdepth:   0									;-- function call depth (prologs/epilogs only)
-			level:    []								;-- nesting level of expressions in each block (last 0 = top lvl)
-			path:     []								;-- path of refs up to current scope (starts empty)
+			func-depth:    0							;-- function call depth (prologs/epilogs only)
+			expr-levels:   []							;-- nesting level of expressions in each block (last 0 = top lvl)
+			path:          []							;-- path of refs up to current scope (starts empty)
 			;; mirrors of Red stack (of values):
-			stack:    []								;-- closer to code (words left alone, series copied)
-			evstack:  []								;-- after evaluation, raw values
+			stack:         []							;-- closer to code (words left alone, series copied)
+			eval'd-stack:  []							;-- after evaluation, raw values
 			;; entered expression lists:
-			topexs:   []								;-- top-only, inside code copy
-			subexs:   []								;-- all exprs, inside code copy
-			orgexs:   []								;-- all exprs, inside original code
-			stkexs:   []								;-- all exprs, inside the stack (partially evaluated)
+			copied-top-exprs: []						;-- top-only, inside code copy
+			copied-exprs:  []							;-- all exprs, inside code copy
+			orig-exprs:    []							;-- all exprs, inside original code
+			stack-exprs:   []							;-- all exprs, inside the stack (partially evaluated)
 	
 			reset: function ["Reset collector's data"] [
-				; set [debug? inspect iscopes ievents isubex?] none
-				blks: [blocks orgblk level path stack evstack topexs subexs orgexs stkexs]
+				; set [debug? inspect scope-filter event-filter inspect-sub-exprs?] none
+				blks: [
+					copied-blocks orig-blocks expr-levels path stack eval'd-stack
+					copied-top-exprs copied-exprs orig-exprs stack-exprs
+				]
 				foreach b blks [clear get b]
-				self/fdepth: 0
+				self/func-depth: 0
 			]
 
 			collector: function [
@@ -320,7 +323,7 @@ system/tools: context [
 							not tail? p: skip copy code offset
 						][
 							p: head change p as tag! uppercase form p/1
-							if s: pick tail topexs -2 [p: at p index? s]
+							if s: pick tail copied-top-exprs -2 [p: at p index? s]
 							p
 						]
 						code
@@ -330,15 +333,19 @@ system/tools: context [
 						pad :ref 10
 						pad mold/flat/part :value 20 22
 						pad mold/flat/part code2 60 62
-						pad level 8
+						pad expr-levels 8
 					]
 				]
 				
 				call: [
 					all [								;-- filtering by events, scope, expression level:
-						any [none? ievents  find ievents event]
-						any [none? iscopes  none? code  find/same/only iscopes code]
-						any [isubex?  0 = last level  all [1 = last level  find [open call return] event]]
+						any [none? event-filter  find event-filter event]
+						any [none? scope-filter  none? code  find/same/only scope-filter code]
+						any [
+							inspect-sub-exprs?
+							0 = last expr-levels
+							all [1 = last expr-levels  find [open call return] event]
+						]
 						inspect system/tools/tracers/data event code offset :value :ref frame
 					]
 				]
@@ -348,25 +355,25 @@ system/tools: context [
 					offset < 0
 					find [prolog epilog enter exit init end] event
 				][
-					ccopy: skip last blocks offset
-					push drop topexs 1 ccopy
-					push drop subexs 1 ccopy
-					if code [push drop orgexs 1 skip code offset]
+					code-copy: skip last copied-blocks offset
+					push drop copied-top-exprs 1 code-copy
+					push drop copied-exprs     1 code-copy
+					if code [push drop orig-exprs 1 skip code offset]
 				]
 						
 				;; report finishing events before removing relevant data
 				if find [return epilog exit expr] event [do call]
 				
 				switch event [
-					prolog [incr    'fdepth]
-					epilog [incr/by 'fdepth -1]
+					prolog [incr    'func-depth]
+					epilog [incr/by 'func-depth -1]
 					
 					fetch [								;-- save original values pushed to the stack
 						;; series are copied to report as they appear in code
 						;; this should be safe unless we expect literal series to be huge or cyclic
 						push stack either series? :value [copy/deep value][:value]
 					]
-					push [push evstack :value]			;-- save evaluated values pushed to the stack
+					push [push eval'd-stack :value]			;-- save evaluated values pushed to the stack
 					
 					open [								;-- mark start of a sub-expression
 						unless code [exit]				;@@ temp workaround for do/next
@@ -382,56 +389,58 @@ system/tools: context [
 							]
 						]								;@@ need a more reliable solution
 						incr/by 'offset -1				;-- -1 because open happens after the function name
-						push stkexs stkpos
+						push stack-exprs stkpos
 						
-						push/dup orgexs skip code offset 2
-						push/dup subexs skip last blocks offset 2
-						incr top level
+						push/dup orig-exprs skip code offset 2
+						push/dup copied-exprs skip last copied-blocks offset 2
+						incr top expr-levels
 					]
 					call [push path any [ref <anon>]]	;-- collect evaluation path
 					return [							;-- revert both
 						unless code [exit]				;@@ temp workaround for do/next
-						incr/by top level -1
-						stkpos: pop stkexs				;-- update stack with new value
-						push drop evstack length? stkpos :value
+						incr/by top expr-levels -1
+						stkpos: pop stack-exprs				;-- update stack with new value
+						push drop eval'd-stack length? stkpos :value
 						push clear stkpos :value					
 						
-						drop orgexs 2
-						drop subexs 2
+						drop orig-exprs   2
+						drop copied-exprs 2
 						pop path
 					]
 					; error []	;@@
 					
 					enter [								;-- mark start of an inner block of top-level exprs
-						push stkexs tail stack
-						push blocks c2: copy/deep code
-						push orgblk code
-						push level  0
+						push stack-exprs   tail stack
+						push copied-blocks c2: copy/deep code
+						push orig-blocks   code
+						push expr-levels   0
 						
-						push/dup topexs c2 2
-						push/dup orgexs code 2
-						push/dup subexs c2 2
+						push/dup copied-top-exprs c2 2
+						push/dup orig-exprs       code 2
+						push/dup copied-exprs     c2 2
 					]
 					exit [								;-- revert it
-						stkpos: pop stkexs
-						drop evstack length? stkpos 
+						stkpos: pop stack-exprs
+						drop eval'd-stack length? stkpos 
 						clear stkpos
-						pop blocks
-						pop orgblk
-						pop level
+						pop copied-blocks
+						pop orig-blocks
+						pop expr-levels
 						
-						drop topexs 2
-						drop orgexs 2
-						drop subexs 2
+						drop copied-top-exprs 2
+						drop orig-exprs       2
+						drop copied-exprs     2
 					]
 					expr [								;-- remove unused expressions from the stack
-						stkpos: last stkexs
-						drop evstack length? stkpos 
+						stkpos: last stack-exprs
+						drop eval'd-stack length? stkpos 
 						clear stkpos
 						
-						if 0 = last level [change/only back top topexs last topexs]
-						change/only back top subexs last subexs
-						change/only back top orgexs last orgexs
+						if 0 = last expr-levels [
+							change/only back top copied-top-exprs last copied-top-exprs
+						]
+						change/only back top copied-exprs last copied-exprs
+						change/only back top orig-exprs   last orig-exprs
 					]
 				]
 				
@@ -450,11 +459,11 @@ system/tools: context [
 		][
 			if tracing? [exit]							;-- impossible to hot-swap tracers atm
 			data/reset
-			data/debug?:  debug?
-			data/inspect: :inspect
-			data/isubex?: all?
-			data/ievents: if block? b: first body-of :inspect [b]
-			data/iscopes: if all [not deep?  any-list? :code] [
+			data/debug?:       debug?
+			data/inspect:      :inspect
+			data/inspect-sub-exprs?: all?
+			data/event-filter: if block? b: first body-of :inspect [b]
+			data/scope-filter: if all [not deep?  any-list? :code] [
 				to hash! collect [
 					keep/only head code
 					parse code rule: [any [
@@ -505,21 +514,21 @@ system/tools: context [
 		 		[expr error throw push return]
 				report?: all select [
 					expr [
-						not data/isubex?
-						0 = last data/level				;-- don't report sub-exprs
-						not paren? last data/topexs		;-- don't report paren as top-level, even if it technically is
+						not data/inspect-sub-exprs?
+						0 = last data/expr-levels				;-- don't report sub-exprs
+						not paren? last data/copied-top-exprs	;-- don't report paren as top-level, even if it technically is
 					]
 					error [true]
 					throw [true]
 					push [
-						data/isubex?
+						data/inspect-sub-exprs?
 						any-word? set/any 'word last data/stack
-						not same? word last data/evstack
+						not same? word last data/eval'd-stack
 						not find [yes no on off true false none] word
 						not find to [] any-type! word
 					]
 					return [
-						data/isubex?
+						data/inspect-sub-exprs?
 					] 
 				] event
 				any [report? exit]
@@ -530,11 +539,11 @@ system/tools: context [
 				right:   width - left
 				indent:  append/dup clear ""          " " full - 1			;-- indent for code
 				indent2: append/dup clear skip "  " 2 "`" full - 3			;-- indent for paths: prefixed by "  "
-				level:   (length? data/level) - pick [1 0] 'call = event	;-- 'call' level is deeper by 1
+				level:   (length? data/expr-levels) - pick [1 0] 'call = event	;-- 'call' level is deeper by 1
 				level:   level % 10 + 1 * 2				;-- cap at 20 as we don't want indent to occupy whole column
 				
-				either data/isubex? [
-					expr: last data/stkexs
+				either data/inspect-sub-exprs? [
+					expr: last data/stack-exprs
 					isop?: all [
 						3 = length? expr
 						word? :expr/1
@@ -550,7 +559,7 @@ system/tools: context [
 						move p: skip tail expr -3 next p
 					]
 				][
-					p: tail data/topexs
+					p: tail data/copied-top-exprs
 					expr: either 'error = event [p/-2][copy/part p/-2 p/-1]
 				]
 				if empty? expr [exit]					;@@ workaround for [a: 1] vs [a: 1 + 1] issue
@@ -558,10 +567,10 @@ system/tools: context [
 				if path?  code [expr: as path! expr]
 				
 				;; print current path, only works in non-/all mode
-				unless any [data/isubex?  data/path == last-path] [
+				unless any [data/inspect-sub-exprs?  data/path == last-path] [
 					p: change skip indent2 level 
 						uppercase mold-part as path! data/path full - 1 - level
-					t: tail data/topexs
+					t: tail data/copied-top-exprs
 					pexpr: any [if t/-4 [copy/part t/-4 t/-3] []]		;-- -4..-3 is the parent expression
 					if :pexpr/1 == last data/path [pexpr: next pexpr]	;-- don't duplicate last path item
 					unless empty? pexpr [
