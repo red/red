@@ -147,9 +147,9 @@ cli: context [
 			(all [
 				attempt [target: load target]
 				find [word! refinement!] type?/word :target		;-- using get-word for security (one day `load` may support serialized funcs)
-			]) else form rejoin ["Target "target" must be a word or refinement"]
+			]) else rejoin ["Target "target" must be a word or refinement"]
 			pos: find-refinement r to refinement! target
-			pos else form rejoin ["Target "target" of alias "alias" is not defined"]
+			pos else rejoin ["Target "target" of alias "alias" is not defined"]
 			append pos/1 alias
 		]
 		r
@@ -653,7 +653,7 @@ cli: context [
 	][
 		sync-arguments opts
 		
-		(function? get/any program) else form rejoin [program " must refer to a function"]
+		(function? get/any program) else rejoin [""program" must refer to a function"]
 		spec: prep-spec get/any program
 		
 		r: make string! 80
@@ -912,8 +912,8 @@ cli: context [
 				]
 				complain [ER_CMD "Unknown command:" form word]
 			]
-			(function? get/any program) else form rejoin [
-				"Word " program " must refer to a function, not " type? get/any program
+			(function? get/any program) else rejoin [
+				""program" must refer to a function, not " type? get/any program
 			]
 
 			call: compose/deep [ (program) [] [] ]						;-- where to collect processed args: [path operands options]
