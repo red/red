@@ -110,11 +110,16 @@ cli: context [
 
 	default: func [:w [set-word!] v] [any [get/any :w  set :w v]]
 
+	;-- internal spec format is a block of triplets:
+	;; [      name-word          "docstring"  typeset! ]  for operands and option arguments
+	;; [ [ /option /alias ... ]  "docstring"  none     ]  for --options themselves
+	SPEC-PERIOD:    3
+	SPEC-TYPESET:   3
+	SPEC-DOCSTRING: 2
+	SPEC-NAMES:     1
+
 	prep-spec: function [
 		"Converts a function SPEC into internal format used for easier argument processing"
-		;-- internal spec format is a block of triplets:
-		;; [      name-word          "docstring"  typeset! ]  for operands and option arguments
-		;; [ [ /option /alias ... ]  "docstring"  none     ]  for --options themselves
 		spec [block! function!]
 		/local name target
 	][
@@ -142,7 +147,7 @@ cli: context [
 		=fail=: [end | p: (do make error! rejoin ["Unsupported token " mold p/1 " in CLI function spec"])]
 		force-nullary?: no  aliases: copy []  r: copy []
 		parse spec [any string! any [=arg= | =local= | =ref= | =fail=]]
-		r: new-line/skip r yes 3
+		r: new-line/skip r yes SPEC-PERIOD
 		foreach [alias target] aliases [
 			(all [
 				attempt [target: load target]
@@ -169,8 +174,8 @@ cli: context [
 		r: str-to-ref r
 		spec: find-refinement prep-spec :f r
 		all [
-			word? pick spec 4
-			not word? pick spec 7
+			word?     pick spec     SPEC-PERIOD + SPEC-NAMES
+			not word? pick spec 2 * SPEC-PERIOD + SPEC-NAMES
 		]
 	]
 
@@ -305,6 +310,10 @@ cli: context [
 			[/ref1 /ref2 [] /ref3 [args] /ref4...]	-- block with so far found options and their arguments
 		]
 	}
+	
+	CALL-PATH: 1
+	CALL-ARGS: 2
+	CALL-REFS: 3
 
 	add-refinements: function [
 		"Append to internal CALL block option NAME=VALUE as refinement with all it's aliases"
@@ -320,17 +329,17 @@ cli: context [
 		refs: first spec
 		#assert [not empty? refs]
 		
-		either pos: find/tail call/3 ref [				;-- are refinements already added?
+		either pos: find/tail call/:CALL-REFS ref [		;-- are refinements already added?
 			pos: find pos block!							;-- jump to values
 		][												;-- otherwise
-			append call/3 refs								;-- list all aliases
-			pos: tail call/3
-			append/only call/3 copy []						;-- create a block to hold values
+			append call/:CALL-REFS refs						;-- list all aliases
+			pos: tail call/:CALL-REFS
+			append/only call/:CALL-REFS copy []				;-- create a block to hold values
 		]
 		#assert [(unary? :prog name) <> (none? value)]	;-- match provided arity with expected one
 
 		if unary? :prog name [							;-- check & add the value
-			types: pick spec 6								;-- 3rd is none, 6th is argument's typeset
+			types: pick spec SPEC-PERIOD + SPEC-TYPESET		;-- 3rd is none, 6th is argument's typeset
 			value: check-value/options value types opts
 			append pos/1 value
 		]
@@ -347,19 +356,19 @@ cli: context [
 			opts	[block! map! none!]
 	][
 		arity: preprocessor/func-arity? spec-of :prog
-		n-args: min arity length? call/2
-		spec: skip prep-spec :prog (n-args * 3)
+		n-args: min arity length? call/:CALL-ARGS
+		spec: skip prep-spec :prog (n-args * SPEC-PERIOD)
 														;-- find the accepted types
 		if not word? first spec [						;-- past the arguments already
 			if head? spec [									;-- no operands expected at all?
 				complain [ER_MUCH "Extra operands given"]	;-- then there's no type to check against
 			]
-			spec: skip spec -3								;-- use the last argument's typeset
+			spec: skip spec negate SPEC-PERIOD				;-- use the last argument's typeset
 		]
 		#assert [word? first spec]
 		#assert [typeset? third spec]
 		value: check-value/options value third spec opts
-		append call/2 value
+		append call/:CALL-ARGS value
 		call
 	]
 
@@ -372,14 +381,14 @@ cli: context [
 		/local ref
 	][
 		spec: prep-spec :program
-		r: reduce [call/1]
+		r: reduce [call/:CALL-PATH]
 														;-- add mandatory arguments
-		foreach arg call/2 [
-			either word? spec/1 [							;-- pass single argument normally
-				#assert [typeset? spec/3]
-				if find spec/3 block! [arg: reduce [arg]]
+		foreach arg call/:CALL-ARGS [
+			either word? spec/:SPEC-NAMES [					;-- pass single argument normally
+				#assert [typeset? spec/:SPEC-TYPESET]
+				if find spec/:SPEC-TYPESET block! [arg: reduce [arg]]
 				append/only r arg
-				spec: skip spec 3
+				spec: skip spec SPEC-PERIOD
 			][												;-- collect all other arguments into the last block
 				unless block? last r [complain [ER_MUCH "Extra operands given"]]
 				#assert [block? last r]
@@ -387,7 +396,7 @@ cli: context [
 			]
 		]
 
-		if find spec/3 block! [append/only r []]		;-- if block is accepted, provide an empty one in absence of arguments
+		if find spec/:SPEC-TYPESET block! [append/only r []]	;-- if block is accepted, provide an empty one in absence of arguments
 
 		arity: preprocessor/func-arity? spec-of :program
 		need-more: 1 + arity - length? r
@@ -400,8 +409,8 @@ cli: context [
 				complain [ER_FEW "Not enough operands given"]
 			][											;-- shortcut found: provide defaults
 				repeat i need-more [
-					spec: find/skip spec word! 3
-					type: first reduce to [] spec/3		;@@ how else to get a type from typeset?
+					spec: find/skip spec word! SPEC-PERIOD
+					type: first reduce to [] spec/:SPEC-TYPESET		;@@ how else to get a type from typeset?
 					append/only r any [					;-- create an argument out of thin air to finish the call
 						attempt [make type 0]			;-- for most types
 						attempt [make type ""]			;-- for issues
@@ -413,13 +422,14 @@ cli: context [
 		]
 
 		spec: head spec
-		unless empty? call/3 [							;-- add options as refinements
+		unless empty? call/:CALL-REFS [					;-- add options as refinements
 			if word? r/1 [ change/only r make path! reduce [r/1] ]	;-- convert word to path
 			types: none
-			foreach x call/3 [							;-- call/3 is refinements block
+			foreach x call/:CALL-REFS [					;-- call/3 is refinements block
 				either refinement? x [					;-- /ref
 					append r/1 to word! x					;-- add ref to path
-					types: pick find-refinement spec x 6	;-- 3rd is none, 6th is argument's typeset (or none if no argument)
+					types: pick find-refinement spec x
+						SPEC-PERIOD + SPEC-TYPESET			;-- 3rd is none, 6th is argument's typeset (or none if no argument)
 				][										;-- [values...]
 					if typeset? types [						;-- none if refinement is nullary
 						either find types block! [
