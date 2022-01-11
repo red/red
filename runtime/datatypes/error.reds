@@ -305,6 +305,8 @@ error: context [
 				fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_ERROR spec]
 			]
 		]
+		copy-cell #get system/state/near base + field-near
+		copy-cell none-value #get system/state/near		;-- reset system/state/near after usage
 		new
 	]
 	
@@ -389,6 +391,11 @@ error: context [
 				part: part - 3
 			]
 		]
+		
+		string/concatenate-literal buffer "^/*** Near : "
+		part: part - 12
+		part: actions/mold base + field-near buffer yes no no arg part 0
+		
 		int: as red-integer! #get system/state/stack-trace
 		if all [TYPE_OF(int) = TYPE_INTEGER int/value > 0][
 			value: base + field-stack

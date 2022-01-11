@@ -627,7 +627,7 @@ Red [
 			d: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 ]
 			e: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 ]
 		]
-		ro1-o: none
+		system/state/near: ro1-o: none
 		recycle
 		
 		ro1-mem2: stats
@@ -652,7 +652,7 @@ Red [
 		clear select ro2-o 'c
 		clear select ro2-o 'd
 		clear select ro2-o 'e
-		ro2-o: none
+		system/state/near: ro2-o: none
 		recycle
 		
 		ro2-mem2: stats
@@ -673,7 +673,7 @@ Red [
 		recycle
 		ro3-mem: stats
 		
-		ro3-o/a/a: none
+		system/state/near: ro3-o/a/a: none
 		recycle
 		
 		ro3-mem2: stats
@@ -696,7 +696,7 @@ Red [
 		recycle
 		ro4-mem: stats
 		                                       
-		ro4-o/a/b/c/d/e/e: none
+		system/state/near: ro4-o/a/b/c/d/e/e: none
 		recycle
 		
 		ro4-mem2: stats
@@ -722,7 +722,7 @@ Red [
 			j: make object! copy [
 			k: make object! copy [ data: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 ] ]
 		] ] ] ] ] ] ] ] ] ] ]
-		ro5-o: none
+		system/state/near: ro5-o: none
 		recycle
 		
 		ro5-mem2: stats
@@ -747,7 +747,7 @@ Red [
 		recycle
 		ro6-mem: stats
 		
-		ro6-o/a/b/c/d/e/f/g/h/i/j/k/data: none
+		system/state/near: ro6-o/a/b/c/d/e/f/g/h/i/j/k/data: none
 		recycle
 		
 		ro6-mem2: stats
@@ -761,6 +761,7 @@ Red [
 		ro7-o5: none		
 		ro7-mem: none
 		ro7-mem2: none
+		system/state/near: none
 		recycle
 		ro7-mem: stats
 		
@@ -769,6 +770,7 @@ Red [
 		ro7-o3: do [ make object! [ a: "1234567891011121314151617181920" ] ]
 		ro7-o4: do [ make object! [ a: "1234567891011121314151617181920" ] ]
 		ro7-o5: do [ make object! [ a: "1234567891011121314151617181920" ] ]
+		system/state/near: none
 		recycle
 		
 		ro7-mem2: stats
@@ -783,7 +785,7 @@ Red [
 		recycle
 		ro8-mem: stats
 
-		ro8-o/ro8-m/m: none
+		system/state/near: ro8-o/ro8-m/m: none
 		recycle
 		
 		ro8-mem2: stats
@@ -800,7 +802,7 @@ Red [
 		recycle
 		ro9-mem: stats
 		
-		ro9-o/ro9-m/m/m/m/m/m/m: none
+		system/state/near: ro9-o/ro9-m/m/m/m/m/m/m: none
 		recycle
 		
 		ro9-mem2: stats
