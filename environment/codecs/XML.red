@@ -16,14 +16,31 @@ Red[
 
 xml: context [
 
-; -- settings
+; -- options
 
-	meta?: false			; export metada also
-	red-keys?: true			; convert keys to Red values
-	text-sigil: 'text!		; text sigil for the COMPACT format
+	default-opts: #(
+		include-meta?: false	; export metada also
+		str-keys?: false		; leave keys as strings
+		text-mark: 'text!		; text sigil for the COMPACT format
+		trace?: false			; use PARSE-TRACE instead of PARSE (debug)
+		format: 'triples		; format to use
+	)
+
+	include-meta?: false
+	str-keys?: false
+	text-mark: 'text!
 	trace?: false
 	format: 'triples
 	formats: [triples compact key-val]
+
+	set-options: func [opts] [
+		unless map? opts [opts: to map! opts]
+		foreach [key value] opts [
+			if find keys-of opts key [
+				set bind key 'set-options value
+			]
+		]
+	]
 
 ; -- support functions
 
@@ -38,7 +55,7 @@ xml: context [
 		data [block!]
 	] [
 		to paren! compose/deep [
-			if meta? [
+			if include-meta? [
 				repend target [(data)]
 			]
 			value?: false
@@ -71,27 +88,39 @@ xml: context [
 		data [string! file! url!] "XML to convert"
 		/as
 			fmt [word!] "Select output format [triples compact key-val]"
-		/meta "Preserve meta data"
-		/strict "Require XML prolog"
+		/meta     "Preserve meta data"
+		/strict   "Require XML prolog"
+		/str-keys "Leave keys as strings"
+		/mark     "Text mark for compact format (default text!)"
+			txt-mark [word!]
+		/with     "Override options"
+			opts [block! map!]
 		; debugging
 		/trace "Use `parse-trace` instead of `parse`"
 	] [
+		; process options
+		set-options default-opts
 		fmt: any [fmt format]
 			unless find formats fmt [
-				do make error! "Unkown format"
+				do make error! "Unknown format"
 			]
 		init-decoder fmt
-		unless string? data [data: read data]
-		meta?: meta
+		include-meta?: meta
 		document: either strict [strict-document] [loose-document]
+		str-keys?: str-keys
+		if mark [txt-mark: text-mark]
+		if with [
+			set-options opts
+		]
+		; cleanup state
+		unless string? data [data: read data]
 		clear target
 		clear target-stack
 		clear attributes
-
 		value: att-name: att-value:
 		verinfo: encinfo:
 			none
-
+		; run parser
 		either trace [
 			parse-trace data document
 		] [
@@ -296,6 +325,7 @@ xml: context [
 	|	S* STag S* content S* ETag pop-stack S*
 	]
 	STag: [
+		(clear attributes)
 		#"<"
 		copy value Name
 		any [
@@ -322,6 +352,7 @@ xml: context [
 		(cont-val: value)
 	]
 	EmptyElemTag: [
+		(clear attributes)
 		#"<"
 		copy value Name
 		any [
@@ -421,7 +452,7 @@ xml: context [
 		triples: reduce [
 			'attributes []
 			'load-key func [value] [
-				unless red-keys? [return value]
+				if str-keys? [return value]
 				either find value #":" [
 					to path! replace/all value #":" #"/"
 				] [to word! value]
@@ -519,7 +550,7 @@ xml: context [
 					string? char-data
 					not empty? trim char-data
 				] [
-					append target reduce [to word! text-sigil copy char-data]
+					append target reduce [to word! text-mark copy char-data]
 					clear char-data
 					clear cont-val
 				]
@@ -560,7 +591,7 @@ xml: context [
 			)
 			; TODO: Do not emit empty attributes here
 			'store-xml-decl quote (
-				if meta? [
+				if include-meta? [
 					append target @xml
 					if verinfo [repend target [#version  verinfo]]
 					if encinfo [repend target [#encoding encinfo]]
@@ -573,7 +604,7 @@ xml: context [
 		key-val: reduce [
 			'attributes []
 			'load-key func [value] [
-				unless red-keys? [return value]
+				if str-keys? [return value]
 				either find value #":" [
 					to path! replace/all value #":" #"/"
 				] [to word! value]
@@ -584,7 +615,7 @@ xml: context [
 					not empty? trim char-data
 				] [
 					repend target [
-						#text
+						'text!
 						copy char-data
 					]
 					break-at target -2
@@ -599,7 +630,7 @@ xml: context [
 				break-at target -2
 				append/only target-stack target
 				repend last target [
-					#attr either empty? attributes [
+					'attr! either empty? attributes [
 						none
 					] [
 						copy attributes
@@ -612,7 +643,7 @@ xml: context [
 			)
 			'pop-stack quote (
 				store-char-data
-				unless find target #text [repend target [#text none]]
+				unless find target 'text! [repend target ['text! none]]
 				break-at target -2
 				target: take/last target-stack
 				value?: false
@@ -661,15 +692,16 @@ xml: context [
 	make-atts: function [
 		data
 	] [
-		data: either none? data [""] [
-			collect/into [
-				foreach [key value] data [
-					keep rejoin [key #"=" enquote value space]
-				]
-			] clear ""
-		]
-		unless empty? data [insert data space]
-		trim data
+		if any [
+			not data
+			empty? data
+		] [return ""]
+		data: collect/into [
+			foreach [key value] data [
+				keep rejoin [key #"=" enquote value space]
+			]
+		] clear ""
+		rejoin [space trim data]
 	]
 
 	make-tag: function [
@@ -679,13 +711,8 @@ xml: context [
 		/close
 		/empty
 	] [
-		atts: either all [
-			with not empty? atts
-		] [
-			rejoin [space make-atts atts]
-		] [""]
 		rejoin trim reduce [
-			#"<" if close [#"/"] form name atts if empty [" /"] #">"
+			#"<" if close [#"/"] form name make-atts atts if empty [" /"] #">"
 		]
 	]
 
@@ -694,14 +721,15 @@ xml: context [
 	] [
 		output: make string! 1000
 		i+
+		atts: make-atts data/3
 		either block? data/2 [
 			; tag
 			either empty? data/2 [
 				; empty tag
-				repend output [indent #"<" form data/1 make-atts data/3 "/>"]
+				repend output [indent #"<" form data/1 atts "/>"]
 			] [
 				; tag pair
-				repend output [indent #"<" form data/1 make-atts data/3 #">"]
+				repend output [indent #"<" form data/1 atts #">"]
 				until [
 					repend output process-tag take/part data/2 3
 					empty? data/2
@@ -712,7 +740,7 @@ xml: context [
 			; content
 			repend output either data/1 [[
 				indent
-				#"<" form data/1 make-atts data/3 #">"
+				#"<" form data/1 atts #">"
 				either data/2 [data/2] [""]
 				"</" form data/1 #">"
 			]] [
@@ -778,7 +806,7 @@ xml: context [
 				)
 			]
 			text-rule: [
-				text-sigil copy value string!
+				text-mark copy value string!
 				(append output value)
 			]
 			pi-rule: [
@@ -798,7 +826,7 @@ xml: context [
 			] [
 				clear output
 				clear tag-stack
-				text-sigil: to lit-word! text-sigil
+				text-mark: to lit-word! text-mark
 				parse*: either trace [:parse-trace] [:parse]
 				parse* data [some content-rule]
 				output
@@ -837,7 +865,7 @@ xml: context [
 				init-tag
 				into [
 					some [
-						#attr [none! | into [any attr-rule]]
+						'attr! [none! | into [any attr-rule]]
 					|	text-rule
 					|	tag-rule
 					]
@@ -855,7 +883,7 @@ xml: context [
 				)
 			]
 			text-rule: [
-				#text [
+				'text! [
 					set value string! (append output value)
 				|	none!
 				]
