@@ -263,7 +263,7 @@ help-ctx: context [
 			clear stack
 			; The = sigils are just to make parse-related vars more obvious
 			func-desc=:  [set =val string! (res/desc: =val)]
-			attr-val=:   ['catch | 'throw]
+			attr-val=:   ['catch | 'throw | 'trace | 'no-trace]
 			func-attr=:  [into [copy =val some attr-val= (res/attr: =val)]]
 			
 			param-name=: [
