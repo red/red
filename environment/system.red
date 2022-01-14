@@ -466,8 +466,13 @@ system: context [
 			token                      					;-- current token as an input slice (pair!) or a loaded value.
 			return: [logic!]                			;-- YES: continue to next lexing stage, NO: cancel current token lexing
 		][
-			type: rejoin [mold type "(" type? type ")"]
-			print [event type token line mold/part input 16]
+			print [										;-- total: 64
+				uppercase pad event 8
+				pad rejoin [mold type "(" type? type ")"] 20
+				pad mold/part token 12 12				;-- limit in case it's a huge string/binary
+				pad line 4
+				mold/part input 16
+			]
 			either event = 'error [input: next input no][yes]
 		]
 	]
