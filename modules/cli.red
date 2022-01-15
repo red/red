@@ -492,7 +492,7 @@ cli: context [
 		is-help-version?: [								;-- use default -h / --version when allowed
 			case [
 				find ["h" "help"] arg-name [
-					unless no-help [argname: "help"]	;-- expand -h into --help
+					unless no-help [arg-name: "help"]	;-- expand -h into --help
 				]
 				arg-name = "version" [not no-version]
 			]
