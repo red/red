@@ -259,19 +259,12 @@ system/tools: context [
 		]
 		
 		;; helpers to keep code readable, unlike `change/only back back tail series last series`
-		push: func [s [series!] i [any-type!] /dup n [integer!]] [append/only/dup s i any [n 1]]
-		drop: func [s [series!] n [integer!]] [clear skip tail s negate n]
-		pop:  func [s [series!]] [take/last s]
-		top:  func [s [series!]] [back tail s]
+		push:   func [s [series!] i [any-type!] /dup n [integer!]] [append/only/dup s i any [n 1]]
+		drop:   func [s [series!] n [integer!]] [clear skip tail s negate n]
+		pop:    func [s [series!]] [take/last s]
+		top-of: func [s [series!]] [back tail s]
 
-		incr: function [x [word! series!] /by o] [		;@@ remove this once we have it generally available
-			o: any [o 1]
-			either any [path? x word? x] [
-				set x (get x) + o
-			][
-				change x x/1 + o
-			]
-		]
+		step: func [s [word! series!] /by value [integer!]][change s s/1 + any [value 1]]
 		
 		;; context for trace data collected by 'collector' tracer and it's options
 		data: context [
@@ -309,12 +302,13 @@ system/tools: context [
 
 			collector: function [
 				"Generic tracer that collects high-level tracing info"
-				event  [word!]                      	;-- Event name
-				code   [default!]				     	;-- Currently evaluated block
-				offset [integer!]                   	;-- Offset in evaluated block
-				value  [any-type!]                  	;-- Value currently processed
-				ref	   [any-type!]                  	;-- Reference of current call
-				frame  [pair!]                      	;-- Stack frame start/top positions
+				event  [word!]							;-- Event name
+				code   [default!]						;-- Currently evaluated block
+				offset [integer!]						;-- Offset in evaluated block
+				value  [any-type!]						;-- Value currently processed
+				ref	   [any-type!]						;-- Reference of current call
+				frame  [pair!]							;-- Stack frame start/top positions
+				/extern func-depth
 			][
 				;; print out event info for debugging
 				if debug? [
@@ -366,19 +360,19 @@ system/tools: context [
 				if find [return epilog exit expr] event [do call]
 				
 				switch event [
-					prolog [incr    'func-depth]
-					epilog [incr/by 'func-depth -1]
+					prolog [func-depth: func-depth + 1]
+					epilog [func-depth: func-depth -1]
 					
 					fetch [								;-- save original values pushed to the stack
 						;; series are copied to report as they appear in code
 						;; this should be safe unless we expect literal series to be huge or cyclic
 						push stack either series? :value [copy/deep value][:value]
 					]
-					push [push eval'd-stack :value]			;-- save evaluated values pushed to the stack
+					push [push eval'd-stack :value]		;-- save evaluated values pushed to the stack
 					
 					open [								;-- mark start of a sub-expression
 						unless code [exit]				;@@ temp workaround for do/next
-						stkpos: top stack				;-- back because func name is already on the stack
+						stkpos: top-of stack			;-- back because func name is already on the stack
 						if all [						;@@ workaround for ops but it won't work in `op op op` situation
 							word? :value
 							op? get/any value
@@ -386,23 +380,23 @@ system/tools: context [
 							either value =? pick code offset + 1 [
 								reverse stkpos: back stkpos
 							][
-								incr 'offset
+								offset: offset + 1
 							]
 						]								;@@ need a more reliable solution
-						incr/by 'offset -1				;-- -1 because open happens after the function name
+						offset: offset - 1				;-- -1 because open happens after the function name
 						push stack-exprs stkpos
 						
 						push/dup orig-exprs skip code offset 2
 						push/dup copied-exprs skip last copied-blocks offset 2
-						incr top expr-levels
+						step top-of expr-levels
 					]
 					call [push path any [ref <anon>]]	;-- collect evaluation path
 					return [							;-- revert both
 						unless code [exit]				;@@ temp workaround for do/next
-						incr/by top expr-levels -1
-						stkpos: pop stack-exprs				;-- update stack with new value
+						step/by top-of expr-levels -1
+						stkpos: pop stack-exprs			;-- update stack with new value
 						push drop eval'd-stack length? stkpos :value
-						push clear stkpos :value					
+						push clear stkpos :value
 						
 						drop orig-exprs   2
 						drop copied-exprs 2
@@ -438,10 +432,10 @@ system/tools: context [
 						clear stkpos
 						
 						if 0 = last expr-levels [
-							change/only back top copied-top-exprs last copied-top-exprs
+							change/only back top-of copied-top-exprs last copied-top-exprs
 						]
-						change/only back top copied-exprs last copied-exprs
-						change/only back top orig-exprs   last orig-exprs
+						change/only back top-of copied-exprs last copied-exprs
+						change/only back top-of orig-exprs   last orig-exprs
 					]
 				]
 				
@@ -503,14 +497,14 @@ system/tools: context [
 			
 		 	inspect: function [
 		 		data   [object!]						;-- collector's stats
-			    event  [word!]                      	;-- Event name
-			    code   [default!]				     	;-- Currently evaluated block
-			    offset [integer!]                   	;-- Offset in evaluated block
-			    value  [any-type!]                  	;-- Value currently processed
-			    ref	   [any-type!]                  	;-- Reference of current call
-			    /local word
-		 	][
-		 		[expr error throw push return]
+				event  [word!]							;-- Event name
+				code   [default!]						;-- Currently evaluated block
+				offset [integer!]						;-- Offset in evaluated block
+				value  [any-type!]						;-- Value currently processed
+				ref	   [any-type!]						;-- Reference of current call
+				/local word
+			][
+				[expr error throw push return]
 				report?: all select [
 					expr [
 						not data/inspect-sub-exprs?
