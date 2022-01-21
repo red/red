@@ -372,7 +372,8 @@ error: context [
 		][
 			blk: block/clone as red-block! value no no
 			blk: reduce blk obj
-			part: block/form blk buffer arg part
+			arg2: as red-value! integer/push 80
+			part: block/form blk buffer arg2 80
 		]
 		
 		string/concatenate-literal buffer "^/*** Where: "
