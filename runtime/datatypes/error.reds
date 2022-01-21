@@ -324,6 +324,7 @@ error: context [
 			str		[red-string!]
 			blk		[red-block!]
 			int		[red-integer!]
+			arg2	[red-value!]
 			print-stack-header [subroutine!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "error/form"]]
@@ -394,7 +395,8 @@ error: context [
 		
 		string/concatenate-literal buffer "^/*** Near : "
 		part: part - 12
-		part: actions/mold base + field-near buffer yes no no arg part 0
+		arg2: as red-value! integer/push 40
+		part: actions/mold base + field-near buffer yes no yes arg2 40 0
 		
 		int: as red-integer! #get system/state/stack-trace
 		if all [TYPE_OF(int) = TYPE_INTEGER int/value > 0][
