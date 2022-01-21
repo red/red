@@ -652,7 +652,7 @@ Red [
 		    open 1 #[none] "trace" 0 
 		    fetch 1 #[none] "off" 0 
 		    push 1 #[none] #[none] 0 
-		    call 2 "trace" "func [{Run" 4 
+		    call 2 "trace" "func [{Run" 7 
 		    prolog -1 "foo-tr9" "func [[tra" 0 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "+" 0 
