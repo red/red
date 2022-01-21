@@ -361,7 +361,7 @@ system/tools: context [
 				
 				switch event [
 					prolog [func-depth: func-depth + 1]
-					epilog [func-depth: func-depth -1]
+					epilog [func-depth: func-depth - 1]
 					
 					fetch [								;-- save original values pushed to the stack
 						;; series are copied to report as they appear in code
