@@ -590,10 +590,10 @@ lexer: context [
 		if items <> 0 [
 			s: GET_BUFFER(blk)
 			copy-memory 
-				as byte-ptr! s/offset + blk/head
+				as byte-ptr! s/tail
 				as byte-ptr! src
 				items << 4
-			s/tail: s/offset + blk/head + items
+			s/tail: s/tail + items
 		]
 	]
 	
