@@ -414,4 +414,12 @@ Red [
 
 ===end-group===
 
+===start-group=== "load issues"
+
+	--test-- "#5043"
+		b: [1 2]
+		--assert [1 2 3 4] == load/into "3 4" b  b
+
+===end-group===
+
 ~~~end-file~~~

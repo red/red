@@ -451,6 +451,7 @@ load: function [
 
 	out: case [
 		part  [transcode/part source length]
+		into  [transcode/into source out]
 		;trap  [system/lexer/transcode to-string source out trap]
 		next  [
 			set position second out: transcode/next source
