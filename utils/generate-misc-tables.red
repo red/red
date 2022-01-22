@@ -72,7 +72,8 @@ float-classes: [
 	C_FL_DIGIT										;-- 2
 	C_FL_EXP										;-- 3
 	C_FL_DOT										;-- 4
-	C_FL_EOF										;-- 5
+	C_FL_QUOTE										;-- 5
+	C_FL_EOF										;-- 6
 ]
 
 gen-float-classes-table: function [][
@@ -86,6 +87,7 @@ gen-float-classes-table: function [][
 			find ".," c  [4]
 			find "+-" c	 [1]
 			find "eE" c	 [3]
+			c = #"'"	 [5]
 			'else		 [0]
 		]
 	]

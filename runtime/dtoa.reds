@@ -1319,7 +1319,7 @@ dtoa: context [
 		ret		[int-ptr!]		;-- mandatory
 		return: [float!]
 		/local
-			STRTOD_RETURN STRTOD_OVERFLOW STRTOD_BREAK STRTOD_DROP_DOWN [subroutine!]
+			STRTOD_RETURN STRTOD_OVERFLOW STRTOD_BREAK STRTOD_DROP_DOWN prescan [subroutine!]
 			rv rv0 aadj2 aadj aadj1 adj [float!]
 			bb bb1 bd bd0 bs delta [big-int!]
 			bbe bb2 bb5 bd2 bd5 bs2 dsign e e1 w0 w1 ndigits fraclen
@@ -1387,6 +1387,23 @@ dtoa: context [
 			d/int1: FFFFFFFFh
 			STRTOD_BREAK
 		]
+		
+		prescan: [
+			s1: s
+			c: s/1
+			while [s < end][
+				case [
+					all [c >= #"0" c <= #"9"][s: s + 1]
+					c = #"'" [
+						if s/2 = #"'" [ret/value: 999999 return rv]
+						move-memory s s + 1 as-integer end - s
+						end: end - 1
+					]
+					true [break]
+				]
+				c: s/1
+			]
+		]
 
 		if any [
 			c = #"+"
@@ -1407,20 +1424,7 @@ dtoa: context [
 		if s = end [return 0.0]
 
 		s0: s
-		s1: s
-		c: s/1
-		while [s < end][
-			case [
-				all [c >= #"0" c <= #"9"][s: s + 1]
-				c = #"'" [
-					if s/2 = #"'" [ret/value: 999999 return rv]
-					move-memory s s + 1 as-integer end - s
-					end: end - 1
-				]
-				true [break]
-			]
-			c: s/1
-		]
+		prescan
 		ndigits: as-integer s - s1
 		fraclen: 0
 
@@ -1443,11 +1447,7 @@ dtoa: context [
 				fraclen: fraclen + (s - s1)
 				s0: s
 			]
-			s1: s
-			while [
-				c: s/1
-				all [s < end c >= #"0" c <= #"9"]
-			][s: s + 1]
+			prescan
 			ndigits: ndigits + (s - s1)
 			fraclen: fraclen + (s - s1)
 		]
