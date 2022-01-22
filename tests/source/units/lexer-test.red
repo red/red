@@ -1509,7 +1509,8 @@ Red [
 
 	--test-- "#5042"
 		b: [1 2 3]
-		--assert [1 2 3 4 5] == transcode/into "4 5"  next b head b
+		--assert [2 3 4 5] = transcode/into "4 5" next b
+		--assert b == [1 2 3 4 5]
 
 ===end-group===
 	

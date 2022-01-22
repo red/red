@@ -577,7 +577,7 @@ lexer: context [
 	store-any-block: func [slot [cell!] src [cell!] items [integer!] type [integer!] blk [red-block!]
 		/local
 			s	 [series!]
-			size [integer!]
+			size len [integer!]
 	][
 		size: either zero? items [1][items]
 		either null? blk [
@@ -585,7 +585,10 @@ lexer: context [
 			blk/head: 0
 		][
 			s: GET_BUFFER(blk)
-			if s/size >> 4 - blk/head < size [expand-series GET_BUFFER(blk) size + blk/head << 4]
+			len: (as-integer s/tail - s/offset) >> size? cell!
+			if (s/size >> size? cell!) - len < size [
+				expand-series GET_BUFFER(blk) size << 4 + s/size
+			]
 		]
 		blk/header: blk/header and type-mask or type
 
@@ -596,6 +599,7 @@ lexer: context [
 				as byte-ptr! src
 				items << 4
 			s/tail: s/tail + items
+			assert (as-integer s/tail - s/offset) <= s/size
 		]
 	]
 	
