@@ -70,10 +70,10 @@ date: context [
 			7 [integer/push time/get-hours t]
 			8 [integer/push time/get-minutes t]
 			9 [float/push DATE_GET_SECONDS(t)]
-		   10 [integer/push (date-to-days d) + 2 % 7 + 1]
+		   10 [integer/push (date-to-days d) + 2 // 7 + 1]
 		   11 [integer/push get-yearday d]
 		   13 [
-				wd: (Jan-1st-of d) + 3 % 7				;-- start the week on Sunday
+				wd: (Jan-1st-of d) + 3 // 7				;-- start the week on Sunday
 				days: 7 - wd
 				d: get-yearday d
 				d: either d <= days [1][d + wd - 1 / 7 + 1]
@@ -127,7 +127,7 @@ date: context [
 			wd	 [integer!]
 	][
 		days: Jan-1st-of d
-		wd: days + 2 % 7 + 1
+		wd: days + 2 // 7 + 1
 		weekday/value: wd
 		base: either wd < 5 [1][8]						;-- before Friday, go prev Monday, from Friday, go to next one
 		days + base - wd								;-- adjust to closest Monday
@@ -423,7 +423,7 @@ date: context [
 		d: dt/date
 		days: date-to-days d
 		t?: DATE_GET_TIME_FLAG(d)
-		dt/date: days-to-date days + (v - 1) - (days + 2 % 7) DATE_GET_ZONE(d) t?
+		dt/date: days-to-date days + (v - 1) - (days + 2 // 7) DATE_GET_ZONE(d) t?
 	]
 	
 	set-yearday: func [
@@ -1044,7 +1044,7 @@ date: context [
 				]
 				10  [									;-- /weekday:
 					days: date-to-days d
-					dt/date: days-to-date days + (v - 1) - (days + 2 % 7) DATE_GET_ZONE(d) time?
+					dt/date: days-to-date days + (v - 1) - (days + 2 // 7) DATE_GET_ZONE(d) time?
 				]
 				11 [									;-- /yearday: /julian: 
 					dt/date: days-to-date v + (Jan-1st-of d) - 1 DATE_GET_ZONE(d) time?
@@ -1052,7 +1052,7 @@ date: context [
 				13 [									;-- /week:
 					days: Jan-1st-of d
 					if v > 1 [
-						wd: days + 3 % 7				;-- start the week on Sunday
+						wd: days + 3 // 7				;-- start the week on Sunday
 						days: days + (v - 2 * 7) + 7 - wd
 					]
 					dt/date: days-to-date days DATE_GET_ZONE(d) time?
