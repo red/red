@@ -5,8 +5,6 @@
 [![ARMhf build 2](https://github.com/red/red/workflows/RPi/badge.svg)](https://github.com/red/red/actions?query=workflow%3ARPi)
 [![macOS build](https://bs.red-lang.org/macos.svg)](https://travis-ci.org/red/red)
 [![Linux build](https://bs.red-lang.org/linux.svg)](https://travis-ci.org/red/red)
-[![ARMel build](https://bs.red-lang.org/armel.svg)](https://travis-ci.org/red/red)
-[![ARMhf build](https://bs.red-lang.org/armhf.svg)](https://travis-ci.org/red/red)
 
 Red Programming Language
 ------------------------

@@ -277,7 +277,13 @@ preprocessor: context [
 				]
 			]
 		]
-		if any [not valid? all [not named? cnt <> 2]][
+		if any [
+			not valid?
+			all [
+				not named?
+				any [cnt <> 2 all [block? spec/1 empty? spec/1]]
+			]
+		][
 			print [
 				"*** Macro Error: invalid specification^/"
 				"*** Where:" mold copy/part spec 3
