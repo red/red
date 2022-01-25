@@ -18,7 +18,7 @@ get-hwnd-render-target-d2d: func [
 ][
 	target: as int-ptr! GetWindowLong hWnd wc-offset - 36
 	if null? target [
-		target: as int-ptr! allocate 4 * size? int-ptr!
+		target: as int-ptr! zero-alloc size? render-target!
 		target/1: as-integer create-hwnd-render-target hWnd
 		target/2: as-integer allocate D2D_MAX_BRUSHES * 2 * size? int-ptr!
 		target/3: 0
@@ -2158,6 +2158,13 @@ OS-draw-line-cap: func [
 	][
 		update-pen ctx PEN_LINE_CAP
 	]
+]
+
+OS-draw-line-pattern: func [
+	ctx			[draw-ctx!]
+	start		[red-integer!]
+	end			[red-integer!]
+][
 ]
 
 OS-draw-image: func [
