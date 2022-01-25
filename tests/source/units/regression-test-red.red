@@ -1769,10 +1769,9 @@ Red [
 		unset 'ctx1509
 
 	--test-- "#1515"
-		--assert not error? try [1.222090944E+33 // -2147483648.0] ; expected 0
-		--assert equal? 0.0 1.222090944E+33 // -2147483648.0 
-		; FIXME: this is still unfixed:
-		;--assert equal? 0.0 1.222090944E+33 % -2147483648.0 
+		--assert zero? 1.222090944E+33 // -2147483648.0
+		--assert zero? 1.222090944E+33 // -2147483648.0
+		--assert zero? 1.222090944E+33 %  -2147483648.0
 
 	; --test-- "#1519"
 		; TODO: call-test.red problem
