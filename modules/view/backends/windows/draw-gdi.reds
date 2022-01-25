@@ -2160,6 +2160,13 @@ OS-draw-line-cap: func [
 	]
 ]
 
+OS-draw-line-pattern: func [
+	ctx			[draw-ctx!]
+	start		[red-integer!]
+	end			[red-integer!]
+][
+]
+
 OS-draw-image: func [
 	ctx			[draw-ctx!]
 	src			[red-image!]
