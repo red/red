@@ -507,7 +507,7 @@ BaseWndProc: func [
 		WM_DISPLAYCHANGE [
 			if painting? [return 0]
 			if (WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) = 0 [
-				BeginPaint hWnd :ps
+				#either draw-engine = 'GDI+ [][BeginPaint hWnd :ps]
 				painting?: yes
 				draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
 				either TYPE_OF(draw) = TYPE_BLOCK [
@@ -533,7 +533,7 @@ BaseWndProc: func [
 					system/thrown: 0
 				]
 				painting?: no
-				EndPaint hWnd :ps
+				#either draw-engine = 'GDI+ [][EndPaint hWnd :ps]
 				return 0
 			]
 		]
