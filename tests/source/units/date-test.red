@@ -871,6 +871,21 @@ Red [
 		d/year: d/year - 1
 		--assert d = 1-Mar-2019/15:30:00+04:15
 
+	--test-- "issue-5033"
+		d: 1/3/0000  wd: 3  yd: 60  wk: iw: 9
+		expected: []
+		computed: []
+		repeat i 100 [
+			repend/only expected [wd yd wk iw]
+			repend/only computed [d/weekday d/yearday d/week d/isoweek]
+			wd: wd - 2 // 7 + 1
+			yd: yd - 2 // 365 + 1
+			if wd = 6 [wk: wk - 2 // 53 + 1]
+			if wd = 7 [iw: iw - 2 // 52 + 1]
+			d: d - 1
+		]
+		--assert expected = computed
+		
 ===end-group===
 
 ~~~end-file~~~
