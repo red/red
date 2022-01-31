@@ -328,7 +328,7 @@ system: context [
 		numbering-systems: none							;-- all numbering systems from CLDR (they're small)
 		cardinal:          none							;-- cardinal quantities spelling rules
 		ordinal:           none							;-- ordinal quantities spelling rules
-		tools:             none							;-- place for l10n functions (needed by boot.red)
+		tools:             none							;-- place for l10n functions
 		
 		;collation: context [
 		;	lower-to-upper: #system [stack/set-last as cell! case-folding/lower-to-upper]
