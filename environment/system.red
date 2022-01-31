@@ -310,26 +310,33 @@ system: context [
 	ports:	 context []
 	
 	locale: context [
-		language:
-		language*:										;-- in locale language
-		locale:
-		locale*: none									;-- in locale language
-
+		;; data for chosen locale:
+		name:              none							;-- "language (region)" spelled in locale's language
+		lang-name:         none							;-- language name only (e.g. "English")
+		region-name:       none							;-- region name only (e.g. "United States")
+		locale:            none							;-- full locale tag (e.g. 'en_US)
+		language:          none							;-- language tag only (e.g. 'en)
+		region:            none							;-- abbreviated word name of the region (e.g. 'US)
+		currency:          none							;-- default currency for locale
+		numbers:           none							;-- digits, symbols, numeric masks
+		calendar:          none							;-- standalone, format, date masks
+		months:            none							;-- shortcut for standalone month names (R2-compatibility)
+		days:              none							;-- shortcut for standalone day names (R2-compatibility)
+		
+		;; collective data:
+		list:              #()							;-- locale data for all supported (loaded) locales
+		numbering-systems: none							;-- all numbering systems from CLDR (they're small)
+		cardinal:          none							;-- cardinal quantities spelling rules
+		ordinal:           none							;-- ordinal quantities spelling rules
+		tools:             none							;-- place for l10n functions (needed by boot.red)
+		
 		;collation: context [
 		;	lower-to-upper: #system [stack/set-last as cell! case-folding/lower-to-upper]
 		;	upper-to-lower: #system [stack/set-last as cell! case-folding/upper-to-lower]
 		;]
 
-		months: [
-		  "January" "February" "March" "April" "May" "June"
-		  "July" "August" "September" "October" "November" "December"
-		]
-
-		days: [
-		  "Monday" "Tuesday" "Wednesday" "Thursday" "Friday" "Saturday" "Sunday"
-		]
-		
 		currencies: context [
+			names: none									;-- full names in current locale
 			;-- ISO currencies + BTC, ETH, RED
 			list: [
 				AED AFN ALL AMD ANG AOA ARS AUD AWG AZN BAM BBD BDT BTC BGN BHD BIF BMD BND BOB BRL BSD
@@ -342,10 +349,13 @@ system: context [
 				USD UYU UZS	VES VND VUV WST CFA XAF XCD XOF CFP XPF YER ZAR ZMW
 			]
 			on-change*: func [word old new][
-				set-quiet in self word old
-				cause-error 'script 'protected []
+				if word <> 'names [
+					set-quiet in self word old
+					cause-error 'script 'protected []
+				]
 			]
 			on-deep-change*: func [owner word target action new index part][
+				if word = 'names [exit]
 				if any [
 					word <> 'list
 					not find [append appended] action

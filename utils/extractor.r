@@ -29,7 +29,7 @@ context [
 	
 	extract-codes: has [codes][
 		codes: third find (third find currencies/5 quote locale:) quote currencies:
-		currencies: copy codes/2
+		currencies: copy codes/4
 	]
 	
 	extract-defs: func [type [word!] /local list index][
