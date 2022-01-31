@@ -6,7 +6,9 @@ REBOL [
 	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
+
 do-cache %system/compiler.r
+
 red: context [
 	verbose:	   0									;-- logs verbosity level
 	job: 		   none									;-- reference the current job object
@@ -155,9 +157,11 @@ red: context [
 		Locales/tr_TR	%modules/l10n/locales/tr_TR.red [Windows macOS Linux]
 		Locales/zh		%modules/l10n/locales/zh.red    [Windows macOS Linux]
 	]
+
 	func-constructors: [
 		'func | 'function | 'does | 'has | 'routine | 'make 'function!
 	]
+
 	functions: make hash! [
 	;---name--type--arity----------spec----------------------------refs--
 		make [action! 2 [type [datatype! word!] spec [any-type!]] #[none]]	;-- must be pre-defined
@@ -171,7 +175,9 @@ red: context [
 		]
 		bind keywords self
 	]
+
 	set-last-none: does [copy [stack/reset none/push-last]]	;-- copy required for R/S line counting injection
+
 	--not-implemented--: does [print "Feature not yet implemented!" halt]
 	
 	quit-on-error: does [
@@ -179,6 +185,7 @@ red: context [
 		if system/options/args [quit/return 1]
 		halt
 	]
+
 	throw-error: func [err [word! string! block!] /near code [block!]][
 		print [
 			"*** Compilation Error:"
@@ -567,6 +574,7 @@ red: context [
 		]
 		blk
 	]
+
 	emit-open-frame: func [name [word!] /with type ctx-name /local symbol][
 		symbol: either name = 'try-all ['try][name]
 		unless find symbols symbol [add-symbol symbol]
@@ -643,6 +651,7 @@ red: context [
 			[re-throw]
 			[ctx/values: saved system/thrown: 0 exit]
 		] empty? locals-stack
+
 		append body [
 			default [re-throw]
 		]
@@ -711,6 +720,7 @@ red: context [
 		]
 		obj-stk: copy/part fpath (index? find fpath path/1) - 1
 		obj-stk/1: either find-contexts path/1 ['func-objs]['objects]
+
 		either 2 = length? path [
 			append obj-stk path/1
 			reduce check
@@ -749,10 +759,12 @@ red: context [
 			name: bs/3
 		][
 			ts: copy [0 0 0]
+
 			foreach type spec [
 				unless block? type [
 					if type = 'red/cell! [type: 'any-type!]	;-- coming from routines
 					type: either word: in extracts/scalars type [get word][reduce [type]]
+
 					foreach word type [
 						bit: get-RS-type-ID name: word
 						unless bit [throw-error/near ["invalid datatype name:" name] f-spec]
@@ -813,6 +825,7 @@ red: context [
 				either count = index [arg: spec/1 break][count: count + 1]
 			]
 		]
+
 		emit emit-type-checking/native arg spec
 		emit index
 		emit slot
@@ -852,6 +865,7 @@ red: context [
 		]
 		blk
 	]
+
 	clean-lf-flag: func [name [word! lit-word! set-word! get-word! refinement!]][
 		mold/flat to word! name
 	]
@@ -909,6 +923,7 @@ red: context [
 	
 	declare-variable: func [name [string! word!] /init value /local var set-var][
 		set-var: to set-word! var: to word! name
+
 		unless find declarations set-var [
 			repend declarations [set-var any [value 0]]	;-- declare variable at root level
 			new-line skip tail declarations -2 yes
@@ -1034,6 +1049,7 @@ red: context [
 				]
 			]
 		]
+
 		base: get-obj-base-word path/1
 		do search									;-- check if path is an absolute object path
 		if all [not found? 1 < length? obj-stack][
@@ -1103,6 +1119,7 @@ red: context [
 				]
 				unless found? [return none]
 			]
+
 			fun: append copy fpath either base = obj-stack [ ;-- extract function access path without refinements
 				pick path 1 + (length? fpath) - (length? obj-stack)
 			][
@@ -1111,10 +1128,12 @@ red: context [
 			unless function! = attempt [do fun][return none] ;-- not a function call
 			remove fpath								;-- remove 'objects prefix
 		]
+
 		obj: 	find objects found?
 		origin: find-proto obj last fun
 		name:	either origin [select objects origin][obj/2]
 		symbol: decorate-obj-member first find/tail fun fpath name
+
 		either find functions symbol [
 			fpath: next find path last fpath			;-- point to function name
 			reduce [
@@ -1154,6 +1173,7 @@ red: context [
 	push-locals: func [symbols [block!]][
 		append/only locals-stack symbols
 	]
+
 	pop-locals: does [
 		also
 			last locals-stack
@@ -1235,6 +1255,7 @@ red: context [
 			entry
 		]
 	]
+
 	decode-attributes: func [spec [block!] /local do-error flags][
 		do-error: [throw-error ["invalid function spec block:" mold pos]]
 		flags: 0
@@ -1317,6 +1338,7 @@ red: context [
 				entry: find functions alter
 			]
 			repend functions [new entry/2]
+
 			unless local-bound? pc/-1 [
 				switch/default type: entry/2/1 [
 					routine! [
@@ -1395,6 +1417,7 @@ red: context [
 		][
 			throw-error ["invalid function spec block:" mold pos]
 		]
+
 		s: copy spec
 		forall s [if any-word? s/1 [s/1: to word! s/1]]
 		
@@ -1504,6 +1527,7 @@ red: context [
 		
 		name: to word! pos/1
 		if find functions name [return none]			;-- mainly intended for 'make (hardcoded)
+
 		switch type: pos/3 [
 			native! [nat?: yes if find intrinsics name [type: 'intrinsic!]]
 			action! [append actions name]
@@ -1631,6 +1655,7 @@ red: context [
 		declare-variable/init 'r_arg to paren! [as red-value! 0]
 		emit [r_arg: stack/arguments]
 		insert-lf -2
+
 		offset: 0
 		if type: get-return-type spec [
 			offset: 1
@@ -1639,6 +1664,7 @@ red: context [
 		if alter: select-ssa name [name: alter]
 		emit name
 		cnt: 0
+
 		forall spec [
 			if string? spec/1 [
 				if tail? remove spec [break]
@@ -1688,11 +1714,13 @@ red: context [
 		if value/time [date: date or 65536]				;-- time? flag
 		date
 	]
+
 	emit-float: func [value [decimal!] /local bin][
 		bin: IEEE-754/to-binary64 value
 		emit to integer! copy/part bin 4
 		emit to integer! skip bin 4
 	]
+
 	emit-fp-special: func [value [issue!]][
 		switch next value [
 			#INF  [emit to integer! #{7FF00000} emit 0]
@@ -1701,6 +1729,7 @@ red: context [
 			#0-	  [emit to integer! #{80000000} emit 0]
 		]
 	]
+
 	comp-literal: func [
 		/inactive /with val
 		/local value char? special? percent? map? tuple? money? ref? dt-special? name w make-block type idx zone
@@ -1716,6 +1745,7 @@ red: context [
 		value: either with [val][pc/1]					;-- val can be NONE
 		map?: map-value? :value
 		dt-special?: date-special? value
+
 		either any [
 			all [
 				issue? :value
@@ -1895,6 +1925,7 @@ red: context [
 		/local rule pos self*
 	][
 		self*: in ctx 'self
+
 		;-- rebind the new body to the parent object's context
 		entry: bind/copy copy/part next entry 8 ctx
 		
@@ -1991,6 +2022,7 @@ red: context [
 					| skip
 				]
 			]
+
 			spec: make block! (length? words) / 2
 			forskip words 2 [append spec to word! words/1]
 		][
@@ -2035,6 +2067,7 @@ red: context [
 				]
 			]
 		]
+
 		ctx: add-context spec
 		blk-idx: redbin/emit-context/root ctx spec no yes 'object
 		
@@ -2063,6 +2096,7 @@ red: context [
 			none										;-- [idx loc idx2 loc2...] (for events)
 		]
 		on-set-info: back tail objects
+
 		shadow-path: either all [
 			with
 			find [lit-word! lit-path!] type?/word saved-pc/-2
@@ -2092,6 +2126,7 @@ red: context [
 		]
 		if body? [bind body obj]
 		if passive [return []]
+
 		unless all [empty? locals-stack not iterator-pending?][	;-- in a function or iteration block
 			emit compose [
 				(to set-word! ctx) _context/clone-words get-root (blk-idx) CONTEXT_OBJECT ;-- rebuild context
@@ -2109,7 +2144,9 @@ red: context [
 			emit reduce ['object/transfer ctx2 ctx]
 			insert-lf -3
 		]
+
 		emit-src-comment/with none rejoin [mold pc/-1 " context " mold spec]
+
 		emit-open-frame 'body
 		case [
 			passive [									;-- CONSTRUCT support
@@ -2369,6 +2406,7 @@ red: context [
 		append/only output set-last-none
 		emit-close-frame
 	]
+
 	comp-either: does [
 		emit-open-frame 'either
 		comp-expression/close-path
@@ -2383,6 +2421,7 @@ red: context [
 	comp-loop: has [name set-name mark][
 		depth: depth + 1
 		if depth > max-depth [max-depth: depth]
+
 		set [name set-name] declare-variable join "i" depth
 		
 		emit-open-frame 'loop
@@ -2406,6 +2445,7 @@ red: context [
 		push-call 'loop
 		comp-sub-block 'loop-body						;-- compile body
 		pop-call
+
 		new-line skip tail last output -3 on
 		new-line skip tail last output -7 on
 		depth: depth - 1
@@ -2457,6 +2497,7 @@ red: context [
 		emit 'natives/coerce-counter*					;-- eventually convert float to integer
 		insert-lf -1
 		emit-argument-type-check 1 'repeat 'stack/arguments
+
 		emit-open-frame 'set
 		emit-push-word name name						;-- push the word
 		emit [
@@ -2464,6 +2505,7 @@ red: context [
 			word/set									;-- initialize the counter word to 0
 		]
 		emit-close-frame
+
 		emit [loop integer/get stack/arguments]
 		insert-lf -3
 		push-call 'repeat
@@ -2589,6 +2631,7 @@ red: context [
 		insert-lf -2
 		comp-expression/close-path						;-- compile series argument
 		emit-argument-type-check 1 'remove-each [stack/arguments + 1]
+
 		either blk [
 			cond: compose [natives/foreach-next-block (length? blk)]
 			emit compose [block/push get-root (idx)]		;-- block argument
@@ -2597,6 +2640,7 @@ red: context [
 			emit-push-word word	word					;-- word argument
 		]
 		insert-lf -2
+
 		emit-open-frame 'remove-each
 		if blk [
 			emit 'natives/remove-each-init
@@ -2653,7 +2697,9 @@ red: context [
 		blk: either container-obj? [head insert copy locals [octx [node!]]][locals]
 		emit reduce [to set-word! decorate-func/strict name 'func blk]
 		insert-lf -3
+
 		comp-sub-block/with 'func-body body				;-- compile function's body
+
 		;-- Function's prolog --
 		pop-locals
 		init: make block! 4 * length? symbols
@@ -2857,6 +2903,7 @@ red: context [
 		set [symbols locals-nb flags] check-spec spec
 		add-function name spec
 		if pos: find spec return-def [register-user-type/store name pos/2]
+
 		
 		push-locals symbols								;-- store spec and body blocks
 		ctx: push-context copy symbols
@@ -2869,6 +2916,7 @@ red: context [
 			insert-lf -3
 		]
 		pop-locals
+
 		repend shadow-funcs [							;-- register a new shadow context
 			decorate-func/strict name
 			shadow: to-context-spec symbols
@@ -2924,6 +2972,7 @@ red: context [
 		
 		pc: next pc
 		set [spec body] pc
+
 		preprocess-strings body							;-- encode strings for Red/System
 		check-spec spec
 		add-function/type name spec 'routine!
@@ -2965,6 +3014,7 @@ red: context [
 		]
 		emit-exit-function
 	]
+
 	comp-return: does [
 		check-invalid-exit 'return
 		comp-expression
@@ -3356,6 +3406,7 @@ red: context [
 			if block? defer [emit defer]
 		]
 		
+
 		if obj-field?: all [
 			obj? 
 			word? last path								;-- not allow get-words to pass (#1141)
@@ -3789,6 +3840,7 @@ red: context [
 		]
 		emit-close-frame
 	]
+
 	comp-word: func [/literal /final /thru /local name local? alter emit-word original new ctx defer][
 		name: to word! original: pc/1
 		local?: local-bound? original
@@ -3927,6 +3979,7 @@ red: context [
 			comp-expression/no-infix					;-- fetch first left operand
 			do substitute
 			pc: next pc
+
 			forall ops [
 				paths: length? paths-stack
 				single?: path? pc/1
@@ -4190,12 +4243,14 @@ red: context [
 		]
 		cache?: in-cache? file
 		append include-stk script-path
+
 		script-path: either all [not booting? relative-path? file][
 			file: clean-path join any [script-path main-path] file
 			first split-path file
 		][
 			none
 		]
+
 		unless any [cache? booting? exists? file][
 			throw-error ["include file not found:" pc/2]
 		]
@@ -4221,6 +4276,7 @@ red: context [
 			unless any [only empty? expr-stack][comp-expression]
 		]
 	]
+
 	comp-directive: has [mark value][
 		switch pc/1 [
 			#include [
@@ -4314,6 +4370,7 @@ red: context [
 				]
 				exit
 			]
+
 		]
 		if tail? pc [
 			pc: any [find/reverse pc current-call back pc]
@@ -4419,6 +4476,7 @@ red: context [
 		pc: any [body pc/1]								;-- dive in nested code
 		comp-block
 		pc: next saved									;-- step over block in source code				
+
 		convert-to-block mark
 		head insert last output [
 			stack/reset
@@ -4452,6 +4510,7 @@ red: context [
 			all [not path? obj find-object/by-name obj]
 		][
 			;if prev: find get-obj-base name name [prev/1: none] ;-- unbind word with previous object
+
 			insert entry: tail objects copy/part pos 6
 			entry/1: to word! name			;@@ set-path! case
 			if store [
@@ -4478,6 +4537,7 @@ red: context [
 			if pos: find/skip objects types/1 6 [
 				if found? [throw-error ["unsupported multiple object type spec:" mold spec]]
 				if prev: find get-obj-base name name [prev/1: none] ;-- unbind word with previous object
+
 				insert entry: tail objects copy/part pos 6
 				entry/1: to word! name			;@@ set-path! case
 				types/1: 'object!
@@ -4535,6 +4595,7 @@ red: context [
 			func-objs: tail objects
 			depth: max-depth
 			preprocess-types name spec
+
 			comp-func-body name spec body copy symbols locals-nb ;-- copy avoids symbols corruption by decoration
 		]
 		clear pos
@@ -4551,6 +4612,7 @@ red: context [
 			add-symbol name
 			add-global name
 		]
+
 		;-- Create datatype! datatype and word
 		emit compose [
 			stack/mark-native ~set
@@ -4587,6 +4649,7 @@ red: context [
 			comp-block
 			script-path: saved
 		]
+
 		pc: code										;-- compile user code
 		user: tail output
 		comp-block
@@ -4619,6 +4682,7 @@ red: context [
 		]
 		
 		set [user mark main] comp-source code
+
 		defs: make block! 10'000
 		foreach [type cast][
 			block	red-block!
@@ -4684,8 +4748,10 @@ red: context [
 	comp-as-exe: func [code [block!] /local out user mods main defs][
 		out: copy/deep either job/dev-mode? [[
 			Red/System [origin: 'Red]
+
 			<imports>
 			***-root-size: <root-size>
+
 			with red [
 				stk-bottom: system/stack/top			;-- reset stk-bottom set by libRedRT to allow GC to mark all pointers on stack
 				root-base: redbin/boot-load system/boot-data yes
@@ -4693,6 +4759,7 @@ red: context [
 			]
 		]][[
 			Red/System [origin: 'Red]
+
 			***-root-size: <root-size>
 			red/init
 			
@@ -4751,6 +4818,7 @@ red: context [
 		unless empty? sys-global [
 			process-calls/global sys-global				;-- lazy #call processing
 		]
+
 		change/only find out <root-size> redbin/index + 3000 + root-slots
 		change/only find last out <script> script		;-- inject compilation result in template
 		output: out
@@ -4887,6 +4955,7 @@ red: context [
 		main-path: 
 		currencies: none
 	]
+
 	compile: func [
 		file [file! block!]								;-- source file or block of code
 		opts [object!]
@@ -4897,6 +4966,7 @@ red: context [
 		clean-up
 		main-path: first split-path any [all [block? file system/options/path] file]
 		resources: make block! 8
+
 		time: dt [
 			src: load-source file
 			job/red-pass?: yes
