@@ -19,11 +19,13 @@ xml: context [
 ; -- options
 
 	default-opts: #(
-		include-meta?: false	; export metada also
-		str-keys?: false		; leave keys as strings
-		text-mark: 'text!		; text sigil for the COMPACT format
-		trace?: false			; use PARSE-TRACE instead of PARSE (debug)
-		format: 'triples		; format to use
+		include-meta?: #[false]	; export metada also
+		str-keys?: #[false]		; leave keys as strings
+		text-mark: text!		; text sigil for the COMPACT format
+		trace?: #[false]		; use PARSE-TRACE instead of PARSE (debug)
+		format: triples			; format to use
+		indentation: "    "		; indentation spet to use
+		pretty?: #[false]		; multiline output
 	)
 
 	include-meta?: false
@@ -31,6 +33,12 @@ xml: context [
 	text-mark: 'text!
 	trace?: false
 	format: 'triples
+	indentation: "    "
+	current-indentation: ""
+
+	error-invalid-data: "Invalid input data"
+	error-unknown-format: "Unknown format"
+
 	formats: [triples compact key-val]
 
 	set-options: func [opts] [
@@ -40,6 +48,14 @@ xml: context [
 				set bind key 'set-options value
 			]
 		]
+	]
+
+	set-format: func [fmt] [
+		fmt: any [fmt to word! default-opts/format]
+		unless find formats fmt [
+			do make error! error-unknown-format
+		]
+		fmt
 	]
 
 ; -- support functions
@@ -57,6 +73,7 @@ xml: context [
 		to paren! compose/deep [
 			if include-meta? [
 				repend target [(data)]
+				break-at target negate length? reduce [(data)]
 			]
 			value?: false
 		]
@@ -74,11 +91,10 @@ xml: context [
 	load-key: none
 
 	value: att-name: att-value: att-length: att-ns: char-data:
-	verinfo: encinfo: namespace: nl?:
+	doctype: verinfo: encinfo: stdinfo: namespace: nl?: attributes:
 		none
 	cont-val: ""
 	value?: false
-	attributes: none
 
 	target: []
 	target-stack: []
@@ -89,44 +105,58 @@ xml: context [
 		/as
 			fmt [word!] "Select output format [triples compact key-val]"
 		/meta     "Preserve meta data"
-		/strict   "Require XML prolog"
 		/str-keys "Leave keys as strings"
-		/mark     "Text mark for compact format (default text!)"
-			txt-mark [word!]
-		/with     "Override options"
-			opts [block! map!]
-		; debugging
-		/trace "Use `parse-trace` instead of `parse`"
+		/local result
 	] [
+		unless NameChar [init-charsets]
 		; process options
 		set-options default-opts
-		fmt: any [fmt format]
-			unless find formats fmt [
-				do make error! "Unknown format"
-			]
+		fmt: set-format fmt
 		init-decoder fmt
 		include-meta?: meta
-		document: either strict [strict-document] [loose-document]
 		str-keys?: str-keys
-		if mark [txt-mark: text-mark]
-		if with [
-			set-options opts
-		]
 		; cleanup state
 		unless string? data [data: read data]
 		clear target
 		clear target-stack
 		clear attributes
-		value: att-name: att-value:
-		verinfo: encinfo:
-			none
+		value: att-name: att-value: verinfo: encinfo: none
 		; run parser
-		either trace [
+		result: either trace? [
 			parse-trace data document
 		] [
 			parse data document
 		]
-		target
+		; make sure there are no lefovers
+		clear cont-val
+		clear target-stack
+		clear attributes
+		; return what the user expects
+		either result [
+			target
+		] [
+			do make error! error-invalid-data
+		]
+	]
+
+	init-charsets: has [word spec] [
+		Char: charset [
+			#"^(01)" -#"^(D7FF)" #"^(E000)" - #"^(FFFD)" #"^(10000)" - #"^(10FFFF)"
+		]
+		RestrictedChar: charset [
+			#"^(01)" -#"^(08)" #"^(0B)" - #"^(0C)" #"^(0E)" - #"^(1F)"
+			#"^(7F)" - #"^(84)" #"^(86)" - #"^(9F)"
+		]
+		NameStartChar: charset [
+			":_" #"a" - #"z" #"A" - #"Z" #"0" #"^(C0)" - #"^(D6)" #"^(D8)" - #"^(F6)"
+			#"^(F8)" - #"^(02FF)" #"^(0370)" - #"^(037D)" #"^(037F)" - #"^(1FFF)"
+			#"^(200C)" - #"^(200D)" #"^(2070)" - #"^(218F)" #"^(2C00)" - #"^(2FEF)"
+			#"^(3001)" - #"^(D7FF)" #"^(F900)" - #"^(FDCF)" #"^(FDF0)" - #"^(FFFD)"
+			#"^(010000)" - #"^(0EFFFF)"
+		]
+		NameChar: union NameStartChar charset [
+			"-." #"0" - #"9" #"^(B7)" #"^(0300)" - #"^(036F)" #"^(203F)" - #"^(2040)"
+		]
 	]
 
 	sq: #"'"
@@ -134,33 +164,20 @@ xml: context [
 	caret: #"^^"
 	lower-letter: charset [#"a" - #"z"]
 	upper-letter: charset [#"A" - #"Z"]
-	digit: charset [#"0" - #"9"]
-	letter: union lower-letter upper-letter
-	alphanum: union letter digit
+	digit:        charset [#"0" - #"9"]
+	letter:       union lower-letter upper-letter
+	alphanum:     union letter digit
+	hexnum:       union digit charset "abcdefABCDEF"
 
 	; -- Document
-	document: none
-	strict-document: [
-		prolog
-		element
-	]
-	loose-document: [
+	document: [
 		opt prolog
 		element
 	]
 
 	; -- Character Range
-	Char: {[#x1-#xD7FF] | [#xE000-#xFFFD] | [#x10000-#x10FFFF]}
-	RestrictedChar: {[#x1-#x8] | [#xB-#xC] | [#xE-#x1F] | [#x7F-#x84] | [#x86-#x9F]}
-
-	Char: charset [
-		#"^(01)" -#"^(D7FF)" #"^(E000)" - #"^(FFFD)" #"^(10000)" - #"^(10FFFF)"
-	]
-	RestrictedChar: charset [
-		#"^(01)" -#"^(08)" #"^(0B)" - #"^(0C)" #"^(0E)" - #"^(1F)"
-		#"^(7F)" - #"^(84)" #"^(86)" - #"^(9F)"
-	]
-
+	Char: none
+	RestrictedChar: none
 	;TODO: compatibility characters
 
 	; -- White Space
@@ -170,22 +187,11 @@ xml: context [
 	S+: [some S]
 
 	; -- Names and Tokens
-	NameStartChar:
-	name-start-char: charset [
-		":_" #"a" - #"z" #"A" - #"Z" #"0" #"^(C0)" - #"^(D6)" #"^(D8)" - #"^(F6)" 
-		#"^(F8)" - #"^(02FF)" #"^(0370)" - #"^(037D)" #"^(037F)" - #"^(1FFF)"
-		#"^(200C)" - #"^(200D)" #"^(2070)" - #"^(218F)" #"^(2C00)" - #"^(2FEF)"
-		#"^(3001)" - #"^(D7FF)" #"^(F900)" - #"^(FDCF)" #"^(FDF0)" - #"^(FFFD)"
-		#"^(010000)" - #"^(0EFFFF)"
-	]
-	NameChar:
-	name-char: union name-start-char charset [
-		"-." #"0" - #"9" #"^(B7)" #"^(0300)" - #"^(036F)" #"^(203F)" - #"^(2040)"
-	]
-	Name:
-	name: [name-start-char any name-char]
-	Names: [Name any [space Name]]
-	Nmtoken: [some NameChar]
+	NameStartChar: none
+	NameChar: none
+	Name:     [NameStartChar any NameChar]
+	Names:    [Name any [space Name]]
+	Nmtoken:  [some NameChar]
 	Nmtokens: [Nmtoken any [space Nmtoken]]
 
 	;-- Literals
@@ -290,10 +296,16 @@ xml: context [
 	; -- Document Type Definition
 	doctypedecl: [
 		S+
-		"<!DOCTYPE" S+ Name
-		opt [S+ ExternalID]
-		S*
-		opt [#"[" intSubset #"]" S*]
+		"<!DOCTYPE"
+		(doctype: none)
+		S+
+		copy doctype [
+			Name
+			opt [S+ ExternalID]
+			S*
+			opt [#"[" intSubset #"]" S*]
+		]
+		store-doctype
 		#">"
 	]
 	DeclSep: [PEReference | S+]
@@ -307,19 +319,19 @@ xml: context [
 	extSubsetDecl: [any [markupdecl | conditionalSect | DeclSep]]
 
 	; -- Standalone Document Declaration
+	SDDecl-logic: [
+		"yes" (stdinfo: true)
+	|	"no"  (stdinfo: false)
+	]
 	SDDecl: [
-		some space
+		(stdinfo: none)
+		S+
 		"standalone"
 		Eq
-		[sq ["yes" | "no"] sq | dq ["yes" | "no"] dq]
+		[sq SDDecl-logic sq | dq SDDecl-logic dq]
 	]
 
 	; -- Elements
-	_element: [ ; NOTE: use this for testing
-		mark:
-		(print ["***^/" mold mark "^/***^/"])
-		element
-	]
 	element: [
 		EmptyElemTag
 	|	S* STag S* content S* ETag pop-stack S*
@@ -364,7 +376,7 @@ xml: context [
 		"/>"
 		(value?: cont-val: copy "")
 		push-stack pop-stack
-    ]
+	]
 	elementdecl: ["<!ELEMENT" S+ Name S+ contentspec S* #">"]
 	contentspec: ["EMPTY" | "ANY" | Mixed | children]
 	child-chars: charset "?*+"
@@ -376,7 +388,6 @@ xml: context [
 		#"(" S* "#PCDATA" any [S* #"|" S* Name] opt space ")*"
 	|	#"(" S* "#PCDATA" S* #")"
 	]
-
 	; -- Attributes
 	AttlistDecl: ["<!ATTLIST" S+ Name any AttDef S* #">"]
 	AttDef: [S+ Name S+ AttType S+ DefaultDecl]
@@ -400,16 +411,12 @@ xml: context [
 	Ignore: [any [not ["<![" | "]]>"] Char]]
 
 	; -- Physical Structures
-
-	number: charset "0123456789"
-	hexnum: union number charset "abcdefABCDEF"
-	CharRef: [ "&#" some number #";" | "&#x" some hexnum #";"]
+	CharRef: [ "&#" some digit #";" | "&#x" some hexnum #";"]
 	Reference: [EntityRef | CharRef]
 	EntityRef: [#"&" Name #";"]
 	PERreference: [#"%" Name #";"]
 
 	; -- Entity Declaration
-
 	EntityDecl: [GEDecl | PEDecl]
 	GEDecl: ["<!ENTITY" S+ Name S+ EntityDef S* #">"]
 	PEDecl: ["<!ENTITY" S+ #"%" S+ Name S+ PEDef S* #">"]
@@ -454,7 +461,7 @@ xml: context [
 			'load-key func [value] [
 				if str-keys? [return value]
 				either find value #":" [
-					to path! replace/all value #":" #"/"
+					load replace/all value #":" #"/"
 				] [to word! value]
 			]
 			'store-char-data func [] [
@@ -506,16 +513,20 @@ xml: context [
 				]
 			)
 			'store-xml-decl meta-action [
-				#xml
+				'xml!
 				none
 				compose [
 					version: (verinfo)
 					encoding: (encinfo)
+					(either not none? stdinfo [compose [
+						standalone: (stdinfo)]][]
+					)
 				]
 			]
-			'store-pi meta-action [#PI att-name value]
-			'store-comment meta-action [#comment trim value none]
-			'store-cdata meta-action [#cdata value none]
+			'store-doctype meta-action ['doctype! doctype none]
+			'store-pi meta-action ['PI! load-key att-name value]
+			'store-comment meta-action ['comment! trim value none]
+			'store-cdata meta-action ['cdata! value none]
 		]
 		compact: reduce [
 			'attributes []
@@ -592,21 +603,37 @@ xml: context [
 			; TODO: Do not emit empty attributes here
 			'store-xml-decl quote (
 				if include-meta? [
-					append target @xml
+					append target 'xml!
 					if verinfo [repend target [#version  verinfo]]
 					if encinfo [repend target [#encoding encinfo]]
+					unless none? stdinfo [repend target [#standalone stdinfo]]
 				]
 			)
-			'store-pi meta-action [@PI att-name trim value]
-			'store-comment meta-action [@comment trim value]
-			'store-cdata meta-action [@cdata value]
+			'store-doctype meta-action ['doctype! doctype]
+			'store-pi meta-action ['PI! reduce [att-name trim value]]
+
+			'store-pi quote (
+				att-ns: none
+				att-name: load-key/att form att-name
+				append target compose/deep [
+					PI! [
+						(either att-ns [to refinement! att-ns][])
+						(att-name)
+						(trim value)
+					]
+				]
+				att-ns: none
+			)
+		
+			'store-comment meta-action ['comment! trim value]
+			'store-cdata meta-action ['cdata! value]
 		]
 		key-val: reduce [
 			'attributes []
 			'load-key func [value] [
 				if str-keys? [return value]
 				either find value #":" [
-					to path! replace/all value #":" #"/"
+					load replace/all value #":" #"/"
 				] [to word! value]
 			]
 			'store-char-data func [] [
@@ -629,11 +656,9 @@ xml: context [
 				repend target [load-key value copy []]
 				break-at target -2
 				append/only target-stack target
-				repend last target [
-					'attr! either empty? attributes [
-						none
-					] [
-						copy attributes
+				unless empty? attributes [
+					repend last target [
+					'attr! copy attributes
 					]
 				]
 				break-at last target -2
@@ -643,8 +668,8 @@ xml: context [
 			)
 			'pop-stack quote (
 				store-char-data
-				unless find target 'text! [repend target ['text! none]]
-				break-at target -2
+;				unless find target 'text! [repend target ['text! none]]
+;				break-at target -2
 				target: take/last target-stack
 				value?: false
 			)
@@ -655,26 +680,25 @@ xml: context [
 				]
 			)
 			'store-xml-decl meta-action [
-				'.xml
+				'xml!
 				compose [
 					version: (verinfo)
 					encoding: (encinfo)
+					(either not none? stdinfo [compose [
+						standalone: (stdinfo)]][]
+					)
 				]
 			]
-			'store-pi meta-action [#PI att-name value]
-			'store-comment meta-action [#comment trim value]
-			'store-cdata meta-action [#cdata value]
+			'store-doctype meta-action ['doctype! doctype]
+			'store-pi meta-action ['PI! reduce [att-name value]]
+			'store-comment meta-action ['comment! trim value]
+			'store-cdata meta-action ['cdata! value]
 		]
 	]
 
 ; === encoder part ===========================================================
 
 	output: make string! 10000
-
-	pretty?: false
-	default-indentation: "    "
-	indentation: "    "
-	current-indentation: ""
 
 	indent: func [] [
 		either pretty? [
@@ -690,10 +714,11 @@ xml: context [
 	enquote: function [value] [rejoin [dq value dq]]
 
 	make-atts: function [
-		data
+		data [block! map! none!]
 	] [
 		if any [
 			not data
+			data = 'none ; be sure that all NONEs are processed
 			empty? data
 		] [return ""]
 		data: collect/into [
@@ -704,51 +729,16 @@ xml: context [
 		rejoin [space trim data]
 	]
 
-	make-tag: function [
+	make-tag: func [
 		name
 		/with
-			atts
+			atts [block! map! none!]
 		/close
 		/empty
 	] [
 		rejoin trim reduce [
-			#"<" if close [#"/"] form name make-atts atts if empty [" /"] #">"
+			#"<" if close [#"/"] form name make-atts atts if empty [#"/"] #">"
 		]
-	]
-
-	process-tag: function [
-		data
-	] [
-		output: make string! 1000
-		i+
-		atts: make-atts data/3
-		either block? data/2 [
-			; tag
-			either empty? data/2 [
-				; empty tag
-				repend output [indent #"<" form data/1 atts "/>"]
-			] [
-				; tag pair
-				repend output [indent #"<" form data/1 atts #">"]
-				until [
-					repend output process-tag take/part data/2 3
-					empty? data/2
-				]
-				repend output [indent "</" form data/1 #">"]
-			]
-		] [
-			; content
-			repend output either data/1 [[
-				indent
-				#"<" form data/1 atts #">"
-				either data/2 [data/2] [""]
-				"</" form data/1 #">"
-			]] [
-				[data/2]
-			]
-		]
-		i-
-		output
 	]
 
 
@@ -756,17 +746,99 @@ xml: context [
 		none
 	tag-stack: []
 
+	meta-tags: [xml! doctype! PI! comment! cdata!]
+
+	make-xmldecl: func [
+		version
+		encoding
+		standalone
+	] [
+		rejoin [
+			{<?xml version="} version dq
+			either encoding [
+				rejoin [ { encoding="} encoding dq]
+			] [""]
+			either not none? standalone [
+			; STANDALONE can be missing (none), true or false
+				rejoin [ { standalone="} pick ["yes" "no"] standalone dq]
+			] [""]
+			{ ?>}
+		]
+	]
+
 	encoders: context [
 		triples: context [
-			encode: func [
+			process-tag: func [
 				data
 			] [
-				data: copy/deep data
+				if find meta-tags data/1 [return process-meta data]
+				i+
+				also collect [
+					case [
+						all [
+							not none? data/3
+							not block? data/3
+						] [do make error! error-invalid-data]
+						; empty tag
+						any [
+							all [block? data/2 empty? data/2]
+							all [data/1 not data/2]
+						] [
+							keep reduce [indent make-tag/with/empty data/1 data/3]
+						]
+						; tag pair
+						any [
+							all [block? data/2 not empty? data/2]
+							all [data/1 string? data/2]
+						] [
+							keep reduce [indent make-tag/with data/1 data/3]
+							either string? data/2 [keep data/2] [
+								until [
+									keep process-tag data/2
+									data/2: skip data/2 3
+									empty? data/2
+								]
+							]
+							keep reduce [indent make-tag/close data/1]
+						]
+						not data/1 [keep data/2]
+					]
+				]
+				i-
+			]
+			process-meta: func [data] [
+				rejoin switch data/1 [
+					xml! [[
+						make-xmldecl
+							data/3/version
+							data/3/encoding
+							data/3/standalone
+					]]
+					doctype! [[ {<!DOCTYPE } data/2 #">"]]
+					PI! [[ {<?} data/2 space data/3 {?>}]]
+					comment! [[ {<!-- } data/2 { -->}]]
+					cdata! [[ {<![CDATA[} data/2 {]]>}]]
+				]
+			]
+			encode: func [
+				data [block!]
+			] [
+				if any [
+					empty? data
+					not zero? (length? data) // 3
+				] [
+					do make error! error-invalid-data
+				]
 				clear output
 				; TODO add proper header: xml/doctype
 				until [
-					repend output process-tag take/part data 3
-					empty? data
+					either find meta-tags data/1 [
+						append output process-meta data
+					] [
+						repend output process-tag data
+					]
+					data: skip data 3
+					tail? data
 				]
 				output
 			]
@@ -810,26 +882,58 @@ xml: context [
 				(append output value)
 			]
 			pi-rule: [
-				ns-rule
-				set tag-name issue!
+				'PI!
+				set value block!
+				(repend output [{<?} value/1 space value/2 {?>}])
+			]
+			doctype-rule: [
+				'doctype!
 				set value string!
+				(repend output [ {<!DOCTYPE } value #">" ])
+			]
+			comment-rule: [
+				'comment!
+				set value string!
+				(repend output [ {<!-- } value { -->}])
+			]
+			cdata-rule: [
+				'cdata!
+				set value string!
+				(repend output [ {<![CDATA[} value {]]>}])
+			]
+			xml-ver: xml-enc: xml-sal: none
+			xmldecl-rule: [
+				'xml!
+				(xml-ver: xml-enc: xml-sal: none)
+				some [
+					#version    set xml-ver skip
+				|	#encoding   set xml-enc skip
+				|	#standalone set xml-sal skip
+				]
+				(append output make-xmldecl xml-ver xml-enc xml-sal)
 			]
 			content-rule: [
 				text-rule
-			|	tag-rule
 			|	pi-rule
+			|	doctype-rule
+			|	comment-rule
+			|	cdata-rule
+			|	xmldecl-rule
+			|	tag-rule
 			]
 			encode: func [
 				data
-				/trace
 				/local parse*
 			] [
 				clear output
 				clear tag-stack
 				text-mark: to lit-word! text-mark
-				parse*: either trace [:parse-trace] [:parse]
-				parse* data [some content-rule]
-				output
+				parse*: either trace? [:parse-trace] [:parse]
+				either parse* data [some content-rule] [
+					output
+				] [
+					do make error! error-invalid-data
+				]
 			]
 		]
 
@@ -867,6 +971,11 @@ xml: context [
 					some [
 						'attr! [none! | into [any attr-rule]]
 					|	text-rule
+					|	pi-rule
+					|	doctype-rule
+					|	comment-rule
+					|	cdata-rule
+					|	xmldecl-rule
 					|	tag-rule
 					]
 				]
@@ -888,7 +997,45 @@ xml: context [
 				|	none!
 				]
 			]
-			content-rule: [text-rule | tag-rule]
+			pi-rule: [
+				'PI!
+				set value block!
+				(repend output [{<?} value/1 space value/2 {?>}])
+			]
+			doctype-rule: [
+				'doctype!
+				set value string!
+				(repend output [ {<!DOCTYPE } value #">" ])
+			]
+			comment-rule: [
+				'comment!
+				set value string!
+				(repend output [ {<!-- } value { -->}])
+			]
+			cdata-rule: [
+				'cdata!
+				set value string!
+				(repend output [ {<![CDATA[} value {]]>}])
+			]
+			xmldecl-rule: [
+				'xml!
+				set value block!
+				(
+					append output make-xmldecl
+						value/version
+						value/encoding
+						value/standalone
+				)
+			]
+			content-rule: [
+				text-rule
+			|	pi-rule
+			|	doctype-rule
+			|	comment-rule
+			|	cdata-rule
+			|	xmldecl-rule
+			|	tag-rule
+			]
 			encode: func [
 				data
 				/local parse*
@@ -896,8 +1043,11 @@ xml: context [
 				clear output
 				clear tag-stack
 				parse*: either trace? [:parse-trace] [:parse]
-				parse* data [some content-rule]
-				output
+				either parse* data [some content-rule] [
+					output
+				] [
+					do make error! error-invalid-data
+				]
 			]
 		]
 	]
@@ -908,18 +1058,14 @@ xml: context [
 			fmt [word!]	"Format of the source data [triples compact key-val]"
 		/pretty
 			indent [string!] "Pretty format the output, using given indentation."
-		/trace
 	] [
-		fmt: any [fmt format]
-		unless find formats fmt [
-			do make error! "Unkown format"
-		]
+		; process options
+		set-options default-opts
+		fmt: set-format fmt
 		if indent [indentation: indent]
 		pretty?: pretty
-		trace?: trace
-		data: encoders/:fmt/encode data
-		indentation: default-indentation
-		data
+		; do parsing
+		encoders/:fmt/encode data
 	]
 
 ]
