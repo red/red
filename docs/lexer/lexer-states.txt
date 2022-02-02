@@ -317,18 +317,16 @@ S_START->digit->S_NUMBER->digit|"'"->S_NUMBER
 
 S_START->"."->S_DOTWORD->digit->S_DOTDEC->digit|"e"|"E"|"+"|"-"->S_DOTDEC
                \                 \->"%"->T_PERCENT
-                \                 \->"x"|"X"->S_PAIR_1ST
-                 \                 \->"@"->S_EMAIL
-                  \                 \->delimit10->T_FLOAT
-                   \                 \->"'"|"#"|"\"|","|";"|"$"->T_ERROR
-                    \                 \->else->S_WORD
-                     \ 
-                      \->delimit12->T_WORD
-                       \->":"->S_WORDSET
-                        \->"@"->S_EMAIL
-                         \->"/"->T_PATH
-                          \->","|"%"|"$"->T_ERROR 
-                           \->not(delimit12|":"|"@"|"/"|","|"%"|"$")->S_WORD
+                \                 \->"@"->S_EMAIL
+                 \                 \->delimit10->T_FLOAT
+                  \                 \->else->T_ERROR
+                   \ 
+                    \->delimit12->T_WORD
+                     \->":"->S_WORDSET
+                      \->"@"->S_EMAIL
+                       \->"/"->T_PATH
+                        \->","|"%"|"$"->T_ERROR 
+                         \->not(delimit12|":"|"@"|"/"|","|"%"|"$")->S_WORD
 
 
 S_START->"<"->S_LESSER
