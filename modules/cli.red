@@ -110,6 +110,14 @@ cli: context [
 
 	default: func [:w [set-word!] v] [any [get/any :w  set :w v]]
 
+	unlit: function [value [word! path! lit-word! lit-path!]] [
+		switch type?/word value [
+			lit-path! [value: as path! value]
+			lit-word! [value: to word! value]
+		]
+		value
+	]
+
 	;-- internal spec format is a block of triplets:
 	;; [      name-word          "docstring"  typeset! ]  for operands and option arguments
 	;; [ [ /option /alias ... ]  "docstring"  none     ]  for --options themselves
@@ -580,7 +588,7 @@ cli: context [
 
 	version-for: function [
 		"Returns version text for the PROGRAM"
-		'program	[word! path!] "May refer to a function or context"
+		'program	[word! path! lit-word! lit-path!] "May refer to a function or context"
 		/name					"Overrides program name"
 			pname	[string!]
 		/version				"Overrides version"
@@ -590,6 +598,7 @@ cli: context [
 			opts	[block! map! none!]
 	][
 		sync-arguments opts
+		program: unlit program							;-- support lit-words/paths for compiler
 
 		r: make string! 100
 
@@ -655,13 +664,14 @@ cli: context [
 			
 	synopsis-for: function [
 		"Returns short synopsis line for the PROGRAM"
-		'program	[word! path!] "Must refer to a function"
+		'program	[word! path! lit-word! lit-path!] "Must refer to a function"
 		/exename				"Overrides executable name"
 			xname	[string!]
 		/options				"Specify all the above options as a block"
 			opts	[block! map! none!]
 	][
 		sync-arguments opts
+		program: unlit program							;-- support lit-words/paths for compiler
 		
 		(function? get/any program) else rejoin [""program" must refer to a function"]
 		spec: prep-spec get/any program
@@ -683,7 +693,7 @@ cli: context [
 	
 	syntax-for: function [
 		"Returns usage text for the PROGRAM"
-		'program	[word! path!] "May refer to a function or context"
+		'program	[word! path! lit-word! lit-path!] "May refer to a function or context"
 		/no-version				"Suppress automatic creation of --version argument"
 		/no-help				"Suppress automatic creation of --help and -h arguments"
 		/columns				"Specify widths of columns: indent, short option, long option, argument, description"
@@ -696,6 +706,7 @@ cli: context [
 			opts	[block! map! none!]
 	][
 		sync-arguments opts
+		program: unlit program							;-- support lit-words/paths for compiler
 		
 		r: make string! 500
 
@@ -816,7 +827,7 @@ cli: context [
 
 	help-for: function [
 		"Returns help text (version and syntax) for the PROGRAM"
-		'program	[word! path!] "May refer to a function or context"
+		'program	[word! path! lit-word! lit-path!] "May refer to a function or context"
 		/no-version				"Suppress automatic creation of --version argument"
 		/no-help				"Suppress automatic creation of --help and -h arguments"
 		/name					"Overrides program name"
@@ -853,14 +864,16 @@ cli: context [
 			"version" [print version-for/options (program) opts]
 		]
 	]
-
+	
+	
 	;; ████████████  MAIN INTEFACE TO CLI ;)  ████████████
 
 
 	process-into: function [
 		"Calls PROGRAM with arguments read from the command line. Passes through the returned value"
 		;; can't support `function!` here cause can't add refinements to a function! literal
-		'program	[word! path!] "Name of a function, or of a context with functions to dispatch against"
+		'program	[word! path! lit-word! lit-path!]
+								"Name of a function, or of a context with functions to dispatch against"
 		/no-version				"Suppress automatic creation of --version argument"
 		/no-help				"Suppress automatic creation of --help and -h arguments"
 		/name					"Overrides program name"
@@ -886,6 +899,7 @@ cli: context [
 	][
 		err: catch/name [								;-- catch processing errors only
 			sync-arguments opts											;-- syncs /options with function arguments
+			program: unlit program										;-- support lit-words/paths for compiler
 			s-cuts: opts/s-cuts: any [									;-- init default shortcuts
 				s-cuts
 				compose [(pick [[] [help h]] no-help) (pick [[] [version]] no-version)]
@@ -894,7 +908,7 @@ cli: context [
 
 			while [object? get/any program] [ 							;-- dispatch objects further
 				words: words-of get program
-				if all [											;-- unsupported command?
+				if all [												;-- unsupported command?
 					not empty? arg-blk
 					word? word: attempt [load :arg-blk/1]
 					find words word
