@@ -1,8 +1,8 @@
 Red [
-	Title:   "CSV codec test script"
+	Title:   "XML codec test script"
 	Author:  "Boleslav Březovský"
-	File: 	 %csv-test.red
-	Rights:  "Copyright (C) 2011-2019 Red Foundation. All rights reserved."
+	File: 	 %xml-test.red
+	Rights:  "Copyright (C) 2011-2022 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 

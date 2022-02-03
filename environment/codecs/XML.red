@@ -470,10 +470,11 @@ xml: context [
 					not empty? trim char-data
 				] [
 					repend target [
-						none
+						'text!
 						copy char-data
 						none
 					]
+					break-at target -3
 				]
 			]
 			'push-stack quote (
