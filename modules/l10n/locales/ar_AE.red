@@ -39,6 +39,7 @@ system/locale/list/ar_AE: #(
                 )
             )
         )
+        arab: unset
     )
     calendar: #(
         day1: sat

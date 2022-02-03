@@ -6,33 +6,18 @@ Red [
 
 system/locale/list/fr: #(
     lang-name: "français"
-    region-name: #[none]
     currency: EUR
     numbers: #(
         system: latn
         latn: #(
-            digits: "0123456789"
-            fin-digits: "0123456789"
             symbols: #(
-                nan: "NaN"
-                infinity: "∞"
-                permille: "‰"
-                superscripting-exponent: "×"
-                exponential: "E"
                 approximately: "≃"
-                minus: "-"
-                plus: "+"
-                percent: "%"
-                list: ";"
                 group: " "
                 decimal: ","
             )
             masks: #(
                 number: #(
-                    dec: "# ##0.###"
-                    sci: "0.##############E0"
                     pct: "# ##0. %"
-                    eng: "0.##############E3"
                 )
                 money: #(
                     std: "# ##0.00 $$"
@@ -44,6 +29,7 @@ system/locale/list/fr: #(
             one: "re"
             other: "e"
         )
+        arab: unset
     )
     calendar: #(
         day1: mon
@@ -233,6 +219,7 @@ system/locale/list/fr: #(
         XDR: [std: "DTS"]
         XPF: [std: "FCFP"]
         ZMW: [char: "Kw"]
+        XXX: unset
     )
     parent: root
 )

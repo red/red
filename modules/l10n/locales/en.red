@@ -6,34 +6,11 @@ Red [
 
 system/locale/list/en: #(
     lang-name: "English"
-    region-name: #[none]
     currency: USD
     numbers: #(
         system: latn
         latn: #(
-            digits: "0123456789"
-            fin-digits: "0123456789"
-            symbols: #(
-                nan: "NaN"
-                infinity: "∞"
-                permille: "‰"
-                superscripting-exponent: "×"
-                exponential: "E"
-                approximately: "~"
-                minus: "-"
-                plus: "+"
-                percent: "%"
-                list: ";"
-                group: ","
-                decimal: "."
-            )
             masks: #(
-                number: #(
-                    dec: "# ##0.###"
-                    sci: "0.##############E0"
-                    pct: "# ##0.%"
-                    eng: "0.##############E3"
-                )
                 money: #(
                     std: "$$# ##0.00"
                     acct: "($$# ##0.00)"
@@ -46,6 +23,7 @@ system/locale/list/en: #(
             other: "th"
             two: "nd"
         )
+        arab: unset
     )
     calendar: #(
         standalone: #(

@@ -112,6 +112,8 @@ system/locale/list/en_AU: #(
         VND: [char: "₫"]
         XCD: [char: "$"]
         XPF: [std: "CFP"]
+        XAF: unset
+        XOF: unset
     )
     parent: en
 )

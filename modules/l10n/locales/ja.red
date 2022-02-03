@@ -6,34 +6,14 @@ Red [
 
 system/locale/list/ja: #(
     lang-name: "日本語"
-    region-name: #[none]
     currency: JPY
     numbers: #(
         system: latn
         latn: #(
-            digits: "0123456789"
-            fin-digits: "0123456789"
             symbols: #(
-                nan: "NaN"
-                infinity: "∞"
-                permille: "‰"
-                superscripting-exponent: "×"
-                exponential: "E"
                 approximately: "約"
-                minus: "-"
-                plus: "+"
-                percent: "%"
-                list: ";"
-                group: ","
-                decimal: "."
             )
             masks: #(
-                number: #(
-                    dec: "# ##0.###"
-                    sci: "0.##############E0"
-                    pct: "# ##0.%"
-                    eng: "0.##############E3"
-                )
                 money: #(
                     std: "$$# ##0.00"
                     acct: "($$# ##0.00)"
@@ -43,6 +23,7 @@ system/locale/list/ja: #(
         ordinal-suffixes: #(
             other: " 番目の角を右折します。"
         )
+        arab: unset
     )
     calendar: #(
         standalone: #(
@@ -213,6 +194,7 @@ system/locale/list/ja: #(
         PHP: [char: "₱"]
         RON: [char: "レイ"]
         USD: [std: "$"]
+        XXX: unset
     )
     parent: root
 )

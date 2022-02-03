@@ -21,6 +21,7 @@ system/locale/list/red: #(
 				nan:      "1.#NAN"
 			)
 		)
+		arab: unset
 	)
 	calendar: #(masks: #(datetime: #()))				;-- placeholder for extension
 )

@@ -6,33 +6,19 @@ Red [
 
 system/locale/list/ru: #(
     lang-name: "русский"
-    region-name: #[none]
     currency: RUB
     numbers: #(
         system: latn
         latn: #(
-            digits: "0123456789"
-            fin-digits: "0123456789"
             symbols: #(
                 nan: "не число"
-                infinity: "∞"
-                permille: "‰"
-                superscripting-exponent: "×"
-                exponential: "E"
                 approximately: "≈"
-                minus: "-"
-                plus: "+"
-                percent: "%"
-                list: ";"
                 group: " "
                 decimal: ","
             )
             masks: #(
                 number: #(
-                    dec: "# ##0.###"
-                    sci: "0.##############E0"
                     pct: "# ##0. %"
-                    eng: "0.##############E3"
                 )
                 money: #(
                     std: "# ##0.00 $$"
@@ -43,6 +29,7 @@ system/locale/list/ru: #(
         ordinal-suffixes: #(
             other: "-й"
         )
+        arab: unset
     )
     calendar: #(
         day1: mon

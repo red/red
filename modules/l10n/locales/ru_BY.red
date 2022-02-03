@@ -9,6 +9,7 @@ system/locale/list/ru_BY: #(
     currency: BYN
     currency-names: #(
         BYN: [std: "Br"]
+        RUR: unset
     )
     parent: ru
 )

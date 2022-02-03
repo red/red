@@ -6,27 +6,10 @@ Red [
 
 system/locale/list/hi: #(
     lang-name: "हिन्दी"
-    region-name: #[none]
     currency: INR
     numbers: #(
         system: latn
         latn: #(
-            digits: "0123456789"
-            fin-digits: "0123456789"
-            symbols: #(
-                nan: "NaN"
-                infinity: "∞"
-                permille: "‰"
-                superscripting-exponent: "×"
-                exponential: "E"
-                approximately: "~"
-                minus: "-"
-                plus: "+"
-                percent: "%"
-                list: ";"
-                group: ","
-                decimal: "."
-            )
             masks: #(
                 number: #(
                     dec: "# ## ##0.###"
@@ -47,6 +30,7 @@ system/locale/list/hi: #(
             other: "वां"
             two: "रा"
         )
+        arab: unset
     )
     calendar: #(
         standalone: #(

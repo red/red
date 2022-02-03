@@ -6,33 +6,17 @@ Red [
 
 system/locale/list/es: #(
     lang-name: "español"
-    region-name: #[none]
     currency: EUR
     numbers: #(
         system: latn
         latn: #(
-            digits: "0123456789"
-            fin-digits: "0123456789"
             symbols: #(
-                nan: "NaN"
-                infinity: "∞"
-                permille: "‰"
-                superscripting-exponent: "×"
-                exponential: "E"
-                approximately: "~"
-                minus: "-"
-                plus: "+"
-                percent: "%"
-                list: ";"
                 group: "."
                 decimal: ","
             )
             masks: #(
                 number: #(
-                    dec: "# ##0.###"
-                    sci: "0.##############E0"
                     pct: "# ##0. %"
-                    eng: "0.##############E3"
                 )
                 money: #(
                     std: "# ##0.00 $$"
@@ -43,6 +27,7 @@ system/locale/list/es: #(
         ordinal-suffixes: #(
             other: ".ª"
         )
+        arab: unset
     )
     calendar: #(
         day1: mon
@@ -225,6 +210,9 @@ system/locale/list/es: #(
         THB: [std: "฿"]
         TWD: [char: "NT$"]
         XCD: [char: "$"]
+        EGP: unset
+        XAF: unset
+        XOF: unset
     )
     parent: root
 )

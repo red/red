@@ -6,43 +6,18 @@ Red [
 
 system/locale/list/ar: #(
     lang-name: "العربية"
-    region-name: #[none]
     currency: SAR
     numbers: #(
         system: arab
         arab: #(
-            digits: "٠١٢٣٤٥٦٧٨٩"
-            fin-digits: "٠١٢٣٤٥٦٧٨٩"
             symbols: #(
                 nan: "ليس رقم"
-                infinity: "∞"
-                permille: "؉"
-                superscripting-exponent: "×"
-                exponential: "اس"
-                approximately: "~"
-                minus: "؜-"
-                plus: "؜+"
-                percent: "٪؜"
-                list: "؛"
-                group: "٬"
-                decimal: "٫"
-            )
-            masks: #(
-                number: #(
-                    dec: "# ##0.###"
-                    sci: "0.##############E0"
-                    pct: "# ##0.%"
-                    eng: "0.##############E3"
-                )
-                money: #(
-                    std: "# ##0.00 $$"
-                    acct: "# ##0.00 $$"
-                )
             )
         )
         ordinal-suffixes: #(
             other: " يمينًا."
         )
+        latn: unset
     )
     calendar: #(
         standalone: #(

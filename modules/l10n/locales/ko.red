@@ -6,34 +6,11 @@ Red [
 
 system/locale/list/ko: #(
     lang-name: "한국어"
-    region-name: #[none]
     currency: KRW
     numbers: #(
         system: latn
         latn: #(
-            digits: "0123456789"
-            fin-digits: "0123456789"
-            symbols: #(
-                nan: "NaN"
-                infinity: "∞"
-                permille: "‰"
-                superscripting-exponent: "×"
-                exponential: "E"
-                approximately: "~"
-                minus: "-"
-                plus: "+"
-                percent: "%"
-                list: ";"
-                group: ","
-                decimal: "."
-            )
             masks: #(
-                number: #(
-                    dec: "# ##0.###"
-                    sci: "0.##############E0"
-                    pct: "# ##0.%"
-                    eng: "0.##############E3"
-                )
                 money: #(
                     std: "$$# ##0.00"
                     acct: "($$# ##0.00)"
@@ -43,6 +20,7 @@ system/locale/list/ko: #(
         ordinal-suffixes: #(
             other: "번째"
         )
+        arab: unset
     )
     calendar: #(
         standalone: #(

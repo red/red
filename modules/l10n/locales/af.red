@@ -6,34 +6,15 @@ Red [
 
 system/locale/list/af: #(
     lang-name: "Afrikaans"
-    region-name: #[none]
     currency: ZAR
     numbers: #(
         system: latn
         latn: #(
-            digits: "0123456789"
-            fin-digits: "0123456789"
             symbols: #(
-                nan: "NaN"
-                infinity: "∞"
-                permille: "‰"
-                superscripting-exponent: "×"
-                exponential: "E"
-                approximately: "~"
-                minus: "-"
-                plus: "+"
-                percent: "%"
-                list: ";"
                 group: " "
                 decimal: ","
             )
             masks: #(
-                number: #(
-                    dec: "# ##0.###"
-                    sci: "0.##############E0"
-                    pct: "# ##0.%"
-                    eng: "0.##############E3"
-                )
                 money: #(
                     std: "$$# ##0.00"
                     acct: "($$# ##0.00)"
@@ -43,6 +24,7 @@ system/locale/list/af: #(
         ordinal-suffixes: #(
             other: "e"
         )
+        arab: unset
     )
     calendar: #(
         standalone: #(

@@ -113,6 +113,11 @@ system/locale/list/fr_CA: #(
         UYU: [char: "$"]
         VND: [char: "₫"]
         ZMW: [char: "ZK"]
+        GEL: unset
+        WST: unset
+        XAF: unset
+        XOF: unset
+        XPF: unset
     )
     parent: fr
 )

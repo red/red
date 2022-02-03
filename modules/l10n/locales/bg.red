@@ -6,34 +6,15 @@ Red [
 
 system/locale/list/bg: #(
     lang-name: "български"
-    region-name: #[none]
     currency: BGN
     numbers: #(
         system: latn
         latn: #(
-            digits: "0123456789"
-            fin-digits: "0123456789"
             symbols: #(
-                nan: "NaN"
-                infinity: "∞"
-                permille: "‰"
-                superscripting-exponent: "×"
-                exponential: "E"
-                approximately: "~"
-                minus: "-"
-                plus: "+"
-                percent: "%"
-                list: ";"
                 group: " "
                 decimal: ","
             )
             masks: #(
-                number: #(
-                    dec: "# ##0.###"
-                    sci: "0.##############E0"
-                    pct: "# ##0.%"
-                    eng: "0.##############E3"
-                )
                 money: #(
                     std: "0.00 $$"
                     acct: "(0.00 $$)"
@@ -43,6 +24,7 @@ system/locale/list/bg: #(
         ordinal-suffixes: #(
             other: "-ата"
         )
+        arab: unset
     )
     calendar: #(
         day1: mon
@@ -214,6 +196,57 @@ system/locale/list/bg: #(
         JPY: [char: "¥"]
         USD: [char: "$" std: "щ.д."]
         XCD: [char: "$"]
+        AMD: unset
+        ARS: unset
+        AUD: unset
+        AZN: unset
+        BBD: unset
+        BDT: unset
+        BMD: unset
+        BND: unset
+        BRL: unset
+        BSD: unset
+        BZD: unset
+        CAD: unset
+        CLP: unset
+        CNY: unset
+        COP: unset
+        CRC: unset
+        CUP: unset
+        DOP: unset
+        FJD: unset
+        FKP: unset
+        GHS: unset
+        GIP: unset
+        GYD: unset
+        HKD: unset
+        ILS: unset
+        INR: unset
+        JMD: unset
+        KHR: unset
+        KRW: unset
+        KYD: unset
+        KZT: unset
+        LAK: unset
+        LRD: unset
+        MNT: unset
+        MXN: unset
+        NAD: unset
+        NGN: unset
+        NZD: unset
+        PHP: unset
+        PYG: unset
+        RON: unset
+        SBD: unset
+        SGD: unset
+        SRD: unset
+        SSP: unset
+        TRY: unset
+        TTD: unset
+        TWD: unset
+        UAH: unset
+        UYU: unset
+        VND: unset
     )
     parent: root
 )

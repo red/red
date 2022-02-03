@@ -6,34 +6,11 @@ Red [
 
 system/locale/list/zh: #(
     lang-name: "中文"
-    region-name: #[none]
     currency: CNY
     numbers: #(
         system: latn
         latn: #(
-            digits: "0123456789"
-            fin-digits: "0123456789"
-            symbols: #(
-                nan: "NaN"
-                infinity: "∞"
-                permille: "‰"
-                superscripting-exponent: "×"
-                exponential: "E"
-                approximately: "~"
-                minus: "-"
-                plus: "+"
-                percent: "%"
-                list: ";"
-                group: ","
-                decimal: "."
-            )
             masks: #(
-                number: #(
-                    dec: "# ##0.###"
-                    sci: "0.##############E0"
-                    pct: "# ##0.%"
-                    eng: "0.##############E3"
-                )
                 money: #(
                     std: "$$# ##0.00"
                     acct: "($$# ##0.00)"
@@ -43,6 +20,7 @@ system/locale/list/zh: #(
         ordinal-suffixes: #(
             other: " 个路口右转。"
         )
+        arab: unset
     )
     calendar: #(
         standalone: #(
@@ -211,6 +189,7 @@ system/locale/list/zh: #(
         PHP: [char: "₱"]
         RUR: [char: "р."]
         TWD: [std: "NT$"]
+        XXX: unset
     )
     parent: root
 )

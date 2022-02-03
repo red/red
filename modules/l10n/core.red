@@ -88,6 +88,9 @@ system/locale/tools: context [
 				]
 			]
 		]
+		foreach key keys-of dst [
+			if 'unset == dst/:key [remove/key dst key]	;@@ this should be real #[unset] but it won't compile #4126
+		]
 	]
 
 	;; useful when we want to use a locale without loading it as default
