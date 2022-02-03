@@ -6,7 +6,7 @@ Red [
 
 system/locale/list/bg: #(
     lang-name: "български"
-    region-name: none
+    region-name: #[none]
     currency: BGN
     numbers: #(
         system: latn

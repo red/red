@@ -6,7 +6,7 @@ Red [
 
 system/locale/list/ru: #(
     lang-name: "русский"
-    region-name: none
+    region-name: #[none]
     currency: RUB
     numbers: #(
         system: latn

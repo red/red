@@ -6,7 +6,7 @@ Red [
 
 system/locale/list/he: #(
     lang-name: "עברית"
-    region-name: none
+    region-name: #[none]
     currency: ILS
     numbers: #(
         system: latn

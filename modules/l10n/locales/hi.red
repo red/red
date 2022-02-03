@@ -6,7 +6,7 @@ Red [
 
 system/locale/list/hi: #(
     lang-name: "हिन्दी"
-    region-name: none
+    region-name: #[none]
     currency: INR
     numbers: #(
         system: latn

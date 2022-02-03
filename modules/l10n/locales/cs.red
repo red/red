@@ -6,7 +6,7 @@ Red [
 
 system/locale/list/cs: #(
     lang-name: "čeština"
-    region-name: none
+    region-name: #[none]
     currency: CZK
     numbers: #(
         system: latn

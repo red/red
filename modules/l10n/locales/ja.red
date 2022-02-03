@@ -6,7 +6,7 @@ Red [
 
 system/locale/list/ja: #(
     lang-name: "日本語"
-    region-name: none
+    region-name: #[none]
     currency: JPY
     numbers: #(
         system: latn

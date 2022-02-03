@@ -6,7 +6,7 @@ Red [
 
 system/locale/list/pt: #(
     lang-name: "português"
-    region-name: none
+    region-name: #[none]
     currency: BRL
     numbers: #(
         system: latn

@@ -6,7 +6,7 @@ Red [
 
 system/locale/list/zh: #(
     lang-name: "中文"
-    region-name: none
+    region-name: #[none]
     currency: CNY
     numbers: #(
         system: latn

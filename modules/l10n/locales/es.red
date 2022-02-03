@@ -6,7 +6,7 @@ Red [
 
 system/locale/list/es: #(
     lang-name: "español"
-    region-name: none
+    region-name: #[none]
     currency: EUR
     numbers: #(
         system: latn

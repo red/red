@@ -6,7 +6,7 @@ Red [
 
 system/locale/list/af: #(
     lang-name: "Afrikaans"
-    region-name: none
+    region-name: #[none]
     currency: ZAR
     numbers: #(
         system: latn

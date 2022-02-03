@@ -6,7 +6,7 @@ Red [
 
 system/locale/list/ko: #(
     lang-name: "한국어"
-    region-name: none
+    region-name: #[none]
     currency: KRW
     numbers: #(
         system: latn

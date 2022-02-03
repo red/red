@@ -6,7 +6,7 @@ Red [
 
 system/locale/list/tr: #(
     lang-name: "Türkçe"
-    region-name: none
+    region-name: #[none]
     currency: TRY
     numbers: #(
         system: latn

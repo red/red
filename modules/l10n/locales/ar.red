@@ -6,7 +6,7 @@ Red [
 
 system/locale/list/ar: #(
     lang-name: "العربية"
-    region-name: none
+    region-name: #[none]
     currency: SAR
     numbers: #(
         system: arab
