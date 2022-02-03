@@ -14,16 +14,16 @@ Red [
 ===start-group=== "load-xml"
 	--test-- "load-xml-triples"
 		--assert [] = load-xml ""
-		--assert [tag none none] = load-xml {<tag/>}
-		--assert [tag none [attr "value"]] = load-xml {<tag attr="value"/>}
-		--assert [tag none [attr "value"]] = load-xml {<tag attr='value'/>}
+		--assert [tag #[none] #[none]] = load-xml {<tag/>}
+		--assert [tag #[none] [attr "value"]] = load-xml {<tag attr="value"/>}
+		--assert [tag #[none] [attr "value"]] = load-xml {<tag attr='value'/>}
 		--assert equal?
-			[tag none [att1 "value" att2 "hodnota"]]
+			[tag #[none] [att1 "value" att2 "hodnota"]]
 			load-xml {<tag att1='value' att2="hodnota"/>}
-		-assert equal?
-			[tag none [att1 "value" att2 "hodnota"]]
+		--assert equal?
+			[tag #[none] [att1 "value" att2 "hodnota"]]
 			load-xml {<tag att1='value' att2="hodnota"></tag>}
-		-assert equal?
+		--assert equal?
 			[tag "Content" [att1 "value" att2 "hodnota"]]
 			load-xml {<tag att1='value' att2="hodnota">Content</tag>}
 	--test-- "load-xml-compact"
@@ -34,29 +34,29 @@ Red [
 		--assert equal?
 			[tag [#att1 "value" #att2 "hodnota"]]
 			load-xml/as {<tag att1='value' att2="hodnota"/>} 'compact
-		-assert equal?
+		--assert equal?
 			[tag [#att1 "value" #att2 "hodnota"]]
 			load-xml/as {<tag att1='value' att2="hodnota"></tag>} 'compact
-		-assert equal?
+		--assert equal?
 			[tag [#att1 "value" #att2 "hodnota" text! "Content"]]
 			load-xml/as {<tag att1='value' att2="hodnota">Content</tag>} 'compact
 	--test-- "load-xml-key-val"
 		--assert [] = load-xml/as "" 'key-val
 		--assert equal?
-			[tag [attr! #(none) text! #(none)]]
+			[tag []]
 			load-xml/as {<tag/>} 'key-val
 		--assert equal?
-			[tag [attr! [attr "value"] text! none]]
+			[tag [attr! [attr "value"]]]
 			load-xml/as {<tag attr="value"/>} 'key-val
 		--assert equal?
-			[tag [attr! [attr "value"] text! none]]
+			[tag [attr! [attr "value"]]]
 			load-xml/as {<tag attr='value'/>} 'key-val
 		--assert equal?
-			[tag [attr! [att1 "value" att2 "hodnota"] text! none]]
+			[tag [attr! [att1 "value" att2 "hodnota"]]]
 			load-xml/as {<tag att1='value' att2="hodnota"/>} 'key-val
-		-assert equal?
-			[tag [attr! [att1 "value" att2 "hodnota"] text! none]]
+		--assert equal?
+			[tag [attr! [att1 "value" att2 "hodnota"]]]
 			load-xml/as {<tag att1='value' att2="hodnota"></tag>} 'key-val
-		-assert equal?
+		--assert equal?
 			[tag [attr! [att1 "value" att2 "hodnota"] text! "Content"]]
 			load-xml/as {<tag att1='value' att2="hodnota">Content</tag>} 'key-val
