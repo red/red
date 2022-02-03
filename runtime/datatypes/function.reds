@@ -683,6 +683,9 @@ _function: context [
 			if -1 = count-locals spec/node spec/head yes [
 				block/rs-append spec as red-value! refinements/local
 			]
+			value: as red-value! words/_local
+			value: block/find list value null no no no no null null no no no no
+			if TYPE_OF(value) <> TYPE_NONE [_series/remove as red-series! value null null] ;@@ will trigger ownership events
 			block/rs-append-block spec list
 		]
 		list

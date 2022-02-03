@@ -2781,6 +2781,7 @@ red: context [
 			]
 		]
 		unless empty? words [
+			remove find words 'local					;-- #4998
 			pos: tail spec
 			either parse spec [thru /local any word! loc: to end][
 				insert loc words

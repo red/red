@@ -779,6 +779,8 @@ words: context [
 	_parse-cb:		as red-word! 0
 	_compare-cb:	as red-word! 0
 	
+	_local: 		as red-word! 0
+	
 	errors: context [
 		_throw:		as red-word! 0
 		note:		as red-word! 0
@@ -1066,6 +1068,8 @@ words: context [
 		errors/user:	 word/load "user"
 		errors/internal: word/load "internal"
 		errors/invalid-error: word/load "invalid-error"
+		
+		_local:			 word/load "local"
 		
 		changed:		_changed/symbol
 	]
