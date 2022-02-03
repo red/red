@@ -8,7 +8,6 @@ system/locale/list/tr: #(
     lang-name: "Türkçe"
     currency: TRY
     numbers: #(
-        system: latn
         latn: #(
             symbols: #(
                 group: "."

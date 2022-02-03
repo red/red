@@ -8,7 +8,6 @@ system/locale/list/fr: #(
     lang-name: "français"
     currency: EUR
     numbers: #(
-        system: latn
         latn: #(
             symbols: #(
                 approximately: "≃"

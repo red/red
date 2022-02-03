@@ -8,7 +8,6 @@ system/locale/list/es: #(
     lang-name: "español"
     currency: EUR
     numbers: #(
-        system: latn
         latn: #(
             symbols: #(
                 group: "."

@@ -8,7 +8,6 @@ system/locale/list/ja: #(
     lang-name: "日本語"
     currency: JPY
     numbers: #(
-        system: latn
         latn: #(
             symbols: #(
                 approximately: "約"

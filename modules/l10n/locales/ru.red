@@ -8,7 +8,6 @@ system/locale/list/ru: #(
     lang-name: "русский"
     currency: RUB
     numbers: #(
-        system: latn
         latn: #(
             symbols: #(
                 nan: "не число"

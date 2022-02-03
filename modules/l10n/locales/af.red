@@ -8,7 +8,6 @@ system/locale/list/af: #(
     lang-name: "Afrikaans"
     currency: ZAR
     numbers: #(
-        system: latn
         latn: #(
             symbols: #(
                 group: " "

@@ -8,7 +8,6 @@ system/locale/list/ko: #(
     lang-name: "한국어"
     currency: KRW
     numbers: #(
-        system: latn
         latn: #(
             masks: #(
                 money: #(

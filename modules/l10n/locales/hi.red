@@ -8,7 +8,6 @@ system/locale/list/hi: #(
     lang-name: "हिन्दी"
     currency: INR
     numbers: #(
-        system: latn
         latn: #(
             masks: #(
                 number: #(

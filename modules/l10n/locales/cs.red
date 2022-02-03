@@ -8,7 +8,6 @@ system/locale/list/cs: #(
     lang-name: "čeština"
     currency: CZK
     numbers: #(
-        system: latn
         latn: #(
             symbols: #(
                 group: " "

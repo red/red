@@ -8,7 +8,6 @@ system/locale/list/en: #(
     lang-name: "English"
     currency: USD
     numbers: #(
-        system: latn
         latn: #(
             masks: #(
                 money: #(

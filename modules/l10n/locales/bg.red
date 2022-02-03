@@ -8,7 +8,6 @@ system/locale/list/bg: #(
     lang-name: "български"
     currency: BGN
     numbers: #(
-        system: latn
         latn: #(
             symbols: #(
                 group: " "

@@ -8,7 +8,6 @@ system/locale/list/pl: #(
     lang-name: "polski"
     currency: PLN
     numbers: #(
-        system: latn
         latn: #(
             symbols: #(
                 group: " "

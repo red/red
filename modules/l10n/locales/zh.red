@@ -8,7 +8,6 @@ system/locale/list/zh: #(
     lang-name: "中文"
     currency: CNY
     numbers: #(
-        system: latn
         latn: #(
             masks: #(
                 money: #(

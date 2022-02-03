@@ -8,6 +8,7 @@ system/locale/list/root: #(
     lang-name: "root"
     region-name: #[none]
     numbers: #(
+        system: latn
         latn: #(
             digits: "0123456789"
             fin-digits: "0123456789"

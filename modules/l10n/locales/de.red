@@ -8,7 +8,6 @@ system/locale/list/de: #(
     lang-name: "Deutsch"
     currency: EUR
     numbers: #(
-        system: latn
         latn: #(
             symbols: #(
                 superscripting-exponent: "·"

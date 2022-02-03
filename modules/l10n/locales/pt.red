@@ -8,7 +8,6 @@ system/locale/list/pt: #(
     lang-name: "português"
     currency: BRL
     numbers: #(
-        system: latn
         latn: #(
             symbols: #(
                 group: "."

@@ -8,7 +8,6 @@ system/locale/list/he: #(
     lang-name: "עברית"
     currency: ILS
     numbers: #(
-        system: latn
         latn: #(
             symbols: #(
                 minus: "‎-"
