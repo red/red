@@ -848,8 +848,8 @@ date: context [
 		return: [integer!]
 		/local
 			formed [c-string!]
-			blk	   [red-block!]
-			month  [red-string!]
+			names  [pointer! [c-string!]]
+			i      [integer!]
 			hour   [integer!]
 			mn	   [integer!]
 			len	   [integer!]
@@ -871,12 +871,9 @@ date: context [
 		
 		string/append-char GET_BUFFER(buffer) sep
 		
-		blk: as red-block! #get system/locale/months
-		month: as red-string! (block/rs-head blk) + DATE_GET_MONTH(d) - 1
-		if any [month > block/rs-tail blk TYPE_OF(month) <> TYPE_STRING][
-			fire [TO_ERROR(script invalid-months)]
-		]
-		string/concatenate buffer month 3 0 yes no
+		i: DATE_GET_MONTH(d)
+		names: ["Jan" "Feb" "Mar" "Apr" "May" "Jun" "Jul" "Aug" "Sep" "Oct" "Nov" "Dec"]
+		string/concatenate-literal buffer as c-string! names/i
 		part: part - 4									;-- 3 + separator
 		
 		string/append-char GET_BUFFER(buffer) sep
