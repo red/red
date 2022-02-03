@@ -848,7 +848,7 @@ date: context [
 		return: [integer!]
 		/local
 			formed [c-string!]
-			names  [pointer! [c-string!]]
+			names  [int-ptr!]
 			i      [integer!]
 			hour   [integer!]
 			mn	   [integer!]
