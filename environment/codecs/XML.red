@@ -115,8 +115,9 @@ xml: context [
 		init-decoder fmt
 		include-meta?: meta
 		str-keys?: str-keys
-		; cleanup state
 		unless string? data [data: read data]
+		if empty? data [return make block! 0]
+		; cleanup state
 		clear target
 		clear target-stack
 		clear attributes
@@ -501,7 +502,7 @@ xml: context [
 					change skip tail target -2 either empty? cont-val [
 						none
 					] [
-						cont-val
+						copy cont-val
 					]
 				]
 				value?: false
@@ -924,13 +925,14 @@ xml: context [
 			]
 			encode: func [
 				data
-				/local parse*
+				/local parse* result
 			] [
 				clear output
 				clear tag-stack
 				text-mark: to lit-word! text-mark
 				parse*: either trace? [:parse-trace] [:parse]
-				either parse* data [some content-rule] [
+				result: parse* data [some content-rule]
+				either result [
 					output
 				] [
 					do make error! error-invalid-data
@@ -1039,12 +1041,13 @@ xml: context [
 			]
 			encode: func [
 				data
-				/local parse*
+				/local parse* result
 			] [
 				clear output
 				clear tag-stack
 				parse*: either trace? [:parse-trace] [:parse]
-				either parse* data [some content-rule] [
+				result: parse* data [some content-rule]
+				either result [
 					output
 				] [
 					do make error! error-invalid-data
