@@ -473,9 +473,13 @@ redc: context [
 				script: temp-dir/GUI/old/gui-console.red
 			]
 
+			modules: [CLI View]
 			modules: collect [
 				foreach [module _ OSes] red/standard-modules [
-					if find OSes red/job/OS [keep module]
+					if all [
+						find modules module
+						find OSes red/job/OS
+					] [keep module]
 				]
 			]
 			if all [not view? not gui?] [remove find modules 'View]
