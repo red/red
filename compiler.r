@@ -107,7 +107,7 @@ red: context [
 	standard-modules: [
 	;-- Name ------ Entry file -------------- OS availability -----
 		View		%modules/view/view.red	  [Windows macOS Linux]
-		CLI			%modules/cli.red          [Windows macOS Linux]
+		CLI			%modules/cli.red          [Windows macOS Linux Android Syllable FreeBSD NetBSD]	;-- platform-independent
 	]
 
 	func-constructors: [
