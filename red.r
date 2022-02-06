@@ -412,6 +412,18 @@ redc: context [
 		]
 	]
 
+	at-needs: func [source /local sp p s e] [
+		sp: charset " ^-^/^M"
+		parse source [
+			thru #"[" any [
+				p: #"]" :p insert "^-Needs: " p: insert #"^/" (return p)
+			|	"Needs:" some sp p: (return p)
+			|	skip 
+			]
+		]
+		none											;-- invalid source header?
+	]
+			
 	run-console: func [
 		console? [logic!]
 		gui?	 [logic!]
@@ -420,7 +432,7 @@ redc: context [
 		/with file [string!]
 		/local 
 			opts result script filename exe console console-root files files2
-			source con-ui gui-target td winxp? old-td status
+			source con-ui gui-target td winxp? modules needs old-td status
 	][
 		script: rejoin [temp-dir pick [%GUI/ %CLI/] gui? %gui-console.red]
 		filename: decorate-name pick [%gui-console %console] gui?
@@ -461,28 +473,17 @@ redc: context [
 				script: temp-dir/GUI/old/gui-console.red
 			]
 
-			source: copy read-cache console/:con-ui
-			if all [
-				view?
-				any [Windows? macOS? Linux?]
-				not gui?
-			][
-				sp: charset " ^-^/^M"
-				parse source [
-					thru #"[" any [
-						p: #"]" :p insert "Needs: View" break	;-- add whole line if no "needs" field
-					|	"Needs:" some sp [						;-- or only add View module to it...
-							opt "'" "View"
-						|   "[" s: to "]" e: [
-								if (find/part s "View" e)
-							|	insert " View"
-							]
-						|	insert "[View " to sp insert "]"
-						] break
-					|	skip 
-					]
+			modules: collect [
+				foreach [module _ OSes] red/standard-modules [
+					if find OSes red/job/OS [keep module]
 				]
 			]
+			if all [not view? not gui?] [remove find modules 'View]
+			
+			source: copy read-cache console/:con-ui
+			needs: at-needs source
+			remove/part needs second load/next needs
+			insert needs mold modules
 
 			files: [%auto-complete.red %engine.red %help.red]
 			foreach f files [write temp-dir/:f read-cache console-root/:f]
