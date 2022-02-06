@@ -39,6 +39,19 @@ system/locale/tools: context [
 			str
 		]
 	][
+		#system [
+			#define __LC_CTYPE 0
+			#import [									;@@ why doesn't it import it from the runtime?
+				LIBC-file cdecl [
+					setlocale: "setlocale" [
+						category	[integer!]
+						locale		[c-string!]
+						return:		[c-string!]
+					]
+				]
+			]
+		]
+		
 		get-user-locale-id*: routine [
 			return: [string!]
 			/local s [c-string!]
