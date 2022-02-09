@@ -881,11 +881,15 @@ date: context [
 		
 		string/append-char GET_BUFFER(buffer) sep
 		
+		if year < 0 [
+			year: 0 - year
+			string/append-char GET_BUFFER(buffer) as-integer #"-"
+		]
 		formed: integer/form-signed year
-		part: either year >= 0 [
+		part: either year < 100 [
 			len: 4 - length? formed
 			if len > 0 [loop len [string/append-char GET_BUFFER(buffer) as-integer #"0"]]
-			part - 5									;-- 4 + separator
+			part: part - 5									;-- 4 + separator
 		][
 			part - length? formed
 		]

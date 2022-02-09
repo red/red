@@ -1935,10 +1935,11 @@ lexer: context [
 			p: p + 1
 			day: grab4									;-- could be year also
 			dlen: as-integer p - me
-			if any [dlen > ylen day > year][
+			if any [day < 0 dlen > ylen day > year][
+				if day < 0 [dlen: dlen - 1]
 				len: day day: year year: len ylen: dlen ;-- swap day <=> year
 			]
-			if all [year < 100 ylen <= 2][				;-- expand short yy forms
+			if all [year < 100 year > 0 ylen <= 2][		;-- expand short yy forms
 				ylen: either year < 50 [2000][1900]
 				year: year + ylen
 			]
