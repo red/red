@@ -130,6 +130,8 @@ red: context [
 		Locales/es		%modules/l10n/locales/es.red    [Windows macOS Linux Syllable FreeBSD NetBSD]
 		Locales/es_ES	%modules/l10n/locales/es_ES.red [Windows macOS Linux Syllable FreeBSD NetBSD]
 		Locales/es_MX	%modules/l10n/locales/es_MX.red [Windows macOS Linux Syllable FreeBSD NetBSD]
+		Locales/et		%modules/l10n/locales/et.red    [Windows macOS Linux Syllable FreeBSD NetBSD]
+		Locales/et_EE	%modules/l10n/locales/et_EE.red [Windows macOS Linux Syllable FreeBSD NetBSD]
 		Locales/fr		%modules/l10n/locales/fr.red    [Windows macOS Linux Syllable FreeBSD NetBSD]
 		Locales/fr_CA	%modules/l10n/locales/fr_CA.red [Windows macOS Linux Syllable FreeBSD NetBSD]
 		Locales/fr_FR	%modules/l10n/locales/fr_FR.red [Windows macOS Linux Syllable FreeBSD NetBSD]

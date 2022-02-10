@@ -24,6 +24,8 @@ Red [
 #include %locales/es.red
 #include %locales/es_ES.red
 #include %locales/es_MX.red
+#include %locales/et.red
+#include %locales/et_EE.red
 #include %locales/fr.red
 #include %locales/fr_CA.red
 #include %locales/fr_FR.red
