@@ -102,9 +102,9 @@ xml: context [
 	set 'load-xml func [
 		"Convert XML data to Red format"
 		data [string! file! url!] "XML to convert"
-		/as
-			fmt [word!] "Select output format [triples compact key-val]"
-		/meta     "Preserve meta data"
+		/as "Select output format [triples compact key-val]"
+			fmt [word!]
+		/meta "Preserve meta data"
 		/str-keys "Leave keys as strings"
 		/local result
 	] [
@@ -684,10 +684,10 @@ xml: context [
 			'store-xml-decl meta-action [
 				'xml!
 				compose [
-					version: (verinfo)
-					encoding: (encinfo)
+					version  (verinfo)
+					encoding (encinfo)
 					(either not none? stdinfo [compose [
-						standalone: (stdinfo)]][]
+						standalone (stdinfo)]][]
 					)
 				]
 			]
@@ -1058,11 +1058,11 @@ xml: context [
 
 	set 'to-xml func [
 		data [block!]	"Red data for conversion"
-		/as
-			fmt [word!]	"Format of the source data [triples compact key-val]"
-		/pretty
-			indent [string!] "Pretty format the output, using given indentation."
-	] [
+		/as "Format of the source data [triples compact key-val]"
+			fmt [word!]
+		/pretty "Pretty format the output, using given indentation."
+			indent [string!]
+		] [
 		; process options
 		set-options default-opts
 		fmt: set-format fmt
