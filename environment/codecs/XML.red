@@ -34,6 +34,7 @@ xml: context [
 	trace?: false
 	format: 'triples
 	indentation: "    "
+	pretty?: #[false]
 	current-indentation: ""
 
 	error-invalid-data: "Invalid input data"
@@ -41,7 +42,7 @@ xml: context [
 
 	formats: [triples compact key-val]
 
-	set-options: func [opts] [
+	set-options: func [opts /local key value] [
 		unless map? opts [opts: to map! opts]
 		foreach [key value] opts [
 			if find keys-of opts key [
@@ -90,7 +91,7 @@ xml: context [
 	]
 	load-key: none
 
-	value: att-name: att-value: att-length: att-ns: char-data:
+	key: value: att-name: att-value: att-length: att-ns: char-data:
 	doctype: verinfo: encinfo: stdinfo: namespace: nl?: attributes:
 		none
 	cont-val: ""
@@ -443,6 +444,7 @@ xml: context [
 	pop-stack:
 	store-attributes:
 	store-xml-decl:
+	store-doctype:
 	store-pi:
 	store-comment:
 	store-cdata:
