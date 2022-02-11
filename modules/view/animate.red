@@ -168,40 +168,15 @@ context [
     ;------------------------------------------------------------------------------------------------
     
     set 'tween function [
-        {Interpolates a value between value1 and value2 at time t
-        in the stretch start .. start + duration using easing function ease}
-        target   [word! any-path!]        {the word or path to set}
+        {Interpolates a value at t using easing function}
         val1     [number! pair! tuple!]   {Value to interpolate from}
         val2     [number! pair! tuple!]   {Value to interpolate to}
-        start    [time! float! integer!]  {Start of the time period}
-        duration [time! float! integer!]  {Duration of the time period}
-        t        [float! integer!]        {Current time}
-        ease     [any-word! function!]              {Easing function}
+        t        [float!]                 {float! from 0.0 to 1.0}
+        ease     [any-word! function!]    {Easing function}
     ][
-        start: to-float start
-        duration: to-float duration
-        end-t: duration * 1.09 + start  ; depends on the easing!
-            
         if word? :ease [ease: get in easings ease]
-    
-        ;probe :ease
-    
-        if all [t >= start t <= end-t][
-            either t < (start + duration) [
-                either tuple? val1 [
-                    if 3 = length? val1 [val1: val1 + 0.0.0.0]
-                    if 3 = length? val2 [val2: val2 + 0.0.0.0]
-                    val: val1
-                    repeat n length? val1 [
-                        val/:n: to integer! val1/:n + (val2/:n - val1/:n * ease t - start / duration) % 256
-                    ]
-                ][
-                    val: val1 + (val2 - val1 * ease t - start / duration)  
-                    if integer? val1 [val: to integer! val]
-                ]    
-                set target val
-            ][set target val2]
-        ]    
+        t: ease t
+        to val1 add val1 * (1 - t) val2 * t
     ]
     
     process-timeline: has [
@@ -211,14 +186,14 @@ context [
         
         foreach [key val] timeline [
             w: val/2
-            if w/val1 <> w/val2 [tween val/1 w/val1 w/val2 w/start w/dur t :w/ease]
-            
             if t > w/start[
                 unless w/started [
                     do w/on-start
                     w/started: true
                 ]
                 either t < (w/start + w/dur) [
+                    tt: t - w/start / w/dur
+                    if w/val1 <> w/val2 [set val/1 tween w/val1 w/val2 tt :w/ease]
                     bind w/on-time context compose [time: (t)]  ; makes elapsed time visible to the caller as "time"
                     do w/on-time
                 ][
@@ -258,7 +233,8 @@ context [
             if t >= v/start [
                 either t <= (v/start + v/dur * 1.01) [
                     if lit-word? :v/ease [v/ease: in easings :v/ease]
-                    tween 'target v/v1 v/v2 v/start v/dur t get v/ease
+                    tt: t - v/start / v/dur
+                    target: tween v/v1 v/v2 tt get v/ease
                     switch/default v/type [
                         text  [text-along-curve v/id target]
                         block [block-along-curve v/id target]
@@ -285,7 +261,8 @@ context [
             if t >= v/start [
                 either t <= (v/start + v/duration) [
                     if lit-word? :v/ease [v/ease: in easings :v/ease]
-                    tween 'target 0.0 1.0 v/start v/duration t get v/ease
+                    tt: t - v/start / v/duration
+                    target: tween 0.0 1.0 tt get v/ease
                     trace-path to-word key target
                 ][
                     trace-path to-word key 1.0 
@@ -310,7 +287,9 @@ context [
                     repeat n length? at v/block-1 2[
                         k: n + 1
                         if lit-word? :v/ease [v/ease: in easings :v/ease]
-                        tween to-path reduce [to-word key 1 k] v/block-1/:k v/block-2/:k v/start v/duration t get v/ease
+                        trgt: to-path reduce [to-word key 1 k]
+                        tt: t - v/start / v/duration
+                        set trgt tween  v/block-1/:k v/block-2/:k tt get v/ease
                     ]
                 ][
                    clear p: get to-path reduce [to-word key 1]
@@ -609,7 +588,8 @@ context [
                 fnt-id: get to word! rejoin [item/1 "_"]
                 name: get to word! item/1
                 name/4: name/4  ; refresh
-                tween 'fnt-id/color/4 255 0 item/5 item/6 t :ease-in-out-quart
+                ;tween 'fnt-id/color/4 255 0 item/5 item/6 t :ease-in-out-quart
+                 
             ]
         ]
     ]
@@ -1080,7 +1060,7 @@ clip shape move line arc curve curv qcurve qcurv hline vline} charset reduce [sp
     anim-loop: [
         'loop
         [    
-             p: opt 'two-way (if p/1 = 'two-way [bi-dir: on])
+            p: opt 'two-way (if p/1 = 'two-way [bi-dir: on])
             opt ['forever (loop-n: -1) | set loop-n integer! 'times ]
         ]
     ]
@@ -2124,7 +2104,6 @@ clip shape move line arc curve curv qcurve qcurv hline vline} charset reduce [sp
                     opt keep 'closed ; for splines and arcs
                   | into anim-rule  ; block 
                 ]                                      
-              
             ]
         ]    
     ]
@@ -2143,8 +2122,6 @@ clip shape move line arc curve curv qcurve qcurv hline vline} charset reduce [sp
 
         ;probe draw-block
         ;probe timeline
-        
-        ;probe curve-fx-map
                 
         test-img: make image! [100x100 0.0.0.0]
         if error? draw-err: try [draw test-img copy draw-block][
