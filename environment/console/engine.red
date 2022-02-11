@@ -301,6 +301,11 @@ system/console: context [
 	]
 
 	launch: function [/local result][
+		;@@ temporary locale init code, until a better way is possible:
+		;-- populate system/locale
+		;-- (has to be done after all locales are loaded because 'best' locale depends on what's available)
+		if value? 'load-locale [do [load-locale system/locale/tools/get-best-locale-id]]
+		
 		either script: src: read-argument [
 			parse/case script [some [[pos: "Red" opt "/System" any ws #"[" to end] | skip]]
 			either script: pos [
