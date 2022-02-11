@@ -40,6 +40,7 @@ write %build/bin/sources.r set-cache [
 			%PNG.red
 			%CSV.red
 			%JSON.red
+			%XML.red
 			%redbin.red
 		]
 		%console/ [
