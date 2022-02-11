@@ -64,5 +64,4 @@ recycle-test.red
 clipboard-test.red
 csv-test.red
 json-test.red
-xml-test.red
 redbin-codec-test.red
