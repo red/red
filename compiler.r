@@ -104,10 +104,7 @@ red: context [
 	
 	iterators: [loop until while repeat foreach forall forever remove-each]
 	
-	standard-modules: [
-	;-- Name ------ Entry file -------------- OS availability -----
-		View		%modules/view/view.red	  [Windows macOS Linux]
-	]
+	standard-modules: load %modules.r
 
 	func-constructors: [
 		'func | 'function | 'does | 'has | 'routine | 'make 'function!
