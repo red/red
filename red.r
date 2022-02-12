@@ -466,7 +466,6 @@ redc: context [
 				view?
 				any [Windows? macOS? Linux?]
 				not gui?
-
 				append source/2/Needs 'View
 			]
 
