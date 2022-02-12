@@ -461,12 +461,14 @@ redc: context [
 				script: temp-dir/GUI/old/gui-console.red
 			]
 
-			source: copy read-cache console/:con-ui
-			if all [
+			source: load-cache console/:con-ui
+			all [
 				view?
 				any [Windows? macOS? Linux?]
 				not gui?
-			][insert find/tail source #"[" "Needs: 'View^/"]
+
+				append source/2/Needs 'View
+			]
 
 			files: [%auto-complete.red %engine.red %help.red]
 			foreach f files [write temp-dir/:f read-cache console-root/:f]
@@ -485,7 +487,7 @@ redc: context [
 				if gui? [write/binary td/app.ico read-binary-cache console/app.ico]
 			]
 			foreach f files2 [write td/:f read-cache console/:f]
-			write script source
+			save script source
 
 			print replace "Compiling Red $console..." "$" pick ["GUI " ""] gui?
 			result: red/compile script opts

@@ -5,7 +5,7 @@ Red [
 	Tabs:	 4
 	Icon:	 %app.ico
 	Version: 0.0.1
-	Needs:	 View
+	Needs:	 [View JSON CSV]
 	Config:	 [gui-console?: yes red-help?: yes]
 	Rights:  "Copyright (C) 2014-2018 Red Foundation. All rights reserved."
 	License: {
