@@ -57,7 +57,7 @@ system/locale/cardinal: to map! to block! object [
 			'else ['other]
 		]
 	]
-	de: en: func [n i v f t e] [either all [i = 1 v = 0] ['one]['other]]
+	de: en: et: func [n i v f t e] [either all [i = 1 v = 0] ['one]['other]]
 	es: func [n i v f t e] [
 		case [
 			n = 1 ['one]
@@ -146,7 +146,7 @@ system/locale/cardinal: to map! to block! object [
 ;; key to that seems that ordinals only make sense for integers
 ;; but I think functions should accept floats as well for more robustness (e.g. float 8.0 formatted as 8th)
 system/locale/ordinal: to map! to block! object [
-	af: ar: bg: cs: de: es: he: jp: ko: pl: pt: ru: zh: func [n i] ['other]
+	af: ar: bg: cs: de: es: et: he: jp: ko: pl: pt: ru: zh: func [n i] ['other]
 	en: function [n i] [
 		r1: n % 10  r2: n % 100
 		case [
