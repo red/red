@@ -546,7 +546,7 @@ redc: context [
 		script: either all [
 			opts/GUI-engine
 			find [Windows macOS Linux] opts/OS
-		][ [[Needs: View]] ][ [[]] ]
+		][ [[Needs: [View CSV JSON]]] ][ [[Needs: [CSV JSON]]] ]
 		
 		result: red/compile script opts
 		print [
