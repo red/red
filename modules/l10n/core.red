@@ -130,7 +130,9 @@ system/locale/tools: context [
 		]
 		foreach [key val] data [if word: in sl key [set word val]]
 		sl/locale: name
-		set  bind [language region] sl  split form name #"_"
+		parts: split form name #"_"
+		sl/language: to word! parts/1
+		sl/region: attempt [to word! parts/2]
 		sl/name: copy data/lang-name
 		if sl/region [repend sl/name [" (" data/region-name ")"]]
 		sl/currencies/names: data/currency-names
