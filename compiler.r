@@ -105,8 +105,9 @@ red: context [
 	iterators: [loop until while repeat foreach forall forever remove-each]
 	
 	standard-modules: [
-	;-- Name ------ Entry file -------------- OS availability -----
-		View		%modules/view/view.red	  [Windows macOS Linux]
+	;-- Name ------ Entry file -------------------- OS availability -----
+		View		%modules/view/view.red	  		[Windows macOS Linux]
+		ODBC        %environment/schemes/odbc.red 	[Windows            ]
 	]
 
 	func-constructors: [
