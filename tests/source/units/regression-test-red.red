@@ -3217,6 +3217,18 @@ comment {
 		save qt-tmp-file append/dup "" "§☺" 500000
 		transcode read qt-tmp-file
 
+	--test-- "#5067"
+		c5067: context [
+			b: reduce ['f does [visited?: yes print ""]]
+			o: object [f: does [visited?: yes print ""]]
+		]
+		visited?: no
+		--assert unset? c5067/('b)/f
+		--assert visited?
+		visited?: no
+		--assert unset? c5067/('o)/f
+		--assert visited?
+
 ===end-group===
 
 ~~~end-file~~~
