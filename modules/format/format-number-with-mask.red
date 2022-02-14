@@ -286,7 +286,7 @@ formatting/number-ctx: context [
 	][
 		parse/case digits: .masks/:word compose/into [
 			any (token1) p: any (token2)
-			[end | (do make error! rejoin [token1" cannot follow "token2" in the "name" part of "mold .mask)]
+			[end | (do make error! rejoin [token1" cannot follow "token2" in the "name" part of "mold .mask])]
 			; [end | (ERROR "(token1) cannot follow (token2) in the (name) part of (mold .mask)")]
 		] clear []
 		.min/:word: either token1 = hash [length? p][-1 + index? p]
