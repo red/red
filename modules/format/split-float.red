@@ -14,6 +14,21 @@ Red [
 
 
 formatting: context [
+	;; have to list all other funcs right here, or compiler will crash after next `make formatting`
+	charmaps: #()										;-- new items added on locale change
+	build-charmap:
+	update-charmap:
+	as-roman:
+	as-ordinal:
+	date-time-ctx:
+	date-time-rules:
+	form-integer:										;-- user-facing wrapper
+	form-integer*:										;-- zero-alloc version
+	format-date-time:
+	number-ctx:
+	format-number-with-mask:
+	format:
+		none
 
 	split-float*: routine [
 		"Format a number into separate parts (internal use only)"

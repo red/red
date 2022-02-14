@@ -22,11 +22,6 @@ Red [
 ; #include %../common/profiling.red
 ; #include %../common/show-trace.red
 
-;-- formatting context is defined by split-float.red
-formatting: make formatting [
-	number-ctx: none 
-	format-number-with-mask: none 
-]
 
 exponent-of: function [
 	"Returns the exponent E of number X = M * (10 ** E), 1 <= M < 10"
@@ -216,7 +211,7 @@ formatting/number-ctx: context [
 				]
 			]
 		]
-		construct/only body
+		do [construct/only body]						;@@ DO for compiler - #4071
 	]
 	
 	cache: function [
@@ -611,7 +606,7 @@ formatting/number-ctx: context [
 		
 
 	;; extracts figures and separators from the mask - into .masks
-	analyze-mask: context [
+	analyze-ctx: context [
 		p: x: none
 		emit: func [c] [append .masks/:.scope c]
 		=string=: [#"'" thru #"'"]						;-- just skipped, uninteresting
@@ -660,7 +655,7 @@ formatting/number-ctx: context [
 			(.multiplier: 100)
 		]
 		
-		return func [mask] [
+		analyze-mask: func [mask] [
 			.scope: 'whole
 			parse/case mask [any [
 				p: =figure= | =string= | =grpsep= | =decsep= | =exp=
@@ -716,7 +711,7 @@ formatting/number-ctx: context [
 		if any [special  not from-cache mask] [
 		
 			;; fills .masks, sets .head .tail .got-exp? .got-frac? .signs .multiplier .currency 
-			analyze-mask .mask: mask
+			analyze-ctx/analyze-mask .mask: mask
 			
 			;; special floats handled here because we still may want to keep prefix & suffix
 			;; and higher level `format` func doesn't know how to keep them

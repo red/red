@@ -43,15 +43,6 @@ Red [
 ; #include %../common/profiling.red
 ; #include %../common/show-trace.red
 
-;-- formatting context is defined by split-float.red
-formatting: make formatting [
-	date-time-ctx:    none
-	date-time-rules:  none
-	form-integer:     none								;-- user-facing wrapper
-	form-integer*:    none								;-- zero-alloc version
-	format-date-time: none
-]
-
 formatting/date-time-ctx: context [
 	abs: :absolute
 	digit!: charset "0123456789"						;-- localized using default numbering system

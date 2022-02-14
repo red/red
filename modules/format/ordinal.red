@@ -12,7 +12,7 @@ Red [
 ; #include %../common/new-each.red
 ; #include %locale.red
 
-as-ordinal: function [
+formatting/as-ordinal: as-ordinal: function [
 	"Format a number as ordinal quantity"
 	number [integer!]									;@@ should we accept float?
 	/in locale [word! none!] "Locale to express value in"

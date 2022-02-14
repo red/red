@@ -34,7 +34,7 @@ context [
 		none
 	]
 	
-	set 'format function [ 
+	set 'format formatting/format: function [ 
 		"Format a value"
 		value  [number! money! date! time!] "Other types TBD"
 		format [word! path! string!] "Mask or named format, e.g. 'datetime/full"

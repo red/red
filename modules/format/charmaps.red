@@ -20,12 +20,6 @@ Red [
 ; #include %locale.red
 ; #include %../common/new-each.red
 
-formatting: make formatting [
-	charmaps: #()										;-- new items added on locale change
-	build-charmap: none
-	update-charmap: none
-]
-
 context [
 	digit-list:  "0123456789"
 	superscript: "0⁰1¹2²3³4⁴5⁵6⁶7⁷8⁸9⁹+⁺-⁻(⁽)⁾"			;-- hardcoded
@@ -48,7 +42,7 @@ context [
 		ct/finance:     to map! map-each/eval x digit-list [	;-- fin digits should differ from default ones
 			[x pick "𝟘𝟙𝟚𝟛𝟜𝟝𝟞𝟟𝟠𝟡" x - #"0" + 1]		;-- so we can distinguish them in tests
 		]
-		ct/finance/(#"$"): func [size] [
+		put ct/finance #"$" func [size] [
 			pick ["¥" "CN¥" "CNY" "Chinese yuan"] size			;-- names should differ is the only requirement
 		]
 		ct/finance/(#"."): #","
@@ -57,7 +51,7 @@ context [
 			[x pick "0123456789" x - #"0" + 1]
 		]
 		foreach [x y] "..EEx× '++--(())%%‰‰" [ct/default/:x: y]
-		ct/default/(#"#"): ""									;-- empty for hash, used to remove `#`s
+		; ct/default/(#"#"): ""									;-- empty for hash, used to remove `#`s
 		ct/default/nan: "NaN"
 		ct/default/inf: "INF"
 		ct
@@ -91,15 +85,15 @@ context [
 		sym: loc/numbers/:sys/symbols
 		cm/default: def: to map! map-each/eval i 10 [[#"0" + i - 1  pick dig i]]
 		extend def reduce [
-			#"." sym/decimal
-			#"E" sym/exponential
-			#" " sym/group
-			#"-" sym/minus
-			#"+" sym/plus
-			#"%" sym/percent
-			#"‰" sym/permille
-			#"x" sym/superscripting-exponent
-			#"#" ""										;-- used to remove absent digits
+			; #"." sym/decimal
+			; #"E" sym/exponential
+			; #" " sym/group
+			; #"-" sym/minus
+			; #"+" sym/plus
+			; #"%" sym/percent
+			; #"‰" sym/permille
+			; #"x" sym/superscripting-exponent
+			; #"#" ""										;-- used to remove absent digits
 			'nan sym/nan
 			'inf sym/infinity
      	]

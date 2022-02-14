@@ -37,7 +37,7 @@ context [
 		1      "I"
 	]
 	
-	set 'as-roman function [
+	set 'as-roman formatting/as-roman: function [
 		"Convert integer number into a Roman numeral"
 		num [integer!] "0 to 399'999"
 	][
