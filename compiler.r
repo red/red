@@ -106,7 +106,8 @@ red: context [
 	
 	standard-modules: [
 	;-- Name ------ Entry file -------------- OS availability -----
-		View		%modules/view/view.red	  [Windows macOS Linux]
+		View		%modules/view/view.red	    [Windows macOS Linux]
+		Format		%modules/format/module.red	[Windows macOS Linux Syllable FreeBSD OpenBSD]	;-- same list as for L10N
 	]
 
 	func-constructors: [
