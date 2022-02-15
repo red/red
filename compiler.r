@@ -2815,7 +2815,10 @@ red: context [
 		case [
 			set-path? original [
 				path: original
-				either set [obj fpath] object-access? path [
+				either all [
+					set [obj fpath] object-access? path 
+					obj
+				][
 					do reduce [join to set-path! fpath last path 'function!] ;-- update shadow object info
 					obj: find objects obj
 					name: to word! rejoin [any [obj/-1 obj/2] #"~" last path] 
