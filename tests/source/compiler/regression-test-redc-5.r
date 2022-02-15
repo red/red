@@ -315,6 +315,22 @@ test
 		--assert compiled?
 		--assert script-error?
 		
+	--test-- "#5065"
+		--compile-and-run-this {
+			Red []
+			do [
+				old: reduce list: [:loop :repeat :prin :exp :max :odd? :divide]
+				loop 1 [] repeat x 1 [] prin [] exp 1 max 1 0 odd? 2 divide 2 2 
+				new: reduce list
+				if all collect [
+					repeat i length? list [keep :old/:i =? :new/:i]
+				] [print "MATCH"]
+			]
+		}
+		--assert find qt/output "MATCH"
+	]
+]
+
 ===end-group===
 
 ~~~end-file~~~ 
