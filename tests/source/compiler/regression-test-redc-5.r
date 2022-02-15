@@ -341,7 +341,6 @@ test
 	--test-- "#5071"
 		--compile-and-run-this {Red [] b: [] construct b}
 		--assert compiled?
-		--assert 
 
 
 ===end-group===
