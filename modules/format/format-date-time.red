@@ -2,7 +2,7 @@ Red [
 	Title:       "Mask date/time formatter"
 	Description: https://github.com/hiiamboris/red-formatting/discussions/4
 	Author:      [@hiiamboris @greggirwin]
-	Rights:      "Copyright (C) 2021 Red Foundation. All rights reserved."
+	Rights:      "Copyright (C) 2021-2022 Red Foundation. All rights reserved."
     License: {
         Distributed under the Boost Software License, Version 1.0.
         See https://github.com/red/red/blob/master/BSL-License.txt

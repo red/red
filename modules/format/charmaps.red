@@ -2,7 +2,7 @@ Red [
 	Title:       "Char maps for format L10N"
 	Description: "Provide L10N of symbols (mainly digits) across formatting module"
 	Author:      @hiiamboris
-	Rights:      "Copyright (C) 2021 Red Foundation. All rights reserved."
+	Rights:      "Copyright (C) 2021-2022 Red Foundation. All rights reserved."
     License: {
         Distributed under the Boost Software License, Version 1.0.
         See https://github.com/red/red/blob/master/BSL-License.txt

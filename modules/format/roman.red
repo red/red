@@ -1,10 +1,14 @@
 Red [
 	Title:   "Roman numerals for Red formatting system"
 	Author:  @hiiamboris
-	Rights:  "Copyright (C) 2021 Red Foundation. All rights reserved."
+	Rights:  "Copyright (C) 2021-2022 Red Foundation. All rights reserved."
     License: {
         Distributed under the Boost Software License, Version 1.0.
         See https://github.com/red/red/blob/master/BSL-License.txt
+    }
+    Notes: {
+    	In Unicode there are also single-letter codepoints like #"^(2172)"
+    	not sure if it's worth supporting them, e.g. for lists?
     }
 ]
 
