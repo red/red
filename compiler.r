@@ -2194,15 +2194,14 @@ red: context [
 			throw-error "Invalid CONSTRUCT refinement"
 		]
 		body?: block? pc/2
-		unless any [
-			all [not with? body?]
-			all [with? not obj: is-object? pc/3]
+		if all [
+			find [set-word! set-path!] type?/word pc/-1
+			any [all [body? not with?] all [with? obj: is-object? pc/3]]
 		][
 			either with? [
 				comp-context/passive/extend only? obj
 			][
 				comp-context/passive only?
-				pc: skip pc -2
 			]
 		]
 		pc: next pc
