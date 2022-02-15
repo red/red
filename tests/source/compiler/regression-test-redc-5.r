@@ -329,6 +329,34 @@ test
 		}
 		--assert find qt/output "MATCH"
 
+--test-- "#5070"
+		--compile-and-run-this {
+			Red []
+			m: #()
+			m/1:       does [1]
+			m/(2):     does [2]
+			m/key:     does [3]
+			m/("s"):   does [4]
+			m/(#"c"):  does [5]
+			put m 'key does [6]
+			put m "s"  does [7]
+			put m #"c" does [8]
+			probe to-block m
+		}
+		--assert compiled?
+		--assert (load qt/output) == [
+		    1    func [][1] 
+		    2    func [][2] 
+		    key: func [][6] 
+		    "s"  func [][7] 
+		    #"c" func [][8]
+		]
+
+	--test-- "#5071"
+		--compile-and-run-this {Red [] b: [] construct b}
+		--assert compiled?
+		--assert 
+
 ===end-group===
 
 ~~~end-file~~~ 

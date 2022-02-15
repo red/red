@@ -104,10 +104,7 @@ red: context [
 	
 	iterators: [loop until while repeat foreach forall forever remove-each]
 	
-	standard-modules: [
-	;-- Name ------ Entry file -------------- OS availability -----
-		View		%modules/view/view.red	  [Windows macOS Linux]
-	]
+	standard-modules: load-cache %modules.r
 
 	func-constructors: [
 		'func | 'function | 'does | 'has | 'routine | 'make 'function!
@@ -2197,15 +2194,14 @@ red: context [
 			throw-error "Invalid CONSTRUCT refinement"
 		]
 		body?: block? pc/2
-		unless any [
-			all [not with? body?]
-			all [with? not obj: is-object? pc/3]
+		if all [
+			find [set-word! set-path!] type?/word pc/-1
+			any [all [body? not with?] all [with? obj: is-object? pc/3]]
 		][
 			either with? [
 				comp-context/passive/extend only? obj
 			][
 				comp-context/passive only?
-				pc: skip pc -2
 			]
 		]
 		pc: next pc
@@ -2819,7 +2815,10 @@ red: context [
 		case [
 			set-path? original [
 				path: original
-				either set [obj fpath] object-access? path [
+				either all [
+					set [obj fpath] object-access? path 
+					obj
+				][
 					do reduce [join to set-path! fpath last path 'function!] ;-- update shadow object info
 					obj: find objects obj
 					name: to word! rejoin [any [obj/-1 obj/2] #"~" last path] 

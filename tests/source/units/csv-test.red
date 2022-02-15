@@ -2,6 +2,7 @@ Red [
 	Title:   "CSV codec test script"
 	Author:  "Boleslav Březovský"
 	File: 	 %csv-test.red
+	Needs:	 CSV
 	Rights:  "Copyright (C) 2011-2019 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]

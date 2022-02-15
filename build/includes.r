@@ -16,6 +16,7 @@ write %build/bin/sources.r set-cache [
 	%boot.red
 	%compiler.r
 	%lexer.r
+	%modules.r
 	%build/ [
 		%git.r
 	]

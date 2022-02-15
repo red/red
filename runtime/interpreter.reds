@@ -954,9 +954,8 @@ interpreter: context [
 					TYPE_ROUTINE
 					TYPE_FUNCTION [
 						pc: eval-code parent pc end code sub? path item gparent
-						if TYPE_OF(item) = TYPE_PAREN [copy-cell stack/top - 1 stack/top - 2]
-						unless sub? [stack/set-last stack/top]
-						return pc
+						parent: stack/get-top
+						item: tail						;-- force loop exit
 					]
 					default [0]
 				]

@@ -2,6 +2,7 @@ Red [
 	Title:   "JSON codec test script"
 	Author:  "Gabriele Santilli"
 	File: 	 %json-test.red
+    Needs:   JSON
 	Rights:  "Copyright (C) 2011-2019 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
