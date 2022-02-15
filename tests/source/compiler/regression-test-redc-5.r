@@ -315,6 +315,10 @@ test
 		--assert compiled?
 		--assert script-error?
 		
+	--test-- "#5071"
+		--compile-and-run-this {Red [] b: [] construct b}
+		--assert compiled?
+
 ===end-group===
 
 ~~~end-file~~~ 
