@@ -328,8 +328,6 @@ test
 			]
 		}
 		--assert find qt/output "MATCH"
-	]
-]
 
 ===end-group===
 
