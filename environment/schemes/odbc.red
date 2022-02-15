@@ -309,7 +309,7 @@ connection-proto: context [
 	info:           none
 	port:           none
 	auto-commit?:   yes
-   ;------------------------
+
 	on-change*:     func [word old new] [switch word [
 		auto-commit? [set-commit-mode self old new]
 	]]
@@ -3619,9 +3619,9 @@ sources: function [
 ;
 
 set-commit-mode: func [connection [object!] auto? [logic!]] [
-	set-connection connection 0066h ;SQL_ATTR_AUTOCOMMIT
-							  either auto? [1] [0] ;SQL_ATTR_AUTOCOMMIT on/off
-							  FFFBh ;SQL_IS_UINTEGER
+	set-connection connection 0066h 					;-- SQL_ATTR_AUTOCOMMIT
+							  either auto? [1] [0] 		;-- SQL_ATTR_AUTOCOMMIT on/off
+							  FFFBh 					;-- SQL_IS_UINTEGER
 ]
 
 
@@ -3640,17 +3640,9 @@ set-cursor-type: func [statement [object!] old new] [
 		]
 	]
 
-	new: select [
-		forward 0
-		keyset  1
-		dynamic 2
-		static  3
-		default 0
-	] new
+	new: select [forward 0 keyset 1 dynamic 2 static 3 default 0] new
 
-	set-statement statement 6     ;SQL_ATTR_CURSOR_TYPE
-							new
-							FFFBh ;SQL_IS_UINTEGER
+	set-statement statement 6 new FFFBh					;-- SQL_ATTR_CURSOR_TYPE, SQL_IS_UINTEGER
 ]
 
 
@@ -3662,14 +3654,9 @@ set-cursor-scrolling: func [statement [object!] old new] [
 		cause-error 'script 'bad-bad ["ODBC" "invalid cursor scrolling"]
 	]
 
-	new: pick [
-		1 ;SQL_SCROLLABLE
-		0 ;SQL_SCROLLABLE
-	] new
-
-	set-statement statement FFFFh ;SQL_ATTR_CURSOR_SCROLLABLE
-							new
-							FFFBh ;SQL_IS_UINTEGER
+	set-statement statement FFFFh 						;-- SQL_ATTR_CURSOR_SCROLLABLE
+							pick [1 0] new				;-- SQL_(NON)SCROLLABLE
+							FFFBh						;-- SQL_IS_UINTEGER
 ]
 
 
