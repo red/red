@@ -242,23 +242,15 @@ diagnose-error: func [
 			]
 		]
 
-		switch rc [
-			SQL_SUCCESS
-			SQL_SUCCESS_WITH_INFO [
-				 string/load-in as c-string! state 5             errors UTF-16LE
-				integer/make-in                                  errors native
-				 string/load-in as c-string! message message-len errors UTF-16LE
+		if ODBC_SUCCEEDED [
+			 string/load-in as c-string! state 5             errors UTF-16LE
+			integer/make-in                                  errors native
+			 string/load-in as c-string! message message-len errors UTF-16LE
 
-				#if debug? = yes [print [state/1 state/3 state/5 state/7 state/9 lf]]
-
-				false
-			]
-			SQL_INVALID_HANDLE
-			SQL_ERROR
-			SQL_NO_DATA [
-				true
-			]
+			#if debug? = yes [print [state/1 state/3 state/5 state/7 state/9 lf]]
 		]
+
+		any [ODBC_INVALID ODBC_ERROR ODBC_NO_DATA]
 	]
 
 	#if debug? = yes [print ["^-free state @ "   state   lf]]
@@ -371,11 +363,10 @@ open-environment: routine [
 
 	#if debug? = yes [print ["^-SQLAllocHandle " rc lf]]
 
-	if (rc = SQL_INVALID_HANDLE) [fire [
+	if ODBC_INVALID [fire [
 		TO_ERROR(script invalid-arg) environment
 	]]
-
-	if (rc = SQL_ERROR) [fire [
+	if ODBC_ERROR [fire [
 		TO_ERROR(internal no-memory) environment
 	]]
 
@@ -389,16 +380,12 @@ open-environment: routine [
 
 	#if debug? = yes [print ["^-SQLSetEnvAttr " rc lf]]
 
-	if (rc = SQL_ERROR)
-	or (rc = SQL_SUCCESS_WITH_INFO) [
-		diagnose-error SQL_HANDLE_ENV sqlhenv environment
-	]
+	ODBC_DIAGNOSIS(SQL_HANDLE_ENV sqlhenv environment)
 
-	if (rc = SQL_INVALID_HANDLE) [fire [
+	if ODBC_INVALID [fire [
 		TO_ERROR(script invalid-arg) environment
 	]]
-
-	if (rc = SQL_ERROR) [fire [
+	if ODBC_ERROR   [fire [
 		TO_ERROR(script bad-bad) __odbc
 		as red-block! (object/get-values environment) + ODBC_COMMON_FIELD_ERRORS
 	]]
@@ -463,11 +450,10 @@ list-drivers: routine [
 
 		#if debug? = yes [print ["^-SQLDrivers " rc lf]]
 
-		either (rc = SQL_SUCCESS_WITH_INFO) and
-		any [
+		either all [ODBC_INFO any [
 			desc-len < desc-out
 			attr-len < attr-out
-		][
+		]] [
 			#if debug? = yes [print ["^-free desc-buf @ " desc-buf lf]]
 
 			free desc-buf
@@ -488,22 +474,14 @@ list-drivers: routine [
 			direction: SQL_FETCH_NEXT
 		]
 
-		if (rc = SQL_ERROR)
-		or (rc = SQL_SUCCESS_WITH_INFO) [
-			diagnose-error SQL_HANDLE_ENV henv/value environment
-		]
+		ODBC_DIAGNOSIS(SQL_HANDLE_ENV henv/value environment)
 
-		if (rc = SQL_SUCCESS)
-		or (rc = SQL_SUCCESS_WITH_INFO) [
+		if ODBC_SUCCEEDED [
 			string/load-in as c-string! desc-buf desc-out drivers UTF-16LE
 			string/load-in as c-string! attr-buf attr-out drivers UTF-16LE
 		]
 
-		any [
-			rc = SQL_INVALID_HANDLE
-			rc = SQL_NO_DATA
-			rc = SQL_ERROR
-		]
+		any [ODBC_INVALID ODBC_NO_DATA ODBC_ERROR]
 	]
 
 	#if debug? = yes [print ["^-free desc-buf @ " desc-buf lf]]
@@ -514,11 +492,10 @@ list-drivers: routine [
 
 	free attr-buf
 
-	if (rc = SQL_INVALID_HANDLE) [fire [
+	if ODBC_INVALID [fire [
 		TO_ERROR(script invalid-arg) environment
 	]]
-
-	if (rc = SQL_ERROR) [fire [
+	if ODBC_ERROR [fire [
 		TO_ERROR(script bad-bad) __odbc
 		as red-block! (object/get-values environment) + ODBC_COMMON_FIELD_ERRORS
 	]]
@@ -598,11 +575,10 @@ list-sources: routine [
 
 		#if debug? = yes [print ["^-SQLDataSources " rc lf]]
 
-		either (rc = SQL_SUCCESS_WITH_INFO) and
-		any [
+		either all [ODBC_INFO any [
 			srvr-len < srvr-out
 			desc-len < desc-out
-		][
+		]] [
 			#if debug? = yes [print ["^-free srvr-buf @ " srvr-buf lf]]
 
 			free srvr-buf
@@ -623,22 +599,14 @@ list-sources: routine [
 			direction: SQL_FETCH_NEXT
 		]
 
-		if (rc = SQL_ERROR)
-		or (rc = SQL_SUCCESS_WITH_INFO) [
-			diagnose-error SQL_HANDLE_ENV henv/value environment
-		]
+		ODBC_DIAGNOSIS(SQL_HANDLE_ENV henv/value environment)
 
-		if (rc = SQL_SUCCESS)
-		or (rc = SQL_SUCCESS_WITH_INFO) [
+		if ODBC_SUCCEEDED [
 			string/load-in as c-string! srvr-buf srvr-out sources UTF-16LE
 			string/load-in as c-string! desc-buf desc-out sources UTF-16LE
 		]
 
-		any [
-			rc = SQL_INVALID_HANDLE
-			rc = SQL_NO_DATA
-			rc = SQL_ERROR
-		]
+		any [ODBC_INVALID ODBC_NO_DATA ODBC_ERROR]
 	]
 
 	#if debug? = yes [print ["^-free srvr-buf @ " srvr-buf lf]]
@@ -649,11 +617,10 @@ list-sources: routine [
 
 	free desc-buf
 
-	if (rc = SQL_INVALID_HANDLE) [fire [
+	if ODBC_INVALID [fire [
 		TO_ERROR(script invalid-arg) environment
 	]]
-
-	if (rc = SQL_ERROR) [fire [
+	if ODBC_ERROR [fire [
 		TO_ERROR(script bad-bad) __odbc
 		as red-block! (object/get-values environment) + ODBC_COMMON_FIELD_ERRORS
 	]]
@@ -689,16 +656,12 @@ open-connection: routine [
 
 	#if debug? = yes [print ["^-SQLAllocHandle " rc lf]]
 
-	if (rc = SQL_ERROR)
-	or (rc = SQL_SUCCESS_WITH_INFO) [
-		diagnose-error SQL_HANDLE_ENV henv/value environment
-	]
+	ODBC_DIAGNOSIS(SQL_HANDLE_ENV henv/value environment)
 
-	if (rc = SQL_INVALID_HANDLE) [fire [
+	if ODBC_INVALID [fire [
 		TO_ERROR(script invalid-arg) environment
 	]]
-
-	if (rc = SQL_ERROR) [fire [
+	if ODBC_ERROR [fire [
 		TO_ERROR(script bad-bad) __odbc
 		as red-block! (object/get-values environment) + ODBC_COMMON_FIELD_ERRORS
 	]]
@@ -724,16 +687,12 @@ open-connection: routine [
 
 	#if debug? = yes [print ["^-SQLDriverConnect " rc lf]]
 
-	if (rc = SQL_ERROR)
-	or (rc = SQL_SUCCESS_WITH_INFO) [
-		diagnose-error SQL_HANDLE_DBC sqlhdbc connection
-	]
+	ODBC_DIAGNOSIS(SQL_HANDLE_DBC sqlhdbc connection)
 
-	if (rc = SQL_INVALID_HANDLE) [fire [
+	if ODBC_INVALID [fire [
 		TO_ERROR(script invalid-arg) connection
 	]]
-
-	if (rc = SQL_ERROR) [fire [
+	if ODBC_ERROR [fire [
 		TO_ERROR(script bad-bad) __odbc
 		as red-block! (object/get-values connection) + ODBC_COMMON_FIELD_ERRORS
 	]]
@@ -845,21 +804,18 @@ pick-metadata: routine [
 		]
 	]
 
-	if (rc = SQL_ERROR)
-	or (rc = SQL_SUCCESS_WITH_INFO) [
-		htype: case [
-			sym = _environment [SQL_HANDLE_ENV ]
-			sym = _connection  [SQL_HANDLE_DBC ]
-			sym = _statement   [SQL_HANDLE_STMT]
-		]
-		diagnose-error htype hndl/value entity
+	htype: case [
+		sym = _environment [SQL_HANDLE_ENV ]
+		sym = _connection  [SQL_HANDLE_DBC ]
+		sym = _statement   [SQL_HANDLE_STMT]
 	]
 
-	if (rc = SQL_INVALID_HANDLE) [fire [
+    ODBC_DIAGNOSIS(htype hndl/value entity)
+
+	if ODBC_INVALID [fire [
 		TO_ERROR(script invalid-arg) entity
 	]]
-
-	if (rc = SQL_ERROR) [fire [
+	if ODBC_ERROR [fire [
 		TO_ERROR(script bad-bad) __odbc
 		as red-block! (object/get-values entity) + ODBC_COMMON_FIELD_ERRORS
 	]]
@@ -943,17 +899,12 @@ end-transaction: routine [
 
 	#if debug? = yes [print ["^-SQLEndTran " rc lf]]
 
-	if (rc = SQL_ERROR)
-	or (rc = SQL_SUCCESS_WITH_INFO) [
-		diagnose-error SQL_HANDLE_DBC hdbc/value connection
-	]
+	ODBC_DIAGNOSIS(SQL_HANDLE_DBC hdbc/value connection)
 
-	if (rc = SQL_INVALID_HANDLE) [fire [
+	if ODBC_INVALID [fire [
 		TO_ERROR(script invalid-arg) connection
 	]]
-
-	if (rc = SQL_ERROR)
-	or (rc = SQL_STILL_EXECUTING) [fire [
+	if any [ODBC_ERROR ODBC_EXECUTING] [fire [
 		TO_ERROR(script bad-bad) __odbc
 		as red-block! (object/get-values connection) + ODBC_COMMON_FIELD_ERRORS
 	]]
@@ -986,16 +937,12 @@ open-statement: routine [
 
 	#if debug? = yes [print ["^-SQLAllocHandle " rc lf]]
 
-	if (rc = SQL_ERROR)
-	or (rc = SQL_SUCCESS_WITH_INFO) [
-		diagnose-error SQL_HANDLE_DBC hdbc/value connection
-	]
+	ODBC_DIAGNOSIS(SQL_HANDLE_DBC hdbc/value connection)
 
-	if (rc = SQL_INVALID_HANDLE) [fire [
+	if ODBC_INVALID [fire [
 		TO_ERROR(script invalid-arg) connection
 	]]
-
-	if (rc = SQL_ERROR) [fire [
+	if ODBC_ERROR [fire [
 		TO_ERROR(script bad-bad) __odbc
 		as red-block! (object/get-values connection) + ODBC_COMMON_FIELD_ERRORS
 	]]
@@ -1070,27 +1017,20 @@ translate-statement: routine [
 		]
 	]
 
-	unless rc = SQL_SUCCESS [
-		diagnose-error SQL_HANDLE_DBC hdbc/value connection
-	]
+	ODBC_DIAGNOSIS(SQL_HANDLE_DBC hdbc/value connection)
 
-	switch rc [
-		SQL_SUCCESS
-		SQL_SUCCESS_WITH_INFO [
-			SET_RETURN((string/load as c-string! buffer wlength? as c-string! buffer UTF-16LE))
-		]
-		default []
+	if ODBC_SUCCEEDED [
+		SET_RETURN((string/load as c-string! buffer wlength? as c-string! buffer UTF-16LE))
 	]
 
 	#if debug? = yes [print ["^-free buffer @ " buffer lf]]
 
 	free buffer
 
-	if (rc = SQL_INVALID_HANDLE) [fire [
+	if ODBC_INVALID [fire [
 		TO_ERROR(script invalid-arg) connection
 	]]
-
-	if (rc = SQL_ERROR) [fire [
+	if ODBC_ERROR [fire [
 		TO_ERROR(script bad-bad) __odbc
 		as red-block! (object/get-values connection) + ODBC_COMMON_FIELD_ERRORS
 	]]
@@ -1122,17 +1062,12 @@ set-connection: routine [
 
 	#if debug? = yes [print ["^-SQLSetConnectAttr " rc lf]]
 
-	if (rc = SQL_ERROR)
-	or (rc = SQL_SUCCESS_WITH_INFO) [
-		diagnose-error SQL_HANDLE_DBC hdbc/value connection
-	]
+	ODBC_DIAGNOSIS(SQL_HANDLE_DBC hdbc/value connection)
 
-	if (rc = SQL_INVALID_HANDLE) [fire [
+	if ODBC_INVALID [fire [
 		TO_ERROR(script invalid-arg) connection
 	]]
-
-	if (rc = SQL_ERROR)
-	or (rc = SQL_STILL_EXECUTING) [fire [
+	if any [ODBC_ERROR ODBC_EXECUTING] [fire [
 		TO_ERROR(script bad-bad) __odbc
 		as red-block! (object/get-values connection) + ODBC_COMMON_FIELD_ERRORS
 	]]
@@ -1166,18 +1101,12 @@ set-statement: routine [
 
 	#if debug? = yes [print ["^-SQLSetStmtAttr " rc lf]]
 
-	if (rc = SQL_ERROR)
-	or (rc = SQL_SUCCESS_WITH_INFO) [
-		diagnose-error SQL_HANDLE_STMT hstmt/value statement
-	]
+	ODBC_DIAGNOSIS(SQL_HANDLE_STMT hstmt/value statement)
 
-	if (rc = SQL_INVALID_HANDLE) [fire [
+	if ODBC_INVALID [fire [
 		TO_ERROR(script invalid-arg) statement
 	]]
-
-	if (rc = SQL_ERROR)
-	or (rc = SQL_NEED_DATA)
-	or (rc = SQL_STILL_EXECUTING) [fire [
+	if any [ODBC_ERROR ODBC_NEED_DATA ODBC_EXECUTING] [fire [
 		TO_ERROR(script bad-bad) __odbc
 		as red-block! (object/get-values statement) + ODBC_COMMON_FIELD_ERRORS
 	]]
@@ -1207,18 +1136,12 @@ set-cursor: routine [
 
 	#if debug? = yes [print ["^-SQLSetPos " rc lf]]
 
-	if (rc = SQL_ERROR)
-	or (rc = SQL_SUCCESS_WITH_INFO) [
-		diagnose-error SQL_HANDLE_STMT hstmt/value statement
+	ODBC_DIAGNOSIS(SQL_HANDLE_STMT hstmt/value statement)
+
+	if ODBC_INVALID [fire [
+		TO_ERROR(script invalid-arg) statement]
 	]
-
-	if (rc = SQL_INVALID_HANDLE) [fire [
-		TO_ERROR(script invalid-arg) statement
-	]]
-
-	if (rc = SQL_ERROR)
-	or (rc = SQL_NEED_DATA)
-	or (rc = SQL_STILL_EXECUTING) [fire [
+	if any [ODBC_ERROR ODBC_NEED_DATA ODBC_EXECUTING] [fire [
 		TO_ERROR(script bad-bad) __odbc
 		as red-block! (object/get-values statement) + ODBC_COMMON_FIELD_ERRORS
 	]]
@@ -1250,17 +1173,12 @@ prepare-statement: routine [
 
 	#if debug? = yes [print ["^-SQLPrepare " rc lf]]
 
-	if (rc = SQL_ERROR)
-	or (rc = SQL_SUCCESS_WITH_INFO) [
-		diagnose-error SQL_HANDLE_STMT hstmt/value statement
-	]
+	ODBC_DIAGNOSIS(SQL_HANDLE_STMT hstmt/value statement)
 
-	if (rc = SQL_INVALID_HANDLE) [fire [
+	if ODBC_INVALID [fire [
 		TO_ERROR(script invalid-arg) statement
 	]]
-
-	if (rc = SQL_ERROR)
-	or (rc = SQL_STILL_EXECUTING) [fire [
+	if any [ODBC_ERROR ODBC_EXECUTING] [fire [
 		TO_ERROR(script bad-bad) __odbc
 		as red-block! (object/get-values statement) + ODBC_COMMON_FIELD_ERRORS
 	]]
@@ -1644,16 +1562,12 @@ bind-parameters: routine [
 
 		#if debug? = yes [print ["^-SQLBindParameter " rc lf]]
 
-		if (rc = SQL_ERROR)
-		or (rc = SQL_SUCCESS_WITH_INFO) [
-			diagnose-error SQL_HANDLE_STMT hstmt/value statement
-		]
+		ODBC_DIAGNOSIS(SQL_HANDLE_STMT hstmt/value statement)
 
-		if (rc = SQL_INVALID_HANDLE) [fire [
+		if ODBC_INVALID [fire [
 			TO_ERROR(script invalid-arg) statement
 		]]
-
-		if (rc = SQL_ERROR) [fire [
+		if ODBC_ERROR [fire [
 			TO_ERROR(script bad-bad) __odbc
 			as red-block! (object/get-values statement) + ODBC_COMMON_FIELD_ERRORS
 		]]
@@ -1858,16 +1772,12 @@ catalog-statement: routine [
 		set-statement statement SQL_ATTR_METADATA_ID SQL_FALSE SQL_IS_INTEGER
 	]
 
-	if (rc = SQL_ERROR)
-	or (rc = SQL_SUCCESS_WITH_INFO) [
-		diagnose-error SQL_HANDLE_STMT hstmt/value statement
-	]
+	ODBC_DIAGNOSIS(SQL_HANDLE_STMT hstmt/value statement)
 
-	if (rc = SQL_INVALID_HANDLE) [fire [
+	if ODBC_INVALID [fire [
 		TO_ERROR(script invalid-arg) statement
 	]]
-
-	if (rc = SQL_ERROR) [fire [
+	if ODBC_ERROR [fire [
 		TO_ERROR(script bad-bad) __odbc
 		as red-block! (object/get-values statement) + ODBC_COMMON_FIELD_ERRORS
 	]]
@@ -1894,13 +1804,9 @@ execute-statement: routine [
 
 	#if debug? = yes [print ["^-SQLExecute " rc lf]]
 
-	if (rc = SQL_ERROR)
-	or (rc = SQL_SUCCESS_WITH_INFO) [
-		diagnose-error SQL_HANDLE_STMT hstmt/value statement
-	]
+	ODBC_DIAGNOSIS(SQL_HANDLE_STMT hstmt/value statement)
 
-	unless (rc = SQL_SUCCESS)
-	or     (rc = SQL_SUCCESS_WITH_INFO) [fire [
+	unless ODBC_SUCCEEDED [fire [
 		TO_ERROR(script bad-bad) __odbc
 		as red-block! (object/get-values statement) + ODBC_COMMON_FIELD_ERRORS
 	]]
@@ -1929,13 +1835,9 @@ affected-rows: routine [
 
 	#if debug? = yes [print ["^-SQLRowCount " rows/value ": " rc lf]]
 
-	if (rc = SQL_ERROR)
-	or (rc = SQL_SUCCESS_WITH_INFO) [
-		diagnose-error SQL_HANDLE_STMT hstmt/value statement
-	]
+	ODBC_DIAGNOSIS(SQL_HANDLE_STMT hstmt/value statement)
 
-	unless (rc = SQL_SUCCESS)
-	or     (rc = SQL_SUCCESS_WITH_INFO) [fire [
+	unless ODBC_SUCCEEDED [fire [
 		TO_ERROR(script bad-bad) __odbc
 		as red-block! (object/get-values statement) + ODBC_COMMON_FIELD_ERRORS
 	]]
@@ -1963,23 +1865,14 @@ more-results?: routine [
 
 	#if debug? = yes [print ["^-SQLMoreResults " rc lf]]
 
-	if (rc = SQL_ERROR)
-	or (rc = SQL_SUCCESS_WITH_INFO) [
-		diagnose-error SQL_HANDLE_STMT hstmt/value statement
-	]
+	ODBC_DIAGNOSIS(SQL_HANDLE_STMT hstmt/value statement)
 
-	unless (rc = SQL_NO_DATA)
-	or     (rc = SQL_SUCCESS)
-	or     (rc = SQL_SUCCESS_WITH_INFO) [fire [
+	unless any [ODBC_NO_DATA ODBC_SUCCESS ODBC_INFO] [fire [
 		TO_ERROR(script bad-bad) __odbc
 		as red-block! (object/get-values statement) + ODBC_COMMON_FIELD_ERRORS
 	]]
 
-	SET_RETURN((switch rc [
-		SQL_SUCCESS
-		SQL_SUCCESS_WITH_INFO   [true-value]
-		SQL_NO_DATA             [none-value]
-	]))
+	SET_RETURN((either ODBC_SUCCEEDED [true-value] [none-value]))
 
 	#if debug? = yes [print ["]" lf]]
 ]
@@ -2005,13 +1898,9 @@ count-columns: routine [
 
 	#if debug? = yes [print ["^-SQLNumResultCols " rc lf]]
 
-	if (rc = SQL_ERROR)
-	or (rc = SQL_SUCCESS_WITH_INFO) [
-		diagnose-error SQL_HANDLE_STMT hstmt/value statement
-	]
+	ODBC_DIAGNOSIS(SQL_HANDLE_STMT hstmt/value statement)
 
-	unless (rc = SQL_SUCCESS)
-	or     (rc = SQL_SUCCESS_WITH_INFO) [fire [
+	unless ODBC_SUCCEEDED [fire [
 		TO_ERROR(script bad-bad) __odbc
 		as red-block! (object/get-values statement) + ODBC_COMMON_FIELD_ERRORS
 	]]
@@ -2161,13 +2050,9 @@ bind-columns: routine [                                 ;-- FIXME: needs code cl
 
 		#if debug? = yes [print ["^-SQLDescribeCol " rc lf]]
 
-		if (rc = SQL_ERROR)
-		or (rc = SQL_SUCCESS_WITH_INFO) [
-			diagnose-error SQL_HANDLE_STMT hstmt/value statement
-		]
+		ODBC_DIAGNOSIS(SQL_HANDLE_STMT hstmt/value statement)
 
-		unless (rc = SQL_SUCCESS)
-		or     (rc = SQL_SUCCESS_WITH_INFO) [fire [
+		unless ODBC_SUCCEEDED [fire [
 			TO_ERROR(script bad-bad) __odbc
 			as red-block! (object/get-values statement) + ODBC_COMMON_FIELD_ERRORS
 		]]
@@ -2287,13 +2172,9 @@ bind-columns: routine [                                 ;-- FIXME: needs code cl
 
 		#if debug? = yes [print ["^-SQLBindCol " rc lf]]
 
-		if (rc = SQL_ERROR)
-		or (rc = SQL_SUCCESS_WITH_INFO) [
-			diagnose-error SQL_HANDLE_STMT hstmt/value statement
-		]
+		ODBC_DIAGNOSIS(SQL_HANDLE_STMT hstmt/value statement)
 
-		unless (rc = SQL_SUCCESS)
-		or     (rc = SQL_SUCCESS_WITH_INFO) [fire [
+		unless ODBC_SUCCEEDED [fire [
 			TO_ERROR(script bad-bad) __odbc
 			as red-block! (object/get-values statement) + ODBC_COMMON_FIELD_ERRORS
 		]]
@@ -2400,21 +2281,15 @@ fetch-columns: routine [                                ;-- FIXME: status column
 			#if debug? = yes [print ["^-SQLFetchScroll " rc lf]]
 		]
 
-		if (rc = SQL_NO_DATA) [
+		ODBC_DIAGNOSIS(SQL_HANDLE_STMT hstmt/value statement)
+
+		if ODBC_NO_DATA [
 			break
 		]
-
-		if (rc = SQL_ERROR)
-		or (rc = SQL_SUCCESS_WITH_INFO) [
-			diagnose-error SQL_HANDLE_STMT hstmt/value statement
-		]
-
-		if (rc = SQL_INVALID_HANDLE) [fire [
+		if ODBC_INVALID [fire [
 			TO_ERROR(script invalid-arg) statement
 		]]
-
-		if (rc = SQL_ERROR)
-		or (rc = SQL_STILL_EXECUTING) [fire [
+		if any [ODBC_ERROR ODBC_EXECUTING] [fire [
 			TO_ERROR(script bad-bad) __odbc
 			as red-block! (object/get-values statement) + ODBC_COMMON_FIELD_ERRORS
 		]]
@@ -2423,8 +2298,7 @@ fetch-columns: routine [                                ;-- FIXME: status column
 
 		#if debug? = yes [print ["^-fetched: " as byte-ptr! fetched/value " (" rows/value " rows) " lf]]
 
-	   ;if (rc = SQL_SUCCESS)
-	   ;or (SQL_SUCCESS_WITH_INFO) [
+	   ;if any [ODBC_SUCCESS ODBC_INFO] [
 
 	   ;#if debug? = yes [
 	   ;    c: 0
@@ -2619,12 +2493,9 @@ free-statement: routine [
 
 		#if debug? = yes [print ["^-SQLFreeStmt " rc lf]]
 
-		if (rc = SQL_ERROR) or (rc = SQL_SUCCESS_WITH_INFO) [
-			diagnose-error SQL_HANDLE_STMT hstmt/value statement
-		]
+		ODBC_DIAGNOSIS(SQL_HANDLE_STMT hstmt/value statement)
 
-		unless (rc = SQL_SUCCESS)
-		or     (rc = SQL_SUCCESS_WITH_INFO) [fire [
+		unless ODBC_SUCCEEDED [fire [
 			TO_ERROR(script bad-bad) __odbc
 			as red-block! (object/get-values statement) + ODBC_COMMON_FIELD_ERRORS
 		]]
@@ -2651,13 +2522,9 @@ close-statement: routine [
 
 	#if debug? = yes [print ["^-SQLFreeHandle " rc lf]]
 
-	if (rc = SQL_ERROR) [
-		diagnose-error SQL_HANDLE_STMT hstmt/value statement
-	]
+	ODBC_DIAGNOSIS(SQL_HANDLE_STMT hstmt/value statement)
 
-	unless (rc = SQL_SUCCESS) [fire [
-		TO_ERROR(access cannot-close) statement
-	]]
+	unless ODBC_SUCCEEDED [fire [TO_ERROR(access cannot-close) statement]]
 
 	#if debug? = yes [print ["]" lf]]
 ]
@@ -2680,27 +2547,17 @@ close-connection: routine [
 
 	#if debug? = yes [print ["^-SQLDisconnect " rc lf]]
 
-	if (rc = SQL_ERROR)
-	or (rc = SQL_SUCCESS_WITH_INFO) [
-		diagnose-error SQL_HANDLE_DBC hdbc/value connection
-	]
+	ODBC_DIAGNOSIS(SQL_HANDLE_DBC hdbc/value connection)
 
-	unless (rc = SQL_SUCCESS)
-	or     (rc = SQL_SUCCESS_WITH_INFO) [fire [
-		TO_ERROR(access cannot-close) connection
-	]]
+	unless ODBC_SUCCEEDED [fire [TO_ERROR(access cannot-close) connection]]
 
 	rc: result-of SQLFreeHandle SQL_HANDLE_DBC hdbc/value
 
 	#if debug? = yes [print ["^-SQLFreeHandle " rc lf]]
 
-	if (rc = SQL_ERROR) [
-		diagnose-error SQL_HANDLE_DBC hdbc/value connection
-	]
+	ODBC_DIAGNOSIS(SQL_HANDLE_DBC hdbc/value connection)
 
-	unless (rc = SQL_SUCCESS) [fire [
-		TO_ERROR(access cannot-close) connection
-	]]
+	unless ODBC_SUCCEEDED [fire [TO_ERROR(access cannot-close) connection]]
 
 	#if debug? = yes [print ["]" lf]]
 ]
@@ -2724,13 +2581,9 @@ close-environment: routine [
 
 	#if debug? = yes [print ["^-SQLFreeHandle " rc lf]]
 
-	if (rc = SQL_ERROR) [
-		diagnose-error SQL_HANDLE_ENV henv/value environment
-	]
+	ODBC_DIAGNOSIS(SQL_HANDLE_ENV henv/value environment)
 
-	unless (rc = SQL_SUCCESS) [fire [
-		TO_ERROR(access cannot-close) environment
-	]]
+	unless ODBC_SUCCEEDED [fire [TO_ERROR(access cannot-close) environment]]
 
 	#if debug? = yes [print ["]" lf]]
 
@@ -3767,7 +3620,7 @@ sources: function [
 
 set-commit-mode: func [connection [object!] auto? [logic!]] [
 	set-connection connection 0066h ;SQL_ATTR_AUTOCOMMIT
-							  either auto? [1] [0] ;SQL_AUTOCOMMIT_ON/OFF
+							  either auto? [1] [0] ;SQL_ATTR_AUTOCOMMIT on/off
 							  FFFBh ;SQL_IS_UINTEGER
 ]
 
@@ -3795,7 +3648,7 @@ set-cursor-type: func [statement [object!] old new] [
 		default 0
 	] new
 
-	set-statement statement 6     ;SQL_CURSOR_TYPE
+	set-statement statement 6     ;SQL_ATTR_CURSOR_TYPE
 							new
 							FFFBh ;SQL_IS_UINTEGER
 ]
@@ -4056,7 +3909,7 @@ index?: function [
 ][
 	if debug-odbc? [print "actor/index?"]
 
-	pick-attribute statement/state 14 ;SQL_ROW_NUMBER
+	pick-attribute statement/state 14 ;SQL_ATTR_ROW_NUMBER
 ]
 
 
