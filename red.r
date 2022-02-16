@@ -461,12 +461,12 @@ redc: context [
 				script: temp-dir/GUI/old/gui-console.red
 			]
 
-			source: load-cache console/:con-ui
+			source: load-cache console/:con-ui			
 			all [
 				view?
 				any [Windows? macOS? Linux?]
 				not gui?
-				append source/2/Needs 'View
+				append select source/2 to-set-word 'Needs 'View
 			]
 
 			files: [%auto-complete.red %engine.red %help.red]
