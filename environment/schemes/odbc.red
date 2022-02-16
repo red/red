@@ -277,14 +277,6 @@ diagnose-error: func [
 ;  ██   ██ ███████ ██████
 ;
 
-;--------------------------------------- load-numeric --
-;
-
-load-numeric: func [value [string!]] [
-	attempt [load value value]
-]
-
-
 ;-------------------------------------------- odbc:// --
 ;
 
@@ -2197,48 +2189,37 @@ bind-columns: routine [                                 ;-- FIXME: needs code cl
 ;
 
 fetch-columns: routine [                                ;-- FIXME: status column isn't used at all
-	statement       [object!]                           ;   and so are direction and distance
-	direction       [word!]
-	distance        [integer!]
+	statement       [object!]                           ;
+	orientation     [word!]
+	offset          [integer!]
 	/local
 		buffer      [red-handle!]
 		buflen      [integer!]
 		bufrow      [byte-ptr!]
 		c           [integer!]
-		c-string    [c-string!]
 		col-size    [integer!]
 		cols        [integer!]
-		cols*       [integer!]
 		columns     [red-block!]
 		dt          [SQL_DATE_STRUCT!]
 		digits      [integer!]
-		dir         [integer!]
 		fetched     [red-handle!]
-		float-ptr   [struct! [
-			int1        [integer!]
-			int2        [integer!]
-		]]
+		float-ptr   [struct! [int1 [integer!] int2 [integer!]]]
 		hstmt       [red-handle!]
 		int-ptr     [int-ptr!]
 		length      [int-ptr!]
 		nullable    [integer!]
-		offset      [integer!]
 		orient      [integer!]
 		r           [integer!]
 		rc          [integer!]
-		redstr      [red-string!]
 		row         [red-block!]
 		rows        [int-ptr!]
 		rowset      [red-block!]
 		sql-type    [integer!]
 		status      [red-handle!]
 		strlen      [red-handle!]
+		sym			[integer!]
 		tm          [SQL_TIME_STRUCT!]
 		ts          [SQL_TIMESTAMP_STRUCT!]
-		h           [integer!]
-		m           [integer!]
-		s           [integer!]
-		value       [red-value!]
 		values      [red-value!]
 		window      [integer!]
 ][
@@ -2256,30 +2237,23 @@ fetch-columns: routine [                                ;-- FIXME: status column
 	#if debug? = yes [print ["^-status:  " as byte-ptr! status/value  lf]]
 
 	rowset:    block/push-only* window
-
 	cols:     (block/rs-length? columns) / ODBC_COL_FIELD_FIELDS
-	dir:      symbol/resolve direction/symbol
+	sym: 	   symbol/resolve orientation/symbol
 
-	orient: case [
-		dir = _all  [0]
-		dir = _skip [SQL_FETCH_RELATIVE]
-		dir = _at   [SQL_FETCH_ABSOLUTE]
-		dir = _head [SQL_FETCH_FIRST]
-		dir = _back [SQL_FETCH_PRIOR]
-		dir = _next [SQL_FETCH_NEXT]
-		dir = _tail [SQL_FETCH_LAST]
+	orient:	   case [
+		sym = _all  [SQL_FETCH_NEXT]
+		sym = _skip [SQL_FETCH_RELATIVE]
+		sym = _at   [SQL_FETCH_ABSOLUTE]
+		sym = _head [SQL_FETCH_FIRST]
+		sym = _back [SQL_FETCH_PRIOR]
+		sym = _next [SQL_FETCH_NEXT]
+		sym = _tail [SQL_FETCH_LAST]
 	]
 
 	while [true] [
-		either dir = _all [
-			rc: result-of SQLFetchScroll hstmt/value SQL_FETCH_NEXT 0
+		rc: result-of SQLFetchScroll hstmt/value orient offset
 
-			#if debug? = yes [print ["^-SQLFetchScroll " rc lf]]
-		][
-			rc: result-of SQLFetchScroll hstmt/value orient distance
-
-			#if debug? = yes [print ["^-SQLFetchScroll " rc lf]]
-		]
+		#if debug? = yes [print ["^-SQLFetchScroll " rc lf]]
 
 		ODBC_DIAGNOSIS(SQL_HANDLE_STMT hstmt/value statement)
 
@@ -2298,8 +2272,6 @@ fetch-columns: routine [                                ;-- FIXME: status column
 
 		#if debug? = yes [print ["^-fetched: " as byte-ptr! fetched/value " (" rows/value " rows) " lf]]
 
-	   ;if any [ODBC_SUCCESS ODBC_INFO] [
-
 	   ;#if debug? = yes [
 	   ;    c: 0
 	   ;    loop cols [
@@ -2311,24 +2283,9 @@ fetch-columns: routine [                                ;-- FIXME: status column
 	   ;    ]
 	   ;]
 
-		c: 0 cols*: 0                                   ;-- FIXME: reserve space for LOAD
-		loop cols [
-			offset: c * ODBC_COL_FIELD_FIELDS
-			sql-type:   integer/get block/rs-abs-at columns offset + ODBC_COL_FIELD_SQL_TYPE
-			switch sql-type [
-				SQL_DECIMAL
-				SQL_NUMERIC [
-					cols*: cols* + 2
-				]
-				default [
-					cols*: cols* + 1
-				]
-			]
-		]
-
 		r: 0
 		loop rows/value [
-			row: block/make-in rowset cols*             ;-- FIXME: consider slots for __load
+			row: block/make-in rowset cols
 
 			c: 0
 			loop cols [
@@ -2368,9 +2325,7 @@ fetch-columns: routine [                                ;-- FIXME: status column
 					]
 					SQL_DECIMAL
 					SQL_NUMERIC [
-						block/rs-append row as red-value! __load
-						redstr: string/load-in as c-string! bufrow length/value row UTF-8
-					   ;#call [load-numeric redstr]
+						set-type as cell! string/load-in as c-string! bufrow length/value row UTF-8 TYPE_REF
 					]
 					SQL_SMALLINT
 					SQL_INTEGER [
@@ -2396,7 +2351,7 @@ fetch-columns: routine [                                ;-- FIXME: status column
 					SQL_LONGVARBINARY
 					SQL_VARBINARY
 					SQL_BINARY [
-						binary/load-in              bufrow length/value row
+						binary/load-in bufrow length/value row
 					]
 					SQL_TYPE_DATE [
 						dt: as SQL_DATE_STRUCT! bufrow
@@ -2452,11 +2407,7 @@ fetch-columns: routine [                                ;-- FIXME: status column
 			r: r + 1
 		] ; loop rows/value
 
-	   ;] ;if
-
-		unless dir = _all  [
-			break
-		]
+		unless sym = _all [break]
 	]
 
 	SET_RETURN(rowset)
@@ -2680,13 +2631,23 @@ as-column: function [column [string!]] [
 ]
 
 
-;---------------------------------------- return-columns --
+;------------------------------------- return-columns --
 ;
+;	FIXME: 	This whole RETURN-COLUMNS thing is nothing
+;	       	but a costly hack to late convert datatypes
+;			on Red level instead of doing the right ting
+;			on Red/System level
+;
+;	Returns DECIMAL or NUMERIC if the a LOAD-able
+;   or string otherwise.
 
 return-columns: function [rows] [
 	if debug-odbc? [print "return-columns"]
 
-	forall rows [system/words/change/only rows reduce first rows]
+	foreach row rows [forall row [all [
+		ref? value: first row
+		system/words/change row any [attempt [load value: to string! value] value]
+	]]]
 
 	new-line/all system/words/head rows on
 ]
