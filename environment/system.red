@@ -129,6 +129,7 @@ system: context [
 				invalid-path-set:	["unsupported type in" :arg1 "set-path"]
 				invalid-path-get:	["unsupported type in" :arg1 "get-path"]
 				bad-path-type:		["path" :arg1 "is not valid for" :arg2 "type"]
+				bad-path-type2:		["path element >" :arg1 "< does not apply to" :arg2 "type"]
 				bad-path-set:		["cannot set" :arg2 "in path" :arg1]
 				bad-field-set:		["cannot set" :arg1 "field to" :arg2 "datatype"]
 				dup-vars:			["duplicate variable specified:" :arg1]
