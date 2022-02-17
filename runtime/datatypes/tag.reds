@@ -51,7 +51,7 @@ tag: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tag/mold"]]
 		
-		form tag buffer arg part - 1
+		form tag buffer arg part
 	]
 
 	init: does [
