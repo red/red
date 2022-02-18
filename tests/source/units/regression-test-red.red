@@ -1964,11 +1964,11 @@ Red [
 		; --assert equal? "test" read %中坜
 
 	--test-- "#1729"
-		not error? try [123456789123456789]
-		equal? 123456789123456789 1.234567891234568e17
+		--assert not error? try [123456789123456789]
+		--assert equal? 123456789123456789 1.234567891234568e17
 
 	--test-- "#1730"
-		not error? try [reduce does ["ok"]]
+		--assert not error? try [reduce does ["ok"]]
 
 	; --test-- "#1732"
 		; FIXME: example throws error: eval-command has no value
@@ -2758,9 +2758,10 @@ b}
 		--assert equal? ["1" "2" ""] split "1^/2^/" #"^/"
 
 	--test-- "#2232"
+		no-probe: func [value][:value]
 		--assert 'ok = (a: 'ok 1 :a)
 		--assert 'ok = (a: 'ok 1 + 1 :a)
-		--assert 'ok = (a: 'ok 1 + 1 probe :a)
+		--assert 'ok = (a: 'ok 1 + 1 no-probe :a)
 		--assert equal? 'ok (a: 'ok 1 + 1 :a)
 		--assert equal? 'ok (a: 'ok 1 + 1 :a)
 

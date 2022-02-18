@@ -327,9 +327,10 @@ test
 				] [print "MATCH"]
 			]
 		}
-		--assert find qt/output "MATCH"
+		--assert compiled?
+		--assert true? find qt/output "MATCH"
 
---test-- "#5070"
+	--test-- "#5070"
 		--compile-and-run-this {
 			Red []
 			m: #()
@@ -341,7 +342,7 @@ test
 			put m 'key does [6]
 			put m "s"  does [7]
 			put m #"c" does [8]
-			probe to-block m
+			print mold/only to-block m
 		}
 		--assert compiled?
 		--assert (load qt/output) == [
