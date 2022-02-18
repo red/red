@@ -51,7 +51,6 @@ Red [
 	ODBC_STMT_FIELD_ROWS_STATUS
 	ODBC_STMT_FIELD_ROWS_FETCHED
 	ODBC_STMT_FIELD_PORT
-	ODBC_STMT_FIELD_LENGTH
 	ODBC_STMT_FIELD_CURSOR
 ]
 
@@ -2600,8 +2599,6 @@ describe-columns: function [
 	statement [object!]
 ][
 	if debug-odbc? [print "describe-columns"]
-
-	statement/length: affected-rows statement           ;-- FIXME: temporary workaround for LENGTH? bug #5032 on ports
 
 	if zero? cols: count-columns statement [
 		return statement/length
