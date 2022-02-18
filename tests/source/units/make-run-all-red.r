@@ -60,6 +60,7 @@ Red [
 	Title:   "Red auto-generated test"
 	Author:  "Peter W A Wood"
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+	Needs:	 [CSV JSON]
 ]
 
 comment ^{
