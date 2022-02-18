@@ -321,7 +321,6 @@ statement-proto: context [
 	rows-status:    none
 	rows-fetched:   none
 	port:           none
-	length:         none
 	cursor:         'forward
 
 	on-change*:     func [word old new] [switch word [
@@ -2601,7 +2600,7 @@ describe-columns: function [
 	if debug-odbc? [print "describe-columns"]
 
 	if zero? cols: count-columns statement [
-		return statement/length
+		return affected-rows statement
 	]
 
 	statement/columns: bind-columns statement cols
