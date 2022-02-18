@@ -4030,8 +4030,11 @@ register-scheme make system/standard/scheme [
 	name:      'ODBC
 	title:     "ODBC"
 	actor:      odbc
-	info:       context [
-		drivers: odbc/drivers
-		sources: odbc/sources
+	info:       context compose/deep [
+		drivers: does [do reduce [(get in odbc 'drivers)]]	;-- FIXME: this quirkyness!
+		sources: does [do reduce [(get in odbc 'sources)]]
 	]
 ]
+
+unset 'odbc												;-- do not pollute global context
+
