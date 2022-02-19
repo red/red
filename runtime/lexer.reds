@@ -2071,6 +2071,7 @@ lexer: context [
 	]
 	
 	load-tag: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
+		if s/1 <> #"<" [throw-error lex s e TYPE_TAG]
 		if load? [
 			flags: flags and not C_FLAG_CARET			;-- clears caret flag
 			lex/type: TYPE_TAG
