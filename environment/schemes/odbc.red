@@ -44,7 +44,6 @@ Red [
 	ODBC_STMT_FIELD_SQL
 	ODBC_STMT_FIELD_PARAMS
 	ODBC_STMT_FIELD_PRMS_STATUS
-	ODBC_STMT_FIELD_PRMS_PROCESSED
 	ODBC_STMT_FIELD_WINDOW
 	ODBC_STMT_FIELD_COLUMNS
 	ODBC_STMT_FIELD_SCROLL
@@ -314,7 +313,6 @@ statement-proto: context [
 	sql:            none
 	params:         []
 	prms-status:    none
-	prms-processed: none
 	window:         10                                  ;-- default window size
 	columns:        []
 	scroll?:        off
@@ -912,7 +910,6 @@ open-statement: routine [
 	/local
 		fetched     [byte-ptr!]
 		hdbc        [red-handle!]
-		processed   [byte-ptr!]
 		rc          [integer!]
 		sqlhstmt    [integer!]
 ][
@@ -939,13 +936,6 @@ open-statement: routine [
 
 	copy-cell as red-value! handle/box sqlhstmt
 			  (object/get-values statement) + ODBC_COMMON_FIELD_HANDLE
-
-	processed: allocate size? integer!
-
-	#if debug? = yes [print ["^-allocate processed, " size? integer! " bytes @ " processed lf]]
-
-	copy-cell as red-value! handle/box as integer! processed
-			  (object/get-values statement) + ODBC_STMT_FIELD_PRMS_PROCESSED
 
 	fetched: allocate size? integer!
 
@@ -1227,7 +1217,6 @@ bind-parameters: routine [
 		lenslot     [int-ptr!]
 		maxlen      [integer!]
 		param       [red-value!]
-		processed   [red-handle!]
 		prm         [integer!]
 		prms        [integer!]
 		rc          [integer!]
@@ -1259,7 +1248,6 @@ bind-parameters: routine [
 	values:     object/get-values statement
 
 	hstmt:      as red-handle! values + ODBC_COMMON_FIELD_HANDLE
-	processed:  as red-handle! values + ODBC_STMT_FIELD_PRMS_PROCESSED ;-- number of param rows processed
 
 	rows: block/rs-length? params
 	prms: block/rs-length? as red-block! block/rs-head params
@@ -1274,7 +1262,6 @@ bind-parameters: routine [
 
 	set-statement statement SQL_ATTR_PARAMSET_SIZE        rows                     0
 	set-statement statement SQL_ATTR_PARAM_STATUS_PTR     status/value             0
-	set-statement statement SQL_ATTR_PARAMS_PROCESSED_PTR processed/value          0
 
 	buffers: as red-block! values + ODBC_STMT_FIELD_PARAMS
 
