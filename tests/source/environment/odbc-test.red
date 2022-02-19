@@ -92,6 +92,13 @@ Red [
 
 ===start-group=== "parameter tests"
 
+	--test-- "can handle params not given as prmsets"
+		--assert zero? try [
+			test: open conn: open rejoin [odbc:// get-env "TESTDSN"]
+			insert test ["SELECT caption FROM depot2019.schools WHERE school_id = ?" "4711"]
+			also length? copy test close conn
+		]
+
 	--test-- "can detect prmsets not being blocks"
 		--assert equal? 'expect-val try [
 			test: open conn: open rejoin [odbc:// get-env "TESTDSN"]
