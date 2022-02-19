@@ -188,6 +188,13 @@ Red [
 			also mold/all new-line/all collect [until [keep copy test none? update test]] off close conn
 		]
 
+	--test-- "can round trip integers"
+		--assert equal? {[[-2147483648] [0] [2147483647]]} probe try [
+			test: open conn: open rejoin [odbc:// get-env "TESTDSN"]
+			insert test ["SELECT ?::integer" [-2147483648] [0] [2147483647]]
+			also mold/all new-line/all collect [until [keep copy test none? update test]] off close conn
+		]
+
 ===end-group===
 
 ===start-group=== "datatypes tests"
