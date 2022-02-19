@@ -1272,7 +1272,6 @@ bind-parameters: routine [
 
 	copy-cell as red-value! status values + ODBC_STMT_FIELD_PRMS_STATUS ;-- store pointer in statement
 
-	set-statement statement SQL_ATTR_PARAM_BIND_TYPE      SQL_PARAM_BIND_BY_COLUMN 0
 	set-statement statement SQL_ATTR_PARAMSET_SIZE        rows                     0
 	set-statement statement SQL_ATTR_PARAM_STATUS_PTR     status/value             0
 	set-statement statement SQL_ATTR_PARAMS_PROCESSED_PTR processed/value          0
