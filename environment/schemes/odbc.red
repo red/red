@@ -1233,6 +1233,7 @@ bind-parameters: routine [
 		rc          [integer!]
 		red-binary  [red-binary!]
 		red-date    [red-date!]
+		red-float   [red-float!]
 		red-integer [red-integer!]
 		red-logic   [red-logic!]
 		red-string  [red-string!]
@@ -1248,6 +1249,7 @@ bind-parameters: routine [
 		dt          [SQL_DATE_STRUCT!]
 		tm          [SQL_TIME_STRUCT!]
 		ts          [SQL_TIMESTAMP_STRUCT!]
+		val-float   [float!]
 		val-integer [integer!]
 		value       [red-value!]
 		values      [red-value!]
@@ -1402,11 +1404,19 @@ bind-parameters: routine [
 					lenslot/value:      column-size
 				]
 				TYPE_FLOAT [
+					column-size:		8
+					digits:				0
 					sql-type:           SQL_DOUBLE
 					c-type:             SQL_C_DOUBLE
-				   ;float-buffer:       as pointer! [float!] statement/params-buf + param/offset
-				   ;float-buffer/value: float/get as red-value! value
-				   ;buffer:             as byte-ptr! float-buffer
+					red-float:			as red-float! param
+					val-float:			red-float/value
+
+					copy-memory bufslot as byte-ptr! :val-float column-size
+
+					#if debug? = yes [print-bytes bufslot column-size]
+
+					bufslot:            bufslot + column-size
+					lenslot/value:      column-size
 				]
 				TYPE_ANY_STRING [
 					#if debug? = yes [print ["^-^-^-TYPE_STRING buflen = " buflen lf]]
