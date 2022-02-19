@@ -3716,7 +3716,8 @@ insert: function [{
 
 			unless system/words/tail? params: system/words/next sql [
 				unless block? first params [
-					params: reduce [params]                                     ;-- treat ["..." p1 p2] as ["..." [p1 p2]] prm array with only 1 elem
+					system/words/insert/only params take/part params system/words/length? params
+																				;-- treat ["..." p1 p2] as ["..." [p1 p2]] prm array with only 1 elem
 				]
 				foreach prmset params [unless block? prmset [                   ;-- assert all prmsets are blocks
 					cause-error 'script 'expect-val ['block! type? prmset]
