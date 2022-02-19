@@ -195,6 +195,13 @@ Red [
 			also mold/all new-line/all collect [until [keep copy test none? update test]] off close conn
 		]
 
+	--test-- "can round trip floats"
+		--assert equal? {[[-1.7976931348623e308] [0.0] [1.7976931348623e308]]} try [
+			test: open conn: open rejoin [odbc:// get-env "TESTDSN"]
+			insert test ["SELECT ?::double precision" [-1.7976931348623e308] [0.0] [1.7976931348623e308]]
+			also mold/all new-line/all collect [until [keep copy test none? update test]] off close conn
+		]
+
 ===end-group===
 
 ===start-group=== "datatypes tests"
