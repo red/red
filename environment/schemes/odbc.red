@@ -1390,7 +1390,7 @@ bind-parameters: routine [
 					column-size:        4
 					digits:             0
 					sql-type:           SQL_INTEGER
-					c-type:             SQL_C_CHAR
+					c-type:             SQL_C_LONG
 					red-integer:        as red-integer! param
 					val-integer:        red-integer/value
 
