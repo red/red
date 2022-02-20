@@ -264,11 +264,11 @@ Red [
 		insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] { SELECT * FROM depot2019.depots }
 		--assert not error? try [copy test close conn]
 
-	--test-- "can read all depot2019.messages"			;-- FIXME: *** Internal Error: stack overflow
+	--test-- "can read all depot2019.messages"
 		insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] { SELECT * FROM depot2019.messages }
 		--assert not error? try [copy test close conn]
 
-    --test-- "can read all depot2019.orders"			;-- FIXME: *** Internal Error: stack overflow
+    --test-- "can read all depot2019.orders"
 		insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] { SELECT * FROM depot2019.orders }
 		--assert not error? try [copy test close conn]
 
@@ -276,7 +276,7 @@ Red [
 		insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] { SELECT * FROM depot2019.packings }
 		--assert not error? try [copy test close conn]
 
-    --test-- "can read all depot2019.placings"			;-- FIXME: *** Internal Error: stack overflow
+    --test-- "can read all depot2019.placings"
 		insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] { SELECT * FROM depot2019.placings }
 		--assert not error? try [copy test close conn]
 
