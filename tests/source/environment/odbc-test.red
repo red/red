@@ -418,4 +418,83 @@ Red [
 
 ===end-group===
 
+===start-group=== "text driver csv tests"
+
+	--test-- "can prepare tables"						;-- not a test at all, merely preparation for further tests
+	 	columns: rejoin ["BitCol;ByteCol;ShortCol;LongCol;SingleCol;DoubleCol;DateCol;DateTimeCol;TextCol;MemoCol" lf]
+		make-dir path: append what-dir %odbc/
+		write path/"schema.ini" form collect [foreach table ["ANSI" "OEM" "Unicode"] [
+			either table = "Unicode" [
+				write/binary rejoin [path table %.csv] #{
+					fffe42006900740043006f006c003b00420079007400650043006f006c003b00
+					530068006f007200740043006f006c003b004c006f006e00670043006f006c00
+					3b00530069006e0067006c00650043006f006c003b0044006f00750062006c00
+					650043006f006c003b00440061007400650043006f006c003b00440061007400
+					6500540069006d00650043006f006c003b00540065007800740043006f006c00
+					3b004d0065006d006f0043006f006c000d000a00
+				}
+			][
+				write rejoin [path table %.csv] columns
+			]
+			keep rejoin [
+				"[" table %.csv "]"			     	lf
+				'ColNameHeader= 		 'True		lf
+				'Format= 		  "Delimited(;)"	lf
+				'MaxScanRows=	 			 0		lf
+				'CharacterSet= uppercase table		lf
+				'Col1= "BitCol      Bit       "     lf
+				'Col2= "ByteCol     Byte      "     lf
+				'Col3= "ShortCol    Short     "     lf
+				'Col4= "LongCol     Long      "     lf
+				'Col5= "SingleCol   Single    "     lf
+				'Col6= "DoubleCol   Double    "     lf
+				'Col7= "DateCol     Date      "     lf
+				'Col8= "DateTimeCol DateTime  "     lf
+				'Col9= "TextCol     Text      "     lf
+				'Col10="MemoCol     Memo      "     lf
+				'DecimalSymbol=				"."		lf
+				'NumberDigits=				10		lf
+				'NumberLeadingZeros=		 1		lf
+			]]
+		]
+		--assert true
+
+	--test-- "can insert into csv with text driver"
+		connection-string: rejoin ["Driver={Microsoft Text Driver (*.txt; *.csv)};Dbq=[" to-local-file append what-dir %odbc/ "];Extensions=csv;"]
+		csv: open jet: open make port! [scheme: 'odbc target: connection-string]
+		foreach table ["ANSI" "OEM" "Unicode"] [
+			insert csv rejoin [{
+				INSERT INTO } table {.csv (	BitCol, ByteCol, ShortCol,     LongCol,    SingleCol,            DoubleCol,          DateCol,                DateTimeCol,          TextCol,         MemoCol)
+				VALUES                    (	     0,       0,   -32768, -2147483648, -3.402823E38, -1.7976931348623e308, {d '0100-01-01'}, {ts '0100-01-01 11:22:33'},  'Line1^M^/Line2', '∃Ⅻↀↁↇↈ∰');
+			}]
+			insert csv rejoin [{
+				INSERT INTO } table {.csv (	BitCol, ByteCol, ShortCol,     LongCol,    SingleCol,            DoubleCol,          DateCol,                DateTimeCol,           TextCol,        MemoCol)
+				VALUES					  (		 1,     255,    32767,  2147483647,  3.402823E38,  1.7976931348623e308, {d '9999-12-31'}, {ts '9999-12-31 23:59:59'},  'Line1^M^/Line2', '∃Ⅻↀↁↇↈ∰');
+			}]
+			insert csv rejoin [{SELECT * FROM } table {.csv}]
+			copy csv
+
+			;-- FIXME: 	No matter what I'm trying, I can't get parameter handling working with the text driver, only getting
+			;			HYC00 106 {[Microsoft][ODBC Text Driver] Optional Feature not implemented
+
+		;	insert csv reduce [
+		;		rejoin [{
+		; 			INSERT INTO } table {.csv (	BitCol, ByteCol, ShortCol, LongCol, SingleCol, DoubleCol, DateCol, DateTimeCol, TextCol, MemoCol)
+		; 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+		;		}]
+		; 		#[false] 255 -32768 -2147483648 -3.402823e38 -1.7976931348623e308 1-Jan-100 1-Jan-100/11:22:33 "Line1^M^/Line2" "∃Ⅻↀↁↇↈ∰"
+		; 	]
+		; 	insert csv reduce [
+		;		rejoin [{
+		; 			INSERT INTO } table {.csv (	BitCol, ByteCol, ShortCol, LongCol, SingleCol, DoubleCol, DateCol, DateTimeCol, TextCol, MemoCol)
+		; 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+		;		}]
+		; 		#[true] 255 32767 2147483647 3.402823e38 1.7976931348623e308 31-Dec-9999 31-Dec-9999/23:59:59 "Line1^M^/Line2" "∃Ⅻↀↁↇↈ∰"
+		; 	]
+		; 	insert csv rejoin [{SELECT * FROM } table {.csv}]
+		; 	copy csv
+		]
+		close jet
+		--assert true
+
 ~~~end-file~~~
