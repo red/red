@@ -1520,6 +1520,8 @@ Red [
 		--assert [2 3 4 5] = transcode/into "4 5" next b
 		--assert b == [1 2 3 4 5]
 
+	--test-- "#5082"
+		--assert 1.#inf = transcode/one "1.79769313486232e308"
 ===end-group===
 	
 ~~~end-file~~~
