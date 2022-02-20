@@ -100,6 +100,8 @@ _user:          symbol/resolve symbol/make "user"
 __load:         word/load "load"
 __odbc:         word/load "ODBC"
 
+odbc-login-timeout: 0
+
 
 ;---------------------------------------- print-bytes --
 ;	used only for debugging
@@ -657,9 +659,11 @@ open-connection: routine [
 	copy-cell as red-value! handle/box sqlhdbc
 			  (object/get-values connection) + ODBC_COMMON_FIELD_HANDLE
 
-	set-connection connection SQL_ATTR_LOGIN_TIMEOUT
-							  5                         ;-- FIXME: hardcoded value
-							  SQL_IS_INTEGER
+	if odbc-login-timeout > 0 [
+		set-connection connection SQL_ATTR_LOGIN_TIMEOUT
+								  odbc-login-timeout
+								  SQL_IS_INTEGER
+	]
 
 	str:     unicode/to-utf16 dsn                       ;-- connect to driver
 	str-len: wlength? str
@@ -4040,6 +4044,21 @@ close: function [
 ;=========================================== register ==
 ;
 
+odbc-options: context [
+	timeout: none
+
+	on-change*: func [word old new] [switch word [
+		timeout [
+			#system [odbc-login-timeout: 0]
+			all [
+				integer? new
+				positive? new
+				loop new [#system [odbc-login-timeout: odbc-login-timeout + 1]]
+			]
+		]
+	]]
+]
+
 register-scheme make system/standard/scheme [
 	name:      'ODBC
 	title:     "ODBC"
@@ -4048,7 +4067,9 @@ register-scheme make system/standard/scheme [
 		drivers: does [do reduce [(get in odbc 'drivers)]]	;-- FIXME: this quirkyness!
 		sources: does [do reduce [(get in odbc 'sources)]]
 	]
+	options: 	odbc-options
 ]
 
+unset 'odbc-options										;-- contrived, I know :(
 unset 'odbc												;-- do not pollute global context
 
