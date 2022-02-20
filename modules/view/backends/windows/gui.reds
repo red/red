@@ -63,6 +63,7 @@ hInstance:		as handle! 0
 default-font:	as handle! 0
 hover-saved:	as handle! 0							;-- last window under mouse cursor
 prev-focus:		as handle! 0
+prev-captured:	as handle! 0
 version-info: 	declare OSVERSIONINFO
 current-msg: 	as tagMSG 0
 wc-extra:		80										;-- reserve 64 bytes for win32 internal usage (arbitrary)
@@ -1333,6 +1334,8 @@ OS-show-window: func [
 	/local
 		face	[red-object!]
 ][
+	if prev-captured <> null [ReleaseCapture]
+	check-base-capture
 	ShowWindow as handle! hWnd SW_SHOWDEFAULT
 	UpdateWindow as handle! hWnd
 	unless win8+? [

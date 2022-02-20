@@ -1641,11 +1641,14 @@ process: func [
 			res
 		]
 		WM_LBUTTONUP	[
+			prev-captured: msg/hWnd
 			if all [msg/hWnd <> null msg/hWnd = GetCapture not no-face? msg/hWnd][
 				word: (as red-word! get-face-values msg/hWnd) + FACE_OBJ_TYPE
 				if base = symbol/resolve word/symbol [ReleaseCapture]	;-- issue #4384
 			]
-			make-event msg flags EVT_LEFT_UP
+			res: make-event msg flags EVT_LEFT_UP
+			prev-captured: null
+			res
 		]
 		WM_RBUTTONDOWN	[
 			if GetCapture <> null [return EVT_DISPATCH]
