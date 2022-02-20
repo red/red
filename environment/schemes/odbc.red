@@ -2191,6 +2191,7 @@ fetch-columns: routine [                                ;-- FIXME: status column
 		buflen      [integer!]
 		bufrow      [byte-ptr!]
 		c           [integer!]
+		d           [integer!]
 		col-size    [integer!]
 		cols        [integer!]
 		columns     [red-block!]
@@ -2208,11 +2209,14 @@ fetch-columns: routine [                                ;-- FIXME: status column
 		row         [red-block!]
 		rows        [int-ptr!]
 		rowset      [red-block!]
+		s           [float!]
 		sql-type    [integer!]
 		status      [red-handle!]
 		strlen      [red-handle!]
 		sym			[integer!]
+		t           [float!]
 		tm          [SQL_TIME_STRUCT!]
+		tim         [struct! [lo [integer!] hi [integer!]]]
 		ts          [SQL_TIMESTAMP_STRUCT!]
 		values      [red-value!]
 		window      [integer!]
@@ -2349,27 +2353,41 @@ fetch-columns: routine [                                ;-- FIXME: status column
 					]
 					SQL_TYPE_DATE [
 						dt: as SQL_DATE_STRUCT! bufrow
-						block/rs-append row as red-value! date/make-at stack/push* dt/year|month  and 0000FFFFh
-																				   dt/year|month  and FFFF0000h >> 16
-																				   dt/day|pad     and 0000FFFFh
-																				   0.0 0 0 no no
+
+						d: 0 and 0001FFFFh or ((dt/year|month and 0000FFFFh      )         << 17)
+						d: d and FFFF0FFFh or ((dt/year|month and FFFF0000h >> 16) and 0Fh << 12)
+						d: d and FFFFF07Fh or ((dt/day|pad    and 0000FFFFh      ) and 1Fh <<  7)
+
+						date/make-in row d 0 0
 					]
 					SQL_TYPE_TIME [
 						tm: as SQL_TIME_STRUCT! bufrow
-						block/rs-append row as red-value! time/make-at (3600.0 * as float! tm/hour|minute and 0000FFFFh      )
-																	 + (  60.0 * as float! tm/hour|minute and FFFF0000h >> 16)
-																	 + (         as float! tm/second|pad  and 0000FFFFh      )
-																	   stack/push*
+
+						t: (3600.0 * as float! tm/hour|minute and 0000FFFFh      )
+						 + (  60.0 * as float! tm/hour|minute and FFFF0000h >> 16)
+						 + (         as float! tm/second|pad  and 0000FFFFh      )
+
+						tim: as struct! [lo [integer!] hi [integer!]] as byte-ptr! :t
+
+						time/make-in row tim/hi tim/lo
+
 					]
 					SQL_TYPE_TIMESTAMP [
 						ts: as SQL_TIMESTAMP_STRUCT! bufrow
-						block/rs-append row as red-value! date/make-at stack/push* ts/year|month    and 0000FFFFh
-																				   ts/year|month    and FFFF0000h >> 16
-																				   ts/day|hour      and 0000FFFFh
-															   (3600.0 * as float! ts/day|hour      and FFFF0000h >> 16)
-															 + (  60.0 * as float! ts/minute|second and 0000FFFFh      )
-															 + (         as float! ts/minute|second and FFFF0000h >> 16)
-															 + (  1e-9 * as float! ts/fraction) 0 0 yes no
+
+						d: 0 and 0001FFFFh or ((ts/year|month and 0000FFFFh      )         << 17)
+						d: d and FFFF0FFFh or ((ts/year|month and FFFF0000h >> 16) and 0Fh << 12)
+						d: d and FFFFF07Fh or ((ts/day|hour   and 0000FFFFh      ) and 1Fh <<  7)
+						d: d or 00010000h
+
+						t: (3600.0 * as float! ts/day|hour      and FFFF0000h >> 16)
+						 + (  60.0 * as float! ts/minute|second and 0000FFFFh      )
+						 + (         as float! ts/minute|second and FFFF0000h >> 16)
+						 + (  1e-9 * as float! ts/fraction)
+
+						tim: as struct! [lo [integer!] hi [integer!]] as byte-ptr! :t
+
+						date/make-in row d tim/hi tim/lo
 					]
 					SQL_INTERVAL_YEAR
 					SQL_INTERVAL_YEAR_TO_MONTH
