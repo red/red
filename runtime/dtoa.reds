@@ -1488,7 +1488,7 @@ dtoa: context [
 		;-- finish parsing
 		ret/value: as-integer end - s
 
-		if zero? nd [return either neg? [d/int2: 80000000h rv][0.0]]
+		if zero? nd [either neg? [d/int2: 80000000h return rv][return 0.0]]
 
 		i: nd
 		until [
@@ -1817,6 +1817,7 @@ dtoa: context [
 				aadj1: either dsign <> 0 [aadj][0.0 - aadj]
 			]
 
+			;-- Check for overflow
 			y: w0 and DTOA_EXP_MASK
 			either y = (DBL_MAX_EXP + DTOA_BIAS - 1 * DTOA_EXP_MSK1) [
 				rv0: rv
@@ -1825,7 +1826,7 @@ dtoa: context [
 				rv: rv + adj
 				w0: WORD_0(d)
 				either w0 and DTOA_EXP_MASK >= (DBL_MAX_EXP + DTOA_BIAS - 53 * DTOA_EXP_MSK1) [
-					if all [w0 = DTOA_BIG_0 w1 = DTOA_BIG_1][
+					if all [WORD_0(d0) = DTOA_BIG_0 WORD_1(d0) = DTOA_BIG_1][
 						Bfree bb
 						Bfree bd
 						Bfree bs
