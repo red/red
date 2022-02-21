@@ -500,15 +500,24 @@ block: context [
 				return part
 			]
 			depth: depth + 1
-			unless flat? [
-				if value/header and flag-new-line <> 0 [ ;-- new-line marker
-					unless lf? [lf?: on indent: indent + 1]
-					string/append-char GET_BUFFER(buffer) as-integer lf
-					loop indent [string/concatenate-literal buffer "    "]
-					part: part - (indent * 4 + 1) 		;-- account for lf
+			if all [
+				not flat?
+				value/header and flag-new-line <> 0	;-- new-line marker
+			][
+				if all [not only? value = head][
+					lf?: on
+					indent: indent + 1
 				]
+				if any [not only? value <> head][
+					string/append-char GET_BUFFER(buffer) as-integer lf
+					part: part - 1
+				]
+				loop indent [string/concatenate-literal buffer "    "]
+				part: part - (indent * 4)
 			]
-			part: actions/mold value buffer only? all? flat? arg part indent
+			
+			part: actions/mold value buffer no all? flat? arg part indent
+			
 			if positive? depth [
 				string/append-char GET_BUFFER(buffer) as-integer space
 				part: part - 1
@@ -527,7 +536,7 @@ block: context [
 			indent: indent - 1
 			string/append-char GET_BUFFER(buffer) as-integer lf
 			loop indent [string/concatenate-literal buffer "    "]
-			part: part - (indent * 4 + 1) 		;-- account for lf
+			part: part - (indent * 4) + 1				;-- account for lf
 		]
 		part
 	]
@@ -748,7 +757,7 @@ block: context [
 			string/append-char GET_BUFFER(buffer) as-integer #"["
 			part: part - 1
 		]
-		part: mold-each blk buffer no all? flat? arg part indent
+		part: mold-each blk buffer only? all? flat? arg part indent
 		
 		unless only? [
 			string/append-char GET_BUFFER(buffer) as-integer #"]"
