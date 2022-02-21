@@ -1092,15 +1092,72 @@ transcode-trace: func [
 	transcode/trace src :system/lexer/tracer
 ]
 
-;--- Temporary definition, use at your own risks! ---
-rejoin: function [
-	"Reduces and joins a block of values."
-	block [block!] "Values to reduce and join"
+with: function [
+	"Bind code to a given context or list of contexts (in order from first to last)"
+	ctx [any-object! function! any-word! block!]
+		"Block [x: ...] becomes a context, [x 'x ...] is reduced and passed sequentially to BIND native"
+	block [block!] "Is not evaluated"
 ][
-	if empty? block: reduce block [return block]
-	append either series? first block [copy first block] [
-		form first block
-	] next block
+	case [
+		not block? :ctx  [bind block :ctx]
+		set-word? :ctx/1 [bind block context ctx]
+		'otherwise [
+			foreach item reduce/into ctx clear [] [
+				bind block :item
+			]
+			block
+		]
+	]
+]
+
+context [
+	non-paren: charset [not #"("]
+
+	trap-error: function [on-error [function! string!] :code [paren!]] [
+		error: try [return do code]
+		either function? :on-error [do [on-error error]] [on-error]
+	]
+
+	set 'rejoin function [
+		"Reduces and joins a block of values or interpolates a template string"
+		values [block! any-string!] "Values to reduce and join or string with parenthesized expressions"
+		/with "Bind expressions loaded from string to a list of contexts"
+			ctx [block!] "List in format accepted by WITH function"
+		/trap "Trap string evaluation (but not loading) errors and replace with text"
+			on-error [function! string!] "Replacement text, or func [error [error!] return: [string!]]"
+	][
+		unless block? values [
+			string: as string! values
+			block: clear []
+			parse string [
+				collect into block [
+					keep (as values "")					;-- ensures the resulting type
+					any [
+						keep copy some non-paren		;-- any text
+					|	keep [#"(" ahead #"\"] skip		;-- escaped opening paren
+					|	pos: (set [value: end:] transcode/next pos) :end	;-- paren expression
+						keep (:value)
+					]
+				]
+			]
+			
+			if with [system/words/with ctx block] 			
+			if trap [									;-- each result has to be evaluated separately
+				forall block [
+					if paren? block/1 [
+						block: insert block [trap-error :on-error]
+					]
+				]
+			]
+			
+			values: block
+		]
+		
+		if tail? block: reduce values [return block]
+		append either series? first block [copy first block] [
+			form first block
+		] next block
+	]
 ]
 
 sum: func [
