@@ -266,6 +266,7 @@ input: function ["Wait for console user input" return: [string!]][ask ""]
 	gui-console-buffer: as red-value! 0
 
 	red-print-gui: func [
+		[catch]
 		str		[red-string!]
 		lf?		[logic!]
 		/local
@@ -278,6 +279,7 @@ input: function ["Wait for console user input" return: [string!]][ask ""]
 	]
 
 	rs-print-gui: func [
+		[catch]
 		cstr	[c-string!]
 		size	[integer!]
 		lf?		[logic!]
