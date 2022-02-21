@@ -1093,7 +1093,7 @@ transcode-trace: func [
 ]
 
 with: function [
-	"Bind code to a given context or list of contexts (in order from first to last)"
+	"Bind block to a given context or list of contexts (in order from first to last)"
 	ctx [any-object! function! any-word! block!]
 		"Block [x: ...] becomes a context, [x 'x ...] is reduced and passed sequentially to BIND native"
 	block [block!] "Is not evaluated"
