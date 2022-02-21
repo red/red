@@ -3218,6 +3218,11 @@ comment {
 		save qt-tmp-file append/dup "" "§☺" 500000
 		transcode read qt-tmp-file
 
+	--test-- "#5058"
+		--assert strict-equal?
+			"1 a ^/2 b ^/3 c"
+			mold/only new-line/all/skip [1 a 2 b 3 c] yes 2
+
 	--test-- "#5067"
 		c5067: context [
 			b: reduce ['f does [visited?: yes print ""]]
