@@ -103,6 +103,18 @@ __odbc:         word/load "ODBC"
 odbc-login-timeout: 0
 
 
+;-------------------------------------- print-wstring --
+;
+
+print-wstring: func [
+	str [c-string!]
+][
+	loop (wlength? str) << 1 [
+		prin str str: str + 1
+	]
+]
+
+
 ;---------------------------------------- print-bytes --
 ;	used only for debugging
 
@@ -248,6 +260,10 @@ diagnose-error: func [
 			 string/load-in as c-string! message message-len errors UTF-16LE
 
 			#if debug? = yes [print [state/1 state/3 state/5 state/7 state/9 lf]]
+
+			print-wstring as c-string! state prin " "	;-- FIXME: interim unconditional debugging output
+			print [native " "]
+			print-wstring as c-string! message print ["" lf]
 		]
 
 		any [ODBC_INVALID ODBC_ERROR ODBC_NO_DATA]
