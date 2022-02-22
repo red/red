@@ -741,7 +741,7 @@ pick-metadata: routine [
 		type        [red-word!]
 		value       [red-value!]
 ][
-	#if debug? = yes [print ["PICK-METADATA [" lf]]
+   ;#if debug? = yes [print ["PICK-METADATA [" lf]]
 
 	intptr: declare int-ptr!
 
@@ -764,7 +764,7 @@ pick-metadata: routine [
 											buflen
 										   :outlen
 
-				#if debug? = yes [print ["^-SQLGetEnvAttr(" info ") " rc lf]]
+			   ;#if debug? = yes [print ["^-SQLGetEnvAttr(" info ") " rc lf]]
 			]
 			all [
 				sym = _connection
@@ -776,7 +776,7 @@ pick-metadata: routine [
 												buflen
 											   :outlen
 
-				#if debug? = yes [print ["^-SQLGetConnectAttr(" info ") " rc lf]]
+			   ;#if debug? = yes [print ["^-SQLGetConnectAttr(" info ") " rc lf]]
 			]
 			all [
 				sym = _connection
@@ -788,7 +788,7 @@ pick-metadata: routine [
 										 buflen
 										:outlen
 
-				#if debug? = yes [print ["^-SQLGetInfo(" info ") " rc lf]]
+			   ;#if debug? = yes [print ["^-SQLGetInfo(" info ") " rc lf]]
 			]
 			sym = _statement [
 				rc: result-of SQLGetStmtAttr hndl/value
@@ -797,7 +797,7 @@ pick-metadata: routine [
 											 buflen
 											:outlen
 
-				#if debug? = yes [print ["^-SQLGetStmtAttr(" info ") " rc lf]]
+			   ;#if debug? = yes [print ["^-SQLGetStmtAttr(" info ") " rc lf]]
 			]
 		]
 
@@ -883,7 +883,7 @@ pick-metadata: routine [
 
 	free buffer
 
-	#if debug? = yes [print ["]" lf]]
+   ;#if debug? = yes [print ["]" lf]]
 ]
 
 
@@ -3458,7 +3458,7 @@ about-connection: function [
 		collect some [
 			set info integer!
 			set name string! (
-				if debug-odbc? [print ["info:" info name]]
+			   ;if debug-odbc? [print ["info:" info name]]
 
 				info: pick-information connection info
 			)
