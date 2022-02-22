@@ -418,6 +418,24 @@ Red [
 
 ===end-group===
 
+===start-group=== "function sequence tests"
+
+	--test-- "can execute same statement twice"
+		--assert not error? try [
+			test: open conn: open rejoin [odbc:// get-env "TESTDSN"]
+			loop 2 [insert test "SELECT 'Test'"]
+			close conn
+		]
+
+	--test-- "can exceute same parameterized statement twice"
+		--assert not error? try [
+			test: open conn: open rejoin [odbc:// get-env "TESTDSN"]
+			loop 2 [insert test ["SELECT 'Test' = ?" "Test"]]
+			close conn
+		]
+
+===end-group===
+
 ===start-group=== "text driver csv tests"
 
 	--test-- "can prepare tables"						;-- not a test at all, merely preparation for further tests
