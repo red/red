@@ -3739,11 +3739,11 @@ insert: function [{
 		]][
 			sql: reduce compose [(sql)]
 
-			unless same? statement/state/sql first sql [                        ;-- prepare only new statement
-				free-parameters   statement/state
-				free-columns      statement/state
-				free-statement    statement/state
+			free-parameters statement/state
+			free-columns    statement/state
+			free-statement  statement/state
 
+			unless same? statement/state/sql first sql [                        ;-- prepare only new statement
 				prepare-statement statement/state sql
 				statement/state/sql: first sql
 			]
