@@ -137,10 +137,10 @@ Red [
 		]
 
 	--test-- "can use string params"
-		--assert equal? 3 length? try [
+		--assert equal? 3 try [
 			test: open conn: open rejoin [odbc:// get-env "TESTDSN"]
 			insert test ["SELECT caption FROM depot2019.schools WHERE school_id = ?" ["13891"] ["59013"] ["40324"]]
-			also collect [until [keep copy test none? update test]] close conn
+			length? also collect [until [keep copy test none? update test]] close conn
 		]
 
 	--test-- "can round trip strings"
@@ -345,11 +345,11 @@ Red [
 ===start-group=== "paging tests"
 
 	--test-- "can set state/window"
-		--assert equal? 2 length? try [
+		--assert equal? 2 try [
 			test: open conn: open rejoin [odbc:// get-env "TESTDSN"]
 			test/state/window: 2
 			insert test { SELECT 1 AS a UNION SELECT 2 AS a UNION SELECT 3 AS a ORDER BY a }
-			also next test close conn
+			length? also next test close conn
 		]
 
 	--test-- "can not use INDEX? before paging"
@@ -389,7 +389,7 @@ Red [
 		]
 
 	--test-- "may overlap when back paging"
-		--assert equal? 2 length? try [
+		--assert equal? 2 try [
 			test: open conn: open rejoin [odbc:// get-env "TESTDSN"]
 			test/state/window: 2
 			test/state/cursor: 'static
@@ -397,7 +397,7 @@ Red [
 			loop 3 [rows: next test] 					;-- rows = []
 			loop 2 [rows: back test]
 			close conn
-			rows
+			length? rows
 		]
 
 ===end-group===
