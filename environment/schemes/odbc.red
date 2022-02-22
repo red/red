@@ -174,7 +174,7 @@ print-bytes: func [
 ;
 
 wlength?: func [                                        ;-- There must be sth. better in the Red/System codebase
-	"Returns length in wide chars, terminating null char included."
+	"Returns length in wide chars (w/o terminating null char)"
 	wide        [c-string!]
 	return:     [integer!]
 	/local
@@ -1434,7 +1434,7 @@ bind-parameters: routine [
 					red-string:         as red-string! param
 					c-string:           unicode/to-utf16 red-string
 					strlen:             wlength? c-string
-					lenslot/value:      SQL_NTS
+					lenslot/value:      strlen << 1		;-- actual octet length w/o null-terminator
 
 					copy-memory bufslot as byte-ptr! c-string strlen + 1 << 1
 
