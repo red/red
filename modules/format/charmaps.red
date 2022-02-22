@@ -97,7 +97,7 @@ context [
 			'nan sym/nan
 			'inf sym/infinity
      	]
-     	charmaps/:lc-name: cm
+     	formatting/charmaps/:lc-name: cm
 	]
 	
 	;; called by format functions when they need this data
@@ -108,8 +108,8 @@ context [
 		loc: any [lc-name system/locale/locale]
 		#assert [loc]
 		any [
-			charmaps/:loc								;-- this works for testing locale as well
-			build-charmap/for loc
+			formatting/charmaps/:loc					;-- this works for testing locale as well
+			formatting/build-charmap/for loc
 		]
 	]
 	

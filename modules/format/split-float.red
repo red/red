@@ -27,6 +27,7 @@ formatting: context [
 	format-date-time:
 	number-ctx:
 	format-number-with-mask:
+	capitalize:
 	format:
 		none
 

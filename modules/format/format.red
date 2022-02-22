@@ -38,7 +38,7 @@ context [
 		"Format a value"
 		value  [number! money! date! time!] "Other types TBD"
 		format [word! path! string!] "Mask or named format, e.g. 'datetime/full"
-		/in locale [word!] "Locale to express value in"
+		/in locale [word! none!] "Locale to express value in"
 	][
 		switch type?/word value [
 			integer! float! percent! money! [
@@ -97,20 +97,27 @@ context [
 	       "2 февр. 2022 г., 21:50:06"                    = format/in dt 'medium          'ru_RU
 	       "02.02.2022, 21:50"                            = format/in dt 'short           'ru_RU
 	       
-	"2022-02-02T21:50:06.661+03:00"          = format dt 'RFC3339
-	"2022-02-02T21:50:06.661+03:00"          = format dt 'Atom
-	"2022-02-02T21:50:06.661+03:00"          = format dt 'W3C
-	"2022-02-02T21:50:06.661+03:00"          = format dt 'W3C-DTF
-	"20220202T215006+0300"                   = format dt 'ISO8601
-	"2022-02-02T21:50:06+0300"               = format dt 'ISO-8601
-	"Wed, 02 Feb 22 21:50:06 +0300"          = format dt 'RFC822
-	"Wed, 02 Feb 2022 21:50:06 +0300"        = format dt 'RFC2822
-	"Wed, 02 Feb 2022 21:50:06 +0300"        = format dt 'RFC1123
-	"Wed, 02 Feb 2022 21:50:06 +0300"        = format dt 'RSS
-	"Wednesday February 2022 18:50:06 GMT"   = format dt 'HTTP-Cookie
-	"Wednesday, 02 February 22 18:50:06 GMT" = format dt 'RFC850
-	"Wednesday, 02 February 22 18:50:06 GMT" = format dt 'USENET
-	"Wed, 02 Feb 22 21:50:06 +0300"          = format dt 'RFC1036
+	"2022-02-02T21:50:06.661+03:00"     = format dt 'RFC3339
+	"2022-02-02T21:50:06.661+03:00"     = format dt 'Atom
+	"2022-02-02T21:50:06.661+03:00"     = format dt 'W3C
+	"2022-02-02T21:50:06.661+03:00"     = format dt 'W3C-DTF
+	"20220202T215006+0300"              = format dt 'ISO8601
+	"2022-02-02T21:50:06+0300"          = format dt 'ISO-8601
+	"Wed, 02 Feb 22 21:50:06 +0300"     = format dt 'RFC822
+	"Wed, 02 Feb 22 18:50:06 GMT"       = format dt 'RFC822-GMT
+	"Wed, 02 Feb 2022 21:50:06 +0300"   = format dt 'RFC5322
+	"Wed, 02 Feb 2022 21:50:06 +0300"   = format dt 'RFC2822
+	"Wed, 02 Feb 2022 21:50:06 +0300"   = format dt 'RFC1123
+	"Wed, 02 Feb 2022 21:50:06 +0300"   = format dt 'RSS
+	"Wed, 02 Feb 2022 18:50:06 GMT"     = format dt 'HTTP
+	"Wed, 02 Feb 2022 18:50:06 GMT"     = format dt 'HTTP1.1
+	"Wed, 02 Feb 2022 18:50:06 GMT"     = format dt 'RFC7231
+	"Wed, 02 Feb 2022 18:50:06 GMT"     = format dt 'RFC5322-GMT
+	"Wed, 02 Feb 2022 18:50:06 GMT"     = format dt 'RFC2822-GMT
+	"Wed, 02 Feb 2022 18:50:06 GMT"     = format dt 'RFC2616
+	"Wednesday, 02-Feb-22 18:50:06 GMT" = format dt 'RFC850
+	"Wednesday, 02-Feb-22 18:50:06 GMT" = format dt 'USENET
+	"Wed, 02 Feb 22 21:50:06 +0300"     = format dt 'RFC1036
 	
 	(format now/date + dt/time 'RFC1036) = (format dt/time 'RFC1036)	;-- given time should use today's date 
 	(format now/date + dt/time 'full) = (format dt/time 'datetime/full)	
