@@ -179,6 +179,16 @@ system/locale/list/zh: #(
             )
         )
     )
+    strings: #(
+        "true" "真"
+        "false" "假"
+        "yes" "是"
+        "no" "否"
+        "on" "开"
+        "off" "关"
+        "Y" "是"
+        "N" "否"
+    )
     currency-names: #(
         AUD: [char: "$" std: "AU$"]
         BYN: [char: "р."]

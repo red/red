@@ -193,6 +193,16 @@ system/locale/list/hi: #(
             )
         )
     )
+    strings: #(
+        "true" "सच"
+        "false" " झूठा"
+        "yes" "हाँ"
+        "no" "नहीं"
+        "on" "चालू"
+        "off" "बंद"
+        "Y" "Y"
+        "N" "N"
+    )
     currency-names: #(
         BYN: [char: "р."]
         PHP: [char: "₱"]

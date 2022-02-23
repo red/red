@@ -189,6 +189,16 @@ system/locale/list/es: #(
             )
         )
     )
+    strings: #(
+        "true" "Verdadero"
+        "false" "falso"
+        "yes" "si"
+        "no" "no"
+        "on" "encendido"
+        "off" "apagado"
+        "Y" "y"
+        "N" "n"
+    )
     currency-names: #(
         AUD: [char: "$"]
         BRL: [char: "R$"]

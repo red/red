@@ -109,14 +109,16 @@ system/locale/tools: context [
 	;; useful when we want to use a locale without loading it as default
 	expand-locale: function [
 		"Expand given locale from minimized form into a working state"
-		name [word!]
+		name [word! none!]								;-- none serves as helper to get current locale
 	][
+		name: any [name system/locale/locale]
 		loc: system/locale/list/:name
-		unless loc/parent [exit]						;-- already expanded
-		
-		expand-locale loc/parent
-		inherit system/locale/list/(loc/parent) loc
-		remove/key loc 'parent							;-- mark as expanded
+		if loc/parent [									;-- has /parent if not expanded
+			expand-locale loc/parent
+			inherit system/locale/list/(loc/parent) loc
+			remove/key loc 'parent						;-- mark as expanded
+		]
+		name
 	]
 	
 	load-locale: function [

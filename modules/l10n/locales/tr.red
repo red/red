@@ -187,6 +187,16 @@ system/locale/list/tr: #(
             )
         )
     )
+    strings: #(
+        "true" "Doğru"
+        "false" "yanlış"
+        "yes" "evet"
+        "no" "hayır"
+        "on" "açık"
+        "off" "kapalı"
+        "Y" "y"
+        "N" "n"
+    )
     currency-names: #(
         AUD: [char: "$" std: "AU$"]
         BYN: [char: "р."]

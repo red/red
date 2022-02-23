@@ -188,6 +188,16 @@ system/locale/list/bg: #(
             )
         )
     )
+    strings: #(
+        "true" "Вярно"
+        "false" "Невярно"
+        "yes" "Да"
+        "no" "Не"
+        "on" "Включено"
+        "off" "Изключено"
+        "Y" "да"
+        "N" "не"
+    )
     currency-names: #(
         AFN: [char: "Af"]
         BGN: [std: "лв."]

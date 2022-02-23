@@ -169,6 +169,16 @@ system/locale/list/it: #(
             )
         )
     )
+    strings: #(
+        "true" "Vero"
+        "false" "Falso"
+        "yes" "Sì"
+        "no" "No"
+        "on" "Attivo"
+        "off" "Disattivo"
+        "Y" "S"
+        "N" "N"
+    )
     currency-names: #(
         BRL: [char: "R$"]
         BYN: [char: "Br"]

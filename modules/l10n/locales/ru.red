@@ -165,6 +165,16 @@ system/locale/list/ru: #(
             )
         )
     )
+    strings: #(
+        "true" "Истина"
+        "false" "Ложь"
+        "yes" "Да"
+        "no" "Нет"
+        "on" "Вкл."
+        "off" "Выкл."
+        "Y" "Да"
+        "N" "Нет"
+    )
     currency-names: #(
         BYN: [char: "р."]
         GEL: [char: "ლ"]

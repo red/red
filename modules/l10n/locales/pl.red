@@ -165,6 +165,16 @@ system/locale/list/pl: #(
             )
         )
     )
+    strings: #(
+        "true" "Prawda"
+        "false" "Fałsz"
+        "yes" "Tak"
+        "no" "Nie"
+        "on" "Wł"
+        "off" "Wył"
+        "Y" "tak"
+        "N" "nie"
+    )
     currency-names: #(
         AUD: [char: "$"]
         CAD: [char: "$"]

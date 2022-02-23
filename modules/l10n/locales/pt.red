@@ -125,6 +125,16 @@ system/locale/list/pt: #(
             )
         )
     )
+    strings: #(
+        "true" "Verdadeiro"
+        "false" "falso"
+        "yes" "sim"
+        "no" "não"
+        "on" "ligado"
+        "off" "desligado"
+        "Y" "y"
+        "N" "n"
+    )
     currency-names: #(
         AUD: [char: "$" std: "AU$"]
         BYN: [char: "р."]

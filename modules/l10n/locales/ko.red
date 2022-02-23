@@ -167,6 +167,16 @@ system/locale/list/ko: #(
             )
         )
     )
+    strings: #(
+        "true" "참"
+        "false" "거짓"
+        "yes" "예"
+        "no" "아니요"
+        "on" "켜짐"
+        "off" "꺼짐"
+        "Y" "예"
+        "N" "아니요"
+    )
     currency-names: #(
         AUD: [char: "$" std: "AU$"]
         BYN: [char: "р."]

@@ -179,6 +179,16 @@ system/locale/list/he: #(
             )
         )
     )
+    strings: #(
+        "true" "נכון"
+        "false" "שקר"
+        "yes" "כן"
+        "no" "לא"
+        "on" "מופעל"
+        "off" "כבוי"
+        "Y" "י"
+        "N" "נ"
+    )
     currency-names: #(
         BYN: [char: "р"]
         CNY: [char: "¥" std: "‎CN¥‎"]

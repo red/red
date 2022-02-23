@@ -155,6 +155,16 @@ system/locale/list/de: #(
             )
         )
     )
+    strings: #(
+        "true" "Wahr"
+        "false" "Falsch"
+        "yes" "Ja"
+        "no" "Nein"
+        "on" "Ein"
+        "off" "Aus"
+        "Y" "J"
+        "N" "N"
+    )
     currency-names: #(
         ATS: [std: "öS"]
         AUD: [char: "$" std: "AU$"]

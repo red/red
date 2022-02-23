@@ -177,6 +177,16 @@ system/locale/list/af: #(
             )
         )
     )
+    strings: #(
+        "true" "Waar"
+        "false" "Onwaar"
+        "yes" "Ja"
+        "no" "Nee"
+        "on" "Aan"
+        "off" "Af"
+        "Y" "J"
+        "N" "N"
+    )
     currency-names: #(
         BYN: [char: "р."]
         CAD: [char: "$"]

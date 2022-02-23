@@ -167,6 +167,16 @@ system/locale/list/fr: #(
             )
         )
     )
+    strings: #(
+        "true" "Vrai"
+        "false" "Faux"
+        "yes" "Oui"
+        "no" "Non"
+        "on" "Activé"
+        "off" "Désactivé"
+        "Y" "O"
+        "N" "N"
+    )
     currency-names: #(
         ARS: [char: "$" std: "$AR"]
         AUD: [char: "$" std: "$AU"]

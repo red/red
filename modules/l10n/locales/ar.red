@@ -183,6 +183,16 @@ system/locale/list/ar: #(
             )
         )
     )
+    strings: #(
+        "true" "صحيح"
+        "false" "خطأ"
+        "yes" "نعم"
+        "no" "لا"
+        "on" "تشغيل"
+        "off" "إيقاف"
+        "Y" "نعم"
+        "N" "لا"
+    )
     currency-names: #(
         AED: [std: "د.إ.‏"]
         ARS: [char: "AR$"]

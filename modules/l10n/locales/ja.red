@@ -186,6 +186,16 @@ system/locale/list/ja: #(
             )
         )
     )
+    strings: #(
+        "true" "真"
+        "false" "偽"
+        "yes" "はい"
+        "no" "いいえ"
+        "on" "オン"
+        "off" "オフ"
+        "Y" "Y"
+        "N" "N"
+    )
     currency-names: #(
         BYN: [char: "р."]
         CNY: [char: "￥" std: "元"]

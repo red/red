@@ -187,6 +187,16 @@ system/locale/list/cs: #(
             )
         )
     )
+    strings: #(
+        "true" "Pravda"
+        "false" "Nepravda"
+        "yes" "Ano"
+        "no" "Ne"
+        "on" "Zapnuto"
+        "off" "Vypnuto"
+        "Y" "ano"
+        "N" "ne"
+    )
     currency-names: #(
         AUD: [char: "$" std: "AU$"]
         BYN: [char: "р."]

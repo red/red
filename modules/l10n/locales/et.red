@@ -165,6 +165,16 @@ system/locale/list/et: #(
             )
         )
     )
+    strings: #(
+        "true" "Tõene"
+        "false" "Vale"
+        "yes" "Jah"
+        "no" "Ei"
+        "on" "Sees"
+        "off" "Väljas"
+        "Y" "JA"
+        "N" "N"
+    )
     currency-names: #(
         AUD: [char: "$" std: "AU$"]
         EEK: [std: "kr"]

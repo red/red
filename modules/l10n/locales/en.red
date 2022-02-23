@@ -136,6 +136,16 @@ system/locale/list/en: #(
             )
         )
     )
+    strings: #(
+        "true" "True"
+        "false" "False"
+        "yes" "Yes"
+        "no" "No"
+        "on" "On"
+        "off" "Off"
+        "Y" "Y"
+        "N" "N"
+    )
     currency-names: #(
         JPY: [std: "¥"]
         USD: [std: "$"]
