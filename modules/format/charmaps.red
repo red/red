@@ -65,8 +65,11 @@ context [
 			return formatting/charmaps/testing: build-test-charmap
 		] 
 		
-		lc-name: any [lc-name system/locale/locale]
-		any [lc-name  do make error! rejoin ["Unsupported locale "lc-name]]
+		lc-name: any [
+			lc-name
+			system/locale/locale
+			do make error! rejoin ["Unsupported locale "lc-name]
+		]
 		; any [lc-name  ERROR "Unsupported locale (lc-name)"]
 		unless lc-name = 'testing [system/locale/tools/expand-locale lc-name]
 		loc: system/locale/list/:lc-name

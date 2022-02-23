@@ -689,8 +689,8 @@ formatting/number-ctx: context [
 		reset
 		
 		;; select (and prepare) charmap for localization
-		.locale: any [locale system/locale/locale]
-		.charmap: formatting/update-charmap/for .locale	;-- calls expand
+		.locale: system/locale/tools/expand-locale locale
+		.charmap: formatting/update-charmap/for .locale
 		#assert [.locale]
 		.curr-name: any [
 			if money? orig [orig/code]

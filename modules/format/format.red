@@ -16,8 +16,7 @@ Red [
 
 context [
 	fetch-named-mask: function [name [word! path!] locale [word! none!] contexts [block!]] [
-		locale: any [locale system/locale/locale]
-		system/locale/tools/expand-locale locale
+		locale: system/locale/tools/expand-locale locale
 		loc-data: system/locale/list/:locale
 		nums: loc-data/numbers
 		hives: [nums/(nums/system)/masks loc-data/calendar/masks]

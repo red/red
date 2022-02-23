@@ -635,8 +635,7 @@ formatting/date-time-ctx: context [
 		/extern .date .prev-pat .next-pat .locale
 	][
 		reset
-		.locale: any [locale system/locale/locale]
-		system/locale/tools/expand-locale .locale
+		.locale: system/locale/tools/expand-locale locale
 		charmap: formatting/update-charmap/for .locale
 		.date: either date? dt [dt][now/date + dt]
 		out: make string! 10 + length? mask

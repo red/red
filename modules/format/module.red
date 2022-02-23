@@ -15,6 +15,7 @@ Red [
 #include %ordinal.red
 #include %roman.red
 #include %charmaps.red
+#include %form-logic.red
 #include %format-number-with-mask.red
 #include %format-date-time.red
 #include %format.red
