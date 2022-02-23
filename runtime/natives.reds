@@ -388,6 +388,7 @@ natives: context [
 				default	[re-throw]
 			]
 		]
+		system/thrown: 0
 		stack/unwind-last
 		unless break? [_context/set w as red-value! saved]
 	]
