@@ -92,11 +92,11 @@ Red [
 ===start-group=== "#rejoin"
 
 	--test-- "#rejoin-1"
-		--assert [rejoin [""]   ] == [#rejoin "()"]
-		--assert [rejoin ["" []]] == [#rejoin "([])"]	;-- result is string not block
+		--assert [ rejoin ["" ()] ] == [#rejoin "()"]
+		--assert [ rejoin ["" []] ] == [#rejoin "([])"]
 
-	--test-- "#rejoin-2" --assert [#rejoin "(\(\\\))"    ] == [rejoin ["((\\))"] ]		;-- escaping & string grouping
-	--test-- "#rejoin-3" --assert [#rejoin %"(\(\\\))"   ] == [rejoin [%"((\\))"]]		;-- 1st string is the return type
+	--test-- "#rejoin-2" --assert [#rejoin "(\(\\\))"    ] == ["((\\))"]				;-- escaping & string grouping
+	--test-- "#rejoin-3" --assert [#rejoin %"(\(\\\))"   ] == [%"((\\))"]				;-- 1st string is the return type
 	--test-- "#rejoin-4" --assert [#rejoin %"({(})(\\\))"] == [rejoin [%"" "((\\))"]]
 	--test-- "#rejoin-5" --assert [#rejoin "()"          ] == [rejoin ["" ()]    ]
 	--test-- "#rejoin-6" --assert [#rejoin "([])"        ] == [rejoin ["" []]    ]		;-- paren removal from obvious cases

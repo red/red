@@ -331,7 +331,7 @@ preprocessor: context [
 		block: clear []
 		;; display errors rather than cryptic "error in macro!"
 		;; load errors are reported at expand time by design
-		set/any 'error try [
+		either error? error: try [
 			;; uses "string" internally, because load %file/url:// does something else entirely, <tags> get appended with <>
 			string: to string! template					
 	
@@ -372,12 +372,13 @@ preprocessor: context [
 			]
 			either object? :Rebol [do [parse/all string rule]][parse string rule]
 			change block to template first block		;-- preserve template type
-			
-			return copy block
+		][
+			if object? :Rebol [error: do [disarm error]] 
+			print "*** Error in #rejoin template!"
+			error
+		][
+			return either 1 = length? block [block/1][copy block]	;-- any-string result signals that it should be optimized
 		]
-		
-		print ["*** ERROR in #REJOIN template:^/" :error]
-		do :error
 	]
 	
 	reset: func [job [object! none!]][
@@ -461,14 +462,16 @@ preprocessor: context [
 						either keep? [s: change/part s :expr e][remove/part s e]
 					]
 				) :s
-				| s: #rejoin [any-string! | e: (syntax-error s e)] e: (
-					change/only change s 'rejoin expand-string s/2
+				| s: #rejoin [e: any-string! | (syntax-error s e)] (
+					change/only change s 'rejoin expr: expand-string s/2
+					if any-string? expr [remove s]
+					if object? expr [syntax-error s e]
 				) :s
-				| s: #print [any-string! | e: (syntax-error s e)] e: (
-					insert change s 'print reduce ['rejoin expand-string s/2]
+				| s: #print [e: any-string! | (syntax-error s e)] (
+					insert change s 'print [#rejoin]
 				) :s
-				| s: #error [any-string! | e: (syntax-error s e)] e: (
-					insert change s 'do reduce ['make 'error! 'rejoin expand-string s/2]
+				| s: #error [e: any-string! | (syntax-error s e)] (
+					insert change s 'do [make error! #rejoin]
 				) :s
 				| s: #local [block! | (syntax-error s next s)] e: (
 					repend stack [negate length? macros tail protos]
