@@ -314,7 +314,19 @@ test
 		}
 		--assert compiled?
 		--assert script-error?
-		
+
+	--test-- "#4990"
+		--compile-and-run-this {
+			Red []
+			s: "abc" 
+			loop 100 [
+				forall s [probe s continue]
+			]
+		}
+		--assert compiled?
+		--assert not crashed?
+		--assert not find qt/output "Error"
+
 	--test-- "#5065"
 		--compile-and-run-this {
 			Red []
