@@ -363,7 +363,7 @@ red: context [
 	bind-function: func [body [block!] shadow [object!] /local self* rule pos][
 		bind body shadow
 		if 1 < length? obj-stack [
-			self*: in do obj-stack 'self				;-- rebing SELF to the wrapping object
+			self*: in do obj-stack 'self				;-- rebind SELF to the wrapping object
 			
 			parse body rule: [
 				any [pos: 'self (pos/1: self*) | into rule | skip]
@@ -2845,7 +2845,9 @@ red: context [
 		]
 		
 		pc: next pc
-		set [spec body] pc
+		spec: pc/1										;-- #5030
+		body: pc/2
+		
 		case [
 			collect [collect-words spec body]
 			does	[body: spec spec: make block! 1 pc: back pc]
