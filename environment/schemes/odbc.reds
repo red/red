@@ -2688,16 +2688,19 @@ odbc: context [
 		common-field-type:          0
 		common-field-handle
 		common-field-errors
+		common-field-flat?
 
-		env-field-count:            3
+		env-field-count:            4
 		env-field-connections
+		env-field-login-timeout
 
-		dbc-field-statements:       3
+		dbc-field-environment:      4
+		dbc-field-statements
 		dbc-field-info
 		dbc-field-port
 		dbc-field-auto-commit
 
-		stmt-field-connection:      3
+		stmt-field-connection:      4
 		stmt-field-sql
 		stmt-field-params
 		stmt-field-prms-status
@@ -2756,12 +2759,6 @@ odbc: context [
 	_user:          symbol/resolve symbol/make "user"
 
 	odbc:           word/load "ODBC"
-
-
-	;--------------------------------- scheme options --
-	;
-
-	login-timeout: 0
 
 
 	;---------------------------------- print-wstring --

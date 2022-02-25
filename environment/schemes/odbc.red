@@ -23,14 +23,30 @@ odbc: context [
 		type:          'environment
 		handle:         none
 		errors:         []
+		flat?:          no
 		count:          0
 		connections:    []
+		login-timeout:  none
+
+		drivers:        does [do reduce [get-drivers]]
+		sources:        does [do reduce [get-sources]]
+
+		on-change*:     func [word old new] [switch word [
+			login-timeout [any [
+				none? new
+				all [integer? new positive? new]
+				login-timeout: old
+			]]
+			flat? [flat?: either logic? new [new] [old]]
+		]]
 	]
 
 	connection-proto: context [
 		type:          'connection
 		handle:         none
 		errors:         []
+		flat?:          none
+		environment:    none
 		statements:     []
 		info:           none
 		port:           none
@@ -38,6 +54,7 @@ odbc: context [
 
 		on-change*:     func [word old new] [switch word [
 			auto-commit? [set-commit-mode self old new]
+			flat? [flat?: either any [logic? new none? new] [new] [old]]
 		]]
 	]
 
@@ -45,6 +62,7 @@ odbc: context [
 		type:          'statement
 		handle:         none
 		errors:         []
+		flat?:          none
 		connection:     none
 		sql:            none
 		params:         []
@@ -60,6 +78,7 @@ odbc: context [
 		on-change*:     func [word old new] [switch word [
 			scroll? [set-cursor-scrolling self old new]
 			cursor  [set-cursor-type      self old new]
+			flat?   [flat?: either any [logic? new none? new] [new] [old]]
 		]]
 	]
 
@@ -366,12 +385,15 @@ odbc: context [
 			henv        [red-handle!]
 			sqlhdbc     [integer!]
 			rc          [integer!]
+			seconds     [red-integer!]
 			str         [c-string!]
 			str-len     [integer!]
+			timeout     [red-value!]
 	][
 		#if debug? = yes [print ["OPEN-CONNECTION [" lf]]
 
 		henv:       as red-handle! (object/get-values environment) + odbc/common-field-handle
+		timeout:                   (object/get-values environment) + odbc/env-field-login-timeout
 		sqlhdbc:    0
 
 		ODBC_RESULT sql/SQLAllocHandle sql/handle-dbc
@@ -393,9 +415,11 @@ odbc: context [
 		copy-cell as red-value! handle/box sqlhdbc
 				(object/get-values connection) + odbc/common-field-handle
 
-		if odbc/login-timeout > 0 [
+		if TYPE_OF(timeout) = TYPE_INTEGER [
+			seconds: as red-integer! timeout
+
 			set-connection connection sql/attr-login-timeout
-									  odbc/login-timeout
+									  seconds/value
 									  sql/is-integer
 		]
 
@@ -1938,7 +1962,7 @@ odbc: context [
 	;
 
 	fetch-columns: routine [                            ;-- FIXME: status column isn't used at all
-		statement       [object!]                       ;
+		statement       [object!]
 		orientation     [word!]
 		offset          [integer!]
 		/local
@@ -1953,6 +1977,8 @@ odbc: context [
 			dt          [sql-date!]
 			digits      [integer!]
 			fetched     [red-handle!]
+			flat?       [red-value!]
+			flatten     [red-logic!]
 			float-ptr   [struct! [int1 [integer!] int2 [integer!]]]
 			hstmt       [red-handle!]
 			int-ptr     [int-ptr!]
@@ -1985,6 +2011,17 @@ odbc: context [
 		window:         integer/get values + odbc/stmt-field-window
 		fetched:     as red-handle! values + odbc/stmt-field-rows-fetched
 		status:      as red-handle! values + odbc/stmt-field-rows-status
+
+		flat?:                      values + odbc/common-field-flat?
+		if TYPE_OF(flat?) = TYPE_NONE [
+			values:      object/get-values (as red-object! values + odbc/stmt-field-connection)
+			flat?:                  values + odbc/common-field-flat?
+			if TYPE_OF(flat?) = TYPE_NONE [
+				values:  object/get-values (as red-object! values + odbc/dbc-field-environment)
+				flat?:              values + odbc/common-field-flat?
+			]
+		]
+		flatten: as red-logic! flat?
 
 		#if debug? = yes [print ["^-window:  "              window        lf]]
 		#if debug? = yes [print ["^-status:  " as byte-ptr! status/value  lf]]
@@ -2038,7 +2075,11 @@ odbc: context [
 
 			r: 0
 			loop rows/value [
-				row: block/make-in rowset cols
+				row: either flatten/value [
+					rowset
+				][
+					block/make-in rowset cols
+				]
 
 				c: 0
 				loop cols [
@@ -2419,15 +2460,30 @@ odbc: context [
 	;   Returns DECIMAL or NUMERIC if the a LOAD-able
 	;   or string otherwise.
 
-	return-columns: function [rows] [
+	return-columns: function [statement rows] [
 		if debug-odbc? [print "return-columns"]
 
-		foreach row rows [forall row [all [
-			ref? value: first row
-			system/words/change row any [attempt [load value: to string! value] value]
-		]]]
+		either first find reduce [
+			statement/flat?
+			statement/connection/flat?
+			environment/flat?
+		] logic! [
+			forall rows [all [
+				ref? value: first rows
+				system/words/change rows any [attempt [load value: to string! value] value]
+			]]
 
-		new-line/all system/words/head rows on
+			columns: divide system/words/length? statement/columns 8
+														; 8 = rs-odbc/col-field-fields
+			new-line/skip/all system/words/head rows on columns
+		][
+			foreach row rows [forall row [all [
+				ref? value: first row
+				system/words/change row any [attempt [load value: to string! value] value]
+			]]]
+
+			new-line/all system/words/head rows on
+		]
 	]
 
 
@@ -3356,10 +3412,10 @@ odbc: context [
 	;=============================== scheme functions ==
 	;
 
-	;---------------------------------------- drivers --
+	;------------------------------------ get-drivers --
 	;
 
-	drivers: function [
+	get-drivers: function [
 		"Returns info on ODBC drivers."
 		/local
 			desc
@@ -3380,10 +3436,10 @@ odbc: context [
 	]
 
 
-	;---------------------------------------- sources --
+	;------------------------------------ get-sources --
 	;
 
-	sources: function [
+	get-sources: function [
 		"Returns info on ODBC data sources."
 		/user       "user data sources only"
 		/system     "system data sources only"
@@ -3477,12 +3533,11 @@ odbc: context [
 		"Connect to a datasource or open a statement."
 		entity          [port!] "connection string to open connection port, connection port to return statement port"
 	][
-		if debug-odbc? [print "actor/open: statement"]
-
 		case [
 			none? entity/state [
-				init-odbc
+				if debug-odbc? [print "actor/open: connection"]
 
+				init-odbc
 				connection: make connection-proto []
 
 				open-connection environment connection any [
@@ -3490,7 +3545,8 @@ odbc: context [
 					rejoin ["DSN=" entity/spec/host]
 				]
 
-				append environment/connections connection                       ;-- linkage only after success
+				connection/environment: environment     ;-- linkage only after success
+				append environment/connections connection
 
 				entity/state: connection
 				entity/state/info: about-connection connection
@@ -3498,6 +3554,8 @@ odbc: context [
 				connection/port: entity
 			]
 			all [entity/state entity/state/type = 'connection] [
+				if debug-odbc? [print "actor/open: statement"]
+
 				connection: entity/state
 				statement:  make statement-proto []
 				port:       make entity [scheme: 'odbc]
@@ -3505,7 +3563,7 @@ odbc: context [
 				open-statement connection statement
 
 				statement/connection: connection        ;-- linkage only after success
-				system/words/append connection/statements statement
+				append connection/statements statement
 
 				port/state: statement
 				statement/port: port
@@ -3726,7 +3784,8 @@ odbc: context [
 	][
 		if debug-odbc? [print "actor/copy"]
 
-		return-columns fetch-columns statement/state 'all 0
+		rows: fetch-columns statement/state 'all 0
+		return-columns statement/state rows
 	]
 
 
@@ -3740,7 +3799,8 @@ odbc: context [
 	][
 		if debug-odbc? [print "actor/skip"]
 
-		return-columns fetch-columns statement/state pick [at skip] zero? rows rows
+		rows: fetch-columns statement/state pick [at skip] zero? rows rows
+		return-columns statement/state rows
 	]
 
 
@@ -3754,7 +3814,8 @@ odbc: context [
 	][
 		if debug-odbc? [print "actor/at"]
 
-		return-columns fetch-columns statement/state 'at min statement/state/length max 0 row
+		rows: fetch-columns statement/state 'at min statement/state/length max 0 row
+		return-columns statement/state rows
 	]
 
 
@@ -3765,7 +3826,8 @@ odbc: context [
 		"Retrieve first rowset from executed SQL statement."
 		statement       [port!]
 	][
-		return-columns fetch-columns statement/state 'head 0 ;ignored
+		rows: fetch-columns statement/state 'head 0 ;ignored
+		return-columns statement/state rows
 	]
 
 
@@ -3787,7 +3849,8 @@ odbc: context [
 		"Retrieve previous rowset from executed SQL statement."
 		statement       [port!]
 	][
-		return-columns fetch-columns statement/state 'back statement/state/window
+		rows: fetch-columns statement/state 'back statement/state/window
+		return-columns statement/state rows
 	]
 
 
@@ -3798,7 +3861,8 @@ odbc: context [
 		"Retrieve next rowset from executed SQL statement."
 		statement       [port!]
 	][
-		return-columns fetch-columns statement/state 'next statement/state/window
+		rows: fetch-columns statement/state 'next statement/state/window
+		return-columns statement/state rows
 	]
 
 
@@ -3809,7 +3873,8 @@ odbc: context [
 		"Retrieve last rowset from executed SQL statement."
 		statement       [port!]
 	][
-		return-columns fetch-columns statement/state 'tail 0 ;ignored
+		rows: fetch-columns statement/state 'tail 0 ;ignored
+		return-columns statement/state rows
 	]
 
 
@@ -3869,34 +3934,12 @@ odbc: context [
 ;=========================================== register ==
 ;
 
-odbc-options: context [
-	timeout: none
-
-	on-change*: func [word old new] [switch word [
-		timeout [
-			#system [odbc/login-timeout: 0]
-			all [integer? new positive? new loop new [
-				#system [odbc/login-timeout: odbc/login-timeout + 1]
-			]]
-		]
-	]]
-]
-
 register-scheme make system/standard/scheme [
 	name:   'ODBC
 	title:  "ODBC"
 	actor:  odbc
-	info:   context compose/deep [
-		drivers: does [do reduce [(                     ;-- FIXME: this quirkyness!
-			get in odbc 'drivers
-		)]]
-		sources: does [do reduce [(
-			get in odbc 'sources
-		)]]
-	]
-	options: odbc-options
+	state:  odbc/environment
 ]
 
-unset 'odbc-options                                     ;-- do not pollute global context
-unset 'odbc
+unset 'odbc                                             ;-- do not pollute global context
 
