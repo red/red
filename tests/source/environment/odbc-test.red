@@ -31,8 +31,8 @@ Red [
 
 ===start-group=== "environment tests"
 
-	--test-- "can lists drivers" --assert block? system/schemes/odbc/info/drivers
-	--test-- "can lists sources" --assert block? system/schemes/odbc/info/sources
+	--test-- "can lists drivers" --assert block? system/schemes/odbc/state/drivers
+	--test-- "can lists sources" --assert block? system/schemes/odbc/state/sources
 
 ===end-group===
 
@@ -415,6 +415,19 @@ Red [
 	--test-- "can catalog table privileges"     --assert not error? try [insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] [table privileges] close conn]
 	--test-- "can catalog tables"               --assert not error? try [insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] 'tables close conn]
 	--test-- "can catalog types"                --assert not error? try [insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] 'types close conn]
+
+===end-group===
+
+===start-group=== "options tests"
+
+	--test-- "can return flat"
+		system/schemes/odbc/state/flat?: yes
+		test: open conn: open rejoin [odbc:// get-env "TESTDSN"]
+		insert test "SELECT 1 UNION SELECT 2 UNION SELECT 3"
+		rows: copy test
+		close conn
+		system/schemes/odbc/state/flat?: no
+		--assert equal? {[^/    1 ^/    2 ^/    3^/]} mold/all rows
 
 ===end-group===
 
