@@ -1,14 +1,14 @@
 Red [
 	Title:   "Red ODBC tests"
 	Author:  "Christian Ensel"
-	File: 	 %tests/odbc-test.red
+	File:    %tests/odbc-test.red
 	Tabs:    4
 	Rights:  "Copyright 2022 Christian Ensel"
 	License: 'Unlicensed
 ]
 
 #include  %../../../quick-test/quick-test.red
-#include  %odbc-test-integration.red					;-- NOTE: deliberatly .gitignore'd
+#include  %odbc-test-integration.red                    ;-- NOTE: deliberatly .gitignore'd
 
 ~~~start-file~~~ "odbc"
 
@@ -40,20 +40,20 @@ Red [
 
 	--test-- "can connect by ODBC datasource name"
 		--assert not error? try [
-			url: rejoin [odbc:// get-env "TESTDSN"]		;-- required to be set for
-			close open open url							;	the test to succeed
+			url: rejoin [odbc:// get-env "TESTDSN"]     ;-- required to be set for
+			close open open url                         ;   the test to succeed
 		]
 
 	--test-- "can connect by ODBC connection string"
 		--assert not error? try [
 			set/any 'outcome try [
 				conn: open make port! [scheme: 'odbc target: rejoin [
-					"Driver="       get-env "TESTDRVR"	;-- required to be set for
-					";Server="		get-env "TESTSRVR"	;   the test to succeed
-					";Port=" 		get-env "TESTPORT"
-					";Database="	get-env "TESTDB"
-					";Uid="			get-env "TESTUID"
-					";Pwd="			get-env "TESTPWD"
+					"Driver="       get-env "TESTDRVR"  ;-- required to be set for
+					";Server="      get-env "TESTSRVR"  ;   the test to succeed
+					";Port="        get-env "TESTPORT"
+					";Database="    get-env "TESTDB"
+					";Uid="         get-env "TESTUID"
+					";Pwd="         get-env "TESTPWD"
 				]
 			]]
 			all [conn  close conn]
@@ -248,19 +248,19 @@ Red [
 
 ===start-group=== "table tests"
 
-    --test-- "can read all depot2019.articles"
+	--test-- "can read all depot2019.articles"
 		insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] { SELECT * FROM depot2019.articles }
 		--assert not error? try [copy test close conn]
 
-    --test-- "can read all depot2019.articles_multi"
+	--test-- "can read all depot2019.articles_multi"
 		insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] { SELECT * FROM depot2019.articles_multi }
 		--assert not error? try [copy test close conn]
 
-    --test-- "can read all depot2019.authorities"
+	--test-- "can read all depot2019.authorities"
 		insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] { SELECT * FROM depot2019.authorities }
 		--assert not error? try [copy test close conn]
 
-    --test-- "can read all depot2019.depots"
+	--test-- "can read all depot2019.depots"
 		insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] { SELECT * FROM depot2019.depots }
 		--assert not error? try [copy test close conn]
 
@@ -268,75 +268,75 @@ Red [
 		insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] { SELECT * FROM depot2019.messages }
 		--assert not error? try [copy test close conn]
 
-    --test-- "can read all depot2019.orders"
+	--test-- "can read all depot2019.orders"
 		insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] { SELECT * FROM depot2019.orders }
 		--assert not error? try [copy test close conn]
 
-    --test-- "can read all depot2019.packings"
+	--test-- "can read all depot2019.packings"
 		insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] { SELECT * FROM depot2019.packings }
 		--assert not error? try [copy test close conn]
 
-    --test-- "can read all depot2019.placings"
+	--test-- "can read all depot2019.placings"
 		insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] { SELECT * FROM depot2019.placings }
 		--assert not error? try [copy test close conn]
 
-    --test-- "can read all depot2019.publishers"
+	--test-- "can read all depot2019.publishers"
 		insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] { SELECT * FROM depot2019.publishers }
 		--assert not error? try [copy test close conn]
 
-    --test-- "can read all depot2019.pupils"
+	--test-- "can read all depot2019.pupils"
 		insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] { SELECT * FROM depot2019.pupils }
 		--assert not error? try [copy test close conn]
 
-    --test-- "can read all depot2019.receipts"
+	--test-- "can read all depot2019.receipts"
 		insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] { SELECT * FROM depot2019.receipts }
 		--assert not error? try [copy test close conn]
 
-    --test-- "can read all depot2019.receivings"
+	--test-- "can read all depot2019.receivings"
 		insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] { SELECT * FROM depot2019.receivings }
 		--assert not error? try [copy test close conn]
 
-    --test-- "can read all depot2019.reorders"
+	--test-- "can read all depot2019.reorders"
 		insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] { SELECT * FROM depot2019.reorders }
 		--assert not error? try [copy test close conn]
 
-    --test-- "can read all depot2019.roles"
+	--test-- "can read all depot2019.roles"
 		insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] { SELECT * FROM depot2019.roles }
 		--assert not error? try [copy test close conn]
 
-    --test-- "can read all depot2019.schools"
+	--test-- "can read all depot2019.schools"
 		insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] { SELECT * FROM depot2019.schools }
 		--assert not error? try [copy test close conn]
 
-    --test-- "can read all depot2019.sources"
+	--test-- "can read all depot2019.sources"
 		insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] { SELECT * FROM depot2019.sources }
 		--assert not error? try [copy test close conn]
 
-    --test-- "can read all depot2019.sourcings"			;-- NOTE: crashes for postgres' bytea
+	--test-- "can read all depot2019.sourcings"         ;-- NOTE: crashes for postgres' bytea
 		insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] { SELECT creation_date, filename, /* document, */ placing_ids, sourcing_id, supplier_ids, user_id FROM depot2019.sourcings }
 		--assert not error? try [copy test close conn]
 
-    --test-- "can read all depot2019.stockings"
+	--test-- "can read all depot2019.stockings"
 		insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] { SELECT * FROM depot2019.stockings }
 		--assert not error? try [copy test close conn]
 
-    --test-- "can read all depot2019.stocks"
+	--test-- "can read all depot2019.stocks"
 		insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] { SELECT * FROM depot2019.stocks }
 		--assert not error? try [copy test close conn]
 
-    --test-- "can read all depot2019.suppliers"
+	--test-- "can read all depot2019.suppliers"
 		insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] { SELECT * FROM depot2019.suppliers }
 		--assert not error? try [copy test close conn]
 
-    --test-- "can read all depot2019.updates"
+	--test-- "can read all depot2019.updates"
 		insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] { SELECT * FROM depot2019.updates }
 		--assert not error? try [copy test close conn]
 
-    --test-- "can read all depot2019.users"
+	--test-- "can read all depot2019.users"
 		insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] { SELECT * FROM depot2019.users }
 		--assert not error? try [copy test close conn]
 
-    --test-- "can read all depot2019.warnings"
+	--test-- "can read all depot2019.warnings"
 		insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] { SELECT * FROM depot2019.warnings }
 		--assert not error? try [copy test close conn]
 
@@ -394,7 +394,7 @@ Red [
 			test/state/window: 2
 			test/state/cursor: 'static
 			insert test { SELECT 1 AS a UNION SELECT 2 AS a UNION SELECT 3 AS a UNION SELECT 4 AS a UNION SELECT 5 AS a ORDER BY a }
-			loop 3 [rows: next test] 					;-- rows = []
+			loop 3 [rows: next test]                    ;-- rows = []
 			loop 2 [rows: back test]
 			close conn
 			length? rows
@@ -404,17 +404,17 @@ Red [
 
 ===start-group=== "catalog tests"
 
-	--test-- "can catalog column privileges" 	--assert not error? try [insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] [column privileges "lmf" "depot2019" "schools" "school_id"] close conn]
-	--test-- "can catalog columns" 				--assert not error? try [insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] 'columns close conn]
-	--test-- "can catalog foreign keys" 		--assert not error? try [insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] [foreign keys "lmf" "depot2019" "schools"] close conn]
-	--test-- "can catalog primary keys" 		--assert not error? try [insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] [primary keys "lmf" "depot2019" "schools"] close conn]
-	--test-- "can catalog procedure columns" 	--assert not error? try [insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] [procedure columns] close conn]
-	--test-- "can catalog procedures" 			--assert not error? try [insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] 'procedures close conn]
-	--test-- "can catalog special columns" 		--assert not error? try [insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] [special columns unique "lmf" "depot2019" "orders"] close conn]
-	--test-- "can catalog statistics" 			--assert not error? try [insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] [statistics "lmf" "depot2019" "schools"] close conn]
-	--test-- "can catalog table privileges" 	--assert not error? try [insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] [table privileges] close conn]
-	--test-- "can catalog tables" 				--assert not error? try [insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] 'tables close conn]
-	--test-- "can catalog types" 				--assert not error? try [insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] 'types close conn]
+	--test-- "can catalog column privileges"    --assert not error? try [insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] [column privileges "lmf" "depot2019" "schools" "school_id"] close conn]
+	--test-- "can catalog columns"              --assert not error? try [insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] 'columns close conn]
+	--test-- "can catalog foreign keys"         --assert not error? try [insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] [foreign keys "lmf" "depot2019" "schools"] close conn]
+	--test-- "can catalog primary keys"         --assert not error? try [insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] [primary keys "lmf" "depot2019" "schools"] close conn]
+	--test-- "can catalog procedure columns"    --assert not error? try [insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] [procedure columns] close conn]
+	--test-- "can catalog procedures"           --assert not error? try [insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] 'procedures close conn]
+	--test-- "can catalog special columns"      --assert not error? try [insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] [special columns unique "lmf" "depot2019" "orders"] close conn]
+	--test-- "can catalog statistics"           --assert not error? try [insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] [statistics "lmf" "depot2019" "schools"] close conn]
+	--test-- "can catalog table privileges"     --assert not error? try [insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] [table privileges] close conn]
+	--test-- "can catalog tables"               --assert not error? try [insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] 'tables close conn]
+	--test-- "can catalog types"                --assert not error? try [insert test: open conn: open rejoin [odbc:// get-env "TESTDSN"] 'types close conn]
 
 ===end-group===
 
@@ -438,8 +438,8 @@ Red [
 
 ===start-group=== "text driver csv tests"
 
-	--test-- "can prepare tables"						;-- not a test at all, merely preparation for further tests
-	 	columns: rejoin ["BitCol;ByteCol;ShortCol;LongCol;SingleCol;DoubleCol;DateCol;DateTimeCol;TextCol;MemoCol" lf]
+	--test-- "can prepare tables"                       ;-- not a test at all, merely preparation for further tests
+		columns: rejoin ["BitCol;ByteCol;ShortCol;LongCol;SingleCol;DoubleCol;DateCol;DateTimeCol;TextCol;MemoCol" lf]
 		make-dir path: append what-dir %odbc/
 		write path/"schema.ini" form collect [foreach table ["ANSI" "OEM" "Unicode"] [
 			either table = "Unicode" [
@@ -455,11 +455,11 @@ Red [
 				write rejoin [path table %.csv] columns
 			]
 			keep rejoin [
-				"[" table %.csv "]"			     	lf
-				'ColNameHeader= 		 'True		lf
-				'Format= 		  "Delimited(;)"	lf
-				'MaxScanRows=	 			 0		lf
-				'CharacterSet= uppercase table		lf
+				"[" table %.csv "]"                 lf
+				'ColNameHeader=          'True      lf
+				'Format=          "Delimited(;)"    lf
+				'MaxScanRows=                0      lf
+				'CharacterSet= uppercase table      lf
 				'Col1= "BitCol      Bit       "     lf
 				'Col2= "ByteCol     Byte      "     lf
 				'Col3= "ShortCol    Short     "     lf
@@ -470,9 +470,9 @@ Red [
 				'Col8= "DateTimeCol DateTime  "     lf
 				'Col9= "TextCol     Text      "     lf
 				'Col10="MemoCol     Memo      "     lf
-				'DecimalSymbol=				"."		lf
-				'NumberDigits=				10		lf
-				'NumberLeadingZeros=		 1		lf
+				'DecimalSymbol=             "."     lf
+				'NumberDigits=              10      lf
+				'NumberLeadingZeros=         1      lf
 			]]
 		]
 		--assert true
@@ -482,37 +482,55 @@ Red [
 		csv: open jet: open make port! [scheme: 'odbc target: connection-string]
 		foreach table ["ANSI" "OEM" "Unicode"] [
 			insert csv rejoin [{
-				INSERT INTO } table {.csv (	BitCol, ByteCol, ShortCol,     LongCol,    SingleCol,            DoubleCol,          DateCol,                DateTimeCol,          TextCol,         MemoCol)
-				VALUES                    (	     0,       0,   -32768, -2147483648, -3.402823E38, -1.7976931348623e308, {d '0100-01-01'}, {ts '0100-01-01 11:22:33'},  'Line1^M^/Line2', '∃Ⅻↀↁↇↈ∰');
+				INSERT INTO } table {.csv ( BitCol, ByteCol, ShortCol,     LongCol,    SingleCol,            DoubleCol,          DateCol,                DateTimeCol,          TextCol,         MemoCol)
+				VALUES                    (      0,       0,   -32768, -2147483648, -3.402823E38, -1.7976931348623e308, {d '0100-01-01'}, {ts '0100-01-01 11:22:33'},  'Line1^M^/Line2', '∃Ⅻↀↁↇↈ∰');
 			}]
 			insert csv rejoin [{
-				INSERT INTO } table {.csv (	BitCol, ByteCol, ShortCol,     LongCol,    SingleCol,            DoubleCol,          DateCol,                DateTimeCol,           TextCol,        MemoCol)
-				VALUES					  (		 1,     255,    32767,  2147483647,  3.402823E38,  1.7976931348623e308, {d '9999-12-31'}, {ts '9999-12-31 23:59:59'},  'Line1^M^/Line2', '∃Ⅻↀↁↇↈ∰');
+				INSERT INTO } table {.csv ( BitCol, ByteCol, ShortCol,     LongCol,    SingleCol,            DoubleCol,          DateCol,                DateTimeCol,           TextCol,        MemoCol)
+				VALUES                    (      1,     255,    32767,  2147483647,  3.402823E38,  1.7976931348623e308, {d '9999-12-31'}, {ts '9999-12-31 23:59:59'},  'Line1^M^/Line2', '∃Ⅻↀↁↇↈ∰');
 			}]
 			insert csv rejoin [{SELECT * FROM } table {.csv}]
 			copy csv
 
-			;-- FIXME: 	No matter what I'm trying, I can't get parameter handling working with the text driver, only getting
-			;			HYC00 106 {[Microsoft][ODBC Text Driver] Optional Feature not implemented
+			;-- FIXME:  No matter what I'm trying, I can't get parameter handling working with the text driver, only getting
+			;           HYC00 106 {[Microsoft][ODBC Text Driver] Optional Feature not implemented
 
-		;	insert csv reduce [
-		;		rejoin [{
-		; 			INSERT INTO } table {.csv (	BitCol, ByteCol, ShortCol, LongCol, SingleCol, DoubleCol, DateCol, DateTimeCol, TextCol, MemoCol)
-		; 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-		;		}]
-		; 		#[false] 255 -32768 -2147483648 -3.402823e38 -1.7976931348623e308 1-Jan-100 1-Jan-100/11:22:33 "Line1^M^/Line2" "∃Ⅻↀↁↇↈ∰"
-		; 	]
-		; 	insert csv reduce [
-		;		rejoin [{
-		; 			INSERT INTO } table {.csv (	BitCol, ByteCol, ShortCol, LongCol, SingleCol, DoubleCol, DateCol, DateTimeCol, TextCol, MemoCol)
-		; 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-		;		}]
-		; 		#[true] 255 32767 2147483647 3.402823e38 1.7976931348623e308 31-Dec-9999 31-Dec-9999/23:59:59 "Line1^M^/Line2" "∃Ⅻↀↁↇↈ∰"
-		; 	]
-		; 	insert csv rejoin [{SELECT * FROM } table {.csv}]
-		; 	copy csv
+		;   insert csv reduce [
+		;       rejoin [{
+		;           INSERT INTO } table {.csv ( BitCol, ByteCol, ShortCol, LongCol, SingleCol, DoubleCol, DateCol, DateTimeCol, TextCol, MemoCol)
+		;           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+		;       }]
+		;       #[false] 255 -32768 -2147483648 -3.402823e38 -1.7976931348623e308 1-Jan-100 1-Jan-100/11:22:33 "Line1^M^/Line2" "∃Ⅻↀↁↇↈ∰"
+		;   ]
+		;   insert csv reduce [
+		;       rejoin [{
+		;           INSERT INTO } table {.csv ( BitCol, ByteCol, ShortCol, LongCol, SingleCol, DoubleCol, DateCol, DateTimeCol, TextCol, MemoCol)
+		;           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+		;       }]
+		;       #[true] 255 32767 2147483647 3.402823e38 1.7976931348623e308 31-Dec-9999 31-Dec-9999/23:59:59 "Line1^M^/Line2" "∃Ⅻↀↁↇↈ∰"
+		;   ]
+		;   insert csv rejoin [{SELECT * FROM } table {.csv}]
+		;   copy csv
 		]
 		close jet
 		--assert true
+
+===end-group===
+
+comment [
+===start-group=== "private tests"
+
+	--test-- "can read all keys"
+		book: open cache: open make port! [scheme: 'odbc target: get-env "TESTBOOK"]
+		insert book "select KeyCode from bpm_bobj_keytable.cBinfosKey where KeyType = 'AAA'"
+		types: collect [foreach type copy book [keep type]]
+		foreach type types [
+			insert book ["select KeyCode from bpm_bobj_keytable.cBinfosKey where KeyType = ?" type]
+			unless empty? rows: copy book [probe book]
+		]
+		--assert true
+
+===end-group===
+]
 
 ~~~end-file~~~
