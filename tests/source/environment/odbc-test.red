@@ -517,20 +517,4 @@ Red [
 
 ===end-group===
 
-comment [
-===start-group=== "private tests"
-
-	--test-- "can read all keys"
-		book: open cache: open make port! [scheme: 'odbc target: get-env "TESTBOOK"]
-		insert book "select KeyCode from bpm_bobj_keytable.cBinfosKey where KeyType = 'AAA'"
-		types: collect [foreach type copy book [keep type]]
-		foreach type types [
-			insert book ["select KeyCode from bpm_bobj_keytable.cBinfosKey where KeyType = ?" type]
-			unless empty? rows: copy book [probe book]
-		]
-		--assert true
-
-===end-group===
-]
-
 ~~~end-file~~~
