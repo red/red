@@ -13,7 +13,7 @@ Red [
 odbc: context [
 
 	#system [
-		#include %ctx-odbc.reds
+		#include %odbc.reds
 	]
 
 	;---------------------------------------- objects --
