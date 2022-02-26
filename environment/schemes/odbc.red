@@ -1061,33 +1061,29 @@ odbc: context [
 						buflen: binary/rs-length? as red-binary! param
 						if maxlen < buflen [maxlen: buflen]
 					]
-					TYPE_OF(param) = TYPE_NONE [
-						; no-op
-					]
 					TYPE_OF(param) = TYPE_INTEGER [
 						maxlen: 4
+						break
 					]
 					TYPE_OF(param) = TYPE_FLOAT [
 						maxlen: 4
+						break
 					]
 					TYPE_OF(param) = TYPE_LOGIC [
 						maxlen: 1
+						break
 					]
 					TYPE_OF(param) = TYPE_TIME [
 						maxlen: 6                       ;-- FIXME: size? sql-time!
+						break
 					]
 					TYPE_OF(param) = TYPE_DATE [
 						red-date: as red-date! param
-						either as-logic red-date/date >> 16 and 01h [ ;-- NOTE: This is safe, because calling INSERT actor asserts values of same type
-							buflen: 16                  ;-- FIXME: size? sql-timestamp!
-						][
-							buflen: 6                   ;-- FIXME: size? sql-date!
-						]
-						if maxlen < buflen [maxlen: buflen]
+						maxlen: either as-logic red-date/date >> 16 and 01h [16] [6] ;-- NOTE: This is safe, because calling INSERT actor asserts values of same type
+						break
 					]
 					true [
-						maxlen: 0
-						break                           ;-- NOTE: break early, no need to check the other rows
+						maxlen: maxlen or 1
 					]
 				]
 
@@ -1101,17 +1097,11 @@ odbc: context [
 			;
 
 			total:   rows * buflen
-			either zero? total [
-				none/make-in buffers
+			buffer:  allocate total
+			bufslot: buffer
+			handle/make-in buffers as integer! buffer
 
-				#if debug? = yes [print ["^-no buffer required" lf]]
-			][
-				buffer:  allocate total
-				bufslot: buffer
-				handle/make-in buffers as integer! buffer
-
-				#if debug? = yes [print ["^-allocate buffer, " rows * buflen " bytes @ " buffer lf]]
-			]
+			#if debug? = yes [print ["^-allocate buffer, " rows * buflen " bytes @ " buffer lf]]
 
 			lenbuf:  as int-ptr! allocate rows * size? integer!
 			lenslot: lenbuf
@@ -1121,6 +1111,10 @@ odbc: context [
 
 			;-- populate buffer array
 			;
+
+			sql-type:   sql/bit                         ;-- default in case all rows are #[none]
+			c-type:     sql/c-bit                       ;
+			digits:     0
 
 			row: 1
 			loop rows [
@@ -1138,7 +1132,6 @@ odbc: context [
 						#if debug? = yes [print ["^-^-^-TYPE_INTEGER buflen = " buflen lf]]
 
 						column-size:        4
-						digits:             0
 						sql-type:           sql/integer
 						c-type:             sql/c-long
 						red-integer:        as red-integer! param
@@ -1153,7 +1146,6 @@ odbc: context [
 					]
 					TYPE_FLOAT [
 						column-size:        8
-						digits:             0
 						sql-type:           sql/double
 						c-type:             sql/c-double
 						red-float:          as red-float! param
@@ -1170,7 +1162,6 @@ odbc: context [
 						#if debug? = yes [print ["^-^-^-TYPE_STRING buflen = " buflen lf]]
 
 						column-size:        buflen
-						digits:             0
 						sql-type:           sql/wvarchar
 						c-type:             sql/c-wchar
 						red-string:         as red-string! param
@@ -1188,7 +1179,6 @@ odbc: context [
 						#if debug? = yes [print ["^-^-^-TYPE_BINARY buflen = " buflen lf]]
 
 						column-size:        buflen
-						digits:             0
 						sql-type:           sql/varbinary
 						c-type:             sql/c-binary
 						red-binary:         as red-binary! param
@@ -1209,21 +1199,11 @@ odbc: context [
 						sql-type:           sql/bit
 						c-type:             sql/c-bit
 						red-logic:          as red-logic! param
-					;bufslot:            buffer + row - 1
-						bufslot/value:      either red-logic/value [#"^(01)"] [#"^(00)"]
+						bufslot/value:      as byte! red-logic/value
 						bufslot:            bufslot + buflen
 						lenslot/value:      1
 
 						#if debug? = yes [odbc/print-buffer buffer total]
-					]
-					TYPE_NONE [
-						#if debug? = yes [print ["^-^-^-TYPE_NONE buflen = " buflen lf]]
-
-						column-size:        0
-						sql-type:           sql/null-data
-						c-type:             sql/c-default
-						digits:             0
-						lenslot/value:      sql/null-data
 					]
 					TYPE_DATE [
 						#if debug? = yes [print ["^-^-^-TYPE_DATE buflen = " buflen lf]]
@@ -1262,7 +1242,6 @@ odbc: context [
 						#if debug? = yes [print ["^-^-^-TYPE_TIME = " buflen lf]]
 
 						column-size:        8                                   ;-- hh:mm:ss
-						digits:             0
 						sql-type:           sql/type-time
 						c-type:             sql/c-type-time
 						red-time:           as red-time! param
@@ -1276,6 +1255,12 @@ odbc: context [
 						tm/sechi:           as byte! 0
 
 						bufslot:            bufslot + buflen
+					]
+					TYPE_NONE [
+						#if debug? = yes [print ["^-^-^-TYPE_NONE buflen = " buflen lf]]
+
+						bufslot:            bufslot + buflen
+						lenslot/value:      sql/null-data
 					]
 					default [
 						#if debug? = yes [print ["^-^-^-default buflen = " buflen lf]]
@@ -3638,13 +3623,17 @@ odbc: context [
 						cause-error 'script 'invalid-arg [prmset]
 					]
 					repeat pos system/words/length? first params [
-						unless single? types: unique collect [foreach prmset params [
+						types: unique collect [foreach prmset params [
 							unless none? param: prmset/:pos [keep case [
 								date? param [either param/time ['datetime!] ['date!!]]
 								any-string? param ['any-string!]
 								/else [type?/word param]
 							]]
-						]][
+						]]
+						unless any [
+							empty?  types               ;-- all rows in param col are #[none]
+							single? types
+						][
 							cause-error 'script 'not-same-type []
 						]
 					]
