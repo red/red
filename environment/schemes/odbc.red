@@ -1074,14 +1074,14 @@ odbc: context [
 						maxlen: 1
 					]
 					TYPE_OF(param) = TYPE_TIME [
-						maxlen: size? sql-time!
+						maxlen: 6                       ;-- FIXME: size? sql-time!
 					]
 					TYPE_OF(param) = TYPE_DATE [
 						red-date: as red-date! param
 						either as-logic red-date/date >> 16 and 01h [ ;-- NOTE: This is safe, because calling INSERT actor asserts values of same type
-							buflen: size? sql-timestamp!
+							buflen: 16                  ;-- FIXME: size? sql-timestamp!
 						][
-							buflen: size? sql-date!
+							buflen: 6                   ;-- FIXME: size? sql-date!
 						]
 						if maxlen < buflen [maxlen: buflen]
 					]
