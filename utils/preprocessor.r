@@ -178,12 +178,12 @@ preprocessor: context [
 			][
 				item: first code
 				f-arity: any [
-					all [									;-- a ...
+					all [								;-- a ...
 						word? :item
 						any-function? set/any 'value get/any :item
 						func-arity?/block fn-spec: spec-of get/any :item
 					]
-					all [									;-- a/b ...
+					all [								;-- a/b ...
 						path? :item
 						set/any [path value] value-path? :item
 						any-function? get/any 'value
@@ -193,7 +193,7 @@ preprocessor: context [
 					]
 				]
 
-				if at-op?: all [							;-- a * b
+				if at-op?: all [						;-- a * b
 					1 < length? code
 					word? item2: second code
 					op? get/any :item2
@@ -205,12 +205,12 @@ preprocessor: context [
 				]
 
 				case [
-					at-op? [								;-- a * b
-						code: next code						;-- skip `a *` part
+					at-op? [							;-- a * b
+						code: next code					;-- skip `a *` part
 						left/1: word! = arg-mode? spec-of get/any :item2 2
 					]
 
-					f-arity [								;-- a ... / a/b ...
+					f-arity [							;-- a ... / a/b ...
 						if op? get/any 'value [return skip code 2]	;-- starting with op is an error
 						remove left
 						repeat i length? f-arity [insert at left i word! = f-arity/:i]
@@ -220,7 +220,7 @@ preprocessor: context [
 						remove left
 					]
 				]
-			];;either not left/1 [][
+			]
 			code: next code
 		]
 		code
