@@ -1251,7 +1251,10 @@ odbc: context [
 							dt:             as sql-date! bufslot
 							dt/year|month:  red-date/date >> 17 or              ;-- year
 										   (red-date/date >> 12 and 0Fh << 16)  ;-- month
-							dt/day|pad:     red-date/date >>  7 and 1Fh
+						;   dt/day|pad:     red-date/date >>  7 and 1Fh
+							val-integer:    red-date/date >>  7 and 1Fh
+							dt/daylo:       as byte! val-integer
+							dt/dayhi:       as byte! 0
 						]
 						bufslot:            bufslot + buflen
 					]
@@ -1260,16 +1263,19 @@ odbc: context [
 
 						column-size:        8                                   ;-- hh:mm:ss
 						digits:             0
-						sql-type:           sql/time
-						c-type:             sql/c-time
+						sql-type:           sql/type-time
+						c-type:             sql/c-type-time
 						red-time:           as red-time! param
 
 						tm:                 as sql-time! bufslot
 						tm/hour|minute:    (as integer! floor       red-time/time         / 3600.0)
 									   or ((as integer! floor (fmod red-time/time 3600.0) /   60.0) << 16)
-						tm/second|pad:      as integer!        fmod red-time/time   60.0
+					;   tm/second|pad:      as integer!        fmod red-time/time   60.0
+						val-integer:        as integer!        fmod red-time/time   60.0
+						tm/seclo:           as byte! val-integer
+						tm/sechi:           as byte! 0
 
-						bufslot:            bufslot + 6                         ;-- FIXME: should advance by size? sql-time!, but drivers seems to advance by 6 bytes?!
+						bufslot:            bufslot + buflen
 					]
 					default [
 						#if debug? = yes [print ["^-^-^-default buflen = " buflen lf]]
@@ -1857,11 +1863,11 @@ odbc: context [
 				]
 				sql-type = sql/type-date [
 					c-type: sql/c-type-date
-					buflen: size? sql-date!
+					buflen: 6                           ;-- FIXME: size? sql-date!
 				]
 				sql-type = sql/type-time [
 					c-type: sql/c-type-time
-					buflen: size? sql-time!
+					buflen: 6                           ;-- FIXME: size? sql-time!
 				]
 				sql-type = sql/type-timestamp [
 					c-type: sql/c-type-timestamp
@@ -2164,7 +2170,8 @@ odbc: context [
 
 							d: 0 and 0001FFFFh or ((dt/year|month and 0000FFFFh      )         << 17)
 							d: d and FFFF0FFFh or ((dt/year|month and FFFF0000h >> 16) and 0Fh << 12)
-							d: d and FFFFF07Fh or ((dt/day|pad    and 0000FFFFh      ) and 1Fh <<  7)
+						;   d: d and FFFFF07Fh or ((dt/day|pad    and 0000FFFFh      ) and 1Fh <<  7)
+							d: d and FFFFF07Fh or ((as integer! dt/daylo)              and 1Fh <<  7)
 
 							date/make-in row d 0 0
 						]
@@ -2173,7 +2180,9 @@ odbc: context [
 
 							t: (3600.0 * as float! tm/hour|minute and 0000FFFFh      )
 							 + (  60.0 * as float! tm/hour|minute and FFFF0000h >> 16)
-							 + (         as float! tm/second|pad  and 0000FFFFh      )
+						;    + (         as float! tm/second|pad  and 0000FFFFh      )
+							d: as integer! tm/seclo
+							t: t + (     as float! d                                 )
 
 							tim: as struct! [lo [integer!] hi [integer!]] as byte-ptr! :t
 

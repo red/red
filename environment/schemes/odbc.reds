@@ -24,12 +24,14 @@ Red/System [
 
 sql-date!: alias struct! [
 	year|month    [integer!]
-	day|pad       [integer!]
+	daylo         [byte!]
+	dayhi         [byte!]
 ]
 
 sql-time!: alias struct! [
 	hour|minute   [integer!]
-	second|pad    [integer!]
+	seclo         [byte!]
+	sechi         [byte!]
 ]
 
 sql-timestamp!: alias struct! [
@@ -952,7 +954,7 @@ sql: context [
 
 		;-- C datatype to SQL datatype mapping
 	;   c-date:                                       9 ;=DATE
-		c-time:                                      10 ;=TIME
+	;   c-time:                                      10 ;=TIME
 	;   c-timestamp:                                 11 ;=TIMESTAMP
 		c-type-date:                                 91 ;=TYPE-DATE
 		c-type-time:                                 92 ;=TYPE-TIME
