@@ -95,8 +95,19 @@ preprocessor: context [
 			p: set-word! (unless in exec p/1 [append syms p/1])
 			| skip
 		]]
-		unless empty? syms [exec: make exec append syms none]
+		unless empty? syms [
+			exec: make exec append syms none
+			rebind-all
+		]
 		do-safe/with bind to block! code exec cmd
+	]
+	
+	rebind-all: func [/local rule p][
+		protos: bind protos exec
+		
+		parse macros rule: [
+			any [p: function! (bind body-of first p exec) | into rule | skip]
+		]
 	]
 	
 	count-args: func [spec [block!] /block /local total pos][
@@ -299,11 +310,10 @@ preprocessor: context [
 			append protos copy/part spec 4
 		][												;-- pattern-matching macro
 			macro: do bind copy/part next spec 3 exec
-			append/only protos spec/4
 			
 			repend rule [
 				to set-word! 's
-				bind spec/1 exec						;-- allow rule to reference exec's words
+				spec/1
 				to set-word! 'e
 				to-paren compose/deep either all [
 					block? spec/3/1 find spec/3/1 'manual
@@ -322,6 +332,7 @@ preprocessor: context [
 		new-line pos yes
 		
 		exec: make exec protos
+		rebind-all
 	]
 
 	reset: func [job [object! none!]][
