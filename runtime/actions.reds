@@ -38,6 +38,7 @@ actions: context [
 		value	[red-value!]							;-- any-type! value
 		action	[integer!]								;-- action ID
 		path	[red-value!]
+		element [red-value!]
 		return: [integer!]								;-- action pointer (datatype-dependent)
 		/local
 			type  [integer!]							;-- datatype ID
@@ -48,11 +49,18 @@ actions: context [
 		index: action-table/index						;-- lookup action function pointer
 
 		if zero? index [
-			if null? path [path: none-value]
-			fire [
-				TO_ERROR(script bad-path-type)
-				path
-				datatype/push type
+			either null? path [							;-- compiled path
+				fire [
+					TO_ERROR(script bad-path-type2)
+					element
+					datatype/push type
+				]			
+			][											;-- interpreted path
+				fire [
+					TO_ERROR(script bad-path-type)
+					path
+					datatype/push type
+				]
 			]
 		]
 		index
@@ -416,7 +424,7 @@ actions: context [
 			get?	[logic!]
 			tail?	[logic!]
 			return:	[red-value!]
-		] get-action-ptr-path parent ACT_EVALPATH as red-value! path
+		] get-action-ptr-path parent ACT_EVALPATH as red-value! path element
 		
 		action-path parent element value as red-value! path case? get? tail?
 	]

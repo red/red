@@ -323,11 +323,16 @@ redbin: context [
 				TYPE_MAP [
 					block/rs-abs-at as red-block! value 0
 				]
+				TYPE_ERROR
 				TYPE_OBJECT [
 					object: as red-object! value
 					ctx: GET_CTX(object)
 					series: as series! ctx/values/value
-					series/offset
+					either type = TYPE_ERROR [
+						series/offset + error/field-arg1
+					][
+						series/offset
+					]
 				]
 				TYPE_ANY_WORD
 				TYPE_REFINEMENT [
@@ -1108,6 +1113,8 @@ redbin: context [
 		base: object/get-values err
 		code: as red-integer! base + error/field-code
 		
+		path/push
+		reference/store err/ctx
 		record [payload header code/value]
 		
 		index: error/field-arg1
@@ -1116,6 +1123,7 @@ redbin: context [
 			index: index + 1
 			index > error/field-stack
 		]
+		path/pop
 	]
 	
 	decode-error: func [

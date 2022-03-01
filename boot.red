@@ -28,8 +28,6 @@ Red [
 	#include %environment/codecs/JPEG.red
 	#include %environment/codecs/BMP.red
 	#include %environment/codecs/GIF.red
-	#include %environment/codecs/JSON.red
-	#include %environment/codecs/CSV.red
 	#include %environment/codecs/redbin.red
 
 	#include %environment/reactivity.red				;-- requires SET intrinsic

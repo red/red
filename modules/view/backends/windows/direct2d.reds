@@ -1709,7 +1709,7 @@ DX-create-dev: func [
 		ctx					[ptr-value!]
 		unk					[IUnknown]
 		d2d-device			[this!]
-		hr flags			[integer!]
+		hr flags dev-type	[integer!]
 		dll					[handle!]
 		GetDebugInterface	[DXGIGetDebugInterface!]
 ][
@@ -1726,17 +1726,22 @@ DX-create-dev: func [
 
 	flags: 33	;-- D3D11_CREATE_DEVICE_BGRA_SUPPORT or D3D11_CREATE_DEVICE_SINGLETHREADED
 	#if debug? = yes [if view-log-level > 2 [flags: flags or 2]]
-	hr: D3D11CreateDevice
-		null
-		1		;-- D3D_DRIVER_TYPE_HARDWARE
-		null
-		flags
-		null
-		0
-		7		;-- D3D11_SDK_VERSION
-		:factory
-		null
-		:ctx
+	dev-type: 1 ;-- D3D_DRIVER_TYPE_HARDWARE
+	loop 2 [
+		hr: D3D11CreateDevice
+			null
+			dev-type
+			null
+			flags
+			null
+			0
+			7		;-- D3D11_SDK_VERSION
+			:factory
+			null
+			:ctx
+		if zero? hr [break]
+		dev-type: 5 ;-- D3D_DRIVER_TYPE_WARP
+	]
 	assert zero? hr
 
 	d3d-device: as this! factory/value

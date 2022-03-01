@@ -2846,7 +2846,7 @@ string: context [
 
 		if all [append-lf? not tail?] [
 			poke-char s cur 10
-			cur: cur + 1
+			cur: cur + unit
 		]
 		s/tail: as red-value! cur
 	]

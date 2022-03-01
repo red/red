@@ -89,17 +89,19 @@ natives: context [
 	any*: func [
 		check? [logic!]
 		/local
+			blk	  [red-block!]
 			value [red-value!]
 			tail  [red-value!]
 			bool  [red-logic!]
 			type  [integer!]
 	][
 		#typecheck any
-		value: block/rs-head as red-block! stack/arguments
-		tail:  block/rs-tail as red-block! stack/arguments
+		blk: as red-block! stack/push stack/arguments
+		value: block/rs-head blk
+		tail:  block/rs-tail blk
 		
 		while [value < tail][
-			value: interpreter/eval-next value tail no
+			value: interpreter/eval-next blk value tail no
 			
 			bool: as red-logic! stack/arguments
 			type: TYPE_OF(bool)
@@ -111,17 +113,19 @@ natives: context [
 	all*: func [
 		check? [logic!]
 		/local
+			blk	  [red-block!]
 			value [red-value!]
 			tail  [red-value!]
 	][
 		#typecheck all
-		value: block/rs-head as red-block! stack/arguments
-		tail:  block/rs-tail as red-block! stack/arguments
+		blk: as red-block! stack/push stack/arguments
+		value: block/rs-head blk
+		tail:  block/rs-tail blk
 		
 		if value = tail [RETURN_NONE]
 		
 		while [value < tail][
-			value: interpreter/eval-next value tail no
+			value: interpreter/eval-next blk value tail no
 			if logic/false? [RETURN_NONE]
 		]
 	]
@@ -384,6 +388,7 @@ natives: context [
 				default	[re-throw]
 			]
 		]
+		system/thrown: 0
 		stack/unwind-last
 		unless break? [_context/set w as red-value! saved]
 	]
@@ -509,18 +514,20 @@ natives: context [
 		check?	  [logic!]
 		all? 	  [integer!]
 		/local
+			blk	  [red-block!]
 			value [red-value!]
 			tail  [red-value!]
 			true? [logic!]
 	][
 		#typecheck [case all?]
-		value: block/rs-head as red-block! stack/arguments
-		tail:  block/rs-tail as red-block! stack/arguments
+		blk: as red-block! stack/push stack/arguments
+		value: block/rs-head blk
+		tail:  block/rs-tail blk
 		if value = tail [RETURN_NONE]
 
 		true?: false
 		while [value < tail][
-			value: interpreter/eval-next value tail no	;-- eval condition
+			value: interpreter/eval-next blk value tail no	;-- eval condition
 			if value = tail [break]
 			either logic/true? [
 				either TYPE_OF(value) = TYPE_BLOCK [	;-- if true, eval what follows it
@@ -528,7 +535,7 @@ natives: context [
 					interpreter/eval as red-block! value yes
 					value: value + 1
 				][
-					value: interpreter/eval-next value tail no
+					value: interpreter/eval-next blk value tail no
 				]
 				if negative? all? [exit]				;-- early exit with last value on stack (unless /all)
 				true?: yes
@@ -854,6 +861,13 @@ natives: context [
 				type = TYPE_MONEY [
 					res: zero? money/compare as red-money! arg1 as red-money! arg2 COMP_SAME
 				]
+				any [
+					type = TYPE_ACTION
+					type = TYPE_NATIVE
+					type = TYPE_OP
+				][
+					res: all [arg1/data2 = arg2/data2 arg1/data3 = arg2/data3]
+				]
 				true [
 					res: all [
 						arg1/data1 = arg2/data1
@@ -922,6 +936,7 @@ natives: context [
 		check? [logic!]
 		into   [integer!]
 		/local
+			blk	  [red-block!]
 			value	 [red-value!]
 			tail	 [red-value!]
 			arg		 [red-value!]
@@ -938,8 +953,9 @@ natives: context [
 		into?: into >= 0
 
 		if blk? [
-			value: block/rs-head as red-block! arg
-			tail:  block/rs-tail as red-block! arg
+			blk: as red-block! stack/push arg
+			value: block/rs-head blk
+			tail:  block/rs-tail blk
 		]
 
 		stack/mark-native words/_body
@@ -954,7 +970,7 @@ natives: context [
 		]
 		either blk? [
 			while [value < tail][
-				value: interpreter/eval-next value tail yes
+				value: interpreter/eval-next blk value tail yes
 				clear-newline stack/arguments + 1
 				either append? [block/append*][actions/insert* -1 0 -1]
 				stack/keep									;-- preserve the reduced block on stack
@@ -2855,6 +2871,7 @@ natives: context [
 			dt	  [red-datatype!]
 			fun	  [red-function!]
 			s	  [series!]
+			cs    [c-string!]
 	][
 		#typecheck [transcode next one prescan scan part into trace]
 
@@ -2900,7 +2917,18 @@ natives: context [
 		one?: any [next? not all? not load?]
 		either type = TYPE_BINARY [
 			if len < 0 [len: binary/rs-length? bin]
-			type: lexer/scan slot binary/rs-head bin len one? scan? load? no :offset fun as red-series! bin out
+			cs: as c-string! binary/rs-head bin
+			if all [									;-- skip the BOM, don't load it as word
+				len >= 3
+				cs/1 = #"^(EF)"
+				cs/2 = #"^(BB)"
+				cs/3 = #"^(BF)"
+			][
+				len: len - 3
+				cs: cs + 3
+				bin/head: bin/head + 3
+			]
+			type: lexer/scan slot as byte-ptr! cs len one? scan? load? no :offset fun as red-series! bin out
 		][
 			str: as red-string! bin
 			if len < 0 [len: string/rs-length? str]

@@ -219,9 +219,10 @@ port: context [
 		do-action words/_index? 1
 	]
 	
-	length?: func [return: [red-value!]][
+	length?: func [return: [integer!] /local int [red-integer!]][
 		#if debug? = yes [if verbose > 0 [print-line "port/length?"]]
-		do-action words/_length? 1
+		int: as red-integer! do-action words/_length? 1
+		int/value
 	]
 	
 	next: func [return: [red-value!]][

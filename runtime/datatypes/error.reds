@@ -305,6 +305,8 @@ error: context [
 				fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_ERROR spec]
 			]
 		]
+		copy-cell #get system/state/near base + field-near
+		copy-cell none-value #get system/state/near		;-- reset system/state/near after usage
 		new
 	]
 	
@@ -322,6 +324,7 @@ error: context [
 			str		[red-string!]
 			blk		[red-block!]
 			int		[red-integer!]
+			arg2	[red-value!]
 			print-stack-header [subroutine!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "error/form"]]
@@ -369,7 +372,8 @@ error: context [
 		][
 			blk: block/clone as red-block! value no no
 			blk: reduce blk obj
-			part: block/form blk buffer arg part
+			arg2: as red-value! integer/push 80
+			part: block/form blk buffer arg2 80
 		]
 		
 		string/concatenate-literal buffer "^/*** Where: "
@@ -389,6 +393,12 @@ error: context [
 				part: part - 3
 			]
 		]
+		
+		string/concatenate-literal buffer "^/*** Near : "
+		part: part - 12
+		arg2: as red-value! integer/push 40
+		part: actions/mold base + field-near buffer yes no yes arg2 40 0
+		
 		int: as red-integer! #get system/state/stack-trace
 		if all [TYPE_OF(int) = TYPE_INTEGER int/value > 0][
 			value: base + field-stack

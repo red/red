@@ -451,6 +451,7 @@ load: function [
 
 	out: case [
 		part  [transcode/part source length]
+		into  [transcode/into source out]
 		;trap  [system/lexer/transcode to-string source out trap]
 		next  [
 			set position second out: transcode/next source
@@ -817,6 +818,7 @@ dirize: func [
 ]
 
 clean-path: func [
+	[no-trace]
 	"Cleans-up '.' and '..' in path; returns the cleaned path"
 	file [file! url! string!]
 	/only "Do not prepend current directory"
@@ -869,6 +871,7 @@ clean-path: func [
 ]
 
 split-path: func [
+	[no-trace]
 	"Splits a file or URL path. Returns a block containing path and target"
 	target [file! url!]
 	/local dir pos

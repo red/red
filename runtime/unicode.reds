@@ -204,6 +204,7 @@ unicode: context [
 			unit [integer!]
 			cp	 [integer!]
 			part [integer!]
+			char [integer!]
 	][
 		s:	  GET_BUFFER(str)
 		unit: GET_UNIT(s)
@@ -212,7 +213,8 @@ unicode: context [
 		unless len/value = -1 [
 			if len/value < part [part: len/value]
 		]
-		buf: as byte-ptr! get-cache str unit << 1 * (1 + part)
+		char: either unit < 4 [unit + 1][unit]
+		buf: as byte-ptr! get-cache str char * (1 + part)
 		beg: buf
 
 		p:	  string/rs-head str

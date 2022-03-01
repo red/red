@@ -454,6 +454,7 @@ BaseWndProc: func [
 		draw	[red-block!]
 		DC		[draw-ctx!]
 		font	[red-object!]
+		ps		[tagPAINTSTRUCT value]
 ][
 	switch msg [
 		WM_MOUSEACTIVATE [
@@ -506,6 +507,7 @@ BaseWndProc: func [
 		WM_DISPLAYCHANGE [
 			if painting? [return 0]
 			if (WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) = 0 [
+				#either draw-engine = 'GDI+ [][BeginPaint hWnd :ps]
 				painting?: yes
 				draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
 				either TYPE_OF(draw) = TYPE_BLOCK [
@@ -530,8 +532,8 @@ BaseWndProc: func [
 					]
 					system/thrown: 0
 				]
-				ValidateRect hWnd null
 				painting?: no
+				#either draw-engine = 'GDI+ [][EndPaint hWnd :ps]
 				return 0
 			]
 		]

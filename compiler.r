@@ -104,11 +104,7 @@ red: context [
 	
 	iterators: [loop until while repeat foreach forall forever remove-each]
 	
-	standard-modules: [
-	;-- Name ------ Entry file -------------- OS availability -----
-		View		%modules/view/view.red	  [Windows macOS Linux]
-		CLI			%modules/cli.red          [Windows macOS Linux Android Syllable FreeBSD NetBSD]	;-- platform-independent
-	]
+	standard-modules: load-cache %modules.r
 
 	func-constructors: [
 		'func | 'function | 'does | 'has | 'routine | 'make 'function!
@@ -367,7 +363,7 @@ red: context [
 	bind-function: func [body [block!] shadow [object!] /local self* rule pos][
 		bind body shadow
 		if 1 < length? obj-stack [
-			self*: in do obj-stack 'self				;-- rebing SELF to the wrapping object
+			self*: in do obj-stack 'self				;-- rebind SELF to the wrapping object
 			
 			parse body rule: [
 				any [pos: 'self (pos/1: self*) | into rule | skip]
@@ -2198,15 +2194,14 @@ red: context [
 			throw-error "Invalid CONSTRUCT refinement"
 		]
 		body?: block? pc/2
-		unless any [
-			all [not with? body?]
-			all [with? not obj: is-object? pc/3]
+		if all [
+			find [set-word! set-path!] type?/word pc/-1
+			any [all [body? not with?] all [with? obj: is-object? pc/3]]
 		][
 			either with? [
 				comp-context/passive/extend only? obj
 			][
 				comp-context/passive only?
-				pc: skip pc -2
 			]
 		]
 		pc: next pc
@@ -2782,6 +2777,7 @@ red: context [
 			]
 		]
 		unless empty? words [
+			remove find words 'local					;-- #4998
 			pos: tail spec
 			either parse spec [thru /local any word! loc: to end][
 				insert loc words
@@ -2819,7 +2815,10 @@ red: context [
 		case [
 			set-path? original [
 				path: original
-				either set [obj fpath] object-access? path [
+				either all [
+					set [obj fpath] object-access? path 
+					obj
+				][
 					do reduce [join to set-path! fpath last path 'function!] ;-- update shadow object info
 					obj: find objects obj
 					name: to word! rejoin [any [obj/-1 obj/2] #"~" last path] 
@@ -2846,7 +2845,9 @@ red: context [
 		]
 		
 		pc: next pc
-		set [spec body] pc
+		spec: pc/1										;-- #5030
+		body: pc/2
+		
 		case [
 			collect [collect-words spec body]
 			does	[body: spec spec: make block! 1 pc: back pc]

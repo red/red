@@ -172,8 +172,8 @@ Red [
 	check-diff: function [out [block!] expected [block!]][
 		repeat i length? expected [
 			if out/:i <> expected/:i [
-				print ["** diff failed at:" mold/part at out i 40]
-				print ["** expected :" mold/part at expected i 40]
+				print ["** diff failed at:" mold/part at out i 80]
+				print ["** expected :" mold/part at expected i 80]
 				--assert false
 				exit
 			]
@@ -200,7 +200,8 @@ Red [
 		    init -1 #[none] #[none] 2 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "123" 0 
-		    push 1 #[none] "123" 0 
+		    push 0 #[none] "123" 0 
+		    expr 1 #[none] "123" 0
 		    exit 1 #[none] "123" 0 
 		    end -1 #[none] #[none] 3
 		]
@@ -215,7 +216,7 @@ Red [
 		    fetch 0 #[none] "+" 0 
 		    open 0 #[none] "+" 0 
 		    fetch 0 #[none] "1" 0 
-		    push 1 #[none] "1" 1 
+		    push 0 #[none] "1" 1 
 		    fetch 2 #[none] "length?" 1 
 		    open 3 #[none] "length?" 1 
 		    fetch 3 #[none] "mold" 0 
@@ -228,6 +229,7 @@ Red [
 		    return 5 "length?" "5" 3 
 		    call 5 "+" "make op! [" 2 
 		    return 5 "+" "6" 2 
+		    expr 5 #[none] "6" 1
 		    exit 5 #[none] "6" 1 
 		    end -1 #[none] #[none] 3
 		]
@@ -240,11 +242,14 @@ Red [
 		    init -1 #[none] #[none] 2 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "77" 0 
-		    push 1 #[none] "77" 0 
+		    push 0 #[none] "77" 0 
+		    expr 1 #[none] "77" 0
 		    fetch 1 #[none] "88" 0 
-		    push 2 #[none] "88" 0 
+		    push 1 #[none] "88" 0 
+		    expr 2 #[none] "88" 0
 		    fetch 2 #[none] "99" 0 
-		    push 3 #[none] "99" 0 
+		    push 2 #[none] "99" 0
+		    expr 3 #[none] "99" 0
 		    exit 3 #[none] "99" 0 
 		    end -1 #[none] #[none] 3
 		]
@@ -259,8 +264,9 @@ Red [
 		    fetch 0 #[none] "a:" 0 
 		    push 0 #[none] "a:" 1 
 		    fetch 1 #[none] "4" 1 
-		    push 2 #[none] "4" 2 
+		    push 1 #[none] "4" 2 
 		    set 2 "a:" "4" 2 
+		    expr 2 #[none] "4" 1 
 		    fetch 2 #[none] "either" 0 
 		    open 3 #[none] "either" 0 
 		    fetch 3 #[none] "result:" 0 
@@ -268,20 +274,22 @@ Red [
 		    fetch 4 #[none] "odd?" 1 
 		    open 5 #[none] "odd?" 1 
 		    fetch 5 #[none] "a" 0 
-		    push 6 #[none] "4" 0 
+		    push 5 #[none] "4" 0 
 		    call 6 "odd?" "make actio" 1 
 		    return 6 "odd?" #[none] 3 
 		    set 6 "result:" #[none] 2 
 		    fetch 6 #[none] "[print 'OD" 1 
-		    push 7 #[none] "[print 'OD" 2 
+		    push 6 #[none] "[print 'OD" 2 
 		    fetch 7 #[none] "['EVEN]" 2 
-		    push 8 #[none] "['EVEN]" 3 
+		    push 7 #[none] "['EVEN]" 3 
 		    call 8 "either" "make nativ" 3 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "'EVEN" 0 
 		    push 0 #[none] "EVEN" 0 
+		    expr 1 #[none] "EVEN" 0 
 		    exit 1 #[none] "EVEN" 0 
 		    return 8 "either" "EVEN" 2 
+		    expr 8 #[none] "EVEN" 1 
 		    exit 8 #[none] "EVEN" 1 
 		    end -1 #[none] #[none] 3
 		]
@@ -301,7 +309,7 @@ Red [
 		    fetch 0 #[none] "fibo-tr6" 0 
 		    open 1 #[none] "fibo-tr6" 0 
 		    fetch 1 #[none] "2" 0 
-		    push 2 #[none] "2" 1 
+		    push 1 #[none] "2" 1 
 		    call 2 "fibo-tr6" "func [n [i" 1 
 		    prolog -1 "fibo-tr6" "func [n [i" 1 
 		    enter 0 #[none] #[none] 0 
@@ -310,15 +318,15 @@ Red [
 		    fetch 1 #[none] "<" 0 
 		    open 1 #[none] "<" 0 
 		    fetch 1 #[none] "n" 0 
-		    push 2 #[none] "2" 0 
+		    push 1 #[none] "2" 0 
 		    fetch 3 #[none] "1" 1 
-		    push 4 #[none] "1" 2 
+		    push 3 #[none] "1" 2 
 		    call 4 "<" "make op! [" 2 
-		    return 4 "<" #[none] 2 
+		    return 4 "<" #[none] 2  
 		    fetch 4 #[none] "[0]" 1 
-		    push 5 #[none] "[0]" 2 
+		    push 4 #[none] "[0]" 2 
 		    fetch 5 #[none] "[either n " 2 
-		    push 6 #[none] "[either n " 3 
+		    push 5 #[none] "[either n " 3 
 		    call 6 "either" "make nativ" 3 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "either" 0 
@@ -326,15 +334,15 @@ Red [
 		    fetch 1 #[none] "<" 0 
 		    open 1 #[none] "<" 0 
 		    fetch 1 #[none] "n" 0 
-		    push 2 #[none] "2" 0 
+		    push 1 #[none] "2" 0 
 		    fetch 3 #[none] "2" 1 
-		    push 4 #[none] "2" 2 
+		    push 3 #[none] "2" 2 
 		    call 4 "<" "make op! [" 2 
-		    return 4 "<" #[none] 2 
+		    return 4 "<" #[none] 2  
 		    fetch 4 #[none] "[1]" 1 
-		    push 5 #[none] "[1]" 2 
+		    push 4 #[none] "[1]" 2 
 		    fetch 5 #[none] "[(fibo-tr6" 2 
-		    push 6 #[none] "[(fibo-tr6" 3 
+		    push 5 #[none] "[(fibo-tr6" 3 
 		    call 6 "either" "make nativ" 3 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "+" 0 
@@ -346,9 +354,9 @@ Red [
 		    fetch 1 #[none] "-" 0 
 		    open 1 #[none] "-" 0 
 		    fetch 1 #[none] "n" 0 
-		    push 2 #[none] "2" 0 
+		    push 1 #[none] "2" 0 
 		    fetch 3 #[none] "2" 1 
-		    push 4 #[none] "2" 2 
+		    push 3 #[none] "2" 2 
 		    call 4 "-" "make op! [" 2 
 		    return 4 "-" "0" 2 
 		    call 4 "fibo-tr6" "func [n [i" 1 
@@ -359,24 +367,27 @@ Red [
 		    fetch 1 #[none] "<" 0 
 		    open 1 #[none] "<" 0 
 		    fetch 1 #[none] "n" 0 
-		    push 2 #[none] "0" 0 
+		    push 1 #[none] "0" 0 
 		    fetch 3 #[none] "1" 1 
-		    push 4 #[none] "1" 2 
+		    push 3 #[none] "1" 2 
 		    call 4 "<" "make op! [" 2 
-		    return 4 "<" "true" 2 
+		    return 4 "<" "true" 2  
 		    fetch 4 #[none] "[0]" 1 
-		    push 5 #[none] "[0]" 2 
+		    push 4 #[none] "[0]" 2 
 		    fetch 5 #[none] "[either n " 2 
-		    push 6 #[none] "[either n " 3 
+		    push 5 #[none] "[either n " 3 
 		    call 6 "either" "make nativ" 3 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "0" 0 
-		    push 1 #[none] "0" 0 
+		    push 0 #[none] "0" 0 
+		    expr 1 #[none] "0" 0 
 		    exit 1 #[none] "0" 0 
 		    return 6 "either" "0" 2 
+		    expr 6 #[none] "0" 1 
 		    exit 6 #[none] "0" 1 
 		    epilog -1 "fibo-tr6" "func [n [i" 2 
 		    return 4 "fibo-tr6" "0" 2 
+		    expr 4 #[none] "0" 1 
 		    exit 4 #[none] "0" 1 
 		    fetch 2 #[none] "(fibo-tr6 " 1 
 		    enter 0 #[none] #[none] 0 
@@ -385,9 +396,9 @@ Red [
 		    fetch 1 #[none] "-" 0 
 		    open 1 #[none] "-" 0 
 		    fetch 1 #[none] "n" 0 
-		    push 2 #[none] "2" 0 
+		    push 1 #[none] "2" 0 
 		    fetch 3 #[none] "1" 1 
-		    push 4 #[none] "1" 2 
+		    push 3 #[none] "1" 2 
 		    call 4 "-" "make op! [" 2 
 		    return 4 "-" "1" 2 
 		    call 4 "fibo-tr6" "func [n [i" 1 
@@ -398,15 +409,15 @@ Red [
 		    fetch 1 #[none] "<" 0 
 		    open 1 #[none] "<" 0 
 		    fetch 1 #[none] "n" 0 
-		    push 2 #[none] "1" 0 
+		    push 1 #[none] "1" 0 
 		    fetch 3 #[none] "1" 1 
-		    push 4 #[none] "1" 2 
+		    push 3 #[none] "1" 2 
 		    call 4 "<" "make op! [" 2 
-		    return 4 "<" #[none] 2 
+		    return 4 "<" #[none] 2  
 		    fetch 4 #[none] "[0]" 1 
-		    push 5 #[none] "[0]" 2 
+		    push 4 #[none] "[0]" 2 
 		    fetch 5 #[none] "[either n " 2 
-		    push 6 #[none] "[either n " 3 
+		    push 5 #[none] "[either n " 3 
 		    call 6 "either" "make nativ" 3 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "either" 0 
@@ -414,36 +425,44 @@ Red [
 		    fetch 1 #[none] "<" 0 
 		    open 1 #[none] "<" 0 
 		    fetch 1 #[none] "n" 0 
-		    push 2 #[none] "1" 0 
+		    push 1 #[none] "1" 0 
 		    fetch 3 #[none] "2" 1 
-		    push 4 #[none] "2" 2 
+		    push 3 #[none] "2" 2 
 		    call 4 "<" "make op! [" 2 
 		    return 4 "<" "true" 2 
 		    fetch 4 #[none] "[1]" 1 
-		    push 5 #[none] "[1]" 2 
+		    push 4 #[none] "[1]" 2 
 		    fetch 5 #[none] "[(fibo-tr6" 2 
-		    push 6 #[none] "[(fibo-tr6" 3 
+		    push 5 #[none] "[(fibo-tr6" 3 
 		    call 6 "either" "make nativ" 3 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "1" 0 
-		    push 1 #[none] "1" 0 
+		    push 0 #[none] "1" 0 
+		    expr 1 #[none] "1" 0 
 		    exit 1 #[none] "1" 0 
 		    return 6 "either" "1" 2 
+		    expr 6 #[none] "1" 1 
 		    exit 6 #[none] "1" 1 
 		    return 6 "either" "1" 2 
+		    expr 6 #[none] "1" 1 
 		    exit 6 #[none] "1" 1 
 		    epilog -1 "fibo-tr6" "func [n [i" 2 
 		    return 4 "fibo-tr6" "1" 2 
+		    expr 4 #[none] "1" 1 
 		    exit 4 #[none] "1" 1 
 		    call 3 "+" "make op! [" 2 
 		    return 3 "+" "1" 2 
+		    expr 3 #[none] "1" 1 
 		    exit 3 #[none] "1" 1 
 		    return 6 "either" "1" 2 
+		    expr 6 #[none] "1" 1 
 		    exit 6 #[none] "1" 1 
 		    return 6 "either" "1" 2 
+		    expr 6 #[none] "1" 1 
 		    exit 6 #[none] "1" 1 
 		    epilog -1 "fibo-tr6" "func [n [i" 2 
 		    return 2 "fibo-tr6" "1" 2 
+		    expr 2 #[none] "1" 1 
 		    exit 2 #[none] "1" 1 
 		    end -1 #[none] #[none] 3
 		]
@@ -468,7 +487,7 @@ Red [
 		    fetch 0 #[none] "bar" 0 
 		    open 1 #[none] "bar" 0 
 		    fetch 1 #[none] {"hello"} 0 
-		    push 2 #[none] {"hello"} 1 
+		    push 1 #[none] {"hello"} 1 
 		    call 2 "bar" "func [s [s" 1 
 		    prolog -1 "bar" "func [s [s" 1 
 		    enter 0 #[none] #[none] 0 
@@ -479,18 +498,19 @@ Red [
 		    fetch 0 #[none] "length?" 0 
 		    open 1 #[none] "length?" 0 
 		    fetch 1 #[none] "s" 0 
-		    push 2 #[none] {"hello"} 0 
+		    push 1 #[none] {"hello"} 0 
 		    call 2 "length?" "make actio" 1 
 		    return 2 "length?" "5" 2 
+		    expr 2 #[none] "5" 1 
 		    exit 2 #[none] "5" 1 
 		    fetch 2 #[none] "make" 1 
 		    open 3 #[none] "make" 1 
 		    fetch 3 #[none] "integer!" 0 
-		    push 4 #[none] "integer!" 0 
+		    push 3 #[none] "integer!" 0 
 		    fetch 4 #[none] "foo" 1 
 		    open 5 #[none] "foo" 1 
 		    fetch 5 #[none] "1" 0 
-		    push 6 #[none] "1" 1 
+		    push 5 #[none] "1" 1 
 		    call 6 "foo" "func [a [i" 3 
 		    prolog -1 "foo" "func [a [i" 3 
 		    enter 0 #[none] #[none] 0 
@@ -501,22 +521,25 @@ Red [
 		    fetch 2 #[none] "odd?" 1 
 		    open 3 #[none] "odd?" 1 
 		    fetch 3 #[none] "a" 0 
-		    push 4 #[none] "1" 0 
+		    push 3 #[none] "1" 0 
 		    call 4 "odd?" "make actio" 1 
 		    return 4 "odd?" "true" 3 
 		    set 4 "result:" "true" 2 
 		    fetch 4 #[none] {["ODD"]} 1 
-		    push 5 #[none] {["ODD"]} 2 
+		    push 4 #[none] {["ODD"]} 2 
 		    fetch 5 #[none] {["EVEN"]} 2 
-		    push 6 #[none] {["EVEN"]} 3 
+		    push 5 #[none] {["EVEN"]} 3 
 		    call 6 "either" "make nativ" 3 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] {"ODD"} 0 
-		    push 1 #[none] {"ODD"} 0 
+		    push 0 #[none] {"ODD"} 0 
+		    expr 1 #[none] {"ODD"} 0 
 		    exit 1 #[none] {"ODD"} 0 
 		    return 6 "either" {"ODD"} 2 
+		    expr 6 #[none] {"ODD"} 1 
 		    fetch 6 #[none] "result" 0 
-		    push 7 #[none] "true" 0 
+		    push 6 #[none] "true" 0 
+		    expr 7 #[none] "true" 0 
 		    exit 7 #[none] "true" 0 
 		    epilog -1 "foo" "func [a [i" 4 
 		    return 6 "foo" "true" 3 
@@ -524,13 +547,17 @@ Red [
 		    return 6 "make" "1" 3 
 		    call 6 "+" "make op! [" 2 
 		    return 6 "+" "6" 2 
+		    expr 6 #[none] "6" 1 
 		    exit 6 #[none] "6" 1 
 		    epilog -1 "bar" "func [s [s" 2 
 		    return 2 "bar" "6" 2 
+		    expr 2 #[none] "6" 1 
 		    exit 2 #[none] "6" 1 
 		    epilog -1 "baz" "func [][ba" 1 
 		    return 1 "baz" "6" 2 
+		    expr 1 #[none] "6" 1 
 		    exit 1 #[none] "6" 1 
+		    end -1 #[none] #[none] 3
 		]
 
 	--test-- "trace-8"
@@ -555,6 +582,7 @@ Red [
 		    push 1 #[none] "1" 0 
 		    exit 2 #[none] "x" 0 
 		    push 1 #[none] "x" 0 
+		    expr 1 #[none] "x" 0 
 		    exit 1 #[none] "x" 0 
 		    end -1 #[none] #[none] 3 
 		    init -1 #[none] #[none] 2 
@@ -566,7 +594,8 @@ Red [
 		    fetch 1 #[none] ":i" 0 
 		    push 1 #[none] "1" 0 
 		    exit 2 #[none] "x" 0 
-		    push 1 #[none] "x" 0 
+		    push 0 #[none] "x" 0 
+		    expr 1 #[none] "x" 0 
 		    exit 1 #[none] "x" 0 
 		    end -1 #[none] #[none] 3 
 		    init -1 #[none] #[none] 2 
@@ -580,15 +609,17 @@ Red [
 		    fetch 0 #[none] "+" 0 
 		    open 0 #[none] "+" 0 
 		    fetch 0 #[none] "i" 0 
-		    push 1 #[none] "1" 0 
+		    push 0 #[none] "1" 0 
 		    fetch 2 #[none] "j" 1 
-		    push 3 #[none] "2" 1 
+		    push 2 #[none] "2" 1 
 		    call 3 "+" "make op! [" 2 
 		    return 3 "+" "3" 2 
+		    expr 3 #[none] "3" 1 
 		    exit 3 #[none] "3" 1 
 		    push 1 #[none] "3" 1 
 		    exit 2 #[none] "z" 1 
 		    push 1 #[none] "z" 0 
+		    expr 1 #[none] "z" 0 
 		    exit 1 #[none] "z" 0 
 		    end -1 #[none] #[none] 3 
 		    init -1 #[none] #[none] 2 
@@ -604,6 +635,7 @@ Red [
 		    fetch 1 #[none] ":i" 1 
 		    push 1 #[none] "1" 1 
 		    exit 2 #[none] "A" 1 
+		    expr 2 #[none] "A" 1 
 		    exit 2 #[none] "A" 1 
 		    end -1 #[none] #[none] 3
 		]
@@ -619,18 +651,19 @@ Red [
 		    fetch 0 #[none] "trace" 0 
 		    open 1 #[none] "trace" 0 
 		    fetch 1 #[none] "off" 0 
-		    push 2 #[none] #[none] 0 
-		    call 2 "trace" "func [{Run" 4 
+		    push 1 #[none] #[none] 0 
+		    call 2 "trace" "func [{Run" 7 
 		    prolog -1 "foo-tr9" "func [[tra" 0 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "+" 0 
 		    open 0 #[none] "+" 0 
 		    fetch 0 #[none] "1" 0 
-		    push 1 #[none] "1" 1 
+		    push 0 #[none] "1" 1 
 		    fetch 2 #[none] "2" 1 
-		    push 3 #[none] "2" 2 
+		    push 2 #[none] "2" 2 
 		    call 3 "+" "make op! [" 2 
-		    return 3 "+" "3" 2 
+		    return 3 "+" "3" 2
+		    expr 3 #[none] "3" 1
 		    exit 3 #[none] "3" 1 
 		    epilog -1 "foo-tr9" "func [[tra" 1
     	]
@@ -646,23 +679,26 @@ Red [
 		    fetch 0 #[none] "+" 0 
 		    open 0 #[none] "+" 0 
 		    fetch 0 #[none] "4" 0 
-		    push 1 #[none] "4" 1 
+		    push 0 #[none] "4" 1 
 		    fetch 2 #[none] "5" 1 
-		    push 3 #[none] "5" 2 
+		    push 2 #[none] "5" 2 
 		    call 3 "+" "make op! [" 2 
 		    return 3 "+" "9" 2 
+		    expr 3 #[none] "9" 1
 		    fetch 3 #[none] "foo-tr10" 0 
 		    open 4 #[none] "foo-tr10" 0 
 		    call 4 "foo-tr10" "func [[no-" 0 
-		    return 4 "foo-tr10" "3" 2 
+		    return 4 "foo-tr10" "3" 2
+		    expr 4 #[none] "3" 1
 		    fetch 4 #[none] "+" 0 
 		    open 4 #[none] "+" 0 
 		    fetch 4 #[none] "7" 0 
-		    push 5 #[none] "7" 1 
+		    push 4 #[none] "7" 1 
 		    fetch 6 #[none] "8" 1 
-		    push 7 #[none] "8" 2 
+		    push 6 #[none] "8" 2 
 		    call 7 "+" "make op! [" 2 
-		    return 7 "+" "15" 2 
+		    return 7 "+" "15" 2
+		    expr 7 #[none] "15" 1
 		    exit 7 #[none] "15" 1 
 		    end -1 #[none] #[none] 3
     	]
@@ -688,7 +724,8 @@ Red [
 		    exit 2 #[none] "y" 1 
 		    push 3 #[none] "y" 2 
 		    call 3 "=" "make op! [" 2 
-		    return 3 "=" #[none] 2 
+		    return 3 "=" #[none] 2
+		    expr 3 #[none] #[none] 1
 		    exit 3 #[none] #[none] 1 
 		    end -1 #[none] #[none] 3
 		]
