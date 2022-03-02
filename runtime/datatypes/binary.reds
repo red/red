@@ -1241,11 +1241,15 @@ binary: context [
 		all?		[logic!]
 		with-arg	[red-value!]
 		return:		[red-series!]
+		/local
+			with?	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/trim"]]
-
+		
+		with?: OPTION?(with-arg)
 		case [
-			any  [all? OPTION?(with-arg)] [string/trim-with as red-string! bin with-arg]
+			all  [all? not with?] [string/trim-with as red-string! bin as red-value! integer/push 0]
+			any  [all? with?] [string/trim-with as red-string! bin with-arg]
 			any  [auto? lines?][--NOT_IMPLEMENTED--]
 			true [trim-head-tail bin head? tail?]
 		]
