@@ -10,6 +10,8 @@ Red/System [
 	}
 ]
 
+#include %mimalloc.reds
+
 #enum collector-type! [
 	COLLECTOR_DEFAULT
 	COLLECTOR_RELEASE						;-- will release empty frames to OS
@@ -1333,6 +1335,99 @@ free-big: func [
 	]
 	
 	free-virtual as int-ptr! frame			;-- release the memory to the OS
+]
+
+b-allocator: context [
+	first-series: as ptr-ptr! 0
+
+	collect-series: func [/local p prev next [ptr-ptr!] s [series!]][
+		p: first-series
+		prev: null
+		while [p <> null][
+			next: as ptr-ptr! p/value
+			s: as series! p + 1
+			either s/flags and flag-gc-mark = 0 [
+				free-node s/node
+				mimalloc/free as byte-ptr! p
+				either prev <> null [prev/value: as int-ptr! next][first-series: next]
+			][
+				s/flags: s/flags and not flag-gc-mark	;-- clear mark flag
+				prev: p
+			]
+			p: next
+		]
+	]
+
+	;-------------------------------------------
+	;-- Allocate a series from the active series frame, return the series
+	;-------------------------------------------
+	alloc-series-buffer: func [
+		usize	[integer!]						;-- size in units
+		unit	[integer!]						;-- size of atomic elements stored
+		offset	[integer!]						;-- force a given offset for series buffer (in bytes)
+		return: [series-buffer!]				;-- return the new series buffer
+		/local
+			p		 [ptr-ptr!]
+			series	 [series-buffer!]
+			frame	 [series-frame!]
+			size	 [integer!]
+			sz		 [integer!]
+	][
+		assert positive? usize
+		size: round-to usize * unit size? cell!	;-- size aligned to cell! size
+		sz: size + (size? int-ptr!) + size? series-buffer!
+
+		;collect-series
+		p: as ptr-ptr! mimalloc/malloc sz
+		p/value: as int-ptr! first-series
+		first-series: p
+
+		series: as series! p + 1
+		series/size: size
+		series/flags: unit or series-in-use
+
+		either offset = default-offset [
+			offset: size >> 1					;-- target middle of buffer
+			series/flags: series/flags or flag-ins-both	;-- optimize for both head & tail insertions (default)
+		][
+			series/flags: series/flags or flag-ins-tail ;-- optimize for tail insertions only
+		]
+		
+		series/offset: as cell! (as byte-ptr! series + 1) + offset
+		series/tail: series/offset
+		series
+	]
+
+	;-------------------------------------------
+	;-- Allocate a node and a series from the active series frame, return the node
+	;-------------------------------------------
+	alloc-series: func [
+		size	[integer!]						;-- number of elements to store
+		unit	[integer!]						;-- size of atomic elements stored
+		offset	[integer!]						;-- force a given offset for series buffer
+		return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
+		/local series [series!] node [int-ptr!]
+	][
+	;	#if debug? = yes [print-wide ["allocating series:" size unit offset lf]]
+		series: null
+		node: null
+		series: alloc-series-buffer size unit offset
+		node: alloc-node						;-- get a new node
+		series/node: node						;-- link back series to node
+		node/value: as-integer series ;(as byte-ptr! series) + size? series-buffer!
+		node									;-- return the node pointer
+	]
+
+	;-------------------------------------------
+	;-- Wrapper on alloc-series for byte buffer allocation
+	;-------------------------------------------
+	alloc-bytes: func [
+		size	[integer!]						;-- number of bytes to preallocate
+		return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
+	][
+		if zero? size [size: 16]
+		alloc-series size 1 0					;-- optimize by default for tail insertion
+	]
 ]
 
 #if libRed? = yes [

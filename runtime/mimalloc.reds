@@ -83,7 +83,7 @@ Red/System [
 
 mimalloc: context [
 
-	verbose: 1
+	verbose: 0
 
 	#enum page-flags! [
 		PAGE_FLAG_IN_USE:		1
@@ -667,6 +667,7 @@ mimalloc: context [
 			0 ;TBD: commit if segment is uncommited
 		][
 			segment: as segment! OS-alloc-aligned segment-sz MI_SEGMENT_SIZE yes tld/stats
+			assert segment <> null
 		]
 
 		;-- initialize segment
@@ -1286,44 +1287,44 @@ mimalloc: context [
 	]
 ]
 
-test: func [/local p [byte-ptr!] arr [int-ptr!] n [integer!]][
-	mimalloc/init
-	n: 1
-	arr: system/stack/allocate 100
-	loop 100 [
-		p: mimalloc/malloc 1024
-		arr/n: as-integer p
-		n: n + 1
-	]
-	probe as byte-ptr! arr/1
-	?? p
-	mimalloc/Sleep 5000
-	n: 1
-	loop 99 [
-		p: as byte-ptr! arr/n
-		mimalloc/free p
-		n: n + 1
-	]
-	?? p
-	probe 2222
-	mimalloc/Sleep 5000
-	p: mimalloc/malloc 1024 * 64
-	?? p
-	mimalloc/free p
-	?? p
-	mimalloc/Sleep 15000
+;test: func [/local p [byte-ptr!] arr [int-ptr!] n [integer!]][
+;	mimalloc/init
+;	n: 1
+;	arr: system/stack/allocate 100
+;	loop 100 [
+;		p: mimalloc/malloc 1024
+;		arr/n: as-integer p
+;		n: n + 1
+;	]
+;	probe as byte-ptr! arr/1
+;	?? p
+;	mimalloc/Sleep 5000
+;	n: 1
+;	loop 99 [
+;		p: as byte-ptr! arr/n
+;		mimalloc/free p
+;		n: n + 1
+;	]
+;	?? p
+;	probe 2222
+;	mimalloc/Sleep 5000
+;	p: mimalloc/malloc 1024 * 64
+;	?? p
+;	mimalloc/free p
+;	?? p
+;	mimalloc/Sleep 15000
 
-	probe 444444
-	p: mimalloc/malloc 1024 * 1024
-	?? p
-	mimalloc/free p
-	?? p
+;	probe 444444
+;	p: mimalloc/malloc 1024 * 1024
+;	?? p
+;	mimalloc/free p
+;	?? p
 
-	probe 555555
-	p: mimalloc/malloc 1024 * 1100
-	?? p
-	mimalloc/free p
-	?? p
-]
+;	probe 555555
+;	p: mimalloc/malloc 1024 * 1100
+;	?? p
+;	mimalloc/free p
+;	?? p
+;]
 
-test
+;test

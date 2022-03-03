@@ -163,6 +163,7 @@ red: context [
 	
 	init: does [
 		boot?: yes
+		mimalloc/init
 		dyn-print/init
 		platform/init
 		threadpool/init
