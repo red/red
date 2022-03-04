@@ -471,37 +471,6 @@ update-series: func [
 	]
 ]
 
-has-fixed-series?: func [
-	s		[series!]
-	end		[series!]
-	return: [logic!]
-	/local
-		beg [series!]
-		fixed? [logic!]
-][
-	beg: s
-	fixed?: no
-	until [						;-- search for a fixed series
-		if s/flags and flag-series-fixed <> 0 [ ;-- stop compacting when there is a fixed series
-			fixed?: yes
-		]
-		s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
-		s >= end
-	]
-	if fixed? [
-		s: beg
-		until [					;-- clear gc mark
-			if s/flags and flag-gc-mark <> 0 [
-				s/flags: s/flags and not flag-gc-mark
-			]
-			s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
-			s >= end
-		]
-	]
-	fixed?
-]
-
-
 ;-------------------------------------------
 ;-- Compact a series frame by moving down in-use series buffer regions
 ;-------------------------------------------
@@ -519,7 +488,6 @@ compact-series-frame: func [
 		delta [integer!]
 		size  [integer!]
 		tail? [logic!]
-		mark? [logic!]
 ][
 	tail: memory/stk-tail
 	s: as series! frame + 1					;-- point to first series buffer
@@ -529,20 +497,19 @@ compact-series-frame: func [
 
 	;assert heap > s
 	if heap = s [return refs]
-	if has-fixed-series? s heap [return refs]
 
 	until [
 		tail?: no
 		if s/flags and flag-gc-mark = 0 [	;-- check if it starts with a gap
 			if dst = null [dst: as byte-ptr! s]
+			;probe ["search live from: " s]
 			free-node s/node
-			forever [						;-- search for a live series
+			while [							;-- search for a live series
 				s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
 				tail?: s >= heap
-				if tail? [break]
-				mark?: s/flags and flag-gc-mark <> 0
-				if mark? [break]
-				free-node s/node
+				not tail?
+			][
+				either s/flags and flag-gc-mark <> 0 [break][free-node s/node]
 			]
 			;probe ["live found at: " s]
 		]
@@ -580,7 +547,7 @@ compact-series-frame: func [
 		]
 		tail?
 	]
-	if dst <> null [
+	if dst <> null [						;-- no compaction occurred, all series were in use
 		frame/heap: as series! dst			;-- set new heap after last moved region
 		#if debug? = yes [markfill as int-ptr! frame/heap as int-ptr! frame/tail]
 	]
@@ -607,7 +574,6 @@ cross-compact-frame: func [
 		size	[integer!]
 		size2	[integer!]
 		tail?	[logic!]
-		mark?	[logic!]
 		cross?	[logic!]
 		update? [logic!]
 ][
@@ -627,7 +593,6 @@ cross-compact-frame: func [
 	s: as series! frame + 1					;-- point to first series buffer
 	heap: frame/heap
 	if heap = s [return refs]
-	if has-fixed-series? s heap [return refs]
 
 	src: null								;-- src will point to start of buffer region to move down
 	dst: null								;-- dst will point to start of free region
@@ -637,13 +602,12 @@ cross-compact-frame: func [
 		if s/flags and flag-gc-mark = 0 [	;-- check if it starts with a gap
 			if dst = null [dst: as byte-ptr! s]
 			free-node s/node
-			forever [						;-- search for a live series
+			while [							;-- search for a live series
 				s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
 				tail?: s >= heap
-				if tail? [break]
-				mark?: s/flags and flag-gc-mark <> 0
-				if mark? [break]
-				free-node s/node
+				not tail?
+			][
+				either s/flags and flag-gc-mark <> 0 [break][free-node s/node]
 			]
 		]
 		unless tail? [
@@ -713,7 +677,7 @@ cross-compact-frame: func [
 	]
 
 	prev/heap: as series! prev-dst
-	if dst <> null [
+	if dst <> null [						;-- no compaction occurred, all series were in use
 		frame/heap: as series! dst			;-- set new heap after last moved region
 		#if debug? = yes [markfill as int-ptr! frame/heap as int-ptr! frame/tail]
 	]
@@ -1085,7 +1049,7 @@ alloc-unset-cells: func [
 ;-- Wrapper on alloc-series for byte buffer allocation
 ;-------------------------------------------
 alloc-bytes: func [
-	size	[integer!]						;-- number of bytes to preallocate
+	size	[integer!]						;-- number of 16 bytes cells to preallocate
 	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
 ][
 	if zero? size [size: 16]
@@ -1109,7 +1073,7 @@ alloc-codepoints: func [
 ;-- Wrapper on alloc-series for byte-filled buffer allocation
 ;-------------------------------------------
 alloc-bytes-filled: func [
-	size	[integer!]						;-- number of bytes to preallocate
+	size	[integer!]						;-- number of 16 bytes cells to preallocate
 	byte	[byte!]
 	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
 	/local
@@ -1189,7 +1153,12 @@ expand-series: func [
 	if new-sz <= 0 [fire [TO_ERROR(internal no-memory)]]
 
 	node: series/node
-	new: alloc-series-buffer new-sz / units units 0
+
+	either series/flags and flag-series-fixed = 0 [
+		new: alloc-series-buffer new-sz / units units 0
+	][
+		new: b-allocator/alloc-series-buffer new-sz / units units 0
+	]
 	series: as series-buffer! node/value
 	big?: new/flags and flag-series-big <> 0
 	
@@ -1379,14 +1348,14 @@ b-allocator: context [
 		size: round-to usize * unit size? cell!	;-- size aligned to cell! size
 		sz: size + (size? int-ptr!) + size? series-buffer!
 
-		collect-series
+		;collect-series
 		p: as ptr-ptr! mimalloc/malloc sz
 		p/value: as int-ptr! first-series
 		first-series: p
 
 		series: as series! p + 1
 		series/size: size
-		series/flags: unit or series-in-use
+		series/flags: unit or series-in-use or flag-series-fixed
 
 		either offset = default-offset [
 			offset: size >> 1					;-- target middle of buffer

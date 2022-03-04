@@ -1,8 +1,6 @@
 name: Windows
 
-on: 
-    push:
-        branches: master
+on: push
 
 jobs:
   Core:
