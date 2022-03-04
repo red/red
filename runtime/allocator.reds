@@ -1313,8 +1313,8 @@ free-big: func [
 b-allocator: context [
 	;; Use case for the ref-cnt:
 	;; We have 3 ports: A B C, them are sending the same data X.
-	;; We pass the address of the data X to the OS API and increment the ref-cnt.
-	;; Now the ref-cnt is 3. When the port finish sending, we decrement the ref-cnt.
+	;; We pass the address of the data X to the OS API and increase the ref-cnt.
+	;; Now the ref-cnt is 3. When the port finish sending, we decrease the ref-cnt.
 	;; While the data is sending, the GC may run. The data X is freed only if the ref-cnt is 0.
 	b-header!: alias struct! [
 		next	[b-header!]
@@ -1322,6 +1322,24 @@ b-allocator: context [
 	]
 
 	first-series: as b-header! 0
+
+	increase-ref: func [
+		s		[series!]
+		/local
+			p	[b-header!]
+	][
+		p: (as b-header! s) - 1
+		p/ref-cnt: p/ref-cnt + 1
+	]
+
+	decrease-ref: func [
+		s		[series!]
+		/local
+			p	[b-header!]
+	][
+		p: (as b-header! s) - 1
+		p/ref-cnt: p/ref-cnt - 1
+	]
 
 	collect-series: func [/local p prev next [b-header!] s [series!]][
 		p: first-series

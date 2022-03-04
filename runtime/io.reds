@@ -236,20 +236,14 @@ io: context [
 
 	pin-memory: func [
 		node	[node!]
-		/local
-			s	[series!]
 	][
-		s: as series! node/value
-		s/flags: s/flags or flag-series-fixed
+		b-allocator/increase-ref as series! node/value
 	]
 
 	unpin-memory: func [
 		node	[node!]
-		/local
-			s	[series!]
 	][
-		s: as series! node/value
-		s/flags: s/flags and (not flag-series-fixed)
+		b-allocator/decrease-ref as series! node/value
 	]
 
 	verbose: 0

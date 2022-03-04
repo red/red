@@ -11,6 +11,7 @@ Red/System [
 
 #either cpu-version > 5.0 [
 
+#define WAIT_OBJECT_0	0
 #define handle! int-ptr!
 
 #include %../../../../runtime/queue.reds
