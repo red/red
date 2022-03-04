@@ -686,8 +686,12 @@ mimalloc: context [
 					psize: psize - seg/info-size
 					blk-sz: page/block-size
 					if all [blk-sz > 0 seg/page-kind <= MI_PAGE_MEDIUM] [
-						;adjust: blk-sz - (p % blk-sz)
-						0
+						adjust: blk-sz - ((as-integer p) % blk-sz)
+						if adjust < blk-sz [
+							p: p + adjust
+							psize: psize - adjust
+						]
+						assert (as-integer p) % blk-sz = 0
 					]
 				]
 				break
@@ -975,8 +979,9 @@ mimalloc: context [
 		MI_DEBUG("segment-page-free")
 
 		seg: PTR_TO_SEGMENT(page)
-		zero-memory (as byte-ptr! page) + 8 (size? page!) - 8
 		seg/used: seg/used - 1
+		zero-memory (as byte-ptr! page) + 8 (size? page!) - 8
+		page/flags: page/flags xor PAGE_FLAG_IN_USE		;-- clear 'used bit
 
 		either zero? seg/used [
 			segment-queue-remove seg tld
