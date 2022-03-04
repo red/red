@@ -802,6 +802,8 @@ collect-frames: func [
 	]
 	collect-bigs
 	;extract-stack-refs no
+
+	b-allocator/collect-series	;-- collect binary series
 ]
 
 
@@ -1309,18 +1311,31 @@ free-big: func [
 ]
 
 b-allocator: context [
-	first-series: as ptr-ptr! 0
+	;; Use case for the ref-cnt:
+	;; We have 3 ports: A B C, them are sending the same data X.
+	;; We pass the address of the data X to the OS API and increment the ref-cnt.
+	;; Now the ref-cnt is 3. When the port finish sending, we decrement the ref-cnt.
+	;; While the data is sending, the GC may run. The data X is freed only if the ref-cnt is 0.
+	b-header!: alias struct! [
+		next	[b-header!]
+		ref-cnt [integer!]		;-- reference count by external code
+	]
 
-	collect-series: func [/local p prev next [ptr-ptr!] s [series!]][
+	first-series: as b-header! 0
+
+	collect-series: func [/local p prev next [b-header!] s [series!]][
 		p: first-series
 		prev: null
 		while [p <> null][
-			next: as ptr-ptr! p/value
+			next: as b-header! p/next
 			s: as series! p + 1
-			either s/flags and flag-gc-mark = 0 [
+			either all [
+				s/flags and flag-gc-mark = 0
+				p/ref-cnt = 0
+			][
 				free-node s/node
 				mimalloc/free as byte-ptr! p
-				either prev <> null [prev/value: as int-ptr! next][first-series: next]
+				either prev <> null [prev/next: next][first-series: next]
 			][
 				s/flags: s/flags and not flag-gc-mark	;-- clear mark flag
 				prev: p
@@ -1338,7 +1353,7 @@ b-allocator: context [
 		offset	[integer!]						;-- force a given offset for series buffer (in bytes)
 		return: [series-buffer!]				;-- return the new series buffer
 		/local
-			p		 [ptr-ptr!]
+			p		 [b-header!]
 			series	 [series-buffer!]
 			frame	 [series-frame!]
 			size	 [integer!]
@@ -1346,11 +1361,16 @@ b-allocator: context [
 	][
 		assert positive? usize
 		size: round-to usize * unit size? cell!	;-- size aligned to cell! size
-		sz: size + (size? int-ptr!) + size? series-buffer!
+		sz: size + (size? b-header!) + size? series-buffer!
 
-		;collect-series
-		p: as ptr-ptr! mimalloc/malloc sz
-		p/value: as int-ptr! first-series
+		p: as b-header! mimalloc/malloc sz
+		if null? p [
+			collector/do-cycle
+			p: as b-header! mimalloc/malloc sz	;-- try again
+		]
+
+		p/next: as b-header! first-series
+		p/ref-cnt: 0
 		first-series: p
 
 		series: as series! p + 1

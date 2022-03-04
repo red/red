@@ -1095,6 +1095,7 @@ mimalloc: context [
 					big-page-alloc size MI_PAGE_HUGE MI_SEGMENT_SHIFT seg-tld
 				]
 			]
+			if null? page [return null]
 			page-init page blk-sz
 			page/heap: heap
 			page/next: pq/first
@@ -1168,7 +1169,9 @@ mimalloc: context [
 		tld/heartbeat: tld/heartbeat + 1
 		unless tld/recurse? [
 			tld/recurse?: yes
-			;TBD do GC
+			if tld/heartbeat % 16 = 0 [
+				collector/do-cycle
+			]
 			tld/recurse?: no
 		]
 	]
@@ -1286,6 +1289,7 @@ mimalloc: context [
 		][
 			size: round-to size 64 * 1024		;-- round to 64kb aligned
 			page: big-page-alloc size MI_PAGE_HUGE MI_SEGMENT_SHIFT heap/tld/segments
+			if null? page [return null]
 			page-init page size
 		]
 
