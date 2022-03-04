@@ -1594,13 +1594,13 @@ Red [
 		--assert [фывапр " abcdef"] == transcode/next "фывапр abcdef"
 		--assert ["Gab’s Books" "^/Work In P"] == transcode/next {"Gab’s Books"^/Work In P}
 
-	--test-- "#4997"
-		--assert '.e 	 == transcode/one ".e"
-		--assert '.end   == transcode/one ".end"
-		--assert '.e10   == transcode/one ".e10"
-		--assert '.ex10  == transcode/one ".ex10"
-		--assert '.e1e2  == transcode/one ".e1e2"
-		--assert error? try [transcode/one ".2e1e2"]
+	;--test-- "#4997"
+	;	--assert '.e 	 == transcode/one ".e"
+	;	--assert '.end   == transcode/one ".end"
+	;	--assert '.e10   == transcode/one ".e10"
+	;	--assert '.ex10  == transcode/one ".ex10"
+	;	--assert '.e1e2  == transcode/one ".e1e2"
+	;	--assert error? try [transcode/one ".2e1e2"]
 
 	--test-- "#5000"
 		--assert ["s"] == transcode #{EFBBBF227322}
