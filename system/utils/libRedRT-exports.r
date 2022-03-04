@@ -39,7 +39,6 @@
 	red/stack/reset
 	red/stack/keep
 	red/stack/push
-	red/stack/check-call
 	red/stack/unroll
 	red/stack/unroll-loop
 	red/stack/revert

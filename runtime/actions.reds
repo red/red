@@ -38,6 +38,7 @@ actions: context [
 		value	[red-value!]							;-- any-type! value
 		action	[integer!]								;-- action ID
 		path	[red-value!]
+		element [red-value!]
 		return: [integer!]								;-- action pointer (datatype-dependent)
 		/local
 			type  [integer!]							;-- datatype ID
@@ -48,11 +49,18 @@ actions: context [
 		index: action-table/index						;-- lookup action function pointer
 
 		if zero? index [
-			if null? path [path: none-value]
-			fire [
-				TO_ERROR(script bad-path-type)
-				path
-				datatype/push type
+			either null? path [							;-- compiled path
+				fire [
+					TO_ERROR(script bad-path-type2)
+					element
+					datatype/push type
+				]			
+			][											;-- interpreted path
+				fire [
+					TO_ERROR(script bad-path-type)
+					path
+					datatype/push type
+				]
 			]
 		]
 		index
@@ -256,29 +264,34 @@ actions: context [
 			arg	   [red-value!]
 			buffer [red-string!]
 			int    [red-integer!]
-			limit  [integer!]
+			limit expected [integer!]
 	][
 		arg: stack/arguments + part
+		expected: 0
 		
-		limit: either part >= 0 [
+		either part >= 0 [
 			int: as red-integer! arg
-			int/value
-		][0]
-		
+			assert TYPE_OF(int) = TYPE_INTEGER
+			limit: int/value
+			if limit <= 0 [
+				string/rs-make-at stack/arguments 1
+				exit
+			]
+			expected: limit
+		][limit: MAX_INT]
+	
 		stack/keep										;-- keep last value
 		buffer: string/rs-make-at stack/push* 16		;@@ /part argument
-		limit: form stack/arguments buffer arg limit
+		form stack/arguments buffer arg limit
 		
-		if all [part >= 0 negative? limit][
-			string/truncate-from-tail GET_BUFFER(buffer) limit
-		]
+		if expected > 0 [string/truncate GET_BUFFER(buffer) expected]
 		stack/set-last as red-value! buffer
 	]
 	
 	form: func [
 		value   [red-value!]							;-- FORM argument
 		buffer  [red-string!]							;-- FORM buffer
-		arg		[red-value!]							;-- max bytes count
+		arg		[red-value!]							;-- max characters count
 		part	[integer!]
 		return: [integer!]
 		/local
@@ -289,7 +302,7 @@ actions: context [
 		action-form: as function! [
 			value	[red-value!]						;-- FORM argument
 			buffer	[red-string!]						;-- FORM buffer
-			arg		[red-value!]						;-- max bytes count
+			arg		[red-value!]						;-- max characters count
 			part	[integer!]
 			return: [integer!]							;-- remaining part count
 		] get-action-ptr value ACT_FORM
@@ -306,18 +319,25 @@ actions: context [
 			arg	   [red-value!]
 			buffer [red-string!]
 			int    [red-integer!]
-			limit  [integer!]
+			limit expected [integer!]
 	][
 		arg: stack/arguments + part
-		
-		limit: either part >= 0 [
+		expected: 0
+
+		either part >= 0 [
 			int: as red-integer! arg
-			int/value
-		][0]
+			assert TYPE_OF(int) = TYPE_INTEGER
+			limit: int/value
+			if limit <= 0 [
+				string/rs-make-at stack/arguments 1
+				exit
+			]
+			expected: limit
+		][limit: MAX_INT]
 
 		stack/keep										;-- keep last value
 		buffer: string/rs-make-at stack/push* 16		;@@ /part argument
-		limit: mold 
+		mold
 			stack/arguments
 			buffer
 			as logic! only + 1
@@ -327,9 +347,7 @@ actions: context [
 			limit
 			0
 		
-		if all [part >= 0 negative? limit][
-			string/truncate-from-tail GET_BUFFER(buffer) limit
-		]
+		if expected > 0 [string/truncate GET_BUFFER(buffer) expected]
 		stack/set-last as red-value! buffer
 	]
 	
@@ -340,7 +358,7 @@ actions: context [
 		all?	 [logic!]
 		flat?	 [logic!]
 		arg		 [red-value!]
-		part     [integer!]								;-- max bytes count
+		part     [integer!]								;-- max characters count
 		indent	 [integer!]
 		return:  [integer!]
 		/local
@@ -355,7 +373,7 @@ actions: context [
 			all?	 [logic!]
 			flat?	 [logic!]
 			part-arg [red-value!]		
-			part	 [integer!]							;-- max bytes count
+			part	 [integer!]							;-- max characters count
 			indent	 [integer!]
 			return:  [integer!]							;-- remaining part count
 		] get-action-ptr value ACT_MOLD
@@ -406,7 +424,7 @@ actions: context [
 			get?	[logic!]
 			tail?	[logic!]
 			return:	[red-value!]
-		] get-action-ptr-path parent ACT_EVALPATH as red-value! path
+		] get-action-ptr-path parent ACT_EVALPATH as red-value! path element
 		
 		action-path parent element value as red-value! path case? get? tail?
 	]

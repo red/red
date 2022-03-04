@@ -1769,10 +1769,9 @@ Red [
 		unset 'ctx1509
 
 	--test-- "#1515"
-		--assert not error? try [1.222090944E+33 // -2147483648.0] ; expected 0
-		--assert equal? 0.0 1.222090944E+33 // -2147483648.0 
-		; FIXME: this is still unfixed:
-		;--assert equal? 0.0 1.222090944E+33 % -2147483648.0 
+		--assert zero? 1.222090944E+33 // -2147483648.0
+		--assert zero? 1.222090944E+33 // -2147483648.0
+		--assert zero? 1.222090944E+33 %  -2147483648.0
 
 	; --test-- "#1519"
 		; TODO: call-test.red problem
@@ -1965,11 +1964,11 @@ Red [
 		; --assert equal? "test" read %中坜
 
 	--test-- "#1729"
-		not error? try [123456789123456789]
-		equal? 123456789123456789 1.234567891234568e17
+		--assert not error? try [123456789123456789]
+		--assert equal? 123456789123456789 1.234567891234568e17
 
 	--test-- "#1730"
-		not error? try [reduce does ["ok"]]
+		--assert not error? try [reduce does ["ok"]]
 
 	; --test-- "#1732"
 		; FIXME: example throws error: eval-command has no value
@@ -2759,9 +2758,10 @@ b}
 		--assert equal? ["1" "2" ""] split "1^/2^/" #"^/"
 
 	--test-- "#2232"
+		no-probe: func [value][:value]
 		--assert 'ok = (a: 'ok 1 :a)
 		--assert 'ok = (a: 'ok 1 + 1 :a)
-		--assert 'ok = (a: 'ok 1 + 1 probe :a)
+		--assert 'ok = (a: 'ok 1 + 1 no-probe :a)
 		--assert equal? 'ok (a: 'ok 1 + 1 :a)
 		--assert equal? 'ok (a: 'ok 1 + 1 :a)
 
@@ -3217,6 +3217,23 @@ comment {
 	--test-- "#4994"
 		save qt-tmp-file append/dup "" "§☺" 500000
 		transcode read qt-tmp-file
+
+	--test-- "#5058"
+		--assert strict-equal?
+			"1 a ^/2 b ^/3 c"
+			mold/only new-line/all/skip [1 a 2 b 3 c] yes 2
+
+	--test-- "#5067"
+		c5067: context [
+			b: reduce ['f does [visited?: yes print ""]]
+			o: object [f: does [visited?: yes print ""]]
+		]
+		visited?: no
+		--assert unset? c5067/('b)/f
+		--assert visited?
+		visited?: no
+		--assert unset? c5067/('o)/f
+		--assert visited?
 
 ===end-group===
 

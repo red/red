@@ -314,7 +314,61 @@ test
 		}
 		--assert compiled?
 		--assert script-error?
-		
+
+	--test-- "#4990"
+		--compile-and-run-this {
+			Red []
+			s: "abc" 
+			loop 100 [
+				forall s [probe s continue]
+			]
+		}
+		--assert compiled?
+		--assert not crashed?
+		--assert not find qt/output "Error"
+
+	--test-- "#5065"
+		--compile-and-run-this {
+			Red []
+			do [
+				old: reduce list: [:loop :repeat :prin :exp :max :odd? :divide]
+				loop 1 [] repeat x 1 [] prin [] exp 1 max 1 0 odd? 2 divide 2 2 
+				new: reduce list
+				if all collect [
+					repeat i length? list [keep :old/:i =? :new/:i]
+				] [print "MATCH"]
+			]
+		}
+		--assert compiled?
+		--assert true? find qt/output "MATCH"
+
+	--test-- "#5070"
+		--compile-and-run-this {
+			Red []
+			m: #()
+			m/1:       does [1]
+			m/(2):     does [2]
+			m/key:     does [3]
+			m/("s"):   does [4]
+			m/(#"c"):  does [5]
+			put m 'key does [6]
+			put m "s"  does [7]
+			put m #"c" does [8]
+			print mold/only to-block m
+		}
+		--assert compiled?
+		--assert (load qt/output) == [
+		    1    func [][1] 
+		    2    func [][2] 
+		    key: func [][6] 
+		    "s"  func [][7] 
+		    #"c" func [][8]
+		]
+
+	--test-- "#5071"
+		--compile-and-run-this {Red [] b: [] construct b}
+		--assert compiled?
+
 ===end-group===
 
 ~~~end-file~~~ 

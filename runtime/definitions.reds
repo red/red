@@ -38,6 +38,8 @@ Red/System [
 #define flag-extern-code	00008000h		;-- routine's body is from FFI
 #define flag-word-dirty		00002000h		;-- word flag indicating if value has been modified
 #define flag-embed-v4		00001000h		;-- IPv4 address embedded in IPv6
+#define flag-force-trace	00000400h		;-- tracing mode is forced (function attribut)
+#define flag-no-trace		00000200h		;-- tracing mode is disabled (function attribut)
 
 #define flag-new-line		40000000h		;-- if set, indicates that a new-line preceeds the value
 #define flag-nl-mask		BFFFFFFFh		;-- mask for new-line flag
@@ -75,6 +77,16 @@ Red/System [
 	CONTEXT_GLOBAL							;-- global context value is 0 (no need to set it then)
 	CONTEXT_FUNCTION						;-- do not change those values! (used in %utils/redbin.r)
 	CONTEXT_OBJECT
+]
+
+#enum cb-class! [							;-- internal callbacks classes used by _function/call
+	CB_INTERPRETER:	0
+	CB_LEXER:		1
+	CB_PARSE:		2
+	CB_SORT:		4
+	CB_OBJ_CHANGE:	8
+	CB_OBJ_DEEP:	16
+	CB_PORT:		32
 ]
 
 #enum extract-type! [						;-- image! buffer encodings

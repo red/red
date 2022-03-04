@@ -685,7 +685,7 @@ parser: context [
 		int: as red-integer! more/offset + 4
 		ctx: either TYPE_OF(int) = TYPE_INTEGER [as node! int/value][global-ctx]
 
-		stack/mark-func words/_body	fun/ctx				;@@ find something more adequate
+		stack/mark-func words/_parse-cb	fun/ctx
 		stack/push as red-value! event
 		logic/push match?
 		rule: as red-block! stack/push as red-value! rule
@@ -695,7 +695,7 @@ parser: context [
 		rule/head: offset
 		assert system/thrown = 0
 		
-		catch RED_THROWN_ERROR [_function/call fun ctx]
+		catch RED_THROWN_ERROR [_function/call fun ctx as red-value! words/_parse-cb CB_PARSE]
 
 		PARSE_RESTORE_SERIES							;-- restore localy saved series/head first
 		if system/thrown <> 0 [reset saved? re-throw]

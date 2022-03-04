@@ -177,6 +177,13 @@ Red [
 
 ===end-group===
 
+===start-group=== "mold-object"
+
+	--test-- "mold-object-1"
+		--assert 20 = length? mold/part/flat system 20
+
+===end-group===
+
 ===start-group=== "ref"
 	
 	--test-- "mold-ref-1"

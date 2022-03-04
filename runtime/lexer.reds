@@ -99,7 +99,8 @@ lexer: context [
 		C_FL_DIGIT										;-- 2
 		C_FL_EXP										;-- 3
 		C_FL_DOT										;-- 4
-		C_FL_EOF										;-- 5
+		C_FL_QUOTE										;-- 5
+		C_FL_EOF										;-- 6
 	]
 
 	line-table: #{
@@ -142,7 +143,8 @@ lexer: context [
 	}
 	
 	float-transitions: #{
-		070001070207070701030206070702030706070405070707070705070707070705070706070707070707
+		0700010702070707070103020106070702030702060704050707070707070507070707
+		0707050707070607070707070707
 	}
 	
 	;-- Bit-array for /-~^{}"
@@ -487,7 +489,7 @@ lexer: context [
 		int: as red-integer! more/offset + 4
 		ctx: either TYPE_OF(int) = TYPE_INTEGER [as node! int/value][global-ctx]
 		
-		stack/mark-func words/_body	lex/fun-ptr/ctx
+		stack/mark-func words/_lexer-cb	lex/fun-ptr/ctx
 		evt: switch event [
 			EVT_PRESCAN	[words/_prescan]
 			EVT_SCAN	[words/_scan]
@@ -522,7 +524,7 @@ lexer: context [
 		either null? value [pair/push x + 1 y + 1][stack/push value] ;-- token
 
 		if lex/fun-locs > 0 [_function/init-locals 1 + lex/fun-locs] ;-- +1 for /local refinement
-		_function/call lex/fun-ptr ctx
+		_function/call lex/fun-ptr ctx as red-value! words/_lexer-cb CB_LEXER
 
 		if ser/head <> ref [							;-- check if callback changed input offset
 			ref: ser/head - lex/in-series/head
@@ -580,7 +582,7 @@ lexer: context [
 	store-any-block: func [slot [cell!] src [cell!] items [integer!] type [integer!] blk [red-block!]
 		/local
 			s	 [series!]
-			size [integer!]
+			size len [integer!]
 	][
 		size: either zero? items [1][items]
 		either null? blk [
@@ -588,17 +590,21 @@ lexer: context [
 			blk/head: 0
 		][
 			s: GET_BUFFER(blk)
-			if s/size >> 4 - blk/head < size [expand-series GET_BUFFER(blk) size + blk/head << 4]
+			len: (as-integer s/tail - s/offset) >> size? cell!
+			if (s/size >> size? cell!) - len < size [
+				expand-series GET_BUFFER(blk) size << 4 + s/size
+			]
 		]
 		blk/header: blk/header and type-mask or type
 
 		if items <> 0 [
 			s: GET_BUFFER(blk)
 			copy-memory 
-				as byte-ptr! s/offset + blk/head
+				as byte-ptr! s/tail
 				as byte-ptr! src
 				items << 4
-			s/tail: s/offset + blk/head + items
+			s/tail: s/tail + items
+			assert (as-integer s/tail - s/offset) <= s/size
 		]
 	]
 	
@@ -1964,10 +1970,11 @@ lexer: context [
 			p: p + 1
 			day: grab4									;-- could be year also
 			dlen: as-integer p - me
-			if any [dlen > ylen day > year][
+			if any [day < 0 dlen > ylen day > year][
+				if day < 0 [dlen: dlen - 1]
 				len: day day: year year: len ylen: dlen ;-- swap day <=> year
 			]
-			if all [year < 100 ylen <= 2][				;-- expand short yy forms
+			if all [year < 100 year > 0 ylen <= 2][		;-- expand short yy forms
 				ylen: either year < 50 [2000][1900]
 				year: year + ylen
 			]
@@ -2100,6 +2107,7 @@ lexer: context [
 	]
 	
 	load-tag: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
+		if s/1 <> #"<" [throw-error lex s e TYPE_TAG]
 		if load? [
 			flags: flags and not C_FLAG_CARET			;-- clears caret flag
 			lex/type: TYPE_TAG

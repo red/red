@@ -71,8 +71,8 @@ unless system/console [
 		]
 
 		console?:	yes
-		buffer:		declare byte-ptr!
-		pbuffer:	declare byte-ptr!
+		buffer:		as byte-ptr! 0
+		pbuffer:	as byte-ptr! 0
 		input-line: declare red-string!
 		prompt:		declare	red-string!
 		history:	declare red-block!
@@ -194,12 +194,13 @@ unless system/console [
 		][
 			s: GET_BUFFER(str)
 			unit: GET_UNIT(s)
-			if unit < 2 [unit: 2]			;-- always treat string as widechar string
+			if unit < 2 [unit: 2]	;-- always treat string as widechar string
 			size: (string/rs-abs-length? str) + (string/rs-abs-length? prompt) << (log-b unit)
+			size: size * 4			;-- in case all characters are tabs, 1 tab will be converted to 4 whitespace.
 			if size > buf-size [
-				buf-size: size
+				buf-size: size * 2
 				free buffer
-				buffer: allocate size
+				buffer: allocate buf-size
 				if null? buffer [probe ["Cannot allocate memory: init-buffer: " size] halt]
 			]
 			pbuffer: buffer
@@ -610,10 +611,13 @@ ask: function [
 	"Prompt the user for input"
 	question [string!]
 	/hide
+	/history "specify the history block"
+		blk  [block!]
 	return:  [string!]
 ][
 	buffer: make string! 1
-	_set-buffer-history buffer head system/console/history
+	hist-blk: head either history [blk][system/console/history]
+	_set-buffer-history buffer hist-blk
 	_read-input question hide
 	buffer
 ]

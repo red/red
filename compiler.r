@@ -104,10 +104,7 @@ red: context [
 	
 	iterators: [loop until while repeat foreach forall forever remove-each]
 	
-	standard-modules: [
-	;-- Name ------ Entry file -------------- OS availability -----
-		View		%modules/view/view.red	  [Windows macOS Linux]
-	]
+	standard-modules: load-cache %modules.r
 
 	func-constructors: [
 		'func | 'function | 'does | 'has | 'routine | 'make 'function!
@@ -143,7 +140,7 @@ red: context [
 			either word? err [
 				join uppercase/part mold err 1 " error"
 			][reform err]
-			"^/*** in file:" to-local-file script-name
+			"^/*** in file:" any [attempt [to-local-file script-name] "??"]
 			;either locals [join "^/*** in function: " func-name][""]
 		]
 		if pc [
@@ -366,7 +363,7 @@ red: context [
 	bind-function: func [body [block!] shadow [object!] /local self* rule pos][
 		bind body shadow
 		if 1 < length? obj-stack [
-			self*: in do obj-stack 'self				;-- rebing SELF to the wrapping object
+			self*: in do obj-stack 'self				;-- rebind SELF to the wrapping object
 			
 			parse body rule: [
 				any [pos: 'self (pos/1: self*) | into rule | skip]
@@ -1206,6 +1203,19 @@ red: context [
 			entry
 		]
 	]
+
+	decode-attributes: func [spec [block!] /local do-error flags][
+		do-error: [throw-error ["invalid function spec block:" mold pos]]
+		flags: 0
+		foreach attrib spec/1 [
+			unless word? attrib [do-error]
+			flags: switch attrib [						;-- keep those flags synced with %runtime/definitions.reds
+				trace	 [flags or to-integer #{00000400}]
+				no-trace [flags or to-integer #{00000200}]
+			]
+		]
+		flags
+	]
 	
 	check-invalid-exit: func [name [word!]][
 		if empty? locals-stack [
@@ -1322,13 +1332,15 @@ red: context [
 		]
 	]
 	
-	check-spec: func [spec [block!] /local symbols word pos stop locals return? loc?][
+	check-spec: func [spec [block!] /local symbols word pos stop locals return? loc? flags][
 		symbols: make block! length? spec
 		locals:  0
-		loc?: no
+		flags:	 0
+		loc?: 	 no
 		
 		unless parse spec [
 			opt string!
+			opt [pos: block! (flags: decode-attributes pos) opt string!]
 			any [
 				pos: /local (loc?: yes append symbols 'local) [
 					any [
@@ -1366,7 +1378,34 @@ red: context [
 				throw-error ["duplicate word definition:" s/1]
 			]
 		]
-		reduce [symbols locals]
+		reduce [symbols locals flags]
+	]
+	
+	make-attributs: func [spec [block!] /prolog locals /epilog /local flags trace? no-trace? out][
+		unless all [
+			any [
+				block? flags: spec/1
+				block? flags: spec/2
+			]
+			any [
+				trace?:    find flags 'trace
+				no-trace?: find flags 'no-trace
+			]
+		][return ()]
+		
+		out: copy []
+		either prolog [
+			insert find/tail locals 'saved 'prev
+			append out [
+				prev: interpreter/tracing?
+			]
+			if trace? 	 [append out [interpreter/tracing?: interpreter/trace?]]
+			if no-trace? [append out [interpreter/tracing?: no]]
+		][
+			append out [interpreter/tracing?: prev]
+		]
+		new-line back back tail out yes
+		out
 	]
 	
 	make-refs-table: func [spec [block!] /local mark pos arity arg-rule list ref args][
@@ -1526,116 +1565,6 @@ red: context [
 		emit 'actions/eval-path*
 		emit either set ['true]['false]
 		insert-lf -2
-	]
-	
-	emit-path-func: func [body [block!] octx [word!] cnt [integer!] /local pos f-name rule arity name][
-		pos: body
-		body: copy pos
-		clear pos
-		
-		if all [1 = length? body body/1 = 'stack/reset][clear body]
-		rewrite-locals body
-		
-		name: either pos: find body 'pos [
-			either body = [
-				stack/push pos
-				stack/reset
-			][
-				clear body
-				2
-			][
-				insert body [
-					pos: stack/arguments
-				]
-				4
-			]
-		][2]
-		if #"~" <> first form name: pick body name [
-			name: [words/_anon]
-		]
-		
-		if all [not empty? body 'stack/unwind = last body][
-			change/only back tail body 'stack/unwind-last
-			new-line back tail body yes
-		]
-		unless any [empty? body 1 = length? body][
-			arity: 0
-			parse body rule: [
-				some [
-					'stack/push 'pos pos: '+ (
-						arity: arity + 1
-						either arity = 1 [pos: remove/part pos 2][pos/2: arity - 1]
-					) :pos
-					| into rule
-					| skip
-				]
-			]
-			redirect-to declarations [
-				f-name: decorate-func to word! join "~path" cnt
-				emit reduce [to set-word! f-name 'func [octx [node!] /local pos] body]
-				insert-lf -4
-			]
-			emit compose [
-				stack/defer-call (name) as-integer (to get-word! f-name) (arity) (octx)
-			]
-			f-name
-		]
-	]
-	
-	emit-dynamic-path: func [
-		body [block!]
-		/local path idx mark saved cnt frame? octx blk-idx
-	][
-		octx: pick [octx null] to logic! all [
-			not empty? locals-stack
-			container-obj?
-		]
-		path: first paths-stack
-		blk-idx: redbin/emit-block path
-		
-		if frame?: all [
-			not emit-path-func body octx cnt: get-counter
-			not empty? expr-stack
-			find [<infix> switch case] last expr-stack
-		][
-			emit-open-frame 'dyn-path					;-- wrap it in a stack frame in this case
-		]
-		emit-get-word path/1 path/1
-		insert-lf -2
-		saved: output
-		
-		forall path [
-			emit [either stack/func?]
-			insert-lf -2
-			idx: (index? path) - 1
-			emit compose/deep [[stack/push-call as red-path! get-root (blk-idx) (idx) 0 (octx)]]
-
-			either tail? next path [
-				emit [[stack/adjust]]
-			][
-				mark: tail output
-				unless head? path [
-					emit [
-						stack/top: stack/top - 1
-						copy-cell stack/top stack/top - 1
-					]
-				]
-				emit-open-frame 'eval-path
-				emit [stack/push stack/arguments - 1]
-				insert-lf -4
-				emit append to path! to word! form type? path/2 'push
-				emit prefix-exec path/2
-				insert-lf -2
-				emit-eval-path no
-				emit 'stack/unwind-part
-				insert-lf -1
-				change/only/part mark mark: copy mark tail output
-				output: mark
-			]
-		]
-		remove paths-stack
-		output: saved
-		if frame? [emit-close-frame]
 	]
 	
 	get-return-type: func [spec [block!] /local type][	;-- for routine spec blocks
@@ -2272,15 +2201,14 @@ red: context [
 			throw-error "Invalid CONSTRUCT refinement"
 		]
 		body?: block? pc/2
-		unless any [
-			all [not with? body?]
-			all [with? not obj: is-object? pc/3]
+		if all [
+			find [set-word! set-path!] type?/word pc/-1
+			any [all [body? not with?] all [with? obj: is-object? pc/3]]
 		][
 			either with? [
 				comp-context/passive/extend only? obj
 			][
 				comp-context/passive only?
-				pc: skip pc -2
 			]
 		]
 		pc: next pc
@@ -2714,11 +2642,12 @@ red: context [
 	
 	comp-func-body: func [
 		name [word!] spec [block!] body [block!] symbols [block!] locals-nb [integer!]
-		/local init locals blk args?
+		/local init locals blk args? tracing
 	][
 		push-locals copy symbols						;-- prepare compiled spec block
 		forall symbols [symbols/1: decorate-symbol/no-alias symbols/1]
 		locals: append copy [/local ctx saved] symbols
+		set/any 'tracing make-attributs/prolog spec locals
 		blk: either container-obj? [head insert copy locals [octx [node!]]][locals]
 		emit reduce [to set-word! decorate-func/strict name 'func blk]
 		insert-lf -3
@@ -2733,6 +2662,7 @@ red: context [
 			ctx: TO_CTX(to paren! last ctx-stack)
 			saved: ctx/values
 			ctx/values: as node! stack/arguments
+			(get/any 'tracing)
 		]
 		new-line skip tail init -4 on
 		args?: yes
@@ -2770,7 +2700,8 @@ red: context [
 		;-- Function's epilog --
 		append last output compose [
 			stack/unwind-last							;-- closing body stack frame, and propagating last value
-			ctx/values: saved			;-- restore context values pointer
+			ctx/values: saved							;-- restore context values pointer
+			(make-attributs/epilog spec)
 		]
 		new-line skip tail last output -4 yes
 		
@@ -2853,6 +2784,7 @@ red: context [
 			]
 		]
 		unless empty? words [
+			remove find words 'local					;-- #4998
 			pos: tail spec
 			either parse spec [thru /local any word! loc: to end][
 				insert loc words
@@ -2870,7 +2802,7 @@ red: context [
 		/local
 			name word spec body symbols locals-nb spec-idx body-idx ctx pos octx
 			src-name original global? path obj fpath shadow defer ctx-idx body-code
-			alter entry mark
+			alter entry mark flags
 	][
 		unless all [block? pc/2 any [does block? pc/3]][ ;-- fallback if no literal spec & body blocks
 			word: pc/1
@@ -2890,7 +2822,10 @@ red: context [
 		case [
 			set-path? original [
 				path: original
-				either set [obj fpath] object-access? path [
+				either all [
+					set [obj fpath] object-access? path 
+					obj
+				][
 					do reduce [join to set-path! fpath last path 'function!] ;-- update shadow object info
 					obj: find objects obj
 					name: to word! rejoin [any [obj/-1 obj/2] #"~" last path] 
@@ -2917,13 +2852,15 @@ red: context [
 		]
 		
 		pc: next pc
-		set [spec body] pc
+		spec: pc/1										;-- #5030
+		body: pc/2
+		
 		case [
 			collect [collect-words spec body]
 			does	[body: spec spec: make block! 1 pc: back pc]
 			has		[spec: head insert copy spec /local]
 		]
-		set [symbols locals-nb] check-spec spec
+		set [symbols locals-nb flags] check-spec spec
 		add-function name spec
 		if pos: find spec return-def [register-user-type/store name pos/2]
 
@@ -2961,7 +2898,7 @@ red: context [
 		defer: compose [
 			_function/push get-root (spec-idx) (body-code) (ctx)
 			as integer! (to get-word! decorate-func/strict name)
-			(octx)
+			(octx) (flags)
 		]
 		new-line defer yes
 		new-line skip tail defer -4 no
@@ -3340,7 +3277,7 @@ red: context [
 			
 			unless set? [emit [stack/mark-native words/_body]]	;@@ not clean...
 			emit compose [
-				interpreter/eval-path stack/top - 1 null null (to word! form set?) no (to word! form root?) no
+				interpreter/eval-path stack/top - 1 null null null (to word! form set?) no (to word! form root?) no
 			]
 			unless set? [emit [stack/unwind-last]]
 			
@@ -3595,7 +3532,7 @@ red: context [
 				emit reduce [							;-- special case for path-generated wrapper functions
 					'stack/mark-func 
 					decorate-exec-ctx decorate-symbol name
-					get-func-ctx original ctx-name
+					ctx-name
 				]
 				insert-lf -3
 			][
@@ -4388,15 +4325,6 @@ red: context [
 		
 		unless no-infix [
 			if check-infix-operators root [
-				if all [any [root close-path] paths < length? paths-stack][
-					emit-dynamic-path out
-					push-call <infix>
-					loop length? paths-stack [
-						emit-dynamic-path make block! 0
-					]
-					pop-call
-					if tail? pc [emit-dyn-check]
-				]
 				if all [root 'stack/reset <> last output][
 					emit-stack-reset					;-- clear stack from last root expression result
 				]
@@ -4958,6 +4886,7 @@ red: context [
 		clear objects
 		obj-stack: to path! 'objects					;-- reset it to original value
 		clear paths-stack
+		clear locals-stack
 		clear output
 		clear sym-table
 		clear literals

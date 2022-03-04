@@ -1573,6 +1573,20 @@ Red [
 
 ===start-group=== "issues"
 
+	--test-- "#4562"
+		--assert [<< '<< <<: :<<] == transcode "<< '<< <<: :<<"
+		--assert ['=<= :=<= =<=:] == transcode "'=<= :=<= =<=:"
+		--assert word? transcode/one "=<="
+		--assert '-<- == transcode/one "-<-"
+
+	--test-- "#4624"
+		--assert [a b] == load/all "a^(3000)b"
+		--assert [a b] == load/all "^(2002)a^(3000)b"
+		--assert [a b] == load/all "^(2002)^(85)a^(3000)b"
+
+	--test-- "#4781"
+		--assert 3:3:3.3000000001 = transcode/one "3:3:3,3"
+
 	--test-- "#4914"
 		--assert error? try [transcode {#(a: 22 b: 33 c: x: a)}]
 
@@ -1580,20 +1594,24 @@ Red [
 		--assert [фывапр " abcdef"] == transcode/next "фывапр abcdef"
 		--assert ["Gab’s Books" "^/Work In P"] == transcode/next {"Gab’s Books"^/Work In P}
 
-	--test-- "#4624"
-		--assert [a b] == load/all "a^(3000)b"
-		--assert [a b] == load/all "^(2002)a^(3000)b"
-		--assert [a b] == load/all "^(2002)^(85)a^(3000)b"
+	--test-- "#4997"
+		--assert '.e 	 == transcode/one ".e"
+		--assert '.end   == transcode/one ".end"
+		--assert '.e10   == transcode/one ".e10"
+		--assert '.ex10  == transcode/one ".ex10"
+		--assert '.e1e2  == transcode/one ".e1e2"
+		--assert error? try [transcode/one ".2e1e2"]
 
-	--test-- "#4562"
-		--assert [<< '<< <<: :<<] == transcode "<< '<< <<: :<<"
-		--assert ['=<= :=<= =<=:] == transcode "'=<= :=<= =<=:"
-		--assert word? transcode/one "=<="
-		--assert '-<- == transcode/one "-<-"
+	--test-- "#5000"
+		--assert ["s"] == transcode #{EFBBBF227322}
 
-	--test-- "#4781"
-		--assert 3:3:3.3000000001 = transcode/one "3:3:3,3"
+	--test-- "#5042"
+		b: [1 2 3]
+		--assert [2 3 4 5] = transcode/into "4 5" next b
+		--assert b == [1 2 3 4 5]
 
+	--test-- "#5082"
+		--assert 1.#inf = transcode/one "1.79769313486232e308"
 ===end-group===
 	
 ~~~end-file~~~

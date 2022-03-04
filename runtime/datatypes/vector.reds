@@ -833,7 +833,7 @@ vector: context [
 			part: part - system/words/length? formed
 
 			string/append-char GET_BUFFER(buffer) as-integer #"["
-			part: part - 4									;-- 3 spaces + "["
+			part: part - 3									;-- 2 spaces + "["
 
 			part: serialize vec buffer only? all? flat? arg part yes
 

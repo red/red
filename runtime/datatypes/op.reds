@@ -179,7 +179,7 @@ op: context [
 			all?
 			flat?
 			arg
-			part - 10
+			part
 			indent
 		stack/unwind
 		

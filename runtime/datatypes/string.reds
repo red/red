@@ -562,15 +562,22 @@ string: context [
 		str
 	]
 	
-	truncate-from-tail: func [
+	truncate: func [
 		s	    [series!]
-		offset  [integer!]								;-- negative offset from tail
+		part	[integer!]
 		return: [series!]
+		/local
+			p	[cell!]
 	][
-		if zero? offset [return s]
-		assert negative? offset
+		assert part > 0
+		part: part << log-b GET_UNIT(s)
+		if part > s/size [return s]
 		
-		s/tail: as cell! (as byte-ptr! s/tail) + (offset * GET_UNIT(s))
+		p: as cell! (as byte-ptr! s/offset) + part
+		if p < s/tail [s/tail: p]
+		
+		assert s/offset <= s/tail
+		assert (as byte-ptr! s/offset) + s/size >= as byte-ptr! s/tail
 		s
 	]
 
@@ -1339,8 +1346,8 @@ string: context [
 		#if debug? = yes [if verbose > 0 [print-line "string/compare-call"]]
 
 		f: as red-function! fun
-		stack/mark-func words/_body	f/ctx				;@@ find something more adequate
-
+		stack/mark-func words/_compare-cb f/ctx
+		
 		unit: flags >>> 2 and 7
 		c1: get-char value1 unit
 		c2: get-char value2 unit
@@ -1366,7 +1373,7 @@ string: context [
 			s2/tail: as red-value! (value2 + (num << (log-b unit)))
 		]
 
-		_function/call f global-ctx						;FIXME: hardcoded origin context
+		_function/call f global-ctx as red-value! words/_compare-cb	CB_SORT ;FIXME: hardcoded origin context
 		stack/unwind
 		stack/pop 1
 
@@ -2839,7 +2846,7 @@ string: context [
 
 		if all [append-lf? not tail?] [
 			poke-char s cur 10
-			cur: cur + 1
+			cur: cur + unit
 		]
 		s/tail: as red-value! cur
 	]

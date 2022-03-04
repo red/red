@@ -1435,6 +1435,9 @@ Red [
 	--test-- "trim-str-11"
 		--assert "    ^-1^/    b2^-  ^/  c3  ^/  ^/^/" = trim/with copy mstr 97
 
+	--test-- "trim-str-12 issue #5076"
+		--assert 2 = length? trim first split {х^/+й} "+"
+
 	--test-- "trim-block-1"
 		--assert [1 2] = trim [#[none] 1 #[none] 2 #[none]]
 

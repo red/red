@@ -88,7 +88,8 @@ object [
 		comment!	[128.128.128]
 	)
 
-	ask: func [question [string!] hide?][
+	ask: func [question [string!] hist [block! none!] hide?][
+		history: either hist [hist][system/console/history]
 		either prin? [
 			line: append last lines question
 			line: tail line

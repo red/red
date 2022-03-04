@@ -451,6 +451,7 @@ load: function [
 
 	out: case [
 		part  [transcode/part source length]
+		into  [transcode/into source out]
 		;trap  [system/lexer/transcode to-string source out trap]
 		next  [
 			set position second out: transcode/next source
@@ -817,6 +818,7 @@ dirize: func [
 ]
 
 clean-path: func [
+	[no-trace]
 	"Cleans-up '.' and '..' in path; returns the cleaned path"
 	file [file! url! string!]
 	/only "Do not prepend current directory"
@@ -869,6 +871,7 @@ clean-path: func [
 ]
 
 split-path: func [
+	[no-trace]
 	"Splits a file or URL path. Returns a block containing path and target"
 	target [file! url!]
 	/local dir pos
@@ -883,7 +886,7 @@ split-path: func [
 	reduce [dir pos]
 ]
 
-do-file: function ["Internal Use Only" file [file! url!]][
+do-file: function ["Internal Use Only" file [file! url!] callback [function! none!]][
 	ws: charset " ^-^M^/"
 	saved: system/options/path
 	unless parse/case read file [some [[src: "Red" opt "/System" any ws #"[" to end] | skip]] [
@@ -891,20 +894,19 @@ do-file: function ["Internal Use Only" file [file! url!]][
 	]
 	code: load/all src									;-- don't expand before we check the header
 	if code/1 = 'Red/System [cause-error 'internal 'red-system []]
+	header?: all [code/1 = 'Red block? header: code/2]
 	code: expand-directives next code					;-- skip the Red[/System] value
 	system/script/header: construct/with code/1 system/standard/header	;-- load header metadata
-	code: next code
 	if file? file [
 		new-path: first split-path clean-path file
 		change-dir new-path
 	]
-	if all [
-		code/1 = 'Red
-		block? header: code/2
-		list: select header 'currencies
-	][
+	if all [header? list: select header 'currencies][
 		foreach c list [append system/locale/currencies/list c]
 	]
+	if header? [code: next code]
+	if :callback [code: compose/only [do/trace (code) :callback]]
+	
 	set/any 'code try/all/keep [
 		either 'halt-request = set/any 'code catch/name code 'console [
 			print "(halted)"							;-- returns an unset value

@@ -91,12 +91,16 @@ copy-cell: func [
 	src		[cell!]
 	dst		[cell!]
 	return: [red-value!]
+	/local
+		d s [int-ptr!]
 ][
 	if src = dst [return dst]
-	copy-memory											;@@ optimize for 16 bytes copying
-		as byte-ptr! dst
-		as byte-ptr! src
-		size? cell!
+	d: as int-ptr! dst
+	s: as int-ptr! src
+	d/1: s/1											;@@ should use SIMD 128-bit copying when possible
+	d/2: s/2
+	d/3: s/3
+	d/4: s/4
 	dst
 ]
 
@@ -174,6 +178,8 @@ fire: func [
 		arg1 [red-value!]
 		arg2 [red-value!]
 		arg3 [red-value!]
+		err	 [red-object!]
+		saved [integer!]
 ][
 	assert count <= 5
 	arg1: null
@@ -190,7 +196,16 @@ fire: func [
 			unless zero? count [arg3: as red-value! list/5]
 		]
 	]
-	stack/throw-error error/create as red-value! list/1 as red-value! list/2 arg1 arg2 arg3
+	err: error/create as red-value! list/1 as red-value! list/2 arg1 arg2 arg3
+	with [interpreter][
+		if tracing? [
+			saved: system/thrown
+			system/thrown: 0
+			fire-event EVT_ERROR null null null as red-value! err
+			system/thrown: saved
+		]
+	]
+	stack/throw-error err
 ]
 
 throw-make: func [
@@ -381,14 +396,11 @@ form-value: func [
 	return: [red-string!]
 	/local
 		buffer [red-string!]
-		limit  [integer!]
 ][
 	buffer: string/rs-make-at stack/push* 16
-	limit: actions/form stack/arguments buffer arg part
+	actions/form stack/arguments buffer arg part
 
-	if all [part >= 0 negative? limit][
-		string/truncate-from-tail GET_BUFFER(buffer) limit
-	]
+	if part > 0 [string/truncate GET_BUFFER(buffer) part]
 	buffer
 ]
 
@@ -623,6 +635,9 @@ words: context [
 	system-global:	-1
 	stack:			-1
 	
+	trace:			-1
+	no-trace:		-1
+	
 	changed:		-1
 
 	_body:			as red-word! 0
@@ -751,6 +766,25 @@ words: context [
 	_load:			as red-word! 0
 	_error:			as red-word! 0
 	_comment:		as red-word! 0
+
+	;-- interpreter events
+	_init:			as red-word! 0
+	_exec:			as red-word! 0
+	_call:			as red-word! 0
+	_return:		as red-word! 0
+	_enter:			as red-word! 0
+	_exit:			as red-word! 0
+	_prolog:		as red-word! 0
+	_epilog:		as red-word! 0
+	_throw:			as red-word! 0
+	_expr:			as red-word! 0
+	
+	_interp-cb:		as red-word! 0
+	_lexer-cb:		as red-word! 0
+	_parse-cb:		as red-word! 0
+	_compare-cb:	as red-word! 0
+	
+	_local: 		as red-word! 0
 	
 	errors: context [
 		_throw:		as red-word! 0
@@ -888,6 +922,9 @@ words: context [
 		system:			symbol/make "system"
 		system-global:	symbol/make "system-global"
 		stack			symbol/make "stack"
+		
+		trace:			symbol/make "trace"
+		no-trace:		symbol/make "no-trace"
 
 		_windows:		_context/add-global windows
 		_syllable:		_context/add-global syllable
@@ -1015,6 +1052,23 @@ words: context [
 		_load:			word/load "load"
 		_error:			word/load "error"
 		_comment:		word/load "comment"
+
+		;-- interpreter events
+		_init:			word/load "init"
+		_exec:			word/load "exec"
+		_call:			word/load "call"
+		_return:		word/load "return"
+		_enter:			word/load "enter"
+		_exit:			word/load "exit"
+		_prolog:		word/load "prolog"
+		_epilog:		word/load "epilog"
+		_throw:			word/load "throw"
+		_expr:			word/load "expr"
+		
+		_interp-cb:		word/load "<interp-callback>"
+		_lexer-cb:		word/load "<lexer-callback>"
+		_parse-cb:		word/load "<parse-callback>"
+		_compare-cb:	word/load "<compare-callback>"
 		
 		errors/throw:	 word/load "throw"
 		errors/note:	 word/load "note"
@@ -1025,6 +1079,8 @@ words: context [
 		errors/user:	 word/load "user"
 		errors/internal: word/load "internal"
 		errors/invalid-error: word/load "invalid-error"
+		
+		_local:			 word/load "local"
 		
 		changed:		_changed/symbol
 	]

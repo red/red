@@ -28,13 +28,12 @@ Red [
 	#include %environment/codecs/JPEG.red
 	#include %environment/codecs/BMP.red
 	#include %environment/codecs/GIF.red
-	#include %environment/codecs/JSON.red
-	#include %environment/codecs/CSV.red
 	#include %environment/codecs/redbin.red
 
 	#include %environment/reactivity.red				;-- requires SET intrinsic
 	#include %environment/networking.red
 	#include %utils/preprocessor.r
+	#include %environment/tools.red
 
 	#include %environment/schemes/native-schemes.red
 

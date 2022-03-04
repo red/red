@@ -588,6 +588,7 @@ Red/System [
 				pos     [red-value!]
 				word    [red-word!]
 				point   [red-pair!]
+				blk		[red-block!]
 				sym     [integer!]
 				rel?    [logic!]
 				close?  [logic!]
@@ -600,8 +601,9 @@ Red/System [
 			close?: no
 			OS-draw-shape-beginpath DC draw?
 			while [cmd < tail][
-				case [
-					any [ TYPE_OF(cmd) = TYPE_WORD TYPE_OF(cmd) = TYPE_LIT_WORD ][
+				switch TYPE_OF(cmd) [
+					TYPE_WORD
+					TYPE_LIT_WORD [
 						rel?: TYPE_OF(cmd) = TYPE_LIT_WORD
 						start: cmd + 1
 						word: as red-word! cmd
@@ -674,7 +676,11 @@ Red/System [
 							true [ throw-draw-error cmds cmd catch? ]
 						]
 					]
-					true [ throw-draw-error cmds cmd catch? ]
+					TYPE_SET_WORD [
+						blk: as red-block! _context/set as red-word! cmd as red-value! cmds
+						blk/head: ((as-integer cmd - block/rs-head cmds) / size? cell!) + 1
+					]					
+					default [throw-draw-error cmds cmd catch?]
 				]
 				cmd: cmd + 1
 			]

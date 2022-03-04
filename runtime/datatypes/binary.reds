@@ -855,19 +855,19 @@ binary: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/serialize"]]
 		
-		if part < 0 [part: 0]
 		s: GET_BUFFER(bin)
 		head: (as byte-ptr! s/offset) + bin/head
 		tail: as byte-ptr! s/tail
 		size: as-integer tail - head
 
 		string/concatenate-literal buffer "#{"
+		part: part - 2
+
 		bytes: 0
 		if all [size > 30 not flat?][
 			string/append-char GET_BUFFER(buffer) as-integer lf
 			part: part - 1
 		]
-		part: part - 2
 		while [head < tail][
 			string/concatenate-literal buffer string/byte-to-hex as-integer head/value
 			bytes: bytes + 1
@@ -1241,11 +1241,15 @@ binary: context [
 		all?		[logic!]
 		with-arg	[red-value!]
 		return:		[red-series!]
+		/local
+			with?	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/trim"]]
-
+		
+		with?: OPTION?(with-arg)
 		case [
-			any  [all? OPTION?(with-arg)] [string/trim-with as red-string! bin with-arg]
+			all  [all? not with?] [string/trim-with as red-string! bin as red-value! integer/push 0]
+			any  [all? with?] [string/trim-with as red-string! bin with-arg]
 			any  [auto? lines?][--NOT_IMPLEMENTED--]
 			true [trim-head-tail bin head? tail?]
 		]

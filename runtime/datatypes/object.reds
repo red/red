@@ -452,7 +452,7 @@ object: context [
 		stack/push old
 		stack/push new
 		if positive? count [_function/init-locals count]
-		_function/call fun obj/ctx
+		_function/call fun obj/ctx as red-value! words/_on-change* CB_OBJ_CHANGE
 		stack/unwind
 	]
 	
@@ -498,7 +498,7 @@ object: context [
 			integer/push pos
 			integer/push nb
 			if positive? count [_function/init-locals count]
-			_function/call fun owner/ctx
+			_function/call fun owner/ctx as red-value! words/_on-deep-change* CB_OBJ_DEEP
 			stack/unwind
 		]
 	]
@@ -602,6 +602,11 @@ object: context [
 		cycles/push obj/ctx
 
 		while [sym < s-tail][
+			if part <= 0 [
+				cycles/pop
+				return part
+			]
+
 			w: as red-word! sym
 			id: symbol/resolve w/symbol
 			
@@ -805,7 +810,7 @@ object: context [
 		blk: block/clone as red-block! more yes yes
 		_context/bind blk ctx node yes					;-- rebind new body to object's context
 		_context/bind blk GET_CTX(fun) null no			;-- rebind new body to function's context
-		_function/push spec blk	fun/ctx null null		;-- recreate function
+		_function/push spec blk	fun/ctx null null fun/header ;-- recreate function
 		copy-cell stack/top - 1	as red-value! fun		;-- overwrite function slot in object
 		stack/pop 2										;-- remove extra stack slots (block/clone and _function/push)
 		

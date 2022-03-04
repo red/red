@@ -214,20 +214,38 @@ _function: context [
 	]
 	
 	call: func [
-		fun	[red-function!]
-		ctx [node!]
+		fun	  [red-function!]
+		ctx	  [node!]
+		ref	  [red-value!]
+		class [cb-class!]
 		/local
 			s	   [series!]
 			native [red-native!]
 			saved  [node!]
 			fctx   [red-context!]
-			call ocall
+			int	   [red-integer!]
+			prev?  [logic!]
+			allow? [logic!]
+			call ocall									;@@ FIXME: avoid 64-bit stack slots, leads to GCing garbage
 	][
+		prev?: interpreter/tracing?
+		allow?: all [prev? class <> CB_INTERPRETER]
+		if allow? [
+			int: as red-integer! #get system/state/callbacks/bits
+			assert TYPE_OF(int) = TYPE_INTEGER
+			if class and int/value = 0 [interpreter/tracing?: no]	;-- disable tracing for unwanted internal callbacks
+		]
 		s: as series! fun/more/value
-
 		native: as red-native! s/offset + 2
 		either zero? native/code [
-			interpreter/eval-function fun as red-block! s/offset
+			with [interpreter][
+				if allow? [fire-call ref fun]
+				eval-function fun as red-block! s/offset ref
+				if allow? [
+					fire-return ref fun
+					tracing?: prev?
+				]
+			]
 		][
 			fctx: GET_CTX(fun)
 			saved: fctx/values
@@ -244,6 +262,7 @@ _function: context [
 				]
 			]
 			fctx/values: saved
+			if allow? [interpreter/tracing?: prev?]
 			
 			switch system/thrown [
 				RED_THROWN_ERROR
@@ -664,6 +683,9 @@ _function: context [
 			if -1 = count-locals spec/node spec/head yes [
 				block/rs-append spec as red-value! refinements/local
 			]
+			value: as red-value! words/_local
+			value: block/find list value null no no no no null null no no no no
+			if TYPE_OF(value) <> TYPE_NONE [_series/remove as red-series! value null null] ;@@ will trigger ownership events
 			block/rs-append-block spec list
 		]
 		list
@@ -741,27 +763,63 @@ _function: context [
 		]
 	]
 	
+	decode-attributs: func [
+		list	[red-block!]
+		return: [integer!]
+		/local
+			w	  [red-word!]
+			end	  [red-word!]
+			sym	  [integer!]
+			flags [integer!]
+	][
+		w:   as red-word! block/rs-head list
+		end: as red-word! block/rs-tail list
+		flags: 0
+		
+		while [w < end][
+			if TYPE_OF(w) <> TYPE_WORD [return -1]		;-- error case
+			sym: symbol/resolve w/symbol 
+			case [
+				sym = words/trace 	[flags: flags or flag-force-trace]
+				sym = words/no-trace[flags: flags or flag-no-trace]
+				true 				[0]
+			]
+			w: w + 1
+		]
+		flags
+	]
+	
 	validate: func [									;-- temporary minimalist spec checking
-		spec [red-block!]
+		spec	[red-block!]
+		return: [integer!]
 		/local
 			value  [red-value!]
 			end	   [red-value!]
 			next   [red-value!]
 			next2  [red-value!]
 			w      [red-word!]
+			flags  [integer!]
 			local? [logic!]
 			do-error [subroutine!]
 	][
 		do-error: [fire [TO_ERROR(script bad-func-def) spec]]
-		value: block/rs-head spec
-		end:   block/rs-tail spec
+		value:  block/rs-head spec
+		end:    block/rs-tail spec
 		local?: no
+		flags:  0
+		
+		if all [value < end TYPE_OF(value) = TYPE_BLOCK][
+			flags: decode-attributs as red-block! value
+			if flags = -1 [do-error]
+			value: value + 1							;-- skip optional attributs block
+		]
 		
 		while [value < end][
 			switch TYPE_OF(value) [
 				TYPE_WORD
-				TYPE_GET_WORD [
-					if all [local? TYPE_OF(value) = TYPE_GET_WORD][do-error]
+				TYPE_GET_WORD
+				TYPE_LIT_WORD [
+					if all [local? any [TYPE_OF(value) = TYPE_GET_WORD TYPE_OF(value) = TYPE_LIT_WORD]][do-error]
 					next: value + 1
 					if all [next < end TYPE_OF(next) = TYPE_STRING][
 						next2: next + 1
@@ -793,7 +851,7 @@ _function: context [
 							]
 						]
 					][do-error]
-					value: next
+					value: next2
 				]
 				TYPE_REFINEMENT [
 					w: as red-word! value 
@@ -815,8 +873,6 @@ _function: context [
 					]
 					value: value + 1
 				]
-				TYPE_LIT_WORD
-				TYPE_BLOCK
 				TYPE_STRING [
 					value: value + 1
 				]
@@ -824,6 +880,7 @@ _function: context [
 			]
 		]
 		check-duplicates spec
+		flags
 	]
 	
 	count-locals: func [
@@ -882,6 +939,7 @@ _function: context [
 		ctx		 [node!]								;-- if not null, context is predefined by compiler
 		code	 [integer!]
 		obj-ctx	 [node!]
+		flags	 [integer!]
 		return:	 [node!]								;-- return function's local context reference
 		/local
 			fun    [red-function!]
@@ -901,7 +959,7 @@ _function: context [
 		fun/spec:	 spec/node
 		fun/ctx:	 f-ctx
 		fun/more:	 alloc-unset-cells 5
-		fun/header:  TYPE_FUNCTION						;-- implicit reset of all header flags
+		fun/header:  TYPE_FUNCTION or flags
 		
 		s: as series! f-ctx/value
 		copy-cell as red-value! fun s/offset + 1		;-- set back-reference
@@ -948,8 +1006,9 @@ _function: context [
 		type	[integer!]
 		return:	[red-function!]
 		/local
-			spec [red-block!]
-			body [red-block!]
+			spec  [red-block!]
+			body  [red-block!]
+			flags [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "function/make"]]
 		
@@ -964,13 +1023,13 @@ _function: context [
 		if TYPE_OF(spec) <> TYPE_BLOCK [
 			fire [TO_ERROR(script bad-func-def)	list]
 		]
-		validate spec
+		flags: validate spec
 		body: spec + 1
 		
 		if TYPE_OF(body) <> TYPE_BLOCK [
 			fire [TO_ERROR(script bad-func-def)	list]
 		]
-		push spec body null 0 null
+		push spec body null 0 null flags
 		as red-function! stack/get-top
 	]
 	
@@ -979,8 +1038,10 @@ _function: context [
 		field	[integer!]
 		return:	[red-block!]
 		/local
-			blk [red-block!]
-			s	[series!]
+			blk	 [red-block!]
+			word [red-word!]
+			tail [red-value!]
+			s	 [series!]
 	][
 		case [
 			field = words/spec [
@@ -994,7 +1055,18 @@ _function: context [
 				stack/set-last s/offset
 			]
 			field = words/words [
-				--NOT_IMPLEMENTED--						;@@ build the words block from spec
+				blk: as red-block! stack/arguments		;-- overwrite the function slot on stack
+				blk/header: TYPE_BLOCK
+				blk/node: _hashtable/get-ctx-symbols GET_CTX(fun)
+				blk/head: 0
+				blk: block/clone blk no no
+				
+				word: as red-word! block/rs-head blk
+				tail: block/rs-tail blk
+				while [word < as red-word! tail][
+					word/ctx: fun/ctx
+					word: word + 1
+				]
 			]
 			true [
 				--NOT_IMPLEMENTED--						;@@ raise error

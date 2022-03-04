@@ -5,7 +5,7 @@ Red [
 	Tabs:	 4
 	Icon:	 %app.ico
 	Version: 0.0.1
-	Needs:	 View
+	Needs:	 [View JSON CSV]
 	Config:	 [gui-console?: yes red-help?: yes]
 	Rights:  "Copyright (C) 2014-2018 Red Foundation. All rights reserved."
 	License: {
@@ -239,8 +239,12 @@ ask: function [
 	"Prompt the user for input"
 	question [string!]
 	/hide
+	/history "specify the history block"
+		blk  [block!]
 	return:  [string!]
 ][
+	t?: tracing?
+	trace off
 	if all [
 		gui-console-ctx/console/state
 		not gui-console-ctx/win/visible?
@@ -249,9 +253,10 @@ ask: function [
 	]
 
 	gui-console-ctx/show-caret
-	line: gui-console-ctx/terminal/ask question hide
+	line: gui-console-ctx/terminal/ask question blk hide
 	gui-console-ctx/caret/enabled?: no
 	unless gui-console-ctx/console/state [line: "quit"]
+	trace t?
 	line
 ]
 
@@ -263,8 +268,13 @@ input: function ["Wait for console user input" return: [string!]][ask ""]
 	red-print-gui: func [
 		str		[red-string!]
 		lf?		[logic!]
+		/local
+			t?  [logic!]
 	][
+		t?: interpreter/tracing?
+		if t? [interpreter/tracing?: no]
 		#call [gui-console-ctx/terminal/vprint str lf?]
+		interpreter/tracing?: t?
 	]
 
 	rs-print-gui: func [

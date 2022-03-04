@@ -151,6 +151,30 @@ count-chars: routine [
 	c
 ]
 
+;-- Red stack related accessors (temporary, needs a proper design) --
+
+stack-size?: routine [return: [integer!]][
+	(as-integer stack/top - stack/bottom) >> 4
+]
+
+pick-stack: routine [
+	idx [integer!]
+][
+	either all [idx > 0 idx < stack-size?][
+		stack/set-last stack/bottom + idx - 1
+	][
+		SET_RETURN(none-value)
+	]
+]
+
+frame-index?: routine [return: [integer!]][
+	(as-integer stack/arguments - stack/bottom) >> 4
+]
+
+collect-calls: routine [blk [block!]][stack/collect-calls blk]
+
+tracing?: routine [][logic/push interpreter/tracing?]
+
 ;-- Temporary definition --
 
 read-clipboard: routine [

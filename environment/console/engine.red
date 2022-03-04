@@ -231,13 +231,14 @@ system/console: context [
 				]
 				not unset? :result [
 					if error? set/any 'err try/keep [	;-- catch eventual MOLD errors
-						limit: size/x - 13
-						result: either float? :result [form/part :result limit][
-							mold/part :result limit
+						limit: size/x - 3
+						result: either float? :result [
+							form/part :result limit + 5 ;-- form a bit more than needed
+						][
+							mold/part :result limit + 5 ;-- mold a bit more than needed
 						]
-						if limit <= length? result [	;-- optimized for width = 72
-							clear back tail result
-							append result "..."
+						if limit < length? result [
+							clear change at result limit "..."
 						]
 						prefix: any [
 							all [string? set/any 'p try/all [do [system/console/result]] :p]

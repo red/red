@@ -458,7 +458,7 @@ face!: object [				;-- keep in sync with facet! enum
 			if find [field text] type [
 				if word = 'text [
 					set-quiet 'data any [
-						all [not empty? new find scalar! scan new attempt/safer [load new]]
+						all [not empty? new type: scan new find scalar! type attempt/safer [load new]]
 						all [options options/default]
 					]
 				]
@@ -689,7 +689,7 @@ system/view: context [
 		if all [event/type = 'close :result <> 'continue][
 			result: pick [stop done] face/state/4		;-- face/state will be none after remove call
 			remove find head system/view/screens/1/pane face
-		]	
+		]
 		:result
 	]
 	
@@ -741,8 +741,7 @@ do-actor: function ["Internal Use Only" face [object!] event [event! none!] type
 		act: get act
 	][
 		if debug-info? face [print ["calling actor:" name]]
-		
-		set/any 'result do-safe [do [act face event]]	;-- compiler can't call act, hence DO
+		set/any 'result do-safe [act face event]	;-- compiler can't call act, hence DO
 	]
 	:result
 ]

@@ -101,6 +101,20 @@ block: context [
 		copy-cell value ALLOC_TAIL(blk)
 	]
 	
+	rs-remove-last: func [
+		blk 	[red-block!]
+		/local
+			s	[series!]
+	][
+		s: GET_BUFFER(blk)
+		if s/offset < s/tail [
+			s/tail: s/tail - 1
+			if s/offset + blk/head > s/tail [
+				blk/head: (as-integer s/tail - s/offset) >> 4
+			]
+		]
+	]
+	
 	rs-append-block: func [
 		blk		[red-block!]
 		blk2	[red-block!]
@@ -281,11 +295,9 @@ block: context [
 	]
 	
 	insert-thru: does [
-		unless stack/acc-mode? [
-			insert-value
-				as red-block! stack/arguments - 1
-				stack/arguments
-		]
+		insert-value
+			as red-block! stack/arguments - 1
+			stack/arguments
 	]
 	
 	append*: func [
@@ -319,18 +331,16 @@ block: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/append-thru"]]
 
-		unless stack/acc-mode? [
-			arg: as red-block! stack/arguments - 1
-			;assert TYPE_OF(arg) = TYPE_BLOCK			;@@ disabled until we have ANY_BLOCK check
+		arg: as red-block! stack/arguments - 1
+		;assert TYPE_OF(arg) = TYPE_BLOCK			;@@ disabled until we have ANY_BLOCK check
 
-			val: copy-cell
-				as cell! arg + 1
-				ALLOC_TAIL(arg)
+		val: copy-cell
+			as cell! arg + 1
+			ALLOC_TAIL(arg)
 
-			if TYPE_OF(arg) = TYPE_HASH [
-				hs: as red-hash! arg
-				_hashtable/put hs/table val
-			]
+		if TYPE_OF(arg) = TYPE_HASH [
+			hs: as red-hash! arg
+			_hashtable/put hs/table val
 		]
 	]
 	
@@ -490,15 +500,24 @@ block: context [
 				return part
 			]
 			depth: depth + 1
-			unless flat? [
-				if value/header and flag-new-line <> 0 [ ;-- new-line marker
-					unless lf? [lf?: on indent: indent + 1]
-					string/append-char GET_BUFFER(buffer) as-integer lf
-					loop indent [string/concatenate-literal buffer "    "]
-					part: part - (indent * 4 + 1) 		;-- account for lf
+			if all [
+				not flat?
+				value/header and flag-new-line <> 0	;-- new-line marker
+			][
+				if all [not only? value = head][
+					lf?: on
+					indent: indent + 1
 				]
+				if any [not only? value <> head][
+					string/append-char GET_BUFFER(buffer) as-integer lf
+					part: part - 1
+				]
+				loop indent [string/concatenate-literal buffer "    "]
+				part: part - (indent * 4)
 			]
-			part: actions/mold value buffer only? all? flat? arg part indent
+			
+			part: actions/mold value buffer no all? flat? arg part indent
+			
 			if positive? depth [
 				string/append-char GET_BUFFER(buffer) as-integer space
 				part: part - 1
@@ -517,7 +536,7 @@ block: context [
 			indent: indent - 1
 			string/append-char GET_BUFFER(buffer) as-integer lf
 			loop indent [string/concatenate-literal buffer "    "]
-			part: part - (indent * 4 + 1) 		;-- account for lf
+			part: part - (indent * 4) + 1				;-- account for lf
 		]
 		part
 	]
@@ -739,7 +758,7 @@ block: context [
 			string/append-char GET_BUFFER(buffer) as-integer #"["
 			part: part - 1
 		]
-		part: mold-each blk buffer no all? flat? arg part indent
+		part: mold-each blk buffer only? all? flat? arg part indent
 		
 		unless only? [
 			string/append-char GET_BUFFER(buffer) as-integer #"]"
@@ -913,6 +932,7 @@ block: context [
 				]
 				s/offset + b/head
 			]
+			if part >= s/tail [part: s/tail - 1]
 			part?: yes
 		]
 
@@ -1216,7 +1236,7 @@ block: context [
 		#if debug? = yes [if verbose > 0 [print-line "block/compare-call"]]
 
 		f: as red-function! fun
-		stack/mark-func words/_body	f/ctx				;@@ find something more adequate
+		stack/mark-func words/_compare-cb f/ctx
 
 		either flags and sort-reverse-mask = 0 [
 			v2: stack/push value2
@@ -1245,7 +1265,7 @@ block: context [
 			s2/tail: value2 + num
 		]
 
-		_function/call f global-ctx				;FIXME: hardcoded origin context
+		_function/call f global-ctx	as red-value! words/_compare-cb CB_SORT ;FIXME: hardcoded origin context
 		stack/unwind
 		stack/pop 1
 

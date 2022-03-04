@@ -89,17 +89,19 @@ natives: context [
 	any*: func [
 		check? [logic!]
 		/local
+			blk	  [red-block!]
 			value [red-value!]
 			tail  [red-value!]
 			bool  [red-logic!]
 			type  [integer!]
 	][
 		#typecheck any
-		value: block/rs-head as red-block! stack/arguments
-		tail:  block/rs-tail as red-block! stack/arguments
+		blk: as red-block! stack/push stack/arguments
+		value: block/rs-head blk
+		tail:  block/rs-tail blk
 		
 		while [value < tail][
-			value: interpreter/eval-next value tail no
+			value: interpreter/eval-next blk value tail no
 			
 			bool: as red-logic! stack/arguments
 			type: TYPE_OF(bool)
@@ -111,17 +113,19 @@ natives: context [
 	all*: func [
 		check? [logic!]
 		/local
+			blk	  [red-block!]
 			value [red-value!]
 			tail  [red-value!]
 	][
 		#typecheck all
-		value: block/rs-head as red-block! stack/arguments
-		tail:  block/rs-tail as red-block! stack/arguments
+		blk: as red-block! stack/push stack/arguments
+		value: block/rs-head blk
+		tail:  block/rs-tail blk
 		
 		if value = tail [RETURN_NONE]
 		
 		while [value < tail][
-			value: interpreter/eval-next value tail no
+			value: interpreter/eval-next blk value tail no
 			if logic/false? [RETURN_NONE]
 		]
 	]
@@ -384,6 +388,7 @@ natives: context [
 				default	[re-throw]
 			]
 		]
+		system/thrown: 0
 		stack/unwind-last
 		unless break? [_context/set w as red-value! saved]
 	]
@@ -430,15 +435,16 @@ natives: context [
 		stack/unwind-last
 	]
 	
-	func*: func [check? [logic!]][
+	func*: func [check? [logic!] /local flags [integer!]][
 		#typecheck func
-		_function/validate as red-block! stack/arguments
+		flags: _function/validate as red-block! stack/arguments
 		_function/push 
 			as red-block! stack/arguments
 			as red-block! stack/arguments + 1
 			null
 			0
 			null
+			flags
 		stack/set-last stack/get-top
 	]
 	
@@ -508,18 +514,20 @@ natives: context [
 		check?	  [logic!]
 		all? 	  [integer!]
 		/local
+			blk	  [red-block!]
 			value [red-value!]
 			tail  [red-value!]
 			true? [logic!]
 	][
 		#typecheck [case all?]
-		value: block/rs-head as red-block! stack/arguments
-		tail:  block/rs-tail as red-block! stack/arguments
+		blk: as red-block! stack/push stack/arguments
+		value: block/rs-head blk
+		tail:  block/rs-tail blk
 		if value = tail [RETURN_NONE]
 
 		true?: false
 		while [value < tail][
-			value: interpreter/eval-next value tail no	;-- eval condition
+			value: interpreter/eval-next blk value tail no	;-- eval condition
 			if value = tail [break]
 			either logic/true? [
 				either TYPE_OF(value) = TYPE_BLOCK [	;-- if true, eval what follows it
@@ -527,7 +535,7 @@ natives: context [
 					interpreter/eval as red-block! value yes
 					value: value + 1
 				][
-					value: interpreter/eval-next value tail no
+					value: interpreter/eval-next blk value tail no
 				]
 				if negative? all? [exit]				;-- early exit with last value on stack (unless /all)
 				true?: yes
@@ -543,44 +551,71 @@ natives: context [
 		expand? [integer!]
 		args 	[integer!]
 		next	[integer!]
+		trace	[integer!]
 		return: [integer!]
 		/local
 			cframe [byte-ptr!]
 			arg	   [red-value!]
 			do-arg [red-value!]
+			fun	   [red-function!]
 			slot   [red-value!]
 			blk	   [red-block!]
 			job	   [red-value!]
 			pos	   [integer!]
+			thrown [integer!]
+			fun?   [logic!]
 	][
-		#typecheck [do expand? args next]
+		#typecheck [do expand? args next trace]
 		arg: stack/arguments
 		cframe: stack/get-ctop							;-- save the current call frame pointer
 		do-arg: stack/arguments + args
+		fun: 	as red-function! stack/arguments + trace
 		
 		if OPTION?(do-arg) [
 			copy-cell do-arg #get system/script/args
 		]
+		fun?: OPTION?(fun)
+		if fun? [
+			with [interpreter][
+				either trace? [fun?: no][				;-- pass-thru, ignore handler if one is in use already
+					fun-locs: _function/count-locals fun/spec 0 no
+					fun-evts: decode-filter fun
+					copy-cell as red-value! fun as red-value! trace-fun
+					trace?: tracing?: yes
+					fire-init
+				]
+			]
+		]
 		if next > 0 [slot: _context/get as red-word! stack/arguments + next]
 		
 		assert system/thrown = 0
-		catch RED_THROWN_BREAK [
+		catch RED_THROWN_ERROR [
 			switch TYPE_OF(arg) [
 				TYPE_ANY_LIST [DO_EVAL_BLOCK]
 				TYPE_PATH  [
-					interpreter/eval-path arg arg arg + 1 no no no no
+					interpreter/eval-path arg arg arg + 1 null no no no no
 				]
 				TYPE_STRING [
 					lexer/scan-alt arg as red-string! arg -1 no yes yes no null null null
 					DO_EVAL_BLOCK
 				]
 				TYPE_URL 
-				TYPE_FILE  [#call [do-file as red-file! arg]]
+				TYPE_FILE  [#call [do-file as red-file! arg none-value]]
 				TYPE_ERROR [
 					stack/throw-error as red-object! arg
 				]
-				default [interpreter/eval-expression arg arg + 1 no no yes]
+				default [interpreter/eval-expression arg arg + 1 null no no yes]
 			]
+		]
+		if fun? [
+			thrown: system/thrown
+			system/thrown: 0
+			with [interpreter][
+				fire-end
+				copy-cell none-value as red-value! trace-fun
+				trace?: tracing?: no
+			]
+			system/thrown: thrown
 		]
 		switch system/thrown [
 			RED_THROWN_BREAK
@@ -594,8 +629,8 @@ natives: context [
 					system/thrown						;-- request an early exit from caller
 				]
 			]
-			0			[0]
-			default 	[re-throw 0]					;-- 0 to make compiler happy
+			0			[0]								;-- no exception case
+			default 	[re-throw 0]					;-- all other exceptions (0 to make compiler happy)
 		]
 	]
 	
@@ -611,7 +646,7 @@ natives: context [
 		
 		switch TYPE_OF(value) [
 			TYPE_ANY_PATH [
-				interpreter/eval-path value null null no any? <> -1 no case? <> -1
+				interpreter/eval-path value null null null no any? <> -1 no case? <> -1
 			]
 			TYPE_OBJECT [
 				object/reflect as red-object! value words/values
@@ -654,7 +689,7 @@ natives: context [
 			TYPE_ANY_PATH [
 				value: stack/push stack/arguments
 				copy-cell stack/arguments + 1 stack/arguments
-				interpreter/eval-path value null null yes yes no case? <> -1
+				interpreter/eval-path value null null null yes yes no case? <> -1
 			]
 			TYPE_OBJECT [
 				object/set-many as red-object! w value any? only? some?
@@ -826,6 +861,13 @@ natives: context [
 				type = TYPE_MONEY [
 					res: zero? money/compare as red-money! arg1 as red-money! arg2 COMP_SAME
 				]
+				any [
+					type = TYPE_ACTION
+					type = TYPE_NATIVE
+					type = TYPE_OP
+				][
+					res: all [arg1/data2 = arg2/data2 arg1/data3 = arg2/data3]
+				]
 				true [
 					res: all [
 						arg1/data1 = arg2/data1
@@ -894,6 +936,7 @@ natives: context [
 		check? [logic!]
 		into   [integer!]
 		/local
+			blk	  [red-block!]
 			value	 [red-value!]
 			tail	 [red-value!]
 			arg		 [red-value!]
@@ -910,8 +953,9 @@ natives: context [
 		into?: into >= 0
 
 		if blk? [
-			value: block/rs-head as red-block! arg
-			tail:  block/rs-tail as red-block! arg
+			blk: as red-block! stack/push arg
+			value: block/rs-head blk
+			tail:  block/rs-tail blk
 		]
 
 		stack/mark-native words/_body
@@ -926,7 +970,7 @@ natives: context [
 		]
 		either blk? [
 			while [value < tail][
-				value: interpreter/eval-next value tail yes
+				value: interpreter/eval-next blk value tail yes
 				clear-newline stack/arguments + 1
 				either append? [block/append*][actions/insert* -1 0 -1]
 				stack/keep									;-- preserve the reduced block on stack
@@ -942,7 +986,7 @@ natives: context [
 			][
 				stack/set-last arg
 			][
-				interpreter/eval-expression arg arg + 1 no yes no ;-- for non block! values
+				interpreter/eval-expression arg arg + 1 null no yes no ;-- for non block! values
 			]
 			if into? [either append? [block/append*][actions/insert* -1 0 -1]]
 		]
@@ -2092,7 +2136,8 @@ natives: context [
 		name   [integer!]
 	][
 		#typecheck [throw name]
-		if name = -1 [unset/push]						;-- fill this slot anyway for CATCH		
+		if interpreter/tracing? [interpreter/fire-throw]
+		if name = -1 [unset/push]						;-- fill this slot anyway for CATCH
 		stack/throw-throw RED_THROWN_THROW
 	]
 	
@@ -2148,6 +2193,7 @@ natives: context [
 			system/thrown: 0
 			stack/set-last stack/get-top
 			stack/top: stack/arguments + 1
+			if interpreter/tracing? [interpreter/fire-catch]
 		]
 	]
 	
@@ -2829,6 +2875,7 @@ natives: context [
 			dt	  [red-datatype!]
 			fun	  [red-function!]
 			s	  [series!]
+			cs    [c-string!]
 	][
 		#typecheck [transcode next one prescan scan part into trace]
 
@@ -2874,7 +2921,18 @@ natives: context [
 		one?: any [next? not all? not load?]
 		either type = TYPE_BINARY [
 			if len < 0 [len: binary/rs-length? bin]
-			type: lexer/scan slot binary/rs-head bin len one? scan? load? no :offset fun as red-series! bin out
+			cs: as c-string! binary/rs-head bin
+			if all [									;-- skip the BOM, don't load it as word
+				len >= 3
+				cs/1 = #"^(EF)"
+				cs/2 = #"^(BB)"
+				cs/3 = #"^(BF)"
+			][
+				len: len - 3
+				cs: cs + 3
+				bin/head: bin/head + 3
+			]
+			type: lexer/scan slot as byte-ptr! cs len one? scan? load? no :offset fun as red-series! bin out
 		][
 			str: as red-string! bin
 			if len < 0 [len: string/rs-length? str]

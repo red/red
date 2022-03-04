@@ -479,6 +479,7 @@ make-event: func [
 		key	   [integer!]
 		char   [integer!]
 		saved  [handle!]
+		t?	   [logic!]
 ][
 	gui-evt/type:  evt
 	gui-evt/msg:   as byte-ptr! msg
@@ -568,10 +569,15 @@ make-event: func [
 	saved: msg/hWnd
 	stack/mark-try-all words/_anon
 	res: as red-word! stack/arguments
+	
+	t?: interpreter/tracing?
+	interpreter/tracing?: no
 	catch CATCH_ALL_EXCEPTIONS [
 		#call [system/view/awake gui-evt]
 		stack/unwind
 	]
+	interpreter/tracing?: t?
+	
 	stack/adjust-post-try
 	if system/thrown <> 0 [system/thrown: 0]
 	msg/hWnd: saved
@@ -695,13 +701,23 @@ process-command-event: func [
 			
 			unless zero? evt [make-event current-msg 0 evt]	;-- should be *after* get-facet call (Windows closing on click case)
 		]
-		BN_UNPUSHED [
+		BN_UNPUSHED [ ;-- overlapped with CBN_SETFOCUS
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
-			if type/symbol = radio [
+			either type/symbol = radio [
 				current-msg/hWnd: child						;-- force child handle
 				unless as logic! SendMessage child BM_GETSTATE 0 0 [
 					make-event current-msg 0 EVT_CHANGE		;-- ignore double-click (fixes #4246)
 				]
+			][		;-- CBN_SETFOCUS
+				values: get-face-values hWnd
+				if values <> null [
+					make-at 
+						child
+						as red-object! values + FACE_OBJ_SELECTED
+				]
+				current-msg/hWnd: child
+				type: as red-word! get-facet current-msg FACE_OBJ_TYPE
+				make-event current-msg 0 EVT_FOCUS
 			]
 		]
 		EN_CHANGE [											;-- sent also by CreateWindow
@@ -718,7 +734,6 @@ process-command-event: func [
 			]
 			0
 		]
-		CBN_SETFOCUS
 		LBN_SETFOCUS
 		EN_SETFOCUS [
 			values: get-face-values hWnd
@@ -729,16 +744,20 @@ process-command-event: func [
 			]
 			current-msg/hWnd: child
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
+			sym: symbol/resolve type/symbol
 			if any [
-				type/symbol = field
-				type/symbol = area
+				sym = field
+				sym = area
 			][	
 				select-text child get-face-values child
 			]
-			make-event current-msg 0 EVT_FOCUS
+			either any [
+				sym = drop-down
+				sym = drop-list
+			][
+				make-event current-msg 0 EVT_UNFOCUS
+			][make-event current-msg 0 EVT_FOCUS]
 		]
-		CBN_KILLFOCUS
-		LBN_KILLFOCUS
 		EN_KILLFOCUS [
 			current-msg/hWnd: child
 			make-event current-msg 0 EVT_UNFOCUS
@@ -782,6 +801,7 @@ process-command-event: func [
 			][
 				make-event current-msg -1 EVT_CHANGE
 			]
+			if type/symbol = text-list [make-event current-msg 0 EVT_UNFOCUS]
 		]
 		STN_CLICKED [
 			current-msg/hWnd: child
@@ -1621,11 +1641,14 @@ process: func [
 			res
 		]
 		WM_LBUTTONUP	[
+			prev-captured: msg/hWnd
 			if all [msg/hWnd <> null msg/hWnd = GetCapture not no-face? msg/hWnd][
 				word: (as red-word! get-face-values msg/hWnd) + FACE_OBJ_TYPE
 				if base = symbol/resolve word/symbol [ReleaseCapture]	;-- issue #4384
 			]
-			make-event msg flags EVT_LEFT_UP
+			res: make-event msg flags EVT_LEFT_UP
+			prev-captured: null
+			res
 		]
 		WM_RBUTTONDOWN	[
 			if GetCapture <> null [return EVT_DISPATCH]
