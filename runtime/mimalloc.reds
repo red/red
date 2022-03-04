@@ -14,8 +14,11 @@ Red/System [
 	}
 ]
 
-#include %tools.reds
+#define handle! int-ptr!
 
+#include %tools.reds
+#include %threads.reds
+	
 #define MI_PTR_SHIFT	2										;-- 32 bits system
 #define MI_PTR_SIZE		[(1 << MI_PTR_SHIFT)]
 
@@ -83,7 +86,7 @@ Red/System [
 
 mimalloc: context [
 
-	verbose: 0
+	verbose: 1
 
 	#enum page-flags! [
 		PAGE_FLAG_IN_USE:		1
@@ -282,11 +285,80 @@ mimalloc: context [
 				]
 			]
 		]
+
+		OS-init: func [/local si [tagSYSTEM_INFO value]][
+			GetSystemInfo :si
+			if si/dwPageSize > 0 [os-page-size: si/dwPageSize]
+			if si/dwAllocationGranularity > 0 [
+				alloc-granularity: si/dwAllocationGranularity
+			]
+		]
+
+		OS-alloc: func [
+			size	[integer!]
+			commit?	[logic!]
+			stats	[stats!]
+			return: [byte-ptr!]
+			/local
+				flags [integer!]
+		][
+			flags: 2000h							;-- MEM_RESERVE
+			if commit? [flags: 3000h]				;-- MEM_RESERVE or MEM_COMMIT
+			VirtualAlloc null size flags 4			;-- PAGE_READWRITE
+		]
+
+		OS-alloc-at: func [
+			addr	[byte-ptr!]
+			size	[integer!]
+			commit?	[logic!]
+			stats	[stats!]
+			return: [byte-ptr!]
+			/local
+				flags [integer!]
+		][
+			flags: 2000h							;-- MEM_RESERVE
+			if commit? [flags: 3000h]				;-- MEM_RESERVE or MEM_COMMIT
+			VirtualAlloc addr size flags 4			;-- PAGE_READWRITE
+		]
+
+		OS-free: func [
+			addr	[byte-ptr!]
+			size	[integer!]
+			stats	[stats!]
+		][
+			if zero? VirtualFree addr 0 8000h [		;-- MEM_RELEASE: 0x8000
+				throw 7FFFFFF6h
+			]
+		]
+
+		OS-decommit: func [
+			addr	[byte-ptr!]
+			size	[integer!]
+			stats	[stats!]
+			return: [logic!]
+			/local
+				s	[byte-ptr!]
+				e	[byte-ptr!]
+				sz	[integer!]
+		][
+			s: as byte-ptr! round-to as-integer addr os-page-size
+			e: as byte-ptr! (as-integer addr) + size / os-page-size * os-page-size
+			sz: as-integer e - s
+			either sz > 0 [
+				0 <> VirtualFree s sz 4000h			;-- MEM_DECOMMIT: 0x4000
+			][true]
+		]
 	][
 		#import [
+			LIBC-file cdecl [
+				sysconf: "sysconf" [
+					property	[integer!]
+					return:		[integer!]
+				]
+			]
 			LIBPTHREAD-file cdecl [
 				pthread_key_create: "pthread_key_create" [
-					key			[ulong!]
+					key			[int-ptr!]
 					destructor	[int-ptr!]
 					return:		[integer!]
 				]
@@ -296,6 +368,96 @@ mimalloc: context [
 					return:		[integer!]
 				]
 			]
+		]
+
+		#define MMAP_PROT_RW		03h				;-- PROT_READ | PROT_WRITE
+		#define MMAP_PROT_RWX		07h				;-- PROT_READ | PROT_WRITE | PROT_EXEC
+
+		#define MMAP_MAP_SHARED     01h
+		#define MMAP_MAP_PRIVATE    02h
+		#define MMAP_MAP_ANONYMOUS  20h
+
+		#either OS = 'Android [
+			#define SC_PAGE_SIZE	28h
+		][
+			#define SC_PAGE_SIZE	1Eh
+		]
+
+		#define SYSCALL_MMAP2		192
+		#define SYSCALL_MUNMAP		91
+		#define SYSCALL_MMAP		SYSCALL_MMAP2
+
+		#syscall [
+			mmap: SYSCALL_MMAP [
+				address		[byte-ptr!]
+				size		[integer!]
+				protection	[integer!]
+				flags		[integer!]
+				fd			[integer!]
+				offset		[integer!]
+				return:		[byte-ptr!]
+			]
+			munmap: SYSCALL_MUNMAP [
+				address		[byte-ptr!]
+				size		[integer!]
+				return:		[integer!]
+			]
+		]
+
+		OS-init: func [/local psize [integer!]][
+			psize: sysconf SC_PAGE_SIZE
+			if psize > 0 [
+				os-page-size: psize
+				alloc-granularity: psize
+			]
+		]
+
+		OS-alloc: func [
+			size	[integer!]
+			commit?	[logic!]
+			stats	[stats!]
+			return: [byte-ptr!]
+			/local
+				flags [integer!]
+		][
+			flags: either commit? [MMAP_PROT_RW][0]
+			mmap null size flags MMAP_MAP_PRIVATE or MMAP_MAP_ANONYMOUS -1 0
+		]
+
+		OS-alloc-at: func [
+			addr	[byte-ptr!]
+			size	[integer!]
+			commit?	[logic!]
+			stats	[stats!]
+			return: [byte-ptr!]
+			/local
+				flags [integer!]
+		][
+			flags: either commit? [MMAP_PROT_RW][0]
+			mmap addr size flags MMAP_MAP_PRIVATE or MMAP_MAP_ANONYMOUS -1 0
+		]
+
+		OS-free: func [
+			addr	[byte-ptr!]
+			size	[integer!]
+			stats	[stats!]
+		][
+			if -1 = munmap addr size [
+				throw 7FFFFFF6h
+			]
+		]
+
+		OS-decommit: func [
+			addr	[byte-ptr!]
+			size	[integer!]
+			stats	[stats!]
+			return: [logic!]
+			/local
+				s	[byte-ptr!]
+				e	[byte-ptr!]
+				sz	[integer!]
+		][
+			true
 		]
 	]
 
@@ -317,65 +479,8 @@ mimalloc: context [
 		loop size [dest/value: #"^@" dest: dest + 1]
 	]
 
-	;== OS memory APIs
-
-	OS-alloc: func [
-		size	[integer!]
-		commit?	[logic!]
-		stats	[stats!]
-		return: [byte-ptr!]
-		/local
-			flags [integer!]
-	][
-		flags: 2000h							;-- MEM_RESERVE
-		if commit? [flags: 3000h]				;-- MEM_RESERVE or MEM_COMMIT
-		VirtualAlloc null size flags 4			;-- PAGE_READWRITE
-	]
-
-	OS-alloc-at: func [
-		addr	[byte-ptr!]
-		size	[integer!]
-		commit?	[logic!]
-		stats	[stats!]
-		return: [byte-ptr!]
-		/local
-			flags [integer!]
-	][
-		flags: 2000h							;-- MEM_RESERVE
-		if commit? [flags: 3000h]				;-- MEM_RESERVE or MEM_COMMIT
-		VirtualAlloc addr size flags 4			;-- PAGE_READWRITE
-	]
-
-	OS-free: func [
-		addr	[byte-ptr!]
-		size	[integer!]
-		stats	[stats!]
-	][
-		if zero? VirtualFree addr 0 8000h [		;-- MEM_RELEASE: 0x8000
-			throw 7FFFFFF6h
-		]
-	]
-
-	OS-decommit: func [
-		addr	[byte-ptr!]
-		size	[integer!]
-		stats	[stats!]
-		return: [logic!]
-		/local
-			s	[byte-ptr!]
-			e	[byte-ptr!]
-			sz	[integer!]
-	][
-		s: as byte-ptr! round-to as-integer addr os-page-size
-		e: as byte-ptr! (as-integer addr) + size / os-page-size * os-page-size
-		sz: as-integer e - s
-		either sz > 0 [
-			0 <> VirtualFree s sz 4000h			;-- MEM_DECOMMIT: 0x4000
-		][true]
-	]
-
 	OS-alloc-aligned: func [
-		size	[integer!]
+		size	[ulong!]
 		align	[integer!]
 		commit?	[logic!]
 		stats	[stats!]
@@ -383,7 +488,9 @@ mimalloc: context [
 		/local
 			p	[byte-ptr!]
 			p2	[byte-ptr!]
-			sz	[integer!]
+			sz	[ulong!]
+			pre-sz	[ulong!]
+			post-sz	[ulong!]
 	][
 		size: round-to size os-page-size
 		p: OS-alloc size commit? stats
@@ -392,6 +499,8 @@ mimalloc: context [
 		if (as-integer p) % align <> 0 [		;-- not aligned
 			OS-free p size stats
 			sz: size + align
+
+			#either OS = 'Windows [
 			loop 3 [
 				p: OS-alloc sz commit? stats
 				if null? p [return null]
@@ -407,6 +516,17 @@ mimalloc: context [
 					OS-free p size stats
 					p: null
 				]
+			]][
+
+			p: OS-alloc sz commit? stats
+			if null? p [return null]
+			p2: as byte-ptr! round-to as-integer p align
+			pre-sz: as ulong! p2 - p
+			post-sz: sz - pre-sz - size
+			if pre-sz > 0 [OS-free p pre-sz stats]
+			if post-sz > 0 [OS-free p2 + size post-sz stats]
+			p: p2
+
 			]
 		]
 		p
@@ -476,12 +596,8 @@ mimalloc: context [
 		init-heap hp
 	]
 
-	init: func [/local si [tagSYSTEM_INFO value]][
-		GetSystemInfo :si
-		if si/dwPageSize > 0 [os-page-size: si/dwPageSize]
-		if si/dwAllocationGranularity > 0 [
-			alloc-granularity: si/dwAllocationGranularity
-		]
+	init: func [][
+		OS-init
 		init-process
 	]
 
@@ -667,7 +783,6 @@ mimalloc: context [
 			0 ;TBD: commit if segment is uncommited
 		][
 			segment: as segment! OS-alloc-aligned segment-sz MI_SEGMENT_SIZE yes tld/stats
-			assert segment <> null
 		]
 
 		;-- initialize segment
@@ -1287,44 +1402,57 @@ mimalloc: context [
 	]
 ]
 
-;test: func [/local p [byte-ptr!] arr [int-ptr!] n [integer!]][
-;	mimalloc/init
-;	n: 1
-;	arr: system/stack/allocate 100
-;	loop 100 [
-;		p: mimalloc/malloc 1024
-;		arr/n: as-integer p
-;		n: n + 1
-;	]
-;	probe as byte-ptr! arr/1
-;	?? p
-;	mimalloc/Sleep 5000
-;	n: 1
-;	loop 99 [
-;		p: as byte-ptr! arr/n
-;		mimalloc/free p
-;		n: n + 1
-;	]
-;	?? p
-;	probe 2222
-;	mimalloc/Sleep 5000
-;	p: mimalloc/malloc 1024 * 64
-;	?? p
-;	mimalloc/free p
-;	?? p
-;	mimalloc/Sleep 15000
+#define TEST_MAX 800
 
-;	probe 444444
-;	p: mimalloc/malloc 1024 * 1024
-;	?? p
-;	mimalloc/free p
-;	?? p
+test: func [/local p [byte-ptr!] arr [int-ptr!] n [integer!]][
+	mimalloc/init
+	n: 1
+	arr: system/stack/allocate TEST_MAX
+	loop TEST_MAX [
+		p: mimalloc/malloc 1024
+		arr/n: as-integer p
+		n: n + 1
+	]
+	probe as byte-ptr! arr/1
+	?? p
 
-;	probe 555555
-;	p: mimalloc/malloc 1024 * 1100
-;	?? p
-;	mimalloc/free p
-;	?? p
-;]
+	n: 1
+	loop TEST_MAX [
+		p: as byte-ptr! arr/n
+		mimalloc/free p
+		n: n + 1
+	]
+	?? p
+	probe 2222
 
-;test
+	n: 1
+	loop TEST_MAX [
+		p: mimalloc/malloc 1024 * 64
+		arr/n: as-integer p
+		n: n + 1
+	]
+	?? p
+
+	n: 1
+	loop TEST_MAX [
+		p: as byte-ptr! arr/n
+		mimalloc/free p
+		n: n + 1
+	]
+	?? p
+
+	probe 444444
+	p: mimalloc/malloc 1024 * 1024
+	?? p
+	mimalloc/free p
+	?? p
+
+	probe 555555
+	p: mimalloc/malloc 1024 * 2048
+	?? p
+	mimalloc/free p
+	?? p
+	mimalloc/Sleep 20 * 1000
+]
+
+test
