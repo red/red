@@ -14,10 +14,8 @@ Red/System [
 	}
 ]
 
-#define handle! int-ptr!
-
 #include %tools.reds
-#include %threads.reds
+;#include %threads.reds
 	
 #define MI_PTR_SHIFT	2										;-- 32 bits system
 #define MI_PTR_SIZE		[(1 << MI_PTR_SHIFT)]
@@ -66,19 +64,21 @@ Red/System [
 	]
 ]
 
-#define MI_THREAD_ID [
-	#either OS = 'Windows [
-		#inline [
-			#{64A118000000}		;-- mov eax, DWORD PTR fs:24 (NtCurrentTeb)
-			return: [ulong!]
-		]
-	][
-		#inline [
-			#{65A100000000}		;-- mov eax, gs:0x0
-			return: [ulong!]
-		]
-	]
-]
+#define MI_THREAD_ID 0
+
+;#define MI_THREAD_ID [
+;	#either OS = 'Windows [
+;		#inline [
+;			#{64A118000000}		;-- mov eax, DWORD PTR fs:24 (NtCurrentTeb)
+;			return: [ulong!]
+;		]
+;	][
+;		#inline [
+;			#{65A100000000}		;-- mov eax, gs:0x0
+;			return: [ulong!]
+;		]
+;	]
+;]
 
 #define MI_DEBUG(msg) [#if debug? = yes [if verbose > 0 [print-line msg]]]
 
@@ -86,7 +86,7 @@ Red/System [
 
 mimalloc: context [
 
-	verbose: 1
+	verbose: 0
 
 	#enum page-flags! [
 		PAGE_FLAG_IN_USE:		1
@@ -367,40 +367,6 @@ mimalloc: context [
 					value		[int-ptr!]
 					return:		[integer!]
 				]
-			]
-		]
-
-		#define MMAP_PROT_RW		03h				;-- PROT_READ | PROT_WRITE
-		#define MMAP_PROT_RWX		07h				;-- PROT_READ | PROT_WRITE | PROT_EXEC
-
-		#define MMAP_MAP_SHARED     01h
-		#define MMAP_MAP_PRIVATE    02h
-		#define MMAP_MAP_ANONYMOUS  20h
-
-		#either OS = 'Android [
-			#define SC_PAGE_SIZE	28h
-		][
-			#define SC_PAGE_SIZE	1Eh
-		]
-
-		#define SYSCALL_MMAP2		192
-		#define SYSCALL_MUNMAP		91
-		#define SYSCALL_MMAP		SYSCALL_MMAP2
-
-		#syscall [
-			mmap: SYSCALL_MMAP [
-				address		[byte-ptr!]
-				size		[integer!]
-				protection	[integer!]
-				flags		[integer!]
-				fd			[integer!]
-				offset		[integer!]
-				return:		[byte-ptr!]
-			]
-			munmap: SYSCALL_MUNMAP [
-				address		[byte-ptr!]
-				size		[integer!]
-				return:		[integer!]
 			]
 		]
 
@@ -1402,6 +1368,7 @@ mimalloc: context [
 	]
 ]
 
+comment {
 #define TEST_MAX 800
 
 test: func [/local p [byte-ptr!] arr [int-ptr!] n [integer!]][
@@ -1456,3 +1423,4 @@ test: func [/local p [byte-ptr!] arr [int-ptr!] n [integer!]][
 ]
 
 test
+}

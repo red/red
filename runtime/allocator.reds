@@ -1377,7 +1377,7 @@ b-allocator: context [
 		size: round-to usize * unit size? cell!	;-- size aligned to cell! size
 		sz: size + (size? int-ptr!) + size? series-buffer!
 
-		;collect-series
+		collect-series
 		p: as ptr-ptr! mimalloc/malloc sz
 		p/value: as int-ptr! first-series
 		first-series: p
