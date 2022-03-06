@@ -176,6 +176,11 @@ system-dialect: make-profilable context [
 		
 		action-class: context [action: type: keep?: data: none]
 		
+		directives: [
+			#import | #export | #syscall | #call | #get | #in | #typecheck | #enum | #verbose 
+			| #u16 | #inline | #user-code | #build-date | #script
+		]
+		
 		struct-syntax: [
 			pos: opt [into ['align integer! opt ['big | 'little]]]	;-- struct's attributes
 			pos: some [word! into [func-pointer | type-spec]]		;-- struct's members
@@ -3759,7 +3764,10 @@ system-dialect: make-profilable context [
 			if verbose >= 4 [print ["<<<" mold pc/1]]
 			pass: [also pc/1 pc: next pc]
 			
-			if tail? pc [
+			if any [
+				tail? pc
+				all [job/red-pass? parse pc [some [file! | directives]]] ;-- #5092
+			][
 				either caller [
 					unless backtrack caller [pc: back pc]
 					throw-error [mold caller "is missing an argument"]
