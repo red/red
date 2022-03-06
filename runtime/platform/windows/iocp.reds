@@ -56,8 +56,14 @@ sockdata!: alias struct! [
 tls-data!: alias struct! [
 	IOCP_DATA_FIELDS
 	port		[red-object! value]		;-- red port! cell
+	flags		[integer!]
 	send-buf	[node!]					;-- send buffer
-	buf-len		[integer!]
+	tls-buf		[byte-ptr!]				;-- encode data in this buffer
+	tls-extra	[byte-ptr!]				;-- leftover data after decoding
+	extra-sz	[integer!]				;-- size of the extra buffer
+	head		[integer!]				;-- head of the send-buf
+	sent-sz		[integer!]
+	buf-len		[integer!]				;-- number of bytes in the read buffer
 	addr		[sockaddr_in6! value]	;-- IPv4 or IPv6 address
 	addr2		[sockaddr_in! value]	;-- 16 bytes
 	addr-sz		[integer!]
@@ -215,6 +221,12 @@ iocp: context [
 						switch evt [
 							IO_EVT_READ [
 								unless tls/decode as tls-data! data [
+									i: i + 1
+									continue
+								]
+							]
+							IO_EVT_WRITE [
+								if tls/send-data as tls-data! data [
 									i: i + 1
 									continue
 								]

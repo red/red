@@ -307,9 +307,11 @@ simple-io: context [
 			if zero? size [			;-- empty file
 				close-file file
 				val: stack/push*
-				string/rs-make-at val 1
-				type: either binary? [TYPE_BINARY][TYPE_STRING]
-				set-type val type
+				either binary? [
+					binary/make-at val 1
+				][
+					string/rs-make-at val 1
+				]
 				return val
 			]
 		]

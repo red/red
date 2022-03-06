@@ -1079,51 +1079,64 @@ tls: context [
 			buffer2	[SecBuffer! value]
 			buffer1	[SecBuffer! value]
 			sbin	[SecBufferDesc! value]
-			size	[integer!]
-			len2	[integer!]
-			max-len	[integer!]
 			status	[integer!]
-			out-sz	[integer!]
 	][
 		copy-memory output + data/ctx-header buffer length
-		size: 0
-		out-sz: 0
-		max-len: data/ctx-max-msg
-		while [size < length][
-			len2: length - size
-			if len2 > max-len [len2: max-len]
 
-			buffer1/BufferType: 7		;-- SECBUFFER_STREAM_HEADER
-			buffer1/cbBuffer: data/ctx-header
-			buffer1/pvBuffer: output
+		buffer1/BufferType: 7		;-- SECBUFFER_STREAM_HEADER
+		buffer1/cbBuffer: data/ctx-header
+		buffer1/pvBuffer: output
 
-			output: output + data/ctx-header
-			buffer2/BufferType: 1		;-- SECBUFFER_DATA
-			buffer2/cbBuffer: len2
-			buffer2/pvBuffer: output
+		output: output + data/ctx-header
+		buffer2/BufferType: 1		;-- SECBUFFER_DATA
+		buffer2/cbBuffer: length
+		buffer2/pvBuffer: output
 
-			buffer3/BufferType: 6		;-- SECBUFFER_STREAM_TRAILER
-			buffer3/cbBuffer: data/ctx-trailer
-			buffer3/pvBuffer: output + len2
+		buffer3/BufferType: 6		;-- SECBUFFER_STREAM_TRAILER
+		buffer3/cbBuffer: data/ctx-trailer
+		buffer3/pvBuffer: output + length
 
-			buffer4/BufferType: 0		;-- SECBUFFER_EMPTY
-			buffer4/cbBuffer: 0
-			buffer4/pvBuffer: null
+		buffer4/BufferType: 0		;-- SECBUFFER_EMPTY
+		buffer4/cbBuffer: 0
+		buffer4/pvBuffer: null
 
-			sbin/ulVersion: 0
-			sbin/pBuffers: :buffer1
-			sbin/cBuffers: 4
+		sbin/ulVersion: 0
+		sbin/pBuffers: :buffer1
+		sbin/cBuffers: 4
 
-			status: platform/SSPI/EncryptMessage
-				as SecHandle! :data/security
-				0
-				sbin
-				0
-			if status <> 0 [return 0]
-			out-sz: buffer1/cbBuffer + buffer2/cbBuffer + buffer3/cbBuffer
-			size: size + len2
-		]
-		out-sz
+		status: platform/SSPI/EncryptMessage
+			as SecHandle! :data/security
+			0
+			sbin
+			0
+		if status <> 0 [return 0]
+
+		buffer1/cbBuffer + buffer2/cbBuffer + buffer3/cbBuffer
+	]
+
+	send-data: func [
+		data		[tls-data!]
+		return:		[logic!]		;-- false if sent all data
+		/local
+			len	sz	[integer!]
+			sent-sz [integer!]
+			ser		[red-series! value]
+			p		[byte-ptr!]
+	][
+		ser/head: data/head
+		ser/node: data/send-buf
+		len: _series/get-length ser no
+		sent-sz: data/sent-sz
+
+		if sent-sz = len [return false]
+
+		sz: len - sent-sz
+		if sz > data/ctx-max-msg [sz: data/ctx-max-msg]
+		data/sent-sz: sent-sz + sz
+
+		p: binary/rs-head as red-binary! ser
+		send as-integer data/device p + sent-sz sz data
+		true
 	]
 
 	send: func [
@@ -1136,12 +1149,10 @@ tls: context [
 			wsbuf	[WSABUF! value]
 			err		[integer!]
 			outbuf	[byte-ptr!]
-			s		[series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tls/send"]]
 
-		s: as series! data/send-buf/value
-		outbuf: as byte-ptr! s/offset
+		outbuf: data/tls-buf
 		length: encode outbuf buffer length data
 		wsbuf/len: length
 		wsbuf/buf: outbuf
@@ -1152,6 +1163,20 @@ tls: context [
 			either ERROR_IO_PENDING = err [return ERROR_IO_PENDING][return -1]
 		]
 		0
+	]
+
+	recv: func [
+		sock		[integer!]
+		buffer		[byte-ptr!]
+		length		[integer!]
+		data		[tls-data!]
+		return:		[integer!]
+		/local
+			extra	[integer!]
+	][
+		extra: data/buf-len
+		if extra > 0 [copy-memory buffer data/tls-extra extra]
+		socket/recv sock buffer + extra length - extra as iocp-data! data
 	]
 
 	decode: func [
@@ -1166,75 +1191,92 @@ tls: context [
 			buffer2	[SecBuffer! value]
 			buffer1	[SecBuffer! value]
 			sbin	[SecBufferDesc! value]
-			size	[integer!]
 			len2	[integer!]
-			max-len	[integer!]
 			status	[integer!]
-			out-sz	[integer!]
 			buf		[SecBuffer!]
 			i		[integer!]
 			pbuffer	[byte-ptr!]
+			src		[byte-ptr!]
+			src-len [integer!]
+			extra?  [logic!]
 	][
 		if zero? data/transferred [	;-- peer socket was closed
 			data/event: IO_EVT_CLOSE
 			return yes
 		]
 
+		extra?: no
+		len: 0
+		status: 0
 		bin: as red-binary! (object/get-values as red-object! :data/port) + port/field-data
 		s: GET_BUFFER(bin)
 		pbuffer: as byte-ptr! s/offset
+		src: pbuffer
+		src-len: data/transferred + data/buf-len
 
-		buffer1/BufferType: 1		;-- SECBUFFER_DATA
-		buffer1/cbBuffer: data/transferred
-		buffer1/pvBuffer: as byte-ptr! s/offset
- 
-		buffer2/BufferType: 0
-		buffer3/BufferType: 0
-		buffer4/BufferType: 0		;-- SECBUFFER_EMPTY
+		until [
+			buffer1/BufferType: 1		;-- SECBUFFER_DATA
+			buffer1/cbBuffer: src-len
+			buffer1/pvBuffer: src
+	 
+			buffer2/BufferType: 0
+			buffer3/BufferType: 0
+			buffer4/BufferType: 0		;-- SECBUFFER_EMPTY
 
-		sbin/ulVersion: 0
-		sbin/pBuffers: :buffer1
-		sbin/cBuffers: 4
+			sbin/ulVersion: 0
+			sbin/pBuffers: :buffer1
+			sbin/cBuffers: 4
 
-		status: platform/SSPI/DecryptMessage
-			as SecHandle! :data/security
-			sbin
-			0
-			null
-		switch status [
-			0	[		;-- Wow! success!
-				len: 0
-				buf: :buffer1
-				loop 3 [
-					buf: buf + 1
-					if buf/BufferType = 1 [
-						move-memory (as byte-ptr! s/offset) + len buf/pvBuffer buf/cbBuffer
-						len: len + buf/cbBuffer
+			status: platform/SSPI/DecryptMessage
+				as SecHandle! :data/security
+				sbin
+				0
+				null
+
+			switch status [
+				0	[		;-- Wow! success!
+					buf: :buffer1
+					data/buf-len: 0
+					loop 3 [
+						buf: buf + 1
+						if buf/BufferType = 1 [
+							move-memory pbuffer + len buf/pvBuffer buf/cbBuffer
+							len: len + buf/cbBuffer
+						]
+						if buf/BufferType = 5 [	;-- some leftover, save it
+							extra?: yes
+							src: buf/pvBuffer
+							src-len: buf/cbBuffer
+
+							if data/extra-sz < src-len [
+								if data/tls-extra <> null [mimalloc/free data/tls-extra]
+								data/tls-extra: mimalloc/malloc src-len
+								data/extra-sz: src-len
+							]
+							copy-memory data/tls-extra src src-len
+							data/buf-len: src-len
+						]
 					]
 				]
-				buf: :buffer1
-				loop 3 [
-					buf: buf + 1
-					if buf/BufferType = 5 [	;-- some leftover, save it
-						0
-					]
+				SEC_E_INCOMPLETE_MESSAGE [		;-- needs more data
+					if extra? [break]
+
+					len2: data/buf-len + data/transferred
+					data/buf-len: len2
+					socket/recv
+						as-integer data/device
+						pbuffer + len2
+						s/size - len2
+						as iocp-data! data
+					return false
 				]
+				00090317h [		;-- SEC_I_CONTEXT_EXPIRED
+					data/event: IO_EVT_CLOSE
+					len: 0
+				]
+				default [probe ["error in tls/decode: " as int-ptr! status]]
 			]
-			SEC_E_INCOMPLETE_MESSAGE [		;-- needs more data
-				len2: data/buf-len + data/transferred
-				data/buf-len: len2
-				socket/recv
-					as-integer data/device
-					pbuffer + len2
-					s/size - len2
-					as iocp-data! data
-				return false
-			]
-			00090317h [		;-- SEC_I_CONTEXT_EXPIRED
-				data/event: IO_EVT_CLOSE
-				len: 0
-			]
-			default [probe ["error in tls/decode: " as int-ptr! status]]
+			extra? = no
 		]
 		data/transferred: len
 		true
@@ -1246,6 +1288,8 @@ tls: context [
 		;TBD free TLS resource
 		socket/close as-integer td/device
 		td/device: IO_INVALID_DEVICE
+		if td/tls-buf <> null [mimalloc/free td/tls-buf]
+		if td/tls-extra <> null [mimalloc/free td/tls-extra]
 		free as byte-ptr! td
 	]
 ]

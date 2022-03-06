@@ -962,7 +962,7 @@ unicode: context [
 			s	 [series!]
 	][
 		either null? str/cache [
-			str/cache: alloc-bytes size
+			str/cache: b-allocator/alloc-bytes size
 			s: as series! str/cache/value
 		][
 			s: as series! str/cache/value

@@ -1,7 +1,5 @@
 Red []
 
-recycle/off
-
 protos: [
 	sslv3	0300h
 	tls1.0	0301h
@@ -13,7 +11,10 @@ protos: [
 debug: :print
 ;debug: :comment
 
-data: to-binary mold system/words
+state: 'none
+ending: "61842c0e-5631-46cb-9748-b390a5da5256"
+
+data: read/binary %/d/conan-win-64.exe
 print length? data
 print "TLS client"
 
@@ -29,9 +30,14 @@ client/awake: func [event /local port] [
     debug ["=== Client event:" event/type]
     port: event/port
     switch event/type [
-        connect [insert port data]
-        read [probe length? port/data close port]
-        wrote [copy port]
+        connect [state: 'send insert port data]
+        read [state: 'none probe to-string port/data close port]
+        wrote [
+	        case [
+	        	state = 'send [state: 'sent insert port ending]
+	        	state = 'sent [copy port]
+        	]
+		]
     ]
 ]
 

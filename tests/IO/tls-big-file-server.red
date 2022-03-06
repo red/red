@@ -101,18 +101,20 @@ protos: [
 debug: :print
 ;debug: :comment
 
-data: mold system/words
-cnt: 0
-debug length? data
+data: make binary! 1000
+ending: to-binary "61842c0e-5631-46cb-9748-b390a5da5256"
 
-process-data: func [port /local len] [
+process-data: func [port] [
 	;debug ["port data:" port/data]
 	debug "process-data enter"
-    len: length? port/data
-    ?? len
-    cnt: cnt + len
-    ?? cnt
-    copy port
+    append data port/data
+	debug length? data
+	either ending = skip tail data 0 - length? ending [
+		write/part/binary %tls-big-file-server-received.data data (length? data) - length? ending
+		insert port "Good!"
+	][
+    	copy port
+	]
 	debug "process-data exit"
 ]
 
@@ -120,14 +122,14 @@ new-event: func [event] [
     debug ["=== Subport event:" event/type]
     switch event/type [
         read  [process-data event/port]
-        wrote [copy event/port]
-        close [close event/port]
     ]
 ]
+
 n: 0
-new-client: func [port /local data] [
+new-client: func [port] [
 	debug ["=== New client ===" n]
     n: n + 1
+    clear data
     port/awake: :new-event
     copy port
 ]
@@ -151,4 +153,3 @@ if none? system/view [
 	wait server
 	print "done"
 ]
-

@@ -1339,6 +1339,7 @@ b-allocator: context [
 	][
 		p: (as b-header! s) - 1
 		p/ref-cnt: p/ref-cnt - 1
+		assert p/ref-cnt >= 0
 	]
 
 	collect-series: func [/local p prev next [b-header!] s [series!]][

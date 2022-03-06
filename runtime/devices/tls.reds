@@ -105,13 +105,12 @@ TLS-device: context [
 		data
 	]
 
-	get-tcp-data: func [
+	get-tls-data: func [
 		red-port	[red-object!]
-		return:		[sockdata!]
+		return:		[tls-data!]
 		/local
 			state	[red-handle!]
 			data	[iocp-data!]
-			new		[sockdata!]
 	][
 		state: as red-handle! (object/get-values red-port) + port/field-state
 		if TYPE_OF(state) <> TYPE_HANDLE [
@@ -121,15 +120,14 @@ TLS-device: context [
 
 		#either OS = 'Windows [
 			data: as iocp-data! state/value
-			either data/event = IO_EVT_NONE [		;-- we can reuse this one
-				as sockdata! data
-			][										;-- needs to create a new one
-				;TBD clone a tls data
-				assert 1 = 0		;-- in our current simple test, should never reach this branch
-				as sockdata! data
+			if data/event <> IO_EVT_NONE [
+				;-- needs to create a new one
+				;TBD clone a tls data?
+				assert 1 = 0
 			]
+			as tls-data! data
 		][
-			as sockdata! state/value
+			as tls-data! state/value
 		]
 	]
 
@@ -243,7 +241,7 @@ probe ["server listen fd: " fd]
 		append?		[logic!]
 		return:		[red-value!]
 		/local
-			data	[sockdata!]
+			data	[tls-data!]
 			bin		[red-binary!]
 			n		[integer!]
 			s		[series!]
@@ -265,15 +263,16 @@ probe ["server listen fd: " fd]
 			default [return as red-value! port]
 		]
 
-		data: get-tcp-data port
+		data: get-tls-data port
 
 		#either OS = 'Windows [
-			data/send-buf: alloc-bytes 96 + binary/rs-length? bin
-			tls/send
-				as-integer data/device
-				binary/rs-head bin
-				binary/rs-length? bin
-				as tls-data! data
+			data/send-buf: bin/node
+			data/head: bin/head
+			data/sent-sz: 0
+			if null? data/tls-buf [
+				data/tls-buf: mimalloc/malloc 96 + data/ctx-max-msg
+			]
+			tls/send-data data
 		][
 			data/send-buf: bin/node
 			socket/send
@@ -305,8 +304,12 @@ probe ["server listen fd: " fd]
 		buf/head: 0
 		io/pin-memory buf/node
 		s: GET_BUFFER(buf)
-		data: as iocp-data! get-tcp-data red-port
-		socket/recv as-integer data/device as byte-ptr! s/offset s/size data
+		data: as iocp-data! get-tls-data red-port
+		#either OS = 'Windows [
+			tls/recv as-integer data/device as byte-ptr! s/offset s/size as tls-data! data
+		][
+			socket/recv as-integer data/device as byte-ptr! s/offset s/size data
+		]
 		as red-value! red-port
 	]
 

@@ -672,7 +672,7 @@ OS-image: context [
 		bin: as red-binary! slot
 		bin/header: TYPE_UNSET
 		bin/head: 0
-		bin/node: alloc-bytes len
+		bin/node: b-allocator/alloc-bytes len
 		bin/header: TYPE_BINARY
 		
 		s: GET_BUFFER(bin)

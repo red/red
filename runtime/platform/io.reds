@@ -11,7 +11,7 @@ Red/System [
 ]
 
 #define SOCK_READBUF_SZ 8192			;-- 8KB
-#define TLS_READBUF_SZ 16384			;-- 16KB
+#define TLS_READBUF_SZ 16480			;-- 16384(16K) + 96
 
 #enum iocp-type! [
 	IOCP_TYPE_TCP:		0
