@@ -2607,8 +2607,8 @@ system-dialect: make-profilable context [
 		]
 		
 		comp-case: has [cases list test body op bodies offset types][
+			unless block? cases: pc/2 [throw-error "missing CASE body block"]
 			pc: next pc
-			cases: pc/1
 			list:  make block! 8
 			types: make block! 8
 			
