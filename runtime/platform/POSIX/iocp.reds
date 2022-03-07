@@ -304,10 +304,10 @@ iocp: context [
 					cnt: cnt + n
 					break
 				]
-				n > 0 [
+				n >= 0 [
 					case [
 						zero? (state and IO_STATE_RW) [
-							data/state: IO_STATE_PENDING_WRITE
+							data/state: state or IO_STATE_PENDING_WRITE
 							iocp/add io-port sock EPOLLOUT or EPOLLET data
 						]
 						state and EPOLLOUT = 0 [
@@ -316,13 +316,14 @@ iocp: context [
 						]
 						true [data/state: state or IO_STATE_WRITING]
 					]
+					if zero? n [break]
+
 					state: data/state
 					data/write-buf: data/write-buf + n
 					length: length - n
 					data/write-buflen: length
 					cnt: cnt + n
 				]
-				zero? n [break]
 				true [	;-- error
 					data/event: IO_EVT_CLOSE
 					break
@@ -399,6 +400,7 @@ iocp: context [
 		]
 
 		i: 0
+
 		while [i < cnt][
 			e: p/events + i
 			data: as iocp-data! e/udata
@@ -530,6 +532,10 @@ iocp: context [
 
 					either null? data/pending-write [
 						write-io data
+						if data/state and IO_STATE_WRITING <> 0 [
+							i: i + 1
+							continue
+						]
 					][
 						0 ;; TBD
 					]

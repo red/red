@@ -353,7 +353,11 @@ tls: context [
 		IODebug("tls/negotiate")
 		ssl: td/ssl
 		ret: SSL_do_handshake ssl
-		either ret = 1 [td/state: td/state or IO_STATE_TLS_DONE 1][
+		either ret = 1 [
+			iocp/remove td/io-port as-integer td/device td/state as iocp-data! td
+			td/state: td/state and (not IO_STATE_RW) or IO_STATE_TLS_DONE
+			1
+		][
 			ret: SSL_get_error ssl ret
 			probe ["errno: " errno/value]
 			switch ret [
