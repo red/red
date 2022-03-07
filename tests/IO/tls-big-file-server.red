@@ -2,8 +2,6 @@ Red [
     title: "Basic Secure TCP test server"
 ]
 
-recycle/off
-
 cert: {
 -----BEGIN CERTIFICATE-----
 MIIEOTCCAyGgAwIBAgIIXBtk0AsQg+wwDQYJKoZIhvcNAQELBQAwgYQxCzAJBgNV
@@ -122,6 +120,7 @@ new-event: func [event] [
     debug ["=== Subport event:" event/type]
     switch event/type [
         read  [process-data event/port]
+        wrote [close event/port]
     ]
 ]
 
