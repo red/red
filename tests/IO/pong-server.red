@@ -23,4 +23,4 @@ server/awake: func [event /local client] [
     ]
 ]
 
-wait 2
+wait 30
