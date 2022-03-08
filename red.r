@@ -176,6 +176,11 @@ redc: context [
 		if system/options/args [quit/return 1]
 		halt
 	]
+	
+	fail-cmd: func [value][
+		prin "*** Red command-line error: "
+		fail value
+	]
 
 	fail-try: func [component body /local err] [
 		if error? set/any 'err try body [
@@ -226,7 +231,7 @@ redc: context [
 			]
 			attempt [result: to-rebol-file filename]
 		][
-			fail ["Invalid filename:" filename]
+			fail-cmd ["Invalid filename:" filename]
 		]
 		result
 	]
@@ -617,7 +622,7 @@ redc: context [
 				attempt [to-rebol-file args/1]
 			]
 			unless all [path exists? path][
-				fail "`red clear` command error: invalid path"
+				fail-cmd "`red clear` command error: invalid path"
 			]
 		]
 		foreach ext [%.dll %.dylib %.so][
@@ -650,7 +655,7 @@ redc: context [
 				parse-options cmd
 			]
 		][
-			fail reform ["command error: unknown command" args/1]
+			fail-cmd reform ["Unknown command" args/1]
 		]
 	]
 	
@@ -682,7 +687,7 @@ redc: context [
 	parse-options: func [
 		args [string! none!]
 		/local src opts output target verbose filename config config-name base-path type
-		mode target? gui? console? cmd spec cmds ws ssp view?
+		mode target? gui? console? cmd spec cmds ws ssp view? modes
 	][
 		unless args [
 			if encap? [fetch-cmdline]					;-- Fetch real command-line in UTF8 format
@@ -708,19 +713,20 @@ redc: context [
 				return do reduce [cmd next args]
 			]
 		]
+		modes: clear []
 
 		parse/case args [
 			any [
-				  ["-c" | "--compile"]			(type: 'exe)
-				| ["-r" | "--release"]			(type: 'exe opts/dev-mode?: no)
+				  ["-c" | "--compile"]			(type: 'exe append modes '-c)
+				| ["-r" | "--release"]			(type: 'exe opts/dev-mode?: no append modes '-r)
 				| ["-e" | "--encap"]			(opts/encap?: yes)
 				| ["-d" | "--debug-stabs" | "--debug"]	(opts/debug?: yes)
-				| ["-o" | "--output"]			[set output  skip | (fail "Missing output filename")]
-				| ["-t" | "--target"]			[set target  skip | (fail "Missing target")] (target?: yes)
-				| ["-v" | "--verbose"]			[set verbose skip | (fail "Missing verbosity")] ;-- 1-3: Red, >3: Red/System
+				| ["-o" | "--output"]			[set output  skip | (fail-cmd "Missing output filename")]
+				| ["-t" | "--target"]			[set target  skip | (fail-cmd "Missing target")] (target?: yes)
+				| ["-v" | "--verbose"]			[set verbose skip | (fail-cmd "Missing verbosity")] ;-- 1-3: Red, >3: Red/System
 				| ["-h" | "--help"]				(mode: 'help)
 				| ["-V" | "--version"]			(mode: 'version)
-				| ["-u"	| "--update-libRedRT"]	(opts/libRedRT-update?: yes)
+				| ["-u"	| "--update-libRedRT"]	(opts/libRedRT-update?: yes append modes '-u)
 				| ["-s" | "--show-expanded"]	(opts/show: 'expanded)
 				| ["-dlib" | "--dynamic-lib"]	(type: 'dll)
 				;| ["-slib" | "--static-lib"]	(type 'lib)
@@ -737,7 +743,10 @@ redc: context [
 				| "--" break							;-- stop options processing
 			]
 			set filename skip (src: load-filename filename)
-		]		
+		]
+		if 1 < length? modes [
+			fail-cmd ["Incompatible compilation modes:" mold/only modes]
+		]
 
 		if mode [
 			switch mode [
@@ -750,7 +759,7 @@ redc: context [
 		;; Process -t/--target first, so that all other command-line options
 		;; can potentially override the target config settings.
 		unless config: select load-targets config-name: to word! trim target [
-			fail ["Unknown target:" target]
+			fail-cmd ["Unknown target:" target]
 		]
 		if target? [unless type [type: 'exe]]			;-- implies compilation
 		
@@ -786,7 +795,7 @@ redc: context [
 		;; Process -v/--verbose (if any).
 		if verbose [
 			unless attempt [opts/verbosity: to integer! trim verbose] [
-				fail ["Invalid verbosity:" verbose]
+				fail-cmd ["invalid verbosity:" verbose]
 			]
 		]
 
@@ -801,10 +810,10 @@ redc: context [
 			any [type output verbose target?]			;-- -c | -o | -dlib | -t | -v
 			none? src
 		][
-			fail "Source file is missing"
+			fail-cmd "Source file is missing"
 		]
 		if all [output output/1 = #"-"][				;-- -o (not followed by option)
-			fail "Missing output file or path"
+			fail-cmd "Missing output file or path"
 		]
 
 		;; Process input sources.
@@ -826,7 +835,7 @@ redc: context [
 			src: clean-path join base-path src			;-- add working dir path
 		]
 		unless exists? src [
-			fail ["Cannot access source file:" to-local-file src]
+			fail-cmd ["Cannot access source file:" to-local-file src]
 		]
 
 		add-legacy-flags opts
@@ -886,7 +895,7 @@ redc: context [
 		if all [prefix: opts/build-prefix find prefix %/] [
 			build-dir: copy/part prefix find/last prefix %/
 			unless attempt [make-dir/deep build-dir] [
-				fail ["Cannot access build dir:" to-local-file build-dir]
+				fail-cmd ["Cannot access build dir:" to-local-file build-dir]
 			]
 		]
 		
@@ -908,7 +917,7 @@ redc: context [
 			show-stats result
 			if all [word: in opts 'packager get word][
 				file: join %system/formats/ [opts/packager %.r]
-				unless exists?-cache file [fail ["Packager:" opts/packager "not found!"]]
+				unless exists?-cache file [fail-cmd ["Packager:" opts/packager "not found!"]]
 				do bind load-cache file 'self
 				packager/process opts src result/4
 			]
