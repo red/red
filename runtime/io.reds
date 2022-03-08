@@ -230,7 +230,6 @@ io: context [
 	][
 		forever [
 			if zero? iocp/wait g-iocp time [exit]
-			if time > -1 [exit]
 		]
 	]
 
