@@ -2946,7 +2946,7 @@ system-dialect: make-profilable context [
 			either attribute: check-variable-arity? entry/2/4 [
 				fetch: [
 					pos: pc
-					expr: fetch-expression name
+					expr: fetch-expression/thru name
 					if none? first get-type expr [
 						pc: pos
 						throw-error "expression is missing a return value"
@@ -2973,7 +2973,7 @@ system-dialect: make-profilable context [
 				reduce [name to-issue attribute args]
 			][									;-- fixed arity case
 				args: make block! n: entry/2/1
-				loop n [append/only args fetch-expression name]	;-- fetch n arguments
+				loop n [append/only args fetch-expression/thru name]	;-- fetch n arguments
 				new-line/all head insert/only args name no
 			]
 		]
@@ -3756,7 +3756,7 @@ system-dialect: make-profilable context [
 		
 		fetch-expression: func [
 			caller [any-word! issue! none! set-path!]
-			/final /keep /local expr pass mark
+			/final /thru /keep /local expr pass mark
 		][
 			mark: tail expr-call-stack
 			check-infix-operators
@@ -3766,7 +3766,11 @@ system-dialect: make-profilable context [
 			
 			if any [
 				tail? pc
-				all [job/red-pass? parse pc [some [file! | directives]]] ;-- #5092
+				all [
+					thru
+					job/red-pass?
+					parse pc [some [file! | 'comment skip | directives]] ;-- #5092
+				]
 			][
 				either caller [
 					unless backtrack caller [pc: back pc]
