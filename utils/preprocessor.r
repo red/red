@@ -106,7 +106,7 @@ preprocessor: context [
 		protos: bind protos exec
 		
 		parse macros rule: [
-			any [p: function! (bind body-of first p exec) | into rule | skip]
+			any [p: function! (bind body-of first p exec) | p: [block! | paren!] :p into rule | skip]
 		]
 	]
 	
