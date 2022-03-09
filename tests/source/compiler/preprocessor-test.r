@@ -156,9 +156,15 @@ REBOL [
 			macro2
 			macro2
 		}
-		probe qt/output
 		--assert-printed? "1000"
 		--assert-printed? "1000"
 		--assert-printed? "1000"
+
+	--test-- "#5098"
+		--compile-and-run-this {
+			Red []
+			do/expand {#do [abcd: 1]}
+		}
+		--assert empty? qt/output
 
 ~~~end-file~~~ 
