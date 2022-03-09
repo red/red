@@ -19,7 +19,9 @@ Red/System [
 #define DO_EVAL_BLOCK [
 	if expand? > 0 [
 		job: #get system/build/config
+		stack/mark-native words/_anon
 		#call [preprocessor/expand as red-block! arg job]
+		stack/unwind
 	]
 	either negative? next [
 		interpreter/eval as red-block! arg yes
