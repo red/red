@@ -3235,6 +3235,10 @@ comment {
 		--assert unset? c5067/('o)/f
 		--assert visited?
 
+	--test-- "#5099"
+		do/expand {do [print 10] do [print 20]}
+		--assert true 								;-- just check that it didn't crash
+
 ===end-group===
 
 ~~~end-file~~~
