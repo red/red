@@ -338,8 +338,8 @@ tls: context [
 					array/append-ptr td/certs as int-ptr! strdup name
 					array/append-ptr td/certs ctx
 
-					SSL_CTX_set_tlsext_servername_callback ctx as int-ptr! :server-name-cb
-					SSL_CTX_set_tlsext_servername_arg ctx as int-ptr! td
+					SSL_CTX_callback_ctrl ctx 53 as int-ptr! :server-name-cb
+					SSL_CTX_ctrl ctx 54 0 as int-ptr! td
 				]
 			][
 				SSL_CTX_free ctx
@@ -382,7 +382,7 @@ tls: context [
 				]
 				ctx: client-ctx
 			][
-				if null? server-ctx [setup-server-certs td extra]
+				setup-server-certs td extra
 				ctx: server-ctx
 			]
 

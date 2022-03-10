@@ -834,19 +834,15 @@ errno: as int-ptr! 0
 			ctx		[int-ptr!]
 			return: [integer!]
 		]
-		SSL_CTX_set_tlsext_servername_callback: "SSL_CTX_set_tlsext_servername_callback" [
-			ctx		[int-ptr!]
-			cb		[int-ptr!]
-			return: [integer!]
-		]
-		SSL_CTX_set_tlsext_servername_arg: "SSL_CTX_set_tlsext_servername_arg" [
-			ctx		[int-ptr!]
-			arg		[int-ptr!]
-			return: [integer!]
-		]
 		SSL_CTX_set_cipher_list: "SSL_CTX_set_cipher_list" [
 			ctx		[int-ptr!]
 			str		[c-string!]
+			return: [integer!]
+		]
+		SSL_CTX_callback_ctrl: "SSL_CTX_callback_ctrl" [
+			ctx		[int-ptr!]
+			cmd		[integer!]
+			cb		[int-ptr!]
 			return: [integer!]
 		]
 		SSL_CTX_new: "SSL_CTX_new" [
