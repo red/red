@@ -369,6 +369,16 @@ test
 		--compile-and-run-this {Red [] b: [] construct b}
 		--assert compiled?
 
+	--test-- "#5097"
+		--compile-and-run-this {
+			Red []
+			case/all [
+				true  [while [false] []]
+				false []
+			]
+		}
+		--assert compiled?
+
 ===end-group===
 
 ~~~end-file~~~ 
