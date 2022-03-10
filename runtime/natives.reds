@@ -509,6 +509,7 @@ natives: context [
 		tail:  block/rs-tail blk
 		if value = tail [RETURN_NONE]
 
+		stack/mark-native words/_anon
 		true?: false
 		while [value < tail][
 			value: interpreter/eval-next blk value tail no	;-- eval condition
@@ -521,12 +522,13 @@ natives: context [
 				][
 					value: interpreter/eval-next blk value tail no
 				]
-				if negative? all? [exit]				;-- early exit with last value on stack (unless /all)
+				if negative? all? [stack/unwind-last exit]	;-- early exit with last value on stack (unless /all)
 				true?: yes
 			][
 				value: value + 1						;-- single value only allowed for cases bodies
 			]
 		]
+		stack/unwind-last
 		unless true? [RETURN_NONE]
 	]
 	
