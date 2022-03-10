@@ -726,7 +726,7 @@ redc: context [
 				| ["-v" | "--verbose"]			[set verbose skip | (fail-cmd "Missing verbosity")] ;-- 1-3: Red, >3: Red/System
 				| ["-h" | "--help"]				(mode: 'help)
 				| ["-V" | "--version"]			(mode: 'version)
-				| ["-u"	| "--update-libRedRT"]	(opts/libRedRT-update?: yes append modes '-u)
+				| ["-u"	| "--update-libRedRT"]	(type: 'exe opts/dev-mode?: no opts/libRedRT-update?: yes append modes '-u)
 				| ["-s" | "--show-expanded"]	(opts/show: 'expanded)
 				| ["-dlib" | "--dynamic-lib"]	(type: 'dll)
 				;| ["-slib" | "--static-lib"]	(type 'lib)
