@@ -129,9 +129,9 @@ tls: context [
 	store-identity: func [
 		data		[tls-data!]
 		ssl_ctx		[int-ptr!]
+		certs-blk	[red-block!]
 		return:		[logic!]
 		/local
-			values	[red-value!]
 			extra	[red-block!]
 			proto	[red-integer!]
 			certs	[red-block!]
@@ -141,8 +141,7 @@ tls: context [
 			key		[red-string!]
 			pwd		[red-string!]
 	][
-		values: object/get-values data/port
-		extra: as red-block! values + port/field-extra
+		extra: certs-blk
 		if TYPE_OF(extra) <> TYPE_BLOCK [return false]
 		proto: as red-integer! block/select-word extra word/load "min-protocol" no
 		if TYPE_OF(proto) = TYPE_INTEGER [
@@ -252,21 +251,109 @@ tls: context [
 	]
 
 	get-domain: func [
-		data		[tls-data!]
+		data		[red-block!]
 		return:		[c-string!]
 		/local
-			values	[red-value!]
-			extra	[red-block!]
 			domain	[red-string!]
 			len		[integer!]
 	][
-		values: object/get-values data/port
-		extra: as red-block! values + port/field-extra
-		if TYPE_OF(extra) <> TYPE_BLOCK [return null]
-		domain: as red-string! block/select-word extra word/load "domain" no
+		if TYPE_OF(data) <> TYPE_BLOCK [return null]
+		domain: as red-string! block/select-word data word/load "domain" no
 		if TYPE_OF(domain) <> TYPE_STRING [return null]
 		len: -1
 		unicode/to-utf8 domain :len
+	]
+
+	server-name-cb: func [
+		[cdecl]
+		ssl			[int-ptr!]
+		ad			[int-ptr!]
+		arg			[int-ptr!]
+		return:		[integer!]
+		/local
+			td		[tls-data!]
+			s		[series!]
+			p pp e	[ptr-ptr!]
+			name	[c-string!]
+	][
+		td: as tls-data! arg
+		assert td/certs <> null
+
+		name: SSL_get_servername ssl TLSEXT_NAMETYPE_host_name
+		if any [
+			name = null
+			name/1 = #"^@"
+		][return SSL_TLSEXT_ERR_NOACK]
+?? name
+		s: as series! td/certs/value
+		p: as ptr-ptr! s/offset
+		e: as ptr-ptr! s/tail
+		while [p < e][
+			if zero? strcmp name as c-string! p/value [
+				pp: p + 1
+				SSL_set_SSL_CTX ssl pp/value
+				return SSL_TLSEXT_ERR_OK
+			]
+			p: p + 2
+		]
+		SSL_TLSEXT_ERR_OK
+	]
+
+	setup-server-certs: func [
+		td		[tls-data!]
+		extra	[red-block!]
+		return: [logic!]
+		/local
+			vhost [red-block!]
+			cert  [red-block!]
+			end   [red-block!]
+			ctx	  [int-ptr!]
+			pk	  [int-ptr!]
+			cert? [logic!]
+			cb?   [logic!]
+			name  [c-string!]
+	][
+		vhost: as red-block! block/select-word extra word/load "virtual-host" no
+		either TYPE_OF(vhost) = TYPE_BLOCK [
+			cert: as red-block! block/rs-head vhost
+			end: as red-block! block/rs-tail vhost
+		][
+			cert: extra
+			end: extra + 1
+		]
+
+		cb?: cert + 1 < end
+		if cb? [td/certs: b-allocator/alloc-bytes 8 * size? int-ptr!]
+
+		cert?: no
+		while [cert < end][
+			ctx: SSL_CTX_new TLS_server_method
+			either store-identity td ctx cert [
+				cert?: yes
+				SSL_CTX_set_mode(ctx 5)  ;-- SSL_MODE_ENABLE_PARTIAL_WRITE or SSL_MODE_AUTO_RETRY
+				SSL_CTX_set_cipher_list ctx "ECDHE+AES:@STRENGTH:+AES256"
+
+				if cb? [
+					name: get-domain cert
+					array/append-ptr td/certs as int-ptr! strdup name
+					array/append-ptr td/certs ctx
+
+					SSL_CTX_set_tlsext_servername_callback ctx as int-ptr! :server-name-cb
+					SSL_CTX_set_tlsext_servername_arg ctx as int-ptr! td
+				]
+			][
+				SSL_CTX_free ctx
+			]
+			cert: cert + 1
+		]
+		unless cert? [
+			ctx: SSL_CTX_new TLS_server_method
+			pk: create-private-key
+			SSL_CTX_use_certificate ctx create-certificate pk
+			SSL_CTX_use_PrivateKey ctx pk
+		]
+		server-ctx: ctx
+		true
 	]
 
 	create: func [
@@ -276,36 +363,26 @@ tls: context [
 			ctx		[int-ptr!]
 			ssl		[int-ptr!]
 			fd		[integer!]
-			err		[integer!]
-			pk		[int-ptr!]
-			cert	[int-ptr!]
+			values	[red-value!]
+			extra	[red-block!]
 	][
 		IODebug("tls/create")
 		ERR_clear_error
 		if null? td/ssl [
+			values: object/get-values td/port
+			extra: as red-block! values + port/field-extra
 			either client? [
 				if null? client-ctx [
 					client-ctx: SSL_CTX_new TLS_client_method
-					store-identity td client-ctx
+					store-identity td client-ctx extra
 					store-roots td client-ctx
-					SSL_CTX_set_mode(client-ctx 5)
+					SSL_CTX_set_mode(client-ctx 5)  ;-- SSL_MODE_ENABLE_PARTIAL_WRITE 1 or SSL_MODE_AUTO_RETRY 4
 					SSL_CTX_set_default_verify_paths client-ctx
 					SSL_CTX_set_cipher_list client-ctx "DEFAULT:!aNULL:!eNULL:!MD5:!3DES:!DES:!RC4:!IDEA:!SEED:!aDSS:!SRP:!PSK"
 				]
 				ctx: client-ctx
 			][
-				if null? server-ctx [
-					server-ctx: SSL_CTX_new TLS_server_method
-					unless store-identity td server-ctx [ ;-- create an internal cert if no cert specified
-						;-- bitbegin note: default cert should be provided by upper
-						pk: create-private-key
-						cert: create-certificate pk
-						SSL_CTX_use_certificate server-ctx cert
-						SSL_CTX_use_PrivateKey server-ctx pk
-					]
-					SSL_CTX_set_mode(server-ctx 5)
-					SSL_CTX_set_cipher_list server-ctx "ECDHE+AES:@STRENGTH:+AES256"
-				]
+				if null? server-ctx [setup-server-certs td extra]
 				ctx: server-ctx
 			]
 
@@ -318,7 +395,7 @@ tls: context [
 				probe "SSL_set_fd error"
 			]
 			either client? [
-				SSL_ctrl ssl SSL_CTRL_SET_TLSEXT_HOSTNAME TLSEXT_NAMETYPE_host_name as int-ptr! get-domain td
+				SSL_ctrl ssl SSL_CTRL_SET_TLSEXT_HOSTNAME TLSEXT_NAMETYPE_host_name as int-ptr! get-domain extra
 				SSL_set_connect_state ssl
 			][
 				SSL_set_accept_state ssl

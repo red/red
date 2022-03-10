@@ -72,6 +72,7 @@ tls-data!: alias struct! [
 	addr		[sockaddr_in6! value]	;-- IPv4 or IPv6 address
 	addr-sz		[integer!]
 	ssl			[int-ptr!]
+	certs		[node!]
 ]
 
 udp-data!: alias struct! [

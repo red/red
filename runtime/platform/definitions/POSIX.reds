@@ -183,6 +183,15 @@ res_state!: alias struct! [	;-- size: 512 bytes
 			size		[integer!]
 			return:		[c-string!]
 		]
+		strcmp: "strcmp" [
+			str1		[c-string!]
+			str2		[c-string!]
+			return:		[integer!]
+		]
+		strdup: "strdup" [
+			src			[c-string!]
+			return:		[c-string!]
+		]
 		strncmp: "strncmp" [
 			str1		[c-string!]
 			str2		[c-string!]
@@ -811,6 +820,9 @@ errno: as int-ptr! 0
 #define TLSEXT_NAMETYPE_host_name				0
 #define SSL_MODE_ENABLE_PARTIAL_WRITE 			1
 
+#define SSL_TLSEXT_ERR_OK 0
+#define SSL_TLSEXT_ERR_NOACK 3
+
 #define SSL_VERIFY_NONE							0
 #define SSL_VERIFY_PEER							1
 
@@ -820,6 +832,16 @@ errno: as int-ptr! 0
 	LIBSSL-file cdecl [
 		SSL_CTX_set_default_verify_paths: "SSL_CTX_set_default_verify_paths" [
 			ctx		[int-ptr!]
+			return: [integer!]
+		]
+		SSL_CTX_set_tlsext_servername_callback: "SSL_CTX_set_tlsext_servername_callback" [
+			ctx		[int-ptr!]
+			cb		[int-ptr!]
+			return: [integer!]
+		]
+		SSL_CTX_set_tlsext_servername_arg: "SSL_CTX_set_tlsext_servername_arg" [
+			ctx		[int-ptr!]
+			arg		[int-ptr!]
 			return: [integer!]
 		]
 		SSL_CTX_set_cipher_list: "SSL_CTX_set_cipher_list" [
@@ -1061,6 +1083,16 @@ errno: as int-ptr! 0
 		SSL_clear: "SSL_clear" [
 			ssl		[int-ptr!]
 			return: [integer!]
+		]
+		SSL_set_SSL_CTX: "SSL_set_SSL_CTX" [
+			ssl		[int-ptr!]
+			ctx		[int-ptr!]
+			return: [int-ptr!]
+		]
+		SSL_get_servername: "SSL_get_servername" [
+			ssl		[int-ptr!]
+			type	[integer!]
+			return: [c-string!]
 		]
 		SSL_set_fd: "SSL_set_fd" [
 			ssl		[int-ptr!]
