@@ -347,6 +347,8 @@ system/view/platform: context [
 			_drawing:		word/load "drawing"
 			_scroll:		word/load "scroll"
 
+			_vertical:		word/load "vertical"
+			_horizontal:	word/load "horizontal"
 			_track:			word/load "track"
 			_page-left:		word/load "page-left"
 			_page-right:	word/load "page-right"
