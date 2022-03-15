@@ -382,6 +382,20 @@ get-event-key: func [
 	]
 ]
 
+get-event-orientation: func [
+	evt		[red-event!]
+	return: [red-value!]
+][
+	if evt/type = EVT_SCROLL [
+		either evt/flags and 8 = 0 [
+			return as red-value! _vertical
+		][
+			return as red-value! _horizontal
+		]
+	]
+	as red-value! none-value
+]
+
 get-event-picked: func [
 	evt		[red-event!]
 	return: [red-value!]
