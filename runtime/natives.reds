@@ -1165,7 +1165,10 @@ natives: context [
 		]
 		
 		either TYPE_OF(value) = TYPE_BLOCK [
-			obj: either TYPE_OF(ref) = TYPE_OBJECT [
+			obj: either any [
+				TYPE_OF(ref) = TYPE_OBJECT
+				TYPE_OF(ref) = TYPE_PORT
+			][
 				self?: yes
 				object/save-self-object as red-object! ref
 			][

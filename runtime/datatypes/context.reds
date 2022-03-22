@@ -311,7 +311,10 @@ _context: context [
 		#if debug? = yes [if verbose > 0 [print-line "_context/get-in"]]
 
 		if all [
-			TYPE_OF(ctx) = TYPE_OBJECT					;-- test special ctx pointer for SELF
+			any [
+				TYPE_OF(ctx) = TYPE_OBJECT					;-- test special ctx pointer for SELF
+				TYPE_OF(ctx) = TYPE_PORT
+			]
 			word/index = -1
 			word/symbol = words/self
 		][
