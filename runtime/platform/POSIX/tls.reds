@@ -284,7 +284,7 @@ tls: context [
 			name = null
 			name/1 = #"^@"
 		][return SSL_TLSEXT_ERR_NOACK]
-?? name
+
 		s: as series! td/certs/value
 		p: as ptr-ptr! s/offset
 		e: as ptr-ptr! s/tail
@@ -323,7 +323,7 @@ tls: context [
 		]
 
 		cb?: cert + 1 < end
-		if cb? [td/certs: b-allocator/alloc-bytes 8 * size? int-ptr!]
+		if cb? [td/certs: alloc-fixed-series 8 * size? int-ptr! 1 0]
 
 		cert?: no
 		while [cert < end][
