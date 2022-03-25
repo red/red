@@ -275,6 +275,7 @@ io: context [
 	]
 ]
 
+#include %devices/dns.reds
 #include %devices/tcp.reds
 #include %devices/tls.reds
 #include %devices/udp.reds

@@ -31,7 +31,7 @@ dns-device: context [
 		type: data/event
 probe "dns event-handler"
 		switch type [
-			IO_EVT_RESOLVED	[
+			IO_EVT_LOOKUP	[
 				probe "resolved"
 			]
 			default [data/event: IO_EVT_NONE]
@@ -51,7 +51,7 @@ probe "dns event-handler"
 			saddr	[sockaddr_in!]
 	][
 		data: as dns-data! io/create-socket-data port sock as int-ptr! :event-handler size? dns-data!
-		data/iocp/type: IOCP_TYPE_dns
+		data/type: IOCP_TYPE_DNS
 
 		;@@ TBD add IPv6 support
 		data/addr-sz: size? sockaddr_in6!
@@ -109,12 +109,31 @@ probe "dns event-handler"
 			addr	[c-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "dns client"]]
+	]
 
-		fd: socket/create AF_INET SOCK_DGRAM IPPROTO_dns
-		iocp/bind g-iocp as int-ptr! fd
-		n: -1
-		addr: unicode/to-utf8 host :n
-		create-dns-data port fd addr num/value
+	resolve-name: func [
+		red-port	[red-object!]
+		name		[c-string!]
+		num			[integer!]
+		handler		[int-ptr!]
+		/local
+			data	[sockdata!]
+			hints	[addrinfo! value]
+			timeout [timeval! value]
+			res		[integer!]
+			info	[addrinfo!]
+			buf		[red-binary!]
+	][
+		data: io/create-socket-data red-port 0 handler size? dns-data!
+		data/type: IOCP_TYPE_DNS
+		data/accept-sock: num
+
+		buf: as red-binary! (object/get-values red-port) + port/field-data
+		if TYPE_OF(buf) <> TYPE_BINARY [
+			binary/make-at as cell! buf SOCK_READBUF_SZ
+		]
+		data/send-buf: buf/node
+		dns/getaddrinfo name 53 AF_INET as dns-data! data
 	]
 
 	;-- actions

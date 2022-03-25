@@ -82,7 +82,7 @@ TLS-device: context [
 				saddr/sin_family: num << 16 or AF_INET
 				saddr/sa_data1: 0
 				saddr/sa_data2: 0
-				io/close-port p
+				tcp-device/close p
 				tls-client p saddr size? sockaddr_in!
 				exit
 			]
@@ -210,7 +210,7 @@ probe ["server listen fd: " fd]
 				make-sockaddr as sockaddr_in! :addrbuf addr n-port AF_INET
 				tls-client red-port as sockaddr_in! :addrbuf size? sockaddr_in!
 			][
-				tcp-device/resolve-name red-port addr n-port
+				dns-device/resolve-name red-port addr n-port as int-ptr! :event-handler
 			]
 		]
 		as red-value! red-port

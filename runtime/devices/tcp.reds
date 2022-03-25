@@ -167,30 +167,6 @@ tcp-device: context [
 		iocp/bind g-iocp as int-ptr! fd
 	]
 
-	resolve-name: func [
-		red-port	[red-object!]
-		name		[c-string!]
-		num			[integer!]
-		/local
-			data	[sockdata!]
-			hints	[addrinfo! value]
-			timeout [timeval! value]
-			res		[integer!]
-			info	[addrinfo!]
-			buf		[red-binary!]
-	][
-		data: io/create-socket-data red-port 0 as int-ptr! :event-handler size? dns-data!
-		data/type: IOCP_TYPE_DNS
-		data/accept-sock: num
-
-		buf: as red-binary! (object/get-values red-port) + port/field-data
-		if TYPE_OF(buf) <> TYPE_BINARY [
-			binary/make-at as cell! buf SOCK_READBUF_SZ
-		]
-		data/send-buf: buf/node
-		dns/getaddrinfo name 53 AF_INET as dns-data! data
-	]
-
 	;-- actions
 
 	open: func [
@@ -243,7 +219,7 @@ tcp-device: context [
 				make-sockaddr as sockaddr_in! :addrbuf addr num/value type
 				tcp-client red-port as sockaddr_in! :addrbuf sz type
 			][
-				resolve-name red-port addr num/value
+				dns-device/resolve-name red-port addr num/value as int-ptr! :event-handler
 			]
 		]
 		as red-value! red-port
