@@ -184,6 +184,7 @@ tcp-device: context [
 			host	[red-string!]
 			num		[red-integer!]
 			n		[integer!]
+			n-port	[integer!]
 			addr	[c-string!]
 			addrbuf [sockaddr_in6! value]
 			type	[integer!]
@@ -205,6 +206,7 @@ tcp-device: context [
 		][
 			n: -1
 			addr: unicode/to-utf8 host :n
+			either TYPE_OF(num) = TYPE_INTEGER [n-port: num/value][n-port: 80]
 			either all [addr/1 = #"[" addr/n = #"]"][
 				type: AF_INET6
 				addr/n: #"^@"
@@ -216,10 +218,10 @@ tcp-device: context [
 			]
 
 			either 1 = inet_pton type addr :addrbuf/sin_addr [
-				make-sockaddr as sockaddr_in! :addrbuf addr num/value type
+				make-sockaddr as sockaddr_in! :addrbuf addr n-port type
 				tcp-client red-port as sockaddr_in! :addrbuf sz type
 			][
-				dns-device/resolve-name red-port addr num/value as int-ptr! :event-handler
+				dns-device/resolve-name red-port addr n-port as int-ptr! :event-handler
 			]
 		]
 		as red-value! red-port

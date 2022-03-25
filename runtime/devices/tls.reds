@@ -83,7 +83,7 @@ TLS-device: context [
 				saddr/sa_data1: 0
 				saddr/sa_data2: 0
 				tcp-device/close p
-				tls-client p saddr size? sockaddr_in!
+				tls-client p saddr size? sockaddr_in! AF_INET
 				exit
 			]
 			default [data/event: IO_EVT_NONE]
@@ -135,15 +135,16 @@ TLS-device: context [
 		port	[red-object!]
 		saddr	[sockaddr_in!]
 		addr-sz	[integer!]
+		type	[integer!]
 		/local
 			fd		[integer!]
 			data	[tls-data!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tls client"]]
 
-		fd: socket/create AF_INET SOCK_STREAM IPPROTO_TCP
+		fd: socket/create type SOCK_STREAM IPPROTO_TCP
 		iocp/bind g-iocp as int-ptr! fd
-		socket/bind fd 0 AF_INET
+		socket/bind fd 0 type
 
 		data: create-tls-data port fd
 		data/state: IO_STATE_CLIENT
@@ -188,6 +189,8 @@ probe ["server listen fd: " fd]
 			n-port	[integer!]
 			addr	[c-string!]
 			addrbuf [sockaddr_in6! value]
+			type	[integer!]
+			sz		[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tls/open"]]
 
@@ -206,9 +209,19 @@ probe ["server listen fd: " fd]
 			n: -1
 			addr: unicode/to-utf8 host :n
 			either TYPE_OF(num) = TYPE_INTEGER [n-port: num/value][n-port: 443]
-			either 1 = inet_pton AF_INET addr :addrbuf/sin_addr [
-				make-sockaddr as sockaddr_in! :addrbuf addr n-port AF_INET
-				tls-client red-port as sockaddr_in! :addrbuf size? sockaddr_in!
+			either all [addr/1 = #"[" addr/n = #"]"][
+				type: AF_INET6
+				addr/n: #"^@"
+				addr: addr + 1
+				sz: size? sockaddr_in6!
+			][
+				type: AF_INET
+				sz: size? sockaddr_in!
+			]
+
+			either 1 = inet_pton type addr :addrbuf/sin_addr [
+				make-sockaddr as sockaddr_in! :addrbuf addr n-port type
+				tls-client red-port as sockaddr_in! :addrbuf sz type
 			][
 				dns-device/resolve-name red-port addr n-port as int-ptr! :event-handler
 			]
