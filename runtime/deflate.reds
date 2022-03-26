@@ -915,8 +915,13 @@ deflate: context [
 				]
 				err = Z_STREAM_END [
 					out-size/value: strm/total_out
-					err: INFLATE-OK
+					err: either calc? [INFLATE_END][INFLATE-OK]
 					break
+				]
+				zero? strm/avail_out [
+					calc?: yes
+					strm/avail_out: out-sz
+					strm/next_out: out
 				]
 				err <> 0 [
 					err: INFLATE_BLK
