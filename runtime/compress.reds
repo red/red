@@ -52,7 +52,7 @@ gzip-uncompress: func [
 	src-len		[integer!]
 	return:		[integer!]
 	/local
-		flga	[integer!]
+		flag	[integer!]
 		start	[byte-ptr!]
 		xlen	[integer!]
 		c		[integer!]
@@ -78,9 +78,9 @@ gzip-uncompress: func [
 		return INFLATE-GZIP-HDR
 	]
 
-	flga: as integer! src/4
+	flag: as integer! src/4
 	;--check that reserved bits are zero
-	if flga and E0h <> 0 [
+	if flag and E0h <> 0 [
 		return INFLATE-GZIP-HDR
 	]
 
@@ -88,7 +88,7 @@ gzip-uncompress: func [
 	;--skip base header of 10 bytes
 	start: src + 10
 	;--skip extra data if present
-	if flga and GZIP_FEXTRA <> 0 [
+	if flag and GZIP_FEXTRA <> 0 [
 		xlen: (as integer! start/2) << 8 + as integer! start/1
 		if xlen > (src-len - 12) [
 			return INFLATE-GZIP-HDR
@@ -97,7 +97,7 @@ gzip-uncompress: func [
 	]
 
 	;--skip file comment if present
-	if flga and GZIP_FNAME <> 0 [
+	if flag and GZIP_FNAME <> 0 [
 		c: 0
 		until [
 			if start >= (src + src-len) [
@@ -109,7 +109,7 @@ gzip-uncompress: func [
 		]
 	]
 
-	if flga and GZIP_FCOMMENT <> 0 [
+	if flag and GZIP_FCOMMENT <> 0 [
 		c: 0
 		until [
 			if start >= (src + src-len) [
@@ -122,7 +122,7 @@ gzip-uncompress: func [
 	]
 
 	;--check header crc if present
-	if flga and GZIP_FHCRC <> 0 [
+	if flag and GZIP_FHCRC <> 0 [
 		if start >= (src + src-len - 2) [
 			return INFLATE-GZIP-HDR
 		]

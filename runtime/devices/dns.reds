@@ -88,9 +88,9 @@ probe "dns event-handler"
 				as dns-data! data
 			][										;-- needs to create a new one
 				new: as dns-data! zero-alloc size? dns-data!
-				new/iocp/event-handler: as iocp-event-handler! :event-handler
-				new/iocp/device: data/device
-				new/iocp/accept-sock: PENDING_IO_FLAG ;-- use it as a flag to indicate pending data
+				;new/iocp/event-handler: as iocp-event-handler! :event-handler
+				;new/iocp/device: data/device
+				;new/iocp/accept-sock: PENDING_IO_FLAG ;-- use it as a flag to indicate pending data
 				copy-cell as cell! red-port as cell! :new/port
 				new
 			]

@@ -13,6 +13,23 @@ Red/System [
 ;-- this file can be included in RS environment, not only for Red's runtime
 
 deflate: context [
+
+	#enum DEFLATE-ERROR! [
+		DEFLATE-OK: 0
+		DEFLATE-NO-MEM: 1	;-- output buffer is too small, return the right size in `out-size`.
+	]
+
+	#enum INFLATE-ERROR! [
+		INFLATE-OK: 0
+		INFLATE-NO-MEM: 1	;-- output buffer is too small, return the right size in `out-size`.
+		INFLATE_END			;-- error: wrong data format
+		INFLATE_LEN			;-- error: wrong internal length
+		INFLATE_HDR			;-- error: wrong header
+		INFLATE_BLK			;-- error: wrong block
+	]
+
+#either OS = 'Windows [
+
 	#define DICT_BITS		10
 	#define DICT_SIZE		1024	;[1 << DICT_BITS]
 	#define DICT_MASK		1023	;[DICT_SIZE - 1]
@@ -46,20 +63,6 @@ deflate: context [
 		STATE-FIXED
 		STATE-DYN
 		STATE-BLK
-	]
-
-	#enum DEFLATE-ERROR! [
-		DEFLATE-OK: 0
-		DEFLATE-NO-MEM: 1	;-- output buffer is too small, return the right size in `out-size`.
-	]
-
-	#enum INFLATE-ERROR! [
-		INFLATE-OK: 0
-		INFLATE-NO-MEM: 1	;-- output buffer is too small, return the right size in `out-size`.
-		INFLATE_END			;-- error: wrong data format
-		INFLATE_LEN			;-- error: wrong internal length
-		INFLATE_HDR			;-- error: wrong header
-		INFLATE_BLK			;-- error: wrong block
 	]
 
 	MIRROR: #{
@@ -741,5 +744,191 @@ deflate: context [
 		]
 		INFLATE_END
 	]
-]
+	
+][	;#either
 
+	#define MAX_WBITS 15
+	#define Z_STREAM_END 1
+	
+	z_stream_s!: alias struct! [
+		next_in		[byte-ptr!]     ; next input byte
+		avail_in	[uint32!]       ; number of bytes available at next_in
+		total_in	[ulong!]        ; total number of input bytes read so far
+
+		next_out	[byte-ptr!]     ; next output byte will go here
+		avail_out	[uint32!]       ; remaining free space at next_out
+		total_out	[ulong!]        ; total number of bytes output so far
+
+		msg			[c-string!]     ; last error message, NULL if no error
+		state		[int-ptr!]      ; not visible by applications
+
+		zalloc		[int-ptr!]      ; used to allocate the internal state
+		zfree		[int-ptr!]      ; used to free the internal state
+		opaque		[int-ptr!]      ; private data object passed to zalloc and zfree
+
+		data_type	[integer!]      ; best guess about the data type: binary or text
+									; for deflate, or the decoding state for inflate
+		adler		[ulong!]        ; Adler-32 or CRC-32 value of the uncompressed data
+		reserved	[ulong!]
+	]
+
+	#import [
+		"libz.so.1" cdecl [
+			inflateInit2_: "inflateInit2_" [
+				strm		[z_stream_s!]
+				wbits		[integer!]
+				version		[c-string!]
+				stream-sz	[integer!]
+				return:		[integer!]
+			]
+			deflateInit2_: "deflateInit2_" [
+				strm		[z_stream_s!]
+				level		[integer!]
+				method		[integer!]
+				wbits		[integer!]
+				memLevel	[integer!]
+				strategy	[integer!]
+				version		[c-string!]
+				stream-sz	[integer!]
+				return:		[integer!]
+			]
+			deflate_: "deflate" [
+				strm		[z_stream_s!]
+				flush		[integer!]
+				return:		[integer!]
+			]
+			inflate_: "inflate" [
+				strm		[z_stream_s!]
+				flush		[integer!]
+				return:		[integer!]
+			]
+			inflateEnd: "inflateEnd" [
+				strm		[z_stream_s!]
+				return:		[integer!]
+			]
+			deflateEnd: "deflateEnd" [
+				strm		[z_stream_s!]
+				return:		[integer!]
+			]
+			deflateBound: "deflateBound" [
+				strm		[z_stream_s!]
+				src-len		[ulong!]
+				return:		[ulong!]
+			]
+		]
+	]
+
+
+	compress: func [
+		out			[byte-ptr!]
+		out-size	[int-ptr!]
+		in			[byte-ptr!]
+		in-size		[integer!]
+		return:		[integer!]
+		/local
+			strm	[z_stream_s! value]
+			err		[integer!]
+			out-sz	[integer!]
+	][
+		strm/zalloc: null
+		strm/zfree: null
+		strm/opaque: null
+		strm/total_out: 0
+
+		err: deflateInit2_ :strm -1 8 0 - MAX_WBITS 8 0 "1.2" size? z_stream_s!
+		if err <> 0 [return -1]
+
+		out-sz: deflateBound :strm in-size
+		either out-sz > out-size/value [
+			out-size/value: out-sz
+			return 1
+		][out-sz: out-size/value]
+
+		strm/avail_in: in-size
+		strm/next_in: in
+
+		strm/avail_out: out-sz
+		strm/next_out: out
+
+		forever [
+			err: deflate_ :strm 4	; Z_FINISH
+			case [
+				zero? err [0]		; continue
+				err = Z_STREAM_END [
+					out-size/value: strm/total_out
+					err: DEFLATE-OK
+					break
+				]
+				err <> 0 [
+					err: -1
+					break
+				]
+			]
+		]
+
+		deflateEnd :strm
+		err
+	]
+
+	uncompress: func [
+		out			[byte-ptr!]
+		out-size	[int-ptr!]
+		in			[byte-ptr!]
+		in-size		[integer!]
+		return:		[integer!]
+		/local
+			strm	[z_stream_s! value]
+			err		[integer!]
+			out-sz	[integer!]
+			calc?	[logic!]
+	][
+		strm/zalloc: null
+		strm/zfree: null
+		strm/opaque: null
+		strm/total_out: 0
+
+		strm/avail_in: in-size
+		strm/next_in: in
+
+		err: inflateInit2_ :strm 0 - MAX_WBITS "1.2" size? z_stream_s!
+		if err <> 0 [return -1]
+
+		calc?: no
+		out-sz: out-size/value
+		if zero? out-sz [
+			calc?: yes
+			out-sz: 4096 * 4
+			out: as byte-ptr! system/stack/allocate 4096	; 16KB
+		]
+
+		strm/avail_out: out-sz
+		strm/next_out: out
+
+		forever [
+			err: inflate_ :strm 0		; Z_NO_FLUSH
+			case [
+				zero? err [
+					if calc? [
+						strm/avail_out: out-sz
+						strm/next_out: out
+					]
+				]
+				err = Z_STREAM_END [
+					out-size/value: strm/total_out
+					err: INFLATE-OK
+					break
+				]
+				err <> 0 [
+					err: INFLATE_BLK
+					break
+				]
+			]
+		]
+
+		inflateEnd :strm
+		err
+	]
+
+]   ;end #either
+
+] ; end context deflate
