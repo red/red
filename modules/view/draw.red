@@ -96,6 +96,7 @@ Red/System [
 				base   [red-value!]
 				part   [red-value!]
 		][
+			if cycles/find? cmds/node [cycles/reset]
 			silent: as red-logic! #get system/view/silent?
 			if all [TYPE_OF(silent) = TYPE_LOGIC silent/value][throw 1]
 			
