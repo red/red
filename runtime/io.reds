@@ -154,6 +154,18 @@ io: context [
 		data
 	]
 
+	port-open?: func [
+		red-port	[red-object!]
+		return:		[red-value!]
+		/local
+			values	[red-value!]
+			state	[red-handle!]
+	][
+		values: object/get-values red-port
+		state: as red-handle! values + port/field-state
+		as red-value! logic/box TYPE_OF(state) <> TYPE_NONE
+	]
+
 	make-port: func [
 		proto		[red-object!]
 		return:		[red-object!]

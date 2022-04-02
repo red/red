@@ -227,6 +227,13 @@ tcp-device: context [
 		as red-value! red-port
 	]
 
+	open?: func [
+		red-port	[red-object!]
+		return:		[red-value!]
+	][
+		io/port-open? red-port
+	]
+
 	close: func [
 		red-port	[red-object!]
 		return:		[red-value!]
@@ -343,7 +350,7 @@ tcp-device: context [
 		null			;delete
 		null			;modify
 		:open
-		null			;open?
+		:open?
 		null			;query
 		null			;read
 		null			;rename
