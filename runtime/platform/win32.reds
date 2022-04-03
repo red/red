@@ -524,7 +524,8 @@ platform: context [
 		h: tm/hour-minute and FFFFh
 		m: tm/hour-minute >>> 16
 		sec: tm/second and FFFFh
-		nano: either precise? [
+		t: as-float h * 3600 + (m * 60) + sec
+		if precise? [
 			ms-int: tm/second >>> 16
 			;; let x0 = x1 + x2<<30 + x3<<47 (x2-x3 are 17-bit parts, to avoid overflow when multiplied by 1e4)
 			;; then x0%n = (x1%n + (x2 * 1<<30%n) + (x3 * 1<<47%n)) % n
@@ -536,12 +537,9 @@ platform: context [
 			;; overflow check (must stay below sign flip at 8000'0000h):
 			;; (131071 * 1824) + (131071 * 5328) + 3FFF'FFFFh = 77DF'E410h 
 			nano: (bits30-46 * 1'824) + (bits47-63 * 5'328) + bits0-29 % 10'000	;-- raw part, in 100ns units
-			nano * 100 + (ms-int * 1'000'000)
-		][0]
-		mi: as-float nano
-		mi: mi / 1e+9
-		t: as-float h * 3600 + (m * 60) + sec
-		t: t + mi
+			mi: as-float nano * 100 + (ms-int * 1'000'000)
+			t: t + (mi / 1e9)
+		]
 		t
 	]
 
