@@ -3239,6 +3239,14 @@ comment {
 		do/expand {do [print 10] do [print 20]}
 		--assert true 								;-- just check that it didn't crash
 
+	--test-- "#5114"
+		fails: 0
+		loop 100000 [
+			t: dt [loop 1000 []]
+			if t < 0 [fails: fails + 1]
+		]
+		--assert fails = 0
+
 ===end-group===
 
 ~~~end-file~~~
