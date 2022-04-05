@@ -2401,34 +2401,44 @@ make-profilable make target-class [
 													;-- _end:
 	]
 	
-	emit-open-catch: func [body-size [integer!]][
+	emit-open-catch: func [body-size [integer!] global? [logic!]][
 		if verbose >= 3 [print ">>>emitting CATCH prolog"]
-		emit #{FF75FC}						 		;--	PUSH [ebp-4]		; save old catch value
-		emit #{FF75F8}						 		;--	PUSH [ebp-8]		; save old catch address
+		offset: 0
+		;unless global? [
+			emit #{FF75FC}						 	;--	PUSH [ebp-4]		; save old catch value
+			emit #{FF75F8}						 	;--	PUSH [ebp-8]		; save old catch address
+			offset: offset + 6
+		;]
 		emit #{8945FC}								;-- MOV  [ebp-4], eax	; rewrite the catch ID
 		emit #{E800000000}							;-- CALL next			; push eip on stack
 		emit #{58}									;-- POP eax
 		emit #{05}							 		;--	ADD eax, <offset>
 		emit to-bin32 body-size + 9					;-- account for catch-frame opcodes after `CALL next`
 		emit #{8945F8}							 	;--	MOV [ebp-8], eax
-		23											;-- return size of (catch-frame + extra) opcodes
+		offset + 17									;-- return size of (catch-frame + extra) opcodes
 	]
 	
-	emit-close-catch: func [offset [integer!] global [logic!] callback? [logic!]][
+	emit-close-catch: func [offset [integer!] global? [logic!] callback? [logic!]][
 		if verbose >= 3 [print ">>>emitting CATCH epilog"]
-		offset: offset + (2 * 8)					;-- account for the 2 catch slots + 2 saved slots
-		if callback? [offset: offset + 12]			;-- account for ebx,esi,edi saving slots
-		
-		either offset > 127 [
-			emit #{89EC}							;-- MOV esp, ebp
-			emit #{81EC}							;-- SUB esp, locals-size	; 32-bit
-			emit to-bin32 offset
+		either global? [
+			emit #{8F45F8}							;-- POP [ebp-8]
+			emit #{8F45FC}							;-- POP [ebp-4]
+emit #{89EC}							;-- MOV esp, ebp			
 		][
-			emit #{8D65}							;-- LEA esp, [ebp-locals]
-			emit to-char 256 - offset
+			offset: offset + (2 * 8)				;-- account for the 2 catch slots + 2 saved slots
+			if callback? [offset: offset + 12]		;-- account for ebx,esi,edi saving slots
+		
+			either offset > 127 [
+				emit #{89EC}						;-- MOV esp, ebp
+				emit #{81EC}						;-- SUB esp, locals-size	; 32-bit
+				emit to-bin32 offset
+			][
+				emit #{8D65}						;-- LEA esp, [ebp-locals]
+				emit to-char 256 - offset
+			]
+			emit #{8F45F8}							;-- POP [ebp-8]
+			emit #{8F45FC}							;-- POP [ebp-4]
 		]
-		emit #{8F45F8}								;-- POP [ebp-8]
-		emit #{8F45FC}								;-- POP [ebp-4]
 	]
 
 	emit-prolog: func [name [word!] locals [block!] /local fspec attribs offset locals-size][

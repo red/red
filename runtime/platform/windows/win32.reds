@@ -116,44 +116,42 @@ platform: context [
 		precise? [logic!]
 		return:  [float!]
 		/local
-			tm	[tagSYSTEMTIME value]
-			ftime	[tagFILETIME value]
-			h		[integer!]
-			m		[integer!]
-			sec		[integer!]
-			ms-int 	[integer!]
-			bits0-31 	[integer!]
-			bits32-47 	[integer!]
-			bits48-63 	[integer!]
-			nano	[integer!]
-			hi		[integer!]
-			n 		[integer!]
-			t		[float!]
-			mi		[float!]
+			tm			[tagSYSTEMTIME value]
+			ftime		[tagFILETIME value]
+			h			[integer!]
+			m			[integer!]
+			sec			[integer!]
+			ms-int 		[integer!]
+			bits0-29	[integer!]
+			bits30-46	[integer!]
+			bits47-63	[integer!]
+			nano		[integer!]
+			hi			[integer!]
+			lo			[integer!]
+			t			[float!]
+			mi			[float!]
 	][
 		GetSystemTimeAsFileTime ftime
 		FileTimeToSystemTime ftime tm
 		h: tm/hour-minute and FFFFh
 		m: tm/hour-minute >>> 16
 		sec: tm/second and FFFFh
-		nano: either precise? [
-			ms-int: tm/second >>> 16
-			; let x0 = x1 + x2<<32 + x3<<48 (x2-x3 are 2-byte parts, to avoid overflow when multiplied by 1e4)
-			; then x0%n = (x1%n + (x2 * 1<<32%n) + (x3 * 1<<48%n)) % n
-			hi: ftime/dwHighDateTime
-			bits0-31: ftime/dwLowDateTime
-			if bits0-31 < 0 [hi: hi + 1] 		;-- `%` treats bits0-31 as signed, while it is really not, have to work around
-			bits32-47: hi and FFFFh
-			bits48-63: hi >>> 16 and FFFFh
-			n: 10'000
-			; overflow check: 9999 + (65535 * 8000) = 524'289'999
-			nano: (bits32-47 * 7'296) + (bits48-63 * 0'656) // n + (bits0-31 % n) 	;-- raw part, in 100ns units
-			nano * 100 + (ms-int * 1'000'000)
-		][0]
-		mi: as-float nano
-		mi: mi / 1e+9
 		t: as-float h * 3600 + (m * 60) + sec
-		t: t + mi
+		if precise? [
+			ms-int: tm/second >>> 16
+			;; let x0 = x1 + x2<<30 + x3<<47 (x2-x3 are 17-bit parts, to avoid overflow when multiplied by 1e4)
+			;; then x0%n = (x1%n + (x2 * 1<<30%n) + (x3 * 1<<47%n)) % n
+			hi: ftime/dwHighDateTime
+			lo: ftime/dwLowDateTime
+			bits0-29:  lo and 3FFFFFFFh
+			bits30-46: hi and 7FFFh << 2 or (lo >>> 30)
+			bits47-63: hi >>> 15
+			;; overflow check (must stay below sign flip at 8000'0000h):
+			;; (131071 * 1824) + (131071 * 5328) + 3FFF'FFFFh = 77DF'E410h 
+			nano: (bits30-46 * 1'824) + (bits47-63 * 5'328) + bits0-29 % 10'000	;-- raw part, in 100ns units
+			mi: as-float nano * 100 + (ms-int * 1'000'000)
+			t: t + (mi / 1e9)
+		]
 		t
 	]
 

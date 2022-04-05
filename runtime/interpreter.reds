@@ -1004,6 +1004,7 @@ assert s <> null
 			TYPE_NATIVE [
 				#if debug? = yes [if verbose > 0 [log "pushing action/native frame"]]
 				stack/mark-interp-native name
+				assert any [code = null TYPE_OF(code) = TYPE_BLOCK TYPE_OF(code) = TYPE_PAREN TYPE_OF(code) = TYPE_HASH]
 				pc: eval-arguments caller pc end code path slot origin ;-- fetch args and exec
 				either sub? [stack/unwind][stack/unwind-last]
 				#if debug? = yes [
@@ -1094,6 +1095,7 @@ assert s <> null
 		top?: not sub?
 		
 		if code <> null [
+			assert any [TYPE_OF(code) = TYPE_BLOCK TYPE_OF(code) = TYPE_PAREN TYPE_OF(code) = TYPE_HASH]
 			near: as red-block! #get system/state/near	;-- keep the Near: field updated
 			near/header: TYPE_BLOCK
 			near/head:   (as-integer pc - block/rs-head code) >> 4

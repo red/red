@@ -176,6 +176,11 @@ system-dialect: make-profilable context [
 		
 		action-class: context [action: type: keep?: data: none]
 		
+		directives: [
+			#import | #export | #syscall | #call | #get | #in | #typecheck | #enum | #verbose 
+			| #u16 | #inline | #user-code | #build-date | #script
+		]
+		
 		struct-syntax: [
 			pos: opt [into ['align integer! opt ['big | 'little]]]	;-- struct's attributes
 			pos: some [word! into [func-pointer | type-spec]]		;-- struct's members
@@ -2602,8 +2607,8 @@ system-dialect: make-profilable context [
 		]
 		
 		comp-case: has [cases list test body op bodies offset types][
+			unless block? cases: pc/2 [throw-error "missing CASE body block"]
 			pc: next pc
-			cases: pc/1
 			list:  make block! 8
 			types: make block! 8
 			
@@ -2941,7 +2946,7 @@ system-dialect: make-profilable context [
 			either attribute: check-variable-arity? entry/2/4 [
 				fetch: [
 					pos: pc
-					expr: fetch-expression name
+					expr: fetch-expression/thru name
 					if none? first get-type expr [
 						pc: pos
 						throw-error "expression is missing a return value"
@@ -2968,7 +2973,7 @@ system-dialect: make-profilable context [
 				reduce [name to-issue attribute args]
 			][									;-- fixed arity case
 				args: make block! n: entry/2/1
-				loop n [append/only args fetch-expression name]	;-- fetch n arguments
+				loop n [append/only args fetch-expression/thru name]	;-- fetch n arguments
 				new-line/all head insert/only args name no
 			]
 		]
@@ -3751,7 +3756,7 @@ system-dialect: make-profilable context [
 		
 		fetch-expression: func [
 			caller [any-word! issue! none! set-path!]
-			/final /keep /local expr pass mark
+			/final /thru /keep /local expr pass mark
 		][
 			mark: tail expr-call-stack
 			check-infix-operators
@@ -3759,7 +3764,14 @@ system-dialect: make-profilable context [
 			if verbose >= 4 [print ["<<<" mold pc/1]]
 			pass: [also pc/1 pc: next pc]
 			
-			if tail? pc [
+			if any [
+				tail? pc
+				all [
+					thru
+					job/red-pass?
+					parse pc [some [file! | 'comment skip | directives]] ;-- #5092
+				]
+			][
 				either caller [
 					unless backtrack caller [pc: back pc]
 					throw-error [mold caller "is missing an argument"]

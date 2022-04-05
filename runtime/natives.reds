@@ -16,22 +16,6 @@ Red/System [
 	exit
 ]
 
-#define DO_EVAL_BLOCK [
-	if expand? > 0 [
-		job: #get system/build/config
-		#call [preprocessor/expand as red-block! arg job]
-	]
-	either negative? next [
-		interpreter/eval as red-block! arg yes
-	][
-		stack/keep
-		blk: as red-block! stack/push arg
-		pos: interpreter/eval-single arg
-		blk: as red-block! copy-cell as red-value! blk slot
-		blk/head: pos
-	]
-]
-
 natives: context [
 	verbose:  0
 	lf?: 	  no										;-- used to print or not an ending newline
@@ -525,6 +509,7 @@ natives: context [
 		tail:  block/rs-tail blk
 		if value = tail [RETURN_NONE]
 
+		stack/mark-native words/_anon
 		true?: false
 		while [value < tail][
 			value: interpreter/eval-next blk value tail no	;-- eval condition
@@ -537,12 +522,13 @@ natives: context [
 				][
 					value: interpreter/eval-next blk value tail no
 				]
-				if negative? all? [exit]				;-- early exit with last value on stack (unless /all)
+				if negative? all? [stack/unwind-last exit]	;-- early exit with last value on stack (unless /all)
 				true?: yes
 			][
 				value: value + 1						;-- single value only allowed for cases bodies
 			]
 		]
+		stack/unwind-last
 		unless true? [RETURN_NONE]
 	]
 	
@@ -564,6 +550,7 @@ natives: context [
 			pos	   [integer!]
 			thrown [integer!]
 			fun?   [logic!]
+			do-block [subroutine!]
 	][
 		#typecheck [do expand? args next trace]
 		arg: stack/arguments
@@ -588,16 +575,34 @@ natives: context [
 		]
 		if next > 0 [slot: _context/get as red-word! stack/arguments + next]
 		
+		do-block: [
+			if expand? > 0 [
+				job: #get system/build/config
+				stack/mark-native words/_anon
+				#call [preprocessor/expand as red-block! arg job]
+				stack/unwind
+			]
+			either negative? next [
+				interpreter/eval as red-block! arg yes
+			][
+				stack/keep
+				blk: as red-block! stack/push arg
+				pos: interpreter/eval-single arg
+				blk: as red-block! copy-cell as red-value! blk slot
+				blk/head: pos
+			]
+		]
+		
 		assert system/thrown = 0
 		catch RED_THROWN_ERROR [
 			switch TYPE_OF(arg) [
-				TYPE_ANY_LIST [DO_EVAL_BLOCK]
+				TYPE_ANY_LIST [do-block]
 				TYPE_PATH  [
 					interpreter/eval-path arg arg arg + 1 null no no no no
 				]
 				TYPE_STRING [
 					lexer/scan-alt arg as red-string! arg -1 no yes yes no null null null
-					DO_EVAL_BLOCK
+					do-block
 				]
 				TYPE_URL 
 				TYPE_FILE  [#call [do-file as red-file! arg none-value]]

@@ -57,7 +57,7 @@ system: context [
 			]
 			email!	[user host]
 			event!	[
-				type face window offset key picked flags away? down? mid-down?
+				type face window offset key picked flags orientation away? down? mid-down?
 				alt-down? aux-down? ctrl? shift?
 			]
 			image!	[size argb rgb alpha]

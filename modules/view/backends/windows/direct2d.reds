@@ -2124,6 +2124,7 @@ create-text-format: func [
 
 		int: as red-integer! values + FONT_OBJ_SIZE
 		len: either TYPE_OF(int) <> TYPE_INTEGER [10][int/value]
+		if len <= 0 [len: 10]
 		size: ConvertPointSizeToDIP(len)
 
 		str: as red-string! values + FONT_OBJ_NAME

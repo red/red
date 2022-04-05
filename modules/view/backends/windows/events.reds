@@ -284,6 +284,23 @@ get-event-key: func [
 	]
 ]
 
+get-event-orientation: func [
+	evt		[red-event!]
+	return: [red-value!]
+	/local
+		msg  [tagMSG]
+][
+	if evt/type = EVT_SCROLL [
+		msg: as tagMSG evt/msg
+		either msg/msg = WM_VSCROLL [
+			return as red-value! _vertical
+		][
+			return as red-value! _horizontal
+		]
+	]
+	as red-value! none-value
+]
+
 get-event-picked: func [
 	evt		[red-event!]
 	return: [red-value!]

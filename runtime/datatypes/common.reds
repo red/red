@@ -597,6 +597,7 @@ words: context [
 	mid-down?:		-1
 	alt-down?:		-1
 	aux-down?:		-1
+	orientation:	-1
 
 	get:			-1
 	put:			-1
@@ -884,6 +885,7 @@ words: context [
 		mid-down?:		symbol/make "mid-down?"
 		alt-down?:		symbol/make "alt-down?"
 		aux-down?:		symbol/make "aux-down?"
+		orientation:	symbol/make "orientation"
 
 		get:			symbol/make "get"
 		put:			symbol/make "put"
