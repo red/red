@@ -949,7 +949,7 @@ block: context [
 
 		either any [
 			match?
-			all [only? any-blk?]						;@@ we don't hash block!
+			any-blk?									;@@ we don't hash block!
 			not hash?
 		][
 			values: either only? [0][					;-- values > 0 => series comparison mode
