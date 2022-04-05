@@ -609,6 +609,7 @@ _hashtable: context [
 			f-buckets	[float!]
 			fsize		[float!]
 			skip		[integer!]
+			saved		[logic!]
 	][
 		node: _alloc-bytes-filled size? hashtable! #"^(00)"
 		if type = HASH_TABLE_SYMBOL [
@@ -647,7 +648,10 @@ _hashtable: context [
 			h/blk: alloc-cells size
 		][
 			h/blk: blk/node
+			saved: collector/active?
+			collector/active?: no							;-- turn off GC
 			put-all node blk/head skip
+			collector/active?: saved
 		]
 		node
 	]
