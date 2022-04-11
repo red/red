@@ -1195,6 +1195,7 @@ _hashtable: context [
 			find?	[logic!]
 			hash?	[logic!]
 			chain?	[logic!]
+			align   [integer!]
 			type	[integer!]
 			key-type [integer!]
 			last-idx [integer!]
@@ -1263,10 +1264,15 @@ _hashtable: context [
 					_BUCKET_IS_NOT_DEL(flags ii sh)
 					actions/compare k key COMP_EQUAL
 				][
+					either last? [		;-- backward searching
+						align: head - 1 - idx
+					][
+						align: idx - head
+					]
 					loop sz [
 						if all [
 							actions/compare k key op
-							idx - head // skip = 0
+							align // skip = 0
 						][
 							either reverse? [
 								if all [idx < head idx > last-idx][last-idx: idx find?: yes]
