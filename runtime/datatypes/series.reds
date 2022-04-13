@@ -866,15 +866,14 @@ _series: context [
 				head + part
 				as-integer tail - (head + part)
 			s/tail: as red-value! tail - part
-
-			if TYPE_OF(ser) = TYPE_HASH [
-				items: as-integer tail - (head + part)
-				part: part >> 4
-				hash: as red-hash! ser
-				_hashtable/refresh hash/table 0 - part ser/head + part items >> 4 yes
-			]
 		][
 			s/tail: as red-value! head
+		]
+		if TYPE_OF(ser) = TYPE_HASH [
+			items: as-integer tail - (head + part)
+			part: part >> 4
+			hash: as red-hash! ser
+			_hashtable/refresh hash/table 0 - part ser/head + part items >> 4 yes
 		]
 		ownership/check as red-value! ser words/_removed null ser/head 0
 		ser
