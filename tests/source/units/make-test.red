@@ -27,7 +27,12 @@ Red [
 		append mb2-s #"C"
 		append mb2-s #"D"
 	--assert "ABCD" = mb2-s
-  
+
+
+	--test-- "mb3 - issue #5117"
+		mb3-hs: make hash! append/dup [] [1 2 3] 100000
+	--assert hash? mb3-hs
+
 ===end-group===
 
 ~~~end-file~~~
