@@ -799,6 +799,10 @@ Red [
 	
 	--test-- "series-find-108"
 		--assert none? find/last/part "abc" #"^(01)" 100
+
+	--test-- "series-find-109"
+		hs-bs: make hash! append/dup [] [1 2 3] 10000
+		--assert none? find hs-bs [3 4]
 	
 ===end-group===
 
