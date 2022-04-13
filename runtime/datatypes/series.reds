@@ -749,6 +749,7 @@ _series: context [
 			unit   [integer!]
 			char   [red-char!]
 			chk?   [logic!]
+			hash   [red-hash!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "series/poke"]]
 
@@ -771,8 +772,12 @@ _series: context [
 			chk?: ownership/check as red-value! ser words/_poke data offset 1
 			pos: (as byte-ptr! s/offset) + (offset << (log-b unit))
 			switch TYPE_OF(ser) [
+				TYPE_HASH [
+					copy-cell data s/offset + offset
+					hash: as red-hash! ser
+					_hashtable/put hash/table s/offset + offset
+				]
 				TYPE_BLOCK								;@@ any-block?
-				TYPE_HASH
 				TYPE_PAREN
 				TYPE_PATH
 				TYPE_GET_PATH

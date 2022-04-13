@@ -2025,4 +2025,16 @@ Red [
 
 ===end-group===
 
+
+===start-group=== "poke"
+
+	--test-- "hash-poke-1"
+	h: make hash! [1 2 3 4 5]
+	h/1: 10
+	--assert h = find h 10
+	poke h 2 20
+	--assert (next h) = find h 20
+
+===end-group===
+
 ~~~end-file~~~
