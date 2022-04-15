@@ -423,39 +423,39 @@ Red [
 		rh1-mem2: stats
 		--assert rh1-mem2 <= rh1-mem	
 
-	--test-- "recycle-hash-2"
-		rh2-mem: none
-		rh2-mem2: none
-		rh2-hash: make hash! [a 1]
-		rh2-blk: []
-		loop 20 [ append/only rh2-blk [1 2 3 4 5 6 7 8 9 10]]
-		recycle
-		rh2-mem: stats
+	;--test-- "recycle-hash-2"
+	;	rh2-mem: none
+	;	rh2-mem2: none
+	;	rh2-hash: make hash! [a 1]
+	;	rh2-blk: []
+	;	loop 20 [ append/only rh2-blk [1 2 3 4 5 6 7 8 9 10]]
+	;	recycle
+	;	rh2-mem: stats
 		
-		rh2-hash/a: copy rh2-blk 
-		rh2-hash/a: none
-		recycle
+	;	rh2-hash/a: copy rh2-blk 
+	;	rh2-hash/a: none
+	;	recycle
 		
-		rh2-mem2: stats
-		--assert rh2-mem2 <= rh2-mem
+	;	rh2-mem2: stats
+	;	--assert rh2-mem2 <= rh2-mem
 		
-	--test-- "recycle-hash-3"
-		rh3-mem: none
-		rh3-mem2: none
-		rh3-hash: make hash! [a 1 b 2]
-		rh3-blk: []
-		loop 20 [ append/only rh3-blk [1 2 3 4 5 6 7 8 9 10]]
-		recycle
-		rh3-mem: stats
+	;--test-- "recycle-hash-3"
+	;	rh3-mem: none
+	;	rh3-mem2: none
+	;	rh3-hash: make hash! [a 1 b 2]
+	;	rh3-blk: []
+	;	loop 20 [ append/only rh3-blk [1 2 3 4 5 6 7 8 9 10]]
+	;	recycle
+	;	rh3-mem: stats
 		
-		rh3-hash/a: copy rh3-blk
-		rh3-hash/b: copy rh3-blk
-		rh3-hash/a: none
-		rh3-hash/b: none
-		recycle
+	;	rh3-hash/a: copy rh3-blk
+	;	rh3-hash/b: copy rh3-blk
+	;	rh3-hash/a: none
+	;	rh3-hash/b: none
+	;	recycle
 		
-		rh3-mem2: stats
-		--assert rh3-mem2 <= rh3-mem
+	;	rh3-mem2: stats
+	;	--assert rh3-mem2 <= rh3-mem
 
 	--test-- "recycle-hash-4"
 		rh4-mem: none
@@ -473,21 +473,21 @@ Red [
 		rh4-mem2: stats
 		--assert rh4-mem2 <= rh4-mem
 		
-	--test-- "recycle-hash-5"
-		rh5-mem: none
-		rh5-mem2: none
-		rh5-hash: make hash! [ a [] b [] ]
-		rh5-blk: make block! 200
-		loop 20 [ append/only rh5-blk [1 2 3 4 5 6 7 8 9 10] ]
-		recycle
-		rh5-mem: stats
+	;--test-- "recycle-hash-5"
+	;	rh5-mem: none
+	;	rh5-mem2: none
+	;	rh5-hash: make hash! [ a [] b [] ]
+	;	rh5-blk: make block! 200
+	;	loop 20 [ append/only rh5-blk [1 2 3 4 5 6 7 8 9 10] ]
+	;	recycle
+	;	rh5-mem: stats
 		
-		rh5-hash/a: rh5-blk
-		rh5-hash/b: none
-		recycle
+	;	rh5-hash/a: rh5-blk
+	;	rh5-hash/b: none
+	;	recycle
 		
-		rh5-mem2: stats
-		--assert rh5-mem2 <= rh5-mem
+	;	rh5-mem2: stats
+	;	--assert rh5-mem2 <= rh5-mem
 		
 	--test-- "recycle-hash-6"
 		rh6-mem: none
