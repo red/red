@@ -1264,12 +1264,12 @@ _hashtable: context [
 					_BUCKET_IS_NOT_DEL(flags ii sh)
 					actions/compare k key COMP_EQUAL
 				][
-					either last? [		;-- backward searching
-						align: head - 1 - idx
-					][
-						align: idx - head
-					]
 					loop sz [
+						either last? [		;-- backward searching
+							align: head - 1 - idx
+						][
+							align: idx - head
+						]
 						if all [
 							actions/compare k key op
 							align // skip = 0
