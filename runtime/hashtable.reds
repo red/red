@@ -459,6 +459,8 @@ _hashtable: context [
 			TYPE_TIME [
 				murmur3-x86-32 (as byte-ptr! key) + 8 8
 			]
+			TYPE_NONE  [-1]
+			TYPE_UNSET [-2]
 			TYPE_MONEY [
 				value: copy-cell key stack/push*
 				sign: money/get-sign as red-money! value
@@ -475,21 +477,29 @@ _hashtable: context [
 					(as byte-ptr! s/offset) + sym/head
 					(as-integer s/tail - s/offset) - sym/head
 			]
-			TYPE_DATE
-			TYPE_POINT
-			TYPE_TYPESET
-			TYPE_FUNCTION [
-				murmur3-x86-32 (as byte-ptr! key) + 4 12
-			]
 			TYPE_TUPLE [
 				murmur3-x86-32 (as byte-ptr! key) + 4 TUPLE_SIZE?(key)
 			]
-			TYPE_OBJECT [murmur3-x86-int key/data1]
+			TYPE_DATE
+			TYPE_POINT
+			TYPE_TYPESET
+			TYPE_FUNCTION
+			TYPE_OP [murmur3-x86-32 (as byte-ptr! key) + 4 12]
+			TYPE_OBJECT
+			TYPE_ERROR
+			TYPE_PORT [murmur3-x86-int key/data1]
 			TYPE_DATATYPE
 			TYPE_LOGIC [key/data1]
-			default [								;-- for any-block!: use head and node
+			TYPE_ACTION
+			TYPE_NATIVE [key/data3]
+			TYPE_MAP
+			TYPE_HANDLE
+			TYPE_EVENT [murmur3-x86-int key/data2]
+			TYPE_IMAGE
+			TYPE_ANY_BLOCK [							;-- use head and node
 				murmur3-x86-32 (as byte-ptr! key) + 4 8
 			]
+			default [assert false 0]
 		]
 	]
 
