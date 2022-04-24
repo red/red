@@ -3247,6 +3247,22 @@ comment {
 		]
 		--assert fails = 0
 
+	--test-- "#5126-1"
+		fails: 0
+		h: make hash! reduce [() 1 2]
+		loop 1000 [
+			unless find h :some-unset-word [fails: fails + 1]
+		]
+		--assert fails = 0
+
+	--test-- "#5126-2"
+		fails: 0
+		h: make hash! reduce [none 1 2]
+		loop 1000 [
+			unless find h all [] [fails: fails + 1]
+		]
+		--assert fails = 0
+
 ===end-group===
 
 ~~~end-file~~~
