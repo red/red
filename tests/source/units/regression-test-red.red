@@ -3251,7 +3251,7 @@ comment {
 		fails: 0
 		h: make hash! reduce [() 1 2]
 		loop 1000 [
-			unless find h :some-unset-word [fails: fails + 1]
+			unless find h do [:some-unset-word] [fails: fails + 1]
 		]
 		--assert fails = 0
 
