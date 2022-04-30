@@ -697,6 +697,63 @@ _hashtable: context [
 		put-all node 0 1
 	]
 
+	resize-map: func [
+		node			[node!]
+		new-buckets		[integer!]
+		/local
+			s			[series!]
+			h			[hashtable!]
+			n-buckets	[integer!]
+			new-size	[integer!]
+			f			[float!]
+			flags		[node!]
+			new-blk		[node!]
+			i sz		[integer!]
+			end			[red-value!]
+			value		[red-value!]
+			key			[red-value!]
+			len	vsize	[integer!]
+			k			[int-ptr!]
+			slot		[red-value!]
+	][
+		s: as series! node/value
+		h: as hashtable! s/offset
+
+		new-buckets: round-up new-buckets
+		f: as-float new-buckets
+		new-size: as-integer f * _HT_HASH_UPPER + 0.5
+		if new-buckets < 4 [new-buckets: 4]
+
+		sz: h/size
+		h/size: 0
+		h/n-occupied: 0
+		h/upper-bound: new-size
+		h/n-buckets: new-buckets
+		flags: _alloc-bytes-filled new-buckets >> 2 #"^(AA)"
+		h/flags: flags
+		h/keys: _alloc-bytes new-buckets * size? int-ptr!
+
+		vsize: as integer! h/indexes
+		len: vsize >> 4
+		vsize: vsize - size? red-value!
+
+		s: as series! h/blk/value
+		end: s/tail
+		i: 0
+		h/blk: alloc-cells sz * len
+		while [
+			value: s/offset + i
+			value < end
+		][
+			k: as int-ptr! value
+			if value/header = TYPE_UNSET [
+				slot: put-key node k/2
+				copy-memory as byte-ptr! slot as byte-ptr! (value + 1) vsize
+			]
+			i: i + len
+		]
+	]
+
 	resize: func [
 		node			[node!]
 		new-buckets		[integer!]
@@ -736,9 +793,10 @@ _hashtable: context [
 		n-buckets: h/n-buckets
 		j: 0
 		new-buckets: round-up new-buckets
-		f: as-float new-buckets
-		new-size: as-integer f * _HT_HASH_UPPER
 		if new-buckets < 4 [new-buckets: 4]
+		f: as-float new-buckets
+		new-size: as-integer f * _HT_HASH_UPPER + 0.5
+
 		either h/size >= new-size [j: 1][
 			new-flags-node: _alloc-bytes-filled new-buckets >> 2 #"^(AA)"
 			s: as series! new-flags-node/value
@@ -817,7 +875,7 @@ _hashtable: context [
 		if h/n-occupied >= h/upper-bound [			;-- update the hash table
 			vsize: either h/n-buckets > (h/size << 1) [-1][1]
 			n-buckets: h/n-buckets + vsize
-			resize node n-buckets
+			resize-map node n-buckets
 		]
 
 		vsize: as integer! h/indexes
@@ -939,7 +997,9 @@ _hashtable: context [
 		either _BUCKET_IS_EITHER(flags ii sh) [null][
 			_BUCKET_SET_DEL_TRUE(flags ii sh)
 			h/size: h/size - 1
-			(as cell! blk + keys/i) + 1
+			k: as int-ptr! blk + keys/i
+			k/value: TYPE_VALUE
+			(as cell! k) + 1
 		]
 	]
 
