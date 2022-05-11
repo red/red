@@ -425,11 +425,12 @@ face!: object [				;-- keep in sync with facet! enum
 				any [word = 'size word = 'offset]
 				old = new
 			][exit]
+
+			same-pane?: all [block? :old block? :new same? head :old head :new]
 			if word = 'pane [
 				if all [type = 'window object? :new new/type = 'window][
 					cause-error 'script 'bad-window []
 				]
-				same-pane?: all [block? :old block? :new same? head :old head :new]
 				if all [not same-pane? block? :old not empty? old][
 					modify old 'owned none				;-- stop object events
 					foreach f head old [
