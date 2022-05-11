@@ -2619,6 +2619,7 @@ OS-draw-state-pop: func [
 	COM_SAFE_RELEASE(IUnk ctx/pen)
 	COM_SAFE_RELEASE(IUnk ctx/brush)
 	COM_SAFE_RELEASE(IUnk ctx/pen-style)
+	COM_SAFE_RELEASE(IUnk ctx/text-format)
 	if ctx/pen-pattern <> null [free as byte-ptr! ctx/pen-pattern]
 	copy-memory as byte-ptr! :ctx/state as byte-ptr! draw-state size? draw-state!
 	ctx/state: null
