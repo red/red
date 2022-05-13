@@ -2599,6 +2599,7 @@ OS-draw-state-push: func [
 	COM_ADD_REF(unk draw-state/pen)
 	COM_ADD_REF(unk draw-state/brush)
 	COM_ADD_REF(unk draw-state/pen-style)
+	COM_ADD_REF(unk draw-state/text-format)
 ]
 
 OS-draw-state-pop: func [
