@@ -1072,6 +1072,7 @@ _hashtable: context [
 			n-buckets: h/n-buckets + idx
 			either type = HASH_TABLE_HASH [
 				resize-hash node n-buckets
+				return key
 			][
 				if type = HASH_TABLE_MAP [n-buckets: h/n-buckets + 1]
 				resize node n-buckets

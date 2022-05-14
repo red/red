@@ -89,20 +89,6 @@ hash: context [
 		block/mold as red-block! hash buffer no all? flat? arg part - 11 indent
 	]
 
-	clear: func [
-		hash	[red-hash!]
-		return:	[red-value!]
-		/local
-			blk [red-block!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "hash/clear"]]
-
-		blk: as red-block! hash
-		_hashtable/clear hash/table blk/head block/rs-length? blk
-		block/rs-clear blk
-		as red-value! hash
-	]
-
 	copy: func [
 		hash    	[red-hash!]
 		new			[red-block!]
@@ -205,7 +191,7 @@ hash: context [
 			INHERIT_ACTION	;at
 			INHERIT_ACTION	;back
 			INHERIT_ACTION	;change
-			:clear
+			INHERIT_ACTION	;clear
 			:copy
 			INHERIT_ACTION	;find
 			INHERIT_ACTION	;head

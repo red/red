@@ -722,6 +722,7 @@ _series: context [
 		/local
 			s	 [series!]
 			size [integer!]
+			hash [red-hash!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "series/clear"]]
 
@@ -731,6 +732,10 @@ _series: context [
 		if size <= 0 [return as red-value! ser]    ;-- early exit if nothing to clear
 
 		ownership/check as red-value! ser words/_clear null ser/head size
+		if TYPE_OF(ser) = TYPE_HASH [
+			hash: as red-hash! ser
+			_hashtable/clear hash/table ser/head size
+		]
 		s/tail: as cell! (as byte-ptr! s/offset) + (ser/head << (log-b GET_UNIT(s)))
 		ownership/check as red-value! ser words/_cleared null ser/head 0
 		as red-value! ser
