@@ -809,8 +809,8 @@ new-line: make native! [[
 
 new-line?: make native! [[
 		"Returns the state of the new-line marker within a list series"
-		position [any-list!] "Position to change marker"
-		return:  [any-list!]
+		position [any-list!] "Position to check marker"
+		return:  [logic!]
 	]
 	#get-definition NAT_NEW_LINE?
 ]
