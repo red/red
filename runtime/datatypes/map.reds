@@ -234,8 +234,11 @@ map: context [
 		]
 
 		if zero? size [size: 1]
-		blk: block/make-at as red-block! stack/push* size
-		if blk? [block/copy as red-block! spec blk null no null]
+		either blk? [
+			blk: block/clone as red-block! spec no no
+		][
+			blk: block/make-at as red-block! stack/push* size
+		]
 		make-at as red-value! blk blk size
 	]
 
