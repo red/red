@@ -68,11 +68,7 @@ empty?: func [
 	series	[series! none! map!]
 	return:	[logic!]
 ][
-	case [
-		series? series [tail? series]
-		map? series [series = #()]
-		none? series [true]
-	]
+	either series [zero? length? series][true]
 ]
 
 ??: func [
