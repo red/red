@@ -260,7 +260,7 @@ object: context [
 					if all [i <> idx-s i <> idx-d][		;-- do not overwrite event handlers
 						old: stack/push values
 						copy-cell value values
-						fire-on-set obj word old new
+						fire-on-set obj word old value
 					]
 				][
 					copy-cell value values
