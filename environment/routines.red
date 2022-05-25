@@ -19,8 +19,9 @@ quit-return: routine [
 
 set-quiet: routine [
 	"Set an object's field to a value without triggering eventual object's events"
-	word  [any-type!]
-	value [any-type!]
+	word    [any-type!]
+	value   [any-type!]
+	return: [any-type!]
 	/local
 		w	 [red-word!]
 		type [integer!]
@@ -31,6 +32,7 @@ set-quiet: routine [
 	w: as red-word! word
 	node: w/ctx
 	_context/set-in w stack/arguments + 1 TO_CTX(node) no
+	SET_RETURN(value)
 ]
 
 set-slot-quiet: routine [
