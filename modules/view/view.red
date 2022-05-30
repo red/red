@@ -413,6 +413,7 @@ face!: object [				;-- keep in sync with facet! enum
 				tab "new  :" type? :new
 			]
 		]
+		type: self/type
 		if all [word <> 'state word <> 'extra][
 			all [
 				not empty? srs: system/reactivity/source
