@@ -552,6 +552,10 @@ _hashtable: context [
 		node: alloc-bytes size
 		s: as series! node/value
 		s/tail: as cell! (as byte-ptr! s/offset) + s/size
+		fill 
+			as byte-ptr! s/offset
+			as byte-ptr! s/tail
+			#"^@"
 		node
 	]
 
@@ -664,6 +668,38 @@ _hashtable: context [
 			collector/active?: saved
 		]
 		node
+	]
+
+	rehash: func [
+		node			[node!]
+		new-buckets		[integer!]
+		/local
+			s			[series!]
+			h			[hashtable!]
+			n-buckets	[integer!]
+			new-size	[integer!]
+			f			[float!]
+			flags		[node!]
+	][
+		s: as series! node/value
+		h: as hashtable! s/offset
+
+		f: as-float new-buckets
+		new-buckets: round-up as-integer f * 1.5
+		f: as-float new-buckets
+		new-size: as-integer f * _HT_HASH_UPPER
+		if new-buckets < 4 [new-buckets: 4]
+
+		h/size: 0
+		h/n-occupied: 0
+		h/upper-bound: new-size
+		h/n-buckets: new-buckets
+		array/clear h/chains
+		flags: _alloc-bytes-filled new-buckets >> 2 #"^(AA)"
+		h/flags: flags
+		h/keys: _alloc-bytes new-buckets * size? int-ptr!
+
+		put-all node 0 1
 	]
 
 	resize-hash: func [
