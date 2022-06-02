@@ -1440,7 +1440,6 @@ block: context [
 			limit	[red-value!]
 			head	[red-value!]
 			hash	[red-hash!]
-			table	[node!]
 			int		[red-integer!]
 			b		[red-block!]
 			s		[series!]
@@ -1452,7 +1451,6 @@ block: context [
 			index	[integer!]
 			values?	[logic!]
 			tail?	[logic!]
-			hash?	[logic!]
 			chk?	[logic!]
 			action	[red-word!]
 	][
@@ -1460,11 +1458,6 @@ block: context [
 		
 		cnt:  1
 		part: -1
-		hash?: TYPE_OF(blk) = TYPE_HASH
-		if hash? [
-			hash: as red-hash! blk
-			table: hash/table
-		]
 
 		values?: all [
 			not only?									;-- /only support
@@ -1534,10 +1527,6 @@ block: context [
 				as byte-ptr! head + slots
 				as byte-ptr! head
 				as-integer s/tail - head
-
-			if hash? [
-				_hashtable/refresh table slots h (as-integer s/tail - head) >> 4 yes
-			]
 			s/tail: s/tail + slots
 		]
 
@@ -1570,13 +1559,9 @@ block: context [
 			cnt: cnt - 1
 		]
 
-		if hash? [
-			s: GET_BUFFER(blk)
-			cell: either tail? [s/tail - slots][s/offset + h]
-			loop slots [
-				_hashtable/put table cell
-				cell: cell + 1
-			]
+		if TYPE_OF(blk) = TYPE_HASH [
+			hash: as red-hash! blk
+			_hashtable/rehash hash/table _series/get-length blk yes
 		]
 		if chk? [
 			action: either append? [words/_appended][words/_inserted]

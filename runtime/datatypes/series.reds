@@ -541,7 +541,6 @@ _series: context [
 			int		[red-integer!]
 			ser2	[red-series!]
 			hash	[red-hash!]
-			table	[node!]
 			values? [logic!]
 			neg?	[logic!]
 			part?	[logic!]
@@ -693,8 +692,7 @@ _series: context [
 		if type = TYPE_HASH [
 			n: get-length ser yes
 			hash: as red-hash! ser
-			table: hash/table
-			_hashtable/rehash table n
+			_hashtable/rehash hash/table n
 		]
 		ser/head: head + items
 		ownership/check as red-value! ser words/_changed null head items
@@ -858,6 +856,7 @@ _series: context [
 			s/tail: as red-value! tail - part
 		][
 			s/tail: as red-value! head
+			part: as-integer tail - head	;-- sanitize part
 		]
 		if TYPE_OF(ser) = TYPE_HASH [
 			items: as-integer tail - (head + part)
