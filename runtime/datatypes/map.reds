@@ -235,6 +235,7 @@ map: context [
 
 		if zero? size [size: 1]
 		either blk? [
+			; use clone here to prevent extra copying of spec
 			blk: block/clone as red-block! spec no no
 		][
 			blk: block/make-at as red-block! stack/push* size
