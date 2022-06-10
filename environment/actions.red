@@ -557,6 +557,7 @@ open: make action! [[
 		/read "Open for read access"
 		/write "Open for write access"
 		/seek "Optimize for random access"
+		/async "Open for asynchronous IO"
 		/allow "Specificies right access attributes"
 			access [block!]
 	]

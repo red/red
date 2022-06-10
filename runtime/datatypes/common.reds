@@ -760,6 +760,7 @@ words: context [
 	_accept:		as red-word! 0
 	_connect:		as red-word! 0
 	_awake:			as red-word! 0
+	_async:			as red-word! 0
 
 	;-- lexer events
 	_prescan:		as red-word! 0
@@ -1047,6 +1048,7 @@ words: context [
 		_accept:		word/load "accept"
 		_connect:		word/load "connect"
 		_awake:			word/load "awake"
+		_async:			word/load "async"
 
 		;-- lexer events
 		_prescan:		word/load "prescan"

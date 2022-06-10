@@ -1667,6 +1667,7 @@ actions: context [
 		read  [integer!]
 		write [integer!]
 		seek  [integer!]
+		async [integer!]
 		allow [integer!]
 	][
 		stack/set-last open
@@ -1675,6 +1676,7 @@ actions: context [
 			read  <> -1
 			write <> -1
 			seek  <> -1
+			async <> -1
 			stack/arguments + allow
 	]
 	
@@ -1684,6 +1686,7 @@ actions: context [
 		read?	[logic!]
 		write?	[logic!]
 		seek?	[logic!]
+		async?	[logic!]
 		allow	[red-value!]
 		return: [red-value!]
 		/local
@@ -1697,11 +1700,12 @@ actions: context [
 			read?	[logic!]
 			write?	[logic!]
 			seek?	[logic!]
+			async?	[logic!]
 			allow	[red-value!]
 			return:	[red-value!]						;-- picked value from series
 		] get-action-ptr spec ACT_OPEN
 
-		action-open spec new? read? write? seek? allow
+		action-open spec new? read? write? seek? async? allow
 	]
 	
 	open?*: func [][

@@ -173,6 +173,7 @@ udp-device: context [
 		read?		[logic!]
 		write?		[logic!]
 		seek?		[logic!]
+		async?		[logic!]
 		allow		[red-value!]
 		return:		[red-value!]
 		/local

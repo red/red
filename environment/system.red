@@ -434,7 +434,7 @@ system: context [
 			Title: Name: Type: Version: Date: File: Home: Author: Tabs: Needs: License: Note: History: none
 		]
 		port: object [
-			spec: scheme: actor: awake: state: data: extra: none
+			spec: scheme: actor: awake: state: data: flags: extra: none
 		]
 		error: object [
 			code: type: id: arg1: arg2: arg3: near: where: stack: none

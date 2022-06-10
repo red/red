@@ -37,6 +37,11 @@ ports-block: as red-block! 0
 
 io: context [
 
+	_binary:	as red-word! 0
+	_lines:		as red-word! 0
+	_info:		as red-word! 0
+	_as:		as red-refinement! 0
+
 	get-event-type: func [
 		evt		[red-event!]
 		return: [red-value!]
@@ -282,6 +287,11 @@ io: context [
 		#if debug? = yes [if verbose > 1 [
 			sprintf [log-file "red-log-%g.log" platform/get-time yes no]
 		]]
+		_binary:	word/load "binary"
+		_lines:		word/load "lines"
+		_info:		word/load "info"
+		_as:		refinement/load "as"
+
 		g-iocp: iocp/create
 		ports-block: block/make-in root 16
 	]
