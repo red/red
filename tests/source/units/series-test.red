@@ -799,6 +799,10 @@ Red [
 	
 	--test-- "series-find-108"
 		--assert none? find/last/part "abc" #"^(01)" 100
+
+	--test-- "series-find-109"
+		hs-bs: make hash! append/dup [] [1 2 3] 10000
+		--assert none? find hs-bs [3 4]
 	
 ===end-group===
 
@@ -875,6 +879,13 @@ Red [
 	--test-- "remove-hash-7"
 		hs: make hash! [a 1 1 b 2 2 c 3 3]
 		--assert (make hash! [a 1 1 c 3 3]) =  remove/key/part hs 'b 2
+
+	--test-- "remove-hash-8 - issue #5118"
+		hs-remove-8: make hash! [a b c a b c]
+		remove/part skip hs-remove-8 3 3
+		--assert 1 = index? find hs-remove-8 'a
+		--assert 2 = index? find hs-remove-8 'b
+		--assert 3 = index? find hs-remove-8 'c
 
 	--test-- "remove-str-1"
 		a: "123"
@@ -2022,6 +2033,18 @@ Red [
 		--assert s <> r
 		summed: 0 foreach c r [summed: summed + c]
 		--assert summed = 525
+
+===end-group===
+
+
+===start-group=== "poke"
+
+	--test-- "hash-poke-1"
+	h: make hash! [1 2 3 4 5]
+	h/1: 10
+	--assert h = find h 10
+	poke h 2 20
+	--assert (next h) = find h 20
 
 ===end-group===
 

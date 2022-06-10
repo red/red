@@ -2599,6 +2599,7 @@ OS-draw-state-push: func [
 	COM_ADD_REF(unk draw-state/pen)
 	COM_ADD_REF(unk draw-state/brush)
 	COM_ADD_REF(unk draw-state/pen-style)
+	COM_ADD_REF(unk draw-state/text-format)
 ]
 
 OS-draw-state-pop: func [
@@ -2619,6 +2620,7 @@ OS-draw-state-pop: func [
 	COM_SAFE_RELEASE(IUnk ctx/pen)
 	COM_SAFE_RELEASE(IUnk ctx/brush)
 	COM_SAFE_RELEASE(IUnk ctx/pen-style)
+	COM_SAFE_RELEASE(IUnk ctx/text-format)
 	if ctx/pen-pattern <> null [free as byte-ptr! ctx/pen-pattern]
 	copy-memory as byte-ptr! :ctx/state as byte-ptr! draw-state size? draw-state!
 	ctx/state: null

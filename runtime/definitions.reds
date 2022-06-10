@@ -312,6 +312,7 @@ Red/System [
 			pen				[this!]
 			brush			[this!]
 			pen-style		[this!]
+			text-format		[this!]
 			pen-type		[integer!]
 			brush-type		[integer!]
 			pen-color		[integer!]
@@ -327,6 +328,9 @@ Red/System [
 			pen-offset		[POINT_2F value]
 			brush-offset	[POINT_2F value]
 			clip-cnt		[integer!]
+			font-color?		[logic!]
+			font?			[logic!]
+			shadow?			[logic!]
 		]
 
 		draw-state!: alias struct! [
@@ -340,11 +344,7 @@ Red/System [
 			hwnd			[int-ptr!]			;-- Window's handle
 			image			[int-ptr!]			;-- original image handle
 			pre-order?		[logic!]			;-- matrix order, default pre-order for row-major vector
-			font-color?		[logic!]
-			shadow?			[logic!]
-			font?			[logic!]
 			draw-shape?		[logic!]
-			text-format		[this!]
 			sub				[sub-path! value]
 			shadows			[shadow! value]
 		]

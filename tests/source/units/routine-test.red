@@ -196,6 +196,9 @@ Red [
 	--test-- "rri1 - issue #468"
 	--assert 0 = rri1-r
 
+	--test-- "rri2 - issue #5145"
+	--assert 1 = set-quiet 'x 1
+
 ===end-group===
 	
 ~~~end-file~~~

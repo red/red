@@ -413,6 +413,7 @@ face!: object [				;-- keep in sync with facet! enum
 				tab "new  :" type? :new
 			]
 		]
+
 		if all [word <> 'state word <> 'extra][
 			all [
 				not empty? srs: system/reactivity/source
@@ -425,11 +426,12 @@ face!: object [				;-- keep in sync with facet! enum
 				any [word = 'size word = 'offset]
 				old = new
 			][exit]
+
+			same-pane?: all [block? :old block? :new same? head :old head :new]
 			if word = 'pane [
 				if all [type = 'window object? :new new/type = 'window][
 					cause-error 'script 'bad-window []
 				]
-				same-pane?: all [block? :old block? :new same? head :old head :new]
 				if all [not same-pane? block? :old not empty? old][
 					modify old 'owned none				;-- stop object events
 					foreach f head old [
@@ -458,7 +460,7 @@ face!: object [				;-- keep in sync with facet! enum
 			if find [field text] type [
 				if word = 'text [
 					set-quiet 'data any [
-						all [not empty? new type: scan new find scalar! type attempt/safer [load new]]
+						all [not empty? new new-type: scan new find scalar! new-type attempt/safer [load new]]
 						all [options options/default]
 					]
 				]
