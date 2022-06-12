@@ -188,7 +188,7 @@ memory-info: func [
 			print lf
 			count: count + 1
 
-			series: as series-buffer! (as byte-ptr! series) + series/size + size? series-buffer!
+			series: as series-buffer! (as byte-ptr! series) + SERIES_BUFFER_PADDING + series/size + size? series-buffer!
 			series >= frame/heap
 		]
 		assert series = frame/heap
