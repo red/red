@@ -1198,7 +1198,9 @@ _series: context [
 
 		if ser <> new [new/header: TYPE_UNSET]
 		part:	part << (log-b unit)
-		node:	alloc-bytes part
+		node: either type = TYPE_BINARY [b-allocator/alloc-bytes part][
+			alloc-bytes part
+		]
 		s: GET_BUFFER(ser)
 		buffer: as series! node/value
 		buffer/flags: s/flags							;@@ filter flags?
