@@ -294,7 +294,6 @@ iocp: context [
 		state: data/state
 		length: data/write-buflen
 		cnt: 0
-		probe [sock " " as int-ptr! state " " length]
 		forever [
 			n: _write-io data
 			case [

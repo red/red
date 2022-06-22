@@ -161,7 +161,6 @@ TLS-device: context [
 		#if debug? = yes [if verbose > 0 [print-line "tls server"]]
 
 		fd: socket/create AF_INET SOCK_STREAM IPPROTO_TCP
-probe ["server listen fd: " fd]
 		socket/bind fd num/value AF_INET
 		td: create-tls-data port fd
 		socket/listen fd 1024 as iocp-data! td
