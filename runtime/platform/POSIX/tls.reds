@@ -256,12 +256,15 @@ tls: context [
 		/local
 			domain	[red-string!]
 			len		[integer!]
+			name	[c-string!]
 	][
 		if TYPE_OF(data) <> TYPE_BLOCK [return null]
 		domain: as red-string! block/select-word data word/load "domain" no
 		if TYPE_OF(domain) <> TYPE_STRING [return null]
 		len: -1
-		unicode/to-utf8 domain :len
+		name: unicode/to-utf8 domain :len
+		if zero? len [return null]
+		name
 	]
 
 	server-name-cb: func [
@@ -307,7 +310,7 @@ tls: context [
 			vhost [red-block!]
 			cert  [red-block!]
 			end   [red-block!]
-			ctx	  [int-ptr!]
+			ctx new-ctx [int-ptr!]
 			pk	  [int-ptr!]
 			cert? [logic!]
 			cb?   [logic!]
@@ -327,22 +330,28 @@ tls: context [
 
 		cert?: no
 		while [cert < end][
-			ctx: SSL_CTX_new TLS_server_method
-			either store-identity td ctx cert [
+			new-ctx: SSL_CTX_new TLS_server_method
+			either store-identity td new-ctx cert [
 				cert?: yes
-				SSL_CTX_set_mode(ctx 5)  ;-- SSL_MODE_ENABLE_PARTIAL_WRITE or SSL_MODE_AUTO_RETRY
-				SSL_CTX_set_cipher_list ctx "ECDHE+AES:@STRENGTH:+AES256"
+				SSL_CTX_set_mode(new-ctx 5)  ;-- SSL_MODE_ENABLE_PARTIAL_WRITE or SSL_MODE_AUTO_RETRY
+				SSL_CTX_set_cipher_list new-ctx "ECDHE+AES:@STRENGTH:+AES256"
 
 				if cb? [
 					name: get-domain cert
+					if null? name [
+						IODebug("setup-server-certs: no domain name provided")
+						SSL_CTX_free new-ctx
+						return false
+					]
 					array/append-ptr td/certs as int-ptr! strdup name
-					array/append-ptr td/certs ctx
+					array/append-ptr td/certs new-ctx
 
-					SSL_CTX_callback_ctrl ctx 53 as int-ptr! :server-name-cb
-					SSL_CTX_ctrl ctx 54 0 as int-ptr! td
+					SSL_CTX_callback_ctrl new-ctx 53 as int-ptr! :server-name-cb
+					SSL_CTX_ctrl new-ctx 54 0 as int-ptr! td
 				]
+				ctx: new-ctx
 			][
-				SSL_CTX_free ctx
+				SSL_CTX_free new-ctx
 			]
 			cert: cert + 1
 		]
