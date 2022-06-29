@@ -1,172 +1,332 @@
 Red [
 	Title:	"Reactive programming support"
-	Author: "Nenad Rakocevic"
+	Author: ["Nenad Rakocevic" "hiiamboris"]
 	File: 	%reactivity.red
 	Tabs: 	4
-	Rights: "Copyright (C) 2016-2018 Red Foundation. All rights reserved."
+	Rights: "Copyright (C) 2016-2021 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
-reactor!: context [
-	on-change*: function [word old new][
-		if system/reactivity/debug? [
-			print [
-				"-- on-change event --" lf
-				tab "word :" word		lf
-				tab "old  :" type? :old	lf
-				tab "new  :" type? :new
-			]
-		]
-		all [
-			not empty? srs: system/reactivity/source
-			srs/1 = self
-			srs/2 = word
-			set-quiet in self word old					;-- force the old value
-			exit
-		]
-		unless all [block? :old block? :new same? head :old head :new][
-			if any [series? :old object? :old][modify old 'owned none]
-			if any [series? :new object? :new][modify new 'owned reduce [self word]]
-		]
-		system/reactivity/check/only self word
-	]
-]
-
-deep-reactor!: make reactor! [
-	on-deep-change*: function [owner word target action new index part][
-		system/reactivity/check/only owner word
-	]
-]
-
-reactor:	  function [spec [block!]][make reactor! spec]
-deep-reactor: function [spec [block!]][make deep-reactor! spec]
-
+#local [												;-- keep macros from flowing out
+#macro REACTORS-PERIOD:  func [][2]
+#macro RELATIONS-PERIOD: func [][3]
+#macro REACTIONS-PERIOD: func [][2]
 
 system/reactivity: context [
-	relations:	 make block! 1000		;@@ change it to hash! once stable
-	;-- queue format: [reactor reaction target done]
-	queue:		 make block! 100
-	eat-events?: yes
-	debug?: 	 no
-	source:		 []
+	;-- reactors format: [reactor [records] ...]
+	;-- each record format: [reactor word reaction targets] - a block (hash is ~10x times slower)
+	;;  src-word [reaction] set-word            	 -- used by `is` (evaluates reaction, assigns to target)
+	;;  src-word function [func obj1 obj2...]   	 -- used by react/link (evaluates target), one relation for every reactor in both list and func's body
+	;;  src-word [reaction] none                	 -- used by react (evaluates reaction)
+	;;  src-word [reaction] set-word/object     	 -- used by react/with (evaluates reaction, assigns to a set-word only)
+	reactors:	 make hash! 500
 
-	add-relation: func [
-		obj		 [object!]
-		word
-		reaction [block! function!]
-		targets  [set-word! block! object! none!]
-		/local new-rel
-	][
-		new-rel: reduce [obj :word :reaction targets]
-		unless find/same/skip relations new-rel 4 [append relations new-rel]
-	]
-	
-	eval: function [code [block!] /safe][
-		either safe [
-			if error? set/any 'result try/all code [
-				print :result
-				prin "*** Near: "
-				print mold/part/flat code 80
-				result: none
+	;-- reactions format: [reaction [reactors..] ...]
+	;-- (used by react/unlink 'all, dump-reactions, clear-reactions, stop-reactor)
+	reactions:   make hash! 1000						;-- hash speeds up unlinking noticeably
+
+	;-- queue format: [reactor reaction target done]
+	queue:		 make hash! 100
+
+	debug?: 	 no
+	metrics?:    no
+	source:		 []		;-- contains the initial [reactor reaction] that triggered a chain of subsequent reactions
+
+	metrics: context [
+		max-queue: max-reactions: max-reactors: biggest-relation: biggest-reactor: 0
+		events: fired: queued: skipped: 0
+		in-add: in-remove: in-react: in-check: in-eval: longest-flush: 0:0
+
+		reset: does [
+			set self 0
+			in-add: in-remove: in-react: in-check: in-eval: longest-flush: 0:0
+		]
+
+		show: does [
+			print "^/***** REACTIVITY METRICS REPORT *****"
+			print ["Metrics collection enabled?:" metrics?]
+			print  "Statistical counts:"
+			print ["    events triggered:   " events]
+			print ["    reactions fired:    " fired "(immediately:" fired - queued ", queued:" queued ")" ]
+			print ["    reactions skipped:  " skipped]
+			print ["Time spent in reactions:" in-eval]
+			print  "Time spent in reactivity:"
+			print ["    total:              " in-add + in-remove + in-react + in-check]
+			print ["    adding relations:   " in-add + in-react "(preparations:" in-react ")"]
+			print ["    removing relations: " in-remove]
+			print ["    dispatching:        " in-check]
+			print ["    longest queue flush:" longest-flush]
+			print  "Peak values:"
+			print ["    max queue size:     " max-queue]
+			print ["    max reactors count: " max-reactors]
+			print ["    max reactions count:" max-reactions]
+			print ["    biggest relation:   " biggest-relation "reactors"]
+			print ["    biggest reactor:    " biggest-reactor "relations"]
+		]
+		
+		start: target: none
+		time: func [/count 'into [word!] /save /local t] [
+			t: now/precise
+			case [
+				save  [set target (get target) + t: difference t start  t]
+				count [start: t  target: into]
 			]
-			get/any 'result
-		][
-			do code
+		]
+
+		incr: func ['word]       [set word 1 + get word]
+		peak: func ['word value] [set word max get word value]
+
+		register: func ['counter value] [set counter max get counter value]
+	]
+
+	--measure--: func [code] [
+		if metrics? [do bind code metrics]
+	]
+
+	--debug-print--: function [blk [block!] /full /no-gui] [
+		all [
+			debug?
+			any [not full  debug? = 'full]
+			not all [no-gui  attempt [system/console/gui?]]			;-- print in GUI console overflows stack in some places
+			(
+				limit: (any [all [system/console system/console/size/x] 72]) - 10
+				blk: reduce blk
+				forall blk [
+					x: :blk/1										;@@ workaround for #4517
+					unless string? :x [
+						if function? :x [x: body-of :x]
+						all [
+							object? :x
+							pos: find/same values-of system/words x
+							x: pick words-of system/words index? pos
+						]
+						change blk
+							replace/all
+								mold/flat/part :x limit
+								"make object!" "object"
+					]
+				]
+				if (length? s: form blk) > limit [					;-- trim longest parts equally
+					long: 0  count: 0
+					foreach x next blk [							;-- don't trim the prefix
+						if 15 < len: length? x [					;-- don't trim short values
+							long: long + len
+							count: count + 1
+						]
+					]
+					short: (len: length? s) - long
+					ratio: max 0 limit - short / (len - short)
+					foreach x next blk [
+						clear skip x max 15 to integer! ratio * length? x
+					]
+					clear skip s: form blk limit
+				]
+				print s
+			)
 		]
 	]
+
+	remove-part: function [where [series!] part [integer!]] [	;-- O(1) anywhere
+		change where end: skip tail where 0 - part
+		clear end
+	]
+
+	find-reactor: func [reactor [object!]] [
+		find/same/skip reactors reactor REACTORS-PERIOD
+	]
+	relations-of: func [reactor [object!]] [
+		select/same/skip reactors reactor REACTORS-PERIOD
+	]
+
+	find-reaction: func [reaction [block! function!]] [
+		find/same/only/skip reactions :reaction REACTIONS-PERIOD
+	]
+	reactors-for: func [reaction [block! function!]] [
+		select/same/only/skip reactions :reaction REACTIONS-PERIOD
+	]
+
+	unique-objects: func [] [							;-- used by debug funcs only
+		extract reactors 2
+	]
 	
-	eval-reaction: func [reactor [object!] reaction [block! function!] target /mark][
-		if mark [repend queue [reactor :reaction target yes]]
-		
-		either set-word? target [
-			set/any target eval/safe :reaction
+	relations-count: function [] [
+		sum: 0
+		foreach obj unique-objects [
+			sum: (length? relations-of obj) / RELATIONS-PERIOD + sum
+		]
+		sum
+	]
+
+	add-relation: function [
+		obj		 [object!]
+		word     [word!]
+		reaction [block! function!]
+		targets  [set-word! block! object! none!]
+	][
+		--measure-- [time/count in-add]
+		new-rel: head reduce/into [:word :reaction targets] clear []
+		either relations: relations-of obj [
+			found: find/same/skip relations new-rel RELATIONS-PERIOD
 		][
-			eval/safe any [all [block? :reaction reaction] target]
+			reduce/into [obj  relations: make block! 12] tail reactors
+		]
+		unless found [
+			append relations new-rel
+			unless objs: reactors-for :reaction [
+				reduce/into [:reaction  objs: make block! 10] tail reactions
+			]
+			unless find/same objs obj [append objs obj]	;-- only source object should be kept, not targets
+			--measure-- [
+				peak biggest-reactor (length? relations) / RELATIONS-PERIOD
+				peak biggest-relation length? objs
+				peak max-reactions   (length? reactions) / REACTIONS-PERIOD
+				peak max-reactors    (length? reactors)  / REACTORS-PERIOD
+			]
+			--debug-print-- ["-- react: added --" :reaction "FOR" word "IN" obj]
+		]
+		--measure-- [time/save]
+	]
+	
+	eval: function [code [block!] /safe /local result][
+		--measure-- [
+			time/count in-eval
+			incr fired
+		]
+		--debug-print--/full ["-- react: firing --" either function? :code/1 [body-of :code/1][code]]
+		either safe [
+			if error? error: try/all [set/any 'result do code  'ok] [
+				print :error
+				prin "*** Near: "
+				limit: (any [all [system/console system/console/size/x] 72]) - 11
+				print mold/part/flat code limit
+			]
+		][
+			set/any 'result do code
+		]
+		--measure-- [time/save]
+		:result
+	]
+	
+	eval-reaction: func [reactor [object!] reaction [block! function!] target [set-word! block! object! none!]][
+		case [
+			set-word? target [set/any target eval/safe :reaction]
+			block? :reaction [eval/safe reaction]
+			'linked          [eval/safe target]
 		]
 	]
 	
 	pending?: function [reactor [object!] reaction [block! function!]][
-		q: queue
-		while [q: find/same/skip q reactor 4][
-			if same? :q/2 :reaction [return yes]
-			q: skip q 4
-		]
-		no
+		reduce/into [reactor :reaction] clear pattern: []
+		none <> find/same/skip queue pattern 4
 	]
-	
-	check: function [reactor [object!] /only field [word! set-word!]][
-		unless empty? pos: relations [
-			while [pos: find/same/skip pos reactor 4][
-				reaction: :pos/3
-				if all [
-					any [not only pos/2 = field]
-					any [empty? queue  not pending? reactor :reaction]
-				][
-					either empty? queue [
-						if empty? source [
-							append source reactor
-							append source field
-						]
-						eval-reaction/mark reactor :reaction pos/4
-						
-						q: tail queue
-						until [
-							q: skip q': q -4
-							either q/4 [ 				;-- was already executed?
-								clear q 				;-- allow requeueing of it
-							][
-								eval-reaction q/1 :q/2 q/3
-								either tail? q' [ 		;-- queue wasn't extended
-									clear q 			;-- allow requeueing
-								][
-									q/4: yes 			;-- mark as executed
-									q: tail queue 		;-- jump to recently queued reactions
-								]
-							]
-							head? q
-						]
-						clear queue
-						clear source
-					][
-						unless all [
-							eat-events?
-							pending? reactor :reaction
+
+	check: function [reactor [object!] field [word! set-word!]][
+		unless pos: relations-of reactor [exit]			;-- immediate return for reactors without defined relations
+		--debug-print--/full/no-gui ["-- react: checking --" field "IN" reactor]
+		--measure-- [time/count in-check]
+		unless pos: find/skip pos field RELATIONS-PERIOD [exit]
+
+		if initial?: tail? source [reduce/into [reactor field] source]
+		until [
+			set [word: reaction: target:] pos
+			case [
+				pending? reactor :reaction [			;-- don't allow cycles
+					--measure-- [incr skipped]
+					--debug-print--/no-gui ["-- react: skipped --" :reaction "FOR" field "IN" reactor]
+					'idle
+				]
+				not tail? queue [						;-- entered while another reaction is running
+					reduce/into [reactor :reaction target no] tail queue
+					--measure-- [
+						incr queued
+						peak max-queue (length? queue) / 4
+					]
+					--debug-print--/no-gui ["-- react: queued --" :reaction "FOR" field "IN" reactor]
+				]
+				'else [
+					reduce/into [reactor :reaction target yes] queue
+					--measure-- [peak max-queue 1  time/save]
+					eval-reaction reactor :reaction target
+					q: tail queue
+					while [not head? q] [
+						q: skip q': q -4
+						either q/4 [ 					;-- was already executed?
+							clear q 					;-- allow requeueing of it
 						][
-							repend queue [reactor :reaction pos/4 no]
+							eval-reaction q/1 :q/2 q/3
+							either tail? q' [ 			;-- queue wasn't extended
+								clear q 				;-- allow requeueing
+							][
+								q/4: yes 				;-- mark as executed
+								q: tail q	 			;-- jump to recently queued reactions
+							]
 						]
 					]
+					--measure-- [time/count in-check]
 				]
-				pos: skip pos 4
+			]
+			none? pos: find/skip (skip pos RELATIONS-PERIOD) field RELATIONS-PERIOD
+		]
+		if initial? [clear source]
+		--measure-- [peak longest-flush time/save]
+	]
+
+	;-- kept separately to minimize reactor's RAM size
+	on-change-handler: function [owner [object!] word [word! set-word!] old [any-type!] new [any-type!]] [
+		--debug-print--/full ["-- react: on-change --" word "FROM" type? :old "TO" type? :new]
+		--measure-- [incr events]
+		if all [
+			not empty? source
+			source/1 =? owner
+			source/2 = word
+		][
+			set-quiet in owner word :old				;-- force the old value
+			--measure-- [incr skipped]
+			--debug-print-- ["-- react: protected --" word "VALUE" :old "IN" owner]
+			exit
+		]
+		all [
+			in owner 'on-deep-change*					;-- only deep reactors take ownership
+			not all [series? :old series? :new same? head :old head :new]
+			case/all [
+				any [series? :old object? :old] [modify old 'owned none]
+				any [series? :new object? :new] [modify new 'owned reduce [owner word]]
 			]
 		]
+		check owner word
 	]
-	
+
 	set 'stop-reactor function [
-		face [object!]
-		/deep
+		"Forget all relations involving reactor OBJ"
+		obj [object!] "Face or reactor"
+		/deep "Deeply remove all relations from child faces"
 	][
-		list: relations
-		while [not tail? list][
-			either any [
-				same? list/1 face
-				all [
-					block? list/4
-					pos: find/same list/4 face
-					empty? head remove pos
-				]
-			][
-				remove/part list 4
-			][
-				list: skip list 4
-			]
+		unless found: find-reactor obj [exit]
+		--measure-- [time/count in-remove]
+		relations: found/2
+		obj-reacs: unique extract/into next relations RELATIONS-PERIOD clear []	;-- same reaction may be repeated many times for different words
+		foreach reaction obj-reacs [
+			--debug-print-- ["-- react: removed --" :reaction "FROM" obj]
+			pos: find-reaction :reaction
+			remove find/same pos/2 obj
+			if tail? pos/2 [remove-part pos REACTIONS-PERIOD]
 		]
-		if all [deep block? face/pane][foreach f face/pane [stop-reactor/deep f]]
+		remove-part found REACTORS-PERIOD
+		--measure-- [time/save]
+
+		if all [deep  block? :obj/pane] [
+			foreach f obj/pane [stop-reactor/deep f]
+		]
 	]
-	
-	set 'clear-reactions function ["Removes all reactive relations"][clear relations]
+
+	set 'clear-reactions function ["Remove all reactive relations"][
+		--debug-print-- ["-- react: clearing ALL relations --"]
+		clear reactions
+		clear reactors
+	]
 	
 	set 'dump-reactions function [
 		"Output all the current reactive relations for debugging purpose"
@@ -174,52 +334,96 @@ system/reactivity: context [
 		limit: (any [all [system/console system/console/size/x] 72]) - 10
 		count: 0
 		
-		foreach [obj field reaction target] relations [
-			prin count: count + 1
-			prin ":---^/"
-			prin "  Source: object "
-			list: words-of obj
-			remove find list 'on-change*
-			remove find list 'on-deep-change*
-			print mold/part list limit - 5
-			prin "   Field: "
-			print form field
-			prin "  Action: "
-			print mold/flat/part :reaction limit
-			case [
-				block? target [
-					prin "    Args: "
-					print copy/part replace/all mold/flat next target "make object!" "object" limit
-				]
-				set-word? target [
-					prin "  Target: "
-					print form target
+		foreach [reactor relations] reactors [
+			foreach [field reaction target] relations [
+				prin count: count + 1
+				prin ":---^/"
+				prin "  Source: object "
+				list: words-of reactor
+				remove find list 'on-change*
+				remove find list 'on-deep-change*
+				print mold/part list limit - 5
+				prin "   Field: "
+				print form field
+				prin "  Action: "
+				print mold/flat/part :reaction limit
+				case [
+					block? target [
+						prin "    Args: "
+						print copy/part replace/all mold/flat/part next target limit + 20 "make object!" "object" limit
+					]
+					set-word? target [
+						prin "  Target: "
+						print form target
+					]
 				]
 			]
 		]
 		()												;-- avoids returning anything in the console
 	]
-	
+
+	;-- `is` should support non-object paths, like `pair/x`, `time/second`, `block/3`
+	;;  as well as in-path references: `anything/(pair/x)`, `any/:x/thing`...
+	;;  parsing summary:
+	;;    word:     as first item in a path only (including inner paths)
+	;;    get-word: anywhere in a path, inside parens (including inner paths) e.g. `object/:x`
+	;;    get-words in lit-paths and set-paths? for now they are accepted; e.g. `obj/:x: y`
+	;;    lit-word: should be ignored? as it's a way to get around reactivity e.g. `set 'y get 'x`
+	;;    interop with react: react catches words after the object, not get-words; is - only first word in path
 	is~: function [
 		"Defines a reactive relation whose result is assigned to a word"
 		'field	 [set-word!]	"Set-word which will get set to the result of the reaction"
 		reaction [block!]		"Reactive relation"
+		/local item
 	][
+		--measure-- [time/count in-react]
 		obj: context? field
-		parse reaction rule: [
-			any [
-				item: word! (if in obj item/1 [add-relation obj item/1 reaction field])
-				| any-path! | any-string!
-				| into rule
-				| skip
+		if reactor? obj [								;-- skip global context (which would contain ALL words) and other normal objects -- let react handle them
+			words: clear []
+			=add=:       [(if in obj item [append words to word! item])]
+			=path=:      [[set item word! =add= | skip] =path-rest=]
+			=set-path=:  [skip =path-rest=]
+			=path-rest=: [
+				any [
+					set item get-word! =add=
+				|	ahead paren! into =block=			;-- no literal paths, strings, blocks in paths (can't be constructed lexically)
+				|	skip
+				]
 			]
+			parse reaction =block=: [
+				any [
+					set item [word! | get-word!] =add=
+				|	any-string!
+				|	ahead [path! | get-path! | lit-path!] into =path=
+				|	ahead set-path! into =set-path=
+				|	into =block=
+				|	skip
+				]
+			]
+			--measure-- [time/save]
+			foreach w words [add-relation obj w reaction field]
 		]
 		react/later/with reaction field
-		set field either block? :reaction/1 [do :reaction/1][eval reaction]
+		set field either block? :reaction/1 [do reaction/1][eval reaction]
 	]
 	
 	set 'is make op! :is~
 	
+	for-all-paths: function ['word [word!] reaction [block!] code [block!]] [
+		parse reaction rule: [
+			any [
+				item: [path! | lit-path! | get-path!] (
+					set word item/1
+					do code
+					parse item/1 rule					;-- process paren & inner paths
+				)
+			|	any-string!
+			|	into rule								;-- also enters set-path
+			|	skip
+			]
+		]
+	]
+
 	set 'react? function [
 		"Returns a reactive relation if an object's field is a reactive source"
 		reactor	[object!]	"Object to check"
@@ -227,22 +431,61 @@ system/reactivity: context [
 		/target				"Check if it's a target instead of a source"
 		return: [block! function! word! none!] "Returns reaction, type or NONE"
 	][
-		either target [
-			pos: skip relations 3
-			while [pos: find/skip pos field 4][
-				if reactor = context? pos/1 [return pos/-1]
-				pos: skip pos 4
-			]
-		][
-			pos: relations
-			while [pos: find/same/skip pos reactor 4][
-				if pos/2 = field [return pos/3]
-				pos: skip pos 4
+		if pos: relations-of reactor [
+			either target [
+				pos: at pos 3
+				if pos: find/skip pos field RELATIONS-PERIOD [:pos/-1]	;-- looks for a set-word
+			][
+				if pos: find/skip pos field RELATIONS-PERIOD [:pos/2]
 			]
 		]
-		none
 	]
-	
+
+	get-object-path-length: function [path [any-path!] obj [word!]] [
+		either 2 = length? path [
+			set/any obj get/any path/1
+			1
+		][
+			part: length? path
+			set obj none
+			until [							;-- search for an object (deep first)
+				part: part - 1
+				path: copy/part path part
+				any [
+					object? set obj attempt [get path]
+					part = 1
+				]
+			]
+			part
+		]
+	]
+
+	unlink-reaction: function [reactor [object!] reaction [function! block!]] [
+		unless at-reactor: find-reactor reactor [return none]
+		pos: next relations: at-reactor/2
+		while [pos: find/same/only/skip pos :reaction RELATIONS-PERIOD] [
+			--debug-print-- ["-- react: removed --" :reaction "FOR" pos/-1 "IN" reactor]
+			remove-part back found?: pos RELATIONS-PERIOD
+		]
+		if empty? relations [remove-part at-reactor REACTORS-PERIOD]	;-- don't lock it from GC
+
+		at-reaction: find-reaction :reaction
+		remove find/same objs: at-reaction/2 reactor
+		if empty? objs [remove-part at-reaction REACTIONS-PERIOD]		;-- don't lock it from GC
+		found?
+	]
+
+	;-- used by `react` to determine valid reactive sources (should also support custom ones)
+	;-- which are: objects that define on-change* and eventually call `check`
+	;-- but last condition can't be verified, because check may be buried in other function calls, so..
+	reactor?: function ["Check if object is a reactor" obj [any-type!]] [
+		all [
+			object? :obj
+			oc: in obj 'on-change*
+			function? get/any oc						;-- can be unset when `is` is used in global context
+		]
+	]
+
 	set 'react function [
 		"Defines a new reactive relation between two or more objects"
 		reaction	[block! function!]	"Reactive relation"
@@ -254,96 +497,99 @@ system/reactivity: context [
 		/with							"Specifies an optional face object (internal use)"
 			ctx		[object! set-word! none!] "Optional context for VID faces or target set-word"
 		return:		[block! function! none!] "The reactive relation or NONE if no relation was processed"
+		/local item
 	][
 		case [
 			link [
+				--measure-- [time/count in-react]
 				unless function? :reaction [cause-error 'script 'react-bad-func []]
-				objs: parse spec-of :reaction [
-					collect some [keep word! | [refinement! | set-word!] break | skip]
+				args: clear []
+				parse spec-of :reaction [
+					collect into args some [keep word! | [refinement! | set-word!] break | skip]
 				]
-				if 2 > length? objs [cause-error 'script 'react-not-enough []]
+				if empty? args [cause-error 'script 'react-not-enough []]
 				objects: reduce objects
 				
-				if (length? objects) <> length? objs [cause-error 'script 'react-no-match []]
+				if (length? objects) <> length? args [cause-error 'script 'react-no-match []]
 				unless parse objects [some object!][cause-error 'script 'react-bad-obj []]
 				
 				insert objects :reaction
-				
-				found?: no
-				parse body-of :reaction rule: [
-					any [
-						item: [path! | lit-path! | get-path!] (
-							item: item/1
-							if pos: find objs item/1 [
-								obj: pick objects 1 + index? pos
-								add-relation obj item/2 :reaction objects
-								unless later [eval objects]
-								found?: yes
-							]
-						)
-						| set-path! | any-string!
-						| into rule
-						| skip
+				plan: clear []
+				for-all-paths item body-of :reaction [
+					all [
+						word? :item/2
+						pos: find args item/1
+						obj: pick objects 1 + index? pos
+						reactor? :obj
+						found?: repend plan [obj item/2]
 					]
 				]
+				--measure-- [time/save]
+				foreach [obj word] plan [add-relation obj word :reaction objects]
+				if all [found? not later] [eval objects]
 			]
 			unlink [
-				if block? src [src: reduce src]
-				pos: relations
-				found?: no
-				while [pos: find/same/only pos :reaction][
-					obj: pos/-2
-					either any [src = 'all src = obj all [block? src find/same src obj]][
-						pos: remove/part skip pos -2 4
-						found?: yes
-					][
-						break
+				--measure-- [time/count in-remove]
+				case [
+					object? src [
+						found?: unlink-reaction src :reaction
 					]
+					block? src [
+						objs: reactors-for :reaction
+						foreach obj src [
+							if unlink-reaction obj :reaction [found?: yes]
+						]
+					]
+					src = 'all [
+						if pos: find-reaction :reaction [
+							objs: pos/2					;-- save it; unlink may change `pos` content
+							while [not empty? objs] [
+								if unlink-reaction objs/1 :reaction [found?: yes]
+							]
+						]
+					]
+					'else [cause-error 'script 'invalid-arg [src]]
 				]
+				--measure-- [time/save]
 			]
 			'else [
-				found?: no
-				parse reaction rule: [
-					any [
-						item: [path! | lit-path! | get-path!] (
-							saved: item/1
-							if unset? attempt [get/any item: saved][
-								cause-error 'script 'no-value [item]
-							]
-							either 2 = length? item [
-								set/any 'obj get/any item/1
-								part: 1
-							][
-								part: length? item
-								until [					;-- search for an object (deep first)
-									part: part - 1
-									path: copy/part item part
-									any [
-										tail? path
-										object? obj: attempt [get path]
-										part = 1
-									]
-								]
-							]
-							if all [
-								object? :obj			;-- rough checks for reactive object
-								in obj 'on-change*
-							][
-								part: part + 1
-								add-relation obj item/:part reaction ctx
-								unless later [eval reaction]
-								found?: yes
-							]
-							parse saved rule
-						)
-						| set-path! | any-string!
-						| into rule
-						| skip
+				--measure-- [time/count in-react]
+				unless block? :reaction [cause-error 'script 'invalid-arg [:reaction]]
+				plan: clear []
+				for-all-paths item reaction [
+					if unset? attempt [get/any item][
+						cause-error 'script 'no-value [item]
+					]
+					part: get-object-path-length item 'obj
+					all [
+						reactor? :obj
+						word? word: :item/(part + 1)
+						found?: repend plan [obj word]
 					]
 				]
+				--measure-- [time/save]
+				foreach [obj word] plan [add-relation obj word reaction ctx]
+				if all [found? not later] [eval reaction]
 			]
 		]
 		either found? [:reaction][none]					;-- returns NONE if no relation was processed
+	];; set 'react
+
+];; system/reactivity
+
+reactor!: context [
+	on-change*: func [word [word! set-word!] old [any-type!] new [any-type!]] [
+		system/reactivity/on-change-handler self word :old :new
 	]
 ]
 
+deep-reactor!: make reactor! [
+	on-deep-change*: func [owner word target action new [any-type!] index part][
+		system/reactivity/check owner word
+	]
+]
+
+reactor:	  function [spec [block!]][make reactor!      spec]
+deep-reactor: function [spec [block!]][make deep-reactor! spec]
+
+];; #local
