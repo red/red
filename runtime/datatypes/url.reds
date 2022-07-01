@@ -285,36 +285,8 @@ url: context [
 		as-arg	[red-value!]
 		return:	[red-value!]
 		/local
-			blk		[red-block!]
-			method	[red-word!]
-			header	[red-block!]
-			p		[red-object!]
-			action	[integer!]
-			sym		[integer!]
+			p	[red-object!]
 	][
-		header: null
-		either TYPE_OF(data) = TYPE_BLOCK [
-			blk: as red-block! data
-			either 0 = block/rs-length? blk [
-				action: words/get
-			][
-				method: as red-word! block/rs-head blk
-				if TYPE_OF(method) <> TYPE_WORD [
-					fire [TO_ERROR(script invalid-arg) method]
-				]
-				action: symbol/resolve method/symbol
-				unless block/rs-next blk [
-					header: as red-block! block/rs-head blk
-					if TYPE_OF(header) <> TYPE_BLOCK [
-						fire [TO_ERROR(script invalid-arg) header]
-					]
-				]
-				data: as red-value! either block/rs-next blk [null][block/rs-head blk]
-			]
-		][
-			action: words/post
-		]
-
 		if all [
 			data <> null
 			TYPE_OF(data) <> TYPE_BLOCK
