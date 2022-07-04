@@ -393,9 +393,9 @@ Red/System [
 
 #define ANY_NUMBER?(type)	[
 	any [
-		type1 = TYPE_INTEGER
-		type1 = TYPE_FLOAT
-		type1 = TYPE_PERCENT
+		type = TYPE_INTEGER
+		type = TYPE_FLOAT
+		type = TYPE_PERCENT
 	]
 ]
 
