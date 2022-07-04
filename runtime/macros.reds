@@ -391,6 +391,14 @@ Red/System [
 	]
 ]
 
+#define ANY_NUMBER?(type)	[
+	any [
+		type1 = TYPE_INTEGER
+		type1 = TYPE_FLOAT
+		type1 = TYPE_PERCENT
+	]
+]
+
 #define ANY_LIST?(type)	[
 	any [
 		type = TYPE_BLOCK

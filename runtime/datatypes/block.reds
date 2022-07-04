@@ -601,10 +601,7 @@ block: context [
 			either any [
 				type1 = type2
 				all [word/any-word? type1 word/any-word? type2]
-				all [											;@@ replace by ANY_NUMBER?
-					any [type1 = TYPE_INTEGER type1 = TYPE_FLOAT]
-					any [type2 = TYPE_INTEGER type2 = TYPE_FLOAT]
-				]
+				all [ANY_NUMBER?(type1) ANY_NUMBER?(type2)]
 			][
 				res: actions/compare-value value1 value2 op
 				value1: value1 + 1
