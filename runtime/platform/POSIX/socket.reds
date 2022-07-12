@@ -142,8 +142,7 @@ socket: context [
 					iocp/add data/io-port sock EPOLLOUT or EPOLLET data
 				]
 				default [
-					?? ret
-					probe "connect error..................."
+					probe ["connect error: " ret]
 				]
 			]
 		]

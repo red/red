@@ -1273,6 +1273,7 @@ tls: context [
 				00090317h [		;-- SEC_I_CONTEXT_EXPIRED
 					data/event: IO_EVT_CLOSE
 					len: 0
+					break
 				]
 				default [probe ["error in tls/decode: " as int-ptr! status]]
 			]

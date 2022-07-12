@@ -115,12 +115,13 @@ dns: context [
 		header: as DNS_HEADER s/offset
 		res: header/Xid and FFFFh
 
+		;-- This is emulation of windns.h DNS_BYTE_FLIP_HEADER_COUNTS macro
 		header/Xid: header/Xid and FFFF0000h or ntohs res
-		w1: ntohs header/QuestionCount and FFFFh
-		w2: ntohs header/QuestionCount >>> 16
+		w1: (ntohs header/QuestionCount and FFFFh) and FFFFh	;@@ and FFFFh to get int16 value
+		w2: (ntohs header/QuestionCount >>> 16) and FFFFh
 		header/QuestionCount: w2 << 16 or w1
-		w1: ntohs header/NameServerCount and FFFFh
-		w2: ntohs header/NameServerCount >>> 16
+		w1: (ntohs header/NameServerCount and FFFFh) and FFFFh
+		w2: (ntohs header/NameServerCount >>> 16) and FFFFh
 		header/NameServerCount: w2 << 16 or w1	
 		
 		res: DnsExtractRecordsFromMessage_UTF8 as DNS_MESSAGE_BUFFER header data/transferred :pp

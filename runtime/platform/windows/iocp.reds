@@ -182,7 +182,7 @@ iocp: context [
 	
 		if zero? res [
 			err: GetLastError
-			IODebug(["GetQueuedCompletionStatusEx: " err])
+			;IODebug(["GetQueuedCompletionStatusEx: " err])
 			return 0
 		]
 

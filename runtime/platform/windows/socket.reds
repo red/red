@@ -208,8 +208,7 @@ socket: context [
 		data/event: IO_EVT_READ
 
 		zero-memory as byte-ptr! data size? OVERLAPPED!
-		probe WSARecvFrom sock :wsbuf 1 null :data/flags addr addr-sz as OVERLAPPED! data null
-		probe GetLastError
+		WSARecvFrom sock :wsbuf 1 null :data/flags addr addr-sz as OVERLAPPED! data null
 	]
 
 	set-option: func [
