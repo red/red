@@ -191,10 +191,8 @@ iocp: context [
 				td: as tls-data! data
 				IODebug(["SSL_read" td/ssl data/read-buf data/read-buflen])
 				n: SSL_read td/ssl data/read-buf data/read-buflen
-				?? n
 				if n <= 0 [
 					n: SSL_get_error td/ssl n
-					?? n
 					tls/check-errors n
 					n: switch n [
 						SSL_ERROR_WANT_READ
@@ -249,10 +247,8 @@ iocp: context [
 				td: as tls-data! data
 				IODebug(["SSL_write" td/ssl data/write-buf data/write-buflen])
 				n: SSL_write td/ssl data/write-buf data/write-buflen
-				?? n
 				if n <= 0 [
 					n: SSL_get_error td/ssl n
-					?? n
 					n: either any [
 						n = SSL_ERROR_WANT_WRITE
 						n = SSL_ERROR_WANT_READ
@@ -266,13 +262,23 @@ iocp: context [
 			]
 			IOCP_TYPE_UDP IOCP_TYPE_DNS [
 				udp: as udp-data! data
-				libC.sendto
+				n: libC.sendto
 					as-integer data/device
 					data/write-buf
 					data/write-buflen
 					0
 					as sockaddr_in6! :udp/addr
 					udp/addr-sz
+				if n < 0 [
+					n: either errno/value = EAGAIN [0][
+						switch errno/value [
+							EACCES	[probe "UDP send: No permission"]
+							default [0]
+						]
+						-1
+					]
+				]
+				n
 			]
 		]
 	]
@@ -400,7 +406,6 @@ iocp: context [
 		]
 
 		i: 0
-
 		while [i < cnt][
 			e: p/events + i
 			data: as iocp-data! e/udata
@@ -499,9 +504,7 @@ iocp: context [
 					state and IO_STATE_READING <> 0
 				][
 					either null? data/pending-read [
-						probe ["read-io in wait fd: " data/device]
 						n: read-io data
-						probe ["read-io in wait: " n]
 						if n >= 0 [
 							data/state: state and (not IO_STATE_READING)
 							data/transferred: n

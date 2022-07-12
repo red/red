@@ -37,7 +37,8 @@ dns: context [
 	][
 		if null? gstate [
 			gstate: as int-ptr! allocate 512
-			assert zero? res_ninit gstate
+			n: res_ninit gstate
+			assert zero? n
 		]
 		state: gstate
 

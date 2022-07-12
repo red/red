@@ -46,6 +46,9 @@ Red/System [
 #define ENOMEM				12
 #define EACCES				13			;-- No permission
 #define	ENOSYS				38			;-- Function not implemented
+#define EMSGSIZE			90			;-- Message too long
+#define EPFNOSUPPORT		96			;-- Protocol family not supported
+#define EAFNOSUPPORT		97			;-- Address family not supported by protocol
 #define EALREADY			114			;-- Operation already in progress
 #define EINPROGRESS			115			;-- Operation now in progress
 
