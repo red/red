@@ -154,7 +154,6 @@ iocp: context [
 		data	[iocp-data!]
 		return:	[logic!]
 	][
-		probe ["iocp/post: " data/event]
 		deque/push p/ready-socks as int-ptr! data
 		unless p/posted? [
 			p/posted?: yes

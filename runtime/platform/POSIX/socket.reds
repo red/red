@@ -97,7 +97,6 @@ socket: context [
 	][
 		val: 0 len: size? val
 		either zero? getsockopt as-integer data/device SOL_SOCKET SO_ERROR as byte-ptr! :val :len [
-			?? val
 			switch val [
 				0 [data/state: data/state or IO_STATE_CONNECTED 0]
 				EINPROGRESS	EAGAIN EALREADY [1]
@@ -205,7 +204,7 @@ socket: context [
 		data/read-buf: buffer
 		data/read-buflen: length
 		n: iocp/read-io data
-probe ["socket/recv " n " state: " state]
+
 		case [
 			n = -1 [		;-- want read
 				data/read-buf: buffer
