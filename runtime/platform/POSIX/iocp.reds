@@ -394,10 +394,14 @@ iocp: context [
 	][
 		cnt: epoll_wait p/epfd p/events p/nevents timeout
 	]
-		if cnt < 0 [				;-- error
-			either errno/value = EINTR [return p/n-ports][
-				IODebug(["wait error: " errno/value])
-				return 0
+		case [
+			cnt > 0 [0]				;-- break case
+			cnt = 0 [return 0]		;-- timeout
+			cnt < 0 [				;-- error
+				either errno/value = EINTR [return p/n-ports][
+					IODebug(["wait error: " errno/value])
+					return 0
+				]
 			]
 		]
 
