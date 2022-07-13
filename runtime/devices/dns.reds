@@ -29,7 +29,7 @@ dns-device: context [
 		p: as red-object! :dns/port
 		msg: p
 		type: data/event
-probe "dns event-handler"
+
 		switch type [
 			IO_EVT_LOOKUP	[
 				probe "resolved"

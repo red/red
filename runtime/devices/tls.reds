@@ -89,8 +89,8 @@ TLS-device: context [
 			default [data/event: IO_EVT_NONE]
 		]
 
-		io/call-awake p msg type
 		if type = IO_EVT_CLOSE [close p]
+		io/call-awake p msg type
 	]
 
 	create-tls-data: func [

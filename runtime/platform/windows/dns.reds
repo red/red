@@ -109,6 +109,10 @@ dns: context [
 			dns-addr [sockaddr_in!]
 			port	[integer!]
 	][
+		IODebug(["parse dns data: " data/transferred])
+
+		if zero? data/transferred [return false]
+
 		io/unpin-memory data/send-buf
 		s: as series! data/send-buf/value
 
@@ -140,6 +144,7 @@ dns: context [
 			return no
 		]
 
+		server-idx: 0
 		server: pp/value
 		until [
 			rr: as DNS_RECORD! server

@@ -2264,7 +2264,7 @@ natives: context [
 			TYPE_TIME [
 				time: as-integer val/value * 1E3
 			]
-			TYPE_PORT TYPE_BLOCK [time: -1]
+			TYPE_PORT TYPE_BLOCK [time: 10000]		;-- timeout in 10 seconds
 			default [fire [TO_ERROR(script invalid-arg) val]]
 		]
 		io/do-events time

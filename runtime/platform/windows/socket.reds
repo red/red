@@ -189,6 +189,8 @@ socket: context [
 		wsbuf/len: length
 		wsbuf/buf: buffer
 		data/event: IO_EVT_WRITE
+
+		zero-memory as byte-ptr! data size? OVERLAPPED!
 		WSASendTo sock :wsbuf 1 null 0 addr addr-sz as OVERLAPPED! data null
 	]
 
