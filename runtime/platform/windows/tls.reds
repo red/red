@@ -884,7 +884,7 @@ tls: context [
 		outbuffer: pbuffer + (MAX_SSL_MSG_LENGTH * 2)
 
 		switch data/event [
-			IO_EVT_READ [buflen: data/transferred]
+			IO_EVT_READ [buflen: buflen + data/transferred]
 			IO_EVT_ACCEPT [
 				state: state or IO_STATE_READING
 			]
@@ -1042,7 +1042,10 @@ tls: context [
 						buflen: extra-buf/cbBuffer
 						data/buf-len: buflen
 						continue		;-- start all over again
-					][return 0]
+					][
+						data/buf-len: 0
+						return 0
+					]
 				]
 				SEC_E_INCOMPLETE_MESSAGE [
 					socket/recv
@@ -1135,8 +1138,7 @@ tls: context [
 		data/sent-sz: sent-sz + sz
 
 		p: binary/rs-head as red-binary! ser
-		send as-integer data/device p + sent-sz sz data
-		true
+		-1 <> send as-integer data/device p + sent-sz sz data
 	]
 
 	send: func [
