@@ -156,6 +156,8 @@ iocp: context [
 		]
 	]
 
+	#define NEXT_EVENT [i: i + 1 continue]
+
 	wait: func [
 		"wait I/O completion events and dispatch them"
 		p			[iocp!]
@@ -194,6 +196,11 @@ iocp: context [
 		while [i < cnt][
 			e: p/events + i
 			data: as iocp-data! e/lpOverlapped
+			if data/device = IO_INVALID_DEVICE [
+				free as byte-ptr! data
+				NEXT_EVENT
+			]
+
 			data/transferred: e/dwNumberOfBytesTransferred
 
 			evt: data/event
@@ -202,15 +209,13 @@ iocp: context [
 					switch evt [
 						IO_EVT_WRITE [
 							dns/recv as dns-data! data
-							i: i + 1
-							continue
+							NEXT_EVENT
 						]
 						IO_EVT_READ [
 							either dns/parse-data as dns-data! data [
 								data/event: IO_EVT_LOOKUP
 							][
-								i: i + 1
-								continue
+								NEXT_EVENT
 							]
 						]
 						default [0]
@@ -220,16 +225,10 @@ iocp: context [
 					either data/state and IO_STATE_TLS_DONE <> 0 [	;-- handshake done
 						switch evt [
 							IO_EVT_READ [
-								unless tls/decode as tls-data! data [
-									i: i + 1
-									continue
-								]
+								unless tls/decode as tls-data! data [NEXT_EVENT]
 							]
 							IO_EVT_WRITE [
-								if tls/send-data as tls-data! data [
-									i: i + 1
-									continue
-								]
+								if tls/send-data as tls-data! data [NEXT_EVENT]
 							]
 							IO_EVT_ACCEPT [
 								data/state: IO_STATE_TLS_DONE
@@ -248,10 +247,7 @@ iocp: context [
 							data/device: as int-ptr! fd
 							bind p as int-ptr! fd
 						]
-						if zero? tls/negotiate td [
-							i: i + 1
-							continue
-						]
+						if zero? tls/negotiate td [NEXT_EVENT]
 					]
 				]
 				default [0]
