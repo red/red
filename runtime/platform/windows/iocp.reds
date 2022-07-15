@@ -197,7 +197,7 @@ iocp: context [
 			e: p/events + i
 			data: as iocp-data! e/lpOverlapped
 			if data/device = IO_INVALID_DEVICE [
-				free as byte-ptr! data
+				probe "GetQueuedCompletionStatusEx: invalid fd"
 				NEXT_EVENT
 			]
 

@@ -24,6 +24,7 @@ tcp-device: context [
 			s		[series!]
 			saddr	[sockaddr_in!]
 			num		[integer!]
+			pvalue	[red-object! value]
 	][
 		tcp: as sockdata! data
 		p: as red-object! :tcp/port
@@ -73,8 +74,9 @@ tcp-device: context [
 				saddr/sin_family: num << 16 or AF_INET
 				saddr/sa_data1: 0
 				saddr/sa_data2: 0
-				io/close-port p
-				tcp-client p saddr size? sockaddr_in! AF_INET
+				copy-cell as cell! p as cell! :pvalue
+				close p
+				tcp-client :pvalue saddr size? sockaddr_in! AF_INET
 				exit
 			]
 			default [data/event: IO_EVT_NONE]
@@ -246,6 +248,7 @@ tcp-device: context [
 		if data <> null [
 			socket/close as-integer data/device
 			data/device: IO_INVALID_DEVICE
+			#if OS = 'Windows [free as byte-ptr! data]
 		]
 		as red-value! red-port
 	]
@@ -283,11 +286,13 @@ tcp-device: context [
 		data: get-tcp-data port
 		data/send-buf: bin/node
 
-		socket/send
+		if -1 = socket/send
 			as-integer data/device
 			binary/rs-head bin
 			binary/rs-length? bin
-			as iocp-data! data
+			as iocp-data! data [
+			close port
+		]
 		as red-value! port
 	]
 

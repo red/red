@@ -140,7 +140,10 @@ dns: context [
 				server: server-list + 1 + server-idx
 				dns-addr/sin_addr: server/1
 				socket/usend as-integer data/device as sockaddr_in6! dns-addr size? sockaddr_in! as byte-ptr! data/addrinfo datalen as iocp-data! data
+				return no
 			]
+			;; cannot resolve
+			tcp-device/close as red-object! :data/port
 			return no
 		]
 

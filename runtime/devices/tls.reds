@@ -26,6 +26,7 @@ TLS-device: context [
 			fd		[integer!]
 			saddr	[sockaddr_in!]
 			num		[integer!]
+			pvalue	[red-object! value]
 	][
 		td: as tls-data! data
 		p: as red-object! :td/port
@@ -82,8 +83,9 @@ TLS-device: context [
 				saddr/sin_family: num << 16 or AF_INET
 				saddr/sa_data1: 0
 				saddr/sa_data2: 0
+				copy-cell as cell! p as cell! :pvalue
 				tcp-device/close p
-				tls-client p saddr size? sockaddr_in! AF_INET
+				tls-client :pvalue saddr size? sockaddr_in! AF_INET
 				exit
 			]
 			default [data/event: IO_EVT_NONE]
