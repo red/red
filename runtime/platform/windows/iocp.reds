@@ -36,6 +36,8 @@ iocp!: alias struct! [
 	state			[integer!]
 	transferred		[integer!]				;-- number of bytes transferred
 	accept-sock		[integer!]
+	timeout			[integer!]
+	timeout-cnt		[integer!]
 ]
 
 iocp-data!: alias struct! [
@@ -196,11 +198,6 @@ iocp: context [
 		while [i < cnt][
 			e: p/events + i
 			data: as iocp-data! e/lpOverlapped
-			if data/device = IO_INVALID_DEVICE [
-				probe "GetQueuedCompletionStatusEx: invalid fd"
-				NEXT_EVENT
-			]
-
 			data/transferred: e/dwNumberOfBytesTransferred
 
 			evt: data/event

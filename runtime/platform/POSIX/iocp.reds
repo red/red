@@ -48,6 +48,8 @@ pending-data!: alias struct! [
 	type			[integer!]			;@@ change it to uint16
 	state			[integer!]			;@@ change it to uint16
 	accept-sock		[integer!]
+	timeout			[integer!]
+	timeout-cnt		[integer!]
 	pending-read	[pending-data!]
 	pending-write	[pending-data!]
 ]

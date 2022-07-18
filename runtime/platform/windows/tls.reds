@@ -1289,10 +1289,10 @@ tls: context [
 		td		[tls-data!]
 	][
 		;TBD free TLS resource
+		release-context td
 		socket/close as-integer td/device
 		td/device: IO_INVALID_DEVICE
 		if td/tls-buf <> null [mimalloc/free td/tls-buf]
 		if td/tls-extra <> null [mimalloc/free td/tls-extra]
-		free as byte-ptr! td
 	]
 ]

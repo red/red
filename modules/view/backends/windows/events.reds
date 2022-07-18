@@ -1747,7 +1747,7 @@ do-events: func [
 				if no-wait? [return msg?]
 			]
 		]
-		io/do-events 15
+		io/do-events 15 null yes
 	]
 	unless no-wait? [
 		exit-loop: exit-loop - 1

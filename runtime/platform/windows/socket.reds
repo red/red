@@ -103,15 +103,21 @@ socket: context [
 		saddr		[sockaddr_in!]
 		addr-sz		[integer!]
 		data		[iocp-data!]
+		return:		[integer!]
 		/local
 			n		[integer!]
-			ret		[integer!]
+			ret err [integer!]
 			ConnectEx [ConnectEx!]
 	][
 		data/event: IO_EVT_CONNECT
 		n: 0
 		ConnectEx: as ConnectEx! ConnectEx-func
-		ConnectEx sock as int-ptr! saddr addr-sz null 0 :n as int-ptr! data	
+		ret: ConnectEx sock as int-ptr! saddr addr-sz null 0 :n as int-ptr! data
+		unless zero? ret [
+			err: GetLastError
+			either ERROR_IO_PENDING = err [return ERROR_IO_PENDING][return -1]
+		]
+		0
 	]
 
 	uconnect: func [

@@ -75,8 +75,9 @@ tcp-device: context [
 				saddr/sa_data1: 0
 				saddr/sa_data2: 0
 				copy-cell as cell! p as cell! :pvalue
-				close p
+				close-tcp p no
 				tcp-client :pvalue saddr size? sockaddr_in! AF_INET
+				free as byte-ptr! data
 				exit
 			]
 			default [data/event: IO_EVT_NONE]
@@ -142,6 +143,7 @@ tcp-device: context [
 		type	[integer!]
 		/local
 			fd	[integer!]
+			tcp [sockdata!]
 	][
 		#if debug? = yes [if verbose > 0 [io/debug "tcp client"]]
 
@@ -149,7 +151,10 @@ tcp-device: context [
 		iocp/bind g-iocp as int-ptr! fd
 		socket/bind fd 0 type
 
-		socket/connect2 fd saddr addr-sz create-tcp-data port fd
+		tcp: as sockdata! create-tcp-data port fd
+		copy-memory as byte-ptr! :tcp/addr as byte-ptr! saddr addr-sz
+
+		socket/connect2 fd as sockaddr_in! :tcp/addr addr-sz as iocp-data! tcp
 	]
 
 	tcp-server: func [
@@ -237,6 +242,25 @@ tcp-device: context [
 		io/port-open? red-port
 	]
 
+	close-tcp: func [
+		red-port	[red-object!]
+		free-data?	[logic!]
+		return:		[iocp-data!]
+		/local
+			data	[iocp-data!]
+	][
+		data: io/close-port red-port
+		if data <> null [
+			socket/close as-integer data/device
+			data/device: IO_INVALID_DEVICE
+			if free-data? [
+				data/device: null
+				free as byte-ptr! data
+			]
+		]
+		data
+	]
+
 	close: func [
 		red-port	[red-object!]
 		return:		[red-value!]
@@ -244,12 +268,7 @@ tcp-device: context [
 			data	[iocp-data!]
 	][
 		#if debug? = yes [if verbose > 0 [io/debug "tcp/close"]]
-		data: io/close-port red-port
-		if data <> null [
-			socket/close as-integer data/device
-			data/device: IO_INVALID_DEVICE
-			#if OS = 'Windows [free as byte-ptr! data]
-		]
+		close-tcp red-port yes
 		as red-value! red-port
 	]
 

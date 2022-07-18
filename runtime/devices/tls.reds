@@ -84,8 +84,9 @@ TLS-device: context [
 				saddr/sa_data1: 0
 				saddr/sa_data2: 0
 				copy-cell as cell! p as cell! :pvalue
-				tcp-device/close p
+				tcp-device/close-tcp p no
 				tls-client :pvalue saddr size? sockaddr_in! AF_INET
+				free as byte-ptr! data
 				exit
 			]
 			default [data/event: IO_EVT_NONE]
@@ -149,8 +150,10 @@ TLS-device: context [
 		socket/bind fd 0 type
 
 		data: create-tls-data port fd
+		copy-memory as byte-ptr! :data/addr as byte-ptr! saddr addr-sz
+
 		data/state: IO_STATE_CLIENT
-		socket/connect2 fd saddr addr-sz as iocp-data! data
+		socket/connect2 fd as sockaddr_in! :data/addr addr-sz as iocp-data! data
 	]
 
 	tls-server: func [
@@ -249,6 +252,8 @@ TLS-device: context [
 		data: io/close-port red-port
 		if data <> null [
 			tls/free-handle as tls-data! data
+			data/device: null
+			free as byte-ptr! data
 		]
 		IODebug("tls/close done")
 		as red-value! red-port

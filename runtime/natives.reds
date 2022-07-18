@@ -2238,36 +2238,77 @@ natives: context [
 		stack/set-last as red-value! out
 	]
 
+	get-timeout: func [
+		val		[red-value!]
+		return: [integer!]			;-- -2: error
+		/local
+			int		[red-integer!]
+			flt		[red-float!]
+			time	[integer!]
+			ftime	[float!]
+	][
+		switch TYPE_OF(val) [
+			TYPE_INTEGER [
+				int: as red-integer! val
+				time: int/value
+				if time > 0 [time: time * 1000]
+			]
+			TYPE_FLOAT [
+				flt: as red-float! val
+				ftime: flt/value
+				if ftime > 0.0 [
+					ftime: ftime * 1000.0
+					if ftime < 1.0 [ftime: 1.0]
+				]
+				time: as-integer ftime
+			]
+			TYPE_TIME [
+				flt: as red-float! val
+				time: as-integer flt/value * 1E3
+			]
+			default [time: -2]
+		]
+		time
+	]
+
 	wait*: func [
 		check?	[logic!]
 		all?	[integer!]
 		;only?	[integer!]
 		/local
-			val		[red-float!]
-			int		[red-integer!]
-			time	[integer!]
-			ftime	[float!]
+			val		[red-value!]
+			time ty	[integer!]
+			once?	[logic!]
+			ports	[red-value!]
+			head	[red-value!]
+			tail	[red-value!]
 	][
 		#typecheck [wait all?] ;only?]
-		val: as red-float! stack/arguments
+
+		val: stack/arguments
 		time: -1
-		switch TYPE_OF(val) [
-			TYPE_INTEGER [
-				int: as red-integer! val
-				time: int/value * 1000
+		ports: null
+		once?: yes
+		ty: TYPE_OF(val)
+		either any [ty = TYPE_PORT ty = TYPE_BLOCK][
+			ports: val
+			time: 30000		;-- timeout in 30 seconds by default
+			once?: no
+			if ty = TYPE_BLOCK [
+				head: block/rs-head as red-block! val
+				tail: block/rs-tail as red-block! val
+				while [head < tail][		;-- get timeout in block
+					time: get-timeout head
+					if time > -2 [break]
+					head: head + 1
+				]
 			]
-			TYPE_FLOAT [
-				ftime: val/value * 1000.0
-				if ftime < 1.0 [ftime: 1.0]
-				time: as-integer ftime
-			]
-			TYPE_TIME [
-				time: as-integer val/value * 1E3
-			]
-			TYPE_PORT TYPE_BLOCK [time: 10000]		;-- timeout in 10 seconds
-			default [fire [TO_ERROR(script invalid-arg) val]]
+		][
+			time: get-timeout val
+			if time = -2 [fire [TO_ERROR(script invalid-arg) val]]
 		]
-		io/do-events time
+		
+		io/do-events time ports once?
 		val/header: TYPE_NONE
 	]
 

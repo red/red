@@ -42,6 +42,8 @@ io: context [
 	_info:		as red-word! 0
 	_as:		as red-refinement! 0
 
+	wait-list:  as red-block! 0
+
 	get-event-type: func [
 		evt		[red-event!]
 		return: [red-value!]
@@ -242,12 +244,52 @@ io: context [
 		vals/header: TYPE_NONE
 	]
 
+	set-timeout: func [
+		port	[red-object!]
+		time	[integer!]
+		/local data [iocp-data!]
+	][
+		if TYPE_OF(port) = TYPE_PORT [
+			data: get-iocp-data port
+			assert data <> null
+
+			data/timeout: time
+			data/timeout-cnt: time
+		]
+	]
+
 	do-events: func [
 		time	[integer!]		;-- milliseconds, -1: infinite time
+		ports	[red-value!]
+		once?	[logic!]
+		/local
+			ret		[integer!]
+			data 	[iocp-data!]
+			head 	[red-value!]
+			tail	[red-value!]
+			pvalue	[cell! value]
 	][
-		forever [
-			if zero? iocp/wait g-iocp time [exit]
+		copy-cell as cell! wait-list :pvalue
+		either ports <> null [
+			copy-cell ports as cell! wait-list
+			either TYPE_OF(ports) = TYPE_PORT [
+				set-timeout as red-object! ports time
+			][
+				head: block/rs-head as red-block! ports
+				tail: block/rs-tail as red-block! ports
+				while [head < tail][
+					set-timeout as red-object! head time
+					head: head + 1
+				]
+			]
+		][
+			set-type as cell! wait-list TYPE_NONE
 		]
+		forever [
+			ret: iocp/wait g-iocp time
+			if any [once? zero? ret][break]
+		]
+		copy-cell :pvalue as cell! wait-list
 	]
 
 	pin-memory: func [
@@ -294,6 +336,7 @@ io: context [
 
 		g-iocp: iocp/create
 		ports-block: block/make-in root 16
+		wait-list: as red-block! ALLOC_TAIL(root)
 	]
 ]
 
