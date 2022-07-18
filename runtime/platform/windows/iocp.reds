@@ -186,8 +186,8 @@ iocp: context [
 	
 		if zero? res [
 			err: GetLastError
-			;IODebug(["GetQueuedCompletionStatusEx: " err])
-			return 0
+			IODebug(["GetQueuedCompletionStatusEx: " err])
+			return io/update-ports timeout no
 		]
 
 		if cnt = p/evt-cnt [			;-- TBD: extend events buffer
@@ -198,6 +198,7 @@ iocp: context [
 		while [i < cnt][
 			e: p/events + i
 			data: as iocp-data! e/lpOverlapped
+			data/timeout-cnt: data/timeout		;-- reset timeout
 			data/transferred: e/dwNumberOfBytesTransferred
 
 			evt: data/event
@@ -253,6 +254,6 @@ iocp: context [
 			if evt > 0 [data/event-handler as int-ptr! data]
 			i: i + 1
 		]
-		p/n-ports
+		io/update-ports 0 yes
 	]
 ]

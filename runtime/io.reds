@@ -244,6 +244,53 @@ io: context [
 		vals/header: TYPE_NONE
 	]
 
+	update-ports: func [
+		time		[integer!]
+		check?		[logic!]
+		return:		[integer!]
+		/local
+			ports	[red-block!]
+			type	[integer!]
+			head	[red-value!]
+			tail	[red-value!]
+			data	[iocp-data!]
+			ret		[integer!]
+	][
+		ports: as red-block! wait-list
+		type: TYPE_OF(ports)
+
+		if type = TYPE_NONE [return 0]
+
+		if type = TYPE_PORT [
+			data: get-iocp-data as red-object! ports
+			either null? data [return 0][return 1]		;-- port was closed if data is null
+		]
+
+		ret: 0
+		if type = TYPE_BLOCK [
+			head: block/rs-head ports
+			tail: block/rs-tail ports
+			while [head < tail][
+				if TYPE_OF(head) = TYPE_PORT [
+					data: get-iocp-data as red-object! head
+					if data <> null [
+						either check? [
+							ret: ret + 1
+						][
+							if data/timeout-cnt > 0 [
+								data/timeout-cnt: data/timeout-cnt - time
+								if data/timeout-cnt > 0 [ret: ret + 1]
+							]
+							if data/timeout-cnt = -1 [ret: ret + 1]
+						]
+					]
+				]
+				head: head + 1
+			]
+		]
+		ret
+	]
+
 	set-timeout: func [
 		port	[red-object!]
 		time	[integer!]
@@ -337,6 +384,7 @@ io: context [
 		g-iocp: iocp/create
 		ports-block: block/make-in root 16
 		wait-list: as red-block! ALLOC_TAIL(root)
+		set-type as cell! wait-list TYPE_NONE
 	]
 ]
 

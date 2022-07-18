@@ -424,7 +424,6 @@ tls: context [
 		][
 			if state <> evt [iocp/modify td/io-port as-integer td/device evt or EPOLLET as iocp-data! td]
 		]
-		probe ["update-td: " state " " evt]
 		td/state: state or evt
 	]
 
@@ -445,7 +444,6 @@ tls: context [
 			1
 		][
 			ret: SSL_get_error ssl ret
-			probe ["errno: " errno/value]
 			switch ret [
 				SSL_ERROR_WANT_READ [
 					update-td td EPOLLIN

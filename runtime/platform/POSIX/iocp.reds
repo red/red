@@ -397,7 +397,7 @@ iocp: context [
 	]
 		case [
 			cnt > 0 [0]				;-- break case
-			cnt = 0 [return 0]		;-- timeout
+			cnt = 0 [return io/update-ports timeout no]	;-- timeout
 			cnt < 0 [				;-- error
 				either errno/value = EINTR [return p/n-ports][
 					IODebug(["wait error: " errno/value])
@@ -414,6 +414,8 @@ iocp: context [
 		while [i < cnt][
 			e: p/events + i
 			data: as iocp-data! e/udata
+			data/timeout-cnt: data/timeout		;-- reset timeout
+
 			either data/event = IO_EVT_PULSE [
 				datalen: 0
 				n: LibC.recv as-integer data/device as byte-ptr! :datalen 4 0
@@ -561,8 +563,8 @@ iocp: context [
 			]
 			i: i + 1
 		]
-IODebug(["wait done: " p/n-ports])
-		p/n-ports
+		IODebug(["wait done: " p/n-ports])
+		io/update-ports 0 yes
 	]
 
 	create-pending: func [

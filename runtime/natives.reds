@@ -2286,13 +2286,12 @@ natives: context [
 		#typecheck [wait all?] ;only?]
 
 		val: stack/arguments
-		time: -1
+		time: -1		;-- timeout in infinite time
 		ports: null
 		once?: yes
 		ty: TYPE_OF(val)
 		either any [ty = TYPE_PORT ty = TYPE_BLOCK][
 			ports: val
-			time: 30000		;-- timeout in 30 seconds by default
 			once?: no
 			if ty = TYPE_BLOCK [
 				head: block/rs-head as red-block! val

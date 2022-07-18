@@ -115,7 +115,7 @@ socket: context [
 		ret: ConnectEx sock as int-ptr! saddr addr-sz null 0 :n as int-ptr! data
 		unless zero? ret [
 			err: GetLastError
-			either ERROR_IO_PENDING = err [return ERROR_IO_PENDING][return -1]
+			if ERROR_IO_PENDING <> err [return -1]
 		]
 		0
 	]
