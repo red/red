@@ -89,7 +89,7 @@ deflate: context [
 	ORDER: #{
 		10 11 12 00 08 07 09 06
 		0A 05 0B 04 0C 03 0D 02
-		0E 01 0F
+		0E 01 0F 00
 	}
 	
 	DBASE: [
@@ -113,7 +113,7 @@ deflate: context [
 		00 00 00 00 00 00 00 00
 		01 01 01 01 02 02 02 02
 		03 03 03 03 04 04 04 04
-		05 05 05 05 00 00 00
+		05 05 05 05 00 00 00 00
 	}
 
 	rev16: func [
@@ -587,24 +587,28 @@ deflate: context [
 					read :in iend s s/bitcnt and 7
 					len: read :in iend s 16
 					nlen: read :in iend s 16
-					in: in - 2
-					s/bitcnt: 0
-					if any [
-						in + len > as integer! iend
-						len = 0
-					][
-						out-size/value: as integer! out - o
-						return INFLATE_LEN
-					]
-					p: as byte-ptr! in
-					loop len [
-						if oend > out [
-							out/1: p/1
+
+					if len > 0 [
+						in: in - 2
+						probe ["store " len " " nlen]
+						if in + len > as integer! iend [
+							out-size/value: as integer! out - o
+							return INFLATE_LEN
 						]
-						out: out + 1
-						p: p + 1
+						p: as byte-ptr! in
+						loop len [
+							if oend > out [
+								out/1: p/1
+							]
+							out: out + 1
+							p: p + 1
+						]
+						in: in + len
+
+						s/bitcnt: 0
+						s/bits: 0
+						read :in iend :s 0
 					]
-					in: in + len
 					state: STATE-HDR
 				]
 				STATE-FIXED [
