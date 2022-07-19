@@ -1034,14 +1034,6 @@ block: context [
 				result/header: TYPE_NONE					;-- change the stack 1st argument to none.
 			]
 		][
-			if any-blk? [
-				b: as red-block! value
-				value: rs-head b
-				if last? [
-					reverse?: yes
-					hash/head: hash/head + rs-length? blk
-				]
-			]
 			forever [
 				key: _hashtable/get table value hash/head step op last? reverse?
 				either any [
