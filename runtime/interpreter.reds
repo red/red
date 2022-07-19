@@ -1032,6 +1032,7 @@ interpreter: context [
 				ctx: either all [
 					parent <> null
 					TYPE_OF(parent) = TYPE_OBJECT
+					obj/ctx <> global-ctx
 				][
 					obj/ctx
 				][
