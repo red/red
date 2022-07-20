@@ -882,8 +882,10 @@ block: context [
 			key		[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/find"]]
-		
-		result: stack/push as red-value! blk
+
+		result: stack/top
+		result: copy-cell as red-value! blk result
+
 		hash?: TYPE_OF(blk) = TYPE_HASH
 		if hash? [
 			hash: as red-hash! blk
