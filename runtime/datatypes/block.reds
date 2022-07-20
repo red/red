@@ -1844,6 +1844,7 @@ block: context [
 					either any-blk? [		;-- fallback to use block/find
 						key: block/find blk2 value null yes no no no null null no no no no
 						find?: TYPE_OF(key) <> TYPE_NONE
+						stack/pop 1			;-- to balance the stack, block/find pushed one value
 					][
 						find?: null <> _hashtable/get hash value head step comp-op no no
 					]
@@ -1853,6 +1854,7 @@ block: context [
 					either any-blk? [
 						key: block/find new value null yes no no no null null no no no no
 						append?: TYPE_OF(key) = TYPE_NONE
+						stack/pop 1
 					][
 						append?: null = _hashtable/get table value 0 step comp-op no no
 					]
