@@ -2,7 +2,7 @@
 branches:
   only:
     - master
-
+{Draft request delete} {}
 
 notifications:
   email:
