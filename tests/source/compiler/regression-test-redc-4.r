@@ -121,10 +121,10 @@ cmp/lz77/compress "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 }
 		--assert not script-error?
 
-	--test-- "#1720"
-		--compile-and-run-this-red {write http://abc.com compose [ {} {} ]}
-		--assert not crashed?
-		--assert script-error?
+	;--test-- "#1720"
+	;	--compile-and-run-this-red {write http://abc.com compose [ {} {} ]}
+	;	--assert not crashed?
+	;	--assert script-error?
 
 	--test-- "#1730"
 		--compile-and-run-this-red {reduce does ["ok"]}
