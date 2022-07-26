@@ -601,10 +601,7 @@ block: context [
 			either any [
 				type1 = type2
 				all [word/any-word? type1 word/any-word? type2]
-				all [											;@@ replace by ANY_NUMBER?
-					any [type1 = TYPE_INTEGER type1 = TYPE_FLOAT]
-					any [type2 = TYPE_INTEGER type2 = TYPE_FLOAT]
-				]
+				all [ANY_NUMBER?(type1) ANY_NUMBER?(type2)]
 			][
 				res: actions/compare-value value1 value2 op
 				value1: value1 + 1
@@ -1038,14 +1035,6 @@ block: context [
 				result/header: TYPE_NONE					;-- change the stack 1st argument to none.
 			]
 		][
-			if any-blk? [
-				b: as red-block! value
-				value: rs-head b
-				if last? [
-					reverse?: yes
-					hash/head: hash/head + rs-length? blk
-				]
-			]
 			forever [
 				key: _hashtable/get table value hash/head step op last? reverse?
 				either any [
@@ -1856,6 +1845,7 @@ block: context [
 					either any-blk? [		;-- fallback to use block/find
 						key: block/find blk2 value null yes no no no null null no no no no
 						find?: TYPE_OF(key) <> TYPE_NONE
+						stack/pop 1			;-- to balance the stack, block/find pushed one value
 					][
 						find?: null <> _hashtable/get hash value head step comp-op no no
 					]
@@ -1865,6 +1855,7 @@ block: context [
 					either any-blk? [
 						key: block/find new value null yes no no no null null no no no no
 						append?: TYPE_OF(key) = TYPE_NONE
+						stack/pop 1
 					][
 						append?: null = _hashtable/get table value 0 step comp-op no no
 					]

@@ -944,6 +944,14 @@ OS-image: context [
 			default    [probe "Cannot find image encoder" return null]
 		]
 
+		rect/x: 0 rect/y: 0
+		rect/w: IMAGE_WIDTH(image/size)
+		rect/h: IMAGE_HEIGHT(image/size)
+
+		if any [zero? rect/w zero? rect/h][
+			return as red-value! binary/make-at slot 1
+		]
+
 		hr: StgCreateDocfile
 			null
 			STGM_READWRITE or STGM_CREATE or STGM_SHARE_EXCLUSIVE or STGM_DELETEONRELEASE 
@@ -965,10 +973,7 @@ OS-image: context [
 		prop: 0
 		hr: enc/CreateNewFrame ethis :iframe :prop
 		fthis: iframe/value
-		frame: as IWICBitmapFrameEncode fthis/vtbl
-		rect/x: 0 rect/y: 0
-		rect/w: IMAGE_WIDTH(image/size)
-		rect/h: IMAGE_HEIGHT(image/size)
+		frame: as IWICBitmapFrameEncode fthis/vtbl		
 		hr: frame/Initialize fthis null
 		hr: frame/WriteSource fthis get-handle image no rect
 		hr: frame/Commit fthis

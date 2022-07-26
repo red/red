@@ -926,7 +926,10 @@ process-custom-draw: func [
 					SetTextColor DC color/array1 and 00FFFFFFh
 				]
 				rc: as RECT_STRUCT (as int-ptr! item) + 5
-				unless sym = button [
+				unless any [
+					sym = button
+					sym = toggle
+				][
 					rc/left: rc/left + dpi-scale 16			;-- compensate for invisible check box
 				]
 				if TYPE_OF(txt) = TYPE_STRING [

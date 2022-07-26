@@ -288,17 +288,12 @@ re-throw: func [/local id [integer!]][
 
 #if type = 'exe [
 	push system/stack/frame					;-- save previous frame pointer
-	system/stack/frame: system/stack/top
+	push 0									;-- exception return address slot
+	push 0									;-- exception threshold
+	system/stack/frame: system/stack/top	;-- reposition frame pointer just after the catch slots
 ]
 push CATCH_ALL_EXCEPTIONS					;-- exceptions root barrier
 push :***-uncaught-exception				;-- root catch (also keeps stack aligned on 64-bit)
-
-#if type = 'exe [
-	push system/stack/frame					;-- save previous frame pointer
-	system/stack/frame: system/stack/top	;-- reposition frame pointer just after the catch slots
-	;push 0									;-- exception return address slot
-	;push 0									;-- exception threshold
-]
 
 #if type = 'dll [
 	#if libRedRT? = yes [
