@@ -1798,6 +1798,43 @@ system-dialect: make-profilable context [
 			unless spec/5 = 'callback [append spec 'callback]
 		]
 		
+		emit-dyn-import: func [defs [block!] /local lib list cc name specs id reloc pos new? funcs err][
+			unless block? defs [throw-error "#import expects a block! as argument"]
+			
+			err: ["invalid import specification at:" pos]
+			unless parse defs [
+				some [
+					pos: set lib string! (
+						emit reduce ['to-set-word lib 'LoadLibraryA lib]
+					)
+					pos: set cc ['cdecl | 'stdcall]		;-- calling convention
+					pos: into [
+						some [
+							specs:						;-- new function mapping marker
+							pos: set name set-word! (
+								name: to word! name
+								
+							)
+							pos: set id   string!
+							pos: set spec block!    (
+								clear-docstrings spec
+								either any [
+									all [1 = length? spec not block? spec/1]
+									all [2 = length? spec find [pointer! struct!] spec/1 block? spec/2]
+								][
+									unless parse spec type-spec [throw-error err]
+									
+								][
+									check-specs/extend name spec
+									
+								]
+							)
+						]
+					]
+				]
+			][throw-error err]
+		]
+		
 		process-export: has [defs cc ns entry spec list name sym][
 			if all [job/type = 'exe job/OS <> 'FreeBSD job/OS <> 'NetBSD][
 				throw-error "#export directive requires a library compilation mode"
@@ -1836,8 +1873,9 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		process-import: func [defs [block!] /local lib list cc name specs spec id reloc pos new? funcs err][
-			unless block? defs [throw-error "#import expects a block! as argument"]
+		process-import: func [spec [block!] /local defs lib list cc name specs id reloc pos new? funcs err][
+			if spec/1 = 'dynamic [emit-dyn-import spec/2 exit]			
+			unless block? defs: spec/1 [throw-error "#import expects a block! as argument"]
 			
 			err: ["invalid import specification at:" pos]
 			unless parse defs [
@@ -2080,9 +2118,9 @@ system-dialect: make-profilable context [
 
 		comp-directive: has [body][
 			switch/default pc/1 [
-				#import    [process-import  pc/2  pc: skip pc 2]
-				#export    [process-export  pc/2  pc: skip pc 2]
-				#syscall   [process-syscall pc/2  pc: skip pc 2]
+				#import    [process-import  next pc pc: skip pc 2]
+				#export    [process-export  pc/2    pc: skip pc 2]
+				#syscall   [process-syscall pc/2    pc: skip pc 2]
 				#call	   [process-call  pc]
 				#get	   [process-get	  pc]
 				#in		   [process-in	  pc]

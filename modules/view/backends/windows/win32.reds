@@ -1012,7 +1012,7 @@ XFORM!: alias struct! [
     eDy         [float32!]
 ]
 
-#import [
+#import dynamic [
 	"kernel32.dll" stdcall [
 		GlobalAlloc: "GlobalAlloc" [
 			flags		[integer!]
