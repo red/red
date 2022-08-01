@@ -3,7 +3,6 @@
 </p>
 
 [![Join the chat at https://gitter.im/red/red](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/red/red?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Windows build](https://static.red-lang.org/images/windows.svg)](https://ci.appveyor.com/project/red/red/branch/master)
 [![Windows build 2](https://github.com/red/red/workflows/Windows/badge.svg)](https://github.com/red/red/actions?query=workflow%3AWindows)
 [![Linux build 2](https://github.com/red/red/workflows/Linux-x86/badge.svg)](https://github.com/red/red/actions?query=workflow%3ALinux-x86)
 [![ARMhf build 2](https://github.com/red/red/workflows/RPi/badge.svg)](https://github.com/red/red/actions?query=workflow%3ARPi)
