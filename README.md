@@ -137,6 +137,8 @@ The Red toolchain comes as a single executable file that you can [download](http
 
 `[file]` any Red or Red/System source file.
 
+* The -c, -r and -u options are mutually exclusive.
+
 `[options]`
 
     -c, --compile                  : Generate an executable in the working
@@ -176,15 +178,8 @@ The Red toolchain comes as a single executable file that you can [download](http
     -V, --version                  : Output Red's executable version in x.y.z
                                      format.
 
-    --catch                        : Stay in the REPL after the script finishes.
-
-    --cli                          : Run the command-line REPL instead of the
-                                     graphical console.
-
     --config [...]                 : Provides compilation settings as a block
                                      of `name: value` pairs.
-
-	--no-console                   : Do not launch the REPL after console compilation. 
 
     --no-compress                  : Omit Redbin format compression.
 

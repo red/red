@@ -1,10 +1,7 @@
 
 Usage: red [command] [options] [file]
 
-[file]: any Red or Red/System source file. If no file and no option is provided, the graphical interactive console will be launched. If a file with no option is provided, the file will be simply run by the interpreter (it is expected to be a Red script with no Red/System code).
-
-Notes:
-* On Non-Windows platforms, the REPL runs by default in CLI mode. But on Windows, the default is to run in GUI mode. To run it in the command line mode, invoke the red binary with the option `--cli`.
+[file]: any Red or Red/System source file.
 
 * The -c, -r and -u options are mutually exclusive.
 
@@ -47,15 +44,8 @@ Notes:
     -V, --version                  : Output Red's executable version in x.y.z
                                      format.
 
-    --catch                        : Stay in the REPL after the script finishes.
-
-    --cli                          : Run the command-line REPL instead of the
-                                     graphical console.
-
     --config [...]                 : Provides compilation settings as a block
                                      of `name: value` pairs.
-
-	--no-console                   : Do not launch the REPL after console compilation. 
 
     --no-compress                  : Omit Redbin format compression.
 

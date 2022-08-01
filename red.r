@@ -283,51 +283,6 @@ redc: context [
 		]
 	]
 
-	safe-to-local-file: func [file [file! string!]][
-		if all [
-			find file: to-local-file file #" "
-			Windows?
-		][
-			file: rejoin [{"} file {"}]					;-- avoid issues with blanks in path
-		]
-		file
-	]
-	
-	form-args: func [file /local ws at-file skip-options catch? list info args pos][
-		;-- see PR #3870 on details
-		ws: charset " ^-^/^M"
-		skip-options: does [
-			at-file: list
-			forall list [
-				at-file: list 						;-- save file position
-				either all [
-					find/match list/1 "--"			;-- an option
-					list/-1 <> "--"					;-- not after the "--"
-				][
-					if list/1 == "--catch" [catch?: yes]
-				][break]
-			]
-			at-file
-		]
-		either Windows? [
-			list: split-tokens/save system/script/args info: copy []
-			list: next list			 					;-- skip the Red.exe
-			skip-options
-			args: copy pick info 2 * (index? at-file) - 1
-		][
-			list: system/options/args
-			pos: skip-options
-			args: make string! 32
-			foreach arg at-file [
-				repend args [{'}  replace/all copy arg {'} {'\''}  {' }]
-			]
-			take/last args
-		]
-		if find/match file "--" [insert args "-- "]		;-- mark end of options if the filename is weird
-		if catch? [insert args "--catch "]				;-- pass --catch to the console
-		args
-	]
-
 	add-legacy-flags: func [opts [object!] /local out ver][
 		if all [Windows? win-version <= 60][
 			either opts/legacy [						;-- do not compile gesture support code for XP, Vista, Windows Server 2003/2008(R1)
@@ -578,7 +533,7 @@ redc: context [
 	parse-options: func [
 		args [string! none!]
 		/local src opts output target verbose filename config config-name base-path type
-		mode target? gui? console? cmd spec cmds ws ssp view? modes
+		mode target? cmd spec cmds ws ssp view? modes
 	][
 		unless args [
 			if encap? [fetch-cmdline]					;-- Fetch real command-line in UTF8 format
@@ -591,11 +546,11 @@ redc: context [
 			link?: yes
 			libRedRT-update?: no
 		]
-		gui?: Windows?									;-- use GUI console by default on Windows
-		console?: yes									;-- launch console after compilation
 		view?: yes										;-- include view module by default
 
-		unless empty? args [
+		either empty? args [
+			mode: 'help
+		][
 			if cmd: select [
 				"clear" do-clear
 				"build" do-build
@@ -625,12 +580,9 @@ redc: context [
 				| "--red-only"					(opts/red-only?: yes)
 				| "--dev"						(opts/dev-mode?: yes)
 				| "--no-runtime"				(opts/runtime?: no)		;@@ overridable by config!
-				| "--no-console"				(console?: no)
-				| "--cli"						(gui?: no)
 				| "--no-view"					(opts/GUI-engine: none view?: no)
 				| "--no-compress"				(opts/redbin-compress?: no)
 				| "--show-func-map"				(opts/show-func-map?: yes)
-				| "--catch"								;-- just pass-thru
 				| "--" break							;-- stop options processing
 			]
 			set filename skip (src: load-filename filename)
