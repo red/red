@@ -162,6 +162,7 @@ lexer: context [
 		"true"	TYPE_LOGIC true		4
 		"false"	TYPE_LOGIC false	5
 		"none"	TYPE_NONE  0		4
+		"unset" TYPE_UNSET 0		5
 	]
 	
 	whitespaces: [
@@ -1200,7 +1201,7 @@ lexer: context [
 		p: cons-syntax
 		end: p + size? cons-syntax						;-- point to end of array
 		len: as-integer e - s
-		loop 3 [
+		loop 4 [
 			if zero? platform/strnicmp s as byte-ptr! p/1 len [break]
 			p: p + 4
 		]
