@@ -6,7 +6,7 @@ install:
 - ps: >-
     ## Download Rebol v276
 
-    $url = "http://static.red-lang.org/build/rebview.exe"
+    $url = "https://static.red-lang.org/build/rebview.exe"
 
     $output = "c:\projects\red\rebview.exe"
 
