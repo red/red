@@ -11,14 +11,16 @@ change-dir %..
 do %system/utils/encap-fs.r
 
 write %build/bin/sources.r set-cache [
-	%version.r
-	%usage.txt
-	%boot.red
-	%compiler.r
-	%lexer.r
-	%modules.r
 	%build/ [
 		%git.r
+	]
+	%encapper/ [
+		%version.r
+		%usage.txt
+		%boot.red
+		%compiler.r
+		%lexer.r
+		%modules.r
 	]
 	%environment/ [
 		%actions.red

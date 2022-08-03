@@ -14,7 +14,7 @@ REBOL [
 unless value? 'encap-fs [do %system/utils/encap-fs.r]
 
 unless all [value? 'red object? :red][
-	do-cache %compiler.r
+	do-cache %encapper/compiler.r
 ]
 
 redc: context [
@@ -593,8 +593,8 @@ redc: context [
 
 		if mode [
 			switch mode [
-				help	[print read-cache %usage.txt]
-				version [print load-cache %version.r]
+				help	[print read-cache %encapper/usage.txt]
+				version [print load-cache %encapper/version.r]
 			]
 			quit/return 0
 		]
@@ -730,7 +730,7 @@ redc: context [
 			]
 		]
 		
-		print [lf "-=== Red Compiler" read-cache %version.r "===-" lf]
+		print [lf "-=== Red Compiler" read-cache %encapper/version.r "===-" lf]
 
 		;-- libRedRT updating mode
 		if opts/libRedRT-update? [
