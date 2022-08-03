@@ -8,7 +8,7 @@ REBOL [
 ]
 
 change-dir %..
-do %system/utils/encap-fs.r
+do %utils/encap-fs.r
 
 write %build/bin/sources.r set-cache [
 	%build/ [

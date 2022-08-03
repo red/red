@@ -11,7 +11,7 @@ REBOL [
 	Encap: [quiet secure none cgi title "Red" no-window]
 ]
 
-unless value? 'encap-fs [do %system/utils/encap-fs.r]
+unless value? 'encap-fs [do %utils/encap-fs.r]
 
 unless all [value? 'red object? :red][
 	do-cache %encapper/compiler.r
