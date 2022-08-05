@@ -2843,7 +2843,9 @@ Red [
 	
 	--test-- "#4198"
 		--assert [a] = parse [][collect keep pick ('a)]
-		--assert [[a b]] = parse [][collect keep pick ([a b])]
+		--assert [[a b]] = parse [][collect keep ([a b])]
+		--assert [a b] = parse [][collect keep pick ([a b])]
+		--assert [value [block]] = parse [] [collect [keep pick ([value]) keep ([block])]]
 
 	--test-- "#4200"
 		word:  'foo
