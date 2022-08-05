@@ -6,7 +6,7 @@ install:
 - ps: >-
     ## Download Rebol v276
     
-    curl -fsSL -o c:\projects\red\rebview.exe https://static.red-lang.org/build/rebview.exe
+    curl -o c:\projects\red\rebview.exe https://static.red-lang.org/build/rebview.exe
 build_script:
 - cmd: >-
     c:\projects\red\rebview.exe -qws tests\run-all.r --batch
