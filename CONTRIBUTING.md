@@ -20,6 +20,7 @@ No matter how small, your contribution will be valued and appreciated providing 
     * `FIX:` ticket or bug fix. If it's a ticket, then the form is: `FIX: issue #<number> (<issue title>)`.
     * `TESTS:` new or modified test(s), or testing framework related.
     * `DOCS:` related to the part of the documentation that is in [red/docs](https://github.com/red/docs) repository.
+    * `CI:` related to the Continuous Integration build or config scripts in the repo.
 
 ### Coding Standards
 All contributions should adhere to the following coding standards
