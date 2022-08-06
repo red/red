@@ -101,9 +101,9 @@ Note: If you are using the Wine emulator, it has some [issues](https://github.co
 
 # Generating a standalone executable
 
-The Red toolchain comes as a single executable file that you can [download](https://www.red-lang.org/p/download.html) for the big-3 platforms (32-bit only for now).
+The Red toolchain comes as a single executable file that you can [download](https://www.red-lang.org/p/download.html) for the big-3 platforms (32-bit only for now). Rename the file to `redc` (or `redc.exe` under Windows).
 
-1. Put the downloaded **red** binary in the working folder.
+1. Put the downloaded **redc** binary in the working folder.
 
 2. In a code or text editor, write the following Hello World program:
 
@@ -117,23 +117,23 @@ The Red toolchain comes as a single executable file that you can [download](http
 
 6. Generate a compiled executable from that program: (first run will pre-compile libRedRT library)
 
-        $ red -c hello.red
+        $ redc -c hello.red
         $ ./hello
 
 7. Want to generate a compiled executable from that program with no dependencies?
 
-        $ red -r hello.red
+        $ redc -r hello.red
         $ ./hello
 
 8. Want to cross-compile to another supported platform?
 
-        $ red -t Windows hello.red
-        $ red -t Darwin hello.red
-        $ red -t Linux-ARM hello.red
+        $ redc -t Windows hello.red
+        $ redc -t Darwin hello.red
+        $ redc -t Linux-ARM hello.red
 
 **The full command-line syntax is:**
 
-    red [command] [options] [file]
+    redc [command] [options] [file]
 
 `[file]` any Red or Red/System source file.
 
