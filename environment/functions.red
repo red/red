@@ -280,6 +280,7 @@ replace: function [
 math: function [
 	"Evaluates expression using math precedence rules"
 	datum [block! paren!] "Expression to evaluate"
+	/safe				  "Returns NONE on error"
 	/local match
 ][
 	order: ['** ['* | quote / | quote % | quote //]]	;@@ compiler's lexer chokes on '/, '% and '//
@@ -288,11 +289,11 @@ math: function [
 	tally: [any [enter [fail] | recur [fail] | count [fail] | skip]]
 	enter: [ahead paren! into tally]
 	recur: [if (operator = '**) skip operator tally]
-	count: [while ahead change only copy match infix (do match)]
+	count: [while ahead change only copy match infix (either safe [attempt match][do match])]
 
-	do also datum: copy/deep datum foreach operator order [
-		parse datum tally
-	]
+	datum: copy/deep datum
+	foreach operator order [parse datum tally]
+	either safe [attempt datum][do datum]
 ]
 
 charset: func [
