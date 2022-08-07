@@ -15,7 +15,7 @@
 Red tackles the software building complexity using a DSL-oriented approach (we call them _dialects_) . The following dialects are built-in:
 
 * [Red/System](https://static.red-lang.org/red-system-specs-light.html): a C-level system programming language compiled to native code
-* [Parse](http://www.red-lang.org/2016/12/entering-world-of-macros.html): a powerful PEG parser
+* [Parse](http://www.red-lang.org/2013/11/041-introducing-parse.html): a powerful PEG parser
 * [VID](https://github.com/red/docs/blob/master/en/vid.adoc): a simple GUI layout creation dialect
 * [Draw](https://github.com/red/docs/blob/master/en/draw.adoc): a vector 2D drawing dialect
 * [Rich-text](https://github.com/red/docs/blob/master/en/rtd.adoc): a rich-text description dialect
