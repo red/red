@@ -458,7 +458,7 @@ face!: object [				;-- keep in sync with facet! enum
 			if word = 'para  [link-sub-to-parent self 'para old new]
 			
 			if find [field text] type [
-				if word = 'text [
+				if all [word = 'text any [not options not find options 'sync options/sync]][
 					set-quiet 'data any [
 						all [
 							not empty? new 
