@@ -591,7 +591,7 @@ redc: context [
 			fail-cmd ["Incompatible compilation modes:" mold/only modes]
 		]
 
-		if mode [
+		if all [encap? mode][
 			switch mode [
 				help	[print read-cache %encapper/usage.txt]
 				version [print load-cache %encapper/version.r]
