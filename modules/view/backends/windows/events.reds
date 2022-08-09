@@ -196,8 +196,9 @@ get-event-key: func [
 	evt		[red-event!]
 	return: [red-value!]
 	/local
-		char [red-char!]
-		msg  [tagMSG]
+		char  [red-char!]
+		msg   [tagMSG]
+		value [integer!]
 ][
 	as red-value! switch evt/type [
 		EVT_KEY
@@ -237,6 +238,7 @@ get-event-key: func [
 					VK_RMENU	[_right-alt]
 					VK_LWIN		[_left-command]
 					VK_RWIN		[_right-command]
+					VK_PAUSE	[_pause]
 					default		[
 						either evt/type = EVT_KEY [none-value][
 							char: as red-char! stack/push*
@@ -252,7 +254,26 @@ get-event-key: func [
 				either all [evt/type = EVT_KEY utf16-char >= 00010000h][
 					char/value: evt/flags
 				][
-					char/value: evt/flags and FFFFh
+					value: as-integer switch evt/flags and FFFFh [
+						VK_NUMPAD0	[#"0"]
+						VK_NUMPAD1	[#"1"]
+						VK_NUMPAD2	[#"2"]
+						VK_NUMPAD3	[#"3"]
+						VK_NUMPAD4	[#"4"]
+						VK_NUMPAD5	[#"5"]
+						VK_NUMPAD6	[#"6"]
+						VK_NUMPAD7	[#"7"]
+						VK_NUMPAD8	[#"8"]
+						VK_NUMPAD9	[#"9"]
+						VK_MULTIPLY	[#"*"]
+						VK_ADD		[#"+"]
+						VK_SEPARATOR[#","]
+						VK_SUBTRACT	[#"-"]
+						VK_DECIMAL	[#"."]
+						VK_DIVIDE	[#"/"]
+						default		[evt/flags and FFFFh]
+					]
+					char/value: value
 				]
 				as red-value! char
 			]

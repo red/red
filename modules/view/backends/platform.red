@@ -386,6 +386,7 @@ system/view/platform: context [
 			_right-command:	word/load "right-command"
 			_caps-lock:		word/load "caps-lock"
 			_num-lock:		word/load "num-lock"
+			_pause:			word/load "pause"
 
 			red/boot?: no
 			red/collector/active?: yes

@@ -392,6 +392,24 @@ Red/System [
 #define VK_LWIN				5Bh
 #define VK_RWIN				5Ch
 #define VK_APPS				5Dh
+
+#define VK_NUMPAD0			60h
+#define VK_NUMPAD1			61h
+#define VK_NUMPAD2			62h
+#define VK_NUMPAD3			63h
+#define VK_NUMPAD4			64h
+#define VK_NUMPAD5			65h
+#define VK_NUMPAD6			66h
+#define VK_NUMPAD7			67h
+#define VK_NUMPAD8			68h
+#define VK_NUMPAD9			69h
+#define VK_MULTIPLY			6Ah
+#define VK_ADD				6Bh
+#define VK_SEPARATOR		6Ch
+#define VK_SUBTRACT			6Dh
+#define VK_DECIMAL			6Eh
+#define VK_DIVIDE			6Fh
+
 #define VK_F1				70h
 #define VK_F2				71h
 #define VK_F3				72h
