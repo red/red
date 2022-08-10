@@ -967,10 +967,7 @@ parser: context [
 										break?: no
 									]
 								]
-								if any [						 ;-- don't loop if any:
-									break?						 ;-- a BREAK or REJECT command was issued
-									all [end? rtype <> R_WHILE]	 ;-- don't loop if no more input
-								][
+								if break? [						 ;-- don't loop if a BREAK or REJECT command was issued
 									loop?: no
 									break?: no
 								]
