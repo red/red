@@ -301,10 +301,10 @@ system/console: context [
 		]
 	]
 
-	launch: function [/local result][
+	launch: function [/local result found?][
 		either script: src: read-argument [
-			parse/case script [some [[pos: "Red" opt "/System" any ws #"[" to end] | skip]]
-			either script: pos [
+			parse/case script [some [pos: "Red" opt "/System" any ws #"[" (found?: yes) break | skip]]
+			either all [found? script: pos][
 				either error? script: try-do [load script][
 					print :script
 				][
