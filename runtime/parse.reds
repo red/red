@@ -832,6 +832,7 @@ parser: context [
 			done?	 [logic!]
 			saved?	 [logic!]
 			gc-saved [logic!]
+			do-keep  [subroutine!]
 	][
 		match?:	  yes
 		end?:	  no
@@ -849,6 +850,18 @@ parser: context [
 		fun-locs:  0
 		flags:     0
 		state:     ST_PUSH_BLOCK
+		
+		do-keep: [
+			either into? [
+				switch TYPE_OF(blk) [
+					TYPE_BINARY [binary/insert as red-binary! blk value null yes null no]
+					TYPE_ANY_STRING [string/insert as red-string! blk value null yes null no]
+					default  [block/insert blk value null yes null no]
+				]
+			][
+				block/rs-append blk value
+			]
+		]
 
 		if OPTION?(fun) [fun-locs: _function/count-locals fun/spec 0 no]
 		
@@ -1087,7 +1100,7 @@ parser: context [
 											either flags = R_PICK_FLAG [
 												block/insert blk value null no null yes
 											][
-												block/rs-append blk value
+												do-keep
 											]
 											stack/top: s-top
 										][
@@ -1097,15 +1110,7 @@ parser: context [
 													offset: offset + 1
 												]
 												s-top: stack/top	;-- shields the stack from eventual object event call
-												either into? [
-													switch TYPE_OF(blk) [
-														TYPE_BINARY [binary/insert as red-binary! blk value null yes null no]
-														TYPE_ANY_STRING [string/insert as red-string! blk value null yes null no]
-														default  [block/insert blk value null yes null no]
-													]
-												][
-													block/rs-append blk value
-												]
+												do-keep
 												stack/top: s-top
 												offset = input/head
 											]
