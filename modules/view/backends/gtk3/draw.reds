@@ -2204,14 +2204,6 @@ OS-set-clip: func [
 		ctx-matrix-adapt dc saved
 		cairo_append_path dc/cr path
 	]
-	cairo_set_operator cr case [
-		mode = replace	 [CAIRO_OPERATOR_SOURCE]
-		mode = intersect [CAIRO_OPERATOR_OVER]
-		mode = union	 [CAIRO_OPERATOR_ADD]
-		mode = _xor		 [CAIRO_OPERATOR_XOR]
-		mode = exclude	 [CAIRO_OPERATOR_EXCLUSION]
-		true			 [CAIRO_OPERATOR_OVER]
-	]
 	cairo_clip cr
 	ctx-matrix-unadapt dc saved
 ]
