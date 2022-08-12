@@ -1248,13 +1248,9 @@ widget-scroll-event: func [
 	widget		[handle!]
 	return:		[integer!]
 ][
-	either null? GET-RESEND-EVENT(evbox) [
-		if evbox <> gtk_get_event_widget as handle! event [return EVT_NO_DISPATCH]
-	][
-		SET-RESEND-EVENT(evbox null)
-	]
+	SET-RESEND-EVENT(evbox null)
 	g_object_set_qdata widget red-event-id as handle! event
-	if any [event/delta_y < -0.01 event/delta_y > 0.01][
+	if any [event/delta_y < -0.01 event/delta_y > 0.01 event/direction <> GDK_SCROLL_SMOOTH][
 		return make-event widget check-down-flags event/state EVT_WHEEL
 	]
 	EVT_DISPATCH
