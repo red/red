@@ -268,6 +268,10 @@ OS-text-box-metrics: func [
 			text2: g_utf8_offset_to_pointer text int/value - 1
 			idx: as integer! text2 - text
 			pango_layout_index_to_pos layout idx :rect
+			if type = TBOX_METRICS_OFFSET_LOWER [
+				rect/x: rect/x + rect/width
+				rect/y: rect/y + rect/height
+			]
 			pair/push rect/x / PANGO_SCALE  rect/y / PANGO_SCALE
 		]
 		TBOX_METRICS_INDEX?
