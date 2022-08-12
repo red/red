@@ -169,6 +169,12 @@ Red [
 		--assert unset? get/any 'a4910/b/zz
 		--assert error? try [get 'a4910/zz/c]
 
+	--test-- "issue #5101"
+		do [									; for interpreter only
+			o5101: object [a: 1]				; compiler would report an error
+			--assert error? try [o5101/b: 1]
+		]
+
 ===end-group===
 
 ~~~end-file~~~
