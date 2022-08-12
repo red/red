@@ -804,7 +804,7 @@ split: function [
 	series [any-string!] dlm [string! char! bitset!] /local s
 ][
 	num: either string? dlm [length? dlm][1]
-	parse series [collect any [copy s [to [dlm | end]] keep (s) num skip [end keep (copy "") | none] ]]
+	parse series [collect any [end keep (make string! 0) | copy s [to [dlm | end]] keep (s) num skip]]
 ]
 
 dirize: func [
@@ -886,9 +886,9 @@ split-path: func [
 do-file: function ["Internal Use Only" file [file! url!] callback [function! none!]][
 	ws: charset " ^-^M^/"
 	saved: system/options/path
-	unless parse/case read file [some [[src: "Red" opt "/System" any ws #"[" to end] | skip]] [
-		cause-error 'syntax 'no-header reduce [file]
-	]
+	parse/case read file [some [src: "Red" opt "/System" any ws #"[" (found?: yes) break | skip]]
+	unless found? [cause-error 'syntax 'no-header reduce [file]]
+	
 	code: load/all src									;-- don't expand before we check the header
 	if code/1 = 'Red/System [cause-error 'internal 'red-system []]
 	header?: all [code/1 = 'Red block? header: code/2]
