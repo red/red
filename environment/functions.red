@@ -245,7 +245,8 @@ replace: function [
 		]
 		rule:  [
 			any [
-				change pattern (value) [if (all) | break]
+				end 
+				| change pattern (value) [if (all) | break]
 				| if (deep?) ahead any-list! into rule
 				| skip
 			]
