@@ -645,6 +645,20 @@ get-event-key: func [
 	]
 ]
 
+get-event-orientation: func [
+	evt		[red-event!]
+	return: [red-value!]
+][
+	if evt/type = EVT_SCROLL [
+		either evt/flags and 8 = 0 [
+			return as red-value! _vertical
+		][
+			return as red-value! _horizontal
+		]
+	]
+	as red-value! none-value
+]
+
 get-event-picked: func [
 	evt		[red-event!]
 	return: [red-value!]
@@ -654,6 +668,7 @@ get-event-picked: func [
 		event	[GdkEventScroll!]
 		str		[c-string!]
 		size	[integer!]
+		delta	[float!]
 ][
 	as red-value! switch evt/type [
 		EVT_ZOOM
@@ -671,7 +686,12 @@ get-event-picked: func [
 		]
 		EVT_WHEEL [
 			event: as GdkEventScroll! g_object_get_qdata as handle! evt/msg red-event-id
-			float/push 0.0 - event/delta_y
+			delta: switch event/direction [
+				GDK_SCROLL_UP [1.0]
+				GDK_SCROLL_DOWN [-1.0]
+				default [0.0 - event/delta_y]
+			]
+			float/push delta
 		]
 		EVT_IME [
 			str: as c-string! evt/flags
@@ -988,6 +1008,7 @@ connect-focus-events: func [
 		sym = rich-text
 		sym = field
 		sym = area
+		sym = base	
 	][
 		gtk_widget_set_can_focus widget yes
 		gtk_widget_set_focus_on_click widget yes
@@ -1051,6 +1072,7 @@ connect-widget-events: func [
 		connect-notify-events cont widget
 		connect-common-events cont widget
 	][
+		connect-notify-events evbox widget
 		connect-common-events evbox widget
 	]
 	connect-focus-events evbox widget sym

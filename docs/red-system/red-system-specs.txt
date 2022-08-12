@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 14/08/2020
-	Revision: 57
+	Date: 23/02/2022
+	Revision: 58
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -1233,9 +1233,8 @@ The grammar rules are specified in <a href="http://en.wikipedia.org/wiki/Backus%
  <condition>     ::= <logic-literal> | <logic-call> | <cond-expr>
 
  <all>           ::= "ALL" "[" <condition>+ "]"
- <any>           ::= "ANY" "[" <condition>+ "]" 
- <either>        ::= "EITHER" <condition> "[" <expression>+ "]" "[" <expression>+ "]"
- <short-circuit> ::= <all> | <any> | <either>
+ <any>           ::= "ANY" "[" <condition>+ "]"
+ <short-circuit> ::= <all> | <any>
 
  <paren>         ::= "(" <expression> ")"
  <value>         ::= <variable> | <literal> | <paren> | "null"
@@ -1248,8 +1247,6 @@ The grammar rules are specified in <a href="http://en.wikipedia.org/wiki/Backus%
 
 An expression can be used standalone, after an assignment or as argument to some statements (RETURN, IF or EITHER used as statement).
 
-<u>Note</u>: EITHER can be used in an expression only if the last expressions in both its TRUE block and FALSE block are of the same type. When used in an expression, EITHER is similar to the C ternary operator (?).
-
 <b>Examples</b>
 
  a: 123
@@ -1257,9 +1254,7 @@ An expression can be used standalone, after an assignment or as argument to some
  0 < foo a + 1
  any [(0 < foo a + 1) a > 0]
 
- if any [(0 < foo a + 1) a > 0][print "ok"]
-
- b: 1 + (2 * a - either zero? a [0][a + 100])
+ if all [(0 < foo a + 1) a > 0][print "ok"]
 
 ---Evaluation order rule
 
@@ -4273,6 +4268,11 @@ will output:
 
 
 ===Document History
+
+*<b>23/02/2022 - revision 57</b>
+
+*>Removes EITHER from expression rules, as the current compiler can't handle it properly.
+
 
 *<b>14/08/2020 - revision 57</b>
 

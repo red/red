@@ -315,29 +315,19 @@ word: context [
 		str
 	]
 	
-	check-1st-char: func [
-		w [red-word!]
+	prescan-word: func [
+		issue	[red-word!]
+		return: [integer!]								;-- recognized TYPE id
 		/local
 			sym [red-symbol!]
-			buf	[series!]
-			s   [c-string!]
-			cp  [integer!]
-			n	[integer!]
-			c   [byte!]
+			s	[series!]
+			len size [integer!]
 	][
-		n: 0
-		sym: symbol/get w/symbol
-		buf: as series! sym/cache/value
-		cp: unicode/decode-utf8-char as c-string! buf/offset :n
-		if cp > 127 [exit]
-		c: as-byte cp
-		
-		s: {/\^^,[](){}"#%$@:;'0123465798}
-		until [
-			if c = s/1 [fire [TO_ERROR(syntax bad-char) w]]
-			s: s + 1
-			s/1 = null-byte
-		]
+		sym: symbol/get issue/symbol
+		s: as series! sym/cache/value
+		size: as-integer (s/tail - s/offset)
+		len: 0
+		lexer/scan null as byte-ptr! s/offset size yes yes no no :len null null null
 	]
 
 	;-- Actions --
@@ -390,36 +380,35 @@ word: context [
 			dt		[red-datatype!]
 			bool	[red-logic!]
 			str		[red-string!]
+			word	[red-word!]
 			name	[names!]
 			cstr	[c-string!]
-			len		[integer!]
+			index t	[integer!]
 			val		[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/to"]]
 
 		switch TYPE_OF(spec) [
-			TYPE_WORD
-			TYPE_SET_WORD
-			TYPE_GET_WORD
-			TYPE_LIT_WORD
-			TYPE_REFINEMENT [proto: spec]
+			TYPE_ANY_WORD [proto: spec]
+			TYPE_REFINEMENT
 			TYPE_ISSUE [
-				check-1st-char as red-word! spec
+				word: as red-word! spec
+				t: prescan-word word
+				unless ANY_WORD?(t) [fire [TO_ERROR(script bad-to-arg) datatype/push type spec]]
+				index: _context/bind-word TO_CTX(global-ctx) word	;-- issue #4537
+				assert index >= 0
 				proto: spec
 			]
 			TYPE_STRING [
-				len: 0
-				val: as red-value! :len
-				copy-cell spec val					;-- save spec, load-value will change it
 				proto: load-value as red-string! spec
-				unless any-word? TYPE_OF(proto) [fire [TO_ERROR(syntax bad-char) val]]
+				unless any-word? TYPE_OF(proto) [fire [TO_ERROR(script invalid-chars)]]
 			]
 			TYPE_CHAR [
 				char: as red-char! spec
 				str: string/make-at stack/push* 1 Latin1
 				string/append-char GET_BUFFER(str) char/value
 				proto: load-value str
-				unless any-word? TYPE_OF(proto) [fire [TO_ERROR(syntax bad-char) str]]
+				unless any-word? TYPE_OF(proto) [fire [TO_ERROR(script invalid-chars)]]
 			]
 			TYPE_DATATYPE [
 				dt: as red-datatype! spec
@@ -479,11 +468,17 @@ word: context [
 			COMP_FIND [
 				res: as-integer not EQUAL_WORDS?(arg1 arg2)
 			]
-			COMP_SAME
 			COMP_STRICT_EQUAL [
 				res: as-integer any [
 					type <> TYPE_OF(arg1)
 					arg1/symbol <> arg2/symbol
+				]
+			]
+			COMP_SAME [
+				res: as-integer any [
+					arg1/symbol <> arg2/symbol
+					arg1/ctx    <> arg2/ctx
+					type <> TYPE_OF(arg1)
 				]
 			]
 			COMP_STRICT_EQUAL_WORD [

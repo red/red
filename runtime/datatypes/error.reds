@@ -29,10 +29,11 @@ error: context [
 		error [red-object!]
 		value [red-value!]
 		/local
-			base [red-value!]
+			base slot [red-value!]
 	][
 		base: object/get-values error
-		copy-cell value base + field-where
+		slot: base + field-where
+		if TYPE_OF(slot) = TYPE_NONE [copy-cell value slot]	;-- don't overwrite if previously set
 	]
 	
 	get-type: func [
@@ -98,6 +99,28 @@ error: context [
 			value: value + 1
 		]
 		words/_anon										;-- return anonymous name
+	]
+	
+	capture: func [
+		err	[red-object!]
+		/local
+			field [red-integer!]
+			blk	  [red-block!]
+			int	  [red-integer!]
+			level [integer!]
+			ptr	  [integer!]
+	][
+		if TYPE_OF(err) <> TYPE_ERROR [exit]			;-- error! not created yet, give up.
+		field: as red-integer! (object/get-values err) + field-stack
+		if TYPE_OF(field) = TYPE_INTEGER [
+			level: 1
+			int: as red-integer! #get system/state/stack-trace
+			if all [TYPE_OF(int) = TYPE_INTEGER int/value > 0][level: int/value]
+			ptr: field/value
+			blk: as red-block! field
+			block/make-at blk 20
+			stack/trace-in level blk ptr
+		]
 	]
 	
 	create: func [
@@ -282,6 +305,8 @@ error: context [
 				fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_ERROR spec]
 			]
 		]
+		copy-cell #get system/state/near base + field-near
+		copy-cell none-value #get system/state/near		;-- reset system/state/near after usage
 		new
 	]
 	
@@ -294,31 +319,51 @@ error: context [
 		/local
 			base	[red-value!]
 			errors	[red-object!]
+			catalog [red-object!]
 			value	[red-value!]
 			str		[red-string!]
 			blk		[red-block!]
 			int		[red-integer!]
+			arg2	[red-value!]
+			print-stack-header [subroutine!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "error/form"]]
+		
+		print-stack-header: [
+			string/concatenate-literal buffer "^/*** Stack: "
+			part: part - 12
+		]
 		
 		base: object/get-values obj
 		string/concatenate-literal buffer "*** "
 		part: part - 4
 		
-		errors: as red-object! #get system/catalog/errors
-		errors: as red-object! object/rs-select errors base + field-type
-		if TYPE_Of(errors) = TYPE_NONE [fire [TO_ERROR(internal invalid-error) base + field-type]]
+		catalog: as red-object! #get system/catalog/errors
+		errors: as red-object! object/rs-select catalog base + field-type
+		if TYPE_Of(errors) = TYPE_NONE [				;-- invalid /type field, overwrite error object
+			copy-cell base + field-type base + field-arg1
+			copy-cell as red-value! words/errors/internal base + field-type
+			copy-cell as red-value! words/errors/invalid-error base + field-id
+			errors: as red-object! object/rs-select catalog as red-value! words/errors/internal
+			assert TYPE_Of(errors) <> TYPE_NONE
+		]
+		value: object/rs-select errors base + field-id
+		if TYPE_Of(value) = TYPE_NONE [				;-- invalid /id field, overwrite error object
+			copy-cell base + field-id base + field-arg1
+			copy-cell as red-value! words/errors/internal base + field-type
+			copy-cell as red-value! words/errors/invalid-error base + field-id
+			errors: as red-object! object/rs-select catalog as red-value! words/errors/internal
+			assert TYPE_Of(errors) <> TYPE_NONE
+			value: object/rs-select errors base + field-id
+			assert TYPE_Of(value) <> TYPE_NONE
+		]
 		
-		str: as red-string! object/rs-select errors as red-value! words/_type
+		str: as red-string! object/rs-select errors as red-value! words/_type ;-- get the error-class banner string
 		assert TYPE_OF(str) = TYPE_STRING
-		
 		string/concatenate buffer str -1 0 yes no
 		part: part - string/rs-length? str
 		string/concatenate-literal buffer ": "
 		part: part - 2
-		
-		value: object/rs-select errors base + field-id
-		if TYPE_Of(value) = TYPE_NONE [fire [TO_ERROR(internal invalid-error) base + field-id]]
 		
 		either TYPE_OF(value) = TYPE_STRING [
 			str: as red-string! value
@@ -327,26 +372,46 @@ error: context [
 		][
 			blk: block/clone as red-block! value no no
 			blk: reduce blk obj
-			part: block/form blk buffer arg part
+			arg2: as red-value! integer/push 80
+			part: block/form blk buffer arg2 80
 		]
 		
 		string/concatenate-literal buffer "^/*** Where: "
 		part: part - 12
 		value: base + field-where
-		
-		either TYPE_OF(value) = TYPE_WORD [
-			part: word/form as red-word! value buffer arg part
-		][
-			string/concatenate-literal buffer "???"
-			part: part - 3
+		switch TYPE_OF(value) [
+			TYPE_WORD [
+				part: word/form as red-word! value buffer arg part
+			]
+			TYPE_STRING [
+				str: as red-string! value
+				string/concatenate buffer str -1 0 yes no
+				part: part - string/rs-length? str
+			]
+			default [
+				string/concatenate-literal buffer "???"
+				part: part - 3
+			]
 		]
 		
-		int: as red-integer! #get system/state/trace
+		string/concatenate-literal buffer "^/*** Near : "
+		part: part - 12
+		arg2: as red-value! integer/push 40
+		part: actions/mold base + field-near buffer yes no yes arg2 40 0
+		
+		int: as red-integer! #get system/state/stack-trace
 		if all [TYPE_OF(int) = TYPE_INTEGER int/value > 0][
 			value: base + field-stack
-			if TYPE_OF(value) = TYPE_INTEGER [
-				string/concatenate-literal buffer "^/*** Stack: "
-				part: stack/trace int/value as red-integer! value buffer part - 12
+			switch TYPE_OF(value) [
+				TYPE_INTEGER [
+					print-stack-header
+					part: stack/trace int/value as red-integer! value buffer part
+				]
+				TYPE_BLOCK [
+					print-stack-header
+					part: actions/form value buffer arg part
+				]
+				default [0]
 			]
 		]
 		part
@@ -378,12 +443,19 @@ error: context [
 		value	[red-value!]
 		path	[red-value!]
 		case?	[logic!]
+		get?	[logic!]
+		tail?	[logic!]
 		return:	[red-value!]
+		/local
+			w	[red-word!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "error/eval-path"]]
 		
-		if value <> null [fire [TO_ERROR(script invalid-path-set) path]]
-		object/eval-path parent element value path case?
+		w: as red-word! element
+		if all [TYPE_OF(w) = TYPE_WORD words/stack = symbol/resolve w/symbol][
+			fire [TO_ERROR(script invalid-path-set) path]
+		]
+		object/eval-path parent element value path case? get? tail?
 	]
 	
 	compare: func [

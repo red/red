@@ -368,7 +368,7 @@ gpio-scheme: context [
 				handle/value: as-integer base
 			]
 			i: i + 1
-			i > gpio/regions/0
+			i > size? gpio/regions
 		]
 	]
 	

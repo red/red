@@ -2146,6 +2146,58 @@ Red [
 
 ===end-group===
 
+===start-group=== "changed fields"
+	
+	reset: func [foo [object!]][modify foo 'changed none]
+	ebbs?: func [foo [object!]][reflect foo 'changed]
+	
+	foo: reset object [x: y: 0]						;@@ RESET is required to trick the compiler
+
+	--test-- "changed-1"		
+		--assert [] = ebbs? foo
+		foo/x: 1
+		--assert [x] = ebbs? foo
+		
+	--test-- "changed-2"
+		put foo 'y 2
+		--assert [x y] = ebbs? foo
+		--assert [] = ebbs? reset foo
+	
+	--test-- "changed-3"
+		do bind [x: y: 0] foo
+		--assert [x y] = ebbs? foo
+		
+	--test-- "changed-4"
+		set in reset foo 'y 1
+		--assert [y] = ebbs? foo
+		
+	--test-- "changed-5"
+		set 'foo/x 2
+		--assert [x y] = ebbs? foo
+		--assert [] = ebbs? reset foo
+	
+	--test-- "changed-6"
+		set foo [bar]
+		--assert [x y] = ebbs? foo					;-- Y was set to NONE
+	
+	--test-- "changed-7"
+		set/some reset foo [bar]
+		--assert [x] = ebbs? foo					;-- Y was ignored
+	
+	--test-- "changed-8"
+		set reset foo object []
+		--assert [] = ebbs? foo
+	
+	--test-- "changed-9"
+		set reset foo object [y: 2]
+		--assert [y] = ebbs? foo
+	
+	--test-- "changed-10"
+		set reset foo object [x: 1 y: 2]
+		--assert [x y] = ebbs? foo
+	
+===end-group===
+
 ===start-group=== "set"
 
 	--test-- "os1"
@@ -2290,6 +2342,47 @@ Red [
 		
 ===end-group===
 
+===start-group=== "construct"
+
+	--test-- "oc1"
+		oc1: construct [b: 2 c: print]
+		--assert (body-of oc1) == [b: 2 c: 'print]
+
+	--test-- "oc2"
+		oc2: construct/with [d: append] oc1
+		--assert (body-of oc2) == [b: 2 c: 'print d: 'append]
+
+	--test-- "oc3"
+		spec: [z: 3 y: insert]
+		oc3: construct/with spec oc1
+		--assert (body-of oc3) == [b: 2 c: 'print z: 3 y: 'insert]
+
+	--test-- "oc4"
+		blk: [b: 2 c: print]
+		oc4: construct blk
+		--assert (body-of oc4) == [b: 2 c: 'print]
+
+	--test-- "oc5"
+		blk: [b: 2 c: print]
+		oc5: object [a: 1]
+		oc51: construct/with blk oc5
+		--assert (body-of oc51) == [a: 1 b: 2 c: 'print]
+
+	--test-- "oc6"
+		blk: [b: 6 c: print]
+		oc6: construct/with blk object [a: 5]
+		--assert (body-of oc6) == [a: 5 b: 6 c: 'print]
+
+	--test-- "oc7"
+		oc7: construct [a: true]
+		--assert logic? oc7/a
+		oc71: construct/only [a: true]
+		--assert word? oc71/a
+		oc72: construct/only/with [b: true] oc7
+		--assert logic? oc72/a
+		--assert word?  oc72/b
+
+===end-group===
 
 ===start-group=== "regression tests"
 
@@ -2323,6 +2416,19 @@ Red [
 			h3406: make g3406 object [x: 5]
 			--assert h3406/f = 5
 		]
+
+	--test-- "issue #4765"
+		a4765: make object! [ x: 1 show: does [x] ]
+		b4765: make object! [ x: 2 y: 3 show: does [reduce [x y]] ]
+		c4765: make a4765 b4765
+		--assert a4765/show == 1
+		--assert b4765/show == [2 3]
+
+		a4765x: make object! [ x: 1 show: does [x] ]
+		b4765x: make object! [ x: 2 show: does [reduce [x y]] y: 3]
+		c4765x: make a4765x b4765x
+		--assert a4765x/show == 1
+		--assert b4765x/show == [2 3]
 
 ===end-group===
 

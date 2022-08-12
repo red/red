@@ -5,12 +5,8 @@ branches:
 install:
 - ps: >-
     ## Download Rebol v276
-
-    $url = "http://static.red-lang.org/build/rebview.exe"
-
-    $output = "c:\projects\red\rebview.exe"
-
-    (New-Object System.Net.WebClient).DownloadFile($url, $output)
+    
+    curl -o c:\projects\red\rebview.exe https://static.red-lang.org/build/rebview.exe
 build_script:
 - cmd: >-
     c:\projects\red\rebview.exe -qws tests\run-all.r --batch

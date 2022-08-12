@@ -12,20 +12,6 @@ Red/System [
 
 #include %text-box.reds
 
-draw-state!: alias struct! [
-	pen-join		[integer!]
-	pen-cap			[integer!]
-	pen-style		[integer!]
-	pen-color		[integer!]					;-- 00bbggrr format
-	brush-color		[integer!]					;-- 00bbggrr format
-	font-color		[integer!]
-	grad-pen		[gradient! value]
-	grad-brush		[gradient! value]
-	pen?			[logic!]
-	brush?			[logic!]
-	on-image?		[logic!]
-]
-
 #define MAX_COLORS				256		;-- max number of colors for gradient
 
 #enum cairo_operator_t! [
@@ -109,10 +95,9 @@ draw-begin: func [
 		grad	[gradient!]
 ][
 	ctx/cr:				cr
-	ctx/pen-style:		0
+	ctx/pen-pattern:	null
+	ctx/pen-width:		1.0
 	ctx/pen-color:		0						;-- default: black
-	ctx/pen-join:		miter
-	ctx/pen-cap:		flat
 	ctx/brush-color:	0
 	ctx/font-color:		0
 	ctx/pen?:			yes
@@ -840,6 +825,27 @@ OS-draw-fill-pen: func [
 	]
 ]
 
+_set-line-dash: func [
+	dc		[draw-ctx!]
+	/local
+		cnt		[integer!]
+		pint	[int-ptr!]
+		pf		[float-ptr!]
+		dashes	[float-ptr!]
+][
+	if dc/pen-pattern <> null [
+		pint: as int-ptr! dc/pen-pattern
+		cnt: pint/value
+		dashes: dc/pen-pattern + 1
+		pf: as float-ptr! system/stack/allocate cnt * 2
+		while [cnt > 0][
+			pf/cnt: dashes/cnt * dc/pen-width
+			cnt: cnt - 1
+		]
+		cairo_set_dash dc/cr pf pint/value 0.0
+	]
+]
+
 OS-draw-line-width: func [
 	dc			[draw-ctx!]
 	width		[red-value!]
@@ -848,7 +854,10 @@ OS-draw-line-width: func [
 ][
 	w: get-float as red-integer! width
 	if w <= 0.0 [w: 1.0]
+	dc/pen-width: w
 	cairo_set_line_width dc/cr w
+
+	_set-line-dash dc
 ]
 
 OS-draw-box: func [
@@ -1386,7 +1395,6 @@ OS-draw-line-join: func [
 	dc			[draw-ctx!]
 	style		[integer!]
 ][
-	dc/pen-join: style
 	cairo_set_line_join dc/cr
 		case [
 			style = miter		[0]
@@ -1401,7 +1409,6 @@ OS-draw-line-cap: func [
 	dc			[draw-ctx!]
 	style		[integer!]
 ][
-	dc/pen-cap: style
 	cairo_set_line_cap dc/cr
 		case [
 			style = flat		[0]
@@ -1409,6 +1416,40 @@ OS-draw-line-cap: func [
 			style = square		[2]
 			true				[0]
 		]
+]
+
+OS-draw-line-pattern: func [
+	dc			[draw-ctx!]
+	start		[red-integer!]
+	end			[red-integer!]
+	/local
+		p		[red-integer!]
+		cnt		[integer!]
+		dashes	[float-ptr!]
+		pf		[float-ptr!]
+		pint	[int-ptr!]
+][
+	if dc/pen-pattern <> null [
+		free as byte-ptr! dc/pen-pattern
+		dc/pen-pattern: null
+	]
+	cnt: (as-integer end - start) / 16 + 1
+	dashes: null
+	if cnt > 0 [
+		dashes: as float-ptr! allocate (cnt + 1) * size? float!
+		dc/pen-pattern: dashes
+		;-- save count in the first slot
+		pint: as int-ptr! dashes
+		pint/1: cnt
+		dashes: dashes + 1
+		pf: dashes
+		while [start <= end][
+			either zero? start/value [pf/1: 0.0001][pf/1: as float! start/value]
+			pf: pf + 1
+			start: start + 1
+		]
+	]
+	_set-line-dash dc
 ]
 
 GDK-draw-image: func [
@@ -1477,6 +1518,8 @@ OS-draw-image: func [
 		crop.y	[integer!]
 		crop.w	[integer!]
 		crop.h	[integer!]
+		right	[integer!]
+		bottom	[integer!]
 		dst		[red-image! value]
 		pixbuf	[handle!]
 ][
@@ -1500,12 +1543,21 @@ OS-draw-image: func [
 			crop.y: crop1/y
 			crop.w: crop2/x
 			crop.h: crop2/y
-			if crop.x + crop.w > src.w [
-				crop.w: src.w - crop.x
-			]
-			if crop.y + crop.h > src.h [
-				crop.h: src.h - crop.y
-			]
+
+			right: crop.x + crop.w
+			bottom: crop.y + crop.h
+			if any [		;-- clip outside the image
+				right <= 0 bottom <= 0
+				crop.x >= src.w crop.y >= src.h
+			][exit]
+
+			if right > src.w [right: src.w]
+			if bottom > src.h [bottom: src.h]
+			if crop.x < 0 [crop.x: 0]
+			if crop.y < 0 [crop.y: 0]
+
+			crop.w: right - crop.x
+			crop.h: bottom - crop.y
 		]
 		case [
 			start = end [
@@ -1655,7 +1707,7 @@ OS-draw-grad-pen-old: func [
 	head: as red-value! int
 	loop count [
 		clr: as red-tuple! either TYPE_OF(head) = TYPE_WORD [_context/get as red-word! head][head]
-		color/value: clr/array1
+		color/value: get-tuple-color clr
 		next: head + 1
 		if TYPE_OF(next) = TYPE_FLOAT [head: next f: as red-float! head p: f/value]
 		pos/value: as float32! p
@@ -1780,7 +1832,7 @@ OS-draw-grad-pen: func [
 	head: stops
 	loop count [
 		clr: as red-tuple! either TYPE_OF(head) = TYPE_WORD [_context/get as red-word! head][head]
-		color/value: clr/array1
+		color/value: get-tuple-color clr
 		next: head + 1
 		if TYPE_OF(next) = TYPE_FLOAT [head: next f: as red-float! head p: f/value]
 		pos/value: as float32! p
@@ -2016,7 +2068,7 @@ OS-matrix-transform: func [
 	]
 ]
 
-OS-matrix-push: func [
+OS-draw-state-push: func [
 	dc			[draw-ctx!]
 	state		[draw-state!]
 ][
@@ -2024,11 +2076,12 @@ OS-matrix-push: func [
 	copy-memory as byte-ptr! state (as byte-ptr! dc) + 4 size? draw-state!
 ]
 
-OS-matrix-pop: func [
+OS-draw-state-pop: func [
 	dc			[draw-ctx!]
 	state		[draw-state!]
 ][
 	cairo_restore dc/cr
+	if dc/pen-pattern <> null [free as byte-ptr! dc/pen-pattern]
 	copy-memory (as byte-ptr! dc) + 4 as byte-ptr! state size? draw-state!
 ]
 
@@ -2151,22 +2204,19 @@ OS-set-clip: func [
 		ctx-matrix-adapt dc saved
 		cairo_append_path dc/cr path
 	]
-	cairo_set_operator cr case [
-		mode = replace	 [CAIRO_OPERATOR_SOURCE]
-		mode = intersect [CAIRO_OPERATOR_OVER]
-		mode = union	 [CAIRO_OPERATOR_ADD]
-		mode = _xor		 [CAIRO_OPERATOR_XOR]
-		mode = exclude	 [CAIRO_OPERATOR_EXCLUSION]
-		true			 [CAIRO_OPERATOR_OVER]
-	]
 	cairo_clip cr
 	ctx-matrix-unadapt dc saved
 ]
+
+OS-clip-end: func [
+	ctx		[draw-ctx!]
+][]
 
 ;-- shape sub command --
 
 OS-draw-shape-beginpath: func [
 	dc			[draw-ctx!]
+	draw?		[logic!]
 ][
 	cairo_move_to dc/cr 0.0 0.0
 ]
@@ -2262,75 +2312,76 @@ draw-curve: func [
 	short?		[logic!]
 	num			[integer!]				;--	number of points
 	/local
-		dx		[float32!]
-		dy		[float32!]
-		p3y		[float32!]
-		p3x		[float32!]
-		p2y		[float32!]
-		p2x		[float32!]
-		p1y		[float32!]
-		p1x		[float32!]
-		pf		[float32-ptr!]
+		dx		[float!]
+		dy		[float!]
+		p3y		[float!]
+		p3x		[float!]
+		p2y		[float!]
+		p2x		[float!]
+		p1y		[float!]
+		p1x		[float!]
+		pf		[float-ptr!]
 		pt		[red-pair!]
 		last-x	[float!]
 		last-y	[float!]
 ][
-	pt: start + 1
-	p1x: as float32! start/x
-	p1y: as float32! start/y
-	p2x: as float32! pt/x
-	p2y: as float32! pt/y
-	if num = 3 [					;-- cubic Bézier
-		pt: start + 2
-		p3x: as float32! pt/x
-		p3y: as float32! pt/y
-	]
-
-	last-x: 0.0 last-y: 0.0
-	if 1 = cairo_has_current_point dc/cr [
-		cairo_get_current_point dc/cr :last-x :last-y
-	]
-	dx: as float32! last-x
-	dy: as float32! last-y
-	if rel? [
-		pf: :p1x
-		loop num [
-			pf/1: pf/1 + dx			;-- x
-			pf/2: pf/2 + dy			;-- y
-			pf: pf + 2
+	while [ start < end ][
+		pt: start + 1
+		p1x: as float! start/x
+		p1y: as float! start/y
+		p2x: as float! pt/x
+		p2y: as float! pt/y
+		if num = 3 [					;-- cubic Bézier
+			pt: start + 2
+			p3x: as float! pt/x
+			p3y: as float! pt/y
 		]
-	]
 
-	if short? [
-		either dc/shape-curve? [
-			;-- The control point is assumed to be the reflection of the control point
-			;-- on the previous command relative to the current point
-			p1x: dx * 2.0 - dc/control-x
-			p1y: dy * 2.0 - dc/control-y
-		][
-			;-- if previous command is not curve/curv/qcurve/qcurv, use current point
-			p1x: dx
-			p1y: dy
+		last-x: 0.0 last-y: 0.0
+		if 1 = cairo_has_current_point dc/cr [
+			cairo_get_current_point dc/cr :last-x :last-y
 		]
-	]
+		dx: last-x
+		dy: last-y
+		if rel? [
+			pf: :p1x
+			loop num [
+				pf/1: pf/1 + dx			;-- x
+				pf/2: pf/2 + dy			;-- y
+				pf: pf + 2
+			]
+		]
 
-	dc/shape-curve?: yes
-	either num = 3 [				;-- cubic Bézier
-		cairo_curve_to dc/cr
-			as float! p1x as float! p1y
-			as float! p2x as float! p2y
-			as float! p3x as float! p3y
-		dc/control-x: p2x
-		dc/control-y: p2y
-	][								;-- quadratic Bézier
-		cairo_curve_to dc/cr
-			(2.0 / 3.0 * as float! p1x) + (1.0 / 3.0 * as float! dx)
-			(2.0 / 3.0 * as float! p1y) + (1.0 / 3.0 * as float! dy)
-			(2.0 / 3.0 * as float! p2x) + (1.0 / 3.0 * as float! p1x)
-			(2.0 / 3.0 * as float! p2y) + (1.0 / 3.0 * as float! p1y)
-			as float! p2x as float! p2y
-		dc/control-x: p1x
-		dc/control-y: p1y
+		if short? [
+			either dc/shape-curve? [
+				;-- The control point is assumed to be the reflection of the control point
+				;-- on the previous command relative to the current point
+				p1x: dx * 2.0 - (as float! dc/control-x)
+				p1y: dy * 2.0 - (as float! dc/control-y)
+			][
+				;-- if previous command is not curve/curv/qcurve/qcurv, use current point
+				p1x: dx
+				p1y: dy
+			]
+			start: start - 1
+		]
+
+		dc/shape-curve?: yes
+		either num = 3 [				;-- cubic Bézier
+			cairo_curve_to dc/cr p1x p1y p2x p2y p3x p3y
+			dc/control-x: as float32! p2x
+			dc/control-y: as float32! p2y
+		][								;-- quadratic Bézier
+			cairo_curve_to dc/cr
+				(0.6666666666666666 * p1x) + (0.3333333333333333 * dx)
+				(0.6666666666666666 * p1y) + (0.3333333333333333 * dy)
+				(0.6666666666666666 * p1x) + (0.3333333333333333 * p2x)
+				(0.6666666666666666 * p1y) + (0.3333333333333333 * p2y)
+				p2x p2y
+			dc/control-x: as float32! p1x
+			dc/control-y: as float32! p1y
+		]
+		start: start + num
 	]
 ]
 
@@ -2625,3 +2676,12 @@ OS-draw-brush-pattern: func [
 
 	cairo_surface_destroy surf
 ]
+
+OS-draw-shadow: func [
+	ctx		[draw-ctx!]
+	offset	[red-pair!]
+	blur	[integer!]
+	spread	[integer!]
+	color	[integer!]
+	inset?	[logic!]
+][0]

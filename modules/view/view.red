@@ -12,7 +12,9 @@ Red [
 
 #system [
 	#include %../../runtime/datatypes/event.reds
+	red/boot?: yes
 	event/init
+	red/boot?: no
 ]
 
 #include %utils.red
@@ -35,6 +37,7 @@ size-text: function [
 	return:  [pair! none!]	"Return the text's size or NONE if failed"
 ][
 	either face/type = 'rich-text [
+		if block? h: face/handles [poke h length? h true]
 		system/view/platform/text-box-metrics face 0 3
 	][
 		system/view/platform/size-text face text
@@ -410,6 +413,7 @@ face!: object [				;-- keep in sync with facet! enum
 				tab "new  :" type? :new
 			]
 		]
+
 		if all [word <> 'state word <> 'extra][
 			all [
 				not empty? srs: system/reactivity/source
@@ -422,11 +426,12 @@ face!: object [				;-- keep in sync with facet! enum
 				any [word = 'size word = 'offset]
 				old = new
 			][exit]
+
+			same-pane?: all [block? :old block? :new same? head :old head :new]
 			if word = 'pane [
 				if all [type = 'window object? :new new/type = 'window][
 					cause-error 'script 'bad-window []
 				]
-				same-pane?: all [block? :old block? :new same? head :old head :new]
 				if all [not same-pane? block? :old not empty? old][
 					modify old 'owned none				;-- stop object events
 					foreach f head old [
@@ -453,9 +458,14 @@ face!: object [				;-- keep in sync with facet! enum
 			if word = 'para  [link-sub-to-parent self 'para old new]
 			
 			if find [field text] type [
-				if word = 'text [
+				if all [word = 'text any [not options not find options 'sync options/sync]][
 					set-quiet 'data any [
-						all [not empty? new find scalar! scan new attempt/safer [load new]]
+						all [
+							not empty? new 
+							new-type: scan new
+							find any [all [options options/sync] scalar!] new-type
+							attempt/safer [load new]
+						]
 						all [options options/default]
 					]
 				]
@@ -686,7 +696,7 @@ system/view: context [
 		if all [event/type = 'close :result <> 'continue][
 			result: pick [stop done] face/state/4		;-- face/state will be none after remove call
 			remove find head system/view/screens/1/pane face
-		]	
+		]
 		:result
 	]
 	
@@ -719,9 +729,16 @@ stop-events: function [
 	system/view/platform/exit-event-loop
 ]
 
-do-safe: func ["Internal Use Only" code [block!] /local result][
-	if error? set/any 'result try/all code [print :result]
-	get/any 'result
+do-safe: func ["Internal Use Only" code [block!] /local result error][
+	unset 'result
+	if error? error: try/all [
+		if 'halt-request = catch/name [
+			set/any 'result do code
+			none										;-- catch/name shouldn't be triggered by a word returned
+		] 'console [stop-events]
+		none											;-- try/all shouldn't be triggered by whatever stop-events returns
+	][print :error]
+	:result												;-- unset or result of actor evaluation
 ]
 
 do-actor: function ["Internal Use Only" face [object!] event [event! none!] type [word!] /local result][
@@ -731,8 +748,7 @@ do-actor: function ["Internal Use Only" face [object!] event [event! none!] type
 		act: get act
 	][
 		if debug-info? face [print ["calling actor:" name]]
-		
-		set/any 'result do-safe [do [act face event]]	;-- compiler can't call act, hence DO
+		set/any 'result do-safe [act face event]	;-- compiler can't call act, hence DO
 	]
 	:result
 ]
@@ -781,7 +797,7 @@ show: function [
 			if all [object? face/actors in face/actors 'on-create][
 				do-safe [face/actors/on-create face none]
 			]
-			p: either with [parent/state/1][0]
+			p: either with [parent/state/1][null-handle]
 
 			#if config/OS = 'macOS [					;@@ remove this system specific code
 				if all [face/type = 'tab-panel face/pane][
@@ -873,7 +889,7 @@ view: function [
 	
 	if block? spec [spec: either tight [layout/tight spec][layout spec]]
 	if spec/type <> 'window [cause-error 'script 'not-window []]
-	if options [set spec make object! opts]
+	if options [set/any spec make object! opts]
 	if flags [spec/flags: either spec/flags [unique union to-block spec/flags to-block flgs][flgs]]
 	
 	unless spec/text   [spec/text: "Red: untitled"]
@@ -940,9 +956,10 @@ make-face: func [
 	unless spec [blk: []]
 	opts: svv/opts-proto
 	css: make block! 2
-	spec: svv/fetch-options/no-skip face opts model blk css no
+	reactors: make block! 4
+	spec: svv/fetch-options/no-skip face opts model blk css reactors no
 	if model/init [do bind model/init 'face]
-	svv/process-reactors
+	svv/process-reactors reactors
 
 	if offset [face/offset: xy]
 	if size [face/size: wh]

@@ -66,6 +66,13 @@ handle: context [
 		hndl/value: as integer! value
 		hndl
 	]
+	
+	push-null: func [return: [red-handle!] /local hndl [red-handle!]][
+		hndl: as red-handle! stack/push*
+		hndl/header: TYPE_HANDLE
+		hndl/value: 0
+		hndl
+	]
 
 	;-- Actions --
 

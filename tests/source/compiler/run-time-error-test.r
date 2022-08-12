@@ -43,7 +43,7 @@ REBOL [
 	--test-- "stack-trace-1"
 		--compile-and-run-this/error {Red[]
 			do {
-				system/state/trace: 1
+				system/state/stack-trace: 1
 				a: object [af: does [b/bf]]
 				b: object [bf: does [cf]]
 				c: object [set 'system/words/cf does [df] cf: none]

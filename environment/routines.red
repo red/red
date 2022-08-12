@@ -19,8 +19,9 @@ quit-return: routine [
 
 set-quiet: routine [
 	"Set an object's field to a value without triggering eventual object's events"
-	word  [any-type!]
-	value [any-type!]
+	word    [any-type!]
+	value   [any-type!]
+	return: [any-type!]
 	/local
 		w	 [red-word!]
 		type [integer!]
@@ -31,6 +32,7 @@ set-quiet: routine [
 	w: as red-word! word
 	node: w/ctx
 	_context/set-in w stack/arguments + 1 TO_CTX(node) no
+	SET_RETURN(value)
 ]
 
 set-slot-quiet: routine [
@@ -63,7 +65,7 @@ get-current-dir: routine ["Returns the platform’s current directory for the pr
 	stack/set-last as red-value! file/get-current-dir
 ]
 
-set-current-dir: routine ["Sets the platform’s current process directory" path [string!] /local dir [red-file!]][
+set-current-dir: routine ["Sets the platform’s current process directory" path [file!] /local dir [red-file!]][
 	dir: as red-file! stack/arguments
 	unless platform/set-current-dir file/to-OS-path dir [
 		fire [TO_ERROR(access cannot-open) dir]
@@ -150,6 +152,30 @@ count-chars: routine [
 	]
 	c
 ]
+
+;-- Red stack related accessors (temporary, needs a proper design) --
+
+stack-size?: routine [return: [integer!]][
+	(as-integer stack/top - stack/bottom) >> 4
+]
+
+pick-stack: routine [
+	idx [integer!]
+][
+	either all [idx > 0 idx < stack-size?][
+		stack/set-last stack/bottom + idx - 1
+	][
+		SET_RETURN(none-value)
+	]
+]
+
+frame-index?: routine [return: [integer!]][
+	(as-integer stack/arguments - stack/bottom) >> 4
+]
+
+collect-calls: routine [blk [block!]][stack/collect-calls blk]
+
+tracing?: routine [][logic/push interpreter/tracing?]
 
 ;-- Temporary definition --
 

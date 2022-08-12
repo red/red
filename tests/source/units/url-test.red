@@ -72,5 +72,11 @@ Red [
 
 ===end-group===
 
+===start-group=== "read url!"
+	--test-- "read-url-1 issue #4684"
+		--assert error? try [read to url! "www.example.org"]
+		--assert error? try [load make url! 0]
+
+===end-group===
 
 ~~~end-file~~~

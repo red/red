@@ -136,17 +136,20 @@ object: context [
 	set-many: func [
 		obj	  [red-object!]
 		value [red-value!]
+		any?  [logic!]
 		only? [logic!]
 		some? [logic!]
 		/local
+			smudge  [subroutine!]
 			ctx		[red-context!]
-			blk		[red-block!]
-			obj2	[red-object!]
 			ctx2	[red-context!]
+			obj2	[red-object!]
 			word	[red-word!]
 			values	[red-value!]
 			values2	[red-value!]
 			tail	[red-value!]
+			tail2   [red-value!]
+			end		[red-value!]
 			new		[red-value!]
 			old		[red-value!]
 			int		[red-integer!]
@@ -157,14 +160,18 @@ object: context [
 			type	[integer!]
 			on-set?	[logic!]
 	][
-		ctx:	GET_CTX(obj)
-		s:		as series! ctx/values/value
-		values: s/offset
-		tail:	s/tail
-		type:	TYPE_OF(value)
+		smudge: [word/header: word/header or flag-word-dirty]
+	
+		ctx:	 GET_CTX(obj)
+		s:		 as series! ctx/values/value				;-- object values
+		values:  s/offset
+		tail:	 s/tail
+		type:	 TYPE_OF(value)
 		on-set?: obj/on-set <> null
-		s: _hashtable/get-ctx-words ctx
-		word: as red-word! s/offset
+		
+		s:       _hashtable/get-ctx-words ctx				;-- object symbols
+		word:    as red-word! s/offset
+		tail2:   s/tail
 		
 		if on-set? [
 			s: as series! obj/on-set/value
@@ -175,11 +182,37 @@ object: context [
 		]
 
 		either all [not only? any [type = TYPE_BLOCK type = TYPE_OBJECT]][
+			either type = TYPE_BLOCK [				;-- first value slot
+				end:     block/rs-tail as red-block! value
+				values2: block/rs-head as red-block! value
+			][
+				obj2:    as red-object! value
+				ctx:     GET_CTX(obj2)
+				s:       as series! ctx/values/value 
+				end:     s/tail
+				values2: s/offset
+			]
+			
+			i: 0
+			if all [not only? not some?][					;-- pre-check of unset values
+				while [word < tail2][
+					if values2 = end [break]				;-- reached the end of the rightmost argument
+					if all [not any? TYPE_OF(values2) = TYPE_UNSET][
+						fire [TO_ERROR(script need-value) word]
+					]
+					i: i + 1
+					word: word + 1
+					values2: values2 + 1
+				]
+			]
+		
+			word: word - i									;-- reset pointers after iteration
+			values2: values2 - i
+			
 			either type = TYPE_BLOCK [
-				blk: as red-block! value
 				i: 0
 				while [values < tail][
-					new: _series/pick as red-series! blk i + 1 null
+					new: _series/pick as red-series! value i + 1 null
 					unless all [some? TYPE_OF(new) = TYPE_NONE][
 						either on-set? [
 							if all [i <> idx-s i <> idx-d][	;-- do not overwrite event handlers
@@ -190,6 +223,7 @@ object: context [
 						][
 							copy-cell new values
 						]
+						smudge
 					]
 					i: i + 1
 					word: word + 1
@@ -198,8 +232,6 @@ object: context [
 			][
 				obj2: as red-object! value
 				ctx2: GET_CTX(obj2)
-				values2: get-values obj2
-				
 				while [values < tail][
 					i: _context/find-word ctx2 word/symbol yes
 					if i > -1 [
@@ -214,6 +246,7 @@ object: context [
 							][
 								copy-cell new values
 							]
+							smudge
 						]
 					]
 					word: word + 1
@@ -227,11 +260,12 @@ object: context [
 					if all [i <> idx-s i <> idx-d][		;-- do not overwrite event handlers
 						old: stack/push values
 						copy-cell value values
-						fire-on-set obj word old new
+						fire-on-set obj word old value
 					]
 				][
 					copy-cell value values
 				]
+				smudge
 				i: i + 1
 				word: word + 1
 				values: values + 1
@@ -360,6 +394,18 @@ object: context [
 			stack/top - 2
 	]
 	
+	loc-ctx-fire-on-set*: func [						;-- compiled code entry point
+		parent-ctx [node!]
+		field      [red-word!]
+		/local
+			s	[series!]
+			obj	[red-value!]
+	][
+		s: as series! parent-ctx/value
+		obj: as red-value! s/offset + 1
+		loc-fire-on-set* obj field
+	]
+	
 	fire-on-set*: func [								;-- compiled code entry point
 		parent [red-word!]
 		field  [red-word!]
@@ -406,7 +452,7 @@ object: context [
 		stack/push old
 		stack/push new
 		if positive? count [_function/init-locals count]
-		_function/call fun obj/ctx
+		_function/call fun obj/ctx as red-value! words/_on-change* CB_OBJ_CHANGE
 		stack/unwind
 	]
 	
@@ -452,7 +498,7 @@ object: context [
 			integer/push pos
 			integer/push nb
 			if positive? count [_function/init-locals count]
-			_function/call fun owner/ctx
+			_function/call fun owner/ctx as red-value! words/_on-deep-change* CB_OBJ_DEEP
 			stack/unwind
 		]
 	]
@@ -556,6 +602,11 @@ object: context [
 		cycles/push obj/ctx
 
 		while [sym < s-tail][
+			if part <= 0 [
+				cycles/pop
+				return part
+			]
+
 			w: as red-word! sym
 			id: symbol/resolve w/symbol
 			
@@ -702,13 +753,7 @@ object: context [
 
 		;-- 1st pass: fill and eventually extend the context
 		while [syms < tail][
-			value: _context/add-with ctx as red-word! syms vals
-			
-			if null? value [
-				word: as red-word! syms
-				value: s/offset + _context/find-word ctx word/symbol yes
-				copy-cell vals value
-			]
+			value: _context/add-and-set ctx as red-word! syms vals
 			syms: syms + 1
 			vals: vals + 1
 		]
@@ -765,7 +810,7 @@ object: context [
 		blk: block/clone as red-block! more yes yes
 		_context/bind blk ctx node yes					;-- rebind new body to object's context
 		_context/bind blk GET_CTX(fun) null no			;-- rebind new body to function's context
-		_function/push spec blk	fun/ctx null null		;-- recreate function
+		_function/push spec blk	fun/ctx null null fun/header ;-- recreate function
 		copy-cell stack/top - 1	as red-value! fun		;-- overwrite function slot in object
 		stack/pop 2										;-- remove extra stack slots (block/clone and _function/push)
 		
@@ -1147,6 +1192,8 @@ object: context [
 		value	[red-value!]
 		path	[red-value!]
 		case?	[logic!]
+		get?	[logic!]
+		tail?	[logic!]
 		return:	[red-value!]
 		/local
 			word	 [red-word!]
@@ -1156,20 +1203,27 @@ object: context [
 			save-ctx [node!]
 			save-idx [integer!]
 			on-set?  [logic!]
+			do-error [subroutine!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/eval-path"]]
-		
+	
+		do-error: [
+			case [
+				all [get? tail?][res: as red-value! unset/push]
+				tail? [fire [TO_ERROR(script invalid-path) path element]]
+				true  [fire [TO_ERROR(script unset-path) path element]]
+			]
+		]
 		word: as red-word! element
 		if TYPE_OF(word) <> TYPE_WORD [fire [TO_ERROR(script invalid-path) path element]]
 
+		res: null
 		ctx: GET_CTX(parent)
 		if word/ctx <> parent/ctx [						;-- bind the word to object's context
 			save-idx: word/index
 			save-ctx: word/ctx
 			word/index: _context/find-word ctx word/symbol yes
-			if word/index = -1 [
-				fire [TO_ERROR(script invalid-path) path element]
-			]
+			if word/index = -1 [do-error return res]
 			word/ctx: parent/ctx
 		]
 		on-set?: parent/on-set <> null
@@ -1185,12 +1239,7 @@ object: context [
 				copy-cell as red-value! word   as red-value! field-parent
 			]
 			res: _context/get-in word ctx
-			if TYPE_OF(res) = TYPE_UNSET [
-				if all [path <> null TYPE_OF(path) <> TYPE_GET_PATH][
-					res: either null? path [element][path]
-					fire [TO_ERROR(script no-value) res]
-				]
-			]
+			if TYPE_OF(res) = TYPE_UNSET [do-error]
 		]
 		res
 	]
@@ -1263,10 +1312,7 @@ object: context [
 			either any [
 				type1 = type2
 				all [word/any-word? type1 word/any-word? type2]
-				all [											;@@ replace by ANY_NUMBER?
-					any [type1 = TYPE_INTEGER type1 = TYPE_FLOAT type1 = TYPE_PERCENT]
-					any [type2 = TYPE_INTEGER type2 = TYPE_FLOAT type2 = TYPE_PERCENT]
-				]
+				all [ANY_NUMBER?(type1) ANY_NUMBER?(type2)]
 			][
 				res: actions/compare-value value1 value2 op
 				sym1: sym1 + 1
@@ -1320,11 +1366,12 @@ object: context [
 		size:   as-integer src/tail - src/offset
 		slots:	size >> 4
 		
+		type: TYPE_OF(obj)
 		copy-cell as cell! obj as cell! new
 		new/header: TYPE_UNSET
 		new/ctx: _context/create slots no yes ctx CONTEXT_OBJECT
 		new/class: obj/class
-		new/header: TYPE_OBJECT
+		new/header: type
 
 		nctx: GET_CTX(new)
 		copy-cell as red-value! new as red-value! nctx + 1	;-- set back-reference
@@ -1453,7 +1500,7 @@ object: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/put"]]
 
-		eval-path obj field value as red-value! none-value case?
+		eval-path obj field value as red-value! none-value case? no yes
 		value
 	]
 

@@ -7,6 +7,15 @@ Red [
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
+;; runnable dir for test scripts
+split-base-path: split-path base-path: system/options/path
+runnable-dir: to-file rejoin [
+	; Handle cases of the test files being loaded from different paths
+	either "tests/" = last split-base-path [first split-base-path][base-path] 
+	"quick-test/runnable/"
+]
+make-dir/deep runnable-dir
+
 ;; counters
 #either any [
 	not in system 'state
@@ -34,6 +43,18 @@ Red [
 ]
 qt-file-name: none
 qt-verbose: false
+
+;; temp file for tests involving `write` and `save`
+qt-temp-file: qt-tmp-file: append copy tmp: dirize %. %testfile.txt
+change-dir also what-dir 
+  unless attempt [
+    write qt-tmp-file "test"                            ;-- test if can write into it
+    change-dir tmp                                      ;-- test if can CD into %TMP% (needed by do-file)
+  ][
+    append clear qt-tmp-file %./testfile.txt            ;-- fallback to local dir if %TMP% is closed
+  ]
+unset 'tmp
+qt-tmp-dir: first split-path qt-tmp-file
 
 ;; group switches
 qt-group-name-not-printed: true

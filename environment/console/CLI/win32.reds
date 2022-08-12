@@ -209,6 +209,7 @@ fd-read: func [
 		n	 	[integer!]
 		keycode [integer!]
 		size    [red-pair!]
+		c		[integer!]
 ][
 	n: 0
 	forever [
@@ -218,8 +219,9 @@ fd-read: func [
 				key: as key-event! (as-integer input-rec) + (size? integer!)
 				if key/KeyDown <> 0 [
 					keycode: SECOND_WORD(key/RepeatCnt-KeyCode)  ;-- 1st RepeatCnt 2 KeyCode
+					c: SECOND_WORD(key/ScanCode-Char)
 					case [
-						key/KeyState and ENHANCED_KEY > 0 [
+						 zero? c [
 							switch keycode [
 								VK_LEFT		[return KEY_LEFT]
 								VK_RIGHT	[return KEY_RIGHT]
@@ -236,7 +238,7 @@ fd-read: func [
 							]
 						]
 						keycode = VK_CONTROL []
-						true [return SECOND_WORD(key/ScanCode-Char)] ;-- return Char
+						true [return c] ;-- return Char
 					]
 				]
 			]

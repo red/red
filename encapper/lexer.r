@@ -238,6 +238,7 @@ lexer: context [
 	get-word-rule: [
 		#":" (type: get-word!) s: begin-symbol-rule [
 			path-rule (
+				if set-path? :value [throw-error]
 				value/1: to get-word! value/1		;-- workaround missing get-path! in R2
 			)
 			| (
@@ -251,10 +252,13 @@ lexer: context [
 		#"'" (type: word!) [
 			s: some #"/" e: (type: lit-word! value: copy/part s e)
 			| s: begin-symbol-rule [
-				path-rule (type: lit-path!)				;-- path matched
+				path-rule (
+					if set-path? :value [throw-error]
+					type: lit-path!					;-- path matched
+				)
 				| (
 					type: lit-word!
-					value: copy/part s e				;-- word matched
+					value: copy/part s e			;-- word matched
 				)
 			]
 		][s: #":" :s (throw-error) | none]
@@ -427,8 +431,11 @@ lexer: context [
 					value2: to pair! reduce [value 0]
 				)
 				[s: integer-number-rule | (type: pair! throw-error)]
-				mark: [pair-end | ws-no-count | end | (type: pair! throw-error)] :mark
-				(value2/2: load-number copy/part s e value: value2)
+				mark: [pair-end | ws-no-count | end | (type: pair! throw-error)] :mark (
+					value2/2: load-number copy/part s e
+					if any [decimal? value decimal? value2][type: pair! throw-error]
+					value: value2
+				)
 			]
 			e: opt [#":" [time-rule | (unless in-path? [throw-error]) :e]]
 	]
@@ -879,7 +886,7 @@ lexer: context [
 				if s = "-0.0" [s: "0-"]					;-- re-encoded for consistency
 				either #"%" = last s [s: to issue! s][
 					s: to issue! join "." s
-					if neg? [append s #"-"]
+					if all [neg? not find s "nan"][append s #"-"]
 				]
 			]
 		][
@@ -932,14 +939,20 @@ lexer: context [
 		to file! replace/all dehex s #"\" #"/"
 	]
 	
-	identify-header: func [src /local p ws found? pos][
+	identify-header: func [src /local p ws found?][
 		ws: charset " ^-^M^/"
 		rs?: no
 		pos: src
 		until [
-			unless pos: find/tail pos "Red" [throw-error/with "Invalid Red program"]
-			if all [pos find/match pos "/System"][rs?: yes pos: skip pos 7]
-			while [find/match ws pos/1][pos: next pos]
+			pos: any [
+				find/tail pos "Red"						;-- don't set pos to none before throw-error
+				throw-error/with "Invalid Red program"
+			]
+			if find/match pos "/System" [rs?: yes pos: skip pos 7]
+			pos: any [
+				find pos negate ws
+				pos
+			]
 			found?: pos/1 = #"["
 		]	
 		unless found? [throw-error/with "Invalid Red program"]

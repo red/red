@@ -94,6 +94,8 @@ event: context [
 		value	[red-value!]
 		path	[red-value!]
 		case?	[logic!]
+		get?	[logic!]
+		tail?	[logic!]
 		return:	[red-value!]
 		/local
 			word [red-word!]
@@ -123,6 +125,7 @@ event: context [
 				sym = words/aux-down? [gui/get-event-flag evt/flags gui/EVT_FLAG_AUX_DOWN]
 				sym = words/ctrl?	  [gui/get-event-flag evt/flags gui/EVT_FLAG_CTRL_DOWN]
 				sym = words/shift?	  [gui/get-event-flag evt/flags gui/EVT_FLAG_SHIFT_DOWN]
+				sym = words/orientation [gui/get-event-orientation evt]
 				;sym = words/code	  [gui/get-event-code	  evt/msg]
 				true 				  [fire [TO_ERROR(script invalid-path) path element] null]
 			]

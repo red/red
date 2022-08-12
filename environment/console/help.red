@@ -120,7 +120,7 @@ help-ctx: context [
 		case [
 			unset? :value		 [""]
 			any-function? :value [fmt any [doc-string :value  spec-of :value]]
-			any-block? value     [
+			any [any-block? value  vector? value] [
 				fmt form reduce [
 					"length:" length? value
 					; Bolek's idea
@@ -131,7 +131,7 @@ help-ctx: context [
 			any-object? value    [fmt words-of value]
 			map? value           [fmt keys-of value]
 			image? value         [fmt form reduce ["size:" value/size]]
-			typeset? value       [fmt to block! value]
+			typeset? value       [fmt mold to block! value] ; blockify to remove "make typeset!" part, mold so fmt doesn't truncate it.
 			string? value        [fmt/molded value]
 			'else                [fmt :value]
 		]
@@ -165,7 +165,7 @@ help-ctx: context [
 		value: get/any word
 		rejoin [
 			uppercase mold :word " is " a-an/pre mold type? :value " value"
-			either only [dot][append copy ": " mold :value]
+			either only [dot][append copy ": " form-value :value]
 		]
 	]
 
@@ -179,7 +179,8 @@ help-ctx: context [
 		"Returns name, type, and doc-string for the given word in the spec."
 		spec [block!]
 		word [word!]
-		return: [block!] "[name type doc-string]"
+		;FIXME: Doesn't work interpreted in 0.6.4
+		;return: [block!] "[name type doc-string]"
 	][
 		t: d: 0										; index of type and doc string. 0 means none.
 		if pos: find spec word [
@@ -262,7 +263,7 @@ help-ctx: context [
 			clear stack
 			; The = sigils are just to make parse-related vars more obvious
 			func-desc=:  [set =val string! (res/desc: =val)]
-			attr-val=:   ['catch | 'throw]
+			attr-val=:   ['catch | 'throw | 'trace | 'no-trace]
 			func-attr=:  [into [copy =val some attr-val= (res/attr: =val)]]
 			
 			param-name=: [
@@ -328,6 +329,11 @@ help-ctx: context [
 
 		? "pri"
 		? "issue!"
+
+	To buffer and return output, rather than printing results, 
+	use help-string:
+
+		help-string append
 
 	Other useful functions:
 
@@ -514,7 +520,7 @@ help-ctx: context [
 
 	set 'help-string function [
 		"Returns information about functions, values, objects, and datatypes."
-		'word [any-type!]
+		'word [any-type!] "Omit the word arg for HELP usage."
 	][
 		clear output-buffer
 		case [
@@ -541,7 +547,7 @@ help-ctx: context [
 					datatype? :value [show-datatype-help :value]
 					object? :value [show-object-help word]
 					map? :value [show-map-help word]
-					all [ref-given?  block? :value] [_print/fit [word-is-value-str/only :word DEF_SEP form-value :value]]
+					all [ref-given?  any [any-block? :value  vector? :value]] [_print/fit [word-is-value-str/only :word DEF_SEP form-value :value]]
 					image? :value [
 						either all [in system 'view  :system/view] [view [image value]][
 							_print/fit form-value value
@@ -564,7 +570,7 @@ help-ctx: context [
 	][
 		set/any 'val get/any word
 		print case [
-			function? :val [[append mold word #":" mold :val]]
+			find [op! function!] type?/word :val [[append mold word #":" mold :val]]
 			routine? :val [[
 				";" uppercase mold :word "is a routine! value; its body is Red/System code.^/"
 				append mold word #":" mold :val
@@ -602,13 +608,14 @@ help-ctx: context [
 	set 'about func [
 		"Print Red version information"
 		/debug "Print full Red and OS version information suitable for submitting issues"
-		/local git plt
+		/cc "Also copy to clipboard"
+		/local git plt txt
 	][
 		git: system/build/git
 		plt: os-info
 		either debug [
-			print either git [
-				compose [
+			txt: either git [
+				form reduce [
 					"-----------RED & PLATFORM VERSION-----------" lf
 					"RED: [ branch:" mold git/branch "tag:" mold git/tag "ahead:" git/ahead
 					"date:" to-UTC-date git/date "commit:" mold git/commit "]^/"
@@ -621,16 +628,18 @@ help-ctx: context [
 				"Looks like this Red binary has been built from source.^/Please download latest build from our website:^/https://www.red-lang.org/p/download.html^/and try your code on it before submitting an issue."
 			]
 		][
-			prin [
+			txt: reduce [
 				'Red system/version
 				'for system/platform
 				'built any [all [git git/date] system/build/date]
 			]
 			if git [
-				prin [ " commit" copy/part mold system/build/git/commit 8]
+				repend txt [" commit" copy/part mold system/build/git/commit 8]
 			]
-			print lf
+			txt: form txt
 		]
+		if cc [write-clipboard txt]
+		print txt
 	]
 
 ]

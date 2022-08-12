@@ -568,8 +568,7 @@ bitset: context [
 				if cmd = CMD_TO [
 					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_BITSET spec]
 				]
-				size: 0
-				GET_INT_FROM(size spec)
+				size: get-int-from spec
 				if size < 0 [
 					fire [
 						TO_ERROR(script out-of-range)
@@ -679,7 +678,7 @@ bitset: context [
 		string/append-char GET_BUFFER(buffer) as-integer #"}"
 		
 		either not? [
-			string/append-char GET_BUFFER(buffer)as-integer #"]"
+			string/append-char GET_BUFFER(buffer) as-integer #"]"
 			part - 7									;-- account for extra chars
 		][
 			part - 1
@@ -721,6 +720,7 @@ bitset: context [
 		#if debug? = yes [if verbose > 0 [print-line "bitset/compare"]]
 
 		if TYPE_OF(bs2) <> TYPE_BITSET [RETURN_COMPARE_OTHER]
+		if op = COMP_SAME [return as-integer bs1/node <> bs2/node]
 		
 		s: 	  GET_BUFFER(bs1)
 		head: as byte-ptr! s/offset
@@ -759,6 +759,8 @@ bitset: context [
 		value	[red-value!]
 		path	[red-value!]
 		case?	[logic!]
+		get?	[logic!]
+		tail?	[logic!]
 		return:	[red-value!]
 		/local
 			int [red-integer!]

@@ -122,6 +122,9 @@ Red [
 	--test-- "cmp15" --assert not 10/5/-1970 >= 1/1/-1950
 	--test-- "cmp16" --assert not 10/5/-1970/10:10:10+4:00 >= 1/1/1950/2:2:2+8:00
 	--test-- "cmp17" --assert not 10/5/-1970/10:10:10+4:00 >= 1/1/-1950/2:2:2+8:00
+	--test-- "cmp18"
+		t: now/precise
+		--assert t + 0:0:0.01 > t
 	
 	--test-- "cmp30"
 		--assert [
@@ -815,7 +818,7 @@ Red [
 	--test-- "misc-2"
 		d: 1/1/0000
 		d: d - 1
-		--assert "31/Dec/-1" = mold d
+		--assert "31/Dec/-0001" = mold d
 
 	--test-- "misc-3"
 		res: make block! 10
@@ -859,7 +862,7 @@ Red [
 		--assert do [random/seed d2 random 100] <> do [random/seed d3 random 100]
 
 
-	--test-- "issue-3881"
+	--test-- "#3881"
 		d: 29-Feb-2020
 		d/year: d/year - 1
 		--assert d = 1-Mar-2019
@@ -868,6 +871,28 @@ Red [
 		d/year: d/year - 1
 		--assert d = 1-Mar-2019/15:30:00+04:15
 
+	--test-- "#5023"
+		--assert 2/Mar/-0004 == load "2/03/-4"
+		--assert 2/Mar/-0004 == load "02/03/-4"
+		--assert 2/Mar/-0004 == load "2/03/-04"
+		--assert 2/Mar/-0004 == load "02/03/-04"
+		--assert 2/Mar/-0004 == load "02/03/-0004"
+
+	--test-- "#5033"
+		d: 1/3/0000  wd: 3  yd: 60  wk: iw: 9
+		expected: []
+		computed: []
+		repeat i 100 [
+			repend/only expected [wd yd wk iw]
+			repend/only computed [d/weekday d/yearday d/week d/isoweek]
+			wd: wd - 2 // 7 + 1
+			yd: yd - 2 // 365 + 1
+			if wd = 6 [wk: wk - 2 // 53 + 1]
+			if wd = 7 [iw: iw - 2 // 52 + 1]
+			d: d - 1
+		]
+		--assert expected = computed
+		
 ===end-group===
 
 ~~~end-file~~~

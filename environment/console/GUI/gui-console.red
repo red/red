@@ -5,7 +5,7 @@ Red [
 	Tabs:	 4
 	Icon:	 %app.ico
 	Version: 0.0.1
-	Needs:	 View
+	Needs:	 [View JSON CSV]
 	Config:	 [gui-console?: yes red-help?: yes]
 	Rights:  "Copyright (C) 2014-2018 Red Foundation. All rights reserved."
 	License: {
@@ -139,8 +139,8 @@ gui-console-ctx: context [
 	show-caret: func [][unless caret/enabled? [caret/enabled?: yes]]
 
 	setup-faces: does [
-		console/pane: reduce [caret]
-		append win/pane reduce [console tips]
+		;console/pane: reduce [caret]
+		append win/pane reduce [console caret tips]
 		win/menu: [
 			"File" [
 				"Run..."			run-file
@@ -221,7 +221,7 @@ gui-console-ctx: context [
 		view/flags/no-wait win [resize]		;-- create window instance
 		console/init
 		load-cfg
-		win/visible?: yes
+		if empty? system/script/args [win/visible?: yes]
 
 		svs: system/view/screens/1
 		svs/pane: next svs/pane				;-- proctect itself from unview/all
@@ -239,32 +239,24 @@ ask: function [
 	"Prompt the user for input"
 	question [string!]
 	/hide
+	/history "specify the history block"
+		blk  [block!]
 	return:  [string!]
 ][
-	gui-console-ctx/show-caret
-
-	line: make string! 8
-	line: insert line question
-
-	vt: gui-console-ctx/terminal
-	vt/line: line
-	vt/pos: 0
-	vt/add-line head line
-	vt/line-pos: length? vt/lines
-	vt/ask?: yes
-	vt/reset-top/force
-	vt/clear-stack
-	vt/set-flag hide
-	either vt/paste/resume [
-		vt/do-ask-loop/no-wait
+	t?: tracing?
+	trace off
+	if all [
+		gui-console-ctx/console/state
+		not gui-console-ctx/win/visible?
 	][
-		system/view/platform/redraw gui-console-ctx/console
-		system/view/auto-sync?: yes
-		do-events
+		gui-console-ctx/win/visible?: yes
 	]
-	vt/ask?: no
+
+	gui-console-ctx/show-caret
+	line: gui-console-ctx/terminal/ask question blk hide
 	gui-console-ctx/caret/enabled?: no
 	unless gui-console-ctx/console/state [line: "quit"]
+	trace t?
 	line
 ]
 
@@ -276,8 +268,13 @@ input: function ["Wait for console user input" return: [string!]][ask ""]
 	red-print-gui: func [
 		str		[red-string!]
 		lf?		[logic!]
+		/local
+			t?  [logic!]
 	][
+		t?: interpreter/tracing?
+		if t? [interpreter/tracing?: no]
 		#call [gui-console-ctx/terminal/vprint str lf?]
+		interpreter/tracing?: t?
 	]
 
 	rs-print-gui: func [

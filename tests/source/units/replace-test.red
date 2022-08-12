@@ -105,4 +105,14 @@ Red [
 
 ===end-group===
 
+===start-group=== "replace issues"
+
+	--test-- "#4945"
+		--assert [Q 2 Q] == replace/all [1 2 1] 1 does ['Q]
+		--assert [Q 2 Q] == replace/all/deep [1 2 1] 1 does ['Q]
+		--assert "Q2Q"   == replace/all "121" 1 does ['Q]
+		--assert "Q2Q"   == replace/all "121" ["1"] does ['Q]
+
+===end-group===
+
 ~~~end-file~~~

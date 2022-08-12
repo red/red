@@ -33,7 +33,9 @@ int-array!: alias struct! [ptr [int-ptr!]]
 ;	14:		sign bit						;-- sign of money
 ;	13:		dirty?							;-- word flag indicating if value has been modified
 ;	12-11:	context type					;-- context-type! value (context! cells only)
-;	10-8:	<reserved>
+;	10:		trace							;-- force tracing mode attribut flag (function! cells only)
+;	9:		no-trace						;-- disable tracing mode attribut flag (function! cells only)
+;	8:		<reserved>
 ;	7-0:	datatype ID						;-- datatype number
 
 cell!: alias struct! [
@@ -58,7 +60,7 @@ cell!: alias struct! [
 ;	19:		complement						;-- complement flag for bitsets
 ;	18:		UTF-16 cache					;-- signifies that the string cache is UTF-16 encoded (UTF-8 by default)
 ;	17:		owned							;-- series is owned by an object
-;	16-3: 	<reserved>
+;	16-5: 	<reserved>
 ;	4-0:	unit							;-- size in bytes of atomic element stored in buffer
 											;-- 0: UTF-8, 1: Latin1/binary, 2: UCS-2, 4: UCS-4, 16: block! cell
 series-buffer!: alias struct! [
@@ -906,6 +908,7 @@ alloc-series-buffer: func [
 	;-- extra space between two adjacent series-buffer!s (ensure s1/tail <> s2)
 	sz: SERIES_BUFFER_PADDING + size + size? series-buffer!
 	flag-big: 0
+	series: null
 	either (as byte-ptr! sz) >= (as byte-ptr! memory/s-max) [ ;-- alloc a big frame if too big for series frames
 		collector/do-cycle					;-- launch a GC pass
 		series: as series-buffer! alloc-big sz
@@ -956,10 +959,11 @@ alloc-series: func [
 	unit	[integer!]						;-- size of atomic elements stored
 	offset	[integer!]						;-- force a given offset for series buffer
 	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
-	/local series node
+	/local series [series!] node [int-ptr!]
 ][
 ;	#if debug? = yes [print-wide ["allocating series:" size unit offset lf]]
-
+	series: null
+	node: null
 	series: alloc-series-buffer size unit offset
 	node: alloc-node						;-- get a new node
 	series/node: node						;-- link back series to node
@@ -1057,6 +1061,7 @@ alloc-codepoints: func [
 	unit	[integer!]
 	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
 ][
+	assert unit <= 4
 	if zero? size [size: 16 >> (unit >> 1)]
 	alloc-series size unit 0				;-- optimize by default for tail insertion
 ]

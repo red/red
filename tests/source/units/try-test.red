@@ -13,7 +13,7 @@ Red [
 
 ===start-group=== "try (interpreted)"
 
-	type+id?: func ['type 'id err] [all [error? :err type = err/type id = err/id]]
+	type+id?: func ['type 'id err] [to-logic all [error? :err type = err/type id = err/id]]
 
 	--test-- "tt11" --assert not error? try [0]
 
@@ -62,7 +62,7 @@ Red [
 
 ===start-group=== "try/all (interpreted)"
 
-	type+id?: func ['type 'id err] [all [error? :err type = err/type id = err/id]]
+	type+id?: func ['type 'id err] [to-logic all [error? :err type = err/type id = err/id]]
 
 	--test-- "tta11" --assert not error? try/all [0]
 
@@ -117,6 +117,15 @@ Red [
 	--test-- "tta71" --assert type+id? syntax missing try/all [do "["]
 
 ===end-group===
-	
+
+===start-group=== "try issues"
+
+	--test-- "#4880"
+		do [do [do [try/all [1]]]]       ;) depth on which try is invoked is important here
+		loop 1 [loop 1 [continue]]
+		--assert true
+
+===end-group===
+
 ~~~end-file~~~
 

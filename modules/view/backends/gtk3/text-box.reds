@@ -268,6 +268,10 @@ OS-text-box-metrics: func [
 			text2: g_utf8_offset_to_pointer text int/value - 1
 			idx: as integer! text2 - text
 			pango_layout_index_to_pos layout idx :rect
+			if type = TBOX_METRICS_OFFSET_LOWER [
+				rect/x: rect/x + rect/width
+				rect/y: rect/y + rect/height
+			]
 			pair/push rect/x / PANGO_SCALE  rect/y / PANGO_SCALE
 		]
 		TBOX_METRICS_INDEX?
@@ -321,7 +325,6 @@ OS-text-box-layout: func [
 		parent	[red-object!]
 		cached?	[logic!]
 		attrs	[handle!]
-		new?	[logic!]
 		int		[red-integer!]
 		layout	[handle!]
 		para	[handle!]
@@ -371,10 +374,8 @@ OS-text-box-layout: func [
 		TYPE_OF(font) = TYPE_OBJECT
 	][
 		attrs: create-pango-attrs box font
-		new?: yes
 	][
-		new?: no
-		attrs: default-attrs
+		attrs: pango_attr_list_new		;-- or pango_attr_list_copy default-attrs
 	]
 	len: -1
 	str: unicode/to-utf8 text :len
@@ -401,8 +402,6 @@ OS-text-box-layout: func [
 		parse-text-styles target as handle! lc styles text catch?
 	]
 	pango_layout_set_attributes layout attrs
-	if new? [
-		pango_attr_list_unref attrs
-	]
+	pango_attr_list_unref attrs
 	layout
 ]

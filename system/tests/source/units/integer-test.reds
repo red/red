@@ -1239,8 +1239,6 @@ Red/System [
 		j: 1
 		--assert i / j = -1
 	--test-- "integer-divide3"
-probe -1 / 255
-probe -1 / 255 = 0
 		--assert -1 / 255 = 0
 		i: -1
 		j: 255
@@ -1725,6 +1723,12 @@ probe -1 / 255 = 0
 		i: -2147483648
 		j: -2147483648
 		--assert i / j = 1
+
+	--test-- "integer-divide100"
+		--assert -1 / 4 = 0
+		i: -1
+		j: 4
+		--assert i / j = 0
 
 ===end-group===
 

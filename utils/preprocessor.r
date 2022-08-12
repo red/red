@@ -95,8 +95,19 @@ preprocessor: context [
 			p: set-word! (unless in exec p/1 [append syms p/1])
 			| skip
 		]]
-		unless empty? syms [exec: make exec append syms none]
+		unless empty? syms [
+			exec: make exec append syms none
+			rebind-all
+		]
 		do-safe/with bind to block! code exec cmd
+	]
+	
+	rebind-all: func [/local rule p][
+		protos: bind protos exec
+		
+		parse macros rule: [
+			any [p: function! (bind body-of first p exec) | p: [block! | paren!] :p into rule | skip]
+		]
 	]
 	
 	count-args: func [spec [block!] /block /local total pos][
@@ -167,12 +178,12 @@ preprocessor: context [
 			][
 				item: first code
 				f-arity: any [
-					all [									;-- a ...
+					all [								;-- a ...
 						word? :item
 						any-function? set/any 'value get/any :item
 						func-arity?/block fn-spec: spec-of get/any :item
 					]
-					all [									;-- a/b ...
+					all [								;-- a/b ...
 						path? :item
 						set/any [path value] value-path? :item
 						any-function? get/any 'value
@@ -182,7 +193,7 @@ preprocessor: context [
 					]
 				]
 
-				if at-op?: all [							;-- a * b
+				if at-op?: all [						;-- a * b
 					1 < length? code
 					word? item2: second code
 					op? get/any :item2
@@ -194,12 +205,12 @@ preprocessor: context [
 				]
 
 				case [
-					at-op? [								;-- a * b
-						code: next code						;-- skip `a *` part
+					at-op? [							;-- a * b
+						code: next code					;-- skip `a *` part
 						left/1: word! = arg-mode? spec-of get/any :item2 2
 					]
 
-					f-arity [								;-- a ... / a/b ...
+					f-arity [							;-- a ... / a/b ...
 						if op? get/any 'value [return skip code 2]	;-- starting with op is an error
 						remove left
 						repeat i length? f-arity [insert at left i word! = f-arity/:i]
@@ -209,7 +220,7 @@ preprocessor: context [
 						remove left
 					]
 				]
-			];;either not left/1 [][
+			]
 			code: next code
 		]
 		code
@@ -277,7 +288,13 @@ preprocessor: context [
 				]
 			]
 		]
-		if any [not valid? all [not named? cnt <> 2]][
+		if any [
+			not valid?
+			all [
+				not named?
+				any [cnt <> 2 all [block? spec/1 empty? spec/1]]
+			]
+		][
 			print [
 				"*** Macro Error: invalid specification^/"
 				"*** Where:" mold copy/part spec 3
@@ -293,11 +310,10 @@ preprocessor: context [
 			append protos copy/part spec 4
 		][												;-- pattern-matching macro
 			macro: do bind copy/part next spec 3 exec
-			append/only protos spec/4
 			
 			repend rule [
 				to set-word! 's
-				bind spec/1 exec						;-- allow rule to reference exec's words
+				spec/1
 				to set-word! 'e
 				to-paren compose/deep either all [
 					block? spec/3/1 find spec/3/1 'manual
@@ -316,6 +332,7 @@ preprocessor: context [
 		new-line pos yes
 		
 		exec: make exec protos
+		rebind-all
 	]
 
 	reset: func [job [object! none!]][
@@ -392,7 +409,9 @@ preprocessor: context [
 					if active? [
 						pos: pick [3 2] keep?
 						if trace? [print ["preproc: eval" mold s/:pos]]
+						saved: s
 						expr: do-code s/:pos s/1
+						s: saved
 						if all [keep? trace?][print ["preproc: ==" mold expr]]
 						either keep? [s: change/part s :expr e][remove/part s e]
 					]

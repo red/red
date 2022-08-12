@@ -11,10 +11,10 @@ REBOL [
 	Encap: [quiet secure none cgi title "Red" no-window]
 ]
 
-unless value? 'encap-fs [do %system/utils/encap-fs.r]
+unless value? 'encap-fs [do %utils/encap-fs.r]
 
 unless all [value? 'red object? :red][
-	do-cache %compiler.r
+	do-cache %encapper/compiler.r
 ]
 
 redc: context [
@@ -32,7 +32,7 @@ redc: context [
 		temp-dir: switch/default system/version/4 [
 			2 [											;-- MacOS X
 				libc: load/library %libc.dylib
-				sys-call: make routine! [cmd [string!]] libc "system"
+				sys-call: make routine! [cmd [string!] return: [integer!]] libc "system"
 				join any [attempt [to-rebol-file get-env "HOME"] %/tmp] %/.red/
 			]
 			3 [											;-- Windows
@@ -102,7 +102,7 @@ redc: context [
 					]
 					append dirize to-rebol-file trim path %Red/
 				][
-					sys-call: func [cmd][call/wait cmd]
+					sys-call: func [cmd [string!]][call/wait cmd]
 					append to-rebol-file get-env "ALLUSERSPROFILE" %/Red/
 				]
 			]
@@ -125,7 +125,7 @@ redc: context [
 				exists? libc: %/lib/libc.so.5
 			]
 			libc: load/library libc
-			sys-call: make routine! [cmd [string!]] libc "system"
+			sys-call: make routine! [cmd [string!] return: [integer!]] libc "system"
 			join any [attempt [to-rebol-file get-env "HOME"] %/tmp] %/.red/
 		]
 	]
@@ -176,6 +176,11 @@ redc: context [
 		if system/options/args [quit/return 1]
 		halt
 	]
+	
+	fail-cmd: func [value][
+		prin "*** Red command-line error: "
+		fail value
+	]
 
 	fail-try: func [component body /local err] [
 		if error? set/any 'err try body [
@@ -211,9 +216,9 @@ redc: context [
 	
 	get-lib-suffix: does [
 		case [
-			Windows? 			 [%.dll]
-			system/version/4 = 2 [%.dylib]
-			'else 				 [%.so]
+			Windows? [%.dll]
+			macOS?   [%.dylib]
+			'else    [%.so]
 		]
 	]
 
@@ -226,7 +231,7 @@ redc: context [
 			]
 			attempt [result: to-rebol-file filename]
 		][
-			fail ["Invalid filename:" filename]
+			fail-cmd ["Invalid filename:" filename]
 		]
 		result
 	]
@@ -251,14 +256,13 @@ redc: context [
 	]
 
 	red-system?: func [file [file!] /local ws rs?][
-		ws: charset " ^-^/^M"
+		ws: charset " ^-^M^/"
 		parse/all/case read file [
 			some [
 				thru "Red"
 				opt ["/System" (rs?: yes)]
 				any ws
 				#"[" (return to logic! rs?)
-				to end
 			]
 		]
 		no
@@ -279,51 +283,6 @@ redc: context [
 		]
 	]
 
-	safe-to-local-file: func [file [file! string!]][
-		if all [
-			find file: to-local-file file #" "
-			Windows?
-		][
-			file: rejoin [{"} file {"}]					;-- avoid issues with blanks in path
-		]
-		file
-	]
-	
-	form-args: func [file /local ws at-file skip-options catch? list info args pos][
-		;-- see PR #3870 on details
-		ws: charset " ^-^/^M"
-		skip-options: does [
-			at-file: list
-			forall list [
-				at-file: list 						;-- save file position
-				either all [
-					find/match list/1 "--"			;-- an option
-					list/-1 <> "--"					;-- not after the "--"
-				][
-					if list/1 == "--catch" [catch?: yes]
-				][break]
-			]
-			at-file
-		]
-		either Windows? [
-			list: split-tokens/save system/script/args info: copy []
-			list: next list			 					;-- skip the Red.exe
-			skip-options
-			args: copy pick info 2 * (index? at-file) - 1
-		][
-			list: system/options/args
-			pos: skip-options
-			args: make string! 32
-			foreach arg at-file [
-				repend args [{'}  replace/all copy arg {'} {'\''}  {' }]
-			]
-			take/last args
-		]
-		if find/match file "--" [insert args "-- "]		;-- mark end of options if the filename is weird
-		if catch? [insert args "--catch "]				;-- pass --catch to the console
-		args
-	]
-
 	add-legacy-flags: func [opts [object!] /local out ver][
 		if all [Windows? win-version <= 60][
 			either opts/legacy [						;-- do not compile gesture support code for XP, Vista, Windows Server 2003/2008(R1)
@@ -336,11 +295,11 @@ redc: context [
 			not SSE3?
 			any [
 				all [Windows? opts/OS = 'Windows]
-				all [system/version/4 = 4 opts/OS = 'Linux]
+				all [Linux?   opts/OS = 'Linux]
 			]
 			opts/cpu-version: 1.0
 		]
-		if system/version/4 = 2 [						;-- macOS version extraction
+		if macOS? [						;-- macOS version extraction
 			out: make string! 128
 			call/output "sw_vers -productVersion" out
 			attempt [
@@ -412,113 +371,6 @@ redc: context [
 			] crush-lib "crush/compress"
 		]
 	]
-
-	run-console: func [
-		console? [logic!]
-		gui?	 [logic!]
-		debug?	 [logic!]
-		view?	[logic!]
-		/with file [string!]
-		/local 
-			opts result script filename exe console console-root files files2
-			source con-ui gui-target td winxp? old-td
-	][
-		script: rejoin [temp-dir pick [%GUI/ %CLI/] gui? %gui-console.red]
-		filename: decorate-name pick [%gui-console %console] gui?
-		exe: temp-dir/:filename
-
-		if Windows? [append exe %.exe]
-
-		unless exists? temp-dir [make-dir temp-dir]
-		
-		unless exists? exe [
-			console-root: %environment/console/
-			console: join console-root pick [%GUI/ %CLI/] gui?
-			con-ui: pick [%gui-console.red %console.red] gui?
-			if all [gui? not debug?][
-				gui-target: select [
-					"Darwin"	macOS
-					"MSDOS"		Windows
-					;"Linux"		Linux-GTK
-				] default-target
-			]
-
-			opts: make system-dialect/options-class [	;-- minimal set of compilation options
-				link?: yes
-				unicode?: yes
-				config-name: any [gui-target to word! default-target]
-				build-basename: filename
-				build-prefix: temp-dir
-				red-help?: yes							;-- include doc-strings
-				gui-console?: gui?
-				dev-mode?: no
-			]
-			opts: make opts select load-targets opts/config-name
-			add-legacy-flags opts
-			opts/debug?: debug?
-
-			if winxp?: all [Windows? gui? opts/legacy][	;-- GUI console on WinXP
-				append console %old/
-				script: temp-dir/GUI/old/gui-console.red
-			]
-
-			source: copy read-cache console/:con-ui
-			if all [
-				view?
-				any [Windows? macOS? Linux?]
-				not gui?
-			][insert find/tail source #"[" "Needs: 'View^/"]
-
-			files: [%auto-complete.red %engine.red %help.red]
-			foreach f files [write temp-dir/:f read-cache console-root/:f]
-			make-dir td: join temp-dir pick [%GUI/ %CLI/] gui?
-			either winxp? [
-				make-dir join temp-dir %CLI/
-				write temp-dir/CLI/wcwidth.reds read-cache console-root/CLI/wcwidth.reds
-				old-td: copy td
-				make-dir append td %old/
-				files2: [%terminal.reds %windows.reds]
-			][
-				files2: pick [
-					[%core.red %highlight.red %settings.red %tips.red]
-					[%input.red %wcwidth.reds %win32.reds %POSIX.reds %settings.red]
-				] gui?
-				if gui? [write/binary td/app.ico read-binary-cache console/app.ico]
-			]
-			foreach f files2 [write td/:f read-cache console/:f]
-			write script source
-
-			print replace "Compiling Red $console..." "$" pick ["GUI " ""] gui?
-			result: red/compile script opts
-			system-dialect/compile/options/loaded script opts result
-
-			delete script
-			foreach f files  [delete temp-dir/:f]
-			foreach f files2 [delete td/:f]
-			if all [not winxp? gui?][delete td/app.ico]
-			delete-dir td
-			if winxp? [
-				delete-dir old-td
-				delete-dir join temp-dir %CLI/
-			]
-
-			if all [Windows? not lib?][
-				print "Please run red.exe again to access the console."
-				quit/return 1
-			]
-		]
-		exe: safe-to-local-file exe
-		
-		if console? [ 
-			either all [Windows? gui?][
-				gui-sys-call exe any [all [file form-args file] ""]
-			][
-				if with [repend exe [" " form-args file]]
-				sys-call exe								;-- replace the buggy CALL native
-			]
-		]
-		quit/return 0
-	]
 	
 	build-libRedRT: func [opts [object!] /local script result file path][
 		print "Compiling libRedRT..."
@@ -545,7 +397,7 @@ redc: context [
 		script: either all [
 			opts/GUI-engine
 			find [Windows macOS Linux] opts/OS
-		][ [[Needs: View]] ][ [[]] ]
+		][ [[Needs: [View CSV JSON]]] ][ [[Needs: [CSV JSON]]] ]
 		
 		result: red/compile script opts
 		print [
@@ -592,11 +444,15 @@ redc: context [
 		]
 	]
 	
-	show-stats: func [result][
+	to-percent: func [v [decimal!]][copy/part mold v * 100 5]
+	
+	show-stats: func [result /local words][
 		print ["...compilation time :" format-time result/1 "ms"]
+		words: length? first system/words
 		
 		if result/2 [
 			print [
+				"...global words     :" words rejoin [#"(" to-percent words / 32894 "%)^/"]
 				"...linking time     :" format-time result/2 "ms^/"
 				"...output file size :" result/3 "bytes^/"
 				"...output file      :" to-local-file result/4 lf
@@ -612,7 +468,7 @@ redc: context [
 				attempt [to-rebol-file args/1]
 			]
 			unless all [path exists? path][
-				fail "`red clear` command error: invalid path"
+				fail-cmd "`red clear` command error: invalid path"
 			]
 		]
 		foreach ext [%.dll %.dylib %.so][
@@ -645,7 +501,7 @@ redc: context [
 				parse-options cmd
 			]
 		][
-			fail reform ["command error: unknown command" args/1]
+			fail-cmd reform ["Unknown command" args/1]
 		]
 	]
 	
@@ -677,7 +533,7 @@ redc: context [
 	parse-options: func [
 		args [string! none!]
 		/local src opts output target verbose filename config config-name base-path type
-		mode target? gui? console? cmd spec cmds ws ssp view?
+		mode target? cmd spec cmds ws ssp view? modes
 	][
 		unless args [
 			if encap? [fetch-cmdline]					;-- Fetch real command-line in UTF8 format
@@ -690,11 +546,11 @@ redc: context [
 			link?: yes
 			libRedRT-update?: no
 		]
-		gui?: Windows?									;-- use GUI console by default on Windows
-		console?: yes									;-- launch console after compilation
 		view?: yes										;-- include view module by default
 
-		unless empty? args [
+		either empty? args [
+			mode: 'help
+		][
 			if cmd: select [
 				"clear" do-clear
 				"build" do-build
@@ -703,19 +559,20 @@ redc: context [
 				return do reduce [cmd next args]
 			]
 		]
+		modes: clear []
 
 		parse/case args [
 			any [
-				  ["-c" | "--compile"]			(type: 'exe)
-				| ["-r" | "--release"]			(type: 'exe opts/dev-mode?: no)
+				  ["-c" | "--compile"]			(type: 'exe append modes '-c)
+				| ["-r" | "--release"]			(type: 'exe opts/dev-mode?: no append modes '-r)
 				| ["-e" | "--encap"]			(opts/encap?: yes)
 				| ["-d" | "--debug-stabs" | "--debug"]	(opts/debug?: yes)
-				| ["-o" | "--output"]			[set output  skip | (fail "Missing output filename")]
-				| ["-t" | "--target"]			[set target  skip | (fail "Missing target")] (target?: yes)
-				| ["-v" | "--verbose"]			[set verbose skip | (fail "Missing verbosity")] ;-- 1-3: Red, >3: Red/System
+				| ["-o" | "--output"]			[set output  skip | (fail-cmd "Missing output filename")]
+				| ["-t" | "--target"]			[set target  skip | (fail-cmd "Missing target")] (target?: yes)
+				| ["-v" | "--verbose"]			[set verbose skip | (fail-cmd "Missing verbosity")] ;-- 1-3: Red, >3: Red/System
 				| ["-h" | "--help"]				(mode: 'help)
 				| ["-V" | "--version"]			(mode: 'version)
-				| ["-u"	| "--update-libRedRT"]	(opts/libRedRT-update?: yes)
+				| ["-u"	| "--update-libRedRT"]	(type: 'exe opts/dev-mode?: no opts/libRedRT-update?: yes append modes '-u)
 				| ["-s" | "--show-expanded"]	(opts/show: 'expanded)
 				| ["-dlib" | "--dynamic-lib"]	(type: 'dll)
 				;| ["-slib" | "--static-lib"]	(type 'lib)
@@ -723,21 +580,21 @@ redc: context [
 				| "--red-only"					(opts/red-only?: yes)
 				| "--dev"						(opts/dev-mode?: yes)
 				| "--no-runtime"				(opts/runtime?: no)		;@@ overridable by config!
-				| "--no-console"				(console?: no)
-				| "--cli"						(gui?: no)
 				| "--no-view"					(opts/GUI-engine: none view?: no)
 				| "--no-compress"				(opts/redbin-compress?: no)
 				| "--show-func-map"				(opts/show-func-map?: yes)
-				| "--catch"								;-- just pass-thru
 				| "--" break							;-- stop options processing
 			]
 			set filename skip (src: load-filename filename)
-		]		
+		]
+		if 1 < length? modes [
+			fail-cmd ["Incompatible compilation modes:" mold/only modes]
+		]
 
-		if mode [
+		if all [encap? mode][
 			switch mode [
-				help	[print read-cache %usage.txt]
-				version [print load-cache %version.r]
+				help	[print read-cache %encapper/usage.txt]
+				version [print load-cache %encapper/version.r]
 			]
 			quit/return 0
 		]
@@ -745,7 +602,7 @@ redc: context [
 		;; Process -t/--target first, so that all other command-line options
 		;; can potentially override the target config settings.
 		unless config: select load-targets config-name: to word! trim target [
-			fail ["Unknown target:" target]
+			fail-cmd ["Unknown target:" target]
 		]
 		if target? [unless type [type: 'exe]]			;-- implies compilation
 		
@@ -781,7 +638,7 @@ redc: context [
 		;; Process -v/--verbose (if any).
 		if verbose [
 			unless attempt [opts/verbosity: to integer! trim verbose] [
-				fail ["Invalid verbosity:" verbose]
+				fail-cmd ["invalid verbosity:" verbose]
 			]
 		]
 
@@ -796,32 +653,20 @@ redc: context [
 			any [type output verbose target?]			;-- -c | -o | -dlib | -t | -v
 			none? src
 		][
-			fail "Source file is missing"
+			fail-cmd "Source file is missing"
 		]
 		if all [output output/1 = #"-"][				;-- -o (not followed by option)
-			fail "Missing output file or path"
+			fail-cmd "Missing output file or path"
 		]
 
 		;; Process input sources.
-		unless src [
-			either encap? [
-				if load-lib? [build-compress-lib]
-				run-console console? gui? opts/debug? view?
-			][
-				return reduce [none none]
-			]
-		]
-
-		if all [encap? none? output none? type][
-			if load-lib? [build-compress-lib]
-			run-console/with console? gui? opts/debug? view? filename
-		]
+		unless src [return reduce [none none]]
 
 		if slash <> first src [							;-- if relative path
 			src: clean-path join base-path src			;-- add working dir path
 		]
 		unless exists? src [
-			fail ["Cannot access source file:" to-local-file src]
+			fail-cmd ["Cannot access source file:" to-local-file src]
 		]
 
 		add-legacy-flags opts
@@ -881,11 +726,11 @@ redc: context [
 		if all [prefix: opts/build-prefix find prefix %/] [
 			build-dir: copy/part prefix find/last prefix %/
 			unless attempt [make-dir/deep build-dir] [
-				fail ["Cannot access build dir:" to-local-file build-dir]
+				fail-cmd ["Cannot access build dir:" to-local-file build-dir]
 			]
 		]
 		
-		print [lf "-=== Red Compiler" read-cache %version.r "===-" lf]
+		print [lf "-=== Red Compiler" read-cache %encapper/version.r "===-" lf]
 
 		;-- libRedRT updating mode
 		if opts/libRedRT-update? [
@@ -903,7 +748,7 @@ redc: context [
 			show-stats result
 			if all [word: in opts 'packager get word][
 				file: join %system/formats/ [opts/packager %.r]
-				unless exists?-cache file [fail ["Packager:" opts/packager "not found!"]]
+				unless exists?-cache file [fail-cmd ["Packager:" opts/packager "not found!"]]
 				do bind load-cache file 'self
 				packager/process opts src result/4
 			]

@@ -56,7 +56,11 @@ Red [
 	][
 		cp: 0
 	]
-	
+
+	rtc1: func [p [string!] series [series!] x [float!] return: [integer!]][123]
+	rtc2: func [p [any-string!] series [series!] x [float!] return: [integer!]][123]
+	rtc3: func [p [any-path!] series [series!] x [float!] return: [integer!]][123]
+
 ][
 	rr1-r: routine [
 		return:		[integer!]
@@ -118,7 +122,11 @@ Red [
 		b: as byte! (cp >>> 6)
 		cp: as integer! b
 		cp
-	]	
+	]
+
+	rtc1: routine [p [string!] series [series!] x [float!] return: [integer!]][123]
+	rtc2: routine [p [any-string!] series [series!] x [float!] return: [integer!]][123]
+	rtc3: routine [p [any-path!] series [series!] x [float!] return: [integer!]][123]
 ]
 
 ~~~start-file~~~ "routine"
@@ -165,10 +173,31 @@ Red [
 	
 ===end-group===	
 
+===start-group=== "routine arguments typechecking tests"
+	
+	--test-- "rtc1"	--assert error? try [rtc1 %fi/le [2 3] 1.5]
+	--test-- "rtc2"	--assert 123 = rtc1 "string" [2 3] 1.5
+	--test-- "rtc3"	--assert 123 = rtc2 %fi/le [2 3] 1.5
+	--test-- "rtc4"	--assert error? try [rtc3 [] [2 3] 1.5]
+	--test-- "rtc5"	--assert 123 = rtc3 'pa/th [2 3] 1.5
+
+	do [
+	--test-- "rtc11" --assert error? try [rtc1 %fi/le [2 3] 1.5]
+	--test-- "rtc12" --assert 123 = rtc1 "string" [2 3] 1.5
+	--test-- "rtc13" --assert 123 = rtc2 %fi/le [2 3] 1.5
+	--test-- "rtc14" --assert error? try [rtc3 [] [2 3] 1.5]
+	--test-- "rtc15" --assert 123 = rtc3 'pa/th [2 3] 1.5
+	]
+
+===end-group===	
+
 ===start-group=== "routine reported issues"
 
 	--test-- "rri1 - issue #468"
 	--assert 0 = rri1-r
+
+	--test-- "rri2 - issue #5145"
+	--assert 1 = set-quiet 'x 1
 
 ===end-group===
 	

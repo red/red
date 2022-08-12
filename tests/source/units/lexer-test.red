@@ -40,7 +40,7 @@ Red [
 		nl: reduce [no no no no no no yes yes yes]
 		forall out [--assert nl/1 = new-line? out nl: next nl]
 
-	--test-- "tr-15" --assert [#"^@" #" " #"^/" #"^@"] == transcode {#"^^@" #"^^(20)" #"^^(line)" #""}
+	--test-- "tr-15" --assert [#"^@" #" " #"^/"] == transcode {#"^^@" #"^^(20)" #"^^(line)"}
 	--test-- "tr-16"
 		out: transcode {
 			#{33AA}
@@ -202,7 +202,7 @@ Red [
 		forall out [--assert ref? out/1]
 	
 	--test-- "tr-20"
-		--assert (reduce [true false none none!]) == transcode {#[true] #[false] #[none] #[none!]}
+		--assert (reduce [true false none none! () unset!]) == transcode {#[true] #[false] #[none] #[none!] #[unset] #[unset!]}
 
 	--test-- "tr-21"
 		out: transcode {
@@ -405,6 +405,12 @@ Red [
 	--test-- "tr-45" --assert [#"a" - #"z"] == transcode {#"a"-#"z"}
 	--test-- "tr-46" --assert [/ #a // #a /// #a hello #a + #a - #a] == transcode {/#a //#a ///#a hello#a +#a -#a}
 	--test-- "tr-47" --assert error? try [transcode "(#abc:)"]
+
+	--test-- "tr-48" --assert [4294967296.0 6442450943.0 8589934592.0 9999999999] == transcode "4294967296 6442450943 8589934592 9999999999"
+
+	--test-- "tr-49" --assert error? try [transcode #{8B}]				  ; #4790
+	--test-- "tr-50" --assert error? try [transcode "-$"]
+	--test-- "tr-51" --assert error? try [transcode #{42137E26C646365C}]  ; #4790
 
 ===end-group===
 ===start-group=== "transcode/one"
@@ -614,7 +620,7 @@ Red [
 	--test-- "tro-141"  --assert -1000000000 == transcode/one "-1'000'000'000"
 	--test-- "tro-142"  --assert -1000000000 == transcode/one "-1000000000"
 
-	--test-- "tro-143"  --assert #"^@" == transcode/one {#""}
+	--test-- "tro-143"  --assert error? try [transcode/one {#""}]
 	--test-- "tro-144"  --assert error? try [transcode/one {"hello^/world"}]
 	--test-- "tro-145"  --assert "hello^Mworld" == transcode/one {"hello^Mworld"}
 	--test-- "tro-146"  --assert "hello^-world" == transcode/one {"hello^-world"}
@@ -638,6 +644,10 @@ Red [
 	--test-- "tro-160"  --assert error? try [transcode/one ":x::"]
 	--test-- "tro-161"  --assert error? try [transcode/one "1:2:"]
 	--test-- "tro-162"  --assert error? try [transcode/one "'a/b:"]
+	--test-- "tro-163"  --assert error? try [transcode/one ":a/b:"]
+	--test-- "tro-164"  --assert error? try [transcode/one "123#"]
+	--test-- "tro-165"  --assert error? try [transcode/one "9h"]
+	--test-- "tro-166"  --assert error? try [transcode/one "FACEFEEDDEADBEEFh"]
 
 ===end-group===
 ===start-group=== "transcode/next"
@@ -655,6 +665,31 @@ Red [
 		--assert map? out/1
 
 ===end-group===
+===start-group=== "transcode/into"
+
+	--test-- "ti-1"
+		out: make block! 1 
+		--assert [123] == transcode/into "123" out
+		--assert [123] == out
+
+	--test-- "ti-2"
+		out: [] 
+		--assert [456] == transcode/into "456" out
+		--assert [456] == out
+		
+	--test-- "ti-3"
+		out: make block! 1
+		--assert [789 456 123] == transcode/into "789 456 123" out
+		--assert [789 456 123] == out
+
+	--test-- "ti-4"
+		out: tail [a b c]
+		--assert [789 456 123] == transcode/into "789 456 123" out
+		--assert [789 456 123] == out
+		--assert [a b c 789 456 123] == head out
+
+===end-group===
+
 ===start-group=== "scan"
 
 	--test-- "scan-1"  --assert (reduce [integer! " hello"]) == scan/next "123 hello"
@@ -728,7 +763,7 @@ Red [
 	--test-- "scan-58" --assert date!	 = scan "29/02/2020"
 	--test-- "scan-59" --assert error!	 = scan "30/02/2020"
 	--test-- "scan-60" --assert none? 	   scan ""
-	--test-- "scan-61" --assert char!	 = scan {#""}
+	--test-- "scan-61" --assert error!	 = scan {#""}
 	--test-- "scan-62" --assert error!	 = scan {"hello^/world"}
 	--test-- "scan-63" --assert string!	 = scan {"hello^Mworld"}
 	--test-- "scan-64" --assert string!	 = scan {"hello^-world"}
@@ -748,6 +783,10 @@ Red [
 	--test-- "scan-77" --assert [#[none] ""] == scan/next " "
 	--test-- "scan-78" --assert none? scan/next ""
 	--test-- "scan-79" --assert error!   = scan "1:2:"
+	--test-- "scan-80" --assert error!   = scan "123#"
+	--test-- "scan-81" --assert error!   = scan "9h"
+	--test-- "scan-82" --assert error!   = scan "FACEFEEDDEADBEEFh"
+	--test-- "scan-83" --assert error!   = scan ":a/b:"
 
 ===end-group===
 ===start-group=== "scan/fast"
@@ -1442,4 +1481,47 @@ Red [
 
 ===end-group===
 
+===start-group=== "issues"
+
+	--test-- "#4562"
+		--assert [<< '<< <<: :<<] == transcode "<< '<< <<: :<<"
+		--assert ['=<= :=<= =<=:] == transcode "'=<= :=<= =<=:"
+		--assert word? transcode/one "=<="
+		--assert '-<- == transcode/one "-<-"
+
+	--test-- "#4624"
+		--assert [a b] == load/all "a^(3000)b"
+		--assert [a b] == load/all "^(2002)a^(3000)b"
+		--assert [a b] == load/all "^(2002)^(85)a^(3000)b"
+
+	--test-- "#4781"
+		--assert 3:3:3.3000000001 = transcode/one "3:3:3,3"
+
+	--test-- "#4914"
+		--assert error? try [transcode {#(a: 22 b: 33 c: x: a)}]
+
+	--test-- "#4933"
+		--assert [фывапр " abcdef"] == transcode/next "фывапр abcdef"
+		--assert ["Gab’s Books" "^/Work In P"] == transcode/next {"Gab’s Books"^/Work In P}
+
+	--test-- "#4997"
+		--assert '.e 	 == transcode/one ".e"
+		--assert '.end   == transcode/one ".end"
+		--assert '.e10   == transcode/one ".e10"
+		--assert '.ex10  == transcode/one ".ex10"
+		--assert '.e1e2  == transcode/one ".e1e2"
+		--assert error? try [transcode/one ".2e1e2"]
+
+	--test-- "#5000"
+		--assert ["s"] == transcode #{EFBBBF227322}
+
+	--test-- "#5042"
+		b: [1 2 3]
+		--assert [2 3 4 5] = transcode/into "4 5" next b
+		--assert b == [1 2 3 4 5]
+
+	--test-- "#5082"
+		--assert 1.#inf = transcode/one "1.79769313486232e308"
+===end-group===
+	
 ~~~end-file~~~

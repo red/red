@@ -258,7 +258,15 @@ file: context [
 	][
 		as red-value! simple-io/query as red-file! file
 	]
-	
+
+	rename: func [
+		from	[red-value!]
+		to		[red-value!]
+		return: [red-value!]
+	][
+		as red-value! logic/box simple-io/rename from to
+	]
+
 	read: func [
 		src		[red-value!]
 		part	[red-value!]
@@ -365,7 +373,7 @@ file: context [
 			null			;open?
 			:query
 			:read
-			null			;rename
+			:rename
 			null			;update
 			:write
 		]

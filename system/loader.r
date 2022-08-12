@@ -7,7 +7,7 @@ REBOL [
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
-do-cache %lexer.r
+do-cache %encapper/lexer.r
 
 loader: make-profilable context [
 	verbose: 	  0

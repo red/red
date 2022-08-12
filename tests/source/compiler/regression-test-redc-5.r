@@ -1,11 +1,10 @@
 REBOL [
 	Title:   "Regression tests script for Red Compiler"
 	Author:  "Boleslav Březovský"
-	File: 	 %regression-test-redc.r
+	File: 	 %regression-test-redc-5.r
 	Rights:  "Copyright (C) 2016 Boleslav Březovský. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
-
 
 ; cd %../
 ;--separate-log-file
@@ -122,6 +121,13 @@ test
 
 ===start-group=== "Red regressions #3501 - #4000"
 
+	--test-- "#3670"
+		write qt-tmp-file "1 + 2"
+		qt/source-file?: yes
+		qt/compile qt-temp-file
+		--assert probe not compiler-error?
+		--assert probe syntax-error "Invalid Red program"
+
 	--test-- "#3624"
 		--compile-and-run-this-red {probe replace/case/all quote :a/b/A/a/B [a] 'x}
 		--assert qt/output = ":x/b/A/x/B^/"
@@ -219,7 +225,26 @@ test
 	--test-- "#3891"
 		--compile-and-run-this-red {probe load "a<=>"}
 		--assert not crashed?
-	
+		
+===end-group===
+
+===start-group=== "Red regressions #4001 - #4500"
+
+	--test-- "#4190"
+		--compile-and-run-this-red {
+			fc: make face! [
+				fn: does [self/parent: 'boom]
+			]
+			fc/fn
+			print fc/parent
+		}
+		--assert not crashed?
+		--assert true? find qt/output "boom"
+		
+===end-group===
+
+===start-group=== "Red regressions #4501 - #5000"
+
 	--test-- "#4526"
 		--compile-and-run-this {
 			Red []
@@ -227,7 +252,133 @@ test
 		}
 		--assert compiled?
 		--assert 3 = load qt/output
+
+	--test-- "#4527"
+		--compile-and-run-this {
+			Red []
+			f: function [b [block!] /local i return: [default!]] [
+				c: clear []
+				probe c
+				foreach x c [1]
+			]
+			f [a/b]
+		}
+		--assert compiled?
+		--assert [] = load qt/output
+
+	--test-- "#4568"
+		--compile-this {Red [Config: [red-strict-check?: off]] :foo}
+		--assert compiled?
+	
+	--test-- "#4569"
+		--compile-and-run-this {
+			Red []
+
+			bind 'foo has [foo]['WTF]
+			foo: object []
+
+			probe foo
+			probe :foo
+		}
+		--assert compiled?
+		--assert [make object! [] make object! []] = load qt/output
 		
+		--compile-and-run-this {
+			Red []
+
+			block: reduce ['foo func [/bar]["Definitely not bar."]]
+			foo:  context [bar: does ['bar]]
+			print foo/bar
+		}
+		--assert compiled?
+		--assert 'bar = load qt/output
+		
+	--test-- "#4570"
+		--compile-and-run-this {Red [] quote + 0 0}
+		--assert not script-error?
+		--compile-and-run-this {Red [] quote >> 0 0}
+		--assert not crashed?
+  
+	--test-- "#4613"
+		--compile-this "Red [] probe bug$0"
+		--assert compilation-error?
+		
+		--compile-and-run-this "Red [Currencies: [bug]] probe bug$0"
+		--assert compiled?
+		--assert bug$0 = load qt/output
+		
+		--compile-and-run-this {
+			Red [Currencies: [bug]]
+			append system/locale/currencies/list 'bug
+			probe bug$0
+		}
+		--assert compiled?
+		--assert script-error?
+
+	--test-- "#4990"
+		--compile-and-run-this {
+			Red []
+			s: "abc" 
+			loop 100 [
+				forall s [probe s continue]
+			]
+		}
+		--assert compiled?
+		--assert not crashed?
+		--assert not find qt/output "Error"
+
+	--test-- "#5065"
+		--compile-and-run-this {
+			Red []
+			do [
+				old: reduce list: [:loop :repeat :prin :exp :max :odd? :divide]
+				loop 1 [] repeat x 1 [] prin [] exp 1 max 1 0 odd? 2 divide 2 2 
+				new: reduce list
+				if all collect [
+					repeat i length? list [keep :old/:i =? :new/:i]
+				] [print "MATCH"]
+			]
+		}
+		--assert compiled?
+		--assert true? find qt/output "MATCH"
+
+	--test-- "#5070"
+		--compile-and-run-this {
+			Red []
+			m: #()
+			m/1:       does [1]
+			m/(2):     does [2]
+			m/key:     does [3]
+			m/("s"):   does [4]
+			m/(#"c"):  does [5]
+			put m 'key does [6]
+			put m "s"  does [7]
+			put m #"c" does [8]
+			print mold/only to-block m
+		}
+		--assert compiled?
+		--assert (load qt/output) == [
+		    1    func [][1] 
+		    2    func [][2] 
+		    key: func [][6] 
+		    "s"  func [][7] 
+		    #"c" func [][8]
+		]
+
+	--test-- "#5071"
+		--compile-and-run-this {Red [] b: [] construct b}
+		--assert compiled?
+
+	--test-- "#5097"
+		--compile-and-run-this {
+			Red []
+			case/all [
+				true  [while [false] []]
+				false []
+			]
+		}
+		--assert compiled?
+
 ===end-group===
 
 ~~~end-file~~~ 

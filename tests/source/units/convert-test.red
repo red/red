@@ -101,6 +101,13 @@ Red [
 		--assert 255 == to integer! next #{00FF}
 		--assert -559038737 == to integer! skip #{BADCAFEE DEADBEEF} 4
 	
+	--test-- "to-integer!-28"		--assert 15 = to 0 #f
+	--test-- "to-integer!-29"		--assert 4095 = to 0 #fff
+	--test-- "to-integer!-30"		--assert 1048575 = to 0 #fffff
+	--test-- "to-integer!-31"		--assert 305419896 = to 0 #12345678
+	--test-- "to-integer!-32"		--assert error? try [to 0 #123456789]
+	--test-- "to-integer!-33"		--assert error? try [to 0 #1234567890]
+
 ===end-group===
 
 ===start-group=== "to-float!"
@@ -539,7 +546,12 @@ Red [
 ===end-group===
 ===start-group=== "to-tuple!"
 	--test-- "to-tuple!-issue!"
-		--assert 255.0.0 = to tuple! #FF00
+		--assert 255.0.0 = to tuple! #FF0000
+		--assert 255.255.255 = to tuple! #fff
+		--assert error? try [to tuple! #f]
+		--assert error? try [to tuple! #ff]
+		--assert error? try [to tuple! #ffff]
+
 	--test-- "to-tuple!-binary!"
 		--assert 0.0.0 = to tuple! #{}
 	--test-- "to-tuple!-binary!"

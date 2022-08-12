@@ -462,10 +462,9 @@ Red [
 		; TODO: example throws strange compiler error
 
 	--test-- "#497"
-		; FIXME: still unsolved
-		;b: [1]
-		;p: 'b/1
-		;--assert equal? 1 do p
+		b: [1]
+		p: 'b/1
+		--assert equal? 1 do p
 
 	--test-- "#498"
 		--assert  equal? {{""}} mold mold {}
@@ -629,8 +628,8 @@ Red [
 
 	--test-- "#586"
 		t586: reduce [block!]
-		--assert equal? reduce [block!] find t586 block!
-		--assert equal? reduce [block!] find t586 type? []
+		--assert equal? reduce [block!] find/only t586 block!
+		--assert equal? reduce [block!] find/only t586 type? []
 		unset 't586
 
 	--test-- "#592"
@@ -734,10 +733,11 @@ Red [
 	--test-- "#647"
 		--assert error? try [load "type? quote '1" ]
 
-	; --test-- "#650"
-		; FIXME: still a bug, crashes test
-	;	f: func [/1]
-	;	probe f/1
+	--test-- "#650"
+		do [								;-- interpreter only, compiler case is in compiler regression tests.
+			f650: func [/1][none]
+			--assert error? try [f650/1]
+		]
 
 	--test-- "#651"
 		--assert equal? [1 []] load "1[]"
@@ -1200,12 +1200,12 @@ Red [
 
 	--test-- "#973"
 		a973: func [] [
-			repeat i 2 [i]
+			repeat i973 2 [i973 * 10]					;-- don't return the counter itself to better catch regressions
 		]
 		b973: copy []
-		repeat j 2 [append b973 a973]
-		--assert equal? [2 2] b973
-		unset [a973 b973]
+		repeat j983 2 [append b973 a973]
+		--assert equal? [20 20] b973
+		unset [a973 b973 i973 j973]
 
 	--test-- "#974"
 		--assert not error? try [random 3]
@@ -1706,14 +1706,10 @@ Red [
 		--assert logic? false
 
 	--test-- "#1477"
-		; not sure if spawning lots of files is a good idea for a general test script
-		; FIXME: perhaps there should be a dedicated script for this
-		; commenting this out for now 			-- hiiamboris
-
-		; write %test.txt ""
-		; write/append %test.txt "hi"
-		; write/append %test.txt "there"
-		; --assert equal? "hithere" read %test.txt
+		write qt-tmp-file ""
+		write/append qt-tmp-file "hi"
+		write/append qt-tmp-file "there"
+		--assert equal? "hithere" read qt-tmp-file
 
 	; --test-- "#1479"
 		; GUI
@@ -1773,10 +1769,9 @@ Red [
 		unset 'ctx1509
 
 	--test-- "#1515"
-		--assert not error? try [1.222090944E+33 // -2147483648.0] ; expected 0
-		--assert equal? 0.0 1.222090944E+33 // -2147483648.0 
-		; FIXME: this is still unfixed:
-		;--assert equal? 0.0 1.222090944E+33 % -2147483648.0 
+		--assert zero? 1.222090944E+33 // -2147483648.0
+		--assert zero? 1.222090944E+33 // -2147483648.0
+		--assert zero? 1.222090944E+33 %  -2147483648.0
 
 	; --test-- "#1519"
 		; TODO: call-test.red problem
@@ -1969,11 +1964,11 @@ Red [
 		; --assert equal? "test" read %中坜
 
 	--test-- "#1729"
-		not error? try [123456789123456789]
-		equal? 123456789123456789 1.234567891234568e17
+		--assert not error? try [123456789123456789]
+		--assert equal? 123456789123456789 1.234567891234568e17
 
 	--test-- "#1730"
-		not error? try [reduce does ["ok"]]
+		--assert not error? try [reduce does ["ok"]]
 
 	; --test-- "#1732"
 		; FIXME: example throws error: eval-command has no value
@@ -1987,7 +1982,7 @@ Red [
 
 	--test-- "#1746"
 		; should check for crash
-		s1746: make object! [m: func [][] b: func [arg] [compose/deep [(arg)]]]
+		s1746: make object! [m: func [][] b: func [arg][compose/deep [(arg)]]]
 		s2: make s1746 []
 		--assert equal? [1] s1746/b 1
 		unset [s1746 s2]
@@ -2258,6 +2253,10 @@ Red [
 	; --test-- "#1853"
 		; GUI
 
+	--test-- "#1858"
+		f1858: func [][f1858]
+		--assert error? try [f1858]
+
 	--test-- "#1865"
 		--assert not equal? 2 (a: 'ok 1 + 1 :a)
 		--assert equal? 'ok (a: 'ok 1 + 1 :a)
@@ -2487,12 +2486,8 @@ b}
 		--assert error? try [set 'vv2021 first reduce [()]]
 	
 	--test-- "#2024"
-		; not sure if spawning lots of files is a good idea for a general test script
-		; FIXME: perhaps there should be a dedicated script for this
-		; commenting this out for now 			-- hiiamboris
-		
-		; write %test.txt "abcdef"
-		; --assert equal? "bcdef" read/seek %test.txt 1
+		write qt-tmp-file "abcdef"
+		--assert equal? "bcdef" read/seek qt-tmp-file 1
 
 	--test-- "#2031"
 		--assert equal? ["1" "3" "" "3" "" ""] split "1,3,.3,," charset ".,"
@@ -2531,17 +2526,13 @@ b}
 		; GUI
 
 	; --test-- "#2072"
-		; not sure if spawning lots of files is a good idea for a general test script
-		; FIXME: perhaps there should be a dedicated script for this
-		; commenting this out for now 			-- hiiamboris
-
-		; m: make map! 10
-		; a: [1 2 3]
-		; m/a: a
-		; save %file m
-		; n: load %file
-		; --assert equal? m n
-		; unset [a m n]
+		m2072: make map! 10
+		a2072: [1 2 3]
+		m2072/a: a2072
+		save qt-tmp-file m2072
+		n2072: load qt-tmp-file
+		--assert equal? m2072 n2072
+		unset [a2072 m2072 n2072]
 
 	--test-- "#2077"
 		; NOTE: shouldn't override the `sum` func, or next tests using it may fail
@@ -2580,31 +2571,33 @@ b}
 		; TODO
 
 	--test-- "#2097"
-		; not sure if spawning lots of files is a good idea for a general test script
-		; FIXME: perhaps there should be a dedicated script for this
-		; commenting this out for now 			-- hiiamboris
-
-		; write %test.bin #{00000000}
-		; write/seek %test.bin #{AAAA} 2
-		; --assert equal? #{0000AAAA} read/binary %test.bin
-		; write/seek %test.bin #{BBBB} 0
-		; --assert equal? #{BBBBAAAA} read/binary %test.bin
+		write qt-tmp-file #{00000000}
+		write/seek qt-tmp-file #{AAAA} 2
+		--assert equal? #{0000AAAA} read/binary qt-tmp-file
+		write/seek qt-tmp-file #{BBBB} 0
+		--assert equal? #{BBBBAAAA} read/binary qt-tmp-file
 
 	; --test-- "#2098"
 		; GUI
 
 	--test-- "#2099"
-		; not sure if spawning lots of files is a good idea for a general test script
-		; FIXME: perhaps there should be a dedicated script for this
-		; moreover, rebol.com was down for some time when I tested this
-		; so `original` better be defined as a binary
-		; commenting this out for now 			-- hiiamboris
-
-		; original: read/binary http://www.rebol.com/how-to/graphics/button.gif
-		; write/binary %button.gif original
-		; saved: read/binary %button.gif
-		; --assert equal? saved original
-		; unset [original saved]
+		;-- rebol.com can be down - shouldn't affect tests
+		; original2072: read/binary http://www.rebol.com/how-to/graphics/button.gif
+		;-- this is just the fragment of the original binary:
+		original2072: #{
+			47494638396146002600F700000000000E0E0E0F00041700061C1C1C1F00071F
+			090F2700092F000B33333336091437000D3E000F3E091641414144383B470011
+			4E0013510E1E55001459333C5D00166338426500186F001B712A3B73172D7500
+			1C773343786B6E7A09247C4A567F001F81747782052383001F833C4D84465585
+			3C4E860E2B87002087616A89253D8982848A0E2B8D00228E17338E747A93384E
+			940023949494957D83958B8E96616D976F799A0E2F9A5D6C9E00269E9E9EA005
+			2AA48B91A49498A60027A70028A7A2A3A86F7DA87D87A89499AA9EA1AB0029AB
+			6A7AACACACAD052DADA2A5B09EA2B0B0B0B3A2A6B3ACAEB47483B4A7AAB5002B
+		}
+		write/binary qt-tmp-file original2072
+		saved2072: read/binary qt-tmp-file
+		--assert equal? saved2072 original2072
+		unset [original2072 saved2072]
 
 	; --test-- "#2104"
 		; console behaviour - #1995
@@ -2640,7 +2633,7 @@ b}
 		; GUI
 
 	--test-- "#2125"
-		--assert 2 = length? find reduce [integer! 1] integer!
+		--assert 2 = length? find/only reduce [integer! 1] integer!
 
 	; --test-- "#2133"
 		; OPEN
@@ -2765,9 +2758,10 @@ b}
 		--assert equal? ["1" "2" ""] split "1^/2^/" #"^/"
 
 	--test-- "#2232"
+		no-probe: func [value][:value]
 		--assert 'ok = (a: 'ok 1 :a)
 		--assert 'ok = (a: 'ok 1 + 1 :a)
-		--assert 'ok = (a: 'ok 1 + 1 probe :a)
+		--assert 'ok = (a: 'ok 1 + 1 no-probe :a)
 		--assert equal? 'ok (a: 'ok 1 + 1 :a)
 		--assert equal? 'ok (a: 'ok 1 + 1 :a)
 
@@ -2802,7 +2796,17 @@ b}
 	--test-- "#2253"
 		--assert not error? try [3151391351465.995 // 1.0]
 		unset 'true?
-	
+
+	--test-- "#2431"									;-- FIXME: add `load` tests when it's fixed
+		write qt-tmp-file {Red []}
+		--assert unset? do qt-tmp-file					;-- should skip the header
+		write qt-tmp-file {Red [] Red []}
+		--assert [] = do qt-tmp-file					;-- should skip the 1st header only
+
+	--test-- "#2567"
+		--assert not negative? 1.#NaN
+		--assert not positive? 1.#NaN
+		--assert not     zero? 1.#NaN
 
 	--test-- "#2650"
 		--assert     0.0 <> null
@@ -2836,11 +2840,43 @@ b}
 		
 		--assert error? try [transcode {"^^(0000001)"}]
 		--assert error? try [transcode {"^^(skibadee-skibadanger)"}]
+
+	--test-- "#3098"
+		block: reduce ['foo func [/bar][pick [baz qux] bar]]
+		--assert 'qux = do [block/('foo)]				;-- wrapper makes sure that it's not a sub-expression
+		--assert 'baz = do [block/('foo)/bar]
 		
-	--test-- "#3603"
-		bu3603: reduce [()]
-		rest3603: none
-		--assert bu3603 = back change block3603: [] do/next block3603 'rest3603
+		block: reduce [block]
+		--assert 'qux = do [block/1/('foo)]
+		--assert 'baz = do [block/1/('foo)/bar]
+	
+	--test-- "#3156"
+		ctx3156: context [foo3156: does ['bar3156]]
+		bar3156: ctx3156/foo3156
+		--assert 'bar3156 == bar3156
+
+	--test-- "#3385"
+		refs3385: [utc precise time year month day yearday weekday zone date]
+		types3385: reduce [
+		    date!		;21-Nov-2019/18:14:33.1411
+		    time!		;18:14:33
+		    integer!	;2019
+		    integer!	;11
+		    integer!	;21
+		    integer!	;325
+		    integer!	;4
+		    time!		;0:00:00
+		    date!		;21-Nov-2019
+		    time!		;21:14:33.1411
+		]    			; rest is none!
+		i3385: 1
+		forall refs3385 [
+			foreach ref3385 next refs3385 [
+				path3385: as path! reduce ['now refs3385/1 ref3385]
+				--assert types3385/:i3385 = attempt [type? do path3385]
+				i3385: i3385 + 1
+			]
+		]
 
 	--test-- "#3362"
 		do [											;-- FIXME: compiler doesn't like this
@@ -2853,12 +2889,44 @@ b}
 			unset [spec3362-1 spec3362-2]
 		]
 	
-	--test-- "3662"
+	--test-- "#3407"
+		--assert "0:00:00.1"      = form 0:00:01 / 10
+		--assert "0:00:00.01"     = form 0:00:01 / 100
+		--assert "0:00:00.001"    = form 0:00:01 / 1000
+		--assert "0:00:00.0001"   = form 0:00:01 / 10000
+		--assert "0:00:00.00001"  = form 0:00:01 / 100000
+		--assert "0:00:00.000001" = form 0:00:01 / 1000000
+		--assert "0:00:00"        = form 0:00:01 / 10000000
+
+	--test-- "#3561"
+		a: reduce ['b does [1 + 2] 'x 'y]
+		--assert do [3 = a/b]							;-- do[] else compiler will not eval `does [1 + 2]`
+		--assert 3 = do 'a/b
+		--assert 3 = do quote a/b
+		--assert 'a/b = do quote 'a/b
+		--assert 'y = a/x
+		--assert 'y = do 'a/x
+		--assert 'y = do quote a/x
+
+	--test-- "#3588"
+		x3588: []
+		write qt-tmp-file {Hello Red append x3588 "try"^/Red [] append x3588 "Hoi!"}
+		do qt-tmp-file
+		--assert x3588 = ["Hoi!"]
+		unset 'x3588
+
+	--test-- "#3603"
+		bu3603: reduce [()]
+		rest3603: none
+		--assert bu3603 = back change block3603: [] do/next block3603 'rest3603
+		unset [bu3603 rest3603 block3603]
+
+	--test-- "#3662"
 		--assert equal?
 			[16  256  4096  65536  1048576 16777216 268435456]
 			[10h 100h 1000h 10000h 100000h 1000000h 10000000h]
 	
-	--test-- "3669"
+	--test-- "#3669"
 		--assert not equal? <a> <a^>
 		--assert equal?     <a> load {<a^>}
 
@@ -2914,6 +2982,26 @@ comment {
 		--assert tail? next next next next i4056
 		--assert tail? next back next tail i4056
 
+    --test-- "#4203"
+		test-file: to-file rejoin [runnable-dir "test.red"]
+		write test-file {
+			Red []
+			; without this line there's no string corruption (any unicode char does the trick):
+			; ☺
+			; at least one argument in spec must be 2 or more chars long
+			spec: [yz [float!]]
+			collect [
+				=arg=: [
+					set name word!
+					set types block!
+					(keep reduce [name make typeset! types])
+				]
+				parse spec [any [=arg=]]
+			]}
+		compose-result: compose [yz (make typeset! [float!])]
+		--assert equal? do test-file compose-result
+		unset 'test-file
+
 	--test-- "#4205 - seed random with precise time!"
 		anded4205: to integer! #{FFFFFFFF}
 		loop 10 [
@@ -2925,6 +3013,39 @@ comment {
 		--assert not all-equal?4205
 		unset [anded4205 last-random4205 all-equal?4205]
 
+	--test-- "#4260"
+		catch [throw 1]
+		err4260: try [add none none]
+		--assert to-logic find form err4260 "add does not"
+	
+	--test-- "#4260"
+		catch [throw 1]
+		err4260: try [add none none]
+		--assert to-logic find form err4260 "add does not"
+
+	--test-- "#4305"
+		block: reduce ['foo func [/bar][pick [baz qux] bar]]
+		id:    func [value][value]
+		--assert 'qux == block/('foo)
+		--assert 'qux == id block/('foo)
+		--assert 'qux == bar: block/('foo)
+		--assert 'qux == bar
+		
+		block: reduce [block]
+		--assert 'baz == block/1/('foo)/bar
+		--assert 'baz == id block/1/('foo)/bar
+		--assert 'baz == baz: block/1/('foo)/bar
+		--assert 'baz == baz
+
+	--test-- "#4451"
+		path: quote :foo/bar
+		--assert ":foo/bar" = mold path
+		--assert get-path! = type? path
+		--assert word! = type? path/1
+
+
+	--test-- "#4489"
+		--assert [1 1 1 1 1 2 2 3 3 3 3 4 4 4 4 4 5] = sort/compare/stable [1 4 1 1 4 3 1 3 4 4 4 3 1 2 2 5 3] func [a b] [a <= b]
 
 	--test-- "#4505"
 		do [
@@ -2946,9 +3067,34 @@ comment {
 			recycle
 		]
 	
+	--test-- "#4517"
+		foo: has [block][
+			block: [:get/path]
+			--assert get-path? block/1
+			--assert word? block/1/1
+			--assert "[:get/path]" == mold block
+		]
+
+		foo
+		unset 'foo
+	
 	--test-- "#4522"
 		--assert error? try [find/skip [1] [1] ()]
-
+	
+	--test-- "#4537"
+		local: "global"
+		--assert "global" == get to word! first spec-of has [foo][]
+		--assert "global" == get to word! first spec-of function [][[foo:]]
+		unset 'local
+		
+		--assert equal?
+			system/words
+			context? to word! to issue! in context [foo: 'bar] 'foo
+		
+		--assert equal?
+			system/words
+			context? to word! to refinement! in context [foo: 'bar] 'foo
+	
 	--test-- "#4563" do [							;@@ #4526
 		--assert error? try [make op! :>>]
 		--assert error? try [make op! make op! func [x y][]]
@@ -2964,15 +3110,159 @@ comment {
 		--assert "2.3.4.5.6" = mold 2.3.4.5.6
 		--assert "1.2.3.4.5.6" = mold 1.2.3.4.5.6
 
-	--test-- "#4627"		
-		--assert to logic! find 
+	--test-- "#4627"
+		--assert to logic! find
 			form try [transcode "]"]
 			"(line 1) missing [ at ]"
 		
-		--assert to logic! find 
+		--assert to logic! find
 			form try [null < []]
 			%{#"^@" with []}%
+
+	--test-- "4756"
+			load/as #{
+52454442494E0204010000006C00000002000000100000000000000008000000
+75726C0000000000646174650000000028000000020000000801000000000000
+0500000061622F63640000002800000004000000100000020000000090010000
+090100000000000012000000687474703A2F2F6578616D706C652E6F72670000
+1000000201000000830100002F00000080201D0FC0EFD14000000000
+} 'redbin
+
+	--test-- "#4766"
+		saved-dir: what-dir
+		change-dir qt-tmp-dir
+		make-dir %tmp$
+		files: []
+		blk4766: []
+		repeat i 20 [
+			append files f4766: rejoin [%tmp$/drw i ".red"]
+			write/binary f4766 append/dup copy {^/} "11 ^/^/" i
+		]
+		attempt [foreach f4766 files [blk4766: read/lines f4766]]
+		change-dir saved-dir
+		--assert 41 = length? blk4766
+
+	--test-- "#4768"
+		--assert block? body-of :is
+
+	--test-- "#4799"
+		--assert not equal? "foo" #{666F6F}
+		--assert not equal? #{666F6F} "foo"
+		--assert not strict-equal? "foo" #{666F6F}
+		--assert not strict-equal? #{666F6F} "foo"
+
+	--test-- "#4865"
+		--assert error? try [to word! to issue! "<s>"]
+		--assert error? try [to word! /1]
+
+	#do [ if not value? 'interpreted? [
+			interpreted?: attempt [ system/state/interpreted? ]
+		]
+	]
+	#if not interpreted? [
+		--test-- "#4875"
+			#system [
+				gt4875: func [
+					return: [float!]
+					/local
+						nano [integer!]
+						mi	 [float!]
+				][
+					nano: 123
+					mi: as-float nano
+					mi: mi / 1e+9
+					mi
+				]
+
+				f4875: func [a [float!] return: [float!]][
+					gt4875
+					loop 7 [size? a]
+					gt4875
+				]
+			]
+			rt4875: routine [return: [float!]][f4875 1.0]
+			--assert 1.23e-7 == rt4875
+	]
+
+	--test-- "#4879"
+		--assert "x" == form/part object [x: 1 u: u://rl] 1
+		--assert "m" == mold/part object [x: 1 u: u://rl] 1
+		--assert "[http:// 1 2 3]" == mold [http:// 1 2 3]
+		--assert "[http:// 1 2 3]" == mold/part [http:// 1 2 3] 999
+
+	--test-- "#4900"
+		--assert 1.0 = (    1.0 %  1.#inf)
+		--assert 1.0 = (    1.0 % -1.#inf)
+		--assert nan?  (    1.0 %  1.#nan)
+		--assert nan?  ( 1.#inf %  1.#inf)
+		--assert nan?  ( 1.#inf % -1.#inf)
+		--assert nan?  ( 1.#inf %  1.#nan)
+		--assert nan?  (-1.#inf %  1.#inf)
+		--assert nan?  (-1.#inf % -1.#inf)
+		--assert nan?  (-1.#inf %  1.#nan)
+		--assert nan?  ( 1.#nan %     1.0)
+		--assert nan?  ( 1.#nan %  1.#inf)
+		--assert nan?  ( 1.#nan % -1.#inf)
+		--assert nan?  ( 1.#nan % -1.#nan)
+		; --assert 2x3   = (2x3   % 1.#inf)				;@@ FIXME: throws an error, unlike tuple
+		--assert 1.2.3 = (1.2.3 % 1.#inf)
+		--assert (make vector! [1.0 2.0]) = ((make vector! [1.0 2.0]) % 1.#inf)
+
+	--test-- "#4980"
+		--assert 1 == do/next x4980: quote (1 2 3) 'x4980
+		--assert x4980 == quote (2 3)
+		--assert 1 == do/next x4980: make hash! [1 2 3] 'x4980
+		--assert x4980 == make hash! [2 3]		
 		
+	--test-- "#4994"
+		save qt-tmp-file append/dup "" "§☺" 500000
+		transcode read qt-tmp-file
+
+	--test-- "#5058"
+		--assert strict-equal?
+			"1 a ^/2 b ^/3 c"
+			mold/only new-line/all/skip [1 a 2 b 3 c] yes 2
+
+	--test-- "#5067"
+		c5067: context [
+			b: reduce ['f does [visited?: yes print ""]]
+			o: object [f: does [visited?: yes print ""]]
+		]
+		visited?: no
+		--assert unset? c5067/('b)/f
+		--assert visited?
+		visited?: no
+		--assert unset? c5067/('o)/f
+		--assert visited?
+
+	--test-- "#5099"
+		do/expand {do [print 10] do [print 20]}
+		--assert true 								;-- just check that it didn't crash
+
+	--test-- "#5114"
+		fails: 0
+		loop 100000 [
+			t: dt [loop 1000 []]
+			if t < 0 [fails: fails + 1]
+		]
+		--assert fails = 0
+
+	--test-- "#5126-1"
+		fails: 0
+		loop 1000 [
+			h: make hash! reduce [() 1 2]
+			unless find h do [:some-unset-word] [fails: fails + 1]
+		]
+		--assert fails = 0
+
+	--test-- "#5126-2"
+		fails: 0
+		loop 1000 [
+			h: make hash! reduce [none 1 2]
+			unless do [find h all []] [fails: fails + 1]
+		]
+		--assert fails = 0
+
 ===end-group===
 
 ~~~end-file~~~

@@ -8,16 +8,19 @@ REBOL [
 ]
 
 change-dir %..
-do %system/utils/encap-fs.r
+do %utils/encap-fs.r
 
 write %build/bin/sources.r set-cache [
-	%version.r
-	%usage.txt
-	%boot.red
-	%compiler.r
-	%lexer.r
 	%build/ [
 		%git.r
+	]
+	%encapper/ [
+		%version.r
+		%usage.txt
+		%boot.red
+		%compiler.r
+		%lexer.r
+		%modules.r
 	]
 	%environment/ [
 		%actions.red
@@ -32,6 +35,7 @@ write %build/bin/sources.r set-cache [
 		%routines.red
 		%scalars.red
 		%system.red
+		%tools.red
 		%codecs/ [
 			%BMP.red
 			%GIF.red
@@ -39,6 +43,7 @@ write %build/bin/sources.r set-cache [
 			%PNG.red
 			%CSV.red
 			%JSON.red
+			%redbin.red
 		]
 		%console/ [
 			%auto-complete.red
@@ -170,6 +175,7 @@ write %build/bin/sources.r set-cache [
 			%syllable.reds
 			%win32.reds
 			%COM.reds
+			%image-wic.reds
 			%image-gdiplus.reds
 			%image-gdk.reds
 			%image-quartz.reds
@@ -197,7 +203,8 @@ write %build/bin/sources.r set-cache [
 					%classes.reds
 					%comdlgs.reds
 					%direct2d.reds
-					%draw-d2d.reds
+					%matrix2d.reds
+					%draw-gdi.reds
 					%draw.reds
 					%events.reds
 					%font.reds

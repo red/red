@@ -622,16 +622,16 @@ Red [
 		--assert 6 = index? find/only a 'a/b
 
 	--test-- "series-find-51"
-		--assert 2 = index? find/match a 2
+		--assert 2 = index? find/match/tail a 2
 
 	--test-- "series-find-52"
-		--assert none? find/match a 3
+		--assert none? find/match/tail a 3
 
 	--test-- "series-find-53"
-		--assert 4 = index? find/match a [2 3 5]
+		--assert 4 = index? find/match/tail a [2 3 5]
 
 	--test-- "series-find-54"
-		--assert none? find/match next a [2 3 5]
+		--assert none? find/match/tail next a [2 3 5]
 		
 	--test-- "series-find-55"
 		--assert 4 = index? find/tail a 5
@@ -677,22 +677,22 @@ Red [
 		--assert 5 = index? find/part s #"o" 5
 
 	--test-- "series-find-69"
-		--assert 2 = index? find/match s #"h"
+		--assert 2 = index? find/match/tail s #"h"
 
 	--test-- "series-find-70"
-		--assert 5 = index? find/match s "hell"
+		--assert 5 = index? find/match/tail s "hell"
 
 	--test-- "series-find-71"
-		--assert 5 = index? find/match s "Hell"
+		--assert 5 = index? find/match/tail s "Hell"
 
 	--test-- "series-find-72"
-		--assert none? find/match/case s "hell"
+		--assert none? find/match/case/tail s "hell"
 
 	--test-- "series-find-73"
-		--assert 5 = index? find/match/case s "Hell"
+		--assert 5 = index? find/match/case/tail s "Hell"
 
 	--test-- "series-find-74"
-		--assert none? find/match next s "hell"
+		--assert none? find/match/tail next s "hell"
 
 	--test-- "series-find-75"
 		--assert 8 = index? find/case s "Red"
@@ -748,16 +748,16 @@ Red [
 		--assert 6 = index? find/only hs-fd-1 'a/b
 
 	--test-- "series-find-92"
-		--assert 2 = index? find/match hs-fd-1 2
+		--assert 2 = index? find/match/tail hs-fd-1 2
 
 	--test-- "series-find-93"
-		--assert none? find/match hs-fd-1 3
+		--assert none? find/match/tail hs-fd-1 3
 
 	--test-- "series-find-94"
-		--assert 4 = index? find/match hs-fd-1 [2 3 5]
+		--assert 4 = index? find/match/tail hs-fd-1 [2 3 5]
 
 	--test-- "series-find-95"
-		--assert none? find/match next hs-fd-1 [2 3 5]
+		--assert none? find/match/tail next hs-fd-1 [2 3 5]
 		
 	--test-- "series-find-96"
 		--assert 4 = index? find/tail hs-fd-1 5
@@ -799,6 +799,10 @@ Red [
 	
 	--test-- "series-find-108"
 		--assert none? find/last/part "abc" #"^(01)" 100
+
+	--test-- "series-find-109"
+		hs-bs: make hash! append/dup [] [1 2 3] 10000
+		--assert none? find hs-bs [3 4]
 	
 ===end-group===
 
@@ -875,6 +879,13 @@ Red [
 	--test-- "remove-hash-7"
 		hs: make hash! [a 1 1 b 2 2 c 3 3]
 		--assert (make hash! [a 1 1 c 3 3]) =  remove/key/part hs 'b 2
+
+	--test-- "remove-hash-8 - issue #5118"
+		hs-remove-8: make hash! [a b c a b c]
+		remove/part skip hs-remove-8 3 3
+		--assert 1 = index? find hs-remove-8 'a
+		--assert 2 = index? find hs-remove-8 'b
+		--assert 3 = index? find hs-remove-8 'c
 
 	--test-- "remove-str-1"
 		a: "123"
@@ -1435,6 +1446,9 @@ Red [
 	--test-- "trim-str-11"
 		--assert "    ^-1^/    b2^-  ^/  c3  ^/  ^/^/" = trim/with copy mstr 97
 
+	--test-- "trim-str-12 issue #5076"
+		--assert 2 = length? trim first split {х^/+й} "+"
+
 	--test-- "trim-block-1"
 		--assert [1 2] = trim [#[none] 1 #[none] 2 #[none]]
 
@@ -1598,6 +1612,16 @@ Red [
 		--assert [1 2 5 6]		= difference a b
 		--assert [1 2]			= exclude a b
 		--assert [5 6]			= exclude b a
+
+	--test-- "set-op-blk-2"
+		a: [[1] [2] [3] [4] [5]]
+		b: [[3] [4] [5] [6] [7]]
+		--assert [[3] [4] [5]] = intersect a b
+		--assert [[1] [2] [3] [4] [5] [6] [7]] = union a b
+		--assert [[1] [2] [3]]= unique [[1] [2] [1] [2] [3]]
+		--assert [[1] [2] [6] [7]] = difference a b
+		--assert [[1] [2]] = exclude a b
+		--assert [[6] [7]] = exclude b a
 
 	--test-- "set-op-hash"
 		a: make hash! [5 6 7 8]
@@ -2009,6 +2033,18 @@ Red [
 		--assert s <> r
 		summed: 0 foreach c r [summed: summed + c]
 		--assert summed = 525
+
+===end-group===
+
+
+===start-group=== "poke"
+
+	--test-- "hash-poke-1"
+	h: make hash! [1 2 3 4 5]
+	h/1: 10
+	--assert h = find h 10
+	poke h 2 20
+	--assert (next h) = find h 20
 
 ===end-group===
 

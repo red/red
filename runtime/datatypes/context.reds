@@ -142,6 +142,28 @@ _context: context [
 		value/header: TYPE_UNSET
 		word
 	]
+
+	add-and-set: func [
+		ctx		[red-context!]
+		word	[red-word!]
+		value	[red-value!]
+		return: [red-value!]
+		/local
+			id		[integer!]
+			new-id	[integer!]
+			s		[series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "_context/add-and-set"]]
+
+		new-id: 0
+		id: find-or-store ctx word/symbol yes ctx/self :new-id
+		either id = -1 [
+			copy-cell value alloc-tail as series! ctx/values/value
+		][
+			s: as series! ctx/values/value
+			copy-cell value s/offset + id
+		]
+	]
 	
 	add-with: func [
 		ctx		[red-context!]
@@ -381,9 +403,9 @@ _context: context [
 		if zero? slots [slots: 1]
 		node: alloc-cells 2
 		cell: as red-context! alloc-tail as series! node/value
+		cell/header: TYPE_UNSET							;-- properly set cell's type before possible GC pass
 		slot: alloc-tail as series! node/value			;-- allocate a slot for obj/func back-reference
-		slot/header: TYPE_UNSET
-		cell/header: TYPE_UNSET							;-- implicit reset of all header flags	
+		slot/header: TYPE_UNSET	
 		cell/self: node
 
 		either stack? [

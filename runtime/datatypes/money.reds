@@ -1710,7 +1710,7 @@ money: context [
 			]
 		]
 		
-		if zero-money? scale [fire [TO_ERROR(math overflow)]]
+		if zero-money? scale [return value]
 		value: absolute-money value
 		
 		lower: divide-money as red-money! stack/push as red-value! value scale yes no
@@ -1762,12 +1762,16 @@ money: context [
 		value   [red-value!]
 		path    [red-value!]
 		case?   [logic!]
+		get?	[logic!]
+		tail?	[logic!]
 		return:	[red-value!]
 		/local
 			access [accessor!]
 			int    [red-integer!]
 			index  [integer!]
 	][
+		if value <> null [fire [TO_ERROR(script bad-path-set) path element]]
+		
 		index: switch TYPE_OF(element) [
 			TYPE_WORD    [resolve-accessor as red-word! element]
 			TYPE_INTEGER [int: as red-integer! element int/value]

@@ -143,4 +143,28 @@ REBOL [
 		--assert-printed? "*test16* [b/(w2)/:w3]"
 		--assert-printed? "*test17* []"
 
+
+	--test-- "#5027"
+		--compile-and-run-this {
+			Red []
+			#if true [
+				#do [abc: 0  print "Set to zero!"]
+				#macro ['macro1] func [[manual] s e] [abc: 1000 change/part s reduce ['print abc] 1]
+				#macro ['macro2] func [[manual] s e] [change/part s reduce ['print abc] 1]
+			]
+			macro1
+			macro2
+			macro2
+		}
+		--assert-printed? "1000"
+		--assert-printed? "1000"
+		--assert-printed? "1000"
+
+	--test-- "#5098"
+		--compile-and-run-this {
+			Red []
+			do/expand {#do [abcd: 1]}
+		}
+		--assert empty? qt/output
+
 ~~~end-file~~~ 

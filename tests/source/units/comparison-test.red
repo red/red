@@ -778,5 +778,12 @@ Red [
 		append blk2 2
 		--assert blk1 <> blk2
 ===end-group===
-	
+
+===start-group=== "compare blocks"
+
+	--test-- "compare-blk-1 #issue 5156"
+		--assert [0.01] = [1%]
+
+===end-group===
+
 ~~~end-file~~~

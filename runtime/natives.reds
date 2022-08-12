@@ -16,22 +16,6 @@ Red/System [
 	exit
 ]
 
-#define DO_EVAL_BLOCK [
-	if expand? > 0 [
-		job: #get system/build/config
-		#call [preprocessor/expand as red-block! arg job]
-	]
-	either negative? next [
-		interpreter/eval as red-block! arg yes
-	][
-		stack/keep
-		blk: as red-block! stack/push arg
-		pos: interpreter/eval-single arg
-		blk: as red-block! copy-cell as red-value! blk slot
-		blk/head: pos
-	]
-]
-
 natives: context [
 	verbose:  0
 	lf?: 	  no										;-- used to print or not an ending newline
@@ -89,17 +73,19 @@ natives: context [
 	any*: func [
 		check? [logic!]
 		/local
+			blk	  [red-block!]
 			value [red-value!]
 			tail  [red-value!]
 			bool  [red-logic!]
 			type  [integer!]
 	][
 		#typecheck any
-		value: block/rs-head as red-block! stack/arguments
-		tail:  block/rs-tail as red-block! stack/arguments
+		blk: as red-block! stack/push stack/arguments
+		value: block/rs-head blk
+		tail:  block/rs-tail blk
 		
 		while [value < tail][
-			value: interpreter/eval-next value tail no
+			value: interpreter/eval-next blk value tail no
 			
 			bool: as red-logic! stack/arguments
 			type: TYPE_OF(bool)
@@ -111,17 +97,19 @@ natives: context [
 	all*: func [
 		check? [logic!]
 		/local
+			blk	  [red-block!]
 			value [red-value!]
 			tail  [red-value!]
 	][
 		#typecheck all
-		value: block/rs-head as red-block! stack/arguments
-		tail:  block/rs-tail as red-block! stack/arguments
+		blk: as red-block! stack/push stack/arguments
+		value: block/rs-head blk
+		tail:  block/rs-tail blk
 		
 		if value = tail [RETURN_NONE]
 		
 		while [value < tail][
-			value: interpreter/eval-next value tail no
+			value: interpreter/eval-next blk value tail no
 			if logic/false? [RETURN_NONE]
 		]
 	]
@@ -138,6 +126,7 @@ natives: context [
 		
 		stack/mark-loop words/_body
 		while [
+			assert system/thrown = 0
 			catch RED_THROWN_BREAK [interpreter/eval cond yes]
 			switch system/thrown [
 				RED_THROWN_BREAK
@@ -151,6 +140,7 @@ natives: context [
 			logic/true?
 		][
 			stack/reset
+			assert system/thrown = 0
 			catch RED_THROWN_BREAK [interpreter/eval body yes]
 			switch system/thrown [
 				RED_THROWN_BREAK	[system/thrown: 0 break]
@@ -175,6 +165,7 @@ natives: context [
 		stack/mark-loop words/_body
 		until [
 			stack/reset
+			assert system/thrown = 0
 			catch RED_THROWN_BREAK	[interpreter/eval body yes]
 			switch system/thrown [
 				RED_THROWN_BREAK	[system/thrown: 0 break]
@@ -188,7 +179,6 @@ natives: context [
 	]
 	
 	loop*: func [
-		[catch]
 		check? [logic!]
 		/local
 			body  [red-block!]
@@ -205,10 +195,7 @@ natives: context [
 		stack/mark-loop words/_body		
 		loop count [
 			stack/reset
-			saved: system/stack/top						;--	FIXME: solve loop/catch conflict
-			interpreter/eval body yes
-			system/stack/top: saved
-			
+			catch RED_THROWN_BREAK [interpreter/eval body yes]
 			switch system/thrown [
 				RED_THROWN_BREAK	[system/thrown: 0 break]
 				RED_THROWN_CONTINUE	[system/thrown: 0 continue]
@@ -243,6 +230,7 @@ natives: context [
 		until [
 			stack/reset
 			_context/set w as red-value! count
+			assert system/thrown = 0
 			catch RED_THROWN_BREAK [interpreter/eval body yes]
 			switch system/thrown [
 				RED_THROWN_BREAK [system/thrown: 0 break]
@@ -269,6 +257,7 @@ natives: context [
 		
 		stack/mark-loop words/_body
 		forever [
+			assert system/thrown = 0
 			catch RED_THROWN_BREAK	[interpreter/eval body no]
 			switch system/thrown [
 				RED_THROWN_BREAK	[system/thrown: 0 break]
@@ -305,6 +294,7 @@ natives: context [
 			
 			while [foreach-next-block size][			;-- foreach [..]
 				stack/reset
+				assert system/thrown = 0
 				catch RED_THROWN_BREAK	[interpreter/eval body no]
 				switch system/thrown [
 					RED_THROWN_BREAK	[system/thrown: 0 break]
@@ -318,6 +308,7 @@ natives: context [
 			
 			while [foreach-next][						;-- foreach <word!>
 				stack/reset
+				assert system/thrown = 0
 				catch RED_THROWN_BREAK	[interpreter/eval body no]
 				switch system/thrown [
 					RED_THROWN_BREAK	[system/thrown: 0 break]
@@ -337,8 +328,10 @@ natives: context [
 			body   [red-block!]
 			saved  [red-series!]
 			series [red-series!]
+			img	   [red-image!]
 			type   [integer!]
 			break? [logic!]
+			end?   [logic!]
 	][
 		#typecheck forall
 		w:    as red-word!  stack/arguments
@@ -352,21 +345,25 @@ natives: context [
 		break?: no
 		
 		stack/mark-loop words/_body
-		while [
-			series: as red-series! _context/get w
-			if series/node <> saved/node [
-				fire [TO_ERROR(script bad-loop-series) series]
-			]
-			loop? series
-		][
+		series: as red-series! _context/get w	
+		loop get-series-length series [
 			stack/reset
+			assert system/thrown = 0
 			catch RED_THROWN_BREAK	[interpreter/eval body no]
 			switch system/thrown [
 				RED_THROWN_BREAK	[system/thrown: 0 break?: yes break]
 				RED_THROWN_CONTINUE	
 				0 [
 					series: as red-series! _context/get w
+					if series/node <> saved/node [fire [TO_ERROR(script bad-loop-series) series]]
 					series/head: series/head + 1
+					end?: either TYPE_OF(series) = TYPE_IMAGE [
+						img: as red-image! series
+						IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) <= img/head
+					][
+						_series/rs-tail? series
+					]
+					if end? [break]
 					if system/thrown = RED_THROWN_CONTINUE [
 						system/thrown: 0
 						continue
@@ -375,6 +372,7 @@ natives: context [
 				default	[re-throw]
 			]
 		]
+		system/thrown: 0
 		stack/unwind-last
 		unless break? [_context/set w as red-value! saved]
 	]
@@ -407,6 +405,7 @@ natives: context [
 		]
 		while [either multi? [foreach-next-block size][foreach-next]][	;-- each [...] / each <word!>
 			stack/reset
+			assert system/thrown = 0
 			catch RED_THROWN_BREAK	[interpreter/eval body no]
 			switch system/thrown [
 				RED_THROWN_BREAK	[system/thrown: 0 break]
@@ -420,15 +419,16 @@ natives: context [
 		stack/unwind-last
 	]
 	
-	func*: func [check? [logic!]][
+	func*: func [check? [logic!] /local flags [integer!]][
 		#typecheck func
-		_function/validate as red-block! stack/arguments
+		flags: _function/validate as red-block! stack/arguments
 		_function/push 
 			as red-block! stack/arguments
 			as red-block! stack/arguments + 1
 			null
 			0
 			null
+			flags
 		stack/set-last stack/get-top
 	]
 	
@@ -498,18 +498,21 @@ natives: context [
 		check?	  [logic!]
 		all? 	  [integer!]
 		/local
+			blk	  [red-block!]
 			value [red-value!]
 			tail  [red-value!]
 			true? [logic!]
 	][
 		#typecheck [case all?]
-		value: block/rs-head as red-block! stack/arguments
-		tail:  block/rs-tail as red-block! stack/arguments
+		blk: as red-block! stack/push stack/arguments
+		value: block/rs-head blk
+		tail:  block/rs-tail blk
 		if value = tail [RETURN_NONE]
 
+		stack/mark-native words/_anon
 		true?: false
 		while [value < tail][
-			value: interpreter/eval-next value tail no	;-- eval condition
+			value: interpreter/eval-next blk value tail no	;-- eval condition
 			if value = tail [break]
 			either logic/true? [
 				either TYPE_OF(value) = TYPE_BLOCK [	;-- if true, eval what follows it
@@ -517,14 +520,15 @@ natives: context [
 					interpreter/eval as red-block! value yes
 					value: value + 1
 				][
-					value: interpreter/eval-next value tail no
+					value: interpreter/eval-next blk value tail no
 				]
-				if negative? all? [exit]				;-- early exit with last value on stack (unless /all)
+				if negative? all? [stack/unwind-last exit]	;-- early exit with last value on stack (unless /all)
 				true?: yes
 			][
 				value: value + 1						;-- single value only allowed for cases bodies
 			]
 		]
+		stack/unwind-last
 		unless true? [RETURN_NONE]
 	]
 	
@@ -533,44 +537,90 @@ natives: context [
 		expand? [integer!]
 		args 	[integer!]
 		next	[integer!]
+		trace	[integer!]
 		return: [integer!]
 		/local
 			cframe [byte-ptr!]
 			arg	   [red-value!]
 			do-arg [red-value!]
+			fun	   [red-function!]
 			slot   [red-value!]
 			blk	   [red-block!]
 			job	   [red-value!]
 			pos	   [integer!]
+			thrown [integer!]
+			fun?   [logic!]
+			do-block [subroutine!]
 	][
-		#typecheck [do expand? args next]
+		#typecheck [do expand? args next trace]
 		arg: stack/arguments
 		cframe: stack/get-ctop							;-- save the current call frame pointer
 		do-arg: stack/arguments + args
+		fun: 	as red-function! stack/arguments + trace
 		
 		if OPTION?(do-arg) [
 			copy-cell do-arg #get system/script/args
 		]
+		fun?: OPTION?(fun)
+		if fun? [
+			with [interpreter][
+				either trace? [fun?: no][				;-- pass-thru, ignore handler if one is in use already
+					fun-locs: _function/count-locals fun/spec 0 no
+					fun-evts: decode-filter fun
+					copy-cell as red-value! fun as red-value! trace-fun
+					trace?: tracing?: yes
+					fire-init
+				]
+			]
+		]
 		if next > 0 [slot: _context/get as red-word! stack/arguments + next]
 		
-		catch RED_THROWN_BREAK [
+		do-block: [
+			if expand? > 0 [
+				job: #get system/build/config
+				stack/mark-native words/_anon
+				#call [preprocessor/expand as red-block! arg job]
+				stack/unwind
+			]
+			either negative? next [
+				interpreter/eval as red-block! arg yes
+			][
+				stack/keep
+				blk: as red-block! stack/push arg
+				pos: interpreter/eval-single arg
+				blk: as red-block! copy-cell as red-value! blk slot
+				blk/head: pos
+			]
+		]
+		
+		assert system/thrown = 0
+		catch RED_THROWN_ERROR [
 			switch TYPE_OF(arg) [
-				TYPE_BLOCK [DO_EVAL_BLOCK]
+				TYPE_ANY_LIST [do-block]
 				TYPE_PATH  [
-					interpreter/eval-path arg arg arg + 1 no no no no
-					stack/set-last arg + 1
+					interpreter/eval-path arg arg arg + 1 null no no no no
 				]
 				TYPE_STRING [
-					lexer/scan-alt arg as red-string! arg -1 no yes yes no null null as red-string! arg
-					DO_EVAL_BLOCK
+					lexer/scan-alt arg as red-string! arg -1 no yes yes no null null null
+					do-block
 				]
 				TYPE_URL 
-				TYPE_FILE  [#call [do-file as red-file! arg]]
+				TYPE_FILE  [#call [do-file as red-file! arg none-value]]
 				TYPE_ERROR [
 					stack/throw-error as red-object! arg
 				]
-				default [interpreter/eval-expression arg arg + 1 no no yes]
+				default [interpreter/eval-expression arg arg + 1 null no no yes]
 			]
+		]
+		if fun? [
+			thrown: system/thrown
+			system/thrown: 0
+			with [interpreter][
+				fire-end
+				copy-cell none-value as red-value! trace-fun
+				trace?: tracing?: no
+			]
+			system/thrown: thrown
 		]
 		switch system/thrown [
 			RED_THROWN_BREAK
@@ -584,8 +634,8 @@ natives: context [
 					system/thrown						;-- request an early exit from caller
 				]
 			]
-			0			[0]
-			default 	[re-throw 0]					;-- 0 to make compiler happy
+			0			[0]								;-- no exception case
+			default 	[re-throw 0]					;-- all other exceptions (0 to make compiler happy)
 		]
 	]
 	
@@ -600,11 +650,8 @@ natives: context [
 		value: stack/arguments
 		
 		switch TYPE_OF(value) [
-			TYPE_PATH
-			TYPE_GET_PATH
-			TYPE_SET_PATH
-			TYPE_LIT_PATH [
-				interpreter/eval-path value null null no yes no case? <> -1
+			TYPE_ANY_PATH [
+				interpreter/eval-path value null null null no yes no case? <> -1
 			]
 			TYPE_OBJECT [
 				object/reflect as red-object! value words/values
@@ -621,7 +668,7 @@ natives: context [
 	
 	set*: func [
 		check? [logic!]
-		any?   [integer!]
+		_any?  [integer!]
 		case?  [integer!]
 		_only? [integer!]
 		_some? [integer!]
@@ -629,37 +676,34 @@ natives: context [
 			w	   [red-word!]
 			value  [red-value!]
 			blk	   [red-block!]
+			any?   [logic!]
 			only?  [logic!]
 			some?  [logic!]
 	][
-		#typecheck [set any? case? _only? _some?]
+		#typecheck [set _any? case? _only? _some?]
 		
 		w: as red-word! stack/arguments
 		value: stack/arguments + 1
+		any?:  _any?  <> -1
 		only?: _only? <> -1
 		some?: _some? <> -1
 		
-		if all [any? = -1 TYPE_OF(value) = TYPE_UNSET][
-			fire [TO_ERROR(script need-value) w]
-		]
+		if all [not any? TYPE_OF(value) = TYPE_UNSET][fire [TO_ERROR(script need-value) w]]
 		
 		switch TYPE_OF(w) [
-			TYPE_PATH
-			TYPE_GET_PATH
-			TYPE_SET_PATH
-			TYPE_LIT_PATH [
+			TYPE_ANY_PATH [
 				value: stack/push stack/arguments
 				copy-cell stack/arguments + 1 stack/arguments
-				interpreter/eval-path value null null yes yes no case? <> -1
+				interpreter/eval-path value null null null yes yes no case? <> -1
 			]
 			TYPE_OBJECT [
-				object/set-many as red-object! w value only? some?
+				object/set-many as red-object! w value any? only? some?
 				stack/set-last value
 			]
 			TYPE_BLOCK [
 				blk: as red-block! w
 				stack/mark-native words/_anon
-				set-many blk value block/rs-length? blk only? some?
+				set-many blk value block/rs-length? blk any? only? some?
 				stack/unwind
 				stack/set-last value
 			]
@@ -822,6 +866,13 @@ natives: context [
 				type = TYPE_MONEY [
 					res: zero? money/compare as red-money! arg1 as red-money! arg2 COMP_SAME
 				]
+				any [
+					type = TYPE_ACTION
+					type = TYPE_NATIVE
+					type = TYPE_OP
+				][
+					res: all [arg1/data2 = arg2/data2 arg1/data3 = arg2/data3]
+				]
 				true [
 					res: all [
 						arg1/data1 = arg2/data1
@@ -890,6 +941,7 @@ natives: context [
 		check? [logic!]
 		into   [integer!]
 		/local
+			blk	  [red-block!]
 			value	 [red-value!]
 			tail	 [red-value!]
 			arg		 [red-value!]
@@ -906,8 +958,9 @@ natives: context [
 		into?: into >= 0
 
 		if blk? [
-			value: block/rs-head as red-block! arg
-			tail:  block/rs-tail as red-block! arg
+			blk: as red-block! stack/push arg
+			value: block/rs-head blk
+			tail:  block/rs-tail blk
 		]
 
 		stack/mark-native words/_body
@@ -922,7 +975,7 @@ natives: context [
 		]
 		either blk? [
 			while [value < tail][
-				value: interpreter/eval-next value tail yes
+				value: interpreter/eval-next blk value tail yes
 				clear-newline stack/arguments + 1
 				either append? [block/append*][actions/insert* -1 0 -1]
 				stack/keep									;-- preserve the reduced block on stack
@@ -938,7 +991,7 @@ natives: context [
 			][
 				stack/set-last arg
 			][
-				interpreter/eval-expression arg arg + 1 no yes no ;-- for non block! values
+				interpreter/eval-expression arg arg + 1 null no yes no ;-- for non block! values
 			]
 			if into? [either append? [block/append*][actions/insert* -1 0 -1]]
 		]
@@ -1226,6 +1279,7 @@ natives: context [
 		]
 		cframe: stack/get-ctop							;-- save the current call frame pointer
 		
+		assert system/thrown = 0
 		catch RED_THROWN_BREAK [
 			res: parser/process
 				input
@@ -1670,10 +1724,15 @@ natives: context [
 	][
 		#typecheck [tangent radians]
 		f: degree-to-radians* radians TYPE_TANGENT
-		either (float/abs f/value) = (PI / 2.0) [
-			fire [TO_ERROR(math overflow)]
+		
+		either f/value = (PI / 2.0) [					;-- see #3441 on `tangent 90` handling
+			f/value: 1.0 / 0.0
 		][
-			f/value: tan f/value
+			either f/value = (PI / -2.0) [
+				f/value: -1.0 / 0.0
+			][
+				f/value: tan f/value
+			]
 		]
 		f
 	]
@@ -1727,7 +1786,18 @@ natives: context [
 		][
 			x: f/value
 		]
-		f/value: atan2 y x
+		#either OS = 'Windows [
+			f/value: atan2 y x
+		][
+			either all [								;-- bugfix for libc (all Linux versions)
+				x - x <> 0.0							;-- if both x and y are infinite (or NaN)
+				y - y <> 0.0
+			][
+				f/value: x - x							;-- then the result should be NaN
+			][
+				f/value: atan2 y x
+			]
+		]
 		if radians < 0 [f/value: 180.0 / PI * f/value]			;-- to degrees
 		stack/set-last as red-value! f
 	]
@@ -1872,11 +1942,13 @@ natives: context [
 		check? [logic!]
 		/local
 			value  [red-value!]
+			type   [integer!]
 			result [red-logic!]
 	][
 		#typecheck value?
 		value: stack/arguments
-		if TYPE_OF(value) = TYPE_WORD [
+		type: TYPE_OF(value)
+		if ANY_WORD?(type) [
 			value: _context/get as red-word! stack/arguments
 		]
 		result: as red-logic! stack/arguments
@@ -1905,15 +1977,15 @@ natives: context [
 	try*: func [
 		check?  [logic!]
 		_all	[integer!]
+		keep	[integer!]
 		return: [integer!]
 		/local
 			arg	   [red-value!]
 			cframe [byte-ptr!]
 			result [integer!]
 	][
-		#typecheck [try _all]
+		#typecheck [try _all keep]
 		arg: stack/arguments
-		system/thrown: 0								;@@ To be removed
 		cframe: stack/get-ctop							;-- save the current call frame pointer
 		result: 0
 		
@@ -1922,6 +1994,7 @@ natives: context [
 		][
 			stack/mark-try-all words/_try
 		]
+		assert system/thrown = 0
 		catch RED_THROWN_ERROR [
 			interpreter/eval as red-block! arg yes
 			stack/unwind-last							;-- bypass it in case of error
@@ -1948,6 +2021,7 @@ natives: context [
 			stack/adjust-post-try
 		]
 		system/thrown: 0
+		if keep <> -1 [error/capture as red-object! stack/arguments]
 		result
 	]
 
@@ -1986,6 +2060,7 @@ natives: context [
 			]
 			TYPE_FLOAT	 [
 				fl: as red-float! arg
+				if float/special? fl/value [fire [TO_ERROR(script invalid-arg) arg]]
 				pair/x: as-integer fl/value
 			]
 			default		 [assert false]
@@ -1998,6 +2073,7 @@ natives: context [
 			]
 			TYPE_FLOAT	 [
 				fl: as red-float! arg
+				if float/special? fl/value [fire [TO_ERROR(script invalid-arg) arg]]
 				pair/y: as-integer fl/value
 			]
 			default		[assert false]
@@ -2065,7 +2141,8 @@ natives: context [
 		name   [integer!]
 	][
 		#typecheck [throw name]
-		if name = -1 [unset/push]						;-- fill this slot anyway for CATCH		
+		if interpreter/tracing? [interpreter/fire-throw]
+		if name = -1 [unset/push]						;-- fill this slot anyway for CATCH
 		stack/throw-throw RED_THROWN_THROW
 	]
 	
@@ -2087,6 +2164,7 @@ natives: context [
 		if name <> -1 [c-name: as red-word! arg + name]
 		
 		stack/mark-catch words/_body
+		assert system/thrown = 0
 		catch RED_THROWN_THROW [interpreter/eval as red-block! arg yes]
 		t-name: as red-word! stack/arguments + 1
 		stack/unwind-last
@@ -2120,6 +2198,7 @@ natives: context [
 			system/thrown: 0
 			stack/set-last stack/get-top
 			stack/top: stack/arguments + 1
+			if interpreter/tracing? [interpreter/fire-catch]
 		]
 	]
 	
@@ -2182,6 +2261,7 @@ natives: context [
 		]
 		val/header: TYPE_NONE
 		platform/wait seconds
+		#if modules contains 'View [exec/gui/do-events yes]
 	]
 
 	checksum*: func [
@@ -2489,6 +2569,12 @@ natives: context [
 			n	[integer!]
 	][
 		#typecheck [now year month day time zone _date weekday yearday precise utc]
+		if all [
+			any [time = -1 precise = -1]													;-- not /time/precise both
+			year + month + day + time + zone + _date + weekday + yearday + precise >= -7 	;-- (-9 + 2) - 2 refs at once
+		][
+			fire [TO_ERROR(script bad-refines)]
+		]
 
 		dt: as red-date! stack/arguments
 		dt/header: TYPE_DATE
@@ -2638,9 +2724,9 @@ natives: context [
 
 	compress*: func [
 		check?	 [logic!]
-		zlib	 [integer!]
-		_deflate [integer!]
 		/local
+			method	[red-word!]
+			sym		[integer!]
 			arg		[red-binary!]
 			src		[byte-ptr!]
 			srclen	[integer!]
@@ -2650,8 +2736,9 @@ natives: context [
 			s		[series!]
 			dst		[red-binary! value]
 	][
-		#typecheck [compress zlib _deflate]
+		#typecheck compress
 		arg: as red-binary! stack/arguments
+		method: as red-word! arg + 1
 		either TYPE_OF(arg) <> TYPE_BINARY [		;-- any-string!
 			srclen: -1
 			src: as byte-ptr! unicode/to-utf8 as red-string! arg :srclen
@@ -2661,20 +2748,22 @@ natives: context [
 		]
 		buflen: srclen + 32
 
+		sym: symbol/resolve method/symbol
 		loop 2 [	;-- try again in case fails the first time
 			binary/make-at as red-value! dst buflen
 			s: GET_BUFFER(dst)
 			buffer: as byte-ptr! s/offset
 			case [
-				zlib > 0 [
+				compressor/zlib = sym [
 					res: zlib-compress buffer :buflen src srclen
 				]
-				_deflate > 0 [
+				compressor/deflate = sym [
 					res: deflate/compress buffer :buflen src srclen
 				]
-				true [
+				compressor/gzip = sym [
 					res: gzip-compress buffer :buflen src srclen
 				]
+				true [fire [TO_ERROR(script invalid-arg) method]]
 			]
 			if res <> 1 [break]
 		]
@@ -2687,9 +2776,10 @@ natives: context [
 
 	decompress*: func [
 		check?	 [logic!]
-		zlib	 [integer!]
-		_deflate [integer!]
+		size	 [integer!]
 		/local
+			method	[red-word!]
+			sym		[integer!]
 			arg		[red-binary!]
 			sz		[red-integer!]
 			src		[byte-ptr!]
@@ -2700,34 +2790,38 @@ natives: context [
 			s		[series!]
 			buf		[byte-ptr!]
 	][
-		#typecheck [decompress zlib _deflate]
+		#typecheck [decompress size]
 		arg: as red-binary! stack/arguments
+		method: as red-word! arg + 1
 		src: binary/rs-head arg
 		srclen: binary/rs-length? arg
 
+		dstlen: 0
+		if size > 0 [
+			sz: as red-integer! arg + size
+			dstlen: sz/value
+		]
+		sym: symbol/resolve method/symbol
 		case [
-			zlib > 0 [
-				sz: as red-integer! arg + zlib
-				dstlen: sz/value
+			compressor/zlib = sym [
 				if dstlen <= srclen [
 					;-- if dstlen is too small, calculate real buffer size before decompress
 					dstlen: 0
 					zlib-uncompress null :dstlen src srclen
 				]
 			]
-			_deflate > 0 [
-				sz: as red-integer! arg + _deflate
-				dstlen: sz/value
+			compressor/deflate = sym [
 				if dstlen <= srclen [
 					dstlen: 0
 					deflate/uncompress null :dstlen src srclen
 				]
 			]
-			true [
+			compressor/gzip = sym [
 				dstlen: 0
 				;-- get buffer size from gzip format header
 				gzip-uncompress null :dstlen src srclen
 			]
+			true [fire [TO_ERROR(script invalid-arg) method]]
 		]
 
 		loop 2 [	;-- try again in case fails the first time
@@ -2735,9 +2829,9 @@ natives: context [
 			s: GET_BUFFER(dst)
 			buf: as byte-ptr! s/offset
 			res: case [
-				zlib > 0		[zlib-uncompress buf :dstlen src srclen]
-				_deflate > 0	[deflate/uncompress buf :dstlen src srclen]
-				true			[gzip-uncompress buf :dstlen src srclen]
+				sym = compressor/zlib	 [zlib-uncompress buf :dstlen src srclen]
+				sym = compressor/deflate [deflate/uncompress buf :dstlen src srclen]
+				sym = compressor/gzip	 [gzip-uncompress buf :dstlen src srclen]
 			]
 			if res <> 1 [break]
 		]
@@ -2776,12 +2870,13 @@ natives: context [
 			next? one? all? scan? load? [logic!]
 			slot arg [red-value!]
 			bin	bin2 [red-binary!]
+			blk	out  [red-block!]
 			int	  [red-integer!]
 			str	  [red-string!]
-			blk	  [red-block!]
 			dt	  [red-datatype!]
 			fun	  [red-function!]
 			s	  [series!]
+			cs    [c-string!]
 	][
 		#typecheck [transcode next one prescan scan part into trace]
 
@@ -2796,6 +2891,7 @@ natives: context [
 			s/tail: s/offset + 2
 			slot: s/offset
 		]
+		out: either into < 0 [null][stack/arguments + into]
 		offset: 0
 		len: -1
 		bin: as red-binary! stack/arguments
@@ -2826,11 +2922,22 @@ natives: context [
 		one?: any [next? not all? not load?]
 		either type = TYPE_BINARY [
 			if len < 0 [len: binary/rs-length? bin]
-			type: lexer/scan slot binary/rs-head bin len one? scan? load? no :offset fun as red-series! bin
+			cs: as c-string! binary/rs-head bin
+			if all [									;-- skip the BOM, don't load it as word
+				len >= 3
+				cs/1 = #"^(EF)"
+				cs/2 = #"^(BB)"
+				cs/3 = #"^(BF)"
+			][
+				len: len - 3
+				cs: cs + 3
+				bin/head: bin/head + 3
+			]
+			type: lexer/scan slot as byte-ptr! cs len one? scan? load? no :offset fun as red-series! bin out
 		][
 			str: as red-string! bin
 			if len < 0 [len: string/rs-length? str]
-			type: lexer/scan-alt slot str len one? scan? load? no :offset fun as red-series! str
+			type: lexer/scan-alt slot str len one? scan? load? no :offset fun out
 		]
 		
 		if any [not scan? not load?][
@@ -2844,10 +2951,11 @@ natives: context [
 		]
 		if all [next? any [one < 0 not load?]][
 			bin: as red-binary! copy-cell as red-value! bin s/offset + 1
-			bin/head: bin/head + offset
+			s: GET_BUFFER(bin)
+			bin/head: bin/head + offset					;-- move the input after the lexed token
 			slot: as red-value! blk
 		]
-		stack/set-last slot
+		either null? out [stack/set-last slot][stack/set-last as red-value! out]
 	]
 
 	;--- Natives helper functions ---
@@ -3019,18 +3127,28 @@ natives: context [
 		f: argument-as-float
 		d: f/value
 
-		either all [type <> TYPE_TANGENT any [d < -1.0 d > 1.0]] [
-			fire [TO_ERROR(math overflow)]
-		][
-			f/value: switch type [
-				TYPE_SINE	 [asin d]
-				TYPE_COSINE  [acos d]
-				TYPE_TANGENT [atan d]
-			]
+		f/value: switch type [
+			TYPE_SINE	 [asin d]
+			TYPE_COSINE  [acos d]
+			TYPE_TANGENT [atan d]
 		]
 
 		if radians < 0 [f/value: f/value * 180.0 / PI]			;-- to degrees
 		f
+	]
+
+	get-series-length: func [
+		series  [red-series!]
+		return: [integer!]	
+		/local
+			img  [red-image!]
+	][
+		either TYPE_OF(series) = TYPE_IMAGE [
+			img: as red-image! series
+			IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) - img/head
+		][
+			_series/get-length series no
+		]
 	]
 
 	loop?: func [
@@ -3063,6 +3181,7 @@ natives: context [
 		words [red-block!]
 		value [red-value!]
 		size  [integer!]
+		any?  [logic!]
 		only? [logic!]
 		some? [logic!]
 		/local
@@ -3073,24 +3192,35 @@ natives: context [
 			type	[integer!]
 			block?	[logic!]
 	][
-		i: 1
 		type: TYPE_OF(value)
 		block?: any [type = TYPE_BLOCK type = TYPE_PAREN type = TYPE_HASH type = TYPE_MAP type = TYPE_PATH]
 		if block? [blk: as red-block! value]
 		
+		i: 1
+		if all [block? not only?][							;-- pre-check of unset values and non-words
+			while [i <= size][
+				v: _series/pick as red-series! blk i null	;-- NONE if accessed over the tail
+				w: as red-word! _series/pick as red-series! words i null
+				type: TYPE_OF(w)
+				unless ANY_WORD?(type) [					;-- cannot set non-word
+					fire [TO_ERROR(script invalid-arg) w]
+				]
+				
+				if all [not any? TYPE_OF(v) = TYPE_UNSET][	;-- requires /any refinement
+					fire [TO_ERROR(script need-value) w]
+				]
+				
+				i: i + 1
+			]
+		]
+		
+		i: 1
 		while [i <= size][
 			v: either all [block? not only?][_series/pick as red-series! blk i null][value]
 			unless all [some? TYPE_OF(v) = TYPE_NONE][
 				w: as red-word! _series/pick as red-series! words i null
 				type: TYPE_OF(w)
-				unless any [
-					type = TYPE_WORD
-					type = TYPE_GET_WORD
-					type = TYPE_SET_WORD
-					type = TYPE_LIT_WORD
-				][
-					fire [TO_ERROR(script invalid-arg) w]
-				]
+				unless ANY_WORD?(type) [fire [TO_ERROR(script invalid-arg) w]]
 				stack/keep								;-- avoid object event handler overwritting stack slots
 				_context/set w v						;-- can trigger object event handler
 			]
@@ -3185,17 +3315,14 @@ natives: context [
 				]
 				TYPE_IMAGE [
 					#case [
-						any [OS = 'Windows OS = 'macOS] [
+						any [OS = 'Windows OS = 'macOS OS = 'Linux] [
 							image/set-many blk as red-image! series size
 						]
-						OS = 'Linux [#if modules contains 'View [
-							image/set-many blk as red-image! series size
-						]]
 						true [--NOT_IMPLEMENTED--]
 					]
 				]
 				default [
-					set-many blk as red-value! series size no no
+					set-many blk as red-value! series size yes no no	;@@ allow set/any semantics
 				]
 			]
 		]
@@ -3229,28 +3356,20 @@ natives: context [
 		result
 	]
 	
-	forall-loop: func [									;@@ inline?
+	forall-next?: func [									;@@ inline?
 		return: [logic!]
 		/local
 			series [red-series!]
-			saved  [red-series!]
-			word   [red-word!]
-	][
-		word: as red-word! stack/arguments - 1
-		assert TYPE_OF(word) = TYPE_WORD
-
-		series: as red-series! _context/get word
-		saved: as red-series! stack/arguments - 2
-		if series/node <> saved/node [fire [TO_ERROR(script bad-loop-series) series]]
-		loop? series
-	]
-	
-	forall-next: func [									;@@ inline?
-		/local
-			series [red-series!]
+			img	   [red-image!]
 	][
 		series: as red-series! _context/get as red-word! stack/arguments - 1
 		series/head: series/head + 1
+		either TYPE_OF(series) = TYPE_IMAGE [
+			img: as red-image! series
+			IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) <= img/head
+		][
+			_series/rs-tail? series
+		]
 	]
 	
 	forall-end: func [									;@@ inline?
@@ -3282,31 +3401,6 @@ natives: context [
 		series/head: changed/head
 	]
 	
-	repeat-init*: func [
-		cell  	[red-value!]
-		return: [integer!]
-		/local
-			int [red-integer!]
-	][
-		copy-cell stack/arguments cell
-		int: as red-integer! cell
-		int/value										;-- overlapping /value field for integer! and char!
-	]
-	
-	repeat-set: func [
-		cell  [red-value!]
-		value [integer!]
-		/local
-			int [red-integer!]
-	][
-		assert any [
-			TYPE_OF(cell) = TYPE_INTEGER
-			TYPE_OF(cell) = TYPE_CHAR
-		]
-		int: as red-integer! cell
-		int/value: value								;-- overlapping /value field for integer! and char!
-	]
-	
 	coerce-counter: func [
 		slot 	[red-value!]
 		/local
@@ -3323,7 +3417,15 @@ natives: context [
 		]
 	]
 	
-	coerce-counter*: func [][coerce-counter stack/arguments]
+	coerce-counter*: does [coerce-counter stack/arguments]
+	
+	inc-counter: func [w [red-word!] /local int [red-integer!]][
+		assert TYPE_OF(w) = TYPE_WORD
+		int: as red-integer! _context/get w
+		assert TYPE_INTEGER = TYPE_OF(int)
+		int/value: int/value + 1
+		_context/set w as red-value! int
+	]
 	
 	init: does [
 		table: as int-ptr! allocate NATIVES_NB * size? integer!

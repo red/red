@@ -1,7 +1,7 @@
 REBOL [
 	Title:   "Regression tests script for Red Compiler"
 	Author:  "Boleslav Březovský"
-	File: 	 %regression-test-redc.r
+	File: 	 %regression-test-redc-4.r
 	Rights:  "Copyright (C) 2016 Boleslav Březovský. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
@@ -161,16 +161,15 @@ do [
 		--compile-and-run-this-red {do [throw 10]}
 		--assert not crashed?
 
-;; FIXME: still crashes in 0.6.4
-; 	--test-- "#1858"
-; 		--compile-and-run-this-red {
-; probe type? try [
-; 	f: func [] [f]
-; 	f
-; ]
-; }
-; 		--assert not crashed?
-; 		--assert equal? qt/output "error!^/"
+ 	--test-- "#1858"
+ 		--compile-and-run-this-red {
+			 probe type? try [
+			 	f: func [] [f]
+			 	f
+			 ]
+		 }
+ 		--assert not crashed?
+ 		--assert equal? qt/output "error!^/"
 
 	--test-- "#1866"
 		--compile-and-run-this-red {do [parse "abc" [(return 1)]]}

@@ -68,6 +68,11 @@ Red [
 	--test-- "pb-7"			--assert equal? 4x5 make pair! [4 5]
 	--test-- "pb-8"			--assert equal? none attempt [as-pair 10]
 	--test-- "pb-9"			--assert equal? 10x10 make pair! 10
+
+	--test-- "pb-10"		--assert error? try [as-pair 1 -1.#inf]
+	--test-- "pb-11"		--assert error? try [as-pair 1  1.#inf]
+	--test-- "pb-12"		--assert error? try [as-pair 1  1.#nan]
+	--test-- "pb-13"		--assert error? try [as-pair -1.#inf 1]
 		
 ===end-group===
 
@@ -256,6 +261,25 @@ Red [
 	--test-- "pcomp-2"		--assert not-equal? 1x1 1x0
 	--test-- "pcomp-3"		--assert not-equal? 1x1 0x1
 	--test-- "pcomp-4"		--assert not-equal? 1x1 0x0
+
+===end-group===
+
+===start-group=== "pair - round"
+
+	--test-- "pround-1"		--assert 15x10 = round/to 17x8  5
+	--test-- "pround-3"		--assert 15x10 = round/to 15x10 1
+	--test-- "pround-3"		--assert 15x10 = round/to 15x10 0
+
+===end-group===
+
+
+===start-group=== "pair - issues"
+
+	--test-- "#4753"
+		--assert error? try [1x1 * 1.#nan]
+		--assert error? try [1x1 * 1.#inf]
+		--assert error? try [1.#nan + 1x1]
+		--assert error? try [1.#inf + 1x1]
 
 ===end-group===
 

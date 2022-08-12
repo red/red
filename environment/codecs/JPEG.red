@@ -17,20 +17,14 @@ put system/codecs 'jpeg context [
 	suffixes: [%.jpg %.jpeg %.jpe %.jfif]	
 	
 	encode: routine [img [image!] where [any-type!]][
-		#if not find [Android Linux FreeBSD NetBSD Syllabe] OS [
+		#if not find [Android FreeBSD NetBSD Syllabe] OS [
 			stack/set-last as cell! image/encode img where IMAGE_JPEG
 		]
-		#if OS = 'Linux [#if modules contains 'View [
-			stack/set-last as cell! image/encode img where IMAGE_JPEG
-		]]
 	]
 
 	decode: routine [data [any-type!]][
-		#if not find [Android Linux FreeBSD NetBSD Syllabe] OS [
+		#if not find [Android FreeBSD NetBSD Syllabe] OS [
 			stack/set-last as cell! image/decode data
 		]
-		#if OS = 'Linux [#if modules contains 'View [
-			stack/set-last as cell! image/decode data
-		]]
 	]
 ]

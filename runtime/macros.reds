@@ -391,11 +391,27 @@ Red/System [
 	]
 ]
 
+#define ANY_NUMBER?(type)	[
+	any [
+		type = TYPE_INTEGER
+		type = TYPE_FLOAT
+		type = TYPE_PERCENT
+	]
+]
+
 #define ANY_LIST?(type)	[
 	any [
 		type = TYPE_BLOCK
 		type = TYPE_PAREN
 		type = TYPE_HASH
+	]
+]
+
+#define ANY_SERIES_PARSE?(type) [			;-- any-series! types that can be processed by Parse
+	all [
+		ANY_SERIES?(type)
+		type <> TYPE_IMAGE
+		type <> TYPE_VECTOR
 	]
 ]
 
@@ -537,19 +553,6 @@ Red/System [
 	]
 ]
 
-#define GET_INT_FROM(n spec) [
-	either TYPE_OF(spec) = TYPE_FLOAT [
-		fl: as red-float! spec
-		if any [fl/value > 2147483647.0 fl/value < -2147483648.0][
-			fire [TO_ERROR(script out-of-range) fl]
-		]
-		n: as-integer fl/value
-	][
-		int: as red-integer! spec
-		n: int/value
-	]
-]
-
 #define ERR_INVALID_REFINEMENT_ARG(refine arg) [
 	fire [
 		TO_ERROR(script invalid-refine-arg)
@@ -587,9 +590,6 @@ Red/System [
 		return: [integer!]
 	] actions/get-action-ptr value ACT_COMPARE
 ]
-
-#define IMAGE_WIDTH(size)  (size and FFFFh) 
-#define IMAGE_HEIGHT(size) (size >> 16)
 
 #if debug? = yes [
 	#define dump4	[dump-hex4 as int-ptr!]

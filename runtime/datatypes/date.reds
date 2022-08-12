@@ -70,10 +70,10 @@ date: context [
 			7 [integer/push time/get-hours t]
 			8 [integer/push time/get-minutes t]
 			9 [float/push DATE_GET_SECONDS(t)]
-		   10 [integer/push (date-to-days d) + 2 % 7 + 1]
+		   10 [integer/push (date-to-days d) + 2 // 7 + 1]
 		   11 [integer/push get-yearday d]
 		   13 [
-				wd: (Jan-1st-of d) + 3 % 7				;-- start the week on Sunday
+				wd: (Jan-1st-of d) + 3 // 7				;-- start the week on Sunday
 				days: 7 - wd
 				d: get-yearday d
 				d: either d <= days [1][d + wd - 1 / 7 + 1]
@@ -127,7 +127,7 @@ date: context [
 			wd	 [integer!]
 	][
 		days: Jan-1st-of d
-		wd: days + 2 % 7 + 1
+		wd: days + 2 // 7 + 1
 		weekday/value: wd
 		base: either wd < 5 [1][8]						;-- before Friday, go prev Monday, from Friday, go to next one
 		days + base - wd								;-- adjust to closest Monday
@@ -423,7 +423,7 @@ date: context [
 		d: dt/date
 		days: date-to-days d
 		t?: DATE_GET_TIME_FLAG(d)
-		dt/date: days-to-date days + (v - 1) - (days + 2 % 7) DATE_GET_ZONE(d) t?
+		dt/date: days-to-date days + (v - 1) - (days + 2 // 7) DATE_GET_ZONE(d) t?
 	]
 	
 	set-yearday: func [
@@ -881,11 +881,15 @@ date: context [
 		
 		string/append-char GET_BUFFER(buffer) sep
 		
+		if year < 0 [
+			year: 0 - year
+			string/append-char GET_BUFFER(buffer) as-integer #"-"
+		]
 		formed: integer/form-signed year
-		part: either year >= 0 [
+		part: either year < 100 [
 			len: 4 - length? formed
 			if len > 0 [loop len [string/append-char GET_BUFFER(buffer) as-integer #"0"]]
-			part - 5									;-- 4 + separator
+			part: part - 5									;-- 4 + separator
 		][
 			part - length? formed
 		]
@@ -938,6 +942,8 @@ date: context [
 		value	[red-value!]
 		path	[red-value!]
 		case?	[logic!]
+		get?	[logic!]
+		tail?	[logic!]
 		return:	[red-value!]
 		/local
 			word   [red-word!]
@@ -1036,13 +1042,13 @@ date: context [
 						int: as red-integer! element
 						int/value: int/value - 6		;-- normalize accessor for time!
 					]
-					time/eval-path as red-time! dt element value path case?
+					time/eval-path as red-time! dt element value path case? no yes
 					set-time dt dt/time field = 7
 					dt/date: DATE_SET_TIME_FLAG(dt/date)
 				]
 				10  [									;-- /weekday:
 					days: date-to-days d
-					dt/date: days-to-date days + (v - 1) - (days + 2 % 7) DATE_GET_ZONE(d) time?
+					dt/date: days-to-date days + (v - 1) - (days + 2 // 7) DATE_GET_ZONE(d) time?
 				]
 				11 [									;-- /yearday: /julian: 
 					dt/date: days-to-date v + (Jan-1st-of d) - 1 DATE_GET_ZONE(d) time?
@@ -1050,7 +1056,7 @@ date: context [
 				13 [									;-- /week:
 					days: Jan-1st-of d
 					if v > 1 [
-						wd: days + 3 % 7				;-- start the week on Sunday
+						wd: days + 3 // 7				;-- start the week on Sunday
 						days: days + (v - 2 * 7) + 7 - wd
 					]
 					dt/date: days-to-date days DATE_GET_ZONE(d) time?
@@ -1083,6 +1089,8 @@ date: context [
 			t1	 [float!]
 			t2	 [float!]
 			eq?	 [logic!]
+			ip1  [int-ptr!]
+			ip2  [int-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "date/compare"]]
 
@@ -1090,17 +1098,21 @@ date: context [
 		if type <> TYPE_DATE [RETURN_COMPARE_OTHER]
 		d1: DATE_CLEAR_TIME_FLAG(value1/date) >> 7		;-- remove TZ, clear time? flag
 		d2: DATE_CLEAR_TIME_FLAG(value2/date) >> 7
-		t1: floor value1/time + 0.5						;-- in UTC already, round to integer
-		t2: floor value2/time + 0.5
+		t1: value1/time
+		t2: value2/time
 		
-		eq?: all [d1 = d2 t1 = t2]
+		eq?: all [d1 = d2 float/almost-equal t1 t2]
 		
 		switch op [
 			COMP_EQUAL
 			COMP_FIND
-			COMP_SAME
 			COMP_NOT_EQUAL
 			COMP_STRICT_EQUAL [res: as-integer not eq?]
+			COMP_SAME [
+				ip1: as int-ptr! :t1
+				ip2: as int-ptr! :t2
+				res: as-integer any [d1 <> d2  ip1/1 <> ip2/1  ip1/2 <> ip2/2]
+			]
 			default [
 				either eq? [res: 0][
 					res: SIGN_COMPARE_RESULT(d1 d2)

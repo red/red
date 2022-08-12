@@ -63,7 +63,7 @@ mold: make action! [[
 		value	  [any-type!]
 		/only "Exclude outer brackets if value is a block"
 		/all  "TBD: Return value in loadable format"
-		/flat "TBD: Exclude all indentation"
+		/flat "Exclude all indentation"
 		/part "Limit the length of the result"
 			limit [integer!]
 		return:	  [string!]
@@ -148,7 +148,7 @@ round: make action! [[
 		"Returns the nearest integer. Halves round up (away from zero) by default"
 		n		[number! money! time! pair!]
 		/to		"Return the nearest multiple of the scale parameter"
-		scale	[number! money! time!] "Must be a non-zero value"
+		scale	[number! money! time!] "If zero, returns N unchanged"
 		/even		"Halves round toward even results"
 		/down		"Round toward zero, ignoring discarded digits. (truncate)"
 		/half-down	"Halves round toward zero"
@@ -291,10 +291,10 @@ copy: make action! [[
 find: make action! [[
 		"Returns the series where a value is found, or NONE"
 		series	 [series! bitset! typeset! port! map! none!]
-		value 	 [any-type!]
+		value 	 [any-type!] "Typesets and datatypes can be used to search by datatype"
 		/part "Limit the length of the search"
 			length [number! series!]
-		/only "Treat a series search value as a single value"
+		/only "Treat series and typeset value arguments as single values"
 		/case "Perform a case-sensitive search"
 		/same {Use "same?" as comparator}
 		/any  "TBD: Use * and ? wildcards in string searches"
@@ -305,7 +305,7 @@ find: make action! [[
 		/last "Find the last occurrence of value, from the tail"
 		/reverse "Find the last occurrence of value, from the current index"
 		/tail "Return the tail of the match found, rather than the head"
-		/match "Match at current index only and return tail of match"
+		/match "Match at current index only"
 	]
 	#get-definition ACT_FIND
 ]
@@ -397,7 +397,7 @@ poke: make action! [[
 put: make action! [[
 		"Replaces the value following a key, and returns the new value"
 		series	 [series! port! map! object!]
-		key 	 [scalar! any-string! any-word! binary!]
+		key 	 [scalar! any-string! all-word! binary!]
 		value 	 [any-type!]
 		/case "Perform a case-sensitive search"
 		return:  [series! port! map! object!]

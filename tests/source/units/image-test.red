@@ -11,9 +11,6 @@ Red [
 
 ~~~start-file~~~ "image"
 
-; FIXME: linux compiler can't swallow this, using do
-do [if all [system/view value? 'image! datatype? get 'image!] [
-
 img: make image! 2x2
 ===start-group=== "image range(integer index)"
 	--test-- "image range(integer index) 1"
@@ -214,12 +211,15 @@ img: make image! 2x2
 		img2: copy img
 		--assert img = img2
 
+	#if config/target <> 'ARM [
 	--test-- "#3769 (#1555 regression)"
-		save %test.png make image! 10x10
-		img: load %test.png
-		save %test.png img
-		delete %test.png
+		test-png: qt-tmp-dir/test1555.png
+		save test-png make image! 10x10
+		img: load test-png
+		save test-png img
+		delete test-png
 		--assert true
+	]
 
 	--test-- "#4421 case 1"
 		i: make image! [1x1 #{111111}]
@@ -242,7 +242,5 @@ img: make image! 2x2
 		]
 	
 ===end-group===
-
-]]
 
 ~~~end-file~~~

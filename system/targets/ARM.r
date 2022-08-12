@@ -759,7 +759,7 @@ make-profilable make target-class [
 		name  [word! object!]
 		gcode [binary! block! none!]
 		pcode [binary! block! none!]
-		lcode [binary! block!]
+		lcode [binary! block! none!]
 		/alt										;-- use alternative register (r1)
 		/local offset opcode Rn
 	][
@@ -1269,6 +1269,11 @@ make-profilable make target-class [
 		emit-i32 #{e129f000}						;-- MSR CPSR, r0
 		emit-i32 #{ecbd0b21}						;-- FLDMIAX sp!, {d0-d15}
 		emit-i32 #{e8bd57ff}						;-- LDMFD sp!, {r0-r12,r14}
+	]
+	
+	emit-clear-slot: func [name [word!]][
+		emit-load-imm32 0
+		emit-load-local #{e58b0000} emitter/local-offset? name ;-- STR r0, [fp, #[-]n]		; local
 	]
 
 	emit-io-write: func [type][
@@ -1832,12 +1837,40 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-start-loop: does [
-		emit-i32 #{e92d0001}						;-- PUSH {r0}
+	emit-start-loop: func [spec [block! none!] name [word! none!] /local offset][
+		if verbose >= 3 [print ">>>emitting start loop"]
+		either spec [
+			emit-i32 #{e59f1000}					;-- LDR r1, [pc, #0]	; offset 0 => value
+			emit-i32 #{ea000000}					;-- B <after_value>			
+			emit-reloc-addr spec/2/3
+			emit-i32 #{00000000}					;-- address slot
+			emit-i32 pick [
+				#{e7810009}							;-- STR r0, [r1]		; global
+				#{e5010000}							;-- STR r0, [r1, sb]	; PIC
+			] PIC?
+		][
+			emit-load-local
+				#{e58b0000}							;-- STR r0, [fp, #[-]n]	; local	
+				emitter/local-offset? name
+		]
 	]
-
-	emit-end-loop: does [
-		emit-i32 #{e8bd0001}						;-- POP {r0}
+								
+	emit-end-loop: func [spec [block! none!] name [word! none!] /local offset][
+		if verbose >= 3 [print ">>>emitting end loop"]
+		either spec [
+			emit-i32 #{e59f0000}					;-- LDR r0, [pc, #0]	; offset 0 => value
+			emit-i32 #{ea000000}					;-- B <after_value>
+			emit-reloc-addr spec/2/3
+			emit-i32 #{00000000}					;-- address slot
+			emit-i32 pick [
+				#{e7900009}							;-- LDR r0, [r0, sb]	; PIC
+				#{e5900000} 						;-- LDR r0, [r0]		; global
+			] PIC?
+		][
+			emit-load-local
+				#{e59b0000}							;-- LDR r0, [fp, #[-]n]	; local
+				emitter/local-offset? name
+		]		
 		emit-i32 #{e2500001}		 				;-- SUBS r0, r0, #1	; update Z flag
 	]
 	
@@ -1869,28 +1902,34 @@ make-profilable make target-class [
 		code 	[binary!]
 		op 		[word! block! logic! none!]
 		offset  [integer! none!]
+		parity	[logic! none!]	"yes = also emit a check for unordered (NaN) comparison"
 		/back?
-		/local distance opcode jmp
+		/local distance opcode jmp flip?
 	][
 		distance: (length? code) - (any [offset 0]) - 4	;-- offset from the code's head
 		if back? [distance: negate distance + 12]	;-- 8 (PC offset) + one instruction
 		
-		op: either not none? op [					;-- explicitly test for none
+		either none? op [							;-- explicitly test for none
+			op: #{e0}								;-- unconditional jump
+		][
+			flip?: no								;-- is condition reversed? (affects NaN handling)
 			op: case [
 				block? op [							;-- [cc] => keep
 					op: op/1
 					either logic? op [pick [= <>] op][op]	;-- [logic!] or [cc]
 				]
 				logic? op [pick [= <>] op]			;-- test for TRUE/FALSE
-				'else 	  [opposite? op]			;-- 'cc => invert condition
+				'else [flip?: yes  opposite? op]	;-- 'cc => invert condition
 			]
-			either '- = third op: find conditions op [	;-- lookup the code for the condition
+			op: either '- = third op: find conditions op [	;-- lookup the code for the condition
 				op/2								;-- condition defined only for signed
 			][
-				pick op pick [2 3] signed?			;-- choose code between signed and unsigned
+				;; for floats only: use conds that are false given NaN
+				;; in unflipped state: unsigned for < <= , signed for > >=
+				;; (ref: clause A8.3 of ARM Architecture Reference Manual)
+				flip?: flip? xor (found? find [< <=] op/1) and parity
+				pick op pick [2 3] signed? xor flip?	;-- choose code between signed and unsigned
 			]
-		][
-			#{e0}									;-- unconditional jump
 		]
 		unless back? [
 			if same? head code emitter/code-buf [
@@ -2165,7 +2204,7 @@ make-profilable make target-class [
 	
 	emit-math-op: func [
 		name [word!] a [word!] b [word!] args [block!]
-		/local mod? scale c type arg2 op-poly load? spec opt?
+		/local mod? scale c type arg2 op-poly load? spec
 	][
 		;-- r0 = a, r1 = b
 		if find mod-rem-op name [					;-- work around unaccepted '// and '%
@@ -2263,25 +2302,15 @@ make-profilable make target-class [
 			/ [
 				switch b [
 					imm [
-						either opt?: all [
-							not mod?
-							not zero? arg2
-							c: power-of-2? arg2		;-- trivial optimization for b=2^n
-							c > 0
-						][
-							emit-i32 #{e1b00040}	;-- ASRS r0, r0, #log2(b)
-								or to-shift-imm c
-						][
-							emit-i32 #{e92d0002}	;-- PUSH {r1}	; save r1 from corruption
-							emit-load-imm32/reg args/2 1 ;-- MOV r1, #value
-						]
+						emit-i32 #{e92d0002}		 ;-- PUSH {r1}	; save r1 from corruption
+						emit-load-imm32/reg args/2 1 ;-- MOV r1, #value
 					]
 					ref [
 						emit-i32 #{e92d0002}		;-- PUSH {r1}	; save r1 from corruption
 						if load? [emit-load/alt args/2]
 					]
 				]
-				if all [not opt? compiler/job/debug?][
+				if compiler/job/debug? [
 					spec: emitter/symbols/***-on-div-error
 					foreach opcode [
 						#{e3510000}			; CMP r1, #0			; if divisor = 0
@@ -2304,36 +2333,34 @@ make-profilable make target-class [
 						either block? opcode [do opcode][emit-i32 opcode]
 					]
 				]
-				unless opt? [
-					either compiler/job/cpu-version < 7.0 [
-						call-divide mod?
+				either compiler/job/cpu-version < 7.0 [
+					call-divide mod?
+				][
+					either mod? [
+						emit-i32 #{e713f110}	;-- SDIV r3, r0, r1
+						emit-i32 #{e0640193}	;-- MLS r4, r3, r1, r0	; r4 = r0 - r3 * r1
+						if mod? <> 'rem [		;-- modulo, not remainder
+						;-- Adjust modulo result to be mathematically correct:
+						;-- 	if modulo < 0 [
+						;--			if divisor < 0  [divisor: negate divisor]
+						;--			modulo: modulo + divisor
+						;--		]
+							emit-i32 #{e3540000} ;-- CMP r4, #0
+							emit-i32 #{aa000002} ;-- BGE .exit
+							emit-i32 #{e3510000} ;-- CMP r1, #0
+							emit-i32 #{42611000} ;-- RSBMI r1, r1, #0
+							emit-i32 #{e0844001} ;-- ADD r4, r4, r1
+						]						 ;-- .exit:
+						emit-i32 #{e1a00004}	 ;-- MOV r0, r4	; r0: modulo or remainder
 					][
-						either mod? [
-							emit-i32 #{e713f110}	;-- SDIV r3, r0, r1
-							emit-i32 #{e0640193}	;-- MLS r4, r3, r1, r0	; r4 = r0 - r3 * r1
-							if mod? <> 'rem [		;-- modulo, not remainder
-							;-- Adjust modulo result to be mathematically correct:
-							;-- 	if modulo < 0 [
-							;--			if divisor < 0  [divisor: negate divisor]
-							;--			modulo: modulo + divisor
-							;--		]
-								emit-i32 #{e3540000} ;-- CMP r4, #0
-								emit-i32 #{aa000002} ;-- BGE .exit
-								emit-i32 #{e3510000} ;-- CMP r1, #0
-								emit-i32 #{42611000} ;-- RSBMI r1, r1, #0
-								emit-i32 #{e0844001} ;-- ADD r4, r4, r1
-							]						 ;-- .exit:
-							emit-i32 #{e1a00004}	 ;-- MOV r0, r4	; r0: modulo or remainder
-						][
-							emit-i32 #{e710f110}	 ;-- SDIV r0, r0, r1
-						]
+						emit-i32 #{e710f110}	 ;-- SDIV r0, r0, r1
 					]
-					if any [						 ;-- in case r1 was saved on stack
-						all [b = 'imm any [mod? not c]]
-						b = 'ref
-					][
-						emit-i32 #{e8bd0002}		 ;-- POP {r1}
-					]
+				]
+				if any [						 ;-- in case r1 was saved on stack
+					all [b = 'imm any [mod? not c]]
+					b = 'ref
+				][
+					emit-i32 #{e8bd0002}		 ;-- POP {r1}
 				]
 			]
 		]
@@ -2570,6 +2597,22 @@ make-profilable make target-class [
 					]
 				]
 				if all [object? args/2 not conv?][emit-vfp-casting/right args/2]
+			]
+		]
+		all [
+			not conv?
+			not object? args/2
+			any [
+				all [
+					saved = 4
+					width = 8
+					emit-i32 #{eeb71bc1}			;-- FCVTSD s2, d1	; convert to 32-bit
+				]
+				all [
+					saved = 8
+					width = 4
+					emit-i32 #{eeb71ac1}			;-- FCVTDS d1, s2	; convert to 64-bit
+				]
 			]
 		]
 		width: saved

@@ -39,7 +39,6 @@
 	red/stack/reset
 	red/stack/keep
 	red/stack/push
-	red/stack/check-call
 	red/stack/unroll
 	red/stack/unroll-loop
 	red/stack/revert
@@ -133,12 +132,14 @@
 	red/object/init-push
 	red/object/init-events
 	red/object/loc-fire-on-set*
+	red/object/loc-ctx-fire-on-set*
 	red/object/fire-on-set*
 	red/object/get-values
 
 	red/integer/get-any*
 	red/integer/get*
 	red/integer/get
+	red/integer/make-at
 	red/integer/form-signed
 	red/logic/get
 	red/float/get
@@ -204,17 +205,16 @@
 	red/object/unchanged?
 	red/object/unchanged2?
 
-	red/natives/repeat-init*
-	red/natives/repeat-set
 	red/natives/remove-each-init
 	red/natives/remove-each-next
 	red/natives/foreach-next-block
 	red/natives/foreach-next
-	red/natives/forall-loop
-	red/natives/forall-next
+	red/natives/forall-next?
 	red/natives/forall-end
 	red/natives/forall-end-adjust
 	red/natives/coerce-counter*
+	red/natives/inc-counter
+	red/natives/get-series-length
 
 	red/actions/make*
 	red/actions/random*
@@ -403,7 +403,6 @@
 	red/string/make-at
 	red/unicode/load-utf8-buffer
 	red/ownership/bind
-	red/integer/make-at
 	red/string/load
 	red/set-type
 	red/unicode/load-utf8-stream
@@ -422,6 +421,7 @@
 	red/string/load-at
 ][
 	red/root				red-block!
+	red/stk-bottom			int-ptr!
 	red/object/path-parent	cell!
 	red/object/field-parent	cell!
 	red/stack/arguments		cell!

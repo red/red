@@ -284,6 +284,23 @@ get-event-key: func [
 	]
 ]
 
+get-event-orientation: func [
+	evt		[red-event!]
+	return: [red-value!]
+	/local
+		msg  [tagMSG]
+][
+	if evt/type = EVT_SCROLL [
+		msg: as tagMSG evt/msg
+		either msg/msg = WM_VSCROLL [
+			return as red-value! _vertical
+		][
+			return as red-value! _horizontal
+		]
+	]
+	as red-value! none-value
+]
+
 get-event-picked: func [
 	evt		[red-event!]
 	return: [red-value!]
@@ -479,6 +496,7 @@ make-event: func [
 		key	   [integer!]
 		char   [integer!]
 		saved  [handle!]
+		t?	   [logic!]
 ][
 	gui-evt/type:  evt
 	gui-evt/msg:   as byte-ptr! msg
@@ -568,10 +586,15 @@ make-event: func [
 	saved: msg/hWnd
 	stack/mark-try-all words/_anon
 	res: as red-word! stack/arguments
+	
+	t?: interpreter/tracing?
+	interpreter/tracing?: no
 	catch CATCH_ALL_EXCEPTIONS [
 		#call [system/view/awake gui-evt]
 		stack/unwind
 	]
+	interpreter/tracing?: t?
+	
 	stack/adjust-post-try
 	if system/thrown <> 0 [system/thrown: 0]
 	msg/hWnd: saved
@@ -638,6 +661,7 @@ process-command-event: func [
 		type   [red-word!]
 		values [red-value!]
 		int	   [red-integer!]
+		fstate [red-value!]
 		idx	   [integer!]
 		res	   [integer!]
 		sym    [integer!]
@@ -694,13 +718,23 @@ process-command-event: func [
 			
 			unless zero? evt [make-event current-msg 0 evt]	;-- should be *after* get-facet call (Windows closing on click case)
 		]
-		BN_UNPUSHED [
+		BN_UNPUSHED [ ;-- overlapped with CBN_SETFOCUS
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
-			if type/symbol = radio [
+			either type/symbol = radio [
 				current-msg/hWnd: child						;-- force child handle
 				unless as logic! SendMessage child BM_GETSTATE 0 0 [
 					make-event current-msg 0 EVT_CHANGE		;-- ignore double-click (fixes #4246)
 				]
+			][		;-- CBN_SETFOCUS
+				values: get-face-values hWnd
+				if values <> null [
+					make-at 
+						child
+						as red-object! values + FACE_OBJ_SELECTED
+				]
+				current-msg/hWnd: child
+				type: as red-word! get-facet current-msg FACE_OBJ_TYPE
+				make-event current-msg 0 EVT_FOCUS
 			]
 		]
 		EN_CHANGE [											;-- sent also by CreateWindow
@@ -717,8 +751,8 @@ process-command-event: func [
 			]
 			0
 		]
-		EN_SETFOCUS
-		CBN_SETFOCUS [
+		LBN_SETFOCUS
+		EN_SETFOCUS [
 			values: get-face-values hWnd
 			if values <> null [
 				make-at 
@@ -727,16 +761,21 @@ process-command-event: func [
 			]
 			current-msg/hWnd: child
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
+			sym: symbol/resolve type/symbol
 			if any [
-				type/symbol = field
-				type/symbol = area
+				sym = field
+				sym = area
 			][	
 				select-text child get-face-values child
 			]
-			make-event current-msg 0 EVT_FOCUS
+			either any [
+				sym = drop-down
+				sym = drop-list
+			][
+				make-event current-msg 0 EVT_UNFOCUS
+			][make-event current-msg 0 EVT_FOCUS]
 		]
-		EN_KILLFOCUS
-		CBN_KILLFOCUS [
+		EN_KILLFOCUS [
 			current-msg/hWnd: child
 			make-event current-msg 0 EVT_UNFOCUS
 		]
@@ -754,6 +793,9 @@ process-command-event: func [
 				idx + 1 = int/value
 			][exit]										;-- do not send event if select the same item
 			res: make-event current-msg idx EVT_SELECT
+
+			fstate: values + FACE_OBJ_STATE
+			if TYPE_OF(fstate) <> TYPE_BLOCK [exit]		;-- widget destroyed
 
 			idx: as-integer SendMessage child widget 0 0 ;-- user may change select item in on-select handler
 			if all [									;-- if user change it back to the preview item, exit
@@ -776,6 +818,7 @@ process-command-event: func [
 			][
 				make-event current-msg -1 EVT_CHANGE
 			]
+			if type/symbol = text-list [make-event current-msg 0 EVT_UNFOCUS]
 		]
 		STN_CLICKED [
 			current-msg/hWnd: child
@@ -816,7 +859,7 @@ paint-background: func [
 	][
 		;-- GDI+ alpha aware fill is required for W7 layered windows capture via OS-to-image
 		either TYPE_OF(color) = TYPE_TUPLE [
-			gdiclr: color/array1
+			gdiclr: get-tuple-color color
 		][
 			if (GetWindowLong hWnd GWL_STYLE) and WS_CHILD <> 0 [return false]
 			gdiclr: GetSysColor COLOR_3DFACE
@@ -883,7 +926,10 @@ process-custom-draw: func [
 					SetTextColor DC color/array1 and 00FFFFFFh
 				]
 				rc: as RECT_STRUCT (as int-ptr! item) + 5
-				unless sym = button [
+				unless any [
+					sym = button
+					sym = toggle
+				][
 					rc/left: rc/left + dpi-scale 16			;-- compensate for invisible check box
 				]
 				if TYPE_OF(txt) = TYPE_STRING [
@@ -908,6 +954,7 @@ bitblt-memory-dc: func [
 	dc		[handle!]
 	dstx	[integer!]
 	dsty	[integer!]
+	src-dc	[handle!]
 	/local
 		rect	[RECT_STRUCT value]
 		width	[integer!]
@@ -917,8 +964,9 @@ bitblt-memory-dc: func [
 		bf		[tagBLENDFUNCTION]
 		paint? 	[logic!]
 ][
-	if dc = null [dc: BeginPaint hWnd paint  paint?: yes]
+	if dc = null [dc: BeginPaint hWnd paint paint?: yes]
 	hBackDC: as handle! GetWindowLong hWnd wc-offset - 4
+	if null? hBackDC [hBackDC: src-dc]
 	GetClientRect hWnd rect
 	width: rect/right - rect/left
 	height: rect/bottom - rect/top
@@ -1008,7 +1056,7 @@ set-window-info: func [
 
 update-window: func [
 	child	[red-block!]
-	hdwp	[handle!]
+	fonts	[node!]				;-- font handle array
 	/local
 		face	[red-object!]
 		tail	[red-object!]
@@ -1019,38 +1067,35 @@ update-window: func [
 		word	[red-word!]
 		type	[integer!]
 		hWnd	[handle!]
-		end?	[logic!]
-		len		[integer!]
+		hdwp	[handle!]
+		target	[integer!]
+		hfont	[handle!]
 ][
-	end?: null? hdwp
-	if null? hdwp [hdwp: BeginDeferWindowPos 1]
+	if null? fonts [
+		get-metrics
+		fonts: alloc-bytes 32 * size? int-ptr!
+	]
+
+	if TYPE_OF(child) <> TYPE_BLOCK [exit]
 
 	face: as red-object! block/rs-head child
 	tail: as red-object! block/rs-tail child
+	hdwp: BeginDeferWindowPos 32
 	while [face < tail][
 		hWnd: face-handle? face
 		if hWnd <> null [
 			values: get-face-values hWnd
-			word: as red-word! values + FACE_OBJ_TYPE
-			type: symbol/resolve word/symbol
-			case [
-				all [
-					type = rich-text
-					(GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D <> 0
-				][
-					len: GetWindowLong hWnd wc-offset - 24
-					if len <> 0 [
-						d2d-release-target as int-ptr! len
-						SetWindowLong hWnd wc-offset - 24 0
-					]
-				]
-				type = group-box [
-					0
-				]
-				true [0]
-			]
 			sz: as red-pair! values + FACE_OBJ_SIZE
 			pos: as red-pair! values + FACE_OBJ_OFFSET
+			word: as red-word! values + FACE_OBJ_TYPE
+			type: symbol/resolve word/symbol
+			if type = rich-text [
+				target: GetWindowLong hWnd wc-offset - 36
+				if target <> 0 [
+					d2d-release-target as render-target! target
+					SetWindowLong hWnd wc-offset - 36 0
+				]
+			]
 			hdwp: DeferWindowPos
 				hdwp
 				hWnd
@@ -1059,20 +1104,35 @@ update-window: func [
 				dpi-scale sz/x  dpi-scale sz/y
 				SWP_NOZORDER or SWP_NOACTIVATE
 
-			font: as red-object! values + FACE_OBJ_FONT
-			if TYPE_OF(font) = TYPE_OBJECT [
-				free-font font
-				make-font null font
-			]
 			child: as red-block! values + FACE_OBJ_PANE
 			if TYPE_OF(child) = TYPE_BLOCK [
-				update-window child hdwp
+				EndDeferWindowPos hdwp
+				update-window child fonts
+				hdwp: BeginDeferWindowPos 32
+			]
+			font: as red-object! values + FACE_OBJ_FONT
+			if TYPE_OF(font) = TYPE_OBJECT [
+				if -1 = array/find-ptr fonts get-font-handle font 0 [	;-- not find
+					free-font font
+					make-font null font
+					array/append-ptr fonts get-font-handle font 0
+				]
+			]
+			set-font hWnd null values
+			if type = group-box [
+				hWnd: as handle! GetWindowLong hWnd wc-offset - 4	;-- frame of the group box
+				set-font hWnd null values
+				SetWindowPos
+					hWnd
+					null
+					0 0
+					dpi-scale sz/x dpi-scale sz/y
+					SWP_NOZORDER or SWP_NOACTIVATE
 			]
 		]
 		face: face + 1
 	]
-
-	if end? [EndDeferWindowPos hdwp]
+	EndDeferWindowPos hdwp
 ]
 
 TimerProc: func [
@@ -1086,6 +1146,25 @@ TimerProc: func [
 	make-event current-msg 0 EVT_TIME
 ]
 
+draw-window: func [
+	hWnd		[handle!]
+	cmds		[red-block!]
+	/local
+		this	[this!]
+		surf	[IDXGISurface1]
+		hdc		[ptr-value!]
+		rc		[RECT_STRUCT value]
+][
+	do-draw hWnd null cmds yes no no yes
+	this: get-surface hWnd
+	surf: as IDXGISurface1 this/vtbl
+	surf/GetDC this 0 :hdc
+	bitblt-memory-dc hWnd no null 0 0 hdc/value
+	rc/left: 0 rc/top: 0 rc/right: 0 rc/bottom: 0	;-- empty RECT
+	surf/ReleaseDC this :rc
+	surf/Release this
+]
+
 WndProc: func [
 	[stdcall]
 	hWnd	[handle!]
@@ -1094,7 +1173,7 @@ WndProc: func [
 	lParam	[integer!]
 	return: [integer!]
 	/local
-		target [int-ptr!]
+		target [render-target!]
 		this   [this!]
 		rt	   [ID2D1HwndRenderTarget]
 		res	   [integer!]
@@ -1148,17 +1227,16 @@ WndProc: func [
 		]
 		WM_MOVE
 		WM_SIZE [
-			if (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D <> 0 [
-				target: as int-ptr! GetWindowLong hWnd wc-offset - 24
+			if msg = WM_SIZE [
+			#either draw-engine = 'GDI+ [
+				DX-resize-rt hWnd WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
+			][
+				target: as render-target! GetWindowLong hWnd wc-offset - 36
 				if target <> null [
-					this: as this! target/value
-					rt: as ID2D1HwndRenderTarget this/vtbl
-					color: WIN32_LOWORD(lParam)
-					res: WIN32_HIWORD(lParam)
-					rt/Resize this as tagSIZE :color
+					DX-resize-buffer target WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
 					InvalidateRect hWnd null 1
 				]
-			]
+			]]
 			if type = window [
 				if null? current-msg [init-current-msg]
 				if wParam <> SIZE_MINIMIZED [
@@ -1185,6 +1263,7 @@ WndProc: func [
 						SetWindowLong hWnd wc-offset - 8 lParam
 						EVT_MOVING
 					][EVT_SIZING]
+					SetWindowLong hWnd wc-offset - 24 modal-loop-type
 					current-msg/hWnd: hWnd
 					current-msg/lParam: lParam
 					make-event current-msg 0 modal-loop-type
@@ -1230,7 +1309,8 @@ WndProc: func [
 		WM_EXITSIZEMOVE [
 			if type = window [
 				win-state: 0
-				type: either modal-loop-type = EVT_MOVING [EVT_MOVE][EVT_SIZE]
+				res: GetWindowLong hWnd wc-offset - 24
+				type: either res = EVT_MOVING [EVT_MOVE][EVT_SIZE]
 				current-msg/hWnd: hWnd
 				make-event current-msg 0 type
 				return 0
@@ -1366,11 +1446,15 @@ WndProc: func [
 		WM_PAINT [
 			draw: (as red-block! values) + FACE_OBJ_DRAW
 			if TYPE_OF(draw) = TYPE_BLOCK [
+			#either draw-engine = 'GDI+ [
 				either zero? GetWindowLong hWnd wc-offset - 4 [
 					do-draw hWnd null draw no yes yes yes
 				][
-					bitblt-memory-dc hWnd no null 0 0
+					bitblt-memory-dc hWnd no null 0 0 null
 				]
+			][	
+				draw-window hWnd draw
+			]
 				return 0
 			]
 		]
@@ -1445,7 +1529,7 @@ WndProc: func [
 					if flags and FACET_FLAGS_MODAL <> 0 [
 						;SetActiveWindow GetWindow hWnd GW_OWNER
 						p-int: as handle! GetWindowLong hWnd wc-offset - 20
-						if p-int <> null [SetFocus p-int]
+						if p-int <> null [prev-focus: p-int]
 					]
 					clean-up
 				][
@@ -1462,6 +1546,8 @@ WndProc: func [
 		WM_DPICHANGED [
 			log-pixels-x: WIN32_LOWORD(wParam)			;-- new DPI
 			log-pixels-y: log-pixels-x
+			dpi-x: as float32! log-pixels-x
+			dpi-y: dpi-x
 			dpi-factor: log-pixels-x * 100 / 96
 			rc: as RECT_STRUCT lParam
 			SetWindowPos 
@@ -1471,20 +1557,26 @@ WndProc: func [
 				rc/right - rc/left rc/bottom - rc/top
 				SWP_NOZORDER or SWP_NOACTIVATE
 			values: values + FACE_OBJ_PANE
-			if all [
-				type = window
-				TYPE_OF(values) = TYPE_BLOCK
-			][update-window as red-block! values null]
+			if type = window [
+				set-defaults hWnd
+				update-window as red-block! values null
+			]
 			if hidden-hwnd <> null [
 				values: (get-face-values hidden-hwnd) + FACE_OBJ_EXT3
 				values/header: TYPE_NONE
-				target: as int-ptr! GetWindowLong hidden-hwnd wc-offset - 24
+				target: as render-target! GetWindowLong hidden-hwnd wc-offset - 36
 				if target <> null [d2d-release-target target]
-				SetWindowLong hidden-hwnd wc-offset - 24 0
+				SetWindowLong hidden-hwnd wc-offset - 36 0
 			]
 			RedrawWindow hWnd null null 4 or 1			;-- RDW_ERASE | RDW_INVALIDATE
 		]
-		WM_THEMECHANGED [set-defaults]
+		WM_THEMECHANGED [
+			values: values + FACE_OBJ_PANE
+			if type = window [
+				set-defaults hWnd
+				update-window as red-block! values null
+			]
+		]
 		default [0]
 	]
 	if ext-parent-proc? [call-custom-proc hWnd msg wParam lParam]
@@ -1569,11 +1661,14 @@ process: func [
 			res
 		]
 		WM_LBUTTONUP	[
+			prev-captured: msg/hWnd
 			if all [msg/hWnd <> null msg/hWnd = GetCapture not no-face? msg/hWnd][
 				word: (as red-word! get-face-values msg/hWnd) + FACE_OBJ_TYPE
 				if base = symbol/resolve word/symbol [ReleaseCapture]	;-- issue #4384
 			]
-			make-event msg flags EVT_LEFT_UP
+			res: make-event msg flags EVT_LEFT_UP
+			prev-captured: null
+			res
 		]
 		WM_RBUTTONDOWN	[
 			if GetCapture <> null [return EVT_DISPATCH]
@@ -1659,5 +1754,6 @@ do-events: func [
 		exit-loop: exit-loop - 1
 		if exit-loop > 0 [PostQuitMessage 0]
 	]
+	if prev-focus <> null [SetFocus prev-focus prev-focus: null]
 	msg?
 ]

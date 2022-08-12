@@ -221,7 +221,7 @@ map: context [
 				if type = -1 [					;-- called by TO
 					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_MAP spec]
 				]
-				GET_INT_FROM(size spec)
+				size: get-int-from spec
 				if negative? size [fire [TO_ERROR(script out-of-range) spec]]
 			]
 			TYPE_ANY_LIST [
@@ -234,8 +234,12 @@ map: context [
 		]
 
 		if zero? size [size: 1]
-		blk: block/make-at as red-block! stack/push* size
-		if blk? [block/copy as red-block! spec blk null no null]
+		either blk? [
+			; use clone here to prevent extra copying of spec
+			blk: block/clone as red-block! spec no no
+		][
+			blk: block/make-at as red-block! stack/push* size
+		]
 		make-at as red-value! blk blk size
 	]
 
@@ -488,6 +492,8 @@ map: context [
 		value	[red-value!]
 		path	[red-value!]
 		case?	[logic!]
+		get?	[logic!]
+		tail?	[logic!]
 		return:	[red-value!]
 		/local
 			table	[node!]
@@ -553,33 +559,17 @@ map: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/put"]]
 		
-		eval-path map field value as red-value! none-value case?
+		eval-path map field value as red-value! none-value case? no yes
 		value
 	]
 
 	clear: func [
 		map		[red-hash!]
 		return:	[red-value!]
-		/local
-			s		[series!]
-			value	[red-value!]
-			i		[integer!]
-			size	[int-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/clear"]]
 
-		s: GET_BUFFER(map)
-		i: 0
-		while [
-			value: s/offset + i
-			value < s/tail
-		][
-			_hashtable/delete map/table value
-			i: i + 2
-		]
-		s: as series! map/table/value
-		size: as int-ptr! s/offset
-		size/value: 0
+		_hashtable/clear-map map/table
 		as red-value! map
 	]
 

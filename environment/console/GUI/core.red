@@ -21,13 +21,14 @@ object [
 	full?:		no								;-- is line buffer full?
 	ask?:		no								;-- is it in ask loop
 	prin?:		no								;-- start prin?
-	newline?:	no								;-- start a new line?
+	newline?:	yes								;-- start a new line?
+	refresh?:	yes
 	mouse-up?:	yes
 	ime-open?:	no
 	ime-pos:	0
 
 	top:		1								;-- index of the first visible line in the line buffer
-	line:		none							;-- current editing line
+	line:		""								;-- current editing line
 	line-pos:	0								;-- current editing line's position in lines
 	pos:		0								;-- insert position of the current editing line
 
@@ -87,6 +88,33 @@ object [
 		comment!	[128.128.128]
 	)
 
+	ask: func [question [string!] hist [block! none!] hide?][
+		history: either hist [hist][system/console/history]
+		either prin? [
+			line: append last lines question
+			line: tail line
+		][
+			line: make string! 8
+			line: insert line question
+			add-line head line
+		]
+		pos: 0
+		line-pos: length? lines
+		ask?: yes
+		reset-top
+		clear-stack
+		set-flag hide?
+		either paste/resume [
+			do-ask-loop/no-wait
+		][
+			system/view/platform/redraw gui-console-ctx/console
+			system/view/auto-sync?: yes
+			do-events
+		]
+		ask?: no
+		line
+	]
+
 	do-ask-loop: function [/no-wait][
 		system/view/platform/do-event-loop no-wait
 	]
@@ -108,10 +136,7 @@ object [
 		system/view/platform/exit-event-loop
 	]
 
-	refresh: func [][
-		system/view/platform/redraw console
-		do-ask-loop/no-wait
-	]
+	refresh: func [/force][if any [force refresh?] [system/view/platform/redraw console]]
 
 	vprin: func [str [string!]][
 		either empty? lines [
@@ -124,14 +149,27 @@ object [
 	]
 
 	vprint: func [str [string!] lf? [logic!] /local s cnt first-prin?][
+		if 100'000 < length? str [			;-- truncate very long string
+			s: skip tail str -10'000
+			str: append copy/part str 90'000 "^/...^/"
+			append str s
+		]
+
 		unless console/state [exit]
+		unless gui-console-ctx/win/visible? [
+			gui-console-ctx/win/visible?: yes
+			show gui-console-ctx/win		;-- force a show in case auto-sync? is off
+		]
 
 		if all [not lf? newline?][newline?: no first-prin?: yes]
 		if lf? [newline?: yes]
 		s: find str lf
 		either s [
 			cnt: 0
-			unless all [lf? not prin?][
+			if all [
+				not all [lf? not prin?]
+				not same? head line last lines
+			][
 				vprin copy/part str s
 				str: skip s 1
 				s: find str lf
@@ -141,7 +179,7 @@ object [
 				str: skip s 1
 				cnt: cnt + 1
 				if cnt = 100 [
-					refresh
+					refresh/force
 					cnt: 0
 				]
 				s: find str lf
@@ -154,7 +192,7 @@ object [
 			]
 		]
 		prin?: not lf?
-		system/view/platform/redraw console
+		refresh
 		()				;-- return unset!
 	]
 
@@ -252,7 +290,7 @@ object [
 		if delta >= 0 [reset-top]
 	]
 
-	reset-top: func [/force /local n][
+	reset-top: func [/local n][
 		n: line-cnt - page-cnt
 		if any [
 			scroller/position <= n
@@ -781,7 +819,10 @@ object [
 					idx: 0
 				]
 				if n > 0 [
-					if start-idx < end-idx [pos: pos - n]
+					if start-idx < end-idx [
+						pos: pos - n
+						if pos < 0 [pos: 0]
+					]
 					s: copy/part skip line idx n
 					reduce/into [idx s] undo-stack
 					remove/part skip line idx n

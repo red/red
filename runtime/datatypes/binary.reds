@@ -854,23 +854,24 @@ binary: context [
 			size   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/serialize"]]
-
+		
 		s: GET_BUFFER(bin)
 		head: (as byte-ptr! s/offset) + bin/head
 		tail: as byte-ptr! s/tail
 		size: as-integer tail - head
 
 		string/concatenate-literal buffer "#{"
+		part: part - 2
+
 		bytes: 0
-		if size > 30 [
+		if all [size > 30 not flat?][
 			string/append-char GET_BUFFER(buffer) as-integer lf
 			part: part - 1
 		]
-		part: part - 2
 		while [head < tail][
 			string/concatenate-literal buffer string/byte-to-hex as-integer head/value
 			bytes: bytes + 1
-			if bytes % 32 = 0 [
+			if all [bytes % 32 = 0 not flat?][
 				string/append-char GET_BUFFER(buffer) as-integer lf
 				part: part - 1
 			]
@@ -878,7 +879,7 @@ binary: context [
 			if all [OPTION?(arg) part <= 0][return part]
 			head: head + 1
 		]
-		if all [size > 30 bytes % 32 <> 0] [
+		if all [size > 30 bytes % 32 <> 0 not flat?][
 			string/append-char GET_BUFFER(buffer) as-integer lf
 			part: part - 1
 		]
@@ -1087,6 +1088,7 @@ binary: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/compare"]]
 
+		if TYPE_OF(bin2) <> TYPE_BINARY [RETURN_COMPARE_OTHER]
 		equal? bin1 bin2 op no
 	]
 
@@ -1239,11 +1241,15 @@ binary: context [
 		all?		[logic!]
 		with-arg	[red-value!]
 		return:		[red-series!]
+		/local
+			with?	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/trim"]]
-
+		
+		with?: OPTION?(with-arg)
 		case [
-			any  [all? OPTION?(with-arg)] [string/trim-with as red-string! bin with-arg]
+			all  [all? not with?] [string/trim-with as red-string! bin as red-value! integer/push 0]
+			any  [all? with?] [string/trim-with as red-string! bin with-arg]
 			any  [auto? lines?][--NOT_IMPLEMENTED--]
 			true [trim-head-tail bin head? tail?]
 		]

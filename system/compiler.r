@@ -72,6 +72,7 @@ system-dialect: make-profilable context [
 		libRedRT?: 			no
 		libRedRT-update?:	no
 		GUI-engine:			'native						;-- native | test | GTK | ...
+		draw-engine:		none						;-- none | GDI+ | ...
 		modules:			none
 		show:				none
 		command-line:		none
@@ -174,6 +175,11 @@ system-dialect: make-profilable context [
 		user-functions: tail functions					;-- marker for user functions
 		
 		action-class: context [action: type: keep?: data: none]
+		
+		directives: [
+			#import | #export | #syscall | #call | #get | #in | #typecheck | #enum | #verbose 
+			| #u16 | #inline | #user-code | #build-date | #script
+		]
 		
 		struct-syntax: [
 			pos: opt [into ['align integer! opt ['big | 'little]]]	;-- struct's attributes
@@ -363,13 +369,22 @@ system-dialect: make-profilable context [
 			not any [word? value get-word? value path? value block? value value = <last>]
 		]
 		
-		not-initialized?: func [name [word!] /local pos][
+		not-typed?: func [name [word!] /local pos][
+			all [
+				locals
+				pos: find locals /local
+				pos: find next pos name
+				not block? pick pos 2
+			]
+		]
+		
+		not-initialized?: func [name [word!] /set /local pos][
 			all [
 				locals
 				pos: find locals /local
 				pos: find next pos name
 				not find locals-init name
-				not in-subroutine?
+				any [set not in-subroutine?]
 			]
 		]
 		
@@ -667,7 +682,18 @@ system-dialect: make-profilable context [
 		]
 		
 		any-float?: func [type [block!]][
-			find any-float! type/1
+			to logic! find any-float! type/1
+		]
+
+		floats-in-condition?: func [cond [block!]] [	;-- used by IEEE754 NaN arithmetic
+			to logic! all [
+				find comparison-op cond/1
+				not empty? cond: next cond
+				any [
+					any-float? get-type cond/1
+					any-float? get-type cond/2
+				]
+			]
 		]
 		
 		any-pointer?: func [type [block!]][
@@ -708,6 +734,12 @@ system-dialect: make-profilable context [
 					'struct! = first find-aliased type/1
 				]
 			]
+		]
+		
+		is-small-struct-float?: func [spec [block!] /local ret type][
+			ret: select spec return-def
+			unless ret/1 = 'struct! [ret: second resolve-aliased ret]
+			either any-float? type: ret/2 [type][none]
 		]
 		
 		with-alias-resolution: func [mode [logic!] body [block!] /local saved][
@@ -1041,11 +1073,6 @@ system-dialect: make-profilable context [
 		
 		pop-calls: does [clear expr-call-stack]
 		
-		count-outer-loops: has [n][
-			n: 0
-			parse loop-stack [any ['loop (n: n + 1) | skip]]
-			n
-		]
 		
 		cast: func [obj [object!] /quiet /local value ctype type][
 			value: obj/data
@@ -1254,6 +1281,13 @@ system-dialect: make-profilable context [
 			if find-attribute spec/3 'callback [
 				append last functions 'callback
 			]
+		]
+		
+		;; @@ This function can be removed once precise GC stack scanning is implemented.
+		clean-byte-locals: func [locals [block!] /local list name][
+			list: clear []
+			parse locals [thru /local any [name: word! into ['byte!] (append list name/1) | skip]]
+			foreach name list [emitter/target/emit-clear-slot name]
 		]
 		
 		compare-func-specs: func [
@@ -2309,7 +2343,8 @@ system-dialect: make-profilable context [
 				]
 				set [unused chunk] comp-block-chunked	;-- compile TRUE block
 				emitter/set-signed-state expr			;-- properly set signed/unsigned state
-				emitter/branch/over/on chunk reduce [expr/1] ;-- branch over if expr is true
+				emitter/branch/over/on/parity			;-- branch over if expr is true
+					chunk reduce [expr/1] floats-in-condition? expr
 				emitter/merge chunk
 				last-type: none-type
 				<last>
@@ -2380,7 +2415,7 @@ system-dialect: make-profilable context [
 			][
 				pc: either all [expr = 'pointer! block? pc/2][skip pc 2][next pc]
 			][
-				expr: fetch-expression/final 'size?
+				expr: fetch-expression 'size?
 				type: resolve-expr-type expr
 			]
 			emitter/get-size type expr
@@ -2410,7 +2445,7 @@ system-dialect: make-profilable context [
 			ret
 		]
 
-		comp-catch: has [offset locals-size unused chunk start end cb? cnt][
+		comp-catch: has [offset locals-size unused chunk start end cb?][
 			pc: next pc
 			fetch-expression/keep/final 'catch
 			if any [not last-type last-type <> [integer!]][
@@ -2431,7 +2466,6 @@ system-dialect: make-profilable context [
 			
 			locals-size: any [all [locals func-locals-sz] 0]
 			cb?: to logic! all [locals 'callback = last functions/:func-name]
-			unless zero? cnt: count-outer-loops [locals-size: locals-size + (4 * cnt)]
 			
 			end: comp-chunked [emitter/target/emit-close-catch locals-size not locals cb?]
 			chunk: emitter/chunks/join chunk end
@@ -2458,7 +2492,7 @@ system-dialect: make-profilable context [
 					find comparison-op expr/1
 					last-type/1 = 'logic!
 				][
-					emitter/logic-to-integer expr/1
+					emitter/logic-to-integer/parity expr/1 floats-in-condition? expr
 				]
 			]
 			reduce [
@@ -2514,7 +2548,9 @@ system-dialect: make-profilable context [
 	
 			set [unused chunk] comp-block-chunked		;-- compile TRUE block
 			emitter/set-signed-state expr				;-- properly set signed/unsigned state
-			emitter/branch/over/on chunk expr/1			;-- insert IF branching			
+			
+			emitter/branch/over/on/parity				;-- insert IF branching			
+				chunk expr/1 floats-in-condition? expr
 			emitter/merge chunk
 			last-type: none-type
 			<last>
@@ -2554,20 +2590,25 @@ system-dialect: make-profilable context [
 					last-type/1 = 'logic!				;-- and if EITHER returns a logic! too
 				]
 			][
-				if block? e-true  [emitter/logic-to-integer/with e-true  c-true]
-				if block? e-false [emitter/logic-to-integer/with e-false c-false]
+				if block? e-true  [
+					emitter/logic-to-integer/with/parity e-true  c-true  floats-in-condition? e-true
+				]
+				if block? e-false [
+					emitter/logic-to-integer/with/parity e-false c-false floats-in-condition? e-false
+				]
 			]
 		
 			offset: emitter/branch/over c-false
 			emitter/set-signed-state expr				;-- properly set signed/unsigned state
-			emitter/branch/over/adjust/on c-true negate offset expr/1	;-- skip over JMP-exit
+			emitter/branch/over/adjust/on/parity		;-- skip over JMP-exit
+				c-true negate offset expr/1 floats-in-condition? expr
 			emitter/merge emitter/chunks/join c-true c-false
 			<last>
 		]
 		
 		comp-case: has [cases list test body op bodies offset types][
+			unless block? cases: pc/2 [throw-error "missing CASE body block"]
 			pc: next pc
-			cases: pc/1
 			list:  make block! 8
 			types: make block! 8
 			
@@ -2597,7 +2638,8 @@ system-dialect: make-profilable context [
 
 				emitter/set-signed-state test/1			;-- properly set signed/unsigned state
 				offset: negate emitter/branch/over bodies		;-- insert case exit branching
-				emitter/branch/over/on/adjust body/2 test/1/1 offset	;-- insert case test branching
+				emitter/branch/over/on/adjust/parity	;-- insert case test branching
+					body/2 test/1/1 offset floats-in-condition? test/1
 				
 				body: emitter/chunks/join test/2 body/2	;-- join case test with case body
 				bodies: emitter/chunks/join body bodies	;-- left join case with other cases
@@ -2616,6 +2658,10 @@ system-dialect: make-profilable context [
 				throw-error "SWITCH argument has no return value"
 			]
 			save-type: last-type			
+			unless find [integer! char! byte!] save-type [
+				pc: back pc 							;-- show the arg in the error report
+				throw-error ["SWITCH argument must be of integer! or char! type, got" save-type]
+			]
 			check-body spec: pc/1
 			foreach w [values list types][set w make block! 8]
 			forall spec [								;-- resolve possible enumeration symbols
@@ -2681,7 +2727,7 @@ system-dialect: make-profilable context [
 					body: comp-chunked [
 						emitter/target/emit-integer-operation '= reduce [<last> v]
 					]
-					emitter/branch/over/on/adjust bodies [=] values/2	;-- insert action branching			
+					emitter/branch/over/on/adjust bodies [=] values/2	;-- insert action branching		
 					bodies: emitter/chunks/join body bodies
 				]
 				head? values
@@ -2695,10 +2741,7 @@ system-dialect: make-profilable context [
 		
 		comp-break: does [
 			if empty? loop-stack [throw-error "BREAK used with no loop"]
-			switch last loop-stack [
-				while-cond [throw-error "BREAK cannot be used in WHILE condition block"]
-				loop	   [emitter/target/emit-pop]
-			]
+			if 'while-cond = last loop-stack [throw-error "BREAK cannot be used in WHILE condition block"]
 			emitter/target/emit-jump-point last emitter/breaks
 			pc: next pc
 			none
@@ -2717,9 +2760,24 @@ system-dialect: make-profilable context [
 			pc: next pc
 			none
 		]
+
+		inject-loop-variable: func [spec [block!] body [block!] /local loops inject rule pos][
+			loops: 0
+			inject: quote (
+				unless issue? pos/-2 [
+					loops: loops + 1
+					insert pos append copy <L> loops	;-- store counter name as tag! just after 'loop
+					pos: next pos
+				]
+			)
+			parse body rule: [any ['loop pos: inject | into rule | skip]]
+			unless pos: find spec /local [pos: append spec /local]
+			repeat i loops [append pos reduce [to-word form append copy <L> i [integer!]]] ;-- add counters to locals
+		]
 		
-		comp-loop: has [expr body start][
+		comp-loop: has [name expr body start counter vars pos][		
 			pc: next pc
+			if tag? pc/1 [name: to-word form pc/1 remove pc] ;-- process loop's hidden counter variable
 			
 			fetch-expression/keep/final 'loop			;-- compile expression
 			if any [none? last-type last-type/1 <> 'integer!][
@@ -2729,14 +2787,15 @@ system-dialect: make-profilable context [
 			emitter/target/emit-integer-operation '= [<last> 0]	;-- insert counter comparison to 0 (skipping)
 			
 			emitter/init-loop-jumps
-			push-loop 'loop
-			start: comp-chunked [emitter/target/emit-start-loop]
+			push-loop 'loop			
+			either locals [vars: name][counter: emitter/store-value none 0 [integer!]]
+			start: comp-chunked [emitter/target/emit-start-loop counter vars]
 			set [expr body] comp-block-chunked
 			pop-loop
 			
 			body: emitter/chunks/join start body
 			emitter/resolve-loop-jumps body 'cont-next
-			body: emitter/chunks/join body comp-chunked [emitter/target/emit-end-loop]
+			body: emitter/chunks/join body comp-chunked [emitter/target/emit-end-loop counter vars]
 			emitter/target/signed?: yes					;-- force signed comparison for the counter
 			emitter/branch/back/on body less-or-equal
 			emitter/resolve-loop-jumps body 'breaks
@@ -2754,7 +2813,7 @@ system-dialect: make-profilable context [
 			set [expr chunk] comp-block-chunked/test 'until
 			pop-loop
 			emitter/resolve-loop-jumps chunk 'cont-back
-			emitter/branch/back/on chunk expr/1
+			emitter/branch/back/on/parity chunk expr/1 floats-in-condition? expr
 			emitter/resolve-loop-jumps chunk 'breaks
 			emitter/merge chunk	
 			last-type: none-type
@@ -2779,13 +2838,14 @@ system-dialect: make-profilable context [
 			emitter/resolve-loop-jumps body 'cont-next
 			bodies: emitter/chunks/join body cond
 			emitter/set-signed-state expr				;-- properly set signed/unsigned state
-			emitter/branch/back/on/adjust bodies reduce [expr/1] offset ;-- Test condition, exit if FALSE
+			emitter/branch/back/on/adjust/parity		;-- Test condition, exit if FALSE
+				bodies reduce [expr/1] offset floats-in-condition? expr
 			emitter/resolve-loop-jumps bodies 'breaks
 			emitter/merge bodies
 			last-type: none-type
 			<last>
 		]
-		
+
 		comp-expression-list: func [/_all /local list offset bodies op][
 			pc: next pc
 			check-body pc/1								;-- check body block
@@ -2805,8 +2865,9 @@ system-dialect: make-profilable context [
 				op: either logic? list/1/1/1 [first [<>]][list/1/1/1]
 				unless _all [op: reduce [op]]			;-- do not invert the test if ANY
 				emitter/set-signed-state list/1/1		;-- properly set signed/unsigned state
-				emitter/branch/over/on/adjust bodies op offset		;-- first emit branch				
-				bodies: emitter/chunks/join list/1/2 bodies			;-- then left join expr
+				emitter/branch/over/on/adjust/parity			;-- first emit branch				
+					bodies op offset floats-in-condition? list/1/1
+				bodies: emitter/chunks/join list/1/2 bodies		;-- then left join expr
 				also head? list	list: back list
 			]	
 			emitter/merge bodies
@@ -2885,7 +2946,7 @@ system-dialect: make-profilable context [
 			either attribute: check-variable-arity? entry/2/4 [
 				fetch: [
 					pos: pc
-					expr: fetch-expression name
+					expr: fetch-expression/thru name
 					if none? first get-type expr [
 						pc: pos
 						throw-error "expression is missing a return value"
@@ -2912,7 +2973,7 @@ system-dialect: make-profilable context [
 				reduce [name to-issue attribute args]
 			][									;-- fixed arity case
 				args: make block! n: entry/2/1
-				loop n [append/only args fetch-expression name]	;-- fetch n arguments
+				loop n [append/only args fetch-expression/thru name]	;-- fetch n arguments
 				new-line/all head insert/only args name no
 			]
 		]
@@ -3129,6 +3190,9 @@ system-dialect: make-profilable context [
 					if not-initialized? name [
 						throw-error ["local variable" name "used before being initialized!"]
 					]
+					if all [in-subroutine? not-typed? name][
+						throw-error ["type declaration missing for variable" name "used in subroutine" in-subroutine?]
+					]
 					last-type: resolve-type name
 					unless check [also name pc: next pc]
 				]
@@ -3334,6 +3398,10 @@ system-dialect: make-profilable context [
 						backtrack first find/reverse pc string!
 						throw-error "literal string values cannot be used with operators"
 					]
+					if ((any-float? get-type list/1) xor any-float? get-type list/2) [
+						backtrack args/1
+						throw-error "incompatible operand types in math or bitwise operation"
+					]
 					if block? unbox list/1 [comp-expression list/1 yes]	;-- nested call
 					left:  unbox list/1
 					right: unbox list/2
@@ -3423,7 +3491,7 @@ system-dialect: make-profilable context [
 				backtrack set-word
 				throw-error "name already used for as an alias definition"
 			]
-			if not-initialized? name [
+			if not-initialized?/set name [
 				init-local name expr casted				;-- mark as initialized and infer type if required
 			]
 
@@ -3480,7 +3548,6 @@ system-dialect: make-profilable context [
 			]
 			value: unbox expr
 			if any [block? value path? value][value: <last>]
-			
 			if store? [
 				unless all [paren? value 'value = last value][ ;-- struct by value excluded from heap allocation
 					emitter/store name value type
@@ -3488,9 +3555,10 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		comp-expression: func [expr keep? [logic!] /local variable boxed casting new? type spec store? subrc?][
-			store?: no
-			
+		comp-expression: func [
+			expr keep? [logic!]
+			/local variable boxed casting new? type spec store? subrc? set-thru?
+		][
 			;-- preprocessing expression
 			if all [block? expr find [set-word! set-path!] type?/word expr/1][
 				variable: expr/1
@@ -3588,11 +3656,18 @@ system-dialect: make-profilable context [
 					]
 					last-type/1 = 'logic!				;-- function's return type is logic!
 				][
-					emitter/logic-to-integer expr/1		;-- runtime logic! conversion before storing
+					emitter/logic-to-integer/parity		;-- runtime logic! conversion before storing
+						expr/1 floats-in-condition? expr
 				]
-				if all [not variable boxed][last-type: boxed/type] ;-- enforces type casting on calling expression
+				set-thru?: all [						;-- let type-castings pass through some reserved words
+					find [either switch case] pick tail expr-call-stack -3
+					find [set-word! set-path!] type?/word  pick tail expr-call-stack -4
+				]
+				if all [not variable not set-thru? boxed][
+					last-type: boxed/type				;-- enforces type casting on calling expression
+				]
 				if all [
-					variable boxed						;-- process casting if result assigned to variable
+					any [variable set-thru?] boxed		;-- process casting if result assigned to variable
 					find [logic! byte! integer! float! float32! float64!] last-type/1
 					find [logic! byte! integer! float! float32! float64!] boxed/type	;-- fixes #967
 					last-type/1 <> boxed/type
@@ -3681,7 +3756,7 @@ system-dialect: make-profilable context [
 		
 		fetch-expression: func [
 			caller [any-word! issue! none! set-path!]
-			/final /keep /local expr pass mark
+			/final /thru /keep /local expr pass mark
 		][
 			mark: tail expr-call-stack
 			check-infix-operators
@@ -3689,7 +3764,14 @@ system-dialect: make-profilable context [
 			if verbose >= 4 [print ["<<<" mold pc/1]]
 			pass: [also pc/1 pc: next pc]
 			
-			if tail? pc [
+			if any [
+				tail? pc
+				all [
+					thru
+					job/red-pass?
+					parse pc [some [file! | 'comment skip | directives]] ;-- #5092
+				]
+			][
 				either caller [
 					unless backtrack caller [pc: back pc]
 					throw-error [mold caller "is missing an argument"]
@@ -3786,11 +3868,13 @@ system-dialect: make-profilable context [
 			name [word!] spec [block!] body [block!]
 			/local args-sz local-sz expr ret
 		][
+			inject-loop-variable spec body
 			init-struct-values spec
 			locals: spec
 			func-name: name
 			set [args-sz local-sz] emitter/enter name locals ;-- build function prolog
 			func-locals-sz: local-sz
+			clean-byte-locals spec
 			preprocess-subroutines spec body
 			pc: body
 			
@@ -4174,7 +4258,7 @@ system-dialect: make-profilable context [
 
 		version-info-key: [
 			Title: Version: Company: Comments: Notes:
-			Rights: Trademarks: Author: ProductName:
+			Rights: Trademarks: ProductName: ProductVersion:
 		]
 		foreach name version-info-key [
 			if value: select header name [

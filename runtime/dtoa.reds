@@ -1319,7 +1319,7 @@ dtoa: context [
 		ret		[int-ptr!]		;-- mandatory
 		return: [float!]
 		/local
-			STRTOD_RETURN STRTOD_OVERFLOW STRTOD_BREAK STRTOD_DROP_DOWN [subroutine!]
+			STRTOD_RETURN STRTOD_OVERFLOW STRTOD_BREAK STRTOD_DROP_DOWN prescan [subroutine!]
 			rv rv0 aadj2 aadj aadj1 adj [float!]
 			bb bb1 bd bd0 bs delta [big-int!]
 			bbe bb2 bb5 bd2 bd5 bs2 dsign e e1 w0 w1 ndigits fraclen
@@ -1387,6 +1387,23 @@ dtoa: context [
 			d/int1: FFFFFFFFh
 			STRTOD_BREAK
 		]
+		
+		prescan: [
+			s1: s
+			c: s/1
+			while [s < end][
+				case [
+					all [c >= #"0" c <= #"9"][s: s + 1]
+					c = #"'" [
+						if s/2 = #"'" [ret/value: 999999 return rv]
+						move-memory s s + 1 as-integer end - s
+						end: end - 1
+					]
+					true [break]
+				]
+				c: s/1
+			]
+		]
 
 		if any [
 			c = #"+"
@@ -1407,20 +1424,7 @@ dtoa: context [
 		if s = end [return 0.0]
 
 		s0: s
-		s1: s
-		c: s/1
-		while [true][
-			case [
-				all [c >= #"0" c <= #"9"][s: s + 1]
-				c = #"'" [
-					if s/2 = #"'" [ret/value: 1 return rv]
-					move-memory s s + 1 as-integer end - s
-					end: end - 1
-				]
-				true [break]
-			]
-			c: s/1
-		]
+		prescan
 		ndigits: as-integer s - s1
 		fraclen: 0
 
@@ -1439,15 +1443,11 @@ dtoa: context [
 			]
 			if zero? ndigits [
 				s1: s
-				while [c: s/1 c = #"0"][s: s + 1]
+				while [c: s/1 all [s < end c = #"0"]][s: s + 1]
 				fraclen: fraclen + (s - s1)
 				s0: s
 			]
-			s1: s
-			while [
-				c: s/1
-				all [c >= #"0" c <= #"9"]
-			][s: s + 1]
+			prescan
 			ndigits: ndigits + (s - s1)
 			fraclen: fraclen + (s - s1)
 		]
@@ -1486,9 +1486,9 @@ dtoa: context [
 		if nd0 <= 0 [nd0: nd]
 
 		;-- finish parsing
-		ret/value: as-integer s <> end
+		ret/value: as-integer end - s
 
-		if zero? nd [return either neg? [d/int2: 80000000h rv][0.0]]
+		if zero? nd [either neg? [d/int2: 80000000h return rv][return 0.0]]
 
 		i: nd
 		until [
@@ -1817,6 +1817,7 @@ dtoa: context [
 				aadj1: either dsign <> 0 [aadj][0.0 - aadj]
 			]
 
+			;-- Check for overflow
 			y: w0 and DTOA_EXP_MASK
 			either y = (DBL_MAX_EXP + DTOA_BIAS - 1 * DTOA_EXP_MSK1) [
 				rv0: rv
@@ -1825,7 +1826,7 @@ dtoa: context [
 				rv: rv + adj
 				w0: WORD_0(d)
 				either w0 and DTOA_EXP_MASK >= (DBL_MAX_EXP + DTOA_BIAS - 53 * DTOA_EXP_MSK1) [
-					if all [w0 = DTOA_BIG_0 w1 = DTOA_BIG_1][
+					if all [WORD_0(d0) = DTOA_BIG_0 WORD_1(d0) = DTOA_BIG_1][
 						Bfree bb
 						Bfree bd
 						Bfree bs

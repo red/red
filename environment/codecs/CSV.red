@@ -238,6 +238,7 @@ context [
 		longest: 0
 		line: make block! 20
 		value: make string! 200
+		record: none
 
 		; -- parse rules
 		newline: [crlf | lf | cr]
@@ -294,11 +295,11 @@ context [
 						]
 					]
 					; append line to output
-					value: make map! length
+					record: make map! length
 					repeat index length [
-						value/(header/:index): line/:index
+						record/(header/:index): line/:index
 					]
-					append output copy value
+					append output record
 				][
 					either flat [
 						append output copy line
@@ -309,7 +310,7 @@ context [
 			)
 			init
 		]
-		line-rule: [values [newline | end] add-line]
+		line-rule: [end | values [newline | end] add-line]
 		init: [(clear line)]
 
 		; -- main code

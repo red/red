@@ -64,15 +64,11 @@ quit: func [
 ]
 
 empty?: func [
-	"Returns true if a series is at its tail or a map! is empty"
-	series	[series! none! map!]
+	"Returns true if data is a series at its tail or an empty map"
+	data	[series! none! map!]
 	return:	[logic!]
 ][
-	case [
-		series? series [tail? series]
-		map? series [series = #()]
-		none? series [true]
-	]
+	either data [zero? length? data][true]
 ]
 
 ??: func [
@@ -269,11 +265,12 @@ replace: function [
 		]
 		size: either many? [length? :pattern][1]
 		seek: reduce [pick [find/case find] case 'series quote :pattern]
-		
+
+		active?: any-function? :value
 		until [											;-- find does not support image!
 			not system/words/all [
 				series: do seek
-				series: change/part series value size
+				series: change/part series either active? [do [value]][value] size
 				all
 			]
 		]
@@ -283,6 +280,7 @@ replace: function [
 math: function [
 	"Evaluates expression using math precedence rules"
 	datum [block! paren!] "Expression to evaluate"
+	/safe				  "Returns NONE on error"
 	/local match
 ][
 	order: ['** ['* | quote / | quote % | quote //]]	;@@ compiler's lexer chokes on '/, '% and '//
@@ -291,11 +289,11 @@ math: function [
 	tally: [any [enter [fail] | recur [fail] | count [fail] | skip]]
 	enter: [ahead paren! into tally]
 	recur: [if (operator = '**) skip operator tally]
-	count: [while ahead change only copy match infix (do match)]
+	count: [while ahead change only copy match infix (either safe [attempt match][do match])]
 
-	do also datum: copy/deep datum foreach operator order [
-		parse datum tally
-	]
+	datum: copy/deep datum
+	foreach operator order [parse datum tally]
+	either safe [attempt datum][do datum]
 ]
 
 charset: func [
@@ -397,7 +395,7 @@ load: function [
 	/into "Put results in out block, instead of creating a new block"
 		out [block!] "Target block for results"
 	/as   "Specify the type of data; use NONE to load as code"
-		type [word! none!] "E.g. bmp, gif, jpeg, png"
+		type [word! none!] "E.g. bmp, gif, jpeg, png, redbin, json, csv"
 ][
 	if as [
 		if word? type [
@@ -450,6 +448,7 @@ load: function [
 
 	out: case [
 		part  [transcode/part source length]
+		into  [transcode/into source out]
 		;trap  [system/lexer/transcode to-string source out trap]
 		next  [
 			set position second out: transcode/next source
@@ -466,19 +465,19 @@ load: function [
 save: function [
 	"Saves a value, block, or other data to a file, URL, binary, or string"
 	where [file! url! string! binary! none!] "Where to save"
-	value   "Value(s) to save"
+	value [any-type!] "Value(s) to save"
 	/header "Provide a Red header block (or output non-code datatypes)"
 		header-data [block! object!]
 	/all    "TBD: Save in serialized format"
 	/length "Save the length of the script content in the header"
 	/as     "Specify the format of data; use NONE to save as plain text"
-		format [word! none!] "E.g. bmp, gif, jpeg, png"
+		format [word! none!] "E.g. bmp, gif, jpeg, png, redbin, json, csv"
 ][
 	dst: either any [file? where url? where][where][none]
 	either system/words/all [as  word? format] [				;-- Be aware of [all as] word shadowing
 		either codec: select system/codecs format [
-			data: do [codec/encode value dst]
-			if same? data dst [exit]	;-- if encode returns dst back, means it already save value to dst
+			data: do [codec/encode :value dst]
+			if same? data dst [exit]	;-- if encode returns dst back, means it already save :value to dst
 		][cause-error 'script 'invalid-refine-arg [/as format]] ;-- throw error if format is not supported
 	][
 		if length [header: true header-data: any [header-data copy []]]
@@ -490,7 +489,7 @@ save: function [
 			find-encoder?: no
 			foreach [name codec] system/codecs [
 				if (find codec/suffixes suffix) [		;@@ temporary required until dyn-stack implemented
-					data: do [codec/encode value dst]
+					data: do [codec/encode :value dst]
 					if same? data dst [exit]
 					find-encoder?: yes
 				]
@@ -556,10 +555,11 @@ pad: func [
 	return:	[string!]	"Modified input string at head"
 ][
 	unless string? str [str: form str]
-	head insert/dup
+	insert/dup
 		any [all [left str] tail str]
 		any [c #" "]
 		(n - length? str)
+	str													;-- returns the string at original offset
 ]
 
 mod: func [
@@ -593,12 +593,11 @@ to-red-file: func [
 	return: [file!]
 	/local colon? slash? len i c dst
 ][
-	colon?: slash?: no
-	len: length? path
-	dst: make file! len
-	if zero? len [return dst]
-	i: 1
 	#either config/OS = 'Windows [
+		len: length? path
+		dst: make file! len
+		if zero? len [return dst]
+		i: 1
 		until [
 			c: pick path i
 			i: i + 1
@@ -623,10 +622,10 @@ to-red-file: func [
 			i > len
 		]
 		if colon? [insert dst #"/"]
+		dst
 	][
-		insert dst path
+		to file! path
 	]
-	dst
 ]
 
 dir?: func ["Returns TRUE if the value looks like a directory spec" file [file! url!]][#"/" = last file]
@@ -805,7 +804,7 @@ split: function [
 	series [any-string!] dlm [string! char! bitset!] /local s
 ][
 	num: either string? dlm [length? dlm][1]
-	parse series [collect any [copy s [to [dlm | end]] keep (s) num skip [end keep (copy "") | none] ]]
+	parse series [collect any [end keep (make string! 0) | copy s [to [dlm | end]] keep (s) num skip]]
 ]
 
 dirize: func [
@@ -816,14 +815,15 @@ dirize: func [
 ]
 
 clean-path: func [
+	[no-trace]
 	"Cleans-up '.' and '..' in path; returns the cleaned path"
 	file [file! url! string!]
 	/only "Do not prepend current directory"
 	/dir "Add a trailing / if missing"
-	/local out cnt f not-file?
+	/local out cnt f not-file? prot
 ][
 	not-file?: not file? file
-	
+	if url? file [parse file [copy prot to #"/"]]
 	file: case [
 		any [only not-file?][
 			copy file
@@ -847,7 +847,7 @@ clean-path: func [
 	if all [dir not dir? file][append file #"/"]
 	if only [return file]
 
-	out: make file! length? file
+	out: make type? file length? file
 	cnt: 0
 	
 	parse reverse file [
@@ -862,11 +862,13 @@ clean-path: func [
 			)
 		]
 	]
+	if prot [append out reverse prot]
 	if all [dir? out #"/" <> last file][take/last out]
 	reverse out
 ]
 
 split-path: func [
+	[no-trace]
 	"Splits a file or URL path. Returns a block containing path and target"
 	target [file! url!]
 	/local dir pos
@@ -881,25 +883,34 @@ split-path: func [
 	reduce [dir pos]
 ]
 
-do-file: function ["Internal Use Only" file [file! url!]][
+do-file: function ["Internal Use Only" file [file! url!] callback [function! none!]][
+	ws: charset " ^-^M^/"
 	saved: system/options/path
-	unless src: find/case read file "Red" [
-		cause-error 'syntax 'no-header reduce [file]
-	]
-	code: expand-directives load/all src
+	parse/case read file [some [src: "Red" opt "/System" any ws #"[" (found?: yes) break | skip]]
+	unless found? [cause-error 'syntax 'no-header reduce [file]]
+	
+	code: load/all src									;-- don't expand before we check the header
 	if code/1 = 'Red/System [cause-error 'internal 'red-system []]
+	header?: all [code/1 = 'Red block? header: code/2]
+	code: expand-directives next code					;-- skip the Red[/System] value
+	system/script/header: construct/with code/1 system/standard/header	;-- load header metadata
 	if file? file [
 		new-path: first split-path clean-path file
 		change-dir new-path
 	]
-	if all [
-		code/1 = 'Red
-		block? header: code/2
-		list: select header 'currencies
-	][
+	if all [header? list: select header 'currencies][
 		foreach c list [append system/locale/currencies/list c]
 	]
-	set/any 'code try/all code
+	if header? [code: next code]
+	if :callback [code: compose/only [do/trace (code) :callback]]
+	
+	set/any 'code try/all/keep [
+		either 'halt-request = set/any 'code catch/name code 'console [
+			print "(halted)"							;-- returns an unset value
+		][
+			:code
+		]
+	]
 	if file? file [change-dir saved]
 	if error? :code [do :code]							;-- rethrow the error
 	:code
@@ -1119,10 +1130,12 @@ dt: function [
 	body	[block!]
 	return: [time!]
 ][
-	t0: now/time/precise
+	t0: now/precise
 	do body
-	now/time/precise - t0
+	difference now/precise t0
 ]
+
+time-it: :dt
 
 ;------------------------------------------
 ;-				Aliases					  -

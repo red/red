@@ -541,7 +541,6 @@ _series: context [
 			int		[red-integer!]
 			ser2	[red-series!]
 			hash	[red-hash!]
-			table	[node!]
 			values? [logic!]
 			neg?	[logic!]
 			part?	[logic!]
@@ -636,20 +635,6 @@ _series: context [
 				if added > 0 [s/tail: as cell! tail + added]
 			]
 			copy-memory src as byte-ptr! cell items << unit
-
-			if type = TYPE_HASH [
-				n: items * cnt
-				added: either part? [n - part][n - size]
-				hash: as red-hash! ser
-				table: hash/table
-				either part? [
-					_hashtable/refresh table added head + part size yes
-					n: either added < 0 [part + added][part]
-				][
-					if n > size [n: size]
-				]
-				_hashtable/clear table head n
-			]
 		][
 			tail: as byte-ptr! s/tail
 			src: (as byte-ptr! s/offset) + (head << unit)
@@ -705,11 +690,9 @@ _series: context [
 			]
 		]
 		if type = TYPE_HASH [
-			cell: s/offset + head
-			loop items [
-				_hashtable/put table cell
-				cell: cell + 1
-			]
+			n: get-length ser yes
+			hash: as red-hash! ser
+			_hashtable/rehash hash/table n
 		]
 		ser/head: head + items
 		ownership/check as red-value! ser words/_changed null head items
@@ -722,6 +705,7 @@ _series: context [
 		/local
 			s	 [series!]
 			size [integer!]
+			hash [red-hash!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "series/clear"]]
 
@@ -731,6 +715,10 @@ _series: context [
 		if size <= 0 [return as red-value! ser]    ;-- early exit if nothing to clear
 
 		ownership/check as red-value! ser words/_clear null ser/head size
+		if TYPE_OF(ser) = TYPE_HASH [
+			hash: as red-hash! ser
+			_hashtable/clear hash/table ser/head size
+		]
 		s/tail: as cell! (as byte-ptr! s/offset) + (ser/head << (log-b GET_UNIT(s)))
 		ownership/check as red-value! ser words/_cleared null ser/head 0
 		as red-value! ser
@@ -749,6 +737,7 @@ _series: context [
 			unit   [integer!]
 			char   [red-char!]
 			chk?   [logic!]
+			hash   [red-hash!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "series/poke"]]
 
@@ -771,8 +760,12 @@ _series: context [
 			chk?: ownership/check as red-value! ser words/_poke data offset 1
 			pos: (as byte-ptr! s/offset) + (offset << (log-b unit))
 			switch TYPE_OF(ser) [
+				TYPE_HASH [
+					copy-cell data s/offset + offset
+					hash: as red-hash! ser
+					_hashtable/put hash/table s/offset + offset
+				]
 				TYPE_BLOCK								;@@ any-block?
-				TYPE_HASH
 				TYPE_PAREN
 				TYPE_PATH
 				TYPE_GET_PATH
@@ -861,15 +854,15 @@ _series: context [
 				head + part
 				as-integer tail - (head + part)
 			s/tail: as red-value! tail - part
-
-			if TYPE_OF(ser) = TYPE_HASH [
-				items: as-integer tail - (head + part)
-				part: part >> 4
-				hash: as red-hash! ser
-				_hashtable/refresh hash/table 0 - part ser/head + part items >> 4 yes
-			]
 		][
 			s/tail: as red-value! head
+			part: as-integer tail - head	;-- sanitize part
+		]
+		if TYPE_OF(ser) = TYPE_HASH [
+			items: as-integer tail - (head + part)
+			part: part >> 4
+			hash: as red-hash! ser
+			_hashtable/refresh hash/table 0 - part ser/head + part items >> 4 yes
 		]
 		ownership/check as red-value! ser words/_removed null ser/head 0
 		ser

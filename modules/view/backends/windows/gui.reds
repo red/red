@@ -13,19 +13,19 @@ Red/System [
 ;; ===== Extra slots usage in Window structs =====
 ;;
 ;;		-60  :							<- TOP
+;;		-36  : Direct2D render target
+;;		-32	 : base: mouse capture count
+;;			 : window: default font
 ;;		-28  : Cursor handle
-;;		-24  : Direct2D target interface
-;;			   base-layered: caret's owner handle
+;;		-24  : base-layered: caret's owner handle, Window: modal loop type for moving and resizing
 ;;		-20  : evolved-base-layered: child handle, window: previous focused handle
 ;;		-16  : base-layered: owner handle, window: border width and height
-;;		-12  : base-layered: clipped? flag, caret? flag, d2d? flag, ime? flag
+;;		-12  : clipped? flag, caret? flag, d2d? flag, ime? flag
 ;;		 -8  : base: pos X/Y in pixel
 ;;			   window: pos X/Y in pixel
 ;;		 -4  : camera: camera!
-;;			   console: terminal!
-;;			   base: bitmap cache
-;;			   draw: old-dc
 ;;			   group-box: frame hWnd
+;;			   window destroy flag
 ;;		  0  : |
 ;;		  4  : |__ face!
 ;;		  8  : |
@@ -34,6 +34,7 @@ Red/System [
 
 #include %win32.reds
 #include %direct2d.reds
+#include %matrix2d.reds
 #include %classes.reds
 #include %events.reds
 
@@ -47,8 +48,11 @@ Red/System [
 #include %text-list.reds
 #include %button.reds
 #include %calendar.reds
-#include %draw-d2d.reds
-#include %draw.reds
+#either draw-engine = 'GDI+ [
+	#include %draw-gdi.reds
+][
+	#include %draw.reds
+]
 #include %comdlgs.reds
 
 exit-loop:		0
@@ -58,6 +62,8 @@ hScreen:		as handle! 0
 hInstance:		as handle! 0
 default-font:	as handle! 0
 hover-saved:	as handle! 0							;-- last window under mouse cursor
+prev-focus:		as handle! 0
+prev-captured:	as handle! 0
 version-info: 	declare OSVERSIONINFO
 current-msg: 	as tagMSG 0
 wc-extra:		80										;-- reserve 64 bytes for win32 internal usage (arbitrary)
@@ -70,9 +76,9 @@ hIMCtx:			as handle! 0
 ime-open?:		no
 ime-font:		as tagLOGFONT allocate 92
 base-down-hwnd: as handle! 0
-request-file?:	no
 
 dpi-factor:		100
+inital-dpi:		96
 log-pixels-x:	0
 log-pixels-y:	0
 screen-size-x:	0
@@ -318,13 +324,21 @@ get-text-size: func [
 
 	SelectObject hwnd saved
 	ReleaseDC hwnd dc
-	
-	size/width:  as integer! ceil as float! bbox/width
+
+#either draw-engine = 'GDI+ [
+	size/width:  as integer! ceil (as float! bbox/width)
+][
+	size/width:  as integer! ceil (as float! bbox/width) * 0.96	;-- scale to match Direct2D's width
+]
 	size/height: as integer! ceil as float! bbox/height
 
 	if pair <> null [
-		pair/x: as integer! ceil as float! bbox/width  * 100 / dpi-factor
-		pair/y: as integer! ceil as float! bbox/height * 100 / dpi-factor
+	#either draw-engine = 'GDI+ [
+		pair/x: as integer! ceil as float! bbox/width  * (as float32! 100.0) / (as float32! dpi-factor)	
+	][
+		pair/x: as integer! ceil as float! bbox/width  * (as float32! 96.0) / (as float32! dpi-factor)
+	]
+		pair/y: as integer! ceil as float! bbox/height * (as float32! 100.0) / (as float32! dpi-factor)
 	]
 
 	size
@@ -590,6 +604,7 @@ free-faces: func [
 		flags	[integer!]
 		cam		[camera!]
 		handle	[handle!]
+		hFont	[handle!]
 ][
 	handle: face-handle? face
 	#if debug? = yes [if null? handle [probe "VIEW: WARNING: free null window handle!"]]
@@ -633,18 +648,25 @@ free-faces: func [
 			]
 		]
 		any [sym = window sym = panel sym = base sym = rich-text][
+			#either draw-engine = 'GDI+ [
 			if zero? (WS_EX_LAYERED and GetWindowLong handle GWL_EXSTYLE) [
 				dc: GetWindowLong handle wc-offset - 4
 				if dc <> 0 [DeleteDC as handle! dc]			;-- delete cached dc
 			]
-			dc: GetWindowLong handle wc-offset - 24
+			dc: GetWindowLong handle wc-offset - 36
 			if dc <> 0 [
 				either (GetWindowLong handle wc-offset - 12) and BASE_FACE_IME <> 0 [
-					d2d-release-target as int-ptr! dc
+					d2d-release-target as render-target! dc
 				][											;-- caret
 					DestroyCaret
 				]
-			]
+			]][
+			;-- Direct2D backend
+			dc: GetWindowLong handle wc-offset - 36
+			if dc <> 0 [d2d-release-target as render-target! dc]
+			if (GetWindowLong handle wc-offset - 12) and BASE_FACE_IME <> 0 [
+				DestroyCaret
+			]]
 		]
 		true [
 			0
@@ -652,6 +674,9 @@ free-faces: func [
 		]
 	]
 	either sym = window [
+		hFont: as handle! GetWindowLong handle wc-offset - 32	;-- default font
+		if hFont <> null [DeleteObject hFont]
+
 		state: values + FACE_OBJ_SELECTED
 		state/header: TYPE_NONE
 		SetWindowLong handle wc-offset - 4 -1
@@ -665,7 +690,9 @@ free-faces: func [
 ]
 
 set-defaults: func [
+	hWnd		[handle!]
 	/local
+		hFont	[handle!]
 		hTheme	[handle!]
 		font	[tagLOGFONT]
 		ft		[tagLOGFONT value]
@@ -675,6 +702,12 @@ set-defaults: func [
 		metrics [tagNONCLIENTMETRICS value]
 		theme?	[logic!]
 ][
+	if default-font-name <> null [free as byte-ptr! default-font-name default-font-name: null]
+	if hWnd <> null [
+		hFont: as handle! GetWindowLong hWnd wc-offset - 32
+		if hFont <> null [DeleteObject hFont]
+	]
+
 	theme?: IsThemeActive
 	res: -1
 	either theme? [
@@ -699,17 +732,19 @@ set-defaults: func [
 			len
 			#get system/view/fonts/system
 			UTF-16LE
-		
+
+		font/lfHeight: font/lfHeight * log-pixels-y / inital-dpi	;-- font/lfHeight isn't affected by DPI change, we update it manually
 		integer/make-at 
 			#get system/view/fonts/size
 			0 - (font/lfHeight * 72 / log-pixels-y)
-			
+
 		default-font: CreateFontIndirect font
 
 		if theme? [CloseThemeData hTheme]
 	]
 
 	if null? default-font [default-font: GetStockObject DEFAULT_GUI_FONT]
+	if hWnd <> null [SetWindowLong hWnd wc-offset - 32 as-integer default-font]
 ]
 
 enable-visual-styles: func [
@@ -755,6 +790,7 @@ get-dpi: func [
 		log-pixels-x: GetDeviceCaps hScreen 88			;-- LOGPIXELSX
 		log-pixels-y: GetDeviceCaps hScreen 90			;-- LOGPIXELSY
 	]
+	inital-dpi: log-pixels-x
 	dpi-factor: log-pixels-x * 100 / 96
 ]
 
@@ -836,7 +872,7 @@ init: func [
 
 	get-dpi
 	unless winxp? [DX-init]
-	set-defaults
+	set-defaults null
 
 	register-classes hInstance
 
@@ -855,6 +891,7 @@ init: func [
 
 cleanup: does [
 	unregister-classes hInstance
+	DX-release-dev
 	DX-cleanup
 ]
 
@@ -914,6 +951,8 @@ init-window: func [										;-- post-creation settings
 	SetWindowLong handle wc-offset - 4 0
 	SetWindowLong handle wc-offset - 16 0
 	SetWindowLong handle wc-offset - 24 0
+	SetWindowLong handle wc-offset - 32 0
+	SetWindowLong handle wc-offset - 36 0
 ]
 
 get-selected-handle: func [
@@ -1240,6 +1279,8 @@ parse-common-opts: func [
 		img		[red-image!]
 		len		[integer!]
 		sym		[integer!]
+		bitmap	[integer!]
+		lock	[com-ptr! value]
 ][
 	SetWindowLong hWnd wc-offset - 28 0
 	if TYPE_OF(options) = TYPE_BLOCK [
@@ -1253,7 +1294,9 @@ parse-common-opts: func [
 					w: word + 1
 					either TYPE_OF(w) = TYPE_IMAGE [
 						img: as red-image! w
-						GdipCreateHICONFromBitmap as-integer img/node :sym
+						bitmap: OS-image/to-gpbitmap img :lock
+						GdipCreateHICONFromBitmap bitmap :sym
+						OS-image/release-gpbitmap bitmap :lock
 					][
 						sym: symbol/resolve w/symbol
 						sym: case [
@@ -1279,7 +1322,10 @@ parse-common-opts: func [
 	]
 ]
 
-OS-redraw: func [hWnd [integer!]][InvalidateRect as handle! hWnd null 0]
+OS-redraw: func [hWnd [integer!]][
+	InvalidateRect as handle! hWnd null 0
+	UpdateWindow as handle! hWnd
+]
 
 OS-refresh-window: func [hWnd [integer!]][UpdateWindow as handle! hWnd]
 
@@ -1288,6 +1334,8 @@ OS-show-window: func [
 	/local
 		face	[red-object!]
 ][
+	if prev-captured <> null [ReleaseCapture]
+	check-base-capture
 	ShowWindow as handle! hWnd SW_SHOWDEFAULT
 	UpdateWindow as handle! hWnd
 	unless win8+? [
@@ -1431,7 +1479,7 @@ OS-make-view: func [
 		]
 		sym = drop-down [
 			class: #u16 "RedCombo"
-			flags: flags or CBS_DROPDOWN or CBS_HASSTRINGS ;or WS_OVERLAPPED
+			flags: flags or CBS_DROPDOWN or CBS_HASSTRINGS or CBS_AUTOHSCROLL ;or WS_OVERLAPPED
 		]
 		sym = drop-list [
 			class: #u16 "RedCombo"
@@ -1584,6 +1632,7 @@ OS-make-view: func [
 			sym = toggle
 		][
 			init-button handle values
+			if sym = toggle [set-logic-state handle as red-logic! data no]
 		]
 		sym = group-box [
 			flags: flags or WS_GROUP or BS_GROUPBOX
@@ -1606,7 +1655,7 @@ OS-make-view: func [
 		]
 		panel? [
 			adjust-parent handle as handle! parent offset/x offset/y
-			SetWindowLong handle wc-offset - 24 0
+			SetWindowLong handle wc-offset - 36 0
 		]
 		sym = slider [
 			vertical?: size/y > size/x
@@ -2591,7 +2640,6 @@ OS-to-image: func [
 		width	[integer!]
 		height	[integer!]
 		bmp		[handle!]
-		bitmap	[integer!]
 		img		[red-image!]
 		word	[red-word!]
 		size	[red-pair!]
@@ -2643,12 +2691,7 @@ OS-to-image: func [
 		]
 	]
 
-	bitmap: 0
-	GdipCreateBitmapFromHBITMAP bmp 0 :bitmap
-
-	either zero? bitmap [img: as red-image! none-value][
-		img: image/init-image as red-image! stack/push* as int-ptr! bitmap
-	]
+	img: OS-image/from-HBITMAP as integer! bmp 0
 
     DeleteDC mdc
     DeleteObject bmp
@@ -2668,6 +2711,7 @@ OS-draw-face: func [
 	cmds	[red-block!]
 ][
 	if TYPE_OF(cmds) = TYPE_BLOCK [
+		assert system/thrown = 0
 		catch RED_THROWN_ERROR [parse-draw ctx cmds yes]
 	]
 	if system/thrown = RED_THROWN_ERROR [system/thrown: 0]

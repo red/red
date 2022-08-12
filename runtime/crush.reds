@@ -426,7 +426,7 @@ crush: context [							;-- LZ77
 			(as-integer p4 - head) < length
 		][
 			if any [size < 1 size > CRUSH_BUF_SIZE][
-				print-line ["File corrupted: size = " size]
+				print-line ["Crush Decompress - File corrupted: size = " size]
 				return null
 			]
 
@@ -468,7 +468,7 @@ crush: context [							;-- LZ77
 					]
 					s: p + not pp
 					if s < 0 [
-						print-line ["File corrupted: s = " s]
+						print-line ["Crush Decompress - File corrupted: s = " s]
 						return null
 					]
 

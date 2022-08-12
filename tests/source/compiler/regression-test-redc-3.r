@@ -1,7 +1,7 @@
 REBOL [
 	Title:   "Regression tests script for Red Compiler"
 	Author:  "Boleslav Březovský"
-	File: 	 %regression-test-redc.r
+	File: 	 %regression-test-redc-3.r
 	Rights:  "Copyright (C) 2016 Boleslav Březovský. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]

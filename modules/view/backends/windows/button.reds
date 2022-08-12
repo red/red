@@ -80,8 +80,7 @@ init-button: func [
 			][
 				img: img-1
 			]
-			bitmap: 0
-			GdipCreateHBITMAPFromBitmap as-integer img/node :bitmap 0
+			bitmap: OS-image/to-HBITMAP img
 			ImageList_Add hlist bitmap 0
 			DeleteObject as handle! bitmap
 			if all [i > 0 i < num][image/delete img]

@@ -172,6 +172,14 @@ do: make native! [[
 			arg "Args passed to a script (normally a string)"
 		/next "Do next expression only, return it, update block word"
 			position [word!] "Word updated with new block position"
+		/trace
+			callback [function! [
+				event	[word!]
+				code	[any-block!]
+				value 	[any-type!]
+				frame [pair!]			"current frame start/top positions"
+				return: [word! none!]
+			]]
 	]
 	#get-definition NAT_DO
 ]
@@ -198,7 +206,7 @@ compose: make native! [[
 
 get: make native! [[
 		"Returns the value a word refers to"
-		word	[any-word! refinement! path! object!]
+		word	[any-word! any-path! object!]
 		/any  "If word has no value, return UNSET rather than causing an error"
 		/case "Use case-sensitive comparison (path only)"
 		return: [any-type!]
@@ -208,7 +216,7 @@ get: make native! [[
 
 set: make native! [[
 		"Sets the value(s) one or more words refer to"
-		word	[any-word! block! object! path!] "Word, object, map path or block of words to set"
+		word	[any-word! block! object! any-path!] "Word, object, map path or block of words to set"
 		value	[any-type!] "Value or block of values to assign to words"
 		/any  "Allow UNSET as a value rather than causing an error"
 		/case "Use case-sensitive comparison (path only)"
@@ -636,7 +644,8 @@ value?: make native! [[
 try: make native! [[
 		"Tries to DO a block and returns its value or an error"
 		block	[block!]
-		/all "Catch also BREAK, CONTINUE, RETURN, EXIT and THROW exceptions"
+		/all  "Catch also BREAK, CONTINUE, RETURN, EXIT and THROW exceptions"
+		/keep "Capture and save the call stack in the error object"
 	]
 	#get-definition NAT_TRY
 ]
@@ -800,8 +809,8 @@ new-line: make native! [[
 
 new-line?: make native! [[
 		"Returns the state of the new-line marker within a list series"
-		position [any-list!] "Position to change marker"
-		return:  [any-list!]
+		position [any-list!] "Position to check marker"
+		return:  [logic!]
 	]
 	#get-definition NAT_NEW_LINE?
 ]
@@ -901,21 +910,21 @@ browse: make native! [[
 ]
 
 compress: make native! [[
-		"compresses data. return GZIP format (RFC 1952) by default"
-		data		[any-string! binary!]
-		/zlib		"Return ZLIB format (RFC 1950)"
-		/deflate	"Return DEFLATE format (RFC 1951)"
+		"Compresses data"
+		data	[any-string! binary!]
+		method	[word!]	"zlib deflate gzip"
+		return: [binary!]
 	]
 	#get-definition NAT_COMPRESS
 ]
 
 decompress: make native! [[
-		"Decompresses data. Data in GZIP format (RFC 1952) by default"
-		data		[binary!]
-		/zlib		"Data in ZLIB format (RFC 1950)"
-		size		[integer!] "Uncompressed data size. Use 0 if don't know"
-		/deflate	"Data in DEFLATE format (RFC 1951)"
-		size		[integer!] "Uncompressed data size. Use 0 if don't know"
+		"Decompresses data"
+		data	[binary!]
+		method	[word!]	"zlib deflate gzip"
+		/size "Specify an uncompressed data size (ignored for GZIP)"
+			sz [integer!] "Uncompressed data size; must not be negative"
+		return: [binary!]
 	]
 	#get-definition NAT_DECOMPRESS
 ]
@@ -938,7 +947,7 @@ transcode: make native! [[
 		/part			"Translates only part of the input buffer"
 			length [integer! binary!] "Length in bytes or tail position"
 		/into			"Optionally provides an output block"
-			dst	[block! none!]
+			dst	[block!]
 		/trace
 			callback [function! [
 				event	[word!]

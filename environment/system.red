@@ -11,7 +11,7 @@ Red [
 ]
 
 system: context [
-	version: #do keep [form load-cache %version.r]
+	version: #do keep [form load-cache %encapper/version.r]
 	build: context [
 		date: #do keep [
 			use [date][
@@ -57,7 +57,7 @@ system: context [
 			]
 			email!	[user host]
 			event!	[
-				type face window offset key picked flags away? down? mid-down?
+				type face window offset key picked flags orientation away? down? mid-down?
 				alt-down? aux-down? ctrl? shift?
 			]
 			image!	[size argb rgb alpha]
@@ -124,10 +124,12 @@ system: context [
 				bad-refine:			["incompatible refinement:" :arg1]
 				word-first:			["path must start with a word:" :arg1]
 				empty-path:			"cannot evaluate an empty path value"
+				unset-path:			[:arg2 "is unset in path" :arg1]
 				invalid-path:		["cannot access" :arg2 "in path" :arg1]
 				invalid-path-set:	["unsupported type in" :arg1 "set-path"]
 				invalid-path-get:	["unsupported type in" :arg1 "get-path"]
 				bad-path-type:		["path" :arg1 "is not valid for" :arg2 "type"]
+				bad-path-type2:		["path element >" :arg1 "< does not apply to" :arg2 "type"]
 				bad-path-set:		["cannot set" :arg2 "in path" :arg1]
 				bad-field-set:		["cannot set" :arg1 "field to" :arg2 "datatype"]
 				dup-vars:			["duplicate variable specified:" :arg1]
@@ -173,6 +175,7 @@ system: context [
 				parse-stack:		"PARSE - stack limit reached"
 				parse-keep:			"PARSE - KEEP is used without a wrapping COLLECT"
 				parse-into-bad:		"PARSE - COLLECT INTO/AFTER expects a series! argument"
+				parse-into-type:    "PARSE - COLLECT INTO/AFTER expects a series! of compatible datatype"
 				invalid-draw:		["invalid Draw dialect input at:" :arg1]
 				invalid-data-facet: ["invalid DATA facet content" :arg1]
 				face-type:			["VIEW - invalid face type:" :arg1]
@@ -233,7 +236,7 @@ system: context [
 				;security:			["security violation:" :arg1 " (refer to SECURE function)"]
 				;security-level:	["attempt to lower security to" :arg1]
 				;security-error:	["invalid" :arg1 "security policy:" :arg2]
-				;no-codec:			["cannot decode or encode (no codec):" :arg1]
+				no-codec:			["cannot decode or encode (no codec):" :arg1]
 				bad-media:			["bad media data (corrupt image, sound, video)"]
 				;no-extension:		["cannot open extension:" :arg1]
 				;bad-extension:		["invalid extension format:" :arg1]
@@ -263,7 +266,7 @@ system: context [
 				wrong-mem:			"failed to release memory"
 				stack-overflow:		"stack overflow"
 				;bad-series:		"invalid series"
-				;limit-hit:			["internal limit reached:" :arg1]
+				limit-hit:			["internal limit reached:" :arg1]
 				;bad-sys-func:		["invalid or missing system function:" :arg1]
 				too-deep:			"block or paren series is too deep to display"
 				no-cycle:			"circular reference not allowed"
@@ -281,9 +284,25 @@ system: context [
 		interpreted?: func ["Return TRUE if called from the interpreter"][
 			#system [logic/box stack/eval? null no]
 		]
+		near:		 none								;-- slot from which to fill error/near field
+		last-error:  none
+		stack-trace: 1									;-- 0: disabled
 		
-		last-error: none
-		trace: 1										;-- 0: disabled
+		callbacks: object [
+			lexer?: 	  no							;-- called by transcode/trace
+			parse?:		  no							;-- called by parse/trace
+			sort?:		  no							;-- called by sort/compare
+			change?:	  no							;-- called by object's on-change*
+			deep?:		  no							;-- called by object's on-deep-change*
+			port?:		  no							;-- called by port's action dispatcher
+			bits:		  0								;-- (internal) automatically set
+
+			on-change*: function [word old new][
+				unless integer? bits [set-quiet 'bits 0]	;-- prevents tampering with that field
+				idx: 1 << ((index? in self word) - 1)
+				set-quiet 'bits either new [bits or idx][bits and complement idx]
+			]
+		]
 	]
 	
 	modules: make block! 8
@@ -361,7 +380,7 @@ system: context [
 		
 		;-- change the way float numbers are processed
 		float: context [
-			pretty?: false
+			pretty?: true
 			full?: 	 false
 			
 			on-change*: func [word old new][
@@ -412,7 +431,7 @@ system: context [
 	
 	standard: context [									;-- do not change object fields number/order
 		header: object [
-			title: name: type: version: date: file: author: needs: none
+			Title: Name: Type: Version: Date: File: Home: Author: Tabs: Needs: License: Note: History: none
 		]
 		port: object [
 			spec: scheme: actor: awake: state: data: extra: none
@@ -441,19 +460,26 @@ system: context [
 		]
 		
 		tracer: lex: func [
-		  event  [word!]                  				;-- event name
-		  input  [string! binary!]            			;-- input series at current loading position
-		  type   [datatype! word! none!]       		 	;-- type of token or value currently processed.
-		  line   [integer!]               				;-- current input line number
-		  token                      					;-- current token as an input slice (pair!) or a loaded value.
-		  return: [logic!]                				;-- YES: continue to next lexing stage, NO: cancel current token lexing
+			event  [word!]                  			;-- event name
+			input  [string! binary!]            		;-- input series at current loading position
+			type   [datatype! word! none!]       		;-- type of token or value currently processed.
+			line   [integer!]               			;-- current input line number
+			token                      					;-- current token as an input slice (pair!) or a loaded value.
+			return: [logic!]                			;-- YES: continue to next lexing stage, NO: cancel current token lexing
 		][
-		  print [event type token line mold/part input 16]
-		  either event = 'error [input: next input no][yes]
+			print [										;-- total: 64
+				uppercase pad event 8
+				pad rejoin [mold type "(" type? type ")"] 20
+				pad mold/part token 12 12				;-- limit in case it's a huge string/binary
+				pad line 4
+				mold/part input 16
+			]
+			either event = 'error [input: next input no][yes]
 		]
 	]
 	
 	console:	none
 	view:		none
 	reactivity: none
+	tools:		none
 ]

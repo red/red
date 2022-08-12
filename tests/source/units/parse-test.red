@@ -2773,7 +2773,7 @@ Red [
 
 		partition3108: function [elems [block!] group [integer!]][
 			parse elems [
-				collect some [keep group skip | collect keep to end]
+				collect some [end | keep group skip | collect keep to end]
 			]
 		]
 		--assert [[1 2] [3 4] [5 6] [7 8] [9]] = partition3108 [1 2 3 4 5 6 7 8 9] 2
@@ -2800,6 +2800,12 @@ Red [
 		--assert parse/part %234 ["23" to end] 3
 		repeat i 4 [--assert parse/part "12" ["1" to [end]] i]
 
+	--test-- "#3951"
+		res: none
+		do "res: expand-directives/clean [[] #macro word! func [s e]['OK] WTF]()"
+		--assert res = [[] OK]
+		expand-directives/clean []						;-- remove the macro just loaded
+
 	--test-- "#4101"
 		--assert parse [a/b] ['a/b]
 		--assert error? try [parse [a/b] [a/b]]
@@ -2817,9 +2823,98 @@ Red [
 	--test-- "#4194"
 		--assert not parse reduce [make vector! 0][into []]
 
+	--test-- "#4197"
+		x4197: make string! 0
+		--assert error? try [parse [][collect into x4197 []]]
+		x4197: make binary! 0
+		--assert parse #{}[collect into x4197 []]		;-- changed by #4732
+		--assert x4197 == #{}
+		x4197: make vector! 0
+		--assert error? try [parse "" [collect into x4197 []]]
+		x4197: make block! 3
+		parse quote (a b c) [collect into x4197 keep pick to end]
+		--assert x4197 = [a b c]
+		x4197: make paren! 3
+		parse <abc> [collect into x4197 [keep to end [fail] | keep pick to end]]
+		--assert x4197 = quote (<abc> #"a" #"b" #"c")
+		x4197: make tag! 3
+		parse %abc [collect into x4197 [keep to end [fail] | keep pick to end]]
+		--assert x4197 = <abcabc>
+	
 	--test-- "#4198"
 		--assert [a] = parse [][collect keep pick ('a)]
-		--assert [[a b]] = parse [][collect keep pick ([a b])]
+		--assert [[a b]] = parse [][collect keep ([a b])]
+		--assert [a b] = parse [][collect keep pick ([a b])]
+		--assert [value [block]] = parse [] [collect [keep pick ([value]) keep ([block])]]
+
+	--test-- "#4200"
+		word:  'foo
+		block: []
+		mark:  block
+		
+		parse block [mark: change mark word]			;-- word's value
+		--assert block = [foo]		
+		clear block
+		
+		parse block [mark: change mark (word)]			;-- result of expression
+		--assert block = [foo]
+		clear block
+		
+		parse block [mark: change mark ('foo)]			;-- result of expression
+		--assert block = [foo]
+		clear block
+		
+		parse block [mark: change mark ([foo])]			;-- result of expression
+		--assert block = [foo]
+		clear block
+		
+		parse block [mark: change only mark ([foo])]	;--result of expression
+		--assert block = [[foo]]
+		clear block
+		
+		parse block [mark: change mark #foo]			;-- literal value
+		--assert block = [#foo]
+		clear block
+		
+		parse block [mark: change mark [#foo]]			;-- literal value
+		--assert block = [#foo]
+		clear block
+		
+		parse block [mark: change only mark [#foo]]		;-- literal value
+		--assert block = [[#foo]]
+		clear block
+		
+		parse block [change none word]					;-- word's value
+		--assert block = [foo]
+		clear block
+		
+		parse block [change none (word)]				;-- result of expression
+		--assert block = [foo]
+		clear block
+		
+		parse block [change none ('foo)]				;-- result of expression
+		--assert block = [foo]
+		clear block
+		
+		parse block [change none ([foo])]				;-- result of expression
+		--assert block = [foo]
+		clear block
+		
+		parse block [change only none ([foo])]			;-- result of expression
+		--assert block = [[foo]]
+		clear block
+		
+		parse block [change none #foo]					;-- literal value
+		--assert block = [#foo]
+		clear block
+		
+		parse block [change none [#foo]]				;-- literal value
+		--assert block = [#foo]
+		clear block
+		
+		parse block [change only none [#foo]]			;-- literal value
+		--assert block = [[#foo]]
+		clear block
 
 	--test-- "#4591"
 		--assert not parse " " [0 0 space]
@@ -2829,6 +2924,27 @@ Red [
 		--assert parse [][0 0 [ignore me]]
 		--assert parse [][0   "ignore me"]
 		--assert parse [][0   [ignore me]]
+
+	--test-- "#4678"
+		--assert false == parse to binary! "["  [none!]
+		--assert false == parse to binary! "("  [none!]
+		--assert false == parse to binary! "#(" [none!]
+
+	--test-- "#4682"
+		parse to binary! {https://example.org"} [copy match url! (--assert https://example.org == to url! match)]
+		parse to binary! {a@b.com"} [copy match email! (--assert a@b.com == to email! to string! match)]
+		
+		;; non-passing test, match == @@ref
+		;parse to binary! {@ref"} [copy match ref! (--assert @ref == to ref! to string! match)]
+
+	--test-- "#4863"
+		--assert parse to-binary "word" [word!]
+		--assert parse to-binary "   word" [word!]
+		--assert parse to-binary "123" [integer!]
+		--assert not parse to-binary "123.456" [integer!]
+		--assert parse to-binary "    123" [integer!]
+		--assert parse to-binary "hello 123 world" [word! integer! word!]
+		--assert parse to-binary "hello 123 world" [word! space integer! space word!]
 
 ===end-group===
     
