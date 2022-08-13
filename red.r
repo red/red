@@ -585,7 +585,7 @@ redc: context [
 				| "--show-func-map"				(opts/show-func-map?: yes)
 				| "--" break							;-- stop options processing
 			]
-			set filename skip (src: load-filename filename)
+			set filename skip (unless empty? filename [src: load-filename filename])
 		]
 		if 1 < length? modes [
 			fail-cmd ["Incompatible compilation modes:" mold/only modes]
