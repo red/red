@@ -337,6 +337,8 @@ lexer: context [
 		in-series	[red-series!]						;-- optional back reference to input series
 		value		[integer!]							;-- decoded integer! or char! value (from scanner to loader)
 		load?		[logic!]							;-- TRUE: load values, else scan only
+		pos-cache	[byte-ptr!]							;-- cached UTF-8 buffer last accessed position
+		cnt-cache	[integer!]							;-- cached UTF-8 characters count
 	]
 	
 	scanner!: alias function! [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]]
@@ -355,6 +357,26 @@ lexer: context [
 	
 	min-integer: as byte-ptr! "-2147483648"				;-- used in load-integer
 	
+	smart-count: func [									;-- counts only new characters from last cached result
+		lex		[state!]
+		pos		[byte-ptr!]								;-- new position to count UTF-8 sequences up to.
+		return: [integer!]
+		/local
+			base [byte-ptr!]
+			len	 [integer!]
+	][
+		if lex/pos-cache > pos [						;-- invalidate cache if backtracking occured (error event)
+			lex/pos-cache: lex/input
+			lex/cnt-cache: 0
+		]
+		base: lex/pos-cache
+		if null? base [base: lex/input]					;-- first invocation
+		len: lex/cnt-cache + unicode/count-chars base pos ;-- cached count + count from cached position to new one
+		lex/pos-cache: pos
+		lex/cnt-cache: len
+		len
+	]
+
 	decode-filter: func [fun [red-function!] return: [integer!]
 		/local
 			evts flag sym [integer!]
@@ -506,12 +528,13 @@ lexer: context [
 		][
 			either zero? type [none/push][datatype/push type]
 		]
-		either TYPE_OF(lex/in-series) <> TYPE_BINARY [
-			x: unicode/count-chars lex/input s
-			y: x + unicode/count-chars s e
-		][
+		either TYPE_OF(lex/in-series) = TYPE_BINARY [
 			x: as-integer s - lex/input
 			y: as-integer e - lex/input
+		][
+			x: smart-count lex s
+			;x: unicode/count-chars lex/input s
+			y: x + unicode/count-chars s e
 		]
 		ref: either any [all [type < 0 event = EVT_PRESCAN] event = EVT_OPEN][x][y]
 		ref: ref + lex/in-series/head					;-- accounts for series original offset
@@ -2390,6 +2413,8 @@ lexer: context [
 		if fun <> null [
 			lex/fun-locs: _function/count-locals fun/spec 0 no
 			lex/fun-evts: decode-filter fun
+			lex/pos-cache: null
+			lex/cnt-cache: 0
 		]
 		assert system/thrown = 0
 		
