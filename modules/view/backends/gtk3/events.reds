@@ -213,7 +213,7 @@ keycode-special: [
 	RED_VK_PRIOR		;-- FF9Ah
 	RED_VK_NEXT			;-- FF9Bh
 	RED_VK_END			;-- FF9Ch
-	RED_VK_UNKNOWN		;-- GDK_KEY_KP_Begin
+	RED_VK_CLEAR		;-- GDK_KEY_KP_Begin
 	RED_VK_INSERT		;-- FF9Eh
 	RED_VK_DELETE		;-- FF9Fh
 	;-- FFA0h
@@ -600,6 +600,8 @@ get-event-key: func [
 					RED_VK_RSHIFT	[_right-shift]
 					RED_VK_LCONTROL	[_left-control]
 					RED_VK_RCONTROL	[_right-control]
+					RED_VK_CAPITAL	[_caps-lock]
+					RED_VK_NUMLOCK	[_num-lock]
 					RED_VK_LMENU	[_left-alt]
 					RED_VK_RMENU	[_right-alt]
 					RED_VK_LWIN		[_left-command]
@@ -935,38 +937,6 @@ check-flags: func [
 	if state and GDK_HYPER_MASK <> 0 [flags: flags or EVT_FLAG_MENU_DOWN]
 	if state and GDK_SUPER_MASK <> 0 [flags: flags or EVT_FLAG_CMD_DOWN]
 	flags
-]
-
-translate-key: func [
-	keycode		[integer!]
-	return:		[integer!]
-	/local
-		pos		[integer!]
-][
-	keycode: either gdk_keyval_is_upper keycode [
-		gdk_keyval_to_upper keycode
-	][
-		gdk_keyval_to_lower keycode
-	]
-	if all [
-		keycode >= 20h
-		keycode <= 7Fh
-	][
-		pos: keycode - 20h + 1
-		return keycode-ascii/pos
-	]
-	if all [
-		keycode >= FF00h
-		keycode <= FFFFh
-	][
-		pos: keycode - FF00h + 1
-		return keycode-special/pos
-	]
-	;-- simple fix #4267
-	if keycode = FE20h [
-		return RED_VK_TAB
-	]
-	RED_VK_UNKNOWN
 ]
 
 ;; TODO: before finding better solution!!!!
