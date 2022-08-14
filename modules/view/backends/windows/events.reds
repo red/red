@@ -483,6 +483,14 @@ get-track-pos: func [
 	nTrackPos
 ]
 
+#define VKEY_TO_CHAR(key) [
+	if special-key = -1 [
+		char: MapVirtualKey key MAPVK_VK_TO_CHAR
+		;-- char = 0, no translation
+		if char <> 0 [key: char and FFFFh]
+	]
+]
+
 make-event: func [
 	msg		[tagMSG]
 	flags	[integer!]
@@ -518,11 +526,14 @@ make-event: func [
 				ime-open?
 				char-key? as-byte key
 			][-1][map-left-right key msg/lParam]
+
+			VKEY_TO_CHAR(key)
 			gui-evt/flags: key or check-extra-keys no
 		]
 		EVT_KEY_UP [
 			key: msg/wParam and FFFFh
 			special-key: either char-key? as-byte key [-1][map-left-right key msg/lParam]
+			VKEY_TO_CHAR(key)
 			gui-evt/flags: key or check-extra-keys no
 		]
 		EVT_KEY [
