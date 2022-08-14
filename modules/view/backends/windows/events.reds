@@ -237,6 +237,8 @@ get-event-key: func [
 					VK_RMENU	[_right-alt]
 					VK_LWIN		[_left-command]
 					VK_RWIN		[_right-command]
+					VK_SCROLL	[_scroll-lock]
+					VK_PAUSE	[_pause]
 					default		[
 						either evt/type = EVT_KEY [none-value][
 							char: as red-char! stack/push*

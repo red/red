@@ -606,6 +606,8 @@ get-event-key: func [
 					RED_VK_RMENU	[_right-alt]
 					RED_VK_LWIN		[_left-command]
 					RED_VK_APPS		[_right-command]
+					RED_VK_SCROLL	[_scroll-lock]
+					RED_VK_PAUSE	[_pause]
 					default			[null]
 				]
 			]
