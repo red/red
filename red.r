@@ -730,6 +730,9 @@ redc: context [
 			]
 		]
 		
+		;-- Try to get version data from git repository if present
+		unless encap? [save %build/git.r do %build/git-version.r]
+		
 		print [lf "-=== Red Compiler" read-cache %encapper/version.r "===-" lf]
 
 		;-- libRedRT updating mode
