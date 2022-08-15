@@ -423,6 +423,12 @@ system/view/VID: context [
 			rtd-layout/with opts/data face
 			opts/data: none
 		]
+		all [
+			find [drop-list drop-down text-list field area] face/type
+			block? opts/data
+			opts/selected
+			opts/text: pick opts/data opts/selected
+		]
 
 		font: opts/font
 		if any [face-font: face/font font][
