@@ -24,6 +24,8 @@ context [
 	]
 
 	set 'git-version has [temp] [
+		if all [system/version/4 = 3 not find get-env "PATH" "git"][return none]
+		
 		attempt [
 			temp: parse git "describe --long" "-"
 			compose/deep [
