@@ -755,7 +755,7 @@ extract-boot-args: function [
 		ws: charset " ^-^/^M"
 		system/options/boot: take system/options/args: parse args [
 			collect some [
-				(buf: make string! 32) collect into buf any [
+				end | (buf: make string! 32) collect into buf any [
 					not ws [
 						#"'" keep to #"'" skip
 					|	"\'" keep (#"'")
