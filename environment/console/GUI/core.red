@@ -200,7 +200,7 @@ object [
 			]
 		]
 		prin?: not lf?
-		refresh
+		either all [lf? redraw-cnt > 20][refresh/force][refresh]
 		()				;-- return unset!
 	]
 
