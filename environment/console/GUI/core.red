@@ -200,7 +200,14 @@ object [
 			]
 		]
 		prin?: not lf?
-		either all [lf? redraw-cnt > 20][refresh/force][refresh]
+		either any [
+			all [lf? redraw-cnt > 20]
+			redraw-cnt > 1000
+		][
+			refresh/force
+		][
+			refresh
+		]
 		()				;-- return unset!
 	]
 
@@ -962,7 +969,7 @@ object [
 			]
 			clear selects
 		]
-		console/rate: 6
+		console/rate: 10
 		if caret/rate [caret/rate: none caret/color: caret-clr]
 		calc-top
 		system/view/platform/redraw console
