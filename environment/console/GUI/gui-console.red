@@ -64,7 +64,7 @@ gui-console-ctx: context [
 		]
 		actors: object [
 			on-time: func [face [object!] event [event!]][
-				if caret/enabled? [caret/rate: 2]
+				if all [caret/enabled? none? caret/rate][caret/rate: 2]
 				terminal/on-time
 				'done
 			]
@@ -191,7 +191,7 @@ gui-console-ctx: context [
 				caret/color: caret-clr
 				unless caret/enabled? [caret/enabled?: yes]
 				caret/rate: 2
-				terminal/refresh
+				terminal/refresh/force
 			]
 			on-unfocus: func [face [object!] event [event!]][
 				if caret/enabled? [caret/enabled?: no]
