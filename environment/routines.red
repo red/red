@@ -28,7 +28,7 @@ set-quiet: routine [
 		node [node!]
 ][
 	type: TYPE_OF(word)
-	unless ANY_WORD?(type) [ERR_EXPECT_ARGUMENT(TYPE_WORD 0)]
+	unless ANY_WORD?(type) [ERR_EXPECT_ARGUMENT(type 0)]
 	w: as red-word! word
 	node: w/ctx
 	_context/set-in w stack/arguments + 1 TO_CTX(node) no
