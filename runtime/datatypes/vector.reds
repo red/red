@@ -292,6 +292,8 @@ vector: context [
 			s	 [series!]
 			unit [integer!]
 			type [integer!]
+			len	 [integer!]
+			nlen [integer!]
 			p	 [byte-ptr!]
 			end  [byte-ptr!]
 			int  [red-integer!]
@@ -299,10 +301,12 @@ vector: context [
 			slot [red-value!]
 	][
 		type: vec/type
-		block/make-at blk rs-length? vec
+		len: rs-length? vec
+		nlen: either zero? len [1][len]
+		block/make-at blk nlen
 		s: GET_BUFFER(blk)
 		slot: s/offset
-		s/tail: slot + rs-length? vec
+		s/tail: slot + len
 
 		s: GET_BUFFER(vec)
 		unit: GET_UNIT(s)

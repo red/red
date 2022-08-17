@@ -3263,6 +3263,9 @@ comment {
 		]
 		--assert fails = 0
 
+	--test-- "#5178"
+		--assert [] == to block! make vector! []
+
 ===end-group===
 
 ~~~end-file~~~
