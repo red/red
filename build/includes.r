@@ -80,6 +80,7 @@ write %build/bin/sources.r set-cache [
 		%case-folding.reds
 		%clipboard.reds
 		%collector.reds
+		%common.reds
 		%compress.reds
 		%crush.reds
 		%crypto.reds
@@ -88,6 +89,7 @@ write %build/bin/sources.r set-cache [
 		%deflate.reds
 		%dtoa.reds
 		%hashtable.reds
+		%image-utils.reds
 		%interpreter.reds
 		%lexer.reds
 		%lexer-transitions.reds
@@ -102,18 +104,19 @@ write %build/bin/sources.r set-cache [
 		%simple-io.reds
 		%sort.reds
 		%stack.reds
+		%structures.reds
 		%threads.reds
 		%tokenizer.reds
 		%tools.reds
 		%unicode.reds
 		%utils.reds
+		%vector2d.reds
 		%datatypes/ [
 			%action.reds
 			%block.reds
 			%bitset.reds
 			%binary.reds
 			%char.reds
-			%common.reds
 			%context.reds
 			%datatype.reds
 			%date.reds
@@ -128,7 +131,6 @@ write %build/bin/sources.r set-cache [
 			%handle.reds
 			%hash.reds
 			%image.reds
-			%image-utils.reds
 			%integer.reds
 			%issue.reds
 			%lit-path.reds
@@ -153,7 +155,6 @@ write %build/bin/sources.r set-cache [
 			%set-path.reds
 			%set-word.reds
 			%string.reds
-			%structures.reds
 			%symbol.reds
 			%tag.reds
 			%time.reds
@@ -162,7 +163,6 @@ write %build/bin/sources.r set-cache [
 			%unset.reds
 			%url.reds
 			%vector.reds
-			%vector2d.reds
 			%word.reds
 		]
 		%platform/ [

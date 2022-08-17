@@ -14,7 +14,7 @@ Red [
 	#define node! int-ptr!								;-- required for Red datatypes definitions
 	
 	#include %../../system/bridges/java/JNI.reds
-	#include %../../runtime/datatypes/structures.reds
+	#include %../../runtime/structures.reds
 	
 	env: as JNI-env! 0
 	jni: as JNI! 0
