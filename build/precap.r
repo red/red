@@ -9,7 +9,7 @@ REBOL [
 ]
 
 #include %encap-paths.r
-#include %../system/utils/encap-fs.r
+#include %../utils/encap-fs.r
 do #include-string %bin/sources.r
 
 build-date: #include %timestamp.r

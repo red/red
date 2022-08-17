@@ -2773,7 +2773,7 @@ Red [
 
 		partition3108: function [elems [block!] group [integer!]][
 			parse elems [
-				collect some [keep group skip | collect keep to end]
+				collect some [end | keep group skip | collect keep to end]
 			]
 		]
 		--assert [[1 2] [3 4] [5 6] [7 8] [9]] = partition3108 [1 2 3 4 5 6 7 8 9] 2
@@ -2843,7 +2843,9 @@ Red [
 	
 	--test-- "#4198"
 		--assert [a] = parse [][collect keep pick ('a)]
-		--assert [[a b]] = parse [][collect keep pick ([a b])]
+		--assert [[a b]] = parse [][collect keep ([a b])]
+		--assert [a b] = parse [][collect keep pick ([a b])]
+		--assert [value [block]] = parse [] [collect [keep pick ([value]) keep ([block])]]
 
 	--test-- "#4200"
 		word:  'foo

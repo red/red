@@ -210,6 +210,7 @@ draw-begin: func [
 		dc/setDpi this dpi-x dpi-y
 		if on-graphic? [t-mode: 2]	;-- gray scale for transparent target
 	][
+		t-mode: 2
 		wic-bmp: OS-image/get-wicbitmap img
 		OS-image/mark-updated img
 		;-- create a bitmap target

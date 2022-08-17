@@ -301,10 +301,10 @@ system/console: context [
 		]
 	]
 
-	launch: function [/local result][
+	launch: function [/local result found?][
 		either script: src: read-argument [
-			parse/case script [some [[pos: "Red" opt "/System" any ws #"[" to end] | skip]]
-			either script: pos [
+			parse/case script [some [pos: "Red" opt "/System" any ws #"[" (found?: yes) break | skip]]
+			either all [found? script: pos][
 				either error? script: try-do [load script][
 					print :script
 				][
@@ -363,7 +363,6 @@ list-dir: function [
 		22 - n
 	]
 
-	#if config/gui-console? [gui-console-ctx/terminal/refresh?: no]
 	while [not tail? list][
 		loop n [
 			if max-sz <= length? name: list/1 [
@@ -376,7 +375,6 @@ list-dir: function [
 		]
 		prin lf
 	]
-	#if config/gui-console? [gui-console-ctx/terminal/refresh?: yes]
 	()
 ]
 

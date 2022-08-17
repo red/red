@@ -11,7 +11,7 @@ Red [
 ]
 
 system: context [
-	version: #do keep [form load-cache %version.r]
+	version: #do keep [form load-cache %encapper/version.r]
 	build: context [
 		date: #do keep [
 			use [date][

@@ -1518,6 +1518,8 @@ OS-draw-image: func [
 		crop.y	[integer!]
 		crop.w	[integer!]
 		crop.h	[integer!]
+		right	[integer!]
+		bottom	[integer!]
 		dst		[red-image! value]
 		pixbuf	[handle!]
 ][
@@ -1541,12 +1543,21 @@ OS-draw-image: func [
 			crop.y: crop1/y
 			crop.w: crop2/x
 			crop.h: crop2/y
-			if crop.x + crop.w > src.w [
-				crop.w: src.w - crop.x
-			]
-			if crop.y + crop.h > src.h [
-				crop.h: src.h - crop.y
-			]
+
+			right: crop.x + crop.w
+			bottom: crop.y + crop.h
+			if any [		;-- clip outside the image
+				right <= 0 bottom <= 0
+				crop.x >= src.w crop.y >= src.h
+			][exit]
+
+			if right > src.w [right: src.w]
+			if bottom > src.h [bottom: src.h]
+			if crop.x < 0 [crop.x: 0]
+			if crop.y < 0 [crop.y: 0]
+
+			crop.w: right - crop.x
+			crop.h: bottom - crop.y
 		]
 		case [
 			start = end [
@@ -2192,14 +2203,6 @@ OS-set-clip: func [
 		cairo_new_path dc/cr
 		ctx-matrix-adapt dc saved
 		cairo_append_path dc/cr path
-	]
-	cairo_set_operator cr case [
-		mode = replace	 [CAIRO_OPERATOR_SOURCE]
-		mode = intersect [CAIRO_OPERATOR_OVER]
-		mode = union	 [CAIRO_OPERATOR_ADD]
-		mode = _xor		 [CAIRO_OPERATOR_XOR]
-		mode = exclude	 [CAIRO_OPERATOR_EXCLUSION]
-		true			 [CAIRO_OPERATOR_OVER]
 	]
 	cairo_clip cr
 	ctx-matrix-unadapt dc saved

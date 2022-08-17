@@ -40,7 +40,7 @@ red: context [
 	
 	unless value? 'Red [red: none]						;-- for %preprocessor to load
 	
-	lexer: 		   do bind load-cache %lexer.r 'self
+	lexer: 		   do bind load-cache %encapper/lexer.r 'self
 	extracts:	   do bind load-cache %utils/extractor.r 'self
 	redbin:		   do bind load-cache %utils/redbin.r 'self
 	preprocessor:  do-cache file: %utils/preprocessor.r
@@ -104,7 +104,7 @@ red: context [
 	
 	iterators: [loop until while repeat foreach forall forever remove-each]
 	
-	standard-modules: load-cache %modules.r
+	standard-modules: load-cache %encapper/modules.r
 
 	func-constructors: [
 		'func | 'function | 'does | 'has | 'routine | 'make 'function!
@@ -4592,7 +4592,7 @@ red: context [
 		output: make block! 10000
 		comp-init
 		
-		pc: next preprocessor/expand/clean load-source/hidden %boot.red job ;-- compile Red's boot script
+		pc: next preprocessor/expand/clean load-source/hidden %encapper/boot.red job ;-- compile Red's boot script
 		unless job/red-help? [clear-docstrings pc]
 		booting?: yes
 		comp-block

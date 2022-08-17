@@ -145,7 +145,7 @@ libRedRT: context [
 		append imports [
 			#include %$ROOT-PATH$runtime/definitions.reds
 			#include %$ROOT-PATH$runtime/macros.reds
-			#include %$ROOT-PATH$runtime/datatypes/structures.reds
+			#include %$ROOT-PATH$runtime/structures.reds
 				
 			cell!: alias struct! [
 				header	[integer!]						;-- cell's header flags

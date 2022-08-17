@@ -185,8 +185,8 @@ iocp: context [
 		res: GetQueuedCompletionStatusEx p/port p/events p/evt-cnt :cnt timeout no
 	
 		if zero? res [
-			err: GetLastError
-			IODebug(["GetQueuedCompletionStatusEx: " err])
+			;err: GetLastError
+			;IODebug(["GetQueuedCompletionStatusEx: " err])
 			return io/update-ports timeout no
 		]
 

@@ -22,10 +22,10 @@ object [
 	ask?:		no								;-- is it in ask loop
 	prin?:		no								;-- start prin?
 	newline?:	yes								;-- start a new line?
-	refresh?:	yes
 	mouse-up?:	yes
 	ime-open?:	no
 	ime-pos:	0
+	redraw-cnt: 0
 
 	top:		1								;-- index of the first visible line in the line buffer
 	line:		""								;-- current editing line
@@ -101,6 +101,7 @@ object [
 		pos: 0
 		line-pos: length? lines
 		ask?: yes
+		redraw-cnt: 0
 		reset-top
 		clear-stack
 		set-flag hide?
@@ -136,7 +137,14 @@ object [
 		system/view/platform/exit-event-loop
 	]
 
-	refresh: func [/force][if any [force refresh?] [system/view/platform/redraw console]]
+	refresh: func [/force][
+		either force [
+			system/view/platform/redraw console
+			redraw-cnt: 0
+		][
+			redraw-cnt: redraw-cnt + 1
+		]
+	]
 
 	vprin: func [str [string!]][
 		either empty? lines [
@@ -192,7 +200,14 @@ object [
 			]
 		]
 		prin?: not lf?
-		refresh
+		either any [
+			all [lf? redraw-cnt > 20]
+			redraw-cnt > 1000
+		][
+			refresh/force
+		][
+			refresh
+		]
 		()				;-- return unset!
 	]
 
@@ -498,7 +513,9 @@ object [
 	]
 
 	on-time: func [][
-		either zero? scrolling [console/rate: none][
+		either zero? scrolling [
+			if redraw-cnt <> 0 [refresh/force]
+		][
 			if any [empty? lines mouse-up? empty? selects][exit]
 			scroll-lines scrolling
 			select-to-offset scroll-pos
@@ -952,7 +969,7 @@ object [
 			]
 			clear selects
 		]
-		console/rate: 6
+		console/rate: 10
 		if caret/rate [caret/rate: none caret/color: caret-clr]
 		calc-top
 		system/view/platform/redraw console

@@ -245,7 +245,8 @@ replace: function [
 		]
 		rule:  [
 			any [
-				change pattern (value) [if (all) | break]
+				end 
+				| change pattern (value) [if (all) | break]
 				| if (deep?) ahead any-list! into rule
 				| skip
 			]
@@ -280,6 +281,7 @@ replace: function [
 math: function [
 	"Evaluates expression using math precedence rules"
 	datum [block! paren!] "Expression to evaluate"
+	/safe				  "Returns NONE on error"
 	/local match
 ][
 	order: ['** ['* | quote / | quote % | quote //]]	;@@ compiler's lexer chokes on '/, '% and '//
@@ -288,11 +290,11 @@ math: function [
 	tally: [any [enter [fail] | recur [fail] | count [fail] | skip]]
 	enter: [ahead paren! into tally]
 	recur: [if (operator = '**) skip operator tally]
-	count: [while ahead change only copy match infix (do match)]
+	count: [while ahead change only copy match infix (either safe [attempt match][do match])]
 
-	do also datum: copy/deep datum foreach operator order [
-		parse datum tally
-	]
+	datum: copy/deep datum
+	foreach operator order [parse datum tally]
+	either safe [attempt datum][do datum]
 ]
 
 charset: func [
@@ -753,7 +755,7 @@ extract-boot-args: function [
 		ws: charset " ^-^/^M"
 		system/options/boot: take system/options/args: parse args [
 			collect some [
-				(buf: make string! 32) collect into buf any [
+				end | (buf: make string! 32) collect into buf any [
 					not ws [
 						#"'" keep to #"'" skip
 					|	"\'" keep (#"'")
@@ -803,7 +805,7 @@ split: function [
 	series [any-string!] dlm [string! char! bitset!] /local s
 ][
 	num: either string? dlm [length? dlm][1]
-	parse series [collect any [copy s [to [dlm | end]] keep (s) num skip [end keep (copy "") | none] ]]
+	parse series [collect any [end keep (make string! 0) | copy s [to [dlm | end]] keep (s) num skip]]
 ]
 
 dirize: func [
@@ -885,9 +887,9 @@ split-path: func [
 do-file: function ["Internal Use Only" file [file! url!] callback [function! none!]][
 	ws: charset " ^-^M^/"
 	saved: system/options/path
-	unless parse/case read file [some [[src: "Red" opt "/System" any ws #"[" to end] | skip]] [
-		cause-error 'syntax 'no-header reduce [file]
-	]
+	parse/case read file [some [src: "Red" opt "/System" any ws #"[" (found?: yes) break | skip]]
+	unless found? [cause-error 'syntax 'no-header reduce [file]]
+	
 	code: load/all src									;-- don't expand before we check the header
 	if code/1 = 'Red/System [cause-error 'internal 'red-system []]
 	header?: all [code/1 = 'Red block? header: code/2]

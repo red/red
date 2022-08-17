@@ -351,7 +351,7 @@ OS-text-box-layout: func [
 			pval: block/rs-head state
 		]
 		handle/make-at pval + 1 as-integer target
-		0
+		DT_WORDBREAK	;-- wrap by default
 	][5]	;-- base face
 	vec: target/styles
 	if vec <> null [vector/rs-clear vec]

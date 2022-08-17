@@ -1162,7 +1162,7 @@ assert s <> null
 				stack/mark-interp-native words/_set-path
 				pc: eval-expression pc end code no yes no	;-- yes: push value on top of stack
 				if tracing? [fire-event EVT_SET code pc value stack/get-top]
-				pc: eval-path value pc end code yes yes sub? no
+				pc: eval-path value pc end code yes no sub? no
 				either sub? [stack/unwind][stack/unwind-last]
 				if tracing? [value: stack/arguments]
 			]

@@ -30,6 +30,9 @@ dwrite-str-cache: as node! 0
 
 #define D2D_MAX_BRUSHES 64
 
+#define DWRITE_WORD_WRAPPING_WRAP 0
+#define DWRITE_WORD_WRAPPING_NO_WRAP 1
+
 #define DXGI_PRESENT_TEST 1
 #define DXGI_DEBUG_RLO_ALL	 7
 #define DXGI_FORMAT_A8_UNORM 65
@@ -2198,7 +2201,11 @@ set-text-format: func [
 		flags and 8 <> 0 [v-align: 1]
 		true			 [v-align: 0]
 	]
-	wrap: either flags and 20h = 0 [0][1]
+	wrap: either flags and DT_WORDBREAK = 0 [
+		DWRITE_WORD_WRAPPING_NO_WRAP
+	][
+		DWRITE_WORD_WRAPPING_WRAP
+	]
 
 	format: as IDWriteTextFormat fmt/vtbl
 	format/SetTextAlignment fmt h-align

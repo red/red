@@ -310,7 +310,7 @@ context [
 			)
 			init
 		]
-		line-rule: [values [newline | end] add-line]
+		line-rule: [end | values [newline | end] add-line]
 		init: [(clear line)]
 
 		; -- main code

@@ -809,6 +809,58 @@ reset-im-context: func [ctx [handle!]][
 	]
 ]
 
+translate-key: func [
+	keycode		[integer!]
+	return:		[integer!]
+	/local
+		pos		[integer!]
+][
+	if all [
+		keycode >= 20h
+		keycode <= 7Fh
+	][
+		pos: keycode - 20h + 1
+		return keycode-ascii/pos
+	]
+	if all [
+		keycode >= FF00h
+		keycode <= FFFFh
+	][
+		pos: keycode - FF00h + 1
+		return keycode-special/pos
+	]
+	;-- simple fix #4267
+	if keycode = FE20h [
+		return RED_VK_TAB
+	]
+	RED_VK_UNKNOWN
+]
+
+convert-numpad-key: func [
+	vkey	[integer!]
+	return: [integer!]
+][
+	as-integer switch vkey [
+		RED_VK_NUMPAD0	 [#"0"]
+		RED_VK_NUMPAD1	 [#"1"]
+		RED_VK_NUMPAD2	 [#"2"]
+		RED_VK_NUMPAD3	 [#"3"]
+		RED_VK_NUMPAD4	 [#"4"]
+		RED_VK_NUMPAD5	 [#"5"]
+		RED_VK_NUMPAD6	 [#"6"]
+		RED_VK_NUMPAD7	 [#"7"]
+		RED_VK_NUMPAD8	 [#"8"]
+		RED_VK_NUMPAD9	 [#"9"]
+		RED_VK_MULTIPLY	 [#"*"]
+		RED_VK_ADD		 [#"+"]
+		RED_VK_SEPARATOR [#","]
+		RED_VK_SUBTRACT	 [#"-"]
+		RED_VK_DECIMAL	 [#"."]
+		RED_VK_DIVIDE	 [#"/"]
+		default			 [vkey]
+	]
+]
+
 key-press-event: func [
 	[cdecl]
 	evbox		[handle!]
@@ -866,8 +918,8 @@ key-press-event: func [
 	special-key: either char-key? as-byte key [0][-1]		;-- special key or not
 	if all [key >= 80h special-key = -1][
 		flags: flags or special-key-to-flags key
-		key: 0
 	]
+	key: convert-numpad-key key
 
 	res: make-event widget key or flags EVT_KEY_DOWN
 	if res <> EVT_NO_DISPATCH [
@@ -928,8 +980,8 @@ key-release-event: func [
 	special-key: either char-key? as-byte key [0][-1]		;-- special key or not
 	if all [key >= 80h special-key = -1][
 		flags: flags or special-key-to-flags key
-		key: 0
 	]
+	key: convert-numpad-key key
 	make-event widget key or flags EVT_KEY_UP
 ]
 
@@ -1248,13 +1300,9 @@ widget-scroll-event: func [
 	widget		[handle!]
 	return:		[integer!]
 ][
-	either null? GET-RESEND-EVENT(evbox) [
-		if evbox <> gtk_get_event_widget as handle! event [return EVT_NO_DISPATCH]
-	][
-		SET-RESEND-EVENT(evbox null)
-	]
+	SET-RESEND-EVENT(evbox null)
 	g_object_set_qdata widget red-event-id as handle! event
-	if any [event/delta_y < -0.01 event/delta_y > 0.01][
+	if any [event/delta_y < -0.01 event/delta_y > 0.01 event/direction <> GDK_SCROLL_SMOOTH][
 		return make-event widget check-down-flags event/state EVT_WHEEL
 	]
 	EVT_DISPATCH

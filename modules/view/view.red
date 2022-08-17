@@ -458,9 +458,14 @@ face!: object [				;-- keep in sync with facet! enum
 			if word = 'para  [link-sub-to-parent self 'para old new]
 			
 			if find [field text] type [
-				if word = 'text [
+				if all [word = 'text any [not options not find options 'sync options/sync]][
 					set-quiet 'data any [
-						all [not empty? new new-type: scan new find scalar! new-type attempt/safer [load new]]
+						all [
+							not empty? new 
+							new-type: scan new
+							find any [all [options options/sync] scalar!] new-type
+							attempt/safer [load new]
+						]
 						all [options options/default]
 					]
 				]
@@ -475,6 +480,13 @@ face!: object [				;-- keep in sync with facet! enum
 					saved: 'data
 					word: 'text							;-- force text refresh
 				]
+			]
+			
+			all [
+				word = 'selected
+				block? data
+				find [drop-list drop-down text-list field area] type
+				set-quiet 'text pick data selected
 			]
 
 			system/reactivity/check/only self any [saved word]
@@ -997,6 +1009,7 @@ insert-event-func: function [
 	"Add a function to monitor global events. Return the function"
 	fun [block! function!] "A function or a function body block"
 ][
+	if find/same system/view/handlers :fun [return none]
 	if block? :fun [fun: do [function copy [face event] fun]]	;@@ compiler chokes on 'function call
 	insert system/view/handlers :fun
 	:fun
