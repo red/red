@@ -476,7 +476,7 @@ object [
 		caret/enabled?: yes
 		mouse-to-caret event/offset
 		system/view/platform/redraw console
-		caret/rate: 2
+		caret/rate: caret-rate
 	]
 
 	mouse-move: func [offset /local y][

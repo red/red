@@ -45,6 +45,7 @@ gui-console-ctx: context [
 	cfg:		none
 	font:		make font! [name: system/view/fonts/fixed size: 11 color: 0.0.0]
 	caret-clr:	0.0.0.1
+	caret-rate: 2
 	scroller:	make scroller! []
 
 	console:	make face! [
@@ -64,7 +65,7 @@ gui-console-ctx: context [
 		]
 		actors: object [
 			on-time: func [face [object!] event [event!]][
-				if all [caret/enabled? none? caret/rate][caret/rate: 2]
+				if all [caret/enabled? none? caret/rate][caret/rate: caret-rate]
 				terminal/on-time
 				'done
 			]
@@ -121,7 +122,7 @@ gui-console-ctx: context [
 	]
 
 	caret: make face! [
-		type: 'base color: caret-clr offset: 0x0 size: 1x17 rate: 2 enabled?: no
+		type: 'base color: caret-clr offset: 0x0 size: 1x17 enabled?: no
 		options: compose [caret (console) cursor: I-beam accelerated: yes]
 		actors: object [
 			on-time: func [face [object!] event [event!]][
@@ -190,7 +191,7 @@ gui-console-ctx: context [
 			on-focus: func [face [object!] event [event!]][
 				caret/color: caret-clr
 				unless caret/enabled? [caret/enabled?: yes]
-				caret/rate: 2
+				caret/rate: caret-rate
 				terminal/refresh/force
 			]
 			on-unfocus: func [face [object!] event [event!]][
@@ -198,6 +199,7 @@ gui-console-ctx: context [
 				caret/rate: none
 			]
 		]
+		caret/rate: caret-rate
 		tips/parent: win
 	]
 
@@ -214,7 +216,14 @@ gui-console-ctx: context [
 		]
 	]
 
-	launch: func [/local svs][
+	launch: func [/local svs rate][
+		rate: get-caret-blink-time
+		caret-rate: case [
+			rate > 0 [to-time rate / 1000.0]
+			rate < 0 [none]
+			rate = 0 [2]
+		]
+
 		setup-faces
 		win/visible?: no					;-- hide it first to avoid flicker
 
@@ -262,7 +271,26 @@ ask: function [
 
 input: function ["Wait for console user input" return: [string!]][ask ""]
 
+get-caret-blink-time: routine [
+	return: [integer!]	;-- blink time, in milliseconds, -1: INFINITE
+][
+	#either OS = 'Windows [
+		GetCaretBlinkTime
+	][500]
+]
+
 #system [
+
+	#if OS = 'Windows [
+		#import [
+			"user32.dll" stdcall [
+				GetCaretBlinkTime: "GetCaretBlinkTime" [
+					return:		[uint!]
+				]
+			]
+		]
+	]
+
 	gui-console-buffer: as red-value! 0
 
 	red-print-gui: func [
