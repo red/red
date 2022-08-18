@@ -1830,13 +1830,13 @@ Red [
 		--assert res = [html [head [title ["Test"]] body [div [u ["Hello"] b ["World"]]]]]
 
 	--test-- "str-cplx3"
-		foo: func [value][value]
+		foo-cplx3: func [value][value]
 		res: parse [a 3 4 t [t 9] "test" 8][
 			collect [
 				any [
 					keep integer!
 					| p: block! :p into [
-						collect [any [keep integer! keep ('+) | skip keep (foo '-)]]
+						collect [any [keep integer! keep ('+) | skip keep (foo-cplx3 '-)]]
 					] 
 					| skip
 				]
