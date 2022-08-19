@@ -18,7 +18,7 @@ Red/System [
 ;;			 : window: default font
 ;;		-28  : Cursor handle
 ;;		-24  : base-layered: caret's owner handle, Window: modal loop type for moving and resizing
-;;		-20  : evolved-base-layered: child handle, window: previous focused handle
+;;		-20  : evolved-base-layered: child handle
 ;;		-16  : base-layered: owner handle, window: border width and height
 ;;		-12  : clipped? flag, caret? flag, d2d? flag, ime? flag
 ;;		 -8  : base: pos X/Y in pixel
@@ -62,7 +62,6 @@ hScreen:		as handle! 0
 hInstance:		as handle! 0
 default-font:	as handle! 0
 hover-saved:	as handle! 0							;-- last window under mouse cursor
-prev-focus:		as handle! 0
 prev-captured:	as handle! 0
 version-info: 	declare OSVERSIONINFO
 current-msg: 	as tagMSG 0
@@ -615,7 +614,9 @@ free-faces: func [
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
 
-	if sym = window [ShowWindow handle SW_HIDE]			;-- hide it first for better User experience
+	if sym = window [	;-- hide it first for better User experience
+		SetWindowPos handle null 0 0 0 0 SWP_HIDEWINDOW or SWP_NOMOVE or SWP_NOSIZE or SWP_NOZORDER
+	]
 
 	rate: values + FACE_OBJ_RATE
 	if TYPE_OF(rate) <> TYPE_NONE [change-rate handle none-value]
@@ -634,7 +635,8 @@ free-faces: func [
 			free-faces obj
 			obj: obj + 1
 		]
-	]	
+	]
+
 	case [
 		sym = group-box [
 			;-- destroy the extra frame window
@@ -1375,7 +1377,6 @@ OS-make-view: func [
 		value	  [integer!]
 		handle	  [handle!]
 		hWnd	  [handle!]
-		focused   [handle!]
 		p		  [ext-class!]
 		id		  [integer!]
 		vertical? [logic!]
@@ -1551,13 +1552,8 @@ OS-make-view: func [
 			AdjustWindowRectEx rc flags menu-bar? menu window ws-flags
 			rc/right: rc/right - rc/left
 			rc/bottom: rc/bottom - rc/top
-			focused: null 
 			if bits and FACET_FLAGS_MODAL <> 0 [
 				parent: as-integer GetActiveWindow
-				if parent <> 0 [
-					focused: get-selected-handle as handle! parent
-					if null? focused [focused: as handle! parent]
-				]
 			]
 		]
 		true [											;-- search in user-defined classes
@@ -1717,7 +1713,6 @@ OS-make-view: func [
 		]
 		sym = window [
 			init-window handle
-			SetWindowLong handle wc-offset - 20 as-integer focused
 			#if sub-system = 'gui [
 				with clipboard [
 					if null? main-hWnd [main-hWnd: handle]
