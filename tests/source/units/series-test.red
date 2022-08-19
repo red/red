@@ -883,9 +883,9 @@ Red [
 	--test-- "remove-hash-8 - issue #5118"
 		hs-remove-8: make hash! [a b c a b c]
 		remove/part skip hs-remove-8 3 3
-		--assert 1 = index? find hs-remove-8 'a
-		--assert 2 = index? find hs-remove-8 'b
-		--assert 3 = index? find hs-remove-8 'c
+		--assert 1 = index? find/last hs-remove-8 'a
+		--assert 2 = index? find/last hs-remove-8 'b
+		--assert 3 = index? find/last hs-remove-8 'c
 
 	--test-- "remove-str-1"
 		a: "123"
