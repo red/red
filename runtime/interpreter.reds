@@ -948,7 +948,7 @@ assert s <> null
 			arg: either all [set? tail?][stack/arguments][null]
 			parent: actions/eval-path parent value arg path case? get? tail?
 			
-			unless get? [
+			if all [not get? not set?][
 				switch TYPE_OF(parent) [
 					TYPE_ACTION							;@@ replace with TYPE_ANY_FUNCTION
 					TYPE_NATIVE
