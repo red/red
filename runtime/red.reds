@@ -64,6 +64,7 @@ red: context [
 		NetBSD   [#include %platform/image-gdk.reds]
 		#default []
 	]
+	#include %image-utils.reds
 	
 	#include %datatypes/datatype.reds
 	#include %datatypes/unset.reds
@@ -119,7 +120,7 @@ red: context [
 	#if OS = 'macOS   [#include %datatypes/image.reds]	;-- temporary
 	#if OS = 'Linux   [#include %datatypes/image.reds]
 	#if OS = 'FreeBSD [#include %datatypes/image.reds]
-	#if OS = 'NetBSD [#include %datatypes/image.reds]
+	#if OS = 'NetBSD  [#include %datatypes/image.reds]
 
 	;-- Debugging helpers --
 	
