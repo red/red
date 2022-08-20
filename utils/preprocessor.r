@@ -430,7 +430,7 @@ preprocessor: context [
 				
 				| s: #process [[
 					  'on  (active?: yes remove/part s 2) :s
-					| 'off (active?: no  remove/part s 2) :s [to #process | to end]
+					| 'off (active?: no  remove/part s 2) :s [to #process | to end (active?: yes)]
 				] | (syntax-error s next s)]
 				
 				| s: #macro [
