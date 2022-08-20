@@ -10,8 +10,6 @@ Red/System [
 	}
 ]
 
-#include %../image-utils.reds
-
 image: context [
 	verbose: 0
 

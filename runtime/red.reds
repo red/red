@@ -66,6 +66,7 @@ red: context [
 		NetBSD   [#include %platform/linux/image-gdk.reds]
 		#default []
 	]
+	#include %image-utils.reds
 	
 	#include %datatypes/datatype.reds
 	#include %datatypes/unset.reds
@@ -123,7 +124,7 @@ red: context [
 	#either modules contains 'View [][#include %datatypes/event.reds]
 	#if OS = 'Linux   [#include %datatypes/image.reds]
 	#if OS = 'FreeBSD [#include %datatypes/image.reds]
-	#if OS = 'NetBSD [#include %datatypes/image.reds]
+	#if OS = 'NetBSD  [#include %datatypes/image.reds]
 
 	;-- Debugging helpers --
 	
