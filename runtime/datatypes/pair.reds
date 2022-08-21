@@ -326,15 +326,26 @@ pair: context [
 		/local
 			int		[red-integer!]
 			value	[red-value!]
+			p		[red-pair!]
+			scalexy?[logic!]
+			y		[integer!]
 	][
 		if TYPE_OF(scale) = TYPE_MONEY [
 			fire [TO_ERROR(script not-related) stack/get-call datatype/push TYPE_MONEY]
+		]
+		scalexy?: all [OPTION?(scale) TYPE_OF(scale) = TYPE_PAIR]
+		if scalexy? [
+			p: as red-pair! scale
+			y: p/y
+			scale/header: TYPE_INTEGER
+			scale/value: p/x
 		]
 		
 		int: integer/push pair/x
 		value: integer/round as red-value! int scale _even? down? half-down? floor? ceil? half-ceil?
 		pair/x: get-value-int as red-integer! value
 		
+		if scalexy? [scale/value: y]
 		int/value: pair/y
 		value: integer/round as red-value! int scale _even? down? half-down? floor? ceil? half-ceil?
 		pair/y: get-value-int as red-integer! value

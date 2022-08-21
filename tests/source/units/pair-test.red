@@ -269,6 +269,7 @@ Red [
 	--test-- "pround-1"		--assert 15x10 = round/to 17x8  5
 	--test-- "pround-3"		--assert 15x10 = round/to 15x10 1
 	--test-- "pround-3"		--assert 15x10 = round/to 15x10 0
+	--test-- "#5151"		--assert 20x40 = round/to 22x33 10x20
 
 ===end-group===
 
