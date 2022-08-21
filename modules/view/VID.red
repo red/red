@@ -593,7 +593,7 @@ system/view/VID: context [
 		while [all [global? not tail? spec]][			;-- process wrapping panel options
 			switch/default spec/1 [
 				title	 [panel/text: fetch-argument string! spec]
-				size	 [size: fetch-argument pair! spec]
+				size	 [panel/size: size: fetch-argument pair! spec]
 				backdrop [
 					value: pre-load fetch-argument background! spec
 					switch type?/word value [
