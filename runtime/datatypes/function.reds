@@ -763,7 +763,7 @@ _function: context [
 		]
 	]
 	
-	decode-attributs: func [
+	decode-attributes: func [
 		list	[red-block!]
 		return: [integer!]
 		/local
@@ -809,7 +809,7 @@ _function: context [
 		flags:  0
 		
 		if all [value < end TYPE_OF(value) = TYPE_BLOCK][
-			flags: decode-attributs as red-block! value
+			flags: decode-attributes as red-block! value
 			if flags = -1 [do-error]
 			value: value + 1							;-- skip optional attributs block
 		]
