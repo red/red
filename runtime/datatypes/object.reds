@@ -288,7 +288,6 @@ object: context [
 	]
 	
 	make-callback-node: func [
-		ctx		[red-context!]
 		idx-s	[integer!]								;-- for on-change* event
 		loc-s	[integer!]
 		idx-d	[integer!]								;-- for on-deep-change* event
@@ -380,7 +379,7 @@ object: context [
 			]
 			loc-d: _function/calc-arity null fun 0		;-- passing a null path triggers short code branch
 		]
-		make-callback-node ctx idx-s loc-s idx-d loc-d
+		make-callback-node idx-s loc-s idx-d loc-d
 	]
 	
 	loc-fire-on-set*: func [							;-- compiled code entry point
@@ -862,7 +861,7 @@ object: context [
 	][
 		obj: as red-object! stack/get-top
 		assert TYPE_OF(obj) = TYPE_OBJECT
-		obj/on-set: make-callback-node TO_CTX(ctx) idx-s loc-s idx-d loc-d
+		obj/on-set: make-callback-node idx-s loc-s idx-d loc-d
 		if idx-d <> -1 [ownership/set-owner as red-value! obj obj null]
 		
 		s: as series! ctx/value
