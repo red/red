@@ -231,6 +231,7 @@ ownership: context [
 		either null? slot [false][
 			owner:  as red-object! slot + 1
 			word:	as red-word! slot + 2
+			if null? owner/on-set [return false]
 			object/fire-on-deep owner word value action new index part
 			true
 		]
