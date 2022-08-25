@@ -691,7 +691,7 @@ parser: context [
 		rule: as red-block! stack/push as red-value! rule
 		stack/push as red-value! input
 		stack/push as red-value! rules
-		if positive? locals [_function/init-locals 1 + locals]	;-- +1 for /local refinement
+		if positive? locals [_function/init-locals locals]
 		rule/head: offset
 		assert system/thrown = 0
 		

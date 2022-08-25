@@ -369,7 +369,7 @@ object: context [
 			if all [type <> TYPE_FUNCTION type <> TYPE_ROUTINE][
 				fire [TO_ERROR(script bad-field-set) words/_on-change* datatype/push type]
 			]
-			loc-s: _function/calc-arity null fun 0		;-- passing a null path triggers short code branch
+			loc-s: _function/count-locals fun/spec 0 no
 		]
 		if idx-d >= 0 [
 			fun: as red-function! s/offset + idx-d
@@ -377,7 +377,7 @@ object: context [
 			if all [type <> TYPE_FUNCTION type <> TYPE_ROUTINE][
 				fire [TO_ERROR(script bad-field-set) words/_on-deep-change* datatype/push type]
 			]
-			loc-d: _function/calc-arity null fun 0		;-- passing a null path triggers short code branch
+			loc-d: _function/count-locals fun/spec 0 no
 		]
 		make-callback-node idx-s loc-s idx-d loc-d
 	]

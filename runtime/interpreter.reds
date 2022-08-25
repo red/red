@@ -251,7 +251,7 @@ interpreter: context [
 		]
 		stack/push ref									;-- reference (word, path,...)
 		pair/push base top								;-- frame (pair!)
-		if positive? fun-locs [_function/init-locals 1 + fun-locs]	;-- +1 for /local refinement
+		if positive? fun-locs [_function/init-locals fun-locs]
 
 		tracing?: no
 		catch RED_THROWN_ERROR [_function/call trace-fun ctx as red-value! words/_interp-cb CB_INTERPRETER]
