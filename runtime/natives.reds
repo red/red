@@ -1150,6 +1150,7 @@ natives: context [
 			fun	  [red-function!]
 			obj	  [node!]
 			word  [red-word!]
+			vctx  [red-context!]
 			ctx	  [node!]
 			self? [logic!]
 			idx	  [integer!]
@@ -1170,20 +1171,21 @@ natives: context [
 		]
 		
 		either TYPE_OF(value) = TYPE_BLOCK [
+			vctx: TO_CTX(ctx)
 			obj: either TYPE_OF(ref) = TYPE_OBJECT [
 				self?: yes
-				object/save-self-object as red-object! ref
+				vctx/self
 			][
 				self?: no
 				null
 			]
 			either negative? copy [
-				_context/bind as red-block! value TO_CTX(ctx) obj self?
+				_context/bind as red-block! value vctx obj self?
 			][
 				stack/set-last 
 					as red-value! _context/bind
 						block/clone as red-block! value yes yes
-						TO_CTX(ctx)
+						vctx
 						obj
 						self?
 			]

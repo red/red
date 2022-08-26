@@ -272,21 +272,7 @@ object: context [
 			]
 		]
 	]
-	
-	save-self-object: func [
-		obj		[red-object!]
-		return: [node!]
-		/local
-			node [node!]
-			s	 [series!]
-	][
-		node: alloc-cells 1								;-- hidden object value storage used by SELF
-		s: as series! node/value
-		copy-cell as red-value! obj s/offset
-		s/tail: s/offset + 1
-		node
-	]
-	
+
 	make-callback-node: func [
 		idx-s	[integer!]								;-- for on-change* event
 		loc-s	[integer!]
@@ -723,10 +709,10 @@ object: context [
 	]
 	
 	extend: func [
-		ctx		[red-context!]
-		spec	[red-context!]
-		obj		[red-object!]
-		return: [logic!]
+		ctx		[red-context!]							;-- new context
+		spec	[red-context!]							;-- spec object context
+		obj		[red-object!]							;-- new object
+		return: [logic!]								;-- TRUE if words added to new context
 		/local
 			syms  [red-value!]
 			tail  [red-value!]
@@ -734,7 +720,6 @@ object: context [
 			value [red-value!]
 			base  [red-value!]
 			word  [red-word!]
-			node  [node!]
 			type  [integer!]
 			s	  [series!]
 	][
@@ -758,7 +743,6 @@ object: context [
 		]
 		
 		;-- 2nd pass: deep copy series and rebind functions
-		node: save-self-object obj
 		value: s/offset
 		tail:  s/tail
 		
@@ -774,7 +758,7 @@ object: context [
 						null
 				]
 				type = TYPE_FUNCTION [
-					rebind as red-function! value ctx node
+					rebind as red-function! value ctx ctx/self
 				]
 				true [0]
 			]
@@ -787,7 +771,7 @@ object: context [
 	rebind: func [
 		fun	 [red-function!]
 		ctx  [red-context!]
-		node [node!]
+		self [node!]
 		/local
 			s	 [series!]
 			more [red-value!]
@@ -807,7 +791,7 @@ object: context [
 		spec/extra:	 0
 		
 		blk: block/clone as red-block! more yes yes
-		_context/bind blk ctx node yes					;-- rebind new body to object's context
+		_context/bind blk ctx self yes					;-- rebind new body to object's context
 		_context/bind blk GET_CTX(fun) null no			;-- rebind new body to function's context
 		_function/push spec blk	fun/ctx null null fun/header ;-- recreate function
 		copy-cell stack/top - 1	as red-value! fun		;-- overwrite function slot in object
@@ -977,6 +961,94 @@ object: context [
 		s/tail - s/offset > base						;-- TRUE: new words added
 	]
 	
+	do-copy: func [
+		obj      [red-object!]
+		new	  	 [red-object!]
+		deep?	 [logic!]
+		types	 [red-value!]
+		evt-rst? [logic!]								;-- TRUE: reset events
+		return:	 [red-object!]
+		/local
+			ctx	  [red-context!]
+			nctx  [red-context!]
+			value [red-value!]
+			tail  [red-value!]
+			src	  [series!]
+			dst	  [series!]
+			node  [node!]
+			size  [integer!]
+			slots [integer!]
+			type  [integer!]
+			sym	  [red-word!]
+			w-ctx [node!]
+	][
+		ctx:	GET_CTX(obj)
+		src:	_hashtable/get-ctx-words ctx
+		size:   as-integer src/tail - src/offset
+		slots:	size >> 4
+
+		type: TYPE_OF(obj)								;-- object!, error!, port!,...
+		new/header: TYPE_UNSET
+		new/ctx: _context/create slots no yes ctx CONTEXT_OBJECT
+		new/class: obj/class
+		either evt-rst? [new/on-set: null][new/on-set: obj/on-set]
+		new/header: type
+
+		nctx: GET_CTX(new)
+		copy-cell as red-value! new as red-value! nctx + 1	;-- set back-reference
+
+		if size <= 0 [return new]						;-- empty object!
+
+		;-- process SYMBOLS
+		sym: _hashtable/get-ctx-word nctx 0
+		w-ctx: new/ctx
+		loop slots [
+			sym/ctx: w-ctx
+			sym: sym + 1
+		]
+
+		;-- process VALUES
+		src: as series! ctx/values/value
+		dst: as series! nctx/values/value
+		copy-memory as byte-ptr! dst/offset as byte-ptr! src/offset size
+		dst/tail: dst/offset + slots
+
+		value: dst/offset
+		tail:  dst/tail
+
+		either deep? [
+			while [value < tail][
+				switch TYPE_OF(value) [
+					TYPE_BLOCK
+					TYPE_PAREN
+					TYPE_ANY_PATH
+					TYPE_ANY_STRING [
+						actions/copy 
+							as red-series! value
+							value						;-- overwrite the value
+							null
+							yes
+							null
+					]
+					TYPE_FUNCTION [
+						rebind as red-function! value nctx nctx/self
+					]
+					default [0]
+				]
+				value: value + 1
+			]
+		][
+			while [value < tail][
+				if TYPE_OF(value) = TYPE_FUNCTION [
+					rebind as red-function! value nctx nctx/self
+				]
+				value: value + 1
+			]
+		]
+		if evt-rst? [register-events new nctx]
+		new
+	]
+	
 	construct: func [
 		spec	[red-block!]
 		proto	[red-object!]
@@ -997,6 +1069,18 @@ object: context [
 		obj
 	]
 	
+	register-events: func [
+		obj [red-object!]
+		ctx [red-context!]
+		/local
+			s [series!]
+	][
+		obj/on-set: on-set-defined? ctx
+		if on-deep? obj [ownership/set-owner as red-value! obj obj null]
+		s: as series! ctx/self/value
+		copy-cell as red-value! obj s/offset + 1
+	]
+	
 	;-- Actions --
 	
 	make: func [
@@ -1008,8 +1092,6 @@ object: context [
 			obj		[red-object!]
 			obj2	[red-object!]
 			ctx		[red-context!]
-			self	[node!]
-			s		[series!]
 			blk		[red-block!]
 			p-obj?  [logic!]
 			new?	[logic!]
@@ -1022,7 +1104,7 @@ object: context [
 		p-obj?: TYPE_OF(proto) = TYPE_OBJECT
 		
 		either p-obj? [
-			copy proto obj null yes null				;-- /deep
+			do-copy proto obj yes null no				;-- /deep and keep events
 		][
 			make-at obj 4								;-- arbitrary value
 		]
@@ -1032,22 +1114,19 @@ object: context [
 			TYPE_OBJECT [
 				obj2: as red-object! spec
 				obj/class: either extend ctx GET_CTX(obj2) obj [get-new-id][proto/class] ;@@ class-id is not transmitted for 'self!
+				register-events obj ctx
 			]
 			TYPE_BLOCK [
-				obj/on-set: null						;-- avoid GC marking previous value
 				blk: as red-block! spec
 				new?: _context/collect-set-words ctx blk
-				self: save-self-object obj
-				_context/bind blk ctx self yes			;-- bind spec block
+				_context/bind blk ctx ctx/self yes		;-- bind spec block
 				if p-obj? [duplicate proto/ctx obj/ctx no] ;-- clone and rebind proto's series
+				
 				interpreter/eval blk no
 				
 				clear-words-flags ctx
 				obj/class: either any [new? not p-obj?][get-new-id][proto/class]
-				obj/on-set: on-set-defined? ctx
-				if on-deep? obj [ownership/set-owner as red-value! obj obj null]
-				s: as series! self/value
-				copy-cell as red-value! obj s/offset
+				register-events obj ctx
 			]
 			default [fire [TO_ERROR(syntax malconstruct) spec]]
 		]
@@ -1338,94 +1417,15 @@ object: context [
 		deep?	 [logic!]
 		types	 [red-value!]
 		return:	 [red-object!]
-		/local
-			ctx	  [red-context!]
-			nctx  [red-context!]
-			value [red-value!]
-			tail  [red-value!]
-			src	  [series!]
-			dst	  [series!]
-			node  [node!]
-			size  [integer!]
-			slots [integer!]
-			type  [integer!]
-			sym	  [red-word!]
-			w-ctx [node!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/copy"]]
 		
-		if OPTION?(types) [--NOT_IMPLEMENTED--]
-
 		if OPTION?(part-arg) [
 			ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
 		]
+		if OPTION?(types) [--NOT_IMPLEMENTED--]
 
-		ctx:	GET_CTX(obj)
-		src:	_hashtable/get-ctx-words ctx
-		size:   as-integer src/tail - src/offset
-		slots:	size >> 4
-		
-		type: TYPE_OF(obj)
-		copy-cell as cell! obj as cell! new
-		new/header: TYPE_UNSET
-		new/ctx: _context/create slots no yes ctx CONTEXT_OBJECT
-		new/class: obj/class
-		new/header: type
-
-		nctx: GET_CTX(new)
-		copy-cell as red-value! new as red-value! nctx + 1	;-- set back-reference
-
-		node: save-self-object new
-		
-		if size <= 0 [return new]						;-- empty object!
-
-		;-- process SYMBOLS
-		sym: _hashtable/get-ctx-word nctx 0
-		w-ctx: new/ctx
-		loop slots [
-			sym/ctx: w-ctx
-			sym: sym + 1
-		]
-
-		;-- process VALUES
-		src: as series! ctx/values/value
-		dst: as series! nctx/values/value
-		copy-memory as byte-ptr! dst/offset as byte-ptr! src/offset size
-		dst/tail: dst/offset + slots
-		
-		value: dst/offset
-		tail:  dst/tail
-		
-		either deep? [
-			while [value < tail][
-				switch TYPE_OF(value) [
-					TYPE_BLOCK
-					TYPE_PAREN
-					TYPE_ANY_PATH
-					TYPE_ANY_STRING [
-						actions/copy 
-							as red-series! value
-							value						;-- overwrite the value
-							null
-							yes
-							null
-					]
-					TYPE_FUNCTION [
-						rebind as red-function! value nctx node
-					]
-					default [0]
-				]
-				value: value + 1
-			]
-		][
-			while [value < tail][
-				if TYPE_OF(value) = TYPE_FUNCTION [
-					rebind as red-function! value nctx node
-				]
-				value: value + 1
-			]
-		]
-		new
+		do-copy obj new deep? types yes
 	]
 	
 	select: func [
