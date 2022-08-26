@@ -1522,6 +1522,12 @@ Red [
 
 	--test-- "#5082"
 		--assert 1.#inf = transcode/one "1.79769313486232e308"
+
+	--test-- "#5185"
+		out: transcode {'+1 '-1 :+1 :-1 =1}
+		expect: reduce [lit-word! lit-word! get-word! get-word! word!]
+		repeat i length? out [--assert expect/:i = type? out/:i]
+
 ===end-group===
 	
 ~~~end-file~~~
