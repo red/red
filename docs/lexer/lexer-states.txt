@@ -58,6 +58,7 @@ S_PERCENT
 S_URL
 S_EMAIL
 S_REF
+S_EQUAL
 S_PATH
 S_PATH_NUM
 S_PATH_W1ST
@@ -155,10 +156,11 @@ delimit4:  ws | [ | ] | ( | ) | } | ; | " | \ | EOF
 delimit1:  ws | [ | ] | ( | ) | { | } | " | ; | @ | EOF
 delimit6:  ws | [ | ] | ( | ) | { | } | ; | @ | : | EOF
 delimit8:  ws | [ | ] | ( | ) | { | } | " | ; | < | EOF
+delimit20: ws | [ | ] | ( | ) | { | } | " | ; | \ | EOF
 delimit23: ws | [ | ] | ( | ) | { | } | " | ; | @ | # | EOF
 delimit12: ws | [ | ] | ( | ) | { | } | " | ; | \ | # | EOF
 delimit15: ws | [ | ] | ( | ) | { | } | " | : | ; | # | EOF
-delimit20: ws | [ | ] | ( | ) | { | } | " | ; | \ | EOF
+delimit24: ws | [ | ] | ( | ) | { | } | " | ; | / | \ | EOF
 delimit9:  ws | [ | ] | ( | ) | { | } | " | ; | < | / | EOF
 delimit22: ws | [ | ] | ( | ) | { | } | " | ; | < | \ | EOF
 delimit16: ws | [ | ] | ( | ) | { | } | " | ; | < | \ | # | EOF
@@ -171,10 +173,12 @@ delimit11: ws | [ | ] | ( | ) | { | } | " | ; | < | / | \ | 0-9 | EOF
 delimit18: ws | [ | ] | ( | ) | { | } | : | ; | < | > | = | , | @ | / | EOF
 delimit3:  ws | [ | ] | ( | ) | { | } | " | % | ; | < | # | @ | / | \ | ^ | , | : | $ | EOF
 
+
 hexa:      C_ZERO | C_DIGIT | C_ALPHAX
 alphaU:    A, B, C, D, F
 s-word:    C_X | T | h | e | C_ALPHAL | > | = | C_BIN | C_WORD
 word1st:   C_X | T | h | e | E | C_ALPHAL | C_ALPHAU | < | > | = | . | + | - | C_BIN | C_WORD
+word1st!=: C_X | T | h | e | E | C_ALPHAL | C_ALPHAU | < | > | . | + | - | C_BIN | C_WORD
 p-word1st: C_X | T | h | e | E | C_ALPHAL | C_ALPHAU | > | = | . | C_BIN | C_WORD
 p-word:    0-9 | ' | C_X | T | h | e | E | C_ALPHAL | C_ALPHAU | < | > | = | . | + | - | ^ | C_BIN | C_WORD
 
@@ -353,6 +357,12 @@ S_START->"+"|"-"->S_SIGN->digit->S_NUMBER
                        \->else->S_WORD
 
 
+S_START->"="->S_EQUAL->p-word->S_WORD
+               \->":"->S_WORDSET
+                \->delimit24->T_WORD
+                 \->else->T_ERROR
+
+
 S_START->"$"->S_MONEY_1ST->digit->S_MONEY->digit|"'"->S_MONEY
                \->else->T_ERROR    \->"."|","->S_MONEY_DEC->digit|"'"->S_MONEY_DEC
                                     \       \->delimit2->T_MONEY
@@ -377,8 +387,9 @@ S_START->"'"|":"->S_WORD_1ST->"%"->S_PERCENT
                     \                \->delimit3->T_WORD
                      \                \->else->T_ERROR
                       \->"/"->S_SLASH_1ST
-                       \->word1st->S_WORD
-                        \->else->T_ERROR
+                       \->"="->S_EQUAL
+                        \->word1st!=->S_WORD
+                         \->else->T_ERROR
 
 S_START->s-word->S_WORD->delimit16->T_WORD
                   \->":"->S_WORDSET->else->S_URL->delimit22->T_URL
