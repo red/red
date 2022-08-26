@@ -906,14 +906,12 @@ do-file: function ["Internal Use Only" file [file! url!] callback [function! non
 	if :callback [code: compose/only [do/trace (code) :callback]]
 	
 	set/any 'code try/all/keep [
-		either 'halt-request = set/any 'code catch/name code 'console [
-			print "(halted)"							;-- returns an unset value
-		][
-			:code
-		]
+		set/any 'code catch/name code 'console
+		done?: yes
+		either 'halt-request = :code [print "(halted)"][:code]
 	]
 	if file? file [change-dir saved]
-	if error? :code [do :code]							;-- rethrow the error
+	if all [error? :code not done?][do :code]			;-- rethrow the error
 	:code
 ]
 
