@@ -2459,6 +2459,20 @@ Red [
 			--assert d3805/a = "4564"
 		]
 
+	--test-- "#4500"
+		do [
+			r4500: reactor [
+				x: 1
+				on-change*: function spec-of :on-change* bind/copy body-of :on-change* self
+			]
+			src4500: reactor [a: b: none]
+			tgt: [0 "tgt block"]
+			react [tgt/1: src4500/a]
+			r4500/x: tgt
+			src4500/a: 100
+			--assert tgt/1 = 100
+		]
+
 	--test-- "#4552"
 		do [
 			--assert (make object! []) = context? object [return quote self]
