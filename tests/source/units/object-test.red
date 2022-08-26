@@ -2430,6 +2430,52 @@ Red [
 		--assert a4765x/show == 1
 		--assert b4765x/show == [2 3]
 
+	--test-- "#3804"
+		checks: 0
+		o3804: object [
+			i: 1
+			on-change*: func [w o n] [checks: checks + 1]
+		]
+		o3804/i: o3804/i + 1
+		set in o3804 'i o3804/i + 1
+		do bind [i: i + 1] o3804
+		--assert checks = 3
+	
+	--test-- "#3805"
+		do [
+			checks: 0
+			d3805: make reactor! [
+				set-quiet 'on-change* func
+					spec-of :reactor!/on-change*
+					compose [
+						checks: checks + 1
+						(bind copy/deep body-of :reactor!/on-change* self)
+					]
+				a: "123"
+			]
+			d3805/a: "456"
+			append d3805/a "4"
+			--assert checks = 2
+			--assert d3805/a = "4564"
+		]
+
+	--test-- "#4552"
+		do [
+			--assert (make object! []) = context? object [return quote self]
+			--assert same? (context? 'do) context? object [return 'self]
+		]
+
+	--test-- "#5135"
+		do [
+			r2-5135: none
+			r1-5135: reactor [x: 0 y: is [x] set 'r2-5135 self]
+			--assert same? r1-5135 r2-5135
+			r1-5135/x: 1
+			--assert all [r1-5135/x = 1 r1-5135/y = 1]
+			r2-5135/x: 2
+			--assert all [r2-5135/x = 2 r2-5135/y = 2]
+		]
+
 ===end-group===
 
 ~~~end-file~~~
