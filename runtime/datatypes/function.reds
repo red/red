@@ -760,11 +760,13 @@ _function: context [
 		/local
 			p  [red-value!]
 	][
-		until [
+		assert nb > 0
+		logic/push false								;-- /local = false
+		nb: nb - 1
+		while [nb > 0][
 			p: stack/push*
 			p/header: TYPE_NONE
 			nb: nb - 1
-			zero? nb
 		]
 	]
 
