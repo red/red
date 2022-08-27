@@ -2479,6 +2479,44 @@ Red [
 			--assert same? (context? 'do) context? object [return 'self]
 		]
 
+	--test-- "#4787"
+		do [
+			events: 0
+			o: make deep-reactor! [
+				on-deep-change*: func [o w t a n i p /local x] [
+					y: context? 'o
+					--assert function? :y
+					--assert false == :local
+					--assert none? :x
+					local: p: x: :y
+					p: x: :y
+					--assert function? :y
+					--assert function? :p
+					--assert function? :x
+					--assert function? :local
+					events: events + 1
+				]
+				x: []
+				append x 1
+			]
+			--assert events = 2
+			--assert o/x = [1]
+
+			events: 0
+			o1: object [on-change*: func [word old new] []]
+			o2: make o1 [
+				on-change*: func [word old new /local x] [
+					--assert none? :x
+					--assert false == :local
+					events: events + 1
+				]
+				v: 0
+			]
+			--assert events = 2
+			o2/v: 1
+			--assert events = 3
+		]
+
 	--test-- "#5135"
 		do [
 			r2-5135: none

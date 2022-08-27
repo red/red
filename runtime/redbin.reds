@@ -988,8 +988,8 @@ redbin: context [
 				series: as series! object/on-set/value
 				series/tail: series/offset + 2
 				
-				integer/make-at series/offset data/1
-				integer/make-at series/offset + 1 data/2
+				pair/make-at series/offset data/1 0
+				pair/make-at series/offset + 1 data/2 0
 			]
 			
 			object/header: TYPE_OBJECT
@@ -1028,8 +1028,8 @@ redbin: context [
 		strings [red-binary!]
 		/local
 			object [red-object!]
-			change [red-integer!]
-			deep   [red-integer!]
+			change [red-pair!]
+			deep   [red-pair!]
 			ctx    [red-value!]
 			buffer [series!]
 			owner? [logic!]
@@ -1045,10 +1045,10 @@ redbin: context [
 			store payload object/class
 			if owner? [
 				buffer: as series! object/on-set/value
-				change: as red-integer! buffer/offset
-				deep:   as red-integer! buffer/offset + 1
+				change: as red-pair! buffer/offset
+				deep:   as red-pair! buffer/offset + 1
 				
-				record [payload change/value deep/value]
+				record [payload change/x deep/x]
 			]
 			
 			ctx: as red-value! TO_CTX(object/ctx)

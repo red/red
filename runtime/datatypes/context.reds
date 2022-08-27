@@ -277,7 +277,7 @@ _context: context [
 						old: stack/push slot
 						word: as red-word! word
 						copy-cell value slot
-						object/fire-on-set obj word old value
+						object/fire-on-set obj word old value ;-- safe to call, will exit if not defined
 						stack/top: saved
 						return slot
 					]

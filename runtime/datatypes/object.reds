@@ -152,7 +152,7 @@ object: context [
 			end		[red-value!]
 			new		[red-value!]
 			old		[red-value!]
-			int		[red-integer!]
+			p		[red-pair!]
 			s		[series!]
 			i		[integer!]
 			idx-s	[integer!]
@@ -175,10 +175,10 @@ object: context [
 		
 		if on-set? [
 			s: as series! obj/on-set/value
-			int: as red-integer! s/offset
-			idx-s: int/value >>> 16
-			int: int + 1
-			idx-d: int/value >>> 16
+			p: as red-pair! s/offset
+			idx-s: p/x >> 16
+			p: p + 1
+			idx-d: p/x >> 16
 		]
 
 		either all [not only? any [type = TYPE_BLOCK type = TYPE_OBJECT]][
@@ -274,6 +274,8 @@ object: context [
 	]
 
 	make-callback-node: func [
+		spec-s	[node!]
+		spec-d	[node!]
 		idx-s	[integer!]								;-- for on-change* event
 		loc-s	[integer!]
 		idx-d	[integer!]								;-- for on-deep-change* event
@@ -281,18 +283,20 @@ object: context [
 		return: [node!]
 		/local
 			node [node!]
-			int  [red-integer!]
+			p	 [red-pair!]
 			s	 [series!]
 	][
 		node: alloc-cells 2
 		s: as series! node/value
-		int: as red-integer! s/offset
-		int/header: TYPE_INTEGER
-		int/value: (idx-s << 16) or loc-s				;-- store info for on-change*
+		p: as red-pair! s/offset
+		p/header: TYPE_PAIR
+		p/x: (idx-s << 16) or loc-s				;-- cache info for on-change* position and locals count
+		p/y: as-integer spec-s					;-- cache fun/spec node (change detection purpose)
 
-		int: as red-integer! s/offset + 1
-		int/header: TYPE_INTEGER
-		int/value: (idx-d << 16) or loc-d				;-- store info for on-deep-change*
+		p: as red-pair! s/offset + 1
+		p/header: TYPE_PAIR
+		p/x: (idx-d << 16) or loc-d				;-- cache info for on-deep-change* position and locals count
+		p/y: as-integer spec-d					;-- cache fun/spec node (change detection purpose)
 		node
 	]
 	
@@ -300,13 +304,13 @@ object: context [
 		obj		[red-object!]
 		return: [logic!]
 		/local
-			int	[red-integer!]
+			p	[red-pair!]
 			s	[series!]
 	][
 		if obj/on-set <> null [
 			s: as series! obj/on-set/value
-			int: as red-integer! s/offset + 1
-			if int/value >>> 16 <> -1 [return true]
+			p: as red-pair! s/offset + 1
+			if p/x >> 16 <> -1 [return true]
 		]
 		false
 	]
@@ -322,6 +326,8 @@ object: context [
 			s		[series!]
 			on-set	[integer!]
 			on-deep	[integer!]
+			spec-s	[node!]
+			spec-d	[node!]
 			idx-s	[integer!]
 			idx-d	[integer!]
 			loc-s	[integer!]
@@ -355,7 +361,8 @@ object: context [
 			if all [type <> TYPE_FUNCTION type <> TYPE_ROUTINE][
 				fire [TO_ERROR(script bad-field-set) words/_on-change* datatype/push type]
 			]
-			loc-s: _function/count-locals fun/spec 0 no
+			spec-s: fun/spec
+			loc-s: _function/count-locals spec-s 0 no
 		]
 		if idx-d >= 0 [
 			fun: as red-function! s/offset + idx-d
@@ -363,9 +370,10 @@ object: context [
 			if all [type <> TYPE_FUNCTION type <> TYPE_ROUTINE][
 				fire [TO_ERROR(script bad-field-set) words/_on-deep-change* datatype/push type]
 			]
-			loc-d: _function/count-locals fun/spec 0 no
+			spec-d: fun/spec
+			loc-d: _function/count-locals spec-d 0 no
 		]
-		make-callback-node idx-s loc-s idx-d loc-d
+		make-callback-node spec-s spec-d idx-s loc-s idx-d loc-d
 	]
 	
 	loc-fire-on-set*: func [							;-- compiled code entry point
@@ -409,7 +417,7 @@ object: context [
 		new	 [red-value!]
 		/local
 			fun	  [red-function!]
-			int	  [red-integer!]
+			p	  [red-pair!]
 			ctx	  [red-context!]
 			index [integer!]
 			count [integer!]
@@ -419,18 +427,23 @@ object: context [
 		
 		assert TYPE_OF(obj) = TYPE_OBJECT
 		assert obj/on-set <> null
-		s: as series! obj/on-set/value
 		
-		int: as red-integer! s/offset
-		assert TYPE_OF(int) = TYPE_INTEGER
-		index: int/value >> 16
-		count: int/value and FFFFh
+		s: as series! obj/on-set/value
+		p: as red-pair! s/offset
+		assert TYPE_OF(p) = TYPE_PAIR
+		index: p/x >> 16
+		count: p/x and FFFFh
 		if index = -1 [exit]							;-- abort if no on-change* handler
 		
 		ctx: GET_CTX(obj) 
 		s: as series! ctx/values/value
 		fun: as red-function! s/offset + index
 		if TYPE_OF(fun) <> TYPE_FUNCTION [fire [TO_ERROR(script invalid-obj-evt) fun]]
+		if fun/spec <> as node! p/y [					;-- check cache validity
+			count: _function/count-locals fun/spec 0 no ;-- refresh cached locals count
+			p/x: index << 16 or count
+			p/y: as-integer fun/spec					;-- refresh cached spec node
+		]
 		
 		stack/mark-func words/_on-change* fun/ctx
 		stack/push as red-value! word
@@ -451,7 +464,7 @@ object: context [
 		nb	   [integer!]
 		/local
 			fun	  [red-function!]
-			int	  [red-integer!]
+			p	  [red-pair!]
 			ctx	  [red-context!]
 			index [integer!]
 			count [integer!]
@@ -461,12 +474,12 @@ object: context [
 
 		assert TYPE_OF(owner) = TYPE_OBJECT
 		if null? owner/on-set [fire [TO_ERROR(script invalid-obj-evt) owner]]
+		
 		s: as series! owner/on-set/value
-
-		int: as red-integer! s/offset + 1
-		assert TYPE_OF(int) = TYPE_INTEGER
-		index: int/value >> 16
-		count: int/value and FFFFh
+		p: as red-pair! s/offset + 1
+		assert TYPE_OF(p) = TYPE_PAIR
+		index: p/x >> 16
+		count: p/x and FFFFh
 		if index = -1 [exit]							;-- abort if no on-deep-change* handler		
 		if null? new [new: as red-value! none-value]
 
@@ -474,6 +487,12 @@ object: context [
 		s: as series! ctx/values/value
 		fun: as red-function! s/offset + index
 		if TYPE_OF(fun) = TYPE_FUNCTION [
+			if fun/spec <> as node! p/y [					;-- check cache validity
+				count: _function/count-locals fun/spec 0 no ;-- refresh cached locals count
+				p/x: index << 16 or count
+				p/y: as-integer fun/spec					;-- refresh cached spec node
+			]
+			
 			stack/mark-func words/_on-deep-change* fun/ctx
 			stack/push as red-value! owner
 			stack/push as red-value! word
@@ -845,7 +864,7 @@ object: context [
 	][
 		obj: as red-object! stack/get-top
 		assert TYPE_OF(obj) = TYPE_OBJECT
-		obj/on-set: make-callback-node idx-s loc-s idx-d loc-d
+		obj/on-set: make-callback-node null null idx-s loc-s idx-d loc-d
 		if idx-d <> -1 [ownership/set-owner as red-value! obj obj null]
 		
 		s: as series! ctx/value
