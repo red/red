@@ -313,7 +313,6 @@ _context: context [
 		assert ctx <> null
 		if word/index = -1 [							;-- ensure word is properly bound to a context
 			if all [
-				ctx <> null
 				word/index = -1
 				word/symbol = words/self
 			][
