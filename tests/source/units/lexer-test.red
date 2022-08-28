@@ -1528,6 +1528,9 @@ Red [
 		expect: reduce [lit-word! lit-word! get-word! get-word! word!]
 		repeat i length? out [--assert expect/:i = type? out/:i]
 
+	--test-- "#5187"
+		--assert error? try [to-word form #"^(202F)"]
+
 ===end-group===
 	
 ~~~end-file~~~
