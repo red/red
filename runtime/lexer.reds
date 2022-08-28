@@ -102,12 +102,12 @@ lexer: context [
 
 	line-table: #{
 		0001000000000000000000000000000000000000000000000000000000000000
-		00000000000000
+		0000000000000000
 	}
 	
 	path-ending: #{
 		0101000001010101010001000001000000000000000000010000000001000000
-		00000000000101
+		0000000000010101
 	}
 	
 	float-classes: #{
@@ -2285,7 +2285,7 @@ lexer: context [
 				if err? [exit]
 			]
 			if state = T_WORD [
-				s: skip-whitespaces lex s lex/tok-end TYPE_WORD ;-- Unicode spaces are parsed as words, skip them upfront!
+				s: skip-whitespaces lex s lex/tok-end TYPE_WORD ;-- Unicode spaces are parsed as words, skip them upfront!				
 				if s = p [state: T_EOF do-scan: :scan-eof index: 1 lex/scanned: 0] ;-- force EOF if empty input after skipping
 			]
 
