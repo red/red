@@ -2286,7 +2286,11 @@ lexer: context [
 			]
 			if state = T_WORD [
 				s: skip-whitespaces lex s lex/tok-end TYPE_WORD ;-- Unicode spaces are parsed as words, skip them upfront!				
-				if s = p [state: T_EOF do-scan: :scan-eof index: 1 lex/scanned: 0] ;-- force EOF if empty input after skipping
+				if s = p [
+					either lex/in-pos < lex/in-end [continue][ ;-- empty token, move to next one
+						state: T_EOF do-scan: :scan-eof index: 1 lex/scanned: 0 ;-- force EOF if empty input after skipping
+					]
+				]
 			]
 
 			scan?: either not events? [not pscan?][

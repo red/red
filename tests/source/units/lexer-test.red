@@ -1530,6 +1530,12 @@ Red [
 
 	--test-- "#5187"
 		--assert error? try [to-word form #"^(202F)"]
+		--assert [123] == transcode "^(202F) 123"
+		--assert [468 123] == transcode "468 ^(202F) 123"
+		--assert [468 hello] == transcode "468 ^(202F) hello"
+		--assert [468 hello] == transcode "468 ^(202F)hello"
+		--assert [468 hel lo] == out: transcode "468 hel^(202F)lo"
+		--assert 3 = length? out
 
 ===end-group===
 	
