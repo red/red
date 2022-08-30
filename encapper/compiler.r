@@ -3247,8 +3247,8 @@ red: context [
 		root? [logic!]
 		/set?
 		/local 
-			path value emit? get? entry alter saved after dynamic? ctx mark obj?
-			fpath symbol obj self? true-blk defer obj-field? parent fire index breaks
+			path value emit? get? entry alter saved after dynamic? ctx mark obj? new t? p
+			fpath symbol obj self? true-blk defer obj-field? parent fire index breaks 
 	][
 		path:  copy pc/1
 		emit?: yes
@@ -3365,7 +3365,21 @@ red: context [
 			word? last path								;-- not allow get-words to pass (#1141)
 			any [self? (length? path) = length? fpath]	;-- allow only object-path/field forms
 		][
-			ctx: second obj: find objects obj
+			either self? [
+				p: path
+				until [										;-- process nested objects
+					t?: tail? next p: next p
+					obj: find objects obj
+					if all [not t? object? new: select obj/1 p/1][
+						obj: new
+						if t? [obj: find objects obj]
+					]
+					t?
+				]
+			][
+				obj: find objects obj
+			]
+			ctx: second obj
 			unless index: get-word-index/with last path ctx [
 				throw-error ["word" last path "not defined in" path]
 			]
