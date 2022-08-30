@@ -921,6 +921,7 @@ interpreter: context [
 				if get? [fire [TO_ERROR(script invalid-path-get) path]]
 				pc: eval-code parent pc end code yes path item - 1 parent
 				unless sub? [stack/set-last stack/top]
+				if tracing? [fire-event EVT_EXIT as red-block! path tail null stack/arguments]
 				return pc
 			]
 			TYPE_UNSET [fire [TO_ERROR(script unset-path) path head]]
