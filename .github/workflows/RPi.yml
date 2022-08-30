@@ -15,7 +15,7 @@ jobs:
 
     - name: Download Rebol
       run: |
-        $url = "http://static.red-lang.org/build/rebview.exe"
+        $url = "http://static.red-lang.org/build/rebview278.exe"
         $output = "$Env:GITHUB_WORKSPACE\rebview.exe"
         (New-Object System.Net.WebClient).DownloadFile($url, $output)
 
