@@ -14,19 +14,6 @@ routine: func ["Defines a function with a given Red spec and Red/System body" sp
 	cause-error 'internal 'routines []
 ]
 
-alert: func [msg [string! block!]][
-	view/flags compose [
-		title "Message"
-		below center
-		text 200 (form reduce msg) center
-		button focus "OK" [unview] on-key [
-			switch event/key [
-				#"^M" #"^[" #" " #"^O" [unview]
-			]
-		]
-	] 'modal
-]
-
 also: func [
 	"Returns the first value, but also evaluates the second"
 	value1 [any-type!]
