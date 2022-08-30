@@ -284,7 +284,7 @@ system/console: context [
 		]
 	]
 
-	run: function [/no-banner /local p][
+	run: function [/no-banner /local p /extern prompt][
 		unless no-banner [
 			print [
 				"--== Red" system/version "==--" lf
@@ -295,7 +295,7 @@ system/console: context [
 			eval-command ask any [
 				cue
 				all [string? set/any 'p try/all [do [prompt]] :p]
-				all [error? :p p/where: "system/console/prompt" print :p def-prompt]
+				all [error? :p p/where: "system/console/prompt" print :p prompt: def-prompt]
 				form :p
 			]
 		]
