@@ -1116,9 +1116,9 @@ dt: function [
 	body	[block!]
 	return: [time!]
 ][
-	t0: now/precise
+	t0: now/precise/utc
 	do body
-	difference now/precise t0
+	difference now/precise/utc t0
 ]
 
 time-it: :dt
@@ -1133,10 +1133,8 @@ clock: function [
 ][
 	n:    max 1 any [n 1]
 	text: mold/flat/part code 70						;-- mold the code before it mutates
-	t1:   now/precise/utc
-	set/any 'result do [loop n code]
-	t2:   now/precise/utc
-	dt:   1e3 / n * to float! difference t2 t1
+	dt:   time-it [set/any 'result loop n code]
+	dt:   1e3 / n * to float! dt						;-- ms per iteration
 	either delta [
 		dt
 	][
