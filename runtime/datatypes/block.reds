@@ -942,7 +942,10 @@ block: context [
 		][hash?: no]									;-- use block search
 		any-blk?: ANY_BLOCK?(type)
 		op: either case? [COMP_STRICT_EQUAL][COMP_FIND]	;-- warning: /case <> STRICT...
-		if same? [op: COMP_SAME]
+		if same? [
+			op: COMP_SAME
+			if all [hash? only?][any-blk?: no]			;-- hash! can handle /same/only
+		]
 
 		either any [
 			match?
