@@ -1326,6 +1326,9 @@ object: context [
 		on-set?: parent/on-set <> null
 		
 		either value <> null [
+			if all [word/index = -1	word/symbol = words/self][
+				fire [TO_ERROR(script invalid-path) path element]
+			]
 			if on-set? [old: stack/push _context/get-in word ctx]
 			_context/set-in word value ctx no
 			if on-set? [fire-on-set parent as red-word! element old value]
