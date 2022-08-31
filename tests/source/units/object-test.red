@@ -2528,6 +2528,11 @@ Red [
 			--assert all [r2-5135/x = 2 r2-5135/y = 2]
 		]
 
+	--test-- "#5190"
+		do [
+			--assert error? try [object [self/self/self: 1 probe self]]
+		]
+
 ===end-group===
 
 ~~~end-file~~~
