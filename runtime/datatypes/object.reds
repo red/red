@@ -688,7 +688,7 @@ object: context [
 		]
 	]
 	
-	duplicate: func [
+	clone-series: func [
 		src    [node!]									;-- src context
 		dst	   [node!]									;-- dst context (extension of src)
 		copy?  [logic!]									;-- TRUE for compiler, FALSE otherwise
@@ -1139,7 +1139,7 @@ object: context [
 				blk: as red-block! spec
 				new?: _context/collect-set-words ctx blk
 				_context/bind blk ctx ctx/self yes		;-- bind spec block
-				if p-obj? [duplicate proto/ctx obj/ctx no] ;-- clone and rebind proto's series
+				if p-obj? [clone-series proto/ctx obj/ctx no] ;-- clone and rebind proto's series
 				
 				interpreter/eval blk no
 				

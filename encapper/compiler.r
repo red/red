@@ -2084,7 +2084,7 @@ red: context [
 		
 		if proto [
 			if body? [inherit-functions obj last proto]
-			emit reduce ['object/duplicate select objects last proto ctx 'true]
+			emit reduce ['object/clone-series select objects last proto ctx 'true]
 			insert-lf -4
 		]
 		if all [not body? not passive][
