@@ -127,7 +127,7 @@
 	red/_context/clone-words
 	red/_context/set-integer
 
-	red/object/duplicate
+	red/object/clone-series
 	red/object/transfer
 	red/object/init-push
 	red/object/init-events
