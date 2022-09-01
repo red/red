@@ -1918,7 +1918,7 @@ red: context [
 		/locals
 			words ctx spec name id func? obj original body pos entry symbol
 			body? ctx2 new blk list path on-set-info values w defer mark blk-idx
-			event pos2 loc-s loc-d shadow-path saved-pc saved set? rebind? evt-var
+			event pos2 loc-s loc-d shadow-path saved-pc saved set? evt-var
 	][
 		saved-pc: pc
 		either set-path? original: pc/-1 [
@@ -2127,8 +2127,7 @@ red: context [
 		]
 		pos: none
 		
-		rebind?: to word! form to logic! proto
-		defer: reduce ['object/init-push ctx id rebind?] ;-- deferred emission
+		defer: reduce ['object/init-push ctx id] ;-- deferred emission
 		new-line defer yes
 		
 		;-- events definitions processing
