@@ -3229,6 +3229,14 @@ comment {
 		save qt-tmp-file append/dup "" "§☺" 500000
 		transcode read qt-tmp-file
 
+	--test-- "#5011"
+		do [
+			--assert error? set/any 'err try [append/dup/dup "hello" "x" 3]
+			--assert err/id = 'dup-refine
+			--assert error? set/any 'err try [mold/part/part/part/part 'x 100]
+			--assert err/id = 'dup-refine
+		]
+
 	--test-- "#5058"
 		--assert strict-equal?
 			"1 a ^/2 b ^/3 c"

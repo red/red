@@ -3528,6 +3528,10 @@ red: context [
 		either all [not thru spec/1 = 'intrinsic!][
 			switch any [all [path? call call/1] call] keywords
 		][
+			if all [path? call (length? call) <> length? unique call][
+				pc: back pc
+				throw-error ["duplicate or invalid refinement usage:" call]
+			]
 			compact?: spec/1 <> 'function!				;-- do not push refinements on stack
 			refs: make block! 1							;-- refinements storage in compact mode
 			cnt: 0

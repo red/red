@@ -195,6 +195,7 @@ _function: context [
 						if ref? [
 							bool: as red-logic! head + 1
 							assert TYPE_OF(bool) = TYPE_LOGIC
+							if bool/value [fire [TO_ERROR(script dup-refine) path]]
 							bool/value: true
 						]
 						offset: offset + 1
