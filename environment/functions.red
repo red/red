@@ -1105,7 +1105,7 @@ average: func [
 ]
 
 clip: func [
-	"Return A if it's within [B,C] range, otherwise nearest to it range boundary"
+	"Return A if it's within [B,C] range, otherwise the range boundary nearest to A"
 	a [scalar!] b [scalar!] c [scalar!]
 	return: [scalar!]
 ][
