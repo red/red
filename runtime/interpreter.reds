@@ -643,6 +643,7 @@ interpreter: context [
 		next: as red-word! pc
 		CHECK_INFIX
 		if infix? [
+			stack/update-call pc						;-- keep same frame, just update the op reference
 			if tracing? [
 				fire-event EVT_FETCH code pc pc pc
 				fire-event EVT_OPEN code pc pc pc

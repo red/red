@@ -3048,6 +3048,17 @@ comment {
 		--assert 'baz == baz: block/1/('foo)/bar
 		--assert 'baz == baz
 
+	--test-- "#4311"
+		--assert error? set/any 'err try [0 = 1 - 1]
+		--assert err/arg1 = '-
+
+		~eq4311: func [left right][equal? left right]
+		eq4311: make op! :~eq4311
+		~sub4311: func [left [integer!] right [integer!]][left - right]
+		sub4311: make op! :~sub4311
+		--assert error? set/any 'err try [0 eq4311 1 sub4311 1]
+		--assert err/arg1 = 'sub4311
+
 	--test-- "#4451"
 		path: quote :foo/bar
 		--assert ":foo/bar" = mold path
