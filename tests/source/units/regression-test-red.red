@@ -3034,6 +3034,18 @@ comment {
 		err4260: try [add none none]
 		--assert to-logic find form err4260 "add does not"
 
+	--test-- "#4299"
+		foreach v reduce [
+			system system/words system/lexer system/build
+			3-Sep-2022
+			3-Sep-2022/15:38:51+02:00
+			"^^/^^/"
+		][
+			--assert 3 = length? mold/part v 3
+			--assert 3 = length? form/part v 3
+		]
+		--assert 300 = length? mold/part system 300
+
 	--test-- "#4305"
 		block: reduce ['foo func [/bar][pick [baz qux] bar]]
 		id:    func [value][value]
