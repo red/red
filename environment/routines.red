@@ -130,7 +130,15 @@ as-ipv4: routine [
 	stack/set-last as red-value! tuple/push 4 arr1 0 0
 ]
 
-as-rgba: :as-ipv4
+as-rgba: routine [
+	"Combine R, G, B and A color components into a tuple"
+	r [integer!]
+	g [integer!]
+	b [integer!]
+	a [integer!]
+][
+	as-ipv4 r g b a
+]
 
 count-chars: routine [
 	"Count UTF-8 encoded characters between two positions in a binary series"
