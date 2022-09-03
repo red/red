@@ -739,7 +739,7 @@ simple-io: context [
 			]
 			true [
 				len: 0
-				actions/mold as red-value! data buffer no no no null 0 0
+				actions/mold as red-value! data buffer no no no null MAX_INT 0
 				buf: value-to-buffer as red-value! buffer part :len binary? null
 				string/rs-reset buffer
 			]

@@ -105,12 +105,12 @@ lexer: context [
 
 	line-table: #{
 		0001000000000000000000000000000000000000000000000000000000000000
-		00000000000000
+		0000000000000000
 	}
 	
 	path-ending: #{
 		0101000001010101010001000001000000000000000000010000000001000000
-		00000000000101
+		0000000000010101
 	}
 	
 	float-classes: #{
@@ -547,7 +547,7 @@ lexer: context [
 		integer/push lex/line							;-- line number
 		either null? value [pair/push x + 1 y + 1][stack/push value] ;-- token
 
-		if lex/fun-locs > 0 [_function/init-locals 1 + lex/fun-locs] ;-- +1 for /local refinement
+		if lex/fun-locs > 0 [_function/init-locals lex/fun-locs]
 		_function/call lex/fun-ptr ctx as red-value! words/_lexer-cb CB_LEXER
 
 		if ser/head <> ref [							;-- check if callback changed input offset
@@ -2419,8 +2419,15 @@ lexer: context [
 				system/thrown: 0
 				if err? [exit]
 			]
-			if state = T_WORD [s: skip-whitespaces lex s lex/tok-end TYPE_WORD] ;-- Unicode spaces are parsed as words, skip them upfront!
-			
+			if state = T_WORD [
+				s: skip-whitespaces lex s lex/tok-end TYPE_WORD ;-- Unicode spaces are parsed as words, skip them upfront!				
+				if s = p [
+					either lex/in-pos < lex/in-end [continue][ ;-- empty token, move to next one
+						state: T_EOF do-scan: :scan-eof index: 1 lex/scanned: 0 ;-- force EOF if empty input after skipping
+					]
+				]
+			]
+
 			scan?: either not events? [not pscan?][
 				either lex/entry = S_M_STRING [yes][
 					idx: either zero? lex/scanned [0 - index][lex/scanned]

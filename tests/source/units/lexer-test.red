@@ -1612,6 +1612,21 @@ Red [
 
 	--test-- "#5082"
 		--assert 1.#inf = transcode/one "1.79769313486232e308"
+
+	--test-- "#5185"
+		out: transcode {'+1 '-1 :+1 :-1 =1}
+		expect: reduce [lit-word! lit-word! get-word! get-word! word!]
+		repeat i length? out [--assert expect/:i = type? out/:i]
+
+	--test-- "#5187"
+		--assert error? try [to-word form #"^(202F)"]
+		--assert [123] == transcode "^(202F) 123"
+		--assert [468 123] == transcode "468 ^(202F) 123"
+		--assert [468 hello] == transcode "468 ^(202F) hello"
+		--assert [468 hello] == transcode "468 ^(202F)hello"
+		--assert [468 hel lo] == out: transcode "468 hel^(202F)lo"
+		--assert 3 = length? out
+
 ===end-group===
 	
 ~~~end-file~~~

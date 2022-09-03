@@ -455,9 +455,12 @@ preprocessor: context [
 		"Invokes the preprocessor on argument list, modifying and returning it"
 		code [block! paren!] "List of Red values to preprocess"
 		/clean 				 "Clear all previously created macros and words"
-		/local job
+		/local job saved
 	][
+		saved: s
 		job: system/build/config
-		either clean [expand/clean code job][expand code job]
+		also 
+			either clean [expand/clean code job][expand code job]
+			s: saved
 	]
 ]

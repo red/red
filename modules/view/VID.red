@@ -578,7 +578,7 @@ system/view/VID: context [
 			focal-face: none
 			panel: make face! copy system/view/VID/styles/window/template  ;-- absolute path to avoid clashing with /styles
 		]
-		either block? panel/pane [list: panel/pane][panel/pane: list]
+		unless only [either block? panel/pane [list: panel/pane][panel/pane: list]]
 		
 		any [
 			all [										;-- account for container's hard paddings
@@ -751,27 +751,24 @@ system/view/VID: context [
 		do re-align
 		process-reactors reactors						;-- Needs to be after [set name face]
 		
-		either size [panel/size: size][
-			if pane-size <> 0x0 [
-				if svmp [
-					pad2: as-pair svmp/1/y svmp/2/y		;-- bottom-right padding
-					origin: either top-left + pad = origin [top-left + pad2][max top-left pad2]
+		either only [list][
+			either size [panel/size: size][
+				if pane-size <> 0x0 [
+					if svmp [
+						pad2: as-pair svmp/1/y svmp/2/y		;-- bottom-right padding
+						origin: either top-left + pad = origin [top-left + pad2][max top-left pad2]
+					]
+					panel/size: pane-size + origin
 				]
-				panel/size: pane-size + origin
 			]
-		]
-		if all [not size image: panel/image][panel/size: max panel/size image/size]
+			if all [not size image: panel/image][panel/size: max panel/size image/size]
 
-		if all [focal-face find panel/pane focal-face not parent][panel/selected: focal-face]
+			if all [focal-face find panel/pane focal-face not parent][panel/selected: focal-face]
 
-		if options [set/some panel make object! user-opts]
-		if flags [panel/flags: either panel/flags [unique union to-block panel/flags to-block flgs][flgs]]
-		if block? panel/actors [panel/actors: context panel/actors]
+			if options [set/some panel make object! user-opts]
+			if flags [panel/flags: either panel/flags [unique union to-block panel/flags to-block flgs][flgs]]
+			if block? panel/actors [panel/actors: context panel/actors]
 		
-		either only [
-			panel/pane: none
-			list
-		][
 			if panel/type = 'window [
 				panel/parent: system/view/screens/1
 				system/view/VID/GUI-rules/process panel

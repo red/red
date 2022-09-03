@@ -277,7 +277,7 @@ _context: context [
 						old: stack/push slot
 						word: as red-word! word
 						copy-cell value slot
-						object/fire-on-set obj word old value
+						object/fire-on-set obj word old value ;-- safe to call, will exit if not defined
 						stack/top: saved
 						return slot
 					]
@@ -309,22 +309,16 @@ _context: context [
 			s	   [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/get-in"]]
-
-		if all [
-			any [
-				TYPE_OF(ctx) = TYPE_OBJECT					;-- test special ctx pointer for SELF
-				TYPE_OF(ctx) = TYPE_PORT
+		
+		assert ctx <> null
+		if word/index = -1 [							;-- ensure word is properly bound to a context
+			if all [
+				word/index = -1
+				word/symbol = words/self
+			][
+				s: as series! word/ctx/value
+				return s/offset	+ 1						;-- return original object value
 			]
-			word/index = -1
-			word/symbol = words/self
-		][
-			s: as series! word/ctx/value
-			return s/offset								;-- return original object value
-		]
-		if any [										;-- ensure word is properly bound to a context
-			null? ctx
-			word/index = -1
-		][
 			fire [TO_ERROR(script no-value) word]
 		]
 		if null? ctx/values [

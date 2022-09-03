@@ -1472,6 +1472,7 @@ make-profilable make target-class [
 				]
 			]
 		]
+		if verbose >= 4 [print [">>>emitting code:" mold reverse copy jump]]
 		insert any [all [back? tail code] code] jump
 		length? jump
 	]

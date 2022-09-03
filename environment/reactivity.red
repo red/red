@@ -148,6 +148,9 @@ system/reactivity: context [
 		face [object!]
 		/deep
 	][
+		if system/reactivity/debug? [
+			print ["-- reactivity: stopping, face:" face/type "/deep:" deep]
+		]
 		list: relations
 		while [not tail? list][
 			either any [
@@ -166,7 +169,10 @@ system/reactivity: context [
 		if all [deep block? face/pane][foreach f face/pane [stop-reactor/deep f]]
 	]
 	
-	set 'clear-reactions function ["Removes all reactive relations"][clear relations]
+	set 'clear-reactions function ["Removes all reactive relations"][
+		if system/reactivity/debug? [print "-- reactivity: clear all"]
+		clear relations
+	]
 	
 	set 'dump-reactions function [
 		"Output all the current reactive relations for debugging purpose"
@@ -197,6 +203,7 @@ system/reactivity: context [
 				]
 			]
 		]
+		if empty? relations [print "-- no reactions --"]
 		()												;-- avoids returning anything in the console
 	]
 	

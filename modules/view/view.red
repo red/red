@@ -1092,6 +1092,22 @@ foreach-face: function [
 	]
 ]
 
+alert: func [
+	"Displays an alert message in a pop-up modal window"
+	msg [string! block!] "Message to display"
+][
+	view/flags compose [
+		title "Message"
+		below center
+		text 200 (form reduce msg) center
+		button focus "OK" [unview] on-key [
+			switch event/key [
+				#"^M" #"^[" #" " #"^O" [unview]
+			]
+		]
+	] 'modal
+]
+
 ;=== Global handlers ===
 
 ;-- Dragging face handler --

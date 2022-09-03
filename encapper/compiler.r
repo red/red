@@ -1925,7 +1925,7 @@ red: context [
 		/locals
 			words ctx spec name id func? obj original body pos entry symbol
 			body? ctx2 new blk list path on-set-info values w defer mark blk-idx
-			event pos2 loc-s loc-d shadow-path saved-pc saved set? rebind? evt-var
+			event pos2 loc-s loc-d shadow-path saved-pc saved set? evt-var
 	][
 		saved-pc: pc
 		either set-path? original: pc/-1 [
@@ -2091,7 +2091,7 @@ red: context [
 		
 		if proto [
 			if body? [inherit-functions obj last proto]
-			emit reduce ['object/duplicate select objects last proto ctx 'true]
+			emit reduce ['object/clone-series select objects last proto ctx 'true]
 			insert-lf -4
 		]
 		if all [not body? not passive][
@@ -2134,8 +2134,7 @@ red: context [
 		]
 		pos: none
 		
-		rebind?: to word! form to logic! proto
-		defer: reduce ['object/init-push ctx id rebind?] ;-- deferred emission
+		defer: reduce ['object/init-push ctx id] ;-- deferred emission
 		new-line defer yes
 		
 		;-- events definitions processing
@@ -3254,8 +3253,8 @@ red: context [
 		root? [logic!]
 		/set?
 		/local 
-			path value emit? get? entry alter saved after dynamic? ctx mark obj?
-			fpath symbol obj self? true-blk defer obj-field? parent fire index breaks
+			path value emit? get? entry alter saved after dynamic? ctx mark obj? new t? p
+			fpath symbol obj self? true-blk defer obj-field? parent fire index breaks 
 	][
 		path:  copy pc/1
 		emit?: yes
@@ -3372,7 +3371,21 @@ red: context [
 			word? last path								;-- not allow get-words to pass (#1141)
 			any [self? (length? path) = length? fpath]	;-- allow only object-path/field forms
 		][
-			ctx: second obj: find objects obj
+			either self? [
+				p: path
+				until [										;-- process nested objects
+					t?: tail? next p: next p
+					obj: find objects obj
+					if all [not t? object? new: select obj/1 p/1][
+						obj: new
+						if t? [obj: find objects obj]
+					]
+					t?
+				]
+			][
+				obj: find objects obj
+			]
+			ctx: second obj
 			unless index: get-word-index/with last path ctx [
 				throw-error ["word" last path "not defined in" path]
 			]
@@ -3522,6 +3535,10 @@ red: context [
 		either all [not thru spec/1 = 'intrinsic!][
 			switch any [all [path? call call/1] call] keywords
 		][
+			if all [path? call (length? call) <> length? unique call][
+				pc: back pc
+				throw-error ["duplicate or invalid refinement usage:" call]
+			]
 			compact?: spec/1 <> 'function!				;-- do not push refinements on stack
 			refs: make block! 1							;-- refinements storage in compact mode
 			cnt: 0

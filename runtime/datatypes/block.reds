@@ -943,7 +943,10 @@ block: context [
 		][hash?: no]									;-- use block search
 		any-blk?: ANY_BLOCK?(type)
 		op: either case? [COMP_STRICT_EQUAL][COMP_FIND]	;-- warning: /case <> STRICT...
-		if same? [op: COMP_SAME]
+		if same? [
+			op: COMP_SAME
+			if all [hash? only?][any-blk?: no]			;-- hash! can handle /same/only
+		]
 
 		either any [
 			match?
@@ -1551,7 +1554,16 @@ block: context [
 
 		if TYPE_OF(blk) = TYPE_HASH [
 			hash: as red-hash! blk
-			_hashtable/rehash hash/table _series/get-length blk yes
+			either tail? [		;-- optimization for inserting at the tail
+				s: GET_BUFFER(blk)
+				cell: s/tail - slots
+				loop slots [
+					_hashtable/put hash/table cell
+					cell: cell + 1
+				]
+			][
+				_hashtable/rehash hash/table _series/get-length blk yes
+			]
 		]
 		if chk? [
 			action: either append? [words/_appended][words/_inserted]

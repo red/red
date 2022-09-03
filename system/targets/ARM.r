@@ -1906,6 +1906,7 @@ make-profilable make target-class [
 		/back?
 		/local distance opcode jmp flip?
 	][
+		if verbose >= 3 [print [">>>emitting branching for" mold op offset parity signed?]]
 		distance: (length? code) - (any [offset 0]) - 4	;-- offset from the code's head
 		if back? [distance: negate distance + 12]	;-- 8 (PC offset) + one instruction
 		
@@ -1938,7 +1939,8 @@ make-profilable make target-class [
 		]
 		opcode: reverse rejoin [
 			op or #{0a} to-bin24 shift distance 2
-		]		
+		]
+		if verbose >= 4 [print [">>>emitting code:" mold reverse copy opcode]]
 		insert any [all [back? tail code] code] opcode
 		4											;-- opcode length
 	]
@@ -2499,7 +2501,7 @@ make-profilable make target-class [
 		left:  compiler/unbox args/1
 		right: compiler/unbox args/2
 		set-width args/1
-		saved: width
+		saved: reduce [width signed?]
 
 		switch a [									;-- load left operand in d0 or s0
 			imm [
@@ -2604,18 +2606,18 @@ make-profilable make target-class [
 			not object? args/2
 			any [
 				all [
-					saved = 4
+					saved/1 = 4
 					width = 8
 					emit-i32 #{eeb71bc1}			;-- FCVTSD s2, d1	; convert to 32-bit
 				]
 				all [
-					saved = 8
+					saved/1 = 8
 					width = 4
 					emit-i32 #{eeb71ac1}			;-- FCVTDS d1, s2	; convert to 64-bit
 				]
 			]
 		]
-		width: saved
+		set [width signed?] saved
 		
 		case [
 			find comparison-op name [

@@ -71,7 +71,9 @@ Red [
 	--test-- "to-integer!-binary!"		--assert 6382179 = to integer! #{616263}
 	--test-- "to-integer!-time!"		--assert 36000 = to integer! 10:00
 	--test-- "to-integer!-1"		--assert 1 == to integer! "1" 
-	--test-- "to-integer!-2"		--assert 1 == to integer! "1.0"
+	--test-- "to-integer!-2"		--assert error? try [to integer! "1.0"]
+	--test-- "to-integer!-2-1"		--assert error? try [to integer! "1e2"]
+	--test-- "to-integer!-2-2"		--assert error? try [to integer! "1 foo"]
 	--test-- "to-integer!-3"		--assert 1 == to integer! #"^(01)" 
 	--test-- "to-integer!-4"		--assert 49 == to integer! #"1"		
  	--test-- "to-integer!-5"		--assert 128512 == to integer! #"😀"

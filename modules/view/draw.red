@@ -730,7 +730,8 @@ Red/System [
 				ncmd		[red-value!]
 				ntail		[red-value!]
 		][
-			if cycles/find? cmds/node [cycles/reset fire [TO_ERROR(internal no-cycle)]]
+			if cycles/find? cmds/node [throw-draw-error cmds as red-value! cmds catch?]
+
 			cycles/push cmds/node
 
 			cmd:  block/rs-head cmds

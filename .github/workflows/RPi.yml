@@ -4,28 +4,21 @@ on: push
 
 jobs:
   Build-RPi-Tests:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     name: Build RPi Tests
     steps:
-    - name: No auto LF conversion
-      run: git config --global core.autocrlf false
-
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Download Rebol
-      run: |
-        $url = "http://static.red-lang.org/build/rebview.exe"
-        $output = "$Env:GITHUB_WORKSPACE\rebview.exe"
-        (New-Object System.Net.WebClient).DownloadFile($url, $output)
-
     - name: Build Red Tests
-      run: rebview.exe -qws tests/build-arm-tests.r -t RPi
-      shell: cmd
+      uses: ./CI/Linux-32
+      with:
+        command: rebol -qws tests/build-arm-tests.r -t RPi
 
     - name: Build Red/System Tests
-      run: rebview.exe -qws system/tests/build-arm-tests.r -t RPi
-      shell: cmd
+      uses: ./CI/Linux-32
+      with:
+        command: rebol -qws system/tests/build-arm-tests.r -t RPi
 
     - uses: actions/upload-artifact@v2
       with:

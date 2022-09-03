@@ -14,19 +14,6 @@ routine: func ["Defines a function with a given Red spec and Red/System body" sp
 	cause-error 'internal 'routines []
 ]
 
-alert: func [msg [string! block!]][
-	view/flags compose [
-		title "Message"
-		below center
-		text 200 (form reduce msg) center
-		button focus "OK" [unview] on-key [
-			switch event/key [
-				#"^M" #"^[" #" " #"^O" [unview]
-			]
-		]
-	] 'modal
-]
-
 also: func [
 	"Returns the first value, but also evaluates the second"
 	value1 [any-type!]
@@ -906,14 +893,12 @@ do-file: function ["Internal Use Only" file [file! url!] callback [function! non
 	if :callback [code: compose/only [do/trace (code) :callback]]
 	
 	set/any 'code try/all/keep [
-		either 'halt-request = set/any 'code catch/name code 'console [
-			print "(halted)"							;-- returns an unset value
-		][
-			:code
-		]
+		set/any 'code catch/name code 'console
+		done?: yes
+		either 'halt-request = :code [print "(halted)"][:code]
 	]
 	if file? file [change-dir saved]
-	if error? :code [do :code]							;-- rethrow the error
+	if all [error? :code not done?][do :code]			;-- rethrow the error
 	:code
 ]
 
@@ -1131,12 +1116,36 @@ dt: function [
 	body	[block!]
 	return: [time!]
 ][
-	t0: now/precise
+	t0: now/precise/utc
 	do body
-	difference now/precise t0
+	difference now/precise/utc t0
 ]
 
 time-it: :dt
+
+clock: function [
+	"Display execution time of code, returning result of it's evaluation"
+	code [block!]
+	/times n [integer! float!]							;-- float is useful for eg. `1e6` instead of `1'000'000`
+		"Repeat N times (default: once); displayed time is per iteration"
+	/delta "Don't print the result, return time delta per iteration (in milliseconds)"
+	/local result
+][
+	n:    max 1 any [n 1]
+	text: mold/flat/part code 70						;-- mold the code before it mutates
+	dt:   time-it [set/any 'result loop n code]
+	dt:   1e3 / n * to float! dt						;-- ms per iteration
+	either delta [
+		dt
+	][
+		unit: either dt < 1 [dt: dt * 1e3 "μs^-"]["ms^-"]
+		parse form dt [									;-- save 3 significant digits max
+			0 3 [opt #"." skip] opt [to #"."] dt: (dt: head clear dt)
+		]
+		print [dt unit text]
+		:result
+	]
+]
 
 ;------------------------------------------
 ;-				Aliases					  -

@@ -243,6 +243,20 @@ stack: context [										;-- call stack
 		either p < cbottom [words/_not-found][word/at p/ctx sym]
 	]
 	
+	update-call: func [
+		call [red-value!]
+		/local
+			w [red-word!]
+			p [call-frame!]
+	][
+		w: as red-word! call
+		if TYPE_OF(w) = TYPE_WORD [
+			p: either where-ctop = null [ctop][where-ctop]
+			p: p - 1
+			p/header: p/header and FFh or (w/symbol << 8)
+		]
+	]
+	
 	revert: does [
 		#if debug? = yes [if verbose > 0 [print-line "stack/revert"]]
 

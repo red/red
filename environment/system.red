@@ -122,6 +122,7 @@ system: context [
 				no-refine:			[:arg1 "has no refinement called" :arg2]
 				bad-refines:		"incompatible or invalid refinements"
 				bad-refine:			["incompatible refinement:" :arg1]
+				dup-refine:			["duplicate refinement usage in:" :arg1]
 				word-first:			["path must start with a word:" :arg1]
 				empty-path:			"cannot evaluate an empty path value"
 				unset-path:			[:arg2 "is unset in path" :arg1]
@@ -193,7 +194,6 @@ system: context [
 				react-bad-obj:		"REACT - target can only contain object values"
 				react-gctx:			["REACT - word" :arg1 "is not a reactor's field"]
 				lib-invalid-arg:	["LIBRED - invalid argument for" :arg1]
-				buffer-not-enough:	["Buffer size too small, should be:" :arg1]
 			]
 			math: object [
 				code:				400

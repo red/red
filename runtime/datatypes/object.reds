@@ -152,7 +152,7 @@ object: context [
 			end		[red-value!]
 			new		[red-value!]
 			old		[red-value!]
-			int		[red-integer!]
+			p		[red-pair!]
 			s		[series!]
 			i		[integer!]
 			idx-s	[integer!]
@@ -175,10 +175,10 @@ object: context [
 		
 		if on-set? [
 			s: as series! obj/on-set/value
-			int: as red-integer! s/offset
-			idx-s: int/value >>> 16
-			int: int + 1
-			idx-d: int/value >>> 16
+			p: as red-pair! s/offset
+			idx-s: p/x >> 16
+			p: p + 1
+			idx-d: p/x >> 16
 		]
 
 		either all [not only? any [type = TYPE_BLOCK type = TYPE_OBJECT]][
@@ -272,22 +272,10 @@ object: context [
 			]
 		]
 	]
-	
-	save-self-object: func [
-		obj		[red-object!]
-		return: [node!]
-		/local
-			node [node!]
-			s	 [series!]
-	][
-		node: alloc-cells 1								;-- hidden object value storage used by SELF
-		s: as series! node/value
-		copy-cell as red-value! obj s/offset
-		s/tail: s/offset + 1
-		node
-	]
-	
+
 	make-callback-node: func [
+		spec-s	[node!]
+		spec-d	[node!]
 		idx-s	[integer!]								;-- for on-change* event
 		loc-s	[integer!]
 		idx-d	[integer!]								;-- for on-deep-change* event
@@ -295,18 +283,20 @@ object: context [
 		return: [node!]
 		/local
 			node [node!]
-			int  [red-integer!]
+			p	 [red-pair!]
 			s	 [series!]
 	][
 		node: alloc-cells 2
 		s: as series! node/value
-		int: as red-integer! s/offset
-		int/header: TYPE_INTEGER
-		int/value: (idx-s << 16) or loc-s				;-- store info for on-change*
+		p: as red-pair! s/offset
+		p/header: TYPE_PAIR
+		p/x: (idx-s << 16) or loc-s				;-- cache info for on-change* position and locals count
+		p/y: as-integer spec-s					;-- cache fun/spec node (change detection purpose)
 
-		int: as red-integer! s/offset + 1
-		int/header: TYPE_INTEGER
-		int/value: (idx-d << 16) or loc-d				;-- store info for on-deep-change*
+		p: as red-pair! s/offset + 1
+		p/header: TYPE_PAIR
+		p/x: (idx-d << 16) or loc-d				;-- cache info for on-deep-change* position and locals count
+		p/y: as-integer spec-d					;-- cache fun/spec node (change detection purpose)
 		node
 	]
 	
@@ -314,13 +304,13 @@ object: context [
 		obj		[red-object!]
 		return: [logic!]
 		/local
-			int	[red-integer!]
+			p	[red-pair!]
 			s	[series!]
 	][
 		if obj/on-set <> null [
 			s: as series! obj/on-set/value
-			int: as red-integer! s/offset + 1
-			if int/value >>> 16 <> -1 [return true]
+			p: as red-pair! s/offset + 1
+			if p/x >> 16 <> -1 [return true]
 		]
 		false
 	]
@@ -336,6 +326,8 @@ object: context [
 			s		[series!]
 			on-set	[integer!]
 			on-deep	[integer!]
+			spec-s	[node!]
+			spec-d	[node!]
 			idx-s	[integer!]
 			idx-d	[integer!]
 			loc-s	[integer!]
@@ -369,7 +361,8 @@ object: context [
 			if all [type <> TYPE_FUNCTION type <> TYPE_ROUTINE][
 				fire [TO_ERROR(script bad-field-set) words/_on-change* datatype/push type]
 			]
-			loc-s: _function/calc-arity null fun 0		;-- passing a null path triggers short code branch
+			spec-s: fun/spec
+			loc-s: _function/count-locals spec-s 0 no
 		]
 		if idx-d >= 0 [
 			fun: as red-function! s/offset + idx-d
@@ -377,9 +370,10 @@ object: context [
 			if all [type <> TYPE_FUNCTION type <> TYPE_ROUTINE][
 				fire [TO_ERROR(script bad-field-set) words/_on-deep-change* datatype/push type]
 			]
-			loc-d: _function/calc-arity null fun 0		;-- passing a null path triggers short code branch
+			spec-d: fun/spec
+			loc-d: _function/count-locals spec-d 0 no
 		]
-		make-callback-node idx-s loc-s idx-d loc-d
+		make-callback-node spec-s spec-d idx-s loc-s idx-d loc-d
 	]
 	
 	loc-fire-on-set*: func [							;-- compiled code entry point
@@ -423,7 +417,7 @@ object: context [
 		new	 [red-value!]
 		/local
 			fun	  [red-function!]
-			int	  [red-integer!]
+			p	  [red-pair!]
 			ctx	  [red-context!]
 			index [integer!]
 			count [integer!]
@@ -433,18 +427,23 @@ object: context [
 		
 		assert TYPE_OF(obj) = TYPE_OBJECT
 		assert obj/on-set <> null
-		s: as series! obj/on-set/value
 		
-		int: as red-integer! s/offset
-		assert TYPE_OF(int) = TYPE_INTEGER
-		index: int/value >> 16
-		count: int/value and FFFFh
+		s: as series! obj/on-set/value
+		p: as red-pair! s/offset
+		assert TYPE_OF(p) = TYPE_PAIR
+		index: p/x >> 16
+		count: p/x and FFFFh
 		if index = -1 [exit]							;-- abort if no on-change* handler
 		
 		ctx: GET_CTX(obj) 
 		s: as series! ctx/values/value
 		fun: as red-function! s/offset + index
 		if TYPE_OF(fun) <> TYPE_FUNCTION [fire [TO_ERROR(script invalid-obj-evt) fun]]
+		if fun/spec <> as node! p/y [					;-- check cache validity
+			count: _function/count-locals fun/spec 0 no ;-- refresh cached locals count
+			p/x: index << 16 or count
+			p/y: as-integer fun/spec					;-- refresh cached spec node
+		]
 		
 		stack/mark-func words/_on-change* fun/ctx
 		stack/push as red-value! word
@@ -465,7 +464,7 @@ object: context [
 		nb	   [integer!]
 		/local
 			fun	  [red-function!]
-			int	  [red-integer!]
+			p	  [red-pair!]
 			ctx	  [red-context!]
 			index [integer!]
 			count [integer!]
@@ -475,12 +474,12 @@ object: context [
 
 		assert TYPE_OF(owner) = TYPE_OBJECT
 		if null? owner/on-set [fire [TO_ERROR(script invalid-obj-evt) owner]]
+		
 		s: as series! owner/on-set/value
-
-		int: as red-integer! s/offset + 1
-		assert TYPE_OF(int) = TYPE_INTEGER
-		index: int/value >> 16
-		count: int/value and FFFFh
+		p: as red-pair! s/offset + 1
+		assert TYPE_OF(p) = TYPE_PAIR
+		index: p/x >> 16
+		count: p/x and FFFFh
 		if index = -1 [exit]							;-- abort if no on-deep-change* handler		
 		if null? new [new: as red-value! none-value]
 
@@ -488,6 +487,12 @@ object: context [
 		s: as series! ctx/values/value
 		fun: as red-function! s/offset + index
 		if TYPE_OF(fun) = TYPE_FUNCTION [
+			if fun/spec <> as node! p/y [					;-- check cache validity
+				count: _function/count-locals fun/spec 0 no ;-- refresh cached locals count
+				p/x: index << 16 or count
+				p/y: as-integer fun/spec					;-- refresh cached spec node
+			]
+			
 			stack/mark-func words/_on-deep-change* fun/ctx
 			stack/push as red-value! owner
 			stack/push as red-value! word
@@ -683,7 +688,7 @@ object: context [
 		]
 	]
 	
-	duplicate: func [
+	clone-series: func [
 		src    [node!]									;-- src context
 		dst	   [node!]									;-- dst context (extension of src)
 		copy?  [logic!]									;-- TRUE for compiler, FALSE otherwise
@@ -723,10 +728,10 @@ object: context [
 	]
 	
 	extend: func [
-		ctx		[red-context!]
-		spec	[red-context!]
-		obj		[red-object!]
-		return: [logic!]
+		ctx		[red-context!]							;-- new context
+		spec	[red-context!]							;-- spec object context
+		obj		[red-object!]							;-- new object
+		return: [logic!]								;-- TRUE if words added to new context
 		/local
 			syms  [red-value!]
 			tail  [red-value!]
@@ -734,7 +739,6 @@ object: context [
 			value [red-value!]
 			base  [red-value!]
 			word  [red-word!]
-			node  [node!]
 			type  [integer!]
 			s	  [series!]
 	][
@@ -758,7 +762,6 @@ object: context [
 		]
 		
 		;-- 2nd pass: deep copy series and rebind functions
-		node: save-self-object obj
 		value: s/offset
 		tail:  s/tail
 		
@@ -774,7 +777,7 @@ object: context [
 						null
 				]
 				type = TYPE_FUNCTION [
-					rebind as red-function! value ctx node
+					rebind as red-function! value ctx ctx/self
 				]
 				true [0]
 			]
@@ -787,7 +790,7 @@ object: context [
 	rebind: func [
 		fun	 [red-function!]
 		ctx  [red-context!]
-		node [node!]
+		self [node!]
 		/local
 			s	 [series!]
 			more [red-value!]
@@ -807,7 +810,7 @@ object: context [
 		spec/extra:	 0
 		
 		blk: block/clone as red-block! more yes yes
-		_context/bind blk ctx node yes					;-- rebind new body to object's context
+		_context/bind blk ctx self yes					;-- rebind new body to object's context
 		_context/bind blk GET_CTX(fun) null no			;-- rebind new body to function's context
 		_function/push spec blk	fun/ctx null null fun/header ;-- recreate function
 		copy-cell stack/top - 1	as red-value! fun		;-- overwrite function slot in object
@@ -861,7 +864,7 @@ object: context [
 	][
 		obj: as red-object! stack/get-top
 		assert TYPE_OF(obj) = TYPE_OBJECT
-		obj/on-set: make-callback-node idx-s loc-s idx-d loc-d
+		obj/on-set: make-callback-node null null idx-s loc-s idx-d loc-d
 		if idx-d <> -1 [ownership/set-owner as red-value! obj obj null]
 		
 		s: as series! ctx/value
@@ -977,6 +980,94 @@ object: context [
 		s/tail - s/offset > base						;-- TRUE: new words added
 	]
 	
+	do-copy: func [
+		obj      [red-object!]
+		new	  	 [red-object!]
+		deep?	 [logic!]
+		types	 [red-value!]
+		evt-rst? [logic!]								;-- TRUE: reset events
+		return:	 [red-object!]
+		/local
+			ctx	  [red-context!]
+			nctx  [red-context!]
+			value [red-value!]
+			tail  [red-value!]
+			src	  [series!]
+			dst	  [series!]
+			node  [node!]
+			size  [integer!]
+			slots [integer!]
+			type  [integer!]
+			sym	  [red-word!]
+			w-ctx [node!]
+	][
+		ctx:	GET_CTX(obj)
+		src:	_hashtable/get-ctx-words ctx
+		size:   as-integer src/tail - src/offset
+		slots:	size >> 4
+
+		type: TYPE_OF(obj)								;-- object!, error!, port!,...
+		new/header: TYPE_UNSET
+		new/ctx: _context/create slots no yes ctx CONTEXT_OBJECT
+		new/class: obj/class
+		either evt-rst? [new/on-set: null][new/on-set: obj/on-set]
+		new/header: type
+
+		nctx: GET_CTX(new)
+		copy-cell as red-value! new as red-value! nctx + 1	;-- set back-reference
+
+		if size <= 0 [return new]						;-- empty object!
+
+		;-- process SYMBOLS
+		sym: _hashtable/get-ctx-word nctx 0
+		w-ctx: new/ctx
+		loop slots [
+			sym/ctx: w-ctx
+			sym: sym + 1
+		]
+
+		;-- process VALUES
+		src: as series! ctx/values/value
+		dst: as series! nctx/values/value
+		copy-memory as byte-ptr! dst/offset as byte-ptr! src/offset size
+		dst/tail: dst/offset + slots
+
+		value: dst/offset
+		tail:  dst/tail
+
+		either deep? [
+			while [value < tail][
+				switch TYPE_OF(value) [
+					TYPE_BLOCK
+					TYPE_PAREN
+					TYPE_ANY_PATH
+					TYPE_ANY_STRING [
+						actions/copy 
+							as red-series! value
+							value						;-- overwrite the value
+							null
+							yes
+							null
+					]
+					TYPE_FUNCTION [
+						rebind as red-function! value nctx nctx/self
+					]
+					default [0]
+				]
+				value: value + 1
+			]
+		][
+			while [value < tail][
+				if TYPE_OF(value) = TYPE_FUNCTION [
+					rebind as red-function! value nctx nctx/self
+				]
+				value: value + 1
+			]
+		]
+		if evt-rst? [register-events new nctx]
+		new
+	]
+	
 	construct: func [
 		spec	[red-block!]
 		proto	[red-object!]
@@ -997,6 +1088,18 @@ object: context [
 		obj
 	]
 	
+	register-events: func [
+		obj [red-object!]
+		ctx [red-context!]
+		/local
+			s [series!]
+	][
+		obj/on-set: on-set-defined? ctx
+		if on-deep? obj [ownership/set-owner as red-value! obj obj null]
+		s: as series! ctx/self/value
+		copy-cell as red-value! obj s/offset + 1
+	]
+	
 	;-- Actions --
 	
 	make: func [
@@ -1008,8 +1111,6 @@ object: context [
 			obj		[red-object!]
 			obj2	[red-object!]
 			ctx		[red-context!]
-			self	[node!]
-			s		[series!]
 			blk		[red-block!]
 			p-obj?  [logic!]
 			new?	[logic!]
@@ -1022,7 +1123,7 @@ object: context [
 		p-obj?: TYPE_OF(proto) = TYPE_OBJECT
 		
 		either p-obj? [
-			copy proto obj null yes null				;-- /deep
+			do-copy proto obj yes null no				;-- /deep and keep events
 		][
 			make-at obj 4								;-- arbitrary value
 		]
@@ -1032,22 +1133,19 @@ object: context [
 			TYPE_OBJECT [
 				obj2: as red-object! spec
 				obj/class: either extend ctx GET_CTX(obj2) obj [get-new-id][proto/class] ;@@ class-id is not transmitted for 'self!
+				register-events obj ctx
 			]
 			TYPE_BLOCK [
-				obj/on-set: null						;-- avoid GC marking previous value
 				blk: as red-block! spec
 				new?: _context/collect-set-words ctx blk
-				self: save-self-object obj
-				_context/bind blk ctx self yes			;-- bind spec block
-				if p-obj? [duplicate proto/ctx obj/ctx no] ;-- clone and rebind proto's series
+				_context/bind blk ctx ctx/self yes		;-- bind spec block
+				if p-obj? [clone-series proto/ctx obj/ctx no] ;-- clone and rebind proto's series
+				
 				interpreter/eval blk no
 				
 				clear-words-flags ctx
 				obj/class: either any [new? not p-obj?][get-new-id][proto/class]
-				obj/on-set: on-set-defined? ctx
-				if on-deep? obj [ownership/set-owner as red-value! obj obj null]
-				s: as series! self/value
-				copy-cell as red-value! obj s/offset
+				register-events obj ctx
 			]
 			default [fire [TO_ERROR(syntax malconstruct) spec]]
 		]
@@ -1228,6 +1326,9 @@ object: context [
 		on-set?: parent/on-set <> null
 		
 		either value <> null [
+			if all [word/index = -1	word/symbol = words/self][
+				fire [TO_ERROR(script invalid-path) path element]
+			]
 			if on-set? [old: stack/push _context/get-in word ctx]
 			_context/set-in word value ctx no
 			if on-set? [fire-on-set parent as red-word! element old value]
@@ -1338,94 +1439,15 @@ object: context [
 		deep?	 [logic!]
 		types	 [red-value!]
 		return:	 [red-object!]
-		/local
-			ctx	  [red-context!]
-			nctx  [red-context!]
-			value [red-value!]
-			tail  [red-value!]
-			src	  [series!]
-			dst	  [series!]
-			node  [node!]
-			size  [integer!]
-			slots [integer!]
-			type  [integer!]
-			sym	  [red-word!]
-			w-ctx [node!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/copy"]]
 		
-		if OPTION?(types) [--NOT_IMPLEMENTED--]
-
 		if OPTION?(part-arg) [
 			ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
 		]
+		if OPTION?(types) [--NOT_IMPLEMENTED--]
 
-		ctx:	GET_CTX(obj)
-		src:	_hashtable/get-ctx-words ctx
-		size:   as-integer src/tail - src/offset
-		slots:	size >> 4
-		
-		type: TYPE_OF(obj)
-		copy-cell as cell! obj as cell! new
-		new/header: TYPE_UNSET
-		new/ctx: _context/create slots no yes ctx CONTEXT_OBJECT
-		new/class: obj/class
-		new/header: type
-
-		nctx: GET_CTX(new)
-		copy-cell as red-value! new as red-value! nctx + 1	;-- set back-reference
-
-		node: save-self-object new
-		
-		if size <= 0 [return new]						;-- empty object!
-
-		;-- process SYMBOLS
-		sym: _hashtable/get-ctx-word nctx 0
-		w-ctx: new/ctx
-		loop slots [
-			sym/ctx: w-ctx
-			sym: sym + 1
-		]
-
-		;-- process VALUES
-		src: as series! ctx/values/value
-		dst: as series! nctx/values/value
-		copy-memory as byte-ptr! dst/offset as byte-ptr! src/offset size
-		dst/tail: dst/offset + slots
-		
-		value: dst/offset
-		tail:  dst/tail
-		
-		either deep? [
-			while [value < tail][
-				switch TYPE_OF(value) [
-					TYPE_BLOCK
-					TYPE_PAREN
-					TYPE_ANY_PATH
-					TYPE_ANY_STRING [
-						actions/copy 
-							as red-series! value
-							value						;-- overwrite the value
-							null
-							yes
-							null
-					]
-					TYPE_FUNCTION [
-						rebind as red-function! value nctx node
-					]
-					default [0]
-				]
-				value: value + 1
-			]
-		][
-			while [value < tail][
-				if TYPE_OF(value) = TYPE_FUNCTION [
-					rebind as red-function! value nctx node
-				]
-				value: value + 1
-			]
-		]
-		new
+		do-copy obj new deep? types yes
 	]
 	
 	select: func [

@@ -104,6 +104,7 @@ draw-begin: func [
 	ctx/brush?:			no
 	ctx/matrix-order:	MATRIX-PREPEND
 	ctx/pattern?:		pattern?
+	ctx/font-antialias: CAIRO_ANTIALIAS_DEFAULT
 
 	cairo_get_matrix cr as cairo_matrix_t! ctx/device-matrix
 	cairo_identity_matrix cr
@@ -1166,9 +1167,13 @@ OS-draw-font: func [
 		bool	[red-logic!]
 		word	[red-word!]
 ][
-	free-pango-cairo-font dc
+	unless null? dc/font-attrs [
+		pango_attr_list_unref dc/font-attrs
+	]
 	dc/font-attrs: create-pango-attrs null font
-	dc/font-opts: cairo_font_options_create
+	if null? dc/font-opts [
+		dc/font-opts: cairo_font_options_create
+	]
 
 	values: object/get-values font
 	value: values + FONT_OBJ_ANTI-ALIAS?
@@ -1191,6 +1196,7 @@ OS-draw-font: func [
 		]
 		default [CAIRO_ANTIALIAS_DEFAULT]
 	]
+	dc/font-antialias: quality
 	cairo_font_options_set_antialias dc/font-opts quality
 ]
 
@@ -2073,6 +2079,7 @@ OS-draw-state-push: func [
 	state		[draw-state!]
 ][
 	cairo_save dc/cr
+	if dc/font-attrs <> null [pango_attr_list_ref dc/font-attrs]
 	copy-memory as byte-ptr! state (as byte-ptr! dc) + 4 size? draw-state!
 ]
 
@@ -2082,7 +2089,9 @@ OS-draw-state-pop: func [
 ][
 	cairo_restore dc/cr
 	if dc/pen-pattern <> null [free as byte-ptr! dc/pen-pattern]
+	if dc/font-attrs <> null [pango_attr_list_unref dc/font-attrs]
 	copy-memory (as byte-ptr! dc) + 4 as byte-ptr! state size? draw-state!
+	if dc/font-opts <> null [cairo_font_options_set_antialias dc/font-opts state/font-antialias]
 ]
 
 OS-matrix-reset: func [

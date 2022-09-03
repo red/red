@@ -126,10 +126,10 @@ context [
 	matrix: load-csv/with read CSV-table first sep
 
 	;-- Generate the lexer table content
-	table: make binary! 2000
+	table: make binary! 3000
 	
 	foreach line next matrix [
-		out: make block! 50	
+		out: make block! 70	
 		foreach s next line [
 			either pos: find/skip states to-word s  2[
 				append out (index? pos) + 1 / 2 - 1
@@ -141,7 +141,7 @@ context [
 	]
 	
 	;-- Generate the type-table content
-	type-table: make binary! 2000
+	type-table: make binary! 3000
 	types: load %../runtime/macros.reds
 	types: select types 'datatypes!
 	
@@ -149,7 +149,7 @@ context [
 
 
 	;-- Generate the skip-table content
-	skip-table: make binary! 50	
+	skip-table: make binary! 70	
 	foreach [s t] states [append skip-table pick #{0100} s = 'S_START]
 
 	;-- Template --

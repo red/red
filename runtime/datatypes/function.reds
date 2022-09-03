@@ -45,71 +45,6 @@ _function: context [
 		either found? [count][-1]
 	]
 	
-	calc-arity: func [
-		path	[red-path!]								;-- if null, just count all optional slots
-		fun		[red-function!]
-		index	[integer!]								;-- 0-base index position of function in path
-		return: [integer!]
-		/local
-			value  [red-value!]
-			tail   [red-value!]
-			s	   [series!]
-			count  [integer!]
-			locals [integer!]
-			cnt	   [integer!]
-			len	   [integer!]
-			stop?  [logic!]
-	][
-		s: as series! fun/spec/value
-		
-		value:  s/offset
-		tail:   s/tail
-		stop?:  no
-		count:  0
-		locals: 0
-		
-		if value = tail [return 0]
-		
-		while [all [not stop? value < tail]][
-			switch TYPE_OF(value) [
-				TYPE_WORD
-				TYPE_GET_WORD
-				TYPE_LIT_WORD [count: count + 1]
-				TYPE_REFINEMENT [
-					stop?: yes
-					locals: (as-integer tail - (value + 1)) >> 4 ;-- include all remaining slots
-				]
-				TYPE_SET_WORD [stop?: yes]
-				default [0]								;-- ignore other values
-			]
-			value: value + 1
-		]
-		if null? path [return locals + 1]				;-- + 1 for including the 1st refinement too
-		
-		len: block/rs-length? as red-block! path
-		index: index + 1
-		
-		if index < len [
-			until [
-				value: block/rs-abs-at as red-block! path index
-				cnt: refinement-arity? s/offset tail as red-word! value
-				if cnt = -1 [
-					fire [
-						TO_ERROR(script no-refine)
-						stack/get-call
-						value
-					]
-				]
-				count: count + cnt
-				index: index + 1
-				index = len
-			]
-			locals: -1									;-- used to signal refinement presence
-			0
-		]
-		locals << 16 or count							;-- combine both values as 16-bit words
-	]
-	
 	call: func [
 		fun	  [red-function!]
 		ctx	  [node!]
@@ -260,6 +195,7 @@ _function: context [
 						if ref? [
 							bool: as red-logic! head + 1
 							assert TYPE_OF(bool) = TYPE_LOGIC
+							if bool/value [fire [TO_ERROR(script dup-refine) path]]
 							bool/value: true
 						]
 						offset: offset + 1
@@ -806,7 +742,10 @@ _function: context [
 				TYPE_REFINEMENT [
 					unless count? [
 						ref: as red-refinement! value
-						if sym = symbol/resolve ref/symbol [count?: yes]
+						if sym = symbol/resolve ref/symbol [
+							count?: yes
+							cnt: cnt + 1
+						]
 					]
 				]
 				TYPE_WORD [if count? [cnt: cnt + 1]]
@@ -822,11 +761,13 @@ _function: context [
 		/local
 			p  [red-value!]
 	][
-		until [
+		assert nb > 0
+		logic/push false								;-- /local = false
+		nb: nb - 1
+		while [nb > 0][
 			p: stack/push*
 			p/header: TYPE_NONE
 			nb: nb - 1
-			zero? nb
 		]
 	]
 
