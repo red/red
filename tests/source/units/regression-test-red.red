@@ -3034,6 +3034,18 @@ comment {
 		err4260: try [add none none]
 		--assert to-logic find form err4260 "add does not"
 
+	--test-- "#4299"
+		foreach v reduce [
+			system system/words system/lexer system/build
+			3-Sep-2022
+			3-Sep-2022/15:38:51+02:00
+			"^^/^^/"
+		][
+			--assert 3 = length? mold/part v 3
+			--assert 3 = length? form/part v 3
+		]
+		--assert 300 = length? mold/part system 300
+
 	--test-- "#4305"
 		block: reduce ['foo func [/bar][pick [baz qux] bar]]
 		id:    func [value][value]
@@ -3173,6 +3185,12 @@ comment {
 		--assert not strict-equal? "foo" #{666F6F}
 		--assert not strict-equal? #{666F6F} "foo"
 
+	--test-- "#4845"
+		--assert 1.2.3 =? 1.2.3
+		--assert 1x2 =? 1x2
+		--assert 1:2 =? 1:2
+		--assert 1% =? 1%
+
 	--test-- "#4865"
 		--assert error? try [to word! to issue! "<s>"]
 		--assert error? try [to word! /1]
@@ -3235,7 +3253,13 @@ comment {
 		--assert x4980 == quote (2 3)
 		--assert 1 == do/next x4980: make hash! [1 2 3] 'x4980
 		--assert x4980 == make hash! [2 3]		
-		
+
+	--test-- "#4985"
+		--assert path? p: to path! make vector! [1 2]
+		--assert 2 = length? p
+		--assert p/1 = 1
+		--assert p/2 = 2
+
 	--test-- "#4994"
 		save qt-tmp-file append/dup "" "§☺" 500000
 		transcode read qt-tmp-file
