@@ -1456,6 +1456,16 @@ Red/System [
 
 ===start-group=== "various regression tests from bugtracker"
 
+	--test-- "#4224"
+		s4224: 1
+		e4224: 2
+		f4224: as float32! 3.0
+		g4224: 3.0
+		--assertf32~= f4224 / (as float32! e4224 - s4224) 3.0 1E-10
+		--assertf~=   g4224 / (as float!   e4224 - s4224) 3.0 1E-10
+		--assertf~=   64.0 /  (as float!   e4224 - s4224) 64.0 1E-10
+		--assertf32~= (as float32! 32.0) / (as float32! e4224 - s4224) 32.0 1E-10
+
 	--test-- "issue #847"
 		inf: 1e308 + 1e308
 		nan: 0.0 * inf

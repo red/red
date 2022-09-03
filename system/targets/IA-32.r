@@ -2105,13 +2105,19 @@ make-profilable make target-class [
 			all [
 				object? args/2
 				block? right
-				ldr?: not find [float! float32!] compiler/get-type right
-				emit-casting args/2 no			;-- load b on FPU stack
+				ldr?: not find [float! float32!] args/2/type
+				emit-casting args/2 no				;-- load b on FPU stack
 			]
 			if path? right [
-				emit-push/keep args/2			;-- late path loading
+				emit-push/keep args/2				;-- late path loading
 				ldr?: yes
 			]
+		]
+		all [										;-- preload b if casted to any-float!
+			object? args/2
+			block? right
+			find [float! float32!] args/2/type
+			emit-casting args/2 no					;-- load b on FPU stack
 		]
 
 		switch a [									;-- load left operand on FPU stack
