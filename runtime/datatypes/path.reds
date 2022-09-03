@@ -91,8 +91,7 @@ path: context [
 		switch TYPE_OF(spec) [
 			TYPE_TYPESET
 			TYPE_OBJECT
-			TYPE_MAP
-			TYPE_VECTOR [block/rs-append as red-block! make-at proto 1 spec]
+			TYPE_MAP [block/rs-append as red-block! make-at proto 1 spec]
 			default [
 				proto: as red-path! block/to as red-block! proto spec type
 				proto/args: null

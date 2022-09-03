@@ -3247,7 +3247,13 @@ comment {
 		--assert x4980 == quote (2 3)
 		--assert 1 == do/next x4980: make hash! [1 2 3] 'x4980
 		--assert x4980 == make hash! [2 3]		
-		
+
+	--test-- "#4985"
+		--assert path? p: to path! make vector! [1 2]
+		--assert 2 = length? p
+		--assert p/1 = 1
+		--assert p/2 = 2
+
 	--test-- "#4994"
 		save qt-tmp-file append/dup "" "§☺" 500000
 		transcode read qt-tmp-file
