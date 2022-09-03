@@ -3185,6 +3185,12 @@ comment {
 		--assert not strict-equal? "foo" #{666F6F}
 		--assert not strict-equal? #{666F6F} "foo"
 
+	--test-- "#4845"
+		--assert 1.2.3 =? 1.2.3
+		--assert 1x2 =? 1x2
+		--assert 1:2 =? 1:2
+		--assert 1% =? 1%
+
 	--test-- "#4865"
 		--assert error? try [to word! to issue! "<s>"]
 		--assert error? try [to word! /1]
