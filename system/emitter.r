@@ -29,7 +29,7 @@ emitter: make-profilable context [
 		value [integer!]				;-- 32/64-bit, watch out for endianess!!
 	] none
 	
-	datatypes: to-hash [
+	types-model: [
 		;int8!		1	signed
 		byte!		1	unsigned
 		;int16!		2	signed
@@ -50,6 +50,8 @@ emitter: make-profilable context [
 		function!	4	-				;-- 32-bit, 8 for 64-bit
 		subroutine!	4	-				;-- 32-bit, 8 for 64-bit
 	]
+	
+	datatypes: none						;-- initialized by init function
 	
 	datatype-ID: [
 		logic!		1
@@ -884,13 +886,21 @@ emitter: make-profilable context [
 			clear code-buf
 			clear data-buf
 			clear symbols
+			clear 	stack
+			clear 	exits
+			clear 	breaks
+			clear 	cont-next
+			clear 	cont-back
+
 		]
 		clear stack
 		path: pick [%system/targets/ %targets/] encap?
 		target: do-cache rejoin [path job/target %.r]
+		foreach w [width signed? last-saved?][set in target w none]
 		target/compiler: compiler: system-dialect/compiler
 		target/PIC?: job/PIC?
 		target/void-ptr: head insert/dup copy #{} null target/ptr-size
 		int-to-bin/little-endian?: target/little-endian?
+		datatypes: to-hash types-model
 	]
 ]
