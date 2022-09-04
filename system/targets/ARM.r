@@ -1906,7 +1906,7 @@ make-profilable make target-class [
 		/back?
 		/local distance opcode jmp flip?
 	][
-		if verbose >= 3 [print [">>>emitting branching for" mold op offset parity signed?]]
+		if verbose >= 3 [print [">>>branching for" mold op offset parity signed?]]
 		distance: (length? code) - (any [offset 0]) - 4	;-- offset from the code's head
 		if back? [distance: negate distance + 12]	;-- 8 (PC offset) + one instruction
 		
@@ -1940,7 +1940,7 @@ make-profilable make target-class [
 		opcode: reverse rejoin [
 			op or #{0a} to-bin24 shift distance 2
 		]
-		if verbose >= 4 [print [">>>emitting code:" mold reverse copy opcode]]
+		if verbose >= 4 [print [">>>emitting branching code:" mold reverse copy opcode]]
 		insert any [all [back? tail code] code] opcode
 		4											;-- opcode length
 	]
