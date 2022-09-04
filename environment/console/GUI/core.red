@@ -208,6 +208,7 @@ object [
 		][
 			refresh
 		]
+		if newline? [line: last lines]
 		()				;-- return unset!
 	]
 
