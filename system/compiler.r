@@ -2556,7 +2556,16 @@ system-dialect: make-profilable context [
 			<last>
 		]
 		
-		comp-either: has [expr e-true e-false c-true c-false offset t-true t-false ret mark][
+		comp-either: has [expr e-true e-false c-true c-false offset t-true t-false ret mark name fspec][
+			if all [
+				not empty? expr-call-stack
+				word? name: pick tail expr-call-stack -2
+				fspec: select functions name
+				'op = fspec/2
+			][
+				pc: skip pc -2
+				throw-error "cannot nest EITHER inside an infix expression"
+			]
 			pc: next pc
 			expr: fetch-expression/final 'either		;-- compile expression
 			check-conditional 'either expr				;-- verify conditional expression

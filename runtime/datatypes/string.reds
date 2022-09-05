@@ -1920,7 +1920,8 @@ string: context [
 			f1: pf/1
 			pf: as pointer! [float32!] p2
 			f2: pf/1
-			res: (SIGN_COMPARE_RESULT(f1 f2)) * rev
+			res: SIGN_COMPARE_RESULT(f1 f2)
+			res: res * rev
 			unless zero? res [break]
 			p1: p1 + 4 p2: p2 + 4
 		]
@@ -1955,7 +1956,8 @@ string: context [
 			f1: pf/1
 			pf: as pointer! [float!] p2
 			f2: pf/1
-			res: (SIGN_COMPARE_RESULT(f1 f2)) * rev
+			res: SIGN_COMPARE_RESULT(f1 f2)
+			res: res * rev
 			unless zero? res [break]
 			p1: p1 + 8 p2: p2 + 8
 		]
