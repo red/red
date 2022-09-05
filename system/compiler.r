@@ -2875,7 +2875,7 @@ system-dialect: make-profilable context [
 			<last>
 		]
 		
-		comp-assignment: has [name value n enum ns local?][
+		comp-assignment: has [name value n enum ns local? type][
 			if all [set-word? pc/1 set-word? pc/2][expand-setwords]
 			push-call name: pc/1
 			pc: next pc
@@ -2915,6 +2915,10 @@ system-dialect: make-profilable context [
 					find functions to word! pc/1
 				][
 					throw-error "storing a function! requires a type casting"
+				]
+				if all [local? block? type: select locals to word! n struct-by-value? type][
+					backtrack name
+					throw-error ["attempt to redefine struct value variable" name]
 				]
 				unless local? [
 					ns: resolve-ns n
