@@ -1653,13 +1653,21 @@ OS-make-view: func [
 			adjust-parent handle as handle! parent offset/x offset/y
 			SetWindowLong handle wc-offset - 36 0
 		]
-		sym = slider [
+		any [
+			sym = slider
+			sym = progress
+		][
 			vertical?: size/y > size/x
 			value: either vertical? [size/y][size/x]
-			SendMessage handle TBM_SETRANGE 1 value << 16
-			value: get-position-value as red-float! data value
-			if vertical? [value: size/y - value]
-			SendMessage handle TBM_SETPOS 1 value
+			off-x: get-position-value as red-float! data value
+			if vertical? [off-x: size/y - off-x]
+			either sym = slider [
+				SendMessage handle TBM_SETRANGE 1 value << 16
+				SendMessage handle TBM_SETPOS 1 off-x
+			][
+				SendMessage handle PBM_SETRANGE 0 value << 16
+				SendMessage handle PBM_SETPOS off-x 0
+			]
 		]
 		sym = scroller [
 			si: declare tagSCROLLINFO
@@ -1676,10 +1684,6 @@ OS-make-view: func [
 			fl: as red-float! selected
 			fl/header: TYPE_PERCENT
 			fl/value: 0.10
-		]
-		sym = progress [
-			value: get-position-value as red-float! data 100
-			SendMessage handle PBM_SETPOS value 0
 		]
 		any [
 			sym = toggle
@@ -1743,7 +1747,6 @@ change-size: func [
 		max		[integer!]
 		msg		[integer!]
 		layer?	[logic!]
-		values	[red-value!]
 		pos		[red-pair!]
 		sz-x	[integer!]
 		sz-y	[integer!]
@@ -1779,9 +1782,12 @@ change-size: func [
 	]
 	case [
 		any [type = slider type = progress][
+			sz-x: size/x
+			sz-y: size/y
 			max: either sz-x > sz-y [sz-x][sz-y]
 			msg: either type = slider [TBM_SETRANGEMAX][max: max << 16 PBM_SETRANGE]
 			SendMessage hWnd msg 0 max					;-- do not force a redraw
+			change-data hWnd vals
 		]
 		type = scroller  [
 			;; TBD
@@ -2164,7 +2170,7 @@ change-data: func [
 	
 	case [
 		all [
-			type = slider
+			any [type = slider type = progress]
 			any [TYPE_OF(data) = TYPE_PERCENT TYPE_OF(data) = TYPE_FLOAT]
 		][
 			f: as red-float! data
@@ -2172,7 +2178,11 @@ change-data: func [
 			flt: f/value
 			range: either size/y > size/x [flt: 1.0 - flt size/y][size/x]
 			flt: flt * as-float range
-			SendMessage hWnd TBM_SETPOS 1 as-integer flt
+			either type = slider [
+				SendMessage hWnd TBM_SETPOS 1 as-integer flt
+			][
+				SendMessage hWnd PBM_SETPOS as-integer flt 0
+			]
 		]
 		all [type = scroller TYPE_OF(data) = TYPE_FLOAT][
 			f: as red-float! data
@@ -2185,13 +2195,6 @@ change-data: func [
 			range: si/nMax - si/nMin
 			si/nPos: si/nMin + as-integer (flt * as-float range)
 			SetScrollInfo hWnd SB_CTL :si true
-		]
-		all [
-			type = progress
-			any [TYPE_OF(data) = TYPE_PERCENT TYPE_OF(data) = TYPE_FLOAT]
-		][
-			f: as red-float! data
-			SendMessage hWnd PBM_SETPOS as-integer f/value * 100.0 0
 		]
 		any [
 			type = check
