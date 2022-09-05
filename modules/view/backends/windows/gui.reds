@@ -32,6 +32,10 @@ Red/System [
 ;;		  12 : |
 ;;		  16 : FACE_OBJ_FLAGS        <- BOTTOM
 
+#define IS_D2D_FACE(sym) [
+	any [sym = base sym = rich-text sym = window sym = panel]
+]
+
 #include %win32.reds
 #include %direct2d.reds
 #include %matrix2d.reds
@@ -292,6 +296,8 @@ get-text-size: func [
 		values 	[red-value!]
 		font	[red-object!]
 		state	[red-block!]
+		type	[red-word!]
+		sym		[integer!]
 		hFont	[handle!]
 		hwnd 	[handle!]
 		dc 		[handle!]
@@ -325,17 +331,28 @@ get-text-size: func [
 	ReleaseDC hwnd dc
 
 #either draw-engine = 'GDI+ [
-	size/width:  as integer! ceil (as float! bbox/width)
+	size/width: as integer! ceil (as float! bbox/width)
 ][
-	size/width:  as integer! ceil (as float! bbox/width) * 0.96	;-- scale to match Direct2D's width
+
+	type: as red-word! values + FACE_OBJ_TYPE
+	sym: symbol/resolve type/symbol
+	either IS_D2D_FACE(sym) [
+		size/width: as integer! ceil (as float! bbox/width) * 0.96	;-- scale to match Direct2D's width
+	][
+		size/width: as integer! ceil (as float! bbox/width)
+	]
 ]
 	size/height: as integer! ceil as float! bbox/height
 
 	if pair <> null [
 	#either draw-engine = 'GDI+ [
-		pair/x: as integer! ceil as float! bbox/width  * (as float32! 100.0) / (as float32! dpi-factor)	
+		pair/x: as integer! ceil as float! bbox/width * (as float32! 100.0) / (as float32! dpi-factor)
 	][
-		pair/x: as integer! ceil as float! bbox/width  * (as float32! 96.0) / (as float32! dpi-factor)
+		either IS_D2D_FACE(sym) [
+			pair/x: as integer! ceil as float! bbox/width * (as float32! 96.0) / (as float32! dpi-factor)
+		][
+			pair/x: as integer! ceil as float! bbox/width * (as float32! 100.0) / (as float32! dpi-factor)
+		]
 	]
 		pair/y: as integer! ceil as float! bbox/height * (as float32! 100.0) / (as float32! dpi-factor)
 	]
@@ -649,7 +666,7 @@ free-faces: func [
 				free-graph cam
 			]
 		]
-		any [sym = window sym = panel sym = base sym = rich-text][
+		IS_D2D_FACE(sym) [
 			#either draw-engine = 'GDI+ [
 			if zero? (WS_EX_LAYERED and GetWindowLong handle GWL_EXSTYLE) [
 				dc: GetWindowLong handle wc-offset - 4
@@ -2499,7 +2516,7 @@ OS-update-view: func [
 		]
 	]
 	if flags and FACET_FLAG_DRAW  <> 0 [
-		if any [type = base type = panel type = window type = rich-text][
+		if IS_D2D_FACE(type) [
 			update-base hWnd null null values
 		]
 	]
