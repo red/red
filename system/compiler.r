@@ -2916,10 +2916,6 @@ system-dialect: make-profilable context [
 				][
 					throw-error "storing a function! requires a type casting"
 				]
-				if all [local? block? type: select locals to word! n struct-by-value? type][
-					backtrack name
-					throw-error ["attempt to redefine struct value variable" name]
-				]
 				unless local? [
 					ns: resolve-ns n
 					if all [locals ns not find globals ns][
@@ -3487,7 +3483,7 @@ system-dialect: make-profilable context [
 		
 		comp-variable-assign: func [
 			set-word [set-word!] expr casted [block! none!] store? [logic!]
-			/local name type new value fun-name
+			/local name type new value fun-name spec val?
 		][
 			name: to word! set-word
 			
@@ -3510,11 +3506,13 @@ system-dialect: make-profilable context [
 			]
 			
 			either type: any [
-				get-variable-spec name					;-- test if known variable (local or global)	
+				spec: get-variable-spec name			;-- test if known variable (local or global)	
 				enum-id? name
 			][
 				type: resolve-aliased type
 				value: get-type expr
+				val?: struct-by-value? value
+
 				if block? expr [parse value [type-spec]] ;-- prefix return type if required	
 				new: resolve-aliased value
 				if all [
@@ -3523,7 +3521,12 @@ system-dialect: make-profilable context [
 				][
 					new: type
 				]
+				if all [struct-by-value? spec not any [val? 'value = last new]][
+					backtrack set-word
+					throw-error ["a struct value cannot be assigned to a pointer: " value]
+				]
 				if 'value = last new [new: head remove back tail copy new]
+				
 
 				if type <> any [casted new][
 					backtrack set-word

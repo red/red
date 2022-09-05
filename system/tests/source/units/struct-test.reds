@@ -1217,7 +1217,6 @@ struct-local-foo2
 				--assert s1/b1 = #"A"
 
 			--test-- "loc-svb2"
-				sv1: declare tiny!
 				sv1: sbvf2 s1 123
 				--assert sv1/b1 = #"A"
 
@@ -1227,7 +1226,6 @@ struct-local-foo2
 				--assert s2/two = 5
 
 			--test-- "loc-svb4"
-				sv2: declare small!
 				sv2: sbvf4 s2 123
 				--assert sv2/one = 5
 				--assert sv2/two = 6
@@ -1239,7 +1237,6 @@ struct-local-foo2
 				--assert s3/three = 3.14
 
 			--test-- "loc-svb6"
-				sv3: declare big!
 				sv3: sbvf6 s3 123
 				--assert sv3/one = 123
 				--assert sv3/two = 456
@@ -1315,7 +1312,6 @@ struct-local-foo2
 				--assert sv3/three = 3.14159
 
 			--test-- "loc-svb14"
-				;sv4: declare huge!
 				sv4: returnHuge as-integer #"0" as-integer #"1"
 				--assert sv4/w1 = 48
 				--assert sv4/w2 = 49
@@ -1434,8 +1430,6 @@ struct-local-foo2
 				--assert nest3/f2 = 343434
 
 			--test-- "loc-svb19"
-				nest4: declare nested4!
-
 				--assert 40 = size? nested4!
 
 				nest4/g1: 121212
@@ -1511,8 +1505,6 @@ struct-local-foo2
 				--assert :nest5/sub + 12 = :nest5/g2
 				
 			--test-- "svb30"
-				nest1: declare nested1!
-
 				--assert 12 = size? nested1!
 
 				nest1/f1: 121212
@@ -1538,8 +1530,6 @@ struct-local-foo2
 				--assert nest1/f2 = 343434
 
 			--test-- "svb31"
-				nest2: declare nested2!
-
 				--assert 16 = size? nested2!
 
 				nest2/f1: 121212
@@ -1570,8 +1560,6 @@ struct-local-foo2
 				--assert nest2/f2 = 343434
 
 			--test-- "svb32"
-				nest3: declare nested3!
-
 				--assert 24 = size? nested3!
 
 				nest3/f1: 121212
