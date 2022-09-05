@@ -238,7 +238,7 @@ system/console: context [
 							mold/part :result limit + 5 ;-- mold a bit more than needed
 						]
 						if limit < length? result [
-							clear change at result limit "..."
+							clear change at result limit - length? prompt "..."
 						]
 						prefix: any [
 							all [string? set/any 'p try/all [do [system/console/result]] :p]
