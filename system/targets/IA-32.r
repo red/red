@@ -1231,6 +1231,7 @@ make-profilable make target-class [
 			unless all [
 				type = 'struct!
 				word? path/2
+				not object? value
 				spec: any [parent second compiler/resolve-type path/1]
 				type2: select spec path/2
 				compiler/any-float? type2

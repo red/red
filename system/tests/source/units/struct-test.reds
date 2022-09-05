@@ -1621,4 +1621,38 @@ struct-local-foo2
 
 ===end-group===
 
+===start-group=== "Struct issues"
+
+
+		--test-- "#4208"
+			RECT_F_4208!: alias struct! [
+				left	[float32!]
+				top		[float32!]
+				right	[float32!]
+				bottom	[float32!]
+			]
+			D2D1_IMAGE_BRUSH_PROPERTIES_4208: alias struct! [
+				sourceRectangle	[RECT_F_4208! value]
+				extendModeX	[integer!]
+				extendModeY	[integer!]
+				interpolationMode [integer!]
+			]
+			test4208: func [/local props [D2D1_IMAGE_BRUSH_PROPERTIES_4208 value] p [int-ptr!]][
+				props/sourceRectangle/left: as float32! 1
+				--assertf32~= props/sourceRectangle/left (as float32! 1) 1E-10
+
+				props/sourceRectangle/top: as float32! 2
+				props/sourceRectangle/right: as float32! 3
+				props/sourceRectangle/bottom: as float32! 4
+				props/extendModeX: 123
+			
+				p: as int-ptr! :props
+				--assert p/1 = 3F800000h
+				--assert p/2 = 40000000h
+				--assert p/3 = 40400000h
+				--assert p/4 = 40800000h
+				--assert p/5 = 0000007Bh
+			]
+			test4208
+
 ~~~end-file~~~
