@@ -24,7 +24,7 @@ reactor!: context [
 			not empty? srs: system/reactivity/source
 			srs/1 = self
 			srs/2 = word
-			set-quiet in self word old					;-- force the old value
+			set-quiet word old							;-- force the old value
 			exit
 		]
 		unless all [block? :old block? :new same? head :old head :new][

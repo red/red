@@ -299,7 +299,7 @@ system: context [
 
 			on-change*: function [word old new][
 				unless integer? bits [set-quiet 'bits 0]	;-- prevents tampering with that field
-				idx: 1 << ((index? in self word) - 1)
+				idx: 1 << ((index? word) - 1)
 				set-quiet 'bits either new [bits or idx][bits and complement idx]
 			]
 		]
@@ -343,7 +343,7 @@ system: context [
 				USD UYU UZS	VES VND VUV WST CFA XAF XCD XOF CFP XPF YER ZAR ZMW
 			]
 			on-change*: func [word old new][
-				set-quiet in self word old
+				set-quiet word old
 				cause-error 'script 'protected []
 			]
 			on-deep-change*: func [owner word target action new index part][

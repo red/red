@@ -419,7 +419,7 @@ face!: object [				;-- keep in sync with facet! enum
 				not empty? srs: system/reactivity/source
 				srs/1 = self
 				srs/2 = word
-				set-quiet in self word old				;-- force the old value
+				set-quiet word old					;-- force the old value
 				exit
 			]
 			if all [
@@ -493,7 +493,7 @@ face!: object [				;-- keep in sync with facet! enum
 
 			either state [
 				;if word = 'type [cause-error 'script 'locked-word [type]]
-				state/2: state/2 or (1 << ((index? in self word) - 1))
+				state/2: state/2 or (1 << ((index? word) - 1))
 				if all [state/1 system/view/auto-sync?][show self]
 			][
 				if type = 'rich-text [system/view/platform/update-view self]
@@ -532,7 +532,7 @@ font!: object [											;-- keep in sync with font-facet! enum
 			if any [series? :new object? :new][modify new 'owned reduce [self word]]
 
 			if all [block? state handle? state/1][ 
-				system/view/platform/update-font self (index? in self word) - 1
+				system/view/platform/update-font self (index? word) - 1
 				update-font-faces parent
 			]
 		]
@@ -544,7 +544,7 @@ font!: object [											;-- keep in sync with font-facet! enum
 			word <> 'state
 			not find [remove clear take] action
 		][
-			system/view/platform/update-font self (index? in self word) - 1
+			system/view/platform/update-font self (index? word) - 1
 			update-font-faces parent
 		]
 	]	
@@ -574,7 +574,7 @@ para!: object [
 		][
 			foreach f parent [
 				system/reactivity/check/only f 'para
-				system/view/platform/update-para f (index? in self word) - 1 ;-- sets f/state flag too
+				system/view/platform/update-para f (index? word) - 1 ;-- sets f/state flag too
 				if all [f/state f/state/1][show f]
 			]
 		]
@@ -592,7 +592,7 @@ scroller!: object [
 
 	on-change*: function [word old new][
 		if all [parent block? parent/state handle? parent/state/1][
-			system/view/platform/update-scroller self (index? in self word) - 1
+			system/view/platform/update-scroller self (index? word) - 1
 		]
 	]
 ]
