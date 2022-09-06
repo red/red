@@ -3325,6 +3325,18 @@ comment {
 	--test-- "#5178"
 		--assert [] == to block! make vector! []
 
+	--test-- "#5197"
+		o5197: object [
+			x: 1
+			on-change*: func [w o n][
+				--assert w = 'x
+				--assert self = context? w
+			]
+		]
+		set o5197 6
+		set o5197 p: make o [x: 7]
+		set o5197 [8]
+
 ===end-group===
 
 ~~~end-file~~~
