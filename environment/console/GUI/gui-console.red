@@ -236,6 +236,7 @@ gui-console-ctx: context [
 		svs/pane: next svs/pane				;-- proctect itself from unview/all
 
 		add-gui-print
+		console/rate: 10
 		system/console/launch
 	]
 ]

@@ -470,7 +470,6 @@ object [
 	]
 
 	mouse-up: func [event [event!]][
-		if scrolling <> 0 [console/rate: none]
 		if empty? lines [exit]
 		mouse-up?: yes
 		if 2 = length? selects [clear selects]
@@ -497,12 +496,8 @@ object [
 				scrolling: -1
 				scroll-pos: offset
 			]
-			scrolling <> 0 [
-				console/rate: none
-				scrolling: 0
-			]
+			scrolling <> 0 [scrolling: 0]
 		]
-		if scrolling <> 0 [console/rate: 10]
 
 		select-to-offset offset
 	]
@@ -970,7 +965,7 @@ object [
 			]
 			clear selects
 		]
-		console/rate: 10
+
 		if caret/rate [caret/rate: none caret/color: caret-clr]
 		calc-top
 		system/view/platform/redraw console
