@@ -537,11 +537,13 @@ redbin: context [
 			ref     [int-ptr!]
 			type    [integer!]
 			header  [integer!]
+			mask	[integer!]
 			first?  [logic!]
 			global? [logic!]
 	][
 		type:   TYPE_OF(data)
-		header: type or either zero? (data/header and flag-new-line) [0][REDBIN_NEWLINE_MASK]
+		mask: either zero? (data/header and flag-new-line) [0][REDBIN_NEWLINE_MASK]
+		header: type or mask
 		header: header or switch type [
 			TYPE_TUPLE [TUPLE_SIZE?(data) << 8]
 			TYPE_MONEY [(money/get-sign as red-money! data) << 20]

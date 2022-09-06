@@ -1263,6 +1263,7 @@ natives: context [
 			res	   [red-value!]
 			cframe [byte-ptr!]
 			type   [integer!]
+			len	   [integer!]
 	][
 		#typecheck [parse case? part trace]
 		op: either as logic! case? + 1 [COMP_STRICT_EQUAL][COMP_EQUAL]
@@ -1286,11 +1287,12 @@ natives: context [
 			]
 			if part <= 0 [
 				type: TYPE_OF(input)
-				logic/box zero? either ANY_STRING?(type) [
+				len: either ANY_STRING?(type) [
 					string/rs-length? as red-string! input
 				][
 					block/rs-length? as red-block! input
 				]
+				logic/box zero? len
 				return 0
 			]
 		]

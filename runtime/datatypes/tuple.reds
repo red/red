@@ -21,10 +21,11 @@ tuple: context [
 		/local
 			tuple	[red-tuple!]
 			tp		[byte-ptr!]
-			i		[integer!]
+			i sz	[integer!]
 	][
+		sz: either count > 2 [count << 19][3 << 19]
 		tuple: as red-tuple! stack/push*
-		tuple/header: TYPE_TUPLE or either count > 2 [count << 19][3 << 19]
+		tuple/header: TYPE_TUPLE or sz
 
 		tp: (as byte-ptr! tuple) + 4
 		i: 0

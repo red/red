@@ -2556,7 +2556,16 @@ system-dialect: make-profilable context [
 			<last>
 		]
 		
-		comp-either: has [expr e-true e-false c-true c-false offset t-true t-false ret mark][
+		comp-either: has [expr e-true e-false c-true c-false offset t-true t-false ret mark name fspec][
+			if all [
+				not empty? expr-call-stack
+				word? name: pick tail expr-call-stack -2
+				fspec: select functions name
+				'op = fspec/2
+			][
+				pc: skip pc -2
+				throw-error "cannot nest EITHER inside an infix expression"
+			]
 			pc: next pc
 			expr: fetch-expression/final 'either		;-- compile expression
 			check-conditional 'either expr				;-- verify conditional expression
@@ -2875,7 +2884,7 @@ system-dialect: make-profilable context [
 			<last>
 		]
 		
-		comp-assignment: has [name value n enum ns local?][
+		comp-assignment: has [name value n enum ns local? type][
 			if all [set-word? pc/1 set-word? pc/2][expand-setwords]
 			push-call name: pc/1
 			pc: next pc
@@ -3483,7 +3492,7 @@ system-dialect: make-profilable context [
 		
 		comp-variable-assign: func [
 			set-word [set-word!] expr casted [block! none!] store? [logic!]
-			/local name type new value fun-name
+			/local name type new value fun-name spec val?
 		][
 			name: to word! set-word
 			
@@ -3506,11 +3515,13 @@ system-dialect: make-profilable context [
 			]
 			
 			either type: any [
-				get-variable-spec name					;-- test if known variable (local or global)	
+				spec: get-variable-spec name			;-- test if known variable (local or global)	
 				enum-id? name
 			][
 				type: resolve-aliased type
 				value: get-type expr
+				val?: struct-by-value? value
+
 				if block? expr [parse value [type-spec]] ;-- prefix return type if required	
 				new: resolve-aliased value
 				if all [
@@ -3519,7 +3530,12 @@ system-dialect: make-profilable context [
 				][
 					new: type
 				]
+				if all [struct-by-value? spec not any [val? 'value = last new]][
+					backtrack set-word
+					throw-error ["a struct value cannot be assigned to a pointer: " value]
+				]
 				if 'value = last new [new: head remove back tail copy new]
+				
 
 				if type <> any [casted new][
 					backtrack set-word

@@ -1117,6 +1117,7 @@ print-wide [
 }
 		--assert equal? "A ^/B" qt/output
 
+comment {							;; nesting EITHER is invalid
 	--test-- "#528"
 		--compile-and-run-this {
 Red/System []
@@ -1126,6 +1127,7 @@ print-wide [system/args-list s]
 		--assert equal? 
 			copy/part qt/output 8 
 			copy/part tail qt/output -8
+}
 
 	--test-- "#533"
 		--compile-this {

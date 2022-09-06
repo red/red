@@ -1294,7 +1294,8 @@ dtoa: context [
 			i: 0
 			while [true][
 				b: Bmult-add b 10 0
-				j: 1 + either i < nd0 [i][i + 1]
+				j: either i < nd0 [i][i + 1]
+				j: j + 1
 				dd: (as-integer s0/j - #"0") - Bquorem b d
 				i: i + 1
 				if dd <> 0 [BIGCOMP_BREAK]
@@ -1636,7 +1637,8 @@ dtoa: context [
 			i: 18
 			until [
 				i: i - 1
-				j: 1 + either i < nd0 [i][i + 1]
+				j: either i < nd0 [i][i + 1]
+				j: j + 1
 				if s0/j <> #"0" [i: i + 1 j: 0]
 				zero? j
 			]
