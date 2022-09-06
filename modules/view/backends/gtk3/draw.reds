@@ -2145,7 +2145,6 @@ OS-matrix-set: func [
 		matrix	[cairo_matrix_t!]
 		res		[cairo_matrix_t! value]
 ][
-	m: null
 	val: as red-integer! block/rs-head blk
 	m/xx: get-float val
 	m/yx: get-float val + 1
