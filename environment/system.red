@@ -343,7 +343,7 @@ system: context [
 				USD UYU UZS	VES VND VUV WST CFA XAF XCD XOF CFP XPF YER ZAR ZMW
 			]
 			on-change*: func [word old new][
-				set-quiet word old
+				set-quiet in self word old
 				cause-error 'script 'protected []
 			]
 			on-deep-change*: func [owner word target action new index part][
