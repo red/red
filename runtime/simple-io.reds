@@ -743,13 +743,14 @@ simple-io: context [
 	file-size?: func [
 		file	 [integer!]
 		return:	 [integer!]
-		/local #either OS = 'Linux [s [stat!]][s [stat! value]]
+		#if OS <> 'Windows [/local s [stat!]]
 	][
 		#case [
 			OS = 'Windows [
 				GetFileSize file null
 			]
 			any [OS = 'macOS OS = 'FreeBSD OS = 'NetBSD OS = 'Android] [
+				s: as stat! system/stack/allocate 36	;-- ensures stat! fits using a max value of 144 bytes
 				either zero? _stat file s [				
 					s/st_size
 				][-1]
@@ -1069,7 +1070,7 @@ simple-io: context [
 			time [float!]
 			fd   [integer!]
 			tm   [systemtime!]
-			#either OS = 'Linux [s [stat!]][s [stat! value]]
+			#if OS <> 'Windows [s [stat!]]
 	][
 		name: file/to-OS-path filename
 		;o: object/copy #get system/standard/file-info
