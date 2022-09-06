@@ -194,7 +194,7 @@ _context: context [
 		#if debug? = yes [if verbose > 0 [print-line "_context/add"]]
 
 		new-id: 0
-		id: find-or-store ctx word/symbol yes word/ctx :new-id
+		id: find-or-store ctx word/symbol yes ctx/self :new-id
 		if id <> -1 [return id]
 
 		unless ON_STACK?(ctx) [
