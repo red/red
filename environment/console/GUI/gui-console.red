@@ -300,6 +300,16 @@ get-caret-blink-time: routine [
 		/local
 			t?  [logic!]
 	][
+		with [red][
+			;-- some internal states of the gui-console may be changed before
+			;-- throwing error inside vprint. Incomplete states will make gui-console crazy.
+			if any [
+				stack/ctop + 10 >= stack/c-end	;-- vprint uses 6 - 10 values on call stk
+				stack/top + 50 >= stack/a-end	;-- vprint uses 45 - 50 values on arg stk
+			][
+				fire [TO_ERROR(internal stack-overflow)]
+			]
+		]
 		t?: interpreter/tracing?
 		if t? [interpreter/tracing?: no]
 		#call [gui-console-ctx/terminal/vprint str lf?]
