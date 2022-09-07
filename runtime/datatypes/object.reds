@@ -445,6 +445,11 @@ object: context [
 			p/y: as-integer fun/spec					;-- refresh cached spec node
 		]
 		
+		if word/ctx <> obj/ctx [						;-- bind word when invoked from compiler (~exec/<word>)
+			word: as red-word! stack/push as red-value! word	;@@ not pop after the call, but should be fine.
+			_context/bind-word ctx word
+		]
+		
 		stack/mark-func words/_on-change* fun/ctx
 		stack/push as red-value! word
 		stack/push old
