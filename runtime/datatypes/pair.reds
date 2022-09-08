@@ -14,20 +14,18 @@ pair: context [
 	verbose: 0
 	
 	get-named-index: func [
-		element [red-word!]
+		w		[red-word!]
 		ref		[red-value!]
 		return: [integer!]
 		/local
-			w	 [red-word!]
 			axis [integer!]
 	][
-		w: as red-word! element
 		axis: symbol/resolve w/symbol
 		if all [axis <> words/x axis <> words/y][
 			either TYPE_OF(ref) = TYPE_PAIR [
-				fire [TO_ERROR(script cannot-use) element ref]
+				fire [TO_ERROR(script cannot-use) w ref]
 			][
-				fire [TO_ERROR(script invalid-path) ref element]
+				fire [TO_ERROR(script invalid-path) ref w]
 			]
 		]
 		either axis = words/x [1][2]
