@@ -64,6 +64,7 @@ emitter: make-profilable context [
 		byte-ptr!   7
 		int-ptr!	8
 		function!	9
+		ptr-ptr!	10
 		struct!		1000
 	]
 	
