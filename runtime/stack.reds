@@ -92,15 +92,15 @@ stack: context [										;-- call stack
 		args-series:  GET_BUFFER(arg-stk)
 		calls-series: GET_BUFFER(call-stk)
 
-		a-end: as cell!		  (as byte-ptr! args-series)  + args-series/size
-		c-end: as call-frame! (as byte-ptr! calls-series) + calls-series/size
-
 		bottom:  	args-series/offset
 		arguments:	bottom
 		top:	 	bottom
 		cbottom: 	as call-frame! calls-series/offset
 		ctop:	 	cbottom
-		
+
+		a-end: as cell!		  (as byte-ptr! bottom)  + args-series/size
+		c-end: as call-frame! (as byte-ptr! cbottom) + calls-series/size
+
 		body-symbol: words/_body/symbol
 		anon-symbol: words/_anon/symbol
 	]
