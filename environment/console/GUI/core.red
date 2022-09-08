@@ -882,7 +882,7 @@ object [
 		]
 	]
 
-	clean: func [][
+	clean: does [
 		full?:		no
 		top:		1
 		scroll-y:	0
