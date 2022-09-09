@@ -733,5 +733,54 @@ stack: context [										;-- call stack
 				(as-integer ctop + 2 - cbottom) >> 4
 			print-line ["ctop: " ctop]
 		]
+		
+		show-frames: func [
+			/local
+				p	  [call-frame!]
+				sym	  [red-symbol!]
+				flags [integer!]
+				lower upper [red-value!]
+		][
+			p: ctop
+			lower: arguments
+			upper: top
+			
+			until [
+				sym: symbol/get p/header >> 8 and FFFFh
+				flags: p/header and FF000000h
+			
+				print ["^/-FRAME- : " as-c-string (as series! sym/cache/value) + 1 ", "]
+				
+				if flags and F0000000h = FLAG_INTERPRET [print "INTERPRET,"]
+				if flags and F0000000h = FLAG_THROW_ATR [print "THROW_ATR,"]
+				if flags and F0000000h = FLAG_CATCH_ATR [print "CATCH_ATR,"]
+				if flags and F0000000h = FLAG_IN_FUNC   [print "IN_FUNC,"]
+				if flags and 0F000000h = FRAME_FUNCTION [print "FUNC,"]
+				if flags and 0F000000h = FRAME_NATIVE   [print "NATIVE,"]
+				if flags and 0F000000h = FRAME_ROUTINE  [print "ROUTINE,"]
+				if flags and 0F000000h = FRAME_TRY      [print "TRY,"]
+				if flags and 0F000000h = FRAME_TRY_ALL  [print "TRY_ALL,"]
+				if flags and 0F000000h = FRAME_CATCH    [print "CATCH,"]
+				if flags and FF000000h = FRAME_EVAL     [print "EVAL,"]
+				if flags and 0F000000h = FRAME_LOOP     [print "LOOP,"]
+				if flags and 0F000000h = FRAME_DYN_CALL [print "DYN_CALL,"]
+				if flags and FF000000h = FRAME_INT_FUNC [print "INT_FUNC,"]
+				if flags and FF000000h = FRAME_INT_NAT  [print "INT_NAT,"]
+				if flags and FF000000h = FRAME_IN_CFUNC [print "IN_CFUNC,"]
+				
+				print-line [" prev_args: " p/prev]
+				
+				dump-memory-raw
+					as byte-ptr! lower
+					4
+					(as-integer upper + 1 - lower) >> 4
+				
+				lower: p/prev
+				upper: arguments
+				p: p - 1
+				p <= cbottom
+			]
+			print lf
+		]
 	]
 ]
