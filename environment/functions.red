@@ -1128,23 +1128,18 @@ clock: function [
 	code [block!]
 	/times n [integer! float!]							;-- float is useful for eg. `1e6` instead of `1'000'000`
 		"Repeat N times (default: once); displayed time is per iteration"
-	/delta "Don't print the result, return time delta per iteration (in milliseconds)"
 	/local result
 ][
 	n:    max 1 any [n 1]
 	text: mold/flat/part code 70						;-- mold the code before it mutates
 	dt:   time-it [set/any 'result loop n code]
 	dt:   1e3 / n * to float! dt						;-- ms per iteration
-	either delta [
-		dt
-	][
-		unit: either dt < 1 [dt: dt * 1e3 "μs^-"]["ms^-"]
-		parse form dt [									;-- save 3 significant digits max
-			0 3 [opt #"." skip] opt [to #"."] dt: (dt: head clear dt)
-		]
-		print [dt unit text]
-		:result
+	unit: either dt < 1 [dt: dt * 1e3 "μs^-"]["ms^-"]
+	parse form dt [										;-- save 3 significant digits max
+		0 3 [opt #"." skip] opt [to #"."] dt: (dt: head clear dt)
 	]
+	print [dt unit text]
+	:result
 ]
 
 ;------------------------------------------
