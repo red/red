@@ -390,6 +390,15 @@ CameraWndProc: func [
 	wParam	[integer!]
 	lParam	[integer!]
 	return: [integer!]
+	/local
+		cam [camera!]
 ][
+	if msg = WM_DESTROY [
+		cam: as camera! GetWindowLong hWnd wc-offset - 4
+		unless null? cam [
+			teardown-graph cam
+			free-graph cam
+		]
+	]
 	DefWindowProc hWnd msg wParam lParam
 ]

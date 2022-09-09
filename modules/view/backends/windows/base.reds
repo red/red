@@ -431,6 +431,7 @@ BaseInternalWndProc: func [
 			FillRect as handle! wParam rect hBrush
 			return 1
 		]
+		WM_DESTROY [free-dc hWnd]
 		default [0]
 	]
 	DefWindowProc hWnd msg wParam lParam
@@ -581,6 +582,7 @@ BaseWndProc: func [
 			process-command-event hWnd msg wParam lParam
 			return 0
 		]
+		WM_DESTROY [free-dc hWnd]
 		default [0]
 	]
 	if (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_IME <> 0 [

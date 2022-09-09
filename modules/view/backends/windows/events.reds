@@ -1538,7 +1538,6 @@ WndProc: func [
 		WM_CLOSE [
 			if type = window [
 				either -1 = GetWindowLong hWnd wc-offset - 4 [
-					flags: get-flags as red-block! values + FACE_OBJ_FLAGS
 					clean-up
 				][
 					SetFocus hWnd									;-- force focus on the closing window,
@@ -1551,6 +1550,7 @@ WndProc: func [
 				]
 			]
 		]
+		WM_DESTROY [free-dc hWnd]
 		WM_DPICHANGED [
 			log-pixels-x: WIN32_LOWORD(wParam)			;-- new DPI
 			log-pixels-y: log-pixels-x
@@ -1722,7 +1722,6 @@ process: func [
 			make-event msg flags EVT_DBL_CLICK
 			EVT_DISPATCH
 		]
-		;WM_DESTROY []
 		default			[EVT_DISPATCH]
 	]
 ]

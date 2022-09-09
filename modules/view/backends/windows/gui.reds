@@ -605,6 +605,32 @@ to-bgr: func [
 	]
 ]
 
+free-dc: func [
+	handle	[int-ptr!]
+	/local
+		dc	[integer!]
+][
+	#either draw-engine = 'GDI+ [
+	if zero? (WS_EX_LAYERED and GetWindowLong handle GWL_EXSTYLE) [
+		dc: GetWindowLong handle wc-offset - 4
+		if dc <> 0 [DeleteDC as handle! dc]			;-- delete cached dc
+	]
+	dc: GetWindowLong handle wc-offset - 36
+	if dc <> 0 [
+		either (GetWindowLong handle wc-offset - 12) and BASE_FACE_IME <> 0 [
+			d2d-release-target as render-target! dc
+		][											;-- caret
+			DestroyCaret
+		]
+	]][
+	;-- Direct2D backend
+	dc: GetWindowLong handle wc-offset - 36
+	if dc <> 0 [d2d-release-target as render-target! dc]
+	if (GetWindowLong handle wc-offset - 12) and BASE_FACE_IME <> 0 [
+		DestroyCaret
+	]]
+]
+
 free-faces: func [
 	face	[red-object!]
 	/local
@@ -659,40 +685,12 @@ free-faces: func [
 			;-- destroy the extra frame window
 			DestroyWindow as handle! GetWindowLong handle wc-offset - 4 as-integer handle
 		]
-		sym = camera [
-			cam: as camera! GetWindowLong handle wc-offset - 4
-			unless null? cam [
-				teardown-graph cam
-				free-graph cam
-			]
-		]
-		IS_D2D_FACE(sym) [
-			#either draw-engine = 'GDI+ [
-			if zero? (WS_EX_LAYERED and GetWindowLong handle GWL_EXSTYLE) [
-				dc: GetWindowLong handle wc-offset - 4
-				if dc <> 0 [DeleteDC as handle! dc]			;-- delete cached dc
-			]
-			dc: GetWindowLong handle wc-offset - 36
-			if dc <> 0 [
-				either (GetWindowLong handle wc-offset - 12) and BASE_FACE_IME <> 0 [
-					d2d-release-target as render-target! dc
-				][											;-- caret
-					DestroyCaret
-				]
-			]][
-			;-- Direct2D backend
-			dc: GetWindowLong handle wc-offset - 36
-			if dc <> 0 [d2d-release-target as render-target! dc]
-			if (GetWindowLong handle wc-offset - 12) and BASE_FACE_IME <> 0 [
-				DestroyCaret
-			]]
-		]
 		true [
 			0
 			;; handle user-provided classes too
 		]
 	]
-	either sym = window [
+	if sym = window [
 		hFont: as handle! GetWindowLong handle wc-offset - 32	;-- default font
 		if hFont <> null [DeleteObject hFont]
 
@@ -700,8 +698,6 @@ free-faces: func [
 		state/header: TYPE_NONE
 		SetWindowLong handle wc-offset - 4 -1
 		PostMessage handle WM_CLOSE 0 0
-	][
-		DestroyWindow handle
 	]
 
 	state: values + FACE_OBJ_STATE
@@ -2567,10 +2563,10 @@ OS-destroy-view: func [
 	empty? [logic!]
 ][
 	free-faces face
-	either empty? [
+	if empty? [
 		exit-loop: exit-loop + 1
 		PostQuitMessage 0
-	][loop 3 [do-events yes]]
+	]
 ]
 
 OS-update-facet: func [
