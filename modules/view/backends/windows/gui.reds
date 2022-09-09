@@ -632,7 +632,8 @@ free-dc: func [
 ]
 
 free-faces: func [
-	face	[red-object!]
+	face		[red-object!]
+	top-level?	[logic!]
 	/local
 		values	[red-value!]
 		type	[red-word!]
@@ -675,7 +676,7 @@ free-faces: func [
 		obj: as red-object! block/rs-head pane
 		tail: as red-object! block/rs-tail pane
 		while [obj < tail][
-			free-faces obj
+			free-faces obj no
 			obj: obj + 1
 		]
 	]
@@ -702,7 +703,7 @@ free-faces: func [
 	state: values + FACE_OBJ_STATE
 	state/header: TYPE_NONE
 
-	PostMessage handle WM_CLOSE 0 0
+	if top-level? [PostMessage handle WM_CLOSE 0 0]
 ]
 
 set-defaults: func [
@@ -2563,7 +2564,7 @@ OS-destroy-view: func [
 	face   [red-object!]
 	empty? [logic!]
 ][
-	free-faces face
+	free-faces face yes
 	if empty? [
 		exit-loop: exit-loop + 1
 		PostQuitMessage 0
