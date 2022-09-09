@@ -697,11 +697,12 @@ free-faces: func [
 		state: values + FACE_OBJ_SELECTED
 		state/header: TYPE_NONE
 		SetWindowLong handle wc-offset - 4 -1
-		PostMessage handle WM_CLOSE 0 0
 	]
 
 	state: values + FACE_OBJ_STATE
 	state/header: TYPE_NONE
+
+	PostMessage handle WM_CLOSE 0 0
 ]
 
 set-defaults: func [
