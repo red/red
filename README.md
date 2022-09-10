@@ -77,7 +77,7 @@ If you are on the GUI console, a GUI Hello World (prompt omitted):
   <img width="97" height="52" src="https://static.red-lang.org/images/helloworld.png">
 </p>
 
-A more [sophisticate example](https://github.com/red/code/blob/master/Showcase/last-commits2.red) that retrieves the last commits from this repo and displays their log messages in a scrollable list:
+A more [sophisticated example](https://github.com/red/code/blob/master/Showcase/last-commits2.red) that retrieves the last commits from this repo and displays their log messages in a scrollable list:
 
         view [
             text-list data collect [
