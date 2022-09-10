@@ -11,6 +11,7 @@ Red/System [
 ]
 
 #define CALL_STACK_MASK					0F000000h
+#define CALL_STACK_FULL_MASK			FF0000FFh
 #define CALL_STACK_TYPE?(p flags)		(CALL_STACK_MASK and p/header = flags)
 #define NOT_CALL_STACK_TYPE?(p flags)	(CALL_STACK_MASK and p/header <> flags)
 
@@ -254,7 +255,7 @@ stack: context [										;-- call stack
 			p: either where-ctop = null [ctop][where-ctop]
 			assert p > cbottom
 			p: p - 1
-			p/header: p/header and FF0000FFh or (w/symbol << 8)
+			p/header: p/header and CALL_STACK_FULL_MASK or (w/symbol << 8)
 		]
 	]
 	
