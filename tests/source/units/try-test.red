@@ -124,6 +124,18 @@ Red [
 		do [do [do [try/all [1]]]]       ;) depth on which try is invoked is important here
 		loop 1 [loop 1 [continue]]
 		--assert true
+		
+		catch [loop 1 [loop 1 [throw 1]]]
+		x4880: x4880: loop 1 [
+			do [
+				foreach x [1 2 3] [
+					1 - 2 * 3
+					continue
+				]
+			]
+			1
+		] 
+		--assert true
 
 ===end-group===
 
