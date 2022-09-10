@@ -252,8 +252,9 @@ stack: context [										;-- call stack
 		w: as red-word! call
 		if TYPE_OF(w) = TYPE_WORD [
 			p: either where-ctop = null [ctop][where-ctop]
+			assert p > cbottom
 			p: p - 1
-			p/header: p/header and FFh or (w/symbol << 8)
+			p/header: p/header and FF0000FFh or (w/symbol << 8)
 		]
 	]
 	
