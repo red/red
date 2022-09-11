@@ -162,6 +162,28 @@ check-arg-type: func [
 
 #switch OS [
 	Windows [
+
+	SYSTEM_INFO!: alias struct! [
+		dwOemId						[integer!]
+		dwPageSize					[integer!]
+		lpMinimumApplicationAddress [byte-ptr!]
+		lpMaximumApplicationAddress [byte-ptr!]
+		dwActiveProcessorMask		[int-ptr!]
+		dwNumberOfProcessors		[integer!]
+		dwProcessorType				[integer!]
+		dwAllocationGranularity		[integer!]
+		wProcessorLevel				[integer!]
+		;wProcessorRevision
+	]
+
+	#import [
+		"kernel32.dll" stdcall [
+			GetNativeSystemInfo: "GetNativeSystemInfo" [
+				lpSystemInfo [SYSTEM_INFO!]
+			]
+		]
+	]
+
 	__get-OS-info: func [
 		/local
 			obj		[red-object!]
@@ -169,10 +191,10 @@ check-arg-type: func [
 			str		[red-string!]
 			val		[red-value!]
 			ver		[OSVERSIONINFO value]
+			info	[SYSTEM_INFO! value]
 			int		[red-integer!]
 			arch	[c-string!]
 			name	[c-string!]
-			_64bit? [integer!]
 			build	[integer!]
 			server? [logic!]
 	][
@@ -225,9 +247,15 @@ check-arg-type: func [
 		]
 		_context/add-with ctx _context/add-global symbol/make "name" val
 
-		_64bit?: 0
-		platform/IsWow64Process platform/GetCurrentProcess :_64bit?
-		either zero? _64bit? [arch: "i686"][arch: "x86-64"]
+		GetNativeSystemInfo :info
+		arch: switch info/dwOemId and FFFFh [		;-- wProcessorArchitecture
+			0  ["x86-32"]
+			5  ["ARM"]
+			6  ["IA-64"]
+			9  ["x86-64"]
+			12 ["ARM64"]
+			default ["Unknown"]
+		]
 		word/make-at symbol/make arch val
 		_context/add-with ctx _context/add-global symbol/make "arch" val
 
