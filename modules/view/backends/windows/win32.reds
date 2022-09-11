@@ -2899,6 +2899,10 @@ XFORM!: alias struct! [
 			size			[integer!]
 			return:			[byte-ptr!]
 		]
+		wcslen: "wcslen" [
+			str				[c-string!]
+			return:			[integer!]
+		]
 	]
 ]
 

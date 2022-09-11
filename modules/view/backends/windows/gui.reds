@@ -290,9 +290,7 @@ get-text-size: func [
 	face 	[red-object!]
 	str		[red-string!]
 	pair	[red-pair!]
-	return: [tagSIZE]
 	/local
-		saved 	[handle!]
 		values 	[red-value!]
 		font	[red-object!]
 		state	[red-block!]
@@ -301,63 +299,52 @@ get-text-size: func [
 		hFont	[handle!]
 		hwnd 	[handle!]
 		dc 		[handle!]
-		size 	[tagSIZE]
+		c-str	[c-string!]
+		size 	[tagSIZE value]
 		rc 		[RECT_STRUCT value]
 		bbox 	[RECT_STRUCT_FLOAT32 value]
 ][
-	size: declare tagSIZE
-
 	;-- possibly null if hwnd wasn't stored in `state` yet (upon face creation)
 	;  in this case hwnd=0 is of the screen, while `para` can still be applied from the face/ctx
 	hwnd: face-handle? face
 	if null? hwnd [
 		hwnd: GetDesktopWindow
 	]
+
 	values: object/get-values face
 	dc: GetWindowDC hwnd
-	font: as red-object! values + FACE_OBJ_FONT
-	hFont: null
-	if TYPE_OF(font) = TYPE_OBJECT [
-		state: as red-block! values + FONT_OBJ_STATE
-		if TYPE_OF(state) <> TYPE_BLOCK [hFont: get-font-handle font 0]
-		if null? hFont [hFont: make-font face font]
-	]
-	if null? hFont [hFont: default-font]
-	saved: SelectObject hwnd hFont
-	GetClientRect hWnd rc
-	render-text values hwnd dc rc str :bbox
-
-	SelectObject hwnd saved
-	ReleaseDC hwnd dc
-
-#either draw-engine = 'GDI+ [
-	size/width: as integer! ceil (as float! bbox/width)
-][
 
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
-	either IS_D2D_FACE(sym) [
-		size/width: as integer! ceil (as float! bbox/width) * 0.96	;-- scale to match Direct2D's width
-	][
-		size/width: as integer! ceil (as float! bbox/width)
-	]
-]
-	size/height: as integer! ceil as float! bbox/height
 
-	if pair <> null [
-	#either draw-engine = 'GDI+ [
-		pair/x: as integer! ceil as float! bbox/width * (as float32! 100.0) / (as float32! dpi-factor)
-	][
-		either IS_D2D_FACE(sym) [
-			pair/x: as integer! ceil as float! bbox/width * (as float32! 96.0) / (as float32! dpi-factor)
-		][
-			pair/x: as integer! ceil as float! bbox/width * (as float32! 100.0) / (as float32! dpi-factor)
+	either IS_D2D_FACE(sym) [
+		GetClientRect hWnd :rc
+		render-text values hwnd dc :rc str :bbox
+		if pair <> null [
+			pair/x: as integer! bbox/width * (as float32! 98.0) / (as float32! dpi-factor)
+			pair/y: as integer! bbox/height * (as float32! 100.0) / (as float32! dpi-factor)
+		]
+	][	;-- native controls use GDI to draw the text, so we use GDI function to measure the text size
+		font: as red-object! values + FACE_OBJ_FONT
+		hFont: null
+		if TYPE_OF(font) = TYPE_OBJECT [
+			state: as red-block! values + FONT_OBJ_STATE
+			if TYPE_OF(state) = TYPE_BLOCK [hFont: get-font-handle font 0]
+			if null? hFont [hFont: make-font face font]
+		]
+		if null? hFont [hFont: default-font]
+
+		SelectObject dc hFont
+		c-str: unicode/to-utf16 str
+		GetTextExtentPoint32 dc c-str wcslen c-str :size
+
+		if pair <> null [
+			pair/x: size/width + 1 * 100 / dpi-factor	;-- +1 to compensate the precision loss
+			pair/y: size/height * 100 / dpi-factor
 		]
 	]
-		pair/y: as integer! ceil as float! bbox/height * (as float32! 100.0) / (as float32! dpi-factor)
-	]
 
-	size
+	ReleaseDC hwnd dc
 ]
 
 update-scrollbars: func [
