@@ -56,7 +56,7 @@ date: context [
 			sym = words/second 	 [idx: 9]
 			sym = words/weekday	 [idx: 10]
 			sym = words/yearday	 [idx: 11]
-			sym = words/julian 	 [idx: 11]
+			sym = words/julian 	 [idx: 11]				;-- alternative name for "yearday"
 			sym = words/timezone [idx: 12]
 			sym = words/week 	 [idx: 13]
 			sym = words/isoweek	 [idx: 14]
