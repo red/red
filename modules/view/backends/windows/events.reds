@@ -1536,10 +1536,10 @@ WndProc: func [
 			if all [type = window set-window-info hWnd lParam][return 0]
 		]
 		WM_CLOSE [
-			if type = window [
-				either -1 = GetWindowLong hWnd wc-offset - 4 [
-					clean-up
-				][
+			either -1 = GetWindowLong hWnd wc-offset - 4 [
+				clean-up
+			][
+				if type = window [
 					SetFocus hWnd									;-- force focus on the closing window,
 					current-msg/hWnd: hWnd							;-- prevents late unfocus event generation.
 					res: make-event current-msg 0 EVT_CLOSE

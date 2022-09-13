@@ -687,6 +687,7 @@ free-faces: func [
 		SetWindowLong handle wc-offset - 4 -1
 	]
 
+	SetWindowLong handle wc-offset 0
 	state: values + FACE_OBJ_STATE
 	state/header: TYPE_NONE
 
@@ -1653,6 +1654,7 @@ OS-make-view: func [
 		]
 		panel? [
 			adjust-parent handle as handle! parent offset/x offset/y
+			SetWindowLong handle wc-offset - 4 0
 			SetWindowLong handle wc-offset - 36 0
 		]
 		any [

@@ -507,7 +507,10 @@ BaseWndProc: func [
 		WM_PAINT
 		WM_DISPLAYCHANGE [
 			if painting? [return 0]
-			if (WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) = 0 [
+			if all [
+				(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) = 0	;-- not a layered window
+				0 <> GetWindowLong hWnd wc-offset		;-- linked with a face object
+			][
 				#either draw-engine = 'GDI+ [][BeginPaint hWnd :ps]
 				painting?: yes
 				draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
