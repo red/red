@@ -3209,7 +3209,7 @@ natives: context [
 			block?	[logic!]
 	][
 		type: TYPE_OF(value)
-		block?: any [type = TYPE_BLOCK type = TYPE_PAREN type = TYPE_HASH type = TYPE_MAP type = TYPE_PATH]
+		block?: any [type = TYPE_MAP ANY_BLOCK?(type)]
 		if block? [blk: as red-block! value]
 		
 		i: 1

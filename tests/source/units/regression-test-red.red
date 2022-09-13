@@ -3071,6 +3071,16 @@ comment {
 		--assert error? set/any 'err try [0 eq4311 1 sub4311 1]
 		--assert err/arg1 = 'sub4311
 
+	--test-- "#4421"
+		out: make block! 10
+		p4421: [a/b/c 'a/b/c :a/b/c a/b/c:]
+		foreach path p4421 [foreach [x y] path [append out reduce [x y]]]
+		--assert out = [
+			a b	c #[none]
+			a b	c #[none]
+			a b	c #[none]
+		]
+
 	--test-- "#4451"
 		path: quote :foo/bar
 		--assert ":foo/bar" = mold path
