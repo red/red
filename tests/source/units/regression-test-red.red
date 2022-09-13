@@ -3074,8 +3074,9 @@ comment {
 	--test-- "#4421"
 		out: make block! 10
 		p4421: [a/b/c 'a/b/c :a/b/c a/b/c:]
-		foreach path p4421 [foreach [x y] path [append out reduce [x y]]]
+		foreach path p4421 [foreach [x y] path [append out reduce [x y]]]		
 		--assert out = [
+			a b	c #[none]
 			a b	c #[none]
 			a b	c #[none]
 			a b	c #[none]
