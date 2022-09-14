@@ -276,6 +276,7 @@ system/view/VID: context [
 		do-with: none
 		
 		obj-spec!:	make typeset! [block! object!]
+		sel-spec!:	make typeset! [integer! float! percent!]
 		rate!:		make typeset! [integer! time!]
 		color!:		make typeset! [tuple! issue!]
 		cursor!:	make typeset! [word! lit-word! image!]
@@ -310,7 +311,7 @@ system/view/VID: context [
 				| 'scrollable (set-flag opts 'flags 'scrollable)
 				| 'hidden	  (opts/visible?: no)
 				| 'disabled	  (opts/enabled?: no)
-				| 'select	  (opts/selected: fetch-argument integer! spec)
+				| 'select	  (opts/selected: fetch-argument sel-spec! spec)
 				| 'rate		  (opts/rate: fetch-argument rate! spec)
 				   opt [rate! 'now (opts/now?: yes spec: next spec)]
 				| 'default 	  (opts/data: add-option opts append copy [default: ] fetch-value spec: next spec)

@@ -476,6 +476,29 @@ set-area-options: func [
 	]
 ]
 
+get-scrollbar-ratio: func [
+	int		 [red-integer!]
+	return:  [float!]
+	/local
+		fl	  [red-float!]
+		ratio [float!]
+][
+	switch TYPE_OF(int) [
+		TYPE_INTEGER [
+			ratio: as-float int/value
+		]
+		TYPE_FLOAT
+		TYPE_PERCENT [
+			fl: as red-float! int
+			ratio: fl/value
+		]
+		default [return -1.0]
+	]
+	if ratio < 0.0 [ratio: 0.0]
+	if ratio > 1.0 [ratio: 1.0]
+	ratio
+]
+
 update-scroller: func [
 	scroller [red-object!]
 	flag	 [integer!]
@@ -1390,6 +1413,7 @@ OS-make-view: func [
 		off-y	  [integer!]
 		rc		  [RECT_STRUCT value]
 		si		  [tagSCROLLINFO]
+		ratio	  [float!]
 ][
 	stack/mark-native words/_body
 
@@ -1674,20 +1698,24 @@ OS-make-view: func [
 			]
 		]
 		sym = scroller [
+			ratio: get-scrollbar-ratio selected
+			if ratio < 0.0 [
+				ratio: 0.1						;-- default to 10%
+				fl: as red-float! selected
+				fl/header: TYPE_PERCENT
+				fl/value: ratio
+			]
 			si: declare tagSCROLLINFO
 			si/cbSize: size? tagSCROLLINFO
 			si/fMask: SIF_PAGE or SIF_POS or SIF_RANGE
 			si/nMin: 0
 			si/nMax: 100
-			si/nPage: 10
+			si/nPage: as-integer ratio * 100.0
 			si/nPos: 0
 			SetScrollInfo handle SB_CTL si true
 			fl: as red-float! data
 			fl/header: TYPE_FLOAT
 			fl/value:  0.0
-			fl: as red-float! selected
-			fl/header: TYPE_PERCENT
-			fl/value: 0.10
 		]
 		any [
 			sym = toggle
@@ -2101,7 +2129,6 @@ change-selection: func [
 	values [red-value!]
 	/local
 		type [red-word!]
-		f	 [red-float!]
 		flt	 [float!]
 		si	 [tagSCROLLINFO value]
 		sym	 [integer!]
@@ -2110,10 +2137,8 @@ change-selection: func [
 	sym: symbol/resolve type/symbol
 	case [
 		sym = scroller [
-			f: as red-float! int
-			flt: f/value
-			if flt < 0.0 [flt: 0.0]
-			if flt > 1.0 [flt: 1.0]
+			flt: get-scrollbar-ratio int
+			if flt < 0.0 [exit]
 			si/cbSize: size? tagSCROLLINFO
 			si/fMask: SIF_PAGE or SIF_RANGE
 			GetScrollInfo hWnd SB_CTL :si
