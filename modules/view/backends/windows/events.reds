@@ -347,6 +347,8 @@ get-event-picked: func [
 		]
 		EVT_WHEEL [
 			idx: WIN32_HIWORD(msg/wParam)
+			if idx < -24000 [idx: idx + 30720]			;-- workaround for #5110 bug in drivers
+			if idx >  24000 [idx: idx - 30720]			;-- 256*120 = 30720
 			float/push (as float! idx) / 120.0	;-- WHEEL_DELTA: 120
 		]
 		EVT_LEFT_DOWN
