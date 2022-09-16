@@ -3140,6 +3140,10 @@ comment {
 			system/words
 			context? to word! to refinement! in context [foo: 'bar] 'foo
 	
+	--test-- "#4541"
+		nothing4541: func [x [] return: []][--assert true]
+		nothing4541 1
+
 	--test-- "#4563" do [							;@@ #4526
 		--assert error? try [make op! :>>]
 		--assert error? try [make op! make op! func [x y][]]
