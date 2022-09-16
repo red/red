@@ -220,7 +220,7 @@ emitter: make-profilable context [
 		foreach [name t] spec [							;-- skip 'struct!
 			unless word? name [break]
 			either 'value = last type: t [
-				foreach-member type body
+				foreach-member type/2 body
 			][
 				do body
 			]
