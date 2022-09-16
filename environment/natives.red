@@ -617,7 +617,7 @@ exp: make native! [[
 
 square-root: make native! [[
 		"Returns the square root of a number"
-		value	[number!]
+		value	[float! integer!]
 		return: [float!]
 	]
 	#get-definition NAT_SQUARE_ROOT

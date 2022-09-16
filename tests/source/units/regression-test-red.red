@@ -2832,8 +2832,8 @@ b}
 			--assert error? try [log-e 10%]
 			--assert error? try [log-10 10%]
 			--assert error? try [log-2 10%]
-			--assert 10% = sqrt 1%
-			--assert 10% = square-root 1%
+			--assert error? try [sqrt 1%]
+			--assert error? try [square-root 1%]
 		]
 		
 	--test-- "#2650"
