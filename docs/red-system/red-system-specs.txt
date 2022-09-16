@@ -4003,7 +4003,11 @@ A valid Red/System source file will need this header:
  
 There is no minimum or maximum number of entries that a valid header can contain, so an empty block will also be valid (but bad practice).
  
-<u>Implementation note</u>: Header values types are the ones provided by REBOL during the bootstrapping phase only. Once the Red layer will be implemented, the allowed datatypes will be Red ones.
+\note Implementation note
+Header values types are the ones provided by REBOL during the bootstrapping phase only. Once the Red layer will be 
+implemented, the allowed datatypes will be Red ones.
+
+/note
 
 The attribute that you can specify are not limited, you can add whatever you want/need. Anyway, some attribute names are used by convention:
 
