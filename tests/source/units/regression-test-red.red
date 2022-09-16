@@ -2808,6 +2808,34 @@ b}
 		--assert not positive? 1.#NaN
 		--assert not     zero? 1.#NaN
 
+	--test-- "#2586"
+		do [	;@@ FIXME: compiler should catch spec violations too
+			--assert error? try [atan 10%]
+			--assert error? try [arctangent 10%]
+			--assert error? try [atan2 10% 10%]
+			--assert error? try [arctangent2 10% 10%]
+			--assert error? try [atan2 10% 0.1]
+			--assert error? try [arctangent2 10% 0.1]
+			--assert error? try [atan2 0.1 10%]
+			--assert error? try [arctangent2 0.1 10%]
+			--assert error? try [asin 10%]
+			--assert error? try [arcsine 10%]
+			--assert error? try [acos 10%]
+			--assert error? try [arccosine 10%]
+			--assert error? try [tan 10%]
+			--assert error? try [tangent 10%]
+			--assert error? try [sin 10%]
+			--assert error? try [sine 10%]
+			--assert error? try [cos 10%]
+			--assert error? try [cosine 10%]
+			--assert error? try [exp 10%]
+			--assert error? try [log-e 10%]
+			--assert error? try [log-10 10%]
+			--assert error? try [log-2 10%]
+			--assert 10% = sqrt 1%
+			--assert 10% = square-root 1%
+		]
+		
 	--test-- "#2650"
 		--assert     0.0 <> null
 		--assert not 0.0 =  null
@@ -2855,6 +2883,17 @@ b}
 		bar3156: ctx3156/foo3156
 		--assert 'bar3156 == bar3156
 
+	--test-- "#3362"
+		do [											;-- FIXME: compiler doesn't like this
+			spec3362-1: [return 100]
+			spec3362-2: [exit]
+			--assert 100 =  context spec3362-1
+			--assert unset? context spec3362-2
+			--assert 100 =  context [return 100]
+			--assert unset? context [exit]
+			unset [spec3362-1 spec3362-2]
+		]
+	
 	--test-- "#3385"
 		refs3385: [utc precise time year month day yearday weekday zone date]
 		types3385: reduce [
@@ -2878,17 +2917,6 @@ b}
 			]
 		]
 
-	--test-- "#3362"
-		do [											;-- FIXME: compiler doesn't like this
-			spec3362-1: [return 100]
-			spec3362-2: [exit]
-			--assert 100 =  context spec3362-1
-			--assert unset? context spec3362-2
-			--assert 100 =  context [return 100]
-			--assert unset? context [exit]
-			unset [spec3362-1 spec3362-2]
-		]
-	
 	--test-- "#3407"
 		--assert "0:00:00.1"      = form 0:00:01 / 10
 		--assert "0:00:00.01"     = form 0:00:01 / 100
