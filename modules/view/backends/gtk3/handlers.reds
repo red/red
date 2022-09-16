@@ -257,7 +257,7 @@ render-text: func [
 base-draw: func [
 	[cdecl]
 	evbox		[handle!]
-	cr			[handle!]
+	draw-cr		[handle!]
 	widget		[handle!]
 	return:		[integer!]
 	/local
@@ -274,6 +274,8 @@ base-draw: func [
 		pos		[red-pair! value]
 		drawDC	[draw-ctx!]
 		css		[GString!]
+		buf		[handle!]
+		cr		[handle!]
 ][
 	face: get-face-obj widget
 	values: object/get-values face
@@ -290,7 +292,9 @@ base-draw: func [
 		not bool/value
 	][return EVT_DISPATCH]
 
-	if all [
+	cr: draw-cr
+	buf: null
+	either all [
 		TYPE_OF(color) = TYPE_TUPLE
 		not all [
 			TUPLE_SIZE?(color) = 4
@@ -302,6 +306,14 @@ base-draw: func [
 				cr
 				0.0 0.0
 				as float! size/x as float! size/y
+	][
+		if sym = base [
+			buf: GET-BASE-BUFFER(widget)
+			assert buf <> null
+			cr: cairo_create buf
+			cairo_set_operator cr CAIRO_OPERATOR_CLEAR
+			cairo_paint cr
+		]
 	]
 
 	if TYPE_OF(img) = TYPE_IMAGE [
@@ -329,9 +341,11 @@ base-draw: func [
 		draw-end drawDC cr no no no
 	]
 
-	;if null? gtk_container_get_children widget [
-	;	return EVT_NO_DISPATCH
-	;]
+	if buf <> null [
+		cairo_set_source_surface draw-cr buf 0.0 0.0
+		cairo_paint draw-cr
+		cairo_destroy cr
+	]
 
 	EVT_DISPATCH
 ]
@@ -401,7 +415,7 @@ transparent-base?: func [
 		TYPE_OF(color) = TYPE_TUPLE
 		any [
 			TUPLE_SIZE?(color) = 3 
-			color/array1 and FF000000h = 0
+			color/array1 and FF000000h <> FF000000h
 		]
 	][false][true]
 ]

@@ -3267,14 +3267,14 @@ GPtrArray!: alias struct! [
 		; ]
 		cairo_image_surface_create: "cairo_image_surface_create" [
 			format		[cairo_format_t!]
-			width			[integer!]
+			width		[integer!]
 			height		[integer!]
 			return:		[handle!]
 		]
 		cairo_image_surface_create_for_data: "cairo_image_surface_create_for_data" [
-			data			[byte-ptr!]
+			data		[byte-ptr!]
 			format		[cairo_format_t!]
-			width			[integer!]
+			width		[integer!]
 			height		[integer!]
 			stride		[integer!]
 			return:		[handle!]
@@ -3626,6 +3626,7 @@ caret-id:			g_quark_from_string "caret-id"
 im-context-id:		g_quark_from_string "im-context-id"
 camera-cfg:			g_quark_from_string "camera-cfg"
 camera-pixbuf:		g_quark_from_string "camera-pixbuf"
+base-buffer:		g_quark_from_string "base-buffer"
 ;im-string-id:		g_quark_from_string "im-string-id"
 ;im-start-id:		g_quark_from_string "im-start-id"
 
@@ -3669,6 +3670,9 @@ camera-pixbuf:		g_quark_from_string "camera-pixbuf"
 #define GET-CARET-OWNER(s)		[g_object_get_qdata s caret-id]
 #define SET-IM-CONTEXT(s d)		[g_object_set_qdata s im-context-id d]
 #define GET-IM-CONTEXT(s)		[g_object_get_qdata s im-context-id]
+#define SET-BASE-BUFFER(s d)	[g_object_set_qdata s base-buffer d]
+#define GET-BASE-BUFFER(s)		[g_object_get_qdata s base-buffer]
+
 ;#define SET-IM-STRING(s d)		[g_object_set_qdata s im-string-id as int-ptr! d]
 ;#define GET-IM-STRING(s)		[as c-string! g_object_get_qdata s im-string-id]
 ;#define SET-IM-START(s d)		[g_object_set_qdata s im-start-id as int-ptr! d]
