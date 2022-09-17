@@ -3532,6 +3532,13 @@ system-dialect: make-profilable context [
 				][
 					new: type
 				]
+				if all [
+					paren? expr
+					'array! = first head get-variable-spec name
+				][
+					backtrack set-word
+					throw-error "a literal array pointer cannot be reassigned"
+				]
 				if all [struct-by-value? spec not any [val? 'value = last new]][
 					backtrack set-word
 					throw-error ["a struct value cannot be assigned to a pointer: " value]
