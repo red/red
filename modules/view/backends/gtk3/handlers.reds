@@ -1211,16 +1211,32 @@ mouse-button-release-event: func [
 		y		[integer!]
 		sel		[red-pair!]
 		buffer	[handle!]
+		buf		[handle!]
 		start	[GtkTextIter! value]
 		end		[GtkTextIter! value]
 		flags	[integer!]
-		ev		[integer!]
+		pixels	[int-ptr!]
+		ev w	[integer!]
 ][
 	either null? GET-RESEND-EVENT(evbox) [
 		if evbox <> gtk_get_event_widget as handle! event [return EVT_NO_DISPATCH]
 	][
 		SET-RESEND-EVENT(evbox null)
 	]
+
+	x: as-integer event/x
+	y: as-integer event/y
+
+	buf: GET-BASE-BUFFER(widget)
+	if buf <> null [
+		w: cairo_image_surface_get_width buf
+		pixels: as int-ptr! cairo_image_surface_get_data buf
+		pixels: pixels + (y - 1 * w) + x
+		if pixels/1 and FF000000h = 0 [		;-- transparent pixel
+			return EVT_DISPATCH
+		]
+	]
+
 	sym: get-widget-symbol widget
 
 	if event/button = GDK_BUTTON_PRIMARY [
@@ -1279,27 +1295,40 @@ mouse-button-press-event: func [
 	widget		[handle!]
 	return:		[integer!]
 	/local
-		sym		[integer!]
 		flags	[integer!]
 		hMenu	[handle!]
-		ev		[integer!]
+		buf		[handle!]
+		pixels	[int-ptr!]
+		ev x y w [integer!]
 ][
 	either null? GET-RESEND-EVENT(evbox) [
 		if evbox <> gtk_get_event_widget as handle! event [return EVT_NO_DISPATCH]
 	][
 		SET-RESEND-EVENT(evbox null)
 	]
-	sym: get-widget-symbol widget
 
 	if event/button = GDK_BUTTON_PRIMARY [
 		evt-motion/pressed: yes
 	]
 
+	x: as-integer event/x
+	y: as-integer event/y
+
+	buf: GET-BASE-BUFFER(widget)
+	if buf <> null [
+		w: cairo_image_surface_get_width buf
+		pixels: as int-ptr! cairo_image_surface_get_data buf
+		pixels: pixels + (y - 1 * w) + x
+		if pixels/1 and FF000000h = 0 [		;-- transparent pixel
+			return EVT_DISPATCH
+		]
+	]
+
 	if event/button = GDK_BUTTON_SECONDARY [
 		hMenu: GET-MENU-KEY(widget)
 		unless null? hMenu [
-			menu-x: as-integer event/x
-			menu-y: as-integer event/y
+			menu-x: x
+			menu-y: y
 			gtk_menu_popup_at_pointer hMenu as handle! event
 			return EVT_NO_DISPATCH
 		]
@@ -1307,8 +1336,8 @@ mouse-button-press-event: func [
 
 	evt-motion/x_root: event/x_root
 	evt-motion/y_root: event/y_root
-	evt-motion/x_new: as-integer event/x
-	evt-motion/y_new: as-integer event/y
+	evt-motion/x_new: x
+	evt-motion/y_new: y
 	flags: check-flags event/type event/state
 	ev: case [
 		event/button = GDK_BUTTON_SECONDARY [EVT_RIGHT_DOWN]
