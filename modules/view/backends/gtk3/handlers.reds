@@ -442,8 +442,8 @@ base-event-after: func [
 		target	[handle!]
 		offset2	[red-pair!]
 		size2	[red-pair!]
-		dx		[float!]
-		dy		[float!]
+		x dx w	[float!]
+		y dy h	[float!]
 		scroll	[GdkEventScroll!]
 		motion	[GdkEventMotion!]
 		button	[GdkEventButton!]
@@ -500,8 +500,13 @@ base-event-after: func [
 							scroll: as GdkEventScroll! event
 							dx: as float! offset/x - offset2/x
 							dy: as float! offset/y - offset2/y
-							scroll/x: scroll/x + dx
-							scroll/y: scroll/y + dy
+							w: as float! size2/x
+							h: as float! size2/y
+							x: scroll/x + dx
+							y: scroll/y + dy
+							if any [x < 0.0 y < 0.0 x > w y > h][continue]
+							scroll/x: x
+							scroll/y: y
 							scroll/x_root: scroll/x_root + dx
 							scroll/y_root: scroll/y_root + dy
 							gtk_widget_event target as handle! event
@@ -511,8 +516,13 @@ base-event-after: func [
 							motion: as GdkEventMotion! event
 							dx: as float! offset/x - offset2/x
 							dy: as float! offset/y - offset2/y
-							motion/x: motion/x + dx
-							motion/y: motion/y + dy
+							w: as float! size2/x
+							h: as float! size2/y
+							x: motion/x + dx
+							y: motion/y + dy
+							if any [x < 0.0 y < 0.0 x > w y > h][continue]
+							motion/x: x
+							motion/y: y
 							motion/x_root: motion/x_root + dx
 							motion/y_root: motion/y_root + dy
 							gtk_widget_event target as handle! event
@@ -527,8 +537,13 @@ base-event-after: func [
 							button: as GdkEventButton! event
 							dx: as float! offset/x - offset2/x
 							dy: as float! offset/y - offset2/y
-							button/x: button/x + dx
-							button/y: button/y + dy
+							w: as float! size2/x
+							h: as float! size2/y
+							x: button/x + dx
+							y: button/y + dy
+							if any [x < 0.0 y < 0.0 x > w y > h][continue]
+							button/x: x
+							button/y: y
 							button/x_root: button/x_root + dx
 							button/y_root: button/y_root + dy
 							gtk_widget_event target as handle! event
@@ -1131,6 +1146,13 @@ red-timer-action: func [
 	true
 ]
 
+has-buffer: func [
+	widget		[handle!]
+	return:		[logic!]
+][
+	null <> GET-BASE-BUFFER(widget)
+]
+
 widget-enter-notify-event: func [
 	[cdecl]
 	evbox		[handle!]
@@ -1140,8 +1162,13 @@ widget-enter-notify-event: func [
 	/local
 		flags	[integer!]
 ][
-	if evbox <> gtk_get_event_widget as handle! event [return EVT_NO_DISPATCH]
-	if evt-motion/pressed [return EVT_NO_DISPATCH]
+	if any [
+		evbox <> gtk_get_event_widget as handle! event
+		evt-motion/pressed
+	][
+		return EVT_NO_DISPATCH
+	]
+	if has-buffer widget [return EVT_DISPATCH]
 	flags: check-flags event/type event/state
 	make-event widget flags EVT_OVER
 ]
@@ -1155,8 +1182,19 @@ widget-leave-notify-event: func [
 	/local
 		flags	[integer!]
 ][
-	if evbox <> gtk_get_event_widget as handle! event [return EVT_NO_DISPATCH]
-	if evt-motion/pressed [return EVT_NO_DISPATCH]
+	if any [
+		evbox <> gtk_get_event_widget as handle! event
+		evt-motion/pressed
+	][
+		return EVT_NO_DISPATCH
+	]
+	if has-buffer widget [
+		either null = GET-BASE-ENTER(widget) [
+			return EVT_DISPATCH
+		][
+			SET-BASE-ENTER(widget null)
+		]
+	]
 	flags: check-flags event/type event/state
 	make-event widget flags or EVT_FLAG_AWAY EVT_OVER
 ]
@@ -1288,22 +1326,51 @@ mouse-motion-notify-event: func [
 	return:		[integer!]
 	/local
 		wflags	[integer!]
-		x		[float!]
-		y		[float!]
+		x		[integer!]
+		y		[integer!]
 		flags	[integer!]
+		buf		[handle!]
+		w		[integer!]
+		pixels	[int-ptr!]
+		enter	[handle!]
 ][
 	either null? GET-RESEND-EVENT(evbox) [
 		if evbox <> gtk_get_event_widget as handle! event [return EVT_NO_DISPATCH]
 	][
 		SET-RESEND-EVENT(evbox null)
 	]
-	wflags: get-flags (as red-block! get-face-values widget) + FACE_OBJ_FLAGS
-	if wflags and FACET_FLAGS_ALL_OVER = 0 [return EVT_DISPATCH]
-	evt-motion/x_new: as-integer event/x
-	evt-motion/y_new: as-integer event/y
+
+	x: as-integer event/x
+	y: as-integer event/y
+	evt-motion/x_new:  x
+	evt-motion/y_new:  y
 	evt-motion/x_root: event/x_root
 	evt-motion/y_root: event/y_root
 	flags: check-flags event/type event/state
+
+	buf: GET-BASE-BUFFER(widget)
+	if buf <> null [
+		w: cairo_image_surface_get_width buf
+		pixels: as int-ptr! cairo_image_surface_get_data buf
+		pixels: pixels + (y - 1 * w) + x
+		enter: GET-BASE-ENTER(widget)
+		either pixels/1 and FF000000h = 0 [		;-- transparent pixel
+			if enter <> null  [
+				SET-BASE-ENTER(widget null)
+				make-event widget flags or EVT_FLAG_AWAY EVT_OVER
+			]
+			return EVT_DISPATCH
+		][
+			if enter = null [
+				SET-BASE-ENTER(widget widget)
+				make-event widget flags EVT_OVER
+				return EVT_DISPATCH
+			]
+		]
+	]
+
+	wflags: get-flags (as red-block! get-face-values widget) + FACE_OBJ_FLAGS
+	if wflags and FACET_FLAGS_ALL_OVER = 0 [return EVT_DISPATCH]
 	make-event widget flags EVT_OVER
 ]
 

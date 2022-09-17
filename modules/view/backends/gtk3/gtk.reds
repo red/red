@@ -3280,29 +3280,33 @@ GPtrArray!: alias struct! [
 			return:		[handle!]
 		]
 		cairo_surface_finish: "cairo_surface_finish" [
-			surf			[handle!]
+			surf		[handle!]
 		]
 		cairo_surface_destroy: "cairo_surface_destroy" [
-			surf			[handle!]
+			surf		[handle!]
 		]
 		cairo_image_surface_get_data: "cairo_image_surface_get_data" [
-			surf			[handle!]
+			surf		[handle!]
 			return:		[byte-ptr!]
 		]
+		cairo_image_surface_get_width: "cairo_image_surface_get_width" [
+			surf		[handle!]
+			return:		[integer!]
+		]
 		cairo_surface_flush: "cairo_surface_flush" [
-			surf			[handle!]
+			surf		[handle!]
 		]
 		cairo_surface_mark_dirty: "cairo_surface_mark_dirty" [
-			surf			[handle!]
+			surf		[handle!]
 		]
 		cairo_format_stride_for_width: "cairo_format_stride_for_width" [
 			format		[cairo_format_t!]
-			width			[integer!]
+			width		[integer!]
 			return: 	[integer!]
 		]
 		gdk_cairo_set_source_pixbuf: "gdk_cairo_set_source_pixbuf" [
 			cr 			[handle!]
-			pixbuf 	[handle!]
+			pixbuf 		[handle!]
 			x 			[float!]
 			y 			[float!]
 		]
@@ -3316,8 +3320,8 @@ GPtrArray!: alias struct! [
 		]
 		gdk_pixbuf_new_subpixbuf: "gdk_pixbuf_new_subpixbuf" [
 			pixbuf 		[handle!]
-			x 				[integer!]
-			y 				[integer!]
+			x 			[integer!]
+			y 			[integer!]
 			width 		[integer!]
 			height 		[integer!]
 			return:		[handle!]
@@ -3353,10 +3357,10 @@ GPtrArray!: alias struct! [
 			return: 	[handle!]
 		]
 		gdk_pixbuf_get_from_surface: "gdk_pixbuf_get_from_surface" [
-			surf			[handle!]
-			src_x			[integer!]
-			src_y			[integer!]
-			width			[integer!]
+			surf		[handle!]
+			src_x		[integer!]
+			src_y		[integer!]
+			width		[integer!]
 			height		[integer!]
 			return:		[handle!]
 		]
@@ -3627,6 +3631,7 @@ im-context-id:		g_quark_from_string "im-context-id"
 camera-cfg:			g_quark_from_string "camera-cfg"
 camera-pixbuf:		g_quark_from_string "camera-pixbuf"
 base-buffer:		g_quark_from_string "base-buffer"
+base-enter:			g_quark_from_string "base-enter"
 ;im-string-id:		g_quark_from_string "im-string-id"
 ;im-start-id:		g_quark_from_string "im-start-id"
 
@@ -3672,6 +3677,8 @@ base-buffer:		g_quark_from_string "base-buffer"
 #define GET-IM-CONTEXT(s)		[g_object_get_qdata s im-context-id]
 #define SET-BASE-BUFFER(s d)	[g_object_set_qdata s base-buffer d]
 #define GET-BASE-BUFFER(s)		[g_object_get_qdata s base-buffer]
+#define SET-BASE-ENTER(s d)		[g_object_set_qdata s base-enter d]
+#define GET-BASE-ENTER(s)		[g_object_get_qdata s base-enter]
 
 ;#define SET-IM-STRING(s d)		[g_object_set_qdata s im-string-id as int-ptr! d]
 ;#define GET-IM-STRING(s)		[as c-string! g_object_get_qdata s im-string-id]
