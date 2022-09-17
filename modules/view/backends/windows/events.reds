@@ -1598,7 +1598,6 @@ process: func [
 		pt	   [tagPOINT]
 		hWnd   [handle!]
 		new	   [handle!]
-		saved  [handle!]
 		res	   [integer!]
 		x	   [integer!]
 		y	   [integer!]
@@ -1624,9 +1623,8 @@ process: func [
 			][
 				return EVT_DISPATCH						;-- filter out buggy mouse positions (thanks MS!)
 			]
-			saved: hWnd
-			new: WindowFromPoint msg/x msg/y
 
+			new: hWnd
 			if all [
 				IsWindowEnabled new
 				any [
@@ -1639,13 +1637,11 @@ process: func [
 					track/dwFlags: 2					;-- TME_LEAVE
 					track/hwndTrack: new
 					TrackMouseEvent :track
-					msg/hWnd: new
 				]
 				make-event msg flags EVT_OVER
 				key-flags: flags
 			]
 			hover-saved: new
-			msg/hWnd: saved
 			EVT_DISPATCH
 		]
 		WM_MOUSELEAVE [
