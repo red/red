@@ -1327,9 +1327,10 @@ The specification block is a Red/System dialect (DSL), so the words inside such 
  <datatype>	  : integer! | byte! | logic! | 
                 pointer! [integer! | byte! | float! | float32! | pointer!] |
                 float! | float32! | c-string! | struct! [<members>] |
-                struct! [<members>] value
+                struct! [<members>] value | <alias> | <alias> value
  <local>	  : local variable
  <body>		  : function's body code
+ <alias>	  : struct alias
  
 Doc-strings are just optional documentation that can be processed by any external tool, they have no runtime effect.
 
