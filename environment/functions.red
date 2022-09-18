@@ -462,10 +462,11 @@ save: function [
 		format [word! none!] "E.g. bmp, gif, jpeg, png, redbin, json, csv"
 ][
 	dst: either any [file? where url? where][where][none]
-	either system/words/all [as  word? format] [				;-- Be aware of [all as] word shadowing
+	
+	either system/words/all [as word? format] [			;-- Be aware of [all as] word shadowing
 		either codec: select system/codecs format [
 			data: do [codec/encode :value dst]
-			if same? data dst [exit]	;-- if encode returns dst back, means it already save :value to dst
+			if same? data dst [exit]					;-- if encode returns dst back, means it already save :value to dst
 		][cause-error 'script 'invalid-refine-arg [/as format]] ;-- throw error if format is not supported
 	][
 		if length [header: true header-data: any [header-data copy []]]
@@ -493,13 +494,13 @@ save: function [
 				not binary? data [data: to binary! data]
 				length [
 					either pos: find/tail header-data 'length [
-						insert remove pos length? data			;@@ change pos length? data
+						insert remove pos length? data	;@@ change pos length? data
 					][
 						append header-data compose [length: (length? data)]
 					]
 				]
 				header-data [
-					header-str: copy "Red [^/"					;@@ mold header, use new-line instead
+					header-str: copy "Red [^/"			;@@ mold header, use new-line instead
 					foreach [k v] header-data [
 						append header-str reduce [#"^-" mold k #" " mold v newline]
 					]
