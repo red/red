@@ -195,7 +195,7 @@ system/reactivity: context [
 			case [
 				block? target [
 					prin "    Args: "
-					print copy/part replace/all mold/flat next target "make object!" "object" limit
+					print replace/all (mold/flat/part next target limit) "make object!" "object"
 				]
 				set-word? target [
 					prin "  Target: "
