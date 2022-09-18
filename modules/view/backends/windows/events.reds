@@ -1387,6 +1387,8 @@ WndProc: func [
 		WM_VSCROLL
 		WM_HSCROLL [
 			either zero? lParam [						;-- message from standard scroll bar
+				current-msg/hWnd: hWnd
+				current-msg/msg: msg
 				current-msg/wParam: wParam
 				make-event current-msg 0 EVT_SCROLL
 			][											;-- message from trackbar
