@@ -3172,6 +3172,19 @@ comment {
 		nothing4541: func [x [] return: []][--assert true]
 		nothing4541 1
 
+	--test-- "#4546"
+		a: reactor [
+			b: object [c: self]
+			b: none
+		]
+		--assert true 					;-- just check it does not crash 
+		a: reactor [
+			b: object [c: none]
+			b/c: object [x: b]
+			b: none
+		]
+		--assert true 					;-- just check it does not crash
+
 	--test-- "#4563" do [							;@@ #4526
 		--assert error? try [make op! :>>]
 		--assert error? try [make op! make op! func [x y][]]
