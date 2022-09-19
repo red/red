@@ -3116,6 +3116,13 @@ comment {
 		--assert get-path! = type? path
 		--assert word! = type? path/1
 
+	--test-- "#4451"
+		log: make block! 4
+		r: reactor [x: 1]
+		react [all [:r/x integer? r/x append log r/x]]
+		r/x: 2
+		r/x: 3
+		--assert log = [1 2 3]
 
 	--test-- "#4489"
 		--assert [1 1 1 1 1 2 2 3 3 3 3 4 4 4 4 4 5] = sort/compare/stable [1 4 1 1 4 3 1 3 4 4 4 3 1 2 2 5 3] func [a b] [a <= b]

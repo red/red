@@ -284,7 +284,6 @@ system/reactivity: context [
 							if pos: find objs item/1 [
 								obj: pick objects 1 + index? pos
 								add-relation obj item/2 :reaction objects
-								unless later [eval objects]
 								found?: yes
 							]
 						)
@@ -293,6 +292,7 @@ system/reactivity: context [
 						| skip
 					]
 				]
+				if all [not later found?][eval objects]
 			]
 			unlink [
 				if block? src [src: reduce src]
@@ -338,7 +338,6 @@ system/reactivity: context [
 							][
 								part: part + 1
 								add-relation obj item/:part reaction ctx
-								unless later [eval reaction]
 								found?: yes
 							]
 							parse saved rule
@@ -348,6 +347,7 @@ system/reactivity: context [
 						| skip
 					]
 				]
+				if all [not later found?][eval reaction]
 			]
 		]
 		either found? [:reaction][none]					;-- returns NONE if no relation was processed
