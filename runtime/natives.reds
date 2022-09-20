@@ -1134,7 +1134,8 @@ natives: context [
 		show	[integer!]
 		info	[integer!]
 		/local
-			blk [red-block!]
+			blk  [red-block!]
+			used [float!]
 	][
 		#typecheck [stats show info]
 		case [
@@ -1148,7 +1149,12 @@ natives: context [
 				stack/set-last as red-value! blk
 			]
 			true [
-				integer/box memory-info null 1
+				used: memory-info null 1
+				either used > 2147483647.0 [
+					float/box used
+				][
+					integer/box as-integer used
+				]
 			]
 		]
 	]
