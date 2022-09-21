@@ -549,6 +549,7 @@ _series: context [
 			added	[integer!]
 			n		[integer!]
 			cnt		[integer!]
+			rehash?	[logic!]
 	][
 		cnt: 1
 		if OPTION?(dup-arg) [
@@ -610,6 +611,7 @@ _series: context [
 			if part > size [part: size]
 		][size: size - head]
 
+		rehash?: yes
 		either any [blk? self?][
 			n: either part? [part][items * cnt]
 			if n > size [n: size]
@@ -635,6 +637,12 @@ _series: context [
 				if added > 0 [s/tail: as cell! tail + added]
 			]
 			copy-memory src as byte-ptr! cell items << unit
+
+			if all [type = TYPE_HASH s/tail = as cell! tail cnt = 1][	;-- no items been moved
+				rehash?: no
+				hash: as red-hash! ser
+				_hashtable/clear hash/table head items
+			]
 		][
 			tail: as byte-ptr! s/tail
 			src: (as byte-ptr! s/offset) + (head << unit)
@@ -690,9 +698,17 @@ _series: context [
 			]
 		]
 		if type = TYPE_HASH [
-			n: get-length ser yes
 			hash: as red-hash! ser
-			_hashtable/rehash hash/table n
+			either rehash? [
+				n: get-length ser yes
+				_hashtable/rehash hash/table n
+			][	;-- no items been moved
+				cell: s/offset + head
+				loop items [
+					_hashtable/put hash/table cell
+					cell: cell + 1
+				]
+			]
 		]
 		ser/head: head + items
 		ownership/check as red-value! ser words/_changed null head items
