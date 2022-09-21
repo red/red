@@ -514,6 +514,7 @@ unless system/console [
 						exit
 					]
 					KEY_ESCAPE [
+						string/rs-reset saved-line
 						string/append-char GET_BUFFER(line) c
 						exit
 					]
