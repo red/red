@@ -358,7 +358,7 @@ link-sub-to-parent: function ["Internal Use Only" face [object!] type [word!] ol
 			object? old
 			parent: in old 'parent
 			block? parent: get parent
-			remove find head parent face
+			remove find/same head parent face
 		]
 	]
 ]
@@ -821,7 +821,7 @@ show: function [
 			foreach field [para font][
 				if all [field: face/:field p: in field 'parent][
 					field/parent: tail either block? p: get p [
-						unless find head p face [append p face]
+						unless find/same head p face [append p face]
 						p
 					][
 						reduce [face]
