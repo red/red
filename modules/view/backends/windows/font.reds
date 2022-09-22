@@ -146,6 +146,7 @@ OS-make-font: func [
 	if all [face <> null TYPE_OF(blk) <> TYPE_BLOCK][
 		blk: block/make-at as red-block! values + FONT_OBJ_PARENT 4
 		block/rs-append blk as red-value! face
+		blk/head: 1
 	]
 	hFont
 ]
