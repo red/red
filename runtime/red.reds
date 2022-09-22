@@ -320,7 +320,7 @@ red: context [
 		free as byte-ptr! _random/table
 		free as byte-ptr! name-table
 		free as byte-ptr! action-table
-		free as byte-ptr! cycles/stack
+		free as byte-ptr! cycles/bottom
 		free as byte-ptr! crypto/crc32-table
 		free as byte-ptr! redbin/path/stack
 		free as byte-ptr! redbin/reference/list
