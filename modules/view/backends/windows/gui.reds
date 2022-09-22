@@ -506,6 +506,7 @@ update-scroller: func [
 		parent		[red-object!]
 		vertical?	[red-logic!]
 		int			[red-integer!]
+		bool		[red-logic!]
 		values		[red-value!]
 		hWnd		[handle!]
 		nTrackPos	[integer!]
@@ -522,10 +523,10 @@ update-scroller: func [
 	int: as red-integer! block/rs-head as red-block! (object/get-values parent) + FACE_OBJ_STATE
 	hWnd: as handle! int/value
 
-	int: as red-integer! values + flag
+	bool: as red-logic! values + flag
 
 	if flag = SCROLLER_OBJ_VISIBLE? [
-		ShowScrollBar hWnd as-integer vertical?/value as logic! int/value
+		ShowScrollBar hWnd as-integer vertical?/value bool/value
 		exit
 	]
 
