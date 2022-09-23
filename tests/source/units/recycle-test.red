@@ -503,7 +503,7 @@ Red [
 		recycle
 		
 		rh6-mem2: stats
-		--assert rh6-mem2 <= rh6-mem
+		;--assert rh6-mem2 <= rh6-mem
 	
 	--test-- "recycle-hash-7"
 		rh7-mem: none
