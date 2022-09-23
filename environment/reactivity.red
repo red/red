@@ -237,7 +237,7 @@ system/reactivity: context [
 		either target [
 			pos: skip relations 3
 			while [pos: find/skip pos field 4][
-				if reactor = context? pos/1 [return pos/-1]
+				if same? reactor context? pos/1 [return pos/-1]
 				pos: skip pos 4
 			]
 		][
@@ -300,7 +300,7 @@ system/reactivity: context [
 				found?: no
 				while [pos: find/same/only pos :reaction][
 					obj: pos/-2
-					either any [src = 'all src = obj all [block? src find/same src obj]][
+					either any [src = 'all same? src obj all [block? src find/same src obj]][
 						pos: remove/part skip pos -2 4
 						found?: yes
 					][
