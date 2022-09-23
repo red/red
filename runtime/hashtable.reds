@@ -1576,7 +1576,7 @@ _hashtable: context [
 		/local s [series!] h [hashtable!] indexes chain p e keys index flags [int-ptr!]
 			i c-idx idx part ii sh n [integer!] table [node!] saved [logic!]
 	][
-		;if size > 1000 [return HASH_TABLE_ERR_REHASH]
+		if size > 30000 [return HASH_TABLE_ERR_REHASH]
 
 		saved: collector/active?
 		collector/active?: no
