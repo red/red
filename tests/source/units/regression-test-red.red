@@ -2926,6 +2926,18 @@ b}
 		--assert "0:00:00.000001" = form 0:00:01 / 1000000
 		--assert "0:00:00"        = form 0:00:01 / 10000000
 
+	--test-- "#3539"
+		source-a: make reactor! [a: 1]
+		source-b: make reactor! [b: 10]
+		obj: object [c: 0]
+		block: [obj/c: source-a/a * source-b/b]
+		react block
+		source-a/a: 2
+		--assert react? source-a 'a
+		react/unlink block source-a ; freezes the console
+		--assert true
+		--assert not react? source-a 'a
+
 	--test-- "#3561"
 		a: reduce ['b does [1 + 2] 'x 'y]
 		--assert do [3 = a/b]							;-- do[] else compiler will not eval `does [1 + 2]`

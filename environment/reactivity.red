@@ -304,7 +304,7 @@ system/reactivity: context [
 						pos: remove/part skip pos -2 4
 						found?: yes
 					][
-						break
+						pos: next pos
 					]
 				]
 			]
