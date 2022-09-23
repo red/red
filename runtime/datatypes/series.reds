@@ -878,7 +878,9 @@ _series: context [
 			items: as-integer tail - (head + part)
 			part: part >> 4
 			hash: as red-hash! ser
-			_hashtable/refresh hash/table 0 - part ser/head + part items >> 4 yes
+			if HASH_TABLE_ERR_REHASH = _hashtable/refresh hash/table 0 - part ser/head + part items >> 4 yes [
+				_hashtable/rehash hash/table get-length ser yes
+			]
 		]
 		ownership/check as red-value! ser words/_removed null ser/head 0
 		ser
