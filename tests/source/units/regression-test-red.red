@@ -2933,7 +2933,7 @@ b}
 		block: [obj/c: source-a/a * source-b/b]
 		react block
 		source-a/a: 2
-		--assert react? source-a 'a
+		--assert block = react? source-a 'a
 		react/unlink block source-a ; freezes the console
 		--assert true
 		--assert not react? source-a 'a
