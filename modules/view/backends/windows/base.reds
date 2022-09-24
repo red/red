@@ -714,7 +714,7 @@ update-base-text: func [
 	flags: either TYPE_OF(para) = TYPE_OBJECT [
 		get-para-flags base para
 	][
-		5 							;-- 1 = center + 4 = middle
+		0 							;-- 1 = center + 4 = middle
 	]
 	h-align: flags and 3 			;-- 0,1,2 = left,center,right
 	v-align: flags >>> 2 and 3		;-- 0,4,8 = top,middle,bottom
@@ -895,36 +895,22 @@ update-base: func [
 
 	either TYPE_OF(cmds) = TYPE_BLOCK [
 		do-draw hWnd null cmds yes no no yes
-		this: get-surface hWnd
-		surf: as IDXGISurface1 this/vtbl
-		surf/GetDC this 0 :hdc
-		UpdateLayeredWindow hWnd null ptDst size hdc/value :ptSrc 0 :bf flags
-		rc/left: 0 rc/top: 0 rc/right: 0 rc/bottom: 0	;-- empty RECT
-		surf/ReleaseDC this :rc
-		surf/Release this
 	][
-		img:	as red-image!  values + FACE_OBJ_IMAGE
-		color:	as red-tuple!  values + FACE_OBJ_COLOR
-		text:	as red-string! values + FACE_OBJ_TEXT
-		font:	as red-object! values + FACE_OBJ_FONT
-		para:	as red-object! values + FACE_OBJ_PARA
-		graphic: 0
-		hBackDC: CreateCompatibleDC hScreen
-		hBitmap: CreateCompatibleBitmap hScreen width height
-		SelectObject hBackDC hBitmap
-		GdipCreateFromHDC hBackDC :graphic
-
-		if TYPE_OF(color) = TYPE_TUPLE [		;-- update background
-			update-base-background graphic color width height
+		system/thrown: 0
+		draw-begin :ctx hWnd null yes no
+		draw-end :ctx hWnd yes no no
+		if system/thrown = RED_THROWN_ERROR [
+			system/thrown: 0
 		]
-		GdipSetSmoothingMode graphic GDIPLUS_ANTIALIAS
-		update-base-image graphic img width height
-		update-base-text hWnd graphic hBackDC text font para width height null
-		UpdateLayeredWindow hWnd null ptDst size hBackDC :ptSrc 0 :bf flags
-		GdipDeleteGraphics graphic
-		DeleteObject hBitmap
-		DeleteDC hBackDC
 	]
+
+	this: get-surface hWnd
+	surf: as IDXGISurface1 this/vtbl
+	surf/GetDC this 0 :hdc
+	UpdateLayeredWindow hWnd null ptDst size hdc/value :ptSrc 0 :bf flags
+	rc/left: 0 rc/top: 0 rc/right: 0 rc/bottom: 0	;-- empty RECT
+	surf/ReleaseDC this :rc
+	surf/Release this
 ]]
 
 ;-- blends the image of every encountered visible layered window into the DC
