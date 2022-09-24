@@ -1321,7 +1321,7 @@ object: context [
 
 		res: null
 		ctx: GET_CTX(parent)
-		if word/ctx <> parent/ctx [						;-- bind the word to object's context
+		if any [word/ctx <> parent/ctx word/index = -1][ ;-- bind the word to object's context
 			save-idx: word/index
 			save-ctx: word/ctx
 			word/index: _context/find-word ctx word/symbol yes

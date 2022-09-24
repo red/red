@@ -3412,6 +3412,26 @@ comment {
 		set o5197 p: make o [x: 7]
 		set o5197 [8]
 
+	--test-- "#5216"
+		do [
+		    obj1: object []
+		    obj2: object [owner: 'obj1]
+		    list: function [obj [object!]] [
+		        test: [
+		            --assert not error? try [:obj/owner]
+		            all [
+		                word? :obj/owner
+		                value? obj/owner
+		                obj: get obj/owner
+		            ]
+		        ]
+		        while test []
+		    ]
+		    list obj2
+		    list obj2
+		    --assert true 						;-- check that no error happened
+		]
+
 ===end-group===
 
 ~~~end-file~~~
