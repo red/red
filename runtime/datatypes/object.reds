@@ -1302,8 +1302,6 @@ object: context [
 			ctx		 [red-context!]
 			old		 [red-value!]
 			res		 [red-value!]
-			save-ctx [node!]
-			save-idx [integer!]
 			on-set?  [logic!]
 			do-error [subroutine!]
 	][
@@ -1322,8 +1320,6 @@ object: context [
 		res: null
 		ctx: GET_CTX(parent)
 		if any [word/ctx <> parent/ctx word/index = -1][ ;-- bind the word to object's context
-			save-idx: word/index
-			save-ctx: word/ctx
 			word/index: _context/find-word ctx word/symbol yes
 			if word/index = -1 [do-error return res]
 			word/ctx: parent/ctx
