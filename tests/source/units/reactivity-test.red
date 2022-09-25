@@ -175,7 +175,32 @@ Red [
 			--assert a4022/i = 2
 		]
 	
-
+	--test-- "#4176"
+		do [
+			r: make reactor! [
+				n: 1
+				c: is [1x1 * n]
+				x: is [c/x]
+				t: is [n * 1:0:0]
+				hms: is [rejoin [t/hour t/minute t/second]]
+			]
+			--assert (skip body-of r 2) == [
+				n: 1 
+				c: 1x1 
+				x: 1 
+				t: 1:00:00 
+				hms: "100.0"
+			]
+			r/n: 2
+			--assert (skip body-of r 2) == [
+				n: 2
+				c: 2x2
+				x: 2
+				t: 2:00:00
+				hms: "200.0"
+			]
+		]
+		
 ===end-group===
 
 ~~~end-file~~~
