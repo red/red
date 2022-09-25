@@ -942,9 +942,9 @@ object [
 			down	[either ctrl? [scroll-lines -1][fetch-history 'next]]
 			insert	[if event/shift? [paste exit]]
 			delete	[either event/shift? [cut][delete-text ctrl?]]
-			#"^A" home	[if shift? [select-text 0 - pos] pos: 0]
+			#"^A" home	[either shift? [select-text 0 - pos][clear selects] pos: 0]
 			#"^E" end	[
-				if shift? [select-text (length? line) - pos]
+				either shift? [select-text (length? line) - pos][clear selects]
 				pos: length? line
 			]
 			#"^C"	[copy-selection exit]
