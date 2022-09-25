@@ -157,15 +157,6 @@ Red [
 		--assert rf-6r = :system/reactivity/relations/1 		;-- `r` should be the source object
 		unset [rf-6c rf-6r]
 
-	--test-- "rf-7"	; #3333 triple-reaction case
-		clear-reactions
-		rf-7r: make reactor! [x: 1]
-		rf-7x: is [rf-7r/x]
-		--assert 1 * 4 = length? system/reactivity/relations 	;-- should only be a single reaction
-		--assert rf-7r = :system/reactivity/relations/1 		;-- `r` should be the source object
-		unset [rf-7r rf-7x]
-
-
 	;-- final group cleanup
 	clear-reactions
 
