@@ -3122,6 +3122,10 @@ comment {
 			a b	c #[none]
 		]
 
+	--test-- "#4440"
+		do [forever [try/all [1] break]]
+		--assert true
+
 	--test-- "#4451"
 		path: quote :foo/bar
 		--assert ":foo/bar" = mold path
