@@ -196,7 +196,6 @@ array: context [
 #define _BUCKET_SET_DEL_TRUE(flags i s)		[flags/i: 1 << s or flags/i]
 #define _BUCKET_SET_DEL_FALSE(flags i s)	[flags/i: (not 1 << s) and flags/i]
 #define _BUCKET_SET_EMPTY_FALSE(flags i s)	[flags/i: (not 2 << s) and flags/i]
-#define _BUCKET_SET_EMPTY_TRUE(flags i s)	[flags/i: (not 1 << s) and (2 << s or flags/i)]
 #define _BUCKET_SET_BOTH_FALSE(flags i s)	[flags/i: (not 3 << s) and flags/i]
 
 #define _HT_CAL_FLAG_INDEX(i idx shift) [
@@ -1649,9 +1648,8 @@ _hashtable: context [
 					]
 					i: i - 1
 					_HT_CAL_FLAG_INDEX(i ii sh)
-					_BUCKET_SET_EMPTY_TRUE(flags ii sh)
+					_BUCKET_SET_DEL_TRUE(flags ii sh)
 					h/size: h/size - 1
-					h/n-occupied: h/n-occupied - 1
 					part: part + 1
 				]
 			][								;-- may need to expand indexes
