@@ -1134,7 +1134,8 @@ natives: context [
 		show	[integer!]
 		info	[integer!]
 		/local
-			blk [red-block!]
+			blk  [red-block!]
+			used [float!]
 	][
 		#typecheck [stats show info]
 		case [
@@ -1148,7 +1149,12 @@ natives: context [
 				stack/set-last as red-value! blk
 			]
 			true [
-				integer/box memory-info null 1
+				used: memory-info null 1
+				either used > 2147483647.0 [
+					float/box used
+				][
+					integer/box as-integer used
+				]
 			]
 		]
 	]
@@ -3256,7 +3262,7 @@ natives: context [
 			block?	[logic!]
 	][
 		type: TYPE_OF(value)
-		block?: any [type = TYPE_BLOCK type = TYPE_PAREN type = TYPE_HASH type = TYPE_MAP type = TYPE_PATH]
+		block?: any [type = TYPE_MAP ANY_BLOCK?(type)]
 		if block? [blk: as red-block! value]
 		
 		i: 1

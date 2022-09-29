@@ -940,43 +940,32 @@ binary: context [
 	]
 
 	trim-head-tail: func [
-		bin				[red-binary!]
-		head?			[logic!]
-		tail?			[logic!]
+		bin		[red-binary!]
+		head?	[logic!]
+		tail?	[logic!]
 		/local
-			s			[series!]
-			unit		[integer!]
-			cur			[byte-ptr!]
-			head		[byte-ptr!]
-			tail		[byte-ptr!]
+			s		[series!]
+			len		[integer!]
+			cur		[byte-ptr!]
+			head	[byte-ptr!]
+			tail	[byte-ptr!]
 	][
 		s:    GET_BUFFER(bin)
 		head: (as byte-ptr! s/offset) + bin/head
 		tail: as byte-ptr! s/tail
 		cur: head
 
-		if any [head? not tail?] [
-			while [
-				all [head < tail head/value = null-byte]
-			][
-				head: head + 1
-			]
+		if any [head? not tail?][
+			while [all [head < tail head/value = null-byte]][head: head + 1]
 		]
-
-		if any [tail? not head?] [
+		if any [tail? not head?][
 			tail: tail - 1
-			while [
-				all [head < tail tail/value = null-byte]
-			][
-				tail: tail - 1
-			]
+			while [all [head <= tail tail/value = null-byte]][tail: tail - 1]
 			tail: tail + 1
 		]
-
-		if cur <> head [
-			move-memory cur head (as-integer tail - head)
-		]
-		cur: cur + (as-integer tail - head)
+		len: as-integer tail - head
+		if cur <> head [move-memory cur head len]
+		cur: cur + len
 		s/tail: as red-value! cur
 	]
 

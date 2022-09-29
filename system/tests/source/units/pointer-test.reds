@@ -118,6 +118,17 @@ Red/System [
 	b-pointer2: foo-b-pointer b-pointer
 	--assert b-pointer2/value = #"h"
 
+	--test-- "pointer-rw-16"
+		p-struct16: declare struct! [n [integer!] m [integer!]]
+		prw16: declare pointer! [integer!]
+		prw16: as pointer! [integer!] p-struct16
+		prw16/value: 789
+
+		pp: declare pointer! [pointer!]
+		pp: :prw16
+		np16: as pointer! [integer!] pp/value
+		--assert np16/value = 789
+
 ===end-group===
 
 ===start-group=== "Pointers arithmetic"
@@ -182,6 +193,12 @@ Red/System [
 	--test-- "pointer-calc-12" 
 	pointer-idx: 4
 	--assert pA/pointer-idx = 123
+
+	--test-- "pointer-calc-13" 
+		ppc: declare pointer! [pointer!]
+		ppc: as pointer! [pointer!] :pA
+		--assert ppc/1 = pA 
+		--assert ppc/3 = pB 			;-- pB follows pA in memory, skipping pA's value slot
 	
 ===end-group===
 
@@ -190,6 +207,7 @@ Red/System [
 pointer-local-foo: func [
 	/local
 		p-struct [struct! [n [integer!] m [integer!]]]
+		p-struct16 [struct! [n [integer!] m [integer!]]]
 		pA 		 [pointer! [integer!]]
 		pB 		 [pointer! [integer!]]
 		p-int    [integer!]
@@ -203,13 +221,13 @@ pointer-local-foo: func [
 		b-pointer [pointer! [byte!]]
 		b-str	[c-string!]
 		pointer-idx [integer!]
+		pp		[pointer! [pointer!]]
+		prw16   [pointer! [integer!]]
+		np16 	[pointer! [integer!]]
 ][
 
 	--test-- "loc-point-rw-1"
 	p-struct: declare struct! [n [integer!] m [integer!]]
-	pA: declare pointer! [integer!]
-	pB: declare pointer! [integer!]
-
 	p-struct/n: 123
 	--assert p-struct/n = 123
 
@@ -294,6 +312,14 @@ pointer-local-foo: func [
 	b-pointer2: declare pointer! [byte!]
 	b-pointer2: foo-b-pointer b-pointer
 	--assert b-pointer2/value = #"h"
+
+	--test-- "loc-pointer-rw-16"
+		p-struct16: declare struct! [n [integer!] m [integer!]]
+		prw16: as pointer! [integer!] p-struct16
+		prw16/value: 789
+		pp: :prw16
+		np16: as pointer! [integer!] pp/value
+		--assert np16/value = 789
 	
 	--test-- "loc-point-calc-1"
 	pa-struct: declare struct! [n [integer!] m [integer!] p [integer!] o [integer!]]
@@ -353,6 +379,12 @@ pointer-local-foo: func [
 	--test-- "loc-point-calc-12" 
 	pointer-idx: 4
 	--assert pA/pointer-idx = 123
+
+	--test-- "loc-pointer-calc-13" 
+		ppc: as pointer! [pointer!] :pA	
+		--assert ppc/value = pA 
+		ppc: ppc - 1
+		--assert ppc/value = pB 			;-- pB is below pA on stack
 ]
 pointer-local-foo
 

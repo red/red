@@ -186,7 +186,7 @@ system-dialect: make-profilable context [
 			pos: some [word! into [func-pointer | type-spec]]		;-- struct's members
 		]
 		
-		pointer-syntax: ['integer! | 'byte! | 'float32! | 'float64! | 'float!]
+		pointer-syntax: ['integer! | 'byte! | 'float32! | 'float64! | 'float! | 'pointer!]
 		
 		func-pointer: ['function! set value block! (check-specs '- value)]
 		
@@ -403,7 +403,9 @@ system-dialect: make-profilable context [
 				type: any [resolve-aliased/silent type [integer!]]
 				type: switch/default type/1 [
 					any-pointer! ['int-ptr!]
-					pointer! [pick [int-ptr! byte-ptr!] type/2/1 = 'integer!]
+					pointer! [
+						either type/2 [pick [int-ptr! byte-ptr!] type/2/1 = 'integer!]['ptr-ptr!]
+					]
 				][type/1]
 				select emitter/datatype-ID type
 			]
@@ -897,7 +899,7 @@ system-dialect: make-profilable context [
 					]
 					switch/default type/1 [
 						function! [type]
-						integer! byte! float! float32! [compose/deep [pointer! [(type/1)]]]
+						integer! byte! float! float32! pointer! [compose/deep [pointer! [(type/1)]]]
 					][
 						with-alias-resolution off [
 							type: resolve-type name
@@ -3529,6 +3531,13 @@ system-dialect: make-profilable context [
 					any-pointer? type
 				][
 					new: type
+				]
+				if all [
+					paren? expr
+					'array! = first head get-variable-spec name
+				][
+					backtrack set-word
+					throw-error "a literal array pointer cannot be reassigned"
 				]
 				if all [struct-by-value? spec not any [val? 'value = last new]][
 					backtrack set-word

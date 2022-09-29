@@ -462,10 +462,11 @@ save: function [
 		format [word! none!] "E.g. bmp, gif, jpeg, png, redbin, json, csv"
 ][
 	dst: either any [file? where url? where][where][none]
-	either system/words/all [as  word? format] [				;-- Be aware of [all as] word shadowing
+	
+	either system/words/all [as word? format] [			;-- Be aware of [all as] word shadowing
 		either codec: select system/codecs format [
 			data: do [codec/encode :value dst]
-			if same? data dst [exit]	;-- if encode returns dst back, means it already save :value to dst
+			if same? data dst [exit]					;-- if encode returns dst back, means it already save :value to dst
 		][cause-error 'script 'invalid-refine-arg [/as format]] ;-- throw error if format is not supported
 	][
 		if length [header: true header-data: any [header-data copy []]]
@@ -493,13 +494,13 @@ save: function [
 				not binary? data [data: to binary! data]
 				length [
 					either pos: find/tail header-data 'length [
-						insert remove pos length? data			;@@ change pos length? data
+						insert remove pos length? data	;@@ change pos length? data
 					][
 						append header-data compose [length: (length? data)]
 					]
 				]
 				header-data [
-					header-str: copy "Red [^/"					;@@ mold header, use new-line instead
+					header-str: copy "Red [^/"			;@@ mold header, use new-line instead
 					foreach [k v] header-data [
 						append header-str reduce [#"^-" mold k #" " mold v newline]
 					]
@@ -1028,8 +1029,8 @@ atan: func [
 
 atan2: func [
 	"Returns the smallest angle between the vectors (1,0) and (x,y) in range (-pi,pi]"
-	y		[number!]
-	x		[number!]
+	y		[float! integer!]
+	x		[float! integer!]
 	return:	[float!]
 ][
 	#system [
@@ -1041,7 +1042,7 @@ atan2: func [
 
 sqrt: func [
 	"Returns the square root of a number"
-	number	[number!]
+	number	[float! integer!]
 	return:	[float!]
 ][
 	#system [
@@ -1128,23 +1129,18 @@ clock: function [
 	code [block!]
 	/times n [integer! float!]							;-- float is useful for eg. `1e6` instead of `1'000'000`
 		"Repeat N times (default: once); displayed time is per iteration"
-	/delta "Don't print the result, return time delta per iteration (in milliseconds)"
 	/local result
 ][
 	n:    max 1 any [n 1]
 	text: mold/flat/part code 70						;-- mold the code before it mutates
 	dt:   time-it [set/any 'result loop n code]
 	dt:   1e3 / n * to float! dt						;-- ms per iteration
-	either delta [
-		dt
-	][
-		unit: either dt < 1 [dt: dt * 1e3 "μs^-"]["ms^-"]
-		parse form dt [									;-- save 3 significant digits max
-			0 3 [opt #"." skip] opt [to #"."] dt: (dt: head clear dt)
-		]
-		print [dt unit text]
-		:result
+	unit: either dt < 1 [dt: dt * 1e3 "μs^-"]["ms^-"]
+	parse form dt [										;-- save 3 significant digits max
+		0 3 [opt #"." skip] opt [to #"."] dt: (dt: head clear dt)
 	]
+	print [dt unit text]
+	:result
 ]
 
 ;------------------------------------------

@@ -64,6 +64,7 @@ emitter: make-profilable context [
 		byte-ptr!   7
 		int-ptr!	8
 		function!	9
+		ptr-ptr!	10
 		struct!		1000
 	]
 	
@@ -214,11 +215,12 @@ emitter: make-profilable context [
 			spec: compiler/find-aliased spec/1
 		]
 		body: bind/copy body 'type
-		if block? spec/1 [spec: next spec]
+		if block? spec/1 [spec: next spec]				;-- skip [attributs] if present
 
-		foreach [name t] spec [							;-- skip 'struct!
+		foreach [name t] spec [
 			unless word? name [break]
 			either 'value = last type: t [
+				if 'struct! = type/1 [type: type/2]
 				foreach-member type body
 			][
 				do body

@@ -13,6 +13,24 @@ Red/System [
 pair: context [
 	verbose: 0
 	
+	get-named-index: func [
+		w		[red-word!]
+		ref		[red-value!]
+		return: [integer!]
+		/local
+			axis [integer!]
+	][
+		axis: symbol/resolve w/symbol
+		if all [axis <> words/x axis <> words/y][
+			either TYPE_OF(ref) = TYPE_PAIR [
+				fire [TO_ERROR(script cannot-use) w ref]
+			][
+				fire [TO_ERROR(script invalid-path) ref w]
+			]
+		]
+		either axis = words/x [1][2]
+	]
+	
 	do-math: func [
 		op		  [integer!]
 		return:	  [red-pair!]
@@ -254,7 +272,6 @@ pair: context [
 		return:	[red-value!]
 		/local
 			int	 [red-integer!]
-			w	 [red-word!]
 			axis [integer!]
 			type [integer!]
 	][
@@ -268,17 +285,8 @@ pair: context [
 					fire [TO_ERROR(script invalid-path) path element]
 				]
 			]
-			TYPE_WORD [
-				w: as red-word! element
-				axis: symbol/resolve w/symbol
-				if all [axis <> words/x axis <> words/y][
-					fire [TO_ERROR(script invalid-path) path element]
-				]
-				axis: either axis = words/x [1][2]
-			]
-			default [
-				fire [TO_ERROR(script invalid-path) path element]
-			]
+			TYPE_WORD [axis: get-named-index as red-word! element path]
+			default	  [fire [TO_ERROR(script invalid-path) path element]]
 		]
 		either value <> null [
 			type: TYPE_OF(value)
@@ -425,6 +433,7 @@ pair: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "pair/pick"]]
 
+		if TYPE_OF(boxed) = TYPE_WORD [index: get-named-index as red-word! boxed as red-value! pair]
 		if all [index <> 1 index <> 2][fire [TO_ERROR(script out-of-range) boxed]]
 		as red-value! integer/push either index = 1 [pair/x][pair/y]
 	]

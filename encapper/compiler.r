@@ -752,9 +752,9 @@ red: context [
 			find spec to lit-word! name
 		][
 			type: case [
-				block? pos/2 					[pos/2]
-				all [string? pos/3 block? pos/3][pos/3]
-				'else 							[[default!]]
+				all [block? pos/2 not empty? pos/2]	[pos/2]
+				all [string? pos/3 block? pos/3]	[pos/3]
+				'else 								[[default!]]
 			]
 			make-typeset type find/reverse pos refinement! spec to logic! native
 		][

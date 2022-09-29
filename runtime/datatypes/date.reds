@@ -35,6 +35,38 @@ date: context [
 		fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_DATE spec]
 	]
 	
+	get-named-index: func [
+		w 		[red-word!]
+		ref		[red-value!]
+		return: [integer!]
+		/local
+			sym idx [integer!]
+	][
+		sym: symbol/resolve w/symbol
+		idx: -1
+		case [
+			sym = words/date   	 [idx: 1]
+			sym = words/year   	 [idx: 2]
+			sym = words/month  	 [idx: 3]
+			sym = words/day	   	 [idx: 4]
+			sym = words/zone   	 [idx: 5]
+			sym = words/time   	 [idx: 6]
+			sym = words/hour   	 [idx: 7]
+			sym = words/minute 	 [idx: 8]
+			sym = words/second 	 [idx: 9]
+			sym = words/weekday	 [idx: 10]
+			sym = words/yearday	 [idx: 11]
+			sym = words/julian 	 [idx: 11]				;-- alternative name for "yearday"
+			sym = words/timezone [idx: 12]
+			sym = words/week 	 [idx: 13]
+			sym = words/isoweek	 [idx: 14]
+			true 			     [
+				if TYPE_OF(ref) = TYPE_TIME [fire [TO_ERROR(script cannot-use) w ref]]
+			]
+		]
+		idx
+	]
+	
 	push-field: func [
 		dt		[red-date!]
 		field	[integer!]
@@ -968,26 +1000,8 @@ date: context [
 				if any [field < 1 field > 14][error?: yes]
 			]
 			TYPE_WORD [
-				word: as red-word! element
-				sym: symbol/resolve word/symbol
-				case [
-					sym = words/date   	 [field: 1]
-					sym = words/year   	 [field: 2]
-					sym = words/month  	 [field: 3]
-					sym = words/day	   	 [field: 4]
-					sym = words/zone   	 [field: 5]
-					sym = words/time   	 [field: 6]
-					sym = words/hour   	 [field: 7]
-					sym = words/minute 	 [field: 8]
-					sym = words/second 	 [field: 9]
-					sym = words/weekday	 [field: 10]
-					sym = words/yearday	 [field: 11]
-					sym = words/julian 	 [field: 11]
-					sym = words/timezone [field: 12]
-					sym = words/week 	 [field: 13]
-					sym = words/isoweek	 [field: 14]
-					true 			   [error?: yes]
-				]
+				field: get-named-index as red-word! element path
+				if field = -1 [error?: yes]
 			]
 			default [error?: yes]
 		]
@@ -1131,6 +1145,7 @@ date: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "date/pick"]]
 
+		if TYPE_OF(boxed) = TYPE_WORD [index: get-named-index as red-word! boxed as red-value! dt]
 		if any [index < 1 index > 14][fire [TO_ERROR(script out-of-range) boxed]]
 		push-field dt index
 	]

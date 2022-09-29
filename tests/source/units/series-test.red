@@ -1452,17 +1452,19 @@ Red [
 	--test-- "trim-block-1"
 		--assert [1 2] = trim [#[none] 1 #[none] 2 #[none]]
 
-	--test-- "trim-bin-1"
-		--assert #{} = trim #{00}
+	--test-- "trim-bin-1"	--assert #{} = trim #{00}
+	--test-- "trim-bin-2"	--assert #{1234} = trim #{000012340000}
+	--test-- "trim-bin-3"	--assert #{12340000} = trim/head #{000012340000}
+	--test-- "trim-bin-4"	--assert #{00001234} = trim/tail #{000012340000}
+	--test-- "trim-bin-5"	--assert #{} = trim/tail #{000000}
+	--test-- "trim-bin-6"	--assert #{11} = head trim/tail at #{11000000} 1
+	--test-- "trim-bin-7"	--assert #{11} = head trim/tail at #{11000000} 2
+	--test-- "trim-bin-8"	--assert #{1100} = head trim/tail at #{11000000} 3
+	--test-- "trim-bin-9"	--assert #{110000} = head trim/tail at #{11000000} 4
+	--test-- "trim-bin-10"	--assert #{11000000} = head trim/tail at #{11000000} 5
+	--test-- "trim-bin-11"	--assert #{} = trim/head #{000000}
+	--test-- "trim-bin-12"	--assert #{} = trim at #{11000000} 2
 
-	--test-- "trim-bin-2"
-		--assert #{1234} = trim #{000012340000}
-
-	--test-- "trim-bin-3"
-		--assert #{12340000} = trim/head #{000012340000}
-
-	--test-- "trim-bin-4"
-		--assert #{00001234} = trim/tail #{000012340000}
 ===end-group===
 
 ===start-group=== "sort"

@@ -445,6 +445,11 @@ object: context [
 			p/y: as-integer fun/spec					;-- refresh cached spec node
 		]
 		
+		if word/ctx <> obj/ctx [						;-- bind word when invoked from compiler (~exec/<word>)
+			word: as red-word! stack/push as red-value! word	;@@ not pop after the call, but should be fine.
+			_context/bind-word ctx word
+		]
+		
 		stack/mark-func words/_on-change* fun/ctx
 		stack/push as red-value! word
 		stack/push old
@@ -1297,8 +1302,6 @@ object: context [
 			ctx		 [red-context!]
 			old		 [red-value!]
 			res		 [red-value!]
-			save-ctx [node!]
-			save-idx [integer!]
 			on-set?  [logic!]
 			do-error [subroutine!]
 	][
@@ -1316,9 +1319,7 @@ object: context [
 
 		res: null
 		ctx: GET_CTX(parent)
-		if word/ctx <> parent/ctx [						;-- bind the word to object's context
-			save-idx: word/index
-			save-ctx: word/ctx
+		if any [word/ctx <> parent/ctx word/index = -1][ ;-- bind the word to object's context
 			word/index: _context/find-word ctx word/symbol yes
 			if word/index = -1 [do-error return res]
 			word/ctx: parent/ctx

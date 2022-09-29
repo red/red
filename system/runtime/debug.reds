@@ -202,17 +202,13 @@ prin-hex-chars: func [
 ;-------------------------------------------
 ;-- Dump memory on screen in hex format
 ;-------------------------------------------
-dump-memory: func [
+dump-memory-raw: func [
 	address	[byte-ptr!]						;-- memory address where the dump starts
 	unit	[integer!]						;-- size of memory chunks to print in hex format (1 or 4 bytes)
 	nb		[integer!]						;-- number of lines to print
 	return: [byte-ptr!]						;-- return the pointer (pass-thru)
 	/local offset ascii i byte int-ptr data-ptr limit
 ][	
-	assert any [unit = 1 unit = 4]
-	
-	print ["^/Hex dump from: " address "h^/" lf]
-
 	offset: 0
 	ascii: "                "
 	limit: nb * 16
@@ -251,6 +247,21 @@ dump-memory: func [
 		offset = limit
 	]
 	address
+]
+
+
+;-------------------------------------------
+;-- Dump memory on screen in hex format
+;-------------------------------------------
+dump-memory: func [
+	address	[byte-ptr!]						;-- memory address where the dump starts
+	unit	[integer!]						;-- size of memory chunks to print in hex format (1 or 4 bytes)
+	nb		[integer!]						;-- number of lines to print
+	return: [byte-ptr!]						;-- return the pointer (pass-thru)
+][	
+	assert any [unit = 1 unit = 4]
+	print ["^/Hex dump from: " address "h^/" lf]
+	dump-memory-raw address unit nb
 ]
 
 ;-------------------------------------------

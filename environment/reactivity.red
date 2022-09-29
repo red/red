@@ -24,7 +24,7 @@ reactor!: context [
 			not empty? srs: system/reactivity/source
 			srs/1 = self
 			srs/2 = word
-			set-quiet in self word old					;-- force the old value
+			set-quiet word old							;-- force the old value
 			exit
 		]
 		unless all [block? :old block? :new same? head :old head :new][
@@ -195,7 +195,7 @@ system/reactivity: context [
 			case [
 				block? target [
 					prin "    Args: "
-					print copy/part replace/all mold/flat next target "make object!" "object" limit
+					print replace/all (mold/flat/part next target limit) "make object!" "object"
 				]
 				set-word? target [
 					prin "  Target: "
@@ -215,8 +215,10 @@ system/reactivity: context [
 		obj: context? field
 		parse reaction rule: [
 			any [
-				item: word! (if in obj item/1 [add-relation obj item/1 reaction field])
-				| any-path! | any-string!
+				set-path! | any-string!
+				| [item: word! | set item any-path!] (
+					if in obj item/1 [add-relation obj item/1 reaction field]
+				)
 				| into rule
 				| skip
 			]
@@ -237,7 +239,7 @@ system/reactivity: context [
 		either target [
 			pos: skip relations 3
 			while [pos: find/skip pos field 4][
-				if reactor = context? pos/1 [return pos/-1]
+				if same? reactor context? pos/1 [return pos/-1]
 				pos: skip pos 4
 			]
 		][
@@ -284,7 +286,6 @@ system/reactivity: context [
 							if pos: find objs item/1 [
 								obj: pick objects 1 + index? pos
 								add-relation obj item/2 :reaction objects
-								unless later [eval objects]
 								found?: yes
 							]
 						)
@@ -293,6 +294,7 @@ system/reactivity: context [
 						| skip
 					]
 				]
+				if all [not later found?][eval objects]
 			]
 			unlink [
 				if block? src [src: reduce src]
@@ -300,11 +302,11 @@ system/reactivity: context [
 				found?: no
 				while [pos: find/same/only pos :reaction][
 					obj: pos/-2
-					either any [src = 'all src = obj all [block? src find/same src obj]][
+					either any [src = 'all same? src obj all [block? src find/same src obj]][
 						pos: remove/part skip pos -2 4
 						found?: yes
 					][
-						break
+						pos: next pos
 					]
 				]
 			]
@@ -338,7 +340,6 @@ system/reactivity: context [
 							][
 								part: part + 1
 								add-relation obj item/:part reaction ctx
-								unless later [eval reaction]
 								found?: yes
 							]
 							parse saved rule
@@ -348,6 +349,7 @@ system/reactivity: context [
 						| skip
 					]
 				]
+				if all [not later found?][eval reaction]
 			]
 		]
 		either found? [:reaction][none]					;-- returns NONE if no relation was processed

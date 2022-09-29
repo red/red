@@ -156,29 +156,21 @@ money: context [
 		index: 1									;-- 1-based indexing
 		sym: symbol/resolve sym
 		
-		here: declare red-word!
-		tail: declare red-value!
-		
-		walk: [
-			head: block/rs-head list
-			tail: block/rs-tail list
-			here: as red-word! head
-			
-			if head = tail [return -1]
-			
-			until [
-				if sym = symbol/resolve here/symbol [break]
-				index: index + 1
-				here:  here + 1
-				
-				here = tail
-			]
-			
-			assert all [index >= 1 index <= FFh]
-		]
-		
 		list: as red-series! #get system/locale/currencies/list
-		walk
+		head: block/rs-head list
+		tail: block/rs-tail list
+		here: as red-word! head
+
+		if head = tail [return -1]
+
+		until [
+			if sym = symbol/resolve here/symbol [break]
+			index: index + 1
+			here:  here + 1
+
+			here = tail
+		]
+		assert all [index >= 1 index <= FFh]
 		either here < tail [index][-1]
 	]
 	

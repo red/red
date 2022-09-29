@@ -377,7 +377,7 @@ next: make action! [[
 
 pick: make action! [[
 		"Returns the series value at a given index"
-		series	 [series! port! bitset! pair! tuple! money! date! time! IPv6!]
+		series	 [series! port! bitset! pair! tuple! money! date! time! IPv6! #if find config/modules 'view [event!]]
 		index 	 [scalar! any-string! any-word! block! logic! time!]
 		return:  [any-type!]
 	]

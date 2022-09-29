@@ -297,8 +297,8 @@ help-ctx: context [
 				(res/returns: pop)
 			]
 			spec=: [
-				opt func-desc=
 				opt func-attr=
+				opt func-desc=
 				any param=
 				any [locals= to end | refinement= | returns=]
 			]

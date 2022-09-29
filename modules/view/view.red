@@ -353,19 +353,19 @@ link-sub-to-parent: function ["Internal Use Only" face [object!] type [word!] ol
 		unless all [parent: in new 'parent block? get parent][
 			new/parent: make block! 4
 		]
-		append new/parent face
+		new/parent: insert tail new/parent face
 		all [
 			object? old
 			parent: in old 'parent
 			block? parent: get parent
-			remove find parent face
+			remove find/same head parent face
 		]
 	]
 ]
 
 update-font-faces: function ["Internal Use Only" parent [block! none!]][
 	if block? parent [
-		foreach f parent [
+		foreach f head parent [
 			if f/state [
 				system/reactivity/check/only f 'font
 				f/state/2: f/state/2 or 00080000h		;-- (1 << ((index? in f 'font) - 1))
@@ -419,7 +419,7 @@ face!: object [				;-- keep in sync with facet! enum
 				not empty? srs: system/reactivity/source
 				srs/1 = self
 				srs/2 = word
-				set-quiet in self word old				;-- force the old value
+				set-quiet word old					;-- force the old value
 				exit
 			]
 			if all [
@@ -493,7 +493,7 @@ face!: object [				;-- keep in sync with facet! enum
 
 			either state [
 				;if word = 'type [cause-error 'script 'locked-word [type]]
-				state/2: state/2 or (1 << ((index? in self word) - 1))
+				state/2: state/2 or (1 << ((index? word) - 1))
 				if all [state/1 system/view/auto-sync?][show self]
 			][
 				if type = 'rich-text [system/view/platform/update-view self]
@@ -532,7 +532,7 @@ font!: object [											;-- keep in sync with font-facet! enum
 			if any [series? :new object? :new][modify new 'owned reduce [self word]]
 
 			if all [block? state handle? state/1][ 
-				system/view/platform/update-font self (index? in self word) - 1
+				system/view/platform/update-font self (index? word) - 1
 				update-font-faces parent
 			]
 		]
@@ -544,7 +544,7 @@ font!: object [											;-- keep in sync with font-facet! enum
 			word <> 'state
 			not find [remove clear take] action
 		][
-			system/view/platform/update-font self (index? in self word) - 1
+			system/view/platform/update-font self (index? word) - 1
 			update-font-faces parent
 		]
 	]	
@@ -572,9 +572,9 @@ para!: object [
 			not find [state parent] word
 			block? parent
 		][
-			foreach f parent [
+			foreach f head parent [
 				system/reactivity/check/only f 'para
-				system/view/platform/update-para f (index? in self word) - 1 ;-- sets f/state flag too
+				system/view/platform/update-para f (index? word) - 1 ;-- sets f/state flag too
 				if all [f/state f/state/1][show f]
 			]
 		]
@@ -592,7 +592,7 @@ scroller!: object [
 
 	on-change*: function [word old new][
 		if all [parent block? parent/state handle? parent/state/1][
-			system/view/platform/update-scroller self (index? in self word) - 1
+			system/view/platform/update-scroller self (index? word) - 1
 		]
 	]
 ]
@@ -820,10 +820,11 @@ show: function [
 
 			foreach field [para font][
 				if all [field: face/:field p: in field 'parent][
-					either block? p: get p [
-						unless find p face [append p face]
+					field/parent: tail either block? p: get p [
+						unless find/same head p face [append p face]
+						p
 					][
-						field/parent: reduce [face]
+						reduce [face]
 					]
 				]
 			]

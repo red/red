@@ -137,13 +137,14 @@ simple-io: context [
 	file-size?: func [
 		file	 [integer!]
 		return:	 [integer!]
-		/local #either OS = 'Linux [s [stat!]][s [stat! value]]
+		#if OS <> 'Windows [/local s [stat!]]
 	][
 		#case [
 			OS = 'Windows [
 				GetFileSize file null
 			]
 			any [OS = 'macOS OS = 'FreeBSD OS = 'NetBSD OS = 'Android] [
+				s: as stat! system/stack/allocate 36	;-- ensures stat! fits using a max value of 144 bytes
 				either zero? _stat file s [				
 					s/st_size
 				][-1]
@@ -493,7 +494,7 @@ simple-io: context [
 			dt   [red-date!]
 			fd   [integer!]
 			tm   [tm!]
-			#either OS = 'Linux [s [stat!]][s [stat! value]]
+			s    [stat!]
 	][
 			s: as stat! system/stack/allocate 36		;-- ensures stat! fits using a max value of 144 bytes
 			fd: open-file file/to-OS-path filename RIO_READ yes

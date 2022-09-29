@@ -30,16 +30,20 @@ ownership: context [
 		case [
 			type = TYPE_OBJECT [
 				obj: as red-object! value
+				if cycles/find? obj/ctx [exit]
 				ctx: GET_CTX(obj)
+
 				if ctx/header and flag-owner = 0 [		;-- stop if another owner is met
 					s: as series! ctx/values/value
 					value: s/offset
 					tail:  s/tail
+					cycles/push obj/ctx
 
 					while [value < tail][
 						unbind value
 						value: value + 1
 					]
+					cycles/pop
 				]
 			]
 			ANY_SERIES?(type) [

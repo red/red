@@ -1642,5 +1642,13 @@ struct-local-foo2
 				--assert p/5 = 0000007Bh
 			]
 			test4208
+			
+		--test-- "#4310"
+			s4310: declare struct! [
+			   a   [integer!]
+			   b   [c-string!]
+			   c   [struct! [d [integer!] e [float!]] value]
+			]
+			--assert 20 = size? s4310
 
 ~~~end-file~~~

@@ -290,9 +290,7 @@ get-text-size: func [
 	face 	[red-object!]
 	str		[red-string!]
 	pair	[red-pair!]
-	return: [tagSIZE]
 	/local
-		saved 	[handle!]
 		values 	[red-value!]
 		font	[red-object!]
 		state	[red-block!]
@@ -301,63 +299,52 @@ get-text-size: func [
 		hFont	[handle!]
 		hwnd 	[handle!]
 		dc 		[handle!]
-		size 	[tagSIZE]
+		c-str	[c-string!]
+		size 	[tagSIZE value]
 		rc 		[RECT_STRUCT value]
 		bbox 	[RECT_STRUCT_FLOAT32 value]
 ][
-	size: declare tagSIZE
-
 	;-- possibly null if hwnd wasn't stored in `state` yet (upon face creation)
 	;  in this case hwnd=0 is of the screen, while `para` can still be applied from the face/ctx
 	hwnd: face-handle? face
 	if null? hwnd [
 		hwnd: GetDesktopWindow
 	]
+
 	values: object/get-values face
 	dc: GetWindowDC hwnd
-	font: as red-object! values + FACE_OBJ_FONT
-	hFont: null
-	if TYPE_OF(font) = TYPE_OBJECT [
-		state: as red-block! values + FONT_OBJ_STATE
-		if TYPE_OF(state) <> TYPE_BLOCK [hFont: get-font-handle font 0]
-		if null? hFont [hFont: make-font face font]
-	]
-	if null? hFont [hFont: default-font]
-	saved: SelectObject hwnd hFont
-	GetClientRect hWnd rc
-	render-text values hwnd dc rc str :bbox
-
-	SelectObject hwnd saved
-	ReleaseDC hwnd dc
-
-#either draw-engine = 'GDI+ [
-	size/width: as integer! ceil (as float! bbox/width)
-][
 
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
-	either IS_D2D_FACE(sym) [
-		size/width: as integer! ceil (as float! bbox/width) * 0.96	;-- scale to match Direct2D's width
-	][
-		size/width: as integer! ceil (as float! bbox/width)
-	]
-]
-	size/height: as integer! ceil as float! bbox/height
 
-	if pair <> null [
-	#either draw-engine = 'GDI+ [
-		pair/x: as integer! ceil as float! bbox/width * (as float32! 100.0) / (as float32! dpi-factor)
-	][
-		either IS_D2D_FACE(sym) [
-			pair/x: as integer! ceil as float! bbox/width * (as float32! 96.0) / (as float32! dpi-factor)
-		][
-			pair/x: as integer! ceil as float! bbox/width * (as float32! 100.0) / (as float32! dpi-factor)
+	either IS_D2D_FACE(sym) [
+		GetClientRect hWnd :rc
+		render-text values hwnd dc :rc str :bbox
+		if pair <> null [
+			pair/x: as integer! bbox/width * (as float32! 98.0) / (as float32! dpi-factor)
+			pair/y: as integer! bbox/height * (as float32! 100.0) / (as float32! dpi-factor)
+		]
+	][	;-- native controls use GDI to draw the text, so we use GDI function to measure the text size
+		font: as red-object! values + FACE_OBJ_FONT
+		hFont: null
+		if TYPE_OF(font) = TYPE_OBJECT [
+			state: as red-block! values + FONT_OBJ_STATE
+			if TYPE_OF(state) = TYPE_BLOCK [hFont: get-font-handle font 0]
+			if null? hFont [hFont: make-font face font]
+		]
+		if null? hFont [hFont: default-font]
+
+		SelectObject dc hFont
+		c-str: unicode/to-utf16 str
+		GetTextExtentPoint32 dc c-str wcslen c-str :size
+
+		if pair <> null [
+			pair/x: size/width + 1 * 100 / dpi-factor	;-- +1 to compensate the precision loss
+			pair/y: size/height * 100 / dpi-factor
 		]
 	]
-		pair/y: as integer! ceil as float! bbox/height * (as float32! 100.0) / (as float32! dpi-factor)
-	]
 
-	size
+	ReleaseDC hwnd dc
 ]
 
 update-scrollbars: func [
@@ -489,6 +476,29 @@ set-area-options: func [
 	]
 ]
 
+get-scrollbar-ratio: func [
+	int		 [red-integer!]
+	return:  [float!]
+	/local
+		fl	  [red-float!]
+		ratio [float!]
+][
+	switch TYPE_OF(int) [
+		TYPE_INTEGER [
+			ratio: as-float int/value
+		]
+		TYPE_FLOAT
+		TYPE_PERCENT [
+			fl: as red-float! int
+			ratio: fl/value
+		]
+		default [return -1.0]
+	]
+	if ratio < 0.0 [ratio: 0.0]
+	if ratio > 1.0 [ratio: 1.0]
+	ratio
+]
+
 update-scroller: func [
 	scroller [red-object!]
 	flag	 [integer!]
@@ -496,6 +506,7 @@ update-scroller: func [
 		parent		[red-object!]
 		vertical?	[red-logic!]
 		int			[red-integer!]
+		bool		[red-logic!]
 		values		[red-value!]
 		hWnd		[handle!]
 		nTrackPos	[integer!]
@@ -512,10 +523,10 @@ update-scroller: func [
 	int: as red-integer! block/rs-head as red-block! (object/get-values parent) + FACE_OBJ_STATE
 	hWnd: as handle! int/value
 
-	int: as red-integer! values + flag
+	bool: as red-logic! values + flag
 
 	if flag = SCROLLER_OBJ_VISIBLE? [
-		ShowScrollBar hWnd as-integer vertical?/value as logic! int/value
+		ShowScrollBar hWnd as-integer vertical?/value bool/value
 		exit
 	]
 
@@ -605,8 +616,35 @@ to-bgr: func [
 	]
 ]
 
+free-dc: func [
+	handle	[int-ptr!]
+	/local
+		dc	[integer!]
+][
+	#either draw-engine = 'GDI+ [
+	if zero? (WS_EX_LAYERED and GetWindowLong handle GWL_EXSTYLE) [
+		dc: GetWindowLong handle wc-offset - 4
+		if dc <> 0 [DeleteDC as handle! dc]			;-- delete cached dc
+	]
+	dc: GetWindowLong handle wc-offset - 36
+	if dc <> 0 [
+		either (GetWindowLong handle wc-offset - 12) and BASE_FACE_IME <> 0 [
+			d2d-release-target as render-target! dc
+		][											;-- caret
+			DestroyCaret
+		]
+	]][
+	;-- Direct2D backend
+	dc: GetWindowLong handle wc-offset - 36
+	if dc <> 0 [d2d-release-target as render-target! dc]
+	if (GetWindowLong handle wc-offset - 12) and BASE_FACE_IME <> 0 [
+		DestroyCaret
+	]]
+]
+
 free-faces: func [
-	face	[red-object!]
+	face		[red-object!]
+	top-level?	[logic!]
 	/local
 		values	[red-value!]
 		type	[red-word!]
@@ -649,7 +687,7 @@ free-faces: func [
 		obj: as red-object! block/rs-head pane
 		tail: as red-object! block/rs-tail pane
 		while [obj < tail][
-			free-faces obj
+			free-faces obj no
 			obj: obj + 1
 		]
 	]
@@ -659,53 +697,25 @@ free-faces: func [
 			;-- destroy the extra frame window
 			DestroyWindow as handle! GetWindowLong handle wc-offset - 4 as-integer handle
 		]
-		sym = camera [
-			cam: as camera! GetWindowLong handle wc-offset - 4
-			unless null? cam [
-				teardown-graph cam
-				free-graph cam
-			]
-		]
-		IS_D2D_FACE(sym) [
-			#either draw-engine = 'GDI+ [
-			if zero? (WS_EX_LAYERED and GetWindowLong handle GWL_EXSTYLE) [
-				dc: GetWindowLong handle wc-offset - 4
-				if dc <> 0 [DeleteDC as handle! dc]			;-- delete cached dc
-			]
-			dc: GetWindowLong handle wc-offset - 36
-			if dc <> 0 [
-				either (GetWindowLong handle wc-offset - 12) and BASE_FACE_IME <> 0 [
-					d2d-release-target as render-target! dc
-				][											;-- caret
-					DestroyCaret
-				]
-			]][
-			;-- Direct2D backend
-			dc: GetWindowLong handle wc-offset - 36
-			if dc <> 0 [d2d-release-target as render-target! dc]
-			if (GetWindowLong handle wc-offset - 12) and BASE_FACE_IME <> 0 [
-				DestroyCaret
-			]]
-		]
 		true [
 			0
 			;; handle user-provided classes too
 		]
 	]
-	either sym = window [
+	if sym = window [
 		hFont: as handle! GetWindowLong handle wc-offset - 32	;-- default font
 		if hFont <> null [DeleteObject hFont]
 
 		state: values + FACE_OBJ_SELECTED
 		state/header: TYPE_NONE
 		SetWindowLong handle wc-offset - 4 -1
-		PostMessage handle WM_CLOSE 0 0
-	][
-		DestroyWindow handle
 	]
 
+	SetWindowLong handle wc-offset 0
 	state: values + FACE_OBJ_STATE
 	state/header: TYPE_NONE
+
+	if top-level? [PostMessage handle WM_CLOSE 0 0]
 ]
 
 set-defaults: func [
@@ -1404,6 +1414,7 @@ OS-make-view: func [
 		off-y	  [integer!]
 		rc		  [RECT_STRUCT value]
 		si		  [tagSCROLLINFO]
+		ratio	  [float!]
 ][
 	stack/mark-native words/_body
 
@@ -1668,6 +1679,7 @@ OS-make-view: func [
 		]
 		panel? [
 			adjust-parent handle as handle! parent offset/x offset/y
+			SetWindowLong handle wc-offset - 4 0
 			SetWindowLong handle wc-offset - 36 0
 		]
 		any [
@@ -1687,20 +1699,24 @@ OS-make-view: func [
 			]
 		]
 		sym = scroller [
+			ratio: get-scrollbar-ratio selected
+			if ratio < 0.0 [
+				ratio: 0.1						;-- default to 10%
+				fl: as red-float! selected
+				fl/header: TYPE_PERCENT
+				fl/value: ratio
+			]
 			si: declare tagSCROLLINFO
 			si/cbSize: size? tagSCROLLINFO
 			si/fMask: SIF_PAGE or SIF_POS or SIF_RANGE
 			si/nMin: 0
 			si/nMax: 100
-			si/nPage: 10
+			si/nPage: as-integer ratio * 100.0
 			si/nPos: 0
 			SetScrollInfo handle SB_CTL si true
 			fl: as red-float! data
 			fl/header: TYPE_FLOAT
 			fl/value:  0.0
-			fl: as red-float! selected
-			fl/header: TYPE_PERCENT
-			fl/value: 0.10
 		]
 		any [
 			sym = toggle
@@ -2114,7 +2130,6 @@ change-selection: func [
 	values [red-value!]
 	/local
 		type [red-word!]
-		f	 [red-float!]
 		flt	 [float!]
 		si	 [tagSCROLLINFO value]
 		sym	 [integer!]
@@ -2123,10 +2138,8 @@ change-selection: func [
 	sym: symbol/resolve type/symbol
 	case [
 		sym = scroller [
-			f: as red-float! int
-			flt: f/value
-			if flt < 0.0 [flt: 0.0]
-			if flt > 1.0 [flt: 1.0]
+			flt: get-scrollbar-ratio int
+			if flt < 0.0 [exit]
 			si/cbSize: size? tagSCROLLINFO
 			si/fMask: SIF_PAGE or SIF_RANGE
 			GetScrollInfo hWnd SB_CTL :si
@@ -2566,11 +2579,11 @@ OS-destroy-view: func [
 	face   [red-object!]
 	empty? [logic!]
 ][
-	free-faces face
-	either empty? [
+	free-faces face yes
+	if empty? [
 		exit-loop: exit-loop + 1
 		PostQuitMessage 0
-	][loop 3 [do-events yes]]
+	]
 ]
 
 OS-update-facet: func [

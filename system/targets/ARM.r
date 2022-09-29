@@ -2671,7 +2671,7 @@ make-profilable make target-class [
 	emit-AAPCS-header: func [
 		args [block!] fspec [block!] attribs [block! none!]
 		/calc
-		/local reg bits offset type size stk freg cconv types nb armhf? struct? r t
+		/local reg bits offset type size stk freg cconv types nb armhf? struct? r t by-val? body
 	][
 		either args/1 = #custom [
 			unless calc [
@@ -2726,13 +2726,13 @@ make-profilable make target-class [
 					][
 						struct?: type/1 = 'struct!
 						all [
-							'value = last t: type
+							by-val?: 'value = last t: type
 							any [struct? all [t: compiler/find-aliased t/1 t/1 = 'struct!]]
 							8 = max-struct-alignment? t/2
 							odd? reg
 							reg: reg + 1			;-- rule 4.3.5 of ABI 2.10 (IHI0042F)
 						]
-						foreach-member type [
+						body: [
 							size: either all [
 								not armhf?
 								not struct?
@@ -2768,6 +2768,7 @@ make-profilable make target-class [
 								reg: reg + offset
 							]
 						]
+						either by-val? [emitter/foreach-member t/2 body][do body]
 					]
 					types: skip types 2
 				]

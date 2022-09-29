@@ -299,6 +299,7 @@ _function: context [
 						either all [
 							blk < tail
 							TYPE_OF(blk) = TYPE_BLOCK
+							positive? block/rs-length? blk
 						][
 							typeset/make-with list blk
 						][
@@ -328,7 +329,11 @@ _function: context [
 					assert TYPE_OF(blk) = TYPE_BLOCK
 					unless routine? [
 						block/rs-append list value
-						typeset/make-with list blk
+						either positive? block/rs-length? blk [
+							typeset/make-with list blk
+						][
+							typeset/make-default list
+						]
 					]
 				]
 				default [0]								;-- ignore other values

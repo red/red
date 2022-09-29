@@ -300,6 +300,21 @@ get-caret-blink-time: routine [
 		/local
 			t?  [logic!]
 	][
+		with [red][
+			;-- @@ an ugly hacking @@
+			;-- part of the internal states of the gui-console may be changed before
+			;-- throwing error inside vprint. Incomplete states will make gui-console crazy.
+			;-- if it's a stack overflow error, calling any function in Red will make it stack overflow again.
+			;-- because of that, we cannot catch the error inside vprint to restore the states.
+			;-- also save the states and restore them are not easy in current implementation. (--)!
+			;-- so we check it before entering the vprint here
+			if any [
+				stack/ctop + 60 >= stack/c-end	;-- vprint uses 60 slots on call stk
+				stack/top + 80 >= stack/a-end	;-- vprint uses 80 slots on arg stk
+			][
+				fire [TO_ERROR(internal stack-overflow)]
+			]
+		]
 		t?: interpreter/tracing?
 		if t? [interpreter/tracing?: no]
 		#call [gui-console-ctx/terminal/vprint str lf?]

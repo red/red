@@ -163,7 +163,6 @@ check-arg-type: func [
 #switch OS [
 	Windows [
 
-	win8+?: no
 
 	__get-OS-info: func [
 		/local
@@ -172,10 +171,11 @@ check-arg-type: func [
 			str		[red-string!]
 			val		[red-value!]
 			ver		[OSVERSIONINFO value]
+			info	[tagSYSTEM_INFO value]
 			int		[red-integer!]
 			arch	[c-string!]
 			name	[c-string!]
-			_64bit? [integer!]
+			build	[integer!]
 			server? [logic!]
 	][
 		obj: object/make-at as red-object! stack/push* 8
@@ -186,13 +186,7 @@ check-arg-type: func [
 		ver/szCSDVersion: 0
 		GetVersionEx :ver
 
-		win8+?: any [
-			ver/dwMajorVersion >= 10				;-- Win 10+
-			all [									;-- Win 8, Win 8.1
-				ver/dwMajorVersion >= 6
-				ver/dwMinorVersion >= 2
-			]
-		]
+		build: ver/dwBuildNumber
 		server?: ver/wProductType <> #"^(01)"
 		str: string/load-at "Windows " 8 val UTF-8
 		name: switch ver/dwMajorVersion [
@@ -211,8 +205,19 @@ check-arg-type: func [
 					3 [either server? ["Server 2012 R2"]["8.1"]]
 				]
 			]
-			default [	;-- Windows 10
-				either server? ["Windows Server 2016"]["10"]
+			default [	;-- Windows 10+
+				either server? [
+					case [
+						build >= 20285	["Server 2022"]
+						build >= 17134	["Server 2019"]
+						true			["Server 2016"]
+					]
+				][
+					case [
+						build >= 22000	["11"]
+						true			["10"]
+					]
+				]
 			]
 		]
 		string/concatenate-literal str name
@@ -222,9 +227,15 @@ check-arg-type: func [
 		]
 		_context/add-with ctx _context/add-global symbol/make "name" val
 
-		_64bit?: 0
-		IsWow64Process GetCurrentProcess :_64bit?
-		either zero? _64bit? [arch: "i686"][arch: "x86-64"]
+		GetNativeSystemInfo :info
+		arch: switch info/dwOemId and FFFFh [		;-- wProcessorArchitecture
+			0  ["x86-32"]
+			5  ["ARM"]
+			6  ["IA-64"]
+			9  ["x86-64"]
+			12 ["ARM64"]
+			default ["Unknown"]
+		]
 		word/make-at symbol/make arch val
 		_context/add-with ctx _context/add-global symbol/make "arch" val
 
@@ -236,7 +247,7 @@ check-arg-type: func [
 
 		int: as red-integer! val
 		int/header: TYPE_INTEGER
-		int/value:  ver/dwBuildNumber
+		int/value:  build
 		_context/add-with ctx _context/add-global symbol/make "build" val
 		stack/pop 2
 	]]

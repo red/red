@@ -25,14 +25,15 @@ print-symbol: func [
 memory-info: func [
 	blk		[red-block!]
 	verbose [integer!]						;-- stat verbosity level (1, 2 or 3)
-	return:	[integer!]						;-- total bytes used (verbose = 1)
+	return:	[float!]						;-- total bytes used (verbose = 1)
 	/local
 		n-frame s-frame b-frame free-nodes base list nodes series bigs used cell saved
+		len
 ][
 	saved: collector/active?
 	collector/active?: no
 	assert all [1 <= verbose verbose <= 3]
-	used: 0
+	used: 0.0
 
 ;-- Node frames stats --
 	if verbose > 1 [nodes: block/make-in blk 8]
@@ -41,7 +42,7 @@ memory-info: func [
 	while [n-frame <> null][
 		free-nodes: (as-integer (n-frame/top + 1 - n-frame/bottom)) / 4
 		if verbose = 1 [
-			used: used + ((n-frame/nodes - free-nodes) * 4)
+			used: used + as-float ((n-frame/nodes - free-nodes) * 4)
 		]
 		if verbose >= 2 [
 			list: block/make-in nodes 8
@@ -60,7 +61,8 @@ memory-info: func [
 	while [s-frame <> null][
 		base: (as byte-ptr! s-frame) + size? series-frame!	
 		if verbose = 1 [
-			used: used + (as-integer (as byte-ptr! s-frame/heap) - base)
+			len: as-integer (as byte-ptr! s-frame/heap) - base
+			used: used + as-float len 
 		]
 		if verbose >= 2 [
 			list: block/make-in series 8
@@ -78,7 +80,7 @@ memory-info: func [
 
 	while [b-frame <> null][
 		if verbose = 1 [
-			used: used + b-frame/size
+			used: used + as-float b-frame/size
 		]
 		if verbose >= 2 [
 			cell: integer/make-in bigs b-frame/size
