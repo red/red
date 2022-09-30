@@ -2535,8 +2535,8 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_COLOR <> 0 [
 		case [
-			type = base [
-				update-base hWnd GetParent hWnd null values
+			IS_D2D_FACE(type) [
+				update-base hWnd null null values
 			]
 			type = calendar [
 				update-calendar-color hWnd as red-value! values + FACE_OBJ_COLOR
@@ -2556,10 +2556,18 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_FONT <> 0 [
 		set-font hWnd face values
-		InvalidateRect hWnd null 1
+		either IS_D2D_FACE(type) [
+			update-base hWnd null null values
+		][
+			InvalidateRect hWnd null 1
+		]
 	]
 	if flags and FACET_FLAG_PARA <> 0 [
-		InvalidateRect hWnd null 1
+		either IS_D2D_FACE(type) [
+			update-base hWnd null null values
+		][
+			InvalidateRect hWnd null 1
+		]
 	]
 	if flags and FACET_FLAG_MENU <> 0 [
 		menu: as red-block! values + FACE_OBJ_MENU
