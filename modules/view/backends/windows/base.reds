@@ -472,8 +472,10 @@ BaseWndProc: func [
 		]
 		WM_LBUTTONUP	 [
 			w: GetWindowLong hWnd wc-offset - 32
-			SetWindowLong hWnd wc-offset - 32 w - 1
-			ReleaseCapture return 0
+			if w > 0 [
+				SetWindowLong hWnd wc-offset - 32 w - 1
+				ReleaseCapture return 0
+			]
 		]
 		WM_ERASEBKGND	 [return 1]					;-- drawing in WM_PAINT to avoid flicker
 		WM_SIZE  [
