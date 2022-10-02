@@ -930,7 +930,7 @@ decompress: make native! [[
 ]
 
 recycle: make native! [[
-		"Recycles unused memory and returns the used memory total"
+		"Recycles unused memory and returns memory amount still in use"
 		/on		"Turns on garbage collector; returns nothing"
 		/off	"Turns off garbage collector; returns nothing"
 		return: [integer! unset!]
