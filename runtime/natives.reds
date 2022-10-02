@@ -2871,11 +2871,10 @@ natives: context [
 		#typecheck [recycle on? off?]
 
 		case [
-			on?  > -1 [collector/active?: yes]
-			off? > -1 [collector/active?: no]
-			true	  [collector/do-mark-sweep]
+			on?  > -1 [collector/active?: yes  unset/push-last]
+			off? > -1 [collector/active?: no   unset/push-last]
+			true	  [collector/do-mark-sweep stats* no -1 -1]
 		]
-		unset/push-last
 	]
 	
 	transcode*: func [
