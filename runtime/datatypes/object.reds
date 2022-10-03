@@ -794,7 +794,7 @@ object: context [
 	
 	rebind: func [
 		fun	 [red-function!]
-		ctx  [red-context!]
+		octx [red-context!]
 		self [node!]
 		/local
 			s	 [series!]
@@ -815,7 +815,7 @@ object: context [
 		spec/extra:	 0
 		
 		blk: block/clone as red-block! more yes yes
-		_context/bind blk ctx self yes					;-- rebind new body to object's context
+		_context/bind blk octx self yes					;-- rebind new body to object's context
 		_context/bind blk GET_CTX(fun) null no			;-- rebind new body to function's context
 		_function/push spec blk	fun/ctx null null fun/header ;-- recreate function
 		copy-cell stack/top - 1	as red-value! fun		;-- overwrite function slot in object
