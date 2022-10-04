@@ -801,6 +801,8 @@ object: context [
 			more [red-value!]
 			blk  [red-block!]
 			spec [red-block!]
+			ctx	 [red-context!]
+			fctx [node!]
 	][
 		s: as series! fun/more/value
 		more: s/offset
@@ -814,10 +816,14 @@ object: context [
 		spec/node:	 fun/spec
 		spec/extra:	 0
 		
+		fctx: copy-series as series! fun/ctx/value		;-- clone the ctx 2-cell block
+		ctx: TO_CTX(fctx)
+		ctx/self: fctx									;-- update the red-context! value self-reference
+		
 		blk: block/clone as red-block! more yes yes
 		_context/bind blk octx self yes					;-- rebind new body to object's context
-		_context/bind blk GET_CTX(fun) null no			;-- rebind new body to function's context
-		_function/push spec blk	fun/ctx null null fun/header ;-- recreate function
+		_context/bind blk ctx null no					;-- rebind new body to function's context
+		_function/push spec blk	fctx null null fun/header ;-- recreate function
 		copy-cell stack/top - 1	as red-value! fun		;-- overwrite function slot in object
 		stack/pop 2										;-- remove extra stack slots (block/clone and _function/push)
 		
