@@ -88,3 +88,61 @@ jobs:
       with:
         name: RPi-Tests-log
         path: quick-test.log
+
+
+  Run-RS-Tests-Armbian:
+
+    runs-on: [self-hosted, Linux, ARM64]
+    needs: Build-RPi-Tests
+    
+    steps:
+    - name: Clean working directory
+      run: |
+        echo "Cleaning up previous run"
+        rm -rf ${{ github.workspace }}/*
+
+    - name: Retrieve tests
+      uses: actions/download-artifact@v2
+      with:
+        name: rpi-rs-bin
+
+    - name: Run tests
+      run: |
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/.
+        chmod +x run-all.sh
+        ./run-all.sh
+
+    # upload log file if any test failed
+    - uses: actions/upload-artifact@v2
+      if: failure()
+      with:
+        name: RS-Tests-Armbian-log
+        path: quick-test.log
+
+  Run-Red-Tests-Armbian:
+
+    runs-on: [self-hosted, Linux, ARM64]
+    needs: Run-RS-Tests-Armbian
+    
+    steps:
+    - name: Clean working directory
+      run: |
+        echo "Cleaning up previous run"
+        rm -rf ${{ github.workspace }}/*
+
+    - name: Retrieve tests
+      uses: actions/download-artifact@v2
+      with:
+        name: rpi-tests-bin
+
+    - name: Run tests
+      run: |
+        chmod +x run-all.sh
+        ./run-all.sh
+
+    # upload log file if any test failed
+    - uses: actions/upload-artifact@v2
+      if: failure()
+      with:
+        name: Red-Tests-Armbian-log
+        path: quick-test.log
