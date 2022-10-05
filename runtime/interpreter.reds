@@ -887,15 +887,11 @@ interpreter: context [
 		case?	[logic!]
 		return: [red-value!]
 		/local 
-			path	[red-path!]
-			head	[red-value!]
-			tail	[red-value!]
-			item	[red-value!]
-			parent	[red-value!]
-			gparent	[red-value!]
-			saved	[red-value!]
-			arg		[red-value!]
-			tail?	[logic!]
+			head tail item parent gparent saved prev arg [red-value!]
+			path  [red-path!]
+			ser	  [red-series!]
+			type  [integer!]
+			tail? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "eval: path"]]
 		
@@ -912,6 +908,7 @@ interpreter: context [
 		if TYPE_OF(head) <> TYPE_WORD [fire [TO_ERROR(script word-first) path]]
 		
 		parent: _context/get as red-word! head
+		gparent: parent
 		
 		switch TYPE_OF(parent) [
 			TYPE_ACTION									;@@ replace with TYPE_ANY_FUNCTION
@@ -928,7 +925,6 @@ interpreter: context [
 			TYPE_UNSET [fire [TO_ERROR(script unset-path) path head]]
 			default	   [0]
 		]
-		if set? [object/path-parent/header: TYPE_NONE]	;-- disables owner checking
 		if tracing? [fire-event EVT_PUSH as red-block! path head head parent]
 		
 		while [item < tail][
@@ -948,11 +944,26 @@ interpreter: context [
 			if TYPE_OF(value) = TYPE_UNSET [fire [TO_ERROR(script invalid-path) path item]]
 			#if debug? = yes [if verbose > 0 [print-line ["eval: path item: " TYPE_OF(value)]]]
 			
-			gparent: parent								;-- save grand-parent reference
+			;-- invoke eval-path action
+			prev: parent
 			tail?: item + 1 = tail
 			arg: either all [set? tail?][stack/arguments][null]
 			parent: actions/eval-path parent value arg path case? get? tail?
 			
+			;-- post-processing
+			if set? [
+				type: TYPE_OF(gparent)
+				case [
+					type = TYPE_OBJECT [
+						ownership/check-slot as red-object! gparent as red-word! item prev
+					]	
+					ANY_SERIES?(type) [
+						ser: as red-series! gparent
+						ownership/check as red-value! ser words/_set-path null ser/head 1
+					]
+					true [0]							;-- ignore other types
+				]
+			]
 			if all [not get? not set?][
 				switch TYPE_OF(parent) [
 					TYPE_ACTION							;@@ replace with TYPE_ANY_FUNCTION
@@ -966,9 +977,9 @@ interpreter: context [
 					default [0]
 				]
 			]
+			gparent: parent								;-- save previous parent reference
 			item: item + 1
 		]
-		if set? [object/path-parent/header: TYPE_NONE]	;-- disables owner checking
 		if tracing? [fire-event EVT_EXIT as red-block! path tail null parent]
 
 		stack/top: saved

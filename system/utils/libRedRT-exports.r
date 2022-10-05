@@ -422,8 +422,6 @@
 ][
 	red/root				red-block!
 	red/stk-bottom			int-ptr!
-	red/object/path-parent	cell!
-	red/object/field-parent	cell!
 	red/stack/arguments		cell!
 	red/stack/top			cell!
 	red/stack/bottom		cell!

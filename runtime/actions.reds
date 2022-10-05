@@ -388,7 +388,7 @@ actions: context [
 			value [red-value!]
 	][
 		value: either set? [stack/arguments + 2][null]
-		value: stack/set-last eval-path 
+		stack/set-last eval-path 
 			stack/arguments
 			stack/arguments + 1
 			value
@@ -396,9 +396,6 @@ actions: context [
 			no
 			no
 			yes
-		
-		if set? [object/path-parent/header: TYPE_NONE]	;-- disables owner checking
-		value
 	]
 	
 	eval-path: func [

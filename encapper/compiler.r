@@ -1530,10 +1530,6 @@ red: context [
 		
 		if all [1 <> length? obj-stack path/1 = last obj-stack][remove path]		;-- remove temp object prefix inserted by object-access? (mind #4567!)
 		
-		if set? [
-			emit [object/path-parent/header: TYPE_NONE]
-			insert-lf -2
-		]
 		emit either integer? last path [
 			pick [set-int-path* eval-int-path*] set?
 		][

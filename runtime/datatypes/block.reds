@@ -798,7 +798,6 @@ block: context [
 			int  [red-integer!]
 			set? [logic!]
 			type [integer!]
-			s	 [series!]
 	][
 		set?: value <> null
 		type: TYPE_OF(element)
@@ -808,10 +807,6 @@ block: context [
 				_series/poke as red-series! parent int/value value null
 				value
 			][
-				s: GET_BUFFER(parent)
-				if s/flags and flag-series-owned <> 0 [
-					copy-cell as red-value! parent as red-value! object/path-parent
-				]
 				_series/pick as red-series! parent int/value null
 			]
 		][
@@ -823,10 +818,6 @@ block: context [
 				actions/poke as red-series! element 2 value null
 				value
 			][
-				s: GET_BUFFER(parent)
-				if s/flags and flag-series-owned <> 0 [
-					copy-cell as red-value! parent as red-value! object/path-parent
-				]
 				either type = TYPE_WORD [
 					select-word parent as red-word! element case?
 				][

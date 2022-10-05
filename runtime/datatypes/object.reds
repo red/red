@@ -14,32 +14,10 @@ object: context [
 	verbose: 0
 	
 	class-id: 1'000'000									;-- base ID for dynamically created objects
-	
-	path-parent:  declare red-object!					;-- temporary save parent object for eval-path action
-	field-parent: declare red-word!						;-- temporary save obj's field for eval-path action
-	
+		
 	get-new-id: func [return: [integer!]][				;@@ protect from concurrent accesses
 		class-id: class-id + 1
 		class-id
-	]
-	
-	check-owner: func [
-		slot [red-value!]
-		/local
-			ser  [red-series!]
-			type [integer!]
-	][
-		type: TYPE_OF(path-parent)
-		case [
-			type = TYPE_OBJECT [
-				ownership/check-slot path-parent field-parent slot
-			]	
-			ANY_SERIES?(type) [
-				ser: as red-series! path-parent
-				ownership/check as red-value! ser words/_poke null ser/head 1
-			]
-			true [0]									;-- ignore other types
-		]
 	]
 	
 	rs-find: func [
@@ -1341,10 +1319,6 @@ object: context [
 			if on-set? [fire-on-set parent as red-word! element old value]
 			res: value
 		][
-			if on-set? [
-				copy-cell as red-value! parent as red-value! path-parent
-				copy-cell as red-value! word   as red-value! field-parent
-			]
 			res: _context/get-in word ctx
 			if TYPE_OF(res) = TYPE_UNSET [do-error]
 		]
