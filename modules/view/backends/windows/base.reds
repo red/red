@@ -878,7 +878,7 @@ update-base: func [
 		rc		[RECT_STRUCT value]
 ][
 	if zero? (WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) [
-		InvalidateRect hWnd null 0
+		InvalidateRect hWnd null 1
 		exit
 	]
 
