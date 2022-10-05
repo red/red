@@ -523,15 +523,17 @@ update-scroller: func [
 	int: as red-integer! block/rs-head as red-block! (object/get-values parent) + FACE_OBJ_STATE
 	hWnd: as handle! int/value
 
-	bool: as red-logic! values + flag
-
 	if flag = SCROLLER_OBJ_VISIBLE? [
+		bool: as red-logic! values + SCROLLER_OBJ_VISIBLE?
 		ShowScrollBar hWnd as-integer vertical?/value bool/value
 		exit
 	]
 
 	fMask: switch flag [
-		SCROLLER_OBJ_POS [nPos: int/value SIF_POS]
+		SCROLLER_OBJ_POS [
+			int: as red-integer! values + SCROLLER_OBJ_POS
+			nPos: int/value SIF_POS
+		]
 		SCROLLER_OBJ_PAGE
 		SCROLLER_OBJ_MAX [
 			int: as red-integer! values + SCROLLER_OBJ_PAGE
