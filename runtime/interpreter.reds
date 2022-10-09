@@ -951,11 +951,11 @@ interpreter: context [
 			parent: actions/eval-path parent value arg path case? get? tail?
 			
 			;-- post-processing
-			if set? [
+			if all [set? head + 2 <= item][				;-- check only if set-path of length > 2
 				type: TYPE_OF(gparent)
 				case [
 					type = TYPE_OBJECT [
-						ownership/check-slot as red-object! gparent as red-word! item prev
+						ownership/check-slot as red-object! gparent as red-word! item - 1 prev
 					]	
 					ANY_SERIES?(type) [
 						ser: as red-series! gparent
@@ -970,14 +970,14 @@ interpreter: context [
 					TYPE_NATIVE
 					TYPE_ROUTINE
 					TYPE_FUNCTION [
-						pc: eval-code parent pc end code sub? path item gparent
+						pc: eval-code parent pc end code sub? path item prev
 						parent: stack/get-top
 						item: tail						;-- force loop exit
 					]
 					default [0]
 				]
 			]
-			gparent: parent								;-- save previous parent reference
+			gparent: prev								;-- save previous parent reference
 			item: item + 1
 		]
 		if tracing? [fire-event EVT_EXIT as red-block! path tail null parent]
