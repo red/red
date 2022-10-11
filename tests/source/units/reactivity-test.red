@@ -162,6 +162,46 @@ Red [
 
 ===end-group===
 
+===start-group=== "deep reactions"
+
+	--test-- "dpr-1"
+		cnt: 0
+		dpr1: deep-reactor [s: "hello"]
+		react [if dpr1/s <> "hello" [cnt: cnt + 1]]
+		dpr1/s/2: #"x"
+		--assert cnt = 1
+
+	--test-- "dpr-2"
+		cnt: 0
+		dpr2: deep-reactor [s: [a b c]]
+		react [if dpr2/s/2 <> 'b [cnt: cnt + 1]]
+		dpr2/s/2: 'x
+		--assert cnt = 1
+
+	--test-- "dpr-3"
+		cnt: 0
+		dpr3: deep-reactor [pos: 3x4 e: hello@d.com c: 1.2.3 b: make bitset! 5]
+		react [if dpr3/pos/x > 10 [cnt: cnt + 1]]
+		react [if dpr3/e/user <> "hello" [cnt: cnt + 1]]
+		react [if dpr3/c/1 > 100 [cnt: cnt + 1]]
+		react [if dpr3/b/3 [cnt: cnt + 1]]
+		do [						;; only supported in the interpreter
+			dpr3/pos/x: 2
+			dpr3/pos/x: 12	
+			--assert cnt = 1
+			dpr3/e/host: "d2.com"
+			dpr3/e/user: "hi"
+			--assert cnt = 2
+			dpr3/c/2: 200
+			dpr3/c/1: 240
+			--assert cnt = 3
+			dpr3/b/1: true
+			dpr3/b/3: true
+			--assert cnt = 4
+		]
+
+===end-group===
+
 ===start-group=== "regression tests"
 
 	--test-- "#3091"

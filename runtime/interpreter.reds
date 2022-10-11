@@ -946,21 +946,28 @@ interpreter: context [
 			
 			;-- invoke eval-path action
 			prev: parent
+			type: TYPE_OF(parent)
 			tail?: item + 1 = tail
 			arg: either all [set? tail?][stack/arguments][null]
 			parent: actions/eval-path parent value arg path case? get? tail?
 			
 			;-- post-processing
-			if all [set? head + 2 <= item][				;-- check only if set-path of length > 2
+			if all [
+				set? 
+				head + 2 <= item						;-- check only if set-path of length > 2
+				any [
+					type = TYPE_BITSET
+					type = TYPE_DATE
+					type = TYPE_MONEY
+					type = TYPE_PAIR
+					type = TYPE_TIME
+					type = TYPE_TUPLE
+				]
+			][
 				type: TYPE_OF(gparent)
 				case [
-					type = TYPE_OBJECT [
-						ownership/check-slot as red-object! gparent as red-word! item - 1 prev
-					]	
-					ANY_SERIES?(type) [
-						ser: as red-series! gparent
-						ownership/check as red-value! ser words/_set-path null ser/head 1
-					]
+					type = TYPE_OBJECT [ownership/check-slot as red-object! gparent as red-word! value prev]	
+					ANY_SERIES?(type)  [ownership/check gparent words/_set-path null ser/head 1]
 					true [0]							;-- ignore other types
 				]
 			]
