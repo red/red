@@ -1315,17 +1315,13 @@ OS-draw-spline: func [
 
 do-draw-ellipse: func [
 	ctx			[draw-ctx!]
-	x			[integer!]
-	y			[integer!]
-	width		[integer!]
-	height		[integer!]
+	x			[float32!]
+	y			[float32!]
+	width		[float32!]
+	height		[float32!]
 	/local
 		this	[this!]
 		dc		[ID2D1DeviceContext]
-		cx		[float32!]
-		cy		[float32!]
-		dx		[float32!]
-		dy		[float32!]
 		rx		[float32!]
 		ry		[float32!]
 		ellipse	[D2D1_ELLIPSE value]
@@ -1338,12 +1334,8 @@ do-draw-ellipse: func [
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
 
-	cx: as float32! x
-	cy: as float32! y
-	dx: as float32! width
-	dy: as float32! height
-	rx: dx / as float32! 2.0
-	ry: dy / as float32! 2.0
+	rx: width / as float32! 2.0
+	ry: height / as float32! 2.0
 	either ctx/shadow? [
 		offset: ctx/pen-width / (as float32! 2.0)
 		scale: dpi-value / as float32! 96.0
@@ -1351,16 +1343,16 @@ do-draw-ellipse: func [
 		ellipse/y: ry + offset
 		bmp: create-d2d-bitmap		;-- create an intermediate bitmap
 				this
-				as-integer ((as float32! width) + ctx/pen-width) * scale
-				as-integer ((as float32! height) + ctx/pen-width) * scale
+				as-integer (width + ctx/pen-width) * scale
+				as-integer (height + ctx/pen-width) * scale
 				1
 		dc/GetTransform this :m0
 		dc/SetTarget this bmp
 		matrix2d/identity :m
 		dc/SetTransform this :m			;-- set to identity matrix
 	][
-		ellipse/x: cx + rx
-		ellipse/y: cy + ry
+		ellipse/x: x + rx
+		ellipse/y: y + ry
 	]
 	ellipse/radiusX: rx
 	ellipse/radiusy: ry
@@ -1369,7 +1361,7 @@ do-draw-ellipse: func [
 			ctx/brush
 			ctx/brush-grad-type
 			ctx/brush-offset
-			cx cy cx + dx cy + dy
+			x y x + width y + height
 		dc/FillEllipse this ellipse ctx/brush
 		post-process-brush ctx/brush ctx/brush-offset
 	][
@@ -1382,7 +1374,7 @@ do-draw-ellipse: func [
 			ctx/pen
 			ctx/pen-grad-type
 			ctx/pen-offset
-			cx cy cx + dx cy + dy
+			x y x + width y + height
 		dc/DrawEllipse this ellipse ctx/pen ctx/pen-width ctx/pen-style
 		post-process-brush ctx/pen ctx/pen-offset
 	][
@@ -1392,7 +1384,7 @@ do-draw-ellipse: func [
 	]
 	if ctx/shadow? [
 		dc/SetTransform this :m0
-		draw-shadow ctx bmp x y width height
+		draw-shadow ctx bmp as-integer x as-integer y as-integer width as-integer height
 	]
 ]
 
@@ -1401,39 +1393,42 @@ OS-draw-circle: func [
 	center		[red-pair!]
 	radius		[red-integer!]
 	/local
-		rad-x	[integer!]
-		rad-y	[integer!]
-		w		[integer!]
-		h		[integer!]
+		rad-x	[float32!]
+		rad-y	[float32!]
+		w h		[float32!]
+		cx cy	[float32!]
 		f		[red-float!]
+		r		[float!]
 ][
 	either TYPE_OF(radius) = TYPE_INTEGER [
 		either center + 1 = radius [					;-- center, radius
-			rad-x: radius/value
+			rad-x: as float32! radius/value
 			rad-y: rad-x
 		][
-			rad-y: radius/value							;-- center, radius-x, radius-y
+			rad-y: as float32! radius/value				;-- center, radius-x, radius-y
 			radius: radius - 1
-			rad-x: radius/value
+			rad-x: as float32! radius/value
 		]
-		w: rad-x * 2
-		h: rad-y * 2
+		w: rad-x * as float32! 2.0
+		h: rad-y * as float32! 2.0
 	][
 		f: as red-float! radius
 		either center + 1 = radius [
-			rad-x: as-integer f/value + 0.75
+			rad-x: as float32! f/value
 			rad-y: rad-x
-			w: as-integer f/value * 2.0
+			w: rad-x * as float32! 2.0
 			h: w
 		][
-			rad-y: as-integer f/value + 0.75
-			h: as-integer f/value * 2.0
+			rad-y: as float32! f/value
+			h: rad-y * as float32! 2.0
 			f: f - 1
-			rad-x: as-integer f/value + 0.75
-			w: as-integer f/value * 2.0
+			rad-x: as float32! f/value
+			w: rad-x * as float32! 2.0
 		]
 	]
-	do-draw-ellipse ctx center/x - rad-x center/y - rad-y w h
+	cx: as float32! center/x
+	cy: as float32! center/y
+	do-draw-ellipse ctx cx - rad-x cy - rad-y w h
 ]
 
 OS-draw-ellipse: func [
@@ -1441,7 +1436,7 @@ OS-draw-ellipse: func [
 	upper		[red-pair!]
 	diameter	[red-pair!]
 ][
-	do-draw-ellipse ctx upper/x upper/y diameter/x diameter/y
+	do-draw-ellipse ctx as float32! upper/x as float32! upper/y as float32! diameter/x as float32! diameter/y
 ]
 
 OS-draw-font: func [
