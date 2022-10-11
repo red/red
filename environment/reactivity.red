@@ -82,6 +82,22 @@ system/reactivity: context [
 		unless find/same/skip relations new-rel 4 [append relations new-rel]
 	]
 	
+comment {
+	reactive-path?: function [path [any-path!] return: [word!]][
+		len: 2
+		width: length? p
+		while [len <= width][
+			slice: copy/part p len
+			type: type? get/any :slice
+			case [
+				find any-function! type [return none]
+				;type = 'object! [
+			]
+			len: len + 1
+		]		
+	]
+}
+
 	eval: function [code [block!] /safe][
 		either safe [
 			if error? set/any 'result try/all code [
@@ -233,6 +249,14 @@ system/reactivity: context [
 		obj: context? field
 		parse reaction rule: [
 			any [
+				;item: word! (if in obj item/1 [add-relation obj item/1 reaction field])
+				;| set-path! | any-string!
+				;| set item any-path! (
+				;	case [
+				;		in obj item/1 [add-relation obj item/1 reaction field]
+				;		;item: reactive-path? item [add-relation obj item reaction field]
+				;	]
+				;)
 				set-path! | any-string!
 				| [item: word! | set item any-path!] (
 					if in obj item/1 [add-relation obj item/1 reaction field]
