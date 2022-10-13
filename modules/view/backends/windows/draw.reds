@@ -1005,7 +1005,7 @@ draw-shadow: func [
 		output	[com-ptr! value]
 		sigma	[float32!]
 		s		[shadow!]
-		spread	[integer!]
+		spread	[float32!]
 		unk		[IUnknown]
 		err1	[integer!]
 		err2	[integer!]
@@ -1022,7 +1022,7 @@ draw-shadow: func [
 	until [
 		sbmp: bmp
 		spread: s/spread
-		if spread <> 0 [			;-- scale intput bitmap
+		if spread <> F32_0 [			;-- scale intput bitmap
 			dc/CreateEffect this CLSID_D2D1Scale :eff-s
 			eff2: eff-s/value
 			effect: as ID2D1Effect eff2/vtbl
@@ -1038,7 +1038,7 @@ draw-shadow: func [
 		eff: eff-v/value
 		effect: as ID2D1Effect eff/vtbl
 		effect/SetInput eff 0 sbmp true
-		if spread <> 0 [
+		if spread <> F32_0 [
 			COM_SAFE_RELEASE(unk sbmp)
 			COM_SAFE_RELEASE(unk eff2)
 		]
