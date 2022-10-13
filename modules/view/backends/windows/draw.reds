@@ -987,10 +987,10 @@ OS-draw-line-width: func [
 draw-shadow: func [
 	ctx			[draw-ctx!]
 	bmp			[this!]			;-- input bitmap
-	x			[integer!]
-	y			[integer!]
-	w			[integer!]
-	h			[integer!]
+	x			[float32!]
+	y			[float32!]
+	w			[float32!]
+	h			[float32!]
 	/local
 		this	[this!]
 		dc		[ID2D1DeviceContext]
@@ -1027,8 +1027,8 @@ draw-shadow: func [
 			eff2: eff-s/value
 			effect: as ID2D1Effect eff2/vtbl
 			effect/SetInput eff2 0 bmp true
-			pt/x: (as float32! spread * 2 + w) / (as float32! w)
-			pt/y: (as float32! spread * 2 + h) / (as float32! h)
+			pt/x: (spread * as float32! 2.0 + w) / w
+			pt/y: (spread * as float32! 2.0 + h) / h
 			effect/base/setValue eff2 0 0 as byte-ptr! :pt size? POINT_2F
 			effect/GetOutput eff2 :output
 			sbmp: output/value
@@ -1050,16 +1050,16 @@ draw-shadow: func [
 		effect/GetOutput eff :output
 		sbmp: output/value
 
-		pt/x: as float32! x + s/offset-x - spread
-		pt/y: as float32! y + s/offset-y - spread
+		pt/x: x + s/offset-x - spread
+		pt/y: y + s/offset-y - spread
 		dc/DrawImage this sbmp pt null 1 0
 		COM_SAFE_RELEASE(unk sbmp)
 		COM_SAFE_RELEASE(unk eff)
 		s: s/next
 		null? s
 	]
-	pt/x: as float32! x
-	pt/y: as float32! y
+	pt/x: x
+	pt/y: y
 	dc/DrawImage this bmp pt null 1 0
 	COM_SAFE_RELEASE(unk bmp)
 ]
@@ -1164,7 +1164,7 @@ OS-draw-box: func [
 
 	if ctx/shadow? [
 		dc/SetTransform this :m0
-		draw-shadow ctx bmp upper/x upper/y w h
+		draw-shadow ctx bmp as float32! upper/x as float32! upper/y as float32! w as float32! h
 	]
 ]
 
@@ -1384,7 +1384,7 @@ do-draw-ellipse: func [
 	]
 	if ctx/shadow? [
 		dc/SetTransform this :m0
-		draw-shadow ctx bmp as-integer x as-integer y as-integer width as-integer height
+		draw-shadow ctx bmp x y width height
 	]
 ]
 
@@ -2763,10 +2763,10 @@ OS-draw-shadow: func [
 			s: ctx/shadows
 			s/next: null
 		]
-		s/offset-x: offset/x
-		s/offset-y: offset/y
-		s/blur: blur
-		s/spread: spread
+		s/offset-x: as float32! offset/x
+		s/offset-y: as float32! offset/y
+		s/blur: as float32! blur
+		s/spread: as float32! spread
 		s/color: color
 		s/inset?: inset?
 	][
