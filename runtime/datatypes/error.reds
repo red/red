@@ -325,9 +325,16 @@ error: context [
 			blk		[red-block!]
 			int		[red-integer!]
 			arg2	[red-value!]
-			print-stack-header [subroutine!]
+			print-stack-header make-internal-error [subroutine!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "error/form"]]
+		
+		make-internal-error: [
+			copy-cell as red-value! words/errors/internal base + field-type
+			copy-cell as red-value! words/errors/invalid-error base + field-id
+			errors: as red-object! object/rs-select catalog as red-value! words/errors/internal
+			assert TYPE_Of(errors) <> TYPE_NONE
+		]
 		
 		print-stack-header: [
 			string/concatenate-literal buffer "^/*** Stack: "
@@ -342,18 +349,12 @@ error: context [
 		errors: as red-object! object/rs-select catalog base + field-type
 		if TYPE_Of(errors) = TYPE_NONE [				;-- invalid /type field, overwrite error object
 			copy-cell base + field-type base + field-arg1
-			copy-cell as red-value! words/errors/internal base + field-type
-			copy-cell as red-value! words/errors/invalid-error base + field-id
-			errors: as red-object! object/rs-select catalog as red-value! words/errors/internal
-			assert TYPE_Of(errors) <> TYPE_NONE
+			make-internal-error
 		]
 		value: object/rs-select errors base + field-id
 		if TYPE_Of(value) = TYPE_NONE [				;-- invalid /id field, overwrite error object
 			copy-cell base + field-id base + field-arg1
-			copy-cell as red-value! words/errors/internal base + field-type
-			copy-cell as red-value! words/errors/invalid-error base + field-id
-			errors: as red-object! object/rs-select catalog as red-value! words/errors/internal
-			assert TYPE_Of(errors) <> TYPE_NONE
+			make-internal-error
 			value: object/rs-select errors base + field-id
 			assert TYPE_Of(value) <> TYPE_NONE
 		]
