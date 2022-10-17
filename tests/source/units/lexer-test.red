@@ -1537,6 +1537,14 @@ Red [
 		--assert [468 hel lo] == out: transcode "468 hel^(202F)lo"
 		--assert 3 = length? out
 
+	--test-- "#5228"
+		out: load {
+			what???
+			{this is supposed to be on a new line!}
+			{this too}
+		}
+		repeat i 3 [--assert new-line? at out i]
+
 ===end-group===
 	
 ~~~end-file~~~
