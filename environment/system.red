@@ -255,7 +255,7 @@ system: context [
 			user: object [
 				code:				800
 				type:				"User Error"
-				message:			[:arg1]
+				message:			'arg1
 			]
 			internal: object [
 				code:				900

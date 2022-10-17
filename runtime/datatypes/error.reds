@@ -299,7 +299,7 @@ error: context [
 				int/value: cat * 100 + cat2 - 2
 			]
 			TYPE_STRING [
-				new: create TO_ERROR(user message) spec null null
+				return create TO_ERROR(user message) spec null null
 			]
 			default [
 				fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_ERROR spec]
@@ -365,6 +365,11 @@ error: context [
 		part: part - string/rs-length? str
 		string/concatenate-literal buffer ": "
 		part: part - 2
+
+		if TYPE_OF(value) = TYPE_WORD [
+			_context/bind-word GET_CTX(obj) as red-word! value
+			value: _context/get-in as red-word! value GET_CTX(obj)
+		]
 		
 		either TYPE_OF(value) = TYPE_STRING [
 			str: as red-string! value
