@@ -1353,6 +1353,7 @@ lexer: context [
 			i: as-integer (p/1 - #"0")
 		][
 			len: as-integer e - p
+			if zero? len [throw-error lex s e TYPE_PAIR] ;-- catch pair/y values with no digits
 			i: 0
 			o?: no
 			either flags and C_FLAG_QUOTE = 0 [			;-- no quote, faster path

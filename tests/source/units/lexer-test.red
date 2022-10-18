@@ -1537,6 +1537,13 @@ Red [
 		--assert [468 hel lo] == out: transcode "468 hel^(202F)lo"
 		--assert 3 = length? out
 
+	--test-- "#5227"
+		--assert error? try [transcode "-1x-"]
+		--assert error? try [transcode "123x-"]
+		--assert error? try [transcode "1x+"]
+		--assert error? try [transcode "+1x+"]
+		--assert error? try [transcode "123x+"]
+
 	--test-- "#5228"
 		out: load {
 			what???
