@@ -27,15 +27,33 @@ reactor!: context [
 			set-quiet word old							;-- force the old value
 			exit
 		]
+		system/reactivity/check/only self word
+	]
+]
+
+deep-reactor!: context [
+	on-change*: function [word old new][
+		if system/reactivity/debug? [
+			print [
+				"-- on-change event --" lf
+				tab "word :" word		lf
+				tab "old  :" type? :old	lf
+				tab "new  :" type? :new
+			]
+		]
+		all [
+			not empty? srs: system/reactivity/source
+			srs/1 = self
+			srs/2 = word
+			set-quiet word old							;-- force the old value
+			exit
+		]
 		unless all [block? :old block? :new same? head :old head :new][
 			if any [series? :old object? :old][modify old 'owned none]
 			if any [series? :new object? :new][modify new 'owned reduce [self word]]
 		]
 		system/reactivity/check/only self word
 	]
-]
-
-deep-reactor!: make reactor! [
 	on-deep-change*: function [owner word target action new index part][
 		system/reactivity/check/only owner word
 	]

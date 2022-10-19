@@ -987,10 +987,10 @@ OS-draw-line-width: func [
 draw-shadow: func [
 	ctx			[draw-ctx!]
 	bmp			[this!]			;-- input bitmap
-	x			[integer!]
-	y			[integer!]
-	w			[integer!]
-	h			[integer!]
+	x			[float32!]
+	y			[float32!]
+	w			[float32!]
+	h			[float32!]
 	/local
 		this	[this!]
 		dc		[ID2D1DeviceContext]
@@ -1005,7 +1005,7 @@ draw-shadow: func [
 		output	[com-ptr! value]
 		sigma	[float32!]
 		s		[shadow!]
-		spread	[integer!]
+		spread	[float32!]
 		unk		[IUnknown]
 		err1	[integer!]
 		err2	[integer!]
@@ -1022,13 +1022,13 @@ draw-shadow: func [
 	until [
 		sbmp: bmp
 		spread: s/spread
-		if spread <> 0 [			;-- scale intput bitmap
+		if spread <> F32_0 [			;-- scale intput bitmap
 			dc/CreateEffect this CLSID_D2D1Scale :eff-s
 			eff2: eff-s/value
 			effect: as ID2D1Effect eff2/vtbl
 			effect/SetInput eff2 0 bmp true
-			pt/x: (as float32! spread * 2 + w) / (as float32! w)
-			pt/y: (as float32! spread * 2 + h) / (as float32! h)
+			pt/x: (spread * as float32! 2.0 + w) / w
+			pt/y: (spread * as float32! 2.0 + h) / h
 			effect/base/setValue eff2 0 0 as byte-ptr! :pt size? POINT_2F
 			effect/GetOutput eff2 :output
 			sbmp: output/value
@@ -1038,7 +1038,7 @@ draw-shadow: func [
 		eff: eff-v/value
 		effect: as ID2D1Effect eff/vtbl
 		effect/SetInput eff 0 sbmp true
-		if spread <> 0 [
+		if spread <> F32_0 [
 			COM_SAFE_RELEASE(unk sbmp)
 			COM_SAFE_RELEASE(unk eff2)
 		]
@@ -1050,16 +1050,16 @@ draw-shadow: func [
 		effect/GetOutput eff :output
 		sbmp: output/value
 
-		pt/x: as float32! x + s/offset-x - spread
-		pt/y: as float32! y + s/offset-y - spread
+		pt/x: x + s/offset-x - spread
+		pt/y: y + s/offset-y - spread
 		dc/DrawImage this sbmp pt null 1 0
 		COM_SAFE_RELEASE(unk sbmp)
 		COM_SAFE_RELEASE(unk eff)
 		s: s/next
 		null? s
 	]
-	pt/x: as float32! x
-	pt/y: as float32! y
+	pt/x: x
+	pt/y: y
 	dc/DrawImage this bmp pt null 1 0
 	COM_SAFE_RELEASE(unk bmp)
 ]
@@ -1164,7 +1164,7 @@ OS-draw-box: func [
 
 	if ctx/shadow? [
 		dc/SetTransform this :m0
-		draw-shadow ctx bmp upper/x upper/y w h
+		draw-shadow ctx bmp as float32! upper/x as float32! upper/y as float32! w as float32! h
 	]
 ]
 
@@ -1315,17 +1315,13 @@ OS-draw-spline: func [
 
 do-draw-ellipse: func [
 	ctx			[draw-ctx!]
-	x			[integer!]
-	y			[integer!]
-	width		[integer!]
-	height		[integer!]
+	x			[float32!]
+	y			[float32!]
+	width		[float32!]
+	height		[float32!]
 	/local
 		this	[this!]
 		dc		[ID2D1DeviceContext]
-		cx		[float32!]
-		cy		[float32!]
-		dx		[float32!]
-		dy		[float32!]
 		rx		[float32!]
 		ry		[float32!]
 		ellipse	[D2D1_ELLIPSE value]
@@ -1338,12 +1334,8 @@ do-draw-ellipse: func [
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
 
-	cx: as float32! x
-	cy: as float32! y
-	dx: as float32! width
-	dy: as float32! height
-	rx: dx / as float32! 2.0
-	ry: dy / as float32! 2.0
+	rx: width / as float32! 2.0
+	ry: height / as float32! 2.0
 	either ctx/shadow? [
 		offset: ctx/pen-width / (as float32! 2.0)
 		scale: dpi-value / as float32! 96.0
@@ -1351,16 +1343,16 @@ do-draw-ellipse: func [
 		ellipse/y: ry + offset
 		bmp: create-d2d-bitmap		;-- create an intermediate bitmap
 				this
-				as-integer ((as float32! width) + ctx/pen-width) * scale
-				as-integer ((as float32! height) + ctx/pen-width) * scale
+				as-integer (width + ctx/pen-width) * scale
+				as-integer (height + ctx/pen-width) * scale
 				1
 		dc/GetTransform this :m0
 		dc/SetTarget this bmp
 		matrix2d/identity :m
 		dc/SetTransform this :m			;-- set to identity matrix
 	][
-		ellipse/x: cx + rx
-		ellipse/y: cy + ry
+		ellipse/x: x + rx
+		ellipse/y: y + ry
 	]
 	ellipse/radiusX: rx
 	ellipse/radiusy: ry
@@ -1369,7 +1361,7 @@ do-draw-ellipse: func [
 			ctx/brush
 			ctx/brush-grad-type
 			ctx/brush-offset
-			cx cy cx + dx cy + dy
+			x y x + width y + height
 		dc/FillEllipse this ellipse ctx/brush
 		post-process-brush ctx/brush ctx/brush-offset
 	][
@@ -1382,7 +1374,7 @@ do-draw-ellipse: func [
 			ctx/pen
 			ctx/pen-grad-type
 			ctx/pen-offset
-			cx cy cx + dx cy + dy
+			x y x + width y + height
 		dc/DrawEllipse this ellipse ctx/pen ctx/pen-width ctx/pen-style
 		post-process-brush ctx/pen ctx/pen-offset
 	][
@@ -1401,39 +1393,42 @@ OS-draw-circle: func [
 	center		[red-pair!]
 	radius		[red-integer!]
 	/local
-		rad-x	[integer!]
-		rad-y	[integer!]
-		w		[integer!]
-		h		[integer!]
+		rad-x	[float32!]
+		rad-y	[float32!]
+		w h		[float32!]
+		cx cy	[float32!]
 		f		[red-float!]
+		r		[float!]
 ][
 	either TYPE_OF(radius) = TYPE_INTEGER [
 		either center + 1 = radius [					;-- center, radius
-			rad-x: radius/value
+			rad-x: as float32! radius/value
 			rad-y: rad-x
 		][
-			rad-y: radius/value							;-- center, radius-x, radius-y
+			rad-y: as float32! radius/value				;-- center, radius-x, radius-y
 			radius: radius - 1
-			rad-x: radius/value
+			rad-x: as float32! radius/value
 		]
-		w: rad-x * 2
-		h: rad-y * 2
+		w: rad-x * as float32! 2.0
+		h: rad-y * as float32! 2.0
 	][
 		f: as red-float! radius
 		either center + 1 = radius [
-			rad-x: as-integer f/value + 0.75
+			rad-x: as float32! f/value
 			rad-y: rad-x
-			w: as-integer f/value * 2.0
+			w: rad-x * as float32! 2.0
 			h: w
 		][
-			rad-y: as-integer f/value + 0.75
-			h: as-integer f/value * 2.0
+			rad-y: as float32! f/value
+			h: rad-y * as float32! 2.0
 			f: f - 1
-			rad-x: as-integer f/value + 0.75
-			w: as-integer f/value * 2.0
+			rad-x: as float32! f/value
+			w: rad-x * as float32! 2.0
 		]
 	]
-	do-draw-ellipse ctx center/x - rad-x center/y - rad-y w h
+	cx: as float32! center/x
+	cy: as float32! center/y
+	do-draw-ellipse ctx cx - rad-x cy - rad-y w h
 ]
 
 OS-draw-ellipse: func [
@@ -1441,7 +1436,7 @@ OS-draw-ellipse: func [
 	upper		[red-pair!]
 	diameter	[red-pair!]
 ][
-	do-draw-ellipse ctx upper/x upper/y diameter/x diameter/y
+	do-draw-ellipse ctx as float32! upper/x as float32! upper/y as float32! diameter/x as float32! diameter/y
 ]
 
 OS-draw-font: func [
@@ -2768,10 +2763,10 @@ OS-draw-shadow: func [
 			s: ctx/shadows
 			s/next: null
 		]
-		s/offset-x: offset/x
-		s/offset-y: offset/y
-		s/blur: blur
-		s/spread: spread
+		s/offset-x: as float32! offset/x
+		s/offset-y: as float32! offset/y
+		s/blur: as float32! blur
+		s/spread: as float32! spread
 		s/color: color
 		s/inset?: inset?
 	][

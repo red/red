@@ -1530,10 +1530,6 @@ red: context [
 		
 		if all [1 <> length? obj-stack path/1 = last obj-stack][remove path]		;-- remove temp object prefix inserted by object-access? (mind #4567!)
 		
-		if set? [
-			emit [object/path-parent/header: TYPE_NONE]
-			insert-lf -2
-		]
 		emit either integer? last path [
 			pick [set-int-path* eval-int-path*] set?
 		][
@@ -2989,7 +2985,7 @@ red: context [
 			either obj/5 [
 				ctx: either empty? locals-stack [obj/2]['octx]
 				emit reduce ['object/push ctx obj/5/5 obj/3 obj/5/1 obj/5/2 obj/5/3 obj/5/4] ;-- event(s) case
-				insert-lf -7
+				insert-lf -8
 			][
 				emit reduce ['object/init-push obj/2 obj/3]
 				insert-lf -3

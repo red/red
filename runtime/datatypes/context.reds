@@ -344,8 +344,8 @@ _context: context [
 		get-in word TO_CTX(node)
 	]
 	
-	clone-words: func [		;-- clone a context. only copy words, without values
-		slot	[red-block!]
+	clone-words: func [									;-- (called by compiler) clone a context. only copy words, without values
+		slot	[red-block!]							;-- returned type by `get-root`
 		type	[context-type!]
 		return: [node!]
 		/local
@@ -359,7 +359,7 @@ _context: context [
 			slots	[integer!]
 	][
 		assert TYPE_OF(slot) = TYPE_OBJECT
-		obj: as red-object! slot
+		obj: as red-object! slot						;-- type-casting is internalized to reduce code emitted by compiler
 		node: obj/ctx
 		ctx: TO_CTX(node)
 		src: _hashtable/get-ctx-words ctx
@@ -383,27 +383,28 @@ _context: context [
 	]
 
 	create: func [
-		slots	[integer!]							;-- max number of words in the context
-		stack?	[logic!]							;-- TRUE: alloc values on stack, FALSE: alloc them from heap
+		slots	[integer!]								;-- max number of words in the context
+		stack?	[logic!]								;-- TRUE: alloc values on stack, FALSE: alloc them from heap
 		self?	[logic!]
-		proto	[red-context!]						;-- if proto <> null, copy all the words in the proto context
+		proto	[red-context!]							;-- if proto <> null, copy all the words in the proto context
 		type	[context-type!]
 		return:	[node!]
 		/local
 			cell [red-context!]
 			slot [red-value!]
-			node [node!]
+			sym	 [red-word!]
+			new  [node!]
 			vals [node!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/create"]]
 		
 		if zero? slots [slots: 1]
-		node: alloc-cells 2
-		cell: as red-context! alloc-tail as series! node/value
+		new: alloc-cells 2
+		cell: as red-context! alloc-tail as series! new/value
 		cell/header: TYPE_UNSET							;-- properly set cell's type before possible GC pass
-		slot: alloc-tail as series! node/value			;-- allocate a slot for obj/func back-reference
+		slot: alloc-tail as series! new/value			;-- allocate a slot for obj/func back-reference
 		slot/header: TYPE_UNSET	
-		cell/self: node
+		cell/self: new
 
 		either stack? [
 			cell/values: null							;-- will be set to stack frame dynamically
@@ -417,7 +418,7 @@ _context: context [
 		]
 		SET_CTX_TYPE(cell type)
 		if self? [cell/header: cell/header or flag-self-mask]
-		node
+		new
 	]
 	
 	make: func [

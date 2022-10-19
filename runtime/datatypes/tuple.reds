@@ -459,7 +459,6 @@ tuple: context [
 					fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(value)]
 				]
 				poke parent int/value value null
-				object/check-owner as red-value! parent
 				value
 			][
 				pick parent int/value null

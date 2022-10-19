@@ -12,7 +12,7 @@ each-mode: batch-mode: ci-each: debug-mode: no
 if args: any [system/script/args system/options/args][
 	batch-mode: find args "--batch"
 	each-mode:  find args "--each"
-	ci-each:  find args "--ci-each"
+	ci-each:	find args "--ci-each"
 	debug-mode: find args "--debug"
 ]
 

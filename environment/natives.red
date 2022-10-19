@@ -930,9 +930,10 @@ decompress: make native! [[
 ]
 
 recycle: make native! [[
-		"Recycles unused memory"
-		/on		"Turns on garbage collector"
-		/off	"Turns off garbage collector"
+		"Recycles unused memory and returns memory amount still in use"
+		/on		"Turns on garbage collector; returns nothing"
+		/off	"Turns off garbage collector; returns nothing"
+		return: [integer! unset!]
 	]
 	#get-definition NAT_RECYCLE
 ]

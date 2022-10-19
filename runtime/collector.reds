@@ -327,26 +327,6 @@ collector: context [
 		keep case-folding/upper-to-lower/node
 		keep case-folding/lower-to-upper/node
 		lexer/mark-buffers
-
-		#if debug? = yes [if verbose > 1 [probe "marking path parent"]]
-		obj: object/path-parent
-		if TYPE_OF(obj) = TYPE_OBJECT [
-			mark-context obj/ctx
-			if obj/on-set <> null [keep obj/on-set]
-		]
-		w: object/field-parent
-		if TYPE_OF(w) = TYPE_WORD [
-			if w/ctx <> null [
-				;print-symbol w
-				;print "^/"
-				either w/symbol = words/self [
-					;probe "self"
-					mark-block-node w/ctx
-				][
-					mark-context w/ctx
-				]
-			]
-		]
 		
 		#if debug? = yes [if verbose > 1 [probe "marking globals from optional modules"]]
 		p: ext-markers

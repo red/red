@@ -14,32 +14,10 @@ object: context [
 	verbose: 0
 	
 	class-id: 1'000'000									;-- base ID for dynamically created objects
-	
-	path-parent:  declare red-object!					;-- temporary save parent object for eval-path action
-	field-parent: declare red-word!						;-- temporary save obj's field for eval-path action
-	
+		
 	get-new-id: func [return: [integer!]][				;@@ protect from concurrent accesses
 		class-id: class-id + 1
 		class-id
-	]
-	
-	check-owner: func [
-		slot [red-value!]
-		/local
-			ser  [red-series!]
-			type [integer!]
-	][
-		type: TYPE_OF(path-parent)
-		case [
-			type = TYPE_OBJECT [
-				ownership/check-slot path-parent field-parent slot
-			]	
-			ANY_SERIES?(type) [
-				ser: as red-series! path-parent
-				ownership/check as red-value! ser words/_poke null ser/head 1
-			]
-			true [0]									;-- ignore other types
-		]
 	]
 	
 	rs-find: func [
@@ -794,13 +772,15 @@ object: context [
 	
 	rebind: func [
 		fun	 [red-function!]
-		ctx  [red-context!]
+		octx [red-context!]
 		self [node!]
 		/local
 			s	 [series!]
 			more [red-value!]
 			blk  [red-block!]
 			spec [red-block!]
+			ctx	 [red-context!]
+			fctx [node!]
 	][
 		s: as series! fun/more/value
 		more: s/offset
@@ -814,10 +794,14 @@ object: context [
 		spec/node:	 fun/spec
 		spec/extra:	 0
 		
+		fctx: copy-series as series! fun/ctx/value		;-- clone the ctx 2-cell block
+		ctx: TO_CTX(fctx)
+		ctx/self: fctx									;-- update the red-context! value self-reference
+		
 		blk: block/clone as red-block! more yes yes
-		_context/bind blk ctx self yes					;-- rebind new body to object's context
-		_context/bind blk GET_CTX(fun) null no			;-- rebind new body to function's context
-		_function/push spec blk	fun/ctx null null fun/header ;-- recreate function
+		_context/bind blk octx self yes					;-- rebind new body to object's context
+		_context/bind blk ctx null no					;-- rebind new body to function's context
+		_function/push spec blk	fctx null null fun/header ;-- recreate function
 		copy-cell stack/top - 1	as red-value! fun		;-- overwrite function slot in object
 		stack/pop 2										;-- remove extra stack slots (block/clone and _function/push)
 		
@@ -1335,10 +1319,6 @@ object: context [
 			if on-set? [fire-on-set parent as red-word! element old value]
 			res: value
 		][
-			if on-set? [
-				copy-cell as red-value! parent as red-value! path-parent
-				copy-cell as red-value! word   as red-value! field-parent
-			]
 			res: _context/get-in word ctx
 			if TYPE_OF(res) = TYPE_UNSET [do-error]
 		]

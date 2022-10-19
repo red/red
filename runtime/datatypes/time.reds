@@ -324,7 +324,6 @@ time: context [
 				]
 				default [assert false]
 			]
-			object/check-owner as red-value! t
 			value
 		][
 			value: push-field t field

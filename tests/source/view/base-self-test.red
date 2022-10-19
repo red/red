@@ -1358,8 +1358,8 @@ view/no-wait [text "This window is a workaround for R2 call bug which hides firs
 		;-- checks if text is 1) indeed rendered 2) colors are as requested
 		bst-cs: colorset? bst-im: shoot [base' "CAT"]
 		--assert test-dual-chrome? bst-im bst-cs
-		--assert test-color-match? bst-im bst-cs/1 bst-colors/bg
-		--assert test-color-match? bst-im bst-cs/3 bst-colors/fg
+		--assert test-color-match?     bst-im bst-cs/1 bst-colors/bg
+		--assert test-color-match?/tol bst-im bst-cs/3 bst-colors/fg 0 20
 		--assert test-match?/tol bst-im bst-cs/2 95%  0 4.5%
 		--assert test-match?/tol bst-im bst-cs/4 5%   0 4.5%
 	]
@@ -1371,7 +1371,7 @@ view/no-wait [text "This window is a workaround for R2 call bug which hides firs
 		try [	;-- colors/window might be undefined
 			--assert test-color-match? bst-im bst-cs/1 system/view/metrics/colors/panel
 		]
-		--assert test-color-match? bst-im bst-cs/3 bst-colors/fg
+		--assert test-color-match?/tol bst-im bst-cs/3 bst-colors/fg 0 20
 		--assert test-match?/tol bst-im bst-cs/2 95%  0 4.5%
 		--assert test-match?/tol bst-im bst-cs/4 5%   0 4.5%
 
@@ -1384,7 +1384,7 @@ view/no-wait [text "This window is a workaround for R2 call bug which hides firs
 			--assert test-color-match? bst-im bst-cs/1 system/view/metrics/colors/panel
 		]
 		try [ 	;-- colors/text might be undefined
-			--assert test-color-match? bst-im bst-cs/3 system/view/metrics/colors/text
+			--assert test-color-match?/tol bst-im bst-cs/3 system/view/metrics/colors/text 0 20
 		]
 		--assert test-match?/tol bst-im bst-cs/2 95%  0 4.5%
 		--assert test-match?/tol bst-im bst-cs/4 5%   0 4.5%
@@ -1394,8 +1394,8 @@ view/no-wait [text "This window is a workaround for R2 call bug which hides firs
 		;-- checks if text is 1) indeed rendered 2) colors are as requested
 		bst-cs: colorset? bst-im: shoot [text' "CAT"]
 		--assert test-dual-chrome? bst-im bst-cs
-		--assert test-color-match? bst-im bst-cs/1 bst-colors/bg
-		--assert test-color-match? bst-im bst-cs/3 bst-colors/fg
+		--assert test-color-match?     bst-im bst-cs/1 bst-colors/bg
+		--assert test-color-match?/tol bst-im bst-cs/3 bst-colors/fg 0 20
 		--assert test-match?/tol bst-im bst-cs/2 90%  0 9.0%
 		--assert test-match?/tol bst-im bst-cs/4 9.5% 0 9.0%
 	]
@@ -1407,7 +1407,7 @@ view/no-wait [text "This window is a workaround for R2 call bug which hides firs
 		try [	;-- colors/window might be undefined
 			--assert test-color-match? bst-im bst-cs/1 system/view/metrics/colors/panel
 		]
-		--assert test-color-match? bst-im bst-cs/3 bst-colors/fg
+		--assert test-color-match?/tol bst-im bst-cs/3 bst-colors/fg 0 20
 		--assert test-match?/tol bst-im bst-cs/2 90%  0 9.0%
 		--assert test-match?/tol bst-im bst-cs/4 9.5% 0 9.0%
 
@@ -1420,7 +1420,7 @@ view/no-wait [text "This window is a workaround for R2 call bug which hides firs
 			--assert test-color-match? bst-im bst-cs/1 system/view/metrics/colors/panel
 		]
 		try [ 	;-- colors/text might be undefined
-			--assert test-color-match? bst-im bst-cs/3 system/view/metrics/colors/text
+			--assert test-color-match?/tol bst-im bst-cs/3 system/view/metrics/colors/text 0 20
 		]
 		--assert test-match?/tol bst-im bst-cs/2 90%  0 9.0%
 		--assert test-match?/tol bst-im bst-cs/4 9.5% 0 9.0%

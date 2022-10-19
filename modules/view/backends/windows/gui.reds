@@ -523,15 +523,17 @@ update-scroller: func [
 	int: as red-integer! block/rs-head as red-block! (object/get-values parent) + FACE_OBJ_STATE
 	hWnd: as handle! int/value
 
-	bool: as red-logic! values + flag
-
 	if flag = SCROLLER_OBJ_VISIBLE? [
+		bool: as red-logic! values + SCROLLER_OBJ_VISIBLE?
 		ShowScrollBar hWnd as-integer vertical?/value bool/value
 		exit
 	]
 
 	fMask: switch flag [
-		SCROLLER_OBJ_POS [nPos: int/value SIF_POS]
+		SCROLLER_OBJ_POS [
+			int: as red-integer! values + SCROLLER_OBJ_POS
+			nPos: int/value SIF_POS
+		]
 		SCROLLER_OBJ_PAGE
 		SCROLLER_OBJ_MAX [
 			int: as red-integer! values + SCROLLER_OBJ_PAGE
@@ -2535,8 +2537,8 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_COLOR <> 0 [
 		case [
-			type = base [
-				update-base hWnd GetParent hWnd null values
+			IS_D2D_FACE(type) [
+				update-base hWnd null null values
 			]
 			type = calendar [
 				update-calendar-color hWnd as red-value! values + FACE_OBJ_COLOR
@@ -2556,10 +2558,18 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_FONT <> 0 [
 		set-font hWnd face values
-		InvalidateRect hWnd null 1
+		either IS_D2D_FACE(type) [
+			update-base hWnd null null values
+		][
+			InvalidateRect hWnd null 1
+		]
 	]
 	if flags and FACET_FLAG_PARA <> 0 [
-		InvalidateRect hWnd null 1
+		either IS_D2D_FACE(type) [
+			update-base hWnd null null values
+		][
+			InvalidateRect hWnd null 1
+		]
 	]
 	if flags and FACET_FLAG_MENU <> 0 [
 		menu: as red-block! values + FACE_OBJ_MENU

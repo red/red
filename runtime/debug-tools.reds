@@ -13,9 +13,11 @@ Red/System [
 print-symbol: func [
 	word [red-word!]
 	/local
+		s	[series!]
 		sym [red-symbol!]
 ][
-	sym: symbol/get word/symbol
+	s: GET_BUFFER(symbols)
+	sym: as red-symbol! s/offset + word/symbol - 1
 	print as-c-string (as series! sym/cache/value) + 1
 ]
 

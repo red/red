@@ -26,7 +26,23 @@ face?: function [
 	value	"Value to test"
 	return:	[logic!]
 ][
-	to logic! all [object? :value (class-of value) = class-of face!]
+	to logic! all [
+		object? :value
+		any [
+			(class-of value) = class-of face!
+			all [										;-- (temporary) fallback heuristic
+				in value 'type
+				in value 'offset
+				in value 'size
+				in value 'parent
+				in value 'pane
+				in value 'state
+				in value 'para
+				in value 'font
+				in value 'actors
+			]
+		]
+	]
 ]
 
 size-text: function [
