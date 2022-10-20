@@ -1107,7 +1107,6 @@ assert s <> null
 			start  [red-value!]
 			w	   [red-word!]
 			op	   [red-value!]
-			near   [red-block!]
 			sym	   [integer!]
 			infix? [logic!]
 			lit?   [logic!]
@@ -1119,15 +1118,6 @@ assert s <> null
 		infix?: no
 		start: pc
 		top?: not sub?
-		
-		if code <> null [
-			assert any [TYPE_OF(code) = TYPE_BLOCK TYPE_OF(code) = TYPE_PAREN TYPE_OF(code) = TYPE_HASH]
-			near: as red-block! #get system/state/near	;-- keep the Near: field updated
-			near/header: TYPE_BLOCK
-			near/head:   (as-integer pc - block/rs-head code) >> 4
-			near/node:   code/node
-			near/extra:   0
-		]
 		
 		unless prefix? [
 			next: as red-word! pc + 1
@@ -1390,9 +1380,14 @@ assert s <> null
 		chain? [logic!]									;-- chain it with previous stack frame
 		/local
 			value head tail arg [red-value!]
+			near  [red-block!]
+			saved [red-block! value]
 	][
 		head: block/rs-head code
 		tail: block/rs-tail code
+		
+		near: as red-block! #get system/state/near
+		copy-cell as red-value! near as red-value! saved
 
 		stack/mark-eval words/_body						;-- outer stack frame
 		if tracing? [fire-event EVT_ENTER code head null null]
@@ -1403,11 +1398,18 @@ assert s <> null
 			value: head
 			while [value < tail][
 				#if debug? = yes [if verbose > 0 [log "root loop..."]]
+		
+				near/header: TYPE_BLOCK
+				near/head:   (as-integer value - head) >> 4
+				near/node:   code/node
+				near/extra:   0
+				
 				value: eval-expression value tail code no no no
 				if value + 1 <= tail [stack/reset]
 			]
 		]
 		if tracing? [fire-event EVT_EXIT code tail null stack/arguments]
+		copy-cell as red-value! saved as red-value! near
 		either chain? [stack/unwind-last][stack/unwind]
 	]
 	
