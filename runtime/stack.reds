@@ -18,13 +18,6 @@ Red/System [
 stack: context [										;-- call stack
 	verbose: 0
 	
-	dyn-info!: alias struct! [
-		header [integer!]
-		code   [integer!]
-		count  [integer!]
-		locals [integer!]
-	]
-	
 	call-frame!: alias struct! [
 		header [integer!]								;-- symbol ID of the calling function
 		prev   [red-value!]								;-- previous frame base
