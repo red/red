@@ -1395,8 +1395,7 @@ interpreter: context [
 			value: head
 			while [value < tail][
 				#if debug? = yes [if verbose > 0 [log "root loop..."]]
-				catch RED_THROWN_ERROR [value: eval-expression value tail code no no no]
-				if system/thrown <> 0 [re-throw]
+				value: eval-expression value tail code no no no
 				if value + 1 <= tail [stack/reset]
 			]
 		]
