@@ -323,7 +323,6 @@ Red [
 			forall objectz [--assert objectz/1 == test objectz/1]
 		
 		--test-- "error"
-			unless system/state/interpreted? [system/state/near: none] ;-- avoids random NEAR: values from compiled code
 			errors: reduce [
 				try [1 / 0]
 				try [transcode "$FOO"]
