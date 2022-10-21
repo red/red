@@ -284,7 +284,6 @@ system: context [
 		interpreted?: func ["Return TRUE if called from the interpreter"][
 			#system [logic/box stack/eval? null no]
 		]
-		near:		 none								;-- slot from which to fill error/near field
 		last-error:  none
 		stack-trace: 1									;-- 0: disabled
 		

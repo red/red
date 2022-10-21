@@ -325,6 +325,7 @@ collector: context [
 		#if debug? = yes [if verbose > 1 [probe "marking globals"]]
 		keep case-folding/upper-to-lower/node
 		keep case-folding/lower-to-upper/node
+		if interpreter/near/node <> null [keep interpreter/near/node]
 		lexer/mark-buffers
 		
 		#if debug? = yes [if verbose > 1 [probe "marking globals from optional modules"]]

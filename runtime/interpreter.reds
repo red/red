@@ -134,6 +134,7 @@ interpreter: context [
 	fun-locs:	0										;-- event handler locals count
 	fun-evts:	0										;-- bitmask for encoding selected events
 	all-events:	1FFFFh									;-- bit-mask of all events
+	near:		declare red-block!						;-- Near: field in error! objects
 	
 	log: func [msg [c-string!]][
 		print "eval: "
@@ -1372,13 +1373,10 @@ interpreter: context [
 		chain? [logic!]									;-- chain it with previous stack frame
 		/local
 			value head tail arg [red-value!]
-			near  [red-block!]
 			saved [red-block! value]
 	][
 		head: block/rs-head code
 		tail: block/rs-tail code
-		
-		near: as red-block! #get system/state/near
 		copy-cell as red-value! near as red-value! saved
 
 		stack/mark-eval words/_body						;-- outer stack frame
@@ -1387,15 +1385,12 @@ interpreter: context [
 			arg: stack/arguments
 			arg/header: TYPE_UNSET
 		][
+			copy-cell as red-value! code as red-value! near ;-- initialize near cell
 			value: head
+			
 			while [value < tail][
 				#if debug? = yes [if verbose > 0 [log "root loop..."]]
-		
-				near/header: TYPE_BLOCK
-				near/head:   (as-integer value - head) >> 4
-				near/node:   code/node
-				near/extra:   0
-				
+				near/head: (as-integer value - head) >> 4
 				value: eval-expression value tail code no no no
 				if value + 1 <= tail [stack/reset]
 			]
@@ -1407,5 +1402,8 @@ interpreter: context [
 	
 	init: does [
 		trace-fun: as red-function! ALLOC_TAIL(root)	;-- keep the tracing func reachable by the GC marker
+		
+		near/header: TYPE_UNSET
+		near/extra:  0
 	]
 ]

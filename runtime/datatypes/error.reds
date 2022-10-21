@@ -305,8 +305,7 @@ error: context [
 				fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_ERROR spec]
 			]
 		]
-		copy-cell #get system/state/near base + field-near
-		copy-cell none-value #get system/state/near		;-- reset system/state/near after usage
+		copy-cell as red-value! interpreter/near base + field-near
 		new
 	]
 	
