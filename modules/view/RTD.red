@@ -95,8 +95,8 @@ context [
 					f	[next entry/2]
 					bg	[reduce ['backdrop entry/2/2]]
 				]
-				clear skip tail stack -2
 			]
+			clear skip tail stack -2
 		][cause-error 'script 'rtd-no-match reduce [style]]
 	]
 
