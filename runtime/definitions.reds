@@ -363,10 +363,10 @@ Red/System [
 		]
 
 		shadow!: alias struct! [
-			offset-x		[integer!]
-			offset-y		[integer!]
-			blur			[integer!]
-			spread			[integer!]
+			offset-x		[float32!]
+			offset-y		[float32!]
+			blur			[float32!]
+			spread			[float32!]
 			color			[integer!]
 			inset?			[logic!]
 			next			[shadow!]

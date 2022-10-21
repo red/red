@@ -761,6 +761,7 @@ system/view/platform: context [
 			Windows [
 				check:			[16x0  0x0]				;-- 13 + 3 for text padding
 				radio:			[16x0  0x0]				;-- 13 + 3 for text padding
+				field:			[0x8   0x5]
 				group-box:		[3x3  10x3]
 				tab-panel:		[1x3  25x0]
 				button:			[8x8   0x0]

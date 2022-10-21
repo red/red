@@ -38,7 +38,8 @@ map: context [
 	]
 
 	preprocess-key: func [
-		key		[red-value!]
+		key	 [red-value!]
+		path [red-value!]
 	][
 		switch TYPE_OF(key) [
 			TYPE_ANY_WORD [key/header: TYPE_SET_WORD]		;-- convert any-word! to set-word!
@@ -47,7 +48,7 @@ map: context [
 			TYPE_MONEY
 			TYPE_INTEGER TYPE_CHAR TYPE_FLOAT TYPE_DATE TYPE_PERCENT
 			TYPE_TUPLE TYPE_PAIR TYPE_TIME TYPE_ISSUE TYPE_REFINEMENT [0]
-			default		[fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(key)]]
+			default	[fire [TO_ERROR(script invalid-path) path datatype/push TYPE_OF(key)]]
 		]
 	]
 
@@ -153,7 +154,7 @@ map: context [
 			value: cell + 1
 			either key = null [
 				copy-cell cell kkey
-				preprocess-key kkey
+				preprocess-key kkey null
 				s: as series! map/node/value
 				key: copy-cell kkey as cell! alloc-tail-unit s (size? cell!) << 1
 				val: key + 1
@@ -511,7 +512,7 @@ map: context [
 		either value <> null [						;-- set value
 			either key = null [
 				copy-cell element k
-				preprocess-key k
+				preprocess-key k path
 				s: as series! parent/node/value
 				key: copy-cell k as cell! alloc-tail-unit s (size? cell!) << 1
 				val: key + 1

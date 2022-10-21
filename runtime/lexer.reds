@@ -35,6 +35,7 @@ lexer: context [
 		C_FLAG_LESSER:	00100000h
 		C_FLAG_GREATER: 00080000h
 		C_FLAG_PERCENT: 00040000h
+		C_FLAG_NEWLINE: 00020000h
 	]
 	
 	#define FL_UCS4		[(C_WORD or C_FLAG_UCS4)]
@@ -1117,6 +1118,7 @@ lexer: context [
 	scan-mstring-open: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
 		if all [zero? lex/mstr-nest lex/fun-ptr <> null][fire-event lex EVT_OPEN TYPE_STRING null s e]
 		if zero? lex/mstr-nest [lex/mstr-s: s]
+		if lex/nline > 0 [flags: flags or C_FLAG_NEWLINE]
 		lex/mstr-nest: lex/mstr-nest + 1
 		lex/mstr-flags: lex/mstr-flags or flags
 		lex/entry: S_M_STRING
@@ -1351,6 +1353,7 @@ lexer: context [
 			i: as-integer (p/1 - #"0")
 		][
 			len: as-integer e - p
+			if zero? len [throw-error lex s e TYPE_PAIR] ;-- catch pair/y values with no digits
 			i: 0
 			o?: no
 			either flags and C_FLAG_QUOTE = 0 [			;-- no quote, faster path
@@ -1438,6 +1441,7 @@ lexer: context [
 		unit: 1 << (flags >>> 30)
 		if unit > 4 [unit: 4]
 		type: either lex/type = -1 [TYPE_STRING][lex/type]
+		if flags and C_FLAG_NEWLINE <> 0 [lex/nline: 1]	;-- force a new-line marker (curly strings)
 
 		either flags and C_FLAG_CARET = 0 [				;-- fast path when no escape sequence
 			str: string/make-at alloc-slot lex len unit

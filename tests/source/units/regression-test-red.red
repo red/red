@@ -3444,9 +3444,7 @@ comment {
 		;; prevent the inner literal block [] to be referenced by loaded Redbin
 		;; payload. Moreover, as the loaded code is kept on stack by `do`, the 
 		;; memory cannot be fully released, so an extra `recycle` is needed
-		;; after `do`. Also, the `system/state/near` slot used by interpreted
-		;; code needs to be cleared, to ensure a reference to `r` object is
-		;; not kept there.
+		;; after `do`.
 
 		s0: s1: s2: none
 		do {
@@ -3456,7 +3454,6 @@ comment {
 			--assert s1 - s0 >= 260'000
 			r: none
 		}
-		system/state/near: none
 		s2: recycle
 		--assert s2 - s0 < 2000
 

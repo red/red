@@ -255,7 +255,7 @@ system: context [
 			user: object [
 				code:				800
 				type:				"User Error"
-				message:			[:arg1]
+				message:			'arg1
 			]
 			internal: object [
 				code:				900
@@ -284,7 +284,6 @@ system: context [
 		interpreted?: func ["Return TRUE if called from the interpreter"][
 			#system [logic/box stack/eval? null no]
 		]
-		near:		 none								;-- slot from which to fill error/near field
 		last-error:  none
 		stack-trace: 1									;-- 0: disabled
 		
