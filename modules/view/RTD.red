@@ -84,18 +84,21 @@ context [
 		type: any [all [block? entry/2 entry/2/1] entry/2]
 
 		either style = type [
-			if entry/1 < tail-idx? [					;-- ignore zero-range styles
-				append out as-pair entry/1 tail-idx? - entry/1
-				new-line back tail out on
-				append out switch style [
-					b	['bold]
-					i	['italic]
-					u	['underline]
-					s	['strike]
-					f	[next entry/2]
-					bg	[reduce ['backdrop entry/2/2]]
+			case [
+				entry/1 < tail-idx? [					;-- zero-range styles excluded
+					append out as-pair entry/1 tail-idx? - entry/1
+					new-line back tail out on
+					append out switch style [
+						b	['bold]
+						i	['italic]
+						u	['underline]
+						s	['strike]
+						f	[next entry/2]
+						bg	[reduce ['backdrop entry/2/2]]
+					]
+					clear skip tail stack -2
 				]
-				clear skip tail stack -2
+				entry/1 = tail-idx? [clear skip tail stack -2]
 			]
 		][cause-error 'script 'rtd-no-match reduce [style]]
 	]
