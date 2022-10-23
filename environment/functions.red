@@ -77,7 +77,7 @@ probe: func [
 
 quote: func [
 	"Return but don't evaluate the next value"
-	:value
+	:value [any-type!]
 ][
 	:value
 ]
