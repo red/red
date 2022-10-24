@@ -832,6 +832,7 @@ parser: context [
 			done?	 [logic!]
 			saved?	 [logic!]
 			gc-saved [logic!]
+			append?  [logic!]
 			do-keep  [subroutine!]
 	][
 		match?:	  yes
@@ -854,9 +855,9 @@ parser: context [
 		do-keep: [
 			either into? [
 				switch TYPE_OF(blk) [
-					TYPE_BINARY [binary/insert as red-binary! blk value null yes null no]
-					TYPE_ANY_STRING [string/insert as red-string! blk value null yes null no]
-					default  [block/insert blk value null yes null no]
+					TYPE_BINARY 	[binary/insert as red-binary! blk value null yes null append?]
+					TYPE_ANY_STRING [string/insert as red-string! blk value null yes null append?]
+					default  		[block/insert blk value null yes null append?]
 				]
 			][
 				block/rs-append blk value
@@ -1058,11 +1059,13 @@ parser: context [
 								if match? [
 									blk: as red-block! stack/get-top
 									assert any [
-										TYPE_OF(blk) = TYPE_WORD
-										TYPE_OF(blk) = TYPE_GET_WORD
-										TYPE_OF(blk) = TYPE_BLOCK
+										TYPE_OF(blk) = TYPE_WORD		;-- COLLECT SET
+										TYPE_OF(blk) = TYPE_GET_WORD	;-- COLLECT INTO
+										TYPE_OF(blk) = TYPE_REFINEMENT	;-- COLLECT AFTER
+										TYPE_OF(blk) = TYPE_BLOCK		;-- COLLECT
 									]
-									into?: TYPE_OF(blk) = TYPE_GET_WORD
+									append?: TYPE_OF(blk) = TYPE_REFINEMENT
+									into?: any [TYPE_OF(blk) = TYPE_GET_WORD append?]
 									if into? [
 										blk: as red-block! _context/get as red-word! blk
 										type: TYPE_OF(blk)
@@ -1098,7 +1101,8 @@ parser: context [
 										either rtype = R_KEEP_PAREN [
 											s-top: stack/top	;-- shields the stack from eventual object event call
 											either flags = R_PICK_FLAG [
-												block/insert blk value null no null yes
+												append?: any [append? not into?] ;-- force appending for simple COLLECT
+												block/insert blk value null no null append?
 											][
 												do-keep
 											]
@@ -1188,7 +1192,8 @@ parser: context [
 												_context/set as red-word! blk value
 												stack/pop 1
 											]
-											TYPE_GET_WORD [
+											TYPE_GET_WORD
+											TYPE_REFINEMENT [
 												blk: as red-block! _context/get as red-word! blk
 												block/insert-value blk value
 											]
@@ -1201,12 +1206,14 @@ parser: context [
 									]
 									stack/pop 1
 								]
-								if TYPE_OF(value) = TYPE_GET_WORD [	;-- COLLECT INTO exiting
+								if any [				;-- COLLECT INTO/AFTER exiting
+									TYPE_OF(value) = TYPE_GET_WORD
+									TYPE_OF(value) = TYPE_REFINEMENT
+								][
 									t: as triple! s/tail - 3
-									unless t/max = -1 [
-										blk: as red-block! _context/get as red-word! value
-										blk/head: t/max	;-- restore saved block cursor
-									]
+									assert t/max <> -1
+									blk: as red-block! _context/get as red-word! value
+									blk/head: t/max		;-- restore saved block cursor
 								]
 							]
 							R_INTO [
@@ -1808,7 +1815,7 @@ parser: context [
 									]
 
 									either not into? [stack/push as red-value! w][
-										value: _context/get w		;-- #4197
+										value: _context/get w	;-- #4197
 										type:  TYPE_OF(value)
 										type2: TYPE_OF(input)
 										if all [
@@ -1820,10 +1827,9 @@ parser: context [
 										][
 											PARSE_ERROR [TO_ERROR(script parse-into-type)]
 										]
-										get-word/push w
+										either sym = words/after [refinement/push w][get-word/push w]
 									]
-									
-									cmd: as red-value! w
+									cmd: cmd + 2		;-- skip `COLLECT <word>`
 								]
 							]
 							either into? [
@@ -1832,7 +1838,7 @@ parser: context [
 								if all [type <> TYPE_OF(input) not ANY_SERIES_PARSE?(type)][
 									PARSE_ERROR [TO_ERROR(script parse-into-type)]
 								]
-								max: either sym = words/after [-1][blk/head] ;-- save block cursor
+								max: blk/head			;-- save block cursor
 							][
 								block/push-only* 8
 							]
