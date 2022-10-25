@@ -462,14 +462,13 @@ Red [
 	--test-- "blk-ext53"
 		a: []
 		--assert parse [1] [collect after a [keep skip]]
-		--assert a = []
-		--assert [1] = head a
+		--assert a = [1]
 
 	--test-- "blk-ext54"
 		list: next [1 2 3]
 		--assert parse [a 4 b 5 c] [collect after list [some [keep word! | skip]]]
-		--assert list = [2 3]
-		--assert [1 a b c 2 3] = head list
+		--assert list = [2 3 a b c ]
+		--assert [1 2 3 a b c ] = head list
 		
 ===end-group===
 
@@ -2945,6 +2944,16 @@ Red [
 		--assert parse to-binary "    123" [integer!]
 		--assert parse to-binary "hello 123 world" [word! integer! word!]
 		--assert parse to-binary "hello 123 world" [word! space integer! space word!]
+
+	--test-- "#5232"
+		parse/case [a b c @ d e f] [collect set   x any [@ keep pick ('-) | keep skip]]
+		--assert x = [a b c - d e f]
+		x: []
+		parse/case [a b c @ d e f] [collect into  x any [@ keep pick ('-) | keep skip]]
+		--assert x = [a b c - d e f]
+		x: []
+		parse/case [a b c @ d e f] [collect after x any [@ keep pick ('-) | keep skip]]
+		--assert x = [a b c - d e f]
 
 ===end-group===
     
