@@ -1557,12 +1557,6 @@ red: context [
 		emit-close-frame
 	]
 	
-	emit-eval-path: func [/set][
-		emit 'actions/eval-path*
-		emit either set ['true]['false]
-		insert-lf -2
-	]
-	
 	get-return-type: func [spec [block!] /local type][	;-- for routine spec blocks
 		all [
 			type: select spec return-def
