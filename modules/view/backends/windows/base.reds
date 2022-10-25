@@ -899,7 +899,7 @@ update-base: func [
 		do-draw hWnd null cmds yes no no yes
 	][
 		system/thrown: 0
-		draw-begin :ctx hWnd null yes no
+		catch RED_THROWN_ERROR [draw-begin :ctx hWnd null yes no]
 		draw-end :ctx hWnd yes no no
 		if system/thrown = RED_THROWN_ERROR [
 			system/thrown: 0
