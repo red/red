@@ -16,6 +16,10 @@ g_standby?: no
 
 #include %text-box.reds
 
+#enum DRAW-ERROR! [
+	DRAW_OUT_OF_MEMORY: 1
+]
+
 #enum DRAW-BRUSH-TYPE! [
 	DRAW_BRUSH_NONE
 	DRAW_BRUSH_COLOR
@@ -270,7 +274,10 @@ draw-begin: func [
 		red-img: as red-image! values + FACE_OBJ_IMAGE
 		if TYPE_OF(red-img) = TYPE_IMAGE [
 			pos2: as red-pair! values + FACE_OBJ_SIZE
-			OS-draw-image ctx red-img null pos2 null no null null
+			if 0 <> OS-draw-image ctx red-img null pos2 null no null null [
+				report TO_ERROR(internal no-memory) null null null
+				throw RED_THROWN_ERROR 
+			]
 		]
 
 		text: as red-string! values + FACE_OBJ_TEXT
@@ -1764,6 +1771,7 @@ OS-draw-image: func [
 	border?		[logic!]
 	crop1		[red-pair!]
 	pattern		[red-word!]
+	return:		[integer!]
 	/local
 		this	[this!]
 		dc		[ID2D1DeviceContext]
@@ -1796,7 +1804,9 @@ OS-draw-image: func [
 	same-img?: ctx/image = image/node
 	if same-img? [dc/EndDraw this null null] ;-- same image as the drawing target, unlock the image
 	ithis: OS-image/get-handle image yes
-	dc/CreateBitmapFromWicBitmap2 this ithis null :bmp
+	if 0 <> dc/CreateBitmapFromWicBitmap2 this ithis null :bmp [
+		return DRAW_OUT_OF_MEMORY
+	]
 	if same-img? [dc/BeginDraw this]
 	bthis: as this! bmp/value
 	d2db: as IUnknown bthis/vtbl
@@ -1822,7 +1832,7 @@ OS-draw-image: func [
 			src/top: src/bottom
 			src/bottom: fval
 		]
-		if any [src/right <= F32_0 src/bottom <= F32_0][exit]
+		if any [src/right <= F32_0 src/bottom <= F32_0][return 0]
 		if src/left <= F32_0 [
 			x: x - (as-integer src/left)
 			src/left: F32_0
@@ -1903,6 +1913,7 @@ OS-draw-image: func [
 	dc/DrawBitmap2 this as int-ptr! bthis dst as float32! 1.0 5 src trans
 
 	d2db/Release bthis
+	0
 ]
 
 _OS-draw-brush-bitmap: func [
