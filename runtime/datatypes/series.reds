@@ -1061,13 +1061,13 @@ _series: context [
 		bytes:	part << (log-b unit)
 		either part? [
 			node:	alloc-bytes bytes
-			s:      GET_BUFFER(ser)
 			buffer: as series! node/value
 			buffer/flags: s/flags						;@@ filter flags?
 		][	;-- take 1 element
 			if null? take-buffer [take-buffer: alloc-fixed-series 1 16 0]
 			node:	take-buffer
 			buffer: as series! node/value
+			buffer/flags: buffer/flags and flag-unit-mask or unit
 		]
 
 		ser2: as red-series! stack/push*
