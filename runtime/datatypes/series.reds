@@ -12,6 +12,7 @@ Red/System [
 
 _series: context [
 	verbose: 0
+	take-buffer: as node! 0
 	
 	rs-tail?: func [
 		ser		[red-series!]
@@ -1014,6 +1015,8 @@ _series: context [
 			size	[integer!]
 			hash	[red-hash!]
 			part2	[integer!]
+			check?	[logic!]
+			part?	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "series/take"]]
 
@@ -1026,8 +1029,9 @@ _series: context [
 		unit: GET_UNIT(s)
 		part: 1
 		part2: 1
+		part?: OPTION?(part-arg)
 
-		if OPTION?(part-arg) [
+		if part? [
 			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
 				int: as red-integer! part-arg
 				int/value
@@ -1049,14 +1053,20 @@ _series: context [
 				part: either last? [1][0 - part]
 			]
 			if part > size [part: size]
-			if zero? part [part: 1]
+			if zero? part [part: 1]	
 		]
 
 		bytes:	part << (log-b unit)
-		node: 	alloc-bytes bytes
-		s:      GET_BUFFER(ser)
-		buffer: as series! node/value
-		buffer/flags: s/flags							;@@ filter flags?
+		either part? [
+			node:	alloc-bytes bytes
+			s:      GET_BUFFER(ser)
+			buffer: as series! node/value
+			buffer/flags: s/flags						;@@ filter flags?
+		][	;-- take 1 element
+			if null? take-buffer [take-buffer: alloc-fixed-series 1 16 0]
+			node:	take-buffer
+			buffer: as series! node/value
+		]
 
 		ser2: as red-series! stack/push*
 		ser2/header: TYPE_OF(ser)
@@ -1064,7 +1074,7 @@ _series: context [
 		ser2/node:  node
 		ser2/head:  0
 
-		ownership/check as red-value! ser words/_take null ser/head part2
+		check?: ownership/check as red-value! ser words/_take null ser/head part2
 
 		offset: (as byte-ptr! s/offset) + (ser/head << (log-b unit))
 		tail: as byte-ptr! s/tail
@@ -1101,7 +1111,7 @@ _series: context [
 			hash/header: TYPE_HASH
 		]
 		
-		ownership/check as red-value! ser words/_taken null ser/head 0
+		if check? [ownership/check as red-value! ser words/_taken null ser/head 0]
 		as red-value! ser2
 	]
 
