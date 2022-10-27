@@ -3356,6 +3356,16 @@ comment {
 			"1 a ^/2 b ^/3 c"
 			mold/only new-line/all/skip [1 a 2 b 3 c] yes 2
 
+	--test-- "#5066"
+		do [
+			s: append/dup "" "x" 1001
+			loop 1 b: [take/last s]
+			recycle recycle/off
+			s1: stats loop 1000 b n: stats - s1
+			--assert zero? n
+			recycle/on
+		]
+
 	--test-- "#5067"
 		c5067: context [
 			b: reduce ['f does [visited?: yes print ""]]
