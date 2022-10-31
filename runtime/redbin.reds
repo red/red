@@ -55,6 +55,8 @@ redbin: context [
 	offset:      0
 	codec?:      no
 	
+	#if debug? = yes [indent: 0]
+	
 	header: #{
 		52454442494E								;-- REDBIN magic
 		02											;-- version
@@ -549,6 +551,7 @@ redbin: context [
 			TYPE_MONEY [(money/get-sign as red-money! data) << 20]
 			default    [0]
 		]
+		#if debug? = yes [if verbose > 0 [loop indent << 2 [prin " "] probe ["<< type: " type]]]
 
 		switch type [
 			TYPE_UNSET
@@ -747,6 +750,8 @@ redbin: context [
 			stack? self?  [logic!]
 			values?       [logic!]
 	][
+		#if debug? = yes [if verbose > 0 [loop indent << 2 [prin " "] probe "<< type: context!"]]
+
 		ctx:     as red-context! data
 		kind:    GET_CTX_TYPE(ctx)
 		stack?:  ON_STACK?(ctx)
@@ -1047,6 +1052,7 @@ redbin: context [
 		store payload header
 		
 		unless header and REDBIN_REFERENCE_MASK <> 0 [
+			#if debug? = yes [indent: indent + 1]
 			store payload object/class
 			if owner? [
 				buffer: as series! object/on-set/value
@@ -1058,6 +1064,7 @@ redbin: context [
 			
 			ctx: as red-value! TO_CTX(object/ctx)
 			encode-context ctx payload symbols table strings
+			#if debug? = yes [indent: indent - 1]
 		]
 	]
 	
@@ -1772,10 +1779,12 @@ redbin: context [
 		
 		unless header and REDBIN_REFERENCE_MASK <> 0 [
 			store payload length
+			#if debug? = yes [indent: indent + 1]
 			loop length [
 				encode-value value payload symbols table strings
 				value:  value + 1
 			]
+			#if debug? = yes [indent: indent - 1]
 		]
 	]
 	
