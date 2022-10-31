@@ -1515,6 +1515,12 @@ OS-draw-arc: func [
 	angle-begin: rad * as float32! begin/value
 	angle: begin + 1
 	sweep: angle/value
+
+	if any [sweep >= 360 sweep <= -360][
+		do-draw-ellipse ctx cx - rad-x cy - rad-y rad-x * as float32! 2.0 rad-y * as float32! 2.0
+		exit
+	]
+
 	i: begin/value + sweep
 	angle-end: rad * as float32! i
 
@@ -1571,7 +1577,7 @@ OS-draw-arc: func [
 	arc/size/height: rad-y
 	arc/angle: as float32! 0.0
 	arc/direction: as-integer sweep >= 0
-	arc/arcSize: either sweep >= 180 [1][0]
+	arc/arcSize: either any [sweep >= 180 sweep <= -180][1][0]
 	hr: gsink/AddArc sthis arc
 	gsink/EndFigure sthis either closed? [1][0]
 
