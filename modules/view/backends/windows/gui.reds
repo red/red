@@ -36,6 +36,8 @@ Red/System [
 	any [sym = base sym = rich-text sym = window sym = panel]
 ]
 
+#define FACE_FREED(hwnd) [zero? GetWindowLong hwnd wc-offset]
+
 #include %win32.reds
 #include %direct2d.reds
 #include %matrix2d.reds
