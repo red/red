@@ -1373,6 +1373,7 @@ WndProc: func [
 		]
 		WM_NOTIFY [
 			nmhdr: as tagNMHDR lParam
+			if FACE_FREED(nmhdr/hWndFrom) [return 0]
 			switch nmhdr/code [
 				TCN_SELCHANGING [return process-tab-select nmhdr/hWndFrom]
 				TCN_SELCHANGE	[process-tab-change nmhdr/hWndFrom]
