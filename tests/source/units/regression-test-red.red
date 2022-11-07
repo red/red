@@ -3467,6 +3467,11 @@ comment {
 		s2: recycle
 		--assert s2 - s0 < 2000
 
+	--test-- "#5238"
+		h: make hash! [1 2 3 4 5 6 7 8 9 10 11 12 13]
+		loop 10000 [copy h]
+		--assert hash? h
+
 ===end-group===
 
 ~~~end-file~~~
