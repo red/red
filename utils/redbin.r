@@ -306,7 +306,7 @@ context [
 	]
 	
 	emit-block: func [
-		blk [any-block!] /with main-ctx [word!] /sub
+		blk [any-block! path! lit-path! set-path!] /with main-ctx [word!] /sub
 		/local type item binding ctx idx emit? multi-line?
 	][
 		if profile? [profile blk]

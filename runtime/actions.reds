@@ -393,6 +393,9 @@ actions: context [
 			stack/arguments + 1
 			value
 			null
+			null
+			null
+			-1
 			no
 			no
 			yes
@@ -403,6 +406,9 @@ actions: context [
 		element	[red-value!]
 		value	[red-value!]
 		path	[red-path!]
+		gparent [red-value!]
+		p-item	[red-value!]
+		index	[integer!]
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
@@ -417,13 +423,16 @@ actions: context [
 			element	[red-value!]
 			value	[red-value!]
 			path	[red-value!]
+			gparent [red-value!]
+			p-item	[red-value!]
+			index	[integer!]
 			case?	[logic!]
 			get?	[logic!]
 			tail?	[logic!]
 			return:	[red-value!]
 		] get-action-ptr-path parent ACT_EVALPATH as red-value! path element
 		
-		action-path parent element value as red-value! path case? get? tail?
+		action-path parent element value as red-value! path gparent p-item index case? get? tail?
 	]
 	
 	set-path*: func [][]
