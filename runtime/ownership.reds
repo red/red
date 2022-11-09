@@ -254,6 +254,21 @@ ownership: context [
 		]
 	]
 	
+	check-slot2: func [
+		owner [red-object!]
+		word  [red-word!]
+		old	  [red-value!]
+		value [red-value!]
+		/local
+			ctx [red-context!]
+	][
+		ctx: GET_CTX(owner)
+probe _hashtable/get-value table as-integer ctx		
+		if ctx/header and flag-owner <> 0 [				;-- test if object is an owner
+			object/fire-on-set owner word old value
+		]
+	]
+	
 	init: does [
 		table: _hashtable/init size null HASH_TABLE_INTEGER 3
 	]

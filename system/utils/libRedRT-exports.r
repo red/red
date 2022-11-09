@@ -6,12 +6,7 @@
 	red/get-root-node2
 	red/type-check-alt
 	red/type-check
-	red/set-int-path*
-	red/eval-int-path*
-	red/set-path*
 	red/eval-path*
-	red/eval-int-path
-	red/eval-path
 	red/select-key*
 	red/alloc-bytes
 	red/alloc-cells

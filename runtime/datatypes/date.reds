@@ -973,6 +973,9 @@ date: context [
 		element	[red-value!]
 		value	[red-value!]
 		path	[red-value!]
+		gparent [red-value!]
+		p-item	[red-value!]
+		index	[integer!]
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
@@ -980,6 +983,8 @@ date: context [
 		/local
 			word   [red-word!]
 			int	   [red-integer!]
+			obj	   [red-object!]
+			old	   [red-value!]
 			tm	   [red-time!]
 			dt2	   [red-date!]
 			days   [integer!]
@@ -990,6 +995,7 @@ date: context [
 			wd	   [integer!]
 			time?  [logic!]
 			error? [logic!]
+			evt?   [logic!]
 	][
 		error?: no
 
@@ -1013,6 +1019,10 @@ date: context [
 				int: as red-integer! value
 				v: int/value
 			]
+			obj: as red-object! gparent
+			evt?: all [obj <> null TYPE_OF(obj) = TYPE_OBJECT obj/on-set <> null TYPE_OF(p-item) = TYPE_WORD]
+			if evt? [old: stack/push as red-value! dt]
+
 			d: dt/date
 			time?: DATE_GET_TIME_FLAG(d)
 			switch field [
@@ -1056,7 +1066,7 @@ date: context [
 						int: as red-integer! element
 						int/value: int/value - 6		;-- normalize accessor for time!
 					]
-					time/eval-path as red-time! dt element value path case? no yes
+					time/eval-path as red-time! dt element value path gparent p-item index case? no yes
 					set-time dt dt/time field = 7
 					dt/date: DATE_SET_TIME_FLAG(dt/date)
 				]
@@ -1080,6 +1090,10 @@ date: context [
 					dt/date: days-to-date v - 1 * 7 + W1-1-of d :wd DATE_GET_ZONE(d) time?
 				]
 				default [assert false]
+			]
+			if evt? [
+				object/fire-on-set as red-object! gparent as red-word! p-item old as red-value! dt
+				stack/pop 1								;-- avoid moving stack top
 			]
 			value
 		][

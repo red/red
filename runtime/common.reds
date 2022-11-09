@@ -254,61 +254,61 @@ type-check: func [
 	arg													;-- pass-thru argument
 ]
 
-set-path*: func [
-	parent  [red-value!]
-	element [red-value!]
-][
-	stack/set-last actions/eval-path parent element stack/arguments null no no yes
-]
-
-set-int-path*: func [
-	parent  [red-value!]
-	index 	[integer!]
-][
-	stack/set-last actions/eval-path
-		parent
-		as red-value! integer/push index
-		stack/arguments									;-- value to set
-		null
-		no
-		no
-		yes
-]
-
 eval-path*: func [
-	parent  [red-value!]
-	element [red-value!]
-][
-	stack/set-last actions/eval-path parent element null null no no yes ;-- no value to set
-]
-
-eval-path: func [
-	parent  [red-value!]
-	element [red-value!]
-	return: [red-value!]
-][
-	actions/eval-path parent element null null no no no ;-- pass the value reference directly (no copying!)
-]
-
-eval-int-path*: func [
-	parent	[red-value!]
-	index	[integer!]
+	[variadic]
+	count [integer!]
+	list  [int-ptr!]
 	/local
-		int	[red-value!]
+		arg value gparent prev item parent p-item [red-value!]
+		path [red-path!]
+		obj	 [red-object!]
+		w	 [red-word!]
+		idx	 [integer!]
+		set? [logic!]
+		tail?[logic!]
 ][
-	int: as red-value! integer/push index
-	stack/set-last actions/eval-path parent int null null no no yes ;-- no value to set
-]
+	set?: as-logic list/value
+	list: list + 1
+	count: count - 1
 
-eval-int-path: func [
-	parent  [red-value!]
-	index 	[integer!]
-	return: [red-value!]
-	/local
-		int	[red-value!]
-][
-	int: as red-value! integer/push index
-	actions/eval-path parent int null null no no no		;-- pass the value reference directly (no copying!)
+	arg: either set? [stack/arguments][null]
+	gparent: null
+	value: null
+	tail?: no
+	
+	item: as red-value! list/value
+	p-item: item
+	list: list + 1
+	count: count - 1
+	
+	either TYPE_OF(item) <> TYPE_WORD [parent: item][	;-- compiler generates non-word head value for function's words
+		w: as red-word! item
+		parent: _context/get w
+		if w/ctx <> global-ctx [
+			obj: as red-object! GET_CTX(w) + 1
+			if TYPE_OF(obj) <> TYPE_OBJECT [gparent: as red-value! obj]
+		]
+	]
+	
+	path: null
+	prev: null
+	idx:  0
+	
+	while [count > 0][
+		item: as red-value! list/value
+		tail?: count = 1
+		if tail? [value: arg]
+	
+		prev: parent
+		parent: actions/eval-path parent item value path gparent p-item idx no no tail?
+		gparent: prev
+		p-item: item
+		
+		idx: idx + 1
+		list: list + 1
+		count: count - 1
+	]
+	stack/set-last parent
 ]
 
 select-key*: func [										;-- called by compiler for SWITCH
@@ -692,6 +692,7 @@ words: context [
 	_clear:			as red-word! 0
 	_cleared:		as red-word! 0
 	_set-path:		as red-word! 0
+	_set-path2:		as red-word! 0
 	_append:		as red-word! 0
 	_appended:		as red-word! 0
 	_poke:			as red-word! 0
@@ -769,6 +770,10 @@ words: context [
 	_lexer-cb:		as red-word! 0
 	_parse-cb:		as red-word! 0
 	_compare-cb:	as red-word! 0
+	
+	;-- object events
+	_x:				as red-word! 0
+	_y:				as red-word! 0
 	
 	_local: 		as red-word! 0
 	
@@ -959,12 +964,13 @@ words: context [
 		_clear:			word/load "clear"
 		_cleared:		word/load "cleared"
 		_set-path:		word/load "set-path"
+		_set-path:		word/load "set-path2"
 		_append:		word/load "append"
 		_appended:		word/load "appended"
 		_move:			word/load "move"
 		_moved:			word/load "moved"
 		_poke:			word/load "poke"
-		_poked:			word/load "poked"		
+		_poked:			word/load "poked"
 		_put:			word/load "put"
 		_put-ed:		word/load "put-ed"
 		;_remove:		word/load "remove"
@@ -1060,6 +1066,12 @@ words: context [
 		errors/user:	 word/load "user"
 		errors/internal: word/load "internal"
 		errors/invalid-error: word/load "invalid-error"
+		
+		;-- object events
+		_x:				word/load "x"
+		_y:				word/load "y"
+			
+		_local: 		as red-word! 0
 		
 		_local:			 word/load "local"
 		

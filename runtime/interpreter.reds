@@ -887,29 +887,34 @@ interpreter: context [
 		sub?	[logic!]
 		case?	[logic!]
 		return: [red-value!]
-		/local 
-			head tail item parent gparent saved prev arg [red-value!]
+		/local
+			head tail item parent gparent saved prev arg p-item [red-value!]
 			path  [red-path!]
+			obj	  [red-object!]
+			w	  [red-word!]
 			ser	  [red-series!]
-			type  [integer!]
+			type idx [integer!]
 			tail? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "eval: path"]]
 		
-		path:   as red-path! value
-		head:   block/rs-head as red-block! path
-		tail:   block/rs-tail as red-block! path
+		path: as red-path! value
+		head: block/rs-head as red-block! path
+		tail: block/rs-tail as red-block! path
 		if head = tail [fire [TO_ERROR(script empty-path)]]
 		if tracing? [fire-event EVT_ENTER as red-block! path head null null]
 		if tracing? [fire-event EVT_FETCH as red-block! path head head head]
 		
-		item:   head + 1
-		saved:  stack/top
+		item:  head + 1
+		saved: stack/top
+		idx:   0
 		
 		if TYPE_OF(head) <> TYPE_WORD [fire [TO_ERROR(script word-first) path]]
 		
-		parent: _context/get as red-word! head
-		gparent: parent
+		p-item: head
+		w: as red-word! head
+		parent: _context/get w
+		gparent: null
 		
 		switch TYPE_OF(parent) [
 			TYPE_ACTION									;@@ replace with TYPE_ANY_FUNCTION
@@ -927,6 +932,11 @@ interpreter: context [
 			default	   [0]
 		]
 		if tracing? [fire-event EVT_PUSH as red-block! path head head parent]
+
+		if w/ctx <> global-ctx [
+			obj: as red-object! GET_CTX(w) + 1
+			if TYPE_OF(obj) <> TYPE_OBJECT [gparent: as red-value! obj]
+		]
 		
 		while [item < tail][
 			#if debug? = yes [if verbose > 0 [print-line ["eval: path parent: " TYPE_OF(parent)]]]
@@ -950,28 +960,8 @@ interpreter: context [
 			type: TYPE_OF(parent)
 			tail?: item + 1 = tail
 			arg: either all [set? tail?][stack/arguments][null]
-			parent: actions/eval-path parent value arg path case? get? tail?
-			
-			;-- post-processing
-			if all [
-				set? 
-				head + 2 <= item						;-- check only if set-path of length > 2
-				any [
-					type = TYPE_BITSET
-					type = TYPE_DATE
-					type = TYPE_MONEY
-					type = TYPE_PAIR
-					type = TYPE_TIME
-					type = TYPE_TUPLE
-				]
-			][
-				type: TYPE_OF(gparent)
-				case [
-					type = TYPE_OBJECT [ownership/check-slot as red-object! gparent as red-word! value prev]	
-					ANY_SERIES?(type)  [ownership/check gparent words/_set-path null ser/head 1]
-					true [0]							;-- ignore other types
-				]
-			]
+			parent: actions/eval-path parent value arg path gparent p-item idx case? get? tail?
+
 			if all [not get? not set?][
 				switch TYPE_OF(parent) [
 					TYPE_ACTION							;@@ replace with TYPE_ANY_FUNCTION
@@ -985,8 +975,10 @@ interpreter: context [
 					default [0]
 				]
 			]
+			p-item: item
 			gparent: prev								;-- save previous parent reference
 			item: item + 1
+			idx: idx + 1
 		]
 		if tracing? [fire-event EVT_EXIT as red-block! path tail null parent]
 

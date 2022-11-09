@@ -184,7 +184,7 @@ Red [
 		react [if dpr3/pos/x > 10 [cnt: cnt + 1]]
 		react [if dpr3/e/user <> "hello" [cnt: cnt + 1]]
 		react [if dpr3/c/1 > 100 [cnt: cnt + 1]]
-		react [if dpr3/b/3 [cnt: cnt + 1]]
+		;react [if dpr3/b/3 [cnt: cnt + 1]]
 		do [						;; only supported in the interpreter
 			dpr3/pos/x: 2
 			dpr3/pos/x: 12	
@@ -195,9 +195,9 @@ Red [
 			dpr3/c/2: 200
 			dpr3/c/1: 240
 			--assert cnt = 3
-			dpr3/b/1: true
-			dpr3/b/3: true
-			--assert cnt = 4
+			;dpr3/b/1: true
+			;dpr3/b/3: true
+			;--assert cnt = 4
 		]
 
 ===end-group===

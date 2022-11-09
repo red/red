@@ -482,7 +482,7 @@ red: context [
 	]
 	
 	get-path-word: func [
-		original [any-word!] blk [block!] get? [logic!]
+		original [any-word!] blk [block!] get? [logic!] first? [logic!]
 		/local name new obj ctx idx
 	][
 		name: to word! original
@@ -506,12 +506,12 @@ red: context [
 					attempt [idx: get-word-index/with name ctx]
 				][
 					repend blk [
-						'word/get-in
+						'word/push-local
 						either parent-object? obj ['octx][ctx] ;-- optional parametrized context reference (octx)
 						idx
 					]
 				][	
-					append/only blk '_context/get
+					unless first? [append/only blk '_context/get]
 					append/only blk prefix-exec name
 				]
 			][
@@ -1511,7 +1511,7 @@ red: context [
 	
 	emit-path: func [
 		path [path! set-path!] set? [logic!] alt? [logic!]
-		/local pos words item blk get? mark
+		/local idx pos words item blk get? mark
 	][
 		either set? [
 			emit-open-frame 'eval-set-path
@@ -1526,34 +1526,28 @@ red: context [
 		][
 			emit-open-frame 'eval-path
 		]
-		pos: tail output
-		
 		if all [1 <> length? obj-stack path/1 = last obj-stack][remove path]		;-- remove temp object prefix inserted by object-access? (mind #4567!)
 		
-		emit either integer? last path [
-			pick [set-int-path* eval-int-path*] set?
+		idx: either empty? ctx-stack [
+			redbin/emit-block path
 		][
-			pick [set-path* eval-path*] set?
+			redbin/emit-block/with path last ctx-stack
 		]
-		insert-lf -1
-		mark: tail output
-		path: back tail path
-		while [not head? path: back path][
-			emit pick [eval-int-path eval-path] integer? path/1
-		]												;-- path should be at head again
+		emit 'eval-path*
 		
-		words: clear []
-		blk:   make block! 20
+		words: reduce [to word! form set?]
+		blk: make block! 20								;-- requires by get-path-word, returned as result
 		forall path [
-			append words either integer? item: path/1 [item][
+			append words either integer? item: path/1 [
+				reduce ['integer/push item]
+			][
 				get?: to logic! any [head? path get-word? item]
-				get-path-word item clear blk get?
+				get-path-word item clear blk get? head? path
 			]
 		]
-		emit words
-		
-		new-line/all mark no
-		new-line pos yes
+		new-line/all words no
+		emit reduce [words]
+		insert-lf -2
 		emit-close-frame
 	]
 	

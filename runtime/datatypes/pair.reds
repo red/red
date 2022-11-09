@@ -266,14 +266,20 @@ pair: context [
 		element	[red-value!]
 		value	[red-value!]
 		path	[red-value!]
+		gparent [red-value!]
+		p-item	[red-value!]
+		index	[integer!]
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
 		return:	[red-value!]
 		/local
+			obj	 [red-object!]
+			old	 [red-value!]
 			int	 [red-integer!]
 			axis [integer!]
 			type [integer!]
+			evt? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "pair/eval-path"]]
 		
@@ -293,9 +299,17 @@ pair: context [
 			if type <> TYPE_INTEGER [
 				fire [TO_ERROR(script invalid-type) datatype/push type]
 			]
+			obj: as red-object! gparent
+			evt?: all [obj <> null TYPE_OF(obj) = TYPE_OBJECT obj/on-set <> null TYPE_OF(p-item) = TYPE_WORD]
+			if evt? [old: stack/push as red-value! parent]
+			
 			int: as red-integer! stack/arguments
 			int/header: TYPE_INTEGER
 			either axis = 1 [parent/x: int/value][parent/y: int/value]
+			if evt? [
+				object/fire-on-set as red-object! gparent as red-word! p-item old as red-value! parent
+				stack/pop 1								;-- avoid moving stack top
+			]
 			as red-value! int
 		][
 			int: integer/push either axis = 1 [parent/x][parent/y]

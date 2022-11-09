@@ -1277,6 +1277,9 @@ object: context [
 		element	[red-value!]
 		value	[red-value!]
 		path	[red-value!]
+		gparent [red-value!]
+		p-item	[red-value!]
+		index	[integer!]
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
@@ -1502,7 +1505,7 @@ object: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/put"]]
 
-		eval-path obj field value as red-value! none-value case? no yes
+		eval-path obj field value as red-value! none-value null null -1 case? no yes
 		value
 	]
 
