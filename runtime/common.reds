@@ -692,7 +692,6 @@ words: context [
 	_clear:			as red-word! 0
 	_cleared:		as red-word! 0
 	_set-path:		as red-word! 0
-	_set-path2:		as red-word! 0
 	_append:		as red-word! 0
 	_appended:		as red-word! 0
 	_poke:			as red-word! 0
@@ -964,7 +963,6 @@ words: context [
 		_clear:			word/load "clear"
 		_cleared:		word/load "cleared"
 		_set-path:		word/load "set-path"
-		_set-path:		word/load "set-path2"
 		_append:		word/load "append"
 		_appended:		word/load "appended"
 		_move:			word/load "move"
