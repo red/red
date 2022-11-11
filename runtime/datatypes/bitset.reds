@@ -821,15 +821,19 @@ bitset: context [
 			p	 [byte-ptr!]
 			tail [byte-ptr!]
 			byte [byte!]
+			chk? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bitset/clear"]]
 
+		chk?: ownership/check as red-value! bits words/_clear null -1 -1
 		s: 	  GET_BUFFER(bits)
 		p: 	  as byte-ptr! s/offset
 		tail: as byte-ptr! s/tail
 		
 		byte: either FLAG_NOT?(s) [#"^(FF)"][null-byte]
 		while [p < tail][p/value: byte p: p + 1]
+		
+		if chk? [ownership/check as red-value! bits words/_cleared null -1 -1]
 		as red-value! bits
 	]
 	
@@ -883,10 +887,15 @@ bitset: context [
 		dup-arg	 [red-value!]
 		append?	 [logic!]
 		return:	 [red-value!]
+		/local
+			idx	 [integer!]
+			chk? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bitset/insert"]]
 		
-		process value bits OP_SET no CMD_OTHER
+		chk?: ownership/check as red-value! bits words/_insert value -1 1
+		idx: process value bits OP_SET no CMD_OTHER
+		if chk? [ownership/check as red-value! bits words/_inserted value idx 1]
 		as red-value! bits
 	]
 	
@@ -929,6 +938,7 @@ bitset: context [
 			type  [integer!]
 			op	  [integer!]
 			s	  [series!]
+			chk?  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bitset/poke"]]
 		
@@ -948,7 +958,9 @@ bitset: context [
 		][
 			OP_SET
 		]
+		chk?: ownership/check as red-value! bits words/_poke data index 1
 		process boxed bits op no CMD_OTHER
+		if chk? [ownership/check as red-value! bits words/_poked data index 1]
 		as red-value! data
 	]
 	
@@ -958,16 +970,49 @@ bitset: context [
 		key		[red-value!]
 		return:	[red-value!]
 		/local
-			s  [series!]
-			op [integer!]
+			s	 [series!]
+			op	 [integer!]
+			idx	 [integer!]
+			chk? [logic!]
 	][
-		unless OPTION?(key) [
-			fire [TO_ERROR(script missing-arg)]
-		]
+		unless OPTION?(key) [fire [TO_ERROR(script missing-arg)]]
+		
+		chk?: ownership/check as red-value! bits words/_remove key -1 1
 		s: GET_BUFFER(bits)
 		op: either FLAG_NOT?(s) [OP_SET][OP_CLEAR]
-		process key bits op no CMD_OTHER
+		idx: process key bits op no CMD_OTHER
+		if chk? [ownership/check as red-value! bits words/_removed key idx 1]
 		as red-value! bits
+	]
+	
+	modify: func [
+		bits	[red-bitset!]
+		field	[red-word!]
+		value	[red-value!]
+		case?	[logic!]
+		return:	[red-value!]
+		/local
+			args [red-value!]
+			sym	 [integer!]
+	][
+		sym: symbol/resolve field/symbol
+		case [
+			sym = words/owned [
+				if TYPE_OF(value) = TYPE_NONE [
+					ownership/unbind as red-value! bits
+				]
+				if TYPE_OF(value) = TYPE_BLOCK [
+					args: block/rs-head as red-block! value
+					assert TYPE_OF(args) = TYPE_OBJECT	;@@ raise error on invalid block
+					ownership/set-owner 
+						as red-value! bits
+						as red-object! args
+						as red-word! args + 1
+				]
+			]
+			true [0]
+		]
+		value
 	]
 	
 	init: does [
@@ -1034,7 +1079,7 @@ bitset: context [
 			null			;create
 			null			;close
 			null			;delete
-			null			;modify
+			:modify
 			null			;open
 			null			;open?
 			null			;query

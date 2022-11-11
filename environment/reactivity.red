@@ -49,8 +49,8 @@ deep-reactor!: context [
 			exit
 		]
 		unless all [block? :old block? :new same? head :old head :new][
-			if any [series? :old object? :old][modify old 'owned none]
-			if any [series? :new object? :new][modify new 'owned reduce [self word]]
+			if find system/reactivity/types! type? :old [modify old 'owned none]
+			if find system/reactivity/types! type? :new [modify new 'owned reduce [self word]]
 		]
 		system/reactivity/check/only self word
 	]
@@ -70,6 +70,8 @@ system/reactivity: context [
 	eat-events?: yes
 	debug?: 	 no
 	source:		 []
+	
+	types!: union series! make typeset! [object! bitset!]
 
 	add-relation: func [
 		obj		 [object!]
