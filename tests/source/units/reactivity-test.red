@@ -184,21 +184,19 @@ Red [
 		react [if dpr3/pos/x > 10 [cnt: cnt + 1]]
 		react [if dpr3/e/user <> "hello" [cnt: cnt + 1]]
 		react [if dpr3/c/1 > 100 [cnt: cnt + 1]]
-		;react [if dpr3/b/3 [cnt: cnt + 1]]
-		do [						;; only supported in the interpreter
-			dpr3/pos/x: 2
-			dpr3/pos/x: 12	
-			--assert cnt = 1
-			dpr3/e/host: "d2.com"
-			dpr3/e/user: "hi"
-			--assert cnt = 2
-			dpr3/c/2: 200
-			dpr3/c/1: 240
-			--assert cnt = 3
-			;dpr3/b/1: true
-			;dpr3/b/3: true
-			;--assert cnt = 4
-		]
+		react [if dpr3/b/3 [cnt: cnt + 1]]
+		dpr3/pos/x: 2
+		dpr3/pos/x: 12
+		--assert cnt = 1
+		dpr3/e/host: "d2.com"
+		dpr3/e/user: "hi"
+		--assert cnt = 2
+		dpr3/c/2: 200
+		dpr3/c/1: 240
+		--assert cnt = 3
+		dpr3/b/1: true
+		dpr3/b/3: true
+		--assert cnt = 4
 
 ===end-group===
 
