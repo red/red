@@ -270,6 +270,10 @@ eval-path*: func [
 	set?: as-logic list/value
 	list: list + 1
 	count: count - 1
+	
+	path: as red-path! list/value
+	list: list + 1
+	count: count - 1
 
 	arg: either set? [stack/arguments][null]
 	gparent: null
@@ -289,8 +293,6 @@ eval-path*: func [
 			if TYPE_OF(obj) <> TYPE_OBJECT [gparent: as red-value! obj]
 		]
 	]
-	
-	path: null
 	prev: null
 	idx:  0
 	

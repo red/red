@@ -1535,7 +1535,7 @@ red: context [
 		]
 		emit 'eval-path*
 		
-		words: reduce [to word! form set?]
+		words: reduce [to word! form set? 'get-root idx]
 		blk: make block! 20								;-- requires by get-path-word, returned as result
 		forall path [
 			append words either integer? item: path/1 [
