@@ -251,20 +251,8 @@ comment {
 		obj: context? field
 		parse reaction rule: [
 			any [
-				;item: word! (if in obj item/1 [add-relation obj item/1 reaction field])
-				;| set-path! | any-string!
-				;| set item any-path! (
-				;	case [
-				;		in obj item/1 [add-relation obj item/1 reaction field]
-				;		;item: reactive-path? item [add-relation obj item reaction field]
-				;	]
-				;)
-				set-path! | any-string!
-				| [item: word! | set item any-path!] (
-					if in obj item/1 [add-relation obj item/1 reaction field]
-				)
-				| into rule
-				| skip
+				item: word! (if in obj item/1 [add-relation obj item/1 reaction field])
+				| any-path! | any-string! | into rule | skip
 			]
 		]
 		react/later/with reaction field
