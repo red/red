@@ -328,6 +328,8 @@ OS-image: context [
 			new-h	[this!]
 			pre?	[logic!]
 	][
+		if null? img/node [return null]
+
 		inode: as img-node! (as series! img/node/value) + 1
 		h: inode/handle
 		pre?: inode/flags and IMG_NODE_PREMULTIPLIED <> 0
