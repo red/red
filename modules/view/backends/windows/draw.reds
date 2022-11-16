@@ -1810,6 +1810,8 @@ OS-draw-image: func [
 	same-img?: ctx/image = image/node
 	if same-img? [dc/EndDraw this null null] ;-- same image as the drawing target, unlock the image
 	ithis: OS-image/get-handle image yes
+	if null? ithis [return 0]
+
 	if 0 <> dc/CreateBitmapFromWicBitmap2 this ithis null :bmp [
 		return DRAW_OUT_OF_MEMORY
 	]
