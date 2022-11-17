@@ -379,6 +379,9 @@ test
 		}
 		--assert compiled?
 
+	--test-- "#5239"
+		do [--assert error? try [do try/all [throw 'grenade]]]
+
 ===end-group===
 
 ~~~end-file~~~ 
