@@ -550,6 +550,7 @@ natives: context [
 			pos	   [integer!]
 			thrown [integer!]
 			fun?   [logic!]
+			defer? [logic!]
 			do-block [subroutine!]
 	][
 		#typecheck [do expand? args next trace]
@@ -592,8 +593,9 @@ natives: context [
 				blk/head: pos
 			]
 		]
-		
+		defer?: no
 		assert system/thrown = 0
+		
 		catch RED_THROWN_ERROR [
 			switch TYPE_OF(arg) [
 				TYPE_ANY_LIST [do-block]
@@ -606,12 +608,12 @@ natives: context [
 				]
 				TYPE_URL 
 				TYPE_FILE  [#call [do-file as red-file! arg none-value]]
-				TYPE_ERROR [
-					stack/throw-error as red-object! arg
-				]
-				default [interpreter/eval-expression arg arg + 1 null no no yes]
+				TYPE_ERROR [defer?: yes]
+				default	   [interpreter/eval-expression arg arg + 1 null no no yes]
 			]
 		]
+		if defer? [stack/throw-error as red-object! arg]
+		
 		if fun? [
 			thrown: system/thrown
 			system/thrown: 0
@@ -2033,10 +2035,7 @@ natives: context [
 						result: system/thrown			;-- request an early exit from caller
 					]
 				]
-				RED_THROWN_ERROR [
-					handle-thrown-error
-				]
-				0		[stack/adjust-post-try]
+				0 RED_THROWN_ERROR [stack/adjust-post-try]
 				default [re-throw]
 			]
 		][												;-- TRY/ALL case, catch everything
