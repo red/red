@@ -88,14 +88,14 @@ system/reactivity: context [
 		p: path
 		found?: no
 		until [
-			unless word? p/1 [return yes]
+			unless word? p/1 [return no]
 			slice: copy/part path next p
 			set/any 'obj get/any :slice
-			if any [any-function? :obj unset? :obj][exit]
+			if any [any-function? :obj unset? :obj][return no]
 			if all [
-				object? :obj			;-- rough checks for reactive object
-				in obj 'on-change*
 				word? p/2
+				object? :obj							;-- rough checks for reactive object
+				in obj 'on-change*
 			][
 				add-relation obj p/2 reaction ctx
 				found?: yes
