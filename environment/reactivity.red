@@ -84,21 +84,26 @@ system/reactivity: context [
 		unless find/same/skip relations new-rel 4 [append relations new-rel]
 	]
 	
-comment {
-	reactive-path?: function [path [any-path!] return: [word!]][
-		len: 2
-		width: length? p
-		while [len <= width][
-			slice: copy/part p len
-			type: type? get/any :slice
-			case [
-				find any-function! type [return none]
-				;type = 'object! [
+	identify-sources: function [path [any-path!] reaction ctx return: [logic!] /local obj][
+		p: path
+		found?: no
+		until [
+			unless word? p/1 [return yes]
+			slice: copy/part path next p
+			set/any 'obj get/any :slice
+			if any [any-function? :obj unset? :obj][exit]
+			if all [
+				object? :obj			;-- rough checks for reactive object
+				in obj 'on-change*
+				word? p/2
+			][
+				add-relation obj p/2 reaction ctx
+				found?: yes
 			]
-			len: len + 1
-		]		
+			tail? p: next p
+		]
+		found?
 	]
-}
 
 	eval: function [code [block!] /safe][
 		either safe [
@@ -252,7 +257,12 @@ comment {
 		parse reaction rule: [
 			any [
 				item: word! (if in obj item/1 [add-relation obj item/1 reaction field])
-				| any-path! | any-string! | into rule | skip
+				| [path! | lit-path! | get-path!] (
+					item: item/1
+					if all [in obj item/1 not same? obj system/words][ ;-- avoid double registration
+						add-relation obj item/1 reaction field
+					]
+				) | set-path! | any-string! | into rule | skip
 			]
 		]
 		react/later/with reaction field
@@ -347,34 +357,8 @@ comment {
 				parse reaction rule: [
 					any [
 						item: [path! | lit-path! | get-path!] (
-							saved: item/1
-							if unset? attempt [get/any item: saved][
-								cause-error 'script 'no-value [item]
-							]
-							either 2 = length? item [
-								set/any 'obj get/any item/1
-								part: 1
-							][
-								part: length? item
-								until [					;-- search for an object (deep first)
-									part: part - 1
-									path: copy/part item part
-									any [
-										tail? path
-										object? obj: attempt [get path]
-										part = 1
-									]
-								]
-							]
-							if all [
-								object? :obj			;-- rough checks for reactive object
-								in obj 'on-change*
-							][
-								part: part + 1
-								add-relation obj item/:part reaction ctx
-								found?: yes
-							]
-							parse saved rule
+							found?: identify-sources item/1 reaction ctx
+							parse item/1 rule
 						)
 						| set-path! | any-string!
 						| into rule
