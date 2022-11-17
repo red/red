@@ -733,7 +733,7 @@ stack: context [										;-- call stack
 			/local
 				p	  [call-frame!]
 				sym	  [red-symbol!]
-				flags [integer!]
+				flags lines [integer!]
 				lower upper [red-value!]
 		][
 			p: ctop
@@ -764,11 +764,9 @@ stack: context [										;-- call stack
 				if flags and FF000000h = FRAME_IN_CFUNC [print "IN_CFUNC,"]
 				
 				print-line [" prev_args: " p/prev]
-				
-				dump-memory-raw
-					as byte-ptr! lower
-					4
-					(as-integer upper + 1 - lower) >> 4
+				lines: (as-integer upper + 1 - lower) >> 4
+				if lines > 20 [lines: 20]
+				if lines > 0  [dump-memory-raw as byte-ptr! lower 4 lines]
 				
 				lower: p/prev
 				upper: arguments
