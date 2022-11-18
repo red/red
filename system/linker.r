@@ -102,10 +102,9 @@ linker: context [
 		data-ptr [integer!]							;-- data memory address
 		pointer	 [object!]
 		/local 
-			data-offset
+			data-offset ptr
 	][
 		data-offset: either job/PIC? [data-ptr - code-ptr][data-ptr]
-		
 		foreach [name spec] job/symbols [
 			unless empty? spec/3 [
 				all [
@@ -119,9 +118,8 @@ linker: context [
 							pointer/value: either job/PIC? [spec/2][code-ptr + spec/2]
 						]
 					]
-					foreach ref spec/3 [
-						if integer? ref [change at cbuf ref form-struct pointer]
-					]
+					ptr: form-struct pointer
+					parse spec/3 [any [ref: integer! (change at cbuf ref/1 ptr) | skip]]
 				]
 			]
 			if block? spec/4 [
@@ -130,7 +128,8 @@ linker: context [
 				][
 					either job/PIC? [spec/2 - 1][code-ptr + spec/2 - 1]	;-- data to code references
 				]
-				foreach ref spec/4 [change at dbuf ref form-struct pointer]
+				ptr: form-struct pointer
+				foreach ref spec/4 [change at dbuf ref ptr]
 			]
 		]
 	]
@@ -294,10 +293,13 @@ linker: context [
 
 		file: make-filename job
 		if verbose >= 1 [print ["output file:" file]]
+t0: now/time/precise		
 		
 		if error? try [write/binary/direct file job/buffer][
 			throw-error ["locked or unreachable file:" to-local-file file]
 		]
+print ["writing:" t0 - now/time/precise]
+t0: now/time/precise		
 		
 		if fun: in file-emitter 'on-file-written [
 			do reduce [get fun job file]
