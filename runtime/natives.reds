@@ -550,6 +550,7 @@ natives: context [
 			pos	   [integer!]
 			thrown [integer!]
 			fun?   [logic!]
+			defer? [logic!]
 			do-block [subroutine!]
 	][
 		#typecheck [do expand? args next trace]
@@ -592,8 +593,9 @@ natives: context [
 				blk/head: pos
 			]
 		]
-		
+		defer?: no
 		assert system/thrown = 0
+		
 		catch RED_THROWN_ERROR [
 			switch TYPE_OF(arg) [
 				TYPE_ANY_LIST [do-block]
@@ -606,12 +608,12 @@ natives: context [
 				]
 				TYPE_URL 
 				TYPE_FILE  [#call [do-file as red-file! arg none-value]]
-				TYPE_ERROR [
-					stack/throw-error as red-object! arg
-				]
-				default [interpreter/eval-expression arg arg + 1 null no no yes]
+				TYPE_ERROR [defer?: yes]
+				default	   [interpreter/eval-expression arg arg + 1 null no no yes]
 			]
 		]
+		if defer? [stack/throw-error as red-object! arg]
+		
 		if fun? [
 			thrown: system/thrown
 			system/thrown: 0
@@ -2033,10 +2035,7 @@ natives: context [
 						result: system/thrown			;-- request an early exit from caller
 					]
 				]
-				RED_THROWN_ERROR [
-					handle-thrown-error
-				]
-				0		[stack/adjust-post-try]
+				0 RED_THROWN_ERROR [stack/adjust-post-try]
 				default [re-throw]
 			]
 		][												;-- TRY/ALL case, catch everything
@@ -2436,6 +2435,7 @@ natives: context [
 			s	 [series!]
 			step [integer!]
 			i	 [integer!]
+			flags[integer!]
 			nl?  [logic!]
 	][
 		#typecheck [new-line _all skip]
@@ -2458,20 +2458,23 @@ natives: context [
 			tail: s/tail
 			i: 0
 			while [cell < tail][
-				cell/header: either nl? xor any [step = 1 zero? (i % step)][
+				flags: either nl? xor any [step = 1 zero? (i % step)][
 					cell/header and flag-nl-mask
 				][
 					cell/header or flag-new-line
 				]
+				cell/header: flags
 				cell: cell + 1
 				i: i + 1
 			]
 		][
-			cell/header: either nl? [
+			if s/tail <= cell [exit]
+			flags: either nl? [
 				cell/header or flag-new-line
 			][
 				cell/header and flag-nl-mask
 			]
+			cell/header: flags
 		]
 	]
 	
@@ -2480,12 +2483,20 @@ natives: context [
 		/local
 			bool [red-logic!]
 			cell [cell!]
+			blk  [red-block!]
+			s	 [series!]
+			nl?	 [logic!]
 	][
 		#typecheck new-line?
-		cell: block/rs-head as red-block! stack/arguments
+		
+		blk: as red-block! stack/arguments
+		s: GET_BUFFER(blk)
+		cell: s/offset + blk/head
+		nl?: either s/tail <= cell [no][cell/header and flag-new-line <> 0]
+	
 		bool: as red-logic! stack/arguments
 		bool/header: TYPE_LOGIC
-		bool/value: cell/header and flag-new-line <> 0
+		bool/value:  nl?
 	]
 	
 	context?*: func [

@@ -1911,7 +1911,10 @@ create-render-target: func [
 	int: 0
 	dxgi: as IDXGIFactory2 dxgi-factory/vtbl
 	hr: dxgi/CreateSwapChainForHwnd dxgi-factory d3d-device hWnd desc null null :int
-	assert zero? hr
+	if hr <> 0 [
+		report TO_ERROR(access no-create) as red-value! get-face-obj hwnd null null
+		throw RED_THROWN_ERROR
+	]
 
 	DX-create-buffer rt as this! int
 	rt

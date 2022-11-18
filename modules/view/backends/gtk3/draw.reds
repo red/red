@@ -1512,6 +1512,7 @@ OS-draw-image: func [
 	border?		[logic!]
 	crop1		[red-pair!]
 	pattern		[red-word!]
+	return:		[integer!]
 	/local
 		src.w	[integer!]
 		src.h	[integer!]
@@ -1535,7 +1536,7 @@ OS-draw-image: func [
 	][
 		x: 0 y: 0 w: 0 h: 0
 		image/any-resize src dst crop1 start end :x :y :w :h
-		if dst/header = TYPE_NONE [exit]
+		if dst/header = TYPE_NONE [return 0]
 		pixbuf: OS-image/to-pixbuf dst
 		GDK-draw-image dc dc/cr pixbuf x y w h
 		OS-image/delete dst
@@ -1555,7 +1556,7 @@ OS-draw-image: func [
 			if any [		;-- clip outside the image
 				right <= 0 bottom <= 0
 				crop.x >= src.w crop.y >= src.h
-			][exit]
+			][return 0]
 
 			if right > src.w [right: src.w]
 			if bottom > src.h [bottom: src.h]
@@ -1577,7 +1578,7 @@ OS-draw-image: func [
 				w: end/x - x
 				h: end/y - y
 			]
-			true [exit]
+			true [return 0]
 		]
 		pixbuf: OS-image/to-pixbuf src
 		unless null? crop1 [
@@ -1588,6 +1589,7 @@ OS-draw-image: func [
 			g_object_unref pixbuf
 		]
 	]
+	0
 ]
 
 OS-draw-grad-pen-old: func [

@@ -1050,6 +1050,7 @@ OS-draw-image: func [
 	border?		[logic!]
 	crop1		[red-pair!]
 	pattern		[red-word!]
+	return:		[integer!]
 	/local
 		src.w	[integer!]
 		src.h	[integer!]
@@ -1071,7 +1072,7 @@ OS-draw-image: func [
 	][
 		x: 0 y: 0 w: 0 h: 0
 		image/any-resize src dst crop1 start end :x :y :w :h
-		if dst/header = TYPE_NONE [exit]
+		if dst/header = TYPE_NONE [return 0]
 		handle: OS-image/to-cgimage dst
 		CG-draw-image dc/raw handle x y w h
 		OS-image/delete dst
@@ -1104,7 +1105,7 @@ OS-draw-image: func [
 				w: end/x - x
 				h: end/y - y
 			]
-			true [exit]
+			true [return 0]
 		]
 		handle: OS-image/to-cgimage src
 		unless null? crop1 [
@@ -1117,6 +1118,7 @@ OS-draw-image: func [
 			CGImageRelease handle
 		]
 	]
+	0
 ]
 
 fill-gradient-region: func [
