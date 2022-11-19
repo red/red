@@ -431,17 +431,7 @@ face!: object [				;-- keep in sync with facet! enum
 		]
 
 		if all [word <> 'state word <> 'extra][
-			all [
-				not empty? srs: system/reactivity/source
-				srs/1 = self
-				srs/2 = word
-				set-quiet word old					;-- force the old value
-				exit
-			]
-			if all [
-				any [word = 'size word = 'offset]
-				old = new
-			][exit]
+			if all [any [word = 'size word = 'offset] old = new][exit]
 
 			same-pane?: all [block? :old block? :new same? head :old head :new]
 			if word = 'pane [

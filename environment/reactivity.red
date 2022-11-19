@@ -20,13 +20,6 @@ reactor!: context [
 				tab "new  :" type? :new
 			]
 		]
-		all [
-			not empty? srs: system/reactivity/source
-			srs/1 = self
-			srs/2 = word
-			set-quiet word old							;-- force the old value
-			exit
-		]
 		system/reactivity/check/only self word
 	]
 ]
@@ -40,13 +33,6 @@ deep-reactor!: context [
 				tab "old  :" type? :old	lf
 				tab "new  :" type? :new
 			]
-		]
-		all [
-			not empty? srs: system/reactivity/source
-			srs/1 = self
-			srs/2 = word
-			set-quiet word old							;-- force the old value
-			exit
 		]
 		unless all [block? :old block? :new same? head :old head :new][
 			if find system/reactivity/types! type? :old [modify old 'owned none]
@@ -69,7 +55,6 @@ system/reactivity: context [
 	queue:		 make block! 100
 	eat-events?: yes
 	debug?: 	 no
-	source:		 []
 	
 	types!: union series! make typeset! [object! bitset!]
 
@@ -97,7 +82,7 @@ system/reactivity: context [
 				object? :obj							;-- rough checks for reactive object
 				in obj 'on-change*
 			][
-				add-relation obj p/2 reaction ctx
+				add-relation obj p/2 :reaction ctx
 				found?: yes
 			]
 			tail? p: next p
@@ -139,7 +124,7 @@ system/reactivity: context [
 	]
 	
 	check: function [reactor [object!] /only field [word! set-word!]][
-		unless empty? pos: relations [
+		unless tail? pos: relations [
 			while [pos: find/same/skip pos reactor 4][
 				reaction: :pos/3
 				if all [
@@ -147,10 +132,6 @@ system/reactivity: context [
 					any [empty? queue  not pending? reactor :reaction]
 				][
 					either empty? queue [
-						if empty? source [
-							append source reactor
-							append source field
-						]
 						eval-reaction/mark reactor :reaction pos/4
 						
 						q: tail queue
@@ -170,7 +151,6 @@ system/reactivity: context [
 							head? q
 						]
 						clear queue
-						clear source
 					][
 						unless all [
 							eat-events?
@@ -357,7 +337,8 @@ system/reactivity: context [
 				parse reaction rule: [
 					any [
 						item: [path! | lit-path! | get-path!] (
-							found?: identify-sources item/1 reaction ctx
+probe item/1						
+							found?: identify-sources item/1 :reaction ctx
 							parse item/1 rule
 						)
 						| set-path! | any-string!
