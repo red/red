@@ -57,6 +57,7 @@ system/reactivity: context [
 	debug?: 	 no
 	
 	types!: union series! make typeset! [object! bitset!]
+	not-safe!: union any-function! make typeset! [unset!]
 
 	add-relation: func [
 		obj		 [object!]
@@ -69,14 +70,13 @@ system/reactivity: context [
 		unless find/same/skip relations new-rel 4 [append relations new-rel]
 	]
 	
-	identify-sources: function [path [any-path!] reaction ctx return: [logic!] /local obj][
+	identify-sources: function [path [any-path!] reaction ctx return: [logic!]][
 		p: path
 		found?: no
 		until [
-			unless word? p/1 [return no]
+			if any [not word? p/1 find not-safe! type? get/any p/1][return no]
 			slice: copy/part path next p
-			set/any 'obj get/any :slice
-			if any [any-function? :obj unset? :obj][return no]
+			obj: get/any :slice
 			if all [
 				word? p/2
 				object? :obj							;-- rough checks for reactive object
@@ -337,7 +337,6 @@ system/reactivity: context [
 				parse reaction rule: [
 					any [
 						item: [path! | lit-path! | get-path!] (
-probe item/1						
 							found?: identify-sources item/1 :reaction ctx
 							parse item/1 rule
 						)
