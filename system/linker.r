@@ -293,13 +293,10 @@ linker: context [
 
 		file: make-filename job
 		if verbose >= 1 [print ["output file:" file]]
-t0: now/time/precise		
 		
 		if error? try [write/binary/direct file job/buffer][
 			throw-error ["locked or unreachable file:" to-local-file file]
 		]
-print ["writing:" t0 - now/time/precise]
-t0: now/time/precise		
 		
 		if fun: in file-emitter 'on-file-written [
 			do reduce [get fun job file]
