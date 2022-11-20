@@ -33,6 +33,7 @@ float: context [
 	+INF: 0.0											;-- rebol can't load INF, NaN
 	-INF: 0.0											;-- rebol can't load INF, NaN
 	QNaN: 0.0
+	HALF: 0.0
 
 	double-int-union: as int64! :DOUBLE_MAX				;-- set to largest number
 	double-int-union/int2: 7FEFFFFFh
@@ -46,6 +47,14 @@ float: context [
 
 	double-int-union: as int64! :QNaN					;-- smallest quiet NaN
 	double-int-union/int2: 7FF80000h
+	
+	double-int-union: as int64! :HALF
+	double-int-union/int2: 3FDFFFFFh
+	double-int-union/int1: FFFFFFFFh
+	
+	round-to-int: func [f [float!] return: [integer!]][
+		as-integer f + HALF
+	]
 
 	abs: func [
 		value	[float!]
