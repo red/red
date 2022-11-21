@@ -778,10 +778,6 @@ words: context [
 	_parse-cb:		as red-word! 0
 	_compare-cb:	as red-word! 0
 	
-	;-- object events
-	_x:				as red-word! 0
-	_y:				as red-word! 0
-	
 	_local: 		as red-word! 0
 	
 	errors: context [
@@ -1081,11 +1077,6 @@ words: context [
 		errors/invalid-error: word/load "invalid-error"
 		
 		;-- object events
-		_x:				word/load "x"
-		_y:				word/load "y"
-			
-		_local: 		as red-word! 0
-		
 		_local:			 word/load "local"
 		
 		changed:		_changed/symbol
