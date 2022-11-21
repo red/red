@@ -279,7 +279,7 @@ OS-text-box-metrics: func [
 			either type = TBOX_METRICS_SIZE [
 				pair/push 
 					as-integer (metrics/width + as float32! 0.5)
-					as-integer (metrics/height + as float32! 0.5)
+					as-integer (metrics/height + as float32! 0.99)
 			][
 				integer/push metrics/lineCount
 			]
