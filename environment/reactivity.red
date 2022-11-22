@@ -73,10 +73,13 @@ system/reactivity: context [
 	identify-sources: function [path [any-path!] reaction ctx return: [logic!]][
 		p: path
 		found?: no
+		if any [not word? p/1 find not-safe! type? get/any p/1][return no]
+
 		until [
-			if any [not word? p/1 find not-safe! type? get/any p/1][return no]
+			if all [not tail? next p not word? p/2][return no] ;-- accessor not a word
 			slice: copy/part path next p
 			obj: get/any :slice
+			if find not-safe! type? :obj [return no]
 			if all [
 				word? p/2
 				object? :obj							;-- rough checks for reactive object
