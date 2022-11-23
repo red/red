@@ -57,7 +57,7 @@ system/reactivity: context [
 	debug?: 	 no
 	
 	types!: union series! make typeset! [object! bitset!]
-	not-safe!: union any-function! make typeset! [unset!]
+	not-safe!: union any-function! make typeset! [unset! error!]
 
 	add-relation: func [
 		obj		 [object!]
@@ -78,7 +78,7 @@ system/reactivity: context [
 		until [
 			if all [not tail? next p not word? p/2][return no] ;-- accessor not a word
 			slice: copy/part path next p
-			obj: get/any :slice
+			obj: try [get/any :slice]
 			if find not-safe! type? :obj [return no]
 			if all [
 				word? p/2

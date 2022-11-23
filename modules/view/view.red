@@ -802,7 +802,7 @@ show: function [
 		either face/type <> 'screen [
 			if all [not force face/type <> 'window][
 				unless parent [cause-error 'script 'not-linked []]
-				if all [object? face/parent face/parent/type <> 'tab-panel][face/parent: none]
+				if all [object? face/parent face/parent/type <> 'tab-panel not with][face/parent: none]
 			]
 			if any [series? face/extra object? face/extra][
 				modify face/extra 'owned none			;@@ TBD: unflag object's fields (ownership)
