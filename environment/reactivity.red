@@ -258,7 +258,7 @@ system/reactivity: context [
 		"Returns a reactive relation if an object's field is a reactive source"
 		reactor	[object!]	"Object to check"
 		field	[word!]		"Field to check"
-		/target				"Check if it's a target instead of a source"
+		/target				"Check if it's a target of an `is` reaction instead of a source"
 		return: [block! function! word! none!] "Returns reaction, type or NONE"
 	][
 		either target [
