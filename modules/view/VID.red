@@ -309,6 +309,7 @@ system/view/VID: context [
 				| 'password   (set-flag opts 'flags 'password)
 				| 'tri-state  (set-flag opts 'flags 'tri-state)
 				| 'scrollable (set-flag opts 'flags 'scrollable)
+				| 'read-only  (set-flag opts 'flags 'read-only)
 				| 'hidden	  (opts/visible?: no)
 				| 'disabled	  (opts/enabled?: no)
 				| 'select	  (opts/selected: fetch-argument sel-spec! spec)

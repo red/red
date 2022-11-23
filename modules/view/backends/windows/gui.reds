@@ -1078,6 +1078,7 @@ get-flags: func [
 			sym = no-buttons [flags: flags or FACET_FLAGS_NO_BTNS]
 			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
 			sym = popup		 [flags: flags or FACET_FLAGS_POPUP]
+			sym = read-only  [flags: flags or FACET_FLAGS_READONLY]
 			sym = tri-state  [flags: flags or FACET_FLAGS_TRISTATE]
 			sym = scrollable [flags: flags or FACET_FLAGS_SCROLLABLE]
 			sym = password	 [flags: flags or FACET_FLAGS_PASSWORD]
@@ -1499,6 +1500,7 @@ OS-make-view: func [
 			class: #u16 "RedArea"
 			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL or WS_HSCROLL or ES_NOHIDESEL]
 			flags: flags or ES_MULTILINE or ES_AUTOVSCROLL or WS_VSCROLL or WS_TABSTOP
+			if bits and FACET_FLAGS_READONLY <> 0 [flags: flags or ES_READONLY]
 			if bits and FACET_FLAGS_NO_BORDER = 0 [ws-flags: ws-flags or WS_EX_CLIENTEDGE]
 		]
 		sym = text [
@@ -2477,6 +2479,7 @@ OS-update-view: func [
 		hWnd	[handle!]
 		flags	[integer!]
 		type	[integer!]
+		val		[integer!]
 ][
 	ctx: GET_CTX(face)
 	s: as series! ctx/values/value
@@ -2530,6 +2533,10 @@ OS-update-view: func [
 			type: either flags and FACET_FLAGS_PASSWORD = 0 [0][25CFh]
 			SendMessage hWnd 204 type 0
 			SetFocus hWnd
+		]
+		if type = area [
+			val: as-integer flags and FACET_FLAGS_READONLY <> 0
+			SendMessage hWnd EM_SETREADONLY val 0
 		]
 	]
 	if flags and FACET_FLAG_DRAW  <> 0 [
