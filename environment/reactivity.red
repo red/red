@@ -308,7 +308,7 @@ system/reactivity: context [
 					any [
 						item: [path! | lit-path! | get-path!] (
 							item: item/1
-							if pos: find objs item/1 [
+							if all [pos: find objs item/1 word? item/2][
 								obj: pick objects 1 + index? pos
 								add-relation obj item/2 :reaction objects
 								found?: yes

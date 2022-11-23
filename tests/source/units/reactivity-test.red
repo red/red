@@ -246,6 +246,14 @@ Red [
 				hms: "200.0"
 			]
 		]
+
+	--test-- "#4510"
+		clear-reactions
+		a: reactor [data: none]
+		b: reactor [data: none]
+		react/later [--assert true a/('data)]
+		react/link/later func [a b] [--assert true a/('data)] [a b]
+		--assert empty? system/reactivity/relations
 		
 ===end-group===
 
