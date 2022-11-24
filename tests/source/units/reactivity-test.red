@@ -70,7 +70,7 @@ Red [
 		--assert none? is-7d/x
 		--assert none? is-7d/y
 		is-7d/x: 1
-		--assert is-7d/x = 1 							;-- x is fixed by the assignment
+		--assert is-7d/x = 5
 		--assert is-7d/y = 4
 		unset 'is-7d
 
@@ -80,15 +80,15 @@ Red [
 		--assert none? is-8r/y
 		--assert none? is-8r/z
 		is-8r/x: 1
-		--assert is-8r/x = 1 							;-- x is fixed by the assignment
+		--assert is-8r/x = 7
 		--assert is-8r/z = 4
 		--assert is-8r/y = 6
 		is-8r/y: 1
-		--assert is-8r/y = 1 							;-- y is fixed by the assignment
+		--assert is-8r/y = 7
 		--assert is-8r/x = 2
 		--assert is-8r/z = 5
 		is-8r/z: 1
-		--assert is-8r/z = 1 							;-- z is fixed by the assignment
+		--assert is-8r/z = 7
 		--assert is-8r/y = 3
 		--assert is-8r/x = 4
 		unset 'is-8r
