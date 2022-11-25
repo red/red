@@ -641,6 +641,27 @@ bitset: context [
 		#if debug? = yes [if verbose > 0 [print-line "bitset/make"]]
 		construct proto spec CMD_MAKE
 	]
+
+	reflect: func [
+		bits	[red-bitset!]
+		field	[integer!]
+		return:	[red-value!]
+		/local
+			obj [red-object!]
+			res [red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "bitset/reflect"]]
+		case [
+			field = words/owned [
+				obj: ownership/owned? bits/node
+				res: as red-value! either null? obj [none-value][obj]
+			]
+			true [
+				--NOT_IMPLEMENTED--						;@@ raise error
+			]
+		]
+		stack/set-last res
+	]
 	
 	to: func [
 		proto	[red-value!]
@@ -1023,7 +1044,7 @@ bitset: context [
 			;-- General actions --
 			:make
 			null			;random
-			null			;reflect
+			:reflect
 			:to
 			:form
 			:mold
