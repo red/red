@@ -21,15 +21,15 @@ Red [
 	]
 	button: [
 		default-actor: on-click
-		template: [type: 'button size: 60x25]
+		template: [type: 'button size: 60x23]
 	]
 	text: [
 		default-actor: on-down
-		template: [type: 'text size: 80x25]
+		template: [type: 'text size: 80x23]
 	]
 	field: [
 		default-actor: on-enter
-		template: [type: 'field size: 80x25]
+		template: [type: 'field size: 80x23]
 	]
 	area: [
 		default-actor: on-change
@@ -44,15 +44,15 @@ Red [
 	]
 	toggle: [
 		default-actor: on-change
-		template: [type: 'toggle size: 60x25]
+		template: [type: 'toggle size: 60x23]
 	]
 	check: [
 		default-actor: on-change
-		template: [type: 'check size: 80x25]
+		template: [type: 'check size: 80x23]
 	]
 	radio: [
 		default-actor: on-change
-		template: [type: 'radio size: 80x25]
+		template: [type: 'radio size: 80x23]
 	]
 	progress: [
 		default-actor: on-change
@@ -60,7 +60,7 @@ Red [
 	]
 	slider: [
 		default-actor: on-change
-		template: [type: 'slider size: 150x25 data: 0%]
+		template: [type: 'slider size: 150x23 data: 0%]
 	]
 	scroller: [
 		default-actor: on-change
@@ -80,11 +80,11 @@ Red [
 	]
 	drop-list: [
 		default-actor: on-change
-		template: [type: 'drop-list size: 100x25]
+		template: [type: 'drop-list size: 100x23]
 	]
 	drop-down: [
 		default-actor: on-enter
-		template: [type: 'drop-down size: 100x25]
+		template: [type: 'drop-down size: 100x23]
 	]
 	panel: [
 		default-actor: on-down						;@@ something better?

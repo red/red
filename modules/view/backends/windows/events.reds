@@ -1607,6 +1607,7 @@ process: func [
 		track  [tagTRACKMOUSEEVENT value]
 		flags  [integer!]
 		word   [red-word!]
+		over?  [logic!]
 ][
 	flags: decode-down-flags msg/wParam
 	hWnd: msg/hWnd
@@ -1616,13 +1617,17 @@ process: func [
 			if last-mouse-pt = lParam [return EVT_NO_DISPATCH]
 			last-mouse-pt: lParam
 
+			over?: (get-face-flags hWnd) and FACET_FLAGS_ALL_OVER <> 0
 			x: WIN32_LOWORD(lParam)
 			y: WIN32_HIWORD(lParam)
-			if any [
-				x < (0 - screen-size-x) 				;@@ needs `negate` support
-				y < (0 - screen-size-y)
-				x > screen-size-x
-				y > screen-size-y
+			if all [
+				not over?
+				any [
+					x < (0 - screen-size-x) 			;@@ needs `negate` support
+					y < (0 - screen-size-y)
+					x > screen-size-x
+					y > screen-size-y
+				]
 			][
 				return EVT_DISPATCH						;-- filter out buggy mouse positions (thanks MS!)
 			]
@@ -1632,7 +1637,7 @@ process: func [
 				IsWindowEnabled new
 				any [
 					hover-saved <> new
-					(get-face-flags new) and FACET_FLAGS_ALL_OVER <> 0
+					over?
 				]
 			][
 				if hover-saved <> new [
