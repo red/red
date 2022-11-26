@@ -72,7 +72,7 @@ display-about: function [][
 		style txt:   text font-color white
 		style small: txt  font [size: 9 color: white]
 		style link:  text cursor 'hand all-over
-			on-down [browse face/data]
+			on-down [browse to-url face/text]
 			on-over [face/font/style: either event/away? [none]['underline]]
 
 		below
