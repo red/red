@@ -777,8 +777,8 @@ show: function [
 	show?: yes
 	if block? face [
 		foreach f face [
-			if word? f [f: get f]
-			if object? f [show?: show f]
+			if word? :f [f: get f]
+			either object? :f [show?: show f][cause-error 'script 'face-type [:f]]
 		]
 		return show?
 	]
