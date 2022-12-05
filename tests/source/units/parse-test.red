@@ -2955,6 +2955,9 @@ Red [
 		parse/case [a b c @ d e f] [collect after x any [@ keep pick ('-) | keep skip]]
 		--assert x = [a b c - d e f]
 
+	--test-- "#5251"
+		--assert false == parse [1] [opt (--assert true)]
+
 ===end-group===
     
 ~~~end-file~~~
