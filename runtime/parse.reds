@@ -1456,6 +1456,7 @@ parser: context [
 							TYPE_WORD	 [state: ST_WORD rule?: all [type <> R_COLLECT type <> R_KEEP]]
 							TYPE_DATATYPE
 							TYPE_TYPESET
+							TYPE_PAREN
 							TYPE_INTEGER [state: ST_DO_ACTION]
 							default [
 								either min = R_NONE [
