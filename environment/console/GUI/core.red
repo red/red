@@ -40,6 +40,7 @@ object [
 	page-cnt:	0								;-- number of lines in one page
 	line-cnt:	0								;-- number of lines in total (include wrapped lines)
 	screen-cnt: 0								;-- number of lines on screen
+	screen-cnt-saved: 0
 
 	history:	system/console/history
 	hist-idx:	0
@@ -306,10 +307,9 @@ object [
 		if delta >= 0 [reset-top]
 	]
 
-	reset-top: func [/local n][
-		n: line-cnt - page-cnt
+	reset-top: func [][
 		if any [
-			scroller/position <= n
+			screen-cnt-saved > page-cnt
 			full?
 		][
 			top: length? lines
@@ -1046,6 +1046,7 @@ object [
 		]
 		line-y: y - h
 		screen-cnt: to-integer y / line-h
+		screen-cnt-saved: screen-cnt
 		if screen-cnt > page-cnt [screen-cnt: page-cnt]
 		update-caret
 		update-scroller line-cnt - num
