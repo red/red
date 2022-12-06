@@ -1511,6 +1511,10 @@ WndProc: func [
 		WM_SETCURSOR [
 			res: GetWindowLong as handle! wParam wc-offset - 28
 			if res <> 0 [
+				values: get-face-values as handle! wParam
+				w-type: as red-word! values + FACE_OBJ_TYPE
+				type: symbol/resolve w-type/symbol
+				if all [any [type = base type = rich-text] res and 80000000h = 0][return 0]
 				SetCursor as handle! (res and 7FFFFFFFh)
 				return 1
 			]
