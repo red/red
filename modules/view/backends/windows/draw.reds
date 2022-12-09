@@ -234,6 +234,7 @@ draw-begin: func [
 		dc/QueryInterface this IID_ID2D1DeviceContext :rt	;-- Query ID2D1DeviceContext interface
 		dc/Release this			;-- QueryInterface will increase the refcnt
 		this: rt/value
+		target/dc: this
 		dc: as ID2D1DeviceContext this/vtbl
 	]
 	ctx/dc: as ptr-ptr! this
