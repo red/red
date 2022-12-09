@@ -103,7 +103,6 @@ object [
 		line-pos: length? lines
 		ask?: yes
 		redraw-cnt: 0
-		reset-top
 		clear-stack
 		set-flag hide?
 		either paste/resume [
@@ -111,6 +110,9 @@ object [
 		][
 			system/view/platform/redraw gui-console-ctx/console
 			system/view/auto-sync?: yes
+			loop 10 [do-ask-loop/no-wait]
+			reset-top
+			system/view/platform/redraw gui-console-ctx/console
 			do-events
 		]
 		ask?: no
@@ -356,7 +358,7 @@ object [
 	resize: func [new-size [pair!] /local y][
 		y: new-size/y
 		new-size/x: new-size/x - 20
-		new-size/y: y + line-h
+		new-size/y: y
 		box/size: new-size
 		if scroller [
 			page-cnt: to-integer y / line-h
