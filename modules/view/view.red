@@ -425,8 +425,8 @@ face!: object [				;-- keep in sync with facet! enum
 				"-- on-change event --" lf
 				tab "face :" type		lf
 				tab "word :" word		lf
-				tab "old  :" type? :old	lf
-				tab "new  :" type? :new
+				tab "old  :" either find immediate! type? :old [mold :old][type? :old]	lf
+				tab "new  :" either find immediate! type? :new [mold :new][type? :new]
 			]
 		]
 
