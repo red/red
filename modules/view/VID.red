@@ -469,11 +469,12 @@ system/view/VID: context [
 					sz
 				]
 			]
-			face/size: either opts/size-x [				;-- x size provided by user
+			new: either opts/size-x [					;-- x size provided by user
 				as-pair opts/size-x max sz/y min-sz/y
 			][
 				max sz min-sz
 			]
+			if new <> face/size [face/size]				;-- avoid triggering unnecessary reactions
 		]
 		if tight? [face/size: calc-size face]
 		
