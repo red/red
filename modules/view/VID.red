@@ -474,7 +474,7 @@ system/view/VID: context [
 			][
 				max sz min-sz
 			]
-			if new <> face/size [face/size]				;-- avoid triggering unnecessary reactions
+			if new <> face/size [face/size: new]		;-- avoid triggering unnecessary reactions
 		]
 		if tight? [face/size: calc-size face]
 		
