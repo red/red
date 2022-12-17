@@ -715,10 +715,18 @@ system/view/platform: context [
 		/local
 			state	[red-block!]
 			bool	[red-logic!]
+			values	[red-value!]
+			txt		[red-string!]
 			layout? [logic!]
 	][
 		layout?: yes
-		state: as red-block! (object/get-values box) + gui/FACE_OBJ_EXT3
+		values: object/get-values box
+		txt: as red-string! values + gui/FACE_OBJ_TEXT
+		if TYPE_OF(txt) <> TYPE_STRING [
+			stack/set-last none-value
+			exit
+		]
+		state: as red-block! values + gui/FACE_OBJ_EXT3
 		if TYPE_OF(state) = TYPE_BLOCK [
 			bool: as red-logic! (block/rs-tail state) - 1
 			layout?: bool/value
