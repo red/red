@@ -458,7 +458,7 @@ system: context [
 			float! float! tuple! date! pair! time! money! tag! url! email! 'hex 'rawstring ref!
 		]
 		
-		tracer: lex: func [
+		tracer: func [
 			event  [word!]                  			;-- event name
 			input  [string! binary!]            		;-- input series at current loading position
 			type   [datatype! word! none!]       		;-- type of token or value currently processed.
