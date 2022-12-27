@@ -507,8 +507,6 @@ actions: context [
 			TYPE_FUNCTION
 			TYPE_OP
 			TYPE_ROUTINE [res: SIGN_COMPARE_RESULT(value1/data3 value2/data3)]
-			TYPE_NONE
-			TYPE_UNSET	 [res: 0]
 			default		 [res: action-compare value1 value2 op]
 		]
 		res
