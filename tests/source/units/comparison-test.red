@@ -786,4 +786,11 @@ Red [
 
 ===end-group===
 
+===start-group=== "compare maps"
+
+	--test-- "compare-map-1 #issue 5259"
+		--assert #(x: #[none]) <> #(x: "abc")
+
+===end-group===
+
 ~~~end-file~~~
