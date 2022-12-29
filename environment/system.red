@@ -468,7 +468,7 @@ system: context [
 		][
 			print [										;-- total: 64
 				uppercase pad event 8
-				pad rejoin [mold type "(" type? type ")"] 20
+				pad mold type 12
 				pad mold/part token 12 12				;-- limit in case it's a huge string/binary
 				pad line 4
 				mold/part input 16
