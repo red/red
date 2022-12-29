@@ -133,36 +133,8 @@ fill: func [
 	p	  [byte-ptr!]
 	end   [byte-ptr!]
 	byte  [byte!]
-	/local
-		p4		 [int-ptr!]
-		tail	 [int-ptr!]
-		cnt		 [integer!]
-		byte4	 [integer!]
-		aligned? [logic!]
 ][
-	cnt: (as-integer p) and 3
-	unless zero? cnt [						;-- preprocess unaligned beginning
-		while [cnt > 0][p/cnt: byte cnt: cnt - 1]
-		p: as byte-ptr! (as-integer p) + 4 and -4
-	]
-	
-	aligned?: zero? ((as-integer end) and 3)
-	tail: either aligned? [as int-ptr! end][as int-ptr! (as-integer end) and -4]
-	p4: as int-ptr! p
-	
-	if p4 < tail [
-		byte4: either byte = null-byte [0][
-			byte4: as-integer byte
-			(byte4 << 24) or (byte4 << 16) or (byte4 << 8) or byte4
-		]
-		while [p4 < tail][p4/value: byte4 p4: p4 + 1] ;-- zero fill target region using 32-bit accesses
-	]
-	
-	unless aligned? [						;-- postprocess unaligned ending
-		cnt: (as-integer end) and 3
-		p: as byte-ptr! p4
-		while [cnt > 0][p/cnt: byte cnt: cnt - 1]
-	]
+	set-memory p byte as-integer end - p
 ]
 
 ;-------------------------------------------
