@@ -1216,11 +1216,12 @@ WndProc: func [
 		x	   [integer!]
 		y	   [integer!]
 ][
-	type: either no-face? hWnd [panel][			;@@ remove this test, create a WndProc for panel?
-		values: get-face-values hWnd
-		w-type: as red-word! values + FACE_OBJ_TYPE
-		symbol/resolve w-type/symbol
-	]
+	if no-face? hWnd [return DefWindowProc hWnd msg wParam lParam]
+
+	values: get-face-values hWnd
+	w-type: as red-word! values + FACE_OBJ_TYPE
+	type: symbol/resolve w-type/symbol
+
 	switch msg [
 		WM_NCCREATE [
 			p-int: as int-ptr! lParam
