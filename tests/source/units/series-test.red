@@ -1555,6 +1555,19 @@ Red [
         --assert [3 1 1 2 3 3] = sort/skip/compare s 2 2
         --assert [1 2 3 1 3 3] = sort/skip/all s 2
 
+    --test-- "sort-blk-8 issue 5265"
+		o1: make object! [x: 1 y: 90]
+		o2: make object! [x: 2 y: 1]
+		o3: make object! [x: 2 y: 2]
+
+		data: reduce [o1 o2 o3]
+		sort/compare data func [a b /local ra rb][
+		   ra: a/x + a/y
+		   rb: b/x + b/y
+		   return ra < rb
+		]
+		--assert data = reduce [o2 o3 o1]
+
     --test-- "sort-vec-1"
         s: does  [make vector! [3 1 3 3 1 2]]
         --assert (make vector! [1 2 3 1 3 3]) = sort/skip s 2
