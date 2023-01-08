@@ -1211,6 +1211,7 @@ block: context [
 			f	 [red-function!]
 			all? [logic!]
 			num  [integer!]
+			cnt  [integer!]
 			blk1 [red-block!]
 			blk2 [red-block!]
 			v1	 [red-value!]
@@ -1250,7 +1251,9 @@ block: context [
 			s2/tail: value2 + num
 		]
 
-		_function/call f global-ctx	as red-value! words/_compare-cb CB_SORT ;FIXME: hardcoded origin context
+		cnt: _function/count-locals f/spec 0 no
+		if positive? cnt [_function/init-locals cnt]
+		_function/call f f/ctx as red-value! words/_compare-cb CB_SORT
 		stack/unwind
 		stack/pop 1
 
