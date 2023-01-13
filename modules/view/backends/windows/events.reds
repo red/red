@@ -1275,15 +1275,15 @@ WndProc: func [
 						SetWindowLong hWnd wc-offset - 8 lParam
 						EVT_MOVING
 					][EVT_SIZING]
-					SetWindowLong hWnd wc-offset - 24 modal-loop-type
-					current-msg/hWnd: hWnd
-					current-msg/lParam: lParam
-					make-event current-msg 0 modal-loop-type
-
 					offset: as red-pair! values + type
 					offset/header: TYPE_PAIR
 					offset/x: WIN32_LOWORD(lParam) + x * 100 / dpi-factor
 					offset/y: WIN32_HIWORD(lParam) + y * 100 / dpi-factor
+
+					SetWindowLong hWnd wc-offset - 24 modal-loop-type
+					current-msg/hWnd: hWnd
+					current-msg/lParam: lParam
+					make-event current-msg 0 modal-loop-type
 
 					values: values + FACE_OBJ_STATE
 					if all [
