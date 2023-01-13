@@ -1231,6 +1231,7 @@ make-profilable make target-class [
 			unless all [
 				type = 'struct!
 				word? path/2
+				not object? value
 				spec: any [parent second compiler/resolve-type path/1]
 				type2: select spec path/2
 				compiler/any-float? type2
@@ -1380,7 +1381,7 @@ make-profilable make target-class [
 		/back?
 		/local size jump jxx jcc jp unord-jumps-to-true? flip? jump-code
 	][
-		if verbose >= 3 [print [">>>inserting branch" either op [join "cc: " mold op][""]]]
+		if verbose >= 3 [print [">>>branching for" either op [join "cc: " mold op][""]]]
 		size: (length? code) - any [offset 0]			;-- offset from the code's head
 		jump: copy #{}									;-- resulting binary
 		jxx: [second set [size jump-code] construct-jump op      size back?]
@@ -1472,6 +1473,7 @@ make-profilable make target-class [
 				]
 			]
 		]
+		if verbose >= 4 [print [">>>emitting branching code:" mold reverse copy jump]]
 		insert any [all [back? tail code] code] jump
 		length? jump
 	]
@@ -2104,13 +2106,19 @@ make-profilable make target-class [
 			all [
 				object? args/2
 				block? right
-				ldr?: not find [float! float32!] compiler/get-type right
-				emit-casting args/2 no			;-- load b on FPU stack
+				ldr?: not find [float! float32!] args/2/type
+				emit-casting args/2 no				;-- load b on FPU stack
 			]
 			if path? right [
-				emit-push/keep args/2			;-- late path loading
+				emit-push/keep args/2				;-- late path loading
 				ldr?: yes
 			]
+		]
+		all [										;-- preload b if casted to any-float!
+			object? args/2
+			block? right
+			find [float! float32!] args/2/type
+			emit-casting args/2 no					;-- load b on FPU stack
 		]
 
 		switch a [									;-- load left operand on FPU stack

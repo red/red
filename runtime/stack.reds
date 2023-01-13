@@ -11,18 +11,12 @@ Red/System [
 ]
 
 #define CALL_STACK_MASK					0F000000h
+#define CALL_STACK_FULL_MASK			FF0000FFh
 #define CALL_STACK_TYPE?(p flags)		(CALL_STACK_MASK and p/header = flags)
 #define NOT_CALL_STACK_TYPE?(p flags)	(CALL_STACK_MASK and p/header <> flags)
 
 stack: context [										;-- call stack
 	verbose: 0
-	
-	dyn-info!: alias struct! [
-		header [integer!]
-		code   [integer!]
-		count  [integer!]
-		locals [integer!]
-	]
 	
 	call-frame!: alias struct! [
 		header [integer!]								;-- symbol ID of the calling function
@@ -92,15 +86,15 @@ stack: context [										;-- call stack
 		args-series:  GET_BUFFER(arg-stk)
 		calls-series: GET_BUFFER(call-stk)
 
-		a-end: as cell!		  (as byte-ptr! args-series)  + args-series/size
-		c-end: as call-frame! (as byte-ptr! calls-series) + calls-series/size
-
 		bottom:  	args-series/offset
 		arguments:	bottom
 		top:	 	bottom
 		cbottom: 	as call-frame! calls-series/offset
 		ctop:	 	cbottom
-		
+
+		a-end: as cell!		  (as byte-ptr! bottom)  + args-series/size
+		c-end: as call-frame! (as byte-ptr! cbottom) + calls-series/size
+
 		body-symbol: words/_body/symbol
 		anon-symbol: words/_anon/symbol
 	]
@@ -241,6 +235,21 @@ stack: context [										;-- call stack
 		]
 		where-ctop: null
 		either p < cbottom [words/_not-found][word/at p/ctx sym]
+	]
+	
+	update-call: func [
+		call [red-value!]
+		/local
+			w [red-word!]
+			p [call-frame!]
+	][
+		w: as red-word! call
+		if TYPE_OF(w) = TYPE_WORD [
+			p: either where-ctop = null [ctop][where-ctop]
+			assert p > cbottom
+			p: p - 1
+			p/header: p/header and CALL_STACK_FULL_MASK or (w/symbol << 8)
+		]
 	]
 	
 	revert: does [
@@ -718,6 +727,53 @@ stack: context [										;-- call stack
 				4
 				(as-integer ctop + 2 - cbottom) >> 4
 			print-line ["ctop: " ctop]
+		]
+		
+		show-frames: func [
+			/local
+				p	  [call-frame!]
+				sym	  [red-symbol!]
+				flags lines [integer!]
+				lower upper [red-value!]
+		][
+			p: ctop
+			lower: arguments
+			upper: top
+			
+			until [
+				sym: symbol/get p/header >> 8 and FFFFh
+				flags: p/header and FF000000h
+			
+				print ["^/-FRAME- : " as-c-string (as series! sym/cache/value) + 1 ", "]
+				
+				if flags and F0000000h = FLAG_INTERPRET [print "INTERPRET,"]
+				if flags and F0000000h = FLAG_THROW_ATR [print "THROW_ATR,"]
+				if flags and F0000000h = FLAG_CATCH_ATR [print "CATCH_ATR,"]
+				if flags and F0000000h = FLAG_IN_FUNC   [print "IN_FUNC,"]
+				if flags and 0F000000h = FRAME_FUNCTION [print "FUNC,"]
+				if flags and 0F000000h = FRAME_NATIVE   [print "NATIVE,"]
+				if flags and 0F000000h = FRAME_ROUTINE  [print "ROUTINE,"]
+				if flags and 0F000000h = FRAME_TRY      [print "TRY,"]
+				if flags and 0F000000h = FRAME_TRY_ALL  [print "TRY_ALL,"]
+				if flags and 0F000000h = FRAME_CATCH    [print "CATCH,"]
+				if flags and FF000000h = FRAME_EVAL     [print "EVAL,"]
+				if flags and 0F000000h = FRAME_LOOP     [print "LOOP,"]
+				if flags and 0F000000h = FRAME_DYN_CALL [print "DYN_CALL,"]
+				if flags and FF000000h = FRAME_INT_FUNC [print "INT_FUNC,"]
+				if flags and FF000000h = FRAME_INT_NAT  [print "INT_NAT,"]
+				if flags and FF000000h = FRAME_IN_CFUNC [print "IN_CFUNC,"]
+				
+				print-line [" prev_args: " p/prev]
+				lines: (as-integer upper + 1 - lower) >> 4
+				if lines > 20 [lines: 20]
+				if lines > 0  [dump-memory-raw as byte-ptr! lower 4 lines]
+				
+				lower: p/prev
+				upper: arguments
+				p: p - 1
+				p <= cbottom
+			]
+			print lf
 		]
 	]
 ]

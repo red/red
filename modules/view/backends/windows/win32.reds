@@ -18,6 +18,8 @@ Red/System [
 	]
 ]
 
+#define MAPVK_VK_TO_CHAR		2
+
 #define NM_CUSTOMDRAW			-12
 
 #define GWL_HWNDPARENT			-8
@@ -2896,6 +2898,10 @@ XFORM!: alias struct! [
 			memory			[byte-ptr!]
 			size			[integer!]
 			return:			[byte-ptr!]
+		]
+		wcslen: "wcslen" [
+			str				[c-string!]
+			return:			[integer!]
 		]
 	]
 ]

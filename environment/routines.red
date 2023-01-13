@@ -28,7 +28,7 @@ set-quiet: routine [
 		node [node!]
 ][
 	type: TYPE_OF(word)
-	unless ANY_WORD?(type) [ERR_EXPECT_ARGUMENT(TYPE_WORD 0)]
+	unless ANY_WORD?(type) [ERR_EXPECT_ARGUMENT(type 0)]
 	w: as red-word! word
 	node: w/ctx
 	_context/set-in w stack/arguments + 1 TO_CTX(node) no
@@ -130,7 +130,15 @@ as-ipv4: routine [
 	stack/set-last as red-value! tuple/push 4 arr1 0 0
 ]
 
-as-rgba: :as-ipv4
+as-rgba: routine [
+	"Combine R, G, B and A color components into a tuple"
+	r [integer!]
+	g [integer!]
+	b [integer!]
+	a [integer!]
+][
+	as-ipv4 r g b a
+]
 
 count-chars: routine [
 	"Count UTF-8 encoded characters between two positions in a binary series"

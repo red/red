@@ -6,12 +6,7 @@
 	red/get-root-node2
 	red/type-check-alt
 	red/type-check
-	red/set-int-path*
-	red/eval-int-path*
-	red/set-path*
 	red/eval-path*
-	red/eval-int-path
-	red/eval-path
 	red/select-key*
 	red/alloc-bytes
 	red/alloc-cells
@@ -127,7 +122,7 @@
 	red/_context/clone-words
 	red/_context/set-integer
 
-	red/object/duplicate
+	red/object/clone-series
 	red/object/transfer
 	red/object/init-push
 	red/object/init-events
@@ -422,8 +417,6 @@
 ][
 	red/root				red-block!
 	red/stk-bottom			int-ptr!
-	red/object/path-parent	cell!
-	red/object/field-parent	cell!
 	red/stack/arguments		cell!
 	red/stack/top			cell!
 	red/stack/bottom		cell!

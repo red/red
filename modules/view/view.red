@@ -26,7 +26,23 @@ face?: function [
 	value	"Value to test"
 	return:	[logic!]
 ][
-	to logic! all [object? :value (class-of value) = class-of face!]
+	to logic! all [
+		object? :value
+		any [
+			(class-of value) = class-of face!
+			all [										;-- (temporary) fallback heuristic
+				in value 'type
+				in value 'offset
+				in value 'size
+				in value 'parent
+				in value 'pane
+				in value 'state
+				in value 'para
+				in value 'font
+				in value 'actors
+			]
+		]
+	]
 ]
 
 size-text: function [
@@ -353,19 +369,19 @@ link-sub-to-parent: function ["Internal Use Only" face [object!] type [word!] ol
 		unless all [parent: in new 'parent block? get parent][
 			new/parent: make block! 4
 		]
-		append new/parent face
+		new/parent: insert tail new/parent face
 		all [
 			object? old
 			parent: in old 'parent
 			block? parent: get parent
-			remove find parent face
+			remove find/same head parent face
 		]
 	]
 ]
 
 update-font-faces: function ["Internal Use Only" parent [block! none!]][
 	if block? parent [
-		foreach f parent [
+		foreach f head parent [
 			if f/state [
 				system/reactivity/check/only f 'font
 				f/state/2: f/state/2 or 00080000h		;-- (1 << ((index? in f 'font) - 1))
@@ -409,23 +425,13 @@ face!: object [				;-- keep in sync with facet! enum
 				"-- on-change event --" lf
 				tab "face :" type		lf
 				tab "word :" word		lf
-				tab "old  :" type? :old	lf
-				tab "new  :" type? :new
+				tab "old  :" either find immediate! type? :old [mold :old][type? :old]	lf
+				tab "new  :" either find immediate! type? :new [mold :new][type? :new]
 			]
 		]
 
 		if all [word <> 'state word <> 'extra][
-			all [
-				not empty? srs: system/reactivity/source
-				srs/1 = self
-				srs/2 = word
-				set-quiet in self word old				;-- force the old value
-				exit
-			]
-			if all [
-				any [word = 'size word = 'offset]
-				old = new
-			][exit]
+			if all [any [word = 'size word = 'offset] old = new][exit]
 
 			same-pane?: all [block? :old block? :new same? head :old head :new]
 			if word = 'pane [
@@ -481,12 +487,19 @@ face!: object [				;-- keep in sync with facet! enum
 					word: 'text							;-- force text refresh
 				]
 			]
+			
+			all [
+				word = 'selected
+				block? data
+				find [drop-list drop-down text-list field area] type
+				set-quiet 'text pick data selected
+			]
 
 			system/reactivity/check/only self any [saved word]
 
 			either state [
 				;if word = 'type [cause-error 'script 'locked-word [type]]
-				state/2: state/2 or (1 << ((index? in self word) - 1))
+				state/2: state/2 or (1 << ((index? word) - 1))
 				if all [state/1 system/view/auto-sync?][show self]
 			][
 				if type = 'rich-text [system/view/platform/update-view self]
@@ -525,7 +538,7 @@ font!: object [											;-- keep in sync with font-facet! enum
 			if any [series? :new object? :new][modify new 'owned reduce [self word]]
 
 			if all [block? state handle? state/1][ 
-				system/view/platform/update-font self (index? in self word) - 1
+				system/view/platform/update-font self (index? word) - 1
 				update-font-faces parent
 			]
 		]
@@ -537,7 +550,7 @@ font!: object [											;-- keep in sync with font-facet! enum
 			word <> 'state
 			not find [remove clear take] action
 		][
-			system/view/platform/update-font self (index? in self word) - 1
+			system/view/platform/update-font self (index? word) - 1
 			update-font-faces parent
 		]
 	]	
@@ -565,9 +578,9 @@ para!: object [
 			not find [state parent] word
 			block? parent
 		][
-			foreach f parent [
+			foreach f head parent [
 				system/reactivity/check/only f 'para
-				system/view/platform/update-para f (index? in self word) - 1 ;-- sets f/state flag too
+				system/view/platform/update-para f (index? word) - 1 ;-- sets f/state flag too
 				if all [f/state f/state/1][show f]
 			]
 		]
@@ -585,7 +598,7 @@ scroller!: object [
 
 	on-change*: function [word old new][
 		if all [parent block? parent/state handle? parent/state/1][
-			system/view/platform/update-scroller self (index? in self word) - 1
+			system/view/platform/update-scroller self (index? word) - 1
 		]
 	]
 ]
@@ -764,8 +777,8 @@ show: function [
 	show?: yes
 	if block? face [
 		foreach f face [
-			if word? f [f: get f]
-			if object? f [show?: show f]
+			if word? :f [f: get f]
+			either object? :f [show?: show f][cause-error 'script 'face-type [:f]]
 		]
 		return show?
 	]
@@ -789,7 +802,7 @@ show: function [
 		either face/type <> 'screen [
 			if all [not force face/type <> 'window][
 				unless parent [cause-error 'script 'not-linked []]
-				if all [object? face/parent face/parent/type <> 'tab-panel][face/parent: none]
+				if all [object? face/parent face/parent/type <> 'tab-panel not with][face/parent: none]
 			]
 			if any [series? face/extra object? face/extra][
 				modify face/extra 'owned none			;@@ TBD: unflag object's fields (ownership)
@@ -813,10 +826,11 @@ show: function [
 
 			foreach field [para font][
 				if all [field: face/:field p: in field 'parent][
-					either block? p: get p [
-						unless find p face [append p face]
+					field/parent: tail either block? p: get p [
+						unless find/same head p face [append p face]
+						p
 					][
-						field/parent: reduce [face]
+						reduce [face]
 					]
 				]
 			]
@@ -973,7 +987,7 @@ dump-face: function [
 	depth: ""
 	print [
 		depth "Type:" face/type "Style:" if face/options [face/options/style]
-		"Offset:" face/offset "Size:" face/size
+		"Offset:" face/offset "Size:" face/size "Color:" face/color
 		"Text:" if face/text [mold/part face/text 20]
 	]
 	append depth "    "
@@ -1002,6 +1016,7 @@ insert-event-func: function [
 	"Add a function to monitor global events. Return the function"
 	fun [block! function!] "A function or a function body block"
 ][
+	if find/same system/view/handlers :fun [return none]
 	if block? :fun [fun: do [function copy [face event] fun]]	;@@ compiler chokes on 'function call
 	insert system/view/handlers :fun
 	:fun
@@ -1084,6 +1099,22 @@ foreach-face: function [
 	]
 ]
 
+alert: func [
+	"Displays an alert message in a pop-up modal window"
+	msg [string! block!] "Message to display"
+][
+	view/flags compose [
+		title "Message"
+		below center
+		text 200 (form reduce msg) center
+		button focus "OK" [unview] on-key [
+			switch event/key [
+				#"^M" #"^[" #" " #"^O" [unview]
+			]
+		]
+	] 'modal
+]
+
 ;=== Global handlers ===
 
 ;-- Dragging face handler --
@@ -1100,17 +1131,30 @@ insert-event-func [
 				all [flags append flags 'all-over]
 				'all-over
 			]
-			do-actor face event 'drag-start
-			face/state/4: event/offset
+			set/any 'result do-actor face event 'drag-start
+			unless all [
+				object? :result
+				[min max] = words-of result
+				pair? result/min
+				pair? result/max
+			][
+				result: none
+			]
+			face/state/4: reduce [event/offset any [result face/options/bounds]]
 			unless system/view/auto-sync? [show face]
 		][
-			if drag-offset: face/state/4 [
+			if drag-info: face/state/4 [
 				either type = 'over [
 					unless event/away? [
-						new: face/offset + event/offset - drag-offset
+						new: face/offset + event/offset - drag-info/1
 						if face/offset <> new [
-							result: none				;-- for local context capturing
-							face/offset: new
+							if box: drag-info/2 [
+								if new/x < box/min/x [new/x: box/min/x]
+								if new/x > box/max/x [new/x: box/max/x]
+								if new/y < box/min/y [new/y: box/min/y]
+								if new/y > box/max/y [new/y: box/max/y]
+							]
+							if face/offset <> new [face/offset: new]
 							set/any 'result do-actor face event 'drag ;-- avoid calling on-over actor
 							unless system/view/auto-sync? [show face]
 							return :result

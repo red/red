@@ -431,6 +431,7 @@ BaseInternalWndProc: func [
 			FillRect as handle! wParam rect hBrush
 			return 1
 		]
+		WM_DESTROY [free-dc hWnd]
 		default [0]
 	]
 	DefWindowProc hWnd msg wParam lParam
@@ -471,8 +472,10 @@ BaseWndProc: func [
 		]
 		WM_LBUTTONUP	 [
 			w: GetWindowLong hWnd wc-offset - 32
-			SetWindowLong hWnd wc-offset - 32 w - 1
-			ReleaseCapture return 0
+			if w > 0 [
+				SetWindowLong hWnd wc-offset - 32 w - 1
+				ReleaseCapture return 0
+			]
 		]
 		WM_ERASEBKGND	 [return 1]					;-- drawing in WM_PAINT to avoid flicker
 		WM_SIZE  [
@@ -506,7 +509,10 @@ BaseWndProc: func [
 		WM_PAINT
 		WM_DISPLAYCHANGE [
 			if painting? [return 0]
-			if (WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) = 0 [
+			if all [
+				(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) = 0	;-- not a layered window
+				0 <> GetWindowLong hWnd wc-offset		;-- linked with a face object
+			][
 				#either draw-engine = 'GDI+ [][BeginPaint hWnd :ps]
 				painting?: yes
 				draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
@@ -518,7 +524,7 @@ BaseWndProc: func [
 					]]
 					do-draw hWnd null draw no yes yes yes
 				][
-					if null? current-msg [return -1]
+					if null? current-msg [init-current-msg]
 					;system/thrown: 0
 					assert system/thrown = 0
 					DC: declare draw-ctx!				;@@ should declare it on stack
@@ -581,6 +587,7 @@ BaseWndProc: func [
 			process-command-event hWnd msg wParam lParam
 			return 0
 		]
+		WM_DESTROY [free-dc hWnd]
 		default [0]
 	]
 	if (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_IME <> 0 [
@@ -709,7 +716,7 @@ update-base-text: func [
 	flags: either TYPE_OF(para) = TYPE_OBJECT [
 		get-para-flags base para
 	][
-		5 							;-- 1 = center + 4 = middle
+		0 							;-- 1 = center + 4 = middle
 	]
 	h-align: flags and 3 			;-- 0,1,2 = left,center,right
 	v-align: flags >>> 2 and 3		;-- 0,4,8 = top,middle,bottom
@@ -871,7 +878,7 @@ update-base: func [
 		rc		[RECT_STRUCT value]
 ][
 	if zero? (WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) [
-		InvalidateRect hWnd null 0
+		InvalidateRect hWnd null 1
 		exit
 	]
 
@@ -890,36 +897,22 @@ update-base: func [
 
 	either TYPE_OF(cmds) = TYPE_BLOCK [
 		do-draw hWnd null cmds yes no no yes
-		this: get-surface hWnd
-		surf: as IDXGISurface1 this/vtbl
-		surf/GetDC this 0 :hdc
-		UpdateLayeredWindow hWnd null ptDst size hdc/value :ptSrc 0 :bf flags
-		rc/left: 0 rc/top: 0 rc/right: 0 rc/bottom: 0	;-- empty RECT
-		surf/ReleaseDC this :rc
-		surf/Release this
 	][
-		img:	as red-image!  values + FACE_OBJ_IMAGE
-		color:	as red-tuple!  values + FACE_OBJ_COLOR
-		text:	as red-string! values + FACE_OBJ_TEXT
-		font:	as red-object! values + FACE_OBJ_FONT
-		para:	as red-object! values + FACE_OBJ_PARA
-		graphic: 0
-		hBackDC: CreateCompatibleDC hScreen
-		hBitmap: CreateCompatibleBitmap hScreen width height
-		SelectObject hBackDC hBitmap
-		GdipCreateFromHDC hBackDC :graphic
-
-		if TYPE_OF(color) = TYPE_TUPLE [		;-- update background
-			update-base-background graphic color width height
+		system/thrown: 0
+		catch RED_THROWN_ERROR [draw-begin :ctx hWnd null yes no]
+		draw-end :ctx hWnd yes no no
+		if system/thrown = RED_THROWN_ERROR [
+			system/thrown: 0
 		]
-		GdipSetSmoothingMode graphic GDIPLUS_ANTIALIAS
-		update-base-image graphic img width height
-		update-base-text hWnd graphic hBackDC text font para width height null
-		UpdateLayeredWindow hWnd null ptDst size hBackDC :ptSrc 0 :bf flags
-		GdipDeleteGraphics graphic
-		DeleteObject hBitmap
-		DeleteDC hBackDC
 	]
+
+	this: get-surface hWnd
+	surf: as IDXGISurface1 this/vtbl
+	surf/GetDC this 0 :hdc
+	UpdateLayeredWindow hWnd null ptDst size hdc/value :ptSrc 0 :bf flags
+	rc/left: 0 rc/top: 0 rc/right: 0 rc/bottom: 0	;-- empty RECT
+	surf/ReleaseDC this :rc
+	surf/Release this
 ]]
 
 ;-- blends the image of every encountered visible layered window into the DC

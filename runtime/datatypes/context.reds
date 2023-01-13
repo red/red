@@ -194,7 +194,7 @@ _context: context [
 		#if debug? = yes [if verbose > 0 [print-line "_context/add"]]
 
 		new-id: 0
-		id: find-or-store ctx word/symbol yes word/ctx :new-id
+		id: find-or-store ctx word/symbol yes ctx/self :new-id
 		if id <> -1 [return id]
 
 		unless ON_STACK?(ctx) [
@@ -277,7 +277,7 @@ _context: context [
 						old: stack/push slot
 						word: as red-word! word
 						copy-cell value slot
-						object/fire-on-set obj word old value
+						object/fire-on-set obj word old value ;-- safe to call, will exit if not defined
 						stack/top: saved
 						return slot
 					]
@@ -309,19 +309,16 @@ _context: context [
 			s	   [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/get-in"]]
-
-		if all [
-			TYPE_OF(ctx) = TYPE_OBJECT					;-- test special ctx pointer for SELF
-			word/index = -1
-			word/symbol = words/self
-		][
-			s: as series! word/ctx/value
-			return s/offset								;-- return original object value
-		]
-		if any [										;-- ensure word is properly bound to a context
-			null? ctx
-			word/index = -1
-		][
+		
+		assert ctx <> null
+		if word/index = -1 [							;-- ensure word is properly bound to a context
+			if all [
+				word/index = -1
+				word/symbol = words/self
+			][
+				s: as series! word/ctx/value
+				return s/offset	+ 1						;-- return original object value
+			]
 			fire [TO_ERROR(script no-value) word]
 		]
 		if null? ctx/values [
@@ -347,8 +344,8 @@ _context: context [
 		get-in word TO_CTX(node)
 	]
 	
-	clone-words: func [		;-- clone a context. only copy words, without values
-		slot	[red-block!]
+	clone-words: func [									;-- (called by compiler) clone a context. only copy words, without values
+		slot	[red-block!]							;-- returned type by `get-root`
 		type	[context-type!]
 		return: [node!]
 		/local
@@ -362,7 +359,7 @@ _context: context [
 			slots	[integer!]
 	][
 		assert TYPE_OF(slot) = TYPE_OBJECT
-		obj: as red-object! slot
+		obj: as red-object! slot						;-- type-casting is internalized to reduce code emitted by compiler
 		node: obj/ctx
 		ctx: TO_CTX(node)
 		src: _hashtable/get-ctx-words ctx
@@ -386,27 +383,28 @@ _context: context [
 	]
 
 	create: func [
-		slots	[integer!]							;-- max number of words in the context
-		stack?	[logic!]							;-- TRUE: alloc values on stack, FALSE: alloc them from heap
+		slots	[integer!]								;-- max number of words in the context
+		stack?	[logic!]								;-- TRUE: alloc values on stack, FALSE: alloc them from heap
 		self?	[logic!]
-		proto	[red-context!]						;-- if proto <> null, copy all the words in the proto context
+		proto	[red-context!]							;-- if proto <> null, copy all the words in the proto context
 		type	[context-type!]
 		return:	[node!]
 		/local
 			cell [red-context!]
 			slot [red-value!]
-			node [node!]
+			sym	 [red-word!]
+			new  [node!]
 			vals [node!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/create"]]
 		
 		if zero? slots [slots: 1]
-		node: alloc-cells 2
-		cell: as red-context! alloc-tail as series! node/value
+		new: alloc-cells 2
+		cell: as red-context! alloc-tail as series! new/value
 		cell/header: TYPE_UNSET							;-- properly set cell's type before possible GC pass
-		slot: alloc-tail as series! node/value			;-- allocate a slot for obj/func back-reference
+		slot: alloc-tail as series! new/value			;-- allocate a slot for obj/func back-reference
 		slot/header: TYPE_UNSET	
-		cell/self: node
+		cell/self: new
 
 		either stack? [
 			cell/values: null							;-- will be set to stack frame dynamically
@@ -420,7 +418,7 @@ _context: context [
 		]
 		SET_CTX_TYPE(cell type)
 		if self? [cell/header: cell/header or flag-self-mask]
-		node
+		new
 	]
 	
 	make: func [

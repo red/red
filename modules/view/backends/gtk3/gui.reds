@@ -1695,6 +1695,23 @@ OS-show-window: func [
 	set-selected-focus win
 ]
 
+set-buffer: func [
+	widget	[handle!]
+	x		[integer!]
+	y		[integer!]
+	color	[red-tuple!]
+	/local
+		buf [handle!]
+][
+	unless transparent-base? color [exit]
+
+	buf: GET-BASE-BUFFER(widget)
+	if buf <> null [cairo_surface_destroy buf]
+
+	buf: cairo_image_surface_create CAIRO_FORMAT_ARGB32 x y
+	SET-BASE-BUFFER(widget buf)
+]
+
 OS-make-view: func [
 	face		[red-object!]
 	parent		[integer!]
@@ -1802,6 +1819,7 @@ OS-make-view: func [
 		sym = base [
 			widget: gtk_layout_new null null
 			gtk_layout_set_size widget size/x size/y
+			set-buffer widget size/x size/y color
 		]
 		sym = rich-text [
 			widget: gtk_layout_new null null
@@ -2291,7 +2309,6 @@ OS-to-image: func [
 	word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
 	type: symbol/resolve word/symbol
 
-	;; DEBUG: print ["OS-to-image:" get-symbol-name type lf]
 	case [
 		type = screen [
 			win: gdk_get_default_root_window
@@ -2299,21 +2316,18 @@ OS-to-image: func [
 			height: gdk_window_get_height win
 			xwin: gdk_x11_window_get_xid win
 			win: gdk_x11_window_foreign_new_for_display gdk_window_get_display win xwin
-			either  null? win [ret: as red-image! none-value]
-			[
+			either null? win [ret: as red-image! none-value][
 				pixbuf: gdk_pixbuf_get_from_window win 0 0 width height ;screen-size-x screen-size-y; CGWindowListCreateImage 0 0 7F800000h 7F800000h 1 0 0		;-- INF
 				ret: image/init-image as red-image! stack/push* OS-image/load-pixbuf pixbuf
 			]
 		]
 		true [
 			widget: face-handle? face
-			;; DEBUG: print ["widget: " widget lf]
 			either null? widget [ret: as red-image! none-value][
 				size: as red-pair! (object/get-values face) + FACE_OBJ_SIZE
 				offset: as red-pair! (object/get-values face) + FACE_OBJ_OFFSET
 				win: gtk_widget_get_window widget
 				either not null? win [
-					;; DEBUG: print ["win: " win " size: " size/x "x" size/y " offset: " offset/x "x" offset/y lf]
 					pixbuf: either any [
 						type = window
 						type = camera

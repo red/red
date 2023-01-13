@@ -23,6 +23,8 @@ Red [
 		--assert equal? pb1-p 1x1
 		--assert equal? pick pb1-p 1 1
 		--assert equal? pick pb1-p 2 1
+		--assert equal? pick pb1-p 'x 1
+		--assert equal? pick pb1-p 'y 1
 		
 	--test-- "pb-2"
 		pb2-p: 0x0
@@ -73,6 +75,10 @@ Red [
 	--test-- "pb-11"		--assert error? try [as-pair 1  1.#inf]
 	--test-- "pb-12"		--assert error? try [as-pair 1  1.#nan]
 	--test-- "pb-13"		--assert error? try [as-pair -1.#inf 1]
+
+	--test-- "pb-14" 		--assert equal? pick -5x3 'x -5
+	--test-- "pb-15" 		--assert equal? pick -5x3 'y 3
+	--test-- "pb-16" 		--assert error? try [pick 1x1 'hello]
 		
 ===end-group===
 
@@ -269,6 +275,7 @@ Red [
 	--test-- "pround-1"		--assert 15x10 = round/to 17x8  5
 	--test-- "pround-3"		--assert 15x10 = round/to 15x10 1
 	--test-- "pround-3"		--assert 15x10 = round/to 15x10 0
+	--test-- "#5151"		--assert 20x40 = round/to 22x33 10x20
 
 ===end-group===
 

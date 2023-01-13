@@ -837,7 +837,7 @@ win/pane: reduce [
 		actors: object [
 			on-drag-start: func [face [object!] event [event!]][
 				print "drag starts"
-				;face/state/4: face/state/4 + 4x4
+				;face/state/4/1: face/state/4/1 + 4x4
 				;face/offset: face/offset - 4x4
 				;unless live? [show face]
 			]
@@ -848,7 +848,7 @@ win/pane: reduce [
 				print "dropping"
 				;face/offset: face/offset + 4x4
 
-				pos: face/offset + face/state/4 	;-- calculate mouse position
+				pos: face/offset + face/state/4/1 	;-- calculate mouse position
 				if within? pos dropped/offset dropped/size [
 					face/offset: 550x540
 					dropped/draw/5: form 1 + to integer! dropped/draw/5

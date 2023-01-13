@@ -13,6 +13,24 @@ Red/System [
 pair: context [
 	verbose: 0
 	
+	get-named-index: func [
+		w		[red-word!]
+		ref		[red-value!]
+		return: [integer!]
+		/local
+			axis [integer!]
+	][
+		axis: symbol/resolve w/symbol
+		if all [axis <> words/x axis <> words/y][
+			either TYPE_OF(ref) = TYPE_PAIR [
+				fire [TO_ERROR(script cannot-use) w ref]
+			][
+				fire [TO_ERROR(script invalid-path) ref w]
+			]
+		]
+		either axis = words/x [1][2]
+	]
+	
 	do-math: func [
 		op		  [integer!]
 		return:	  [red-pair!]
@@ -248,15 +266,20 @@ pair: context [
 		element	[red-value!]
 		value	[red-value!]
 		path	[red-value!]
+		gparent [red-value!]
+		p-item	[red-value!]
+		index	[integer!]
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
 		return:	[red-value!]
 		/local
+			obj	 [red-object!]
+			old	 [red-value!]
 			int	 [red-integer!]
-			w	 [red-word!]
 			axis [integer!]
 			type [integer!]
+			evt? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "pair/eval-path"]]
 		
@@ -268,27 +291,25 @@ pair: context [
 					fire [TO_ERROR(script invalid-path) path element]
 				]
 			]
-			TYPE_WORD [
-				w: as red-word! element
-				axis: symbol/resolve w/symbol
-				if all [axis <> words/x axis <> words/y][
-					fire [TO_ERROR(script invalid-path) path element]
-				]
-				axis: either axis = words/x [1][2]
-			]
-			default [
-				fire [TO_ERROR(script invalid-path) path element]
-			]
+			TYPE_WORD [axis: get-named-index as red-word! element path]
+			default	  [fire [TO_ERROR(script invalid-path) path element]]
 		]
 		either value <> null [
 			type: TYPE_OF(value)
 			if type <> TYPE_INTEGER [
 				fire [TO_ERROR(script invalid-type) datatype/push type]
 			]
+			obj: as red-object! gparent
+			evt?: all [obj <> null TYPE_OF(obj) = TYPE_OBJECT obj/on-set <> null TYPE_OF(p-item) = TYPE_WORD]
+			if evt? [old: stack/push as red-value! parent]
+			
 			int: as red-integer! stack/arguments
 			int/header: TYPE_INTEGER
 			either axis = 1 [parent/x: int/value][parent/y: int/value]
-			object/check-owner as red-value! parent
+			if evt? [
+				object/fire-on-set as red-object! gparent as red-word! p-item old as red-value! parent
+				stack/pop 1								;-- avoid moving stack top
+			]
 			as red-value! int
 		][
 			int: integer/push either axis = 1 [parent/x][parent/y]
@@ -314,7 +335,7 @@ pair: context [
 	]
 
 	round: func [
-		value		[red-value!]
+		pair		[red-pair!]
 		scale		[red-integer!]
 		_even?		[logic!]
 		down?		[logic!]
@@ -324,28 +345,33 @@ pair: context [
 		half-ceil?	[logic!]
 		return:		[red-value!]
 		/local
-			pair	[red-pair!]
-			_pad3	[integer!]
-			_pad2	[integer!]
-			_pad1	[integer!]
-			header	[integer!]
-			val		[red-integer!]
+			int		[red-integer!]
+			value	[red-value!]
+			p		[red-pair!]
+			scalexy?[logic!]
+			y		[integer!]
 	][
 		if TYPE_OF(scale) = TYPE_MONEY [
 			fire [TO_ERROR(script not-related) stack/get-call datatype/push TYPE_MONEY]
 		]
+		scalexy?: all [OPTION?(scale) TYPE_OF(scale) = TYPE_PAIR]
+		if scalexy? [
+			p: as red-pair! scale
+			y: p/y
+			scale/header: TYPE_INTEGER
+			scale/value: p/x
+		]
 		
-		pair: as red-pair! value
-		header: TYPE_INTEGER
-		val: as red-integer! :header
-		val/value: pair/x
-		pair/x: get-value-int as red-integer!
-				integer/round as red-value! val scale _even? down? half-down? floor? ceil? half-ceil?
-		header: TYPE_INTEGER
-		val/value: pair/y
-		pair/y: get-value-int as red-integer!
-				integer/round as red-value! val scale _even? down? half-down? floor? ceil? half-ceil?
-		value
+		int: integer/push pair/x
+		value: integer/round as red-value! int scale _even? down? half-down? floor? ceil? half-ceil?
+		pair/x: get-value-int as red-integer! value
+		
+		if scalexy? [scale/value: y]
+		int/value: pair/y
+		value: integer/round as red-value! int scale _even? down? half-down? floor? ceil? half-ceil?
+		pair/y: get-value-int as red-integer! value
+		
+		as red-value! pair
 	]
 
 	remainder: func [return: [red-value!]][
@@ -420,6 +446,7 @@ pair: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "pair/pick"]]
 
+		if TYPE_OF(boxed) = TYPE_WORD [index: get-named-index as red-word! boxed as red-value! pair]
 		if all [index <> 1 index <> 2][fire [TO_ERROR(script out-of-range) boxed]]
 		as red-value! integer/push either index = 1 [pair/x][pair/y]
 	]

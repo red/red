@@ -299,14 +299,13 @@ error: context [
 				int/value: cat * 100 + cat2 - 2
 			]
 			TYPE_STRING [
-				new: create TO_ERROR(user message) spec null null
+				return create TO_ERROR(user message) spec null null
 			]
 			default [
 				fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_ERROR spec]
 			]
 		]
-		copy-cell #get system/state/near base + field-near
-		copy-cell none-value #get system/state/near		;-- reset system/state/near after usage
+		copy-cell as red-value! interpreter/near base + field-near
 		new
 	]
 	
@@ -325,9 +324,16 @@ error: context [
 			blk		[red-block!]
 			int		[red-integer!]
 			arg2	[red-value!]
-			print-stack-header [subroutine!]
+			print-stack-header make-internal-error [subroutine!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "error/form"]]
+		
+		make-internal-error: [
+			copy-cell as red-value! words/errors/internal base + field-type
+			copy-cell as red-value! words/errors/invalid-error base + field-id
+			errors: as red-object! object/rs-select catalog as red-value! words/errors/internal
+			assert TYPE_Of(errors) <> TYPE_NONE
+		]
 		
 		print-stack-header: [
 			string/concatenate-literal buffer "^/*** Stack: "
@@ -342,18 +348,12 @@ error: context [
 		errors: as red-object! object/rs-select catalog base + field-type
 		if TYPE_Of(errors) = TYPE_NONE [				;-- invalid /type field, overwrite error object
 			copy-cell base + field-type base + field-arg1
-			copy-cell as red-value! words/errors/internal base + field-type
-			copy-cell as red-value! words/errors/invalid-error base + field-id
-			errors: as red-object! object/rs-select catalog as red-value! words/errors/internal
-			assert TYPE_Of(errors) <> TYPE_NONE
+			make-internal-error
 		]
 		value: object/rs-select errors base + field-id
 		if TYPE_Of(value) = TYPE_NONE [				;-- invalid /id field, overwrite error object
 			copy-cell base + field-id base + field-arg1
-			copy-cell as red-value! words/errors/internal base + field-type
-			copy-cell as red-value! words/errors/invalid-error base + field-id
-			errors: as red-object! object/rs-select catalog as red-value! words/errors/internal
-			assert TYPE_Of(errors) <> TYPE_NONE
+			make-internal-error
 			value: object/rs-select errors base + field-id
 			assert TYPE_Of(value) <> TYPE_NONE
 		]
@@ -364,16 +364,28 @@ error: context [
 		part: part - string/rs-length? str
 		string/concatenate-literal buffer ": "
 		part: part - 2
+
+		if TYPE_OF(value) = TYPE_WORD [
+			_context/bind-word GET_CTX(obj) as red-word! value
+			value: _context/get-in as red-word! value GET_CTX(obj)
+		]
 		
-		either TYPE_OF(value) = TYPE_STRING [
-			str: as red-string! value
-			string/concatenate buffer str -1 0 yes no
-			part: part - string/rs-length? str
-		][
-			blk: block/clone as red-block! value no no
-			blk: reduce blk obj
-			arg2: as red-value! integer/push 80
-			part: block/form blk buffer arg2 80
+		switch TYPE_OF(value) [
+			TYPE_STRING [
+				str: as red-string! value
+				string/concatenate buffer str -1 0 yes no
+				part: part - string/rs-length? str
+			]
+			TYPE_BLOCK [
+				blk: block/clone as red-block! value no no
+				blk: reduce blk obj
+				arg2: as red-value! integer/push 80
+				part: block/form blk buffer arg2 80
+			]
+			default [
+				copy-cell base + field-type base + field-arg1
+				make-internal-error
+			]
 		]
 		
 		string/concatenate-literal buffer "^/*** Where: "
@@ -442,6 +454,9 @@ error: context [
 		element	[red-value!]
 		value	[red-value!]
 		path	[red-value!]
+		gparent [red-value!]
+		p-item	[red-value!]
+		index	[integer!]
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
@@ -455,7 +470,7 @@ error: context [
 		if all [TYPE_OF(w) = TYPE_WORD words/stack = symbol/resolve w/symbol][
 			fire [TO_ERROR(script invalid-path-set) path]
 		]
-		object/eval-path parent element value path case? get? tail?
+		object/eval-path parent element value path gparent p-item index case? get? tail?
 	]
 	
 	compare: func [

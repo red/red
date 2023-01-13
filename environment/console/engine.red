@@ -238,7 +238,7 @@ system/console: context [
 							mold/part :result limit + 5 ;-- mold a bit more than needed
 						]
 						if limit < length? result [
-							clear change at result limit "..."
+							clear change at result limit - length? prompt "..."
 						]
 						prefix: any [
 							all [string? set/any 'p try/all [do [system/console/result]] :p]
@@ -284,7 +284,7 @@ system/console: context [
 		]
 	]
 
-	run: function [/no-banner /local p][
+	run: function [/no-banner /local p /extern prompt][
 		unless no-banner [
 			print [
 				"--== Red" system/version "==--" lf
@@ -295,7 +295,7 @@ system/console: context [
 			eval-command ask any [
 				cue
 				all [string? set/any 'p try/all [do [prompt]] :p]
-				all [error? :p p/where: "system/console/prompt" print :p def-prompt]
+				all [error? :p p/where: "system/console/prompt" print :p prompt: def-prompt]
 				form :p
 			]
 		]
@@ -363,7 +363,6 @@ list-dir: function [
 		22 - n
 	]
 
-	#if config/gui-console? [gui-console-ctx/terminal/refresh?: no]
 	while [not tail? list][
 		loop n [
 			if max-sz <= length? name: list/1 [
@@ -376,7 +375,6 @@ list-dir: function [
 		]
 		prin lf
 	]
-	#if config/gui-console? [gui-console-ctx/terminal/refresh?: yes]
 	()
 ]
 

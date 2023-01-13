@@ -91,6 +91,16 @@ Red/System [
 			cmds   [red-block!]
 			cmd	   [red-value!]
 			catch? [logic!]
+		][
+			_throw-draw-error cmds cmd TO_ERROR(script invalid-draw) catch?
+		]
+
+		_throw-draw-error: func [
+			cmds   [red-block!]
+			cmd	   [red-value!]
+			cat    [red-value!]
+			id	   [red-value!]
+			catch? [logic!]
 			/local
 				silent [red-logic!]
 				base   [red-value!]
@@ -107,10 +117,10 @@ Red/System [
 			_series/copy as red-series! cmds as red-series! cmds part no null
 
 			either catch? [
-				report TO_ERROR(script invalid-draw) as red-value! cmds null null
+				report cat id as red-value! cmds null null
 				throw RED_THROWN_ERROR
 			][
-				fire [TO_ERROR(script invalid-draw) cmds]
+				fire [cat id cmds]
 			]
 		]
 
@@ -730,7 +740,8 @@ Red/System [
 				ncmd		[red-value!]
 				ntail		[red-value!]
 		][
-			if cycles/find? cmds/node [cycles/reset fire [TO_ERROR(internal no-cycle)]]
+			if cycles/find? cmds/node [throw-draw-error cmds as red-value! cmds catch?]
+
 			cycles/push cmds/node
 
 			cmd:  block/rs-head cmds
@@ -878,7 +889,9 @@ Red/System [
 										]
 									]
 								]
-								OS-draw-image DC as red-image! start point end color border? crop-s pattern
+								if 0 <> OS-draw-image DC as red-image! start point end color border? crop-s pattern [
+									_throw-draw-error cmds start TO_ERROR(internal no-memory) catch?
+								]
 							]
 							sym = _shadow [
 								DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_WORD)

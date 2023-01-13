@@ -482,7 +482,7 @@ red: context [
 	]
 	
 	get-path-word: func [
-		original [any-word!] blk [block!] get? [logic!]
+		original [any-word!] blk [block!] get? [logic!] first? [logic!]
 		/local name new obj ctx idx
 	][
 		name: to word! original
@@ -506,12 +506,12 @@ red: context [
 					attempt [idx: get-word-index/with name ctx]
 				][
 					repend blk [
-						'word/get-in
+						'word/push-local
 						either parent-object? obj ['octx][ctx] ;-- optional parametrized context reference (octx)
 						idx
 					]
 				][	
-					append/only blk '_context/get
+					unless first? [append/only blk '_context/get]
 					append/only blk prefix-exec name
 				]
 			][
@@ -752,9 +752,9 @@ red: context [
 			find spec to lit-word! name
 		][
 			type: case [
-				block? pos/2 					[pos/2]
-				all [string? pos/3 block? pos/3][pos/3]
-				'else 							[[default!]]
+				all [block? pos/2 not empty? pos/2]	[pos/2]
+				all [string? pos/3 block? pos/3]	[pos/3]
+				'else 								[[default!]]
 			]
 			make-typeset type find/reverse pos refinement! spec to logic! native
 		][
@@ -1511,7 +1511,7 @@ red: context [
 	
 	emit-path: func [
 		path [path! set-path!] set? [logic!] alt? [logic!]
-		/local pos words item blk get? mark
+		/local idx pos words item blk get? mark
 	][
 		either set? [
 			emit-open-frame 'eval-set-path
@@ -1526,45 +1526,29 @@ red: context [
 		][
 			emit-open-frame 'eval-path
 		]
-		pos: tail output
-		
 		if all [1 <> length? obj-stack path/1 = last obj-stack][remove path]		;-- remove temp object prefix inserted by object-access? (mind #4567!)
 		
-		if set? [
-			emit [object/path-parent/header: TYPE_NONE]
-			insert-lf -2
-		]
-		emit either integer? last path [
-			pick [set-int-path* eval-int-path*] set?
+		idx: either empty? ctx-stack [
+			redbin/emit-block path
 		][
-			pick [set-path* eval-path*] set?
+			redbin/emit-block/with path last ctx-stack
 		]
-		insert-lf -1
-		mark: tail output
-		path: back tail path
-		while [not head? path: back path][
-			emit pick [eval-int-path eval-path] integer? path/1
-		]												;-- path should be at head again
+		emit 'eval-path*
 		
-		words: clear []
-		blk:   make block! 20
+		words: reduce [to word! form set? 'get-root idx]
+		blk: make block! 20								;-- requires by get-path-word, returned as result
 		forall path [
-			append words either integer? item: path/1 [item][
+			append words either integer? item: path/1 [
+				reduce ['integer/push item]
+			][
 				get?: to logic! any [head? path get-word? item]
-				get-path-word item clear blk get?
+				get-path-word item clear blk get? head? path
 			]
 		]
-		emit words
-		
-		new-line/all mark no
-		new-line pos yes
-		emit-close-frame
-	]
-	
-	emit-eval-path: func [/set][
-		emit 'actions/eval-path*
-		emit either set ['true]['false]
+		new-line/all words no
+		emit reduce [words]
 		insert-lf -2
+		emit-close-frame
 	]
 	
 	get-return-type: func [spec [block!] /local type][	;-- for routine spec blocks
@@ -1918,7 +1902,7 @@ red: context [
 		/locals
 			words ctx spec name id func? obj original body pos entry symbol
 			body? ctx2 new blk list path on-set-info values w defer mark blk-idx
-			event pos2 loc-s loc-d shadow-path saved-pc saved set? rebind? evt-var
+			event pos2 loc-s loc-d shadow-path saved-pc saved set? evt-var
 	][
 		saved-pc: pc
 		either set-path? original: pc/-1 [
@@ -2084,7 +2068,7 @@ red: context [
 		
 		if proto [
 			if body? [inherit-functions obj last proto]
-			emit reduce ['object/duplicate select objects last proto ctx 'true]
+			emit reduce ['object/clone-series select objects last proto ctx 'true]
 			insert-lf -4
 		]
 		if all [not body? not passive][
@@ -2127,8 +2111,7 @@ red: context [
 		]
 		pos: none
 		
-		rebind?: to word! form to logic! proto
-		defer: reduce ['object/init-push ctx id rebind?] ;-- deferred emission
+		defer: reduce ['object/init-push ctx id] ;-- deferred emission
 		new-line defer yes
 		
 		;-- events definitions processing
@@ -2983,7 +2966,7 @@ red: context [
 			either obj/5 [
 				ctx: either empty? locals-stack [obj/2]['octx]
 				emit reduce ['object/push ctx obj/5/5 obj/3 obj/5/1 obj/5/2 obj/5/3 obj/5/4] ;-- event(s) case
-				insert-lf -7
+				insert-lf -8
 			][
 				emit reduce ['object/init-push obj/2 obj/3]
 				insert-lf -3
@@ -3247,8 +3230,8 @@ red: context [
 		root? [logic!]
 		/set?
 		/local 
-			path value emit? get? entry alter saved after dynamic? ctx mark obj?
-			fpath symbol obj self? true-blk defer obj-field? parent fire index breaks
+			path value emit? get? entry alter saved after dynamic? ctx mark obj? new t? p
+			fpath symbol obj self? true-blk defer obj-field? parent fire index breaks 
 	][
 		path:  copy pc/1
 		emit?: yes
@@ -3365,7 +3348,21 @@ red: context [
 			word? last path								;-- not allow get-words to pass (#1141)
 			any [self? (length? path) = length? fpath]	;-- allow only object-path/field forms
 		][
-			ctx: second obj: find objects obj
+			either self? [
+				p: path
+				until [										;-- process nested objects
+					t?: tail? next p: next p
+					obj: find objects obj
+					if all [not t? object? new: select obj/1 p/1][
+						obj: new
+						if t? [obj: find objects obj]
+					]
+					t?
+				]
+			][
+				obj: find objects obj
+			]
+			ctx: second obj
 			unless index: get-word-index/with last path ctx [
 				throw-error ["word" last path "not defined in" path]
 			]
@@ -3515,6 +3512,10 @@ red: context [
 		either all [not thru spec/1 = 'intrinsic!][
 			switch any [all [path? call call/1] call] keywords
 		][
+			if all [path? call (length? call) <> length? unique call][
+				pc: back pc
+				throw-error ["duplicate or invalid refinement usage:" call]
+			]
 			compact?: spec/1 <> 'function!				;-- do not push refinements on stack
 			refs: make block! 1							;-- refinements storage in compact mode
 			cnt: 0

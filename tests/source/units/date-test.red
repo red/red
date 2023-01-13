@@ -861,6 +861,22 @@ Red [
 		--assert do [random/seed d1 random 100] <> do [random/seed d2 random 100]
 		--assert do [random/seed d2 random 100] <> do [random/seed d3 random 100]
 
+	--test-- "misc-6"
+		d: 5-Jul-2017/12:41:40+08:00
+		
+		--assert (pick d 'year)    = 2017
+		--assert (pick d 'month)   = 7
+		--assert (pick d 'day)     = 5
+		--assert (pick d 'hour)	   = 12
+		--assert (pick d 'minute)  = 41
+		--assert (pick d 'second)  = 40
+		--assert (pick d 'zone)    = 8:00
+		--assert (pick d 'time)	   = 12:41:40
+		--assert (pick d 'weekday) = 3
+		--assert (pick d 'yearday) = 186
+		--assert (pick d 'yearday) = d/julian
+		--assert (pick d 'week)	   = 27
+		--assert (pick d 'isoweek) = 27
 
 	--test-- "#3881"
 		d: 29-Feb-2020

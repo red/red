@@ -163,6 +163,8 @@ logic: context [
 		secure? [logic!]
 		only?   [logic!]
 		return: [red-logic!]
+		/local
+			value [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "logic/random"]]
 
@@ -170,7 +172,8 @@ logic: context [
 			_random/srand as-integer logic/value
 			logic/header: TYPE_UNSET
 		][
-			logic/value: (either secure? [_random/rand-secure] [_random/rand]) > 3FFFFFFFh
+			value: either secure? [_random/rand-secure] [_random/rand]
+			logic/value: value > 3FFFFFFFh
 		]
 		logic
 	]
@@ -196,11 +199,15 @@ logic: context [
 		arg		[red-value!]
 		part	[integer!]
 		return: [integer!]
+		/local
+			res [c-string!]
+			len	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "logic/form"]]
 
-		string/concatenate-literal buffer either boolean/value ["true"]["false"]
-		part - either boolean/value [4][5]
+		res: either boolean/value [len: 4 "true"][len: 5 "false"]
+		string/concatenate-literal buffer res
+		part - len
 	]
 	
 	mold: func [
@@ -213,12 +220,16 @@ logic: context [
 		part	[integer!]
 		indent	[integer!]
 		return: [integer!]
+		/local
+			res [c-string!]
+			len	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "logic/mold"]]
 
 		either all? [
-			string/concatenate-literal buffer either boolean/value ["#[true]"] ["#[false]"]
-			part - either boolean/value [7] [8]
+			res: either boolean/value [len: 7 "#[true]"][len: 8 "#[false]"]
+			string/concatenate-literal buffer res
+			part - len
 		] [
 			form boolean buffer arg part
 		]

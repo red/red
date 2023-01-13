@@ -25,6 +25,10 @@ Red [
 		--assert equal? pick tb1-t 1 1
 		--assert equal? pick tb1-t 2 1
 		--assert equal? pick tb1-t 3 1
+		--assert equal? pick tb1-t 'hour 1
+		--assert equal? pick tb1-t 'minute 1
+		--assert equal? pick tb1-t 'second 1
+		--assert error? try [pick tb1-t 'hello]
 		
 	--test-- "tb-2"
 		tb2-t: 0:0:0

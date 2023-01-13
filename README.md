@@ -77,7 +77,7 @@ If you are on the GUI console, a GUI Hello World (prompt omitted):
   <img width="97" height="52" src="https://static.red-lang.org/images/helloworld.png">
 </p>
 
-A more [sophisticate example](https://github.com/red/code/blob/master/Showcase/last-commits2.red) that retrieves the last commits from this repo and displays their log messages in a scrollable list:
+A more [sophisticated example](https://github.com/red/code/blob/master/Showcase/last-commits2.red) that retrieves the last commits from this repo and displays their log messages in a scrollable list:
 
         view [
             text-list data collect [
@@ -223,7 +223,8 @@ Cross-compilation targets:
     Android      : Android, ARMv5
     Android-x86  : Android, x86
 
-_Note_: Running the Red toolchain binary from a `$PATH` currently requires a wrapping shell script (see relevant tickets: [#543](https://github.com/red/red/issues/543) and [#1547](https://github.com/red/red/issues/1547)).
+_Note_: The toolchain executable (`redc.exe`) relies on Rebol encapper which does not support being run from a location specified in `PATH` environment variable and you get `PROGRAM ERROR: Invalid encapsulated data` error. If you are on Windows try using PowerShell instead of CMD. You can also provide the full path to the executable, put a copy of it in your working folder or wrap a shell script (see relevant tickets: [#543](https://github.com/red/red/issues/543) and [#1547](https://github.com/red/red/issues/1547)).
+
 
 # Running Red from the sources (for contributors)
 

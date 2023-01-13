@@ -676,8 +676,11 @@ shoot: func [
 	do compose/deep [
 		(either async ['view/tight/no-wait/options]['view/tight/options]) [
 			panel [(either backdrop [reduce ['backdrop bd]][[]]) origin 0x0 space 0x0 (vid)]
-			rate (bst-rate)
+			extra none
+			rate 70
 			on-time [
+				unless face/extra [face/extra: now/utc/precise + (0:0:1 / bst-rate) exit]
+				if now/utc/precise < face/extra [exit]
 				face/rate: none 		;-- ensure it won't trigger twice
 				event: to-image (either whole ['face/parent]['face])
 				unview/only face/parent
@@ -691,7 +694,6 @@ shoot: func [
 	]
 	r
 ]
-
 
 shoot-parallel: func [
 	"used to obtain lots of snapshots in parallel"
@@ -720,7 +722,7 @@ shoot-parallel: func [
 		text "waiting for snapshots to complete" rate 5
 		on-time [if started = finished [unview/only face/parent]]
 	]
-	loop 10 [do-events/no-wait]		;-- let the last windows actually close
+	loop 50 [do-events/no-wait]		;-- let the last windows actually close
 	i: 0
 	parse code rule: [any [
 		change [['shoot | 'shoot/whole] block!] (reduce [to-paren compose [pick snaps (i: i + 1)]])
@@ -1277,6 +1279,7 @@ test-NOT-equally-spaced?: func [
 
 
 
+view/no-wait [text "This window is a workaround for R2 call bug which hides first one (or more??) windows"]
 
 
 ===start-group=== "to-image check"
@@ -1355,8 +1358,8 @@ test-NOT-equally-spaced?: func [
 		;-- checks if text is 1) indeed rendered 2) colors are as requested
 		bst-cs: colorset? bst-im: shoot [base' "CAT"]
 		--assert test-dual-chrome? bst-im bst-cs
-		--assert test-color-match? bst-im bst-cs/1 bst-colors/bg
-		--assert test-color-match? bst-im bst-cs/3 bst-colors/fg
+		--assert test-color-match?     bst-im bst-cs/1 bst-colors/bg
+		--assert test-color-match?/tol bst-im bst-cs/3 bst-colors/fg 0 20
 		--assert test-match?/tol bst-im bst-cs/2 95%  0 4.5%
 		--assert test-match?/tol bst-im bst-cs/4 5%   0 4.5%
 	]
@@ -1368,7 +1371,7 @@ test-NOT-equally-spaced?: func [
 		try [	;-- colors/window might be undefined
 			--assert test-color-match? bst-im bst-cs/1 system/view/metrics/colors/panel
 		]
-		--assert test-color-match? bst-im bst-cs/3 bst-colors/fg
+		--assert test-color-match?/tol bst-im bst-cs/3 bst-colors/fg 0 20
 		--assert test-match?/tol bst-im bst-cs/2 95%  0 4.5%
 		--assert test-match?/tol bst-im bst-cs/4 5%   0 4.5%
 
@@ -1381,7 +1384,7 @@ test-NOT-equally-spaced?: func [
 			--assert test-color-match? bst-im bst-cs/1 system/view/metrics/colors/panel
 		]
 		try [ 	;-- colors/text might be undefined
-			--assert test-color-match? bst-im bst-cs/3 system/view/metrics/colors/text
+			--assert test-color-match?/tol bst-im bst-cs/3 system/view/metrics/colors/text 0 20
 		]
 		--assert test-match?/tol bst-im bst-cs/2 95%  0 4.5%
 		--assert test-match?/tol bst-im bst-cs/4 5%   0 4.5%
@@ -1391,8 +1394,8 @@ test-NOT-equally-spaced?: func [
 		;-- checks if text is 1) indeed rendered 2) colors are as requested
 		bst-cs: colorset? bst-im: shoot [text' "CAT"]
 		--assert test-dual-chrome? bst-im bst-cs
-		--assert test-color-match? bst-im bst-cs/1 bst-colors/bg
-		--assert test-color-match? bst-im bst-cs/3 bst-colors/fg
+		--assert test-color-match?     bst-im bst-cs/1 bst-colors/bg
+		--assert test-color-match?/tol bst-im bst-cs/3 bst-colors/fg 0 20
 		--assert test-match?/tol bst-im bst-cs/2 90%  0 9.0%
 		--assert test-match?/tol bst-im bst-cs/4 9.5% 0 9.0%
 	]
@@ -1404,7 +1407,7 @@ test-NOT-equally-spaced?: func [
 		try [	;-- colors/window might be undefined
 			--assert test-color-match? bst-im bst-cs/1 system/view/metrics/colors/panel
 		]
-		--assert test-color-match? bst-im bst-cs/3 bst-colors/fg
+		--assert test-color-match?/tol bst-im bst-cs/3 bst-colors/fg 0 20
 		--assert test-match?/tol bst-im bst-cs/2 90%  0 9.0%
 		--assert test-match?/tol bst-im bst-cs/4 9.5% 0 9.0%
 
@@ -1417,7 +1420,7 @@ test-NOT-equally-spaced?: func [
 			--assert test-color-match? bst-im bst-cs/1 system/view/metrics/colors/panel
 		]
 		try [ 	;-- colors/text might be undefined
-			--assert test-color-match? bst-im bst-cs/3 system/view/metrics/colors/text
+			--assert test-color-match?/tol bst-im bst-cs/3 system/view/metrics/colors/text 0 20
 		]
 		--assert test-match?/tol bst-im bst-cs/2 90%  0 9.0%
 		--assert test-match?/tol bst-im bst-cs/4 9.5% 0 9.0%

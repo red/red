@@ -122,6 +122,9 @@ native: context [
 					TYPE_REFINEMENT [
 						ref: as red-refinement! head
 						either EQUAL_WORDS?(ref word) [
+							if ref-array/index <> -1 [
+								fire [TO_ERROR(script dup-refine) path]
+							]
 							ref-array/index: offset
 							ref?: yes
 							found?: yes

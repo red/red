@@ -35,6 +35,26 @@ time: context [
 		if tm < zero [tm: zero - tm]
 		as-integer floor (fmod tm h-factor) / m-factor
 	]
+	
+	get-named-index: func [
+		w 		[red-word!]
+		ref		[red-value!]
+		return: [integer!]
+		/local
+			sym idx  [integer!]
+	][
+		sym: symbol/resolve w/symbol
+		idx: -1
+		case [
+			sym = words/hour   [idx: 1]
+			sym = words/minute [idx: 2]
+			sym = words/second [idx: 3]
+			true 			   [
+				if TYPE_OF(ref) = TYPE_TIME [fire [TO_ERROR(script cannot-use) w ref]]
+			]
+		]
+		idx
+	]
 
 	push-field: func [
 		tm		[red-time!]
@@ -245,6 +265,9 @@ time: context [
 		element	[red-value!]
 		value	[red-value!]
 		path	[red-value!]
+		gparent [red-value!]
+		p-item	[red-value!]
+		index	[integer!]
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
@@ -253,11 +276,14 @@ time: context [
 			word   [red-word!]
 			int	   [red-integer!]
 			fl	   [red-float!]
+			obj	   [red-object!]
+			old	   [red-value!]
 			field  [integer!]
 			sym	   [integer!]
 			time   [float!]
 			fval   [float!]
 			error? [logic!]
+			evt?   [logic!]
 	][
 		time: t/time
 		error?: no
@@ -269,20 +295,18 @@ time: context [
 				if any [field <= 0 field > 3][error?: yes]
 			]
 			TYPE_WORD [
-				word: as red-word! element
-				sym: symbol/resolve word/symbol
-				case [
-					sym = words/hour   [field: 1]
-					sym = words/minute [field: 2]
-					sym = words/second [field: 3]
-					true 			   [error?: yes]
-				]
+				field: get-named-index as red-word! element path
+				error?: field = -1
 			]
 			default [error?: yes]
 		]
 		if error? [fire [TO_ERROR(script invalid-path) path element]]
 		
 		either value <> null [
+			obj: as red-object! gparent
+			evt?: all [obj <> null TYPE_OF(obj) = TYPE_OBJECT obj/on-set <> null TYPE_OF(p-item) = TYPE_WORD]
+			if evt? [old: stack/push as red-value! t]
+
 			switch field [
 				1 [
 					if TYPE_OF(value) <> TYPE_INTEGER [fire [TO_ERROR(script invalid-arg) value]]
@@ -310,7 +334,10 @@ time: context [
 				]
 				default [assert false]
 			]
-			object/check-owner as red-value! t
+			if evt? [
+				object/fire-on-set as red-object! gparent as red-word! p-item old as red-value! t
+				stack/pop 1								;-- avoid moving stack top
+			]
 			value
 		][
 			value: push-field t field
@@ -441,6 +468,7 @@ time: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "time/pick"]]
 
+		if TYPE_OF(boxed) = TYPE_WORD [index: get-named-index as red-word! boxed as red-value! tm]
 		if any [index < 1 index > 3][fire [TO_ERROR(script out-of-range) boxed]]
 		push-field tm index
 	]

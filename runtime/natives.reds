@@ -550,6 +550,7 @@ natives: context [
 			pos	   [integer!]
 			thrown [integer!]
 			fun?   [logic!]
+			defer? [logic!]
 			do-block [subroutine!]
 	][
 		#typecheck [do expand? args next trace]
@@ -592,8 +593,9 @@ natives: context [
 				blk/head: pos
 			]
 		]
-		
+		defer?: no
 		assert system/thrown = 0
+		
 		catch RED_THROWN_ERROR [
 			switch TYPE_OF(arg) [
 				TYPE_ANY_LIST [do-block]
@@ -606,12 +608,12 @@ natives: context [
 				]
 				TYPE_URL 
 				TYPE_FILE  [#call [do-file as red-file! arg none-value]]
-				TYPE_ERROR [
-					stack/throw-error as red-object! arg
-				]
-				default [interpreter/eval-expression arg arg + 1 null no no yes]
+				TYPE_ERROR [defer?: yes]
+				default	   [interpreter/eval-expression arg arg + 1 null no no yes]
 			]
 		]
+		if defer? [stack/throw-error as red-object! arg]
+		
 		if fun? [
 			thrown: system/thrown
 			system/thrown: 0
@@ -854,8 +856,20 @@ natives: context [
 				ANY_SERIES?(type) [
 					res: all [arg1/data1 = arg2/data1 arg1/data2 = arg2/data2]
 				]
-				type = TYPE_FLOAT	[
+				any [
+					type = TYPE_FLOAT
+					type = TYPE_PERCENT
+					type = TYPE_PAIR
+					type = TYPE_TIME
+				][
 					res: all [arg1/data2 = arg2/data2 arg1/data3 = arg2/data3]
+				]
+				type = TYPE_TUPLE [
+					either TUPLE_SIZE?(arg1) = TUPLE_SIZE?(arg2) [
+						res: 0 = tuple/compare as red-tuple! arg1 as red-tuple! arg2 COMP_EQUAL
+					][
+						res: false
+					]
 				]
 				any [
 					type = TYPE_NONE
@@ -1122,7 +1136,8 @@ natives: context [
 		show	[integer!]
 		info	[integer!]
 		/local
-			blk [red-block!]
+			blk  [red-block!]
+			used [float!]
 	][
 		#typecheck [stats show info]
 		case [
@@ -1136,7 +1151,12 @@ natives: context [
 				stack/set-last as red-value! blk
 			]
 			true [
-				integer/box memory-info null 1
+				used: memory-info null 1
+				either used > 2147483647.0 [
+					float/box used
+				][
+					integer/box as-integer used
+				]
 			]
 		]
 	]
@@ -1150,6 +1170,7 @@ natives: context [
 			fun	  [red-function!]
 			obj	  [node!]
 			word  [red-word!]
+			vctx  [red-context!]
 			ctx	  [node!]
 			self? [logic!]
 			idx	  [integer!]
@@ -1170,20 +1191,21 @@ natives: context [
 		]
 		
 		either TYPE_OF(value) = TYPE_BLOCK [
+			vctx: TO_CTX(ctx)
 			obj: either TYPE_OF(ref) = TYPE_OBJECT [
 				self?: yes
-				object/save-self-object as red-object! ref
+				vctx/self
 			][
 				self?: no
 				null
 			]
 			either negative? copy [
-				_context/bind as red-block! value TO_CTX(ctx) obj self?
+				_context/bind as red-block! value vctx obj self?
 			][
 				stack/set-last 
 					as red-value! _context/bind
 						block/clone as red-block! value yes yes
-						TO_CTX(ctx)
+						vctx
 						obj
 						self?
 			]
@@ -1246,6 +1268,7 @@ natives: context [
 			res	   [red-value!]
 			cframe [byte-ptr!]
 			type   [integer!]
+			len	   [integer!]
 	][
 		#typecheck [parse case? part trace]
 		op: either as logic! case? + 1 [COMP_STRICT_EQUAL][COMP_EQUAL]
@@ -1269,11 +1292,12 @@ natives: context [
 			]
 			if part <= 0 [
 				type: TYPE_OF(input)
-				logic/box zero? either ANY_STRING?(type) [
+				len: either ANY_STRING?(type) [
 					string/rs-length? as red-string! input
 				][
 					block/rs-length? as red-block! input
 				]
+				logic/box zero? len
 				return 0
 			]
 		]
@@ -2011,10 +2035,7 @@ natives: context [
 						result: system/thrown			;-- request an early exit from caller
 					]
 				]
-				RED_THROWN_ERROR [
-					handle-thrown-error
-				]
-				0		[stack/adjust-post-try]
+				0 RED_THROWN_ERROR [stack/adjust-post-try]
 				default [re-throw]
 			]
 		][												;-- TRY/ALL case, catch everything
@@ -2414,6 +2435,7 @@ natives: context [
 			s	 [series!]
 			step [integer!]
 			i	 [integer!]
+			flags[integer!]
 			nl?  [logic!]
 	][
 		#typecheck [new-line _all skip]
@@ -2436,20 +2458,23 @@ natives: context [
 			tail: s/tail
 			i: 0
 			while [cell < tail][
-				cell/header: either nl? xor any [step = 1 zero? (i % step)][
+				flags: either nl? xor any [step = 1 zero? (i % step)][
 					cell/header and flag-nl-mask
 				][
 					cell/header or flag-new-line
 				]
+				cell/header: flags
 				cell: cell + 1
 				i: i + 1
 			]
 		][
-			cell/header: either nl? [
+			if s/tail <= cell [exit]
+			flags: either nl? [
 				cell/header or flag-new-line
 			][
 				cell/header and flag-nl-mask
 			]
+			cell/header: flags
 		]
 	]
 	
@@ -2458,12 +2483,20 @@ natives: context [
 		/local
 			bool [red-logic!]
 			cell [cell!]
+			blk  [red-block!]
+			s	 [series!]
+			nl?	 [logic!]
 	][
 		#typecheck new-line?
-		cell: block/rs-head as red-block! stack/arguments
+		
+		blk: as red-block! stack/arguments
+		s: GET_BUFFER(blk)
+		cell: s/offset + blk/head
+		nl?: either s/tail <= cell [no][cell/header and flag-new-line <> 0]
+	
 		bool: as red-logic! stack/arguments
 		bool/header: TYPE_LOGIC
-		bool/value: cell/header and flag-new-line <> 0
+		bool/value:  nl?
 	]
 	
 	context?*: func [
@@ -2849,11 +2882,10 @@ natives: context [
 		#typecheck [recycle on? off?]
 
 		case [
-			on?  > -1 [collector/active?: yes]
-			off? > -1 [collector/active?: no]
-			true	  [collector/do-mark-sweep]
+			on?  > -1 [collector/active?: yes  unset/push-last]
+			off? > -1 [collector/active?: no   unset/push-last]
+			true	  [collector/do-mark-sweep stats* no -1 -1]
 		]
-		unset/push-last
 	]
 	
 	transcode*: func [
@@ -3193,7 +3225,7 @@ natives: context [
 			block?	[logic!]
 	][
 		type: TYPE_OF(value)
-		block?: any [type = TYPE_BLOCK type = TYPE_PAREN type = TYPE_HASH type = TYPE_MAP type = TYPE_PATH]
+		block?: any [type = TYPE_MAP ANY_BLOCK?(type)]
 		if block? [blk: as red-block! value]
 		
 		i: 1

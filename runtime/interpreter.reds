@@ -15,46 +15,49 @@ Red/System [
 		next < end
 		TYPE_OF(next) = TYPE_WORD
 	][
-		value: _context/get next
-		if TYPE_OF(value) = TYPE_OP [
-			either next = as red-word! pc [
-				#if debug? = yes [if verbose > 0 [log "infix detected!"]]
-				infix?: yes
-			][
-				lit?: all [								;-- is a literal argument expected?
-					any [TYPE_OF(pc) = TYPE_WORD TYPE_OF(pc) = TYPE_FUNCTION]
-					literal-first-arg? as red-native! value ;-- left operand is a literal argument
-					next + 1 < end						;-- disable infix detection if no right operand #3840
-				]
-				either lit? [
+		ctx: TO_CTX(next/ctx)
+		if ctx/values <> null [
+			value: _context/get next
+			if TYPE_OF(value) = TYPE_OP [
+				either next = as red-word! pc [
 					#if debug? = yes [if verbose > 0 [log "infix detected!"]]
 					infix?: yes
 				][
-					if TYPE_OF(pc) = TYPE_WORD [
-						left: _context/get as red-word! pc
+					lit?: all [								;-- is a literal argument expected?
+						any [TYPE_OF(pc) = TYPE_WORD TYPE_OF(pc) = TYPE_FUNCTION]
+						literal-first-arg? as red-native! value ;-- left operand is a literal argument
+						next + 1 < end						;-- disable infix detection if no right operand #3840
 					]
-					unless any [
-						all [
-							TYPE_OF(pc) = TYPE_FUNCTION
-							literal-first-arg? as red-native! pc   ;-- a literal argument is expected
-						]
-						all [
-							TYPE_OF(pc) = TYPE_WORD
-							any [								   ;-- left operand is a function call
-								TYPE_OF(left) = TYPE_ACTION
-								TYPE_OF(left) = TYPE_NATIVE
-								TYPE_OF(left) = TYPE_FUNCTION
-							]
-							literal-first-arg? as red-native! left ;-- a literal argument is expected
-						]
-					][
+					either lit? [
 						#if debug? = yes [if verbose > 0 [log "infix detected!"]]
 						infix?: yes
+					][
+						if TYPE_OF(pc) = TYPE_WORD [
+							left: _context/get as red-word! pc
+						]
+						unless any [
+							all [
+								TYPE_OF(pc) = TYPE_FUNCTION
+								literal-first-arg? as red-native! pc   ;-- a literal argument is expected
+							]
+							all [
+								TYPE_OF(pc) = TYPE_WORD
+								any [								   ;-- left operand is a function call
+									TYPE_OF(left) = TYPE_ACTION
+									TYPE_OF(left) = TYPE_NATIVE
+									TYPE_OF(left) = TYPE_FUNCTION
+								]
+								literal-first-arg? as red-native! left ;-- a literal argument is expected
+							]
+						][
+							#if debug? = yes [if verbose > 0 [log "infix detected!"]]
+							infix?: yes
+						]
 					]
 				]
-			]
-			if infix? [
-				if next + 1 = end [fire [TO_ERROR(script no-op-arg) next]]
+				if infix? [
+					if next + 1 = end [fire [TO_ERROR(script no-op-arg) next]]
+				]
 			]
 		]
 	]
@@ -131,6 +134,7 @@ interpreter: context [
 	fun-locs:	0										;-- event handler locals count
 	fun-evts:	0										;-- bitmask for encoding selected events
 	all-events:	1FFFFh									;-- bit-mask of all events
+	near:		declare red-block!						;-- Near: field in error! objects
 	
 	log: func [msg [c-string!]][
 		print "eval: "
@@ -251,7 +255,7 @@ interpreter: context [
 		]
 		stack/push ref									;-- reference (word, path,...)
 		pair/push base top								;-- frame (pair!)
-		if positive? fun-locs [_function/init-locals 1 + fun-locs]	;-- +1 for /local refinement
+		if positive? fun-locs [_function/init-locals fun-locs]
 
 		tracing?: no
 		catch RED_THROWN_ERROR [_function/call trace-fun ctx as red-value! words/_interp-cb CB_INTERPRETER]
@@ -539,6 +543,7 @@ interpreter: context [
 			next	[red-word!]
 			left	[red-value!]
 			fun		[red-function!]
+			ctx		[red-context!]
 			blk		[red-block!]
 			slot	[red-value!]
 			arg		[red-value!]
@@ -639,6 +644,7 @@ interpreter: context [
 		next: as red-word! pc
 		CHECK_INFIX
 		if infix? [
+			stack/update-call pc						;-- keep same frame, just update the op reference
 			if tracing? [
 				fire-event EVT_FETCH code pc pc pc
 				fire-event EVT_OPEN code pc pc pc
@@ -881,32 +887,34 @@ interpreter: context [
 		sub?	[logic!]
 		case?	[logic!]
 		return: [red-value!]
-		/local 
-			path	[red-path!]
-			head	[red-value!]
-			tail	[red-value!]
-			item	[red-value!]
-			parent	[red-value!]
-			gparent	[red-value!]
-			saved	[red-value!]
-			arg		[red-value!]
-			tail?	[logic!]
+		/local
+			head tail item parent gparent saved prev arg p-item [red-value!]
+			path  [red-path!]
+			obj	  [red-object!]
+			w	  [red-word!]
+			ser	  [red-series!]
+			type idx [integer!]
+			tail? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "eval: path"]]
 		
-		path:   as red-path! value
-		head:   block/rs-head as red-block! path
-		tail:   block/rs-tail as red-block! path
+		path: as red-path! value
+		head: block/rs-head as red-block! path
+		tail: block/rs-tail as red-block! path
 		if head = tail [fire [TO_ERROR(script empty-path)]]
 		if tracing? [fire-event EVT_ENTER as red-block! path head null null]
 		if tracing? [fire-event EVT_FETCH as red-block! path head head head]
 		
-		item:   head + 1
-		saved:  stack/top
+		item:  head + 1
+		saved: stack/top
+		idx:   0
 		
 		if TYPE_OF(head) <> TYPE_WORD [fire [TO_ERROR(script word-first) path]]
 		
-		parent: _context/get as red-word! head
+		p-item: head
+		w: as red-word! head
+		parent: _context/get w
+		gparent: null
 		
 		switch TYPE_OF(parent) [
 			TYPE_ACTION									;@@ replace with TYPE_ANY_FUNCTION
@@ -917,13 +925,18 @@ interpreter: context [
 				if get? [fire [TO_ERROR(script invalid-path-get) path]]
 				pc: eval-code parent pc end code yes path item - 1 parent
 				unless sub? [stack/set-last stack/top]
+				if tracing? [fire-event EVT_EXIT as red-block! path tail null stack/arguments]
 				return pc
 			]
 			TYPE_UNSET [fire [TO_ERROR(script unset-path) path head]]
 			default	   [0]
 		]
-		if set? [object/path-parent/header: TYPE_NONE]	;-- disables owner checking
 		if tracing? [fire-event EVT_PUSH as red-block! path head head parent]
+
+		if w/ctx <> global-ctx [
+			obj: as red-object! GET_CTX(w) + 1
+			if TYPE_OF(obj) <> TYPE_OBJECT [gparent: as red-value! obj]
+		]
 		
 		while [item < tail][
 			#if debug? = yes [if verbose > 0 [print-line ["eval: path parent: " TYPE_OF(parent)]]]
@@ -942,27 +955,31 @@ interpreter: context [
 			if TYPE_OF(value) = TYPE_UNSET [fire [TO_ERROR(script invalid-path) path item]]
 			#if debug? = yes [if verbose > 0 [print-line ["eval: path item: " TYPE_OF(value)]]]
 			
-			gparent: parent								;-- save grand-parent reference
+			;-- invoke eval-path action
+			prev: parent
+			type: TYPE_OF(parent)
 			tail?: item + 1 = tail
 			arg: either all [set? tail?][stack/arguments][null]
-			parent: actions/eval-path parent value arg path case? get? tail?
-			
-			unless get? [
+			parent: actions/eval-path parent value arg path gparent p-item idx case? get? tail?
+
+			if all [not get? not set?][
 				switch TYPE_OF(parent) [
 					TYPE_ACTION							;@@ replace with TYPE_ANY_FUNCTION
 					TYPE_NATIVE
 					TYPE_ROUTINE
 					TYPE_FUNCTION [
-						pc: eval-code parent pc end code sub? path item gparent
+						pc: eval-code parent pc end code sub? path item prev
 						parent: stack/get-top
 						item: tail						;-- force loop exit
 					]
 					default [0]
 				]
 			]
+			p-item: item
+			gparent: prev								;-- save previous parent reference
 			item: item + 1
+			idx: idx + 1
 		]
-		if set? [object/path-parent/header: TYPE_NONE]	;-- disables owner checking
 		if tracing? [fire-event EVT_EXIT as red-block! path tail null parent]
 
 		stack/top: saved
@@ -1075,13 +1092,13 @@ interpreter: context [
 		/local
 			saved  [red-value! value]
 			next   [red-word!]
+			ctx	   [red-context!]
 			value  [red-value!]
 			left   [red-value!]
 			pos    [red-value!]
 			start  [red-value!]
 			w	   [red-word!]
 			op	   [red-value!]
-			near   [red-block!]
 			sym	   [integer!]
 			infix? [logic!]
 			lit?   [logic!]
@@ -1093,15 +1110,6 @@ interpreter: context [
 		infix?: no
 		start: pc
 		top?: not sub?
-		
-		if code <> null [
-			assert any [TYPE_OF(code) = TYPE_BLOCK TYPE_OF(code) = TYPE_PAREN TYPE_OF(code) = TYPE_HASH]
-			near: as red-block! #get system/state/near	;-- keep the Near: field updated
-			near/header: TYPE_BLOCK
-			near/head:   (as-integer pc - block/rs-head code) >> 4
-			near/node:   code/node
-			near/extra:   0
-		]
 		
 		unless prefix? [
 			next: as red-word! pc + 1
@@ -1364,9 +1372,11 @@ interpreter: context [
 		chain? [logic!]									;-- chain it with previous stack frame
 		/local
 			value head tail arg [red-value!]
+			saved [red-block! value]
 	][
 		head: block/rs-head code
 		tail: block/rs-tail code
+		copy-cell as red-value! near as red-value! saved
 
 		stack/mark-eval words/_body						;-- outer stack frame
 		if tracing? [fire-event EVT_ENTER code head null null]
@@ -1374,19 +1384,25 @@ interpreter: context [
 			arg: stack/arguments
 			arg/header: TYPE_UNSET
 		][
+			copy-cell as red-value! code as red-value! near ;-- initialize near cell
 			value: head
+			
 			while [value < tail][
 				#if debug? = yes [if verbose > 0 [log "root loop..."]]
-				catch RED_THROWN_ERROR [value: eval-expression value tail code no no no]
-				if system/thrown <> 0 [re-throw]
+				near/head: (as-integer value - head) >> 4
+				value: eval-expression value tail code no no no
 				if value + 1 <= tail [stack/reset]
 			]
 		]
 		if tracing? [fire-event EVT_EXIT code tail null stack/arguments]
+		copy-cell as red-value! saved as red-value! near
 		either chain? [stack/unwind-last][stack/unwind]
 	]
 	
 	init: does [
 		trace-fun: as red-function! ALLOC_TAIL(root)	;-- keep the tracing func reachable by the GC marker
+		
+		near/header: TYPE_UNSET
+		near/extra:  0
 	]
 ]

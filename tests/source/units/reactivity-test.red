@@ -70,7 +70,7 @@ Red [
 		--assert none? is-7d/x
 		--assert none? is-7d/y
 		is-7d/x: 1
-		--assert is-7d/x = 1 							;-- x is fixed by the assignment
+		--assert is-7d/x = 5
 		--assert is-7d/y = 4
 		unset 'is-7d
 
@@ -80,15 +80,15 @@ Red [
 		--assert none? is-8r/y
 		--assert none? is-8r/z
 		is-8r/x: 1
-		--assert is-8r/x = 1 							;-- x is fixed by the assignment
+		--assert is-8r/x = 7
 		--assert is-8r/z = 4
 		--assert is-8r/y = 6
 		is-8r/y: 1
-		--assert is-8r/y = 1 							;-- y is fixed by the assignment
+		--assert is-8r/y = 7
 		--assert is-8r/x = 2
 		--assert is-8r/z = 5
 		is-8r/z: 1
-		--assert is-8r/z = 1 							;-- z is fixed by the assignment
+		--assert is-8r/z = 7
 		--assert is-8r/y = 3
 		--assert is-8r/x = 4
 		unset 'is-8r
@@ -165,9 +165,46 @@ Red [
 		--assert rf-7r = :system/reactivity/relations/1 		;-- `r` should be the source object
 		unset [rf-7r rf-7x]
 
-
 	;-- final group cleanup
 	clear-reactions
+
+===end-group===
+
+===start-group=== "deep reactions"
+
+	--test-- "dpr-1"
+		cnt: 0
+		dpr1: deep-reactor [s: "hello"]
+		react [if dpr1/s <> "hello" [cnt: cnt + 1]]
+		dpr1/s/2: #"x"
+		--assert cnt = 1
+
+	--test-- "dpr-2"
+		cnt: 0
+		dpr2: deep-reactor [s: [a b c]]
+		react [if dpr2/s/2 <> 'b [cnt: cnt + 1]]
+		dpr2/s/2: 'x
+		--assert cnt = 1
+
+	--test-- "dpr-3"
+		cnt: 0
+		dpr3: deep-reactor [pos: 3x4 e: hello@d.com c: 1.2.3 b: make bitset! 5]
+		react [if dpr3/pos/x > 10 [cnt: cnt + 1]]
+		react [if dpr3/e/user <> "hello" [cnt: cnt + 1]]
+		react [if dpr3/c/1 > 100 [cnt: cnt + 1]]
+		react [if dpr3/b/3 [cnt: cnt + 1]]
+		dpr3/pos/x: 2
+		dpr3/pos/x: 12
+		--assert cnt = 1
+		dpr3/e/host: "d2.com"
+		dpr3/e/user: "hi"
+		--assert cnt = 2
+		dpr3/c/2: 200
+		dpr3/c/1: 240
+		--assert cnt = 3
+		dpr3/b/1: true
+		dpr3/b/3: true
+		--assert cnt = 4
 
 ===end-group===
 
@@ -184,7 +221,40 @@ Red [
 			--assert a4022/i = 2
 		]
 	
+	--test-- "#4176"
+		do [
+			r: make reactor! [
+				n: 1
+				c: is [1x1 * n]
+				x: is [c/x]
+				t: is [n * 1:0:0]
+				hms: is [rejoin [t/hour t/minute t/second]]
+			]
+			--assert (skip body-of r 2) == [
+				n: 1 
+				c: 1x1 
+				x: 1 
+				t: 1:00:00 
+				hms: "100.0"
+			]
+			r/n: 2
+			--assert (skip body-of r 2) == [
+				n: 2
+				c: 2x2
+				x: 2
+				t: 2:00:00
+				hms: "200.0"
+			]
+		]
 
+	--test-- "#4510"
+		clear-reactions
+		a: reactor [data: none]
+		b: reactor [data: none]
+		react/later [--assert true a/('data)]
+		react/link/later func [a b] [--assert true a/('data)] [a b]
+		--assert empty? system/reactivity/relations
+		
 ===end-group===
 
 ~~~end-file~~~

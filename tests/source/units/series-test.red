@@ -883,9 +883,9 @@ Red [
 	--test-- "remove-hash-8 - issue #5118"
 		hs-remove-8: make hash! [a b c a b c]
 		remove/part skip hs-remove-8 3 3
-		--assert 1 = index? find hs-remove-8 'a
-		--assert 2 = index? find hs-remove-8 'b
-		--assert 3 = index? find hs-remove-8 'c
+		--assert 1 = index? find/last hs-remove-8 'a
+		--assert 2 = index? find/last hs-remove-8 'b
+		--assert 3 = index? find/last hs-remove-8 'c
 
 	--test-- "remove-str-1"
 		a: "123"
@@ -1452,17 +1452,19 @@ Red [
 	--test-- "trim-block-1"
 		--assert [1 2] = trim [#[none] 1 #[none] 2 #[none]]
 
-	--test-- "trim-bin-1"
-		--assert #{} = trim #{00}
+	--test-- "trim-bin-1"	--assert #{} = trim #{00}
+	--test-- "trim-bin-2"	--assert #{1234} = trim #{000012340000}
+	--test-- "trim-bin-3"	--assert #{12340000} = trim/head #{000012340000}
+	--test-- "trim-bin-4"	--assert #{00001234} = trim/tail #{000012340000}
+	--test-- "trim-bin-5"	--assert #{} = trim/tail #{000000}
+	--test-- "trim-bin-6"	--assert #{11} = head trim/tail at #{11000000} 1
+	--test-- "trim-bin-7"	--assert #{11} = head trim/tail at #{11000000} 2
+	--test-- "trim-bin-8"	--assert #{1100} = head trim/tail at #{11000000} 3
+	--test-- "trim-bin-9"	--assert #{110000} = head trim/tail at #{11000000} 4
+	--test-- "trim-bin-10"	--assert #{11000000} = head trim/tail at #{11000000} 5
+	--test-- "trim-bin-11"	--assert #{} = trim/head #{000000}
+	--test-- "trim-bin-12"	--assert #{} = trim at #{11000000} 2
 
-	--test-- "trim-bin-2"
-		--assert #{1234} = trim #{000012340000}
-
-	--test-- "trim-bin-3"
-		--assert #{12340000} = trim/head #{000012340000}
-
-	--test-- "trim-bin-4"
-		--assert #{00001234} = trim/tail #{000012340000}
 ===end-group===
 
 ===start-group=== "sort"
@@ -1552,6 +1554,19 @@ Red [
         --assert [1 2 3 1 3 3] = sort/skip/compare s 2 1
         --assert [3 1 1 2 3 3] = sort/skip/compare s 2 2
         --assert [1 2 3 1 3 3] = sort/skip/all s 2
+
+    --test-- "sort-blk-8 issue 5265"
+		o1: make object! [x: 1 y: 90]
+		o2: make object! [x: 2 y: 1]
+		o3: make object! [x: 2 y: 2]
+
+		data: reduce [o1 o2 o3]
+		sort/compare data func [a b /local ra rb][
+		   ra: a/x + a/y
+		   rb: b/x + b/y
+		   return ra < rb
+		]
+		--assert data = reduce [o2 o3 o1]
 
     --test-- "sort-vec-1"
         s: does  [make vector! [3 1 3 3 1 2]]

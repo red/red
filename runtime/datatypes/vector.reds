@@ -292,6 +292,8 @@ vector: context [
 			s	 [series!]
 			unit [integer!]
 			type [integer!]
+			len	 [integer!]
+			nlen [integer!]
 			p	 [byte-ptr!]
 			end  [byte-ptr!]
 			int  [red-integer!]
@@ -299,10 +301,12 @@ vector: context [
 			slot [red-value!]
 	][
 		type: vec/type
-		block/make-at blk rs-length? vec
+		len: rs-length? vec
+		nlen: either zero? len [1][len]
+		block/make-at blk nlen
 		s: GET_BUFFER(blk)
 		slot: s/offset
-		s/tail: slot + rs-length? vec
+		s/tail: slot + len
 
 		s: GET_BUFFER(vec)
 		unit: GET_UNIT(s)
@@ -455,18 +459,23 @@ vector: context [
 				]
 				default [--NOT_IMPLEMENTED--]
 			]
-			while [i < len][
-				f1: get-value-float p unit
-				f1: float/do-math-op f1 f2 op
-				either unit = 8 [
-					pf: as pointer! [float!] p
-					pf/value: f1
-				][
-					pf32: as pointer! [float32!] p
-					pf32/value: as float32! f1
+			unless any [
+				all [f2 = 0.0 any [op = OP_ADD op = OP_SUB]]	;-- vector +- 0.0
+				all [f2 = 1.0 any [op = OP_MUL op = OP_DIV]]	;-- vector */ 1.0
+			][
+				while [i < len][
+					f1: get-value-float p unit
+					f1: float/do-math-op f1 f2 op
+					either unit = 8 [
+						pf: as pointer! [float!] p
+						pf/value: f1
+					][
+						pf32: as pointer! [float32!] p
+						pf32/value: as float32! f1
+					]
+					i: i + 1
+					p: p + unit
 				]
-				i: i + 1
-				p: p + unit
 			]
 		][
 			switch type [
@@ -482,16 +491,21 @@ vector: context [
 				]
 				default [--NOT_IMPLEMENTED--]
 			]
-			while [i < len][
-				v1: get-value-int as int-ptr! p unit
-				v1: integer/do-math-op v1 v2 op null
-				switch unit [
-					1 [p/value: as-byte v1]
-					2 [p/1: as-byte v1 p/2: as-byte v1 >> 8]
-					4 [p4: as int-ptr! p p4/value: v1]
+			unless any [
+				all [v2 = 0 any [op = OP_ADD op = OP_SUB]]		;-- vector +- 0
+				all [v2 = 1 any [op = OP_MUL op = OP_DIV]]		;-- vector */ 1
+			][
+				while [i < len][
+					v1: get-value-int as int-ptr! p unit
+					v1: integer/do-math-op v1 v2 op null
+					switch unit [
+						1 [p/value: as-byte v1]
+						2 [p/1: as-byte v1 >> 8 p/2: as-byte v1]
+						4 [p4: as int-ptr! p p4/value: v1]
+					]
+					i: i + 1
+					p: p + unit
 				]
-				i: i + 1
-				p: p + unit
 			]
 		]
 		as red-value! left
@@ -577,7 +591,7 @@ vector: context [
 				v1: integer/do-math-op v1 v2 type null
 				switch unit [
 					1 [p/value: as-byte v1]
-					2 [p/1: as-byte v1 p/2: as-byte v1 >> 8]
+					2 [p/1: as-byte v1 >> 8 p/2: as-byte v1]
 					4 [p4: as int-ptr! p p4/value: v1]
 				]
 				i:  i  + 1

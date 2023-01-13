@@ -14,109 +14,6 @@ Red/System [
 _function: context [
 	verbose: 0
 	
-	lay-frame: func [
-		/local
-			path	  [red-path!]
-			fun		  [red-function!]
-			value	  [red-value!]
-			head	  [red-value!]
-			tail	  [red-value!]
-			base	  [red-value!]
-			ref		  [red-refinement!]
-			end		  [red-word!]
-			word	  [red-word!]
-			bool	  [red-logic!]
-			s		  [series!]
-			required? [logic!]
-			type	  [integer!]
-			count	  [integer!]
-			pos		  [integer!]
-			
-	][
-		base: stack/arguments
-		fun:  as red-function! base - 4
- 		path: as red-path! base - 3
- 		
-		stack/mark-func-body words/_anon
-		
-		s: as series! fun/spec/value
-		
-		head:  s/offset
-		value: head
-		tail:  s/tail
-
-		count: 0										;-- base arity (mandatory arguments only)
-		required?: yes									;-- yes: processing mandatory args, no: optional args
-
-		while [value < tail][							;-- first pass on spec
-			switch TYPE_OF(value) [
-				TYPE_WORD
-				TYPE_GET_WORD
-				TYPE_LIT_WORD [
-					either required? [
-						stack/push base + count
-						count: count + 1
-					][
-						none/push						;-- reserve optional argument or local slot
-					]
-				]
-				TYPE_REFINEMENT [
-					if required? [required?: no]		;-- no more mandatory arguments
-					logic/push false
-				]
-				default [0]								;-- ignore other values
-			]
-			value: value + 1
-		]
-		
-		s: GET_BUFFER(path)
-		word: as red-word! s/offset + path/head + 1
-		end:  as red-word! s/tail
-		pos: 0
-		
-		while [word < end][								;-- second pass on path + spec
-			value: head
-			
-			while [value < tail][
-				switch TYPE_OF(value) [
-					TYPE_REFINEMENT [
-						ref: as red-refinement! value
-						either EQUAL_WORDS?(ref word) [
-							bool: as red-logic! stack/arguments + pos
-							bool/value: true
-
-							value: value + 1
-							pos: pos + 1
-							while [
-								type: TYPE_OF(value)
-								all [
-									value < tail
-									type <> TYPE_REFINEMENT
-									type <> TYPE_SET_WORD
-								]
-							][
-								if all [type <> TYPE_STRING type <> TYPE_BLOCK][
-									copy-cell base + count stack/arguments + pos
-									pos: pos + 1
-									count: count + 1
-								]
-								value: value + 1
-							]
-						][
-							pos: pos + 1
-						]
-					]
-					TYPE_WORD
-					TYPE_GET_WORD
-					TYPE_LIT_WORD [pos: pos + 1]
-					default [0]
-				]
-				value: value + 1
-			]
-			word: word + 1
-		]
-	]
-	
 	refinement-arity?: func [
 		spec	[red-value!]
 		tail	[red-value!]
@@ -146,71 +43,6 @@ _function: context [
 			spec: spec + 1
 		]
 		either found? [count][-1]
-	]
-	
-	calc-arity: func [
-		path	[red-path!]								;-- if null, just count all optional slots
-		fun		[red-function!]
-		index	[integer!]								;-- 0-base index position of function in path
-		return: [integer!]
-		/local
-			value  [red-value!]
-			tail   [red-value!]
-			s	   [series!]
-			count  [integer!]
-			locals [integer!]
-			cnt	   [integer!]
-			len	   [integer!]
-			stop?  [logic!]
-	][
-		s: as series! fun/spec/value
-		
-		value:  s/offset
-		tail:   s/tail
-		stop?:  no
-		count:  0
-		locals: 0
-		
-		if value = tail [return 0]
-		
-		while [all [not stop? value < tail]][
-			switch TYPE_OF(value) [
-				TYPE_WORD
-				TYPE_GET_WORD
-				TYPE_LIT_WORD [count: count + 1]
-				TYPE_REFINEMENT [
-					stop?: yes
-					locals: (as-integer tail - (value + 1)) >> 4 ;-- include all remaining slots
-				]
-				TYPE_SET_WORD [stop?: yes]
-				default [0]								;-- ignore other values
-			]
-			value: value + 1
-		]
-		if null? path [return locals + 1]				;-- + 1 for including the 1st refinement too
-		
-		len: block/rs-length? as red-block! path
-		index: index + 1
-		
-		if index < len [
-			until [
-				value: block/rs-abs-at as red-block! path index
-				cnt: refinement-arity? s/offset tail as red-word! value
-				if cnt = -1 [
-					fire [
-						TO_ERROR(script no-refine)
-						stack/get-call
-						value
-					]
-				]
-				count: count + cnt
-				index: index + 1
-				index = len
-			]
-			locals: -1									;-- used to signal refinement presence
-			0
-		]
-		locals << 16 or count							;-- combine both values as 16-bit words
 	]
 	
 	call: func [
@@ -363,6 +195,7 @@ _function: context [
 						if ref? [
 							bool: as red-logic! head + 1
 							assert TYPE_OF(bool) = TYPE_LOGIC
+							if bool/value [fire [TO_ERROR(script dup-refine) path]]
 							bool/value: true
 						]
 						offset: offset + 1
@@ -466,6 +299,7 @@ _function: context [
 						either all [
 							blk < tail
 							TYPE_OF(blk) = TYPE_BLOCK
+							positive? block/rs-length? blk
 						][
 							typeset/make-with list blk
 						][
@@ -495,7 +329,11 @@ _function: context [
 					assert TYPE_OF(blk) = TYPE_BLOCK
 					unless routine? [
 						block/rs-append list value
-						typeset/make-with list blk
+						either positive? block/rs-length? blk [
+							typeset/make-with list blk
+						][
+							typeset/make-default list
+						]
 					]
 				]
 				default [0]								;-- ignore other values
@@ -763,7 +601,7 @@ _function: context [
 		]
 	]
 	
-	decode-attributs: func [
+	decode-attributes: func [
 		list	[red-block!]
 		return: [integer!]
 		/local
@@ -809,7 +647,7 @@ _function: context [
 		flags:  0
 		
 		if all [value < end TYPE_OF(value) = TYPE_BLOCK][
-			flags: decode-attributs as red-block! value
+			flags: decode-attributes as red-block! value
 			if flags = -1 [do-error]
 			value: value + 1							;-- skip optional attributs block
 		]
@@ -909,7 +747,10 @@ _function: context [
 				TYPE_REFINEMENT [
 					unless count? [
 						ref: as red-refinement! value
-						if sym = symbol/resolve ref/symbol [count?: yes]
+						if sym = symbol/resolve ref/symbol [
+							count?: yes
+							cnt: cnt + 1
+						]
 					]
 				]
 				TYPE_WORD [if count? [cnt: cnt + 1]]
@@ -925,11 +766,13 @@ _function: context [
 		/local
 			p  [red-value!]
 	][
-		until [
+		assert nb > 0
+		logic/push false								;-- /local = false
+		nb: nb - 1
+		while [nb > 0][
 			p: stack/push*
 			p/header: TYPE_NONE
 			nb: nb - 1
-			zero? nb
 		]
 	]
 

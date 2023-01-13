@@ -54,6 +54,8 @@ redbin: context [
 	offset:      0
 	codec?:      no
 	
+	#if debug? = yes [indent: 0]
+	
 	header: #{
 		52454442494E								;-- REDBIN magic
 		02											;-- version
@@ -536,16 +538,19 @@ redbin: context [
 			ref     [int-ptr!]
 			type    [integer!]
 			header  [integer!]
+			mask	[integer!]
 			first?  [logic!]
 			global? [logic!]
 	][
 		type:   TYPE_OF(data)
-		header: type or either zero? (data/header and flag-new-line) [0][REDBIN_NEWLINE_MASK]
+		mask: either zero? (data/header and flag-new-line) [0][REDBIN_NEWLINE_MASK]
+		header: type or mask
 		header: header or switch type [
 			TYPE_TUPLE [TUPLE_SIZE?(data) << 8]
 			TYPE_MONEY [(money/get-sign as red-money! data) << 20]
 			default    [0]
 		]
+		#if debug? = yes [if verbose > 0 [loop indent << 2 [prin " "] probe ["<< type: " type]]]
 
 		switch type [
 			TYPE_UNSET
@@ -742,6 +747,8 @@ redbin: context [
 			stack? self?  [logic!]
 			values?       [logic!]
 	][
+		#if debug? = yes [if verbose > 0 [loop indent << 2 [prin " "] probe "<< type: context!"]]
+
 		ctx:     as red-context! data
 		kind:    GET_CTX_TYPE(ctx)
 		stack?:  ON_STACK?(ctx)
@@ -988,8 +995,8 @@ redbin: context [
 				series: as series! object/on-set/value
 				series/tail: series/offset + 2
 				
-				integer/make-at series/offset data/1
-				integer/make-at series/offset + 1 data/2
+				pair/make-at series/offset data/1 0
+				pair/make-at series/offset + 1 data/2 0
 			]
 			
 			object/header: TYPE_OBJECT
@@ -1028,8 +1035,8 @@ redbin: context [
 		strings [red-binary!]
 		/local
 			object [red-object!]
-			change [red-integer!]
-			deep   [red-integer!]
+			change [red-pair!]
+			deep   [red-pair!]
 			ctx    [red-value!]
 			buffer [series!]
 			owner? [logic!]
@@ -1042,17 +1049,19 @@ redbin: context [
 		store payload header
 		
 		unless header and REDBIN_REFERENCE_MASK <> 0 [
+			#if debug? = yes [indent: indent + 1]
 			store payload object/class
 			if owner? [
 				buffer: as series! object/on-set/value
-				change: as red-integer! buffer/offset
-				deep:   as red-integer! buffer/offset + 1
+				change: as red-pair! buffer/offset
+				deep:   as red-pair! buffer/offset + 1
 				
-				record [payload change/value deep/value]
+				record [payload change/x deep/x]
 			]
 			
 			ctx: as red-value! TO_CTX(object/ctx)
 			encode-context ctx payload symbols table strings
+			#if debug? = yes [indent: indent - 1]
 		]
 	]
 	
@@ -1767,10 +1776,12 @@ redbin: context [
 		
 		unless header and REDBIN_REFERENCE_MASK <> 0 [
 			store payload length
+			#if debug? = yes [indent: indent + 1]
 			loop length [
 				encode-value value payload symbols table strings
 				value:  value + 1
 			]
+			#if debug? = yes [indent: indent - 1]
 		]
 	]
 	

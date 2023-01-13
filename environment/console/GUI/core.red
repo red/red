@@ -22,10 +22,10 @@ object [
 	ask?:		no								;-- is it in ask loop
 	prin?:		no								;-- start prin?
 	newline?:	yes								;-- start a new line?
-	refresh?:	yes
 	mouse-up?:	yes
 	ime-open?:	no
 	ime-pos:	0
+	redraw-cnt: 0
 
 	top:		1								;-- index of the first visible line in the line buffer
 	line:		""								;-- current editing line
@@ -40,6 +40,7 @@ object [
 	page-cnt:	0								;-- number of lines in one page
 	line-cnt:	0								;-- number of lines in total (include wrapped lines)
 	screen-cnt: 0								;-- number of lines on screen
+	screen-cnt-saved: 0
 
 	history:	system/console/history
 	hist-idx:	0
@@ -101,7 +102,7 @@ object [
 		pos: 0
 		line-pos: length? lines
 		ask?: yes
-		reset-top
+		redraw-cnt: 0
 		clear-stack
 		set-flag hide?
 		either paste/resume [
@@ -109,6 +110,9 @@ object [
 		][
 			system/view/platform/redraw gui-console-ctx/console
 			system/view/auto-sync?: yes
+			loop 10 [do-ask-loop/no-wait]
+			reset-top
+			system/view/platform/redraw gui-console-ctx/console
 			do-events
 		]
 		ask?: no
@@ -136,7 +140,14 @@ object [
 		system/view/platform/exit-event-loop
 	]
 
-	refresh: func [/force][if any [force refresh?] [system/view/platform/redraw console]]
+	refresh: func [/force][
+		either force [
+			system/view/platform/redraw console
+			redraw-cnt: 0
+		][
+			redraw-cnt: redraw-cnt + 1
+		]
+	]
 
 	vprin: func [str [string!]][
 		either empty? lines [
@@ -192,7 +203,15 @@ object [
 			]
 		]
 		prin?: not lf?
-		refresh
+		either any [
+			all [lf? redraw-cnt > 20]
+			redraw-cnt > 1000
+		][
+			refresh/force
+		][
+			refresh
+		]
+		if newline? [line: last lines]
 		()				;-- return unset!
 	]
 
@@ -290,10 +309,9 @@ object [
 		if delta >= 0 [reset-top]
 	]
 
-	reset-top: func [/local n][
-		n: line-cnt - page-cnt
+	reset-top: func [][
 		if any [
-			scroller/position <= n
+			screen-cnt-saved > page-cnt
 			full?
 		][
 			top: length? lines
@@ -340,7 +358,7 @@ object [
 	resize: func [new-size [pair!] /local y][
 		y: new-size/y
 		new-size/x: new-size/x - 20
-		new-size/y: y + line-h
+		new-size/y: y
 		box/size: new-size
 		if scroller [
 			page-cnt: to-integer y / line-h
@@ -454,14 +472,13 @@ object [
 	]
 
 	mouse-up: func [event [event!]][
-		if scrolling <> 0 [console/rate: none]
 		if empty? lines [exit]
 		mouse-up?: yes
 		if 2 = length? selects [clear selects]
 		caret/enabled?: yes
 		mouse-to-caret event/offset
 		system/view/platform/redraw console
-		caret/rate: 2
+		caret/rate: caret-rate
 	]
 
 	mouse-move: func [offset /local y][
@@ -481,12 +498,8 @@ object [
 				scrolling: -1
 				scroll-pos: offset
 			]
-			scrolling <> 0 [
-				console/rate: none
-				scrolling: 0
-			]
+			scrolling <> 0 [scrolling: 0]
 		]
-		if scrolling <> 0 [console/rate: 10]
 
 		select-to-offset offset
 	]
@@ -498,7 +511,9 @@ object [
 	]
 
 	on-time: func [][
-		either zero? scrolling [console/rate: none][
+		either zero? scrolling [
+			if redraw-cnt <> 0 [refresh/force]
+		][
 			if any [empty? lines mouse-up? empty? selects][exit]
 			scroll-lines scrolling
 			select-to-offset scroll-pos
@@ -869,7 +884,7 @@ object [
 		]
 	]
 
-	clean: func [][
+	clean: does [
 		full?:		no
 		top:		1
 		scroll-y:	0
@@ -929,9 +944,9 @@ object [
 			down	[either ctrl? [scroll-lines -1][fetch-history 'next]]
 			insert	[if event/shift? [paste exit]]
 			delete	[either event/shift? [cut][delete-text ctrl?]]
-			#"^A" home	[if shift? [select-text 0 - pos] pos: 0]
+			#"^A" home	[either shift? [select-text 0 - pos][clear selects] pos: 0]
 			#"^E" end	[
-				if shift? [select-text (length? line) - pos]
+				either shift? [select-text (length? line) - pos][clear selects]
 				pos: length? line
 			]
 			#"^C"	[copy-selection exit]
@@ -952,7 +967,7 @@ object [
 			]
 			clear selects
 		]
-		console/rate: 6
+
 		if caret/rate [caret/rate: none caret/color: caret-clr]
 		calc-top
 		system/view/platform/redraw console
@@ -1033,6 +1048,7 @@ object [
 		]
 		line-y: y - h
 		screen-cnt: to-integer y / line-h
+		screen-cnt-saved: screen-cnt
 		if screen-cnt > page-cnt [screen-cnt: page-cnt]
 		update-caret
 		update-scroller line-cnt - num

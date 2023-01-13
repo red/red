@@ -1117,6 +1117,7 @@ print-wide [
 }
 		--assert equal? "A ^/B" qt/output
 
+comment {							;; nesting EITHER is invalid
 	--test-- "#528"
 		--compile-and-run-this {
 Red/System []
@@ -1126,6 +1127,7 @@ print-wide [system/args-list s]
 		--assert equal? 
 			copy/part qt/output 8 
 			copy/part tail qt/output -8
+}
 
 	--test-- "#533"
 		--compile-this {
@@ -1352,26 +1354,6 @@ probe 1.836E13
 }
 		--assert not found? find qt/output "13.0"
 
-	--test-- "#3662"
-		--compile-this {Red/System [] 1h}				;@@ allow it?
-		--assert loading-error "invalid hex literal"
-		
-		--compile-this {Red/System [] 100000000h}
-		--assert loading-error "invalid hex literal"
-		
-		--compile-and-run-this {
-			Red/System []
-			probe 10h
-			probe 100h
-			probe 1000h
-			probe 10000h
-			probe 100000h
-			probe 1000000h
-			probe 10000000h
-		}
-		--assert equal?
-			load qt/output
-			[16 256 4096 65536 1048576 16777216 268435456]
 
 	--test-- "#2671"
 		--compile-and-run-this {
@@ -1413,6 +1395,38 @@ probe [this that]
 		--compile-this {Red/System [] "^^(skibadee-skibadanger)"}
 		--assert syntax-error "Invalid string! value"
 		
+	--test-- "#3515"
+		--compile-this {
+			Red/System []
+			bin: [#"^^(01)" #"^^(02)"]
+			print-line size? bin
+			print-line as integer! bin/1
+			bin: [#"^^(03)" #"^^(04)" #"^^(05)" #"^^(06)"]
+			print-line size? bin
+			print-line as integer! bin/1
+		}
+		--assert compilation-error "a literal array pointer cannot be reassigned"
+
+	--test-- "#3662"
+		--compile-this {Red/System [] 1h}				;@@ allow it?
+		--assert loading-error "invalid hex literal"
+		
+		--compile-this {Red/System [] 100000000h}
+		--assert loading-error "invalid hex literal"
+		
+		--compile-and-run-this {
+			Red/System []
+			probe 10h
+			probe 100h
+			probe 1000h
+			probe 10000h
+			probe 100000h
+			probe 1000000h
+			probe 10000000h
+		}
+		--assert equal?
+			load qt/output
+			[16 256 4096 65536 1048576 16777216 268435456]
 
 	--test-- "#4931-1"									;-- allowed case
 		--compile-and-run-this {

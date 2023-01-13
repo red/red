@@ -585,7 +585,7 @@ redc: context [
 				| "--show-func-map"				(opts/show-func-map?: yes)
 				| "--" break							;-- stop options processing
 			]
-			set filename skip (src: load-filename filename)
+			set filename skip (unless empty? filename [src: load-filename filename])
 		]
 		if 1 < length? modes [
 			fail-cmd ["Incompatible compilation modes:" mold/only modes]
@@ -729,6 +729,9 @@ redc: context [
 				fail-cmd ["Cannot access build dir:" to-local-file build-dir]
 			]
 		]
+		
+		;-- Try to get version data from git repository if present
+		unless encap? [save %build/git.r do %build/git-version.r]
 		
 		print [lf "-=== Red Compiler" read-cache %encapper/version.r "===-" lf]
 

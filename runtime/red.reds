@@ -33,9 +33,9 @@ red: context [
 	
 	;-- Datatypes --
 	
-	#include %datatypes/structures.reds
+	#include %structures.reds
 	#include %print.reds
-	#include %datatypes/common.reds
+	#include %common.reds
 	#include %unicode.reds
 	#include %case-folding.reds
 	#include %sort.reds
@@ -64,6 +64,7 @@ red: context [
 		NetBSD   [#include %platform/image-gdk.reds]
 		#default []
 	]
+	#include %image-utils.reds
 	
 	#include %datatypes/datatype.reds
 	#include %datatypes/unset.reds
@@ -119,7 +120,7 @@ red: context [
 	#if OS = 'macOS   [#include %datatypes/image.reds]	;-- temporary
 	#if OS = 'Linux   [#include %datatypes/image.reds]
 	#if OS = 'FreeBSD [#include %datatypes/image.reds]
-	#if OS = 'NetBSD [#include %datatypes/image.reds]
+	#if OS = 'NetBSD  [#include %datatypes/image.reds]
 
 	;-- Debugging helpers --
 	
@@ -319,7 +320,7 @@ red: context [
 		free as byte-ptr! _random/table
 		free as byte-ptr! name-table
 		free as byte-ptr! action-table
-		free as byte-ptr! cycles/stack
+		free as byte-ptr! cycles/bottom
 		free as byte-ptr! crypto/crc32-table
 		free as byte-ptr! redbin/path/stack
 		free as byte-ptr! redbin/reference/list

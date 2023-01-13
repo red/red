@@ -10,8 +10,6 @@ Red/System [
 	}
 ]
 
-#include %image-utils.reds
-
 image: context [
 	verbose: 0
 
@@ -839,6 +837,9 @@ image: context [
 		element	[red-value!]
 		value	[red-value!]
 		path	[red-value!]
+		gparent [red-value!]
+		p-item	[red-value!]
+		index	[integer!]
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
@@ -1035,6 +1036,92 @@ image: context [
 		img
 	]
 
+	change: func [
+		img		 [red-image!]
+		value	 [red-value!]
+		part-arg [red-value!]
+		only?	 [logic!]
+		dup-arg  [red-value!]
+		return:	 [red-image!]
+		/local
+			type [integer!]
+			bmp1 [integer!]
+			bmp2 [integer!]
+			bin1 [int-ptr!]
+			bin2 [int-ptr!]
+			img2 [red-image!]
+			idx  [red-value! value]
+			head n i1 i2 [integer!]
+			w1 h1 w2 h2 [integer!]
+			x x1 y1 x2 y2 [integer!]
+			stride1 stride2 [integer!]
+	][
+		if OPTION?(dup-arg) [--NOT_IMPLEMENTED--]
+		if OPTION?(part-arg) [--NOT_IMPLEMENTED--]
+
+		head: img/head
+		type: TYPE_OF(value)
+		switch type [
+			TYPE_TUPLE [
+				ownership/check as red-value! img words/_change null head 1
+				integer/make-at idx img/head
+				poke img -1 idx value
+				img/head: head + 1
+				ownership/check as red-value! img words/_changed null head 1
+			]
+			TYPE_IMAGE [
+				img2: as red-image! value
+				w1: IMAGE_WIDTH(img/size)
+				h1: IMAGE_HEIGHT(img/size)
+
+				if w1 * h1 <= head [return img]	;-- at the tail, change nothing
+
+				ownership/check as red-value! img words/_change null head 1
+
+				x: head % w1
+				x1: x
+				y1: head / w1
+
+				stride1: 0
+				stride2: 0
+				bmp1: OS-image/lock-bitmap img yes
+				bin1: OS-image/get-data bmp1 :stride1
+				bmp2: OS-image/lock-bitmap img2 no
+				bin2: OS-image/get-data bmp2 :stride2
+
+				w2: IMAGE_WIDTH(img2/size)
+				h2: IMAGE_HEIGHT(img2/size)
+				x2: 0
+				y2: 0
+				n: 0
+				while [all [y1 < h1 y2 < h2]] [
+					while [all [x1 < w1 x2 < w2]] [
+						i1: y1 * w1 + x1 + 1
+						i2: y2 * w2 + x2 + 1
+						bin1/i1: bin2/i2
+						n: n + 1
+						x1: x1 + 1
+						x2: x2 + 1
+					]
+					x1: x
+					x2: 0
+					y1: y1 + 1
+					y2: y2 + 1
+				]
+
+				OS-image/unlock-bitmap img bmp1
+				OS-image/unlock-bitmap img2 bmp2
+
+				x1: x + w2
+				if x1 > w1 [x1: w1]
+				img/head: y1 - 1 * w1 + x1
+				ownership/check as red-value! img words/_changed null head n
+			]
+			default [fire [TO_ERROR(script invalid-type) datatype/push type]]
+		]
+		img
+	]
+
 	copy: func [
 		img	    	[red-image!]
 		new			[red-image!]
@@ -1123,7 +1210,7 @@ image: context [
 			null			;append
 			:at
 			INHERIT_ACTION	;back
-			null			;change
+			:change
 			null			;clear
 			:copy
 			null			;find

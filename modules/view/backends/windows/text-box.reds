@@ -279,7 +279,7 @@ OS-text-box-metrics: func [
 			either type = TBOX_METRICS_SIZE [
 				pair/push 
 					as-integer (metrics/width + as float32! 0.5)
-					as-integer (metrics/height + as float32! 0.5)
+					as-integer (metrics/height + as float32! 0.99)
 			][
 				integer/push metrics/lineCount
 			]
@@ -413,7 +413,7 @@ txt-box-draw-background: func [
 		zero? vector/rs-length? styles
 	][exit]
 
-	this: d2d-ctx
+	this: as this! target/1
 	dc: as ID2D1DeviceContext this/vtbl
 	dl: as IDWriteTextLayout layout/vtbl
 

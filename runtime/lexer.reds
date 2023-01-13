@@ -35,6 +35,7 @@ lexer: context [
 		C_FLAG_LESSER:	00100000h
 		C_FLAG_GREATER: 00080000h
 		C_FLAG_PERCENT: 00040000h
+		C_FLAG_NEWLINE: 00020000h
 	]
 	
 	#define FL_UCS4		[(C_WORD or C_FLAG_UCS4)]
@@ -102,12 +103,12 @@ lexer: context [
 
 	line-table: #{
 		0001000000000000000000000000000000000000000000000000000000000000
-		00000000000000
+		0000000000000000
 	}
 	
 	path-ending: #{
 		0101000001010101010001000001000000000000000000010000000001000000
-		00000000000101
+		0000000000010101
 	}
 	
 	float-classes: #{
@@ -337,6 +338,8 @@ lexer: context [
 		in-series	[red-series!]						;-- optional back reference to input series
 		value		[integer!]							;-- decoded integer! or char! value (from scanner to loader)
 		load?		[logic!]							;-- TRUE: load values, else scan only
+		pos-cache	[byte-ptr!]							;-- cached UTF-8 buffer last accessed position
+		cnt-cache	[integer!]							;-- cached UTF-8 characters count
 	]
 	
 	scanner!: alias function! [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]]
@@ -355,6 +358,26 @@ lexer: context [
 	
 	min-integer: as byte-ptr! "-2147483648"				;-- used in load-integer
 	
+	smart-count: func [									;-- counts only new characters from last cached result
+		lex		[state!]
+		pos		[byte-ptr!]								;-- new position to count UTF-8 sequences up to.
+		return: [integer!]
+		/local
+			base [byte-ptr!]
+			len	 [integer!]
+	][
+		if lex/pos-cache > pos [						;-- invalidate cache if backtracking occured (error event)
+			lex/pos-cache: lex/input
+			lex/cnt-cache: 0
+		]
+		base: lex/pos-cache
+		if null? base [base: lex/input]					;-- first invocation
+		len: lex/cnt-cache + unicode/count-chars base pos ;-- cached count + count from cached position to new one
+		lex/pos-cache: pos
+		lex/cnt-cache: len
+		len
+	]
+
 	decode-filter: func [fun [red-function!] return: [integer!]
 		/local
 			evts flag sym [integer!]
@@ -506,12 +529,13 @@ lexer: context [
 		][
 			either zero? type [none/push][datatype/push type]
 		]
-		either TYPE_OF(lex/in-series) <> TYPE_BINARY [
-			x: unicode/count-chars lex/input s
-			y: x + unicode/count-chars s e
-		][
+		either TYPE_OF(lex/in-series) = TYPE_BINARY [
 			x: as-integer s - lex/input
 			y: as-integer e - lex/input
+		][
+			x: smart-count lex s
+			;x: unicode/count-chars lex/input s
+			y: x + unicode/count-chars s e
 		]
 		ref: either any [all [type < 0 event = EVT_PRESCAN] event = EVT_OPEN][x][y]
 		ref: ref + lex/in-series/head					;-- accounts for series original offset
@@ -519,7 +543,7 @@ lexer: context [
 		integer/push lex/line							;-- line number
 		either null? value [pair/push x + 1 y + 1][stack/push value] ;-- token
 
-		if lex/fun-locs > 0 [_function/init-locals 1 + lex/fun-locs] ;-- +1 for /local refinement
+		if lex/fun-locs > 0 [_function/init-locals lex/fun-locs]
 		_function/call lex/fun-ptr ctx as red-value! words/_lexer-cb CB_LEXER
 
 		if ser/head <> ref [							;-- check if callback changed input offset
@@ -1094,6 +1118,7 @@ lexer: context [
 	scan-mstring-open: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
 		if all [zero? lex/mstr-nest lex/fun-ptr <> null][fire-event lex EVT_OPEN TYPE_STRING null s e]
 		if zero? lex/mstr-nest [lex/mstr-s: s]
+		if lex/nline > 0 [flags: flags or C_FLAG_NEWLINE]
 		lex/mstr-nest: lex/mstr-nest + 1
 		lex/mstr-flags: lex/mstr-flags or flags
 		lex/entry: S_M_STRING
@@ -1328,6 +1353,7 @@ lexer: context [
 			i: as-integer (p/1 - #"0")
 		][
 			len: as-integer e - p
+			if zero? len [throw-error lex s e TYPE_PAIR] ;-- catch pair/y values with no digits
 			i: 0
 			o?: no
 			either flags and C_FLAG_QUOTE = 0 [			;-- no quote, faster path
@@ -1415,6 +1441,7 @@ lexer: context [
 		unit: 1 << (flags >>> 30)
 		if unit > 4 [unit: 4]
 		type: either lex/type = -1 [TYPE_STRING][lex/type]
+		if flags and C_FLAG_NEWLINE <> 0 [lex/nline: 1]	;-- force a new-line marker (curly strings)
 
 		either flags and C_FLAG_CARET = 0 [				;-- fast path when no escape sequence
 			str: string/make-at alloc-slot lex len unit
@@ -2261,8 +2288,15 @@ lexer: context [
 				system/thrown: 0
 				if err? [exit]
 			]
-			if state = T_WORD [s: skip-whitespaces lex s lex/tok-end TYPE_WORD] ;-- Unicode spaces are parsed as words, skip them upfront!
-			
+			if state = T_WORD [
+				s: skip-whitespaces lex s lex/tok-end TYPE_WORD ;-- Unicode spaces are parsed as words, skip them upfront!				
+				if s = p [
+					either lex/in-pos < lex/in-end [continue][ ;-- empty token, move to next one
+						state: T_EOF do-scan: :scan-eof index: 1 lex/scanned: 0 ;-- force EOF if empty input after skipping
+					]
+				]
+			]
+
 			scan?: either not events? [not pscan?][
 				either lex/entry = S_M_STRING [yes][
 					idx: either zero? lex/scanned [0 - index][lex/scanned]
@@ -2390,6 +2424,8 @@ lexer: context [
 		if fun <> null [
 			lex/fun-locs: _function/count-locals fun/spec 0 no
 			lex/fun-evts: decode-filter fun
+			lex/pos-cache: null
+			lex/cnt-cache: 0
 		]
 		assert system/thrown = 0
 		

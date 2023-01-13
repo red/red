@@ -73,7 +73,7 @@ mold: make action! [[
 
 modify: make action! [[
 		"Change mode for target aggregate value"
-		target	 [object! series!]
+		target	 [object! series! bitset!]
 		field 	 [word!]
 		value 	 [any-type!]
 		/case "Perform a case-sensitive lookup"
@@ -148,7 +148,7 @@ round: make action! [[
 		"Returns the nearest integer. Halves round up (away from zero) by default"
 		n		[number! money! time! pair!]
 		/to		"Return the nearest multiple of the scale parameter"
-		scale	[number! money! time!] "If zero, returns N unchanged"
+		scale	[number! money! time! pair!] "If zero, returns N unchanged"
 		/even		"Halves round toward even results"
 		/down		"Round toward zero, ignoring discarded digits. (truncate)"
 		/half-down	"Halves round toward zero"
@@ -377,7 +377,7 @@ next: make action! [[
 
 pick: make action! [[
 		"Returns the series value at a given index"
-		series	 [series! port! bitset! pair! tuple! money! date! time!]
+		series	 [series! port! bitset! pair! tuple! money! date! time! #if find config/modules 'view [event!]]
 		index 	 [scalar! any-string! any-word! block! logic! time!]
 		return:  [any-type!]
 	]

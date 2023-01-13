@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 23/02/2022
-	Revision: 58
+	Date: 08/09/2022
+	Revision: 60
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -495,7 +495,11 @@ will output
 
 Struct! datatype is roughly equivalent to C struct type. It is a record of one or several values, each value having its own datatype. A struct variable holds the memory address of a struct value. 
 
-<u>Implementation note</u>: Struct! values members are <u>padded</u> in memory in order to preserve optimal alignment for each target (for example, it is aligned to 4 bytes for IA32 target). <b>Size?</b> function will return the size of the struct! value in memory including the padding bytes.
+<u>Implementation notes</u>: 
+
+* Struct! values members are <u>padded</u> in memory in order to preserve optimal alignment for each target (for example, it is aligned to 4 bytes for IA32 target). <b>Size?</b> function will return the size of the struct! value in memory including the padding bytes.
+
+* Structs declared as values do not hold any pointer as their content is inlined, so their memory location is fixed and cannot be changed by the user.
 
 +++Declaration
 
@@ -508,12 +512,12 @@ Declaring a struct! value is achieved by using the DECLARE STRUCT! sequence foll
  
  <member>   : a valid identifier
  <datatype> : integer! | byte! | logic! | float! | float32! | c-string! |
-              pointer! [integer! | byte! | float! | float64! | float32!] |
+              pointer! [integer! | byte! | float! | float64! | float32! | pointer!] |
               struct! [<members>] | struct! [<members>] value | function! [<spec>]
               
-The returned value of DECLARE STRUCT! is the memory address of the newly created struct! value.
+The returned value of DECLARE STRUCT! is the memory address of the newly created struct! value on the heap. Struct values declared as local variables in functions have their memory slots pre-reserved.
 
-<u>Note</u>: Struct members are all initialized to 0 when a new literal struct! is declared. 
+<u>Note</u>: Struct members are all initialized to zero when a new literal struct! is declared. 
 
 +++Usage
 
@@ -537,7 +541,11 @@ It is possible to nest struct values (and not just pointers to struct values) by
  
 In this case, the nested struct c storage space is reserved when allocating the space for the parent struct s2. The size of struct s2 is 20 bytes, while the size of s is 12 bytes.
 
-Struct pointers and struct values can be arbitrarily nested and mixed together.
+Struct pointers and struct values can be arbitrarily nested and mixed together. But the assignment rules differ whether it is a struct pointer or a struct value:
+
+* A struct! variable addressed by pointer can be changed to point to a different location, even if it was referring to a memory location reserved using `declare`.
+
+* A struct! variable addressed by value (contains `value` keyword) copies data on assignment from the argument location.
  
 +++Accessing members
 
@@ -613,7 +621,7 @@ Aliasing syntax:
  
  <name>     : the name to use as alias
  <member>   : a valid identifier
- <datatype> : integer! | byte! | pointer! [integer! | byte!] | logic! |
+ <datatype> : integer! | byte! | pointer! [integer! | byte! | float! | float32! | pointer!] | logic! |
               float! | float32! | c-string! | struct! [<members>] |
               struct! [<members>] value | function! [<spec>]
               
@@ -663,7 +671,7 @@ New pointers value can be created using the following syntax:
 
  declare pointer! [<datatype>]
 
- <datatype>: integer! | byte! | float! | float32!
+ <datatype>: integer! | byte! | float! | float32! | pointer!
 
 \note Possible syntactic sugar
 The & symbol used in previous revisions of this document has been removed due to the new limited pointer! datatype usage. It could be reintroduced again in the future if required.
@@ -675,6 +683,7 @@ Examples:
  foo: declare pointer! [integer!]		;-- equivalent to C's: int *foo;
  bar: declare pointer! [byte!]			;-- equivalent to C's: char *bar;
  baz: declare pointer! [float!]			;-- equivalent to C's: double *baz;
+ qux: declare pointer! [pointer!]		;-- equivalent to C's: void **qux;
 
 \note Pointer value initialization
 Do not assume any default value for a pointer value until it is initialized properly. In the current implementation, global pointer variables are set to <b>null</b> by default while local pointer variables default value is undefined. This might change in the future to adopt a default value more suitable for debugging (like 0BADBAD0h or similar hex trick).
@@ -960,6 +969,8 @@ It is possible to get a pointer on an existing variable for the following dataty
 
 * float32!
 
+* pointer!
+
 <b>Syntax</b>
 
  :<variable>
@@ -985,6 +996,9 @@ This expression will return a pointer value which type depends on the variable t
 </tr><tr>
 <td>float32!</td>
 <td>pointer! [float32!]</td>
+</tr><tr>
+<td>pointer!</td>
+<td>pointer! [pointer!]</td>
 </tr>
 </table>
 </div>
@@ -1310,18 +1324,20 @@ The specification block is a Red/System dialect (DSL), so the words inside such 
  <name>		  : function's name
  <attributes> : special attributes
  <argument>	  : function's argument indentifier
- <datatype>	  : integer! | byte! | logic! | pointer! [integer! | byte!] |
+ <datatype>	  : integer! | byte! | logic! | 
+                pointer! [integer! | byte! | float! | float32! | pointer!] |
                 float! | float32! | c-string! | struct! [<members>] |
-                struct! [<members>] value
+                struct! [<members>] value | <alias> | <alias> value
  <local>	  : local variable
  <body>		  : function's body code
+ <alias>	  : struct alias
  
 Doc-strings are just optional documentation that can be processed by any external tool, they have no runtime effect.
 
 \note Func vs Function
 
 Currently, <b>function</b> is a synonym for <b>func</b> in Red/System. In future, however, the behaviour of <b>function</b> in Red/System may be changed to match the behaviour of <b>function</b> in Red (i.e. all set-words are assumed locals).
-Until this change has been decided, it may be wise to use the <b>func</b> keyword instead of <b>function</b> in Red/System code, particularly in cases where its use would be affected by such a change.
+Until this change has been decided, it may be wise to use the <b>func</b> keyword instead of <b>function</b> in Red/System code, particularly in cases where its usage would be affected by such a change.
 
 /note
 
@@ -3988,7 +4004,11 @@ A valid Red/System source file will need this header:
  
 There is no minimum or maximum number of entries that a valid header can contain, so an empty block will also be valid (but bad practice).
  
-<u>Implementation note</u>: Header values types are the ones provided by REBOL during the bootstrapping phase only. Once the Red layer will be implemented, the allowed datatypes will be Red ones.
+\note Implementation note
+Header values types are the ones provided by REBOL during the bootstrapping phase only. Once the Red layer will be 
+implemented, the allowed datatypes will be Red ones.
+
+/note
 
 The attribute that you can specify are not limited, you can add whatever you want/need. Anyway, some attribute names are used by convention:
 
@@ -4269,7 +4289,17 @@ will output:
 
 ===Document History
 
-*<b>23/02/2022 - revision 57</b>
+*<b>08/09/2022 - revision 60</b>
+
+*>Adds pointer! to pointer! mentions.
+
+
+*<b>05/09/2022 - revision 59</b>
+
+*>Improves struct by value description.
+
+
+*<b>23/02/2022 - revision 58</b>
 
 *>Removes EITHER from expression rules, as the current compiler can't handle it properly.
 

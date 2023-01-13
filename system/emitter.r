@@ -29,7 +29,7 @@ emitter: make-profilable context [
 		value [integer!]				;-- 32/64-bit, watch out for endianess!!
 	] none
 	
-	datatypes: to-hash [
+	types-model: [
 		;int8!		1	signed
 		byte!		1	unsigned
 		;int16!		2	signed
@@ -51,6 +51,8 @@ emitter: make-profilable context [
 		subroutine!	4	-				;-- 32-bit, 8 for 64-bit
 	]
 	
+	datatypes: none						;-- initialized by init function
+	
 	datatype-ID: [
 		logic!		1
 		integer!	2
@@ -62,6 +64,7 @@ emitter: make-profilable context [
 		byte-ptr!   7
 		int-ptr!	8
 		function!	9
+		ptr-ptr!	10
 		struct!		1000
 	]
 	
@@ -212,11 +215,12 @@ emitter: make-profilable context [
 			spec: compiler/find-aliased spec/1
 		]
 		body: bind/copy body 'type
-		if block? spec/1 [spec: next spec]
+		if block? spec/1 [spec: next spec]				;-- skip [attributs] if present
 
-		foreach [name t] spec [							;-- skip 'struct!
+		foreach [name t] spec [
 			unless word? name [break]
 			either 'value = last type: t [
+				if 'struct! = type/1 [type: type/2]
 				foreach-member type body
 			][
 				do body
@@ -884,13 +888,21 @@ emitter: make-profilable context [
 			clear code-buf
 			clear data-buf
 			clear symbols
+			clear 	stack
+			clear 	exits
+			clear 	breaks
+			clear 	cont-next
+			clear 	cont-back
+
 		]
 		clear stack
 		path: pick [%system/targets/ %targets/] encap?
 		target: do-cache rejoin [path job/target %.r]
+		foreach w [width signed? last-saved?][set in target w none]
 		target/compiler: compiler: system-dialect/compiler
 		target/PIC?: job/PIC?
 		target/void-ptr: head insert/dup copy #{} null target/ptr-size
 		int-to-bin/little-endian?: target/little-endian?
+		datatypes: to-hash types-model
 	]
 ]

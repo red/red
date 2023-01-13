@@ -790,6 +790,9 @@ block: context [
 		element	[red-value!]
 		value	[red-value!]
 		path	[red-value!]
+		gparent [red-value!]
+		p-item	[red-value!]
+		index	[integer!]
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
@@ -798,7 +801,6 @@ block: context [
 			int  [red-integer!]
 			set? [logic!]
 			type [integer!]
-			s	 [series!]
 	][
 		set?: value <> null
 		type: TYPE_OF(element)
@@ -808,10 +810,6 @@ block: context [
 				_series/poke as red-series! parent int/value value null
 				value
 			][
-				s: GET_BUFFER(parent)
-				if s/flags and flag-series-owned <> 0 [
-					copy-cell as red-value! parent as red-value! object/path-parent
-				]
 				_series/pick as red-series! parent int/value null
 			]
 		][
@@ -823,10 +821,6 @@ block: context [
 				actions/poke as red-series! element 2 value null
 				value
 			][
-				s: GET_BUFFER(parent)
-				if s/flags and flag-series-owned <> 0 [
-					copy-cell as red-value! parent as red-value! object/path-parent
-				]
 				either type = TYPE_WORD [
 					select-word parent as red-word! element case?
 				][
@@ -942,7 +936,10 @@ block: context [
 		][hash?: no]									;-- use block search
 		any-blk?: ANY_BLOCK?(type)
 		op: either case? [COMP_STRICT_EQUAL][COMP_FIND]	;-- warning: /case <> STRICT...
-		if same? [op: COMP_SAME]
+		if same? [
+			op: COMP_SAME
+			if all [hash? only?][any-blk?: no]			;-- hash! can handle /same/only
+		]
 
 		either any [
 			match?
@@ -1214,6 +1211,7 @@ block: context [
 			f	 [red-function!]
 			all? [logic!]
 			num  [integer!]
+			cnt  [integer!]
 			blk1 [red-block!]
 			blk2 [red-block!]
 			v1	 [red-value!]
@@ -1253,7 +1251,9 @@ block: context [
 			s2/tail: value2 + num
 		]
 
-		_function/call f global-ctx	as red-value! words/_compare-cb CB_SORT ;FIXME: hardcoded origin context
+		cnt: _function/count-locals f/spec 0 no
+		if positive? cnt [_function/init-locals cnt]
+		_function/call f f/ctx as red-value! words/_compare-cb CB_SORT
 		stack/unwind
 		stack/pop 1
 
@@ -1429,9 +1429,11 @@ block: context [
 			limit	[red-value!]
 			head	[red-value!]
 			hash	[red-hash!]
+			table	[node!]
 			int		[red-integer!]
 			b		[red-block!]
 			s		[series!]
+			err		[integer!]
 			h		[integer!]
 			cnt		[integer!]
 			part	[integer!]
@@ -1440,6 +1442,8 @@ block: context [
 			index	[integer!]
 			values?	[logic!]
 			tail?	[logic!]
+			hash?	[logic!]
+			rehash? [logic!]
 			chk?	[logic!]
 			action	[red-word!]
 	][
@@ -1447,6 +1451,12 @@ block: context [
 		
 		cnt:  1
 		part: -1
+		hash?: TYPE_OF(blk) = TYPE_HASH
+		rehash?: no
+		if hash? [
+			hash: as red-hash! blk
+			table: hash/table
+		]
 
 		values?: all [
 			not only?									;-- /only support
@@ -1516,6 +1526,10 @@ block: context [
 				as byte-ptr! head + slots
 				as byte-ptr! head
 				as-integer s/tail - head
+
+			if hash? [
+				rehash?: HASH_TABLE_ERR_REHASH = _hashtable/refresh table slots h (as-integer s/tail - head) >> 4 yes
+			]
 			s/tail: s/tail + slots
 		]
 
@@ -1548,9 +1562,19 @@ block: context [
 			cnt: cnt - 1
 		]
 
-		if TYPE_OF(blk) = TYPE_HASH [
-			hash: as red-hash! blk
-			_hashtable/rehash hash/table _series/get-length blk yes
+		if hash? [
+			either rehash? [
+				_hashtable/rehash table _series/get-length blk yes
+			][
+				s: GET_BUFFER(blk)
+				cell: either tail? [s/tail - slots][s/offset + h]
+				err: 0
+				loop slots [
+					_hashtable/put-err table cell :err
+					if err = HASH_TABLE_ERR_REBUILT [break]
+					cell: cell + 1
+				]
+			]
 		]
 		if chk? [
 			action: either append? [words/_appended][words/_inserted]

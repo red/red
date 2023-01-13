@@ -138,6 +138,8 @@ Red/System [
 		pen-color		[integer!]					;-- 00bbggrr format
 		brush-color		[integer!]					;-- 00bbggrr format
 		font-color		[integer!]
+		font-attrs		[handle!]					;-- pango attrs for fonts
+		font-antialias  [integer!]					;-- cairo fonts antialias
 		grad-pen		[gradient! value]
 		grad-brush		[gradient! value]
 		pen?			[logic!]
@@ -152,11 +154,10 @@ Red/System [
 	draw-ctx!: alias struct! [
 		cr				[handle!]
 		DRAW_STATE_DATA
+		font-opts		[handle!]
 		control-x		[float32!]
 		control-y		[float32!]
 		shape-curve?	[logic!]
-		font-attrs		[handle!]					;-- pango attrs for fonts
-		font-opts		[handle!]					;-- cairo opts for fonts
 	]
 
 	layout-ctx!: alias struct! [
@@ -362,10 +363,10 @@ Red/System [
 		]
 
 		shadow!: alias struct! [
-			offset-x		[integer!]
-			offset-y		[integer!]
-			blur			[integer!]
-			spread			[integer!]
+			offset-x		[float32!]
+			offset-y		[float32!]
+			blur			[float32!]
+			spread			[float32!]
 			color			[integer!]
 			inset?			[logic!]
 			next			[shadow!]

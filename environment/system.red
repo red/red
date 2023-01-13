@@ -122,6 +122,7 @@ system: context [
 				no-refine:			[:arg1 "has no refinement called" :arg2]
 				bad-refines:		"incompatible or invalid refinements"
 				bad-refine:			["incompatible refinement:" :arg1]
+				dup-refine:			["duplicate refinement usage in:" :arg1]
 				word-first:			["path must start with a word:" :arg1]
 				empty-path:			"cannot evaluate an empty path value"
 				unset-path:			[:arg2 "is unset in path" :arg1]
@@ -193,7 +194,6 @@ system: context [
 				react-bad-obj:		"REACT - target can only contain object values"
 				react-gctx:			["REACT - word" :arg1 "is not a reactor's field"]
 				lib-invalid-arg:	["LIBRED - invalid argument for" :arg1]
-				buffer-not-enough:	["Buffer size too small, should be:" :arg1]
 			]
 			math: object [
 				code:				400
@@ -255,7 +255,7 @@ system: context [
 			user: object [
 				code:				800
 				type:				"User Error"
-				message:			[:arg1]
+				message:			'arg1
 			]
 			internal: object [
 				code:				900
@@ -284,7 +284,6 @@ system: context [
 		interpreted?: func ["Return TRUE if called from the interpreter"][
 			#system [logic/box stack/eval? null no]
 		]
-		near:		 none								;-- slot from which to fill error/near field
 		last-error:  none
 		stack-trace: 1									;-- 0: disabled
 		
@@ -299,7 +298,7 @@ system: context [
 
 			on-change*: function [word old new][
 				unless integer? bits [set-quiet 'bits 0]	;-- prevents tampering with that field
-				idx: 1 << ((index? in self word) - 1)
+				idx: 1 << ((index? word) - 1)
 				set-quiet 'bits either new [bits or idx][bits and complement idx]
 			]
 		]
@@ -343,7 +342,7 @@ system: context [
 				USD UYU UZS	VES VND VUV WST CFA XAF XCD XOF CFP XPF YER ZAR ZMW
 			]
 			on-change*: func [word old new][
-				set-quiet in self word old
+				set-quiet word old
 				cause-error 'script 'protected []
 			]
 			on-deep-change*: func [owner word target action new index part][
@@ -459,7 +458,7 @@ system: context [
 			float! float! tuple! date! pair! time! money! tag! url! email! 'hex 'rawstring ref!
 		]
 		
-		tracer: lex: func [
+		tracer: func [
 			event  [word!]                  			;-- event name
 			input  [string! binary!]            		;-- input series at current loading position
 			type   [datatype! word! none!]       		;-- type of token or value currently processed.
@@ -469,7 +468,7 @@ system: context [
 		][
 			print [										;-- total: 64
 				uppercase pad event 8
-				pad rejoin [mold type "(" type? type ")"] 20
+				pad mold type 12
 				pad mold/part token 12 12				;-- limit in case it's a huge string/binary
 				pad line 4
 				mold/part input 16

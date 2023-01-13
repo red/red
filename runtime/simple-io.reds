@@ -743,13 +743,14 @@ simple-io: context [
 	file-size?: func [
 		file	 [integer!]
 		return:	 [integer!]
-		/local #either OS = 'Linux [s [stat!]][s [stat! value]]
+		#if OS <> 'Windows [/local s [stat!]]
 	][
 		#case [
 			OS = 'Windows [
 				GetFileSize file null
 			]
 			any [OS = 'macOS OS = 'FreeBSD OS = 'NetBSD OS = 'Android] [
+				s: as stat! system/stack/allocate 36	;-- ensures stat! fits using a max value of 144 bytes
 				either zero? _stat file s [				
 					s/st_size
 				][-1]
@@ -1069,7 +1070,7 @@ simple-io: context [
 			time [float!]
 			fd   [integer!]
 			tm   [systemtime!]
-			#either OS = 'Linux [s [stat!]][s [stat! value]]
+			#if OS <> 'Windows [s [stat!]]
 	][
 		name: file/to-OS-path filename
 		;o: object/copy #get system/standard/file-info
@@ -1335,7 +1336,7 @@ simple-io: context [
 			]
 			true [
 				len: 0
-				actions/mold as red-value! data buffer no no no null 0 0
+				actions/mold as red-value! data buffer no no no null MAX_INT 0
 				buf: value-to-buffer as red-value! buffer part :len binary? null
 				string/rs-reset buffer
 			]
@@ -1461,7 +1462,7 @@ simple-io: context [
 					new?: no
 					s/1: null-byte
 					w: as red-value! word/push* symbol/make as-c-string p
-					res: map/eval-path mp w null null no no no
+					res: map/eval-path mp w null null null null -1 no no no
 					either TYPE_OF(res) = TYPE_NONE [
 						new?: yes
 					][
@@ -1903,7 +1904,7 @@ simple-io: context [
 					new?: no
 					s/1: null-byte
 					w: as red-value! word/push* symbol/make as-c-string p
-					res: map/eval-path mp w null null no no no
+					res: map/eval-path mp w null null null null -1 no no no
 					either TYPE_OF(res) = TYPE_NONE [
 						new?: yes
 					][

@@ -103,6 +103,7 @@ hash: context [
 		#if debug? = yes [if verbose > 0 [print-line "hash/copy"]]
 
 		block/copy as red-block! hash new part-arg deep? types
+		new/header: TYPE_BLOCK							;-- _hashtable/init may trigger GC. `new` is actually a block for now.
 		size: block/rs-length? new
 		table: _hashtable/init size new HASH_TABLE_HASH 1
 		hash: as red-hash! new

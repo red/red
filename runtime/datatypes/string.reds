@@ -1333,6 +1333,7 @@ string: context [
 			f	 [red-function!]
 			all? [logic!]
 			num  [integer!]
+			cnt  [integer!]
 			str1 [red-string!]
 			str2 [red-string!]
 			v1	 [red-value!]
@@ -1373,7 +1374,9 @@ string: context [
 			s2/tail: as red-value! (value2 + (num << (log-b unit)))
 		]
 
-		_function/call f global-ctx as red-value! words/_compare-cb	CB_SORT ;FIXME: hardcoded origin context
+		cnt: _function/count-locals f/spec 0 no
+		if positive? cnt [_function/init-locals cnt]
+		_function/call f f/ctx as red-value! words/_compare-cb CB_SORT
 		stack/unwind
 		stack/pop 1
 
@@ -1716,6 +1719,9 @@ string: context [
 		element	[red-value!]
 		value	[red-value!]
 		path	[red-value!]
+		gparent [red-value!]
+		p-item	[red-value!]
+		index	[integer!]
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
@@ -1920,7 +1926,8 @@ string: context [
 			f1: pf/1
 			pf: as pointer! [float32!] p2
 			f2: pf/1
-			res: (SIGN_COMPARE_RESULT(f1 f2)) * rev
+			res: SIGN_COMPARE_RESULT(f1 f2)
+			res: res * rev
 			unless zero? res [break]
 			p1: p1 + 4 p2: p2 + 4
 		]
@@ -1955,7 +1962,8 @@ string: context [
 			f1: pf/1
 			pf: as pointer! [float!] p2
 			f2: pf/1
-			res: (SIGN_COMPARE_RESULT(f1 f2)) * rev
+			res: SIGN_COMPARE_RESULT(f1 f2)
+			res: res * rev
 			unless zero? res [break]
 			p1: p1 + 8 p2: p2 + 8
 		]
@@ -2863,7 +2871,6 @@ string: context [
 			s		[series!]
 			unit	[integer!]
 			type	[integer!]
-			chk?	[logic!]
 	][
 		str: as red-string! _series/take as red-series! str part-arg deep? last?
 		s: GET_BUFFER(str)
@@ -2872,7 +2879,6 @@ string: context [
 			not OPTION?(part-arg)
 			1 = _series/get-length as red-series! str yes
 		][
-			chk?: ownership/check as red-value! str words/_take null str/head 0
 			unit: GET_UNIT(s)
 			type: TYPE_OF(str)
 			either type = TYPE_VECTOR [
@@ -2884,7 +2890,6 @@ string: context [
 				char/header: type
 				char/value:  get-char as byte-ptr! s/offset unit
 			]
-			if chk? [ownership/check as red-value! str words/_taken null str/head 0]
 		]
 		as red-value! str
 	]

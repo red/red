@@ -118,9 +118,9 @@ Red/System [
 		--assert 5 = ct-byte-nested #"^(D1)" 
 		
 	--test-- "either-true"
-		--assert 1 = either true [1] [0]
+		either true [--assert true][--assert false]
 		
 	--test-- "either-false"
-		--assert 1 = either false [0] [1]
+		either false [--assert false][--assert true]
     
 ~~~end-file~~~

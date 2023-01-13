@@ -44,6 +44,9 @@ email: context [
 		element	[red-value!]
 		value	[red-value!]
 		path	[red-value!]
+		gparent [red-value!]
+		p-item	[red-value!]
+		index	[integer!]
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
@@ -66,7 +69,7 @@ email: context [
 				]
 			]
 			TYPE_INTEGER [
-				return string/eval-path parent element value path case? get? tail?
+				return string/eval-path parent element value path gparent p-item index case? get? tail?
 			]
 			default [fire [TO_ERROR(script invalid-path) path element]]
 		]
@@ -85,7 +88,6 @@ email: context [
 		]
 		either value <> null [
 			_series/change as red-series! parent value part no null
-			object/check-owner as red-value! parent
 		][
 			value: stack/push*
 			_series/copy as red-series! parent as red-series! value part no	null 

@@ -666,8 +666,8 @@ system/tools: context [
 	set 'trace function [
 		"Runs argument code and prints an evaluation trace; also turns on/off tracing"
 		code [any-type!] "Code to trace or tracing mode (logic!)"
-		/raw   "Switch to raw interpreter events tracing"
-		/deep  "Trace into functions and natives (incompatible with /here)"
+		/raw   "Switch to raw interpreter events tracing (incompatible with other modes)"
+		/deep  "Trace into functions and natives"
 		/all   "Trace all sub-expressions of each expression"
 		/debug "Used internally to debug the tracer itself (outputs all events)"
 	][

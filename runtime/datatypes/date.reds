@@ -35,6 +35,38 @@ date: context [
 		fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_DATE spec]
 	]
 	
+	get-named-index: func [
+		w 		[red-word!]
+		ref		[red-value!]
+		return: [integer!]
+		/local
+			sym idx [integer!]
+	][
+		sym: symbol/resolve w/symbol
+		idx: -1
+		case [
+			sym = words/date   	 [idx: 1]
+			sym = words/year   	 [idx: 2]
+			sym = words/month  	 [idx: 3]
+			sym = words/day	   	 [idx: 4]
+			sym = words/zone   	 [idx: 5]
+			sym = words/time   	 [idx: 6]
+			sym = words/hour   	 [idx: 7]
+			sym = words/minute 	 [idx: 8]
+			sym = words/second 	 [idx: 9]
+			sym = words/weekday	 [idx: 10]
+			sym = words/yearday	 [idx: 11]
+			sym = words/julian 	 [idx: 11]				;-- alternative name for "yearday"
+			sym = words/timezone [idx: 12]
+			sym = words/week 	 [idx: 13]
+			sym = words/isoweek	 [idx: 14]
+			true 			     [
+				if TYPE_OF(ref) = TYPE_TIME [fire [TO_ERROR(script cannot-use) w ref]]
+			]
+		]
+		idx
+	]
+	
 	push-field: func [
 		dt		[red-date!]
 		field	[integer!]
@@ -941,6 +973,9 @@ date: context [
 		element	[red-value!]
 		value	[red-value!]
 		path	[red-value!]
+		gparent [red-value!]
+		p-item	[red-value!]
+		index	[integer!]
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
@@ -948,6 +983,8 @@ date: context [
 		/local
 			word   [red-word!]
 			int	   [red-integer!]
+			obj	   [red-object!]
+			old	   [red-value!]
 			tm	   [red-time!]
 			dt2	   [red-date!]
 			days   [integer!]
@@ -958,6 +995,7 @@ date: context [
 			wd	   [integer!]
 			time?  [logic!]
 			error? [logic!]
+			evt?   [logic!]
 	][
 		error?: no
 
@@ -968,26 +1006,8 @@ date: context [
 				if any [field < 1 field > 14][error?: yes]
 			]
 			TYPE_WORD [
-				word: as red-word! element
-				sym: symbol/resolve word/symbol
-				case [
-					sym = words/date   	 [field: 1]
-					sym = words/year   	 [field: 2]
-					sym = words/month  	 [field: 3]
-					sym = words/day	   	 [field: 4]
-					sym = words/zone   	 [field: 5]
-					sym = words/time   	 [field: 6]
-					sym = words/hour   	 [field: 7]
-					sym = words/minute 	 [field: 8]
-					sym = words/second 	 [field: 9]
-					sym = words/weekday	 [field: 10]
-					sym = words/yearday	 [field: 11]
-					sym = words/julian 	 [field: 11]
-					sym = words/timezone [field: 12]
-					sym = words/week 	 [field: 13]
-					sym = words/isoweek	 [field: 14]
-					true 			   [error?: yes]
-				]
+				field: get-named-index as red-word! element path
+				if field = -1 [error?: yes]
 			]
 			default [error?: yes]
 		]
@@ -999,6 +1019,10 @@ date: context [
 				int: as red-integer! value
 				v: int/value
 			]
+			obj: as red-object! gparent
+			evt?: all [obj <> null TYPE_OF(obj) = TYPE_OBJECT obj/on-set <> null TYPE_OF(p-item) = TYPE_WORD]
+			if evt? [old: stack/push as red-value! dt]
+
 			d: dt/date
 			time?: DATE_GET_TIME_FLAG(d)
 			switch field [
@@ -1042,7 +1066,7 @@ date: context [
 						int: as red-integer! element
 						int/value: int/value - 6		;-- normalize accessor for time!
 					]
-					time/eval-path as red-time! dt element value path case? no yes
+					time/eval-path as red-time! dt element value path gparent p-item index case? no yes
 					set-time dt dt/time field = 7
 					dt/date: DATE_SET_TIME_FLAG(dt/date)
 				]
@@ -1067,7 +1091,10 @@ date: context [
 				]
 				default [assert false]
 			]
-			object/check-owner as red-value! dt
+			if evt? [
+				object/fire-on-set as red-object! gparent as red-word! p-item old as red-value! dt
+				stack/pop 1								;-- avoid moving stack top
+			]
 			value
 		][
 			value: push-field dt field
@@ -1131,6 +1158,7 @@ date: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "date/pick"]]
 
+		if TYPE_OF(boxed) = TYPE_WORD [index: get-named-index as red-word! boxed as red-value! dt]
 		if any [index < 1 index > 14][fire [TO_ERROR(script out-of-range) boxed]]
 		push-field dt index
 	]

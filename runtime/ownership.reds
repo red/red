@@ -22,6 +22,7 @@ ownership: context [
 			series [red-series!]
 			tail   [red-value!]
 			ctx	   [red-context!]
+			bits   [red-bitset!]
 			node   [node!]
 			type   [integer!]
 			s	   [series!]
@@ -30,16 +31,20 @@ ownership: context [
 		case [
 			type = TYPE_OBJECT [
 				obj: as red-object! value
+				if cycles/find? obj/ctx [exit]
 				ctx: GET_CTX(obj)
+
 				if ctx/header and flag-owner = 0 [		;-- stop if another owner is met
 					s: as series! ctx/values/value
 					value: s/offset
 					tail:  s/tail
+					cycles/push obj/ctx
 
 					while [value < tail][
 						unbind value
 						value: value + 1
 					]
+					cycles/pop
 				]
 			]
 			ANY_SERIES?(type) [
@@ -66,6 +71,14 @@ ownership: context [
 						]
 					]
 				]
+			]
+			type = TYPE_BITSET [
+				bits: as red-bitset! value
+				node: bits/node
+				s: GET_BUFFER(bits)
+				s/flags: s/flags and not flag-series-owned
+				value: _hashtable/get-value table as-integer node
+				unless null? value [_hashtable/delete-key table as-integer node]
 			]
 			true [0]
 		]
@@ -99,6 +112,7 @@ ownership: context [
 			obj	   [red-object!]
 			ctx	   [red-context!]
 			series [red-series!]
+			bits   [red-bitset!]
 			type   [integer!]
 			s	   [series!]
 			put?   [logic!]
@@ -138,6 +152,17 @@ ownership: context [
 						value: value + 1
 					]
 					cycles/pop
+				]
+			]
+			type = TYPE_BITSET [
+				bits: as red-bitset! container
+				s: GET_BUFFER(bits)
+				if s/flags and flag-series-owned = 0 [
+					s/flags: s/flags or flag-series-owned
+					slot: as red-value! _hashtable/put-key table as-integer bits/node
+					copy-cell container slot
+					copy-cell as red-value! owner slot + 1
+					copy-cell as red-value! word  slot + 2
 				]
 			]
 			type = TYPE_OBJECT [
@@ -209,6 +234,7 @@ ownership: context [
 			slot   [red-value!]
 			owner  [red-object!]
 			series [red-series!]
+			bits   [red-bitset!]
 			word   [red-word!]
 			type   [integer!]
 	][
@@ -224,6 +250,10 @@ ownership: context [
 				series: as red-series! value
 				node: series/node
 			]
+			type = TYPE_BITSET [
+				bits: as red-bitset! value
+				node: bits/node
+			]
 			true [assert false]
 		]
 		slot: _hashtable/get-value table as-integer node
@@ -231,21 +261,9 @@ ownership: context [
 		either null? slot [false][
 			owner:  as red-object! slot + 1
 			word:	as red-word! slot + 2
+			if null? owner/on-set [return false]
 			object/fire-on-deep owner word value action new index part
 			true
-		]
-	]
-	
-	check-slot: func [
-		owner [red-object!]
-		word  [red-word!]
-		value [red-value!]
-		/local
-			ctx [red-context!]
-	][
-		ctx: GET_CTX(owner)
-		if ctx/header and flag-owner <> 0 [				;-- test if object is an owner
-			object/fire-on-deep owner word value words/_set-path null -1 -1
 		]
 	]
 	

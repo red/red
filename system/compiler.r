@@ -186,7 +186,7 @@ system-dialect: make-profilable context [
 			pos: some [word! into [func-pointer | type-spec]]		;-- struct's members
 		]
 		
-		pointer-syntax: ['integer! | 'byte! | 'float32! | 'float64! | 'float!]
+		pointer-syntax: ['integer! | 'byte! | 'float32! | 'float64! | 'float! | 'pointer!]
 		
 		func-pointer: ['function! set value block! (check-specs '- value)]
 		
@@ -403,7 +403,9 @@ system-dialect: make-profilable context [
 				type: any [resolve-aliased/silent type [integer!]]
 				type: switch/default type/1 [
 					any-pointer! ['int-ptr!]
-					pointer! [pick [int-ptr! byte-ptr!] type/2/1 = 'integer!]
+					pointer! [
+						either type/2 [pick [int-ptr! byte-ptr!] type/2/1 = 'integer!]['ptr-ptr!]
+					]
 				][type/1]
 				select emitter/datatype-ID type
 			]
@@ -897,7 +899,7 @@ system-dialect: make-profilable context [
 					]
 					switch/default type/1 [
 						function! [type]
-						integer! byte! float! float32! [compose/deep [pointer! [(type/1)]]]
+						integer! byte! float! float32! pointer! [compose/deep [pointer! [(type/1)]]]
 					][
 						with-alias-resolution off [
 							type: resolve-type name
@@ -2556,7 +2558,16 @@ system-dialect: make-profilable context [
 			<last>
 		]
 		
-		comp-either: has [expr e-true e-false c-true c-false offset t-true t-false ret mark][
+		comp-either: has [expr e-true e-false c-true c-false offset t-true t-false ret mark name fspec][
+			if all [
+				not empty? expr-call-stack
+				word? name: pick tail expr-call-stack -2
+				fspec: select functions name
+				'op = fspec/2
+			][
+				pc: skip pc -2
+				throw-error "cannot nest EITHER inside an infix expression"
+			]
 			pc: next pc
 			expr: fetch-expression/final 'either		;-- compile expression
 			check-conditional 'either expr				;-- verify conditional expression
@@ -2875,7 +2886,7 @@ system-dialect: make-profilable context [
 			<last>
 		]
 		
-		comp-assignment: has [name value n enum ns local?][
+		comp-assignment: has [name value n enum ns local? type][
 			if all [set-word? pc/1 set-word? pc/2][expand-setwords]
 			push-call name: pc/1
 			pc: next pc
@@ -3483,7 +3494,7 @@ system-dialect: make-profilable context [
 		
 		comp-variable-assign: func [
 			set-word [set-word!] expr casted [block! none!] store? [logic!]
-			/local name type new value fun-name
+			/local name type new value fun-name spec val?
 		][
 			name: to word! set-word
 			
@@ -3506,11 +3517,13 @@ system-dialect: make-profilable context [
 			]
 			
 			either type: any [
-				get-variable-spec name					;-- test if known variable (local or global)	
+				spec: get-variable-spec name			;-- test if known variable (local or global)	
 				enum-id? name
 			][
 				type: resolve-aliased type
 				value: get-type expr
+				val?: struct-by-value? value
+
 				if block? expr [parse value [type-spec]] ;-- prefix return type if required	
 				new: resolve-aliased value
 				if all [
@@ -3519,7 +3532,19 @@ system-dialect: make-profilable context [
 				][
 					new: type
 				]
+				if all [
+					paren? expr
+					'array! = first head get-variable-spec name
+				][
+					backtrack set-word
+					throw-error "a literal array pointer cannot be reassigned"
+				]
+				if all [struct-by-value? spec not any [val? 'value = last new]][
+					backtrack set-word
+					throw-error ["a struct value cannot be assigned to a pointer: " value]
+				]
 				if 'value = last new [new: head remove back tail copy new]
+				
 
 				if type <> any [casted new][
 					backtrack set-word

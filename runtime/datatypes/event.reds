@@ -13,6 +13,61 @@ Red/System [
 event: context [
 	verbose: 0
 	
+	get-named-index: func [
+		w 		[red-word!]
+		ref		[red-value!]
+		return: [integer!]
+		/local
+			sym idx [integer!]
+	][
+		sym: symbol/resolve w/symbol
+		idx: -1
+		case [
+			sym = words/type	   [idx: 1]
+			sym = words/face	   [idx: 2]
+			sym = words/window	   [idx: 3]
+			sym = words/offset	   [idx: 4]
+			sym = words/key		   [idx: 5]
+			sym = words/picked	   [idx: 6]
+			sym = words/flags	   [idx: 7]
+			sym = words/away?	   [idx: 8]
+			sym = words/down?	   [idx: 9]
+			sym = words/mid-down?  [idx: 10]
+			sym = words/alt-down?  [idx: 11]
+			sym = words/aux-down?  [idx: 12]
+			sym = words/ctrl?	   [idx: 13]
+			sym = words/shift?	   [idx: 14]
+			sym = words/orientation[idx: 15]
+			true [if TYPE_OF(ref) = TYPE_EVENT [fire [TO_ERROR(script cannot-use) w ref]]]
+		]
+		idx
+	]
+	
+	push-field: func [
+		evt		[red-event!]
+		field	[integer!]
+		return: [red-value!]
+	][
+		switch field [
+			1  [gui/get-event-type evt]
+			2  [gui/get-event-face evt]
+			3  [gui/get-event-window evt]
+			4  [gui/get-event-offset evt]
+			5  [gui/get-event-key evt]
+			6  [gui/get-event-picked evt]
+			7  [gui/get-event-flags evt]
+			8  [gui/get-event-flag evt/flags gui/EVT_FLAG_AWAY]
+			9  [gui/get-event-flag evt/flags gui/EVT_FLAG_DOWN]
+			10 [gui/get-event-flag evt/flags gui/EVT_FLAG_MID_DOWN]
+			11 [gui/get-event-flag evt/flags gui/EVT_FLAG_ALT_DOWN]
+			12 [gui/get-event-flag evt/flags gui/EVT_FLAG_AUX_DOWN]
+			13 [gui/get-event-flag evt/flags gui/EVT_FLAG_CTRL_DOWN]
+			14 [gui/get-event-flag evt/flags gui/EVT_FLAG_SHIFT_DOWN]
+			15 [gui/get-event-orientation evt]
+			default [assert false null]
+		]
+	]
+	
 	push: func [
 		evt [red-event!]
 	][	
@@ -93,43 +148,44 @@ event: context [
 		element	[red-value!]
 		value	[red-value!]
 		path	[red-value!]
+		gparent [red-value!]
+		p-item	[red-value!]
+		index	[integer!]
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
 		return:	[red-value!]
 		/local
-			word [red-word!]
-			sym	 [integer!]
+			word  [red-word!]
+			field [integer!]
+			sym	  [integer!]
 	][
 		word: as red-word! element
-		sym: symbol/resolve word/symbol
 		
 		either value <> null [
+			sym: symbol/resolve word/symbol
 			if sym <> words/type [fire [TO_ERROR(script bad-path-set) path word]]
 			if TYPE_OF(value) <> TYPE_WORD [fire [TO_ERROR(script bad-path-set) path value]]
 			gui/set-event-type evt as red-word! value
 			value
 		][
-			case [
-				sym = words/type	  [gui/get-event-type evt]
-				sym = words/face	  [gui/get-event-face evt]
-				sym = words/window	  [gui/get-event-window evt]
-				sym = words/offset	  [gui/get-event-offset evt]
-				sym = words/key		  [gui/get-event-key evt]
-				sym = words/picked	  [gui/get-event-picked evt]
-				sym = words/flags	  [gui/get-event-flags evt]
-				sym = words/away?	  [gui/get-event-flag evt/flags gui/EVT_FLAG_AWAY]
-				sym = words/down?	  [gui/get-event-flag evt/flags gui/EVT_FLAG_DOWN]
-				sym = words/mid-down? [gui/get-event-flag evt/flags gui/EVT_FLAG_MID_DOWN]
-				sym = words/alt-down? [gui/get-event-flag evt/flags gui/EVT_FLAG_ALT_DOWN]
-				sym = words/aux-down? [gui/get-event-flag evt/flags gui/EVT_FLAG_AUX_DOWN]
-				sym = words/ctrl?	  [gui/get-event-flag evt/flags gui/EVT_FLAG_CTRL_DOWN]
-				sym = words/shift?	  [gui/get-event-flag evt/flags gui/EVT_FLAG_SHIFT_DOWN]
-				sym = words/orientation [gui/get-event-orientation evt]
-				;sym = words/code	  [gui/get-event-code	  evt/msg]
-				true 				  [fire [TO_ERROR(script invalid-path) path element] null]
-			]
+			field: get-named-index word path
+			if field = -1 [fire [TO_ERROR(script invalid-path) path element]]
+			push-field evt field
 		]
+	]
+
+	pick: func [
+		evt		[red-event!]
+		index	[integer!]
+		boxed	[red-value!]
+		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "event/pick"]]
+
+		if TYPE_OF(boxed) = TYPE_WORD [index: get-named-index as red-word! boxed as red-value! evt]
+		if any [index < 1 index > 15][fire [TO_ERROR(script out-of-range) boxed]]
+		push-field evt index
 	]
 	
 	init: does [
@@ -179,7 +235,7 @@ event: context [
 			null			;length?
 			null			;move
 			null			;next
-			null			;pick
+			:pick
 			null			;poke
 			null			;put
 			null			;remove

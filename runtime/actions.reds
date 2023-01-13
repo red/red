@@ -388,17 +388,17 @@ actions: context [
 			value [red-value!]
 	][
 		value: either set? [stack/arguments + 2][null]
-		value: stack/set-last eval-path 
+		stack/set-last eval-path 
 			stack/arguments
 			stack/arguments + 1
 			value
 			null
+			null
+			null
+			-1
 			no
 			no
 			yes
-		
-		if set? [object/path-parent/header: TYPE_NONE]	;-- disables owner checking
-		value
 	]
 	
 	eval-path: func [
@@ -406,6 +406,9 @@ actions: context [
 		element	[red-value!]
 		value	[red-value!]
 		path	[red-path!]
+		gparent [red-value!]
+		p-item	[red-value!]
+		index	[integer!]
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
@@ -420,13 +423,16 @@ actions: context [
 			element	[red-value!]
 			value	[red-value!]
 			path	[red-value!]
+			gparent [red-value!]
+			p-item	[red-value!]
+			index	[integer!]
 			case?	[logic!]
 			get?	[logic!]
 			tail?	[logic!]
 			return:	[red-value!]
 		] get-action-ptr-path parent ACT_EVALPATH as red-value! path element
 		
-		action-path parent element value as red-value! path case? get? tail?
+		action-path parent element value as red-value! path gparent p-item index case? get? tail?
 	]
 	
 	set-path*: func [][]
@@ -501,8 +507,6 @@ actions: context [
 			TYPE_FUNCTION
 			TYPE_OP
 			TYPE_ROUTINE [res: SIGN_COMPARE_RESULT(value1/data3 value2/data3)]
-			TYPE_NONE
-			TYPE_UNSET	 [res: 0]
 			default		 [res: action-compare value1 value2 op]
 		]
 		res
