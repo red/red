@@ -490,6 +490,7 @@ face!: object [				;-- keep in sync with facet! enum
 			
 			all [
 				word = 'selected
+				selected
 				block? data
 				find [drop-list drop-down text-list field area] type
 				set-quiet 'text pick data selected
