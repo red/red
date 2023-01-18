@@ -903,7 +903,7 @@ size?: make native! [[
 ]
 
 browse: make native! [[
-		"Open web browser to a URL or file mananger to a local file"
+		"Opens the URL in a web browser or the file in the associated application"
 		url		[url! file!]
 	]
 	#get-definition NAT_BROWSE
