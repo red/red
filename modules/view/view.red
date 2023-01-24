@@ -857,6 +857,7 @@ show: function [
 
 	if face/pane [
 		foreach f face/pane [
+			unless face? :f [cause-error 'script 'face-type [:f]]
 			show/with f face
 			unless face/state [return false]			;-- unviewed in child event handler
 		]
