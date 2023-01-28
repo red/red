@@ -108,9 +108,8 @@ object [
 		either paste/resume [
 			do-ask-loop/no-wait
 		][
-			system/view/platform/redraw gui-console-ctx/console
+			paint/dry	;-- dry run
 			system/view/auto-sync?: yes
-			loop 10 [do-ask-loop/no-wait]
 			reset-top
 			system/view/platform/redraw gui-console-ctx/console
 			do-events
@@ -717,6 +716,7 @@ object [
 				insert history line
 				unless resume [system/view/platform/exit-event-loop]
 			]
+			paint/dry
 			calc-top
 			if empty? clipboard [
 				clear selects
@@ -969,6 +969,7 @@ object [
 		]
 
 		if caret/rate [caret/rate: none caret/color: caret-clr]
+		paint/dry
 		calc-top
 		system/view/platform/redraw console
 	]
@@ -1012,7 +1013,7 @@ object [
 		if swap? [move/part skip selects 2 selects 2]
 	]
 
-	paint: func [/local txt str cmds y n h cnt delta num end styles][
+	paint: func [/dry /local txt str cmds y n h cnt delta num end styles][
 		if empty? lines [exit]
 
 		cmds: [pen color text 0x0 text-box]
@@ -1033,7 +1034,7 @@ object [
 			if color? [highlight/add-styles txt clear styles theme]
 			mark-selects styles n
 			cmds/4/y: y
-			system/view/platform/draw-face console cmds
+			unless dry [system/view/platform/draw-face console cmds]
 
 			cnt: rich-text/line-count? box
 			h: cnt * line-h
