@@ -1814,60 +1814,68 @@ parse-common-opts: func [
 		len: block/rs-length? options
 		if len % 2 <> 0 [exit]
 		while [len > 0][
-			sym: symbol/resolve word/symbol
-			case [
-				sym = _cursor [
-					w: word + 1
-					either TYPE_OF(w) = TYPE_IMAGE [
-						img: as red-image! w
-						nsimg: objc_msgSend [
-							OBJC_ALLOC("NSImage")
-							sel_getUid "initWithCGImage:size:" OS-image/to-cgimage img 0 0
+			if TYPE_OF(word) = TYPE_SET_WORD [
+				sym: symbol/resolve word/symbol
+				case [
+					sym = _cursor [
+						w: word + 1
+						either TYPE_OF(w) = TYPE_IMAGE [
+							img: as red-image! w
+							nsimg: objc_msgSend [
+								OBJC_ALLOC("NSImage")
+								sel_getUid "initWithCGImage:size:" OS-image/to-cgimage img 0 0
+							]
+							pt/x: as float32! IMAGE_WIDTH(img/size) / 2
+							pt/y: as float32! IMAGE_HEIGHT(img/size) / 2
+							hcur: objc_msgSend [
+								OBJC_ALLOC("NSCursor")
+								sel_getUid "initWithImage:hotSpot:" nsimg pt/x pt/y
+							]
+							objc_msgSend [nsimg sel_release]
+						][
+							if TYPE_OF(w) = TYPE_WORD [
+								sym: symbol/resolve w/symbol
+								cur: case [
+									sym = _I-beam	 ["IBeamCursor"]
+									sym = _hand		 ["pointingHandCursor"]
+									sym = _cross	 ["crosshairCursor"]
+									sym = _resize-ns ["resizeUpDownCursor"]
+									any [
+										sym = _resize-ew
+										sym = _resize-we
+									]				 ["resizeLeftRightCursor"]
+									true			 ["arrowCursor"]
+								]
+								hcur: objc_msgSend [objc_getClass "NSCursor" sel_getUid cur]
+							]
 						]
-						pt/x: as float32! IMAGE_WIDTH(img/size) / 2
-						pt/y: as float32! IMAGE_HEIGHT(img/size) / 2
-						hcur: objc_msgSend [
-							OBJC_ALLOC("NSCursor")
-							sel_getUid "initWithImage:hotSpot:" nsimg pt/x pt/y
+						if hcur <> 0 [objc_setAssociatedObject hWnd RedCursorKey hcur OBJC_ASSOCIATION_ASSIGN]
+					]
+					sym = _class [
+						w: word + 1
+						if TYPE_OF(w) = TYPE_WORD [
+							sym: symbol/resolve w/symbol
+							sym: case [
+								sym = _regular	[0]			;-- 32
+								sym = _small	[1]			;-- 28
+								sym = _mini		[2]			;-- 16
+								true			[0]
+							]
+							objc_msgSend [
+								objc_msgSend [hWnd sel_getUid "cell"]
+								sel_getUid "setControlSize:" sym
+							]
+							btn?: no
 						]
-						objc_msgSend [nsimg sel_release]
-					][
-						sym: symbol/resolve w/symbol
-						cur: case [
-							sym = _I-beam	 ["IBeamCursor"]
-							sym = _hand		 ["pointingHandCursor"]
-							sym = _cross	 ["crosshairCursor"]
-							sym = _resize-ns ["resizeUpDownCursor"]
-							any [
-								sym = _resize-ew
-								sym = _resize-we
-							]				 ["resizeLeftRightCursor"]
-							true			 ["arrowCursor"]
+					]
+					sym = _accelerated [
+						bool: as red-logic! word + 1
+						if all [TYPE_OF(bool) = TYPE_LOGIC bool/value][
+							objc_msgSend [hWnd sel_getUid "setWantsLayer:" yes]
 						]
-						hcur: objc_msgSend [objc_getClass "NSCursor" sel_getUid cur]
 					]
-					if hcur <> 0 [objc_setAssociatedObject hWnd RedCursorKey hcur OBJC_ASSOCIATION_ASSIGN]
+					true [0]
 				]
-				sym = _class [
-					w: word + 1
-					sym: symbol/resolve w/symbol
-					sym: case [
-						sym = _regular	[0]			;-- 32
-						sym = _small	[1]			;-- 28
-						sym = _mini		[2]			;-- 16
-						true			[0]
-					]
-					objc_msgSend [
-						objc_msgSend [hWnd sel_getUid "cell"]
-						sel_getUid "setControlSize:" sym
-					]
-					btn?: no
-				]
-				sym = _accelerated [
-					bool: as red-logic! word + 1
-					if bool/value [objc_msgSend [hWnd sel_getUid "setWantsLayer:" yes]]
-				]
-				true [0]
 			]
 			word: word + 2
 			len: len - 2

@@ -1320,34 +1320,40 @@ parse-common-opts: func [
 		word: as red-word! block/rs-head options
 		len: block/rs-length? options
 		if len % 2 <> 0 [exit]
+		
 		while [len > 0][
-			sym: symbol/resolve word/symbol
-			case [
-				sym = _cursor [
-					w: word + 1
-					either TYPE_OF(w) = TYPE_IMAGE [
-						img: as red-image! w
-						bitmap: OS-image/to-gpbitmap img :lock
-						GdipCreateHICONFromBitmap bitmap :sym
-						OS-image/release-gpbitmap bitmap :lock
-					][
-						sym: symbol/resolve w/symbol
-						sym: case [
-							sym = _I-beam		[IDC_IBEAM]
-							sym = _hand			[32649]			;-- IDC_HAND
-							sym = _cross		[32515]
-							sym = _resize-ns	[32645]
-							any [
-								sym = _resize-ew
-								sym = _resize-we
-							]					[32644]
-							true				[IDC_ARROW]
+			if TYPE_OF(word) = TYPE_SET_WORD [
+				sym: symbol/resolve word/symbol
+				case [
+					sym = _cursor [
+						w: word + 1
+						either TYPE_OF(w) = TYPE_IMAGE [
+							img: as red-image! w
+							bitmap: OS-image/to-gpbitmap img :lock
+							GdipCreateHICONFromBitmap bitmap :sym
+							OS-image/release-gpbitmap bitmap :lock
+							SetWindowLong hWnd wc-offset - 28 sym
+						][
+							if TYPE_OF(w) = TYPE_WORD [
+								sym: symbol/resolve w/symbol
+								sym: case [
+									sym = _I-beam		[IDC_IBEAM]
+									sym = _hand			[32649]			;-- IDC_HAND
+									sym = _cross		[32515]
+									sym = _resize-ns	[32645]
+									any [
+										sym = _resize-ew
+										sym = _resize-we
+									]					[32644]
+									true				[IDC_ARROW]
+								]
+								sym: as-integer LoadCursor null sym
+								SetWindowLong hWnd wc-offset - 28 sym
+							]
 						]
-						sym: as-integer LoadCursor null sym
 					]
-					SetWindowLong hWnd wc-offset - 28 sym
+					true [0]
 				]
-				true [0]
 			]
 			word: word + 2
 			len: len - 2
