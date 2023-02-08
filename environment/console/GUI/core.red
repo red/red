@@ -295,6 +295,7 @@ object [
 
 	calc-top: func [/new /local delta n][
 		n: calc-last-line new
+		paint/dry
 		if n < 0 [
 			delta: scroller/position + n
 			scroller/position: either delta < 1 [1][delta]
@@ -716,7 +717,6 @@ object [
 				insert history line
 				unless resume [system/view/platform/exit-event-loop]
 			]
-			paint/dry
 			calc-top
 			if empty? clipboard [
 				clear selects
@@ -969,7 +969,6 @@ object [
 		]
 
 		if caret/rate [caret/rate: none caret/color: caret-clr]
-		paint/dry
 		calc-top
 		system/view/platform/redraw console
 	]
