@@ -1463,7 +1463,19 @@ parser: context [
 									state: either any [type = R_TO type = R_THRU][
 										match?: find-token? rules input value comp-op part saved?
 										PARSE_TRACE(_match)
-										ST_POP_RULE
+										s: GET_BUFFER(rules)
+										either match? [
+											if type = R_TO [
+												p: as positions! s/tail - 2
+												input/head: p/input	;-- move input before the last match
+											]
+										][
+											if positive? part [match?: input/head > part or match?]
+										]
+										PARSE_TRACE(_pop)
+										s/tail: s/tail - 3	;-- pop rule stack frame
+										assert s/offset <= s/tail
+										ST_CHECK_PENDING
 									][
 										ST_DO_ACTION	;-- set/get-words are sinking here
 									]
