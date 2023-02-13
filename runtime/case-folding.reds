@@ -18,16 +18,6 @@ case-folding: context [
 	upper-to-lower: declare red-vector!
 	lower-to-upper: declare red-vector!
 
-	compare-integer: func [								;-- Compare function return integer!
-		p1		 [int-ptr!]
-		p2		 [int-ptr!]
-		op		 [integer!]
-		flags	 [integer!]
-		return:  [integer!]
-	][
-		p1/value - p2/value
-	]
-
 	init: func [
 		/local
 			size  [integer!]
