@@ -545,15 +545,12 @@ parser: context [
 			ANY_STRING?(type)
 			type = TYPE_BINARY
 		][
-			either TYPE_OF(token)= TYPE_BITSET [
+			either type2 = TYPE_BITSET [
 				match?: loop-bitset input as red-bitset! token min max counter part
 				cnt: counter/value
 			][
-				len: either any [type2 = TYPE_CHAR type2 = TYPE_BITSET][1][
-					unless any [
-						ANY_STRING?(type2)
-						type2 = TYPE_BINARY
-					][return no]
+				len: either type2 = TYPE_CHAR [1][
+					unless any [ANY_STRING?(type2) type2 = TYPE_BINARY][return no]
 					string/rs-length? as red-string! token
 				]
 				if zero? len [return yes]
