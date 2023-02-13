@@ -478,7 +478,6 @@ parser: context [
 		]
 		
 		p:	   phead
-
 		s:	   GET_BUFFER(bits)
 		pbits: as byte-ptr! s/offset
 		not?:  FLAG_NOT?(s)
@@ -507,6 +506,93 @@ parser: context [
 				not match?
 				p = ptail
 				all [max? cnt >= max]
+			]
+		]
+		input/head: input/head + ((as-integer p - phead) >> (log-b unit))
+		counter/value: cnt
+		
+		either not max? [min <= cnt][all [min <= cnt cnt <= max]]
+	]
+
+	loop-char: func [									;-- optimized bitset matching loop
+		input	[red-series!]
+		char	[red-char!]
+		comp-op	[integer!]
+		min		[integer!]
+		max		[integer!]
+		counter [int-ptr!]
+		part	[integer!]
+		return: [logic!]
+		/local
+			s	   [series!]
+			unit   [integer!]
+			c c0   [integer!]
+			p	   [byte-ptr!]
+			phead  [byte-ptr!]
+			ptail  [byte-ptr!]
+			p4	   [int-ptr!]
+			cp	   [integer!]
+			cnt	   [integer!]
+			size   [integer!]
+			max?   [logic!]
+			match? [logic!]
+	][
+		s:	   GET_BUFFER(input)
+		unit:  GET_UNIT(s)
+		phead: (as byte-ptr! s/offset) + (input/head << (log-b unit))
+		ptail: as byte-ptr! s/tail
+		
+		if positive? part [
+			p: (as byte-ptr! s/offset) + (part << (log-b unit))
+			if p < ptail [ptail: p]
+		]
+		
+		p:		phead
+		c:		char/value
+		cnt:	0
+		match?:	yes
+		max?:	max <> R_NONE
+		
+		either comp-op = COMP_STRICT_EQUAL [
+			switch unit [
+				Latin1 [
+					until [
+						cp: as-integer p/value
+						if cp = c [p: p + 1 cnt: cnt + 1]
+						any [cp <> c p = ptail all [max? cnt >= max]]
+					]
+				]
+				UCS-2  [
+					until [
+						cp: (as-integer p/2) << 8 + p/1
+						if cp = c [p: p + 2 cnt: cnt + 1]
+						any [cp <> c p = ptail all [max? cnt >= max]]
+					]
+				]
+				UCS-4  [
+					p4: as int-ptr! p
+					until [
+						cp: p4/value
+						if cp = c [p4: p4 + 1 cnt: cnt + 1]
+						any [cp <> c p4 = as int-ptr! ptail all [max? cnt >= max]]
+					]
+				]
+			]
+		][
+			until [
+				cp: switch unit [
+					Latin1 [as-integer p/value]
+					UCS-2  [(as-integer p/2) << 8 + p/1]
+					UCS-4  [p4: as int-ptr! p p4/value]
+				]
+				c0: c
+				if all [65 <= cp cp <= 90][cp: cp + 32]	;-- lowercase c1
+				if all [65 <= c0 c0 <= 90][c0: c0 + 32] ;-- lowercase c2
+				cp: case-folding/change-char cp yes		;-- uppercase c1
+				c0: case-folding/change-char c0 yes		;-- uppercase c2
+				
+				if cp = c0 [p: p + unit cnt: cnt + 1]
+				any [cp <> c0 p = ptail	all [max? cnt >= max]]
 			]
 		]
 		input/head: input/head + ((as-integer p - phead) >> (log-b unit))
@@ -545,32 +631,37 @@ parser: context [
 			ANY_STRING?(type)
 			type = TYPE_BINARY
 		][
-			either type2 = TYPE_BITSET [
-				match?: loop-bitset input as red-bitset! token min max counter part
-				cnt: counter/value
-			][
-				len: either type2 = TYPE_CHAR [1][
-					unless any [ANY_STRING?(type2) type2 = TYPE_BINARY][return no]
-					string/rs-length? as red-string! token
+			switch type2 [
+				TYPE_BITSET [
+					match?: loop-bitset input as red-bitset! token min max counter part
+					cnt: counter/value
 				]
-				if zero? len [return yes]
-				if type2 = TYPE_TAG [len: len + 2]
-				
-				until [									;-- ANY-STRING input matching
-					match?: either type = TYPE_BINARY [
-						binary/match? as red-binary! input token comp-op
-					][
-						string/match? as red-string! input token comp-op
-					]
-					end?: any [
-						all [match? _series/rs-skip input len]	;-- consume matched input
-						all [positive? part input/head >= part]
-					]
-					cnt: cnt + 1
-					any [
-						not match?
-						end?
-						all [max <> R_NONE cnt >= max]
+				TYPE_CHAR [
+					match?: loop-char input as red-char! token comp-op min max counter part
+					cnt: counter/value
+				]
+				default [
+					unless any [ANY_STRING?(type2) type2 = TYPE_BINARY][return no]
+					len: string/rs-length? as red-string! token
+					if zero? len [return yes]
+					if type2 = TYPE_TAG [len: len + 2]
+
+					until [									;-- ANY-STRING input matching
+						match?: either type = TYPE_BINARY [
+							binary/match? as red-binary! input token comp-op
+						][
+							string/match? as red-string! input token comp-op
+						]
+						end?: any [
+							all [match? _series/rs-skip input len]	;-- consume matched input
+							all [positive? part input/head >= part]
+						]
+						cnt: cnt + 1
+						any [
+							not match?
+							end?
+							all [max <> R_NONE cnt >= max]
+						]
 					]
 				]
 			]
