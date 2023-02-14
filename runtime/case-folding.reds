@@ -17,15 +17,20 @@ case-folding: context [
 
 	upper-to-lower: declare red-vector!
 	lower-to-upper: declare red-vector!
+	
+	upper-table: declare int-ptr!
+	lower-table: declare int-ptr!
+	
+	tbl-size: 64 * 1024 * size? integer!
 
 	init: func [
 		/local
 			size  [integer!]
 			sz	  [integer!]
 			s	  [series!]
-			a	  [integer!]
-			b	  [integer!]
+			a b i [integer!]
 			table [int-ptr!]
+			p	  [int-ptr!]
 	][
 		size: size? to-lowercase-table
 		sz: size * (size? integer!)
@@ -56,6 +61,55 @@ case-folding: context [
 			as byte-ptr! to-uppercase-table
 			sz
 		s/tail: as cell! ((as byte-ptr! s/offset) + sz)
+		
+		;-- setup fast-lookup tables for 16-bit codepoints
+		upper-table: as int-ptr! allocate tbl-size
+		set-memory as byte-ptr! upper-table null-byte tbl-size
+		p: to-uppercase-table
+		until [
+			i: p/1
+			upper-table/i: p/2
+			p: p + 2 
+			p/1 > FFFFh
+		]
+		
+		lower-table: as int-ptr! allocate tbl-size
+		set-memory as byte-ptr! lower-table null-byte tbl-size
+		p: to-lowercase-table
+		until [
+			i: p/1
+			lower-table/i: p/2
+			p: p + 2 
+			p/1 > FFFFh
+		]
+	]
+
+	uppercase: func [
+		cp		[integer!]
+		return: [integer!]
+		/local
+			c sz last end [integer!]
+			table [int-ptr!]
+	][
+		either cp <= FFFFh [
+			c: upper-table/cp
+			either zero? c [cp][c]
+		][
+			sz: size? to-uppercase-table
+			table: to-uppercase-table
+			last: sz * (size? integer!)
+			end: last - 1
+			unless any [cp < table/1 cp > table/last][
+				c: -1
+				until [
+					c: c + 2
+					if table/c > cp [return cp]
+					if table/c = cp [c: c + 1 return table/c]
+					c = end
+				]
+			]
+			cp
+		]
 	]
 
 	change-char: func [

@@ -526,11 +526,12 @@ parser: context [
 		/local
 			s	   [series!]
 			unit   [integer!]
-			c c0   [integer!]
+			c c0 u [integer!]
 			p	   [byte-ptr!]
 			phead  [byte-ptr!]
 			ptail  [byte-ptr!]
 			p4	   [int-ptr!]
+			table  [int-ptr!]
 			cp	   [integer!]
 			cnt	   [integer!]
 			size   [integer!]
@@ -558,41 +559,85 @@ parser: context [
 				Latin1 [
 					until [
 						cp: as-integer p/value
-						if cp = c [p: p + 1 cnt: cnt + 1]
-						any [cp <> c p = ptail all [max? cnt >= max]]
+						if cp <> c [break]
+						cnt: cnt + 1
+						p: p + 1
+						if max? [if cnt >= max [break]]
+						p = ptail
 					]
 				]
 				UCS-2  [
 					until [
 						cp: (as-integer p/2) << 8 + p/1
-						if cp = c [p: p + 2 cnt: cnt + 1]
-						any [cp <> c p = ptail all [max? cnt >= max]]
+						if cp <> c [break]
+						cnt: cnt + 1
+						p: p + 2
+						if max? [if cnt >= max [break]]
+						p = ptail
 					]
 				]
 				UCS-4  [
 					p4: as int-ptr! p
 					until [
 						cp: p4/value
-						if cp = c [p4: p4 + 1 cnt: cnt + 1]
-						any [cp <> c p4 = as int-ptr! ptail all [max? cnt >= max]]
+						if cp <> c [break]
+						cnt: cnt + 1
+						p4: p4 + 1
+						if max? [if cnt >= max [break]]
+						p4 = as int-ptr! ptail
 					]
 				]
 			]
 		][
-			until [
-				cp: switch unit [
-					Latin1 [as-integer p/value]
-					UCS-2  [(as-integer p/2) << 8 + p/1]
-					UCS-4  [p4: as int-ptr! p p4/value]
+			table: case-folding/upper-table
+			either c <= FFFFh [							;-- uppercase C before entering the search loop
+				u: table/c
+				if u <> 0 [c: u]
+			][
+				c: case-folding/uppercase c
+			]			
+			switch unit [
+				Latin1 [
+					until [
+						cp: as-integer p/value
+						u: table/cp
+						if u <> 0 [cp: u]
+						if cp <> c [break]
+						cnt: cnt + 1
+						p: p + 1
+						if max? [if cnt >= max [break]]
+						p = ptail
+					]
 				]
-				c0: c
-				if all [65 <= cp cp <= 90][cp: cp + 32]	;-- lowercase c1
-				if all [65 <= c0 c0 <= 90][c0: c0 + 32] ;-- lowercase c2
-				cp: case-folding/change-char cp yes		;-- uppercase c1
-				c0: case-folding/change-char c0 yes		;-- uppercase c2
-				
-				if cp = c0 [p: p + unit cnt: cnt + 1]
-				any [cp <> c0 p = ptail	all [max? cnt >= max]]
+				UCS-2  [
+					until [
+						cp: (as-integer p/2) << 8 + p/1
+						u: table/cp
+						if u <> 0 [cp: u]
+						if cp <> c [break]
+						cnt: cnt + 1
+						p: p + 2
+						if max? [if cnt >= max [break]]
+						p = ptail
+					]
+				]
+				UCS-4  [
+					p4: as int-ptr! p
+					until [
+						cp: p4/value
+						either cp <= FFFFh [
+							u: table/cp
+							if u <> 0 [cp: u]
+						][
+							cp: case-folding/uppercase cp
+						]
+						if cp <> c [break]
+						cnt: cnt + 1
+						p4: p4 + 1
+						if max? [if cnt >= max [break]]
+						p4 = as int-ptr! ptail
+					]
+				]
 			]
 		]
 		input/head: input/head + ((as-integer p - phead) >> (log-b unit))
