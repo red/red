@@ -25,6 +25,16 @@ _series: context [
 		offset: ser/head << (log-b GET_UNIT(s))
 		(as byte-ptr! s/offset) + offset >= as byte-ptr! s/tail
 	]
+	
+	rs-tail: func [
+		ser		[red-series!]
+		return:	[integer!]
+		/local
+			s	[series!]
+	][
+		s: GET_BUFFER(ser)
+		(as-integer s/tail - s/offset) >> (log-b GET_UNIT(s))
+	]
 
 	rs-skip: func [
 		ser 	[red-series!]

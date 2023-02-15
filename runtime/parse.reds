@@ -1690,15 +1690,24 @@ parser: context [
 							type:  R_COPY
 							state: ST_PUSH_RULE
 						]
-						sym = words/thru [				;-- THRU
-							min:   R_NONE
-							type:  R_THRU
-							state: ST_PUSH_RULE
-						]
-						sym = words/to [				;-- TO
-							min:   R_NONE
-							type:  R_TO
-							state: ST_PUSH_RULE
+						any [sym = words/to sym = words/thru][ ;-- TO/THRU
+							w: as red-word! cmd + 1 
+							either all [
+								(as red-value! w) < tail
+								TYPE_OF(w) = TYPE_WORD 
+								words/end = symbol/resolve w/symbol
+							][
+								match?: yes				;-- `to/thru end` fast path
+								PARSE_TRACE(_match)
+								cmd: cmd + 1
+								input/head: _series/rs-tail input
+								end?: yes
+								state: ST_CHECK_PENDING
+							][
+								min:   R_NONE
+								type:  either sym = words/to [R_TO][R_THRU]
+								state: ST_PUSH_RULE
+							]
 						]
 						sym = words/remove [			;-- REMOVE
 							done?: no
