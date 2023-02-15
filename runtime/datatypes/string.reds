@@ -1040,8 +1040,6 @@ string: context [
 					unit
 
 				if op <> COMP_STRICT_EQUAL [
-					if all [65 <= c1 c1 <= 90][c1: c1 + 32]	;-- lowercase c1
-					if all [65 <= c2 c2 <= 90][c2: c2 + 32] ;-- lowercase c2
 					c1: case-folding/change-char c1 yes	;-- uppercase c1
 					c2: case-folding/change-char c2 yes	;-- uppercase c2
 				]
