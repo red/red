@@ -177,6 +177,56 @@ parser: context [
 		]
 	]
 	
+	transfer: func [
+		src		[red-series!]
+		h2		[integer!]
+		out		[red-series!]
+		append? [logic!]
+		return: [logic!]								;-- FALSE if fast-path is not taken
+		/local
+			s1	  [series!]
+			s2	  [series!]
+			unit  [integer!]
+			size  [integer!]
+			size1 [integer!]
+			len1  [integer!]
+			tail  [byte-ptr!]
+			p	  [byte-ptr!]
+			h1	  [integer!]
+			part  [integer!]
+	][
+		s1: GET_BUFFER(out)								;-- destination
+		s2: GET_BUFFER(src)								;-- source
+		unit: GET_UNIT(s1)
+		if any [unit > 4 unit <> GET_UNIT(s2)][return false] ;-- block! values require an /only mode
+		h1: out/head << (log-b unit)
+		part: src/head << (log-b unit)
+		size: src/head - h2 * unit
+		assert size > 0
+
+		len1: (as-integer s1/tail - s1/offset) << 4
+		size1: len1 + size
+
+		if (as byte-ptr! s1/size) < (as byte-ptr! size1) [ ;-- force an unsigned comparison
+			s1: expand-series s1 size1 * 2
+		]
+		append?: any [append? len1 = 0]
+		unless append? [
+			move-memory									;-- make space
+				(as byte-ptr! s1/offset) + h1 + size
+				(as byte-ptr! s1/offset) + h1
+				len1 - h1
+		]
+		tail: as byte-ptr! s1/tail
+		p: either append? [tail][(as byte-ptr! s1/offset) + h1]
+		
+		copy-memory p (as byte-ptr! s2/offset) + (h2 * unit) size
+		p: p + size
+		unless append? [p: tail + size]
+		s1/tail: as cell! p
+		true
+	]
+	
 	compare-values: func [
 		value2	[red-value!]
 		value	[red-value!]
@@ -1216,7 +1266,9 @@ parser: context [
 												value: _context/get as red-word! s/tail
 											]
 											offset + 1 < input/head [	;-- KEEP with matched size > 1
-												PARSE_COPY_INPUT(value)
+												either transfer input offset as red-series! blk append? [value: null][											
+													PARSE_COPY_INPUT(value)
+												]
 											]
 											offset < input/head [
 												PARSE_PICK_INPUT		;-- KEEP with matched size = 1
