@@ -14,7 +14,7 @@ Red/System [
 
 ;-- Unicode version: 11.0.0
 
-to-uppercase-table: [
+uppercase-table-low: [
 	0061h 0041h
 	0062h 0042h
 	0063h 0043h
@@ -1265,6 +1265,9 @@ to-uppercase-table: [
 	FF58h FF38h
 	FF59h FF39h
 	FF5Ah FF3Ah
+]
+
+uppercase-table-high: [
 	00010428h 00010400h
 	00010429h 00010401h
 	0001042Ah 00010402h
@@ -1491,7 +1494,8 @@ to-uppercase-table: [
 	0001E942h 0001E920h
 	0001E943h 0001E921h
 ]
-to-lowercase-table: [
+
+lowercase-table-low: [
 	0041h 0061h
 	0042h 0062h
 	0043h 0063h
@@ -2650,6 +2654,9 @@ to-lowercase-table: [
 	FF38h FF58h
 	FF39h FF59h
 	FF3Ah FF5Ah
+]
+
+lowercase-table-high: [
 	00010400h 00010428h
 	00010401h 00010429h
 	00010402h 0001042Ah

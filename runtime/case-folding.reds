@@ -22,32 +22,29 @@ case-folding: context [
 
 	init: func [
 		/local
-			size  [integer!]
-			sz	  [integer!]
-			s	  [series!]
-			a b i [integer!]
-			table [int-ptr!]
-			p	  [int-ptr!]
+			sz [integer!]
+			i  [integer!]
+			p  [int-ptr!]
 	][
 		;-- setup fast-lookup tables for 16-bit codepoints
 		upper-table: as int-ptr! allocate tbl-size
 		set-memory as byte-ptr! upper-table null-byte tbl-size
-		p: to-uppercase-table
-		until [
+		p: uppercase-table-low
+		sz: (size? uppercase-table-low) / 2
+		loop sz [
 			i: p/1
 			upper-table/i: p/2
 			p: p + 2 
-			p/1 > FFFFh
 		]
 		
 		lower-table: as int-ptr! allocate tbl-size
 		set-memory as byte-ptr! lower-table null-byte tbl-size
-		p: to-lowercase-table
-		until [
+		p: lowercase-table-low
+		sz: (size? lowercase-table-low) / 2
+		loop sz [
 			i: p/1
 			lower-table/i: p/2
 			p: p + 2 
-			p/1 > FFFFh
 		]
 	]
 
@@ -65,11 +62,11 @@ case-folding: context [
 			either zero? c [cp][c]
 		][
 			table: either upper? [
-				sz: size? to-uppercase-table
-				to-uppercase-table
+				sz: size? uppercase-table-high
+				uppercase-table-high
 			][
-				sz: size? to-lowercase-table
-				to-lowercase-table
+				sz: size? lowercase-table-high
+				lowercase-table-high
 			]
 			end: sz - 1
 			unless any [cp < table/1 cp > table/sz][
