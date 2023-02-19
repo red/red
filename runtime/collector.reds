@@ -323,8 +323,6 @@ collector: context [
 		mark-values stack/bottom stack/top
 		
 		#if debug? = yes [if verbose > 1 [probe "marking globals"]]
-		keep case-folding/upper-to-lower/node
-		keep case-folding/lower-to-upper/node
 		if interpreter/near/node <> null [keep interpreter/near/node]
 		lexer/mark-buffers
 		

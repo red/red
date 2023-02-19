@@ -644,7 +644,7 @@ parser: context [
 				u: table/c
 				if u <> 0 [c: u]
 			][
-				c: case-folding/uppercase c
+				c: case-folding/change-char c yes
 			]			
 			switch unit [
 				Latin1 [
@@ -679,7 +679,7 @@ parser: context [
 							u: table/cp
 							if u <> 0 [cp: u]
 						][
-							cp: case-folding/uppercase cp
+							cp: case-folding/change-char cp yes
 						]
 						if cp <> c [break]
 						cnt: cnt + 1

@@ -14,9 +14,6 @@ Red/System [
 #include %case-folding-table.reds
 
 case-folding: context [
-
-	upper-to-lower: declare red-vector!
-	lower-to-upper: declare red-vector!
 	
 	upper-table: declare int-ptr!
 	lower-table: declare int-ptr!
@@ -32,36 +29,6 @@ case-folding: context [
 			table [int-ptr!]
 			p	  [int-ptr!]
 	][
-		size: size? to-lowercase-table
-		sz: size * (size? integer!)
-		;-- make upper-to-lower vector!
-		vector/make-at
-			as red-value! upper-to-lower
-			size
-			TYPE_CHAR
-			size? integer!
-		s: GET_BUFFER(upper-to-lower)
-		copy-memory
-			as byte-ptr! s/offset
-			as byte-ptr! to-lowercase-table
-			sz
-		s/tail: as cell! ((as byte-ptr! s/offset) + sz)
-
-		size: size? to-uppercase-table
-		sz: size * (size? integer!)
-		;-- make lower-to-upper vector!
-		vector/make-at
-			as red-value! lower-to-upper
-			size
-			TYPE_CHAR
-			size? integer!
-		s: GET_BUFFER(lower-to-upper)
-		copy-memory
-			as byte-ptr! s/offset
-			as byte-ptr! to-uppercase-table
-			sz
-		s/tail: as cell! ((as byte-ptr! s/offset) + sz)
-		
 		;-- setup fast-lookup tables for 16-bit codepoints
 		upper-table: as int-ptr! allocate tbl-size
 		set-memory as byte-ptr! upper-table null-byte tbl-size
@@ -84,22 +51,28 @@ case-folding: context [
 		]
 	]
 
-	uppercase: func [
+	change-char: func [
 		cp		[integer!]
+		upper?	[logic!]
 		return: [integer!]
 		/local
-			c sz last end [integer!]
+			c sz end [integer!]
 			table [int-ptr!]
 	][
 		either cp <= FFFFh [
-			c: upper-table/cp
+			table: either upper? [upper-table][lower-table]
+			c: table/cp
 			either zero? c [cp][c]
 		][
-			sz: size? to-uppercase-table
-			table: to-uppercase-table
-			last: sz * (size? integer!)
-			end: last - 1
-			unless any [cp < table/1 cp > table/last][
+			table: either upper? [
+				sz: size? to-uppercase-table
+				to-uppercase-table
+			][
+				sz: size? to-lowercase-table
+				to-lowercase-table
+			]
+			end: sz - 1
+			unless any [cp < table/1 cp > table/sz][
 				c: -1
 				until [
 					c: c + 2
@@ -110,39 +83,6 @@ case-folding: context [
 			]
 			cp
 		]
-	]
-
-	change-char: func [
-		cp		[integer!]
-		upper?	[logic!]
-		return: [integer!]
-		/local
-			c	  [integer!]
-			last  [integer!]
-			end   [integer!]
-			table [int-ptr!]
-			vec   [red-vector!]
-			s	  [series!]
-	][
-		vec: either upper? [lower-to-upper][upper-to-lower]
-		s: GET_BUFFER(vec)
-		table: as int-ptr! s/offset
-
-		last: vector/rs-length? vec
-		end: last - 1
-		unless any [cp < table/1 cp > table/last][
-			c: -1
-			until [
-				c: c + 2
-				if table/c > cp [return cp]
-				if table/c = cp [
-					c: c + 1
-					return table/c
-				]
-				c = end
-			]
-		]
-		cp
 	]
 
 	change: func [
