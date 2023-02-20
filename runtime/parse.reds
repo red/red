@@ -1714,10 +1714,15 @@ parser: context [
 							state: either TYPE_OF(value) = TYPE_PAIR [ST_POP_RULE][ST_POP_BLOCK]
 						]
 						sym = words/skip [				;-- SKIP
-							PARSE_CHECK_INPUT_EMPTY?
-							match?: not end?
+							state: either end? [
+								match?: no
+								ST_CHECK_PENDING
+							][
+								PARSE_CHECK_INPUT_EMPTY?
+								match?: not end?
+								ST_NEXT_INPUT
+							]
 							PARSE_TRACE(_match)
-							state: ST_NEXT_INPUT
 						]
 						sym = words/any* [				;-- ANY
 							if cmd + 1 = tail [PARSE_ERROR [TO_ERROR(script parse-end) words/_any]]
@@ -1753,6 +1758,7 @@ parser: context [
 								PARSE_TRACE(_match)
 								cmd: cmd + 1
 								input/head: _series/rs-tail input
+								if all [positive? part part < input/head][input/head: part]
 								end?: yes
 								state: ST_CHECK_PENDING
 							][

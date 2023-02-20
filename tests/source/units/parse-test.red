@@ -2799,6 +2799,17 @@ Red [
 		--assert parse/part %234 ["23" to end] 3
 		repeat i 4 [--assert parse/part "12" ["1" to [end]] i]
 
+	--test-- "#3427-2"
+		e: none
+		parse "abcdef" [to [end] e:] 4 e
+		--assert e == ""
+		parse/part "abcde2" [to [end] e:] 4 e
+		--assert e == "e2"
+		parse/part "abcde3" [to end e:] 4 e
+		--assert e == "e3"
+		parse/part "abcde4" [any skip e:] 4 e
+		--assert e == "e4"
+
 	--test-- "#3951"
 		res: none
 		do "res: expand-directives/clean [[] #macro word! func [s e]['OK] WTF]()"
