@@ -175,7 +175,7 @@ system: context [
 				parse-infinite:		["PARSE - infinite recursion at rule: [" :arg1 "]"]
 				parse-stack:		"PARSE - stack limit reached"
 				parse-keep:			"PARSE - KEEP is used without a wrapping COLLECT"
-				parse-into-bad:		"PARSE - COLLECT INTO/AFTER expects a series! argument"
+				parse-into-bad:		"PARSE - COLLECT INTO/AFTER invalid series! argument"
 				parse-into-type:    "PARSE - COLLECT INTO/AFTER expects a series! of compatible datatype"
 				invalid-draw:		["invalid Draw dialect input at:" :arg1]
 				invalid-data-facet: ["invalid DATA facet content" :arg1]

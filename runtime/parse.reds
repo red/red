@@ -2032,15 +2032,20 @@ parser: context [
 										value: _context/get w	;-- #4197
 										type:  TYPE_OF(value)
 										type2: TYPE_OF(input)
-										if all [
-											type <> type2
-											any [
-												type = TYPE_BINARY
-												all [ANY_STRING?(type) ANY_BLOCK?(type2)]
+										if any [
+											not ANY_SERIES_PARSE?(type)
+											all [
+												type <> type2
+												any [
+													type = TYPE_BINARY
+													all [ANY_STRING?(type) ANY_BLOCK?(type2)]
+												]
 											]
 										][
 											PARSE_ERROR [TO_ERROR(script parse-into-type)]
 										]
+										new: as red-series! value
+										if new/node = input/node [PARSE_ERROR [TO_ERROR(script parse-into-bad)]]
 										either sym = words/after [refinement/push w][get-word/push w]
 									]
 									cmd: cmd + 2		;-- skip `COLLECT <word>`
