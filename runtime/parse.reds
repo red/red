@@ -193,15 +193,15 @@ parser: context [
 			tail  [byte-ptr!]
 			p	  [byte-ptr!]
 			h1	  [integer!]
-			part  [integer!]
+			extra [integer!]
 	][
 		s1: GET_BUFFER(out)								;-- destination
 		s2: GET_BUFFER(src)								;-- source
 		unit: GET_UNIT(s1)
 		if any [unit > 4 unit <> GET_UNIT(s2)][return false] ;-- block! values require an /only mode
 		h1: out/head << (log-b unit)
-		part: src/head << (log-b unit)
-		size: src/head - h2 * unit
+		extra: src/head - h2
+		size: extra * unit
 		assert size > 0
 
 		len1: (as-integer s1/tail - s1/offset) << 4
@@ -224,6 +224,7 @@ parser: context [
 		p: p + size
 		unless append? [p: tail + size]
 		s1/tail: as cell! p
+		out/head: out/head + extra
 		true
 	]
 	

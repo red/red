@@ -2969,6 +2969,22 @@ Red [
 	--test-- "#5251"
 		--assert false == parse [1] [opt (--assert true)]
 
+
+	--test-- "#5285"
+		vowel: charset "aeiou"
+		str: "parse must not be bugged"
+		res: "p-rs- m-st n-t b- b-gg-d"
+		out: ""
+		rule: [
+			(clear out)
+			any [keep to vowel skip keep (#"-")]
+			keep to end
+		]
+		parse str b: [collect into out rule]  --assert out == res
+		take/last append str "¿"
+		parse str b: [collect into  out rule] --assert out == res
+		parse str b: [collect after out rule] --assert out == res
+
 ===end-group===
     
 ~~~end-file~~~
