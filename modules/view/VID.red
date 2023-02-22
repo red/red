@@ -428,8 +428,9 @@ system/view/VID: context [
 		font: opts/font
 		if any [face-font: face/font font][
 			either face-font [
-				face-font: copy face-font				;-- @@ share font/state between faces ?
+				face-font: copy face-font				;-- @@ share font/state between faces
 				if font [
+					face-font/state: none				;-- clear font/state
 					set/some face-font font				;-- overwrite face/font with opts/font
 					opts/font: face-font
 				]
