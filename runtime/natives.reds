@@ -21,10 +21,12 @@ natives: context [
 	lf?: 	  no										;-- used to print or not an ending newline
 	last-lf?: no
 	
-	table: as int-ptr! 0
-	top: 1
-	
-	buffer-blk: as red-block! 0
+	top:	   1
+	table: 	   as int-ptr! 0
+	form-slot: as cell! 0 
+	form-buf:  as red-string! 0							;-- FORMing buffer
+	form-sz:   1024										;-- FORMing buffer size in 16 bytes cells
+	space-buf: as red-string! 0
 
 	register: func [
 		[variadic]
@@ -729,43 +731,53 @@ natives: context [
 		check?	[logic!]
 		lf?		[logic!]
 		/local
-			arg		[red-value!]
-			str		[red-string!]
-			blk		[red-block!]
-			oldhd	[integer!]
-			s		[series!]
-			block?	[logic!]
+			arg	  [red-value!]
+			str	  [red-string!]
+			blk	  [red-block!]
+			value [red-value!]
+			tail  [red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/do-print"]]
 		arg: stack/arguments
 
-		block?: TYPE_OF(arg) = TYPE_BLOCK
-		if block? [
-			;-- for recursive printing, reduce/into should put result into the buffer tail
-			s: GET_BUFFER(buffer-blk)
-			oldhd: buffer-blk/head 							;-- save the old buffer head
-			buffer-blk/head: (as-integer s/tail - s/offset) >> (log-b GET_UNIT(s))
-
-			stack/push as red-value! buffer-blk
-			assert stack/top - 2 = stack/arguments			;-- check for correct stack layout
-			reduce* no 1
+		either TYPE_OF(arg) = TYPE_BLOCK [
 			blk: as red-block! arg
-			blk/head: 0										;-- head changed by reduce/into
-			stack/set-last as red-value! buffer-blk 		;-- provide the modified-head buffer to form*
+			value: block/rs-head blk
+			tail:  block/rs-tail blk
+			stack/keep
+			stack/mark-native words/_body
+			string/rs-clear form-buf
+			
+			while [value < tail][
+				value: interpreter/eval-next blk value tail yes
+				str: as red-string! stack/arguments
+				if TYPE_OF(str) <> TYPE_STRING [
+					actions/form stack/arguments form-buf null MAX_INT
+					str: form-buf
+				]
+				dyn-print/red-print str no
+				
+				if value < tail [dyn-print/red-print space-buf no]
+				stack/reset
+			]
+			stack/unwind
+			string/rs-clear form-buf
+			if lf? [dyn-print/red-print form-buf yes]
+			
+			if (string/rs-length? form-buf) > (form-sz << 4) [ ;-- if expanded buffer
+				form-buf: string/rs-make-at form-slot form-sz << 4 ;-- drop it and allocate a new one
+			]
+		][
+			if TYPE_OF(arg) <> TYPE_STRING [actions/form* -1]
+		
+			str: as red-string! stack/arguments
+			assert any [
+				TYPE_OF(str) = TYPE_STRING
+				TYPE_OF(str) = TYPE_SYMBOL				;-- symbol! and string! structs are overlapping
+			]
+			dyn-print/red-print str lf?
 		]
 
-		if TYPE_OF(arg) <> TYPE_STRING [actions/form* -1]
-		
-		str: as red-string! stack/arguments
-		assert any [
-			TYPE_OF(str) = TYPE_STRING
-			TYPE_OF(str) = TYPE_SYMBOL						;-- symbol! and string! structs are overlapping
-		]
-		dyn-print/red-print str lf?
-		if block? [											;-- restore the buffer head & clean up what was printed
-			block/rs-clear buffer-blk 
-			buffer-blk/head: oldhd			
-		]
 		last-lf?: lf?
 		stack/set-last unset-value
 	]
@@ -955,7 +967,7 @@ natives: context [
 		check? [logic!]
 		into   [integer!]
 		/local
-			blk	  [red-block!]
+			blk	  	 [red-block!]
 			value	 [red-value!]
 			tail	 [red-value!]
 			arg		 [red-value!]
@@ -3461,7 +3473,11 @@ natives: context [
 	
 	init: does [
 		table: as int-ptr! allocate NATIVES_NB * size? integer!
-		buffer-blk: block/make-in red/root 32			;-- block buffer for PRIN's reduce/into
+		form-slot: ALLOC_TAIL(root)
+		form-buf: string/rs-make-at form-slot form-sz << 4
+		
+		space-buf: string/rs-make-at ALLOC_TAIL(root) 1
+		string/append-char GET_BUFFER(space-buf) as-integer space
 
 		register [
 			:if*

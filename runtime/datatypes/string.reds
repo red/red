@@ -428,6 +428,16 @@ string: context [
 		assert p < as byte-ptr! s/tail
 		get-char p unit
 	]
+
+	rs-clear: func [
+		str	[red-string!]
+		/local
+			s	[series!]
+	][
+		s: GET_BUFFER(str)
+		s/tail: s/offset
+		str/head: 0
+	]
 	
 	rs-reset: func [
 		str	[red-string!]
