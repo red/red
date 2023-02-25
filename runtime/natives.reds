@@ -746,12 +746,12 @@ natives: context [
 			tail:  block/rs-tail blk
 			stack/keep
 			stack/mark-native words/_body
-			string/rs-clear form-buf
 			
 			while [value < tail][
 				value: interpreter/eval-next blk value tail yes
 				str: as red-string! stack/arguments
 				if TYPE_OF(str) <> TYPE_STRING [
+					string/rs-clear form-buf
 					actions/form stack/arguments form-buf null MAX_INT
 					str: form-buf
 				]
@@ -764,8 +764,8 @@ natives: context [
 			string/rs-clear form-buf
 			if lf? [dyn-print/red-print form-buf yes]
 			
-			if (string/rs-length? form-buf) > (form-sz << 4) [ ;-- if expanded buffer
-				form-buf: string/rs-make-at form-slot form-sz << 4 ;-- drop it and allocate a new one
+			if (string/rs-length? form-buf) > form-sz [ ;-- if expanded buffer
+				form-buf: string/rs-make-at form-slot form-sz ;-- drop it and allocate a new one
 			]
 		][
 			if TYPE_OF(arg) <> TYPE_STRING [actions/form* -1]
@@ -3474,7 +3474,7 @@ natives: context [
 	init: does [
 		table: as int-ptr! allocate NATIVES_NB * size? integer!
 		form-slot: ALLOC_TAIL(root)
-		form-buf: string/rs-make-at form-slot form-sz << 4
+		form-buf: string/rs-make-at form-slot form-sz
 		
 		space-buf: string/rs-make-at ALLOC_TAIL(root) 1
 		string/append-char GET_BUFFER(space-buf) as-integer space
