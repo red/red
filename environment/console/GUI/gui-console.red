@@ -20,13 +20,6 @@ Red [
 		arg [any-type!] /local blk [red-block!]
 	][
 		#if sub-system = 'console [
-			if TYPE_OF(arg) = TYPE_BLOCK [
-				block/rs-clear natives/buffer-blk
-				stack/push as red-value! natives/buffer-blk
-				natives/reduce* no 1
-				blk: as red-block! arg
-				blk/head: 0						;-- head changed by reduce/into
-			]
 			actions/form* -1
 			dyn-print/red-print-cli as red-string! stack/arguments yes
 		]
@@ -111,6 +104,7 @@ gui-console-ctx: context [
 
 		init: func [/local box][
 			terminal/windows: system/view/screens/1/pane
+			terminal/interval: now/precise/time
 			box: terminal/box
 			box/data: make block! 200
 			scroller: get-scroller self 'horizontal

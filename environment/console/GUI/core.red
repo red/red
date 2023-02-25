@@ -26,6 +26,7 @@ object [
 	ime-open?:	no
 	ime-pos:	0
 	redraw-cnt: 0
+	interval:	0
 
 	top:		1								;-- index of the first visible line in the line buffer
 	line:		""								;-- current editing line
@@ -155,10 +156,9 @@ object [
 		][
 			append last lines str
 		]
-		calc-top
 	]
 
-	vprint: func [str [string!] lf? [logic!] /local s cnt first-prin?][
+	vprint: func [str [string!] lf? [logic!] /local t s cnt first-prin?][
 		if 100'000 < length? str [			;-- truncate very long string
 			s: skip tail str -10'000
 			str: append copy/part str 90'000 "^/...^/"
@@ -206,7 +206,11 @@ object [
 			all [lf? redraw-cnt > 20]
 			redraw-cnt > 1000
 		][
-			refresh/force
+			t: now/precise/time
+			if t - interval >= 0:0:0.1 [
+				refresh/force
+				interval: t
+			]
 		][
 			refresh
 		]
@@ -289,13 +293,18 @@ object [
 			line-cnt: line-cnt + cnt - pick nlines n
 			poke nlines n cnt
 		]
+
+		screen-cnt: line-cnt
+		screen-cnt-saved: screen-cnt
+		if screen-cnt > page-cnt [screen-cnt: page-cnt]
+
 		n: line-cnt - total
 		n
 	]
 
 	calc-top: func [/new /local delta n][
 		n: calc-last-line new
-		paint/dry
+
 		if n < 0 [
 			delta: scroller/position + n
 			scroller/position: either delta < 1 [1][delta]
