@@ -131,7 +131,7 @@ metrics?: function [
 ]
 
 set-flag: function [
-	"Sets a flag in a face object"
+	"Sets a flag in a face object and returns the /flags facet value"
 	face  [object!]
 	facet [word!]
 	value [any-type!]
@@ -142,6 +142,7 @@ set-flag: function [
 	][
 		set in face facet value
 	]
+	flags
 ]
 
 find-flag?: routine [

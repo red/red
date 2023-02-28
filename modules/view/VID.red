@@ -446,6 +446,7 @@ system/view/VID: context [
 				unless find actors name [repend actors [name f s b]]
 			]
 		]
+		if opts/flags [opts/flags: set-flag face 'flags opts/flags]	;-- pre-merge /flags facets
 		
 		set/some face opts								;-- merge default+styles and user options
 		
