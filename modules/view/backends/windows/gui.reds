@@ -701,6 +701,9 @@ free-faces: func [
 			;-- destroy the extra frame window
 			DestroyWindow as handle! GetWindowLong handle wc-offset - 4 as-integer handle
 		]
+		sym = panel [
+			DestroyWindow handle
+		]
 		true [
 			0
 			;; handle user-provided classes too
