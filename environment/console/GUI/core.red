@@ -155,7 +155,6 @@ object [
 		][
 			append last lines str
 		]
-		calc-top
 	]
 
 	vprint: func [str [string!] lf? [logic!] /local s cnt first-prin?][
@@ -289,13 +288,17 @@ object [
 			line-cnt: line-cnt + cnt - pick nlines n
 			poke nlines n cnt
 		]
+
+		screen-cnt: line-cnt
+		screen-cnt-saved: screen-cnt
+		if screen-cnt > page-cnt [screen-cnt: page-cnt]
+
 		n: line-cnt - total
 		n
 	]
 
 	calc-top: func [/new /local delta n][
 		n: calc-last-line new
-		paint/dry
 		if n < 0 [
 			delta: scroller/position + n
 			scroller/position: either delta < 1 [1][delta]
