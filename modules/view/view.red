@@ -638,6 +638,7 @@ system/view: context [
 		detect			on-detect
 		time			on-time
 		drawing			on-drawing
+		draw			on-draw
 		scroll			on-scroll
 		down			on-down
 		up				on-up

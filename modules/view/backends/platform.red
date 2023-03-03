@@ -165,6 +165,7 @@ system/view/platform: context [
 				EVT_TIME
 				EVT_DRAWING
 				EVT_SCROLL
+				EVT_DRAW
 			]
 			
 			#enum event-flag! [
@@ -345,6 +346,7 @@ system/view/platform: context [
 			_press-tap:		word/load "press-tap"
 			_time:			word/load "time"
 			_drawing:		word/load "drawing"
+			_draw:			word/load "draw"
 			_scroll:		word/load "scroll"
 
 			_vertical:		word/load "vertical"
@@ -399,6 +401,7 @@ system/view/platform: context [
 				as red-value! switch evt/type [
 					EVT_TIME		 [_time]
 					EVT_DRAWING		 [_drawing]
+					EVT_DRAW		 [_draw]
 					EVT_SCROLL		 [_scroll]
 					EVT_LEFT_DOWN	 [_down]
 					EVT_LEFT_UP		 [_up]
@@ -445,6 +448,7 @@ system/view/platform: context [
 				case [
 					sym = _time/symbol			[sym: EVT_TIME]
 					sym = _drawing/symbol		[sym: EVT_DRAWING]
+					sym = _draw/symbol			[sym: EVT_DRAW]
 					sym = _scroll/symbol		[sym: EVT_SCROLL]
 					sym = _down/symbol			[sym: EVT_LEFT_DOWN]
 					sym = _up/symbol			[sym: EVT_LEFT_UP]

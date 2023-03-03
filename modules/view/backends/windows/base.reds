@@ -513,6 +513,7 @@ BaseWndProc: func [
 				(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) = 0	;-- not a layered window
 				0 <> GetWindowLong hWnd wc-offset		;-- linked with a face object
 			][
+				if null? current-msg [init-current-msg]
 				#either draw-engine = 'GDI+ [][BeginPaint hWnd :ps]
 				painting?: yes
 				draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
@@ -524,7 +525,6 @@ BaseWndProc: func [
 					]]
 					do-draw hWnd null draw no yes yes yes
 				][
-					if null? current-msg [init-current-msg]
 					;system/thrown: 0
 					assert system/thrown = 0
 					DC: declare draw-ctx!				;@@ should declare it on stack
@@ -540,6 +540,8 @@ BaseWndProc: func [
 				]
 				painting?: no
 				#either draw-engine = 'GDI+ [][EndPaint hWnd :ps]
+				current-msg/hWnd: hWnd
+				make-event current-msg 0 EVT_DRAW
 				return 0
 			]
 		]
@@ -913,6 +915,10 @@ update-base: func [
 	rc/left: 0 rc/top: 0 rc/right: 0 rc/bottom: 0	;-- empty RECT
 	surf/ReleaseDC this :rc
 	surf/Release this
+
+	if null? current-msg [init-current-msg]
+	current-msg/hWnd: hWnd
+	make-event current-msg 0 EVT_DRAW
 ]]
 
 ;-- blends the image of every encountered visible layered window into the DC
