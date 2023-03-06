@@ -47,7 +47,7 @@ bst-show-delay: 0:0:5
 
 ;-- capturing framerate
 bst-w7?: all ['Windows = system/platform  find/match get bind 'name os-info "Windows 7"]
-bst-rate: either bst-w7? [67][2] 	 	;-- works fast w/o bugs on W7 only
+bst-rate: either bst-w7? [67][0.5] 	 	;-- works fast w/o bugs on W7 only
 ?? bst-rate
 
 ;-- colors should include B and R components of different intensities
