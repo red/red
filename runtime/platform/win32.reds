@@ -386,6 +386,19 @@ platform: context [
 			GetCurrentProcess: "GetCurrentProcess" [
 				return:		[int-ptr!]
 			]
+			LoadLibraryA: "LoadLibraryA" [
+				lpFileName	[c-string!]
+				return:		[handle!]
+			]
+			FreeLibrary: "FreeLibrary" [
+				hModule		[handle!]
+				return:		[logic!]
+			]
+			GetProcAddress: "GetProcAddress" [
+				hModule		[handle!]
+				lpProcName	[c-string!]
+				return:		[int-ptr!]
+			]
 		]
 		"gdiplus.dll" stdcall [
 			GdiplusStartup: "GdiplusStartup" [
@@ -412,7 +425,7 @@ platform: context [
 	]
 
 	#include %win32-print.reds
-
+	
 	;-------------------------------------------
 	;-- Allocate paged virtual memory region from OS
 	;-------------------------------------------
@@ -499,6 +512,10 @@ platform: context [
 		GetEnvironmentVariable name value valsize
 	]
 
+	kernel32: as handle! 0								;-- a loaded function is used by get-time on W8 and above
+	GetSystemTimePreciseAsFileTime!: alias function! [time [tagFILETIME]]
+	_GetSystemTimePreciseAsFileTime: as int-ptr! 0		;@@ FIXME: compiler doesn't allow to redefine function! variables
+	
 	get-time: func [
 		utc?	 [logic!]
 		precise? [logic!]
@@ -506,6 +523,7 @@ platform: context [
 		/local
 			tm			[tagSYSTEMTIME value]
 			ftime		[tagFILETIME value]
+			GetSystemTimePreciseAsFileTime [GetSystemTimePreciseAsFileTime!]
 			h			[integer!]
 			m			[integer!]
 			sec			[integer!]
@@ -519,7 +537,12 @@ platform: context [
 			t			[float!]
 			mi			[float!]
 	][
-		GetSystemTimeAsFileTime ftime
+		either null? _GetSystemTimePreciseAsFileTime [
+			GetSystemTimeAsFileTime ftime
+		][
+			GetSystemTimePreciseAsFileTime: as GetSystemTimePreciseAsFileTime! _GetSystemTimePreciseAsFileTime
+			GetSystemTimePreciseAsFileTime ftime
+		]
 		FileTimeToSystemTime ftime tm
 		h: tm/hour-minute and FFFFh
 		m: tm/hour-minute >>> 16
@@ -607,5 +630,7 @@ platform: context [
 			_setmode _fileno h + 8 _O_U16TEXT				;@@ stdout, throw an error on failure
 			_setmode _fileno h + 16 _O_U16TEXT				;@@ stderr, throw an error on failure
 		]
+		kernel32: LoadLibraryA "kernel32.dll"
+		_GetSystemTimePreciseAsFileTime: GetProcAddress kernel32 "GetSystemTimePreciseAsFileTime"
 	]
 ]
