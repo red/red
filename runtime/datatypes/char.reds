@@ -102,6 +102,9 @@ char: context [
 			TYPE_PERCENT [
 				fl: as red-float! spec
 				proto/value: as-integer fl/value
+				if ANY [proto/value > 0010FFFFh proto/value < 0] [
+					fire [TO_ERROR(script out-of-range) spec]
+				]
 			]
 			TYPE_BINARY [							;-- first character in UTF-8 encoding
 				p: binary/rs-head as red-binary! spec
