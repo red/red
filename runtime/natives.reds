@@ -2989,6 +2989,32 @@ natives: context [
 		]
 		either null? out [stack/set-last slot][stack/set-last as red-value! out]
 	]
+	
+	apply*: func [
+		check?	[logic!]
+		as-is	[integer!]
+		/local
+			fun	  [red-function!]
+			args  [red-block!]
+			pc	  [red-value!]
+			end	  [red-value!]
+			value [red-value!]
+			tail  [red-value!]
+			bool  [red-logic!]
+			type  [integer!]
+			spec  [series!]
+			s	  [series!]
+	][	
+		#typecheck [apply as-is]
+
+		fun: as red-function! stack/arguments
+		args: as red-block! fun + 1
+		s: GET_BUFFER(args)
+		pc:  s/offset + args/head
+		end: s/tail
+
+		interpreter/eval-code stack/arguments pc end args no null as red-value! words/_expr null
+	]
 
 	;--- Natives helper functions ---
 	
@@ -3568,6 +3594,7 @@ natives: context [
 			:decompress*
 			:recycle*
 			:transcode*
+			:apply*
 		]
 	]
 
