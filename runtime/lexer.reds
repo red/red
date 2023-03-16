@@ -1417,7 +1417,7 @@ lexer: context [
 		][												;-- simple char
 			unicode/fast-decode-utf8-char s + 2 :c
 		]
-		if any [c > 0010FFFFh c = -1 p < e][do-error]
+		if any [c > max-char-codepoint c = -1 p < e][do-error]
 		if load? [
 			char: as red-char! alloc-slot lex
 			set-type as cell! char TYPE_CHAR

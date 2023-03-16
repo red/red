@@ -59,6 +59,7 @@ Red/System [
 #define series!				series-buffer! 
 #define handle!				[pointer! [integer!]]
 
+#define max-char-codepoint	0010FFFFh		;-- upper limit for a codepoint value.
 
 #enum encoding! [							;-- various string encodings
 	UTF-16LE:	-1

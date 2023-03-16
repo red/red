@@ -163,7 +163,7 @@ string: context [
 		]
 
 		either char? [
-			assert cp <= 0010FFFFh							;-- codepoint <= 10FFFFh
+			assert cp <= max-char-codepoint
 			if zero? value [
 				s/7: #"0"
 				s/8: #"0"

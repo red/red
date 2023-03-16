@@ -152,7 +152,7 @@ unicode: context [
 				buf/3: as-byte cp	   and 3Fh or 80h
 				3
 			]
-			cp <= 0010FFFFh [
+			cp <= max-char-codepoint [
 				buf/1: as-byte cp >> 18 or F0h
 				buf/2: as-byte cp >> 12 and 3Fh or 80h
 				buf/3: as-byte cp >> 6  and 3Fh or 80h
@@ -458,10 +458,10 @@ unicode: context [
 								(b3 - 80h <<  6) or
 								(b4 - 80h)
 							;either all [
-							;	cp <= 0010FFFFh
+							;	cp <= max-char-codepoint
 							;	cp > FFFFh				; optional test for overlong
 							;][
-							either cp <= 0010FFFFh [
+							either cp <= max-char-codepoint [
 								cnt/value: 4
 							][
 								cp: NOT_A_CHARACTER
