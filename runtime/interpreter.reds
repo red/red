@@ -64,42 +64,45 @@ Red/System [
 ]
 
 #define FETCH_ARGUMENT [
-	if pc >= end [fire [TO_ERROR(script no-arg) fname value]]
-	
-	switch TYPE_OF(value) [
-		TYPE_WORD [
-			#if debug? = yes [if verbose > 0 [log "evaluating argument"]]
-			pc: eval-expression pc end code no yes no
-		]
-		TYPE_GET_WORD [
-			#if debug? = yes [if verbose > 0 [log "fetching argument as-is"]]
-			stack/push pc
-			pc: pc + 1
-		]
-		default [
-			#if debug? = yes [if verbose > 0 [log "fetching argument"]]
-			switch TYPE_OF(pc) [
-				TYPE_GET_WORD [
-					copy-cell _context/get as red-word! pc stack/push*
-				]
-				TYPE_PAREN [
-					either TYPE_OF(value) = TYPE_LIT_WORD [
-						stack/mark-interp-native words/_anon
-						eval as red-block! pc yes
-						stack/unwind
-					][
+	either pc >= end [
+		either apply? [none/push][fire [TO_ERROR(script no-arg) fname value]]
+	][
+		switch TYPE_OF(value) [
+			TYPE_WORD
+			TYPE_REFINEMENT [
+				#if debug? = yes [if verbose > 0 [log "evaluating argument"]]
+				pc: eval-expression pc end code no yes no
+			]
+			TYPE_GET_WORD [
+				#if debug? = yes [if verbose > 0 [log "fetching argument as-is"]]
+				stack/push pc
+				pc: pc + 1
+			]
+			default [
+				#if debug? = yes [if verbose > 0 [log "fetching argument"]]
+				switch TYPE_OF(pc) [
+					TYPE_GET_WORD [
+						copy-cell _context/get as red-word! pc stack/push*
+					]
+					TYPE_PAREN [
+						either TYPE_OF(value) = TYPE_LIT_WORD [
+							stack/mark-interp-native words/_anon
+							eval as red-block! pc yes
+							stack/unwind
+						][
+							stack/push pc
+						]
+					]
+					TYPE_GET_PATH [
+						eval-path pc pc + 1 end code no yes yes no
+					]
+					default [
 						stack/push pc
 					]
 				]
-				TYPE_GET_PATH [
-					eval-path pc pc + 1 end code no yes yes no
-				]
-				default [
-					stack/push pc
-				]
+				pc: pc + 1
+				;if tracing? [fire-event EVT_PUSH code pc pc value yes]
 			]
-			pc: pc + 1
-			;if tracing? [fire-event EVT_PUSH code pc pc value yes]
 		]
 	]
 ]
@@ -706,19 +709,21 @@ interpreter: context [
 			bits 	  [byte-ptr!]
 			ordered?  [logic!]
 			set? 	  [logic!]
+			apply?	  [logic!]
 			call
 	][
 		routine?:  TYPE_OF(native) = TYPE_ROUTINE
 		function?: any [routine? TYPE_OF(native) = TYPE_FUNCTION]
 		args:	   null
 		ref-array: null
+		apply?:	   mode > MODE_FETCH
 		
-		either mode = MODE_FETCH [
-			call-pos: pc - 1
-			fname: as red-word! call-pos
-		][
+		either apply? [
 			;; set call-pos to non-null value
 			fname: words/_expr	;; temporary
+		][
+			call-pos: pc - 1
+			fname: as red-word! call-pos
 		]
 
 		either function? [
@@ -768,7 +773,6 @@ interpreter: context [
 		
 		while [value < tail][
 			expected: value + 1
-			
 			switch TYPE_OF(value) [
 				TYPE_ISSUE [
 					vec: as red-vector! expected
@@ -798,7 +802,7 @@ interpreter: context [
 								pc >= end				;-- if no more values to fetch
 								TYPE_OF(value) = TYPE_LIT_WORD ;-- and if spec argument is a lit-word!
 							][
-								unset/push				;-- then, supply an unset argument
+								either all [apply? pc >= end][none/push][unset/push] ;-- then, supply an unset argument
 							][
 								FETCH_ARGUMENT
 								arg:  stack/top - 1
@@ -827,13 +831,12 @@ interpreter: context [
 							either all [required? ordered?][
 								bits: (as byte-ptr! expected) + 4
 								BS_TEST_BIT(bits TYPE_UNSET set?)
-
 								either all [
 									set?					;-- if unset! is accepted
 									pc >= end				;-- if no more values to fetch
 									TYPE_OF(value) = TYPE_LIT_WORD ;-- and if spec argument is a lit-word!
 								][
-									unset/push				;-- then, supply an unset argument
+									either all [apply? pc >= end][none/push][unset/push] ;-- then, supply an unset argument
 								][
 									FETCH_ARGUMENT
 									arg:  stack/top - 1
@@ -854,9 +857,29 @@ interpreter: context [
 							]
 						]
 						TYPE_LOGIC [
-							stack/push expected
-							bool: as red-logic! expected
-							required?: bool/value
+							either apply? [
+								either pc >= end [logic/push false][
+									FETCH_ARGUMENT
+									arg:  stack/top - 1
+									type: TYPE_OF(arg)
+									if type <> TYPE_LOGIC [
+										fire [
+											TO_ERROR(script expect-arg)
+											fname
+											datatype/push type
+											value
+										]
+									]
+									index: index + 1
+									bool: as red-logic! arg
+									logic/push bool/value
+								]
+								required?: yes
+							][
+								stack/push expected
+								bool: as red-logic! expected
+								required?: bool/value
+							]
 						]
 						TYPE_VECTOR [
 							vec: as red-vector! expected
