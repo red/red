@@ -106,6 +106,14 @@ Red/System [
 
 interpreter: context [
 	verbose: 0
+	
+	#enum fetch-args-mode! [
+		MODE_FETCH:			0							;-- regular arguments evaluation and fetching
+		MODE_APPLY:			1							;-- fetch literally and apply arguments (no eval)
+		MODE_APPLY_EVAL:	2							;-- fetch, eval and apply arguments
+		;APPLY_ARGS_SOME:	4							;-- search and apply arguments (eval by default)
+		;APPLY_ARGS_FROM:	8							;-- fetch arguments from a context and apply arguments
+	]
 
 	#enum events! [
 		EVT_INIT:			00000001h
@@ -662,9 +670,10 @@ interpreter: context [
 		path	[red-path!]
 		ref-pos [red-value!]
 		origin	[red-native!]
+		mode	[fetch-args-mode!]
 		return: [red-value!]
 		/local
-			fun	  	  [red-function!]
+			fun		  [red-function!]
 			function? [logic!]
 			routine?  [logic!]
 			value	  [red-value!]
@@ -701,10 +710,16 @@ interpreter: context [
 	][
 		routine?:  TYPE_OF(native) = TYPE_ROUTINE
 		function?: any [routine? TYPE_OF(native) = TYPE_FUNCTION]
-		call-pos:  pc - 1
-		fname:	   as red-word! call-pos
 		args:	   null
 		ref-array: null
+		
+		either mode = MODE_FETCH [
+			call-pos: pc - 1
+			fname: as red-word! call-pos
+		][
+			;; set call-pos to non-null value
+			fname: words/_expr	;; temporary
+		]
 
 		either function? [
 			fun: as red-function! native
@@ -923,7 +938,7 @@ interpreter: context [
 			TYPE_FUNCTION [
 				if set? [fire [TO_ERROR(script invalid-path-set) path]]
 				if get? [fire [TO_ERROR(script invalid-path-get) path]]
-				pc: eval-code parent pc end code yes path item - 1 parent
+				pc: eval-code parent pc end code yes path item - 1 parent MODE_FETCH
 				unless sub? [stack/set-last stack/top]
 				if tracing? [fire-event EVT_EXIT as red-block! path tail null stack/arguments]
 				return pc
@@ -968,7 +983,7 @@ interpreter: context [
 					TYPE_NATIVE
 					TYPE_ROUTINE
 					TYPE_FUNCTION [
-						pc: eval-code parent pc end code sub? path item prev
+						pc: eval-code parent pc end code sub? path item prev MODE_FETCH
 						parent: stack/get-top
 						item: tail						;-- force loop exit
 					]
@@ -996,6 +1011,7 @@ interpreter: context [
 		path	[red-path!]
 		slot 	[red-value!]
 		parent	[red-value!]
+		mode	[fetch-args-mode!]
 		return: [red-value!]
 		/local
 			caller origin [red-native!]
@@ -1021,7 +1037,7 @@ interpreter: context [
 				#if debug? = yes [if verbose > 0 [log "pushing action/native frame"]]
 				stack/mark-interp-native name
 				assert any [code = null TYPE_OF(code) = TYPE_BLOCK TYPE_OF(code) = TYPE_PAREN TYPE_OF(code) = TYPE_HASH]
-				pc: eval-arguments caller pc end code path slot origin ;-- fetch args and exec
+				pc: eval-arguments caller pc end code path slot origin mode ;-- fetch args and exec
 				either sub? [stack/unwind][stack/unwind-last]
 				#if debug? = yes [
 					if verbose > 0 [
@@ -1033,7 +1049,7 @@ interpreter: context [
 			TYPE_ROUTINE [
 				#if debug? = yes [if verbose > 0 [log "pushing routine frame"]]
 				stack/mark-interp-native name
-				pc: eval-arguments caller pc end code path slot origin
+				pc: eval-arguments caller pc end code path slot origin mode
 				exec-routine as red-routine! caller
 				either sub? [stack/unwind][stack/unwind-last]
 				#if debug? = yes [
@@ -1063,7 +1079,7 @@ interpreter: context [
 					]
 				]
 				stack/mark-interp-func name
-				pc: eval-arguments origin pc end code path slot origin
+				pc: eval-arguments origin pc end code path slot origin mode
 				_function/call as red-function! caller ctx pos CB_INTERPRETER
 				either sub? [stack/unwind][stack/unwind-last]
 				#if debug? = yes [
@@ -1217,7 +1233,7 @@ interpreter: context [
 					TYPE_NATIVE
 					TYPE_ROUTINE
 					TYPE_FUNCTION [
-						pc: eval-code value pc end code sub? null null value
+						pc: eval-code value pc end code sub? null null value MODE_FETCH
 						if tracing? [value: stack/arguments]
 					]
 					TYPE_OP [
@@ -1283,7 +1299,7 @@ interpreter: context [
 				][
 					value: pc + 1
 					if value >= end [value: end]
-					pc: eval-code pc value end code sub? null null null
+					pc: eval-code pc value end code sub? null null null MODE_FETCH
 					if tracing? [value: stack/arguments]
 				]
 			]

@@ -2998,11 +2998,7 @@ natives: context [
 			args  [red-block!]
 			pc	  [red-value!]
 			end	  [red-value!]
-			value [red-value!]
-			tail  [red-value!]
-			bool  [red-logic!]
-			type  [integer!]
-			spec  [series!]
+			mode  [integer!]
 			s	  [series!]
 	][	
 		#typecheck [apply as-is]
@@ -3013,7 +3009,8 @@ natives: context [
 		pc:  s/offset + args/head
 		end: s/tail
 
-		interpreter/eval-code stack/arguments pc end args no null as red-value! words/_expr null
+		mode: either as-is < 0 [interpreter/MODE_APPLY_EVAL][interpreter/MODE_APPLY]
+		interpreter/eval-code stack/arguments pc end args no null as red-value! words/_expr null mode
 	]
 
 	;--- Natives helper functions ---
