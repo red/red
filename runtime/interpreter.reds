@@ -871,8 +871,6 @@ interpreter: context [
 										]
 									]
 									index: index + 1
-									bool: as red-logic! arg
-									logic/push bool/value
 								]
 								required?: yes
 							][
