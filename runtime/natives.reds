@@ -2994,23 +2994,26 @@ natives: context [
 		check?	[logic!]
 		as-is	[integer!]
 		/local
-			fun	  [red-function!]
 			args  [red-block!]
-			pc	  [red-value!]
-			end	  [red-value!]
 			mode  [integer!]
 			s	  [series!]
 	][	
 		#typecheck [apply as-is]
 
-		fun: as red-function! stack/arguments
-		args: as red-block! fun + 1
+		args: as red-block! stack/arguments + 1
 		s: GET_BUFFER(args)
-		pc:  s/offset + args/head
-		end: s/tail
-
 		mode: either as-is < 0 [interpreter/MODE_APPLY_EVAL][interpreter/MODE_APPLY]
-		interpreter/eval-code stack/arguments pc end args no null as red-value! words/_expr null mode
+		
+		interpreter/eval-code
+			stack/arguments
+			s/offset + args/head
+			s/tail
+			args
+			no
+			null
+			as red-value! words/_expr
+			null
+			mode
 	]
 
 	;--- Natives helper functions ---

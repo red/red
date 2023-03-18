@@ -674,8 +674,14 @@ interpreter: context [
 				switch TYPE_OF(value) [
 					TYPE_WORD
 					TYPE_REFINEMENT [
-						#if debug? = yes [if verbose > 0 [log "evaluating argument"]]
-						pc: eval-expression pc end code no yes no
+						either mode = MODE_APPLY [
+							#if debug? = yes [if verbose > 0 [log "fetching argument as-is"]]
+							stack/push pc
+							pc: pc + 1
+						][
+							#if debug? = yes [if verbose > 0 [log "evaluating argument"]]
+							pc: eval-expression pc end code no yes no
+						]
 					]
 					TYPE_GET_WORD [
 						#if debug? = yes [if verbose > 0 [log "fetching argument as-is"]]
