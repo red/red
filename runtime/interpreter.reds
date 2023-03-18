@@ -55,53 +55,7 @@ Red/System [
 						]
 					]
 				]
-				if infix? [
-					if next + 1 = end [fire [TO_ERROR(script no-op-arg) next]]
-				]
-			]
-		]
-	]
-]
-
-#define FETCH_ARGUMENT [
-	either pc >= end [
-		either apply? [none/push][fire [TO_ERROR(script no-arg) fname value]]
-	][
-		switch TYPE_OF(value) [
-			TYPE_WORD
-			TYPE_REFINEMENT [
-				#if debug? = yes [if verbose > 0 [log "evaluating argument"]]
-				pc: eval-expression pc end code no yes no
-			]
-			TYPE_GET_WORD [
-				#if debug? = yes [if verbose > 0 [log "fetching argument as-is"]]
-				stack/push pc
-				pc: pc + 1
-			]
-			default [
-				#if debug? = yes [if verbose > 0 [log "fetching argument"]]
-				switch TYPE_OF(pc) [
-					TYPE_GET_WORD [
-						copy-cell _context/get as red-word! pc stack/push*
-					]
-					TYPE_PAREN [
-						either TYPE_OF(value) = TYPE_LIT_WORD [
-							stack/mark-interp-native words/_anon
-							eval as red-block! pc yes
-							stack/unwind
-						][
-							stack/push pc
-						]
-					]
-					TYPE_GET_PATH [
-						eval-path pc pc + 1 end code no yes yes no
-					]
-					default [
-						stack/push pc
-					]
-				]
-				pc: pc + 1
-				;if tracing? [fire-event EVT_PUSH code pc pc value yes]
+				if all [infix? next + 1 = end][fire [TO_ERROR(script no-op-arg) next]]
 			]
 		]
 	]
@@ -710,8 +664,53 @@ interpreter: context [
 			ordered?  [logic!]
 			set? 	  [logic!]
 			apply?	  [logic!]
+			fetch-arg [subroutine!]
 			call
 	][
+		fetch-arg: [
+			either pc >= end [
+				either apply? [none/push][fire [TO_ERROR(script no-arg) fname value]]
+			][
+				switch TYPE_OF(value) [
+					TYPE_WORD
+					TYPE_REFINEMENT [
+						#if debug? = yes [if verbose > 0 [log "evaluating argument"]]
+						pc: eval-expression pc end code no yes no
+					]
+					TYPE_GET_WORD [
+						#if debug? = yes [if verbose > 0 [log "fetching argument as-is"]]
+						stack/push pc
+						pc: pc + 1
+					]
+					default [
+						#if debug? = yes [if verbose > 0 [log "fetching argument"]]
+						switch TYPE_OF(pc) [
+							TYPE_GET_WORD [
+								copy-cell _context/get as red-word! pc stack/push*
+							]
+							TYPE_PAREN [
+								either TYPE_OF(value) = TYPE_LIT_WORD [
+									stack/mark-interp-native words/_anon
+									eval as red-block! pc yes
+									stack/unwind
+								][
+									stack/push pc
+								]
+							]
+							TYPE_GET_PATH [
+								eval-path pc pc + 1 end code no yes yes no
+							]
+							default [
+								stack/push pc
+							]
+						]
+						pc: pc + 1
+						;if tracing? [fire-event EVT_PUSH code pc pc value yes]
+					]
+				]
+			]
+		]
+		
 		routine?:  TYPE_OF(native) = TYPE_ROUTINE
 		function?: any [routine? TYPE_OF(native) = TYPE_FUNCTION]
 		args:	   null
@@ -804,7 +803,7 @@ interpreter: context [
 							][
 								either all [apply? pc >= end][none/push][unset/push] ;-- then, supply an unset argument
 							][
-								FETCH_ARGUMENT
+								fetch-arg
 								arg:  stack/top - 1
 								type: TYPE_OF(arg)
 								BS_TEST_BIT(bits type set?)
@@ -838,7 +837,7 @@ interpreter: context [
 								][
 									either all [apply? pc >= end][none/push][unset/push] ;-- then, supply an unset argument
 								][
-									FETCH_ARGUMENT
+									fetch-arg
 									arg:  stack/top - 1
 									type: TYPE_OF(arg)
 									BS_TEST_BIT(bits type set?)
@@ -859,7 +858,7 @@ interpreter: context [
 						TYPE_LOGIC [
 							either apply? [
 								either pc >= end [logic/push false][
-									FETCH_ARGUMENT
+									fetch-arg
 									arg:  stack/top - 1
 									type: TYPE_OF(arg)
 									if type <> TYPE_LOGIC [
