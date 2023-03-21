@@ -3640,7 +3640,7 @@ system-dialect: make-profilable context [
 				last-type: either not any [
 					all [new? literal? unbox expr]		;-- if new variable, value will be store in data segment
 					all [set-path? variable not path? expr]	;-- value loaded at lower level
-					tag? unbox expr
+					find [tag! binary!] type?/word unbox expr
 					all [not new? not boxed set-word? variable store? logic? expr]
 				][
 					either boxed [
