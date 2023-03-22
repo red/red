@@ -688,31 +688,22 @@ interpreter: context [
 						stack/push pc
 						pc: pc + 1
 					]
-					default [
+					TYPE_LIT_WORD [
 						#if debug? = yes [if verbose > 0 [log "fetching argument"]]
 						switch TYPE_OF(pc) [
-							TYPE_GET_WORD [
-								copy-cell _context/get as red-word! pc stack/push*
-							]
 							TYPE_PAREN [
-								either TYPE_OF(value) = TYPE_LIT_WORD [
-									stack/mark-interp-native words/_anon
-									eval as red-block! pc yes
-									stack/unwind
-								][
-									stack/push pc
-								]
+								stack/mark-interp-native words/_anon
+								eval as red-block! pc yes
+								stack/unwind
 							]
-							TYPE_GET_PATH [
-								eval-path pc pc + 1 end code no yes yes no
-							]
-							default [
-								stack/push pc
-							]
+							TYPE_GET_WORD [copy-cell _context/get as red-word! pc stack/push*]
+							TYPE_GET_PATH [eval-path pc pc + 1 end code no yes yes no]
+							default		  [stack/push pc]
 						]
 						pc: pc + 1
 						;if tracing? [fire-event EVT_PUSH code pc pc value yes]
 					]
+					default [assert false]
 				]
 			]
 		]
