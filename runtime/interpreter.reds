@@ -71,6 +71,14 @@ interpreter: context [
 		;APPLY_ARGS_SOME:	4							;-- search and apply arguments (eval by default)
 		;APPLY_ARGS_FROM:	8							;-- fetch arguments from a context and apply arguments
 	]
+	
+	#enum fetch-type! [									;	Bits 22-20 of a typeset! slot header
+		FETCH_WORD:			00100000h
+		FETCH_REFINEMENT:	00200000h
+		FETCH_GET_WORD:		00300000h
+		FETCH_LIT_WORD:		00400000h
+		FETCH_SET_WORD:		00500000h
+	]
 
 	#enum events! [
 		EVT_INIT:			00000001h
