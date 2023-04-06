@@ -162,14 +162,6 @@ collector: context [
 					if series/node <> null [			;-- can happen in routine
 						#if debug? = yes [if verbose > 1 [print ["len: " block/rs-length? as red-block! series]]]
 						mark-block as red-block! value
-
-						if TYPE_OF(value) = TYPE_PATH [
-							path: as red-path! value
-							if path/args <> null [
-								;probe "path/args"
-								mark-block-node path/args
-							]
-						]
 					]
 				]
 				TYPE_SYMBOL [

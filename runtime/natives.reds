@@ -2673,10 +2673,7 @@ natives: context [
 		][
 			copy-cell spec proto
 			set-type proto type
-			if ANY_PATH?(type) [
-				path: as red-path! proto
-				path/args: null
-			]
+			if ANY_PATH?(type) [path: as red-path! proto]
 		][
 			fire [TO_ERROR(script not-same-class) datatype/push type2 datatype/push type]
 		]

@@ -1844,6 +1844,7 @@ redbin: context [
 		return: [int-ptr!]
 		/local
 			blk  [red-block!]
+			m	 [red-hash!]
 			end  [int-ptr!]
 			size [integer!]
 			sz   [integer!]
@@ -1861,11 +1862,11 @@ redbin: context [
 			
 			blk: block/make-at as red-block! ALLOC_TAIL(parent) sz
 			if nl? [blk/header: blk/header or flag-new-line]
-			map/make-at as red-value! blk blk sz
+			m: map/make-at as red-value! blk blk sz
 			
 			data: data + 2
 			loop size [data: decode-value data table blk]
-			_hashtable/put-all as node! blk/extra blk/head 2
+			_hashtable/put-all m/table m/head 2
 			
 			data
 		]

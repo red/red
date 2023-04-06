@@ -79,7 +79,7 @@ red-path!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- path's head index (zero-based)
 	node	[node!]									;-- series node pointer
-	args	[node!]									;-- cache for function+refinements args block
+	extra	[integer!]								;-- (unused, for compatibility with block!)
 ]
 
 red-lit-path!: alias struct! [

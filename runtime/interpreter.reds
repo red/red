@@ -742,7 +742,6 @@ interpreter: context [
 			blk/header: TYPE_BLOCK
 			blk/head:	0
 			blk/node:	args
-			blk/extra:	0
 		]
 		s: as series! args/value
 		head:	   s/offset
@@ -1437,8 +1436,6 @@ interpreter: context [
 	
 	init: does [
 		trace-fun: as red-function! ALLOC_TAIL(root)	;-- keep the tracing func reachable by the GC marker
-		
 		near/header: TYPE_UNSET
-		near/extra:  0
 	]
 ]

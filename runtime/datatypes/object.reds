@@ -792,7 +792,6 @@ object: context [
 		spec/header: TYPE_BLOCK
 		spec/head:	 0
 		spec/node:	 fun/spec
-		spec/extra:	 0
 		
 		fctx: copy-series as series! fun/ctx/value		;-- clone the ctx 2-cell block
 		ctx: TO_CTX(fctx)
