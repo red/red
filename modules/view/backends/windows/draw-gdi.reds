@@ -1592,6 +1592,7 @@ OS-draw-box: func [
 		low-y	[integer!]
 		width	[integer!]
 		height	[integer!]
+		brush	[integer!]
 ][
 	if ctx/other/D2D? [
 		OS-draw-box-d2d ctx upper lower
@@ -1612,6 +1613,7 @@ OS-draw-box: func [
 		either ctx/other/GDI+? [
 			check-gradient-box ctx upper lower
 			check-texture-box ctx upper
+			brush: either ctx/brush? [ctx/gp-brush][0]
 			gdiplus-draw-box
 				ctx/graphics
 				up-x
@@ -1620,7 +1622,7 @@ OS-draw-box: func [
 				height
 				rad
 				ctx/gp-pen
-				either ctx/brush? [ctx/gp-brush][0]
+				brush
 		][
 			RoundRect ctx/dc up-x up-y low-x low-y rad rad
 		]
@@ -1630,6 +1632,7 @@ OS-draw-box: func [
 			if up-y > low-y [t: up-y up-y: low-y low-y: t]
 			check-gradient-box ctx upper lower
 			check-texture-box ctx upper
+			brush: either ctx/brush? [ctx/gp-brush][0]
 			gdiplus-draw-box
 				ctx/graphics
 				up-x
@@ -1638,7 +1641,7 @@ OS-draw-box: func [
 				low-y - up-y
 				rad
 				ctx/gp-pen
-				either ctx/brush? [ctx/gp-brush][0]
+				brush
 		][
 			Rectangle ctx/dc up-x up-y low-x low-y
 		]
@@ -2176,6 +2179,7 @@ OS-draw-image: func [
 	border?		[logic!]
 	crop1		[red-pair!]
 	pattern		[red-word!]
+	return:		[integer!]
 	/local
 		src.w	[integer!]
 		src.h	[integer!]
@@ -2197,7 +2201,7 @@ OS-draw-image: func [
 	][
 		x: 0 y: 0 w: 0 h: 0
 		image/any-resize src dst crop1 start end :x :y :w :h
-		if dst/header = TYPE_NONE [exit]
+		if dst/header = TYPE_NONE [return 0]
 		GdipDrawImageRectI ctx/graphics as-integer dst/node x y w h
 		OS-image/delete dst
 	][
@@ -2229,7 +2233,7 @@ OS-draw-image: func [
 				w: end/x - x
 				h: end/y - y
 			]
-			true [exit]
+			true [return 0]
 		]
 		either null? crop1 [
 			GdipDrawImageRectI ctx/graphics as-integer src/node x y w h
@@ -2241,6 +2245,7 @@ OS-draw-image: func [
 				GDIPLUS_UNIT_PIXEL 0 0 0
 		]
 	]
+	0
 ]
 
 check-texture: func [

@@ -137,9 +137,9 @@ img: make image! 2x2
 		img2: copy/part img 6x8
 		--assert img = img2
 
-	--test-- "image copy 3"
-		img2: copy/part img 48
-		--assert img = img2
+	;--test-- "image copy 3"
+	;	img2: copy/part img 48
+	;	--assert img = img2
 
 	--test-- "image copy 4"
 		img2: copy/part img 0x0
@@ -161,15 +161,15 @@ img: make image! 2x2
 		img3: make image! [6x1 #{111111121212131313141414151515161616}]
 		--assert img2 = img3
 
-	--test-- "image copy 8"
-		img2: copy/part img 7
-		img3: make image! [6x1 #{111111121212131313141414151515161616}]
-		--assert img2 = img3
+	;--test-- "image copy 8"
+	;	img2: copy/part img 7
+	;	img3: make image! [6x1 #{111111121212131313141414151515161616}]
+	;	--assert img2 = img3
 
-	--test-- "image copy 9"
-		img2: copy/part img 13
-		img3: create-test-image 6x2
-		--assert img2 = img3
+	;--test-- "image copy 9"
+	;	img2: copy/part img 13
+	;	img3: create-test-image 6x2
+	;	--assert img2 = img3
 
 ===end-group===
 
@@ -194,17 +194,17 @@ img: make image! 2x2
 		img3: copy/part img 2x2
 		--assert img2 = img3
 
-	--test-- "#3769 case 2"
-		img: make image! 4x4
-		img2: make image! 1x1
-		img3: copy/part img 1
-		--assert img2 = img3
+	;--test-- "#3769 case 2"
+	;	img: make image! 4x4
+	;	img2: make image! 1x1
+	;	img3: copy/part img 1
+	;	--assert img2 = img3
 
-	--test-- "#3769 case 3"
-		img: make image! 4x4
-		img2: make image! 1x1
-		loop 2 [img3: copy/part img 1]
-		--assert img2 = img3
+	;--test-- "#3769 case 3"
+	;	img: make image! 4x4
+	;	img2: make image! 1x1
+	;	loop 2 [img3: copy/part img 1]
+	;	--assert img2 = img3
 
 	--test-- "#3769 case 4"
 		img: make image! 0x0

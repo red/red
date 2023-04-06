@@ -1005,88 +1005,54 @@ OS-image: context [
 	clone: func [
 		src			[red-image!]
 		dst			[red-image!]
-		part		[integer!]
-		size		[red-pair!]
-		part?		[logic!]
 		return:		[red-image!]
 		/local
-			width	[integer!]
-			height	[integer!]
-			offset	[integer!]
 			this	[this!]
 			IFAC	[IWICImagingFactory]
 			bitmap	[com-ptr! value]
-			x		[integer!]
-			y		[integer!]
-			w		[integer!]
-			h		[integer!]
+			handle	[node!]
+	][
+		this: get-handle src no
+		IFAC: as IWICImagingFactory wic-factory/vtbl
+		IFAC/CreateBitmapFromSource wic-factory this WICBitmapCacheOnDemand :bitmap
+		dst/size: src/size
+		dst/header: TYPE_IMAGE
+		dst/head: 0
+		dst/node: make-node null bitmap/value IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED IMAGE_WIDTH(src/size) IMAGE_HEIGHT(src/size)
+		return dst
+	]
+
+	copy: func [
+		src			[red-image!]
+		dst			[red-image!]
+		x			[integer!]
+		y			[integer!]
+		w			[integer!]
+		h			[integer!]
+		return:		[red-image!]
+		/local
+			this	[this!]
+			IFAC	[IWICImagingFactory]
+			bitmap	[com-ptr! value]
 			handle	[node!]
 			iclip	[com-ptr! value]
 			cthis	[this!]
 			clip	[IWICBitmapClipper]
 			rect	[RECT! value]
 	][
-		width: IMAGE_WIDTH(src/size)
-		height: IMAGE_HEIGHT(src/size)
-
-		if any [
-			width <= 0
-			height <= 0
-		][
-			dst/size: 0
-			dst/header: TYPE_IMAGE
-			dst/head: 0
-			dst/node: as node! 0
-			return dst
-		]
-
-		offset: src/head
 		this: get-handle src no
 		IFAC: as IWICImagingFactory wic-factory/vtbl
-		if all [zero? offset not part?][
-			IFAC/CreateBitmapFromSource wic-factory this WICBitmapCacheOnDemand :bitmap
-			dst/size: src/size
-			dst/header: TYPE_IMAGE
-			dst/head: 0
-			dst/node: make-node null bitmap/value IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED width height
-			return dst
-		]
+		IFAC/CreateBitmapClipper wic-factory :iclip
+		cthis: iclip/value
+		clip: as IWICBitmapClipper cthis/vtbl
+		rect/x: x rect/y: y
+		rect/w: w rect/h: h
+		clip/Initialize cthis this rect
+		IFAC/CreateBitmapFromSource wic-factory cthis WICBitmapCacheOnLoad :bitmap
+		clip/Release cthis
 
-		x: offset % width
-		y: offset / width
-		either all [part? TYPE_OF(size) = TYPE_PAIR][
-			w: width - x
-			h: height - y
-			if size/x < w [w: size/x]
-			if size/y < h [h: size/y]
-		][
-			either zero? part [
-				w: 0 h: 0
-			][
-				either part < width [h: 1 w: part][
-					h: part / width
-					w: width
-				]
-			]
-		]
-		either any [
-			w <= 0
-			h <= 0
-		][
-			dst/size: 0
-			dst/node: null
-		][
-			IFAC/CreateBitmapClipper wic-factory :iclip
-			cthis: iclip/value
-			clip: as IWICBitmapClipper cthis/vtbl
-			rect/x: x rect/y: y
-			rect/w: w rect/h: h
-			clip/Initialize cthis this rect
-			IFAC/CreateBitmapFromSource wic-factory cthis WICBitmapCacheOnLoad :bitmap
-			clip/Release cthis
-			dst/node: make-node null bitmap/value IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED w h
-			dst/size: h << 16 or w
-		]
+		dst/node: make-node null bitmap/value IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED w h
+		dst/size: h << 16 or w
 		dst/header: TYPE_IMAGE
 		dst/head: 0
 		dst
