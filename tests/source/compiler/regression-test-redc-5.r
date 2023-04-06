@@ -315,6 +315,42 @@ test
 		--assert compiled?
 		--assert script-error?
 
+	--test-- "#4854"
+		--compile-and-run-this {
+			Red []
+
+			recycle/off
+
+			do [
+				f-call: func [f] [f/x 1 2]
+
+				f1: function [/x q w /local a b c] [
+					f-call :f2
+					print "passed!"
+				]
+				f2: function [/x q w] [
+					print 1
+					foreach n [1] [
+						a: b: c: d: e: f: none					;) z = none then crash in foreach-next
+						a: b: c: d: e: f: g: none					;) z = none then crash in foreach-next
+						b: c: d: e: f: g: h: none				;) z = :?? then crash in foreach-next
+						a: b: c: d: e: f: g: h: i: none			;) crash before z in context/set
+						a: b: c: d: e: f: g: h: i: j: none		;) crash before z in context/set
+						a: b: c: d: e: f: g: h: i: j: k: none		;) crash before z in context/set
+						a: b: c: d: e: f: g: h: i: j: k: l: none	;) crash before z in context/set
+						z: none
+						?? z
+					]
+					print 2
+
+				]
+				f-call :f1
+			]
+		}
+		--assert compiled?
+		--assert not crashed?
+		--assert true? find qt/output "passed!"
+
 	--test-- "#4990"
 		--compile-and-run-this {
 			Red []
