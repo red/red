@@ -61,6 +61,7 @@ alloc-tail: func [
 	cell: s/tail
 	;-- ensure that cell is within series upper boundary
 	assert (as byte-ptr! cell) < ((as byte-ptr! s + 1) + s/size)
+	cell/header: TYPE_UNSET
 	
 	s/tail: cell + 1									;-- move tail to next cell
 	cell
