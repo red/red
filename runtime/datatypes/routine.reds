@@ -56,7 +56,7 @@ routine: context [
 			cell   [red-routine!]
 			native [red-native!]
 			value  [red-value!]
-			args   [red-block!]
+			int	   [red-integer!]
 			more   [series!]
 			flag   [integer!]
 	][
@@ -64,30 +64,31 @@ routine: context [
 
 		flag: either extern? [flag-extern-code][0]
 		cell: as red-routine! stack/push*
-		cell/header:   TYPE_UNSET
-		cell/ret-type: ret-type
-		cell/spec:	   spec/node
-		cell/more:	   alloc-cells 4
-		cell/header:   TYPE_ROUTINE or flag				;-- implicit reset of all header flags
+		cell/header: TYPE_UNSET
+		cell/ctx:	 _context/make spec yes no CONTEXT_FUNCTION
+		cell/spec:	 spec/node
+		cell/more:	 alloc-cells 5
+		cell/header: TYPE_ROUTINE or flag				;-- implicit reset of all header flags
 		
 		more: as series! cell/more/value
 		value: either null? body [none-value][as red-value! body]
 		copy-cell value alloc-tail more					;-- store body block or none
 		
-		args: as red-block! alloc-tail more
-		args/header: TYPE_BLOCK
-		args/head:	 0
-		args/node:   null
-		args/extra:	 0
+		value: alloc-tail more							;-- args cache
+		value/header: TYPE_UNSET
 
 		native: as red-native! alloc-tail more
 		native/header: TYPE_NATIVE
-		native/args: null
-		native/spec: null
 		native/code: code
+		native/spec: null
+		native/more: null
 
 		value: alloc-tail more							;-- routine value self-reference (for op!)
 		value/header: TYPE_UNSET
+		
+		int: as red-integer! alloc-tail more			;-- return type
+		int/header: TYPE_INTEGER
+		int/value: ret-type
 
 		set-arity cell
 		cell

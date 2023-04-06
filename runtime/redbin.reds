@@ -1183,8 +1183,7 @@ redbin: context [
 	][
 		here: either TYPE_OF(data) = TYPE_NATIVE [natives/table][actions/table]
 		index: 0
-		until [index: index + 1 data/data3 = here/index]
-		
+		until [index: index + 1 data/data1 = here/index]
 		record [payload header index]
 		
 		slot/head: 0
@@ -1204,8 +1203,11 @@ redbin: context [
 		/local
 			cell  [red-native!]
 			spec  [red-block!]
+			value [red-value!]
 			type  [integer!]
 			index [integer!]
+			more  [series!]
+			node  [node!]
 	][
 		type:  data/1 and FFh
 		index: data/2
@@ -1215,10 +1217,17 @@ redbin: context [
 		spec: as red-block! block/rs-tail parent
 		data: decode-block data + 2 table parent off
 		
-		cell/header: type						;-- implicit reset of all header flags
+		cell/header: TYPE_UNSET
 		cell/spec:	 spec/node
-		cell/args:	 null
 		cell/code:   either type = TYPE_ACTION [actions/table/index][natives/table/index]
+		cell/more:	 alloc-unset-cells 2
+		cell/header: type						;-- implicit reset of all header flags
+		
+		more: as series! cell/more/value
+		node: _context/make spec yes no CONTEXT_FUNCTION
+		copy-cell as red-value! (as series! node/value) + 1 alloc-tail more	;-- ctx slot
+		value: alloc-tail more							;-- args cache slot
+		value/header: TYPE_NONE
 		
 		if nl? [cell/header: cell/header or flag-new-line]
 		if codec? [stack/pop 1]					;-- drop an unwanted block
@@ -1253,7 +1262,7 @@ redbin: context [
 		store payload header
 		
 		either body? [
-			node:   as node! data/data3
+			node:   as node! data/data1
 			series: as series! node/value
 			slot:   series/offset + 3
 			type:   TYPE_OF(slot)
@@ -1273,7 +1282,7 @@ redbin: context [
 			
 			encode-value slot payload symbols table strings
 			stack/pop 1
-			store payload data/data3
+			store payload data/data1
 		]
 		
 		offset: offset - 1							;-- compensate for extra recursion
@@ -1416,6 +1425,7 @@ redbin: context [
 		return: [int-ptr!]
 		/local
 			fun    [red-function!]
+			op	   [red-op!]
 			source [red-value!]
 			series [series!]
 			node   [node!]
@@ -1430,7 +1440,9 @@ redbin: context [
 			type: TYPE_OF(fun)
 			assert any [type = TYPE_FUNCTION type = TYPE_OP ANY_WORD?(type)]
 			either type = TYPE_OP [
-				series: as series! fun/more/value
+				op: as red-op! fun
+				node: as node! op/code
+				series: as series! node/value
 				source: series/offset + 3
 				assert TYPE_OF(source) = TYPE_FUNCTION
 			][

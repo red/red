@@ -511,7 +511,7 @@ Red [
 		    open 5 #[none] "foo" 1 
 		    fetch 5 #[none] "1" 0 
 		    push 5 #[none] "1" 1 
-		    call 6 "foo" "func [a [i" 3 
+		    call 6 "foo" "func [a [i" 1 
 		    prolog -1 "foo" "func [a [i" 3 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "either" 0 
@@ -652,7 +652,7 @@ Red [
 		    open 1 #[none] "trace" 0 
 		    fetch 1 #[none] "off" 0 
 		    push 1 #[none] #[none] 0 
-		    call 2 "trace" "func [{Run" 7 
+		    call 2 "trace" "func [{Run" 5 
 		    prolog -1 "foo-tr9" "func [[tra" 0 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "+" 0 

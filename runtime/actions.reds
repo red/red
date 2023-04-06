@@ -504,8 +504,8 @@ actions: context [
 			TYPE_LOGIC	 [res: value1/data1 - value2/data1]
 			TYPE_NATIVE
 			TYPE_ACTION
+			TYPE_OP		 [res: SIGN_COMPARE_RESULT(value1/data1 value2/data1)]
 			TYPE_FUNCTION
-			TYPE_OP
 			TYPE_ROUTINE [res: SIGN_COMPARE_RESULT(value1/data3 value2/data3)]
 			default		 [res: action-compare value1 value2 op]
 		]

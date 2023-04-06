@@ -213,16 +213,16 @@ collector: context [
 					_hashtable/mark hash/table			;@@ check if previously marked
 				]
 				TYPE_FUNCTION [
+					#if debug? = yes [if verbose > 1 [print "function"]]
 					fun: as red-function! value
 					mark-context fun/ctx
-					#if debug? = yes [if verbose > 1 [print "function"]]
 					mark-block-node fun/spec
 					mark-block-node fun/more
 				]
 				TYPE_ROUTINE [
-					routine: as red-routine! value
-					;mark-block-node routine/symbols	;-- unused for now
 					#if debug? = yes [if verbose > 1 [print "routine"]]
+					routine: as red-routine! value
+					mark-context routine/ctx
 					mark-block-node routine/spec
 					mark-block-node routine/more
 				]
@@ -230,12 +230,12 @@ collector: context [
 				TYPE_NATIVE
 				TYPE_OP [
 					native: as red-native! value
-					if native/args <> null [
-						#if debug? = yes [if verbose > 1 [print "native"]]
-						mark-block-node native/args
+					if all [TYPE_OF(native) <> TYPE_OP native/more <> null][
+						#if debug? = yes [if verbose > 1 [print "native/more"]]
+						mark-block-node native/more
 					]
 					if native/spec <> null [			;@@ should not happen!
-						#if debug? = yes [if verbose > 1 [print "native"]]
+						#if debug? = yes [if verbose > 1 [print "native/spec"]]
 						mark-block-node native/spec
 					]
 					if native/header and body-flag <> 0 [

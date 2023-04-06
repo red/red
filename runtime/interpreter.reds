@@ -374,6 +374,7 @@ interpreter: context [
 			base	[red-value!]
 			bool	[red-logic!]
 			int		[red-integer!]
+			rtype	[red-integer!]
 			fl		[red-float!]
 			value	[red-value!]
 			tail	[red-value!]
@@ -395,10 +396,11 @@ interpreter: context [
 			call callf callex
 	][
 		extern?: rt/header and flag-extern-code <> 0
-		s: as series! rt/more/value
+		s:		as series! rt/more/value
 		native: as red-native! s/offset + 2
-		args: routine/get-arity rt
-		count: args - 1				;-- zero-based stack access
+		rtype:  as red-integer! s/offset + 4
+		args:	routine/get-arity rt
+		count:	args - 1				;-- zero-based stack access
 		
 		either extern? [
 			base: stack/arguments
@@ -478,8 +480,8 @@ interpreter: context [
 					count: count - 1
 				]
 			]
-			either positive? rt/ret-type [
-				switch rt/ret-type [
+			either positive? rtype/value [
+				switch rtype/value [
 					TYPE_LOGIC	[
 						ret: call
 						bool: as red-logic! stack/arguments
@@ -576,14 +578,14 @@ interpreter: context [
 				]
 			]
 			s: as series! args/value
-			slot: s/offset + 1
+			slot: s/offset
 			bits: (as byte-ptr! slot) + 4
 			arg:  stack/arguments
 			type: TYPE_OF(arg)
 			BS_TEST_BIT(bits type set?)
 			unless set? [ERR_EXPECT_ARGUMENT(type 0)]
 
-			slot: slot + 2
+			slot: slot + 1
 			bits: (as byte-ptr! slot) + 4
 			arg:  arg + 1
 			type: TYPE_OF(arg)
@@ -634,7 +636,6 @@ interpreter: context [
 		code	[red-block!]
 		path	[red-path!]
 		ref-pos [red-value!]
-		origin	[red-native!]
 		mode	[fetch-args-mode!]
 		return: [red-value!]
 		/local
@@ -642,15 +643,19 @@ interpreter: context [
 			function? [logic!]
 			routine?  [logic!]
 			value	  [red-value!]
+			head	  [red-value!]
 			tail	  [red-value!]
 			expected  [red-value!]
 			path-end  [red-value!]
 			fname	  [red-word!]
+			ref		  [red-word!]
+			ref-slot  [red-refinement!]
 			blk		  [red-block!]
 			vec		  [red-vector!]
+			ctx		  [red-context!]
 			bool	  [red-logic!]
 			arg		  [red-value!]
-			ext-args  [red-value!]
+			new		  [red-value!]
 			saved	  [red-value!]
 			base	  [red-value!]
 			s-value	  [red-value!]
@@ -664,14 +669,19 @@ interpreter: context [
 			offset	  [int-ptr!]
 			v-tail	  [int-ptr!]
 			index	  [integer!]
+			arg-cnt	  [integer!]
+			ref-cnt   [integer!]
+			loc-cnt	  [integer!]
 			size	  [integer!]
 			type	  [integer!]
 			ext-size  [integer!]
+			xcode	  [integer!]
+			idx		  [integer!]
 			pos		  [byte-ptr!]
 			bits 	  [byte-ptr!]
-			ordered?  [logic!]
 			set? 	  [logic!]
 			apply?	  [logic!]
+			native?	  [logic!]
 			fetch-arg [subroutine!]
 			call
 	][
@@ -679,9 +689,9 @@ interpreter: context [
 			either pc >= end [
 				either apply? [none/push][fire [TO_ERROR(script no-arg) fname value]]
 			][
-				switch TYPE_OF(value) [
-					TYPE_WORD
-					TYPE_REFINEMENT [
+				switch value/header and flag-fetch-mask [
+					FETCH_WORD
+					FETCH_REFINEMENT [
 						either mode = MODE_APPLY [
 							#if debug? = yes [if verbose > 0 [log "fetching argument as-is"]]
 							stack/push pc
@@ -691,12 +701,12 @@ interpreter: context [
 							pc: eval-expression pc end code no yes no
 						]
 					]
-					TYPE_GET_WORD [
+					FETCH_GET_WORD [
 						#if debug? = yes [if verbose > 0 [log "fetching argument as-is"]]
 						stack/push pc
 						pc: pc + 1
 					]
-					TYPE_LIT_WORD [
+					FETCH_LIT_WORD [
 						#if debug? = yes [if verbose > 0 [log "fetching argument"]]
 						switch TYPE_OF(pc) [
 							TYPE_PAREN [
@@ -715,8 +725,8 @@ interpreter: context [
 				]
 			]
 		]
-		
 		routine?:  TYPE_OF(native) = TYPE_ROUTINE
+		native?:   TYPE_OF(native) = TYPE_NATIVE
 		function?: any [routine? TYPE_OF(native) = TYPE_FUNCTION]
 		args:	   null
 		ref-array: null
@@ -729,189 +739,181 @@ interpreter: context [
 			call-pos: pc - 1
 			fname: as red-word! call-pos
 		]
-
-		either function? [
-			fun: as red-function! native
-			s: as series! fun/more/value
-			blk: as red-block! s/offset + 1
-			if TYPE_OF(blk) = TYPE_BLOCK [args: blk/node]
-		][
-			args: native/args
-		]
-		if null? args [
+		fun: as red-function! native
+		s: as series! fun/more/value
+		blk: as red-block! s/offset + 1
+		either TYPE_OF(blk) = TYPE_BLOCK [args: blk/node][
 			args: _function/preprocess-spec native
-			
-			either function? [
-				blk/header: TYPE_BLOCK
-				blk/head:	0
-				blk/node:	args
-				blk/extra:	0
-			][
-				native/args: args
-				origin/args: args
-			]
+			blk/header: TYPE_BLOCK
+			blk/head:	0
+			blk/node:	args
+			blk/extra:	0
 		]
+		s: as series! args/value
+		head:	   s/offset
+		tail:	   s/tail
+		value:	   head
+		required?: yes
+		arg-cnt:   0
+		ref-cnt:   1
+		loc-cnt:   0
+		extras:	   null
+		xcode:	   0									;;@@ should not be needed!
 		
-		unless null? path [
-			path-end: block/rs-tail as red-block! path
-			fname: as red-word! ref-pos
-			
-			if ref-pos + 1 < path-end [					;-- test if refinements are following the function
-				either null? path/args [
-					args: _function/preprocess-options native path ref-pos args fname function?
-					path/args: args
-				][
-					args: path/args
+		unless function? [
+			xcode: native/code
+			ctx: as red-context! blk - 1
+			assert TYPE_OF(ctx) = TYPE_CONTEXT
+			if value < tail [
+				vec: as red-vector! tail - 1
+				if TYPE_OF(vec) = TYPE_VECTOR [
+					s: GET_BUFFER(vec)
+					p: as int-ptr! s/offset
+					size: (as-integer (as int-ptr! s/tail) - p) / 4
+					ref-array: system/stack/top - size
+					system/stack/top: ref-array				;-- reserve space on native stack for refs array
+					copy-memory as byte-ptr! ref-array as byte-ptr! p size * 4
 				]
 			]
-			fname: as red-word! path
 		]
-		
-		s: as series! args/value
-		value:	   s/offset
-		tail:	   s/tail
-		required?: yes
-		index: 	   0
-		extras:	   null
-		ordered?:  yes
-		
 		while [value < tail][
-			expected: value + 1
 			switch TYPE_OF(value) [
-				TYPE_ISSUE [
-					vec: as red-vector! expected
-					if TYPE_OF(vec) = TYPE_VECTOR [
-						extras: as int-ptr! vector/rs-head vec
-						v-tail: as int-ptr! vector/rs-tail vec
-						ext-size: (as-integer v-tail - extras) >>> 2 - 1
-						offset: extras
-						ordered?: no
-						
-						saved: stack/top				;-- move stack/top beyond current frame for ooo args
-						stack/top: stack/top + offset/value
-						ext-args: stack/top
-						offset: offset + 1
-						base: s/offset + 2				;-- skip ooo entry
-						s-value: value
-						
-						while [offset < v-tail][
-							expected: base + (offset/value * 2 - 1)
-							value: expected - 1
-							assert TYPE_OF(expected) = TYPE_TYPESET
-							bits: (as byte-ptr! expected) + 4
+				TYPE_TYPESET [
+					if value/header and flag-fetch-mask <> FETCH_SET_WORD [
+						either required? [
+							bits: (as byte-ptr! value) + 4
 							BS_TEST_BIT(bits TYPE_UNSET set?)
 
 							either all [
-								set?					;-- if unset! is accepted
-								pc >= end				;-- if no more values to fetch
-								TYPE_OF(value) = TYPE_LIT_WORD ;-- and if spec argument is a lit-word!
+								set?						;-- if unset! is accepted
+								pc >= end					;-- if no more values to fetch
+								value/header and flag-fetch-mask = FETCH_LIT_WORD
 							][
-								either all [apply? pc >= end][none/push][unset/push] ;-- then, supply an unset argument
+								either apply? [none/push][unset/push] ;-- then, supply an unset argument
 							][
 								fetch-arg
 								arg:  stack/top - 1
 								type: TYPE_OF(arg)
 								BS_TEST_BIT(bits type set?)
-								unless set? [
-									index: offset/value - 1
-									fire [
-										TO_ERROR(script expect-arg)
-										fname
-										datatype/push type
-										error/get-call-argument index
-									]
-								]
+								unless set? [fire [TO_ERROR(script expect-arg) fname datatype/push type value]]
 							]
-							offset: offset + 1
+							arg-cnt: arg-cnt + 1
+						][
+							if function? [none/push]
 						]
-						value: s-value
-						stack/top: saved
 					]
 				]
-				TYPE_SET_WORD [0]
-				default [
-					switch TYPE_OF(expected) [
-						TYPE_TYPESET [
-							either all [required? ordered?][
-								bits: (as byte-ptr! expected) + 4
-								BS_TEST_BIT(bits TYPE_UNSET set?)
-								either all [
-									set?					;-- if unset! is accepted
-									pc >= end				;-- if no more values to fetch
-									TYPE_OF(value) = TYPE_LIT_WORD ;-- and if spec argument is a lit-word!
-								][
-									either all [apply? pc >= end][none/push][unset/push] ;-- then, supply an unset argument
-								][
-									fetch-arg
-									arg:  stack/top - 1
-									type: TYPE_OF(arg)
-									BS_TEST_BIT(bits type set?)
-									unless set? [
-										fire [
-											TO_ERROR(script expect-arg)
-											fname
-											datatype/push type
-											value
-										]
-									]
-									index: index + 1
-								]
-							][
-								none/push
+				TYPE_REFINEMENT [
+					either apply? [
+						either pc >= end [
+							if function? [logic/push false]
+						][
+							fetch-arg
+							arg:  stack/top - 1
+							type: TYPE_OF(arg)
+							if type <> TYPE_LOGIC [fire [TO_ERROR(script expect-arg) fname datatype/push type value]]
+							unless function? [
+								bool: as red-logic! arg
+								if bool/value [ref-array/ref-cnt: arg-cnt]
+								ref-cnt: ref-cnt + 1
 							]
 						]
-						TYPE_LOGIC [
-							either apply? [
-								either pc >= end [logic/push false][
-									fetch-arg
-									arg:  stack/top - 1
-									type: TYPE_OF(arg)
-									if type <> TYPE_LOGIC [
-										fire [
-											TO_ERROR(script expect-arg)
-											fname
-											datatype/push type
-											value
-										]
-									]
-									index: index + 1
-								]
-								required?: yes
-							][
-								stack/push expected
-								bool: as red-logic! expected
-								required?: bool/value
-							]
-						]
-						TYPE_VECTOR [
-							vec: as red-vector! expected
-							s: GET_BUFFER(vec)
-							p: as int-ptr! s/offset
-							size: (as-integer (as int-ptr! s/tail) - p) / 4
-							ref-array: system/stack/top - size
-							system/stack/top: ref-array		;-- reserve space on native stack for refs array
-							copy-memory as byte-ptr! ref-array as byte-ptr! p size * 4
-						]
-						default [assert false]				;-- trap it, if stack corrupted 
+						required?: yes
+					][
+						if function? [logic/push false]
+						required?: no
 					]
 				]
+				TYPE_INTEGER [loc-cnt: integer/get value] ;-- get local words count
+				TYPE_VECTOR [0]							;-- do nothing
+				default [assert false]					;-- trap it in case cache is corrupted 
 			]
-			value: value + 2
+			value: value + 1
 		]
-		unless ordered? [
-			offset: extras + 1
-			loop ext-size [
-				copy-cell ext-args stack/arguments + offset/value - 1
-				offset: offset + 1
-				ext-args: ext-args + 1
+
+		if path <> null [
+			assert not apply?
+			path-end: block/rs-tail as red-block! path
+			fname: as red-word! ref-pos
+			if function? [ctx: GET_CTX(fun)]
+			
+			if ref-pos + 1 < path-end [					;-- test if refinements are following the function
+				ref: as red-word! ref-pos + 1
+				
+				while [ref < as red-word! path-end][
+					if TYPE_OF(ref) <> TYPE_WORD [fire [TO_ERROR(script bad-refine) ref]]
+					assert TYPE_OF(ctx) = TYPE_CONTEXT
+					index: _context/find-word ctx ref/symbol no
+					if index < 0 [fire [TO_ERROR(script no-refine) fname ref]]
+					value: head + index
+					assert all [value < tail TYPE_OF(value) = TYPE_REFINEMENT]
+					value: value + 1
+					
+					either function? [
+						bool: as red-logic! stack/arguments + index
+						assert TYPE_OF(bool) = TYPE_LOGIC
+						if bool/value [fire [TO_ERROR(script dup-refine) path]]
+						bool/value: true
+						arg: as red-value! bool + 1
+						
+						saved: stack/top
+						while [
+							all [
+								value < tail
+								TYPE_OF(value) = TYPE_TYPESET
+								value/header and flag-fetch-mask <> FETCH_SET_WORD
+							]
+						][
+							fetch-arg
+							new:  stack/top - 1
+							type: TYPE_OF(new)
+							bits: (as byte-ptr! value) + 4
+							BS_TEST_BIT(bits type set?)
+							unless set? [fire [TO_ERROR(script expect-arg) fname datatype/push type value]]
+							copy-cell new arg
+							arg: arg + 1
+							stack/pop 1
+							arg-cnt: arg-cnt + 1
+							value: value + 1
+						]
+						stack/top: saved				;-- clear up all temporary stack slots
+					][
+						ref-slot: as red-refinement! value - 1
+						idx: ref-slot/index
+						if ref-array/idx <> -1 [fire [TO_ERROR(script dup-refine) path]]
+						ref-array/idx: arg-cnt
+						while [
+							all [
+								value < tail
+								TYPE_OF(value) = TYPE_TYPESET
+								value/header and flag-fetch-mask <> FETCH_SET_WORD
+							]
+						][
+							fetch-arg
+							new:  stack/top - 1
+							type: TYPE_OF(new)
+							bits: (as byte-ptr! value) + 4
+							BS_TEST_BIT(bits type set?)
+							unless set? [fire [TO_ERROR(script expect-arg) fname datatype/push type value]]
+							arg-cnt: arg-cnt + 1
+							value: value + 1
+						]
+					]
+					ref: ref + 1
+				]
 			]
 		]
 		if tracing? [fire-event EVT_CALL code pc call-pos as red-value! native]
 		
-		unless function? [
-			unless null? ref-array [system/stack/top: ref-array] ;-- reset native stack to our custom arguments frame
-			if TYPE_OF(native) = TYPE_NATIVE [push no]	;-- avoid 2nd type-checking for natives.
-			call: as function! [] native/code			;-- direct call for actions/natives
+		either function? [
+			if loc-cnt > 0 [
+				assert not routine?
+				_function/init-locals loc-cnt
+			]
+		][
+			if ref-array <> null [system/stack/top: ref-array] ;-- reset native stack to our custom arguments frame
+			if native? [push no]						;-- avoid 2nd type-checking for natives.
+			call: as function! [] xcode					;-- direct call for actions/natives
 			call
 		]
 		pc
@@ -1039,7 +1041,7 @@ interpreter: context [
 		mode	[fetch-args-mode!]
 		return: [red-value!]
 		/local
-			caller origin [red-native!]
+			caller[red-native!]
 			pos	  [red-value!]
 			name  [red-word!]
 			obj   [red-object!]
@@ -1054,7 +1056,6 @@ interpreter: context [
 
 		if TYPE_OF(name) <> TYPE_WORD [name: words/_anon]
 		caller: as red-native! stack/push value			;-- prevent word's value slot to be corrupted #2199
-		origin: as red-native! value
 		
 		switch TYPE_OF(value) [
 			TYPE_ACTION 
@@ -1062,11 +1063,11 @@ interpreter: context [
 				#if debug? = yes [if verbose > 0 [log "pushing action/native frame"]]
 				stack/mark-interp-native name
 				assert any [code = null TYPE_OF(code) = TYPE_BLOCK TYPE_OF(code) = TYPE_PAREN TYPE_OF(code) = TYPE_HASH]
-				pc: eval-arguments caller pc end code path slot origin mode ;-- fetch args and exec
+				pc: eval-arguments caller pc end code path slot mode ;-- fetch args and exec
 				either sub? [stack/unwind][stack/unwind-last]
 				#if debug? = yes [
 					if verbose > 0 [
-						value: stack/arguments
+						value: stack/get-top
 						print-line ["eval: action/native return type: " TYPE_OF(value)]
 					]
 				]
@@ -1074,12 +1075,12 @@ interpreter: context [
 			TYPE_ROUTINE [
 				#if debug? = yes [if verbose > 0 [log "pushing routine frame"]]
 				stack/mark-interp-native name
-				pc: eval-arguments caller pc end code path slot origin mode
+				pc: eval-arguments caller pc end code path slot mode
 				exec-routine as red-routine! caller
 				either sub? [stack/unwind][stack/unwind-last]
 				#if debug? = yes [
 					if verbose > 0 [
-						value: stack/arguments
+						value: stack/get-top
 						print-line ["eval: routine return type: " TYPE_OF(value)]
 					]
 				]
@@ -1104,12 +1105,12 @@ interpreter: context [
 					]
 				]
 				stack/mark-interp-func name
-				pc: eval-arguments origin pc end code path slot origin mode
+				pc: eval-arguments as red-native! value pc end code path slot mode
 				_function/call as red-function! caller ctx pos CB_INTERPRETER
 				either sub? [stack/unwind][stack/unwind-last]
 				#if debug? = yes [
 					if verbose > 0 [
-						value: stack/arguments
+						value: stack/get-top
 						print-line ["eval: function return type: " TYPE_OF(value)]
 					]
 				]

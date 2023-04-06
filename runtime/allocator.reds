@@ -25,7 +25,8 @@ int-array!: alias struct! [ptr [int-ptr!]]
 ;	29-25:	arity							;-- arity for routine! functions.
 ;	24:		self?							;-- self-aware context flag
 ;	23:		node-body						;-- op! body points to a block node (instead of native code)
-;	22-19:	tuple-size						;-- size of tuple
+;	22-19:	tuple-size						;-- size of tuple (tuple! only)
+;	22-20:  fetch mode						;-- fetching mode for an argument
 ;	18:		series-owned					;-- mark a series owned by an object
 ;	17:		owner							;-- indicate that an object is an owner
 ;	16:		native! op						;-- operator is made from a native! function

@@ -883,8 +883,10 @@ natives: context [
 				any [
 					type = TYPE_ACTION
 					type = TYPE_NATIVE
-					type = TYPE_OP
 				][
+					res: all [arg1/data1 = arg2/data1 arg1/data2 = arg2/data2]
+				]
+				type = TYPE_OP [
 					res: all [arg1/data2 = arg2/data2 arg1/data3 = arg2/data3]
 				]
 				true [
