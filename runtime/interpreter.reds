@@ -848,50 +848,39 @@ interpreter: context [
 						if bool/value [fire [TO_ERROR(script dup-refine) path]]
 						bool/value: true
 						arg: as red-value! bool + 1
-						
 						saved: stack/top
-						while [
-							all [
-								value < tail
-								TYPE_OF(value) = TYPE_TYPESET
-								value/header and flag-fetch-mask <> FETCH_SET_WORD
-							]
-						][
-							fetch-arg
-							new:  stack/top - 1
-							type: TYPE_OF(new)
-							bits: (as byte-ptr! value) + 4
-							BS_TEST_BIT(bits type set?)
-							unless set? [fire [TO_ERROR(script expect-arg) fname datatype/push type value]]
-							copy-cell new arg
-							arg: arg + 1
-							stack/pop 1
-							arg-cnt: arg-cnt + 1
-							value: value + 1
-						]
-						stack/top: saved				;-- clear up all temporary stack slots
 					][
 						ref-slot: as red-refinement! value - 1
 						idx: ref-slot/index
 						if ref-array/idx <> -1 [fire [TO_ERROR(script dup-refine) path]]
 						ref-array/idx: arg-cnt
-						while [
-							all [
-								value < tail
-								TYPE_OF(value) = TYPE_TYPESET
-								value/header and flag-fetch-mask <> FETCH_SET_WORD
-							]
+					]
+					while [
+						all [
+							value < tail
+							TYPE_OF(value) = TYPE_TYPESET
+							value/header and flag-fetch-mask <> FETCH_SET_WORD
+						]
+					][
+						fetch-arg
+						new:  stack/top - 1
+						type: TYPE_OF(new)
+						bits: (as byte-ptr! value) + 4
+						BS_TEST_BIT(bits type set?)
+						unless set? [fire [TO_ERROR(script expect-arg) fname datatype/push type value]]
+						
+						either function? [
+							copy-cell new arg
+							arg: arg + 1
+							stack/pop 1
+							arg-cnt: arg-cnt + 1
+							value: value + 1
 						][
-							fetch-arg
-							new:  stack/top - 1
-							type: TYPE_OF(new)
-							bits: (as byte-ptr! value) + 4
-							BS_TEST_BIT(bits type set?)
-							unless set? [fire [TO_ERROR(script expect-arg) fname datatype/push type value]]
 							arg-cnt: arg-cnt + 1
 							value: value + 1
 						]
 					]
+					if function? [stack/top: saved]				;-- clear up all temporary stack slots
 					ref: ref + 1
 				]
 			]
