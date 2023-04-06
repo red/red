@@ -640,12 +640,9 @@ interpreter: context [
 		return: [red-value!]
 		/local
 			fun		  [red-function!]
-			function? [logic!]
-			routine?  [logic!]
 			value	  [red-value!]
 			head	  [red-value!]
 			tail	  [red-value!]
-			expected  [red-value!]
 			path-end  [red-value!]
 			fname	  [red-word!]
 			ref		  [red-word!]
@@ -658,27 +655,25 @@ interpreter: context [
 			new		  [red-value!]
 			saved	  [red-value!]
 			base	  [red-value!]
-			s-value	  [red-value!]
 			call-pos  [red-value!]
 			s		  [series!]
 			required? [logic!]
 			args	  [node!]
 			p		  [int-ptr!]
 			ref-array [int-ptr!]
-			extras	  [int-ptr!]
 			offset	  [int-ptr!]
-			v-tail	  [int-ptr!]
 			index	  [integer!]
 			arg-cnt	  [integer!]
 			ref-cnt   [integer!]
 			loc-cnt	  [integer!]
 			size	  [integer!]
 			type	  [integer!]
-			ext-size  [integer!]
 			xcode	  [integer!]
 			idx		  [integer!]
 			pos		  [byte-ptr!]
 			bits 	  [byte-ptr!]
+			function? [logic!]
+			routine?  [logic!]
 			set? 	  [logic!]
 			apply?	  [logic!]
 			native?	  [logic!]
@@ -757,7 +752,6 @@ interpreter: context [
 		arg-cnt:   0
 		ref-cnt:   1
 		loc-cnt:   0
-		extras:	   null
 		xcode:	   0									;;@@ should not be needed!
 		
 		unless function? [
