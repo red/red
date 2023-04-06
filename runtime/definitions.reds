@@ -40,7 +40,8 @@ Red/System [
 #define flag-force-trace	00000400h		;-- tracing mode is forced (function attribut)
 #define flag-no-trace		00000200h		;-- tracing mode is disabled (function attribut)
 
-#define flag-fetch-mask		00700000h		;-- mask for arguments fetching mode (typeset! header only)
+#define flag-fetch-mode		00300000h		;-- mask for arguments fetching mode (typeset! header only)
+#define flag-fetch-mask		FFDFFFFFh		;-- mask for arguments fetching mode (typeset! header only)
 #define flag-new-line		40000000h		;-- if set, indicates that a new-line preceeds the value
 #define flag-nl-mask		BFFFFFFFh		;-- mask for new-line flag
 #define flag-arity-mask		C1FFFFFFh		;-- mask for reading routines arity field

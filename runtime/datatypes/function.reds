@@ -113,7 +113,7 @@ _function: context [
 			][
 				typeset/make-default list
 			]
-			ts/header: ts/header or mode
+			ts/header: ts/header and flag-fetch-mask or mode
 		]
 		saved: stack/top
 		function?: any [TYPE_OF(native) = TYPE_ROUTINE TYPE_OF(native) = TYPE_FUNCTION]

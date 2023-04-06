@@ -73,11 +73,10 @@ interpreter: context [
 	]
 	
 	#enum fetch-type! [									;	Bits 22-20 of a typeset! slot header
-		FETCH_WORD:			00100000h
-		FETCH_REFINEMENT:	00200000h
-		FETCH_GET_WORD:		00300000h
-		FETCH_LIT_WORD:		00400000h
-		FETCH_SET_WORD:		00500000h
+		FETCH_WORD:			00000000h
+		FETCH_GET_WORD:		00100000h
+		FETCH_LIT_WORD:		00200000h
+		FETCH_SET_WORD:		00300000h
 	]
 
 	#enum events! [
@@ -684,9 +683,8 @@ interpreter: context [
 			either pc >= end [
 				either apply? [none/push][fire [TO_ERROR(script no-arg) fname value]]
 			][
-				switch value/header and flag-fetch-mask [
-					FETCH_WORD
-					FETCH_REFINEMENT [
+				switch value/header and flag-fetch-mode [
+					FETCH_WORD [
 						either mode = MODE_APPLY [
 							#if debug? = yes [if verbose > 0 [log "fetching argument as-is"]]
 							stack/push pc
@@ -772,7 +770,7 @@ interpreter: context [
 		while [value < tail][
 			switch TYPE_OF(value) [
 				TYPE_TYPESET [
-					if value/header and flag-fetch-mask <> FETCH_SET_WORD [
+					if value/header and flag-fetch-mode <> FETCH_SET_WORD [
 						either required? [
 							bits: (as byte-ptr! value) + 4
 							BS_TEST_BIT(bits TYPE_UNSET set?)
@@ -780,7 +778,7 @@ interpreter: context [
 							either all [
 								set?						;-- if unset! is accepted
 								pc >= end					;-- if no more values to fetch
-								value/header and flag-fetch-mask = FETCH_LIT_WORD
+								value/header and flag-fetch-mode = FETCH_LIT_WORD
 							][
 								either apply? [none/push][unset/push] ;-- then, supply an unset argument
 							][
@@ -859,7 +857,7 @@ interpreter: context [
 						all [
 							value < tail
 							TYPE_OF(value) = TYPE_TYPESET
-							value/header and flag-fetch-mask <> FETCH_SET_WORD
+							value/header and flag-fetch-mode <> FETCH_SET_WORD
 						]
 					][
 						fetch-arg
