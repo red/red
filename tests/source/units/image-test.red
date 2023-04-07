@@ -171,6 +171,35 @@ img: make image! 2x2
 	;	img3: create-test-image 6x2
 	;	--assert img2 = img3
 
+	im: make image! [4x4 #{
+	    010000020000030000040000
+	    050000060000070000080000
+	    0900000A00000B00000C0000
+	    0D00000E00000F0000100000
+	}]
+
+	--test-- "image copy 10"
+		im2: copy skip im 1x1
+		im3: make image! [3x3 #{0600000700000800000A00000B00000C00000E00000F0000100000}]
+		--assert im2 = im3
+
+	--test-- "image copy 11"
+		im2: copy/part skip im 1x1 2x2
+		im3: make image! [2x2 #{0600000700000A00000B0000}]
+		--assert im2 = im3
+
+	--test-- "image copy 12"
+		im2: copy/part skip im 1x1 skip im 3x3
+		im4: copy/part skip im 3x3 skip im 1x1
+		im3: make image! [2x2 #{0600000700000A00000B0000}]
+		--assert im2 = im3
+		--assert im4 = im3
+
+	--test-- "image copy 13"
+		im2: copy/part tail im -2x-2
+		im3: make image! [2x2 #{0B00000C00000F0000100000}]
+		--assert im2 = im3
+
 ===end-group===
 
 ===start-group=== "image issues"
