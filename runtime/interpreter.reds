@@ -72,7 +72,7 @@ interpreter: context [
 		;APPLY_ARGS_FROM:	8							;-- fetch arguments from a context and apply arguments
 	]
 	
-	#enum fetch-type! [									;	Bits 22-20 of a typeset! slot header
+	#enum fetch-type! [									;	Bits 21-20 of a typeset! slot header
 		FETCH_WORD:			00000000h
 		FETCH_GET_WORD:		00100000h
 		FETCH_LIT_WORD:		00200000h
@@ -230,7 +230,7 @@ interpreter: context [
 		if positive? fun-locs [_function/init-locals fun-locs]
 
 		tracing?: no
-		catch RED_THROWN_ERROR [_function/call trace-fun ctx as red-value! words/_interp-cb CB_INTERPRETER]
+		catch RED_THROWN_ERROR [call trace-fun ctx as red-value! words/_interp-cb CB_INTERPRETER]
 		if system/thrown <> 0 [re-throw]
 		tracing?: yes
 		
@@ -281,6 +281,100 @@ interpreter: context [
 		no
 	]
 	
+	preprocess-spec: func [
+		native 	[red-native!]
+		return: [node!]
+		/local
+			fun		  [red-function!]
+			vec		  [red-vector!]
+			list	  [red-block!]
+			value	  [red-value!]
+			tail	  [red-value!]
+			saved	  [red-value!]
+			base	  [red-value!]
+			int		  [red-integer!]
+			w		  [red-word!]
+			blk		  [red-block!]
+			ts		  [red-typeset!]
+			s		  [series!]
+			mode	  [integer!]
+			locals	  [integer!]
+			refs	  [integer!]
+			function? [logic!]
+			store	  [subroutine!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "cache: pre-processing function spec"]]
+
+		store: [
+			blk: as red-block! value + 1
+			ts: either all [
+				blk < tail
+				TYPE_OF(blk) = TYPE_BLOCK
+				positive? block/rs-length? blk
+			][
+				typeset/make-with list blk
+			][
+				typeset/make-default list
+			]
+			ts/header: ts/header and flag-fetch-mask or mode
+		]
+		saved: stack/top
+		function?: any [TYPE_OF(native) = TYPE_ROUTINE TYPE_OF(native) = TYPE_FUNCTION]
+
+		s: as series! either function? [
+			fun:  as red-function! native
+			fun/spec/value
+		][
+			native/spec/value
+		]
+		vec:	null
+		locals: 0
+		refs:	1										;-- 1-based array index
+		list:	block/push-only* 8
+		value:	s/offset
+		tail:	s/tail
+
+		while [value < tail][
+			#if debug? = yes [if verbose > 0 [print-line ["cache: spec entry type: " TYPE_OF(value)]]]
+			switch TYPE_OF(value) [
+				TYPE_WORD		[mode: FETCH_WORD     store]
+				TYPE_GET_WORD	[mode: FETCH_GET_WORD store]
+				TYPE_LIT_WORD	[mode: FETCH_LIT_WORD store]
+				TYPE_REFINEMENT [
+					w: as red-word! value
+					either refinements/local/symbol = symbol/resolve w/symbol [
+						base: value
+						value: value + 1
+						while [all [value < tail TYPE_OF(value) <> TYPE_SET_WORD]][value: value + 1]
+						locals: (as-integer value - base) >> 4
+					][
+						w: as red-word! block/rs-append list value
+						unless function? [
+							if null? vec [vec: vector/make-at stack/push* 12 TYPE_INTEGER 4]
+							vector/rs-append-int vec -1
+							w/index: refs
+							refs: refs + 1
+						]
+					]
+				]
+				TYPE_SET_WORD [
+					w: as red-word! value
+					if words/return* <> symbol/resolve w/symbol [
+						fire [TO_ERROR(script bad-func-def)	w]
+					]
+					mode: FETCH_SET_WORD
+					store
+				]
+				default [0]								;-- ignore other values
+			]
+			value: value + 1
+		]
+		if locals > 0 [integer/make-in list locals]
+		if all [not function? vec <> null][block/rs-append list as red-value! vec]
+		stack/top: saved
+		list/node
+	]
+	
 	set-locals: func [
 		fun [red-function!]
 		/local
@@ -310,6 +404,69 @@ interpreter: context [
 			value: value + 1
 		]
 	]
+	
+	call: func [
+		fun	  [red-function!]
+		ctx	  [node!]
+		ref	  [red-value!]
+		class [cb-class!]
+		/local
+			s	   [series!]
+			native [red-native!]
+			saved  [node!]
+			fctx   [red-context!]
+			int	   [red-integer!]
+			prev?  [logic!]
+			allow? [logic!]
+			call ocall									;@@ FIXME: avoid 64-bit stack slots, leads to GCing garbage
+	][
+		prev?: tracing?
+		allow?: all [prev? class <> CB_INTERPRETER]
+		if allow? [
+			int: as red-integer! #get system/state/callbacks/bits
+			assert TYPE_OF(int) = TYPE_INTEGER
+			if class and int/value = 0 [tracing?: no]	;-- disable tracing for unwanted internal callbacks
+		]
+		s: as series! fun/more/value
+		native: as red-native! s/offset + 2
+		either zero? native/code [
+			if allow? [fire-call ref fun]
+			eval-function fun as red-block! s/offset ref
+			if allow? [
+				fire-return ref fun
+				tracing?: prev?
+			]
+		][
+			fctx: GET_CTX(fun)
+			saved: fctx/values
+			assert system/thrown = 0
+			catch RED_THROWN_ERROR [
+				either ctx = global-ctx [
+					call: as function! [] native/code
+					call
+					0									;FIXME: required to pass compilation
+				][
+					ocall: as function! [octx [node!]] native/code
+					ocall ctx
+					0
+				]
+			]
+			fctx/values: saved
+			if allow? [tracing?: prev?]
+
+			switch system/thrown [
+				RED_THROWN_ERROR
+				RED_THROWN_BREAK
+				RED_THROWN_CONTINUE
+				RED_THROWN_THROW	[re-throw]			;-- let exception pass through
+				RED_THROWN_EXIT
+				RED_THROWN_RETURN	[stack/unwind-last]
+				default [0]								;-- else, do nothing
+			]
+			system/thrown: 0
+		]
+	]
+
 	
 	eval-function: func [
 		fun  [red-function!]
@@ -567,7 +724,7 @@ interpreter: context [
 			]
 
 			if null? args [
-				args: _function/preprocess-spec as red-native! op
+				args: preprocess-spec as red-native! op
 				either fun <> null [
 					blk/header: TYPE_BLOCK
 					blk/head:	0
@@ -677,7 +834,7 @@ interpreter: context [
 			apply?	  [logic!]
 			native?	  [logic!]
 			fetch-arg [subroutine!]
-			call
+			calln
 	][
 		fetch-arg: [
 			either pc >= end [
@@ -736,7 +893,7 @@ interpreter: context [
 		s: as series! fun/more/value
 		blk: as red-block! s/offset + 1
 		either TYPE_OF(blk) = TYPE_BLOCK [args: blk/node][
-			args: _function/preprocess-spec native
+			args: preprocess-spec native
 			blk/header: TYPE_BLOCK
 			blk/head:	0
 			blk/node:	args
@@ -762,7 +919,7 @@ interpreter: context [
 					p: as int-ptr! s/offset
 					size: (as-integer (as int-ptr! s/tail) - p) / 4
 					ref-array: system/stack/top - size
-					system/stack/top: ref-array				;-- reserve space on native stack for refs array
+					system/stack/top: ref-array			;-- reserve space on native stack for refs array
 					copy-memory as byte-ptr! ref-array as byte-ptr! p size * 4
 				]
 			]
@@ -776,8 +933,8 @@ interpreter: context [
 							BS_TEST_BIT(bits TYPE_UNSET set?)
 
 							either all [
-								set?						;-- if unset! is accepted
-								pc >= end					;-- if no more values to fetch
+								set?					;-- if unset! is accepted
+								pc >= end				;-- if no more values to fetch
 								value/header and flag-fetch-mode = FETCH_LIT_WORD
 							][
 								either apply? [none/push][unset/push] ;-- then, supply an unset argument
@@ -878,7 +1035,7 @@ interpreter: context [
 							value: value + 1
 						]
 					]
-					if function? [stack/top: saved]				;-- clear up all temporary stack slots
+					if function? [stack/top: saved]		;-- clear up all temporary stack slots
 					ref: ref + 1
 				]
 			]
@@ -893,8 +1050,8 @@ interpreter: context [
 		][
 			if ref-array <> null [system/stack/top: ref-array] ;-- reset native stack to our custom arguments frame
 			if native? [push no]						;-- avoid 2nd type-checking for natives.
-			call: as function! [] xcode					;-- direct call for actions/natives
-			call
+			calln: as function! [] xcode				;-- direct call for actions/natives
+			calln
 		]
 		pc
 	]
@@ -1086,7 +1243,7 @@ interpreter: context [
 				]
 				stack/mark-interp-func name
 				pc: eval-arguments as red-native! value pc end code path slot mode
-				_function/call as red-function! caller ctx pos CB_INTERPRETER
+				call as red-function! caller ctx pos CB_INTERPRETER
 				either sub? [stack/unwind][stack/unwind-last]
 				#if debug? = yes [
 					if verbose > 0 [

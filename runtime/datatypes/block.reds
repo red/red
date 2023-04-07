@@ -1250,7 +1250,7 @@ block: context [
 
 		cnt: _function/count-locals f/spec 0 no
 		if positive? cnt [_function/init-locals cnt]
-		_function/call f f/ctx as red-value! words/_compare-cb CB_SORT
+		interpreter/call f f/ctx as red-value! words/_compare-cb CB_SORT
 		stack/unwind
 		stack/pop 1
 

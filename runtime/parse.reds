@@ -879,7 +879,7 @@ parser: context [
 		rule/head: offset
 		assert system/thrown = 0
 		
-		catch RED_THROWN_ERROR [_function/call fun ctx as red-value! words/_parse-cb CB_PARSE]
+		catch RED_THROWN_ERROR [interpreter/call fun ctx as red-value! words/_parse-cb CB_PARSE]
 
 		PARSE_RESTORE_SERIES							;-- restore localy saved series/head first
 		if system/thrown <> 0 [reset saved? re-throw]

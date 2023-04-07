@@ -433,7 +433,7 @@ object: context [
 		stack/push old
 		stack/push new
 		if positive? count [_function/init-locals count]
-		_function/call fun obj/ctx as red-value! words/_on-change* CB_OBJ_CHANGE
+		interpreter/call fun obj/ctx as red-value! words/_on-change* CB_OBJ_CHANGE
 		stack/unwind
 	]
 	
@@ -485,7 +485,7 @@ object: context [
 			integer/push pos
 			integer/push nb
 			if positive? count [_function/init-locals count]
-			_function/call fun owner/ctx as red-value! words/_on-deep-change* CB_OBJ_DEEP
+			interpreter/call fun owner/ctx as red-value! words/_on-deep-change* CB_OBJ_DEEP
 			stack/unwind
 		]
 	]
