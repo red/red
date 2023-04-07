@@ -509,12 +509,8 @@ OS-image: context [
 
 	copy-rect: func [
 		dst		[byte-ptr!]
-		dw		[integer!]
-		dh		[integer!]
 		ds		[integer!]
 		src		[byte-ptr!]
-		sw		[integer!]
-		sh		[integer!]
 		ss		[integer!]
 		x		[integer!]
 		y		[integer!]
@@ -524,7 +520,7 @@ OS-image: context [
 			from	[byte-ptr!]
 			to		[byte-ptr!]
 	][
-		offset: y * ss + x * 4
+		offset: y * ss + (x * 4)
 		from: src + offset
 		to: dst
 		loop lines [
@@ -594,7 +590,7 @@ OS-image: context [
 			dst-buf: allocate w * h * 4
 			dst/node: make-node null as int-ptr! dst-buf IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED w h
 			src-buf: as byte-ptr! inode0/buffer
-			copy-rect dst-buf w h w * 4 src-buf width height width * 4 x y h
+			copy-rect dst-buf w * 4 src-buf width * 4 x y h
 		][
 			handle: gdk_pixbuf_new_subpixbuf gdk_pixbuf_copy handle0 x y w h
 			dst/node: make-node handle null 0 w h
