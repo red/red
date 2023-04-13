@@ -75,7 +75,6 @@
 	red/money/push
 	red/none/push
 	red/object/push
-	red/op/push
 	red/pair/push
 	red/paren/push
 	red/path/push

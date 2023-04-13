@@ -256,9 +256,12 @@ red-native!: alias struct! [
 
 red-op!: alias struct! [
 	header 	[integer!]								;-- cell header
-	code	[integer!]								;-- native code function pointer
+	code	[integer!]								;-- native code function pointer or function's context
 	spec	[node!]									;-- op spec block reference
-	args	[node!]									;-- list of typed arguments
+	more	[node!]									;-- additional members storage block:
+	;	ctx		[red-context!]						;-- 	function's context (only symbols, no values)
+	;	args	[red-block!]						;-- 	list of typed arguments (including optional ones)
+	;	...											;-- 	extra function fields
 ]
 
 red-function!: alias struct! [

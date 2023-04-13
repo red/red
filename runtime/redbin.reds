@@ -30,11 +30,8 @@ redbin: context [
 	#define REDBIN_SET_MASK				02000000h
 	#define REDBIN_OWNER_MASK			01000000h
 
-	#define REDBIN_NATIVE_MASK			00800000h
-	#define REDBIN_BODY_MASK			00400000h
-	#define REDBIN_COMPLEMENT_MASK		00200000h
-	#define REDBIN_MONEY_SIGN_MASK		00100000h
-
+	#define REDBIN_COMPLEMENT_MASK		00800000h
+	#define REDBIN_MONEY_SIGN_MASK		00400000h
 	#define REDBIN_REFERENCE_MASK		00080000h
 	
 	;-- Special record types
@@ -539,17 +536,18 @@ redbin: context [
 			type    [integer!]
 			header  [integer!]
 			mask	[integer!]
+			flags	[integer!]
 			first?  [logic!]
 			global? [logic!]
 	][
-		type:   TYPE_OF(data)
+		type: TYPE_OF(data)
 		mask: either zero? (data/header and flag-new-line) [0][REDBIN_NEWLINE_MASK]
-		header: type or mask
-		header: header or switch type [
+		flags: switch type [
 			TYPE_TUPLE [TUPLE_SIZE?(data) << 8]
-			TYPE_MONEY [(money/get-sign as red-money! data) << 20]
+			TYPE_MONEY [(money/get-sign as red-money! data) << 22]
 			default    [0]
 		]
+		header: type or mask or flags
 		#if debug? = yes [if verbose > 0 [loop indent << 2 [prin " "] probe ["<< type: " type]]]
 
 		switch type [
@@ -1244,47 +1242,16 @@ redbin: context [
 		symbols [red-binary!]
 		table   [red-binary!]
 		strings [red-binary!]
-		/local
-			slot    [red-value!]
-			series  [series!]
-			node    [node!]
-			type    [integer!]
-			native? [logic!]
-			body?   [logic!]
 	][
 		;@@ TBD: #4563
-		native?: data/header and flag-native-op <> 0	;-- native, action
-		body?:   data/header and body-flag      <> 0	;-- function, routine
-		
-		if native? [header: header or REDBIN_NATIVE_MASK]
-		if body?   [header: header or REDBIN_BODY_MASK]
-		
+		header: header and flag-subtype-mask or (data/header and flag-subtype-select)
 		store payload header
 		
-		either body? [
-			node:   as node! data/data1
-			series: as series! node/value
-			slot:   series/offset + 3
-			type:   TYPE_OF(slot)
-			
-			assert any [type = TYPE_FUNCTION type = TYPE_ROUTINE]
-			either type = TYPE_FUNCTION [
-				encode-value slot payload symbols table strings
-			][
-				reset
-				fire [TO_ERROR(access no-codec) data]
-			]
-		][
-			slot: stack/push*
-			slot/data1:  0
-			slot/data2:  data/data2
-			slot/header: TYPE_BLOCK
-			
-			encode-value slot payload symbols table strings
-			stack/pop 1
-			store payload data/data1
-		]
-		
+		if TYPE_OF(data) = TYPE_ROUTINE [reset fire [TO_ERROR(access no-codec) data]]
+		header: data/header
+		set-type data GET_OP_SUBTYPE(data)
+		encode-value data payload symbols table strings
+		data/header: header	
 		offset: offset - 1							;-- compensate for extra recursion
 	]
 	
@@ -1295,60 +1262,17 @@ redbin: context [
 		nl?		[logic!]
 		return: [int-ptr!]
 		/local
-			op      [red-op!]
-			extra   [red-function!]
-			spec    [red-block!]
-			series  [series!]
-			node    [node!]
-			next    [integer!]
-			native? [logic!]
-			body?   [logic!]
+			op   [red-op!]
+			flag [integer!]
 	][
-		native?: data/1 and REDBIN_NATIVE_MASK <> 0
-		body?:   data/1 and REDBIN_BODY_MASK   <> 0
-		data:    data + 1
-		
-		op: as red-op! ALLOC_TAIL(parent)
-		op/header: TYPE_UNSET
-		
-		parent: block/push-only* 1
-		
-		node: either body? [
-			assert data/1 and FFh = TYPE_FUNCTION
-			next: 0
-			node: preprocess-binding data table :next
-			data: fill-context as int-ptr! next table node
-			
-			series: as series! node/value
-			extra:  as red-function! series/offset + 1
-			assert TYPE_OF(extra) = TYPE_FUNCTION
-			
-			series: as series! extra/more/value
-			copy-cell as red-value! extra series/offset + 3
-			
-			extra/spec
-		][
-			data: decode-block data table parent nl?
-			spec: as red-block! block/rs-head parent
-			spec/node
-		]
-		
-		op/args:   null
-		op/spec:   node
-		op/code:   either body? [as integer! extra/more][data/1]
-		op/header: TYPE_OP
-		
-		if nl?     [op/header: op/header or flag-new-line]
-		if native? [op/header: op/header or flag-native-op]
-		if body?   [op/header: op/header or body-flag]
-		
-		if body? [
-			data: fill-spec-body data table extra
-			op/spec: extra/spec						;-- refresh node pointer (case with referenced buffers)
-		]
-		
-		stack/pop 1
-		either body? [data][data + 1]
+		flag: data/value and flag-subtype-select
+		data: data + 1
+		op: as red-op! block/rs-tail parent
+		data: decode-value data table parent
+		op/header: op/header and flag-subtype-mask or flag
+		set-type as red-value! op TYPE_OP
+		if nl? [op/header: op/header or flag-new-line]
+		data
 	]
 	
 	;-- function!
@@ -1438,21 +1362,12 @@ redbin: context [
 			fun: (as red-function! block/rs-tail parent) - 1
 			
 			type: TYPE_OF(fun)
-			assert any [type = TYPE_FUNCTION type = TYPE_OP ANY_WORD?(type)]
-			either type = TYPE_OP [
-				op: as red-op! fun
-				node: as node! op/code
-				series: as series! node/value
-				source: series/offset + 3
-				assert TYPE_OF(source) = TYPE_FUNCTION
-			][
-				series: as series! fun/ctx/value
-				source: series/offset + 1
-			]
+			assert any [type = TYPE_FUNCTION ANY_WORD?(type)]
+			series: as series! fun/ctx/value
+			source: series/offset + 1
+			copy-cell source as red-value! fun
 			
-			fun: as red-function! copy-cell source as red-value! fun
 			if nl? [fun/header: fun/header or flag-new-line]
-			
 			data
 		][
 			next: 0
@@ -1717,12 +1632,9 @@ redbin: context [
 				type2 = TYPE_OP
 				ANY_WORD?(type2)
 			]
-			
 			if type2 = TYPE_OP [					;-- locate function! slot
 				op: as red-op! word
-				assert op/header and flag-native-op =  0
-				assert op/header and body-flag      <> 0
-				
+				assert GET_OP_SUBTYPE(op) = TYPE_FUNCTION
 				node: as node! op/code
 				series: as series! node/value
 				copy-cell as red-value! series/offset + 3 as red-value! word

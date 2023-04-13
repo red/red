@@ -647,6 +647,16 @@ stack: context [										;-- call stack
 		copy-cell last arguments
 	]
 	
+	push-last: func [
+		value 	  [red-value!]
+		return:   [red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "stack/push-last"]]
+
+		top: arguments + 1
+		copy-cell value arguments
+	]
+	
 	push*: func [
 		return:  [red-value!]
 		/local

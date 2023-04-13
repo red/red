@@ -3668,22 +3668,6 @@ red: context [
 					no
 				]
 			]
-			op! [
-				;entry: select functions to word! pc/3
-				;either find [action! native!] entry/1 [
-				;	name: to set-word! pc/3
-				;	redbin/emit-word/root/set? name none none
-				;	redbin/emit-op name
-				;	fetch-functions back pc
-				;	pc: skip pc 3
-				;	yes
-				;][
-					no
-				;]
-			]
-			typeset! [
-				no
-			]
 		][
 			no
 		]

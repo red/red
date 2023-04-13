@@ -222,17 +222,13 @@ collector: context [
 				TYPE_NATIVE
 				TYPE_OP [
 					native: as red-native! value
-					if all [TYPE_OF(native) <> TYPE_OP native/more <> null][
+					if native/more <> null [
 						#if debug? = yes [if verbose > 1 [print "native/more"]]
 						mark-block-node native/more
 					]
 					if native/spec <> null [			;@@ should not happen!
 						#if debug? = yes [if verbose > 1 [print "native/spec"]]
 						mark-block-node native/spec
-					]
-					if native/header and body-flag <> 0 [
-						#if debug? = yes [if verbose > 1 [print "op/code"]]
-						mark-block-node as node! native/code
 					]
 				]
 				#if any [OS = 'macOS OS = 'Linux OS = 'Windows][

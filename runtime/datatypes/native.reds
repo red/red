@@ -65,6 +65,7 @@ native: context [
 			index [integer!]
 			node  [node!]
 			s	  [series!]
+			type  [integer!]
 	][
 		case [
 			field = words/spec [
@@ -74,14 +75,10 @@ native: context [
 				blk/head:	0
 			]
 			field = words/body [
-				either all [TYPE_OF(native) = TYPE_OP native/header and body-flag <> 0][
-					node: as node! native/code
-					either null? node [
-						stack/set-last none-value
-					][
-						s: as series! node/value
-						stack/set-last s/offset
-					]
+				type: GET_OP_SUBTYPE(native)
+				either all [TYPE_OF(native) = TYPE_OP type = TYPE_FUNCTION type = TYPE_ROUTINE][
+					s: as series! native/more/value
+					stack/set-last s/offset
 				][
 					table: either TYPE_OF(native) = TYPE_NATIVE [natives/table][actions/table]
 					index: 0

@@ -3013,6 +3013,7 @@ natives: context [
 			as red-value! words/_expr
 			null
 			mode
+			no
 	]
 
 	;--- Natives helper functions ---
