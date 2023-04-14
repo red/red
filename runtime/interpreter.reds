@@ -605,13 +605,16 @@ interpreter: context [
 			pos	bits			[byte-ptr!]
 			index arg-cnt ref-cnt loc-cnt sym-cnt size type xcode idx [integer!]
 			function? routine? set? apply? native? ifx?	[logic!]
-			fetch-arg get-word	[subroutine!]
+			fetch-arg get-spec-word	[subroutine!]
 			calln
 	][
-		get-word:  [_hashtable/get-ctx-word ctx sym-cnt]
+		get-spec-word: [
+			ref: _hashtable/get-ctx-word ctx sym-cnt
+			word/push* ref/symbol
+		]
 		fetch-arg: [
 			either pc >= end [
-				either apply? [none/push][fire [TO_ERROR(script no-arg) fname get-word]]
+				either apply? [none/push][fire [TO_ERROR(script no-arg) fname get-spec-word]]
 			][
 				switch value/header and flag-fetch-mode [
 					FETCH_WORD [
@@ -719,7 +722,7 @@ interpreter: context [
 								arg:  stack/top - 1
 								type: TYPE_OF(arg)
 								BS_TEST_BIT(bits type set?)
-								unless set? [fire [TO_ERROR(script expect-arg) fname datatype/push type get-word]]
+								unless set? [fire [TO_ERROR(script expect-arg) fname datatype/push type get-spec-word]]
 							]
 							arg-cnt: arg-cnt + 1
 						][
@@ -736,7 +739,7 @@ interpreter: context [
 							fetch-arg
 							arg:  stack/top - 1
 							type: TYPE_OF(arg)
-							if type <> TYPE_LOGIC [fire [TO_ERROR(script expect-arg) fname datatype/push type get-word]]
+							if type <> TYPE_LOGIC [fire [TO_ERROR(script expect-arg) fname datatype/push type get-spec-word]]
 							unless function? [
 								bool: as red-logic! arg
 								if bool/value [ref-array/ref-cnt: arg-cnt]
@@ -800,7 +803,7 @@ interpreter: context [
 						type: TYPE_OF(new)
 						bits: (as byte-ptr! value) + 4
 						BS_TEST_BIT(bits type set?)
-						unless set? [fire [TO_ERROR(script expect-arg) fname datatype/push type get-word]]
+						unless set? [fire [TO_ERROR(script expect-arg) fname datatype/push type get-spec-word]]
 						if function? [
 							copy-cell new arg
 							arg: arg + 1
