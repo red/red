@@ -577,6 +577,116 @@ interpreter: context [
 			][call]
 		]
 	]
+	
+	eval-path: func [
+		value   [red-value!]							;-- path to evaluate
+		pc		[red-value!]
+		end		[red-value!]
+		code	[red-block!]
+		set?	[logic!]
+		get?	[logic!]
+		sub?	[logic!]
+		case?	[logic!]
+		return: [red-value!]
+		/local
+			head tail item parent gparent saved prev arg p-item [red-value!]
+			path  [red-path!]
+			obj	  [red-object!]
+			w	  [red-word!]
+			ser	  [red-series!]
+			type idx [integer!]
+			tail? [logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "eval: path"]]
+		
+		path: as red-path! value
+		head: block/rs-head as red-block! path
+		tail: block/rs-tail as red-block! path
+		if head = tail [fire [TO_ERROR(script empty-path)]]
+		if tracing? [fire-event EVT_ENTER as red-block! path head null null]
+		if tracing? [fire-event EVT_FETCH as red-block! path head head head]
+		
+		item:  head + 1
+		saved: stack/top
+		idx:   0
+		
+		if TYPE_OF(head) <> TYPE_WORD [fire [TO_ERROR(script word-first) path]]
+		
+		p-item: head
+		w: as red-word! head
+		parent: _context/get w
+		gparent: null
+		
+		switch TYPE_OF(parent) [
+			TYPE_ACTION									;@@ replace with TYPE_ANY_FUNCTION
+			TYPE_NATIVE
+			TYPE_ROUTINE
+			TYPE_FUNCTION [
+				if set? [fire [TO_ERROR(script invalid-path-set) path]]
+				if get? [fire [TO_ERROR(script invalid-path-get) path]]
+				pc: eval-code parent pc end code yes path item - 1 parent MODE_FETCH no
+				unless sub? [stack/set-last stack/top]
+				if tracing? [fire-event EVT_EXIT as red-block! path tail null stack/arguments]
+				return pc
+			]
+			TYPE_UNSET [fire [TO_ERROR(script unset-path) path head]]
+			default	   [0]
+		]
+		if tracing? [fire-event EVT_PUSH as red-block! path head head parent]
+
+		if w/ctx <> global-ctx [
+			obj: as red-object! GET_CTX(w) + 1
+			if TYPE_OF(obj) <> TYPE_OBJECT [gparent: as red-value! obj]
+		]
+		
+		while [item < tail][
+			#if debug? = yes [if verbose > 0 [print-line ["eval: path parent: " TYPE_OF(parent)]]]
+			
+			if tracing? [fire-event EVT_FETCH as red-block! path item item item]
+			
+			value: switch TYPE_OF(item) [ 
+				TYPE_GET_WORD [_context/get as red-word! item]
+				TYPE_PAREN 	  [
+					eval as red-block! item no			;-- eval paren content
+					stack/top - 1
+				]
+				default [item]
+			]
+			if tracing? [fire-event EVT_PUSH as red-block! path item item value]
+			if TYPE_OF(value) = TYPE_UNSET [fire [TO_ERROR(script invalid-path) path item]]
+			#if debug? = yes [if verbose > 0 [print-line ["eval: path item: " TYPE_OF(value)]]]
+			
+			;-- invoke eval-path action
+			prev: parent
+			type: TYPE_OF(parent)
+			tail?: item + 1 = tail
+			arg: either all [set? tail?][stack/arguments][null]
+			parent: actions/eval-path parent value arg path gparent p-item idx case? get? tail?
+
+			if all [not get? not set?][
+				switch TYPE_OF(parent) [
+					TYPE_ACTION							;@@ replace with TYPE_ANY_FUNCTION
+					TYPE_NATIVE
+					TYPE_ROUTINE
+					TYPE_FUNCTION [
+						pc: eval-code parent pc end code sub? path item prev MODE_FETCH no
+						parent: stack/get-top
+						item: tail						;-- force loop exit
+					]
+					default [0]
+				]
+			]
+			p-item: item
+			gparent: prev								;-- save previous parent reference
+			item: item + 1
+			idx: idx + 1
+		]
+		if tracing? [fire-event EVT_EXIT as red-block! path tail null parent]
+
+		stack/top: saved
+		either sub? [stack/push parent][stack/push-last parent]
+		pc
+	]
 
 	eval-arguments: func [
 		native 	[red-native!]
@@ -832,117 +942,7 @@ interpreter: context [
 		]
 		pc
 	]
-	
-	eval-path: func [
-		value   [red-value!]							;-- path to evaluate
-		pc		[red-value!]
-		end		[red-value!]
-		code	[red-block!]
-		set?	[logic!]
-		get?	[logic!]
-		sub?	[logic!]
-		case?	[logic!]
-		return: [red-value!]
-		/local
-			head tail item parent gparent saved prev arg p-item [red-value!]
-			path  [red-path!]
-			obj	  [red-object!]
-			w	  [red-word!]
-			ser	  [red-series!]
-			type idx [integer!]
-			tail? [logic!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "eval: path"]]
 		
-		path: as red-path! value
-		head: block/rs-head as red-block! path
-		tail: block/rs-tail as red-block! path
-		if head = tail [fire [TO_ERROR(script empty-path)]]
-		if tracing? [fire-event EVT_ENTER as red-block! path head null null]
-		if tracing? [fire-event EVT_FETCH as red-block! path head head head]
-		
-		item:  head + 1
-		saved: stack/top
-		idx:   0
-		
-		if TYPE_OF(head) <> TYPE_WORD [fire [TO_ERROR(script word-first) path]]
-		
-		p-item: head
-		w: as red-word! head
-		parent: _context/get w
-		gparent: null
-		
-		switch TYPE_OF(parent) [
-			TYPE_ACTION									;@@ replace with TYPE_ANY_FUNCTION
-			TYPE_NATIVE
-			TYPE_ROUTINE
-			TYPE_FUNCTION [
-				if set? [fire [TO_ERROR(script invalid-path-set) path]]
-				if get? [fire [TO_ERROR(script invalid-path-get) path]]
-				pc: eval-code parent pc end code yes path item - 1 parent MODE_FETCH no
-				unless sub? [stack/set-last stack/top]
-				if tracing? [fire-event EVT_EXIT as red-block! path tail null stack/arguments]
-				return pc
-			]
-			TYPE_UNSET [fire [TO_ERROR(script unset-path) path head]]
-			default	   [0]
-		]
-		if tracing? [fire-event EVT_PUSH as red-block! path head head parent]
-
-		if w/ctx <> global-ctx [
-			obj: as red-object! GET_CTX(w) + 1
-			if TYPE_OF(obj) <> TYPE_OBJECT [gparent: as red-value! obj]
-		]
-		
-		while [item < tail][
-			#if debug? = yes [if verbose > 0 [print-line ["eval: path parent: " TYPE_OF(parent)]]]
-			
-			if tracing? [fire-event EVT_FETCH as red-block! path item item item]
-			
-			value: switch TYPE_OF(item) [ 
-				TYPE_GET_WORD [_context/get as red-word! item]
-				TYPE_PAREN 	  [
-					eval as red-block! item no			;-- eval paren content
-					stack/top - 1
-				]
-				default [item]
-			]
-			if tracing? [fire-event EVT_PUSH as red-block! path item item value]
-			if TYPE_OF(value) = TYPE_UNSET [fire [TO_ERROR(script invalid-path) path item]]
-			#if debug? = yes [if verbose > 0 [print-line ["eval: path item: " TYPE_OF(value)]]]
-			
-			;-- invoke eval-path action
-			prev: parent
-			type: TYPE_OF(parent)
-			tail?: item + 1 = tail
-			arg: either all [set? tail?][stack/arguments][null]
-			parent: actions/eval-path parent value arg path gparent p-item idx case? get? tail?
-
-			if all [not get? not set?][
-				switch TYPE_OF(parent) [
-					TYPE_ACTION							;@@ replace with TYPE_ANY_FUNCTION
-					TYPE_NATIVE
-					TYPE_ROUTINE
-					TYPE_FUNCTION [
-						pc: eval-code parent pc end code sub? path item prev MODE_FETCH no
-						parent: stack/get-top
-						item: tail						;-- force loop exit
-					]
-					default [0]
-				]
-			]
-			p-item: item
-			gparent: prev								;-- save previous parent reference
-			item: item + 1
-			idx: idx + 1
-		]
-		if tracing? [fire-event EVT_EXIT as red-block! path tail null parent]
-
-		stack/top: saved
-		either sub? [stack/push parent][stack/push-last parent]
-		pc
-	]
-	
 	eval-code: func [
 		value	[red-value!]
 		pc		[red-value!]
