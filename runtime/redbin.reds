@@ -1225,7 +1225,7 @@ redbin: context [
 		node: _context/make spec yes no CONTEXT_FUNCTION
 		copy-cell as red-value! (as series! node/value) + 1 alloc-tail more	;-- ctx slot
 		value: alloc-tail more							;-- args cache slot
-		value/header: TYPE_NONE
+		value/header: TYPE_UNSET
 		
 		if nl? [cell/header: cell/header or flag-new-line]
 		if codec? [stack/pop 1]					;-- drop an unwanted block
@@ -1362,10 +1362,14 @@ redbin: context [
 			fun: (as red-function! block/rs-tail parent) - 1
 			
 			type: TYPE_OF(fun)
-			assert any [type = TYPE_FUNCTION ANY_WORD?(type)]
-			series: as series! fun/ctx/value
-			source: series/offset + 1
-			copy-cell source as red-value! fun
+			assert any [type = TYPE_FUNCTION type = TYPE_OP ANY_WORD?(type)]
+			either type = TYPE_OP [
+				fun/header: TYPE_FUNCTION
+			][
+				series: as series! fun/ctx/value
+				source: series/offset + 1
+				copy-cell source as red-value! fun
+			]
 			
 			if nl? [fun/header: fun/header or flag-new-line]
 			data

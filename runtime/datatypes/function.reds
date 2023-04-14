@@ -463,11 +463,11 @@ _function: context [
 
 		f-ctx: either null? ctx [_context/make spec yes no CONTEXT_FUNCTION][ctx]
 		fun: as red-function! stack/push*
-		fun/header:  TYPE_UNSET
-		fun/spec:	 spec/node
-		fun/ctx:	 f-ctx
-		fun/more:	 alloc-unset-cells 5
-		fun/header:  TYPE_FUNCTION or flags
+		fun/header: TYPE_UNSET
+		fun/spec:	spec/node
+		fun/ctx:	f-ctx
+		fun/more:	alloc-unset-cells 5
+		fun/header: TYPE_FUNCTION or flags
 		
 		s: as series! f-ctx/value
 		copy-cell as red-value! fun s/offset + 1		;-- set back-reference
@@ -483,11 +483,12 @@ _function: context [
 		copy-cell value alloc-tail more					;-- store body block or none
 		
 		alloc-tail more									;-- skip the precompiled args slot
-		native: as red-native! alloc-tail more			;; (reserved for future use)
-		if code <> 0 [native/header: TYPE_NATIVE]
-		native/code: code
-		native/spec: null
-		native/more: null
+		
+		int: as red-integer! alloc-tail more			;; (reserved for future use)
+		if code <> 0 [
+			int/header: TYPE_INTEGER
+			int/value: code
+		]
 		
 		value: alloc-tail more							;-- function! value self-reference (for op!)
 		value/header: TYPE_UNSET

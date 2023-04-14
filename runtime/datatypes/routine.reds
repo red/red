@@ -77,14 +77,11 @@ routine: context [
 		value: alloc-tail more							;-- args cache
 		value/header: TYPE_UNSET
 
-		native: as red-native! alloc-tail more
-		native/header: TYPE_NATIVE
-		native/code: code
-		native/spec: null
-		native/more: null
+		int: as red-integer! alloc-tail more			;-- code pointer
+		int/header: TYPE_INTEGER
+		int/value: code
 
-		value: alloc-tail more							;-- routine value self-reference (for op!)
-		value/header: TYPE_UNSET
+		alloc-tail more							;-- routine value self-reference (for op!)
 		
 		int: as red-integer! alloc-tail more			;-- return type
 		int/header: TYPE_INTEGER

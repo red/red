@@ -271,19 +271,19 @@ red-function!: alias struct! [
 	more	[node!]									;-- additional members storage block:
 	;	body	[red-block!]						;-- 	function's body block
 	;	args	[red-block!]						;-- 	list of typed arguments (including optional ones)
-	;	native	[red-native!]						;-- 	JIT-compiled body (binary!)
+	;	native	[red-integer!]						;-- 	JIT-compiled body (binary!, AOT-compiled only so far)
 	;	fun		[red-function!]						;--		(optional) copy of parent function! value (used by op!)
 	;	obj		[red-context!]						;--		context! pointer for methods
 ]
 
 red-routine!: alias struct! [
 	header	[integer!]								;-- cell header
-	ctx		[node!]									;-- function's context
+	ctx		[node!]									;-- function's context (only symbols, no values)
 	spec	[node!]									;-- routine spec block buffer reference	
 	more	[node!]									;-- additional members storage block:
 	;	body	[red-block!]						;-- 	routine's body block
 	;	args	[red-block!]						;-- 	list of typed arguments (including optional ones)
-	;	native	[node!]								;-- 	compiled body (binary!)
+	;	native	[red-integer!]						;-- 	compiled body (binary!)
 	;	fun		[red-routine!]						;--		(optional) copy of parent routine! value (used by op!)
 	;	ret-type[red-integer!]						;--		return type (-1 if no return: in spec block)
 ]

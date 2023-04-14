@@ -328,7 +328,7 @@ interpreter: context [
 		class [cb-class!]
 		/local
 			s	   [series!]
-			native [red-native!]
+			code   [red-integer!]
 			saved  [node!]
 			fctx   [red-context!]
 			int	   [red-integer!]
@@ -344,8 +344,8 @@ interpreter: context [
 			if class and int/value = 0 [tracing?: no]	;-- disable tracing for unwanted internal callbacks
 		]
 		s: as series! fun/more/value
-		native: as red-native! s/offset + 2
-		either zero? native/code [
+		code: as red-integer! s/offset + 2
+		either any [TYPE_OF(code) <> TYPE_INTEGER zero? code/value][
 			if allow? [fire-call ref fun]
 			eval-function fun as red-block! s/offset ref
 			if allow? [
@@ -358,11 +358,11 @@ interpreter: context [
 			assert system/thrown = 0
 			catch RED_THROWN_ERROR [
 				either ctx = global-ctx [
-					call: as function! [] native/code
+					call: as function! [] code/value
 					call
 					0									;FIXME: required to pass compilation
 				][
-					ocall: as function! [octx [node!]] native/code
+					ocall: as function! [octx [node!]] code/value
 					ocall ctx
 					0
 				]
@@ -440,7 +440,7 @@ interpreter: context [
 	exec-routine: func [
 		rt [red-routine!]
 		/local
-			native	[red-native!]
+			code	[red-integer!]
 			arg		[red-value!]
 			base	[red-value!]
 			bool	[red-logic!]
@@ -468,7 +468,7 @@ interpreter: context [
 	][
 		extern?: rt/header and flag-extern-code <> 0
 		s:		as series! rt/more/value
-		native: as red-native! s/offset + 2
+		code:	as red-integer! s/offset + 2
 		rtype:  as red-integer! s/offset + 4
 		args:	routine/get-arity rt
 		count:	args - 1				;-- zero-based stack access
@@ -476,7 +476,7 @@ interpreter: context [
 		either extern? [
 			base: stack/arguments
 			;@@ cdecl is hardcoded in the caller, needs to be dynamic!
-			callex: as function! [[cdecl custom] return: [integer!]] native/code
+			callex: as function! [[cdecl custom] return: [integer!]] code/value
 			stack/mark-native words/_body
 			
 			#if stack-align-16? = yes [
@@ -505,7 +505,7 @@ interpreter: context [
 			stack/unwind
 			stack/set-last arg
 		][
-			call: as function! [return: [integer!]] native/code
+			call: as function! [return: [integer!]] code/value
 
 			s: as series! rt/spec/value
 			value: s/offset
@@ -566,7 +566,7 @@ interpreter: context [
 						int/value: ret
 					]
 					TYPE_FLOAT [
-						callf: as function! [return: [float!]] native/code
+						callf: as function! [return: [float!]] code/value
 						retf: callf
 						fl: as red-float! stack/arguments
 						fl/header: TYPE_FLOAT
