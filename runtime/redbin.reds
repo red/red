@@ -850,7 +850,7 @@ redbin: context [
 			sym: table + data/1
 			id:  either codec? [symbol/make (as c-string! table + table/-1) + sym/1][sym/1]
 			;-- create the words entries in the symbol table of the context
-			_context/find-or-store ctx id yes new :i
+			_context/find-or-store ctx id yes :i
 			if all [not stack? values?][value: decode-value value table values]
 			data: data + 1
 		]
@@ -888,8 +888,6 @@ redbin: context [
 		series:  as series! node/value
 		context: as red-context! series/offset
 		
-		assert node = context/self
-		
 		if filled? [
 			values: block/push-only* data/2
 			values/node: context/values
@@ -907,7 +905,7 @@ redbin: context [
 			sym: table + data/1
 			id:  symbol/make (as c-string! table + table/-1) + sym/1
 			
-			_context/find-or-store context id yes context/self :new
+			_context/find-or-store context id yes :new
 			if filled? [value: decode-value value table values]
 			
 			data: data + 1
@@ -970,7 +968,6 @@ redbin: context [
 		context/header: TYPE_UNSET
 		context/symbols: _hashtable/init data/2 null HASH_TABLE_SYMBOL HASH_SYMBOL_CONTEXT
 		context/values: values
-		context/self: node
 		
 		context/header: TYPE_CONTEXT
 		SET_CTX_TYPE(context kind)

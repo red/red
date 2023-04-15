@@ -700,7 +700,7 @@ object: context [
 				actions/copy as red-series! value target null yes null
 				
 				if ANY_BLOCK?(type) [
-					_context/bind as red-block! target to dst yes
+					_context/bind as red-block! target to yes
 				]
 			][
 				if copy? [copy-cell value target]		;-- just propagate the old value
@@ -760,7 +760,7 @@ object: context [
 						null
 				]
 				type = TYPE_FUNCTION [
-					rebind as red-function! value ctx ctx/self
+					rebind as red-function! value ctx
 				]
 				true [0]
 			]
@@ -773,7 +773,6 @@ object: context [
 	rebind: func [
 		fun	 [red-function!]
 		octx [red-context!]
-		self [node!]
 		/local
 			s	 [series!]
 			more [red-value!]
@@ -795,11 +794,10 @@ object: context [
 		
 		fctx: copy-series as series! fun/ctx/value		;-- clone the ctx 2-cell block
 		ctx: TO_CTX(fctx)
-		ctx/self: fctx									;-- update the red-context! value self-reference
 		
 		blk: block/clone as red-block! more yes yes
-		_context/bind blk octx self yes					;-- rebind new body to object's context
-		_context/bind blk ctx null no					;-- rebind new body to function's context
+		_context/bind blk octx yes						;-- rebind new body to object's context
+		_context/bind blk ctx  no						;-- rebind new body to function's context
 		_function/push spec blk	fctx null null fun/header ;-- recreate function
 		copy-cell stack/top - 1	as red-value! fun		;-- overwrite function slot in object
 		stack/pop 2										;-- remove extra stack slots (block/clone and _function/push)
@@ -1038,7 +1036,7 @@ object: context [
 							null
 					]
 					TYPE_FUNCTION [
-						rebind as red-function! value nctx nctx/self
+						rebind as red-function! value nctx
 					]
 					default [0]
 				]
@@ -1047,7 +1045,7 @@ object: context [
 		][
 			while [value < tail][
 				if TYPE_OF(value) = TYPE_FUNCTION [
-					rebind as red-function! value nctx nctx/self
+					rebind as red-function! value nctx
 				]
 				value: value + 1
 			]
@@ -1079,13 +1077,10 @@ object: context [
 	register-events: func [
 		obj [red-object!]
 		ctx [red-context!]
-		/local
-			s [series!]
 	][
 		obj/on-set: on-set-defined? ctx
 		if on-deep? obj [ownership/set-owner as red-value! obj obj null]
-		s: as series! ctx/self/value
-		copy-cell as red-value! obj s/offset + 1
+		copy-cell as red-value! obj as red-value! ctx + 1
 	]
 	
 	;-- Actions --
@@ -1126,7 +1121,7 @@ object: context [
 			TYPE_BLOCK [
 				blk: as red-block! spec
 				new?: _context/collect-set-words ctx blk
-				_context/bind blk ctx ctx/self yes		;-- bind spec block
+				_context/bind blk ctx yes				;-- bind spec block
 				if p-obj? [clone-series proto/ctx obj/ctx no] ;-- clone and rebind proto's series
 				
 				interpreter/eval blk no

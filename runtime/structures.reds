@@ -190,7 +190,7 @@ red-context!: alias struct! [
 	header 	[integer!]								;-- cell header
 	symbols	[node!]									;-- array of symbol IDs
 	values	[node!]									;-- block of values (do not move this field!)
-	self	[node!]									;-- indirect auto-reference (optimization)
+	_pad	[integer!]
 ]
 
 red-object!: alias struct! [

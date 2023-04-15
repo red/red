@@ -272,7 +272,7 @@ error: context [
 						][fire [TO_ERROR(script invalid-spec-field) words/_id]]
 					]
 					TYPE_SET_WORD [
-						_context/bind blk GET_CTX(new) new/ctx yes
+						_context/bind blk GET_CTX(new) yes
 						interpreter/eval blk no
 
 						value: object/rs-select new as red-value! words/_type

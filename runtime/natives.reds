@@ -1170,7 +1170,6 @@ natives: context [
 			value [red-value!]
 			ref	  [red-value!]
 			fun	  [red-function!]
-			obj	  [node!]
 			word  [red-word!]
 			vctx  [red-context!]
 			ctx	  [node!]
@@ -1181,34 +1180,27 @@ natives: context [
 		value: stack/arguments
 		ref: value + 1
 		
-		either any [
+		ctx: either any [
 			TYPE_OF(ref) = TYPE_FUNCTION
 			;TYPE_OF(ref) = TYPE_OBJECT
 		][
 			fun: as red-function! ref
-			ctx: fun/ctx
+			fun/ctx
 		][
 			word: as red-word! ref
-			ctx: word/ctx
+			word/ctx
 		]
 		
 		either TYPE_OF(value) = TYPE_BLOCK [
 			vctx: TO_CTX(ctx)
-			obj: either TYPE_OF(ref) = TYPE_OBJECT [
-				self?: yes
-				vctx/self
-			][
-				self?: no
-				null
-			]
+			self?: TYPE_OF(ref) = TYPE_OBJECT
 			either negative? copy [
-				_context/bind as red-block! value vctx obj self?
+				_context/bind as red-block! value vctx self?
 			][
 				stack/set-last 
 					as red-value! _context/bind
 						block/clone as red-block! value yes yes
 						vctx
-						obj
 						self?
 			]
 		][

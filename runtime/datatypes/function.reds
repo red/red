@@ -502,7 +502,7 @@ _function: context [
 		]
 		
 		if all [null? ctx not null? body][
-			_context/bind body GET_CTX(fun) null no		;-- do not bind if predefined context (already done)
+			_context/bind body GET_CTX(fun) no			;-- do not bind if predefined context (already done)
 		]
 		f-ctx
 	]

@@ -334,6 +334,7 @@ Red/System [
 #define EQUAL_WORDS?(a b) 		((symbol/resolve a/symbol) = (symbol/resolve b/symbol))
 #define TO_CTX(node)			(as red-context! ((as series! node/value) + 1))
 #define GET_CTX(obj)			(as red-context! ((as series! obj/ctx/value) + 1))
+#define GET_CTX_SERIES(obj)		((as series! obj) - 1)
 #define GET_CTX_TYPE(cell)		(cell/header >> 11 and 03h)
 #define GET_CTX_TYPE_ALT(header)(header >> 11 and 03h)
 #define SET_CTX_TYPE(cell type)	[cell/header: cell/header and FFFFE7FFh or (type << 11)]
