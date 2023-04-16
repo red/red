@@ -710,7 +710,7 @@ interpreter: context [
 			bool				[red-logic!]
 			s					[series!]
 			required?			[logic!]
-			args				[node!]
+			args nctx			[node!]
 			p ref-array	offset	[int-ptr!]
 			pos	bits			[byte-ptr!]
 			index arg-cnt ref-cnt loc-cnt sym-cnt size type xcode idx [integer!]
@@ -797,10 +797,15 @@ interpreter: context [
 		sym-cnt:   0
 		xcode:	   0									;;@@ should not be needed!
 		
-		either function? [ctx: GET_CTX(fun)][
+		either function? [
+			ctx: GET_CTX(fun)
+			nctx: fun/ctx
+		][
 			xcode: native/code
 			ctx: as red-context! blk - 1
 			assert TYPE_OF(ctx) = TYPE_CONTEXT
+			s: GET_CTX_SERIES(ctx)
+			nctx: s/node
 			if value < tail [
 				vec: as red-vector! tail - 1
 				if TYPE_OF(vec) = TYPE_VECTOR [
@@ -881,7 +886,7 @@ interpreter: context [
 				while [ref < as red-word! path-end][
 					if TYPE_OF(ref) <> TYPE_WORD [fire [TO_ERROR(script bad-refine) ref]]
 					assert TYPE_OF(ctx) = TYPE_CONTEXT
-					index: _context/find-word ctx ref/symbol no
+					index: either ref/ctx = nctx [ref/index][_context/bind-word ctx ref]
 					if index < 0 [fire [TO_ERROR(script no-refine) fname ref]]
 					value: head + index
 					assert all [value < tail TYPE_OF(value) = TYPE_REFINEMENT]
