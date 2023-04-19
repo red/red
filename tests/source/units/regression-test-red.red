@@ -2541,7 +2541,7 @@ b}
 			foreach i list [total: i + total]
 			total
 		]
-		r2077: make reactor! [l: [3 4 5 6] tie total: [sum2077 l]]
+		r2077: make reactor! [l: [3 4 5 6] relate total: [sum2077 l]]
 		r2077/l: append copy r2077/l 5
 		--assert not error? try [append r2077/l 5]
 		unset [sum2077 r2077]
@@ -2559,13 +2559,13 @@ b}
 		; GUI
 
 	--test-- "#2083"
-		a2083: make reactor! [x: 1 tie y: [x + 1] tie z: [y + 1]]
+		a2083: make reactor! [x: 1 relate y: [x + 1] relate z: [y + 1]]
 		a2083/x: 4
 		--assert equal? 6 a2083/z
 		unset 'a2083
 
 	--test-- "#2085"
-		--assert error? try [d2085: make reactor! [tie x: [y + 1] tie y: [x + 3]]]
+		--assert error? try [d2085: make reactor! [relate x: [y + 1] relate y: [x + 3]]]
 
 	; --test-- "#2096"
 		; TODO

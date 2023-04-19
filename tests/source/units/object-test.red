@@ -18,7 +18,7 @@ Red [
         rb1-r: make reactor! [
             x: 1
             y: 2
-            tie total: [x + y]
+            relate total: [x + y]
         ]
         --assert 3 = rb1-r/total
         rb1-r/x: 2
@@ -2520,7 +2520,7 @@ Red [
 	--test-- "#5135"
 		do [
 			r2-5135: none
-			r1-5135: reactor [x: 0 tie y: [x] set 'r2-5135 self]
+			r1-5135: reactor [x: 0 relate y: [x] set 'r2-5135 self]
 			--assert same? r1-5135 r2-5135
 			r1-5135/x: 1
 			--assert all [r1-5135/x = 1 r1-5135/y = 1]

@@ -231,7 +231,7 @@ system/reactivity: context [
 		()												;-- avoids returning anything in the console
 	]
 	
-	set 'tie function [
+	set 'relate function [
 		"Defines a reactive relation whose result is assigned to a word"
 		'field	 [set-word!]	"Set-word which will get set to the result of the reaction"
 		reaction [block!]		"Reactive relation"
