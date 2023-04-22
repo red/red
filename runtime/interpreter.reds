@@ -823,21 +823,23 @@ interpreter: context [
 				TYPE_TYPESET [
 					if value/header and flag-fetch-mode <> FETCH_SET_WORD [
 						either required? [
-							bits: (as byte-ptr! value) + 4
-							BS_TEST_BIT(bits TYPE_UNSET set?)
+							either all [pc >= end apply?][none/push][
+								bits: (as byte-ptr! value) + 4
+								BS_TEST_BIT(bits TYPE_UNSET set?)
 
-							either all [
-								set?					;-- if unset! is accepted
-								pc >= end				;-- if no more values to fetch
-								value/header and flag-fetch-mode = FETCH_LIT_WORD
-							][
-								either apply? [none/push][unset/push] ;-- then, supply an unset argument
-							][
-								either ifx? [ifx?: no][fetch-arg] ;-- left operand already evaluated, skip the 1st argument
-								arg:  stack/top - 1
-								type: TYPE_OF(arg)
-								BS_TEST_BIT(bits type set?)
-								unless set? [fire [TO_ERROR(script expect-arg) fname datatype/push type get-spec-word]]
+								either all [
+									set?					;-- if unset! is accepted
+									pc >= end				;-- if no more values to fetch
+									value/header and flag-fetch-mode = FETCH_LIT_WORD
+								][
+									unset/push 				;-- then, supply an unset argument
+								][
+									either ifx? [ifx?: no][fetch-arg] ;-- left operand already evaluated, skip the 1st argument
+									arg:  stack/top - 1
+									type: TYPE_OF(arg)
+									BS_TEST_BIT(bits type set?)
+									unless set? [fire [TO_ERROR(script expect-arg) fname datatype/push type get-spec-word]]
+								]
 							]
 							arg-cnt: arg-cnt + 1
 						][
@@ -858,6 +860,7 @@ interpreter: context [
 							unless function? [
 								bool: as red-logic! arg
 								if bool/value [ref-array/ref-cnt: arg-cnt]
+								stack/pop 1
 								ref-cnt: ref-cnt + 1
 							]
 						]
