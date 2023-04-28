@@ -2983,17 +2983,50 @@ natives: context [
 	
 	apply*: func [
 		check?	[logic!]
-		as-is	[integer!]
+		some	[integer!]
 		/local
+			_path [red-path! value]
+			ref	value tail v [red-value!]
 			args  [red-block!]
-			mode  [integer!]
+			p	  [red-path!]
+			w	  [red-word!]
 			s	  [series!]
+			mode  [integer!]
+			idx	  [integer!]
 	][	
-		#typecheck [apply as-is]
+		#typecheck [apply some]
 
-		args: as red-block! stack/arguments + 1
-		s: GET_BUFFER(args)
-		mode: either as-is < 0 [interpreter/MODE_APPLY_EVAL][interpreter/MODE_APPLY]
+		args: as red-block! stack/arguments + 1	
+		case [
+			some >= 0 [
+				p: path/make-at _path 3
+				ref: block/rs-append p stack/arguments
+				args: block/clone args no no
+				s: GET_BUFFER(args)
+				value: s/offset + args/head
+				tail:  s/tail
+				idx: 0
+				while [value < tail][
+					either TYPE_OF(value) <> TYPE_REFINEMENT [value: value + 1][
+						v: block/rs-append p value
+						v/header: TYPE_WORD
+						move-memory							;-- remove ref! value
+							as byte-ptr! value
+							as byte-ptr! value + 1
+							(as-integer tail - (value + 1))
+						tail: tail - 1
+					]
+				]
+				s/tail: tail
+				mode: interpreter/MODE_APPLY_SOME
+			]
+			true [
+				s: GET_BUFFER(args)
+				p: null
+				ref: null
+				mode: interpreter/MODE_APPLY
+			]
+		]
 		
 		interpreter/eval-code
 			stack/arguments
@@ -3001,8 +3034,8 @@ natives: context [
 			s/tail
 			args
 			no
-			null
-			as red-value! words/_expr
+			p
+			ref
 			null
 			mode
 			no

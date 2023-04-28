@@ -15,10 +15,9 @@ interpreter: context [
 	
 	#enum fetch-args-mode! [
 		MODE_FETCH:			0							;-- regular arguments evaluation and fetching
-		MODE_APPLY:			1							;-- fetch literally and apply arguments (no eval)
-		MODE_APPLY_EVAL:	2							;-- fetch, eval and apply arguments
-		;APPLY_ARGS_SOME:	4							;-- search and apply arguments (eval by default)
-		;APPLY_ARGS_FROM:	8							;-- fetch arguments from a context and apply arguments
+		MODE_APPLY:			1							;-- fetch literally and apply arguments
+		MODE_APPLY_SOME:	2							;-- search and apply arguments
+		;MODE_ARGS_FROM:	4							;-- fetch arguments from a context and apply arguments
 	]
 	
 	#enum fetch-type! [									;	Bits 21-20 of a typeset! slot header
@@ -728,14 +727,8 @@ interpreter: context [
 			][
 				switch value/header and flag-fetch-mode [
 					FETCH_WORD [
-						either mode = MODE_APPLY [
-							#if debug? = yes [if verbose > 0 [log "fetching argument as-is"]]
-							stack/push pc
-							pc: pc + 1
-						][
-							#if debug? = yes [if verbose > 0 [log "evaluating argument"]]
-							pc: eval-expression pc end code infix? yes no
-						]
+						#if debug? = yes [if verbose > 0 [log "evaluating argument"]]
+						pc: eval-expression pc end code infix? yes no
 					]
 					FETCH_GET_WORD [
 						#if debug? = yes [if verbose > 0 [log "fetching argument as-is"]]
@@ -849,9 +842,10 @@ interpreter: context [
 					]
 				]
 				TYPE_REFINEMENT [
-					either apply? [
-						either pc >= end [
+					required?: either apply? [
+						either any [pc >= end mode = MODE_APPLY_SOME][
 							if function? [logic/push false]
+							pc >= end
 						][
 							fetch-arg
 							arg:  stack/top - 1
@@ -863,11 +857,11 @@ interpreter: context [
 								stack/pop 1
 								ref-cnt: ref-cnt + 1
 							]
+							yes
 						]
-						required?: yes
 					][
 						if function? [logic/push false]
-						required?: no
+						no
 					]
 					sym-cnt: sym-cnt + 1
 				]
@@ -879,7 +873,6 @@ interpreter: context [
 		]
 
 		if path <> null [
-			assert not apply?
 			path-end: block/rs-tail as red-block! path
 			fname: as red-word! ref-pos
 			
