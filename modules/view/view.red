@@ -885,7 +885,7 @@ unview: function [
 	if empty? pane: svs/pane [exit]
 	
 	case [
-		only  [remove find head pane face]
+		only  [remove find/same head pane face]
 		all?  [while [not tail? pane][remove back tail pane]]
 		'else [remove back tail pane]
 	]
