@@ -803,7 +803,7 @@ errno: as int-ptr! 0
 		x/cert_info/validity/notAfter
 	]
 ][
-	#define LIBSSL-file "libssl.so.1.1"
+	#define LIBSSL-file "libssl.so"
 ]
 
 #define SSL_ERROR_SSL			1
