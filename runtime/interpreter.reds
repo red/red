@@ -837,12 +837,13 @@ interpreter: context [
 							arg-cnt: arg-cnt + 1
 						][
 							if function? [none/push]
+							if mode = MODE_APPLY [fetch-arg stack/pop 1]
 						]
 						sym-cnt: sym-cnt + 1
 					]
 				]
 				TYPE_REFINEMENT [
-					required?: either apply? [
+					required?: either mode = MODE_APPLY [
 						either any [pc >= end mode = MODE_APPLY_SOME][
 							if function? [logic/push false]
 							pc >= end
@@ -851,13 +852,13 @@ interpreter: context [
 							arg:  stack/top - 1
 							type: TYPE_OF(arg)
 							if type <> TYPE_LOGIC [fire [TO_ERROR(script expect-arg) fname datatype/push type get-spec-word]]
+							bool: as red-logic! arg
 							unless function? [
-								bool: as red-logic! arg
 								if bool/value [ref-array/ref-cnt: arg-cnt]
 								stack/pop 1
 								ref-cnt: ref-cnt + 1
 							]
-							yes
+							bool/value
 						]
 					][
 						if function? [logic/push false]
