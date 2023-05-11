@@ -2984,50 +2984,31 @@ natives: context [
 	apply*: func [
 		check?	[logic!]
 		some	[integer!]
+		from	[integer!]
 		/local
-			_path [red-path! value]
-			ref	value tail v [red-value!]
 			args  [red-block!]
 			p	  [red-path!]
-			w	  [red-word!]
 			s	  [series!]
 			mode  [integer!]
-			idx	  [integer!]
 	][	
-		#typecheck [apply some]
+		#typecheck [apply some from]
 
-		args: as red-block! stack/arguments + 1	
+		args: as red-block! stack/arguments + 1
+		s: GET_BUFFER(args)
 		case [
 			some >= 0 [
-				p: path/make-at _path 3
-				ref: block/rs-append p stack/arguments
-				args: block/clone args no no
-				s: GET_BUFFER(args)
-				value: s/offset + args/head
-				tail:  s/tail
-				idx: 0
-				while [value < tail][
-					either TYPE_OF(value) <> TYPE_REFINEMENT [value: value + 1][
-						v: block/rs-append p value
-						v/header: TYPE_WORD
-						move-memory							;-- remove ref! value
-							as byte-ptr! value
-							as byte-ptr! value + 1
-							(as-integer tail - (value + 1))
-						tail: tail - 1
-					]
-				]
-				s/tail: tail
+				p: as red-path! args
 				mode: interpreter/MODE_APPLY_SOME
 			]
+			from >= 0 [
+				p: as red-path! args					;-- pass here key/value block or context
+				mode: interpreter/MODE_APPLY_FROM
+			]
 			true [
-				s: GET_BUFFER(args)
 				p: null
-				ref: null
 				mode: interpreter/MODE_APPLY
 			]
 		]
-		
 		interpreter/eval-code
 			stack/arguments
 			s/offset + args/head
@@ -3035,7 +3016,7 @@ natives: context [
 			args
 			no
 			p
-			ref
+			null
 			null
 			mode
 			no
