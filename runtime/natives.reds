@@ -2984,30 +2984,22 @@ natives: context [
 	apply*: func [
 		check?	[logic!]
 		some	[integer!]
-		from	[integer!]
 		/local
 			args  [red-block!]
 			p	  [red-path!]
 			s	  [series!]
 			mode  [integer!]
 	][	
-		#typecheck [apply some from]
+		#typecheck [apply some]
 
 		args: as red-block! stack/arguments + 1
 		s: GET_BUFFER(args)
-		case [
-			some >= 0 [
-				p: as red-path! args
-				mode: interpreter/MODE_APPLY_SOME
-			]
-			from >= 0 [
-				p: as red-path! args					;-- pass here key/value block or context
-				mode: interpreter/MODE_APPLY_FROM
-			]
-			true [
-				p: null
-				mode: interpreter/MODE_APPLY
-			]
+		either some >= 0 [
+			p: as red-path! args
+			mode: interpreter/MODE_APPLY_SOME
+		][
+			p: null
+			mode: interpreter/MODE_APPLY
 		]
 		interpreter/eval-code
 			stack/arguments

@@ -17,7 +17,6 @@ interpreter: context [
 		MODE_FETCH:			0							;-- regular arguments evaluation and fetching
 		MODE_APPLY:			1							;-- fetch literally and apply arguments
 		MODE_APPLY_SOME:	2							;-- search and apply arguments
-		MODE_APPLY_FROM:	4							;-- fetch arguments from a context and apply arguments
 	]
 	
 	#enum fetch-type! [									;	Bits 21-20 of a typeset! slot header
@@ -712,7 +711,7 @@ interpreter: context [
 			p ref-array	offset	[int-ptr!]
 			pos	bits			[byte-ptr!]
 			index arg-cnt ref-cnt loc-cnt sym-cnt size type xcode idx exp-type [integer!]
-			required? function? routine? set? apply? native? ifx? some? [logic!]
+			required? function? routine? set? get? apply? native? ifx? some? t? [logic!]
 			fetch-arg get-spec-word	[subroutine!]
 			calln
 	][
@@ -874,105 +873,75 @@ interpreter: context [
 		]
 
 		if path <> null [
-			switch mode [
-				MODE_APPLY_FROM [
-					s: GET_BUFFER(path)
-					name: as red-word! s/offset + path/head
-					tail: s/tail
-					while [name < as red-word! tail][
-						;if TYPE_OF(ref) <> TYPE_SET_WORD [fire [TO_ERROR(script bad-refine) ref]]
-						index: either name/ctx = nctx [name/index][_context/bind-word ctx name]
-						value: head + index
-						pc: as red-value! name + 1
+			path-end: block/rs-tail as red-block! path
+			fname: as red-word! ref-pos
+			exp-type: either some? [TYPE_REFINEMENT][TYPE_WORD]
+			
+			if ref-pos + 1 < path-end [					;-- test if refinements are following the function
+				ref: either some? [as red-word! pc][as red-word! ref-pos + 1]
+				
+				while [ref < as red-word! path-end][
+					get?: TYPE_OF(ref) = TYPE_GET_WORD
+					if all [TYPE_OF(ref) <> exp-type not get?][fire [TO_ERROR(script bad-refine) ref]]
+					assert TYPE_OF(ctx) = TYPE_CONTEXT
+					t?: either get? [logic/rs-true? as red-value! _context/get ref][true]
+					
+					index: case [
+						ref/ctx = nctx [ref/index]
+						get?		   [_context/find-word ctx ref/symbol no]
+						true		   [_context/bind-word ctx ref]
+					]
+					if index < 0 [fire [TO_ERROR(script no-refine) fname ref]]
+					value: head + index
+					assert all [value < tail TYPE_OF(value) = TYPE_REFINEMENT]
+					value: value + 1
+					sym-cnt: index + 1
+					if some? [pc: pc + 1]
+
+					either function? [
+						bool: as red-logic! stack/arguments + index
+						assert TYPE_OF(bool) = TYPE_LOGIC
+						if bool/value [fire [TO_ERROR(script dup-refine) path]]
+						bool/value: t?
+						arg: as red-value! bool + 1
 						saved: stack/top
+					][
+						if t? [
+							ref-slot: as red-refinement! value - 1
+							idx: ref-slot/index
+							if ref-array/idx <> -1 [fire [TO_ERROR(script dup-refine) path]]
+							ref-array/idx: arg-cnt
+						]
+					]
+					while [
+						all [
+							value < tail
+							TYPE_OF(value) = TYPE_TYPESET
+							value/header and flag-fetch-mode <> FETCH_SET_WORD
+						]
+					][
 						fetch-arg
 						new:  stack/top - 1
 						type: TYPE_OF(new)
-						
-						either TYPE_OF(value) = TYPE_REFINEMENT [
-							either function? [
-								bool: as red-logic! stack/arguments + index
-								assert TYPE_OF(bool) = TYPE_LOGIC
-								b2: as red-logic! new
-								;if TYPE_OF(b2) <> TYPE_LOGIC [fire [TO_ERROR(script bad-refine) new]]
-								bool/value: b2/value
-							][
-								ref-slot: as red-refinement! value
-								idx: ref-slot/index
-								ref-array/idx: arg-cnt
+						bits: (as byte-ptr! value) + 4
+						BS_TEST_BIT(bits type set?)
+						unless set? [fire [TO_ERROR(script expect-arg) fname datatype/push type get-spec-word]]
+						either t? [						;-- refinement set
+							if function? [
+								copy-cell new arg
+								arg: arg + 1
+								stack/pop 1
 							]
-							stack/top: saved			;-- remove the fetched value from the stack
-						][
-							bits: (as byte-ptr! value) + 4
-							BS_TEST_BIT(bits type set?)
-							unless set? [fire [TO_ERROR(script expect-arg) fname datatype/push type name]]
-							if function? [copy-cell new stack/arguments + index]
 							arg-cnt: arg-cnt + 1
+						][								;-- refinement evaluated to a falsy value
+							stack/pop 1
 						]
-						name: as red-word! pc
+						sym-cnt: sym-cnt + 1
+						value: value + 1
 					]
+					if function? [stack/top: saved]		;-- clear up all temporary stack slots
+					ref: either some? [as red-word! pc][ref + 1]
 				]
-				MODE_FETCH
-				MODE_APPLY_SOME [
-					path-end: block/rs-tail as red-block! path
-					fname: as red-word! ref-pos
-					exp-type: either some? [TYPE_REFINEMENT][TYPE_WORD]
-					
-					if ref-pos + 1 < path-end [					;-- test if refinements are following the function
-						ref: either some? [as red-word! pc][as red-word! ref-pos + 1]
-
-						while [ref < as red-word! path-end][
-							if TYPE_OF(ref) <> exp-type [fire [TO_ERROR(script bad-refine) ref]]
-							assert TYPE_OF(ctx) = TYPE_CONTEXT
-							index: either ref/ctx = nctx [ref/index][_context/bind-word ctx ref]
-							if index < 0 [fire [TO_ERROR(script no-refine) fname ref]]
-							value: head + index
-							assert all [value < tail TYPE_OF(value) = TYPE_REFINEMENT]
-							value: value + 1
-							sym-cnt: index + 1
-							if some? [pc: pc + 1]
-
-							either function? [
-								bool: as red-logic! stack/arguments + index
-								assert TYPE_OF(bool) = TYPE_LOGIC
-								if bool/value [fire [TO_ERROR(script dup-refine) path]]
-								bool/value: true
-								arg: as red-value! bool + 1
-								saved: stack/top
-							][
-								ref-slot: as red-refinement! value - 1
-								idx: ref-slot/index
-								if ref-array/idx <> -1 [fire [TO_ERROR(script dup-refine) path]]
-								ref-array/idx: arg-cnt
-							]
-							while [
-								all [
-									value < tail
-									TYPE_OF(value) = TYPE_TYPESET
-									value/header and flag-fetch-mode <> FETCH_SET_WORD
-								]
-							][
-								fetch-arg
-								new:  stack/top - 1
-								type: TYPE_OF(new)
-								bits: (as byte-ptr! value) + 4
-								BS_TEST_BIT(bits type set?)
-								unless set? [fire [TO_ERROR(script expect-arg) fname datatype/push type get-spec-word]]
-								if function? [
-									copy-cell new arg
-									arg: arg + 1
-									stack/pop 1
-								]
-								arg-cnt: arg-cnt + 1
-								sym-cnt: sym-cnt + 1
-								value: value + 1
-							]
-							if function? [stack/top: saved]		;-- clear up all temporary stack slots
-							ref: either some? [as red-word! pc][ref + 1]
-						]
-					]
-				]
-				default [assert false]
 			]
 		]
 		if tracing? [

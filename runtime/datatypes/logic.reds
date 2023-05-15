@@ -39,6 +39,21 @@ logic: context [
 		cell
 	]
 	
+	rs-true?: func [
+		value	[red-value!]
+		return: [logic!]
+		/local
+			arg	 [red-logic!]
+			type [integer!]
+	][
+		arg: as red-logic! value
+		type: TYPE_OF(arg)
+		not any [										;-- true if not none or false
+			type = TYPE_NONE
+			all [type = TYPE_LOGIC not arg/value]
+		]
+	]
+	
 	top-true?: func [
 		return:  [logic!]
 	][
