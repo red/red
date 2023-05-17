@@ -965,9 +965,9 @@ transcode: make native! [[
 
 apply: make native! [[
 		"Apply a function to a reduced block of arguments"
-		func	[any-function!]  "Function value to apply"
-		args	[block!]		 "Block of args, reduced first (unless /only)"
-		/some					 "Specify some refinements with their eventual arguments"
+		func	[word! path! any-function!] "Function to apply, with eventual refinements"
+		args	[block!]  "Block of args, reduced first"
+		/some			  "Specify some refinements with their eventual arguments"
 	]
 	#get-definition NAT_APPLY
 ]

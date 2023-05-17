@@ -836,14 +836,14 @@ interpreter: context [
 							arg-cnt: arg-cnt + 1
 						][
 							if function? [none/push]
-							if mode = MODE_APPLY [fetch-arg stack/pop 1]
+							if all [mode = MODE_APPLY path = null][fetch-arg stack/pop 1]
 						]
 						sym-cnt: sym-cnt + 1
 					]
 				]
 				TYPE_REFINEMENT [
-					required?: either mode = MODE_APPLY [
-						either any [pc >= end mode = MODE_APPLY_SOME][
+					required?: either all [apply? path = null][
+						either any [pc >= end some?][
 							if function? [logic/push false]
 							pc >= end
 						][
@@ -866,26 +866,36 @@ interpreter: context [
 					sym-cnt: sym-cnt + 1
 				]
 				TYPE_INTEGER [loc-cnt: integer/get value] ;-- get local words count
-				TYPE_VECTOR [0]							;-- do nothing
-				default [assert false]					;-- trap it in case cache is corrupted 
+				TYPE_VECTOR  [0]						;-- do nothing
+				default		 [assert false]				;-- trap it in case cache is corrupted 
 			]
 			value: value + 1
 		]
 
-		if path <> null [
-			path-end: block/rs-tail as red-block! path
-			fname: as red-word! ref-pos
+		if any [path <> null some?][
+			path-end: either some? [
+				ref-pos: pc - 1
+				end
+			][
+				fname: as red-word! ref-pos
+				block/rs-tail as red-block! path
+			]
 			exp-type: either some? [TYPE_REFINEMENT][TYPE_WORD]
 			
 			if ref-pos + 1 < path-end [					;-- test if refinements are following the function
 				ref: either some? [as red-word! pc][as red-word! ref-pos + 1]
 				
 				while [ref < as red-word! path-end][
-					get?: TYPE_OF(ref) = TYPE_GET_WORD
-					if all [TYPE_OF(ref) <> exp-type not get?][fire [TO_ERROR(script bad-refine) ref]]
+					either some? [if path = null [pc: pc + 1]][
+						get?: TYPE_OF(ref) = TYPE_GET_WORD
+						if all [TYPE_OF(ref) <> exp-type not get?][fire [TO_ERROR(script bad-refine) ref]]
+					]
 					assert TYPE_OF(ctx) = TYPE_CONTEXT
-					t?: either get? [logic/rs-true? as red-value! _context/get ref][true]
-					
+					t?: case [
+						some? [fetch-arg  stack/pop 1  logic/rs-true? stack/top]
+						get?  [logic/rs-true? as red-value! _context/get ref]
+						true  [true]
+					]
 					index: case [
 						ref/ctx = nctx [ref/index]
 						get?		   [_context/find-word ctx ref/symbol no]
@@ -896,7 +906,6 @@ interpreter: context [
 					assert all [value < tail TYPE_OF(value) = TYPE_REFINEMENT]
 					value: value + 1
 					sym-cnt: index + 1
-					if some? [pc: pc + 1]
 
 					either function? [
 						bool: as red-logic! stack/arguments + index

@@ -520,6 +520,13 @@ Red/System [
 	TYPE_ANY_PATH
 ]
 
+#define TYPE_ANY_FUNCTION [					;-- To be used in SWITCH cases
+	TYPE_FUNCTION
+	TYPE_ACTION
+	TYPE_NATIVE
+	TYPE_ROUTINE
+]
+
 #define BS_SET_BIT(array bit)  [
 	pos: array + (bit >> 3)
 	pos/value: pos/value or (as-byte 128 >> (bit and 7))

@@ -2986,29 +2986,39 @@ natives: context [
 		some	[integer!]
 		/local
 			args  [red-block!]
-			p	  [red-path!]
+			fun	  [red-value!]
+			name  [red-word!]
+			path  [red-path!]
 			s	  [series!]
 			mode  [integer!]
 	][	
 		#typecheck [apply some]
 
-		args: as red-block! stack/arguments + 1
-		s: GET_BUFFER(args)
-		either some >= 0 [
-			p: as red-path! args
-			mode: interpreter/MODE_APPLY_SOME
-		][
-			p: null
-			mode: interpreter/MODE_APPLY
+		fun: stack/arguments
+		args: as red-block! fun + 1
+		path: null
+
+		switch TYPE_OF(fun) [
+			TYPE_PATH [
+				path: as red-path! fun
+				name: as red-word! block/rs-head path
+				fun: _context/get name
+			]
+			TYPE_ANY_FUNCTION [name: words/_applied]
+			TYPE_ANY_WORD 	  [name: as red-word! fun  fun: _context/get name]
+			default			  [assert false]
 		]
+		s: GET_BUFFER(args)
+		mode: either some >= 0 [interpreter/MODE_APPLY_SOME][interpreter/MODE_APPLY]
+		
 		interpreter/eval-code
-			stack/arguments
+			fun
 			s/offset + args/head
 			s/tail
 			args
 			no
-			p
-			null
+			path
+			as red-value! name
 			null
 			mode
 			no

@@ -774,6 +774,7 @@ words: context [
 	_compare-cb:	as red-word! 0
 	
 	_local: 		as red-word! 0
+	_applied: 		as red-word! 0
 	
 	errors: context [
 		_throw:		as red-word! 0
@@ -1064,9 +1065,10 @@ words: context [
 		errors/internal: word/load "internal"
 		errors/invalid-error: word/load "invalid-error"
 		
-		;-- object events
 		_local:			 word/load "local"
+		_applied:		 word/load "<applied>"
 		
+		;-- object events
 		changed:		_changed/symbol
 	]
 ]
