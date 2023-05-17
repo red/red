@@ -697,7 +697,7 @@ interpreter: context [
 		infix?	[logic!]
 		return: [red-value!]
 		/local
-			value head tail path-end arg new saved base call-pos [red-value!]
+			value head tail path-end arg new saved base pc-pos call-pos [red-value!]
 			fun					[red-function!]
 			fname				[red-word!]
 			ref	name			[red-word!]
@@ -760,8 +760,8 @@ interpreter: context [
 		some?:	   mode = MODE_APPLY_SOME
 		
 		either apply? [
-			;; set call-pos to non-null value
-			fname: words/_expr	;; temporary
+			call-pos: either path = null [ref-pos][as red-value! path]
+			fname: as red-word! ref-pos
 		][
 			call-pos: pc - 1
 			fname: as red-word! call-pos
@@ -955,7 +955,8 @@ interpreter: context [
 		]
 		if tracing? [
 			if infix? [native: as red-native! _context/get as red-word! ref-pos]
-			fire-event EVT_CALL code pc call-pos as red-value! native
+			pc-pos: either apply? [null][pc]
+			fire-event EVT_CALL code pc-pos call-pos as red-value! native
 		]
 		either function? [
 			if loc-cnt > 0 [assert not routine?	_function/init-locals loc-cnt]
@@ -990,7 +991,7 @@ interpreter: context [
 			s	  [series!]
 			ctx	  [node!]
 	][
-		pos: pc - 1
+		pos: either mode >= MODE_APPLY [slot][pc - 1]
 		name: as red-word! either null? slot [pos][slot]
 		if tracing? [
 			if infix? [stack/top: stack/top + 1]
