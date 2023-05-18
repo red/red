@@ -967,7 +967,7 @@ apply: make native! [[
 		"Apply a function to a reduced block of arguments"
 		func	[word! path! any-function!] "Function to apply, with eventual refinements"
 		args	[block!]  "Block of args, reduced first"
-		/some			  "Specify some refinements with their eventual arguments"
+		/all			  "Provides a continuous list of arguments, tail-completed with false/none"
 	]
 	#get-definition NAT_APPLY
 ]

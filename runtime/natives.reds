@@ -2983,7 +2983,7 @@ natives: context [
 	
 	apply*: func [
 		check?	[logic!]
-		some	[integer!]
+		_all	[integer!]
 		/local
 			args  [red-block!]
 			fun	  [red-value!]
@@ -2992,7 +2992,7 @@ natives: context [
 			s	  [series!]
 			mode  [integer!]
 	][	
-		#typecheck [apply some]
+		#typecheck [apply _all]
 
 		fun: stack/arguments
 		args: as red-block! fun + 1
@@ -3009,7 +3009,7 @@ natives: context [
 			default			  [assert false]
 		]
 		s: GET_BUFFER(args)
-		mode: either some >= 0 [interpreter/MODE_APPLY_SOME][interpreter/MODE_APPLY]
+		mode: either any [_all >= 0 path <> null][interpreter/MODE_APPLY][interpreter/MODE_APPLY_SOME]
 		
 		interpreter/eval-code
 			fun
