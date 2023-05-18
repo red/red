@@ -873,7 +873,7 @@ interpreter: context [
 		]
 
 		if any [path <> null some?][
-			path-end: either some? [
+			path-end: either all [some? path = null][
 				ref-pos: pc - 1
 				end
 			][
@@ -883,16 +883,21 @@ interpreter: context [
 			exp-type: either some? [TYPE_REFINEMENT][TYPE_WORD]
 			
 			if ref-pos + 1 < path-end [					;-- test if refinements are following the function
-				ref: either some? [as red-word! pc][as red-word! ref-pos + 1]
+				ref: either all [some? path = null][as red-word! pc][as red-word! ref-pos + 1]
 				
 				while [ref < as red-word! path-end][
 					either some? [if path = null [pc: pc + 1]][
 						get?: TYPE_OF(ref) = TYPE_GET_WORD
 						if all [TYPE_OF(ref) <> exp-type not get?][fire [TO_ERROR(script bad-refine) ref]]
 					]
-					assert TYPE_OF(ctx) = TYPE_CONTEXT
 					t?: case [
-						some? [fetch-arg  stack/pop 1  logic/rs-true? stack/top]
+						some? [
+							either pc >= end [false][
+								pc: eval-expression pc end code infix? yes no
+								stack/pop 1
+								logic/rs-true? stack/top
+							]
+						]
 						get?  [logic/rs-true? as red-value! _context/get ref]
 						true  [true]
 					]
@@ -949,7 +954,7 @@ interpreter: context [
 						value: value + 1
 					]
 					if function? [stack/top: saved]		;-- clear up all temporary stack slots
-					ref: either some? [as red-word! pc][ref + 1]
+					ref: either all [some? path = null][as red-word! pc][ref + 1]
 				]
 			]
 		]

@@ -3009,7 +3009,7 @@ natives: context [
 			default			  [assert false]
 		]
 		s: GET_BUFFER(args)
-		mode: either any [_all >= 0 path <> null][interpreter/MODE_APPLY][interpreter/MODE_APPLY_SOME]
+		mode: either _all >= 0 [interpreter/MODE_APPLY][interpreter/MODE_APPLY_SOME]
 		
 		interpreter/eval-code
 			fun
