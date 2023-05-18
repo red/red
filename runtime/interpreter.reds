@@ -930,12 +930,12 @@ interpreter: context [
 						]
 					][
 						fetch-arg
-						new:  stack/top - 1
-						type: TYPE_OF(new)
-						bits: (as byte-ptr! value) + 4
-						BS_TEST_BIT(bits type set?)
-						unless set? [fire [TO_ERROR(script expect-arg) fname datatype/push type get-spec-word]]
 						either t? [						;-- refinement set
+							new:  stack/top - 1
+							type: TYPE_OF(new)
+							bits: (as byte-ptr! value) + 4
+							BS_TEST_BIT(bits type set?)
+							unless set? [fire [TO_ERROR(script expect-arg) fname datatype/push type get-spec-word]]
 							if function? [
 								copy-cell new arg
 								arg: arg + 1
