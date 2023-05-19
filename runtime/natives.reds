@@ -3002,10 +3002,10 @@ natives: context [
 			TYPE_PATH [
 				path: as red-path! fun
 				name: as red-word! block/rs-head path
-				fun: _context/get name
+				fun: stack/push _context/get name
 			]
 			TYPE_ANY_FUNCTION [name: words/_applied]
-			TYPE_ANY_WORD 	  [name: as red-word! fun  fun: _context/get name]
+			TYPE_ANY_WORD 	  [name: as red-word! fun  fun: stack/push _context/get name]
 			default			  [assert false]
 		]
 		if TYPE_OF(fun) = TYPE_OP [set-type fun GET_OP_SUBTYPE(fun)]
