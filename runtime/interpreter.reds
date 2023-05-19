@@ -815,7 +815,7 @@ interpreter: context [
 				TYPE_TYPESET [
 					if value/header and flag-fetch-mode <> FETCH_SET_WORD [
 						either required? [
-							either all [pc >= end apply?][none/push][
+							either all [pc >= end mode = MODE_APPLY][none/push][
 								bits: (as byte-ptr! value) + 4
 								BS_TEST_BIT(bits TYPE_UNSET set?)
 
