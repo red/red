@@ -721,7 +721,7 @@ interpreter: context [
 		]
 		fetch-arg: [
 			either pc >= end [
-				either apply? [none/push][fire [TO_ERROR(script no-arg) fname get-spec-word]]
+				either mode = MODE_APPLY [none/push][fire [TO_ERROR(script no-arg) fname get-spec-word]]
 			][
 				switch value/header and flag-fetch-mode [
 					FETCH_WORD [
