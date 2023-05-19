@@ -3008,6 +3008,8 @@ natives: context [
 			TYPE_ANY_WORD 	  [name: as red-word! fun  fun: _context/get name]
 			default			  [assert false]
 		]
+		if TYPE_OF(fun) = TYPE_OP [set-type fun GET_OP_SUBTYPE(fun)]
+		
 		s: GET_BUFFER(args)
 		mode: either _all >= 0 [interpreter/MODE_APPLY][interpreter/MODE_APPLY_SOME]
 		
