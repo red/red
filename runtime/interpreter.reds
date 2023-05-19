@@ -886,11 +886,12 @@ interpreter: context [
 				ref: either all [some? path = null][as red-word! pc][as red-word! ref-pos + 1]
 				
 				while [ref < as red-word! path-end][
+					get?: TYPE_OF(ref) = TYPE_GET_WORD
 					either some? [if path = null [pc: pc + 1]][
-						get?: TYPE_OF(ref) = TYPE_GET_WORD
 						if all [TYPE_OF(ref) <> exp-type not get?][fire [TO_ERROR(script bad-refine) ref]]
 					]
 					t?: case [
+						all [path <> null not get?][true]
 						some? [
 							either pc >= end [false][
 								pc: eval-expression pc end code infix? yes no
