@@ -17,6 +17,7 @@ interpreter: context [
 		MODE_FETCH:			0							;-- regular arguments evaluation and fetching
 		MODE_APPLY:			1							;-- fetch literally and apply arguments
 		MODE_APPLY_SOME:	2							;-- search and apply arguments
+		MODE_APPLY_SAFER:	4							;-- fetch one value only per argument; skip if inactive
 	]
 	
 	#enum fetch-type! [									;	Bits 21-20 of a typeset! slot header
@@ -697,7 +698,7 @@ interpreter: context [
 		infix?	[logic!]
 		return: [red-value!]
 		/local
-			value head tail path-end arg new saved base pc-pos call-pos [red-value!]
+			value head tail path-end arg new saved base pc-pos call-pos s-end [red-value!]
 			fun					[red-function!]
 			fname				[red-word!]
 			ref	name			[red-word!]
@@ -711,7 +712,7 @@ interpreter: context [
 			p ref-array	offset	[int-ptr!]
 			pos	bits			[byte-ptr!]
 			index arg-cnt ref-cnt loc-cnt sym-cnt size type xcode idx exp-type [integer!]
-			required? function? routine? set? get? apply? native? ifx? some? t? [logic!]
+			required? function? routine? set? get? apply? native? ifx? some? t? safer? [logic!]
 			fetch-arg get-spec-word	[subroutine!]
 			calln
 	][
@@ -726,7 +727,9 @@ interpreter: context [
 				switch value/header and flag-fetch-mode [
 					FETCH_WORD [
 						#if debug? = yes [if verbose > 0 [log "evaluating argument"]]
+						if safer? [s-end: end end: pc + 1]
 						pc: eval-expression pc end code infix? yes no
+						if safer? [end: s-end]
 					]
 					FETCH_GET_WORD [
 						#if debug? = yes [if verbose > 0 [log "fetching argument as-is"]]
@@ -757,7 +760,8 @@ interpreter: context [
 		function?: any [routine? TYPE_OF(native) = TYPE_FUNCTION]
 		ref-array: null
 		apply?:	   mode > MODE_FETCH
-		some?:	   mode = MODE_APPLY_SOME
+		some?:	   mode and MODE_APPLY_SOME <> 0
+		safer?:	   mode and MODE_APPLY_SAFER <> 0
 		
 		either apply? [
 			call-pos: either path = null [ref-pos][as red-value! path]
@@ -810,6 +814,7 @@ interpreter: context [
 				]
 			]
 		]
+		;====== Required arguments fetching ======
 		while [value < tail][
 			switch TYPE_OF(value) [
 				TYPE_TYPESET [
@@ -871,7 +876,7 @@ interpreter: context [
 			]
 			value: value + 1
 		]
-
+		;====== Optional arguments fetching ======
 		if any [path <> null some?][
 			path-end: either all [some? path = null][
 				ref-pos: pc - 1
@@ -935,23 +940,25 @@ interpreter: context [
 							value/header and flag-fetch-mode <> FETCH_SET_WORD
 						]
 					][
-						fetch-arg
-						either t? [						;-- refinement set
-							new:  stack/top - 1
-							type: TYPE_OF(new)
-							bits: (as byte-ptr! value) + 4
-							BS_TEST_BIT(bits type set?)
-							unless set? [fire [TO_ERROR(script expect-arg) fname datatype/push type get-spec-word]]
-							if function? [
-								copy-cell new arg
-								arg: arg + 1
+						either all [safer? not t?][pc: pc + 1][
+							fetch-arg
+							either t? [					;-- refinement set
+								new:  stack/top - 1
+								type: TYPE_OF(new)
+								bits: (as byte-ptr! value) + 4
+								BS_TEST_BIT(bits type set?)
+								unless set? [fire [TO_ERROR(script expect-arg) fname datatype/push type get-spec-word]]
+								if function? [
+									copy-cell new arg
+									arg: arg + 1
+									stack/pop 1
+								]
+								arg-cnt: arg-cnt + 1
+							][							;-- refinement evaluated to a falsy value
 								stack/pop 1
 							]
-							arg-cnt: arg-cnt + 1
-						][								;-- refinement evaluated to a falsy value
-							stack/pop 1
+							sym-cnt: sym-cnt + 1
 						]
-						sym-cnt: sym-cnt + 1
 						value: value + 1
 					]
 					if function? [stack/top: saved]		;-- clear up all temporary stack slots
@@ -959,6 +966,7 @@ interpreter: context [
 				]
 			]
 		]
+		;====== End of arguments fetching ======
 		if tracing? [
 			if infix? [native: as red-native! _context/get as red-word! ref-pos]
 			pc-pos: either apply? [null][pc]
