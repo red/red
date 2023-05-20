@@ -16,7 +16,7 @@ Red/System [
 ]
 
 lexer: context [
-	verbose: 0
+	verbose: 2
 
 	#include %lexer-transitions.reds
 		
