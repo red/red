@@ -341,8 +341,8 @@ bind: make native! [[
 
 in: make native! [[
 		"Returns the given word bound to the object's context"
-		object [any-object!]
-		word   [any-word!]
+		object [any-object! any-function!]
+		word   [any-word! refinement!]
 	]
 	#get-definition NAT_IN
 ]

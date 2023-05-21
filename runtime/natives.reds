@@ -1232,11 +1232,8 @@ natives: context [
 			TYPE_SET_WORD
 			TYPE_LIT_WORD
 			TYPE_REFINEMENT [
-				either negative? _context/bind-word ctx word [
-					res: as red-value! none-value
-				][
-					res: as red-value! word
-				]
+				res: as red-value! either negative? _context/bind-word ctx word [none-value][word]
+				if TYPE_OF(word) = TYPE_REFINEMENT [res/header: TYPE_WORD]
 				stack/set-last res
 			]
 			TYPE_BLOCK

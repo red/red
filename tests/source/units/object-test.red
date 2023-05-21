@@ -1014,7 +1014,15 @@ Red [
 	--test-- "in5"
 		a: 0
 		in5-f: func[] [make object! [a: 1]]
-		--assert 1 = get in in5-f 'a	
+		--assert 1 = get in in5-f 'a
+
+	--test-- "in6"
+		in6-f: func [a /b][]
+		--assert 'a = in :in6-f 'a
+		--assert 'b = in :in6-f 'b
+		--assert 'b = in :in6-f /b
+		--assert none? in :in6-f 'c
+
 	
 ===end-group===
 
