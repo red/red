@@ -3027,7 +3027,12 @@ system-dialect: make-profilable context [
 					pc: next pc
 					return value
 				]
-				comp-word/with path
+				either get? [
+					pc: next pc
+					to-get-word mold path
+				][
+					comp-word/with path
+				]
 			][
 				case [
 					value: system-reflexion? path [
