@@ -255,6 +255,65 @@ type-check: func [
 	arg													;-- pass-thru argument
 ]
 
+set-opt-refinement*: func [
+	value [red-value!]
+	idx	  [integer!]
+	nb	  [integer!]
+	/local
+		ref [red-logic!]
+		arg [red-value!]
+		t?	[logic!]
+][
+	t?: logic/rs-true? value
+	ref: as red-logic! stack/arguments + idx
+	either t? [
+		ref/value: true
+	][
+		arg: as red-value! ref + 1
+		loop nb [arg/header: TYPE_NONE arg: arg + 1]
+	]
+]
+
+call-with-array*: func [
+	[variadic]
+	count	[integer!]
+	list	[int-ptr!]
+	/local
+		arg						[red-value!]
+		ref-array 				[int-ptr!]
+		size ref-pos arg-pos nb [integer!]
+		native? t?				[logic!]
+		call
+][
+	call: as function! [] list/1
+	native?: as-logic list/2
+	size: list/3
+	list: list + 3
+	count: count - 3
+
+	loop size [push -1]
+	ref-array: system/stack/top
+	
+	until [
+		t?: logic/rs-true? as red-value! list/1
+		ref-pos: list/2
+		arg-pos: list/3
+		nb: list/4
+		either t? [
+			ref-array/ref-pos: arg-pos
+		][	
+			arg: stack/arguments + arg-pos
+			loop nb [arg/header: TYPE_NONE arg: arg + 1]
+		]
+		list: list + 4
+		count: count - 4
+		zero? count
+	]
+	system/stack/top: ref-array
+	if native? [push yes]
+	call
+]
+
 eval-path*: func [
 	[variadic]
 	count [integer!]
