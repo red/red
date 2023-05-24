@@ -11,6 +11,8 @@
 	red/alloc-bytes
 	red/alloc-cells
 	red/get-cmdline-args
+	red/set-opt-refinement*
+	red/call-with-array*
 
 	red/redbin/boot-load
 
