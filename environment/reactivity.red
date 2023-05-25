@@ -252,7 +252,7 @@ system/reactivity: context [
 		set field either block? :reaction/1 [do :reaction/1][eval reaction]
 	]
 
-	set 'is does [cause-error 'internal 'deprecated ["IS" "TIE word: [reaction]"]]
+	set 'is does [cause-error 'internal 'deprecated ["IS" "RELATE word: [reaction]"]]
 	
 	set 'react? function [
 		"Returns a reactive relation if an object's field is a reactive source"
