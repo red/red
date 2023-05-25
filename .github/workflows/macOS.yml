@@ -1,0 +1,45 @@
+name: macOS
+
+on: push
+
+jobs:
+  Run-RS-Tests:
+    runs-on: [self-hosted, macOS, X64]
+    steps:
+    - name: Clean working directory
+      run: |
+        echo "Cleaning up previous run"
+        rm -rf ${{ github.workspace }}/*
+
+    - uses: actions/checkout@v3
+    - name: Run Red tests
+      run: rebpro -qws system/tests/run-all.r --batch
+
+    # upload log file if any test failed
+    - uses: actions/upload-artifact@v3
+      if: failure()
+      with:
+        name: RS-Tests-macOS
+        path: quick-test/quick-test.log
+
+  Run-Red-Tests:
+    runs-on: [self-hosted, macOS, X64]
+    needs: Run-RS-Tests
+    steps:
+    - name: Run Red tests
+      run: rebpro -qws tests/run-all.r --batch
+
+    # upload log file if any test failed
+    - uses: actions/upload-artifact@v3
+      if: failure()
+      with:
+        name: Red-Tests-macOS
+        path: quick-test/quick-test.log
+
+  Build-Binaries:
+    runs-on: [self-hosted, macOS, X64]
+    needs: Run-Red-Tests
+  
+    steps:
+    - name: Build Red binaries
+      run: echo "TODO"
