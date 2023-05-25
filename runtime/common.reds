@@ -279,17 +279,20 @@ call-with-array*: func [
 	count	[integer!]
 	list	[int-ptr!]
 	/local
-		arg						[red-value!]
-		ref-array 				[int-ptr!]
-		size ref-pos arg-pos nb [integer!]
-		native? t?				[logic!]
+		arg			[red-value!]
+		ref-array p	[int-ptr!]
+		size ref-pos arg-pos nb id	[integer!]
+		native? t?	[logic!]
 		call
 ][
-	call: as function! [] list/1
+	id: list/1
 	native?: as-logic list/2
 	size: list/3
 	list: list + 3
 	count: count - 3
+	
+	p: either native? [natives/table][actions/table]
+	call: as function! [] p/id
 
 	loop size [push -1]
 	ref-array: system/stack/top

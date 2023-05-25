@@ -629,7 +629,6 @@ red: context [
 			]
 		]
 		either applied [
-			insert/only code join natives-prefix to get-word! join name #"*"
 			emit code
 			insert-lf -2
 		][
@@ -691,6 +690,13 @@ red: context [
 			new-line/all/skip skip list 3 on 4
 			reduce ['all list]
 		]
+	]
+	
+	get-native-ID: func [name [word!] native? [logic!] /local id][
+		name: join pick ["NAT_" "ACT_"] native? replace/all uppercase form name #"-" #"_"
+		id: select extracts/definitions to-word name
+		;assert integer? id
+		id
 	]
 	
 	get-RS-type-ID: func [name [word! datatype!] /word /local type][ ;-- Red type name to R/S type ID
@@ -3525,7 +3531,7 @@ red: context [
 		/thru
 		/local 
 			item name compact? refs ref? cnt pos ctx mark list offset emit-no-ref
-			args option stop? original get? dyn-list blk native? prefix type v
+			args option stop? original get? dyn-list blk native? code type v id
 	][
 		either all [not thru spec/1 = 'intrinsic!][
 			switch any [all [path? call call/1] call] keywords
@@ -3587,15 +3593,9 @@ red: context [
 					]
 					if dyn-list [
 						insert dyn-list reduce [to-word form native?: spec/1 <> 'action! (length? spec/4) / 3]
-						either native? [
-							emit-native/applied name reduce ['call-with-array* dyn-list]
-						][
-							prefix: copy actions-prefix
-							prefix/1: to-get-word prefix/1
-							insert/only dyn-list join prefix to-word join name #"*"
-							emit reduce ['call-with-array* dyn-list]
-							insert-lf -2
-						]
+						insert dyn-list get-native-ID name native?
+						code: reduce ['call-with-array* dyn-list]
+						either native? [emit-native/applied name code][emit code insert-lf -2]
 						emit-close-frame
 						exit
 					]
