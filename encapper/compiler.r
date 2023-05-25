@@ -151,6 +151,17 @@ red: context [
 		]
 		quit-on-error
 	]
+
+	fail: func [err [string! block!] /near code [block!]][
+		print ["*** Compiler Internal Error:" reform err]
+		if pc [
+			print [
+				;"*** at line:" calc-line lf
+				"*** near:" mold any [code copy/part pc 8]
+			]
+		]
+		quit-on-error
+	]
 	
 	dispatch-ctx-keywords: func [original [any-word! none!] /with alt-value][
 		if path? alt-value [alt-value: alt-value/1]
@@ -695,7 +706,7 @@ red: context [
 	get-native-ID: func [name [word!] native? [logic!] /local id][
 		name: join pick ["NAT_" "ACT_"] native? replace/all uppercase form name #"-" #"_"
 		id: select extracts/definitions to-word name
-		;assert integer? id
+		unless integer? id [fail ["get-native-ID failed on:" name native?]]
 		id
 	]
 	
@@ -783,7 +794,7 @@ red: context [
 				| skip
 			]
 		]
-		throw-error ["symbol" mold name "not found in local context:" mold spec]	;@@ should be an internal error
+		fail ["symbol" mold name "not found in local context:" mold spec]
 	]
 	
 	emit-argument-type-check: func [
