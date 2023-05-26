@@ -42,4 +42,12 @@ jobs:
   
     steps:
     - name: Build Red binaries
-      run: echo "TODO"
+      run: |
+        cp ~/Red/red/build/encap-paths.r build/encap-paths.r
+        cp ~/Red/red/build/license.key build/license.key
+        cp ~/build-red/* ./
+        rebol -qws build-red-osx.r > build.log
+
+    - uses: actions/upload-artifact@v3
+      with:
+        path: red-toolchain-*
