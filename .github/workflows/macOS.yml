@@ -3,8 +3,10 @@ name: macOS
 on: push
 
 jobs:
-  Run-RS-Tests:
+  Build-Toolchain:
     runs-on: [self-hosted, macOS, X64]
+    #needs: Run-Red-Tests
+  
     steps:
     - name: Clean working directory
       run: |
@@ -12,7 +14,21 @@ jobs:
         rm -rf ${{ github.workspace }}/*
 
     - uses: actions/checkout@v3
-    - name: Run Red tests
+    - name: Build Red Toolchain
+      run: |
+        cp ~/Red/red/build/encap-paths.r build/encap-paths.r
+        cp ~/Red/red/build/license.key build/license.key
+        cp ~/build-red/* ./
+        rebol -qws build-red-osx.r > build.log
+
+    - uses: actions/upload-artifact@v3
+      with:
+        path: red-toolchain-*
+
+  Run-RS-Tests:
+    runs-on: [self-hosted, macOS, X64]
+    steps:
+    - name: Run RS tests
       run: rebpro -qws system/tests/run-all.r --batch
 
     # upload log file if any test failed
@@ -35,19 +51,3 @@ jobs:
       with:
         name: Red-Tests-macOS
         path: quick-test/quick-test.log
-
-  Build-Binaries:
-    runs-on: [self-hosted, macOS, X64]
-    needs: Run-Red-Tests
-  
-    steps:
-    - name: Build Red binaries
-      run: |
-        cp ~/Red/red/build/encap-paths.r build/encap-paths.r
-        cp ~/Red/red/build/license.key build/license.key
-        cp ~/build-red/* ./
-        rebol -qws build-red-osx.r > build.log
-
-    - uses: actions/upload-artifact@v3
-      with:
-        path: red-toolchain-*
