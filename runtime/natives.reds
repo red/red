@@ -3004,6 +3004,7 @@ natives: context [
 			]
 			TYPE_ANY_FUNCTION [name: words/_applied]
 			TYPE_ANY_WORD 	  [name: as red-word! fun  fun: stack/push _context/get name]
+			TYPE_OP			  [name: words/_applied set-type fun GET_OP_SUBTYPE(fun)]
 			default			  [assert false]
 		]
 		if TYPE_OF(fun) = TYPE_OP [set-type fun GET_OP_SUBTYPE(fun)]
