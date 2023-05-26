@@ -1233,14 +1233,12 @@ Red [
 
 context [											;-- needed to protect global `scan` function
 	--test-- "dyn-ref-5"
-		scan-fun: :scan
 		scan: no
 		--assert [hi] == transcode/:scan "hi"
 
-	--test-- "dyn-ref-6"	
+	--test-- "dyn-ref-6"
 		scan: yes
 		--assert word! == transcode/:scan "hi"
-		scan: :scan-fun
 ]
 	
 	--test-- "dyn-ref-7"
@@ -1285,7 +1283,38 @@ context [											;-- needed to protect global `scan` function
 		    ]
 		]
 		dyn-ref-12-obj/bar
-
+		
+	--test-- "dyn-ref-13"
+		clear logs
+	    do/trace [apply/all 'append [[] [a]]] :logger
+		new-line/all/skip logs yes 5
+		--assert logs == [
+			init -1 #[none] #[none] 2 
+			enter 0 #[none] #[none] 0 
+			fetch 0 #[none] "apply/all" 0 
+			enter 0 #[none] #[none] 0 
+			fetch 0 #[none] "apply" 0 
+			open 1 #[none] "apply" 0 
+			fetch 1 #[none] "'append" 0 
+			push 1 #[none] "append" 1 
+			fetch 2 #[none] "[[] [a]]" 1 
+			push 2 #[none] "[[] [a]]" 2 
+			call 3 "apply/all" "make nativ" 2 
+			open 0 #[none] "append" 3 
+			fetch 0 #[none] "[]" 0 
+			push 0 #[none] "[]" 1 
+			fetch 1 #[none] "[a]" 1 
+			push 1 #[none] "[a]" 2 
+			call -1 "append" "make actio" 4 
+			return 2 "[a]" "[a]" 5 
+			return 3 "apply/all" "[a]" 2 
+			exit 2 #[none] "[a]" 1 
+			push 3 #[none] "[a]" 1 
+			expr 3 #[none] "[a]" 1 
+			exit 3 #[none] "[a]" 1 
+			end -1 #[none] #[none] 3
+		]
+	
 ===end-group===
 
 ===start-group=== "Function application"
@@ -1301,6 +1330,8 @@ context [											;-- needed to protect global `scan` function
 	--test-- "apply-4"   --assert error? try [apply '+ ['one 2]]
 	--test-- "apply-4.1" --assert error? try [apply :+ ['one 2]]
 	--test-- "apply-5"   --assert error? try [apply/all 'applied ['twelve]]
+	--test-- "apply-5.1" --assert error? try [apply 'unknown-applied-func [3 4]]
+	--test-- "apply-5.2" --assert error? try [apply 'unknown-applied-func/:ref [3 4]]
 	
 	--test-- "apply-6"
 		--assert strict-equal? apply/all 'applied [3 * 4]
