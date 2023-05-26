@@ -1207,4 +1207,193 @@ Red [
 	
 ===end-group===
 
+===start-group=== "Dynamic refinements"
+
+    dyn-ref-fun: func [i [integer!] b /ref c1 /ref2 /ref3 c3 c4][
+        reduce [i b ref c1 ref2 ref3 c3 c4]
+    ]
+
+	--test-- "dyn-ref-1"
+		only: yes
+		repend/:only s: [] [1 + 2 3 * 4]
+		--assert s == [[3 12]]
+	
+	--test-- "dyn-ref-2"
+		only: no
+		repend/:only s: [] [4 + 5 6 * 7]
+		--assert s == [9 42]
+	
+	--test-- "dyn-ref-3"
+		part: no length: 10 
+		--assert "def" == find/:part "abcdef" "d" length
+		
+	--test-- "dyn-ref-4"
+		part: yes length: 2
+		--assert none? find/:part "abcdef" "d" length
+
+context [											;-- needed to protect global `scan` function
+	--test-- "dyn-ref-5"
+		scan-fun: :scan
+		scan: no
+		--assert [hi] == transcode/:scan "hi"
+
+	--test-- "dyn-ref-6"	
+		scan: yes
+		--assert word! == transcode/:scan "hi"
+		scan: :scan-fun
+]
+	
+	--test-- "dyn-ref-7"
+		ref: yes
+		--assert (dyn-ref-fun/:ref 10 * 9 "hello" 789)
+			== [90 "hello" #[true] 789 #[false] #[false] #[none] #[none]]
+		
+	--test-- "dyn-ref-8"
+		ref: no
+		--assert (dyn-ref-fun/:ref 10 * 9 "hello" 789)
+			== [90 "hello" #[false] #[none] #[false] #[false] #[none] #[none]]
+
+	--test-- "dyn-ref-9"
+		ref: ref2: yes
+		--assert (dyn-ref-fun/:ref/:ref2 10 * 9 "hello" 789)
+			== [90 "hello" #[true] 789 #[true] #[false] #[none] #[none]]		
+
+	--test-- "dyn-ref-10"
+		ref: no ref2: yes
+		--assert (dyn-ref-fun/:ref/:ref2 10 * 9 "hello" 789)
+			== [90 "hello" #[false] #[none] #[true] #[false] #[none] #[none]]
+
+	--test-- "dyn-ref-11"
+		ref: no ref2: ref3: yes
+		--assert (dyn-ref-fun/:ref/:ref2/:ref3 10 * 9 "hello" 789 6 7)
+			== [90 "hello" #[false] #[none] #[true] #[true] 6 7]
+	
+	--test-- "dyn-ref-12"		
+		dyn-ref-12-obj: context [
+		    foo: func [i [integer!] b /ref c1 /ref2 /ref3 c3 c4][
+		    	reduce [i b ref c1 ref2 ref3 c3 c4]
+		    ]
+		    bar: func [/local ref][
+		        ref: no
+				--assert (foo/:ref 10 * 9 "hello" 789)
+				== [90 "hello" #[false] #[none] #[false] #[false] #[none] #[none]]
+
+		        ref: yes
+				--assert (foo/:ref 10 * 9 "hello" 789)
+				== [90 "hello" #[true] 789 #[false] #[false] #[none] #[none]]
+
+		    ]
+		]
+		dyn-ref-12-obj/bar
+
+===end-group===
+
+===start-group=== "Function application"
+
+    applied: func [i [integer!] b /ref c1 /ref2 /ref3 c3 c4][
+        reduce [i b ref c1 ref2 ref3 c3 c4]
+    ]
+
+	--test-- "apply-1"   --assert error? try [apply 'find []]
+	--test-- "apply-2"   --assert error? try [apply 'append/dup [[] [1] on 2]]
+	--test-- "apply-3"   --assert 3 == apply '+ [1 2]
+	--test-- "apply-3.1" --assert 3 == apply :+ [1 2]
+	--test-- "apply-4"   --assert error? try [apply '+ ['one 2]]
+	--test-- "apply-4.1" --assert error? try [apply :+ ['one 2]]
+	--test-- "apply-5"   --assert error? try [apply/all 'applied ['twelve]]
+	
+	--test-- "apply-6"
+		--assert strict-equal? apply/all 'applied [3 * 4]
+			[12 #[none] #[false] #[none] #[false] #[false] #[none] #[none]]
+	
+	--test-- "apply-7"
+		--assert strict-equal? apply/all 'applied [10 * 9 "hi"]
+			[90 "hi" #[false] #[none] #[false] #[false] #[none] #[none]]
+			
+	--test-- "apply-8"
+		--assert strict-equal? apply/all 'applied [10 * 9 "hi" false]
+			[90 "hi" #[false] #[none] #[false] #[false] #[none] #[none]]
+			
+	--test-- "apply-9"
+		--assert strict-equal? apply/all 'applied [10 * 9 "hi" true]
+			[90 "hi" #[true] #[none] #[false] #[false] #[none] #[none]]
+		
+	--test-- "apply-10"
+		--assert strict-equal? apply/all 'applied [10 * 9 "hi" true pi]
+			[90 "hi" #[true] 3.141592653589793 #[false] #[false] #[none] #[none]]
+		
+	--test-- "apply-11"
+		--assert strict-equal? apply/all 'applied [10 * 9 "hi" false none false true 3 4]
+			[90 "hi" #[false] #[none] #[false] #[true] 3 4]
+			
+	--test-- "apply-12" --assert "helloworld" == apply/all 'append ["hello" "world"]
+	--test-- "apply-13" --assert "hellowo"    == apply/all 'append ["hello" "world" true 2]
+	--test-- "apply-14" --assert 10.20.30     == apply/all 'as-color [10 20 30]	 
+
+	--test-- "apply-15"
+		--assert strict-equal? apply/all :applied [3 * 4]
+			[12 #[none] #[false] #[none] #[false] #[false] #[none] #[none]]
+	
+	--test-- "apply-16"
+		--assert strict-equal? apply/all :applied [10 * 9 "hi"]
+			[90 "hi" #[false] #[none] #[false] #[false] #[none] #[none]]
+			
+	--test-- "apply-17" --assert "helloworld" == apply/all :append ["hello" "world"]
+	--test-- "apply-18" --assert "hellowo"    == apply/all :append ["hello" "world" true 2]
+	--test-- "apply-19" --assert 10.20.30     == apply/all :as-color [10 20 30]	 
+
+
+	--test-- "apply-20"
+		--assert strict-equal? apply 'applied/:ref3 [10 * 9 "hi" yes 4 - 1 "ok"]
+			[90 "hi" #[false] #[none] #[false] #[true] 3 "ok"]
+	
+	--test-- "apply-21"
+		--assert strict-equal? apply 'applied/:ref2/:ref3 [10 * 9 "hi" true yes 4 - 1 "ok"]
+			[90 "hi" #[false] #[none] #[true] #[true] 3 "ok"]
+			
+	--test-- "apply-30"		
+		--assert strict-equal? apply 'applied [10 "hi" /ref3 true 4 * 2 1 - 3] 
+			[10 "hi" #[false] #[none] #[false] #[true] 8 -2]
+		
+	--test-- "apply-31"		
+		--assert strict-equal? apply 'applied [123 "hi" /ref no none]
+			[123 "hi" #[false] #[none] #[false] #[false] #[none] #[none]]
+		
+	--test-- "apply-32"		
+		--assert strict-equal? apply 'applied [123 "hi" /ref yes #"i"]
+			[123 "hi" #[true] #"i" #[false] #[false] #[none] #[none]]
+	
+	--test-- "apply-33"		
+		--assert strict-equal? apply 'applied [123 "hi" /ref2 yes]
+			[123 "hi" #[false] #[none] #[true] #[false] #[none] #[none]]
+		
+	--test-- "apply-34"
+		v: yes
+		--assert strict-equal? apply 'applied [123 "hi" /ref2 v /ref v none]
+			[123 "hi" #[true] #[none] #[true] #[false] #[none] #[none]]
+
+	--test-- "apply-35"		
+		--assert strict-equal? apply 'applied [123 "hi" /ref2 to-logic 1 /ref v #"o"]
+			[123 "hi" #[true] #"o" #[true] #[false] #[none] #[none]]
+			
+
+	--test-- "apply-40"	
+		c: 0
+		bar40: does [456]
+		baz40: does [c: c + 1 456]
+
+		--assert strict-equal? apply/safer 'applied [10 "hi" /ref yes bar40 /ref3 no (c: c + 1 4 * 2) "ok"]
+			[10 "hi" #[true] 456 #[false] #[false] #[none] #[none]]
+		--assert c == 0
+	
+	--test-- "apply-41"
+		c: 0
+		--assert strict-equal? apply/safer 'applied [10 "hi" /ref no baz40 /ref3 true (4 * 2) "ok"]
+   			 [10 "hi" #[false] #[none] #[false] #[true] 8 "ok"]
+		--assert c == 0
+		
+===end-group===
+
+
+
 ~~~end-file~~~
