@@ -255,9 +255,9 @@ redc: context [
 		]
 	]
 
-	red-system?: func [file [file!] /local ws rs?][
+	red-system?: func [file [string!] /local ws rs?][
 		ws: charset " ^-^M^/"
-		parse/all/case read file [
+		parse/all/case file [
 			some [
 				thru "Red"
 				opt ["/System" (rs?: yes)]
@@ -267,7 +267,19 @@ redc: context [
 		]
 		no
 	]
-	
+
+	red?: func [file [string!] /local ws][
+		ws: charset " ^-^M^/"
+		parse/all/case file [
+			some [
+				[thru "Red" | thru "red" | thru "RED"]
+				any ws
+				#"[" (return yes)
+			]
+		]
+		no
+	]
+
 	fetch-cmdline: has [cmd buffer size][
 		either Windows? [
 			cmd: GetCommandLineW
@@ -680,10 +692,13 @@ redc: context [
 		reduce [src opts]
 	]
 	
-	compile: func [src opts /local result saved rs?][
+	compile: func [src opts /local result saved rs? data][
 		print [	"Compiling" to-local-file src "..."]
 
-		unless rs?: red-system? src [
+		data: read src
+		unless rs?: red-system? data [
+			unless red? data [fail "Error: Invalid Red program"]
+
 	;--- 1st pass: Red compiler ---
 			if load-lib? [build-compress-lib]
 			if needs-libRedRT? opts [build-libRedRT opts]
@@ -719,8 +734,6 @@ redc: context [
 	main: func [/with cmd [string!] /local src opts build-dir prefix result file][
 		set [src opts] parse-options cmd
 		unless src [do opts exit]						;-- run named command and terminates
-
-		rs?: red-system? src
 
 		;-- If we use a build directory, ensure it exists.
 		if all [prefix: opts/build-prefix find prefix %/] [
