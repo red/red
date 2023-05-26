@@ -697,7 +697,7 @@ redc: context [
 
 		data: read src
 		unless rs?: red-system? data [
-			unless red? data [fail "Error: Invalid Red program"]
+			unless red? data [fail "*** Syntax Error: Invalid Red program"]
 
 	;--- 1st pass: Red compiler ---
 			if load-lib? [build-compress-lib]
