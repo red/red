@@ -480,6 +480,16 @@ Red/System [
 	]
 ]
 
+#define ALL_FUNCTION?(type) [
+	any [
+		type = TYPE_FUNCTION
+		type = TYPE_ACTION
+		type = TYPE_NATIVE
+		type = TYPE_ROUTINE
+		type = TYPE_OP
+	]
+]
+
 #define TYPE_ANY_WORD [
 	TYPE_WORD
 	TYPE_SET_WORD
@@ -525,6 +535,14 @@ Red/System [
 	TYPE_ACTION
 	TYPE_NATIVE
 	TYPE_ROUTINE
+]
+
+#define TYPE_ALL_FUNCTION [					;-- To be used in SWITCH cases
+	TYPE_FUNCTION
+	TYPE_ACTION
+	TYPE_NATIVE
+	TYPE_ROUTINE
+	TYPE_OP
 ]
 
 #define BS_SET_BIT(array bit)  [

@@ -2985,10 +2985,12 @@ natives: context [
 		/local
 			args  [red-block!]
 			fun	  [red-value!]
+			value [red-value!]
 			name  [red-word!]
 			path  [red-path!]
 			s	  [series!]
 			mode  [integer!]
+			type  [integer!]
 	][	
 		#typecheck [apply _all safer]
 
@@ -2997,14 +2999,20 @@ natives: context [
 		path: null
 
 		switch TYPE_OF(fun) [
-			TYPE_PATH [
-				path: as red-path! fun
-				name: as red-word! block/rs-head path
-				fun: stack/push _context/get name
+			TYPE_PATH
+			TYPE_ANY_WORD [
+				either TYPE_OF(fun) = TYPE_PATH [
+					path: as red-path! fun
+					name: as red-word! block/rs-head path
+				][
+					name: as red-word! fun
+				]
+				value: _context/get name
+				type: TYPE_OF(value)
+				unless ALL_FUNCTION?(type) [fire [TO_ERROR(script invalid-arg) fun]]
+				fun: stack/push value
 			]
-			TYPE_ANY_FUNCTION [name: words/_applied]
-			TYPE_ANY_WORD 	  [name: as red-word! fun  fun: stack/push _context/get name]
-			TYPE_OP			  [name: words/_applied set-type fun GET_OP_SUBTYPE(fun)]
+			TYPE_ALL_FUNCTION [name: words/_applied]
 			default			  [assert false]
 		]
 		if TYPE_OF(fun) = TYPE_OP [set-type fun GET_OP_SUBTYPE(fun)]
