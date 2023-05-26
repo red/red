@@ -379,6 +379,7 @@
 	red/natives/recycle*
 	red/natives/transcode*
 	red/natives/as-money*
+	red/natives/apply*
 
 	;-- for view backend
 	red/symbol/resolve
