@@ -721,9 +721,7 @@ interpreter: context [
 			word/push* ref/symbol
 		]
 		fetch-arg: [
-			either pc >= end [
-				either mode = MODE_APPLY [none/push][fire [TO_ERROR(script no-arg) fname get-spec-word]]
-			][
+			either pc >= end [fire [TO_ERROR(script no-arg) fname get-spec-word]][
 				switch value/header and flag-fetch-mode [
 					FETCH_WORD [
 						#if debug? = yes [if verbose > 0 [log "evaluating argument"]]
@@ -883,6 +881,7 @@ interpreter: context [
 				end
 			][
 				fname: as red-word! ref-pos
+				assert path <> null
 				block/rs-tail as red-block! path
 			]
 			exp-type: either some? [TYPE_REFINEMENT][TYPE_WORD]

@@ -1342,7 +1342,10 @@ context [											;-- needed to protect global `scan` function
 			[90 "hi" #[false] #[none] #[false] #[false] #[none] #[none]]
 			
 	--test-- "apply-8"
-		--assert strict-equal? apply/all 'applied [10 * 9 "hi" false]
+		--assert error? try [apply/all 'applied [10 * 9 "hi" false]]
+
+	--test-- "apply-8.1"
+		--assert strict-equal? apply/all 'applied [10 * 9 "hi" false 0]
 			[90 "hi" #[false] #[none] #[false] #[false] #[none] #[none]]
 			
 	--test-- "apply-9"
@@ -1382,19 +1385,19 @@ context [											;-- needed to protect global `scan` function
 		--assert strict-equal? apply 'applied/:ref2/:ref3 [10 * 9 "hi" true yes 4 - 1 "ok"]
 			[90 "hi" #[false] #[none] #[true] #[true] 3 "ok"]
 			
-	--test-- "apply-30"		
+	--test-- "apply-30"
 		--assert strict-equal? apply 'applied [10 "hi" /ref3 true 4 * 2 1 - 3] 
 			[10 "hi" #[false] #[none] #[false] #[true] 8 -2]
 		
-	--test-- "apply-31"		
+	--test-- "apply-31"
 		--assert strict-equal? apply 'applied [123 "hi" /ref no none]
 			[123 "hi" #[false] #[none] #[false] #[false] #[none] #[none]]
 		
-	--test-- "apply-32"		
+	--test-- "apply-32"
 		--assert strict-equal? apply 'applied [123 "hi" /ref yes #"i"]
 			[123 "hi" #[true] #"i" #[false] #[false] #[none] #[none]]
 	
-	--test-- "apply-33"		
+	--test-- "apply-33"
 		--assert strict-equal? apply 'applied [123 "hi" /ref2 yes]
 			[123 "hi" #[false] #[none] #[true] #[false] #[none] #[none]]
 		
@@ -1403,10 +1406,16 @@ context [											;-- needed to protect global `scan` function
 		--assert strict-equal? apply 'applied [123 "hi" /ref2 v /ref v none]
 			[123 "hi" #[true] #[none] #[true] #[false] #[none] #[none]]
 
-	--test-- "apply-35"		
+	--test-- "apply-35"
 		--assert strict-equal? apply 'applied [123 "hi" /ref2 to-logic 1 /ref v #"o"]
 			[123 "hi" #[true] #"o" #[true] #[false] #[none] #[none]]
 			
+	--test-- "apply-36"
+		--assert "hiwo" == apply 'append ["hi" "world"
+			/part 
+				apply 'to-logic [1]
+				apply '+ [1 apply '- [7 6]]
+		]
 
 	--test-- "apply-40"	
 		c: 0
@@ -1420,7 +1429,7 @@ context [											;-- needed to protect global `scan` function
 	--test-- "apply-41"
 		c: 0
 		--assert strict-equal? apply/safer 'applied [10 "hi" /ref no baz40 /ref3 true (4 * 2) "ok"]
-   			 [10 "hi" #[false] #[none] #[false] #[true] 8 "ok"]
+			[10 "hi" #[false] #[none] #[false] #[true] 8 "ok"]
 		--assert c == 0
 		
 ===end-group===
