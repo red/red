@@ -283,7 +283,7 @@ call-with-array*: func [
 		ref-array p	[int-ptr!]
 		size ref-pos arg-pos nb id	[integer!]
 		native? t?	[logic!]
-		call
+		call		[function! []]
 ][
 	id: list/1
 	native?: as-logic list/2

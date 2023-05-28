@@ -1445,7 +1445,7 @@ system-dialect: make-profilable context [
 		
 		check-specs: func [
 			name specs /extend
-			/local type type-def spec-type attribs value args locs cconv pos
+			/local type type-def fun-rule spec-type attribs value args locs cconv pos
 		][
 			unless block? specs [
 				throw-error "function definition requires a specification block"
@@ -1457,6 +1457,7 @@ system-dialect: make-profilable context [
 				| 'catch | 'infix | 'variadic | 'typed | 'custom | 'callback | cconv
 			]
 			type-def: pick [[func-pointer | type-spec] [type-spec]] to logic! extend
+			fun-rule: [pos: block! (check-specs name pos/1)]
 
 			unless catch [
 				parse specs [
@@ -1468,13 +1469,13 @@ system-dialect: make-profilable context [
 						pos: 'return (throw-error ["Cannot use `return` as argument name at:" mold pos])
 						| word! into type-def opt string!	;-- arguments definition
 					]
-					pos: opt [							;-- return type definition				
-						set value set-word! (					
+					pos: opt [							;-- return type definition
+						set value set-word! (
 							rule: pick reduce [[into type-spec] fail] value = return-def
 						) rule
 						opt string!
 					]
-					pos: opt [/local copy locs some [pos: word! opt [into ['subroutine! | type-spec]]]] ;-- local variables definition
+					pos: opt [/local copy locs some [pos: word! opt [into ['subroutine! | 'function! fun-rule | type-spec]]]] ;-- local variables definition
 				]
 			][
 				throw-error rejoin ["invalid definition for function " name ": " mold pos]

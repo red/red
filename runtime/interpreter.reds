@@ -333,7 +333,8 @@ interpreter: context [
 			int	   [red-integer!]
 			prev?  [logic!]
 			allow? [logic!]
-			call ocall									;@@ FIXME: avoid 64-bit stack slots, leads to GCing garbage
+			call   [function! []]
+			ocall  [function! [octx [node!]]]
 	][
 		prev?: tracing?
 		allow?: all [prev? class <> CB_INTERPRETER]
@@ -463,7 +464,9 @@ interpreter: context [
 			bits 	[byte-ptr!]
 			set? 	[logic!]
 			extern?	[logic!]
-			call callf callex
+			call	[function! [return: [integer!]]]
+			callf	[function! [return: [float!]]]
+			callex	[function! [[cdecl custom] return: [integer!]]]
 	][
 		extern?: rt/header and flag-extern-code <> 0
 		s:		as series! rt/more/value
@@ -714,7 +717,7 @@ interpreter: context [
 			index arg-cnt ref-cnt loc-cnt sym-cnt size type xcode idx exp-type [integer!]
 			required? function? routine? set? get? apply? native? ifx? some? t? safer? [logic!]
 			fetch-arg get-spec-word	[subroutine!]
-			calln
+			calln				[function! []]
 	][
 		get-spec-word: [
 			ref: _hashtable/get-ctx-word ctx sym-cnt
