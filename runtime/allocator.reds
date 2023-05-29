@@ -672,7 +672,7 @@ in-range?: func [
 ]
 
 compare-refs: func [[cdecl] a [int-ptr!] b [int-ptr!] return: [integer!]][
-	as-integer (as int-ptr! a/value) - (as int-ptr! b/value)
+	SIGN_COMPARE_RESULT((as int-ptr! a/value) (as int-ptr! b/value))
 ]
 
 extract-stack-refs: func [
