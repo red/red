@@ -100,6 +100,13 @@
 	
 	--test-- "#581"
 		--assert 1 = do load {S: 1 S}
+		
+	--test-- "IN bugs"
+		--assert 'match = in :find /match
+		--assert none? in :find /zzz
+		fn-in-bugs: func [a b][?? a ?? b]
+		--assert none? in :fn-in-bugs /hi
+
 
 ===end-group===
 

@@ -1216,24 +1216,35 @@ natives: context [
 	in*: func [
 		check? [logic!]
 		/local
-			obj  [red-object!]
-			ctx  [red-context!]
-			word [red-word!]
-			res	 [red-value!]
+			obj		[red-object!]
+			ctx		[red-context!]
+			native	[red-native!]
+			word	[red-word!]
+			res		[red-value!]
 	][
 		#typecheck in
 		obj:  as red-object! stack/arguments
 		word: as red-word! stack/arguments + 1
-		ctx: GET_CTX(obj)
-		
+		ctx: either any [
+			TYPE_OF(obj) = TYPE_OBJECT
+			TYPE_OF(obj) = TYPE_FUNCTION
+			TYPE_OF(obj) = TYPE_ROUTINE
+		][
+			GET_CTX(obj)
+		][
+			native: as red-native! obj
+			TO_CTX(native/more)
+		]
 		switch TYPE_OF(word) [
 			TYPE_WORD
 			TYPE_GET_WORD
 			TYPE_SET_WORD
 			TYPE_LIT_WORD
 			TYPE_REFINEMENT [
-				res: as red-value! either negative? _context/bind-word ctx word [none-value][word]
-				if TYPE_OF(word) = TYPE_REFINEMENT [res/header: TYPE_WORD]
+				either negative? _context/bind-word ctx word [res: as red-value! none-value][
+					res: as red-value! word
+					if TYPE_OF(word) = TYPE_REFINEMENT [res/header: TYPE_WORD]
+				]
 				stack/set-last res
 			]
 			TYPE_BLOCK
