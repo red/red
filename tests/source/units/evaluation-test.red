@@ -1417,6 +1417,15 @@ context [											;-- needed to protect global `scan` function
 				apply '+ [1 apply '- [7 6]]
 		]
 
+	--test-- "apply-37"
+		fn-apply-37: func [a b][--assert a = 1 --assert b = 2 none]
+    	--assert none? apply :fn-apply-37 [1 2 3]		;-- ignoring extra values
+
+	--test-- "apply-38"
+		fn-apply-38: func [a b /r][none]
+    	--assert error? try [apply :fn-apply-38 [1 2 3]]
+		
+
 	--test-- "apply-40"	
 		c: 0
 		bar40: does [456]

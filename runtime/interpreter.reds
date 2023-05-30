@@ -711,7 +711,7 @@ interpreter: context [
 			p ref-array	offset	[int-ptr!]
 			pos	bits			[byte-ptr!]
 			index arg-cnt ref-cnt loc-cnt sym-cnt type xcode idx exp-type [integer!]
-			required? function? routine? set? get? apply? native? ifx? some? t? safer? [logic!]
+			required? function? routine? set? get? apply? native? ifx? some? t? safer? ref? [logic!]
 			fetch-arg get-spec-word	[subroutine!]
 			calln				[function! []]
 	][
@@ -783,6 +783,7 @@ interpreter: context [
 		tail:	   s/tail
 		value:	   head
 		required?: yes
+		ref?:	   no
 		ifx?:	   infix?								;-- toggle flag to skip fetching left operand
 		arg-cnt:   0
 		ref-cnt:   1
@@ -861,6 +862,7 @@ interpreter: context [
 						if function? [logic/push false]
 						no
 					]
+					ref?: yes
 					sym-cnt: sym-cnt + 1
 				]
 				TYPE_INTEGER [loc-cnt: integer/get value] ;-- get local words count
@@ -870,7 +872,7 @@ interpreter: context [
 			value: value + 1
 		]
 		;====== Optional arguments fetching ======
-		if any [path <> null some?][
+		if any [path <> null all [some? ref?]][
 			path-end: either all [some? path = null][
 				ref-pos: pc - 1
 				end
