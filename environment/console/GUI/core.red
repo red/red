@@ -152,6 +152,7 @@ object [
 		either empty? lines [
 			append lines str
 			append flags 0
+			calc-top
 		][
 			append last lines str
 		]

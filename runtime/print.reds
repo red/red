@@ -175,7 +175,7 @@ dyn-print: context [
 					print-line ["Error: unknown string encoding: " unit]
 				]
 			]
-			fflush 0
 		]
+		fflush 0
 	]]
 ]

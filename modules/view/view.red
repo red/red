@@ -494,7 +494,7 @@ face!: object [				;-- keep in sync with facet! enum
 				selected
 				block? data
 				find [drop-list drop-down text-list field area] type
-				set-quiet 'text pick data selected
+				set-quiet 'text copy pick data selected 
 			]
 
 			system/reactivity/check/only self any [saved word]
@@ -857,6 +857,7 @@ show: function [
 
 	if face/pane [
 		foreach f face/pane [
+			unless face? :f [cause-error 'script 'face-type [:f]]
 			show/with f face
 			unless face/state [return false]			;-- unviewed in child event handler
 		]
@@ -884,7 +885,7 @@ unview: function [
 	if empty? pane: svs/pane [exit]
 	
 	case [
-		only  [remove find head pane face]
+		only  [remove find/same head pane face]
 		all?  [while [not tail? pane][remove back tail pane]]
 		'else [remove back tail pane]
 	]

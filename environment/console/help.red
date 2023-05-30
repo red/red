@@ -125,7 +125,7 @@ help-ctx: context [
 					"length:" length? value
 					; Bolek's idea
 					either (index? value) > 1 [form reduce ["index:" index? value]][""]
-					mold/flat value
+					fmt value
 				]
 			]
 			any-object? value    [fmt words-of value]

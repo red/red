@@ -27,6 +27,7 @@ ext-cls-tail:		ext-classes							;-- tail pointer
 ext-parent-proc?:	no
 OldFaceWndProc:		0
 OldEditWndProc:		0
+OldCalendarWndProc: 0
 
 find-class: func [
 	name	[red-word!]
@@ -187,6 +188,21 @@ AreaWndProc: func [
 	CallWindowProc as wndproc-cb! OldEditWndProc hWnd msg wParam lParam
 ]
 
+CalendarWndProc: func [
+	[stdcall]
+	hWnd	[handle!]
+	msg		[integer!]
+	wParam	[integer!]
+	lParam	[integer!]
+	return: [integer!]
+][
+	switch msg [
+		WM_LBUTTONDOWN	 [SetFocus hWnd]
+		default [0]
+	]
+	CallWindowProc as wndproc-cb! OldCalendarWndProc hWnd msg wParam lParam
+]
+
 register-classes: func [
 	hInstance [handle!]
 	/local
@@ -234,12 +250,17 @@ register-classes: func [
 	make-super-class #u16 "RedSlider"	#u16 "msctls_trackbar32" 0 yes
 	make-super-class #u16 "RedScroller"	#u16 "SCROLLBAR"		 0 yes
 	make-super-class #u16 "RedTabpanel"	#u16 "SysTabControl32"	 0 yes
-	make-super-class #u16 "RedCalendar" #u16 "SysMonthCal32"     0 yes
 
 	OldFaceWndProc: make-super-class
 		#u16 "RedFace"
 		#u16 "STATIC"
 		as-integer :FaceWndProc
+		yes
+
+	OldCalendarWndProc: make-super-class
+		#u16 "RedCalendar"
+		#u16 "SysMonthCal32"
+		as-integer :CalendarWndProc
 		yes
 
 	OldEditWndProc: make-super-class

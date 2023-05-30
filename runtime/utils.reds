@@ -611,9 +611,14 @@ check-arg-type: func [
 			pbuf: allocate len
 			simple-io/read-data file pbuf len
 			simple-io/close-file file
-			str: simple-io/strstr as c-string! pbuf {PRETTY_NAME="}
-			str: str + 13
-			p: strchr str #"^""
+			str: simple-io/strstr as c-string! pbuf {PRETTY_NAME=}
+			str: str + 12
+			either str/1 = #"^"" [
+				str: str + 1
+				p: strchr str #"^""
+			][
+				p: strchr str lf
+			]
 			p/1: null-byte
 		][
 			str: (as c-string! buf) + 65

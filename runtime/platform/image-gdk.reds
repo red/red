@@ -509,12 +509,8 @@ OS-image: context [
 
 	copy-rect: func [
 		dst		[byte-ptr!]
-		dw		[integer!]
-		dh		[integer!]
 		ds		[integer!]
 		src		[byte-ptr!]
-		sw		[integer!]
-		sh		[integer!]
 		ss		[integer!]
 		x		[integer!]
 		y		[integer!]
@@ -524,7 +520,7 @@ OS-image: context [
 			from	[byte-ptr!]
 			to		[byte-ptr!]
 	][
-		offset: y * ss + x * 4
+		offset: y * ss + (x * 4)
 		from: src + offset
 		to: dst
 		loop lines [
@@ -535,21 +531,50 @@ OS-image: context [
 	]
 
 	clone: func [
+		src			[red-image!]
+		dst			[red-image!]
+		return:		[red-image!]
+		/local
+			inode0	[img-node!]
+			width	[integer!]
+			height	[integer!]
+			pixels	[integer!]
+			handle0	[int-ptr!]
+			handle	[int-ptr!]
+			scan0	[int-ptr!]
+	][
+		inode0: as img-node! (as series! src/node/value) + 1
+		handle0: inode0/handle
+		width: IMAGE_WIDTH(inode0/size)
+		height: IMAGE_HEIGHT(inode0/size)
+		pixels: width * height * 4
+
+		either null? handle0 [
+			scan0: as int-ptr! allocate pixels
+			dst/node: make-node null scan0 IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED width height
+			copy-memory as byte-ptr! scan0 as byte-ptr! inode0/buffer pixels
+		][
+			handle: gdk_pixbuf_copy handle0
+			dst/node: make-node handle null 0 width height
+		]
+		dst/size: src/size
+		dst/header: TYPE_IMAGE
+		dst/head: 0
+		return dst
+	]
+
+	copy: func [
 		src		[red-image!]
 		dst		[red-image!]
-		part	[integer!]
-		size	[red-pair!]
-		part?	[logic!]
+		x		[integer!]
+		y		[integer!]
+		w		[integer!]
+		h		[integer!]
 		return: [red-image!]
 		/local
 			inode0	[img-node!]
 			width	[integer!]
 			height	[integer!]
-			offset	[integer!]
-			x		[integer!]
-			y		[integer!]
-			h		[integer!]
-			w		[integer!]
 			src-buf [byte-ptr!]
 			dst-buf [byte-ptr!]
 			handle0	[int-ptr!]
@@ -560,67 +585,12 @@ OS-image: context [
 		handle0: inode0/handle
 		width: IMAGE_WIDTH(inode0/size)
 		height: IMAGE_HEIGHT(inode0/size)
-		offset: src/head
-
-		if any [
-			width <= 0
-			height <= 0
-		][
-			dst/size: 0
-			dst/header: TYPE_IMAGE
-			dst/head: 0
-			dst/node: make-node null null IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED 0 0
-			return dst
-		]
-
-		if all [zero? offset not part?][
-			either null? handle0 [
-				scan0: as int-ptr! allocate part * 4
-				dst/node: make-node null scan0 IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED width height
-				copy-memory as byte-ptr! scan0 as byte-ptr! inode0/buffer part * 4
-			][
-				handle: gdk_pixbuf_copy handle0
-				dst/node: make-node handle null 0 width height
-			]
-			dst/size: src/size
-			dst/header: TYPE_IMAGE
-			dst/head: 0
-			return dst
-		]
-
-		x: offset % width
-		y: offset / width
-		either all [part? TYPE_OF(size) = TYPE_PAIR][
-			w: width - x
-			h: height - y
-			if size/x < w [w: size/x]
-			if size/y < h [h: size/y]
-		][
-			either zero? part [
-				w: 0 h: 0
-			][
-				either part < width [h: 1 w: part][
-					h: part / width
-					w: width
-				]
-			]
-		]
-		if any [
-			w <= 0
-			h <= 0
-		][
-			dst/size: 0
-			dst/header: TYPE_IMAGE
-			dst/head: 0
-			dst/node: make-node null null IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED 0 0
-			return dst
-		]
 
 		either null? handle0 [
 			dst-buf: allocate w * h * 4
 			dst/node: make-node null as int-ptr! dst-buf IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED w h
 			src-buf: as byte-ptr! inode0/buffer
-			copy-rect dst-buf w h w * 4 src-buf width height width * 4 x y h
+			copy-rect dst-buf w * 4 src-buf width * 4 x y h
 		][
 			handle: gdk_pixbuf_new_subpixbuf gdk_pixbuf_copy handle0 x y w h
 			dst/node: make-node handle null 0 w h
@@ -630,7 +600,6 @@ OS-image: context [
 		dst/head: 0
 		dst
 	]
-
 ]
 
 

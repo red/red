@@ -1552,6 +1552,9 @@ Red [
 		}
 		repeat i 3 [--assert new-line? at out i]
 
+	--test-- "#5322"
+		--assert error? try [transcode "1A"]
+
 ===end-group===
 	
 ~~~end-file~~~
