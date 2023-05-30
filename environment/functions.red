@@ -1122,8 +1122,6 @@ dt: function [
 	difference now/precise/utc t0
 ]
 
-time-it: :dt
-
 clock: function [
 	"Display execution time of code, returning result of it's evaluation"
 	code [block!]
@@ -1147,6 +1145,7 @@ clock: function [
 ;-				Aliases					  -
 ;------------------------------------------
 
+time-it:	:dt
 single?:	:last?
 keys-of:	:words-of
 object:		:context
