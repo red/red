@@ -201,7 +201,6 @@ interpreter: context [
 		return: [node!]
 		/local
 			fun		  [red-function!]
-			vec		  [red-vector!]
 			list	  [red-block!]
 			value	  [red-value!]
 			tail	  [red-value!]
@@ -242,7 +241,6 @@ interpreter: context [
 		][
 			native/spec/value
 		]
-		vec:	null
 		locals: 0
 		refs:	1										;-- 1-based array index
 		list:	block/push-only* 8
@@ -265,8 +263,6 @@ interpreter: context [
 					][
 						w: as red-word! block/rs-append list value
 						unless function? [
-							if null? vec [vec: vector/make-at stack/push* 12 TYPE_INTEGER 4]
-							vector/rs-append-int vec -1
 							w/index: refs
 							refs: refs + 1
 						]
@@ -285,7 +281,7 @@ interpreter: context [
 			value: value + 1
 		]
 		if locals > 0 [integer/make-in list locals]
-		if all [not function? vec <> null][block/rs-append list as red-value! vec]
+		if all [not function? refs > 1][integer/make-in list refs - 1]
 		stack/top: saved
 		list/node
 	]
@@ -707,14 +703,14 @@ interpreter: context [
 			ref	name			[red-word!]
 			ref-slot			[red-refinement!]
 			blk					[red-block!]
-			vec					[red-vector!]
+			int					[red-integer!]
 			ctx					[red-context!]
 			bool b2				[red-logic!]
 			s					[series!]
 			args nctx			[node!]
 			p ref-array	offset	[int-ptr!]
 			pos	bits			[byte-ptr!]
-			index arg-cnt ref-cnt loc-cnt sym-cnt size type xcode idx exp-type [integer!]
+			index arg-cnt ref-cnt loc-cnt sym-cnt type xcode idx exp-type [integer!]
 			required? function? routine? set? get? apply? native? ifx? some? t? safer? [logic!]
 			fetch-arg get-spec-word	[subroutine!]
 			calln				[function! []]
@@ -804,14 +800,10 @@ interpreter: context [
 			s: GET_CTX_SERIES(ctx)
 			nctx: s/node
 			if value < tail [
-				vec: as red-vector! tail - 1
-				if TYPE_OF(vec) = TYPE_VECTOR [
-					s: GET_BUFFER(vec)
-					p: as int-ptr! s/offset
-					size: (as-integer (as int-ptr! s/tail) - p) / 4
-					ref-array: system/stack/top - size
-					system/stack/top: ref-array			;-- reserve space on native stack for refs array
-					copy-memory as byte-ptr! ref-array as byte-ptr! p size * 4
+				int: as red-integer! tail - 1
+				if TYPE_OF(int) = TYPE_INTEGER [
+					loop int/value [push -1]			;-- fill space on native stack for refs array
+					ref-array: system/stack/top
 				]
 			]
 		]
