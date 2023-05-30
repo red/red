@@ -808,4 +808,18 @@ Red [
 
 ===end-group===
 
+===start-group=== "recycle issues"
+
+	#if config/target <> 'ARM [
+	--test-- "recycle-issue-5325"
+		k: 10 n: 49 m: 100000
+		block2: make [] k * n
+		recycle/off
+		repeat i k [clock [repeat j n [append/only block2 copy append/dup make [] m 0 m]]]
+		recycle
+		--assert true	;-- no crashes
+	]
+
+===end-group===
+
 ~~~end-file~~~
