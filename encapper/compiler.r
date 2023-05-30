@@ -634,14 +634,18 @@ red: context [
 	
 	emit-native: func [name [word!] /with options [block!] /applied code [block!] /local wrap? pos body][
 		if wrap?: to logic! find [parse do] name [
-			emit [
+			emit compose [
 				assert system/thrown = 0
-				switch
+				(either applied [first [system/thrown:]]['switch])
 			]
 		]
 		either applied [
 			emit code
 			insert-lf -2
+			if wrap? [
+				emit [switch system/thrown]
+				insert-lf -2
+			]
 		][
 			emit join natives-prefix to word! join name #"*"
 			emit 'true										;-- request run-time type-checking

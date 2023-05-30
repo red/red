@@ -278,12 +278,13 @@ call-with-array*: func [
 	[variadic]
 	count	[integer!]
 	list	[int-ptr!]
+	return: [integer!]
 	/local
 		arg			[red-value!]
 		ref-array p	[int-ptr!]
 		size ref-pos arg-pos nb id	[integer!]
 		native? t?	[logic!]
-		call		[function! []]
+		call		[function! [return: [integer!]]]	;-- compiler expects an integer returned when invoked on do*, parse*
 ][
 	id: list/1
 	native?: as-logic list/2
@@ -292,7 +293,7 @@ call-with-array*: func [
 	count: count - 3
 	
 	p: either native? [natives/table][actions/table]
-	call: as function! [] p/id
+	call: as function! [return: [integer!]] p/id
 
 	loop size [push -1]
 	ref-array: system/stack/top
