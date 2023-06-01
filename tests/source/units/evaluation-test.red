@@ -1323,7 +1323,8 @@ context [											;-- needed to protect global `scan` function
         reduce [i b ref c1 ref2 ref3 c3 c4]
     ]
 
-	--test-- "apply-1"   --assert error? try [apply 'find []]
+	--test-- "apply-1"   --assert none? apply 'find []
+	--test-- "apply-1.1" --assert error? try [apply 'pick []]
 	--test-- "apply-2"   --assert error? try [apply 'append/dup [[] [1] on 2]]
 	--test-- "apply-3"   --assert 3 == apply '+ [1 2]
 	--test-- "apply-3.1" --assert 3 == apply :+ [1 2]
