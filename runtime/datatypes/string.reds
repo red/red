@@ -1320,8 +1320,7 @@ string: context [
 	compare-call: func [								;-- Wrap red function!
 		value1   [byte-ptr!]
 		value2   [byte-ptr!]
-		fun		 [integer!]
-		flags	 [integer!]
+		args	 [sort-args!]
 		return:  [integer!]
 		/local
 			res  [red-value!]
@@ -1341,10 +1340,12 @@ string: context [
 			unit [integer!]
 			c1	 [integer!]
 			c2	 [integer!]
+			flags [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/compare-call"]]
 
-		f: as red-function! fun
+		flags: args/flags
+		f: as red-function! args/op
 		stack/mark-func words/_compare-cb f/ctx
 		
 		unit: flags >>> 2 and 7
@@ -1372,8 +1373,7 @@ string: context [
 			s2/tail: as red-value! (value2 + (num << (log-b unit)))
 		]
 
-		cnt: _function/count-locals f/spec 0 no
-		if positive? cnt [_function/init-locals cnt]
+		if positive? args/locals-cnt [_function/init-locals args/locals-cnt]
 		_function/call f f/ctx as red-value! words/_compare-cb CB_SORT
 		stack/unwind
 		stack/pop 1
@@ -1788,8 +1788,7 @@ string: context [
 	compare-Latin1: func [
 		p1		[byte-ptr!]
 		p2		[byte-ptr!]
-		op		[integer!]
-		flags	[integer!]
+		args	[sort-args!]
 		return: [integer!]
 		/local
 			c1		[integer!]
@@ -1797,7 +1796,11 @@ string: context [
 			count	[integer!]
 			res		[integer!]
 			rev		[integer!]
+			flags	[integer!]
+			op		[integer!]
 	][
+		flags: args/flags
+		op: args/op
 		rev: either flags and sort-reverse-mask = sort-reverse-mask [-1][1]
 		either flags and sort-all-mask = sort-all-mask [
 			count: flags >> 2
@@ -1824,8 +1827,7 @@ string: context [
 	compare-UCS2: func [
 		p1		[byte-ptr!]
 		p2		[byte-ptr!]
-		op		[integer!]
-		flags	[integer!]
+		args	[sort-args!]
 		return: [integer!]
 		/local
 			c1		[integer!]
@@ -1833,7 +1835,11 @@ string: context [
 			count	[integer!]
 			res		[integer!]
 			rev		[integer!]
+			flags	[integer!]
+			op		[integer!]
 	][
+		flags: args/flags
+		op: args/op
 		rev: either flags and sort-reverse-mask = sort-reverse-mask [-1][1]
 		either flags and sort-all-mask = sort-all-mask [
 			count: flags >> 2
@@ -1860,8 +1866,7 @@ string: context [
 	compare-UCS4: func [
 		p1		[byte-ptr!]
 		p2		[byte-ptr!]
-		op		[integer!]
-		flags	[integer!]
+		args	[sort-args!]
 		return: [integer!]
 		/local
 			c1		[integer!]
@@ -1870,7 +1875,11 @@ string: context [
 			res		[integer!]
 			rev		[integer!]
 			p4  	[int-ptr!]
+			flags	[integer!]
+			op		[integer!]
 	][
+		flags: args/flags
+		op: args/op
 		rev: either flags and sort-reverse-mask = sort-reverse-mask [-1][1]
 		either flags and sort-all-mask = sort-all-mask [
 			count: flags >> 2
@@ -1899,8 +1908,7 @@ string: context [
 	compare-float32: func [
 		p1		[byte-ptr!]
 		p2		[byte-ptr!]
-		op		[integer!]
-		flags	[integer!]
+		args	[sort-args!]
 		return: [integer!]
 		/local
 			pf		[pointer! [float32!]]
@@ -1909,7 +1917,9 @@ string: context [
 			count	[integer!]
 			res		[integer!]
 			rev		[integer!]
+			flags	[integer!]
 	][
+		flags: args/flags
 		rev: either flags and sort-reverse-mask = sort-reverse-mask [-1][1]
 		either flags and sort-all-mask = sort-all-mask [
 			count: flags >> 2
@@ -1935,8 +1945,7 @@ string: context [
 	compare-float: func [
 		p1		[byte-ptr!]
 		p2		[byte-ptr!]
-		op		[integer!]
-		flags	[integer!]
+		args	[sort-args!]
 		return: [integer!]
 		/local
 			pf		[pointer! [float!]]
@@ -1945,7 +1954,9 @@ string: context [
 			count	[integer!]
 			res		[integer!]
 			rev		[integer!]
+			flags	[integer!]
 	][
+		flags: args/flags
 		rev: either flags and sort-reverse-mask = sort-reverse-mask [-1][1]
 		either flags and sort-all-mask = sort-all-mask [
 			count: flags >> 2
@@ -2352,6 +2363,9 @@ string: context [
 			mult	[integer!]
 			offset	[integer!]
 			chk?	[logic!]
+			args	[sort-args! value]
+			f		[red-function!]
+			more	[series!]
 	][
 		step: 1
 		s: GET_BUFFER(str)
@@ -2434,6 +2448,11 @@ string: context [
 					]
 					cmp: as-integer :compare-call
 					op: as-integer comparator
+					f: as red-function! comparator
+					args/locals-cnt: _function/count-locals f/spec 0 no
+					more: as series! f/more/value
+					int: as red-integer! more/offset + 4
+					args/ctx: either TYPE_OF(int) = TYPE_INTEGER [as node! int/value][global-ctx]
 				]
 				TYPE_INTEGER [
 					if any [all? not OPTION?(skip)] [
@@ -2460,7 +2479,12 @@ string: context [
 			]
 		]
 		chk?: ownership/check as red-value! str words/_sort null str/head 0
-		_sort/qsort buffer len unit * step op flags cmp
+
+		args/width: unit * step
+		args/op: op
+		args/flags: flags
+		args/cmpfunc: cmp
+		_sort/qsort buffer len :args
 		if chk? [ownership/check as red-value! str words/_sorted null str/head 0]
 		str
 	]

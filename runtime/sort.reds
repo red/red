@@ -28,11 +28,19 @@ Red/System [
 	SORT_ALL:		2
 ]
 
+sort-args!: alias struct! [
+	width		[integer!]
+	op			[integer!]
+	flags		[integer!]
+	cmpfunc		[integer!]
+	locals-cnt	[integer!]
+	ctx			[node!]
+]
+
 cmpfunc!: alias function! [
 	a		[byte-ptr!]
 	b		[byte-ptr!]
-	op		[integer!]
-	flags	[integer!]
+	args	[sort-args!]
 	return: [integer!]
 ]
 
@@ -53,13 +61,10 @@ _sort: context [
 	]
 
 	#define SORT_ARGS_EXT_DEF [
-		width	[integer!]
-		op		[integer!]
-		flags	[integer!]
-		cmpfunc [integer!]
+		args [sort-args!]
 	]
 	
-	#define SORT_ARGS_EXT [width op flags cmpfunc]
+	#define SORT_ARGS_EXT [args]
 
 	swapfunc: func [
 		a		 [byte-ptr!]
@@ -97,20 +102,18 @@ _sort: context [
 		a		[byte-ptr!]
 		b		[byte-ptr!]
 		c		[byte-ptr!]
-		op		[integer!]
-		flags	[integer!]
-		cmpfunc [integer!]
+		args	[sort-args!]
 		return: [byte-ptr!]
 		/local cmp
 	][
-		cmp: as cmpfunc! cmpfunc
-		either negative? cmp a b op flags [
-			either negative? cmp b c op flags [b][
-				either negative? cmp a c op flags [c][a]
+		cmp: as cmpfunc! args/cmpfunc
+		either negative? cmp a b args [
+			either negative? cmp b c args [b][
+				either negative? cmp a c args [c][a]
 			]
 		][
-			either positive? cmp b c op flags [b][
-				either negative? cmp a c op flags [a][c]
+			either positive? cmp b c args [b][
+				either negative? cmp a c args [a][c]
 			]
 		]
 	]
@@ -118,17 +121,15 @@ _sort: context [
 	qsort: func [
 		base	[byte-ptr!]
 		num		[integer!]
-		width	[integer!]
-		op		[integer!]
-		flags	[integer!]
-		cmpfunc [integer!]
+		args	[sort-args!]
 		/local
 			a [byte-ptr!] b [byte-ptr!] c [byte-ptr!] d [byte-ptr!] m [byte-ptr!]
-			n [byte-ptr!] end [byte-ptr!] i [byte-ptr!] j [byte-ptr!] r [integer!]
+			n [byte-ptr!] end [byte-ptr!] i [byte-ptr!] j [byte-ptr!] r width [integer!]
 			part [integer!] result [integer!] swaptype [integer!] swapped? [logic!]
 			cmp
 	][
-		cmp: as cmpfunc! cmpfunc
+		cmp: as cmpfunc! args/cmpfunc
+		width: args/width
 		SORT_SWAPINIT(base width)
 		until [
 			swapped?: false
@@ -141,7 +142,7 @@ _sort: context [
 					while [
 						all [
 							n > base
-							positive? cmp (n - width) n op flags
+							positive? cmp (n - width) n args
 						]
 					][
 						SORT_SWAP((n - width) n)
@@ -157,11 +158,11 @@ _sort: context [
 				b: base + (num - 1 * width)
 				if num > 40 [
 					part: num >> 3 * width
-					a: med3 a a + part a + (2 * part) op flags cmpfunc
-					m: med3 m - part m m + part op flags cmpfunc
-					b: med3 b - (2 * part) b - part b op flags cmpfunc
+					a: med3 a a + part a + (2 * part) args
+					m: med3 m - part m m + part args
+					b: med3 b - (2 * part) b - part b args
 				]
-				m: med3 a m b op flags cmpfunc
+				m: med3 a m b args
 			]
 			SORT_SWAP(base m)
 			a: base + width
@@ -171,7 +172,7 @@ _sort: context [
 			d: c
 			forever [
 				while [b <= c][
-					result: cmp b base op flags
+					result: cmp b base args
 					if result > 0 [break]
 					if zero? result [
 						swapped?: true
@@ -181,7 +182,7 @@ _sort: context [
 					b: b + width
 				]
 				while [b <= c][
-					result: cmp c base op flags
+					result: cmp c base args
 					if result < 0 [break]
 					if zero? result [
 						swapped?: true
@@ -203,7 +204,7 @@ _sort: context [
 					while [
 						all [
 							n > base
-							positive? cmp (n - width) n op flags
+							positive? cmp (n - width) n args
 						]
 					][
 						SORT_SWAP((n - width) n)
@@ -221,7 +222,7 @@ _sort: context [
 
 			r: as-integer b - a
 			if r > width [
-				qsort base r / width width op flags cmpfunc
+				qsort base r / width args
 			]
 			r: as-integer d - c
 			if r > width [
@@ -262,14 +263,16 @@ _sort: context [
 		SORT_ARGS_EXT_DEF
 		return: [integer!]
 		/local
-			cmp a b c
+			a b c width [integer!]
+			cmp
 	][
-		cmp: as cmpfunc! cmpfunc
+		cmp: as cmpfunc! args/cmpfunc
+		width: args/width
 		a: -1
 		b: num
 		while [a < (b - 1)][
 			c: a + ((b - a) >> 1)
-			either 0 <= cmp base + (c * width) key op flags [b: c][a: c]
+			either 0 <= cmp base + (c * width) key args [b: c][a: c]
 		]
 		b
 	]
@@ -281,14 +284,16 @@ _sort: context [
 		SORT_ARGS_EXT_DEF
 		return: [integer!]
 		/local
-			cmp a b c
+			a b c width [integer!]
+			cmp
 	][
-		cmp: as cmpfunc! cmpfunc
+		cmp: as cmpfunc! args/cmpfunc
+		width: args/width
 		a: -1
 		b: num
 		while [a < (b - 1)][
 			c: a + (b - a >> 1)
-			either positive? cmp base + (c * width) key op flags [b: c][a: c]
+			either positive? cmp base + (c * width) key args [b: c][a: c]
 		]
 		b
 	]
@@ -298,9 +303,12 @@ _sort: context [
 		n1		[integer!]
 		n2		[integer!]
 		SORT_ARGS_EXT_DEF
-		/local cmp h
+		/local
+			h width [integer!]
+			cmp
 	][
-		cmp: as cmpfunc! cmpfunc
+		cmp: as cmpfunc! args/cmpfunc
+		width: args/width
 		either n1 < n2 [
 			while [n1 <> 0][
 				h: grail-search-left base + (n1 * width) n2 base SORT_ARGS_EXT
@@ -315,7 +323,7 @@ _sort: context [
 						n1: n1 - 1
 						any [
 							zero? n1
-							positive? cmp base base + (n1 * width) op flags
+							positive? cmp base base + (n1 * width) args
 						]
 					]
 				]
@@ -332,7 +340,7 @@ _sort: context [
 						n2: n2 - 1
 						any [
 							zero? n2
-							positive? cmp base + (n1 - 1 * width) base + (n1 + n2 - 1 * width) op flags
+							positive? cmp base + (n1 - 1 * width) base + (n1 + n2 - 1 * width) args
 						]
 					]
 				]
@@ -346,9 +354,12 @@ _sort: context [
 		n2		[integer!]
 		SORT_ARGS_EXT_DEF
 		/local
-			cmp K k1 k2 m1 m2 ak
+			K k1 k2 m1 m2 width [integer!]
+			ak [byte-ptr!]
+			cmp
 	][
-		cmp: as cmpfunc! cmpfunc
+		cmp: as cmpfunc! args/cmpfunc
+		width: args/width
 		if any [n1 < 9 n2 < 9][
 			grail-merge-nobuf base n1 n2 SORT_ARGS_EXT
 			exit
@@ -359,7 +370,7 @@ _sort: context [
 		k2: k1
 		if all [
 			k2 < n1
-			zero? cmp base + (k2 * width) ak op flags
+			zero? cmp base + (k2 * width) ak args
 		][
 			k2: k1 + grail-search-right base + (k1 * width) n1 - k1 ak SORT_ARGS_EXT
 		]
@@ -367,7 +378,7 @@ _sort: context [
 		m2: m1
 		if all [
 			m2 < n2
-			zero? cmp base + (n1 + m2 * width) ak op flags
+			zero? cmp base + (n1 + m2 * width) ak args
 		][
 			m2: m1 + grail-search-right base + (n1 + m1 * width) n2 - m1 ak SORT_ARGS_EXT
 		]
@@ -384,21 +395,21 @@ _sort: context [
 	mergesort: func [
 		base	[byte-ptr!]
 		num		[integer!]
-		width	[integer!]
-		op		[integer!]
-		flags	[integer!]
-		cmpfunc [integer!]
+		args	[sort-args!]
 		/local
-			cmp m pm0 pm1 h p0 p1 rest swaptype i j t
+			m h p0 p1 rest swaptype i j t width [integer!]
+			pm0 pm1 [byte-ptr!]
+			cmp
 	][
+		width: args/width
 		SORT_SWAPINIT(base width)
-		cmp: as cmpfunc! cmpfunc
+		cmp: as cmpfunc! args/cmpfunc
 		h: 2
 		m: 1
 		while [m < num][
 			pm0: base + (m - 1 * width)
 			pm1: base + (m * width)
-			if positive? cmp pm0 pm1 op flags [
+			if positive? cmp pm0 pm1 args [
 				SORT_SWAP(pm0 pm1)
 			]
 			m: m + 2

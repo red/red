@@ -1162,18 +1162,21 @@ block: context [
 	compare-value: func [								;-- Compare function return integer!
 		value1   [red-value!]
 		value2   [red-value!]
-		op		 [integer!]
-		flags	 [integer!]
+		args	 [sort-args!]
 		return:  [integer!]
 		/local
 			offset	[integer!]
 			count	[integer!]
 			res		[integer!]
 			temp	[red-value!]
+			flags	[integer!]
+			op		[integer!]
 			action-compare
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/compare-value"]]
 
+		flags: args/flags
+		op: args/op
 		either flags and sort-all-mask = sort-all-mask [
 			count: flags >>> 2
 		][
@@ -1200,8 +1203,7 @@ block: context [
 	compare-call: func [								;-- Wrap red function!
 		value1   [red-value!]
 		value2   [red-value!]
-		fun		 [integer!]
-		flags	 [integer!]
+		args	 [sort-args!]
 		return:  [integer!]
 		/local
 			res  [red-value!]
@@ -1211,17 +1213,18 @@ block: context [
 			f	 [red-function!]
 			all? [logic!]
 			num  [integer!]
-			cnt  [integer!]
 			blk1 [red-block!]
 			blk2 [red-block!]
 			v1	 [red-value!]
 			v2	 [red-value!]
 			s1   [series!]
 			s2   [series!]
+			flags [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/compare-call"]]
 
-		f: as red-function! fun
+		flags: args/flags
+		f: as red-function! args/op
 		stack/mark-func words/_compare-cb f/ctx
 
 		either flags and sort-reverse-mask = 0 [
@@ -1251,9 +1254,8 @@ block: context [
 			s2/tail: value2 + num
 		]
 
-		cnt: _function/count-locals f/spec 0 no
-		if positive? cnt [_function/init-locals cnt]
-		_function/call f f/ctx as red-value! words/_compare-cb CB_SORT
+		if positive? args/locals-cnt [_function/init-locals args/locals-cnt]
+		_function/call f args/ctx as red-value! words/_compare-cb CB_SORT
 		stack/unwind
 		stack/pop 1
 
@@ -1311,6 +1313,9 @@ block: context [
 			offset	[integer!]
 			saved	[logic!]
 			chk?	[logic!]
+			args	[sort-args! value]
+			f		[red-function!]
+			more	[series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/sort"]]
 
@@ -1375,6 +1380,11 @@ block: context [
 					]
 					cmp: as-integer :compare-call
 					op: as-integer comparator
+					f: as red-function! comparator
+					args/locals-cnt: _function/count-locals f/spec 0 no
+					more: as series! f/more/value
+					int: as red-integer! more/offset + 4
+					args/ctx: either TYPE_OF(int) = TYPE_INTEGER [as node! int/value][global-ctx]
 				]
 				TYPE_INTEGER [
 					if any [all? not OPTION?(skip)] [
@@ -1403,10 +1413,15 @@ block: context [
 		chk?: ownership/check as red-value! blk words/_sort null blk/head 0
 		saved: collector/active?
 		collector/active?: no							;-- turn off GC
+
+		args/width: step * (size? red-value!)
+		args/op: op
+		args/flags: flags
+		args/cmpfunc: cmp
 		either stable? [
-			_sort/mergesort as byte-ptr! head len step * (size? red-value!) op flags cmp
+			_sort/mergesort as byte-ptr! head len :args
 		][
-			_sort/qsort as byte-ptr! head len step * (size? red-value!) op flags cmp
+			_sort/qsort as byte-ptr! head len :args
 		]
 		collector/active?: saved
 		if chk? [ownership/check as red-value! blk words/_sorted null blk/head 0]
