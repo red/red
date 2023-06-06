@@ -19,7 +19,7 @@ also: func [
 	value1 [any-type!]
 	value2 [any-type!]
 ][
-	get/any 'value1
+	:value1
 ]
 
 attempt: func [
