@@ -3031,6 +3031,7 @@ natives: context [
 		s: GET_BUFFER(args)
 		mode: either _all >= 0 [interpreter/MODE_APPLY][interpreter/MODE_APPLY_SOME]
 		if safer >= 0 [mode: mode or interpreter/MODE_APPLY_SAFER]
+		stack/set-interp-flag
 		
 		interpreter/eval-code
 			fun

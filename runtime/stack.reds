@@ -198,6 +198,11 @@ stack: context [										;-- call stack
 		]
 	]
 	
+	set-interp-flag: func [/local frame [call-frame!]][
+		frame: ctop - 1	
+		frame/header: frame/header or FLAG_INTERPRET
+	]
+	
 	collect-calls: func [
 		dst [red-block!]
 		/local
@@ -781,7 +786,7 @@ stack: context [										;-- call stack
 				lower: p/prev
 				upper: arguments
 				p: p - 1
-				p <= cbottom
+				p < cbottom
 			]
 			print lf
 		]
