@@ -24,7 +24,7 @@ also: func [
 
 attempt: func [
 	"Tries to evaluate a block and returns result or NONE on error"
-	value [block!]
+	code [block!]
 	/safer "Capture all possible errors and exceptions"
 	/local all
 ][
