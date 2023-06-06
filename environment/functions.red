@@ -26,8 +26,11 @@ attempt: func [
 	"Tries to evaluate a block and returns result or NONE on error"
 	value [block!]
 	/safer "Capture all possible errors and exceptions"
+	/local all
 ][
-	unless error? set/any 'value (apply 'try/:all [:value safer]) [get/any 'value]
+	set 'all safer										;-- `all:` refuses to compile
+	try/:all [return do code]
+	none
 ]
 
 comment: func ["Consume but don't evaluate the next value" 'value][]
