@@ -118,6 +118,13 @@ Red [
 
 ===end-group===
 
+===start-group=== "attempt"
+
+	--test-- "ttatt-1" --assert none?  attempt [do make error! "abc"]
+	--test-- "ttatt-2" --assert error? attempt [make error! "abc"]
+		
+===end-group===
+
 ===start-group=== "try issues"
 
 	--test-- "#4880"
