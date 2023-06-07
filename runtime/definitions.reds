@@ -34,17 +34,19 @@ Red/System [
 #define flag-series-owned	00020000h		;-- series is owned by an object
 #define flag-owned			00010000h		;-- cell is owned by an object. (for now only image! use it)
 #define flag-owner			00010000h		;-- object is an owner (carried by object's context value)
-#define flag-native-op		00010000h		;-- operator is made from a native! function
 #define flag-extern-code	00008000h		;-- routine's body is from FFI
 #define flag-word-dirty		00002000h		;-- word flag indicating if value has been modified
 #define flag-force-trace	00000400h		;-- tracing mode is forced (function attribut)
 #define flag-no-trace		00000200h		;-- tracing mode is disabled (function attribut)
 
+#define flag-fetch-mode		00300000h		;-- flags for arguments fetching mode (typeset! header only)
+#define flag-fetch-mask		FFDFFFFFh		;-- mask for arguments fetching mode (typeset! header only)
+#define flag-subtype-mask	FF00FFFFh		;-- mask for encoding the underlying function type (op! header only)
+#define flag-subtype-select	00FF0000h		;-- mask for selecting the underlying function type (op! header only)
 #define flag-new-line		40000000h		;-- if set, indicates that a new-line preceeds the value
 #define flag-nl-mask		BFFFFFFFh		;-- mask for new-line flag
 #define flag-arity-mask		C1FFFFFFh		;-- mask for reading routines arity field
 #define flag-self-mask		01000000h		;-- mask for self? flag
-#define body-flag			00800000h		;-- flag for op! body node
 #define tuple-size-mask		00780000h		;-- mask for reading tuple size field
 #define flag-unit-mask		FFFFFFE0h		;-- mask for reading unit field in series-buffer!
 #define get-unit-mask		0000001Fh		;-- mask for setting unit field in series-buffer!

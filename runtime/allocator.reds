@@ -24,11 +24,12 @@ int-array!: alias struct! [ptr [int-ptr!]]
 ;	30:		new-line						;-- new-line (LF) marker (before the slot)
 ;	29-25:	arity							;-- arity for routine! functions.
 ;	24:		self?							;-- self-aware context flag
-;	23:		node-body						;-- op! body points to a block node (instead of native code)
-;	22-19:	tuple-size						;-- size of tuple
+;	23-16:	op! sub-type					;-- op's underlying function type (op! only)
+;	22-19:	tuple-size						;-- size of tuple (tuple! only)
+;	21-20:	fetch mode						;-- fetching mode for an argument (typeset! only)
 ;	18:		series-owned					;-- mark a series owned by an object
 ;	17:		owner							;-- indicate that an object is an owner
-;	16:		native! op						;-- operator is made from a native! function
+;	16:		<reserved>
 ;	15:		extern flag						;-- routine code is external to Red (from FFI)
 ;	14:		sign bit						;-- sign of money
 ;	13:		dirty?							;-- word flag indicating if value has been modified

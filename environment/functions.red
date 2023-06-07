@@ -19,19 +19,18 @@ also: func [
 	value1 [any-type!]
 	value2 [any-type!]
 ][
-	get/any 'value1
+	:value1
 ]
 
 attempt: func [
 	"Tries to evaluate a block and returns result or NONE on error"
-	value [block!]
+	code [block!]
 	/safer "Capture all possible errors and exceptions"
+	/local all
 ][
-	either safer [
-		unless error? set/any 'value try/all :value [get/any 'value]
-	][
-		unless error? set/any 'value try :value [get/any 'value]
-	]
+	set 'all safer										;-- `all:` refuses to compile
+	try/:all [return do code]
+	none
 ]
 
 comment: func ["Consume but don't evaluate the next value" 'value][]
@@ -334,15 +333,7 @@ context [
 		return: [logic! block!]
 	][
 		clear p-indent
-		either case [
-			parse/case/trace input rules :on-parse-event
-		][
-			either part [
-				parse/part/trace input rules limit :on-parse-event
-			][
-				parse/trace input rules :on-parse-event
-			]
-		]
+		parse/:case/:part/trace input rules limit :on-parse-event
 	]
 ]
 
@@ -363,11 +354,7 @@ scan: func [
 	/fast					  "Fast scanning, returns best guessed type"
 	return: [datatype! none!] "Recognized or guessed type, or NONE on empty input"
 ][
-	either fast [
-		either next [transcode/next/prescan buffer][transcode/prescan buffer]
-	][
-		either next [transcode/next/scan buffer][transcode/scan buffer]
-	]
+	apply 'transcode/:next/:scan/:prescan [buffer  :next  not fast  fast]
 ]
 
 load: function [
@@ -767,7 +754,7 @@ collect: function [
 	/into 		  		 "Insert into a buffer instead (returns position after insert)"
 		collected [series!] "The buffer series (modified)"
 ][
-	keep: func [v /only][either only [append/only collected v][append collected v] v]
+	keep: func [v /only][append/:only collected v v]
 	
 	unless collected [collected: make block! 16]
 	parse body rule: [									;-- selective binding (needs BIND/ONLY support)
@@ -937,9 +924,9 @@ read-thru: function [
 ][
 	path: path-thru url
 	either all [not update exists? path] [
-		data: either binary [read/binary path][read path]
+		data: read/:binary path
 	][
-		data: either binary [read/binary url][read url]
+		data: read/:binary url
 		attempt [write/binary path data]
 	]
 	data
@@ -955,7 +942,7 @@ load-thru: function [
 	path: path-thru url
 	if all [not update exists? path][url: path]
 	file: either as [load/as url type][load url]
-	if url? url [attempt [either as [save/as path file type][save path file]]]
+	if url? url [attempt [save/:as path file type]]
 	file
 ]
 
@@ -964,7 +951,7 @@ do-thru: function [
 	url [url!]	"Remote file address"
 	/update		"Force a cache update"
 ][
-	do either update [load-thru/update url][load-thru url]
+	do load-thru/:update url
 ]
 
 cos: func [

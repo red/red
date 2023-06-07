@@ -341,8 +341,8 @@ bind: make native! [[
 
 in: make native! [[
 		"Returns the given word bound to the object's context"
-		object [any-object!]
-		word   [any-word!]
+		object [any-object! any-function!]
+		word   [any-word! refinement!]
 	]
 	#get-definition NAT_IN
 ]
@@ -961,4 +961,14 @@ transcode: make native! [[
 		return: [block!]
 	]
 	#get-definition NAT_TRANSCODE
+]
+
+apply: make native! [[
+		"Apply a function to a reduced block of arguments"
+		func	[word! path! any-function!] "Function to apply, with eventual refinements"
+		args	[block!]  "Block of args, reduced first"
+		/all			  "Provides a continuous list of arguments, tail-completed with false/none"
+		/safer			  "Forces single refinement arguments, skip them when inactive instead of evaluating"
+	]
+	#get-definition NAT_APPLY
 ]

@@ -66,7 +66,8 @@ typeset: context [
 	]
 	
 	make-default: func [
-		blk [red-block!]
+		blk		[red-block!]
+		return: [red-typeset!]
 		/local
 			ts	  [red-typeset!]
 			bits  [int-ptr!]
@@ -83,11 +84,13 @@ typeset: context [
 		
 		bbits: as byte-ptr! bits + 1
 		BS_CLEAR_BIT(bbits TYPE_UNSET)
+		ts
 	]
 	
 	make-with: func [
-		blk	  [red-block!]
-		spec  [red-block!]
+		blk		[red-block!]
+		spec	[red-block!]
+		return: [red-typeset!]
 		/local
 			ts	  [red-typeset!]
 			ts2	  [red-typeset!]
@@ -129,6 +132,7 @@ typeset: context [
 			]
 			pos: pos + 1
 		]
+		ts
 	]
 
 	do-bitwise: func [

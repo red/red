@@ -129,6 +129,7 @@ collector: context [
 			ctx		[red-context!]
 			image	[red-image!]
 			len		[integer!]
+			type	[integer!]
 	][
 		#if debug? = yes [if verbose > 1 [len: -1 indent: indent + 1]]
 		
@@ -162,14 +163,6 @@ collector: context [
 					if series/node <> null [			;-- can happen in routine
 						#if debug? = yes [if verbose > 1 [print ["len: " block/rs-length? as red-block! series]]]
 						mark-block as red-block! value
-
-						if TYPE_OF(value) = TYPE_PATH [
-							path: as red-path! value
-							if path/args <> null [
-								;probe "path/args"
-								mark-block-node path/args
-							]
-						]
 					]
 				]
 				TYPE_SYMBOL [
@@ -212,35 +205,25 @@ collector: context [
 					mark-block-node hash/node
 					_hashtable/mark hash/table			;@@ check if previously marked
 				]
-				TYPE_FUNCTION [
+				TYPE_FUNCTION
+				TYPE_ROUTINE [
+					#if debug? = yes [if verbose > 1 [print "function"]]
 					fun: as red-function! value
 					mark-context fun/ctx
-					#if debug? = yes [if verbose > 1 [print "function"]]
 					mark-block-node fun/spec
 					mark-block-node fun/more
-				]
-				TYPE_ROUTINE [
-					routine: as red-routine! value
-					;mark-block-node routine/symbols	;-- unused for now
-					#if debug? = yes [if verbose > 1 [print "routine"]]
-					mark-block-node routine/spec
-					mark-block-node routine/more
 				]
 				TYPE_ACTION
 				TYPE_NATIVE
 				TYPE_OP [
 					native: as red-native! value
-					if native/args <> null [
-						#if debug? = yes [if verbose > 1 [print "native"]]
-						mark-block-node native/args
-					]
-					if native/spec <> null [			;@@ should not happen!
-						#if debug? = yes [if verbose > 1 [print "native"]]
-						mark-block-node native/spec
-					]
-					if native/header and body-flag <> 0 [
-						#if debug? = yes [if verbose > 1 [print "op/code"]]
-						mark-block-node as node! native/code
+					mark-block-node native/spec
+					mark-block-node native/more
+					if TYPE_OF(native) = TYPE_OP [
+						type: GET_OP_SUBTYPE(native)
+						if any [type = TYPE_FUNCTION type = TYPE_ROUTINE][
+							mark-context as node! native/code
+						]
 					]
 				]
 				#if any [OS = 'macOS OS = 'Linux OS = 'Windows][
@@ -289,7 +272,7 @@ collector: context [
 			buf		[c-string!]
 			tm tm1	[float!]
 		]
-			cb
+			cb		[function! []]
 	][
 		#if debug? = yes [if verbose > 1 [
 			#if OS = 'Windows [platform/dos-console?: no]

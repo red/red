@@ -11,6 +11,8 @@
 	red/alloc-bytes
 	red/alloc-cells
 	red/get-cmdline-args
+	red/set-opt-refinement*
+	red/call-with-array*
 
 	red/redbin/boot-load
 
@@ -75,7 +77,6 @@
 	red/money/push
 	red/none/push
 	red/object/push
-	red/op/push
 	red/pair/push
 	red/paren/push
 	red/path/push
@@ -378,6 +379,7 @@
 	red/natives/recycle*
 	red/natives/transcode*
 	red/natives/as-money*
+	red/natives/apply*
 
 	;-- for view backend
 	red/symbol/resolve

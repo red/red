@@ -13,144 +13,6 @@ Red/System [
 native: context [
 	verbose: 0
 	
-	clone-ref-array: func [
-		vec		[red-vector!]							;-- clone the vector in-place
-		return: [red-vector!]
-		/local
-			new    [node!]
-			s	   [series!]
-			target [series!]
-			size   [integer!]
-	][
-		s: GET_BUFFER(vec)
-		size: s/size
-		new: alloc-bytes size
-
-		unless zero? size [
-			target: as series! new/value
-			copy-memory
-				as byte-ptr! target/offset
-				as byte-ptr! s/offset
-				size
-			target/tail: as cell! ((as byte-ptr! target/offset) + size)
-		]	
-		vec/node: new
-		vec
-	]
-	
-	preprocess-options: func [							;-- cache optional typesets for native calls
-		args	  [red-block!]
-		native	  [red-native!]
-		path	  [red-path!]
-		pos		  [red-value!]
-		list	  [node!]
-		fname	  [red-word!]
-		tail	  [red-value!]
-		/local	
-			value	  [red-value!]
-			base	  [red-value!]
-			head	  [red-value!]
-			end		  [red-value!]
-			word	  [red-word!]
-			ref		  [red-refinement!]
-			blk		  [red-value!]
-			vec		  [red-vector!]
-			s		  [series!]
-			ref-array [int-ptr!]
-			saved	  [node!]
-			index	  [integer!]
-			offset	  [integer!]
-			ref?	  [logic!]
-			found?	  [logic!]
-	][
-		s: GET_BUFFER(args)
-		vec: clone-ref-array as red-vector! s/tail - 1
-		saved: vec/node
-		s/tail: s/tail - 2								;-- clear the vector record
-		
-		s: as series! native/spec/value
-		base:	s/offset
-		head:	base
-		end:	s/tail
-		value:	pos + 1
-		offset: 0
-
-		while [all [base < end TYPE_OF(base) <> TYPE_REFINEMENT]][
-			switch TYPE_OF(base) [
-				TYPE_WORD
-				TYPE_GET_WORD
-				TYPE_LIT_WORD [offset: offset + 1]
-				default [0]
-			]
-			base: base + 1
-		]
-		if base = end [fire [TO_ERROR(script no-refine) fname as red-word! value]]
-
-		s: GET_BUFFER(vec)
-		ref-array: as int-ptr! s/offset
-
-		while [value < tail][
-			word: as red-word! value
-			
-			if TYPE_OF(value) <> TYPE_WORD [
-				fire [TO_ERROR(script no-refine) fname word]
-			]
-			head:	base
-			ref?:	no
-			found?: no
-			index:	1
-
-			while [head < end][
-				switch TYPE_OF(head) [
-					TYPE_WORD
-					TYPE_GET_WORD
-					TYPE_LIT_WORD [
-						if ref? [
-							block/rs-append args head
-							blk: head + 1
-							either all [
-								blk < end
-								TYPE_OF(blk) = TYPE_BLOCK
-							][
-								typeset/make-with args as red-block! blk
-							][
-								typeset/make-default args
-							]
-							offset: offset + 1
-						]
-					]
-					TYPE_REFINEMENT [
-						ref: as red-refinement! head
-						either EQUAL_WORDS?(ref word) [
-							if ref-array/index <> -1 [
-								fire [TO_ERROR(script dup-refine) path]
-							]
-							ref-array/index: offset
-							ref?: yes
-							found?: yes
-						][
-							ref?: no
-						]
-						index: index + 1
-					]
-					TYPE_SET_WORD [head: end]
-					default [0]							;-- ignore other values
-				]
-				head: head + 1 
-			]
-			unless found? [fire [TO_ERROR(script no-refine) fname word]]
-			value: value + 1
-		]
-		assert ref-array + index - 1 <= as int-ptr! s/tail
-		block/rs-append args as red-value! none-value	;-- restore vector record
-		
-		vec: as red-vector! ALLOC_TAIL(args)
-		vec/header: TYPE_VECTOR							;-- implicit reset of all header flags
-		vec/head: 	0
-		vec/node: 	saved
-		vec/type:	TYPE_INTEGER
-	]
-	
 	;-- Actions -- 
 	
 	make: func [
@@ -161,7 +23,9 @@ native: context [
 		/local
 			list   [red-block!]
 			native [red-native!]
-			s	   [series!]
+			value  [red-value!]
+			more s [series!]
+			node   [node!]
 			index  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/make"]]
@@ -172,9 +36,16 @@ native: context [
 		if list + list/head + 2 <> s/tail [throw-make proto spec]
 
 		native: as red-native! stack/push*
-		native/header:  TYPE_NATIVE						;-- implicit reset of all header flags
+		native/header:  TYPE_UNSET
 		native/spec:	list/node						; @@ copy spec block if not at head
-		native/args:	null
+		native/more:	alloc-unset-cells 2
+		native/header:  TYPE_NATIVE						;-- implicit reset of all header flags
+		
+		more: as series! native/more/value
+		node: _context/make spec yes no CONTEXT_FUNCTION
+		copy-cell as red-value! (as series! node/value) + 1 alloc-tail more	;-- ctx slot
+		value: alloc-tail more							;-- args cache slot
+		value/header: TYPE_NONE
 		
 		list: list + 1
 		if TYPE_OF(list) <> TYPE_INTEGER [throw-make proto spec]
@@ -194,6 +65,7 @@ native: context [
 			index [integer!]
 			node  [node!]
 			s	  [series!]
+			type  [integer!]
 	][
 		case [
 			field = words/spec [
@@ -203,14 +75,10 @@ native: context [
 				blk/head:	0
 			]
 			field = words/body [
-				either all [TYPE_OF(native) = TYPE_OP native/header and body-flag <> 0][
-					node: as node! native/code
-					either null? node [
-						stack/set-last none-value
-					][
-						s: as series! node/value
-						stack/set-last s/offset
-					]
+				type: GET_OP_SUBTYPE(native)
+				either all [TYPE_OF(native) = TYPE_OP type = TYPE_FUNCTION type = TYPE_ROUTINE][
+					s: as series! native/more/value
+					stack/set-last s/offset
 				][
 					table: either TYPE_OF(native) = TYPE_NATIVE [natives/table][actions/table]
 					index: 0
