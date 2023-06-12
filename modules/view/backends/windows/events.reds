@@ -1246,7 +1246,14 @@ WndProc: func [
 				target: as render-target! GetWindowLong hWnd wc-offset - 36
 				if target <> null [
 					DX-resize-buffer target WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
-					InvalidateRect hWnd null 1
+					either all [
+						(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) <> 0
+						0 <> GetWindowLong hWnd wc-offset + 4
+					][
+						update-base hWnd null null values
+					][
+						InvalidateRect hWnd null 1
+					]
 				]
 			]]
 			if type = window [

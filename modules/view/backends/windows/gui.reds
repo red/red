@@ -981,6 +981,19 @@ window-border-info?: func [
 	]
 ]
 
+transparent-win?: func [
+	color	[red-tuple!]
+	return: [logic!]
+][
+	either any [
+		TYPE_OF(color) <> TYPE_TUPLE
+		any [
+			TUPLE_SIZE?(color) = 3 
+			color/array1 and FF000000h = 0
+		]
+	][false][true]
+]
+
 init-window: func [										;-- post-creation settings
 	handle  [handle!]
 ][
@@ -1407,7 +1420,7 @@ OS-make-view: func [
 		rate	  [red-value!]
 		options	  [red-block!]
 		fl		  [red-float!]
-		flags	  [integer!]
+		flags n	  [integer!]
 		ws-flags  [integer!]
 		bits	  [integer!]
 		sym		  [integer!]
@@ -1491,8 +1504,16 @@ OS-make-view: func [
 			sym = group-box
 		][
 			class: #u16 "RedPanel"
-			init-panel values as handle! parent
-			panel?: yes
+			either all [
+				parent <> 0
+				(WS_EX_LAYERED and GetWindowLong as handle! parent GWL_EXSTYLE) <> 0
+			][
+				alpha?: yes
+				ws-flags: WS_EX_LAYERED
+			][
+				init-panel values as handle! parent
+				panel?: yes
+			]
 		]
 		sym = tab-panel [
 			class: #u16 "RedTabPanel"
@@ -1543,17 +1564,25 @@ OS-make-view: func [
 		]
 		any [sym = base sym = rich-text][
 			class: #u16 "RedBase"
-			alpha?: transparent-base?
-				as red-tuple! values + FACE_OBJ_COLOR
-				as red-image! values + FACE_OBJ_IMAGE
-			
-			either alpha? [
-				either win8+? [ws-flags: WS_EX_LAYERED][
-					ws-flags: WS_EX_LAYERED or WS_EX_TOOLWINDOW
-					flags: WS_POPUP
-				]
+			either all [
+				parent <> 0
+				(WS_EX_LAYERED and GetWindowLong as handle! parent GWL_EXSTYLE) <> 0
 			][
-				ws-flags: set-layered-option options win8+?
+				alpha?: yes
+				ws-flags: WS_EX_LAYERED
+			][
+				alpha?: transparent-base?
+					as red-tuple! values + FACE_OBJ_COLOR
+					as red-image! values + FACE_OBJ_IMAGE
+				
+				either alpha? [
+					either win8+? [ws-flags: WS_EX_LAYERED][
+						ws-flags: WS_EX_LAYERED or WS_EX_TOOLWINDOW
+						flags: WS_POPUP
+					]
+				][
+					ws-flags: set-layered-option options win8+?
+				]
 			]
 		]
 		sym = camera [
@@ -1583,7 +1612,14 @@ OS-make-view: func [
 			]
 
 			if bits and FACET_FLAGS_NO_TITLE  <> 0 [flags: WS_POPUP or WS_BORDER]
-			if bits and FACET_FLAGS_NO_BORDER <> 0 [flags: WS_POPUP]
+			if bits and FACET_FLAGS_NO_BORDER <> 0 [
+				flags: WS_POPUP
+				;; NB: use layered window only with no-border flag
+				;; layered window doesn't work with border somehow
+				alpha?: transparent-win? as red-tuple! values + FACE_OBJ_COLOR
+				n: either alpha? [WS_EX_LAYERED][set-layered-option options win8+?]
+				ws-flags: ws-flags or n
+			]
 			if size/x < 0 [size/x: 200]
 			if size/y < 0 [size/y: 200]
 			rc/left: 0
@@ -1663,6 +1699,7 @@ OS-make-view: func [
 		sym = camera	[init-camera handle data selected false]
 		sym = text-list [init-text-list handle data selected]
 		sym = base		[init-base-face handle parent values alpha?]
+		sym = panel		[if alpha? [init-base-face handle parent values alpha?]]
 		sym = tab-panel [set-tabs handle values]
 		any [
 			sym = button
@@ -1763,6 +1800,7 @@ OS-make-view: func [
 		]
 		sym = window [
 			init-window handle
+			if alpha? [init-base-face handle parent values alpha?]
 			#if sub-system = 'gui [
 				with clipboard [
 					if null? main-hWnd [main-hWnd: handle]
@@ -2052,7 +2090,13 @@ change-text: func [
 		str  [red-string!]
 		len  [integer!]
 ][
-	if type = base [
+	if any [
+		type = base
+		all [
+			type = window
+			(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) <> 0
+		]
+	][
 		update-base hWnd null null values
 		exit
 	]
