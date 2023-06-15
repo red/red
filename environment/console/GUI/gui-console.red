@@ -251,6 +251,12 @@ gui-console-ctx: context [
 				if caret/enabled? [caret/enabled?: no]
 				caret/rate: none
 			]
+			on-key-down: func [face [object!] event [event!]][
+				if all [event/ctrl? event/key = #"]"][
+					cfg/menu-bar?: to-word none? face/menu
+					toggle-menu-bar
+				]
+			]
 		]
 		caret/rate: caret-rate
 		tips/parent: win

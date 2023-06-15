@@ -169,6 +169,7 @@ apply-cfg: function [][
 	system/console/history: cfg/history
 	terminal/history: cfg/history
 	toggle-mouse-mode
+	toggle-menu-bar
 ]
 
 save-cfg: function [][
@@ -215,6 +216,7 @@ load-cfg: func [/local cfg-content gui-default][
 		font-color:	  0.0.0
 		background:	  252.252.252
 		mouse-paste?: false
+		menu-bar?:	  true
 	]
 
 	either all [
