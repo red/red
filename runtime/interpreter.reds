@@ -897,10 +897,10 @@ interpreter: context [
 							either pc >= end [false][
 								pc: eval-expression pc end code infix? yes no
 								stack/pop 1
-								logic/rs-true? stack/top
+								logic/rs-true? stack/top on ref
 							]
 						]
-						get?  [logic/rs-true? as red-value! _context/get ref]
+						get?  [logic/rs-true? as red-value! _context/get ref on ref]
 						true  [true]
 					]
 					index: case [

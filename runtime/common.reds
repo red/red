@@ -264,7 +264,7 @@ set-opt-refinement*: func [
 		arg [red-value!]
 		t?	[logic!]
 ][
-	t?: logic/rs-true? value
+	t?: logic/rs-true? value off null
 	ref: as red-logic! stack/arguments + idx
 	either t? [
 		ref/value: true
@@ -299,7 +299,7 @@ call-with-array*: func [
 	ref-array: system/stack/top
 	
 	until [
-		t?: logic/rs-true? as red-value! list/1
+		t?: logic/rs-true? as red-value! list/1 off null
 		ref-pos: list/2
 		arg-pos: list/3
 		nb: list/4

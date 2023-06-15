@@ -1314,6 +1314,12 @@ context [											;-- needed to protect global `scan` function
 			exit 3 #[none] "[a]" 1 
 			end -1 #[none] #[none] 3
 		]
+		
+	--test-- "dyn-ref-14"
+		do [											;-- it would (legitimately) error out on compilation
+			foo-dr14: func [/only14][--assert false]
+			--assert error? try [foo-dr14/:only14]
+		]
 	
 ===end-group===
 
