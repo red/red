@@ -75,7 +75,7 @@ object [
 	theme: #(
 		foreground	[0.0.0]
 		background	[252.252.252]
-		selected	[200.200.255]				;-- selected text background color
+		selected	[180.180.180]				;-- selected text background color
 		string!		[120.120.61]
 		integer!	[255.0.0]
 		float!		[255.0.0]

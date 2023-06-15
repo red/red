@@ -127,8 +127,24 @@ show-cfg-dialog: function [][
 		mouse-mode: check "Mouse Copy&&Paste" on-create [
 			face/data: cfg/mouse-paste? = 'true
 		]
-		pad -3x0 text "Buffer Lines" 80 middle
+		pad -3x0 text "Buffer Lines:" 80 middle
 		pad -17x0 cfg-buffers: hex-field right return
+		text middle "Scrollbar Color:" pad 48x0
+		r1: radio "Light" [
+			cfg/dark-mode?: 'false
+			system/view/platform/set-dark-mode console no
+		]
+		r2: radio "Dark" [
+			cfg/dark-mode?: 'true
+			system/view/platform/set-dark-mode console yes
+		] on-create [
+			unless system/view/platform/support-dark-mode? [
+				r2/enabled?: no
+				exit
+			]
+			either cfg/dark-mode? = 'true [r2/data: on][r1/data: on]
+		]
+		return
 
 		pad 90x20
 		button "OK" [
@@ -170,6 +186,7 @@ apply-cfg: function [][
 	terminal/history: cfg/history
 	toggle-mouse-mode
 	toggle-menu-bar
+	if cfg/dark-mode? = 'true [system/view/platform/set-dark-mode console yes]
 ]
 
 save-cfg: function [][
@@ -217,6 +234,7 @@ load-cfg: func [/local cfg-content gui-default][
 		background:	  252.252.252
 		mouse-paste?: false
 		menu-bar?:	  true
+		dark-mode?:   no
 	]
 
 	either all [

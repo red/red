@@ -314,6 +314,19 @@ on-gc-mark: does [
 	collector/keep active-wins/node
 ]
 
+support-dark-mode?: func [
+	return: [logic!]
+][
+	false
+]
+
+set-dark-mode: func [
+	hWnd		[integer!]
+	dark?		[logic!]
+	top-level?	[logic!]
+][
+]
+
 init: func [
 	/local
 		screen	 [integer!]

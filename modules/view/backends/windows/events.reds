@@ -1086,7 +1086,7 @@ update-faces-color: func [
 			word: as red-word! values + FACE_OBJ_TYPE
 			type: symbol/resolve word/symbol
 			if IS_D2D_FACE(type) [
-				toggle-dark-mode hWnd no
+				set-dark-mode hWnd dark-mode? no
 			]
 		]
 		face: face + 1

@@ -740,6 +740,15 @@ system/view/platform: context [
 		SET_RETURN(none-value)
 	]
 
+	set-dark-mode: routine [face [object!] dark? [logic!] /local word [red-word!]][
+		word: as red-word! (object/get-values face) + gui/FACE_OBJ_TYPE
+		gui/set-dark-mode gui/get-face-handle face dark? gui/window = symbol/resolve word/symbol
+	]
+
+	support-dark-mode?: routine [return: [logic!]][
+		gui/support-dark-mode?
+	]
+
 	init: func [/local svs colors fonts][
 		system/view/screens: svs: make block! 6
 

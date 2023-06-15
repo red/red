@@ -73,6 +73,7 @@ version-info: 	declare OSVERSIONINFO
 current-msg: 	as tagMSG 0
 wc-extra:		80										;-- reserve 64 bytes for win32 internal usage (arbitrary)
 wc-offset:		60										;-- offset to our 16+4 bytes
+win10+?:		no
 win8+?:			no
 winxp?:			no
 DWM-enabled?:	no										;-- listen for composition state changes by handling the WM_DWMCOMPOSITIONCHANGED notification
@@ -895,6 +896,7 @@ init: func [
 
 	DWM-enabled?: dwm-composition-enabled?
 
+	win10+?: version-info/dwMajorVersion >= 10
 	win8+?: any [
 		version-info/dwMajorVersion >= 10				;-- Win 10+
 		all [											;-- Win 8, Win 8.1
@@ -927,15 +929,12 @@ init: func [
 
 	get-metrics
 
-	dll: LoadLibraryA "uxtheme.dll"
-	if dll <> null [
-		pShouldAppsUseDarkMode: GetProcAddress dll as c-string! 132
-		dark-mode?: use-dark-mode?
-		;fun: GetProcAddress dll as c-string! 135
-		;if fun <> null [
-		;	SetPreferredAppMode: as SetPreferredAppMode! fun
-		;	SetPreferredAppMode 1
-		;]
+	if win10+? [
+		dll: LoadLibraryA "uxtheme.dll"
+		if dll <> null [
+			pShouldAppsUseDarkMode: GetProcAddress dll as c-string! 132
+			dark-mode?: use-dark-mode?
+		]
 	]
 
 	collector/register as int-ptr! :on-gc-mark
@@ -947,7 +946,7 @@ use-dark-mode?: func [
 		hc	[tagHIGHCONTRASTW value]
 		ShouldAppsUseDarkMode [ShouldAppsUseDarkMode!]
 ][
-	either pShouldAppsUseDarkMode <> null [
+	either all [win10+? pShouldAppsUseDarkMode <> null][
 		ShouldAppsUseDarkMode: as ShouldAppsUseDarkMode! pShouldAppsUseDarkMode
 		hc/cbSize: size? tagHIGHCONTRASTW
 		SystemParametersInfo 42h size? tagHIGHCONTRASTW as int-ptr! :hc 0
@@ -958,18 +957,31 @@ use-dark-mode?: func [
 	][false]
 ]
 
-toggle-dark-mode: func [
+support-dark-mode?: func [
+	return: [logic!]
+	/local
+		hc	[tagHIGHCONTRASTW value]
+][
+	either win10+? [
+		hc/cbSize: size? tagHIGHCONTRASTW
+		SystemParametersInfo 42h size? tagHIGHCONTRASTW as int-ptr! :hc 0
+		hc/dwFlags and 1 = 0	; Not High Contrast scheme
+	][false]
+]
+
+set-dark-mode: func [
 	hWnd		[handle!]
+	dark?		[logic!]
 	top-level?	[logic!]
 	/local
 		flag	[integer!]
 ][
 	if top-level? [
-		flag: either dark-mode? [1][0]
+		flag: either dark? [1][0]
 		;-- set DWMWA_USE_IMMERSIVE_DARK_MODE. needed for titlebar
 		DwmSetWindowAttribute hWnd 20 :flag size? flag
 	]
-	either dark-mode? [
+	either dark? [
 		SetWindowTheme hWnd #u16 "DarkMode_Explorer" null
 	][
 		SetWindowTheme hWnd #u16 "Explorer" null

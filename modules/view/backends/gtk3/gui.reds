@@ -705,6 +705,19 @@ get-os-version: func [
 	ver/array1: micro << 16 or (minor << 8) or major
 ]
 
+support-dark-mode?: func [
+	return: [logic!]
+][
+	false
+]
+
+set-dark-mode: func [
+	hWnd		[handle!]
+	dark?		[logic!]
+	top-level?	[logic!]
+][
+]
+
 init: func [][
 	get-os-version
 	gtk_disable_setlocale
