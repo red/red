@@ -417,6 +417,22 @@ test
 
 	--test-- "#5239"
 		do [--assert error? try [do try/all [throw 'grenade]]]
+		
+	--test-- "#5335"
+	
+		--compile-and-run-this {
+			Red []
+			c5335: 0
+			on-parse-event5335: func [e m r i s return: [logic!]][c5335: c5335 + 1 true]
+
+			parse-trace5335: func [input [series!] rules [block!] /case /part limit [integer!] return: [logic! block!]][
+				parse/:case/:part/trace input rules limit :on-parse-event5335
+			]
+			parse-trace5335 [a b c] [some word!]
+			probe c5335
+		}
+		--assert compiled?
+		--assert (load qt/output) > 0
 
 ===end-group===
 

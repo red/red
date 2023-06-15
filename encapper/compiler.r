@@ -3588,15 +3588,19 @@ red: context [
 				]
 				if path? call [
 					cnt: spec/2							;-- function base arity
+					get?: to-logic find call get-word!
 					foreach ref next call [
-						get?: get-word? ref
 						ref: to refinement! original: ref
 						unless pos: find/skip spec/4 ref 3 [
 							throw-error [call/1 "has no refinement called" ref]
 						]
 						either get? [
 							unless dyn-list [dyn-list: make block! 2]
-							redirect-to blk: make block! 4 [emit-get-word to-word ref original]
+							redirect-to blk: make block! 4 either get-word? original [
+								[emit-get-word to-word ref original]
+							][
+								[emit [logic/push true]]
+							]
 							repend dyn-list [to-paren blk pos/2 cnt pos/3]
 						][
 							poke refs pos/2 cnt				;-- set refinement's arguments base offset
