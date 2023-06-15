@@ -1065,6 +1065,34 @@ set-window-info: func [
 	ret?
 ]
 
+update-faces-color: func [
+	child	[red-block!]
+	/local
+		face	[red-object!]
+		tail	[red-object!]
+		values	[red-value!]
+		word	[red-word!]
+		hWnd	[handle!]
+		type	[integer!]
+][
+	if TYPE_OF(child) <> TYPE_BLOCK [exit]
+
+	face: as red-object! block/rs-head child
+	tail: as red-object! block/rs-tail child
+	while [face < tail][
+		hWnd: face-handle? face
+		if hWnd <> null [
+			values: get-face-values hWnd
+			word: as red-word! values + FACE_OBJ_TYPE
+			type: symbol/resolve word/symbol
+			if IS_D2D_FACE(type) [
+				toggle-dark-mode hWnd no
+			]
+		]
+		face: face + 1
+	]
+]
+
 update-window: func [
 	child	[red-block!]
 	fonts	[node!]				;-- font handle array
@@ -1213,8 +1241,10 @@ WndProc: func [
 		flags  [integer!]
 		miniz? [logic!]
 		font?  [logic!]
+		dark?  [logic!]
 		x	   [integer!]
 		y	   [integer!]
+		ShouldAppsUseDarkMode [ShouldAppsUseDarkMode!]
 ][
 	if no-face? hWnd [return DefWindowProc hWnd msg wParam lParam]
 
@@ -1593,6 +1623,16 @@ WndProc: func [
 			if type = window [
 				set-defaults hWnd
 				update-window as red-block! values null
+			]
+		]
+		WM_SETTINGCHANGE [
+			dark?: use-dark-mode?
+			if dark-mode? <> dark? [
+				dark-mode?: dark?
+				if type = window [
+					toggle-dark-mode hWnd yes
+					update-faces-color as red-block! values + FACE_OBJ_PANE
+				]
 			]
 		]
 		default [0]

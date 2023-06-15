@@ -76,6 +76,7 @@ init-base-face: func [
 			len: len - 2
 		]
 	]
+	toggle-dark-mode handle no
 ]
 
 position-base: func [

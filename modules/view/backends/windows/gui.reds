@@ -93,6 +93,9 @@ default-font-name: as c-string! 0
 rc-cache:		declare RECT_STRUCT
 kb-state: 		allocate 256							;-- holds keyboard state for keys conversion
 
+dark-mode?:		no
+pShouldAppsUseDarkMode: as int-ptr! 0
+
 dpi-scale: func [
 	num		[integer!]
 	return: [integer!]
@@ -873,6 +876,8 @@ init: func [
 	/local
 		ver   [red-tuple!]
 		int   [red-integer!]
+		dll	  [handle!]
+		;SetPreferredAppMode [SetPreferredAppMode!]
 ][
 	process-id:		GetCurrentProcessId
 	hScreen:		GetDC null
@@ -921,8 +926,54 @@ init: func [
 	int/value:  as-integer version-info/wProductType
 
 	get-metrics
-	
+
+	dll: LoadLibraryA "uxtheme.dll"
+	if dll <> null [
+		pShouldAppsUseDarkMode: GetProcAddress dll as c-string! 132
+		dark-mode?: use-dark-mode?
+		;fun: GetProcAddress dll as c-string! 135
+		;if fun <> null [
+		;	SetPreferredAppMode: as SetPreferredAppMode! fun
+		;	SetPreferredAppMode 1
+		;]
+	]
+
 	collector/register as int-ptr! :on-gc-mark
+]
+
+use-dark-mode?: func [
+	return: [logic!]
+	/local
+		hc	[tagHIGHCONTRASTW value]
+		ShouldAppsUseDarkMode [ShouldAppsUseDarkMode!]
+][
+	either pShouldAppsUseDarkMode <> null [
+		ShouldAppsUseDarkMode: as ShouldAppsUseDarkMode! pShouldAppsUseDarkMode
+		hc/cbSize: size? tagHIGHCONTRASTW
+		SystemParametersInfo 42h size? tagHIGHCONTRASTW as int-ptr! :hc 0
+		all [
+			hc/dwFlags and 1 = 0	; Not High Contrast scheme
+			ShouldAppsUseDarkMode
+		]
+	][false]
+]
+
+toggle-dark-mode: func [
+	hWnd		[handle!]
+	top-level?	[logic!]
+	/local
+		flag	[integer!]
+][
+	if top-level? [
+		flag: either dark-mode? [1][0]
+		;-- set DWMWA_USE_IMMERSIVE_DARK_MODE. needed for titlebar
+		DwmSetWindowAttribute hWnd 20 :flag size? flag
+	]
+	either dark-mode? [
+		SetWindowTheme hWnd #u16 "DarkMode_Explorer" null
+	][
+		SetWindowTheme hWnd #u16 "Explorer" null
+	]
 ]
 
 cleanup: does [
@@ -1810,6 +1861,8 @@ OS-make-view: func [
 				handle
 				wc-offset - 8
 				WIN32_MAKE_LPARAM((off-x - rc/left) (off-y - rc/top))
+
+			toggle-dark-mode handle yes
 		]
 		true [0]
 	]
