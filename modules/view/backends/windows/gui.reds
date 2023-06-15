@@ -1861,8 +1861,6 @@ OS-make-view: func [
 				handle
 				wc-offset - 8
 				WIN32_MAKE_LPARAM((off-x - rc/left) (off-y - rc/top))
-
-			toggle-dark-mode handle yes
 		]
 		true [0]
 	]

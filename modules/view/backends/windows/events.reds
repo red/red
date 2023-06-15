@@ -1625,16 +1625,6 @@ WndProc: func [
 				update-window as red-block! values null
 			]
 		]
-		WM_SETTINGCHANGE [
-			dark?: use-dark-mode?
-			if dark-mode? <> dark? [
-				dark-mode?: dark?
-				if type = window [
-					toggle-dark-mode hWnd yes
-					update-faces-color as red-block! values + FACE_OBJ_PANE
-				]
-			]
-		]
 		default [0]
 	]
 	if ext-parent-proc? [call-custom-proc hWnd msg wParam lParam]
