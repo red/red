@@ -2679,9 +2679,11 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_MENU <> 0 [
 		menu: as red-block! values + FACE_OBJ_MENU
-		if menu-bar? menu window [
-			DestroyMenu GetMenu hWnd
+		DestroyMenu GetMenu hWnd
+		either menu-bar? menu window [
 			SetMenu hWnd build-menu menu CreateMenu
+		][
+			SetMenu hWnd null
 		]
 	]
 	if flags and FACET_FLAG_IMAGE <> 0 [
