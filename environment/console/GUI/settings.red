@@ -124,7 +124,10 @@ show-cfg-dialog: function [][
 		]
 		return
 
-		pad 150x10 text "Buffer Lines" 80
+		mouse-mode: check "Mouse Copy&&Paste" on-create [
+			face/data: cfg/mouse-paste? = 'true
+		]
+		pad -3x0 text "Buffer Lines" 80 middle
 		pad -17x0 cfg-buffers: hex-field right return
 
 		pad 90x20
@@ -135,6 +138,8 @@ show-cfg-dialog: function [][
 			]
 			set-font-color cfg/font-color: cfg-forecolor/data
 			set-background cfg/background: cfg-backcolor/data
+			cfg/mouse-paste?: to-word mouse-mode/data
+			toggle-mouse-mode
 			unview
 		]
 		button "Cancel" [unview]
@@ -163,6 +168,7 @@ apply-cfg: function [][
 	set-font-color cfg/font-color
 	system/console/history: cfg/history
 	terminal/history: cfg/history
+	toggle-mouse-mode
 ]
 
 save-cfg: function [][
@@ -208,6 +214,7 @@ load-cfg: func [/local cfg-content gui-default][
 		font-size:	  11
 		font-color:	  0.0.0
 		background:	  252.252.252
+		mouse-paste?: false
 	]
 
 	either all [

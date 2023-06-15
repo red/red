@@ -648,12 +648,15 @@ object [
 		system/view/platform/redraw console
 	]
 
+	text-selected?: func [return: [logic!]][
+		3 <= length? selects
+	]
 
 	copy-selection: func [
 		return: [logic!]
 		/local start-n end-n start-idx end-idx len n str swap?
 	][
-		if any [empty? selects 3 > length? selects][				;-- empty selection, copy the whole line
+		unless text-selected? [										;-- empty selection, copy the whole line
 			write-clipboard line
 			return no
 		]
