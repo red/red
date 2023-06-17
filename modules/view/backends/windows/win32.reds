@@ -65,6 +65,7 @@ Red/System [
 #define PBM_SETRANGE		0401h
 #define PBM_SETPOS			0402h
 
+#define TPM_NONOTIFY		0080h
 #define TPM_RETURNCMD		0100h
 
 #define LB_ADDSTRING		0180h
@@ -194,6 +195,8 @@ Red/System [
 #define IDC_IBEAM			7F01h
 
 #define CW_USEDEFAULT		80000000h
+
+#define HWND_MESSAGE		-3
 
 #define WS_OVERLAPPEDWINDOW	00CF0000h
 #define WS_CLIPCHILDREN		02000000h
@@ -345,6 +348,8 @@ Red/System [
 #define WM_CLEAR			0303h
 #define WM_THEMECHANGED		031Ah
 
+;-- user defined messages
+#define WM_USER						0400h
 #define WM_CAP_DRIVER_CONNECT		040Ah
 #define WM_CAP_DRIVER_DISCONNECT	040Bh
 #define WM_CAP_EDIT_COPY			041Eh
@@ -354,6 +359,7 @@ Red/System [
 #define WM_CAP_SET_PREVIEW			0432h
 #define WM_CAP_DLG_VIDEOSOURCE		042Ah
 #define WM_CAP_STOP					0444h
+#define WM_TRAY_CALLBACK			0450h
 
 #define BM_GETCHECK			F0h
 #define BM_SETCHECK			F1h
@@ -593,6 +599,40 @@ Red/System [
 #define BASE_FACE_CARET		2
 #define BASE_FACE_D2D		4
 #define BASE_FACE_IME		8
+
+#enum notify-icon! [
+	NIM_ADD:                 0000h
+	NIM_MODIFY:              0001h
+	NIM_DELETE:              0002h
+	NIM_SETFOCUS:            0003h
+	NIM_SETVERSION:          0004h
+
+	NIF_MESSAGE:             0001h
+	NIF_ICON:                0002h
+	NIF_TIP:                 0004h
+	NIF_STATE:               0008h
+	NIF_INFO:                0010h
+	NIF_GUID:                0020h
+	NIF_REALTIME:            0040h
+	NIF_SHOWTIP:             0080h
+
+	NIS_HIDDEN:              0001h
+	NIS_SHAREDICON:          0002h
+
+	NIIF_NONE:               0000h
+	NIIF_INFO:               0001h
+	NIIF_WARNING:            0002h
+	NIIF_ERROR:              0003h
+	NIIF_USER:               0004h
+	NIIF_NOSOUND:            0010h
+	NIIF_LARGE_ICON:         0020h
+	NIIF_RESPECT_QUIET_TIME: 0080h
+	NIIF_ICON_MASK:          000Fh
+
+	NIN_BALLOONSHOW:         0402h
+	NIN_BALLOONTIMEOUT:      0404h
+	NIN_BALLOONUSERCLICK:    0405h
+]
 
 BUTTON_IMAGELIST: alias struct! [
 	handle		[integer!]
@@ -944,6 +984,77 @@ tagHIGHCONTRASTW: alias struct! [
 	cbSize				[integer!]
 	dwFlags				[integer!]
 	lpszDefaultScheme	[c-string!]
+]
+
+NOTIFYICONDATAW!: alias struct! [
+	cbSize				[integer!]
+	hWnd				[handle!]
+	uID					[integer!]
+	uFlags				[integer!]
+	uCallbackMessage	[integer!]
+	hIcon				[handle!]
+	szTip				[tagGUID value]		;-- szTip[128]
+	pad1				[tagGUID value]
+	pad2				[tagGUID value]
+	pad3				[tagGUID value]
+	pad4				[tagGUID value]
+	pad5				[tagGUID value]
+	pad6				[tagGUID value]
+	pad7				[tagGUID value]
+	pad8				[tagGUID value]
+	pad9				[tagGUID value]
+	pad10				[tagGUID value]
+	pad11				[tagGUID value]
+	pad12				[tagGUID value]
+	pad13				[tagGUID value]
+	pad14				[tagGUID value]
+	pad15				[tagGUID value]
+	dwState				[integer!]
+	dwStateMask			[integer!]
+	szInfo				[tagGUID value]		;-- szInfo[256]
+	_pad1				[tagGUID value]
+	_pad2				[tagGUID value]
+	_pad3				[tagGUID value]
+	_pad4				[tagGUID value]
+	_pad5				[tagGUID value]
+	_pad6				[tagGUID value]
+	_pad7				[tagGUID value]
+	_pad8				[tagGUID value]
+	_pad9				[tagGUID value]
+	_pad10				[tagGUID value]
+	_pad11				[tagGUID value]
+	_pad12				[tagGUID value]
+	_pad13				[tagGUID value]
+	_pad14				[tagGUID value]
+	_pad15				[tagGUID value]
+	_pad16				[tagGUID value]
+	_pad17				[tagGUID value]
+	_pad18				[tagGUID value]
+	_pad19				[tagGUID value]
+	_pad20				[tagGUID value]
+	_pad21				[tagGUID value]
+	_pad22				[tagGUID value]
+	_pad23				[tagGUID value]
+	_pad24				[tagGUID value]
+	_pad25				[tagGUID value]
+	_pad26				[tagGUID value]
+	_pad27				[tagGUID value]
+	_pad28				[tagGUID value]
+	_pad29				[tagGUID value]
+	_pad30				[tagGUID value]
+	_pad31				[tagGUID value]
+	uVersion			[integer!]		;-- uTimeout
+	szInfoTitle			[tagGUID value]		;-- szInfoTitle[64]
+	__pad1				[tagGUID value]
+	__pad2				[tagGUID value]
+	__pad3				[tagGUID value]
+	__pad4				[tagGUID value]
+	__pad5				[tagGUID value]
+	__pad6				[tagGUID value]
+	__pad7				[tagGUID value]
+	dwInfoFlags			[integer!]
+	guidItem			[tagGUID value]
+	hBalloonIcon		[handle!]
 ]
 
 tagCHOOSEFONT: alias struct! [
@@ -2847,6 +2958,11 @@ XFORM!: alias struct! [
 		SHGetPathFromIDList: "SHGetPathFromIDListW" [
 			pidl		[integer!]
 			pszPath		[byte-ptr!]
+			return:		[logic!]
+		]
+		Shell_NotifyIconW: "Shell_NotifyIconW" [
+			dwMessage	[integer!]
+			lpData		[NOTIFYICONDATAW!]
 			return:		[logic!]
 		]
 	]

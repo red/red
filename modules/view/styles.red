@@ -127,4 +127,8 @@ Red [
 		template: [type: 'base size: 100x100]
 		init: [unless face/image [face/image: make image! face/size]]
 	]
+	tray: [
+		default-actor: on-down
+		template: [type: 'tray offset: 0x0 size: 0x0]
+	]
 )

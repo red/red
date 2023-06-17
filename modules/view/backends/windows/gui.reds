@@ -18,7 +18,7 @@ Red/System [
 ;;			 : window: default font
 ;;		-28  : Cursor handle
 ;;		-24  : base-layered: caret's owner handle, Window: modal loop type for moving and resizing
-;;		-20  : evolved-base-layered: child handle
+;;		-20  : evolved-base-layered: child handle, tray: a pointer to data
 ;;		-16  : base-layered: owner handle, window: border width and height
 ;;		-12  : clipped? flag, caret? flag, d2d? flag, ime? flag
 ;;		 -8  : base: pos X/Y in pixel
@@ -54,6 +54,7 @@ Red/System [
 #include %text-list.reds
 #include %button.reds
 #include %calendar.reds
+#include %tray.reds
 #either draw-engine = 'GDI+ [
 	#include %draw-gdi.reds
 ][
@@ -707,6 +708,9 @@ free-faces: func [
 		]
 		sym = panel [
 			DestroyWindow handle
+		]
+		sym = tray [
+			destroy-tray handle
 		]
 		true [
 			0
@@ -1696,6 +1700,11 @@ OS-make-view: func [
 				parent: as-integer GetActiveWindow
 			]
 		]
+		sym = tray [
+			class: #u16 "RedTray"
+			ws-flags: 0
+			flags: 0
+		]
 		true [											;-- search in user-defined classes
 			p: find-class type
 			either null? p [
@@ -1720,6 +1729,7 @@ OS-make-view: func [
 	]
 
 	if all [
+		sym <> tray
 		parent <> 0
 		not alpha?
 	][
@@ -1874,6 +1884,7 @@ OS-make-view: func [
 				wc-offset - 8
 				WIN32_MAKE_LPARAM((off-x - rc/left) (off-y - rc/top))
 		]
+		sym = tray [init-tray handle values]
 		true [0]
 	]
 	if TYPE_OF(rate) <> TYPE_NONE [change-rate handle rate]

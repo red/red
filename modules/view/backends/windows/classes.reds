@@ -242,6 +242,13 @@ register-classes: func [
 	wcex/lpszClassName: #u16 "RedCamera"
 	RegisterClassEx		wcex
 
+	wcex/hIcon:			null
+	wcex/hCursor:		null
+	wcex/lpfnWndProc:	:TrayWndProc
+	wcex/style:			0
+	wcex/lpszClassName:	#u16 "RedTray"
+	RegisterClassEx		wcex
+
 	;-- superclass existing classes to add 16 extra bytes
 	make-super-class #u16 "RedButton"	#u16 "BUTTON"			 0 yes
 	make-super-class #u16 "RedCombo"	#u16 "ComboBox"			 0 yes
