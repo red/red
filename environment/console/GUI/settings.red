@@ -96,6 +96,13 @@ display-about: function [][
 	view/flags lay [modal no-title]
 ]
 
+set-dark-mode: func [
+	dark?	[logic!]
+][
+	system/view/platform/set-dark-mode win dark?
+	system/view/platform/set-dark-mode console dark?
+]
+
 show-cfg-dialog: function [][
 	lay: layout [
 		title "Settings"
@@ -132,11 +139,11 @@ show-cfg-dialog: function [][
 		text middle "Scrollbar Color:" pad 48x0
 		r1: radio "Light" [
 			cfg/dark-mode?: 'false
-			system/view/platform/set-dark-mode console no
+			set-dark-mode no
 		]
 		r2: radio "Dark" [
 			cfg/dark-mode?: 'true
-			system/view/platform/set-dark-mode console yes
+			set-dark-mode yes
 		] on-create [
 			unless system/view/platform/support-dark-mode? [
 				r2/enabled?: no
@@ -186,7 +193,7 @@ apply-cfg: function [][
 	terminal/history: cfg/history
 	toggle-mouse-mode
 	toggle-menu-bar
-	if cfg/dark-mode? = 'true [system/view/platform/set-dark-mode console yes]
+	if cfg/dark-mode? = 'true [set-dark-mode yes]
 ]
 
 save-cfg: function [][

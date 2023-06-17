@@ -196,9 +196,9 @@ gui-console-ctx: context [
 		Ctrl + Y       Redo
 		Ctrl + L       Clear screen
 		Ctrl + K       Delete line
-		Ctrl + ]       Toggle menu bar
 		Alt + A        Select all the text
 		Alt + O        Open settings dialog
+		F12            Toggle menu bar
 		}
 		terminal/exit-ask-loop
 	]
@@ -252,7 +252,7 @@ gui-console-ctx: context [
 				caret/rate: none
 			]
 			on-key-down: func [face [object!] event [event!]][
-				if all [event/ctrl? event/key = #"]"][
+				if event/key = 'F12 [
 					cfg/menu-bar?: to-word none? face/menu
 					toggle-menu-bar
 				]
