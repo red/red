@@ -1014,6 +1014,7 @@ draw-shadow: func [
 		sigma	[float32!]
 		s		[shadow!]
 		spread	[float32!]
+		f		[float32!]
 		unk		[IUnknown]
 		err1	[integer!]
 		err2	[integer!]
@@ -1035,8 +1036,9 @@ draw-shadow: func [
 			eff2: eff-s/value
 			effect: as ID2D1Effect eff2/vtbl
 			effect/SetInput eff2 0 bmp true
-			pt/x: (spread * as float32! 2.0 + w) / w
-			pt/y: (spread * as float32! 2.0 + h) / h
+			f: spread * as float32! 2.0
+			pt/x: f + w / w
+			pt/y: f + h / h
 			effect/base/setValue eff2 0 0 as byte-ptr! :pt size? POINT_2F
 			effect/GetOutput eff2 :output
 			sbmp: output/value
@@ -1051,7 +1053,7 @@ draw-shadow: func [
 			COM_SAFE_RELEASE(unk eff2)
 		]
 
-		sigma: as float32! (as float! s/blur) / GAUSSIAN_SCALE_FACTOR
+		sigma: s/blur / as float32! GAUSSIAN_SCALE_FACTOR
 		effect/base/setValue eff 0 0 as byte-ptr! :sigma size? float32!
 		effect/base/setValue eff 1 0 as byte-ptr! to-dx-color s/color null size? D3DCOLORVALUE
 
