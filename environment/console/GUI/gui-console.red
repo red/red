@@ -229,7 +229,6 @@ gui-console-ctx: context [
 				]
 			]
 			on-close: func [face [object!] event [event!]][
-				save-cfg
 				system/view/platform/exit-event-loop
 				clear head system/view/screens/1/pane
 				quit
@@ -285,10 +284,14 @@ gui-console-ctx: context [
 
 		setup-faces
 		win/visible?: no					;-- hide it first to avoid flicker
+		load-cfg
 
 		view/flags/no-wait win [resize]		;-- create window instance
 		console/init
-		load-cfg
+
+		apply-cfg
+		system/view/auto-sync?: yes
+		win/selected: console
 		if empty? system/script/args [win/visible?: yes]
 
 		svs: system/view/screens/1
