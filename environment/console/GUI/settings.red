@@ -99,6 +99,9 @@ display-about: function [][
 set-dark-mode: func [
 	dark?	[logic!]
 ][
+	foreach face system/view/screens/1/pane [
+		system/view/platform/set-dark-mode face dark?
+	]	
 	system/view/platform/set-dark-mode win dark?
 	system/view/platform/set-dark-mode console dark?
 ]
@@ -136,20 +139,15 @@ show-cfg-dialog: function [][
 		]
 		pad -3x0 text "Buffer Lines:" 80 middle
 		pad -17x0 cfg-buffers: hex-field right return
-		text middle "Scrollbar Color:" pad 48x0
-		r1: radio "Light" [
-			cfg/dark-mode?: 'false
-			set-dark-mode no
-		]
-		r2: radio "Dark" [
-			cfg/dark-mode?: 'true
-			set-dark-mode yes
+		check "Dark Mode" [
+			cfg/dark-mode?: to-word face/data
+			set-dark-mode face/data
 		] on-create [
 			unless system/view/platform/support-dark-mode? [
-				r2/enabled?: no
+				face/enabled?: no
 				exit
 			]
-			either cfg/dark-mode? = 'true [r2/data: on][r1/data: on]
+			face/data: cfg/dark-mode? = 'true
 		]
 		return
 
