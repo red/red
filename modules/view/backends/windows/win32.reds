@@ -1043,7 +1043,7 @@ NOTIFYICONDATAW!: alias struct! [
 	_pad29				[tagGUID value]
 	_pad30				[tagGUID value]
 	_pad31				[tagGUID value]
-	uVersion			[integer!]		;-- uTimeout
+	uVersion			[integer!]			;-- or uTimeout
 	szInfoTitle			[tagGUID value]		;-- szInfoTitle[64]
 	__pad1				[tagGUID value]
 	__pad2				[tagGUID value]
@@ -1744,6 +1744,10 @@ XFORM!: alias struct! [
 			lpIconName	[c-string!]
 			return:		[handle!]
 		]
+		DestroyIcon: "DestroyIcon" [
+			hObject		[handle!]
+			return:		[integer!]
+		]
 		GetAsyncKeyState: "GetAsyncKeyState" [
 			nVirtKey	[integer!]
 			return:		[integer!]						;-- returns a 16-bit value
@@ -2161,7 +2165,7 @@ XFORM!: alias struct! [
 	"gdiplus.dll" stdcall [
 		GdipCreateHICONFromBitmap: "GdipCreateHICONFromBitmap" [
 			bitmap		[integer!]
-			hIcon		[int-ptr!]
+			hIcon		[ptr-ptr!]
 			return:		[integer!]
 		]
 		GdipSetPixelOffsetMode: "GdipSetPixelOffsetMode" [

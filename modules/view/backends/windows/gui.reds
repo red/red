@@ -116,6 +116,21 @@ clean-up: does [
 	current-msg: null
 ]
 
+to-icon: func [
+	img		[red-image!]
+	return: [handle!]
+	/local
+		sym		[ptr-value!]
+		bitmap	[integer!]
+		lock	[com-ptr! value]
+][
+	sym/value: null
+	bitmap: OS-image/to-gpbitmap img :lock
+	GdipCreateHICONFromBitmap bitmap :sym
+	OS-image/release-gpbitmap bitmap :lock
+	sym/value
+]
+
 no-face?: func [
 	hWnd	[handle!]
 	return: [logic!]
@@ -1395,8 +1410,6 @@ parse-common-opts: func [
 		img		[red-image!]
 		len		[integer!]
 		sym		[integer!]
-		bitmap	[integer!]
-		lock	[com-ptr! value]
 ][
 	SetWindowLong hWnd wc-offset - 28 0
 	if TYPE_OF(options) = TYPE_BLOCK [
@@ -1412,9 +1425,7 @@ parse-common-opts: func [
 						w: word + 1
 						either TYPE_OF(w) = TYPE_IMAGE [
 							img: as red-image! w
-							bitmap: OS-image/to-gpbitmap img :lock
-							GdipCreateHICONFromBitmap bitmap :sym
-							OS-image/release-gpbitmap bitmap :lock
+							sym: as-integer to-icon img
 							SetWindowLong hWnd wc-offset - 28 sym
 						][
 							if TYPE_OF(w) = TYPE_WORD [
@@ -2251,8 +2262,12 @@ change-image: func [
 	values	[red-value!]
 	type	[integer!]
 ][
-	if type = base [update-base hWnd null null values]
-	if any [type = button type = toggle][init-button hWnd values]
+	case [
+		type = base [update-base hWnd null null values]
+		any [type = button type = toggle][init-button hWnd values]
+		type = tray [update-tray-icon hWnd as red-image! values + FACE_OBJ_IMAGE]
+		true [0]
+	]
 ]
 
 change-selection: func [
