@@ -300,7 +300,11 @@ object [
 
 	calc-top: func [/new /local delta n][
 		n: calc-last-line new
-		if n < 0 [
+		if all [
+			n < 0
+			screen-cnt-saved <= page-cnt
+			not full?
+		][
 			delta: scroller/position + n
 			scroller/position: either delta < 1 [1][delta]
 		]
@@ -320,8 +324,7 @@ object [
 		][
 			top: length? lines
 			scroll-y: line-h - last heights
-			scroller/position: scroller/max-size - page-cnt + 1
-			scroll-lines page-cnt - 1
+			scroll-lines/position page-cnt - 1 scroller/max-size - page-cnt + 1
 		]
 	]
 
@@ -573,9 +576,9 @@ object [
 		if pos > length? line [pos: pos - n]
 	]
 
-	scroll-lines: func [delta /local n len cnt end offset][
+	scroll-lines: func [delta /position pos /local n len cnt end offset][
 		end: scroller/max-size - page-cnt + 1
-		offset: scroller/position
+		offset: either position [pos][scroller/position]
 
 		if any [
 			all [offset = 1 delta > 0]
@@ -1057,7 +1060,9 @@ object [
 		screen-cnt: to-integer y / line-h
 		screen-cnt-saved: screen-cnt
 		if screen-cnt > page-cnt [screen-cnt: page-cnt]
-		update-caret
-		update-scroller line-cnt - num
+		unless dry [
+			update-caret
+			update-scroller line-cnt - num
+		]
 	]
 ]
