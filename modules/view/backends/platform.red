@@ -715,10 +715,18 @@ system/view/platform: context [
 		/local
 			state	[red-block!]
 			bool	[red-logic!]
+			values	[red-value!]
+			txt		[red-string!]
 			layout? [logic!]
 	][
 		layout?: yes
-		state: as red-block! (object/get-values box) + gui/FACE_OBJ_EXT3
+		values: object/get-values box
+		txt: as red-string! values + gui/FACE_OBJ_TEXT
+		if TYPE_OF(txt) <> TYPE_STRING [
+			stack/set-last none-value
+			exit
+		]
+		state: as red-block! values + gui/FACE_OBJ_EXT3
 		if TYPE_OF(state) = TYPE_BLOCK [
 			bool: as red-logic! (block/rs-tail state) - 1
 			layout?: bool/value
@@ -730,6 +738,15 @@ system/view/platform: context [
 	update-scroller: routine [scroller [object!] flags [integer!]][
 		gui/update-scroller scroller flags
 		SET_RETURN(none-value)
+	]
+
+	set-dark-mode: routine [face [object!] dark? [logic!] /local word [red-word!]][
+		word: as red-word! (object/get-values face) + gui/FACE_OBJ_TYPE
+		gui/set-dark-mode gui/get-face-handle face dark? gui/window = symbol/resolve word/symbol
+	]
+
+	support-dark-mode?: routine [return: [logic!]][
+		gui/support-dark-mode?
 	]
 
 	init: func [/local svs colors fonts][
@@ -761,7 +778,7 @@ system/view/platform: context [
 			Windows [
 				check:			[16x0  0x0]				;-- 13 + 3 for text padding
 				radio:			[16x0  0x0]				;-- 13 + 3 for text padding
-				field:			[0x8   0x5]
+				field:			[0x8   0x0]
 				group-box:		[3x3  10x3]
 				tab-panel:		[1x3  25x0]
 				button:			[8x8   0x0]

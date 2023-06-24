@@ -883,8 +883,10 @@ natives: context [
 				any [
 					type = TYPE_ACTION
 					type = TYPE_NATIVE
-					type = TYPE_OP
 				][
+					res: all [arg1/data1 = arg2/data1 arg1/data2 = arg2/data2]
+				]
+				type = TYPE_OP [
 					res: all [arg1/data2 = arg2/data2 arg1/data3 = arg2/data3]
 				]
 				true [
@@ -1168,7 +1170,6 @@ natives: context [
 			value [red-value!]
 			ref	  [red-value!]
 			fun	  [red-function!]
-			obj	  [node!]
 			word  [red-word!]
 			vctx  [red-context!]
 			ctx	  [node!]
@@ -1179,37 +1180,30 @@ natives: context [
 		value: stack/arguments
 		ref: value + 1
 		
-		either any [
+		ctx: either any [
 			TYPE_OF(ref) = TYPE_FUNCTION
 			;TYPE_OF(ref) = TYPE_OBJECT
 		][
 			fun: as red-function! ref
-			ctx: fun/ctx
+			fun/ctx
 		][
 			word: as red-word! ref
-			ctx: word/ctx
+			word/ctx
 		]
 		
 		either TYPE_OF(value) = TYPE_BLOCK [
 			vctx: TO_CTX(ctx)
-			obj: either any [
+			self?: any [
 				TYPE_OF(ref) = TYPE_OBJECT
 				TYPE_OF(ref) = TYPE_PORT
-			][
-				self?: yes
-				vctx/self
-			][
-				self?: no
-				null
 			]
 			either negative? copy [
-				_context/bind as red-block! value vctx obj self?
+				_context/bind as red-block! value vctx self?
 			][
 				stack/set-last 
 					as red-value! _context/bind
 						block/clone as red-block! value yes yes
 						vctx
-						obj
 						self?
 			]
 		][
@@ -1225,26 +1219,34 @@ natives: context [
 	in*: func [
 		check? [logic!]
 		/local
-			obj  [red-object!]
-			ctx  [red-context!]
-			word [red-word!]
-			res	 [red-value!]
+			obj		[red-object!]
+			ctx		[red-context!]
+			native	[red-native!]
+			word	[red-word!]
+			res		[red-value!]
 	][
 		#typecheck in
 		obj:  as red-object! stack/arguments
 		word: as red-word! stack/arguments + 1
-		ctx: GET_CTX(obj)
-		
+		ctx: either any [
+			TYPE_OF(obj) = TYPE_OBJECT
+			TYPE_OF(obj) = TYPE_FUNCTION
+			TYPE_OF(obj) = TYPE_ROUTINE
+		][
+			GET_CTX(obj)
+		][
+			native: as red-native! obj
+			TO_CTX(native/more)
+		]
 		switch TYPE_OF(word) [
 			TYPE_WORD
 			TYPE_GET_WORD
 			TYPE_SET_WORD
 			TYPE_LIT_WORD
 			TYPE_REFINEMENT [
-				either negative? _context/bind-word ctx word [
-					res: as red-value! none-value
-				][
+				either negative? _context/bind-word ctx word [res: as red-value! none-value][
 					res: as red-value! word
+					if TYPE_OF(word) = TYPE_REFINEMENT [res/header: TYPE_WORD]
 				]
 				stack/set-last res
 			]
@@ -2718,10 +2720,7 @@ natives: context [
 		][
 			copy-cell spec proto
 			set-type proto type
-			if ANY_PATH?(type) [
-				path: as red-path! proto
-				path/args: null
-			]
+			if ANY_PATH?(type) [path: as red-path! proto]
 		][
 			fire [TO_ERROR(script not-same-class) datatype/push type2 datatype/push type]
 		]
@@ -3035,6 +3034,63 @@ natives: context [
 			slot: as red-value! blk
 		]
 		either null? out [stack/set-last slot][stack/set-last as red-value! out]
+	]
+	
+	apply*: func [
+		check?	[logic!]
+		_all	[integer!]
+		safer	[integer!]
+		/local
+			args  [red-block!]
+			fun	  [red-value!]
+			value [red-value!]
+			name  [red-word!]
+			path  [red-path!]
+			s	  [series!]
+			mode  [integer!]
+			type  [integer!]
+	][	
+		#typecheck [apply _all safer]
+
+		fun: stack/arguments
+		args: as red-block! fun + 1
+		path: null
+
+		switch TYPE_OF(fun) [
+			TYPE_PATH
+			TYPE_ANY_WORD [
+				either TYPE_OF(fun) = TYPE_PATH [
+					path: as red-path! fun
+					name: as red-word! block/rs-head path
+				][
+					name: as red-word! fun
+				]
+				value: _context/get name
+				type: TYPE_OF(value)
+				unless ALL_FUNCTION?(type) [fire [TO_ERROR(script invalid-arg) fun]]
+				fun: stack/push value
+			]
+			TYPE_ALL_FUNCTION [name: words/_applied]
+			default			  [assert false]
+		]
+		if TYPE_OF(fun) = TYPE_OP [set-type fun GET_OP_SUBTYPE(fun)]
+		
+		s: GET_BUFFER(args)
+		mode: either _all >= 0 [interpreter/MODE_APPLY][interpreter/MODE_APPLY_SOME]
+		if safer >= 0 [mode: mode or interpreter/MODE_APPLY_SAFER]
+		stack/set-interp-flag
+		
+		interpreter/eval-code
+			fun
+			s/offset + args/head
+			s/tail
+			args
+			no
+			path
+			as red-value! name
+			null
+			mode
+			no
 	]
 
 	;--- Natives helper functions ---
@@ -3615,6 +3671,7 @@ natives: context [
 			:decompress*
 			:recycle*
 			:transcode*
+			:apply*
 		]
 	]
 

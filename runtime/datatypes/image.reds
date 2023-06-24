@@ -1130,29 +1130,78 @@ image: context [
 		types		[red-value!]
 		return:		[red-image!]
 		/local
-			part?	[logic!]
 			int		[red-integer!]
+			sz		[red-pair!]
+			img1	[red-image!]
 			img2	[red-image!]
 			offset	[integer!]
-			part	[integer!]
 			type	[integer!]
+			x y w h	[integer!]
+			width	[integer!]
+			height	[integer!]
+			return-empty-img [subroutine!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "image/copy"]]
 
-		offset: img/head
-		part: IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) - offset
-		part?: no
+		return-empty-img: [
+			new/size: 0
+			new/header: TYPE_IMAGE
+			new/head: 0
+			new/node: null
+			return new
+		]
 
-		if OPTION?(part-arg) [
-			part?: yes
+		width: IMAGE_WIDTH(img/size)
+		height: IMAGE_HEIGHT(img/size)
+
+		if any [
+			width <= 0
+			height <= 0
+		][
+			return-empty-img
+		]
+
+		offset: img/head
+		either OPTION?(part-arg) [
 			type: TYPE_OF(part-arg)
 			case [
-				type = TYPE_INTEGER [
-					int: as red-integer! part-arg
-					part: either int/value > part [part][int/value]
+				type = TYPE_INTEGER [	;-- view the image as a 1-D series, return a Partx1 image 
+					--NOT_IMPLEMENTED--
 				]
-				type = TYPE_PAIR [0]
-				true [
+				type = TYPE_PAIR [
+					x: offset % width
+					y: offset / width
+					sz: as red-pair! part-arg
+					case [
+						all [sz/x > 0 sz/y > 0 offset < (width * height)][
+							w: width - x
+							h: height - y
+							if sz/x < w [w: sz/x]
+							if sz/y < h [h: sz/y]
+						]
+						all [sz/x < 0 sz/y < 0 offset > 0][
+							w: 0 - sz/x
+							h: 0 - sz/y
+							if zero? x [x: width]
+							either w > x [
+								w: x
+								x: 0
+							][
+								x: x - w
+							]
+							if y < height [y: y + 1]
+							either h > y [
+								h: y
+								y: 0
+							][
+								y: y - h
+							]
+						]
+						true [return-empty-img]
+					]
+
+				]
+				type = TYPE_IMAGE [
 					img2: as red-image! part-arg
 					unless all [
 						TYPE_OF(img2) = TYPE_IMAGE
@@ -1160,18 +1209,46 @@ image: context [
 					][
 						ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
 					]
-					part: img2/head - img/head
+					either img2/head > img/head [
+						img1: img
+					][
+						img1: img2
+						img2: img
+					]
+
+					offset: img2/head
+					w: offset / width
+					h: offset / width
+
+					offset: img1/head
+					x: offset % width
+					y: offset / width
+
+					w: w - x
+					h: h - y
 				]
+				true [ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)]
 			]
+		][
+			if zero? offset [
+				return OS-image/clone img new
+			]
+
+			x: offset % width
+			y: offset / width
+			w: width - x
+			h: height - y
 		]
 
-		if negative? part [
-			part: 0 - part
-			offset: offset - part
-			if negative? offset [offset: 0 part: img/head]
+		either any [
+			w <= 0
+			h <= 0
+		][
+			return-empty-img
+		][
+			OS-image/copy img new x y w h
 		]
-
-		OS-image/clone img new part as red-pair! part-arg part?
+		new
 	]
 
 	init: does [

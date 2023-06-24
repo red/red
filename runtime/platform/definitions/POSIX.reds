@@ -597,7 +597,7 @@ errno: as int-ptr! 0
 			res_nclose: "__res_nclose" [
 				statep		[int-ptr!]
 			]
-			res_nmkquery: "__res_nmkquery" [
+			res_nmkquery: #either target = 'ARM ["__res_nmkquery"]["res_nmkquery"] [
 				statep		[int-ptr!]
 				options		[integer!]
 				dname		[c-string!]
@@ -803,7 +803,11 @@ errno: as int-ptr! 0
 		x/cert_info/validity/notAfter
 	]
 ][
-	#define LIBSSL-file "libssl.so"
+	#either target = 'ARM [
+		#define LIBSSL-file "libssl.so.1.1"
+	][
+		#define LIBSSL-file "libssl.so.3"
+	]
 ]
 
 #define SSL_ERROR_SSL			1

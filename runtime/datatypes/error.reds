@@ -272,7 +272,7 @@ error: context [
 						][fire [TO_ERROR(script invalid-spec-field) words/_id]]
 					]
 					TYPE_SET_WORD [
-						_context/bind blk GET_CTX(new) new/ctx yes
+						_context/bind blk GET_CTX(new) yes
 						interpreter/eval blk no
 
 						value: object/rs-select new as red-value! words/_type
@@ -370,15 +370,22 @@ error: context [
 			value: _context/get-in as red-word! value GET_CTX(obj)
 		]
 		
-		either TYPE_OF(value) = TYPE_STRING [
-			str: as red-string! value
-			string/concatenate buffer str -1 0 yes no
-			part: part - string/rs-length? str
-		][
-			blk: block/clone as red-block! value no no
-			blk: reduce blk obj
-			arg2: as red-value! integer/push 80
-			part: block/form blk buffer arg2 80
+		switch TYPE_OF(value) [
+			TYPE_STRING [
+				str: as red-string! value
+				string/concatenate buffer str -1 0 yes no
+				part: part - string/rs-length? str
+			]
+			TYPE_BLOCK [
+				blk: block/clone as red-block! value no no
+				blk: reduce blk obj
+				arg2: as red-value! integer/push 80
+				part: block/form blk buffer arg2 80
+			]
+			default [
+				copy-cell base + field-type base + field-arg1
+				make-internal-error
+			]
 		]
 		
 		string/concatenate-literal buffer "^/*** Where: "

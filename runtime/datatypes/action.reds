@@ -23,7 +23,9 @@ action: context [
 		/local
 			list   [red-block!]
 			action [red-action!]
-			s	   [series!]
+			value  [red-value!]
+			more s [series!]
+			node   [node!]
 			index  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "action/make"]]
@@ -34,16 +36,22 @@ action: context [
 		if list + list/head + 2 <> s/tail [throw-make proto spec]
 		
 		action: as red-action! stack/push*
-		action/header:	TYPE_ACTION						;-- implicit reset of all header flags
-		action/spec:    list/node						; @@ copy spec block if not at head
-		action/args: 	null
+		action/header: TYPE_UNSET						;-- implicit reset of all header flags
+		action/spec:   list/node						; @@ copy spec block if not at head
+		action/more:   alloc-unset-cells 2
+		action/header: TYPE_ACTION
+
+		more: as series! action/more/value
+		node: _context/make spec yes no CONTEXT_FUNCTION
+		copy-cell as red-value! (as series! node/value) + 1 alloc-tail more	;-- ctx slot
+		value: alloc-tail more							;-- args cache slot
+		value/header: TYPE_NONE
 		
 		list: list + 1
 		if TYPE_OF(list) <> TYPE_INTEGER [throw-make proto spec]
 		index: integer/get as red-value! list			;-- action IDs are one-based
 		if any [index < 1 index > ACTIONS_NB][throw-make proto spec]
 		action/code: actions/table/index
-		
 		action
 	]
 	

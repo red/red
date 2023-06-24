@@ -1065,6 +1065,34 @@ set-window-info: func [
 	ret?
 ]
 
+update-faces-color: func [
+	child	[red-block!]
+	/local
+		face	[red-object!]
+		tail	[red-object!]
+		values	[red-value!]
+		word	[red-word!]
+		hWnd	[handle!]
+		type	[integer!]
+][
+	if TYPE_OF(child) <> TYPE_BLOCK [exit]
+
+	face: as red-object! block/rs-head child
+	tail: as red-object! block/rs-tail child
+	while [face < tail][
+		hWnd: face-handle? face
+		if hWnd <> null [
+			values: get-face-values hWnd
+			word: as red-word! values + FACE_OBJ_TYPE
+			type: symbol/resolve word/symbol
+			if IS_D2D_FACE(type) [
+				set-dark-mode hWnd dark-mode? no
+			]
+		]
+		face: face + 1
+	]
+]
+
 update-window: func [
 	child	[red-block!]
 	fonts	[node!]				;-- font handle array
@@ -1213,14 +1241,17 @@ WndProc: func [
 		flags  [integer!]
 		miniz? [logic!]
 		font?  [logic!]
+		dark?  [logic!]
 		x	   [integer!]
 		y	   [integer!]
+		ShouldAppsUseDarkMode [ShouldAppsUseDarkMode!]
 ][
-	type: either no-face? hWnd [panel][			;@@ remove this test, create a WndProc for panel?
-		values: get-face-values hWnd
-		w-type: as red-word! values + FACE_OBJ_TYPE
-		symbol/resolve w-type/symbol
-	]
+	if no-face? hWnd [return DefWindowProc hWnd msg wParam lParam]
+
+	values: get-face-values hWnd
+	w-type: as red-word! values + FACE_OBJ_TYPE
+	type: symbol/resolve w-type/symbol
+
 	switch msg [
 		WM_NCCREATE [
 			p-int: as int-ptr! lParam
@@ -1245,7 +1276,14 @@ WndProc: func [
 				target: as render-target! GetWindowLong hWnd wc-offset - 36
 				if target <> null [
 					DX-resize-buffer target WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
-					InvalidateRect hWnd null 1
+					either all [
+						(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) <> 0
+						0 <> GetWindowLong hWnd wc-offset + 4
+					][
+						update-base hWnd null null values
+					][
+						InvalidateRect hWnd null 1
+					]
 				]
 			]]
 			if type = window [
@@ -1510,10 +1548,11 @@ WndProc: func [
 		]
 		WM_SETCURSOR [
 			res: GetWindowLong as handle! wParam wc-offset - 28
-			if all [
-				res <> 0
-				res and 80000000h <> 0					;-- inside client area
-			][
+			if res <> 0 [
+				values: get-face-values as handle! wParam
+				w-type: as red-word! values + FACE_OBJ_TYPE
+				type: symbol/resolve w-type/symbol
+				if all [any [type = base type = rich-text] res and 80000000h = 0][return 0]
 				SetCursor as handle! (res and 7FFFFFFFh)
 				return 1
 			]

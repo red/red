@@ -61,6 +61,7 @@ alloc-tail: func [
 	cell: s/tail
 	;-- ensure that cell is within series upper boundary
 	assert (as byte-ptr! cell) < ((as byte-ptr! s + 1) + s/size)
+	cell/header: TYPE_UNSET
 	
 	s/tail: cell + 1									;-- move tail to next cell
 	cell
@@ -252,6 +253,69 @@ type-check: func [
 	BS_TEST_BIT(bits type set?)
 	unless set? [ERR_EXPECT_ARGUMENT(type index)]
 	arg													;-- pass-thru argument
+]
+
+set-opt-refinement*: func [
+	value [red-value!]
+	idx	  [integer!]
+	nb	  [integer!]
+	/local
+		ref [red-logic!]
+		arg [red-value!]
+		t?	[logic!]
+][
+	t?: logic/rs-true? value off null
+	ref: as red-logic! stack/arguments + idx
+	either t? [
+		ref/value: true
+	][
+		arg: as red-value! ref + 1
+		loop nb [arg/header: TYPE_NONE arg: arg + 1]
+	]
+]
+
+call-with-array*: func [
+	[variadic]
+	count	[integer!]
+	list	[int-ptr!]
+	return: [integer!]
+	/local
+		arg			[red-value!]
+		ref-array p	[int-ptr!]
+		size ref-pos arg-pos nb id	[integer!]
+		native? t?	[logic!]
+		call		[function! [return: [integer!]]]	;-- compiler expects an integer returned when invoked on do*, parse*
+][
+	id: list/1
+	native?: as-logic list/2
+	size: list/3
+	list: list + 3
+	count: count - 3
+	
+	p: either native? [natives/table][actions/table]
+	call: as function! [return: [integer!]] p/id
+
+	loop size [push -1]
+	ref-array: system/stack/top
+	
+	until [
+		t?: logic/rs-true? as red-value! list/1 off null
+		ref-pos: list/2
+		arg-pos: list/3
+		nb: list/4
+		either t? [
+			ref-array/ref-pos: arg-pos
+		][	
+			arg: stack/arguments + arg-pos
+			loop nb [arg/header: TYPE_NONE arg: arg + 1]
+		]
+		list: list + 4
+		count: count - 4
+		zero? count
+	]
+	system/stack/top: ref-array
+	if native? [push yes]
+	call
 ]
 
 eval-path*: func [
@@ -779,6 +843,7 @@ words: context [
 	_compare-cb:	as red-word! 0
 	
 	_local: 		as red-word! 0
+	_applied: 		as red-word! 0
 	
 	errors: context [
 		_throw:		as red-word! 0
@@ -1076,9 +1141,10 @@ words: context [
 		errors/internal: word/load "internal"
 		errors/invalid-error: word/load "invalid-error"
 		
-		;-- object events
 		_local:			 word/load "local"
+		_applied:		 word/load "<applied>"
 		
+		;-- object events
 		changed:		_changed/symbol
 	]
 ]

@@ -151,6 +151,17 @@ red: context [
 		]
 		quit-on-error
 	]
+
+	fail: func [err [string! block!] /near code [block!]][
+		print ["*** Compiler Internal Error:" reform err]
+		if pc [
+			print [
+				;"*** at line:" calc-line lf
+				"*** near:" mold any [code copy/part pc 8]
+			]
+		]
+		quit-on-error
+	]
 	
 	dispatch-ctx-keywords: func [original [any-word! none!] /with alt-value][
 		if path? alt-value [alt-value: alt-value/1]
@@ -621,22 +632,31 @@ red: context [
 		]
 	]
 	
-	emit-native: func [name [word!] /with options [block!] /local wrap? pos body][
+	emit-native: func [name [word!] /with options [block!] /applied code [block!] /local wrap? pos body][
 		if wrap?: to logic! find [parse do] name [
-			emit [
+			emit compose [
 				assert system/thrown = 0
-				switch
+				(either applied [first [system/thrown:]]['switch])
 			]
 		]
-		emit join natives-prefix to word! join name #"*"
-		emit 'true										;-- request run-time type-checking
-		pos: either with [
-			emit options
-			-2 - length? options
+		either applied [
+			emit code
+			insert-lf -2
+			if wrap? [
+				emit [switch system/thrown]
+				insert-lf -2
+			]
 		][
-			-2
+			emit join natives-prefix to word! join name #"*"
+			emit 'true										;-- request run-time type-checking
+			pos: either with [
+				emit options
+				-2 - length? options
+			][
+				-2
+			]
+			insert-lf pos - pick [1 0] wrap?
 		]
-		insert-lf pos - pick [1 0] wrap?
 		if wrap? [
 			emit build-exception-handler
 			emit [
@@ -685,6 +705,13 @@ red: context [
 			new-line/all/skip skip list 3 on 4
 			reduce ['all list]
 		]
+	]
+	
+	get-native-ID: func [name [word!] native? [logic!] /local id][
+		name: join pick ["NAT_" "ACT_"] native? replace/all uppercase form name #"-" #"_"
+		id: select extracts/definitions to-word name
+		unless integer? id [fail ["get-native-ID failed on:" name native?]]
+		id
 	]
 	
 	get-RS-type-ID: func [name [word! datatype!] /word /local type][ ;-- Red type name to R/S type ID
@@ -760,6 +787,18 @@ red: context [
 		][
 			none
 		]
+	]
+	
+	symbol-index?: 	func [spec [block!] name [word!] /local c p][
+		c: 0
+		parse spec [
+			some [
+				p: [word! | refinement! | lit-word! | get-word!]
+				   (if name = to word! p/1 [return c] c: c + 1)
+				| skip
+			]
+		]
+		fail ["symbol" mold name "not found in local context:" mold spec]
 	]
 	
 	emit-argument-type-check: func [
@@ -3514,7 +3553,7 @@ red: context [
 		/thru
 		/local 
 			item name compact? refs ref? cnt pos ctx mark list offset emit-no-ref
-			args option stop? original
+			args option stop? original get? dyn-list blk native? code type v id
 	][
 		either all [not thru spec/1 = 'intrinsic!][
 			switch any [all [path? call call/1] call] keywords
@@ -3548,7 +3587,7 @@ red: context [
 				throw-error [call/1 "has no refinement"]
 			]
 			
-			either compact? [
+			either compact? [							;-- native/action/routine compact refinements case
 				refs: either spec/4 [
 					head insert/dup make block! 8 -1 (length? spec/4) / 3	;-- init with -1
 				][
@@ -3556,16 +3595,35 @@ red: context [
 				]
 				if path? call [
 					cnt: spec/2							;-- function base arity
+					get?: to-logic find call get-word!
 					foreach ref next call [
-						ref: to refinement! ref
+						ref: to refinement! original: ref
 						unless pos: find/skip spec/4 ref 3 [
 							throw-error [call/1 "has no refinement called" ref]
 						]
-						poke refs pos/2 cnt				;-- set refinement's arguments base offset
+						either get? [
+							unless dyn-list [dyn-list: make block! 2]
+							redirect-to blk: make block! 4 either get-word? original [
+								[emit-get-word to-word ref original]
+							][
+								[emit [logic/push true]]
+							]
+							repend dyn-list [to-paren blk pos/2 cnt pos/3]
+						][
+							poke refs pos/2 cnt				;-- set refinement's arguments base offset
+						]
 						unless stop? [
 							stop?: comp-arguments/ref spec/3 pos/3 ref ;-- fetch refinement arguments
 						]
 						cnt: cnt + pos/3				;-- increase by nb of arguments
+					]
+					if dyn-list [
+						insert dyn-list reduce [to-word form native?: spec/1 <> 'action! (length? spec/4) / 3]
+						insert dyn-list get-native-ID name native?
+						code: reduce ['call-with-array* dyn-list]
+						either native? [emit-native/applied name code][emit code insert-lf -2]
+						emit-close-frame
+						exit
 					]
 				]
 			][											;-- prepare function! stack layout
@@ -3580,14 +3638,20 @@ red: context [
 				either path? call [						;-- call with refinements?
 					ctx: copy spec/4					;-- get a new context block
 					foreach ref next call [
-						unless word? ref [throw-error ["incompatible type" ref "in" call]]
+						unless find [word! get-word!] type?/word ref [throw-error ["incompatible type" ref "in" call]]
 						option: to refinement! ref
 						
 						unless pos: find/skip spec/4 option 3 [
 							throw-error [call/1 "has no refinement called" ref]
 						]
+						get?: get-word? ref
 						offset: 2 + index? pos
-						poke ctx index? pos true		;-- switch refinement to true in context
+						v: either not get? [true][
+							unless dyn-list [dyn-list: make block! 2]
+							repend dyn-list [ref  symbol-index? spec/3 to word! ref  pos/3]
+							to-get-word ref
+						]
+						poke ctx index? pos v			;-- switch refinement to true or get-word in context
 						unless zero? args: pos/3 [		;-- process refinement's arguments
 							list: make block! 1
 							ctx/:offset: list 			;-- compiled refinement arguments storage
@@ -3600,18 +3664,29 @@ red: context [
 						]
 					]
 					forall ctx [						;-- push context values on stack
-						switch type?/word ctx/1 [
+						switch type: type?/word ctx/1 [
 							refinement! [				;-- unused refinement
-								args: ctx/3
+								args: either block? ctx/3 [length? ctx/3][ctx/3]
 								do emit-no-ref
 							]
-							logic! [					;-- used refinement
-								emit [logic/push true]
+							logic!
+							get-word! [					;-- used refinement
+								emit compose [logic/push (pick [true false] type = 'logic!)]
 								insert-lf -2
 								if block? ctx/3 [
 									foreach code ctx/3 [emit code] ;-- emit pre-compiled arguments
 								]
 							]
+						]
+					]
+					if dyn-list [
+						foreach [name idx nb] dyn-list [
+							mark: tail output
+							emit 'set-opt-refinement*
+							emit-get-word to-word name name
+							emit reduce [idx nb]
+							new-line/all mark off
+							insert-lf -5
 						]
 					]
 				][										;-- call with no refinements
@@ -3674,22 +3749,6 @@ red: context [
 				][
 					no
 				]
-			]
-			op! [
-				;entry: select functions to word! pc/3
-				;either find [action! native!] entry/1 [
-				;	name: to set-word! pc/3
-				;	redbin/emit-word/root/set? name none none
-				;	redbin/emit-op name
-				;	fetch-functions back pc
-				;	pc: skip pc 3
-				;	yes
-				;][
-					no
-				;]
-			]
-			typeset! [
-				no
 			]
 		][
 			no

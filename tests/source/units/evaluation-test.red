@@ -200,9 +200,9 @@ Red [
 		    init -1 #[none] #[none] 2 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "123" 0 
-		    push 0 #[none] "123" 0 
-		    expr 1 #[none] "123" 0
-		    exit 1 #[none] "123" 0 
+		    push 0 #[none] "123" 1
+		    expr 1 #[none] "123" 1
+		    exit 1 #[none] "123" 1 
 		    end -1 #[none] #[none] 3
 		]
 
@@ -213,10 +213,10 @@ Red [
 		check-diff logs [
 		    init -1 #[none] #[none] 2 
 		    enter 0 #[none] #[none] 0 
-		    fetch 0 #[none] "+" 0 
-		    open 0 #[none] "+" 0 
 		    fetch 0 #[none] "1" 0 
 		    push 0 #[none] "1" 1 
+		    fetch 1 #[none] "+" 1 
+		    open 2 #[none] "+" 1 
 		    fetch 2 #[none] "length?" 1 
 		    open 3 #[none] "length?" 1 
 		    fetch 3 #[none] "mold" 0 
@@ -228,7 +228,7 @@ Red [
 		    call 5 "length?" "make actio" 1 
 		    return 5 "length?" "5" 3 
 		    call 5 "+" "make op! [" 2 
-		    return 5 "+" "6" 2 
+		    return 5 "+" "6" 1
 		    expr 5 #[none] "6" 1
 		    exit 5 #[none] "6" 1 
 		    end -1 #[none] #[none] 3
@@ -242,15 +242,15 @@ Red [
 		    init -1 #[none] #[none] 2 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "77" 0 
-		    push 0 #[none] "77" 0 
-		    expr 1 #[none] "77" 0
+		    push 0 #[none] "77" 1 
+		    expr 1 #[none] "77" 1
 		    fetch 1 #[none] "88" 0 
-		    push 1 #[none] "88" 0 
-		    expr 2 #[none] "88" 0
+		    push 1 #[none] "88" 1
+		    expr 2 #[none] "88" 1
 		    fetch 2 #[none] "99" 0 
-		    push 2 #[none] "99" 0
-		    expr 3 #[none] "99" 0
-		    exit 3 #[none] "99" 0 
+		    push 2 #[none] "99" 1
+		    expr 3 #[none] "99" 1
+		    exit 3 #[none] "99" 1
 		    end -1 #[none] #[none] 3
 		]
 
@@ -285,9 +285,9 @@ Red [
 		    call 8 "either" "make nativ" 3 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "'EVEN" 0 
-		    push 0 #[none] "EVEN" 0 
-		    expr 1 #[none] "EVEN" 0 
-		    exit 1 #[none] "EVEN" 0 
+		    push 0 #[none] "EVEN" 1
+		    expr 1 #[none] "EVEN" 1
+		    exit 1 #[none] "EVEN" 01
 		    return 8 "either" "EVEN" 2 
 		    expr 8 #[none] "EVEN" 1 
 		    exit 8 #[none] "EVEN" 1 
@@ -315,14 +315,14 @@ Red [
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "either" 0 
 		    open 1 #[none] "either" 0 
-		    fetch 1 #[none] "<" 0 
-		    open 1 #[none] "<" 0 
 		    fetch 1 #[none] "n" 0 
 		    push 1 #[none] "2" 0 
+		    fetch 2 #[none] "<" 1 
+		    open 3 #[none] "<" 1 
 		    fetch 3 #[none] "1" 1 
 		    push 3 #[none] "1" 2 
 		    call 4 "<" "make op! [" 2 
-		    return 4 "<" #[none] 2  
+		    return 4 "<" #[none] 1  
 		    fetch 4 #[none] "[0]" 1 
 		    push 4 #[none] "[0]" 2 
 		    fetch 5 #[none] "[either n " 2 
@@ -331,47 +331,45 @@ Red [
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "either" 0 
 		    open 1 #[none] "either" 0 
-		    fetch 1 #[none] "<" 0 
-		    open 1 #[none] "<" 0 
 		    fetch 1 #[none] "n" 0 
 		    push 1 #[none] "2" 0 
+		    fetch 2 #[none] "<" 1 
+		    open 3 #[none] "<" 1 
 		    fetch 3 #[none] "2" 1 
 		    push 3 #[none] "2" 2 
 		    call 4 "<" "make op! [" 2 
-		    return 4 "<" #[none] 2  
+		    return 4 "<" #[none] 1  
 		    fetch 4 #[none] "[1]" 1 
 		    push 4 #[none] "[1]" 2 
 		    fetch 5 #[none] "[(fibo-tr6" 2 
 		    push 5 #[none] "[(fibo-tr6" 3 
 		    call 6 "either" "make nativ" 3 
 		    enter 0 #[none] #[none] 0 
-		    fetch 0 #[none] "+" 0 
-		    open 0 #[none] "+" 0 
 		    fetch 0 #[none] "(fibo-tr6 " 0 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "fibo-tr6" 0 
 		    open 1 #[none] "fibo-tr6" 0 
-		    fetch 1 #[none] "-" 0 
-		    open 1 #[none] "-" 0 
 		    fetch 1 #[none] "n" 0 
 		    push 1 #[none] "2" 0 
+		    fetch 2 #[none] "-" 1 
+		    open 3 #[none] "-" 1 
 		    fetch 3 #[none] "2" 1 
 		    push 3 #[none] "2" 2 
 		    call 4 "-" "make op! [" 2 
-		    return 4 "-" "0" 2 
+		    return 4 "-" "0" 1 
 		    call 4 "fibo-tr6" "func [n [i" 1 
 		    prolog -1 "fibo-tr6" "func [n [i" 1 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "either" 0 
 		    open 1 #[none] "either" 0 
-		    fetch 1 #[none] "<" 0 
-		    open 1 #[none] "<" 0 
 		    fetch 1 #[none] "n" 0 
 		    push 1 #[none] "0" 0 
+		    fetch 2 #[none] "<" 1 
+		    open 3 #[none] "<" 1 
 		    fetch 3 #[none] "1" 1 
 		    push 3 #[none] "1" 2 
 		    call 4 "<" "make op! [" 2 
-		    return 4 "<" "true" 2  
+		    return 4 "<" "true" 1  
 		    fetch 4 #[none] "[0]" 1 
 		    push 4 #[none] "[0]" 2 
 		    fetch 5 #[none] "[either n " 2 
@@ -379,9 +377,9 @@ Red [
 		    call 6 "either" "make nativ" 3 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "0" 0 
-		    push 0 #[none] "0" 0 
-		    expr 1 #[none] "0" 0 
-		    exit 1 #[none] "0" 0 
+		    push 0 #[none] "0" 1 
+		    expr 1 #[none] "0" 1 
+		    exit 1 #[none] "0" 1 
 		    return 6 "either" "0" 2 
 		    expr 6 #[none] "0" 1 
 		    exit 6 #[none] "0" 1 
@@ -389,31 +387,33 @@ Red [
 		    return 4 "fibo-tr6" "0" 2 
 		    expr 4 #[none] "0" 1 
 		    exit 4 #[none] "0" 1 
+		    fetch 1 #[none] "+" 1 
+		    open 2 #[none] "+" 1 
 		    fetch 2 #[none] "(fibo-tr6 " 1 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "fibo-tr6" 0 
 		    open 1 #[none] "fibo-tr6" 0 
-		    fetch 1 #[none] "-" 0 
-		    open 1 #[none] "-" 0 
 		    fetch 1 #[none] "n" 0 
 		    push 1 #[none] "2" 0 
+		    fetch 2 #[none] "-" 1 
+		    open 3 #[none] "-" 1 
 		    fetch 3 #[none] "1" 1 
 		    push 3 #[none] "1" 2 
 		    call 4 "-" "make op! [" 2 
-		    return 4 "-" "1" 2 
+		    return 4 "-" "1" 1 
 		    call 4 "fibo-tr6" "func [n [i" 1 
 		    prolog -1 "fibo-tr6" "func [n [i" 1 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "either" 0 
 		    open 1 #[none] "either" 0 
-		    fetch 1 #[none] "<" 0 
-		    open 1 #[none] "<" 0 
 		    fetch 1 #[none] "n" 0 
 		    push 1 #[none] "1" 0 
+		    fetch 2 #[none] "<" 1 
+		    open 3 #[none] "<" 1 
 		    fetch 3 #[none] "1" 1 
 		    push 3 #[none] "1" 2 
 		    call 4 "<" "make op! [" 2 
-		    return 4 "<" #[none] 2  
+		    return 4 "<" #[none] 1  
 		    fetch 4 #[none] "[0]" 1 
 		    push 4 #[none] "[0]" 2 
 		    fetch 5 #[none] "[either n " 2 
@@ -422,14 +422,14 @@ Red [
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "either" 0 
 		    open 1 #[none] "either" 0 
-		    fetch 1 #[none] "<" 0 
-		    open 1 #[none] "<" 0 
 		    fetch 1 #[none] "n" 0 
 		    push 1 #[none] "1" 0 
+		    fetch 2 #[none] "<" 1 
+		    open 3 #[none] "<" 1 
 		    fetch 3 #[none] "2" 1 
 		    push 3 #[none] "2" 2 
 		    call 4 "<" "make op! [" 2 
-		    return 4 "<" "true" 2 
+		    return 4 "<" "true" 1 
 		    fetch 4 #[none] "[1]" 1 
 		    push 4 #[none] "[1]" 2 
 		    fetch 5 #[none] "[(fibo-tr6" 2 
@@ -437,9 +437,9 @@ Red [
 		    call 6 "either" "make nativ" 3 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "1" 0 
-		    push 0 #[none] "1" 0 
-		    expr 1 #[none] "1" 0 
-		    exit 1 #[none] "1" 0 
+		    push 0 #[none] "1" 1 
+		    expr 1 #[none] "1" 1 
+		    exit 1 #[none] "1" 1 
 		    return 6 "either" "1" 2 
 		    expr 6 #[none] "1" 1 
 		    exit 6 #[none] "1" 1 
@@ -451,7 +451,7 @@ Red [
 		    expr 4 #[none] "1" 1 
 		    exit 4 #[none] "1" 1 
 		    call 3 "+" "make op! [" 2 
-		    return 3 "+" "1" 2 
+		    return 3 "+" "1" 1 
 		    expr 3 #[none] "1" 1 
 		    exit 3 #[none] "1" 1 
 		    return 6 "either" "1" 2 
@@ -491,8 +491,6 @@ Red [
 		    call 2 "bar" "func [s [s" 1 
 		    prolog -1 "bar" "func [s [s" 1 
 		    enter 0 #[none] #[none] 0 
-		    fetch 0 #[none] "+" 0 
-		    open 0 #[none] "+" 0 
 		    fetch 0 #[none] "(length? s" 0 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "length?" 0 
@@ -503,6 +501,8 @@ Red [
 		    return 2 "length?" "5" 2 
 		    expr 2 #[none] "5" 1 
 		    exit 2 #[none] "5" 1 
+		    fetch 1 #[none] "+" 1 
+		    open 2 #[none] "+" 1 
 		    fetch 2 #[none] "make" 1 
 		    open 3 #[none] "make" 1 
 		    fetch 3 #[none] "integer!" 0 
@@ -511,7 +511,7 @@ Red [
 		    open 5 #[none] "foo" 1 
 		    fetch 5 #[none] "1" 0 
 		    push 5 #[none] "1" 1 
-		    call 6 "foo" "func [a [i" 3 
+		    call 6 "foo" "func [a [i" 1 
 		    prolog -1 "foo" "func [a [i" 3 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] "either" 0 
@@ -532,9 +532,9 @@ Red [
 		    call 6 "either" "make nativ" 3 
 		    enter 0 #[none] #[none] 0 
 		    fetch 0 #[none] {"ODD"} 0 
-		    push 0 #[none] {"ODD"} 0 
-		    expr 1 #[none] {"ODD"} 0 
-		    exit 1 #[none] {"ODD"} 0 
+		    push 0 #[none] {"ODD"} 1 
+		    expr 1 #[none] {"ODD"} 1 
+		    exit 1 #[none] {"ODD"} 1 
 		    return 6 "either" {"ODD"} 2 
 		    expr 6 #[none] {"ODD"} 1 
 		    fetch 6 #[none] "result" 0 
@@ -546,7 +546,7 @@ Red [
 		    call 6 "make" "make actio" 2 
 		    return 6 "make" "1" 3 
 		    call 6 "+" "make op! [" 2 
-		    return 6 "+" "6" 2 
+		    return 6 "+" "6" 1 
 		    expr 6 #[none] "6" 1 
 		    exit 6 #[none] "6" 1 
 		    epilog -1 "bar" "func [s [s" 2 
@@ -581,9 +581,9 @@ Red [
 		    fetch 1 #[none] ":i" 0 
 		    push 1 #[none] "1" 0 
 		    exit 2 #[none] "x" 0 
-		    push 1 #[none] "x" 0 
-		    expr 1 #[none] "x" 0 
-		    exit 1 #[none] "x" 0 
+		    push 1 #[none] "x" 1 
+		    expr 1 #[none] "x" 1 
+		    exit 1 #[none] "x" 1 
 		    end -1 #[none] #[none] 3 
 		    init -1 #[none] #[none] 2 
 		    enter 0 #[none] #[none] 0 
@@ -594,9 +594,9 @@ Red [
 		    fetch 1 #[none] ":i" 0 
 		    push 1 #[none] "1" 0 
 		    exit 2 #[none] "x" 0 
-		    push 0 #[none] "x" 0 
-		    expr 1 #[none] "x" 0 
-		    exit 1 #[none] "x" 0 
+		    push 0 #[none] "x" 1 
+		    expr 1 #[none] "x" 1 
+		    exit 1 #[none] "x" 1 
 		    end -1 #[none] #[none] 3 
 		    init -1 #[none] #[none] 2 
 		    enter 0 #[none] #[none] 0 
@@ -606,21 +606,21 @@ Red [
 		    push 0 #[none] "[x y z]" 0 
 		    fetch 1 #[none] "(i + j)" 0 
 		    enter 0 #[none] #[none] 0 
-		    fetch 0 #[none] "+" 0 
-		    open 0 #[none] "+" 0 
 		    fetch 0 #[none] "i" 0 
 		    push 0 #[none] "1" 0 
+		    fetch 1 #[none] "+" 0 
+		    open 2 #[none] "+" 1 
 		    fetch 2 #[none] "j" 1 
 		    push 2 #[none] "2" 1 
 		    call 3 "+" "make op! [" 2 
-		    return 3 "+" "3" 2 
+		    return 3 "+" "3" 1 
 		    expr 3 #[none] "3" 1 
 		    exit 3 #[none] "3" 1 
 		    push 1 #[none] "3" 1 
 		    exit 2 #[none] "z" 1 
-		    push 1 #[none] "z" 0 
-		    expr 1 #[none] "z" 0 
-		    exit 1 #[none] "z" 0 
+		    push 1 #[none] "z" 1 
+		    expr 1 #[none] "z" 1 
+		    exit 1 #[none] "z" 1 
 		    end -1 #[none] #[none] 3 
 		    init -1 #[none] #[none] 2 
 		    enter 0 #[none] #[none] 0 
@@ -652,17 +652,17 @@ Red [
 		    open 1 #[none] "trace" 0 
 		    fetch 1 #[none] "off" 0 
 		    push 1 #[none] #[none] 0 
-		    call 2 "trace" "func [{Run" 7 
+		    call 2 "trace" "func [{Run" 5 
 		    prolog -1 "foo-tr9" "func [[tra" 0 
 		    enter 0 #[none] #[none] 0 
-		    fetch 0 #[none] "+" 0 
-		    open 0 #[none] "+" 0 
 		    fetch 0 #[none] "1" 0 
 		    push 0 #[none] "1" 1 
+		    fetch 1 #[none] "+" 1 
+		    open 2 #[none] "+" 1 
 		    fetch 2 #[none] "2" 1 
 		    push 2 #[none] "2" 2 
 		    call 3 "+" "make op! [" 2 
-		    return 3 "+" "3" 2
+		    return 3 "+" "3" 1
 		    expr 3 #[none] "3" 1
 		    exit 3 #[none] "3" 1 
 		    epilog -1 "foo-tr9" "func [[tra" 1
@@ -676,28 +676,28 @@ Red [
 		check-diff logs [
 		    init -1 #[none] #[none] 2 
 		    enter 0 #[none] #[none] 0 
-		    fetch 0 #[none] "+" 0 
-		    open 0 #[none] "+" 0 
 		    fetch 0 #[none] "4" 0 
 		    push 0 #[none] "4" 1 
+		    fetch 1 #[none] "+" 1 
+		    open 2 #[none] "+" 1 
 		    fetch 2 #[none] "5" 1 
 		    push 2 #[none] "5" 2 
 		    call 3 "+" "make op! [" 2 
-		    return 3 "+" "9" 2 
-		    expr 3 #[none] "9" 1
+		    return 3 "+" "9" 1 
+		    expr 3 #[none] "9" 1 
 		    fetch 3 #[none] "foo-tr10" 0 
 		    open 4 #[none] "foo-tr10" 0 
 		    call 4 "foo-tr10" "func [[no-" 0 
-		    return 4 "foo-tr10" "3" 2
-		    expr 4 #[none] "3" 1
-		    fetch 4 #[none] "+" 0 
-		    open 4 #[none] "+" 0 
+		    return 4 "foo-tr10" "3" 2 
+		    expr 4 #[none] "3" 1 
 		    fetch 4 #[none] "7" 0 
 		    push 4 #[none] "7" 1 
+		    fetch 5 #[none] "+" 1 
+		    open 6 #[none] "+" 1 
 		    fetch 6 #[none] "8" 1 
 		    push 6 #[none] "8" 2 
 		    call 7 "+" "make op! [" 2 
-		    return 7 "+" "15" 2
+		    return 7 "+" "15" 1
 		    expr 7 #[none] "15" 1
 		    exit 7 #[none] "15" 1 
 		    end -1 #[none] #[none] 3
@@ -711,10 +711,10 @@ Red [
 		check-diff logs [
 		    init -1 #[none] #[none] 2 
 		    enter 0 #[none] #[none] 0 
-		    fetch 0 #[none] "=" 0 
-		    open 0 #[none] "=" 0 
 		    fetch 0 #[none] "'a" 0 
 		    push 0 #[none] "a" 1 
+		    fetch 1 #[none] "=" 1 
+		    open 2 #[none] "=" 1 
 		    fetch 2 #[none] "b/:j" 1 
 		    enter 0 #[none] #[none] 1 
 		    fetch 0 #[none] "b" 1 
@@ -724,7 +724,7 @@ Red [
 		    exit 2 #[none] "y" 1 
 		    push 3 #[none] "y" 2 
 		    call 3 "=" "make op! [" 2 
-		    return 3 "=" #[none] 2
+		    return 3 "=" #[none] 1
 		    expr 3 #[none] #[none] 1
 		    exit 3 #[none] #[none] 1 
 		    end -1 #[none] #[none] 3
@@ -935,6 +935,30 @@ Red [
 	b: next [1 2]
 	--assert [2] = compose/into [no 7 8 9 (2 * 10) ([5 6])] b
 	--assert [1 no 7 8 9 20 5 6 2] = head b
+
+===end-group===
+
+===start-group=== "error reports"
+
+	--test-- "err-1"
+		do [
+			set/any 'err try ["e" + 2]
+			--assert err/code = 305
+			--assert err/id = 'expect-arg
+			--assert err/arg1 = '+
+			--assert err/arg2 = string!
+			--assert err/arg3 = 'value1
+		]
+		
+	--test-- "err-2"
+		do [
+			set/any 'err try [append/dup "a" #"b" #"c"]		
+			--assert err/code = 305
+			--assert err/id = 'expect-arg
+			--assert err/arg1 = 'append
+			--assert err/arg2 = char!
+			--assert err/arg3 = 'count
+		]
 
 ===end-group===
 
@@ -1182,5 +1206,250 @@ Red [
 		--assert 3 == get load ":obj/a"
 	
 ===end-group===
+
+===start-group=== "Dynamic refinements"
+
+    dyn-ref-fun: func [i [integer!] b /ref c1 /ref2 /ref3 c3 c4][
+        reduce [i b ref c1 ref2 ref3 c3 c4]
+    ]
+
+	--test-- "dyn-ref-1"
+		only: yes
+		repend/:only s: [] [1 + 2 3 * 4]
+		--assert s == [[3 12]]
+	
+	--test-- "dyn-ref-2"
+		only: no
+		repend/:only s: [] [4 + 5 6 * 7]
+		--assert s == [9 42]
+	
+	--test-- "dyn-ref-3"
+		part: no length: 10 
+		--assert "def" == find/:part "abcdef" "d" length
+		
+	--test-- "dyn-ref-4"
+		part: yes length: 2
+		--assert none? find/:part "abcdef" "d" length
+
+context [											;-- needed to protect global `scan` function
+	--test-- "dyn-ref-5"
+		scan: no
+		--assert [hi] == transcode/:scan "hi"
+
+	--test-- "dyn-ref-6"
+		scan: yes
+		--assert word! == transcode/:scan "hi"
+]
+	
+	--test-- "dyn-ref-7"
+		ref: yes
+		--assert (dyn-ref-fun/:ref 10 * 9 "hello" 789)
+			== [90 "hello" #[true] 789 #[false] #[false] #[none] #[none]]
+		
+	--test-- "dyn-ref-8"
+		ref: no
+		--assert (dyn-ref-fun/:ref 10 * 9 "hello" 789)
+			== [90 "hello" #[false] #[none] #[false] #[false] #[none] #[none]]
+
+	--test-- "dyn-ref-9"
+		ref: ref2: yes
+		--assert (dyn-ref-fun/:ref/:ref2 10 * 9 "hello" 789)
+			== [90 "hello" #[true] 789 #[true] #[false] #[none] #[none]]		
+
+	--test-- "dyn-ref-10"
+		ref: no ref2: yes
+		--assert (dyn-ref-fun/:ref/:ref2 10 * 9 "hello" 789)
+			== [90 "hello" #[false] #[none] #[true] #[false] #[none] #[none]]
+
+	--test-- "dyn-ref-11"
+		ref: no ref2: ref3: yes
+		--assert (dyn-ref-fun/:ref/:ref2/:ref3 10 * 9 "hello" 789 6 7)
+			== [90 "hello" #[false] #[none] #[true] #[true] 6 7]
+	
+	--test-- "dyn-ref-12"		
+		dyn-ref-12-obj: context [
+		    foo: func [i [integer!] b /ref c1 /ref2 /ref3 c3 c4][
+		    	reduce [i b ref c1 ref2 ref3 c3 c4]
+		    ]
+		    bar: func [/local ref][
+		        ref: no
+				--assert (foo/:ref 10 * 9 "hello" 789)
+				== [90 "hello" #[false] #[none] #[false] #[false] #[none] #[none]]
+
+		        ref: yes
+				--assert (foo/:ref 10 * 9 "hello" 789)
+				== [90 "hello" #[true] 789 #[false] #[false] #[none] #[none]]
+
+		    ]
+		]
+		dyn-ref-12-obj/bar
+		
+	--test-- "dyn-ref-13"
+		clear logs
+	    do/trace [apply/all 'append [[] [a]]] :logger
+		new-line/all/skip logs yes 5
+		--assert logs == [
+			init -1 #[none] #[none] 2 
+			enter 0 #[none] #[none] 0 
+			fetch 0 #[none] "apply/all" 0 
+			enter 0 #[none] #[none] 0 
+			fetch 0 #[none] "apply" 0 
+			open 1 #[none] "apply" 0 
+			fetch 1 #[none] "'append" 0 
+			push 1 #[none] "append" 1 
+			fetch 2 #[none] "[[] [a]]" 1 
+			push 2 #[none] "[[] [a]]" 2 
+			call 3 "apply/all" "make nativ" 2 
+			open 0 #[none] "append" 3 
+			fetch 0 #[none] "[]" 0 
+			push 0 #[none] "[]" 1 
+			fetch 1 #[none] "[a]" 1 
+			push 1 #[none] "[a]" 2 
+			call -1 "append" "make actio" 4 
+			return 2 "[a]" "[a]" 5 
+			return 3 "apply/all" "[a]" 2 
+			exit 2 #[none] "[a]" 1 
+			push 3 #[none] "[a]" 1 
+			expr 3 #[none] "[a]" 1 
+			exit 3 #[none] "[a]" 1 
+			end -1 #[none] #[none] 3
+		]
+		
+	--test-- "dyn-ref-14"
+		do [											;-- it would (legitimately) error out on compilation
+			foo-dr14: func [/only14][--assert false]
+			--assert error? try [foo-dr14/:only14]
+		]
+	
+===end-group===
+
+===start-group=== "Function application"
+
+    applied: func [i [integer!] b /ref c1 /ref2 /ref3 c3 c4][
+        reduce [i b ref c1 ref2 ref3 c3 c4]
+    ]
+
+	--test-- "apply-1"   --assert none? apply 'find []
+	--test-- "apply-1.1" --assert error? try [apply 'pick []]
+	--test-- "apply-2"   --assert error? try [apply 'append/dup [[] [1] on 2]]
+	--test-- "apply-3"   --assert 3 == apply '+ [1 2]
+	--test-- "apply-3.1" --assert 3 == apply :+ [1 2]
+	--test-- "apply-4"   --assert error? try [apply '+ ['one 2]]
+	--test-- "apply-4.1" --assert error? try [apply :+ ['one 2]]
+	--test-- "apply-5"   --assert error? try [apply/all 'applied ['twelve]]
+	--test-- "apply-5.1" --assert error? try [apply 'unknown-applied-func [3 4]]
+	--test-- "apply-5.2" --assert error? try [apply 'unknown-applied-func/:ref [3 4]]
+	
+	--test-- "apply-6"
+		--assert strict-equal? apply/all 'applied [3 * 4]
+			[12 #[none] #[false] #[none] #[false] #[false] #[none] #[none]]
+	
+	--test-- "apply-7"
+		--assert strict-equal? apply/all 'applied [10 * 9 "hi"]
+			[90 "hi" #[false] #[none] #[false] #[false] #[none] #[none]]
+			
+	--test-- "apply-8"
+		--assert error? try [apply/all 'applied [10 * 9 "hi" false]]
+
+	--test-- "apply-8.1"
+		--assert strict-equal? apply/all 'applied [10 * 9 "hi" false 0]
+			[90 "hi" #[false] #[none] #[false] #[false] #[none] #[none]]
+			
+	--test-- "apply-9"
+		--assert strict-equal? apply/all 'applied [10 * 9 "hi" true]
+			[90 "hi" #[true] #[none] #[false] #[false] #[none] #[none]]
+		
+	--test-- "apply-10"
+		--assert strict-equal? apply/all 'applied [10 * 9 "hi" true pi]
+			[90 "hi" #[true] 3.141592653589793 #[false] #[false] #[none] #[none]]
+		
+	--test-- "apply-11"
+		--assert strict-equal? apply/all 'applied [10 * 9 "hi" false none false true 3 4]
+			[90 "hi" #[false] #[none] #[false] #[true] 3 4]
+			
+	--test-- "apply-12" --assert "helloworld" == apply/all 'append ["hello" "world"]
+	--test-- "apply-13" --assert "hellowo"    == apply/all 'append ["hello" "world" true 2]
+	--test-- "apply-14" --assert 10.20.30     == apply/all 'as-color [10 20 30]	 
+
+	--test-- "apply-15"
+		--assert strict-equal? apply/all :applied [3 * 4]
+			[12 #[none] #[false] #[none] #[false] #[false] #[none] #[none]]
+	
+	--test-- "apply-16"
+		--assert strict-equal? apply/all :applied [10 * 9 "hi"]
+			[90 "hi" #[false] #[none] #[false] #[false] #[none] #[none]]
+			
+	--test-- "apply-17" --assert "helloworld" == apply/all :append ["hello" "world"]
+	--test-- "apply-18" --assert "hellowo"    == apply/all :append ["hello" "world" true 2]
+	--test-- "apply-19" --assert 10.20.30     == apply/all :as-color [10 20 30]	 
+
+
+	--test-- "apply-20"
+		--assert strict-equal? apply 'applied/:ref3 [10 * 9 "hi" yes 4 - 1 "ok"]
+			[90 "hi" #[false] #[none] #[false] #[true] 3 "ok"]
+	
+	--test-- "apply-21"
+		--assert strict-equal? apply 'applied/:ref2/:ref3 [10 * 9 "hi" true yes 4 - 1 "ok"]
+			[90 "hi" #[false] #[none] #[true] #[true] 3 "ok"]
+			
+	--test-- "apply-30"
+		--assert strict-equal? apply 'applied [10 "hi" /ref3 true 4 * 2 1 - 3] 
+			[10 "hi" #[false] #[none] #[false] #[true] 8 -2]
+		
+	--test-- "apply-31"
+		--assert strict-equal? apply 'applied [123 "hi" /ref no none]
+			[123 "hi" #[false] #[none] #[false] #[false] #[none] #[none]]
+		
+	--test-- "apply-32"
+		--assert strict-equal? apply 'applied [123 "hi" /ref yes #"i"]
+			[123 "hi" #[true] #"i" #[false] #[false] #[none] #[none]]
+	
+	--test-- "apply-33"
+		--assert strict-equal? apply 'applied [123 "hi" /ref2 yes]
+			[123 "hi" #[false] #[none] #[true] #[false] #[none] #[none]]
+		
+	--test-- "apply-34"
+		v: yes
+		--assert strict-equal? apply 'applied [123 "hi" /ref2 v /ref v none]
+			[123 "hi" #[true] #[none] #[true] #[false] #[none] #[none]]
+
+	--test-- "apply-35"
+		--assert strict-equal? apply 'applied [123 "hi" /ref2 to-logic 1 /ref v #"o"]
+			[123 "hi" #[true] #"o" #[true] #[false] #[none] #[none]]
+			
+	--test-- "apply-36"
+		--assert "hiwo" == apply 'append ["hi" "world"
+			/part 
+				apply 'to-logic [1]
+				apply '+ [1 apply '- [7 6]]
+		]
+
+	--test-- "apply-37"
+		fn-apply-37: func [a b][--assert a = 1 --assert b = 2 none]
+    	--assert none? apply :fn-apply-37 [1 2 3]		;-- ignoring extra values
+
+	--test-- "apply-38"
+		fn-apply-38: func [a b /r][none]
+    	--assert error? try [apply :fn-apply-38 [1 2 3]]
+		
+
+	--test-- "apply-40"	
+		c: 0
+		bar40: does [456]
+		baz40: does [c: c + 1 456]
+
+		--assert strict-equal? apply/safer 'applied [10 "hi" /ref yes bar40 /ref3 no (c: c + 1 4 * 2) "ok"]
+			[10 "hi" #[true] 456 #[false] #[false] #[none] #[none]]
+		--assert c == 0
+	
+	--test-- "apply-41"
+		c: 0
+		--assert strict-equal? apply/safer 'applied [10 "hi" /ref no baz40 /ref3 true (4 * 2) "ok"]
+			[10 "hi" #[false] #[none] #[false] #[true] 8 "ok"]
+		--assert c == 0
+		
+===end-group===
+
+
 
 ~~~end-file~~~

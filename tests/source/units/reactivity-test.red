@@ -11,87 +11,87 @@ Red [
 
 ~~~start-file~~~ "reactivity"
 
-===start-group=== "IS function"
+===start-group=== "relate function"
 
-	--test-- "is-1"
-		is-1a: make reactor! [x: 1 y: is [x + 1]]
-		--assert is-1a/x == 1
-		--assert is-1a/y == 2
-		is-1a/x: 5
-		--assert is-1a/y == 6
-		unset 'is-1a
+	--test-- "rel-1"
+		rel-1a: make reactor! [x: 1 relate y: [x + 1]]
+		--assert rel-1a/x == 1
+		--assert rel-1a/y == 2
+		rel-1a/x: 5
+		--assert rel-1a/y == 6
+		unset 'rel-1a
 
-	--test-- "is-2"
-		is-2a: make reactor! [x: 1 y: is [x + 1]]
-		--assert [x + 1] = react? is-2a 'x
-		--assert 	 none? react?/target is-2a 'x
-		--assert [x + 1] = react?/target is-2a 'y
-		--assert     none? react? is-2a 'y
-		unset 'is-2a
+	--test-- "rel-2"
+		rel-2a: make reactor! [x: 1 relate y: [x + 1]]
+		--assert [x + 1] = react? rel-2a 'x
+		--assert 	 none? react?/target rel-2a 'x
+		--assert [x + 1] = react?/target rel-2a 'y
+		--assert     none? react? rel-2a 'y
+		unset 'rel-2a
 	
-	--test-- "is-3"
-		is-3b: make reactor! [x: 2 y: 3 z: is [x + y]]
-		--assert is-3b/x == 2
-		--assert is-3b/y == 3
-		--assert is-3b/z == 5
-		is-3b/x: 5
-		--assert is-3b/z == 8
-		unset 'is-3b
+	--test-- "rel-3"
+		rel-3b: make reactor! [x: 2 y: 3 relate z: [x + y]]
+		--assert rel-3b/x == 2
+		--assert rel-3b/y == 3
+		--assert rel-3b/z == 5
+		rel-3b/x: 5
+		--assert rel-3b/z == 8
+		unset 'rel-3b
 
-	--test-- "is-4"
-		is-4b: make reactor! [x: 2 y: 3 z: is [x + y]]
-		--assert [x + y] = react? is-4b 'x
-		--assert [x + y] = react? is-4b 'y
-		--assert [x + y] = react?/target is-4b 'z
-		unset 'is-4b
+	--test-- "rel-4"
+		rel-4b: make reactor! [x: 2 y: 3 relate z: [x + y]]
+		--assert [x + y] = react? rel-4b 'x
+		--assert [x + y] = react? rel-4b 'y
+		--assert [x + y] = react?/target rel-4b 'z
+		unset 'rel-4b
     
-    --test-- "is-5"
-		is-5c: make reactor! [x: 1 y: is [x + 1] z: is [y + 1]]
-		--assert is-5c/x == 1
-		--assert is-5c/y == 2
-		--assert is-5c/z == 3
-		is-5c/x: 4
-		--assert is-5c/y == 5
-		--assert is-5c/z == 6
-		unset 'is-5c
+    --test-- "rel-5"
+		rel-5c: make reactor! [x: 1 relate y: [x + 1] relate z: [y + 1]]
+		--assert rel-5c/x == 1
+		--assert rel-5c/y == 2
+		--assert rel-5c/z == 3
+		rel-5c/x: 4
+		--assert rel-5c/y == 5
+		--assert rel-5c/z == 6
+		unset 'rel-5c
 
-	--test-- "is-6"
-		is-6c: make reactor! [x: 1 y: is [x + 1] z: is [y + 1]]
-		--assert [x + 1] = react? is-6c 'x
-		--assert     none? react?/target is-6c 'x
-		--assert [x + 1] = react?/target is-6c 'y
-		--assert [y + 1] = react? is-6c 'y
-		--assert none? react? is-6c 'z
-		--assert [y + 1] = react?/target is-6c 'z
-		unset 'is-6c
+	--test-- "rel-6"
+		rel-6c: make reactor! [x: 1 relate y: [x + 1] relate z: [y + 1]]
+		--assert [x + 1] = react? rel-6c 'x
+		--assert     none? react?/target rel-6c 'x
+		--assert [x + 1] = react?/target rel-6c 'y
+		--assert [y + 1] = react? rel-6c 'y
+		--assert none? react? rel-6c 'z
+		--assert [y + 1] = react?/target rel-6c 'z
+		unset 'rel-6c
 
-	--test-- "is-7"
-		is-7d: make reactor! [x: is [attempt [y + 1]] y: is [attempt [x + 3]]]
-		--assert none? is-7d/x
-		--assert none? is-7d/y
-		is-7d/x: 1
-		--assert is-7d/x = 5
-		--assert is-7d/y = 4
-		unset 'is-7d
+	--test-- "rel-7"
+		rel-7d: make reactor! [relate x: [attempt [y + 1]] relate y: [attempt [x + 3]]]
+		--assert none? rel-7d/x
+		--assert none? rel-7d/y
+		rel-7d/x: 1
+		--assert rel-7d/x = 5
+		--assert rel-7d/y = 4
+		unset 'rel-7d
 
-	--test-- "is-8"
-		is-8r: make reactor! [x: is [attempt [y + 1]] y: is [attempt [z + 2]] z: is [attempt [x + 3]]]
-		--assert none? is-8r/x
-		--assert none? is-8r/y
-		--assert none? is-8r/z
-		is-8r/x: 1
-		--assert is-8r/x = 7
-		--assert is-8r/z = 4
-		--assert is-8r/y = 6
-		is-8r/y: 1
-		--assert is-8r/y = 7
-		--assert is-8r/x = 2
-		--assert is-8r/z = 5
-		is-8r/z: 1
-		--assert is-8r/z = 7
-		--assert is-8r/y = 3
-		--assert is-8r/x = 4
-		unset 'is-8r
+	--test-- "rel-8"
+		rel-8r: make reactor! [relate x: [attempt [y + 1]] relate y: [attempt [z + 2]] relate z: [attempt [x + 3]]]
+		--assert none? rel-8r/x
+		--assert none? rel-8r/y
+		--assert none? rel-8r/z
+		rel-8r/x: 1
+		--assert rel-8r/x = 7
+		--assert rel-8r/z = 4
+		--assert rel-8r/y = 6
+		rel-8r/y: 1
+		--assert rel-8r/y = 7
+		--assert rel-8r/x = 2
+		--assert rel-8r/z = 5
+		rel-8r/z: 1
+		--assert rel-8r/z = 7
+		--assert rel-8r/y = 3
+		--assert rel-8r/x = 4
+		unset 'rel-8r
 
 
 	;-- final group cleanup
@@ -102,7 +102,7 @@ Red [
 ===start-group=== "relations formation"
 
 	--test-- "rf-1" 	; sanity check
-		rf-1-r: make reactor! [a: 1 b: is [a * 2]]
+		rf-1-r: make reactor! [a: 1 relate b: [a * 2]]
 		--assert 0 < length? system/reactivity/relations
 		clear-reactions
 		--assert empty? system/reactivity/relations
@@ -110,7 +110,7 @@ Red [
 
 	--test-- "rf-2" 	; shouldn't add duplicate relations
 		clear-reactions
-		rf-2-r: make reactor! [a: 1 b: is [a * a * a]]
+		rf-2-r: make reactor! [a: 1 relate b: [a * a * a]]
 		--assert 1 * 4 = length? system/reactivity/relations
 		unset [rf-2-r]
 
@@ -138,7 +138,7 @@ Red [
 		do [	; FIXME: workaround for #3797
 			rf-5-r: make reactor! [
 				a: b: c: d: 1
-				b: is [a + a] 											; +1
+				relate b: [a + a] 											; +1
 				react [self/c: self/a * self/b * a * b]					; +2
 				react [self/d: self/a + self/b + self/c + a + b + c] 	; +3
 			]
@@ -152,7 +152,7 @@ Red [
 	--test-- "rf-6"	; #3333 where `is` produced an excessive reaction with the wrong target object
 		clear-reactions
 		rf-6r: make reactor! [x: 1]
-		rf-6c: context [ x: is [rf-6r/x] ]
+		rf-6c: context [relate x: [rf-6r/x] ]
 		--assert 1 * 4 = length? system/reactivity/relations 	;-- should only be a single reaction
 		--assert rf-6r = :system/reactivity/relations/1 		;-- `r` should be the source object
 		unset [rf-6c rf-6r]
@@ -160,7 +160,7 @@ Red [
 	--test-- "rf-7"	; #3333 triple-reaction case
 		clear-reactions
 		rf-7r: make reactor! [x: 1]
-		rf-7x: is [rf-7r/x]
+		relate rf-7x: [rf-7r/x]
 		--assert 1 * 4 = length? system/reactivity/relations 	;-- should only be a single reaction
 		--assert rf-7r = :system/reactivity/relations/1 		;-- `r` should be the source object
 		unset [rf-7r rf-7x]
@@ -211,7 +211,7 @@ Red [
 ===start-group=== "regression tests"
 
 	--test-- "#3091"
-		a3091: make reactor! [b: 5 c: is [b]]
+		a3091: make reactor! [b: 5 relate c: [b]]
 		do bind [b: 2] a3091
 		--assert a3091/c = 2
 
@@ -225,10 +225,10 @@ Red [
 		do [
 			r: make reactor! [
 				n: 1
-				c: is [1x1 * n]
-				x: is [c/x]
-				t: is [n * 1:0:0]
-				hms: is [rejoin [t/hour t/minute t/second]]
+				relate c: [1x1 * n]
+				relate x: [c/x]
+				relate t: [n * 1:0:0]
+				relate hms: [rejoin [t/hour t/minute t/second]]
 			]
 			--assert (skip body-of r 2) == [
 				n: 1 

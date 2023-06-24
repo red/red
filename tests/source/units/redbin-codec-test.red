@@ -329,7 +329,10 @@ Red [
 				make error! "User-defined"
 				make error! 303
 			]
-			forall errors [--assert :errors/1 = test :errors/1]
+			forall errors [
+				errors/1/near: none						;; @@ temporary measure to avoid encoding words bound to native contexts
+				--assert :errors/1 = test :errors/1
+			]
 		
 		;do [										;@@ #4568
 		;--test-- "function"						;@@ ???

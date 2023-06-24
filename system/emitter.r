@@ -337,6 +337,7 @@ emitter: make-profilable context [
 			array! [
 				either binary? value [
 					pad-data-buf target/ptr-size
+					ptr: tail data-buf
 					append ptr value
 					pad-data-buf target/ptr-size
 				][

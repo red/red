@@ -167,6 +167,7 @@ get-para-flags: func [
 			left:	0000h								;-- ES_LEFT / SS_LEFT
 			center: 0001h								;-- ES_CENTER / SS_CENTER
 			right:  0002h								;-- ES_RIGHT / SS_RIGHT
+			middle: 0200h								;-- SS_CENTERIMAGE
 			default: left
 			
 			unless wrap? [

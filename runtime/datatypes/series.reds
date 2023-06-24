@@ -25,6 +25,16 @@ _series: context [
 		offset: ser/head << (log-b GET_UNIT(s))
 		(as byte-ptr! s/offset) + offset >= as byte-ptr! s/tail
 	]
+	
+	rs-tail: func [
+		ser		[red-series!]
+		return:	[integer!]
+		/local
+			s	[series!]
+	][
+		s: GET_BUFFER(ser)
+		(as-integer s/tail - s/offset) >> (log-b GET_UNIT(s))
+	]
 
 	rs-skip: func [
 		ser 	[red-series!]
@@ -1073,8 +1083,8 @@ _series: context [
 		ser2: as red-series! stack/push*
 		ser2/header: TYPE_OF(ser)
 		ser2/extra:  either TYPE_OF(ser) = TYPE_VECTOR [ser/extra][0]
-		ser2/node:  node
-		ser2/head:  0
+		ser2/node:   node
+		ser2/head:   0
 
 		check?: ownership/check as red-value! ser words/_take null ser/head part2
 
@@ -1109,7 +1119,7 @@ _series: context [
 			_hashtable/refresh hash/table 0 - part unit size - unit yes
 			hash: as red-hash! ser2
 			hash/header: TYPE_BLOCK		;-- set to TYPE_BLOCK so we don't mark hash/table
-			hash/table: _hashtable/init part ser2 HASH_TABLE_HASH 1
+			hash/table: _hashtable/init part as red-block! ser2 HASH_TABLE_HASH 1
 			hash/header: TYPE_HASH
 		]
 		

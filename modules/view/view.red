@@ -131,7 +131,7 @@ metrics?: function [
 ]
 
 set-flag: function [
-	"Sets a flag in a face object"
+	"Sets a flag in a face object and returns the /flags facet value"
 	face  [object!]
 	facet [word!]
 	value [any-type!]
@@ -142,6 +142,7 @@ set-flag: function [
 	][
 		set in face facet value
 	]
+	flags
 ]
 
 find-flag?: routine [
@@ -425,8 +426,8 @@ face!: object [				;-- keep in sync with facet! enum
 				"-- on-change event --" lf
 				tab "face :" type		lf
 				tab "word :" word		lf
-				tab "old  :" type? :old	lf
-				tab "new  :" type? :new
+				tab "old  :" either find immediate! type? :old [mold :old][type? :old]	lf
+				tab "new  :" either find immediate! type? :new [mold :new][type? :new]
 			]
 		]
 
@@ -490,9 +491,10 @@ face!: object [				;-- keep in sync with facet! enum
 			
 			all [
 				word = 'selected
+				selected
 				block? data
 				find [drop-list drop-down text-list field area] type
-				set-quiet 'text pick data selected
+				set-quiet 'text copy pick data selected 
 			]
 
 			system/reactivity/check/only self any [saved word]
@@ -777,8 +779,8 @@ show: function [
 	show?: yes
 	if block? face [
 		foreach f face [
-			if word? f [f: get f]
-			if object? f [show?: show f]
+			if word? :f [f: get f]
+			either object? :f [show?: show f][cause-error 'script 'face-type [:f]]
 		]
 		return show?
 	]
@@ -855,6 +857,7 @@ show: function [
 
 	if face/pane [
 		foreach f face/pane [
+			unless face? :f [cause-error 'script 'face-type [:f]]
 			show/with f face
 			unless face/state [return false]			;-- unviewed in child event handler
 		]
@@ -882,7 +885,7 @@ unview: function [
 	if empty? pane: svs/pane [exit]
 	
 	case [
-		only  [remove find head pane face]
+		only  [remove find/same head pane face]
 		all?  [while [not tail? pane][remove back tail pane]]
 		'else [remove back tail pane]
 	]
@@ -987,7 +990,7 @@ dump-face: function [
 	depth: ""
 	print [
 		depth "Type:" face/type "Style:" if face/options [face/options/style]
-		"Offset:" face/offset "Size:" face/size
+		"Offset:" face/offset "Size:" face/size "Color:" face/color
 		"Text:" if face/text [mold/part face/text 20]
 	]
 	append depth "    "
@@ -1226,11 +1229,12 @@ insert-event-func [
 		event/type = 'click
 		event/face/type = 'radio
 	][
-		foreach f event/face/parent/pane [
+		face: event/face								;-- save face reference to avoid single-event corruption (#5278)
+		foreach f face/parent/pane [
 			if all [f/type = 'radio f/data][f/data: off show f]
 		]
-		event/face/data: on
-		show event/face
+		face/data: on
+		show face
 		event/type: 'change
 	]
 	event

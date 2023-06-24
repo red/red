@@ -705,6 +705,19 @@ get-os-version: func [
 	ver/array1: micro << 16 or (minor << 8) or major
 ]
 
+support-dark-mode?: func [
+	return: [logic!]
+][
+	false
+]
+
+set-dark-mode: func [
+	hWnd		[handle!]
+	dark?		[logic!]
+	top-level?	[logic!]
+][
+]
+
 init: func [][
 	get-os-version
 	gtk_disable_setlocale
@@ -1606,6 +1619,7 @@ parse-common-opts: func [
 		w		[red-word!]
 		img		[red-image!]
 		bool	[red-logic!]
+		obj		[red-object!]
 		len		[integer!]
 		sym		[integer!]
 		cur		[c-string!]
@@ -1621,35 +1635,43 @@ parse-common-opts: func [
 		len: block/rs-length? options
 		if len % 2 <> 0 [exit]
 		while [len > 0][
-			sym: symbol/resolve word/symbol
-			case [
-				sym = _cursor [
-					w: word + 1
-					display: gtk_widget_get_display widget
-					either TYPE_OF(w) = TYPE_IMAGE [
-						img: as red-image! w
-						pixbuf: OS-image/to-pixbuf img 0 0
-						x: IMAGE_WIDTH(img/size) / 2
-						y: IMAGE_HEIGHT(img/size) / 2
-						hcur: gdk_cursor_new_from_pixbuf display pixbuf x y
-						;g_object_unref pixbuf
-					][
-						sym: symbol/resolve w/symbol
-						cur: case [
-							sym = _I-beam	["text"]
-							sym = _hand		["grab"]
-							sym = _cross	["crosshair"]
-							true			["default"]
+			if TYPE_OF(word) = TYPE_SET_WORD [
+				sym: symbol/resolve word/symbol
+				case [
+					sym = _cursor [
+						w: word + 1
+						display: gtk_widget_get_display widget
+						hcur: null
+						either TYPE_OF(w) = TYPE_IMAGE [
+							img: as red-image! w
+							pixbuf: OS-image/to-pixbuf img 0 0
+							x: IMAGE_WIDTH(img/size) / 2
+							y: IMAGE_HEIGHT(img/size) / 2
+							hcur: gdk_cursor_new_from_pixbuf display pixbuf x y
+							;g_object_unref pixbuf
+						][
+							if TYPE_OF(word) = TYPE_WORD [
+								sym: symbol/resolve w/symbol
+								cur: case [
+									sym = _I-beam	["text"]
+									sym = _hand		["grab"]
+									sym = _cross	["crosshair"]
+									true			["default"]
+								]
+								hcur: gdk_cursor_new_from_name display cur
+							]
 						]
-						hcur: gdk_cursor_new_from_name display cur
+						if hcur <> null [SET-CURSOR(widget hcur)]
 					]
-					SET-CURSOR(widget hcur)
+					sym = caret [
+						obj: as red-object! word + 1
+						if TYPE_OF(word) = TYPE_OBJECT [
+							owner: get-face-handle obj
+							SET-CARET-OWNER(widget owner)
+						]
+					]
+					true [0]
 				]
-				sym = caret [
-					owner: get-face-handle as red-object! word + 1
-					SET-CARET-OWNER(widget owner)
-				]
-				true [0]
 			]
 			word: word + 2
 			len: len - 2

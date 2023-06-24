@@ -73,6 +73,7 @@ version-info: 	declare OSVERSIONINFO
 current-msg: 	as tagMSG 0
 wc-extra:		80										;-- reserve 64 bytes for win32 internal usage (arbitrary)
 wc-offset:		60										;-- offset to our 16+4 bytes
+win10+?:		no
 win8+?:			no
 winxp?:			no
 DWM-enabled?:	no										;-- listen for composition state changes by handling the WM_DWMCOMPOSITIONCHANGED notification
@@ -92,6 +93,9 @@ default-font-name: as c-string! 0
 
 rc-cache:		declare RECT_STRUCT
 kb-state: 		allocate 256							;-- holds keyboard state for keys conversion
+
+dark-mode?:		no
+pShouldAppsUseDarkMode: as int-ptr! 0
 
 dpi-scale: func [
 	num		[integer!]
@@ -701,6 +705,9 @@ free-faces: func [
 			;-- destroy the extra frame window
 			DestroyWindow as handle! GetWindowLong handle wc-offset - 4 as-integer handle
 		]
+		sym = panel [
+			DestroyWindow handle
+		]
 		true [
 			0
 			;; handle user-provided classes too
@@ -870,6 +877,8 @@ init: func [
 	/local
 		ver   [red-tuple!]
 		int   [red-integer!]
+		dll	  [handle!]
+		;SetPreferredAppMode [SetPreferredAppMode!]
 ][
 	process-id:		GetCurrentProcessId
 	hScreen:		GetDC null
@@ -887,6 +896,7 @@ init: func [
 
 	DWM-enabled?: dwm-composition-enabled?
 
+	win10+?: version-info/dwMajorVersion >= 10
 	win8+?: any [
 		version-info/dwMajorVersion >= 10				;-- Win 10+
 		all [											;-- Win 8, Win 8.1
@@ -918,8 +928,64 @@ init: func [
 	int/value:  as-integer version-info/wProductType
 
 	get-metrics
-	
+
+	if win10+? [
+		dll: LoadLibraryA "uxtheme.dll"
+		if dll <> null [
+			pShouldAppsUseDarkMode: GetProcAddress dll as c-string! 132
+			dark-mode?: use-dark-mode?
+		]
+	]
+
 	collector/register as int-ptr! :on-gc-mark
+]
+
+use-dark-mode?: func [
+	return: [logic!]
+	/local
+		hc	[tagHIGHCONTRASTW value]
+		ShouldAppsUseDarkMode [ShouldAppsUseDarkMode!]
+][
+	either all [win10+? pShouldAppsUseDarkMode <> null][
+		ShouldAppsUseDarkMode: as ShouldAppsUseDarkMode! pShouldAppsUseDarkMode
+		hc/cbSize: size? tagHIGHCONTRASTW
+		SystemParametersInfo 42h size? tagHIGHCONTRASTW as int-ptr! :hc 0
+		all [
+			hc/dwFlags and 1 = 0	; Not High Contrast scheme
+			ShouldAppsUseDarkMode
+		]
+	][false]
+]
+
+support-dark-mode?: func [
+	return: [logic!]
+	/local
+		hc	[tagHIGHCONTRASTW value]
+][
+	either win10+? [
+		hc/cbSize: size? tagHIGHCONTRASTW
+		SystemParametersInfo 42h size? tagHIGHCONTRASTW as int-ptr! :hc 0
+		hc/dwFlags and 1 = 0	; Not High Contrast scheme
+	][false]
+]
+
+set-dark-mode: func [
+	hWnd		[handle!]
+	dark?		[logic!]
+	top-level?	[logic!]
+	/local
+		flag	[integer!]
+][
+	if top-level? [
+		flag: either dark? [1][0]
+		;-- set DWMWA_USE_IMMERSIVE_DARK_MODE. needed for titlebar
+		DwmSetWindowAttribute hWnd 20 :flag size? flag
+	]
+	either dark? [
+		SetWindowTheme hWnd #u16 "DarkMode_Explorer" null
+	][
+		SetWindowTheme hWnd #u16 "Explorer" null
+	]
 ]
 
 cleanup: does [
@@ -976,6 +1042,19 @@ window-border-info?: func [
 		width/value: (win/right - win/left) - client/right
 		height/value: (win/bottom - win/top) - client/bottom
 	]
+]
+
+transparent-win?: func [
+	color	[red-tuple!]
+	return: [logic!]
+][
+	either any [
+		TYPE_OF(color) <> TYPE_TUPLE
+		any [
+			TUPLE_SIZE?(color) = 3 
+			color/array1 and FF000000h = 0
+		]
+	][false][true]
 ]
 
 init-window: func [										;-- post-creation settings
@@ -1320,34 +1399,40 @@ parse-common-opts: func [
 		word: as red-word! block/rs-head options
 		len: block/rs-length? options
 		if len % 2 <> 0 [exit]
+		
 		while [len > 0][
-			sym: symbol/resolve word/symbol
-			case [
-				sym = _cursor [
-					w: word + 1
-					either TYPE_OF(w) = TYPE_IMAGE [
-						img: as red-image! w
-						bitmap: OS-image/to-gpbitmap img :lock
-						GdipCreateHICONFromBitmap bitmap :sym
-						OS-image/release-gpbitmap bitmap :lock
-					][
-						sym: symbol/resolve w/symbol
-						sym: case [
-							sym = _I-beam		[IDC_IBEAM]
-							sym = _hand			[32649]			;-- IDC_HAND
-							sym = _cross		[32515]
-							sym = _resize-ns	[32645]
-							any [
-								sym = _resize-ew
-								sym = _resize-we
-							]					[32644]
-							true				[IDC_ARROW]
+			if TYPE_OF(word) = TYPE_SET_WORD [
+				sym: symbol/resolve word/symbol
+				case [
+					sym = _cursor [
+						w: word + 1
+						either TYPE_OF(w) = TYPE_IMAGE [
+							img: as red-image! w
+							bitmap: OS-image/to-gpbitmap img :lock
+							GdipCreateHICONFromBitmap bitmap :sym
+							OS-image/release-gpbitmap bitmap :lock
+							SetWindowLong hWnd wc-offset - 28 sym
+						][
+							if TYPE_OF(w) = TYPE_WORD [
+								sym: symbol/resolve w/symbol
+								sym: case [
+									sym = _I-beam		[IDC_IBEAM]
+									sym = _hand			[32649]			;-- IDC_HAND
+									sym = _cross		[32515]
+									sym = _resize-ns	[32645]
+									any [
+										sym = _resize-ew
+										sym = _resize-we
+									]					[32644]
+									true				[IDC_ARROW]
+								]
+								sym: as-integer LoadCursor null sym
+								SetWindowLong hWnd wc-offset - 28 sym
+							]
 						]
-						sym: as-integer LoadCursor null sym
 					]
-					SetWindowLong hWnd wc-offset - 28 sym
+					true [0]
 				]
-				true [0]
 			]
 			word: word + 2
 			len: len - 2
@@ -1398,7 +1483,7 @@ OS-make-view: func [
 		rate	  [red-value!]
 		options	  [red-block!]
 		fl		  [red-float!]
-		flags	  [integer!]
+		flags n	  [integer!]
 		ws-flags  [integer!]
 		bits	  [integer!]
 		sym		  [integer!]
@@ -1482,8 +1567,16 @@ OS-make-view: func [
 			sym = group-box
 		][
 			class: #u16 "RedPanel"
-			init-panel values as handle! parent
-			panel?: yes
+			either all [
+				parent <> 0
+				(WS_EX_LAYERED and GetWindowLong as handle! parent GWL_EXSTYLE) <> 0
+			][
+				alpha?: yes
+				ws-flags: WS_EX_LAYERED
+			][
+				init-panel values as handle! parent
+				panel?: yes
+			]
 		]
 		sym = tab-panel [
 			class: #u16 "RedTabPanel"
@@ -1534,17 +1627,25 @@ OS-make-view: func [
 		]
 		any [sym = base sym = rich-text][
 			class: #u16 "RedBase"
-			alpha?: transparent-base?
-				as red-tuple! values + FACE_OBJ_COLOR
-				as red-image! values + FACE_OBJ_IMAGE
-			
-			either alpha? [
-				either win8+? [ws-flags: WS_EX_LAYERED][
-					ws-flags: WS_EX_LAYERED or WS_EX_TOOLWINDOW
-					flags: WS_POPUP
-				]
+			either all [
+				parent <> 0
+				(WS_EX_LAYERED and GetWindowLong as handle! parent GWL_EXSTYLE) <> 0
 			][
-				ws-flags: set-layered-option options win8+?
+				alpha?: yes
+				ws-flags: WS_EX_LAYERED
+			][
+				alpha?: transparent-base?
+					as red-tuple! values + FACE_OBJ_COLOR
+					as red-image! values + FACE_OBJ_IMAGE
+				
+				either alpha? [
+					either win8+? [ws-flags: WS_EX_LAYERED][
+						ws-flags: WS_EX_LAYERED or WS_EX_TOOLWINDOW
+						flags: WS_POPUP
+					]
+				][
+					ws-flags: set-layered-option options win8+?
+				]
 			]
 		]
 		sym = camera [
@@ -1574,7 +1675,14 @@ OS-make-view: func [
 			]
 
 			if bits and FACET_FLAGS_NO_TITLE  <> 0 [flags: WS_POPUP or WS_BORDER]
-			if bits and FACET_FLAGS_NO_BORDER <> 0 [flags: WS_POPUP]
+			if bits and FACET_FLAGS_NO_BORDER <> 0 [
+				flags: WS_POPUP
+				;; NB: use layered window only with no-border flag
+				;; layered window doesn't work with border somehow
+				alpha?: transparent-win? as red-tuple! values + FACE_OBJ_COLOR
+				n: either alpha? [WS_EX_LAYERED][set-layered-option options win8+?]
+				ws-flags: ws-flags or n
+			]
 			if size/x < 0 [size/x: 200]
 			if size/y < 0 [size/y: 200]
 			rc/left: 0
@@ -1654,6 +1762,7 @@ OS-make-view: func [
 		sym = camera	[init-camera handle data selected false]
 		sym = text-list [init-text-list handle data selected]
 		sym = base		[init-base-face handle parent values alpha?]
+		sym = panel		[if alpha? [init-base-face handle parent values alpha?]]
 		sym = tab-panel [set-tabs handle values]
 		any [
 			sym = button
@@ -1754,6 +1863,7 @@ OS-make-view: func [
 		]
 		sym = window [
 			init-window handle
+			if alpha? [init-base-face handle parent values alpha?]
 			#if sub-system = 'gui [
 				with clipboard [
 					if null? main-hWnd [main-hWnd: handle]
@@ -2043,7 +2153,13 @@ change-text: func [
 		str  [red-string!]
 		len  [integer!]
 ][
-	if type = base [
+	if any [
+		type = base
+		all [
+			type = window
+			(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) <> 0
+		]
+	][
 		update-base hWnd null null values
 		exit
 	]
@@ -2575,9 +2691,11 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_MENU <> 0 [
 		menu: as red-block! values + FACE_OBJ_MENU
-		if menu-bar? menu window [
-			DestroyMenu GetMenu hWnd
+		DestroyMenu GetMenu hWnd
+		either menu-bar? menu window [
 			SetMenu hWnd build-menu menu CreateMenu
+		][
+			SetMenu hWnd null
 		]
 	]
 	if flags and FACET_FLAG_IMAGE <> 0 [

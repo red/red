@@ -198,18 +198,13 @@ context [
 	
 	emit-money: func [value [issue!] /local bin header][
 		value: to string! next value
-		header: extracts/definitions/TYPE_MONEY or shift/left to-integer value/4 = #"-" 20
+		header: extracts/definitions/TYPE_MONEY or shift/left to-integer value/4 = #"-" 22
 		if nl? [header: header or nl-flag]
 		emit header
 		repend buffer [
 			either value/1 = #"." [null][to-char to-currency-code copy/part value 3]
 			to binary! to-nibbles copy/part skip value 4 22	;-- nibbles array
 		]
-	]
-
-	emit-op: func [spec [any-word!]][
-		emit-type 'TYPE_OP
-		emit-symbol spec
 	]
 	
 	emit-native: func [id [word!] spec [block!] /action][

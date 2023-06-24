@@ -19,7 +19,6 @@ path: context [
 		#if debug? = yes [if verbose > 0 [print-line "path/push"]]
 
 		p/header: TYPE_PATH								;@@ type casting (from block! to path!)
-		p/args:	  null
 		copy-cell as red-value! p stack/push*
 	]
 
@@ -31,7 +30,6 @@ path: context [
 		path/header: TYPE_UNSET
 		path/head: 0
 		path/node: alloc-cells size
-		path/args: null
 		path/header: TYPE_PATH							;-- implicit reset of all header flags
 		path
 	]
@@ -69,9 +67,7 @@ path: context [
 			]
 			TYPE_ANY_LIST
 			TYPE_ANY_PATH [
-				proto: as red-path! block/to as red-block! proto spec type
-				proto/args: null
-				proto
+				as red-path! block/to as red-block! proto spec type
 			]
 			default [
 				fire [TO_ERROR(script bad-make-arg) datatype/push type spec]
@@ -94,7 +90,6 @@ path: context [
 			TYPE_MAP [block/rs-append as red-block! make-at proto 1 spec]
 			default [
 				proto: as red-path! block/to as red-block! proto spec type
-				proto/args: null
 			]
 		]
 		proto/header: type
@@ -187,9 +182,7 @@ path: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "path/copy"]]
 
-		path: as red-path! block/copy as red-block! path as red-block! new arg deep? types
-		path/args:	 null
-		as red-series! path
+		as red-series! block/copy as red-block! path as red-block! new arg deep? types
 	]
 	
 	init: does [

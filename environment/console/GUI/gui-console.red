@@ -48,21 +48,23 @@ gui-console-ctx: context [
 	caret-rate: 2
 	scroller:	make scroller! []
 
+	console-menu: [
+		#either config/OS = 'macOS [
+			"Copy^-Command+C"	copy
+			"Paste^-Command+V"	paste
+		][
+			"Copy^-Ctrl+C"		copy
+			"Paste^-Shift+Ins"	paste
+		]
+		---
+		"Select All"		select-all
+	]
+
 	console:	make face! [
 		type: 'rich-text color: 0.0.128 offset: 0x0 size: 200x200
 		flags:   [scrollable all-over]
 		options: [cursor: I-beam]
-		menu: [
-			#either config/OS = 'macOS [
-				"Copy^-Command+C"	copy
-				"Paste^-Command+V"	paste
-			][
-				"Copy^-Ctrl+C"		copy
-				"Paste^-Shift+Ins"	paste
-			]
-			---
-			"Select All"		select-all
-		]
+		menu: console-menu
 		actors: object [
 			on-time: func [face [object!] event [event!]][
 				if all [caret/enabled? none? caret/rate][caret/rate: caret-rate]
@@ -85,6 +87,14 @@ gui-console-ctx: context [
 			on-key: func [face [object!] event [event!]][
 				terminal/press-key event
 			]
+			on-key-down: func [face [object!] event [event!]][
+				if all [1 = length? event/flags find event/flags 'alt][
+					switch event/key [
+						#"A" [terminal/select-all]
+						#"O" [show-cfg-dialog]
+					]
+				]
+			]
 			on-ime: func [face [object!] event [event!]][
 				terminal/process-ime-input event
 			]
@@ -93,6 +103,17 @@ gui-console-ctx: context [
 			]
 			on-up: func [face [object!] event [event!]][
 				terminal/mouse-up event
+			]
+			on-alt-down: func [face [object!] event [event!]][
+				if cfg/mouse-paste? = 'true [
+					either terminal/text-selected? [
+						terminal/copy-selection
+						clear terminal/selects
+						system/view/platform/redraw face
+					][
+						terminal/paste
+					]
+				]
 			]
 			on-over: func [face [object!] event [event!]][
 				terminal/mouse-move event/offset
@@ -135,34 +156,66 @@ gui-console-ctx: context [
 
 	terminal: #include %core.red
 
+	toggle-mouse-mode: does [
+		console/menu: either cfg/mouse-paste? = 'true [none][console-menu]
+	]
+
 	#include %settings.red
 
 	show-caret: func [][unless caret/enabled? [caret/enabled?: yes]]
 
+	win-menu: [
+		"File" [
+			"Run..."			run-file
+			---
+			"Quit"				quit
+		]
+		"Options" [
+			"Choose Font..."	choose-font
+			"Settings..."		settings
+		]
+		;"Plugins" [
+		;	"Add..."			add-plugin
+		;]
+		"Help" [
+			"Keyboard Shortcuts" shortcuts
+			---
+			"About"				 about-msg
+		]
+	]
+
+	show-shortcuts: does [
+		print {
+		Ctrl + C       Copy selected text
+		Ctrl + V       Paste
+		Ctrl + X       Cut selected text
+		Ctrl + A       Go to beginning of line
+		Ctrl + E       Go to end of line
+		Ctrl + H       Backspace
+		Ctrl + Z       Undo
+		Ctrl + Y       Redo
+		Ctrl + L       Clear screen
+		Ctrl + K       Delete line
+		Alt + A        Select all the text
+		Alt + O        Open settings dialog
+		F12            Toggle menu bar
+		}
+		terminal/exit-ask-loop
+	]
+
+	toggle-menu-bar: does [
+		win/menu: either cfg/menu-bar? = 'true [win-menu][none]
+	]
+
 	setup-faces: does [
 		;console/pane: reduce [caret]
 		append win/pane reduce [console caret tips]
-		win/menu: [
-			"File" [
-				"Run..."			run-file
-				---
-				"Quit"				quit
-			]
-			"Options" [
-				"Choose Font..."	choose-font
-				"Settings..."		settings
-			]
-			;"Plugins" [
-			;	"Add..."			add-plugin
-			;]
-			"Help" [
-				"About"				about-msg
-			]
-		]
+		win/menu: win-menu
 		win/actors: object [
 			on-menu: func [face [object!] event [event!] /local ft f][
 				switch event/picked [
 					about-msg		[display-about]
+					shortcuts		[show-shortcuts]
 					quit			[self/on-close face event]
 					run-file		[if f: request-file [terminal/run-file f]]
 					choose-font		[
@@ -176,13 +229,12 @@ gui-console-ctx: context [
 				]
 			]
 			on-close: func [face [object!] event [event!]][
-				save-cfg
 				system/view/platform/exit-event-loop
 				clear head system/view/screens/1/pane
 				quit
 			]
 			on-resizing: function [face [object!] event [event!]][
-				new-sz: event/offset
+				new-sz: event/offset + 1x1
 				console/size: new-sz
 				terminal/resize new-sz
 				terminal/adjust-console-size new-sz
@@ -197,6 +249,12 @@ gui-console-ctx: context [
 			on-unfocus: func [face [object!] event [event!]][
 				if caret/enabled? [caret/enabled?: no]
 				caret/rate: none
+			]
+			on-key-down: func [face [object!] event [event!]][
+				if event/key = 'F12 [
+					cfg/menu-bar?: to-word none? face/menu
+					toggle-menu-bar
+				]
 			]
 		]
 		caret/rate: caret-rate
@@ -226,10 +284,14 @@ gui-console-ctx: context [
 
 		setup-faces
 		win/visible?: no					;-- hide it first to avoid flicker
+		load-cfg
 
 		view/flags/no-wait win [resize]		;-- create window instance
 		console/init
-		load-cfg
+
+		apply-cfg
+		system/view/auto-sync?: yes
+		win/selected: console
 		if empty? system/script/args [win/visible?: yes]
 
 		svs: system/view/screens/1

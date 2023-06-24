@@ -198,7 +198,6 @@ block: context [
 		new/header: TYPE_UNSET
 		new/head:   0
 		new/node:	alloc-cells size
-		new/extra:	0
 		new/header:	TYPE_BLOCK
 
 		unless empty? [
@@ -389,7 +388,6 @@ block: context [
 		set-type as cell! blk TYPE_UNSET				;-- preserve eventual newline flag
 		blk/head: 	0
 		blk/node: 	alloc-cells size
-		blk/extra:  0
 		set-type as cell! blk TYPE_BLOCK
 		blk
 	]
@@ -408,7 +406,6 @@ block: context [
 		][
 			blk/node: alloc-unset-cells size
 		]
-		blk/extra:  0
 		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
 		blk	
 	]
@@ -1212,6 +1209,7 @@ block: context [
 			f	 [red-function!]
 			all? [logic!]
 			num  [integer!]
+			cnt  [integer!]
 			blk1 [red-block!]
 			blk2 [red-block!]
 			v1	 [red-value!]
@@ -1251,7 +1249,9 @@ block: context [
 			s2/tail: value2 + num
 		]
 
-		_function/call f global-ctx	as red-value! words/_compare-cb CB_SORT ;FIXME: hardcoded origin context
+		cnt: _function/count-locals f/spec 0 no
+		if positive? cnt [_function/init-locals cnt]
+		interpreter/call f f/ctx as red-value! words/_compare-cb CB_SORT
 		stack/unwind
 		stack/pop 1
 

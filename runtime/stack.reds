@@ -198,6 +198,11 @@ stack: context [										;-- call stack
 		]
 	]
 	
+	set-interp-flag: func [/local frame [call-frame!]][
+		frame: ctop - 1	
+		frame/header: frame/header or FLAG_INTERPRET
+	]
+	
 	collect-calls: func [
 		dst [red-block!]
 		/local
@@ -647,6 +652,16 @@ stack: context [										;-- call stack
 		copy-cell last arguments
 	]
 	
+	push-last: func [
+		value 	  [red-value!]
+		return:   [red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "stack/push-last"]]
+
+		top: arguments + 1
+		copy-cell value arguments
+	]
+	
 	push*: func [
 		return:  [red-value!]
 		/local
@@ -771,7 +786,7 @@ stack: context [										;-- call stack
 				lower: p/prev
 				upper: arguments
 				p: p - 1
-				p <= cbottom
+				p < cbottom
 			]
 			print lf
 		]

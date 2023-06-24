@@ -18,7 +18,7 @@ Red [
         rb1-r: make reactor! [
             x: 1
             y: 2
-            total: is [x + y]
+            relate total: [x + y]
         ]
         --assert 3 = rb1-r/total
         rb1-r/x: 2
@@ -1014,7 +1014,15 @@ Red [
 	--test-- "in5"
 		a: 0
 		in5-f: func[] [make object! [a: 1]]
-		--assert 1 = get in in5-f 'a	
+		--assert 1 = get in in5-f 'a
+
+	--test-- "in6"
+		in6-f: func [a /b][]
+		--assert 'a = in :in6-f 'a
+		--assert 'b = in :in6-f 'b
+		--assert 'b = in :in6-f /b
+		--assert none? in :in6-f 'c
+
 	
 ===end-group===
 
@@ -2520,7 +2528,7 @@ Red [
 	--test-- "#5135"
 		do [
 			r2-5135: none
-			r1-5135: reactor [x: 0 y: is [x] set 'r2-5135 self]
+			r1-5135: reactor [x: 0 relate y: [x] set 'r2-5135 self]
 			--assert same? r1-5135 r2-5135
 			r1-5135/x: 1
 			--assert all [r1-5135/x = 1 r1-5135/y = 1]

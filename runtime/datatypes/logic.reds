@@ -39,6 +39,25 @@ logic: context [
 		cell
 	]
 	
+	rs-true?: func [
+		value	[red-value!]
+		strict? [logic!]								;-- Yes: error on unset! value
+		ref		[red-word!]
+		return: [logic!]
+		/local
+			arg	 [red-logic!]
+			type [integer!]
+	][
+		if all [strict? TYPE_OF(value) = TYPE_UNSET][fire [TO_ERROR(script no-value) ref]]
+		
+		arg: as red-logic! value
+		type: TYPE_OF(arg)
+		not any [										;-- true if not none or false
+			type = TYPE_NONE
+			all [type = TYPE_LOGIC not arg/value]
+		]
+	]
+	
 	top-true?: func [
 		return:  [logic!]
 	][

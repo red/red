@@ -13,17 +13,6 @@ Red/System [
 op: context [
 	verbose: 0
 	
-	push: func [
-		/local
-			cell [red-op!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "op/push"]]
-		
-		cell: as red-op! stack/push*
-		cell/header: TYPE_OP
-		;...TBD
-	]
-	
 	binary?: func [										;-- check if arity is binary
 		spec	[node!]
 		return: [logic!]
@@ -72,61 +61,31 @@ op: context [
 		return:	[red-op!]
 		/local
 			op		[red-op!]
-			blk		[red-block!]
-			native	[red-native!]
 			fun		[red-function!]
 			type	[integer!]
-			node	[node!]
 			s		[series!]
-			code	[integer!]
-			flag	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "op/make"]]
 
-		flag: 0
 		type: TYPE_OF(spec)
 		unless any [
-			;type = TYPE_BLOCK
-			type = TYPE_ACTION					;@@ replace with ANY_NATIVE? when available
+			type = TYPE_ACTION							;@@ replace with ANY_NATIVE? when available
 			type = TYPE_NATIVE
 			type = TYPE_FUNCTION
 			type = TYPE_ROUTINE
-		][fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(spec)]]
+		][fire [TO_ERROR(script invalid-type) datatype/push type]]
 		
-		node: switch type [
-			;TYPE_BLOCK [
-			;	s: GET_BUFFER(spec)
-			;	blk: as red-block! s/offset
-			;	if blk + blk/head + 2 <> s/tail [throw-make proto spec]
-			;	blk/node
-			;]
-			TYPE_ACTION
-			TYPE_NATIVE [
-				flag: flag-native-op
-				native: as red-native! spec
-				unless binary? native/spec [fire [TO_ERROR(script bad-op-spec)]]
-				code: native/code
-				native/spec
-			]
-			TYPE_FUNCTION
-			TYPE_ROUTINE [
-				fun: as red-function! spec
-				unless binary? fun/spec [fire [TO_ERROR(script bad-op-spec)]]
-				s: as series! fun/more/value
-				;@@ check if slot #4 is already set!
-				copy-cell as red-value! fun s/offset + 3 ;-- save a copy of the function value
-				flag: body-flag
-				code: as-integer fun/more				;-- point to a block node
-				fun/spec
-			]
+		fun: as red-function! spec						;-- /spec field access overlaps in any-function! cells
+		unless binary? fun/spec [fire [TO_ERROR(script bad-op-spec)]]
+		
+		op: as red-op! copy-cell as red-value! spec stack/arguments
+		if any [type = TYPE_FUNCTION type = TYPE_ROUTINE][
+			fun: as red-function! spec
+			s: as series! fun/more/value
+			;@@ check if slot #4 is already set!
+			copy-cell as red-value! fun s/offset + 3 ;-- save a copy of the function value
 		]
-		
-		op: as red-op! stack/push*
-		op/header: TYPE_OP or flag						;-- implicit reset of all header flags
-		op/spec:   node									; @@ copy spec block
-		op/args:   null
-		op/code:   code
-		
+		op/header: TYPE_OP or (type << 16)
 		op
 	]
 	
@@ -166,7 +125,7 @@ op: context [
 
 		string/concatenate-literal buffer "make op! "
 		part: part - 9
-		body?: op/header and body-flag <> 0
+		body?: GET_OP_SUBTYPE(op) = TYPE_FUNCTION
 		pre: either body? ["func "]["["]
 		string/concatenate-literal buffer pre
 		part: part - length? pre

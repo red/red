@@ -26,11 +26,12 @@ int-array!: alias struct! [ptr [int-ptr!]]
 ;	30:		new-line						;-- new-line (LF) marker (before the slot)
 ;	29-25:	arity							;-- arity for routine! functions.
 ;	24:		self?							;-- self-aware context flag
-;	23:		node-body						;-- op! body points to a block node (instead of native code)
-;	22-19:	tuple-size						;-- size of tuple
+;	23-16:	op! sub-type					;-- op's underlying function type (op! only)
+;	22-19:	tuple-size						;-- size of tuple (tuple! only)
+;	21-20:	fetch mode						;-- fetching mode for an argument (typeset! only)
 ;	18:		series-owned					;-- mark a series owned by an object
 ;	17:		owner							;-- indicate that an object is an owner
-;	16:		native! op						;-- operator is made from a native! function
+;	16:		<reserved>
 ;	15:		extern flag						;-- routine code is external to Red (from FFI)
 ;	14:		sign bit						;-- sign of money
 ;	13:		dirty?							;-- word flag indicating if value has been modified
@@ -136,36 +137,8 @@ fill: func [
 	p	  [byte-ptr!]
 	end   [byte-ptr!]
 	byte  [byte!]
-	/local
-		p4		 [int-ptr!]
-		tail	 [int-ptr!]
-		cnt		 [integer!]
-		byte4	 [integer!]
-		aligned? [logic!]
 ][
-	cnt: (as-integer p) and 3
-	unless zero? cnt [						;-- preprocess unaligned beginning
-		while [cnt > 0][p/cnt: byte cnt: cnt - 1]
-		p: as byte-ptr! (as-integer p) + 4 and -4
-	]
-	
-	aligned?: zero? ((as-integer end) and 3)
-	tail: either aligned? [as int-ptr! end][as int-ptr! (as-integer end) and -4]
-	p4: as int-ptr! p
-	
-	if p4 < tail [
-		byte4: either byte = null-byte [0][
-			byte4: as-integer byte
-			(byte4 << 24) or (byte4 << 16) or (byte4 << 8) or byte4
-		]
-		while [p4 < tail][p4/value: byte4 p4: p4 + 1] ;-- zero fill target region using 32-bit accesses
-	]
-	
-	unless aligned? [						;-- postprocess unaligned ending
-		cnt: (as-integer end) and 3
-		p: as byte-ptr! p4
-		while [cnt > 0][p/cnt: byte cnt: cnt - 1]
-	]
+	set-memory p byte as-integer end - p
 ]
 
 ;-------------------------------------------
@@ -703,7 +676,7 @@ in-range?: func [
 ]
 
 compare-refs: func [[cdecl] a [int-ptr!] b [int-ptr!] return: [integer!]][
-	as-integer (as int-ptr! a/value) - (as int-ptr! b/value)
+	SIGN_COMPARE_RESULT((as int-ptr! a/value) (as int-ptr! b/value))
 ]
 
 extract-stack-refs: func [

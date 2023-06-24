@@ -175,7 +175,7 @@ system: context [
 				parse-infinite:		["PARSE - infinite recursion at rule: [" :arg1 "]"]
 				parse-stack:		"PARSE - stack limit reached"
 				parse-keep:			"PARSE - KEEP is used without a wrapping COLLECT"
-				parse-into-bad:		"PARSE - COLLECT INTO/AFTER expects a series! argument"
+				parse-into-bad:		"PARSE - COLLECT INTO/AFTER invalid series! argument"
 				parse-into-type:    "PARSE - COLLECT INTO/AFTER expects a series! of compatible datatype"
 				invalid-draw:		["invalid Draw dialect input at:" :arg1]
 				invalid-data-facet: ["invalid DATA facet content" :arg1]
@@ -275,6 +275,7 @@ system: context [
 				invalid-error:		["invalid error object field value:" :arg1]
 				routines:			"routines require compilation, from OS shell: `red -r <script.red>`"
 				red-system:			"contains Red/System code which requires compilation"
+				deprecated:			[arg1 "is DEPRECATED, please use" arg2 "instead"]
 			]
 		]
 
@@ -314,11 +315,6 @@ system: context [
 		language*:										;-- in locale language
 		locale:
 		locale*: none									;-- in locale language
-
-		;collation: context [
-		;	lower-to-upper: #system [stack/set-last as cell! case-folding/lower-to-upper]
-		;	upper-to-lower: #system [stack/set-last as cell! case-folding/upper-to-lower]
-		;]
 
 		months: [
 		  "January" "February" "March" "April" "May" "June"
@@ -458,7 +454,7 @@ system: context [
 			float! float! tuple! date! pair! time! money! tag! url! email! 'hex 'rawstring ref!
 		]
 		
-		tracer: lex: func [
+		tracer: func [
 			event  [word!]                  			;-- event name
 			input  [string! binary!]            		;-- input series at current loading position
 			type   [datatype! word! none!]       		;-- type of token or value currently processed.
@@ -468,7 +464,7 @@ system: context [
 		][
 			print [										;-- total: 64
 				uppercase pad event 8
-				pad rejoin [mold type "(" type? type ")"] 20
+				pad mold type 12
 				pad mold/part token 12 12				;-- limit in case it's a huge string/binary
 				pad line 4
 				mold/part input 16

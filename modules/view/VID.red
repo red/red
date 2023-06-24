@@ -428,8 +428,9 @@ system/view/VID: context [
 		font: opts/font
 		if any [face-font: face/font font][
 			either face-font [
-				face-font: copy face-font				;-- @@ share font/state between faces ?
+				face-font: copy face-font				;-- @@ share font/state between faces
 				if font [
+					face-font/state: none				;-- clear font/state
 					set/some face-font font				;-- overwrite face/font with opts/font
 					opts/font: face-font
 				]
@@ -445,6 +446,7 @@ system/view/VID: context [
 				unless find actors name [repend actors [name f s b]]
 			]
 		]
+		if opts/flags [opts/flags: set-flag face 'flags opts/flags]	;-- pre-merge /flags facets
 		
 		set/some face opts								;-- merge default+styles and user options
 		
@@ -469,11 +471,12 @@ system/view/VID: context [
 					sz
 				]
 			]
-			face/size: either opts/size-x [				;-- x size provided by user
+			new: either opts/size-x [					;-- x size provided by user
 				as-pair opts/size-x max sz/y min-sz/y
 			][
 				max sz min-sz
 			]
+			if new <> face/size [face/size: new]		;-- avoid triggering unnecessary reactions
 		]
 		if tight? [face/size: calc-size face]
 		
@@ -667,7 +670,7 @@ system/view/VID: context [
 					if actors: st/actors [st/actors: none]	;-- avoid binding actors bodies to face object
 					face: make face! copy/deep st
 					if actors [face/actors: copy/deep st/actors: actors]
-					if name [set name face]
+					if all [name not styling?][set name face]
 
 					if all [
 						h: select system/view/metrics/def-heights face/type

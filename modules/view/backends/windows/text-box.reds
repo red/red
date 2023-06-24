@@ -413,7 +413,7 @@ txt-box-draw-background: func [
 		zero? vector/rs-length? styles
 	][exit]
 
-	this: d2d-ctx
+	this: as this! target/1
 	dc: as ID2D1DeviceContext this/vtbl
 	dl: as IDWriteTextLayout layout/vtbl
 

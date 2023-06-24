@@ -34,7 +34,7 @@ char: context [
 
 		rv: integer/do-math-op char/value rv op null
 		if any [
-			rv > 0010FFFFh
+			rv > max-char-codepoint
 			negative? rv
 		][
 			fire [TO_ERROR(math overflow)]
@@ -93,7 +93,7 @@ char: context [
 		switch TYPE_OF(spec) [
 			TYPE_INTEGER
 			TYPE_CHAR [
-				if ANY [spec/data2 > 0010FFFFh spec/data2 < 0] [
+				if ANY [spec/data2 > max-char-codepoint spec/data2 < 0] [
 					fire [TO_ERROR(script out-of-range) spec]
 				]
 				proto/value: spec/data2
@@ -102,6 +102,9 @@ char: context [
 			TYPE_PERCENT [
 				fl: as red-float! spec
 				proto/value: as-integer fl/value
+				if ANY [proto/value > 0010FFFFh proto/value < 0] [
+					fire [TO_ERROR(script out-of-range) spec]
+				]
 			]
 			TYPE_BINARY [							;-- first character in UTF-8 encoding
 				p: binary/rs-head as red-binary! spec

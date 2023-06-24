@@ -26,11 +26,13 @@ _context: context [
 		ctx		[red-context!]
 		sym		[integer!]
 		case?	[logic!]
-		w-ctx	[node!]			;-- word/ctx
 		new-id	[int-ptr!]
 		return:	[integer!]		;-- word index in the context
+		/local
+			  s [series!]
 	][
-		_hashtable/get-ctx-symbol ctx/symbols sym case? w-ctx new-id
+		s: GET_CTX_SERIES(ctx)
+		_hashtable/get-ctx-symbol ctx/symbols sym case? s/node new-id
 	]
 	
 	get-any: func [
@@ -122,7 +124,7 @@ _context: context [
 	][
 		new-id: 0
 		ctx: TO_CTX(global-ctx)
-		id: find-or-store ctx sym case? global-ctx :new-id
+		id: find-or-store ctx sym case? :new-id
 
 		if id <> -1 [
 			word: _hashtable/get-ctx-word ctx id
@@ -156,7 +158,7 @@ _context: context [
 		#if debug? = yes [if verbose > 0 [print-line "_context/add-and-set"]]
 
 		new-id: 0
-		id: find-or-store ctx word/symbol yes ctx/self :new-id
+		id: find-or-store ctx word/symbol yes :new-id
 		either id = -1 [
 			copy-cell value alloc-tail as series! ctx/values/value
 		][
@@ -177,7 +179,7 @@ _context: context [
 		#if debug? = yes [if verbose > 0 [print-line "_context/add-with"]]
 
 		new-id: 0
-		id: find-or-store ctx word/symbol yes ctx/self :new-id
+		id: find-or-store ctx word/symbol yes :new-id
 		if id <> -1 [return null]
 		copy-cell value alloc-tail as series! ctx/values/value
 	]
@@ -194,7 +196,7 @@ _context: context [
 		#if debug? = yes [if verbose > 0 [print-line "_context/add"]]
 
 		new-id: 0
-		id: find-or-store ctx word/symbol yes ctx/self :new-id
+		id: find-or-store ctx word/symbol yes :new-id
 		if id <> -1 [return id]
 
 		unless ON_STACK?(ctx) [
@@ -246,7 +248,6 @@ _context: context [
 			old		[red-value!]
 			saved	[red-value!]
 			w		[red-word!]
-			s		[series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/set-in"]]
 		
@@ -268,8 +269,7 @@ _context: context [
 				w/header: w/header or flag-word-dirty
 				
 				if event? [
-					s: as series! ctx/self/value
-					obj: as red-object! s/offset + 1
+					obj: as red-object! ctx + 1
 					assert TYPE_OF(obj) = TYPE_OBJECT
 					
 					if obj/on-set <> null [
@@ -404,7 +404,6 @@ _context: context [
 		cell/header: TYPE_UNSET							;-- properly set cell's type before possible GC pass
 		slot: alloc-tail as series! new/value			;-- allocate a slot for obj/func back-reference
 		slot/header: TYPE_UNSET	
-		cell/self: new
 
 		either stack? [
 			cell/values: null							;-- will be set to stack frame dynamically
@@ -453,7 +452,7 @@ _context: context [
 				type = TYPE_REFINEMENT
 			][											;-- add new word to context
 				w: as red-word! cell
-				find-or-store ctx w/symbol yes new :type
+				find-or-store ctx w/symbol yes :type
 				i: i + 1
 			]
 			cell: cell + 1
@@ -473,10 +472,12 @@ _context: context [
 		return:	[integer!]
 		/local
 			idx [integer!]
+			s	[series!]
 	][
 		idx: find-word ctx word/symbol yes
 		if idx >= 0 [
-			word/ctx: ctx/self
+			s: GET_CTX_SERIES(ctx)
+			word/ctx: s/node
 			word/index: idx
 		]
 		idx
@@ -485,13 +486,13 @@ _context: context [
 	bind: func [
 		body	[red-block!]
 		ctx		[red-context!]
-		obj		[node!]									;-- required by SELF
 		self?	[logic!]
 		return: [red-block!]
 		/local
 			value [red-value!]
 			end	  [red-value!]
 			w	  [red-word!]
+			s	  [series!]
 	][
 		if cycles/find? body/node [return body]
 		cycles/push body/node
@@ -511,14 +512,15 @@ _context: context [
 						TYPE_OF(value) = TYPE_WORD
 						w/symbol = words/self
 					][
-						w/ctx: obj						;-- make SELF refer to the original object
+						s: GET_CTX_SERIES(ctx)
+						w/ctx: s/node					;-- make SELF refer to the original object
 						w/index: -1						;-- make it fail if resolved out of context
 					][
 						bind-word ctx w
 					]
 				]
 				TYPE_ANY_BLOCK	[
-					bind as red-block! value ctx obj self?
+					bind as red-block! value ctx self?
 				]
 				default [0]
 			]

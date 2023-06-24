@@ -231,7 +231,7 @@ system/reactivity: context [
 		()												;-- avoids returning anything in the console
 	]
 	
-	is~: function [
+	set 'relate function [
 		"Defines a reactive relation whose result is assigned to a word"
 		'field	 [set-word!]	"Set-word which will get set to the result of the reaction"
 		reaction [block!]		"Reactive relation"
@@ -251,8 +251,8 @@ system/reactivity: context [
 		react/later/with reaction field
 		set field either block? :reaction/1 [do :reaction/1][eval reaction]
 	]
-	
-	set 'is make op! :is~
+
+	set 'is does [cause-error 'internal 'deprecated ["IS" "RELATE word: [reaction]"]]
 	
 	set 'react? function [
 		"Returns a reactive relation if an object's field is a reactive source"

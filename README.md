@@ -2,6 +2,7 @@
 [![Windows build 2](https://github.com/red/red/workflows/Windows/badge.svg)](https://github.com/red/red/actions?query=workflow%3AWindows)
 [![Linux build 2](https://github.com/red/red/workflows/Linux-x86/badge.svg)](https://github.com/red/red/actions?query=workflow%3ALinux-x86)
 [![ARMhf build 2](https://github.com/red/red/workflows/RPi/badge.svg)](https://github.com/red/red/actions?query=workflow%3ARPi)
+[![macOS build 2](https://github.com/red/red/workflows/macOS-x86/badge.svg)](https://github.com/red/red/actions?query=workflow%3AmacOS-x86)
 
 # Red Programming Language
 
@@ -223,7 +224,8 @@ Cross-compilation targets:
     Android      : Android, ARMv5
     Android-x86  : Android, x86
 
-_Note_: Running the Red toolchain binary from a `$PATH` currently requires a wrapping shell script (see relevant tickets: [#543](https://github.com/red/red/issues/543) and [#1547](https://github.com/red/red/issues/1547)).
+_Note_: The toolchain executable (`redc.exe`) relies on Rebol encapper which does not support being run from a location specified in `PATH` environment variable and you get `PROGRAM ERROR: Invalid encapsulated data` error. If you are on Windows try using PowerShell instead of CMD. You can also provide the full path to the executable, put a copy of it in your working folder or wrap a shell script (see relevant tickets: [#543](https://github.com/red/red/issues/543) and [#1547](https://github.com/red/red/issues/1547)).
+
 
 # Running Red from the sources (for contributors)
 

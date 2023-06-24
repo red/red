@@ -2799,6 +2799,17 @@ Red [
 		--assert parse/part %234 ["23" to end] 3
 		repeat i 4 [--assert parse/part "12" ["1" to [end]] i]
 
+	--test-- "#3427-2"
+		e: none
+		parse "abcdef" [to [end] e:] 4 e
+		--assert e == ""
+		parse/part "abcde2" [to [end] e:] 4 e
+		--assert e == "e2"
+		parse/part "abcde3" [to end e:] 4 e
+		--assert e == "e3"
+		parse/part "abcde4" [any skip e:] 4 e
+		--assert e == "e4"
+
 	--test-- "#3951"
 		res: none
 		do "res: expand-directives/clean [[] #macro word! func [s e]['OK] WTF]()"
@@ -2954,6 +2965,25 @@ Red [
 		x: []
 		parse/case [a b c @ d e f] [collect after x any [@ keep pick ('-) | keep skip]]
 		--assert x = [a b c - d e f]
+
+	--test-- "#5251"
+		--assert false == parse [1] [opt (--assert true)]
+
+
+	--test-- "#5285"
+		vowel: charset "aeiou"
+		str: "parse must not be bugged"
+		res: "p-rs- m-st n-t b- b-gg-d"
+		out: ""
+		rule: [
+			(clear out)
+			any [keep to vowel skip keep (#"-")]
+			keep to end
+		]
+		parse str b: [collect into out rule]  --assert out == res
+		take/last append str "¿"
+		parse str b: [collect into  out rule] --assert out == res
+		parse str b: [collect after out rule] --assert out == res
 
 ===end-group===
     
