@@ -730,7 +730,9 @@ interpreter: context [
 					]
 					FETCH_GET_WORD [
 						#if debug? = yes [if verbose > 0 [log "fetching argument as-is"]]
-						stack/push pc
+						if tracing? [fire-event EVT_FETCH code pc pc pc]
+						new: stack/push pc
+						if tracing? [fire-event EVT_PUSH code pc pc new]
 						pc: pc + 1
 					]
 					FETCH_LIT_WORD [
@@ -741,9 +743,17 @@ interpreter: context [
 								eval as red-block! pc yes
 								stack/unwind
 							]
-							TYPE_GET_WORD [copy-cell _context/get as red-word! pc stack/push*]
+							TYPE_GET_WORD [
+								if tracing? [fire-event EVT_FETCH code pc pc pc]
+								new: copy-cell _context/get as red-word! pc stack/push*
+								if tracing? [fire-event EVT_PUSH code pc pc new]
+							]
 							TYPE_GET_PATH [eval-path pc pc + 1 end code no yes yes no]
-							default		  [stack/push pc]
+							default		  [
+								if tracing? [fire-event EVT_FETCH code pc pc pc]
+								new: stack/push pc
+								if tracing? [fire-event EVT_PUSH code pc pc new]
+							]
 						]
 						pc: pc + 1
 						;if tracing? [fire-event EVT_PUSH code pc pc value yes]
