@@ -2885,7 +2885,7 @@ b}
 
 	--test-- "#3344"
 		op3344: make op! func [x 'y] [:y]
-		--assert 'abra = 1 op3344 abra
+		--assert 'abra = (1 op3344 abra)
 	
 	--test-- "#3362"
 		do [											;-- FIXME: compiler doesn't like this
