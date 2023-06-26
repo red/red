@@ -2953,7 +2953,7 @@ b}
 		--assert 'y = do quote a/x
 
 	--test-- "#3585"
-		f3585: func [/opt 'arg][print arg]
+		f3585: func [/opt 'arg][arg]
 		--assert ('* = f3585/opt *)
 		--assert '* = system/words/quote *
 	
