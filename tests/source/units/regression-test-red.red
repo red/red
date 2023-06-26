@@ -2948,6 +2948,11 @@ b}
 		--assert 'y = do 'a/x
 		--assert 'y = do quote a/x
 
+	--test-- "#3585"
+		f3585: func [/opt 'arg][print arg]
+		--assert ('* = f3585/opt *)
+		--assert '* = system/words/quote *
+	
 	--test-- "#3588"
 		x3588: []
 		write qt-tmp-file {Hello Red append x3588 "try"^/Red [] append x3588 "Hoi!"}
