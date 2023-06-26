@@ -2883,6 +2883,10 @@ b}
 		bar3156: ctx3156/foo3156
 		--assert 'bar3156 == bar3156
 
+	--test-- "#3344"
+		op3344: make op! func [x 'y] [:y]
+		--assert 'abra = 1 op3344 abra
+	
 	--test-- "#3362"
 		do [											;-- FIXME: compiler doesn't like this
 			spec3362-1: [return 100]
