@@ -916,7 +916,7 @@ Red [
 }
 		
 	--test-- "hltrace-21"
-		f21: func [x y] [add 0 0 x + y]
+		do [f21: func [x y] [add 0 0 x + y]]			;-- if it's compiled, can't trace into
 		clear trace-output
 		trace/deep [add 1 subtract 3 add 1 f21 -1 2]
 		--assert trace-output = next {
@@ -929,7 +929,7 @@ Red [
 
 	--test-- "hltrace-22"
 		clear trace-output
-		f22: func [x y] [add 0 0 x + y]
+		do [f22: func [x y] [add 0 0 x + y]]			;-- if it's compiled, can't trace into
 		trace/all/deep [add 1 subtract 3 add 1 f22 -1 2]
 		--assert trace-output = next {
     add 0 0                          => 0
@@ -944,13 +944,15 @@ Red [
 		
 	--test-- "hltrace-buggy-caesar"						;-- used in https://github.com/red/red/wiki/%5BHOWTO%5D-Tracing
 		clear trace-output
-		buggy-caesar: function [s k] [
-		    a: charset [#"a" - #"z" #"A" - #"Z"]
-		    trace/all [
-			    forall s [if find a s/1 [s/1: (x: s/1 % 32) + k + 25 % 26 + 1 + (s/1 - x)]] s
-		    ]
+		do [
+			buggy-caesar: function [s k] [				;-- if it's compiled, can't trace into
+			    a: charset [#"a" - #"z" #"A" - #"Z"]
+			    trace/all [
+				    forall s [if find a s/1 [s/1: (x: s/1 % 32) + k + 25 % 26 + 1 + (s/1 - x)]] s
+			    ]
+			]
+			try [buggy-caesar "a" -25]
 		]
-		try [buggy-caesar "a" -25]
 		--assert trace-output = next {
     a                                => make bitset! #{00000000000000007F...}
     s                                => "a"
@@ -1009,11 +1011,11 @@ Red [
 }
 			
 	--test-- "hltrace-complex-2"						;-- used in https://github.com/red/red/wiki/%5BHOWTO%5D-Tracing
-		hltrace-func2: func [x] [
+		do [hltrace-func2: func [x] [					;-- if it's compiled, can't trace into
 			if 1 < x [
 				uppercase pick "xy" random 1
 			]
-		]
+		]]
 		clear trace-output
 		try [trace/deep [
 			f: func [:x :y][:y]
