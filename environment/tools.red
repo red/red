@@ -247,6 +247,27 @@ system/tools: context [
 	
 	tracers: context [
 	
+		emit: :print									;-- overridden by the tests suite
+		
+		;; yet another incarnation of this func
+		;@@ remove it when we have smarter `ellipsize` func in runtime
+		opening-marker: charset "([{<^""
+		closing-markers: "()[]{}<>^"^""
+		mold-part: function [value [any-type!] part [integer!] /only] [
+			r: mold/flat/part/:only :value part + 1
+			if part < length? r [
+				open: find/part r opening-marker skip tail r -5
+				clear either open [
+					close: select closing-markers open/1 
+					change change skip tail r -5 "..." close 
+				][
+					change skip tail r -4 "..."
+				]
+				clear skip r part						;-- when part < 3-4
+			]
+			r
+		]		
+				
 		dumper: function [
 			event  [word!]
 			code   [any-block! none!]
@@ -255,51 +276,75 @@ system/tools: context [
 			ref	   [any-type!]
 			frame  [pair!]
 		][
-			print [uppercase form event offset mold/part/flat :ref 30 mold/part/flat :value 30 frame]
+			do [emit [uppercase form event offset mold-part :ref 30 mold-part :value 30 frame]]
 		]
 		
 		;; helpers to keep code readable, unlike `change/only back back tail series last series`
-		push:   func [s [series!] i [any-type!] /dup n [integer!]] [append/only/dup s i any [n 1]]
+		push:   func [s [series!] i [any-type!] /dup n [integer!]] [append/only/dup s :i any [n 1]]
 		drop:   func [s [series!] n [integer!]] [clear skip tail s negate n]
 		pop:    func [s [series!]] [take/last s]
 		top-of: func [s [series!]] [back tail s]
-
-		step: func [s [word! series!] /by value [integer!]][change s s/1 + any [value 1]]
+		step:   func [s [series!] /down][change s s/1 + pick [-1 1] down]
 		
-		;; context for trace data collected by 'collector' tracer and it's options
+		;; to display all fetched data in its original unmodified state it is molded
+		;; this controls max molded length of every single value before it gets ellipsized
+		mold-size: 30
+		
+		;; free list of blocks to minimize tracer's side effects
+		free: context [
+			list: make block! 20
+			put:  func [block [block!]] [if 100 > length? block [push list clear head block]]
+			get:  does [any [pop list  make block! 10]]
+			loop 20 [put make block! 10]
+		]
+		
+		;; context for trace data collected by 'collector' tracer and its options
 		data: context [
 			;; input of collector:
-			debug?:        no							;-- /debug refinement (raw events output)
-			inspect:       none							;-- inspect function to call
-			event-filter:  none							;-- events accepted by this inspect function (none = unfiltered)
-			scope-filter:  none							;-- list of scopes accepted by this inspect fn (none = unfiltered)
+			debug?:          no							;-- /debug refinement (raw events output)
+			inspect:         none						;-- inspect function to call
+			event-filter:    none						;-- events accepted by this inspect function (none = unfiltered)
+			scope-filter:    none						;-- list of scopes accepted by this inspect fn (none = unfiltered)
 			inspect-sub-exprs?: none					;-- whether to call inspect on subexpressions
-			;; entered blocks/parens/paths stack:
-			copied-blocks: []							;-- copied
-			orig-blocks:   []							;-- original
-			;; depth tracking:
-			func-depth:    0							;-- function call depth (prologs/epilogs only)
-			expr-levels:   []							;-- nesting level of expressions in each block (last 0 = top lvl)
-			path:          []							;-- path of refs up to current scope (starts empty)
-			;; mirrors of Red stack (of values):
-			stack:         []							;-- closer to code (words left alone, series copied)
-			eval'd-stack:  []							;-- after evaluation, raw values
-			;; entered expression lists:
-			copied-top-exprs: []						;-- top-only, inside code copy
-			copied-exprs:  []							;-- all exprs, inside code copy
-			orig-exprs:    []							;-- all exprs, inside original code
-			stack-exprs:   []							;-- all exprs, inside the stack (partially evaluated)
+			;; tracked parameters:
+			func-depth:      0							;-- function call depth (prolog to epilog)
+			expr-depth:      0							;-- nesting level of expressions in each block ('open to return)
+			path:            []							;-- path of refs up to current scope (starts empty)
+			fetched:         []							;-- original fetched values list
+			fetched':        []							;-- same as 'fetched' but everything molded to preserve it
+			pushed:          []							;-- pushed and returned values list, making partially evaluated exprs
+			pushed':         []							;-- same as 'pushed' but everything molded to preserve it
+			subexprs:        []							;-- offsets within pushed/pushed' of last subexpr start (a stack)
+			;; saved states to unroll on exception:
+			stack:           []							;-- stack of internal call frame (pairs)
+			saved:           [func-depth expr-depth fetched fetched' pushed pushed' subexprs]
+			stack-period:    2 + length? saved			;-- +frame +path size
+			
+			save-level: function ["Save current nesting level on the stack" frame [pair!]] [
+				push stack frame
+				push stack length? path
+				foreach word saved [
+					push stack value: get word
+					set word either block? value [free/get][0] 
+				]
+			]
+			unroll-level: function ["Unroll last nesting level from the stack"] [
+				repeat i n: length? saved [				;@@ needs foreach/reverse
+					value: get word: pick saved n - i + 1
+					if block? value [free/put value]
+					set word pop stack 
+				]
+				clear skip path pop stack				;-- cut path
+				pop stack								;-- forget frame
+			]
 	
 			reset: function ["Reset collector's data"] [
-				; set [debug? inspect scope-filter event-filter inspect-sub-exprs?] none
-				blks: [
-					copied-blocks orig-blocks expr-levels path stack eval'd-stack
-					copied-top-exprs copied-exprs orig-exprs stack-exprs
-				]
-				foreach b blks [clear get b]
-				self/func-depth: 0
+				clear path
+				clear stack
+				set [func-depth expr-depth] 0
+				foreach block-name skip saved 2 [clear get block-name]
 			]
-
+			
 			collector: function [
 				"Generic tracer that collects high-level tracing info"
 				event  [word!]							;-- Event name
@@ -308,139 +353,111 @@ system/tools: context [
 				value  [any-type!]						;-- Value currently processed
 				ref	   [any-type!]						;-- Reference of current call
 				frame  [pair!]							;-- Stack frame start/top positions
-				/extern func-depth
+				/extern func-depth expr-depth pushed pushed'
 			][
-				;; print out event info for debugging
-				if debug? [
-					code2: any [
-						if all [
-							code
-							not tail? p: skip copy code offset
-						][
-							p: head change p as tag! uppercase form p/1
-							if s: pick tail copied-top-exprs -2 [p: at p index? s]
-							p
-						]
-						code
-					]
-					print [
-						uppercase pad event 7
-						pad :ref 10
-						pad mold/flat/part :value 20 22
-						pad mold/flat/part code2 60 62
-						pad expr-levels 8
-					]
-				]
-				
 				call: [
 					all [								;-- filtering by events, scope, expression level:
 						any [none? event-filter  find event-filter event]
 						any [none? scope-filter  none? code  find/same/only scope-filter code]
 						any [
 							inspect-sub-exprs?
-							0 = last expr-levels
-							all [1 = last expr-levels  find [open call return] event]
+							find [error throw] event 
+							0 = expr-depth
+							all [1 = expr-depth  find [call return] event]
 						]
 						inspect system/tools/tracers/data event code offset :value :ref frame
 					]
 				]
 				
-				;; update last top level expression end
-				unless any [
-					offset < 0
-					find [prolog epilog enter exit init end] event
-				][
-					code-copy: skip last copied-blocks offset
-					push drop copied-top-exprs 1 code-copy
-					push drop copied-exprs     1 code-copy
-					if code [push drop orig-exprs 1 skip code offset]
+				;; unroll multiple enter/exit levels at once, after throw/error ('return' from try or 'catch' from catch only)
+				;; must be done before 'call', otherwise it may filter out the event by (wrong) expr-depth
+				if find [return catch] event [
+					saved-frame: pick tail stack negate stack-period
+					while [unless tail? stack [saved-frame/1 > frame/1]] [ 
+						unroll-level
+						saved-frame: pick tail stack negate stack-period
+					]
 				]
-						
+				
 				;; report finishing events before removing relevant data
-				if find [return epilog exit expr] event [do call]
+				if find [return epilog exit expr error throw] event [do call]
 				
 				switch event [
 					prolog [func-depth: func-depth + 1]
 					epilog [func-depth: func-depth - 1]
 					
-					fetch [								;-- save original values pushed to the stack
-						;; series are copied to report as they appear in code
-						;; this should be safe unless we expect literal series to be huge or cyclic
-						push stack either series? :value [copy/deep value][:value]
+					fetch [								;-- save fetched values (part of source code interpreter has "seen" so far)
+						if any [inspect-sub-exprs? not path? code] [
+							push fetched :value
+							push fetched' mold-part :value mold-size
+						]
 					]
-					push [push eval'd-stack :value]		;-- save evaluated values pushed to the stack
+					push  [								;-- save evaluated values
+						if any [inspect-sub-exprs? not path? code] [
+							push pushed :value
+							push pushed' mold-part :value mold-size
+						]
+					]
 					
 					open [								;-- mark start of a sub-expression
-						unless code [exit]				;@@ temp workaround for do/next
-						stkpos: top-of stack			;-- back because func name is already on the stack
-						if all [						;@@ workaround for ops but it won't work in `op op op` situation
-							word? :value
-							op? get/any value
-						][
-							either value =? pick code offset + 1 [
-								reverse stkpos: back stkpos
-							][
-								offset: offset + 1
-							]
-						]								;@@ need a more reliable solution
-						offset: offset - 1				;-- -1 because open happens after the function name
-						push stack-exprs stkpos
-						
-						push/dup orig-exprs skip code offset 2
-						push/dup copied-exprs skip last copied-blocks offset 2
-						step top-of expr-levels
+						;; remember previous subexpr start & start a new subexpr
+						isop?: any [op? :value op? if word? :value [attempt [get/any value]]]	;@@ REP #113; word may not have context
+						push subexprs index? pushed	
+						pushed:  either isop? [top-of pushed][tail pushed]
+						pushed': either isop? [top-of pushed'][tail pushed']
+						;; put function/op name into the subexpr
+						push pushed  :value
+						push pushed' mold-part :value mold-size
+						expr-depth: expr-depth + 1
 					]
-					call [push path any [ref <anon>]]	;-- collect evaluation path
+					call [								;-- collect evaluation path
+						push path any [if path? ref [:ref/1] ref <anon>]	;-- simplify path calls to just function names
+					]
 					return [							;-- revert both
-						unless code [exit]				;@@ temp workaround for do/next
-						step/by top-of expr-levels -1
-						stkpos: pop stack-exprs			;-- update stack with new value
-						push drop eval'd-stack length? stkpos :value
-						push clear stkpos :value
-						
-						drop orig-exprs   2
-						drop copied-exprs 2
 						pop path
+						expr-depth: expr-depth - 1
+						;; restore previous subexpr and clear the current one
+						bgn: any [pop subexprs 1]
+						pushed:  at head clear pushed bgn 
+						pushed': at head clear pushed' bgn
+						;; put returned value into subexpr
+						push pushed  :value
+						push pushed' mold-part :value mold-size
 					]
-					; error []	;@@
-					
 					enter [								;-- mark start of an inner block of top-level exprs
-						push stack-exprs   tail stack
-						push copied-blocks c2: copy/deep code
-						push orig-blocks   code
-						push expr-levels   0
-						
-						push/dup copied-top-exprs c2 2
-						push/dup orig-exprs       code 2
-						push/dup copied-exprs     c2 2
+						unless path? code [save-level frame]
 					]
 					exit [								;-- revert it
-						stkpos: pop stack-exprs
-						drop eval'd-stack length? stkpos 
-						clear stkpos
-						pop copied-blocks
-						pop orig-blocks
-						pop expr-levels
-						
-						drop copied-top-exprs 2
-						drop orig-exprs       2
-						drop copied-exprs     2
-					]
-					expr [								;-- remove unused expressions from the stack
-						stkpos: last stack-exprs
-						drop eval'd-stack length? stkpos 
-						clear stkpos
-						
-						if 0 = last expr-levels [
-							change/only back top-of copied-top-exprs last copied-top-exprs
+						unless path? code [unroll-level]
+						if paren? code [				;-- paren result will be reused
+							push pushed  :value
+							push pushed' mold-part :value mold-size
 						]
-						change/only back top-of copied-exprs last copied-exprs
-						change/only back top-of orig-exprs   last orig-exprs
+					]
+					expr [								;-- remove finished expressions from the stack
+						foreach word [fetched fetched' pushed pushed'] [
+							clear get word
+						]
 					]
 				]
 				
 				;; report starting events after removing relevant data
-				unless find [return epilog exit expr] event [do call]
+				unless find [return epilog exit expr error throw] event [do call]
+				
+				;; print out event info for debugging
+				if debug? [
+					do [emit [							;@@ without 'do' emit is hardcoded
+						uppercase pad event 7
+						pad type? code 6
+						pad :ref 12
+						pad frame 6
+						pad mold-part :value 20 22
+						pad form/part fetched' 60 62
+						pad func-depth 3
+						pad expr-depth 3
+						subexprs
+					]]
+				]
 			];; collector function
 		];; data context
 	
@@ -471,30 +488,14 @@ system/tools: context [
 
 		inspector: context [
 		
-			;; yet another incarnation of this func
-			;@@ remove it when we have smarter `ellipsize` func in runtime
-			mold-part: function [value [any-type!] part [integer!] /only] [
-				r: either only [
-					mold/flat/part/only :value part + 1
-				][
-					mold/flat/part      :value part + 1
-				]
-				if part < length? r [
-					either all [
-						any [any-object? :value  block? :value  hash? :value]
-						find :r #"["					;-- has opening bracket but no closing one
-					][
-						clear change skip tail r -5 "...]"
-					][
-						clear change skip tail r -4 "..."
-					]
-					clear skip r part					;-- when part < 3-4
-				]
-				r
-			]		
-				
-			last-path: []								;-- cached, reported only when changed
-			
+			fixed-width:    none								;-- used in tests to remove environment effects
+			last-path:      []									;-- cached, reported only when changed
+			constants:      [yes no on off true false none]		;-- common constant names
+			type-names:     to [] any-type!						;-- common type names defined in runtime
+			ignored-words:  make hash! compose [(constants) (type-names)]
+			fetched-index:  (index? find data/saved 'fetched)  - (length? data/saved) - 1 
+			fetched'-index: (index? find data/saved 'fetched') - (length? data/saved) - 1 
+						
 		 	inspect: function [
 		 		data   [object!]						;-- collector's stats
 				event  [word!]							;-- Event name
@@ -508,75 +509,61 @@ system/tools: context [
 				report?: all select [
 					expr [
 						not data/inspect-sub-exprs?
-						0 = last data/expr-levels				;-- don't report sub-exprs
-						not paren? last data/copied-top-exprs	;-- don't report paren as top-level, even if it technically is
+						data/expr-depth = 0				;-- don't report sub-exprs
+						not paren? code					;-- don't report paren as top-level, even if it technically is
 					]
 					error [true]
 					throw [true]
 					push [
 						data/inspect-sub-exprs?
-						any-word? set/any 'word last data/stack
-						not same? word last data/eval'd-stack
-						not find [yes no on off true false none] word
-						not find to [] any-type! word
+						set/any 'word last data/fetched
+						any [word? :word get-word? :word]
+						not find ignored-words word
+						word <> last data/pushed		;-- lit/get-args preserve the word - no need to report it
 					]
-					return [
-						data/inspect-sub-exprs?
-					] 
+					return [data/inspect-sub-exprs?] 
 				] event
 				any [report? exit]
 				
-				full:    any [attempt [system/console/size/1] 80]
+				full:    any [fixed-width attempt [system/console/size/1] 80]
 				width:   full - 7						;-- last column(1) + " => "(4) + min. indent(2)
 				left:    min 60 to integer! width / 2	;-- cap at 60 as we don't want it to be huge
 				right:   width - left
-				indent:  append/dup clear ""          " " full - 1			;-- indent for code
-				indent2: append/dup clear skip "  " 2 "`" full - 3			;-- indent for paths: prefixed by "  "
-				level:   (length? data/expr-levels) - pick [1 0] 'call = event	;-- 'call' level is deeper by 1
+				indent:  append/dup clear ""          " " full - 1		;-- indent for code
+				indent2: append/dup clear skip "  " 2 "`" full - 3		;-- indent for paths: prefixed by "  "
+				level:   (length? data/stack) / data/stack-period - 1
 				level:   level % 10 + 1 * 2				;-- cap at 20 as we don't want indent to occupy whole column
 				
-				either data/inspect-sub-exprs? [
-					expr: last data/stack-exprs
-					isop?: all [
-						3 = length? expr
-						word? :expr/1
-						op? get/any :expr/1
-					]
-					either event = 'push [
-						expr: back tail expr
-					][
-						while [set-word? :expr/-1] [expr: back expr]
-					]
-					if isop? [							;-- locally reorder op calls for more readability
-						expr: copy expr
-						move p: skip tail expr -3 next p
-					]
-				][
-					p: tail data/copied-top-exprs
-					expr: either 'error = event [p/-2][copy/part p/-2 p/-1]
+				expr: case [
+					not data/inspect-sub-exprs? [data/fetched']
+					event = 'push [top-of data/fetched']
+					'else [data/pushed']
 				]
-				if empty? expr [exit]					;@@ workaround for [a: 1] vs [a: 1 + 1] issue
 				if paren? expr [expr: as [] expr]		;-- otherwise /only won't remove brackets
 				if path?  code [expr: as path! expr]
 				
 				;; print current path, only works in non-/all mode
 				unless any [data/inspect-sub-exprs?  data/path == last-path] [
-					p: change skip indent2 level 
-						uppercase mold-part as path! data/path full - 1 - level
-					t: tail data/copied-top-exprs
-					pexpr: any [if t/-4 [copy/part t/-4 t/-3] []]		;-- -4..-3 is the parent expression
-					if :pexpr/1 == last data/path [pexpr: next pexpr]	;-- don't duplicate last path item
-					unless empty? pexpr [
-						change change p " " mold-part/only pexpr (length? p) - 1
+					path: uppercase mold-part as path! data/path full - 1 - level
+					p: change skip indent2 level path			;-- add path of refs 
+					
+					unless empty? pexpr: pick tail data/stack fetched'-index [
+						orig-expr: pick tail data/stack fetched-index 
+						name: either path? :orig-expr/1 [:orig-expr/1/1][:orig-expr/1]
+						if :name = last data/path [				;-- don't duplicate last path item if orig expr starts with it
+							pexpr: next pexpr
+						]
+						change change p " " form/part pexpr (length? p) - 1		;-- add parent expr to path
 					]
-					print indent2
-					append clear last-path data/path
+					do [emit indent2]							;@@ without 'do' emit is hardcoded
+					
+					append clear last-path data/path			;-- remember last displayed path
 				]
 				
 				;; print expression and result
-				change        skip indent level       mold-part/only expr left - level
+				change        skip indent level       form/part expr left - level
 				change change skip indent left " => " mold-part :value right
-				print indent
+				do [emit indent]								;@@ without 'do' emit is hardcoded
 			];; inspect function
 		];; inspector context
 	];; tracers context

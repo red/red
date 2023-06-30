@@ -730,13 +730,346 @@ Red [
 		    end -1 #[none] #[none] 3
 		]
 
-		--test-- "trace-11"
-			do [
-				trace11: func [[no-trace] code][do/trace code does []]
-				trace11 [trace11 []]
-			]
-			--assert true					;-- just check if it has not crashed
+	--test-- "trace-11"
+		do [
+			trace11: func [[no-trace] code][do/trace code does []]
+			trace11 [trace11 []]
+		]
+		--assert true					;-- just check if it has not crashed
 
+===end-group===
+
+===start-group=== "high level trace"
+
+	trace-output: {}
+	system/tools/tracers/emit: function [value [any-type!]] [
+		value: trim/tail form reduce :value
+		append append trace-output value #"^/"
+	]
+	system/tools/tracers/inspector/fixed-width: 80
+	
+	
+	--test-- "hltrace-1"
+		clear trace-output
+		trace []
+		--assert empty? trace-output
+		
+	--test-- "hltrace-2"
+		clear trace-output
+		trace [1 2 3]
+		--assert trace-output = next {
+  1                                  => 1
+  2                                  => 2
+  3                                  => 3
+}
+		
+	--test-- "hltrace-3"
+		clear trace-output
+		trace [1 + 2 * 4]
+		--assert trace-output = next {
+  1 + 2 * 4                          => 12
+}
+		
+	--test-- "hltrace-5"
+		clear trace-output
+		trace [(1 + 2) * (4 + 5)]
+		--assert trace-output = next {
+  (1 + 2) * (4 + 5)                  => 27
+}
+
+	--test-- "hltrace-6"
+		clear trace-output
+		trace [append {} 1]
+		--assert trace-output = next {
+  append "" 1                        => "1"
+}
+		
+	--test-- "hltrace-7"
+		clear trace-output
+		trace [append/only {} 1]
+		--assert trace-output = next {
+  append/only "" 1                   => "1"
+}
+		
+	--test-- "hltrace-8"
+		clear trace-output
+		trace [remove "qwe"]
+		--assert trace-output = next {
+  remove "qwe"                       => "we"
+}
+		
+	--test-- "hltrace-9"
+		clear trace-output
+		trace [try [1 + 1]]
+		--assert trace-output = next {
+  ``TRY [1 + 1]````````````````````````````````````````````````````````````````
+    1 + 1                            => 2
+  `````````````````````````````````````````````````````````````````````````````
+  try [1 + 1]                        => 2
+}
+		
+	--test-- "hltrace-10"
+		clear trace-output
+		trace [try [1 / 0]]
+		--assert trace-output = next {
+  ``TRY// try [1 / 0]``````````````````````````````````````````````````````````
+    1 / 0                            => make error! [code: 400 type: 'mat...]
+  `````````````````````````````````````````````````````````````````````````````
+  try [1 / 0]                        => make error! [code: 400 type: 'mat...]
+}
+
+	--test-- "hltrace-11"
+		clear trace-output
+		trace [try [do 1 / 0]]
+		--assert trace-output = next {
+  ``TRY// try [do 1 / 0]```````````````````````````````````````````````````````
+    do 1 / 0                         => make error! [code: 400 type: 'mat...]
+  `````````````````````````````````````````````````````````````````````````````
+  try [do 1 / 0]                     => make error! [code: 400 type: 'mat...]
+}
+		
+	--test-- "hltrace-12"
+		clear trace-output
+		trace [try [do try/keep [do 1 / 0]]]
+		--assert trace-output = next {
+  ````TRY/TRY// do try/keep [do 1 / 0]`````````````````````````````````````````
+      do 1 / 0                       => make error! [code: 400 type: 'mat...]
+  `````````````````````````````````````````````````````````````````````````````
+  try [do try/keep [do 1 / 0]]       => make error! [code: 400 type: 'mat...]
+}		
+
+	--test-- "hltrace-13"
+		clear trace-output
+		--assert error? try [trace [1 / 0]]
+		--assert trace-output = next {
+  /````````````````````````````````````````````````````````````````````````````
+  1 / 0                              => make error! [code: 400 type: 'mat...]
+}
+		
+	--test-- "hltrace-14"
+		clear trace-output
+		trace [catch [throw 23]]
+		--assert trace-output = next {
+  ``CATCH/THROW catch [throw 23]```````````````````````````````````````````````
+    throw 23                         => 23
+  `````````````````````````````````````````````````````````````````````````````
+  catch [throw 23]                   => 23
+}
+		
+	--test-- "hltrace-15"
+		clear trace-output
+		trace [catch/name [throw/name 23 'x] 'x]
+		--assert trace-output = next {
+  ``CATCH/THROW catch/name [throw/name 23 'x] 'x```````````````````````````````
+    throw/name 23 'x                 => 23
+  `````````````````````````````````````````````````````````````````````````````
+  catch/name [throw/name 23 'x] 'x   => 23
+}
+		
+	--test-- "hltrace-16"
+		clear trace-output
+		trace [do [catch/name [do [try [throw/name 23 'x]]] 'x]]
+		--assert trace-output = next {
+  ````````DO/CATCH/DO/TRY/THROW try [throw/name 23 'x]`````````````````````````
+          throw/name 23 'x           => 23
+  ``DO [catch/name [do [try [thro...]``````````````````````````````````````````
+    catch/name [do [try [throw/name  => 23
+  `````````````````````````````````````````````````````````````````````````````
+  do [catch/name [do [try [thro...]  => 23
+}
+
+	--test-- "hltrace-17"
+		clear trace-output
+		--assert error? try/all [trace [catch/name [throw/name 23 'x] 'y]]
+		;@@ this output could probably be improved?
+		--assert trace-output = next {
+  ``CATCH/THROW catch/name [throw/name 23 'x] 'y```````````````````````````````
+    throw/name 23 'x                 => 23
+    throw/name 23 'x                 => make error! [code: 2 type: 'throw...]
+}
+		
+	--test-- "hltrace-18"
+		clear trace-output
+		trace/all [1 + 2 * 4]
+		--assert trace-output = next {
+  1 + 2                              => 3
+  3 * 4                              => 12
+}
+
+	--test-- "hltrace-19"
+		clear trace-output
+		trace/all [(1 + 2) * (4 + 5)]
+		--assert trace-output = next {
+    1 + 2                            => 3
+    4 + 5                            => 9
+  3 * 9                              => 27
+}
+		
+	--test-- "hltrace-20"
+		clear trace-output
+		trace/all [add 1 subtract 3 add 1 -1 + 2]
+		--assert trace-output = next {
+  -1 + 2                             => 1
+  add 1 1                            => 2
+  subtract 3 2                       => 1
+  add 1 1                            => 2
+}
+		
+	--test-- "hltrace-21"
+		do [f21: func [x y] [add 0 0 x + y]]			;-- if it's compiled, can't trace into
+		clear trace-output
+		trace/deep [add 1 subtract 3 add 1 f21 -1 2]
+		--assert trace-output = next {
+  ``F21 add 1 subtract 3 add 1 f21 -1 2````````````````````````````````````````
+    add 0 0                          => 0
+    x + y                            => 1
+  `````````````````````````````````````````````````````````````````````````````
+  add 1 subtract 3 add 1 f21 -1 2    => 2
+}
+
+	--test-- "hltrace-22"
+		clear trace-output
+		do [f22: func [x y] [add 0 0 x + y]]			;-- if it's compiled, can't trace into
+		trace/all/deep [add 1 subtract 3 add 1 f22 -1 2]
+		--assert trace-output = next {
+    add 0 0                          => 0
+    x                                => -1
+    y                                => 2
+    -1 + 2                           => 1
+  f22 -1 2                           => 1
+  add 1 1                            => 2
+  subtract 3 2                       => 1
+  add 1 1                            => 2
+}
+		
+	--test-- "hltrace-buggy-caesar"						;-- used in https://github.com/red/red/wiki/%5BHOWTO%5D-Tracing
+		clear trace-output
+		do [
+			buggy-caesar: function [s k] [				;-- if it's compiled, can't trace into
+			    a: charset [#"a" - #"z" #"A" - #"Z"]
+			    trace/all [
+				    forall s [if find a s/1 [s/1: (x: s/1 % 32) + k + 25 % 26 + 1 + (s/1 - x)]] s
+			    ]
+			]
+			try [buggy-caesar "a" -25]
+		]
+		--assert trace-output = next {
+    a                                => make bitset! #{00000000000000007F...}
+    s                                => "a"
+    find make bitset! #^{00000000000. => true
+        s                            => "a"
+        #"a" % 32                    => #"^^A"
+      k                              => -25
+      #"^^A" + -25                    => make error! [code: 401 type: 'mat...]
+}
+	
+	--test-- "hltrace-complex-1"						;-- used in https://github.com/red/red/wiki/%5BHOWTO%5D-Tracing
+		hltrace-func1: func [x] [
+			if 1 < x [
+				uppercase pick "xy" random 1
+			]
+		]
+		clear trace-output
+		try [trace [
+			f: func [:x :y][:y]
+			f a b
+			if 1 + 1 < add 2 + 3 4 [add 5 6]
+			b: [x y z]
+			j: 1 + 1
+			to-integer "123"
+			to-integer remove "123"
+			if 1 < 2 [3]
+			do [
+				j: (1 + 1 * 1)
+				select b b/:j
+			]
+			hltrace-func1 1 + 2
+			this-is-an-error!
+		]]
+		--assert trace-output = next {
+  f: func [:x :y] [:y]               => func [:x :y][:y]
+  f a b                              => b
+  ``IF 1 + 1 < add 2 + 3 4 [add 5 6]```````````````````````````````````````````
+    add 5 6                          => 11
+  `````````````````````````````````````````````````````````````````````````````
+  if 1 + 1 < add 2 + 3 4 [add 5 6]   => 11
+  b: [x y z]                         => [x y z]
+  j: 1 + 1                           => 2
+  to-integer "123"                   => 123
+  to-integer remove "123"            => 23
+  ``IF 1 < 2 [3]```````````````````````````````````````````````````````````````
+    3                                => 3
+  `````````````````````````````````````````````````````````````````````````````
+  if 1 < 2 [3]                       => 3
+  ``DO [j: (1 + 1 * 1) select b b/:j]``````````````````````````````````````````
+    j: (1 + 1 * 1)                   => 2
+    select b b/:j                    => z
+  `````````````````````````````````````````````````````````````````````````````
+  do [j: (1 + 1 * 1) select b b/:j]  => z
+  hltrace-func1 1 + 2                => #"X"
+  this-is-an-error!                  => make error! [code: 300 type: 'scr...]
+}
+			
+	--test-- "hltrace-complex-2"						;-- used in https://github.com/red/red/wiki/%5BHOWTO%5D-Tracing
+		do [hltrace-func2: func [x] [					;-- if it's compiled, can't trace into
+			if 1 < x [
+				uppercase pick "xy" random 1
+			]
+		]]
+		clear trace-output
+		try [trace/deep [
+			f: func [:x :y][:y]
+			f a b
+			if 1 + 1 < add 2 + 3 4 [add 5 6]
+			b: [x y z]
+			j: 1 + 1
+			to-integer "123"
+			to-integer remove "123"
+			if 1 < 2 [3]
+			do [
+				j: (1 + 1 * 1)
+				select b b/:j
+			]
+			hltrace-func2 1 + 2
+			this-is-an-error!
+		]]
+		--assert trace-output = next {
+  f: func [:x :y] [:y]               => func [:x :y][:y]
+  ``F a b``````````````````````````````````````````````````````````````````````
+    :y                               => b
+  `````````````````````````````````````````````````````````````````````````````
+  f a b                              => b
+  ``IF 1 + 1 < add 2 + 3 4 [add 5 6]```````````````````````````````````````````
+    add 5 6                          => 11
+  `````````````````````````````````````````````````````````````````````````````
+  if 1 + 1 < add 2 + 3 4 [add 5 6]   => 11
+  b: [x y z]                         => [x y z]
+  j: 1 + 1                           => 2
+  to-integer "123"                   => 123
+  to-integer remove "123"            => 23
+  ``IF 1 < 2 [3]```````````````````````````````````````````````````````````````
+    3                                => 3
+  `````````````````````````````````````````````````````````````````````````````
+  if 1 < 2 [3]                       => 3
+  ``DO [j: (1 + 1 * 1) select b b/:j]``````````````````````````````````````````
+    j: (1 + 1 * 1)                   => 2
+    select b b/:j                    => z
+  `````````````````````````````````````````````````````````````````````````````
+  do [j: (1 + 1 * 1) select b b/:j]  => z
+  ````HLTRACE-FUNC2/IF 1 < x [uppercase pick "xy" random 1]````````````````````
+      uppercase pick "xy" random 1   => #"X"
+  ``HLTRACE-FUNC2 1 + 2````````````````````````````````````````````````````````
+    if 1 < x [uppercase pick "xy" ra => #"X"
+  `````````````````````````````````````````````````````````````````````````````
+  hltrace-func2 1 + 2                => #"X"
+  this-is-an-error!                  => make error! [code: 300 type: 'scr...]
+}
+
+		
+	;; restore tracer defaults
+	system/tools/tracers/emit: :print
+	system/tools/tracers/inspector/fixed-width: none
+	
 ===end-group===
 
 ===start-group=== "reduce"
