@@ -418,7 +418,7 @@ lexer: context [
 		/local
 			pos  [red-string!]
 			line [red-string!]
-			po	 [red-point!]
+			po	 [red-triple!]
 			slot [red-value!]
 			p	 [byte-ptr!]
 			len	closing t [integer!]
@@ -431,8 +431,8 @@ lexer: context [
 		if null? s [									;-- determine token's start
 			slot: lex/head
 			if slot > lex/buffer [slot: lex/head - 1]
-			po: as red-point! slot						;-- take start of the parent series
-			either TYPE_OF(po) <> TYPE_POINT [s: lex/input][s: lex/input + po/z]
+			po: as red-triple! slot						;-- take start of the parent series
+			either TYPE_OF(po) <> TYPE_TRIPLE [s: lex/input][s: lex/input + po/z]
 		]
 		if lex/fun-ptr <> null [
 			t: either type > 0 [type][
@@ -630,15 +630,15 @@ lexer: context [
 	
 	open-block: func [lex [state!] type [integer!] s [byte-ptr!] e [byte-ptr!]
 		/local 
-			p	[red-point!]
+			p	[red-triple!]
 			len [integer!]
 	][
 		if null? s [s: lex/in-pos]
 		if null? e [e: s]
 		if lex/fun-ptr <> null [unless fire-event lex EVT_OPEN type null s e [exit]]
 		len: (as-integer lex/tail - lex/head) >> 4
-		p: as red-point! alloc-slot lex
-		set-type as cell! p TYPE_POINT					;-- use the slot for stack info
+		p: as red-triple! alloc-slot lex
+		set-type as cell! p TYPE_TRIPLE					;-- use the slot for stack info
 		p/x: len
 		p/y: type
 		p/z: as-integer s - lex/input					;-- opening delimiter offset saved (error handling)
@@ -649,23 +649,23 @@ lexer: context [
 	close-block: func [lex [state!] s e [byte-ptr!] type [integer!] quiet? [logic!]
 		return: [integer!]
 		/local	
-			p [red-point!]
+			p [red-triple!]
 			len	stype t [integer!]
 			do-error [subroutine!]
-			point?	 [logic!]
+			triple?	 [logic!]
 			head	 [red-value!]
 	][
 		do-error: [
 			lex/closing: type
 			throw-error lex s e ERR_MISSING
 		]
-		p: as red-point! lex/head - 1
-		point?: all [lex/buffer <= p TYPE_OF(p) = TYPE_POINT]
+		p: as red-triple! lex/head - 1
+		triple?: all [lex/buffer <= p TYPE_OF(p) = TYPE_TRIPLE]
 		if all [not quiet? lex/fun-ptr <> null][
-			t: either all [point? any [type <= 0 all [type = TYPE_PAREN p/y <> type]]][p/y][type]
+			t: either all [triple? any [type <= 0 all [type = TYPE_PAREN p/y <> type]]][p/y][type]
 			unless fire-event lex EVT_CLOSE t null s e [return 0]
 		]
-		unless point? [do-error]						;-- postpone error checking after callback call
+		unless triple? [do-error]						;-- postpone error checking after callback call
 		stype: p/y
 		either type = -1 [type: stype][					;-- no closing type provided, use saved one
 			if all [
@@ -676,7 +676,7 @@ lexer: context [
 				not all [stype = TYPE_MAP type = TYPE_PAREN];-- paren can close a map
 				stype <> type							;-- saved type <> closing type => error
 			][
-				if point? [type: p/y]
+				if triple? [type: p/y]
 				do-error
 			]
 		]
@@ -688,7 +688,7 @@ lexer: context [
 		lex/tail: head
 		lex/scanned: type
 		
-		p: as red-point! lex/head - 1					;-- get parent series
+		p: as red-triple! lex/head - 1					;-- get parent series
 		type: p/y
 		either all [
 			lex/buffer <= p
@@ -2343,7 +2343,7 @@ lexer: context [
 				slot: lex/tail - 1
 				if any [
 					lex/tail = lex/buffer
-					all [slot = lex/buffer TYPE_OF(slot) <> TYPE_POINT]
+					all [slot = lex/buffer TYPE_OF(slot) <> TYPE_TRIPLE]
 				][
 					exit								;-- early exit for single value request
 				]
@@ -2372,7 +2372,7 @@ lexer: context [
 		return: [integer!]								;-- scanned type when one? is set, else zero
 		/local
 			blk	  	 [red-block!]
-			p	  	 [red-point!]
+			p	  	 [red-triple!]
 			base	 [red-value!]
 			slots 	 [integer!]
 			s	  	 [series!]
@@ -2434,11 +2434,11 @@ lexer: context [
 		
 		slots: (as-integer lex/tail - lex/buffer) >> 4
 		if slots > 0 [
-			p: as red-point! either lex/buffer < lex/head [lex/head - 1][lex/buffer]
+			p: as red-triple! either lex/buffer < lex/head [lex/head - 1][lex/buffer]
 			either all [not scan? lex/entry = S_PATH lex/scanned <> TYPE_ERROR][
 				lex/scanned: p/y						;-- any-path prescanning case
 			][
-				if TYPE_OF(p) = TYPE_POINT [			;-- unclosed any-block series case
+				if TYPE_OF(p) = TYPE_TRIPLE [			;-- unclosed any-block series case
 					lex/closing: p/y
 					assert system/thrown = 0
 					catch RED_THROWN_ERROR [throw-error lex lex/input + p/z lex/in-end ERR_CLOSING]

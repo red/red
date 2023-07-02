@@ -98,7 +98,7 @@ red: context [
 	#include %datatypes/url.reds
 	#include %datatypes/object.reds
 	#include %datatypes/bitset.reds
-	#include %datatypes/point.reds
+	#include %datatypes/triple.reds
 	#include %datatypes/float.reds
 	#include %datatypes/typeset.reds
 	#include %datatypes/error.reds
@@ -199,7 +199,7 @@ red: context [
 		file/init										;-- file! inherits from url!
 		object/init
 		bitset/init
-		point/init
+		triple/init
 		float/init
 		typeset/init
 		error/init
@@ -289,7 +289,7 @@ red: context [
 			vector/verbose:		verbosity
 			map/verbose:		verbosity
 			hash/verbose:		verbosity
-			point/verbose:		verbosity
+			triple/verbose:		verbosity
 			pair/verbose:		verbosity
 			percent/verbose:	verbosity
 			tuple/verbose:		verbosity

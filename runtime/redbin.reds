@@ -571,7 +571,7 @@ redbin: context [
 			TYPE_NATIVE
 			TYPE_ACTION 	[encode-native data header payload symbols table strings]
 			TYPE_PORT
-			TYPE_POINT
+			TYPE_TRIPLE
 			TYPE_HANDLE
 			TYPE_EVENT
 			TYPE_ROUTINE 	[
@@ -708,7 +708,7 @@ redbin: context [
 			TYPE_ROUTINE
 			TYPE_HANDLE
 			TYPE_EVENT
-			TYPE_POINT [
+			TYPE_TRIPLE [
 				reset
 				fire [TO_ERROR(access no-codec) datatype/push type]
 				data								;-- pass compiler's type checking

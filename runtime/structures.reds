@@ -221,7 +221,7 @@ red-char!: alias struct! [
 	_pad2	[integer!]	
 ]
 
-red-point!: alias struct! [
+red-triple!: alias struct! [
 	header 	[integer!]								;-- cell header
 	x		[integer!]								;-- stores an integer! or float32! value
 	y		[integer!]								;-- stores an integer! or float32! value

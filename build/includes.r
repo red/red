@@ -146,7 +146,6 @@ write %build/bin/sources.r set-cache [
 			%path.reds
 			%pair.reds
 			%percent.reds
-			%point.reds
 			%port.reds
 			%ref.reds
 			%refinement.reds
@@ -158,6 +157,7 @@ write %build/bin/sources.r set-cache [
 			%symbol.reds
 			%tag.reds
 			%time.reds
+			%triple.reds
 			%typeset.reds
 			%tuple.reds
 			%unset.reds

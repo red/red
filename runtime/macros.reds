@@ -42,7 +42,7 @@ Red/System [
 	TYPE_GET_PATH										;-- 1C		28
 	TYPE_ROUTINE										;-- 1D		29
 	TYPE_BITSET											;-- 1E		30
-	TYPE_POINT											;-- 1F		31
+	TYPE_TRIPLE											;-- 1F		31
 	TYPE_OBJECT											;-- 20		32
 	TYPE_TYPESET										;-- 21		33
 	TYPE_ERROR											;-- 22		34

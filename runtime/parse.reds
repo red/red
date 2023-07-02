@@ -29,14 +29,14 @@ parser: context [
 	
 	#define PARSE_PUSH_INPUTPOS  [
 		in: as input! ALLOC_TAIL(rules)
-		in/header: TYPE_POINT
+		in/header: TYPE_TRIPLE
 		in/node:   input/node
 		;in/size:  input/head
 	]
 	
 	#define PARSE_PUSH_POSITIONS [
 		p: as positions! ALLOC_TAIL(rules)
-		p/header: TYPE_POINT
+		p/header: TYPE_TRIPLE
 		p/rule:	  (as-integer cmd - block/rs-head rule) >> 4	;-- save cmd position
 		p/input:  input/head									;-- save input position
 		p/sub:	  len											;-- default value for sub-rule type
@@ -901,7 +901,7 @@ parser: context [
 		saved?: cnt <> 0
 		if saved? [
 			p: as positions! ALLOC_TAIL(rules)
-			p/header: TYPE_POINT
+			p/header: TYPE_TRIPLE
 			p/input:  series/head
 			p/rule:   rules/head
 			
@@ -1115,7 +1115,7 @@ parser: context [
 						block/rs-append rules cmd
 					][
 						t: as triple! ALLOC_TAIL(rules)
-						t/header: TYPE_POINT
+						t/header: TYPE_TRIPLE
 						t/min:	  min
 						t/max:	  max
 						t/state:  1

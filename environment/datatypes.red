@@ -46,7 +46,7 @@ routine!:		make datatype! #get-definition TYPE_ROUTINE
 object!:		make datatype! #get-definition TYPE_OBJECT
 bitset!:		make datatype! #get-definition TYPE_BITSET
 float!:			make datatype! #get-definition TYPE_FLOAT
-point!:			make datatype! #get-definition TYPE_POINT
+triple!:		make datatype! #get-definition TYPE_TRIPLE
 vector!:		make datatype! #get-definition TYPE_VECTOR
 map!:			make datatype! #get-definition TYPE_MAP
 hash!:			make datatype! #get-definition TYPE_HASH

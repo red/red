@@ -486,7 +486,7 @@ _hashtable: context [
 				murmur3-x86-32 (as byte-ptr! key) + 4 TUPLE_SIZE?(key)
 			]
 			TYPE_DATE
-			TYPE_POINT
+			TYPE_TRIPLE
 			TYPE_TYPESET
 			TYPE_FUNCTION
 			TYPE_OP [murmur3-x86-32 (as byte-ptr! key) + 4 12]
