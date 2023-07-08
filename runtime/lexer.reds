@@ -689,10 +689,8 @@ lexer: context [
 		head: lex/head
 		lex/head: as cell! p - p/x
 		either stype = TYPE_POINT2D [
-			if lex/load? [
-				if p/y >> 16 <> 1 [throw-error lex s e TYPE_POINT2D]
-				make-point2D as cell! p head lex s e
-			]
+			if p/y >> 16 <> 1 [throw-error lex s e TYPE_POINT2D]
+			either lex/load? [make-point2D as cell! p head lex s e][p/header: TYPE_POINT2D] ;-- overwrite the triple header with correct type (scanning)
 		][
 			store-any-block as cell! p head len type null	;-- p slot gets overwritten here
 		]
@@ -1148,10 +1146,8 @@ lexer: context [
 					map/make-at as cell! blk blk block/rs-length? blk
 				]
 			]
-			TYPE_POINT2D [
-				lex/scanned: type
-			]
-			default [0]
+			TYPE_POINT2D [lex/scanned: type]
+			default      [0]
 		]
 		lex/in-pos: e + 1								;-- skip )
 	]
@@ -2323,7 +2319,7 @@ lexer: context [
 				#if debug? = yes [if verbose > 0 [?? state]]
 			]
 			s: start + offset							;-- real token position start
-			assert state <= T_COMMA
+			assert state <= T_REF
 			assert s <= p
 			
 			lex/in-pos:  p
@@ -2626,6 +2622,7 @@ lexer: context [
 			:scan-path-open		null					;-- T_PATH
 			:scan-construct		null					;-- T_CONS_MK
 			:scan-comment		null					;-- T_CMT
+			:scan-comma			null					;-- T_COMMA
 			:scan-string		:load-string			;-- T_STRING
 			:scan-word			:load-word				;-- T_WORD
 			:scan-issue			:load-word				;-- T_ISSUE
@@ -2648,7 +2645,6 @@ lexer: context [
 			null				:load-hex				;-- T_HEX
 			null				:load-rawstring			;-- T_RAWSTRING
 			null				:load-ref				;-- T_REF
-			:scan-comma			null					;-- T_COMMA
 		]
 	]
 

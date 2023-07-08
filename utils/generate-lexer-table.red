@@ -89,29 +89,29 @@ context [
 		T_PATH				-					;-- 73
 		T_CONS_MK			-					;-- 74
 		T_CMT				-					;-- 75
-		T_STRING			TYPE_STRING			;-- 76
-		T_WORD				TYPE_WORD			;-- 77
-		T_ISSUE				TYPE_ISSUE			;-- 78
-		T_INTEGER			TYPE_INTEGER		;-- 79
-		T_REFINE			TYPE_REFINEMENT		;-- 80
-		T_CHAR				TYPE_CHAR			;-- 81
-		T_FILE				TYPE_FILE			;-- 82
-		T_BINARY			TYPE_BINARY			;-- 83
-		T_PERCENT			TYPE_PERCENT		;-- 84
-		T_FLOAT				TYPE_FLOAT			;-- 85
-		T_FLOAT_SP			TYPE_FLOAT			;-- 86
-		T_TUPLE				TYPE_TUPLE			;-- 87
-		T_DATE				TYPE_DATE			;-- 88
-		T_PAIR				TYPE_PAIR			;-- 89
-		T_TIME				TYPE_TIME			;-- 90
-		T_MONEY				TYPE_MONEY			;-- 91
-		T_TAG				TYPE_TAG			;-- 92
-		T_URL				TYPE_URL			;-- 93
-		T_EMAIL				TYPE_EMAIL			;-- 94
-		T_HEX				TYPE_INTEGER		;-- 95
-		T_RAWSTRING			TYPE_STRING			;-- 96
-		T_REF				TYPE_REF			;-- 97
-		T_COMMA				-					;-- 98
+		T_COMMA				-					;-- 76
+		T_STRING			TYPE_STRING			;-- 77
+		T_WORD				TYPE_WORD			;-- 78
+		T_ISSUE				TYPE_ISSUE			;-- 79
+		T_INTEGER			TYPE_INTEGER		;-- 80
+		T_REFINE			TYPE_REFINEMENT		;-- 81
+		T_CHAR				TYPE_CHAR			;-- 82
+		T_FILE				TYPE_FILE			;-- 83
+		T_BINARY			TYPE_BINARY			;-- 84
+		T_PERCENT			TYPE_PERCENT		;-- 85
+		T_FLOAT				TYPE_FLOAT			;-- 86
+		T_FLOAT_SP			TYPE_FLOAT			;-- 87
+		T_TUPLE				TYPE_TUPLE			;-- 88
+		T_DATE				TYPE_DATE			;-- 89
+		T_PAIR				TYPE_PAIR			;-- 90
+		T_TIME				TYPE_TIME			;-- 91
+		T_MONEY				TYPE_MONEY			;-- 92
+		T_TAG				TYPE_TAG			;-- 93
+		T_URL				TYPE_URL			;-- 94
+		T_EMAIL				TYPE_EMAIL			;-- 95
+		T_HEX				TYPE_INTEGER		;-- 96
+		T_RAWSTRING			TYPE_STRING			;-- 97
+		T_REF				TYPE_REF			;-- 98
 	]
 
 	CSV-table: %../docs/lexer/lexer-FSM.csv
