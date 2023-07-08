@@ -39,6 +39,7 @@ pair: context [
 			right [red-pair!]
 			int	  [red-integer!]
 			fl	  [red-float!]
+			p	  [red-point2D!]
 			x	  [integer!]
 			y	  [integer!]
 			f	  [float!]
@@ -52,6 +53,11 @@ pair: context [
 			TYPE_PAIR 	 [
 				x: right/x
 				y: right/y
+			]
+			TYPE_POINT2D [
+				p: as red-point2D! right
+				x: as-integer p/x
+				y: as-integer p/y
 			]
 			TYPE_INTEGER [
 				int: as red-integer! right
