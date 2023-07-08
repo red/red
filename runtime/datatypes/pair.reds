@@ -149,6 +149,7 @@ pair: context [
 			int	 [red-integer!]
 			int2 [red-integer!]
 			fl	 [red-float!]
+			p	 [red-point2D!]
 			x	 [integer!]
 			y	 [integer!]
 			val	 [red-value!]
@@ -178,6 +179,10 @@ pair: context [
 				x: get-value-int int
 				y: get-value-int int2
 				push x y
+			]
+			TYPE_POINT2D [
+				p: as red-point2D! spec
+				push as-integer p/x as-integer p/y
 			]
 			TYPE_STRING [
 				y: 0

@@ -149,8 +149,8 @@ point2D: context [
 			int	 [red-integer!]
 			int2 [red-integer!]
 			fl	 [red-float!]
+			p	 [red-pair!]
 			x	 [float32!]
-			y	 [float32!]
 			val	 [red-value! value]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "point2D/make"]]
@@ -176,9 +176,11 @@ point2D: context [
 				][
 					fire [TO_ERROR(syntax malconstruct) spec]
 				]
-				x: get-value-int int
-				y: get-value-int int2
-				push x y
+				push get-value-int int get-value-int int2
+			]
+			TYPE_PAIR [
+				p: as red-pair! spec
+				push as-float32 p/x as-float32 p/y
 			]
 			TYPE_STRING [
 				copy-cell spec val					;-- save spec, load-value will change it
