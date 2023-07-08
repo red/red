@@ -54,15 +54,29 @@ pair: context [
 				x: right/x
 				y: right/y
 			]
-			TYPE_POINT2D [
-				p: as red-point2D! right
-				x: as-integer p/x
-				y: as-integer p/y
-			]
 			TYPE_INTEGER [
 				int: as red-integer! right
 				x: int/value
 				y: x
+			]
+			TYPE_POINT2D [
+				p: as red-point2D! right
+				switch op [
+					OP_MUL [
+						left/x: as-integer (as-float32 left/x) * p/x
+						left/y: as-integer (as-float32 left/y) * p/y
+						return left
+					]
+					OP_DIV [
+						left/x: as-integer (as-float32 left/x) / p/x
+						left/y: as-integer (as-float32 left/y) / p/y
+						return left
+					]
+					default [
+						x: as-integer p/x
+						y: as-integer p/y
+					]
+				]
 			]
 			TYPE_FLOAT TYPE_PERCENT [
 				fl: as red-float! right
