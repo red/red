@@ -95,7 +95,7 @@ last: func ["Returns the last value in a series" s [series! tuple!]] [pick s len
 		bitset! binary! block! char! email! file! float! get-path! get-word! hash!
 		integer! issue! lit-path! lit-word! logic! map! none! pair! paren! path!
 		percent! refinement! set-path! set-word! string! tag! time! typeset! tuple!
-		unset! url! word! image! date! money! ref!
+		unset! url! word! image! date! money! ref! point2D!
 	]
 	test-list: union to-list [
 		handle! error! action! native! datatype! function! image! object! op! routine! vector!
@@ -132,7 +132,7 @@ last: func ["Returns the last value in a series" s [series! tuple!]] [pick s len
 	docstring: "Returns true if the value is any type of "
 	foreach name [
 		any-list! any-block! any-function! any-object! any-path! any-string! any-word!
-		series! number! immediate! scalar! all-word!
+		series! number! immediate! scalar! all-word! any-point!
 	][
 		repend list [
 			load head change back tail form name "?:" 'func

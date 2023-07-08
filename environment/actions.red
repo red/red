@@ -85,8 +85,8 @@ modify: make action! [[
 
 absolute: make action! [[
 		"Returns the non-negative value"
-		value	 [number! money! char! pair! time!]
-		return:  [number! money! char! pair! time!]
+		value	 [number! money! char! pair! time! any-point!]
+		return:  [number! money! char! pair! time! any-point!]
 	]
 	#get-definition ACT_ABSOLUTE
 ]
@@ -102,26 +102,26 @@ add: make action! [[
 
 divide: make action! [[
 		"Returns the quotient of two values"
-		value1	 [number! money! char! pair! tuple! vector! time!] "The dividend (numerator)"
-		value2	 [number! money! char! pair! tuple! vector! time!] "The divisor (denominator)"
-		return:  [number! money! char! pair! tuple! vector! time!] "The quotient"
+		value1	 [number! money! char! pair! tuple! vector! time! any-point!] "The dividend (numerator)"
+		value2	 [number! money! char! pair! tuple! vector! time! any-point!] "The divisor (denominator)"
+		return:  [number! money! char! pair! tuple! vector! time! any-point!] "The quotient"
 	]
 	#get-definition ACT_DIVIDE
 ]
 
 multiply: make action! [[
 		"Returns the product of two values"
-		value1	 [number! money! char! pair! tuple! vector! time!] "The multiplicand"
-		value2	 [number! money! char! pair! tuple! vector! time!] "The multiplier"
-		return:  [number! money! char! pair! tuple! vector! time!] "The product"
+		value1	 [number! money! char! pair! tuple! vector! time! any-point!] "The multiplicand"
+		value2	 [number! money! char! pair! tuple! vector! time! any-point!] "The multiplier"
+		return:  [number! money! char! pair! tuple! vector! time! any-point!] "The product"
 	]
 	#get-definition ACT_MULTIPLY
 ]
 
 negate: make action! [[
 		"Returns the opposite (additive inverse) value"
-		number 	 [number! money! bitset! pair! time!]
-		return:  [number! money! bitset! pair! time!]
+		number 	 [number! money! bitset! pair! time! any-point!]
+		return:  [number! money! bitset! pair! time! any-point!]
 	]
 	#get-definition ACT_NEGATE
 ]
@@ -188,9 +188,9 @@ odd?: make action! [[
 
 and~: make action! [[
 		"Returns the first value ANDed with the second"
-		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
-		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
-		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
+		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point!]
+		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point!]
+		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point!]
 	]
 	#get-definition ACT_AND~
 ]
@@ -205,18 +205,18 @@ complement: make action! [[
 
 or~: make action! [[
 		"Returns the first value ORed with the second"
-		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
-		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
-		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
+		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point!]
+		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point!]
+		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point!]
 	]
 	#get-definition ACT_OR~
 ]
 
 xor~: make action! [[
 		"Returns the first value exclusive ORed with the second"
-		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
-		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
-		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
+		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point!]
+		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point!]
+		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point!]
 	]
 	#get-definition ACT_XOR~
 ]

@@ -116,6 +116,7 @@ red: context [
 	#include %datatypes/port.reds
 	#include %datatypes/money.reds
 	#include %datatypes/ref.reds
+	#include %datatypes/point2D.reds
 	#if OS = 'Windows [#include %datatypes/image.reds]	;-- temporary
 	#if OS = 'macOS   [#include %datatypes/image.reds]	;-- temporary
 	#if OS = 'Linux   [#include %datatypes/image.reds]
@@ -217,6 +218,7 @@ red: context [
 		port/init
 		money/init
 		ref/init
+		point2D/init
 		#if OS = 'Windows [								;-- temporary
 			#if draw-engine <> 'GDI+ [OS-image/init]
 			image/init
@@ -301,6 +303,7 @@ red: context [
 			port/verbose:		verbosity
 			money/verbose:		verbosity
 			ref/verbose:		verbosity
+			point2D/verbose:	verbosity
 			#if OS = 'Windows [image/verbose: verbosity]
 			#if OS = 'macOS   [image/verbose: verbosity]
 

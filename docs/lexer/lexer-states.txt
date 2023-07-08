@@ -99,6 +99,7 @@ T_EMAIL
 T_HEX
 T_RAWSTRING
 T_REF
+T_POINT2D
 
 --- Lexical classes ---
 

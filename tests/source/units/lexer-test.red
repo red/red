@@ -1495,7 +1495,7 @@ Red [
 		--assert [a b] == load/all "^(2002)^(85)a^(3000)b"
 
 	--test-- "#4781"
-		--assert 3:3:3.3000000001 = transcode/one "3:3:3,3"
+		--assert 3:3:3.3000000001 = transcode/one "3:3:3.3"
 
 	--test-- "#4914"
 		--assert error? try [transcode {#(a: 22 b: 33 c: x: a)}]

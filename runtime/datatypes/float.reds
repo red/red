@@ -21,6 +21,7 @@ float: context [
 		FORM_PERCENT_32
 		FORM_PERCENT
 		FORM_TIME
+		FORM_POINT_32
 	]
 
 	pretty-print?: true
@@ -129,7 +130,7 @@ float: context [
 
 		s: "0000000000000000000000000000000"					;-- 32 bytes wide, big enough.
 		case [
-			any [type = FORM_FLOAT_32 type = FORM_PERCENT_32][
+			any [type = FORM_FLOAT_32 type = FORM_PERCENT_32 type = FORM_POINT_32][
 				sprintf [s "%.7g" f]
 			]
 			type = FORM_TIME [									;-- microsecond precision
@@ -193,10 +194,11 @@ float: context [
 						all [p0/2 = #"9" p0/1 = #"9"]
 					][
 						tried?: yes
-						s: case [
-							type = FORM_FLOAT_32 ["%.5g"]
-							type = FORM_TIME	 ["%.5g"]
-							true				 ["%.14g"]
+						s: switch type [
+							FORM_POINT_32
+							FORM_FLOAT_32 ["%.5g"]
+							FORM_TIME	  ["%.5g"]
+							default		  ["%.14g"]
 						]
 						sprintf [s0 s f]
 						s: s0
@@ -218,7 +220,7 @@ float: context [
 			s/1: #"%"
 			s/2: #"^@"
 		][
-			if all [not dot? type <> FORM_TIME][				;-- added tailing ".0"
+			if all [not dot? type <> FORM_TIME type <> FORM_POINT_32][	;-- added tailing ".0"
 				either p = null [
 					p: s
 				][

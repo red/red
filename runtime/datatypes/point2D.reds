@@ -1,7 +1,7 @@
 Red/System [
-	Title:   "Pair! datatype runtime functions"
+	Title:   "Point2D! datatype runtime functions"
 	Author:  "Nenad Rakocevic"
-	File: 	 %pair.reds
+	File: 	 %point2D.reds
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
@@ -10,7 +10,7 @@ Red/System [
 	}
 ]
 
-pair: context [
+point2D: context [
 	verbose: 0
 	
 	get-named-index: func [
@@ -22,7 +22,7 @@ pair: context [
 	][
 		axis: symbol/resolve w/symbol
 		if all [axis <> words/x axis <> words/y][
-			either TYPE_OF(ref) = TYPE_PAIR [
+			either TYPE_OF(ref) = TYPE_POINT2D [
 				fire [TO_ERROR(script cannot-use) w ref]
 			][
 				fire [TO_ERROR(script invalid-path) ref w]
@@ -33,48 +33,48 @@ pair: context [
 	
 	do-math: func [
 		op		  [integer!]
-		return:	  [red-pair!]
+		return:	  [red-point2D!]
 		/local
-			left  [red-pair!]
-			right [red-pair!]
+			left  [red-point2D!]
+			right [red-point2D!]
 			int	  [red-integer!]
 			fl	  [red-float!]
-			x	  [integer!]
-			y	  [integer!]
-			f	  [float!]
+			x	  [float32!]
+			y	  [float32!]
+			f	  [float32!]
 	][
-		left: as red-pair! stack/arguments
+		left: as red-point2D! stack/arguments
 		right: left + 1
 		
-		assert TYPE_OF(left) = TYPE_PAIR
+		assert TYPE_OF(left) = TYPE_POINT2D
 		
 		switch TYPE_OF(right) [
-			TYPE_PAIR 	 [
+			TYPE_POINT2D [
 				x: right/x
 				y: right/y
 			]
 			TYPE_INTEGER [
 				int: as red-integer! right
-				x: int/value
+				x: as-float32 int/value
 				y: x
 			]
 			TYPE_FLOAT TYPE_PERCENT [
 				fl: as red-float! right
-				f: fl/value
-				if float/special? f [fire [TO_ERROR(script invalid-arg) right]]
+				f: as-float32 fl/value
+				if float/special? fl/value [fire [TO_ERROR(script invalid-arg) right]]
 				switch op [
 					OP_MUL [
-						left/x: as-integer (as-float left/x) * f
-						left/y: as-integer (as-float left/y) * f
+						left/x: left/x * f
+						left/y: left/y * f
 						return left
 					]
 					OP_DIV [
-						left/x: as-integer (as-float left/x) / f
-						left/y: as-integer (as-float left/y) / f
+						left/x: left/x / f
+						left/y: left/y / f
 						return left
 					]
 					default [
-						x: as-integer fl/value
+						x: f
 						y: x
 					]
 				]
@@ -83,58 +83,58 @@ pair: context [
 				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(right)]
 			]
 		]
-		left/x: integer/do-math-op left/x x op null
-		left/y: integer/do-math-op left/y y op null
+		left/x: as-float32 float/do-math-op as-float left/x as-float x op null
+		left/y: as-float32 float/do-math-op as-float left/y as-float y op null
 		left
 	]
 	
 	make-at: func [
 		slot 	[red-value!]
-		x 		[integer!]
-		y 		[integer!]
-		return: [red-pair!]
+		x 		[float32!]
+		y 		[float32!]
+		return: [red-point2D!]
 		/local
-			pair [red-pair!]
+			p [red-point2D!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "pair/make-at"]]
+		#if debug? = yes [if verbose > 0 [print-line "point2D/make-at"]]
 		
-		pair: as red-pair! slot
-		set-type slot TYPE_PAIR
-		pair/x: x
-		pair/y: y
-		pair
+		p: as red-point2D! slot
+		set-type slot TYPE_POINT2D
+		p/x: x
+		p/y: y
+		p
 	]
 	
 	make-in: func [
 		parent 	[red-block!]
-		x 		[integer!]
-		y 		[integer!]
-		return: [red-pair!]
+		x 		[float32!]
+		y 		[float32!]
+		return: [red-point2D!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "pair/make-in"]]
+		#if debug? = yes [if verbose > 0 [print-line "point2D/make-in"]]
 		make-at ALLOC_TAIL(parent) x y
 	]
 	
 	push: func [
-		x		[integer!]
-		y		[integer!]
-		return: [red-pair!]
+		x		[float32!]
+		y		[float32!]
+		return: [red-point2D!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "pair/push"]]
+		#if debug? = yes [if verbose > 0 [print-line "point2D/push"]]
 		make-at stack/push* x y
 	]
 
 	get-value-int: func [
 		int		[red-integer!]
-		return: [integer!]
+		return: [float32!]
 		/local
 			fl	[red-float!]
 	][
 		either TYPE_OF(int) = TYPE_FLOAT [
 			fl: as red-float! int
-			as-integer fl/value
+			as-float32 fl/value
 		][
-			int/value
+			as-float32 int/value
 		]
 	]
 
@@ -144,25 +144,26 @@ pair: context [
 		proto	[red-value!]
 		spec	[red-value!]
 		type	[integer!]
-		return:	[red-pair!]
+		return:	[red-point2D!]
 		/local
 			int	 [red-integer!]
 			int2 [red-integer!]
 			fl	 [red-float!]
-			x	 [integer!]
-			y	 [integer!]
-			val	 [red-value!]
+			x	 [float32!]
+			y	 [float32!]
+			val	 [red-value! value]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "pair/make"]]
+		#if debug? = yes [if verbose > 0 [print-line "point2D/make"]]
 
 		switch TYPE_OF(spec) [
 			TYPE_INTEGER [
 				int: as red-integer! spec
-				push int/value int/value
+				x: as-float32 int/value
+				push x x
 			]
 			TYPE_FLOAT [
 				fl: as red-float! spec
-				x: as-integer fl/value
+				x: as-float32 fl/value
 				push x x
 			]
 			TYPE_BLOCK [
@@ -180,51 +181,48 @@ pair: context [
 				push x y
 			]
 			TYPE_STRING [
-				y: 0
-				val: as red-value! :y
 				copy-cell spec val					;-- save spec, load-value will change it
-
 				proto: load-value as red-string! spec
-				if TYPE_OF(proto) <> TYPE_PAIR [
-					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_PAIR val]
+				if TYPE_OF(proto) <> TYPE_POINT2D [
+					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_POINT2D val]
 				]
 				proto
 			]
-			TYPE_PAIR [as red-pair! spec]
+			TYPE_POINT2D [as red-point2D! spec]
 			default [
-				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_PAIR spec]
+				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_POINT2D spec]
 				null
 			]
 		]
 	]
 	
 	random: func [
-		pair	[red-pair!]
+		point2D	[red-point2D!]
 		seed?	[logic!]
 		secure? [logic!]
 		only?   [logic!]
 		return: [red-value!]
 		/local
-			n	 [integer!]
+			n	[integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "pair/random"]]
+		#if debug? = yes [if verbose > 0 [print-line "point2D/random"]]
 
 		either seed? [
-			_random/srand pair/x xor pair/y
-			pair/header: TYPE_UNSET
+			_random/srand (as-integer point2D/x) xor (as-integer point2D/y)
+			point2D/header: TYPE_UNSET
 		][
-			unless zero? pair/x [
-				pair/x: _random/int-uniform-distr secure? pair/x
+			if point2D/x <> as-float32 0.0 [
+				point2D/x: as-float32 _random/int-uniform-distr secure? as-integer point2D/x
 			]
-			unless zero? pair/y [
-				pair/y: _random/int-uniform-distr secure? pair/y
+			if point2D/y <> as-float32 0.0 [
+				point2D/y: as-float32 _random/int-uniform-distr secure? as-integer point2D/y
 			]
 		]
-		as red-value! pair
+		as red-value! point2D
 	]
 	
 	form: func [
-		pair	[red-pair!]
+		point2D	[red-point2D!]
 		buffer	[red-string!]
 		arg		[red-value!]
 		part 	[integer!]
@@ -232,21 +230,23 @@ pair: context [
 		/local
 			formed [c-string!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "pair/form"]]
+		#if debug? = yes [if verbose > 0 [print-line "point2D/form"]]
 
-		formed: integer/form-signed pair/x
+		string/append-char GET_BUFFER(buffer) as-integer #"("
+		formed: float/form-float as-float point2D/x float/FORM_POINT_32
 		string/concatenate-literal buffer formed
 		part: part - length? formed						;@@ optimize by removing length?
 		
-		string/append-char GET_BUFFER(buffer) as-integer #"x"
+		string/concatenate-literal buffer ", "
 		
-		formed: integer/form-signed pair/y
+		formed: float/form-float as-float point2D/y float/FORM_POINT_32
 		string/concatenate-literal buffer formed
-		part - 1 - length? formed						;@@ optimize by removing length?
+		string/append-char GET_BUFFER(buffer) as-integer #")"
+		part - 4 - length? formed						;@@ optimize by removing length?
 	]
 	
 	mold: func [
-		pair	[red-pair!]
+		point2D	[red-point2D!]
 		buffer	[red-string!]
 		only?	[logic!]
 		all?	[logic!]
@@ -256,13 +256,13 @@ pair: context [
 		indent	[integer!]		
 		return: [integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "pair/mold"]]
+		#if debug? = yes [if verbose > 0 [print-line "point2D/mold"]]
 
-		form pair buffer arg part
+		form point2D buffer arg part
 	]
-	
+
 	eval-path: func [
-		parent	[red-pair!]								;-- implicit type casting
+		parent	[red-point2D!]								;-- implicit type casting
 		element	[red-value!]
 		value	[red-value!]
 		path	[red-value!]
@@ -277,11 +277,12 @@ pair: context [
 			obj	 [red-object!]
 			old	 [red-value!]
 			int	 [red-integer!]
+			fp	 [red-float!]
 			axis [integer!]
 			type [integer!]
 			evt? [logic!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "pair/eval-path"]]
+		#if debug? = yes [if verbose > 0 [print-line "point2D/eval-path"]]
 		
 		switch TYPE_OF(element) [
 			TYPE_INTEGER [
@@ -296,7 +297,7 @@ pair: context [
 		]
 		either value <> null [
 			type: TYPE_OF(value)
-			if type <> TYPE_INTEGER [
+			if all [type <> TYPE_INTEGER type <> TYPE_FLOAT][
 				fire [TO_ERROR(script invalid-type) datatype/push type]
 			]
 			obj: as red-object! gparent
@@ -304,38 +305,46 @@ pair: context [
 			if evt? [old: stack/push as red-value! parent]
 			
 			int: as red-integer! stack/arguments
-			int/header: TYPE_INTEGER
-			either axis = 1 [parent/x: int/value][parent/y: int/value]
+			either TYPE_OF(int) = TYPE_INTEGER [
+				int/header: TYPE_INTEGER
+				either axis = 1 [parent/x: as-float32 int/value][parent/y: as-float32 int/value]
+			][
+				fp: as red-float! int
+				fp/header: TYPE_FLOAT
+				either axis = 1 [parent/x: as-float32 fp/value][parent/y: as-float32 fp/value]
+			]
 			if evt? [
 				object/fire-on-set as red-object! gparent as red-word! p-item old as red-value! parent
 				stack/pop 1								;-- avoid moving stack top
 			]
-			as red-value! int
+			stack/arguments
 		][
-			int: integer/push either axis = 1 [parent/x][parent/y]
+			fp: either axis = 1 [float/push as-float parent/x][float/push as-float parent/y]
 			stack/pop 1									;-- avoid moving stack top
-			int
+			as red-value! fp
 		]
 	]
-	
+		
 	compare: func [
-		left	[red-pair!]								;-- first operand
-		right	[red-pair!]								;-- second operand
-		op		[integer!]								;-- type of comparison
+		left	[red-point2D!]								;-- first operand
+		right	[red-point2D!]								;-- second operand
+		op		[integer!]									;-- type of comparison
 		return:	[integer!]
 		/local
 			diff [integer!]
+			delta[float32!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "pair/compare"]]
+		#if debug? = yes [if verbose > 0 [print-line "point2D/compare"]]
 
-		if TYPE_OF(right) <> TYPE_PAIR [RETURN_COMPARE_OTHER]
-		diff: left/x - right/x
-		if zero? diff [diff: left/y - right/y]
+		if TYPE_OF(right) <> TYPE_POINT2D [RETURN_COMPARE_OTHER]
+		delta: left/x - right/x
+		if float/almost-equal 0.0 as-float delta [delta: left/y - right/y]
+		diff: as-integer delta
 		SIGN_COMPARE_RESULT(diff 0)
 	]
-
+comment {
 	round: func [
-		pair		[red-pair!]
+		point2D		[red-point2D!]
 		scale		[red-integer!]
 		_even?		[logic!]
 		down?		[logic!]
@@ -347,131 +356,134 @@ pair: context [
 		/local
 			int		[red-integer!]
 			value	[red-value!]
-			p		[red-pair!]
+			p		[red-point2D!]
 			scalexy?[logic!]
 			y		[integer!]
 	][
 		if TYPE_OF(scale) = TYPE_MONEY [
 			fire [TO_ERROR(script not-related) stack/get-call datatype/push TYPE_MONEY]
 		]
-		scalexy?: all [OPTION?(scale) TYPE_OF(scale) = TYPE_PAIR]
+		scalexy?: all [OPTION?(scale) TYPE_OF(scale) = TYPE_POINT2D]
 		if scalexy? [
-			p: as red-pair! scale
+			p: as red-point2D! scale
 			y: p/y
 			scale/header: TYPE_INTEGER
 			scale/value: p/x
 		]
 		
-		int: integer/push pair/x
+		int: integer/push point2D/x
 		value: integer/round as red-value! int scale _even? down? half-down? floor? ceil? half-ceil?
-		pair/x: get-value-int as red-integer! value
+		point2D/x: get-value-int as red-integer! value
 		
 		if scalexy? [scale/value: y]
-		int/value: pair/y
+		int/value: point2D/y
 		value: integer/round as red-value! int scale _even? down? half-down? floor? ceil? half-ceil?
-		pair/y: get-value-int as red-integer! value
+		point2D/y: get-value-int as red-integer! value
 		
-		as red-value! pair
+		as red-value! point2D
 	]
-
+}
 	remainder: func [return: [red-value!]][
-		#if debug? = yes [if verbose > 0 [print-line "pair/remainder"]]
+		#if debug? = yes [if verbose > 0 [print-line "point2D/remainder"]]
 		as red-value! do-math OP_REM
 	]
 	
 	absolute: func [
-		return: [red-pair!]
+		return: [red-point2D!]
 		/local
-			pair [red-pair!]
+			point2D [red-point2D!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "pair/absolute"]]
+		#if debug? = yes [if verbose > 0 [print-line "point2D/absolute"]]
 
-		pair: as red-pair! stack/arguments
-		pair/x: integer/abs pair/x
-		pair/y: integer/abs pair/y
-		pair
+		point2D: as red-point2D! stack/arguments
+		point2D/x: as-float32 float/abs as-float point2D/x
+		point2D/y: as-float32 float/abs as-float point2D/y
+		point2D
 	]
 	
 	add: func [return: [red-value!]][
-		#if debug? = yes [if verbose > 0 [print-line "pair/add"]]
+		#if debug? = yes [if verbose > 0 [print-line "point2D/add"]]
 		as red-value! do-math OP_ADD
 	]
 	
 	divide: func [return: [red-value!]][
-		#if debug? = yes [if verbose > 0 [print-line "pair/divide"]]
+		#if debug? = yes [if verbose > 0 [print-line "point2D/divide"]]
 		as red-value! do-math OP_DIV
 	]
 		
 	multiply: func [return:	[red-value!]][
-		#if debug? = yes [if verbose > 0 [print-line "pair/multiply"]]
+		#if debug? = yes [if verbose > 0 [print-line "point2D/multiply"]]
 		as red-value! do-math OP_MUL
 	]
 	
 	subtract: func [return:	[red-value!]][
-		#if debug? = yes [if verbose > 0 [print-line "pair/subtract"]]
+		#if debug? = yes [if verbose > 0 [print-line "point2D/subtract"]]
 		as red-value! do-math OP_SUB
 	]
 	
 	and~: func [return:	[red-value!]][
-		#if debug? = yes [if verbose > 0 [print-line "pair/and~"]]
+		#if debug? = yes [if verbose > 0 [print-line "point2D/and~"]]
 		as red-value! do-math OP_AND
 	]
 
 	or~: func [return: [red-value!]][
-		#if debug? = yes [if verbose > 0 [print-line "pair/or~"]]
+		#if debug? = yes [if verbose > 0 [print-line "point2D/or~"]]
 		as red-value! do-math OP_OR
 	]
 
 	xor~: func [return:	[red-value!]][
-		#if debug? = yes [if verbose > 0 [print-line "pair/xor~"]]
+		#if debug? = yes [if verbose > 0 [print-line "point2D/xor~"]]
 		as red-value! do-math OP_XOR
 	]
 	
 	negate: func [
-		return: [red-pair!]
+		return: [red-point2D!]
 		/local
-			pair [red-pair!]
+			point2D [red-point2D!]
 	][
-		pair: as red-pair! stack/arguments
-		pair/x: 0 - pair/x
-		pair/y: 0 - pair/y
-		pair
+		point2D: as red-point2D! stack/arguments
+		point2D/x: as-float32 0.0 - point2D/x
+		point2D/y: as-float32 0.0 - point2D/y
+		point2D
 	]
 	
 	pick: func [
-		pair	[red-pair!]
+		point2D	[red-point2D!]
 		index	[integer!]
 		boxed	[red-value!]
 		return:	[red-value!]
+		/local
+			f   [float32!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "pair/pick"]]
+		#if debug? = yes [if verbose > 0 [print-line "point2D/pick"]]
 
-		if TYPE_OF(boxed) = TYPE_WORD [index: get-named-index as red-word! boxed as red-value! pair]
+		if TYPE_OF(boxed) = TYPE_WORD [index: get-named-index as red-word! boxed as red-value! point2D]
 		if all [index <> 1 index <> 2][fire [TO_ERROR(script out-of-range) boxed]]
-		as red-value! integer/push either index = 1 [pair/x][pair/y]
+		f: either index = 1 [point2D/x][point2D/y]
+		as red-value! float/push as-float f
 	]
 	
 	reverse: func [
-		pair	[red-pair!]
+		point2D	[red-point2D!]
 		part	[red-value!]
 		skip    [red-value!]
 		return:	[red-value!]
 		/local
-			tmp [integer!]
+			tmp [float32!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "pair/reverse"]]
+		#if debug? = yes [if verbose > 0 [print-line "point2D/reverse"]]
 	
-		tmp: pair/x
-		pair/x: pair/y
-		pair/y: tmp
-		as red-value! pair
+		tmp: point2D/x
+		point2D/x: point2D/y
+		point2D/y: tmp
+		as red-value! point2D
 	]
-	
+
 	init: does [
 		datatype/register [
-			TYPE_PAIR
+			TYPE_POINT2D
 			TYPE_VALUE
-			"pair!"
+			"point2D!"
 			;-- General actions --
 			:make
 			:random
@@ -490,7 +502,7 @@ pair: context [
 			:negate
 			null			;power
 			:remainder
-			:round
+			null ;:round
 			:subtract
 			null			;even?
 			null			;odd?

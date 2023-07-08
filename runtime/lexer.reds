@@ -15,6 +15,8 @@ Red/System [
 	}
 ]
 
+#define GET_BLOCK_TYPE(p) (p/y and FFFFh)
+
 lexer: context [
 	verbose: 0
 
@@ -113,7 +115,7 @@ lexer: context [
 	
 	float-classes: #{
 		0000000000000000000000000000000000000000000000000000000000000000
-		0000000000000000000000010401040002020202020202020202000000000000
+		0000000000000005000000010001040002020202020202020202000000000000
 		0000000000030000000000000000000000000000000000000000000000000000
 		00000000000300
 	}
@@ -650,7 +652,7 @@ lexer: context [
 		return: [integer!]
 		/local	
 			p [red-triple!]
-			len	stype t [integer!]
+			len	stype t py [integer!]
 			do-error [subroutine!]
 			triple?	 [logic!]
 			head	 [red-value!]
@@ -661,22 +663,24 @@ lexer: context [
 		]
 		p: as red-triple! lex/head - 1
 		triple?: all [lex/buffer <= p TYPE_OF(p) = TYPE_TRIPLE]
+		py: GET_BLOCK_TYPE(p)
 		if all [not quiet? lex/fun-ptr <> null][
-			t: either all [triple? any [type <= 0 all [type = TYPE_PAREN p/y <> type]]][p/y][type]
+			t: either all [triple? any [type <= 0 all [type = TYPE_PAREN py <> type]]][py][type]
 			unless fire-event lex EVT_CLOSE t null s e [return 0]
 		]
 		unless triple? [do-error]						;-- postpone error checking after callback call
-		stype: p/y
+		stype: py
 		either type = -1 [type: stype][					;-- no closing type provided, use saved one
 			if all [
 				any [
 					type <> TYPE_SET_PATH 
 					all [type = TYPE_SET_PATH any [stype = TYPE_LIT_PATH stype = TYPE_GET_PATH]]
 				]
-				not all [stype = TYPE_MAP type = TYPE_PAREN];-- paren can close a map
+				stype <> TYPE_POINT2D
+				not all [stype = TYPE_MAP type = TYPE_PAREN];-- paren can close a map or a point
 				stype <> type							;-- saved type <> closing type => error
 			][
-				if triple? [type: p/y]
+				if triple? [type: py]
 				do-error
 			]
 		]
@@ -684,12 +688,19 @@ lexer: context [
 		len: (as-integer lex/tail - lex/head) >> 4
 		head: lex/head
 		lex/head: as cell! p - p/x
-		store-any-block as cell! p head len type null	;-- p slot gets overwritten here
+		either stype = TYPE_POINT2D [
+			if lex/load? [
+				if p/y >> 16 <> 1 [throw-error lex s e TYPE_POINT2D]
+				make-point2D as cell! p head lex s e
+			]
+		][
+			store-any-block as cell! p head len type null	;-- p slot gets overwritten here
+		]
 		lex/tail: head
 		lex/scanned: type
 		
 		p: as red-triple! lex/head - 1					;-- get parent series
-		type: p/y
+		type: GET_BLOCK_TYPE(p)
 		either all [
 			lex/buffer <= p
 			not any [type = TYPE_BLOCK type = TYPE_PAREN type = TYPE_MAP]
@@ -840,6 +851,28 @@ lexer: context [
 		string/decode-url str :vl
 		str/node: vl/node
 		str/cache: null
+	]
+	
+	make-point2D: func [slot [red-value!] head [red-value!] lex [state!] s [byte-ptr!] e [byte-ptr!]
+		/local
+			int		[red-integer!]
+			fp		[red-float!]
+			x y t	[float32!]
+			get-f32 [subroutine!]
+	][
+		get-f32: [
+			switch TYPE_OF(fp) [
+				TYPE_FLOAT   [t: as-float32 fp/value]
+				TYPE_INTEGER [int: as red-integer! fp  t: as-float32 int/value]
+				default		 [throw-error lex s e TYPE_POINT2D]
+			]
+			t
+		]
+		fp: as red-float! head
+		x: get-f32
+		fp: fp + 1
+		y: get-f32
+		point2D/make-at slot x y
 	]
 	
 	grab-integer: func [s e [byte-ptr!] flags [integer!] dst err [int-ptr!]
@@ -1092,25 +1125,33 @@ lexer: context [
 		/local
 			blk	 [red-block!]
 			value tail [red-value!]
+			type [integer!]
 	][
-		if TYPE_MAP = close-block lex s e TYPE_PAREN no [
-			lex/scanned: TYPE_MAP
-			if lex/load? [
-				blk: as red-block! lex/tail - 1
-				if (block/rs-length? blk) % 2 <> 0 [
-					throw-error lex null e TYPE_MAP
-				]
-				value: block/rs-head blk
-				tail:  block/rs-tail blk
-				while [value < tail][
-					unless map/valid-key? TYPE_OF(value) [
-						lex/tail: as red-value! blk		;-- remove the temp body from loaded values
-						throw-error lex s e TYPE_MAP
+		type: close-block lex s e TYPE_PAREN no
+		switch type [
+			TYPE_MAP [
+				lex/scanned: type
+				if lex/load? [
+					blk: as red-block! lex/tail - 1
+					if (block/rs-length? blk) % 2 <> 0 [
+						throw-error lex null e type
 					]
-					value: value + 2
+					value: block/rs-head blk
+					tail:  block/rs-tail blk
+					while [value < tail][
+						unless map/valid-key? TYPE_OF(value) [
+							lex/tail: as red-value! blk		;-- remove the temp body from loaded values
+							throw-error lex s e type
+						]
+						value: value + 2
+					]
+					map/make-at as cell! blk blk block/rs-length? blk
 				]
-				map/make-at as cell! blk blk block/rs-length? blk
 			]
+			TYPE_POINT2D [
+				lex/scanned: type
+			]
+			default [0]
 		]
 		lex/in-pos: e + 1								;-- skip )
 	]
@@ -1329,6 +1370,19 @@ lexer: context [
 			]
 		]
 		lex/in-pos: e + 1								;-- skip ending delimiter
+	]
+	
+	scan-comma: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
+		/local
+			p [red-triple!]
+	][
+		p: as red-triple! lex/head - 1
+		switch GET_BLOCK_TYPE(p) [
+			TYPE_POINT2D [p/y: p/y and FFFFh or (p/y >> 16 + 1 << 16)  exit] ;-- increments counter
+			TYPE_PAREN	 [p/y: TYPE_POINT2D or 10000h]	;-- count 1 for the first comma
+			default		 [throw-error lex s e TYPE_POINT2D]
+		]
+		lex/in-pos: e + 1								;-- skip comma
 	]
 	
 	load-integer: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
@@ -2269,7 +2323,7 @@ lexer: context [
 				#if debug? = yes [if verbose > 0 [?? state]]
 			]
 			s: start + offset							;-- real token position start
-			assert state <= T_REF
+			assert state <= T_COMMA
 			assert s <= p
 			
 			lex/in-pos:  p
@@ -2436,10 +2490,10 @@ lexer: context [
 		if slots > 0 [
 			p: as red-triple! either lex/buffer < lex/head [lex/head - 1][lex/buffer]
 			either all [not scan? lex/entry = S_PATH lex/scanned <> TYPE_ERROR][
-				lex/scanned: p/y						;-- any-path prescanning case
+				lex/scanned: GET_BLOCK_TYPE(p)			;-- any-path prescanning case
 			][
 				if TYPE_OF(p) = TYPE_TRIPLE [			;-- unclosed any-block series case
-					lex/closing: p/y
+					lex/closing: GET_BLOCK_TYPE(p)
 					assert system/thrown = 0
 					catch RED_THROWN_ERROR [throw-error lex lex/input + p/z lex/in-end ERR_CLOSING]
 					either system/thrown <= LEX_ERR [
@@ -2594,6 +2648,7 @@ lexer: context [
 			null				:load-hex				;-- T_HEX
 			null				:load-rawstring			;-- T_RAWSTRING
 			null				:load-ref				;-- T_REF
+			:scan-comma			null					;-- T_COMMA
 		]
 	]
 

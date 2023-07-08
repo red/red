@@ -111,6 +111,7 @@ context [
 		T_HEX				TYPE_INTEGER		;-- 95
 		T_RAWSTRING			TYPE_STRING			;-- 96
 		T_REF				TYPE_REF			;-- 97
+		T_COMMA				-					;-- 98
 	]
 
 	CSV-table: %../docs/lexer/lexer-FSM.csv
