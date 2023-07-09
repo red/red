@@ -690,9 +690,12 @@ lexer: context [
 		lex/head: as cell! p - p/x
 		either stype = TYPE_POINT2D [
 			if p/y >> 16 <> 1 [throw-error lex s e TYPE_POINT2D]
-			either lex/load? [make-point2D as cell! p head lex s e][p/header: TYPE_POINT2D] ;-- overwrite the triple header with correct type (scanning)
+			either lex/load? [make-point2D as cell! p head lex s e][
+				check-point lex s e
+				p/header: TYPE_POINT2D					;-- overwrite the triple header with correct type (scanning)
+			]
 		][
-			store-any-block as cell! p head len type null	;-- p slot gets overwritten here
+			store-any-block as cell! p head len type null ;-- p slot gets overwritten here
 		]
 		lex/tail: head
 		lex/scanned: type
@@ -849,6 +852,28 @@ lexer: context [
 		string/decode-url str :vl
 		str/node: vl/node
 		str/cache: null
+	]
+	
+	check-point: func [lex [state!] s [byte-ptr!] e [byte-ptr!]
+		/local
+			p [red-triple!]
+			do-error skip-ws [subroutine!]
+	][
+		do-error: [throw-error lex s e TYPE_POINT2D]
+		skip-ws:  [until [s: s + 1 any [s = e s/1 <> #" "]]]
+		
+		p: as red-triple! either lex/buffer < lex/head [lex/head - 1][lex/head]
+		if TYPE_OF(p) <> TYPE_TRIPLE [do-error]
+		s: lex/input + p/z
+
+		while [s < e][
+			until [s: s + 1 any [s = e s/1 = #" "]]			;-- find a space
+			if all [s < e s/0 <> #","][						;-- if space is preceded by comma, found!
+				skip-ws										;-- skip all spaces
+				if s/1 <> #"," [do-error]					;-- comma should follow, otherwise error!
+			]
+			skip-ws											;-- skip the spaces after the comma
+		]
 	]
 	
 	make-point2D: func [slot [red-value!] head [red-value!] lex [state!] s [byte-ptr!] e [byte-ptr!]
@@ -1374,7 +1399,7 @@ lexer: context [
 	][
 		p: as red-triple! lex/head - 1
 		switch GET_BLOCK_TYPE(p) [
-			TYPE_POINT2D [p/y: p/y and FFFFh or (p/y >> 16 + 1 << 16)  exit] ;-- increments counter
+			TYPE_POINT2D [p/y: p/y and FFFFh or (p/y >> 16 + 1 << 16)] ;-- increments counter
 			TYPE_PAREN	 [p/y: TYPE_POINT2D or 10000h]	;-- count 1 for the first comma
 			default		 [throw-error lex s e TYPE_POINT2D]
 		]
