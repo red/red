@@ -289,7 +289,7 @@ lexer: context [
 		mark: [integer-end | ws-no-count | end | (pos: s throw-error)] :mark
 	]
 
-	tuple-rule: [(type: tuple!) byte dot byte 1 12 [dot byte] e: sticky-word-rule]
+	tuple-rule: [(type: tuple!) byte dot byte 1 10 [dot byte] e: sticky-word-rule]
 	
 	time-rule: [
 		s: positive-integer-rule [
