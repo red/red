@@ -61,6 +61,12 @@ pair: context [
 			]
 			TYPE_POINT2D [
 				p: as red-point2D! right
+				if any [
+					float/special? as-float p/x
+					float/special? as-float p/y
+				][
+					fire [TO_ERROR(script invalid-arg) right]
+				]
 				switch op [
 					OP_MUL [
 						left/x: as-integer (as-float32 left/x) * p/x
@@ -202,6 +208,12 @@ pair: context [
 			]
 			TYPE_POINT2D [
 				p: as red-point2D! spec
+				if any [
+					float/special? as-float p/x
+					float/special? as-float p/y
+				][
+					fire [TO_ERROR(script invalid-arg) spec]
+				]
 				push as-integer p/x as-integer p/y
 			]
 			TYPE_STRING [
