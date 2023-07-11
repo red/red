@@ -33,6 +33,7 @@ lexer: context [
 	rs?:	no 										;-- if TRUE, do lexing for Red/System
 	neg?:	no										;-- if TRUE, denotes a negative number value
 	base:	16										;-- binary base
+	list:	none
 	otag: 	none
 	ot:		none
 	ct:		none
@@ -111,7 +112,7 @@ lexer: context [
 	caret-Lchar:	charset [#"^(61)" - #"^(7A)"]
 	non-printable-char: charset [#"^(00)" - #"^(1F)"]
 	pair-end:		charset {^{"[]();:/}
-	integer-end:	charset {^{"[]();:xX</}
+	integer-end:	charset {^{"[]();:xX</,}
 	path-end:		charset {^{"[]();}
 	file-end:		charset {^{[]();}
 	date-sep:		charset "/-"
@@ -453,7 +454,7 @@ lexer: context [
 	]
 	
 	decimal-number-rule: [
-		[dot | comma] digit any [digit | #"'" digit]
+		dot digit any [digit | #"'" digit]
 		opt decimal-exp-rule e: (type: decimal!)
 	]
 
@@ -464,8 +465,21 @@ lexer: context [
 	
 	money-rule: [
 		(neg?: no) opt [#"-" (neg?: yes) | #"+"] 
-		s: opt [3 alpha] #"$" digit any [digit | #"'" digit] opt [[dot | comma] some digit]
+		s: opt [3 alpha] #"$" digit any [digit | #"'" digit] opt [dot some digit]
 		e: (type: money!)
+	]
+	
+	dec-or-int: [s: integer-number-rule opt decimal-number-rule]
+	
+	point-rule: [
+		#"("
+		mark: any-ws dec-or-int any-ws comma :mark
+		(list: make block! 4) 
+		any-ws s: dec-or-int any-ws comma		(append list load-number copy/part s e)
+		any-ws s: dec-or-int any-ws				(append list load-number copy/part s e)
+		opt [comma any-ws s: dec-or-int any-ws	(append list load-number copy/part s e)]
+		(value: append copy [#!point!] list)
+		#")"
 	]
 	
 	block-rule: [#"[" (stack/allocate block! 10) any-value #"]" (value: stack/pop block!)]
@@ -651,6 +665,7 @@ lexer: context [
 			| slash-rule	  (stack/push to type		 copy/part s e)
 			| file-rule		  (stack/push value)
 			| char-rule		  (stack/push decode-UTF8-char value)
+			| point-rule	  (stack/push value)
 			| block-rule	  (stack/push value)
 			| paren-rule	  (stack/push value)
 			| string-rule	  (stack/push load-string s e)

@@ -324,8 +324,8 @@ red: context [
 	percent-value?: func [value][#"%" = last value]
 	
 	date-special?:  func [value][all [block? value value/1 = #!date!]]
-	
-	map-value?: func [value][all [block? value value/1 = #!map!]]
+	map-value?:     func [value][all [block? value value/1 = #!map!]]
+	point-value?:   func [value][all [block? value value/1 = #!point!]]
 	
 	insert-lf: func [pos][
 		new-line skip tail output pos yes
@@ -1703,7 +1703,7 @@ red: context [
 
 	comp-literal: func [
 		/inactive /with val
-		/local value char? special? percent? map? tuple? money? ref? dt-special? name w make-block type idx zone
+		/local value char? special? percent? map? tuple? money? ref? dt-special? point? name w make-block type idx zone
 	][
 		make-block: [
 			value: to block! value
@@ -1716,6 +1716,7 @@ red: context [
 		value: either with [val][pc/1]					;-- val can be NONE
 		map?: map-value? :value
 		dt-special?: date-special? value
+		point?: point-value? value
 
 		either any [
 			all [
@@ -1732,6 +1733,7 @@ red: context [
 			scalar? :value
 			map?
 			dt-special?
+			point?
 		][
 			case [
 				char? [
@@ -1830,6 +1832,13 @@ red: context [
 					emit 'date/push
 					emit reduce [encode-date value encode-UTC-time value/time value/zone]
 					insert-lf -4
+				]
+				point? [
+					type: pick [point2D point3D] 2 = length? value: next value
+					forall value [if integer? value/1 [value/1: to-decimal value/1]]
+					emit append to-path type 'push
+					foreach v value [emit reduce ['as-float32 either integer? v [to-decimal v][v]]]
+					insert-lf -5
 				]
 				'else [
 					emit to path! reduce [to word! form type? :value 'push]
