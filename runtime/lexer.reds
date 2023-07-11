@@ -691,7 +691,7 @@ lexer: context [
 		either stype = TYPE_POINT2D [
 			if p/y >> 16 <> 1 [throw-error lex s e TYPE_POINT2D]
 			either lex/load? [make-point2D as cell! p head lex s e][
-				check-point lex s e
+				scan-point lex s e
 				p/header: TYPE_POINT2D					;-- overwrite the triple header with correct type (scanning)
 			]
 		][
@@ -854,7 +854,7 @@ lexer: context [
 		str/cache: null
 	]
 	
-	check-point: func [lex [state!] s [byte-ptr!] e [byte-ptr!]
+	scan-point: func [lex [state!] s [byte-ptr!] e [byte-ptr!]
 		/local
 			p [red-triple!]
 			do-error skip-ws [subroutine!]
