@@ -1685,7 +1685,14 @@ Red [
 		su3-b: ["b" "B" "e" "E"]
 		su3-c: union/skip su3-a su3-b 2
 		--assert ["a" "A" "b" "B" "e" "E"] = sort/skip su3-c 2
-  
+
+	--test-- "mix-block-hash-1 issue #5344"
+		mix-1: union make hash! [1 2] [2 3]
+		--assert mix-1 = make hash! [1 2 3]
+
+	--test-- "mix-block-hash-2 issue #5344"
+		mix-2: union [1 2] make hash! [2 3]
+		--assert mix-2 = make hash! [1 2 3]
 ===end-group===
 
 ===start-group=== "change"
