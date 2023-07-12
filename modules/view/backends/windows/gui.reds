@@ -83,7 +83,7 @@ ime-open?:		no
 ime-font:		as tagLOGFONT allocate 92
 base-down-hwnd: as handle! 0
 
-dpi-factor:		100
+dpi-factor:		as float32! 1.0
 inital-dpi:		96
 log-pixels-x:	0
 log-pixels-y:	0
@@ -98,17 +98,17 @@ dark-mode?:		no
 pShouldAppsUseDarkMode: as int-ptr! 0
 
 dpi-scale: func [
-	num		[integer!]
+	num		[float32!]
 	return: [integer!]
 ][
-	num * dpi-factor / 100
+	as-integer num * dpi-factor
 ]
 
 dpi-unscale: func [
-	num		[integer!]
-	return: [integer!]
+	num		[float32!]
+	return: [float32!]
 ][
-	num * 100 / dpi-factor
+	num / dpi-factor
 ]
 
 clean-up: does [
@@ -327,8 +327,8 @@ get-text-size: func [
 		GetClientRect hWnd :rc
 		render-text values hwnd dc :rc str :bbox
 		if pair <> null [
-			pair/x: as integer! bbox/width * (as float32! 98.0) / (as float32! dpi-factor)
-			pair/y: as integer! bbox/height * (as float32! 100.0) / (as float32! dpi-factor)
+			pair/x: as integer! bbox/width * as float32! 0.98 / dpi-factor
+			pair/y: as integer! bbox/height / dpi-factor
 		]
 	][	;-- native controls use GDI to draw the text, so we use GDI function to measure the text size
 		font: as red-object! values + FACE_OBJ_FONT
@@ -345,8 +345,8 @@ get-text-size: func [
 		GetTextExtentPoint32 dc c-str wcslen c-str :size
 
 		if pair <> null [
-			pair/x: size/width + 1 * 100 / dpi-factor	;-- +1 to compensate the precision loss
-			pair/y: size/height * 100 / dpi-factor
+			pair/x: (size/width + 1) * 96 / log-pixels-x	;-- +1 to compensate the precision loss
+			pair/y: size/height * 96 / log-pixels-x
 		]
 	]
 
@@ -569,7 +569,7 @@ update-caret: func [
 	size: as red-pair! values + FACE_OBJ_SIZE
 	owner: as handle! GetWindowLong hWnd wc-offset - 24
 	CreateCaret owner null size/x size/y
-	change-offset hWnd as red-pair! values + FACE_OBJ_OFFSET caret
+	change-offset hWnd as red-point2D! values + FACE_OBJ_OFFSET caret
 ]
 
 update-selection: func [
@@ -831,7 +831,7 @@ get-dpi: func [
 		log-pixels-y: GetDeviceCaps hScreen 90			;-- LOGPIXELSY
 	]
 	inital-dpi: log-pixels-x
-	dpi-factor: log-pixels-x * 100 / 96
+	dpi-factor: (as float32! log-pixels-x) / as float32! 96.0
 ]
 
 get-metrics: func [
@@ -1306,7 +1306,7 @@ get-screen-size: func [
 ][
 	screen-size-x: GetDeviceCaps hScreen HORZRES
 	screen-size-y: GetDeviceCaps hScreen VERTRES
-	pair/push screen-size-x * 100 / dpi-factor screen-size-y * 100 / dpi-factor
+	pair/push screen-size-x * 96 / log-pixels-x screen-size-y * 96 / log-pixels-x
 ]
 
 dwm-composition-enabled?: func [
@@ -1472,7 +1472,7 @@ OS-make-view: func [
 		values	  [red-value!]
 		type	  [red-word!]
 		str		  [red-string!]
-		offset	  [red-pair!]
+		offset	  [red-point2D!]
 		size	  [red-pair!]
 		data	  [red-block!]
 		menu	  [red-block!]
@@ -1511,7 +1511,7 @@ OS-make-view: func [
 
 	type:	  as red-word!		values + FACE_OBJ_TYPE
 	str:	  as red-string!	values + FACE_OBJ_TEXT
-	offset:   as red-pair!		values + FACE_OBJ_OFFSET
+	offset:   as red-point2D!	values + FACE_OBJ_OFFSET
 	size:	  as red-pair!		values + FACE_OBJ_SIZE
 	show?:	  as red-logic!		values + FACE_OBJ_VISIBLE?
 	enabled?: as red-logic!		values + FACE_OBJ_ENABLED?
@@ -1687,8 +1687,8 @@ OS-make-view: func [
 			if size/y < 0 [size/y: 200]
 			rc/left: 0
 			rc/top: 0
-			rc/right:  dpi-scale size/x
-			rc/bottom: dpi-scale size/y
+			rc/right:  dpi-scale as float32! size/x
+			rc/bottom: dpi-scale as float32! size/y
 			AdjustWindowRectEx rc flags menu-bar? menu window ws-flags
 			rc/right: rc/right - rc/left
 			rc/bottom: rc/bottom - rc/top
@@ -1729,8 +1729,8 @@ OS-make-view: func [
 	off-x:	dpi-scale offset/x
 	off-y:	dpi-scale offset/y
 	if sym <> window [
-		rc/right:	dpi-scale size/x
-		rc/bottom:	dpi-scale size/y
+		rc/right:	dpi-scale as float32! size/x
+		rc/bottom:	dpi-scale as float32! size/y
 	]
 
 	handle: CreateWindowEx
@@ -1894,7 +1894,7 @@ change-size: func [
 		max		[integer!]
 		msg		[integer!]
 		layer?	[logic!]
-		pos		[red-pair!]
+		pos		[red-point2D!]
 		sz-x	[integer!]
 		sz-y	[integer!]
 ][
@@ -1910,12 +1910,12 @@ change-size: func [
 	]
 
 	if layer? [
-		pos: as red-pair! vals + FACE_OBJ_OFFSET
+		pos: as red-point2D! vals + FACE_OBJ_OFFSET
 		process-layered-region hWnd size pos as red-block! vals + FACE_OBJ_PANE pos null layer?
 	]
 
-	sz-x: dpi-scale size/x
-	sz-y: dpi-scale size/y
+	sz-x: dpi-scale as float32! size/x
+	sz-y: dpi-scale as float32! size/y
 	SetWindowPos 
 		hWnd
 		as handle! 0
@@ -1968,7 +1968,7 @@ set-ime-pos: func [
 
 change-offset: func [
 	hWnd [handle!]
-	pos  [red-pair!]
+	pos  [red-point2D!]
 	type [integer!]
 	/local
 		owner	[handle!]
@@ -2447,7 +2447,7 @@ change-parent: func [
 		bool		[red-logic!]
 		type		[red-word!]
 		values		[red-value!]
-		offset		[red-pair!]
+		offset		[red-point2D!]
 		pt			[tagPOINT value]
 		x			[integer!]
 		y			[integer!]
@@ -2484,7 +2484,7 @@ change-parent: func [
 			pos: GetWindowLong hWnd wc-offset - 8
 			x: WIN32_LOWORD(pos)
 			y: WIN32_HIWORD(pos)
-			offset: as red-pair! values + FACE_OBJ_OFFSET
+			offset: as red-point2D! values + FACE_OBJ_OFFSET
 			pt/x: dpi-scale offset/x
 			pt/y: dpi-scale offset/y
 			position-base hWnd handle :pt
@@ -2614,7 +2614,7 @@ OS-update-view: func [
 	flags: int/value
 
 	if flags and FACET_FLAG_OFFSET <> 0 [
-		change-offset hWnd as red-pair! values + FACE_OBJ_OFFSET type
+		change-offset hWnd as red-point2D! values + FACE_OBJ_OFFSET type
 	]
 	if flags and FACET_FLAG_SIZE <> 0 [
 		change-size hWnd values type
@@ -2811,8 +2811,8 @@ OS-to-image: func [
 	screen?: screen = sym
 	either screen? [
 		size: as red-pair! get-node-facet face/ctx FACE_OBJ_SIZE
-		width: dpi-scale size/x
-		height: dpi-scale size/y
+		width: dpi-scale as float32! size/x
+		height: dpi-scale as float32! size/y
 		rc/left: 0
 		rc/top: 0
 		dc: hScreen

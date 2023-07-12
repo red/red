@@ -72,19 +72,19 @@ process-tab-change: func [
 adjust-parent: func [									;-- prevent tabcontrol from having children
 	hWnd   [handle!]
 	parent [handle!]
-	x	   [integer!]
-	y	   [integer!]
+	x	   [float32!]
+	y	   [float32!]
 	/local
 		values [red-value!]
 		type   [red-word!]
-		pos	   [red-pair!]
+		pos	   [red-point2D!]
 ][
 	values: get-face-values parent
 	type: as red-word! values + FACE_OBJ_TYPE
 
 	if tab-panel = symbol/resolve type/symbol [
 		SetParent hWnd GetParent parent
-		pos: as red-pair! values + FACE_OBJ_OFFSET
+		pos: as red-point2D! values + FACE_OBJ_OFFSET
 		SetWindowPos
 			hWnd
 			null
@@ -199,7 +199,7 @@ update-tab-contents: func [
 		values [red-value!]
 		show?  [red-logic!]
 		pane   [red-block!]
-		pos    [red-pair!]
+		pos    [red-point2D!]
 		obj    [red-object!]
 		tail   [red-object!]
 ][
@@ -220,7 +220,7 @@ update-tab-contents: func [
 						either type = FACE_OBJ_SIZE [
 							change-size hWnd values panel
 						][
-							pos: as red-pair! values + FACE_OBJ_OFFSET
+							pos: as red-point2D! values + FACE_OBJ_OFFSET
 							adjust-parent hWnd parent pos/x pos/y
 						]
 					]

@@ -16,11 +16,13 @@ init-panel: func [
 	/local
 		parent	  [red-object!]
 		type	  [red-word!]
+		pt		  [red-point2D!]
 		pair	  [red-pair!]
 		win-rect  [RECT_STRUCT value]
 		calc-rect [RECT_STRUCT value]
-		x		  [integer!]
-		y		  [integer!]
+		fx		  [float32!]
+		fy		  [float32!]
+		x y		  [integer!]
 ][
 	parent: as red-object! values + FACE_OBJ_PARENT
 
@@ -35,23 +37,23 @@ init-panel: func [
 				size? win-rect
 			SendMessage phWnd TCM_ADJUSTRECT 0 as-integer calc-rect
 
-			pair: as red-pair! values + FACE_OBJ_OFFSET
-			x: calc-rect/left - win-rect/left
-			y: calc-rect/top  - win-rect/top
-			either dpi-factor <> 100 [
-				pair/x: x * 100 / dpi-factor
-				pair/y: y * 100 / dpi-factor
+			pt: as red-point2D! values + FACE_OBJ_OFFSET
+			fx: as float32! calc-rect/left - win-rect/left
+			fy: as float32! calc-rect/top  - win-rect/top
+			either dpi-factor <> as float32! 1.0 [
+				pt/x: dpi-unscale fx
+				pt/y: dpi-unscale fy
 			][
-				pair/x: x - 3
-				pair/y: y - 1
+				pt/x: fx - as float32! 3.0
+				pt/y: fy - as float32! 1.0
 			]
 
 			pair: as red-pair! values + FACE_OBJ_SIZE
 			x: calc-rect/right  - calc-rect/left
 			y: calc-rect/bottom - calc-rect/top
-			either dpi-factor <> 100 [
-				pair/x: x * 100 / dpi-factor
-				pair/y: y * 100 / dpi-factor
+			either dpi-factor <> as float32! 1.0 [
+				pair/x: as-integer dpi-unscale as float32! x
+				pair/y: as-integer dpi-unscale as float32! y
 			][
 				pair/x: x + 4
 				pair/y: y + 3

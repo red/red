@@ -19,7 +19,7 @@ init-base-face: func [
 	alpha?		[logic!]
 	/local
 		pt		[tagPOINT value]
-		offset	[red-pair!]
+		offset	[red-point2D!]
 		size	[red-pair!]
 		show?	[red-logic!]
 		opts	[red-block!]
@@ -28,7 +28,7 @@ init-base-face: func [
 		sym		[integer!]
 		flags	[integer!]
 ][
-	offset: as red-pair! values + FACE_OBJ_OFFSET
+	offset: as red-point2D! values + FACE_OBJ_OFFSET
 	size:	as red-pair! values + FACE_OBJ_SIZE
 	show?:	as red-logic! values + FACE_OBJ_VISIBLE?
 	opts:	as red-block! values + FACE_OBJ_OPTIONS
@@ -220,9 +220,9 @@ clip-layered-window: func [
 process-layered-region: func [
 	hWnd	[handle!]
 	size	[red-pair!]
-	pos		[red-pair!]
+	pos		[red-point2D!]
 	pane	[red-block!]
-	origin	[red-pair!]
+	origin	[red-point2D!]
 	rect	[RECT_STRUCT]
 	layer?	[logic!]
 	/local
@@ -251,8 +251,8 @@ process-layered-region: func [
 	]
 
 	sz: as tagSIZE :rc
-	sz/width: dpi-scale size/x
-	sz/height: dpi-scale size/y
+	sz/width: dpi-scale as float32! size/x
+	sz/height: dpi-scale as float32! size/y
 	if layer? [
 		w: x + sz/width - rect/right
 		w: either positive? w [sz/width - w][sz/width]
@@ -281,7 +281,7 @@ process-layered-region: func [
 			hWnd: get-face-handle face
 			value: get-face-values hWnd
 			size: as red-pair! value + FACE_OBJ_SIZE
-			pos: as red-pair! value + FACE_OBJ_OFFSET
+			pos: as red-point2D! value + FACE_OBJ_OFFSET
 			pane: as red-block! value + FACE_OBJ_PANE
 			type: as red-word! value + FACE_OBJ_TYPE
 			layer?: all [
@@ -380,8 +380,8 @@ update-layered-window: func [
 				border: winpos/cx - rect/right >> 1
 				size: as red-pair! values + FACE_OBJ_SIZE
 				sz: as tagSIZE :rect
-				sz/width: dpi-scale size/x
-				sz/height: dpi-scale size/y
+				sz/width: dpi-scale as float32! size/x
+				sz/height: dpi-scale as float32! size/y
 				width: sz/width
 				height: sz/height
 				if x + sz/width + border > (winpos/x + winpos/cx) [
@@ -767,8 +767,8 @@ scale-graphic: func [
 	/local
 		ratio	[float32!]
 ][
-	if dpi-factor <> 100 [
-		ratio: (as float32! dpi-factor) / (as float32! 100.0)
+	if dpi-factor <> as float32! 1.0 [
+		ratio: dpi-factor
 		GdipScaleWorldTransform graphic ratio ratio GDIPLUS_MATRIX_PREPEND
 	]
 ]
@@ -820,8 +820,8 @@ update-base: func [
 	sz:		as red-pair!   values + FACE_OBJ_SIZE
 	graphic: 0
 
-	width: dpi-scale sz/x
-	height: dpi-scale sz/y
+	width: dpi-scale as float32! sz/x
+	height: dpi-scale as float32! sz/y
 	hBackDC: CreateCompatibleDC hScreen
 	hBitmap: CreateCompatibleBitmap hScreen width height
 	SelectObject hBackDC hBitmap
@@ -884,8 +884,8 @@ update-base: func [
 
 	cmds:	as red-block!  values + FACE_OBJ_DRAW
 	sz:		as red-pair!   values + FACE_OBJ_SIZE
-	width: dpi-scale sz/x
-	height: dpi-scale sz/y
+	width: dpi-scale as float32! sz/x
+	height: dpi-scale as float32! sz/y
 	ptSrc/x: 0
 	ptSrc/y: 0
 	size: as tagSIZE :width
@@ -931,7 +931,7 @@ imprint-layers-deep: func [
 	child 		[red-object!]
 	tail 		[red-object!]
 	state 		[red-block!]
-	cofs 		[red-pair!]		;-- "child" offset - it's position inside the parent
+	cofs 		[red-point2D!]	;-- "child" offset - it's position inside the parent
 	chwnd 		[handle!]
 	cvalues		[red-value!]
 	this		[this!]
@@ -978,7 +978,7 @@ imprint-layers-deep: func [
 				if TYPE_OF(state) = TYPE_BLOCK [
 					chwnd: get-face-handle child
 					cvalues: get-face-values chwnd
-					cofs: as red-pair! cvalues + FACE_OBJ_OFFSET
+					cofs: as red-point2D! cvalues + FACE_OBJ_OFFSET
 					imprint-layers-deep
 						dc chwnd
 						bx + dpi-scale cofs/x

@@ -1116,7 +1116,7 @@ OS-draw-box: func [
 	h: low-y - up-y
 	either ctx/shadow? [
 		offset: ctx/pen-width / (as float32! 2.0)
-		scale: dpi-value / as float32! 96.0
+		scale: dpi-factor
 		rc/left: offset
 		rc/top:  offset
 		rc/right:  (as float32! w) + offset
