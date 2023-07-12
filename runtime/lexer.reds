@@ -1963,7 +1963,7 @@ lexer: context [
 			p: p + 1
 			day: grab4									;-- could be year also
 			dlen: as-integer p - me
-			if any [day < 0 dlen > ylen day > year][
+			if any [day < 0 day > 31 all [day <= 31 year < 100]][
 				if day < 0 [dlen: dlen - 1]
 				len: day day: year year: len ylen: dlen ;-- swap day <=> year
 			]

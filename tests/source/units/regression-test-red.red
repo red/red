@@ -3471,6 +3471,10 @@ comment {
 		h: make hash! [1 2 3 4 5 6 7 8 9 10 11 12 13]
 		loop 10000 [copy h]
 		--assert hash? h
+		
+	--test-- "#5345"
+		--assert 12-Nov-2013 == load "12-nov-13"
+		--assert 15-Nov-2013 == load "15-nov-13"
 
 ===end-group===
 
