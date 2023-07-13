@@ -1464,6 +1464,22 @@ OS-show-window: func [
 	set-selected-focus as handle! hWnd
 ]
 
+as-point2D: func [
+	pair	[red-pair!]
+	return: [red-point2D!]
+	/local
+		x y [float32!]
+		pt  [red-point2D!]
+][
+	pt: as red-point2D! pair
+	x: as float32! pair/x
+	y: as float32! pair/y
+	pt/x: x
+	pt/y: y
+	pt/header: TYPE_POINT2D
+	pt
+]
+
 OS-make-view: func [
 	face	[red-object!]
 	parent	[integer!]
@@ -1523,6 +1539,8 @@ OS-make-view: func [
 	options:  as red-block!		values + FACE_OBJ_OPTIONS
 	
 	bits: 	  get-flags as red-block! values + FACE_OBJ_FLAGS
+
+	if TYPE_OF(offset) = TYPE_PAIR [as-point2D as red-pair! offset]
 
 	flags: 	  WS_CHILD or WS_CLIPSIBLINGS
 	ws-flags: 0
