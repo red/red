@@ -144,6 +144,9 @@ get-event-offset: func [
 				offset/x: dpi-unscale as float32! WIN32_LOWORD(value)
 				offset/y: dpi-unscale as float32! WIN32_HIWORD(value)
 			]
+			if any [evt/type = EVT_SIZE evt/type = EVT_SIZING][
+				as-pair offset
+			]
 			as red-value! offset
 		]
 		any [
@@ -1321,6 +1324,7 @@ WndProc: func [
 					offset/header: TYPE_POINT2D
 					offset/x: dpi-unscale as float32! WIN32_LOWORD(lParam) + x
 					offset/y: dpi-unscale as float32! WIN32_HIWORD(lParam) + y
+					if type = FACE_OBJ_SIZE [as-pair offset]
 
 					values: values + FACE_OBJ_STATE
 					if all [

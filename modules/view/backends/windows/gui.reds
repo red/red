@@ -1480,6 +1480,22 @@ as-point2D: func [
 	pt
 ]
 
+as-pair: func [
+	pt		[red-point2D!]
+	return: [red-pair!]
+	/local
+		x y [integer!]
+		pair [red-pair!]
+][
+	pair: as red-pair! pt
+	x: as-integer pt/x
+	y: as-integer pt/y
+	pair/x: x
+	pair/y: y
+	pair/header: TYPE_PAIR
+	pair
+]
+
 OS-make-view: func [
 	face	[red-object!]
 	parent	[integer!]
@@ -2009,6 +2025,8 @@ change-offset: func [
 	header: 0
 	pt: as red-pair! :header
 	layer?: (GetWindowLong hWnd GWL_EXSTYLE) and WS_EX_LAYERED > 0
+
+	if TYPE_OF(pos) = TYPE_PAIR [as-point2D as red-pair! pos]
 
 	pos-x: dpi-scale pos/x
 	pos-y: dpi-scale pos/y
