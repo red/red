@@ -95,6 +95,10 @@ context [
 		emit to integer! skip bin 4
 	]
 	
+	emit-float32-bin: func [f [decimal!]][
+		emit to integer! IEEE-754/to-binary32 f
+	]
+	
 	emit-ctx-info: func [word [any-word!] ctx [word! none!] /local entry pos][
 		if any [not ctx	none? entry: find contexts ctx][emit -1 return -1]				;-- -1 for global context
 		either pos: find entry/2 to word! word [
@@ -169,6 +173,11 @@ context [
 		emit-type 'TYPE_PAIR
 		emit value/x
 		emit value/y
+	]
+	
+	emit-point: func [list [block!]][
+		emit-type select [2 TYPE_POINT2D 3 TYPE_POINT3D] length? list
+		forall list [emit-float32-bin to decimal! list/1]
 	]
 
 	emit-tuple: func [value [issue!] /local bin header][
@@ -300,6 +309,10 @@ context [
 			blk/1 = #!map! [
 				remove blk
 				'map
+			]
+			blk/1 = #!point! [
+				emit-point next blk
+				exit
 			]
 			blk/1 = #!date! [
 				emit-date/with blk/2 blk/3
