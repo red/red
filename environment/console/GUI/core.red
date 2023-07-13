@@ -436,8 +436,8 @@ object [
 	]
 
 	offset-to-line: func [offset [pair!] /local h y start end n max-n][
-		y: offset/y - scroll-y
-		end: line-y - scroll-y
+		y: to integer! offset/y - scroll-y
+		end: to integer! line-y - scroll-y
 		h: 0
 		n: top
 		max-n: length? lines
@@ -472,8 +472,8 @@ object [
 		mouse-up?: no
 		clear selects
 
-		offset-to-line event/offset
-		mouse-to-caret event/offset
+		offset-to-line to-pair event/offset
+		mouse-to-caret to-pair event/offset
 		caret/rate: none
 		caret/enabled?: no
 	]
@@ -483,7 +483,7 @@ object [
 		mouse-up?: yes
 		if 2 = length? selects [clear selects]
 		caret/enabled?: yes
-		mouse-to-caret event/offset
+		mouse-to-caret to-pair event/offset
 		system/view/platform/redraw console
 		caret/rate: caret-rate
 	]

@@ -116,7 +116,7 @@ gui-console-ctx: context [
 				]
 			]
 			on-over: func [face [object!] event [event!]][
-				terminal/mouse-move event/offset
+				terminal/mouse-move to-pair event/offset
 			]
 			on-menu: func [face [object!] event [event!]][
 				switch event/picked [

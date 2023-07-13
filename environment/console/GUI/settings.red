@@ -239,6 +239,7 @@ load-cfg: func [/local cfg-content gui-default][
 		menu-bar?:	  true
 		dark-mode?:   no
 	]
+	gui-default/win-pos: (200, 200)
 
 	either all [
 		exists? cfg-path
