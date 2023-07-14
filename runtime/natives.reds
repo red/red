@@ -2071,36 +2071,31 @@ natives: context [
 			arg	 [red-value!]
 			int  [red-integer!]
 			fl	 [red-float!]
+			i	 [integer!]
+			get-value [subroutine!]
 	][
 		#typecheck as-pair
 		arg: stack/arguments
 		pair: as red-pair! arg
 		
-		switch TYPE_OF(arg) [
-			TYPE_INTEGER [
-				int: as red-integer! arg
-				pair/x: int/value
+		get-value: [
+			switch TYPE_OF(arg) [
+				TYPE_INTEGER [
+					int: as red-integer! arg
+					i: int/value
+				]
+				TYPE_FLOAT	 [
+					fl: as red-float! arg
+					if float/special? fl/value [fire [TO_ERROR(script invalid-arg) arg]]
+					i: as-integer fl/value
+				]
+				default		 [assert false]
 			]
-			TYPE_FLOAT	 [
-				fl: as red-float! arg
-				if float/special? fl/value [fire [TO_ERROR(script invalid-arg) arg]]
-				pair/x: as-integer fl/value
-			]
-			default		 [assert false]
+			i
 		]
+		pair/x: get-value
 		arg: arg + 1
-		switch TYPE_OF(arg) [
-			TYPE_INTEGER [
-				int: as red-integer! arg
-				pair/y: int/value
-			]
-			TYPE_FLOAT	 [
-				fl: as red-float! arg
-				if float/special? fl/value [fire [TO_ERROR(script invalid-arg) arg]]
-				pair/y: as-integer fl/value
-			]
-			default		[assert false]
-		]
+		pair/y: get-value
 		pair/header: TYPE_PAIR
 	]
 
@@ -2111,36 +2106,30 @@ natives: context [
 			arg	 [red-value!]
 			int  [red-integer!]
 			fl	 [red-float!]
+			f32  [float32!]
+			get-value [subroutine!]
 	][
 		#typecheck as-point2D
 		arg: stack/arguments
 		p: as red-point2D! arg
 		
-		switch TYPE_OF(arg) [
-			TYPE_INTEGER [
-				int: as red-integer! arg
-				p/x: as-float32 int/value
+		get-value: [
+			switch TYPE_OF(arg) [
+				TYPE_INTEGER [
+					int: as red-integer! arg
+					f32: as-float32 int/value
+				]
+				TYPE_FLOAT	 [
+					fl: as red-float! arg
+					f32: as-float32  fl/value
+				]
+				default		[assert false]
 			]
-			TYPE_FLOAT	 [
-				fl: as red-float! arg
-				if float/special? fl/value [fire [TO_ERROR(script invalid-arg) arg]]
-				p/x: as-float32 fl/value
-			]
-			default		 [assert false]
+			f32
 		]
+		p/x: get-value
 		arg: arg + 1
-		switch TYPE_OF(arg) [
-			TYPE_INTEGER [
-				int: as red-integer! arg
-				p/y: as-float32 int/value
-			]
-			TYPE_FLOAT	 [
-				fl: as red-float! arg
-				if float/special? fl/value [fire [TO_ERROR(script invalid-arg) arg]]
-				p/y: as-float32  fl/value
-			]
-			default		[assert false]
-		]
+		p/y: get-value
 		p/header: TYPE_POINT2D
 	]
 	
