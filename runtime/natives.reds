@@ -2103,6 +2103,46 @@ natives: context [
 		]
 		pair/header: TYPE_PAIR
 	]
+
+	as-point2D*: func [
+		check? [logic!]
+		/local
+			p	 [red-point2D!]
+			arg	 [red-value!]
+			int  [red-integer!]
+			fl	 [red-float!]
+	][
+		#typecheck as-point2D
+		arg: stack/arguments
+		p: as red-point2D! arg
+		
+		switch TYPE_OF(arg) [
+			TYPE_INTEGER [
+				int: as red-integer! arg
+				p/x: as-float32 int/value
+			]
+			TYPE_FLOAT	 [
+				fl: as red-float! arg
+				if float/special? fl/value [fire [TO_ERROR(script invalid-arg) arg]]
+				p/x: as-float32 fl/value
+			]
+			default		 [assert false]
+		]
+		arg: arg + 1
+		switch TYPE_OF(arg) [
+			TYPE_INTEGER [
+				int: as red-integer! arg
+				p/y: as-float32 int/value
+			]
+			TYPE_FLOAT	 [
+				fl: as red-float! arg
+				if float/special? fl/value [fire [TO_ERROR(script invalid-arg) arg]]
+				p/y: as-float32  fl/value
+			]
+			default		[assert false]
+		]
+		p/header: TYPE_POINT2D
+	]
 	
 	as-money*: func [
 		check? [logic!]
@@ -3593,6 +3633,7 @@ natives: context [
 			:uppercase*
 			:lowercase*
 			:as-pair*
+			:as-point2D*
 			:as-money*
 			:break*
 			:continue*

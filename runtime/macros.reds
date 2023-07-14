@@ -222,6 +222,7 @@ Red/System [
 	NAT_UPPERCASE
 	NAT_LOWERCASE
 	NAT_AS_PAIR
+	NAT_AS_POINT2D
 	NAT_AS_MONEY
 	NAT_BREAK
 	NAT_CONTINUE
@@ -311,7 +312,7 @@ Red/System [
 ]
 
 #define DATATYPES_NB	52							;-- total number of built-in datatypes (including TYPE_VALUE)
-#define NATIVES_NB		110							;-- max number of natives (arbitrary set)
+#define NATIVES_NB		120							;-- max number of natives (arbitrarily set upper bound)
 #define ACTIONS_NB		62							;-- number of actions (exact number)
 #define INHERIT_ACTION	-1							;-- placeholder for letting parent's action pass through
 

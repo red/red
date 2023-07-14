@@ -678,6 +678,14 @@ as-pair: make native! [[
 	#get-definition NAT_AS_PAIR
 ]
 
+as-point2D: make native! [[
+		"Combine X and Y values into a point"
+		x [integer! float!]
+		y [integer! float!]
+	]
+	#get-definition NAT_AS_POINT2D
+]
+
 as-money: make native! [[
 		"Combine currency code and amount into a monetary value"
 		currency [word!]
