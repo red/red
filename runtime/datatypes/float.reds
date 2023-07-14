@@ -125,7 +125,7 @@ float: context [
 		percent?: any [type = FORM_PERCENT type = FORM_PERCENT_32]
 		if pretty-print? [
 			temp: abs f
-			if temp < DBL_EPSILON [return either percent? ["0%"]["0.0"]]
+			if temp < DBL_EPSILON [return either percent? ["0%"][either type = FORM_POINT_32 ["0"]["0.0"]]]
 		]
 
 		s: "0000000000000000000000000000000"					;-- 32 bytes wide, big enough.
