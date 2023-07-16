@@ -1151,12 +1151,7 @@ insert-event-func [
 					unless event/away? [
 						new: face/offset + event/offset - drag-info/1
 						if face/offset <> new [
-							if box: drag-info/2 [
-								if new/x < box/min/x [new/x: box/min/x]
-								if new/x > box/max/x [new/x: box/max/x]
-								if new/y < box/min/y [new/y: box/min/y]
-								if new/y > box/max/y [new/y: box/max/y]
-							]
+							if box: drag-info/2 [new: min box/max max box/min new]
 							if face/offset <> new [face/offset: new]
 							set/any 'result do-actor face event 'drag ;-- avoid calling on-over actor
 							unless system/view/auto-sync? [show face]
