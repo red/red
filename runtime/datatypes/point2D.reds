@@ -339,16 +339,50 @@ point2D: context [
 		op		[integer!]									;-- type of comparison
 		return:	[integer!]
 		/local
-			diff [integer!]
-			delta[float32!]
+			delta	[float32!]
+			pt		[red-point2D! value]
+			pair	[red-pair!]
+			ip1 ip2 [int-ptr!]
+			res		[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "point2D/compare"]]
 
 		if TYPE_OF(right) <> TYPE_POINT2D [RETURN_COMPARE_OTHER]
-		delta: left/x - right/x
-		if float/almost-equal 0.0 as-float delta [delta: left/y - right/y]
-		diff: as-integer delta
-		SIGN_COMPARE_RESULT(diff 0)
+
+		if TYPE_OF(right) = TYPE_PAIR [	;-- convert it to point2d
+			pair: as red-pair! right
+			pt/x: as float32! pair/x
+			pt/y: as float32! pair/y
+			right: :pt
+		]
+		switch op [
+			COMP_EQUAL
+			COMP_NOT_EQUAL 	[
+				either float/almost-equal as-float left/x as-float right/x [
+					res: as-integer not float/almost-equal as-float left/y as-float right/y
+				][
+					res: 1
+				]
+			]
+			COMP_STRICT_EQUAL [
+				either left/x = right/x [
+					res: as-integer not left/y = right/y
+				][
+					res: 1
+				]
+			] 
+			COMP_SAME [
+				ip1: as int-ptr! :left/x
+				ip2: as int-ptr! :right/x
+				res: as-integer any [ip1/1 <> ip2/1  ip1/2 <> ip2/2]
+			]
+			default [
+				delta: left/x - right/x
+				if float/almost-equal 0.0 as-float delta [delta: left/y - right/y]
+				res: either delta < as float32! 0.0 [-1][either delta > as float32! 0.0 [1][0]]
+			]
+		]
+		res
 	]
 comment {
 	round: func [
