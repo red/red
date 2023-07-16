@@ -138,8 +138,8 @@ get-event-offset: func [
 				pt-val/x: 0
 				pt-val/y: 0
 				ClientToScreen msg/hWnd :pt-val
-				offset/x: dpi-unscale as float32! x - pt/x
-				offset/y: dpi-unscale as float32! y - pt/y
+				offset/x: dpi-unscale as float32! msg/x - pt-val/x
+				offset/y: dpi-unscale as float32! msg/y - pt-val/y
 			][
 				offset/x: dpi-unscale as float32! WIN32_LOWORD(value)
 				offset/y: dpi-unscale as float32! WIN32_HIWORD(value)
