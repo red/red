@@ -3085,6 +3085,8 @@ natives: context [
 			value	[red-value!]
 			p		[red-pair!]
 			p2		[red-pair!]
+			pt		[red-point2D!]
+			pt2		[red-point2D!]
 			tp		[red-tuple!]
 			buf		[byte-ptr!]
 			buf2	[byte-ptr!]
@@ -3093,6 +3095,7 @@ natives: context [
 			size	[integer!]
 			type	[integer!]
 			type2	[integer!]
+			f32		[float32!]
 			b		[byte!]
 			result	[logic!]
 			comp?	[logic!]
@@ -3118,7 +3121,7 @@ natives: context [
 		
 		switch type [
 			TYPE_PAIR [
-				p:  as red-pair! arg
+				p: as red-pair! arg
 				switch type2 [
 					TYPE_PAIR [
 						p2: as red-pair! arg2
@@ -3130,6 +3133,16 @@ natives: context [
 							if p/y > p2/y [p/y: p2/y]
 						]
 					]
+					TYPE_POINT2D [
+						pt2: as red-point2D! arg2
+						either max? [
+							if p/x < as-integer pt2/x [p/x: as-integer pt2/x]
+							if p/y < as-integer pt2/y [p/y: as-integer pt2/y]
+						][
+							if p/x > as-integer pt2/x [p/x: as-integer pt2/x]
+							if p/y > as-integer pt2/y [p/y: as-integer pt2/y]
+						]
+					]
 					TYPE_FLOAT
 					TYPE_INTEGER [
 						i: arg-to-integer arg2
@@ -3139,6 +3152,44 @@ natives: context [
 						][
 							if p/x > i [p/x: i]
 							if p/y > i [p/y: i]
+						]
+						if arg <> stack/arguments [stack/set-last arg]
+					]
+					default [comp?: yes]
+				]
+			]
+			TYPE_POINT2D [
+				pt: as red-point2D! arg
+				switch type2 [
+					TYPE_POINT2D [
+						pt2: as red-point2D! arg2
+						either max? [
+							if pt/x < pt2/x [pt/x: pt2/x]
+							if pt/y < pt2/y [pt/y: pt2/y]
+						][
+							if pt/x > pt2/x [pt/x: pt2/x]
+							if pt/y > pt2/y [pt/y: pt2/y]
+						]
+					]
+					TYPE_PAIR [
+						p: as red-pair! arg2
+						either max? [
+							if pt/x < as-float32 p2/x [pt/x: as-float32 p2/x]
+							if pt/y < as-float32 p2/y [pt/y: as-float32 p2/y]
+						][
+							if pt/x > as-float32 p2/x [pt/x: as-float32 p2/x]
+							if pt/y > as-float32 p2/y [pt/y: as-float32 p2/y]
+						]
+					]
+					TYPE_FLOAT
+					TYPE_INTEGER [
+						f32: as-float32 argument-as-float arg2
+						either max? [
+							if pt/x < f32 [pt/x: f32]
+							if pt/y < f32 [pt/y: f32]
+						][
+							if pt/x > f32 [pt/x: f32]
+							if pt/y > f32 [pt/y: f32]
 						]
 						if arg <> stack/arguments [stack/set-last arg]
 					]
