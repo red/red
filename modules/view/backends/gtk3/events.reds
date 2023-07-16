@@ -498,6 +498,7 @@ get-event-offset: func [
 	/local
 		widget	[handle!]
 		sz 		[red-pair!]
+		pt		[red-point2d!]
 		offset	[red-pair!]
 		value	[integer!]
 ][
@@ -508,12 +509,11 @@ get-event-offset: func [
 			evt/type = EVT_MOVING
 			evt/type = EVT_MOVE
 		][
-			offset: as red-pair! stack/push*
-			offset/header: TYPE_PAIR
-			offset/x: evt-motion/x_new
-			offset/y: evt-motion/y_new
-			;; DEBUG: print ["event-offset: " offset/x "x" offset/y lf]
-			as red-value! offset
+			pt: as red-point2d! stack/push*
+			pt/header: TYPE_POINT2D
+			pt/x: as float32! evt-motion/x_new
+			pt/y: as float32! evt-motion/y_new
+			as red-value! pt
 		]
 		any [
 			evt/type = EVT_SIZING

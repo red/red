@@ -955,6 +955,7 @@ change-offset: func [
 	/local
 		parent	[handle!]
 ][
+	if TYPE_OF(pos) = TYPE_POINT2D [as-pair as red-point2D! pos]
 	parent: get-face-parent widget values type
 	set-widget-child-offset parent widget pos type
 ]
@@ -1801,6 +1802,8 @@ OS-make-view: func [
 
 	bits: 	  get-flags as red-block! values + FACE_OBJ_FLAGS
 	sym: 	  symbol/resolve type/symbol
+
+	if TYPE_OF(offset) = TYPE_POINT2D [as-pair as red-point2D! offset]
 
 	caption: either TYPE_OF(str) = TYPE_STRING [
 		len: -1
