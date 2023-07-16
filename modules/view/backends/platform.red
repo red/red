@@ -537,6 +537,38 @@ system/view/platform: context [
 				color
 			]
 
+			as-point2D: func [
+				pair	[red-pair!]
+				return: [red-point2D!]
+				/local
+					x y [float32!]
+					pt  [red-point2D!]
+			][
+				pt: as red-point2D! pair
+				x: as float32! pair/x
+				y: as float32! pair/y
+				pt/x: x
+				pt/y: y
+				pt/header: TYPE_POINT2D
+				pt
+			]
+
+			as-pair: func [
+				pt		[red-point2D!]
+				return: [red-pair!]
+				/local
+					x y [integer!]
+					pair [red-pair!]
+			][
+				pair: as red-pair! pt
+				x: as-integer pt/x
+				y: as-integer pt/y
+				pair/x: x
+				pair/y: y
+				pair/header: TYPE_PAIR
+				pair
+			]
+
 			#switch GUI-engine [
 				native [
 					;#include %android/gui.reds

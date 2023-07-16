@@ -372,8 +372,8 @@ point2D: context [
 				]
 			] 
 			COMP_SAME [
-				ip1: as int-ptr! :left/x
-				ip2: as int-ptr! :right/x
+				ip1: :left/x
+				ip2: :right/x
 				res: as-integer any [ip1/1 <> ip2/1  ip1/2 <> ip2/2]
 			]
 			default [

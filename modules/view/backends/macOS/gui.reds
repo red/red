@@ -823,6 +823,8 @@ change-offset: func [
 	/local
 		rc [NSRect!]
 ][
+	if TYPE_OF(pos) = TYPE_POINT2D [as-pair as red-point2D! pos]
+	
 	rc: make-rect pos/x pos/y 0 0
 	either type = window [
 		rc/y: as float32! screen-size-y - pos/y
@@ -1964,6 +1966,8 @@ OS-make-view: func [
 	bits: 	  get-flags as red-block! values + FACE_OBJ_FLAGS
 	sym: 	  symbol/resolve type/symbol
 	p:		  null
+
+	if TYPE_OF(offset) = TYPE_POINT2D [as-pair as red-point2D! offset]
 
 	case [
 		any [

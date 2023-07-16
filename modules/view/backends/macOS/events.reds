@@ -239,7 +239,8 @@ get-event-offset: func [
 	/local
 		type	[integer!]
 		event	[integer!]
-		offset	[red-pair!]
+		offset	[red-point2D!]
+		pair	[red-pair!]
 		rc		[NSRect!]
 		frame	[NSRect! value]
 		y		[integer!]
@@ -247,18 +248,18 @@ get-event-offset: func [
 		v		[integer!]
 ][
 	type: evt/type
-	offset: as red-pair! stack/push*
-	offset/header: TYPE_PAIR
+	offset: as red-point2D! stack/push*
+	offset/header: TYPE_POINT2D
 	case [
 		type <= EVT_OVER [
 			event: objc_getAssociatedObject as-integer evt/msg RedNSEventKey
-			either zero? event [offset/x: 0 offset/y: 0][
+			either zero? event [offset/x: as float32! 0.0 offset/y: as float32! 0.0][
 				rc: as NSRect! (as int-ptr! event) + 2
 				x: objc_msgSend [evt/msg sel_getUid "convertPoint:fromView:" rc/x rc/y 0]
 				y: system/cpu/edx
 				rc: as NSRect! :x
-				offset/x: as-integer rc/x
-				offset/y: as-integer rc/y
+				offset/x: rc/x
+				offset/y: rc/y
 			]
 			as red-value! offset
 		]
@@ -267,19 +268,21 @@ get-event-offset: func [
 			type = EVT_MOVE
 		][
 			rc: as NSRect! (as int-ptr! evt/msg) + 2
-			offset/x: as-integer rc/x
-			offset/y: screen-size-y - as-integer (rc/y + rc/h)
+			offset/x: rc/x
+			offset/y: (as float32! screen-size-y) - (rc/y + rc/h)
 			as red-value! offset
 		]
 		any [
 			type = EVT_SIZING
 			type = EVT_SIZE
 		][
+			pair: as red-pair! offset
+			pair/header: TYPE_PAIR
 			v: objc_msgSend [evt/msg sel_getUid "contentView"]
 			frame: objc_msgSend_rect [v sel_getUid "frame"]
-			offset/x: as-integer frame/w
-			offset/y: as-integer frame/h
-			as red-value! offset
+			pair/x: as-integer frame/w
+			pair/y: as-integer frame/h
+			as red-value! pair
 		]
 		any [
 			type = EVT_ZOOM
