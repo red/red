@@ -120,6 +120,7 @@ system/console: context [
 		paren!		#"("
 		string!		#"{"
 		map!		#"("
+		point2D!	#"("
 		path!		#"/"
 		lit-path!	#"/"
 		get-path!	#"/"
@@ -155,7 +156,7 @@ system/console: context [
 			error [
 				if type = error! [throw 'stop]			;-- unmatched "}"
 				if all [								;-- block! paren! map! have open-event, so just match delimiters
-					find [block! paren! map!] to-word type
+					find [block! paren! map! point2D!] to-word type
 					delimiter-map/:type = last delimiters
 				][
 					throw 'break
@@ -171,7 +172,7 @@ system/console: context [
 					throw 'break
 				]
 				if all [
-					type = binary!						 ;-- binary! haven't open-event
+					type = binary!						;-- binary! haven't open-event
 					#"}" <> pick tail input -2
 				][
 					append delimiters #"{"
