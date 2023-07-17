@@ -507,7 +507,7 @@ to-hex: make native! [[
 sine: make native! [[
 		"Returns the trigonometric sine"
 		angle	[float! integer!]
-		/radians "Angle is specified in radians"
+		/radians "DEPRECATED: use `sin` native instead"
 		return: [float!]
 	]
 	#get-definition NAT_SINE
@@ -516,7 +516,7 @@ sine: make native! [[
 cosine: make native! [[
 		"Returns the trigonometric cosine"
 		angle	[float! integer!]
-		/radians "Angle is specified in radians"
+		/radians "DEPRECATED: use `cos` native instead"
 		return: [float!]
 	]
 	#get-definition NAT_COSINE
@@ -525,43 +525,43 @@ cosine: make native! [[
 tangent: make native! [[
 		"Returns the trigonometric tangent"
 		angle	[float! integer!]
-		/radians "Angle is specified in radians"
+		/radians "DEPRECATED: use `tan` native instead"
 		return: [float!]
 	]
 	#get-definition NAT_TANGENT
 ]
 
 arcsine: make native! [[
-		"Returns the trigonometric arcsine (in degrees by default in range [-90,90])"
+		"Returns the trigonometric arcsine in degrees in range [-90,90]"
 		sine	[float! integer!] "in range [-1,1]"
-		/radians "Angle is returned in radians [-pi/2,pi/2]"
+		/radians "DEPRECATED: use `asin` native instead"
 		return: [float!]
 	]
 	#get-definition NAT_ARCSINE
 ]
 
 arccosine: make native! [[
-		"Returns the trigonometric arccosine (in degrees by default in range [0,180])"
+		"Returns the trigonometric arccosine in degrees in range [0,180]"
 		cosine	[float! integer!] "in range [-1,1]"
-		/radians "Angle is returned in radians [0,pi]"
+		/radians "DEPRECATED: use `acos` native instead"
 		return: [float!]
 	]
 	#get-definition NAT_ARCCOSINE
 ]
 
 arctangent: make native! [[
-		"Returns the trigonometric arctangent (in degrees by default in range [-90,90])"
+		"Returns the trigonometric arctangent in degrees in range [-90,90]"
 		tangent	[float! integer!] "in range [-inf,+inf]"
-		/radians "Angle is returned in radians [-pi/2,pi/2]"
+		/radians "DEPRECATED: use `atan` native instead"
 		return: [float!]
 	]
 	#get-definition NAT_ARCTANGENT
 ]
 arctangent2: make native! [[
-		"Returns the smallest angle between the vectors (1,0) and (x,y) in degrees by default (-180,180]"
+		"Returns the smallest angle between the vectors (1,0) and (x,y) in degrees (-180,180]"
 		y       [float! integer!]
 		x       [float! integer!]
-		/radians "Angle is returned in radians (-pi,pi]"
+		/radians "DEPRECATED: use `atan2` native instead"
 		return: [float!]
 	]
 	#get-definition NAT_ARCTANGENT2
