@@ -384,10 +384,10 @@ point2D: context [
 		]
 		res
 	]
-comment {
+
 	round: func [
 		point2D		[red-point2D!]
-		scale		[red-integer!]
+		fscale		[red-float!]
 		_even?		[logic!]
 		down?		[logic!]
 		half-down?	[logic!]
@@ -396,35 +396,54 @@ comment {
 		half-ceil?	[logic!]
 		return:		[red-value!]
 		/local
-			int		[red-integer!]
-			value	[red-value!]
+			f		[red-float! value]
+			scale	[red-integer!]
+			pair	[red-pair!]
 			p		[red-point2D!]
 			scalexy?[logic!]
 			y		[integer!]
+			fy		[float!]
 	][
-		if TYPE_OF(scale) = TYPE_MONEY [
+		if TYPE_OF(fscale) = TYPE_MONEY [
 			fire [TO_ERROR(script not-related) stack/get-call datatype/push TYPE_MONEY]
 		]
-		scalexy?: all [OPTION?(scale) TYPE_OF(scale) = TYPE_POINT2D]
+		scalexy?: all [
+			OPTION?(fscale)
+			any [TYPE_OF(fscale) = TYPE_POINT2D TYPE_OF(fscale) = TYPE_PAIR]
+		]
 		if scalexy? [
-			p: as red-point2D! scale
-			y: p/y
-			scale/header: TYPE_INTEGER
-			scale/value: p/x
+			either TYPE_OF(fscale) = TYPE_PAIR [
+				pair: as red-pair! fscale
+				y: pair/y
+				scale: as red-integer! fscale
+				scale/header: TYPE_INTEGER
+				scale/value: pair/x
+			][
+				p: as red-point2D! fscale
+				fy: as float! p/y
+				fscale/header: TYPE_FLOAT
+				fscale/value: as float! p/x
+			]
 		]
 		
-		int: integer/push point2D/x
-		value: integer/round as red-value! int scale _even? down? half-down? floor? ceil? half-ceil?
-		point2D/x: get-value-int as red-integer! value
+		f/value: as float! point2D/x
+		float/round as red-value! f fscale _even? down? half-down? floor? ceil? half-ceil?
+		point2D/x: as float32! f/value
 		
-		if scalexy? [scale/value: y]
-		int/value: point2D/y
-		value: integer/round as red-value! int scale _even? down? half-down? floor? ceil? half-ceil?
-		point2D/y: get-value-int as red-integer! value
+		if scalexy? [
+			either TYPE_OF(fscale) = TYPE_INTEGER [
+				scale/value: y
+			][
+				fscale/value: fy
+			]
+		]
+		f/value: as float! point2D/y
+		float/round as red-value! f fscale _even? down? half-down? floor? ceil? half-ceil?
+		point2D/y: as float32! f/value
 		
 		as red-value! point2D
 	]
-}
+
 	remainder: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "point2D/remainder"]]
 		as red-value! do-math OP_REM
@@ -544,7 +563,7 @@ comment {
 			:negate
 			null			;power
 			:remainder
-			null ;:round
+			:round
 			:subtract
 			null			;even?
 			null			;odd?
