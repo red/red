@@ -2884,8 +2884,10 @@ b}
 		--assert 'bar3156 == bar3156
 
 	--test-- "#3344"
-		op3344: make op! func [x 'y] [:y]
-		--assert 'abra = (1 op3344 abra)
+		do [											;-- no compiler support :(
+			op3344: make op! func [x 'y] [:y]
+			--assert 'abra = (1 op3344 abra)
+		]
 	
 	--test-- "#3362"
 		do [											;-- FIXME: compiler doesn't like this
@@ -2953,9 +2955,11 @@ b}
 		--assert 'y = do quote a/x
 
 	--test-- "#3585"
-		f3585: func [/opt 'arg][arg]
-		--assert ('* = f3585/opt *)
-		--assert '* = system/words/quote *
+		do [											;-- no compiler support :(
+			f3585: func [/opt 'arg][arg]
+			--assert ('* = f3585/opt *)
+			--assert '* = system/words/quote *
+		]
 	
 	--test-- "#3588"
 		x3588: []
