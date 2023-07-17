@@ -91,6 +91,7 @@ A more [sophisticated example](https://github.com/red/code/blob/master/Showcase/
 <p align="center">
   <img width="439" height="139" src="https://static.red-lang.org/images/commits.png">
 </p>
+
 Note: check also the following [improved version](https://github.com/red/code/blob/master/Showcase/last-commits3.red) allowing you to click on a given commit log and open the commit page on github.
 
 
