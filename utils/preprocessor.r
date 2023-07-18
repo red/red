@@ -169,7 +169,7 @@ preprocessor: context [
 		reduce [path get/any 'value]
 	]
 
-	fetch-next: func [code [block! paren!] /local i left item item2 value fn-spec path f-arity at-op? op-mode arg][
+	fetch-next: func [code [block! paren!] /local i left item item2 value fn-spec path f-arity at-op? op-mode][
 		left: reduce [yes]
 		
 		while [all [not tail? left not tail? code]][
@@ -197,10 +197,9 @@ preprocessor: context [
 					word? item2: second code
 					op? get/any :item2
 				][
-					op-mode: arg-mode? spec-of get/any :item2 1
-					if all [f-arity  op-mode = word!][		;-- check if function's lit/get-arg takes priority
-						if any [arg: arg-mode? fn-spec 1 not empty? f-arity][at-op?: word! = arg]
-					]
+					if all [f-arity 1 < length? f-arity] [		;-- check if function's lit/get-arg takes priority
+						at-op?: word! = arg-mode? fn-spec 1
+					] 
 				]
 				case [
 					at-op? [							;-- a * b
