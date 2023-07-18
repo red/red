@@ -2883,6 +2883,12 @@ b}
 		bar3156: ctx3156/foo3156
 		--assert 'bar3156 == bar3156
 
+	--test-- "#3344"
+		do [											;-- no compiler support :(
+			op3344: make op! func [x 'y] [:y]
+			--assert 'abra = (1 op3344 abra)
+		]
+	
 	--test-- "#3362"
 		do [											;-- FIXME: compiler doesn't like this
 			spec3362-1: [return 100]
@@ -2948,6 +2954,13 @@ b}
 		--assert 'y = do 'a/x
 		--assert 'y = do quote a/x
 
+	--test-- "#3585"
+		do [											;-- no compiler support :(
+			f3585: func [/opt 'arg][arg]
+			--assert ('* = f3585/opt *)
+			--assert '* = system/words/quote *
+		]
+	
 	--test-- "#3588"
 		x3588: []
 		write qt-tmp-file {Hello Red append x3588 "try"^/Red [] append x3588 "Hoi!"}
