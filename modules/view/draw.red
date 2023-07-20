@@ -761,7 +761,7 @@ Red/System [
 								cmd: check-pen DC cmds start tail cmd sym catch?
 							]
 							sym = box [
-								loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)]
+								loop 2 [DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)]
 								DRAW_FETCH_OPT_VALUE(TYPE_INTEGER)
 								OS-draw-box DC as red-pair! start as red-pair! cmd
 							]
@@ -774,7 +774,7 @@ Red/System [
 								cmd: check-line DC cmds start tail cmd sym catch?
 							]
 							sym = triangle [
-								loop 3 [DRAW_FETCH_VALUE(TYPE_PAIR)]
+								loop 3 [DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)]
 								OS-draw-triangle DC as red-pair! start
 							]
 							sym = _polygon [
@@ -783,13 +783,13 @@ Red/System [
 								OS-draw-polygon DC as red-pair! start as red-pair! cmd
 							]
 							sym = circle [
-								DRAW_FETCH_VALUE(TYPE_PAIR)						;-- center
+								DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)		;-- center
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)		;-- radius
 								DRAW_FETCH_OPT_VALUE_2(TYPE_INTEGER TYPE_FLOAT) ;-- radius-y (optional)
 								OS-draw-circle DC as red-pair! start as red-integer! cmd
 							]
 							sym = _ellipse [
-								loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)] ;-- bound box
+								loop 2 [DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)] ;-- bound box
 								OS-draw-ellipse DC as red-pair! start as red-pair! cmd
 							]
 							sym = anti-alias [
@@ -1002,11 +1002,11 @@ Red/System [
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
 									OS-draw-state-push DC :state
-									OS-matrix-translate DC sym point/x point/y
+									OS-matrix-translate DC sym point
 									parse-draw DC as red-block! cmd catch?
 									OS-draw-state-pop DC :state
 								][
-									OS-matrix-translate DC sym point/x point/y
+									OS-matrix-translate DC sym point
 								]
 							]
 							sym = skew [

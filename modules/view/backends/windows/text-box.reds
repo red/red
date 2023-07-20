@@ -406,6 +406,7 @@ txt-box-draw-background: func [
 		top			[integer!]
 		left		[integer!]
 		rc			[RECT_F!]
+		pt			[red-point2d!]
 ][
 	styles: as red-vector! target/4
 	if any [
@@ -429,8 +430,7 @@ txt-box-draw-background: func [
 
 	left: 0
 	rc: as RECT_F! :left
-	x: as float32! pos/x
-	y: as float32! pos/y
+	GET_PAIR_XY(pos x y)
 	s: GET_BUFFER(styles)
 	p: (as int-ptr! s/offset) + styles/head
 	end: as int-ptr! s/tail
