@@ -2098,21 +2098,20 @@ natives: context [
 		pair/y: get-value
 		pair/header: TYPE_PAIR
 	]
-
-	as-point2D*: func [
-		check? [logic!]
+	
+	as-point: func [
+		size	 [integer!]
 		/local
-			p	 [red-point2D!]
+			p	 [red-point3D!]
 			arg	 [red-value!]
 			int  [red-integer!]
 			fl	 [red-float!]
 			f32  [float32!]
 			get-value [subroutine!]
 	][
-		#typecheck as-point2D
 		arg: stack/arguments
-		p: as red-point2D! arg
-		
+		p: as red-point3D! arg
+
 		get-value: [
 			switch TYPE_OF(arg) [
 				TYPE_INTEGER [
@@ -2130,8 +2129,16 @@ natives: context [
 		p/x: get-value
 		arg: arg + 1
 		p/y: get-value
-		p/header: TYPE_POINT2D
+		either size = 2 [
+			p/header: TYPE_POINT2D
+		][
+			arg: arg + 1
+			p/z: get-value
+			p/header: TYPE_POINT3D
+		]
 	]
+	as-point2D*: func [check? [logic!]][#typecheck as-point2D  as-point 2]
+	as-point3D*: func [check? [logic!]][#typecheck as-point3D  as-point 3]
 	
 	as-money*: func [
 		check? [logic!]
@@ -3674,6 +3681,7 @@ natives: context [
 			:lowercase*
 			:as-pair*
 			:as-point2D*
+			:as-point3D*
 			:as-money*
 			:break*
 			:continue*

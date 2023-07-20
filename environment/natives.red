@@ -679,11 +679,20 @@ as-pair: make native! [[
 ]
 
 as-point2D: make native! [[
-		"Combine X and Y values into a point"
+		"Combine X and Y values into a 2D point"
 		x [integer! float!]
 		y [integer! float!]
 	]
 	#get-definition NAT_AS_POINT2D
+]
+
+as-point3D: make native! [[
+		"Combine X, Y and Z values into a 3D point"
+		x [integer! float!]
+		y [integer! float!]
+		z [integer! float!]
+	]
+	#get-definition NAT_AS_POINT3D
 ]
 
 as-money: make native! [[
