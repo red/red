@@ -569,6 +569,7 @@ system/view/platform: context [
 				pair
 			]
 
+			#define ANY_COORD?(value) [any [TYPE_OF(value) = TYPE_PAIR TYPE_OF(value) = TYPE_POINT2D]]
 			#define PAIR_TYPE?(value) [TYPE_OF(value) = TYPE_PAIR]
 			#define GET_PAIR_XY(_pair fx fy) [
 				either PAIR_TYPE?(_pair) [

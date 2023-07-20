@@ -707,8 +707,6 @@ draw-curve: func [
 		GET_PAIR_XY(pair p2x p2y)
 		if num = 3 [					;-- cubic Bézier
 			pair: start + 2
-			p3x: as float32! pair/x
-			p3y: as float32! pair/y
 			GET_PAIR_XY(pair p3x p3y)
 		]
 
@@ -2485,7 +2483,7 @@ OS-matrix-rotate: func [
 		pt		[red-point2D!]
 ][
 	rad: get-float32 angle
-	either any [TYPE_OF(center) = TYPE_PAIR TYPE_OF(center) = TYPE_POINT2D][
+	either ANY_COORD?(center) [
 		GET_PAIR_XY(center cx cy)
 	][
 		cx: as float32! 0.0 cy: as float32! 0.0
@@ -2522,7 +2520,7 @@ OS-matrix-scale: func [
 		pt		[red-point2D!]
 ][
 	sy: sx + 1
-	either any [TYPE_OF(center) = TYPE_PAIR TYPE_OF(center) = TYPE_POINT2D][
+	either ANY_COORD?(center) [
 		GET_PAIR_XY(center cx cy)
 	][
 		cx: F32_0 cy: F32_0
@@ -2592,7 +2590,7 @@ OS-matrix-skew: func [
 	sy: sx + 1
 	x: get-float32 sx
 	y: get-float32 sy
-	either any [TYPE_OF(center) = TYPE_PAIR TYPE_OF(center) = TYPE_POINT2D][
+	either ANY_COORD?(center) [
 		GET_PAIR_XY(center cx cy)
 	][
 		cx: F32_0 cy: F32_0
@@ -2802,7 +2800,7 @@ OS-draw-shadow: func [
 		pt		[red-point2D!]
 ][
 	chain?: ctx/shadow?
-	ctx/shadow?: any [TYPE_OF(offset) = TYPE_PAIR TYPE_OF(offset) = TYPE_POINT2D]
+	ctx/shadow?: ANY_COORD?(offset)
 	either ctx/shadow? [
 		either chain? [
 			s: as shadow! allocate size? shadow!
