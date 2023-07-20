@@ -63,6 +63,7 @@ system: context [
 			image!	[size argb rgb alpha]
 			pair!	[x y]
 			point2D![x y]
+			point3D![x y z]
 			time!	[hour minute second]
 			money!  [code amount]
 		]

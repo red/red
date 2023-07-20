@@ -629,6 +629,7 @@ words: context [
 	after:			-1
 	x:				-1
 	y:				-1
+	z:				-1
 	
 	_true:			-1
 	_false:			-1
@@ -908,6 +909,7 @@ words: context [
 
 		x:				symbol/make "x"
 		y:				symbol/make "y"
+		z:				symbol/make "z"
 		
 		self:			symbol/make "self"
 		values:			symbol/make "values"

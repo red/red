@@ -37,7 +37,7 @@ null-handle: #system [handle/push-null]
 internal!:		make typeset! [unset!]
 external!:		make typeset! [#if find config/modules 'view [event!]]
 number!:		make typeset! [integer! float! percent!]
-any-point!:		make typeset! [point2D!]
+any-point!:		make typeset! [point2D! point3D!]
 scalar!:		union number! union any-point! make typeset! [money! char! pair! tuple! time! date!]
 any-word!:		make typeset! [word! set-word! get-word! lit-word!] ;-- any bindable word
 all-word!:		union any-word! make typeset! [refinement! issue!]	;-- all types of word nature

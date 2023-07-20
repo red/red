@@ -689,8 +689,10 @@ lexer: context [
 		head: lex/head
 		lex/head: as cell! p - p/x
 		either stype = TYPE_POINT2D [
-			if p/y >> 16 <> 1 [throw-error lex s e TYPE_POINT2D]
-			either lex/load? [make-point2D as cell! p head lex s e][
+			if p/y >> 16 + 1 <> len [throw-error lex s e TYPE_POINT2D]
+			either lex/load? [
+				make-point as cell! p head lex s e
+			][
 				scan-point lex s e
 				p/header: TYPE_POINT2D					;-- overwrite the triple header with correct type (scanning)
 			]
@@ -876,11 +878,11 @@ lexer: context [
 		]
 	]
 	
-	make-point2D: func [slot [red-value!] head [red-value!] lex [state!] s [byte-ptr!] e [byte-ptr!]
+	make-point: func [slot [red-value!] head [red-value!] lex [state!] s [byte-ptr!] e [byte-ptr!]
 		/local
 			int		[red-integer!]
 			fp		[red-float!]
-			x y t	[float32!]
+			x y z t	[float32!]
 			get-f32 [subroutine!]
 	][
 		get-f32: [
@@ -895,7 +897,11 @@ lexer: context [
 		x: get-f32
 		fp: fp + 1
 		y: get-f32
-		point2D/make-at slot x y
+		if head + 2 = lex/tail [point2D/make-at slot x y  exit]
+		fp: fp + 1
+		z: get-f32		
+		assert head + 3 = lex/tail
+		point3D/make-at slot x y z
 	]
 	
 	grab-integer: func [s e [byte-ptr!] flags [integer!] dst err [int-ptr!]
