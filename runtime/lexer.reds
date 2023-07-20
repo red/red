@@ -689,12 +689,15 @@ lexer: context [
 		head: lex/head
 		lex/head: as cell! p - p/x
 		either stype = TYPE_POINT2D [
-			if p/y >> 16 + 1 <> len [throw-error lex s e TYPE_POINT2D]
+			if p/y >> 16 > 2 [
+				t: either p/y >> 16 > 1 [TYPE_POINT3D][TYPE_POINT2D]
+				throw-error lex s e t
+			]
 			either lex/load? [
 				make-point as cell! p head lex s e
 			][
-				scan-point lex s e
-				p/header: TYPE_POINT2D					;-- overwrite the triple header with correct type (scanning)
+				type: scan-point lex s e
+				p/header: type					;-- overwrite the triple header with correct type (scanning)
 			]
 		][
 			store-any-block as cell! p head len type null ;-- p slot gets overwritten here
@@ -856,9 +859,10 @@ lexer: context [
 		str/cache: null
 	]
 	
-	scan-point: func [lex [state!] s [byte-ptr!] e [byte-ptr!]
+	scan-point: func [lex [state!] s [byte-ptr!] e [byte-ptr!] return: [integer!]
 		/local
-			p [red-triple!]
+			p   [red-triple!]
+			cnt [integer!]
 			do-error skip-ws [subroutine!]
 	][
 		do-error: [throw-error lex s e TYPE_POINT2D]
@@ -867,6 +871,7 @@ lexer: context [
 		p: as red-triple! either lex/buffer < lex/head [lex/head - 1][lex/head]
 		if TYPE_OF(p) <> TYPE_TRIPLE [do-error]
 		s: lex/input + p/z
+		cnt: 0
 
 		while [s < e][
 			until [s: s + 1 any [s = e s/1 = #" "]]			;-- find a space
@@ -874,8 +879,10 @@ lexer: context [
 				skip-ws										;-- skip all spaces
 				if s/1 <> #"," [do-error]					;-- comma should follow, otherwise error!
 			]
+			cnt: cnt + 1
 			skip-ws											;-- skip the spaces after the comma
 		]
+		either cnt = 2 [TYPE_POINT2D][TYPE_POINT3D]
 	]
 	
 	make-point: func [slot [red-value!] head [red-value!] lex [state!] s [byte-ptr!] e [byte-ptr!]
@@ -1177,7 +1184,8 @@ lexer: context [
 					map/make-at as cell! blk blk block/rs-length? blk
 				]
 			]
-			TYPE_POINT2D [lex/scanned: type]
+			;TYPE_POINT2D
+			;TYPE_POINT3D [lex/scanned: type]
 			default      [0]
 		]
 		lex/in-pos: e + 1								;-- skip )
