@@ -1817,11 +1817,11 @@ OS-draw-image: func [
 		bmp		[ptr-value!]
 		bthis	[this!]
 		d2db	[IUnknown]
-		x		[integer!]
-		y		[integer!]
-		width	[integer!]
-		height	[integer!]
-		pt		[red-pair!]
+		x		[float32!]
+		y		[float32!]
+		width	[float32!]
+		height	[float32!]
+		pair	[red-pair!]
 		size	[SIZE_F! value]
 		ul		[POINT_2F value]
 		ur		[POINT_2F value]
@@ -1836,6 +1836,7 @@ OS-draw-image: func [
 		fval	[float32!]
 		crop2	[red-pair!]
 		same-img? [logic!]
+		pt		[red-point2D!]
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
@@ -1850,9 +1851,11 @@ OS-draw-image: func [
 	if same-img? [dc/BeginDraw this]
 	bthis: as this! bmp/value
 	d2db: as IUnknown bthis/vtbl
-	either null? start [x: 0 y: 0][x: start/x y: start/y]
-	width:  IMAGE_WIDTH(image/size)
-	height: IMAGE_HEIGHT(image/size)
+	either null? start [x: F32_0 y: F32_0][GET_PAIR_XY(start x y)]
+	width: as float32! IMAGE_WIDTH(image/size)
+	height: as float32! IMAGE_HEIGHT(image/size)
+	size/width: width
+	size/height: height
 
 	either crop1 <> null [
 		crop2: crop1 + 1
@@ -1874,75 +1877,57 @@ OS-draw-image: func [
 		]
 		if any [src/right <= F32_0 src/bottom <= F32_0][return 0]
 		if src/left <= F32_0 [
-			x: x - (as-integer src/left)
+			x: x - src/left
 			src/left: F32_0
 		]
 		if src/top <= F32_0 [
-			y: y - (as-integer src/top)
+			y: y - src/top
 			src/top: F32_0
 		]
-		size/width: as float32! width
-		size/height: as float32! height
+
 		if src/right > size/width [src/right: size/width]
 		if src/bottom > size/height [src/bottom: size/height]
 		size/width: src/right - src/left
 		size/height: src/bottom - src/top
-		width: as-integer size/width
-		height: as-integer size/height
+		width: size/width
+		height: size/height
 	][
 		src: null
-		size/width: as float32! width
-		size/height: as float32! height
 	]
 
 	trans: null
 	dst: null
 	case [
 		start = end [
-			dst*/left: as float32! x
-			dst*/top: as float32! y
-			dst*/right: as float32! x + width
-			dst*/bottom: as float32! y + height
+			dst*/left: x
+			dst*/top: y
+			dst*/right: x + width
+			dst*/bottom: y + height
 			dst: :dst*
 		]
 		any [					;-- two control points
 			start + 1 = end
 			all [null? start end <> null]
 		][
-			dst*/left: as float32! x
-			dst*/top: as float32! y
-			dst*/right: as float32! end/x
-			dst*/bottom: as float32! end/y
+			dst*/left: x
+			dst*/top: y
+			GET_PAIR_XY(end dst*/right dst*/bottom)
 			dst: :dst*
 		]
-		start + 2 = end [
-			pt: start
-			ul/x: as float32! pt/x
-			ul/y: as float32! pt/y
-			pt: start + 1
-			ur/x: as float32! pt/x
-			ur/y: as float32! pt/y
-			pt: start + 2
-			lr/x: as float32! pt/x
-			lr/y: as float32! pt/y
-			ll/x: ul/x
-			ll/y: lr/y
-			create-4p-matrix size ul ur ll lr m
-			trans: as int-ptr! :m
-		]
-		start + 3 = end [
-			pt: start
-			ul/x: as float32! pt/x
-			ul/y: as float32! pt/y
-			pt: start + 1
-			ur/x: as float32! pt/x
-			ur/y: as float32! pt/y
-			pt: start + 2
-			lr/x: as float32! pt/x
-			lr/y: as float32! pt/y
-			pt: start + 3
-			ll/x: as float32! pt/x
-			ll/y: as float32! pt/y
+		any [start + 2 = end start + 3 = end][
+			pair: start
+			GET_PAIR_XY(pair ul/x ul/y)
+			pair: start + 1
+			GET_PAIR_XY(pair ur/x ur/y)
+			pair: start + 2
+			GET_PAIR_XY(pair lr/x lr/y)
+			either pair = end [
+				ll/x: ul/x
+				ll/y: lr/y
+			][
+				pair: start + 3
+				GET_PAIR_XY(pair ll/x ll/y)
+			]
 			create-4p-matrix size ul ur ll lr m
 			trans: as int-ptr! :m
 		]

@@ -1341,6 +1341,7 @@ natives: context [
 			set2	 [red-value!]
 			skip-arg [red-value!]
 			type	 [integer!]
+			type2	 [integer!]
 			case?	 [logic!]
 	][
 		set1: stack/arguments
@@ -1349,10 +1350,16 @@ natives: context [
 
 		if all [
 			op <> OP_UNIQUE
-			type <> TYPE_OF(set2)
+			either any [type = TYPE_BLOCK type = TYPE_HASH][
+				type2: TYPE_OF(set2)
+				all [type2 <> TYPE_BLOCK type2 <> TYPE_HASH]
+			][
+				type <> TYPE_OF(set2)
+			]
 		][
 			fire [TO_ERROR(script expect-val) datatype/push type datatype/push TYPE_OF(set2)]
 		]
+
 		skip-arg: set1 + skip
 		case?:	  as logic! cased + 1
 

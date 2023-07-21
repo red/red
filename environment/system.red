@@ -111,7 +111,7 @@ system: context [
 				invalid-type-spec:	["invalid type specifier:" :arg1]
 				invalid-op:			["invalid operator:" :arg1]
 				no-op-arg:			[:arg1 "operator is missing an argument"]
-				bad-op-spec:		"making an op! requires a function with only 2 arguments"
+				bad-op-spec:		"making an op! requires a function with only 2 arguments and no lit/get-word on left argument"
 				invalid-data:		["data not in correct format:" :arg1]
 				invalid-part:		["invalid /part count:" :arg1]
 				not-same-type:		"values must be of the same type"

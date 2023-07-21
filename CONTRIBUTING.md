@@ -13,7 +13,7 @@ No matter how small, your contribution will be valued and appreciated providing 
 1. You should be sure that you own the Intellectual Property Rights(IP) of any contribution you make to the Red project.
 2. By submitting a contribution to the Red project, you are granting the Red project and, in particular, Nenad Rakocevic the right to publish your submission.
 (A simple way for you to confirm both 1 & 2 will be introduced in due course.)
-3. A lot of care and attention has been given to the design of both the Red and Red-System languages. Before starting work on anything to change or extend either language, please submit a proposal for your change by raising an issue on the Red project GitHub repository. (It could save you a lot of unnecessary work.)
+3. A lot of care and attention has been given to the design of both the Red and Red-System languages. Before starting work on anything to change or extend either language, please submit a proposal for your change by raising an issue on the [Red Enhancement Proposals GitHub repository](https://github.com/red/REP). (It could save you a lot of unnecessary work.)
 4. All code submissions should include a reasonable set of tests written with [quick test](http://static.red-lang.org/red-system-quick-test.html).
 5. All commit messages submitted to the Red repository should be prefixed according to the following conventions:
     * `FEAT:` new feature.

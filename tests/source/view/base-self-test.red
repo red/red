@@ -47,8 +47,8 @@ bst-show-delay: 0:0:5
 
 ;-- capturing framerate
 bst-w7?: all ['Windows = system/platform  find/match get bind 'name os-info "Windows 7"]
-bst-rate: either bst-w7? [67][2] 	 	;-- works fast w/o bugs on W7 only
-?? bst-rate
+bst-rate: either bst-w7? [67][0.5] 	 	;-- works fast w/o bugs on W7 only
+
 
 ;-- colors should include B and R components of different intensities
 ;-- because these two are swapped around between Red/GDI and GDI+
@@ -690,7 +690,6 @@ shoot: func [
 			; FIXME: on W8 the capture is often partial when goes off screen
 			; offset: random system/view/screens/1/size - 50x50
 			offset: random system/view/screens/1/size - 300x300
-			?? offset
 		]
 	]
 	r
@@ -810,9 +809,7 @@ test-dual-chrome?: func [
 	;-- NOTE: cleartype doesn't play by the rules and can produce
 	;--  multi-colored rendering out of seemingly monochrome font
 	;--  can't use = 2 here!  unless /strict is specified
-	coll: collect [forall cs [if tuple? cs/1 [keep cs/1]]]
-	?? coll
-	n: length? coll
+	n: length? collect [forall cs [if tuple? cs/1 [keep cs/1]]]
 	unless any [n = 2  all [not strict  n >= 2] ] [
 		maybe-display-shortly im form reduce [
 			"expected" pick ["=" ">="] true = strict "2 colors, got" n "from" mold cs
@@ -1360,15 +1357,11 @@ view/no-wait [text "This window is a workaround for R2 call bug which hides firs
 	--test-- "crc-11 - base, preset colors"
 		;-- checks if text is 1) indeed rendered 2) colors are as requested
 		bst-cs: colorset? bst-im: shoot [base' "CAT"]
-		print "---CRC-11--- begin"
-		prin ["bst-im:" mold save/as copy #{} bst-im 'png]
-		?? bst-cs
 		--assert test-dual-chrome? bst-im bst-cs
-		--assert test-color-match?     bst-im probe bst-cs/1 bst-colors/bg
-		--assert test-color-match?/tol bst-im probe bst-cs/3 bst-colors/fg 0 20
+		--assert test-color-match?     bst-im bst-cs/1 bst-colors/bg
+		--assert test-color-match?/tol bst-im bst-cs/3 bst-colors/fg 0 20
 		--assert test-match?/tol bst-im bst-cs/2 95%  0 4.5%
 		--assert test-match?/tol bst-im bst-cs/4 5%   0 4.5%
-		print "---CRC-11--- end"
 	]
 
 	--test-- "crc-12 - base, system default background"
