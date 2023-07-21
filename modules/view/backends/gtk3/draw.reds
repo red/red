@@ -1956,12 +1956,14 @@ OS-matrix-scale: func [
 OS-matrix-translate: func [
 	dc			[draw-ctx!]
 	pen-fill	[integer!]
-	x			[integer!]
-	y			[integer!]
+	pos			[red-pair!]
 	/local
 		grad	[gradient!]
 		matrix	[cairo_matrix_t!]
+		pt		[red-point2D!]
+		x y		[float32!]
 ][
+	GET_PAIR_XY(pos x y)
 	either pen-fill <> -1 [
 		grad: either pen-fill = pen [dc/grad-pen][dc/grad-brush]
 		if grad/on? [

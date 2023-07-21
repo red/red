@@ -1381,18 +1381,20 @@ OS-matrix-rotate: func [
 	center	[red-pair!]
 	/local
 		ctx [handle!]
-		pt	[CGPoint!]
+		pt	[red-point2D!]
 		rad [float32!]
+		x y [float32!]
 ][
 	ctx: dc/raw
 	rad: (as float32! PI) / (as float32! 180.0) * get-float32 angle
+	GET_PAIR_XY(center x y)
 	either pen = -1 [
 		if angle <> as red-integer! center [
-			_OS-matrix-translate ctx center/x center/y
+			_OS-matrix-translate ctx x y
 		]
 		CGContextRotateCTM ctx rad
 		if angle <> as red-integer! center [
-			_OS-matrix-translate ctx 0 - center/x 0 - center/y
+			_OS-matrix-translate ctx (as float32! 0.0) - x (as float32! 0.0) - y
 		]
 	][
 		dc/matrix: CGAffineTransformRotate dc/matrix rad
@@ -1406,15 +1408,18 @@ OS-matrix-scale: func [
 	center	[red-pair!]
 	/local
 		sy	[red-integer!]
+		pt	[red-point2D!]
+		x y [float32!]
 ][
+	GET_PAIR_XY(center x y)
 	sy: sx + 1
 	either pen = -1 [
 		if TYPE_OF(center) = TYPE_PAIR [
-			_OS-matrix-translate dc/raw center/x center/y
+			_OS-matrix-translate dc/raw x y
 		]
 		CGContextScaleCTM dc/raw get-float32 sx get-float32 sy
 		if TYPE_OF(center) = TYPE_PAIR [
-			_OS-matrix-translate dc/raw 0 - center/x 0 - center/y
+			_OS-matrix-translate dc/raw (as float32! 0.0) - x (as float32! 0.0) - y
 		]
 	][
 		dc/matrix: CGAffineTransformScale dc/matrix get-float32 sx get-float32 sy
@@ -1423,22 +1428,25 @@ OS-matrix-scale: func [
 
 _OS-matrix-translate: func [
 	ctx [handle!]
-	x	[integer!]
-	y	[integer!]
+	x	[float32!]
+	y	[float32!]
 ][
-	CGContextTranslateCTM ctx as float32! x as float32! y
+	CGContextTranslateCTM ctx x y
 ]
 
 OS-matrix-translate: func [
 	dc	[draw-ctx!]
 	pen [integer!]
-	x	[integer!]
-	y	[integer!]
+	pos [red-pair!]
+	/local
+		pt [red-point2D!]
+		x y [float32!]
 ][
+	GET_PAIR_XY(pos x y)
 	either pen = -1 [
-		CGContextTranslateCTM dc/raw as float32! x as float32! y
+		CGContextTranslateCTM dc/raw x y
 	][
-		dc/matrix: CGAffineTransformTranslate dc/matrix as float32! x as float32! y
+		dc/matrix: CGAffineTransformTranslate dc/matrix x y
 	]
 ]
 
@@ -1452,6 +1460,8 @@ OS-matrix-skew: func [
 		xv	[float!]
 		yv	[float!]
 		m	[CGAffineTransform! value]
+		pt	[red-point2D!]
+		x y [float32!]
 ][
 	sy: sx + 1
 	xv: get-float sx
@@ -1466,13 +1476,14 @@ OS-matrix-skew: func [
 	m/d: as float32! 1.0
 	m/tx: as float32! 0.0
 	m/ty: as float32! 0.0
+	GET_PAIR_XY(center x y)
 	either pen = -1 [
 		if TYPE_OF(center) = TYPE_PAIR [
-			_OS-matrix-translate dc/raw center/x center/y
+			_OS-matrix-translate dc/raw x y
 		]
 		CGContextConcatCTM dc/raw m
 		if TYPE_OF(center) = TYPE_PAIR [
-			_OS-matrix-translate dc/raw 0 - center/x 0 - center/y
+			_OS-matrix-translate dc/raw (as float32! 0.0) - x (as float32! 0.0) - y
 		]
 	][
 		dc/matrix: CGAffineTransformConcat dc/matrix m
@@ -1488,11 +1499,14 @@ OS-matrix-transform: func [
 	/local
 		rotate	[red-integer!]
 		center? [logic!]
+		pt		[red-point2D!]
+		x y		[float32!]
 ][
 	rotate: as red-integer! either center + 1 = scale [center][center + 1]
 	center?: rotate <> center
 
-	_OS-matrix-translate dc/raw translate/x translate/y
+	GET_PAIR_XY(translate x y)
+	_OS-matrix-translate dc/raw x y
 	OS-matrix-scale dc pen scale center
 	OS-matrix-rotate dc pen rotate center
 ]
