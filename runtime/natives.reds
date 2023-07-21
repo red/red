@@ -3094,6 +3094,8 @@ natives: context [
 			p2		[red-pair!]
 			pt		[red-point2D!]
 			pt2		[red-point2D!]
+			pt3 	[red-point3D!]
+			pt3b 	[red-point3D!]
 			tp		[red-tuple!]
 			buf		[byte-ptr!]
 			buf2	[byte-ptr!]
@@ -3190,13 +3192,45 @@ natives: context [
 					]
 					TYPE_FLOAT
 					TYPE_INTEGER [
-						f32: as-float32 argument-as-float arg2
+						f32: as-float32 arg-to-float arg2
 						either max? [
 							if pt/x < f32 [pt/x: f32]
 							if pt/y < f32 [pt/y: f32]
 						][
 							if pt/x > f32 [pt/x: f32]
 							if pt/y > f32 [pt/y: f32]
+						]
+						if arg <> stack/arguments [stack/set-last arg]
+					]
+					default [comp?: yes]
+				]
+			]
+			TYPE_POINT3D [
+				pt3: as red-point3D! arg
+				switch type2 [
+					TYPE_POINT3D [
+						pt3b: as red-point3D! arg2
+						either max? [
+							if pt3/x < pt3b/x [pt3/x: pt3b/x]
+							if pt3/y < pt3b/y [pt3/y: pt3b/y]
+							if pt3/z < pt3b/z [pt3/z: pt3b/z]
+						][
+							if pt3/x > pt3b/x [pt3/x: pt3b/x]
+							if pt3/y > pt3b/y [pt3/y: pt3b/y]
+							if pt3/z > pt3b/z [pt3/z: pt3b/z]
+						]
+					]
+					TYPE_FLOAT
+					TYPE_INTEGER [
+						f32: as-float32 arg-to-float arg2
+						either max? [
+							if pt3/x < f32 [pt3/x: f32]
+							if pt3/y < f32 [pt3/y: f32]
+							if pt3/z < f32 [pt3/z: f32]
+						][
+							if pt3/x > f32 [pt3/x: f32]
+							if pt3/y > f32 [pt3/y: f32]
+							if pt3/z > f32 [pt3/z: f32]
 						]
 						if arg <> stack/arguments [stack/set-last arg]
 					]
@@ -3258,6 +3292,22 @@ natives: context [
 				fire [TO_ERROR(script type-limit) datatype/push TYPE_INTEGER]
 			]
 			as-integer fl/value
+		]
+	]
+
+	arg-to-float: func [
+		arg 	[red-value!]
+		return: [float!]
+		/local
+			fl	[red-float!]
+			int	[red-integer!]
+	][
+		either TYPE_OF(arg) = TYPE_INTEGER [
+			int: as red-integer! arg
+			as-float int/value
+		][
+			fl: as red-float! arg
+			fl/value
 		]
 	]
 
