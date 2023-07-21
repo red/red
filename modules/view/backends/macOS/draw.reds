@@ -120,21 +120,21 @@ OS-draw-line: func [
 	point  [red-pair!]
 	end	   [red-pair!]
 	/local
-		pt		[CGPoint!]
+		p		[CGPoint!]
 		nb		[integer!]
 		pair	[red-pair!]
 		ctx		[handle!]
+		pt		[red-point2D!]
 ][
 	ctx:	dc/raw
-	pt:		edges
+	p:		edges
 	pair:	point
 	nb:		0
 
 	while [all [pair <= end nb < max-edges]][
-		pt/x: as float32! pair/x
-		pt/y: as float32! pair/y
+		GET_PAIR_XY(pair p/x p/y)
 		nb: nb + 1
-		pt: pt + 1
+		p: p + 1
 		pair: pair + 1
 	]
 	CGContextBeginPath ctx
@@ -381,7 +381,7 @@ OS-draw-box: func [
 	lower [red-pair!]
 	/local
 		ctx		[handle!]
-		t		[integer!]
+		t		[float32!]
 		radius	[red-integer!]
 		rad		[float32!]
 		x1		[float32!]
@@ -390,9 +390,10 @@ OS-draw-box: func [
 		ym		[float32!]
 		y1		[float32!]
 		y2		[float32!]
-		width	[integer!]
-		height	[integer!]
-		irad	[integer!]
+		width	[float32!]
+		height	[float32!]
+		pt		[red-point2D!]
+		ux uy lx ly [float32!]
 ][
 	ctx: dc/raw
 	radius: null
@@ -400,22 +401,24 @@ OS-draw-box: func [
 		radius: as red-integer! lower
 		lower:  lower - 1
 	]
-	if upper/x > lower/x [t: upper/x upper/x: lower/x lower/x: t]
-	if upper/y > lower/y [t: upper/y upper/y: lower/y lower/y: t]
+	GET_PAIR_XY(upper ux uy)
+	GET_PAIR_XY(lower lx ly)
+	if ux > lx [t: ux ux: lx lx: t]
+	if uy > ly [t: uy uy: ly ly: t]
 
-	x1: as float32! upper/x
-	y1: as float32! upper/y
-	x2: as float32! lower/x
-	y2: as float32! lower/y
+	x1: ux
+	y1: uy
+	x2: lx
+	y2: ly
 	xm: x1 + (x2 - x1 / as float32! 2.0)
 	ym: y1 + (y2 - y1 / as float32! 2.0)
 
 	either radius <> null [
-		width: lower/x - upper/x
-		height: lower/y - upper/y
+		width: lx - ux
+		height: ly - uy
 		t: either width > height [height][width]
-		irad: either radius/value * 2 > t [t / 2][radius/value]
-		rad: as float32! irad
+		rad: as float32! radius/value
+		if (rad * as float32! 2.0) > t [rad: t / as float32! 2.0]
 		CGContextMoveToPoint ctx x1 ym
 		CGContextAddArcToPoint ctx x1 y1 xm y1 rad
 		CGContextAddArcToPoint ctx x2 y1 x2 ym rad
@@ -461,13 +464,13 @@ OS-draw-triangle: func [
 	/local
 		ctx   [handle!]
 		point [CGPoint!]
+		pt	  [red-point2D!]
 ][
 	ctx: dc/raw
 	point: edges
 
 	loop 3 [
-		point/x: as float32! start/x
-		point/y: as float32! start/y
+		GET_PAIR_XY(start point/x point/y)
 		point: point + 1
 		start: start + 1
 	]
@@ -490,6 +493,7 @@ OS-draw-polygon: func [
 		point [CGPoint!]
 		nb	  [integer!]
 		mode  [integer!]
+		pt	  [red-point2D!]
 ][
 	ctx:   dc/raw
 	point: edges
@@ -497,15 +501,13 @@ OS-draw-polygon: func [
 	nb:	   0
 
 	while [all [pair <= end nb < max-edges]][
-		point/x: as float32! pair/x
-		point/y: as float32! pair/y
+		GET_PAIR_XY(pair point/x point/y)
 		nb: nb + 1
 		point: point + 1
 		pair: pair + 1
 	]
 	;if nb = max-edges [fire error]
-	point/x: as float32! start/x						;-- close the polygon
-	point/y: as float32! start/y
+	GET_PAIR_XY(start point/x point/y)			;-- close the polygon
 
 	CGContextBeginPath ctx
 	CGContextAddLines ctx edges nb + 1
@@ -536,6 +538,7 @@ OS-draw-spline: func [
 		n		[integer!]
 		count	[integer!]
 		num		[integer!]
+		pt		[red-point2D!]
 ][
 	ctx: dc/raw
 
@@ -544,19 +547,16 @@ OS-draw-spline: func [
 
 	p: edges
 	unless closed? [
-		p/x: as float32! start/x			;-- duplicate first point
-		p/y: as float32! start/y
+		GET_PAIR_XY(start p/x p/y)			;-- duplicate first point
 		p: p + 1
 	]
 	while [start <= end][
-		p/x: as float32! start/x
-		p/y: as float32! start/y
+		GET_PAIR_XY(start p/x p/y)
 		p: p + 1
 		start: start + 1
 	]
 	unless closed? [
-		p/x: as float32! end/x				;-- duplicate end point
-		p/y: as float32! end/y
+		GET_PAIR_XY(end p/x p/y)			;-- duplicate end point
 	]
 
 	p: either closed? [
@@ -635,47 +635,55 @@ OS-draw-circle: func [
 	center [red-pair!]
 	radius [red-integer!]
 	/local
-		rad-x [integer!]
-		rad-y [integer!]
+		rad-x [float32!]
+		rad-y [float32!]
 		w	  [float32!]
 		h	  [float32!]
+		cx cy [float32!]
 		f	  [red-float!]
+		pt	  [red-point2D!]
 ][
 	either TYPE_OF(radius) = TYPE_INTEGER [
 		either center + 1 = radius [					;-- center, radius
-			rad-x: radius/value
+			rad-x: as float32! radius/value
 			rad-y: rad-x
 		][
-			rad-y: radius/value							;-- center, radius-x, radius-y
+			rad-y: as float32! radius/value				;-- center, radius-x, radius-y
 			radius: radius - 1
-			rad-x: radius/value
+			rad-x: as float32! radius/value
 		]
-		w: as float32! rad-x * 2
-		h: as float32! rad-y * 2
+		w: rad-x * as float32! 2.0
+		h: rad-y * as float32! 2.0
 	][
 		f: as red-float! radius
 		either center + 1 = radius [
-			rad-x: as-integer f/value + 0.75
+			rad-x: as float32! f/value
 			rad-y: rad-x
-			w: as float32! f/value * 2.0
+			w: rad-x * as float32! 2.0
 			h: w
 		][
-			rad-y: as-integer f/value + 0.75
-			h: as float32! f/value * 2.0
+			rad-y: as float32! f/value
+			h: rad-y * as float32! 2.0
 			f: f - 1
-			rad-x: as-integer f/value + 0.75
-			w: as float32! f/value * 2.0
+			rad-x: as float32! f/value
+			w: rad-x * as float32! 2.0
 		]
 	]
-	do-draw-ellipse dc as float32! center/x - rad-x as float32! center/y - rad-y w h
+	GET_PAIR_XY(center cx cy)
+	do-draw-ellipse dc cx - rad-x cy - rad-y w h
 ]
 
 OS-draw-ellipse: func [
 	dc	  	 [draw-ctx!]
 	upper	 [red-pair!]
 	diameter [red-pair!]
+	/local
+		pt	 [red-point2D!]
+		ux uy dx dy [float32!]
 ][
-	do-draw-ellipse dc as float32! upper/x as float32! upper/y as float32! diameter/x as float32! diameter/y
+	GET_PAIR_XY(upper ux uy)
+	GET_PAIR_XY(diameter dx dy)
+	do-draw-ellipse dc ux uy dx dy
 ]
 
 OS-draw-font: func [
@@ -690,8 +698,8 @@ draw-text-at: func [
 	ctx		[handle!]
 	text	[red-string!]
 	attrs	[integer!]
-	x		[integer!]
-	y		[integer!]
+	x		[float32!]
+	y		[float32!]
 	/local
 		str		[integer!]
 		attr	[integer!]
@@ -699,7 +707,9 @@ draw-text-at: func [
 		delta	[float32!]
 		m		[CGAffineTransform!]
 ][
-	m: make-CGMatrix 1 0 0 -1 x y
+	m: make-CGMatrix 1 0 0 -1 1 1
+	m/tx: x
+	m/ty: y
 	str: to-CFString text
 	attr: CFAttributedStringCreate 0 str attrs
 	line: CTLineCreateWithAttributedString attr
@@ -735,8 +745,9 @@ draw-text-box: func [
 		len		[integer!]
 		y		[integer!]
 		x		[integer!]
-		pt		[CGPoint!]
+		cg-pt	[CGPoint!]
 		clr		[integer!]
+		pt		[red-point2D!]
 ][
 	values: object/get-values tbox
 	str: as red-string! values + FACE_OBJ_TEXT
@@ -763,11 +774,10 @@ draw-text-box: func [
 	idx: objc_msgSend [layout sel_getUid "glyphRangeForTextContainer:" tc]
 	len: system/cpu/edx
 	x: 0
-	pt: as CGPoint! :x
-	pt/x: as float32! pos/x
-	pt/y: as float32! pos/y
-	objc_msgSend [layout sel_getUid "drawBackgroundForGlyphRange:atPoint:" idx len pt/x pt/y]
-	objc_msgSend [layout sel_getUid "drawGlyphsForGlyphRange:atPoint:" idx len pt/x pt/y]
+	cg-pt: as CGPoint! :x
+	GET_PAIR_XY(pos cg-pt/x cg-pt/y)
+	objc_msgSend [layout sel_getUid "drawBackgroundForGlyphRange:atPoint:" idx len cg-pt/x cg-pt/y]
+	objc_msgSend [layout sel_getUid "drawGlyphsForGlyphRange:atPoint:" idx len cg-pt/x cg-pt/y]
 ]
 
 OS-draw-text: func [
@@ -778,10 +788,13 @@ OS-draw-text: func [
 	return: [logic!]
 	/local
 		ctx [handle!]
+		pt	[red-point2D!]
+		x y [float32!]
 ][
 	ctx: dc/raw
 	either TYPE_OF(text) = TYPE_STRING [
-		draw-text-at ctx text dc/font-attrs pos/x pos/y
+		GET_PAIR_XY(pos x y)
+		draw-text-at ctx text dc/font-attrs x y
 	][
 		draw-text-box dc pos as red-object! text catch?
 	]
@@ -876,15 +889,14 @@ OS-draw-arc: func [
 		sweep		[integer!]
 		i			[integer!]
 		closed?		[logic!]
+		pt			[red-point2D!]
 ][
 	ctx: dc/raw
-	cx: as float32! center/x
-	cy: as float32! center/y
+	GET_PAIR_XY(center cx cy)
 	rad: (as float32! PI) / as float32! 180.0
 
 	radius: center + 1
-	rad-x: as float32! radius/x
-	rad-y: as float32! radius/y
+	GET_PAIR_XY(radius rad-x rad-y)
 	begin: as red-integer! radius + 1
 	angle-begin: rad * as float32! begin/value
 	angle: begin + 1
@@ -938,26 +950,33 @@ OS-draw-curve: func [
 		cp2y  [float32!]
 		p2	  [red-pair!]
 		p3	  [red-pair!]
+		pt	  [red-point2D!]
+		sx sy [float32!]
+		p2x p2y p3x p3y [float32!]
 ][
 	ctx: dc/raw
 	p2: start + 1
 	p3: start + 2
+	GET_PAIR_XY(p2 p2x p2y)
+	GET_PAIR_XY(p3 p3x p3y)
+	GET_PAIR_XY(start sx sy)
 
 	either 2 = ((as-integer end - start) >> 4) [		;-- p0, p1, p2  -->  p0, (p0 + 2p1) / 3, (2p1 + p2) / 3, p2
-		cp1x: (as float32! p2/x << 1 + start/x) / as float32! 3.0
-		cp1y: (as float32! p2/y << 1 + start/y) / as float32! 3.0
-		cp2x: (as float32! p2/x << 1 + p3/x) / as float32! 3.0
-		cp2y: (as float32! p2/y << 1 + p3/y) / as float32! 3.0
+		cp1x: (p2x * as float32! 2.0) + sx / as float32! 3.0
+		cp1y: (p2y * as float32! 2.0) + sy / as float32! 3.0
+		cp2x: (p2x * as float32! 2.0) + p3x / as float32! 3.0
+		cp2y: (p2y * as float32! 2.0) + p3y / as float32! 3.0
 	][
-		cp1x: as float32! p2/x
-		cp1y: as float32! p2/y
-		cp2x: as float32! p3/x
-		cp2y: as float32! p3/y
+		cp1x: p2x
+		cp1y: p2y
+		cp2x: p3x
+		cp2y: p3y
 	]
 
 	CGContextBeginPath ctx
-	CGContextMoveToPoint ctx as float32! start/x as float32! start/y
-	CGContextAddCurveToPoint ctx cp1x cp1y cp2x cp2y as float32! end/x as float32! end/y
+	CGContextMoveToPoint ctx sx sy
+	GET_PAIR_XY(end sx sy)
+	CGContextAddCurveToPoint ctx cp1x cp1y cp2x cp2y sx sy
 	CGContextStrokePath ctx
 ]
 
@@ -1299,8 +1318,10 @@ OS-draw-grad-pen: func [
 		last-p	[float32-ptr!]
 		delta	[float32!]
 		p		[float32!]
-		pt		[red-pair!]
+		pair	[red-pair!]
+		pt		[red-point2D!]
 		val		[integer!]
+		x y		[float32!]
 ][
 	ctx/grad-type: type
 	ctx/grad-spread: spread
@@ -1355,18 +1376,21 @@ OS-draw-grad-pen: func [
 
 	;-- positions
 	unless skip-pos? [
-		pt: as red-pair! positions
-		ctx/grad-x1: as float32! pt/x ctx/grad-y1: as float32! pt/y
+		pair: as red-pair! positions
+		GET_PAIR_XY(pair x y)
+		ctx/grad-x1: x ctx/grad-y1: y
 		either type = linear [
-			pt: pt + 1
-			ctx/grad-x2: as float32! pt/x ctx/grad-y2: as float32! pt/y
+			pair: pair + 1
+			GET_PAIR_XY(pair x y)
+			ctx/grad-x2: x ctx/grad-y2: y
 		][
 			either type = radial [
 				ctx/grad-radius: get-float32 as red-integer! positions + 1
 				if focal? [
-					pt: as red-pair! ( positions + 2 )
+					pair: as red-pair! ( positions + 2 )
+					GET_PAIR_XY(pair x y)
 				]
-				ctx/grad-x2: as float32! pt/x ctx/grad-y2: as float32! pt/y
+				ctx/grad-x2: x ctx/grad-y2: y
 			][
 				0	;@@ TBD diamond gradient
 			]
@@ -1593,39 +1617,39 @@ OS-set-clip: func [
 	mode	[integer!]
 	/local
 		ctx [handle!]
-		t	[integer!]
-		x1	[integer!]
-		x2	[integer!]
-		y1	[integer!]
-		y2	[integer!]
-		p4	[integer!]
-		p3	[integer!]
-		p2	[integer!]
-		p1	[integer!]
-		rc	[NSRect!]
+		p   [integer!]
+		t	[float32!]
+		x1	[float32!]
+		x2	[float32!]
+		y1	[float32!]
+		y2	[float32!]
+		rc	[NSRect! value]
+		pt	[red-point2D!]
+		up-x up-y [float32!]
+		lo-x lo-y [float32!]
 ][
 	ctx: dc/raw
 	either rect? [
-		if upper/x > lower/x [t: upper/x upper/x: lower/x lower/x: t]
-		if upper/y > lower/y [t: upper/y upper/y: lower/y lower/y: t]
+		GET_PAIR_XY(upper up-x up-y)
+		GET_PAIR_XY(lower lo-x lo-y)
+		if up-x > lo-x [t: up-x up-x: lo-x lo-x: t]
+		if up-y > lo-y [t: up-y up-y: lo-y lo-y: t]
 
-		p1: 0
-		rc: as NSRect! :p1
-		x1: upper/x
-		y1: upper/y
-		x2: lower/x
-		y2: lower/y
-		rc/x: as float32! x1
-		rc/y: as float32! y1
-		rc/w: as float32! x2 - x1
-		rc/h: as float32! y2 - y1
+		x1: up-x
+		y1: up-y
+		x2: lo-x
+		y2: lo-y
+		rc/x: x1
+		rc/y: y1
+		rc/w: x2 - x1
+		rc/h: y2 - y1
 		;CGContextBeginPath ctx
 		CGContextAddRect ctx rc/x rc/y rc/w rc/h
 	][
-		t: dc/path
-		CGPathCloseSubpath t
-		CGContextAddPath ctx t
-		CGPathRelease t
+		p: dc/path
+		CGPathCloseSubpath p
+		CGContextAddPath ctx p
+		CGPathRelease p
 	]
 	CGContextClip ctx
 ]
@@ -1666,9 +1690,9 @@ OS-draw-shape-moveto: func [
 	/local
 		x		[float32!]
 		y		[float32!]
+		pt		[red-point2D!]
 ][
-	x: as float32! coord/x
-	y: as float32! coord/y
+	GET_PAIR_XY(coord x y)
 	if rel? [
 		x: dc/last-pt-x + x
 		y: dc/last-pt-y + y
@@ -1690,14 +1714,14 @@ OS-draw-shape-line: func [
 		dy		[float32!]
 		x		[float32!]
 		y		[float32!]
+		pt		[red-point2D!]
 ][
 	path: dc/path
 	dx: dc/last-pt-x
 	dy: dc/last-pt-y
 
 	until [
-		x: as float32! start/x
-		y: as float32! start/y
+		GET_PAIR_XY(start x y)
 		if rel? [
 			x: x + dx
 			y: y + dy
@@ -1749,18 +1773,16 @@ draw-curve: func [
 		p1y		[float32!]
 		p1x		[float32!]
 		pf		[float32-ptr!]
-		pt		[red-pair!]
+		pair	[red-pair!]
+		pt		[red-point2D!]
 ][
 	while [ start < end ][
-		pt: start + 1
-		p1x: as float32! start/x
-		p1y: as float32! start/y
-		p2x: as float32! pt/x
-		p2y: as float32! pt/y
+		pair: start + 1
+		GET_PAIR_XY(start p1x p1y)
+		GET_PAIR_XY(pair p2x p2y)
 		if num = 3 [					;-- cubic Bézier
-			pt: start + 2
-			p3x: as float32! pt/x
-			p3y: as float32! pt/y
+			pair: start + 2
+			GET_PAIR_XY(pair p3x p3y)
 		]
 
 		dx: dc/last-pt-x
@@ -1879,12 +1901,15 @@ OS-draw-shape-arc: func [
 		pt2			[CGPoint! value]
 		m			[CGAffineTransform! value]
 		path		[integer!]
+		pt			[red-point2D!]
+		end-x end-y [float32!]
 ][
 	;-- parse arguments
+	GET_PAIR_XY(end end-x end-y)
 	p1-x: ctx/last-pt-x
 	p1-y: ctx/last-pt-y
-	p2-x: either rel? [ p1-x + as float32! end/x ][ as float32! end/x ]
-	p2-y: either rel? [ p1-y + as float32! end/y ][ as float32! end/y ]
+	p2-x: either rel? [ p1-x + end-x ][ end-x ]
+	p2-y: either rel? [ p1-y + end-y ][ end-y ]
 	ctx/last-pt-x: p2-x
 	ctx/last-pt-y: p2-y
 	item: as red-integer! end + 1
