@@ -128,6 +128,16 @@ bst-cleanup: does [
 ]
 
 
+dump-image: function [img [word! path! image!]] [
+	either image? img [name: 'image][img: get name: img]
+	print [
+		rejoin [form name ":"] "load/as decompress"
+		mold compress save/as make binary! 1000 img 'png 'deflate
+		"'deflate 'png"
+	]
+]
+
+
 ;-- foreach is buggy yet, plus it doesn't track the offset
 forxy: func ["loop thru a 2D area" 'p s c /local i] [
 	any [pair? s  s: s/size]
@@ -671,15 +681,17 @@ shoot: func [
 		bd [tuple!]
 	/async "return immediately, execute the provided callback upon finish"
 		on-finish [function!]
-	/local r
+	/slow  "damn CI"
+	/local r rate
 ] [
+	rate: either slow [0.1][bst-rate]
 	do compose/deep [
 		(either async ['view/tight/no-wait/options]['view/tight/options]) [
 			panel [(either backdrop [reduce ['backdrop bd]][[]]) origin 0x0 space 0x0 (vid)]
 			extra none
 			rate 70
 			on-time [
-				unless face/extra [face/extra: now/utc/precise + (0:0:1 / bst-rate) exit]
+				unless face/extra [face/extra: now/utc/precise + (0:0:1 / rate) exit]
 				if now/utc/precise < face/extra [exit]
 				face/rate: none 		;-- ensure it won't trigger twice
 				event: to-image (either whole ['face/parent]['face])
@@ -785,7 +797,7 @@ four-ways: func [code [block!] /local ws ss i j d code' rule s full] [
 
 
 maybe-display-shortly: func [
-	"when user-mode is on, display an image(s) with a message for review"
+	"when user-mode is on, display an image(s) with a message for review, dump it otherwise"
 	im [image! block!] msg [string!]
 ] [
 	im: compose [(im)]
@@ -797,6 +809,9 @@ maybe-display-shortly: func [
 			return area 300x200 wrap msg
 		]
 	]
+	print msg
+	repeat i length? im [dump-image as path! compose [im (i)]]
+	print {}
 ]
 
 
@@ -822,7 +837,7 @@ test-dual-chrome?: func [
 
 test-color-match?: func [
 	"test if colors x and y are similar"
-	im [image!] x [tuple!] y [tuple!] /tol tolrel tolabs
+	im [image!] x [tuple! none!] y [tuple! none!] /tol tolrel tolabs
 ] [
 	test-match?/tol im x y tolrel tolabs
 ]
@@ -951,13 +966,16 @@ test-same-text-origin-and-size?: function [
 
 test-match?: func [
 	"wrapper around `about?` func (image is used for error display only)"
-	im [image!] x [number! tuple!] y [number! tuple!] /tol tolrel tolabs /local s
+	;; none! is allowed because some tests were often failing the whole suite with arg checks because of it
+	im [image!] x [number! tuple! none!] y [number! tuple! none!] /tol tolrel tolabs /local s
 ] [
-	unless about?/tol x y tolrel tolabs [
-		s: form reduce [
+	unless all [x y about?/tol x y tolrel tolabs] [
+		s: form reduce either all [x y] [[
 			"expected similarity between" x "and" y
 			", failed with tol rel=" tolrel "abs=" tolabs
-		]
+		]] [[
+			"expected to receive color or number arguments, got x=" x "y=" y
+		]]
 		maybe-display-shortly im s
 		return no
 	]
@@ -967,13 +985,16 @@ test-match?: func [
 
 test-contrast?: func [
 	"test if colors x and y are NOT similar (image is used for error display only)"
-	im [image!] x [tuple!] y [tuple!] /tol tolrel tolabs /local s
+	;; none! is allowed because some tests were often failing the whole suite with arg checks because of it
+	im [image!] x [tuple! none!] y [tuple! none!] /tol tolrel tolabs /local s
 ] [
-	if about?/tol x y tolrel tolabs [
-		s: form reduce [
+	if any [not x not y about?/tol x y tolrel tolabs] [
+		s: form reduce either all [x y] [[
 			"expected contrast text/bgnd combo, got" x "and" y
 			", compared with tol rel=" tolrel "abs=" tolabs
-		]
+		]] [[
+			"expected to receive color arguments, got x=" x "y=" y
+		]]
 		maybe-display-shortly im s
 		return no
 	]
@@ -1366,21 +1387,23 @@ view/no-wait [text "This window is a workaround for R2 call bug which hides firs
 
 	--test-- "crc-12 - base, system default background"
 		;-- checks if box uses the system default background color
-		bst-cs: colorset? bst-im: shoot [box "CAT" font bst-font1]
+		bst-cs: colorset? bst-im: shoot/slow [box "CAT" font bst-font1]
 		--assert test-dual-chrome? bst-im bst-cs
 		try [	;-- colors/window might be undefined
 			--assert test-color-match? bst-im bst-cs/1 system/view/metrics/colors/panel
 		]
+		--assert not none? bst-cs/3
 		--assert test-color-match?/tol bst-im bst-cs/3 bst-colors/fg 0 20
 		--assert test-match?/tol bst-im bst-cs/2 95%  0 4.5%
 		--assert test-match?/tol bst-im bst-cs/4 5%   0 4.5%
 
 	--test-- "crc-13 - base, system default bg+text"
 		;-- checks if unspecified font color defaults to the system default text color
-		bst-cs: colorset? bst-im: shoot [box "CAT" font-size 16]
+		bst-cs: colorset? bst-im: shoot/slow [box "CAT" font-size 16]
+		--assert not none? bst-cs/3
 		--assert test-dual-chrome? bst-im bst-cs
 		--assert test-contrast? bst-im bst-cs/1 bst-cs/3
-		try [ 	;-- colors/window might be undefined
+		try [ 	;-- colors/panel might be undefined
 			--assert test-color-match? bst-im bst-cs/1 system/view/metrics/colors/panel
 		]
 		try [ 	;-- colors/text might be undefined
