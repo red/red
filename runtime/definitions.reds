@@ -99,9 +99,9 @@ Red/System [
 
 #if OS = 'Linux [
 
-	tagPOINT: alias struct! [
-		x		[integer!]
-		y		[integer!]
+	point2f!: alias struct! [
+		x		[float!]
+		y		[float!]
 	]
 
 	tagMATRIX: alias struct! [
@@ -124,10 +124,10 @@ Red/System [
 		count			[integer!]								;-- gradient stops count
 		zero-base?		[logic!]
 		offset-on?		[logic!]
-		offset			[tagPOINT value]						;-- figure coordinates
-		offset2			[tagPOINT value]
+		offset			[point2f! value]						;-- figure coordinates
+		offset2			[point2f! value]
 		focal-on?		[logic!]
-		focal			[tagPOINT value]
+		focal			[point2f! value]
 		pattern-on?		[logic!]
 		pattern			[int-ptr!]
 	]
