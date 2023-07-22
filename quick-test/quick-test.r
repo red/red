@@ -256,7 +256,8 @@ qt: make object! [
     either compile-ok? [
       exe
     ][
-      none
+      compile-error comp-output
+      quit/return 1
     ]    
   ]
   
