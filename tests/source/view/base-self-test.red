@@ -1382,6 +1382,8 @@ view/no-wait [text "This window is a workaround for R2 call bug which hides firs
 	--test-- "crc-12 - base, system default background"
 		;-- checks if box uses the system default background color
 		bst-cs: colorset? bst-im: shoot [box "CAT" font bst-font1]
+	dump-image 'bst-im
+	?? bst-cs
 		--assert test-dual-chrome? bst-im bst-cs
 		try [	;-- colors/window might be undefined
 			--assert test-color-match? bst-im bst-cs/1 system/view/metrics/colors/panel
