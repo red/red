@@ -1382,7 +1382,7 @@ view/no-wait [text "This window is a workaround for R2 call bug which hides firs
 		try [	;-- colors/window might be undefined
 			--assert test-color-match? bst-im bst-cs/1 system/view/metrics/colors/panel
 		]
-		--assert bst-cs/3
+		--assert not none? bst-cs/3
 		try [	;-- avoid the error crashing test
 			--assert test-color-match?/tol bst-im bst-cs/3 bst-colors/fg 0 20
 			--assert test-match?/tol bst-im bst-cs/2 95%  0 4.5%
@@ -1394,7 +1394,7 @@ view/no-wait [text "This window is a workaround for R2 call bug which hides firs
 		bst-cs: colorset? bst-im: shoot [box "CAT" font-size 16]
 	dump-image 'bst-im
 	?? bst-cs
-		--assert bst-cs/3
+		--assert not none? bst-cs/3
 		try [	;-- avoid the error crashing test
 			--assert test-dual-chrome? bst-im bst-cs
 			--assert test-contrast? bst-im bst-cs/1 bst-cs/3
