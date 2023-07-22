@@ -680,15 +680,17 @@ shoot: func [
 		bd [tuple!]
 	/async "return immediately, execute the provided callback upon finish"
 		on-finish [function!]
-	/local r
+	/slow  "damn CI"
+	/local r rate
 ] [
+	rate: either slow [0.1][bst-rate]
 	do compose/deep [
 		(either async ['view/tight/no-wait/options]['view/tight/options]) [
 			panel [(either backdrop [reduce ['backdrop bd]][[]]) origin 0x0 space 0x0 (vid)]
 			extra none
 			rate 70
 			on-time [
-				unless face/extra [face/extra: now/utc/precise + (0:0:1 / bst-rate) exit]
+				unless face/extra [face/extra: now/utc/precise + (0:0:1 / rate) exit]
 				if now/utc/precise < face/extra [exit]
 				face/rate: none 		;-- ensure it won't trigger twice
 				event: to-image (either whole ['face/parent]['face])
@@ -1375,7 +1377,7 @@ view/no-wait [text "This window is a workaround for R2 call bug which hides firs
 
 	--test-- "crc-12 - base, system default background"
 		;-- checks if box uses the system default background color
-		bst-cs: colorset? bst-im: shoot [box "CAT" font bst-font1]
+		bst-cs: colorset? bst-im: shoot/slow [box "CAT" font bst-font1]
 	dump-image 'bst-im
 	?? bst-cs
 		--assert test-dual-chrome? bst-im bst-cs
@@ -1391,7 +1393,7 @@ view/no-wait [text "This window is a workaround for R2 call bug which hides firs
 
 	--test-- "crc-13 - base, system default bg+text"
 		;-- checks if unspecified font color defaults to the system default text color
-		bst-cs: colorset? bst-im: shoot [box "CAT" font-size 16]
+		bst-cs: colorset? bst-im: shoot/slow [box "CAT" font-size 16]
 	dump-image 'bst-im
 	?? bst-cs
 		--assert not none? bst-cs/3
