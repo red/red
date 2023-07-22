@@ -57,6 +57,7 @@ system/view/VID: context [
 	]
 	
 	debug?: 	no
+	pos-size!: make typeset! [pair! point2D!]
 	
 	containers: [panel tab-panel group-box]
 	
@@ -93,6 +94,10 @@ system/view/VID: context [
 		if error? :res [do res]
 	]
 	
+	opt-as-integer: function [value [integer! float!]][	;-- coerce to integer! if the fractional part is zero
+		either all [float? value zero? value - i: to integer! value][i][value]
+	]
+	
 	calc-size: function [face [object!]][
 		case [
 			find [text-list drop-list drop-down] face/type [
@@ -126,7 +131,7 @@ system/view/VID: context [
 		]
 	]
 	
-	align-faces: function [pane [block!] dir [word!] align [word!] max-sz [integer!]][
+	align-faces: function [pane [block!] dir [word!] align [word!] max-sz [integer! float!]][
 		if empty? pane [exit]
 
 		edge?: any [
@@ -146,19 +151,20 @@ system/view/VID: context [
 					offset: offset + either dir = 'across [
 						switch align [
 							top	   [negate mar/2/x]
-							middle [to integer! round/floor mar/2/x + mar/2/y / 2.0]
+							middle [opt-as-integer round/floor mar/2/x + mar/2/y / 2.0]
 							bottom [mar/2/y]
 						]
 					][
 						switch align [
 							left   [negate mar/1/x]
-							center [to integer! round/floor mar/1/x + mar/1/y / 2.0]
+							center [opt-as-integer round/floor mar/1/x + mar/1/y / 2.0]
 							right  [mar/1/y]
 						]
 					]
 				]
 				if offset <> 0 [
-					if find [center middle] align [offset: to integer! round/floor offset / 2.0]
+					if find [center middle] align [offset: opt-as-integer round/floor offset / 2.0]
+					if float? offset [face/offset: to-point2D face/offset]
 					face/offset/:axis: face/offset/:axis + offset
 				]
 			]
@@ -345,6 +351,7 @@ system/view/VID: context [
 					]
 					'else [
 						opt?: switch/default type?/word value: pre-load value [
+							point2D!
 							pair!	 [unless opts/size  [opts/size:  value]]
 							string!	 [unless opts/text  [opts/text:  value]]
 							logic!
@@ -598,7 +605,7 @@ system/view/VID: context [
 			while [all [global? not tail? spec]][			;-- process wrapping panel options
 				switch/default spec/1 [
 					title	 [panel/text: fetch-argument string! spec]
-					size	 [panel/size: size: fetch-argument pair! spec]
+					size	 [panel/size: size: fetch-argument pos-size! spec]
 					backdrop [
 						value: pre-load fetch-argument background! spec
 						switch type?/word value [
@@ -636,10 +643,10 @@ system/view/VID: context [
 						bound: max bound cursor
 						max-sz: 0
 					]
-					space	[spacing: fetch-argument pair! spec]
-					origin	[origin: cursor: pad + top-left: fetch-argument pair! spec]
+					space	[spacing: fetch-argument pos-size! spec]
+					origin	[origin: cursor: pad + top-left: fetch-argument pos-size! spec]
 					at		[at-offset: fetch-expr 'spec spec: back spec]
-					pad		[cursor: cursor + fetch-argument pair! spec]
+					pad		[cursor: cursor + fetch-argument pos-size! spec]
 					do		[do-safe bind fetch-argument block! spec panel]
 					return	[either divides [throw-error spec][do reset]]
 					react	[
@@ -726,6 +733,7 @@ system/view/VID: context [
 							]
 							max-sz: max max-sz face/size/:anti
 							face/offset: cursor
+							if point2D? face/size [cursor: to-point2D cursor]
 							cursor/:axis: cursor/:axis + face/size/:axis
 
 							if all [divide? index > 0][
