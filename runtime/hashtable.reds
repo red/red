@@ -461,9 +461,11 @@ _hashtable: context [
 			TYPE_FLOAT
 			TYPE_PAIR
 			TYPE_PERCENT
-			TYPE_POINT2D
 			TYPE_TIME [
 				murmur3-x86-32 (as byte-ptr! key) + 8 8
+			]
+			TYPE_POINT2D [
+				murmur3-x86-32 (as byte-ptr! key) + 4 8
 			]
 			TYPE_POINT3D [
 				murmur3-x86-32 (as byte-ptr! key) + 8 12
