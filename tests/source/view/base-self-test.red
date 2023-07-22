@@ -128,6 +128,14 @@ bst-cleanup: does [
 ]
 
 
+dump-image: function [name [word!]] [
+	img: get name
+	print [
+		to set-word! name
+		mold compress save/as make binary! 1000 img 'png 'deflate
+	]
+]
+
 ;-- foreach is buggy yet, plus it doesn't track the offset
 forxy: func ["loop thru a 2D area" 'p s c /local i] [
 	any [pair? s  s: s/size]
@@ -1538,6 +1546,12 @@ view/no-wait [text "This window is a workaround for R2 call bug which hides firs
 		bst-im-rb: shoot compose/deep [base' draw [font (copy bst-font1) matrix [-1 0 0 -1 100 100] text 0x0 "CAT"]]
 		bst-im-tr: shoot compose/deep [base' draw [font (copy bst-font1) translate 20x30 text 0x0 "CAT"]]
 		bst-im-tx: shoot compose/deep [base' draw [font (copy bst-font1) text 20x30 "CAT"]]
+	dump-image 'bst-im-lt
+	dump-image 'bst-im-rt
+	dump-image 'bst-im-lb
+	dump-image 'bst-im-rb
+	dump-image 'bst-im-tr
+	dump-image 'bst-im-tx
 		--assert test-text-aligned? [left  top   ] bst-im-lt
 		--assert test-text-aligned? [right top   ] bst-im-rt
 		--assert test-text-aligned? [left  bottom] bst-im-lb
