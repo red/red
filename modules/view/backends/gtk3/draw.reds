@@ -302,24 +302,24 @@ do-draw-pen: func [
 ]
 
 line-distance: func [
-	x1			[integer!]
-	y1			[integer!]
-	x2			[integer!]
-	y2			[integer!]
-	return:		[float32!]
+	x1			[float!]
+	y1			[float!]
+	x2			[float!]
+	y2			[float!]
+	return:		[float!]
 	/local
-		x		[float32!]
-		y		[float32!]
-		px		[float32!]
-		py		[float32!]
-		delta	[float32!]
+		x		[float!]
+		y		[float!]
+		px		[float!]
+		py		[float!]
+		delta	[float!]
 ][
-	x: as float32! x1
-	y: as float32! y1
-	px: (as float32! x2) - x
-	py: (as float32! y2) - y
+	x: x1
+	y: y1
+	px: x2 - x
+	py: y2 - y
 	delta: (px * px) + (py * py)
-	sqrtf delta
+	sqrt delta
 ]
 
 update-pattern: func [
@@ -403,17 +403,16 @@ get-shape-center: func [
 		signedArea	[float32!]
 		centroid-x	[float32!]
 		centroid-y	[float32!]
+		pt			[red-point2D!]
 ][
 	;-- implementation taken from http://stackoverflow.com/questions/2792443/finding-the-centroid-of-a-polygon
 	signedArea: as float32! 0.0
 	centroid-x: as float32! 0.0 centroid-y: as float32! 0.0
 	point: start
 	while [point <= end][
-		x0: as float32! point/x
-		y0: as float32! point/y
+		GET_PAIR_XY(point x0 y0)
 		point: point + 1
-		x1: as float32! point/x
-		y1: as float32! point/y
+		GET_PAIR_XY(point x1 y1)
 		a: x0 * y1 - (x1 * y0)
 		signedArea: signedArea + a
 		centroid-x: centroid-x + ((x0 + x1) * a)
@@ -432,8 +431,9 @@ get-shape-center: func [
 		d/value: as float32! 0.0
 		point: start
 		while [point <= end][
-			dx: centroid-x - as float32! point/x
-			dy: centroid-y - as float32! point/y
+			GET_PAIR_XY(point x0 y0)
+			dx: centroid-x - x0
+			dy: centroid-y - y0
 			r: sqrtf dx * dx + ( dy * dy )
 			if r > d/value [ d/value: r ]
 			point: point + 1
@@ -443,54 +443,54 @@ get-shape-center: func [
 
 check-grad-points: func [
 	grad		[gradient!]
-	upper-x		[integer!]
-	upper-y		[integer!]
-	lower-x		[integer!]
-	lower-y		[integer!]
+	upper-x		[float!]
+	upper-y		[float!]
+	lower-x		[float!]
+	lower-y		[float!]
 	/local
 		pattern	[handle!]
-		t		[integer!]
+		t		[float!]
 		x1		[float!]
 		y1		[float!]
 		r1		[float!]
 		x2		[float!]
 		y2		[float!]
 		r2		[float!]
-		delta	[float32!]
-		px		[float32!]
-		py		[float32!]
+		delta	[float!]
+		px		[float!]
+		py		[float!]
 ][
 	unless grad/on? [exit]
 	pattern: null
 	case [
 		grad/type = linear [
 			either grad/offset-on? [
-				x1: as float! grad/offset/x
-				y1: as float! grad/offset/y
-				x2: as float! grad/offset2/x
-				y2: as float! grad/offset2/y
+				x1: grad/offset/x
+				y1: grad/offset/y
+				x2: grad/offset2/x
+				y2: grad/offset2/y
 			][
-				x1: as float! upper-x y1: as float! upper-y
-				x2: as float! lower-x y2: as float! lower-y
+				x1: upper-x y1: upper-y
+				x2: lower-x y2: lower-y
 			]
 			pattern: cairo_pattern_create_linear x1 y1 x2 y2
 		]
 		grad/type = radial [
 			either grad/offset-on? [
 				either grad/focal-on? [
-					x1: as float! grad/focal/x
-					y1: as float! grad/focal/y
-					x2: as float! grad/offset/x
-					y2: as float! grad/offset/y
-					r1: 0.0 ;as float! grad/offset2/x
-					r2: as float! grad/offset2/y
+					x1: grad/focal/x
+					y1: grad/focal/y
+					x2: grad/offset/x
+					y2: grad/offset/y
+					r1: 0.0 ;grad/offset2/x
+					r2: grad/offset2/y
 				][
-					x1: as float! grad/offset/x
-					y1: as float! grad/offset/y
+					x1: grad/offset/x
+					y1: grad/offset/y
 					x2: x1
 					y2: y1
-					r1: 0.0 ;as float! grad/offset2/x
-					r2: as float! grad/offset2/y
+					r1: 0.0 ;grad/offset2/x
+					r2: grad/offset2/y
 				]
 			][
 				if upper-x > lower-x [
@@ -504,15 +504,15 @@ check-grad-points: func [
 					upper-y: t
 				]
 				delta: line-distance upper-x upper-y lower-x lower-y
-				px: as float32! lower-x + upper-x
-				py: as float32! lower-y + upper-y
-				x1: as float! px
+				px: lower-x + upper-x
+				py: lower-y + upper-y
+				x1: px
 				x1: x1 / 2.0
-				y1: as float! py
+				y1: py
 				y1: y1 / 2.0
 				x2: x1 y2: y1
 				r1: 0.0
-				r2: as float! delta
+				r2: delta
 			]
 			pattern: cairo_pattern_create_radial x1 y1 r1 x2 y2 r2
 		]
@@ -527,8 +527,13 @@ check-grad-line: func [
 	grad		[gradient!]
 	upper		[red-pair!]
 	lower		[red-pair!]
+	/local
+		pt		[red-point2D!]
+		ux uy lx ly [float!]
 ][
-	check-grad-points grad upper/x upper/y lower/x lower/y
+	GET_PAIR_XY_F(upper ux uy)
+	GET_PAIR_XY_F(lower lx ly)
+	check-grad-points grad ux uy lx ly
 ]
 
 check-grad-brush-lines: func [
@@ -547,51 +552,52 @@ check-grad-brush-lines: func [
 		cx		[float32!]
 		cy		[float32!]
 		d		[float32!]
+		pt		[red-point2D!]
 ][
 	unless grad/on? [exit]
 	pattern: null
 	case [
 		grad/type = linear [
 			either grad/offset-on? [
-				x1: as float! grad/offset/x
-				y1: as float! grad/offset/y
-				x2: as float! grad/offset2/x
-				y2: as float! grad/offset2/y
+				x1: grad/offset/x
+				y1: grad/offset/y
+				x2: grad/offset2/x
+				y2: grad/offset2/y
 			][
-				x1: as float! point/x y1: as float! point/y
+				GET_PAIR_XY_F(point x1 y1)
 				next: point + 1
-				x2: as float! next/x  y2: as float! next/y
+				GET_PAIR_XY_F(next x2 y2)
 			]
 			pattern: cairo_pattern_create_linear x1 y1 x2 y2
 		]
 		grad/type = radial [
 			either grad/offset-on? [
 				either grad/focal-on? [
-					x1: as float! grad/focal/x
-					y1: as float! grad/focal/y
-					x2: as float! grad/offset/x
-					y2: as float! grad/offset/y
-					r1: 0.0 ;as float! grad/offset2/x
-					r2: as float! grad/offset2/y
+					x1: grad/focal/x
+					y1: grad/focal/y
+					x2: grad/offset/x
+					y2: grad/offset/y
+					r1: 0.0 ;grad/offset2/x
+					r2: grad/offset2/y
 				][
-					x1: as float! grad/offset/x
-					y1: as float! grad/offset/y
+					x1: grad/offset/x
+					y1: grad/offset/y
 					x2: x1
 					y2: y1
-					r1: 0.0 ;as float! grad/offset2/x
-					r2: as float! grad/offset2/y
+					r1: 0.0 ;grad/offset2/x
+					r2: grad/offset2/y
 				]
 			][
 				cx: as float32! 0.0
 				cy: cx
 				d: cx
 				get-shape-center point end :cx :cy :d
-				x1: as float! cx
-				y1: as float! cy
+				x1: as-float cx
+				y1: as-float cy
 				r1: 0.0
 				x2: x1
 				y2: y1
-				r2: as float! d
+				r2: as-float d
 			]
 			pattern: cairo_pattern_create_radial x1 y1 r1 x2 y2 r2
 		]
@@ -615,7 +621,6 @@ check-grad-arc-radial: func [
 		x2		[float!]
 		y2		[float!]
 		r2		[float!]
-		delta	[float32!]
 ][
 	unless grad/on? [exit]
 	unless grad/type = radial [exit]
@@ -623,19 +628,19 @@ check-grad-arc-radial: func [
 
 	either grad/offset-on? [
 		either grad/focal-on? [
-			x1: as float! grad/focal/x
-			y1: as float! grad/focal/y
-			x2: as float! grad/offset/x
-			y2: as float! grad/offset/y
-			r1: 0.0 ;as float! grad/offset2/x
-			r2: as float! grad/offset2/y
+			x1: grad/focal/x
+			y1: grad/focal/y
+			x2: grad/offset/x
+			y2: grad/offset/y
+			r1: 0.0 ;grad/offset2/x
+			r2: grad/offset2/y
 		][
-			x1: as float! grad/offset/x
-			y1: as float! grad/offset/y
+			x1: grad/offset/x
+			y1: grad/offset/y
 			x2: x1
 			y2: y1
-			r1: 0.0 ;as float! grad/offset2/x
-			r2: as float! grad/offset2/y
+			r1: 0.0 ;grad/offset2/x
+			r2: grad/offset2/y
 		]
 	][
 		x1: ax - ar
@@ -664,9 +669,10 @@ check-grad-box-radial: func [
 		x2		[float!]
 		y2		[float!]
 		r2		[float!]
-		delta	[float32!]
-		w		[integer!]
-		h		[integer!]
+		w		[float!]
+		h		[float!]
+		pt		[red-point2D!]
+		ux uy lx ly [float!]
 ][
 	unless grad/on? [exit]
 	unless grad/type = radial [exit]
@@ -674,39 +680,41 @@ check-grad-box-radial: func [
 
 	either grad/offset-on? [
 		either grad/focal-on? [
-			x1: as float! grad/focal/x
-			y1: as float! grad/focal/y
-			x2: as float! grad/offset/x
-			y2: as float! grad/offset/y
-			r1: 0.0 ;as float! grad/offset2/x
-			r2: as float! grad/offset2/y
+			x1: grad/focal/x
+			y1: grad/focal/y
+			x2: grad/offset/x
+			y2: grad/offset/y
+			r1: 0.0 ;grad/offset2/x
+			r2: grad/offset2/y
 		][
-			x1: as float! grad/offset/x
-			y1: as float! grad/offset/y
+			x1: grad/offset/x
+			y1: grad/offset/y
 			x2: x1
 			y2: y1
-			r1: 0.0 ;as float! grad/offset2/x
-			r2: as float! grad/offset2/y
+			r1: 0.0 ;grad/offset2/x
+			r2: grad/offset2/y
 		]
 	][
-		x1: as float! upper/x + lower/x
-		y1: as float! upper/y + lower/y
+		GET_PAIR_XY_F(upper ux uy)
+		GET_PAIR_XY_F(lower lx ly)
+		x1: ux + lx
+		y1: uy + ly
 		x1: x1 / 2.0
 		y1: y1 / 2.0
 		r1: 0.0
 		x2: x1
 		y2: y1
-		w: either upper/x < lower/x [
-			lower/x - upper/x
+		w: either ux < lx [
+			lx - ux
 		][
-			upper/x - lower/x
+			ux - lx
 		]
-		h: either upper/y < lower/y [
-			lower/y - upper/y
+		h: either uy < ly [
+			ly - uy
 		][
-			upper/y - lower/y
+			uy - ly
 		]
-		r2: either w > h [as float! w][as float! h]
+		r2: either w > h [w][h]
 		r2: r2 / 2.0
 	]
 	pattern: cairo_pattern_create_radial x1 y1 r1 x2 y2 r2
@@ -720,12 +728,17 @@ check-grad-box: func [
 	grad		[gradient!]
 	upper		[red-pair!]
 	lower		[red-pair!]
+	/local
+		pt		[red-point2D!]
+		ux uy lx ly [float!]
 ][
 	case [
 		grad/type = linear [
+			GET_PAIR_XY_F(upper ux uy)
+			GET_PAIR_XY_F(lower lx ly)
 			;-- the windows backend use horizontal linear gradient default,
 			;-- maybe should use diagonal line
-			check-grad-points grad upper/x upper/y lower/x upper/y
+			check-grad-points grad ux uy lx ly
 		]
 		grad/type = radial [
 			check-grad-box-radial grad upper lower
@@ -745,9 +758,7 @@ check-grad-circle: func [
 ][
 	case [
 		grad/type = linear [
-			check-grad-points grad
-				as integer! cx - rx as integer! cy - ry
-				as integer! cx + rx as integer! cy + ry
+			check-grad-points grad cx - rx cy - ry cx + rx cy + ry
 		]
 		grad/type = radial [
 			r: rx
@@ -773,13 +784,16 @@ OS-draw-line: func [
 		iter	[red-pair!]
 		cr		[handle!]
 		saved	[cairo_matrix_t! value]
+		pt		[red-point2D!]
+		x y		[float!]
 ][
 	cr: dc/cr
 	ctx-matrix-adapt dc saved
 	cairo_new_sub_path cr
 	iter: point
 	while [iter <= end][
-		cairo_line_to cr as-float iter/x as-float iter/y
+		GET_PAIR_XY_F(iter x y)
+		cairo_line_to cr x y
 		iter: iter + 1
 	]
 	check-grad-line dc/grad-pen point end
@@ -868,7 +882,7 @@ OS-draw-box: func [
 	/local
 		cr		[handle!]
 		radius	[red-integer!]
-		t 		[integer!]
+		t 		[float!]
 		rad		[float!]
 		x		[float!]
 		y		[float!]
@@ -877,6 +891,8 @@ OS-draw-box: func [
 		tf		[float!]
 		degrees [float!]
 		saved	[cairo_matrix_t! value]
+		pt		[red-point2D!]
+		ux uy lx ly [float!]
 ][
 	cr: dc/cr
 	radius: null
@@ -885,13 +901,15 @@ OS-draw-box: func [
 		lower:  lower - 1
 	]
 
-	if upper/x > lower/x [t: upper/x upper/x: lower/x lower/x: t]
-	if upper/y > lower/y [t: upper/y upper/y: lower/y lower/y: t]
+	GET_PAIR_XY_F(upper ux uy)
+	GET_PAIR_XY_F(lower lx ly)
+	if ux > lx [t: ux ux: lx lx: t]
+	if uy > ly [t: uy uy: ly ly: t]
 
-	x: as-float upper/x
-	y: as-float upper/y
-	w: as-float lower/x - upper/x
-	h: as-float lower/y - upper/y
+	x: ux
+	y: uy
+	w: lx - ux
+	h: ly - uy
 
 	ctx-matrix-adapt dc saved
 	either radius <> null [
@@ -921,11 +939,14 @@ OS-draw-triangle: func [
 	start		[red-pair!]
 	/local
 		saved	[cairo_matrix_t! value]
+		pt		[red-point2D!]
+		sx sy	[float!]
 ][
 	ctx-matrix-adapt dc saved
 	cairo_new_sub_path dc/cr
 	loop 3 [
-		cairo_line_to dc/cr as-float start/x as-float start/y
+		GET_PAIR_XY_F(start sx sy)
+		cairo_line_to dc/cr sx sy
 		start: start + 1
 	]
 	cairo_close_path dc/cr								;-- close the triangle
@@ -941,11 +962,14 @@ OS-draw-polygon: func [
 	end			[red-pair!]
 	/local
 		saved	[cairo_matrix_t! value]
+		pt		[red-point2D!]
+		sx sy	[float!]
 ][
 	ctx-matrix-adapt dc saved
 	cairo_new_sub_path dc/cr
 	until [
-		cairo_line_to dc/cr as-float start/x as-float start/y
+		GET_PAIR_XY_F(start sx sy)
+		cairo_line_to dc/cr sx sy
 		start: start + 1
 		start > end
 	]
@@ -955,8 +979,6 @@ OS-draw-polygon: func [
 	do-draw-path dc
 	ctx-matrix-unadapt dc saved
 ]
-
-spline-delta: 1.0 / 25.0
 
 do-spline-step: func [
 	ctx			[handle!]
@@ -970,21 +992,32 @@ do-spline-step: func [
 		t3		[float!]
 		x		[float!]
 		y		[float!]
+		p0x p0y [float!]
+		p1x p1y [float!]
+		p2x p2y [float!]
+		p3x p3y [float!]
+		delta	[float!]
+		pt		[red-point2D!]
 ][
+	delta: 0.04
 	t: 0.0
+	GET_PAIR_XY_F(p0 p0x p0y)
+	GET_PAIR_XY_F(p1 p1x p1y)
+	GET_PAIR_XY_F(p2 p2x p2y)
+	GET_PAIR_XY_F(p3 p3x p3y)
 	loop 25 [
-		t: t + spline-delta
+		t: t + delta
 		t2: t * t
 		t3: t2 * t
 
 		x:
-			2.0 * (as-float p1/x) + ((as-float p2/x) - (as-float p0/x) * t) +
-			((2.0 * (as-float p0/x) - (5.0 * (as-float p1/x)) + (4.0 * (as-float p2/x)) - (as-float p3/x)) * t2) +
-			(3.0 * ((as-float p1/x) - (as-float p2/x)) + (as-float p3/x) - (as-float p0/x) * t3) * 0.5
+		   (p1x * 2.0) + (p2x - p0x * t) +
+		   (p0x * 2.0) - (p1x * 5.0) + (p2x * 4.0) - p3x * t2 +
+		   ((p1x - p2x) * 3.0) + p3x - p0x * t3 * 0.5
 		y:
-			2.0 * (as-float p1/y) + ((as-float p2/y) - (as-float p0/y) * t) +
-			((2.0 * (as-float p0/y) - (5.0 * (as-float p1/y)) + (4.0 * (as-float p2/y)) - (as-float p3/y)) * t2) +
-			(3.0 * ((as-float p1/y) - (as-float p2/y)) + (as-float p3/y) - (as-float p0/y) * t3) * 0.5
+		   (p1y * 2.0) + (p2y - p0y * t) + 
+		   (p0y * 2.0) - (p1y * 5.0) + (p2y * 4.0) - p3y * t2 + 
+		   ((p1y - p2y) * 3.0) + p3y - p0y * t3 * 0.5 
 
 		cairo_line_to ctx x y
 	]
@@ -1066,56 +1099,57 @@ OS-draw-circle: func [
 	radius		[red-integer!]
 	/local
 		cr		[handle!]
-		rad-x	[integer!]
-		rad-y	[integer!]
+		rad-x	[float!]
+		rad-y	[float!]
+		cx cy	[float!]
 		w		[float!]
 		h		[float!]
 		f		[red-float!]
 		saved	[cairo_matrix_t! value]
+		pt		[red-point2D!]
 ][
 	cr: dc/cr
 	either TYPE_OF(radius) = TYPE_INTEGER [
 		either center + 1 = radius [					;-- center, radius
-			rad-x: radius/value
+			rad-x: as float! radius/value
 			rad-y: rad-x
 		][
-			rad-y: radius/value							;-- center, radius-x, radius-y
+			rad-y: as float! radius/value				;-- center, radius-x, radius-y
 			radius: radius - 1
-			rad-x: radius/value
+			rad-x: as float! radius/value
 		]
-		w: as float! rad-x * 2
-		h: as float! rad-y * 2
+		w: rad-x * 2.0
+		h: rad-y * 2.0
 	][
 		f: as red-float! radius
 		either center + 1 = radius [
-			rad-x: as-integer f/value + 0.75
+			rad-x: f/value
 			rad-y: rad-x
-			w: as float! f/value * 2.0
+			w: f/value * 2.0
 			h: w
 		][
-			rad-y: as-integer f/value + 0.75
-			h: as float! f/value * 2.0
+			rad-y: f/value
+			h: f/value * 2.0
 			f: f - 1
-			rad-x: as-integer f/value + 0.75
-			w: as float! f/value * 2.0
+			rad-x: f/value
+			w: f/value * 2.0
 		]
 	]
 	if any [
-		rad-x = 0
-		rad-y = 0
+		rad-x = 0.0
+		rad-y = 0.0
 	][exit]
 
 	ctx-matrix-adapt dc saved
 	cairo_new_sub_path cr
 	cairo_save cr
-	cairo_translate cr as-float center/x
-						as-float center/y
-	cairo_scale cr as-float rad-x
-					as-float rad-y
+	GET_PAIR_XY_F(center cx cy)
+	cairo_translate cr cx cy
+	cairo_scale cr rad-x rad-y
 	cairo_arc cr 0.0 0.0 1.0 0.0 2.0 * pi
 	cairo_restore cr
-	check-grad-circle dc/grad-pen as float! center/x as float! center/y as float! rad-x as float! rad-y
-	check-grad-circle dc/grad-brush as float! center/x as float! center/y as float! rad-x as float! rad-y
+	check-grad-circle dc/grad-pen cx cy rad-x rad-y
+	check-grad-circle dc/grad-brush cx cy rad-x rad-y
 	do-draw-path dc
 	ctx-matrix-unadapt dc saved
 ]
@@ -1126,33 +1160,34 @@ OS-draw-ellipse: func [
 	diameter	[red-pair!]
 	/local
 		cr		[handle!]
-		rad-x	[integer!]
-		rad-y	[integer!]
-		cx		[integer!]
-		cy		[integer!]
+		rad-x	[float!]
+		rad-y	[float!]
+		cx		[float!]
+		cy		[float!]
 		saved	[cairo_matrix_t! value]
+		pt		[red-point2D!]
 ][
 	cr: dc/cr
-	rad-x: diameter/x / 2
-	rad-y: diameter/y / 2
-	cx: upper/x + rad-x
-	cy: upper/y + rad-y
+	GET_PAIR_XY_F(diameter rad-x rad-y)
+	rad-x: rad-x / 2.0
+	rad-y: rad-y / 2.0
+	GET_PAIR_XY_F(upper cx cy)
+	cx: cx + rad-x
+	cy: cy + rad-y
 	if any [
-		rad-x = 0
-		rad-y = 0
+		rad-x = 0.0
+		rad-y = 0.0
 	][exit]
 
 	ctx-matrix-adapt dc saved
 	cairo_new_sub_path cr
 	cairo_save cr
-	cairo_translate cr as-float cx
-					   as-float cy
-	cairo_scale cr as-float rad-x
-					as-float rad-y
+	cairo_translate cr cx cy
+	cairo_scale cr rad-x rad-y
 	cairo_arc cr 0.0 0.0 1.0 0.0 2.0 * pi
 	cairo_restore cr
-	check-grad-circle dc/grad-pen as float! cx as float! cy as float! rad-x as float! rad-y
-	check-grad-circle dc/grad-brush as float! cx as float! cy as float! rad-x as float! rad-y
+	check-grad-circle dc/grad-pen cx cy rad-x rad-y
+	check-grad-circle dc/grad-brush cx cy rad-x rad-y
 	do-draw-path dc
 	ctx-matrix-unadapt dc saved
 ]
@@ -1205,15 +1240,15 @@ draw-text-at: func [
 	text		[red-string!]
 	attrs		[handle!]
 	opts		[handle!]
-	x			[integer!]
-	y			[integer!]
+	x			[float!]
+	y			[float!]
 	/local
 		len		[integer!]
 		str		[c-string!]
 		layout	[handle!]
 ][
 	cairo_save cr
-	cairo_move_to cr as-float x as-float y
+	cairo_move_to cr x y
 	len: -1
 	str: unicode/to-utf8 text :len
 	layout: pango_cairo_create_layout cr
@@ -1240,6 +1275,8 @@ draw-text-box: func [
 		clr		[integer!]
 		int		[red-integer!]
 		layout	[handle!]
+		pt		[red-point2D!]
+		x y		[float!]
 ][
 	values: object/get-values tbox
 	text: as red-string! values + FACE_OBJ_TEXT
@@ -1258,7 +1295,8 @@ draw-text-box: func [
 
 	int: as red-integer! block/rs-head state
 	layout: as handle! int/value
-	cairo_move_to cr as-float pos/x as-float pos/y
+	GET_PAIR_XY_F(pos x y)
+	cairo_move_to cr x y
 	pango_cairo_update_layout cr layout
 	pango_cairo_show_layout cr layout
 ]
@@ -1271,10 +1309,13 @@ OS-draw-text: func [
 	return:		[logic!]
 	/local
 		saved	[cairo_matrix_t! value]
+		pt		[red-point2D!]
+		x y		[float!]
 ][
 	ctx-matrix-adapt dc saved
 	either TYPE_OF(text) = TYPE_STRING [
-		draw-text-at dc/cr text dc/font-attrs dc/font-opts pos/x pos/y
+		GET_PAIR_XY_F(pos x y)
+		draw-text-at dc/cr text dc/font-attrs dc/font-opts x y
 	][
 		draw-text-box dc/cr pos as red-object! text catch?
 	]
@@ -1302,15 +1343,14 @@ OS-draw-arc: func [
 		i			[integer!]
 		closed?		[logic!]
 		saved		[cairo_matrix_t! value]
+		pt			[red-point2D!]
 ][
 	cr: dc/cr
-	cx: as float! center/x
-	cy: as float! center/y
+	GET_PAIR_XY_F(center cx cy)
 	rad: PI / 180.0
 
 	radius: center + 1
-	rad-x: as float! radius/x
-	rad-y: as float! radius/y
+	GET_PAIR_XY_F(radius rad-x rad-y)
 	begin: as red-integer! radius + 1
 	angle-begin: rad * as float! begin/value
 	angle: begin + 1
@@ -1373,25 +1413,25 @@ OS-draw-curve: func [
 		p2		[red-pair!]
 		p3		[red-pair!]
 		saved	[cairo_matrix_t! value]
+		pt		[red-point2D!]
+		sx sy p2x p2y p3x p3y [float!]
 ][
 	cr: dc/cr
 
 	ctx-matrix-adapt dc saved
 	if (as-integer end - start) >> 4 = 3    ; four input points
 	[
-		cairo_move_to cr as-float start/x
-						  as-float start/y
+		GET_PAIR_XY_F(start sx sy)
+		cairo_move_to cr sx sy
 		start: start + 1
 	]
 
 	p2: start + 1
 	p3: start + 2
-	cairo_curve_to cr as-float start/x
-					   as-float start/y
-					   as-float p2/x
-					   as-float p2/y
-					   as-float p3/x
-					   as-float p3/y
+	GET_PAIR_XY_F(start sx sy)
+	GET_PAIR_XY_F(p2 p2x p2y)
+	GET_PAIR_XY_F(p3 p3x p3y)
+	cairo_curve_to cr sx sy p2x p2y p3x p3y
 	check-grad-line dc/grad-pen start start + 2
 	do-draw-pen dc
 	ctx-matrix-unadapt dc saved
@@ -1600,8 +1640,8 @@ OS-draw-grad-pen-old: func [
 	count		[integer!]					;-- number of the colors
 	brush?		[logic!]
 	/local
-		w		[integer!]
-		h		[integer!]
+		w		[float!]
+		h		[float!]
 		int		[red-integer!]
 		grad	[gradient!]
 		nums	[integer!]
@@ -1623,11 +1663,13 @@ OS-draw-grad-pen-old: func [
 		last-c	[int-ptr!]
 		pos		[float32-ptr!]
 		last-p	[float32-ptr!]
+		pt		[red-point2D!]
+		off-x off-y [float!]
 ][
 	int: as red-integer! offset + 1
-	w: int/value
+	w: as float! int/value
 	int: int + 1
-	h: int/value
+	h: as float! int/value
 
 	grad: either brush? [
 		dc/brush?: yes
@@ -1648,23 +1690,24 @@ OS-draw-grad-pen-old: func [
 	grad/count: 0
 
 	grad/focal-on?: off
+	GET_PAIR_XY_F(offset off-x off-y)
 	case [
 		type = linear [
 			grad/offset-on?: on
-			grad/offset/x: offset/x + w
-			grad/offset/y: offset/y + w
-			grad/offset2/x: offset/x + h
-			grad/offset2/y: offset/y + w
+			grad/offset/x: off-x + w
+			grad/offset/y: off-y + w
+			grad/offset2/x: off-x + h
+			grad/offset2/y: off-y + w
 		]
 		type = radial [
 			grad/offset-on?: on
-			grad/offset/x: offset/x
-			grad/offset/y: offset/y
+			grad/offset/x: off-x
+			grad/offset/y: off-y
 			grad/offset2/x: w					;-- smaller radius
 			grad/offset2/y: h					;-- bigger radius
 			grad/focal-on?: on
-			grad/focal/x: offset/x + w
-			grad/focal/y: offset/y + w
+			grad/focal/x: off-x + w
+			grad/focal/y: off-y + w
 		]
 		true [
 			grad/offset-on?: off
@@ -1770,6 +1813,7 @@ OS-draw-grad-pen: func [
 		last-c	[int-ptr!]
 		pos		[float32-ptr!]
 		last-p	[float32-ptr!]
+		pt		[red-point2D!]
 ][
 
 	grad: either brush? [
@@ -1798,11 +1842,9 @@ OS-draw-grad-pen: func [
 			][
 				grad/offset-on?: on
 				point: as red-pair! positions
-				grad/offset/x: point/x
-				grad/offset/y: point/y
+				GET_PAIR_XY_F(point grad/offset/x grad/offset/y)
 				point: point + 1
-				grad/offset2/x: point/x
-				grad/offset2/y: point/y
+				GET_PAIR_XY_F(point grad/offset2/x grad/offset2/y)
 			]
 		]
 		type = radial [
@@ -1811,16 +1853,14 @@ OS-draw-grad-pen: func [
 			][
 				grad/offset-on?: on
 				point: as red-pair! positions
-				grad/offset/x: point/x
-				grad/offset/y: point/y
+				GET_PAIR_XY_F(point grad/offset/x grad/offset/y)
 				p: get-float as red-integer! point + 1
-				grad/offset2/x: 0
-				grad/offset2/y: as integer! p
+				grad/offset2/x: 0.0
+				grad/offset2/y: p
 				if focal? [
 					grad/focal-on?: on
 					point: point + 2
-					grad/focal/x: point/x
-					grad/focal/y: point/y
+					GET_PAIR_XY_F(point grad/focal/x grad/focal/y)
 				]
 			]
 		]
@@ -1881,17 +1921,16 @@ OS-matrix-rotate: func [
 		matrix	[cairo_matrix_t!]
 		cx		[float!]
 		cy		[float!]
+		pt		[red-point2D!]
 ][
 	cr: dc/cr
 	rad: PI / 180.0 * get-float angle
 	either pen-fill = -1 [
-		either TYPE_OF(center) = TYPE_PAIR [
-			either dc/matrix-order = MATRIX-APPEND [
-				cx: as float! 0 - center/x
-				cy: as float! 0 - center/y
-			][
-				cx: as float! center/x
-				cy: as float! center/y
+		either ANY_COORD?(center) [
+			GET_PAIR_XY_F(center cx cy)
+			if dc/matrix-order = MATRIX-APPEND [
+				cx: 0.0 - cx
+				cy: 0.0 - cy
 			]
 			cairo-matrix-translate cr cx cy dc/matrix-order
 			cairo-matrix-rotate cr rad dc/matrix-order
@@ -1922,6 +1961,7 @@ OS-matrix-scale: func [
 		y		[float!]
 		cx		[float!]
 		cy		[float!]
+		pt		[red-point2D!]
 ][
 	sy: sx + 1
 	either pen-fill <> -1 [
@@ -1936,13 +1976,11 @@ OS-matrix-scale: func [
 			cairo_matrix_scale matrix x y
 		]
 	][
-		either TYPE_OF(center) = TYPE_PAIR [
-			either dc/matrix-order = MATRIX-APPEND [
-				cx: as float! 0 - center/x
-				cy: as float! 0 - center/y
-			][
-				cx: as float! center/x
-				cy: as float! center/y
+		either ANY_COORD?(center) [
+			GET_PAIR_XY_F(center cx cy)
+			if dc/matrix-order = MATRIX-APPEND [
+				cx: 0.0 - cx
+				cy: 0.0 - cy
 			]
 			cairo-matrix-translate dc/cr cx cy dc/matrix-order
 			cairo-matrix-scale dc/cr get-float sx get-float sy dc/matrix-order
@@ -1961,18 +1999,18 @@ OS-matrix-translate: func [
 		grad	[gradient!]
 		matrix	[cairo_matrix_t!]
 		pt		[red-point2D!]
-		x y		[float32!]
+		x y		[float!]
 ][
-	GET_PAIR_XY(pos x y)
+	GET_PAIR_XY_F(pos x y)
 	either pen-fill <> -1 [
 		grad: either pen-fill = pen [dc/grad-pen][dc/grad-brush]
 		if grad/on? [
 			matrix: as cairo_matrix_t! grad/matrix
 			grad/matrix-on?: on
-			cairo_matrix_translate matrix 0.0 - as-float x 0.0 - as-float y
+			cairo_matrix_translate matrix 0.0 - x 0.0 - y
 		]
 	][
-		cairo-matrix-translate dc/cr as-float x as-float y dc/matrix-order
+		cairo-matrix-translate dc/cr x y dc/matrix-order
 	]
 ]
 
@@ -1991,12 +2029,13 @@ OS-matrix-skew: func [
 		m		[cairo_matrix_t! value]
 		matrix	[cairo_matrix_t!]
 		res		[cairo_matrix_t! value]
+		pt		[red-point2D!]
 ][
 	sy: sx + 1
 	xv: get-float sx
 	yv: either all [
 		sy <= center
-		TYPE_OF(sy) = TYPE_PAIR
+		TYPE_OF(sy) <> TYPE_PAIR
 	][
 		get-float sy
 	][
@@ -2019,13 +2058,11 @@ OS-matrix-skew: func [
 			copy-memory as byte-ptr! matrix as byte-ptr! res size? cairo_matrix_t!
 		]
 	][
-		either TYPE_OF(center) = TYPE_PAIR [
-			either dc/matrix-order = MATRIX-APPEND [
-				cx: as float! 0 - center/x
-				cy: as float! 0 - center/y
-			][
-				cx: as float! center/x
-				cy: as float! center/y
+		either ANY_COORD?(center) [
+			GET_PAIR_XY_F(center cx cy)
+			if dc/matrix-order = MATRIX-APPEND [
+				cx: 0.0 - cx
+				cy: 0.0 - cy
 			]
 			cairo-matrix-translate dc/cr cx cy dc/matrix-order
 			cairo-matrix-concat dc/cr m dc/matrix-order
@@ -2049,27 +2086,28 @@ OS-matrix-transform: func [
 		rad		[float!]
 		cx		[float!]
 		cy		[float!]
+		x y		[float!]
+		pt		[red-point2D!]
 ][
 	rotate: as red-integer! either center + 1 = scale [center][center + 1]
 	center?: rotate <> center
 	rad: PI / 180.0 * get-float rotate
 	cr: dc/cr
 	if center? [
-		either dc/matrix-order = MATRIX-APPEND [
-			cx: as float! 0 - center/x
-			cy: as float! 0 - center/y
-		][
-			cx: as float! center/x
-			cy: as float! center/y
+		GET_PAIR_XY_F(center cx cy)
+		if dc/matrix-order = MATRIX-APPEND [
+			cx: 0.0 - cx
+			cy: 0.0 - cy
 		]
 		cairo-matrix-translate dc/cr cx cy dc/matrix-order
 	]
+	GET_PAIR_XY_F(translate x y)
 	either dc/matrix-order = MATRIX-APPEND [
 		cairo-matrix-rotate cr rad dc/matrix-order
 		cairo-matrix-scale cr get-float scale get-float scale + 1 dc/matrix-order
-		cairo-matrix-translate cr as float! translate/x as float! translate/y dc/matrix-order
+		cairo-matrix-translate cr x y dc/matrix-order
 	][
-		cairo-matrix-translate cr as float! translate/x as float! translate/y dc/matrix-order
+		cairo-matrix-translate cr x y dc/matrix-order
 		cairo-matrix-scale cr get-float scale get-float scale + 1 dc/matrix-order
 		cairo-matrix-rotate cr rad dc/matrix-order
 	]
@@ -2258,9 +2296,9 @@ OS-draw-shape-moveto: func [
 	/local
 		x		[float!]
 		y		[float!]
+		pt		[red-point2D!]
 ][
-	x: as-float coord/x
-	y: as-float coord/y
+	GET_PAIR_XY_F(coord x y)
 	either rel? [
 		cairo_rel_move_to dc/cr x y
 	][
@@ -2277,10 +2315,10 @@ OS-draw-shape-line: func [
 	/local
 		x		[float!]
 		y		[float!]
+		pt		[red-point2D!]
 ][
 	until [
-		x: as-float start/x
-		y: as-float start/y
+		GET_PAIR_XY_F(start x y)
 		either rel? [
 			cairo_rel_line_to dc/cr x y
 		][
@@ -2333,20 +2371,18 @@ draw-curve: func [
 		p1y		[float!]
 		p1x		[float!]
 		pf		[float-ptr!]
-		pt		[red-pair!]
+		pair	[red-pair!]
 		last-x	[float!]
 		last-y	[float!]
+		pt		[red-point2D!]
 ][
 	while [ start < end ][
-		pt: start + 1
-		p1x: as float! start/x
-		p1y: as float! start/y
-		p2x: as float! pt/x
-		p2y: as float! pt/y
+		pair: start + 1
+		GET_PAIR_XY_F(start p1x p1y)
+		GET_PAIR_XY_F(pair p2x p2y)
 		if num = 3 [					;-- cubic Bézier
-			pt: start + 2
-			p3x: as float! pt/x
-			p3y: as float! pt/y
+			pair: start + 2
+			GET_PAIR_XY_F(pair p3x p3y)
 		]
 
 		last-x: 0.0 last-y: 0.0
@@ -2470,6 +2506,7 @@ OS-draw-shape-arc: func [
 		rad-check	[float32!]
 		pi2			[float32!]
 		matrix		[cairo_matrix_t! value]
+		pt			[red-point2D!]
 ][
 	cr: dc/cr
 	last-x: 0.0 last-y: 0.0
@@ -2477,8 +2514,10 @@ OS-draw-shape-arc: func [
 		cairo_get_current_point cr :last-x :last-y
 	]
 	p1-x: as float32! last-x p1-y: as float32! last-y
-	p2-x: either rel? [ p1-x + as float32! end/x ][ as float32! end/x ]
-	p2-y: either rel? [ p1-y + as float32! end/y ][ as float32! end/y ]
+	GET_PAIR_XY(end p2-x p2-y)
+	if rel? [ p2-x: p1-x + p2-x ]
+	if rel? [ p2-y: p1-y + p2-y ]
+
 	item: as red-integer! end + 1
 	radius-x: fabsf get-float32 item
 	item: item + 1

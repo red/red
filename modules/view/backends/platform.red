@@ -581,7 +581,16 @@ system/view/platform: context [
 					fy: pt/y
 				]
 			]
-
+			#define GET_PAIR_XY_F(_pair fx fy) [
+				either PAIR_TYPE?(_pair) [
+					fx: as float! _pair/x
+					fy: as float! _pair/y
+				][
+					pt: as red-point2D! _pair
+					fx: as float! pt/x
+					fy: as float! pt/y
+				]
+			]
 			#switch GUI-engine [
 				native [
 					;#include %android/gui.reds
