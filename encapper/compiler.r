@@ -1835,7 +1835,6 @@ red: context [
 				]
 				point? [
 					type: pick [point2D point3D] 2 = length? value: next value
-					forall value [if integer? value/1 [value/1: to-decimal value/1]]
 					emit append to-path type 'push
 					foreach v value [emit reduce ['as-float32 either integer? v [to-decimal v][v]]]
 					insert-lf -5
