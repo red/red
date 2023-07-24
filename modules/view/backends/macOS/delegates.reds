@@ -1062,6 +1062,7 @@ win-did-resize: func [
 	notif	[integer!]
 	/local
 		sz	[red-pair!]
+		pt	[red-point2D!]
 		v	[integer!]
 		rc	[NSRect! value]
 ][
@@ -1069,8 +1070,16 @@ win-did-resize: func [
 	v: objc_msgSend [self sel_getUid "contentView"]
 	rc: objc_msgSend_rect [v sel_getUid "frame"]
 	sz: (as red-pair! get-face-values self) + FACE_OBJ_SIZE		;-- update face/size
-	sz/x: as-integer rc/w
-	sz/y: as-integer rc/h
+	either zero? objc_getAssociatedObject self RedPairSizeKey [
+		pt: as red-point2D! sz
+		pt/header: TYPE_POINT2D
+		pt/x: rc/w
+		pt/y: rc/h
+	][
+		sz/header: TYPE_PAIR
+		sz/x: as-integer rc/w
+		sz/y: as-integer rc/h
+	]
 ]
 
 win-live-resize: func [

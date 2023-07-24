@@ -10,6 +10,14 @@ Red/System [
 	}
 ]
 
+#define SET_PAIR_SIZE_FLAG(hwnd size) [
+	either PAIR_TYPE?(size) [
+		objc_setAssociatedObject hwnd RedPairSizeKey hwnd OBJC_ASSOCIATION_ASSIGN
+	][
+		objc_setAssociatedObject hwnd RedPairSizeKey 0 OBJC_ASSOCIATION_ASSIGN
+	]
+]
+
 #enum event-action! [
 	EVT_NO_DISPATCH										;-- no further msg processing allowed
 	EVT_DISPATCH										;-- allow DispatchMessage call only
@@ -276,13 +284,18 @@ get-event-offset: func [
 			type = EVT_SIZING
 			type = EVT_SIZE
 		][
-			pair: as red-pair! offset
-			pair/header: TYPE_PAIR
 			v: objc_msgSend [evt/msg sel_getUid "contentView"]
 			frame: objc_msgSend_rect [v sel_getUid "frame"]
-			pair/x: as-integer frame/w
-			pair/y: as-integer frame/h
-			as red-value! pair
+			either zero? objc_getAssociatedObject as-integer evt/msg RedPairSizeKey [
+				offset/x: frame/w
+				offset/y: frame/h
+			][
+				pair: as red-pair! offset
+				pair/header: TYPE_PAIR
+				pair/x: as-integer frame/w
+				pair/y: as-integer frame/h
+			]
+			as red-value! offset
 		]
 		any [
 			type = EVT_ZOOM

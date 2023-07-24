@@ -1331,7 +1331,10 @@ WndProc: func [
 					offset/header: TYPE_POINT2D
 					offset/x: dpi-unscale as float32! WIN32_LOWORD(lParam) + x
 					offset/y: dpi-unscale as float32! WIN32_HIWORD(lParam) + y
-					if type = FACE_OBJ_SIZE [as-pair offset]
+					if all [
+						type = FACE_OBJ_SIZE
+						SIZE_FACET_PAIR?(hwnd)
+					][as-pair offset]
 
 					values: values + FACE_OBJ_STATE
 					if all [
