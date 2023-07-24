@@ -137,9 +137,9 @@ power: make action! [[
 
 remainder: make action! [[
 		"Returns what is left over when one value is divided by another"
-		value1 	 [number! money! char! pair! tuple! vector! time!] "The dividend (numerator)"
-		value2 	 [number! money! char! pair! tuple! vector! time!] "The divisor (denominator)"
-		return:  [number! money! char! pair! tuple! vector! time!] "The remainder"
+		value1 	 [number! money! char! pair! any-point! tuple! vector! time!] "The dividend (numerator)"
+		value2 	 [number! money! char! pair! any-point! tuple! vector! time!] "The divisor (denominator)"
+		return:  [number! money! char! pair! any-point! tuple! vector! time!] "The remainder"
 	]
 	#get-definition ACT_REMAINDER
 ]
@@ -377,7 +377,7 @@ next: make action! [[
 
 pick: make action! [[
 		"Returns the series value at a given index"
-		series	 [series! port! bitset! pair! tuple! money! date! time! #if find config/modules 'view [event!]]
+		series	 [series! port! bitset! pair! any-point! tuple! money! date! time! #if find config/modules 'view [event!]]
 		index 	 [scalar! any-string! any-word! block! logic! time!]
 		return:  [any-type!]
 	]
@@ -419,12 +419,12 @@ remove: make action! [[
 
 reverse: make action! [[
 		"Reverses the order of elements; returns at same position"
-		series	 [series! port! pair! tuple!]
+		series	 [series! port! pair! any-point! tuple!]
 		/part "Limits to a given length or position"
 			length [number! series!]
 		/skip "Treat the series as fixed size records"
 			size [integer!]
-		return:  [series! port! pair! tuple!]
+		return:  [series! port! pair! any-point! tuple!]
 	]
 	#get-definition ACT_REVERSE
 ]
