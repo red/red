@@ -469,15 +469,15 @@ lexer: context [
 		e: (type: money!)
 	]
 	
-	dec-or-int: [s: integer-number-rule opt decimal-number-rule]
+	dec-or-int: [s: [decimal-special e: (type: issue!) | integer-number-rule opt decimal-number-rule]]
 	
 	point-rule: [
 		#"("
 		mark: any-ws dec-or-int any-ws comma :mark
 		(list: make block! 4) 
-		any-ws s: dec-or-int any-ws comma		(append list load-number copy/part s e)
-		any-ws s: dec-or-int any-ws				(append list load-number copy/part s e)
-		opt [comma any-ws s: dec-or-int any-ws	(append list load-number copy/part s e)]
+		any-ws dec-or-int any-ws comma		(append list load-number copy/part s e)
+		any-ws dec-or-int any-ws			(append list load-number copy/part s e)
+		opt [comma any-ws dec-or-int any-ws	(append list load-number copy/part s e)]
 		(value: append copy [#!point!] list)
 		#")"
 	]
