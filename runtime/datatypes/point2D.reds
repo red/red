@@ -67,7 +67,6 @@ point2D: context [
 			TYPE_FLOAT TYPE_PERCENT [
 				fl: as red-float! right
 				f: as-float32 fl/value
-				if float/special? fl/value [fire [TO_ERROR(script invalid-arg) right]]
 				switch op [
 					OP_MUL [
 						left/x: left/x * f
@@ -482,21 +481,6 @@ point2D: context [
 		as red-value! do-math OP_SUB
 	]
 	
-	and~: func [return:	[red-value!]][
-		#if debug? = yes [if verbose > 0 [print-line "point2D/and~"]]
-		as red-value! do-math OP_AND
-	]
-
-	or~: func [return: [red-value!]][
-		#if debug? = yes [if verbose > 0 [print-line "point2D/or~"]]
-		as red-value! do-math OP_OR
-	]
-
-	xor~: func [return:	[red-value!]][
-		#if debug? = yes [if verbose > 0 [print-line "point2D/xor~"]]
-		as red-value! do-math OP_XOR
-	]
-	
 	negate: func [
 		return: [red-point2D!]
 		/local
@@ -568,10 +552,10 @@ point2D: context [
 			null			;even?
 			null			;odd?
 			;-- Bitwise actions --
-			:and~
+			null			;and~
 			null			;complement
-			:or~
-			:xor~
+			null			;or~
+			null			;xor~
 			;-- Series actions --
 			null			;append
 			null			;at
