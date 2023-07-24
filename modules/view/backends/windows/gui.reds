@@ -1237,17 +1237,17 @@ get-text: func [
 
 get-position-value: func [
 	pos		[red-float!]
-	maximum [integer!]
+	maximum [float32!]
 	return: [integer!]
 	/local
-		f	[float!]
+		f	[float32!]
 ][
-	f: 0.0
+	f: as float32! 0.0
 	if any [
 		TYPE_OF(pos) = TYPE_FLOAT
 		TYPE_OF(pos) = TYPE_PERCENT
 	][
-		f: pos/value * as-float maximum
+		f: maximum * as float32! pos/value
 	]
 	as-integer f
 ]
@@ -1504,6 +1504,9 @@ OS-make-view: func [
 		rc		  [RECT_STRUCT value]
 		si		  [tagSCROLLINFO]
 		ratio	  [float!]
+		sx sy f32 [float32!]
+		pt		  [red-point2D!]
+		ex-flags  [integer!]
 ][
 	stack/mark-native words/_body
 
@@ -1525,6 +1528,16 @@ OS-make-view: func [
 	bits: 	  get-flags as red-block! values + FACE_OBJ_FLAGS
 
 	if TYPE_OF(offset) = TYPE_PAIR [as-point2D as red-pair! offset]
+	either TYPE_OF(size) = TYPE_PAIR [
+		sx: as float32! size/x
+		sy: as float32! size/y
+		ex-flags: PAIR_SIZE_FACET
+	][
+		ex-flags: 0
+		pt: as red-point2D! size
+		sx: pt/x
+		sy: pt/y
+	]
 
 	flags: 	  WS_CHILD or WS_CLIPSIBLINGS
 	ws-flags: 0
@@ -1615,17 +1628,17 @@ OS-make-view: func [
 		]
 		sym = progress [
 			class: #u16 "RedProgress"
-			if size/y > size/x [flags: flags or PBS_VERTICAL]
+			if sy > sx [flags: flags or PBS_VERTICAL]
 		]
 		sym = slider [
 			class: #u16 "RedSlider"
-			if size/y > size/x [
+			if sy > sx [
 				flags: flags or TBS_VERT or TBS_DOWNISLEFT
 			]
 		]
 		sym = scroller [
 			class: #u16 "RedScroller"
-			if size/y > size/x [flags: flags or SBS_VERT]
+			if sy > sx [flags: flags or SBS_VERT]
 		]
 		any [sym = base sym = rich-text][
 			class: #u16 "RedBase"
@@ -1685,12 +1698,12 @@ OS-make-view: func [
 				n: either alpha? [WS_EX_LAYERED][set-layered-option options win8+?]
 				ws-flags: ws-flags or n
 			]
-			if size/x < 0 [size/x: 200]
-			if size/y < 0 [size/y: 200]
+			if sx < as float32! 0.0 [sx: as float32! 200.0]
+			if sy < as float32! 0.0 [sy: as float32! 200.0]
 			rc/left: 0
 			rc/top: 0
-			rc/right:  dpi-scale as float32! size/x
-			rc/bottom: dpi-scale as float32! size/y
+			rc/right:  dpi-scale sx
+			rc/bottom: dpi-scale sy
 			AdjustWindowRectEx rc flags menu-bar? menu window ws-flags
 			rc/right: rc/right - rc/left
 			rc/bottom: rc/bottom - rc/top
@@ -1731,8 +1744,8 @@ OS-make-view: func [
 	off-x:	dpi-scale offset/x
 	off-y:	dpi-scale offset/y
 	if sym <> window [
-		rc/right:	dpi-scale as float32! size/x
-		rc/bottom:	dpi-scale as float32! size/y
+		rc/right:	dpi-scale sx
+		rc/bottom:	dpi-scale sy
 	]
 
 	handle: CreateWindowEx
@@ -1801,10 +1814,11 @@ OS-make-view: func [
 			sym = slider
 			sym = progress
 		][
-			vertical?: size/y > size/x
-			value: either vertical? [size/y][size/x]
-			off-x: get-position-value as red-float! data value
-			if vertical? [off-x: size/y - off-x]
+			vertical?: sy > sx
+			f32: either vertical? [sy][sx]
+			off-x: get-position-value as red-float! data f32
+			value: as-integer f32
+			if vertical? [off-x: (as-integer sy) - off-x]
 			either sym = slider [
 				SendMessage handle TBM_SETRANGE 1 value << 16
 				SendMessage handle TBM_SETPOS 1 off-x
@@ -1857,7 +1871,7 @@ OS-make-view: func [
 		]
 		sym = rich-text [
 			init-base-face handle parent values alpha?
-			SetWindowLong handle wc-offset - 12 BASE_FACE_D2D or BASE_FACE_IME
+			ex-flags: ex-flags or (BASE_FACE_D2D or BASE_FACE_IME)
 		]
 		sym = calendar [
 			init-calendar handle as red-value! data
@@ -1880,6 +1894,7 @@ OS-make-view: func [
 	]
 	if TYPE_OF(rate) <> TYPE_NONE [change-rate handle rate]
 
+	SetWindowLong handle wc-offset - 12 ex-flags
 	SetWindowLong handle wc-offset + 16 get-flags as red-block! values + FACE_OBJ_FLAGS
 	stack/unwind
 	as-integer handle
@@ -1899,8 +1914,25 @@ change-size: func [
 		pos		[red-point2D!]
 		sz-x	[integer!]
 		sz-y	[integer!]
+		sx sy	[float32!]
+		pt		[red-point2D!]
+		flags	[integer!]
 ][
 	size: as red-pair! vals + FACE_OBJ_SIZE
+	flags: GetWindowLong hWnd wc-offset - 12 
+	either TYPE_OF(size) = TYPE_PAIR [
+		sx: as float32! size/x
+		sy: as float32! size/y
+		flags: flags or PAIR_SIZE_FACET
+	][
+		flags: 0
+		pt: as red-point2D! size
+		sx: pt/x
+		sy: pt/y
+		flags: flags and (not PAIR_SIZE_FACET)
+	]
+	SetWindowLong hWnd wc-offset - 12 flags
+
 	cx: 0
 	cy: 0
 	if type = window [window-border-info? hWnd null null :cx :cy]
@@ -1916,8 +1948,8 @@ change-size: func [
 		process-layered-region hWnd size pos as red-block! vals + FACE_OBJ_PANE pos null layer?
 	]
 
-	sz-x: dpi-scale as float32! size/x
-	sz-y: dpi-scale as float32! size/y
+	sz-x: dpi-scale sx
+	sz-y: dpi-scale sy
 	SetWindowPos 
 		hWnd
 		as handle! 0
@@ -1931,9 +1963,7 @@ change-size: func [
 	]
 	case [
 		any [type = slider type = progress][
-			sz-x: size/x
-			sz-y: size/y
-			max: either sz-x > sz-y [sz-x][sz-y]
+			max: as-integer either sx > sy [sx][sy]
 			msg: either type = slider [TBM_SETRANGEMAX][max: max << 16 PBM_SETRANGE]
 			SendMessage hWnd msg 0 max					;-- do not force a redraw
 			change-data hWnd vals

@@ -34,7 +34,6 @@ init-base-face: func [
 	opts:	as red-block! values + FACE_OBJ_OPTIONS
 
 	SetWindowLong handle wc-offset - 4 0
-	SetWindowLong handle wc-offset - 12 0
 	SetWindowLong handle wc-offset - 16 parent
 	SetWindowLong handle wc-offset - 20 0
 	SetWindowLong handle wc-offset - 24 0
@@ -237,6 +236,8 @@ process-layered-region: func [
 		value [red-value!]
 		face  [red-object!]
 		tail  [red-object!]
+		sx sy [float32!]
+		pt	  [red-point2D!]
 ][
 	x: dpi-scale origin/x
 	y: dpi-scale origin/y
@@ -251,8 +252,9 @@ process-layered-region: func [
 	]
 
 	sz: as tagSIZE :rc
-	sz/width: dpi-scale as float32! size/x
-	sz/height: dpi-scale as float32! size/y
+	GET_PAIR_XY(size sx sy)
+	sz/width: dpi-scale sx
+	sz/height: dpi-scale sy
 	if layer? [
 		w: x + sz/width - rect/right
 		w: either positive? w [sz/width - w][sz/width]

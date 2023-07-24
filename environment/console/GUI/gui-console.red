@@ -234,7 +234,7 @@ gui-console-ctx: context [
 				quit
 			]
 			on-resizing: function [face [object!] event [event!]][
-				new-sz: event/offset + 1x1
+				new-sz: to-pair event/offset + 1x1
 				console/size: new-sz
 				terminal/resize new-sz
 				terminal/adjust-console-size new-sz

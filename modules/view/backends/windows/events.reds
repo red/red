@@ -10,6 +10,10 @@ Red/System [
 	}
 ]
 
+#define SIZE_FACET_PAIR?(hwnd) [
+	(GetWindowLong hWnd wc-offset - 12) and PAIR_SIZE_FACET <> 0
+]
+
 #enum event-action! [
 	EVT_NO_DISPATCH										;-- no further msg processing allowed
 	EVT_DISPATCH										;-- allow DispatchMessage call only
@@ -144,7 +148,10 @@ get-event-offset: func [
 				offset/x: dpi-unscale as float32! WIN32_LOWORD(value)
 				offset/y: dpi-unscale as float32! WIN32_HIWORD(value)
 			]
-			if any [evt/type = EVT_SIZE evt/type = EVT_SIZING][
+			if all [
+				any [evt/type = EVT_SIZE evt/type = EVT_SIZING]
+				SIZE_FACET_PAIR?(msg/hwnd)
+			][
 				as-pair offset
 			]
 			as red-value! offset
