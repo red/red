@@ -58,6 +58,8 @@ IEEE-754: context [
 		"convert a numerical value into native binary format"
 		n  [number! issue!]
 		/rev     "reverse binary output"
+		/rev4	 "reverse binary output by blocks of 4 bytes"
+		/split	 "returns result as two integer values in unswapped order"
 		/local out sign exp frac
 	][
 		either issue? n [
@@ -72,7 +74,16 @@ IEEE-754: context [
 			insert out to char! exp // 16 * 16  + frac
 			insert out to char! exp / 16 + (128 * sign)
 		]
-		either rev [copy reverse out][out]
+		case [
+			rev	  [copy reverse out]
+			rev4  [
+				out: reverse out
+				append out copy/part out 4
+				copy skip out 4
+			]
+			split [reduce [to integer! copy/part out 4 to integer! skip out 4]]
+			'else [out]
+		]
 	]
 
 	split32: func [

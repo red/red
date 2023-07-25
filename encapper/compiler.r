@@ -1691,16 +1691,7 @@ red: context [
 		emit to integer! copy/part bin 4
 		emit to integer! skip bin 4
 	]
-
-	emit-fp-special: func [value [issue!]][
-		switch next value [
-			#INF  [emit to integer! #{7FF00000} emit 0]
-			#INF- [emit to integer! #{FFF00000} emit 0]
-			#NaN  [emit to integer! #{7FF80000} emit 0]			;-- smallest quiet NaN
-			#0-	  [emit to integer! #{80000000} emit 0]
-		]
-	]
-
+	
 	comp-literal: func [
 		/inactive /with val
 		/local value char? special? percent? map? tuple? money? ref? dt-special? point? name w make-block type idx zone
@@ -1749,7 +1740,7 @@ red: context [
 				]
 				special? [
 					emit 'float/push64
-					emit-fp-special value
+					emit IEEE-754/to-binary64/split value
 					insert-lf -3
 				]
 				map? [

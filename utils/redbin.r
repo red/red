@@ -131,15 +131,10 @@ context [
 		emit-float-bin value
 	]
 	
-	emit-fp-special: func [value [issue!]][
+	emit-fp-special: func [value [issue!] /local p][
 		pad buffer 8
 		emit-type 'TYPE_FLOAT
-		switch next value [
-			#INF  [emit to integer! #{7FF00000} emit 0]
-			#INF- [emit to integer! #{FFF00000} emit 0]
-			#NaN  [emit to integer! #{7FF80000} emit 0]			;-- smallest quiet NaN
-			#0-	  [emit to integer! #{80000000} emit 0]
-		]
+		insert tail buffer IEEE-754/to-binary64/rev4 value
 	]
 
 	emit-percent: func [value [issue!] /local bin][
