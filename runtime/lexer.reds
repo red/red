@@ -1739,10 +1739,11 @@ lexer: context [
 			][
 				if flags and C_FLAG_PERCENT <> 0 [convert-percents lex]
 			]
+			lex/in-pos: e 									;-- reset the input position after delimiter byte
 		][
 			scan-string lex s e flags no
+			lex/in-pos: e + 1								;-- skip closing double quote
 		]
-		lex/in-pos: e 									;-- reset the input position to delimiter byte
 	]
 
 	load-binary: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]

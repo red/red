@@ -3488,6 +3488,9 @@ comment {
 	--test-- "#5345"
 		--assert 12-Nov-2013 == load "12-nov-13"
 		--assert 15-Nov-2013 == load "15-nov-13"
+	
+	--test-- "#5351"
+		--assert block! = transcode/scan {[a: %"filename"] }
 
 ===end-group===
 
