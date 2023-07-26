@@ -411,6 +411,11 @@ Red [
 	--test-- "tr-49" --assert error? try [transcode #{8B}]				  ; #4790
 	--test-- "tr-50" --assert error? try [transcode "-$"]
 	--test-- "tr-51" --assert error? try [transcode #{42137E26C646365C}]  ; #4790
+	
+	--test-- "tr-52" --assert [ (1.#INF, 1)   (1, 1.#INF)] == transcode " (1.#INF, 1)   (1, 1.#INF) "
+	--test-- "tr-53" --assert [(1, 2) (5, 6)] == transcode " (1, 2) (5, 6) "
+	--test-- "tr-54" --assert [(16-Jun-2014/14:34:59+2:00)] == transcode "(16-Jun-2014/14:34:59+2:00)"
+	--test-- "tr-55" --assert [(1.1.1)]	== transcode "(1.1.1)"
 
 ===end-group===
 ===start-group=== "transcode/one"
@@ -648,6 +653,29 @@ Red [
 	--test-- "tro-164"  --assert error? try [transcode/one "123#"]
 	--test-- "tro-165"  --assert error? try [transcode/one "9h"]
 	--test-- "tro-166"  --assert error? try [transcode/one "FACEFEEDDEADBEEFh"]
+	
+	--test-- "tro-167" --assert (1, 3, 22)		== transcode/one "(1, 3, 22)"
+	--test-- "tro-168" --assert (1, 3) 	 		== transcode/one "(1, 3)"
+	--test-- "tro-169" --assert (4.3,5.456, 789)== transcode/one "(4.3,5.456, 789)"
+	--test-- "tro-170" --assert (4, 2, 9) 		== transcode/one "(4, 2, 9)"
+	--test-- "tro-171" --assert (0,0)			== transcode/one "(0,0)"
+	--test-- "tro-172" --assert [(4,5)]			== transcode/one "[(4,5)]"
+
+	--test-- "tro-175" --assert (4,5)			== transcode/one "(4,5)"
+	--test-- "tro-176" --assert (4.3,5.456)		== transcode/one "(4.3,5.456)"
+	--test-- "tro-177" --assert (4, 5)			== transcode/one "(4, 5)"
+	--test-- "tro-178" --assert (  4 ,5)		== transcode/one "(  4 ,5)"
+	--test-- "tro-179" --assert (  4 , 5)		== transcode/one "(  4 , 5)"
+	--test-- "tro-180" --assert (4 , 5)			== transcode/one "(4 , 5)"
+	--test-- "tro-181" --assert (4   ,   5)		== transcode/one "(4   ,   5)"
+	--test-- "tro-182" --assert (5.0,2)			== transcode/one "(5.0,2)"
+	--test-- "tro-183" --assert (5.0 ,2)		== transcode/one "(5.0 ,2)"
+	--test-- "tro-184" --assert (5.0 , 2)		== transcode/one "(5.0 , 2)"
+	--test-- "tro-185" --assert (523.120, 2.78584) == transcode/one "(523.120, 2.78584)"
+	--test-- "tro-186" --assert (1.#INF, 2)		== transcode/one "(1.#INF, 2)"
+	--test-- "tro-187" --assert (3, 1.#INF, 2)	== transcode/one "(3,1.#INF,2)"
+	--test-- "tro-188" --assert (3,4,1.#INF)	== transcode/one "(3,4,1.#INF)"
+	--test-- "tro-189" --assert (3,4,1.#INF )	== transcode/one "(3,4,1.#INF )"
 
 ===end-group===
 ===start-group=== "transcode/next"
