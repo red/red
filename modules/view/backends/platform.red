@@ -581,6 +581,16 @@ system/view/platform: context [
 					fy: pt/y
 				]
 			]
+			#define GET_PAIR_XY_INT(_pair fx fy) [
+				either PAIR_TYPE?(_pair) [
+					fx: _pair/x
+					fy: _pair/y
+				][
+					pt: as red-point2D! _pair
+					fx: as-integer pt/x
+					fy: as-integer pt/y
+				]
+			]
 			#define GET_PAIR_XY_F(_pair fx fy) [
 				either PAIR_TYPE?(_pair) [
 					fx: as float! _pair/x

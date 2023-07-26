@@ -829,8 +829,8 @@ change-offset: func [
 		rc [NSRect!]
 		pt [red-point2D!]
 ][
-	GET_PAIR_XY(pos rc/x rc/y)
 	rc: make-rect 1 1 0 0
+	GET_PAIR_XY(pos rc/x rc/y)
 	either type = window [
 		rc/y: (as float32! screen-size-y) - rc/y
 		objc_msgSend [hWnd sel_getUid "setFrameTopLeftPoint:" rc/x rc/y]

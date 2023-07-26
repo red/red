@@ -20,6 +20,14 @@ Red/System [
 #define GDK_BUTTON_MIDDLE 2
 #define GDK_BUTTON_SECONDARY 3
 
+#define SET_PAIR_SIZE_FLAG(hwnd size) [
+	either PAIR_TYPE?(size) [
+		SET-PAIR-SIZE(hwnd hwnd)
+	][
+		SET-PAIR-SIZE(hwnd null)
+	]
+]
+
 gui-evt: declare red-event!								;-- low-level event value slot
 gui-evt/header: TYPE_EVENT
 
@@ -501,6 +509,7 @@ get-event-offset: func [
 		pt		[red-point2d!]
 		offset	[red-pair!]
 		value	[integer!]
+		sx sy	[integer!]
 ][
 	;; DEBUG: print ["get-event-offset: " evt/type lf]
 	case [
@@ -525,11 +534,15 @@ get-event-offset: func [
 			widget: as handle! evt/msg
 			either null? GET-HMENU(widget) [
 				sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE
-				offset/x: sz/x
-				offset/y: sz/y
+				GET_PAIR_XY_INT(sz sx sy)
+				offset/x: sx
+				offset/y: sy
 			][
 				offset/x: GET-CONTAINER-W(widget)
 				offset/y: GET-CONTAINER-H(widget)
+			]
+			if null? GET-PAIR-SIZE(widget) [
+				as-point2D offset
 			]
 			as red-value! offset
 		]
