@@ -815,6 +815,19 @@ Red [
 	--test-- "scan-81" --assert error!   = scan "9h"
 	--test-- "scan-82" --assert error!   = scan "FACEFEEDDEADBEEFh"
 	--test-- "scan-83" --assert error!   = scan ":a/b:"
+	
+	--test-- "scan-84" --assert point2D! = scan "(1, 3)"
+	--test-- "scan-85" --assert point2D! = scan "(1.#INF, 2)"
+	--test-- "scan-86" --assert point3D! = scan "(1, 3, 22)"
+	--test-- "scan-87" --assert point3D! = scan "(4.3,5.456, 789)"
+	--test-- "scan-88" --assert point3D! = scan "(3,1.#INF,2)"
+	--test-- "scan-89" --assert point3D! = scan "(3,4,1.#INF)"
+	;--test-- "scan-90" --assert point3D! = scan "(3,4,1.#INF )"
+	--test-- "scan-91" --assert error!	 = scan "(1 2, 3)"
+	--test-- "scan-92" --assert error!	 = scan "(1, 2 3)"
+	--test-- "scan-93" --assert error!	 = scan "(1 2, 3, 4)"
+	--test-- "scan-94" --assert error!	 = scan "(1 2, 3, 4 5)"
+	
 
 ===end-group===
 ===start-group=== "scan/fast"
@@ -866,6 +879,18 @@ Red [
 	--test-- "scan-f66" --assert lit-path! = scan/fast "'a/b"
 	--test-- "scan-f67" --assert set-path! = scan/fast "a/b:"
 	--test-- "scan-f68" --assert get-path! = scan/fast ":a/b"
+	
+	--test-- "scan-f69" --assert point2D! = scan/fast "(1, 3)"
+	--test-- "scan-f70" --assert point2D! = scan/fast "(1.#INF, 2)"
+	--test-- "scan-f71" --assert point3D! = scan/fast "(1, 3, 22)"
+	--test-- "scan-f72" --assert point3D! = scan/fast "(4.3,5.456, 789)"
+	--test-- "scan-f73" --assert point3D! = scan/fast "(3,1.#INF,2)"
+	--test-- "scan-f74" --assert point3D! = scan/fast "(3,4,1.#INF)"
+	;--test-- "scan-f75" --assert point3D! = scan/fast "(3,4,1.#INF )"
+	--test-- "scan-f76" --assert error!	  = scan/fast "(1 2, 3)"
+	--test-- "scan-f77" --assert error!	  = scan/fast "(1, 2 3)"
+	--test-- "scan-f78" --assert error!	  = scan/fast "(1 2, 3, 4)"
+	--test-- "scan-f79" --assert error!	  = scan/fast "(1 2, 3, 4 5)"
 
 ===end-group===
 ===start-group=== "transcode/trace"
