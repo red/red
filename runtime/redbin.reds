@@ -692,9 +692,9 @@ redbin: context [
 			TYPE_POINT3D	[
 				cell: ALLOC_TAIL(parent)
 				cell/header: TYPE_POINT3D
-				cell/data1: data/1
-				cell/data2: data/2
-				cell/data3: data/3
+				cell/data1: data/2
+				cell/data2: data/3
+				cell/data3: data/4
 				data + 4
 			]
 			TYPE_UNSET		[
