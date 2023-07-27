@@ -877,7 +877,7 @@ lexer: context [
 			until [s: s + 1 any [s = e s/1 = #" " s/1 = #","]];-- find a space or a comma
 			if all [s < e s/0 <> #"," s/1 <> #","][			;-- if space is preceded by comma, found!
 				skip-ws										;-- skip all spaces
-				if s/1 <> #"," [do-error]					;-- comma should follow, otherwise error!
+				if all [s < e s/1 <> #","][do-error]		;-- comma should follow, otherwise error!
 			]
 			cnt: cnt + 1
 			skip-ws											;-- skip the spaces after the comma
