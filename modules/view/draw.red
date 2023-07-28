@@ -997,7 +997,7 @@ Red/System [
 							]
 							sym = translate [
 								DRAW_FETCH_OPT_TRANSFORM
-								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
+								DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 								point: as red-pair! start
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
@@ -1026,11 +1026,11 @@ Red/System [
 							]
 							sym = transform [
 								DRAW_FETCH_OPT_TRANSFORM
-								DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+								DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)		;-- angle
 								value: cmd + 1
 								loop 2 [DRAW_FETCH_NUMBER]						;-- scale-x, scale-y
-								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
+								DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
 									OS-draw-state-push DC :state
