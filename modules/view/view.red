@@ -904,6 +904,7 @@ view: function [
 ][
 	unless system/view/screens [system/view/platform/init]
 	
+	sync?: system/view/auto-sync?
 	if block? spec [spec: either tight [layout/tight spec][layout spec]]
 	if spec/type <> 'window [cause-error 'script 'not-window []]
 	if options [set/any spec make object! opts]
@@ -913,12 +914,14 @@ view: function [
 	unless spec/offset [center-face spec]
 	unless show spec [exit]
 
-	either no-wait [
+	set/any 'result either no-wait [
 		do-events/no-wait
 		spec							;-- return root face
 	][
 		do-events ()					;-- return unset! value by default
 	]
+	system/view/auto-sync?: sync?
+	:result
 ]
 
 center-face: function [

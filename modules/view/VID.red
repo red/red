@@ -606,6 +606,7 @@ system/view/VID: context [
 				switch/default spec/1 [
 					title	 [panel/text: fetch-argument string! spec]
 					size	 [panel/size: size: fetch-argument pos-size! spec]
+					no-sync	 [system/view/auto-sync?: no]
 					backdrop [
 						value: pre-load fetch-argument background! spec
 						switch type?/word value [
