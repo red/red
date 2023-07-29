@@ -535,6 +535,7 @@ point3D: context [
 		pt: as red-point3D! stack/arguments
 		pt/x: as-float32 0.0 - pt/x
 		pt/y: as-float32 0.0 - pt/y
+		pt/z: as-float32 0.0 - pt/z
 		pt
 	]
 	
