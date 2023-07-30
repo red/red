@@ -848,13 +848,13 @@ Red/System [
 								DRAW_FETCH_NAMED_VALUE(TYPE_IMAGE)
 								start: value
 								pos: cmd + 1
-								pair?: all [pos < tail TYPE_OF(pos) = TYPE_PAIR]
+								pair?: all [pos < tail ANY_COORD?(pos)]
 								point: either pair? [as red-pair! pos][null]
 								end: null
 								if pair? [
 									cmd: pos						;-- upper-left point
 									until [
-										DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+										DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 										cmd <> pos
 									]
 									end: as red-pair! cmd
