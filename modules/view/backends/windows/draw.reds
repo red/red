@@ -1234,12 +1234,12 @@ do-spline-step: func [
 			t3: t2 * t
 			x:
 			   (p1x * as float32! 2.0) + (p2x - p0x * t) +
-			   (p0x * as float32! 2.0) - (p1x * as float32! 5.0) + (p2x * as float32! 4.0) - p3x * t2 +
-			   ((p1x - p2x) * as float32! 3.0) + p3x - p0x * t3 * as float32! 0.5
+			   ((p0x * as float32! 2.0) - (p1x * as float32! 5.0) + (p2x * as float32! 4.0) - p3x * t2) +
+			   ((p1x - p2x * as float32! 3.0) + p3x - p0x * t3) * as float32! 0.5
 			y:
 			   (p1y * as float32! 2.0) + (p2y - p0y * t) + 
-			   (p0y * as float32! 2.0) - (p1y * as float32! 5.0) + (p2y * as float32! 4.0) - p3y * t2 + 
-			   ((p1y - p2y) * as float32! 3.0) + p3y - p0y * t3 * as float32! 0.5 
+			   ((p0y * as float32! 2.0) - (p1y * as float32! 5.0) + (p2y * as float32! 4.0) - p3y * t2) + 
+			   ((p1y - p2y * as float32! 3.0) + p3y - p0y * t3) * as float32! 0.5 
 			point/x: x
 			point/y: y
 			gsink/AddLine sthis point

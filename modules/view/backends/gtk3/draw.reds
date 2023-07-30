@@ -1012,12 +1012,12 @@ do-spline-step: func [
 
 		x:
 		   (p1x * 2.0) + (p2x - p0x * t) +
-		   (p0x * 2.0) - (p1x * 5.0) + (p2x * 4.0) - p3x * t2 +
-		   ((p1x - p2x) * 3.0) + p3x - p0x * t3 * 0.5
+		   ((p0x * 2.0) - (p1x * 5.0) + (p2x * 4.0) - p3x * t2) +
+		   ((p1x - p2x * 3.0) + p3x - p0x * t3) * 0.5
 		y:
 		   (p1y * 2.0) + (p2y - p0y * t) + 
-		   (p0y * 2.0) - (p1y * 5.0) + (p2y * 4.0) - p3y * t2 + 
-		   ((p1y - p2y) * 3.0) + p3y - p0y * t3 * 0.5 
+		   ((p0y * 2.0) - (p1y * 5.0) + (p2y * 4.0) - p3y * t2) + 
+		   ((p1y - p2y * 3.0) + p3y - p0y * t3) * 0.5 
 
 		cairo_line_to ctx x y
 	]
