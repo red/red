@@ -3124,7 +3124,7 @@ natives: context [
 		comp?:	no
 		
 		if any [
-			all [type2 = TYPE_PAIR  any [type = TYPE_INTEGER type = TYPE_FLOAT]]
+			all [any [type2 = TYPE_PAIR type2 = TYPE_POINT2D type2 = TYPE_POINT3D] any [type = TYPE_INTEGER type = TYPE_FLOAT]]
 			all [type2 = TYPE_TUPLE any [type = TYPE_INTEGER type = TYPE_FLOAT]]
 		][
 			value: arg
@@ -3190,11 +3190,11 @@ natives: context [
 					TYPE_PAIR [
 						p: as red-pair! arg2
 						either max? [
-							if pt/x < as-float32 p2/x [pt/x: as-float32 p2/x]
-							if pt/y < as-float32 p2/y [pt/y: as-float32 p2/y]
+							if pt/x < as-float32 p/x [pt/x: as-float32 p/x]
+							if pt/y < as-float32 p/y [pt/y: as-float32 p/y]
 						][
-							if pt/x > as-float32 p2/x [pt/x: as-float32 p2/x]
-							if pt/y > as-float32 p2/y [pt/y: as-float32 p2/y]
+							if pt/x > as-float32 p/x [pt/x: as-float32 p/x]
+							if pt/y > as-float32 p/y [pt/y: as-float32 p/y]
 						]
 					]
 					TYPE_FLOAT
