@@ -789,6 +789,8 @@ update-base: func [
 		font	[red-object!]
 		para	[red-object!]
 		sz		[red-pair!]
+		pt		[red-point2D!]
+		x y 	[float32!]
 		height	[integer!]
 		width	[integer!]
 		size	[tagSIZE]
@@ -822,8 +824,9 @@ update-base: func [
 	sz:		as red-pair!   values + FACE_OBJ_SIZE
 	graphic: 0
 
-	width: dpi-scale as float32! sz/x
-	height: dpi-scale as float32! sz/y
+	GET_PAIR_XY(sz x y)
+	width: dpi-scale x
+	height: dpi-scale y
 	hBackDC: CreateCompatibleDC hScreen
 	hBitmap: CreateCompatibleBitmap hScreen width height
 	SelectObject hBackDC hBitmap
@@ -864,6 +867,8 @@ update-base: func [
 		font	[red-object!]
 		para	[red-object!]
 		sz		[red-pair!]
+		pt		[red-point2D!]
+		x y 	[float32!]
 		height	[integer!]
 		width	[integer!]
 		size	[tagSIZE]
@@ -884,10 +889,11 @@ update-base: func [
 		exit
 	]
 
-	cmds:	as red-block!  values + FACE_OBJ_DRAW
-	sz:		as red-pair!   values + FACE_OBJ_SIZE
-	width: dpi-scale as float32! sz/x
-	height: dpi-scale as float32! sz/y
+	cmds: as red-block! values + FACE_OBJ_DRAW
+	sz:	  as red-pair!  values + FACE_OBJ_SIZE
+	GET_PAIR_XY(sz x y)
+	width: dpi-scale x
+	height: dpi-scale y
 	ptSrc/x: 0
 	ptSrc/y: 0
 	size: as tagSIZE :width
