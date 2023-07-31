@@ -1141,8 +1141,8 @@ insert-event-func [
 			unless all [
 				object? :result
 				[min max] = words-of result
-				pair? result/min
-				pair? result/max
+				find [pair! point2D!] type?/word result/min
+				find [pair! point2D!] type?/word result/max
 			][
 				result: none
 			]
