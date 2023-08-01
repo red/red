@@ -317,8 +317,9 @@ base-draw: func [
 			buf: GET-BASE-BUFFER(widget)
 			assert buf <> null
 			cr: cairo_create buf
-			cairo_set_operator cr CAIRO_OPERATOR_CLEAR
+			cairo_set_operator cr CAIRO_OPERATOR_CLEAR	;-- make it fully transparent
 			cairo_paint cr
+			cairo_set_operator cr CAIRO_OPERATOR_OVER
 		]
 	]
 
