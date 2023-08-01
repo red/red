@@ -1724,10 +1724,14 @@ set-buffer: func [
 	x		[integer!]
 	y		[integer!]
 	color	[red-tuple!]
+	img		[red-image!]
 	/local
 		buf [handle!]
 ][
-	unless transparent-base? color [exit]
+	if all [
+		TYPE_OF(img) <> TYPE_IMAGE
+		not transparent-base? color
+	][exit]
 
 	buf: GET-BASE-BUFFER(widget)
 	if buf <> null [cairo_surface_destroy buf]
@@ -1848,7 +1852,7 @@ OS-make-view: func [
 		sym = base [
 			widget: gtk_layout_new null null
 			gtk_layout_set_size widget sx sy
-			set-buffer widget sx sy color
+			set-buffer widget sx sy color img
 		]
 		sym = rich-text [
 			widget: gtk_layout_new null null

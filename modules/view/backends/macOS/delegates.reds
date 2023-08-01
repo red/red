@@ -1541,10 +1541,11 @@ draw-rect: func [
 		size	[red-pair!]
 		type	[red-word!]
 		sym		[integer!]
-		bmp		[integer!]
-		pos		[red-pair! value]
+		pos		[red-point2D! value]
 		v1010?	[logic!]
 		DC		[draw-ctx!]
+		pt		[red-point2D!]
+		sx sy	[integer!]
 ][
 	nsctx: objc_msgSend [objc_getClass "NSGraphicsContext" sel_getUid "currentContext"]
 	v1010?: as logic! objc_msgSend [nsctx sel_getUid "respondsToSelector:" sel_getUid "CGContext"]
@@ -1566,13 +1567,15 @@ draw-rect: func [
 		paint-background ctx get-tuple-color clr x y width height
 	]
 	if TYPE_OF(img) = TYPE_IMAGE [
-		CG-draw-image ctx OS-image/to-cgimage img 0 0 size/x size/y
+		GET_PAIR_XY_INT(size sx sy)
+		CG-draw-image ctx OS-image/to-cgimage img 0 0 sx sy
 	]
 	case [
 		sym = base [render-text ctx vals as NSSize! (as int-ptr! self) + 8]
 		sym = rich-text [
-			pos/x: 0 pos/y: 0
-			draw-text-box null :pos get-face-obj self yes
+			pos/header: TYPE_POINT2D
+			pos/x: F32_0 pos/y: F32_0
+			draw-text-box null as red-pair! :pos get-face-obj self yes
 		]
 		true []
 	]

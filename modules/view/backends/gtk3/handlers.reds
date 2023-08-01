@@ -329,6 +329,7 @@ base-draw: func [
 	case [
 		sym = base [render-text cr face size values]
 		sym = rich-text [
+			pos/header: TYPE_PAIR
 			pos/x: 0 pos/y: 0
 			draw-text-box cr :pos get-face-obj widget yes
 		]

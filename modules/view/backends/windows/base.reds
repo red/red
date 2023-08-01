@@ -319,6 +319,8 @@ update-layered-window: func [
 		width	[integer!]
 		height	[integer!]
 		sub?	[logic!]
+		pt		[red-point2D!]
+		sx sy	[float32!]
 ][
 	values: get-face-values hWnd
 	type: as red-word! values + FACE_OBJ_TYPE
@@ -381,9 +383,10 @@ update-layered-window: func [
 				GetClientRect winpos/hWnd rect
 				border: winpos/cx - rect/right >> 1
 				size: as red-pair! values + FACE_OBJ_SIZE
+				GET_PAIR_XY(size sx sy)
 				sz: as tagSIZE :rect
-				sz/width: dpi-scale as float32! size/x
-				sz/height: dpi-scale as float32! size/y
+				sz/width: dpi-scale sx
+				sz/height: dpi-scale sy
 				width: sz/width
 				height: sz/height
 				if x + sz/width + border > (winpos/x + winpos/cx) [

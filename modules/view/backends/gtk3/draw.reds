@@ -1569,6 +1569,7 @@ OS-draw-image: func [
 		bottom	[integer!]
 		dst		[red-image! value]
 		pixbuf	[handle!]
+		pt		[red-point2D!]
 ][
 	either any [
 		start + 2 = end
@@ -1583,7 +1584,7 @@ OS-draw-image: func [
 	][
 		src.w: IMAGE_WIDTH(src/size)
 		src.h: IMAGE_HEIGHT(src/size)
-		either null? start [x: 0 y: 0][x: start/x y: start/y]
+		either null? start [x: 0 y: 0][GET_PAIR_XY_INT(start x y)]
 		unless null? crop1 [
 			crop2: crop1 + 1
 			crop.x: crop1/x
@@ -1615,8 +1616,9 @@ OS-draw-image: func [
 				]
 			]
 			start + 1 = end [
-				w: end/x - x
-				h: end/y - y
+				GET_PAIR_XY_INT(end w h)
+				w: w - x
+				h: h - y
 			]
 			true [return 0]
 		]
