@@ -168,6 +168,18 @@ system/reactivity: context [
 		]
 	]
 	
+	
+	set 'no-react func [
+		"Evaluates a block with all previously defined reactions disabled"
+		body [block!] "Code block to evaluate"
+		/local result
+	][
+		relations: tail relations
+		set/any 'result eval/safe body
+		relations: head relations
+		:result
+	]
+	
 	set 'stop-reactor function [
 		face [object!]
 		/deep
@@ -199,7 +211,7 @@ system/reactivity: context [
 	]
 	
 	set 'dump-reactions function [
-		"Output all the current reactive relations for debugging purpose"
+		"Outputs all the current reactive relations for debugging purpose"
 	][
 		limit: (any [all [system/console system/console/size/x] 72]) - 10
 		count: 0
