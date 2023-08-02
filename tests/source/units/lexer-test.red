@@ -676,6 +676,16 @@ Red [
 	--test-- "tro-187" --assert (3, 1.#INF, 2)	== transcode/one "(3,1.#INF,2)"
 	--test-- "tro-188" --assert (3,4,1.#INF)	== transcode/one "(3,4,1.#INF)"
 	--test-- "tro-189" --assert (3,4,1.#INF )	== transcode/one "(3,4,1.#INF )"
+	
+	--test-- "tro-190" --assert error? try [transcode/one "(1, 2, 3 / 4)"]
+	--test-- "tro-191" --assert error? try [transcode/one "(1, 2, 3 4 5 )"]
+	--test-- "tro-192" --assert error? try [transcode/one "(1, 2, 3 a b c)"]
+	--test-- "tro-193" --assert error? try [transcode/one "(1, 2, (3 / 4)"]
+	--test-- "tro-194" --assert error? try [transcode/one "(1, 2, (3 4))"]
+	--test-- "tro-195" --assert error? try [transcode/one "(1, 2, [3])"]
+	--test-- "tro-196" --assert error? try [transcode/one "(1, 2, #(3))"]
+	--test-- "tro-197" --assert error? try [transcode/one "(1, 2 "]
+	--test-- "tro-198" --assert error? try [transcode/one "(1, 2, "]
 
 ===end-group===
 ===start-group=== "transcode/next"
@@ -827,7 +837,19 @@ Red [
 	--test-- "scan-92" --assert error!	 = scan "(1, 2 3)"
 	--test-- "scan-93" --assert error!	 = scan "(1 2, 3, 4)"
 	--test-- "scan-94" --assert error!	 = scan "(1 2, 3, 4 5)"
-	
+
+	--test-- "scan-95"  --assert error!	 = scan "(1, 2, 3 / 4)"
+	--test-- "scan-96"  --assert error!	 = scan "(1, 2, 3 4 5 )"
+	--test-- "scan-97"  --assert error!	 = scan "(1, 2, 3 a b c)"
+	--test-- "scan-98"  --assert error!	 = scan "(1, 2, (3 / 4)"
+	--test-- "scan-99"  --assert error!	 = scan "(1, 2, (3 4))"
+	;--test-- "scan-100" --assert error!	 = scan "(1, 2, [3])"
+	;--test-- "scan-101" --assert error!	 = scan "(1, 2, #(3))"
+	;--test-- "scan-102" --assert error!	 = scan "(1, 2, a)"
+	;--test-- "scan-103" --assert error!	 = scan "(1, a)"
+	;--test-- "scan-104" --assert error!	 = scan "(1, 2"
+	;--test-- "scan-105" --assert error!	 = scan "(1, 2 "
+	;--test-- "scan-106" --assert error!	 = scan "(1, 2, "
 
 ===end-group===
 ===start-group=== "scan/fast"

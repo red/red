@@ -434,7 +434,7 @@ lexer: context [
 			slot: lex/head
 			if slot > lex/buffer [slot: lex/head - 1]
 			po: as red-triple! slot						;-- take start of the parent series
-			either TYPE_OF(po) <> TYPE_TRIPLE [s: lex/input][s: lex/input + po/z]
+			s: either TYPE_OF(po) <> TYPE_TRIPLE [lex/input][lex/input + po/z]
 		]
 		if lex/fun-ptr <> null [
 			t: either type > 0 [type][
@@ -478,6 +478,7 @@ lexer: context [
 				type: switch closing [
 					TYPE_BLOCK [as-integer either c = #"]" [#"["][#"]"]]
 					TYPE_MAP
+					TYPE_POINT2D
 					TYPE_PAREN [as-integer either c = #")" [#"("][#")"]]
 					default [assert false 0]			;-- should not happen
 				]
@@ -637,6 +638,10 @@ lexer: context [
 	][
 		if null? s [s: lex/in-pos]
 		if null? e [e: s]
+		p: as red-triple! lex/head
+		if all [lex/buffer < lex/tail TYPE_OF(p) = TYPE_TRIPLE GET_BLOCK_TYPE(p) = TYPE_POINT2D][
+			throw-error lex s e TYPE_POINT2D
+		]
 		if lex/fun-ptr <> null [unless fire-event lex EVT_OPEN type null s e [exit]]
 		len: (as-integer lex/tail - lex/head) >> 4
 		p: as red-triple! alloc-slot lex
@@ -694,7 +699,7 @@ lexer: context [
 				throw-error lex s e t
 			]
 			either lex/load? [
-				make-point as cell! p head lex s e
+				make-point as cell! p head lex lex/input + p/z e
 			][
 				type: scan-point lex s e
 				p/header: type					;-- overwrite the triple header with correct type (scanning)
@@ -709,7 +714,7 @@ lexer: context [
 		type: GET_BLOCK_TYPE(p)
 		either all [
 			lex/buffer <= p
-			not any [type = TYPE_BLOCK type = TYPE_PAREN type = TYPE_MAP]
+			not any [type = TYPE_BLOCK type = TYPE_PAREN type = TYPE_MAP type = TYPE_POINT2D]
 		][												;-- any-path! case
 			lex/entry: S_PATH
 		][
@@ -906,8 +911,8 @@ lexer: context [
 		y: get-f32
 		if head + 2 = lex/tail [point2D/make-at slot x y  exit]
 		fp: fp + 1
-		z: get-f32		
-		assert head + 3 = lex/tail
+		z: get-f32
+		if head + 3 < lex/tail [throw-error lex s e TYPE_POINT3D]
 		point3D/make-at slot x y z
 	]
 	
