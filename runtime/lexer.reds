@@ -331,6 +331,7 @@ lexer: context [
 		entry		[integer!]							;-- entry state for the FSM
 		prev		[integer!]							;-- previous state before forced EOF transition
 		closing		[integer!]							;-- any-block! expected closing delimiter type 
+		last		[integer!]							;-- last scanned value
 		mstr-s		[byte-ptr!]							;-- multiline string saved start position
 		mstr-nest	[integer!]							;-- multiline string nested {} counting
 		mstr-flags	[integer!]							;-- multiline string accumulated flags
@@ -694,7 +695,10 @@ lexer: context [
 		head: lex/head
 		lex/head: as cell! p - p/x
 		either stype = TYPE_POINT2D [
-			if p/y >> 16 > 2 [
+			if any [
+				p/y >> 16 > 2										  ;-- more than 2 commas case
+				all [lex/last <> TYPE_INTEGER lex/last <> TYPE_FLOAT] ;-- detect invalid type at tail (after last comma)
+			][
 				t: either p/y >> 16 > 1 [TYPE_POINT3D][TYPE_POINT2D]
 				throw-error lex s e t
 			]
@@ -2443,6 +2447,7 @@ lexer: context [
 					exit								;-- early exit for single value request
 				]
 			]
+			lex/last: lex/scanned
 			lex/in-pos >= lex/in-end
 		]
 		if all [lex/entry = S_M_STRING zero? lex/scanned][ ;-- {...} string not closed
@@ -2507,6 +2512,7 @@ lexer: context [
 		lex/entry:		S_START
 		lex/type:		-1
 		lex/scanned: 	0
+		lex/last:		0
 		lex/closing:	0
 		lex/mstr-nest:	0
 		lex/mstr-flags: 0
