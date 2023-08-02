@@ -883,6 +883,7 @@ natives: context [
 				any [
 					type = TYPE_ACTION
 					type = TYPE_NATIVE
+					type = TYPE_POINT2D
 				][
 					res: all [arg1/data1 = arg2/data1 arg1/data2 = arg2/data2]
 				]
