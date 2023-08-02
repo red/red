@@ -158,6 +158,8 @@ system/console: context [
 				if all [								;-- block! paren! map! have open-event, so just match delimiters
 					find [block! paren! map! point2D!] to-word type
 					delimiter-map/:type = last delimiters
+					not find input #")"
+					not find input #"]"
 				][
 					throw 'break
 				]
