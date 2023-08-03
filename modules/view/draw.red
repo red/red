@@ -229,6 +229,13 @@ Red/System [
 			]
 		]
 		
+		#define DRAW_FETCH_VALUE_3(type1 type2 type3) [
+			cmd: cmd + 1
+			if any [cmd >= tail all [TYPE_OF(cmd) <> type1 TYPE_OF(cmd) <> type2 TYPE_OF(cmd) <> type3]][
+				throw-draw-error cmds cmd catch?
+			]
+		]
+		
 		#define DRAW_FETCH_OPT_VALUE(type) [
 			pos: cmd + 1
 			if all [pos < tail TYPE_OF(pos) = type][cmd: pos]
@@ -813,7 +820,7 @@ Red/System [
 								]
 							]
 							sym = _arc [
-								loop 2 [DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)	]	;-- center/radius (of the circle/ellipse)
+								loop 2 [DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)]	;-- center/radius (of the circle/ellipse)
 								loop 2 [DRAW_FETCH_VALUE(TYPE_INTEGER)]	;-- angle begin/length (degrees)
 								DRAW_FETCH_OPT_VALUE(TYPE_WORD)
 								word: as red-word! cmd
@@ -928,12 +935,12 @@ Red/System [
 							]
 							sym = clip [
 								rect?: false
-								DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_BLOCK)
-								either TYPE_OF(cmd) = TYPE_PAIR [
-									DRAW_FETCH_VALUE(TYPE_PAIR)
-									rect?: true
-								][
+								DRAW_FETCH_VALUE_3(TYPE_PAIR TYPE_POINT2D TYPE_BLOCK)
+								either TYPE_OF(cmd) = TYPE_BLOCK [
 									parse-shape DC as red-block! cmd false catch?
+								][
+									DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)
+									rect?: true
 								]
 								value: cmd
 								DRAW_FETCH_OPT_VALUE(TYPE_WORD)
@@ -970,7 +977,7 @@ Red/System [
 							sym = rotate [
 								DRAW_FETCH_OPT_TRANSFORM
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
-								DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+								DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
 									OS-draw-state-push DC :state
