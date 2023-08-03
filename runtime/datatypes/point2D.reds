@@ -333,27 +333,29 @@ point2D: context [
 	]
 		
 	compare: func [
-		left	[red-point2D!]								;-- first operand
-		right	[red-point2D!]								;-- second operand
-		op		[integer!]									;-- type of comparison
+		left	[red-point2D!]							;-- first operand
+		right	[red-point2D!]							;-- second operand
+		op		[integer!]								;-- type of comparison
 		return:	[integer!]
 		/local
 			delta	[float32!]
-			pt		[red-point2D! value]
+			pt		[red-point2D!]
 			pair	[red-pair!]
 			ip1 ip2 [int-ptr!]
 			res		[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "point2D/compare"]]
 
-		if TYPE_OF(right) <> TYPE_POINT2D [RETURN_COMPARE_OTHER]
-
-		if TYPE_OF(right) = TYPE_PAIR [	;-- convert it to point2d
+		if TYPE_OF(right) = TYPE_PAIR [					;-- convert it to point2d
 			pair: as red-pair! right
+			pt: as red-point2D! stack/push*
+			pt/header: TYPE_POINT2D
 			pt/x: as float32! pair/x
 			pt/y: as float32! pair/y
-			right: :pt
+			right: pt
 		]
+		if TYPE_OF(right) <> TYPE_POINT2D [RETURN_COMPARE_OTHER]
+
 		switch op [
 			COMP_EQUAL
 			COMP_NOT_EQUAL 	[
