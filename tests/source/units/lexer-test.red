@@ -686,6 +686,9 @@ Red [
 	--test-- "tro-196" --assert error? try [transcode/one "(1, 2, #(3))"]
 	--test-- "tro-197" --assert error? try [transcode/one "(1, 2 "]
 	--test-- "tro-198" --assert error? try [transcode/one "(1, 2, "]
+	--test-- "tro-199" --assert error? try [transcode/one "(1,2,)"]
+	--test-- "tro-200" --assert error? try [transcode/one "(1,2 3,)"]
+	--test-- "tro-201" --assert error? try [transcode/one "(1, 2 3)"]
 
 ===end-group===
 ===start-group=== "transcode/next"
@@ -850,6 +853,9 @@ Red [
 	--test-- "scan-104" --assert error!	 = scan "(1, 2"
 	--test-- "scan-105" --assert error!	 = scan "(1, 2 "
 	--test-- "scan-106" --assert error!	 = scan "(1, 2, "
+	--test-- "scan-107" --assert error!	 = scan "(1,2,)"
+	--test-- "scan-108" --assert error!	 = scan "(1,2 3,)"
+	--test-- "scan-109" --assert error!	 = scan "(1, 2 3)"
 
 ===end-group===
 ===start-group=== "scan/fast"

@@ -658,7 +658,7 @@ lexer: context [
 		return: [integer!]
 		/local	
 			p [red-triple!]
-			len	stype t py [integer!]
+			len	stype t py cnt [integer!]
 			do-error [subroutine!]
 			triple?	 [logic!]
 			head	 [red-value!]
@@ -695,12 +695,14 @@ lexer: context [
 		head: lex/head
 		lex/head: as cell! p - p/x
 		either stype = TYPE_POINT2D [
+			cnt: p/y >> 16								;-- count of commas
 			if any [
-				p/y >> 16 > 2										  ;-- more than 2 commas case
+				cnt > 2									;-- more than 2 commas case
 				all [lex/last <> TYPE_INTEGER lex/last <> TYPE_FLOAT] ;-- detect invalid type at tail (after last comma)
+				all [lex/load? cnt + 1 <> len]
 			][
-				t: either p/y >> 16 > 1 [TYPE_POINT3D][TYPE_POINT2D]
-				throw-error lex s e t
+				t: either cnt > 1 [TYPE_POINT3D][TYPE_POINT2D]
+				throw-error lex lex/input + p/z e t
 			]
 			either lex/load? [
 				make-point as cell! p head lex lex/input + p/z e
