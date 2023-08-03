@@ -1858,6 +1858,7 @@ natives: context [
 			i	 [red-integer!]
 			f	 [red-float!]
 			p	 [red-pair!]
+			pt	 [red-point3D!]
 			ret  [red-logic!]
 	][
 		#typecheck -zero?- 								;-- `zero?` would be converted to `0 =` by lexer
@@ -1880,6 +1881,14 @@ natives: context [
 			TYPE_PAIR [
 				p: as red-pair! i
 				all [p/x = 0 p/y = 0]
+			]
+			TYPE_POINT2D [
+				pt: as red-point3D! i
+				all [pt/x = as-float32 0 pt/y = as-float32 0]
+			]
+			TYPE_POINT2D [
+				pt: as red-point3D! i
+				all [pt/x = as-float32 0 pt/y = as-float32 0 pt/z = as-float32 0]
 			]
 			TYPE_TUPLE [
 				tuple/all-zero? as red-tuple! i
