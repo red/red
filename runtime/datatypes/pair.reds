@@ -43,7 +43,9 @@ pair: context [
 			x	  [integer!]
 			y	  [integer!]
 			f	  [float!]
+			check [subroutine!]
 	][
+		check: [if float/special? f [fire [TO_ERROR(script invalid-arg) right]]]
 		left: as red-pair! stack/arguments
 		right: left + 1
 		
@@ -61,24 +63,23 @@ pair: context [
 			]
 			TYPE_POINT2D [
 				p: as red-point2D! right
-				if any [
-					float/special? as-float p/x
-					float/special? as-float p/y
-				][
-					fire [TO_ERROR(script invalid-arg) right]
-				]
 				switch op [
 					OP_MUL [
+						f: as-float p/x check
+						f: as-float p/y check
 						left/x: as-integer (as-float32 left/x) * p/x
 						left/y: as-integer (as-float32 left/y) * p/y
 						return left
 					]
 					OP_DIV [
+						if any [float/NaN? as-float p/x float/NaN? as-float p/y][fire [TO_ERROR(script invalid-arg) right]]
 						left/x: as-integer (as-float32 left/x) / p/x
 						left/y: as-integer (as-float32 left/y) / p/y
 						return left
 					]
 					default [
+						f: as-float p/x check
+						f: as-float p/y check
 						x: as-integer p/x
 						y: as-integer p/y
 					]
@@ -87,20 +88,22 @@ pair: context [
 			TYPE_FLOAT TYPE_PERCENT [
 				fl: as red-float! right
 				f: fl/value
-				if float/special? f [fire [TO_ERROR(script invalid-arg) right]]
 				switch op [
 					OP_MUL [
+						check
 						left/x: as-integer (as-float left/x) * f
 						left/y: as-integer (as-float left/y) * f
 						return left
 					]
 					OP_DIV [
+						if float/NaN? f [fire [TO_ERROR(script invalid-arg) right]]
 						left/x: as-integer (as-float left/x) / f
 						left/y: as-integer (as-float left/y) / f
 						return left
 					]
 					default [
-						x: as-integer fl/value
+						check
+						x: as-integer f
 						y: x
 					]
 				]
