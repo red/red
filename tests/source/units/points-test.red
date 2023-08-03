@@ -191,6 +191,14 @@ Red [
 	
 ===end-group===
 
+===start-group=== "point2D - maths with other types"
+
+	--test-- "p3mot-1"		--assert 2   * (1,1) == (2,2)
+	--test-- "p3mot-2"		--assert 2.5 * (4,4) == (10,10)
+	--test-- "p3mot-3"		--assert 50% * (124, 44) == (62, 22)
+	
+===end-group===
+
 ===start-group=== "point2D - comparison"
 
 	--test-- "pcomp-1"		--assert equal? (1, 1) (1, 1)
@@ -244,10 +252,10 @@ Red [
 		--assert equal? pick pb2-pt 2 0
 		--assert equal? pick pb2-pt 3 0
 		
-	--test-- "p3b-6"			--assert equal? (3, 4, 5) as-point3D 3 4 5
-	--test-- "p3b-7"			--assert equal? (4, 5, 6) make point3D! [4.0 5.0 6.0]
-	--test-- "p3b-8"			--assert equal? none attempt [as-point3D 10]
-	--test-- "p3b-9"			--assert equal? (10, 10, 10) make point3D! 10
+	--test-- "p3b-6"		--assert equal? (3, 4, 5) as-point3D 3 4 5
+	--test-- "p3b-7"		--assert equal? (4, 5, 6) make point3D! [4.0 5.0 6.0]
+	--test-- "p3b-8"		--assert equal? none attempt [as-point3D 10]
+	--test-- "p3b-9"		--assert equal? (10, 10, 10) make point3D! 10
 
 	--test-- "p3b-10"		--assert (1, 2, -1.#inf) = as-point3D 1 2 -1.#inf
 	--test-- "p3b-11"		--assert (1, 3, 1.#inf) = as-point3D 1 3 1.#inf
@@ -395,6 +403,14 @@ Red [
 ===start-group=== "point3D - reverse"
 
 	--test-- "p3rev-1"		--assert equal? reverse (1, 2, 3) (3, 2, 1)
+	
+===end-group===
+
+===start-group=== "point3D - maths with other types"
+
+	--test-- "p3mot-1"		--assert 2   * (1,1,2) == (2,2,4)
+	--test-- "p3mot-2"		--assert 2.5 * (4,4,10) == (10,10,25)
+	--test-- "p3mot-3"		--assert 50% * (124, 44, 26) == (62, 22, 13)
 	
 ===end-group===
 

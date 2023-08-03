@@ -307,6 +307,24 @@ float: context [
 					return as red-float! pair/do-math type
 				]
 			]
+			TYPE_POINT2D
+			TYPE_POINT3D [
+				if type1 <> TYPE_TIME [
+					if any [type = OP_SUB type = OP_DIV][
+						word: either type = OP_SUB [words/_subtract][words/_divide]
+						fire [TO_ERROR(script not-related) word datatype/push type2]
+					]
+					op1: left/value
+					copy-cell as red-value! right as red-value! left
+					right/header: type1
+					right/value: op1
+					either type2 = TYPE_POINT2D [
+						return as red-float! point2D/do-math type
+					][
+						return as red-float! point3D/do-math type
+					]
+				]
+			]
 			TYPE_VECTOR [
 				return as red-float! stack/set-last vector/do-math-scalar type as red-vector! right as red-value! left
 			]
