@@ -901,10 +901,12 @@ view: function [
 		flgs [block! word!]	"One or more window flags"
 	;/modal					"Display a modal window (pop-up)"
 	/no-wait				"Return immediately - do not wait"
+	/no-sync				"Requires `show` calls to refresh faces"
 ][
 	unless system/view/screens [system/view/platform/init]
 	
 	sync?: system/view/auto-sync?
+	if no-sync [system/view/auto-sync?: no]
 	if block? spec [spec: either tight [layout/tight spec][layout spec]]
 	if spec/type <> 'window [cause-error 'script 'not-window []]
 	if options [set/any spec make object! opts]
