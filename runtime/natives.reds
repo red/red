@@ -1651,6 +1651,7 @@ natives: context [
 					f/value > 0.0 [ 1]
 					f/value < 0.0 [-1]
 					f/value = 0.0 [ 0]
+					true		  [ 0]
 				]
 			]
 			default [ERR_EXPECT_ARGUMENT((TYPE_OF(res)) 1)]
