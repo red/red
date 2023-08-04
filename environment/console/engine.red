@@ -98,7 +98,8 @@ system/console: context [
 	init: routine [					;-- only used by CLI console
 		str [string!]
 		/local
-			ret
+			ret  [integer!]
+			size [red-pair!]
 	][
 		#either OS = 'Windows [
 			;ret: AttachConsole -1
@@ -112,6 +113,11 @@ system/console: context [
 		#if gui-console? = no [
 			terminal/init
 			terminal/init-globals
+			size: as red-pair! #get system/console/size
+			if any [zero? size/x zero? size/y][
+				size/x: 80			;-- set defaults when working with stdout
+				size/y: 50			;   as many output funcs rely on it
+			]
 		]
 	]
 
