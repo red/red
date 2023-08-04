@@ -369,9 +369,19 @@ pair: context [
 		return:	[integer!]
 		/local
 			diff [integer!]
+			pair [red-pair!]
+			pt	 [red-point2D!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "pair/compare"]]
 
+		if TYPE_OF(right) = TYPE_POINT2D [				;-- convert it to pair
+			pt: as red-point2D! right
+			pair: as red-pair! stack/push*
+			pair/header: TYPE_PAIR
+			pair/x: as-integer pt/x
+			pair/y: as-integer pt/y
+			right: pair
+		]
 		if TYPE_OF(right) <> TYPE_PAIR [RETURN_COMPARE_OTHER]
 		diff: left/x - right/x
 		if zero? diff [diff: left/y - right/y]

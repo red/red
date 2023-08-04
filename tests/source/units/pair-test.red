@@ -275,6 +275,9 @@ Red [
 	--test-- "pcomp-2"		--assert not-equal? 1x1 1x0
 	--test-- "pcomp-3"		--assert not-equal? 1x1 0x1
 	--test-- "pcomp-4"		--assert not-equal? 1x1 0x0
+	
+	--test-- "pcomp-5"		--assert  0x0  = (0,0)
+	--test-- "pcomp-6"		--assert (0,0) =  0x0 
 
 ===end-group===
 
