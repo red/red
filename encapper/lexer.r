@@ -469,7 +469,10 @@ lexer: context [
 		e: (type: money!)
 	]
 	
-	dec-or-int: [s: [decimal-special e: (type: issue!) | integer-number-rule opt decimal-number-rule]]
+	dec-or-int: [
+		s: [decimal-special e: (type: issue!)
+		| integer-number-rule opt [decimal-exp-rule e: (type: decimal!) | decimal-number-rule]]
+	]
 	
 	point-rule: [
 		#"("
