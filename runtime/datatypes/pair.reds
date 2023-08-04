@@ -40,9 +40,8 @@ pair: context [
 			int	  [red-integer!]
 			fl	  [red-float!]
 			p	  [red-point2D!]
-			x	  [integer!]
-			y	  [integer!]
-			f	  [float!]
+			x y	  [integer!]
+			f n   [float!]
 			check [subroutine!]
 	][
 		check: [if float/special? f [fire [TO_ERROR(script invalid-arg) right]]]
@@ -67,12 +66,17 @@ pair: context [
 					OP_MUL [
 						f: as-float p/x check
 						f: as-float p/y check
-						left/x: as-integer (as-float32 left/x) * p/x
-						left/y: as-integer (as-float32 left/y) * p/y
+						n: (as-float left/x) * p/x
+						if any [n > 2147483647.0 n < -2147483648.0][fire [TO_ERROR(math overflow)]]
+						left/x: as-integer n
+						n: (as-float left/y) * p/y
+						if any [n > 2147483647.0 n < -2147483648.0][fire [TO_ERROR(math overflow)]]
+						left/y: as-integer n
 						return left
 					]
 					OP_DIV [
 						if any [float/NaN? as-float p/x float/NaN? as-float p/y][fire [TO_ERROR(script invalid-arg) right]]
+						if any [p/x = as-float32 0 p/y = as-float32 0][fire [TO_ERROR(math zero-divide)]]
 						left/x: as-integer (as-float32 left/x) / p/x
 						left/y: as-integer (as-float32 left/y) / p/y
 						return left

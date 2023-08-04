@@ -261,6 +261,14 @@ Red [
 	
 ===end-group===
 
+===start-group=== "pair - math with other types"
+
+	--test-- "pmo-1"		--assert error? try [1x1 / (1.#inf,0)]
+	--test-- "pmo-2"		--assert error? try [1x1 * (1.#inf,0)]
+	--test-- "pmo-3"		--assert error? try [1x1 * (1e30,0)]
+	
+===end-group===
+
 ===start-group=== "pair - comparison"
 
 	--test-- "pcomp-1"		--assert equal? 1x1 1x1
