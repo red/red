@@ -212,6 +212,7 @@ OS-text-box-metrics: func [
 		pos				[red-pair!]
 		values			[red-value!]
 		hr				[integer!]
+		pt				[red-point2d!]
 ][
 	int: as red-integer! block/rs-head state
 	layout: as handle! int/value
@@ -238,8 +239,7 @@ OS-text-box-metrics: func [
 		TBOX_METRICS_INDEX?
 		TBOX_METRICS_CHAR_INDEX? [
 			pos: as red-pair! arg0
-			x: as float32! pos/x
-			y: as float32! pos/y
+			GET_PAIR_XY(pos x y)
 			trailing?: 0
 			inside?: 0
 			hit: as DWRITE_HIT_TEST_METRICS :left
@@ -313,6 +313,7 @@ OS-text-box-layout: func [
 		para	[integer!]
 		fmt		[this!]
 		layout	[this!]
+		pt		[red-point2d!]
 ][
 	values: object/get-values box
 	type: as red-word! values + FACE_OBJ_TYPE
@@ -364,8 +365,8 @@ OS-text-box-layout: func [
 
 	str: as red-string! values + FACE_OBJ_TEXT
 	size: as red-pair! values + FACE_OBJ_SIZE
-	either TYPE_OF(size) = TYPE_PAIR [
-		w: size/x h: size/y
+	either ANY_COORD?(size) [
+		GET_PAIR_XY_INT(size w h)
 	][
 		w: 0 h: 0
 	]

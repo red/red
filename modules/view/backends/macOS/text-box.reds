@@ -164,12 +164,13 @@ OS-text-box-metrics: func [
 		_y		[integer!]
 		_x		[integer!]
 		frame	[NSRect!]
-		pt		[CGPoint!]
+		cg-pt	[CGPoint!]
 		idx		[integer!]
 		len		[integer!]
 		method	[integer!]
 		saved	[int-ptr!]
 		last?	[logic!]
+		pt		[red-point2D!]
 ][
 	int: as red-integer! block/rs-head state
 	layout: int/value
@@ -200,14 +201,14 @@ OS-text-box-metrics: func [
 			either type = TBOX_METRICS_LINE_HEIGHT [
 				integer/push as-integer frame/h
 			][
-				pt: as CGPoint! :_x
+				cg-pt: as CGPoint! :_x
 				either last? [
-					pt/x: frame/x + frame/w
+					cg-pt/x: frame/x + frame/w
 				][
 					_x: objc_msgSend [layout sel_getUid "locationForGlyphAtIndex:" idx]
 				]
-				x: pt/x + as float32! 0.5
-				pair/push as-integer x as-integer pt/y
+				x: cg-pt/x + as float32! 0.5
+				pair/push as-integer x as-integer cg-pt/y
 			]
 		]
 		TBOX_METRICS_INDEX?
@@ -215,13 +216,12 @@ OS-text-box-metrics: func [
 			y: as float32! 0.0
 			pos: as red-pair! arg0
 			xx: 0
-			pt: as CGPoint! :xx
-			pt/x: as float32! pos/x
-			pt/y: as float32! pos/y
+			cg-pt: as CGPoint! :xx
+			GET_PAIR_XY(pos cg-pt/x cg-pt/y)
 			idx: objc_msgSend [
 				layout
 				sel_getUid "characterIndexForPoint:inTextContainer:fractionOfDistanceBetweenInsertionPoints:"
-				pt/x pt/y tc :y
+				cg-pt/x cg-pt/y tc :y
 			]
 			if all [type = TBOX_METRICS_INDEX? y > as float32! 0.5][idx: idx + 1]
 			integer/push idx + 1
@@ -293,6 +293,8 @@ OS-text-box-layout: func [
 		clr		[integer!]
 		para	[integer!]
 		cached?	[logic!]
+		pt		[red-point2D!]
+		sx sy	[float32!]
 ][
 	values: object/get-values box
 
@@ -353,9 +355,10 @@ OS-text-box-layout: func [
 
 	;@@ set para: as red-object! values + FACE_OBJ_PARA
 
-	if TYPE_OF(size) = TYPE_PAIR [
-		unless zero? size/x [sz/w: as float32! size/x]
-		unless zero? size/y [sz/h: as float32! size/y]
+	if ANY_COORD?(size) [
+		GET_PAIR_XY(size sx sy)
+		if sx <> F32_0 [sz/w: sx]
+		if sy <> F32_0 [sz/h: sy]
 	]
 	objc_msgSend [tc sel_getUid "setSize:" sz/w sz/h]
 

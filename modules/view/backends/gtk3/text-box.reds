@@ -256,6 +256,8 @@ OS-text-box-metrics: func [
 		ok?		[logic!]
 		text	[c-string!]
 		text2	[c-string!]
+		pt		[red-point2D!]
+		x y		[integer!]
 ][
 	rstate: as red-integer! block/rs-head state
 	layout: as handle! rstate/value
@@ -277,8 +279,9 @@ OS-text-box-metrics: func [
 		TBOX_METRICS_INDEX?
 		TBOX_METRICS_CHAR_INDEX? [					;-- offset-to-caret
 			pos: as red-pair! arg0
+			GET_PAIR_XY_INT(pos x y)
 			idx: -1 trail: -1
-			ok?: pango_layout_xy_to_index layout (pos/x * PANGO_SCALE) (pos/y * PANGO_SCALE) :idx :trail
+			ok?: pango_layout_xy_to_index layout (x * PANGO_SCALE) (y * PANGO_SCALE) :idx :trail
 			text: pango_layout_get_text layout
 			idx: g_utf8_pointer_to_offset text text + idx
 			if all [type = TBOX_METRICS_INDEX? 0 <> trail][idx: idx + 1]
@@ -333,6 +336,8 @@ OS-text-box-layout: func [
 		str		[c-string!]
 		len		[integer!]
 		styles	[red-block!]
+		pt		[red-point2D!]
+		sx sy	[integer!]
 ][
 	values: object/get-values box
 
@@ -379,12 +384,13 @@ OS-text-box-layout: func [
 	]
 	len: -1
 	str: unicode/to-utf8 text :len
-	if TYPE_OF(size) = TYPE_PAIR [
-		if size/x <> 0 [
-			pango_layout_set_width layout PANGO_SCALE * size/x
+	if ANY_COORD?(size) [
+		GET_PAIR_XY_INT(size sx sy)
+		if sx <> 0 [
+			pango_layout_set_width layout PANGO_SCALE * sx
 		]
-		if size/y <> 0 [
-			pango_layout_set_height layout PANGO_SCALE * size/y
+		if sy <> 0 [
+			pango_layout_set_height layout PANGO_SCALE * sy
 		]
 	]
 	pango_layout_set_wrap layout PANGO_WRAP_WORD_CHAR			;-- TBD: apply para
