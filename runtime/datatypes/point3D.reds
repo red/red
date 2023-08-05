@@ -61,15 +61,6 @@ point3D: context [
 				y: right/y
 				z: right/z
 			]
-			TYPE_POINT2D [
-				x: right/x
-				y: right/y
-			]
-			TYPE_PAIR [
-				p: as red-pair! right
-				x: as-float32 p/x
-				y: as-float32 p/y
-			]
 			TYPE_INTEGER [
 				int: as red-integer! right
 				x: as-float32 int/value
