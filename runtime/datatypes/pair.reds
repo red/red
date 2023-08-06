@@ -42,9 +42,7 @@ pair: context [
 			p	  [red-point2D!]
 			x y	  [integer!]
 			f n   [float!]
-			check [subroutine!]
 	][
-		check: [if float/special? f [fire [TO_ERROR(script invalid-arg) right]]]
 		left: as red-pair! stack/arguments
 		right: left + 1
 		
@@ -61,40 +59,15 @@ pair: context [
 				y: x
 			]
 			TYPE_POINT2D [
-				p: as red-point2D! right
-				switch op [
-					OP_MUL [
-						f: as-float p/x check
-						f: as-float p/y check
-						n: (as-float left/x) * p/x
-						if any [n > 2147483647.0 n < -2147483648.0][fire [TO_ERROR(math overflow)]]
-						left/x: as-integer n
-						n: (as-float left/y) * p/y
-						if any [n > 2147483647.0 n < -2147483648.0][fire [TO_ERROR(math overflow)]]
-						left/y: as-integer n
-						return left
-					]
-					OP_DIV [
-						if any [float/NaN? as-float p/x float/NaN? as-float p/y][fire [TO_ERROR(script invalid-arg) right]]
-						if any [p/x = as-float32 0 p/y = as-float32 0][fire [TO_ERROR(math zero-divide)]]
-						left/x: as-integer (as-float32 left/x) / p/x
-						left/y: as-integer (as-float32 left/y) / p/y
-						return left
-					]
-					default [
-						f: as-float p/x check
-						f: as-float p/y check
-						x: as-integer p/x
-						y: as-integer p/y
-					]
-				]
+				promote-left
+				return as red-pair! point2D/do-math op
 			]
 			TYPE_FLOAT TYPE_PERCENT [
 				fl: as red-float! right
 				f: fl/value
 				switch op [
 					OP_MUL [
-						check
+						if float/special? f [fire [TO_ERROR(script invalid-arg) right]]
 						left/x: as-integer (as-float left/x) * f
 						left/y: as-integer (as-float left/y) * f
 						return left
@@ -106,7 +79,7 @@ pair: context [
 						return left
 					]
 					default [
-						check
+						if float/special? f [fire [TO_ERROR(script invalid-arg) right]]
 						x: as-integer f
 						y: x
 					]
@@ -119,6 +92,18 @@ pair: context [
 		left/x: integer/do-math-op left/x x op null
 		left/y: integer/do-math-op left/y y op null
 		left
+	]
+	
+	promote-left: func [
+		/local
+			p  [red-pair!]
+			pt [red-point2D!]
+	][
+		p: as red-pair! stack/arguments
+		pt: as red-point2D! p
+		pt/header: TYPE_POINT2D
+		pt/x: as-float32 p/x
+		pt/y: as-float32 p/y
 	]
 	
 	make-at: func [
@@ -374,10 +359,7 @@ pair: context [
 		#if debug? = yes [if verbose > 0 [print-line "pair/compare"]]
 
 		if TYPE_OF(right) = TYPE_POINT2D [				;-- promote left to point2D in such case
-			tmp: copy-cell as cell! left stack/push*
-			copy-cell as cell! right as cell! left
-			copy-cell tmp as cell! right
-			stack/pop 1
+			promote-left
 			return point2D/compare as red-point2D! left as red-point2D! right op
 		]
 		if TYPE_OF(right) <> TYPE_PAIR [RETURN_COMPARE_OTHER]

@@ -263,9 +263,9 @@ Red [
 
 ===start-group=== "pair - math with other types"
 
-	--test-- "pmo-1"		--assert error? try [1x1 / (1.#inf,0)]
-	--test-- "pmo-2"		--assert error? try [1x1 * (1.#inf,0)]
-	--test-- "pmo-3"		--assert error? try [1x1 * (1e30,0)]
+	--test-- "pmo-1"		--assert (1x1 / (1.#inf,0)) = ((1, 1) / (1.#inf,0))
+	--test-- "pmo-2"		--assert (1x1 * (1.#inf,0)) = ((1, 1) * (1.#inf,0))
+	--test-- "pmo-3"		--assert (1x1 * (1e30,0))   = ((1, 1) * (1e30,0))
 	
 ===end-group===
 
