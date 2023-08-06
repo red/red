@@ -243,6 +243,10 @@ system/view/VID: context [
 		]
 	]													;-- returns TRUE if added
 	
+	add-bounds: func [proto [object!] spec [block!]][
+		make-actor proto 'on-drag-start [object [min: 0x0 max: face/parent/size - face/size]] spec
+	]
+	
 	fetch-value: function [blk][
 		value: blk/1
 		any [all [any [word? :value path? :value] get :value] value]
@@ -310,7 +314,7 @@ system/view/VID: context [
 				| 'font-size  (add-flag opts 'font 'size  fetch-argument integer! spec)
 				| 'font-color (add-flag opts 'font 'color pre-load fetch-argument color! spec)
 				| 'options	  (add-option opts fetch-argument block! spec)
-				| 'loose	  (add-option opts [drag-on: 'down])
+				| 'loose	  (add-option opts compose [drag-on: 'down] add-bounds opts back spec)
 				| 'all-over   (set-flag opts 'flags 'all-over)
 				| 'password   (set-flag opts 'flags 'password)
 				| 'tri-state  (set-flag opts 'flags 'tri-state)
