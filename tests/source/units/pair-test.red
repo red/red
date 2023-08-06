@@ -277,7 +277,9 @@ Red [
 	--test-- "pcomp-4"		--assert not-equal? 1x1 0x0
 	
 	--test-- "pcomp-5"		--assert  0x0  = (0,0)
-	--test-- "pcomp-6"		--assert (0,0) =  0x0 
+	--test-- "pcomp-6"		--assert (0,0) =  0x0
+	--test-- "pcomp-7"		--assert not (0.5,1.5) = 0x1
+	--test-- "pcomp-8"		--assert not 0x1 = (0.5,1.5)
 
 ===end-group===
 
