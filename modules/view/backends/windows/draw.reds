@@ -823,12 +823,15 @@ OS-draw-shape-arc: func [
 		arc			[D2D1_ARC_SEGMENT value]
 		sthis		[this!]
 		gsink		[ID2D1GeometrySink]
+		pt			[red-point2D!]
+		x y			[float32!]
 ][
+	GET_PAIR_XY(end x y)
 	;-- parse arguments
 	p1-x: ctx/sub/last-pt-x
 	p1-y: ctx/sub/last-pt-y
-	p2-x: either rel? [ p1-x + as float32! end/x ][ as float32! end/x ]
-	p2-y: either rel? [ p1-y + as float32! end/y ][ as float32! end/y ]
+	p2-x: either rel? [ p1-x + x ][ x ]
+	p2-y: either rel? [ p1-y + y ][ y ]
 	ctx/sub/last-pt-x: p2-x
 	ctx/sub/last-pt-y: p2-y
 	item: as red-integer! end + 1
@@ -1944,17 +1947,17 @@ OS-draw-image: func [
 _OS-draw-brush-bitmap: func [
 	ctx		[draw-ctx!]
 	bmp		[this!]
-	width	[integer!]
-	height	[integer!]
+	width	[float32!]
+	height	[float32!]
 	crop-1	[red-pair!]
 	crop-2	[red-pair!]
 	mode	[red-word!]
 	brush?	[logic!]
 	/local
-		x		[integer!]
-		y		[integer!]
-		xx		[integer!]
-		yy		[integer!]
+		x		[float32!]
+		y		[float32!]
+		xx		[float32!]
+		yy		[float32!]
 		wrap	[integer!]
 		wrap-x	[integer!]
 		wrap-y	[integer!]
@@ -1964,20 +1967,19 @@ _OS-draw-brush-bitmap: func [
 		dc		[ID2D1DeviceContext]
 		brush	[ptr-value!]
 		unk		[IUnknown]
+		pt		[red-point2D!]
 ][
 	either crop-1 = null [
-		x: 0
-		y: 0
+		x: F32_0
+		y: F32_0
 	][
-		x: crop-1/x
-		y: crop-1/y
+		GET_PAIR_XY(crop-1 x y)
 	]
 	either crop-2 = null [
 		xx: width
 		yy: height
 	][
-		xx: crop-2/x
-		yy: crop-2/y
+		GET_PAIR_XY(crop-2 xx yy)
 		if xx > width [xx: width]
 		if yy > height [yy: height]
 	]
@@ -2001,10 +2003,10 @@ _OS-draw-brush-bitmap: func [
 		]
 	]
 
-	props/left: as float32! x
-	props/top: as float32! y
-	props/right: as float32! xx
-	props/bottom: as float32! yy
+	props/left: x
+	props/top: y
+	props/right: xx
+	props/bottom: yy
 	props/extendModeX: wrap-x
 	props/extendModeY: wrap-y
 	props/interpolationMode: 1		;-- MODE_LINEAR
@@ -2036,16 +2038,16 @@ OS-draw-brush-bitmap: func [
 	mode	[red-word!]
 	brush?	[logic!]
 	/local
-		width	[integer!]
-		height	[integer!]
+		width	[float32!]
+		height	[float32!]
 		dc		[ID2D1DeviceContext]
 		this	[this!]
 		ithis	[this!]
 		bmp		[ptr-value!]
 		unk		[IUnknown]
 ][
-	width:  OS-image/width? img/node
-	height: OS-image/height? img/node
+	width: as float32! OS-image/width? img/node
+	height: as float32! OS-image/height? img/node
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
 	ithis: OS-image/get-handle img yes
@@ -2075,6 +2077,8 @@ OS-draw-brush-pattern: func [
 		state	[draw-state! value]
 		unk		[IUnknown]
 		m		[D2D_MATRIX_3X2_F value]
+		pt		[red-point2D!]
+		x y		[float32!]
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
@@ -2103,7 +2107,8 @@ OS-draw-brush-pattern: func [
 	dc/SetTarget this old-bmp/value	
 	;dc/BeginDraw this
 
-	_OS-draw-brush-bitmap ctx cthis size/x size/y crop-1 crop-2 mode brush?
+	GET_PAIR_XY(size x y)
+	_OS-draw-brush-bitmap ctx cthis x y crop-1 crop-2 mode brush?
 	cmd/Release cthis
 	this: old-bmp/value
 	unk: as IUnknown this/vtbl
@@ -2118,11 +2123,11 @@ OS-draw-grad-pen-old: func [
 	count		[integer!]					;-- number of the colors
 	brush?		[logic!]
 	/local
-		x		[integer!]
-		y		[integer!]
+		x		[float32!]
+		y		[float32!]
 		int		[red-integer!]
-		start	[integer!]
-		stop	[integer!]
+		start	[float32!]
+		stop	[float32!]
 		n		[integer!]
 		rotate? [logic!]
 		scale?	[logic!]
@@ -2148,14 +2153,14 @@ OS-draw-grad-pen-old: func [
 		unk		[IUnknown]
 		m		[D2D_MATRIX_3X2_F value]
 		t		[D2D_MATRIX_3X2_F value]
+		pt		[red-point2D!]
 ][
-	x: offset/x
-	y: offset/y
+	GET_PAIR_XY(offset x y)
 
 	int: as red-integer! offset + 1
-	start: int/value
+	start: as float32! int/value
 	int: int + 1
-	stop: int/value
+	stop: as float32! int/value
 
 	n: 0
 	rotate?: no
@@ -2206,15 +2211,15 @@ OS-draw-grad-pen-old: func [
 	dc: as ID2D1DeviceContext this/vtbl
 	dc/CreateGradientStopCollection this grad-stops count 0 wrap :sc
 	either type = linear [
-		lprops/startPoint.x: as float32! x + start
-		lprops/startPoint.y: as float32! y
-		lprops/endPoint.x: as float32! x + stop
-		lprops/endPoint.y: as float32! y
+		lprops/startPoint.x: x + start
+		lprops/startPoint.y: y
+		lprops/endPoint.x: x + stop
+		lprops/endPoint.y: y
 		dc/CreateLinearGradientBrush this :lprops null sc/value :brush
 	][
-		gprops/center.x: as float32! x
-		gprops/center.y: as float32! y
-		gprops/radius.x: as float32! stop - start
+		gprops/center.x: x
+		gprops/center.y: y
+		gprops/radius.x: stop - start
 		gprops/radius.y: gprops/radius.x
 		gprops/offset.x: as float32! 0.0
 		gprops/offset.y: as float32! 0.0

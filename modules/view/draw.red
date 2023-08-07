@@ -322,7 +322,7 @@ Red/System [
 				off?	[logic!]
 		][
 			word: as red-word! start
-			DRAW_FETCH_VALUE(TYPE_PAIR)				;-- grad offset
+			DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)				;-- grad offset
 			point: as red-pair! cmd
 			loop 2 [								;-- start and stop
 				DRAW_FETCH_VALUE(TYPE_INTEGER)
@@ -405,7 +405,7 @@ Red/System [
 			either grad? [								;-- gradient pen
 				count: 0
 				stops: cmd + 1
-				if TYPE_OF(stops) = TYPE_PAIR [
+				if ANY_COORD?(stops) [
 					return old-gradient-pen DC cmds start tail cmd sym catch?
 				]
 				loop 2 [                                ;-- at least two stops required
@@ -431,29 +431,29 @@ Red/System [
 				focal?: false
 				case [                                                  ;-- positions
 					mode = linear [
-						DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+						DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 						if cmd <> positions [
 							skip-pos: false
-							DRAW_FETCH_VALUE(TYPE_PAIR)
+							DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 						] 
 					]
 					mode = radial [
-						DRAW_FETCH_OPT_VALUE(TYPE_PAIR)                 ;-- center
+						DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)                 ;-- center
 						if cmd <> positions [
 							skip-pos: false 
 							DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT) ;-- radius
 							_start: cmd
-							DRAW_FETCH_OPT_VALUE(TYPE_PAIR)             ;-- focal point
+							DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)             ;-- focal point
 							if _start <> cmd [ focal?: true ]
 						]
 					]
 					mode = diamond [
-						DRAW_FETCH_OPT_VALUE(TYPE_PAIR)                 ;-- upper
+						DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)                 ;-- upper
 						if cmd <> positions [
 							skip-pos: false 
-							DRAW_FETCH_VALUE(TYPE_PAIR)                 ;-- lower
+							DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)                 ;-- lower
 							_start: cmd
-							DRAW_FETCH_OPT_VALUE(TYPE_PAIR)             ;-- focal point
+							DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)             ;-- focal point
 							if _start <> cmd [ focal?: true ]
 						]
 					]
@@ -488,14 +488,14 @@ Red/System [
 			][
 				case [
 					mode = _pattern [
-						DRAW_FETCH_VALUE(TYPE_PAIR)
+						DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 						size: as red-pair! cmd
 						word:   null
 						crop-1: null
 						crop-2: null 
-						DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+						DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 						if cmd = pos [ crop-1: as red-pair! cmd ]
-						DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+						DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 						if cmd = pos [ crop-2: as red-pair! cmd ]
 						DRAW_FETCH_OPT_VALUE(TYPE_WORD)
 						if pos = cmd [ 
@@ -525,9 +525,9 @@ Red/System [
 						word:   null
 						crop-1: null
 						crop-2: null 
-						DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+						DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 						if cmd = pos [ crop-1: as red-pair! cmd ]
-						DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+						DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 						if cmd = pos [ crop-2: as red-pair! cmd ]
 						DRAW_FETCH_OPT_VALUE(TYPE_WORD)
 						if pos = cmd [ 
@@ -650,7 +650,7 @@ Red/System [
 							sym = _arc [
 								sweep?: false
 								large?: false
-								DRAW_FETCH_VALUE(TYPE_PAIR)
+								DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
@@ -887,7 +887,7 @@ Red/System [
 											sym = crop [
 												crop-s: as red-pair! pos + 1
 												cmd: pos
-												loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)]
+												loop 2 [DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)]
 											]
 											;any [sym = repeat sym = reflect][
 											;	;@@ TBD check if followed by four integers
