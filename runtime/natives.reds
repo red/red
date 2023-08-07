@@ -3161,13 +3161,18 @@ natives: context [
 						]
 					]
 					TYPE_POINT2D [
+						pt: as red-point2D! arg			;-- promote argument to point2D!
+						pt/header: TYPE_POINT2D
+						pt/x: as-float32 p/x
+						pt/y: as-float32 p/y
+						
 						pt2: as red-point2D! arg2
 						either max? [
-							if p/x < as-integer pt2/x [p/x: as-integer pt2/x]
-							if p/y < as-integer pt2/y [p/y: as-integer pt2/y]
+							if pt/x < pt2/x [pt/x: pt2/x]
+							if pt/y < pt2/y [pt/y: pt2/y]
 						][
-							if p/x > as-integer pt2/x [p/x: as-integer pt2/x]
-							if p/y > as-integer pt2/y [p/y: as-integer pt2/y]
+							if pt/x > pt2/x [pt/x: pt2/x]
+							if pt/y > pt2/y [pt/y: pt2/y]
 						]
 					]
 					TYPE_FLOAT

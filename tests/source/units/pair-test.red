@@ -280,6 +280,9 @@ Red [
 	--test-- "pcomp-6"		--assert (0,0) =  0x0
 	--test-- "pcomp-7"		--assert not (0.5,1.5) = 0x1
 	--test-- "pcomp-8"		--assert not 0x1 = (0.5,1.5)
+	
+	--test-- "pcomp-9"		--assert (0,0) == min 0x0 (1.#inf,1.#inf)
+	--test-- "pcomp-10"		--assert (10,11) == max 10x2 (1,11)
 
 ===end-group===
 
