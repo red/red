@@ -813,8 +813,13 @@ if system/state/interpreted? [                      ;-- not yet supported by com
         --assert error? try [do [func [a return: b][]]]
 
 	--test-- "#3595"
-		--assert function? func [return: [block!] "string"][]
+		--assert function? do [func [return: [block!] "string"][]]
+		--assert function? do [func [return: [block!] "string" /local word][]]
 		--assert error? try [do [func [return: [block!] "string" word][]]]
+		
+	--test-- "#5363"
+		--assert error? try [do [func [return: [block!] "string" word /local b][]]]
+		
 ===end-group===
 
 ~~~end-file~~~
