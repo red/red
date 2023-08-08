@@ -234,7 +234,7 @@ OS-text-box-metrics: func [
 				x: x + hit/width
 				y: y + hit/height
 			]
-			pair/push as-integer x + as float32! 0.5 as-integer y + as float32! 0.99
+			point2D/push x y
 		]
 		TBOX_METRICS_INDEX?
 		TBOX_METRICS_CHAR_INDEX? [
@@ -271,15 +271,13 @@ OS-text-box-metrics: func [
 				lm: lm + 1
 			]
 			y: lm/height
-			integer/push as-integer y + as float32! 0.99
+			float/push as float! y
 		]
 		default [
 			metrics: as DWRITE_TEXT_METRICS :left
 			hr: dl/GetMetrics this metrics
 			either type = TBOX_METRICS_SIZE [
-				pair/push 
-					as-integer (metrics/width + as float32! 0.5)
-					as-integer (metrics/height + as float32! 0.99)
+				point2D/push metrics/width metrics/height
 			][
 				integer/push metrics/lineCount
 			]

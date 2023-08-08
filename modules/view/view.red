@@ -50,7 +50,7 @@ size-text: function [
 	face	 [object!]		"Face containing the text to size"
 	/with 					"Provide a text string instead of face/text"
 		text [string!]		"Text to measure"
-	return:  [pair! none!]	"Return the text's size or NONE if failed"
+	return:  [point2D! none!]	"Return the text's size or NONE if failed"
 ][
 	either face/type = 'rich-text [
 		if block? h: face/handles [poke h length? h true]
@@ -65,7 +65,7 @@ caret-to-offset: function [
 	face	[object!]
 	pos		[integer!]
 	/lower			"lower end offset of the caret"
-	return:	[pair!]
+	return:	[point2D!]
 ][
 	opt: either lower [6][0]
 	system/view/platform/text-box-metrics face pos opt
@@ -74,7 +74,7 @@ caret-to-offset: function [
 offset-to-caret: function [
 	"Given a coordinate, returns the corresponding caret position"
 	face	[object!]
-	pt		[pair!]
+	pt		[pair! point2D!]
 	return:	[integer!]
 ][
 	system/view/platform/text-box-metrics face pt 1
@@ -83,7 +83,7 @@ offset-to-caret: function [
 offset-to-char: function [
 	"Given a coordinate, returns the corresponding character position"
 	face	[object!]
-	pt		[pair!]
+	pt		[pair! point2D!]
 	return:	[integer!]
 ][
 	system/view/platform/text-box-metrics face pt 5
@@ -96,7 +96,7 @@ rich-text: context [
 		"Given a text position, returns the corresponding line's height"
 		face	[object!]
 		pos		[integer!]
-		return:	[integer!]
+		return:	[float!]
 	][
 		system/view/platform/text-box-metrics face pos 2
 	]

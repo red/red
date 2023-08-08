@@ -274,7 +274,9 @@ OS-text-box-metrics: func [
 				rect/x: rect/x + rect/width
 				rect/y: rect/y + rect/height
 			]
-			pair/push rect/x / PANGO_SCALE  rect/y / PANGO_SCALE
+			point2D/push
+				(as float32! rect/x) / (as float32! PANGO_SCALE)
+				(as float32! rect/y) / (as float32! PANGO_SCALE)
 		]
 		TBOX_METRICS_INDEX?
 		TBOX_METRICS_CHAR_INDEX? [					;-- offset-to-caret
@@ -295,7 +297,7 @@ OS-text-box-metrics: func [
 			; width: (pango_layout_get_width layout) / PANGO_SCALE
 			height: (pango_layout_get_line_count layout) * lrect/height
 			width: lrect/width
-			pair/push width height
+			point2D/push as float32! width as float32! height
 		]
 		TBOX_METRICS_LINE_COUNT [
 			idx: pango_layout_get_line_count layout
@@ -304,8 +306,7 @@ OS-text-box-metrics: func [
 		TBOX_METRICS_LINE_HEIGHT [
 			int: as red-integer! arg0
 			pango_layout_index_to_pos layout int/value :rect
-			height: rect/height / PANGO_SCALE
-			integer/push height
+			float/push (as float! rect/height) / (as float! PANGO_SCALE)
 		]
 		default [
 			none-value

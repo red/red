@@ -386,7 +386,7 @@ get-child-from-xy: func [
 get-text-size: func [
 	face		[red-object!]
 	str			[red-string!]
-	pair		[red-pair!]
+	pt			[red-point2D!]
 	return:		[tagSIZE]
 	/local
 		values	[red-value!]
@@ -412,9 +412,9 @@ get-text-size: func [
 
 	size: pango-size? text hFont
 
-	if pair <> null [
-		pair/x: size/width
-		pair/y: size/height
+	if pt <> null [
+		pt/x: as float32! size/width
+		pt/y: as float32! size/height
 	]
 	size
 ]

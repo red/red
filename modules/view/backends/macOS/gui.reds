@@ -151,7 +151,7 @@ get-child-from-xy: func [
 get-text-size: func [
 	face 	[red-object!]		; TODO: implement face-dependent measurement for Mac
 	str		[red-string!]
-	pair	[red-pair!]
+	pt		[red-point2D!]
 	return: [tagSIZE]
 	/local
 		values	[red-value!]
@@ -192,9 +192,9 @@ get-text-size: func [
 
 	size/width: as-integer ceil as-float rc/x
 	size/height: as-integer ceil as-float rc/y
-	if pair <> null [
-		pair/x: size/width
-		pair/y: size/height
+	if pt <> null [
+		pt/x: rc/x
+		pt/y: rc/y
 	]
 	CFRelease cf-str
 	CFRelease attr

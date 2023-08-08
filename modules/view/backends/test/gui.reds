@@ -161,10 +161,10 @@ get-screen-size: func [
 get-text-size: func [
 	face 	[red-object!]
 	text	[red-string!]
-	p		[red-pair!]
-	return: [red-pair!]
+	p		[red-point2D!]
+	return: [red-point2D!]
 ][
-	pair/push 80 20
+	point2D/push F32_1 F32_1
 ]
 
 

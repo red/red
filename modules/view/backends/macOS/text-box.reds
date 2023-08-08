@@ -199,7 +199,7 @@ OS-text-box-metrics: func [
 			objc_msgSend_stret 5
 			system/stack/top: saved
 			either type = TBOX_METRICS_LINE_HEIGHT [
-				integer/push as-integer frame/h
+				float/push as float! frame/h
 			][
 				cg-pt: as CGPoint! :_x
 				either last? [
@@ -207,8 +207,7 @@ OS-text-box-metrics: func [
 				][
 					_x: objc_msgSend [layout sel_getUid "locationForGlyphAtIndex:" idx]
 				]
-				x: cg-pt/x + as float32! 0.5
-				pair/push as-integer x as-integer cg-pt/y
+				point2D/push cg-pt/x cg-pt/y
 			]
 		]
 		TBOX_METRICS_INDEX?
@@ -238,9 +237,7 @@ OS-text-box-metrics: func [
 			push method push layout push frame
 			objc_msgSend_stret 6
 			system/stack/top: saved
-			pair/push
-				as-integer (frame/w + as float32! 0.5)
-				as-integer (frame/h + as float32! 0.5)
+			point2D/push frame/w frame/h
 		]
 		TBOX_METRICS_LINE_COUNT [
 			idx: objc_msgSend [layout sel_getUid "glyphRangeForTextContainer:" tc]

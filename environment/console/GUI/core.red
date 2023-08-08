@@ -339,11 +339,11 @@ object [
 		box/font: font
 		box/text: "XXXXXXXXXX"
 
-		sz: size-text box
+		sz: to-pair size-text box
 		char-width: sz/x + 1 * 0.1 						;-- +1 compensates for size-text rounding
 		box/tabs: tab-size * char-width
 
-		line-h: rich-text/line-height? box 1
+		line-h: to-integer rich-text/line-height? box 1
 		box/line-spacing: line-h
 		caret/size/y: line-h
 

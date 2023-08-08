@@ -295,7 +295,7 @@ get-gesture-info: func [
 get-text-size: func [
 	face 	[red-object!]
 	str		[red-string!]
-	pair	[red-pair!]
+	pt		[red-point2D!]
 	/local
 		values 	[red-value!]
 		font	[red-object!]
@@ -326,9 +326,9 @@ get-text-size: func [
 	either IS_D2D_FACE(sym) [
 		GetClientRect hWnd :rc
 		render-text values hwnd dc :rc str :bbox
-		if pair <> null [
-			pair/x: as integer! bbox/width * as float32! 0.98 / dpi-factor
-			pair/y: as integer! bbox/height / dpi-factor
+		if pt <> null [
+			pt/x: bbox/width * as float32! 0.98 / dpi-factor
+			pt/y: bbox/height / dpi-factor
 		]
 	][	;-- native controls use GDI to draw the text, so we use GDI function to measure the text size
 		font: as red-object! values + FACE_OBJ_FONT
@@ -344,9 +344,9 @@ get-text-size: func [
 		c-str: unicode/to-utf16 str
 		GetTextExtentPoint32 dc c-str wcslen c-str :size
 
-		if pair <> null [
-			pair/x: (size/width + 1) * 96 / log-pixels-x	;-- +1 to compensate the precision loss
-			pair/y: size/height * 96 / log-pixels-x
+		if pt <> null [
+			pt/x: (as float32! size/width) / dpi-factor
+			pt/y: (as float32! size/height) / dpi-factor
 		]
 	]
 

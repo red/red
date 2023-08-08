@@ -603,7 +603,7 @@ system/view/platform: context [
 		/local
 			values [red-value!]
 			text   [red-string!]
-			pair   [red-pair! value]
+			pt	   [red-point2D!]
 	][
 		;@@ check if object is a face?
 		values: object/get-values face
@@ -617,10 +617,9 @@ system/view/platform: context [
 			exit
 		]
 
-		;pair: as red-pair! stack/arguments		;@@ wrong! overwrite face
-		pair/header: TYPE_PAIR
-		gui/get-text-size face text :pair
-		stack/set-last as red-value! :pair
+		pt: point2D/push F32_0 F32_0
+		gui/get-text-size face text pt
+		stack/set-last as red-value! pt
 	]
 	
 	on-change-facet: routine [
