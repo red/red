@@ -1207,12 +1207,12 @@ OS-draw-grad-pen-old: func [
 		sy		[float32!]
 		rotate? [logic!]
 		scale?	[logic!]
+		pt		[red-point2D!]
 ][
 	dc/matrix: CGAffineTransformMake F32_1 F32_0 F32_0 F32_1 F32_0 F32_0
 	dc/grad-type: type
 	dc/grad-spread: spread
-	dc/grad-x1: as float32! offset/x			;-- save gradient offset for later use
-	dc/grad-y1: as float32! offset/y
+	GET_PAIR_XY(offset dc/grad-x1 dc/grad-y1)
 
 	int: as red-integer! offset + 1
 	sx: as float32! int/value
@@ -2042,10 +2042,10 @@ OS-draw-brush-pattern: func [
 	block	[red-block!]
 	brush?	[logic!]
 	/local
-		x			[integer!]
-		y			[integer!]
-		w			[integer!]
-		h			[integer!]
+		x xx		[float32!]
+		y yy		[float32!]
+		w			[float32!]
+		h			[float32!]
 		wrap		[integer!]
 		ctx			[handle!]
 		pattern		[integer!]
@@ -2056,33 +2056,33 @@ OS-draw-brush-pattern: func [
 		width		[float32!]
 		height		[float32!]
 		callbacks	[CGPatternCallbacks!]
+		pt			[red-point2D!]
 ][
 	dc/pattern-blk: as int-ptr! block
 	ctx: dc/raw
 	alpha: as float32! 1.0
-	w: size/x
-	h: size/y
+	GET_PAIR_XY(size w h)
 	either crop-1 = null [
-		x: 0
-		y: 0
+		x: F32_0
+		y: F32_0
 	][
-		x: crop-1/x
-		y: crop-1/y
+		GET_PAIR_XY(crop-1 x y)
 	]
 	either crop-2 = null [
 		w: w - x
 		h: h - y
 	][
-		w: either ( x + crop-2/x ) > w [ w - x ][ crop-2/x ]
-		h: either ( y + crop-2/y ) > h [ h - y ][ crop-2/y ]
+		GET_PAIR_XY(crop-2 xx yy)
+		w: either ( x + xx ) > w [ w - x ][ xx ]
+		h: either ( y + yy ) > h [ h - y ][ yy ]
 	]
 
 	wrap: tile
 	unless mode = null [wrap: symbol/resolve mode/symbol]
 	dc/pattern-mode: wrap
 	case [
-		any [wrap = flip-x wrap = flip-y] [w: w * 2]
-		wrap = flip-xy [w: w * 2 h: h * 2]
+		any [wrap = flip-x wrap = flip-y] [w: w * (as float32! 2.0)]
+		wrap = flip-xy [w: w * (as float32! 2.0) h: h * (as float32! 2.0)]
 		true []
 	]
 
@@ -2095,15 +2095,15 @@ OS-draw-brush-pattern: func [
 	callbacks/drawPattern: as-integer :draw-pattern-callback
 	callbacks/releaseInfo: 0
 
-	width: as float32! w
-	height: as float32! h
+	width: w
+	height: h
 	dc/pattern-w: width
 	dc/pattern-h: height
-	rc/x: as float32! x
-	rc/y: as float32! y
+	rc/x: x
+	rc/y: y
 	rc/w: width
 	rc/h: height
-	m: CGAffineTransformMake F32_1 F32_0 F32_0 as float32! -1.0 as float32! 0 height
+	m: CGAffineTransformMake F32_1 F32_0 F32_0 as float32! -1.0 F32_0 height
 	pattern: CGPatternCreate as int-ptr! dc rc m width height 0 yes callbacks
 	either brush? [
 		dc/brush?: yes

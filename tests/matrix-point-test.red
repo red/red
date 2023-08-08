@@ -9,7 +9,6 @@ Red [
 drawings: [
 	"translate"
 	[
-		matrix-order append
 		pen yellow
 		line-width 3
 		spline (50,50) (100,50) (50,120) (150,150)
@@ -23,7 +22,6 @@ drawings: [
 
 	"rotate arc"
 	[
-		matrix-order append
 		pen yellow
 		line-width 3
 		arc (100,100) (50,50) 0 270
@@ -46,7 +44,6 @@ drawings: [
 
 	"scale circle"
 	[
-		matrix-order append
 		pen yellow
 		line-width 3
 		circle (100,100) 50
@@ -75,7 +72,6 @@ drawings: [
 
 	"skew box"
 	[
-		matrix-order append
 		pen yellow
 		line-width 3
 		box (50,50) (150,150)
@@ -104,7 +100,6 @@ drawings: [
 
 	"matrix ellipse"
 	[
-		matrix-order append
 		pen yellow
 		line-width 3
 		ellipse (50,50) (100,100)
@@ -133,7 +128,6 @@ drawings: [
 
 	"invert ellipse"
 	[
-		matrix-order append
 		pen yellow
 		line-width 3
 		ellipse (50,50) (100,100)
@@ -165,7 +159,6 @@ drawings: [
 
 	"transform graphics"
 	[
-		matrix-order append
 		line-width 3
 		pen yellow
 		line (50,20) (150,20)

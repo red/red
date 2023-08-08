@@ -2229,27 +2229,24 @@ OS-set-clip: func [
 	mode		[integer!]
 	/local
 		cr		[handle!]
-		t		[integer!]
-		x1		[integer!]
-		x2		[integer!]
-		y1		[integer!]
-		y2		[integer!]
+		t		[float!]
+		x1		[float!]
+		x2		[float!]
+		y1		[float!]
+		y2		[float!]
 		saved	[cairo_matrix_t! value]
 		path	[handle!]
+		pt		[red-point2D!]
 ][
 	cr: dc/cr
 	either rect? [
-		if upper/x > lower/x [t: upper/x upper/x: lower/x lower/x: t]
-		if upper/y > lower/y [t: upper/y upper/y: lower/y lower/y: t]
+		GET_PAIR_XY_F(upper x1 y1)
+		GET_PAIR_XY_F(lower x2 y2)
+		if x1 > x2 [t: x1 x1: x2 x2: t]
+		if y1 > y2 [t: y1 y1: y2 y2: t]
 
-		x1: upper/x
-		y1: upper/y
-		x2: lower/x
-		y2: lower/y
 		ctx-matrix-adapt dc saved
-		cairo_rectangle cr
-			as float! x1 as float! y1
-			as float! x2 - x1 as float! y2 - y1
+		cairo_rectangle cr x1 y1 x2 - x1 y2 - y1
 	][
 		path: cairo_copy_path dc/cr
 		cairo_new_path dc/cr
@@ -2602,13 +2599,14 @@ OS-draw-brush-bitmap: func [
 		width	[integer!]
 		height	[integer!]
 		pixbuf	[handle!]
-		x		[integer!]
-		y		[integer!]
+		x xx	[integer!]
+		y yy	[integer!]
 		wrap	[integer!]
 		surf	[handle!]
 		cr		[handle!]
 		pattern	[handle!]
 		grad	[gradient!]
+		pt		[red-point2D!]
 ][
 	width:  OS-image/width? img/node
 	height: OS-image/height? img/node
@@ -2617,15 +2615,15 @@ OS-draw-brush-bitmap: func [
 		x: 0
 		y: 0
 	][
-		x: crop-1/x
-		y: crop-1/y
+		GET_PAIR_XY_INT(crop-1 x y)
 	]
 	either crop-2 = null [
 		width:  width - x
 		height: height - y
 	][
-		width:  either ( x + crop-2/x ) > width [ width - x ][ crop-2/x ]
-		height: either ( y + crop-2/y ) > height [ height - y ][ crop-2/y ]
+		GET_PAIR_XY_INT(crop-2 xx yy)
+		width:  either ( x + xx ) > width [ width - x ][ xx ]
+		height: either ( y + yy ) > height [ height - y ][ yy ]
 	]
 	wrap: CAIRO_EXTEND_REPEAT
 	unless mode = null [
@@ -2664,8 +2662,8 @@ OS-draw-brush-bitmap: func [
 OS-draw-brush-pattern: func [
 	dc			[draw-ctx!]
 	size		[red-pair!]
-	crop-1		[red-pair!]
-	crop-2		[red-pair!]
+	crop-1		[red-pair!]	;TODO
+	crop-2		[red-pair!] ;TODO
 	mode		[red-word!]
 	block		[red-block!]
 	brush?		[logic!]
@@ -2679,28 +2677,14 @@ OS-draw-brush-pattern: func [
 		wrap	[integer!]
 		pattern	[handle!]
 		grad	[gradient!]
+		pt		[red-point2D!]
 ][
-	surf: cairo_image_surface_create CAIRO_FORMAT_ARGB32 size/x size/y
+	GET_PAIR_XY_INT(size x y)
+	surf: cairo_image_surface_create CAIRO_FORMAT_ARGB32 x y
 	cr: cairo_create surf
 	do-draw cr null block no no yes yes
 	cairo_destroy cr
 
-	either crop-1 = null [
-		x: 0
-		y: 0
-	][
-		x: crop-1/x
-		y: crop-1/y
-	]
-	width: size/x
-	height: size/y
-	either crop-2 = null [
-		width:  width - x
-		height: height - y
-	][
-		width:  either ( x + crop-2/x ) > width [ width - x ][ crop-2/x ]
-		height: either ( y + crop-2/y ) > height [ height - y ][ crop-2/y ]
-	]
 	wrap: CAIRO_EXTEND_REPEAT
 	unless mode = null [
 		wrap: symbol/resolve mode/symbol
