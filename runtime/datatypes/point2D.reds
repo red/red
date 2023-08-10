@@ -219,10 +219,10 @@ point2D: context [
 			point2D/header: TYPE_UNSET
 		][
 			if point2D/x <> as-float32 0.0 [
-				point2D/x: as-float32 _random/int-uniform-distr secure? as-integer point2D/x
+				point2D/x: as-float32 float/rs-random as-float point2D/x secure?
 			]
 			if point2D/y <> as-float32 0.0 [
-				point2D/y: as-float32 _random/int-uniform-distr secure? as-integer point2D/y
+				point2D/y: as-float32 float/rs-random as-float point2D/y secure?
 			]
 		]
 		as red-value! point2D

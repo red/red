@@ -518,6 +518,22 @@ float: context [
 		f * get-rs-float val
 	]
 
+	rs-random: func [
+		value	[float!]
+		secure? [logic!]
+		return: [float!]
+		/local
+			s	[float!]
+	][
+		either secure? [
+			((as-float _random/rand-secure) / 2147483647.0 + (as-float _random/rand-secure))
+				/ (2147483648.0 / value)
+		] [
+			s: (as-float _random/rand) / 2147483647.0
+			s * value
+		]
+	]
+
 	;-- Actions --
 
 	;-- make: :to
@@ -540,13 +556,7 @@ float: context [
 			_random/srand sp/1 xor sp/2
 			f/header: TYPE_UNSET
 		][
-			either secure? [
-				f/value: ((as-float _random/rand-secure) / 2147483647.0 + (as-float _random/rand-secure))
-					/ (2147483648.0 / f/value)
-			] [
-				s: (as-float _random/rand) / 2147483647.0
-				f/value: s * f/value
-			]
+			f/value: rs-random f/value secure?
 		]
 		f
 	]
