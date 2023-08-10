@@ -3108,6 +3108,7 @@ natives: context [
 			arg		[red-value!]
 			arg2	[red-value!]
 			value	[red-value!]
+			fval	[red-float!]
 			p		[red-pair!]
 			p2		[red-pair!]
 			pt		[red-point2D!]
@@ -3133,7 +3134,19 @@ natives: context [
 		type:	TYPE_OF(arg)
 		type2:	TYPE_OF(arg2)
 		comp?:	no
-		
+
+		if any [type = TYPE_FLOAT type = TYPE_PERCENT][
+			fval: as red-float! arg
+			if float/NaN? fval/value [exit]
+		]
+		if any [type2 = TYPE_FLOAT type2 = TYPE_PERCENT][
+			fval: as red-float! arg2
+			if float/NaN? fval/value [
+				stack/set-last arg2
+				exit
+			]
+		]
+
 		if any [
 			all [any [type2 = TYPE_PAIR type2 = TYPE_POINT2D type2 = TYPE_POINT3D] any [type = TYPE_INTEGER type = TYPE_FLOAT]]
 			all [type2 = TYPE_TUPLE any [type = TYPE_INTEGER type = TYPE_FLOAT]]
