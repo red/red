@@ -3492,6 +3492,12 @@ comment {
 	--test-- "#5351"
 		--assert block! = transcode/scan {[a: %"filename"] }
 
+	--test-- "#5362"
+		--assert NaN? min 1.0 1.#nan
+		--assert NaN? min 1.#nan 1
+		--assert NaN? max 1.0 1.#nan
+		--assert NaN? max 1.#nan 1
+
 ===end-group===
 
 ~~~end-file~~~
