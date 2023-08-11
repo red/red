@@ -494,6 +494,12 @@ Red/System [
 	]
 ]
 
+
+#define TYPE_ANY_POINT [
+	TYPE_POINT2D
+	TYPE_POINT3D
+]
+
 #define TYPE_ANY_WORD [
 	TYPE_WORD
 	TYPE_SET_WORD
