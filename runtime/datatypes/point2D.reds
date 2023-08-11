@@ -215,7 +215,7 @@ point2D: context [
 		#if debug? = yes [if verbose > 0 [print-line "point2D/random"]]
 
 		either seed? [
-			_random/srand (as-integer point2D/x) xor (as-integer point2D/y)
+			_random/srand murmur3-x86-32 (as byte-ptr! point2D) + 4 8
 			point2D/header: TYPE_UNSET
 		][
 			if point2D/x <> as-float32 0.0 [

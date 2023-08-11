@@ -234,14 +234,17 @@ point3D: context [
 		#if debug? = yes [if verbose > 0 [print-line "point3D/random"]]
 
 		either seed? [
-			_random/srand (as-integer pt/x) xor (as-integer pt/y)
+			_random/srand murmur3-x86-32 (as byte-ptr! pt) + 4 12
 			pt/header: TYPE_UNSET
 		][
 			if pt/x <> as-float32 0.0 [
-				pt/x: as-float32 _random/int-uniform-distr secure? as-integer pt/x
+				pt/x: as-float32 float/rs-random as-float pt/x secure?
 			]
 			if pt/y <> as-float32 0.0 [
-				pt/y: as-float32 _random/int-uniform-distr secure? as-integer pt/y
+				pt/y: as-float32 float/rs-random as-float pt/y secure?
+			]
+			if pt/z <> as-float32 0.0 [
+				pt/z: as-float32 float/rs-random as-float pt/z secure?
 			]
 		]
 		as red-value! pt
