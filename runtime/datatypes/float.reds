@@ -694,16 +694,8 @@ float: context [
 	NaN-f32?: func [
 		value	[float32!]
 		return: [logic!]
-		/local
-			n	[int-ptr!]
-			v	[integer!]
 	][
-		n: as int-ptr! :value
-		v: n/value
-		any [
-			all [v > 7F800000h v <= 7FFFFFFFh]
-			all [v > FF800000h v <= FFFFFFFFh]
-		]
+		value <> value
 	]
 
 	special?: func [
