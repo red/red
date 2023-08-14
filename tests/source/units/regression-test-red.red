@@ -3498,6 +3498,14 @@ comment {
 		--assert NaN? max 1.0 1.#nan
 		--assert NaN? max 1.#nan 1
 
+	--test-- "#5362 - point"
+		pt: min (1,1) (1.#nan,1.#nan)
+		--assert NaN? pt/x
+		--assert NaN? pt/y
+		pt: max (1,1) (1.#nan,1.#nan)
+		--assert NaN? pt/x
+		--assert NaN? pt/y
+
 ===end-group===
 
 ~~~end-file~~~
