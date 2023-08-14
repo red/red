@@ -3137,11 +3137,17 @@ natives: context [
 
 		if any [type = TYPE_FLOAT type = TYPE_PERCENT][
 			fval: as red-float! arg
-			if float/NaN? fval/value [exit]
+			if all [
+				float/NaN? fval/value
+				any [type2 = TYPE_FLOAT type2 = TYPE_PERCENT type2 = TYPE_INTEGER]
+			][exit]
 		]
 		if any [type2 = TYPE_FLOAT type2 = TYPE_PERCENT][
 			fval: as red-float! arg2
-			if float/NaN? fval/value [
+			if all [
+				float/NaN? fval/value
+				any [type = TYPE_FLOAT type = TYPE_PERCENT type = TYPE_INTEGER]
+			][
 				stack/set-last arg2
 				exit
 			]
@@ -3181,11 +3187,11 @@ natives: context [
 						
 						pt2: as red-point2D! arg2
 						either max? [
-							if pt/x < pt2/x [pt/x: pt2/x]
-							if pt/y < pt2/y [pt/y: pt2/y]
+							if any [pt/x < pt2/x float/NaN-f32? pt2/x] [pt/x: pt2/x]
+							if any [pt/y < pt2/y float/NaN-f32? pt2/y] [pt/y: pt2/y]
 						][
-							if pt/x > pt2/x [pt/x: pt2/x]
-							if pt/y > pt2/y [pt/y: pt2/y]
+							if any [pt/x > pt2/x float/NaN-f32? pt2/x] [pt/x: pt2/x]
+							if any [pt/y > pt2/y float/NaN-f32? pt2/y] [pt/y: pt2/y]
 						]
 					]
 					TYPE_FLOAT
@@ -3209,11 +3215,11 @@ natives: context [
 					TYPE_POINT2D [
 						pt2: as red-point2D! arg2
 						either max? [
-							if pt/x < pt2/x [pt/x: pt2/x]
-							if pt/y < pt2/y [pt/y: pt2/y]
+							if any [pt/x < pt2/x float/NaN-f32? pt2/x] [pt/x: pt2/x]
+							if any [pt/y < pt2/y float/NaN-f32? pt2/y] [pt/y: pt2/y]
 						][
-							if pt/x > pt2/x [pt/x: pt2/x]
-							if pt/y > pt2/y [pt/y: pt2/y]
+							if any [pt/x > pt2/x float/NaN-f32? pt2/x] [pt/x: pt2/x]
+							if any [pt/y > pt2/y float/NaN-f32? pt2/y] [pt/y: pt2/y]
 						]
 					]
 					TYPE_PAIR [
@@ -3230,11 +3236,11 @@ natives: context [
 					TYPE_INTEGER [
 						f32: as-float32 arg-to-float arg2
 						either max? [
-							if pt/x < f32 [pt/x: f32]
-							if pt/y < f32 [pt/y: f32]
+							if any [pt/x < f32 float/NaN-f32? f32] [pt/x: f32]
+							if any [pt/y < f32 float/NaN-f32? f32] [pt/y: f32]
 						][
-							if pt/x > f32 [pt/x: f32]
-							if pt/y > f32 [pt/y: f32]
+							if any [pt/x > f32 float/NaN-f32? f32] [pt/x: f32]
+							if any [pt/y > f32 float/NaN-f32? f32] [pt/y: f32]
 						]
 						if arg <> stack/arguments [stack/set-last arg]
 					]
@@ -3247,26 +3253,26 @@ natives: context [
 					TYPE_POINT3D [
 						pt3b: as red-point3D! arg2
 						either max? [
-							if pt3/x < pt3b/x [pt3/x: pt3b/x]
-							if pt3/y < pt3b/y [pt3/y: pt3b/y]
-							if pt3/z < pt3b/z [pt3/z: pt3b/z]
+							if any [pt3/x < pt3b/x float/NaN-f32? pt3b/x] [pt3/x: pt3b/x]
+							if any [pt3/y < pt3b/y float/NaN-f32? pt3b/y] [pt3/y: pt3b/y]
+							if any [pt3/z < pt3b/z float/NaN-f32? pt3b/z] [pt3/z: pt3b/z]
 						][
-							if pt3/x > pt3b/x [pt3/x: pt3b/x]
-							if pt3/y > pt3b/y [pt3/y: pt3b/y]
-							if pt3/z > pt3b/z [pt3/z: pt3b/z]
+							if any [pt3/x > pt3b/x float/NaN-f32? pt3b/x] [pt3/x: pt3b/x]
+							if any [pt3/y > pt3b/y float/NaN-f32? pt3b/y] [pt3/y: pt3b/y]
+							if any [pt3/z > pt3b/z float/NaN-f32? pt3b/z] [pt3/z: pt3b/z]
 						]
 					]
 					TYPE_FLOAT
 					TYPE_INTEGER [
 						f32: as-float32 arg-to-float arg2
 						either max? [
-							if pt3/x < f32 [pt3/x: f32]
-							if pt3/y < f32 [pt3/y: f32]
-							if pt3/z < f32 [pt3/z: f32]
+							if any [pt3/x < f32 float/NaN-f32? f32] [pt3/x: f32]
+							if any [pt3/y < f32 float/NaN-f32? f32] [pt3/y: f32]
+							if any [pt3/z < f32 float/NaN-f32? f32] [pt3/z: f32]
 						][
-							if pt3/x > f32 [pt3/x: f32]
-							if pt3/y > f32 [pt3/y: f32]
-							if pt3/z > f32 [pt3/z: f32]
+							if any [pt3/x > f32 float/NaN-f32? f32] [pt3/x: f32]
+							if any [pt3/y > f32 float/NaN-f32? f32] [pt3/y: f32]
+							if any [pt3/z > f32 float/NaN-f32? f32] [pt3/z: f32]
 						]
 						if arg <> stack/arguments [stack/set-last arg]
 					]
@@ -3324,7 +3330,7 @@ natives: context [
 			int/value
 		][
 			fl: as red-float! arg
-			if integer/overflow? fl [
+			if any [integer/overflow? fl float/NaN? fl/value][
 				fire [TO_ERROR(script type-limit) datatype/push TYPE_INTEGER]
 			]
 			as-integer fl/value
