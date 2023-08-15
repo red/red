@@ -1635,6 +1635,15 @@ Red [
 
 	--test-- "#5322"
 		--assert error? try [transcode "1A"]
+		
+	--test-- "#5365"
+		clear logs
+		--assert [%hello.txt] == transcode/trace "%hello.txt" :lex-logger
+		--assert logs = [
+			prescan file! datatype! 1 1x11 
+			scan file! datatype! 1 1x11 
+			load file! datatype! 1 %hello.txt
+		]
 
 ===end-group===
 	
