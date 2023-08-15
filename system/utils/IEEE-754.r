@@ -17,7 +17,7 @@ IEEE-754: context [
 		single [
 			#INF	#{7F800000}
 			#INF-	#{FF800000}
-			#NaN	#{7F200000}							;-- Quiet NaN
+			#NaN	#{7FC00000}							;-- Quiet NaN
 			#0-		#{80000000}
 		]
 		double [
