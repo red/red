@@ -326,10 +326,10 @@ eval-path*: func [
 		arg value gparent prev item parent p-item [red-value!]
 		path [red-path!]
 		obj	 [red-object!]
+		ser	 [red-series!]
 		w	 [red-word!]
-		idx	 [integer!]
-		set? [logic!]
-		tail?[logic!]
+		idx	total [integer!]
+		set? tail? evt? [logic!]
 ][
 	set?: as-logic list/value
 	list: list + 1
@@ -344,6 +344,7 @@ eval-path*: func [
 	value: null
 	tail?: no
 	
+	total: count
 	item: as red-value! list/value
 	p-item: item
 	list: list + 1
@@ -365,8 +366,25 @@ eval-path*: func [
 		tail?: count = 1
 		if tail? [value: arg]
 	
+		evt?: no
 		prev: parent
-		parent: actions/eval-path parent item value path gparent p-item idx no no tail?
+		
+		if all [set? total > 2 count = 1][				;-- check only if set-path of length > 2
+			ser: as red-series! gparent
+			evt?: either ser = null [no][
+				obj: as red-object! ser
+				switch TYPE_OF(ser) [
+					TYPE_OBJECT [all [obj/on-set <> null TYPE_OF(p-item) = TYPE_WORD]]
+					TYPE_ANY_BLOCK [
+						gparent: as red-value! ownership/owned? ser/node
+						p-item: gparent + 1
+						gparent <> null
+					]
+					default [no]
+				]
+			]
+		]
+		parent: actions/eval-path parent item value path gparent p-item idx no no tail? evt?
 		gparent: prev
 		p-item: item
 		

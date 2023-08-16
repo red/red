@@ -399,6 +399,7 @@ actions: context [
 			no
 			no
 			yes
+			no
 	]
 	
 	eval-path: func [
@@ -412,6 +413,7 @@ actions: context [
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
+		evt?	[logic!]
 		return:	[red-value!]
 		/local
 			action-path
@@ -429,10 +431,11 @@ actions: context [
 			case?	[logic!]
 			get?	[logic!]
 			tail?	[logic!]
+			evt?	[logic!]
 			return:	[red-value!]
 		] get-action-ptr-path parent ACT_EVALPATH as red-value! path element
 		
-		action-path parent element value as red-value! path gparent p-item index case? get? tail?
+		action-path parent element value as red-value! path gparent p-item index case? get? tail? evt?
 	]
 	
 	set-path*: func [][]

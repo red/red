@@ -306,16 +306,15 @@ point3D: context [
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
+		evt?	[logic!]
 		return:	[red-value!]
 		/local
-			obj	 [red-object!]
 			old	 [red-value!]
 			int	 [red-integer!]
 			fp	 [red-float!]
 			axis [integer!]
 			type [integer!]
 			f32	 [float32!]
-			evt? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "point3D/eval-path"]]
 		
@@ -335,8 +334,6 @@ point3D: context [
 			if all [type <> TYPE_INTEGER type <> TYPE_FLOAT][
 				fire [TO_ERROR(script invalid-type) datatype/push type]
 			]
-			obj: as red-object! gparent
-			evt?: all [obj <> null TYPE_OF(obj) = TYPE_OBJECT obj/on-set <> null TYPE_OF(p-item) = TYPE_WORD]
 			if evt? [old: stack/push as red-value! parent]
 			
 			int: as red-integer! stack/arguments

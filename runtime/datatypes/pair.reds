@@ -301,14 +301,13 @@ pair: context [
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
+		evt?	[logic!]
 		return:	[red-value!]
 		/local
-			obj	 [red-object!]
 			old	 [red-value!]
 			int	 [red-integer!]
 			axis [integer!]
 			type [integer!]
-			evt? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "pair/eval-path"]]
 		
@@ -328,8 +327,6 @@ pair: context [
 			if type <> TYPE_INTEGER [
 				fire [TO_ERROR(script invalid-type) datatype/push type]
 			]
-			obj: as red-object! gparent
-			evt?: all [obj <> null TYPE_OF(obj) = TYPE_OBJECT obj/on-set <> null TYPE_OF(p-item) = TYPE_WORD]
 			if evt? [old: stack/push as red-value! parent]
 			
 			int: as red-integer! stack/arguments

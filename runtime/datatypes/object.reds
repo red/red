@@ -1277,6 +1277,7 @@ object: context [
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
+		evt?	[logic!]
 		return:	[red-value!]
 		/local
 			word	 [red-word!]
@@ -1499,7 +1500,7 @@ object: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/put"]]
 
-		eval-path obj field value as red-value! none-value null null -1 case? no yes
+		eval-path obj field value as red-value! none-value null null -1 case? no yes no
 		value
 	]
 

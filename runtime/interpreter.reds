@@ -592,8 +592,8 @@ interpreter: context [
 			obj	  [red-object!]
 			w	  [red-word!]
 			ser	  [red-series!]
-			type idx [integer!]
-			tail? [logic!]
+			type idx   [integer!]
+			tail? evt? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "eval: path"]]
 		
@@ -659,7 +659,24 @@ interpreter: context [
 			type: TYPE_OF(parent)
 			tail?: item + 1 = tail
 			arg: either all [set? tail?][stack/arguments][null]
-			parent: actions/eval-path parent value arg path gparent p-item idx case? get? tail?
+			evt?: no
+
+			if all [set?  head + 2 <= item  item + 1 = tail][ ;-- check only if set-path of length > 2
+				ser: as red-series! gparent
+				evt?: either ser = null [no][
+					obj: as red-object! ser
+					switch TYPE_OF(ser) [
+						TYPE_OBJECT [all [obj/on-set <> null TYPE_OF(p-item) = TYPE_WORD]]
+						TYPE_ANY_BLOCK [
+							gparent: as red-value! ownership/owned? ser/node
+							p-item: gparent + 1
+							gparent <> null
+						]
+						default [no]
+					]
+				]
+			]
+			parent: actions/eval-path parent value arg path gparent p-item idx case? get? tail? evt?
 
 			if all [not get? not set?][
 				switch TYPE_OF(parent) [

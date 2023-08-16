@@ -500,6 +500,7 @@ map: context [
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
+		evt?	[logic!]
 		return:	[red-value!]
 		/local
 			table	[node!]
@@ -565,7 +566,7 @@ map: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/put"]]
 		
-		eval-path map field value as red-value! none-value null null -1 case? no yes
+		eval-path map field value as red-value! none-value null null -1 case? no yes no
 		value
 	]
 
