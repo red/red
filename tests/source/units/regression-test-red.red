@@ -3506,6 +3506,17 @@ comment {
 		--assert NaN? pt/x
 		--assert NaN? pt/y
 
+
+	--test-- "#5366"
+		c5366: false
+		obj5366: object [
+		   z: [1x2]
+		   on-change*: func [w n o][--assert w = 'z c5366: true]
+		   on-deep-change*: func [o w t a n i p][--assert false]
+		]
+		obj5366/z/1/y: 5
+		--assert c5366
+
 ===end-group===
 
 ~~~end-file~~~
