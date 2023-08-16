@@ -73,6 +73,7 @@ version-info: 	declare OSVERSIONINFO
 current-msg: 	as tagMSG 0
 wc-extra:		80										;-- reserve 64 bytes for win32 internal usage (arbitrary)
 wc-offset:		60										;-- offset to our 16+4 bytes
+win11?:			no
 win10+?:		no
 win8+?:			no
 winxp?:			no
@@ -922,6 +923,7 @@ init: func [
 	int: as red-integer! #get system/view/platform/build
 	int/header: TYPE_INTEGER
 	int/value:  version-info/dwBuildNumber
+	win11?: version-info/dwBuildNumber >= 22000
 
 	int: as red-integer! #get system/view/platform/product
 	int/header: TYPE_INTEGER
