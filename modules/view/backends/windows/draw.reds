@@ -283,7 +283,7 @@ draw-begin: func [
 
 		text: as red-string! values + FACE_OBJ_TEXT
 		if TYPE_OF(text) = TYPE_STRING [
-			pos/x: 0 pos/y: 0
+			point2D/make-at as red-value! :pos F32_0 F32_0
 			font: as red-object! values + FACE_OBJ_FONT
 			font-clr?: no
 			if TYPE_OF(font) = TYPE_OBJECT [
