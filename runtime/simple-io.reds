@@ -1904,7 +1904,7 @@ simple-io: context [
 					new?: no
 					s/1: null-byte
 					w: as red-value! word/push* symbol/make as-c-string p
-					res: map/eval-path mp w null null null null -1 no no no
+					res: map/eval-path mp w null null null null -1 no no no no
 					either TYPE_OF(res) = TYPE_NONE [
 						new?: yes
 					][
