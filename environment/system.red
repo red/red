@@ -307,7 +307,7 @@ system: context [
 	]
 	
 	modules: make block! 8
-	codecs:  make block! 8
+	codecs:  make map!   8
 	schemes: make block! 10
 	ports:	 context []
 	
