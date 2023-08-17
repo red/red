@@ -318,7 +318,11 @@ point2D: context [
 				either axis = 1 [parent/x: as-float32 fp/value][parent/y: as-float32 fp/value]
 			]
 			if evt? [
-				object/fire-on-set as red-object! gparent as red-word! p-item old as red-value! parent
+				either TYPE_OF(gparent) = TYPE_OBJECT [
+					object/fire-on-set as red-object! gparent as red-word! p-item old as red-value! parent
+				][
+					ownership/check as red-value! gparent words/_set-path value axis 1
+				]
 				stack/pop 1								;-- avoid moving stack top
 			]
 			stack/arguments
