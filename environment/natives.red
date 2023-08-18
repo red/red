@@ -635,7 +635,7 @@ construct: make native! [[
 
 value?: make native! [[
 		"Returns TRUE if the word has a value"
-		value
+		value   [word!]
 		return: [logic!]
 	]
 	#get-definition NAT_VALUE?
