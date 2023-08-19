@@ -51,7 +51,7 @@ overlap?: function [
 	B1: B/offset
 	A2: A1 + A/size
 	B2: B1 + B/size
-	make logic! all [A1/x < B2/x B1/x < A2/x A1/y < B2/y B1/y < A2/y]
+	to logic! all [A1/x < B2/x B1/x < A2/x A1/y < B2/y B1/y < A2/y]
 ]
 
 distance?: function [
