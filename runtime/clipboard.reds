@@ -604,7 +604,7 @@ clipboard: context [
 		]
 	]
 	Linux [
-	#either modules contains 'View [
+	#either all [GUI-engine <> 'terminal modules contains 'View][
 		;; Depends on GTK
 		#import [
 			"libgtk-3.so.0" cdecl [

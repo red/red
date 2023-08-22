@@ -617,6 +617,7 @@ system/view/platform: context [
 				flags
 			]
 
+			#include %keycodes.reds
 			#switch GUI-engine [
 				native [
 					;#include %android/gui.reds
@@ -629,7 +630,8 @@ system/view/platform: context [
 					]
 				]
 				test [#include %test/gui.reds]
-				GTK [#include %GTK/gui.reds]
+				GTK [#include %gtk3/gui.reds]
+				terminal [#include %terminal/gui.reds]
 			]
 		]
 	]
@@ -748,8 +750,9 @@ system/view/platform: context [
 					#default [0]
 				]
 			]
-			test []
-			GTK  []
+			test 	 []
+			GTK 	 []
+			terminal [gui/post-quit-msg]
 		]
 	]
 
@@ -833,111 +836,125 @@ system/view/platform: context [
 
 		#system [gui/init]
 
-		extend system/view/metrics/margins [#switch config/OS [
-			Windows [
-				button:			[1x1   1x1]				;-- LeftxRight TopxBottom
-				toggle:			[1x1   1x1]
-				tab-panel:		[0x2   0x1]
-				group-box:		[0x0   0x1]
-				calendar:		[1x0   0x0]
+		extend system/view/metrics/margins [
+			#switch config/GUI-engine [
+				native [#switch config/OS [
+					Windows [
+						button:			[1x1   1x1]				;-- LeftxRight TopxBottom
+						toggle:			[1x1   1x1]
+						tab-panel:		[0x2   0x1]
+						group-box:		[0x0   0x1]
+						calendar:		[1x0   0x0]
+					]
+					macOS [
+						button:			[2x2   2x3 regular 6x6 4x7 small 5x5 4x6 mini 1x1 0x1]
+						toggle:			[2x2   2x3 regular 6x6 4x7 small 5x5 4x6 mini 1x1 0x1]
+						regular:		[6x6   4x7]
+						small:			[5x5   4x6]
+						mini:			[1x1   0x1]
+						group-box:		[3x3   0x4]
+						tab-panel:		[7x7  6x10]
+						drop-down:		[0x3   2x3 regular 0x3 2x3 small 0x3 1x3 mini 0x2 1x3]
+						drop-list:		[0x3   2x3 regular 0x3 2x3 small 0x3 1x3 mini 0x2 1x3]
+					]
+				]]
 			]
-			macOS [
-				button:			[2x2   2x3 regular 6x6 4x7 small 5x5 4x6 mini 1x1 0x1]
-				toggle:			[2x2   2x3 regular 6x6 4x7 small 5x5 4x6 mini 1x1 0x1]
-				regular:		[6x6   4x7]
-				small:			[5x5   4x6]
-				mini:			[1x1   0x1]
-				group-box:		[3x3   0x4]
-				tab-panel:		[7x7  6x10]
-				drop-down:		[0x3   2x3 regular 0x3 2x3 small 0x3 1x3 mini 0x2 1x3]
-				drop-list:		[0x3   2x3 regular 0x3 2x3 small 0x3 1x3 mini 0x2 1x3]
+		]
+		extend system/view/metrics/paddings [
+			#switch config/GUI-engine [
+				native [#switch config/OS [
+					Windows [
+						check:			[16x0  0x0]				;-- 13 + 3 for text padding
+						radio:			[16x0  0x0]				;-- 13 + 3 for text padding
+						field:			[0x8   0x0]
+						group-box:		[3x3  10x3]
+						tab-panel:		[1x3  25x0]
+						button:			[8x8   0x0]
+						toggle:			[8x8   0x0]
+						drop-down:		[0x7   0x0]
+						drop-list:		[0x7   0x0]
+						calendar:		[21x0 1x0]
+					]
+					macOS [
+						button:			[11x11 0x0 regular 14x14 0x0 small 11x11 0x0 mini 11x11 0x0]
+						toggle:			[11x11 0x0 regular 14x14 0x0 small 11x11 0x0 mini 11x11 0x0]
+						check:			[20x0  3x1]
+						radio:			[20x0  1x1]
+						text:			[3x3   0x0]
+						field:			[3x3   0x0]
+						group-box:		[0x8  4x18]
+						drop-list:		[14x26 0x0 regular 14x26 0x0 small 11x22 0x0 mini 11x22 0x0]
+					]
+					Linux [
+						button:			[17x17 3x3]
+						toggle:			[17x17 3x3]
+						check:			[20x8  2x2]
+						radio:			[20x8  2x2]
+						text:			[3x3   0x0]
+						field:			[9x9   1x1]
+						group-box:		[0x8  4x18]
+						tab-panel:		[0x0  39x0]
+						drop-list:		[0x40 0x0]
+						drop-down:		[0x54 0x0]
+					]
+				]]
 			]
-		]]
-		extend system/view/metrics/paddings [#switch config/OS [
-			Windows [
-				check:			[16x0  0x0]				;-- 13 + 3 for text padding
-				radio:			[16x0  0x0]				;-- 13 + 3 for text padding
-				field:			[0x8   0x0]
-				group-box:		[3x3  10x3]
-				tab-panel:		[1x3  25x0]
-				button:			[8x8   0x0]
-				toggle:			[8x8   0x0]
-				drop-down:		[0x7   0x0]
-				drop-list:		[0x7   0x0]
-				calendar:		[21x0 1x0]
+		]
+		extend system/view/metrics/fixed-heights [
+			#switch config/GUI-engine [
+				native [#switch config/OS [
+					macOS	[
+						progress:	21
+					]
+					Linux [
+						progress:	4
+					]
+				]]
 			]
-			macOS [
-				button:			[11x11 0x0 regular 14x14 0x0 small 11x11 0x0 mini 11x11 0x0]
-				toggle:			[11x11 0x0 regular 14x14 0x0 small 11x11 0x0 mini 11x11 0x0]
-				check:			[20x0  3x1]
-				radio:			[20x0  1x1]
-				text:			[3x3   0x0]
-				field:			[3x3   0x0]
-				group-box:		[0x8  4x18]
-				drop-list:		[14x26 0x0 regular 14x26 0x0 small 11x22 0x0 mini 11x22 0x0]
-			]
-			Linux [
-				button:			[17x17 3x3]
-				toggle:			[17x17 3x3]
-				check:			[20x8  2x2]
-				radio:			[20x8  2x2]
-				text:			[3x3   0x0]
-				field:			[9x9   1x1]
-				group-box:		[0x8  4x18]
-				tab-panel:		[0x0  39x0]
-				drop-list:		[0x40 0x0]
-				drop-down:		[0x54 0x0]
-			]
-		]]
-		extend system/view/metrics/fixed-heights [#switch config/OS [
-			macOS	[
-				progress:	21
-			]
-			Linux [
-				progress:	4
-			]
-		]]
-		#switch config/OS [
-			Windows [
-				if version/1 <= 6 [						;-- for Win7 & XP
-					extend system/view/metrics/def-heights [
-						button:		23
-						toggle:		23
-						text:		24
-						field:		24
-						check:		24
-						radio:		24
-						slider:		24
-						drop-down:	23
-						drop-list:	23
+		]
+		#switch config/GUI-engine [
+			native [#switch config/OS [
+				Windows [
+					if version/1 <= 6 [						;-- for Win7 & XP
+						extend system/view/metrics/def-heights [
+							button:		23
+							toggle:		23
+							text:		24
+							field:		24
+							check:		24
+							radio:		24
+							slider:		24
+							drop-down:	23
+							drop-list:	23
+						]
 					]
 				]
-			]
-			macOS	[
-				extend system/view/metrics/def-heights [
-					check:		21
-					radio:		21
-					text:		18
-					field:		21
-					drop-down:	21
-					drop-list:	21
-					progress:	21
+				macOS	[
+					extend system/view/metrics/def-heights [
+						check:		21
+						radio:		21
+						text:		18
+						field:		21
+						drop-down:	21
+						drop-list:	21
+						progress:	21
+					]
 				]
-			]
- 			Linux	[
-				 extend system/view/metrics/def-heights [
-					button:		29
-					toggle:		29
-					check:		20
-					radio:		19
-					text:		17
-					field:		30
-					drop-down:	34
-					drop-list:	34
-					progress:	4
-					slider:		34
+	 			Linux	[
+					 extend system/view/metrics/def-heights [
+						button:		29
+						toggle:		29
+						check:		20
+						radio:		19
+						text:		17
+						field:		30
+						drop-down:	34
+						drop-list:	34
+						progress:	4
+						slider:		34
+					]
 				]
-			]
+			]]
 		]
 		
 		colors: system/view/metrics/colors

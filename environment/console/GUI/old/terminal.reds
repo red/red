@@ -151,8 +151,6 @@ terminal: context [
 	extra-table: [0]						;-- extra unicode check table for Windows
 	stub-table: [0 0]
 
-	#include %../../CLI/wcwidth.reds
-
 	#either OS = 'Windows [
 		char-width?: func [
 			cp		[integer!]
