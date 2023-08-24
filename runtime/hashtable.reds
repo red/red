@@ -69,7 +69,7 @@ array: context [
 		copy-series as series! node/value
 	]
 
-	get-buffer: func [
+	get-ptr: func [
 		node	[node!]
 		return: [byte-ptr!]
 		/local

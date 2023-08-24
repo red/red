@@ -19,7 +19,10 @@ screen: context [
 	win-list:			as node! 0
 	esc-sequences:		as node! 0			;-- escape sequences
 	buffer:				as pixel! 0			;--a width x height 2-D plane
-	back-buffer:		as pixel! 0
+	prev-buffer:		as pixel! 0
+	buffer-1:			as pixel! 0
+	buffer-2:			as pixel! 0
+	cur-buf-idx:		0
 	width:				0
 	height:				0
 	relative-y:			0
@@ -53,20 +56,26 @@ screen: context [
 		if h > tty/rows [h: tty/rows]
 
 		if any [w <> width h <> height][
-			if buffer <> null [free as byte-ptr! buffer]
-			if back-buffer <> null [free as byte-ptr! back-buffer]
+			if buffer-1 <> null [free as byte-ptr! buffer-1]
+			if buffer-2 <> null [free as byte-ptr! buffer-2]
 			width: w
 			height: h
-			buffer: as pixel! zero-alloc width * height * size? pixel!
-			back-buffer: as pixel! zero-alloc width * height * size? pixel!
+			buffer-1: as pixel! zero-alloc width * height * size? pixel!
+			buffer-2: as pixel! zero-alloc width * height * size? pixel!
+			buffer: buffer-1
+			prev-buffer: buffer
+			cur-buf-idx: 0
 		]
 	]
 
 	free-buffer: does [
-		free as byte-ptr! buffer
-		free as byte-ptr! back-buffer
+		free as byte-ptr! buffer-1
+		free as byte-ptr! buffer-2
 		buffer: as pixel! 0
-		back-buffer: as pixel! 0
+		prev-buffer: as pixel! 0
+		buffer-1: as pixel! 0
+		buffer-2: as pixel! 0
+		cur-buf-idx: 0
 	]
 
 	on-gc-mark: func [
@@ -272,8 +281,11 @@ screen: context [
 			dy	 [integer!]
 			s	 [c-string!]
 	][
-		LOG_MSG(["present: " width " " height " " relative-y])
+		;-- TODO diff buffer and prev-buffer, only present the changed pixels
+
 		if any [width < 1 height < 1][exit]
+
+		present?: yes
 
 		str: as byte-ptr! :_buf
 
@@ -337,10 +349,21 @@ screen: context [
 			relative-y: height - 1
 		]
 
-		str: array/get-buffer esc-sequences
+		str: array/get-ptr esc-sequences
 		tty/write str array/length? esc-sequences
 		array/clear esc-sequences
+
 		present?: no
+	]
+
+	switch-buffer: func [][
+		prev-buffer: buffer
+		either zero? cur-buf-idx [
+			buffer: buffer-2
+		][
+			buffer: buffer-1
+		]
+		cur-buf-idx: cur-buf-idx + 1 % 2
 	]
 
 	render: func [
@@ -352,8 +375,8 @@ screen: context [
 		wm: active-win
 		resize-buffer wm
 		render-widget wm/window
-		present?: yes
 		present
+		switch-buffer
 		either WIDGET_EDITABLE?(focus-widget) [
 			tty/show-cursor
 		][

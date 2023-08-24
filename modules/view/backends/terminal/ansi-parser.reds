@@ -303,7 +303,7 @@ ansi-parser: context [
 			cur	[integer!]
 	][
 		incomplete?: no
-		pbuffer: array/get-buffer buffer
+		pbuffer: array/get-ptr buffer
 		end: array/length? buffer
 
 while [pos <= end][
