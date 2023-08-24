@@ -106,6 +106,7 @@ logic: context [
 		
 		arg: as red-logic! stack/arguments
 		type: TYPE_OF(arg)
+		if type = TYPE_UNSET [fire [TO_ERROR(script no-return)]]
 		
 		any [
 			type = TYPE_NONE

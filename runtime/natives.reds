@@ -86,10 +86,7 @@ natives: context [
 		
 		while [value < tail][
 			value: interpreter/eval-next blk value tail no
-			
-			bool: as red-logic! stack/arguments
-			type: TYPE_OF(bool)
-			unless any [type = TYPE_NONE all [type = TYPE_LOGIC not bool/value]][exit]
+			if logic/true? [exit]
 		]
 		RETURN_NONE
 	]
