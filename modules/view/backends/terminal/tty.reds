@@ -287,6 +287,16 @@ tty: context [
 			isatty as int-ptr! stdin
 		]
 
+		write: func [
+			data	[byte-ptr!]
+			len		[integer!]
+			/local
+				n	[integer!]
+		][
+			n: 0
+			platform/WriteFile stdout as c-string! data len :n 0
+		]
+
 		enter-raw-mode: func [/local mode [integer!]][
 			saved-out-cp: GetConsoleOutputCP
 			;Note: we don't set input to UTF-8 mode because it's buggy
@@ -378,6 +388,13 @@ tty: context [
 
 		isatty?: func [return: [logic!]][
 			1 = isatty stdin
+		]
+
+		write: func [
+			data	[byte-ptr!]
+			len		[integer!]
+		][
+			platform/io-write stdout data len
 		]
 
 		enter-raw-mode: func [

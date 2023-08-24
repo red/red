@@ -112,7 +112,7 @@ get-text-size: func [
 	text	[red-string!]
 	pt		[red-point2D!]
 ][
-	pt/x: as float32! string/rs-length? text
+	pt/x: as float32! string-width? text 7FFFFFFFh null
 	pt/y: F32_1
 ]
 

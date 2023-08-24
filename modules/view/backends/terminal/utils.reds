@@ -483,3 +483,47 @@ make-color: func [
 	;LOG_MSG([as-integer p/1 " " as-integer p/2 " " as-integer p/3 " " ci])
 	16 + ci
 ]
+
+char-width?: func [
+	cp		[integer!]
+	return: [integer!]
+][
+	either all [0001F300h <= cp cp <= 0001F5FFh][2][wcwidth? cp]
+]
+
+string-width?: func [
+	str		[red-string!]
+	limit-w [integer!]
+	end-idx [int-ptr!]
+	return: [integer!]
+	/local
+		series	[series!]
+		unit	[integer!]
+		offset	[byte-ptr!]
+		tail	[byte-ptr!]
+		cp idx	[integer!]
+		len n	[integer!]
+][
+	len:	0
+	idx:	0
+	series: GET_BUFFER(str)
+	unit: 	GET_UNIT(series)
+	offset: (as byte-ptr! series/offset) + (str/head << (log-b unit))
+	tail:   as byte-ptr! series/tail
+
+	while [
+		all [offset < tail len < limit-w]
+	][
+		cp: string/get-char offset unit
+		n: char-width? cp
+		len: len + n
+		idx: idx + 1
+		offset: offset + unit
+	]
+	if len > limit-w [
+		len: len - n
+		idx: idx - 1
+	]
+	if end-idx <> null [end-idx/value: idx]
+	len
+]

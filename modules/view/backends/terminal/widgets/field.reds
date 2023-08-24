@@ -41,12 +41,8 @@ init-field: func [
 	widget		[widget!]
 	/local
 		str		[red-string!]
-		series	[series!]
-		unit	[integer!]
-		offset	[byte-ptr!]
-		tail	[byte-ptr!]
-		w h	cp	[integer!]
-		len n	[integer!]
+		w h		[integer!]
+		len		[integer!]
 		idx		[integer!]
 		f		[field-data!]
 ][
@@ -62,26 +58,8 @@ init-field: func [
 		w: 0 h: 0
 		_widget/get-size widget :w :h
 
-		len:	0
-		idx:	0
-		series: GET_BUFFER(str)
-		unit: 	GET_UNIT(series)
-		offset: (as byte-ptr! series/offset) + (str/head << (log-b unit))
-		tail:   as byte-ptr! series/tail
-
-		while [
-			all [offset < tail len < w]
-		][
-			cp: string/get-char offset unit
-			n: either all [0001F300h <= cp cp <= 0001F5FFh][2][wcwidth? cp]
-			len: len + n
-			idx: idx + 1
-			offset: offset + unit
-		]
-		if len > w [
-			len: len - n
-			idx: idx - 1
-		]
+		idx: 0
+		len: string-width? str w :idx
 
 		f: as field-data! widget/data
 		f/idx: idx
@@ -118,16 +96,19 @@ on-field-edit: func [
 		cp: evt/data
 		if SPECIAL_KEY?(cp) [cp: cp and 7FFFFFFFh]
 	]
-	LOG_MSG(["on-edit: " cp])
-	if any [zero? cp cp = as-integer #"^-"][return 0]
 
+	if any [zero? cp cp = as-integer #"^-" cp = as-integer cr][return 0]
+
+	n: 0
 	idx: field/idx
 	switch cp [
 		KEY_CTRL_H
 		KEY_BACKSPACE [
 			unless zero? idx [
 				field/idx: idx - 1
-				field/cursor: field/cursor - 1
+				n: char-width? string/rs-abs-at line line/head + field/idx
+				field/cursor: field/cursor - n
+				field/len: field/len - n
 				string/remove-char line line/head + field/idx
 			]
 		]
@@ -135,25 +116,31 @@ on-field-edit: func [
 		RED_VK_LEFT [
 			unless zero? idx [
 				field/idx: idx - 1
-				field/cursor: field/cursor - 1
+				n: char-width? string/rs-abs-at line line/head + field/idx
+				field/cursor: field/cursor - n
 			]
 		]
 		KEY_CTRL_F
 		RED_VK_RIGHT [
 			if idx < string/rs-length? line [
+				n: char-width? string/rs-abs-at line line/head + field/idx
 				field/idx: idx + 1
-				field/cursor: field/cursor + 1
+				field/cursor: field/cursor + n
 			]
 		]
 		default [
-			if w > string/rs-length? line [
-				either string/rs-tail? line [
-					string/append-char GET_BUFFER(line) cp
-				][
-					string/insert-char GET_BUFFER(line) line/head + idx cp
+			unless SPECIAL_KEY?(evt/data) [
+				n: char-width? cp
+				if w - n >= field/len [
+					either string/rs-tail? line [
+						string/append-char GET_BUFFER(line) cp
+					][
+						string/insert-char GET_BUFFER(line) line/head + idx cp
+					]
+					field/idx: idx + 1
+					field/cursor: field/cursor + n
+					field/len: field/len + n
 				]
-				field/idx: idx + 1
-				field/cursor: field/cursor + 1
 			]
 		]
 	]

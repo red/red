@@ -305,7 +305,7 @@ ansi-parser: context [
 		incomplete?: no
 		pbuffer: array/get-buffer buffer
 		end: array/length? buffer
-LOG_MSG(["parse " end])
+
 while [pos <= end][
 	c: current-char
 	LOG_MSG(["char: " as-integer c])

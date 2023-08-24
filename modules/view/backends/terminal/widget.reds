@@ -164,6 +164,7 @@ _widget: context [
 			i len	[integer!]
 			p		[pixel!]
 			end		[pixel!]
+			n cnt	[integer!]
 			x y w h	[integer!]
 			fg bg	[integer!]
 	][
@@ -203,22 +204,30 @@ _widget: context [
 		]
 
 		if TYPE_OF(str) = TYPE_STRING [
+			cnt: 0
 			i: str/head
 			len: string/rs-length? str
-			while [all [i < len p < end]][
+			while [all [i < len cnt < w]][
 				p/code-point: string/rs-abs-at str i
 				p/bg-color: bg
 				p/fg-color: fg
 				p/flags: flags
+				n: char-width? p/code-point
+				loop n - 1 [
+					p: p + 1
+					p/flags: flags or PIXEL_SKIP
+				]
+				cnt: cnt + n
 				p: p + 1
 				i: i + 1
 			]
 		]
-		while [p < end][
+		while [cnt < w][
 			p/code-point: 0
 			p/bg-color: bg
 			p/fg-color: fg
 			p: p + 1
+			cnt: cnt + 1
 		]
 	]
 ]

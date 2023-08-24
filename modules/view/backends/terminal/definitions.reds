@@ -128,7 +128,10 @@ window-manager!: alias struct! [
 	PIXEL_UNDERLINE_2:	20h
 	PIXEL_STRIKE:		40h
 	PIXEL_AUTOMERGE:	80h
+	PIXEL_SKIP:			0100h
 ]
+
+#define DRAW_PIXEL?(p) [p/flags and PIXEL_SKIP = 0]
 
 #enum color-type! [
     default-color:	0

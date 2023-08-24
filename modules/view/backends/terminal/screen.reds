@@ -296,12 +296,14 @@ screen: context [
 		until [
 			x: 0
 			until [
-				prev: update-pixel-style prev p
+				if DRAW_PIXEL?(p) [
+					prev: update-pixel-style prev p
 
-				cp: p/code-point
-				if zero? cp [cp: as-integer #" "]
-				n: unicode/cp-to-utf8 cp str
-				if n > 0 [ADD_BYTES(str n)]
+					cp: p/code-point
+					if zero? cp [cp: as-integer #" "]
+					n: unicode/cp-to-utf8 cp str
+					if n > 0 [ADD_BYTES(str n)]
+				]
 
 				p: p + 1
 				x: x + 1
@@ -335,12 +337,10 @@ screen: context [
 			relative-y: height - 1
 		]
 
-		ADD_BYTE(null-byte)
-		s: as c-string! array/get-buffer esc-sequences
-		prin s
+		str: array/get-buffer esc-sequences
+		tty/write str array/length? esc-sequences
 		array/clear esc-sequences
 		present?: no
-		;fflush 0
 	]
 
 	render: func [
@@ -351,10 +351,14 @@ screen: context [
 
 		wm: active-win
 		resize-buffer wm
-		#if OS = 'Windows [if wm/editable > 0 [tty/hide-cursor]]
 		render-widget wm/window
 		present?: yes
 		present
-		#if OS = 'Windows [if WIDGET_EDITABLE?(focus-widget) [tty/show-cursor]]
+		either WIDGET_EDITABLE?(focus-widget) [
+			tty/show-cursor
+		][
+			tty/hide-cursor
+		]
+		fflush 0
 	]
 ]
