@@ -769,7 +769,7 @@ Red/System [
 							]
 							sym = box [
 								loop 2 [DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)]
-								DRAW_FETCH_OPT_VALUE(TYPE_INTEGER)
+								DRAW_FETCH_OPT_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
 								OS-draw-box DC as red-pair! start as red-pair! cmd
 							]
 							sym = line [

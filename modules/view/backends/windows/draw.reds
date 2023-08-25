@@ -1112,9 +1112,9 @@ OS-draw-box: func [
 	dc: as ID2D1DeviceContext this/vtbl
 
 	radius: null
-	if TYPE_OF(lower) = TYPE_INTEGER [
+	if upper + 2 = lower [
 		radius: as red-integer! lower
-		rc/radiusX: as float32! radius/value
+		rc/radiusX: get-float32 radius
 		rc/radiusY: rc/radiusX
 		lower: lower - 1
 	]
@@ -1429,32 +1429,15 @@ OS-draw-circle: func [
 		r		[float!]
 		pt		[red-point2D!]
 ][
-	either TYPE_OF(radius) = TYPE_INTEGER [
-		either center + 1 = radius [					;-- center, radius
-			rad-x: as float32! radius/value
-			rad-y: rad-x
-		][
-			rad-y: as float32! radius/value				;-- center, radius-x, radius-y
-			radius: radius - 1
-			rad-x: as float32! radius/value
-		]
-		w: rad-x * as float32! 2.0
-		h: rad-y * as float32! 2.0
-	][
-		f: as red-float! radius
-		either center + 1 = radius [
-			rad-x: as float32! f/value
-			rad-y: rad-x
-			w: rad-x * as float32! 2.0
-			h: w
-		][
-			rad-y: as float32! f/value
-			h: rad-y * as float32! 2.0
-			f: f - 1
-			rad-x: as float32! f/value
-			w: rad-x * as float32! 2.0
-		]
+	rad-x: get-float32 radius
+	rad-y: rad-x
+	if center + 2 = radius [	;-- center, radius-x, radius-y
+		radius: radius - 1
+		rad-x: get-float32 radius
 	]
+	w: rad-x * as float32! 2.0
+	h: rad-y * as float32! 2.0
+
 	GET_PAIR_XY(center cx cy)
 	do-draw-ellipse ctx cx - rad-x cy - rad-y w h
 ]

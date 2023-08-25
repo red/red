@@ -896,7 +896,7 @@ OS-draw-box: func [
 ][
 	cr: dc/cr
 	radius: null
-	if TYPE_OF(lower) = TYPE_INTEGER [
+	if upper + 2 = lower [	;-- lower is pointing to the optional radius parameter
 		radius: as red-integer! lower
 		lower:  lower - 1
 	]
@@ -915,7 +915,7 @@ OS-draw-box: func [
 	either radius <> null [
 		tf: either w > h [h][w]
 		tf: tf / 2.0
-		rad: as-float radius/value
+		rad: get-float radius
 		if rad > tf [rad: tf]
 
 		degrees: pi / 180.0
@@ -1102,39 +1102,18 @@ OS-draw-circle: func [
 		rad-x	[float!]
 		rad-y	[float!]
 		cx cy	[float!]
-		w		[float!]
-		h		[float!]
 		f		[red-float!]
 		saved	[cairo_matrix_t! value]
 		pt		[red-point2D!]
 ][
 	cr: dc/cr
-	either TYPE_OF(radius) = TYPE_INTEGER [
-		either center + 1 = radius [					;-- center, radius
-			rad-x: as float! radius/value
-			rad-y: rad-x
-		][
-			rad-y: as float! radius/value				;-- center, radius-x, radius-y
-			radius: radius - 1
-			rad-x: as float! radius/value
-		]
-		w: rad-x * 2.0
-		h: rad-y * 2.0
-	][
-		f: as red-float! radius
-		either center + 1 = radius [
-			rad-x: f/value
-			rad-y: rad-x
-			w: f/value * 2.0
-			h: w
-		][
-			rad-y: f/value
-			h: f/value * 2.0
-			f: f - 1
-			rad-x: f/value
-			w: f/value * 2.0
-		]
+	rad-x: get-float radius
+	rad-y: rad-x
+	if center + 2 = radius [	;-- center, radius-x, radius-y
+		radius: radius - 1
+		rad-x: get-float radius
 	]
+
 	if any [
 		rad-x = 0.0
 		rad-y = 0.0
