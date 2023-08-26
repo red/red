@@ -170,15 +170,16 @@ screen: context [
 	render-widget: func [
 		widget	[widget!]
 		/local
-			sym [integer!]
 			p	[red-block!]
 			obj [red-object!]
 			end [red-object!]
+			x y [integer!]
 	][
 		if widget/flags and WIDGET_FLAG_HIDDEN <> 0 [exit]
 
-		sym: WIDGET_TYPE(widget)
-		widget/render widget
+		x: 0 y: 0
+		_widget/to-screen-pt widget :x :y
+		widget/render x y widget
 
 		p: CHILD_WIDGET(widget)
 		if TYPE_OF(p) = TYPE_BLOCK [

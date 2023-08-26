@@ -28,6 +28,8 @@ _widget: context [
 	]
 
 	default-render-func: func [
+		x			[integer!]
+		y			[integer!]
 		widget		[widget!]
 	][
 		0
@@ -71,6 +73,25 @@ _widget: context [
 	][
 		x/value: as-integer g/box/left
 		y/value: as-integer g/box/top
+	]
+
+	to-screen-pt: func [
+		widget		[widget!]
+		p-x			[int-ptr!]
+		p-y			[int-ptr!]
+		/local
+			x		[float32!]
+			y		[float32!]
+	][
+		x: F32_0
+		y: F32_0
+		while [all [widget <> null widget/type <> window]][ ;-- window is always full screen
+			x: x + widget/box/left
+			y: y + widget/box/top
+			widget: widget/parent
+		]
+		p-x/value: as-integer x
+		p-y/value: as-integer y
 	]
 
 	find-child: func [
@@ -153,6 +174,8 @@ _widget: context [
 	]
 
 	render-text: func [
+		x		[integer!]
+		y		[integer!]
 		widget	[widget!]
 		flags	[integer!]
 		/local
@@ -165,7 +188,7 @@ _widget: context [
 			p		[pixel!]
 			end		[pixel!]
 			n cnt	[integer!]
-			x y w h	[integer!]
+			w h		[integer!]
 			fg bg	[integer!]
 	][
 		values: get-face-values widget
@@ -183,8 +206,7 @@ _widget: context [
 			fg: true-color << 24 or get-font-color font
 		]
 
-		x: 0 y: 0 w: 0 h: 0
-		_widget/get-offset widget :x :y
+		w: 0 h: 0
 		_widget/get-size widget :w :h
 
 		p: screen/buffer + (screen/width * y + x)

@@ -79,6 +79,8 @@ ROUNDED_RECT_F!: alias struct! [
 #define TEXT_WRAP_FLAG	 		20h
 
 render-func!: alias function! [
+	x		[integer!]
+	y		[integer!]
 	widget	[widget!]
 ]
 

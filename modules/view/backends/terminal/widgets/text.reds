@@ -17,7 +17,9 @@ init-text: func [
 ]
 
 draw-text: func [
+	x			[integer!]
+	y			[integer!]
 	widget		[widget!]
 ][
-	_widget/render-text widget 0
+	_widget/render-text x y widget 0
 ]

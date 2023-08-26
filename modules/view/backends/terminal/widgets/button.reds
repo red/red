@@ -41,6 +41,8 @@ on-button-event: func [
 ]
 
 draw-button: func [
+	x			[integer!]
+	y			[integer!]
 	widget		[widget!]
 	/local
 		flags	[integer!]
@@ -49,5 +51,5 @@ draw-button: func [
 	if WIDGET_FOCUSED?(widget) [
 		flags: flags or PIXEL_INVERTED
 	]
-	_widget/render-text widget flags
+	_widget/render-text x y widget flags
 ]

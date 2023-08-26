@@ -149,15 +149,14 @@ on-field-edit: func [
 ]
 
 draw-field: func [
+	x			[integer!]
+	y			[integer!]
 	widget		[widget!]
 	/local
-		x y		[integer!]
 		field	[field-data!]
 ][
-	_widget/render-text widget 0
+	_widget/render-text x y widget 0
 	if WIDGET_FOCUSED?(widget) [
-		x: 0 y: 0
-		_widget/get-offset widget :x :y
 		field: as field-data! widget/data
 		screen/cursor-x: x + field/cursor
 		screen/cursor-y: y
