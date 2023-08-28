@@ -136,7 +136,6 @@ screen: context [
 	][
 		p: as window-manager! zero-alloc size? window-manager!
 		p/window: widget
-		p/focused: widget
 		array/append-ptr win-list as int-ptr! p
 		widget/data: as int-ptr! p
 		p

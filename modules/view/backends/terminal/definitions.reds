@@ -37,7 +37,7 @@ tiny-str!: alias struct! [	;-- 32 bytes
 #define WIDGET_TYPE(widget)				[widget/type]
 #define WIDGET_SET_FLAG(widget flag)	[widget/flags: widget/flags or flag]
 #define WIDGET_UNSET_FLAG(widget flag)	[widget/flags: widget/flags and (not flag)]
-#define WIDGET_FOCUSED?(widget)			[widget/flags and WIDGET_FLAG_FOCUS <> 0]
+#define WIDGET_FOCUSED?(widget)			[all [widget <> null widget/flags and WIDGET_FLAG_FOCUS <> 0]]
 #define WIDGET_EDITABLE?(widget)		[widget/flags and WIDGET_FLAG_EDITABLE <> 0]
 #define WIDGET_FOCUSABLE?(widget)		[widget/flags and WIDGET_FLAG_FOCUSABLE <> 0]
 
@@ -117,7 +117,6 @@ window-manager!: alias struct! [
 	box			[RECT_F! value]		;-- bounding box
 	window		[widget!]
 	focused		[widget!]
-	focused-idx	[integer!]
 	editable	[integer!]			;-- number of editable widget
 ]
 

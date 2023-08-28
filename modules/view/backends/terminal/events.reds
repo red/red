@@ -261,36 +261,60 @@ send-mouse-event: func [
 	ret
 ]
 
-next-focused-widget: func [
+find-focused-widget: func [
+	wm			[window-manager!]
+	container	[widget!]
+	focused		[widget!]
 	/local
-		win		[widget!]
 		blk		[red-block!]
+		val		[red-value!]
 		len		[integer!]
-		i ii	[integer!]
+		i		[integer!]
 		w		[widget!]
-		wm		[window-manager!]
 ][
-	WIDGET_UNSET_FLAG(screen/focus-widget WIDGET_FLAG_FOCUS)
-	wm: screen/active-win
-	win: wm/window
-	blk: CHILD_WIDGET(win)
-	screen/focus-widget: win
+	blk: CHILD_WIDGET(container)
 	if all [
 		TYPE_OF(blk) = TYPE_BLOCK
 		0 < block/rs-length? blk
 	][
+		val: block/rs-head blk
 		len: block/rs-length? blk
-		i: wm/focused-idx
-		ii: i
-		until [
-			i: i % len
-			w: as widget! get-face-handle as red-object! (block/rs-head blk) + i
-			i: i + 1 % len
-			any [WIDGET_FOCUSABLE?(w) i = ii]
+		i: 0
+		while [i < len][
+			w: as widget! get-face-handle as red-object! val + i
+			if WIDGET_TYPE(w) = panel [find-focused-widget wm w focused]
+			if all [wm/focused <> null wm/focused <> focused][exit]
+			if w = focused [
+				wm/focused: null
+				w: null
+			]
+			if all [null? wm/focused w <> null WIDGET_FOCUSABLE?(w)][
+				wm/focused: w
+				break
+			]
+			i: i + 1
 		]
-		wm/focused-idx: i
-		wm/focused: w
-		screen/focus-widget: w
+	]
+]
+
+next-focused-widget: func [
+	/local
+		wm		[window-manager!]
+		focused	[widget!]
+][
+	wm: screen/active-win
+	either null? screen/focus-widget [
+		screen/focus-widget: wm/window
+	][
+		WIDGET_UNSET_FLAG(screen/focus-widget WIDGET_FLAG_FOCUS)
+	]
+	focused: wm/focused
+	find-focused-widget wm wm/window focused
+	if all [focused <> null null? wm/focused][	;-- start over
+		find-focused-widget wm wm/window null
+	]
+	if wm/focused <> null [
+		screen/focus-widget: wm/focused
 	]
 	WIDGET_SET_FLAG(screen/focus-widget WIDGET_FLAG_FOCUS)
 ]

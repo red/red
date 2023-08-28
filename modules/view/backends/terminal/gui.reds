@@ -267,7 +267,11 @@ OS-show-window: func [
 ][
 	g: as widget! hWnd
 	wm: as window-manager! g/data
-	screen/focus-widget: wm/focused
+	screen/focus-widget: either null? wm/focused [
+		wm/window
+	][
+		wm/focused
+	]
 	screen/active-win: wm
 	either wm/editable = 0 [
 		tty/hide-cursor
