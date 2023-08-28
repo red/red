@@ -381,15 +381,15 @@ system/view/VID: context [
 							]
 							block!	 [
 								switch/default face/type [
-									panel	  [layout/parent/styles value face divides css]
-									group-box [layout/parent/styles value face divides css]
+									panel	  [layout/parent/styles/tight value face divides css]
+									group-box [layout/parent/styles/tight value face divides css]
 									tab-panel [
 										unless parse value [some [string! block!]][throw-error spec]
 										face/pane: make block! (length? value) / 2
 										opts/data: extract value 2
 										max-sz: 0x0
 										foreach p extract next value 2 [
-											layout/parent/styles reduce ['panel copy p] face divides css
+											layout/parent/styles/tight reduce ['panel copy p] face divides css
 											p: last face/pane
 											max-sz: max max-sz p/offset + p/size
 										]

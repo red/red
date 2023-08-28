@@ -186,9 +186,9 @@ _widget: context [
 			options	[red-block!]
 			i len	[integer!]
 			p		[pixel!]
-			end		[pixel!]
 			n cnt	[integer!]
 			w h		[integer!]
+			dx dy	[integer!]
 			fg bg	[integer!]
 	][
 		values: get-face-values widget
@@ -206,11 +206,14 @@ _widget: context [
 			fg: true-color << 24 or get-font-color font
 		]
 
+		dx: screen/width - x
+		dy: screen/height - y
 		w: 0 h: 0
 		_widget/get-size widget :w :h
+		if w < dx [dx: w]
+		if h < dy [dy: h]
 
-		p: screen/buffer + (screen/width * y + x)
-		end: p + w
+		if any [dx <= 0 dy <= 0][exit]
 
 		if all [
 			any [
@@ -225,11 +228,12 @@ _widget: context [
 			]
 		]
 
+		p: screen/buffer + (screen/width * y + x)
+		cnt: 0
 		if TYPE_OF(str) = TYPE_STRING [
-			cnt: 0
 			i: str/head
 			len: string/rs-length? str
-			while [all [i < len cnt < w]][
+			while [all [i < len cnt < dx]][
 				p/code-point: string/rs-abs-at str i
 				p/bg-color: bg
 				p/fg-color: fg
@@ -244,12 +248,27 @@ _widget: context [
 				i: i + 1
 			]
 		]
-		while [cnt < w][
+		while [cnt < dx][
 			p/code-point: 0
 			p/bg-color: bg
 			p/fg-color: fg
 			p: p + 1
 			cnt: cnt + 1
+		]
+
+		dy: y + dy
+		y: y + 1
+		while [y < dy][
+			i: 0
+			p: screen/buffer + (screen/width * y + x)
+			while [i < dx][
+				p/code-point: 0
+				p/bg-color: bg
+				p/fg-color: fg
+				p: p + 1
+				i: i + 1
+			]
+			y: y + 1
 		]
 	]
 ]

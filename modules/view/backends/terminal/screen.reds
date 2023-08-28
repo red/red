@@ -226,6 +226,19 @@ screen: context [
 		ADD_BYTE(#"m")
 	]
 
+	reset-color: func [
+		fg-color?	[logic!]
+		/local
+			s	 [c-string!]
+			_buf [tiny-str! value]
+	][
+		ADD_STR("^[[")
+		s: as c-string! :_buf
+		s: either fg-color? ["39"]["49"]
+		ADD_STR(s)
+		ADD_BYTE(#"m")
+	]
+
 	update-pixel-style: func [
 		pre		[pixel!]
 		p		[pixel!]

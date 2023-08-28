@@ -25,6 +25,8 @@ Red/System [
 #include %widgets/text.reds
 #include %widgets/field.reds
 #include %widgets/button.reds
+#include %widgets/panel.reds
+#include %widgets/base.reds
 
 get-face-values: func [
 	g		 [widget!]
@@ -351,6 +353,8 @@ OS-make-view: func [
 		sym = field  [init-field widget]
 		sym = button [init-button widget]
 		sym = text	 [init-text widget]
+		sym = panel	 [init-panel widget]
+		sym = base	 [init-base widget]
 		true		 [0]
 	]
 

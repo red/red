@@ -27,8 +27,11 @@ page-1: layout/tight [
 	style field: field 10x2
 
 	origin 1x1
-	txt 13 "Card Number" return
-	field 19 hint "8888 **** **** 1234" return
+	panel 30x5 [
+		base 20x2 red return
+		txt 13 "Card Number" return
+		field 19 hint "8888 **** **** 1234"
+	] return
 
 	txt 8 "EXP" txt 3 "CVV" return
 	field 5 hint "MM/YY" pad 3x0 field 3 hint "999" return
