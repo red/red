@@ -125,6 +125,7 @@ screen: context [
 		wm		[window-manager!]
 	][
 		array/clear focus-chain
+		if wm/focused <> null [WIDGET_UNSET_FLAG(wm/focused WIDGET_FLAG_FOCUS)]
 		build-focus-chain wm/window
 	]
 
@@ -184,7 +185,8 @@ screen: context [
 			i: wm/focused-idx
 			i: i + n
 			if i = -1 [i: len - 1]
-			w: as widget! array/pick-ptr focus-chain i % len + 1
+			i: i % len
+			w: as widget! array/pick-ptr focus-chain i + 1
 			wm/focused-idx: i
 			wm/focused: w
 			focus-widget: w
@@ -205,6 +207,30 @@ screen: context [
 		p
 	]
 
+	init-window: func [
+		wm		[window-manager!]
+	][
+		focus-widget: either null? wm/focused [
+			wm/window
+		][
+			wm/focused
+		]
+		active-win: wm
+		update-focus-chain wm
+
+		either wm/editable = 0 [
+			tty/hide-cursor
+		][
+			tty/show-cursor
+		]
+		unless WIDGET_FOCUSED?(wm/focused) [
+			next-focused-widget 0
+		]
+		hover-widget: null
+		captured-widget: null
+		array/clear captured
+	]
+
 	remove-window: func [
 		widget	[widget!]
 		/local
@@ -213,11 +239,11 @@ screen: context [
 		wm: as window-manager! widget/data
 		array/remove-ptr win-list as int-ptr! wm
 		free as byte-ptr! wm
-		active-win: as window-manager! array/pick-ptr win-list array/length? win-list
-		focus-widget: active-win/focused
-		hover-widget: null
-		captured-widget: null
-		array/clear captured
+		if windows-cnt > 0 [
+			active-win: as window-manager! array/pick-ptr win-list windows-cnt
+			init-window active-win
+		]
+	LOG_MSG(["remove 2: " active-win " " windows-cnt])
 	]
 
 	redraw: func [][present?: yes]

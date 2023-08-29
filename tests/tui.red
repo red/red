@@ -17,7 +17,7 @@ page-2: layout/tight [
 	origin 2x2
 	text 10x3 font-color green "Page 2" return
 
-	button 10x2 "Prev" [unview]
+	button 10x2 "Prev" [show page-1]
 	button 4x2 "Next" [show page-3]
 ]
 

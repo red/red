@@ -271,25 +271,9 @@ OS-show-window: func [
 	hWnd	[integer!]
 	/local
 		g	[widget!]
-		wm	[window-manager!]
 ][
 	g: as widget! hWnd
-	wm: as window-manager! g/data
-	screen/focus-widget: either null? wm/focused [
-		wm/window
-	][
-		wm/focused
-	]
-	screen/active-win: wm
-	screen/update-focus-chain wm
-	either wm/editable = 0 [
-		tty/hide-cursor
-	][
-		unless WIDGET_FOCUSED?(wm/focused) [
-			screen/next-focused-widget 0
-		]
-		tty/show-cursor
-	]
+	screen/init-window as window-manager! g/data
 ]
 
 get-float-value: func [
