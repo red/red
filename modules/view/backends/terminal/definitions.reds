@@ -78,6 +78,10 @@ ROUNDED_RECT_F!: alias struct! [
 #define TEXT_ALIGN_BOTTOM 		8
 #define TEXT_WRAP_FLAG	 		20h
 
+update-func!: alias function! [
+	widget	[widget!]
+]
+
 render-func!: alias function! [
 	x		[integer!]
 	y		[integer!]
@@ -96,6 +100,7 @@ widget!: alias struct! [
 	box			[RECT_F! value]
 	parent		[widget!]			;-- parent widget
 	data		[int-ptr!]			;-- extra data for each type
+	update		[update-func!]
 	render		[render-func!]
 	on-event	[event-handler!]
 	;-- face object

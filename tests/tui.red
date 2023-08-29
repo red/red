@@ -27,6 +27,10 @@ page-1: layout/tight [
 	style field: field 10x2
 
 	origin 1x1
+	bar: progress 20x1 50% return
+	button 19x1 "-" [bar/data: bar/data - 10%]
+	button 1x1 "+" [bar/data: bar/data + 10%]
+	return
 	panel 30x5 [
 		base 20x2 red return
 		txt 13 "Card Number" return

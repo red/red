@@ -27,6 +27,14 @@ Red/System [
 #include %widgets/button.reds
 #include %widgets/panel.reds
 #include %widgets/base.reds
+#include %widgets/progress.reds
+
+get-face-obj: func [
+	g		[widget!]
+	return: [red-object!]
+][
+	as red-object! :g/face
+]
 
 get-face-values: func [
 	g		 [widget!]
@@ -283,6 +291,22 @@ OS-show-window: func [
 	]
 ]
 
+get-float-value: func [
+	pos			[red-float!]
+	return:		[float!]
+	/local
+		f		[float!]
+][
+	f: 0.0
+	if any [
+		TYPE_OF(pos) = TYPE_FLOAT
+		TYPE_OF(pos) = TYPE_PERCENT
+	][
+		f: pos/value
+	]
+	f
+]
+
 OS-make-view: func [
 	face	[red-object!]
 	parent	[integer!]
@@ -353,13 +377,14 @@ OS-make-view: func [
 	widget/type: sym
 
 	case [
-		sym = window [screen/add-window widget]
-		sym = field  [init-field widget]
-		sym = button [init-button widget]
-		sym = text	 [init-text widget]
-		sym = panel	 [init-panel widget]
-		sym = base	 [init-base widget]
-		true		 [0]
+		sym = window 	[screen/add-window widget]
+		sym = field  	[init-field widget]
+		sym = button 	[init-button widget]
+		sym = text	 	[init-text widget]
+		sym = panel	 	[init-panel widget]
+		sym = base	 	[init-base widget]
+		sym = progress	[init-progress widget get-float-value as red-float! data]
+		true			[0]
 	]
 
 	screen/update-bounding-box widget
@@ -443,7 +468,34 @@ free-faces: func [
 
 OS-update-view: func [
 	face [red-object!]
-][										;-- reset flags
+	/local
+		ctx		[red-context!]
+		values	[red-value!]
+		state	[red-block!]
+		int		[red-integer!]
+		s		[series!]
+		w		[widget!]
+		b		[red-logic!]
+		sync?	[logic!]
+][
+	ctx: GET_CTX(face)
+	s: as series! ctx/values/value
+	values: s/offset
+
+	state: as red-block! values + FACE_OBJ_STATE
+	s: GET_BUFFER(state)
+	int: as red-integer! s/offset
+	w: as widget! int/value
+	int: int + 1
+
+	b: as red-logic! #get system/view/auto-sync?
+	sync?: b/value
+	b/value: no
+	w/update w
+	screen/redraw
+	b/value: sync?
+
+	int/value: 0										;-- reset flags
 ]
 
 OS-destroy-view: func [
@@ -467,7 +519,7 @@ OS-update-facet: func [
 	index  [integer!]
 	part   [integer!]
 ][
-
+	OS-update-view face
 ]
 
 OS-to-image: func [

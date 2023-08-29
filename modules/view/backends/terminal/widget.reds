@@ -35,6 +35,12 @@ _widget: context [
 		0
 	]
 
+	default-update-func: func [
+		widget		[widget!]
+	][
+		0
+	]
+
 	make: func [
 		parent		[widget!]
 		return:		[widget!]
@@ -43,6 +49,7 @@ _widget: context [
 	][
 		widget: as widget! zero-alloc size? widget!
 		widget/parent: parent
+		widget/update: as update-func! :default-update-func
 		widget/render: as render-func! :default-render-func
 		widget/on-event: as event-handler! :default-event-handler
 		widget

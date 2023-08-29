@@ -12,6 +12,8 @@ Red [
 
 system/view/platform: context [
 
+	#if config/GUI-engine = 'terminal [#include %terminal/make-ui.red]
+
 	#system [
 
 		view-log-level: 0

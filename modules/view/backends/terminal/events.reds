@@ -431,7 +431,6 @@ do-mouse-move: func [
 
 	child: _widget/find-child obj x y
 	either child <> null [
-		;screen/add-update obj
 		ret: do-mouse-move evt child x - child/box/left y - child/box/top flags no
 	][
 		hover: screen/hover-widget
