@@ -122,6 +122,7 @@ window-manager!: alias struct! [
 	box			[RECT_F! value]		;-- bounding box
 	window		[widget!]
 	focused		[widget!]
+	focused-idx	[integer!]
 	editable	[integer!]			;-- number of editable widget
 ]
 

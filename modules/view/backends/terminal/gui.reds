@@ -281,11 +281,12 @@ OS-show-window: func [
 		wm/focused
 	]
 	screen/active-win: wm
+	screen/update-focus-chain wm
 	either wm/editable = 0 [
 		tty/hide-cursor
 	][
 		unless WIDGET_FOCUSED?(wm/focused) [
-			next-focused-widget
+			screen/next-focused-widget 0
 		]
 		tty/show-cursor
 	]

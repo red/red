@@ -17,6 +17,7 @@ screen: context [
 	captured-widget:	as widget! 0
 	captured:			as node! 0
 	win-list:			as node! 0
+	focus-chain:		as node! 0
 	esc-sequences:		as node! 0			;-- escape sequences
 	buffer:				as pixel! 0			;--a width x height 2-D plane
 	prev-buffer:		as pixel! 0
@@ -33,6 +34,7 @@ screen: context [
 	init: func [][
 		win-list: array/make 4 size? int-ptr!
 		captured: array/make 16 size? int-ptr!
+		focus-chain: array/make 16 size? int-ptr!
 		esc-sequences: array/make 4000 1
 	]
 
@@ -87,7 +89,43 @@ screen: context [
 	][
 		collector/keep win-list
 		collector/keep captured
+		collector/keep focus-chain
 		collector/keep esc-sequences
+	]
+
+	build-focus-chain: func [
+		container	[widget!]
+		/local
+			blk		[red-block!]
+			val		[red-value!]
+			len		[integer!]
+			i		[integer!]
+			w		[widget!]
+	][
+		blk: CHILD_WIDGET(container)
+		if all [
+			TYPE_OF(blk) = TYPE_BLOCK
+			0 < block/rs-length? blk
+		][
+			val: block/rs-head blk
+			len: block/rs-length? blk
+			i: 0
+			while [i < len][
+				w: as widget! get-face-handle as red-object! val + i
+				if WIDGET_FOCUSABLE?(w) [
+					array/append-ptr focus-chain as int-ptr! w
+				]
+				if WIDGET_TYPE(w) = panel [build-focus-chain w]
+				i: i + 1
+			]
+		]
+	]
+
+	update-focus-chain: func [
+		wm		[window-manager!]
+	][
+		array/clear focus-chain
+		build-focus-chain wm/window
 	]
 
 	update-bounding-box: func [
@@ -126,6 +164,32 @@ screen: context [
 			wm: as window-manager! win/data
 			wm/editable: wm/editable + 1
 		]
+	]
+
+	next-focused-widget: func [
+		n			[integer!]
+		/local
+			win		[widget!]
+			blk		[red-block!]
+			len		[integer!]
+			i		[integer!]
+			w		[widget!]
+			wm		[window-manager!]
+	][
+		WIDGET_UNSET_FLAG(focus-widget WIDGET_FLAG_FOCUS)
+		wm: active-win
+		focus-widget: wm/window
+		len: array/length? focus-chain
+		if len > 0 [
+			i: wm/focused-idx
+			i: i + n
+			if i = -1 [i: len - 1]
+			w: as widget! array/pick-ptr focus-chain i % len + 1
+			wm/focused-idx: i
+			wm/focused: w
+			focus-widget: w
+		]
+		WIDGET_SET_FLAG(focus-widget WIDGET_FLAG_FOCUS)
 	]
 
 	add-window: func [

@@ -131,6 +131,7 @@ ansi-parser: context [
 					#"D" [RED_VK_LEFT]
 					#"F" [RED_VK_END]
 					#"H" [RED_VK_HOME]
+					#"Z" [RED_VK_BACKTAB]
 					#"3" [either e = #"~" [RED_VK_DELETE][0]]
 					#"1" [
 						either e = #"~" [
@@ -323,6 +324,11 @@ pos: 1
 					c < as byte! 32
 					c = as byte! 127  ;-- delete char
 				][
+					case [
+						c = #"^H" [c: as byte! 127]
+						c = lf	  [c: cr]
+						true	  [0]
+					]
 					send-key-event null as-integer c 0
 					pos: pos + 1
 				]

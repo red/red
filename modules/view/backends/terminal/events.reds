@@ -126,7 +126,7 @@ get-event-key: func [
 			RED_VK_APPS		[_right-command]
 			RED_VK_SCROLL	[_scroll-lock]
 			RED_VK_PAUSE	[_pause]
-			default			[null]
+			default			[none-value]
 		]
 	]
 ]
@@ -261,64 +261,6 @@ send-mouse-event: func [
 	ret
 ]
 
-find-focused-widget: func [
-	wm			[window-manager!]
-	container	[widget!]
-	focused		[widget!]
-	/local
-		blk		[red-block!]
-		val		[red-value!]
-		len		[integer!]
-		i		[integer!]
-		w		[widget!]
-][
-	blk: CHILD_WIDGET(container)
-	if all [
-		TYPE_OF(blk) = TYPE_BLOCK
-		0 < block/rs-length? blk
-	][
-		val: block/rs-head blk
-		len: block/rs-length? blk
-		i: 0
-		while [i < len][
-			w: as widget! get-face-handle as red-object! val + i
-			if WIDGET_TYPE(w) = panel [find-focused-widget wm w focused]
-			if all [wm/focused <> null wm/focused <> focused][exit]
-			if w = focused [
-				wm/focused: null
-				w: null
-			]
-			if all [null? wm/focused w <> null WIDGET_FOCUSABLE?(w)][
-				wm/focused: w
-				break
-			]
-			i: i + 1
-		]
-	]
-]
-
-next-focused-widget: func [
-	/local
-		wm		[window-manager!]
-		focused	[widget!]
-][
-	wm: screen/active-win
-	either null? screen/focus-widget [
-		screen/focus-widget: wm/window
-	][
-		WIDGET_UNSET_FLAG(screen/focus-widget WIDGET_FLAG_FOCUS)
-	]
-	focused: wm/focused
-	find-focused-widget wm wm/window focused
-	if all [focused <> null null? wm/focused][	;-- start over
-		find-focused-widget wm wm/window null
-	]
-	if wm/focused <> null [
-		screen/focus-widget: wm/focused
-	]
-	WIDGET_SET_FLAG(screen/focus-widget WIDGET_FLAG_FOCUS)
-]
-
 send-key-event: func [
 	obj		[widget!]
 	char	[integer!]
@@ -326,9 +268,17 @@ send-key-event: func [
 	/local
 		g-evt	[widget-event! value]
 ][
-	if char = as-integer #"^-" [	;-- tab key
-		next-focused-widget
-		screen/redraw
+	LOG_MSG(["key: " char " " flags])
+	case [
+		char = as-integer #"^-" [	;-- tab key
+			screen/next-focused-widget 1
+			screen/redraw
+		]
+		flags = RED_VK_BACKTAB [	;-- back tab
+			screen/next-focused-widget -1
+			screen/redraw
+		]
+		true [0]
 	]
 
 	if null? obj [
