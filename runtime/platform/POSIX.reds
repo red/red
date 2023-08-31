@@ -36,28 +36,6 @@ tm!: alias struct! [
 	zone	[c-string!]		;-- Timezone abbreviation
 ]
 
-; Wordexp enums
-#define	WRDE_DOOFFS		1
-#define	WRDE_APPEND		2
-#define	WRDE_NOCMD		4
-#define	WRDE_REUSE		8
-#define	WRDE_SHOWERR	16
-#define	WRDE_UNDEF		32
-#define	__WRDE_FLAGS	63
-
-#define	WRDE_NOSPACE	1
-#define	WRDE_BADCHAR	2
-#define	WRDE_BADVAL		3
-#define	WRDE_CMDSUB		4
-#define	WRDE_SYNTAX		5
-
-; Wordexp types
-wordexp-type!: alias struct! [
-	we_wordc  [integer!]
-	we_wordv  [str-array!]
-	we_offs   [integer!]
-]
-
 pollfd!: alias struct! [
 	fd		[integer!]
 	events	[integer!]			;-- events / revents
@@ -156,16 +134,6 @@ pollfd!: alias struct! [
 		execvp: "execvp" [
 			cmd            [c-string!]
 			args-list      [str-array!]
-			return:        [integer!]
-		]
-		wordexp: "wordexp" [
-			words          [c-string!]
-			pwordexp       [wordexp-type!]
-			flags          [integer!]
-			return:        [integer!]
-		]
-		wordfree: "wordfree" [
-			pwordexp       [wordexp-type!]
 			return:        [integer!]
 		]
 		wait-child: "wait" [

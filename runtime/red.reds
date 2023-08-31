@@ -59,7 +59,13 @@ red: context [
 		]
 		Syllable []
 		macOS	 [#include %platform/image-quartz.reds]
-		Linux	 [#include %platform/image-gdk.reds]
+		Linux	 [
+			#either config-name = 'Pico [
+				#include %platform/image-stub.reds
+			][
+				#include %platform/image-gdk.reds
+			]
+		]
 		FreeBSD  [#include %platform/image-gdk.reds]
 		NetBSD   [#include %platform/image-gdk.reds]
 		#default []

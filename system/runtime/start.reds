@@ -141,8 +141,13 @@ system: declare struct! [							;-- trimmed down temporary system definition
 	]
 	
 	true [										;-- for SVR4 fully conforming UNIX platforms
+		#either config-name = 'pico [
+			#define LIBC-START-NAME "__uClibc_main"
+		][
+			#define LIBC-START-NAME "__libc_start_main"
+		]
 		#import [LIBC-file cdecl [
-			libc-start: "__libc_start_main" [
+			libc-start: LIBC-START-NAME [
 				main 			[function! []]
 				argc 			[integer!]
 				argv 			[pointer! [integer!]]
