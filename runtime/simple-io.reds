@@ -2113,7 +2113,7 @@ simple-io: context [
 			]
 			as red-value! bin
 		]
-	]
+	]]
 
 	rename: func[
 		from	[red-value!]
@@ -2126,4 +2126,4 @@ simple-io: context [
 		new: file/to-OS-path as red-file! to
 		zero? _rename old new
 	]
-]]
+]
