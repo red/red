@@ -181,6 +181,7 @@ write %build/bin/sources.r set-cache [
 			%image-gdiplus.reds
 			%image-gdk.reds
 			%image-quartz.reds
+			%image-stub.reds
 			%win32-ansi.reds
 			%win32-print.reds
 		]

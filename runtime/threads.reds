@@ -173,7 +173,11 @@ thread: context [
 			#define LIBPTHREAD-file "libpthread.so"
 		]
 		#default [
-			#define LIBPTHREAD-file "libpthread.so.0"
+			#either config-name = 'Pico [
+				#define LIBPTHREAD-file "libc.so.1"
+			][
+				#define LIBPTHREAD-file "libpthread.so.0"
+			]
 		]
 	]
 

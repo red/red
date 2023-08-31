@@ -547,6 +547,18 @@ simple-io: context [
 					]
 				]
 			]
+			config-name = 'Pico [
+				#import [
+					LIBC-file cdecl [
+						;-- https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/10.6/man2/stat.2.html?useVersion=10.6
+						_stat:	"fstat64" [
+							file		[integer!]
+							restrict	[stat!]
+							return:		[integer!]
+						]
+					]
+				]
+			]
 			true [
 				#import [
 					LIBC-file cdecl [
@@ -749,7 +761,7 @@ simple-io: context [
 			OS = 'Windows [
 				GetFileSize file null
 			]
-			any [OS = 'macOS OS = 'FreeBSD OS = 'NetBSD OS = 'Android] [
+			any [config-name = 'Pico OS = 'macOS OS = 'FreeBSD OS = 'NetBSD OS = 'Android] [
 				s: as stat! system/stack/allocate 36	;-- ensures stat! fits using a max value of 144 bytes
 				either zero? _stat file s [				
 					s/st_size
@@ -1095,7 +1107,7 @@ simple-io: context [
 			s: as stat! system/stack/allocate 36		;-- ensures stat! fits using a max value of 144 bytes
 			fd: open-file file/to-OS-path filename RIO_READ yes
 			if fd < 0 [	return none/push ]
-			#either any [OS = 'macOS OS = 'FreeBSD OS = 'NetBSD OS = 'Android] [
+			#either any [config-name = 'Pico OS = 'macOS OS = 'FreeBSD OS = 'NetBSD OS = 'Android] [
 				_stat   fd s
 			][	_stat 3 fd s]
 			close-file fd
@@ -1701,6 +1713,20 @@ simple-io: context [
 			res
 		]
 	][
+	#either config-name = 'pico [
+		request-http: func [
+			method	[integer!]
+			url		[red-url!]
+			header	[red-block!]
+			data	[red-value!]
+			binary? [logic!]
+			lines?	[logic!]
+			info?	[logic!]
+			return: [red-value!]
+		][
+			as red-value! none-value
+		]
+	][
 		#either OS = 'macOS [
 		#define libcurl-file "libcurl.dylib"
 		#import [
@@ -2087,7 +2113,7 @@ simple-io: context [
 			]
 			as red-value! bin
 		]
-	]
+	]]
 
 	rename: func[
 		from	[red-value!]

@@ -390,6 +390,43 @@ ext-process: context [
 		] ; call
 	] ; Windows
 	#default  [											;-- POSIX
+		#if config-name <> 'Pico [
+			; Wordexp enums
+			#define	WRDE_DOOFFS		1
+			#define	WRDE_APPEND		2
+			#define	WRDE_NOCMD		4
+			#define	WRDE_REUSE		8
+			#define	WRDE_SHOWERR	16
+			#define	WRDE_UNDEF		32
+			#define	__WRDE_FLAGS	63
+
+			#define	WRDE_NOSPACE	1
+			#define	WRDE_BADCHAR	2
+			#define	WRDE_BADVAL		3
+			#define	WRDE_CMDSUB		4
+			#define	WRDE_SYNTAX		5
+
+			; Wordexp types
+			wordexp-type!: alias struct! [
+				we_wordc  [integer!]
+				we_wordv  [str-array!]
+				we_offs   [integer!]
+			]
+			#import [
+				LIBC-file cdecl [
+					wordexp: "wordexp" [
+						words          [c-string!]
+						pwordexp       [wordexp-type!]
+						flags          [integer!]
+						return:        [integer!]
+					]
+					wordfree: "wordfree" [
+						pwordexp       [wordexp-type!]
+						return:        [integer!]
+					]
+				]
+			]
+		]
 		shell-name: as c-string! 0
 
 		init: does [
@@ -516,7 +553,8 @@ ext-process: context [
 					]
 				]
 				if all [(in-buf = null) (not console?)] [platform/io-close stdin]	;-- no redirection, stdin closed
-				
+
+				#if config-name = 'Pico [shell?: yes]
 				either shell? [
 					args: as str-array! allocate 4 * size? c-string!
 					args/item: shell-name	args: args + 1
@@ -526,8 +564,9 @@ ext-process: context [
 					args: args - 3						;-- reset args pointer
 					platform/execvp shell-name args		;-- Process is launched here, execvp with str-array parameters
 				][
-					wexp: declare red/platform/wordexp-type! ;-- Create wordexp struct
-					status: platform/wordexp cmd wexp WRDE_SHOWERR	;-- Parse cmd into str-array
+					#either config-name = 'Pico [status: 0][
+					wexp: declare wordexp-type! ;-- Create wordexp struct
+					status: wordexp cmd wexp WRDE_SHOWERR	;-- Parse cmd into str-array
 					either status = 0 [					;-- Parsing ok
 						platform/execvp wexp/we_wordv/item wexp/we_wordv ;-- Process is launched here, execvp with str-array parameters
 					][									;-- Parsing nok
@@ -540,7 +579,7 @@ ext-process: context [
 							WRDE_CMDSUB  [ __red-call-print-error [ "Command substitution requested" ]	 ]
 							WRDE_SYNTAX  [ __red-call-print-error [ "Shell syntax error, such as unbalanced parentheses or unterminated string" ]	 ]
 						]
-					]
+					]]
 				]
 				;-- get here only when exec fails
 				quit -1
