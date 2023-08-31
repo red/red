@@ -218,6 +218,7 @@ Cross-compilation targets:
     Linux-ARM    : GNU/Linux, ARMv5, armel (soft-float)
     RPi          : GNU/Linux, ARMv7, armhf (hard-float)
     RPi-GTK      : GNU/Linux, ARMv7, armhf (hard-float), GUI only applications
+    Pico         : GNU/Linux, ARMv7, armhf (hard-float), uClibc
     Darwin       : macOS Intel, console-only applications
     macOS        : macOS Intel, applications bundles
     Syllable     : Syllable OS, x86
