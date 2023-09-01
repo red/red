@@ -819,7 +819,7 @@ block: context [
 				actions/poke as red-series! element 2 value null
 				value
 			][
-				either type = TYPE_WORD [
+				either all [type = TYPE_WORD TYPE_OF(parent) <> TYPE_HASH][
 					select-word parent as red-word! element case?
 				][
 					select parent element null yes case? no no null null no no
