@@ -535,7 +535,9 @@ _widget: context [
 				data: data + unit
 			]
 		]
-		while [cnt < dx][
+
+		y: y + 1
+		while [all [y < dy cnt < dx]][
 			p/code-point: 0
 			p/bg-color: bg
 			p/fg-color: fg
@@ -543,7 +545,6 @@ _widget: context [
 			cnt: cnt + 1
 		]
 
-		y: y + 1
 		while [y < dy][
 			i: 0
 			p: screen/buffer + (screen/width * y + x)
