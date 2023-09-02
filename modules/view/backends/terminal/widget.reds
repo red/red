@@ -32,7 +32,7 @@ _widget: context [
 		y			[integer!]
 		widget		[widget!]
 	][
-		0
+		render-text x y widget PIXEL_ANSI_SEQ
 	]
 
 	default-update-func: func [
@@ -180,6 +180,252 @@ _widget: context [
 		as red-object! block/rs-tail p
 	]
 
+	#enum ansi-erase-mode! [
+		ERASE_DOWN
+		ERASE_UP
+		ERASE_SCREEN
+		ERASE_LINE
+		ERASE_LINE_END
+		ERASE_LINE_START
+	]
+
+	saved-cursor: 0
+	default-attributes: 0
+
+	console-store-position: does [][
+		0
+	]
+
+	set-console-cursor: func [
+		cursor		[integer!]
+	][
+		0
+	]
+
+	clear-screen: func [
+		"Clears the screen and moves the cursor to the home position (line 0, column 0)"
+		mode       [ansi-erase-mode!]
+	][
+		0
+	]
+
+	#define MAKE_COLOR_16(idx) [palette-16 << 24 or idx]
+
+	update-graphic-mode: func [	;-- styles and colors
+		p		[pixel!]
+		value	[integer!]
+		/local
+			flags [integer!]
+			idx	  [integer!]
+	][	
+		flags: p/flags
+		case [
+			value = 0 [	;-- reset all styles and colors
+				p/fg-color: 0
+				p/bg-color: 0
+				p/flags: 0
+			]
+			value = 6 [0]
+			all [value >= 1 value <= 9][
+				idx: value
+				p/flags: flags or style-table/idx
+			]
+			all [value >= 21 value <= 29][
+				idx: value - 20
+				p/flags: flags and (not style-table/idx)
+			]
+			value = 38 [0]
+			all [value >= 30 value <= 39][
+				idx: value - 30
+				p/fg-color: MAKE_COLOR_16(idx)
+			]
+			value = 48 [0]
+			all [value >= 40 value <= 49][
+				idx: value - 40
+				p/bg-color: MAKE_COLOR_16(idx)
+			]
+			all [value >= 90 value <= 97][
+				idx: value - 80
+				p/fg-color: MAKE_COLOR_16(idx)
+			]
+			all [value >= 100 value <= 107][
+				idx: value - 90
+				p/bg-color: MAKE_COLOR_16(idx)
+			]
+			true [0]
+		]
+	]
+
+	parse-ansi-sequence: func[
+		str 	[byte-ptr!]
+		unit    [integer!]
+		pix		[pixel!]
+		return: [integer!]
+		/local
+			cp      [integer!]
+			cnt		[integer!]
+			state   [integer!]
+			value1  [integer!]
+			value2  [integer!]
+			value3  [integer!]
+			command [integer!]
+			cursor  [coord!]
+			col     [integer!]
+			row     [integer!]
+	][
+		str: str + unit		;-- skip ESC
+		cp: string/get-char str unit
+		if cp <> as-integer #"[" [return 0]
+		
+		cnt:	 1
+		state:   1
+		value1:  0
+		value2:  0
+		value3:  0
+		str: str + unit
+		cnt: cnt + 1
+		until [
+			cp: string/get-char str unit
+			str: str + unit
+			cnt: cnt + 1
+			switch state [
+				1 [ ;value1 start
+					case [
+						all [cp >= as-integer #"0" cp <= as-integer #"9"][
+							value1: ((value1 * 10) + (cp - as-integer #"0")) // FFFFh
+							state: 2
+						]
+						cp = as-integer #";" [] ;do nothing
+						cp = as-integer #"s" [	;-- Saves the current cursor position.
+							console-store-position
+							state: -1
+						]
+						cp = as-integer #"u" [ ;-- Returns the cursor to the position stored by the Save Cursor Position sequence.
+							set-console-cursor saved-cursor
+							state: -1
+						]
+						cp = as-integer #"K" [ ;-- Erase Line.
+							clear-screen ERASE_LINE_END
+							state: -1
+						]
+						cp = as-integer #"J" [ ;-- Clear screen from cursor down.
+							clear-screen ERASE_DOWN
+							state: -1
+						]
+						any [cp = as-integer #"H" cp = as-integer #"f"] [
+							set-console-cursor 0
+							state: -1
+						]
+						true [ state: -1 ]
+					]
+				]
+				2 [ ;value1 continue
+					case [
+						all [cp >= as-integer #"0" cp <= as-integer #"9"][
+							value1: ((value1 * 10) + (cp - as-integer #"0")) // FFFFh
+						]
+						cp = as-integer #";" [
+							state: 3
+						]
+						cp = as-integer #"m" [
+							update-graphic-mode pix value1
+							state: -1
+						]
+						cp = as-integer #"A" [ ;-- Cursor Up.
+							state: -1
+						]
+						cp = as-integer #"B" [ ;-- Cursor Down.
+							state: -1
+						]
+						cp = as-integer #"C" [ ;-- Cursor Forward.
+							state: -1
+						]
+						cp = as-integer #"D" [ ;-- Cursor Backward.
+							state: -1
+						]
+						cp = as-integer #"J" [
+							case [
+								value1 = 1 [clear-screen ERASE_UP]
+								value1 = 2 [clear-screen ERASE_SCREEN]
+								true [] ;ignore other values
+							]
+							state: -1
+						]
+						cp = as-integer #"K" [
+							case [
+								value1 = 1 [clear-screen ERASE_LINE_START]
+								value1 = 2 [clear-screen ERASE_LINE]
+								true [] ;ignore other values
+							]
+							state: -1
+						]
+						true [ state: -1 ]
+					]
+				]
+				3 [ ;value2 start
+					case [
+						all [cp >= as-integer #"0" cp <= as-integer #"9"][
+							value2: ((value2 * 10) + (cp - as-integer #"0")) // FFFFh
+							state: 4
+						]
+						cp = as-integer #";" [] ;do nothing
+						true [ state: -1 ]
+					]
+				] ;value2 continue
+				4 [
+					case [
+						all [cp >= as-integer #"0" cp <= as-integer #"9"][
+							value2: ((value2 * 10) + (cp - as-integer #"0")) // FFFFh
+						]
+						cp = as-integer #"m" [
+							update-graphic-mode pix value1
+							update-graphic-mode pix value2
+							state: -1 
+						]
+						cp = as-integer #";" [
+							state: 5
+						]
+						any [cp = as-integer #"H" cp = as-integer #"f"] [ ;-- Cursor Position.
+							set-console-cursor (value1 and 0000FFFFh) or (value2 << 16)
+							state: -1
+						]
+						true [ state: -1 ]
+					]
+				]
+				5 [ ;value3 start
+					case [
+						all [cp >= as-integer #"0" cp <= as-integer #"9"][
+							value2: ((value2 * 10) + (cp - as-integer #"0")) // FFFFh
+							state: 6
+						]
+						cp = as-integer #";" [] ;do nothing
+						true [ state: -1 ]
+					]
+				]
+				6 [ ;value3 continue
+					case [
+						all [cp >= as-integer #"0" cp <= as-integer #"9"][
+							value2: ((value2 * 10) + (cp - as-integer #"0")) // FFFFh
+						]
+						cp = as-integer #"m" [
+							update-graphic-mode pix value1
+							update-graphic-mode pix value2
+							update-graphic-mode pix value3
+							state: -1 
+						]
+						cp = as-integer #";" [
+							value1: 0 value2: 0 value3: 0
+							state: 1
+						]
+						true [ state: -1 ]
+					]
+				]
+			]
+			state < 0
+		]
+		cnt
+	]
+
 	render-text: func [
 		x		[integer!]
 		y		[integer!]
@@ -191,12 +437,19 @@ _widget: context [
 			color	[red-tuple!]
 			font	[red-object!]
 			options	[red-block!]
-			i len	[integer!]
+			len i	[integer!]
 			p		[pixel!]
+			pix		[pixel! value]
 			n cnt	[integer!]
 			w h		[integer!]
 			dx dy	[integer!]
 			fg bg	[integer!]
+			cp skip	[integer!]
+			s		[series!]
+			unit	[integer!]
+			data	[byte-ptr!]
+			tail	[byte-ptr!]
+			ansi?	[logic!]
 	][
 		values: get-face-values widget
 		str:    as red-string! values + FACE_OBJ_TEXT
@@ -235,13 +488,40 @@ _widget: context [
 			]
 		]
 
+		dy: y + dy
 		p: screen/buffer + (screen/width * y + x)
 		cnt: 0
 		if TYPE_OF(str) = TYPE_STRING [
-			i: str/head
-			len: string/rs-length? str
-			while [all [i < len cnt < dx]][
-				p/code-point: string/rs-abs-at str i
+			ansi?: flags and PIXEL_ANSI_SEQ <> 0
+			s:	  GET_BUFFER(str)
+			unit: GET_UNIT(s)
+			data: string/rs-head str
+			tail: string/rs-tail str
+
+			while [all [data < tail cnt < dx y < dy]][
+				cp: string/get-char data unit
+				if all [cp = as-integer #"^[" ansi?][
+					pix/bg-color: bg
+					pix/fg-color: fg
+					pix/flags: flags
+					skip: parse-ansi-sequence data unit :pix
+					if skip > 0 [
+						bg: pix/bg-color
+						fg: pix/fg-color
+						flags: pix/flags
+						data: data + (unit * skip)
+						continue
+					]
+				]
+				if cp = as-integer lf [
+					y: y + 1
+					p: screen/buffer + (screen/width * y + x)
+					cnt: 0
+					data: data + unit
+					continue
+				]
+
+				p/code-point: cp
 				p/bg-color: bg
 				p/fg-color: fg
 				p/flags: flags
@@ -252,7 +532,7 @@ _widget: context [
 				]
 				cnt: cnt + n
 				p: p + 1
-				i: i + 1
+				data: data + unit
 			]
 		]
 		while [cnt < dx][
@@ -263,7 +543,6 @@ _widget: context [
 			cnt: cnt + 1
 		]
 
-		dy: y + dy
 		y: y + 1
 		while [y < dy][
 			i: 0

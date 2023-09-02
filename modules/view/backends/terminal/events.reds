@@ -11,7 +11,6 @@ Red/System [
 ]
 
 #define SPECIAL_KEY?(cp) [cp and 80000000h <> 0]
-#define MARK_SPECIAL_KEY(cp) [cp: cp or 80000000h]
 
 #enum event-action! [
 	EVT_DISPATCH
@@ -219,7 +218,7 @@ make-event: func [
 	state
 ]
 
-make-red-event: func [
+send-event: func [
 	evt		[integer!]
 	obj		[widget!]
 	flags	[integer!]
@@ -231,6 +230,7 @@ make-red-event: func [
 	ret: EVT_DISPATCH
 	if obj/flags and WIDGET_FLAG_DISABLE = 0 [
 		w-evt/widget: obj
+		obj/on-event evt :w-evt
 		if 0 <> obj/face [
 			ret: make-event evt :w-evt flags
 		]
@@ -274,7 +274,7 @@ send-key-event: func [
 			screen/next-focused-widget 1
 			screen/redraw
 		]
-		flags = RED_VK_BACKTAB [	;-- back tab
+		flags = KEY_BACKTAB [		;-- back tab
 			screen/next-focused-widget -1
 			screen/redraw
 		]
@@ -287,7 +287,6 @@ send-key-event: func [
 	if obj/flags and WIDGET_FLAG_DISABLE = 0 [
 		if flags <> 0 [
 			char: flags
-			MARK_SPECIAL_KEY(char)
 		]
 		if zero? char [exit]
 		g-evt/data: char

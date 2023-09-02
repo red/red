@@ -637,7 +637,7 @@ system/view/platform: context [
 			]
 		]
 	]
-	
+
 	make-null-handle: routine [][handle/box 0]
 
 	get-screen-size: routine [

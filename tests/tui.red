@@ -16,6 +16,11 @@ page-3: layout/tight [
 page-2: layout/tight [
 	origin 2x2
 	text 10x3 font-color green "Page 2" return
+	text-list 10x4 select 2 data [
+		"apple"
+		"orange"
+		"banana"
+	] return
 
 	button 10x2 "Prev" [show page-1]
 	button 4x2 "Next" [show page-3]

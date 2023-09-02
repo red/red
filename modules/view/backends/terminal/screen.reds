@@ -178,6 +178,7 @@ screen: context [
 			wm		[window-manager!]
 	][
 		WIDGET_UNSET_FLAG(focus-widget WIDGET_FLAG_FOCUS)
+		send-event EVT_UNFOCUS focus-widget 0
 		wm: active-win
 		focus-widget: wm/window
 		len: array/length? focus-chain
@@ -192,7 +193,14 @@ screen: context [
 			focus-widget: w
 		]
 		WIDGET_SET_FLAG(focus-widget WIDGET_FLAG_FOCUS)
+		send-event EVT_FOCUS focus-widget 0
 	]
+
+	win-render-func: func [
+		x			[integer!]
+		y			[integer!]
+		widget		[widget!]
+	][0]
 
 	add-window: func [
 		widget	[widget!]
@@ -204,6 +212,7 @@ screen: context [
 		p/window: widget
 		array/append-ptr win-list as int-ptr! p
 		widget/data: as int-ptr! p
+		widget/render: as render-func! :win-render-func
 		p
 	]
 
@@ -290,6 +299,7 @@ screen: context [
 		fg-color?	[logic!]
 		/local
 			type [integer!]
+			idx  [integer!]
 			s	 [c-string!]
 			fmt  [c-string!]
 			_buf [tiny-str! value]
@@ -302,7 +312,13 @@ screen: context [
 			    s: either fg-color? ["39"]["49"]
 			    ADD_STR(s)
 		    ]
-		    palette-16		[]
+		    palette-16		[
+			    clr: clr and 0Fh
+			    idx: clr * 2 + as-integer fg-color?
+			    idx: idx + 1	;-- 1-based
+			    s: as c-string! color-16-table/idx
+			    ADD_STR(s)
+		    ]
 		    palette-256		[]
 		    true-color		[
 				clr: make-color clr

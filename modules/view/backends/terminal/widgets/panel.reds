@@ -9,17 +9,3 @@ Red/System [
 		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
-
-init-panel: func [
-	widget		[widget!]
-][
-	widget/render: as render-func! :draw-panel
-]
-
-draw-panel: func [
-	x			[integer!]
-	y			[integer!]
-	widget		[widget!]
-][
-	_widget/render-text x y widget 0
-]

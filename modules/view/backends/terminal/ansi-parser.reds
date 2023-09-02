@@ -125,21 +125,21 @@ ansi-parser: context [
 		key: switch p/1 [
 			#"[" [
 				key: switch p/2 [
-					#"A" [RED_VK_UP]
-					#"B" [RED_VK_DOWN]
-					#"C" [RED_VK_RIGHT]
-					#"D" [RED_VK_LEFT]
-					#"F" [RED_VK_END]
-					#"H" [RED_VK_HOME]
-					#"Z" [RED_VK_BACKTAB]
-					#"3" [either e = #"~" [RED_VK_DELETE][0]]
+					#"A" [KEY_UP]
+					#"B" [KEY_DOWN]
+					#"C" [KEY_RIGHT]
+					#"D" [KEY_LEFT]
+					#"F" [KEY_END]
+					#"H" [KEY_HOME]
+					#"Z" [KEY_BACKTAB]
+					#"3" [either e = #"~" [KEY_DELETE][0]]
 					#"1" [
 						either e = #"~" [
 							switch p/3 [
-								#"5" [RED_VK_F5]	;-- ^[[15~
-								#"7" [RED_VK_F6]
-								#"8" [RED_VK_F7]
-								#"9" [RED_VK_F8]
+								#"5" [KEY_F5]	;-- ^[[15~
+								#"7" [KEY_F6]
+								#"8" [KEY_F7]
+								#"9" [KEY_F8]
 								default [0]
 							]
 						][0]
@@ -147,29 +147,29 @@ ansi-parser: context [
 					#"2" [
 						either e = #"~" [
 							switch p/3 [
-								#"0" [RED_VK_F9]	;-- ^[[20~
-								#"1" [RED_VK_F10]
-								#"3" [RED_VK_F11]
-								#"4" [RED_VK_F12]
+								#"0" [KEY_F9]	;-- ^[[20~
+								#"1" [KEY_F10]
+								#"3" [KEY_F11]
+								#"4" [KEY_F12]
 								default [0]
 							]
 						][0]
 					]
 					#"5" [
-						either e = #"~" [RED_VK_PRIOR][0]
+						either e = #"~" [KEY_PAGE_UP][0]
 					]
 					#"6" [
-						either e = #"~" [RED_VK_NEXT][0]
+						either e = #"~" [KEY_PAGE_DOWN][0]
 					]
 					default [0]
 				]
 			]
 			#"O" [
 				key: switch p/2 [
-					#"P" [RED_VK_F1]
-					#"Q" [RED_VK_F2]
-					#"R" [RED_VK_F3]
-					#"S" [RED_VK_F4]
+					#"P" [KEY_F1]
+					#"Q" [KEY_F2]
+					#"R" [KEY_F3]
+					#"S" [KEY_F4]
 					default [0]
 				]
 			]

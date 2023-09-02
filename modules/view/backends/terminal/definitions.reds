@@ -16,7 +16,54 @@ tiny-str!: alias struct! [	;-- 32 bytes
 	pad3	[float!]
 	pad4	[float!]
 ]
-	
+
+#enum function-key! [
+	KEY_UNSET:		 -1
+	KEY_NONE:		  0
+	KEY_UP:			-20
+	KEY_DOWN:		-21
+	KEY_RIGHT:		-22
+	KEY_LEFT:		-23
+	KEY_END:		-24
+	KEY_HOME:		-25
+	KEY_INSERT:		-26
+	KEY_DELETE:		-27
+	KEY_PAGE_UP:	-28
+	KEY_PAGE_DOWN:	-29
+	KEY_ESC:		-30
+	KEY_F1:			-31
+	KEY_F2:			-32
+	KEY_F3:			-33
+	KEY_F4:			-34
+	KEY_F5:			-35
+	KEY_F6:			-36
+	KEY_F7:			-37
+	KEY_F8:			-38
+	KEY_F9:			-39
+	KEY_F10:		-40
+	KEY_F11:		-41
+	KEY_F12:		-42
+	KEY_CTRL_A:		  1
+	KEY_CTRL_B:		  2
+	KEY_CTRL_C:		  3
+	KEY_CTRL_D:		  4
+	KEY_CTRL_E:		  5
+	KEY_CTRL_F:		  6
+	KEY_CTRL_H:		  8
+	KEY_TAB:		  9
+	KEY_BACKTAB:	 10
+	KEY_CTRL_K:		 11
+	KEY_CTRL_L:		 12
+	KEY_ENTER:		 13
+	KEY_CTRL_N:		 14
+	KEY_CTRL_P:		 16
+	KEY_CTRL_T:		 20
+	KEY_CTRL_U:		 21
+	KEY_CTRL_W:		 23
+	KEY_ESCAPE:		 27
+	KEY_BACKSPACE:	127
+]
+
 ;=== widget definitions ===
 
 #define WIDGET_FLAG_PAIR_SIZE	00010000h
@@ -135,7 +182,10 @@ window-manager!: alias struct! [
 	PIXEL_UNDERLINE_2:	20h
 	PIXEL_STRIKE:		40h
 	PIXEL_AUTOMERGE:	80h
-	PIXEL_SKIP:			0100h
+	PIXEL_ITALIC:		0100h
+	PIXEL_HIDDEN:		0200h
+	PIXEL_SKIP:			0400h
+	PIXEL_ANSI_SEQ:		1000h
 ]
 
 #define DRAW_PIXEL?(p) [p/flags and PIXEL_SKIP = 0]

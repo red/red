@@ -9,17 +9,3 @@ Red/System [
 		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
-
-init-text: func [
-	widget		[widget!]
-][
-	widget/render: as render-func! :draw-text
-]
-
-draw-text: func [
-	x			[integer!]
-	y			[integer!]
-	widget		[widget!]
-][
-	_widget/render-text x y widget 0
-]

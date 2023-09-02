@@ -192,6 +192,39 @@ utf16-length?: func [
 	(as-integer s - widget) >>> 1							;-- do not count the terminal zero
 ]
 
+style-table: [
+	PIXEL_BOLD
+	PIXEL_FAINT
+	PIXEL_ITALIC
+	PIXEL_UNDERLINE
+	PIXEL_BLINK
+	0
+	PIXEL_INVERTED
+	PIXEL_HIDDEN
+	PIXEL_STRIKE
+]
+
+color-16-table: [
+    "40"  "30" 
+    "41"  "31" 
+    "42"  "32" 
+    "43"  "33" 
+    "44"  "34" 
+    "45"  "35" 
+    "46"  "36" 
+    "47"  "37" 
+    "0"   "0"
+    "49"  "39"
+    "100" "90" 
+    "101" "91" 
+    "102" "92" 
+    "103" "93" 
+    "104" "94" 
+    "105" "95" 
+    "106" "96" 
+    "107" "97" 
+]
+
 color-table: #{
 	;; palette-16-index  red  green  blue
 	00 00 00 00 	;-- Black

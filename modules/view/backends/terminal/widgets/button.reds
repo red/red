@@ -32,7 +32,6 @@ on-button-event: func [
 	cp: 0
 	if type = EVT_KEY [
 		cp: evt/data
-		if SPECIAL_KEY?(cp) [cp: cp and 7FFFFFFFh]
 	]
 
 	if zero? cp [return 0]

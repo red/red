@@ -10,27 +10,6 @@ Red/System [
 	}
 ]
 
-#enum _function-key! [
-	KEY_CTRL_A:		  1
-	KEY_CTRL_B:		  2
-	KEY_CTRL_C:		  3
-	KEY_CTRL_D:		  4
-	KEY_CTRL_E:		  5
-	KEY_CTRL_F:		  6
-	KEY_CTRL_H:		  8
-	KEY_TAB:		  9
-	KEY_CTRL_K:		 11
-	KEY_CTRL_L:		 12
-	KEY_ENTER:		 13
-	KEY_CTRL_N:		 14
-	KEY_CTRL_P:		 16
-	KEY_CTRL_T:		 20
-	KEY_CTRL_U:		 21
-	KEY_CTRL_W:		 23
-	KEY_ESCAPE:		 27
-	KEY_BACKSPACE:	127
-]
-
 field-data!: alias struct! [
 	idx		[integer!]	;-- cursor index of the text
 	cursor	[integer!]	;-- cursor position, take into account char width
@@ -47,11 +26,11 @@ init-field: func [
 		f		[field-data!]
 ][
 	WIDGET_SET_FLAG(widget WIDGET_FLAG_FOCUSABLE)
+	WIDGET_SET_FLAG(widget WIDGET_FLAG_EDITABLE)
 	if widget/data <> null [free as byte-ptr! widget/data]
 	widget/data: as int-ptr! zero-alloc size? field-data!
 	widget/render: as render-func! :draw-field
 	widget/on-event: as event-handler! :on-field-edit
-	widget/flags: widget/flags or WIDGET_FLAG_EDITABLE
 
 	str: as red-string! (get-face-values widget) + FACE_OBJ_TEXT
 	if TYPE_OF(str) = TYPE_STRING [
@@ -94,7 +73,6 @@ on-field-edit: func [
 	cp: 0
 	if type = EVT_KEY [
 		cp: evt/data
-		if SPECIAL_KEY?(cp) [cp: cp and 7FFFFFFFh]
 	]
 
 	if any [zero? cp cp = as-integer #"^-" cp = as-integer cr][return 0]
@@ -113,7 +91,7 @@ on-field-edit: func [
 			]
 		]
 		KEY_CTRL_B
-		RED_VK_LEFT [
+		KEY_LEFT [
 			unless zero? idx [
 				field/idx: idx - 1
 				n: char-width? string/rs-abs-at line line/head + field/idx
@@ -121,7 +99,7 @@ on-field-edit: func [
 			]
 		]
 		KEY_CTRL_F
-		RED_VK_RIGHT [
+		KEY_RIGHT [
 			if idx < string/rs-length? line [
 				n: char-width? string/rs-abs-at line line/head + field/idx
 				field/idx: idx + 1

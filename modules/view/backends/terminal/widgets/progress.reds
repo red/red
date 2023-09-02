@@ -10,10 +10,6 @@ Red/System [
 	}
 ]
 
-progress-data!: alias struct! [
-	value		[float!]
-]
-
 make-progress-ui: func [
 	widget		[widget!]
 	/local
@@ -25,14 +21,7 @@ make-progress-ui: func [
 
 init-progress: func [
 	widget		[widget!]
-	value		[float!]
-	/local
-		d		[progress-data!]
 ][
-	if widget/data <> null [free as byte-ptr! widget/data]
-	d: as progress-data! zero-alloc size? progress-data!
-	d/value: value
-	widget/data: as int-ptr! d
 	widget/update: as update-func! :make-progress-ui
 	widget/render: as render-func! :draw-progress
 	make-progress-ui widget

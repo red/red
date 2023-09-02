@@ -22,12 +22,10 @@ Red/System [
 #include %widget.reds
 #include %screen.reds
 
-#include %widgets/text.reds
 #include %widgets/field.reds
 #include %widgets/button.reds
-#include %widgets/panel.reds
-#include %widgets/base.reds
 #include %widgets/progress.reds
+#include %widgets/text-list.reds
 
 get-face-obj: func [
 	g		[widget!]
@@ -62,6 +60,16 @@ get-face-handle: func [
 	int: as red-integer! block/rs-head state
 	assert TYPE_OF(int) = TYPE_HANDLE
 	as handle! int/value
+]
+
+has-focus?: func [
+	h		[int-ptr!]
+	return: [logic!]
+	/local
+		w	[widget!]
+][
+	w: as widget! h
+	WIDGET_FOCUSED?(w)
 ]
 
 support-dark-mode?: func [
@@ -276,22 +284,6 @@ OS-show-window: func [
 	screen/init-window as window-manager! g/data
 ]
 
-get-float-value: func [
-	pos			[red-float!]
-	return:		[float!]
-	/local
-		f		[float!]
-][
-	f: 0.0
-	if any [
-		TYPE_OF(pos) = TYPE_FLOAT
-		TYPE_OF(pos) = TYPE_PERCENT
-	][
-		f: pos/value
-	]
-	f
-]
-
 OS-make-view: func [
 	face	[red-object!]
 	parent	[integer!]
@@ -301,7 +293,6 @@ OS-make-view: func [
 		values	[red-value!]
 		type	[red-word!]
 		str		[red-string!]
-		tail	[red-string!]
 		offset	[red-point2D!]
 		size	[red-pair!]
 		data	[red-block!]
@@ -311,7 +302,6 @@ OS-make-view: func [
 		show?	[red-logic!]
 		open?	[red-logic!]
 		rate	[red-value!]
-		saved	[red-value!]
 		para	[red-object!]
 		flags	[integer!]
 		bits	[integer!]
@@ -351,6 +341,7 @@ OS-make-view: func [
 	]
 
 	widget: _widget/make as widget! parent
+	widget/flags: flags
 	widget/box/left: offset/x
 	widget/box/top: offset/y
 	widget/box/right: offset/x + sx
@@ -365,10 +356,8 @@ OS-make-view: func [
 		sym = window 	[screen/add-window widget]
 		sym = field  	[init-field widget]
 		sym = button 	[init-button widget]
-		sym = text	 	[init-text widget]
-		sym = panel	 	[init-panel widget]
-		sym = base	 	[init-base widget]
-		sym = progress	[init-progress widget get-float-value as red-float! data]
+		sym = progress	[init-progress widget]
+		sym = text-list [init-text-list widget]
 		true			[0]
 	]
 
