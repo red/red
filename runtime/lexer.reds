@@ -143,8 +143,14 @@ lexer: context [
 	}
 	
 	float-transitions: #{
-		0700010702070707070103020106070702030702060704050707070707070507070707
-		0707050707070607070707070707
+		07000107020707
+		07070103020106
+		07070203070206
+		07040507070707
+		07070507070707
+		07070507070706
+		06060606060606
+		07070707070707
 	}
 	
 	;-- Bit-array for /-~^{}"
@@ -1431,6 +1437,25 @@ lexer: context [
 		lex/in-pos: e + 1								;-- skip comma
 	]
 	
+	scan-float: func [s e [byte-ptr!] return: [logic!]
+		/local
+			state index class [integer!]
+			p [byte-ptr!]
+	][
+		p: s
+		state: 0										;-- S_FL_START
+		until [	
+			index: as-integer p/1
+			class: as-integer float-classes/index
+			index: state * (size? float-char-classes!) + class
+			state: as-integer float-transitions/index
+			p: p + 1
+			p = e
+		]
+		index: state * (size? float-char-classes!) + C_FL_EOF
+		7 <> as-integer float-transitions/index			;-- T_FL_ERROR,  true: float, false: error
+	]
+	
 	load-integer: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		return: [integer!]
 		/local
@@ -1812,24 +1837,11 @@ lexer: context [
 
 	load-float: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local
-			state index class err [integer!]
-			p	[byte-ptr!]
+			err [integer!]
 			fl	[red-float!]
 			f	[float!]
 	][
-		p: s
-		state: 0										;-- S_FL_START
-		until [	
-			index: as-integer p/1
-			class: as-integer float-classes/index
-			index: state * (size? float-char-classes!) + class
-			state: as-integer float-transitions/index
-			p: p + 1
-			p = e
-		]
-		index: state * (size? float-char-classes!) + C_FL_EOF
-		state: as-integer float-transitions/index
-		if state = 7 [throw-error lex s e TYPE_FLOAT]	;-- T_FL_ERROR
+		unless scan-float s e [throw-error lex s e TYPE_FLOAT]
 		
 		if load? [
 			err: 0

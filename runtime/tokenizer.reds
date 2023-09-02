@@ -72,6 +72,8 @@ tokenizer: context [
 			cur	 [byte-ptr!]
 			s0	 [byte-ptr!]
 	][
+		unless lexer/scan-float p p + len [error/value: -1 return 1.#NaN]
+
 		cur: as byte-ptr! "0000000000000000000000000000000"	;-- 32 bytes including NUL
 		assert unit <= 4
 		tail: p + (len << (unit >> 1))

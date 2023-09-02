@@ -1644,6 +1644,14 @@ Red [
 			scan file! datatype! 1 1x11 
 			load file! datatype! 1 %hello.txt
 		]
+		
+	--test-- "#5375"
+		--assert 1.0 == to float! "1e0"
+		--assert error? try [to float! "1ex"]
+		--assert error? try [to float! "1exy"]
+		--assert error? try [to float! "1e-x"]
+		--assert error? try [to float! "1e-xy"]
+		--assert error? try [to float! "1e/xy"]
 
 ===end-group===
 	
