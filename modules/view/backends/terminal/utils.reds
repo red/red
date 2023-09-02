@@ -528,6 +528,7 @@ string-width?: func [
 	str		[red-string!]
 	limit-w [integer!]
 	end-idx [int-ptr!]
+	nlines	[int-ptr!]
 	return: [integer!]
 	/local
 		series	[series!]
@@ -536,9 +537,13 @@ string-width?: func [
 		tail	[byte-ptr!]
 		cp idx	[integer!]
 		len n	[integer!]
+		max-len [integer!]
+		cnt		[integer!]
 ][
-	len:	0
-	idx:	0
+	cnt: 	 1
+	len:	 0
+	max-len: 0
+	idx:	 0
 	series: GET_BUFFER(str)
 	unit: 	GET_UNIT(series)
 	offset: (as byte-ptr! series/offset) + (str/head << (log-b unit))
@@ -548,15 +553,23 @@ string-width?: func [
 		all [offset < tail len < limit-w]
 	][
 		cp: string/get-char offset unit
-		n: char-width? cp
-		len: len + n
+		either cp = as-integer lf [
+			cnt: cnt + 1
+			if len > max-len [max-len: len]
+			len: 0
+		][
+			n: char-width? cp
+			len: len + n
+		]
 		idx: idx + 1
 		offset: offset + unit
 	]
-	if len > limit-w [
-		len: len - n
+	if len > max-len [max-len: len]
+	if max-len > limit-w [
+		max-len: max-len - n
 		idx: idx - 1
 	]
 	if end-idx <> null [end-idx/value: idx]
-	len
+	if nlines <> null [nlines/value: cnt]
+	max-len
 ]

@@ -14,14 +14,19 @@ page-3: layout/tight [
 ]
 
 page-2: layout/tight [
-	origin 2x2
-	text 10x3 font-color green "Page 2" return
-	text-list 10x4 select 2 data [
-		"apple"
-		"orange"
-		"banana"
+	origin 1x1
+	text 10x2 font-color green "Page 2" return
+	text-list 10x3 select 2 data [
+		"1 apple"
+		"2 orange"
+		"3 banana"
+		"4 grape"
+		"5 lychee"
+		"6 pear"
+		"7 watermelon"
 	] return
 
+	pad 0x1
 	button 10x2 "Prev" [show page-1]
 	button 4x2 "Next" [show page-3]
 ]

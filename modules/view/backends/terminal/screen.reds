@@ -53,11 +53,13 @@ screen: context [
 		if w > tty/columns [w: tty/columns]
 		if h > tty/rows [h: tty/rows]
 
-		if any [w > width h > height][		;-- require a bigger buffer
-			if buffer <> null [free as byte-ptr! buffer]
+		if any [w <> width h <> height][
+			if any [w > width h > height][		;-- require a bigger buffer
+				if buffer <> null [free as byte-ptr! buffer]
+				buffer: as pixel! allocate w * h * size? pixel!
+			]		
 			width: w
-			height: h
-			buffer: as pixel! allocate width * height * size? pixel!
+			height: h	
 		]
 	]
 
@@ -392,8 +394,6 @@ screen: context [
 			dy	 [integer!]
 			s	 [c-string!]
 	][
-		;-- TODO diff buffer and prev-buffer, only present the changed pixels
-
 		if any [width < 1 height < 1][exit]
 
 		present?: yes

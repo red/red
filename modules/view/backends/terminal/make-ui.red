@@ -17,9 +17,16 @@ focused?: routine [
 		bool	[red-logic!]
 ][
 	widget: gui/face-handle? face
-	bool: as red-logic! stack/arguments
-	bool/value:  either null? widget [false][gui/has-focus? widget]
-	bool/header: TYPE_LOGIC
+	logic/box either null? widget [false][gui/has-focus? widget]
+]
+
+widget-data: routine [
+	face	[object!]
+	/local
+		widget	[int-ptr!]
+][
+	widget: gui/face-handle? face
+	integer/box as-integer gui/widget-data widget
 ]
 
 make-progress-ui: function [
@@ -52,9 +59,12 @@ make-text-list-ui: function [
 		if focused? face [face/selected: 1]
 	]
 	unless focused? face [idx: -1]
-	i: 1
+
+	head: widget-data face		;-- we use widget/data to save the idx of the first entry
+	data: skip face/data head
+	i: head + 1
 	ui: clear ""
-	foreach s face/data [
+	foreach s data [
 		if i = idx [
 			append ui "^[[7m"	;-- highlight selected item
 		]

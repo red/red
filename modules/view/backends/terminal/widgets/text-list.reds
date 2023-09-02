@@ -28,6 +28,8 @@ on-text-list-event: func [
 		cp		[integer!]
 		idx		[integer!]
 		len		[integer!]
+		head	[integer!]
+		w h		[integer!]
 		data	[red-block!]
 		values	[red-value!]
 		selected [red-integer!]
@@ -37,6 +39,9 @@ on-text-list-event: func [
 	data: as red-block! values + FACE_OBJ_DATA
 	selected: as red-integer! values + FACE_OBJ_SELECTED
 
+	w: 0 h: 0
+	_widget/get-size widget :w :h
+	head: as-integer widget/data
 	idx: selected/value
 
 	if type = EVT_KEY [
@@ -50,12 +55,19 @@ on-text-list-event: func [
 		switch cp [
 			KEY_UP [
 				if idx > 1 [idx: idx - 1]
+				if all [idx - 1 < head head > 0][
+					head: head - 1
+				]
 			]
 			KEY_DOWN [
 				if idx < len [idx: idx + 1]
+				if idx - h > head [
+					head: head + 1
+				]
 			]
 			default [return 0]
 		]
+		widget/data: as int-ptr! head
 	]
 
 	selected/value: idx
@@ -70,5 +82,6 @@ init-text-list: func [
 	WIDGET_SET_FLAG(widget WIDGET_FLAG_FOCUSABLE)
 	widget/update: as update-func! :make-text-list-ui
 	widget/on-event: as event-handler! :on-text-list-event
+	widget/data: null
 	make-text-list-ui widget
 ]

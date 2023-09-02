@@ -72,6 +72,16 @@ has-focus?: func [
 	WIDGET_FOCUSED?(w)
 ]
 
+widget-data: func [
+	h		[int-ptr!]
+	return: [int-ptr!]
+	/local
+		w	[widget!]
+][
+	w: as widget! h
+	either null? w [null][w/data]
+]
+
 support-dark-mode?: func [
 	return: [logic!]
 ][
@@ -129,9 +139,12 @@ get-text-size: func [
 	face 	[red-object!]
 	text	[red-string!]
 	pt		[red-point2D!]
+	/local
+		n	[integer!]
 ][
-	pt/x: as float32! string-width? text 7FFFFFFFh null
-	pt/y: F32_1
+	n: 1
+	pt/x: as float32! string-width? text 7FFFFFFFh null :n
+	pt/y: as float32! n
 ]
 
 get-flags: func [

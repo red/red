@@ -38,7 +38,7 @@ init-field: func [
 		_widget/get-size widget :w :h
 
 		idx: 0
-		len: string-width? str w :idx
+		len: string-width? str w :idx null
 
 		f: as field-data! widget/data
 		f/idx: idx
@@ -106,6 +106,7 @@ on-field-edit: func [
 				field/cursor: field/cursor + n
 			]
 		]
+		KEY_BACKTAB [0]
 		default [
 			unless SPECIAL_KEY?(evt/data) [
 				n: char-width? cp
