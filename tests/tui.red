@@ -9,11 +9,12 @@ page-3: layout/tight [
 	text 10x3 font-color yellow "Page 3" return
 
 	panel 30x2 [
-		bar: progress 20x1 20% rate 10 on-time [
-			face/data: (face/data + 10%) % 100%
+		bar: progress 20x1 30% rate 10 on-time [
+			data: face/data + 10%
+			face/data: either data > 100% [0%][data]
 			bar-txt/text: form face/data
 		] pad 1x0
-		bar-txt: text 4x1 "20%"
+		bar-txt: text 4x1 "30%"
 	] return
 
 	button 8x2 "Prev" [unview]
@@ -44,7 +45,7 @@ page-1: layout/tight [
 	style field: field 10x1
 
 	origin 1x1 space 0x1 below
-	base 20x2 red "Hello Red!"
+	base 20x3 red center middle "Hello Red!"
 
 	panel 30x2 [
 		txt 13 "Card Number" return

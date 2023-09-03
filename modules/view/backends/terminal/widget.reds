@@ -437,12 +437,14 @@ _widget: context [
 			color	[red-tuple!]
 			font	[red-object!]
 			options	[red-block!]
+			para	[red-object!]
 			len i	[integer!]
 			p		[pixel!]
 			pix		[pixel! value]
 			n cnt	[integer!]
 			w h		[integer!]
 			dx dy	[integer!]
+			yy		[integer!]
 			fg bg	[integer!]
 			cp skip	[integer!]
 			s		[series!]
@@ -450,12 +452,17 @@ _widget: context [
 			data	[byte-ptr!]
 			tail	[byte-ptr!]
 			ansi?	[logic!]
+			pt		[red-point2D! value]
+			txt-w	[integer!]
+			txt-h	[integer!]
+			align	[integer!]
 	][
 		values: get-face-values widget
 		str:    as red-string! values + FACE_OBJ_TEXT
 		color:  as red-tuple!  values + FACE_OBJ_COLOR
 		font:   as red-object! values + FACE_OBJ_FONT
 		options: as red-block! values + FACE_OBJ_OPTIONS
+		para:	as red-object! values + FACE_OBJ_PARA
 
 		bg: 0 fg: 0
 		if TYPE_OF(color) = TYPE_TUPLE [
@@ -488,7 +495,50 @@ _widget: context [
 			]
 		]
 
+		;-- paint background
 		dy: y + dy
+		yy: y
+		while [yy < dy][
+			i: 0
+			p: screen/buffer + (screen/width * yy + x)
+			while [i < dx][
+				p/code-point: 32	;-- whitespace char
+				p/bg-color: bg
+				p: p + 1
+				i: i + 1
+			]
+			yy: yy + 1
+		]
+
+		;-- set alignment
+		if all [
+			TYPE_OF(str) = TYPE_STRING
+			TYPE_OF(para) = TYPE_OBJECT
+		][
+			align: get-para-flags para
+			get-text-size as red-object! :widget/face str :pt
+			txt-w: as-integer pt/x
+			txt-h: as-integer pt/y
+
+			if txt-w < w [
+				case [
+					align and TEXT_ALIGN_CENTER <> 0 [
+						x: x + (w - txt-w / 2)
+					]
+					true [0]
+				]
+			]
+			if txt-h < h [
+				case [
+					align and TEXT_ALIGN_VCENTER <> 0 [
+						y: y + (h - txt-h / 2)
+					]
+					true [0]
+				]
+			]
+		]
+
+		;-- draw text
 		p: screen/buffer + (screen/width * y + x)
 		cnt: 0
 		if TYPE_OF(str) = TYPE_STRING [
@@ -534,28 +584,6 @@ _widget: context [
 				p: p + 1
 				data: data + unit
 			]
-		]
-
-		y: y + 1
-		while [all [y < dy cnt < dx]][
-			p/code-point: 0
-			p/bg-color: bg
-			p/fg-color: fg
-			p: p + 1
-			cnt: cnt + 1
-		]
-
-		while [y < dy][
-			i: 0
-			p: screen/buffer + (screen/width * y + x)
-			while [i < dx][
-				p/code-point: 0
-				p/bg-color: bg
-				p/fg-color: fg
-				p: p + 1
-				i: i + 1
-			]
-			y: y + 1
 		]
 	]
 ]

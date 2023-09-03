@@ -54,7 +54,6 @@ get-para-flags: func [
 		values  [red-value!]
 		align   [red-word!]
 		bool	[red-logic!]
-		wrap?	[logic!]
 		flags   [integer!]
 		left    [integer!]
 		center  [integer!]
@@ -72,13 +71,8 @@ get-para-flags: func [
 	v-sym:  either TYPE_OF(align) = TYPE_WORD [symbol/resolve align/symbol][-1]
 	bool:   as red-logic! values + PARA_OBJ_WRAP?
 	
-	wrap?:	any [
-		TYPE_OF(bool) = TYPE_NONE
-		all [TYPE_OF(bool) = TYPE_LOGIC not bool/value]
-	]
-
 	flags:	0
-	unless wrap? [flags: 20h]					;-- DT_SINGLELINE
+	if all [TYPE_OF(bool) = TYPE_LOGIC bool/value][flags: TEXT_WRAP_FLAG]
 
 	case [
 		h-sym = _para/left	 [flags: flags or TEXT_ALIGN_LEFT]

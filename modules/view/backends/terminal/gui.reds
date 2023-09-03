@@ -308,17 +308,11 @@ OS-make-view: func [
 		widget	[widget!]
 		values	[red-value!]
 		type	[red-word!]
-		str		[red-string!]
 		offset	[red-point2D!]
 		size	[red-pair!]
-		data	[red-block!]
-		int		[red-integer!]
-		img		[red-image!]
-		menu	[red-block!]
 		show?	[red-logic!]
-		open?	[red-logic!]
+		enable?	[red-logic!]
 		rate	[red-value!]
-		para	[red-object!]
 		flags	[integer!]
 		bits	[integer!]
 		sym		[integer!]
@@ -330,15 +324,10 @@ OS-make-view: func [
 	values: object/get-values face
 
 	type:	  as red-word!		values + FACE_OBJ_TYPE
-	str:	  as red-string!	values + FACE_OBJ_TEXT
 	offset:   as red-point2D!	values + FACE_OBJ_OFFSET
 	size:	  as red-pair!		values + FACE_OBJ_SIZE
 	show?:	  as red-logic!		values + FACE_OBJ_VISIBLE?
-	open?:	  as red-logic!		values + FACE_OBJ_ENABLED?
-	data:	  as red-block!		values + FACE_OBJ_DATA
-	img:	  as red-image!		values + FACE_OBJ_IMAGE
-	menu:	  as red-block!		values + FACE_OBJ_MENU
-	para:	  as red-object!	values + FACE_OBJ_PARA
+	enable?:  as red-logic!		values + FACE_OBJ_ENABLED?
 	rate:						values + FACE_OBJ_RATE
 
 	flags: 0
@@ -355,6 +344,9 @@ OS-make-view: func [
 		sx: pt/x
 		sy: pt/y
 	]
+
+	unless show?/value [flags: flags or WIDGET_FLAG_HIDDEN]
+	unless enable?/value [flags: flags or WIDGET_FLAG_DISABLE]
 
 	widget: _widget/make as widget! parent
 	widget/flags: flags
@@ -488,10 +480,12 @@ OS-update-view: func [
 		values	[red-value!]
 		state	[red-block!]
 		int		[red-integer!]
+		val		[red-value!]
 		s		[series!]
 		w		[widget!]
 		b		[red-logic!]
 		sync?	[logic!]
+		flags	[integer!]
 ][
 	ctx: GET_CTX(face)
 	s: as series! ctx/values/value
@@ -502,6 +496,13 @@ OS-update-view: func [
 	int: as red-integer! s/offset
 	w: as widget! int/value
 	int: int + 1
+	flags: int/value
+	
+	if flags and FACET_FLAG_RATE <> 0 [
+		timer/kill w
+		val: values + FACE_OBJ_RATE
+		if TYPE_OF(val) <> TYPE_NONE [change-rate w val]
+	]
 
 	b: as red-logic! #get system/view/auto-sync?
 	sync?: b/value
