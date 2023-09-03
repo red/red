@@ -3,7 +3,7 @@ Red/System [
 	Author: "Xie Qingtian"
 	File: 	%events.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2019 Red Foundation. All rights reserved."
+	Rights: "Copyright (C) 2023 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -500,12 +500,16 @@ post-quit-msg: does [
 	exit-loop?: yes
 ]
 
+#define DELTA_TIME 30
+
 do-events: func [
 	no-wait? [logic!]
 	return:  [logic!]
 	/local
-		msg?  [logic!]
-		n	  [integer!]
+		msg?	[logic!]
+		n		[integer!]
+		tm		[time-meter! value]
+		t delta	[integer!]
 ][
 	LOG_MSG("----------------------------")
 	if all [
@@ -516,14 +520,24 @@ do-events: func [
 	tty/init
 	exit-loop?: no
 
+	t: 0
 	until [
 		n: tty/read-input
 		msg?: n > 0
 		if all [no-wait? not msg?][break]
 
+		delta: either t > DELTA_TIME [t][
+			tty/wait DELTA_TIME - t
+			DELTA_TIME
+		]
+
+		time-meter/start :tm
+		timer/update delta
 		screen/render
-		tty/wait 30
 		ansi-parser/parse
+		t: as-integer time-meter/elapse :tm
+		assert t >= 0
+
 		any [no-wait? exit-loop?]
 	]
 	unless no-wait? [tty/restore]

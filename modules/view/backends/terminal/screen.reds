@@ -2,7 +2,7 @@ Red/System [
 	Author: "Xie Qingtian"
 	File: 	%screen.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2019 Red Foundation. All rights reserved."
+	Rights: "Copyright (C) 2023 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -31,7 +31,7 @@ screen: context [
 		win-list: array/make 4 size? int-ptr!
 		captured: array/make 16 size? int-ptr!
 		focus-chain: array/make 16 size? int-ptr!
-		esc-sequences: array/make 4000 1
+		esc-sequences: array/make 2000 1
 	]
 
 	windows-cnt: func [
@@ -74,13 +74,7 @@ screen: context [
 		buffer: as pixel! 0
 	]
 
-	on-gc-mark: func [
-		/local
-			w	[window-manager!]
-			s	[series!]
-			p	[ptr-ptr!]
-			e	[ptr-ptr!]
-	][
+	on-gc-mark: func [][
 		collector/keep win-list
 		collector/keep captured
 		collector/keep focus-chain
@@ -246,7 +240,6 @@ screen: context [
 			active-win: as window-manager! array/pick-ptr win-list windows-cnt
 			init-window active-win
 		]
-	LOG_MSG(["remove 2: " active-win " " windows-cnt])
 	]
 
 	redraw: func [][present?: yes]

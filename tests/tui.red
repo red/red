@@ -6,7 +6,15 @@ Red [
 
 page-3: layout/tight [
 	origin 2x2
-	text 10x3 font-color blue "Page 3" return
+	text 10x3 font-color yellow "Page 3" return
+
+	panel 30x2 [
+		bar: progress 20x1 20% rate 10 on-time [
+			face/data: (face/data + 10%) % 100%
+			bar-txt/text: form face/data
+		] pad 1x0
+		bar-txt: text 4x1 "20%"
+	] return
 
 	button 8x2 "Prev" [unview]
 	button 8x2 "Home" [show page-1]
@@ -14,9 +22,9 @@ page-3: layout/tight [
 ]
 
 page-2: layout/tight [
-	origin 1x1
-	text 10x2 font-color green "Page 2" return
-	text-list 10x3 select 2 data [
+	origin 1x1 space 1x1
+	text 10x1 font-color green "Page 2" return
+	text-list 15x3 select 2 data [
 		"1 apple"
 		"2 orange"
 		"3 banana"
@@ -26,29 +34,27 @@ page-2: layout/tight [
 		"7 watermelon"
 	] return
 
-	pad 0x1
-	button 10x2 "Prev" [show page-1]
-	button 4x2 "Next" [show page-3]
+	button 10x1 "Prev" [show page-1]
+	button 4x1 "Next" [show page-3]
 ]
 
 page-1: layout/tight [
 	on-key [if event/key = #"^[" [unview/all]]
 	style txt: text 10x1 font-color 255.0.127
-	style field: field 10x2
+	style field: field 10x1
 
-	origin 1x1
-	bar: progress 20x1 50% return
-	button 19x1 "-" [bar/data: bar/data - 10%]
-	button 1x1 "+" [bar/data: bar/data + 10%]
-	return
-	panel 30x5 [
-		base 20x2 red return
+	origin 1x1 space 0x1 below
+	base 20x2 red "Hello Red!"
+
+	panel 30x2 [
 		txt 13 "Card Number" return
 		field 19 hint "8888 **** **** 1234"
-	] return
+	]
 
-	txt 8 "EXP" txt 3 "CVV" return
-	field 5 hint "MM/YY" pad 3x0 field 3 hint "999" return
+	panel 30x2 [
+		txt 8 "EXP" txt 3 "CVV" return
+		field 5 hint "MM/YY" pad 3x0 field 3 hint "999"
+	]
 
 	button font-color gray 20x2 "Next ->" [show page-2]
 ]

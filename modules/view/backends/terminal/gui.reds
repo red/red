@@ -3,7 +3,7 @@ Red/System [
 	Author: "Xie Qingtian"
 	File: 	%gui.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2019 Red Foundation. All rights reserved."
+	Rights: "Copyright (C) 2023 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -12,6 +12,7 @@ Red/System [
 
 #include %definitions.reds
 #include %utils.reds
+#include %timer.reds
 #include %events.reds
 #include %ansi-parser.reds
 #include %tty.reds
@@ -99,6 +100,7 @@ on-gc-mark: does [
 	collector/keep flags-blk/node
 	ansi-parser/on-gc-mark
 	screen/on-gc-mark
+	timer/on-gc-mark
 ]
 
 init: func [
@@ -119,6 +121,7 @@ init: func [
 	int/value:  0
 
 	screen/init
+	timer/init
 	ansi-parser/init
 	collector/register as int-ptr! :on-gc-mark
 ]
@@ -377,6 +380,8 @@ OS-make-view: func [
 	screen/update-bounding-box widget
 	screen/update-editable-widget widget
 
+	if TYPE_OF(rate) <> TYPE_NONE [change-rate widget rate]
+
 	stack/unwind
 	as-integer widget
 ]
@@ -418,17 +423,17 @@ free-faces: func [
 		sym		[integer!]
 		dc		[integer!]
 		flags	[integer!]
-		handle	[handle!]
+		widget	[widget!]
 ][
-	handle: face-handle? face
-	if null? handle [exit]
+	widget: as widget! face-handle? face
+	if null? widget [exit]
 
 	values: object/get-values face
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
 
 	rate: values + FACE_OBJ_RATE
-	;if TYPE_OF(rate) <> TYPE_NONE [change-rate handle none-value]
+	if TYPE_OF(rate) <> TYPE_NONE [change-rate widget none-value]
 
 	obj: as red-object! values + FACE_OBJ_FONT
 	if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj FONT_OBJ_PARENT]
@@ -446,11 +451,34 @@ free-faces: func [
 		]
 	]
 
-	if sym = window [screen/remove-window as widget! handle]
+	if sym = window [screen/remove-window widget]
 
-	_widget/delete as widget! handle
+	_widget/delete widget
 	state: values + FACE_OBJ_STATE
 	state/header: TYPE_NONE
+]
+
+change-rate: func [
+	widget		[widget!]
+	rate		[red-value!]
+	/local
+		int [red-integer!]
+		tm  [red-time!]
+][
+	switch TYPE_OF(rate) [
+		TYPE_INTEGER [
+			int: as red-integer! rate
+			if int/value <= 0 [fire [TO_ERROR(script invalid-facet-type) rate]]
+			timer/add widget 1000 / int/value
+		]
+		TYPE_TIME [
+			tm: as red-time! rate
+			if tm/time <= 0.0 [fire [TO_ERROR(script invalid-facet-type) rate]]
+			timer/add widget as-integer tm/time * 1000.0
+		]
+		TYPE_NONE [timer/kill widget]
+		default	  [fire [TO_ERROR(script invalid-facet-type) rate]]
+	]
 ]
 
 OS-update-view: func [

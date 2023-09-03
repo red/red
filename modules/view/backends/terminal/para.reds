@@ -3,7 +3,7 @@ Red/System [
 	Author: "Xie Qingtian"
 	File: 	%para.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2020 Red Foundation. All rights reserved."
+	Rights: "Copyright (C) 2023 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
