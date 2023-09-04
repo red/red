@@ -564,7 +564,6 @@ _widget: context [
 					pix/flags: flags
 					skip: parse-ansi-sequence data unit :pix
 					if skip > 0 [
-						bg: pix/bg-color
 						fg: pix/fg-color
 						flags: pix/flags
 						data: data + (unit * skip)
@@ -580,7 +579,6 @@ _widget: context [
 				]
 
 				p/code-point: cp
-				p/bg-color: bg
 				p/fg-color: fg
 				p/flags: flags
 				n: char-width? p/code-point

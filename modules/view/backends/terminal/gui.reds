@@ -473,6 +473,36 @@ change-rate: func [
 	]
 ]
 
+change-offset: func [
+	widget		[widget!]
+	offset		[red-point2D!]
+	/local
+		box		[RECT_F!]
+		sx sy	[float32!]
+][
+	box: as RECT_F! :widget/box
+	sx: box/right - box/left
+	sy: box/bottom - box/top
+	box/left: offset/x
+	box/top: offset/y
+	box/right: offset/x + sx
+	box/bottom: offset/y + sy
+]
+
+change-size: func [
+	widget		[widget!]
+	size		[red-pair!]
+	/local
+		box		[RECT_F!]
+		sx sy	[float32!]
+		pt		[red-point2D!]
+][
+	box: as RECT_F! :widget/box
+	GET_PAIR_XY(size sx sy)
+	box/right: box/left + sx
+	box/bottom: box/top + sy
+]
+
 OS-update-view: func [
 	face [red-object!]
 	/local
@@ -502,6 +532,12 @@ OS-update-view: func [
 		timer/kill w
 		val: values + FACE_OBJ_RATE
 		if TYPE_OF(val) <> TYPE_NONE [change-rate w val]
+	]
+	if flags and FACET_FLAG_OFFSET <> 0 [
+		change-offset w as red-point2D! values + FACE_OBJ_OFFSET
+	]
+	if flags and FACET_FLAG_SIZE <> 0 [
+		change-size w as red-pair! values + FACE_OBJ_SIZE
 	]
 
 	b: as red-logic! #get system/view/auto-sync?

@@ -5,7 +5,7 @@ Red [
 ]
 
 page-3: layout/tight [
-	origin 3x1
+	origin 2x1
 	text 10x2 font-color yellow "Page 3" return
 
 	panel 30x2 [
@@ -13,8 +13,9 @@ page-3: layout/tight [
 			data: face/data + 10%
 			face/data: either data > 100% [0%][data]
 			bar-txt/text: form face/data
+			bar-txt/font/color: random white
 		] pad 1x0
-		bar-txt: text 4x1 "30%"
+		bar-txt: text 4x1 font-color white "30%"
 	] return
 
 	button 8x2 "Prev" [unview]
@@ -22,9 +23,18 @@ page-3: layout/tight [
 	button 4x2 "Quit" [unview/all]
 ]
 
-page-2: layout [
+page-2: layout/tight [
+ 	on-key [
+		switch event/key [
+			left	[cat/offset: cat/offset - 1x0]
+			right	[cat/offset: cat/offset + 1x0]
+			up 		[cat/offset: cat/offset - 0x1]
+			down	[cat/offset: cat/offset + 0x1]
+		]
+	]
 	origin 1x1 space 1x1
 	text 10x1 font-color green "Page 2" return
+
 	text-list 15x3 select 2 data [
 		"1 apple"
 		"2 orange"
@@ -35,11 +45,14 @@ page-2: layout [
 		"7 watermelon"
 	] return
 
+	text 30x1 "Use arrow keys to move the cat" return
+	cat: base transparent 2x1 "🐱" return
+
 	button 10x1 "Prev" [show page-1]
 	button 4x1 "Next" [show page-3]
 ]
 
-page-1: layout [
+page-1: layout/tight [
 	on-key [if event/key = #"^[" [unview/all]]
 	style txt: text 10x1 font-color 255.0.127
 	style field: field 10x1
