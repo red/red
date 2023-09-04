@@ -521,7 +521,7 @@ char-width?: func [
 	cp		[integer!]
 	return: [integer!]
 ][
-	either all [0001F300h <= cp cp <= 0001F5FFh][2][wcwidth? cp]
+	wcwidth? cp
 ]
 
 string-width?: func [

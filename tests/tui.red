@@ -5,8 +5,8 @@ Red [
 ]
 
 page-3: layout/tight [
-	origin 2x2
-	text 10x3 font-color yellow "Page 3" return
+	origin 3x1
+	text 10x2 font-color yellow "Page 3" return
 
 	panel 30x2 [
 		bar: progress 20x1 30% rate 10 on-time [
@@ -22,7 +22,7 @@ page-3: layout/tight [
 	button 4x2 "Quit" [unview/all]
 ]
 
-page-2: layout/tight [
+page-2: layout [
 	origin 1x1 space 1x1
 	text 10x1 font-color green "Page 2" return
 	text-list 15x3 select 2 data [
@@ -39,13 +39,20 @@ page-2: layout/tight [
 	button 4x1 "Next" [show page-3]
 ]
 
-page-1: layout/tight [
+page-1: layout [
 	on-key [if event/key = #"^[" [unview/all]]
 	style txt: text 10x1 font-color 255.0.127
 	style field: field 10x1
+	style b3: base black 4x3
 
 	origin 1x1 space 0x1 below
-	base 20x3 red center middle "Hello Red!"
+	base 20x5 red wrap "I can eat glass, it does not hurt me^/^/我能吞下玻璃而不伤身体"
+
+	panel 9x9 [
+		b3 blue left "😀" b3 center "😆" b3 green right "🙂" return
+		b3 middle "😂"   b3 red middle center "😎" b3 middle right "😍" return
+		b3 green bottom left "😛" b3 bottom center "😋" b3 blue bottom right "😭"
+	]
 
 	panel 30x2 [
 		txt 13 "Card Number" return

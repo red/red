@@ -456,6 +456,7 @@ _widget: context [
 			txt-w	[integer!]
 			txt-h	[integer!]
 			align	[integer!]
+			wrap?	[logic!]
 	][
 		values: get-face-values widget
 		str:    as red-string! values + FACE_OBJ_TEXT
@@ -511,6 +512,7 @@ _widget: context [
 		]
 
 		;-- set alignment
+		align: 0
 		if all [
 			TYPE_OF(str) = TYPE_STRING
 			TYPE_OF(para) = TYPE_OBJECT
@@ -525,6 +527,9 @@ _widget: context [
 					align and TEXT_ALIGN_CENTER <> 0 [
 						x: x + (w - txt-w / 2)
 					]
+					align and TEXT_ALIGN_RIGHT <> 0 [
+						x: x + (w - txt-w)
+					]
 					true [0]
 				]
 			]
@@ -532,6 +537,9 @@ _widget: context [
 				case [
 					align and TEXT_ALIGN_VCENTER <> 0 [
 						y: y + (h - txt-h / 2)
+					]
+					align and TEXT_ALIGN_BOTTOM <> 0 [
+						y: y + (h - txt-h)
 					]
 					true [0]
 				]
@@ -542,6 +550,7 @@ _widget: context [
 		p: screen/buffer + (screen/width * y + x)
 		cnt: 0
 		if TYPE_OF(str) = TYPE_STRING [
+			wrap?: align and TEXT_WRAP_FLAG <> 0
 			ansi?: flags and PIXEL_ANSI_SEQ <> 0
 			s:	  GET_BUFFER(str)
 			unit: GET_UNIT(s)
@@ -551,7 +560,6 @@ _widget: context [
 			while [all [data < tail cnt < dx y < dy]][
 				cp: string/get-char data unit
 				if all [cp = as-integer #"^[" ansi?][
-					pix/bg-color: bg
 					pix/fg-color: fg
 					pix/flags: flags
 					skip: parse-ansi-sequence data unit :pix
@@ -583,6 +591,11 @@ _widget: context [
 				cnt: cnt + n
 				p: p + 1
 				data: data + unit
+				if all [wrap? cnt >= dx][		;-- wrap text
+					y: y + 1
+					p: screen/buffer + (screen/width * y + x)
+					cnt: 0
+				]
 			]
 		]
 	]
