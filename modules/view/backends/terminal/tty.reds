@@ -329,6 +329,7 @@ tty: context [
 				key 	[key-event!]
 				n	 	[integer!]
 				c		[integer!]
+				cc		[integer!]
 				records [input-record!]
 				record	[input-record!]
 		][
@@ -343,14 +344,23 @@ tty: context [
 			n: 0
 			if zero? ReadConsoleInput stdin records cnt :n [return 0]
 
+			cc: 0
 			record: records
 			while [n <> 0][
 				switch record/EventType and FFFFh [
 					KEY_EVENT [
 						key: as key-event! (as-integer record) + (size? integer!)
 						if key/KeyDown <> 0 [						 ;-- handle key down event
-							c: key/ScanCode-Char >>> 16				 ;-- utf-8 char
-							ansi-parser/add-char c
+							c: key/ScanCode-Char >>> 16				 ;-- UTF-16
+							if cc >= D800h [
+								c: cc and 03FFh << 10 + (c and 03FFh) + 00010000h
+								cc: 0
+							]
+							either all [c >= D800h c < DC00h][
+								cc: c
+							][
+								ansi-parser/add-char c
+							]
 						]
 					]
 					WINDOW_BUFFER_SIZE_EVENT [
