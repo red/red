@@ -297,24 +297,26 @@ screen: context [
 		switch type [
 		    default-color	[
 			    s: either fg-color? ["39"]["49"]
-			    ADD_STR(s)
 		    ]
 		    palette-16		[
 			    clr: clr and 0Fh
 			    idx: clr * 2 + as-integer fg-color?
 			    idx: idx + 1	;-- 1-based
 			    s: as c-string! color-16-table/idx
-			    ADD_STR(s)
 		    ]
-		    palette-256		[]
+		    palette-256		[
+			    clr: clr and FFh
+				fmt: either fg-color? ["38;5;%d"]["48;5;%d"]
+				sprintf [s fmt clr]
+		    ]
 		    true-color		[
 				clr: make-color clr
 				fmt: either fg-color? ["38;5;%d"]["48;5;%d"]
 				sprintf [s fmt clr]
-				ADD_STR(s)
 		    ]
-		    default			[]
+		    default	[s: "0"]
 		]
+		ADD_STR(s)
 		ADD_BYTE(#"m")
 	]
 

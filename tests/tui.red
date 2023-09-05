@@ -18,6 +18,8 @@ page-3: layout/tight [
 		bar-txt: text 4x1 font-color white "30%"
 	] return
 
+	rich-text 30x2 transparent data [yellow "Hello" red " Red " green "World!"] return
+
 	button 8x2 "Prev" [unview]
 	button 8x2 "Home" [show page-1]
 	button 4x2 "Quit" [unview/all]
@@ -58,24 +60,24 @@ page-1: layout/tight [
 	style field: field 10x1
 	style b3: base black 4x3
 
-	origin 1x1 space 0x1 below
+	origin 1x1 space 1x1
 	base 20x5 red wrap "I can eat glass, it does not hurt me^/^/我能吞下玻璃而不伤身体"
 
-	panel 9x9 [
+	panel 12x9 [
 		b3 blue left "😀" b3 center "😆" b3 green right "🙂" return
 		b3 middle "😂"   b3 red middle center "😎" b3 middle right "😍" return
 		b3 green bottom left "😛" b3 bottom center "😋" b3 blue bottom right "😭"
-	]
+	] return
 
 	panel 30x2 [
 		txt 13 "Card Number" return
 		field 19 hint "8888 **** **** 1234"
-	]
+	] return
 
 	panel 30x2 [
 		txt 8 "EXP" txt 3 "CVV" return
 		field 5 hint "MM/YY" pad 3x0 field 3 hint "999"
-	]
+	] return
 
 	button font-color gray 20x2 "Next ->" [show page-2]
 ]

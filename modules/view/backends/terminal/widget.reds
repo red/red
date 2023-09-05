@@ -209,8 +209,6 @@ _widget: context [
 		0
 	]
 
-	#define MAKE_COLOR_16(idx) [palette-16 << 24 or idx]
-
 	update-graphic-mode: func [	;-- styles and colors
 		p		[pixel!]
 		value	[integer!]
@@ -395,7 +393,7 @@ _widget: context [
 				5 [ ;value3 start
 					case [
 						all [cp >= as-integer #"0" cp <= as-integer #"9"][
-							value2: ((value2 * 10) + (cp - as-integer #"0")) // FFFFh
+							value3: ((value3 * 10) + (cp - as-integer #"0")) // FFFFh
 							state: 6
 						]
 						cp = as-integer #";" [] ;do nothing
@@ -405,12 +403,24 @@ _widget: context [
 				6 [ ;value3 continue
 					case [
 						all [cp >= as-integer #"0" cp <= as-integer #"9"][
-							value2: ((value2 * 10) + (cp - as-integer #"0")) // FFFFh
+							value3: ((value3 * 10) + (cp - as-integer #"0")) // FFFFh
 						]
 						cp = as-integer #"m" [
-							update-graphic-mode pix value1
-							update-graphic-mode pix value2
-							update-graphic-mode pix value3
+							LOG_MSG([value1 " " value2 " " value3])
+							case [
+								all [value1 = 38 value2 = 5][
+									LOG_MSG("clr 256")
+									pix/fg-color: MAKE_COLOR_256(value3)
+								]
+								all [value1 = 48 value2 = 5][
+									pix/bg-color: MAKE_COLOR_256(value3)
+								]
+								true [
+									update-graphic-mode pix value1
+									update-graphic-mode pix value2
+									update-graphic-mode pix value3
+								]
+							]
 							state: -1 
 						]
 						cp = as-integer #";" [
@@ -426,97 +436,60 @@ _widget: context [
 		cnt
 	]
 
-	render-text: func [
+	paint-background: func [
 		x		[integer!]
 		y		[integer!]
-		widget	[widget!]
-		flags	[integer!]
+		w		[integer!]
+		h		[integer!]
+		bg		[integer!]
 		/local
-			values	[red-value!]
-			str		[red-string!]
-			color	[red-tuple!]
-			font	[red-object!]
-			options	[red-block!]
-			para	[red-object!]
-			len i	[integer!]
-			p		[pixel!]
-			pix		[pixel! value]
-			n cnt	[integer!]
-			w h		[integer!]
-			dx dy	[integer!]
-			yy		[integer!]
-			fg bg	[integer!]
-			cp skip	[integer!]
-			s		[series!]
-			unit	[integer!]
-			data	[byte-ptr!]
-			tail	[byte-ptr!]
-			ansi?	[logic!]
-			pt		[red-point2D! value]
-			txt-w	[integer!]
-			txt-h	[integer!]
-			align	[integer!]
-			wrap?	[logic!]
+			p	[pixel!]
+			i	[integer!]
+			yy	[integer!]
 	][
-		values: get-face-values widget
-		str:    as red-string! values + FACE_OBJ_TEXT
-		color:  as red-tuple!  values + FACE_OBJ_COLOR
-		font:   as red-object! values + FACE_OBJ_FONT
-		options: as red-block! values + FACE_OBJ_OPTIONS
-		para:	as red-object! values + FACE_OBJ_PARA
-
-		bg: 0 fg: 0
-		if TYPE_OF(color) = TYPE_TUPLE [
-			bg: true-color << 24 or get-tuple-color color
-		]
-
-		if TYPE_OF(font) = TYPE_OBJECT [
-			fg: true-color << 24 or get-font-color font
-		]
-
-		dx: screen/width - x
-		dy: screen/height - y
-		w: 0 h: 0
-		_widget/get-size widget :w :h
-		if w < dx [dx: w]
-		if h < dy [dy: h]
-
-		if any [dx <= 0 dy <= 0][exit]
-
-		if all [
-			any [
-				TYPE_OF(str) <> TYPE_STRING
-				zero? string/rs-length? str
-			]
-			TYPE_OF(options) = TYPE_BLOCK
-		][
-			str: as red-string! block/select-word options word/load "hint" no
-			if TYPE_OF(str) = TYPE_STRING [
-				flags: flags or PIXEL_FAINT
-			]
-		]
-
-		;-- paint background
-		dy: y + dy
-		yy: y
-		while [yy < dy][
+		yy: y + h
+		while [y < yy][
 			i: 0
-			p: screen/buffer + (screen/width * yy + x)
-			while [i < dx][
+			p: screen/buffer + (screen/width * y + x)
+			while [i < w][
 				p/code-point: 32	;-- whitespace char
 				p/bg-color: bg
 				p: p + 1
 				i: i + 1
 			]
-			yy: yy + 1
+			y: y + 1
 		]
+	]
 
-		;-- set alignment
+	parse-para: func [
+		widget	[widget!]
+		px		[int-ptr!]
+		py		[int-ptr!]
+		return: [integer!]
+		/local
+			x y w h	[integer!]
+			str 	[red-string!]
+			para	[red-object!]
+			values	[red-value!]
+			align	[integer!]
+			txt-w	[integer!]
+			txt-h	[integer!]
+			pt		[red-point2D! value]
+	][
+		values: get-face-values widget
+		str:    as red-string! values + FACE_OBJ_TEXT
+		para:	as red-object! values + FACE_OBJ_PARA
+
 		align: 0
 		if all [
 			TYPE_OF(str) = TYPE_STRING
 			TYPE_OF(para) = TYPE_OBJECT
 		][
+			x: px/value
+			y: py/value
+			w: 0 h: 0
+			get-size widget :w :h
+
 			align: get-para-flags para
 			get-text-size as red-object! :widget/face str :pt
 			txt-w: as-integer pt/x
@@ -544,51 +517,175 @@ _widget: context [
 					true [0]
 				]
 			]
+			px/value: x
+			py/value: y
+		]
+		align
+	]
+
+	render-text: func [
+		x		[integer!]
+		y		[integer!]
+		widget	[widget!]
+		flags	[integer!]
+		/local
+			values	[red-value!]
+			str		[red-string!]
+			color	[red-tuple!]
+			font	[red-object!]
+			options	[red-block!]
+			p		[pixel!]
+			end		[pixel!]
+			pix		[pixel! value]
+			n cnt	[integer!]
+			w h		[integer!]
+			dx dy	[integer!]
+			yy		[integer!]
+			fg bg	[integer!]
+			cp skip	[integer!]
+			s		[series!]
+			unit	[integer!]
+			data	[byte-ptr!]
+			tail	[byte-ptr!]
+			ansi?	[logic!]
+			align	[integer!]
+			clr		[integer!]
+			wrap?	[logic!]
+			p-int	[int-ptr!]
+			attr-str [pixel!]
+	][
+		values: get-face-values widget
+		str:    as red-string! values + FACE_OBJ_TEXT
+		color:  as red-tuple!  values + FACE_OBJ_COLOR
+		font:   as red-object! values + FACE_OBJ_FONT
+		options: as red-block! values + FACE_OBJ_OPTIONS
+
+		dx: screen/width - x
+		dy: screen/height - y
+		w: 0 h: 0
+		get-size widget :w :h
+		if w < dx [dx: w]
+		if h < dy [dy: h]
+
+		if any [dx <= 0 dy <= 0][exit]
+
+		yy: y + dy
+		bg: 0 fg: 0
+		if TYPE_OF(color) = TYPE_TUPLE [
+			clr: get-tuple-color color
+			if clr >>> 24 <> FFh [
+				bg: MAKE_TRUE_COLOR(clr)
+			]
 		]
 
+		if TYPE_OF(font) = TYPE_OBJECT [
+			clr: get-font-color font
+			if clr >>> 24 <> FFh [
+				fg: MAKE_TRUE_COLOR(clr)
+			]
+		]
+
+		;-- paint background
+		paint-background x y dx dy bg
+
+		;-- set alignment
+		align: parse-para widget :x :y
+
 		;-- draw text
+		attr-str: either WIDGET_TYPE(widget) = rich-text [
+			as pixel! widget/data
+		][null]
+
+		if all [
+			any [
+				TYPE_OF(str) <> TYPE_STRING
+				zero? string/rs-length? str
+			]
+			TYPE_OF(options) = TYPE_BLOCK
+		][
+			str: as red-string! block/select-word options word/load "hint" no
+			if TYPE_OF(str) = TYPE_STRING [
+				flags: flags or PIXEL_FAINT
+			]
+		]
+
 		p: screen/buffer + (screen/width * y + x)
 		cnt: 0
-		if TYPE_OF(str) = TYPE_STRING [
-			wrap?: align and TEXT_WRAP_FLAG <> 0
-			ansi?: flags and PIXEL_ANSI_SEQ <> 0
-			s:	  GET_BUFFER(str)
-			unit: GET_UNIT(s)
-			data: string/rs-head str
-			tail: string/rs-tail str
+		either null? attr-str [
+			if TYPE_OF(str) = TYPE_STRING [
+				wrap?: align and TEXT_WRAP_FLAG <> 0
+				ansi?: flags and PIXEL_ANSI_SEQ <> 0
+				s:	  GET_BUFFER(str)
+				unit: GET_UNIT(s)
+				data: string/rs-head str
+				tail: string/rs-tail str
 
-			while [all [data < tail cnt < dx y < dy]][
-				cp: string/get-char data unit
-				if all [cp = as-integer #"^[" ansi?][
-					pix/fg-color: fg
-					pix/flags: flags
-					skip: parse-ansi-sequence data unit :pix
-					if skip > 0 [
-						fg: pix/fg-color
-						flags: pix/flags
-						data: data + (unit * skip)
+				while [all [data < tail cnt < dx y < yy]][
+					cp: string/get-char data unit
+					if all [cp = as-integer #"^[" ansi?][
+						pix/fg-color: fg
+						pix/flags: flags
+						skip: parse-ansi-sequence data unit :pix
+						if skip > 0 [
+							fg: pix/fg-color
+							flags: pix/flags
+							data: data + (unit * skip)
+							continue
+						]
+					]
+					if cp = as-integer lf [
+						y: y + 1
+						p: screen/buffer + (screen/width * y + x)
+						cnt: 0
+						data: data + unit
 						continue
 					]
+
+					p/code-point: cp
+					p/fg-color: fg
+					p/flags: flags
+					n: char-width? cp
+					loop n - 1 [
+						p: p + 1
+						p/flags: flags or PIXEL_SKIP
+					]
+					cnt: cnt + n
+					p: p + 1
+					data: data + unit
+					if all [wrap? cnt >= dx][		;-- wrap text
+						y: y + 1
+						p: screen/buffer + (screen/width * y + x)
+						cnt: 0
+					]
 				]
+			]
+		][
+			p-int: as int-ptr! attr-str
+			attr-str: attr-str + 1
+			end: attr-str + p-int/value
+			wrap?: align and TEXT_WRAP_FLAG <> 0
+			while [all [attr-str < end cnt < dx y < yy]][
+				cp: attr-str/code-point
 				if cp = as-integer lf [
 					y: y + 1
 					p: screen/buffer + (screen/width * y + x)
 					cnt: 0
-					data: data + unit
+					attr-str: attr-str + 1
 					continue
 				]
 
 				p/code-point: cp
-				p/fg-color: fg
-				p/flags: flags
-				n: char-width? p/code-point
+				p/fg-color: attr-str/fg-color
+				p/bg-color: attr-str/bg-color
+				p/flags: attr-str/flags
+				n: char-width? cp
 				loop n - 1 [
 					p: p + 1
 					p/flags: flags or PIXEL_SKIP
 				]
 				cnt: cnt + n
 				p: p + 1
-				data: data + unit
+				attr-str: attr-str + 1
 				if all [wrap? cnt >= dx][		;-- wrap text
 					y: y + 1
 					p: screen/buffer + (screen/width * y + x)

@@ -12,7 +12,7 @@ Red/System [
 ]
 
 collector: context [
-	verbose: 1
+	verbose: 0
 	active?: no
 	
 	stats: declare struct! [

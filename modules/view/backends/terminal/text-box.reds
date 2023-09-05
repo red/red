@@ -19,6 +19,36 @@ Red/System [
 #define TBOX_METRICS_CHAR_INDEX?	5
 #define TBOX_METRICS_OFFSET_LOWER	6
 
+set-text-box-color: func [
+	layout	[handle!]
+	pos		[integer!]
+	len		[integer!]
+	color	[integer!]
+	fg?		[logic!]
+	/local
+		p		[pixel!]
+		end		[pixel!]
+		max-len [integer!]
+][
+	max-len: layout/value
+	if pos + len > max-len [len: max-len - pos]
+	p: (as pixel! layout) + 1
+	p: p + pos
+	end: p + len
+	color: MAKE_TRUE_COLOR(color)
+	either fg? [
+		while [p < end][
+			p/fg-color: color
+			p: p + 1
+		]
+	][
+		while [p < end][
+			p/bg-color: color
+			p: p + 1
+		]
+	]
+]
+
 OS-text-box-color: func [
 	target	[handle!]
 	layout	[handle!]
@@ -26,6 +56,7 @@ OS-text-box-color: func [
 	len		[integer!]
 	color	[integer!]
 ][
+	set-text-box-color layout pos len color yes
 ]
 
 OS-text-box-background: func [
@@ -35,6 +66,28 @@ OS-text-box-background: func [
 	len		[integer!]
 	color	[integer!]
 ][
+	set-text-box-color layout pos len color no
+]
+
+set-text-box-style: func [
+	layout	[handle!]
+	pos		[integer!]
+	len		[integer!]
+	flag	[integer!]
+	/local
+		p		[pixel!]
+		end		[pixel!]
+		max-len [integer!]
+][
+	max-len: layout/value
+	if pos + len > max-len [len: max-len - pos]
+	p: (as pixel! layout) + 1
+	p: p + pos
+	end: p + len
+	while [p < end][
+		p/flags: p/flags or flag
+		p: p + 1
+	]
 ]
 
 OS-text-box-weight: func [
@@ -43,6 +96,7 @@ OS-text-box-weight: func [
 	len		[integer!]
 	weight	[integer!]
 ][
+	set-text-box-style layout pos len PIXEL_BOLD
 ]
 
 OS-text-box-italic: func [
@@ -50,6 +104,7 @@ OS-text-box-italic: func [
 	pos		[integer!]
 	len		[integer!]
 ][
+	set-text-box-style layout pos len PIXEL_ITALIC
 ]
 
 OS-text-box-underline: func [
@@ -59,6 +114,7 @@ OS-text-box-underline: func [
 	opts	[red-value!]					;-- options
 	tail	[red-value!]
 ][
+	set-text-box-style layout pos len PIXEL_UNDERLINE
 ]
 
 OS-text-box-strikeout: func [
@@ -68,6 +124,7 @@ OS-text-box-strikeout: func [
 	opts	[red-value!]					;-- options
 	tail	[red-value!]
 ][
+	set-text-box-style layout pos len PIXEL_STRIKE
 ]
 
 OS-text-box-border: func [

@@ -197,6 +197,10 @@ window-manager!: alias struct! [
     true-color:		4
 ]
 
+#define MAKE_COLOR_16(idx) [palette-16 << 24 or idx]
+#define MAKE_COLOR_256(idx) [palette-256 << 24 or idx]
+#define MAKE_TRUE_COLOR(idx) [true-color << 24 or idx]
+
 color!: alias struct! [
 	type		[byte!]
 	red			[byte!]

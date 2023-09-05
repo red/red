@@ -27,6 +27,7 @@ Red/System [
 #include %widgets/button.reds
 #include %widgets/progress.reds
 #include %widgets/text-list.reds
+#include %widgets/rich-text.reds
 
 get-face-obj: func [
 	g		[widget!]
@@ -366,6 +367,7 @@ OS-make-view: func [
 		sym = button 	[init-button widget]
 		sym = progress	[init-progress widget]
 		sym = text-list [init-text-list widget]
+		sym = rich-text [init-rich-text widget]
 		true			[0]
 	]
 
@@ -443,7 +445,11 @@ free-faces: func [
 		]
 	]
 
-	if sym = window [screen/remove-window widget]
+	case [
+		sym = window [screen/remove-window widget]
+		any [sym = rich-text sym = field][free as byte-ptr! widget/data]
+		true [0]
+	]
 
 	_widget/delete widget
 	state: values + FACE_OBJ_STATE
@@ -522,6 +528,8 @@ OS-update-view: func [
 	values: s/offset
 
 	state: as red-block! values + FACE_OBJ_STATE
+	if TYPE_OF(state) <> TYPE_BLOCK [exit]
+
 	s: GET_BUFFER(state)
 	int: as red-integer! s/offset
 	w: as widget! int/value
