@@ -366,6 +366,62 @@ screen: context [
 			ADD_STR("^[[27m")
 		]
 
+		if all [
+			p/flags and PIXEL_BOLD <> 0
+			pre/flags and PIXEL_BOLD = 0
+		][	;-- bold
+			ADD_STR("^[[1m")
+		]
+
+		if all [
+			p/flags and PIXEL_BOLD = 0
+			pre/flags and PIXEL_BOLD <> 0
+		][	;-- bold reset
+			ADD_STR("^[[22m")
+		]
+
+		if all [
+			p/flags and PIXEL_ITALIC <> 0
+			pre/flags and PIXEL_ITALIC = 0
+		][	;-- italic
+			ADD_STR("^[[3m")
+		]
+
+		if all [
+			p/flags and PIXEL_ITALIC = 0
+			pre/flags and PIXEL_ITALIC <> 0
+		][	;-- italic reset
+			ADD_STR("^[[23m")
+		]
+
+		if all [
+			p/flags and PIXEL_STRIKE <> 0
+			pre/flags and PIXEL_STRIKE = 0
+		][	;-- strike through
+			ADD_STR("^[[9m")
+		]
+
+		if all [
+			p/flags and PIXEL_STRIKE = 0
+			pre/flags and PIXEL_STRIKE <> 0
+		][	;-- strike through reset
+			ADD_STR("^[[29m")
+		]
+
+		if all [
+			p/flags and PIXEL_UNDERLINE <> 0
+			pre/flags and PIXEL_UNDERLINE = 0
+		][	;-- underline
+			ADD_STR("^[[4m")
+		]
+
+		if all [
+			p/flags and PIXEL_UNDERLINE = 0
+			pre/flags and PIXEL_UNDERLINE <> 0
+		][	;-- underline reset
+			ADD_STR("^[[24m")
+		]
+
 		if pre/fg-color <> p/fg-color [
 			emit-color p/fg-color yes
 		]

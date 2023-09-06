@@ -18,7 +18,10 @@ page-3: layout/tight [
 		bar-txt: text 4x1 font-color white "30%"
 	] return
 
-	rich-text 30x2 transparent data [yellow "Hello" red " Red " green "World!"] return
+	rich-text 40x3 transparent data [
+		yellow "Hello" red " Red " green "World!^/"
+		u "Underline" /u " " s "Strike" /s i " Italic" /i
+	] return
 
 	button 8x2 "Prev" [unview]
 	button 8x2 "Home" [show page-1]
