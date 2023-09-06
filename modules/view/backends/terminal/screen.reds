@@ -239,7 +239,15 @@ screen: context [
 		]
 	]
 
-	redraw: func [][present?: yes]
+	redraw: func [w [widget!]][
+		if null? w [w: focus-widget]
+		while [all [w <> null WIDGET_TYPE(w) <> window]][
+			w: w/parent
+		]
+		if all [w <> null w/data = as int-ptr! active-win][
+			present?: yes
+		]
+	]
 
 	set-cursor-bottom: func [/local dx [integer!]][
 		if cursor-y > 0 [

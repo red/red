@@ -35,7 +35,7 @@ on-button-event: func [
 	]
 
 	if zero? cp [return 0]
-	screen/redraw
+	screen/redraw widget
 	0
 ]
 

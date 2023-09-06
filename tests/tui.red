@@ -64,7 +64,15 @@ page-1: layout/tight [
 	style b3: base black 4x3
 
 	origin 1x1 space 1x1
-	base 20x5 red wrap "I can eat glass, it does not hurt me^/^/我能吞下玻璃而不伤身体"
+
+	panel 20x9 [
+		base 20x5 red wrap "I can eat glass, it does not hurt me^/^/我能吞下玻璃而不伤身体" return
+		base 20x4 transparent
+{          __
+     (___()'`;
+     /,    /`
+     \\"--\\}
+	]
 
 	panel 12x9 [
 		b3 blue left "😀" b3 center "😆" b3 green right "🙂" return

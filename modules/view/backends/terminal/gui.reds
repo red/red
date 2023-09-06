@@ -285,11 +285,11 @@ update-scroller: func [
 ]
 
 OS-redraw: func [hWnd [integer!]][
-	screen/redraw
+	screen/redraw as widget! hWnd
 ]
 
 OS-refresh-window: func [hWnd [integer!]][
-	screen/redraw
+	screen/redraw as widget! hWnd
 ]
 
 OS-show-window: func [
@@ -299,6 +299,7 @@ OS-show-window: func [
 ][
 	g: as widget! hWnd
 	screen/init-window as window-manager! g/data
+	screen/redraw g
 ]
 
 OS-make-view: func [
@@ -552,7 +553,7 @@ OS-update-view: func [
 	sync?: b/value
 	b/value: no
 	w/update w
-	screen/redraw
+	screen/redraw w
 	b/value: sync?
 
 	int/value: 0										;-- reset flags

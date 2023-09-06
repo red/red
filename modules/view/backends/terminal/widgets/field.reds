@@ -123,7 +123,7 @@ on-field-edit: func [
 			]
 		]
 	]
-	screen/redraw
+	screen/redraw widget
 	0
 ]
 

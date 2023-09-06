@@ -261,11 +261,11 @@ send-key-event: func [
 	case [
 		char = as-integer #"^-" [	;-- tab key
 			screen/next-focused-widget 1
-			screen/redraw
+			screen/redraw null
 		]
 		flags = KEY_BACKTAB [		;-- back tab
 			screen/next-focused-widget -1
-			screen/redraw
+			screen/redraw null
 		]
 		true [0]
 	]

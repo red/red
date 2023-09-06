@@ -72,7 +72,7 @@ on-text-list-event: func [
 
 	selected/value: idx
 	make-text-list-ui widget
-	screen/redraw
+	screen/redraw widget
 	0
 ]
 
