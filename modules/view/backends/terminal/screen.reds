@@ -215,11 +215,8 @@ screen: context [
 		active-win: wm
 		update-focus-chain wm
 
-		either wm/editable = 0 [
-			tty/hide-cursor
-		][
-			tty/show-cursor
-		]
+		if wm/editable = 0 [tty/hide-cursor]
+
 		unless WIDGET_FOCUSED?(wm/focused) [
 			next-focused-widget 0
 		]
@@ -484,7 +481,10 @@ screen: context [
 				x = width
 			]
 			y: y + 1
-			if y < height [ADD_STR("^(0D)^(0A)")]	;-- cursor move to next line
+			if y < height [
+				prev/bg-color: 0
+				ADD_STR("^[[49m^(0D)^(0A)")	;-- reset bg colors and cursor move to next line
+			]
 			y = height
 		]
 		update-pixel-style prev end

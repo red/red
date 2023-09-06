@@ -524,8 +524,8 @@ _widget: context [
 	]
 
 	render-text: func [
-		x		[integer!]
-		y		[integer!]
+		x		[integer!]	;-- screen coordinate
+		y		[integer!]	;-- screen coordinate
 		widget	[widget!]
 		flags	[integer!]
 		/local
@@ -540,6 +540,9 @@ _widget: context [
 			n cnt	[integer!]
 			w h		[integer!]
 			dx dy	[integer!]
+			px py	[integer!]
+			skip-x	[integer!]
+			skip-y	[integer!]
 			yy		[integer!]
 			fg bg	[integer!]
 			cp skip	[integer!]
@@ -560,10 +563,21 @@ _widget: context [
 		font:   as red-object! values + FACE_OBJ_FONT
 		options: as red-block! values + FACE_OBJ_OPTIONS
 
+		either x < 0 [
+			skip-x: 0 - x
+			x: 0
+		][skip-x: 0]
+		either y < 0 [
+			skip-y: 0 - y
+			y: 0
+		][skip-y: 0]
+
 		dx: screen/width - x
 		dy: screen/height - y
 		w: 0 h: 0
 		get-size widget :w :h
+		w: w - skip-x
+		h: h - skip-y
 		if w < dx [dx: w]
 		if h < dy [dy: h]
 
@@ -589,7 +603,26 @@ _widget: context [
 		paint-background x y dx dy bg
 
 		;-- set alignment
-		align: parse-para widget :x :y
+		px: 0 py: 0
+		align: parse-para widget :px :py
+		either skip-x > 0 [
+			skip-x: skip-x - px
+			if skip-x < 0 [
+				x: 0 - skip-x
+				skip-x: 0
+			]
+		][
+			x: x + px
+		]
+		either skip-y > 0 [
+			skip-y: skip-y - py
+			if skip-y < 0 [
+				y: 0 - skip-y
+				skip-y: 0
+			]
+		][
+			y: y + py
+		]
 
 		;-- draw text
 		attr-str: either WIDGET_TYPE(widget) = rich-text [
@@ -619,6 +652,7 @@ _widget: context [
 				unit: GET_UNIT(s)
 				data: string/rs-head str
 				tail: string/rs-tail str
+				data: data + (unit * skip-x)
 
 				while [all [data < tail cnt < dx y < yy]][
 					cp: string/get-char data unit
@@ -637,24 +671,27 @@ _widget: context [
 						y: y + 1
 						p: screen/buffer + (screen/width * y + x)
 						cnt: 0
-						data: data + unit
+						data: data + (skip-x + 1 * unit)
 						continue
 					]
 
-					p/code-point: cp
-					p/fg-color: fg
-					p/flags: flags
 					n: char-width? cp
-					loop n - 1 [
-						p: p + 1
-						p/flags: flags or PIXEL_SKIP
-					]
 					cnt: cnt + n
-					p: p + 1
-					data: data + unit
+					if cnt <= dx [
+						p/code-point: cp
+						p/fg-color: fg
+						p/flags: flags
+						loop n - 1 [
+							p: p + 1
+							p/flags: flags or PIXEL_SKIP
+						]
+						p: p + 1
+						data: data + unit
+					]
 					if all [wrap? cnt >= dx][		;-- wrap text
 						y: y + 1
 						p: screen/buffer + (screen/width * y + x)
+						data: data + (skip-x * unit)
 						cnt: 0
 					]
 				]

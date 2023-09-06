@@ -6,7 +6,7 @@ Red [
 
 page-3: layout/tight [
 	origin 2x1
-	text 10x2 font-color yellow "Page 3" return
+	text 24x2 center font-color yellow "Page 3" return
 
 	panel 30x2 [
 		bar: progress 20x1 30% rate 10 on-time [
