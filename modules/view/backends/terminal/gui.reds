@@ -139,6 +139,55 @@ get-screen-size: func [
 	pair/push tty/columns tty/rows
 ]
 
+size-text: func [
+	str		[red-string!]
+	box-w	[integer!]
+	box-h	[integer!]
+	w		[int-ptr!]
+	h		[int-ptr!]
+	/local
+		series	[series!]
+		unit	[integer!]
+		offset	[byte-ptr!]
+		tail	[byte-ptr!]
+		cp idx	[integer!]
+		len n	[integer!]
+		max-len [integer!]
+		cnt		[integer!]
+][
+	if zero? box-w [box-w: 7FFFFFFFh]
+	cnt: 	 1
+	len:	 0
+	max-len: 0
+	series: GET_BUFFER(str)
+	unit: 	GET_UNIT(series)
+	offset: (as byte-ptr! series/offset) + (str/head << (log-b unit))
+	tail:   as byte-ptr! series/tail
+
+	while [offset < tail][
+		cp: string/get-char offset unit
+		either cp = as-integer lf [
+			cnt: cnt + 1
+			if len > max-len [max-len: len]
+			len: 0
+		][
+			n: char-width? cp
+			len: len + n
+		]
+		either len > box-w [	;-- wrap text
+			cnt: cnt + 1
+			len: len - n
+			if len > max-len [max-len: len]
+			len: 0
+		][
+			offset: offset + unit
+		]
+	]
+	if len > max-len [max-len: len]
+	w/value: max-len
+	h/value: cnt
+]
+
 get-text-size: func [
 	face 	[red-object!]
 	text	[red-string!]

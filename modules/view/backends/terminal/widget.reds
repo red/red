@@ -491,9 +491,14 @@ _widget: context [
 			get-size widget :w :h
 
 			align: get-para-flags para
-			get-text-size as red-object! :widget/face str :pt
-			txt-w: as-integer pt/x
-			txt-h: as-integer pt/y
+			txt-w: 0 txt-h: 0
+			either align and TEXT_WRAP_FLAG <> 0 [	;-- wrap text
+				size-text str w 0 :txt-w :txt-h
+			][
+				get-text-size null str :pt
+				txt-w: as-integer pt/x
+				txt-h: as-integer pt/y
+			]
 
 			if txt-w < w [
 				case [

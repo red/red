@@ -40,7 +40,7 @@ page-2: layout/tight [
 	origin 1x1 space 1x1
 	text 10x1 font-color green "Page 2" return
 
-	text-list 15x3 select 2 data [
+	text-list 13x3 select 2 data [
 		"1 apple"
 		"2 orange"
 		"3 banana"
@@ -48,13 +48,16 @@ page-2: layout/tight [
 		"5 lychee"
 		"6 pear"
 		"7 watermelon"
-	] return
+	]
+
+	base 5x4 center middle "X^/Y"
+	base 5x4 wrap middle "abcdefgh" return
 
 	text 30x1 "Use arrow keys to move the cat" return
-	cat: base transparent 2x1 "🐱" return
 
 	button 10x1 "Prev" [show page-1]
 	button 4x1 "Next" [show page-3]
+	cat: base transparent 2x1 "🐱"
 ]
 
 page-1: layout/tight [
