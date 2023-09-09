@@ -93,6 +93,13 @@ point!: alias struct! [
 	y	[float32!]
 ]
 
+rect!: alias struct! [
+	left		[integer!]
+	top			[integer!]
+	right		[integer!]
+	bottom		[integer!]
+]
+
 RECT_F!: alias struct! [
 	left		[float32!]
 	top			[float32!]
@@ -199,7 +206,9 @@ window-manager!: alias struct! [
 
 #define MAKE_COLOR_16(idx) [palette-16 << 24 or idx]
 #define MAKE_COLOR_256(idx) [palette-256 << 24 or idx]
-#define MAKE_TRUE_COLOR(idx) [true-color << 24 or idx]
+#define MAKE_TRUE_COLOR(clr) [
+	either clr >>> 24 <> FFh [true-color << 24 or (clr and 00FFFFFFh)][0]
+]
 
 color!: alias struct! [
 	type		[byte!]

@@ -536,11 +536,11 @@ screen: context [
 		resize-buffer wm
 		clear-buffer
 		render-widget wm/window
+		tty/hide-cursor
+		fflush 0
 		present
-		either WIDGET_EDITABLE?(focus-widget) [
+		if WIDGET_EDITABLE?(focus-widget) [
 			tty/show-cursor
-		][
-			tty/hide-cursor
 		]
 		fflush 0
 	]

@@ -32,5 +32,5 @@ draw-progress: func [
 	y			[integer!]
 	widget		[widget!]
 ][
-	_widget/render-text x y widget 0
+	_widget/render x y widget 0
 ]

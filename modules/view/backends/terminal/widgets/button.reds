@@ -50,5 +50,5 @@ draw-button: func [
 	if WIDGET_FOCUSED?(widget) [
 		flags: flags or PIXEL_INVERTED
 	]
-	_widget/render-text x y widget flags
+	_widget/render x y widget flags
 ]

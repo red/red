@@ -135,7 +135,7 @@ draw-field: func [
 		field	[field-data!]
 ][
 	widget/box/bottom: widget/box/top + F32_1		;-- force height to 1 line
-	_widget/render-text x y widget 0
+	_widget/render x y widget 0
 	if WIDGET_FOCUSED?(widget) [
 		field: as field-data! widget/data
 		screen/cursor-x: x + field/cursor
