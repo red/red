@@ -452,7 +452,11 @@ Red/System [
 	terminal [
 		draw-state!: alias struct! [unused [integer!]]
 		draw-ctx!: alias struct! [
-			dc		[handle!]
+			dc			[handle!]
+			left		[integer!]
+			top			[integer!]
+			right		[integer!]
+			bottom		[integer!]
 		]
 	]
 ]

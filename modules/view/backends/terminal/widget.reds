@@ -458,16 +458,6 @@ _widget: context [
 		]
 	]
 
-	render-config!: alias struct! [
-		widget		[widget!]
-		flags		[integer!]
-		align		[integer!]
-		fg-color	[integer!]		;-- text color
-		bg-color	[integer!]
-		rich-text	[int-ptr!]		;-- attribute string
-		layout?		[logic!]		;-- do text layout according to the alignment setting
-	]
-
 	text-layout: func [
 		str		[red-string!]
 		box		[rect!]				;-- in
@@ -578,7 +568,7 @@ _widget: context [
 		if any [w <= 0 h <= 0][exit]
 
 		;-- paint background
-		paint-background x y w h config/bg-color
+		if config/layout? [paint-background x y w h config/bg-color]
 
 		;-- draw text
 		off-x: pos-x
@@ -763,6 +753,7 @@ _widget: context [
 			w h clr	[integer!]
 			box		[rect! value]
 			config	[render-config! value]
+			ctx		[draw-ctx! value]
 	][
 		values: get-face-values widget
 		str:    as red-string! values + FACE_OBJ_TEXT
@@ -816,11 +807,16 @@ _widget: context [
 		render-text str 0 0 :box :config
 
 		;-- do draw block
-		;draw: as red-block! values + FACE_OBJ_DRAW
-		;if any [TYPE_OF(draw) <> TYPE_BLOCK zero? block/rs-length? draw][exit]
+		draw: as red-block! values + FACE_OBJ_DRAW
+		if any [TYPE_OF(draw) <> TYPE_BLOCK zero? block/rs-length? draw][exit]
 
-		;draw-begin :DC widget img no yes
-		;parse-draw :DC draw no
-		;draw-end :DC widget no no yes
+		ctx/dc: as handle! widget
+		ctx/left: x
+		ctx/top: y
+		ctx/right: x + w
+		ctx/bottom: y + h
+		draw-begin :ctx as handle! widget null no yes
+		parse-draw :ctx draw no
+		draw-end :ctx as handle! widget no no yes
 	]
 ]

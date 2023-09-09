@@ -223,3 +223,13 @@ pixel!: alias struct! [
 	fg-color	[integer!]
 	flags		[integer!]
 ]
+
+render-config!: alias struct! [
+	widget		[widget!]
+	flags		[integer!]
+	align		[integer!]
+	fg-color	[integer!]		;-- text color
+	bg-color	[integer!]
+	rich-text	[int-ptr!]		;-- attribute string
+	layout?		[logic!]		;-- do text layout according to the alignment setting
+]

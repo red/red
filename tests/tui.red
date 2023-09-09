@@ -70,7 +70,7 @@ page-1: layout/tight [
 
 	panel 20x9 [
 		base 20x5 red wrap "I can eat glass, it does not hurt me^/^/我能吞下玻璃而不伤身体" return
-		base 20x4 transparent
+		base 20x4 transparent draw [text 15x1 "~~~"]
 {          __
      (___()'`;
      /,    /`

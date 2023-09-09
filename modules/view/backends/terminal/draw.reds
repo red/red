@@ -243,7 +243,17 @@ OS-draw-text: func [
 	text	[red-string!]
 	catch?	[logic!]
 	return: [logic!]
+	/local
+		x y		[integer!]
+		pt		[red-point2D!]
+		config	[render-config! value]
 ][
+	GET_PAIR_XY_INT(pos x y)
+	zero-memory as byte-ptr! :config size? render-config!
+	config/widget: as widget! ctx/dc
+	config/layout?: no
+	LOG_MSG(["draw-text: " x " " y])
+	_widget/render-text text x y as rect! :ctx/left :config
 	true
 ]
 
