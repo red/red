@@ -1632,7 +1632,7 @@ make-profilable make target-class [
 			]
 			path! [
 				emitter/access-path value none
-				compiler/last-type: either cast [
+				compiler/last-type: either all [cast not keep][
 					emit-casting cast no
 					cast/type
 				][
@@ -1667,9 +1667,17 @@ make-profilable make target-class [
 				
 				unless conv-int-float? [
 					either cdecl [
-						emit-push/with/cdecl value/data value
+						either keep [
+							emit-push/keep/with/cdecl value/data value
+						][
+							emit-push/with/cdecl value/data value
+						]
 					][
-						emit-push/with value/data value
+						either keep [
+							emit-push/keep/with value/data value
+						][
+							emit-push/with value/data value
+						]
 					]
 				]
 			]

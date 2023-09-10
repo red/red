@@ -346,6 +346,17 @@ Red/System [
 			--assert rc/right = as float32! 3.0
 		]
 		test4038
+	
+	--test-- "#5382"
+
+		foo-5382: func [/local m f [float32!] pos [struct! [value [float!]]] ][
+			m: as float32! 150
+			pos: declare struct! [value [float!]]
+			pos/value: 0.5
+			f: m * as float32! pos/value
+			--assert (as-integer f) = 75 
+		]
+		foo-5382
 
 ===end-group===
 
