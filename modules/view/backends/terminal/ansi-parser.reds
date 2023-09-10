@@ -90,7 +90,9 @@ ansi-parser: context [
 			motion	[integer!]
 			x y		[float32!]
 			flags	[integer!]
+			win		[widget!]
 	][
+		win: screen/active-win/window
 		arg1: args/1
 		btn: arg1 and 3 + (arg1 and 64 >> 4)
 		x: as float32! args/2 - 1		;-- use 0-based index
@@ -104,14 +106,14 @@ ansi-parser: context [
 				evt: btn * 2 + 1 + pressed
 				either mouse-down <> pressed [
 					mouse-down: pressed
-					do-mouse-press evt screen/active-win/window x y flags
+					do-mouse-press evt win x y flags
 				][
-					do-mouse-move EVT_OVER screen/active-win/window x y flags yes
+					do-mouse-move EVT_OVER win x y flags yes
 				]
 			]
-			btn = 3 [do-mouse-move EVT_OVER screen/active-win/window x y flags yes]
-			btn = 4 [do-mouse-wheel 1 x y flags]
-			btn = 5 [do-mouse-wheel -1 x y flags]
+			btn = 3 [do-mouse-move EVT_OVER win x y flags yes]
+			btn = 4 [do-mouse-wheel 1 win x y flags]
+			btn = 5 [do-mouse-wheel -1 win x y flags]
 			true	[0]
 		]
 	]

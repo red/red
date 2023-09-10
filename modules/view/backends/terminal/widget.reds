@@ -120,8 +120,8 @@ _widget: context [
 				g <> null
 				g/flags and WIDGET_FLAG_HIDDEN = 0		;-- visible
 				all [
-					g/box/left <= x x <= g/box/right
-					g/box/top <= y y <= g/box/bottom
+					g/box/left <= x x < g/box/right
+					g/box/top <= y y < g/box/bottom
 				]
 			][
 				return g
@@ -656,11 +656,19 @@ _widget: context [
 					p: p + 1
 					data: data + unit
 				]
-				if all [wrap? w >= dx][		;-- wrap text
-					y: y + 1
-					p: screen/buffer + (screen/width * y + x)
-					w: x
-					off-x: pos-x
+				if w >= dx [
+					either wrap? [		;-- wrap text
+						y: y + 1
+						p: screen/buffer + (screen/width * y + x)
+						w: x
+						off-x: pos-x
+					][					;-- skip to next line
+						while [data < tail][
+							cp: string/get-char data unit
+							if cp = as-integer lf [break]
+							data: data + unit
+						]
+					]
 				]
 			]
 		][
@@ -727,11 +735,19 @@ _widget: context [
 					p: p + 1
 					attr-str: attr-str + 1
 				]
-				if all [wrap? w >= dx][		;-- wrap text
-					y: y + 1
-					p: screen/buffer + (screen/width * y + x)
-					w: x
-					off-x: pos-x
+				if w >= dx [
+					either wrap? [		;-- wrap text
+						y: y + 1
+						p: screen/buffer + (screen/width * y + x)
+						w: x
+						off-x: pos-x
+					][					;-- skip to next line
+						while [attr-str < end][
+							cp: attr-str/code-point
+							if cp = as-integer lf [break]
+							attr-str: attr-str + 1
+						]
+					]
 				]
 			]
 		]

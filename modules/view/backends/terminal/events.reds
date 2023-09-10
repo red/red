@@ -78,7 +78,7 @@ get-event-offset: func [
 		widget-evt [widget-event!]
 ][
 	widget-evt: as widget-event! evt/msg
-	as red-value! pair/push as-integer widget-evt/pt/x as-integer widget-evt/pt/y
+	as red-value! point2D/push widget-evt/pt/x widget-evt/pt/y
 ]
 
 get-event-key: func [
@@ -462,25 +462,35 @@ do-mouse-press: func [
 
 do-mouse-wheel: func [
 	dir		[integer!]
+	obj		[widget!]
 	x		[float32!]
 	y		[float32!]
 	flags	[integer!]
+	return: [integer!]
 	/local
 		evt [widget-event! value]
 		w	[widget!]
+		res [integer!]
 ][
-	w: screen/hover-widget
+	res: EVT_DISPATCH
+	w: _widget/find-child obj x y
+	if w <> null [
+		res: do-mouse-wheel dir w x - w/box/left y - w/box/top flags
+	]
+
 	if all [
-		w <> null
-		0 <> w/face
-		w/flags and WIDGET_FLAG_DISABLE = 0
+		obj <> null
+		0 <> obj/face
+		obj/flags and WIDGET_FLAG_DISABLE = 0
+		res and FFFFh = EVT_DISPATCH
 	][
 		evt/fdata: as float32! dir
 		evt/pt/x: x
 		evt/pt/y: y
-		evt/widget: w
+		evt/widget: obj
 		make-event EVT_WHEEL :evt flags
 	]
+	res
 ]
 
 exit-loop?: no

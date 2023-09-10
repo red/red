@@ -4,15 +4,16 @@ system/view/platform/mouse-event?: yes
 
 view/tight [
 	on-key [if event/key = #"^[" [unview/all]]
-	origin 5x3 space 1x2
-	t: text 30x1  "abc" return
-	base 30x5 all-over 
+	origin 5x2 space 1x2
+	t: text 30x1  "(0, 0)" return
+	button 15x1 "mouse click me" [t/text: "click"] return
+	base 30x5 all-over center middle "moving mouse on here"
 		on-over		[t/text: rejoin [mold event/offset " " mold event/flags]]
-		on-down		[t/text: "mouse down"]
-		on-up		[t/text: "mouse up"]
-		on-mid-down	[t/text: "mouse mid down"]
-		on-mid-up	[t/text: "mouse mid up"]
-		on-alt-down	[t/text: "mouse alt down"]
-		on-alt-up	[t/text: "mouse alt up"]
-		on-wheel	[t/text: mold event/picked]
+		on-down		[t/text: rejoin ["mouse down " mold event/offset]]
+		on-up		[t/text: rejoin ["mouse up " mold event/offset]]
+		on-mid-down	[t/text: rejoin ["mouse mid down " mold event/offset]]
+		on-mid-up	[t/text: rejoin ["mouse mid up " mold event/offset]]
+		on-alt-down	[t/text: rejoin ["mouse alt down " mold event/offset]]
+		on-alt-up	[t/text: rejoin ["mouse alt up " mold event/offset]]
+		on-wheel	[t/text: rejoin ["mouse wheel " mold event/picked " " mold event/offset]]
 ]
