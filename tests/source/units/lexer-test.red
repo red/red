@@ -1652,6 +1652,10 @@ Red [
 		--assert error? try [to float! "1e-x"]
 		--assert error? try [to float! "1e-xy"]
 		--assert error? try [to float! "1e/xy"]
+		
+	--test-- "#5380"
+		--assert 1.234 = to-float next "♥1.234"
+		
 
 ===end-group===
 	
