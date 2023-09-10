@@ -14,7 +14,6 @@ tty: context [
 
 	columns:	-1
 	rows:		-1
-	relative-y:  0
 	raw-mode?:	 no
 
 	#enum DECMode! [ ;-- DEC: Digital Equipment Corporation
@@ -55,6 +54,10 @@ tty: context [
 		p: as c-string! :buf
 		sprintf [p "^[[?%dl" mode]
 		prin p
+	]
+
+	report-cursor-position: func [][
+		prin "^[[6n"
 	]
 
 	enable-mouse: does [
@@ -117,6 +120,7 @@ tty: context [
 			get-window-size
 			raw-mode?: yes
 		]
+		report-cursor-position
 	]
 
 	restore: does [
@@ -278,8 +282,6 @@ tty: context [
 			columns: x-y and FFFFh
 			rows: x-y >>> 16
 			if any [columns <= 0 rows <= 0][columns: 80 rows: 24 return -1]
-			x-y: info/Position
-			relative-y: x-y >>> 16
 			0
 		]
 
@@ -323,6 +325,7 @@ tty: context [
 		]
 
 		read-input: func [
+			parse?		[logic!]
 			return:		[integer!]
 			/local
 				cnt		[integer!]
@@ -343,6 +346,8 @@ tty: context [
 			records: as input-record! system/stack/allocate (size? input-record!) >> 2 * cnt
 			n: 0
 			if zero? ReadConsoleInput stdin records cnt :n [return 0]
+
+			unless parse? [return cnt]		;-- just clear the stdin queue
 
 			cc: 0
 			record: records
@@ -455,6 +460,7 @@ tty: context [
 		]
 
 		read-input: func [
+			parse?	[logic!]
 			return: [integer!]
 			/local
 				buf [tiny-str! value]
@@ -466,6 +472,8 @@ tty: context [
 		
 			p: as byte-ptr! :buf
 			n: read stdin p size? tiny-str!
+			unless parse? [return n]
+
 			i: 0
 			while [i < n][
 				i: i + 1

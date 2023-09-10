@@ -26,6 +26,8 @@ screen: context [
 	present?:			no
 	cursor-x:			0
 	cursor-y:			0
+	offset-x:			0
+	offset-y:			0
 
 	init: func [][
 		win-list: array/make 4 size? int-ptr!

@@ -14,6 +14,7 @@ ansi-parser: context [
 	buffer: as node! 0
 	pbuffer: as byte-ptr! 0
 	pos: 1
+	mouse-down: 1
 	incomplete?: no
 
 	_8bytes!: alias struct! [
@@ -80,7 +81,7 @@ ansi-parser: context [
 
 	parse-mouse: func [
 		altered? [logic!]
-		pressed? [logic!]
+		pressed  [integer!]
 		args	 [int-ptr!]
 		/local
 			evt		[integer!]
@@ -92,16 +93,21 @@ ansi-parser: context [
 	][
 		arg1: args/1
 		btn: arg1 and 3 + (arg1 and 64 >> 4)
-		x: as float32! args/2 - 1	;-- use 0-based index
-		y: as float32! args/3 - 1
+		x: as float32! args/2 - 1		;-- use 0-based index
+		y: as float32! args/3 - screen/offset-y - 1
 		flags: 0
 		if arg1 and 4 <> 0  [flags: flags or EVT_FLAG_SHIFT_DOWN]
 		if arg1 and 8 <> 0  [flags: flags or EVT_FLAG_MENU_DOWN]
 		if arg1 and 16 <> 0 [flags: flags or EVT_FLAG_CTRL_DOWN]
 		case [
 			btn < 3 [
-				evt: btn * 2 + 1 + as-integer pressed?
-				do-mouse-press evt screen/active-win/window x y flags
+				evt: btn * 2 + 1 + pressed
+				either mouse-down <> pressed [
+					mouse-down: pressed
+					do-mouse-press evt screen/active-win/window x y flags
+				][
+					do-mouse-move EVT_OVER screen/active-win/window x y flags yes
+				]
 			]
 			btn = 3 [do-mouse-move EVT_OVER screen/active-win/window x y flags yes]
 			btn = 4 [do-mouse-wheel 1 x y flags]
@@ -110,8 +116,9 @@ ansi-parser: context [
 		]
 	]
 
-	parse-cursor: func [][
-		
+	parse-cursor: func [args [int-ptr!]][
+		screen/offset-y: args/1 - 1		;-- use 0-based index
+		screen/offset-x: args/2 - 1
 	]
 
 	parse-key: func [
@@ -238,9 +245,9 @@ ansi-parser: context [
 				arg: 0
 
 				switch c [
-					#"M"	[if n = 3 [parse-mouse altered? true pargs]]
-					#"m"	[if n = 3 [parse-mouse altered? false pargs]]
-					#"R"	[if n = 2 [parse-cursor]]
+					#"M"	[if n = 3 [parse-mouse altered? 0 pargs]]
+					#"m"	[if n = 3 [parse-mouse altered? 1 pargs]]
+					#"R"	[if n = 2 [parse-cursor pargs]]
 					default [parse-key start pbuffer + (pos - 1)]
 				]
 				exit
@@ -307,12 +314,6 @@ ansi-parser: context [
 		pbuffer: array/get-ptr buffer
 		end: array/length? buffer
 
-while [pos <= end][
-	c: current-char
-	LOG_MSG(["char: " as-integer c])
-	pos: pos + 1
-]
-pos: 1
 		c: null-byte
 		while [pos <= end][
 			c: current-char

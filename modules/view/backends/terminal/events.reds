@@ -23,6 +23,7 @@ flags-blk/head:		0
 flags-blk/node:		alloc-cells 4
 flags-blk/header:	TYPE_BLOCK
 
+mouse-event?:	no
 mouse-x:		as float32! 0
 mouse-y:		as float32! 0
 
@@ -257,7 +258,6 @@ send-key-event: func [
 	/local
 		g-evt	[widget-event! value]
 ][
-	LOG_MSG(["key: " char " " flags])
 	case [
 		char = as-integer #"^-" [	;-- tab key
 			screen/next-focused-widget 1
@@ -499,8 +499,8 @@ do-events: func [
 		n		[integer!]
 		tm		[time-meter! value]
 		t delta	[integer!]
+		mouse?	[red-logic!]
 ][
-	LOG_MSG("----------------------------")
 	if all [
 		not no-wait?
 		1 < screen/windows-cnt
@@ -509,9 +509,15 @@ do-events: func [
 	tty/init
 	exit-loop?: no
 
+	mouse?: as red-logic! #get system/view/platform/mouse-event?
+	if mouse?/value <> mouse-event? [
+		mouse-event?: mouse?/value
+		either mouse-event? [tty/enable-mouse][tty/disable-mouse]
+	]
+
 	t: 0
 	until [
-		n: tty/read-input
+		n: tty/read-input yes
 		msg?: n > 0
 		if all [no-wait? not msg?][break]
 
@@ -529,6 +535,15 @@ do-events: func [
 
 		any [no-wait? exit-loop?]
 	]
-	unless no-wait? [tty/restore]
+	unless no-wait? [
+		screen/set-cursor-bottom
+		if mouse-event? [
+			mouse-event?: no
+			tty/disable-mouse
+		]
+		tty/restore
+		tty/read-input no	;-- clear stdin queue
+		tty/show-cursor
+	]
 	msg?
 ]

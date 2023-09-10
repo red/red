@@ -615,8 +615,6 @@ OS-destroy-view: func [
 	free-faces face
 	if zero? screen/windows-cnt [
 		post-quit-msg
-		tty/show-cursor
-		screen/set-cursor-bottom
 	]
 ]
 
