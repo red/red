@@ -2255,10 +2255,8 @@ OS-draw-grad-pen: func [
 		gprops	[D2D1_RADIAL_GRADIENT_BRUSH_PROPERTIES value]
 		lprops	[D2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES value]
 		gstops	[D2D1_GRADIENT_STOP]
-		x		[float!]
-		y		[float!]
-		start	[float!]
-		stop	[float!]
+		x		[float32!]
+		y		[float32!]
 		brush	[com-ptr! value]
 		int		[red-integer!]
 		f		[red-float!]
@@ -2334,7 +2332,9 @@ OS-draw-grad-pen: func [
 			gprops/radius.y: gprops/radius.x
 			either focal? [
 				pair: pair + 2
-				GET_PAIR_XY(pair gprops/offset.x gprops/offset.y)
+				GET_PAIR_XY(pair x y)
+				gprops/offset.x: x - gprops/center.x
+				gprops/offset.y: y - gprops/center.y
 			][
 				gprops/offset.x: as float32! 0.0
 				gprops/offset.y: as float32! 0.0
