@@ -259,6 +259,12 @@ screen: context [
 		]
 	]
 
+	update-mouse-offset: func [][
+		if offset-y + height > tty/rows [
+			offset-y: tty/rows - height
+		]
+	]
+
 	render-widget: func [
 		widget	[widget!]
 		/local
@@ -532,6 +538,7 @@ screen: context [
 		/local
 			wm [window-manager!]
 	][
+		update-mouse-offset
 		unless present? [exit]
 
 		wm: active-win
