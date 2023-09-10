@@ -146,9 +146,9 @@ remainder: make action! [[
 
 round: make action! [[
 		"Returns the nearest integer. Halves round up (away from zero) by default"
-		n		[number! money! time! pair! point2D!]
+		n		[number! money! time! pair! any-point!]
 		/to		"Return the nearest multiple of the scale parameter"
-		scale	[number! money! time! pair! point2D!] "If zero, returns N unchanged"
+		scale	[number! money! time! pair! any-point!] "If zero, returns N unchanged"
 		/even		"Halves round toward even results"
 		/down		"Round toward zero, ignoring discarded digits. (truncate)"
 		/half-down	"Halves round toward zero"
