@@ -72,8 +72,6 @@ tokenizer: context [
 			cur	 [byte-ptr!]
 			s0	 [byte-ptr!]
 	][
-		unless lexer/scan-float p p + len [error/value: -1 return 1.#NaN]
-
 		cur: as byte-ptr! "0000000000000000000000000000000"	;-- 32 bytes including NUL
 		assert unit <= 4
 		tail: p + (len << (unit >> 1))
@@ -92,6 +90,8 @@ tokenizer: context [
 			p = tail
 		]
 		cur/1: #"^@"									;-- replace the byte with null so to-float can use it as end of input
+
+		unless lexer/scan-float s0 s0 + len [error/value: -1 return 1.#NaN]
 		string/to-float s0 len error
 	]
 
