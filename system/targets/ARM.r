@@ -2589,17 +2589,13 @@ make-profilable make target-class [
 				if block? right [
 					either all [path? left not path? right][
 						emit-pop-float 1
-						if object? args/2 [
-							emit-vfp-casting/right args/2
-							conv?: yes
-						]
 					][
 						emit-float 
 							#{ec410b11}				;-- FMDRR d1, r1, r0
 							#{ee010a10}				;-- FMSR s2, r0
 					]
 				]
-				if all [object? args/2 not conv?][emit-vfp-casting/right args/2]
+				if conv?: object? args/2 [emit-vfp-casting/right args/2]
 			]
 		]
 		all [
