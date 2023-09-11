@@ -1407,7 +1407,7 @@ interpreter: context [
 			
 			while [value < tail][
 				#if debug? = yes [if verbose > 0 [log "root loop..."]]
-				near/head: (as-integer value - head) >> 4
+				near/head: (as-integer value - head) >> 4 + code/head
 				value: eval-expression value tail code no no no
 				if value + 1 <= tail [stack/reset]
 			]
