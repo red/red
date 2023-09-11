@@ -262,7 +262,9 @@ write %build/bin/sources.r set-cache [
 					%widgets [
 						%button.reds
 						%field.reds
-						%text.reds
+						%progress.reds
+						%rich-text.reds
+						%text-list.reds
 					]
 					%ansi-parser.reds
 					%definitions.reds
@@ -270,9 +272,11 @@ write %build/bin/sources.r set-cache [
 					%events.reds
 					%font.reds
 					%gui.reds
+					%make-ui.red
 					%para.reds
 					%screen.reds
 					%text-box.reds
+					%timer.reds
 					%tty.reds
 					%utils.reds
 					%widget.reds
