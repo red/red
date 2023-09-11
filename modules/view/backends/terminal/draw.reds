@@ -252,6 +252,8 @@ OS-draw-text: func [
 	zero-memory as byte-ptr! :config size? render-config!
 	config/widget: as widget! ctx/dc
 	config/layout?: no
+	config/align: TEXT_WRAP_FLAG
+	config/flags: PIXEL_ANSI_SEQ
 	_widget/render-text text x y as rect! :ctx/left :config
 	true
 ]
