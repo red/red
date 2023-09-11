@@ -2581,6 +2581,7 @@ make-profilable make target-class [
 				set-width right
 				if path? right [
 					emit-load args/2
+					if object? args/2 [set-width args/2/data]
 					emit-float 
 						#{ec410b11}					;-- FMDRR d1, r1, r0
 						#{ee010a10}					;-- FMSR s2, r0
