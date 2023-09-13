@@ -265,6 +265,7 @@ send-mouse-event: func [
 		g-evt/pt/x: x
 		g-evt/pt/y: y
 		g-evt/widget: obj
+		obj/on-event evt :g-evt
 		if 0 <> obj/face [
 			ret: make-event evt :g-evt flags
 		]
@@ -470,6 +471,13 @@ _do-mouse-press: func [
 					EVT_CLICK
 				]
 				r2: send-mouse-event evt obj x y flags
+				if all [
+					null? gb
+					WIDGET_FOCUSABLE?(obj)
+					obj/flags and WIDGET_FLAG_FOCUS = 0
+				][
+					screen/set-focus-widget obj
+				]
 			]
 		]
 		default [0]

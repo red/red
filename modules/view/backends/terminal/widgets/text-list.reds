@@ -30,8 +30,10 @@ on-text-list-event: func [
 		len		[integer!]
 		head	[integer!]
 		w h		[integer!]
+		off-y	[integer!]
 		data	[red-block!]
 		values	[red-value!]
+		change? [logic!]
 		selected [red-integer!]
 ][
 	widget: evt/widget
@@ -43,36 +45,57 @@ on-text-list-event: func [
 	_widget/get-size widget :w :h
 	head: as-integer widget/data
 	idx: selected/value
+	change?: no
 
-	if type = EVT_KEY [
-		len: switch TYPE_OF(data) [
-			TYPE_MAP [map/rs-length? as red-hash! data]
-			TYPE_BLOCK
-			TYPE_HASH [block/rs-length? data]
-			default [0]
-		]
-		cp: evt/data
-		switch cp [
-			KEY_UP [
-				if idx > 1 [idx: idx - 1]
-				if all [idx - 1 < head head > 0][
-					head: head - 1
-				]
+	case [
+		type = EVT_KEY [
+			len: switch TYPE_OF(data) [
+				TYPE_MAP [map/rs-length? as red-hash! data]
+				TYPE_BLOCK
+				TYPE_HASH [block/rs-length? data]
+				default [0]
 			]
-			KEY_DOWN [
-				if idx < len [idx: idx + 1]
-				if idx - h > head [
-					head: head + 1
+			cp: evt/data
+			switch cp [
+				KEY_UP [
+					if idx > 1 [
+						idx: idx - 1
+						change?: yes
+					]
+					if all [idx - 1 < head head > 0][
+						head: head - 1
+					]
 				]
+				KEY_DOWN [
+					if idx < len [
+						idx: idx + 1
+						change?: yes
+					]
+					if idx - h > head [
+						head: head + 1
+					]
+				]
+				default [return 0]
 			]
-			default [return 0]
+			widget/data: as int-ptr! head
 		]
-		widget/data: as int-ptr! head
+		type = EVT_FOCUS [
+			change?: yes
+		]
+		type = EVT_CLICK [
+			off-y: as-integer evt/pt/y
+			idx: head + off-y + 1
+			if TYPE_OF(selected) <> TYPE_INTEGER [
+				selected/header: TYPE_INTEGER
+			]
+		]
+		true [0]
 	]
 
 	selected/value: idx
 	make-text-list-ui widget
 	screen/redraw widget
+	if change? [make-red-event EVT_CHANGE widget 0]
 	0
 ]
 

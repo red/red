@@ -157,11 +157,29 @@ screen: context [
 		]
 	]
 
+	set-focus-widget: func [
+		w			[widget!]
+		/local
+			i		[integer!]
+			wm		[window-manager!]
+	][
+		i: array/find-ptr focus-chain as int-ptr! w
+		if i = -1 [exit]
+
+		WIDGET_UNSET_FLAG(focus-widget WIDGET_FLAG_FOCUS)
+		send-event EVT_UNFOCUS focus-widget 0
+		wm: active-win
+		wm/focused-idx: i >> 2
+		wm/focused: w
+		focus-widget: w
+
+		WIDGET_SET_FLAG(focus-widget WIDGET_FLAG_FOCUS)
+		send-event EVT_FOCUS focus-widget 0
+	]
+
 	next-focused-widget: func [
 		n			[integer!]
 		/local
-			win		[widget!]
-			blk		[red-block!]
 			len		[integer!]
 			i		[integer!]
 			w		[widget!]
