@@ -80,7 +80,7 @@ get-event-offset: func [
 		widget-evt [widget-event!]
 ][
 	widget-evt: as widget-event! evt/msg
-	as red-value! point2D/push widget-evt/pt/x widget-evt/pt/y
+	as red-value! pair/push as-integer widget-evt/pt/x as-integer widget-evt/pt/y
 ]
 
 get-event-key: func [
