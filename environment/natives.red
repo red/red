@@ -585,7 +585,7 @@ zero?: make native! [[
 
 log-2: make native! [[
 		"Return the base-2 logarithm"
-		value	[float! integer!]
+		value	[float! integer! percent!]
 		return: [float!]
 	]
 	#get-definition NAT_LOG_2
@@ -593,7 +593,7 @@ log-2: make native! [[
 
 log-10: make native! [[
 		"Returns the base-10 logarithm"
-		value	[float! integer!]
+		value	[float! integer! percent!]
 		return: [float!]
 	]
 	#get-definition NAT_LOG_10
@@ -601,7 +601,7 @@ log-10: make native! [[
 
 log-e: make native! [[
 		"Returns the natural (base-E) logarithm of the given value"
-		value	[float! integer!]
+		value	[float! integer! percent!]
 		return: [float!]
 	]
 	#get-definition NAT_LOG_E
@@ -609,7 +609,7 @@ log-e: make native! [[
 
 exp: make native! [[
 		"Raises E (the base of natural logarithm) to the power specified"
-		value	[float! integer!]
+		value	[float! integer! percent!]
 		return: [float!]
 	]
 	#get-definition NAT_EXP
@@ -617,7 +617,7 @@ exp: make native! [[
 
 square-root: make native! [[
 		"Returns the square root of a number"
-		value	[float! integer!]
+		value	[float! integer! percent!]
 		return: [float!]
 	]
 	#get-definition NAT_SQUARE_ROOT
