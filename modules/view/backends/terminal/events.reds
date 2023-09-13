@@ -23,7 +23,9 @@ flags-blk/head:		0
 flags-blk/node:		alloc-cells 4
 flags-blk/header:	TYPE_BLOCK
 
-mouse-event?:	no
+last-mouse-evt:		0
+mouse-click-delta:	0
+mouse-event?:		no
 mouse-x:		as float32! 0
 mouse-y:		as float32! 0
 
@@ -228,6 +230,25 @@ send-event: func [
 	ret
 ]
 
+make-red-event: func [
+	evt		[integer!]
+	obj		[widget!]
+	flags	[integer!]
+	return: [integer!]
+	/local
+		w-evt	[widget-event! value]
+		ret		[integer!]
+][
+	ret: EVT_DISPATCH
+	if obj/flags and WIDGET_FLAG_DISABLE = 0 [
+		w-evt/widget: obj
+		if 0 <> obj/face [
+			ret: make-event evt :w-evt flags
+		]
+	]
+	ret
+]
+
 send-mouse-event: func [
 	evt		[integer!]
 	obj		[widget!]
@@ -424,7 +445,7 @@ _do-mouse-press: func [
 	if gb <> null [
 		r0: _do-mouse-press evt gb x - gb/box/left y - gb/box/top flags
 	]
-	if r0 and FFFFh = EVT_DISPATCH [
+	if r0 and FFh = EVT_DISPATCH [
 		r1: send-mouse-event evt obj x y flags
 	]
 	switch evt [
@@ -433,15 +454,27 @@ _do-mouse-press: func [
 		]
 		EVT_LEFT_UP [
 			if all [
-				r0 >>> 16 = EVT_DISPATCH
+				r0 and FFFFh >>> 8 = EVT_DISPATCH
 				-1 <> array/find-ptr screen/captured as int-ptr! obj
 			][
-				r2: send-mouse-event EVT_CLICK obj x y flags
+				evt: either any [
+					r0 >>> 16 = EVT_DBL_CLICK
+					all [
+						last-mouse-evt = EVT_LEFT_UP
+						mouse-click-delta < 300
+					]
+				][
+					last-mouse-evt: EVT_DBL_CLICK
+					EVT_DBL_CLICK
+				][
+					EVT_CLICK
+				]
+				r2: send-mouse-event evt obj x y flags
 			]
 		]
 		default [0]
 	]
-	r2 << 16 or r1
+	evt << 16 or (r2 << 8 or r1)
 ]
 
 do-mouse-press: func [
@@ -457,6 +490,8 @@ do-mouse-press: func [
 		send-captured-event evt x y flags -1
 		screen/captured-widget: null
 		array/clear screen/captured
+		last-mouse-evt: either last-mouse-evt = EVT_DBL_CLICK [0][EVT_LEFT_UP]
+		mouse-click-delta: 0
 	]
 ]
 
@@ -537,9 +572,18 @@ do-events: func [
 		]
 
 		time-meter/start :tm
+
 		timer/update delta
 		screen/render
 		ansi-parser/parse
+
+		if all [
+			last-mouse-evt = EVT_LEFT_UP
+			mouse-click-delta < 500
+		][
+			mouse-click-delta: mouse-click-delta + DELTA_TIME
+		]
+
 		t: as-integer time-meter/elapse :tm
 		assert t >= 0
 
