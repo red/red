@@ -37,14 +37,14 @@ make-progress-ui: function [
 		proportion <= 1e-16 [proportion: 0.0]
 		proportion >= 1.0 [proportion: 1.0]
 	]
-	face/text: ""
-	ui: clear face/text
+	ui: make string! 50
 	append ui #"["
 	bar: face/size/x - 2	;-- exclude [ and ]
 	val: to-integer round/ceiling bar * proportion
 	append/dup ui #"#" val
 	append/dup ui #" " bar - val
 	append ui #"]"
+	face/text: ui
 ]
 
 make-text-list-ui: function [
@@ -63,7 +63,7 @@ make-text-list-ui: function [
 	head: widget-data face		;-- we use widget/data to save the idx of the first entry
 	data: skip face/data head
 	i: head + 1
-	ui: clear ""
+	ui: make string! 200
 	foreach s data [
 		if i = idx [
 			append ui "^[[7m"	;-- highlight selected item

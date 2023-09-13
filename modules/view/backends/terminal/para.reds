@@ -10,21 +10,6 @@ Red/System [
 	}
 ]
 
-change-para: func [
-	hWnd	[integer!]
-	face	[red-object!]
-	para	[red-object!]
-	font	[red-object!]
-	type	[integer!]
-	return: [logic!]
-	/local
-		flags [integer!]
-		cell  [integer!]
-][
-	if TYPE_OF(para) <> TYPE_OBJECT [return no]
-	yes
-]
-
 update-para: func [
 	face	[red-object!]
 	fields	[integer!]

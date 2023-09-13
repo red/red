@@ -174,13 +174,6 @@ OS-text-box-layout: func [
 	null
 ]
 
-txt-box-draw-background: func [
-	target	[int-ptr!]
-	pos		[red-pair!]
-	layout	[handle!]
-][
-]
-
 adjust-index: func [
 	str		[red-string!]
 	offset	[integer!]
