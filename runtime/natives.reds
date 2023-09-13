@@ -3360,10 +3360,14 @@ natives: context [
 			int	[red-integer!]
 	][
 		fl: as red-float! stack/arguments
-		if TYPE_OF(fl) <> TYPE_FLOAT [
-			fl/header: TYPE_FLOAT
-			int: as red-integer! fl
-			fl/value: as-float int/value
+		switch TYPE_OF(fl) [
+			TYPE_INTEGER [
+				fl/header: TYPE_FLOAT
+				int: as red-integer! fl
+				fl/value: as-float int/value
+			]
+			TYPE_PERCENT [fl/header: TYPE_FLOAT]
+			default 	 [0]
 		]
 		fl
 	]
