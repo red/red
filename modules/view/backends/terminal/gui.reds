@@ -560,6 +560,30 @@ change-size: func [
 	box/bottom: box/top + sy
 ]
 
+change-enabled: func [
+	w		[widget!]
+	values	[red-value!]
+	/local
+		bool [red-logic!]
+][
+	bool: as red-logic! values + FACE_OBJ_ENABLED?
+	either bool/value [WIDGET_UNSET_FLAG(w WIDGET_FLAG_DISABLE)][
+		WIDGET_SET_FLAG(w WIDGET_FLAG_DISABLE)
+	]
+]
+
+change-visible: func [
+	w		[widget!]
+	values	[red-value!]
+	/local
+		bool [red-logic!]
+][
+	bool: as red-logic! values + FACE_OBJ_VISIBLE?
+	either bool/value [WIDGET_UNSET_FLAG(w WIDGET_FLAG_HIDDEN)][
+		WIDGET_SET_FLAG(w WIDGET_FLAG_HIDDEN)
+	]
+]
+
 OS-update-view: func [
 	face [red-object!]
 	/local
@@ -598,7 +622,12 @@ OS-update-view: func [
 	if flags and FACET_FLAG_SIZE <> 0 [
 		change-size w as red-pair! values + FACE_OBJ_SIZE
 	]
-
+	if flags and FACET_FLAG_ENABLED? <> 0 [
+		change-enabled w values
+	]
+	if flags and FACET_FLAG_VISIBLE? <> 0 [
+		change-visible w values
+	]
 	b: as red-logic! #get system/view/auto-sync?
 	sync?: b/value
 	b/value: no
