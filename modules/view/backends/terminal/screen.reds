@@ -36,6 +36,29 @@ screen: context [
 		esc-sequences: array/make 2000 1
 	]
 
+	reset: does [
+		width:				0
+		height:				0
+		relative-y:			0
+		present?:			no
+		cursor-x:			0
+		cursor-y:			0
+		offset-x:			0
+		offset-y:			0
+		active-win:			null
+		hover-widget:		null
+		focus-widget:		null
+		captured-widget:	null
+		array/clear captured
+		array/clear focus-chain
+		array/clear esc-sequences
+		free-buffer
+
+		last-mouse-evt:		0
+		mouse-click-delta:	0
+		mouse-event?:		no
+	]
+
 	windows-cnt: func [
 		return: [integer!]
 	][
@@ -72,8 +95,10 @@ screen: context [
 	]
 
 	free-buffer: does [
-		free as byte-ptr! buffer
-		buffer: as pixel! 0
+		if buffer <> null [
+			free as byte-ptr! buffer
+			buffer: null
+		]
 	]
 
 	on-gc-mark: func [][

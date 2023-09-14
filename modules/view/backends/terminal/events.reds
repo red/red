@@ -606,6 +606,7 @@ do-events: func [
 		tty/restore
 		tty/read-input no	;-- clear stdin queue
 		tty/show-cursor
+		screen/reset
 	]
 	msg?
 ]
