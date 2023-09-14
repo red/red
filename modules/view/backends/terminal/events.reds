@@ -462,7 +462,7 @@ _do-mouse-press: func [
 					r0 >>> 16 = EVT_DBL_CLICK
 					all [
 						last-mouse-evt = EVT_LEFT_UP
-						mouse-click-delta < 300
+						mouse-click-delta < 600
 					]
 				][
 					last-mouse-evt: EVT_DBL_CLICK
@@ -587,7 +587,7 @@ do-events: func [
 
 		if all [
 			last-mouse-evt = EVT_LEFT_UP
-			mouse-click-delta < 500
+			mouse-click-delta < 800
 		][
 			mouse-click-delta: mouse-click-delta + DELTA_TIME
 		]
