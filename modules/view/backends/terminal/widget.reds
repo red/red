@@ -473,8 +473,10 @@ _widget: context [
 		w: box/right - box/left
 		h: box/bottom - box/top
 
-		txt-w: 0 txt-h: 0
-		size-text str w 0 :txt-w :txt-h
+		txt-w: w txt-h: h
+		if align <> 0 [
+			size-text str w 0 :txt-w :txt-h
+		]
 
 		if txt-w < w [
 			case [

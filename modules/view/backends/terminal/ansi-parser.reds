@@ -1,7 +1,7 @@
 Red/System [
 	Title:	"ANSI escape sequences parser"
 	Author: "Xie Qingtian"
-	File: 	%asni-parser.reds
+	File: 	%ansi-parser.reds
 	Tabs: 	4
 	Rights: "Copyright (C) 2023 Red Foundation. All rights reserved."
 	License: {

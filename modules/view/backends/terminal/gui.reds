@@ -178,6 +178,7 @@ size-text: func [
 			cnt: cnt + 1
 			len: len - n
 			if len > max-len [max-len: len]
+			if len <= 0 [break]	;-- width is too small that cannot even contain 1 char
 			len: 0
 		][
 			offset: offset + unit
