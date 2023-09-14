@@ -2828,12 +2828,6 @@ b}
 			--assert error? try [sine 10%]
 			--assert error? try [cos 10%]
 			--assert error? try [cosine 10%]
-			--assert error? try [exp 10%]
-			--assert error? try [log-e 10%]
-			--assert error? try [log-10 10%]
-			--assert error? try [log-2 10%]
-			--assert error? try [sqrt 1%]
-			--assert error? try [square-root 1%]
 		]
 		
 	--test-- "#2650"
