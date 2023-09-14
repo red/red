@@ -312,6 +312,15 @@ screen: context [
 	#define ADD_BYTES(data len) [array/append-bytes esc-sequences data len]
 	#define ADD_STR(s) [array/append-bytes esc-sequences as byte-ptr! s length? s]
 
+	reset-cursor: func [/local s [c-string!] _buf [tiny-str! value]][
+		if relative-y > 0 [
+			s: as c-string! :_buf
+			sprintf [s "^M^[[%dA^[[0J" relative-y]	;-- move left and move up
+			tty/write as byte-ptr! s length? s
+			relative-y: 0
+		]
+	]
+
 	emit-color: func [
 		clr			[integer!]
 		fg-color?	[logic!]
@@ -481,14 +490,13 @@ screen: context [
 		present?: yes
 
 		str: as byte-ptr! :_buf
-
+		s: as c-string! str
+		ADD_BYTE(#"^M")		;-- move left
 		if relative-y > 0 [
-			s: as c-string! str
-			ADD_BYTE(#"^M")		;-- move left
 			sprintf [s "^[[%dA" relative-y]	;-- move up
 			ADD_STR(s)
-			ADD_STR("^[[0J")	;-- erase down to the bottom of the screen
 		]
+		ADD_STR("^[[0J")	;-- erase down to the bottom of the screen
 
 		px/fg-color: 0
 		px/bg-color: 0

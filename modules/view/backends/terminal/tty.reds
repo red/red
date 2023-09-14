@@ -92,7 +92,7 @@ tty: context [
 		if n > 0 [
 			p: as c-string! :buf
 			sprintf [p "^[[%dB" n]
-			prin p
+			write as byte-ptr! p length? p
 		]
 	]
 
@@ -324,6 +324,16 @@ tty: context [
 			SetConsoleOutputCP saved-out-cp
 		]
 
+		restore-output: does [
+			SetConsoleMode stdout saved-out-mode
+		]
+
+		set-output: func [/local mode [integer!]][
+			mode: saved-out-mode or DISABLE_NEWLINE_AUTO_RETURN
+			mode: mode or ENABLE_VIRTUAL_TERMINAL_PROCESSING
+			SetConsoleMode stdout mode
+		]
+
 		read-input: func [
 			parse?		[logic!]
 			return:		[integer!]
@@ -458,6 +468,11 @@ tty: context [
 			tcsetattr stdin TERM_TCSADRAIN saved-term
 			#if OS <> 'Linux [sigaction SIGWINCH old-act null]
 		]
+
+
+		restore-output: does []
+
+		set-output: func [][]
 
 		read-input: func [
 			parse?	[logic!]

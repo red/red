@@ -573,3 +573,18 @@ string-width?: func [
 	if nlines <> null [nlines/value: cnt]
 	max-len
 ]
+
+back-to-console: func [][
+	if tty/raw-mode? [
+		screen/reset-cursor
+		fflush 0
+		tty/restore-output
+	]
+]
+
+enter-tui: func [][
+	if tty/raw-mode? [
+		tty/set-output
+		screen/present?: yes
+	]
+]

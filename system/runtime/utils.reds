@@ -72,6 +72,8 @@ _print: func [
 		s		 [c-string!]
 		c		 [byte!]
 ][
+	#if GUI-engine = 'terminal [exec/gui/back-to-console]
+
 	until [
 		switch list/type [
 			type-logic!	   [prin either as-logic list/value ["true"]["false"]]
@@ -110,6 +112,7 @@ _print: func [
 		zero? count
 	]
 	fflush 0
+	#if GUI-engine = 'terminal [exec/gui/enter-tui]
 ]
 
 ;-------------------------------------------
