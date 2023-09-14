@@ -586,5 +586,6 @@ enter-tui: func [][
 	if tty/raw-mode? [
 		tty/set-output
 		screen/present?: yes
+		tty/report-cursor-position
 	]
 ]
