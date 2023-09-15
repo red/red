@@ -90,7 +90,7 @@ page-1: layout/tight [
 
 	panel 30x2 [
 		txt 8 "EXP" txt 3 "CVV" return
-		field 5 hint "MM/YY" pad 3x0 field 3 hint "999"
+		field 5 hint "MM/YY" pad 3x0 field 3 password hint "999"
 	] return
 
 	button font-color gray 20x2 "Next ->" [show page-2]

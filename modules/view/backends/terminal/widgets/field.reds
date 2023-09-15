@@ -144,9 +144,11 @@ draw-field: func [
 	widget		[widget!]
 	/local
 		field	[field-data!]
+		flags	[integer!]
 ][
 	widget/box/bottom: widget/box/top + F32_1		;-- force height to 1 line
-	_widget/render x y widget 0
+	flags: either WIDGET_PASSWORD?(widget) [PIXEL_PASSWORD][0]
+	_widget/render x y widget flags
 	if WIDGET_FOCUSED?(widget) [
 		field: as field-data! widget/data
 		screen/cursor-x: x + field/cursor

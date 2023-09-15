@@ -537,8 +537,12 @@ screen: context [
 				if DRAW_PIXEL?(p) [
 					prev: update-pixel-style prev p
 
-					cp: p/code-point
-					if zero? cp [cp: as-integer #" "]
+					either p/flags and PIXEL_PASSWORD = 0 [
+						cp: p/code-point
+						if zero? cp [cp: as-integer #" "]
+					][
+						cp: as-integer #"*"
+					]
 					n: unicode/cp-to-utf8 cp str
 					if n > 0 [ADD_BYTES(str n)]
 				]

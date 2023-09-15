@@ -78,7 +78,7 @@ tiny-str!: alias struct! [	;-- 32 bytes
 #define WIDGET_FLAG_FOCUS		02000000h
 #define WIDGET_FLAG_POPUP		04000000h
 #define WIDGET_FLAG_MODAL		08000000h
-#define WIDGET_FLAG_LAYER		10000000h
+#define WIDGET_FLAG_PASSWORD	10000000h
 #define WIDGET_FLAG_RESIZE		20000000h
 
 #define WIDGET_TYPE(widget)				[widget/type]
@@ -87,6 +87,7 @@ tiny-str!: alias struct! [	;-- 32 bytes
 #define WIDGET_FOCUSED?(widget)			[all [widget <> null widget/flags and WIDGET_FLAG_FOCUS <> 0]]
 #define WIDGET_EDITABLE?(widget)		[widget/flags and WIDGET_FLAG_EDITABLE <> 0]
 #define WIDGET_FOCUSABLE?(widget)		[widget/flags and WIDGET_FLAG_FOCUSABLE <> 0]
+#define WIDGET_PASSWORD?(widget)		[widget/flags and WIDGET_FLAG_PASSWORD <> 0]
 
 point!: alias struct! [
 	x	[float32!]
@@ -192,6 +193,7 @@ window-manager!: alias struct! [
 	PIXEL_ITALIC:		0100h
 	PIXEL_HIDDEN:		0200h
 	PIXEL_SKIP:			0400h
+	PIXEL_PASSWORD:		0800h
 	PIXEL_ANSI_SEQ:		1000h
 ]
 

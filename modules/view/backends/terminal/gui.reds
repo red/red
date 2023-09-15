@@ -385,6 +385,7 @@ OS-make-view: func [
 	flags: 0
 	bits:  get-flags as red-block! values + FACE_OBJ_FLAGS
 	if bits and FACET_FLAGS_ALL_OVER <> 0 [flags: flags or WIDGET_FLAG_ALL_OVER]
+	if bits and FACET_FLAGS_PASSWORD <> 0 [flags: flags or WIDGET_FLAG_PASSWORD]
 
 	if TYPE_OF(offset) = TYPE_PAIR [as-point2D as red-pair! offset]
 	either TYPE_OF(size) = TYPE_PAIR [
@@ -638,6 +639,11 @@ OS-update-view: func [
 			WIDGET_SET_FLAG(w WIDGET_FLAG_ALL_OVER)
 		][
 			WIDGET_UNSET_FLAG(w WIDGET_FLAG_ALL_OVER)
+		]
+		either bits and FACET_FLAGS_PASSWORD <> 0 [
+			WIDGET_SET_FLAG(w WIDGET_FLAG_PASSWORD)
+		][
+			WIDGET_UNSET_FLAG(w WIDGET_FLAG_PASSWORD)
 		]
 	]
 	b: as red-logic! #get system/view/auto-sync?
