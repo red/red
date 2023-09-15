@@ -532,18 +532,21 @@ change-rate: func [
 
 change-offset: func [
 	widget		[widget!]
-	offset		[red-point2D!]
+	offset		[red-pair!]
 	/local
 		box		[RECT_F!]
+		pt		[red-point2D!]
 		sx sy	[float32!]
+		x y		[float32!]
 ][
 	box: as RECT_F! :widget/box
 	sx: box/right - box/left
 	sy: box/bottom - box/top
-	box/left: offset/x
-	box/top: offset/y
-	box/right: offset/x + sx
-	box/bottom: offset/y + sy
+	GET_PAIR_XY(offset x y)
+	box/left: x
+	box/top: y
+	box/right: x + sx
+	box/bottom: y + sy
 ]
 
 change-size: func [
@@ -597,6 +600,7 @@ OS-update-view: func [
 		b		[red-logic!]
 		sync?	[logic!]
 		flags	[integer!]
+		bits	[integer!]
 ][
 	ctx: GET_CTX(face)
 	s: as series! ctx/values/value
@@ -617,7 +621,7 @@ OS-update-view: func [
 		if TYPE_OF(val) <> TYPE_NONE [change-rate w val]
 	]
 	if flags and FACET_FLAG_OFFSET <> 0 [
-		change-offset w as red-point2D! values + FACE_OBJ_OFFSET
+		change-offset w as red-pair! values + FACE_OBJ_OFFSET
 	]
 	if flags and FACET_FLAG_SIZE <> 0 [
 		change-size w as red-pair! values + FACE_OBJ_SIZE
@@ -627,6 +631,14 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_VISIBLE? <> 0 [
 		change-visible w values
+	]
+	if flags and FACET_FLAG_FLAGS <> 0 [
+		bits:  get-flags as red-block! values + FACE_OBJ_FLAGS
+		either bits and FACET_FLAGS_ALL_OVER <> 0 [
+			WIDGET_SET_FLAG(w WIDGET_FLAG_ALL_OVER)
+		][
+			WIDGET_UNSET_FLAG(w WIDGET_FLAG_ALL_OVER)
+		]
 	]
 	b: as red-logic! #get system/view/auto-sync?
 	sync?: b/value
