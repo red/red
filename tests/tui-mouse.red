@@ -15,7 +15,7 @@ view/tight [
 		b2/enabled?: not b2/enabled?
 		t/text: "click"
 	] on-dbl-click [t/text: "double click"] return
-	field 20x1 "Hello World!" return
+	field 20x1 "Hello 😀 World!" return
 	b2: base 30x5 all-over center middle "moving mouse on here"
 		on-over		[t/text: rejoin [mold event/offset " " mold event/flags]]
 		on-down		[t/text: rejoin ["mouse down " mold event/offset]]

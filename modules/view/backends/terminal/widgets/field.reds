@@ -59,6 +59,7 @@ on-field-edit: func [
 		n		[integer!]
 		idx		[integer!]
 		w h		[integer!]
+		off-x	[integer!]
 ][
 	widget: evt/widget
 	field: as field-data! widget/data
@@ -69,6 +70,16 @@ on-field-edit: func [
 
 	w: 0 h: 0
 	_widget/get-size widget :w :h
+
+	if type = EVT_CLICK [
+		off-x: as-integer evt/pt/x
+		idx: 0
+		n: string-width? line off-x :idx null
+		field/cursor: n
+		field/idx: idx
+		screen/redraw widget
+		return 0
+	]
 
 	cp: 0
 	if type = EVT_KEY [

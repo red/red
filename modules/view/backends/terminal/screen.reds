@@ -297,7 +297,7 @@ screen: context [
 	set-cursor-bottom: func [/local dx [integer!]][
 		if cursor-y > 0 [
 			dx: height - relative-y
-			prin "^M"
+			tty/write as byte-ptr! "^M" 1
 			tty/cursor-down dx
 		]
 	]

@@ -42,7 +42,7 @@ tty: context [
 	][
 		p: as c-string! :buf
 		sprintf [p "^[[?%dh" mode]
-		prin p
+		write as byte-ptr! p length? p
 	]
 
 	disable: func [
@@ -53,11 +53,11 @@ tty: context [
 	][
 		p: as c-string! :buf
 		sprintf [p "^[[?%dl" mode]
-		prin p
+		write as byte-ptr! p length? p
 	]
 
 	report-cursor-position: func [][
-		prin "^[[6n"
+		write as byte-ptr! "^[[6n" 4
 	]
 
 	enable-mouse: does [
