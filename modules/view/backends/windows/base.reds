@@ -17,6 +17,7 @@ init-base-face: func [
 	parent		[integer!]
 	values		[red-value!]
 	alpha?		[logic!]
+	flags		[integer!]
 	/local
 		pt		[tagPOINT value]
 		offset	[red-point2D!]
@@ -26,7 +27,6 @@ init-base-face: func [
 		word	[red-word!]
 		len		[integer!]
 		sym		[integer!]
-		flags	[integer!]
 ][
 	offset: as red-point2D! values + FACE_OBJ_OFFSET
 	size:	as red-pair! values + FACE_OBJ_SIZE
@@ -34,6 +34,7 @@ init-base-face: func [
 	opts:	as red-block! values + FACE_OBJ_OPTIONS
 
 	SetWindowLong handle wc-offset - 4 0
+	SetWindowLong handle wc-offset - 12 flags
 	SetWindowLong handle wc-offset - 16 parent
 	SetWindowLong handle wc-offset - 20 0
 	SetWindowLong handle wc-offset - 24 0
