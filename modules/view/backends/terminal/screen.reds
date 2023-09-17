@@ -101,11 +101,46 @@ screen: context [
 		]
 	]
 
+	;_mark-widget: func [
+	;	w		[widget!]
+	;	/local
+	;		p	[red-block!]
+	;		obj [red-object!]
+	;		end [red-object!]
+	;][
+	;	if w/ui <> null [collector/keep w/ui]
+	;	p: CHILD_WIDGET(w)
+	;	if TYPE_OF(p) = TYPE_BLOCK [
+	;		obj: as red-object! block/rs-head p
+	;		end: as red-object! block/rs-tail p
+	;		while [obj < end][
+	;			_mark-widget as widget! get-face-handle obj
+	;			obj: obj + 1
+	;		]
+	;	]
+	;]
+
+	;mark-widgets: func [
+	;	/local
+	;		w	[widget!]
+	;		ww	[widget!]
+	;		s	[series!]
+	;][
+	;	s: as series! node/value
+	;	w: as widget! s/offset
+	;	ww: as widget! s/tail
+	;	while [w < ww][
+	;		_mark-widget w
+	;		w: w + 1
+	;	]
+	;]
+
 	on-gc-mark: func [][
 		collector/keep win-list
 		collector/keep captured
 		collector/keep focus-chain
 		collector/keep esc-sequences
+		;mark-widgets
 	]
 
 	build-focus-chain: func [

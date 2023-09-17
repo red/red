@@ -72,7 +72,7 @@ _print: func [
 		s		 [c-string!]
 		c		 [byte!]
 ][
-	#if GUI-engine = 'terminal [exec/gui/back-to-console]
+	#if all [debug? = no GUI-engine = 'terminal][exec/gui/back-to-console]
 
 	until [
 		switch list/type [
@@ -112,7 +112,7 @@ _print: func [
 		zero? count
 	]
 	fflush 0
-	#if GUI-engine = 'terminal [exec/gui/enter-tui]
+	#if all [debug? = no GUI-engine = 'terminal][exec/gui/enter-tui]
 ]
 
 ;-------------------------------------------

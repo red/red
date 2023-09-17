@@ -508,8 +508,8 @@ _widget: context [
 
 	render-text: func [
 		str		[red-string!]
-		pos-x	[integer!]		;-- x pos in the box
-		pos-y	[integer!]		;-- y pos in the box
+		pos-x	[integer!]		;-- screen coordinate
+		pos-y	[integer!]		;-- screen coordinate
 		box		[rect!]
 		config	[render-config!]
 		/local
@@ -520,14 +520,8 @@ _widget: context [
 			align flags	[integer!]
 			cp unit		[integer!]
 			dx dy		[integer!]
-			xx yy		[integer!]
-			w h skip	[integer!]
-			off-x		[integer!]
-			off-y		[integer!]
+			w skip		[integer!]
 			p-int		[int-ptr!]
-			widget		[widget!]
-			parent		[widget!]
-			bbox		[rect! value]
 			wrap?		[logic!]
 			ansi?		[logic!]
 			s			[series!]
@@ -538,48 +532,11 @@ _widget: context [
 		y: box/top
 		dx: box/right
 		dy: box/bottom
-
-		if all [TYPE_OF(str) = TYPE_STRING config/layout?][
-			text-layout str box :bbox config/align
-			pos-x: bbox/left
-			pos-y: bbox/top
-		]
-
-		widget: config/widget
-		parent: widget/parent
-		if WIDGET_TYPE(parent) <> window [
-			;-- check if it clips with its parent
-			w: 0 h: 0
-			get-size parent :w :h
-			off-x: as-integer widget/box/left
-			off-y: as-integer widget/box/top
-			xx: x + off-x			;-- parent screen x pos
-			yy: y + off-y			;-- parent screen y pos
-			if xx + w < dx [dx: xx + w]
-			if yy + h < dy [dy: yy + h]
-			if off-x < 0 [x: xx]
-			if off-y < 0 [y: yy]
-		]
-
-		if x < 0 [x: 0]
-		if y < 0 [y: 0]
-		if dx > screen/width [dx: screen/width]
-		if dy > screen/height [dy: screen/height]
-		w: dx - x	;-- overlapped width
-		h: dy - y	;-- overlapped height
-		if any [w <= 0 h <= 0][exit]
-
-		;-- paint background
-		if config/layout? [paint-background x y w h config/bg-color]
-
-		;-- draw text
-		off-x: pos-x
-		off-y: pos-y
+		LOG_MSG(["text: " pos-x " " pos-y " " x " " y " " dx " " dy])
 		align: config/align
 		flags: config/flags
 		fg: config/fg-color
-		if off-x > 0 [x: x + off-x]
-		w: x
+		w: pos-x
 		wrap?: align and TEXT_WRAP_FLAG <> 0
 
 		either null? config/rich-text [
@@ -590,12 +547,13 @@ _widget: context [
 			data: string/rs-head str
 			tail: string/rs-tail str
 
-			;-- skip abs(off-y) lines if off-y < 0
-			while [all [data < tail off-y < 0]][
+			;-- skip abs(pos-y) lines if pos-y < y
+			w: pos-x
+			while [all [data < tail pos-y < y]][
 				cp: string/get-char data unit
 				if cp = as-integer lf [
-					off-y: off-y + 1
-					w: x
+					pos-y: pos-y + 1
+					w: pos-x
 					data: data + unit
 					continue
 				]
@@ -603,14 +561,15 @@ _widget: context [
 				w: w + n
 				data: data + unit
 				if all [wrap? w >= dx][		;-- wrap text
-					off-y: off-y + 1
-					w: x
+					pos-y: pos-y + 1
+					w: pos-x
 				]
 			]
 
 			;-- do drawing
-			w: x
-			y: y + off-y
+			w: pos-x
+			if pos-x > x [x: pos-x]
+			if pos-y > y [y: pos-y]
 			p: screen/buffer + (screen/width * y + x)
 			while [all [data < tail y < dy]][
 				cp: string/get-char data unit
@@ -628,20 +587,18 @@ _widget: context [
 				if cp = as-integer lf [
 					y: y + 1
 					p: screen/buffer + (screen/width * y + x)
-					w: x
-					off-x: pos-x
+					w: pos-x
 					data: data + unit
 					continue
 				]
 
 				n: char-width? cp
-				;-- skip abs(off-x) pixels if off-x < 0
-				if off-x < 0 [
+				;-- skip abs(pos-x) pixels if pos-x < x
+				if w < x [
 					data: data + unit
-					off-x: off-x + n
-					if off-x >= 0 [
-						p: p + off-x
-						w: off-x
+					w: w + n
+					if w >= x [
+						p: p + (w - x)
 					]
 					continue
 				]
@@ -662,8 +619,7 @@ _widget: context [
 					either wrap? [		;-- wrap text
 						y: y + 1
 						p: screen/buffer + (screen/width * y + x)
-						w: x
-						off-x: pos-x
+						w: pos-x
 					][					;-- skip to next line
 						while [data < tail][
 							cp: string/get-char data unit
@@ -679,12 +635,12 @@ _widget: context [
 			attr-str: attr-str + 1
 			end: attr-str + p-int/value
 
-			;-- skip abs(off-y) lines if off-y < 0
-			while [all [attr-str < end off-y < 0]][
+			;-- skip abs(pos-y) lines if pos-y < y
+			while [all [attr-str < end pos-y < y]][
 				cp: attr-str/code-point
 				if cp = as-integer lf [
-					off-y: off-y + 1
-					w: x
+					pos-y: pos-y + 1
+					w: pos-x
 					attr-str: attr-str + 1
 					continue
 				]
@@ -692,34 +648,33 @@ _widget: context [
 				w: w + n
 				attr-str: attr-str + 1
 				if all [wrap? w >= dx][		;-- wrap text
-					off-y: off-y + 1
-					w: x
+					pos-y: pos-y + 1
+					w: pos-x
 				]
 			]
 
 			;-- do drawing
-			w: x
-			y: y + off-y
+			w: pos-x
+			if pos-x > x [x: pos-x]
+			if pos-y > y [y: pos-y]
 			p: screen/buffer + (screen/width * y + x)
 			while [all [attr-str < end y < dy]][
 				cp: attr-str/code-point
 				if cp = as-integer lf [
 					y: y + 1
 					p: screen/buffer + (screen/width * y + x)
-					w: x
-					off-x: pos-x
+					w: pos-x
 					attr-str: attr-str + 1
 					continue
 				]
 
 				n: char-width? cp
-				;-- skip abs(off-x) pixels if off-x < 0
-				if off-x < 0 [
+				;-- skip abs(pos-x) pixels if pos-x < x
+				if w < x [
 					attr-str: attr-str + 1
-					off-x: off-x + n
-					if off-x >= 0 [
-						p: p + off-x
-						w: off-x
+					w: w + n
+					if w >= x [
+						p: p + (w - x)
 					]
 					continue
 				]
@@ -741,8 +696,7 @@ _widget: context [
 					either wrap? [		;-- wrap text
 						y: y + 1
 						p: screen/buffer + (screen/width * y + x)
-						w: x
-						off-x: pos-x
+						w: pos-x
 					][					;-- skip to next line
 						while [attr-str < end][
 							cp: attr-str/code-point
@@ -753,6 +707,47 @@ _widget: context [
 				]
 			]
 		]
+	]
+
+	get-clip-box: func [
+		x		[integer!]	;-- screen coordinate
+		y		[integer!]	;-- screen coordinate
+		widget	[widget!]
+		box		[rect!]
+		/local
+			w h		[integer!]
+			px py	[integer!]
+			xx yy	[integer!]
+			off-x	[integer!]
+			off-y	[integer!]
+			parent	[widget!]
+	][
+		w: 0 h: 0
+		get-size widget :w :h
+		xx: x + w
+		yy: y + h
+
+		parent: widget/parent
+		if WIDGET_TYPE(parent) <> window [
+			;-- check if it clips with its parent
+			w: 0 h: 0
+			get-size parent :w :h
+			off-x: as-integer widget/box/left
+			off-y: as-integer widget/box/top
+			px: x - off-x			;-- parent screen x pos
+			py: y - off-y			;-- parent screen y pos
+			if px + w < xx [xx: px + w]
+			if py + h < yy [yy: py + h]
+			if px > x [x: px]
+			if py > y [y: py]
+		]
+
+		if xx > screen/width [xx: screen/width]
+		if yy > screen/height [yy: screen/height]
+		box/left: either x > 0 [x][0]
+		box/top: either y > 0 [y][0]
+		box/right: xx
+		box/bottom: yy
 	]
 
 	render: func [
@@ -769,7 +764,12 @@ _widget: context [
 			draw	[red-block!]
 			para	[red-object!]
 			w h clr	[integer!]
+			xx yy	[integer!]
+			pos-x	[integer!]
+			pos-y	[integer!]
 			box		[rect! value]
+			bbox	[rect! value]
+			rc		[rect!]
 			config	[render-config! value]
 			ctx		[draw-ctx! value]
 	][
@@ -794,6 +794,17 @@ _widget: context [
 			config/align: get-para-flags para
 		]
 
+		xx: x yy: y
+		get-clip-box x y widget :box
+		x: box/left
+		y: box/top
+		w: box/right - x
+		h: box/bottom - y
+		if any [w <= 0 h <= 0][exit]
+
+		;-- paint background
+		paint-background x y w h config/bg-color
+
 		;-- draw text
 		config/rich-text: null
 		either all [TYPE_OF(str) = TYPE_STRING WIDGET_TYPE(widget) = rich-text][
@@ -813,26 +824,34 @@ _widget: context [
 			]
 		]
 
-		w: 0 h: 0
-		get-size widget :w :h
-		box/left: x
-		box/top: y
-		box/right: x + w
-		box/bottom: y + h
-		config/widget: widget
-		config/layout?: yes
+		pos-x: xx
+		pos-y: yy
+		if TYPE_OF(str) = TYPE_STRING [
+			get-size widget :w :h
+			rc: as rect! :ctx/left
+			rc/left: 0
+			rc/top: 0
+			rc/right: w
+			rc/bottom: h
+			text-layout str rc :bbox config/align
+			pos-x: pos-x + bbox/left
+			pos-y: pos-y + bbox/top
+		]
 		config/flags: flags
-		render-text str 0 0 :box :config
+		LOG_MSG(["w " Widget])
+		render-text str pos-x pos-y :box :config
 
 		;-- do draw block
 		draw: as red-block! values + FACE_OBJ_DRAW
 		if any [TYPE_OF(draw) <> TYPE_BLOCK zero? block/rs-length? draw][exit]
 
 		ctx/dc: as handle! widget
-		ctx/left: x
-		ctx/top: y
-		ctx/right: x + w
-		ctx/bottom: y + h
+		ctx/x: xx
+		ctx/y: yy
+		ctx/left: box/left
+		ctx/top: box/top
+		ctx/right: box/right
+		ctx/bottom: box/bottom
 		draw-begin :ctx as handle! widget null no yes
 		parse-draw :ctx draw no
 		draw-end :ctx as handle! widget no no yes

@@ -462,9 +462,10 @@ _do-mouse-press: func [
 					r0 >>> 16 = EVT_DBL_CLICK
 					all [
 						last-mouse-evt = EVT_LEFT_UP
-						mouse-click-delta < 600
+						mouse-click-delta < 500
 					]
 				][
+					send-mouse-event EVT_CLICK obj x y flags
 					last-mouse-evt: EVT_DBL_CLICK
 					EVT_DBL_CLICK
 				][

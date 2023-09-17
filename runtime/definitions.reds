@@ -453,6 +453,8 @@ Red/System [
 		draw-state!: alias struct! [unused [integer!]]
 		draw-ctx!: alias struct! [
 			dc			[handle!]
+			x			[integer!]
+			y			[integer!]
 			left		[integer!]
 			top			[integer!]
 			right		[integer!]
