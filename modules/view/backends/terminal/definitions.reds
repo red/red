@@ -154,6 +154,7 @@ widget!: alias struct! [
 	flags		[integer!]
 	box			[RECT_F! value]
 	parent		[widget!]			;-- parent widget
+	image		[pixel!]
 	data		[int-ptr!]			;-- extra data for each type
 	update		[update-func!]
 	render		[render-func!]

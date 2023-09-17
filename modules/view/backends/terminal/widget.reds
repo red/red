@@ -133,6 +133,7 @@ _widget: context [
 	delete: func [
 		w [widget!]
 	][
+		if w/image <> null [free as byte-ptr! w/image]
 		free as byte-ptr! w
 	]
 
@@ -766,6 +767,7 @@ _widget: context [
 			xx yy	[integer!]
 			pos-x	[integer!]
 			pos-y	[integer!]
+			align	[integer!]
 			box		[rect! value]
 			bbox	[rect! value]
 			rc		[rect!]
@@ -783,11 +785,11 @@ _widget: context [
 
 		if TYPE_OF(color) = TYPE_TUPLE [
 			clr: get-tuple-color color
-			config/bg-color: MAKE_TRUE_COLOR(clr)
+			config/bg-color: make-color-256 clr
 		]
 		if TYPE_OF(font) = TYPE_OBJECT [
 			clr: get-font-color font
-			config/fg-color: MAKE_TRUE_COLOR(clr)
+			config/fg-color: make-color-256 clr
 		]
 		if TYPE_OF(para) = TYPE_OBJECT [
 			config/align: get-para-flags para
@@ -803,6 +805,15 @@ _widget: context [
 
 		;-- paint background
 		paint-background x y w h config/bg-color
+
+		;-- draw image
+		if widget/image <> null [
+			config/rich-text: as int-ptr! widget/image
+			align: config/align
+			config/align: TEXT_WRAP_FLAG
+			render-text null xx yy :box :config
+			config/align: align
+		]
 
 		;-- draw text
 		config/rich-text: null

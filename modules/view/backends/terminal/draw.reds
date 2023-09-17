@@ -162,7 +162,7 @@ OS-draw-pen: func [
 ][
 	if off? [ctx/pen-type: DRAW_BRUSH_NONE exit]
 
-	color: MAKE_TRUE_COLOR(color)
+	color: make-color-256 color
 	unless ctx/font-color? [ctx/font-color: color]	;-- if no font, use pen color for text color
 	ctx/pen-color: color
 	ctx/pen-type: DRAW_BRUSH_COLOR
@@ -253,7 +253,7 @@ OS-draw-font: func [
 	color: as red-tuple! (object/get-values font) + FONT_OBJ_COLOR
 	either TYPE_OF(color) = TYPE_TUPLE [
 		clr: get-tuple-color color
-		ctx/font-color: MAKE_TRUE_COLOR(clr)
+		ctx/font-color: make-color-256 clr
 		ctx/font-color?: yes
 	][
 		ctx/font-color?: no

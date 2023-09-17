@@ -496,25 +496,47 @@ color-to-index: func [
 	]
 ]
 
-make-color: func [
+make-color-256: func [
 	clr		[integer!]
 	return: [integer!]
 	/local
 		closest [integer!]
 		best	[integer!]
 		r g b	[integer!]
+		rr gg bb [integer!]
 		ci		[integer!]
+		gray	[integer!]
+		average [integer!]
 		p		[byte-ptr!]
+		d1 d2	[integer!]
 ][
-	p: as byte-ptr! :clr
-	
-	r: color-to-index as-integer p/1
-	g: color-to-index as-integer p/2
-	b: color-to-index as-integer p/3
-	ci: 36 * r + (6 * g) + b
+	if clr >>> 24 = FFh [return 0]
 
-	;LOG_MSG([as-integer p/1 " " as-integer p/2 " " as-integer p/3 " " ci])
-	16 + ci
+	r: clr and FFh
+	g: clr and FF00h >> 8
+	b: clr and 00FF0000h >> 16 
+	rr: color-to-index r
+	gg: color-to-index g
+	bb: color-to-index b
+
+	ci: 36 * rr + (6 * gg) + bb
+	ci: 16 + ci
+
+	average: rr + gg + bb / 3
+	gray: either average > 238 [23][average - 3 / 10]
+	gray: 232 + gray
+
+	p: color-table + (ci * 4)
+	rr: as-integer p/2 gg: as-integer p/3 bb: as-integer p/4
+	rr: rr - r gg: gg - g bb: bb - b
+	d1: rr * rr + (gg * gg) + (bb * bb)
+
+	p: color-table + (gray * 4)
+	rr: as-integer p/2 gg: as-integer p/3 bb: as-integer p/4
+	rr: rr - r gg: gg - g bb: bb - b
+	d2: rr * rr + (gg * gg) + (bb * bb)
+	ci: either d1 < d2 [ci][gray]
+	MAKE_COLOR_256(ci)
 ]
 
 char-width?: func [

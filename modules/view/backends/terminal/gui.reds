@@ -365,6 +365,7 @@ OS-make-view: func [
 		show?	[red-logic!]
 		enable?	[red-logic!]
 		rate	[red-value!]
+		image	[red-image!]
 		flags	[integer!]
 		bits	[integer!]
 		sym		[integer!]
@@ -380,6 +381,7 @@ OS-make-view: func [
 	size:	  as red-pair!		values + FACE_OBJ_SIZE
 	show?:	  as red-logic!		values + FACE_OBJ_VISIBLE?
 	enable?:  as red-logic!		values + FACE_OBJ_ENABLED?
+	image:	  as red-image!		values + FACE_OBJ_IMAGE
 	rate:						values + FACE_OBJ_RATE
 
 	flags: 0
@@ -427,6 +429,7 @@ OS-make-view: func [
 	screen/update-editable-widget widget
 
 	if TYPE_OF(rate) <> TYPE_NONE [change-rate widget rate]
+	if TYPE_OF(image) = TYPE_IMAGE [change-image widget image]
 
 	stack/unwind
 	as-integer widget
@@ -506,6 +509,68 @@ free-faces: func [
 	_widget/delete widget
 	state: values + FACE_OBJ_STATE
 	state/header: TYPE_NONE
+]
+
+change-image: func [
+	widget		[widget!]
+	img			[red-image!]
+	/local
+		w h	hh	[integer!]
+		new-img	[red-image!]
+		bmp		[integer!]
+		stride	[integer!]
+		data	[int-ptr!]
+		i ii sz	[integer!]
+		x y		[integer!]
+		fg bg	[integer!]
+		pixel	[pixel!]
+][
+	if widget/image <> null [
+		free as byte-ptr! widget/image
+		widget/image: null
+	]
+
+	w: 0 h: 0
+	_widget/get-size widget :w :h
+	sz: w * h
+	if any [null? img/node sz <= 0][exit]
+
+	data: as int-ptr! allocate sz + 1 * size? pixel!
+	data/value: sz
+	pixel: as pixel! data
+	widget/image: pixel
+	new-img: image/resize img w h * 2
+	stride: 0
+	bmp: OS-image/lock-bitmap new-img no
+	data: OS-image/get-data bmp :stride
+	y: 0
+	hh: h * 2
+	while [y < hh][
+		x: 1
+		i: w * y + x
+		ii: w * (y + 1) + x
+		while [x <= w][
+			bg: data/i
+			fg: data/ii
+			pixel: pixel + 1
+			either bg >>> 24 <> 0 [
+				pixel/code-point: 2584h	;-- Unicode Character 'LOWER HALF BLOCK'
+				pixel/bg-color: true-color << 24 or (bg and 00FFFFFFh)
+				pixel/fg-color: true-color << 24 or (fg and 00FFFFFFh)
+			][							;-- transparent
+				pixel/code-point: 20h	;-- space char
+				pixel/bg-color: 0
+				pixel/fg-color: 0
+			]
+			pixel/flags: 0
+			x: x + 1
+			i: i + 1
+			ii: ii + 1
+		]
+		y: y + 2
+	]
+	OS-image/unlock-bitmap new-img bmp
+	image/delete new-img
 ]
 
 change-rate: func [
@@ -645,6 +710,9 @@ OS-update-view: func [
 		][
 			WIDGET_UNSET_FLAG(w WIDGET_FLAG_PASSWORD)
 		]
+	]
+	if flags and FACET_FLAG_IMAGE <> 0 [
+		change-image w as red-image! values + FACE_OBJ_IMAGE
 	]
 	b: as red-logic! #get system/view/auto-sync?
 	sync?: b/value

@@ -390,6 +390,7 @@ screen: context [
 			s	 [c-string!]
 			fmt  [c-string!]
 			_buf [tiny-str! value]
+			r g b [integer!]
 	][
 		ADD_STR("^[[")
 		s: as c-string! :_buf
@@ -410,9 +411,11 @@ screen: context [
 				sprintf [s fmt clr]
 		    ]
 		    true-color		[
-				clr: make-color clr
-				fmt: either fg-color? ["38;5;%d"]["48;5;%d"]
-				sprintf [s fmt clr]
+				r: clr and 00FF0000h >> 16 
+				g: clr and FF00h >> 8
+				b: clr and FFh
+				fmt: either fg-color? ["38;2;%d;%d;%d"]["48;2;%d;%d;%d"]
+				sprintf [s fmt r g b]
 		    ]
 		    default	[s: "0"]
 		]

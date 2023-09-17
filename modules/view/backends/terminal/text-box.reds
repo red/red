@@ -35,7 +35,7 @@ set-text-box-color: func [
 	p: (as pixel! layout) + 1
 	p: p + pos
 	end: p + len
-	color: MAKE_TRUE_COLOR(color)
+	color: make-color-256 color
 	either fg? [
 		while [p < end][
 			p/fg-color: color

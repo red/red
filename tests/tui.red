@@ -40,6 +40,8 @@ page-2: layout/tight [
 	origin 1x1 space 1x1
 	text 10x1 font-color green "Page 2" return
 
+	image 60x30 %../bridges/android/samples/eval/res/drawable-xxhdpi/ic_launcher.png return
+
 	text-list 13x3 select 2 data [
 		"1 apple"
 		"2 orange"
