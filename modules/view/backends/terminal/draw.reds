@@ -10,6 +10,11 @@ Red/System [
 	}
 ]
 
+#enum DRAW-BRUSH-TYPE! [
+	DRAW_BRUSH_NONE
+	DRAW_BRUSH_COLOR
+]
+
 draw-begin: func [
 	ctx			[draw-ctx!]
 	hWnd		[handle!]
@@ -18,7 +23,9 @@ draw-begin: func [
 	paint?		[logic!]
 	return: 	[draw-ctx!]
 ][
-
+	ctx/pen-type: DRAW_BRUSH_NONE
+	ctx/font-color?: no
+	ctx
 ]
 
 draw-end: func [
@@ -43,7 +50,7 @@ OS-draw-shape-endpath: func [
 	close?		[logic!]
 	return:		[logic!]
 ][
-
+	yes
 ]
 
 OS-draw-shape-close: func [
@@ -149,16 +156,21 @@ OS-draw-line-pattern: func [
 
 OS-draw-pen: func [
 	ctx		[draw-ctx!]
-	color	[integer!]									;-- 00bbggrr format
+	color	[integer!]
 	off?	[logic!]
 	alpha?	[logic!]
 ][
+	if off? [ctx/pen-type: DRAW_BRUSH_NONE exit]
 
+	color: MAKE_TRUE_COLOR(color)
+	unless ctx/font-color? [ctx/font-color: color]	;-- if no font, use pen color for text color
+	ctx/pen-color: color
+	ctx/pen-type: DRAW_BRUSH_COLOR
 ]
 
 OS-draw-fill-pen: func [
 	ctx		[draw-ctx!]
-	color	[integer!]									;-- 00bbggrr format
+	color	[integer!]
 	off?	[logic!]
 	alpha?	[logic!]
 ][
@@ -233,8 +245,19 @@ OS-draw-ellipse: func [
 OS-draw-font: func [
 	ctx		[draw-ctx!]
 	font	[red-object!]
+	/local
+		color	[red-tuple!]
+		clr		[integer!]
 ][
-
+	;-- set font color
+	color: as red-tuple! (object/get-values font) + FONT_OBJ_COLOR
+	either TYPE_OF(color) = TYPE_TUPLE [
+		clr: get-tuple-color color
+		ctx/font-color: MAKE_TRUE_COLOR(clr)
+		ctx/font-color?: yes
+	][
+		ctx/font-color?: no
+	]
 ]
 
 OS-draw-text: func [
@@ -252,6 +275,11 @@ OS-draw-text: func [
 	zero-memory as byte-ptr! :config size? render-config!
 	config/align: TEXT_WRAP_FLAG
 	config/flags: PIXEL_ANSI_SEQ
+	case [
+		ctx/font-color? [config/fg-color: ctx/font-color]
+		ctx/pen-type = DRAW_BRUSH_COLOR [config/fg-color: ctx/pen-color]
+		true [0]
+	]
 	_widget/render-text text ctx/x + x ctx/y + y as rect! :ctx/left :config
 	true
 ]

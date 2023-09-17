@@ -58,5 +58,7 @@ get-font-color: func [
 		clr [red-tuple!]
 ][
 	clr: as red-tuple! (object/get-values font) + FONT_OBJ_COLOR
-	get-tuple-color clr
+	either TYPE_OF(clr) = TYPE_TUPLE [
+		get-tuple-color clr
+	][0]
 ]

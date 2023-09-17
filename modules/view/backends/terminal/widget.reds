@@ -532,7 +532,6 @@ _widget: context [
 		y: box/top
 		dx: box/right
 		dy: box/bottom
-		LOG_MSG(["text: " pos-x " " pos-y " " x " " y " " dx " " dy])
 		align: config/align
 		flags: config/flags
 		fg: config/fg-color
@@ -838,7 +837,6 @@ _widget: context [
 			pos-y: pos-y + bbox/top
 		]
 		config/flags: flags
-		LOG_MSG(["w " Widget])
 		render-text str pos-x pos-y :box :config
 
 		;-- do draw block
