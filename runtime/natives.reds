@@ -2338,7 +2338,13 @@ natives: context [
 		]
 		val/header: TYPE_NONE
 		platform/wait seconds
-		#if modules contains 'View [exec/gui/do-events yes]
+		#if modules contains 'View [
+			#either GUI-engine = 'terminal [
+				exec/gui/try-events
+			][
+				exec/gui/do-events yes
+			]
+		]
 	]
 
 	checksum*: func [

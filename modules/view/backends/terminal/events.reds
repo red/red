@@ -545,6 +545,12 @@ post-quit-msg: does [
 
 #define DELTA_TIME 30
 
+try-events: func [][
+	if tty/raw-mode? [
+		do-events yes
+	]
+]
+
 do-events: func [
 	no-wait? [logic!]
 	return:  [logic!]
