@@ -3510,6 +3510,9 @@ comment {
 		]
 		obj5366/z/1/y: 5
 		--assert c5366
+		
+	--test-- "#5387"
+		--assert datatype? first load mold/all reduce [#[none!]]
 
 ===end-group===
 
