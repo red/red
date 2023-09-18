@@ -321,6 +321,7 @@ red: context [
 	tuple-value?:	func [value][value/1 = #"~"]
 	money-value?:	func [value][value/1 = #"$"]
 	ref-value?:		func [value][value/1 = #"@"]
+	type-value?:	func [value][all [value/1 = #"!" value/2 = #"~"]]
 	percent-value?: func [value][#"%" = last value]
 	
 	date-special?:  func [value][all [block? value value/1 = #!date!]]
@@ -1694,7 +1695,8 @@ red: context [
 	
 	comp-literal: func [
 		/inactive /with val
-		/local value char? special? percent? map? tuple? money? ref? dt-special? point? name w make-block type idx zone
+		/local value char? special? percent? map? tuple? money? ref? dt-special? point? dtype?
+			   name w make-block type idx zone
 	][
 		make-block: [
 			value: to block! value
@@ -1706,9 +1708,9 @@ red: context [
 		]
 		value: either with [val][pc/1]					;-- val can be NONE
 		map?: map-value? :value
-		dt-special?: date-special? value
-		point?: point-value? value
-
+		dt-special?: date-special? :value
+		point?: point-value? :value
+		
 		either any [
 			all [
 				issue? :value
@@ -1719,6 +1721,7 @@ red: context [
 					tuple?:	  tuple-value? value
 					money?:	  money-value? value
 					ref?:	  ref-value? value
+					dtype?:	  type-value? value
 				]
 			]
 			scalar? :value
@@ -1773,6 +1776,11 @@ red: context [
 					emit 'ref/push
 					emit compose [as red-string! get-root (idx)]
 					insert-lf -5
+				]
+				dtype? [
+					emit 'datatype/push
+					emit get-RS-type-ID to-word form skip value 2
+					insert-lf -2
 				]
 				find [refinement! issue!] type?/word :value [
 					w: to word! form value
