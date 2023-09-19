@@ -29,6 +29,8 @@ Red/System [
 #include %widgets/text-list.reds
 #include %widgets/rich-text.reds
 
+color-profile: 0
+
 get-face-obj: func [
 	g		[widget!]
 	return: [red-object!]
@@ -104,6 +106,12 @@ on-gc-mark: does [
 	timer/on-gc-mark
 ]
 
+check-color-support: func [/local int [red-integer!]][
+	#call [system/view/platform/check-color-support]
+	int: as red-integer! stack/arguments
+	color-profile: int/value
+]
+
 init: func [
 	/local
 		ver   [red-tuple!]
@@ -121,6 +129,7 @@ init: func [
 	int/header: TYPE_INTEGER
 	int/value:  0
 
+	check-color-support
 	screen/init
 	timer/init
 	ansi-parser/init
@@ -521,7 +530,7 @@ change-image: func [
 		stride	[integer!]
 		data	[int-ptr!]
 		i ii sz	[integer!]
-		x y		[integer!]
+		x y b	[integer!]
 		fg bg	[integer!]
 		pixel	[pixel!]
 ][
@@ -555,8 +564,17 @@ change-image: func [
 			pixel: pixel + 1
 			either bg >>> 24 <> 0 [
 				pixel/code-point: 2584h	;-- Unicode Character 'LOWER HALF BLOCK'
-				pixel/bg-color: true-color << 24 or (bg and 00FFFFFFh)
-				pixel/fg-color: true-color << 24 or (fg and 00FFFFFFh)
+				either color-profile = true-color [
+					pixel/bg-color: true-color << 24 or (bg and 00FFFFFFh)
+					pixel/fg-color: true-color << 24 or (fg and 00FFFFFFh)
+				][
+					b: bg and FFh << 16
+					bg: b or (bg and FF00h) or (bg and 00FF0000h >> 16)
+					pixel/bg-color: make-color-256 bg
+					b: fg and FFh << 16
+					fg: b or (fg and FF00h) or (fg and 00FF0000h >> 16)
+					pixel/fg-color: make-color-256 fg
+				]
 			][							;-- transparent
 				pixel/code-point: 20h	;-- space char
 				pixel/bg-color: 0

@@ -10,6 +10,20 @@ Red [
 	}
 ]
 
+check-color-support: function [][
+	color-term: get-env "COLORTERM"
+	term: get-env "TERM"
+	if any [
+		find color-term "24bit"
+		find color-term "truecolor"
+	][return 4]
+
+	either any [
+		find color-term "256"
+		find term "256"
+	][2][4]
+]
+
 focused?: routine [
 	face	[object!]
 	/local
