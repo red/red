@@ -133,14 +133,13 @@ metrics?: function [
 set-flag: function [
 	"Sets a flag in a face object and returns the /flags facet value"
 	face  [object!]
-	facet [word!]
 	value [any-type!]
 ][
-	either flags: face/:facet [
-		if word? flags [face/:facet: flags: reduce [flags]]
-		either block? flags [append flags value][set in face facet value]
+	either flags: face/flags [
+		if word? flags [face/flags: flags: reduce [flags]]
+		either block? flags [append flags value][face/flags: value]
 	][
-		set in face facet value
+		face/flags: value
 	]
 	flags
 ]
@@ -1034,6 +1033,42 @@ get-scroller: function [
 	]
 ]
 
+get-focusable: function [face [object!] /back /deep /up][
+	foreach f find/same face/parent/pane face [	
+		all [
+			any [deep not same? f face]
+			flags: f/flags
+			any [
+				flags = 'focusable
+				all [block? flags find flags 'focusable]
+			]
+			return f
+		]
+		all [
+			not up
+			block? f/pane
+			not empty? f/pane
+			g: get-focusable/deep f/pane/1
+			return g
+		]
+	]
+	either face/parent/type = 'window [
+		get-focusable/deep face/parent/pane/1
+	][
+		get-focusable/up face/parent
+	]
+
+	; 1: next one in pane (deep)
+	; 2: else: go parent, next one in pane
+	; 3: else, go 2, if root reached, search first one from there
+	
+	; if back:
+	; 1: prev one in pane (deep)
+	; 2: else: go parent, prev one in pane
+	; 3: else, go 2, if root reached, search back first one from there
+	
+]
+
 insert-event-func: function [
 	"Add a function to monitor global events. Return the function"
 	fun [block! function!] "A function or a function body block"
@@ -1300,5 +1335,15 @@ insert-event-func [
 			all [face/options face/options/default]
 		]
 		system/reactivity/check/only face 'data
+	]
+]
+
+;-- Tab navigation handler
+insert-event-func [
+	if all [
+		event/type = 'key
+		event/key = #"^-"
+	][
+		set-focus face: apply :get-focusable [face /back find event/flags 'SHIFT]
 	]
 ]
