@@ -1033,10 +1033,10 @@ get-scroller: function [
 	]
 ]
 
-get-focusable: function [face [object!] /back /deep /up][
+get-focusable: function [face [object!] /back /down /up][
 	foreach f find/same face/parent/pane face [	
 		all [
-			any [deep not same? f face]
+			any [down not same? f face]
 			flags: f/flags
 			any [
 				flags = 'focusable
@@ -1048,12 +1048,12 @@ get-focusable: function [face [object!] /back /deep /up][
 			not up
 			block? f/pane
 			not empty? f/pane
-			g: get-focusable/deep f/pane/1
+			g: get-focusable/down f/pane/1
 			return g
 		]
 	]
 	either face/parent/type = 'window [
-		get-focusable/deep face/parent/pane/1
+		get-focusable/down face/parent/pane/1
 	][
 		get-focusable/up face/parent
 	]
@@ -1352,6 +1352,6 @@ insert-event-func [
 			]
 		]
 	][
-		set-focus face: apply :get-focusable [face /back find event/flags 'SHIFT]
+		set-focus apply :get-focusable [face /back find event/flags 'SHIFT]
 	]
 ]
