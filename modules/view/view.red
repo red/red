@@ -1343,6 +1343,14 @@ insert-event-func [
 	if all [
 		event/type = 'key
 		event/key = #"^-"
+		not all [
+			value? 'gui-console-ctx
+			any [
+				face = gui-console-ctx/console
+				face = gui-console-ctx/win
+				face = gui-console-ctx/caret
+			]
+		]
 	][
 		set-focus face: apply :get-focusable [face /back find event/flags 'SHIFT]
 	]
