@@ -2,7 +2,7 @@ Red [Needs: View]
 
 view [
     below
-    style fi: field 20
+    style fi: field 30 on-focus [face/color: red] on-unfocus [face/color: white]
     style pan: panel 127.114.98
     style grp: group-box 127.114.98
     fi "1" focus fi "2" fi "3"
