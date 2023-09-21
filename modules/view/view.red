@@ -1343,7 +1343,7 @@ insert-event-func [
 ]
 
 ;-- Tab navigation handler
-insert-event-func [
+insert-event-func/spec [
 	if all [
 		event/type = 'key
 		event/key = #"^-"
@@ -1356,6 +1356,16 @@ insert-event-func [
 			]
 		]
 	][
-		set-focus apply :get-focusable [face /back find event/flags 'SHIFT]
+		back?: to-logic find event/flags 'SHIFT
+		set-focus any [
+			all [
+				opt: face/options
+				any [
+					all [back? opt/prev]
+					all [not back? opt/next]
+				]
+			]
+			apply :get-focusable [face /back back?]
+		]
 	]
-]
+][face event /local back? opt]
