@@ -1033,10 +1033,18 @@ get-scroller: function [
 	]
 ]
 
-get-focusable: function [face [object!] /back /down /up][
-	foreach f find/same face/parent/pane face [	
+get-focusable: function [
+	"Returns the next focusable face from a face tree"
+	face [object!]	"Face to start from"
+	/back			"Search backward"
+	/down			"Depth-first"
+	/up				"Parent-first"
+][
+	faces: find/same face/parent/pane face
+	until [
+		f: faces/1
 		all [
-			any [down not same? f face]
+			any [down not same? f face]					;-- check current face unless /down
 			flags: f/flags
 			any [
 				flags = 'focusable
@@ -1044,29 +1052,24 @@ get-focusable: function [face [object!] /back /down /up][
 			]
 			return f
 		]
-		all [
+		all [											;-- face is not focusable, try face's children
 			not up
 			block? f/pane
 			not empty? f/pane
-			g: get-focusable/down f/pane/1
+			g: get-focusable/:back/down either back [last f/pane][f/pane/1]
 			return g
 		]
+		any [
+			all [back head? faces]
+			tail? faces: skip faces pick -1x1 back
+		]
 	]
-	either face/parent/type = 'window [
-		get-focusable/down face/parent/pane/1
+	p: face/parent										;-- no focusable found in the sub-tree from face
+	either p/type = 'window [							;-- search /up then
+		get-focusable/:back/down either back [last p/pane][p/pane/1] ;-- bounce down from window face
 	][
-		get-focusable/up face/parent
+		get-focusable/:back/up p
 	]
-
-	; 1: next one in pane (deep)
-	; 2: else: go parent, next one in pane
-	; 3: else, go 2, if root reached, search first one from there
-	
-	; if back:
-	; 1: prev one in pane (deep)
-	; 2: else: go parent, prev one in pane
-	; 3: else, go 2, if root reached, search back first one from there
-	
 ]
 
 insert-event-func: function [
