@@ -1054,8 +1054,14 @@ get-focusable: function [
 			]
 			return f
 		]
+		all [
+			not back
+			f/type = 'tab-panel
+			f: pick f/pane f/selected
+		]
 		all [											;-- face is not focusable, try face's children
 			not up
+			any [not back f/type <> 'tab-panel]
 			block? f/pane
 			not empty? f/pane
 			g: get-focusable/:back/down either back [last f/pane][f/pane/1]
