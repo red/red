@@ -1045,6 +1045,8 @@ get-focusable: function [
 		f: faces/1
 		all [
 			any [down not same? f face]					;-- check current face unless /down
+			f/visible?
+			f/enabled?
 			flags: f/flags
 			any [
 				flags = 'focusable
