@@ -1246,11 +1246,7 @@ insert-event-func [
 		system/view/debug?
 		not all [
 			value? 'gui-console-ctx
-			any [
-				event/face = gui-console-ctx/console
-				event/face = gui-console-ctx/win
-				event/face = gui-console-ctx/caret
-			]
+			find/same gui-console-ctx/owned-faces event/face
 		]
 	][
 		print [
@@ -1351,11 +1347,7 @@ insert-event-func/spec [
 		event/key = #"^-"
 		not all [
 			value? 'gui-console-ctx
-			any [
-				face = gui-console-ctx/console
-				face = gui-console-ctx/win
-				face = gui-console-ctx/caret
-			]
+			find/same gui-console-ctx/owned-faces face
 		]
 	][
 		back?: to-logic find event/flags 'SHIFT

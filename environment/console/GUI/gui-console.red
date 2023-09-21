@@ -265,6 +265,8 @@ gui-console-ctx: context [
 		title "Red Console"
 		size  200x200
 	]
+	
+	owned-faces: reduce [console win caret]
 
 	add-gui-print: routine [][
 		gui-console-buffer: ALLOC_TAIL(root)
