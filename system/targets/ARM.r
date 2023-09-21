@@ -30,8 +30,8 @@ make-profilable make target-class [
 	;-- name ----------- signed --- unsigned --
 		overflow?		 #{60}		-
 		not-overflow?	 #{70}		-	
-		=				 #{00}		-
-		<>				 #{10}		-
+		=				 #{00}		#{00}
+		<>				 #{10}		#{10}
 		signed?			 -			-
 		unsigned?		 -			-
 		even?			 -			-
@@ -1374,12 +1374,23 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-boolean-switch: does [
-		emit-i32 #{e3a00000}						;--		  MOV r0, #0	; (FALSE)
-		emit-i32 #{ea000000}						;--		  B _exit
-		emit-i32 #{e3a00001}						;--		  MOV r0, #1	; (TRUE)
-													;-- _exit:
-		reduce [4 12]								;-- [offset-TRUE offset-FALSE]
+	add-condition: func [op [word!] code [binary!]][
+		code/1: to char! code/1 and 15 or to integer! pick find conditions op pick [2 3] signed?
+		code
+	]
+	
+	emit-boolean-switch: func [op [word! none!]][
+		either op [
+			emit-i32 add-condition opposite? op #{e3a00000}	;--	MOVcc r0, #0	; if not op
+			emit-i32 add-condition op #{e3a00001}			;--	MOVcc r0, #1	; if op
+			reduce [0 0]
+		][
+			emit-i32 #{e3a00000}						;--		  MOV r0, #0	; (FALSE)
+			emit-i32 #{ea000000}						;--		  B _exit
+			emit-i32 #{e3a00001}						;--		  MOV r0, #1	; (TRUE)
+														;-- _exit:
+			reduce [4 12]								;-- [offset-TRUE offset-FALSE]
+		]
 	]
 
 	emit-load: func [
