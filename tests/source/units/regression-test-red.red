@@ -3259,6 +3259,7 @@ comment {
 			write/binary f4766 append/dup copy {^/} "11 ^/^/" i
 		]
 		attempt [foreach f4766 files [blk4766: read/lines f4766]]
+		attempt [foreach f4766 files [delete f4766] delete %tmp$/]
 		change-dir saved-dir
 		--assert 41 = length? blk4766
 
