@@ -1075,9 +1075,10 @@ get-focusable: function [
 insert-event-func: function [
 	"Add a function to monitor global events. Return the function"
 	fun [block! function!] "A function or a function body block"
+	/spec blk [block!]	   "Provides a custom spec block (still needs at least 2 arguments)"
 ][
 	if find/same system/view/handlers :fun [return none]
-	if block? :fun [fun: do [function copy [face event] fun]]	;@@ compiler chokes on 'function call
+	if block? :fun [fun: do [function any [blk copy [face event]] fun]]	;@@ compiler chokes on 'function call
 	insert system/view/handlers :fun
 	:fun
 ]
