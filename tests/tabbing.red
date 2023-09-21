@@ -15,4 +15,7 @@ view [
     	unless find f6/options 'next [append f6/options compose [next: (f9)]]
     	unless find f9/options 'prev [append f9/options compose [prev: (f6)]]
     ]
+    across
+    fi "17" button "18" tab-panel ["19" [] "20" [fi "21" button "22"]] return
+    fi "23" button "24" tab-panel ["25" [fi "26" button "27"]]
 ]
