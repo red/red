@@ -1017,19 +1017,19 @@ do-no-sync: func [
 	:r
 ]
 
-get-scroller: function [
+get-scroller: func [
 	"return a scroller object from a face"
 	face		[object!]
 	orientation [word!]
 	return:		[object!]
 ][
 	make scroller! [
-		position: 1
-		page: 1
-		min-size:	1			;-- minimum value
-		max-size:	1			;-- maximum value
-		parent: face
-		vertical?: orientation = 'vertical
+		position:	1
+		page:		1
+		min-size:	1								;-- minimum value
+		max-size:	1								;-- maximum value
+		parent:		face
+		vertical?:	orientation = 'vertical
 	]
 ]
 
@@ -1060,8 +1060,8 @@ get-focusable: function [
 			return g
 		]
 		any [
-			all [back head? faces]
-			tail? faces: skip faces pick -1x1 back
+			all [back head? faces]						;-- exit loop if head face processed in /back mode
+			tail? faces: skip faces pick -1x1 back		;-- move to next/prev face, exit if at tail in forward mode
 		]
 	]
 	p: face/parent										;-- no focusable found in the sub-tree from face
