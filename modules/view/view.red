@@ -1033,50 +1033,65 @@ get-scroller: func [
 	]
 ]
 
+get-face-pane: func [
+	"Returns the list of a container children or none"
+	face [object!] "Face container"
+	return: [block! none!]
+][
+	either face/type = 'tab-panel [select pick face/pane face/selected 'pane][face/pane]
+]
+
 get-focusable: function [
 	"Returns the next focusable face from a face tree"
-	face [object!]	"Face to start from"
+	faces [block!]	"Position to start from in a face's pane"
 	/back			"Search backward"
-	/down			"Depth-first"
-	/up				"Parent-first"
 ][
-	faces: find/same face/parent/pane face
-	until [
-		f: faces/1
-		all [
-			any [down not same? f face]					;-- check current face unless /down
-			f/visible?
-			f/enabled?
-			flags: f/flags
-			any [
-				flags = 'focusable
-				all [block? flags find flags 'focusable]
-			]
-			return f
-		]
-		all [
-			not back
-			f/type = 'tab-panel
-			f: pick f/pane f/selected
-		]
-		all [											;-- face is not focusable, try face's children
-			not up
-			any [not back f/type <> 'tab-panel]
-			block? f/pane
-			not empty? f/pane
-			g: get-focusable/:back/down either back [last f/pane][f/pane/1]
-			return g
-		]
+	checks: [
+		f/visible?
+		f/enabled?
+		flags: f/flags
 		any [
-			all [back head? faces]						;-- exit loop if head face processed in /back mode
-			tail? faces: skip faces pick -1x1 back		;-- move to next/prev face, exit if at tail in forward mode
+			flags = 'focusable
+			all [block? flags find flags 'focusable]
 		]
 	]
-	p: face/parent										;-- no focusable found in the sub-tree from face
-	either p/type = 'window [							;-- search /up then
-		get-focusable/:back/down either back [last p/pane][p/pane/1] ;-- bounce down from window face
+	either back [										;-- search backward
+		unless empty? head faces [
+			while [not head? faces][
+				f: first faces: skip faces -1
+				all [									;-- try face's children first
+					block? pane: get-face-pane f
+					not empty? pane
+					return get-focusable/back tail pane	;-- search downward and exit
+				]
+				if all checks [return f]				;-- check if face is focusable
+			]
+		]
+	][													;-- search forward
+		while [not tail? faces][
+			f: faces/1
+			if all checks [return f]					;-- first check if the face is focusable
+			all [										;-- if failed, try face's children
+				block? pane: get-face-pane f
+				not empty? pane
+				return get-focusable pane			 	;-- search downward and exit
+			]
+			faces: next faces
+		]
+	]
+	p: select first head faces 'parent					;-- search upward
+	faces: find/same p/parent/pane p
+	p: faces/1
+	either p/type = 'window [
+		get-focusable/:back either back [tail p/pane][p/pane] ;-- bounce down from window face
 	][
-		get-focusable/:back/up p
+		if p/parent/type = 'tab-panel [
+			p: p/parent									;-- skip the panels level in tab-panels
+			if back [return p]							;-- shortcut to return the tab header when going back up
+			faces: find/same p/parent/pane p
+		]
+		unless back [faces: next faces]					;-- skip the currently visited container if moving forward
+		get-focusable/:back faces
 	]
 ]
 
@@ -1356,7 +1371,10 @@ insert-event-func/spec [
 			find/same gui-console-ctx/owned-faces face
 		]
 	][
-		back?: to-logic find event/flags 'SHIFT
+		faces: find/same face/parent/pane face
+		unless back?: to-logic find event/flags 'SHIFT [
+			faces: either all [pane: get-face-pane face not empty? pane][pane][next faces]
+		]
 		set-focus any [
 			all [
 				opt: face/options
@@ -1365,7 +1383,7 @@ insert-event-func/spec [
 					all [not back? opt/next]
 				]
 			]
-			apply :get-focusable [face /back back?]
+			apply :get-focusable [faces /back back?]
 		]
 	]
-][face event /local back? opt]
+][face event /local back? faces opt pane]
