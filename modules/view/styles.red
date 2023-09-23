@@ -25,7 +25,7 @@ Red [
 	]
 	text: [
 		default-actor: on-down
-		template: [type: 'text size: 80x23 flags: 'focusable]
+		template: [type: 'text size: 80x23]
 	]
 	field: [
 		default-actor: on-enter
