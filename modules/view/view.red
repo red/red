@@ -628,10 +628,10 @@ system/view: context [
 		size:			none
 	]
 
-	platform: none	
+	platform: none
 	VID: none
 	
-	handlers: make block! 10
+	handlers: make block! 20
 	
 	evt-names: make hash! [
 		detect			on-detect
@@ -692,7 +692,7 @@ system/view: context [
 		unless face [unless face: event/face [exit]]	;-- filter out unbound events
 		
 		unless with [									;-- protect following code from recursion
-			foreach handler handlers [
+			foreach [name handler] handlers [
 				set/any 'result do-safe [handler face event]
 				either event? :result [event: result][if :result [return :result]]
 			]
@@ -1096,21 +1096,28 @@ get-focusable: function [
 ]
 
 insert-event-func: function [
-	"Add a function to monitor global events. Return the function"
-	fun [block! function!] "A function or a function body block"
-	/spec blk [block!]	   "Provides a custom spec block (still needs at least 2 arguments)"
+	"Adds a function to monitor global events. Returns the function"
+	name [word!]
+	fun  [block! function!] "A function or a function body block"
 ][
-	if find/same system/view/handlers :fun [return none]
-	if block? :fun [fun: do [function any [blk copy [face event]] fun]]	;@@ compiler chokes on 'function call
-	insert system/view/handlers :fun
+	if any [
+		find svh: system/view/handlers name
+		find/same svh :fun
+	][
+		return none
+	]
+	if block? :fun [fun: apply :function [copy [face event] fun]]	;@@ compiler chokes on 'function call
+	insert svh reduce [name :fun]
 	:fun
 ]
 
 remove-event-func: function [
-	"Remove an event function previously added"
-	fun [function!]
+	"Removes an event function previously added"
+	id [word! function!] "Handler name or function reference"
 ][
-	remove find/same system/view/handlers :fun
+	svh: system/view/handlers
+	pos: either word? :id [find svh id][find svh :id]
+	remove/part pos 2
 ]
 
 request-font: function [
@@ -1202,7 +1209,7 @@ alert: func [
 ;=== Global handlers ===
 
 ;-- Dragging face handler --
-insert-event-func [
+insert-event-func 'dragging [
 	if all [
 		block? event/face/options
 		drag-evt: event/face/options/drag-on
@@ -1262,7 +1269,7 @@ insert-event-func [
 ]
 
 ;-- Debug info handler --
-insert-event-func [
+insert-event-func 'debug [
 	if all [
 		system/view/debug?
 		not all [
@@ -1282,7 +1289,7 @@ insert-event-func [
 ]
 
 ;-- 'enter event handler --
-insert-event-func [
+insert-event-func 'enter [
 	all [
 		event/type = 'key
 		find "^M^/" event/key
@@ -1296,7 +1303,7 @@ insert-event-func [
 ]
 
 ;-- Radio faces handler --
-insert-event-func [
+insert-event-func 'radio [
 	if all [
 		event/type = 'click
 		event/face/type = 'radio
@@ -1313,7 +1320,7 @@ insert-event-func [
 ]
 
 ;-- Reactors support handler --
-insert-event-func [
+insert-event-func 'reactors [
 	if find [change enter unfocus] event/type [
 		face: event/face
 		facet: switch/default face/type [
@@ -1347,7 +1354,7 @@ insert-event-func [
 ]
 
 ;-- Field's data facet syncing handler
-insert-event-func [
+insert-event-func 'field-sync [
 	if all [
 		find [change] event/type
 		event/face/type = 'field
@@ -1362,7 +1369,7 @@ insert-event-func [
 ]
 
 ;-- TAB key navigation handler
-insert-event-func/spec [
+insert-event-func 'tab function [face event][
 	if all [
 		event/type = 'key-down
 		event/key = #"^-"
@@ -1396,4 +1403,4 @@ insert-event-func/spec [
 		return 'stop
 	]
 	event
-][face event /local flags back? faces opt pane]
+]
