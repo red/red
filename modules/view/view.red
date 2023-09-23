@@ -1361,11 +1361,18 @@ insert-event-func [
 	]
 ]
 
-;-- Tab navigation handler
+;-- TAB key navigation handler
 insert-event-func/spec [
 	if all [
-		event/type = 'key
+		event/type = 'key-down
 		event/key = #"^-"
+		any [
+			face/type <> 'area							;-- if area is not focusable, let it handle TAB key
+			all [
+				flags: face/flags
+				any [flags = 'focusable all [block? flags find flags 'focusable]]
+			]
+		]
 		not all [
 			value? 'gui-console-ctx
 			find/same gui-console-ctx/owned-faces face
@@ -1385,5 +1392,7 @@ insert-event-func/spec [
 			]
 			apply :get-focusable [faces /back back?]
 		]
+		return 'stop
 	]
-][face event /local back? faces opt pane]
+	event
+][face event /local flags back? faces opt pane]
