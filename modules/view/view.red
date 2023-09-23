@@ -1369,6 +1369,7 @@ insert-event-func/spec [
 		any [
 			face/type <> 'area							;-- if area is not focusable, let it handle TAB key
 			all [
+				not find event/flags 'control
 				flags: face/flags
 				any [flags = 'focusable all [block? flags find flags 'focusable]]
 			]
