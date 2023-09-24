@@ -875,7 +875,7 @@ red: context [
 	]
 	
 	generate-anon-name: has [name][
-		add-symbol name: to word! rejoin ["<anon" get-counter #">"]
+		add-symbol name: to word! rejoin ["~anon" get-counter #"~"]
 		name
 	]
 	
@@ -2856,11 +2856,12 @@ red: context [
 					name: generate-anon-name			;-- undetermined function assignment case
 				]
 			]
-			find [set-word! lit-word!] type?/word :original [
+			any [
+				all [set-word? :original]
+				global?: all [lit-word? :original pc/-2 = 'set]
+			][		
 				src-name: to word! original
-				unless global?: all [lit-word? :original pc/-2 = 'set][
-					src-name: get-prefix-func src-name
-				]
+				unless global? [src-name: get-prefix-func src-name]
 				name: check-func-name src-name
 				add-symbol/with word: to word! clean-lf-flag name to word! clean-lf-flag original
 				unless any [
