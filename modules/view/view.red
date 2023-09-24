@@ -133,14 +133,13 @@ metrics?: function [
 set-flag: function [
 	"Sets a flag in a face object and returns the /flags facet value"
 	face  [object!]
-	facet [word!]
 	value [any-type!]
 ][
-	either flags: face/:facet [
-		if word? flags [face/:facet: flags: reduce [flags]]
-		either block? flags [append flags value][set in face facet value]
+	either flags: face/flags [
+		if word? flags [face/flags: flags: reduce [flags]]
+		either block? flags [append flags value][face/flags: value]
 	][
-		set in face facet value
+		face/flags: value
 	]
 	flags
 ]
@@ -629,10 +628,10 @@ system/view: context [
 		size:			none
 	]
 
-	platform: none	
+	platform: none
 	VID: none
 	
-	handlers: make block! 10
+	handlers: make block! 20
 	
 	evt-names: make hash! [
 		detect			on-detect
@@ -693,7 +692,7 @@ system/view: context [
 		unless face [unless face: event/face [exit]]	;-- filter out unbound events
 		
 		unless with [									;-- protect following code from recursion
-			foreach handler handlers [
+			foreach [name handler] handlers [
 				set/any 'result do-safe [handler face event]
 				either event? :result [event: result][if :result [return :result]]
 			]
@@ -1018,37 +1017,107 @@ do-no-sync: func [
 	:r
 ]
 
-get-scroller: function [
+get-scroller: func [
 	"return a scroller object from a face"
 	face		[object!]
 	orientation [word!]
 	return:		[object!]
 ][
 	make scroller! [
-		position: 1
-		page: 1
-		min-size:	1			;-- minimum value
-		max-size:	1			;-- maximum value
-		parent: face
-		vertical?: orientation = 'vertical
+		position:	1
+		page:		1
+		min-size:	1								;-- minimum value
+		max-size:	1								;-- maximum value
+		parent:		face
+		vertical?:	orientation = 'vertical
+	]
+]
+
+get-face-pane: func [
+	"Returns the list of a container children or none"
+	face [object!] "Face container"
+	return: [block! none!]
+][
+	either face/type = 'tab-panel [select pick face/pane face/selected 'pane][face/pane]
+]
+
+get-focusable: function [
+	"Returns the next focusable face from a face tree"
+	faces [block!]	"Position to start from in a face's pane"
+	/back			"Search backward"
+][
+	checks: [
+		f/visible?
+		f/enabled?
+		flags: f/flags
+		any [
+			flags = 'focusable
+			all [block? flags find flags 'focusable]
+		]
+	]
+	either back [										;-- search backward
+		unless empty? head faces [
+			while [not head? faces][
+				f: first faces: skip faces -1
+				all [									;-- try face's children first
+					block? pane: get-face-pane f
+					not empty? pane
+					return get-focusable/back tail pane	;-- search downward and exit
+				]
+				if all checks [return f]				;-- check if face is focusable
+			]
+		]
+	][													;-- search forward
+		while [not tail? faces][
+			f: faces/1
+			if all checks [return f]					;-- first check if the face is focusable
+			all [										;-- if failed, try face's children
+				block? pane: get-face-pane f
+				not empty? pane
+				return get-focusable pane			 	;-- search downward and exit
+			]
+			faces: next faces
+		]
+	]
+	p: select first head faces 'parent					;-- search upward
+	faces: find/same p/parent/pane p
+	p: faces/1
+	either p/type = 'window [
+		get-focusable/:back either back [tail p/pane][p/pane] ;-- bounce down from window face
+	][
+		if p/parent/type = 'tab-panel [
+			p: p/parent									;-- skip the panels level in tab-panels
+			if back [return p]							;-- shortcut to return the tab header when going back up
+			faces: find/same p/parent/pane p
+		]
+		unless back [faces: next faces]					;-- skip the currently visited container if moving forward
+		get-focusable/:back faces
 	]
 ]
 
 insert-event-func: function [
-	"Add a function to monitor global events. Return the function"
-	fun [block! function!] "A function or a function body block"
+	"Adds a function to monitor global events. Returns the function"
+	name [word!]
+	fun  [block! function!] "A function or a function body block"
 ][
-	if find/same system/view/handlers :fun [return none]
-	if block? :fun [fun: do [function copy [face event] fun]]	;@@ compiler chokes on 'function call
-	insert system/view/handlers :fun
+	if any [
+		find svh: system/view/handlers name
+		find/same svh :fun
+	][
+		return none
+	]
+	if block? :fun [fun: apply :function [copy [face event] fun]]	;@@ compiler chokes on 'function call
+	insert svh reduce [name :fun]
 	:fun
 ]
 
 remove-event-func: function [
-	"Remove an event function previously added"
-	fun [function!]
+	"Removes an event function previously added"
+	id [word! function!] "Handler name or function reference"
 ][
-	remove find/same system/view/handlers :fun
+	svh: system/view/handlers
+	pos: either word? :id [find svh id][find svh :id]
+	remove/part pos 2
 ]
 
 request-font: function [
@@ -1140,7 +1209,7 @@ alert: func [
 ;=== Global handlers ===
 
 ;-- Dragging face handler --
-insert-event-func [
+insert-event-func 'dragging [
 	if all [
 		block? event/face/options
 		drag-evt: event/face/options/drag-on
@@ -1200,16 +1269,12 @@ insert-event-func [
 ]
 
 ;-- Debug info handler --
-insert-event-func [
+insert-event-func 'debug [
 	if all [
 		system/view/debug?
 		not all [
 			value? 'gui-console-ctx
-			any [
-				event/face = gui-console-ctx/console
-				event/face = gui-console-ctx/win
-				event/face = gui-console-ctx/caret
-			]
+			find/same gui-console-ctx/owned-faces event/face
 		]
 	][
 		print [
@@ -1224,7 +1289,7 @@ insert-event-func [
 ]
 
 ;-- 'enter event handler --
-insert-event-func [
+insert-event-func 'enter [
 	all [
 		event/type = 'key
 		find "^M^/" event/key
@@ -1238,7 +1303,7 @@ insert-event-func [
 ]
 
 ;-- Radio faces handler --
-insert-event-func [
+insert-event-func 'radio [
 	if all [
 		event/type = 'click
 		event/face/type = 'radio
@@ -1255,7 +1320,7 @@ insert-event-func [
 ]
 
 ;-- Reactors support handler --
-insert-event-func [
+insert-event-func 'reactors [
 	if find [change enter unfocus] event/type [
 		face: event/face
 		facet: switch/default face/type [
@@ -1289,7 +1354,7 @@ insert-event-func [
 ]
 
 ;-- Field's data facet syncing handler
-insert-event-func [
+insert-event-func 'field-sync [
 	if all [
 		find [change] event/type
 		event/face/type = 'field
@@ -1301,4 +1366,41 @@ insert-event-func [
 		]
 		system/reactivity/check/only face 'data
 	]
+]
+
+;-- TAB key navigation handler
+insert-event-func 'tab function [face event][
+	if all [
+		event/type = 'key-down
+		event/key = #"^-"
+		any [
+			face/type <> 'area							;-- if area is not focusable, let it handle TAB key
+			all [
+				not find event/flags 'control
+				flags: face/flags
+				any [flags = 'focusable all [block? flags find flags 'focusable]]
+			]
+		]
+		not all [
+			value? 'gui-console-ctx
+			find/same gui-console-ctx/owned-faces face
+		]
+	][
+		faces: find/same face/parent/pane face
+		unless back?: to-logic find event/flags 'SHIFT [
+			faces: either all [pane: get-face-pane face not empty? pane][pane][next faces]
+		]
+		set-focus any [
+			all [
+				opt: face/options
+				any [
+					all [back? opt/prev]
+					all [not back? opt/next]
+				]
+			]
+			apply :get-focusable [faces /back back?]
+		]
+		return 'stop
+	]
+	event
 ]

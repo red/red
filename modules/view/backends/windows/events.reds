@@ -24,7 +24,6 @@ paint: declare tagPAINTSTRUCT							;-- moved here from 'draw.reds'
 gui-evt: declare red-event!								;-- low-level event value slot
 gui-evt/header: TYPE_EVENT
 
-oldBaseWndProc:	 0
 modal-loop-type: 0										;-- remanence of last EVT_MOVE or EVT_SIZE
 zoom-distance:	 0
 special-key: 	-1										;-- <> -1 if a non-displayable key is pressed
@@ -730,6 +729,7 @@ process-command-event: func [
 				all [
 					sym = radio								;-- ignore double-click (fixes #4246)
 					BST_CHECKED <> (BST_CHECKED and as integer! SendMessage child BM_GETSTATE 0 0)
+					(GetKeyState VK_TAB) and 8000h = 0
 				][
 					get-logic-state current-msg
 					EVT_CLICK								;-- gets converted to CHANGE by high-level event handler

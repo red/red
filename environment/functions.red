@@ -1029,7 +1029,7 @@ atan2: func [
 
 sqrt: func [
 	"Returns the square root of a number"
-	number	[float! integer!]
+	number	[float! integer! percent!]
 	return:	[float!]
 ][
 	#system [

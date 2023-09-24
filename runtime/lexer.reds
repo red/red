@@ -201,7 +201,6 @@ lexer: context [
 		200Ch											;-- ZERO WIDTH NON-JOINER
 		200Dh											;-- ZERO WIDTH JOINER
 		2060h											;-- WORD JOINER
-		FEEFh											;-- ZERO WIDTH NON-BREAKING SPACE
 	]
 	
 	months: [
@@ -363,6 +362,7 @@ lexer: context [
 	stash-size:		1000								;-- pre-allocated cells	number
 	root-state:		as state! 0							;-- global entry point to state struct list
 	spaces:			as byte-ptr! 0						;-- bitmap table for whitespace characters used as word delimiters
+	spaces-size:	8290								;-- bitmap table size
 	all-events:		3Fh									;-- bit-mask of all events
 	
 	min-integer: as byte-ptr! "-2147483648"				;-- used in load-integer
@@ -1014,8 +1014,11 @@ lexer: context [
 			s: unicode/fast-decode-utf8-char s :cp
 			if cp = -1 [throw-error lex s e type]
 			p: spaces + (cp >> 3)
-			if p/value and (as-byte 128 >> (cp and 7)) = null-byte [			
-				either base = start [return base][return start]
+			if any [
+				cp > spaces-size
+				p/value and (as-byte 128 >> (cp and 7)) = null-byte
+			][
+				return start
 			]
 		]
 		s
@@ -1032,7 +1035,10 @@ lexer: context [
 			s: unicode/fast-decode-utf8-char s :cp
 			if cp = -1 [throw-error lex s e type]
 			p: spaces + (cp >> 3)
-			if p/value and (as-byte 128 >> (cp and 7)) <> null-byte [
+			if all [
+				cp < spaces-size
+				p/value and (as-byte 128 >> (cp and 7)) <> null-byte
+			][
 				lex/tok-end: prev
 				lex/in-pos:  prev
 				return prev
@@ -2402,7 +2408,7 @@ lexer: context [
 				if err? [exit]
 			]
 			if state = T_WORD [
-				s: skip-whitespaces lex s lex/tok-end TYPE_WORD ;-- Unicode spaces are parsed as words, skip them upfront!				
+				s: skip-whitespaces lex s lex/tok-end TYPE_WORD ;-- Unicode spaces are parsed as words, skip them upfront!
 				if s = p [
 					either lex/in-pos < lex/in-end [continue][ ;-- empty token, move to next one
 						state: T_EOF do-scan: :scan-eof index: 1 lex/scanned: 0 ;-- force EOF if empty input after skipping
@@ -2644,9 +2650,9 @@ lexer: context [
 	build-ws-table: func [								;-- builds Unicode whitespaces lookup bitmap table
 		/local
 			p	 [byte-ptr!]
-			i cp [integer!]			
+			i cp [integer!]
 	][
-		spaces: zero-alloc 8192
+		spaces: zero-alloc spaces-size
 		i: 1
 		until [
 			cp: whitespaces/i

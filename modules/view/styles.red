@@ -21,7 +21,7 @@ Red [
 	]
 	button: [
 		default-actor: on-click
-		template: [type: 'button size: 60x23]
+		template: [type: 'button size: 60x23 flags: 'focusable]
 	]
 	text: [
 		default-actor: on-down
@@ -29,11 +29,11 @@ Red [
 	]
 	field: [
 		default-actor: on-enter
-		template: [type: 'field size: 80x23]
+		template: [type: 'field size: 80x23 flags: 'focusable]
 	]
 	area: [
 		default-actor: on-change
-		template: [type: 'area size: 150x150]
+		template: [type: 'area size: 150x150 flags: 'focusable]
 	]
 	rich-text: [
 		default-actor: on-change
@@ -44,15 +44,15 @@ Red [
 	]
 	toggle: [
 		default-actor: on-change
-		template: [type: 'toggle size: 60x23]
+		template: [type: 'toggle size: 60x23 flags: 'focusable]
 	]
 	check: [
 		default-actor: on-change
-		template: [type: 'check size: 80x23]
+		template: [type: 'check size: 80x23 flags: 'focusable]
 	]
 	radio: [
 		default-actor: on-change
-		template: [type: 'radio size: 80x23]
+		template: [type: 'radio size: 80x23 flags: 'focusable]
 	]
 	progress: [
 		default-actor: on-change
@@ -60,7 +60,7 @@ Red [
 	]
 	slider: [
 		default-actor: on-change
-		template: [type: 'slider size: 150x23 data: 0%]
+		template: [type: 'slider size: 150x23 data: 0% flags: 'focusable]
 	]
 	scroller: [
 		default-actor: on-change
@@ -72,19 +72,19 @@ Red [
 	]
 	calendar: [
 		default-actor: on-change
-		template: [type: 'calendar size: 139x148]
+		template: [type: 'calendar size: 139x148 flags: 'focusable]
 	]
 	text-list: [
 		default-actor: on-change
-		template: [type: 'text-list size: 100x140]
+		template: [type: 'text-list size: 100x140 flags: 'focusable]
 	]
 	drop-list: [
 		default-actor: on-change
-		template: [type: 'drop-list size: 100x23]
+		template: [type: 'drop-list size: 100x23 flags: 'focusable]
 	]
 	drop-down: [
 		default-actor: on-enter
-		template: [type: 'drop-down size: 100x23]
+		template: [type: 'drop-down size: 100x23 flags: 'focusable]
 	]
 	panel: [
 		default-actor: on-down						;@@ something better?
@@ -96,7 +96,7 @@ Red [
 	]
 	tab-panel: [
 		default-actor: on-select
-		template: [type: 'tab-panel size: 50x50]
+		template: [type: 'tab-panel size: 50x50 flags: 'focusable]
 	]
 	h1:  [
 		default-actor: on-down

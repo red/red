@@ -622,13 +622,7 @@ lexer: context [
 		"#[" any-ws [
 			  "true"  (value: true)
 			| "false" (value: false)
-			| s: [
-				"none!" | "logic!" | "block!" | "integer!" | "word!" 
-				| "set-word!" | "get-word!" | "lit-word!" | "refinement!"
-				| "binary!" | "string!"	| "char!" | "bitset!" | "path!"
-				| "set-path!" | "lit-path!" | "native!"	| "action!"
-				| "issue!" | "paren!" | "function!"
-			] e: (value: get to word! copy/part s e)
+			| s: [3 20 [alpha | #"-"] #"!"] e: (value: rejoin [#!~ copy/part s e])
 			| "none" (value: none)
 		]  any-ws #"]"
 	]

@@ -1571,9 +1571,9 @@ Red [
 		--assert '-<- == transcode/one "-<-"
 
 	--test-- "#4624"
-		--assert [a b] == load/all "a^(3000)b"
-		--assert [a b] == load/all "^(2002)a^(3000)b"
-		--assert [a b] == load/all "^(2002)^(85)a^(3000)b"
+		--assert [a〇b] == load/all "a^(3007)b"
+		--assert [a〇b] == load/all "^(2002)a^(3007)b"
+		--assert [a〇b] == load/all "^(2002)^(85)a^(3007)b"
 
 	--test-- "#4781"
 		--assert 3:3:3.3000000001 = transcode/one "3:3:3.3"
@@ -1656,6 +1656,9 @@ Red [
 	--test-- "#5380"
 		--assert 1.234 = to-float next "♥1.234"
 		
+	--test-- "#5384"
+		--assert [😀 arrow keys] = transcode "😀 arrow keys"
+		--assert [Use😀 arrow keys] = transcode "Use😀 arrow keys"
 
 ===end-group===
 	

@@ -566,10 +566,13 @@ update-caret: func [
 	/local
 		size  [red-pair!]
 		owner [handle!]
+		pt	  [red-point2D!]
+		x y	  [integer!]
 ][
 	size: as red-pair! values + FACE_OBJ_SIZE
+	GET_PAIR_XY_INT(size x y)
 	owner: as handle! GetWindowLong hWnd wc-offset - 24
-	CreateCaret owner null size/x size/y
+	CreateCaret owner null x y
 	change-offset hWnd as red-point2D! values + FACE_OBJ_OFFSET caret
 ]
 
@@ -1151,6 +1154,7 @@ get-flags: func [
 		sym: symbol/resolve word/symbol
 		case [
 			sym = all-over	 [flags: flags or FACET_FLAGS_ALL_OVER]
+			sym = focusable	 [flags: flags or FACET_FLAGS_FOCUSABLE]
 			sym = resize	 [flags: flags or FACET_FLAGS_RESIZE]
 			sym = no-title	 [flags: flags or FACET_FLAGS_NO_TITLE]
 			sym = no-border  [flags: flags or FACET_FLAGS_NO_BORDER]
@@ -1766,6 +1770,7 @@ OS-make-view: func [
 
 	if null? handle [print-line "*** View Error: CreateWindowEx failed!"]
 
+	SetWindowLong handle wc-offset - 12 ex-flags
 	if any [win8+? not alpha?][BringWindowToTop handle]
 	set-font handle face values
 
@@ -1778,8 +1783,8 @@ OS-make-view: func [
 	case [
 		sym = camera	[init-camera handle data selected false]
 		sym = text-list [init-text-list handle data selected]
-		sym = base		[init-base-face handle parent values alpha?]
-		sym = panel		[if alpha? [init-base-face handle parent values alpha?]]
+		sym = base		[init-base-face handle parent values alpha? ex-flags]
+		sym = panel		[if alpha? [init-base-face handle parent values alpha? ex-flags]]
 		sym = tab-panel [set-tabs handle values]
 		any [
 			sym = button
@@ -1872,8 +1877,8 @@ OS-make-view: func [
 			if TYPE_OF(selected) <> TYPE_NONE [change-selection handle selected values]
 		]
 		sym = rich-text [
-			init-base-face handle parent values alpha?
 			ex-flags: ex-flags or (BASE_FACE_D2D or BASE_FACE_IME)
+			init-base-face handle parent values alpha? ex-flags
 		]
 		sym = calendar [
 			init-calendar handle as red-value! data
@@ -1881,7 +1886,7 @@ OS-make-view: func [
 		]
 		sym = window [
 			init-window handle
-			if alpha? [init-base-face handle parent values alpha?]
+			if alpha? [init-base-face handle parent values alpha? ex-flags]
 			#if sub-system = 'gui [
 				with clipboard [
 					if null? main-hWnd [main-hWnd: handle]
@@ -1896,7 +1901,6 @@ OS-make-view: func [
 	]
 	if TYPE_OF(rate) <> TYPE_NONE [change-rate handle rate]
 
-	SetWindowLong handle wc-offset - 12 ex-flags
 	SetWindowLong handle wc-offset + 16 get-flags as red-block! values + FACE_OBJ_FLAGS
 	stack/unwind
 	as-integer handle
@@ -1927,7 +1931,6 @@ change-size: func [
 		sy: as float32! size/y
 		flags: flags or PAIR_SIZE_FACET
 	][
-		flags: 0
 		pt: as red-point2D! size
 		sx: pt/x
 		sy: pt/y

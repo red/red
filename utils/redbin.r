@@ -371,6 +371,10 @@ context [
 								emit-string next item
 								no
 							]
+							type-value? :item [
+								emit-datatype get-RS-type-ID/word to-word form skip item 2
+								no
+							]
 							'else [
 								emit-issue item
 								no

@@ -78,6 +78,7 @@ system/view/platform: context [
 			
 			#enum flags-flag! [
 				FACET_FLAGS_ALL_OVER:	00000001h
+				FACET_FLAGS_FOCUSABLE:	00000002h
 				
 				FACET_FLAGS_TRISTATE:	00020000h
 				FACET_FLAGS_SCROLLABLE:	00040000h
@@ -273,6 +274,7 @@ system/view/platform: context [
 			_mini:			symbol/make "mini"
 			
 			all-over:		symbol/make "all-over"
+			focusable:		symbol/make "focusable"
 			over:			symbol/make "over"
 			draggable:		symbol/make "draggable"
 			resize:			symbol/make "resize"

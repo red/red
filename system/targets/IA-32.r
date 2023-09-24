@@ -786,13 +786,21 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-boolean-switch: does [
-		emit #{31C0}								;-- 	  XOR eax, eax	; eax = 0 (FALSE)
-		emit #{EB03}								;-- 	  JMP _exit
-		emit #{31C0}								;--		  XOR eax, eax
-		emit #{40}									;--		  INC eax		; eax = 1 (TRUE)
-													;-- _exit:
-		reduce [3 7]								;-- [offset-TRUE offset-FALSE]
+	emit-boolean-switch: func [op [word! none!]][
+		either op [
+			emit add-condition op copy #{0F90}			;--	SETcc al
+			emit #{C0}
+			emit #{30E4}								;-- XOR ah, ah
+			emit #{98}									;--	CWDE		; sign-extend ax to eax
+			reduce [0 0]
+		][
+			emit #{31C0}								;-- 	  XOR eax, eax	; eax = 0 (FALSE)
+			emit #{EB03}								;-- 	  JMP _exit
+			emit #{31C0}								;--		  XOR eax, eax
+			emit #{40}									;--		  INC eax		; eax = 1 (TRUE)
+														;-- _exit:
+			reduce [3 7]								;-- [offset-TRUE offset-FALSE]
+		]
 	]
 	
 	emit-load: func [
