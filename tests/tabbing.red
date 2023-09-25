@@ -16,8 +16,8 @@ view [
     fi "14"
     button "dump" [dump-face face/parent]
     button "link 6 to 9, 9 to 6" [
-    	unless find f6/options 'next [append f6/options compose [next: (f9)]]
-    	unless find f9/options 'prev [append f9/options compose [prev: (f6)]]
+    	put f6/options 'next f9
+    	put f9/options 'prev f6
     ]
     across
     fi "17" button "18" t: tab-panel ["19" [] "19.1" [fi "19.2"] "20" [fi "21" button "22"]]
