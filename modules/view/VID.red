@@ -315,10 +315,10 @@ system/view/VID: context [
 				| 'font-color (add-flag opts 'font 'color pre-load fetch-argument color! spec)
 				| 'options	  (add-option opts fetch-argument block! spec)
 				| 'loose	  (add-option opts compose [drag-on: 'down] add-bounds opts back spec)
-				| 'all-over   (set-flag opts 'flags 'all-over)
-				| 'password   (set-flag opts 'flags 'password)
-				| 'tri-state  (set-flag opts 'flags 'tri-state)
-				| 'scrollable (set-flag opts 'flags 'scrollable)
+				| 'all-over   (set-flag opts 'all-over)
+				| 'password   (set-flag opts 'password)
+				| 'tri-state  (set-flag opts 'tri-state)
+				| 'scrollable (set-flag opts 'scrollable)
 				| 'hidden	  (opts/visible?: no)
 				| 'disabled	  (opts/enabled?: no)
 				| 'select	  (opts/selected: fetch-argument sel-spec! spec)
@@ -457,7 +457,7 @@ system/view/VID: context [
 				unless find actors name [repend actors [name f s b]]
 			]
 		]
-		if opts/flags [opts/flags: set-flag face 'flags opts/flags]	;-- pre-merge /flags facets
+		if opts/flags [opts/flags: set-flag face opts/flags]	;-- pre-merge /flags facets
 		
 		set/some face opts								;-- merge default+styles and user options
 		
