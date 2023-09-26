@@ -90,10 +90,10 @@ get-event-key: func [
 		widget-evt [widget-event!]
 ][
 	widget-evt: as widget-event! evt/msg
-	as red-value! either zero? evt/flags [
+	as red-value! either evt/flags and SPECIAL_KEY = 0 [
 		char/push widget-evt/data
 	][
-		switch evt/flags [
+		switch widget-evt/data [
 			KEY_PAGE_UP		[_page-up]
 			KEY_PAGE_DOWN	[_page-down]
 			KEY_END			[_end]
@@ -280,29 +280,24 @@ send-key-event: func [
 	/local
 		g-evt	[widget-event! value]
 ][
-	case [
-		char = as-integer #"^-" [	;-- tab key
-			screen/next-focused-widget 1
-			screen/redraw null
-		]
-		flags = KEY_BACKTAB [		;-- back tab
-			screen/next-focused-widget -1
-			screen/redraw null
-		]
-		true [0]
-	]
-
 	if null? obj [
 		obj: screen/focus-widget
 	]
 	if obj/flags and WIDGET_FLAG_DISABLE = 0 [
 		if flags <> 0 [
-			char: flags
+			either flags = KEY_BACKTAB [		;-- back tab
+				flags: EVT_FLAG_SHIFT_DOWN
+				char: as-integer #"^-"
+			][
+				char: flags
+				flags: SPECIAL_KEY
+			]
 		]
 		if zero? char [exit]
 		g-evt/data: char
 		g-evt/widget: obj
 		obj/on-event EVT_KEY :g-evt
+		make-event EVT_KEY_DOWN :g-evt flags
 		make-event EVT_KEY :g-evt flags
 	]
 ]
@@ -477,7 +472,7 @@ _do-mouse-press: func [
 					WIDGET_FOCUSABLE?(obj)
 					obj/flags and WIDGET_FLAG_FOCUS = 0
 				][
-					screen/set-focus-widget obj
+					screen/set-focus-widget obj null
 				]
 			]
 		]

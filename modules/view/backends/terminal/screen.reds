@@ -12,12 +12,12 @@ Red/System [
 screen: context [
 
 	active-win:			as window-manager! 0
+	current-win:		as widget! 0
 	hover-widget:		as widget! 0		;-- the widget under the mouse
 	focus-widget:		as widget! 0
 	captured-widget:	as widget! 0
 	captured:			as node! 0
 	win-list:			as node! 0
-	focus-chain:		as node! 0
 	esc-sequences:		as node! 0			;-- escape sequences
 	buffer:				as pixel! 0			;--a width x height 2-D plane
 	width:				0
@@ -32,7 +32,6 @@ screen: context [
 	init: func [][
 		win-list: array/make 4 size? int-ptr!
 		captured: array/make 16 size? int-ptr!
-		focus-chain: array/make 16 size? int-ptr!
 		esc-sequences: array/make 2000 1
 	]
 
@@ -50,7 +49,6 @@ screen: context [
 		focus-widget:		null
 		captured-widget:	null
 		array/clear captured
-		array/clear focus-chain
 		array/clear esc-sequences
 		free-buffer
 
@@ -138,45 +136,8 @@ screen: context [
 	on-gc-mark: func [][
 		collector/keep win-list
 		collector/keep captured
-		collector/keep focus-chain
 		collector/keep esc-sequences
 		;mark-widgets
-	]
-
-	build-focus-chain: func [
-		container	[widget!]
-		/local
-			blk		[red-block!]
-			val		[red-value!]
-			len		[integer!]
-			i		[integer!]
-			w		[widget!]
-	][
-		blk: CHILD_WIDGET(container)
-		if all [
-			TYPE_OF(blk) = TYPE_BLOCK
-			0 < block/rs-length? blk
-		][
-			val: block/rs-head blk
-			len: block/rs-length? blk
-			i: 0
-			while [i < len][
-				w: as widget! get-face-handle as red-object! val + i
-				if WIDGET_FOCUSABLE?(w) [
-					array/append-ptr focus-chain as int-ptr! w
-				]
-				if WIDGET_TYPE(w) = panel [build-focus-chain w]
-				i: i + 1
-			]
-		]
-	]
-
-	update-focus-chain: func [
-		wm		[window-manager!]
-	][
-		array/clear focus-chain
-		if wm/focused <> null [WIDGET_UNSET_FLAG(wm/focused WIDGET_FLAG_FOCUS)]
-		build-focus-chain wm/window
 	]
 
 	update-bounding-box: func [
@@ -217,49 +178,39 @@ screen: context [
 		]
 	]
 
+	update-focus-widget: func [
+		widget	[widget!]
+		/local
+			win	[widget!]
+			wm  [window-manager!]
+	][
+		wm: as window-manager! current-win/data
+		if any [
+			wm/focused <> null
+			widget/flags and WIDGET_FLAG_FOCUSABLE = 0
+		][exit]
+
+		win: widget/parent
+		while [all [win <> null win/type <> window]][
+			win: win/parent
+		]
+		if win <> null [
+			wm: as window-manager! win/data
+			set-focus-widget widget wm
+		]
+	]
+
 	set-focus-widget: func [
 		w			[widget!]
-		/local
-			i		[integer!]
-			wm		[window-manager!]
+		wm			[window-manager!]
 	][
-		i: array/find-ptr focus-chain as int-ptr! w
-		if i = -1 [exit]
-
+		if null? wm [wm: active-win]
 		WIDGET_UNSET_FLAG(focus-widget WIDGET_FLAG_FOCUS)
 		send-event EVT_UNFOCUS focus-widget 0
-		wm: active-win
-		wm/focused-idx: i >> 2
+
 		wm/focused: w
 		focus-widget: w
 
-		WIDGET_SET_FLAG(focus-widget WIDGET_FLAG_FOCUS)
-		send-event EVT_FOCUS focus-widget 0
-	]
-
-	next-focused-widget: func [
-		n			[integer!]
-		/local
-			len		[integer!]
-			i		[integer!]
-			w		[widget!]
-			wm		[window-manager!]
-	][
-		WIDGET_UNSET_FLAG(focus-widget WIDGET_FLAG_FOCUS)
-		send-event EVT_UNFOCUS focus-widget 0
-		wm: active-win
-		focus-widget: wm/window
-		len: array/length? focus-chain
-		if len > 0 [
-			i: wm/focused-idx
-			i: i + n
-			if i = -1 [i: len - 1]
-			i: i % len
-			w: as widget! array/pick-ptr focus-chain i + 1
-			wm/focused-idx: i
-			wm/focused: w
-			focus-widget: w
-		]
 		WIDGET_SET_FLAG(focus-widget WIDGET_FLAG_FOCUS)
 		send-event EVT_FOCUS focus-widget 0
 	]
@@ -276,6 +227,8 @@ screen: context [
 		/local
 			p	[window-manager!]
 	][
+		current-win: widget
+		if null? focus-widget [focus-widget: widget]
 		p: as window-manager! zero-alloc size? window-manager!
 		p/window: widget
 		array/append-ptr win-list as int-ptr! p
@@ -286,20 +239,19 @@ screen: context [
 
 	init-window: func [
 		wm		[window-manager!]
+		/local
+			w	[widget!]
 	][
-		focus-widget: either null? wm/focused [
+		w: either null? wm/focused [
 			wm/window
 		][
 			wm/focused
 		]
 		active-win: wm
-		update-focus-chain wm
+		set-focus-widget w wm
 
 		if wm/editable = 0 [tty/hide-cursor]
 
-		unless WIDGET_FOCUSED?(wm/focused) [
-			next-focused-widget 0
-		]
 		hover-widget: null
 		captured-widget: null
 		array/clear captured

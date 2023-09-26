@@ -17,6 +17,8 @@ tiny-str!: alias struct! [	;-- 32 bytes
 	pad4	[float!]
 ]
 
+#define SPECIAL_KEY	 1
+
 #enum function-key! [
 	KEY_UNSET:		 -1
 	KEY_NONE:		  0

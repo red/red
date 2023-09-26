@@ -210,50 +210,6 @@ get-text-size: func [
 	pt/y: as float32! n
 ]
 
-get-flags: func [
-	field	[red-block!]
-	return: [integer!]									;-- return a bit-array of all flags
-	/local
-		word  [red-word!]
-		len	  [integer!]
-		sym	  [integer!]
-		flags [integer!]
-][
-	switch TYPE_OF(field) [
-		TYPE_BLOCK [
-			word: as red-word! block/rs-head field
-			len: block/rs-length? field
-			if zero? len [return 0]
-		]
-		TYPE_WORD [
-			word: as red-word! field
-			len: 1
-		]
-		default [return 0]
-	]
-	flags: 0
-	
-	loop len [
-		sym: symbol/resolve word/symbol
-		case [
-			sym = all-over	 [flags: flags or FACET_FLAGS_ALL_OVER]
-			sym = resize	 [flags: flags or FACET_FLAGS_RESIZE]
-			sym = no-title	 [flags: flags or FACET_FLAGS_NO_TITLE]
-			sym = no-border  [flags: flags or FACET_FLAGS_NO_BORDER]
-			sym = no-min	 [flags: flags or FACET_FLAGS_NO_MIN]
-			sym = no-max	 [flags: flags or FACET_FLAGS_NO_MAX]
-			sym = no-buttons [flags: flags or FACET_FLAGS_NO_BTNS]
-			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
-			sym = popup		 [flags: flags or FACET_FLAGS_POPUP]
-			sym = scrollable [flags: flags or FACET_FLAGS_SCROLLABLE]
-			sym = password	 [flags: flags or FACET_FLAGS_PASSWORD]
-			true			 [fire [TO_ERROR(script invalid-arg) word]]
-		]
-		word: word + 1
-	]
-	flags
-]
-
 get-node-facet: func [
 	node	[node!]
 	facet	[integer!]
@@ -397,6 +353,7 @@ OS-make-view: func [
 	bits:  get-flags as red-block! values + FACE_OBJ_FLAGS
 	if bits and FACET_FLAGS_ALL_OVER <> 0 [flags: flags or WIDGET_FLAG_ALL_OVER]
 	if bits and FACET_FLAGS_PASSWORD <> 0 [flags: flags or WIDGET_FLAG_PASSWORD]
+	if bits and FACET_FLAGS_FOCUSABLE <> 0 [flags: flags or WIDGET_FLAG_FOCUSABLE]
 
 	if TYPE_OF(offset) = TYPE_PAIR [as-point2D as red-pair! offset]
 	either TYPE_OF(size) = TYPE_PAIR [
@@ -436,6 +393,7 @@ OS-make-view: func [
 
 	screen/update-bounding-box widget
 	screen/update-editable-widget widget
+	screen/update-focus-widget widget
 
 	if TYPE_OF(rate) <> TYPE_NONE [change-rate widget rate]
 	if TYPE_OF(image) = TYPE_IMAGE [change-image widget image]
@@ -671,6 +629,42 @@ change-visible: func [
 	]
 ]
 
+select-text: func [
+	w		[widget!]
+	values	[red-value!]
+][
+	0
+]
+
+change-selection: func [
+	w		[widget!]
+	values	[red-value!]
+	/local
+		face [red-object!]
+		type [red-word!]
+		sym	 [integer!]
+][
+	type: as red-word! values + FACE_OBJ_TYPE
+	sym: symbol/resolve type/symbol
+	case [
+		any [sym = field sym = area][
+			select-text w values
+		]
+		sym = window [
+			face: as red-object! values + FACE_OBJ_SELECTED
+			switch TYPE_OF(face) [
+				TYPE_OBJECT [
+					w: as widget! face-handle? face
+					screen/set-focus-widget w null
+				]
+				TYPE_NONE	[screen/set-focus-widget w null]
+				default [0]
+			]
+		]
+		true [0]										;-- default, do nothing
+	]
+]
+
 OS-update-view: func [
 	face [red-object!]
 	/local
@@ -709,6 +703,9 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_SIZE <> 0 [
 		change-size w as red-pair! values + FACE_OBJ_SIZE
+	]
+	if flags and FACET_FLAG_SELECTED <> 0 [
+		change-selection w values
 	]
 	if flags and FACET_FLAG_ENABLED? <> 0 [
 		change-enabled w values
