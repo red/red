@@ -102,7 +102,6 @@ on-text-list-event: func [
 init-text-list: func [
 	widget		[widget!]
 ][
-	WIDGET_SET_FLAG(widget WIDGET_FLAG_FOCUSABLE)
 	widget/update: as update-func! :make-text-list-ui
 	widget/on-event: as event-handler! :on-text-list-event
 	widget/data: null

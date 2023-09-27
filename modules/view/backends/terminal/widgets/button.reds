@@ -13,7 +13,6 @@ Red/System [
 init-button: func [
 	widget		[widget!]
 ][
-	WIDGET_SET_FLAG(widget WIDGET_FLAG_FOCUSABLE)
 	widget/render: as render-func! :draw-button
 	widget/on-event: as event-handler! :on-button-event
 ]

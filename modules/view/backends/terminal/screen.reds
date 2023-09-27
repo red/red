@@ -50,6 +50,7 @@ screen: context [
 		captured-widget:	null
 		array/clear captured
 		array/clear esc-sequences
+		array/clear win-list
 		free-buffer
 
 		last-mouse-evt:		0

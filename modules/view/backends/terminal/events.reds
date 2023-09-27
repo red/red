@@ -10,8 +10,6 @@ Red/System [
 	}
 ]
 
-#define SPECIAL_KEY?(cp) [cp and 80000000h <> 0]
-
 #enum event-action! [
 	EVT_DISPATCH
 	EVT_NO_DISPATCH										;-- no further msg processing allowed
@@ -279,6 +277,7 @@ send-key-event: func [
 	flags	[integer!]
 	/local
 		g-evt	[widget-event! value]
+		result	[integer!]
 ][
 	if null? obj [
 		obj: screen/focus-widget
@@ -296,9 +295,13 @@ send-key-event: func [
 		if zero? char [exit]
 		g-evt/data: char
 		g-evt/widget: obj
-		obj/on-event EVT_KEY :g-evt
-		make-event EVT_KEY_DOWN :g-evt flags
-		make-event EVT_KEY :g-evt flags
+		result: make-event EVT_KEY_DOWN :g-evt flags
+		if result = EVT_DISPATCH [
+			result: make-event EVT_KEY :g-evt flags
+		]
+		if result = EVT_DISPATCH [
+			obj/on-event EVT_KEY :g-evt
+		]
 	]
 ]
 

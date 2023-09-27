@@ -322,7 +322,6 @@ ansi-parser: context [
 			cur: pos
 			case [
 				all [end > 1 c = #"^["][parse-ESC]
-				c = #"^C" [break]
 				any [
 					c < as byte! 32
 					c = as byte! 127  ;-- delete char

@@ -25,7 +25,6 @@ init-field: func [
 		idx		[integer!]
 		f		[field-data!]
 ][
-	WIDGET_SET_FLAG(widget WIDGET_FLAG_FOCUSABLE)
 	WIDGET_SET_FLAG(widget WIDGET_FLAG_EDITABLE)
 	if widget/data <> null [free as byte-ptr! widget/data]
 	widget/data: as int-ptr! zero-alloc size? field-data!
@@ -119,7 +118,7 @@ on-field-edit: func [
 		]
 		KEY_BACKTAB [0]
 		default [
-			unless SPECIAL_KEY?(evt/data) [
+			if cp >= 32 [
 				n: char-width? cp
 				if w - n >= field/len [
 					either string/rs-tail? line [
