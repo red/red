@@ -57,8 +57,9 @@ system/view/VID: context [
 	]
 	
 	debug?: 	no
-	pos-size!: make typeset! [pair! point2D!]
-	
+	origin:		10x10
+	spacing:	10x10
+	pos-size!: 	make typeset! [pair! point2D!]
 	containers: [panel tab-panel group-box]
 	
 	default-font: [
@@ -551,7 +552,9 @@ system/view/VID: context [
 		global?: 	  yes								;-- TRUE: panel options expected
 		below?: 	  no
 		
-		top-left: bound: cursor: origin: spacing: pick [0x0 10x10] tight
+		
+		either tight [origin: spacing: 0x0][origin: self/origin  spacing: self/spacing]
+		top-left: bound: cursor: origin
 		
 		opts: copy opts-proto
 		
