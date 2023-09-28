@@ -1405,3 +1405,15 @@ insert-event-func 'tab function [face event][
 	]
 	event
 ]
+
+#if config/GUI-engine = 'terminal [
+	;-- Control-C handler
+	insert-event-func 'ctrl-c function [face event][
+		if all [
+			event/type = 'key
+			event/key = #"^C"
+		][
+			system/view/platform/exit-event-loop
+		]
+	]
+]
