@@ -11,7 +11,17 @@ Red [
 ]
 
 system/view/VID: context [
-	styles: #include %styles.red
+	styles: #switch config/GUI-engine [
+		;TUI		 []
+		test	 [#include %backends/test/styles.red]
+		#default [
+			#switch config/OS [
+				Windows [#include %backends/windows/styles.red]
+				macOS	[#include %backends/macOS/styles.red]
+				Linux	[#include %backends/gtk3/styles.red]
+			]
+		]
+	]
 	
 	GUI-rules: context [
 		active?: yes
