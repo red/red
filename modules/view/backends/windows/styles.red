@@ -11,6 +11,9 @@ Red [
 ]
 
 #(
+	@origin	 10x10
+	@spacing 10x10
+	
 	window: [
 		default-actor: on-down
 		template: [type: 'window size: 100x100]

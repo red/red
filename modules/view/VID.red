@@ -563,7 +563,10 @@ system/view/VID: context [
 		below?: 	  no
 		
 		
-		either tight [origin: spacing: 0x0][origin: self/origin  spacing: self/spacing]
+		either tight [origin: spacing: 0x0][
+			origin:  any [select self/styles @origin  self/origin]
+			spacing: any [select self/styles @spacing self/spacing]
+		]
 		top-left: bound: cursor: origin
 		
 		opts: copy opts-proto
