@@ -45,7 +45,7 @@ draw-button: func [
 	/local
 		flags	[integer!]
 ][
-	flags: 0
+	flags: PIXEL_ANSI_SEQ
 	if WIDGET_FOCUSED?(widget) [
 		flags: flags or PIXEL_INVERTED
 	]

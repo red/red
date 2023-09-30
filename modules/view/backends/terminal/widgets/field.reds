@@ -147,7 +147,7 @@ draw-field: func [
 ][
 	widget/box/bottom: widget/box/top + F32_1		;-- force height to 1 line
 	flags: either WIDGET_PASSWORD?(widget) [PIXEL_PASSWORD][0]
-	_widget/render x y widget flags
+	_widget/render x y widget flags or PIXEL_ANSI_SEQ
 	if WIDGET_FOCUSED?(widget) [
 		field: as field-data! widget/data
 		screen/cursor-x: x + field/cursor
