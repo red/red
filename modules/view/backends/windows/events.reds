@@ -1341,21 +1341,23 @@ WndProc: func [
 			]
 			rc: as RECT_STRUCT lParam
 			type: either msg = WM_MOVING [
-				lParam: rc/top << 16 or rc/left
-				SetWindowLong hWnd wc-offset - 8 lParam
+				x: rc/left - x
+				y: rc/top - y
+				SetWindowLong hWnd wc-offset - 8 y << 16 or x
 				modal-loop-type: EVT_MOVING
 				FACE_OBJ_OFFSET
 			][
-				lParam: (rc/bottom - rc/top + x) << 16 or (rc/right - rc/left + x)
+				y: rc/bottom - rc/top + x + y
+				x: rc/right - rc/left + x + x
 				modal-loop-type: EVT_SIZING
 				FACE_OBJ_SIZE
 			]
 
 			offset: as red-point2D! values + type
 			offset/header: TYPE_POINT2D
-			offset/x: dpi-unscale as float32! WIN32_LOWORD(lParam) + x
-			offset/y: dpi-unscale as float32! WIN32_HIWORD(lParam) + y
-			current-msg/lParam: lParam
+			offset/x: dpi-unscale as float32! x
+			offset/y: dpi-unscale as float32! y
+			current-msg/lParam: y << 16 or x
 			if all [
 				type = FACE_OBJ_SIZE
 				SIZE_FACET_PAIR?(hwnd)
