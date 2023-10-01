@@ -684,7 +684,7 @@ _widget: context [
 					p/code-point: cp
 					p/fg-color: attr-str/fg-color
 					p/bg-color: attr-str/bg-color
-					p/flags: attr-str/flags
+					p/flags: attr-str/flags or flags
 					loop n - 1 [
 						p: p + 1
 						p/flags: PIXEL_SKIP
@@ -854,6 +854,7 @@ _widget: context [
 		draw: as red-block! values + FACE_OBJ_DRAW
 		if any [TYPE_OF(draw) <> TYPE_BLOCK zero? block/rs-length? draw][exit]
 
+		ctx/flags: flags
 		ctx/dc: as handle! widget
 		ctx/x: xx
 		ctx/y: yy

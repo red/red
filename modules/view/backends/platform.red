@@ -812,13 +812,17 @@ system/view/platform: context [
 			stack/set-last none-value
 			exit
 		]
-		state: as red-block! values + gui/FACE_OBJ_EXT3
-		if TYPE_OF(state) = TYPE_BLOCK [
-			bool: as red-logic! (block/rs-tail state) - 1
-			layout?: bool/value
+		#either GUI-engine = 'terminal [
+			stack/set-last gui/OS-text-box-metrics box arg0 type
+		][
+			state: as red-block! values + gui/FACE_OBJ_EXT3
+			if TYPE_OF(state) = TYPE_BLOCK [
+				bool: as red-logic! (block/rs-tail state) - 1
+				layout?: bool/value
+			]
+			if layout? [gui/OS-text-box-layout box null 0 no]
+			stack/set-last gui/OS-text-box-metrics state arg0 type
 		]
-		if layout? [gui/OS-text-box-layout box null 0 no]
-		stack/set-last gui/OS-text-box-metrics state arg0 type
 	]
 
 	update-scroller: routine [scroller [object!] flags [integer!]][

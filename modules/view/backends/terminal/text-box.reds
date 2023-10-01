@@ -156,12 +156,49 @@ OS-text-box-font-size: func [
 ]
 
 OS-text-box-metrics: func [
-	state	[red-block!]
+	box		[red-object!]
 	arg0	[red-value!]
 	type	[integer!]
 	return: [red-value!]
+	/local
+		values	[red-value!]
+		str		[red-string!]
+		sz		[red-pair!]
+		w h		[integer!]
+		ww hh	[integer!]
+		pt		[red-point2D!]
 ][
-	null
+	values: get-node-facet box/ctx 0
+	str: as red-string! values + FACE_OBJ_TEXT
+	as red-value! switch type [
+		TBOX_METRICS_OFFSET?
+		TBOX_METRICS_OFFSET_LOWER [
+			point2D/push as float32! 1.0 as float32! 1.0
+		]
+		TBOX_METRICS_INDEX?
+		TBOX_METRICS_CHAR_INDEX? [
+			integer/push 1
+		]
+		TBOX_METRICS_LINE_HEIGHT [
+			float/push 1.0
+		]
+		default [
+			sz: as red-pair! values + FACE_OBJ_SIZE
+			either ANY_COORD?(sz) [
+				GET_PAIR_XY_INT(sz w h)
+			][
+				w: 7FFFFFFFh
+				h: 7FFFFFFFh
+			]
+			ww: 0 hh: 0
+			size-text str w h :ww :hh
+			either type = TBOX_METRICS_SIZE [
+				point2D/push as float32! ww as float32! hh
+			][
+				integer/push hh
+			]
+		]
+	]
 ]
 
 OS-text-box-layout: func [
@@ -170,8 +207,14 @@ OS-text-box-layout: func [
 	ft-clr	[integer!]
 	catch?	[logic!]
 	return: [handle!]
+	/local
+		w	[widget!]
 ][
-	null
+	w: as widget! face-handle? box
+	if null? w [
+		w: as widget! OS-make-view box null
+	]
+	as handle! w
 ]
 
 adjust-index: func [

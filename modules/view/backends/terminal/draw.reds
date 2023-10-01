@@ -267,20 +267,34 @@ OS-draw-text: func [
 	catch?	[logic!]
 	return: [logic!]
 	/local
+		w		[widget!]
 		x y		[integer!]
 		pt		[red-point2D!]
 		config	[render-config! value]
+		box		[red-object!]
+		free?	[logic!]
 ][
 	GET_PAIR_XY_INT(pos x y)
 	zero-memory as byte-ptr! :config size? render-config!
 	config/align: TEXT_WRAP_FLAG
-	config/flags: PIXEL_ANSI_SEQ
+	config/flags: ctx/flags or PIXEL_ANSI_SEQ
 	case [
 		ctx/font-color? [config/fg-color: ctx/font-color]
 		ctx/pen-type = DRAW_BRUSH_COLOR [config/fg-color: ctx/pen-color]
 		true [0]
 	]
+	free?: no
+	if TYPE_OF(text) = TYPE_OBJECT [				;-- text-box!
+		box: as red-object! text
+		w: as widget! face-handle? box
+		if null? w [
+			w: as widget! OS-make-view box null
+			free?: yes
+		]
+		config/rich-text: w/data
+	]
 	_widget/render-text text ctx/x + x ctx/y + y as rect! :ctx/left :config
+	if free? [free-faces box]
 	true
 ]
 

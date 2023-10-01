@@ -43,7 +43,10 @@ update-rich-text: func [
 	][
 		free as byte-ptr! data
 		data: null
+		widget/data: null
 	]
+
+	if any [zero? len TYPE_OF(styles) <> TYPE_BLOCK][exit]
 
 	if null? data [
 		data: as int-ptr! zero-alloc len + 1 * size? pixel!

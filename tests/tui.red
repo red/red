@@ -4,7 +4,9 @@ Red [
 	Config: [GUI-engine: 'terminal]
 ]
 
-page-3: layout/tight [
+rt-quit: rtd-layout [i/green ["Q"] "uit"]
+
+page-3: layout/tight compose/deep [
 	origin 2x1
 	text 24x2 center font-color yellow "Page 3" return
 
@@ -19,13 +21,13 @@ page-3: layout/tight [
 	] return
 
 	rich-text 40x3 transparent data [
-		yellow "Hello" red " Red " green "World!^/"
+		yellow "Hello" <bg> white red " Red " </bg> green "World!^/"
 		u "Underline" /u " " s "Strike" /s i " Italic" /i
 	] return
 
 	button 8x2 "Prev" [unview]
 	button 8x2 "Home" [show page-1]
-	button 4x2 "Quit" [unview/all]
+	button 4x2 draw [text 0x0 (rt-quit)] [unview/all]
 ]
 
 page-2: layout/tight [
@@ -95,7 +97,7 @@ page-1: layout/tight [
 		field 5 hint "MM/YY" pad 3x0 field 3 password hint "999"
 	] return
 
-	button font-color gray 20x2 "Next ->" [show page-2]
+	button font-color gray 20x2 "^[[32mN^[[39mext ->" [show page-2]
 ]
 
 view page-1

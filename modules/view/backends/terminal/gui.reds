@@ -391,12 +391,14 @@ OS-make-view: func [
 		true			[0]
 	]
 
-	screen/update-bounding-box widget
-	screen/update-editable-widget widget
-	screen/update-focus-widget widget
+	if parent <> 0 [
+		screen/update-bounding-box widget
+		screen/update-editable-widget widget
+		screen/update-focus-widget widget
 
-	if TYPE_OF(rate) <> TYPE_NONE [change-rate widget rate]
-	if TYPE_OF(image) = TYPE_IMAGE [change-image widget image]
+		if TYPE_OF(rate) <> TYPE_NONE [change-rate widget rate]
+		if TYPE_OF(image) = TYPE_IMAGE [change-image widget image]
+	]
 
 	stack/unwind
 	as-integer widget

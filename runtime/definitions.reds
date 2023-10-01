@@ -463,6 +463,7 @@ Red/System [
 			pen-color	[integer!]
 			font-color	[integer!]
 			font-color? [logic!]
+			flags		[integer!]
 		]
 	]
 ]
