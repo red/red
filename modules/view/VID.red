@@ -12,7 +12,7 @@ Red [
 
 system/view/VID: context [
 	styles: #switch config/GUI-engine [
-		;TUI		 []
+		terminal [#include %backends/terminal/styles.red]
 		test	 [#include %backends/test/styles.red]
 		#default [
 			#switch config/OS [
