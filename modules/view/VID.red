@@ -11,7 +11,17 @@ Red [
 ]
 
 system/view/VID: context [
-	styles: #include %styles.red
+	styles: #switch config/GUI-engine [
+		;TUI		 []
+		test	 [#include %backends/test/styles.red]
+		#default [
+			#switch config/OS [
+				Windows [#include %backends/windows/styles.red]
+				macOS	[#include %backends/macOS/styles.red]
+				Linux	[#include %backends/gtk3/styles.red]
+			]
+		]
+	]
 	
 	GUI-rules: context [
 		active?: yes
@@ -57,8 +67,9 @@ system/view/VID: context [
 	]
 	
 	debug?: 	no
-	pos-size!: make typeset! [pair! point2D!]
-	
+	origin:		10x10
+	spacing:	10x10
+	pos-size!: 	make typeset! [pair! point2D!]
 	containers: [panel tab-panel group-box]
 	
 	default-font: [
@@ -552,7 +563,12 @@ system/view/VID: context [
 		global?: 	  yes								;-- TRUE: panel options expected
 		below?: 	  no
 		
-		top-left: bound: cursor: origin: spacing: pick [0x0 10x10] tight
+		
+		either tight [origin: spacing: 0x0][
+			origin:  any [select self/styles @origin  self/origin]
+			spacing: any [select self/styles @spacing self/spacing]
+		]
+		top-left: bound: cursor: origin
 		
 		opts: copy opts-proto
 		

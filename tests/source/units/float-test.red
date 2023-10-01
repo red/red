@@ -3666,6 +3666,13 @@ Red [
 	--test-- " lesser-or-equal? 2"	--assert lesser-or-equal? 0.0 1.0
 	--test-- " lesser-or-equal? 3"	--assert lesser-or-equal? -1.0 0.0
 	--test-- " lesser-or-equal? 4"	--assert lesser-or-equal? 1.7976931348623157e+308 1.7976931348623157e+308
+	
+	--test-- "Nan comp-1"			--assert 1.#nan >= 1.#nan = false
+	--test-- "Nan comp-1"			--assert 1.#nan <= 1.#nan = false
+	--test-- "Nan comp-1"			--assert 1.#nan <= 1 = false
+	--test-- "Nan comp-1"			--assert 1.#nan >= 1 = false
+	--test-- "Nan comp-1"			--assert 1 <= 1.#nan = false
+	--test-- "Nan comp-1"			--assert 1 >= 1.#nan = false
 		
 ===end-group===
 

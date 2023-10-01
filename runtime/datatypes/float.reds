@@ -822,7 +822,17 @@ float: context [
 				res: as-integer any [ip1/1 <> ip2/1  ip1/2 <> ip2/2]
 			]
 			default [
-				res: SIGN_COMPARE_RESULT(left right)
+				res: either any [NaN? left NaN? right][
+					switch op [
+						COMP_LESSER
+						COMP_LESSER_EQUAL	[1]
+						COMP_GREATER
+						COMP_GREATER_EQUAL	[-1]
+						default 			[assert false 0 ]
+					]
+				][
+					SIGN_COMPARE_RESULT(left right)
+				]
 			]
 		]
 		res

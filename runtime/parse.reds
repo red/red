@@ -1088,6 +1088,8 @@ parser: context [
 					][
 						loop?: no
 						ended?: cmd = tail
+ 						cmd: block/rs-head rule			;-- set it just for the pop event needs
+						PARSE_TRACE(_pop)
 						
 						s: GET_BUFFER(rules)
 						copy-cell s/tail - 1 as red-value! rule
@@ -1096,7 +1098,6 @@ parser: context [
 						
 						cmd: (block/rs-head rule) + p/rule
 						tail: block/rs-tail rule
-						PARSE_TRACE(_pop)
 						s/tail: s/tail - 3
 						value: s/tail - 1
 						assert s/offset <= value

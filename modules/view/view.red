@@ -1386,6 +1386,7 @@ insert-event-func 'tab function [face event][
 			value? 'gui-console-ctx
 			find/same gui-console-ctx/owned-faces face
 		]
+		face/type <> 'window
 	][
 		faces: find/same face/parent/pane face
 		unless back?: to-logic find event/flags 'SHIFT [
