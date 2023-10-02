@@ -469,13 +469,6 @@ free-faces: func [
 		]
 	]
 
-	case [
-		sym = window [screen/remove-window widget]
-		any [sym = rich-text sym = field][free as byte-ptr! widget/data]
-		true [0]
-	]
-
-	_widget/delete widget
 	state: values + FACE_OBJ_STATE
 	state/header: TYPE_NONE
 ]

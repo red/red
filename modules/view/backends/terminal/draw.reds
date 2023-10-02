@@ -294,7 +294,7 @@ OS-draw-text: func [
 		config/rich-text: w/data
 	]
 	_widget/render-text text ctx/x + x ctx/y + y as rect! :ctx/left :config
-	if free? [free-faces box]
+	if free? [_widget/delete w]
 	true
 ]
 

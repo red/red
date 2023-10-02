@@ -132,7 +132,15 @@ _widget: context [
 
 	delete: func [
 		w [widget!]
+		/local
+			sym [integer!]
 	][
+		sym: WIDGET_TYPE(w)
+		case [
+			sym = window [screen/remove-window w]
+			any [sym = rich-text sym = field][free as byte-ptr! w/data]
+			true [0]
+		]
 		if w/image <> null [free as byte-ptr! w/image]
 		free as byte-ptr! w
 	]
