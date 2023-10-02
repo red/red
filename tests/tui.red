@@ -11,13 +11,13 @@ page-3: layout/tight compose/deep [
 	text 24x2 center font-color yellow "Page 3" return
 
 	panel 30x2 [
-		bar: progress 20x1 30% rate 10 on-time [
+		bar: progress 30% rate 10 on-time [
 			data: face/data + 10%
 			face/data: either data > 100% [0%][data]
 			bar-txt/text: form face/data
 			bar-txt/font/color: random white
 		] pad 1x0
-		bar-txt: text 4x1 font-color white "30%"
+		bar-txt: text 4 font-color white "30%"
 	] return
 
 	rich-text 40x3 transparent data [
@@ -30,7 +30,7 @@ page-3: layout/tight compose/deep [
 	button 4x2 draw [text 0x0 (rt-quit)] [unview/all]
 ]
 
-page-2: layout/tight [
+page-2: layout [
  	on-key [
 		switch event/key [
 			left	[cat/offset: cat/offset - 1x0]
@@ -39,8 +39,8 @@ page-2: layout/tight [
 			down	[cat/offset: cat/offset + 0x1]
 		]
 	]
-	origin 1x1 space 1x1
-	text 10x1 font-color green "Page 2" return
+
+	text 10 font-color green "Page 2" return
 
 	image 60x30 %../bridges/android/samples/eval/res/drawable-xxhdpi/ic_launcher.png return
 
@@ -57,10 +57,10 @@ page-2: layout/tight [
 	base 5x4 center middle "X^/Y"
 	base 5x4 wrap middle "abcdefgh" return
 
-	text 30x1 "Use arrow keys to move the cat" return
+	text 30 "Use arrow keys to move the cat" return
 
-	button 10x1 "Prev" [show page-1]
-	button 4x1 "Next" [show page-3]
+	button 10 "Prev" [show page-1]
+	button 4 "Next" [show page-3]
 	cat: base transparent 2x1 "🐱"
 ]
 
