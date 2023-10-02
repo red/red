@@ -1309,9 +1309,24 @@ WndProc: func [
 					][FACE_OBJ_SIZE]
 					if miniz? [return 0]
 
-					if msg = WM_MOVE [
+					res: either msg = WM_MOVE [
 						SetWindowLong hWnd wc-offset - 8 lParam
-					]
+						EVT_MOVE
+					][EVT_SIZE]
+					current-msg/hWnd: hWnd
+					current-msg/lParam: lParam
+					make-event current-msg 0 res
+
+					x: WIN32_LOWORD(lParam)
+					y: WIN32_HIWORD(lParam)
+					offset: as red-point2D! values + type
+					offset/header: TYPE_POINT2D
+					offset/x: dpi-unscale as float32! x
+					offset/y: dpi-unscale as float32! y
+					if all [
+						type = FACE_OBJ_SIZE
+						SIZE_FACET_PAIR?(hwnd)
+					][as-pair offset]
 
 					values: values + FACE_OBJ_STATE
 					if all [
@@ -1327,46 +1342,49 @@ WndProc: func [
 		]
 		WM_MOVING
 		WM_SIZING [
-			if null? current-msg [init-current-msg]
-			current-msg/hWnd: hWnd
+			if type = window [
+				if null? current-msg [init-current-msg]
+				current-msg/hWnd: hWnd
 
-			x: 0 y: 0
-			pos: GetWindowLong hWnd wc-offset - 16	;-- get border size
-			either zero? pos [
-				window-border-info? hWnd :x :y null null
-				SetWindowLong hWnd wc-offset - 16 x << 16 or (y and FFFFh)
-			][
-				x: WIN32_HIWORD(pos)
-				y: WIN32_LOWORD(pos)
+				x: 0 y: 0
+				pos: GetWindowLong hWnd wc-offset - 16	;-- get border size
+				either zero? pos [
+					window-border-info? hWnd :x :y null null
+					SetWindowLong hWnd wc-offset - 16 x << 16 or (y and FFFFh)
+				][
+					x: WIN32_HIWORD(pos)
+					y: WIN32_LOWORD(pos)
+				]
+				rc: as RECT_STRUCT lParam
+				type: either msg = WM_MOVING [
+					x: rc/left - x
+					y: rc/top - y
+					SetWindowLong hWnd wc-offset - 8 y << 16 or x
+					modal-loop-type: EVT_MOVING
+					FACE_OBJ_OFFSET
+				][
+					y: rc/bottom - rc/top + x + y
+					x: rc/right - rc/left + x + x
+					modal-loop-type: EVT_SIZING
+					FACE_OBJ_SIZE
+				]
+
+				SetWindowLong hWnd wc-offset - 24 modal-loop-type
+				offset: as red-point2D! values + type
+				offset/header: TYPE_POINT2D
+				offset/x: dpi-unscale as float32! x
+				offset/y: dpi-unscale as float32! y
+				current-msg/lParam: y << 16 or x
+				if all [
+					type = FACE_OBJ_SIZE
+					SIZE_FACET_PAIR?(hwnd)
+				][as-pair offset]
+				make-event current-msg 0 modal-loop-type
+
+				;-- in case the users change the offset/size in the event handlers
+				;@@ TBD
+				return 1									;-- TRUE
 			]
-			rc: as RECT_STRUCT lParam
-			type: either msg = WM_MOVING [
-				x: rc/left - x
-				y: rc/top - y
-				SetWindowLong hWnd wc-offset - 8 y << 16 or x
-				modal-loop-type: EVT_MOVING
-				FACE_OBJ_OFFSET
-			][
-				y: rc/bottom - rc/top + x + y
-				x: rc/right - rc/left + x + x
-				modal-loop-type: EVT_SIZING
-				FACE_OBJ_SIZE
-			]
-
-			offset: as red-point2D! values + type
-			offset/header: TYPE_POINT2D
-			offset/x: dpi-unscale as float32! x
-			offset/y: dpi-unscale as float32! y
-			current-msg/lParam: y << 16 or x
-			if all [
-				type = FACE_OBJ_SIZE
-				SIZE_FACET_PAIR?(hwnd)
-			][as-pair offset]
-			make-event current-msg 0 modal-loop-type
-
-			;-- in case the users change the offset/size in the event handlers
-			;@@ TBD
-			return 1									;-- TRUE
 		]
 		WM_ENTERSIZEMOVE [
 			if type = window [win-state: 1]

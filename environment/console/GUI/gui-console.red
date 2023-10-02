@@ -240,6 +240,7 @@ gui-console-ctx: context [
 				terminal/adjust-console-size new-sz
 				unless system/view/auto-sync? [show face]
 			]
+			on-resize: :on-resizing
 			on-focus: func [face [object!] event [event!]][
 				caret/color: caret-clr
 				unless caret/enabled? [caret/enabled?: yes]
