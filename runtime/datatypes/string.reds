@@ -2634,6 +2634,11 @@ string: context [
 			head2	[byte-ptr!]
 			chk? chk2? [logic!]
 	][
+		switch TYPE_OF(str2) [
+			TYPE_BINARY
+			TYPE_ANY_STRING [0]
+			default 		[fire [TO_ERROR(script invalid-arg) str2]]
+		]
 		s1:    GET_BUFFER(str1)
 		unit1: GET_UNIT(s1)
 		head1: (as byte-ptr! s1/offset) + (str1/head << (log-b unit1))
