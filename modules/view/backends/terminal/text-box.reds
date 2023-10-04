@@ -165,6 +165,7 @@ OS-text-box-metrics: func [
 		str		[red-string!]
 		sz		[red-pair!]
 		pos		[red-pair!]
+		int		[red-integer!]
 		x y		[integer!]
 		xx yy	[integer!]
 		w h		[integer!]
@@ -190,7 +191,36 @@ OS-text-box-metrics: func [
 	as red-value! switch type [
 		TBOX_METRICS_OFFSET?
 		TBOX_METRICS_OFFSET_LOWER [
-			point2D/push as float32! 1.0 as float32! 1.0
+			int: as red-integer! arg0
+			idx:	int/value
+			x:		0
+			y:		0
+			cnt:	0
+			series: GET_BUFFER(str)
+			unit: 	GET_UNIT(series)
+			offset: (as byte-ptr! series/offset) + (str/head << (log-b unit))
+			tail:   as byte-ptr! series/tail
+			while [all [cnt < idx offset < tail]][
+				cp: string/get-char offset unit
+				either cp = as-integer lf [
+					y: y + 1
+					x: 0
+				][
+					n: char-width? cp
+					x: x + n
+				]
+				either x > w [	;-- wrap text
+					y: y + 1
+					x: x - n
+					if x <= 0 [break]	;-- width is too small that cannot even contain 1 char
+					x: 0
+				][
+					offset: offset + unit
+					cnt: cnt + 1
+				]
+			]
+			either type = TBOX_METRICS_OFFSET? [x: x - n][y: y + 1]
+			point2D/push as float32! x as float32! y
 		]
 		TBOX_METRICS_INDEX?
 		TBOX_METRICS_CHAR_INDEX? [
