@@ -195,6 +195,7 @@ system: context [
 				react-bad-obj:		"REACT - target can only contain object values"
 				react-gctx:			["REACT - word" :arg1 "is not a reactor's field"]
 				lib-invalid-arg:	["LIBRED - invalid argument for" :arg1]
+				rb-invalid-record:	["REDBIN - invalid record at index" :arg1]
 			]
 			math: object [
 				code:				400
