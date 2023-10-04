@@ -164,12 +164,29 @@ OS-text-box-metrics: func [
 		values	[red-value!]
 		str		[red-string!]
 		sz		[red-pair!]
+		pos		[red-pair!]
+		x y		[integer!]
+		xx yy	[integer!]
 		w h		[integer!]
 		ww hh	[integer!]
 		pt		[red-point2D!]
+		cnt		[integer!]
+		n		[integer!]
+		series	[series!]
+		unit	[integer!]
+		offset	[byte-ptr!]
+		tail	[byte-ptr!]
+		cp idx	[integer!]
 ][
 	values: get-node-facet box/ctx 0
 	str: as red-string! values + FACE_OBJ_TEXT
+	sz: as red-pair! values + FACE_OBJ_SIZE
+	either ANY_COORD?(sz) [
+		GET_PAIR_XY_INT(sz w h)
+	][
+		w: 7FFFFFFFh
+		h: 7FFFFFFFh
+	]
 	as red-value! switch type [
 		TBOX_METRICS_OFFSET?
 		TBOX_METRICS_OFFSET_LOWER [
@@ -177,19 +194,61 @@ OS-text-box-metrics: func [
 		]
 		TBOX_METRICS_INDEX?
 		TBOX_METRICS_CHAR_INDEX? [
-			integer/push 1
+			pos: as red-pair! arg0
+			GET_PAIR_XY_INT(pos x y)
+			xx:		0
+			yy:		0
+			cnt:	1
+			series: GET_BUFFER(str)
+			unit: 	GET_UNIT(series)
+			offset: (as byte-ptr! series/offset) + (str/head << (log-b unit))
+			tail:   as byte-ptr! series/tail
+
+			;-- skip y lines
+			while [all [offset < tail yy < y]][
+				cp: string/get-char offset unit
+				if cp = as-integer lf [
+					yy: yy + 1
+					xx: 0
+					offset: offset + unit
+					cnt: cnt + 1
+					continue
+				]
+				n: char-width? cp
+				xx: xx + n
+				offset: offset + unit
+				cnt: cnt + 1
+				if xx >= w [		;-- wrap text
+					yy: yy + 1
+					if xx > w [
+						offset: offset - unit
+					]
+					xx: 0
+				]
+			]
+			while [all [offset < tail xx < x]][
+				cp: string/get-char offset unit
+				if cp = as-integer lf [
+					cnt: cnt + 1
+					break
+				]
+				n: char-width? cp
+				xx: xx + n
+				offset: offset + unit
+				cnt: cnt + 1
+			]
+			if all [
+				type = TBOX_METRICS_CHAR_INDEX?
+				xx <= x
+				yy <= y
+				offset = tail
+			][cnt: cnt - 1]
+			integer/push cnt
 		]
 		TBOX_METRICS_LINE_HEIGHT [
 			float/push 1.0
 		]
 		default [
-			sz: as red-pair! values + FACE_OBJ_SIZE
-			either ANY_COORD?(sz) [
-				GET_PAIR_XY_INT(sz w h)
-			][
-				w: 7FFFFFFFh
-				h: 7FFFFFFFh
-			]
 			ww: 0 hh: 0
 			size-text str w h :ww :hh
 			either type = TBOX_METRICS_SIZE [

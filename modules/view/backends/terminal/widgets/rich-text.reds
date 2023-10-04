@@ -63,6 +63,9 @@ update-rich-text: func [
 		i: i + 1
 		cp: string/rs-abs-at str idx
 		p/code-point: cp
+		p/bg-color: 0
+		p/fg-color: 0
+		p/flags: 0
 		idx: idx + 1
 	]
 	parse-text-styles as int-ptr! widget data styles str no

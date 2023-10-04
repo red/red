@@ -624,6 +624,15 @@ change-visible: func [
 	]
 ]
 
+change-data: func [
+	w		[widget!]
+	values	[red-value!]
+][
+	if WIDGET_TYPE(w) = rich-text [
+		update-rich-text w
+	]
+]
+
 select-text: func [
 	w		[widget!]
 	values	[red-value!]
@@ -723,6 +732,9 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_IMAGE <> 0 [
 		change-image w as red-image! values + FACE_OBJ_IMAGE
+	]
+	if flags and FACET_FLAG_DATA <> 0 [
+		change-data w values
 	]
 	b: as red-logic! #get system/view/auto-sync?
 	sync?: b/value
