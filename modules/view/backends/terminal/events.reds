@@ -541,7 +541,7 @@ post-quit-msg: does [
 	exit-loop?: yes
 ]
 
-#define DELTA_TIME 30
+#define DELTA_TIME 33
 
 try-events: func [][
 	if tty/raw-mode? [

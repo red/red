@@ -36,6 +36,7 @@ screen: context [
 	]
 
 	reset: does [
+		free-windows
 		width:				0
 		height:				0
 		relative-y:			0
@@ -318,6 +319,22 @@ screen: context [
 				render-widget as widget! get-face-handle obj
 				obj: obj + 1
 			]
+		]
+	]
+
+	free-windows: func [
+		/local
+			cnt	[integer!]
+			i	[integer!]
+			w	[widget!]
+			wm	[window-manager!]
+	][
+		cnt: windows-cnt
+		i: 1
+		while [i <= cnt][
+			wm: as window-manager! array/pick-ptr win-list i
+			free-faces get-face-obj wm/window
+			i: i + 1
 		]
 	]
 
