@@ -597,6 +597,7 @@ Red/System [
 			cmds    [red-block!]
 			draw?   [logic!]
 			catch?  [logic!]								;-- YES: report errors, NO: fire errors
+			sub?	[logic!]								;-- YES: recursive call, skips init/exit code
 			/local
 				cmd     [red-value!]
 				tail    [red-value!]
@@ -617,7 +618,7 @@ Red/System [
 			tail: block/rs-tail cmds
 
 			close?: no
-			OS-draw-shape-beginpath DC draw?
+			unless sub? [OS-draw-shape-beginpath DC draw?]
 			while [cmd < tail][
 				switch TYPE_OF(cmd) [
 					TYPE_WORD
@@ -697,12 +698,15 @@ Red/System [
 					TYPE_SET_WORD [
 						blk: as red-block! _context/set as red-word! cmd as red-value! cmds
 						blk/head: ((as-integer cmd - block/rs-head cmds) / size? cell!) + 1
+					]
+					TYPE_BLOCK [
+						parse-shape DC as red-block! cmd draw? catch? yes
 					]					
 					default [throw-draw-error cmds cmd catch?]
 				]
 				cmd: cmd + 1
 			]
-			if draw? [
+			if all [draw? not sub?][
 				unless OS-draw-shape-endpath DC close? [ throw-draw-error cmds cmd catch? ]
 			]
 		]
@@ -937,7 +941,7 @@ Red/System [
 								rect?: false
 								DRAW_FETCH_VALUE_3(TYPE_PAIR TYPE_POINT2D TYPE_BLOCK)
 								either TYPE_OF(cmd) = TYPE_BLOCK [
-									parse-shape DC as red-block! cmd false catch?
+									parse-shape DC as red-block! cmd false catch? no
 								][
 									DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 									rect?: true
@@ -972,7 +976,7 @@ Red/System [
 							]
 							sym = shape [
 								DRAW_FETCH_VALUE(TYPE_BLOCK)
-								parse-shape DC as red-block! cmd true catch?
+								parse-shape DC as red-block! cmd true catch? no
 							]
 							sym = rotate [
 								DRAW_FETCH_OPT_TRANSFORM
