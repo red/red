@@ -469,6 +469,7 @@ free-faces: func [
 		]
 	]
 
+	_widget/delete widget
 	state: values + FACE_OBJ_STATE
 	state/header: TYPE_NONE
 ]
