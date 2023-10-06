@@ -11,7 +11,8 @@ Red [
 ]
 
 system/view/VID: context [
-	styles: #switch config/GUI-engine [
+	styles: #include %styles.red
+	extras: #switch config/GUI-engine [
 		;TUI		 []
 		test	 [#include %backends/test/styles.red]
 		#default [
@@ -22,6 +23,7 @@ system/view/VID: context [
 			]
 		]
 	]
+	extend styles extras
 	
 	GUI-rules: context [
 		active?: yes
