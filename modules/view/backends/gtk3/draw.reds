@@ -2549,7 +2549,7 @@ OS-draw-shape-arc: func [
 	cy: atan2f p2-y p2-x
 
 	cairo_save cr
-	cairo_new_sub_path cr
+	;cairo_new_sub_path cr
 	cairo_translate cr as float! center-x as float! center-y
 	cairo_rotate    cr as float! theta
 	cairo_scale     cr as float! radius-x as float! radius-y
