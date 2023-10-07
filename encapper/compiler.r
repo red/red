@@ -133,6 +133,12 @@ red: context [
 		if system/options/args [quit/return 1]
 		halt
 	]
+	
+	cut-lines: func [s [string!] n [integer!] /local c p][
+		c: 0
+		parse s [any [#"^/" p: (if n <= (c: c + 1) [append clear p "...]"]) | skip]]
+		s
+	]
 
 	throw-error: func [err [word! string! block!] /near code [block!]][
 		print [
@@ -146,7 +152,7 @@ red: context [
 		if pc [
 			print [
 				;"*** at line:" calc-line lf
-				"*** near:" mold any [code copy/part pc 8]
+				"*** near:" cut-lines mold any [code copy/part pc 8] 40
 			]
 		]
 		quit-on-error
