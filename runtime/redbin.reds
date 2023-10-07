@@ -13,6 +13,7 @@ Red/System [
 redbin: context [
 	verbose: 0
 	
+	#define CHECK_RECORD_LEN(n) [len: n check]
 	;-- Redbin header flags
 	
 	#define REDBIN_COMPACT_MASK			01h
@@ -46,6 +47,7 @@ redbin: context [
 	origin:      declare red-block!
 	buffer:		 as byte-ptr! 0
 	root-base:	 as red-value! 0
+	input:		 as int-ptr! 0						;-- save decoded data beginning for error reports
 	
 	root-offset: 0
 	offset:      0
@@ -267,6 +269,7 @@ redbin: context [
 	
 	decode-reference: func [
 		data    [int-ptr!]
+		end		[int-ptr!]
 		parent  [red-block!]
 		return: [int-ptr!]
 		/local
@@ -281,9 +284,11 @@ redbin: context [
 			count   [integer!]
 			type    [integer!]
 	][
+		if data + 2 > end [throw-error data]
 		value:  as red-value! origin
 		offset: data + 2
 		count:  data/2
+		if offset + count > end [throw-error data]
 		
 		resolve: [
 			assert any [offset/value = 0 offset/value = 1]
@@ -460,6 +465,7 @@ redbin: context [
 				halt
 			]
 		]
+		input: as int-ptr! data						;-- save it for error reports
 		p: p + 7									;-- skip magic (6 bytes) + version (1 byte)
 		compact?:	 (as-integer p/1) and REDBIN_COMPACT_MASK <> 0
 		compressed?: (as-integer p/1) and REDBIN_COMPRESSED_MASK <> 0
@@ -503,10 +509,11 @@ redbin: context [
 				not-set?: p4/1 and REDBIN_SET_MASK = 0
 				if verbose > 0 [print [i #":"]]
 			]
-			p: as byte-ptr! decode-value as int-ptr! p table parent
+			p: as byte-ptr! decode-value as int-ptr! p as int-ptr! end table parent
 			#if debug? = yes [if verbose > 0 [if not-set? [i: i + 1] print lf]]
 		]
 		
+		input: null
 		unless codec? [root-base: (block/rs-head parent) + root-offset]
 		root-base
 	]
@@ -619,69 +626,83 @@ redbin: context [
 	
 	decode-value: func [
 		data	[int-ptr!]
+		end		[int-ptr!]
 		table	[int-ptr!]
 		parent	[red-block!]
 		return: [int-ptr!]
 		/local 
 			type [integer!]
+			len	 [integer!]
 			cell [cell!]
 			nl?	 [logic!]
+			check [subroutine!]
 	][
 		type: data/1 and FFh
 		nl?:  data/1 and REDBIN_NEWLINE_MASK <> 0
 		#if debug? = yes [if verbose > 0 [print [#"<" type #">"]]]
+		check: [if data + len > end [throw-error data]]
 		
 		cell: null
 		data: switch type [
 			TYPE_ANY_WORD
 			TYPE_REFINEMENT [
 				;@@ TBD: incompatible encodings
-				either codec? [decode-word* data table parent nl?][decode-word data table parent nl?]
+				either codec? [decode-word* data end table parent nl?][decode-word data end table parent nl?]
 			]
 			TYPE_ANY_STRING
-			TYPE_BINARY		[decode-string data parent nl?]
+			TYPE_BINARY		[decode-string data end parent nl?]
 			TYPE_INTEGER	[
+				CHECK_RECORD_LEN(2)
 				cell: as cell! integer/make-in parent data/2
 				data + 2
 			]
 			TYPE_ANY_PATH
 			TYPE_BLOCK
-			TYPE_PAREN		[decode-block data table parent nl?]
-			TYPE_CONTEXT	[decode-context data table parent]
-			TYPE_ISSUE		[decode-issue data table parent nl?]
+			TYPE_PAREN		[decode-block   data end table parent nl?]
+			TYPE_CONTEXT	[decode-context data end table parent]
+			TYPE_ISSUE		[decode-issue   data end table parent nl?]
 			TYPE_TYPESET	[
+				CHECK_RECORD_LEN(4)
 				cell: as cell! typeset/make-in parent data/2 data/3 data/4
 				data + 4
 			]
 			TYPE_FLOAT		[
+				CHECK_RECORD_LEN(3)
 				cell: as cell! float/make-in parent data/2 data/3
 				data + 3
 			]
 			TYPE_PERCENT 	[
+				CHECK_RECORD_LEN(3)
 				cell: as cell! percent/make-in parent data/2 data/3
 				data + 3
 			]
 			TYPE_TIME		[
+				CHECK_RECORD_LEN(3)
 				cell: as cell! time/make-in parent data/2 data/3
 				data + 3
 			]
 			TYPE_DATE		[
+				CHECK_RECORD_LEN(4)
 				cell: as cell! date/make-in parent data/2 data/3 data/4
 				data + 4
 			]
 			TYPE_CHAR		[
+				CHECK_RECORD_LEN(2)
 				cell: as cell! char/make-in parent data/2
 				data + 2
 			]
 			TYPE_DATATYPE	[
+				CHECK_RECORD_LEN(2)
 				cell: as cell! datatype/make-in parent data/2
 				data + 2
 			]
 			TYPE_PAIR		[
+				CHECK_RECORD_LEN(3)
 				cell: as cell! pair/make-in parent data/2 data/3
 				data + 3
 			]
 			TYPE_POINT2D	[
+				CHECK_RECORD_LEN(3)
 				cell: ALLOC_TAIL(parent)
 				cell/header: TYPE_POINT2D
 				cell/data1: data/2
@@ -690,6 +711,7 @@ redbin: context [
 				data + 3
 			]
 			TYPE_POINT3D	[
+				CHECK_RECORD_LEN(4)
 				cell: ALLOC_TAIL(parent)
 				cell/header: TYPE_POINT3D
 				cell/data1: data/2
@@ -698,30 +720,33 @@ redbin: context [
 				data + 4
 			]
 			TYPE_UNSET		[
+				CHECK_RECORD_LEN(1)
 				cell: as cell! unset/make-in parent
 				data + 1
 			]
 			TYPE_NONE		[
+				CHECK_RECORD_LEN(1)
 				cell: as cell! none/make-in parent
 				data + 1
 			]
 			TYPE_LOGIC		[
+				CHECK_RECORD_LEN(2)
 				cell: as cell! logic/make-in parent as logic! data/2
 				data + 2
 			]
-			TYPE_HASH		[decode-hash data table parent nl?]
-			TYPE_MAP		[decode-map data table parent nl?]
+			TYPE_HASH		[decode-hash data end table parent nl?]
+			TYPE_MAP		[decode-map data  end table parent nl?]
 			TYPE_NATIVE
-			TYPE_ACTION		[decode-native data table parent nl?]
-			TYPE_OP			[decode-op data table parent nl?]
-			TYPE_TUPLE		[decode-tuple data parent nl?]
-			TYPE_MONEY		[decode-money data parent nl?]
-			TYPE_BITSET     [decode-bitset data parent nl?]
-			TYPE_VECTOR     [decode-vector data parent nl?]
-			TYPE_IMAGE		[decode-image data parent nl?]
-			TYPE_ERROR		[decode-error data table parent nl?]
-			TYPE_OBJECT		[decode-object data table parent nl?]
-			TYPE_FUNCTION	[decode-function data table parent nl?]
+			TYPE_ACTION		[decode-native   data end table parent nl?]
+			TYPE_OP			[decode-op       data end table parent nl?]
+			TYPE_TUPLE		[decode-tuple    data end parent nl?]
+			TYPE_MONEY		[decode-money    data end parent nl?]
+			TYPE_BITSET     [decode-bitset   data end parent nl?]
+			TYPE_VECTOR     [decode-vector   data end parent nl?]
+			TYPE_IMAGE		[decode-image    data end parent nl?]
+			TYPE_ERROR		[decode-error    data end table parent nl?]
+			TYPE_OBJECT		[decode-object   data end table parent nl?]
+			TYPE_FUNCTION	[decode-function data end table parent nl?]
 			TYPE_PORT
 			TYPE_ROUTINE
 			TYPE_HANDLE
@@ -732,10 +757,10 @@ redbin: context [
 				data								;-- pass compiler's type checking
 			]
 			REDBIN_PADDING [
-				decode-value data + 1 table parent
+				decode-value data + 1 end table parent
 			]
 			REDBIN_REFERENCE [
-				decode-reference data parent
+				decode-reference data end parent
 			]
 			default [
 				assert false
@@ -809,6 +834,7 @@ redbin: context [
 	
 	decode-context: func [
 		data	[int-ptr!]
+		end		[int-ptr!]
 		table	[int-ptr!]
 		parent	[red-block!]
 		return: [int-ptr!]
@@ -832,6 +858,7 @@ redbin: context [
 		header: data/1
 		slots:  data/2
 		value:  data + 2 + slots
+		if value > end [throw-error data]
 		
 		values?: header and REDBIN_VALUES_MASK <> 0
 		stack?:	 header and REDBIN_STACK_MASK  <> 0
@@ -869,7 +896,7 @@ redbin: context [
 			id:  either codec? [symbol/make (as c-string! table + table/-1) + sym/1][sym/1]
 			;-- create the words entries in the symbol table of the context
 			_context/find-or-store ctx id yes :i
-			if all [not stack? values?][value: decode-value value table values]
+			if all [not stack? values?][value: decode-value value end table values]
 			data: data + 1
 		]
 		
@@ -883,6 +910,7 @@ redbin: context [
 	
 	fill-context: func [
 		data    [int-ptr!]
+		end    [int-ptr!]
 		table   [int-ptr!]
 		node    [node!]
 		return: [int-ptr!]
@@ -919,12 +947,14 @@ redbin: context [
 		value: data + slots
 		new:   0
 		
+		if value > end [throw-error data]
+		
 		loop slots [
 			sym: table + data/1
 			id:  symbol/make (as c-string! table + table/-1) + sym/1
 			
 			_context/find-or-store context id yes :new
-			if filled? [value: decode-value value table values]
+			if filled? [value: decode-value value end table values]
 			
 			data: data + 1
 		]
@@ -939,6 +969,7 @@ redbin: context [
 	
 	preprocess-binding: func [
 		data    [int-ptr!]
+		end     [int-ptr!]
 		table   [int-ptr!]
 		tail    [int-ptr!]
 		return: [node!]
@@ -954,6 +985,7 @@ redbin: context [
 			values? stack?  [logic!]
 			self? owner?    [logic!]
 	][
+		if data + 1 >= end [throw-error data]
 		here: data
 		type: data/1 and FFh
 		
@@ -968,6 +1000,7 @@ redbin: context [
 		][
 			data + 3
 		]
+		if data >= end [throw-error data]
 		
 		assert data/1 and FFh = TYPE_CONTEXT
 		tail/value: as integer! data
@@ -1080,6 +1113,7 @@ redbin: context [
 	
 	decode-object: func [
 		data    [int-ptr!]
+		end		[int-ptr!]
 		table   [int-ptr!]
 		parent  [red-block!]
 		nl?     [logic!]
@@ -1093,7 +1127,7 @@ redbin: context [
 			type   [integer!]
 	][
 		either data/1 and REDBIN_REFERENCE_MASK <> 0 [
-			data: decode-reference data + 1 parent
+			data: decode-reference data + 1 end parent
 			last: (as red-object! block/rs-tail parent) - 1
 			
 			type: TYPE_OF(last)
@@ -1106,13 +1140,13 @@ redbin: context [
 			data
 		][
 			next: 0
-			node: preprocess-binding data table :next
+			node: preprocess-binding data end table :next
 			series: as series! node/value
 			
 			object: copy-cell series/offset + 1 ALLOC_TAIL(parent)
 			if nl? [object/header: object/header or flag-new-line]
 			
-			fill-context as int-ptr! next table node
+			fill-context as int-ptr! next end table node
 		]
 	]
 	
@@ -1150,6 +1184,7 @@ redbin: context [
 	
 	decode-error: func [
 		data    [int-ptr!]
+		end		[int-ptr!]
 		table   [int-ptr!]
 		parent  [red-block!]
 		nl?     [logic!]
@@ -1159,6 +1194,7 @@ redbin: context [
 			ctx    [red-context!]
 			series [series!]
 	][
+		if data + 2 >= end [throw-error data]
 		err: error/make null as red-value! integer/box data/2 TYPE_ERROR
 		err: as red-object! copy-cell as red-value! err ALLOC_TAIL(parent)
 		if nl? [err/header: err/header or flag-new-line]
@@ -1171,7 +1207,7 @@ redbin: context [
 		parent/node: ctx/values 
 		
 		data: data + 2
-		loop 6 [data: decode-value data table parent]
+		loop 6 [data: decode-value data end table parent]
 		
 		series/tail: series/offset + 9
 		stack/pop 1
@@ -1209,6 +1245,7 @@ redbin: context [
 	
 	decode-native: func [
 		data	[int-ptr!]
+		end		[int-ptr!]
 		table	[int-ptr!]
 		parent	[red-block!]
 		nl?		[logic!]
@@ -1226,9 +1263,10 @@ redbin: context [
 		index: data/2
 		cell:  as red-native! ALLOC_TAIL(parent)
 		
+		if data + 2 > end [throw-error data]
 		if codec? [parent: block/push-only* 1]	;-- redirect slot allocation
 		spec: as red-block! block/rs-tail parent
-		data: decode-block data + 2 table parent off
+		data: decode-block data + 2 end table parent off
 		
 		cell/header: TYPE_UNSET
 		cell/spec:	 spec/node
@@ -1272,6 +1310,7 @@ redbin: context [
 	
 	decode-op: func [
 		data	[int-ptr!]
+		end		[int-ptr!]
 		table	[int-ptr!]
 		parent	[red-block!]
 		nl?		[logic!]
@@ -1280,10 +1319,11 @@ redbin: context [
 			op   [red-op!]
 			flag [integer!]
 	][
+		if data + 1 >= end [throw-error data]
 		flag: data/value and flag-subtype-select
 		data: data + 1
 		op: as red-op! block/rs-tail parent
-		data: decode-value data table parent
+		data: decode-value data end table parent
 		op/header: op/header and flag-subtype-mask or flag
 		set-type as red-value! op TYPE_OP
 		if nl? [op/header: op/header or flag-new-line]
@@ -1358,6 +1398,7 @@ redbin: context [
 	
  	decode-function: func [
 		data    [int-ptr!]
+		end		[int-ptr!]
 		table   [int-ptr!]
 		parent  [red-block!]
 		nl?     [logic!]
@@ -1373,7 +1414,7 @@ redbin: context [
 			type   [integer!]
 	][
 		either data/1 and REDBIN_REFERENCE_MASK <> 0 [
-			data: decode-reference data + 1 parent
+			data: decode-reference data + 1 end parent
 			fun: (as red-function! block/rs-tail parent) - 1
 			
 			type: TYPE_OF(fun)
@@ -1390,19 +1431,20 @@ redbin: context [
 			data
 		][
 			next: 0
-			node: preprocess-binding data table :next
-			data: fill-context as int-ptr! next table node
+			node: preprocess-binding data end table :next
+			data: fill-context as int-ptr! next end table node
 			
 			series: as series! node/value
 			fun: as red-function! copy-cell series/offset + 1 ALLOC_TAIL(parent)
 			if nl? [fun/header: fun/header or flag-new-line]
 			
-			fill-spec-body data table fun
+			fill-spec-body data end table fun
 		]
 	]
 	
 	fill-spec-body: func [
 		data    [int-ptr!]
+		end		[int-ptr!]
 		table   [int-ptr!]
 		fun     [red-function!]
 		return: [int-ptr!]
@@ -1421,16 +1463,18 @@ redbin: context [
 		ref?:   no
 		
 		process: [
+			if data + 1 > end [throw-error data]
 			assert data/1 and FFh = TYPE_BLOCK
 			ref?:  data/1 and REDBIN_REFERENCE_MASK <> 0
 			either ref? [
-				data: decode-reference data + 2 parent
+				data: decode-reference data + 2 end parent
 				assert TYPE_OF(cell) = TYPE_BLOCK
 				series/tail: series/tail - 1
 			][
+				if data + 3 > end [throw-error data]
 				size: data + 2
 				data: size + 1
-				loop size/1 [data: decode-value data table slot]
+				loop size/1 [data: decode-value data end table slot]
 			]
 		]
 		
@@ -1544,6 +1588,7 @@ redbin: context [
 	
 	decode-issue: func [
 		data	[int-ptr!]
+		end		[int-ptr!]
 		table	[int-ptr!]
 		parent	[red-block!]
 		nl?		[logic!]
@@ -1552,6 +1597,7 @@ redbin: context [
 			w	[red-word!]
 			sym	[int-ptr!]
 	][
+		if data + 2 > end [throw-error data]
 		w: as red-word! ALLOC_TAIL(parent)
 		sym: table + data/2
 		w/symbol: either codec? [symbol/make (as c-string! table + table/-1) + sym/1][sym/1]
@@ -1562,6 +1608,7 @@ redbin: context [
 	
 	decode-word: func [								;-- Redbin v.1
 		data	[int-ptr!]
+		end		[int-ptr!]
 		table	[int-ptr!]
 		parent	[red-block!]
 		nl?		[logic!]
@@ -1576,6 +1623,7 @@ redbin: context [
 			set?   [logic!]
 			s	   [series!]
 	][
+		if data + 4 > end [throw-error data]
 		sym: table + data/2							;-- get the decoded symbol
 		new: as red-word! ALLOC_TAIL(parent)
 		new/header: data/1 and FFh
@@ -1603,7 +1651,7 @@ redbin: context [
 		
 		if set? [
 			offset: block/rs-length? parent
-			data: decode-value data table parent
+			data: decode-value data end table parent
 			_context/set new block/rs-abs-at root offset
 			s: GET_BUFFER(parent)
 			offset: offset - 1
@@ -1614,6 +1662,7 @@ redbin: context [
 	
 	decode-word*: func [							;-- Redbin v.2
 		data    [int-ptr!]
+		end		[int-ptr!]
 		table   [int-ptr!]
 		parent  [red-block!]
 		nl?     [logic!]
@@ -1634,14 +1683,15 @@ redbin: context [
 			word/header: type
 			if nl? [word/header: word/header or flag-new-line]
 		]
-		
+		if any [data + 3 > end null? table][throw-error data]
+
 		type: data/1 and FFh
 		set?: data/1 and REDBIN_SET_MASK <> 0
 		ref?: data/1 and REDBIN_REFERENCE_MASK <> 0
 		tail: data + 3
 		
 		either ref? [
-			tail: decode-reference tail parent
+			tail: decode-reference tail end parent
 			word: (as red-word! block/rs-tail parent) - 1
 			
 			type2: TYPE_OF(word)
@@ -1676,11 +1726,11 @@ redbin: context [
 			word/ctx: global-ctx
 		][
 			next: 0
-			word/ctx: preprocess-binding tail table :next
+			word/ctx: preprocess-binding tail end table :next
 		]
 		
 		tag
-		data: either set? [tail][fill-context as int-ptr! next table word/ctx]
+		data: either set? [tail][fill-context as int-ptr! next end table word/ctx]
 		
 		series:  as series! word/ctx/value
 		backref: series/offset + 1
@@ -1688,7 +1738,7 @@ redbin: context [
 		type: backref/header and FFh
 		assert any [type = TYPE_OBJECT type = TYPE_FUNCTION]
 		
-		either type = TYPE_OBJECT [data][fill-spec-body data table as red-function! backref]
+		either type = TYPE_OBJECT [data][fill-spec-body data end table as red-function! backref]
 	]
 	
 	;-- SERIES!
@@ -1730,26 +1780,28 @@ redbin: context [
 	
 	decode-block: func [
 		data	[int-ptr!]
+		end		[int-ptr!]
 		table	[int-ptr!]
 		parent	[red-block!]
 		nl?		[logic!]
 		return: [int-ptr!]
 		/local
 			blk  [red-block!]
-			end  [int-ptr!]
+			tail [int-ptr!]
 			size [integer!]
 			sz   [integer!]
 	][
 		either data/1 and REDBIN_REFERENCE_MASK <> 0 [
-			end: decode-reference data + 2 parent
+			tail: decode-reference data + 2 end parent
 			blk: (as red-block! block/rs-tail parent) - 1
 			
 			blk/header: data/1 and FFh
 			if nl? [blk/header: blk/header or flag-new-line]
 			blk/head: data/2
 			
-			end
+			tail
 		][
+			if data + 3 > end [throw-error data]		
 			size: data/3
 			sz: size
 			if zero? sz [sz: 1]
@@ -1761,7 +1813,7 @@ redbin: context [
 			if nl? [blk/header: blk/header or flag-new-line]
 			data: data + 3
 			
-			loop size [data: decode-value data table blk]
+			loop size [data: decode-value data end table blk]
 			
 			data
 		]
@@ -1769,6 +1821,7 @@ redbin: context [
 	
 	decode-map: func [
 		data	[int-ptr!]
+		end		[int-ptr!]
 		table	[int-ptr!]
 		parent	[red-block!]
 		nl?		[logic!]
@@ -1776,16 +1829,17 @@ redbin: context [
 		/local
 			blk  [red-block!]
 			m	 [red-hash!]
-			end  [int-ptr!]
+			tail [int-ptr!]
 			size [integer!]
 			sz   [integer!]
 	][
 		either data/1 and REDBIN_REFERENCE_MASK <> 0 [
-			end: decode-reference data + 1 parent
+			tail: decode-reference data + 1 end parent
 			blk: (as red-block! block/rs-tail parent) - 1
 			if nl? [blk/header: blk/header or flag-new-line]
-			end
+			tail
 		][
+			if data + 2 > end [throw-error data]
 			size: data/2
 			sz: size
 			if zero? sz [sz: 1]
@@ -1796,7 +1850,7 @@ redbin: context [
 			m: map/make-at as red-value! blk blk sz
 			
 			data: data + 2
-			loop size [data: decode-value data table blk]
+			loop size [data: decode-value data end table blk]
 			_hashtable/put-all m/table m/head 2
 			
 			data
@@ -1805,23 +1859,25 @@ redbin: context [
 	
 	decode-hash: func [
 		data	[int-ptr!]
+		end		[int-ptr!]
 		table	[int-ptr!]
 		parent	[red-block!]
 		nl?		[logic!]
 		return: [int-ptr!]
 		/local
 			hash [red-hash!]
-			end  [int-ptr!]
+			tail [int-ptr!]
 			size [integer!]
 			sz   [integer!]
 	][
 	
 		either data/1 and REDBIN_REFERENCE_MASK <> 0 [
-			end: decode-reference data + 2 parent
+			tail: decode-reference data + 2 end parent
 			hash: (as red-hash! block/rs-tail parent) - 1
 			if nl? [hash/header: hash/header or flag-new-line]
-			end
+			tail
 		][
+			if data + 3 > end [throw-error data]
 			size: data/3
 			sz: size
 			if zero? sz [sz: 1]
@@ -1835,7 +1891,7 @@ redbin: context [
 			if nl? [hash/header: hash/header or flag-new-line]
 			
 			data: data + 3
-			loop size [data: decode-value data table as red-block! hash]
+			loop size [data: decode-value data end table as red-block! hash]
 			_hashtable/put-all hash/table hash/head 1
 			
 			data
@@ -1873,6 +1929,7 @@ redbin: context [
 	
 	decode-vector: func [
 		data    [int-ptr!]
+		end		[int-ptr!]
 		parent  [red-block!]
 		nl?     [logic!]
 		return: [int-ptr!]
@@ -1880,20 +1937,21 @@ redbin: context [
 			slot   [red-value!]
 			vec    [red-vector!]
 			buffer [series!]
-			end    [int-ptr!]
+			tail   [int-ptr!]
 			values [byte-ptr!]
 			unit   [integer!]
 			size   [integer!]
 	][
 		either data/1 and REDBIN_REFERENCE_MASK <> 0 [
-			end: decode-reference data + 2 parent
+			tail: decode-reference data + 2 end parent
 			vec: (as red-vector! block/rs-tail parent) - 1
 			
 			if nl? [vec/header: vec/header or flag-new-line]
 			vec/head: data/2
 			
-			end
+			tail
 		][
+			if data + 4 > end [throw-error data]
 			unit: data/1 >>> 8 and FFh
 			size: data/3 << log-b unit				;-- in bytes
 			
@@ -1920,12 +1978,13 @@ redbin: context [
 	
 	decode-string: func [
 		data	[int-ptr!]
+		end		[int-ptr!]
 		parent	[red-block!]
 		nl?		[logic!]
 		return: [int-ptr!]
 		/local
 			str    [red-string!]
-			end    [int-ptr!]
+			tail   [int-ptr!]
 			header [integer!]
 			unit   [integer!]
 			size   [integer!]
@@ -1933,15 +1992,16 @@ redbin: context [
 	][	
 		header: data/1
 		either header and REDBIN_REFERENCE_MASK <> 0 [
-			end: decode-reference data + 2 parent
+			tail: decode-reference data + 2 end parent
 			str: (as red-string! block/rs-tail parent) - 1
 			
 			str/header: header and FFh
 			if nl? [str/header: str/header or flag-new-line]
 			str/head: data/2
 			
-			end
+			tail
 		][
+			if data + 3 > end [throw-error data]
 			unit: header >>> 8 and FFh
 			size: data/3 << log-b unit				;-- optimized data/3 * unit
 
@@ -1984,27 +2044,30 @@ redbin: context [
 	
 	decode-image: func [
 		data    [int-ptr!]
+		end		[int-ptr!]
 		parent  [red-block!]
 		nl?     [logic!]
 		return: [int-ptr!]
 		/local
 			slot   [red-image!]
 			argb   [red-binary!]
-			end    [int-ptr!]
+			tail   [int-ptr!]
 			pixels [byte-ptr!]
 			width  [integer!]
 			height [integer!]
 			size   [integer!]
 	][
 		either data/1 and REDBIN_REFERENCE_MASK <> 0 [
-			end: decode-reference data + 2 parent
+			tail: decode-reference data + 2 end parent
 			slot: (as red-image! block/rs-tail parent) - 1
 			
 			if nl? [slot/header: slot/header or flag-new-line]
 			slot/head: data/2
 			
-			end
+			tail
 		][
+			if data + 3 > end [throw-error data]
+			
 			width:  IMAGE_WIDTH(data/3)
 			height: IMAGE_HEIGHT(data/3)
 			size:   width * height << 2					;-- 4 bytes per pixel
@@ -2032,6 +2095,7 @@ redbin: context [
 	
 	decode-tuple: func [
 		data	[int-ptr!]
+		end		[int-ptr!]
 		parent	[red-block!]
 		nl?		[logic!]
 		return: [int-ptr!]
@@ -2039,6 +2103,7 @@ redbin: context [
 			tuple [red-tuple!]
 			size  [integer!]
 	][
+		if data + 4 > end [throw-error data]
 		size: data/1 >>> 8 and FFh
 		tuple: as red-tuple! ALLOC_TAIL(parent)
 		tuple/header: TYPE_TUPLE or (size << 19)
@@ -2053,6 +2118,7 @@ redbin: context [
 	
 	decode-money: func [
 		data	[int-ptr!]
+		end		[int-ptr!]
 		parent	[red-block!]
 		nl?		[logic!]
 		return: [int-ptr!]
@@ -2061,6 +2127,7 @@ redbin: context [
 			cur	 [byte-ptr!]
 			neg? [logic!]
 	][
+		if data + 4 > end [throw-error data]
 		neg?: data/1 and REDBIN_MONEY_SIGN_MASK <> 0
 		cur: as byte-ptr! data + 1
 		slot: money/make-in ALLOC_TAIL(parent) neg? as-integer cur/1 cur + 1
@@ -2095,22 +2162,24 @@ redbin: context [
 	
 	decode-bitset: func [
 		data    [int-ptr!]
+		end		[int-ptr!]
 		parent  [red-block!]
 		nl?     [logic!]
 		return: [int-ptr!]
 		/local
 			slot   [red-bitset!]
-			end    [int-ptr!]
+			tail   [int-ptr!]
 			bits   [byte-ptr!]
 			size   [integer!]
 			not?   [logic!]
 	][
 		either data/1 and REDBIN_REFERENCE_MASK <> 0 [
-			end: decode-reference data + 1 parent
+			tail: decode-reference data + 1 end parent
 			slot: as red-bitset! (block/rs-tail parent) - 1
 			if nl? [slot/header: slot/header or flag-new-line]
-			end
+			tail
 		][
+			if data + 2 > end [throw-error data]
 			size: data/2
 			not?: data/1 and REDBIN_COMPLEMENT_MASK <> 0
 			bits: as byte-ptr! data + 2
@@ -2122,5 +2191,11 @@ redbin: context [
 			
 			as int-ptr! align bits + size 32		;-- align at upper 32-bit boundary
 		]
+	]
+	
+	;-- error processing
+	
+	throw-error: func [pos [int-ptr!]][
+		fire [TO_ERROR(script rb-invalid-record) integer/push 1 + as-integer pos - input] ;-- 1-based indexes
 	]
 ]

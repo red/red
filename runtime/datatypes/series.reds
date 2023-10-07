@@ -1125,42 +1125,6 @@ _series: context [
 		as red-value! ser2
 	]
 
-	swap: func [
-		ser1	 [red-series!]
-		ser2	 [red-series!]
-		return:	 [red-series!]
-		/local
-			s1		[series!]
-			s2		[series!]
-			char1	[integer!]
-			char2	[integer!]
-			unit1	[integer!]
-			unit2	[integer!]
-			head1	[byte-ptr!]
-			head2	[byte-ptr!]
-			chk? chk2? [logic!]
-	][
-		chk?:  ownership/check as red-value! ser1 words/_swap null ser1/head 1
-		chk2?: ownership/check as red-value! ser2 words/_swap null ser2/head 1
-		s1:    GET_BUFFER(ser1)
-		unit1: GET_UNIT(s1)
-		head1: (as byte-ptr! s1/offset) + (ser1/head << (log-b unit1))
-		if head1 = as byte-ptr! s1/tail [return ser1]				;-- early exit if nothing to swap
-
-		s2:    GET_BUFFER(ser2)
-		unit2: GET_UNIT(s2)
-		head2: (as byte-ptr! s2/offset) + (ser2/head << (log-b unit2))
-		if head2 = as byte-ptr! s2/tail [return ser1]				;-- early exit if nothing to swap
-
-		char1: string/get-char head1 unit1
-		char2: string/get-char head2 unit2
-		string/poke-char s1 head1 char2
-		string/poke-char s2 head2 char1
-		if chk?  [ownership/check as red-value! ser1 words/_swaped null ser1/head 1]
-		if chk2? [ownership/check as red-value! ser2 words/_swaped null ser2/head 1]
-		ser1
-	]
-
 	;--- Misc actions ---
 
 	copy: func [

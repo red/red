@@ -11,7 +11,8 @@ Red [
 ]
 
 system/view/VID: context [
-	styles: #switch config/GUI-engine [
+	styles: #include %styles.red
+	extras: #switch config/GUI-engine [
 		terminal [#include %backends/terminal/styles.red]
 		test	 [#include %backends/test/styles.red]
 		#default [
@@ -22,6 +23,7 @@ system/view/VID: context [
 			]
 		]
 	]
+	extend styles extras
 	
 	GUI-rules: context [
 		active?: yes
@@ -337,7 +339,7 @@ system/view/VID: context [
 				| 'rate		  (opts/rate: fetch-argument rate! spec)
 				   opt [rate! 'now (opts/now?: yes spec: next spec)]
 				| 'default 	  (opts/data: add-option opts append copy [default: ] fetch-value spec: next spec)
-				| 'no-border  (set-flag opts 'flags 'no-border)
+				| 'no-border  (set-flag opts 'no-border)
 				| 'space	  (opt?: no)				;-- avoid wrongly reducing that word
 				| 'hint	  	  (add-option opts compose [hint: (fetch-argument string! spec)])
 				| 'cursor	  (add-option opts compose [cursor: (pre-load fetch-argument cursor! spec)])
