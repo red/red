@@ -20,7 +20,7 @@ Red/System [
 #define A_N_ITERS		100000
 #define A_QE_SIZE		8192
 
-#define COND_CC [#if OS <> 'Windows [[cdecl]]]
+#define COND_CC [#either OS = 'Windows [[stdcall]][[cdecl]]]
 
 ~~~start-file~~~ "Queue Test"
 
