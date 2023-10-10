@@ -168,17 +168,18 @@ do: make native! [[
 		"Evaluates a value, returning the last evaluation result"
 		value [any-type!]
 		/expand "Expand directives before evaluation"
-		/args "If value is a script, this will set its system/script/args"
+		/args	"If value is a script, this will set its system/script/args"
 			arg "Args passed to a script (normally a string)"
-		/next "Do next expression only, return it, update block word"
+		/next	"Do next expression only, return it, update block word"
 			position [word!] "Word updated with new block position"
 		/trace
 			callback [function! [
 				event	[word!]
-				code	[any-block!]
-				value 	[any-type!]
-				frame [pair!]			"current frame start/top positions"
-				return: [word! none!]
+				code	[any-block! none!]
+				offset	[integer!]
+				value	[any-type!]
+				ref		[any-type!]
+				frame	[pair!]
 			]]
 	]
 	#get-definition NAT_DO
