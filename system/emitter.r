@@ -18,6 +18,7 @@ emitter: make-profilable context [
 	breaks:	   make block! 1			;-- [[offset ...] [...] ...] (break jump points)
 	cont-next: make block! 1			;-- [[offset ...] [...] ...] (break jump points)
 	cont-back: make block! 1			;-- [[offset ...] [...] ...] (break jump points)
+	array-idx: make block! 100			;-- [idx1 idx2 idx3 ...]
 	verbose:   0						;-- logs verbosity level
 	
 	target:	  none						;-- target code emitter object placeholder
@@ -234,7 +235,7 @@ emitter: make-profilable context [
 
 	store-global: func [
 		value type [word!] spec [block! word! none!]
-		/local size ptr by-val? pad-size list t f64?
+		/local size ptr by-val? pad-size list t f64? idx
 	][
 		if any [find [logic! function!] type logic? value][
 			type: 'integer!
@@ -364,7 +365,8 @@ emitter: make-profilable context [
 								][
 									either string? item [
 										keep item
-										keep store-global 0 'integer! none
+										keep idx: store-global 0 'integer! none
+										append array-idx idx
 									][
 										store-global item 'integer! none
 									]
@@ -873,6 +875,12 @@ emitter: make-profilable context [
 		]
 	]
 	
+	store-arrays-offsets: has [offset][
+		offset: (index? tail data-buf) - 1
+		foreach idx array-idx [store-global idx 'integer! none]
+		reduce [offset length? array-idx]
+	]
+	
 	start-prolog: has [args][							;-- libc init prolog
 		args: pick [6 7] system-dialect/job/OS = 'Syllable
 		append compiler/functions compose/deep [		;-- create a fake function to
@@ -893,12 +901,12 @@ emitter: make-profilable context [
 			clear code-buf
 			clear data-buf
 			clear symbols
-			clear 	stack
-			clear 	exits
-			clear 	breaks
-			clear 	cont-next
-			clear 	cont-back
-
+			clear stack
+			clear exits
+			clear breaks
+			clear cont-next
+			clear cont-back
+			clear array-idx
 		]
 		clear stack
 		path: pick [%system/targets/ %targets/] encap?

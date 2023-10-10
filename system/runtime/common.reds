@@ -293,6 +293,28 @@ re-throw: func [/local id [integer!]][
 push CATCH_ALL_EXCEPTIONS					;-- exceptions root barrier
 push :***-uncaught-exception				;-- root catch (also keeps stack aligned on 64-bit)
 
+#if all [PIC? = yes type = 'exe][			;-- PIE case
+
+	;-- Convert all c-string offsets in literal arrays to PIC addresses
+	__reloc-arrays-offsets: func [
+		/local
+			ptr list base [int-ptr!]
+			.data [byte-ptr!]
+	][
+		base: as int-ptr! #either target = 'IA-32 [system/cpu/ebx][system/cpu/r9]
+		.data: as byte-ptr! system/image/base
+		.data: .data + system/image/data
+		list: as int-ptr! .data + system/image/arrays
+		
+		loop system/image/arrays-size [
+			ptr: as int-ptr! (.data + list/value)
+			ptr/value: ptr/value + base
+			list: list + 1
+		]
+	]
+	__reloc-arrays-offsets
+]
+
 #if type = 'dll [
 	#if libRedRT? = yes [
 		#switch OS [								;-- init OS-specific handlers

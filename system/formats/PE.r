@@ -830,10 +830,10 @@ context [
 			oh/export-addr:		named-sect-addr? job 'export
 			oh/export-size:		length? job/sections/export/2
 		]
-		if find [dll drv] job/type [
-			oh/reloc-addr:		named-sect-addr? job 'reloc
-			oh/reloc-size:		length? job/sections/reloc/2
-		]
+		;if find [dll drv] job/type [
+		;	oh/reloc-addr:		named-sect-addr? job 'reloc
+		;	oh/reloc-size:		length? job/sections/reloc/2
+		;]
 		if find job/sections 'rsrc [
 			oh/rsrc-addr: 		named-sect-addr? job 'rsrc
 			oh/rsrc-size:		length? job/sections/rsrc/2
@@ -1152,9 +1152,9 @@ context [
 	build: func [job [object!] /local page out pad code-ptr][
 		clear imports-refs
 		
-		if find [dll drv] job/type [
-			append job/sections [reloc [- - -]]			;-- inject reloc section
-		]
+		;if find [dll drv] job/type [
+		;	append job/sections [reloc [- - -]]			;-- inject reloc section
+		;]
 		
 		base-address: any [
 			job/base-address
@@ -1179,7 +1179,7 @@ context [
 
 		if find job/sections 'rsrc	[build-resource job]
 		
-		if find [dll drv] job/type [build-reloc job]
+		;if find [dll drv] job/type [build-reloc job]
 
 		out: job/buffer
 		append out defs/image/MSDOS-header
@@ -1198,9 +1198,9 @@ context [
 		linker/set-image-info
 			job
 			base-address
-			(section-addr?/memory job 'code) - base-address
+			(section-addr?/memory job 'code) ;- base-address
 			length? job/sections/code/2
-			(section-addr?/memory job 'data) - base-address
+			(section-addr?/memory job 'data) ;- base-address
 			length? job/sections/data/2
 
 		if job/show-func-map? [linker/show-funcs-map job entry-point-address? job]

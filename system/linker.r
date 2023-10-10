@@ -37,6 +37,7 @@ linker: context [
 		output:										;-- output file name (without extension)
 		debug-info:									;-- debugging informations
 		base-address:								;-- base address
+		PIC-info:									;-- PIE/PIC relocation info
 		buffer: none								;-- output buffer
 	]
 	
@@ -92,6 +93,8 @@ linker: context [
 		set-integer-at job spec/2/2 + 12 code-size
 		set-integer-at job spec/2/2 + 16 data-offset
 		set-integer-at job spec/2/2 + 20 data-size
+		set-integer-at job spec/2/2 + 24 job/PIC-info/arrays-idx/1
+		set-integer-at job spec/2/2 + 28 job/PIC-info/arrays-idx/2
 	]
 	
 	resolve-symbol-refs: func [
@@ -124,7 +127,7 @@ linker: context [
 			]
 			if block? spec/4 [
 				pointer/value: either spec/1 = 'global [
-					data-ptr + spec/2				;-- data to data references
+					either job/PIC? [data-offset + spec/2][data-ptr + spec/2] ;-- data to data references
 				][
 					either job/PIC? [spec/2 - 1][code-ptr + spec/2 - 1]	;-- data to code references
 				]

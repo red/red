@@ -1842,7 +1842,7 @@ system-dialect: make-profilable context [
 		process-import: func [defs [block!] /local lib list cc name specs spec id reloc pos new? funcs err][
 			unless block? defs [throw-error "#import expects a block! as argument"]
 			
-			err: ["invalid import specification at:" pos]
+			err: ["invalid import specification at:" mold pos]
 			unless parse defs [
 				some [
 					pos: set lib string! (
@@ -4052,6 +4052,7 @@ system-dialect: make-profilable context [
 			emitter/target/on-finalize
 			if verbose >= 2 [print ""]
 			emitter/reloc-native-calls
+			job/PIC-info: reduce ['arrays-idx emitter/store-arrays-offsets]
 		]
 	]
 	

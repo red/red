@@ -55,11 +55,13 @@ __stack!: alias struct! [
 ]
 
 __image!: alias struct! [
-	base	  [int-ptr!]					;-- base image address in memory
-	code	  [integer!]					;-- code segment offset
-	code-size [integer!]					;-- code segment size
-	data	  [integer!]					;-- data segment offset
-	data-size [integer!]					;-- data segment size
+	base	    [int-ptr!]					;-- base image address in memory
+	code	    [integer!]					;-- code segment offset
+	code-size   [integer!]					;-- code segment size
+	data	    [integer!]					;-- data segment offset
+	data-size   [integer!]					;-- data segment size
+	arrays	    [integer!]					;-- literal arrays offsets list offset
+	arrays-size [integer!]					;-- literal arrays offsets list size (in 32-bit slots)
 ]
 
 FPU-exceptions-mask!: alias struct! [		;-- standard exception mask (true => mask exception)
