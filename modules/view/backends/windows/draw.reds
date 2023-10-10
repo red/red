@@ -1117,6 +1117,7 @@ OS-draw-box: func [
 		rc/radiusX: get-float32 radius
 		rc/radiusY: rc/radiusX
 		lower: lower - 1
+		if rc/radiusX = F32_0 [radius: null]
 	]
 
 	GET_PAIR_XY(upper up-x up-y)
