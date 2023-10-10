@@ -1537,12 +1537,11 @@ redbin: context [
 					reset
 					fire [TO_ERROR(access no-codec) data]
 				]
-				
-				assert any [type = TYPE_OBJECT type = TYPE_FUNCTION]
-				either type = TYPE_OBJECT [
-					encode-object value type payload symbols table strings
-				][
-					encode-function value type payload symbols table strings
+				switch type [
+					TYPE_OBJECT	  [encode-object value type payload symbols table strings]
+					TYPE_FUNCTION [encode-function value type payload symbols table strings]
+					TYPE_BLOCK	  [0]				;-- function's spec cache block, do nothing
+					default		  [assert false]
 				]
 			]
 		]
