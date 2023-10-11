@@ -1506,6 +1506,8 @@ redbin: context [
 		strings [red-binary!]
 		/local
 			value  [red-value!]
+			ref	   [red-value!]
+			ctx	   [red-context!]
 			node   [node!]
 			series [series!]
 			type   [integer!]
@@ -1515,6 +1517,16 @@ redbin: context [
 		;@@ TBD: #4537
 		if null? node [node: global-ctx]
 		
+		ctx: TO_CTX(node)
+		ref: as red-value! ctx + 1
+		type: TYPE_OF(ref)
+		if any [									 ;-- native function context case
+			type = TYPE_NONE
+			type = TYPE_UNSET
+			type = TYPE_BLOCK
+		][
+			node: global-ctx
+		]
 		if node = global-ctx [
 			header: header or REDBIN_SET_MASK
 			value:  _context/get-any data/data2 node

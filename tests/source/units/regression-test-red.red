@@ -3519,8 +3519,9 @@ comment {
 		do [
 			code: [copy/part "x" 1]                                 ;) <-- /part triggers the bug
 			do code                                                 ;) <-- the culprit
-			--assert binary? system/codecs/redbin/encode load mold code none   ;) this succeeds
+			--assert binary? encoded: system/codecs/redbin/encode load mold code none   ;) this succeeds
 			--assert binary? system/codecs/redbin/encode code none             ;) this crashes
+			code = system/codecs/redbin/decode encoded
 		]
 
 
