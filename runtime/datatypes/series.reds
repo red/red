@@ -525,7 +525,7 @@ _series: context [
 			index: target/head
 		]
 		ownership/check as red-value! target words/_moved null index items
-		as red-value! origin
+		as red-value! target
 	]
 	
 	change: func [
