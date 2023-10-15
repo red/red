@@ -3524,6 +3524,35 @@ comment {
 			code = system/codecs/redbin/decode encoded
 		]
 
+	--test-- "#5401"
+		;do [
+			f5401: does [
+				do/trace [parse "ab" [skip (return 1)]] func [e c o v r f][]
+				--assert false
+			]
+			--assert f5401 = 1
+
+			f5401.1: does [
+				do/trace [parse "ab" [skip (return 1)]] func [e c o v r f][]
+				--assert false
+			]
+			f5401.1
+		;]
+		
+	--test-- "#5403"
+		;do [
+			following5403: function [code [block!] cleanup [block!]] [
+				--assert code = [exit]
+				--assert cleanup = [--assert true]
+				do/trace code func [e c o v r f][
+					[end]
+					--assert code = [exit]
+					--assert cleanup = [--assert true]
+					do cleanup
+				]
+			]
+			following5403 [exit] [--assert true]
+		;]
 
 ===end-group===
 
