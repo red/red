@@ -564,6 +564,7 @@ natives: context [
 		]
 		fun?: OPTION?(fun)
 		if fun? [
+			stack/set-parent-func-flag					;-- (#5403, #5401) allows do/trace to fully catch exit/return exceptions
 			with [interpreter][
 				either trace? [fun?: no][				;-- pass-thru, ignore handler if one is in use already
 					fun-locs: _function/count-locals fun/spec 0 no
@@ -626,11 +627,22 @@ natives: context [
 		]
 		switch system/thrown [
 			RED_THROWN_BREAK
-			RED_THROWN_CONTINUE
+			RED_THROWN_CONTINUE [
+				either stack/eval? cframe yes [			;-- if parent call is interpreted,
+					re-throw 							;-- let the exception pass through
+					0									;-- 0 to make compiler happy
+				][
+					system/thrown						;-- request an early exit from caller
+				]
+			]
 			RED_THROWN_RETURN
 			RED_THROWN_EXIT [
 				either stack/eval? cframe yes [			;-- if parent call is interpreted,
-					re-throw 							;-- let the exception pass through
+					either fun? [						;-- if tracing mode, throw exception again as it was captured by DO
+						stack/throw-exit system/thrown = RED_THROWN_RETURN no yes
+					][
+						re-throw
+					]
 					0									;-- 0 to make compiler happy
 				][
 					system/thrown						;-- request an early exit from caller
@@ -2205,12 +2217,12 @@ natives: context [
 	
 	exit*: func [check? [logic!]][
 		#typecheck exit
-		stack/throw-exit no
+		stack/throw-exit no no
 	]
 	
 	return*: func [check? [logic!]][
 		#typecheck return
-		stack/throw-exit yes
+		stack/throw-exit yes no
 	]
 	
 	throw*: func [
