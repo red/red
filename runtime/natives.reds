@@ -1546,6 +1546,10 @@ natives: context [
 			p	 [byte-ptr!]
 			len  [integer!]
 			ret  [red-binary!]
+			node [node!]
+			s	 [series!]
+			out	 [byte-ptr!]
+			gc?  [logic!]
 	][
 		#typecheck [enbase base-arg]
 		data: as red-string! stack/arguments
@@ -1567,14 +1571,29 @@ natives: context [
 		ret: as red-binary! data
 		ret/head: 0
 		ret/header: TYPE_NONE
-		ret/node: switch base [
-			64 [binary/encode-64 p len]
-			58 [binary/encode-58 p len]
-			16 [binary/encode-16 p len]
-			2  [binary/encode-2  p len]
+
+		gc?: collector/active?
+		collector/active?: no
+		node: switch base [
+			64 [alloc-bytes 4 * len / 3 + (2 * (len / 32) + 5)]
+			58 [alloc-bytes len * 2]
+			16 [alloc-bytes len * 2 + (len / 32) + 32]
+			2  [alloc-bytes 8 * len + (2 * (len / 8) + 4)]
 			default [fire [TO_ERROR(script invalid-arg) int] null]
 		]
-		if ret/node <> null [ret/header: TYPE_STRING]	;-- ret/node = null, return NONE
+		collector/active?: gc?
+		if null? node [exit]
+
+		s: as series! node/value
+		out: as byte-ptr! s/offset
+		s/tail: as red-value! switch base [
+			64 [binary/encode-64 out p len]
+			58 [binary/encode-58 out p len]
+			16 [binary/encode-16 out p len]
+			2  [binary/encode-2  out p len]
+		]
+		ret/node: node
+		ret/header: TYPE_STRING
 	]
 
 	negative?*: func [
