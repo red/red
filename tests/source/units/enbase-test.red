@@ -22,4 +22,11 @@ Red [
 
 ===end-group===
 
+===start-group=== "enbase issue"
+
+	--test-- "enbase issue #5404"
+		--assert [{6C6F72656D20697073756D20646F6C6F722073697420616D6574}] = unique loop 1e6 [append [] enbase/base to #{} {lorem ipsum dolor sit amet} 16] ()
+
+===end-group===
+
 ~~~end-file~~~
