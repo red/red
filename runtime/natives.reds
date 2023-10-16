@@ -551,11 +551,13 @@ natives: context [
 			thrown [integer!]
 			fun?   [logic!]
 			defer? [logic!]
+			interp? [logic!]
 			do-block [subroutine!]
 	][
 		#typecheck [do expand? args next trace]
 		arg: stack/arguments
 		cframe: stack/get-ctop							;-- save the current call frame pointer
+		interp?: stack/eval? cframe yes
 		do-arg: stack/arguments + args
 		fun: 	as red-function! stack/arguments + trace
 		
@@ -628,8 +630,8 @@ natives: context [
 		switch system/thrown [
 			RED_THROWN_BREAK
 			RED_THROWN_CONTINUE [
-				either stack/eval? cframe yes [			;-- if parent call is interpreted,
-					re-throw 							;-- let the exception pass through
+				either interp? [						;-- if parent call is interpreted,
+					re-throw
 					0									;-- 0 to make compiler happy
 				][
 					system/thrown						;-- request an early exit from caller
@@ -637,7 +639,7 @@ natives: context [
 			]
 			RED_THROWN_RETURN
 			RED_THROWN_EXIT [
-				either stack/eval? cframe yes [			;-- if parent call is interpreted,
+				either interp? [						;-- if parent call is interpreted,
 					either fun? [						;-- if tracing mode, throw exception again as it was captured by DO
 						stack/throw-exit system/thrown = RED_THROWN_RETURN no yes
 					][

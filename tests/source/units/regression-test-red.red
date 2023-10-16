@@ -3553,6 +3553,37 @@ comment {
 			]
 			following5403 [exit] [--assert true]
 		;]
+		
+	--test-- "#5405"
+			loop 1 [do/trace [break] func [e c o v r f][]]
+			--assert true
+		
+			while [true][
+				do/trace [parse "ab" [skip (break)]] func [e c o v r f][]
+				--assert false
+			]
+			--assert true
+		
+			loop 100 [
+				do/trace [parse "ab" [skip (break)]] func [e c o v r f][]
+				--assert false
+			]
+			--assert true
+		
+			following5405: function [code [block!] cleanup [block!]] [
+				--assert code = [break]
+				--assert cleanup = [--assert true]
+				loop 10 [
+					do/trace code func [e c o v r f][
+						[end]
+						--assert code = [break]
+						--assert cleanup = [--assert true]
+						do cleanup
+					]
+				]
+			]
+            following5405 [break] [--assert true]
+		
 
 ===end-group===
 
