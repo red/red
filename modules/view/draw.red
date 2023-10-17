@@ -104,7 +104,6 @@ Red/System [
 			/local
 				silent [red-logic!]
 				base   [red-value!]
-				part   [red-value!]
 		][
 			if cycles/find? cmds/node [cycles/reset]
 			silent: as red-logic! #get system/view/silent?
@@ -113,9 +112,6 @@ Red/System [
 			base: block/rs-head cmds
 			cmds: as red-block! stack/push as red-value! cmds
 			cmds/head: (as-integer cmd - base) >> 4
-			part: as red-value! integer/push 32
-			_series/copy as red-series! cmds as red-series! cmds part no null
-
 			either catch? [
 				report cat id as red-value! cmds null null
 				throw RED_THROWN_ERROR
