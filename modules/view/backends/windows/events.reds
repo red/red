@@ -1317,17 +1317,6 @@ WndProc: func [
 					current-msg/lParam: lParam
 					make-event current-msg 0 res
 
-					x: WIN32_LOWORD(lParam)
-					y: WIN32_HIWORD(lParam)
-					offset: as red-point2D! values + type
-					offset/header: TYPE_POINT2D
-					offset/x: dpi-unscale as float32! x
-					offset/y: dpi-unscale as float32! y
-					if all [
-						type = FACE_OBJ_SIZE
-						SIZE_FACET_PAIR?(hwnd)
-					][as-pair offset]
-
 					values: values + FACE_OBJ_STATE
 					if all [
 						msg = WM_SIZE
