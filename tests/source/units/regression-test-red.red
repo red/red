@@ -3524,6 +3524,10 @@ comment {
 			code = system/codecs/redbin/decode encoded
 		]
 
+	--test-- "#5399"
+		r: reactor [x: 1 s: {abc}]
+		react [--assert true i: r/x r/s/:i]
+
 	--test-- "#5401"
 		;do [
 			f5401: does [
