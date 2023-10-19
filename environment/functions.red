@@ -612,6 +612,7 @@ normalize-dir: function [
 ][
 	unless file? dir [dir: to file! mold dir]
 	if slash <> first dir [dir: clean-path append copy system/options/path dir]
+	if find dir #"\" [dir: to-red-file dir]
 	unless dir? dir [dir: append copy dir slash]
 	dir
 ]
