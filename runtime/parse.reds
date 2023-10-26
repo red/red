@@ -1334,6 +1334,8 @@ parser: context [
 											s-top: stack/top
 											value: eval cmd no saved?
 											PARSE_TRACE(_paren)
+											s: GET_BUFFER(rules)	;-- refresh pointers after possible relocation in eval
+											p: as positions! s/tail - 2
 										]
 										TYPE_WORD [
 											value: _context/get as red-word! cmd
