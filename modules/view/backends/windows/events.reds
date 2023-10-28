@@ -1252,8 +1252,8 @@ WndProc: func [
 		miniz? [logic!]
 		font?  [logic!]
 		dark?  [logic!]
-		x	   [integer!]
-		y	   [integer!]
+		x xx   [integer!]
+		y yy   [integer!]
 		ShouldAppsUseDarkMode [ShouldAppsUseDarkMode!]
 ][
 	if no-face? hWnd [return DefWindowProc hWnd msg wParam lParam]
@@ -1309,13 +1309,35 @@ WndProc: func [
 					][FACE_OBJ_SIZE]
 					if miniz? [return 0]
 
+					xx: WIN32_LOWORD(lParam)
+					yy: WIN32_HIWORD(lParam)
+					x: 0 y: 0
 					res: either msg = WM_MOVE [
+						pos: GetWindowLong hWnd wc-offset - 16	;-- get border size
+						either zero? pos [
+							window-border-info? hWnd :x :y null null
+							SetWindowLong hWnd wc-offset - 16 x << 16 or (y and FFFFh)
+						][
+							x: WIN32_HIWORD(pos)
+							y: WIN32_LOWORD(pos)
+						]
 						SetWindowLong hWnd wc-offset - 8 lParam
+						xx: xx + x
+						yy: yy + y
 						EVT_MOVE
 					][EVT_SIZE]
 					current-msg/hWnd: hWnd
 					current-msg/lParam: lParam
 					make-event current-msg 0 res
+
+					offset: as red-point2D! values + type
+					offset/header: TYPE_POINT2D
+					offset/x: dpi-unscale as float32! xx
+					offset/y: dpi-unscale as float32! yy
+					if all [
+						type = FACE_OBJ_SIZE
+						SIZE_FACET_PAIR?(hwnd)
+					][as-pair offset]
 
 					values: values + FACE_OBJ_STATE
 					if all [
@@ -1346,9 +1368,9 @@ WndProc: func [
 				]
 				rc: as RECT_STRUCT lParam
 				type: either msg = WM_MOVING [
-					x: rc/left - x
-					y: rc/top - y
-					SetWindowLong hWnd wc-offset - 8 y << 16 or x
+					SetWindowLong hWnd wc-offset - 8 rc/top - y << 16 or (rc/left - x)
+					x: rc/left
+					y: rc/top
 					modal-loop-type: EVT_MOVING
 					FACE_OBJ_OFFSET
 				][
