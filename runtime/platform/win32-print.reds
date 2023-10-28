@@ -194,7 +194,7 @@ print-UCS4: func [
 	str    [int-ptr!]								;-- UCS-4 string
 	size   [integer!]
 	/local
-		cp [integer!]								;-- codepoint
+		cp wchar [integer!]							;-- codepoint
 ][
 	assert str <> null
 
@@ -203,8 +203,10 @@ print-UCS4: func [
 			cp: str/value
 			either cp > FFFFh [
 				cp: cp - 00010000h					;-- encode surrogate pair
-				putwchar cp >> 10 + D800h			;-- emit lead
-				putwchar cp and 03FFh + DC00h		;-- emit trail
+				wchar: cp and 03FFh + DC00h
+				wchar: wchar << 16 or (cp >> 10 + D800h)
+				cp: 0
+				WriteConsole stdout (as byte-ptr! :wchar) 2 :cp null
 			][
 				putwchar cp							;-- UCS-2 codepoint
 			]

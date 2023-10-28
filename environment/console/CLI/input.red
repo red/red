@@ -61,9 +61,7 @@ unless system/console [
 			KEY_ESCAPE:		 27
 			KEY_BACKSPACE:	127
 		]
-		
-		#include %wcwidth.reds
-		
+
 		#either OS = 'Windows [
 			#include %win32.reds
 		][

@@ -151,6 +151,7 @@ red: context [
 	#include %call.reds
 	#include %compress.reds
 	#include %collector.reds
+	#include %wcwidth.reds
 
 	_root:	 	declare red-block!						;-- statically alloc root cell for bootstrapping
 	root:	 	as red-block! 0							;-- root block

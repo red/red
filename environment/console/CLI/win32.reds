@@ -14,12 +14,11 @@ Red/System [
 	}
 ]
 
-#define VK_BACK 				 	08h
-#define VK_TAB 					 	09h
-#define VK_CLEAR 				 	0Ch
-#define VK_RETURN 				 	0Dh
-
 #either modules contains 'View [][
+	#define VK_BACK 				08h
+	#define VK_TAB 					09h
+	#define VK_CLEAR 				0Ch
+	#define VK_RETURN 				0Dh
 	#define VK_SHIFT				10h
 	#define VK_CONTROL				11h
 	#define VK_PRIOR				21h
@@ -34,18 +33,6 @@ Red/System [
 	#define VK_INSERT				2Dh
 	#define VK_DELETE				2Eh
 ]
-
-#define KEY_EVENT 				 	01h
-#define MOUSE_EVENT 			 	02h
-#define WINDOW_BUFFER_SIZE_EVENT 	04h
-#define MENU_EVENT 				 	08h
-#define FOCUS_EVENT 			 	10h
-#define ENHANCED_KEY 			 	0100h
-#define ENABLE_PROCESSED_INPUT		01h
-#define ENABLE_LINE_INPUT 			02h
-#define ENABLE_ECHO_INPUT 			04h
-#define ENABLE_WINDOW_INPUT         08h
-#define ENABLE_QUICK_EDIT_MODE		40h
 
 mouse-event!: alias struct! [
 	Position  [integer!]			;-- high 16-bit: Y	low 16-bit: X

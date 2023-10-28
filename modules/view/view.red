@@ -797,6 +797,7 @@ show: function [
 			clear pending
 		]
 		if face/state/2 <> 0 [system/view/platform/update-view face]
+		obj: face/state/1
 	][
 		new?: yes
 		
@@ -865,7 +866,7 @@ show: function [
 	if all [new? object? face/actors in face/actors 'on-created][
 		do-safe [face/actors/on-created face none]		;@@ only called once
 	]
-	if all [new? face/type = 'window face/visible?][
+	if all [face/type = 'window face/visible?][
 		system/view/platform/show-window obj
 	]
 	show?
@@ -1404,4 +1405,16 @@ insert-event-func 'tab function [face event][
 		return 'stop
 	]
 	event
+]
+
+#if config/GUI-engine = 'terminal [
+	;-- Control-C handler
+	insert-event-func 'ctrl-c function [face event][
+		if all [
+			event/type = 'key
+			event/key = #"^C"
+		][
+			system/view/platform/exit-event-loop
+		]
+	]
 ]

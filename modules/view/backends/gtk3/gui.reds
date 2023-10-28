@@ -10,7 +10,6 @@ Red/System [
 	}
 ]
 
-#include %../keycodes.reds
 #include %gtk.reds
 #include %events.reds
 

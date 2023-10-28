@@ -605,6 +605,7 @@ clipboard: context [
 	]
 	Linux [
 	#either modules contains 'View [
+	#either GUI-engine <> 'terminal [
 		;; Depends on GTK
 		#import [
 			"libgtk-3.so.0" cdecl [
@@ -720,8 +721,20 @@ clipboard: context [
 		][
 			true
 		]
-	]
-	]
+	]][
+		read: func [
+			return:		[red-value!]
+		][
+			none-value
+		]
+
+		write: func [
+			data		[red-value!]
+			return:		[logic!]
+		][
+			true
+		]
+	]]
 	#default [
 		read: func [
 			return:		[red-value!]
