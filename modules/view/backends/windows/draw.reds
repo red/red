@@ -417,7 +417,11 @@ OS-draw-pen: func [
 		pen		[ptr-value!]
 		dc		[ID2D1DeviceContext]
 ][
-	if off? [ctx/pen-type: DRAW_BRUSH_NONE exit]
+	if off? [
+		ctx/pen-type: DRAW_BRUSH_NONE
+		ctx/prev-pen-type: DRAW_BRUSH_NONE
+		exit
+	]
 
 	unless ctx/font-color? [ctx/font-color: color]	;-- if no font, use pen color for text color
 	either ctx/pen-type = DRAW_BRUSH_COLOR [
@@ -434,6 +438,10 @@ OS-draw-pen: func [
 		ctx/pen: as this! pen/value
 		ctx/pen-color: color
 		ctx/pen-type: DRAW_BRUSH_COLOR
+	]
+	if ctx/pen-width = F32_0 [
+		ctx/prev-pen-type: ctx/pen-type
+		ctx/pen-type: DRAW_BRUSH_NONE
 	]
 ]
 
@@ -997,7 +1005,17 @@ OS-draw-line-width: func [
 		width-v [float32!]
 ][
 	width-v: (get-float32 as red-integer! width)
+	if width-v = F32_0 [
+		ctx/prev-pen-type: ctx/pen-type
+		ctx/pen-type: DRAW_BRUSH_NONE
+		ctx/pen-width: F32_0
+		exit
+	]
+
 	if ctx/pen-width <> width-v [
+		if ctx/pen-width = F32_0 [
+			ctx/pen-type: ctx/prev-pen-type
+		]
 		ctx/pen-width: width-v
 	]
 ]

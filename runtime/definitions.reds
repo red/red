@@ -169,6 +169,7 @@ Red/System [
 		matrix-order	[integer!]
 		device-matrix	[tagMATRIX value]
 		pattern?		[logic!]
+		line-width?		[logic!]
 		pen-width		[float!]
 		pen-pattern		[float-ptr!]
 		pen-color		[integer!]					;-- 00bbggrr format
@@ -433,6 +434,7 @@ Red/System [
 			pen-pattern-cnt [integer!]
 			pen-grad-type	[integer!]
 			brush-grad-type	[integer!]
+			prev-pen-type	[integer!]
 			pen-width		[float32!]
 			pen-offset		[POINT_2F value]
 			brush-offset	[POINT_2F value]
