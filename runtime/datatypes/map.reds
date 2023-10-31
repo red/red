@@ -240,6 +240,7 @@ map: context [
 		either blk? [
 			; use clone here to prevent extra copying of spec
 			blk: block/clone as red-block! spec no no
+			object/clear-nl-flags GET_BUFFER(blk)
 		][
 			blk: block/make-at as red-block! stack/push* size
 		]
