@@ -72,6 +72,7 @@ lexer: context [
 	
 	;-- UTF-8 encoding rules from: http://tools.ietf.org/html/rfc3629#section-4
 	UTF-8-BOM: #{EFBBBF}
+	ws-no-nl:  charset " ^-"
 	ws-ASCII:  charset " ^-^M"						;-- ASCII common whitespaces
 	ws-U+2k:   charset [#"^(80)" - #"^(8A)"]		;-- Unicode spaces in the U+2000-U+200A range
 	UTF8-tail: charset [#"^(80)" - #"^(BF)"]
@@ -178,6 +179,7 @@ lexer: context [
 	ws-no-count: [(count?: no) ws (count?: yes)]
 	
 	any-ws: [pos: any ws]
+	any-ws-strict: [pos: any ws-no-nl]
 	
 	symbol-rule: [
 		(stop: [not-word-char | ws-no-count | control-char | tag-char] otag: #"<" ot: none)
@@ -476,18 +478,18 @@ lexer: context [
 	
 	point-rule: [
 		#"("
-		mark: any-ws dec-or-int any-ws comma :mark
+		mark: any-ws-strict dec-or-int any-ws-strict comma :mark
 		(list: make block! 4) 
-		any-ws dec-or-int any-ws comma		(append list load-number copy/part s e)
-		any-ws dec-or-int any-ws			(append list load-number copy/part s e)
-		opt [comma any-ws dec-or-int any-ws	(append list load-number copy/part s e)]
+		any-ws-strict dec-or-int any-ws-strict comma		(append list load-number copy/part s e)
+		any-ws-strict dec-or-int any-ws-strict				(append list load-number copy/part s e)
+		opt [comma any-ws-strict dec-or-int any-ws-strict	(append list load-number copy/part s e)]
 		(value: append copy [#!point!] list)
 		#")"
 	]
 	
 	block-rule: [#"[" (stack/allocate block! 10) any-value #"]" (value: stack/pop block!)]
 	
-	paren-rule: [#"(" (stack/allocate paren! 10) any-value	#")" (value: stack/pop paren!)]
+	paren-rule: [#"(" (stack/allocate paren! 10) any-value #")" (value: stack/pop paren!)]
 	
 	escaped-char: [
 		"^^(" [
