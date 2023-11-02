@@ -1149,9 +1149,10 @@ red: context [
 			]
 		][
 			remove/part path 2
+			if paren? path/1 [path/1: do path/1]
 			if get? [path/1: to get-word! path/1]
 			either 1 = length? path [
-				switch type?/word pc/1: load mold path [
+				switch type?/word pc/1: any [attempt [load mold path] path/1][
 					set-word!	[comp-set-word]
 					word!		[comp-word]
 					get-word!	[comp-word/literal]
