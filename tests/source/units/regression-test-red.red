@@ -2828,12 +2828,6 @@ b}
 			--assert error? try [sine 10%]
 			--assert error? try [cos 10%]
 			--assert error? try [cosine 10%]
-			--assert error? try [exp 10%]
-			--assert error? try [log-e 10%]
-			--assert error? try [log-10 10%]
-			--assert error? try [log-2 10%]
-			--assert error? try [sqrt 1%]
-			--assert error? try [square-root 1%]
 		]
 		
 	--test-- "#2650"
@@ -2883,6 +2877,12 @@ b}
 		bar3156: ctx3156/foo3156
 		--assert 'bar3156 == bar3156
 
+	--test-- "#3344"
+		do [											;-- no compiler support :(
+			op3344: make op! func [x 'y] [:y]
+			--assert 'abra = (1 op3344 abra)
+		]
+	
 	--test-- "#3362"
 		do [											;-- FIXME: compiler doesn't like this
 			spec3362-1: [return 100]
@@ -2948,6 +2948,13 @@ b}
 		--assert 'y = do 'a/x
 		--assert 'y = do quote a/x
 
+	--test-- "#3585"
+		do [											;-- no compiler support :(
+			f3585: func [/opt 'arg][arg]
+			--assert ('* = f3585/opt *)
+			--assert '* = system/words/quote *
+		]
+	
 	--test-- "#3588"
 		x3588: []
 		write qt-tmp-file {Hello Red append x3588 "try"^/Red [] append x3588 "Hoi!"}
@@ -3252,6 +3259,7 @@ comment {
 			write/binary f4766 append/dup copy {^/} "11 ^/^/" i
 		]
 		attempt [foreach f4766 files [blk4766: read/lines f4766]]
+		attempt [foreach f4766 files [delete f4766] delete %tmp$/]
 		change-dir saved-dir
 		--assert 41 = length? blk4766
 
@@ -3471,6 +3479,115 @@ comment {
 		h: make hash! [1 2 3 4 5 6 7 8 9 10 11 12 13]
 		loop 10000 [copy h]
 		--assert hash? h
+		
+	--test-- "#5345"
+		--assert 12-Nov-2013 == load "12-nov-13"
+		--assert 15-Nov-2013 == load "15-nov-13"
+	
+	--test-- "#5351"
+		--assert block! = transcode/scan {[a: %"filename"] }
+
+	--test-- "#5362"
+		--assert NaN? min 1.0 1.#nan
+		--assert NaN? min 1.#nan 1
+		--assert NaN? max 1.0 1.#nan
+		--assert NaN? max 1.#nan 1
+
+	--test-- "#5362 - point"
+		pt: min (1,1) (1.#nan,1.#nan)
+		--assert NaN? pt/x
+		--assert NaN? pt/y
+		pt: max (1,1) (1.#nan,1.#nan)
+		--assert NaN? pt/x
+		--assert NaN? pt/y
+
+
+	--test-- "#5366"
+		c5366: false
+		obj5366: object [
+		   z: [1x2]
+		   on-change*: func [w n o][--assert false]
+		   on-deep-change*: func [o w t a n i p][--assert w = 'z c5366: true]
+		]
+		obj5366/z/1/y: 5
+		--assert c5366
+		
+	--test-- "#5387"
+		--assert datatype? first load mold/all reduce [#[none!]]
+		
+	--test-- "#5398"
+		do [
+			code: [copy/part "x" 1]                                 ;) <-- /part triggers the bug
+			do code                                                 ;) <-- the culprit
+			--assert binary? encoded: system/codecs/redbin/encode load mold code none   ;) this succeeds
+			--assert binary? system/codecs/redbin/encode code none             ;) this crashes
+			code = system/codecs/redbin/decode encoded
+		]
+
+	--test-- "#5399"
+		r: reactor [x: 1 s: {abc}]
+		react [--assert true i: r/x r/s/:i]
+
+	--test-- "#5401"
+		;do [
+			f5401: does [
+				do/trace [parse "ab" [skip (return 1)]] func [e c o v r f][]
+				--assert false
+			]
+			--assert f5401 = 1
+
+			f5401.1: does [
+				do/trace [parse "ab" [skip (return 1)]] func [e c o v r f][]
+				--assert false
+			]
+			f5401.1
+		;]
+		
+	--test-- "#5403"
+		;do [
+			following5403: function [code [block!] cleanup [block!]] [
+				--assert code = [exit]
+				--assert cleanup = [--assert true]
+				do/trace code func [e c o v r f][
+					[end]
+					--assert code = [exit]
+					--assert cleanup = [--assert true]
+					do cleanup
+				]
+			]
+			following5403 [exit] [--assert true]
+		;]
+		
+	--test-- "#5405"
+			loop 1 [do/trace [break] func [e c o v r f][]]
+			--assert true
+		
+			while [true][
+				do/trace [parse "ab" [skip (break)]] func [e c o v r f][]
+				--assert false
+			]
+			--assert true
+		
+			loop 100 [
+				do/trace [parse "ab" [skip (break)]] func [e c o v r f][]
+				--assert false
+			]
+			--assert true
+		
+			following5405: function [code [block!] cleanup [block!]] [
+				--assert code = [break]
+				--assert cleanup = [--assert true]
+				loop 10 [
+					do/trace code func [e c o v r f][
+						[end]
+						--assert code = [break]
+						--assert cleanup = [--assert true]
+						do cleanup
+					]
+				]
+			]
+            following5405 [break] [--assert true]
+		
 
 ===end-group===
 

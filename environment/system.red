@@ -62,7 +62,8 @@ system: context [
 			]
 			image!	[size argb rgb alpha]
 			pair!	[x y]
-			;point!	[x y z]
+			point2D![x y]
+			point3D![x y z]
 			time!	[hour minute second]
 			money!  [code amount]
 		]
@@ -110,7 +111,7 @@ system: context [
 				invalid-type-spec:	["invalid type specifier:" :arg1]
 				invalid-op:			["invalid operator:" :arg1]
 				no-op-arg:			[:arg1 "operator is missing an argument"]
-				bad-op-spec:		"making an op! requires a function with only 2 arguments"
+				bad-op-spec:		"making an op! requires a function with only 2 arguments and no lit/get-word on left argument"
 				invalid-data:		["data not in correct format:" :arg1]
 				invalid-part:		["invalid /part count:" :arg1]
 				not-same-type:		"values must be of the same type"
@@ -194,6 +195,7 @@ system: context [
 				react-bad-obj:		"REACT - target can only contain object values"
 				react-gctx:			["REACT - word" :arg1 "is not a reactor's field"]
 				lib-invalid-arg:	["LIBRED - invalid argument for" :arg1]
+				rb-invalid-record:	["REDBIN - invalid record at index" :arg1]
 			]
 			math: object [
 				code:				400
@@ -306,7 +308,7 @@ system: context [
 	]
 	
 	modules: make block! 8
-	codecs:  make block! 8
+	codecs:  make map!   8
 	schemes: make block! 10
 	ports:	 context []
 	

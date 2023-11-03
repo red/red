@@ -212,6 +212,7 @@ OS-text-box-metrics: func [
 		pos				[red-pair!]
 		values			[red-value!]
 		hr				[integer!]
+		pt				[red-point2d!]
 ][
 	int: as red-integer! block/rs-head state
 	layout: as handle! int/value
@@ -233,13 +234,12 @@ OS-text-box-metrics: func [
 				x: x + hit/width
 				y: y + hit/height
 			]
-			pair/push as-integer x + as float32! 0.5 as-integer y + as float32! 0.99
+			point2D/push x + as float32! 0.5 y + as float32! 0.5
 		]
 		TBOX_METRICS_INDEX?
 		TBOX_METRICS_CHAR_INDEX? [
 			pos: as red-pair! arg0
-			x: as float32! pos/x
-			y: as float32! pos/y
+			GET_PAIR_XY(pos x y)
 			trailing?: 0
 			inside?: 0
 			hit: as DWRITE_HIT_TEST_METRICS :left
@@ -271,15 +271,13 @@ OS-text-box-metrics: func [
 				lm: lm + 1
 			]
 			y: lm/height
-			integer/push as-integer y + as float32! 0.99
+			float/push as float! (y + as float32! 0.5)
 		]
 		default [
 			metrics: as DWRITE_TEXT_METRICS :left
 			hr: dl/GetMetrics this metrics
 			either type = TBOX_METRICS_SIZE [
-				pair/push 
-					as-integer (metrics/width + as float32! 0.5)
-					as-integer (metrics/height + as float32! 0.99)
+				point2D/push metrics/width + as float32! 0.5 metrics/height + as float32! 0.5
 			][
 				integer/push metrics/lineCount
 			]
@@ -313,6 +311,7 @@ OS-text-box-layout: func [
 		para	[integer!]
 		fmt		[this!]
 		layout	[this!]
+		pt		[red-point2d!]
 ][
 	values: object/get-values box
 	type: as red-word! values + FACE_OBJ_TYPE
@@ -364,8 +363,8 @@ OS-text-box-layout: func [
 
 	str: as red-string! values + FACE_OBJ_TEXT
 	size: as red-pair! values + FACE_OBJ_SIZE
-	either TYPE_OF(size) = TYPE_PAIR [
-		w: size/x h: size/y
+	either ANY_COORD?(size) [
+		GET_PAIR_XY_INT(size w h)
 	][
 		w: 0 h: 0
 	]
@@ -406,6 +405,7 @@ txt-box-draw-background: func [
 		top			[integer!]
 		left		[integer!]
 		rc			[RECT_F!]
+		pt			[red-point2d!]
 ][
 	styles: as red-vector! target/4
 	if any [
@@ -429,8 +429,7 @@ txt-box-draw-background: func [
 
 	left: 0
 	rc: as RECT_F! :left
-	x: as float32! pos/x
-	y: as float32! pos/y
+	GET_PAIR_XY(pos x y)
 	s: GET_BUFFER(styles)
 	p: (as int-ptr! s/offset) + styles/head
 	end: as int-ptr! s/tail

@@ -82,6 +82,8 @@
 	red/paren/push
 	red/path/push
 	red/percent/push
+	red/point2D/push
+	red/point3D/push
 	red/ref/push
 	red/refinement/push
 	red/routine/push
@@ -381,6 +383,8 @@
 	red/natives/transcode*
 	red/natives/as-money*
 	red/natives/apply*
+	red/natives/as-point2D*
+	red/natives/as-point3D*
 
 	;-- for view backend
 	red/symbol/resolve

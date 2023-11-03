@@ -84,7 +84,7 @@ gen-float-classes-table: function [][
 		c: to-char i - 1
 		append out case [
 			find digit c [2]
-			find ".," c  [4]
+			c = #"."     [4]
 			find "+-" c	 [1]
 			find "eE" c	 [3]
 			c = #"'"	 [5]

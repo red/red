@@ -10,8 +10,8 @@ Red/System [
 	}
 ]
 
+#include %v4l2.reds
 camera-dev: context [
-	#include %v4l2.reds
 
 	open: func [
 		name		[c-string!]

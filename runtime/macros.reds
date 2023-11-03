@@ -42,7 +42,7 @@ Red/System [
 	TYPE_GET_PATH										;-- 1C		28
 	TYPE_ROUTINE										;-- 1D		29
 	TYPE_BITSET											;-- 1E		30
-	TYPE_POINT											;-- 1F		31
+	TYPE_TRIPLE											;-- 1F		31
 	TYPE_OBJECT											;-- 20		32
 	TYPE_TYPESET										;-- 21		33
 	TYPE_ERROR											;-- 22		34
@@ -62,8 +62,10 @@ Red/System [
 	TYPE_PORT											;-- 30		48
 	TYPE_MONEY											;-- 31		49
 	TYPE_REF											;-- 32		50
-	TYPE_IPV6											;-- 33		51
-	TYPE_IMAGE											;-- 34		52		;-- needs to be last
+	TYPE_POINT2D										;-- 33		51
+	TYPE_POINT3D										;-- 34		52	
+	TYPE_IPV6											;-- 34		52
+	TYPE_IMAGE											;-- 35		53		;-- needs to be last
 	TYPE_EVENT
 	TYPE_CLOSURE
 	TYPE_SLICE
@@ -222,6 +224,8 @@ Red/System [
 	NAT_UPPERCASE
 	NAT_LOWERCASE
 	NAT_AS_PAIR
+	NAT_AS_POINT2D
+	NAT_AS_POINT3D
 	NAT_AS_MONEY
 	NAT_BREAK
 	NAT_CONTINUE
@@ -311,7 +315,7 @@ Red/System [
 ]
 
 #define DATATYPES_NB	52							;-- total number of built-in datatypes (including TYPE_VALUE)
-#define NATIVES_NB		110							;-- max number of natives (arbitrary set)
+#define NATIVES_NB		120							;-- max number of natives (arbitrarily set upper bound)
 #define ACTIONS_NB		62							;-- number of actions (exact number)
 #define INHERIT_ACTION	-1							;-- placeholder for letting parent's action pass through
 
@@ -489,6 +493,12 @@ Red/System [
 		type = TYPE_ROUTINE
 		type = TYPE_OP
 	]
+]
+
+
+#define TYPE_ANY_POINT [
+	TYPE_POINT2D
+	TYPE_POINT3D
 ]
 
 #define TYPE_ANY_WORD [

@@ -979,6 +979,7 @@ date: context [
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
+		evt?	[logic!]
 		return:	[red-value!]
 		/local
 			word   [red-word!]
@@ -995,7 +996,6 @@ date: context [
 			wd	   [integer!]
 			time?  [logic!]
 			error? [logic!]
-			evt?   [logic!]
 	][
 		error?: no
 
@@ -1019,8 +1019,6 @@ date: context [
 				int: as red-integer! value
 				v: int/value
 			]
-			obj: as red-object! gparent
-			evt?: all [obj <> null TYPE_OF(obj) = TYPE_OBJECT obj/on-set <> null TYPE_OF(p-item) = TYPE_WORD]
 			if evt? [old: stack/push as red-value! dt]
 
 			d: dt/date
@@ -1066,7 +1064,7 @@ date: context [
 						int: as red-integer! element
 						int/value: int/value - 6		;-- normalize accessor for time!
 					]
-					time/eval-path as red-time! dt element value path gparent p-item index case? no yes
+					time/eval-path as red-time! dt element value path gparent p-item index case? no yes evt?
 					set-time dt dt/time field = 7
 					dt/date: DATE_SET_TIME_FLAG(dt/date)
 				]
@@ -1092,7 +1090,11 @@ date: context [
 				default [assert false]
 			]
 			if evt? [
-				object/fire-on-set as red-object! gparent as red-word! p-item old as red-value! dt
+				either TYPE_OF(gparent) = TYPE_OBJECT [
+					object/fire-on-set as red-object! gparent as red-word! p-item old as red-value! dt
+				][
+					ownership/check as red-value! gparent words/_set-path value field 1
+				]
 				stack/pop 1								;-- avoid moving stack top
 			]
 			value

@@ -302,12 +302,13 @@ _function: context [
 			w      [red-word!]
 			flags  [integer!]
 			local? [logic!]
+			ret?   [logic!]
 			do-error [subroutine!]
 	][
 		do-error: [fire [TO_ERROR(script bad-func-def) spec]]
 		value:  block/rs-head spec
 		end:    block/rs-tail spec
-		local?: no
+		local?: ret?: no
 		flags:  0
 		
 		if all [value < end TYPE_OF(value) = TYPE_BLOCK][
@@ -327,6 +328,7 @@ _function: context [
 						next2: next + 1
 						if all [next2 < end TYPE_OF(next2) = TYPE_BLOCK][do-error]
 					]
+					if all [ret? not local?][do-error]
 					value: value + 1
 					if all [
 						next < end
@@ -347,12 +349,10 @@ _function: context [
 						any [
 							next2 = end						 ;-- return: with type spec is enough
 							TYPE_OF(next2) = TYPE_REFINEMENT ;-- This allows a return: spec before each refinement
-							all [							 ;-- docstring is allowed if at the tail
-								TYPE_OF(next2) = TYPE_STRING
-								next2 + 1 = end
-							]
+							TYPE_OF(next2) = TYPE_STRING	 ;-- docstring is allowed for returned arg
 						]
 					][do-error]
+					ret?: yes
 					value: next2
 				]
 				TYPE_REFINEMENT [

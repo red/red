@@ -26,7 +26,7 @@ Red has its own complete cross-platform toolchain, featuring an encapper, a nati
 
 Red's main features are:
 
-* Human-friendly [syntax](https://pointillistic.com/ren/)
+* Human-friendly [syntax](http://www.rebol.com/rebolsteps.html)
 * [Homoiconic](http://en.wikipedia.org/wiki/Homoiconicity) (Red is its own meta-language and own [data-format](http://www.rebol.com/rebolsteps.html))
 * Functional, imperative, [reactive](http://www.red-lang.org/2016/06/061-reactive-programming.html) and symbolic programming
 * Prototype-based object support
@@ -34,7 +34,7 @@ Red's main features are:
 * Powerful pattern-matching [Macros](http://www.red-lang.org/2016/12/entering-world-of-macros.html) system
 * Rich set of built-in datatypes (50+)
 * Both statically and JIT-compiled(*) to native code
-* Cross-compilation [done](https://github.com/red/red/blob/master/usage.txt) [right](https://github.com/red/red/blob/master/system/config.r)
+* Cross-compilation [done](https://github.com/red/red/blob/master/encapper/usage.txt) [right](https://github.com/red/red/blob/master/system/config.r)
 * Produces executables of less than 1MB, with no dependencies
 * Concurrency and parallelism strong support (actors, parallel collections)(*)
 * Low-level system programming abilities through the built-in Red/System [DSL](http://en.wikipedia.org/wiki/Domain-specific_language)
@@ -91,6 +91,8 @@ A more [sophisticated example](https://github.com/red/code/blob/master/Showcase/
 <p align="center">
   <img width="439" height="139" src="https://static.red-lang.org/images/commits.png">
 </p>
+
+Note: check also the following [improved version](https://github.com/red/code/blob/master/Showcase/last-commits3.red) allowing you to click on a given commit log and open the commit page on github.
 
 
 You can now head to see and try some showcasing scripts [here](https://github.com/red/code/tree/master/Showcase) and [there](https://github.com/red/code/tree/master/Scripts). You can run those examples from the console directly using Github's "raw" link. E.g.:
@@ -216,6 +218,7 @@ Cross-compilation targets:
     Linux-ARM    : GNU/Linux, ARMv5, armel (soft-float)
     RPi          : GNU/Linux, ARMv7, armhf (hard-float)
     RPi-GTK      : GNU/Linux, ARMv7, armhf (hard-float), GUI only applications
+    Pico         : GNU/Linux, ARMv7, armhf (hard-float), uClibc
     Darwin       : macOS Intel, console-only applications
     macOS        : macOS Intel, applications bundles
     Syllable     : Syllable OS, x86

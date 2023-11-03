@@ -133,6 +133,12 @@ red: context [
 		if system/options/args [quit/return 1]
 		halt
 	]
+	
+	cut-lines: func [s [string!] n [integer!] /local c p][
+		c: 0
+		parse s [any [#"^/" p: (if n <= (c: c + 1) [append clear p "...]"]) | skip]]
+		s
+	]
 
 	throw-error: func [err [word! string! block!] /near code [block!]][
 		print [
@@ -146,7 +152,7 @@ red: context [
 		if pc [
 			print [
 				;"*** at line:" calc-line lf
-				"*** near:" mold any [code copy/part pc 8]
+				"*** near:" cut-lines mold any [code copy/part pc 8] 40
 			]
 		]
 		quit-on-error
@@ -321,11 +327,14 @@ red: context [
 	tuple-value?:	func [value][value/1 = #"~"]
 	money-value?:	func [value][value/1 = #"$"]
 	ref-value?:		func [value][value/1 = #"@"]
+	type-value?:	func [value][all [value/1 = #"!" value/2 = #"~"]]
 	percent-value?: func [value][#"%" = last value]
 	
 	date-special?: func [value][all [block? value value/1 = #!date!]]
 	map-value?:	   func [value][all [block? value value/1 = #!map!]]
 	ipv6-value?:   func [value][all [block? value value/1 = #!ipv6!]]
+	point-value?:   func [value][all [block? value value/1 = #!point!]]
+	
 	
 	insert-lf: func [pos][
 		new-line skip tail output pos yes
@@ -874,7 +883,7 @@ red: context [
 	]
 	
 	generate-anon-name: has [name][
-		add-symbol name: to word! rejoin ["<anon" get-counter #">"]
+		add-symbol name: to word! rejoin ["~anon" get-counter #"~"]
 		name
 	]
 	
@@ -1142,9 +1151,10 @@ red: context [
 			]
 		][
 			remove/part path 2
+			if paren? path/1 [path/1: do path/1]
 			if get? [path/1: to get-word! path/1]
 			either 1 = length? path [
-				switch type?/word pc/1: load mold path [
+				switch type?/word pc/1: any [attempt [load mold path] path/1][
 					set-word!	[comp-set-word]
 					word!		[comp-word]
 					get-word!	[comp-word/literal]
@@ -1691,19 +1701,10 @@ red: context [
 		emit to integer! copy/part bin 4
 		emit to integer! skip bin 4
 	]
-
-	emit-fp-special: func [value [issue!]][
-		switch next value [
-			#INF  [emit to integer! #{7FF00000} emit 0]
-			#INF- [emit to integer! #{FFF00000} emit 0]
-			#NaN  [emit to integer! #{7FF80000} emit 0]			;-- smallest quiet NaN
-			#0-	  [emit to integer! #{80000000} emit 0]
-		]
-	]
-
+	
 	comp-literal: func [
 		/inactive /with val
-		/local value char? special? percent? map? tuple? money? ref? dt-special? ipv6?
+		/local value char? special? percent? map? tuple? money? ref? dt-special? point? dtype? ipv6?
 			   name w make-block type idx zone
 	][
 		make-block: [
@@ -1717,8 +1718,9 @@ red: context [
 		value: either with [val][pc/1]					;-- val can be NONE
 		map?: map-value? :value
 		ipv6?: ipv6-value? :value
-		dt-special?: date-special? value
-
+		dt-special?: date-special? :value
+		point?: point-value? :value
+		
 		either any [
 			all [
 				issue? :value
@@ -1729,12 +1731,14 @@ red: context [
 					tuple?:	  tuple-value? value
 					money?:	  money-value? value
 					ref?:	  ref-value? value
+					dtype?:	  type-value? value
 				]
 			]
 			scalar? :value
 			map?
 			ipv6?
 			dt-special?
+			point?
 		][
 			case [
 				char? [
@@ -1750,7 +1754,7 @@ red: context [
 				]
 				special? [
 					emit 'float/push64
-					emit-fp-special value
+					emit IEEE-754/to-binary64/split value
 					insert-lf -3
 				]
 				map? [
@@ -1787,6 +1791,11 @@ red: context [
 					emit 'ref/push
 					emit compose [as red-string! get-root (idx)]
 					insert-lf -5
+				]
+				dtype? [
+					emit 'datatype/push
+					emit get-RS-type-ID to-word form skip value 2
+					insert-lf -2
 				]
 				find [refinement! issue!] type?/word :value [
 					w: to word! form value
@@ -1837,6 +1846,12 @@ red: context [
 					emit 'date/push
 					emit reduce [encode-date value encode-UTC-time value/time value/zone]
 					insert-lf -4
+				]
+				point? [
+					type: pick [point2D point3D] 2 = length? value: next value
+					emit append to-path type 'push
+					foreach v value [emit reduce ['as-float32 either integer? v [to-decimal v][v]]]
+					insert-lf -5
 				]
 				'else [
 					emit to path! reduce [to word! form type? :value 'push]
@@ -2856,11 +2871,12 @@ red: context [
 					name: generate-anon-name			;-- undetermined function assignment case
 				]
 			]
-			find [set-word! lit-word!] type?/word :original [
+			any [
+				all [set-word? :original]
+				global?: all [lit-word? :original pc/-2 = 'set]
+			][		
 				src-name: to word! original
-				unless global?: all [lit-word? :original pc/-2 = 'set][
-					src-name: get-prefix-func src-name
-				]
+				unless global? [src-name: get-prefix-func src-name]
 				name: check-func-name src-name
 				add-symbol/with word: to word! clean-lf-flag name to word! clean-lf-flag original
 				unless any [
@@ -4174,7 +4190,7 @@ red: context [
 						if value = type?/word arg [type: value break]
 					]
 				]
-				if type = 'any-type! [type: none]
+				if find [any-type! object!] type [type: none]
 			]
 			offset: either type [
 				cmd: to path! reduce [to word! form get type 'push]

@@ -36,12 +36,19 @@ Red/System [
 		#define LIBM-file	"libm.so"
 	]
 	#default [											;-- Linux
-		#either dynamic-linker = "/lib/ld-musl-i386.so.1" [
-			#define LIBC-file	"ld-musl-i386.so.1"
-			#define LIBM-file	"ld-musl-i386.so.1"
-		][
-			#define LIBC-file	"libc.so.6"
-			#define LIBM-file	"libm.so.6"
+		#case [
+			dynamic-linker = "/lib/ld-musl-i386.so.1" [
+				#define LIBC-file	"ld-musl-i386.so.1"
+				#define LIBM-file	"ld-musl-i386.so.1"
+			]
+			dynamic-linker = "/lib/ld-uClibc.so.1" [
+				#define LIBC-file	"libc.so.1"
+				#define LIBM-file	"libc.so.1"
+			]
+			true [
+				#define LIBC-file	"libc.so.6"
+				#define LIBM-file	"libm.so.6"
+			]
 		]
 	]
 ]

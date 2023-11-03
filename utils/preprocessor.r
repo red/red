@@ -172,7 +172,7 @@ preprocessor: context [
 	fetch-next: func [code [block! paren!] /local i left item item2 value fn-spec path f-arity at-op? op-mode][
 		left: reduce [yes]
 		
-		while [all [not tail? left not tail? code]] [
+		while [all [not tail? left not tail? code]][
 			either not left/1 [							;-- skip quoted argument
 				remove left
 			][
@@ -192,30 +192,25 @@ preprocessor: context [
 							at :item length? :path
 					]
 				]
-
 				if at-op?: all [						;-- a * b
 					1 < length? code
 					word? item2: second code
 					op? get/any :item2
-				] [
-					op-mode: arg-mode? spec-of get/any :item2 1
-					if all [f-arity  op-mode = word!] [		;-- check if function's lit/get-arg takes priority
+				][
+					if all [f-arity 1 < length? f-arity] [		;-- check if function's lit/get-arg takes priority
 						at-op?: word! = arg-mode? fn-spec 1
-					]
+					] 
 				]
-
 				case [
 					at-op? [							;-- a * b
 						code: next code					;-- skip `a *` part
 						left/1: word! = arg-mode? spec-of get/any :item2 2
 					]
-
 					f-arity [							;-- a ... / a/b ...
 						if op? get/any 'value [return skip code 2]	;-- starting with op is an error
 						remove left
 						repeat i length? f-arity [insert at left i word! = f-arity/:i]
 					]
-
 					not find [set-word! set-path!] type?/word item [	;-- not a: or a/b:
 						remove left
 					]

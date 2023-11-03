@@ -496,7 +496,8 @@ ext-process: context [
 					]
 				]
 				if all [(in-buf = null) (not console?)] [LibC.close stdin]	;-- no redirection, stdin closed
-				
+
+				#if config-name = 'Pico [shell?: yes]
 				either shell? [
 					args: as str-array! allocate 4 * size? c-string!
 					args/item: shell-name	args: args + 1
@@ -506,6 +507,7 @@ ext-process: context [
 					args: args - 3						;-- reset args pointer
 					execvp shell-name args		;-- Process is launched here, execvp with str-array parameters
 				][
+					#either config-name = 'Pico [status: 0][
 					wexp: declare wordexp-type! ;-- Create wordexp struct
 					status: wordexp cmd wexp WRDE_SHOWERR	;-- Parse cmd into str-array
 					either status = 0 [					;-- Parsing ok
@@ -520,7 +522,7 @@ ext-process: context [
 							WRDE_CMDSUB  [ __red-call-print-error [ "Command substitution requested" ]	 ]
 							WRDE_SYNTAX  [ __red-call-print-error [ "Shell syntax error, such as unbalanced parentheses or unterminated string" ]	 ]
 						]
-					]
+					]]
 				]
 				;-- get here only when exec fails
 				quit -1

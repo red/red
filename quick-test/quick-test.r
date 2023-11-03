@@ -256,6 +256,10 @@ qt: make object! [
     either compile-ok? [
       exe
     ][
+	  if find comp-output "Compiling libRedRT" [
+        prin comp-output
+	    quit/return 1
+      ]
       none
     ]    
   ]

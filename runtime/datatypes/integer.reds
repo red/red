@@ -251,6 +251,7 @@ integer: context [
 			n		[integer!]
 			v		[integer!]
 			tp		[byte-ptr!]
+			check-div [subroutine!]
 	][
 		left: as red-integer! stack/arguments
 		right: left + 1
@@ -259,6 +260,7 @@ integer: context [
 			TYPE_OF(left) = TYPE_INTEGER
 			TYPE_OF(left) = TYPE_CHAR
 		]
+		check-div: [if op = OP_DIV [fire [TO_ERROR(script not-related) words/_divide datatype/push TYPE_INTEGER]]]
 
 		switch TYPE_OF(right) [
 			TYPE_INTEGER TYPE_CHAR [
@@ -269,27 +271,37 @@ integer: context [
 			]
 			TYPE_FLOAT TYPE_PERCENT TYPE_TIME [float/do-math op]
 			TYPE_PAIR
+			TYPE_POINT2D
+			TYPE_POINT3D
 			TYPE_TUPLE [
 				value: left/value						;-- swap them!
 				copy-cell as red-value! right as red-value! left
 				right/header: TYPE_INTEGER
 				right/value: value
 				
-				either TYPE_OF(left) = TYPE_PAIR [
-					if op = OP_DIV [
-						fire [TO_ERROR(script not-related) words/_divide datatype/push TYPE_INTEGER]
+				switch TYPE_OF(left) [
+					TYPE_POINT2D [
+						check-div
+						if op = OP_SUB [point2D/negate  op: OP_ADD]	;-- negates the point now in stack/arguments
+						point2D/do-math op
 					]
-					if op = OP_SUB [
-						pair/negate						;-- negates the pair! now in stack/arguments
-						op: OP_ADD
+					TYPE_POINT3D [
+						check-div
+						if op = OP_SUB [point3D/negate  op: OP_ADD] ;-- negates the point now in stack/arguments
+						point3D/do-math op
 					]
-					pair/do-math op
-				][
-					if any [op = OP_SUB op = OP_DIV][
-						word: either op = OP_SUB [words/_subtract][words/_divide]
-						fire [TO_ERROR(script not-related) word datatype/push TYPE_INTEGER]
+					TYPE_PAIR [
+						check-div
+						if op = OP_SUB [pair/negate  op: OP_ADD] ;-- negates the pair now in stack/arguments
+						pair/do-math op
 					]
-					tuple/do-math op
+					default [
+						if any [op = OP_SUB op = OP_DIV][
+							word: either op = OP_SUB [words/_subtract][words/_divide]
+							fire [TO_ERROR(script not-related) word datatype/push TYPE_INTEGER]
+						]
+						tuple/do-math op
+					]
 				]
 			]
 			TYPE_VECTOR [

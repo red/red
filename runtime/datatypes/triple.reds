@@ -1,7 +1,7 @@
 Red/System [
-	Title:   "Point! datatype runtime functions"
+	Title:   "Triple! datatype runtime functions"
 	Author:  "Nenad Rakocevic"
-	File: 	 %point.reds
+	File: 	 %triple.reds
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
@@ -10,7 +10,7 @@ Red/System [
 	}
 ]
 
-point: context [
+triple: context [
 	verbose: 0
 
 	;-- Actions --
@@ -19,15 +19,15 @@ point: context [
 		proto	[red-value!]
 		spec	[red-value!]
 		type	[integer!]
-		return:	[red-point!]
+		return:	[red-triple!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "point/make"]]
+		#if debug? = yes [if verbose > 0 [print-line "triple/make"]]
 
-		as red-point! 0
+		as red-triple! 0
 	]
 	
 	form: func [
-		point	[red-point!]
+		triple	[red-triple!]
 		buffer	[red-string!]
 		arg		[red-value!]
 		part 	[integer!]
@@ -35,22 +35,22 @@ point: context [
 		/local
 			formed [c-string!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "point/form"]]
+		#if debug? = yes [if verbose > 0 [print-line "triple/form"]]
 		
-		string/concatenate-literal buffer "make point! ["
+		string/concatenate-literal buffer "make triple! ["
 		part: part - 13
 		
-		formed: integer/form-signed point/x
+		formed: integer/form-signed triple/x
 		string/concatenate-literal buffer formed
 		string/append-char GET_BUFFER(buffer) as-integer #" "
 		part: part - 1 - length? formed
 		
-		formed: integer/form-signed point/y
+		formed: integer/form-signed triple/y
 		string/concatenate-literal buffer formed
 		string/append-char GET_BUFFER(buffer) as-integer #" "
 		part: part - 1 - length? formed
 		
-		formed: integer/form-signed point/z
+		formed: integer/form-signed triple/z
 		string/concatenate-literal buffer formed
 		part: part - length? formed
 		
@@ -59,7 +59,7 @@ point: context [
 	]
 	
 	mold: func [
-		point	[red-point!]
+		triple	[red-triple!]
 		buffer	[red-string!]
 		only?	[logic!]
 		all?	[logic!]
@@ -68,16 +68,16 @@ point: context [
 		part 	[integer!]
 		return: [integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "point/mold"]]
+		#if debug? = yes [if verbose > 0 [print-line "triple/mold"]]
 
-		form point buffer arg part
+		form triple buffer arg part
 	]
 	
 	init: does [
 		datatype/register [
-			TYPE_POINT
+			TYPE_TRIPLE
 			TYPE_VALUE
-			"point!"
+			"triple!"
 			;-- General actions --
 			null			;make
 			null			;random

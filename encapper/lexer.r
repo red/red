@@ -8,8 +8,10 @@ REBOL [
 ]
 
 ;-- Patch NEW-LINE and NEW-LINE? natives to accept paren! --
-append first find third :new-line  block! [path! paren!]
-append first find third :new-line? block! paren!
+unless find first find third :new-line block! paren! [
+	append first find third :new-line  block! [path! paren!]
+	append first find third :new-line? block! paren!
+]
 
 
 lexer: context [
@@ -35,6 +37,7 @@ lexer: context [
 	neg?:	no										;-- if TRUE, denotes a negative number value
 	short?: no										;-- shortened IPv6 address flag
 	base:	16										;-- binary base
+	list:	none
 	otag: 	none
 	ot:		none
 	ct:		none
@@ -74,6 +77,7 @@ lexer: context [
 	
 	;-- UTF-8 encoding rules from: http://tools.ietf.org/html/rfc3629#section-4
 	UTF-8-BOM: #{EFBBBF}
+	ws-no-nl:  charset " ^-"
 	ws-ASCII:  charset " ^-^M"						;-- ASCII common whitespaces
 	ws-U+2k:   charset [#"^(80)" - #"^(8A)"]		;-- Unicode spaces in the U+2000-U+200A range
 	UTF8-tail: charset [#"^(80)" - #"^(BF)"]
@@ -114,7 +118,7 @@ lexer: context [
 	caret-Lchar:	charset [#"^(61)" - #"^(7A)"]
 	non-printable-char: charset [#"^(00)" - #"^(1F)"]
 	pair-end:		charset {^{"[]();:/}
-	integer-end:	charset {^{"[]();:xX</}
+	integer-end:	charset {^{"[]();:xX</,}
 	path-end:		charset {^{"[]();}
 	file-end:		charset {^{[]();}
 	date-sep:		charset "/-"
@@ -180,6 +184,7 @@ lexer: context [
 	ws-no-count: [(count?: no) ws (count?: yes)]
 	
 	any-ws: [pos: any ws]
+	any-ws-strict: [pos: any ws-no-nl]
 	
 	symbol-rule: [
 		(stop: [not-word-char | ws-no-count | control-char | tag-char] otag: #"<" ot: none)
@@ -291,7 +296,7 @@ lexer: context [
 		mark: [integer-end | ws-no-count | end | (pos: s throw-error)] :mark
 	]
 
-	tuple-rule: [(type: tuple!) byte dot byte 1 12 [dot byte] e: sticky-word-rule]
+	tuple-rule: [(type: tuple!) byte dot byte 1 10 [dot byte] e: sticky-word-rule]
 	
 	v6-part: [1 4 alphanum (cnt: cnt + 1)]
 	
@@ -469,7 +474,7 @@ lexer: context [
 	]
 	
 	decimal-number-rule: [
-		[dot | comma] digit any [digit | #"'" digit]
+		dot digit any [digit | #"'" digit]
 		opt decimal-exp-rule e: (type: decimal!)
 	]
 
@@ -480,13 +485,29 @@ lexer: context [
 	
 	money-rule: [
 		(neg?: no) opt [#"-" (neg?: yes) | #"+"] 
-		s: opt [3 alpha] #"$" digit any [digit | #"'" digit] opt [[dot | comma] some digit]
+		s: opt [3 alpha] #"$" digit any [digit | #"'" digit] opt [dot some digit]
 		e: (type: money!)
+	]
+	
+	dec-or-int: [
+		s: [decimal-special e: (type: issue!)
+		| integer-number-rule opt [decimal-exp-rule e: (type: decimal!) | decimal-number-rule]]
+	]
+	
+	point-rule: [
+		#"("
+		mark: any-ws-strict dec-or-int any-ws-strict comma :mark
+		(list: make block! 4) 
+		any-ws-strict dec-or-int any-ws-strict comma		(append list load-number copy/part s e)
+		any-ws-strict dec-or-int any-ws-strict				(append list load-number copy/part s e)
+		opt [comma any-ws-strict dec-or-int any-ws-strict	(append list load-number copy/part s e)]
+		(value: append copy [#!point!] list)
+		#")"
 	]
 	
 	block-rule: [#"[" (stack/allocate block! 10) any-value #"]" (value: stack/pop block!)]
 	
-	paren-rule: [#"(" (stack/allocate paren! 10) any-value	#")" (value: stack/pop paren!)]
+	paren-rule: [#"(" (stack/allocate paren! 10) any-value #")" (value: stack/pop paren!)]
 	
 	escaped-char: [
 		"^^(" [
@@ -623,13 +644,7 @@ lexer: context [
 		"#[" any-ws [
 			  "true"  (value: true)
 			| "false" (value: false)
-			| s: [
-				"none!" | "logic!" | "block!" | "integer!" | "word!" 
-				| "set-word!" | "get-word!" | "lit-word!" | "refinement!"
-				| "binary!" | "string!"	| "char!" | "bitset!" | "path!"
-				| "set-path!" | "lit-path!" | "native!"	| "action!"
-				| "issue!" | "paren!" | "function!"
-			] e: (value: get to word! copy/part s e)
+			| s: [3 20 [alpha | #"-"] #"!"] e: (value: rejoin [#!~ copy/part s e])
 			| "none" (value: none)
 		]  any-ws #"]"
 	]
@@ -670,6 +685,7 @@ lexer: context [
 			| slash-rule	  (stack/push to type		 copy/part s e)
 			| file-rule		  (stack/push value)
 			| char-rule		  (stack/push decode-UTF8-char value)
+			| point-rule	  (stack/push value)
 			| block-rule	  (stack/push value)
 			| paren-rule	  (stack/push value)
 			| string-rule	  (stack/push load-string s e)
@@ -745,7 +761,7 @@ lexer: context [
 				all [
 					value? 'red
 					object? red
-					red/script-name
+					find [file! string!] type?/word red/script-name
 					join "^/*** in file: " to-local-file red/script-name
 				]
 				""

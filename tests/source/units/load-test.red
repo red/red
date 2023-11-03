@@ -64,7 +64,7 @@ Red [
 	--test-- "load-44"	--assert "1.0e23"		= mold load "0.99999999999999999999999999999999999999999e+23"
 	--test-- "load-45"	--assert "-9.3e-9"		= mold load "-93E-10"
 	--test-- "load-46"	--assert "0.0"			= mold load "2183167012312112312312.23538020374420446192e-370"
-	--test-- "load-47"	--assert 1.3			== load "1,3"
+	--test-- "load-47"	--assert 1.3			== load "1.3"
 	--test-- "load-48"	--assert 2147483648.0	== load "2147483648"
 	--test-- "load-49"	--assert -2147483649.0	== load "-2147483649"
 	;-- issue #3243

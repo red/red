@@ -794,6 +794,7 @@ block: context [
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
+		evt?	[logic!]
 		return:	[red-value!]
 		/local
 			int  [red-integer!]
@@ -819,7 +820,7 @@ block: context [
 				actions/poke as red-series! element 2 value null
 				value
 			][
-				either type = TYPE_WORD [
+				either all [type = TYPE_WORD TYPE_OF(parent) <> TYPE_HASH][
 					select-word parent as red-word! element case?
 				][
 					select parent element null yes case? no no null null no no
@@ -1650,10 +1651,10 @@ block: context [
 
 		type1: TYPE_OF(blk1)
 		type2: TYPE_OF(blk2)
-		if all [
-			type2 <> TYPE_BLOCK
-			type2 <> TYPE_HASH
-		][ERR_EXPECT_ARGUMENT(type2 2)]
+		switch type2 [
+			TYPE_ANY_BLOCK	[0]
+			default 		[fire [TO_ERROR(script invalid-arg) blk2]]
+		]
 
 		s: GET_BUFFER(blk1)
 		h1: as int-ptr! s/offset + blk1/head

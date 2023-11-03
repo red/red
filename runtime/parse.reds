@@ -29,14 +29,14 @@ parser: context [
 	
 	#define PARSE_PUSH_INPUTPOS  [
 		in: as input! ALLOC_TAIL(rules)
-		in/header: TYPE_POINT
+		in/header: TYPE_TRIPLE
 		in/node:   input/node
 		;in/size:  input/head
 	]
 	
 	#define PARSE_PUSH_POSITIONS [
 		p: as positions! ALLOC_TAIL(rules)
-		p/header: TYPE_POINT
+		p/header: TYPE_TRIPLE
 		p/rule:	  (as-integer cmd - block/rs-head rule) >> 4	;-- save cmd position
 		p/input:  input/head									;-- save input position
 		p/sub:	  len											;-- default value for sub-rule type
@@ -901,7 +901,7 @@ parser: context [
 		saved?: cnt <> 0
 		if saved? [
 			p: as positions! ALLOC_TAIL(rules)
-			p/header: TYPE_POINT
+			p/header: TYPE_TRIPLE
 			p/input:  series/head
 			p/rule:   rules/head
 			
@@ -1088,6 +1088,8 @@ parser: context [
 					][
 						loop?: no
 						ended?: cmd = tail
+ 						cmd: block/rs-head rule			;-- set it just for the pop event needs
+						PARSE_TRACE(_pop)
 						
 						s: GET_BUFFER(rules)
 						copy-cell s/tail - 1 as red-value! rule
@@ -1096,7 +1098,6 @@ parser: context [
 						
 						cmd: (block/rs-head rule) + p/rule
 						tail: block/rs-tail rule
-						PARSE_TRACE(_pop)
 						s/tail: s/tail - 3
 						value: s/tail - 1
 						assert s/offset <= value
@@ -1115,7 +1116,7 @@ parser: context [
 						block/rs-append rules cmd
 					][
 						t: as triple! ALLOC_TAIL(rules)
-						t/header: TYPE_POINT
+						t/header: TYPE_TRIPLE
 						t/min:	  min
 						t/max:	  max
 						t/state:  1
@@ -1333,6 +1334,8 @@ parser: context [
 											s-top: stack/top
 											value: eval cmd no saved?
 											PARSE_TRACE(_paren)
+											s: GET_BUFFER(rules)	;-- refresh pointers after possible relocation in eval
+											p: as positions! s/tail - 2
 										]
 										TYPE_WORD [
 											value: _context/get as red-word! cmd

@@ -23,17 +23,23 @@ op: context [
 			s	  [series!]
 			arity [integer!]
 			sym	  [integer!]
+			left? [logic!]
 	][
 		s: as series! spec/value
 		value: s/offset
 		tail:  s/tail
 		arity: 0
+		left?: no
 		
 		while [value < tail][
 			switch TYPE_OF(value) [
-				TYPE_WORD
+				TYPE_WORD [
+					left?: yes
+					arity: arity + 1
+				]
 				TYPE_GET_WORD
 				TYPE_LIT_WORD [
+					unless left? [return false]			;-- get/lit-arg on left operand not supported
 					arity: arity + 1
 				]
 				TYPE_REFINEMENT [

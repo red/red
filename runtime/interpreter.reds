@@ -592,8 +592,8 @@ interpreter: context [
 			obj	  [red-object!]
 			w	  [red-word!]
 			ser	  [red-series!]
-			type idx [integer!]
-			tail? [logic!]
+			type idx   [integer!]
+			tail? evt? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "eval: path"]]
 		
@@ -659,7 +659,20 @@ interpreter: context [
 			type: TYPE_OF(parent)
 			tail?: item + 1 = tail
 			arg: either all [set? tail?][stack/arguments][null]
-			parent: actions/eval-path parent value arg path gparent p-item idx case? get? tail?
+			evt?: no
+
+			if all [set?  head + 2 <= item  item + 1 = tail][ ;-- check only if set-path of length > 2
+				ser: as red-series! gparent
+				evt?: either ser = null [no][
+					obj: as red-object! ser
+					switch TYPE_OF(ser) [
+						TYPE_OBJECT [all [obj/on-set <> null TYPE_OF(p-item) = TYPE_WORD]]
+						TYPE_ANY_BLOCK   [gparent <> null]
+						default			 [no]
+					]
+				]
+			]
+			parent: actions/eval-path parent value arg path gparent p-item idx case? get? tail? evt?
 
 			if all [not get? not set?][
 				switch TYPE_OF(parent) [
@@ -730,7 +743,9 @@ interpreter: context [
 					]
 					FETCH_GET_WORD [
 						#if debug? = yes [if verbose > 0 [log "fetching argument as-is"]]
-						stack/push pc
+						if tracing? [fire-event EVT_FETCH code pc pc pc]
+						new: stack/push pc
+						if tracing? [fire-event EVT_PUSH code pc pc new]
 						pc: pc + 1
 					]
 					FETCH_LIT_WORD [
@@ -741,9 +756,17 @@ interpreter: context [
 								eval as red-block! pc yes
 								stack/unwind
 							]
-							TYPE_GET_WORD [copy-cell _context/get as red-word! pc stack/push*]
+							TYPE_GET_WORD [
+								if tracing? [fire-event EVT_FETCH code pc pc pc]
+								new: copy-cell _context/get as red-word! pc stack/push*
+								if tracing? [fire-event EVT_PUSH code pc pc new]
+							]
 							TYPE_GET_PATH [eval-path pc pc + 1 end code no yes yes no]
-							default		  [stack/push pc]
+							default		  [
+								if tracing? [fire-event EVT_FETCH code pc pc pc]
+								new: stack/push pc
+								if tracing? [fire-event EVT_PUSH code pc pc new]
+							]
 						]
 						pc: pc + 1
 						;if tracing? [fire-event EVT_PUSH code pc pc value yes]
@@ -1384,7 +1407,7 @@ interpreter: context [
 			
 			while [value < tail][
 				#if debug? = yes [if verbose > 0 [log "root loop..."]]
-				near/head: (as-integer value - head) >> 4
+				near/head: (as-integer value - head) >> 4 + code/head
 				value: eval-expression value tail code no no no
 				if value + 1 <= tail [stack/reset]
 			]

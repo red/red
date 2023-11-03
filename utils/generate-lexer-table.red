@@ -69,27 +69,27 @@ context [
 		S_URL				TYPE_URL			;-- 53
 		S_EMAIL				TYPE_EMAIL			;-- 54
 		S_REF				TYPE_REF			;-- 55
-		S_IPV6				TYPE_IPV6			;-- 56
-		S_EQUAL				TYPE_WORD			;--	57
-		S_PATH				TYPE_PATH			;-- 58
-		S_PATH_NUM			TYPE_INTEGER		;--	59
-		S_PATH_W1ST			TYPE_WORD			;-- 60
-		S_PATH_WORD			TYPE_WORD			;-- 61
-		S_PATH_SHARP		TYPE_ISSUE			;--	62
-		S_PATH_SIGN			TYPE_WORD			;--	63
-		--EXIT_STATES--		-					;-- 64
-		T_EOF				-					;-- 65
-		T_ERROR				TYPE_ERROR			;-- 66
-		T_BLK_OP			-					;-- 67
-		T_BLK_CL			-					;-- 68
-		T_PAR_OP			-					;-- 69
-		T_PAR_CL			-					;-- 70
-		T_MSTR_OP			-					;-- 71
-		T_MSTR_CL			TYPE_STRING			;-- 72
-		T_MAP_OP			-					;-- 73
-		T_PATH				-					;-- 74
-		T_CONS_MK			-					;-- 75
-		T_CMT				-					;-- 76
+		S_EQUAL				TYPE_WORD			;-- 56
+		S_PATH				TYPE_PATH			;-- 57
+		S_PATH_NUM			TYPE_INTEGER		;--	58
+		S_PATH_W1ST			TYPE_WORD			;-- 59
+		S_PATH_WORD			TYPE_WORD			;-- 60
+		S_PATH_SHARP		TYPE_ISSUE			;--	61
+		S_PATH_SIGN			TYPE_WORD			;--	62
+		--EXIT_STATES--		-					;-- 63
+		T_EOF				-					;-- 64
+		T_ERROR				TYPE_ERROR			;-- 65
+		T_BLK_OP			-					;-- 66
+		T_BLK_CL			-					;-- 67
+		T_PAR_OP			-					;-- 68
+		T_PAR_CL			-					;-- 69
+		T_MSTR_OP			-					;-- 70
+		T_MSTR_CL			TYPE_STRING			;-- 71
+		T_MAP_OP			-					;-- 72
+		T_PATH				-					;-- 73
+		T_CONS_MK			-					;-- 74
+		T_CMT				-					;-- 75
+		T_COMMA				-					;-- 76
 		T_STRING			TYPE_STRING			;-- 77
 		T_WORD				TYPE_WORD			;-- 78
 		T_ISSUE				TYPE_ISSUE			;-- 79
@@ -112,7 +112,6 @@ context [
 		T_HEX				TYPE_INTEGER		;-- 96
 		T_RAWSTRING			TYPE_STRING			;-- 97
 		T_REF				TYPE_REF			;-- 98
-		T_IPV6				TYPE_IPV6			;-- 99
 	]
 
 	CSV-table: %../docs/lexer/lexer-FSM.csv

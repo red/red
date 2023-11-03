@@ -86,7 +86,7 @@ draw-begin-d2d: func [
 
 	text: as red-string! values + FACE_OBJ_TEXT
 	if TYPE_OF(text) = TYPE_STRING [
-		pos/x: 0 pos/y: 0
+		point2D/make-at as red-value! :pos F32_0 F32_0
 		OS-draw-text-d2d ctx pos as red-string! get-face-obj hWnd yes
 	]
 ]

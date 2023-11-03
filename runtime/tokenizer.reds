@@ -90,6 +90,8 @@ tokenizer: context [
 			p = tail
 		]
 		cur/1: #"^@"									;-- replace the byte with null so to-float can use it as end of input
+
+		unless lexer/scan-float s0 s0 + len [error/value: -1 return 1.#NaN]
 		string/to-float s0 len error
 	]
 

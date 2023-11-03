@@ -151,7 +151,7 @@ get-child-from-xy: func [
 get-text-size: func [
 	face 	[red-object!]		; TODO: implement face-dependent measurement for Mac
 	str		[red-string!]
-	pair	[red-pair!]
+	pt		[red-point2D!]
 	return: [tagSIZE]
 	/local
 		values	[red-value!]
@@ -192,9 +192,9 @@ get-text-size: func [
 
 	size/width: as-integer ceil as-float rc/x
 	size/height: as-integer ceil as-float rc/y
-	if pair <> null [
-		pair/x: size/width
-		pair/y: size/height
+	if pt <> null [
+		pt/x: rc/x
+		pt/y: rc/y
 	]
 	CFRelease cf-str
 	CFRelease attr
@@ -442,51 +442,6 @@ get-logic-state: func [
 	]
 ]
 
-get-flags: func [
-	field	[red-block!]
-	return: [integer!]									;-- return a bit-array of all flags
-	/local
-		word  [red-word!]
-		len	  [integer!]
-		sym	  [integer!]
-		flags [integer!]
-][
-	switch TYPE_OF(field) [
-		TYPE_BLOCK [
-			word: as red-word! block/rs-head field
-			len: block/rs-length? field
-			if zero? len [return 0]
-		]
-		TYPE_WORD [
-			word: as red-word! field
-			len: 1
-		]
-		default [return 0]
-	]
-	flags: 0
-
-	loop len [
-		sym: symbol/resolve word/symbol
-		case [
-			sym = all-over	 [flags: flags or FACET_FLAGS_ALL_OVER]
-			sym = resize	 [flags: flags or FACET_FLAGS_RESIZE]
-			sym = no-title	 [flags: flags or FACET_FLAGS_NO_TITLE]
-			sym = no-border  [flags: flags or FACET_FLAGS_NO_BORDER]
-			sym = no-min	 [flags: flags or FACET_FLAGS_NO_MIN]
-			sym = no-max	 [flags: flags or FACET_FLAGS_NO_MAX]
-			sym = no-buttons [flags: flags or FACET_FLAGS_NO_BTNS]
-			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
-			sym = popup		 [flags: flags or FACET_FLAGS_POPUP]
-			sym = tri-state  [flags: flags or FACET_FLAGS_TRISTATE]
-			sym = scrollable [flags: flags or FACET_FLAGS_SCROLLABLE]
-			sym = password	 [flags: flags or FACET_FLAGS_PASSWORD]
-			true			 [fire [TO_ERROR(script invalid-arg) word]]
-		]
-		word: word + 1
-	]
-	flags
-]
-
 get-position-value: func [
 	pos		[red-float!]
 	maximun [float!]
@@ -589,9 +544,14 @@ change-size: func [
 		rc		[NSRect!]
 		frame	[NSRect! value]
 		h		[float32!]
+		pt		[red-point2D!]
+		sx sy	[float32!]
 ][
-	rc: make-rect size/x size/y 0 0
-	if all [any [type = button type = toggle] size/y > 32][
+	rc: make-rect 1 1 0 0
+	GET_PAIR_XY(size rc/x rc/y)
+	SET_PAIR_SIZE_FLAG(hWnd size)
+
+	if all [any [type = button type = toggle] rc/y > as float32! 32.0][
 		objc_msgSend [hWnd sel_getUid "setBezelStyle:" NSRegularSquareBezelStyle]
 	]
 	either type = window [
@@ -822,10 +782,12 @@ change-offset: func [
 	type [integer!]
 	/local
 		rc [NSRect!]
+		pt [red-point2D!]
 ][
-	rc: make-rect pos/x pos/y 0 0
+	rc: make-rect 1 1 0 0
+	GET_PAIR_XY(pos rc/x rc/y)
 	either type = window [
-		rc/y: as float32! screen-size-y - pos/y
+		rc/y: (as float32! screen-size-y) - rc/y
 		objc_msgSend [hWnd sel_getUid "setFrameTopLeftPoint:" rc/x rc/y]
 	][
 		objc_msgSend [hWnd sel_getUid "setFrameOrigin:" rc/x rc/y]
@@ -1921,7 +1883,7 @@ OS-make-view: func [
 		type	[red-word!]
 		str		[red-string!]
 		tail	[red-string!]
-		offset	[red-pair!]
+		offset	[red-point2D!]
 		size	[red-pair!]
 		data	[red-block!]
 		int		[red-integer!]
@@ -1944,6 +1906,7 @@ OS-make-view: func [
 		rc		[NSRect!]
 		flt		[float!]
 		p		[ext-class!]
+		pt		[red-point2D!]
 ][
 	stack/mark-native words/_body
 
@@ -1951,7 +1914,7 @@ OS-make-view: func [
 
 	type:	  as red-word!		values + FACE_OBJ_TYPE
 	str:	  as red-string!	values + FACE_OBJ_TEXT
-	offset:   as red-pair!		values + FACE_OBJ_OFFSET
+	offset:   as red-point2D!	values + FACE_OBJ_OFFSET
 	size:	  as red-pair!		values + FACE_OBJ_SIZE
 	show?:	  as red-logic!		values + FACE_OBJ_VISIBLE?
 	open?:	  as red-logic!		values + FACE_OBJ_ENABLED?
@@ -1964,6 +1927,8 @@ OS-make-view: func [
 	bits: 	  get-flags as red-block! values + FACE_OBJ_FLAGS
 	sym: 	  symbol/resolve type/symbol
 	p:		  null
+
+	if TYPE_OF(offset) = TYPE_PAIR [as-point2D as red-pair! offset]
 
 	case [
 		any [
@@ -2048,10 +2013,14 @@ OS-make-view: func [
 	][
 		CFString("")
 	]
-	rc: make-rect offset/x offset/y size/x size/y
+	rc: make-rect 1 1 1 1
+	GET_PAIR_XY(size rc/w rc/h)
+	rc/x: offset/x
+	rc/y: offset/y
+	
 	case [
 		sym = window [
-			rc: make-rect offset/x screen-size-y - offset/y - size/y size/x size/y
+			rc/y: (as float32! screen-size-y) - rc/y - rc/h
 			init-window face obj caption bits rc
 		]
 		sym = drop-list [
@@ -2140,8 +2109,7 @@ OS-make-view: func [
 			if bits and FACET_FLAGS_MODAL <> 0 [vector/rs-append-int active-wins obj]
 		]
 		sym = slider [
-			len: either size/x > size/y [size/x][size/y]
-			flt: as-float len
+			either rc/w > rc/h [flt: as-float rc/w][flt: as-float rc/h]
 			objc_msgSend [obj sel_getUid "setMaxValue:" flt]
 			flt: get-position-value as red-float! data flt
 			objc_msgSend [obj sel_getUid "setDoubleValue:" flt]
@@ -2150,7 +2118,7 @@ OS-make-view: func [
 		]
 		sym = progress [
 			objc_msgSend [obj sel_getUid "setIndeterminate:" false]
-			if size/y > size/x [
+			if rc/h > rc/w [
 				rc/x: as float32! -90.0
 				objc_msgSend [obj sel_getUid "setBoundsRotation:" rc/x]
 			]
@@ -2186,6 +2154,8 @@ OS-make-view: func [
 			]
 		]
 	]
+
+	SET_PAIR_SIZE_FLAG(obj size)
 
 	change-selection obj as red-integer! values + FACE_OBJ_SELECTED sym
 	change-para obj face as red-object! values + FACE_OBJ_PARA font sym

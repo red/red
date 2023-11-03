@@ -261,12 +261,28 @@ Red [
 	
 ===end-group===
 
+===start-group=== "pair - math with other types"
+
+	--test-- "pmo-1"		--assert (1x1 / (1.#inf,0)) = ((1, 1) / (1.#inf,0))
+	--test-- "pmo-2"		--assert (1x1 * (1.#inf,0)) = ((1, 1) * (1.#inf,0))
+	--test-- "pmo-3"		--assert (1x1 * (1e30,0))   = ((1, 1) * (1e30,0))
+	
+===end-group===
+
 ===start-group=== "pair - comparison"
 
 	--test-- "pcomp-1"		--assert equal? 1x1 1x1
 	--test-- "pcomp-2"		--assert not-equal? 1x1 1x0
 	--test-- "pcomp-3"		--assert not-equal? 1x1 0x1
 	--test-- "pcomp-4"		--assert not-equal? 1x1 0x0
+	
+	--test-- "pcomp-5"		--assert  0x0  = (0,0)
+	--test-- "pcomp-6"		--assert (0,0) =  0x0
+	--test-- "pcomp-7"		--assert not (0.5,1.5) = 0x1
+	--test-- "pcomp-8"		--assert not 0x1 = (0.5,1.5)
+	
+	--test-- "pcomp-9"		--assert (0,0) == min 0x0 (1.#inf,1.#inf)
+	--test-- "pcomp-10"		--assert (10,11) == max 10x2 (1,11)
 
 ===end-group===
 

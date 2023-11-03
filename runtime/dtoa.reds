@@ -1429,7 +1429,7 @@ dtoa: context [
 		ndigits: as-integer s - s1
 		fraclen: 0
 
-		if any [c = #"." c = #","] [
+		if c = #"." [
 			s: s + 1
 			if all [ndigits = 1 s/1 = #"#"][
 				c: s/2

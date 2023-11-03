@@ -460,6 +460,7 @@ error: context [
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
+		evt?	[logic!]
 		return:	[red-value!]
 		/local
 			w	[red-word!]
@@ -470,7 +471,7 @@ error: context [
 		if all [TYPE_OF(w) = TYPE_WORD words/stack = symbol/resolve w/symbol][
 			fire [TO_ERROR(script invalid-path-set) path]
 		]
-		object/eval-path parent element value path gparent p-item index case? get? tail?
+		object/eval-path parent element value path gparent p-item index case? get? tail? evt?
 	]
 	
 	compare: func [

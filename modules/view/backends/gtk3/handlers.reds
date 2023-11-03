@@ -191,6 +191,8 @@ render-text: func [
 		y		[float!]
 		rect	[tagRECT value]
 		lrect	[tagRECT value]
+		pt		[red-point2D!]
+		sx sy	[integer!]
 ][
 	text: as red-string! values + FACE_OBJ_TEXT
 	if TYPE_OF(text) <> TYPE_STRING [exit]
@@ -233,14 +235,15 @@ render-text: func [
 	ly: (pango_layout_get_line_count layout) * lrect/height
 	lx: lrect/width
 
+	GET_PAIR_XY_INT(size sx sy)
 	case [
-		hsym = _para/center [x: (as-float (size/x - lx)) / 2.0]
-		hsym = _para/right [x: as-float (size/x - lx)]
+		hsym = _para/center [x: (as-float (sx - lx)) / 2.0]
+		hsym = _para/right [x: as-float (sx - lx)]
 		true [x: 0.0]
 	]
 	case [
-		vsym = _para/middle [y: (as-float (size/y - ly)) / 2.0]
-		vsym = _para/bottom [y: as-float (size/y - ly)]
+		vsym = _para/middle [y: (as-float (sy - ly)) / 2.0]
+		vsym = _para/bottom [y: as-float (sy - ly)]
 		true [y: 0.0]
 	]
 
@@ -276,6 +279,8 @@ base-draw: func [
 		css		[GString!]
 		buf		[handle!]
 		cr		[handle!]
+		pt		[red-point2D!]
+		sx sy	[integer!]
 ][
 	face: get-face-obj widget
 	values: object/get-values face
@@ -292,6 +297,7 @@ base-draw: func [
 		not bool/value
 	][return EVT_DISPATCH]
 
+	GET_PAIR_XY_INT(size sx sy)
 	cr: draw-cr
 	buf: null
 	either all [
@@ -305,24 +311,26 @@ base-draw: func [
 				gtk_widget_get_style_context widget
 				cr
 				0.0 0.0
-				as float! size/x as float! size/y
+				as float! sx as float! sy
 	][
 		if sym = base [
 			buf: GET-BASE-BUFFER(widget)
 			assert buf <> null
 			cr: cairo_create buf
-			cairo_set_operator cr CAIRO_OPERATOR_CLEAR
+			cairo_set_operator cr CAIRO_OPERATOR_CLEAR	;-- make it fully transparent
 			cairo_paint cr
+			cairo_set_operator cr CAIRO_OPERATOR_OVER
 		]
 	]
 
 	if TYPE_OF(img) = TYPE_IMAGE [
-		GDK-draw-image null cr OS-image/to-pixbuf img 0 0 size/x size/y
+		GDK-draw-image null cr OS-image/to-pixbuf img 0 0 sx sy
 	]
 
 	case [
 		sym = base [render-text cr face size values]
 		sym = rich-text [
+			pos/header: TYPE_PAIR
 			pos/x: 0 pos/y: 0
 			draw-text-box cr :pos get-face-obj widget yes
 		]
@@ -431,7 +439,7 @@ base-event-after: func [
 		values	[red-value!]
 		type	[red-word!]
 		color	[red-tuple!]
-		offset	[red-pair!]
+		offset	[red-point2D!]
 		size	[red-pair!]
 		parent	[red-object!]
 		sym		[integer!]
@@ -440,7 +448,7 @@ base-event-after: func [
 		head	[red-object!]
 		tail	[red-object!]
 		target	[handle!]
-		offset2	[red-pair!]
+		offset2	[red-point2D!]
 		size2	[red-pair!]
 		x dx w	[float!]
 		y dy h	[float!]
@@ -449,6 +457,9 @@ base-event-after: func [
 		button	[GdkEventButton!]
 		key		[GdkEventKey!]
 		win		[handle!]
+		pt		[red-point2D!]
+		sx sy	[float32!]
+		sx2 sy2 [float32!]
 ][
 	etype: event/type
 	unless any [
@@ -465,7 +476,7 @@ base-event-after: func [
 	values: object/get-values face
 	type: as red-word! values + FACE_OBJ_TYPE
 	color: as red-tuple! values + FACE_OBJ_COLOR
-	offset: as red-pair! values + FACE_OBJ_OFFSET
+	offset: as red-point2D! values + FACE_OBJ_OFFSET
 	size: as red-pair! values + FACE_OBJ_SIZE
 	parent: as red-object! values + FACE_OBJ_PARENT
 	sym: symbol/resolve type/symbol
@@ -474,6 +485,7 @@ base-event-after: func [
 		sym = base
 		transparent-base? color
 	][
+		GET_PAIR_XY(size sx sy)
 		hparent: get-face-handle parent
 		pane: as red-block! (object/get-values parent) + FACE_OBJ_PANE
 		head: as red-object! block/rs-head pane
@@ -487,21 +499,22 @@ base-event-after: func [
 					if null? target [
 						continue
 					]
-					offset2: as red-pair! (object/get-values tail) + FACE_OBJ_OFFSET
+					offset2: as red-point2D! (object/get-values tail) + FACE_OBJ_OFFSET
 					size2: as red-pair! (object/get-values tail) + FACE_OBJ_SIZE
+					GET_PAIR_XY(size2 sx2 sy2)
 					unless all [
-						offset/x + size/x > offset2/x
-						offset2/x + size2/x > offset/x
-						offset/y + size/y > offset2/y
-						offset2/y + size2/y > offset/y
+						offset/x + sx > offset2/x
+						offset2/x + sx2 > offset/x
+						offset/y + sy > offset2/y
+						offset2/y + sy2 > offset/y
 					][continue]
 					case [
 						etype = GDK_SCROLL [
 							scroll: as GdkEventScroll! event
 							dx: as float! offset/x - offset2/x
 							dy: as float! offset/y - offset2/y
-							w: as float! size2/x
-							h: as float! size2/y
+							w: as float! sx2
+							h: as float! sy2
 							x: scroll/x + dx
 							y: scroll/y + dy
 							if any [x < 0.0 y < 0.0 x > w y > h][continue]
@@ -516,8 +529,8 @@ base-event-after: func [
 							motion: as GdkEventMotion! event
 							dx: as float! offset/x - offset2/x
 							dy: as float! offset/y - offset2/y
-							w: as float! size2/x
-							h: as float! size2/y
+							w: as float! sx2
+							h: as float! sy2
 							x: motion/x + dx
 							y: motion/y + dy
 							if any [x < 0.0 y < 0.0 x > w y > h][continue]
@@ -537,8 +550,8 @@ base-event-after: func [
 							button: as GdkEventButton! event
 							dx: as float! offset/x - offset2/x
 							dy: as float! offset/y - offset2/y
-							w: as float! size2/x
-							h: as float! size2/y
+							w: as float! sx2
+							h: as float! sy2
 							x: button/x + dx
 							y: button/y + dy
 							if any [x < 0.0 y < 0.0 x > w y > h][continue]
@@ -698,6 +711,9 @@ window-size-allocate: func [
 	][
 		sz/x: rect/width
 		sz/y: rect/height
+		if null? GET-PAIR-SIZE(widget) [
+			as-point2D sz
+		]
 		either null? GET-RESIZING(widget) [
 			make-event widget 0 EVT_SIZE
 		][

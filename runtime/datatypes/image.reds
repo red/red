@@ -149,6 +149,8 @@ image: context [
 			nbuf	[int-ptr!]
 			neg-x?	[logic!]
 			neg-y?	[logic!]
+			pt		[red-point2D!]
+			fx fy	[float32!]
 	][
 		w: IMAGE_WIDTH(src/size)
 		h: IMAGE_HEIGHT(src/size)
@@ -157,8 +159,7 @@ image: context [
 			vertex/v1x: as float32! 0.0
 			vertex/v1y: as float32! 0.0
 		][
-			vertex/v1x: as float32! start/x
-			vertex/v1y: as float32! start/y
+			GET_PAIR_XY(start vertex/v1x vertex/v1y)
 		]
 		unless null? crop1 [
 			crop2: crop1 + 1
@@ -188,37 +189,33 @@ image: context [
 				vertex/v4y: vertex/v1y + as float32! h1
 			]
 			start + 1 = end [					;-- two control points
-				vertex/v2x: as float32! end/x
+				GET_PAIR_XY(end fx fy)
+				vertex/v2x: fx
 				vertex/v2y: vertex/v1y
-				vertex/v3x: as float32! end/x
-				vertex/v3y: as float32! end/y
+				vertex/v3x: fx
+				vertex/v3y: fy
 				vertex/v4x: vertex/v1x
-				vertex/v4y: as float32! end/y
+				vertex/v4y: fy
 			]
 			start + 2 = end [					;-- three control points
 				pos: start + 1
-				vertex/v2x: as float32! pos/x
-				vertex/v2y: as float32! pos/y
+				GET_PAIR_XY(pos vertex/v2x vertex/v2y)
 				pos: pos + 1
-				vertex/v4x: as float32! pos/x
-				vertex/v4y: as float32! pos/y
+				GET_PAIR_XY(pos vertex/v4x vertex/v4y)
 				vector2d/from-points vec1 vertex/v1x vertex/v1y vertex/v2x vertex/v2y
 				vector2d/from-points vec2 vertex/v1x vertex/v1y vertex/v4x vertex/v4y
 				vec3/x: vec1/x + vec2/x
 				vec3/y: vec1/y + vec2/y
-				vertex/v3x: as float32! vec3/x + vertex/v1x
-				vertex/v3y: as float32! vec3/y + vertex/v1y
+				vertex/v3x: as float32! vec3/x + as float! vertex/v1x
+				vertex/v3y: as float32! vec3/y + as float! vertex/v1y
 			]
 			start + 3 = end [								;-- four control points
 				pos: start + 1
-				vertex/v2x: as float32! pos/x
-				vertex/v2y: as float32! pos/y
+				GET_PAIR_XY(pos vertex/v2x vertex/v2y)
 				pos: pos + 1
-				vertex/v4x: as float32! pos/x
-				vertex/v4y: as float32! pos/y
+				GET_PAIR_XY(pos vertex/v4x vertex/v4y)
 				pos: pos + 1
-				vertex/v3x: as float32! pos/x
-				vertex/v3y: as float32! pos/y
+				GET_PAIR_XY(pos vertex/v3x vertex/v3y)
 			]
 			true [
 				dst/header: TYPE_NONE
@@ -843,6 +840,7 @@ image: context [
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
+		evt?	[logic!]
 		return:	[red-value!]
 		/local
 			set? [logic!]

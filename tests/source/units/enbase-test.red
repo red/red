@@ -22,4 +22,17 @@ Red [
 
 ===end-group===
 
+===start-group=== "enbase issue"
+
+	--test-- "enbase issue #5404"
+		#either config/target <> 'ARM [
+			cnt: 1e6
+		][
+			cnt: 1e5
+		]
+		--assert [{6C6F72656D20697073756D20646F6C6F722073697420616D6574}] = unique loop cnt [append [] enbase/base to #{} {lorem ipsum dolor sit amet} 16]
+		recycle		;-- clean up memory
+
+===end-group===
+
 ~~~end-file~~~

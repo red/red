@@ -89,10 +89,10 @@ emitter: make-profilable context [
 			blk
 		]
 	
-		make-boolean: does [
+		make-boolean: func [/opt op [word!]][
 			start
 			reduce [
-				target/emit-boolean-switch
+				target/emit-boolean-switch op
 				stop
 			]
 		]
@@ -194,8 +194,12 @@ emitter: make-profilable context [
 		if all [with block? op][op: op/1]
 		
 		if find target/comparison-op op [
-			set [offset body] chunks/make-boolean
-			branch/over/on/adjust/parity body reduce [op] offset/1 use-parity?
+			either use-parity? [
+				set [offset body] chunks/make-boolean none
+				branch/over/on/adjust/parity body reduce [op] offset/1 yes
+			][
+				set [offset body] chunks/make-boolean/opt op
+			]
 			either with [chunks/join chunk body][merge body]
 		]
 	]

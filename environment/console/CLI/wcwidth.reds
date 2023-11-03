@@ -1,7 +1,7 @@
 Red/System [
 	Title:	"Implementation of wcwidth() and wcswidth() for Unicode."
 	Author: "Xie Qingtian"
-	File: 	%win32.reds
+	File: 	%wcwidth.reds
 	Tabs: 	4
 	Rights: "Copyright (C) 2014-2015 Xie Qingtian. All rights reserved."
 	License: {

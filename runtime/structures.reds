@@ -221,7 +221,7 @@ red-char!: alias struct! [
 	_pad2	[integer!]	
 ]
 
-red-point!: alias struct! [
+red-triple!: alias struct! [
 	header 	[integer!]								;-- cell header
 	x		[integer!]								;-- stores an integer! or float32! value
 	y		[integer!]								;-- stores an integer! or float32! value
@@ -231,8 +231,22 @@ red-point!: alias struct! [
 red-pair!: alias struct! [
 	header 	[integer!]								;-- cell header
 	padding	[integer!]								;-- align value on 64-bit boundary
-	x		[integer!]								;-- 32-bit signed integer or float32!
-	y		[integer!]								;-- 32-bit signed integer or float32!
+	x		[integer!]								;-- 32-bit signed integer
+	y		[integer!]								;-- 32-bit signed integer
+]
+
+red-point2D!: alias struct! [
+	header 	[integer!]								;-- cell header
+	x		[float32!]								;-- 32-bit signed float32!
+	y		[float32!]								;-- 32-bit signed float32!
+	padding	[integer!]								;-- align value on 64-bit boundary
+]
+
+red-point3D!: alias struct! [
+	header 	[integer!]								;-- cell header
+	x		[float32!]								;-- 32-bit signed float32!
+	y		[float32!]								;-- 32-bit signed float32!
+	z		[float32!]								;-- 32-bit signed float32!
 ]
 
 red-action!: alias struct! [

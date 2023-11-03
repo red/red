@@ -283,7 +283,7 @@ draw-begin: func [
 
 		text: as red-string! values + FACE_OBJ_TEXT
 		if TYPE_OF(text) = TYPE_STRING [
-			pos/x: 0 pos/y: 0
+			point2D/make-at as red-value! :pos F32_0 F32_0
 			font: as red-object! values + FACE_OBJ_FONT
 			font-clr?: no
 			if TYPE_OF(font) = TYPE_OBJECT [
@@ -417,7 +417,11 @@ OS-draw-pen: func [
 		pen		[ptr-value!]
 		dc		[ID2D1DeviceContext]
 ][
-	if off? [ctx/pen-type: DRAW_BRUSH_NONE exit]
+	if off? [
+		ctx/pen-type: DRAW_BRUSH_NONE
+		ctx/prev-pen-type: DRAW_BRUSH_NONE
+		exit
+	]
 
 	unless ctx/font-color? [ctx/font-color: color]	;-- if no font, use pen color for text color
 	either ctx/pen-type = DRAW_BRUSH_COLOR [
@@ -434,6 +438,10 @@ OS-draw-pen: func [
 		ctx/pen: as this! pen/value
 		ctx/pen-color: color
 		ctx/pen-type: DRAW_BRUSH_COLOR
+	]
+	if ctx/pen-width = F32_0 [
+		ctx/prev-pen-type: ctx/pen-type
+		ctx/pen-type: DRAW_BRUSH_NONE
 	]
 ]
 
@@ -453,6 +461,8 @@ OS-draw-text: func [
 		release? [logic!]
 		unk		[IUnknown]
 		flags	[integer!]
+		x y		[float32!]
+		pt		[red-point2D!]
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
@@ -477,7 +487,8 @@ OS-draw-text: func [
 	]
 	txt-box-draw-background ctx/target pos layout
 	flags: either win8+? [4][0]	;-- 4: D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT
-	dc/DrawTextLayout this as float32! pos/x as float32! pos/y layout ctx/pen flags
+	GET_PAIR_XY(pos x y)
+	dc/DrawTextLayout this x y layout ctx/pen flags
 	if color? [
 		brush/SetColor pen to-dx-color ctx/pen-color null
 	]
@@ -583,9 +594,9 @@ OS-draw-shape-moveto: func [
 		gsink	[ID2D1GeometrySink]
 		vpoint	[POINT_2F value]
 		figure	[integer!]
+		pt		[red-point2D!]
 ][
-	dx: as float32! coord/x
-	dy: as float32! coord/y
+	GET_PAIR_XY(coord dx dy)
 	either rel? [
 		ctx/sub/last-pt-x: ctx/sub/last-pt-x + dx
 		ctx/sub/last-pt-y: ctx/sub/last-pt-y + dy
@@ -617,6 +628,7 @@ OS-draw-shape-line: func [
 		x		[float32!]
 		y		[float32!]
 		pair	[red-pair!]
+		pt		[red-point2D!]
 ][
 	sthis: as this! ctx/sub/sink
 	gsink: as ID2D1GeometrySink sthis/vtbl
@@ -625,8 +637,7 @@ OS-draw-shape-line: func [
 	dy: ctx/sub/last-pt-y
 	pair: start
 	while [pair <= end][
-		x: as float32! pair/x
-		y: as float32! pair/y
+		GET_PAIR_XY(pair x y)
 		if rel? [
 			x: x + dx
 			y: y + dy
@@ -691,22 +702,20 @@ draw-curve: func [
 		p1y		[float32!]
 		p1x		[float32!]
 		pf		[float32-ptr!]
-		pt		[red-pair!]
+		pair	[red-pair!]
 		sthis	[this!]
 		gsink	[ID2D1GeometrySink]
 		bezier	[D2D1_BEZIER_SEGMENT value]
 		qbezier	[D2D1_QUADRATIC_BEZIER_SEGMENT value]
+		pt		[red-point2D!]
 ][
 	while [ start < end ][
-		pt: start + 1
-		p1x: as float32! start/x
-		p1y: as float32! start/y
-		p2x: as float32! pt/x
-		p2y: as float32! pt/y
+		pair: start + 1
+		GET_PAIR_XY(start p1x p1y)
+		GET_PAIR_XY(pair p2x p2y)
 		if num = 3 [					;-- cubic Bézier
-			pt: start + 2
-			p3x: as float32! pt/x
-			p3y: as float32! pt/y
+			pair: start + 2
+			GET_PAIR_XY(pair p3x p3y)
 		]
 
 		dx: ctx/sub/last-pt-x
@@ -822,12 +831,15 @@ OS-draw-shape-arc: func [
 		arc			[D2D1_ARC_SEGMENT value]
 		sthis		[this!]
 		gsink		[ID2D1GeometrySink]
+		pt			[red-point2D!]
+		x y			[float32!]
 ][
+	GET_PAIR_XY(end x y)
 	;-- parse arguments
 	p1-x: ctx/sub/last-pt-x
 	p1-y: ctx/sub/last-pt-y
-	p2-x: either rel? [ p1-x + as float32! end/x ][ as float32! end/x ]
-	p2-y: either rel? [ p1-y + as float32! end/y ][ as float32! end/y ]
+	p2-x: either rel? [ p1-x + x ][ x ]
+	p2-y: either rel? [ p1-y + y ][ y ]
 	ctx/sub/last-pt-x: p2-x
 	ctx/sub/last-pt-y: p2-y
 	item: as red-integer! end + 1
@@ -881,6 +893,7 @@ _OS-draw-polygon: func [
 		bounds	[RECT_F! value]
 		this	[this!]
 		dc		[ID2D1DeviceContext]
+		pt		[red-point2D!]
 ][
 	d2d: as ID2D1Factory d2d-factory/vtbl
 	hr: d2d/CreatePathGeometry d2d-factory :path
@@ -890,13 +903,12 @@ _OS-draw-polygon: func [
 	sthis: as this! sink/value
 	gsink: as ID2D1GeometrySink sthis/vtbl
 
-	point/x: as float32! start/x
-	point/y: as float32! start/y
+	GET_PAIR_XY(start point/x point/y)
+
 	gsink/BeginFigure sthis point as-integer ctx/brush-type = DRAW_BRUSH_NONE
 	start: start + 1
 	while [start <= end] [
-		point/x: as float32! start/x
-		point/y: as float32! start/y
+		GET_PAIR_XY(start point/x point/y)
 		gsink/AddLine sthis point
 		start: start + 1
 	]
@@ -917,6 +929,8 @@ OS-draw-line: func [
 		pt1		[red-pair!]
 		this	[this!]
 		dc		[ID2D1DeviceContext]
+		pt		[red-point2D!]
+		x0 y0 x1 y1 [float32!]
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
@@ -925,17 +939,21 @@ OS-draw-line: func [
 
 	either pt1 = end [
 		if ctx/pen-type > DRAW_BRUSH_GRADIENT [
+			GET_PAIR_XY(pt0 x0 y0)
+			GET_PAIR_XY(pt1 x1 y1)
 			calc-brush-position
 				ctx/pen
 				ctx/pen-grad-type
 				ctx/pen-offset
-				as float32! pt0/x as float32! pt0/y as float32! pt1/x as float32! pt1/y
+				x0 y0 x1 y1
 		]
 		if ctx/pen-type <> DRAW_BRUSH_NONE [
+			GET_PAIR_XY(pt0 x0 y0)
+			GET_PAIR_XY(pt1 x1 y1)
 			dc/DrawLine 
 				this
-				as float32! pt0/x as float32! pt0/y
-				as float32! pt1/x as float32! pt1/y
+				x0 y0
+				x1 y1
 				ctx/pen
 				ctx/pen-width
 				ctx/pen-style
@@ -987,7 +1005,17 @@ OS-draw-line-width: func [
 		width-v [float32!]
 ][
 	width-v: (get-float32 as red-integer! width)
+	if width-v = F32_0 [
+		ctx/prev-pen-type: ctx/pen-type
+		ctx/pen-type: DRAW_BRUSH_NONE
+		ctx/pen-width: F32_0
+		exit
+	]
+
 	if ctx/pen-width <> width-v [
+		if ctx/pen-width = F32_0 [
+			ctx/pen-type: ctx/prev-pen-type
+		]
 		ctx/pen-width: width-v
 	]
 ]
@@ -1081,34 +1109,38 @@ OS-draw-box: func [
 	/local
 		this	[this!]
 		dc		[ID2D1DeviceContext]
-		t		[integer!]
+		t		[float32!]
 		rc		[ROUNDED_RECT_F! value]
 		radius	[red-integer!]
 		type	[integer!]
 		bmp		[this!]
-		w		[integer!]
-		h		[integer!]
+		w		[float32!]
+		h		[float32!]
 		scale	[float32!]
-		up-x	[integer!]
-		up-y	[integer!]
-		low-x	[integer!]
-		low-y	[integer!]
+		up-x	[float32!]
+		up-y	[float32!]
+		low-x	[float32!]
+		low-y	[float32!]
 		m0		[D2D_MATRIX_3X2_F value]
 		m		[D2D_MATRIX_3X2_F value]
 		offset	[float32!]
+		pt		[red-point2D!]
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
 
 	radius: null
-	if TYPE_OF(lower) = TYPE_INTEGER [
+	if upper + 2 = lower [
 		radius: as red-integer! lower
-		rc/radiusX: as float32! radius/value
+		rc/radiusX: get-float32 radius
 		rc/radiusY: rc/radiusX
-		lower:  lower - 1
+		lower: lower - 1
+		if rc/radiusX = F32_0 [radius: null]
 	]
 
-	up-x: upper/x up-y: upper/y low-x: lower/x low-y: lower/y
+	GET_PAIR_XY(upper up-x up-y)
+	GET_PAIR_XY(lower low-x low-y)
+
 	if up-x > low-x [t: up-x up-x: low-x low-x: t]
 	if up-y > low-y [t: up-y up-y: low-y low-y: t]
 
@@ -1116,26 +1148,26 @@ OS-draw-box: func [
 	h: low-y - up-y
 	either ctx/shadow? [
 		offset: ctx/pen-width / (as float32! 2.0)
-		scale: dpi-value / as float32! 96.0
+		scale: dpi-factor
 		rc/left: offset
 		rc/top:  offset
-		rc/right:  (as float32! w) + offset
-		rc/bottom: (as float32! h) + offset
+		rc/right:  w + offset
+		rc/bottom: h + offset
 
 		bmp: create-d2d-bitmap		;-- create an intermediate bitmap
 				this
-				as-integer ((as float32! w) + ctx/pen-width) * scale
-				as-integer ((as float32! h) + ctx/pen-width) * scale
+				as-integer (w + ctx/pen-width) * scale
+				as-integer (h + ctx/pen-width) * scale
 				1
 		dc/GetTransform this :m0
 		dc/SetTarget this bmp
 		matrix2d/identity :m
 		dc/SetTransform this :m			;-- set to identity matrix
 	][
-		rc/left: as float32! up-x
-		rc/top: as float32! up-y
-		rc/right: as float32! low-x
-		rc/bottom: as float32! low-y
+		rc/left: up-x
+		rc/top: up-y
+		rc/right: low-x
+		rc/bottom: low-y
 	]
 
 	type: ctx/brush-type
@@ -1174,7 +1206,7 @@ OS-draw-box: func [
 
 	if ctx/shadow? [
 		dc/SetTransform this :m0
-		draw-shadow ctx bmp as float32! upper/x as float32! upper/y as float32! w as float32! h
+		draw-shadow ctx bmp up-x up-y w h
 	]
 ]
 
@@ -1193,8 +1225,6 @@ OS-draw-polygon: func [
 	_OS-draw-polygon ctx start end yes
 ]
 
-spline-delta: 1.0 / 25.0
-
 do-spline-step: func [
 	sthis		[this!]
 	p0			[red-pair!]
@@ -1203,30 +1233,37 @@ do-spline-step: func [
 	p3			[red-pair!]
 	/local
 		gsink	[ID2D1GeometrySink]
-		t		[float!]
-		t2		[float!]
-		t3		[float!]
-		x		[float!]
-		y		[float!]
+		t		[float32!]
+		t2		[float32!]
+		t3		[float32!]
+		x		[float32!]
+		y		[float32!]
+		delta	[float32!]
 		point	[POINT_2F value]
+		pt		[red-point2D!]
+		p0x p0y p1x p1y p2x p2y p3x p3y [float32!]
 ][
 		gsink: as ID2D1GeometrySink sthis/vtbl
-		t: 0.0
+		GET_PAIR_XY(p0 p0x p0y)
+		GET_PAIR_XY(p1 p1x p1y)
+		GET_PAIR_XY(p2 p2x p2y)
+		GET_PAIR_XY(p3 p3x p3y)
+		t: as float32! 0.0
+		delta: as float32! 0.04
 		loop 25 [
-			t: t + spline-delta
+			t: t + delta
 			t2: t * t
 			t3: t2 * t
-
 			x:
-			   2.0 * (as-float p1/x) + ((as-float p2/x) - (as-float p0/x) * t) +
-			   ((2.0 * (as-float p0/x) - (5.0 * (as-float p1/x)) + (4.0 * (as-float p2/x)) - (as-float p3/x)) * t2) +
-			   (3.0 * ((as-float p1/x) - (as-float p2/x)) + (as-float p3/x) - (as-float p0/x) * t3) * 0.5
+			   (p1x * as float32! 2.0) + (p2x - p0x * t) +
+			   ((p0x * as float32! 2.0) - (p1x * as float32! 5.0) + (p2x * as float32! 4.0) - p3x * t2) +
+			   ((p1x - p2x * as float32! 3.0) + p3x - p0x * t3) * as float32! 0.5
 			y:
-			   2.0 * (as-float p1/y) + ((as-float p2/y) - (as-float p0/y) * t) +
-			   ((2.0 * (as-float p0/y) - (5.0 * (as-float p1/y)) + (4.0 * (as-float p2/y)) - (as-float p3/y)) * t2) +
-			   (3.0 * ((as-float p1/y) - (as-float p2/y)) + (as-float p3/y) - (as-float p0/y) * t3) * 0.5
-			point/x: as float32! x
-			point/y: as float32! y
+			   (p1y * as float32! 2.0) + (p2y - p0y * t) + 
+			   ((p0y * as float32! 2.0) - (p1y * as float32! 5.0) + (p2y * as float32! 4.0) - p3y * t2) + 
+			   ((p1y - p2y * as float32! 3.0) + p3y - p0y * t3) * as float32! 0.5 
+			point/x: x
+			point/y: y
 			gsink/AddLine sthis point
 		]
 ]
@@ -1250,8 +1287,9 @@ OS-draw-spline: func [
 		bounds	[RECT_F! value]
 		this	[this!]
 		dc		[ID2D1DeviceContext]
-		pt		[red-pair!]
+		pair	[red-pair!]
 		stop	[red-pair!]
+		pt		[red-point2D!]
 ][
 	if (as-integer end - start) >> 4 = 1 [		;-- two points input
 		OS-draw-line ctx start end				;-- draw a line
@@ -1266,8 +1304,7 @@ OS-draw-spline: func [
 	sthis: as this! sink/value
 	gsink: as ID2D1GeometrySink sthis/vtbl
 
-	point/x: as float32! start/x
-	point/y: as float32! start/y
+	GET_PAIR_XY(start point/x point/y)
 	gsink/BeginFigure sthis point as-integer ctx/brush-type = DRAW_BRUSH_NONE
 
 	either closed? [
@@ -1284,16 +1321,16 @@ OS-draw-spline: func [
 			start + 2
 	]
 
-	pt: start
+	pair: start
 	stop: end - 3
 
-	while [pt <= stop] [
+	while [pair <= stop] [
 		do-spline-step sthis
-			pt
-			pt + 1
-			pt + 2
-			pt + 3
-		pt: pt + 1
+			pair
+			pair + 1
+			pair + 2
+			pair + 3
+		pair: pair + 1
 	]
 
 	either closed? [
@@ -1409,35 +1446,18 @@ OS-draw-circle: func [
 		cx cy	[float32!]
 		f		[red-float!]
 		r		[float!]
+		pt		[red-point2D!]
 ][
-	either TYPE_OF(radius) = TYPE_INTEGER [
-		either center + 1 = radius [					;-- center, radius
-			rad-x: as float32! radius/value
-			rad-y: rad-x
-		][
-			rad-y: as float32! radius/value				;-- center, radius-x, radius-y
-			radius: radius - 1
-			rad-x: as float32! radius/value
-		]
-		w: rad-x * as float32! 2.0
-		h: rad-y * as float32! 2.0
-	][
-		f: as red-float! radius
-		either center + 1 = radius [
-			rad-x: as float32! f/value
-			rad-y: rad-x
-			w: rad-x * as float32! 2.0
-			h: w
-		][
-			rad-y: as float32! f/value
-			h: rad-y * as float32! 2.0
-			f: f - 1
-			rad-x: as float32! f/value
-			w: rad-x * as float32! 2.0
-		]
+	rad-x: get-float32 radius
+	rad-y: rad-x
+	if center + 2 = radius [	;-- center, radius-x, radius-y
+		radius: radius - 1
+		rad-x: get-float32 radius
 	]
-	cx: as float32! center/x
-	cy: as float32! center/y
+	w: rad-x * as float32! 2.0
+	h: rad-y * as float32! 2.0
+
+	GET_PAIR_XY(center cx cy)
 	do-draw-ellipse ctx cx - rad-x cy - rad-y w h
 ]
 
@@ -1445,8 +1465,17 @@ OS-draw-ellipse: func [
 	ctx			[draw-ctx!]
 	upper		[red-pair!]
 	diameter	[red-pair!]
+	/local
+		pt		[red-point2D!]
+		up-x	[float32!]
+		up-y	[float32!]
+		dx		[float32!]
+		dy		[float32!]
 ][
-	do-draw-ellipse ctx as float32! upper/x as float32! upper/y as float32! diameter/x as float32! diameter/y
+	GET_PAIR_XY(upper up-x up-y)
+	GET_PAIR_XY(diameter dx dy)
+	
+	do-draw-ellipse ctx up-x up-y dx dy
 ]
 
 OS-draw-font: func [
@@ -1506,14 +1535,13 @@ OS-draw-arc: func [
 		beta		[float!]
 		rx			[float!]
 		ry			[float!]
+		pt			[red-point2D!]
 ][
-	cx: as float32! center/x
-	cy: as float32! center/y
+	GET_PAIR_XY(center cx cy)
 	rad: (as float32! PI) / as float32! 180.0
 
 	radius: center + 1
-	rad-x: as float32! radius/x
-	rad-y: as float32! radius/y
+	GET_PAIR_XY(radius rad-x rad-y)
 	begin: as red-integer! radius + 1
 	angle-begin: rad * as float32! begin/value
 	angle: begin + 1
@@ -1623,27 +1651,33 @@ OS-draw-curve: func [
 		bounds	[RECT_F! value]
 		this	[this!]
 		dc		[ID2D1DeviceContext]
+		pt		[red-point2D!]
+		sx sy	[float32!]
+		p2x p2y [float32!]
+		p3x p3y [float32!]
 ][
 	p2: start + 1
 	p3: start + 2
 
+	GET_PAIR_XY(p2 p2x p2y)
+	GET_PAIR_XY(p3 p3x p3y)
+	GET_PAIR_XY(start sx sy)
 	either 2 = ((as-integer end - start) >> 4) [		;-- p0, p1, p2  -->  p0, (p0 + 2p1) / 3, (2p1 + p2) / 3, p2
-		cp1x: (as float32! p2/x << 1 + start/x) / as float32! 3.0
-		cp1y: (as float32! p2/y << 1 + start/y) / as float32! 3.0
-		cp2x: (as float32! p2/x << 1 + p3/x) / as float32! 3.0
-		cp2y: (as float32! p2/y << 1 + p3/y) / as float32! 3.0
+		cp1x: (p2x * as float32! 2.0) + sx / as float32! 3.0
+		cp1y: (p2y * as float32! 2.0) + sy / as float32! 3.0
+		cp2x: (p2x * as float32! 2.0) + p3x / as float32! 3.0
+		cp2y: (p2y * as float32! 2.0) + p3y / as float32! 3.0
 	][
-		cp1x: as float32! p2/x
-		cp1y: as float32! p2/y
-		cp2x: as float32! p3/x
-		cp2y: as float32! p3/y
+		cp1x: p2x
+		cp1y: p2y
+		cp2x: p3x
+		cp2y: p3y
 	]
 	ps/point1/x: cp1x
 	ps/point1/y: cp1y
 	ps/point2/x: cp2x
 	ps/point2/y: cp2y
-	ps/point3/x: as float32! end/x
-	ps/point3/y: as float32! end/y
+	GET_PAIR_XY(end ps/point3/x ps/point3/y)
 
 	d2d: as ID2D1Factory d2d-factory/vtbl
 	hr: d2d/CreatePathGeometry d2d-factory :path
@@ -1653,8 +1687,8 @@ OS-draw-curve: func [
 	sthis: as this! sink/value
 	gsink: as ID2D1GeometrySink sthis/vtbl
 
-	point/x: as float32! start/x
-	point/y: as float32! start/y
+	point/x: sx
+	point/y: sy
 	gsink/BeginFigure sthis point 1
 	hr: gsink/AddBezier sthis ps
 	gsink/EndFigure sthis 0
@@ -1788,11 +1822,11 @@ OS-draw-image: func [
 		bmp		[ptr-value!]
 		bthis	[this!]
 		d2db	[IUnknown]
-		x		[integer!]
-		y		[integer!]
-		width	[integer!]
-		height	[integer!]
-		pt		[red-pair!]
+		x		[float32!]
+		y		[float32!]
+		width	[float32!]
+		height	[float32!]
+		pair	[red-pair!]
 		size	[SIZE_F! value]
 		ul		[POINT_2F value]
 		ur		[POINT_2F value]
@@ -1807,6 +1841,7 @@ OS-draw-image: func [
 		fval	[float32!]
 		crop2	[red-pair!]
 		same-img? [logic!]
+		pt		[red-point2D!]
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
@@ -1821,9 +1856,11 @@ OS-draw-image: func [
 	if same-img? [dc/BeginDraw this]
 	bthis: as this! bmp/value
 	d2db: as IUnknown bthis/vtbl
-	either null? start [x: 0 y: 0][x: start/x y: start/y]
-	width:  IMAGE_WIDTH(image/size)
-	height: IMAGE_HEIGHT(image/size)
+	either null? start [x: F32_0 y: F32_0][GET_PAIR_XY(start x y)]
+	width: as float32! IMAGE_WIDTH(image/size)
+	height: as float32! IMAGE_HEIGHT(image/size)
+	size/width: width
+	size/height: height
 
 	either crop1 <> null [
 		crop2: crop1 + 1
@@ -1845,75 +1882,57 @@ OS-draw-image: func [
 		]
 		if any [src/right <= F32_0 src/bottom <= F32_0][return 0]
 		if src/left <= F32_0 [
-			x: x - (as-integer src/left)
+			x: x - src/left
 			src/left: F32_0
 		]
 		if src/top <= F32_0 [
-			y: y - (as-integer src/top)
+			y: y - src/top
 			src/top: F32_0
 		]
-		size/width: as float32! width
-		size/height: as float32! height
+
 		if src/right > size/width [src/right: size/width]
 		if src/bottom > size/height [src/bottom: size/height]
 		size/width: src/right - src/left
 		size/height: src/bottom - src/top
-		width: as-integer size/width
-		height: as-integer size/height
+		width: size/width
+		height: size/height
 	][
 		src: null
-		size/width: as float32! width
-		size/height: as float32! height
 	]
 
 	trans: null
 	dst: null
 	case [
 		start = end [
-			dst*/left: as float32! x
-			dst*/top: as float32! y
-			dst*/right: as float32! x + width
-			dst*/bottom: as float32! y + height
+			dst*/left: x
+			dst*/top: y
+			dst*/right: x + width
+			dst*/bottom: y + height
 			dst: :dst*
 		]
 		any [					;-- two control points
 			start + 1 = end
 			all [null? start end <> null]
 		][
-			dst*/left: as float32! x
-			dst*/top: as float32! y
-			dst*/right: as float32! end/x
-			dst*/bottom: as float32! end/y
+			dst*/left: x
+			dst*/top: y
+			GET_PAIR_XY(end dst*/right dst*/bottom)
 			dst: :dst*
 		]
-		start + 2 = end [
-			pt: start
-			ul/x: as float32! pt/x
-			ul/y: as float32! pt/y
-			pt: start + 1
-			ur/x: as float32! pt/x
-			ur/y: as float32! pt/y
-			pt: start + 2
-			lr/x: as float32! pt/x
-			lr/y: as float32! pt/y
-			ll/x: ul/x
-			ll/y: lr/y
-			create-4p-matrix size ul ur ll lr m
-			trans: as int-ptr! :m
-		]
-		start + 3 = end [
-			pt: start
-			ul/x: as float32! pt/x
-			ul/y: as float32! pt/y
-			pt: start + 1
-			ur/x: as float32! pt/x
-			ur/y: as float32! pt/y
-			pt: start + 2
-			lr/x: as float32! pt/x
-			lr/y: as float32! pt/y
-			pt: start + 3
-			ll/x: as float32! pt/x
-			ll/y: as float32! pt/y
+		any [start + 2 = end start + 3 = end][
+			pair: start
+			GET_PAIR_XY(pair ul/x ul/y)
+			pair: start + 1
+			GET_PAIR_XY(pair ur/x ur/y)
+			pair: start + 2
+			GET_PAIR_XY(pair lr/x lr/y)
+			either pair = end [
+				ll/x: ul/x
+				ll/y: lr/y
+			][
+				pair: start + 3
+				GET_PAIR_XY(pair ll/x ll/y)
+			]
 			create-4p-matrix size ul ur ll lr m
 			trans: as int-ptr! :m
 		]
@@ -1930,17 +1949,17 @@ OS-draw-image: func [
 _OS-draw-brush-bitmap: func [
 	ctx		[draw-ctx!]
 	bmp		[this!]
-	width	[integer!]
-	height	[integer!]
+	width	[float32!]
+	height	[float32!]
 	crop-1	[red-pair!]
 	crop-2	[red-pair!]
 	mode	[red-word!]
 	brush?	[logic!]
 	/local
-		x		[integer!]
-		y		[integer!]
-		xx		[integer!]
-		yy		[integer!]
+		x		[float32!]
+		y		[float32!]
+		xx		[float32!]
+		yy		[float32!]
 		wrap	[integer!]
 		wrap-x	[integer!]
 		wrap-y	[integer!]
@@ -1950,20 +1969,19 @@ _OS-draw-brush-bitmap: func [
 		dc		[ID2D1DeviceContext]
 		brush	[ptr-value!]
 		unk		[IUnknown]
+		pt		[red-point2D!]
 ][
 	either crop-1 = null [
-		x: 0
-		y: 0
+		x: F32_0
+		y: F32_0
 	][
-		x: crop-1/x
-		y: crop-1/y
+		GET_PAIR_XY(crop-1 x y)
 	]
 	either crop-2 = null [
 		xx: width
 		yy: height
 	][
-		xx: crop-2/x
-		yy: crop-2/y
+		GET_PAIR_XY(crop-2 xx yy)
 		if xx > width [xx: width]
 		if yy > height [yy: height]
 	]
@@ -1987,10 +2005,10 @@ _OS-draw-brush-bitmap: func [
 		]
 	]
 
-	props/left: as float32! x
-	props/top: as float32! y
-	props/right: as float32! xx
-	props/bottom: as float32! yy
+	props/left: x
+	props/top: y
+	props/right: xx
+	props/bottom: yy
 	props/extendModeX: wrap-x
 	props/extendModeY: wrap-y
 	props/interpolationMode: 1		;-- MODE_LINEAR
@@ -2022,16 +2040,16 @@ OS-draw-brush-bitmap: func [
 	mode	[red-word!]
 	brush?	[logic!]
 	/local
-		width	[integer!]
-		height	[integer!]
+		width	[float32!]
+		height	[float32!]
 		dc		[ID2D1DeviceContext]
 		this	[this!]
 		ithis	[this!]
 		bmp		[ptr-value!]
 		unk		[IUnknown]
 ][
-	width:  OS-image/width? img/node
-	height: OS-image/height? img/node
+	width: as float32! OS-image/width? img/node
+	height: as float32! OS-image/height? img/node
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
 	ithis: OS-image/get-handle img yes
@@ -2061,6 +2079,8 @@ OS-draw-brush-pattern: func [
 		state	[draw-state! value]
 		unk		[IUnknown]
 		m		[D2D_MATRIX_3X2_F value]
+		pt		[red-point2D!]
+		x y		[float32!]
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
@@ -2089,7 +2109,8 @@ OS-draw-brush-pattern: func [
 	dc/SetTarget this old-bmp/value	
 	;dc/BeginDraw this
 
-	_OS-draw-brush-bitmap ctx cthis size/x size/y crop-1 crop-2 mode brush?
+	GET_PAIR_XY(size x y)
+	_OS-draw-brush-bitmap ctx cthis x y crop-1 crop-2 mode brush?
 	cmd/Release cthis
 	this: old-bmp/value
 	unk: as IUnknown this/vtbl
@@ -2104,11 +2125,11 @@ OS-draw-grad-pen-old: func [
 	count		[integer!]					;-- number of the colors
 	brush?		[logic!]
 	/local
-		x		[integer!]
-		y		[integer!]
+		x		[float32!]
+		y		[float32!]
 		int		[red-integer!]
-		start	[integer!]
-		stop	[integer!]
+		start	[float32!]
+		stop	[float32!]
 		n		[integer!]
 		rotate? [logic!]
 		scale?	[logic!]
@@ -2134,14 +2155,14 @@ OS-draw-grad-pen-old: func [
 		unk		[IUnknown]
 		m		[D2D_MATRIX_3X2_F value]
 		t		[D2D_MATRIX_3X2_F value]
+		pt		[red-point2D!]
 ][
-	x: offset/x
-	y: offset/y
+	GET_PAIR_XY(offset x y)
 
 	int: as red-integer! offset + 1
-	start: int/value
+	start: as float32! int/value
 	int: int + 1
-	stop: int/value
+	stop: as float32! int/value
 
 	n: 0
 	rotate?: no
@@ -2192,15 +2213,15 @@ OS-draw-grad-pen-old: func [
 	dc: as ID2D1DeviceContext this/vtbl
 	dc/CreateGradientStopCollection this grad-stops count 0 wrap :sc
 	either type = linear [
-		lprops/startPoint.x: as float32! x + start
-		lprops/startPoint.y: as float32! y
-		lprops/endPoint.x: as float32! x + stop
-		lprops/endPoint.y: as float32! y
+		lprops/startPoint.x: x + start
+		lprops/startPoint.y: y
+		lprops/endPoint.x: x + stop
+		lprops/endPoint.y: y
 		dc/CreateLinearGradientBrush this :lprops null sc/value :brush
 	][
-		gprops/center.x: as float32! x
-		gprops/center.y: as float32! y
-		gprops/radius.x: as float32! stop - start
+		gprops/center.x: x
+		gprops/center.y: y
+		gprops/radius.x: stop - start
 		gprops/radius.y: gprops/radius.x
 		gprops/offset.x: as float32! 0.0
 		gprops/offset.y: as float32! 0.0
@@ -2253,10 +2274,8 @@ OS-draw-grad-pen: func [
 		gprops	[D2D1_RADIAL_GRADIENT_BRUSH_PROPERTIES value]
 		lprops	[D2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES value]
 		gstops	[D2D1_GRADIENT_STOP]
-		x		[float!]
-		y		[float!]
-		start	[float!]
-		stop	[float!]
+		x		[float32!]
+		y		[float32!]
 		brush	[com-ptr! value]
 		int		[red-integer!]
 		f		[red-float!]
@@ -2268,7 +2287,8 @@ OS-draw-grad-pen: func [
 		p		[float!]
 		wrap	[integer!]
 		sc		[com-ptr! value]
-		pt		[red-pair!]
+		pt		[red-point2D!]
+		pair	[red-pair!]
 		gtype	[integer!]
 ][
 	this: as this! ctx/dc
@@ -2308,12 +2328,10 @@ OS-draw-grad-pen: func [
 			lprops/endPoint.y: F32_0
 		][
 			gtype: DRAW_BRUSH_GRADIENT
-			pt: as red-pair! positions
-			lprops/startPoint.x: as float32! pt/x
-			lprops/startPoint.y: as float32! pt/y
-			pt: pt + 1
-			lprops/endPoint.x: as float32! pt/x
-			lprops/endPoint.y: as float32! pt/y
+			pair: as red-pair! positions
+			GET_PAIR_XY(pair lprops/startPoint.x lprops/startPoint.y)
+			pair: pair + 1
+			GET_PAIR_XY(pair lprops/endPoint.x lprops/endPoint.y)
 		]
 		dc/CreateLinearGradientBrush this lprops null sc/value :brush
 	][
@@ -2327,15 +2345,15 @@ OS-draw-grad-pen: func [
 			gprops/offset.y: as float32! 0.0
 		][
 			gtype: DRAW_BRUSH_GRADIENT
-			pt: as red-pair! positions
-			gprops/center.x: as float32! pt/x
-			gprops/center.y: as float32! pt/y
-			gprops/radius.x: get-float32 as red-integer! pt + 1
+			pair: as red-pair! positions
+			GET_PAIR_XY(pair gprops/center.x gprops/center.y)
+			gprops/radius.x: get-float32 as red-integer! pair + 1
 			gprops/radius.y: gprops/radius.x
 			either focal? [
-				pt: pt + 2
-				gprops/offset.x: as float32! pt/x
-				gprops/offset.y: as float32! pt/y
+				pair: pair + 2
+				GET_PAIR_XY(pair x y)
+				gprops/offset.x: x - gprops/center.x
+				gprops/offset.y: y - gprops/center.y
 			][
 				gprops/offset.x: as float32! 0.0
 				gprops/offset.y: as float32! 0.0
@@ -2380,6 +2398,7 @@ OS-set-clip: func [
 		inf3	[integer!]
 		inf2	[integer!]
 		inf1	[integer!]
+		pt		[red-point2D!]
 ][
 	ctx/clip-cnt: ctx/clip-cnt + 1
 	this: as this! ctx/dc
@@ -2392,10 +2411,8 @@ OS-set-clip: func [
 	para/opts: 1	;-- D2D1_LAYER_OPTIONS_INITIALIZE_FOR_CLEARTYPE
 	para/mask: null
 	either rect? [
-		para/bounds/left: as float32! u/x
-		para/bounds/top: as float32! u/y
-		para/bounds/right: as float32! l/x
-		para/bounds/bottom: as float32! l/y
+		GET_PAIR_XY(u para/bounds/left para/bounds/top)
+		GET_PAIR_XY(l para/bounds/right para/bounds/bottom)
 	][
 		inf1: FF7FFFFFh
 		inf2: FF7FFFFFh
@@ -2455,11 +2472,11 @@ OS-matrix-rotate: func [
 		brush	[ID2D1Brush]
 		cx		[float32!]
 		cy		[float32!]
+		pt		[red-point2D!]
 ][
 	rad: get-float32 angle
-	either TYPE_OF(center) = TYPE_PAIR [
-		cx: as float32! center/x
-		cy: as float32! center/y
+	either ANY_COORD?(center) [
+		GET_PAIR_XY(center cx cy)
 	][
 		cx: as float32! 0.0 cy: as float32! 0.0
 	]
@@ -2492,11 +2509,11 @@ OS-matrix-scale: func [
 		sy		[red-integer!]
 		cx		[float32!]
 		cy		[float32!]
+		pt		[red-point2D!]
 ][
 	sy: sx + 1
-	either TYPE_OF(center) = TYPE_PAIR [
-		cx: as float32! center/x
-		cy: as float32! center/y
+	either ANY_COORD?(center) [
+		GET_PAIR_XY(center cx cy)
 	][
 		cx: F32_0 cy: F32_0
 	]
@@ -2517,8 +2534,7 @@ OS-matrix-scale: func [
 OS-matrix-translate: func [
 	ctx			[draw-ctx!]
 	pen-fill	[integer!]
-	x			[integer!]
-	y			[integer!]
+	xy			[red-pair!]
 	/local
 		this	[this!]
 		dc		[ID2D1DeviceContext]
@@ -2526,17 +2542,20 @@ OS-matrix-translate: func [
 		t		[D2D_MATRIX_3X2_F value]
 		bthis	[this!]
 		brush	[ID2D1Brush]
+		x y		[float32!]
+		pt		[red-point2D!]
 ][
+	GET_PAIR_XY(xy x y)
 	either pen-fill = -1 [
 		this: as this! ctx/dc
 		dc: as ID2D1DeviceContext this/vtbl
 		dc/GetTransform this :m
-		matrix2d/translate :m as float32! x as float32! y :t ctx/pre-order?
+		matrix2d/translate :m x y :t ctx/pre-order?
 		dc/SetTransform this :t
 	][
 		BEGIN_MATRIX_BRUSH
 		brush/GetTransform bthis :m
-		matrix2d/translate :m as float32! x as float32! y :t ctx/pre-order?
+		matrix2d/translate :m x y :t ctx/pre-order?
 		brush/SetTransform bthis :t
 	]
 ]
@@ -2558,13 +2577,13 @@ OS-matrix-skew: func [
 		bthis	[this!]
 		brush	[ID2D1Brush]
 		sy		[red-integer!]
+		pt		[red-point2D!]
 ][
 	sy: sx + 1
 	x: get-float32 sx
 	y: get-float32 sy
-	either TYPE_OF(center) = TYPE_PAIR [
-		cx: as float32! center/x
-		cy: as float32! center/y
+	either ANY_COORD?(center) [
+		GET_PAIR_XY(center cx cy)
 	][
 		cx: F32_0 cy: F32_0
 	]
@@ -2594,7 +2613,7 @@ OS-matrix-transform: func [
 	rotate: as red-integer! either center + 1 = scale [center][center + 1]
 	OS-matrix-rotate ctx pen-fill rotate center
 	OS-matrix-scale ctx pen-fill scale center
-	OS-matrix-translate ctx pen-fill translate/x translate/y
+	OS-matrix-translate ctx pen-fill translate
 ]
 
 OS-draw-state-push: func [
@@ -2770,9 +2789,10 @@ OS-draw-shadow: func [
 		s		[shadow!]
 		ss		[shadow!]
 		chain?	[logic!]
+		pt		[red-point2D!]
 ][
 	chain?: ctx/shadow?
-	ctx/shadow?: TYPE_OF(offset) = TYPE_PAIR
+	ctx/shadow?: ANY_COORD?(offset)
 	either ctx/shadow? [
 		either chain? [
 			s: as shadow! allocate size? shadow!
@@ -2785,8 +2805,7 @@ OS-draw-shadow: func [
 			s: ctx/shadows
 			s/next: null
 		]
-		s/offset-x: as float32! offset/x
-		s/offset-y: as float32! offset/y
+		GET_PAIR_XY(offset s/offset-x s/offset-y)
 		s/blur: as float32! blur
 		s/spread: as float32! spread
 		s/color: color

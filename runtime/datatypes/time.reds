@@ -271,19 +271,18 @@ time: context [
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
+		evt?	[logic!]
 		return:	[red-value!]
 		/local
 			word   [red-word!]
 			int	   [red-integer!]
 			fl	   [red-float!]
-			obj	   [red-object!]
 			old	   [red-value!]
 			field  [integer!]
 			sym	   [integer!]
 			time   [float!]
 			fval   [float!]
 			error? [logic!]
-			evt?   [logic!]
 	][
 		time: t/time
 		error?: no
@@ -303,10 +302,7 @@ time: context [
 		if error? [fire [TO_ERROR(script invalid-path) path element]]
 		
 		either value <> null [
-			obj: as red-object! gparent
-			evt?: all [obj <> null TYPE_OF(obj) = TYPE_OBJECT obj/on-set <> null TYPE_OF(p-item) = TYPE_WORD]
 			if evt? [old: stack/push as red-value! t]
-
 			switch field [
 				1 [
 					if TYPE_OF(value) <> TYPE_INTEGER [fire [TO_ERROR(script invalid-arg) value]]
@@ -335,7 +331,11 @@ time: context [
 				default [assert false]
 			]
 			if evt? [
-				object/fire-on-set as red-object! gparent as red-word! p-item old as red-value! t
+				either TYPE_OF(gparent) = TYPE_OBJECT [
+					object/fire-on-set as red-object! gparent as red-word! p-item old as red-value! t
+				][
+					ownership/check as red-value! gparent words/_set-path value field 1
+				]
 				stack/pop 1								;-- avoid moving stack top
 			]
 			value

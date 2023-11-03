@@ -102,11 +102,44 @@ Red/System [
 
 ;== Draw Context definitions ==
 
+#define ANY_COORD?(value) [any [TYPE_OF(value) = TYPE_PAIR TYPE_OF(value) = TYPE_POINT2D]]
+#define PAIR_TYPE?(value) [TYPE_OF(value) = TYPE_PAIR]
+#define GET_PAIR_XY(_pair fx fy) [
+	either PAIR_TYPE?(_pair) [
+		fx: as float32! _pair/x
+		fy: as float32! _pair/y
+	][
+		pt: as red-point2D! _pair
+		fx: pt/x
+		fy: pt/y
+	]
+]
+#define GET_PAIR_XY_INT(_pair fx fy) [
+	either PAIR_TYPE?(_pair) [
+		fx: _pair/x
+		fy: _pair/y
+	][
+		pt: as red-point2D! _pair
+		fx: as-integer pt/x
+		fy: as-integer pt/y
+	]
+]
+#define GET_PAIR_XY_F(_pair fx fy) [
+	either PAIR_TYPE?(_pair) [
+		fx: as float! _pair/x
+		fy: as float! _pair/y
+	][
+		pt: as red-point2D! _pair
+		fx: as float! pt/x
+		fy: as float! pt/y
+	]
+]
+
 #if OS = 'Linux [
 
-	tagPOINT: alias struct! [
-		x		[integer!]
-		y		[integer!]
+	point2f!: alias struct! [
+		x		[float!]
+		y		[float!]
 	]
 
 	tagMATRIX: alias struct! [
@@ -129,10 +162,10 @@ Red/System [
 		count			[integer!]								;-- gradient stops count
 		zero-base?		[logic!]
 		offset-on?		[logic!]
-		offset			[tagPOINT value]						;-- figure coordinates
-		offset2			[tagPOINT value]
+		offset			[point2f! value]						;-- figure coordinates
+		offset2			[point2f! value]
 		focal-on?		[logic!]
-		focal			[tagPOINT value]
+		focal			[point2f! value]
 		pattern-on?		[logic!]
 		pattern			[int-ptr!]
 	]
@@ -141,6 +174,7 @@ Red/System [
 		matrix-order	[integer!]
 		device-matrix	[tagMATRIX value]
 		pattern?		[logic!]
+		line-width?		[logic!]
 		pen-width		[float!]
 		pen-pattern		[float-ptr!]
 		pen-color		[integer!]					;-- 00bbggrr format
@@ -327,6 +361,7 @@ Red/System [
 			pen-pattern-cnt [integer!]
 			pen-grad-type	[integer!]
 			brush-grad-type	[integer!]
+			prev-pen-type	[integer!]
 			pen-width		[float32!]
 			pen-offset		[POINT_2F value]
 			brush-offset	[POINT_2F value]
