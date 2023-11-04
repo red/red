@@ -1116,7 +1116,7 @@ remove-event-func: function [
 	id [word! function!] "Handler name or function reference"
 ][
 	svh: system/view/handlers
-	pos: either word? :id [find svh id][find svh :id]
+	pos: either word? :id [find svh id][back find svh :id]
 	remove/part pos 2
 ]
 
