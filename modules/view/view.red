@@ -223,13 +223,14 @@ on-face-deep-change*: function ["Internal use only" owner word target action new
 			either word = 'pane [
 				case [
 					action = 'moved [
+						diff?: yes
 						faces: skip head target index	;-- zero-based absolute index
 						loop part [
-							faces/1/parent: owner
+							either same? faces/1/parent owner [diff?: no][faces/1/parent: owner]
 							faces: next faces
 						]
 						;unless forced? [show owner]
-						system/view/platform/on-change-facet owner word target action new index part
+						if diff? [system/view/platform/on-change-facet owner word target action new index part]
 					]
 					find [remove clear take change] action [
 						either owner/type = 'screen [
