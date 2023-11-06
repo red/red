@@ -131,15 +131,31 @@ metrics?: function [
 ]
 
 set-flag: function [
-	"Sets a flag in a face object and returns the /flags facet value"
-	face  [object!]
-	value [any-type!]
+	"Sets (or clears) a flag in a face object; Returns the /flags facet value"
+	face  [object!]			"Face where flag to set/clear"
+	flag  [any-type!]		"Flag to set/clear"
+	/clear					"Clears the flag instead of setting it"
+	/toggle					"Set it if unset, clears it otherwise"
 ][
-	either flags: face/flags [
-		if word? flags [face/flags: flags: reduce [flags]]
-		either block? flags [append flags value][face/flags: value]
-	][
-		face/flags: value
+	flags: face/flags
+	case [
+		clear [
+			either block? flags [if pos: find flags flag [remove pos]][face/flags: none]
+		]
+		toggle [
+			either block? flags [
+				either pos: find flags flag [remove pos][append flags flag]
+			][
+				face/flags: either all [flags flags = flag][none][
+					either flags [reduce [flags flag]][reduce [flag]]
+				]
+			]
+		]
+		flags [
+			if word? flags [face/flags: flags: reduce [flags]]
+			either block? flags [append flags flag][face/flags: flag]
+		]
+		'else [face/flags: flag]
 	]
 	flags
 ]
