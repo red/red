@@ -708,7 +708,7 @@ system/view/VID: context [
 					unless styling? [face/parent: panel]
 
 					spec: fetch-options face opts style spec local-styles reactors to-logic styling?
-					if all [style/init not styling?][do bind style/init 'face]
+					if all [style/init not styling?][do bind style/init face]
 
 					either styling? [
 						if same? css local-styles [local-styles: copy css]
