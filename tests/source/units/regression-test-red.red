@@ -3588,6 +3588,10 @@ comment {
 			]
             following5405 [break] [--assert true]
 		
+	--test-- "#5422"
+		i5422: last s5422: [1 2 3 4 5]
+		forall s5422 [if even? s5422/1 [append s5422 i5422: i5422 + 1]]
+		--assert s5422 = [1 2 3 4 5 6 7 8 9]
 
 ===end-group===
 

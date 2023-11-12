@@ -2575,14 +2575,13 @@ red: context [
 		insert-lf -9
 		
 		emit-open-frame 'forall
-		emit [loop natives/get-series-length as red-series! stack/arguments - 2]
-		insert-lf -7
+		emit 'forever
 		push-call 'forall
 		comp-sub-block 'forall-body						;-- compile body
 		pop-call
 		
 		append last output [							;-- inject at tail of body block
-			if natives/forall-next? [break]				;-- move series to next position
+			if natives/forall-next? [break]			;-- move series to next position
 		]
 		emit [
 			stack/unwind
@@ -2661,8 +2660,8 @@ red: context [
 			throw-error "CONTINUE used with no loop"
 		]
 		if 'forall = last loops [
-			emit 'natives/forall-next?					;-- move series to next position
-			insert-lf -1
+			emit copy/deep [if natives/forall-next? [break]]	;-- move series to next position
+			insert-lf -3
 		]
 		emit [stack/unroll-loop yes continue]
 		insert-lf -3

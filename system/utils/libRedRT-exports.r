@@ -212,7 +212,6 @@
 	red/natives/forall-end-adjust
 	red/natives/coerce-counter*
 	red/natives/inc-counter
-	red/natives/get-series-length
 
 	red/actions/make*
 	red/actions/random*

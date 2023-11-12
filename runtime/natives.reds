@@ -345,8 +345,8 @@ natives: context [
 		break?: no
 		
 		stack/mark-loop words/_body
-		series: as red-series! _context/get w	
-		loop get-series-length series [
+		series: as red-series! _context/get w
+		while [loop? series][
 			stack/reset
 			assert system/thrown = 0
 			catch RED_THROWN_BREAK	[interpreter/eval body no]
@@ -3439,20 +3439,6 @@ natives: context [
 
 		if radians < 0 [f/value: f/value * 180.0 / PI]			;-- to degrees
 		f
-	]
-
-	get-series-length: func [
-		series  [red-series!]
-		return: [integer!]	
-		/local
-			img  [red-image!]
-	][
-		either TYPE_OF(series) = TYPE_IMAGE [
-			img: as red-image! series
-			IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) - img/head
-		][
-			_series/get-length series no
-		]
 	]
 
 	loop?: func [
