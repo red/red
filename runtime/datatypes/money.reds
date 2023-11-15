@@ -884,96 +884,6 @@ money: context [
 		set-currency money index
 	]
 	
-	from-string: func [
-		str     [red-string!]
-		return: [red-money!]
-		/local
-			bail make        [subroutine!]
-			end? dot? digit? [subroutine!]
-			money            [red-money!]
-			tail head here   [byte-ptr!]
-			currency digits  [byte-ptr!]
-			start point      [byte-ptr!]
-			delta            [integer!]
-			sign?            [logic!]
-	][
-		bail: [fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY str]]
-		make: [
-			money: make-at stack/push* sign? currency start point tail
-			if null? money [bail]					;-- invalid currency code
-			return money
-		]
-		
-		end?:   [here >= tail]
-		dot?:   [any [here/value  = #"." here/value  = #","]]
-		digit?: [all [here/value >= #"0" here/value <= #"9"]]
-		
-		tail: string/rs-tail str
-		head: string/rs-head str
-		here: head
-		
-		;-- sign
-		sign?: no
-		switch here/value [
-			#"-" [here: here + 1 sign?: yes]
-			#"+" [here: here + 1]
-			default [0]
-		]
-		
-		;-- currency code
-		currency: here
-		while [not any [end? here/value = #"$"]][here: here + 1]
-		
-		if end? [here: currency]
-		either here = currency [currency: null][
-			if currency + 3 <> here [bail]			;-- invalid currency code won't pass symbol lookup in make-at, no need to check it here
-		]
-		
-		start: here - as integer! here/value <> #"$"
-		here:  start + 1
-		if any [dot? here/value = #"'"][bail]		;-- forbid leading separator
-		
-		;-- leading zeroes
-		until [
-			here: here + 1
-			if here/value = #"'" [
-				if all [here + 1 < tail here/2 = #"'"][bail]
-				continue
-			]
-			any [here = tail here/value <> #"0"]
-		]
-		
-		if any [here = tail dot?][here: here - 1]
-		digits: here
-		delta:  0
-		
-		;-- integral part with optional thousands separators
-		until [
-			if here/value = #"'" [
-				if all [here + 1 < tail here/2 = #"'"][bail]
-				here: here + 1
-				delta: delta + 1
-				continue
-			]
-			unless digit? [bail]
-			here: here + 1
-			any [end? dot?]
-		]
-		
-		if any [here > tail all [dot? here + 1 = tail]][bail]	;-- forbid trailing decimal separator
-		
-		point: here
-		if (as integer! point - digits) - delta > SIZE_INTEGRAL [bail]
-		if here = tail [point: null make]
-		here: here + 1
-		
-		;-- fractional part
-		until [unless digit? [bail] here: here + 1 end?]
-		if any [here <> tail SIZE_SCALE < as integer! here - point - 1][bail]
-		
-		make
-	]
-	
 	;-- Comparison --
 	
 	compare-money: func [
@@ -1477,6 +1387,9 @@ money: context [
 		/local
 			integer [red-integer!]
 			float   [red-float!]
+			str		[red-string!]
+			s		[series!]
+			unit len err [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "money/to"]]
 		
@@ -1493,11 +1406,18 @@ money: context [
 				from-float float/value
 			]
 			TYPE_ANY_STRING [
-				from-string as red-string! spec
+				str: as red-string! spec
+				s: GET_BUFFER(str)
+				unit: GET_UNIT(s)
+				len: _series/get-length as red-series! str no
+				err: 0
+				tokenizer/scan-money string/rs-head str len GET_UNIT(s) :err proto
+				if err <> 0 [fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_MONEY spec]]
+				as red-money! proto
 			]
 			default [
 				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_MONEY spec]
-				as red-money! proto					;-- pass compiler's type checking
+				as red-money! proto						;-- pass compiler's type checking
 			]
 		]
 	]

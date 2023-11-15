@@ -189,7 +189,7 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "to-23" --assert error? try [to money! 123456789012345678.0]
 	--test-- "to-24" --assert error? try [to money! 0.123456]
 	--test-- "to-25" --assert "EUR$1'234.56789" == to string! EUR$1234.56789
-	--test-- "to-26" --assert USD$123.45678 == to money! "+USD$123,45678"
+	--test-- "to-26" --assert USD$123.45678 == to money! "+USD$123.45678"
 	--test-- "to-27" --assert error? try [to money! "CCC$123"]
 	--test-- "to-28" --assert error? try [to money! "123$456"]
 	--test-- "to-29" --assert error? try [to money! "EUR123"]
@@ -227,6 +227,15 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 		--assert $1234 == to money! "$1'234"
 		--assert $1234.56789 == to money! "$1'234.56789"
 		--assert $1234.56789 == to money! "$000'00'0'1234.56789"
+		
+	--test-- "#5415"
+		--assert error? try [to money! "_1"]
+		--assert error? try [to money! "/1"]
+		--assert error? try [to money! "a1"]
+		--assert error? try [to money! "$a1"]
+		--assert error? try [to money! "$-1"]
+		--assert error? try [to money! "-$-1"]
+		
 ===end-group===
 
 ===start-group=== "make"
