@@ -510,8 +510,8 @@ face!: object [				;-- keep in sync with facet! enum
 				selected
 				block? data
 				find [drop-list drop-down text-list field area] type
-				data: pick data selected
-				set-quiet 'text copy data
+				value: pick data selected
+				set-quiet 'text copy value
 			]
 
 			system/reactivity/check/only self any [saved word]
