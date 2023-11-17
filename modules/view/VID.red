@@ -257,7 +257,9 @@ system/view/VID: context [
 	]													;-- returns TRUE if added
 	
 	add-bounds: func [proto [object!] spec [block!]][
-		make-actor proto 'on-drag-start [object [min: 0x0 max: face/parent/size - face/size]] spec
+		make-actor proto 'on-drag-start [
+			unless face/options/bounds [object [min: 0x0 max: face/parent/size - face/size]]
+		] spec
 	]
 	
 	fetch-value: function [blk][
