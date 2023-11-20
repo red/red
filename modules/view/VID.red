@@ -232,6 +232,13 @@ system/view/VID: context [
 		value
 	]
 	
+	preset-focus: function [face [object!]][
+		if p: face/parent [								;-- in styling mode, no parent
+			while [all [p p/type <> 'window]][p: p/parent]
+			if p/type = 'window [p/selected: face]
+		]
+	]
+	
 	add-option: function [opts [object!] spec [block!]][
 		either block? opts/options [
 			foreach [field value] spec [put opts/options field value]
@@ -324,7 +331,7 @@ system/view/VID: context [
 				| 'para		  (opts/para: make any [opts/para para!] fetch-argument obj-spec! spec)
 				| 'wrap		  (opt?: add-flag opts 'para 'wrap? yes)
 				| 'no-wrap	  (add-flag opts 'para 'wrap? no opt?: yes)
-				| 'focus	  (set bind 'focal-face :layout face)
+				| 'focus	  (preset-focus face)
 				| 'font-name  (add-flag opts 'font 'name  fetch-argument string! spec)
 				| 'font-size  (add-flag opts 'font 'size  fetch-argument integer! spec)
 				| 'font-color (add-flag opts 'font 'color pre-load fetch-argument color! spec)
@@ -800,8 +807,6 @@ system/view/VID: context [
 				]
 			]
 			if all [not size image: panel/image][panel/size: max panel/size image/size]
-
-			if all [focal-face find panel/pane focal-face not parent][panel/selected: focal-face]
 
 			if options [set/some panel make object! user-opts]
 			if flags [panel/flags: either panel/flags [unique union to-block panel/flags to-block flgs][flgs]]
