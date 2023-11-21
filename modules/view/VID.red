@@ -558,6 +558,7 @@ system/view/VID: context [
 		/styles					"Use an existing styles list"
 			css		  [block!]	"Styles list"
 		/local axis anti								;-- defined in a SET block
+		/extern next
 	][
 		background!:  make typeset! [image! file! url! tuple! word! issue!]
 		list:		  make block! 4						;-- panel's pane block
@@ -738,7 +739,7 @@ system/view/VID: context [
 						repend value [to-set-word 'styled styled]
 						styling?: off
 					][
-						blk: [style: _ vid-align: _ at-offset: #[none]]
+						blk: [style: _ vid-align: _ at-offset: #[none] next: #[none] prev: #[none]]
 						blk/2: value
 						blk/4: align
 						add-option face new-line/all blk no
