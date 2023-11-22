@@ -704,7 +704,7 @@ process-command-event: func [
 		BN_CLICKED [
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
 			sym: symbol/resolve type/symbol
-			current-msg/hWnd: child							;-- force child handle
+			current-msg/hWnd: child						;-- force child handle
 			
 			evt: case [
 				sym = button [EVT_CLICK]
@@ -715,7 +715,7 @@ process-command-event: func [
 				sym = check [
 					if 0 <> (FACET_FLAGS_TRISTATE and get-flags as red-block! get-facet current-msg FACE_OBJ_FLAGS)[
 						state: as integer! SendMessage child BM_GETCHECK 0 0
-						state: switch state [				;-- force [ ] -> [-] -> [v] transition
+						state: switch state [			;-- force [ ] -> [-] -> [v] transition
 							BST_UNCHECKED     [BST_CHECKED]
 							BST_INDETERMINATE [BST_UNCHECKED]
 							BST_CHECKED       [BST_INDETERMINATE]
@@ -727,12 +727,12 @@ process-command-event: func [
 					EVT_CHANGE
 				]
 				all [
-					sym = radio								;-- ignore double-click (fixes #4246)
+					sym = radio							;-- ignore double-click (fixes #4246)
 					BST_CHECKED <> (BST_CHECKED and as integer! SendMessage child BM_GETSTATE 0 0)
 					(GetKeyState VK_TAB) and 8000h = 0
 				][
 					get-logic-state current-msg
-					EVT_CLICK								;-- gets converted to CHANGE by high-level event handler
+					EVT_CLICK							;-- gets converted to CHANGE by high-level event handler
 				]
 				true [0]
 			]
@@ -745,9 +745,9 @@ process-command-event: func [
 		BN_UNPUSHED [ ;-- overlapped with CBN_SETFOCUS
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
 			either type/symbol = radio [
-				current-msg/hWnd: child						;-- force child handle
+				current-msg/hWnd: child					;-- force child handle
 				unless as logic! SendMessage child BM_GETSTATE 0 0 [
-					make-event current-msg 0 EVT_CHANGE		;-- ignore double-click (fixes #4246)
+					make-event current-msg 0 EVT_CHANGE	;-- ignore double-click (fixes #4246)
 				]
 			][		;-- CBN_SETFOCUS
 				values: get-face-values hWnd
