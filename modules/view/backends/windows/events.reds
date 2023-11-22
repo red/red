@@ -737,7 +737,10 @@ process-command-event: func [
 				true [0]
 			]
 			
-			unless zero? evt [make-event current-msg 0 evt]	;-- should be *after* get-facet call (Windows closing on click case)
+			unless zero? evt [
+				make-at child as red-object! (get-face-values GetAncestor child 3) + FACE_OBJ_SELECTED
+				make-event current-msg 0 evt			;-- should be *after* get-facet call (Windows closing on click case)
+			]
 		]
 		BN_UNPUSHED [ ;-- overlapped with CBN_SETFOCUS
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
