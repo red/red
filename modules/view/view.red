@@ -997,7 +997,7 @@ make-face: func [
 	css: make block! 2
 	reactors: make block! 4
 	spec: svv/fetch-options/no-skip face opts model blk css reactors no
-	if model/init [do bind model/init 'face]
+	if model/init [do bind model/init face]
 	svv/process-reactors reactors
 
 	if offset [face/offset: xy]
