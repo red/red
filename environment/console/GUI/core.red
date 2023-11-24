@@ -177,7 +177,7 @@ object [
 		either s [
 			cnt: 0
 			if all [
-				not all [lf? not prin?]
+				prin?
 				not same? head line last lines
 			][
 				vprin copy/part str s
@@ -210,7 +210,6 @@ object [
 		][
 			refresh
 		]
-		if newline? [line: last lines]
 		()				;-- return unset!
 	]
 
@@ -414,7 +413,7 @@ object [
 	]
 
 	update-caret: func [/local len n s h lh offset][
-		unless all [line mouse-up?][exit]
+		unless all [line mouse-up? focused?][exit]
 		n: top
 		h: 0
 		len: length? skip lines top
