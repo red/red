@@ -3593,6 +3593,10 @@ comment {
 		forall s5422 [if even? s5422/1 [append s5422 i5422: i5422 + 1]]
 		--assert s5422 = [1 2 3 4 5 6 7 8 9]
 
+	--test-- "#5434"
+		f5434: func [][] 	 --assert error? try [apply 'f5434 [/x on 1 /y on 2]]
+		f5434.2: func [/z][] --assert error? try [apply 'f5434.2 [/x on 1 /y on 2]]
+
 ===end-group===
 
 ~~~end-file~~~
