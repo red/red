@@ -415,7 +415,7 @@ natives: context [
 			]
 			remove-each-next size
 		]
-		stack/set-last unset-value
+		stack/set-last value + 1
 		stack/unwind-last
 	]
 	

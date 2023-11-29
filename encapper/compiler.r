@@ -2609,10 +2609,12 @@ red: context [
 		pc: next pc
 		
 		emit-open-frame 'remove-each
+		comp-expression/close-path						;-- compile series argument
+		emit-argument-type-check 1 'remove-each [stack/arguments]
 		emit [integer/push 0]							;-- store number of words to set
 		insert-lf -2
-		comp-expression/close-path						;-- compile series argument
-		emit-argument-type-check 1 'remove-each [stack/arguments + 1]
+		emit [stack/push stack/arguments]
+		insert-lf -2
 
 		either blk [
 			cond: compose [natives/foreach-next-block (length? blk)]
@@ -2638,7 +2640,7 @@ red: context [
 		]
 		pop-call
 		emit-close-frame
-		emit-close-frame
+		emit-close-frame/last
 	]
 	
 	comp-break: has [inner?][

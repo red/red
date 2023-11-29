@@ -2647,6 +2647,9 @@ b}
 
 	--test-- "#2125"
 		--assert 2 = length? find/only reduce [integer! 1] integer!
+		
+	--test-- "#2126"
+		--assert [a] = remove-each val [a 1] [not any-word? val]
 
 	; --test-- "#2133"
 		; OPEN
