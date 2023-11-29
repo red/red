@@ -1174,6 +1174,19 @@ Red [
 		--assert not error? try [b939/(#"x")]
 		--assert equal? #"y" b939/(#"x")
 		unset 'b939
+		
+	--test-- "#941"
+		foo941: function [a b] [
+			c: 10
+			d: 20
+			return [--assert true c --assert false d --assert false]
+		] 
+		--assert error? try [reduce foo941 1 2]
+		
+		foo941.2: function [a b] [c: 10 d: 20 return [c d]]
+		set 'err941 try [reduce foo941.2 1 2]
+		--assert error? :err941
+		--assert err941/arg1 = 'c
 
 	; --test-- "#943"
 		a943: none
