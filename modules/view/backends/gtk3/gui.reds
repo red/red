@@ -247,15 +247,10 @@ set-widget-child: func [
 		csym	[integer!]
 		clayout	[handle!]
 		playout	[handle!]
+		pt		[red-point2D!]
 ][
 	sym: get-widget-symbol parent
-	either TYPE_OF(offset) = TYPE_PAIR [
-		x: offset/x
-		y: offset/y
-	][
-		x: 0
-		y: 0
-	]
+	GET_PAIR_XY_INT(offset x y)
 	cvalues: get-face-values widget
 	ctype: as red-word! cvalues + FACE_OBJ_TYPE
 	csym: symbol/resolve ctype/symbol
@@ -320,9 +315,12 @@ set-widget-child-offset: func [
 		sym		[integer!]
 		cparent	[handle!]
 		alloc	[GtkAllocation! value]
+		pt		[red-point2D!]
+		x y		[integer!]
 ][
+	GET_PAIR_XY_INT(pos x y)
 	either type = window [
-		gtk_window_move widget pos/x pos/y
+		gtk_window_move widget x y
 	][
 		values: get-face-values widget
 		ntype: as red-word! values + FACE_OBJ_TYPE
@@ -336,7 +334,7 @@ set-widget-child-offset: func [
 			ntype: as red-word! values + FACE_OBJ_TYPE
 			sym: symbol/resolve ntype/symbol
 			cparent: get-face-child-layout parent sym
-			set-widget-offset cparent layout pos/x pos/y
+			set-widget-offset cparent layout x y
 		]
 		if type = base [
 			layout: GET-CARET-OWNER(widget)
