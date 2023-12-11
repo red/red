@@ -770,6 +770,7 @@ system/view/VID: context [
 
 							if all [divide? index > 0][
 								index: index + 1
+								if point2D? list/:index/offset [face/offset: to-point2D face/offset]
 								face/offset/:axis: list/:index/offset/:axis
 							]
 						]
