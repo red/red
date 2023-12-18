@@ -416,7 +416,7 @@ preprocessor: context [
 					saved: s
 					new: expand s/2 job
 					s: saved
-					change/part s new e						
+					change/part s new e
 					clear take/last stack
 					remove/part macros skip tail macros take/last stack
 					if tail? next macros [macros/1: <none>] ;-- re-inject a value to match (avoids infinite loops)
