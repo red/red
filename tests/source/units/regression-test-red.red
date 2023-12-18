@@ -3612,6 +3612,14 @@ comment {
 	--test-- "#5434"
 		f5434: func [][] 	 --assert error? try [apply 'f5434 [/x on 1 /y on 2]]
 		f5434.2: func [/z][] --assert error? try [apply 'f5434.2 [/x on 1 /y on 2]]
+		
+		
+	--test-- "#5445"
+		#do [c5445: 0]
+		#local [#do [c5445: c5445 + 1]]
+		1 
+		#do [c5445: c5445 + 1]
+		--assert 2 = #do keep [c5445]
 
 ===end-group===
 
