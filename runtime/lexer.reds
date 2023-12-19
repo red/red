@@ -452,7 +452,10 @@ lexer: context [
 					true			[TYPE_ERROR]
 				]
 			]
-			if lex/entry = S_PATH [close-block lex s e -1 yes]
+			if lex/entry = S_PATH [
+				po: as red-triple! lex/head - 1
+				if all [lex/buffer <= po TYPE_OF(po) = TYPE_TRIPLE][close-block lex s e -1 yes]
+			]
 			unless fire-event lex EVT_ERROR t null s e [throw LEX_ERR]
 		]
 		e: lex/in-end
