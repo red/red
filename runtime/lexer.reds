@@ -665,6 +665,7 @@ lexer: context [
 		/local	
 			p [red-triple!]
 			len	stype t py cnt [integer!]
+			si		 [byte-ptr!]
 			do-error [subroutine!]
 			triple?	 [logic!]
 			head	 [red-value!]
@@ -678,7 +679,8 @@ lexer: context [
 		py: GET_BLOCK_TYPE(p)
 		if all [not quiet? lex/fun-ptr <> null][
 			t: either all [triple? any [type <= 0 all [type = TYPE_PAREN py <> type]]][py][type]
-			unless fire-event lex EVT_CLOSE t null s e [return 0]
+			si: either triple? [lex/input + p/z][s]
+			unless fire-event lex EVT_CLOSE t null si e [return 0]
 		]
 		unless triple? [do-error]						;-- postpone error checking after callback call
 		stype: py
@@ -1299,7 +1301,8 @@ lexer: context [
 				if all [e + 1 < lex/in-end e/2 = #"/"][ ;-- detect :/ illegal sequence
 					throw-error lex null e TYPE_PATH
 				]
-				lex/in-pos: e + 1						;-- skip :
+				e: e + 1								;-- skip :
+				lex/in-pos: e
 				TYPE_SET_PATH
 			][-1]
 			close-block lex s e type no

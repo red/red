@@ -973,7 +973,7 @@ Red [
 			prescan block! datatype! 1 9x9
 			open block! datatype! 1 9x9
 			prescan block! datatype! 1 10x10
-			close block! datatype! 1 10x10
+			close block! datatype! 1 9x10
 		]
 
 	--test-- "tt-2"
@@ -1016,7 +1016,7 @@ Red [
 			scan integer! datatype! 1 11x12
 			load integer! datatype! 1 2
 			prescan paren! datatype! 1 12x12
-			close map! datatype! 1 12x12
+			close map! datatype! 1 6x12
 			prescan block! datatype! 1 14x14
 			open block! datatype! 1 14x14
 			prescan word! datatype! 1 16x17
@@ -1309,7 +1309,7 @@ Red [
 		    prescan word! datatype! 1 12x13
 		    scan word! datatype! 1 12x13
 		    load word! datatype! 1 e
-		    close path! datatype! 1 12x13
+		    close path! datatype! 1 10x13
 		    error block! datatype! 1 4x13
 		]
 
@@ -1336,8 +1336,8 @@ Red [
 		    scan word! datatype! 1 4x5 
 		    load word! datatype! 1 j 
 		    prescan paren! datatype! 1 5x5 
-		    close paren! datatype! 1 5x5 
-		    close set-path! datatype! 1 5x6 
+		    close paren! datatype! 1 3x5 
+		    close set-path! datatype! 1 1x7 
 		    prescan integer! datatype! 1 8x9 
 		    scan integer! datatype! 1 8x9 
 		    load integer! datatype! 1 3
@@ -1360,7 +1360,7 @@ Red [
 		    prescan paren! datatype! 1 2x2 
 		    open paren! datatype! 1 2x2 
 		    prescan block! datatype! 1 3x3 
-		    close block! datatype! 1 3x3 
+		    close block! datatype! 1 2x3 
 		    error paren! datatype! 1 3x3 
 		    prescan word! datatype! 1 5x6 
 		    scan word! datatype! 1 5x6 
@@ -1377,7 +1377,7 @@ Red [
 		    prescan paren! datatype! 1 2x2 
 		    open paren! datatype! 1 2x2 
 		    prescan block! datatype! 1 3x3 
-		    close block! datatype! 1 3x3 
+		    close block! datatype! 1 2x3 
 		    error paren! datatype! 1 3x3 
 		    error paren! datatype! 1 2x4
 		]
@@ -1389,10 +1389,10 @@ Red [
 		    prescan paren! datatype! 1 1x1 
 		    open paren! datatype! 1 1x1 
 		    prescan block! datatype! 1 2x2 
-		    close block! datatype! 1 2x2 
+		    close block! datatype! 1 1x2 
 		    error paren! datatype! 1 2x2 
 		    prescan paren! datatype! 1 3x3 
-		    close paren! datatype! 1 3x3
+		    close paren! datatype! 1 1x3
 		]
 
 	--test-- "tt-21"
@@ -1404,7 +1404,7 @@ Red [
 		    prescan paren! datatype! 1 2x2 
 		    open paren! datatype! 1 2x2 
 		    prescan block! datatype! 1 3x3 
-		    close block! datatype! 1 3x3 
+		    close block! datatype! 1 2x3 
 		    error paren! datatype! 1 3x3 
 		    error paren! datatype! 1 2x4
 		]
@@ -1418,15 +1418,15 @@ Red [
 		    prescan paren! datatype! 1 2x2 
 		    open paren! datatype! 1 2x2 
 		    prescan block! datatype! 1 3x3 
-		    close block! datatype! 1 3x3 
+		    close block! datatype! 1 2x3 
 		    error paren! datatype! 1 3x3 
 		    prescan block! datatype! 1 4x4 
-		    close block! datatype! 1 4x4 
+		    close block! datatype! 1 2x4 
 		    error paren! datatype! 1 4x4 
 		    prescan paren! datatype! 1 5x5 
-		    close paren! datatype! 1 5x5 
+		    close paren! datatype! 1 2x5 
 		    prescan block! datatype! 1 6x6 
-		    close block! datatype! 1 6x6
+		    close block! datatype! 1 1x6
 		]
 
 	--test-- "tt-23"
@@ -1438,12 +1438,12 @@ Red [
 		    prescan block! datatype! 1 3x3 
 		    open block! datatype! 1 3x3 
 		    prescan block! datatype! 1 4x4 
-		    close block! datatype! 1 4x4 
+		    close block! datatype! 1 3x4 
 		    prescan integer! datatype! 1 5x7 
 		    scan integer! datatype! 1 5x7 
 		    load integer! datatype! 1 22 
 		    prescan paren! datatype! 1 7x7 
-		    close map! datatype! 1 7x7 
+		    close map! datatype! 1 1x7 
 		    error map! datatype! 1 7x7
 		]
 
