@@ -683,7 +683,10 @@ lexer: context [
 		if all [not quiet? lex/fun-ptr <> null][
 			t: either all [triple? any [type <= 0 all [type = TYPE_PAREN py <> type]]][py][type]
 			si: either triple? [lex/input + p/z][s]
-			unless fire-event lex EVT_CLOSE t null si e [return 0]
+			unless fire-event lex EVT_CLOSE t null si e [
+				lex/entry: S_START
+				return 0
+			]
 		]
 		unless triple? [do-error]						;-- postpone error checking after callback call
 		stype: py
