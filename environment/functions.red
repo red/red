@@ -421,19 +421,19 @@ load: function [
 	]
 	if pre-load: :system/lexer/pre-load [do [pre-load source length]]
 
-	out: case [
+	set/any 'out case [
 		part  [transcode/part source length]
 		into  [transcode/into source out]
 		;trap  [system/lexer/transcode to-string source out trap]
 		next  [
-			set position second out: transcode/next source
+			set position second set/any 'out transcode/next source
 			return either :all [reduce [out/1]][out/1]
 		]
 		'else [transcode source]
 	]
-	either trap [out][
-		unless :all [if 1 = length? out [out: out/1]]
-		out
+	either trap [:out][
+		unless :all [if 1 = length? :out [set/any 'out out/1]]
+		:out
 	]
 ]
 

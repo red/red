@@ -3056,7 +3056,10 @@ comment {
 		--assert tail? next next next next i4056
 		--assert tail? next back next tail i4056
 
-    --test-- "#4203"
+	--test-- "#4126"
+		--assert unset? load "#[unset]"
+
+	--test-- "#4203"
 		test-file: to-file rejoin [runnable-dir "test.red"]
 		write test-file {
 			Red []
