@@ -1090,7 +1090,7 @@ average: func [
 	block [block! vector! paren! hash!]
 ][
 	if empty? block [return none]
-	divide sum block to float! length? block
+	divide sum block length? block
 ]
 
 last?: func [
