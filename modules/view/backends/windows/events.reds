@@ -1329,9 +1329,6 @@ WndProc: func [
 						yy: yy + y
 						EVT_MOVE
 					][EVT_SIZE]
-					current-msg/hWnd: hWnd
-					current-msg/lParam: lParam
-					make-event current-msg 0 res
 
 					offset: as red-point2D! values + type
 					offset/header: TYPE_POINT2D
@@ -1341,6 +1338,10 @@ WndProc: func [
 						type = FACE_OBJ_SIZE
 						SIZE_FACET_PAIR?(hwnd)
 					][as-pair offset]
+
+					current-msg/hWnd: hWnd
+					current-msg/lParam: yy << 16 or (xx and FFFFh)
+					make-event current-msg 0 res
 
 					values: values + FACE_OBJ_STATE
 					if all [
@@ -1371,7 +1372,7 @@ WndProc: func [
 				]
 				rc: as RECT_STRUCT lParam
 				type: either msg = WM_MOVING [
-					SetWindowLong hWnd wc-offset - 8 rc/top - y << 16 or (rc/left - x)
+					SetWindowLong hWnd wc-offset - 8 rc/top - y << 16 or (rc/left - x and FFFFh)
 					x: rc/left
 					y: rc/top
 					modal-loop-type: EVT_MOVING
@@ -1388,7 +1389,7 @@ WndProc: func [
 				offset/header: TYPE_POINT2D
 				offset/x: dpi-unscale as float32! x
 				offset/y: dpi-unscale as float32! y
-				current-msg/lParam: y << 16 or x
+				current-msg/lParam: y << 16 or (x and FFFFh)
 				if all [
 					type = FACE_OBJ_SIZE
 					SIZE_FACET_PAIR?(hwnd)
