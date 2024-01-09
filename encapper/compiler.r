@@ -1256,10 +1256,10 @@ red: context [
 		flags: 0
 		foreach attrib spec/1 [
 			unless word? attrib [do-error]
-			flags: switch attrib [						;-- keep those flags synced with %runtime/definitions.reds
+			flags: switch/default attrib [				;-- keep those flags synced with %runtime/definitions.reds
 				trace	 [flags or to-integer #{00000400}]
 				no-trace [flags or to-integer #{00000200}]
-			]
+			][0]
 		]
 		flags
 	]
