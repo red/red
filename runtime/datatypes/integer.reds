@@ -16,8 +16,11 @@ integer: context [
 	overflow?: func [
 		fl		[red-float!]
 		return: [logic!]
+		/local
+			f	[float!]
 	][
-		any [fl/value > 2147483647.0 fl/value < -2147483648.0]
+		f: fl/value
+		any [f > 2147483647.0 f < -2147483648.0 float/NaN? f]
 	]
 	
 	sign?: func [
