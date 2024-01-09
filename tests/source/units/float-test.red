@@ -200,10 +200,10 @@ Red [
 	local-float: func [n [float!] return: [float!] /local p][p: n p]
 
 	--test-- "float-loc-1"
-		pi: local-float 3.14159265358979
-		--assert pi = 3.14159265358979
-		--assert -1.0 = cos pi
-		--assert -1.0 = local-float cos pi
+		res: local-float 3.141592653589793
+		--assert res = 3.141592653589793
+		--assert -1.0 = cos res
+		--assert -1.0 = local-float cos res
 
 	--test-- "float-loc-2"
 		ff: local-float pi
@@ -212,17 +212,17 @@ Red [
 	--test-- "float-loc-3"
 		local-float2: func [n [float!] return: [float!] /local p][p: n local-float p]
 
-		pi: local-float2 3.14159265358979
-		--assert -1.0 = local-float2 cos pi
-		ff: local-float2 pi
+		res: local-float2 3.141592653589793
+		--assert -1.0 = local-float2 cos res
+		ff: local-float2 res
 		--assert pi = local-float2 ff
 
 	--test-- "float-loc-4"
 		local-float3: func [n [float!] return: [float!] /local p [float!]][p: n local-float p]
 
-		pi: local-float3 3.14159265358979
-		--assert -1.0 = local-float3 cos pi
-		ff: local-float3 pi
+		res: local-float3 3.141592653589793
+		--assert -1.0 = local-float3 cos res
+		ff: local-float3 res
 		--assert pi = local-float3 ff
 
 	--test-- "float-loc-5"
