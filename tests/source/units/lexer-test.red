@@ -1576,7 +1576,9 @@ Red [
 		--assert [a〇b] == load/all "^(2002)^(85)a^(3007)b"
 
 	--test-- "#4781"
-		--assert 3:3:3.3000000001 = transcode/one "3:3:3.3"
+		do {											;@@ clean-up once compiler is removed
+			--assert 3:3:3.3 == transcode/one "3:3:3.3"
+		}
 
 	--test-- "#4914"
 		--assert error? try [transcode {#(a: 22 b: 33 c: x: a)}]
