@@ -458,6 +458,8 @@ free-handles: func [
 		cfg		[integer!]
 		last	[handle!]
 ][
+	if null? widget [exit]
+
 	values: get-face-values widget
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
@@ -803,7 +805,7 @@ remove-all-timers: func [
 
 		while [face < tail][
 			widget_: face-handle? face
-			unless null? widget [remove-all-timers widget_]
+			unless null? widget_ [remove-all-timers widget_]
 			face: face + 1
 		]
 	]
@@ -2212,6 +2214,8 @@ OS-destroy-view: func [
 		flags	[integer!]
 ][
 	handle: face-handle? face
+	if null? handle [exit]
+
 	values: object/get-values face
 	flags: get-flags as red-block! values + FACE_OBJ_FLAGS
 
