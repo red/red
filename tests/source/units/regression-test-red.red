@@ -3622,6 +3622,16 @@ comment {
 		1 
 		#do [c5445: c5445 + 1]
 		--assert 2 = #do keep [c5445]
+		
+	--test-- "#5450"
+		context [
+			wrong: "correct"
+			correct: %/a/b/c/correct
+			path: %/a/b/c
+			--assert correct == path/:wrong
+			--assert correct == path/(wrong)
+			--assert correct == do [path/:wrong]
+		]
 
 	--test-- "#5460"
 		--assert error? try [to integer! 1.#nan]

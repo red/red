@@ -119,6 +119,7 @@
 	red/word/duplicate
 
 	red/get-word/get
+	red/get-word/push-local
 	red/set-word/push-local
 
 	red/_context/get
