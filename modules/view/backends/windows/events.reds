@@ -1056,6 +1056,8 @@ set-window-info: func [
 		pair	[red-pair!]
 		info	[tagMINMAXINFO]
 		ret?	[logic!]
+		pt		[red-point2D!]
+		sx sy	[integer!]
 ][
 	ret?: no
 	unless no-face? hWnd [
@@ -1066,14 +1068,15 @@ set-window-info: func [
 		window-border-info? hWnd :x :y :cx :cy
 		values: get-face-values hWnd
 		pair: as red-pair! values + FACE_OBJ_SIZE
+		GET_PAIR_XY_INT(pair sx sy)
 		info: as tagMINMAXINFO lParam
-		cx: pair/x + cx
-		cy: pair/y + cy
+		cx: sx + cx
+		cy: sy + cy
 
-		if pair/x > info/ptMaxSize.x [info/ptMaxSize.x: cx ret?: yes]
-		if pair/y > info/ptMaxSize.y [info/ptMaxSize.y: cy ret?: yes]
-		if pair/x > info/ptMaxTrackSize.x [info/ptMaxTrackSize.x: cx ret?: yes]
-		if pair/y > info/ptMaxTrackSize.y [info/ptMaxTrackSize.y: cy ret?: yes]
+		if sx > info/ptMaxSize.x [info/ptMaxSize.x: cx ret?: yes]
+		if sy > info/ptMaxSize.y [info/ptMaxSize.y: cy ret?: yes]
+		if sx > info/ptMaxTrackSize.x [info/ptMaxTrackSize.x: cx ret?: yes]
+		if sy > info/ptMaxTrackSize.y [info/ptMaxTrackSize.y: cy ret?: yes]
 	]
 	ret?
 ]
@@ -1114,7 +1117,7 @@ update-window: func [
 		tail	[red-object!]
 		values	[red-value!]
 		sz		[red-pair!]
-		pos		[red-point2D!]
+		pos pt	[red-point2D!]
 		font	[red-object!]
 		word	[red-word!]
 		type	[integer!]
@@ -1122,6 +1125,7 @@ update-window: func [
 		hdwp	[handle!]
 		target	[integer!]
 		hfont	[handle!]
+		x y		[float32!]
 ][
 	if null? fonts [
 		get-metrics
@@ -1148,12 +1152,13 @@ update-window: func [
 					SetWindowLong hWnd wc-offset - 36 0
 				]
 			]
+			GET_PAIR_XY(sz x y)
 			hdwp: DeferWindowPos
 				hdwp
 				hWnd
 				null
 				dpi-scale pos/x dpi-scale pos/y
-				dpi-scale as float32! sz/x dpi-scale as float32!  sz/y
+				dpi-scale x dpi-scale y
 				SWP_NOZORDER or SWP_NOACTIVATE
 
 			child: as red-block! values + FACE_OBJ_PANE
@@ -1178,7 +1183,7 @@ update-window: func [
 					hWnd
 					null
 					0 0
-					dpi-scale as float32! sz/x dpi-scale as float32! sz/y
+					dpi-scale x dpi-scale y
 					SWP_NOZORDER or SWP_NOACTIVATE
 			]
 		]
