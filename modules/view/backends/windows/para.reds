@@ -41,6 +41,9 @@ update-para: func [
 		mask   [integer!]
 ][
 	values: object/get-values face
+	state:	as red-block! values + FACE_OBJ_TYPE
+	if TYPE_OF(state) <> TYPE_BLOCK [exit]
+	
 	type:	as red-word! values + FACE_OBJ_TYPE
 	sym:	symbol/resolve type/symbol
 	para: 	as red-object! values + FACE_OBJ_PARA
@@ -76,12 +79,9 @@ update-para: func [
 		SetWindowLong hWnd GWL_STYLE style
 	]
 	
-	state: as red-block! values + FACE_OBJ_STATE
-	if TYPE_OF(state) = TYPE_BLOCK [
-		int: as red-integer! (block/rs-head state) + 1
-		if TYPE_OF(int) = TYPE_INTEGER [
-			int/value: int/value or FACET_FLAG_PARA		;-- set the change flag in bit array
-		]
+	int: as red-integer! (block/rs-head state) + 1
+	if TYPE_OF(int) = TYPE_INTEGER [
+		int/value: int/value or FACET_FLAG_PARA			;-- set the change flag in bit array
 	]
 ]
 
