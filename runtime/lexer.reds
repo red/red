@@ -1238,14 +1238,14 @@ lexer: context [
 
 		either zero? lex/mstr-nest [
 			either load? [
-				if lex/fun-ptr <> null [load?: fire-event lex EVT_SCAN TYPE_STRING null lex/mstr-s e]
+				if lex/fun-ptr <> null [load?: fire-event lex EVT_SCAN TYPE_STRING null lex/mstr-s e + 1]
 				if load? [
 					load-string lex lex/mstr-s e lex/mstr-flags or flags yes
-					if lex/fun-ptr <> null [fire-event lex EVT_LOAD TYPE_STRING lex/tail - 1 s e]
+					if lex/fun-ptr <> null [fire-event lex EVT_LOAD TYPE_STRING lex/tail - 1 s e + 1]
 				]
 			][
 				scan-string lex lex/mstr-s e lex/mstr-flags or flags no
-				if lex/fun-ptr <> null [fire-event lex EVT_SCAN TYPE_STRING null s e]
+				if lex/fun-ptr <> null [fire-event lex EVT_SCAN TYPE_STRING null s e + 1]
 			]
 			lex/mstr-s: null
 			lex/mstr-flags: 0
