@@ -796,10 +796,18 @@ system/view/platform: context [
 			bool	[red-logic!]
 			values	[red-value!]
 			txt		[red-string!]
+			word	[red-word!]
+			sym		[integer!]
 			layout? [logic!]
 	][
 		layout?: yes
 		values: object/get-values box
+		word: as red-word! values + gui/FACE_OBJ_TYPE
+		sym: symbol/resolve word/symbol
+		if sym <> gui/rich-text [
+			fire [TO_ERROR(script face-type) word]
+		]
+
 		txt: as red-string! values + gui/FACE_OBJ_TEXT
 		if TYPE_OF(txt) <> TYPE_STRING [
 			stack/set-last none-value
