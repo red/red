@@ -681,7 +681,9 @@ lexer: context [
 		triple?: all [lex/buffer <= p TYPE_OF(p) = TYPE_TRIPLE]
 		py: GET_BLOCK_TYPE(p)
 		if all [not quiet? lex/fun-ptr <> null][
-			t: either all [triple? any [type <= 0 all [type = TYPE_PAREN py <> type]]][py][type]
+			t: either all [triple? any [type <= 0 all [type = TYPE_PAREN py <> type]]][
+				either all [py = TYPE_POINT2D p/y >> 16 > 1][TYPE_POINT3D][py]
+			][type]
 			si: either triple? [lex/input + p/z][s]
 			unless fire-event lex EVT_CLOSE t null si e [
 				lex/entry: S_START
