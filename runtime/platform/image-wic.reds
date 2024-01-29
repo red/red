@@ -778,7 +778,7 @@ OS-image: context [
 			file/to-OS-path src
 			null
 			GENERIC_READ
-			1	;-- WICDecodeMetadataCacheOnLoad
+			0	;-- WICDecodeMetadataCacheOnDemand
 			:II [return null]
 		node: get-frame IFAC as com-ptr! :II 0 no
 		if null? node [return null]
