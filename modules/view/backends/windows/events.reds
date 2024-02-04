@@ -1771,6 +1771,7 @@ process: func [
 				word: (as red-word! get-face-values hWnd) + FACE_OBJ_TYPE
 				if base = symbol/resolve word/symbol [ReleaseCapture]	;-- issue #4384
 			]
+			key-flags: flags
 			res: make-event msg flags EVT_LEFT_UP
 			prev-captured: null
 			res
