@@ -3635,6 +3635,10 @@ comment {
 
 	--test-- "#5460"
 		--assert error? try [to integer! 1.#nan]
+		
+	--test-- "#5477"
+		--assert 'zero-divide = get in try [1 / 0] 'id
+
 
 ===end-group===
 

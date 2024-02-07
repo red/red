@@ -1236,14 +1236,17 @@ natives: context [
 			native	[red-native!]
 			word	[red-word!]
 			res		[red-value!]
+			type	[integer!]
 	][
 		#typecheck in
 		obj:  as red-object! stack/arguments
 		word: as red-word! stack/arguments + 1
+		type: TYPE_OF(obj)
 		ctx: either any [
-			TYPE_OF(obj) = TYPE_OBJECT
-			TYPE_OF(obj) = TYPE_FUNCTION
-			TYPE_OF(obj) = TYPE_ROUTINE
+			type = TYPE_OBJECT
+			type = TYPE_ERROR
+			type = TYPE_FUNCTION
+			type = TYPE_ROUTINE
 		][
 			GET_CTX(obj)
 		][
