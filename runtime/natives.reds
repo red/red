@@ -1245,6 +1245,7 @@ natives: context [
 		ctx: either any [
 			type = TYPE_OBJECT
 			type = TYPE_ERROR
+			type = TYPE_PORT
 			type = TYPE_FUNCTION
 			type = TYPE_ROUTINE
 		][
