@@ -142,6 +142,17 @@ lexer: context [
 		FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 	}
 	
+	point-scan-table: #{
+		0000000000000000000100000000000000000000000000000000000000000000
+		0100000100000000000000010001010001010101010101010101000000000000
+		0001000000010100000100000000010000000000000000000000000000000000
+		0000000000010000000000000000000000000000000000000000000000000000
+		0000000000000000000000000000000000000000000000000000000000000000
+		0000000000000000000000000000000000000000000000000000000000000000
+		0000000000000000000000000000000000000000000000000000000000000000
+		0000000000000000000000000000000000000000000000000000000000000000
+	}
+	
 	float-transitions: #{
 		07000107020707
 		07070103020106
@@ -514,8 +525,15 @@ lexer: context [
 	][
 		assert lex/in-series <> null
 		if lex/fun-evts and event = 0 [return true]
-		if all [event = EVT_SCAN type = -2][event: EVT_ERROR type: TYPE_ERROR]
-		if all [event = EVT_PRESCAN type = TYPE_ERROR lex/entry = S_M_STRING][s: lex/mstr-s]
+		if event = EVT_SCAN [
+			if type = -2 [event: EVT_ERROR type: TYPE_ERROR]
+			if any [type = TYPE_POINT2D type = TYPE_POINT3D][s: s - 1]
+		]
+		if event = EVT_PRESCAN [
+			if all [s/1 = #"(" prescan-point s + 1 lex/in-end][return yes]
+			if all [type = TYPE_ERROR lex/entry = S_M_STRING][s: lex/mstr-s]
+			if type = TYPE_POINT2D [s: s - 1  e: e + 1]
+		]
 
 		more: as series! lex/fun-ptr/more/value
 		int: as red-integer! more/offset + 4
@@ -681,9 +699,7 @@ lexer: context [
 		triple?: all [lex/buffer <= p TYPE_OF(p) = TYPE_TRIPLE]
 		py: GET_BLOCK_TYPE(p)
 		if all [not quiet? lex/fun-ptr <> null][
-			t: either all [triple? any [type <= 0 all [type = TYPE_PAREN py <> type]]][
-				either all [py = TYPE_POINT2D p/y >> 16 > 1][TYPE_POINT3D][py]
-			][type]
+			t: either all [triple? any [type <= 0 all [type = TYPE_PAREN py <> type]]][py][type]
 			si: either triple? [lex/input + p/z][s]
 			unless fire-event lex EVT_CLOSE t null si e [
 				lex/entry: S_START
@@ -698,7 +714,6 @@ lexer: context [
 					type <> TYPE_SET_PATH 
 					all [type = TYPE_SET_PATH any [stype = TYPE_LIT_PATH stype = TYPE_GET_PATH]]
 				]
-				stype <> TYPE_POINT2D
 				not all [stype = TYPE_MAP type = TYPE_PAREN];-- paren can close a map or a point
 				stype <> type							;-- saved type <> closing type => error
 			][
@@ -710,25 +725,7 @@ lexer: context [
 		len: (as-integer lex/tail - lex/head) >> 4
 		head: lex/head
 		lex/head: as cell! p - p/x
-		either stype = TYPE_POINT2D [
-			cnt: p/y >> 16								;-- count of commas
-			if any [
-				cnt > 2									;-- more than 2 commas case
-				all [lex/last <> TYPE_INTEGER lex/last <> TYPE_FLOAT] ;-- detect invalid type at tail (after last comma)
-				all [lex/load? cnt + 1 <> len]
-			][
-				t: either cnt > 1 [TYPE_POINT3D][TYPE_POINT2D]
-				throw-error lex lex/input + p/z e t
-			]
-			either lex/load? [
-				make-point as cell! p head lex lex/input + p/z e
-			][
-				type: scan-point lex s e
-				p/header: type					;-- overwrite the triple header with correct type (scanning)
-			]
-		][
-			store-any-block as cell! p head len type null ;-- p slot gets overwritten here
-		]
+		store-any-block as cell! p head len type null ;-- p slot gets overwritten here
 		lex/tail: head
 		lex/scanned: type
 		
@@ -736,7 +733,7 @@ lexer: context [
 		type: GET_BLOCK_TYPE(p)
 		either all [
 			lex/buffer <= p
-			not any [type = TYPE_BLOCK type = TYPE_PAREN type = TYPE_MAP type = TYPE_POINT2D]
+			not any [type = TYPE_BLOCK type = TYPE_PAREN type = TYPE_MAP]
 		][												;-- any-path! case
 			lex/entry: S_PATH
 		][
@@ -886,56 +883,16 @@ lexer: context [
 		str/cache: null
 	]
 	
-	scan-point: func [lex [state!] s [byte-ptr!] e [byte-ptr!] return: [integer!]
+	prescan-point: func [s [byte-ptr!] e [byte-ptr!] return: [logic!]
 		/local
-			p   [red-triple!]
-			cnt [integer!]
-			do-error skip-ws [subroutine!]
+			idx [integer!]
 	][
-		do-error: [throw-error lex s e TYPE_POINT2D]
-		skip-ws:  [until [s: s + 1 any [s = e s/1 <> #" "]]]
-		
-		p: as red-triple! either lex/buffer < lex/head [lex/head - 1][lex/head]
-		if TYPE_OF(p) <> TYPE_TRIPLE [do-error]
-		s: lex/input + p/z
-		cnt: 0
-
+		if s + 3 >= e [return no]
 		while [s < e][
-			until [s: s + 1 any [s = e s/1 = #" " s/1 = #","]];-- find a space or a comma
-			if all [s < e s/0 <> #"," s/1 <> #","][			;-- if space is preceded by comma, found!
-				skip-ws										;-- skip all spaces
-				if all [s < e s/1 <> #","][do-error]		;-- comma should follow, otherwise error!
-			]
-			cnt: cnt + 1
-			skip-ws											;-- skip the spaces after the comma
+			idx: as-integer s/1
+			either 1 = as-integer point-scan-table/idx [s: s + 1][return s/1 = #","]
 		]
-		either cnt = 2 [TYPE_POINT2D][TYPE_POINT3D]
-	]
-	
-	make-point: func [slot [red-value!] head [red-value!] lex [state!] s [byte-ptr!] e [byte-ptr!]
-		/local
-			int		[red-integer!]
-			fp		[red-float!]
-			x y z t	[float32!]
-			get-f32 [subroutine!]
-	][
-		get-f32: [
-			switch TYPE_OF(fp) [
-				TYPE_FLOAT   [t: as-float32 fp/value]
-				TYPE_INTEGER [int: as red-integer! fp  t: as-float32 int/value]
-				default		 [throw-error lex s e TYPE_POINT2D]
-			]
-			t
-		]
-		fp: as red-float! head
-		x: get-f32
-		fp: fp + 1
-		y: get-f32
-		if head + 2 = lex/tail [point2D/make-at slot x y  exit]
-		fp: fp + 1
-		z: get-f32
-		if head + 3 < lex/tail [throw-error lex s e TYPE_POINT3D]
-		point3D/make-at slot x y z
+		yes
 	]
 	
 	grab-integer: func [s e [byte-ptr!] flags [integer!] dst err [int-ptr!]
@@ -1180,7 +1137,15 @@ lexer: context [
 	scan-block-open: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local type [integer!]
 	][
-		type: either s/1 = #"(" [TYPE_PAREN][TYPE_BLOCK]
+		type: either s/1 = #"(" [
+			if prescan-point s + 1 lex/in-end [
+				lex/scanned: 0
+				lex/in-pos: e + 1						;-- skip delimiter
+				lex/entry: S_POINT
+				exit
+			]
+			TYPE_PAREN
+		][TYPE_BLOCK]
 		open-block lex type null null
 		lex/in-pos: e + 1								;-- skip delimiter
 	]
@@ -1871,9 +1836,8 @@ lexer: context [
 		lex/in-pos: e									;-- reset the input position to delimiter byte
 	]
 	
-	load-float-special: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
+	grab-float-special: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!] return: [float!]
 		/local
-			fl	 [red-float!]
 			p	 [byte-ptr!]
 			f	 [float!]
 			sig? [logic!]
@@ -1889,6 +1853,15 @@ lexer: context [
 				throw-error lex s e TYPE_FLOAT
 			]
 		]
+		f
+	]
+	
+	load-float-special: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
+		/local
+			fl	[red-float!]
+			f	[float!]
+	][
+		f: grab-float-special lex s e flags load?
 		if load? [
 			fl: as red-float! alloc-slot lex
 			set-type as cell! fl TYPE_FLOAT
@@ -2133,6 +2106,61 @@ lexer: context [
 		if load? [pair/make-at alloc-slot lex x y]
 		lex/scanned: TYPE_PAIR							;-- overwrite value set by load-integer
 		lex/in-pos: e									;-- reset the input position to delimiter byte
+	]
+
+	load-point: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
+		/local
+			x y z [float32!]
+			p	  [byte-ptr!]
+			f	  [float!]
+			err	  [integer!]
+			sp?	  [logic!]
+			grab  skip-ws[subroutine!]
+	][
+		skip-ws: [while [any [p/1 = #" " p/1 = #"^-"]][p: p + 1]]
+		
+		grab: [
+			sp?: no
+			skip-ws
+			s: p
+			if p/1 = #")" [throw-error lex s e TYPE_POINT2D]
+			while [all [p/1 <> #"," p/1 <> #")" p/1 <> #" " p/1 <> #"^-"]][
+				if p/1 = #"#" [sp?: yes]
+				p: p + 1
+			]
+			either sp? [
+				f: grab-float-special lex s p flags no
+			][
+				either load? [
+					err: 0
+					f: dtoa/to-float s p :err
+					if err <> 0 [throw-error lex s p TYPE_FLOAT]
+				][
+					unless scan-float s p [throw-error lex s e TYPE_FLOAT]
+					f: 1.#NaN							;-- placeholder, value is later ignored anyway
+				]
+			]
+			skip-ws
+			f
+		]
+		p: s
+		x: as-float32 grab
+		if p/1 <> #"," [throw-error lex s e TYPE_POINT2D]
+		p: p + 1
+		y: as-float32 grab
+		either p/1 = #"," [
+			p: p + 1
+			z: as-float32 grab
+			if p/1 <> #")" [throw-error lex s e TYPE_POINT3D]
+			if load? [point3D/make-at alloc-slot lex x y z]
+			lex/scanned: TYPE_POINT3D
+		][
+			if p/1 <> #")" [throw-error lex s e TYPE_POINT2D]
+			if load? [point2D/make-at alloc-slot lex x y]
+			lex/scanned: TYPE_POINT2D
+		]
+		lex/entry: S_START
+		lex/in-pos: e + 1								;-- set the input position after ending delimiter
 	]
 	
 	load-time: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
@@ -2690,6 +2718,7 @@ lexer: context [
 		
 		float-classes:     float-classes     + 1
 		float-transitions: float-transitions + 1
+		point-scan-table:  point-scan-table  + 1
 		
 		set-jump-tables [
 			:scan-eof			null					;-- T_EOF
@@ -2719,6 +2748,7 @@ lexer: context [
 			null				:load-tuple				;-- T_TUPLE
 			null				:load-date				;-- T_DATE
 			null				:load-pair				;-- T_PAIR
+			null				:load-point				;-- T_POINT
 			null				:load-time				;-- T_TIME
 			null				:load-money				;-- T_MONEY
 			null				:load-tag				;-- T_TAG
