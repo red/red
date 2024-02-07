@@ -474,6 +474,10 @@ system/view/VID: context [
 				if none? face-font/:field [face-font/:field: get value]
 			]
 		]
+		if all [opts/para face/para][
+			set/some face/para opts/para
+			opts/para: face/para
+		]
 		if all [block? face/actors block? actors: opts/actors][
 			foreach [name f s b] face/actors [
 				unless find actors name [repend actors [name f s b]]
