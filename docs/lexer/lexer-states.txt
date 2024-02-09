@@ -255,10 +255,10 @@ S_START->"#"->S_SHARP->"{"->S_BINARY->hexa|ws|"/"|"="|"+"->S_BINARY
                        \             \->dbl-quote->T_CHAR
                         \             \->EOF->T_ERROR
                          \
-                          \->"("->T_MAP_OP
+                          \->"["->T_MAP_OP
                            \
-                            \->"["->S_CONSTRUCT->not("]"|EOF)->S_CONSTRUCT
-                             \        \->"]"->T_CONS_MK
+                            \->"("->S_CONSTRUCT->not(")"|EOF)->S_CONSTRUCT
+                             \        \->")"->T_CONS_MK
                               \        \->EOF->T_ERROR
                                \
                                 \->not(delimit7)->S_ISSUE->not(delimit1|"/"|":")->S_ISSUE

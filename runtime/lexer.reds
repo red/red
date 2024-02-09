@@ -497,8 +497,8 @@ lexer: context [
 					either lex/in-pos < lex/in-end [lex/in-pos/1][lex/in-pos/0] ;-- guess opening/closing
 				]
 				type: switch closing [
-					TYPE_BLOCK [as-integer either c = #"]" [#"["][#"]"]]
 					TYPE_MAP
+					TYPE_BLOCK [as-integer either c = #"]" [#"["][#"]"]]
 					TYPE_POINT2D
 					TYPE_PAREN [as-integer either c = #")" [#"("][#")"]]
 					default [assert false 0]			;-- should not happen
@@ -699,7 +699,7 @@ lexer: context [
 		triple?: all [lex/buffer <= p TYPE_OF(p) = TYPE_TRIPLE]
 		py: GET_BLOCK_TYPE(p)
 		if all [not quiet? lex/fun-ptr <> null][
-			t: either all [triple? any [type <= 0 all [type = TYPE_PAREN py <> type]]][py][type]
+			t: either all [triple? any [type <= 0 all [py = TYPE_MAP py <> type]]][py][type]
 			si: either triple? [lex/input + p/z][s]
 			unless fire-event lex EVT_CLOSE t null si e [
 				lex/entry: S_START
@@ -714,7 +714,7 @@ lexer: context [
 					type <> TYPE_SET_PATH 
 					all [type = TYPE_SET_PATH any [stype = TYPE_LIT_PATH stype = TYPE_GET_PATH]]
 				]
-				not all [stype = TYPE_MAP type = TYPE_PAREN];-- paren can close a map or a point
+				not all [stype = TYPE_MAP type = TYPE_BLOCK] ;-- block can close a map
 				stype <> type							;-- saved type <> closing type => error
 			][
 				if triple? [type: py]
@@ -1150,42 +1150,37 @@ lexer: context [
 		lex/in-pos: e + 1								;-- skip delimiter
 	]
 
-	scan-block-close: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
-		catch LEX_ERR [close-block lex s e TYPE_BLOCK no]
-		lex/in-pos: e + 1								;-- skip ]
-	]
-	
-	scan-paren-close: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
+	scan-block-close: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local
 			blk	 [red-block!]
 			value tail [red-value!]
-			type [integer!]
+			type [integer!]	
 	][
-		type: close-block lex s e TYPE_PAREN no
-		switch type [
-			TYPE_MAP [
-				lex/scanned: type
-				if lex/load? [
-					blk: as red-block! lex/tail - 1
-					if (block/rs-length? blk) % 2 <> 0 [
-						throw-error lex null e type
-					]
-					value: block/rs-head blk
-					tail:  block/rs-tail blk
-					while [value < tail][
-						unless map/valid-key? TYPE_OF(value) [
-							lex/tail: as red-value! blk		;-- remove the temp body from loaded values
-							throw-error lex s e type
-						]
-						value: value + 2
-					]
-					map/make-at as cell! blk blk block/rs-length? blk
+		catch LEX_ERR [type: close-block lex s e TYPE_BLOCK no]
+		if type = TYPE_MAP [
+			lex/scanned: type
+			if lex/load? [
+				blk: as red-block! lex/tail - 1
+				if (block/rs-length? blk) % 2 <> 0 [
+					throw-error lex null e type
 				]
+				value: block/rs-head blk
+				tail:  block/rs-tail blk
+				while [value < tail][
+					unless map/valid-key? TYPE_OF(value) [
+						lex/tail: as red-value! blk		;-- remove the temp body from loaded values
+						throw-error lex s e type
+					]
+					value: value + 2
+				]
+				map/make-at as cell! blk blk block/rs-length? blk
 			]
-			;TYPE_POINT2D
-			;TYPE_POINT3D [lex/scanned: type]
-			default      [0]
 		]
+		lex/in-pos: e + 1								;-- skip ]
+	]
+	
+	scan-paren-close: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
+		close-block lex s e TYPE_PAREN no
 		lex/in-pos: e + 1								;-- skip )
 	]
 
@@ -1227,7 +1222,7 @@ lexer: context [
 	scan-map-open: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
 		if s/1 <> #"#" [throw-error lex s e TYPE_MAP]
 		open-block lex TYPE_MAP s e
-		lex/in-pos: e + 1								;-- skip (
+		lex/in-pos: e + 1								;-- skip [
 	]
 	
 	scan-path-open: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
@@ -1307,7 +1302,7 @@ lexer: context [
 		]
 		either p < end [
 			len: p/4 + 1
-			if s/len <> #"]" [throw-error lex s e ERR_MALCONSTRUCT]
+			if s/len <> #")" [throw-error lex s e ERR_MALCONSTRUCT]
 			lex/scanned: p/2
 			if load? [
 				dt: as red-datatype! alloc-slot lex

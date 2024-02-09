@@ -10,7 +10,7 @@ Red [
 	}
 ]
 
-#(
+#[
 	window: [
 		default-actor: on-down
 		template: [type: 'window size: 100x100]
@@ -127,4 +127,4 @@ Red [
 		template: [type: 'base size: 100x100]
 		init: [unless image [image: make image! size]]
 	]
-)
+]

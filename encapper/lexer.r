@@ -270,7 +270,7 @@ lexer: context [
 	]
 	
 	map-rule: [
-		"#(" (stack/allocate block! 10) any-value #")" (
+		"#[" (stack/allocate block! 10) any-value #"]" (
 			stack/prefix #!map!
 			value: stack/pop block!
 		)
@@ -623,12 +623,12 @@ lexer: context [
 	]
 
 	escaped-rule: [
-		"#[" any-ws [
+		"#(" any-ws [
 			  "true"  (value: true)
 			| "false" (value: false)
 			| s: [3 20 [alpha | #"-"] #"!"] e: (value: rejoin [#!~ copy/part s e])
 			| "none" (value: none)
-		]  any-ws #"]"
+		]  any-ws #")"
 	]
 	
 	comment-rule: [#";" [to #"^/" | to end]]

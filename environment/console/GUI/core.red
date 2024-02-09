@@ -72,7 +72,7 @@ object [
 	scroll-pos: 0
 
 	color?:		no
-	theme: #(
+	theme: #[
 		foreground	[0.0.0]
 		background	[252.252.252]
 		selected	[128.128.128.128]			;-- selected text background color
@@ -87,7 +87,7 @@ object [
 		tuple!		[0.0.0]
 		url!		[0.0.255 underline]
 		comment!	[128.128.128]
-	)
+	]
 
 	ask: func [question [string!] hist [block! none!] hide?][
 		history: either hist [hist][system/console/history]
