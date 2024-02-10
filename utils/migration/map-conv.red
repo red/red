@@ -86,7 +86,7 @@ context [
 		]
 	]
 
-	set 'map-conv func [
+	set 'map-conv function [
 		"Swaps map! and construction syntax in argument file(s); only preview by default"
 		root [file!]	"Folder or individual file to process (recursively)"
 		/commit			"Proceed with files conversion; original files are preserved as copies"
