@@ -158,7 +158,7 @@ Red [
 ===start-group=== "load map tests"
 
 	--test-- "load-map-1"
-		lm1-blk: load "m: #(a: 1 b: 2)"
+		lm1-blk: load "m: #[a: 1 b: 2]"
 		--assert 2 == length? lm1-blk
 		--assert strict-equal? first [m:] first lm1-blk
 		--assert map! = type? second lm1-blk
@@ -187,7 +187,7 @@ Red [
 				b: 1.0
 				c: #"1"
 				d: "one"
-				e: #(a: 1 b: 2)
+				e: #[a: 1 b: 2]
 				f: func [][1]
 			]
 		}

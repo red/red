@@ -1450,7 +1450,7 @@ Red [
 		--assert 2 = length? trim first split {х^/+й} "+"
 
 	--test-- "trim-block-1"
-		--assert [1 2] = trim [#[none] 1 #[none] 2 #[none]]
+		--assert [1 2] = trim [#(none) 1 #(none) 2 #(none)]
 
 	--test-- "trim-bin-1"	--assert #{} = trim #{00}
 	--test-- "trim-bin-2"	--assert #{1234} = trim #{000012340000}

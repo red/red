@@ -747,7 +747,7 @@ Red [
 		; TODO: need to check header
 
 	--test-- "#655"
-		--assert none? load "#[none]"
+		--assert none? load "#(none)"
 
 	--test-- "#656"
 		--assert not error? try [load "+1"]
@@ -934,7 +934,7 @@ Red [
 		--assert not error? try [load "-2147483648"]
 
 	--test-- "#791"
-		blk791: [2 #[none] 64 #[none]]
+		blk791: [2 #(none) 64 #(none)]
 		result791: copy []
 		parse blk791 [
 			collect into result791 [
@@ -1551,10 +1551,10 @@ Red [
 		--assert not error? try [test1199 ["" expect true]]
 
 	--test-- "#1206"
-		m1206: #(a 1 b 2)
+		m1206: #[a 1 b 2]
 		remove/key m1206 'a
 		remove/key m1206 'a
-		--assert equal? m1206 #(b 2)
+		--assert equal? m1206 #[b 2]
 		--assert equal? [b] keys-of m1206
 		--assert equal? [2] values-of m1206
 
@@ -1577,7 +1577,7 @@ Red [
 
 ; 	FIXME: causes internal compiler error, see #2198
 ;	--test-- "#1238"
-;		e: try [pick/case #(a 1 b 2) 'B]
+;		e: try [pick/case #[a 1 b 2] 'B]
 ;		--assert equal? 'case e/arg2
 
 	--test-- "#1243"
@@ -1904,7 +1904,7 @@ Red [
 		; GUI
 
 	--test-- "#1627"
-		--assert same? #[none] none
+		--assert same? #(none) none
 
 	; --test-- "#1628"
 		; GUI
@@ -1946,7 +1946,7 @@ Red [
 		; GUI
 
 	--test-- "#1680"
-		f1680: func [] [keys-of #(1 2) none]
+		f1680: func [] [keys-of #[1 2] none]
 		--assert not error? try [f1680]
 		unset 'f1680
 
@@ -2207,7 +2207,7 @@ Red [
 
 	comment: { print, probe and ?? should be mocked in this test
 	--test-- "#1807"
-		m1807: #(a1807: 1)
+		m1807: #[a1807: 1]
 		a1807: m1807/a1807
 		--assert not error? try [probe a1807]
 		--assert not error? try [print type? a1807]
@@ -2244,7 +2244,7 @@ Red [
 	}
 	
 	--test-- "#1834"
-		--assert equal? #(a: 3) extend/case extend/case make map! [a 1] [a 2] [a 3]
+		--assert equal? #[a: 3] extend/case extend/case make map! [a 1] [a 2] [a 3]
 
 	--test-- "#1835"
 		m1835: make map! [a 1 A1835 2]
@@ -2254,7 +2254,7 @@ Red [
 			make map! [a: 1 a 2]
 			make map! [a 1 a: 2]
 		m1835: make map! [a 1 A1835 2 a: 3 :a 4]
-		--assert equal? m1835 #(a: 4 A1835: 2)
+		--assert equal? m1835 #[a: 4 A1835: 2]
 		unset 'm1835
 
 	; --test-- "#1838"
@@ -2752,7 +2752,7 @@ b}
 		unset 'e2195
 
 	--test-- "#2196"
-		m2196: #()
+		m2196: #[]
 		repeat k 70 [
 			m2196/:k: {x}
 			remove/key m2196 k
@@ -2761,9 +2761,9 @@ b}
 		unset 'm2196
 
 	--test-- "#2209"
-		m2209: #(a 1 b 2)
+		m2209: #[a 1 b 2]
 		remove/key m2209 'a
-		--assert equal? #(b: 2) m2209
+		--assert equal? #[b: 2] m2209
 		unset 'm2209
 
 	; --test-- "#2223"
@@ -2797,11 +2797,11 @@ b}
 		--assert equal? [100 100 123 3] reduce [(123 n/a) (1 + 2 n/a) (n/a 123) (n/a 1 + 2)]
 
 	--test-- "#2234"
-		m2234: #(a 1 b 2)
+		m2234: #[a 1 b 2]
 		remove/key m2234 'a
 		--assert not empty? keys-of m2234
 		--assert not empty? values-of m2234
-		m2234: #(a 1 b 2 c 3 d 4 e 5 f 6 g 7 h 8)
+		m2234: #[a 1 b 2 c 3 d 4 e 5 f 6 g 7 h 8]
 		remove/key m2234 'b
 		--assert equal? [a c d e f g h] keys-of m2234
 		--assert equal? [1 3 4 5 6 7 8] values-of m2234
@@ -3057,7 +3057,7 @@ comment {
 		--assert tail? next back next tail i4056
 
 	--test-- "#4126"
-		--assert unset? load "#[unset]"
+		--assert unset? load "#(unset)"
 
 	--test-- "#4203"
 		test-file: to-file rejoin [runnable-dir "test.red"]
@@ -3142,10 +3142,10 @@ comment {
 		p4421: [a/b/c 'a/b/c :a/b/c a/b/c:]
 		foreach path p4421 [foreach [x y] path [append out reduce [x y]]]		
 		--assert out = [
-			a b	c #[none]
-			a b	c #[none]
-			a b	c #[none]
-			a b	c #[none]
+			a b	c #(none)
+			a b	c #(none)
+			a b	c #(none)
+			a b	c #(none)
 		]
 
 	--test-- "#4440"
@@ -3532,7 +3532,7 @@ comment {
 		--assert c5366
 		
 	--test-- "#5387"
-		--assert datatype? first load mold/all reduce [#[none!]]
+		--assert datatype? first load mold/all reduce [#(none!)]
 		
 	--test-- "#5398"
 		do [

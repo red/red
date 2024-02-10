@@ -16,9 +16,9 @@ Red [
 	--test-- "type?ul-2"			--assert char! = type? first [#"a"]
 	--test-- "type?ul-3"			--assert block! = type? first [[]]
 	--test-- "type?ul-4"			--assert get-word! = type? first [:b]
-	--test-- "type?ul-5"			--assert logic! = type? first [#[true]]
+	--test-- "type?ul-5"			--assert logic! = type? first [#(true)]
 	--test-- "type?ul-6"			--assert issue! = type? first [#1]
-	--test-- "type?ul-7"			--assert none! = type? first [#[none]]
+	--test-- "type?ul-7"			--assert none! = type? first [#(none)]
 	--test-- "type?ul-8"			--assert paren! = type? first [(1)]
 	--test-- "type?ul-9"			--assert set-word! = type? first [b:]
 	--test-- "type?ul-10"			--assert string! = type? first ["1234566789"]
@@ -117,7 +117,7 @@ Red [
 
 ===start-group=== "immediate?"
     --test-- "immediate? none!" 		    --assert immediate? none
-    --test-- "not immediate? map!"			--assert not immediate? #()
+    --test-- "not immediate? map!"			--assert not immediate? #[]
 ===end-group===
 
 ~~~end-file~~~

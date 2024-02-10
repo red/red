@@ -568,11 +568,11 @@ Red [
 	--test-- "same-datatype-26"	--assert not same? #"e" #"è"
 	--test-- "same-datatype-27"	--assert same? #"^(010000)" #"^(010000)"
 	--test-- "same-datatype-28"	--assert same? true true
-	--test-- "same-datatype-29"	--assert same? true #[true]
-	--test-- "same-datatype-30"	--assert same? none #[none]
+	--test-- "same-datatype-29"	--assert same? true #(true)
+	--test-- "same-datatype-30"	--assert same? none #(none)
 	--test-- "same-datatype-31"	--assert same? none none
 	--test-- "same-datatype-32"	--assert same? 'true first [true]
-	--test-- "same-datatype-33"	--assert same? first [#[true]] #[true]
+	--test-- "same-datatype-33"	--assert same? first [#(true)] #(true)
 	--test-- "same-datatype-34"	--assert same? false false
 	--test-- "same-datatype-35"	--assert not same? false true
 	--test-- "same-datatype-36"	--assert not same? true false
@@ -789,7 +789,7 @@ Red [
 ===start-group=== "compare maps"
 
 	--test-- "compare-map-1 #issue 5259"
-		--assert #(x: #[none]) <> #(x: "abc")
+		--assert #[x: #(none)] <> #[x: "abc"]
 
 ===end-group===
 
