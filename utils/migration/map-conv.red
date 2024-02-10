@@ -13,14 +13,14 @@ Red [
 		map-conv %<file>.red
 		
 		By default, `map-conv` will only display information about file(s) where map and/or 
-		construction syntax literals are found. No changes will be done. Use /commit option to
-		force changes on disk, a copy of each changed file will be done by default (can be disabled).
+		construction syntax literals are found. No change will be done. Use /commit option to
+		force changes on disk, a copy of each changed file will be made by default (can be disabled).
 		
 		Use `help map-conv` for more info about all options.
 		
 		Notes: 
-		    * This script only work on Red interpreters versions before the lexer changes where
-		      map and construction syntax are swapped!
+		    * This script only works on Red interpreter versions before the lexer changes where
+		      map and construction syntaxes are swapped!
 		    * Only files with `.red` extension will be processed. Call `map-conv` directly with
 		      a file name to workaround that limitation if needed.
 	}
