@@ -13,14 +13,14 @@ Red [
 		map-conv %<file>.red
 		
 		By default, `map-conv` will only display information about file(s) where map and/or 
-		construction syntax literals are found. No changes will be done. Use /commit option to
-		force changes on disk, a copy of each changed file will be done by default (can be disabled).
+		construction syntax literals are found. No change will be done. Use /commit option to
+		force changes on disk, a copy of each changed file will be made by default (can be disabled).
 		
 		Use `help map-conv` for more info about all options.
 		
 		Notes: 
-		    * This script only work on Red interpreters versions before the lexer changes where
-		      map and construction syntax are swapped!
+		    * This script only works on Red interpreter versions before the lexer changes where
+		      map and construction syntaxes are swapped!
 		    * Only files with `.red` extension will be processed. Call `map-conv` directly with
 		      a file name to workaround that limitation if needed.
 	}
@@ -39,7 +39,7 @@ context [
 		switch event [
 			prescan [if type = datatype! [repend cs [line token + 0x1]]]
 			close   [if type = map! [repend maps [line token + 0x1]]]
-			error   [input: next input return no]
+			error   [input: next input  return no]
 		]
 		yes
 	]
@@ -53,7 +53,7 @@ context [
 		
 		transcode/trace src :locate
 		
-		if any [not empty? maps not empty? cs][
+		if any [not empty? maps  not empty? cs][
 			print ["--" file "| maps:" length? maps "| cs:" length? cs]
 			stats/found: stats/found + 1
 			
@@ -86,7 +86,7 @@ context [
 		]
 	]
 
-	set 'map-conv func [
+	set 'map-conv function [
 		"Swaps map! and construction syntax in argument file(s); only preview by default"
 		root [file!]	"Folder or individual file to process (recursively)"
 		/commit			"Proceed with files conversion; original files are preserved as copies"
