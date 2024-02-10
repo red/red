@@ -18,8 +18,11 @@ Red [
 		
 		Use `help map-conv` for more info about all options.
 		
-		Note: This script only work on Red interpreters versions before the lexer changes where
-		map and construction syntax are swapped! 
+		Notes: 
+		    * This script only work on Red interpreters versions before the lexer changes where
+		      map and construction syntax are swapped!
+		    * Only files with `.red` extension will be processed. Call `map-conv` directly with
+		      a file name to workaround that limitation if needed.
 	}
 ]
 
