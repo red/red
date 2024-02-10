@@ -13,7 +13,7 @@ Red [
 		map-conv %<file>.red
 		
 		By default, `map-conv` will only display information about file(s) where map and/or 
-		construction syntax literals are found. No change will be done. Use /commit option to
+		construction syntax literals are found. No change will be done. Use /save option to
 		force changes on disk, a copy of each changed file will be made by default (can be disabled).
 		
 		Use `help map-conv` for more info about all options.
@@ -31,14 +31,14 @@ context [
 	maps:		make block! 1000
 	cs:			make block! 1000
 	
-	prefs: object [commit?: save?: show?: no]
+	prefs: object [save?: copy?: show?: no]
 	stats: object [read: found: changed: 0]
 
 	locate: function [event [word!] input [string!] type [datatype!] line [integer!] token return: [logic!]][
 		[prescan close error]
 		switch event [
-			prescan [if type = datatype! [repend cs [line token + 0x1]]]
-			close   [if type = map! [repend maps [line token + 0x1]]]
+			prescan [if type = datatype! [repend cs   [line token + 0x1]]]
+			close   [if type = map!      [repend maps [line token + 0x1]]]
 			error   [input: next input  return no]
 		]
 		yes
@@ -46,7 +46,7 @@ context [
 
 	process: function [file [file!]][
 		unless attempt [src: read file][print ["Error: cannot read file:" mold file]  exit]
-		if prefs/save? [original: copy src]
+		if prefs/copy? [original: copy src]
 		stats/read: stats/read + 1
 		clear maps
 		clear cs
@@ -57,18 +57,18 @@ context [
 			print ["--" file "| maps:" length? maps "| cs:" length? cs]
 			stats/found: stats/found + 1
 			
-			foreach [line pos] maps [
-				if prefs/show? [print ["line" line ": " mold/part copy/part src pos 50]]
-				change at src pos/1 + 1 #"["
-				change at src pos/2 - 1 #"]"
+			foreach [line slice] maps [
+				if prefs/show? [print ["line" line ": " mold/part copy/part src slice 50]]
+				change at src slice/1 + 1 #"["
+				change at src slice/2 - 1 #"]"
 			]
-			foreach [line pos] cs [
-				if prefs/show? [print ["line" line ": " mold/part copy/part src pos 50]]
-				change at src pos/1 + 1 #"("
-				change at src pos/2 - 1 #")"
+			foreach [line slice] cs [
+				if prefs/show? [print ["line" line ": " mold/part copy/part src slice 50]]
+				change at src slice/1 + 1 #"("
+				change at src slice/2 - 1 #")"
 			]
-			if prefs/commit? [
-				if prefs/save? [write append copy file %.saved original]
+			if prefs/save? [
+				if prefs/copy? [write append copy file %.saved original]
 				write file src
 				stats/changed: stats/changed + 1
 			]
@@ -89,17 +89,17 @@ context [
 	set 'map-conv function [
 		"Swaps map! and construction syntax in argument file(s); only preview by default"
 		root [file!]	"Folder or individual file to process (recursively)"
-		/commit			"Proceed with files conversion; original files are preserved as copies"
-		/no-save		"Do not make a file copy when committing changes"
-		/no-show		"Do not display details for each file"
-		/deny			"Exclude file(s) from processing"
+		/save			"Proceed with files conversion; original files are preserved as copies"
+		/no-copy		"Do not make a file copy when committing changes"
+		/omit			"Do not display details for each file"
+		/ignore			"Exclude file(s) from processing"
 			d-files [file! block!] "File(s) to exclude"
 	][
-		set prefs reduce [commit  not no-save  not no-show]
+		set prefs reduce [save  not no-copy  not omit]
 		set stats 0
 		
 		clear excluded
-		if deny [append excluded d-files]
+		if ignore [append excluded d-files]
 		
 		either dir? root [dive root][process root]
 		print stats
