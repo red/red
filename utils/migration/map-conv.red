@@ -31,7 +31,7 @@ context [
 	maps:		make block! 1000
 	cs:			make block! 1000
 	
-	prefs: object [save?: copy?: show?: no]
+	prefs: object [save?: copy?: detail?: no]
 	stats: object [read: found: changed: 0]
 
 	locate: function [event [word!] input [string!] type [datatype!] line [integer!] token return: [logic!]][
@@ -58,12 +58,12 @@ context [
 			stats/found: stats/found + 1
 			
 			foreach [line slice] maps [
-				if prefs/show? [print ["  line" line ": " mold/part copy/part src slice 50]]
+				if prefs/detail? [print ["  line" line ": " mold/part copy/part src slice 50]]
 				change at src slice/1 + 1 #"["
 				change at src slice/2 - 1 #"]"
 			]
 			foreach [line slice] cs [
-				if prefs/show? [print ["  line" line ": " mold/part copy/part src slice 50]]
+				if prefs/detail? [print ["  line" line ": " mold/part copy/part src slice 50]]
 				change at src slice/1 + 1 #"("
 				change at src slice/2 - 1 #")"
 			]
@@ -91,11 +91,11 @@ context [
 		root [file!]	"Folder or individual file to process (recursively)"
 		/save			"Proceed with files conversion; original files are preserved as copies"
 		/no-copy		"Do not make a file copy when committing changes"
-		/omit			"Do not display details for each file"
+		/no-detail		"Do not display details for each file"
 		/ignore			"Exclude file(s) from processing"
 			d-files [file! block!] "File(s) to exclude"
 	][
-		set prefs reduce [save  not no-copy  not omit]
+		set prefs reduce [save  not no-copy  not no-detail]
 		set stats 0
 		
 		clear excluded
