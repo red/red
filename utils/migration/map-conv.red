@@ -58,12 +58,12 @@ context [
 			stats/found: stats/found + 1
 			
 			foreach [line slice] maps [
-				if prefs/show? [print ["line" line ": " mold/part copy/part src slice 50]]
+				if prefs/show? [print ["  line" line ": " mold/part copy/part src slice 50]]
 				change at src slice/1 + 1 #"["
 				change at src slice/2 - 1 #"]"
 			]
 			foreach [line slice] cs [
-				if prefs/show? [print ["line" line ": " mold/part copy/part src slice 50]]
+				if prefs/show? [print ["  line" line ": " mold/part copy/part src slice 50]]
 				change at src slice/1 + 1 #"("
 				change at src slice/2 - 1 #")"
 			]
