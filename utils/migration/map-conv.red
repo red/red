@@ -39,7 +39,7 @@ context [
 		switch event [
 			prescan [if type = datatype! [repend cs [line token + 0x1]]]
 			close   [if type = map! [repend maps [line token + 0x1]]]
-			error   [input: next input return no]
+			error   [input: next input  return no]
 		]
 		yes
 	]
@@ -53,7 +53,7 @@ context [
 		
 		transcode/trace src :locate
 		
-		if any [not empty? maps not empty? cs][
+		if any [not empty? maps  not empty? cs][
 			print ["--" file "| maps:" length? maps "| cs:" length? cs]
 			stats/found: stats/found + 1
 			
