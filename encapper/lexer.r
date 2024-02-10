@@ -623,11 +623,12 @@ lexer: context [
 	]
 
 	escaped-rule: [
-		"#(" any-ws [
+		pos: mark: "#(" any-ws [
 			  "true"  (value: true)
 			| "false" (value: false)
 			| s: [3 20 [alpha | #"-"] #"!"] e: (value: rejoin [#!~ copy/part s e])
 			| "none" (value: none)
+			| (pos: mark throw-error/with "invalid construction syntax")
 		]  any-ws #")"
 	]
 	
