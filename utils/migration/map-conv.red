@@ -95,6 +95,8 @@ context [
 		/ignore			"Exclude file(s) from processing"
 			d-files [file! block!] "File(s) to exclude"
 	][
+		if system/build/date >= 9-Feb-2024 [print "Error: use a Red version before 9-Feb-2024!" exit]
+		
 		set prefs reduce [save  not no-copy  not no-detail]
 		set stats 0
 		
