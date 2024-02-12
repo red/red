@@ -130,7 +130,7 @@ url-parser: object [
 			=path: either all [=path not empty? =path][
 				split-path to file! dehex =path
 			][
-				[#[none] #[none]]
+				[#(none) #(none)]
 			]
 			;set 'dbg =path
 			;print ['scheme mold =scheme type? =scheme]
