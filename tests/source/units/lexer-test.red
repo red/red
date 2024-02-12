@@ -691,7 +691,8 @@ Red [
 	--test-- "tro-201" --assert error? try [transcode/one "(1, 2 3)"]
 	
 	--test-- "tro-202" --assert (1.#INF, 1.#INF) == transcode/one "(1.#inf, 1.#inf)"
-	;--test-- "tro-203" --assert (1.#NaN, 1.#NaN) == transcode/one "(1.#nan, 1.#nan)"
+	--test-- "tro-203" --assert "(1.#NaN, 1.#NaN)" == mold transcode/one "(1.#nan, 1.#nan)"	; NaN values can't be compared with themselves
+	--test-- "tro-204" --assert error? try [transcode/one "(0, 0, 0]"]
 
 
 ===end-group===
