@@ -263,7 +263,7 @@ count-colors: func [
 	"returns colors used in the image, sorted by frequency (0-100%)"
 	im [image!] return: [block!] /local m c n tot xy
 ] [
-	m: copy #()
+	m: copy #[]
 	tot: im/size/x * im/size/y
 	forxy xy im [
 		c: im/:xy  if 4 = length? c [c/4: none]
