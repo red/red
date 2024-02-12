@@ -97,7 +97,7 @@ gen-float-classes-table: function [][
 
 gen-point-scan-table: function [][
 	out: make binary! 256
-	list: charset "0123456789 ^-.+-#eEINFA"
+	list: charset "0123456789 ^-.+-#eEINFAinfa"
 	
 	repeat i 256 [
 		c: to-char i - 1
