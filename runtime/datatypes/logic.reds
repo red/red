@@ -246,7 +246,7 @@ logic: context [
 		#if debug? = yes [if verbose > 0 [print-line "logic/mold"]]
 
 		either all? [
-			res: either boolean/value [len: 7 "#[true]"][len: 8 "#[false]"]
+			res: either boolean/value [len: 7 "#(true)"][len: 8 "#(false)"]
 			string/concatenate-literal buffer res
 			part - len
 		] [
