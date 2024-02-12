@@ -214,7 +214,7 @@ Red [
 	--test-- "mold-block" --assert "[true false none]" = mold [#(true) #(false) #(none)]
 
 	--test-- "mold-all-block"
-		--assert "[#[true] #[false] #[none]]" = mold/all [#(true) #(false) #(none)]
+		--assert "[#(true) #(false) #(none)]" = mold/all [#(true) #(false) #(none)]
 
 ===end-group=== 
 
