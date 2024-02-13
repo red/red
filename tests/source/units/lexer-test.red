@@ -416,6 +416,11 @@ Red [
 	--test-- "tr-53" --assert [(1, 2) (5, 6)] == transcode " (1, 2) (5, 6) "
 	--test-- "tr-54" --assert [(16-Jun-2014/14:34:59+2:00)] == transcode "(16-Jun-2014/14:34:59+2:00)"
 	--test-- "tr-55" --assert [(1.1.1)]	== transcode "(1.1.1)"
+	
+	--test-- "tr-56"
+		--assert [(2, 3) + 2  (2, 3) + 2] == out: transcode {^/(2,3) + 2^/(2,3) + 2^/}
+		--assert new-line? at out 1
+		--assert new-line? at out 4
 
 ===end-group===
 ===start-group=== "transcode/one"

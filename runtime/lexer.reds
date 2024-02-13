@@ -351,6 +351,7 @@ lexer: context [
 		mstr-s		[byte-ptr!]							;-- multiline string saved start position
 		mstr-nest	[integer!]							;-- multiline string nested {} counting
 		mstr-flags	[integer!]							;-- multiline string accumulated flags
+		p-nline		[integer!]							;-- points literals saved line(s) span
 		fun-ptr		[red-function!]						;-- callback function pointer or NULL
 		fun-locs	[integer!]							;-- number of local words in callback function
 		fun-evts	[integer!]							;-- bitmap of allowed events
@@ -1139,6 +1140,7 @@ lexer: context [
 	][
 		type: either s/1 = #"(" [
 			if prescan-point s + 1 lex/in-end [
+				lex/p-nline: lex/nline
 				lex/scanned: 0
 				lex/in-pos: e + 1						;-- skip delimiter
 				lex/entry: S_POINT
@@ -2143,6 +2145,7 @@ lexer: context [
 		if p/1 <> #"," [throw-error lex s e TYPE_POINT2D]
 		p: p + 1
 		y: as-float32 grab
+		lex/nline: lex/p-nline							;-- bring back saved lines span (frontal LF flag handling)
 		either p/1 = #"," [
 			p: p + 1
 			z: as-float32 grab
