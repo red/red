@@ -27,7 +27,7 @@ context [
 		if all [system/version/4 = 3 not find get-env "PATH" "git"][return none]
 		
 		attempt [
-			temp: parse git "describe --long" "-"
+			temp: parse git "describe --long --tags" "-"
 			compose/deep [
 				context [
 					branch: (git "rev-parse --abbrev-ref HEAD")
