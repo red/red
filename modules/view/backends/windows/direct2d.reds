@@ -2130,8 +2130,11 @@ create-text-format: func [
 		if TYPE_OF(value) = TYPE_NONE [make-font face font]	;-- make a GDI font
 
 		int: as red-integer! values + FONT_OBJ_SIZE
-		len: either TYPE_OF(int) <> TYPE_INTEGER [10][int/value]
-		if len <= 0 [len: 10]
+		len: either TYPE_OF(int) <> TYPE_INTEGER [0][int/value]
+		if len <= 0 [
+			int: as red-integer! #get system/view/fonts/size
+			len: int/value
+		]
 		ft-sz: as float! len
 		size: ConvertPointSizeToDIP(ft-sz)
 

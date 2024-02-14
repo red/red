@@ -776,8 +776,6 @@ set-defaults: func [
 			len
 			#get system/view/fonts/system
 			UTF-16LE
-
-		font/lfHeight: font/lfHeight * log-pixels-y / inital-dpi	;-- font/lfHeight isn't affected by DPI change, we update it manually
 		integer/make-at 
 			#get system/view/fonts/size
 			0 - (font/lfHeight * 72 / log-pixels-y)
