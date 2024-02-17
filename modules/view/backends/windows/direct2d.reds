@@ -2271,6 +2271,7 @@ set-line-spacing: func [
 	dl/GetLineMetrics layout lm 1 :lineCount
 	tf: as IDWriteTextFormat fmt/vtbl
 	if null? int [h: lm/height]
+	if lm/height > h [h: lm/height]
 	tf/SetLineSpacing fmt 1 h lm/baseline
 	COM_SAFE_RELEASE(IUnk layout)
 ]
