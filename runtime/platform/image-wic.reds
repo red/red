@@ -530,6 +530,7 @@ OS-image: context [
 			rect	[RECT! value]
 			ilock	[com-ptr! value]
 			inode	[img-node!]
+			hr		[integer!]
 	][
 		this: get-buffer img/node
 		IB: as IWICBitmap this/vtbl
@@ -542,7 +543,12 @@ OS-image: context [
 		rect/y: 0
 		rect/w: IMAGE_WIDTH(img/size)
 		rect/h: IMAGE_HEIGHT(img/size)
-		IB/Lock this rect flag :ilock
+		hr: IB/Lock this rect flag :ilock
+		if hr <> 0 [
+			#if debug? = yes [print-line ["WICBitmap Lock Error: " hr]]
+			fire [TO_ERROR(access bad-media)]
+			return 0
+		]
 		as integer! ilock/value
 	]
 
@@ -905,7 +911,7 @@ OS-image: context [
 		CreateStreamOnHGlobal hMem true :s
 
 		IFAC: as IWICImagingFactory wic-factory/vtbl
-		if 0 <> IFAC/CreateDecoderFromStream wic-factory as int-ptr! s null 1 :idec [
+		if 0 <> IFAC/CreateDecoderFromStream wic-factory as int-ptr! s null 0 :idec [
 			return null
 		]
 		get-frame IFAC as com-ptr! :idec 0 no

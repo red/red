@@ -262,11 +262,13 @@ image: context [
 	load-binary: func [
 		data	[red-binary!]
 		return: [red-image!]
+		/local
+			h	[int-ptr!]
 	][
 		either known-image? data [
-			init-image
-				as red-image! stack/push*
-				OS-image/load-binary binary/rs-head data binary/rs-length? data
+			h: OS-image/load-binary binary/rs-head data binary/rs-length? data
+			if null? h [fire [TO_ERROR(access bad-media)]]
+			init-image as red-image! stack/push* h
 		][as red-image! none-value]
 	]
 
