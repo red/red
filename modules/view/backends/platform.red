@@ -253,6 +253,7 @@ system/view/platform: context [
 			scroller:		symbol/make "scroller"
 			rich-text:		symbol/make "rich-text"
 			calendar:		symbol/make "calendar"
+			table:			symbol/make "table"
 
 			---:			symbol/make "---"
 			done:			symbol/make "done"

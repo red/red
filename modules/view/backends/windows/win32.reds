@@ -151,6 +151,12 @@ Red/System [
 #define TCM_SETCURFOCUS		1330h
 #define TCM_INSERTITEMW		133Eh
 
+#define LVM_INSERTCOLUMNW	1061h
+#define LVM_SETTEXTBKCOLOR	1026h
+#define LVM_SETEXTENDEDLISTVIEWSTYLE 1036h
+#define LVM_SETITEMW		104Ch
+#define LVM_INSERTITEMW		104Dh
+
 #define MCS_NOTODAY			10h
 #define MCS_SHORTDAYSOFWEEK 80h
 #define MCS_NOSELCHANGEONNAV 0100h
@@ -728,6 +734,38 @@ tagMINMAXINFO: alias struct! [
 	ptMinTrackSize.y [integer!]
 	ptMaxTrackSize.x [integer!]
 	ptMaxTrackSize.y [integer!]
+]
+
+tagLVCOLUMNW: alias struct! [
+	mask		[integer!]
+	fmt			[integer!]
+	cx			[integer!]
+	pszText		[c-string!]
+	cchTextMax	[integer!]
+	iSubItem	[integer!]
+	iImage		[integer!]
+	iOrder		[integer!]
+	cxMin		[integer!]		; min snap point
+	cxDefault	[integer!]		; default snap point
+	cxIdeal		[integer!]		; read only. ideal may not eqaul current width if auto sized (LVS_EX_AUTOSIZECOLUMNS) to a lesser width.
+]
+
+tagLVITEMW: alias struct! [
+	mask		[integer!]
+	iItem		[integer!]
+	iSubItem	[integer!]
+	state		[integer!]
+	stateMask	[integer!]
+	pszText		[c-string!]
+	cchTextMax	[integer!]
+	iImage		[integer!]
+	lParam		[integer!]
+	iIndent		[integer!]
+	iGroupId	[integer!]
+	cColumns	[integer!]		; tile view columns
+	puColumns	[int-ptr!]
+	piColFmt	[int-ptr!]
+	iGroup		[integer!]		; readonly. only valid for owner data.
 ]
 
 wndproc-cb!: alias function! [

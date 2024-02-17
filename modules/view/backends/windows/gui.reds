@@ -51,6 +51,7 @@ Red/System [
 #include %menu.reds
 #include %panel.reds
 #include %tab-panel.reds
+#include %table.reds
 #include %text-list.reds
 #include %button.reds
 #include %calendar.reds
@@ -1628,6 +1629,11 @@ OS-make-view: func [
 			class: #u16 "RedCalendar"
 			flags: flags or MCS_NOSELCHANGEONNAV or MCS_NOTODAY or MCS_SHORTDAYSOFWEEK
 		]
+		sym = table [
+			class: #u16 "RedTable"
+			flags: flags or 1							;-- LVS_REPORT (detail view))
+			flags: flags  or 8 or WS_BORDER				;--  LVS_SHOWSELALWAYS 
+		]
 		sym = window [
 			class: #u16 "RedWindow"
 			flags: WS_CAPTION or WS_CLIPCHILDREN
@@ -1738,6 +1744,7 @@ OS-make-view: func [
 		sym = base		[init-base-face handle parent values alpha? ex-flags]
 		sym = panel		[if alpha? [init-base-face handle parent values alpha? ex-flags]]
 		sym = tab-panel [set-tabs handle values]
+		sym = table		[init-table-data handle data selected]
 		any [
 			sym = button
 			sym = toggle
