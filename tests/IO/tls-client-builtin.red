@@ -26,8 +26,8 @@ client: open tls://127.0.0.1:8123
 
 client/extra: compose [
     domain: "red-lang.org"
-    accept-invalid-cert: #[false]
-    disable-builtin-roots: #[false]
+    accept-invalid-cert: #(false)
+    disable-builtin-roots: #(false)
     min-protocol: (protos/tls1.1)
     max-protocol: (protos/tls1.3)
 ]

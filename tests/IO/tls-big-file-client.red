@@ -21,7 +21,7 @@ print "TLS client"
 client: open tls://127.0.0.1:8123
 
 client/extra: compose [
-    accept-invalid-cert: #[true]
+    accept-invalid-cert: #(true)
     min-protocol: (protos/tls1.1)
     max-protocol: (protos/tls1.3)
 ]
