@@ -456,7 +456,7 @@ OS-image: context [
 		]
 	]
 
-	copy: func [
+	copy-lines: func [
 		dst		[integer!]
 		src		[integer!]
 		lines	[integer!]
@@ -517,7 +517,7 @@ OS-image: context [
 		w: width? as int-ptr! handle
 		h: height? as int-ptr! handle
 		GdipCreateBitmapFromScan0 w h 0 format null :bitmap
-		copy bitmap handle h 0 0 format
+		copy-lines bitmap handle h 0 0 format
 
 		GdipDisposeImage handle
 		as int-ptr! bitmap
@@ -686,80 +686,43 @@ OS-image: context [
 	]
 
 	clone: func [
+		src			[red-image!]
+		dst			[red-image!]
+		return:		[red-image!]
+		/local
+			handle	[integer!]
+			bmp		[integer!]
+	][
+		bmp: 0
+		handle: as-integer src/node
+		GdipCloneImage handle :bmp
+		dst/size: src/size
+		dst/header: TYPE_IMAGE
+		dst/head: 0
+		dst/node: as node! bmp
+		return dst
+	]
+
+	copy: func [
 		src		[red-image!]
 		dst		[red-image!]
-		part	[integer!]
-		size	[red-pair!]
-		part?	[logic!]
+		x		[integer!]
+		y		[integer!]
+		w		[integer!]
+		h		[integer!]
 		return: [red-image!]
 		/local
-			x		[integer!]
-			y		[integer!]
-			w		[integer!]
-			h		[integer!]
-			offset	[integer!]
 			handle	[integer!]
-			width	[integer!]
-			height	[integer!]
 			bmp		[integer!]
 			format	[integer!]
 	][
 		bmp: 0
-		width: IMAGE_WIDTH(src/size)
-		height: IMAGE_HEIGHT(src/size)
-		offset: src/head
-
+		format: 0
 		handle: as-integer src/node
+		GdipGetImagePixelFormat handle :format
+		GdipCloneBitmapAreaI x y w h format handle :bmp
 
-		if any [
-			width <= 0
-			height <= 0
-		][
-			dst/size: 0
-			dst/header: TYPE_IMAGE
-			dst/head: 0
-			dst/node: as node! bmp
-			return dst
-		]
-
-		if all [zero? offset not part?][
-			GdipCloneImage handle :bmp
-			dst/size: src/size
-			dst/header: TYPE_IMAGE
-			dst/head: 0
-			dst/node: as node! bmp
-			return dst
-		]
-
-		x: offset % width
-		y: offset / width
-		either all [part? TYPE_OF(size) = TYPE_PAIR][
-			w: width - x
-			h: height - y
-			if size/x < w [w: size/x]
-			if size/y < h [h: size/y]
-		][
-			either zero? part [
-				w: 0 h: 0
-			][
-				either part < width [h: 1 w: part][
-					h: part / width
-					w: width
-				]
-			]
-		]
-		either any [
-			w <= 0
-			h <= 0
-		][
-			dst/size: 0
-		][
-			format: 0
-			GdipGetImagePixelFormat handle :format
-			GdipCloneBitmapAreaI x y w h format handle :bmp
-			dst/size: h << 16 or w
-		]
-
+		dst/size: h << 16 or w
 		dst/header: TYPE_IMAGE
 		dst/head: 0
 		dst/node: as node! bmp

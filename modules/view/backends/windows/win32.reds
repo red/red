@@ -203,6 +203,8 @@ Red/System [
 #define WS_EX_COMPOSITED	02000000h
 #define WS_HSCROLL			00100000h
 #define WS_VSCROLL			00200000h
+#define WS_EX_CONTROLPARENT	00010000h
+#define WS_EX_TOPMOST		00000008h
 #define WS_EX_LAYERED 		00080000h
 #define WS_TABSTOP			00010000h
 #define WS_EX_TRANSPARENT	00000020h
@@ -221,6 +223,7 @@ Red/System [
 #define WS_POPUP		 	80000000h
 #define WS_EX_TOOLWINDOW	00000080h
 #define WS_DISABLED         08000000h
+#define WS_EX_NOREDIRECTIONBITMAP 00200000h
 
 #define SIF_RANGE			0001h
 #define SIF_PAGE			0002h
@@ -288,6 +291,7 @@ Red/System [
 #define WM_PAINT			000Fh
 #define WM_ERASEBKGND		0014h
 #define WM_CTLCOLOR			0019h
+#define WM_SETTINGCHANGE	001Ah
 #define WM_SETCURSOR		0020h
 #define WM_MOUSEACTIVATE	0021h
 #define WM_GETMINMAXINFO	0024h
@@ -367,6 +371,7 @@ Red/System [
 #define BST_PUSHED			4
 #define BST_FOCUS			8
 
+#define VK_TAB				09h
 #define VK_SHIFT			10h
 #define VK_CONTROL			11h
 #define VK_MENU				12h
@@ -589,6 +594,7 @@ Red/System [
 #define BASE_FACE_CARET		2
 #define BASE_FACE_D2D		4
 #define BASE_FACE_IME		8
+#define PAIR_SIZE_FACET		10h
 
 BUTTON_IMAGELIST: alias struct! [
 	handle		[integer!]
@@ -936,6 +942,12 @@ tagNONCLIENTMETRICS: alias struct! [
 	iPaddedBorderWidth	[integer!]
 ]
 
+tagHIGHCONTRASTW: alias struct! [
+	cbSize				[integer!]
+	dwFlags				[integer!]
+	lpszDefaultScheme	[c-string!]
+]
+
 tagCHOOSEFONT: alias struct! [
 	lStructSize		[integer!]
 	hwndOwner		[int-ptr!]
@@ -993,17 +1005,29 @@ tagBROWSEINFO: alias struct! [
 ]
 
 DwmIsCompositionEnabled!: alias function! [
+	[stdcall]
 	pfEnabled	[int-ptr!]
 	return:		[integer!]
 ]
 
 GetDpiForMonitor!: alias function! [
+	[stdcall]
 	hmonitor	[handle!]
 	dpiType		[integer!]
 	dpiX		[int-ptr!]
 	dpiY		[int-ptr!]
 	return:		[integer!]
 ]
+
+SetPreferredAppMode!: alias function! [
+	[stdcall]
+	appMode		[integer!]
+	return:		[integer!]
+]
+
+FlushMenuThemes!: alias function! [[stdcall]]
+
+ShouldAppsUseDarkMode!: alias function! [[stdcall] return: [logic!]]
 
 XFORM!: alias struct! [
     eM11        [float32!]
@@ -2890,6 +2914,21 @@ XFORM!: alias struct! [
 			hTheme		[handle!]
 			iFontID		[integer!]
 			plf			[tagLOGFONT]
+			return:		[integer!]
+		]
+		SetWindowTheme: "SetWindowTheme" [
+			hwnd		  [handle!]
+			pszSubAppName [c-string!]
+			pszSubIdList  [c-string!]
+			return:		  [integer!]
+		]
+	]
+	"Dwmapi.dll" stdcall [
+		DwmSetWindowAttribute: "DwmSetWindowAttribute" [
+			hwnd		[handle!]
+			dwAttribute	[integer!]
+			pvAttribute	[int-ptr!]
+			cbAttribute	[integer!]
 			return:		[integer!]
 		]
 	]

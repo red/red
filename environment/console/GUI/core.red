@@ -40,6 +40,7 @@ object [
 	page-cnt:	0								;-- number of lines in one page
 	line-cnt:	0								;-- number of lines in total (include wrapped lines)
 	screen-cnt: 0								;-- number of lines on screen
+	screen-cnt-saved: 0
 
 	history:	system/console/history
 	hist-idx:	0
@@ -71,10 +72,10 @@ object [
 	scroll-pos: 0
 
 	color?:		no
-	theme: #(
+	theme: #[
 		foreground	[0.0.0]
 		background	[252.252.252]
-		selected	[200.200.255]				;-- selected text background color
+		selected	[128.128.128.128]			;-- selected text background color
 		string!		[120.120.61]
 		integer!	[255.0.0]
 		float!		[255.0.0]
@@ -86,7 +87,7 @@ object [
 		tuple!		[0.0.0]
 		url!		[0.0.255 underline]
 		comment!	[128.128.128]
-	)
+	]
 
 	ask: func [question [string!] hist [block! none!] hide?][
 		history: either hist [hist][system/console/history]
@@ -102,14 +103,15 @@ object [
 		line-pos: length? lines
 		ask?: yes
 		redraw-cnt: 0
-		reset-top
 		clear-stack
 		set-flag hide?
 		either paste/resume [
 			do-ask-loop/no-wait
 		][
-			system/view/platform/redraw gui-console-ctx/console
+			paint/dry	;-- dry run
 			system/view/auto-sync?: yes
+			reset-top
+			system/view/platform/redraw gui-console-ctx/console
 			do-events
 		]
 		ask?: no
@@ -150,10 +152,10 @@ object [
 		either empty? lines [
 			append lines str
 			append flags 0
+			calc-top
 		][
 			append last lines str
 		]
-		calc-top
 	]
 
 	vprint: func [str [string!] lf? [logic!] /local s cnt first-prin?][
@@ -175,7 +177,7 @@ object [
 		either s [
 			cnt: 0
 			if all [
-				not all [lf? not prin?]
+				prin?
 				not same? head line last lines
 			][
 				vprin copy/part str s
@@ -208,7 +210,6 @@ object [
 		][
 			refresh
 		]
-		if newline? [line: last lines]
 		()				;-- return unset!
 	]
 
@@ -287,13 +288,22 @@ object [
 			line-cnt: line-cnt + cnt - pick nlines n
 			poke nlines n cnt
 		]
+
+		screen-cnt: line-cnt
+		screen-cnt-saved: screen-cnt
+		if screen-cnt > page-cnt [screen-cnt: page-cnt]
+
 		n: line-cnt - total
 		n
 	]
 
 	calc-top: func [/new /local delta n][
 		n: calc-last-line new
-		if n < 0 [
+		if all [
+			n < 0
+			screen-cnt-saved <= page-cnt
+			not full?
+		][
 			delta: scroller/position + n
 			scroller/position: either delta < 1 [1][delta]
 		]
@@ -306,16 +316,14 @@ object [
 		if delta >= 0 [reset-top]
 	]
 
-	reset-top: func [/local n][
-		n: line-cnt - page-cnt
+	reset-top: func [][
 		if any [
-			scroller/position <= n
+			screen-cnt-saved > page-cnt
 			full?
 		][
 			top: length? lines
 			scroll-y: line-h - last heights
-			scroller/position: scroller/max-size - page-cnt + 1
-			scroll-lines page-cnt - 1
+			scroll-lines/position page-cnt - 1 scroller/max-size - page-cnt + 1
 		]
 	]
 
@@ -330,11 +338,11 @@ object [
 		box/font: font
 		box/text: "XXXXXXXXXX"
 
-		sz: size-text box
+		sz: to-pair size-text box
 		char-width: sz/x + 1 * 0.1 						;-- +1 compensates for size-text rounding
 		box/tabs: tab-size * char-width
 
-		line-h: rich-text/line-height? box 1
+		line-h: to-integer rich-text/line-height? box 1
 		box/line-spacing: line-h
 		caret/size/y: line-h
 
@@ -356,7 +364,7 @@ object [
 	resize: func [new-size [pair!] /local y][
 		y: new-size/y
 		new-size/x: new-size/x - 20
-		new-size/y: y + line-h
+		new-size/y: y
 		box/size: new-size
 		if scroller [
 			page-cnt: to-integer y / line-h
@@ -405,7 +413,7 @@ object [
 	]
 
 	update-caret: func [/local len n s h lh offset][
-		unless all [line mouse-up?][exit]
+		unless all [line mouse-up? focused?][exit]
 		n: top
 		h: 0
 		len: length? skip lines top
@@ -427,8 +435,8 @@ object [
 	]
 
 	offset-to-line: func [offset [pair!] /local h y start end n max-n][
-		y: offset/y - scroll-y
-		end: line-y - scroll-y
+		y: to integer! offset/y - scroll-y
+		end: to integer! line-y - scroll-y
 		h: 0
 		n: top
 		max-n: length? lines
@@ -463,8 +471,8 @@ object [
 		mouse-up?: no
 		clear selects
 
-		offset-to-line event/offset
-		mouse-to-caret event/offset
+		offset-to-line to-pair event/offset
+		mouse-to-caret to-pair event/offset
 		caret/rate: none
 		caret/enabled?: no
 	]
@@ -474,7 +482,7 @@ object [
 		mouse-up?: yes
 		if 2 = length? selects [clear selects]
 		caret/enabled?: yes
-		mouse-to-caret event/offset
+		mouse-to-caret to-pair event/offset
 		system/view/platform/redraw console
 		caret/rate: caret-rate
 	]
@@ -567,9 +575,9 @@ object [
 		if pos > length? line [pos: pos - n]
 	]
 
-	scroll-lines: func [delta /local n len cnt end offset][
+	scroll-lines: func [delta /position pos /local n len cnt end offset][
 		end: scroller/max-size - page-cnt + 1
-		offset: scroller/position
+		offset: either position [pos][scroller/position]
 
 		if any [
 			all [offset = 1 delta > 0]
@@ -642,12 +650,15 @@ object [
 		system/view/platform/redraw console
 	]
 
+	text-selected?: func [return: [logic!]][
+		3 <= length? selects
+	]
 
 	copy-selection: func [
 		return: [logic!]
 		/local start-n end-n start-idx end-idx len n str swap?
 	][
-		if any [empty? selects 3 > length? selects][				;-- empty selection, copy the whole line
+		unless text-selected? [										;-- empty selection, copy the whole line
 			write-clipboard line
 			return no
 		]
@@ -1010,7 +1021,7 @@ object [
 		if swap? [move/part skip selects 2 selects 2]
 	]
 
-	paint: func [/local txt str cmds y n h cnt delta num end styles][
+	paint: func [/dry /local txt str cmds y n h cnt delta num end styles][
 		if empty? lines [exit]
 
 		cmds: [pen color text 0x0 text-box]
@@ -1031,7 +1042,7 @@ object [
 			if color? [highlight/add-styles txt clear styles theme]
 			mark-selects styles n
 			cmds/4/y: y
-			system/view/platform/draw-face console cmds
+			unless dry [system/view/platform/draw-face console cmds]
 
 			cnt: rich-text/line-count? box
 			h: cnt * line-h
@@ -1046,8 +1057,11 @@ object [
 		]
 		line-y: y - h
 		screen-cnt: to-integer y / line-h
+		screen-cnt-saved: screen-cnt
 		if screen-cnt > page-cnt [screen-cnt: page-cnt]
-		update-caret
-		update-scroller line-cnt - num
+		unless dry [
+			update-caret
+			update-scroller line-cnt - num
+		]
 	]
 ]

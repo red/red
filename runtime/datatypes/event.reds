@@ -83,11 +83,11 @@ event: context [
 		proto	[red-value!]
 		spec	[red-value!]
 		type	[integer!]
-		return:	[red-point!]
+		return:	[red-event!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "event/make"]]
 
-		as red-point! 0
+		as red-event! 0
 	]
 	
 	form: func [
@@ -157,6 +157,7 @@ event: context [
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
+		evt?	[logic!]
 		return:	[red-value!]
 		/local
 			word  [red-word!]

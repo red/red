@@ -198,6 +198,16 @@ stack: context [										;-- call stack
 		]
 	]
 	
+	set-interp-flag: func [/local frame [call-frame!]][
+		frame: ctop - 1	
+		frame/header: frame/header or FLAG_INTERPRET
+	]
+	
+	set-parent-func-flag: func [/local p [call-frame!]][
+		p: ctop - 2
+		p/header: p/header or FLAG_IN_FUNC
+	]
+	
 	collect-calls: func [
 		dst [red-block!]
 		/local
@@ -525,7 +535,8 @@ stack: context [										;-- call stack
 	]
 	
 	throw-exit: func [
-		return? [logic!]
+		return?  [logic!]
+		rethrow? [logic!]
 		/local
 			result	  [red-value!]
 			save-top  [red-value!]
@@ -535,7 +546,7 @@ stack: context [										;-- call stack
 		result:	   arguments
 		save-top:  top
 		save-ctop: ctop
-		if ctop > cbottom  [ctop: ctop - 1]
+		if all [ctop > cbottom not rethrow?][ctop: ctop - 1]
 		
 		;-- unwind the stack and determine the outcome of an exit/return exception
 		until [
@@ -645,6 +656,16 @@ stack: context [										;-- call stack
 		#if debug? = yes [if verbose > 0 [print-line "stack/set-last"]]
 		
 		copy-cell last arguments
+	]
+	
+	push-last: func [
+		value 	  [red-value!]
+		return:   [red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "stack/push-last"]]
+
+		top: arguments + 1
+		copy-cell value arguments
 	]
 	
 	push*: func [
@@ -771,7 +792,7 @@ stack: context [										;-- call stack
 				lower: p/prev
 				upper: arguments
 				p: p - 1
-				p <= cbottom
+				p < cbottom
 			]
 			print lf
 		]

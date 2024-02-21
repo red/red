@@ -464,6 +464,12 @@ _hashtable: context [
 			TYPE_TIME [
 				murmur3-x86-32 (as byte-ptr! key) + 8 8
 			]
+			TYPE_POINT2D [
+				murmur3-x86-32 (as byte-ptr! key) + 4 8
+			]
+			TYPE_POINT3D [
+				murmur3-x86-32 (as byte-ptr! key) + 8 12
+			]
 			TYPE_NONE  [-1]
 			TYPE_UNSET [-2]
 			TYPE_MONEY [
@@ -486,7 +492,7 @@ _hashtable: context [
 				murmur3-x86-32 (as byte-ptr! key) + 4 TUPLE_SIZE?(key)
 			]
 			TYPE_DATE
-			TYPE_POINT
+			TYPE_TRIPLE
 			TYPE_TYPESET
 			TYPE_FUNCTION
 			TYPE_OP [murmur3-x86-32 (as byte-ptr! key) + 4 12]

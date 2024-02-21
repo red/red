@@ -445,13 +445,13 @@ tuple: context [
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
+		evt?	[logic!]
 		return:	[red-value!]
 		/local
 			int  [red-integer!]
 			obj	 [red-object!]
 			old	 [red-value!]
 			type [integer!]
-			evt? [logic!]
 	][
 		type: TYPE_OF(element)
 		either type = TYPE_INTEGER [
@@ -464,14 +464,14 @@ tuple: context [
 				][
 					fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(value)]
 				]
-				obj: as red-object! gparent
-				evt?: all [obj <> null TYPE_OF(obj) = TYPE_OBJECT obj/on-set <> null TYPE_OF(p-item) = TYPE_WORD]
-				if evt? [old: stack/push as red-value! parent]
-
+				if evt? [old: stack/push as red-value! parent]			
 				poke parent int/value value null
-
 				if evt? [
-					object/fire-on-set as red-object! gparent as red-word! p-item old as red-value! parent
+					either TYPE_OF(gparent) = TYPE_OBJECT [
+						object/fire-on-set as red-object! gparent as red-word! p-item old as red-value! parent
+					][
+						ownership/check as red-value! gparent words/_set-path value int/value 1
+					]
 					stack/pop 1								;-- avoid moving stack top
 				]
 				value

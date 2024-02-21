@@ -186,6 +186,17 @@ RPi-GTK [
 	sub-system: 'GUI
 ]
 ;-------------------------
+Pico [
+	OS:			'Linux
+	format:		'ELF
+	target:		'ARM
+	ABI:		'hard-float
+	type:		'exe
+	cpu-version: 7.0
+	base-address: 32768					; 8000h
+	dynamic-linker: "/lib/ld-uClibc.so.1"
+]
+;-------------------------
 Syllable [
 	OS:			'Syllable
 	format: 	'ELF

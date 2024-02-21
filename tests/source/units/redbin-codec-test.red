@@ -275,7 +275,7 @@ Red [
 			]
 		
 		--test-- "map"
-			maps: [#() #(a b) #("abcd" #(<de> [f g]))]
+			maps: [#[] #[a b] #["abcd" #[<de> [f g]]]]
 			forall maps [--assert maps/1 == test maps/1]
 			
 			loop 10 [
@@ -329,7 +329,10 @@ Red [
 				make error! "User-defined"
 				make error! 303
 			]
-			forall errors [--assert :errors/1 = test :errors/1]
+			forall errors [
+				errors/1/near: none						;; @@ temporary measure to avoid encoding words bound to native contexts
+				--assert :errors/1 = test :errors/1
+			]
 		
 		;do [										;@@ #4568
 		;--test-- "function"						;@@ ???
@@ -490,9 +493,9 @@ Red [
 			--assert block/7/7/7/1/1/1/2 == 'deeper
 		
 		--test-- "cycle-3"
-			map: test put map: #() 'map map
+			map: test put map: #[] 'map map
 			
-			--assert "#(map: #(...))" = mold/flat map
+			--assert "#[map: #[...]]" = mold/flat map
 			--assert map/map/map/map =? map
 		
 		--test-- "cycle-4"
@@ -832,7 +835,7 @@ Red [
 			unset [s1b s1b2 s1bin]
 
 		--test-- "stress-2"
-			s2m: make #() 100'000
+			s2m: make #[] 100'000
 			s2bin: #{}
 			repeat s2i 100'000 [put s2m s2i form s2i]
 			s2t: dt [save/as s2bin s2m 'redbin]

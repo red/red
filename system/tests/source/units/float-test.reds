@@ -37,7 +37,7 @@ Red/System [
 		--assertf~= 0.0 sin pi 1E-12
 	
 	--test-- "float-ext-3"
-		--assert -1.0 = cos 3.14159265358979
+		--assert -1.0 = cos 3.141592653589793
 	
 ===end-group===
 
@@ -69,8 +69,8 @@ Red/System [
 		local-float: func [n [float!] return: [float!] /local p][p: n p]
 	
 	--test-- "float-loc-1"
-		pi: local-float 3.14159265358979
-		--assert pi = 3.14159265358979
+		pi: local-float 3.141592653589793
+		--assert pi = 3.141592653589793
 		--assert -1.0 = cos pi
 		--assert -1.0 = local-float cos pi
 	
@@ -85,7 +85,7 @@ Red/System [
 			p: n local-float p
 		]
 	
-		pi: local-float2 3.14159265358979
+		pi: local-float2 3.141592653589793
 		--assert -1.0 = local-float2 cos pi
 		f: local-float2 pi
 		--assert pi = local-float2 f
@@ -97,7 +97,7 @@ Red/System [
 			p: n local-float p
 		]
 	
-		pi: local-float3 3.14159265358979
+		pi: local-float3 3.141592653589793
 		--assert -1.0 = local-float3 cos pi
 		f: local-float3 pi
 		--assert pi = local-float3 f
@@ -180,7 +180,7 @@ Red/System [
 			sf5: declare struct! [f [float!] i [integer!]]
 			
 			sf5/i: 1234567890
-			sf5/f: 3.14159265358979
+			sf5/f: 3.141592653589793
 			--assert sf5/i = 1234567890
 			--assert sf5/f = pi
 			
@@ -188,7 +188,7 @@ Red/System [
 	sf6: declare struct! [i [integer!] f [float!]]
 	
 	sf6/i: 1234567890
-	sf6/f: 3.14159265358979
+	sf6/f: 3.141592653589793
 	--assert sf6/i = 1234567890
 	--assert sf6/f = pi
 
@@ -197,9 +197,9 @@ Red/System [
 ===start-group=== "float pointers"
 
 	--test-- "float-point-1"
-		pi: 3.14159265358979
+		pi: 3.141592653589793
 		p: declare pointer! [float!]
-		p/value: 3.14159265358979
+		p/value: 3.141592653589793
 		--assert pi = p/value
 
 ===end-group===

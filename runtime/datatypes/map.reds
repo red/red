@@ -32,7 +32,8 @@ map: context [
 			TYPE_ANY_STRING
 			TYPE_MONEY
 			TYPE_INTEGER TYPE_CHAR TYPE_FLOAT TYPE_DATE
-			TYPE_PERCENT TYPE_TUPLE TYPE_PAIR TYPE_TIME [yes]
+			TYPE_PERCENT TYPE_TUPLE TYPE_PAIR TYPE_TIME
+			TYPE_ANY_POINT								[yes]
 			default										[no]
 		]		
 	]
@@ -47,7 +48,8 @@ map: context [
 			TYPE_ANY_STRING [_series/copy as red-series! key as red-series! key null yes null]
 			TYPE_MONEY
 			TYPE_INTEGER TYPE_CHAR TYPE_FLOAT TYPE_DATE TYPE_PERCENT
-			TYPE_TUPLE TYPE_PAIR TYPE_TIME TYPE_ISSUE TYPE_REFINEMENT [0]
+			TYPE_TUPLE TYPE_PAIR TYPE_TIME TYPE_ISSUE TYPE_REFINEMENT
+			TYPE_ANY_POINT [0]
 			default	[fire [TO_ERROR(script invalid-path) path datatype/push TYPE_OF(key)]]
 		]
 	]
@@ -238,6 +240,7 @@ map: context [
 		either blk? [
 			; use clone here to prevent extra copying of spec
 			blk: block/clone as red-block! spec no no
+			object/clear-nl-flags GET_BUFFER(blk)
 		][
 			blk: block/make-at as red-block! stack/push* size
 		]
@@ -356,11 +359,11 @@ map: context [
 
 		if cycles/detect? as red-value! map buffer :part yes [return part]
 		
-		string/concatenate-literal buffer "#("
+		string/concatenate-literal buffer "#["
 		prev: part - 2
 		part: serialize map buffer no all? flat? arg prev yes indent + 1 yes
 		if all [part <> prev indent > 0][part: object/do-indent buffer indent part]
-		string/append-char GET_BUFFER(buffer) as-integer #")"
+		string/append-char GET_BUFFER(buffer) as-integer #"]"
 		part - 1
 	]
 
@@ -498,6 +501,7 @@ map: context [
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
+		evt?	[logic!]
 		return:	[red-value!]
 		/local
 			table	[node!]
@@ -563,7 +567,7 @@ map: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/put"]]
 		
-		eval-path map field value as red-value! none-value null null -1 case? no yes
+		eval-path map field value as red-value! none-value null null -1 case? no yes no
 		value
 	]
 

@@ -620,6 +620,39 @@ crypto: context [
 				]
 			]
 		]
+		#either config-name = 'Pico [
+			;-- stub functions
+			compute-md5: func [
+				data	[byte-ptr!]
+				len		[integer!]
+				output	[byte-ptr!]
+				return: [byte-ptr!]
+			][null]
+			compute-sha1: func [
+				data	[byte-ptr!]
+				len		[integer!]
+				output	[byte-ptr!]
+				return: [byte-ptr!]
+			][null]
+			compute-sha256: func [
+				data	[byte-ptr!]
+				len		[integer!]
+				output	[byte-ptr!]
+				return: [byte-ptr!]
+			][null]
+			compute-sha384: func [
+				data	[byte-ptr!]
+				len		[integer!]
+				output	[byte-ptr!]
+				return: [byte-ptr!]
+			][null]
+			compute-sha512: func [
+				data	[byte-ptr!]
+				len		[integer!]
+				output	[byte-ptr!]
+				return: [byte-ptr!]
+			][null]
+		][
 		#import [
 			LIBCRYPTO-file cdecl [
 				compute-md5: "MD5" [
@@ -653,7 +686,7 @@ crypto: context [
 					return: [byte-ptr!]
 				]
 			]
-		]
+		]]
 
 		;typedef struct MD5state_st						;-- 92 bytes
 		;	{
@@ -671,6 +704,7 @@ crypto: context [
 			/local
 				hash	[byte-ptr!]
 		][
+			#if config-name = 'Pico [--NOT_IMPLEMENTED--]
 			hash: allocate 64							;-- caller should free it
 			switch type [
 				ALG_MD5     [compute-md5 data len hash]

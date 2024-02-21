@@ -25,6 +25,16 @@ _series: context [
 		offset: ser/head << (log-b GET_UNIT(s))
 		(as byte-ptr! s/offset) + offset >= as byte-ptr! s/tail
 	]
+	
+	rs-tail: func [
+		ser		[red-series!]
+		return:	[integer!]
+		/local
+			s	[series!]
+	][
+		s: GET_BUFFER(ser)
+		(as-integer s/tail - s/offset) >> (log-b GET_UNIT(s))
+	]
 
 	rs-skip: func [
 		ser 	[red-series!]
@@ -516,7 +526,7 @@ _series: context [
 			index: target/head
 		]
 		ownership/check as red-value! target words/_moved null index items
-		as red-value! origin
+		as red-value! target
 	]
 	
 	change: func [
@@ -1073,8 +1083,8 @@ _series: context [
 		ser2: as red-series! stack/push*
 		ser2/header: TYPE_OF(ser)
 		ser2/extra:  either TYPE_OF(ser) = TYPE_VECTOR [ser/extra][0]
-		ser2/node:  node
-		ser2/head:  0
+		ser2/node:   node
+		ser2/head:   0
 
 		check?: ownership/check as red-value! ser words/_take null ser/head part2
 
@@ -1109,48 +1119,12 @@ _series: context [
 			_hashtable/refresh hash/table 0 - part unit size - unit yes
 			hash: as red-hash! ser2
 			hash/header: TYPE_BLOCK		;-- set to TYPE_BLOCK so we don't mark hash/table
-			hash/table: _hashtable/init part ser2 HASH_TABLE_HASH 1
+			hash/table: _hashtable/init part as red-block! ser2 HASH_TABLE_HASH 1
 			hash/header: TYPE_HASH
 		]
 		
 		if check? [ownership/check as red-value! ser words/_taken null ser/head 0]
 		as red-value! ser2
-	]
-
-	swap: func [
-		ser1	 [red-series!]
-		ser2	 [red-series!]
-		return:	 [red-series!]
-		/local
-			s1		[series!]
-			s2		[series!]
-			char1	[integer!]
-			char2	[integer!]
-			unit1	[integer!]
-			unit2	[integer!]
-			head1	[byte-ptr!]
-			head2	[byte-ptr!]
-			chk? chk2? [logic!]
-	][
-		chk?:  ownership/check as red-value! ser1 words/_swap null ser1/head 1
-		chk2?: ownership/check as red-value! ser2 words/_swap null ser2/head 1
-		s1:    GET_BUFFER(ser1)
-		unit1: GET_UNIT(s1)
-		head1: (as byte-ptr! s1/offset) + (ser1/head << (log-b unit1))
-		if head1 = as byte-ptr! s1/tail [return ser1]				;-- early exit if nothing to swap
-
-		s2:    GET_BUFFER(ser2)
-		unit2: GET_UNIT(s2)
-		head2: (as byte-ptr! s2/offset) + (ser2/head << (log-b unit2))
-		if head2 = as byte-ptr! s2/tail [return ser1]				;-- early exit if nothing to swap
-
-		char1: string/get-char head1 unit1
-		char2: string/get-char head2 unit2
-		string/poke-char s1 head1 char2
-		string/poke-char s2 head2 char1
-		if chk?  [ownership/check as red-value! ser1 words/_swaped null ser1/head 1]
-		if chk2? [ownership/check as red-value! ser2 words/_swaped null ser2/head 1]
-		ser1
 	]
 
 	;--- Misc actions ---

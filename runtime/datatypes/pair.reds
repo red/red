@@ -39,9 +39,9 @@ pair: context [
 			right [red-pair!]
 			int	  [red-integer!]
 			fl	  [red-float!]
-			x	  [integer!]
-			y	  [integer!]
-			f	  [float!]
+			p	  [red-point2D!]
+			x y	  [integer!]
+			f n   [float!]
 	][
 		left: as red-pair! stack/arguments
 		right: left + 1
@@ -58,23 +58,29 @@ pair: context [
 				x: int/value
 				y: x
 			]
+			TYPE_POINT2D [
+				promote-left
+				return as red-pair! point2D/do-math op
+			]
 			TYPE_FLOAT TYPE_PERCENT [
 				fl: as red-float! right
 				f: fl/value
-				if float/special? f [fire [TO_ERROR(script invalid-arg) right]]
 				switch op [
 					OP_MUL [
+						if float/special? f [fire [TO_ERROR(script invalid-arg) right]]
 						left/x: as-integer (as-float left/x) * f
 						left/y: as-integer (as-float left/y) * f
 						return left
 					]
 					OP_DIV [
+						if float/NaN? f [fire [TO_ERROR(script invalid-arg) right]]
 						left/x: as-integer (as-float left/x) / f
 						left/y: as-integer (as-float left/y) / f
 						return left
 					]
 					default [
-						x: as-integer fl/value
+						if float/special? f [fire [TO_ERROR(script invalid-arg) right]]
+						x: as-integer f
 						y: x
 					]
 				]
@@ -86,6 +92,18 @@ pair: context [
 		left/x: integer/do-math-op left/x x op null
 		left/y: integer/do-math-op left/y y op null
 		left
+	]
+	
+	promote-left: func [
+		/local
+			p  [red-pair!]
+			pt [red-point2D!]
+	][
+		p: as red-pair! stack/arguments
+		pt: as red-point2D! p
+		pt/header: TYPE_POINT2D
+		pt/x: as-float32 p/x
+		pt/y: as-float32 p/y
 	]
 	
 	make-at: func [
@@ -149,6 +167,7 @@ pair: context [
 			int	 [red-integer!]
 			int2 [red-integer!]
 			fl	 [red-float!]
+			p	 [red-point2D!]
 			x	 [integer!]
 			y	 [integer!]
 			val	 [red-value!]
@@ -179,6 +198,16 @@ pair: context [
 				y: get-value-int int2
 				push x y
 			]
+			TYPE_POINT2D [
+				p: as red-point2D! spec
+				if any [
+					float/special? as-float p/x
+					float/special? as-float p/y
+				][
+					fire [TO_ERROR(script invalid-arg) spec]
+				]
+				push as-integer p/x as-integer p/y
+			]
 			TYPE_STRING [
 				y: 0
 				val: as red-value! :y
@@ -193,7 +222,7 @@ pair: context [
 			TYPE_PAIR [as red-pair! spec]
 			default [
 				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_PAIR spec]
-				push 0 0
+				null
 			]
 		]
 	]
@@ -272,14 +301,13 @@ pair: context [
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
+		evt?	[logic!]
 		return:	[red-value!]
 		/local
-			obj	 [red-object!]
 			old	 [red-value!]
 			int	 [red-integer!]
 			axis [integer!]
 			type [integer!]
-			evt? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "pair/eval-path"]]
 		
@@ -299,15 +327,17 @@ pair: context [
 			if type <> TYPE_INTEGER [
 				fire [TO_ERROR(script invalid-type) datatype/push type]
 			]
-			obj: as red-object! gparent
-			evt?: all [obj <> null TYPE_OF(obj) = TYPE_OBJECT obj/on-set <> null TYPE_OF(p-item) = TYPE_WORD]
 			if evt? [old: stack/push as red-value! parent]
 			
 			int: as red-integer! stack/arguments
 			int/header: TYPE_INTEGER
 			either axis = 1 [parent/x: int/value][parent/y: int/value]
 			if evt? [
-				object/fire-on-set as red-object! gparent as red-word! p-item old as red-value! parent
+				either TYPE_OF(gparent) = TYPE_OBJECT [
+					object/fire-on-set as red-object! gparent as red-word! p-item old as red-value! parent
+				][
+					ownership/check as red-value! gparent words/_set-path value axis 1
+				]
 				stack/pop 1								;-- avoid moving stack top
 			]
 			as red-value! int
@@ -325,9 +355,14 @@ pair: context [
 		return:	[integer!]
 		/local
 			diff [integer!]
+			tmp  [red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "pair/compare"]]
 
+		if TYPE_OF(right) = TYPE_POINT2D [				;-- promote left to point2D in such case
+			promote-left
+			return point2D/compare as red-point2D! left as red-point2D! right op
+		]
 		if TYPE_OF(right) <> TYPE_PAIR [RETURN_COMPARE_OTHER]
 		diff: left/x - right/x
 		if zero? diff [diff: left/y - right/y]

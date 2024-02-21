@@ -1450,7 +1450,7 @@ Red [
 		--assert 2 = length? trim first split {х^/+й} "+"
 
 	--test-- "trim-block-1"
-		--assert [1 2] = trim [#[none] 1 #[none] 2 #[none]]
+		--assert [1 2] = trim [#(none) 1 #(none) 2 #(none)]
 
 	--test-- "trim-bin-1"	--assert #{} = trim #{00}
 	--test-- "trim-bin-2"	--assert #{1234} = trim #{000012340000}
@@ -1554,6 +1554,19 @@ Red [
         --assert [1 2 3 1 3 3] = sort/skip/compare s 2 1
         --assert [3 1 1 2 3 3] = sort/skip/compare s 2 2
         --assert [1 2 3 1 3 3] = sort/skip/all s 2
+
+    --test-- "sort-blk-8 issue 5265"
+		o1: make object! [x: 1 y: 90]
+		o2: make object! [x: 2 y: 1]
+		o3: make object! [x: 2 y: 2]
+
+		data: reduce [o1 o2 o3]
+		sort/compare data func [a b /local ra rb][
+		   ra: a/x + a/y
+		   rb: b/x + b/y
+		   return ra < rb
+		]
+		--assert data = reduce [o2 o3 o1]
 
     --test-- "sort-vec-1"
         s: does  [make vector! [3 1 3 3 1 2]]
@@ -1672,7 +1685,14 @@ Red [
 		su3-b: ["b" "B" "e" "E"]
 		su3-c: union/skip su3-a su3-b 2
 		--assert ["a" "A" "b" "B" "e" "E"] = sort/skip su3-c 2
-  
+
+	--test-- "mix-block-hash-1 issue #5344"
+		mix-1: union make hash! [1 2] [2 3]
+		--assert mix-1 = make hash! [1 2 3]
+
+	--test-- "mix-block-hash-2 issue #5344"
+		mix-2: union [1 2] make hash! [2 3]
+		--assert mix-2 = make hash! [1 2 3]
 ===end-group===
 
 ===start-group=== "change"

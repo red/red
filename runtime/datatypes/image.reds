@@ -149,6 +149,8 @@ image: context [
 			nbuf	[int-ptr!]
 			neg-x?	[logic!]
 			neg-y?	[logic!]
+			pt		[red-point2D!]
+			fx fy	[float32!]
 	][
 		w: IMAGE_WIDTH(src/size)
 		h: IMAGE_HEIGHT(src/size)
@@ -157,8 +159,7 @@ image: context [
 			vertex/v1x: as float32! 0.0
 			vertex/v1y: as float32! 0.0
 		][
-			vertex/v1x: as float32! start/x
-			vertex/v1y: as float32! start/y
+			GET_PAIR_XY(start vertex/v1x vertex/v1y)
 		]
 		unless null? crop1 [
 			crop2: crop1 + 1
@@ -188,37 +189,33 @@ image: context [
 				vertex/v4y: vertex/v1y + as float32! h1
 			]
 			start + 1 = end [					;-- two control points
-				vertex/v2x: as float32! end/x
+				GET_PAIR_XY(end fx fy)
+				vertex/v2x: fx
 				vertex/v2y: vertex/v1y
-				vertex/v3x: as float32! end/x
-				vertex/v3y: as float32! end/y
+				vertex/v3x: fx
+				vertex/v3y: fy
 				vertex/v4x: vertex/v1x
-				vertex/v4y: as float32! end/y
+				vertex/v4y: fy
 			]
 			start + 2 = end [					;-- three control points
 				pos: start + 1
-				vertex/v2x: as float32! pos/x
-				vertex/v2y: as float32! pos/y
+				GET_PAIR_XY(pos vertex/v2x vertex/v2y)
 				pos: pos + 1
-				vertex/v4x: as float32! pos/x
-				vertex/v4y: as float32! pos/y
+				GET_PAIR_XY(pos vertex/v4x vertex/v4y)
 				vector2d/from-points vec1 vertex/v1x vertex/v1y vertex/v2x vertex/v2y
 				vector2d/from-points vec2 vertex/v1x vertex/v1y vertex/v4x vertex/v4y
 				vec3/x: vec1/x + vec2/x
 				vec3/y: vec1/y + vec2/y
-				vertex/v3x: as float32! vec3/x + vertex/v1x
-				vertex/v3y: as float32! vec3/y + vertex/v1y
+				vertex/v3x: as float32! vec3/x + as float! vertex/v1x
+				vertex/v3y: as float32! vec3/y + as float! vertex/v1y
 			]
 			start + 3 = end [								;-- four control points
 				pos: start + 1
-				vertex/v2x: as float32! pos/x
-				vertex/v2y: as float32! pos/y
+				GET_PAIR_XY(pos vertex/v2x vertex/v2y)
 				pos: pos + 1
-				vertex/v4x: as float32! pos/x
-				vertex/v4y: as float32! pos/y
+				GET_PAIR_XY(pos vertex/v4x vertex/v4y)
 				pos: pos + 1
-				vertex/v3x: as float32! pos/x
-				vertex/v3y: as float32! pos/y
+				GET_PAIR_XY(pos vertex/v3x vertex/v3y)
 			]
 			true [
 				dst/header: TYPE_NONE
@@ -265,11 +262,13 @@ image: context [
 	load-binary: func [
 		data	[red-binary!]
 		return: [red-image!]
+		/local
+			h	[int-ptr!]
 	][
 		either known-image? data [
-			init-image
-				as red-image! stack/push*
-				OS-image/load-binary binary/rs-head data binary/rs-length? data
+			h: OS-image/load-binary binary/rs-head data binary/rs-length? data
+			if null? h [fire [TO_ERROR(access bad-media)]]
+			init-image as red-image! stack/push* h
 		][as red-image! none-value]
 	]
 
@@ -843,6 +842,7 @@ image: context [
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
+		evt?	[logic!]
 		return:	[red-value!]
 		/local
 			set? [logic!]
@@ -1130,29 +1130,78 @@ image: context [
 		types		[red-value!]
 		return:		[red-image!]
 		/local
-			part?	[logic!]
 			int		[red-integer!]
+			sz		[red-pair!]
+			img1	[red-image!]
 			img2	[red-image!]
 			offset	[integer!]
-			part	[integer!]
 			type	[integer!]
+			x y w h	[integer!]
+			width	[integer!]
+			height	[integer!]
+			return-empty-img [subroutine!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "image/copy"]]
 
-		offset: img/head
-		part: IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) - offset
-		part?: no
+		return-empty-img: [
+			new/size: 0
+			new/header: TYPE_IMAGE
+			new/head: 0
+			new/node: null
+			return new
+		]
 
-		if OPTION?(part-arg) [
-			part?: yes
+		width: IMAGE_WIDTH(img/size)
+		height: IMAGE_HEIGHT(img/size)
+
+		if any [
+			width <= 0
+			height <= 0
+		][
+			return-empty-img
+		]
+
+		offset: img/head
+		either OPTION?(part-arg) [
 			type: TYPE_OF(part-arg)
 			case [
-				type = TYPE_INTEGER [
-					int: as red-integer! part-arg
-					part: either int/value > part [part][int/value]
+				type = TYPE_INTEGER [	;-- view the image as a 1-D series, return a Partx1 image 
+					--NOT_IMPLEMENTED--
 				]
-				type = TYPE_PAIR [0]
-				true [
+				type = TYPE_PAIR [
+					x: offset % width
+					y: offset / width
+					sz: as red-pair! part-arg
+					case [
+						all [sz/x > 0 sz/y > 0 offset < (width * height)][
+							w: width - x
+							h: height - y
+							if sz/x < w [w: sz/x]
+							if sz/y < h [h: sz/y]
+						]
+						all [sz/x < 0 sz/y < 0 offset > 0][
+							w: 0 - sz/x
+							h: 0 - sz/y
+							if zero? x [x: width]
+							either w > x [
+								w: x
+								x: 0
+							][
+								x: x - w
+							]
+							if y < height [y: y + 1]
+							either h > y [
+								h: y
+								y: 0
+							][
+								y: y - h
+							]
+						]
+						true [return-empty-img]
+					]
+
+				]
+				type = TYPE_IMAGE [
 					img2: as red-image! part-arg
 					unless all [
 						TYPE_OF(img2) = TYPE_IMAGE
@@ -1160,18 +1209,46 @@ image: context [
 					][
 						ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
 					]
-					part: img2/head - img/head
+					either img2/head > img/head [
+						img1: img
+					][
+						img1: img2
+						img2: img
+					]
+
+					offset: img2/head
+					w: offset / width
+					h: offset / width
+
+					offset: img1/head
+					x: offset % width
+					y: offset / width
+
+					w: w - x
+					h: h - y
 				]
+				true [ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)]
 			]
+		][
+			if zero? offset [
+				return OS-image/clone img new
+			]
+
+			x: offset % width
+			y: offset / width
+			w: width - x
+			h: height - y
 		]
 
-		if negative? part [
-			part: 0 - part
-			offset: offset - part
-			if negative? offset [offset: 0 part: img/head]
+		either any [
+			w <= 0
+			h <= 0
+		][
+			return-empty-img
+		][
+			OS-image/copy img new x y w h
 		]
-
-		OS-image/clone img new part as red-pair! part-arg part?
+		new
 	]
 
 	init: does [

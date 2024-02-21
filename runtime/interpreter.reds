@@ -10,102 +10,22 @@ Red/System [
 	}
 ]
 
-#define CHECK_INFIX [
-	if all [
-		next < end
-		TYPE_OF(next) = TYPE_WORD
-	][
-		ctx: TO_CTX(next/ctx)
-		if ctx/values <> null [
-			value: _context/get next
-			if TYPE_OF(value) = TYPE_OP [
-				either next = as red-word! pc [
-					#if debug? = yes [if verbose > 0 [log "infix detected!"]]
-					infix?: yes
-				][
-					lit?: all [								;-- is a literal argument expected?
-						any [TYPE_OF(pc) = TYPE_WORD TYPE_OF(pc) = TYPE_FUNCTION]
-						literal-first-arg? as red-native! value ;-- left operand is a literal argument
-						next + 1 < end						;-- disable infix detection if no right operand #3840
-					]
-					either lit? [
-						#if debug? = yes [if verbose > 0 [log "infix detected!"]]
-						infix?: yes
-					][
-						if TYPE_OF(pc) = TYPE_WORD [
-							left: _context/get as red-word! pc
-						]
-						unless any [
-							all [
-								TYPE_OF(pc) = TYPE_FUNCTION
-								literal-first-arg? as red-native! pc   ;-- a literal argument is expected
-							]
-							all [
-								TYPE_OF(pc) = TYPE_WORD
-								any [								   ;-- left operand is a function call
-									TYPE_OF(left) = TYPE_ACTION
-									TYPE_OF(left) = TYPE_NATIVE
-									TYPE_OF(left) = TYPE_FUNCTION
-								]
-								literal-first-arg? as red-native! left ;-- a literal argument is expected
-							]
-						][
-							#if debug? = yes [if verbose > 0 [log "infix detected!"]]
-							infix?: yes
-						]
-					]
-				]
-				if infix? [
-					if next + 1 = end [fire [TO_ERROR(script no-op-arg) next]]
-				]
-			]
-		]
-	]
-]
-
-#define FETCH_ARGUMENT [
-	if pc >= end [fire [TO_ERROR(script no-arg) fname value]]
-	
-	switch TYPE_OF(value) [
-		TYPE_WORD [
-			#if debug? = yes [if verbose > 0 [log "evaluating argument"]]
-			pc: eval-expression pc end code no yes no
-		]
-		TYPE_GET_WORD [
-			#if debug? = yes [if verbose > 0 [log "fetching argument as-is"]]
-			stack/push pc
-			pc: pc + 1
-		]
-		default [
-			#if debug? = yes [if verbose > 0 [log "fetching argument"]]
-			switch TYPE_OF(pc) [
-				TYPE_GET_WORD [
-					copy-cell _context/get as red-word! pc stack/push*
-				]
-				TYPE_PAREN [
-					either TYPE_OF(value) = TYPE_LIT_WORD [
-						stack/mark-interp-native words/_anon
-						eval as red-block! pc yes
-						stack/unwind
-					][
-						stack/push pc
-					]
-				]
-				TYPE_GET_PATH [
-					eval-path pc pc + 1 end code no yes yes no
-				]
-				default [
-					stack/push pc
-				]
-			]
-			pc: pc + 1
-			;if tracing? [fire-event EVT_PUSH code pc pc value yes]
-		]
-	]
-]
-
 interpreter: context [
 	verbose: 0
+	
+	#enum fetch-args-mode! [
+		MODE_FETCH:			0							;-- regular arguments evaluation and fetching
+		MODE_APPLY:			1							;-- fetch literally and apply arguments
+		MODE_APPLY_SOME:	2							;-- search and apply arguments
+		MODE_APPLY_SAFER:	4							;-- fetch one value only per argument; skip if inactive
+	]
+	
+	#enum fetch-type! [									;	Bits 21-20 of a typeset! slot header
+		FETCH_WORD:			00000000h
+		FETCH_GET_WORD:		00100000h
+		FETCH_LIT_WORD:		00200000h
+		FETCH_SET_WORD:		00300000h
+	]
 
 	#enum events! [
 		EVT_INIT:			00000001h
@@ -136,10 +56,7 @@ interpreter: context [
 	all-events:	1FFFFh									;-- bit-mask of all events
 	near:		declare red-block!						;-- Near: field in error! objects
 	
-	log: func [msg [c-string!]][
-		print "eval: "
-		print-line msg
-	]
+	log: func [msg [c-string!]][print "eval: " print-line msg]
 	
 	decode-filter: func [fun [red-function!] return: [integer!]
 		/local
@@ -258,7 +175,7 @@ interpreter: context [
 		if positive? fun-locs [_function/init-locals fun-locs]
 
 		tracing?: no
-		catch RED_THROWN_ERROR [_function/call trace-fun ctx as red-value! words/_interp-cb CB_INTERPRETER]
+		catch RED_THROWN_ERROR [call trace-fun ctx as red-value! words/_interp-cb CB_INTERPRETER]
 		if system/thrown <> 0 [re-throw]
 		tracing?: yes
 		
@@ -279,34 +196,94 @@ interpreter: context [
 		if tracing? [fire-event EVT_RETURN null null ref stack/arguments]
 	]
 	
-	literal-first-arg?: func [
+	preprocess-spec: func [
 		native 	[red-native!]
-		return: [logic!]
+		return: [node!]
 		/local
-			fun	  [red-function!]
-			value [red-value!]
-			tail  [red-value!]
-			s	  [series!]
+			fun		  [red-function!]
+			list	  [red-block!]
+			value	  [red-value!]
+			tail	  [red-value!]
+			saved	  [red-value!]
+			base	  [red-value!]
+			int		  [red-integer!]
+			w		  [red-word!]
+			blk		  [red-block!]
+			ts		  [red-typeset!]
+			s		  [series!]
+			mode	  [integer!]
+			locals	  [integer!]
+			refs	  [integer!]
+			function? [logic!]
+			store	  [subroutine!]
 	][
-		s: as series! either TYPE_OF(native) = TYPE_FUNCTION [
-			fun: as red-function! native
+		#if debug? = yes [if verbose > 2 [print-line "cache: pre-processing function spec"]]
+
+		store: [
+			blk: as red-block! value + 1
+			ts: either all [
+				blk < tail
+				TYPE_OF(blk) = TYPE_BLOCK
+				positive? block/rs-length? blk
+			][
+				typeset/make-with list blk
+			][
+				typeset/make-default list
+			]
+			ts/header: ts/header and flag-fetch-mask or mode
+		]
+		saved: stack/top
+		function?: any [TYPE_OF(native) = TYPE_ROUTINE TYPE_OF(native) = TYPE_FUNCTION]
+
+		s: as series! either function? [
+			fun:  as red-function! native
 			fun/spec/value
 		][
 			native/spec/value
 		]
-		value: s/offset
-		tail:  s/tail
-		
+		locals: 0
+		refs:	1										;-- 1-based array index
+		list:	block/push-only* 8
+		value:	s/offset
+		tail:	s/tail
+
 		while [value < tail][
+			#if debug? = yes [if verbose > 2 [print-line ["cache: spec entry type: " TYPE_OF(value)]]]
 			switch TYPE_OF(value) [
-				TYPE_WORD 		[return no]
-				TYPE_LIT_WORD
-				TYPE_GET_WORD	[return yes]
-				default 		[0]
+				TYPE_WORD		[mode: FETCH_WORD     store]
+				TYPE_GET_WORD	[mode: FETCH_GET_WORD store]
+				TYPE_LIT_WORD	[mode: FETCH_LIT_WORD store]
+				TYPE_REFINEMENT [
+					w: as red-word! value
+					either refinements/local/symbol = symbol/resolve w/symbol [
+						base: value
+						value: value + 1
+						while [all [value < tail TYPE_OF(value) <> TYPE_SET_WORD]][value: value + 1]
+						locals: (as-integer value - base) >> 4
+					][
+						w: as red-word! block/rs-append list value
+						unless function? [
+							w/index: refs
+							refs: refs + 1
+						]
+					]
+				]
+				TYPE_SET_WORD [
+					w: as red-word! value
+					if words/return* <> symbol/resolve w/symbol [
+						fire [TO_ERROR(script bad-func-def)	w]
+					]
+					mode: FETCH_SET_WORD
+					store
+				]
+				default [0]								;-- ignore other values
 			]
 			value: value + 1
 		]
-		no
+		if locals > 0 [integer/make-in list locals]
+		if all [not function? refs > 1][integer/make-in list refs - 1]
+		stack/top: saved
+		list/node
 	]
 	
 	set-locals: func [
@@ -336,6 +313,69 @@ interpreter: context [
 				default [0]								;-- ignore other values
 			]
 			value: value + 1
+		]
+	]
+	
+	call: func [
+		fun	  [red-function!]
+		ctx	  [node!]
+		ref	  [red-value!]
+		class [cb-class!]
+		/local
+			s	   [series!]
+			code   [red-integer!]
+			saved  [node!]
+			fctx   [red-context!]
+			int	   [red-integer!]
+			prev?  [logic!]
+			allow? [logic!]
+			call   [function! []]
+			ocall  [function! [octx [node!]]]
+	][
+		prev?: tracing?
+		allow?: all [prev? class <> CB_INTERPRETER]
+		if allow? [
+			int: as red-integer! #get system/state/callbacks/bits
+			assert TYPE_OF(int) = TYPE_INTEGER
+			if class and int/value = 0 [tracing?: no]	;-- disable tracing for unwanted internal callbacks
+		]
+		s: as series! fun/more/value
+		code: as red-integer! s/offset + 2
+		either any [TYPE_OF(code) <> TYPE_INTEGER zero? code/value][
+			if allow? [fire-call ref fun]
+			eval-function fun as red-block! s/offset ref
+			if allow? [
+				fire-return ref fun
+				tracing?: prev?
+			]
+		][
+			fctx: GET_CTX(fun)
+			saved: fctx/values
+			assert system/thrown = 0
+			catch RED_THROWN_ERROR [
+				either ctx = global-ctx [
+					call: as function! [] code/value
+					call
+					0									;FIXME: required to pass compilation
+				][
+					ocall: as function! [octx [node!]] code/value
+					ocall ctx
+					0
+				]
+			]
+			fctx/values: saved
+			if allow? [tracing?: prev?]
+
+			switch system/thrown [
+				RED_THROWN_ERROR
+				RED_THROWN_BREAK
+				RED_THROWN_CONTINUE
+				RED_THROWN_THROW	[re-throw]			;-- let exception pass through
+				RED_THROWN_EXIT
+				RED_THROWN_RETURN	[stack/unwind-last]
+				default [0]								;-- else, do nothing
+			]
+			system/thrown: 0
 		]
 	]
 	
@@ -396,11 +436,12 @@ interpreter: context [
 	exec-routine: func [
 		rt [red-routine!]
 		/local
-			native	[red-native!]
+			code	[red-integer!]
 			arg		[red-value!]
 			base	[red-value!]
 			bool	[red-logic!]
 			int		[red-integer!]
+			rtype	[red-integer!]
 			fl		[red-float!]
 			value	[red-value!]
 			tail	[red-value!]
@@ -419,18 +460,21 @@ interpreter: context [
 			bits 	[byte-ptr!]
 			set? 	[logic!]
 			extern?	[logic!]
-			call callf callex
+			call	[function! [return: [integer!]]]
+			callf	[function! [return: [float!]]]
+			callex	[function! [[cdecl custom] return: [integer!]]]
 	][
 		extern?: rt/header and flag-extern-code <> 0
-		s: as series! rt/more/value
-		native: as red-native! s/offset + 2
-		args: routine/get-arity rt
-		count: args - 1				;-- zero-based stack access
+		s:		as series! rt/more/value
+		code:	as red-integer! s/offset + 2
+		rtype:  as red-integer! s/offset + 4
+		args:	routine/get-arity rt
+		count:	args - 1				;-- zero-based stack access
 		
 		either extern? [
 			base: stack/arguments
 			;@@ cdecl is hardcoded in the caller, needs to be dynamic!
-			callex: as function! [[cdecl custom] return: [integer!]] native/code
+			callex: as function! [[cdecl custom] return: [integer!]] code/value
 			stack/mark-native words/_body
 			
 			#if stack-align-16? = yes [
@@ -459,7 +503,7 @@ interpreter: context [
 			stack/unwind
 			stack/set-last arg
 		][
-			call: as function! [return: [integer!]] native/code
+			call: as function! [return: [integer!]] code/value
 
 			s: as series! rt/spec/value
 			value: s/offset
@@ -505,8 +549,8 @@ interpreter: context [
 					count: count - 1
 				]
 			]
-			either positive? rt/ret-type [
-				switch rt/ret-type [
+			either positive? rtype/value [
+				switch rtype/value [
 					TYPE_LOGIC	[
 						ret: call
 						bool: as red-logic! stack/arguments
@@ -520,7 +564,7 @@ interpreter: context [
 						int/value: ret
 					]
 					TYPE_FLOAT [
-						callf: as function! [return: [float!]] native/code
+						callf: as function! [return: [float!]] code/value
 						retf: callf
 						fl: as red-float! stack/arguments
 						fl/header: TYPE_FLOAT
@@ -530,352 +574,6 @@ interpreter: context [
 				]
 			][call]
 		]
-	]
-	
-	eval-infix: func [
-		value 	  [red-value!]
-		pc		  [red-value!]
-		end		  [red-value!]
-		code	  [red-block!]
-		sub?	  [logic!]
-		return:   [red-value!]
-		/local
-			next	[red-word!]
-			left	[red-value!]
-			fun		[red-function!]
-			ctx		[red-context!]
-			blk		[red-block!]
-			slot	[red-value!]
-			arg		[red-value!]
-			more	[red-value!]
-			op-pos	[red-value!]
-			infix?	[logic!]
-			op		[red-op!]
-			s		[series!]
-			type	[integer!]
-			pos		[byte-ptr!]
-			bits	[byte-ptr!]
-			native? [logic!]
-			set?	[logic!]
-			lit?	[logic!]							;-- required by CHECK_INFIX macro
-			args	[node!]
-			node	[node!]
-			call-op
-	][
-		stack/keep
-		op-pos: pc
-		pc: pc + 1										;-- skip operator
-		either all [									;-- is a literal argument is expected?
-			TYPE_OF(pc) = TYPE_WORD
-			literal-first-arg? as red-native! value
-		][
-			stack/push pc
-			pc: pc + 1
-		][
-			pc: eval-expression pc end code yes yes no	;-- eval right operand
-		]
-		op: as red-op! value
-		fun: null
-		native?: op/header and flag-native-op <> 0
-
-		unless native? [
-			either op/header and body-flag <> 0 [
-				node: as node! op/code
-				s: as series! node/value
-				more: s/offset
-				fun: as red-function! more + 3
-
-				s: as series! fun/more/value
-				blk: as red-block! s/offset + 1
-				args: either TYPE_OF(blk) = TYPE_BLOCK [blk/node][null]
-			][
-				args: op/args
-			]
-
-			if null? args [
-				args: _function/preprocess-spec as red-native! op
-				either fun <> null [
-					blk/header: TYPE_BLOCK
-					blk/head:	0
-					blk/node:	args
-				][
-					op/args: args
-				]
-			]
-			s: as series! args/value
-			slot: s/offset + 1
-			bits: (as byte-ptr! slot) + 4
-			arg:  stack/arguments
-			type: TYPE_OF(arg)
-			BS_TEST_BIT(bits type set?)
-			unless set? [ERR_EXPECT_ARGUMENT(type 0)]
-
-			slot: slot + 2
-			bits: (as byte-ptr! slot) + 4
-			arg:  arg + 1
-			type: TYPE_OF(arg)
-			BS_TEST_BIT(bits type set?)
-			unless set? [ERR_EXPECT_ARGUMENT(type 1)]
-		]
-		if tracing? [fire-event EVT_CALL code pc op-pos as red-value! op]
-		
-		either fun <> null [
-			either TYPE_OF(fun) = TYPE_ROUTINE [
-				exec-routine as red-routine! fun
-			][
-				set-locals fun
-				eval-function fun as red-block! more op-pos
-			]
-		][
-			if native? [push yes]						;-- type-checking for natives.
-			call-op: as function! [] op/code
-			call-op
-			0											;-- @@ to make compiler happy!
-		]
-		if tracing? [fire-event EVT_RETURN code pc op-pos stack/arguments]
-		
-		#if debug? = yes [
-			if verbose > 0 [
-				value: stack/arguments
-				print-line ["eval: op return type: " TYPE_OF(value)]
-			]
-		]
-		infix?: no
-		next: as red-word! pc
-		CHECK_INFIX
-		if infix? [
-			stack/update-call pc						;-- keep same frame, just update the op reference
-			if tracing? [
-				fire-event EVT_FETCH code pc pc pc
-				fire-event EVT_OPEN code pc pc pc
-			]
-			pc: eval-infix value pc end code sub?
-		]
-		pc
-	]
-	
-	eval-arguments: func [
-		native 	[red-native!]
-		pc		[red-value!]
-		end	  	[red-value!]
-		code	[red-block!]
-		path	[red-path!]
-		ref-pos [red-value!]
-		origin	[red-native!]
-		return: [red-value!]
-		/local
-			fun	  	  [red-function!]
-			function? [logic!]
-			routine?  [logic!]
-			value	  [red-value!]
-			tail	  [red-value!]
-			expected  [red-value!]
-			path-end  [red-value!]
-			fname	  [red-word!]
-			blk		  [red-block!]
-			vec		  [red-vector!]
-			bool	  [red-logic!]
-			arg		  [red-value!]
-			ext-args  [red-value!]
-			saved	  [red-value!]
-			base	  [red-value!]
-			s-value	  [red-value!]
-			call-pos  [red-value!]
-			s		  [series!]
-			required? [logic!]
-			args	  [node!]
-			p		  [int-ptr!]
-			ref-array [int-ptr!]
-			extras	  [int-ptr!]
-			offset	  [int-ptr!]
-			v-tail	  [int-ptr!]
-			index	  [integer!]
-			size	  [integer!]
-			type	  [integer!]
-			ext-size  [integer!]
-			pos		  [byte-ptr!]
-			bits 	  [byte-ptr!]
-			ordered?  [logic!]
-			set? 	  [logic!]
-			call
-	][
-		routine?:  TYPE_OF(native) = TYPE_ROUTINE
-		function?: any [routine? TYPE_OF(native) = TYPE_FUNCTION]
-		call-pos:  pc - 1
-		fname:	   as red-word! call-pos
-		args:	   null
-		ref-array: null
-
-		either function? [
-			fun: as red-function! native
-			s: as series! fun/more/value
-			blk: as red-block! s/offset + 1
-			if TYPE_OF(blk) = TYPE_BLOCK [args: blk/node]
-		][
-			args: native/args
-		]
-		if null? args [
-			args: _function/preprocess-spec native
-			
-			either function? [
-				blk/header: TYPE_BLOCK
-				blk/head:	0
-				blk/node:	args
-				blk/extra:	0
-			][
-				native/args: args
-				origin/args: args
-			]
-		]
-		
-		unless null? path [
-			path-end: block/rs-tail as red-block! path
-			fname: as red-word! ref-pos
-			
-			if ref-pos + 1 < path-end [					;-- test if refinements are following the function
-				either null? path/args [
-					args: _function/preprocess-options native path ref-pos args fname function?
-					path/args: args
-				][
-					args: path/args
-				]
-			]
-			fname: as red-word! path
-		]
-		
-		s: as series! args/value
-assert s <> null
-		value:	   s/offset
-		tail:	   s/tail
-		required?: yes
-		index: 	   0
-		extras:	   null
-		ordered?:  yes
-		
-		while [value < tail][
-			expected: value + 1
-			
-			switch TYPE_OF(value) [
-				TYPE_ISSUE [
-					vec: as red-vector! expected
-					if TYPE_OF(vec) = TYPE_VECTOR [
-						extras: as int-ptr! vector/rs-head vec
-						v-tail: as int-ptr! vector/rs-tail vec
-						ext-size: (as-integer v-tail - extras) >>> 2 - 1
-						offset: extras
-						ordered?: no
-						
-						saved: stack/top				;-- move stack/top beyond current frame for ooo args
-						stack/top: stack/top + offset/value
-						ext-args: stack/top
-						offset: offset + 1
-						base: s/offset + 2				;-- skip ooo entry
-						s-value: value
-						
-						while [offset < v-tail][
-							expected: base + (offset/value * 2 - 1)
-							value: expected - 1
-							assert TYPE_OF(expected) = TYPE_TYPESET
-							bits: (as byte-ptr! expected) + 4
-							BS_TEST_BIT(bits TYPE_UNSET set?)
-
-							either all [
-								set?					;-- if unset! is accepted
-								pc >= end				;-- if no more values to fetch
-								TYPE_OF(value) = TYPE_LIT_WORD ;-- and if spec argument is a lit-word!
-							][
-								unset/push				;-- then, supply an unset argument
-							][
-								FETCH_ARGUMENT
-								arg:  stack/top - 1
-								type: TYPE_OF(arg)
-								BS_TEST_BIT(bits type set?)
-								unless set? [
-									index: offset/value - 1
-									fire [
-										TO_ERROR(script expect-arg)
-										fname
-										datatype/push type
-										error/get-call-argument index
-									]
-								]
-							]
-							offset: offset + 1
-						]
-						value: s-value
-						stack/top: saved
-					]
-				]
-				TYPE_SET_WORD [0]
-				default [
-					switch TYPE_OF(expected) [
-						TYPE_TYPESET [
-							either all [required? ordered?][
-								bits: (as byte-ptr! expected) + 4
-								BS_TEST_BIT(bits TYPE_UNSET set?)
-
-								either all [
-									set?					;-- if unset! is accepted
-									pc >= end				;-- if no more values to fetch
-									TYPE_OF(value) = TYPE_LIT_WORD ;-- and if spec argument is a lit-word!
-								][
-									unset/push				;-- then, supply an unset argument
-								][
-									FETCH_ARGUMENT
-									arg:  stack/top - 1
-									type: TYPE_OF(arg)
-									BS_TEST_BIT(bits type set?)
-									unless set? [
-										fire [
-											TO_ERROR(script expect-arg)
-											fname
-											datatype/push type
-											value
-										]
-									]
-									index: index + 1
-								]
-							][
-								none/push
-							]
-						]
-						TYPE_LOGIC [
-							stack/push expected
-							bool: as red-logic! expected
-							required?: bool/value
-						]
-						TYPE_VECTOR [
-							vec: as red-vector! expected
-							s: GET_BUFFER(vec)
-							p: as int-ptr! s/offset
-							size: (as-integer (as int-ptr! s/tail) - p) / 4
-							ref-array: system/stack/top - size
-							system/stack/top: ref-array		;-- reserve space on native stack for refs array
-							copy-memory as byte-ptr! ref-array as byte-ptr! p size * 4
-						]
-						default [assert false]				;-- trap it, if stack corrupted 
-					]
-				]
-			]
-			value: value + 2
-		]
-		unless ordered? [
-			offset: extras + 1
-			loop ext-size [
-				copy-cell ext-args stack/arguments + offset/value - 1
-				offset: offset + 1
-				ext-args: ext-args + 1
-			]
-		]
-		if tracing? [fire-event EVT_CALL code pc call-pos as red-value! native]
-		
-		unless function? [
-			unless null? ref-array [system/stack/top: ref-array] ;-- reset native stack to our custom arguments frame
-			if TYPE_OF(native) = TYPE_NATIVE [push no]	;-- avoid 2nd type-checking for natives.
-			call: as function! [] native/code			;-- direct call for actions/natives
-			call
-		]
-		pc
 	]
 	
 	eval-path: func [
@@ -894,8 +592,8 @@ assert s <> null
 			obj	  [red-object!]
 			w	  [red-word!]
 			ser	  [red-series!]
-			type idx [integer!]
-			tail? [logic!]
+			type idx   [integer!]
+			tail? evt? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "eval: path"]]
 		
@@ -924,7 +622,7 @@ assert s <> null
 			TYPE_FUNCTION [
 				if set? [fire [TO_ERROR(script invalid-path-set) path]]
 				if get? [fire [TO_ERROR(script invalid-path-get) path]]
-				pc: eval-code parent pc end code yes path item - 1 parent
+				pc: eval-code parent pc end code yes path item - 1 parent MODE_FETCH no
 				unless sub? [stack/set-last stack/top]
 				if tracing? [fire-event EVT_EXIT as red-block! path tail null stack/arguments]
 				return pc
@@ -961,7 +659,20 @@ assert s <> null
 			type: TYPE_OF(parent)
 			tail?: item + 1 = tail
 			arg: either all [set? tail?][stack/arguments][null]
-			parent: actions/eval-path parent value arg path gparent p-item idx case? get? tail?
+			evt?: no
+
+			if all [set?  head + 2 <= item  item + 1 = tail][ ;-- check only if set-path of length > 2
+				ser: as red-series! gparent
+				evt?: either ser = null [no][
+					obj: as red-object! ser
+					switch TYPE_OF(ser) [
+						TYPE_OBJECT [all [obj/on-set <> null TYPE_OF(p-item) = TYPE_WORD]]
+						TYPE_ANY_BLOCK   [gparent <> null]
+						default			 [no]
+					]
+				]
+			]
+			parent: actions/eval-path parent value arg path gparent p-item idx case? get? tail? evt?
 
 			if all [not get? not set?][
 				switch TYPE_OF(parent) [
@@ -969,7 +680,7 @@ assert s <> null
 					TYPE_NATIVE
 					TYPE_ROUTINE
 					TYPE_FUNCTION [
-						pc: eval-code parent pc end code sub? path item prev
+						pc: eval-code parent pc end code sub? path item prev MODE_FETCH no
 						parent: stack/get-top
 						item: tail						;-- force loop exit
 					]
@@ -984,10 +695,316 @@ assert s <> null
 		if tracing? [fire-event EVT_EXIT as red-block! path tail null parent]
 
 		stack/top: saved
-		either sub? [stack/push parent][stack/set-last parent]
+		either sub? [stack/push parent][stack/push-last parent]
 		pc
 	]
-	
+
+	eval-arguments: func [
+		native 	[red-native!]
+		pc		[red-value!]
+		end	  	[red-value!]
+		code	[red-block!]
+		path	[red-path!]
+		ref-pos [red-value!]
+		mode	[fetch-args-mode!]
+		infix?	[logic!]
+		return: [red-value!]
+		/local
+			value head tail path-end arg new saved base pc-pos call-pos s-end [red-value!]
+			fun					[red-function!]
+			fname				[red-word!]
+			ref	name			[red-word!]
+			ref-slot			[red-refinement!]
+			blk					[red-block!]
+			int					[red-integer!]
+			ctx					[red-context!]
+			bool b2				[red-logic!]
+			s					[series!]
+			args nctx			[node!]
+			p ref-array	offset	[int-ptr!]
+			pos	bits			[byte-ptr!]
+			index arg-cnt ref-cnt loc-cnt sym-cnt type xcode idx exp-type [integer!]
+			required? function? routine? set? get? apply? native? ifx? some? t? safer? ref? [logic!]
+			fetch-arg get-spec-word	[subroutine!]
+			calln				[function! []]
+	][
+		get-spec-word: [
+			ref: _hashtable/get-ctx-word ctx sym-cnt
+			word/push* ref/symbol
+		]
+		fetch-arg: [
+			either pc >= end [fire [TO_ERROR(script no-arg) fname get-spec-word]][
+				switch value/header and flag-fetch-mode [
+					FETCH_WORD [
+						#if debug? = yes [if verbose > 0 [log "evaluating argument"]]
+						if safer? [s-end: end end: pc + 1]
+						pc: eval-expression pc end code infix? yes no
+						if safer? [end: s-end]
+					]
+					FETCH_GET_WORD [
+						#if debug? = yes [if verbose > 0 [log "fetching argument as-is"]]
+						if tracing? [fire-event EVT_FETCH code pc pc pc]
+						new: stack/push pc
+						if tracing? [fire-event EVT_PUSH code pc pc new]
+						pc: pc + 1
+					]
+					FETCH_LIT_WORD [
+						#if debug? = yes [if verbose > 0 [log "fetching argument"]]
+						switch TYPE_OF(pc) [
+							TYPE_PAREN [
+								stack/mark-interp-native words/_anon
+								eval as red-block! pc yes
+								stack/unwind
+							]
+							TYPE_GET_WORD [
+								if tracing? [fire-event EVT_FETCH code pc pc pc]
+								new: copy-cell _context/get as red-word! pc stack/push*
+								if tracing? [fire-event EVT_PUSH code pc pc new]
+							]
+							TYPE_GET_PATH [eval-path pc pc + 1 end code no yes yes no]
+							default		  [
+								if tracing? [fire-event EVT_FETCH code pc pc pc]
+								new: stack/push pc
+								if tracing? [fire-event EVT_PUSH code pc pc new]
+							]
+						]
+						pc: pc + 1
+						;if tracing? [fire-event EVT_PUSH code pc pc value yes]
+					]
+					default [assert false]
+				]
+			]
+		]
+		routine?:  TYPE_OF(native) = TYPE_ROUTINE
+		native?:   TYPE_OF(native) = TYPE_NATIVE
+		function?: any [routine? TYPE_OF(native) = TYPE_FUNCTION]
+		ref-array: null
+		apply?:	   mode > MODE_FETCH
+		some?:	   mode and MODE_APPLY_SOME <> 0
+		safer?:	   mode and MODE_APPLY_SAFER <> 0
+		
+		either apply? [
+			call-pos: either path = null [ref-pos][as red-value! path]
+			fname: as red-word! ref-pos
+		][
+			call-pos: pc - 1
+			fname: as red-word! call-pos
+		]
+		if infix? [stack/top: stack/top + 1]
+		
+		fun: as red-function! native
+		s: as series! fun/more/value
+		blk: as red-block! s/offset + 1
+		either TYPE_OF(blk) = TYPE_BLOCK [args: blk/node][
+			args: preprocess-spec native
+			blk/header: TYPE_BLOCK
+			blk/head:	0
+			blk/node:	args
+		]
+		s: as series! args/value
+		head:	   s/offset
+		tail:	   s/tail
+		value:	   head
+		required?: yes
+		ref?:	   no
+		ifx?:	   infix?								;-- toggle flag to skip fetching left operand
+		arg-cnt:   0
+		ref-cnt:   1
+		loc-cnt:   0
+		sym-cnt:   0
+		xcode:	   0									;;@@ should not be needed!
+		
+		either function? [
+			ctx: GET_CTX(fun)
+			nctx: fun/ctx
+		][
+			xcode: native/code
+			ctx: as red-context! blk - 1
+			assert TYPE_OF(ctx) = TYPE_CONTEXT
+			s: GET_CTX_SERIES(ctx)
+			nctx: s/node
+			if value < tail [
+				int: as red-integer! tail - 1
+				if TYPE_OF(int) = TYPE_INTEGER [
+					loop int/value [push -1]			;-- fill space on native stack for refs array
+					ref-array: system/stack/top
+				]
+			]
+		]
+		;====== Required arguments fetching ======
+		while [value < tail][
+			switch TYPE_OF(value) [
+				TYPE_TYPESET [
+					if value/header and flag-fetch-mode <> FETCH_SET_WORD [
+						either required? [
+							either all [pc >= end apply?][none/push][
+								bits: (as byte-ptr! value) + 4
+								BS_TEST_BIT(bits TYPE_UNSET set?)
+
+								either all [
+									set?					;-- if unset! is accepted
+									pc >= end				;-- if no more values to fetch
+									value/header and flag-fetch-mode = FETCH_LIT_WORD
+								][
+									unset/push 				;-- then, supply an unset argument
+								][
+									either ifx? [ifx?: no][fetch-arg] ;-- left operand already evaluated, skip the 1st argument
+									arg:  stack/top - 1
+									type: TYPE_OF(arg)
+									BS_TEST_BIT(bits type set?)
+									unless set? [fire [TO_ERROR(script expect-arg) fname datatype/push type get-spec-word]]
+								]
+							]
+							arg-cnt: arg-cnt + 1
+						][
+							if function? [none/push]
+							if all [mode = MODE_APPLY path = null][fetch-arg stack/pop 1]
+						]
+						sym-cnt: sym-cnt + 1
+					]
+				]
+				TYPE_REFINEMENT [
+					required?: either all [apply? path = null][
+						either any [pc >= end some?][
+							if function? [logic/push false]
+							pc >= end
+						][
+							fetch-arg
+							arg:  stack/top - 1
+							type: TYPE_OF(arg)
+							if type <> TYPE_LOGIC [fire [TO_ERROR(script expect-arg) fname datatype/push type get-spec-word]]
+							bool: as red-logic! arg
+							unless function? [
+								if bool/value [ref-array/ref-cnt: arg-cnt]
+								stack/pop 1
+								ref-cnt: ref-cnt + 1
+							]
+							bool/value
+						]
+					][
+						if function? [logic/push false]
+						no
+					]
+					ref?: yes
+					sym-cnt: sym-cnt + 1
+				]
+				TYPE_INTEGER [loc-cnt: integer/get value] ;-- get local words count
+				TYPE_VECTOR  [0]						;-- do nothing
+				default		 [assert false]				;-- trap it in case cache is corrupted 
+			]
+			value: value + 1
+		]
+		;====== Optional arguments fetching ======
+		if any [path <> null some?][
+			path-end: either all [some? path = null][
+				ref-pos: pc - 1
+				end
+			][
+				fname: as red-word! ref-pos
+				assert path <> null
+				block/rs-tail as red-block! path
+			]
+			exp-type: either some? [TYPE_REFINEMENT][TYPE_WORD]
+			
+			if ref-pos + 1 < path-end [					;-- test if refinements are following the function
+				ref: either all [some? path = null][as red-word! pc][as red-word! ref-pos + 1]
+				
+				while [ref < as red-word! path-end][
+					get?: TYPE_OF(ref) = TYPE_GET_WORD
+					if all [TYPE_OF(ref) <> exp-type not get?][
+						unless ref? [break]
+						fire [TO_ERROR(script bad-refine) ref]
+					]
+					if all [some? path = null][pc: pc + 1]
+					
+					t?: case [
+						all [path <> null not get?][true]
+						some? [
+							either pc >= end [false][
+								pc: eval-expression pc end code infix? yes no
+								stack/pop 1
+								logic/rs-true? stack/top on ref
+							]
+						]
+						get?  [logic/rs-true? as red-value! _context/get ref on ref]
+						true  [true]
+					]
+					index: case [
+						ref/ctx = nctx [ref/index]
+						get?		   [_context/find-word ctx ref/symbol no]
+						true		   [_context/bind-word ctx ref]
+					]
+					if index < 0 [fire [TO_ERROR(script no-refine) fname ref]]
+					value: head + index
+					assert all [value < tail TYPE_OF(value) = TYPE_REFINEMENT]
+					value: value + 1
+					sym-cnt: index + 1
+
+					either function? [
+						bool: as red-logic! stack/arguments + index
+						assert TYPE_OF(bool) = TYPE_LOGIC
+						if bool/value [fire [TO_ERROR(script dup-refine) path]]
+						bool/value: t?
+						arg: as red-value! bool + 1
+						saved: stack/top
+					][
+						if t? [
+							ref-slot: as red-refinement! value - 1
+							idx: ref-slot/index
+							if ref-array/idx <> -1 [fire [TO_ERROR(script dup-refine) path]]
+							ref-array/idx: arg-cnt
+						]
+					]
+					while [
+						all [
+							value < tail
+							TYPE_OF(value) = TYPE_TYPESET
+							value/header and flag-fetch-mode <> FETCH_SET_WORD
+						]
+					][
+						either all [safer? not t?][pc: pc + 1][
+							fetch-arg
+							either t? [					;-- refinement set
+								new:  stack/top - 1
+								type: TYPE_OF(new)
+								bits: (as byte-ptr! value) + 4
+								BS_TEST_BIT(bits type set?)
+								unless set? [fire [TO_ERROR(script expect-arg) fname datatype/push type get-spec-word]]
+								if function? [
+									copy-cell new arg
+									arg: arg + 1
+									stack/pop 1
+								]
+								arg-cnt: arg-cnt + 1
+							][							;-- refinement evaluated to a falsy value
+								stack/pop 1
+							]
+							sym-cnt: sym-cnt + 1
+						]
+						value: value + 1
+					]
+					if function? [stack/top: saved]		;-- clear up all temporary stack slots
+					ref: either all [some? path = null][as red-word! pc][ref + 1]
+				]
+			]
+		]
+		;====== End of arguments fetching ======
+		if tracing? [
+			if infix? [native: as red-native! _context/get as red-word! ref-pos]
+			pc-pos: either apply? [null][pc]
+			fire-event EVT_CALL code pc-pos call-pos as red-value! native
+		]
+		either function? [
+			if loc-cnt > 0 [assert not routine?	_function/init-locals loc-cnt]
+		][
+			if ref-array <> null [system/stack/top: ref-array] ;-- reset native stack to our custom arguments frame
+			if native? [push no]						;-- avoid 2nd type-checking for natives.
+			calln: as function! [] xcode				;-- direct call for actions/natives
+			calln
+		]
+		pc
+	]
+		
 	eval-code: func [
 		value	[red-value!]
 		pc		[red-value!]
@@ -997,9 +1014,11 @@ assert s <> null
 		path	[red-path!]
 		slot 	[red-value!]
 		parent	[red-value!]
+		mode	[fetch-args-mode!]
+		infix?	[logic!]
 		return: [red-value!]
 		/local
-			caller origin [red-native!]
+			caller[red-native!]
 			pos	  [red-value!]
 			name  [red-word!]
 			obj   [red-object!]
@@ -1008,13 +1027,15 @@ assert s <> null
 			s	  [series!]
 			ctx	  [node!]
 	][
-		pos: pc - 1
+		pos: either mode >= MODE_APPLY [slot][pc - 1]
 		name: as red-word! either null? slot [pos][slot]
-		if tracing? [fire-event EVT_OPEN code pc pos as red-value! name]
-
+		if tracing? [
+			if infix? [stack/top: stack/top + 1]
+			fire-event EVT_OPEN code pc pos as red-value! name
+			if infix? [stack/top: stack/top - 1]
+		]
 		if TYPE_OF(name) <> TYPE_WORD [name: words/_anon]
-		caller: as red-native! stack/push value			;-- prevent word's value slot to be corrupted #2199
-		origin: as red-native! value
+		caller: as red-native! either infix? [value][stack/push value]			;-- prevent word's value slot to be corrupted #2199
 		
 		switch TYPE_OF(value) [
 			TYPE_ACTION 
@@ -1022,11 +1043,11 @@ assert s <> null
 				#if debug? = yes [if verbose > 0 [log "pushing action/native frame"]]
 				stack/mark-interp-native name
 				assert any [code = null TYPE_OF(code) = TYPE_BLOCK TYPE_OF(code) = TYPE_PAREN TYPE_OF(code) = TYPE_HASH]
-				pc: eval-arguments caller pc end code path slot origin ;-- fetch args and exec
+				pc: eval-arguments caller pc end code path slot mode infix? ;-- fetch args and exec
 				either sub? [stack/unwind][stack/unwind-last]
 				#if debug? = yes [
 					if verbose > 0 [
-						value: stack/arguments
+						value: stack/get-top
 						print-line ["eval: action/native return type: " TYPE_OF(value)]
 					]
 				]
@@ -1034,12 +1055,12 @@ assert s <> null
 			TYPE_ROUTINE [
 				#if debug? = yes [if verbose > 0 [log "pushing routine frame"]]
 				stack/mark-interp-native name
-				pc: eval-arguments caller pc end code path slot origin
+				pc: eval-arguments caller pc end code path slot mode infix?
 				exec-routine as red-routine! caller
 				either sub? [stack/unwind][stack/unwind-last]
 				#if debug? = yes [
 					if verbose > 0 [
-						value: stack/arguments
+						value: stack/get-top
 						print-line ["eval: routine return type: " TYPE_OF(value)]
 					]
 				]
@@ -1064,12 +1085,12 @@ assert s <> null
 					]
 				]
 				stack/mark-interp-func name
-				pc: eval-arguments origin pc end code path slot origin
-				_function/call as red-function! caller ctx pos CB_INTERPRETER
+				pc: eval-arguments as red-native! value pc end code path slot mode infix?
+				call as red-function! caller ctx pos CB_INTERPRETER
 				either sub? [stack/unwind][stack/unwind-last]
 				#if debug? = yes [
 					if verbose > 0 [
-						value: stack/arguments
+						value: stack/get-top
 						print-line ["eval: function return type: " TYPE_OF(value)]
 					]
 				]
@@ -1077,8 +1098,10 @@ assert s <> null
 		]
 		if tracing? [fire-event EVT_RETURN code pc pos stack/get-top]
 		
-		stack/pop 1										;-- slide down the returned value
-		copy-cell stack/top stack/top - 1				;-- replacing the saved value slot
+		unless infix? [
+			stack/pop 1										;-- slide down the returned value
+			copy-cell stack/top stack/top - 1				;-- replacing the saved value slot
+		]
 		pc
 	]
 	
@@ -1091,40 +1114,28 @@ assert s <> null
 		passive?  [logic!]
 		return:   [red-value!]
 		/local
-			saved  [red-value! value]
+			real   [red-value! value]
 			next   [red-word!]
 			ctx	   [red-context!]
 			value  [red-value!]
-			left   [red-value!]
 			pos    [red-value!]
 			start  [red-value!]
+			prev   [red-value!]
 			w	   [red-word!]
-			op	   [red-value!]
+			op	   [red-op!]
+			s	   [series!]
 			sym	   [integer!]
 			infix? [logic!]
-			lit?   [logic!]
 			top?   [logic!]
+			check-infix [subroutine!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line ["eval: fetching value of type " TYPE_OF(pc)]]]
 		
-		lit?: no
 		infix?: no
 		start: pc
 		top?: not sub?
+		prev: stack/top
 		
-		unless prefix? [
-			next: as red-word! pc + 1
-			CHECK_INFIX
-			if infix? [
-				if tracing? [
-					fire-event EVT_FETCH code pc as red-value! next as red-value! next
-					fire-event EVT_OPEN  code pc as red-value! next as red-value! next
-				]
-				stack/mark-interp-native next
-				sub?: yes								;-- force sub? for infix expressions
-				op: copy-cell value saved
-			]
-		]
 		if tracing? [fire-event EVT_FETCH code pc pc pc]
 		
 		switch TYPE_OF(pc) [
@@ -1136,29 +1147,23 @@ assert s <> null
 				if tracing? [value: stack/arguments]
 			]
 			TYPE_SET_WORD [
-				either infix? [
-					value: either sub? [stack/push pc][stack/set-last pc]
-					if tracing? [fire-event EVT_PUSH code pc pc value]
-					pc: pc + 1
-				][
-					stack/mark-interp-native as red-word! pc ;@@ ~set
-					word/push as red-word! pc
-					if tracing? [fire-event EVT_PUSH code pc pc pc]
-					pos: pc
-					pc: pc + 1
-					if pc >= end [fire [TO_ERROR(script need-value) pc - 1]]
-					pc: eval-expression pc end code no yes no
-					if tracing? [
-						value: stack/get-top
-						fire-event EVT_SET code pc pos value
-					]
-					word/set
-					either sub? [stack/unwind][stack/unwind-last]
-					#if debug? = yes [
-						if verbose > 0 [
-							value: stack/arguments
-							print-line ["eval: set-word return type: " TYPE_OF(value)]
-						]
+				stack/mark-interp-native as red-word! pc ;@@ ~set
+				word/push as red-word! pc
+				if tracing? [fire-event EVT_PUSH code pc pc pc]
+				pos: pc
+				pc: pc + 1
+				if pc >= end [fire [TO_ERROR(script need-value) pc - 1]]
+				pc: eval-expression pc end code no yes no
+				if tracing? [
+					value: stack/get-top
+					fire-event EVT_SET code pc pos value
+				]
+				word/set
+				either sub? [stack/unwind][stack/unwind-last]
+				#if debug? = yes [
+					if verbose > 0 [
+						value: stack/arguments
+						print-line ["eval: set-word return type: " TYPE_OF(value)]
 					]
 				]
 			]
@@ -1179,7 +1184,7 @@ assert s <> null
 				value: either sub? [
 					stack/push value					;-- nested expression: push value
 				][
-					stack/set-last value				;-- root expression: return value
+					stack/push-last value				;-- root expression: return value
 				]
 				if tracing? [fire-event EVT_PUSH code pc pc value]
 				pc: pc + 1
@@ -1188,7 +1193,7 @@ assert s <> null
 				either sub? [
 					w: word/push as red-word! pc			;-- nested expression: push value
 				][
-					w: as red-word! stack/set-last pc		;-- root expression: return value
+					w: as red-word! stack/push-last pc		;-- root expression: return value
 				]
 				w/header: TYPE_WORD						;-- coerce it to a word!
 				if tracing? [
@@ -1205,7 +1210,7 @@ assert s <> null
 						print lf
 					]
 				]
-				value: either lit? [pc][_context/get as red-word! pc]
+				value: _context/get as red-word! pc
 				pc: pc + 1
 				
 				switch TYPE_OF(value) [
@@ -1218,7 +1223,7 @@ assert s <> null
 					TYPE_NATIVE
 					TYPE_ROUTINE
 					TYPE_FUNCTION [
-						pc: eval-code value pc end code sub? null null value
+						pc: eval-code value pc end code sub? null null value MODE_FETCH no
 						if tracing? [value: stack/arguments]
 					]
 					TYPE_OP [
@@ -1260,7 +1265,7 @@ assert s <> null
 				]
 			]
 			TYPE_LIT_PATH [
-				value: either sub? [stack/push pc][stack/set-last pc]
+				value: either sub? [stack/push pc][stack/push-last pc]
 				value/header: TYPE_PATH
 				value/data3: 0							;-- ensures args field is null
 				if tracing? [fire-event EVT_PUSH code pc pc - 1 value]
@@ -1277,14 +1282,14 @@ assert s <> null
 					value: either sub? [
 						stack/push pc					;-- nested expression: push value
 					][
-						stack/set-last pc				;-- root expression: return value
+						stack/push-last pc				;-- root expression: return value
 					]
 					if tracing? [fire-event EVT_PUSH code pc pc value]
 					pc: pc + 1
 				][
 					value: pc + 1
 					if value >= end [value: end]
-					pc: eval-code pc value end code sub? null null null
+					pc: eval-code pc value end code sub? null null null MODE_FETCH no
 					if tracing? [value: stack/arguments]
 				]
 			]
@@ -1307,7 +1312,7 @@ assert s <> null
 				value: either sub? [
 					stack/push pc						;-- nested expression: push value
 				][
-					stack/set-last pc					;-- root expression: return value
+					stack/push-last pc					;-- root expression: return value
 				]
 				if tracing? [fire-event EVT_PUSH code pc pc value]
 				pc: pc + 1
@@ -1316,19 +1321,34 @@ assert s <> null
 				value: either sub? [
 					stack/push pc						;-- nested expression: push value
 				][
-					stack/set-last pc					;-- root expression: return value
+					stack/push-last pc					;-- root expression: return value
 				]
 				if tracing? [fire-event EVT_PUSH code pc pc value]
 				pc: pc + 1
 			]
 		]
-		
-		if infix? [
-			if pc >= end [fire [TO_ERROR(script no-op-arg) next]]
-			pc: eval-infix op pc end code sub?
-			unless prefix? [either sub? [stack/unwind][stack/unwind-last]]
-			if tracing? [value: either sub? [stack/get-top][stack/arguments]]
+		check-infix: [
+			infix?: no
+			next: as red-word! pc
+			if all [next < end TYPE_OF(next) = TYPE_WORD][
+				ctx: TO_CTX(next/ctx)
+				if ctx/values <> null [
+					op: as red-op! _context/get next
+					if TYPE_OF(op) = TYPE_OP [
+						#if debug? = yes [if verbose > 0 [print "eval: '" print-symbol as red-word! pc print-line " (infix)"]]
+						if tracing? [fire-event EVT_FETCH code pc pc pc]
+						stack/top: prev
+						infix?: yes
+						copy-cell as red-value! op real
+						set-type real GET_OP_SUBTYPE(op)
+						pc: eval-code real pc + 1 end code sub? null as red-value! next null MODE_FETCH yes
+						if tracing? [value: either sub? [stack/get-top][stack/arguments]]
+					]
+				]
+			]
 		]
+		unless prefix? [until [check-infix not infix?]]
+		
 		if all [tracing? top?][fire-event EVT_EXPR code pc start value]
 		pc
 	]
@@ -1390,7 +1410,7 @@ assert s <> null
 			
 			while [value < tail][
 				#if debug? = yes [if verbose > 0 [log "root loop..."]]
-				near/head: (as-integer value - head) >> 4
+				near/head: (as-integer value - head) >> 4 + code/head
 				value: eval-expression value tail code no no no
 				if value + 1 <= tail [stack/reset]
 			]
@@ -1402,8 +1422,6 @@ assert s <> null
 	
 	init: does [
 		trace-fun: as red-function! ALLOC_TAIL(root)	;-- keep the tracing func reachable by the GC marker
-		
 		near/header: TYPE_UNSET
-		near/extra:  0
 	]
 ]

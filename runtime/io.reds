@@ -85,7 +85,7 @@ io: context [
 			stack/push as red-value! :evt
 			count: _function/count-locals actor/spec 0 yes
 			if positive? count [_function/init-locals count]
-			_function/call actor red-port/ctx as red-value! words/_awake CB_PORT
+			interpreter/call actor red-port/ctx as red-value! words/_awake CB_PORT
 			stack/unwind-last
 			stack/reset
 		]

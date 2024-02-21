@@ -19,19 +19,18 @@ also: func [
 	value1 [any-type!]
 	value2 [any-type!]
 ][
-	get/any 'value1
+	:value1
 ]
 
 attempt: func [
 	"Tries to evaluate a block and returns result or NONE on error"
-	value [block!]
+	code [block!]
 	/safer "Capture all possible errors and exceptions"
+	/local all
 ][
-	either safer [
-		unless error? set/any 'value try/all :value [get/any 'value]
-	][
-		unless error? set/any 'value try :value [get/any 'value]
-	]
+	set 'all safer										;-- `all:` refuses to compile
+	try/:all [return do code]
+	none
 ]
 
 comment: func ["Consume but don't evaluate the next value" 'value][]
@@ -64,7 +63,7 @@ empty?: func [
 ][
 	prin mold :value
 	prin ": "
-	print either value? :value [mold get/any :value]["unset!"]
+	print either any [path? :value value? :value][mold get/any :value]["unset!"]
 ]
 
 probe: func [
@@ -82,9 +81,9 @@ quote: func [
 	:value
 ]
 
-first:	func ["Returns the first value in a series"  s [series! tuple! pair! date! time!]] [pick s 1]	;@@ temporary definitions, should be natives ?
-second:	func ["Returns the second value in a series" s [series! tuple! pair! date! time!]] [pick s 2]
-third:	func ["Returns the third value in a series"  s [series! tuple! date! time!]] [pick s 3]
+first:	func ["Returns the first value in a series"  s [series! tuple! pair! any-point! date! time!]] [pick s 1]	;@@ temporary definitions, should be natives ?
+second:	func ["Returns the second value in a series" s [series! tuple! pair! any-point! date! time!]] [pick s 2]
+third:	func ["Returns the third value in a series"  s [series! tuple! date! point3D! time!]] [pick s 3]
 fourth:	func ["Returns the fourth value in a series" s [series! tuple! date!]] [pick s 4]
 fifth:	func ["Returns the fifth value in a series"  s [series! tuple! date!]] [pick s 5]
 
@@ -96,7 +95,7 @@ last: func ["Returns the last value in a series" s [series! tuple!]] [pick s len
 		bitset! binary! block! char! email! file! float! get-path! get-word! hash!
 		integer! issue! lit-path! lit-word! logic! map! none! pair! paren! path!
 		percent! refinement! set-path! set-word! string! tag! time! typeset! tuple!
-		unset! url! word! image! date! money! ref! IPv6!
+		unset! url! word! image! date! money! ref! point2D! point3D! IPv6!
 	]
 	test-list: union to-list [
 		handle! error! action! native! datatype! function! image! object! op! routine! vector!
@@ -133,7 +132,7 @@ last: func ["Returns the last value in a series" s [series! tuple!]] [pick s len
 	docstring: "Returns true if the value is any type of "
 	foreach name [
 		any-list! any-block! any-function! any-object! any-path! any-string! any-word!
-		series! number! immediate! scalar! all-word!
+		series! number! immediate! scalar! all-word! any-point!
 	][
 		repend list [
 			load head change back tail form name "?:" 'func
@@ -334,15 +333,7 @@ context [
 		return: [logic! block!]
 	][
 		clear p-indent
-		either case [
-			parse/case/trace input rules :on-parse-event
-		][
-			either part [
-				parse/part/trace input rules limit :on-parse-event
-			][
-				parse/trace input rules :on-parse-event
-			]
-		]
+		parse/:case/:part/trace input rules limit :on-parse-event
 	]
 ]
 
@@ -363,11 +354,7 @@ scan: func [
 	/fast					  "Fast scanning, returns best guessed type"
 	return: [datatype! none!] "Recognized or guessed type, or NONE on empty input"
 ][
-	either fast [
-		either next [transcode/next/prescan buffer][transcode/prescan buffer]
-	][
-		either next [transcode/next/scan buffer][transcode/scan buffer]
-	]
+	apply 'transcode/:next/:scan/:prescan [buffer  :next  not fast  fast]
 ]
 
 load: function [
@@ -434,19 +421,19 @@ load: function [
 	]
 	if pre-load: :system/lexer/pre-load [do [pre-load source length]]
 
-	out: case [
+	set/any 'out case [
 		part  [transcode/part source length]
 		into  [transcode/into source out]
 		;trap  [system/lexer/transcode to-string source out trap]
 		next  [
-			set position second out: transcode/next source
+			set position second set/any 'out transcode/next source
 			return either :all [reduce [out/1]][out/1]
 		]
 		'else [transcode source]
 	]
-	either trap [out][
-		unless :all [if 1 = length? out [out: out/1]]
-		out
+	either trap [:out][
+		unless :all [if 1 = length? :out [set/any 'out out/1]]
+		:out
 	]
 ]
 
@@ -625,6 +612,7 @@ normalize-dir: function [
 ][
 	unless file? dir [dir: to file! mold dir]
 	if slash <> first dir [dir: clean-path append copy system/options/path dir]
+	if find dir #"\" [dir: to-red-file dir]
 	unless dir? dir [dir: append copy dir slash]
 	dir
 ]
@@ -767,7 +755,7 @@ collect: function [
 	/into 		  		 "Insert into a buffer instead (returns position after insert)"
 		collected [series!] "The buffer series (modified)"
 ][
-	keep: func [v /only][either only [append/only collected v][append collected v] v]
+	keep: func [v /only][append/:only collected v v]
 	
 	unless collected [collected: make block! 16]
 	parse body rule: [									;-- selective binding (needs BIND/ONLY support)
@@ -937,9 +925,9 @@ read-thru: function [
 ][
 	path: path-thru url
 	either all [not update exists? path] [
-		data: either binary [read/binary path][read path]
+		data: read/:binary path
 	][
-		data: either binary [read/binary url][read url]
+		data: read/:binary url
 		attempt [write/binary path data]
 	]
 	data
@@ -955,7 +943,7 @@ load-thru: function [
 	path: path-thru url
 	if all [not update exists? path][url: path]
 	file: either as [load/as url type][load url]
-	if url? url [attempt [either as [save/as path file type][save path file]]]
+	if url? url [attempt [save/:as path file type]]
 	file
 ]
 
@@ -964,7 +952,7 @@ do-thru: function [
 	url [url!]	"Remote file address"
 	/update		"Force a cache update"
 ][
-	do either update [load-thru/update url][load-thru url]
+	do load-thru/:update url
 ]
 
 cos: func [
@@ -998,7 +986,7 @@ tan: func [
 ]
 
 acos: func [
-	"Returns the trigonometric arccosine (in radians in range [0,pi])"
+	"Returns the trigonometric arccosine in radians in range [0,pi]"
 	cosine [float!] "in range [-1,1]"
 ][
 	#system [
@@ -1008,7 +996,7 @@ acos: func [
 ]
 
 asin: func [
-	"Returns the trigonometric arcsine (in radians in range [-pi/2,pi/2])"
+	"Returns the trigonometric arcsine in radians in range [-pi/2,pi/2])"
 	sine [float!] "in range [-1,1]"
 ][
 	#system [
@@ -1018,7 +1006,7 @@ asin: func [
 ]
 
 atan: func [
-	"Returns the trigonometric arctangent (in radians in range [-pi/2,+pi/2])"
+	"Returns the trigonometric arctangent in radians in range [-pi/2,+pi/2]"
 	tangent [float!] "in range [-inf,+inf]"
 ][
 	#system [
@@ -1042,7 +1030,7 @@ atan2: func [
 
 sqrt: func [
 	"Returns the square root of a number"
-	number	[float! integer!]
+	number	[float! integer! percent!]
 	return:	[float!]
 ][
 	#system [
@@ -1102,7 +1090,7 @@ average: func [
 	block [block! vector! paren! hash!]
 ][
 	if empty? block [return none]
-	divide sum block to float! length? block
+	divide sum block length? block
 ]
 
 last?: func [

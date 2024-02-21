@@ -93,6 +93,20 @@ object: context [
 		(as-integer s/tail - s/offset) >> 4
 	]
 	
+	clear-nl-flags: func [
+		s [series!]
+		/local
+			cell [red-value!]
+			tail [red-value!]
+	][
+		cell: s/offset
+		tail: s/tail
+		while [cell < tail][
+			cell/header: cell/header and flag-nl-mask
+			cell: cell + 1
+		]
+	]
+	
 	clear-words-flags: func [
 		ctx [red-context!]
 		/local
@@ -433,7 +447,7 @@ object: context [
 		stack/push old
 		stack/push new
 		if positive? count [_function/init-locals count]
-		_function/call fun obj/ctx as red-value! words/_on-change* CB_OBJ_CHANGE
+		interpreter/call fun obj/ctx as red-value! words/_on-change* CB_OBJ_CHANGE
 		stack/unwind
 	]
 	
@@ -485,7 +499,7 @@ object: context [
 			integer/push pos
 			integer/push nb
 			if positive? count [_function/init-locals count]
-			_function/call fun owner/ctx as red-value! words/_on-deep-change* CB_OBJ_DEEP
+			interpreter/call fun owner/ctx as red-value! words/_on-deep-change* CB_OBJ_DEEP
 			stack/unwind
 		]
 	]
@@ -700,7 +714,7 @@ object: context [
 				actions/copy as red-series! value target null yes null
 				
 				if ANY_BLOCK?(type) [
-					_context/bind as red-block! target to dst yes
+					_context/bind as red-block! target to yes
 				]
 			][
 				if copy? [copy-cell value target]		;-- just propagate the old value
@@ -760,7 +774,7 @@ object: context [
 						null
 				]
 				type = TYPE_FUNCTION [
-					rebind as red-function! value ctx ctx/self
+					rebind as red-function! value ctx
 				]
 				true [0]
 			]
@@ -773,7 +787,6 @@ object: context [
 	rebind: func [
 		fun	 [red-function!]
 		octx [red-context!]
-		self [node!]
 		/local
 			s	 [series!]
 			more [red-value!]
@@ -792,15 +805,13 @@ object: context [
 		spec/header: TYPE_BLOCK
 		spec/head:	 0
 		spec/node:	 fun/spec
-		spec/extra:	 0
 		
 		fctx: copy-series as series! fun/ctx/value		;-- clone the ctx 2-cell block
 		ctx: TO_CTX(fctx)
-		ctx/self: fctx									;-- update the red-context! value self-reference
 		
 		blk: block/clone as red-block! more yes yes
-		_context/bind blk octx self yes					;-- rebind new body to object's context
-		_context/bind blk ctx null no					;-- rebind new body to function's context
+		_context/bind blk octx yes						;-- rebind new body to object's context
+		_context/bind blk ctx  no						;-- rebind new body to function's context
 		_function/push spec blk	fctx null null fun/header ;-- recreate function
 		copy-cell stack/top - 1	as red-value! fun		;-- overwrite function slot in object
 		stack/pop 2										;-- remove extra stack slots (block/clone and _function/push)
@@ -1039,7 +1050,7 @@ object: context [
 							null
 					]
 					TYPE_FUNCTION [
-						rebind as red-function! value nctx nctx/self
+						rebind as red-function! value nctx
 					]
 					default [0]
 				]
@@ -1048,7 +1059,7 @@ object: context [
 		][
 			while [value < tail][
 				if TYPE_OF(value) = TYPE_FUNCTION [
-					rebind as red-function! value nctx nctx/self
+					rebind as red-function! value nctx
 				]
 				value: value + 1
 			]
@@ -1080,13 +1091,10 @@ object: context [
 	register-events: func [
 		obj [red-object!]
 		ctx [red-context!]
-		/local
-			s [series!]
 	][
 		obj/on-set: on-set-defined? ctx
 		if on-deep? obj [ownership/set-owner as red-value! obj obj null]
-		s: as series! ctx/self/value
-		copy-cell as red-value! obj s/offset + 1
+		copy-cell as red-value! obj as red-value! ctx + 1
 	]
 	
 	;-- Actions --
@@ -1127,12 +1135,13 @@ object: context [
 			TYPE_BLOCK [
 				blk: as red-block! spec
 				new?: _context/collect-set-words ctx blk
-				_context/bind blk ctx ctx/self yes		;-- bind spec block
+				_context/bind blk ctx yes				;-- bind spec block
 				if p-obj? [clone-series proto/ctx obj/ctx no] ;-- clone and rebind proto's series
 				
 				interpreter/eval blk no
 				
 				clear-words-flags ctx
+				clear-nl-flags as series! ctx/values/value
 				obj/class: either any [new? not p-obj?][get-new-id][proto/class]
 				register-events obj ctx
 			]
@@ -1283,6 +1292,7 @@ object: context [
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
+		evt?	[logic!]
 		return:	[red-value!]
 		/local
 			word	 [red-word!]
@@ -1505,7 +1515,7 @@ object: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/put"]]
 
-		eval-path obj field value as red-value! none-value null null -1 case? no yes
+		eval-path obj field value as red-value! none-value null null -1 case? no yes no
 		value
 	]
 

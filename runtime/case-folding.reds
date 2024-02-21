@@ -14,58 +14,38 @@ Red/System [
 #include %case-folding-table.reds
 
 case-folding: context [
-
-	upper-to-lower: declare red-vector!
-	lower-to-upper: declare red-vector!
-
-	compare-integer: func [								;-- Compare function return integer!
-		p1		 [int-ptr!]
-		p2		 [int-ptr!]
-		op		 [integer!]
-		flags	 [integer!]
-		return:  [integer!]
-	][
-		p1/value - p2/value
-	]
+	
+	upper-table: declare int-ptr!
+	lower-table: declare int-ptr!
+	
+	tbl-size: 64 * 1024 * size? integer!
 
 	init: func [
 		/local
-			size  [integer!]
-			sz	  [integer!]
-			s	  [series!]
-			a	  [integer!]
-			b	  [integer!]
-			table [int-ptr!]
+			sz [integer!]
+			i  [integer!]
+			p  [int-ptr!]
 	][
-		size: size? to-lowercase-table
-		sz: size * (size? integer!)
-		;-- make upper-to-lower vector!
-		vector/make-at
-			as red-value! upper-to-lower
-			size
-			TYPE_CHAR
-			size? integer!
-		s: GET_BUFFER(upper-to-lower)
-		copy-memory
-			as byte-ptr! s/offset
-			as byte-ptr! to-lowercase-table
-			sz
-		s/tail: as cell! ((as byte-ptr! s/offset) + sz)
-
-		size: size? to-uppercase-table
-		sz: size * (size? integer!)
-		;-- make lower-to-upper vector!
-		vector/make-at
-			as red-value! lower-to-upper
-			size
-			TYPE_CHAR
-			size? integer!
-		s: GET_BUFFER(lower-to-upper)
-		copy-memory
-			as byte-ptr! s/offset
-			as byte-ptr! to-uppercase-table
-			sz
-		s/tail: as cell! ((as byte-ptr! s/offset) + sz)
+		;-- setup fast-lookup tables for 16-bit codepoints
+		upper-table: as int-ptr! allocate tbl-size
+		set-memory as byte-ptr! upper-table null-byte tbl-size
+		p: uppercase-table-low
+		sz: (size? uppercase-table-low) / 2
+		loop sz [
+			i: p/1
+			upper-table/i: p/2
+			p: p + 2 
+		]
+		
+		lower-table: as int-ptr! allocate tbl-size
+		set-memory as byte-ptr! lower-table null-byte tbl-size
+		p: lowercase-table-low
+		sz: (size? lowercase-table-low) / 2
+		loop sz [
+			i: p/1
+			lower-table/i: p/2
+			p: p + 2 
+		]
 	]
 
 	change-char: func [
@@ -73,32 +53,33 @@ case-folding: context [
 		upper?	[logic!]
 		return: [integer!]
 		/local
-			c	  [integer!]
-			last  [integer!]
-			end   [integer!]
+			c sz end [integer!]
 			table [int-ptr!]
-			vec   [red-vector!]
-			s	  [series!]
 	][
-		vec: either upper? [lower-to-upper][upper-to-lower]
-		s: GET_BUFFER(vec)
-		table: as int-ptr! s/offset
-
-		last: vector/rs-length? vec
-		end: last - 1
-		unless any [cp < table/1 cp > table/last][
-			c: -1
-			until [
-				c: c + 2
-				if table/c > cp [return cp]
-				if table/c = cp [
-					c: c + 1
-					return table/c
-				]
-				c = end
+		either cp <= FFFFh [
+			table: either upper? [upper-table][lower-table]
+			c: table/cp
+			either zero? c [cp][c]
+		][
+			table: either upper? [
+				sz: size? uppercase-table-high
+				uppercase-table-high
+			][
+				sz: size? lowercase-table-high
+				lowercase-table-high
 			]
+			end: sz - 1
+			unless any [cp < table/1 cp > table/sz][
+				c: -1
+				until [
+					c: c + 2
+					if table/c > cp [return cp]
+					if table/c = cp [c: c + 1 return table/c]
+					c = end
+				]
+			]
+			cp
 		]
-		cp
 	]
 
 	change: func [

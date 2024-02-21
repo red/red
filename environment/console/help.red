@@ -125,7 +125,7 @@ help-ctx: context [
 					"length:" length? value
 					; Bolek's idea
 					either (index? value) > 1 [form reduce ["index:" index? value]][""]
-					mold/flat value
+					fmt value
 				]
 			]
 			any-object? value    [fmt words-of value]
@@ -363,7 +363,7 @@ help-ctx: context [
 					;	show the type tree for it.
 					datatype? :val [
 						either system/catalog/accessors/:word [
-							[col-1 DOC_SEP mold system/catalog/accessors/:word]
+							[col-1 DOC_SEP replace/all mold system/catalog/accessors/:word newline "^/^-"]
 						][
 							[col-1]
 						]

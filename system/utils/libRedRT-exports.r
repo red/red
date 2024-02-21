@@ -11,6 +11,8 @@
 	red/alloc-bytes
 	red/alloc-cells
 	red/get-cmdline-args
+	red/set-opt-refinement*
+	red/call-with-array*
 
 	red/redbin/boot-load
 
@@ -76,11 +78,12 @@
 	red/money/push
 	red/none/push
 	red/object/push
-	red/op/push
 	red/pair/push
 	red/paren/push
 	red/path/push
 	red/percent/push
+	red/point2D/push
+	red/point3D/push
 	red/ref/push
 	red/refinement/push
 	red/routine/push
@@ -117,6 +120,7 @@
 	red/word/duplicate
 
 	red/get-word/get
+	red/get-word/push-local
 	red/set-word/push-local
 
 	red/_context/get
@@ -210,7 +214,6 @@
 	red/natives/forall-end-adjust
 	red/natives/coerce-counter*
 	red/natives/inc-counter
-	red/natives/get-series-length
 
 	red/actions/make*
 	red/actions/random*
@@ -379,6 +382,9 @@
 	red/natives/recycle*
 	red/natives/transcode*
 	red/natives/as-money*
+	red/natives/apply*
+	red/natives/as-point2D*
+	red/natives/as-point3D*
 
 	;-- for view backend
 	red/symbol/resolve

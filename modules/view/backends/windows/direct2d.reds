@@ -1518,7 +1518,7 @@ render-target!: alias struct! [
 	]
 ]
 
-#define ConvertPointSizeToDIP(size)		(as float32! 96 * size / 72)
+#define ConvertPointSizeToDIP(size)		(as float32! 96.0 * size / 72.0)
 
 select-brush: func [
 	target		[int-ptr!]
@@ -2102,6 +2102,7 @@ create-text-format: func [
 		weight	[integer!]
 		style	[integer!]
 		size	[float32!]
+		ft-sz	[float!]
 		len		[integer!]
 		sym		[integer!]
 		name	[c-string!]
@@ -2129,9 +2130,13 @@ create-text-format: func [
 		if TYPE_OF(value) = TYPE_NONE [make-font face font]	;-- make a GDI font
 
 		int: as red-integer! values + FONT_OBJ_SIZE
-		len: either TYPE_OF(int) <> TYPE_INTEGER [10][int/value]
-		if len <= 0 [len: 10]
-		size: ConvertPointSizeToDIP(len)
+		len: either TYPE_OF(int) <> TYPE_INTEGER [0][int/value]
+		if len <= 0 [
+			int: as red-integer! #get system/view/fonts/size
+			len: int/value
+		]
+		ft-sz: as float! len
+		size: ConvertPointSizeToDIP(ft-sz)
 
 		str: as red-string! values + FONT_OBJ_NAME
 		name: either TYPE_OF(str) = TYPE_STRING [
@@ -2169,7 +2174,8 @@ create-text-format: func [
 		save?: no
 		int: as red-integer! #get system/view/fonts/size
 		str: as red-string!  #get system/view/fonts/system
-		size: ConvertPointSizeToDIP(int/value)
+		ft-sz: as float! int/value
+		size: ConvertPointSizeToDIP(ft-sz)
 		name: unicode/to-utf16 str
 	]
 
@@ -2265,6 +2271,7 @@ set-line-spacing: func [
 	dl/GetLineMetrics layout lm 1 :lineCount
 	tf: as IDWriteTextFormat fmt/vtbl
 	if null? int [h: lm/height]
+	if lm/height > h [h: lm/height]
 	tf/SetLineSpacing fmt 1 h lm/baseline
 	COM_SAFE_RELEASE(IUnk layout)
 ]

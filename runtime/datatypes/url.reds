@@ -210,6 +210,7 @@ url: context [
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
+		evt?	[logic!]
 		return:	[red-value!]
 		/local
 			s	[series!] 
@@ -225,6 +226,7 @@ url: context [
 			if (as-integer #"/") <> string/get-char (as byte-ptr! s/tail) - unit unit [
 				string/concatenate-literal new "/"
 			]
+			if TYPE_OF(element) = TYPE_GET_WORD [element: _context/get as red-word! element]
 			actions/form element new null 0
 			string/concatenate new parent -1 0 yes yes
 			set-type as red-value! new TYPE_OF(parent)

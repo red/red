@@ -202,7 +202,7 @@ Red [
 		forall out [--assert ref? out/1]
 	
 	--test-- "tr-20"
-		--assert (reduce [true false none none! () unset!]) == transcode {#[true] #[false] #[none] #[none!] #[unset] #[unset!]}
+		--assert (reduce [true false none none! () unset!]) == transcode {#(true) #(false) #(none) #(none!) #(unset) #(unset!)}
 
 	--test-- "tr-21"
 		out: transcode {
@@ -401,7 +401,7 @@ Red [
 	--test-- "tr-41" --assert ["Nice^^World}% rawstring! "] == transcode "%%{Nice^^World}% rawstring! }%%"
 	--test-- "tr-42" --assert [a /c^d /e^] == transcode "a^b/c^^d/e^^^f"
 	--test-- "tr-43" --assert [/a /b] == transcode "/a/b"
-	--test-- "tr-44" --assert error? try [transcode "[12#(a: 3)]"]
+	--test-- "tr-44" --assert error? try [transcode "[12#[a: 3]]"]
 	--test-- "tr-45" --assert [#"a" - #"z"] == transcode {#"a"-#"z"}
 	--test-- "tr-46" --assert [/ #a // #a /// #a hello #a + #a - #a] == transcode {/#a //#a ///#a hello#a +#a -#a}
 	--test-- "tr-47" --assert error? try [transcode "(#abc:)"]
@@ -411,8 +411,18 @@ Red [
 	--test-- "tr-49" --assert error? try [transcode #{8B}]				  ; #4790
 	--test-- "tr-50" --assert error? try [transcode "-$"]
 	--test-- "tr-51" --assert error? try [transcode #{42137E26C646365C}]  ; #4790
+	
+	--test-- "tr-52" --assert [ (1.#INF, 1)   (1, 1.#INF)] == transcode " (1.#INF, 1)   (1, 1.#INF) "
+	--test-- "tr-53" --assert [(1, 2) (5, 6)] == transcode " (1, 2) (5, 6) "
+	--test-- "tr-54" --assert [(16-Jun-2014/14:34:59+2:00)] == transcode "(16-Jun-2014/14:34:59+2:00)"
+	--test-- "tr-55" --assert [(1.1.1)]	== transcode "(1.1.1)"
+	
+	--test-- "tr-56"
+		--assert [(2, 3) + 2  (2, 3) + 2] == out: transcode {^/(2,3) + 2^/(2,3) + 2^/}
+		--assert new-line? at out 1
+		--assert new-line? at out 4
 
-	--test-- "tr-52"
+	--test-- "tr-57"
 		--assert [
 			AB01:0db8:85a3:0000:0000:8a2e:0370:7334
 			2001:0db8:85a3:0000:0000:8a2e:0370:7334
@@ -482,7 +492,7 @@ Red [
 		}
 		forall out [--assert ipv6? out/1]
 
-	--test-- "tr-53"
+	--test-- "tr-58"
 		--assert [
 			http://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:80/index.html
 			http://[1080:0:0:0:8:800:200C:417A]/index.html
@@ -586,9 +596,9 @@ Red [
 	--test-- "tro-57" --assert error? try [transcode/one "1.2..4"]
 
 	--test-- "tro-58" --assert (quote (b + 2)) == transcode/one"(b + 2)"
-	--test-- "tro-59" --assert #() == transcode/one {#()}
-	--test-- "tro-60" --assert #(a: 2) == transcode/one {#(a: 2)}
-	--test-- "tro-61" --assert #("b" 2.345) == transcode/one {#("b" 2.345)}
+	--test-- "tro-59" --assert #[] == transcode/one {#[]}
+	--test-- "tro-60" --assert #[a: 2] == transcode/one {#[a: 2]}
+	--test-- "tro-61" --assert #["b" 2.345] == transcode/one {#["b" 2.345]}
 	--test-- "tro-62" --assert "hel^/lo" == transcode/one {"hel^^/lo"}
 	--test-- "tro-63" --assert "{^/}" == transcode/one {{{^/}}}
 	--test-- "tro-64" --assert 1 == transcode/one "01h"
@@ -738,6 +748,47 @@ Red [
 	--test-- "tro-164"  --assert error? try [transcode/one "123#"]
 	--test-- "tro-165"  --assert error? try [transcode/one "9h"]
 	--test-- "tro-166"  --assert error? try [transcode/one "FACEFEEDDEADBEEFh"]
+	
+	--test-- "tro-167" --assert (1, 3, 22)		== transcode/one "(1, 3, 22)"
+	--test-- "tro-168" --assert (1, 3) 	 		== transcode/one "(1, 3)"
+	--test-- "tro-169" --assert (4.3,5.456, 789)== transcode/one "(4.3,5.456, 789)"
+	--test-- "tro-170" --assert (4, 2, 9) 		== transcode/one "(4, 2, 9)"
+	--test-- "tro-171" --assert (0,0)			== transcode/one "(0,0)"
+	--test-- "tro-172" --assert [(4,5)]			== transcode/one "[(4,5)]"
+
+	--test-- "tro-175" --assert (4,5)			== transcode/one "(4,5)"
+	--test-- "tro-176" --assert (4.3,5.456)		== transcode/one "(4.3,5.456)"
+	--test-- "tro-177" --assert (4, 5)			== transcode/one "(4, 5)"
+	--test-- "tro-178" --assert (  4 ,5)		== transcode/one "(  4 ,5)"
+	--test-- "tro-179" --assert (  4 , 5)		== transcode/one "(  4 , 5)"
+	--test-- "tro-180" --assert (4 , 5)			== transcode/one "(4 , 5)"
+	--test-- "tro-181" --assert (4   ,   5)		== transcode/one "(4   ,   5)"
+	--test-- "tro-182" --assert (5.0,2)			== transcode/one "(5.0,2)"
+	--test-- "tro-183" --assert (5.0 ,2)		== transcode/one "(5.0 ,2)"
+	--test-- "tro-184" --assert (5.0 , 2)		== transcode/one "(5.0 , 2)"
+	--test-- "tro-185" --assert (523.120, 2.78584) == transcode/one "(523.120, 2.78584)"
+	--test-- "tro-186" --assert (1.#INF, 2)		== transcode/one "(1.#INF, 2)"
+	--test-- "tro-187" --assert (3, 1.#INF, 2)	== transcode/one "(3,1.#INF,2)"
+	--test-- "tro-188" --assert (3,4,1.#INF)	== transcode/one "(3,4,1.#INF)"
+	--test-- "tro-189" --assert (3,4,1.#INF )	== transcode/one "(3,4,1.#INF )"
+	
+	--test-- "tro-190" --assert error? try [transcode/one "(1, 2, 3 / 4)"]
+	--test-- "tro-191" --assert error? try [transcode/one "(1, 2, 3 4 5 )"]
+	--test-- "tro-192" --assert error? try [transcode/one "(1, 2, 3 a b c)"]
+	--test-- "tro-193" --assert error? try [transcode/one "(1, 2, (3 / 4)"]
+	--test-- "tro-194" --assert error? try [transcode/one "(1, 2, (3 4))"]
+	--test-- "tro-195" --assert error? try [transcode/one "(1, 2, [3])"]
+	--test-- "tro-196" --assert error? try [transcode/one "(1, 2, #[3])"]
+	--test-- "tro-197" --assert error? try [transcode/one "(1, 2 "]
+	--test-- "tro-198" --assert error? try [transcode/one "(1, 2, "]
+	--test-- "tro-199" --assert error? try [transcode/one "(1,2,)"]
+	--test-- "tro-200" --assert error? try [transcode/one "(1,2 3,)"]
+	--test-- "tro-201" --assert error? try [transcode/one "(1, 2 3)"]
+	
+	--test-- "tro-202" --assert (1.#INF, 1.#INF) == transcode/one "(1.#inf, 1.#inf)"
+	--test-- "tro-203" --assert "(1.#NaN, 1.#NaN)" == mold transcode/one "(1.#nan, 1.#nan)"	; NaN values can't be compared with themselves
+	--test-- "tro-204" --assert error? try [transcode/one "(0, 0, 0]"]
+
 
 ===end-group===
 ===start-group=== "transcode/next"
@@ -751,7 +802,7 @@ Red [
 		--assert [[a] " 123"] == transcode/next "[a] 123"
 
 	--test-- "tn-3"
-		--assert [#(a: 4) " hello"] == out: transcode/next "#(a: 4) hello"
+		--assert [#[a: 4] " hello"] == out: transcode/next "#[a: 4] hello"
 		--assert map? out/1
 
 ===end-group===
@@ -797,7 +848,7 @@ Red [
 	--test-- "scan-11" --assert (reduce [lit-word! " hello"]) == scan/next "'a hello"
 	--test-- "scan-12" --assert (reduce [get-word! " hello"]) == scan/next ":a hello"
 
-	--test-- "scan-13" --assert (reduce [map!	   " hello"]) == scan/next "#(a: 4) hello"
+	--test-- "scan-13" --assert (reduce [map!	   " hello"]) == scan/next "#[a: 4] hello"
 	--test-- "scan-14" --assert (reduce [set-path! " hello"]) == scan/next "a/b: hello"
 	--test-- "scan-15" --assert (reduce [path! 	   " hello"]) == scan/next "a/b hello"
 	--test-- "scan-16" --assert (reduce [lit-path! " hello"]) == scan/next "'a/b hello"
@@ -822,12 +873,12 @@ Red [
 	--test-- "scan-27" --assert error! = scan "]"
 	--test-- "scan-28" --assert error! = scan "("
 	--test-- "scan-29" --assert error! = scan ")"
-	--test-- "scan-30" --assert error! = scan "#("
+	--test-- "scan-30" --assert error! = scan "#["
 	--test-- "scan-31" --assert error! = scan "{"
 	--test-- "scan-32" --assert error! = scan "}"
 	--test-- "scan-33" --assert block! = scan "[]"
 	--test-- "scan-34" --assert paren! = scan "()"
-	--test-- "scan-35" --assert map!   = scan "#()"
+	--test-- "scan-35" --assert map!   = scan "#[]"
 	--test-- "scan-36" --assert string! = scan "{}"
 	--test-- "scan-37" --assert string! = scan {""}
 	--test-- "scan-38" --assert word!   = scan "a"
@@ -858,11 +909,11 @@ Red [
 	--test-- "scan-63" --assert string!	 = scan {"hello^Mworld"}
 	--test-- "scan-64" --assert string!	 = scan {"hello^-world"}
 	--test-- "scan-65" --assert error!	 = scan "a/ "
-	--test-- "scan-66" --assert logic!	 = scan "#[true]"
-	--test-- "scan-67" --assert logic!	 = scan "#[false]"
-	--test-- "scan-68" --assert none!	 = scan "#[none]"
-	--test-- "scan-69" --assert integer! = scan "#[integer!]"
-	--test-- "scan-70" --assert error!	 = scan "#[int!]"
+	--test-- "scan-66" --assert logic!	 = scan "#(true)"
+	--test-- "scan-67" --assert logic!	 = scan "#(false)"
+	--test-- "scan-68" --assert none!	 = scan "#(none)"
+	--test-- "scan-69" --assert integer! = scan "#(integer!)"
+	--test-- "scan-70" --assert error!	 = scan "#(int!)"
 	--test-- "scan-71" --assert error!   = scan "/v:"
 	--test-- "scan-72" --assert error!   = scan "/value:"
 	--test-- "scan-73" --assert error!   = scan "$non"
@@ -870,13 +921,41 @@ Red [
 	--test-- "scan-75" --assert error!   = scan ":x:"
 	--test-- "scan-76" --assert error!   = scan ":x::"
 
-	--test-- "scan-77" --assert [#[none] ""] == scan/next " "
+	--test-- "scan-77" --assert [#(none) ""] == scan/next " "
 	--test-- "scan-78" --assert none? scan/next ""
 	--test-- "scan-79" --assert error!   = scan "1:2:"
 	--test-- "scan-80" --assert error!   = scan "123#"
 	--test-- "scan-81" --assert error!   = scan "9h"
 	--test-- "scan-82" --assert error!   = scan "FACEFEEDDEADBEEFh"
 	--test-- "scan-83" --assert error!   = scan ":a/b:"
+	
+	--test-- "scan-84" --assert point2D! = scan "(1, 3)"
+	--test-- "scan-85" --assert point2D! = scan "(1.#INF, 2)"
+	--test-- "scan-86" --assert point3D! = scan "(1, 3, 22)"
+	--test-- "scan-87" --assert point3D! = scan "(4.3,5.456, 789)"
+	--test-- "scan-88" --assert point3D! = scan "(3,1.#INF,2)"
+	--test-- "scan-89" --assert point3D! = scan "(3,4,1.#INF)"
+	--test-- "scan-90" --assert point3D! = scan "(3,4,1.#INF )"
+	--test-- "scan-91" --assert error!	 = scan "(1 2, 3)"
+	--test-- "scan-92" --assert error!	 = scan "(1, 2 3)"
+	--test-- "scan-93" --assert error!	 = scan "(1 2, 3, 4)"
+	--test-- "scan-94" --assert error!	 = scan "(1 2, 3, 4 5)"
+
+	--test-- "scan-95"  --assert error!	 = scan "(1, 2, 3 / 4)"
+	--test-- "scan-96"  --assert error!	 = scan "(1, 2, 3 4 5 )"
+	--test-- "scan-97"  --assert error!	 = scan "(1, 2, 3 a b c)"
+	--test-- "scan-98"  --assert error!	 = scan "(1, 2, (3 / 4)"
+	--test-- "scan-99"  --assert error!	 = scan "(1, 2, (3 4))"
+	--test-- "scan-100" --assert error!	 = scan "(1, 2, [3])"
+	--test-- "scan-101" --assert error!	 = scan "(1, 2, #[3])"
+	--test-- "scan-102" --assert error!	 = scan "(1, 2, a)"
+	--test-- "scan-103" --assert error!	 = scan "(1, a)"
+	--test-- "scan-104" --assert error!	 = scan "(1, 2"
+	--test-- "scan-105" --assert error!	 = scan "(1, 2 "
+	--test-- "scan-106" --assert error!	 = scan "(1, 2, "
+	--test-- "scan-107" --assert error!	 = scan "(1,2,)"
+	--test-- "scan-108" --assert error!	 = scan "(1,2 3,)"
+	--test-- "scan-109" --assert error!	 = scan "(1, 2 3)"
 
 ===end-group===
 ===start-group=== "scan/fast"
@@ -886,12 +965,12 @@ Red [
 	--test-- "scan-f3" --assert error!   = scan/fast "]"
 	--test-- "scan-f4" --assert error!   = scan/fast "("
 	--test-- "scan-f5" --assert error!   = scan/fast ")"
-	--test-- "scan-f6" --assert error!   = scan/fast "#("
+	--test-- "scan-f6" --assert error!   = scan/fast "#["
 	--test-- "scan-f7" --assert error!   = scan/fast "{"
 	--test-- "scan-f8" --assert error!   = scan/fast "}"
 	--test-- "scan-f9" --assert block!   = scan/fast "[]"
 	--test-- "scan-f10" --assert paren!  = scan/fast "()"
-	--test-- "scan-f11" --assert map!    = scan/fast "#()"
+	--test-- "scan-f11" --assert map!    = scan/fast "#[]"
 	--test-- "scan-f12" --assert string! = scan/fast "{}"
 	--test-- "scan-f13" --assert string! = scan/fast {""}
 	--test-- "scan-f14" --assert word!   = scan/fast "'a"
@@ -917,17 +996,29 @@ Red [
 	--test-- "scan-f55" --assert float!	  = scan/fast ".5"
 	--test-- "scan-f56" --assert none? 	    scan/fast ""
 	--test-- "scan-f57" --assert error!	  = scan/fast "a/ "
-	--test-- "scan-f58" --assert logic!	  = scan/fast "#[true]"
-	--test-- "scan-f59" --assert logic!	  = scan/fast "#[false]"
-	--test-- "scan-f60" --assert none!	  = scan/fast "#[none]"
-	--test-- "scan-f61" --assert integer! = scan/fast "#[integer!]"
-	--test-- "scan-f62" --assert error!	  = scan/fast "#[int!]"
+	--test-- "scan-f58" --assert logic!	  = scan/fast "#(true)"
+	--test-- "scan-f59" --assert logic!	  = scan/fast "#(false)"
+	--test-- "scan-f60" --assert none!	  = scan/fast "#(none)"
+	--test-- "scan-f61" --assert integer! = scan/fast "#(integer!)"
+	--test-- "scan-f62" --assert error!	  = scan/fast "#(int!)"
 	--test-- "scan-f63" --assert error!   = scan/fast "/v:"
 	--test-- "scan-f64" --assert error!   = scan/fast "/value:"
 	--test-- "scan-f65" --assert path!    = scan/fast "a/b"
 	--test-- "scan-f66" --assert lit-path! = scan/fast "'a/b"
 	--test-- "scan-f67" --assert set-path! = scan/fast "a/b:"
 	--test-- "scan-f68" --assert get-path! = scan/fast ":a/b"
+	
+	--test-- "scan-f69" --assert point2D! = scan/fast "(1, 3)"
+	--test-- "scan-f70" --assert point2D! = scan/fast "(1.#INF, 2)"
+	--test-- "scan-f71" --assert point2D! = scan/fast "(1, 3, 22)"
+	--test-- "scan-f72" --assert point2D! = scan/fast "(4.3,5.456, 789)"
+	--test-- "scan-f73" --assert point2D! = scan/fast "(3,1.#INF,2)"
+	--test-- "scan-f74" --assert point2D! = scan/fast "(3,4,1.#INF)"
+	--test-- "scan-f75" --assert point2D! = scan/fast "(3,4,1.#INF )"
+	--test-- "scan-f76" --assert point2D! = scan/fast "(1 2, 3)"
+	--test-- "scan-f77" --assert point2D! = scan/fast "(1, 2 3)"
+	--test-- "scan-f78" --assert point2D! = scan/fast "(1 2, 3, 4)"
+	--test-- "scan-f79" --assert point2D! = scan/fast "(1 2, 3, 4 5)"
 
 ===end-group===
 ===start-group=== "transcode/trace"
@@ -982,7 +1073,7 @@ Red [
 			prescan block! datatype! 1 9x9
 			open block! datatype! 1 9x9
 			prescan block! datatype! 1 10x10
-			close block! datatype! 1 10x10
+			close block! datatype! 1 9x10
 		]
 
 	--test-- "tt-2"
@@ -1008,7 +1099,7 @@ Red [
 
 	--test-- "tt-3"
 		clear logs
-		--assert none == transcode/trace "a: 1 #(r: 2) [ x" :lex-logger
+		--assert none == transcode/trace "a: 1 #[r: 2] [ x" :lex-logger
 		--assert logs = [
 		    prescan word! datatype! 1 1x3
 			scan set-word! datatype! 1 1x3
@@ -1024,8 +1115,8 @@ Red [
 			prescan integer! datatype! 1 11x12
 			scan integer! datatype! 1 11x12
 			load integer! datatype! 1 2
-			prescan paren! datatype! 1 12x12
-			close map! datatype! 1 12x12
+			prescan block! datatype! 1 12x12
+			close map! datatype! 1 6x12
 			prescan block! datatype! 1 14x14
 			open block! datatype! 1 14x14
 			prescan word! datatype! 1 16x17
@@ -1082,7 +1173,7 @@ Red [
 			prescan string! datatype! 1 5x5
 			open string! datatype! 1 5x5
 			close string! datatype! 1 5x9
-			scan string! datatype! 1 5x9 
+			scan string! datatype! 1 5x10 
     		load string! datatype! 1 "abc" 
 			prescan integer! datatype! 1 11x23
 			scan float! datatype! 1 11x23
@@ -1145,7 +1236,7 @@ Red [
 			prescan string! datatype! 4 19x19
 			open string! datatype! 4 19x19
 			close string! datatype! 4 19x24
-			scan string! datatype! 4 19x24 
+			scan string! datatype! 4 19x25 
     		load string! datatype! 4 "test"
 			prescan float! datatype! 4 26x30
 			scan float! datatype! 4 26x30
@@ -1232,7 +1323,7 @@ Red [
 
 	--test-- "tt-12"
 		clear logs
-		--assert none == transcode/trace "a: 1 #(r: 2) [ x" :lex-filtered-logger
+		--assert none == transcode/trace "a: 1 #[r: 2] [ x" :lex-filtered-logger
 		--assert logs = [
 			load set-word! datatype! 1 a:
 			load integer! datatype! 1 1
@@ -1318,7 +1409,7 @@ Red [
 		    prescan word! datatype! 1 12x13
 		    scan word! datatype! 1 12x13
 		    load word! datatype! 1 e
-		    close path! datatype! 1 12x13
+		    close path! datatype! 1 10x13
 		    error block! datatype! 1 4x13
 		]
 
@@ -1345,8 +1436,8 @@ Red [
 		    scan word! datatype! 1 4x5 
 		    load word! datatype! 1 j 
 		    prescan paren! datatype! 1 5x5 
-		    close paren! datatype! 1 5x5 
-		    close set-path! datatype! 1 5x6 
+		    close paren! datatype! 1 3x5 
+		    close set-path! datatype! 1 1x7 
 		    prescan integer! datatype! 1 8x9 
 		    scan integer! datatype! 1 8x9 
 		    load integer! datatype! 1 3
@@ -1369,7 +1460,7 @@ Red [
 		    prescan paren! datatype! 1 2x2 
 		    open paren! datatype! 1 2x2 
 		    prescan block! datatype! 1 3x3 
-		    close block! datatype! 1 3x3 
+		    close block! datatype! 1 2x3 
 		    error paren! datatype! 1 3x3 
 		    prescan word! datatype! 1 5x6 
 		    scan word! datatype! 1 5x6 
@@ -1386,7 +1477,7 @@ Red [
 		    prescan paren! datatype! 1 2x2 
 		    open paren! datatype! 1 2x2 
 		    prescan block! datatype! 1 3x3 
-		    close block! datatype! 1 3x3 
+		    close block! datatype! 1 2x3 
 		    error paren! datatype! 1 3x3 
 		    error paren! datatype! 1 2x4
 		]
@@ -1398,10 +1489,10 @@ Red [
 		    prescan paren! datatype! 1 1x1 
 		    open paren! datatype! 1 1x1 
 		    prescan block! datatype! 1 2x2 
-		    close block! datatype! 1 2x2 
+		    close block! datatype! 1 1x2 
 		    error paren! datatype! 1 2x2 
 		    prescan paren! datatype! 1 3x3 
-		    close paren! datatype! 1 3x3
+		    close paren! datatype! 1 1x3
 		]
 
 	--test-- "tt-21"
@@ -1413,7 +1504,7 @@ Red [
 		    prescan paren! datatype! 1 2x2 
 		    open paren! datatype! 1 2x2 
 		    prescan block! datatype! 1 3x3 
-		    close block! datatype! 1 3x3 
+		    close block! datatype! 1 2x3 
 		    error paren! datatype! 1 3x3 
 		    error paren! datatype! 1 2x4
 		]
@@ -1427,32 +1518,32 @@ Red [
 		    prescan paren! datatype! 1 2x2 
 		    open paren! datatype! 1 2x2 
 		    prescan block! datatype! 1 3x3 
-		    close block! datatype! 1 3x3 
+		    close block! datatype! 1 2x3 
 		    error paren! datatype! 1 3x3 
 		    prescan block! datatype! 1 4x4 
-		    close block! datatype! 1 4x4 
+		    close block! datatype! 1 2x4 
 		    error paren! datatype! 1 4x4 
 		    prescan paren! datatype! 1 5x5 
-		    close paren! datatype! 1 5x5 
+		    close paren! datatype! 1 2x5 
 		    prescan block! datatype! 1 6x6 
-		    close block! datatype! 1 6x6
+		    close block! datatype! 1 1x6
 		]
 
 	--test-- "tt-23"
 		clear logs
-		--assert [] = transcode/trace "#([]22)" :lex-logger
+		--assert [] = transcode/trace "#[[]22]" :lex-logger
 		--assert logs = [
 			prescan map! datatype! 1 1x2 
 		    open map! datatype! 1 1x2 
 		    prescan block! datatype! 1 3x3 
 		    open block! datatype! 1 3x3 
 		    prescan block! datatype! 1 4x4 
-		    close block! datatype! 1 4x4 
+		    close block! datatype! 1 3x4 
 		    prescan integer! datatype! 1 5x7 
 		    scan integer! datatype! 1 5x7 
 		    load integer! datatype! 1 22 
-		    prescan paren! datatype! 1 7x7 
-		    close map! datatype! 1 7x7 
+		    prescan block! datatype! 1 7x7 
+		    close map! datatype! 1 1x7 
 		    error map! datatype! 1 7x7
 		]
 
@@ -1580,15 +1671,17 @@ Red [
 		--assert '-<- == transcode/one "-<-"
 
 	--test-- "#4624"
-		--assert [a b] == load/all "a^(3000)b"
-		--assert [a b] == load/all "^(2002)a^(3000)b"
-		--assert [a b] == load/all "^(2002)^(85)a^(3000)b"
+		--assert [a〇b] == load/all "a^(3007)b"
+		--assert [a〇b] == load/all "^(2002)a^(3007)b"
+		--assert [a〇b] == load/all "^(2002)^(85)a^(3007)b"
 
 	--test-- "#4781"
-		--assert 3:3:3.3000000001 = transcode/one "3:3:3,3"
+		do {											;@@ clean-up once compiler is removed
+			--assert 3:3:3.3 == transcode/one "3:3:3.3"
+		}
 
 	--test-- "#4914"
-		--assert error? try [transcode {#(a: 22 b: 33 c: x: a)}]
+		--assert error? try [transcode {#[a: 22 b: 33 c: x: a]}]
 
 	--test-- "#4933"
 		--assert [фывапр " abcdef"] == transcode/next "фывапр abcdef"
@@ -1641,6 +1734,33 @@ Red [
 			{this too}
 		}
 		repeat i 3 [--assert new-line? at out i]
+
+	--test-- "#5322"
+		--assert error? try [transcode "1A"]
+		
+	--test-- "#5365"
+		clear logs
+		--assert [%hello.txt] == transcode/trace "%hello.txt" :lex-logger
+		--assert logs = [
+			prescan file! datatype! 1 1x11 
+			scan file! datatype! 1 1x11 
+			load file! datatype! 1 %hello.txt
+		]
+		
+	--test-- "#5375"
+		--assert 1.0 == to float! "1e0"
+		--assert error? try [to float! "1ex"]
+		--assert error? try [to float! "1exy"]
+		--assert error? try [to float! "1e-x"]
+		--assert error? try [to float! "1e-xy"]
+		--assert error? try [to float! "1e/xy"]
+		
+	--test-- "#5380"
+		--assert 1.234 = to-float next "♥1.234"
+		
+	--test-- "#5384"
+		--assert [😀 arrow keys] = transcode "😀 arrow keys"
+		--assert [Use😀 arrow keys] = transcode "Use😀 arrow keys"
 
 ===end-group===
 	

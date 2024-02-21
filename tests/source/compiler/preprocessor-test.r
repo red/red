@@ -112,8 +112,8 @@ REBOL [
 			f: func [x][]
 			prin "*test9* " probe preprocessor/fetch-next [a: 1 + b/o/f/x f f 4 5 6]
 			prin "*test10* " probe preprocessor/fetch-next [a: 1 + b/o/f/x + * 4 5 6]
-			o: make op! func ['x 'y][]
-			prin "*test11* " probe preprocessor/fetch-next [a: o b: 1]
+			o: make op! func [x 'y][]
+			prin "*test11* " probe preprocessor/fetch-next ['a o b: 1]
 			prin "*test12* " probe preprocessor/fetch-next [f o f 1]
 			prin "*test13* " probe preprocessor/fetch-next [b/o/f o b/o/f/x 1 2 3]
 			p: 10x20 s: "abcd"

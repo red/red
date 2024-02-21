@@ -1445,7 +1445,7 @@ system-dialect: make-profilable context [
 		
 		check-specs: func [
 			name specs /extend
-			/local type type-def spec-type attribs value args locs cconv pos
+			/local type type-def fun-rule spec-type attribs value args locs cconv pos
 		][
 			unless block? specs [
 				throw-error "function definition requires a specification block"
@@ -1457,6 +1457,7 @@ system-dialect: make-profilable context [
 				| 'catch | 'infix | 'variadic | 'typed | 'custom | 'callback | cconv
 			]
 			type-def: pick [[func-pointer | type-spec] [type-spec]] to logic! extend
+			fun-rule: [pos: block! (check-specs name pos/1)]
 
 			unless catch [
 				parse specs [
@@ -1468,13 +1469,13 @@ system-dialect: make-profilable context [
 						pos: 'return (throw-error ["Cannot use `return` as argument name at:" mold pos])
 						| word! into type-def opt string!	;-- arguments definition
 					]
-					pos: opt [							;-- return type definition				
-						set value set-word! (					
+					pos: opt [							;-- return type definition
+						set value set-word! (
 							rule: pick reduce [[into type-spec] fail] value = return-def
 						) rule
 						opt string!
 					]
-					pos: opt [/local copy locs some [pos: word! opt [into ['subroutine! | type-spec]]]] ;-- local variables definition
+					pos: opt [/local copy locs some [pos: word! opt [into ['subroutine! | 'function! fun-rule | type-spec]]]] ;-- local variables definition
 				]
 			][
 				throw-error rejoin ["invalid definition for function " name ": " mold pos]
@@ -3027,7 +3028,12 @@ system-dialect: make-profilable context [
 					pc: next pc
 					return value
 				]
-				comp-word/with path
+				either get? [
+					pc: next pc
+					to-get-word mold path
+				][
+					comp-word/with path
+				]
 			][
 				case [
 					value: system-reflexion? path [
@@ -3640,7 +3646,7 @@ system-dialect: make-profilable context [
 				last-type: either not any [
 					all [new? literal? unbox expr]		;-- if new variable, value will be store in data segment
 					all [set-path? variable not path? expr]	;-- value loaded at lower level
-					tag? unbox expr
+					find [tag! binary!] type?/word unbox expr
 					all [not new? not boxed set-word? variable store? logic? expr]
 				][
 					either boxed [
@@ -3660,11 +3666,12 @@ system-dialect: make-profilable context [
 			]
 			
 			;-- postprocessing result
-			if all [block? expr not subrc?][			;-- if expr is a function call
+			if block? expr [							;-- if expr is a function call
 				all [
 					variable
 					'value = last last-type				;-- for a struct passed by value
 					word? expr/1
+					any [not subrc? throw-error "cannot return a struct by value from a subroutine"]
 					spec: select functions expr/1
 					pass-struct-pointer? spec emitter/struct-slots?/check spec/4
 					store?: no							;-- avoid emitting assignment code

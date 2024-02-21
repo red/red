@@ -198,7 +198,6 @@ block: context [
 		new/header: TYPE_UNSET
 		new/head:   0
 		new/node:	alloc-cells size
-		new/extra:	0
 		new/header:	TYPE_BLOCK
 
 		unless empty? [
@@ -389,7 +388,6 @@ block: context [
 		set-type as cell! blk TYPE_UNSET				;-- preserve eventual newline flag
 		blk/head: 	0
 		blk/node: 	alloc-cells size
-		blk/extra:  0
 		set-type as cell! blk TYPE_BLOCK
 		blk
 	]
@@ -408,7 +406,6 @@ block: context [
 		][
 			blk/node: alloc-unset-cells size
 		]
-		blk/extra:  0
 		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
 		blk	
 	]
@@ -797,6 +794,7 @@ block: context [
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
+		evt?	[logic!]
 		return:	[red-value!]
 		/local
 			int  [red-integer!]
@@ -822,7 +820,7 @@ block: context [
 				actions/poke as red-series! element 2 value null
 				value
 			][
-				either type = TYPE_WORD [
+				either all [type = TYPE_WORD TYPE_OF(parent) <> TYPE_HASH][
 					select-word parent as red-word! element case?
 				][
 					select parent element null yes case? no no null null no no
@@ -1212,6 +1210,7 @@ block: context [
 			f	 [red-function!]
 			all? [logic!]
 			num  [integer!]
+			cnt  [integer!]
 			blk1 [red-block!]
 			blk2 [red-block!]
 			v1	 [red-value!]
@@ -1251,7 +1250,9 @@ block: context [
 			s2/tail: value2 + num
 		]
 
-		_function/call f global-ctx	as red-value! words/_compare-cb CB_SORT ;FIXME: hardcoded origin context
+		cnt: _function/count-locals f/spec 0 no
+		if positive? cnt [_function/init-locals cnt]
+		interpreter/call f f/ctx as red-value! words/_compare-cb CB_SORT
 		stack/unwind
 		stack/pop 1
 
@@ -1650,10 +1651,10 @@ block: context [
 
 		type1: TYPE_OF(blk1)
 		type2: TYPE_OF(blk2)
-		if all [
-			type2 <> TYPE_BLOCK
-			type2 <> TYPE_HASH
-		][ERR_EXPECT_ARGUMENT(type2 2)]
+		switch type2 [
+			TYPE_ANY_BLOCK	[0]
+			default 		[fire [TO_ERROR(script invalid-arg) blk2]]
+		]
 
 		s: GET_BUFFER(blk1)
 		h1: as int-ptr! s/offset + blk1/head

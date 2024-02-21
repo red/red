@@ -902,7 +902,7 @@ app-send-event: func [
 	cmd			[integer!]
 	event		[integer!]
 	/local
-		p-int	[int-ptr!]
+		p-int p [int-ptr!]
 		type	[integer!]
 		window	[integer!]
 		n-win	[integer!]
@@ -918,6 +918,7 @@ app-send-event: func [
 		point	[CGPoint!]
 		view	[integer!]
 		state	[integer!]
+		modal-win [integer!]
 ][
 	window: objc_msgSend [event sel_getUid "window"]
 	p-int: as int-ptr! event
@@ -957,26 +958,13 @@ app-send-event: func [
 			default [0]
 		]
 
-		if all [check? red-face? window][
-			faces: as red-block! #get system/view/screens
-			face: as red-object! block/rs-head faces		;-- screen 1 TBD multi-screen support
-			faces: as red-block! get-node-facet face/ctx FACE_OBJ_PANE
-			if 1 >= block/rs-length? faces [state: EVT_DISPATCH]
-
-			start: as red-object! block/rs-head faces
-			face:  as red-object! block/rs-tail faces
-			while [
-				face: face - 1
-				face >= start
-			][
-				flags: get-flags as red-block! get-node-facet face/ctx FACE_OBJ_FLAGS
-				if all [
-					window <> get-face-handle face
-					flags and FACET_FLAGS_MODAL <> 0
-				][
-					if down? [NSBeep]
-					state: EVT_NO_DISPATCH
-				]
+		if all [check? red-face? window 0 < vector/rs-length? active-wins][
+			p: as int-ptr! vector/rs-tail active-wins
+			p: p - 1
+			modal-win: p/value
+			if window <> modal-win [
+				if down? [NSBeep]
+				state: EVT_NO_DISPATCH
 			]
 		]
 	]
@@ -1074,6 +1062,7 @@ win-did-resize: func [
 	notif	[integer!]
 	/local
 		sz	[red-pair!]
+		pt	[red-point2D!]
 		v	[integer!]
 		rc	[NSRect! value]
 ][
@@ -1081,8 +1070,16 @@ win-did-resize: func [
 	v: objc_msgSend [self sel_getUid "contentView"]
 	rc: objc_msgSend_rect [v sel_getUid "frame"]
 	sz: (as red-pair! get-face-values self) + FACE_OBJ_SIZE		;-- update face/size
-	sz/x: as-integer rc/w
-	sz/y: as-integer rc/h
+	either zero? objc_getAssociatedObject self RedPairSizeKey [
+		pt: as red-point2D! sz
+		pt/header: TYPE_POINT2D
+		pt/x: rc/w
+		pt/y: rc/h
+	][
+		sz/header: TYPE_PAIR
+		sz/x: as-integer rc/w
+		sz/y: as-integer rc/h
+	]
 ]
 
 win-live-resize: func [
@@ -1544,10 +1541,11 @@ draw-rect: func [
 		size	[red-pair!]
 		type	[red-word!]
 		sym		[integer!]
-		bmp		[integer!]
-		pos		[red-pair! value]
+		pos		[red-point2D! value]
 		v1010?	[logic!]
 		DC		[draw-ctx!]
+		pt		[red-point2D!]
+		sx sy	[integer!]
 ][
 	nsctx: objc_msgSend [objc_getClass "NSGraphicsContext" sel_getUid "currentContext"]
 	v1010?: as logic! objc_msgSend [nsctx sel_getUid "respondsToSelector:" sel_getUid "CGContext"]
@@ -1569,13 +1567,15 @@ draw-rect: func [
 		paint-background ctx get-tuple-color clr x y width height
 	]
 	if TYPE_OF(img) = TYPE_IMAGE [
-		CG-draw-image ctx OS-image/to-cgimage img 0 0 size/x size/y
+		GET_PAIR_XY_INT(size sx sy)
+		CG-draw-image ctx OS-image/to-cgimage img 0 0 sx sy
 	]
 	case [
 		sym = base [render-text ctx vals as NSSize! (as int-ptr! self) + 8]
 		sym = rich-text [
-			pos/x: 0 pos/y: 0
-			draw-text-box null :pos get-face-obj self yes
+			pos/header: TYPE_POINT2D
+			pos/x: F32_0 pos/y: F32_0
+			draw-text-box null as red-pair! :pos get-face-obj self yes
 		]
 		true []
 	]

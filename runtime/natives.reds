@@ -345,8 +345,8 @@ natives: context [
 		break?: no
 		
 		stack/mark-loop words/_body
-		series: as red-series! _context/get w	
-		loop get-series-length series [
+		series: as red-series! _context/get w
+		while [loop? series][
 			stack/reset
 			assert system/thrown = 0
 			catch RED_THROWN_BREAK	[interpreter/eval body no]
@@ -415,7 +415,7 @@ natives: context [
 			]
 			remove-each-next size
 		]
-		stack/set-last unset-value
+		stack/set-last value + 1
 		stack/unwind-last
 	]
 	
@@ -551,11 +551,13 @@ natives: context [
 			thrown [integer!]
 			fun?   [logic!]
 			defer? [logic!]
+			interp? [logic!]
 			do-block [subroutine!]
 	][
 		#typecheck [do expand? args next trace]
 		arg: stack/arguments
 		cframe: stack/get-ctop							;-- save the current call frame pointer
+		interp?: stack/eval? cframe yes
 		do-arg: stack/arguments + args
 		fun: 	as red-function! stack/arguments + trace
 		
@@ -564,6 +566,7 @@ natives: context [
 		]
 		fun?: OPTION?(fun)
 		if fun? [
+			stack/set-parent-func-flag					;-- (#5403, #5401) allows do/trace to fully catch exit/return exceptions
 			with [interpreter][
 				either trace? [fun?: no][				;-- pass-thru, ignore handler if one is in use already
 					fun-locs: _function/count-locals fun/spec 0 no
@@ -626,11 +629,22 @@ natives: context [
 		]
 		switch system/thrown [
 			RED_THROWN_BREAK
-			RED_THROWN_CONTINUE
+			RED_THROWN_CONTINUE [
+				either interp? [						;-- if parent call is interpreted,
+					re-throw
+					0									;-- 0 to make compiler happy
+				][
+					system/thrown						;-- request an early exit from caller
+				]
+			]
 			RED_THROWN_RETURN
 			RED_THROWN_EXIT [
-				either stack/eval? cframe yes [			;-- if parent call is interpreted,
-					re-throw 							;-- let the exception pass through
+				either interp? [						;-- if parent call is interpreted,
+					either fun? [						;-- if tracing mode, throw exception again as it was captured by DO
+						stack/throw-exit system/thrown = RED_THROWN_RETURN no yes
+					][
+						re-throw
+					]
 					0									;-- 0 to make compiler happy
 				][
 					system/thrown						;-- request an early exit from caller
@@ -883,8 +897,11 @@ natives: context [
 				any [
 					type = TYPE_ACTION
 					type = TYPE_NATIVE
-					type = TYPE_OP
+					type = TYPE_POINT2D
 				][
+					res: all [arg1/data1 = arg2/data1 arg1/data2 = arg2/data2]
+				]
+				type = TYPE_OP [
 					res: all [arg1/data2 = arg2/data2 arg1/data3 = arg2/data3]
 				]
 				true [
@@ -1168,7 +1185,6 @@ natives: context [
 			value [red-value!]
 			ref	  [red-value!]
 			fun	  [red-function!]
-			obj	  [node!]
 			word  [red-word!]
 			vctx  [red-context!]
 			ctx	  [node!]
@@ -1179,37 +1195,27 @@ natives: context [
 		value: stack/arguments
 		ref: value + 1
 		
-		either any [
+		ctx: either any [
 			TYPE_OF(ref) = TYPE_FUNCTION
 			;TYPE_OF(ref) = TYPE_OBJECT
 		][
 			fun: as red-function! ref
-			ctx: fun/ctx
+			fun/ctx
 		][
 			word: as red-word! ref
-			ctx: word/ctx
+			word/ctx
 		]
 		
 		either TYPE_OF(value) = TYPE_BLOCK [
 			vctx: TO_CTX(ctx)
-			obj: either any [
-				TYPE_OF(ref) = TYPE_OBJECT
-				TYPE_OF(ref) = TYPE_PORT
-			][
-				self?: yes
-				vctx/self
-			][
-				self?: no
-				null
-			]
+			self?: any [TYPE_OF(ref) = TYPE_OBJECT TYPE_OF(ref) = TYPE_PORT]
 			either negative? copy [
-				_context/bind as red-block! value vctx obj self?
+				_context/bind as red-block! value vctx self?
 			][
 				stack/set-last 
 					as red-value! _context/bind
 						block/clone as red-block! value yes yes
 						vctx
-						obj
 						self?
 			]
 		][
@@ -1225,26 +1231,38 @@ natives: context [
 	in*: func [
 		check? [logic!]
 		/local
-			obj  [red-object!]
-			ctx  [red-context!]
-			word [red-word!]
-			res	 [red-value!]
+			obj		[red-object!]
+			ctx		[red-context!]
+			native	[red-native!]
+			word	[red-word!]
+			res		[red-value!]
+			type	[integer!]
 	][
 		#typecheck in
 		obj:  as red-object! stack/arguments
 		word: as red-word! stack/arguments + 1
-		ctx: GET_CTX(obj)
-		
+		type: TYPE_OF(obj)
+		ctx: either any [
+			type = TYPE_OBJECT
+			type = TYPE_ERROR
+			type = TYPE_PORT
+			type = TYPE_FUNCTION
+			type = TYPE_ROUTINE
+		][
+			GET_CTX(obj)
+		][
+			native: as red-native! obj
+			TO_CTX(native/more)
+		]
 		switch TYPE_OF(word) [
 			TYPE_WORD
 			TYPE_GET_WORD
 			TYPE_SET_WORD
 			TYPE_LIT_WORD
 			TYPE_REFINEMENT [
-				either negative? _context/bind-word ctx word [
-					res: as red-value! none-value
-				][
+				either negative? _context/bind-word ctx word [res: as red-value! none-value][
 					res: as red-value! word
+					if TYPE_OF(word) = TYPE_REFINEMENT [res/header: TYPE_WORD]
 				]
 				stack/set-last res
 			]
@@ -1342,6 +1360,7 @@ natives: context [
 			set2	 [red-value!]
 			skip-arg [red-value!]
 			type	 [integer!]
+			type2	 [integer!]
 			case?	 [logic!]
 	][
 		set1: stack/arguments
@@ -1350,10 +1369,16 @@ natives: context [
 
 		if all [
 			op <> OP_UNIQUE
-			type <> TYPE_OF(set2)
+			either any [type = TYPE_BLOCK type = TYPE_HASH][
+				type2: TYPE_OF(set2)
+				all [type2 <> TYPE_BLOCK type2 <> TYPE_HASH]
+			][
+				type <> TYPE_OF(set2)
+			]
 		][
 			fire [TO_ERROR(script expect-val) datatype/push type datatype/push TYPE_OF(set2)]
 		]
+
 		skip-arg: set1 + skip
 		case?:	  as logic! cased + 1
 
@@ -1527,6 +1552,10 @@ natives: context [
 			p	 [byte-ptr!]
 			len  [integer!]
 			ret  [red-binary!]
+			node [node!]
+			s	 [series!]
+			out	 [byte-ptr!]
+			gc?  [logic!]
 	][
 		#typecheck [enbase base-arg]
 		data: as red-string! stack/arguments
@@ -1548,14 +1577,29 @@ natives: context [
 		ret: as red-binary! data
 		ret/head: 0
 		ret/header: TYPE_NONE
-		ret/node: switch base [
-			64 [binary/encode-64 p len]
-			58 [binary/encode-58 p len]
-			16 [binary/encode-16 p len]
-			2  [binary/encode-2  p len]
+
+		gc?: collector/active?
+		collector/active?: no
+		node: switch base [
+			64 [b-allocator/alloc-bytes 4 * len / 3 + (2 * (len / 32) + 5)]
+			58 [b-allocator/alloc-bytes len * 2]
+			16 [b-allocator/alloc-bytes len * 2 + (len / 32) + 32]
+			2  [b-allocator/alloc-bytes 8 * len + (2 * (len / 8) + 4)]
 			default [fire [TO_ERROR(script invalid-arg) int] null]
 		]
-		if ret/node <> null [ret/header: TYPE_STRING]	;-- ret/node = null, return NONE
+		collector/active?: gc?
+		if null? node [exit]
+
+		s: as series! node/value
+		out: as byte-ptr! s/offset
+		s/tail: as red-value! switch base [
+			64 [binary/encode-64 out p len]
+			58 [binary/encode-58 out p len]
+			16 [binary/encode-16 out p len]
+			2  [binary/encode-2  out p len]
+		]
+		ret/node: node
+		ret/header: TYPE_STRING
 	]
 
 	negative?*: func [
@@ -1644,6 +1688,7 @@ natives: context [
 					f/value > 0.0 [ 1]
 					f/value < 0.0 [-1]
 					f/value = 0.0 [ 0]
+					true		  [ 0]
 				]
 			]
 			default [ERR_EXPECT_ARGUMENT((TYPE_OF(res)) 1)]
@@ -1851,6 +1896,7 @@ natives: context [
 			i	 [red-integer!]
 			f	 [red-float!]
 			p	 [red-pair!]
+			pt	 [red-point3D!]
 			ret  [red-logic!]
 	][
 		#typecheck -zero?- 								;-- `zero?` would be converted to `0 =` by lexer
@@ -1873,6 +1919,14 @@ natives: context [
 			TYPE_PAIR [
 				p: as red-pair! i
 				all [p/x = 0 p/y = 0]
+			]
+			TYPE_POINT2D [
+				pt: as red-point3D! i
+				all [pt/x = as-float32 0 pt/y = as-float32 0]
+			]
+			TYPE_POINT2D [
+				pt: as red-point3D! i
+				all [pt/x = as-float32 0 pt/y = as-float32 0 pt/z = as-float32 0]
 			]
 			TYPE_TUPLE [
 				tuple/all-zero? as red-tuple! i
@@ -2072,38 +2126,74 @@ natives: context [
 			arg	 [red-value!]
 			int  [red-integer!]
 			fl	 [red-float!]
+			i	 [integer!]
+			get-value [subroutine!]
 	][
 		#typecheck as-pair
 		arg: stack/arguments
 		pair: as red-pair! arg
 		
-		switch TYPE_OF(arg) [
-			TYPE_INTEGER [
-				int: as red-integer! arg
-				pair/x: int/value
+		get-value: [
+			switch TYPE_OF(arg) [
+				TYPE_INTEGER [
+					int: as red-integer! arg
+					i: int/value
+				]
+				TYPE_FLOAT	 [
+					fl: as red-float! arg
+					if float/special? fl/value [fire [TO_ERROR(script invalid-arg) arg]]
+					i: as-integer fl/value
+				]
+				default		 [assert false]
 			]
-			TYPE_FLOAT	 [
-				fl: as red-float! arg
-				if float/special? fl/value [fire [TO_ERROR(script invalid-arg) arg]]
-				pair/x: as-integer fl/value
-			]
-			default		 [assert false]
+			i
 		]
+		pair/x: get-value
 		arg: arg + 1
-		switch TYPE_OF(arg) [
-			TYPE_INTEGER [
-				int: as red-integer! arg
-				pair/y: int/value
-			]
-			TYPE_FLOAT	 [
-				fl: as red-float! arg
-				if float/special? fl/value [fire [TO_ERROR(script invalid-arg) arg]]
-				pair/y: as-integer fl/value
-			]
-			default		[assert false]
-		]
+		pair/y: get-value
 		pair/header: TYPE_PAIR
 	]
+	
+	as-point: func [
+		size	 [integer!]
+		/local
+			p	 [red-point3D!]
+			arg	 [red-value!]
+			int  [red-integer!]
+			fl	 [red-float!]
+			f32  [float32!]
+			get-value [subroutine!]
+	][
+		arg: stack/arguments
+		p: as red-point3D! arg
+
+		get-value: [
+			switch TYPE_OF(arg) [
+				TYPE_INTEGER [
+					int: as red-integer! arg
+					f32: as-float32 int/value
+				]
+				TYPE_FLOAT	 [
+					fl: as red-float! arg
+					f32: as-float32  fl/value
+				]
+				default		[assert false]
+			]
+			f32
+		]
+		p/x: get-value
+		arg: arg + 1
+		p/y: get-value
+		either size = 2 [
+			p/header: TYPE_POINT2D
+		][
+			arg: arg + 1
+			p/z: get-value
+			p/header: TYPE_POINT3D
+		]
+	]
+	as-point2D*: func [check? [logic!]][#typecheck as-point2D  as-point 2]
+	as-point3D*: func [check? [logic!]][#typecheck as-point3D  as-point 3]
 	
 	as-money*: func [
 		check? [logic!]
@@ -2152,12 +2242,12 @@ natives: context [
 	
 	exit*: func [check? [logic!]][
 		#typecheck exit
-		stack/throw-exit no
+		stack/throw-exit no no
 	]
 	
 	return*: func [check? [logic!]][
 		#typecheck return
-		stack/throw-exit yes
+		stack/throw-exit yes no
 	]
 	
 	throw*: func [
@@ -2718,10 +2808,7 @@ natives: context [
 		][
 			copy-cell spec proto
 			set-type proto type
-			if ANY_PATH?(type) [
-				path: as red-path! proto
-				path/args: null
-			]
+			if ANY_PATH?(type) [path: as red-path! proto]
 		][
 			fire [TO_ERROR(script not-same-class) datatype/push type2 datatype/push type]
 		]
@@ -3036,6 +3123,63 @@ natives: context [
 		]
 		either null? out [stack/set-last slot][stack/set-last as red-value! out]
 	]
+	
+	apply*: func [
+		check?	[logic!]
+		_all	[integer!]
+		safer	[integer!]
+		/local
+			args  [red-block!]
+			fun	  [red-value!]
+			value [red-value!]
+			name  [red-word!]
+			path  [red-path!]
+			s	  [series!]
+			mode  [integer!]
+			type  [integer!]
+	][	
+		#typecheck [apply _all safer]
+
+		fun: stack/arguments
+		args: as red-block! fun + 1
+		path: null
+
+		switch TYPE_OF(fun) [
+			TYPE_PATH
+			TYPE_ANY_WORD [
+				either TYPE_OF(fun) = TYPE_PATH [
+					path: as red-path! fun
+					name: as red-word! block/rs-head path
+				][
+					name: as red-word! fun
+				]
+				value: _context/get name
+				type: TYPE_OF(value)
+				unless ALL_FUNCTION?(type) [fire [TO_ERROR(script invalid-arg) fun]]
+				fun: stack/push value
+			]
+			TYPE_ALL_FUNCTION [name: words/_applied]
+			default			  [assert false]
+		]
+		if TYPE_OF(fun) = TYPE_OP [set-type fun GET_OP_SUBTYPE(fun)]
+		
+		s: GET_BUFFER(args)
+		mode: either _all >= 0 [interpreter/MODE_APPLY][interpreter/MODE_APPLY_SOME]
+		if safer >= 0 [mode: mode or interpreter/MODE_APPLY_SAFER]
+		stack/set-interp-flag
+		
+		interpreter/eval-code
+			fun
+			s/offset + args/head
+			s/tail
+			args
+			no
+			path
+			as red-value! name
+			null
+			mode
+			no
+	]
 
 	;--- Natives helper functions ---
 	
@@ -3045,8 +3189,13 @@ natives: context [
 			arg		[red-value!]
 			arg2	[red-value!]
 			value	[red-value!]
+			fval	[red-float!]
 			p		[red-pair!]
 			p2		[red-pair!]
+			pt		[red-point2D!]
+			pt2		[red-point2D!]
+			pt3 	[red-point3D!]
+			pt3b 	[red-point3D!]
 			tp		[red-tuple!]
 			buf		[byte-ptr!]
 			buf2	[byte-ptr!]
@@ -3055,6 +3204,7 @@ natives: context [
 			size	[integer!]
 			type	[integer!]
 			type2	[integer!]
+			f32		[float32!]
 			b		[byte!]
 			result	[logic!]
 			comp?	[logic!]
@@ -3065,9 +3215,27 @@ natives: context [
 		type:	TYPE_OF(arg)
 		type2:	TYPE_OF(arg2)
 		comp?:	no
-		
+
+		if any [type = TYPE_FLOAT type = TYPE_PERCENT][
+			fval: as red-float! arg
+			if all [
+				float/NaN? fval/value
+				any [type2 = TYPE_FLOAT type2 = TYPE_PERCENT type2 = TYPE_INTEGER]
+			][exit]
+		]
+		if any [type2 = TYPE_FLOAT type2 = TYPE_PERCENT][
+			fval: as red-float! arg2
+			if all [
+				float/NaN? fval/value
+				any [type = TYPE_FLOAT type = TYPE_PERCENT type = TYPE_INTEGER]
+			][
+				stack/set-last arg2
+				exit
+			]
+		]
+
 		if any [
-			all [type2 = TYPE_PAIR  any [type = TYPE_INTEGER type = TYPE_FLOAT]]
+			all [any [type2 = TYPE_PAIR type2 = TYPE_POINT2D type2 = TYPE_POINT3D] any [type = TYPE_INTEGER type = TYPE_FLOAT]]
 			all [type2 = TYPE_TUPLE any [type = TYPE_INTEGER type = TYPE_FLOAT]]
 		][
 			value: arg
@@ -3080,7 +3248,7 @@ natives: context [
 		
 		switch type [
 			TYPE_PAIR [
-				p:  as red-pair! arg
+				p: as red-pair! arg
 				switch type2 [
 					TYPE_PAIR [
 						p2: as red-pair! arg2
@@ -3092,6 +3260,21 @@ natives: context [
 							if p/y > p2/y [p/y: p2/y]
 						]
 					]
+					TYPE_POINT2D [
+						pt: as red-point2D! arg			;-- promote argument to point2D!
+						pt/header: TYPE_POINT2D
+						pt/x: as-float32 p/x
+						pt/y: as-float32 p/y
+						
+						pt2: as red-point2D! arg2
+						either max? [
+							if any [pt/x < pt2/x float/NaN-f32? pt2/x] [pt/x: pt2/x]
+							if any [pt/y < pt2/y float/NaN-f32? pt2/y] [pt/y: pt2/y]
+						][
+							if any [pt/x > pt2/x float/NaN-f32? pt2/x] [pt/x: pt2/x]
+							if any [pt/y > pt2/y float/NaN-f32? pt2/y] [pt/y: pt2/y]
+						]
+					]
 					TYPE_FLOAT
 					TYPE_INTEGER [
 						i: arg-to-integer arg2
@@ -3101,6 +3284,76 @@ natives: context [
 						][
 							if p/x > i [p/x: i]
 							if p/y > i [p/y: i]
+						]
+						if arg <> stack/arguments [stack/set-last arg]
+					]
+					default [comp?: yes]
+				]
+			]
+			TYPE_POINT2D [
+				pt: as red-point2D! arg
+				switch type2 [
+					TYPE_POINT2D [
+						pt2: as red-point2D! arg2
+						either max? [
+							if any [pt/x < pt2/x float/NaN-f32? pt2/x] [pt/x: pt2/x]
+							if any [pt/y < pt2/y float/NaN-f32? pt2/y] [pt/y: pt2/y]
+						][
+							if any [pt/x > pt2/x float/NaN-f32? pt2/x] [pt/x: pt2/x]
+							if any [pt/y > pt2/y float/NaN-f32? pt2/y] [pt/y: pt2/y]
+						]
+					]
+					TYPE_PAIR [
+						p: as red-pair! arg2
+						either max? [
+							if pt/x < as-float32 p/x [pt/x: as-float32 p/x]
+							if pt/y < as-float32 p/y [pt/y: as-float32 p/y]
+						][
+							if pt/x > as-float32 p/x [pt/x: as-float32 p/x]
+							if pt/y > as-float32 p/y [pt/y: as-float32 p/y]
+						]
+					]
+					TYPE_FLOAT
+					TYPE_INTEGER [
+						f32: as-float32 arg-to-float arg2
+						either max? [
+							if any [pt/x < f32 float/NaN-f32? f32] [pt/x: f32]
+							if any [pt/y < f32 float/NaN-f32? f32] [pt/y: f32]
+						][
+							if any [pt/x > f32 float/NaN-f32? f32] [pt/x: f32]
+							if any [pt/y > f32 float/NaN-f32? f32] [pt/y: f32]
+						]
+						if arg <> stack/arguments [stack/set-last arg]
+					]
+					default [comp?: yes]
+				]
+			]
+			TYPE_POINT3D [
+				pt3: as red-point3D! arg
+				switch type2 [
+					TYPE_POINT3D [
+						pt3b: as red-point3D! arg2
+						either max? [
+							if any [pt3/x < pt3b/x float/NaN-f32? pt3b/x] [pt3/x: pt3b/x]
+							if any [pt3/y < pt3b/y float/NaN-f32? pt3b/y] [pt3/y: pt3b/y]
+							if any [pt3/z < pt3b/z float/NaN-f32? pt3b/z] [pt3/z: pt3b/z]
+						][
+							if any [pt3/x > pt3b/x float/NaN-f32? pt3b/x] [pt3/x: pt3b/x]
+							if any [pt3/y > pt3b/y float/NaN-f32? pt3b/y] [pt3/y: pt3b/y]
+							if any [pt3/z > pt3b/z float/NaN-f32? pt3b/z] [pt3/z: pt3b/z]
+						]
+					]
+					TYPE_FLOAT
+					TYPE_INTEGER [
+						f32: as-float32 arg-to-float arg2
+						either max? [
+							if any [pt3/x < f32 float/NaN-f32? f32] [pt3/x: f32]
+							if any [pt3/y < f32 float/NaN-f32? f32] [pt3/y: f32]
+							if any [pt3/z < f32 float/NaN-f32? f32] [pt3/z: f32]
+						][
+							if any [pt3/x > f32 float/NaN-f32? f32] [pt3/x: f32]
+							if any [pt3/y > f32 float/NaN-f32? f32] [pt3/y: f32]
+							if any [pt3/z > f32 float/NaN-f32? f32] [pt3/z: f32]
 						]
 						if arg <> stack/arguments [stack/set-last arg]
 					]
@@ -3158,10 +3411,26 @@ natives: context [
 			int/value
 		][
 			fl: as red-float! arg
-			if integer/overflow? fl [
+			if any [integer/overflow? fl float/NaN? fl/value][
 				fire [TO_ERROR(script type-limit) datatype/push TYPE_INTEGER]
 			]
 			as-integer fl/value
+		]
+	]
+
+	arg-to-float: func [
+		arg 	[red-value!]
+		return: [float!]
+		/local
+			fl	[red-float!]
+			int	[red-integer!]
+	][
+		either TYPE_OF(arg) = TYPE_INTEGER [
+			int: as red-integer! arg
+			as-float int/value
+		][
+			fl: as red-float! arg
+			fl/value
 		]
 	]
 
@@ -3172,10 +3441,14 @@ natives: context [
 			int	[red-integer!]
 	][
 		fl: as red-float! stack/arguments
-		if TYPE_OF(fl) <> TYPE_FLOAT [
-			fl/header: TYPE_FLOAT
-			int: as red-integer! fl
-			fl/value: as-float int/value
+		switch TYPE_OF(fl) [
+			TYPE_INTEGER [
+				fl/header: TYPE_FLOAT
+				int: as red-integer! fl
+				fl/value: as-float int/value
+			]
+			TYPE_PERCENT [fl/header: TYPE_FLOAT]
+			default 	 [0]
 		]
 		fl
 	]
@@ -3214,20 +3487,6 @@ natives: context [
 
 		if radians < 0 [f/value: f/value * 180.0 / PI]			;-- to degrees
 		f
-	]
-
-	get-series-length: func [
-		series  [red-series!]
-		return: [integer!]	
-		/local
-			img  [red-image!]
-	][
-		either TYPE_OF(series) = TYPE_IMAGE [
-			img: as red-image! series
-			IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) - img/head
-		][
-			_series/get-length series no
-		]
 	]
 
 	loop?: func [
@@ -3584,6 +3843,8 @@ natives: context [
 			:uppercase*
 			:lowercase*
 			:as-pair*
+			:as-point2D*
+			:as-point3D*
 			:as-money*
 			:break*
 			:continue*
@@ -3615,6 +3876,7 @@ natives: context [
 			:decompress*
 			:recycle*
 			:transcode*
+			:apply*
 		]
 	]
 

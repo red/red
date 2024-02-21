@@ -42,7 +42,7 @@ Red/System [
 	TYPE_GET_PATH										;-- 1C		28
 	TYPE_ROUTINE										;-- 1D		29
 	TYPE_BITSET											;-- 1E		30
-	TYPE_POINT											;-- 1F		31
+	TYPE_TRIPLE											;-- 1F		31
 	TYPE_OBJECT											;-- 20		32
 	TYPE_TYPESET										;-- 21		33
 	TYPE_ERROR											;-- 22		34
@@ -62,9 +62,11 @@ Red/System [
 	TYPE_PORT											;-- 30		48
 	TYPE_MONEY											;-- 31		49
 	TYPE_REF											;-- 32		50
-	TYPE_IPV6											;-- 33		51
-	TYPE_IMAGE											;-- 34		52		;-- needs to be last
-	TYPE_EVENT
+	TYPE_POINT2D										;-- 33		51
+	TYPE_POINT3D										;-- 34		52
+	TYPE_IPV6											;-- 35		53
+	TYPE_IMAGE											;-- 36		54		;-- needs to be last
+	TYPE_EVENT											
 	TYPE_CLOSURE
 	TYPE_SLICE
 	TYPE_TOTAL_COUNT									;-- keep tabs on number of datatypes.
@@ -222,6 +224,8 @@ Red/System [
 	NAT_UPPERCASE
 	NAT_LOWERCASE
 	NAT_AS_PAIR
+	NAT_AS_POINT2D
+	NAT_AS_POINT3D
 	NAT_AS_MONEY
 	NAT_BREAK
 	NAT_CONTINUE
@@ -253,6 +257,7 @@ Red/System [
 	NAT_DECOMPRESS
 	NAT_RECYCLE
 	NAT_TRANSCODE
+	NAT_APPLY
 ]
 
 #enum math-op! [
@@ -309,8 +314,8 @@ Red/System [
 	OBJ_CLASS_FACE!
 ]
 
-#define DATATYPES_NB	52							;-- total number of built-in datatypes (including TYPE_VALUE)
-#define NATIVES_NB		110							;-- max number of natives (arbitrary set)
+#define DATATYPES_NB	56							;-- total number of built-in datatypes (including TYPE_VALUE)
+#define NATIVES_NB		120							;-- max number of natives (arbitrarily set upper bound)
 #define ACTIONS_NB		62							;-- number of actions (exact number)
 #define INHERIT_ACTION	-1							;-- placeholder for letting parent's action pass through
 
@@ -334,12 +339,14 @@ Red/System [
 #define EQUAL_WORDS?(a b) 		((symbol/resolve a/symbol) = (symbol/resolve b/symbol))
 #define TO_CTX(node)			(as red-context! ((as series! node/value) + 1))
 #define GET_CTX(obj)			(as red-context! ((as series! obj/ctx/value) + 1))
+#define GET_CTX_SERIES(obj)		((as series! obj) - 1)
 #define GET_CTX_TYPE(cell)		(cell/header >> 11 and 03h)
 #define GET_CTX_TYPE_ALT(header)(header >> 11 and 03h)
 #define SET_CTX_TYPE(cell type)	[cell/header: cell/header and FFFFE7FFh or (type << 11)]
 #define FLAG_NOT?(s)			(s/flags and flag-bitset-not <> 0)
 #define SET_RETURN(value)		[stack/set-last as red-value! value]
 #define TO_ERROR(cat id)		[#in system/catalog/errors cat #in system/catalog/errors/cat id]
+#define GET_OP_SUBTYPE(op)		(op/header and flag-subtype-select >> 16)
 
 #define PLATFORM_TO_CSTR(cstr str len) [	;-- len in bytes
 	len: -1
@@ -478,6 +485,22 @@ Red/System [
 	]
 ]
 
+#define ALL_FUNCTION?(type) [
+	any [
+		type = TYPE_FUNCTION
+		type = TYPE_ACTION
+		type = TYPE_NATIVE
+		type = TYPE_ROUTINE
+		type = TYPE_OP
+	]
+]
+
+
+#define TYPE_ANY_POINT [
+	TYPE_POINT2D
+	TYPE_POINT3D
+]
+
 #define TYPE_ANY_WORD [
 	TYPE_WORD
 	TYPE_SET_WORD
@@ -516,6 +539,21 @@ Red/System [
 #define TYPE_ANY_BLOCK [					;-- To be used in SWITCH cases
 	TYPE_ANY_LIST
 	TYPE_ANY_PATH
+]
+
+#define TYPE_ANY_FUNCTION [					;-- To be used in SWITCH cases
+	TYPE_FUNCTION
+	TYPE_ACTION
+	TYPE_NATIVE
+	TYPE_ROUTINE
+]
+
+#define TYPE_ALL_FUNCTION [					;-- To be used in SWITCH cases
+	TYPE_FUNCTION
+	TYPE_ACTION
+	TYPE_NATIVE
+	TYPE_ROUTINE
+	TYPE_OP
 ]
 
 #define BS_SET_BIT(array bit)  [

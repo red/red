@@ -21,6 +21,7 @@ float: context [
 		FORM_PERCENT_32
 		FORM_PERCENT
 		FORM_TIME
+		FORM_POINT_32
 	]
 
 	pretty-print?: true
@@ -124,12 +125,12 @@ float: context [
 		percent?: any [type = FORM_PERCENT type = FORM_PERCENT_32]
 		if pretty-print? [
 			temp: abs f
-			if temp < DBL_EPSILON [return either percent? ["0%"]["0.0"]]
+			if temp < DBL_EPSILON [return either percent? ["0%"][either type = FORM_POINT_32 ["0"]["0.0"]]]
 		]
 
 		s: "0000000000000000000000000000000"					;-- 32 bytes wide, big enough.
 		case [
-			any [type = FORM_FLOAT_32 type = FORM_PERCENT_32][
+			any [type = FORM_FLOAT_32 type = FORM_PERCENT_32 type = FORM_POINT_32][
 				sprintf [s "%.7g" f]
 			]
 			type = FORM_TIME [									;-- microsecond precision
@@ -193,10 +194,11 @@ float: context [
 						all [p0/2 = #"9" p0/1 = #"9"]
 					][
 						tried?: yes
-						s: case [
-							type = FORM_FLOAT_32 ["%.5g"]
-							type = FORM_TIME	 ["%.5g"]
-							true				 ["%.14g"]
+						s: switch type [
+							FORM_POINT_32
+							FORM_FLOAT_32 ["%.5g"]
+							FORM_TIME	  ["%.5g"]
+							default		  ["%.14g"]
 						]
 						sprintf [s0 s f]
 						s: s0
@@ -218,7 +220,7 @@ float: context [
 			s/1: #"%"
 			s/2: #"^@"
 		][
-			if all [not dot? type <> FORM_TIME][				;-- added tailing ".0"
+			if all [not dot? type <> FORM_TIME type <> FORM_POINT_32][	;-- added tailing ".0"
 				either p = null [
 					p: s
 				][
@@ -303,6 +305,24 @@ float: context [
 					right/header: type1
 					right/value: op1
 					return as red-float! pair/do-math type
+				]
+			]
+			TYPE_POINT2D
+			TYPE_POINT3D [
+				if type1 <> TYPE_TIME [
+					if any [type = OP_SUB type = OP_DIV][
+						word: either type = OP_SUB [words/_subtract][words/_divide]
+						fire [TO_ERROR(script not-related) word datatype/push type2]
+					]
+					op1: left/value
+					copy-cell as red-value! right as red-value! left
+					right/header: type1
+					right/value: op1
+					either type2 = TYPE_POINT2D [
+						return as red-float! point2D/do-math type
+					][
+						return as red-float! point3D/do-math type
+					]
 				]
 			]
 			TYPE_VECTOR [
@@ -498,6 +518,22 @@ float: context [
 		f * get-rs-float val
 	]
 
+	rs-random: func [
+		value	[float!]
+		secure? [logic!]
+		return: [float!]
+		/local
+			s	[float!]
+	][
+		either secure? [
+			((as-float _random/rand-secure) / 2147483647.0 + (as-float _random/rand-secure))
+				/ (2147483648.0 / value)
+		] [
+			s: (as-float _random/rand) / 2147483647.0
+			s * value
+		]
+	]
+
 	;-- Actions --
 
 	;-- make: :to
@@ -520,13 +556,7 @@ float: context [
 			_random/srand sp/1 xor sp/2
 			f/header: TYPE_UNSET
 		][
-			either secure? [
-				f/value: ((as-float _random/rand-secure) / 2147483647.0 + (as-float _random/rand-secure))
-					/ (2147483648.0 / f/value)
-			] [
-				s: (as-float _random/rand) / 2147483647.0
-				f/value: s * f/value
-			]
+			f/value: rs-random f/value secure?
 		]
 		f
 	]
@@ -660,7 +690,14 @@ float: context [
 			]
 		][false]
 	]
-	
+
+	NaN-f32?: func [
+		value	[float32!]
+		return: [logic!]
+	][
+		value <> value
+	]
+
 	special?: func [
 		value	[float!]
 		return: [logic!]
@@ -785,7 +822,17 @@ float: context [
 				res: as-integer any [ip1/1 <> ip2/1  ip1/2 <> ip2/2]
 			]
 			default [
-				res: SIGN_COMPARE_RESULT(left right)
+				res: either any [NaN? left NaN? right][
+					switch op [
+						COMP_LESSER
+						COMP_LESSER_EQUAL	[1]
+						COMP_GREATER
+						COMP_GREATER_EQUAL	[-1]
+						default 			[assert false 0 ]
+					]
+				][
+					SIGN_COMPARE_RESULT(left right)
+				]
 			]
 		]
 		res

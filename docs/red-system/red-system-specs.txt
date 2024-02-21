@@ -1327,7 +1327,9 @@ The specification block is a Red/System dialect (DSL), so the words inside such 
  <datatype>	  : integer! | byte! | logic! | 
                 pointer! [integer! | byte! | float! | float32! | pointer!] |
                 float! | float32! | c-string! | struct! [<members>] |
-                struct! [<members>] value | <alias> | <alias> value
+                struct! [<members>] value | <alias> | <alias> value |
+                function! [<spec>]		;-- only allowed for local variables!
+                 
  <local>	  : local variable
  <body>		  : function's body code
  <alias>	  : struct alias

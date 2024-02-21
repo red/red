@@ -10,6 +10,10 @@ Red/System [
 	}
 ]
 
+#define SIZE_FACET_PAIR?(hwnd) [
+	(GetWindowLong hWnd wc-offset - 12) and PAIR_SIZE_FACET <> 0
+]
+
 #enum event-action! [
 	EVT_NO_DISPATCH										;-- no further msg processing allowed
 	EVT_DISPATCH										;-- allow DispatchMessage call only
@@ -20,7 +24,6 @@ paint: declare tagPAINTSTRUCT							;-- moved here from 'draw.reds'
 gui-evt: declare red-event!								;-- low-level event value slot
 gui-evt/header: TYPE_EVENT
 
-oldBaseWndProc:	 0
 modal-loop-type: 0										;-- remanence of last EVT_MOVE or EVT_SIZE
 zoom-distance:	 0
 special-key: 	-1										;-- <> -1 if a non-displayable key is pressed
@@ -94,7 +97,7 @@ get-event-offset: func [
 	evt		[red-event!]
 	return: [red-value!]
 	/local
-		offset [red-pair!]
+		offset [red-point2D!]
 		value  [integer!]
 		msg    [tagMSG]
 		pt	   [tagPOINT]
@@ -106,8 +109,8 @@ get-event-offset: func [
 	msg: as tagMSG evt/msg
 	case [
 		evt/type = EVT_WHEEL [
-			offset: as red-pair! stack/push*
-			offset/header: TYPE_PAIR
+			offset: as red-point2D! stack/push*
+			offset/header: TYPE_POINT2D
 			value: msg/lParam
 			x: WIN32_LOWORD(value)
 			y: WIN32_HIWORD(value)
@@ -119,8 +122,8 @@ get-event-offset: func [
 				y: 0 - (y or FFFF0000h)
 			]
 			pt: screen-to-client msg/hWnd x y
-			offset/x: pt/x * 100 / dpi-factor
-			offset/y: pt/y * 100 / dpi-factor
+			offset/x: dpi-unscale as float32! pt/x
+			offset/y: dpi-unscale as float32! pt/y
 			as red-value! offset
 		]
 		any [
@@ -130,19 +133,25 @@ get-event-offset: func [
 			evt/type = EVT_MOVE
 			evt/type = EVT_SIZE
 		][
-			offset: as red-pair! stack/push*
-			offset/header: TYPE_PAIR
+			offset: as red-point2D! stack/push*
+			offset/header: TYPE_POINT2D
 			value: msg/lParam
 
 			either evt/flags and EVT_FLAG_AWAY <> 0 [
 				pt-val/x: 0
 				pt-val/y: 0
 				ClientToScreen msg/hWnd :pt-val
-				offset/x: msg/x - pt-val/x * 100 / dpi-factor
-				offset/y: msg/y - pt-val/y * 100 / dpi-factor
+				offset/x: dpi-unscale as float32! msg/x - pt-val/x
+				offset/y: dpi-unscale as float32! msg/y - pt-val/y
 			][
-				offset/x: WIN32_LOWORD(value) * 100 / dpi-factor
-				offset/y: WIN32_HIWORD(value) * 100 / dpi-factor
+				offset/x: dpi-unscale as float32! WIN32_LOWORD(value)
+				offset/y: dpi-unscale as float32! WIN32_HIWORD(value)
+			]
+			if all [
+				any [evt/type = EVT_SIZE evt/type = EVT_SIZING]
+				SIZE_FACET_PAIR?(msg/hwnd)
+			][
+				as-pair offset
 			]
 			as red-value! offset
 		]
@@ -151,13 +160,13 @@ get-event-offset: func [
 			evt/type = EVT_KEY_UP
 			evt/type = EVT_KEY_DOWN
 		][
-			offset: as red-pair! stack/push*
-			offset/header: TYPE_PAIR
+			offset: as red-point2D! stack/push*
+			offset/header: TYPE_POINT2D
 
 			value: GetMessagePos
 			pt: screen-to-client msg/hWnd WIN32_LOWORD(value) WIN32_HIWORD(value)
-			offset/x: pt/x * 100 / dpi-factor
-			offset/y: pt/y * 100 / dpi-factor
+			offset/x: dpi-unscale as float32! pt/x
+			offset/y: dpi-unscale as float32! pt/y
 			as red-value! offset
 		]
 		any [
@@ -169,19 +178,19 @@ get-event-offset: func [
 		][
 			gi: get-gesture-info msg/lParam
 			
-			offset: as red-pair! stack/push*
-			offset/header: TYPE_PAIR
+			offset: as red-point2D! stack/push*
+			offset/header: TYPE_POINT2D
 			value: gi/ptsLocation						;-- coordinates of center point		
 
-			offset/x: WIN32_LOWORD(value) * 100 / dpi-factor
-			offset/y: WIN32_HIWORD(value) * 100 / dpi-factor
+			offset/x: dpi-unscale as float32! WIN32_LOWORD(value)
+			offset/y: dpi-unscale as float32! WIN32_HIWORD(value)
 			as red-value! offset
 		]
 		evt/type = EVT_MENU [
-			offset: as red-pair! stack/push*
-			offset/header: TYPE_PAIR
-			offset/x: menu-x * 100 / dpi-factor
-			offset/y: menu-y * 100 / dpi-factor
+			offset: as red-point2D! stack/push*
+			offset/header: TYPE_POINT2D
+			offset/x: dpi-unscale as float32! menu-x
+			offset/y: dpi-unscale as float32! menu-y
 			as red-value! offset
 		]
 		true [as red-value! none-value]
@@ -695,7 +704,7 @@ process-command-event: func [
 		BN_CLICKED [
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
 			sym: symbol/resolve type/symbol
-			current-msg/hWnd: child							;-- force child handle
+			current-msg/hWnd: child						;-- force child handle
 			
 			evt: case [
 				sym = button [EVT_CLICK]
@@ -706,7 +715,7 @@ process-command-event: func [
 				sym = check [
 					if 0 <> (FACET_FLAGS_TRISTATE and get-flags as red-block! get-facet current-msg FACE_OBJ_FLAGS)[
 						state: as integer! SendMessage child BM_GETCHECK 0 0
-						state: switch state [				;-- force [ ] -> [-] -> [v] transition
+						state: switch state [			;-- force [ ] -> [-] -> [v] transition
 							BST_UNCHECKED     [BST_CHECKED]
 							BST_INDETERMINATE [BST_UNCHECKED]
 							BST_CHECKED       [BST_INDETERMINATE]
@@ -718,23 +727,27 @@ process-command-event: func [
 					EVT_CHANGE
 				]
 				all [
-					sym = radio								;-- ignore double-click (fixes #4246)
+					sym = radio							;-- ignore double-click (fixes #4246)
 					BST_CHECKED <> (BST_CHECKED and as integer! SendMessage child BM_GETSTATE 0 0)
+					(GetKeyState VK_TAB) and 8000h = 0
 				][
 					get-logic-state current-msg
-					EVT_CLICK								;-- gets converted to CHANGE by high-level event handler
+					EVT_CLICK							;-- gets converted to CHANGE by high-level event handler
 				]
 				true [0]
 			]
 			
-			unless zero? evt [make-event current-msg 0 evt]	;-- should be *after* get-facet call (Windows closing on click case)
+			unless zero? evt [
+				make-at child as red-object! (get-face-values GetAncestor child 3) + FACE_OBJ_SELECTED
+				make-event current-msg 0 evt			;-- should be *after* get-facet call (Windows closing on click case)
+			]
 		]
 		BN_UNPUSHED [ ;-- overlapped with CBN_SETFOCUS
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
 			either type/symbol = radio [
-				current-msg/hWnd: child						;-- force child handle
+				current-msg/hWnd: child					;-- force child handle
 				unless as logic! SendMessage child BM_GETSTATE 0 0 [
-					make-event current-msg 0 EVT_CHANGE		;-- ignore double-click (fixes #4246)
+					make-event current-msg 0 EVT_CHANGE	;-- ignore double-click (fixes #4246)
 				]
 			][		;-- CBN_SETFOCUS
 				values: get-face-values hWnd
@@ -941,7 +954,7 @@ process-custom-draw: func [
 					sym = button
 					sym = toggle
 				][
-					rc/left: rc/left + dpi-scale 16			;-- compensate for invisible check box
+					rc/left: rc/left + dpi-scale as float32! 16.0	;-- compensate for invisible check box
 				]
 				if TYPE_OF(txt) = TYPE_STRING [
 					flags: either TYPE_OF(para) <> TYPE_OBJECT [
@@ -1043,6 +1056,8 @@ set-window-info: func [
 		pair	[red-pair!]
 		info	[tagMINMAXINFO]
 		ret?	[logic!]
+		pt		[red-point2D!]
+		sx sy	[integer!]
 ][
 	ret?: no
 	unless no-face? hWnd [
@@ -1053,16 +1068,45 @@ set-window-info: func [
 		window-border-info? hWnd :x :y :cx :cy
 		values: get-face-values hWnd
 		pair: as red-pair! values + FACE_OBJ_SIZE
+		GET_PAIR_XY_INT(pair sx sy)
 		info: as tagMINMAXINFO lParam
-		cx: pair/x + cx
-		cy: pair/y + cy
+		cx: sx + cx
+		cy: sy + cy
 
-		if pair/x > info/ptMaxSize.x [info/ptMaxSize.x: cx ret?: yes]
-		if pair/y > info/ptMaxSize.y [info/ptMaxSize.y: cy ret?: yes]
-		if pair/x > info/ptMaxTrackSize.x [info/ptMaxTrackSize.x: cx ret?: yes]
-		if pair/y > info/ptMaxTrackSize.y [info/ptMaxTrackSize.y: cy ret?: yes]
+		if sx > info/ptMaxSize.x [info/ptMaxSize.x: cx ret?: yes]
+		if sy > info/ptMaxSize.y [info/ptMaxSize.y: cy ret?: yes]
+		if sx > info/ptMaxTrackSize.x [info/ptMaxTrackSize.x: cx ret?: yes]
+		if sy > info/ptMaxTrackSize.y [info/ptMaxTrackSize.y: cy ret?: yes]
 	]
 	ret?
+]
+
+update-faces-color: func [
+	child	[red-block!]
+	/local
+		face	[red-object!]
+		tail	[red-object!]
+		values	[red-value!]
+		word	[red-word!]
+		hWnd	[handle!]
+		type	[integer!]
+][
+	if TYPE_OF(child) <> TYPE_BLOCK [exit]
+
+	face: as red-object! block/rs-head child
+	tail: as red-object! block/rs-tail child
+	while [face < tail][
+		hWnd: face-handle? face
+		if hWnd <> null [
+			values: get-face-values hWnd
+			word: as red-word! values + FACE_OBJ_TYPE
+			type: symbol/resolve word/symbol
+			if IS_D2D_FACE(type) [
+				set-dark-mode hWnd dark-mode? no
+			]
+		]
+		face: face + 1
+	]
 ]
 
 update-window: func [
@@ -1073,7 +1117,7 @@ update-window: func [
 		tail	[red-object!]
 		values	[red-value!]
 		sz		[red-pair!]
-		pos		[red-pair!]
+		pos pt	[red-point2D!]
 		font	[red-object!]
 		word	[red-word!]
 		type	[integer!]
@@ -1081,6 +1125,7 @@ update-window: func [
 		hdwp	[handle!]
 		target	[integer!]
 		hfont	[handle!]
+		x y		[float32!]
 ][
 	if null? fonts [
 		get-metrics
@@ -1097,7 +1142,7 @@ update-window: func [
 		if hWnd <> null [
 			values: get-face-values hWnd
 			sz: as red-pair! values + FACE_OBJ_SIZE
-			pos: as red-pair! values + FACE_OBJ_OFFSET
+			pos: as red-point2D! values + FACE_OBJ_OFFSET
 			word: as red-word! values + FACE_OBJ_TYPE
 			type: symbol/resolve word/symbol
 			if type = rich-text [
@@ -1107,12 +1152,13 @@ update-window: func [
 					SetWindowLong hWnd wc-offset - 36 0
 				]
 			]
+			GET_PAIR_XY(sz x y)
 			hdwp: DeferWindowPos
 				hdwp
 				hWnd
 				null
 				dpi-scale pos/x dpi-scale pos/y
-				dpi-scale sz/x  dpi-scale sz/y
+				dpi-scale x dpi-scale y
 				SWP_NOZORDER or SWP_NOACTIVATE
 
 			child: as red-block! values + FACE_OBJ_PANE
@@ -1137,7 +1183,7 @@ update-window: func [
 					hWnd
 					null
 					0 0
-					dpi-scale sz/x dpi-scale sz/y
+					dpi-scale x dpi-scale y
 					SWP_NOZORDER or SWP_NOACTIVATE
 			]
 		]
@@ -1201,7 +1247,7 @@ WndProc: func [
 		nmhdr  [tagNMHDR]
 		gi	   [GESTUREINFO]
 		pt	   [tagPOINT]
-		offset [red-pair!]
+		offset [red-point2D!]
 		p-int  [int-ptr!]
 		winpos [tagWINDOWPOS]
 		si	   [tagSCROLLINFO value]
@@ -1213,14 +1259,17 @@ WndProc: func [
 		flags  [integer!]
 		miniz? [logic!]
 		font?  [logic!]
-		x	   [integer!]
-		y	   [integer!]
+		dark?  [logic!]
+		x xx   [integer!]
+		y yy   [integer!]
+		ShouldAppsUseDarkMode [ShouldAppsUseDarkMode!]
 ][
-	type: either no-face? hWnd [panel][			;@@ remove this test, create a WndProc for panel?
-		values: get-face-values hWnd
-		w-type: as red-word! values + FACE_OBJ_TYPE
-		symbol/resolve w-type/symbol
-	]
+	if no-face? hWnd [return DefWindowProc hWnd msg wParam lParam]
+
+	values: get-face-values hWnd
+	w-type: as red-word! values + FACE_OBJ_TYPE
+	type: symbol/resolve w-type/symbol
+
 	switch msg [
 		WM_NCCREATE [
 			p-int: as int-ptr! lParam
@@ -1245,7 +1294,14 @@ WndProc: func [
 				target: as render-target! GetWindowLong hWnd wc-offset - 36
 				if target <> null [
 					DX-resize-buffer target WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
-					InvalidateRect hWnd null 1
+					either all [
+						(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) <> 0
+						0 <> GetWindowLong hWnd wc-offset + 4
+					][
+						update-base hWnd null null values
+					][
+						InvalidateRect hWnd null 1
+					]
 				]
 			]]
 			if type = window [
@@ -1261,8 +1317,10 @@ WndProc: func [
 					][FACE_OBJ_SIZE]
 					if miniz? [return 0]
 
+					xx: WIN32_LOWORD(lParam)
+					yy: WIN32_HIWORD(lParam)
 					x: 0 y: 0
-					modal-loop-type: either msg = WM_MOVE [
+					res: either msg = WM_MOVE [
 						pos: GetWindowLong hWnd wc-offset - 16	;-- get border size
 						either zero? pos [
 							window-border-info? hWnd :x :y null null
@@ -1272,17 +1330,23 @@ WndProc: func [
 							y: WIN32_LOWORD(pos)
 						]
 						SetWindowLong hWnd wc-offset - 8 lParam
-						EVT_MOVING
-					][EVT_SIZING]
-					SetWindowLong hWnd wc-offset - 24 modal-loop-type
-					current-msg/hWnd: hWnd
-					current-msg/lParam: lParam
-					make-event current-msg 0 modal-loop-type
+						xx: xx + x
+						yy: yy + y
+						EVT_MOVE
+					][EVT_SIZE]
 
-					offset: as red-pair! values + type
-					offset/header: TYPE_PAIR
-					offset/x: WIN32_LOWORD(lParam) + x * 100 / dpi-factor
-					offset/y: WIN32_HIWORD(lParam) + y * 100 / dpi-factor
+					offset: as red-point2D! values + type
+					offset/header: TYPE_POINT2D
+					offset/x: dpi-unscale as float32! xx
+					offset/y: dpi-unscale as float32! yy
+					if all [
+						type = FACE_OBJ_SIZE
+						SIZE_FACET_PAIR?(hwnd)
+					][as-pair offset]
+
+					current-msg/hWnd: hWnd
+					current-msg/lParam: yy << 16 or (xx and FFFFh)
+					make-event current-msg 0 res
 
 					values: values + FACE_OBJ_STATE
 					if all [
@@ -1296,24 +1360,52 @@ WndProc: func [
 				]
 			]
 		]
-		;WM_MOVING
-		;WM_SIZING [
-			;pair: as red-pair! stack/arguments
-			;if TYPE_OF(pair) = TYPE_PAIR [
-			;	either msg = WM_MOVING [
-			;		pt: screen-to-client hWnd rc/left rc/top
-			;		rc/left:   pair/x	 + pt/x
-			;		rc/top:	   pair/y	 + pt/y
-			;		rc/right:  rc/right	 + pt/x
-			;		rc/bottom: rc/bottom + pt/y
-			;	][
-			;		pt: delta-size hWnd
-			;		rc/right:  rc/left + pair/x + pt/x
-			;		rc/bottom: rc/top + pair/y + pt/y
-			;	]
-			;]
-			;return 1									;-- TRUE
-		;]
+		WM_MOVING
+		WM_SIZING [
+			if type = window [
+				if null? current-msg [init-current-msg]
+				current-msg/hWnd: hWnd
+
+				x: 0 y: 0
+				pos: GetWindowLong hWnd wc-offset - 16	;-- get border size
+				either zero? pos [
+					window-border-info? hWnd :x :y null null
+					SetWindowLong hWnd wc-offset - 16 x << 16 or (y and FFFFh)
+				][
+					x: WIN32_HIWORD(pos)
+					y: WIN32_LOWORD(pos)
+				]
+				rc: as RECT_STRUCT lParam
+				type: either msg = WM_MOVING [
+					SetWindowLong hWnd wc-offset - 8 rc/top - y << 16 or (rc/left - x and FFFFh)
+					x: rc/left
+					y: rc/top
+					modal-loop-type: EVT_MOVING
+					FACE_OBJ_OFFSET
+				][
+					y: rc/bottom - rc/top + x + y
+					x: rc/right - rc/left + x + x
+					modal-loop-type: EVT_SIZING
+					FACE_OBJ_SIZE
+				]
+
+				SetWindowLong hWnd wc-offset - 24 modal-loop-type
+				offset: as red-point2D! values + type
+				offset/header: TYPE_POINT2D
+				offset/x: dpi-unscale as float32! x
+				offset/y: dpi-unscale as float32! y
+				current-msg/lParam: y << 16 or (x and FFFFh)
+				if all [
+					type = FACE_OBJ_SIZE
+					SIZE_FACET_PAIR?(hwnd)
+				][as-pair offset]
+				make-event current-msg 0 modal-loop-type
+
+				;-- in case the users change the offset/size in the event handlers
+				;@@ TBD
+				return 1									;-- TRUE
+			]
+		]
 		WM_ENTERSIZEMOVE [
 			if type = window [win-state: 1]
 		]
@@ -1510,10 +1602,11 @@ WndProc: func [
 		]
 		WM_SETCURSOR [
 			res: GetWindowLong as handle! wParam wc-offset - 28
-			if all [
-				res <> 0
-				res and 80000000h <> 0					;-- inside client area
-			][
+			if res <> 0 [
+				values: get-face-values as handle! wParam
+				w-type: as red-word! values + FACE_OBJ_TYPE
+				type: symbol/resolve w-type/symbol
+				if all [any [type = base type = rich-text] res and 80000000h = 0][return 0]
 				SetCursor as handle! (res and 7FFFFFFFh)
 				return 1
 			]
@@ -1557,7 +1650,7 @@ WndProc: func [
 			log-pixels-y: log-pixels-x
 			dpi-x: as float32! log-pixels-x
 			dpi-y: dpi-x
-			dpi-factor: log-pixels-x * 100 / 96
+			dpi-factor: dpi-x / as float32! 96.0
 			rc: as RECT_STRUCT lParam
 			SetWindowPos 
 				hWnd
@@ -1678,6 +1771,7 @@ process: func [
 				word: (as red-word! get-face-values hWnd) + FACE_OBJ_TYPE
 				if base = symbol/resolve word/symbol [ReleaseCapture]	;-- issue #4384
 			]
+			key-flags: flags
 			res: make-event msg flags EVT_LEFT_UP
 			prev-captured: null
 			res

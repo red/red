@@ -32,64 +32,6 @@ jobs:
         path: quick-test/runnable/arm-tests/system
         retention-days: 3
 
-  Run-RPi-RS-Tests:
-
-    runs-on: [self-hosted, linux, arm]
-    needs: Build-RPi-Tests
-    
-    steps:
-    - name: Clean working directory
-      run: |
-        echo "Cleaning up previous run"
-        rm -rf ${{ github.workspace }}/*
-
-    - name: Retrieve tests
-      uses: actions/download-artifact@v3
-      with:
-        name: rpi-rs-bin
-
-    - name: Run tests
-      run: |
-        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/.
-        chmod +x run-all.sh
-        ./run-all.sh
-
-    # upload log file if any test failed
-    - uses: actions/upload-artifact@v3
-      if: failure()
-      with:
-        name: RPi-RS-Tests-log
-        path: quick-test.log
-
-  Run-RPi-Tests:
-
-    runs-on: [self-hosted, linux, arm]
-    needs: Run-RPi-RS-Tests
-    
-    steps:
-    - name: Clean working directory
-      run: |
-        echo "Cleaning up previous run"
-        rm -rf ${{ github.workspace }}/*
-
-    - name: Retrieve tests
-      uses: actions/download-artifact@v3
-      with:
-        name: rpi-tests-bin
-
-    - name: Run tests
-      run: |
-        chmod +x run-all.sh
-        ./run-all.sh
-
-    # upload log file if any test failed
-    - uses: actions/upload-artifact@v3
-      if: failure()
-      with:
-        name: RPi-Tests-log
-        path: quick-test.log
-
-
   Run-RS-Tests-Armbian:
 
     runs-on: [self-hosted, Linux, ARM64]

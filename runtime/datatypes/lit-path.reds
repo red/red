@@ -25,19 +25,6 @@ lit-path: context [
 
 	;--- Actions ---
 	
-	form: func [
-		p		[red-lit-path!]
-		buffer	[red-string!]
-		arg		[red-value!]
-		part 	[integer!]
-		return: [integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "lit-path/form"]]
-		
-		string/append-char GET_BUFFER(buffer) as-integer #"'"
-		path/form as red-path! p buffer arg part - 1
-	]
-	
 	mold: func [
 		p		[red-lit-path!]
 		buffer	[red-string!]
@@ -65,7 +52,7 @@ lit-path: context [
 			null			;random
 			INHERIT_ACTION	;reflect
 			INHERIT_ACTION	;to
-			:form
+			INHERIT_ACTION	;form
 			:mold
 			INHERIT_ACTION	;eval-path
 			null			;set-path

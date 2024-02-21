@@ -103,9 +103,9 @@ Red [
 		sb10-i: true
 		sb10-j: "REBOL"
 		switch sb10-i [
-			#[false]	[sb10-j: "Earl"]
-			#[true]		[sb10-j: "Red"]
-			#[true]		[sb10-j: "Peter"]
+			#(false)	[sb10-j: "Earl"]
+			#(true)		[sb10-j: "Red"]
+			#(true)		[sb10-j: "Peter"]
 		]
         --assert sb10-j = "Red"
 	
@@ -145,8 +145,8 @@ Red [
 		switch sb15-i [
 			1 			[sb15-j: "Earl"]
 			integer!	[sb15-j: "Peter"]
-			#[integer!]	[sb15-j: "Red"]
-			#[char!]	[sb15-j: "Blue"]
+			#(integer!)	[sb15-j: "Red"]
+			#(char!)	[sb15-j: "Blue"]
 		]
         --assert sb15-j = "Red"
 

@@ -96,6 +96,16 @@ display-about: function [][
 	view/flags lay [modal no-title]
 ]
 
+set-dark-mode: func [
+	dark?	[logic!]
+][
+	foreach face system/view/screens/1/pane [
+		system/view/platform/set-dark-mode face dark?
+	]	
+	system/view/platform/set-dark-mode win dark?
+	system/view/platform/set-dark-mode console dark?
+]
+
 show-cfg-dialog: function [][
 	lay: layout [
 		title "Settings"
@@ -124,8 +134,22 @@ show-cfg-dialog: function [][
 		]
 		return
 
-		pad 150x10 text "Buffer Lines" 80
+		mouse-mode: check "Mouse Copy&&Paste" on-create [
+			face/data: cfg/mouse-paste? = 'true
+		]
+		pad -3x0 text "Buffer Lines:" 80 middle
 		pad -17x0 cfg-buffers: hex-field right return
+		check "Dark Mode" [
+			cfg/dark-mode?: to-word face/data
+			set-dark-mode face/data
+		] on-create [
+			unless system/view/platform/support-dark-mode? [
+				face/enabled?: no
+				exit
+			]
+			face/data: cfg/dark-mode? = 'true
+		]
+		return
 
 		pad 90x20
 		button "OK" [
@@ -135,6 +159,8 @@ show-cfg-dialog: function [][
 			]
 			set-font-color cfg/font-color: cfg-forecolor/data
 			set-background cfg/background: cfg-backcolor/data
+			cfg/mouse-paste?: to-word mouse-mode/data
+			toggle-mouse-mode
 			unview
 		]
 		button "Cancel" [unview]
@@ -163,6 +189,7 @@ apply-cfg: function [][
 	set-font-color cfg/font-color
 	system/console/history: cfg/history
 	terminal/history: cfg/history
+	if cfg/dark-mode? = 'true [set-dark-mode yes]
 ]
 
 save-cfg: function [][
@@ -201,14 +228,18 @@ load-cfg: func [/local cfg-content gui-default][
 	cfg-path: append copy cfg-dir %console-cfg.red
 
 	gui-default: compose [
-		win-pos:	  (win/offset)
+		win-pos:	  200x200
 		win-size:	  640x480
 
 		font-name:	  (font/name)
 		font-size:	  11
 		font-color:	  0.0.0
 		background:	  252.252.252
+		mouse-paste?: false
+		menu-bar?:	  true
+		dark-mode?:   no
 	]
+	gui-default/win-pos: (200, 200)
 
 	either all [
 		exists? cfg-path
@@ -225,7 +256,7 @@ load-cfg: func [/local cfg-content gui-default][
 	unless find cfg 'history [
 		append cfg [history: []]
 	]
-	apply-cfg
-	system/view/auto-sync?: yes
-	win/selected: console
+
+	toggle-mouse-mode
+	toggle-menu-bar
 ]

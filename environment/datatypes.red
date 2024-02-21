@@ -46,7 +46,7 @@ routine!:		make datatype! #get-definition TYPE_ROUTINE
 object!:		make datatype! #get-definition TYPE_OBJECT
 bitset!:		make datatype! #get-definition TYPE_BITSET
 float!:			make datatype! #get-definition TYPE_FLOAT
-point!:			make datatype! #get-definition TYPE_POINT
+triple!:		make datatype! #get-definition TYPE_TRIPLE
 vector!:		make datatype! #get-definition TYPE_VECTOR
 map!:			make datatype! #get-definition TYPE_MAP
 hash!:			make datatype! #get-definition TYPE_HASH
@@ -62,6 +62,8 @@ date!:			make datatype! #get-definition TYPE_DATE
 port!:			make datatype! #get-definition TYPE_PORT
 money!:			make datatype! #get-definition TYPE_MONEY
 ref!:			make datatype! #get-definition TYPE_REF
+point2D!:		make datatype! #get-definition TYPE_POINT2D
+point3D!:		make datatype! #get-definition TYPE_POINT3D
 IPv6!:			make datatype! #get-definition TYPE_IPV6
 event!:			make datatype! #get-definition TYPE_EVENT
 

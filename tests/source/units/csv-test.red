@@ -75,8 +75,8 @@ Red [
 
 ===start-group=== "load-csv-header"
 	--test-- "load-csv-header-1"
-		--assert #("a" ["1"] "b" ["2"] "c" ["3"]) = load-csv/header {a,b,c^/1,2,3}
-		--assert #("a" ["1" "4"] "b" ["2" "5"] "c" ["3" "6"]) 
+		--assert #["a" ["1"] "b" ["2"] "c" ["3"]] = load-csv/header {a,b,c^/1,2,3}
+		--assert #["a" ["1" "4"] "b" ["2" "5"] "c" ["3" "6"]] 
 			= load-csv/header {a,b,c^/1,2,3^/4,5,6}
 	--test-- "load-csv-header-2-error"
 		--assert error? try [load-csv/header {a,b,c}]
@@ -84,25 +84,25 @@ Red [
 
 ===start-group=== "load-csv-as-columns"
 	--test-- "load-csv-as-columns-1"
-		--assert #("A" ["1"] "B" ["2"] "C" ["3"]) = load-csv/as-columns {1,2,3}
-		--assert #("A" ["1" "4"] "B" ["2" "5"] "C" ["3" "6"])
+		--assert #["A" ["1"] "B" ["2"] "C" ["3"]] = load-csv/as-columns {1,2,3}
+		--assert #["A" ["1" "4"] "B" ["2" "5"] "C" ["3" "6"]]
 			= load-csv/as-columns {1,2,3^/4,5,6}
 	--test-- "load-csv-as-columns"
-		--assert #("a" ["1"] "b" ["2"] "c" ["3"])
+		--assert #["a" ["1"] "b" ["2"] "c" ["3"]]
 			= load-csv/as-columns/header {a,b,c^/1,2,3}
 ===end-group===
 
 ===start-group=== "load-csv-as-records"
 	--test-- "load-csv-as-records-1"
-		--assert [#("A" "1" "B" "2" "C" "3")] = load-csv/as-records {1,2,3}
+		--assert [#["A" "1" "B" "2" "C" "3"]] = load-csv/as-records {1,2,3}
 		--assert [
-			#("A" "1" "B" "2" "C" "3")
-			#("A" "4" "B" "5" "C" "6")
+			#["A" "1" "B" "2" "C" "3"]
+			#["A" "4" "B" "5" "C" "6"]
 		] = load-csv/as-records {1,2,3^/4,5,6}
 	--test-- "load-csv-as-records-2-header"
 		--assert [
-			#("A" "1" "B" "2" "C" "3")
-			#("A" "4" "B" "5" "C" "6")
+			#["A" "1" "B" "2" "C" "3"]
+			#["A" "4" "B" "5" "C" "6"]
 		] = load-csv/as-records/header {A,B,C^/1,2,3^/4,5,6}
 	--test-- "load-csv-as-records-2-header-error"
 		--assert error? try [load-csv/as-records/header {a,b,c}]

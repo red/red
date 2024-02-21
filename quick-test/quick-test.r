@@ -224,7 +224,7 @@ qt: make object! [
     ][
     	comp: mold compose/deep [
     	  REBOL []
-    	  halt: :quit
+    	  ;halt: :quit
     	  echo (comp-echo)
     	  do/args (reduce base-dir/red.r) (join "" [compile-flag " -o "
     	  	  	  reduce runnable-dir/:exe " ###lib###***src***" 
@@ -256,6 +256,11 @@ qt: make object! [
     either compile-ok? [
       exe
     ][
+	  if find comp-output "Compiling libRedRT" [
+        prin comp-output
+	    ;quit/return 1
+	    halt
+      ]
       none
     ]    
   ]

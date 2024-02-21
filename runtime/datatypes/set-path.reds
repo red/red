@@ -24,20 +24,6 @@ set-path: context [
 
 
 	;--- Actions ---
-
-	form: func [
-		p		[red-set-path!]
-		buffer	[red-string!]
-		arg		[red-value!]
-		part 	[integer!]
-		return: [integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "set-path/form"]]
-		
-		part: path/form as red-path! p buffer arg part
-		string/append-char GET_BUFFER(buffer) as-integer #":"
-		part - 1
-	]
 	
 	mold: func [
 		p		[red-set-path!]
@@ -67,7 +53,7 @@ set-path: context [
 			null			;random
 			INHERIT_ACTION	;reflect
 			INHERIT_ACTION	;to
-			:form
+			INHERIT_ACTION	;form
 			:mold
 			INHERIT_ACTION	;eval-path
 			null			;set-path

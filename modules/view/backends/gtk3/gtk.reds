@@ -3632,6 +3632,7 @@ camera-cfg:			g_quark_from_string "camera-cfg"
 camera-pixbuf:		g_quark_from_string "camera-pixbuf"
 base-buffer:		g_quark_from_string "base-buffer"
 base-enter:			g_quark_from_string "base-enter"
+pair-size-facet:	g_quark_from_string "pair-size-facet"
 ;im-string-id:		g_quark_from_string "im-string-id"
 ;im-start-id:		g_quark_from_string "im-start-id"
 
@@ -3679,6 +3680,8 @@ base-enter:			g_quark_from_string "base-enter"
 #define GET-BASE-BUFFER(s)		[g_object_get_qdata s base-buffer]
 #define SET-BASE-ENTER(s d)		[g_object_set_qdata s base-enter d]
 #define GET-BASE-ENTER(s)		[g_object_get_qdata s base-enter]
+#define SET-PAIR-SIZE(s d)		[g_object_set_qdata s pair-size-facet d]
+#define GET-PAIR-SIZE(s)		[g_object_get_qdata s pair-size-facet]
 
 ;#define SET-IM-STRING(s d)		[g_object_set_qdata s im-string-id as int-ptr! d]
 ;#define GET-IM-STRING(s)		[as c-string! g_object_get_qdata s im-string-id]

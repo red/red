@@ -315,6 +315,42 @@ test
 		--assert compiled?
 		--assert script-error?
 
+	--test-- "#4854"
+		--compile-and-run-this {
+			Red []
+
+			recycle/off
+
+			do [
+				f-call: func [f] [f/x 1 2]
+
+				f1: function [/x q w /local a b c] [
+					f-call :f2
+					print "passed!"
+				]
+				f2: function [/x q w] [
+					print 1
+					foreach n [1] [
+						a: b: c: d: e: f: none					;) z = none then crash in foreach-next
+						a: b: c: d: e: f: g: none					;) z = none then crash in foreach-next
+						b: c: d: e: f: g: h: none				;) z = :?? then crash in foreach-next
+						a: b: c: d: e: f: g: h: i: none			;) crash before z in context/set
+						a: b: c: d: e: f: g: h: i: j: none		;) crash before z in context/set
+						a: b: c: d: e: f: g: h: i: j: k: none		;) crash before z in context/set
+						a: b: c: d: e: f: g: h: i: j: k: l: none	;) crash before z in context/set
+						z: none
+						?? z
+					]
+					print 2
+
+				]
+				f-call :f1
+			]
+		}
+		--assert compiled?
+		--assert not crashed?
+		--assert true? find qt/output "passed!"
+
 	--test-- "#4990"
 		--compile-and-run-this {
 			Red []
@@ -345,7 +381,7 @@ test
 	--test-- "#5070"
 		--compile-and-run-this {
 			Red []
-			m: #()
+			m: #[]
 			m/1:       does [1]
 			m/(2):     does [2]
 			m/key:     does [3]
@@ -381,6 +417,22 @@ test
 
 	--test-- "#5239"
 		do [--assert error? try [do try/all [throw 'grenade]]]
+		
+	--test-- "#5335"
+	
+		--compile-and-run-this {
+			Red []
+			c5335: 0
+			on-parse-event5335: func [e m r i s return: [logic!]][c5335: c5335 + 1 true]
+
+			parse-trace5335: func [input [series!] rules [block!] /case /part limit [integer!] return: [logic! block!]][
+				parse/:case/:part/trace input rules limit :on-parse-event5335
+			]
+			parse-trace5335 [a b c] [some word!]
+			probe c5335
+		}
+		--assert compiled?
+		--assert (load qt/output) > 0
 
 ===end-group===
 

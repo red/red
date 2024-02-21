@@ -85,8 +85,8 @@ modify: make action! [[
 
 absolute: make action! [[
 		"Returns the non-negative value"
-		value	 [number! money! char! pair! time!]
-		return:  [number! money! char! pair! time!]
+		value	 [number! money! char! pair! time! any-point!]
+		return:  [number! money! char! pair! time! any-point!]
 	]
 	#get-definition ACT_ABSOLUTE
 ]
@@ -102,26 +102,26 @@ add: make action! [[
 
 divide: make action! [[
 		"Returns the quotient of two values"
-		value1	 [number! money! char! pair! tuple! vector! time! ipv6!] "The dividend (numerator)"
-		value2	 [number! money! char! pair! tuple! vector! time! ipv6!] "The divisor (denominator)"
-		return:  [number! money! char! pair! tuple! vector! time! ipv6!] "The quotient"
+		value1	 [number! money! char! pair! tuple! vector! time! any-point! ipv6!] "The dividend (numerator)"
+		value2	 [number! money! char! pair! tuple! vector! time! any-point! ipv6!] "The divisor (denominator)"
+		return:  [number! money! char! pair! tuple! vector! time! any-point! ipv6!] "The quotient"
 	]
 	#get-definition ACT_DIVIDE
 ]
 
 multiply: make action! [[
 		"Returns the product of two values"
-		value1	 [number! money! char! pair! tuple! vector! time! ipv6!] "The multiplicand"
-		value2	 [number! money! char! pair! tuple! vector! time! ipv6!] "The multiplier"
-		return:  [number! money! char! pair! tuple! vector! time! ipv6!] "The product"
+		value1	 [number! money! char! pair! tuple! vector! time! any-point! ipv6!] "The multiplicand"
+		value2	 [number! money! char! pair! tuple! vector! time! any-point! ipv6!] "The multiplier"
+		return:  [number! money! char! pair! tuple! vector! time! any-point! ipv6!] "The product"
 	]
 	#get-definition ACT_MULTIPLY
 ]
 
 negate: make action! [[
 		"Returns the opposite (additive inverse) value"
-		number 	 [number! money! bitset! pair! time!]
-		return:  [number! money! bitset! pair! time!]
+		number 	 [number! money! bitset! pair! time! any-point!]
+		return:  [number! money! bitset! pair! time! any-point!]
 	]
 	#get-definition ACT_NEGATE
 ]
@@ -137,18 +137,18 @@ power: make action! [[
 
 remainder: make action! [[
 		"Returns what is left over when one value is divided by another"
-		value1 	 [number! money! char! pair! tuple! vector! time!] "The dividend (numerator)"
-		value2 	 [number! money! char! pair! tuple! vector! time!] "The divisor (denominator)"
-		return:  [number! money! char! pair! tuple! vector! time!] "The remainder"
+		value1 	 [number! money! char! pair! any-point! tuple! vector! time!] "The dividend (numerator)"
+		value2 	 [number! money! char! pair! any-point! tuple! vector! time!] "The divisor (denominator)"
+		return:  [number! money! char! pair! any-point! tuple! vector! time!] "The remainder"
 	]
 	#get-definition ACT_REMAINDER
 ]
 
 round: make action! [[
 		"Returns the nearest integer. Halves round up (away from zero) by default"
-		n		[number! money! time! pair!]
+		n		[number! money! time! pair! any-point!]
 		/to		"Return the nearest multiple of the scale parameter"
-		scale	[number! money! time! pair!] "If zero, returns N unchanged"
+		scale	[number! money! time! pair! any-point!] "If zero, returns N unchanged"
 		/even		"Halves round toward even results"
 		/down		"Round toward zero, ignoring discarded digits. (truncate)"
 		/half-down	"Halves round toward zero"
@@ -188,9 +188,9 @@ odd?: make action! [[
 
 and~: make action! [[
 		"Returns the first value ANDed with the second"
-		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! ipv6!]
-		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! ipv6!]
-		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! ipv6!]
+		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point! ipv6!]
+		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point! ipv6!]
+		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point! ipv6!]
 	]
 	#get-definition ACT_AND~
 ]
@@ -205,18 +205,18 @@ complement: make action! [[
 
 or~: make action! [[
 		"Returns the first value ORed with the second"
-		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! ipv6!]
-		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! ipv6!]
-		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! ipv6!]
+		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point! ipv6!]
+		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point! ipv6!]
+		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point! ipv6!]
 	]
 	#get-definition ACT_OR~
 ]
 
 xor~: make action! [[
 		"Returns the first value exclusive ORed with the second"
-		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! ipv6!]
-		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! ipv6!]
-		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! ipv6!]
+		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point! ipv6!]
+		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point! ipv6!]
+		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point! ipv6!]
 	]
 	#get-definition ACT_XOR~
 ]
@@ -377,7 +377,7 @@ next: make action! [[
 
 pick: make action! [[
 		"Returns the series value at a given index"
-		series	 [series! port! bitset! pair! tuple! money! date! time! IPv6! #if find config/modules 'view [event!]]
+		series	 [series! port! bitset! pair! any-point! tuple! money! date! time! IPv6! #if find config/modules 'view [event!]]
 		index 	 [scalar! any-string! any-word! block! logic! time!]
 		return:  [any-type!]
 	]
@@ -419,12 +419,12 @@ remove: make action! [[
 
 reverse: make action! [[
 		"Reverses the order of elements; returns at same position"
-		series	 [series! port! pair! tuple!]
+		series	 [series! port! pair! any-point! tuple!]
 		/part "Limits to a given length or position"
 			length [number! series!]
 		/skip "Treat the series as fixed size records"
 			size [integer!]
-		return:  [series! port! pair! tuple!]
+		return:  [series! port! pair! any-point! tuple!]
 	]
 	#get-definition ACT_REVERSE
 ]

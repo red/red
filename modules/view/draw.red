@@ -104,7 +104,6 @@ Red/System [
 			/local
 				silent [red-logic!]
 				base   [red-value!]
-				part   [red-value!]
 		][
 			if cycles/find? cmds/node [cycles/reset]
 			silent: as red-logic! #get system/view/silent?
@@ -113,9 +112,6 @@ Red/System [
 			base: block/rs-head cmds
 			cmds: as red-block! stack/push as red-value! cmds
 			cmds/head: (as-integer cmd - base) >> 4
-			part: as red-value! integer/push 32
-			_series/copy as red-series! cmds as red-series! cmds part no null
-
 			either catch? [
 				report cat id as red-value! cmds null null
 				throw RED_THROWN_ERROR
@@ -229,6 +225,13 @@ Red/System [
 			]
 		]
 		
+		#define DRAW_FETCH_VALUE_3(type1 type2 type3) [
+			cmd: cmd + 1
+			if any [cmd >= tail all [TYPE_OF(cmd) <> type1 TYPE_OF(cmd) <> type2 TYPE_OF(cmd) <> type3]][
+				throw-draw-error cmds cmd catch?
+			]
+		]
+		
 		#define DRAW_FETCH_OPT_VALUE(type) [
 			pos: cmd + 1
 			if all [pos < tail TYPE_OF(pos) = type][cmd: pos]
@@ -315,7 +318,7 @@ Red/System [
 				off?	[logic!]
 		][
 			word: as red-word! start
-			DRAW_FETCH_VALUE(TYPE_PAIR)				;-- grad offset
+			DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)				;-- grad offset
 			point: as red-pair! cmd
 			loop 2 [								;-- start and stop
 				DRAW_FETCH_VALUE(TYPE_INTEGER)
@@ -398,7 +401,7 @@ Red/System [
 			either grad? [								;-- gradient pen
 				count: 0
 				stops: cmd + 1
-				if TYPE_OF(stops) = TYPE_PAIR [
+				if ANY_COORD?(stops) [
 					return old-gradient-pen DC cmds start tail cmd sym catch?
 				]
 				loop 2 [                                ;-- at least two stops required
@@ -424,29 +427,29 @@ Red/System [
 				focal?: false
 				case [                                                  ;-- positions
 					mode = linear [
-						DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+						DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 						if cmd <> positions [
 							skip-pos: false
-							DRAW_FETCH_VALUE(TYPE_PAIR)
+							DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 						] 
 					]
 					mode = radial [
-						DRAW_FETCH_OPT_VALUE(TYPE_PAIR)                 ;-- center
+						DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)                 ;-- center
 						if cmd <> positions [
 							skip-pos: false 
 							DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT) ;-- radius
 							_start: cmd
-							DRAW_FETCH_OPT_VALUE(TYPE_PAIR)             ;-- focal point
+							DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)             ;-- focal point
 							if _start <> cmd [ focal?: true ]
 						]
 					]
 					mode = diamond [
-						DRAW_FETCH_OPT_VALUE(TYPE_PAIR)                 ;-- upper
+						DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)                 ;-- upper
 						if cmd <> positions [
 							skip-pos: false 
-							DRAW_FETCH_VALUE(TYPE_PAIR)                 ;-- lower
+							DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)                 ;-- lower
 							_start: cmd
-							DRAW_FETCH_OPT_VALUE(TYPE_PAIR)             ;-- focal point
+							DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)             ;-- focal point
 							if _start <> cmd [ focal?: true ]
 						]
 					]
@@ -481,14 +484,14 @@ Red/System [
 			][
 				case [
 					mode = _pattern [
-						DRAW_FETCH_VALUE(TYPE_PAIR)
+						DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 						size: as red-pair! cmd
 						word:   null
 						crop-1: null
 						crop-2: null 
-						DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+						DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 						if cmd = pos [ crop-1: as red-pair! cmd ]
-						DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+						DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 						if cmd = pos [ crop-2: as red-pair! cmd ]
 						DRAW_FETCH_OPT_VALUE(TYPE_WORD)
 						if pos = cmd [ 
@@ -518,9 +521,9 @@ Red/System [
 						word:   null
 						crop-1: null
 						crop-2: null 
-						DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+						DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 						if cmd = pos [ crop-1: as red-pair! cmd ]
-						DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+						DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 						if cmd = pos [ crop-2: as red-pair! cmd ]
 						DRAW_FETCH_OPT_VALUE(TYPE_WORD)
 						if pos = cmd [ 
@@ -590,6 +593,7 @@ Red/System [
 			cmds    [red-block!]
 			draw?   [logic!]
 			catch?  [logic!]								;-- YES: report errors, NO: fire errors
+			sub?	[logic!]								;-- YES: recursive call, skips init/exit code
 			/local
 				cmd     [red-value!]
 				tail    [red-value!]
@@ -610,7 +614,7 @@ Red/System [
 			tail: block/rs-tail cmds
 
 			close?: no
-			OS-draw-shape-beginpath DC draw?
+			unless sub? [OS-draw-shape-beginpath DC draw?]
 			while [cmd < tail][
 				switch TYPE_OF(cmd) [
 					TYPE_WORD
@@ -625,12 +629,12 @@ Red/System [
 								cmd: check-pen DC cmds start tail cmd sym catch?
 							]
 							sym = move [
-								DRAW_FETCH_VALUE(TYPE_PAIR)
+								DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 								OS-draw-shape-moveto DC as red-pair! cmd rel?
 							]
 							sym = line [
-								DRAW_FETCH_VALUE(TYPE_PAIR)
-								DRAW_FETCH_SOME_PAIR
+								DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)
+								DRAW_FETCH_SOME_2(TYPE_PAIR TYPE_POINT2D)
 								OS-draw-shape-line DC as red-pair! start as red-pair! cmd rel?
 							]
 							any [sym = line-width sym = line-join sym = line-cap sym = line-pattern][
@@ -643,7 +647,7 @@ Red/System [
 							sym = _arc [
 								sweep?: false
 								large?: false
-								DRAW_FETCH_VALUE(TYPE_PAIR)
+								DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
@@ -664,22 +668,22 @@ Red/System [
 								OS-draw-shape-arc DC as red-pair! start sweep? large? rel?
 							]
 							sym = curve [
-								DRAW_FETCH_SOME_PAIR
+								DRAW_FETCH_SOME_2(TYPE_PAIR TYPE_POINT2D)
 								if (as-integer cmd - start) < 32 [throw-draw-error cmds start catch?]
 								OS-draw-shape-curve DC as red-pair! start as red-pair! cmd rel?
 							]
 							sym = curv [
-								DRAW_FETCH_SOME_PAIR
+								DRAW_FETCH_SOME_2(TYPE_PAIR TYPE_POINT2D)
 								if (as-integer cmd - start) < 16 [throw-draw-error cmds cmd - 1 catch?]
 								OS-draw-shape-curv DC as red-pair! start as red-pair! cmd rel?
 							]
 							sym = qcurve [
-								DRAW_FETCH_SOME_PAIR
+								DRAW_FETCH_SOME_2(TYPE_PAIR TYPE_POINT2D)
 								if (as-integer cmd - start) < 16 [throw-draw-error cmds cmd - 1 catch?]
 								OS-draw-shape-qcurve DC as red-pair! start as red-pair! cmd rel?
 							]
 							sym = qcurv [
-								DRAW_FETCH_SOME_PAIR
+								DRAW_FETCH_SOME_2(TYPE_PAIR TYPE_POINT2D)
 								if cmd < start [throw-draw-error cmds cmd - 1 catch?]
 								OS-draw-shape-qcurv DC as red-pair! start as red-pair! cmd rel?
 							]
@@ -690,12 +694,15 @@ Red/System [
 					TYPE_SET_WORD [
 						blk: as red-block! _context/set as red-word! cmd as red-value! cmds
 						blk/head: ((as-integer cmd - block/rs-head cmds) / size? cell!) + 1
+					]
+					TYPE_BLOCK [
+						parse-shape DC as red-block! cmd draw? catch? yes
 					]					
 					default [throw-draw-error cmds cmd catch?]
 				]
 				cmd: cmd + 1
 			]
-			if draw? [
+			if all [draw? not sub?][
 				unless OS-draw-shape-endpath DC close? [ throw-draw-error cmds cmd catch? ]
 			]
 		]
@@ -761,12 +768,12 @@ Red/System [
 								cmd: check-pen DC cmds start tail cmd sym catch?
 							]
 							sym = box [
-								loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)]
-								DRAW_FETCH_OPT_VALUE(TYPE_INTEGER)
+								loop 2 [DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)]
+								DRAW_FETCH_OPT_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
 								OS-draw-box DC as red-pair! start as red-pair! cmd
 							]
 							sym = line [
-								DRAW_FETCH_SOME_PAIR
+								DRAW_FETCH_SOME_2(TYPE_PAIR TYPE_POINT2D)
 								if start = cmd [throw-draw-error cmds cmd catch?]
 								OS-draw-line DC as red-pair! start as red-pair! cmd
 							]
@@ -774,22 +781,22 @@ Red/System [
 								cmd: check-line DC cmds start tail cmd sym catch?
 							]
 							sym = triangle [
-								loop 3 [DRAW_FETCH_VALUE(TYPE_PAIR)]
+								loop 3 [DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)]
 								OS-draw-triangle DC as red-pair! start
 							]
 							sym = _polygon [
-								DRAW_FETCH_SOME_PAIR
+								DRAW_FETCH_SOME_2(TYPE_PAIR TYPE_POINT2D)
 								if start + 2 > cmd [throw-draw-error cmds cmd catch?]
 								OS-draw-polygon DC as red-pair! start as red-pair! cmd
 							]
 							sym = circle [
-								DRAW_FETCH_VALUE(TYPE_PAIR)						;-- center
+								DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)		;-- center
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)		;-- radius
 								DRAW_FETCH_OPT_VALUE_2(TYPE_INTEGER TYPE_FLOAT) ;-- radius-y (optional)
 								OS-draw-circle DC as red-pair! start as red-integer! cmd
 							]
 							sym = _ellipse [
-								loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)] ;-- bound box
+								loop 2 [DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)] ;-- bound box
 								OS-draw-ellipse DC as red-pair! start as red-pair! cmd
 							]
 							sym = anti-alias [
@@ -806,14 +813,14 @@ Red/System [
 								OS-draw-font DC as red-object! value
 							]
 							sym = text [
-								DRAW_FETCH_VALUE(TYPE_PAIR)					;-- position
+								DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)	;-- position
 								DRAW_FETCH_VALUE_2(TYPE_STRING TYPE_OBJECT) ;-- string! or text-box!
 								unless OS-draw-text DC as red-pair! start as red-string! cmd catch? [
 									throw-draw-error cmds cmd catch?
 								]
 							]
 							sym = _arc [
-								loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)]	;-- center/radius (of the circle/ellipse)
+								loop 2 [DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)]	;-- center/radius (of the circle/ellipse)
 								loop 2 [DRAW_FETCH_VALUE(TYPE_INTEGER)]	;-- angle begin/length (degrees)
 								DRAW_FETCH_OPT_VALUE(TYPE_WORD)
 								word: as red-word! cmd
@@ -827,12 +834,12 @@ Red/System [
 								OS-draw-arc DC as red-pair! start as red-value! cmd
 							]
 							sym = curve	[
-								loop 3 [DRAW_FETCH_VALUE(TYPE_PAIR)]
-								DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+								loop 3 [DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)]
+								DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 								OS-draw-curve DC as red-pair! start as red-pair! cmd
 							]
 							sym = spline [
-								DRAW_FETCH_SOME_PAIR
+								DRAW_FETCH_SOME_2(TYPE_PAIR TYPE_POINT2D)
 								DRAW_FETCH_OPT_VALUE(TYPE_WORD)
 								closed?: no
 								if all [cmd < tail TYPE_OF(cmd) = TYPE_WORD][
@@ -848,13 +855,13 @@ Red/System [
 								DRAW_FETCH_NAMED_VALUE(TYPE_IMAGE)
 								start: value
 								pos: cmd + 1
-								pair?: all [pos < tail TYPE_OF(pos) = TYPE_PAIR]
+								pair?: all [pos < tail ANY_COORD?(pos)]
 								point: either pair? [as red-pair! pos][null]
 								end: null
 								if pair? [
 									cmd: pos						;-- upper-left point
 									until [
-										DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+										DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 										cmd <> pos
 									]
 									end: as red-pair! cmd
@@ -880,7 +887,7 @@ Red/System [
 											sym = crop [
 												crop-s: as red-pair! pos + 1
 												cmd: pos
-												loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)]
+												loop 2 [DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)]
 											]
 											;any [sym = repeat sym = reflect][
 											;	;@@ TBD check if followed by four integers
@@ -928,12 +935,12 @@ Red/System [
 							]
 							sym = clip [
 								rect?: false
-								DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_BLOCK)
-								either TYPE_OF(cmd) = TYPE_PAIR [
-									DRAW_FETCH_VALUE(TYPE_PAIR)
-									rect?: true
+								DRAW_FETCH_VALUE_3(TYPE_PAIR TYPE_POINT2D TYPE_BLOCK)
+								either TYPE_OF(cmd) = TYPE_BLOCK [
+									parse-shape DC as red-block! cmd false catch? no
 								][
-									parse-shape DC as red-block! cmd false catch?
+									DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)
+									rect?: true
 								]
 								value: cmd
 								DRAW_FETCH_OPT_VALUE(TYPE_WORD)
@@ -965,12 +972,12 @@ Red/System [
 							]
 							sym = shape [
 								DRAW_FETCH_VALUE(TYPE_BLOCK)
-								parse-shape DC as red-block! cmd true catch?
+								parse-shape DC as red-block! cmd true catch? no
 							]
 							sym = rotate [
 								DRAW_FETCH_OPT_TRANSFORM
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
-								DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+								DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
 									OS-draw-state-push DC :state
@@ -984,7 +991,7 @@ Red/System [
 							sym = scale [
 								DRAW_FETCH_OPT_TRANSFORM
 								loop 2 [DRAW_FETCH_NUMBER]						;-- scale-x, scale-y
-								DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+								DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
 									OS-draw-state-push DC :state
@@ -997,23 +1004,23 @@ Red/System [
 							]
 							sym = translate [
 								DRAW_FETCH_OPT_TRANSFORM
-								DRAW_FETCH_VALUE(TYPE_PAIR)
+								DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 								point: as red-pair! start
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
 									OS-draw-state-push DC :state
-									OS-matrix-translate DC sym point/x point/y
+									OS-matrix-translate DC sym point
 									parse-draw DC as red-block! cmd catch?
 									OS-draw-state-pop DC :state
 								][
-									OS-matrix-translate DC sym point/x point/y
+									OS-matrix-translate DC sym point
 								]
 							]
 							sym = skew [
 								DRAW_FETCH_OPT_TRANSFORM
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
 								DRAW_FETCH_OPT_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
-								DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+								DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
 									OS-draw-state-push DC :state
@@ -1026,11 +1033,11 @@ Red/System [
 							]
 							sym = transform [
 								DRAW_FETCH_OPT_TRANSFORM
-								DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+								DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)		;-- angle
 								value: cmd + 1
 								loop 2 [DRAW_FETCH_NUMBER]						;-- scale-x, scale-y
-								DRAW_FETCH_VALUE(TYPE_PAIR)
+								DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
 									OS-draw-state-push DC :state

@@ -62,7 +62,8 @@ system: context [
 			]
 			image!	[size argb rgb alpha]
 			pair!	[x y]
-			;point!	[x y z]
+			point2D![x y]
+			point3D![x y z]
 			time!	[hour minute second]
 			money!  [code amount]
 		]
@@ -110,7 +111,7 @@ system: context [
 				invalid-type-spec:	["invalid type specifier:" :arg1]
 				invalid-op:			["invalid operator:" :arg1]
 				no-op-arg:			[:arg1 "operator is missing an argument"]
-				bad-op-spec:		"making an op! requires a function with only 2 arguments"
+				bad-op-spec:		"making an op! requires a function with only 2 arguments and no lit/get-word on left argument"
 				invalid-data:		["data not in correct format:" :arg1]
 				invalid-part:		["invalid /part count:" :arg1]
 				not-same-type:		"values must be of the same type"
@@ -175,7 +176,7 @@ system: context [
 				parse-infinite:		["PARSE - infinite recursion at rule: [" :arg1 "]"]
 				parse-stack:		"PARSE - stack limit reached"
 				parse-keep:			"PARSE - KEEP is used without a wrapping COLLECT"
-				parse-into-bad:		"PARSE - COLLECT INTO/AFTER expects a series! argument"
+				parse-into-bad:		"PARSE - COLLECT INTO/AFTER invalid series! argument"
 				parse-into-type:    "PARSE - COLLECT INTO/AFTER expects a series! of compatible datatype"
 				invalid-draw:		["invalid Draw dialect input at:" :arg1]
 				invalid-data-facet: ["invalid DATA facet content" :arg1]
@@ -194,6 +195,7 @@ system: context [
 				react-bad-obj:		"REACT - target can only contain object values"
 				react-gctx:			["REACT - word" :arg1 "is not a reactor's field"]
 				lib-invalid-arg:	["LIBRED - invalid argument for" :arg1]
+				rb-invalid-record:	["REDBIN - invalid record at index" :arg1]
 			]
 			math: object [
 				code:				400
@@ -275,6 +277,7 @@ system: context [
 				invalid-error:		["invalid error object field value:" :arg1]
 				routines:			"routines require compilation, from OS shell: `red -r <script.red>`"
 				red-system:			"contains Red/System code which requires compilation"
+				deprecated:			[arg1 "is DEPRECATED, please use" arg2 "instead"]
 			]
 		]
 
@@ -305,7 +308,7 @@ system: context [
 	]
 	
 	modules: make block! 8
-	codecs:  make block! 8
+	codecs:  make map!   8
 	schemes: make block! 10
 	ports:	 context []
 	
@@ -314,11 +317,6 @@ system: context [
 		language*:										;-- in locale language
 		locale:
 		locale*: none									;-- in locale language
-
-		;collation: context [
-		;	lower-to-upper: #system [stack/set-last as cell! case-folding/lower-to-upper]
-		;	upper-to-lower: #system [stack/set-last as cell! case-folding/upper-to-lower]
-		;]
 
 		months: [
 		  "January" "February" "March" "April" "May" "June"
@@ -458,7 +456,7 @@ system: context [
 			float! float! tuple! date! pair! time! money! tag! url! email! 'hex 'rawstring ref!
 		]
 		
-		tracer: lex: func [
+		tracer: func [
 			event  [word!]                  			;-- event name
 			input  [string! binary!]            		;-- input series at current loading position
 			type   [datatype! word! none!]       		;-- type of token or value currently processed.
@@ -468,7 +466,7 @@ system: context [
 		][
 			print [										;-- total: 64
 				uppercase pad event 8
-				pad rejoin [mold type "(" type? type ")"] 20
+				pad mold type 12
 				pad mold/part token 12 12				;-- limit in case it's a huge string/binary
 				pad line 4
 				mold/part input 16

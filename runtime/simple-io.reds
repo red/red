@@ -143,7 +143,7 @@ simple-io: context [
 			OS = 'Windows [
 				GetFileSize file null
 			]
-			any [OS = 'macOS OS = 'FreeBSD OS = 'NetBSD OS = 'Android] [
+			any [config-name = 'Pico OS = 'macOS OS = 'FreeBSD OS = 'NetBSD OS = 'Android] [
 				s: as stat! system/stack/allocate 36	;-- ensures stat! fits using a max value of 144 bytes
 				either zero? _stat file s [				
 					s/st_size
@@ -499,7 +499,7 @@ simple-io: context [
 			s: as stat! system/stack/allocate 36		;-- ensures stat! fits using a max value of 144 bytes
 			fd: open-file file/to-OS-path filename RIO_READ yes
 			if fd < 0 [	return none/push ]
-			#either any [OS = 'macOS OS = 'FreeBSD OS = 'NetBSD OS = 'Android] [
+			#either any [config-name = 'Pico OS = 'macOS OS = 'FreeBSD OS = 'NetBSD OS = 'Android] [
 				_stat   fd s
 			][	_stat 3 fd s]
 			close-file fd
@@ -866,7 +866,7 @@ simple-io: context [
 					new?: no
 					s/1: null-byte
 					w: as red-value! word/push* symbol/make as-c-string p
-					res: map/eval-path mp w null null null null -1 no no no
+					res: map/eval-path mp w null null null null -1 no no no no
 					either TYPE_OF(res) = TYPE_NONE [
 						new?: yes
 					][
@@ -1105,6 +1105,20 @@ simple-io: context [
 			res
 		]
 	][
+	#either config-name = 'pico [
+		request-http: func [
+			method	[integer!]
+			url		[red-url!]
+			header	[red-block!]
+			data	[red-value!]
+			binary? [logic!]
+			lines?	[logic!]
+			info?	[logic!]
+			return: [red-value!]
+		][
+			as red-value! none-value
+		]
+	][
 		#either OS = 'macOS [
 		#define libcurl-file "libcurl.dylib"
 		#import [
@@ -1308,7 +1322,7 @@ simple-io: context [
 					new?: no
 					s/1: null-byte
 					w: as red-value! word/push* symbol/make as-c-string p
-					res: map/eval-path mp w null null null null -1 no no no
+					res: map/eval-path mp w null null null null -1 no no no no
 					either TYPE_OF(res) = TYPE_NONE [
 						new?: yes
 					][
@@ -1491,7 +1505,7 @@ simple-io: context [
 			]
 			as red-value! bin
 		]
-	]
+	]]
 
 	rename: func[
 		from	[red-value!]

@@ -133,6 +133,12 @@ red: context [
 		if system/options/args [quit/return 1]
 		halt
 	]
+	
+	cut-lines: func [s [string!] n [integer!] /local c p][
+		c: 0
+		parse s [any [#"^/" p: (if n <= (c: c + 1) [append clear p "...]"]) | skip]]
+		s
+	]
 
 	throw-error: func [err [word! string! block!] /near code [block!]][
 		print [
@@ -143,6 +149,17 @@ red: context [
 			"^/*** in file:" any [attempt [to-local-file script-name] "??"]
 			;either locals [join "^/*** in function: " func-name][""]
 		]
+		if pc [
+			print [
+				;"*** at line:" calc-line lf
+				"*** near:" cut-lines mold any [code copy/part pc 8] 40
+			]
+		]
+		quit-on-error
+	]
+
+	fail: func [err [string! block!] /near code [block!]][
+		print ["*** Compiler Internal Error:" reform err]
 		if pc [
 			print [
 				;"*** at line:" calc-line lf
@@ -310,11 +327,14 @@ red: context [
 	tuple-value?:	func [value][value/1 = #"~"]
 	money-value?:	func [value][value/1 = #"$"]
 	ref-value?:		func [value][value/1 = #"@"]
+	type-value?:	func [value][all [value/1 = #"!" value/2 = #"~"]]
 	percent-value?: func [value][#"%" = last value]
 	
 	date-special?: func [value][all [block? value value/1 = #!date!]]
 	map-value?:	   func [value][all [block? value value/1 = #!map!]]
 	ipv6-value?:   func [value][all [block? value value/1 = #!ipv6!]]
+	map-value?:     func [value][all [block? value value/1 = #!map!]]
+	point-value?:   func [value][all [block? value value/1 = #!point!]]
 	
 	insert-lf: func [pos][
 		new-line skip tail output pos yes
@@ -506,7 +526,7 @@ red: context [
 					attempt [idx: get-word-index/with name ctx]
 				][
 					repend blk [
-						'word/push-local
+						pick [get-word/push-local word/push-local] get-word? original
 						either parent-object? obj ['octx][ctx] ;-- optional parametrized context reference (octx)
 						idx
 					]
@@ -621,22 +641,31 @@ red: context [
 		]
 	]
 	
-	emit-native: func [name [word!] /with options [block!] /local wrap? pos body][
+	emit-native: func [name [word!] /with options [block!] /applied code [block!] /local wrap? pos body][
 		if wrap?: to logic! find [parse do] name [
-			emit [
+			emit compose [
 				assert system/thrown = 0
-				switch
+				(either applied [first [system/thrown:]]['switch])
 			]
 		]
-		emit join natives-prefix to word! join name #"*"
-		emit 'true										;-- request run-time type-checking
-		pos: either with [
-			emit options
-			-2 - length? options
+		either applied [
+			emit code
+			insert-lf -2
+			if wrap? [
+				emit [switch system/thrown]
+				insert-lf -2
+			]
 		][
-			-2
+			emit join natives-prefix to word! join name #"*"
+			emit 'true										;-- request run-time type-checking
+			pos: either with [
+				emit options
+				-2 - length? options
+			][
+				-2
+			]
+			insert-lf pos - pick [1 0] wrap?
 		]
-		insert-lf pos - pick [1 0] wrap?
 		if wrap? [
 			emit build-exception-handler
 			emit [
@@ -685,6 +714,13 @@ red: context [
 			new-line/all/skip skip list 3 on 4
 			reduce ['all list]
 		]
+	]
+	
+	get-native-ID: func [name [word!] native? [logic!] /local id][
+		name: join pick ["NAT_" "ACT_"] native? replace/all uppercase form name #"-" #"_"
+		id: select extracts/definitions to-word name
+		unless integer? id [fail ["get-native-ID failed on:" name native?]]
+		id
 	]
 	
 	get-RS-type-ID: func [name [word! datatype!] /word /local type][ ;-- Red type name to R/S type ID
@@ -762,6 +798,18 @@ red: context [
 		]
 	]
 	
+	symbol-index?: 	func [spec [block!] name [word!] /local c p][
+		c: 0
+		parse spec [
+			some [
+				p: [word! | refinement! | lit-word! | get-word!]
+				   (if name = to word! p/1 [return c] c: c + 1)
+				| skip
+			]
+		]
+		fail ["symbol" mold name "not found in local context:" mold spec]
+	]
+	
 	emit-argument-type-check: func [
 		index [integer!] name [word!] slot [block! word! path!]
 		/local spec count arg
@@ -835,7 +883,7 @@ red: context [
 	]
 	
 	generate-anon-name: has [name][
-		add-symbol name: to word! rejoin ["<anon" get-counter #">"]
+		add-symbol name: to word! rejoin ["~anon" get-counter #"~"]
 		name
 	]
 	
@@ -1103,9 +1151,10 @@ red: context [
 			]
 		][
 			remove/part path 2
+			if paren? path/1 [path/1: do path/1]
 			if get? [path/1: to get-word! path/1]
 			either 1 = length? path [
-				switch type?/word pc/1: load mold path [
+				switch type?/word pc/1: any [attempt [load mold path] path/1][
 					set-word!	[comp-set-word]
 					word!		[comp-word]
 					get-word!	[comp-word/literal]
@@ -1209,10 +1258,10 @@ red: context [
 		flags: 0
 		foreach attrib spec/1 [
 			unless word? attrib [do-error]
-			flags: switch attrib [						;-- keep those flags synced with %runtime/definitions.reds
+			flags: switch/default attrib [				;-- keep those flags synced with %runtime/definitions.reds
 				trace	 [flags or to-integer #{00000400}]
 				no-trace [flags or to-integer #{00000200}]
-			]
+			][0]
 		]
 		flags
 	]
@@ -1652,19 +1701,10 @@ red: context [
 		emit to integer! copy/part bin 4
 		emit to integer! skip bin 4
 	]
-
-	emit-fp-special: func [value [issue!]][
-		switch next value [
-			#INF  [emit to integer! #{7FF00000} emit 0]
-			#INF- [emit to integer! #{FFF00000} emit 0]
-			#NaN  [emit to integer! #{7FF80000} emit 0]			;-- smallest quiet NaN
-			#0-	  [emit to integer! #{80000000} emit 0]
-		]
-	]
-
+	
 	comp-literal: func [
 		/inactive /with val
-		/local value char? special? percent? map? tuple? money? ref? dt-special? ipv6?
+		/local value char? special? percent? map? tuple? money? ref? dt-special? point? dtype? ipv6?
 			   name w make-block type idx zone
 	][
 		make-block: [
@@ -1678,8 +1718,9 @@ red: context [
 		value: either with [val][pc/1]					;-- val can be NONE
 		map?: map-value? :value
 		ipv6?: ipv6-value? :value
-		dt-special?: date-special? value
-
+		dt-special?: date-special? :value
+		point?: point-value? :value
+		
 		either any [
 			all [
 				issue? :value
@@ -1690,12 +1731,14 @@ red: context [
 					tuple?:	  tuple-value? value
 					money?:	  money-value? value
 					ref?:	  ref-value? value
+					dtype?:	  type-value? value
 				]
 			]
 			scalar? :value
 			map?
 			ipv6?
 			dt-special?
+			point?
 		][
 			case [
 				char? [
@@ -1711,7 +1754,7 @@ red: context [
 				]
 				special? [
 					emit 'float/push64
-					emit-fp-special value
+					emit IEEE-754/to-binary64/split value
 					insert-lf -3
 				]
 				map? [
@@ -1748,6 +1791,11 @@ red: context [
 					emit 'ref/push
 					emit compose [as red-string! get-root (idx)]
 					insert-lf -5
+				]
+				dtype? [
+					emit 'datatype/push
+					emit get-RS-type-ID to-word form skip value 2
+					insert-lf -2
 				]
 				find [refinement! issue!] type?/word :value [
 					w: to word! form value
@@ -1798,6 +1846,12 @@ red: context [
 					emit 'date/push
 					emit reduce [encode-date value encode-UTC-time value/time value/zone]
 					insert-lf -4
+				]
+				point? [
+					type: pick [point2D point3D] 2 = length? value: next value
+					emit append to-path type 'push
+					foreach v value [emit reduce ['as-float32 either integer? v [to-decimal v][v]]]
+					insert-lf -5
 				]
 				'else [
 					emit to path! reduce [to word! form type? :value 'push]
@@ -2529,14 +2583,13 @@ red: context [
 		insert-lf -9
 		
 		emit-open-frame 'forall
-		emit [loop natives/get-series-length as red-series! stack/arguments - 2]
-		insert-lf -7
+		emit 'forever
 		push-call 'forall
 		comp-sub-block 'forall-body						;-- compile body
 		pop-call
 		
 		append last output [							;-- inject at tail of body block
-			if natives/forall-next? [break]				;-- move series to next position
+			if natives/forall-next? [break]			;-- move series to next position
 		]
 		emit [
 			stack/unwind
@@ -2564,10 +2617,12 @@ red: context [
 		pc: next pc
 		
 		emit-open-frame 'remove-each
+		comp-expression/close-path						;-- compile series argument
+		emit-argument-type-check 1 'remove-each [stack/arguments]
 		emit [integer/push 0]							;-- store number of words to set
 		insert-lf -2
-		comp-expression/close-path						;-- compile series argument
-		emit-argument-type-check 1 'remove-each [stack/arguments + 1]
+		emit [stack/push stack/arguments]
+		insert-lf -2
 
 		either blk [
 			cond: compose [natives/foreach-next-block (length? blk)]
@@ -2593,7 +2648,7 @@ red: context [
 		]
 		pop-call
 		emit-close-frame
-		emit-close-frame
+		emit-close-frame/last
 	]
 	
 	comp-break: has [inner?][
@@ -2615,8 +2670,8 @@ red: context [
 			throw-error "CONTINUE used with no loop"
 		]
 		if 'forall = last loops [
-			emit 'natives/forall-next?					;-- move series to next position
-			insert-lf -1
+			emit copy/deep [if natives/forall-next? [break]]	;-- move series to next position
+			insert-lf -3
 		]
 		emit [stack/unroll-loop yes continue]
 		insert-lf -3
@@ -2817,11 +2872,12 @@ red: context [
 					name: generate-anon-name			;-- undetermined function assignment case
 				]
 			]
-			find [set-word! lit-word!] type?/word :original [
+			any [
+				all [set-word? :original]
+				global?: all [lit-word? :original pc/-2 = 'set]
+			][		
 				src-name: to word! original
-				unless global?: all [lit-word? :original pc/-2 = 'set][
-					src-name: get-prefix-func src-name
-				]
+				unless global? [src-name: get-prefix-func src-name]
 				name: check-func-name src-name
 				add-symbol/with word: to word! clean-lf-flag name to word! clean-lf-flag original
 				unless any [
@@ -3514,7 +3570,7 @@ red: context [
 		/thru
 		/local 
 			item name compact? refs ref? cnt pos ctx mark list offset emit-no-ref
-			args option stop? original
+			args option stop? original get? dyn-list blk native? code type v id
 	][
 		either all [not thru spec/1 = 'intrinsic!][
 			switch any [all [path? call call/1] call] keywords
@@ -3548,7 +3604,7 @@ red: context [
 				throw-error [call/1 "has no refinement"]
 			]
 			
-			either compact? [
+			either compact? [							;-- native/action/routine compact refinements case
 				refs: either spec/4 [
 					head insert/dup make block! 8 -1 (length? spec/4) / 3	;-- init with -1
 				][
@@ -3556,16 +3612,35 @@ red: context [
 				]
 				if path? call [
 					cnt: spec/2							;-- function base arity
+					get?: to-logic find call get-word!
 					foreach ref next call [
-						ref: to refinement! ref
+						ref: to refinement! original: ref
 						unless pos: find/skip spec/4 ref 3 [
 							throw-error [call/1 "has no refinement called" ref]
 						]
-						poke refs pos/2 cnt				;-- set refinement's arguments base offset
+						either get? [
+							unless dyn-list [dyn-list: make block! 2]
+							redirect-to blk: make block! 4 either get-word? original [
+								[emit-get-word to-word ref original]
+							][
+								[emit [logic/push true]]
+							]
+							repend dyn-list [to-paren blk pos/2 cnt pos/3]
+						][
+							poke refs pos/2 cnt				;-- set refinement's arguments base offset
+						]
 						unless stop? [
 							stop?: comp-arguments/ref spec/3 pos/3 ref ;-- fetch refinement arguments
 						]
 						cnt: cnt + pos/3				;-- increase by nb of arguments
+					]
+					if dyn-list [
+						insert dyn-list reduce [to-word form native?: spec/1 <> 'action! (length? spec/4) / 3]
+						insert dyn-list get-native-ID name native?
+						code: reduce ['call-with-array* dyn-list]
+						either native? [emit-native/applied name code][emit code insert-lf -2]
+						emit-close-frame
+						exit
 					]
 				]
 			][											;-- prepare function! stack layout
@@ -3580,14 +3655,20 @@ red: context [
 				either path? call [						;-- call with refinements?
 					ctx: copy spec/4					;-- get a new context block
 					foreach ref next call [
-						unless word? ref [throw-error ["incompatible type" ref "in" call]]
+						unless find [word! get-word!] type?/word ref [throw-error ["incompatible type" ref "in" call]]
 						option: to refinement! ref
 						
 						unless pos: find/skip spec/4 option 3 [
 							throw-error [call/1 "has no refinement called" ref]
 						]
+						get?: get-word? ref
 						offset: 2 + index? pos
-						poke ctx index? pos true		;-- switch refinement to true in context
+						v: either not get? [true][
+							unless dyn-list [dyn-list: make block! 2]
+							repend dyn-list [ref  symbol-index? spec/3 to word! ref  pos/3]
+							to-get-word ref
+						]
+						poke ctx index? pos v			;-- switch refinement to true or get-word in context
 						unless zero? args: pos/3 [		;-- process refinement's arguments
 							list: make block! 1
 							ctx/:offset: list 			;-- compiled refinement arguments storage
@@ -3600,18 +3681,29 @@ red: context [
 						]
 					]
 					forall ctx [						;-- push context values on stack
-						switch type?/word ctx/1 [
+						switch type: type?/word ctx/1 [
 							refinement! [				;-- unused refinement
-								args: ctx/3
+								args: either block? ctx/3 [length? ctx/3][ctx/3]
 								do emit-no-ref
 							]
-							logic! [					;-- used refinement
-								emit [logic/push true]
+							logic!
+							get-word! [					;-- used refinement
+								emit compose [logic/push (pick [true false] type = 'logic!)]
 								insert-lf -2
 								if block? ctx/3 [
 									foreach code ctx/3 [emit code] ;-- emit pre-compiled arguments
 								]
 							]
+						]
+					]
+					if dyn-list [
+						foreach [name idx nb] dyn-list [
+							mark: tail output
+							emit 'set-opt-refinement*
+							emit-get-word to-word name name
+							emit reduce [idx nb]
+							new-line/all mark off
+							insert-lf -5
 						]
 					]
 				][										;-- call with no refinements
@@ -3674,22 +3766,6 @@ red: context [
 				][
 					no
 				]
-			]
-			op! [
-				;entry: select functions to word! pc/3
-				;either find [action! native!] entry/1 [
-				;	name: to set-word! pc/3
-				;	redbin/emit-word/root/set? name none none
-				;	redbin/emit-op name
-				;	fetch-functions back pc
-				;	pc: skip pc 3
-				;	yes
-				;][
-					no
-				;]
-			]
-			typeset! [
-				no
 			]
 		][
 			no
@@ -4115,7 +4191,7 @@ red: context [
 						if value = type?/word arg [type: value break]
 					]
 				]
-				if type = 'any-type! [type: none]
+				if find [any-type! object!] type [type: none]
 			]
 			offset: either type [
 				cmd: to path! reduce [to word! form get type 'push]

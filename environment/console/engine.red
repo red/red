@@ -98,7 +98,8 @@ system/console: context [
 	init: routine [					;-- only used by CLI console
 		str [string!]
 		/local
-			ret
+			ret  [integer!]
+			size [red-pair!]
 	][
 		#either OS = 'Windows [
 			;ret: AttachConsole -1
@@ -112,6 +113,11 @@ system/console: context [
 		#if gui-console? = no [
 			terminal/init
 			terminal/init-globals
+			size: as red-pair! #get system/console/size
+			if any [zero? size/x zero? size/y][
+				size/x: 80			;-- set defaults when working with stdout
+				size/y: 50			;   as many output funcs rely on it
+			]
 		]
 	]
 
@@ -120,6 +126,7 @@ system/console: context [
 		paren!		#"("
 		string!		#"{"
 		map!		#"("
+		point2D!	#"("
 		path!		#"/"
 		lit-path!	#"/"
 		get-path!	#"/"
@@ -155,8 +162,10 @@ system/console: context [
 			error [
 				if type = error! [throw 'stop]			;-- unmatched "}"
 				if all [								;-- block! paren! map! have open-event, so just match delimiters
-					find [block! paren! map!] to-word type
+					find [block! paren! map! point2D!] to-word type
 					delimiter-map/:type = last delimiters
+					not find input #")"
+					not find input #"]"
 				][
 					throw 'break
 				]
@@ -171,7 +180,7 @@ system/console: context [
 					throw 'break
 				]
 				if all [
-					type = binary!						 ;-- binary! haven't open-event
+					type = binary!						;-- binary! haven't open-event
 					#"}" <> pick tail input -2
 				][
 					append delimiters #"{"

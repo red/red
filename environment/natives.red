@@ -168,17 +168,18 @@ do: make native! [[
 		"Evaluates a value, returning the last evaluation result"
 		value [any-type!]
 		/expand "Expand directives before evaluation"
-		/args "If value is a script, this will set its system/script/args"
+		/args	"If value is a script, this will set its system/script/args"
 			arg "Args passed to a script (normally a string)"
-		/next "Do next expression only, return it, update block word"
+		/next	"Do next expression only, return it, update block word"
 			position [word!] "Word updated with new block position"
 		/trace
 			callback [function! [
 				event	[word!]
-				code	[any-block!]
-				value 	[any-type!]
-				frame [pair!]			"current frame start/top positions"
-				return: [word! none!]
+				code	[any-block! none!]
+				offset	[integer!]
+				value	[any-type!]
+				ref		[any-type!]
+				frame	[pair!]
 			]]
 	]
 	#get-definition NAT_DO
@@ -341,8 +342,8 @@ bind: make native! [[
 
 in: make native! [[
 		"Returns the given word bound to the object's context"
-		object [any-object!]
-		word   [any-word!]
+		object [any-object! any-function!]
+		word   [any-word! refinement!]
 	]
 	#get-definition NAT_IN
 ]
@@ -507,7 +508,7 @@ to-hex: make native! [[
 sine: make native! [[
 		"Returns the trigonometric sine"
 		angle	[float! integer!]
-		/radians "Angle is specified in radians"
+		/radians "DEPRECATED: use `sin` native instead"
 		return: [float!]
 	]
 	#get-definition NAT_SINE
@@ -516,7 +517,7 @@ sine: make native! [[
 cosine: make native! [[
 		"Returns the trigonometric cosine"
 		angle	[float! integer!]
-		/radians "Angle is specified in radians"
+		/radians "DEPRECATED: use `cos` native instead"
 		return: [float!]
 	]
 	#get-definition NAT_COSINE
@@ -525,43 +526,43 @@ cosine: make native! [[
 tangent: make native! [[
 		"Returns the trigonometric tangent"
 		angle	[float! integer!]
-		/radians "Angle is specified in radians"
+		/radians "DEPRECATED: use `tan` native instead"
 		return: [float!]
 	]
 	#get-definition NAT_TANGENT
 ]
 
 arcsine: make native! [[
-		"Returns the trigonometric arcsine (in degrees by default in range [-90,90])"
+		"Returns the trigonometric arcsine in degrees in range [-90,90]"
 		sine	[float! integer!] "in range [-1,1]"
-		/radians "Angle is returned in radians [-pi/2,pi/2]"
+		/radians "DEPRECATED: use `asin` native instead"
 		return: [float!]
 	]
 	#get-definition NAT_ARCSINE
 ]
 
 arccosine: make native! [[
-		"Returns the trigonometric arccosine (in degrees by default in range [0,180])"
+		"Returns the trigonometric arccosine in degrees in range [0,180]"
 		cosine	[float! integer!] "in range [-1,1]"
-		/radians "Angle is returned in radians [0,pi]"
+		/radians "DEPRECATED: use `acos` native instead"
 		return: [float!]
 	]
 	#get-definition NAT_ARCCOSINE
 ]
 
 arctangent: make native! [[
-		"Returns the trigonometric arctangent (in degrees by default in range [-90,90])"
+		"Returns the trigonometric arctangent in degrees in range [-90,90]"
 		tangent	[float! integer!] "in range [-inf,+inf]"
-		/radians "Angle is returned in radians [-pi/2,pi/2]"
+		/radians "DEPRECATED: use `atan` native instead"
 		return: [float!]
 	]
 	#get-definition NAT_ARCTANGENT
 ]
 arctangent2: make native! [[
-		"Returns the smallest angle between the vectors (1,0) and (x,y) in degrees by default (-180,180]"
+		"Returns the smallest angle between the vectors (1,0) and (x,y) in degrees (-180,180]"
 		y       [float! integer!]
 		x       [float! integer!]
-		/radians "Angle is returned in radians (-pi,pi]"
+		/radians "DEPRECATED: use `atan2` native instead"
 		return: [float!]
 	]
 	#get-definition NAT_ARCTANGENT2
@@ -577,7 +578,7 @@ NaN?: make native! [[
 
 zero?: make native! [[
 		"Returns TRUE if the value is zero"
-		value	[number! money! pair! time! char! tuple!]
+		value	[number! money! pair! time! char! tuple! any-point!]
 		return: [logic!]
 	]
 	#get-definition NAT_ZERO?
@@ -585,7 +586,7 @@ zero?: make native! [[
 
 log-2: make native! [[
 		"Return the base-2 logarithm"
-		value	[float! integer!]
+		value	[float! integer! percent!]
 		return: [float!]
 	]
 	#get-definition NAT_LOG_2
@@ -593,7 +594,7 @@ log-2: make native! [[
 
 log-10: make native! [[
 		"Returns the base-10 logarithm"
-		value	[float! integer!]
+		value	[float! integer! percent!]
 		return: [float!]
 	]
 	#get-definition NAT_LOG_10
@@ -601,7 +602,7 @@ log-10: make native! [[
 
 log-e: make native! [[
 		"Returns the natural (base-E) logarithm of the given value"
-		value	[float! integer!]
+		value	[float! integer! percent!]
 		return: [float!]
 	]
 	#get-definition NAT_LOG_E
@@ -609,7 +610,7 @@ log-e: make native! [[
 
 exp: make native! [[
 		"Raises E (the base of natural logarithm) to the power specified"
-		value	[float! integer!]
+		value	[float! integer! percent!]
 		return: [float!]
 	]
 	#get-definition NAT_EXP
@@ -617,7 +618,7 @@ exp: make native! [[
 
 square-root: make native! [[
 		"Returns the square root of a number"
-		value	[float! integer!]
+		value	[float! integer! percent!]
 		return: [float!]
 	]
 	#get-definition NAT_SQUARE_ROOT
@@ -635,7 +636,7 @@ construct: make native! [[
 
 value?: make native! [[
 		"Returns TRUE if the word has a value"
-		value
+		value   [word!]
 		return: [logic!]
 	]
 	#get-definition NAT_VALUE?
@@ -676,6 +677,23 @@ as-pair: make native! [[
 		y [integer! float!]
 	]
 	#get-definition NAT_AS_PAIR
+]
+
+as-point2D: make native! [[
+		"Combine X and Y values into a 2D point"
+		x [integer! float!]
+		y [integer! float!]
+	]
+	#get-definition NAT_AS_POINT2D
+]
+
+as-point3D: make native! [[
+		"Combine X, Y and Z values into a 3D point"
+		x [integer! float!]
+		y [integer! float!]
+		z [integer! float!]
+	]
+	#get-definition NAT_AS_POINT3D
 ]
 
 as-money: make native! [[
@@ -903,7 +921,7 @@ size?: make native! [[
 ]
 
 browse: make native! [[
-		"Open web browser to a URL or file mananger to a local file"
+		"Opens the URL in a web browser or the file in the associated application"
 		url		[url! file!]
 	]
 	#get-definition NAT_BROWSE
@@ -961,4 +979,14 @@ transcode: make native! [[
 		return: [block!]
 	]
 	#get-definition NAT_TRANSCODE
+]
+
+apply: make native! [[
+		"Apply a function to a reduced block of arguments"
+		func	[word! path! any-function!] "Function to apply, with eventual refinements"
+		args	[block!]  "Block of args, reduced first"
+		/all			  "Provide every argument in the function spec, in order, tail-completed with false/none."
+		/safer			  "Forces single refinement arguments, skip them when inactive instead of evaluating"
+	]
+	#get-definition NAT_APPLY
 ]

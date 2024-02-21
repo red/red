@@ -46,6 +46,12 @@ log-pixels-y:		0
 screen-size-x:		0
 screen-size-y:		0
 
+#define CHECK_FACE_SIZE(size x y) [
+	if any [x > 65535 y > 65535][
+		fire [TO_ERROR(script invalid-arg) size]
+	]
+]
+
 get-face-obj: func [
 	handle		[handle!]
 	return:		[red-object!]
@@ -247,15 +253,10 @@ set-widget-child: func [
 		csym	[integer!]
 		clayout	[handle!]
 		playout	[handle!]
+		pt		[red-point2D!]
 ][
 	sym: get-widget-symbol parent
-	either TYPE_OF(offset) = TYPE_PAIR [
-		x: offset/x
-		y: offset/y
-	][
-		x: 0
-		y: 0
-	]
+	GET_PAIR_XY_INT(offset x y)
 	cvalues: get-face-values widget
 	ctype: as red-word! cvalues + FACE_OBJ_TYPE
 	csym: symbol/resolve ctype/symbol
@@ -320,9 +321,12 @@ set-widget-child-offset: func [
 		sym		[integer!]
 		cparent	[handle!]
 		alloc	[GtkAllocation! value]
+		pt		[red-point2D!]
+		x y		[integer!]
 ][
+	GET_PAIR_XY_INT(pos x y)
 	either type = window [
-		gtk_window_move widget pos/x pos/y
+		gtk_window_move widget x y
 	][
 		values: get-face-values widget
 		ntype: as red-word! values + FACE_OBJ_TYPE
@@ -336,7 +340,7 @@ set-widget-child-offset: func [
 			ntype: as red-word! values + FACE_OBJ_TYPE
 			sym: symbol/resolve ntype/symbol
 			cparent: get-face-child-layout parent sym
-			set-widget-offset cparent layout pos/x pos/y
+			set-widget-offset cparent layout x y
 		]
 		if type = base [
 			layout: GET-CARET-OWNER(widget)
@@ -386,7 +390,7 @@ get-child-from-xy: func [
 get-text-size: func [
 	face		[red-object!]
 	str			[red-string!]
-	pair		[red-pair!]
+	pt			[red-point2D!]
 	return:		[tagSIZE]
 	/local
 		values	[red-value!]
@@ -412,9 +416,9 @@ get-text-size: func [
 
 	size: pango-size? text hFont
 
-	if pair <> null [
-		pair/x: size/width
-		pair/y: size/height
+	if pt <> null [
+		pt/x: as float32! size/width
+		pt/y: as float32! size/height
 	]
 	size
 ]
@@ -460,6 +464,8 @@ free-handles: func [
 		cfg		[integer!]
 		last	[handle!]
 ][
+	if null? widget [exit]
+
 	values: get-face-values widget
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
@@ -705,6 +711,19 @@ get-os-version: func [
 	ver/array1: micro << 16 or (minor << 8) or major
 ]
 
+support-dark-mode?: func [
+	return: [logic!]
+][
+	false
+]
+
+set-dark-mode: func [
+	hWnd		[handle!]
+	dark?		[logic!]
+	top-level?	[logic!]
+][
+]
+
 init: func [][
 	get-os-version
 	gtk_disable_setlocale
@@ -792,7 +811,7 @@ remove-all-timers: func [
 
 		while [face < tail][
 			widget_: face-handle? face
-			unless null? widget [remove-all-timers widget_]
+			unless null? widget_ [remove-all-timers widget_]
 			face: face + 1
 		]
 	]
@@ -942,8 +961,10 @@ change-offset: func [
 	/local
 		parent	[handle!]
 ][
+	if TYPE_OF(pos) = TYPE_POINT2D [as-pair as red-point2D! pos]
 	parent: get-face-parent widget values type
 	set-widget-child-offset parent widget pos type
+	as-point2D pos
 ]
 
 change-size: func [
@@ -964,16 +985,21 @@ change-size: func [
 		max		[float!]
 		page	[float!]
 		adj		[handle!]
+		pt		[red-point2D!]
+		sx sy	[integer!]
 ][
+	GET_PAIR_XY_INT(size sx sy)
+	SET_PAIR_SIZE_FLAG(widget size)
+	CHECK_FACE_SIZE(size sx sy)
 	either type = window [
-		gtk_window_resize widget size/x size/y
+		gtk_window_resize widget sx sy
 		gtk_widget_queue_draw widget
 	][
 		values: get-face-values widget
 		ntype: as red-word! values + FACE_OBJ_TYPE
 		sym: symbol/resolve ntype/symbol
 		layout: get-face-layout widget sym
-		y: size/y
+		y: sy
 		if layout <> widget [
 			if type = rich-text [	;-- is scrollable
 				adj: gtk_scrollable_get_vadjustment widget
@@ -984,13 +1010,13 @@ change-size: func [
 				fy: max - min / page * fy
 				y: as-integer fy
 			]
-			gtk_widget_set_size_request layout size/x size/y
+			gtk_widget_set_size_request layout sx sy
 			gtk_widget_queue_resize layout
 		]
 		if type = rich-text [
-			gtk_layout_set_size widget size/x y
+			gtk_layout_set_size widget sx y
 		]
-		gtk_widget_set_size_request widget size/x size/y
+		gtk_widget_set_size_request widget sx sy
 		gtk_widget_queue_resize widget
 
 		if type = panel [
@@ -999,8 +1025,8 @@ change-size: func [
 				pl: gtk_label_get_layout label
 				x: 0 y: 0
 				pango_layout_get_pixel_size pl :x :y
-				x: either size/x > x [size/x - x / 2][0]
-				y: either size/y > y [size/y - y / 2][0]
+				x: either sx > x [sx - x / 2][0]
+				y: either sy > y [sy - y / 2][0]
 				gtk_layout_move widget label x y
 			]
 		]
@@ -1101,7 +1127,6 @@ change-data: func [
 		data		[red-value!]
 		word		[red-word!]
 		selected	[red-integer!]
-		size		[red-pair!]
 		f			[red-float!]
 		str			[red-string!]
 		caption		[c-string!]
@@ -1320,53 +1345,6 @@ set-logic-state: func [
 	]
 ]
 
-get-flags: func [
-	field		[red-block!]
-	return:		[integer!]									;-- return a bit-array of all flags
-	/local
-		word	[red-word!]
-		len		[integer!]
-		sym		[integer!]
-		flags	[integer!]
-][
-	switch TYPE_OF(field) [
-		TYPE_BLOCK [
-			word: as red-word! block/rs-head field
-			len: block/rs-length? field
-			if zero? len [return 0]
-		]
-		TYPE_WORD [
-			word: as red-word! field
-			len: 1
-		]
-		default [return 0]
-	]
-	flags: 0
-
-	until [
-		sym: symbol/resolve word/symbol
-		case [
-			sym = all-over	 [flags: flags or FACET_FLAGS_ALL_OVER]
-			sym = resize	 [flags: flags or FACET_FLAGS_RESIZE]
-			sym = no-title	 [flags: flags or FACET_FLAGS_NO_TITLE]
-			sym = no-border  [flags: flags or FACET_FLAGS_NO_BORDER]
-			sym = no-min	 [flags: flags or FACET_FLAGS_NO_MIN]
-			sym = no-max	 [flags: flags or FACET_FLAGS_NO_MAX]
-			sym = no-buttons [flags: flags or FACET_FLAGS_NO_BTNS]
-			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
-			sym = popup		 [flags: flags or FACET_FLAGS_POPUP]
-			sym = tri-state  [flags: flags or FACET_FLAGS_TRISTATE]
-			sym = scrollable [flags: flags or FACET_FLAGS_SCROLLABLE]
-			sym = password	 [flags: flags or FACET_FLAGS_PASSWORD]
-			true			 [fire [TO_ERROR(script invalid-arg) word]]
-		]
-		word: word + 1
-		len: len - 1
-		zero? len
-	]
-	flags
-]
-
 get-position-value: func [
 	pos			[red-float!]
 	maximun		[integer!]
@@ -1427,7 +1405,6 @@ init-combo-box: func [
 		tail	[red-string!]
 		len		[integer!]
 		val		[c-string!]
-		size	[integer!]
 ][
 	if any [
 		TYPE_OF(data) = TYPE_BLOCK
@@ -1436,8 +1413,6 @@ init-combo-box: func [
 	][
 		str:  as red-string! block/rs-head data
 		tail: as red-string! block/rs-tail data
-
-		size: block/rs-length? data
 
 		;remove all items
 		gtk_combo_box_text_remove_all combo
@@ -1606,6 +1581,7 @@ parse-common-opts: func [
 		w		[red-word!]
 		img		[red-image!]
 		bool	[red-logic!]
+		obj		[red-object!]
 		len		[integer!]
 		sym		[integer!]
 		cur		[c-string!]
@@ -1621,35 +1597,43 @@ parse-common-opts: func [
 		len: block/rs-length? options
 		if len % 2 <> 0 [exit]
 		while [len > 0][
-			sym: symbol/resolve word/symbol
-			case [
-				sym = _cursor [
-					w: word + 1
-					display: gtk_widget_get_display widget
-					either TYPE_OF(w) = TYPE_IMAGE [
-						img: as red-image! w
-						pixbuf: OS-image/to-pixbuf img 0 0
-						x: IMAGE_WIDTH(img/size) / 2
-						y: IMAGE_HEIGHT(img/size) / 2
-						hcur: gdk_cursor_new_from_pixbuf display pixbuf x y
-						;g_object_unref pixbuf
-					][
-						sym: symbol/resolve w/symbol
-						cur: case [
-							sym = _I-beam	["text"]
-							sym = _hand		["grab"]
-							sym = _cross	["crosshair"]
-							true			["default"]
+			if TYPE_OF(word) = TYPE_SET_WORD [
+				sym: symbol/resolve word/symbol
+				case [
+					sym = _cursor [
+						w: word + 1
+						display: gtk_widget_get_display widget
+						hcur: null
+						either TYPE_OF(w) = TYPE_IMAGE [
+							img: as red-image! w
+							pixbuf: OS-image/to-pixbuf img 0 0
+							x: IMAGE_WIDTH(img/size) / 2
+							y: IMAGE_HEIGHT(img/size) / 2
+							hcur: gdk_cursor_new_from_pixbuf display pixbuf x y
+							;g_object_unref pixbuf
+						][
+							if TYPE_OF(word) = TYPE_WORD [
+								sym: symbol/resolve w/symbol
+								cur: case [
+									sym = _I-beam	["text"]
+									sym = _hand		["grab"]
+									sym = _cross	["crosshair"]
+									true			["default"]
+								]
+								hcur: gdk_cursor_new_from_name display cur
+							]
 						]
-						hcur: gdk_cursor_new_from_name display cur
+						if hcur <> null [SET-CURSOR(widget hcur)]
 					]
-					SET-CURSOR(widget hcur)
+					sym = caret [
+						obj: as red-object! word + 1
+						if TYPE_OF(word) = TYPE_OBJECT [
+							owner: get-face-handle obj
+							SET-CARET-OWNER(widget owner)
+						]
+					]
+					true [0]
 				]
-				sym = caret [
-					owner: get-face-handle as red-object! word + 1
-					SET-CARET-OWNER(widget owner)
-				]
-				true [0]
 			]
 			word: word + 2
 			len: len - 2
@@ -1757,6 +1741,8 @@ OS-make-view: func [
 		x			[integer!]
 		y			[integer!]
 		gm			[GdkGeometry! value]
+		sx sy		[integer!]
+		pt			[red-point2D!]
 ][
 	stack/mark-native words/_body
 
@@ -1779,6 +1765,10 @@ OS-make-view: func [
 
 	bits: 	  get-flags as red-block! values + FACE_OBJ_FLAGS
 	sym: 	  symbol/resolve type/symbol
+
+	if TYPE_OF(offset) = TYPE_POINT2D [as-pair as red-point2D! offset]
+	GET_PAIR_XY_INT(size sx sy)
+	CHECK_FACE_SIZE(size sx sy)
 
 	caption: either TYPE_OF(str) = TYPE_STRING [
 		len: -1
@@ -1818,12 +1808,12 @@ OS-make-view: func [
 		]
 		sym = base [
 			widget: gtk_layout_new null null
-			gtk_layout_set_size widget size/x size/y
-			set-buffer widget size/x size/y color
+			gtk_layout_set_size widget sx sy
+			set-buffer widget sx sy color
 		]
 		sym = rich-text [
 			widget: gtk_layout_new null null
-			gtk_layout_set_size widget size/x size/y
+			gtk_layout_set_size widget sx sy
 			handle: gtk_im_multicontext_new
 			SET-IM-CONTEXT(widget handle)
 			gobj_signal_connect(handle "commit" :im-commit widget)
@@ -1851,7 +1841,7 @@ OS-make-view: func [
 		]
 		sym = scroller [
 			vadjust: gtk_adjustment_new 0.0 0.0 100.0 1.0 10.0 10.0
-			len: either size/y > size/x [1][0]
+			len: either sy > sx [1][0]
 			widget: gtk_scrollbar_new len vadjust
 			gobj_signal_connect(vadjust "value_changed" :scroller-value-changed widget)
 			set-scroller-pos widget values
@@ -1893,18 +1883,18 @@ OS-make-view: func [
 				gtk_widget_show hMenu
 				build-menu menu hMenu widget
 				gtk_box_pack_start winbox hMenu no yes 0
-				SET-CONTAINER-W(widget size/x)
-				SET-CONTAINER-H(widget size/y)
+				SET-CONTAINER-W(widget sx)
+				SET-CONTAINER-H(widget sy)
 			]
 			SET-HMENU(widget hMenu)
 
 			container: gtk_layout_new null null
-			gtk_layout_set_size container size/x size/y
+			gtk_layout_set_size container sx sy
 			gtk_widget_show container
 			gtk_box_pack_start winbox container yes yes 0
 			gtk_window_move widget offset/x offset/y
 
-			gtk_window_set_default_size widget size/x size/y
+			gtk_window_set_default_size widget sx sy
 			gtk_window_set_resizable widget (bits and FACET_FLAGS_RESIZE <> 0)
 			gm/min_width: 1
 			gm/min_height: 1
@@ -1914,14 +1904,14 @@ OS-make-view: func [
 		]
 		sym = camera [
 			widget: gtk_layout_new null null
-			gtk_layout_set_size widget size/x size/y
+			gtk_layout_set_size widget sx sy
 			init-camera widget data selected size
 		]
 		sym = calendar [
 			widget: gtk_calendar_new
 		]
 		sym = slider [
-			vertical?: size/y > size/x
+			vertical?: sy > sx
 			widget: gtk_scale_new_with_range vertical? 0.0 100.0 1.0
 			if vertical? [
 				gtk_range_set_inverted widget yes
@@ -1943,7 +1933,7 @@ OS-make-view: func [
 			unless null? caption [
 				gtk_entry_buffer_set_text buffer caption -1
 			]
-			f32: (as float32! size/x - 18) / font-width? face font
+			f32: (as float32! sx - 18) / font-width? face font
 			gtk_entry_set_width_chars widget as-integer f32
 			set-hint-text widget as red-block! values + FACE_OBJ_OPTIONS
 			if bits and FACET_FLAGS_PASSWORD <> 0 [gtk_entry_set_visibility widget no]
@@ -1951,7 +1941,7 @@ OS-make-view: func [
 		]
 		sym = progress [
 			widget: gtk_progress_bar_new
-			if size/y > size/x [
+			if sy > sx [
 				gtk_orientable_set_orientation widget 1
 				gtk_progress_bar_set_inverted widget yes
 			]
@@ -1975,7 +1965,7 @@ OS-make-view: func [
 		]
 		sym = panel [
 			widget: gtk_layout_new null null
-			gtk_layout_set_size widget size/x size/y
+			gtk_layout_set_size widget sx sy
 		]
 		sym = tab-panel [
 			widget: gtk_notebook_new
@@ -1997,7 +1987,7 @@ OS-make-view: func [
 			widget: either sym = drop-list [gtk_combo_box_text_new][gtk_combo_box_text_new_with_entry]
 			init-combo-box widget data caption sym = drop-list
 			if sym = drop-down [
-				if size/x > 64 [value: size/x - 64]
+				if sx > 64 [value: sx - 64]
 				if value < 24 [value: 24]
 				f32: (as float32! value) / (font-width? face font)	;-- width / char width
 				gtk_entry_set_width_chars gtk_bin_get_child widget as-integer f32
@@ -2017,6 +2007,8 @@ OS-make-view: func [
 	assert TYPE_OF(face) = TYPE_OBJECT
 	store-face-to-obj widget face
 
+	SET_PAIR_SIZE_FLAG(widget size)
+
 	if all [
 		sym = panel
 		not null? caption
@@ -2028,8 +2020,8 @@ OS-make-view: func [
 		handle: gtk_label_get_layout buffer
 		x: 0 y: 0
 		pango_layout_get_pixel_size handle :x :y
-		x: either size/x > x [size/x - x / 2][0]
-		y: either size/y > y [size/y - y / 2][0]
+		x: either sx > x [sx - x / 2][0]
+		y: either sy > y [sy - y / 2][0]
 		gtk_layout_put widget buffer x y
 		SET-CAPTION(widget buffer)
 	]
@@ -2070,6 +2062,7 @@ OS-make-view: func [
 
 	if TYPE_OF(rate) <> TYPE_NONE [change-rate widget rate]
 
+	as-point2D offset
 	stack/unwind
 	as-integer widget
 ]
@@ -2229,6 +2222,8 @@ OS-destroy-view: func [
 		flags	[integer!]
 ][
 	handle: face-handle? face
+	if null? handle [exit]
+
 	values: object/get-values face
 	flags: get-flags as red-block! values + FACE_OBJ_FLAGS
 
@@ -2303,8 +2298,10 @@ OS-to-image: func [
 		word	[red-word!]
 		type	[integer!]
 		size	[red-pair!]
-		offset	[red-pair!]
+		offset	[red-point2D!]
 		ret		[red-image!]
+		pt		[red-point2D!]
+		sx sy	[integer!]
 ][
 	word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
 	type: symbol/resolve word/symbol
@@ -2325,16 +2322,17 @@ OS-to-image: func [
 			widget: face-handle? face
 			either null? widget [ret: as red-image! none-value][
 				size: as red-pair! (object/get-values face) + FACE_OBJ_SIZE
-				offset: as red-pair! (object/get-values face) + FACE_OBJ_OFFSET
+				offset: as red-point2D! (object/get-values face) + FACE_OBJ_OFFSET
 				win: gtk_widget_get_window widget
 				either not null? win [
+					GET_PAIR_XY_INT(size sx sy)
 					pixbuf: either any [
 						type = window
 						type = camera
 					][
-						gdk_pixbuf_get_from_window win 0 0 size/x size/y
+						gdk_pixbuf_get_from_window win 0 0 sx sy
 					][
-						gdk_pixbuf_get_from_window win offset/x offset/y size/x size/y
+						gdk_pixbuf_get_from_window win as-integer offset/x as-integer offset/y sx sy
 					]
 					ret: image/init-image as red-image! stack/push* OS-image/load-pixbuf pixbuf
 					;g_object_unref pixbuf

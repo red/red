@@ -73,6 +73,8 @@ version-info: 	declare OSVERSIONINFO
 current-msg: 	as tagMSG 0
 wc-extra:		80										;-- reserve 64 bytes for win32 internal usage (arbitrary)
 wc-offset:		60										;-- offset to our 16+4 bytes
+win11?:			no
+win10+?:		no
 win8+?:			no
 winxp?:			no
 DWM-enabled?:	no										;-- listen for composition state changes by handling the WM_DWMCOMPOSITIONCHANGED notification
@@ -82,7 +84,7 @@ ime-open?:		no
 ime-font:		as tagLOGFONT allocate 92
 base-down-hwnd: as handle! 0
 
-dpi-factor:		100
+dpi-factor:		as float32! 1.0
 inital-dpi:		96
 log-pixels-x:	0
 log-pixels-y:	0
@@ -93,18 +95,21 @@ default-font-name: as c-string! 0
 rc-cache:		declare RECT_STRUCT
 kb-state: 		allocate 256							;-- holds keyboard state for keys conversion
 
+dark-mode?:		no
+pShouldAppsUseDarkMode: as int-ptr! 0
+
 dpi-scale: func [
-	num		[integer!]
+	num		[float32!]
 	return: [integer!]
 ][
-	num * dpi-factor / 100
+	as-integer num * dpi-factor
 ]
 
 dpi-unscale: func [
-	num		[integer!]
-	return: [integer!]
+	num		[float32!]
+	return: [float32!]
 ][
-	num * 100 / dpi-factor
+	num / dpi-factor
 ]
 
 clean-up: does [
@@ -291,7 +296,7 @@ get-gesture-info: func [
 get-text-size: func [
 	face 	[red-object!]
 	str		[red-string!]
-	pair	[red-pair!]
+	pt		[red-point2D!]
 	/local
 		values 	[red-value!]
 		font	[red-object!]
@@ -322,9 +327,9 @@ get-text-size: func [
 	either IS_D2D_FACE(sym) [
 		GetClientRect hWnd :rc
 		render-text values hwnd dc :rc str :bbox
-		if pair <> null [
-			pair/x: as integer! bbox/width * (as float32! 98.0) / (as float32! dpi-factor)
-			pair/y: as integer! bbox/height * (as float32! 100.0) / (as float32! dpi-factor)
+		if pt <> null [
+			pt/x: bbox/width * as float32! 0.98 / dpi-factor
+			pt/y: bbox/height / dpi-factor
 		]
 	][	;-- native controls use GDI to draw the text, so we use GDI function to measure the text size
 		font: as red-object! values + FACE_OBJ_FONT
@@ -340,9 +345,9 @@ get-text-size: func [
 		c-str: unicode/to-utf16 str
 		GetTextExtentPoint32 dc c-str wcslen c-str :size
 
-		if pair <> null [
-			pair/x: size/width + 1 * 100 / dpi-factor	;-- +1 to compensate the precision loss
-			pair/y: size/height * 100 / dpi-factor
+		if pt <> null [
+			pt/x: (as float32! size/width) / dpi-factor
+			pt/y: (as float32! size/height) / dpi-factor
 		]
 	]
 
@@ -561,11 +566,14 @@ update-caret: func [
 	/local
 		size  [red-pair!]
 		owner [handle!]
+		pt	  [red-point2D!]
+		x y	  [integer!]
 ][
 	size: as red-pair! values + FACE_OBJ_SIZE
+	GET_PAIR_XY_INT(size x y)
 	owner: as handle! GetWindowLong hWnd wc-offset - 24
-	CreateCaret owner null size/x size/y
-	change-offset hWnd as red-pair! values + FACE_OBJ_OFFSET caret
+	CreateCaret owner null x y
+	change-offset hWnd as red-point2D! values + FACE_OBJ_OFFSET caret
 ]
 
 update-selection: func [
@@ -701,6 +709,9 @@ free-faces: func [
 			;-- destroy the extra frame window
 			DestroyWindow as handle! GetWindowLong handle wc-offset - 4 as-integer handle
 		]
+		sym = panel [
+			DestroyWindow handle
+		]
 		true [
 			0
 			;; handle user-provided classes too
@@ -765,8 +776,6 @@ set-defaults: func [
 			len
 			#get system/view/fonts/system
 			UTF-16LE
-
-		font/lfHeight: font/lfHeight * log-pixels-y / inital-dpi	;-- font/lfHeight isn't affected by DPI change, we update it manually
 		integer/make-at 
 			#get system/view/fonts/size
 			0 - (font/lfHeight * 72 / log-pixels-y)
@@ -824,7 +833,7 @@ get-dpi: func [
 		log-pixels-y: GetDeviceCaps hScreen 90			;-- LOGPIXELSY
 	]
 	inital-dpi: log-pixels-x
-	dpi-factor: log-pixels-x * 100 / 96
+	dpi-factor: (as float32! log-pixels-x) / as float32! 96.0
 ]
 
 get-metrics: func [
@@ -870,6 +879,8 @@ init: func [
 	/local
 		ver   [red-tuple!]
 		int   [red-integer!]
+		dll	  [handle!]
+		;SetPreferredAppMode [SetPreferredAppMode!]
 ][
 	process-id:		GetCurrentProcessId
 	hScreen:		GetDC null
@@ -887,6 +898,7 @@ init: func [
 
 	DWM-enabled?: dwm-composition-enabled?
 
+	win10+?: version-info/dwMajorVersion >= 10
 	win8+?: any [
 		version-info/dwMajorVersion >= 10				;-- Win 10+
 		all [											;-- Win 8, Win 8.1
@@ -912,14 +924,71 @@ init: func [
 	int: as red-integer! #get system/view/platform/build
 	int/header: TYPE_INTEGER
 	int/value:  version-info/dwBuildNumber
+	win11?: version-info/dwBuildNumber >= 22000
 
 	int: as red-integer! #get system/view/platform/product
 	int/header: TYPE_INTEGER
 	int/value:  as-integer version-info/wProductType
 
 	get-metrics
-	
+
+	if win10+? [
+		dll: LoadLibraryA "uxtheme.dll"
+		if dll <> null [
+			pShouldAppsUseDarkMode: GetProcAddress dll as c-string! 132
+			dark-mode?: use-dark-mode?
+		]
+	]
+
 	collector/register as int-ptr! :on-gc-mark
+]
+
+use-dark-mode?: func [
+	return: [logic!]
+	/local
+		hc	[tagHIGHCONTRASTW value]
+		ShouldAppsUseDarkMode [ShouldAppsUseDarkMode!]
+][
+	either all [win10+? pShouldAppsUseDarkMode <> null][
+		ShouldAppsUseDarkMode: as ShouldAppsUseDarkMode! pShouldAppsUseDarkMode
+		hc/cbSize: size? tagHIGHCONTRASTW
+		SystemParametersInfo 42h size? tagHIGHCONTRASTW as int-ptr! :hc 0
+		all [
+			hc/dwFlags and 1 = 0	; Not High Contrast scheme
+			ShouldAppsUseDarkMode
+		]
+	][false]
+]
+
+support-dark-mode?: func [
+	return: [logic!]
+	/local
+		hc	[tagHIGHCONTRASTW value]
+][
+	either win10+? [
+		hc/cbSize: size? tagHIGHCONTRASTW
+		SystemParametersInfo 42h size? tagHIGHCONTRASTW as int-ptr! :hc 0
+		hc/dwFlags and 1 = 0	; Not High Contrast scheme
+	][false]
+]
+
+set-dark-mode: func [
+	hWnd		[handle!]
+	dark?		[logic!]
+	top-level?	[logic!]
+	/local
+		flag	[integer!]
+][
+	if top-level? [
+		flag: either dark? [1][0]
+		;-- set DWMWA_USE_IMMERSIVE_DARK_MODE. needed for titlebar
+		DwmSetWindowAttribute hWnd 20 :flag size? flag
+	]
+	either dark? [
+		SetWindowTheme hWnd #u16 "DarkMode_Explorer" null
+	][
+		SetWindowTheme hWnd #u16 "Explorer" null
+	]
 ]
 
 cleanup: does [
@@ -976,6 +1045,19 @@ window-border-info?: func [
 		width/value: (win/right - win/left) - client/right
 		height/value: (win/bottom - win/top) - client/bottom
 	]
+]
+
+transparent-win?: func [
+	color	[red-tuple!]
+	return: [logic!]
+][
+	either any [
+		TYPE_OF(color) <> TYPE_TUPLE
+		any [
+			TUPLE_SIZE?(color) = 3 
+			color/array1 and FF000000h = 0
+		]
+	][false][true]
 ]
 
 init-window: func [										;-- post-creation settings
@@ -1041,51 +1123,6 @@ set-logic-state: func [
 	]
 
 	SendMessage hWnd BM_SETCHECK value 0
-]
-
-get-flags: func [
-	field	[red-block!]
-	return: [integer!]									;-- return a bit-array of all flags
-	/local
-		word  [red-word!]
-		len	  [integer!]
-		sym	  [integer!]
-		flags [integer!]
-][
-	switch TYPE_OF(field) [
-		TYPE_BLOCK [
-			word: as red-word! block/rs-head field
-			len: block/rs-length? field
-			if zero? len [return 0]
-		]
-		TYPE_WORD [
-			word: as red-word! field
-			len: 1
-		]
-		default [return 0]
-	]
-	flags: 0
-	
-	loop len [
-		sym: symbol/resolve word/symbol
-		case [
-			sym = all-over	 [flags: flags or FACET_FLAGS_ALL_OVER]
-			sym = resize	 [flags: flags or FACET_FLAGS_RESIZE]
-			sym = no-title	 [flags: flags or FACET_FLAGS_NO_TITLE]
-			sym = no-border  [flags: flags or FACET_FLAGS_NO_BORDER]
-			sym = no-min	 [flags: flags or FACET_FLAGS_NO_MIN]
-			sym = no-max	 [flags: flags or FACET_FLAGS_NO_MAX]
-			sym = no-buttons [flags: flags or FACET_FLAGS_NO_BTNS]
-			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
-			sym = popup		 [flags: flags or FACET_FLAGS_POPUP]
-			sym = tri-state  [flags: flags or FACET_FLAGS_TRISTATE]
-			sym = scrollable [flags: flags or FACET_FLAGS_SCROLLABLE]
-			sym = password	 [flags: flags or FACET_FLAGS_PASSWORD]
-			true			 [fire [TO_ERROR(script invalid-arg) word]]
-		]
-		word: word + 1
-	]
-	flags
 ]
 
 get-logic-state: func [
@@ -1158,17 +1195,17 @@ get-text: func [
 
 get-position-value: func [
 	pos		[red-float!]
-	maximum [integer!]
+	maximum [float32!]
 	return: [integer!]
 	/local
-		f	[float!]
+		f	[float32!]
 ][
-	f: 0.0
+	f: as float32! 0.0
 	if any [
 		TYPE_OF(pos) = TYPE_FLOAT
 		TYPE_OF(pos) = TYPE_PERCENT
 	][
-		f: pos/value * as-float maximum
+		f: maximum * as float32! pos/value
 	]
 	as-integer f
 ]
@@ -1227,7 +1264,7 @@ get-screen-size: func [
 ][
 	screen-size-x: GetDeviceCaps hScreen HORZRES
 	screen-size-y: GetDeviceCaps hScreen VERTRES
-	pair/push screen-size-x * 100 / dpi-factor screen-size-y * 100 / dpi-factor
+	pair/push screen-size-x * 96 / log-pixels-x screen-size-y * 96 / log-pixels-x
 ]
 
 dwm-composition-enabled?: func [
@@ -1320,34 +1357,40 @@ parse-common-opts: func [
 		word: as red-word! block/rs-head options
 		len: block/rs-length? options
 		if len % 2 <> 0 [exit]
+		
 		while [len > 0][
-			sym: symbol/resolve word/symbol
-			case [
-				sym = _cursor [
-					w: word + 1
-					either TYPE_OF(w) = TYPE_IMAGE [
-						img: as red-image! w
-						bitmap: OS-image/to-gpbitmap img :lock
-						GdipCreateHICONFromBitmap bitmap :sym
-						OS-image/release-gpbitmap bitmap :lock
-					][
-						sym: symbol/resolve w/symbol
-						sym: case [
-							sym = _I-beam		[IDC_IBEAM]
-							sym = _hand			[32649]			;-- IDC_HAND
-							sym = _cross		[32515]
-							sym = _resize-ns	[32645]
-							any [
-								sym = _resize-ew
-								sym = _resize-we
-							]					[32644]
-							true				[IDC_ARROW]
+			if TYPE_OF(word) = TYPE_SET_WORD [
+				sym: symbol/resolve word/symbol
+				case [
+					sym = _cursor [
+						w: word + 1
+						either TYPE_OF(w) = TYPE_IMAGE [
+							img: as red-image! w
+							bitmap: OS-image/to-gpbitmap img :lock
+							GdipCreateHICONFromBitmap bitmap :sym
+							OS-image/release-gpbitmap bitmap :lock
+							SetWindowLong hWnd wc-offset - 28 sym
+						][
+							if TYPE_OF(w) = TYPE_WORD [
+								sym: symbol/resolve w/symbol
+								sym: case [
+									sym = _I-beam		[IDC_IBEAM]
+									sym = _hand			[32649]			;-- IDC_HAND
+									sym = _cross		[32515]
+									sym = _resize-ns	[32645]
+									any [
+										sym = _resize-ew
+										sym = _resize-we
+									]					[32644]
+									true				[IDC_ARROW]
+								]
+								sym: as-integer LoadCursor null sym
+								SetWindowLong hWnd wc-offset - 28 sym
+							]
 						]
-						sym: as-integer LoadCursor null sym
 					]
-					SetWindowLong hWnd wc-offset - 28 sym
+					true [0]
 				]
-				true [0]
 			]
 			word: word + 2
 			len: len - 2
@@ -1387,7 +1430,7 @@ OS-make-view: func [
 		values	  [red-value!]
 		type	  [red-word!]
 		str		  [red-string!]
-		offset	  [red-pair!]
+		offset	  [red-point2D!]
 		size	  [red-pair!]
 		data	  [red-block!]
 		menu	  [red-block!]
@@ -1398,7 +1441,7 @@ OS-make-view: func [
 		rate	  [red-value!]
 		options	  [red-block!]
 		fl		  [red-float!]
-		flags	  [integer!]
+		flags n	  [integer!]
 		ws-flags  [integer!]
 		bits	  [integer!]
 		sym		  [integer!]
@@ -1419,6 +1462,9 @@ OS-make-view: func [
 		rc		  [RECT_STRUCT value]
 		si		  [tagSCROLLINFO]
 		ratio	  [float!]
+		sx sy f32 [float32!]
+		pt		  [red-point2D!]
+		ex-flags  [integer!]
 ][
 	stack/mark-native words/_body
 
@@ -1426,7 +1472,7 @@ OS-make-view: func [
 
 	type:	  as red-word!		values + FACE_OBJ_TYPE
 	str:	  as red-string!	values + FACE_OBJ_TEXT
-	offset:   as red-pair!		values + FACE_OBJ_OFFSET
+	offset:   as red-point2D!	values + FACE_OBJ_OFFSET
 	size:	  as red-pair!		values + FACE_OBJ_SIZE
 	show?:	  as red-logic!		values + FACE_OBJ_VISIBLE?
 	enabled?: as red-logic!		values + FACE_OBJ_ENABLED?
@@ -1438,6 +1484,18 @@ OS-make-view: func [
 	options:  as red-block!		values + FACE_OBJ_OPTIONS
 	
 	bits: 	  get-flags as red-block! values + FACE_OBJ_FLAGS
+
+	if TYPE_OF(offset) = TYPE_PAIR [as-point2D as red-pair! offset]
+	either TYPE_OF(size) = TYPE_PAIR [
+		sx: as float32! size/x
+		sy: as float32! size/y
+		ex-flags: PAIR_SIZE_FACET
+	][
+		ex-flags: 0
+		pt: as red-point2D! size
+		sx: pt/x
+		sy: pt/y
+	]
 
 	flags: 	  WS_CHILD or WS_CLIPSIBLINGS
 	ws-flags: 0
@@ -1482,8 +1540,16 @@ OS-make-view: func [
 			sym = group-box
 		][
 			class: #u16 "RedPanel"
-			init-panel values as handle! parent
-			panel?: yes
+			either all [
+				parent <> 0
+				(WS_EX_LAYERED and GetWindowLong as handle! parent GWL_EXSTYLE) <> 0
+			][
+				alpha?: yes
+				ws-flags: WS_EX_LAYERED
+			][
+				init-panel values as handle! parent
+				panel?: yes
+			]
 		]
 		sym = tab-panel [
 			class: #u16 "RedTabPanel"
@@ -1520,31 +1586,39 @@ OS-make-view: func [
 		]
 		sym = progress [
 			class: #u16 "RedProgress"
-			if size/y > size/x [flags: flags or PBS_VERTICAL]
+			if sy > sx [flags: flags or PBS_VERTICAL]
 		]
 		sym = slider [
 			class: #u16 "RedSlider"
-			if size/y > size/x [
+			if sy > sx [
 				flags: flags or TBS_VERT or TBS_DOWNISLEFT
 			]
 		]
 		sym = scroller [
 			class: #u16 "RedScroller"
-			if size/y > size/x [flags: flags or SBS_VERT]
+			if sy > sx [flags: flags or SBS_VERT]
 		]
 		any [sym = base sym = rich-text][
 			class: #u16 "RedBase"
-			alpha?: transparent-base?
-				as red-tuple! values + FACE_OBJ_COLOR
-				as red-image! values + FACE_OBJ_IMAGE
-			
-			either alpha? [
-				either win8+? [ws-flags: WS_EX_LAYERED][
-					ws-flags: WS_EX_LAYERED or WS_EX_TOOLWINDOW
-					flags: WS_POPUP
-				]
+			either all [
+				parent <> 0
+				(WS_EX_LAYERED and GetWindowLong as handle! parent GWL_EXSTYLE) <> 0
 			][
-				ws-flags: set-layered-option options win8+?
+				alpha?: yes
+				ws-flags: WS_EX_LAYERED
+			][
+				alpha?: transparent-base?
+					as red-tuple! values + FACE_OBJ_COLOR
+					as red-image! values + FACE_OBJ_IMAGE
+				
+				either alpha? [
+					either win8+? [ws-flags: WS_EX_LAYERED][
+						ws-flags: WS_EX_LAYERED or WS_EX_TOOLWINDOW
+						flags: WS_POPUP
+					]
+				][
+					ws-flags: set-layered-option options win8+?
+				]
 			]
 		]
 		sym = camera [
@@ -1574,13 +1648,20 @@ OS-make-view: func [
 			]
 
 			if bits and FACET_FLAGS_NO_TITLE  <> 0 [flags: WS_POPUP or WS_BORDER]
-			if bits and FACET_FLAGS_NO_BORDER <> 0 [flags: WS_POPUP]
-			if size/x < 0 [size/x: 200]
-			if size/y < 0 [size/y: 200]
+			if bits and FACET_FLAGS_NO_BORDER <> 0 [
+				flags: WS_POPUP
+				;; NB: use layered window only with no-border flag
+				;; layered window doesn't work with border somehow
+				alpha?: transparent-win? as red-tuple! values + FACE_OBJ_COLOR
+				n: either alpha? [WS_EX_LAYERED][set-layered-option options win8+?]
+				ws-flags: ws-flags or n
+			]
+			if sx < as float32! 0.0 [sx: as float32! 200.0]
+			if sy < as float32! 0.0 [sy: as float32! 200.0]
 			rc/left: 0
 			rc/top: 0
-			rc/right:  dpi-scale size/x
-			rc/bottom: dpi-scale size/y
+			rc/right:  dpi-scale sx
+			rc/bottom: dpi-scale sy
 			AdjustWindowRectEx rc flags menu-bar? menu window ws-flags
 			rc/right: rc/right - rc/left
 			rc/bottom: rc/bottom - rc/top
@@ -1621,8 +1702,8 @@ OS-make-view: func [
 	off-x:	dpi-scale offset/x
 	off-y:	dpi-scale offset/y
 	if sym <> window [
-		rc/right:	dpi-scale size/x
-		rc/bottom:	dpi-scale size/y
+		rc/right:	dpi-scale sx
+		rc/bottom:	dpi-scale sy
 	]
 
 	handle: CreateWindowEx
@@ -1641,6 +1722,7 @@ OS-make-view: func [
 
 	if null? handle [print-line "*** View Error: CreateWindowEx failed!"]
 
+	SetWindowLong handle wc-offset - 12 ex-flags
 	if any [win8+? not alpha?][BringWindowToTop handle]
 	set-font handle face values
 
@@ -1653,7 +1735,8 @@ OS-make-view: func [
 	case [
 		sym = camera	[init-camera handle data selected false]
 		sym = text-list [init-text-list handle data selected]
-		sym = base		[init-base-face handle parent values alpha?]
+		sym = base		[init-base-face handle parent values alpha? ex-flags]
+		sym = panel		[if alpha? [init-base-face handle parent values alpha? ex-flags]]
 		sym = tab-panel [set-tabs handle values]
 		any [
 			sym = button
@@ -1690,10 +1773,11 @@ OS-make-view: func [
 			sym = slider
 			sym = progress
 		][
-			vertical?: size/y > size/x
-			value: either vertical? [size/y][size/x]
-			off-x: get-position-value as red-float! data value
-			if vertical? [off-x: size/y - off-x]
+			vertical?: sy > sx
+			f32: either vertical? [sy][sx]
+			off-x: get-position-value as red-float! data f32
+			value: as-integer f32
+			if vertical? [off-x: (as-integer sy) - off-x]
 			either sym = slider [
 				SendMessage handle TBM_SETRANGE 1 value << 16
 				SendMessage handle TBM_SETPOS 1 off-x
@@ -1745,8 +1829,8 @@ OS-make-view: func [
 			if TYPE_OF(selected) <> TYPE_NONE [change-selection handle selected values]
 		]
 		sym = rich-text [
-			init-base-face handle parent values alpha?
-			SetWindowLong handle wc-offset - 12 BASE_FACE_D2D or BASE_FACE_IME
+			ex-flags: ex-flags or (BASE_FACE_D2D or BASE_FACE_IME)
+			init-base-face handle parent values alpha? ex-flags
 		]
 		sym = calendar [
 			init-calendar handle as red-value! data
@@ -1754,6 +1838,7 @@ OS-make-view: func [
 		]
 		sym = window [
 			init-window handle
+			if alpha? [init-base-face handle parent values alpha? ex-flags]
 			#if sub-system = 'gui [
 				with clipboard [
 					if null? main-hWnd [main-hWnd: handle]
@@ -1784,11 +1869,27 @@ change-size: func [
 		max		[integer!]
 		msg		[integer!]
 		layer?	[logic!]
-		pos		[red-pair!]
+		pos		[red-point2D!]
 		sz-x	[integer!]
 		sz-y	[integer!]
+		sx sy	[float32!]
+		pt		[red-point2D!]
+		flags	[integer!]
 ][
 	size: as red-pair! vals + FACE_OBJ_SIZE
+	flags: GetWindowLong hWnd wc-offset - 12 
+	either TYPE_OF(size) = TYPE_PAIR [
+		sx: as float32! size/x
+		sy: as float32! size/y
+		flags: flags or PAIR_SIZE_FACET
+	][
+		pt: as red-point2D! size
+		sx: pt/x
+		sy: pt/y
+		flags: flags and (not PAIR_SIZE_FACET)
+	]
+	SetWindowLong hWnd wc-offset - 12 flags
+
 	cx: 0
 	cy: 0
 	if type = window [window-border-info? hWnd null null :cx :cy]
@@ -1800,12 +1901,12 @@ change-size: func [
 	]
 
 	if layer? [
-		pos: as red-pair! vals + FACE_OBJ_OFFSET
+		pos: as red-point2D! vals + FACE_OBJ_OFFSET
 		process-layered-region hWnd size pos as red-block! vals + FACE_OBJ_PANE pos null layer?
 	]
 
-	sz-x: dpi-scale size/x
-	sz-y: dpi-scale size/y
+	sz-x: dpi-scale sx
+	sz-y: dpi-scale sy
 	SetWindowPos 
 		hWnd
 		as handle! 0
@@ -1819,9 +1920,7 @@ change-size: func [
 	]
 	case [
 		any [type = slider type = progress][
-			sz-x: size/x
-			sz-y: size/y
-			max: either sz-x > sz-y [sz-x][sz-y]
+			max: as-integer either sx > sy [sx][sy]
 			msg: either type = slider [TBM_SETRANGEMAX][max: max << 16 PBM_SETRANGE]
 			SendMessage hWnd msg 0 max					;-- do not force a redraw
 			change-data hWnd vals
@@ -1858,7 +1957,7 @@ set-ime-pos: func [
 
 change-offset: func [
 	hWnd [handle!]
-	pos  [red-pair!]
+	pos  [red-point2D!]
 	type [integer!]
 	/local
 		owner	[handle!]
@@ -1881,6 +1980,8 @@ change-offset: func [
 	header: 0
 	pt: as red-pair! :header
 	layer?: (GetWindowLong hWnd GWL_EXSTYLE) and WS_EX_LAYERED > 0
+
+	if TYPE_OF(pos) = TYPE_PAIR [as-point2D as red-pair! pos]
 
 	pos-x: dpi-scale pos/x
 	pos-y: dpi-scale pos/y
@@ -2043,7 +2144,13 @@ change-text: func [
 		str  [red-string!]
 		len  [integer!]
 ][
-	if type = base [
+	if any [
+		type = base
+		all [
+			type = window
+			(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) <> 0
+		]
+	][
 		update-base hWnd null null values
 		exit
 	]
@@ -2331,7 +2438,7 @@ change-parent: func [
 		bool		[red-logic!]
 		type		[red-word!]
 		values		[red-value!]
-		offset		[red-pair!]
+		offset		[red-point2D!]
 		pt			[tagPOINT value]
 		x			[integer!]
 		y			[integer!]
@@ -2368,7 +2475,7 @@ change-parent: func [
 			pos: GetWindowLong hWnd wc-offset - 8
 			x: WIN32_LOWORD(pos)
 			y: WIN32_HIWORD(pos)
-			offset: as red-pair! values + FACE_OBJ_OFFSET
+			offset: as red-point2D! values + FACE_OBJ_OFFSET
 			pt/x: dpi-scale offset/x
 			pt/y: dpi-scale offset/y
 			position-base hWnd handle :pt
@@ -2498,7 +2605,7 @@ OS-update-view: func [
 	flags: int/value
 
 	if flags and FACET_FLAG_OFFSET <> 0 [
-		change-offset hWnd as red-pair! values + FACE_OBJ_OFFSET type
+		change-offset hWnd as red-point2D! values + FACE_OBJ_OFFSET type
 	]
 	if flags and FACET_FLAG_SIZE <> 0 [
 		change-size hWnd values type
@@ -2575,9 +2682,11 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_MENU <> 0 [
 		menu: as red-block! values + FACE_OBJ_MENU
-		if menu-bar? menu window [
-			DestroyMenu GetMenu hWnd
+		DestroyMenu GetMenu hWnd
+		either menu-bar? menu window [
 			SetMenu hWnd build-menu menu CreateMenu
+		][
+			SetMenu hWnd null
 		]
 	]
 	if flags and FACET_FLAG_IMAGE <> 0 [
@@ -2693,8 +2802,8 @@ OS-to-image: func [
 	screen?: screen = sym
 	either screen? [
 		size: as red-pair! get-node-facet face/ctx FACE_OBJ_SIZE
-		width: dpi-scale size/x
-		height: dpi-scale size/y
+		width: dpi-scale as float32! size/x
+		height: dpi-scale as float32! size/y
 		rc/left: 0
 		rc/top: 0
 		dc: hScreen

@@ -163,7 +163,7 @@ string: context [
 		]
 
 		either char? [
-			assert cp <= 0010FFFFh							;-- codepoint <= 10FFFFh
+			assert cp <= max-char-codepoint
 			if zero? value [
 				s/7: #"0"
 				s/8: #"0"
@@ -1040,8 +1040,6 @@ string: context [
 					unit
 
 				if op <> COMP_STRICT_EQUAL [
-					if all [65 <= c1 c1 <= 90][c1: c1 + 32]	;-- lowercase c1
-					if all [65 <= c2 c2 <= 90][c2: c2 + 32] ;-- lowercase c2
 					c1: case-folding/change-char c1 yes	;-- uppercase c1
 					c2: case-folding/change-char c2 yes	;-- uppercase c2
 				]
@@ -1333,6 +1331,7 @@ string: context [
 			f	 [red-function!]
 			all? [logic!]
 			num  [integer!]
+			cnt  [integer!]
 			str1 [red-string!]
 			str2 [red-string!]
 			v1	 [red-value!]
@@ -1373,7 +1372,9 @@ string: context [
 			s2/tail: as red-value! (value2 + (num << (log-b unit)))
 		]
 
-		_function/call f global-ctx as red-value! words/_compare-cb	CB_SORT ;FIXME: hardcoded origin context
+		cnt: _function/count-locals f/spec 0 no
+		if positive? cnt [_function/init-locals cnt]
+		interpreter/call f f/ctx as red-value! words/_compare-cb CB_SORT
 		stack/unwind
 		stack/pop 1
 
@@ -1722,6 +1723,7 @@ string: context [
 		case?	[logic!]
 		get?	[logic!]
 		tail?	[logic!]
+		evt?	[logic!]
 		return:	[red-value!]
 		/local
 			int  [red-integer!]
@@ -2632,6 +2634,11 @@ string: context [
 			head2	[byte-ptr!]
 			chk? chk2? [logic!]
 	][
+		switch TYPE_OF(str2) [
+			TYPE_BINARY
+			TYPE_ANY_STRING [0]
+			default 		[fire [TO_ERROR(script invalid-arg) str2]]
+		]
 		s1:    GET_BUFFER(str1)
 		unit1: GET_UNIT(s1)
 		head1: (as byte-ptr! s1/offset) + (str1/head << (log-b unit1))
