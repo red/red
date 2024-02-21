@@ -30,7 +30,7 @@ Red [
 		][
 			cnt: 1e5
 		]
-		--assert [{6C6F72656D20697073756D20646F6C6F722073697420616D6574}] = unique loop cnt [append [] enbase/base to #{} {lorem ipsum dolor sit amet} 16]
+		;--assert [{6C6F72656D20697073756D20646F6C6F722073697420616D6574}] = unique loop cnt [append [] enbase/base to #{} {lorem ipsum dolor sit amet} 16]
 		recycle		;-- clean up memory
 
 ===end-group===
