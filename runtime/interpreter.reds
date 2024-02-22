@@ -934,9 +934,11 @@ interpreter: context [
 						get?		   [_context/find-word ctx ref/symbol no]
 						true		   [_context/bind-word ctx ref]
 					]
-					if index < 0 [fire [TO_ERROR(script no-refine) fname ref]]
 					value: head + index
-					assert all [value < tail TYPE_OF(value) = TYPE_REFINEMENT]
+					if any [
+						index < 0
+						all [value < tail TYPE_OF(value) <> TYPE_REFINEMENT]
+					][fire [TO_ERROR(script no-refine) fname ref]]
 					value: value + 1
 					sym-cnt: index + 1
 
