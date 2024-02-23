@@ -3640,9 +3640,9 @@ comment {
 		--assert 'zero-divide = get in try [1 / 0] 'id
 		
 	--test-- "#5485"
-		--assert error? set/any 'err try [do [f: func [x][]  f/x 1]]			;-- required DO to avoid the error being caught by compiler
+		--assert error? set/any 'err try [do [f: func [x][]  f/x 1]]	  ;-- required DO to avoid the error being caught by compiler
 		--assert err/id = 'no-refine
-		--assert error? set/any 'err try [do [f: func [x][]  f/x false]]		;-- required DO to avoid the error being caught by compiler
+		--assert error? set/any 'err try [do [f: func [x][]  f/x false]]  ;-- required DO to avoid the error being caught by compiler
 		--assert err/id = 'no-refine
 
 ===end-group===
