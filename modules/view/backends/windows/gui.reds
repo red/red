@@ -85,7 +85,7 @@ ime-font:		as tagLOGFONT allocate 92
 base-down-hwnd: as handle! 0
 
 dpi-factor:		as float32! 1.0
-inital-dpi:		96
+current-dpi:	96
 log-pixels-x:	0
 log-pixels-y:	0
 screen-size-x:	0
@@ -832,7 +832,7 @@ get-dpi: func [
 		log-pixels-x: GetDeviceCaps hScreen 88			;-- LOGPIXELSX
 		log-pixels-y: GetDeviceCaps hScreen 90			;-- LOGPIXELSY
 	]
-	inital-dpi: log-pixels-x
+	current-dpi: log-pixels-x
 	dpi-factor: (as float32! log-pixels-x) / as float32! 96.0
 ]
 
