@@ -80,7 +80,7 @@ display-about: function [][
 		txt bold "Red Programming Language" font [size: 15 color: white]
 		ver: txt font [size: 9 color: white]
 		at 153x86 image fstk-logo
-		at 0x160 small 360x20 "Copyright 2011-2022 - Red Foundation"
+		at 0x160 small 360x20 "Copyright 2011-2024 - Red Foundation"
 		at 0x180 small 360x20 "and contributors."
 		at 0x230 link red-lang font-size 10 font-color white
 		at 0x260 link github   font-size 10 font-color white
