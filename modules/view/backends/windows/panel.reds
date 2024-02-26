@@ -52,11 +52,16 @@ init-panel: func [
 			x: calc-rect/right  - calc-rect/left
 			y: calc-rect/bottom - calc-rect/top
 			either dpi-factor <> as float32! 1.0 [
-				pair/x: as-integer dpi-unscale as float32! x
-				pair/y: as-integer dpi-unscale as float32! y
+				x: as-integer dpi-unscale as float32! x
+				y: as-integer dpi-unscale as float32! y
 			][
-				pair/x: x + 4
-				pair/y: y + 3
+				x: x + 4
+				y: y + 3
+			]
+			if TYPE_OF(pair) = TYPE_POINT2D [
+				pt: as red-point2D! pair
+				pt/x: as float32! x
+				pt/y: as float32! y
 			]
 		]
 	]
