@@ -919,6 +919,7 @@ view: function [
 	;/modal					"Display a modal window (pop-up)"
 	/no-wait				"Return immediately - do not wait"
 	/no-sync				"Requires `show` calls to refresh faces"
+	/local sync? result
 ][
 	unless system/view/screens [system/view/platform/init]
 	
@@ -1227,7 +1228,7 @@ alert: func [
 ;=== Global handlers ===
 
 ;-- Dragging face handler --
-insert-event-func 'dragging [
+insert-event-func 'dragging function [face event][
 	if all [
 		block? event/face/options
 		drag-evt: event/face/options/drag-on
