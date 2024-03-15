@@ -30,12 +30,12 @@ memory-info: func [
 	return:	[float!]						;-- total bytes used (verbose = 1)
 	/local
 		n-frame s-frame b-frame free-nodes base list nodes series bigs used cell saved
-		len
+		len total
 ][
 	saved: collector/active?
 	collector/active?: no
 	assert all [1 <= verbose verbose <= 3]
-	used: 0.0
+	used: total: 0.0
 
 ;-- Node frames stats --
 	if verbose > 1 [nodes: block/make-in blk 8]
@@ -52,6 +52,7 @@ memory-info: func [
 			integer/make-in list n-frame/nodes - free-nodes
 			integer/make-in list n-frame/nodes
 			list/header: list/header or flag-new-line
+			total: total + as-float (n-frame/nodes * 2 * (size? pointer!) + size? node-frame!)
 		]
 		n-frame: n-frame/next
 	]
@@ -72,6 +73,7 @@ memory-info: func [
 			integer/make-in list as-integer (as byte-ptr! s-frame/heap) - base
 			integer/make-in list as-integer s-frame/tail - base
 			list/header: list/header or flag-new-line
+			total: total + as-float (s-frame/size + size? series-frame!)
 		]
 		s-frame: s-frame/next
 	]
@@ -87,11 +89,21 @@ memory-info: func [
 		if verbose >= 2 [
 			cell: integer/make-in bigs b-frame/size
 			cell/header: cell/header or flag-new-line
+			total: total + as-float (b-frame/size + size? big-frame!)
 		]
 		b-frame: b-frame/next
 	]
+	
+;-- store total allocated from OS --
+	if verbose >= 2 [
+		either used > 2147483647.0 [
+			float/make-at ALLOC_TAIL(blk) total
+		][
+			integer/make-in blk as-integer total
+		]
+	]
+	
 	collector/active?: saved
-
 	used
 ]
 

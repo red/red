@@ -75,6 +75,7 @@ series-buffer!: alias struct! [
 series-frame!: alias struct! [				;-- series frame header
 	next	[series-frame!]					;-- next frame or null
 	prev	[series-frame!]					;-- previous frame or null
+	size	[integer!]						;-- frame size (in bytes)
 	heap	[series-buffer!]				;-- point to allocatable region
 	tail	[byte-ptr!]						;-- point to last byte in allocatable region
 ]
@@ -381,6 +382,7 @@ alloc-series-frame: func [
 	frame: as series-frame! allocate-virtual size no ;-- RW only
 	frame/heap: as series-buffer! (as byte-ptr! frame) + size? series-frame!
 	frame/tail: (as byte-ptr! frame) + size	;-- point to last byte in frame
+	frame/size: size
 	frame/next: null
 	frame/prev: null
 	
