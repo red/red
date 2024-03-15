@@ -281,6 +281,7 @@ free-node-frame: func [
 	][
 		either null? frame/next [			;-- if frame = tail
 			memory/n-tail: frame/prev		;-- tail is now at one position back
+			frame/prev/next: null
 		][
 			frame/prev/next: frame/next		;-- link preceding frame to next frame
 			frame/next/prev: frame/prev		;-- link back next frame to preceding frame
@@ -303,7 +304,9 @@ free-node-frame: func [
 ;-------------------------------------------
 alloc-node: func [
 	return: [int-ptr!]						;-- return a free node pointer
-	/local frame node
+	/local
+		frame [node-frame!]
+		node  [node!]
 ][
 	frame: memory/n-active					;-- take node from active node frame
 	
@@ -324,7 +327,9 @@ alloc-node: func [
 ;-------------------------------------------
 free-node: func [
 	node [int-ptr!]							;-- node to release
-	/local frame offset
+	/local
+		frame  [node-frame!]
+		offset [integer!]
 ][
 	if null? node [exit]					;-- node has been reused by a new expanded series buffer
 	
@@ -343,6 +348,23 @@ free-node: func [
 	frame/top: frame/top + 1				;-- free node by pushing its address on stack
 	frame/top/value: as-integer node
 	assert frame/top < (frame/bottom + frame/nodes)	;-- top should not overflow
+]
+
+;-------------------------------------------
+;-- Free empty node frames
+;-------------------------------------------
+collect-node-frames: func [
+	/local
+		frame next [node-frame!]
+][
+	frame: memory/n-head
+	while [frame <> null][
+		next: frame/next
+		if frame/bottom + frame/nodes - 1 = frame/top [	;-- empty frame case
+			free-node-frame frame
+		]
+		frame: next
+	]
 ]
 
 ;-------------------------------------------
@@ -771,6 +793,7 @@ collect-frames: func [
 		;#if debug? = yes [check-series frame]
 	]
 	collect-bigs
+	collect-node-frames
 	;extract-stack-refs no
 ]
 
