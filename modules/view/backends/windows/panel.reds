@@ -49,19 +49,30 @@ init-panel: func [
 			]
 
 			pair: as red-pair! values + FACE_OBJ_SIZE
+			pt: as red-point2D! pair
 			x: calc-rect/right  - calc-rect/left
 			y: calc-rect/bottom - calc-rect/top
+			
 			either dpi-factor <> as float32! 1.0 [
-				x: as-integer dpi-unscale as float32! x
-				y: as-integer dpi-unscale as float32! y
+				fx: dpi-unscale as float32! x
+				fy: dpi-unscale as float32! y
+				either TYPE_OF(pair) = TYPE_POINT2D [
+					pt/x: fx
+					pt/y: fy
+				][
+					pair/x: as-integer fx
+					pair/y: as-integer fy
+				]
 			][
 				x: x + 4
 				y: y + 3
-			]
-			if TYPE_OF(pair) = TYPE_POINT2D [
-				pt: as red-point2D! pair
-				pt/x: as float32! x
-				pt/y: as float32! y
+				either TYPE_OF(pair) = TYPE_POINT2D [
+					pt/x: as float32! x
+					pt/y: as float32! y
+				][
+					pair/x: x
+					pair/y: y
+				]
 			]
 		]
 	]
