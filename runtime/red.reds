@@ -326,16 +326,8 @@ red: context [
 	]
 	
 	cleanup: does [
-		free-all										;-- Allocator's memory freeing
-		free as byte-ptr! natives/table
-		free as byte-ptr! actions/table
-		free as byte-ptr! _random/table
-		free as byte-ptr! name-table
-		free as byte-ptr! action-table
-		free as byte-ptr! cycles/bottom
-		free as byte-ptr! crypto/crc32-table
-		free as byte-ptr! redbin/path/stack
-		free as byte-ptr! redbin/reference/list
+		free-all										;-- Red allocator's memory freeing
+		heap-free-all									;-- malloc-ed buffers freeing.
 	]
 	
 	#if type = 'dll [

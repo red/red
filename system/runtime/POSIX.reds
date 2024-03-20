@@ -24,6 +24,7 @@ Red/System [
 			mask	[integer!]
 			return: [integer!]
 		]
+		atexit: "atexit" [handler [int-ptr!]]
 	]
 ]
 
@@ -124,7 +125,11 @@ posix-startup-ctx: context [
 		sigaction SIGBUS  __sigaction-options as sigaction! 0
 		sigaction SIGFPE  __sigaction-options as sigaction! 0
 		sigaction SIGSEGV __sigaction-options as sigaction! 0
+		
+		atexit as int-ptr! :on-quit
 	]
+	
+	on-quit: does [heap-free-all]
 ]
 
 #if OS <> 'macOS [								;-- macOS has it's own start code

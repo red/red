@@ -137,6 +137,7 @@ re-throw: func [/local id [integer!]][
 ][
 	#include %lib-natives.reds
 ]
+#include %heap.reds
 
 #switch OS [								;-- loading OS-specific bindings
 	Windows  [
@@ -171,8 +172,6 @@ re-throw: func [/local id [integer!]][
 #if type <> 'drv [
 
 	#include %utils.reds					;-- load additional utility functions
-
-
 	#if debug? = yes [#include %debug.reds]	;-- loads optionally debug functions
 
 	;-- Run-time error handling --
