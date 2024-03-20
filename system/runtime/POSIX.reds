@@ -24,7 +24,12 @@ Red/System [
 			mask	[integer!]
 			return: [integer!]
 		]
-		atexit: "atexit" [handler [int-ptr!] return: [integer!]]
+		atexit: "__cxa_atexit" [			;-- https://refspecs.linuxbase.org/LSB_3.1.1/LSB-Core-generic/LSB-Core-generic/baselib---cxa-atexit.html
+			handler		[int-ptr!]
+			arg			[int-ptr!]			;-- requires NULL in our use-case
+			dso_handle	[int-ptr!]			;-- requires NULL in our use-case
+			return:		[integer!]
+		]
 	]
 ]
 
@@ -126,7 +131,7 @@ posix-startup-ctx: context [
 		sigaction SIGFPE  __sigaction-options as sigaction! 0
 		sigaction SIGSEGV __sigaction-options as sigaction! 0
 		
-		atexit as int-ptr! :on-quit
+		atexit as int-ptr! :on-quit null null
 	]
 	
 	on-quit: func [[cdecl]][heap-free-all]
