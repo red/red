@@ -24,7 +24,7 @@ Red/System [
 			mask	[integer!]
 			return: [integer!]
 		]
-		atexit: "atexit" [handler [int-ptr!]]
+		atexit: "atexit" [handler [int-ptr!] return: [integer!]]
 	]
 ]
 
@@ -129,7 +129,7 @@ posix-startup-ctx: context [
 		atexit as int-ptr! :on-quit
 	]
 	
-	on-quit: does [heap-free-all]
+	on-quit: func [[cdecl]][heap-free-all]
 ]
 
 #if OS <> 'macOS [								;-- macOS has it's own start code
