@@ -75,6 +75,8 @@ crush: context [							;-- LZ77
 		crush/buf-size: size
 		if input <> null [crush/buf: allocate crush/buf-size]
 	]
+	
+	release: func [p [byte-ptr!]][free p]
 
 	get-buf: func [
 		crush	[crush!]
