@@ -156,17 +156,16 @@ heap-stats: func [
 ][
 	total: 0
 	frame: system/heap/head
+	
+	print-line "-- Heap-allocations --"
+	print-line ["Asked   Real"]
+	
 	while [frame <> null][
 		len: frame/size + size? heap-frame!
 		#if debug? = yes [len: len + size? alloc-guard!]
-		loop 16 [print space]
-		print-line [
-			"Asked    Real^/"
-			"Heap-allocated: " frame/size tab len " (real)"
-		]
+		print-line [frame/size tab len]
 		total: total + len
 		frame: frame/next
 	]
-	print-line ["Total (real): " total]
-	print-line "---"
+	print-line ["-- Sum: " total " --"]
 ]
