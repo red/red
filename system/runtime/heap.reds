@@ -159,7 +159,11 @@ heap-stats: func [
 	while [frame <> null][
 		len: frame/size + size? heap-frame!
 		#if debug? = yes [len: len + size? alloc-guard!]
-		print-line ["Heap-allocated: " frame/size tab len " (real)"]
+		loop 16 [print space]
+		print-line [
+			"Asked    Real^/"
+			"Heap-allocated: " frame/size tab len " (real)"
+		]
 		total: total + len
 		frame: frame/next
 	]
