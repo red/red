@@ -14,18 +14,40 @@ Red/System [
 ;-- A custom header (heap-frame!) is inserted in all malloc-ed buffers, forming a double-chained
 ;-- linked-list. `heap-stats` allows to print them out in the standard output for debugging purposes.
 ;-- Access to that list is done using `system/heap/head` and `system/heap/tail` pointers.
+;-- In debug mode, guard zones are appended to each allocated buffer to detect overflows on freeing.
+
+#define RED_WRITE_GUARD_ZONE [
+	g: as alloc-guard! ((as byte-ptr! p) + len - size? alloc-guard!)
+	g/guard0: BAD1BAD2h
+	g/guard1: BAD3BAD4h
+	g/guard2: BAD5BAD6h
+	g/guard3: BAD7BAD8h
+]
+
+alloc-guard!: alias struct! [				;-- 128-bit guarding barrier
+	guard0 [integer!]
+	guard1 [integer!]
+	guard2 [integer!]
+	guard3 [integer!]
+]
 
 allocate: func [
 	size	[integer!]
 	return:	[byte-ptr!]
 	/local
 		p old [heap-frame!]
+		g	  [alloc-guard!]
+		len	  [integer!]
 ][
-	size: size + size? heap-frame!
-	p: as heap-frame! libC.malloc size
+	len: size + size? heap-frame!
+	#if debug? = yes [len: len + size? alloc-guard!] ;-- account for guard tail
+	p: as heap-frame! libC.malloc len
+	
 	p/prev: null
 	p/next: null
 	p/size: size
+	#if debug? = yes [RED_WRITE_GUARD_ZONE]
+	
 	either null? system/heap/head [			;-- first allocated frame case
 		system/heap/head: p
 		system/heap/tail: p
@@ -38,7 +60,12 @@ allocate: func [
 	as byte-ptr! p + 1						;-- return the buffer pointer, skipping the header
 ]
 
-free: func [p [byte-ptr!] /local frm next [heap-frame!]][
+free: func [
+	p [byte-ptr!]
+	/local
+		frm next [heap-frame!]
+		g [alloc-guard!]
+][
 	p: p - size? heap-frame!				;-- point back to frame's header
 	frm: system/heap/head
 	assert frm <> null
@@ -57,6 +84,22 @@ free: func [p [byte-ptr!] /local frm next [heap-frame!]][
 			][
 				next/prev: frm/prev			;-- link back next frame to previous frame, bypassing the removed frame
 			]
+			#if debug? = yes [
+				g: as alloc-guard! p + frm/size + size? heap-frame!
+				if any [
+					g/guard0 <> BAD1BAD2h
+					g/guard1 <> BAD3BAD4h
+					g/guard2 <> BAD5BAD6h
+					g/guard3 <> BAD7BAD8h
+				][
+					probe [
+						"^/*** Buffer overflow detected at: " frm
+						"^/*** Buffer size: " frm/size
+					]
+					assert false			;-- make it crash!
+				]
+			
+			]
 			libC.free p
 			exit
 		]
@@ -66,25 +109,31 @@ free: func [p [byte-ptr!] /local frm next [heap-frame!]][
 ]
 
 realloc: func [
-	p		[byte-ptr!]
+	buf		[byte-ptr!]
 	size	[integer!]
 	return:	[byte-ptr!]
 	/local
-		old new prev next [heap-frame!]
+		p prev next [heap-frame!]
+		g	[alloc-guard!]
+		len	[integer!]
 ][
-	if null? p    [return allocate size]	;-- implementing the exact behavior of realloc() from libC
-	if zero? size [free p return null]		;-- implementing the exact behavior of realloc() from libC
+	if null? buf  [return allocate size]	;-- implementing the exact behavior of realloc() from libC
+	if zero? size [free buf return null]	;-- implementing the exact behavior of realloc() from libC
 	
-	old: (as heap-frame! p) - 1
-	prev: old/prev
-	next: old/next
-	size: size + size? heap-frame!
-	new: as heap-frame! libC.realloc as byte-ptr! old size
-	new/size: size
-	;-- restore only incoming pointers, as only the relocated frame's address changed
-	either null? next [system/heap/tail: new][if next <> null [next/prev: new]]
-	either null? prev [system/heap/head: new][if prev <> null [prev/next: new]]
-	as byte-ptr! new + 1					;-- return the buffer pointer, skipping the header	
+	p: (as heap-frame! buf) - 1
+	prev: p/prev
+	next: p/next
+	len: size + size? heap-frame!
+	#if debug? = yes [len: len + size? alloc-guard!] ;-- account for guard tail
+	
+	p: as heap-frame! libC.realloc as byte-ptr! p len
+	p/size: size
+	#if debug? = yes [RED_WRITE_GUARD_ZONE]
+	
+	;-- restore only inward pointers, as only the relocated frame's address changed
+	either null? next [system/heap/tail: p][if next <> null [next/prev: p]]
+	either null? prev [system/heap/head: p][if prev <> null [prev/next: p]]
+	as byte-ptr! p + 1						;-- return the buffer pointer, skipping the header
 ]
 
 zero-alloc: func [size [integer!] return: [byte-ptr!]][
@@ -103,15 +152,17 @@ heap-free-all: func [/local	frame next [heap-frame!]][
 heap-stats: func [
 	/local
 		frame [heap-frame!]
-		total [integer!]
+		total len [integer!]
 ][
 	total: 0
 	frame: system/heap/head
 	while [frame <> null][
-		print-line ["Heap-allocated: " frame/size]
-		total: total + frame/size
+		len: frame/size + size? heap-frame!
+		#if debug? = yes [len: len + size? alloc-guard!]
+		print-line ["Heap-allocated: " frame/size tab len " (real)"]
+		total: total + len
 		frame: frame/next
 	]
-	print-line ["Total: " total]
+	print-line ["Total (real): " total]
 	print-line "---"
 ]
