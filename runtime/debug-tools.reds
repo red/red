@@ -21,6 +21,22 @@ print-symbol: func [
 	print as-c-string (as series! sym/cache/value) + 1
 ]
 
+count-free-nodes: func [
+	frm		[node-frame!]
+	return: [integer!]
+	/local
+		p	[node!]
+		c	[integer!]
+][
+	c: 0
+	p: as node! frm + 1
+	loop nodes-per-frame [					;-- very expensive, but no other way...
+		if null <> collector/frames-list/find as node! p/value [c: c + 1]
+		p: p + 1
+	]
+	c
+]
+
 ;-------------------------------------------
 ;-- Memory stats
 ;-------------------------------------------
@@ -54,13 +70,11 @@ memory-info: func [
 ;-- Node frames stats --
 	if verbose > 1 [nodes: block/make-in blk 8]
 	n-frame: memory/n-head
+	collector/frames-list/build
 
 	while [n-frame <> null][
-		free-nodes: (as-integer (n-frame/top + 1 - n-frame/bottom)) / 4
-		if verbose = 1 [
-			used: used + as-float ((n-frame/nodes - free-nodes) * 4)
-		]
 		if verbose >= 2 [
+			free-nodes: count-free-nodes n-frame
 			list: block/make-in nodes 8
 			integer/make-in list free-nodes
 			integer/make-in list n-frame/nodes - free-nodes
@@ -69,6 +83,9 @@ memory-info: func [
 			total: total + as-float (n-frame/nodes * 2 * (size? pointer!) + size? node-frame!)
 		]
 		n-frame: n-frame/next
+	]
+	if verbose = 1 [
+		used: used + as-float memory/n-count * size? node!
 	]
 
 ;-- Series frames stats --
@@ -258,12 +275,13 @@ memory-info: func [
 	;-- Node frames stats --
 		count: 0
 		n-frame: memory/n-head
+		collector/frames-list/build
 		
 		print [lf "-- Node frames --" lf]
 		while [n-frame <> null][
 			if verbose >= 2 [
 				print ["#" count + 1 ": "]
-				free-nodes: (as-integer (n-frame/top + 1 - n-frame/bottom)) / 4
+				free-nodes: count-free-nodes n-frame
 				frame-stats 
 					free-nodes
 					n-frame/nodes - free-nodes

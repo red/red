@@ -84,8 +84,6 @@ node-frame!: alias struct! [				;-- node frame header
 	next	[node-frame!]					;-- next frame or null
 	prev	[node-frame!]					;-- previous frame or null
 	nodes	[integer!]						;-- number of nodes
-	bottom	[int-ptr!]						;-- bottom of stack (last entry, fixed)
-	top		[int-ptr!]						;-- top of stack (first entry, moving)
 ]
 
 big-frame!: alias struct! [					;-- big frame header (for >= 2MB series)
@@ -98,8 +96,9 @@ big-frame!: alias struct! [					;-- big frame header (for >= 2MB series)
 memory: declare struct! [					; TBD: instanciate this structure per OS thread
 	total	 [integer!]						;-- total memory size allocated (in bytes)
 	n-head	 [node-frame!]					;-- head of node frames list
-	n-active [node-frame!]					;-- actively used node frame
 	n-tail	 [node-frame!]					;-- tail of node frames list
+	n-list	 [int-ptr!]						;-- head of free nodes linked-list
+	n-count	 [integer!]						;-- counter of free nodes across all node frames
 	s-head	 [series-frame!]				;-- head of series frames list
 	s-active [series-frame!]				;-- actively used series frame
 	s-tail	 [series-frame!]				;-- tail of series frames list
@@ -114,13 +113,15 @@ memory: declare struct! [					; TBD: instanciate this structure per OS thread
 
 
 init-mem: does [
-	memory/total:		0
-	memory/s-start:		_1MB
-	memory/s-max:		_2MB
-	memory/s-size:		memory/s-start
-	memory/stk-sz:		1000
-	memory/b-head:		null
-	memory/stk-refs:	as int-ptr! allocate memory/stk-sz * 2 * size? int-ptr!
+	memory/total:	 0
+	memory/s-start:	 _1MB
+	memory/s-max:	 _2MB
+	memory/s-size:	 memory/s-start
+	memory/stk-sz:	 1000
+	memory/b-head:	 null
+	memory/n-list:	 null
+	memory/n-count:	 0
+	memory/stk-refs: as int-ptr! allocate memory/stk-sz * 2 * size? int-ptr!
 ]
 
 ;; (1) Series frames size will grow from 1MB up to 2MB (arbitrary selected). This
@@ -224,18 +225,20 @@ free-all: func [
 ;-------------------------------------------
 ;-- Format the node frame stack by filling it with pointers to all nodes
 ;-------------------------------------------
-format-node-stack: func [
+format-nodes: func [
 	frame [node-frame!]						;-- node frame to format
-	/local node ptr
+	/local
+		head tail node [node!]
 ][
-	ptr: frame/bottom						;-- point to bottom of stack
-	node: ptr + frame/nodes					;-- first free node address
-	until [
-		ptr/value: as-integer node			;-- store free node address on stack
+	head: as node! frame + 1
+	tail: (head + frame/nodes) - 1			;-- exclude last slot from the loop
+	node: head
+	while [node < tail][
+		node/value: as-integer node + 1
 		node: node + 1
-		ptr: ptr + 1
-		ptr > frame/top						;-- until the stack is filled up
 	]
+	node/value: as-integer memory/n-list	;-- link last node to rest of free nodes list
+	memory/n-list: head						;-- first node becomes new entry point of the list
 ]
 
 ;-------------------------------------------
@@ -247,27 +250,23 @@ alloc-node-frame: func [
 	/local sz frame
 ][
 	assert positive? size
-	sz: size * 2 * (size? pointer!) + (size? node-frame!) ;-- total required size for a node frame
+	sz: size * (size? node!) + (size? node-frame!) ;-- total required size for a node frame
 	frame: as node-frame! allocate-virtual sz no ;-- R/W only
 
 	frame/prev:  null
 	frame/next:  null
 	frame/nodes: size
 
-	frame/bottom: as int-ptr! (as byte-ptr! frame) + size? node-frame!
-	frame/top: frame/bottom + size - 1		;-- point to the top element
-	
 	either null? memory/n-head [
 		memory/n-head: frame				;-- first item in the list
 		memory/n-tail: frame
-		memory/n-active: frame
 	][
 		memory/n-tail/next: frame			;-- append new item at tail of the list
 		frame/prev: memory/n-tail			;-- link back to previous tail
 		memory/n-tail: frame				;-- now tail is the new item
 	]
 	
-	format-node-stack frame					;-- prepare the node frame for use
+	format-nodes frame						;-- prepare the node frame for use
 	frame
 ]
 
@@ -288,15 +287,10 @@ free-node-frame: func [
 			frame/next/prev: frame/prev		;-- link back next frame to preceding frame
 		]
 	]
-	if memory/n-active = frame [
-		memory/n-active: memory/n-tail		;-- reset active frame to last one @@
-	]
-
 	assert not all [						;-- ensure that list is not empty
 		null? memory/n-head
 		null? memory/n-tail
 	]
-	
 	free-virtual as int-ptr! frame			;-- release the memory to the OS
 ]
 
@@ -304,22 +298,15 @@ free-node-frame: func [
 ;-- Obtain a free node from a node frame
 ;-------------------------------------------
 alloc-node: func [
-	return: [int-ptr!]						;-- return a free node pointer
+	return: [node!]							;-- return a free node pointer
 	/local
-		frame [node-frame!]
-		node  [node!]
+		node [node!]
 ][
-	frame: memory/n-active					;-- take node from active node frame
-	
-	if frame/top < frame/bottom [
-		frame: memory/n-head
-		while [all [frame <> null frame/top < frame/bottom]][frame: frame/next]
-		; TBD: trigger a "light" GC pass from here
-		if null? frame [frame: alloc-node-frame nodes-per-frame] ;-- allocate a new frame
-		memory/n-active: frame
-	]
-	node: as int-ptr! frame/top/value		;-- pop free node address from stack
-	frame/top: frame/top - 1
+	if null? memory/n-list [alloc-node-frame nodes-per-frame]
+	node: memory/n-list
+	memory/n-list: as node! node/value
+	node/value: 0
+	memory/n-count: memory/n-count + 1
 	node
 ]
 
@@ -328,27 +315,11 @@ alloc-node: func [
 ;-------------------------------------------
 free-node: func [
 	node [int-ptr!]							;-- node to release
-	/local
-		frame  [node-frame!]
-		offset [integer!]
 ][
 	if null? node [exit]					;-- node has been reused by a new expanded series buffer
-	
-	frame: memory/n-head					;-- search for right frame from head of the list
-	while [									; @@ could be optimized by searching backward/forward from active frame
-		offset: as-integer node - frame
-		not all [							;-- test if node address is part of that frame
-			positive? offset
-			offset < node-frame-size		; @@ check upper bound case
-		]
-	][
-		frame: frame/next
-		assert frame <> null				;-- should found the right one before the list end
-	]
-	node/value: 0
-	frame/top: frame/top + 1				;-- free node by pushing its address on stack
-	frame/top/value: as-integer node
-	assert frame/top < (frame/bottom + frame/nodes)	;-- top should not overflow
+	node/value: as-integer memory/n-list
+	memory/n-list: node
+	memory/n-count: memory/n-count - 1
 ]
 
 ;-------------------------------------------
@@ -358,6 +329,8 @@ collect-node-frames: func [
 	/local
 		frame next [node-frame!]
 ][
+	exit
+comment {
 	frame: memory/n-head
 	while [frame <> null][
 		next: frame/next
@@ -366,6 +339,7 @@ collect-node-frames: func [
 		]
 		frame: next
 	]
+}
 ]
 
 ;-------------------------------------------
@@ -1152,7 +1126,7 @@ expand-series: func [
 	series: as series-buffer! node/value
 	big?: new/flags and flag-series-big <> 0
 	
-	node/value: as-integer new		;-- link node to new series buffer
+	node/value: as-integer new				;-- link node to new series buffer
 	delta: as-integer series/tail - series/offset
 	
 	new/flags:	series/flags

@@ -27,25 +27,89 @@ collector: context [
 	
 	indent: 0
 	
-	in-range?: func [
-		p		[int-ptr!]
-		return: [logic!]
-		/local
-			frm  [node-frame!]
-			tail [byte-ptr!]
-	][
-		frm: memory/n-head
-		until [
-			tail: (as byte-ptr! frm) + (frm/nodes * 2 * (size? pointer!) + (size? node-frame!))
-			if all [(as int-ptr! frm + 1) + frm/nodes <= p p < as int-ptr! tail][
-				return yes
-			]
-			frm: frm/next
-			frm = null
+	frames-list: context [
+		bin-tree!: alias struct! [
+			low	  [node!]
+			high  [node!]
+			left  [bin-tree!]
+			right [bin-tree!]
 		]
-		no
-	]
+		list:	   as node! 0
+		min-size:  1000
+		fit-cache: 16									;-- nb of pointers fitting into a typical 64 bytes L1 cache
+		buf-size:  min-size								;-- initial number of supported frames
+		count:	   0									;-- current number of stored frames
+		
+		compare-cb: func [[cdecl] a [int-ptr!] b [int-ptr!] return: [integer!]][a/value - b/value]
 
+		build: func [									;-- build an array of node frames pointers
+			/local
+				frm	[node-frame!]
+				pos [int-ptr!]
+				cnt [integer!]
+		][
+			if null? list [list: as node! allocate buf-size * size? node!]
+			
+			cnt: 0
+			frm: memory/n-head
+			pos: list
+			until [
+				pos/value: as-integer frm
+				pos: pos + 1
+				cnt: cnt + 1
+				if cnt >= buf-size [
+					buf-size: buf-size * 2
+					list: as node! realloc as byte-ptr! list buf-size * size? node!
+					pos: list + cnt
+				]
+				frm: frm/next
+				frm = null
+			]
+			if all [cnt > min-size cnt * 3 < buf-size][	;-- shrink buffer if 2/3 or more are not used
+				buf-size: cnt
+				list: as node! realloc as byte-ptr! list buf-size * size? node!
+			]
+			if cnt > fit-cache [qsort as byte-ptr! list cnt 4 :compare-cb] ;-- sort the array for binary search
+			count: cnt
+		]
+		
+		find: func [
+			node	[node!]
+			return: [node-frame!]
+			/local
+				frm p s e [node!]
+				w	 [integer!]
+				end? [logic!]
+		][	
+			w: ((nodes-per-frame * size? node!) + size? node-frame!) ;-- node frame width
+		
+			either count <= fit-cache [					;== linear search
+				p: list
+				loop count [
+					frm: as node! p/value
+					if all [frm <= node node <= as node! ((as byte-ptr! frm) + w)][
+						return as node-frame! frm
+					]
+					p: p + 1
+				]
+			][											;== binary search for arrays bigger than 16 nodes
+				s: list									;-- low pointer
+				e: list + (count - 1)					;-- high pointer
+				until [
+					p: s + ((as-integer e - s) >> 2 + 1 / 2) ;-- points to the middle of [s,e] segment
+					frm: as node! p/value
+					if all [frm <= node node <= as node! ((as byte-ptr! frm) + w)][
+						return as node-frame! frm
+					]
+					end?: s = e							;-- gives a chance to probe the s = e segment
+					either (as node! p/value) < node [s: p][e: p - 1] ;-- chooses lower or upper segment
+					end?
+				]
+			]
+			null
+		]
+	]
+	
 	mark-stack-nodes: func [
 		/local
 			top	 [int-ptr!]
@@ -53,8 +117,9 @@ collector: context [
 			p	 [int-ptr!]
 			s	 [series!]
 	][
-		top:  system/stack/top
-		stk:  stk-bottom
+		frames-list/build
+		top: system/stack/top
+		stk: stk-bottom
 		
 		until [
 			stk: stk - 1
@@ -64,7 +129,7 @@ collector: context [
 				p > as int-ptr! FFFFh			;-- filter out too low values
 				p < as int-ptr! FFFFF000h		;-- filter out too high values
 				not all [(as byte-ptr! stack/bottom) <= p p <= (as byte-ptr! stack/top)] ;-- stack region is fixed
-				in-range? p
+				null <> frames-list/find p
 				p/value <> 0
 				keep p
 			][
