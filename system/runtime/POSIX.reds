@@ -131,7 +131,9 @@ posix-startup-ctx: context [
 		sigaction SIGFPE  __sigaction-options as sigaction! 0
 		sigaction SIGSEGV __sigaction-options as sigaction! 0
 		
-		atexit as int-ptr! :on-quit null null
+		#if any [libRedRT? = yes dev-mode? = no red-pass? = no][ ;-- avoid installing quit handler more than once!
+			atexit as int-ptr! :on-quit null null
+		]
 	]
 	
 	on-quit: func [[cdecl]][heap-free-all]

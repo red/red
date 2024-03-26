@@ -147,6 +147,8 @@ heap-free-all: func [/local	frame next [heap-frame!]][
 		libC.free as byte-ptr! frame
 		frame: next
 	]
+	system/heap/head: null
+	system/heap/tail: null
 ]
 
 heap-stats: func [
