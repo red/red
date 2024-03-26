@@ -86,7 +86,7 @@ collector: context [
 			either count <= fit-cache [					;== linear search
 				p: list
 				loop count [
-					frm: as node! p/value
+					frm: as node! p/value + size? node-frame!
 					if all [frm <= node node <= as node! ((as byte-ptr! frm) + w)][
 						return as node-frame! frm
 					]
@@ -97,7 +97,7 @@ collector: context [
 				e: list + (count - 1)					;-- high pointer
 				until [
 					p: s + ((as-integer e - s) >> 2 + 1 / 2) ;-- points to the middle of [s,e] segment
-					frm: as node! p/value
+					frm: as node! p/value + size? node-frame!
 					if all [frm <= node node <= as node! ((as byte-ptr! frm) + w)][
 						return as node-frame! frm
 					]
