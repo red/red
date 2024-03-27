@@ -48,7 +48,10 @@ collector: context [
 				pos [int-ptr!]
 				cnt [integer!]
 		][
-			if null? list [list: as node! allocate buf-size * size? node!]
+			if null? list [
+				;-- allocation alignement not guaranteed, so L1 cache optmization is only eventual.
+				list: as node! allocate buf-size * size? node!
+			]
 			
 			cnt: 0
 			frm: memory/n-head
@@ -75,7 +78,7 @@ collector: context [
 		
 		find: func [
 			node	[node!]
-			return: [node-frame!]
+			return: [logic!]
 			/local
 				frm p s e [node!]
 				w	 [integer!]
@@ -87,9 +90,7 @@ collector: context [
 				p: list
 				loop count [
 					frm: as node! p/value + size? node-frame!
-					if all [frm <= node node <= as node! ((as byte-ptr! frm) + w)][
-						return as node-frame! frm
-					]
+					if all [frm <= node node <= as node! ((as byte-ptr! frm) + w)][return yes]
 					p: p + 1
 				]
 			][											;== binary search for arrays bigger than 16 nodes
@@ -98,15 +99,13 @@ collector: context [
 				until [
 					p: s + ((as-integer e - s) >> 2 + 1 / 2) ;-- points to the middle of [s,e] segment
 					frm: as node! p/value + size? node-frame!
-					if all [frm <= node node <= as node! ((as byte-ptr! frm) + w)][
-						return as node-frame! frm
-					]
+					if all [frm <= node node <= as node! ((as byte-ptr! frm) + w)][return yes]
 					end?: s = e							;-- gives a chance to probe the s = e segment
 					either (as node! p/value) < node [s: p][e: p - 1] ;-- chooses lower or upper segment
 					end?
 				]
 			]
-			null
+			no
 		]
 	]
 	
@@ -129,7 +128,7 @@ collector: context [
 				p > as int-ptr! FFFFh			;-- filter out too low values
 				p < as int-ptr! FFFFF000h		;-- filter out too high values
 				not all [(as byte-ptr! stack/bottom) <= p p <= (as byte-ptr! stack/top)] ;-- stack region is fixed
-				null <> frames-list/find p
+				frames-list/find p
 				p/value <> 0
 				keep p
 			][

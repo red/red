@@ -31,7 +31,7 @@ count-free-nodes: func [
 	c: 0
 	p: as node! frm + 1
 	loop nodes-per-frame [					;-- very expensive, but no other way...
-		if null <> collector/frames-list/find as node! p/value [c: c + 1]
+		unless collector/frames-list/find as node! p/value [c: c + 1]
 		p: p + 1
 	]
 	c
