@@ -4203,7 +4203,7 @@ Both -** (internal representation for >>>) and /// (internal representation for 
  								;-- c-strings, pointers and structs.
 
  struct [
-	[align <n> <little|big>]	;-- change members alignment and endianess
+	[align <n> <little|big>]	;-- change members alignment and endianness
 	<members>
  ]
 

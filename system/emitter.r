@@ -26,7 +26,7 @@ emitter: make-profilable context [
 
 		
 	pointer: make-struct [
-		value [integer!]				;-- 32/64-bit, watch out for endianess!!
+		value [integer!]				;-- 32/64-bit, watch out for endianness!!
 	] none
 	
 	types-model: [
