@@ -3645,6 +3645,32 @@ comment {
 		--assert error? set/any 'err try [do [f: func [x][]  f/x false]]  ;-- required DO to avoid the error being caught by compiler
 		--assert err/id = 'no-refine
 
+	--test-- "#5496"
+		file: %/dir/file
+		url: https://example.com/
+		url2: https://example.com
+		home: %/home/
+		home2: %/home
+		
+		--assert home/:file  == %/home/dir/file
+		--assert home2/:file == %/home/dir/file
+		--assert url/:file == https://example.com/dir/file
+		--assert url2/:file == https://example.com/dir/file
+
+		file: %""
+		--assert home/:file	 == %/home/
+		--assert home2/:file == %/home/
+		--assert url/:file   == https://example.com/
+		--assert url2/:file  == https://example.com/
+
+		file: %/dir/file
+		home: %""
+		--assert home/:file == %/dir/file
+
+		url: clear http://
+		--assert url/:file == skip url:/dir/file 4
+		
+	
 ===end-group===
 
 ~~~end-file~~~
