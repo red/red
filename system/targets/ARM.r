@@ -677,25 +677,39 @@ make-profilable make target-class [
 		]
 		none
 	]
+	
+	layout-F0FFF: func [v [integer!]][				;-- shift left the top 4 bits of a 16-bit integer
+		(shift/left v and 61440 4) or (v and 4095)	;-- ((low and F000h) << 4) or low and FFFh
+	]
+	
+	encode-mov16: func [opcode [binary!] value [integer!] reg [integer! none!]][
+		opcode: (to integer! opcode) or layout-F0FFF value
+		if reg [opcode: opcode or shift/left reg 12]
+		emit-i32 debase/base to-hex opcode 16
+	]
 
-	emit-load-imm32: func [value [integer! char!] /reg n [integer!] /local neg? bits opcode][
+	emit-load-imm32: func [value [integer! char!] /reg n [integer!] /local neg? v bits opcode][
 		value: to integer! value
-		if neg?: negative? value [value: complement value]
+		v: either neg?: negative? value [complement value][value]
 
-		either bits: ror-position? value [	
+		either bits: ror-position? v [
 			opcode: rejoin [						;-- MOVS r0|rN, #imm8, bits	; v = imm8 (ROR bits)x2
 				#{e3} 
 				pick [#{f0} #{b0}] neg?				;-- emit MVNS instead, if required
 				to char! bits
-				to char! rotate-left value bits
+				to char! rotate-left v bits
 			]
 			if reg [opcode: opcode or debase/base to-hex shift/left n 12 16]
 			emit-i32 opcode
 		][
-			opcode: #{e59f0000}						;-- LDR r0|rN, [pc, #offset]
-			if reg [opcode: opcode or debase/base to-hex shift/left n 12 16]
-			
-			pools/collect/with either neg? [complement value][value] opcode
+			either compiler/job/cpu-version < 7.0 [
+				opcode: #{e59f0000}					;-- LDR r0|rN, [pc, #offset]
+				if reg [opcode: opcode or debase/base to-hex shift/left n 12 16]
+				pools/collect/with value opcode
+			][
+				encode-mov16 #{e3000000} value and 65535 n ;-- MOVW rN, #low16
+				encode-mov16 #{e3400000} shift value 16  n ;-- MOVT rN, #high16
+			]
 		]
 	]
 	
