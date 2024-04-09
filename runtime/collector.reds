@@ -78,7 +78,7 @@ collector: context [
 				w	 [integer!]
 				end? [logic!]
 		][	
-			w: ((nodes-per-frame * size? node!) + size? node-frame!) ;-- node frame width
+			w: nodes-per-frame * size? node! 			;-- node frame width
 		
 			either count <= fit-cache [					;== linear search
 				p: list
