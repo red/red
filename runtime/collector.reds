@@ -28,12 +28,6 @@ collector: context [
 	indent: 0
 	
 	frames-list: context [
-		bin-tree!: alias struct! [
-			low	  [node!]
-			high  [node!]
-			left  [bin-tree!]
-			right [bin-tree!]
-		]
 		list:	   as node! 0
 		min-size:  1000
 		fit-cache: 16									;-- nb of pointers fitting into a typical 64 bytes L1 cache

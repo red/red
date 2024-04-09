@@ -1071,30 +1071,6 @@ set-flag: func [
 ]
 
 ;-------------------------------------------
-;-- Release a series
-;-------------------------------------------
-free-series: func [
-	frame	[series-frame!]					;-- frame containing the series (should be provided by the GC)
-	node	[int-ptr!]						;-- series' node pointer
-	/local series
-][
-	assert not null? frame
-	assert not null? node
-	assert not null? (as byte-ptr! node/value)
-	
-	series: as series-buffer! node/value
-	assert not zero? (series/flags and not series-in-use) ;-- ensure that 'used bit is set
-	series/flags: series/flags and series-free-mask		  ;-- clear 'used bit (enough to free the series)
-	
-	if frame/heap = as series-buffer! (		;-- test if series is on top of heap
-		(as byte-ptr! series) + SERIES_BUFFER_PADDING + series/size + size? series-buffer!
-	) [
-		frame/heap: series					;-- cheap collecting of last allocated series
-	]
-	free-node node
-]
-
-;-------------------------------------------
 ;-- Expand a series to a new size
 ;-------------------------------------------
 expand-series: func [
