@@ -84,6 +84,8 @@ node-frame!: alias struct! [				;-- node frame header
 	next	[node-frame!]					;-- next frame or null
 	prev	[node-frame!]					;-- previous frame or null
 	nodes	[integer!]						;-- number of nodes
+	head	[node!]							;-- entry node for the free list (can be null if full)
+	used	[integer!]						;-- number of used nodes in the list
 ]
 
 big-frame!: alias struct! [					;-- big frame header (for >= 2MB series)
@@ -97,8 +99,7 @@ memory: declare struct! [					; TBD: instanciate this structure per OS thread
 	total	 [integer!]						;-- total memory size allocated (in bytes)
 	n-head	 [node-frame!]					;-- head of node frames list
 	n-tail	 [node-frame!]					;-- tail of node frames list
-	n-list	 [int-ptr!]						;-- head of free nodes linked-list
-	n-count	 [integer!]						;-- counter of free nodes across all node frames
+	n-active [node-frame!]					;-- currently used node frame
 	s-head	 [series-frame!]				;-- head of series frames list
 	s-active [series-frame!]				;-- actively used series frame
 	s-tail	 [series-frame!]				;-- tail of series frames list
@@ -119,9 +120,9 @@ init-mem: does [
 	memory/s-size:	 memory/s-start
 	memory/stk-sz:	 1000
 	memory/b-head:	 null
-	memory/n-list:	 null
-	memory/n-count:	 0
 	memory/stk-refs: as int-ptr! allocate memory/stk-sz * 2 * size? int-ptr!
+	
+	collector/nodes-list/init
 ]
 
 ;; (1) Series frames size will grow from 1MB up to 2MB (arbitrary selected). This
@@ -232,13 +233,13 @@ format-nodes: func [
 ][
 	head: as node! frame + 1
 	tail: (head + frame/nodes) - 1			;-- exclude last slot from the loop
+	frame/head: head
 	node: head
 	while [node < tail][
 		node/value: as-integer node + 1
 		node: node + 1
 	]
-	node/value: as-integer memory/n-list	;-- link last node to rest of free nodes list
-	memory/n-list: head						;-- first node becomes new entry point of the list
+	node/value: 0 							;-- set last node to null to mark the list end
 ]
 
 ;-------------------------------------------
@@ -256,10 +257,12 @@ alloc-node-frame: func [
 	frame/prev:  null
 	frame/next:  null
 	frame/nodes: size
+	frame/used:  0
 
 	either null? memory/n-head [
 		memory/n-head: frame				;-- first item in the list
 		memory/n-tail: frame
+		memory/n-active: frame
 	][
 		memory/n-tail/next: frame			;-- append new item at tail of the list
 		frame/prev: memory/n-tail			;-- link back to previous tail
@@ -287,6 +290,9 @@ free-node-frame: func [
 			frame/next/prev: frame/prev		;-- link back next frame to preceding frame
 		]
 	]
+	if memory/n-active = frame [
+		memory/n-active: memory/n-tail		;-- reset active frame to last one @@
+	]
 	assert not all [						;-- ensure that list is not empty
 		null? memory/n-head
 		null? memory/n-tail
@@ -300,13 +306,20 @@ free-node-frame: func [
 alloc-node: func [
 	return: [node!]							;-- return a free node pointer
 	/local
-		node [node!]
+		frame [node-frame!]
+		node  [node!]
 ][
-	if null? memory/n-list [alloc-node-frame nodes-per-frame]
-	node: memory/n-list
-	memory/n-list: as node! node/value
+	frame: memory/n-active					;-- take node from active node frame
+	if null? frame/head [
+		frame: memory/n-head
+		while [all [frame <> null frame/head = null]][frame: frame/next]
+		if null? frame [frame: alloc-node-frame nodes-per-frame]
+		memory/n-active: frame
+	]
+	node: frame/head
+	frame/head: as node! node/value
 	node/value: 0
-	memory/n-count: memory/n-count + 1
+	frame/used: frame/used + 1
 	node
 ]
 
@@ -314,12 +327,13 @@ alloc-node: func [
 ;-- Release a used node
 ;-------------------------------------------
 free-node: func [
-	node [int-ptr!]							;-- node to release
+	frame [node-frame!]
+	node  [int-ptr!]						;-- node to release
 ][
-	if null? node [exit]					;-- node has been reused by a new expanded series buffer
-	node/value: as-integer memory/n-list
-	memory/n-list: node
-	memory/n-count: memory/n-count - 1
+	assert node <> null
+	node/value: as-integer frame/head
+	frame/head: node
+	frame/used: frame/used - 1
 ]
 
 ;-------------------------------------------
@@ -328,18 +342,22 @@ free-node: func [
 collect-node-frames: func [
 	/local
 		frame next [node-frame!]
+		unset? [logic!]
 ][
-	exit
-comment {
+	unset?: yes
 	frame: memory/n-head
 	while [frame <> null][
 		next: frame/next
-		if frame/bottom + frame/nodes - 1 = frame/top [	;-- empty frame case
+		either zero? frame/used [
 			free-node-frame frame
+		][
+			if all [unset? frame/used < frame/nodes][
+				memory/n-active: frame
+				unset?: no
+			]
 		]
 		frame: next
 	]
-}
 ]
 
 ;-------------------------------------------
@@ -471,13 +489,13 @@ compact-series-frame: func [
 		if s/flags and flag-gc-mark = 0 [	;-- check if it starts with a gap
 			if dst = null [dst: as byte-ptr! s]
 			;probe ["search live from: " s]
-			free-node s/node
+			collector/nodes-list/store s/node
 			while [							;-- search for a live series
 				s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
 				tail?: s >= heap
 				not tail?
 			][
-				either s/flags and flag-gc-mark <> 0 [break][free-node s/node]
+				either s/flags and flag-gc-mark <> 0 [break][collector/nodes-list/store s/node]
 			]
 			;probe ["live found at: " s]
 		]
@@ -569,13 +587,13 @@ cross-compact-frame: func [
 	until [
 		if s/flags and flag-gc-mark = 0 [	;-- check if it starts with a gap
 			if dst = null [dst: as byte-ptr! s]
-			free-node s/node
+			collector/nodes-list/store s/node
 			while [							;-- search for a live series
 				s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
 				tail?: s >= heap
 				not tail?
 			][
-				either s/flags and flag-gc-mark <> 0 [break][free-node s/node]
+				either s/flags and flag-gc-mark <> 0 [break][collector/nodes-list/store s/node]
 			]
 		]
 		unless tail? [
@@ -735,7 +753,7 @@ extract-stack-refs: func [
 	]
 ]
 
-collect-frames: func [
+collect-series-frames: func [
 	type	  [integer!]
 	/local
 		frame [series-frame!]
@@ -762,15 +780,10 @@ collect-frames: func [
 		][
 			refs: compact-series-frame frame refs
 		]
-
 		frame: next - 1
 		frame = null
-
 		;#if debug? = yes [check-series frame]
 	]
-	collect-bigs
-	collect-node-frames
-	;extract-stack-refs no
 ]
 
 
@@ -1093,13 +1106,13 @@ expand-series: func [
 	]
 	units: GET_UNIT(series)
 	
-	if zero? new-sz [new-sz: series/size * 2]	;-- by default, alloc twice the old size
+	if zero? new-sz [new-sz: series/size * 2] ;-- by default, alloc twice the old size
 
 	if new-sz <= 0 [fire [TO_ERROR(internal no-memory)]]
 
 	node: series/node
 	new: alloc-series-buffer new-sz / units units 0
-	series: as series-buffer! node/value
+	series: as series-buffer! node/value	;-- refresh series after eventual GC pass
 	big?: new/flags and flag-series-big <> 0
 	
 	node/value: as-integer new				;-- link node to new series buffer
@@ -1108,7 +1121,7 @@ expand-series: func [
 	new/flags:	series/flags
 	new/node:	node
 	new/tail:	as cell! (as byte-ptr! new/offset) + delta
-	series/node: null
+	series/node: null						;-- needs to be set after potential GC pass from new allocation
 	
 	if big? [new/flags: new/flags or flag-series-big]	;@@ to be improved
 	
@@ -1174,7 +1187,7 @@ copy-series: func [
 	node
 ]
 
-collect-bigs: func [
+collect-big-frames: func [
 	/local frame s
 ][
 	frame: memory/b-head
@@ -1182,7 +1195,7 @@ collect-bigs: func [
 		s: as series! (as byte-ptr! frame) + size? big-frame!
 		frame: frame/next			;-- get next frame before free current frame
 		either s/flags and flag-gc-mark = 0 [
-			free-node s/node
+			collector/nodes-list/store s/node
 			free-big as byte-ptr! s
 		][
 			s/flags: s/flags and not flag-gc-mark	;-- clear mark flag

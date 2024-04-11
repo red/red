@@ -21,22 +21,6 @@ print-symbol: func [
 	print as-c-string (as series! sym/cache/value) + 1
 ]
 
-count-free-nodes: func [
-	frm		[node-frame!]
-	return: [integer!]
-	/local
-		p	[node!]
-		c	[integer!]
-][
-	c: 0
-	p: as node! frm + 1
-	loop nodes-per-frame [					;-- very expensive, but no other way...
-		unless collector/frames-list/find as node! p/value [c: c + 1]
-		p: p + 1
-	]
-	c
-]
-
 ;-------------------------------------------
 ;-- Memory stats
 ;-------------------------------------------
@@ -58,7 +42,6 @@ memory-info: func [
 		used		[float!]
 		total		[float!]
 		saved		[logic!]
-		free-nodes	[integer!]
 		len			[integer!]
 		push-value	[subroutine!]
 ][
@@ -70,22 +53,20 @@ memory-info: func [
 ;-- Node frames stats --
 	if verbose > 1 [nodes: block/make-in blk 8]
 	n-frame: memory/n-head
-	collector/frames-list/build
 
 	while [n-frame <> null][
+		if verbose = 1 [
+			used: used + as-float n-frame/used * size? node!
+		]
 		if verbose >= 2 [
-			free-nodes: count-free-nodes n-frame
 			list: block/make-in nodes 8
-			integer/make-in list free-nodes
-			integer/make-in list n-frame/nodes - free-nodes
+			integer/make-in list n-frame/nodes - n-frame/used
+			integer/make-in list n-frame/used
 			integer/make-in list n-frame/nodes
 			list/header: list/header or flag-new-line
-			total: total + as-float (n-frame/nodes * 2 * (size? pointer!) + size? node-frame!)
+			total: total + as-float ((n-frame/nodes * size? node!) + size? node-frame!)
 		]
 		n-frame: n-frame/next
-	]
-	if verbose = 1 [
-		used: used + as-float memory/n-count * size? node!
 	]
 
 ;-- Series frames stats --
@@ -266,7 +247,7 @@ memory-info: func [
 	;-------------------------------------------
 	memory-stats: func [
 		verbose [integer!]						;-- stat verbosity level (1, 2 or 3)
-		/local count n-frame s-frame b-frame free-nodes base
+		/local count n-frame s-frame b-frame base
 	][
 		assert all [1 <= verbose verbose <= 3]
 		
@@ -275,16 +256,14 @@ memory-info: func [
 	;-- Node frames stats --
 		count: 0
 		n-frame: memory/n-head
-		collector/frames-list/build
 		
 		print [lf "-- Node frames --" lf]
 		while [n-frame <> null][
 			if verbose >= 2 [
 				print ["#" count + 1 ": "]
-				free-nodes: count-free-nodes n-frame
 				frame-stats 
-					free-nodes
-					n-frame/nodes - free-nodes
+					n-frame/nodes - n-frame/used
+					n-frame/used
 					n-frame/nodes
 			]
 			count: count + 1

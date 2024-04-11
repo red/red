@@ -46,7 +46,6 @@ collector: context [
 				;-- allocation alignement not guaranteed, so L1 cache optmization is only eventual.
 				list: as node! allocate buf-size * size? node!
 			]
-			
 			cnt: 0
 			frm: memory/n-head
 			pos: list
@@ -66,7 +65,7 @@ collector: context [
 				buf-size: cnt
 				list: as node! realloc as byte-ptr! list buf-size * size? node!
 			]
-			if cnt > fit-cache [qsort as byte-ptr! list cnt 4 :compare-cb] ;-- sort the array for binary search
+			qsort as byte-ptr! list cnt 4 :compare-cb	;-- sort the array
 			count: cnt
 		]
 		
@@ -103,6 +102,47 @@ collector: context [
 		]
 	]
 	
+	nodes-list: context [
+		list:	  as int-ptr! 0
+		min-size: 20
+		buf-size: min-size								;-- initial number of supported nodes
+		count:	  0										;-- current number of stored nodes
+		
+		init: does [list: as int-ptr! allocate buf-size * size? node!]
+		
+		store: func [node [node!]][
+			if null? node [exit]						;-- expanded series sets null node in old series
+			if count = buf-size [flush]					;-- buffer full, flush it first
+			count: count + 1
+			list/count: as-integer node
+		]
+		
+		flush: func [									;-- assumes frames-list buffer is built and sorted
+			/local
+				frm p e n [int-ptr!]
+				frm-nb w [integer!]
+		][
+			qsort as byte-ptr! list count 4 :frames-list/compare-cb
+			p: frames-list/list
+			e: p + frames-list/count
+			w: nodes-per-frame * size? node!			;-- node frame width
+			n: list
+			
+			loop count [
+				while [
+					frm: as int-ptr! p/value + size? node-frame!
+					not all [frm <= as node! n/value (as node! n/value) <= as node! ((as byte-ptr! frm) + w)]
+				][
+					p: p + 1
+					assert p <= e
+				]
+				free-node as node-frame! p/value as node! n/value
+				n: n + 1
+			]
+			count: 0
+		]
+	]
+	
 	mark-stack-nodes: func [
 		/local
 			top	 [int-ptr!]
@@ -110,7 +150,6 @@ collector: context [
 			p	 [int-ptr!]
 			s	 [series!]
 	][
-		frames-list/build
 		top: system/stack/top
 		stk: stk-bottom
 		
@@ -378,14 +417,19 @@ collector: context [
 		]
 		
 		#if debug? = yes [if verbose > 1 [probe "marking nodes on native stack"]]
+		frames-list/build
 		mark-stack-nodes
 
 		#if debug? = yes [tm1: (platform/get-time yes yes) - tm]	;-- marking time
 
 		#if debug? = yes [if verbose > 1 [probe "sweeping..."]]
 		_hashtable/sweep ownership/table
-		collect-frames COLLECTOR_RELEASE
-
+		collect-series-frames COLLECTOR_RELEASE
+		collect-big-frames
+		nodes-list/flush
+		collect-node-frames
+		;extract-stack-refs no
+	
 		;-- unmark fixed series
 		unmark root/node
 		unmark arg-stk/node
