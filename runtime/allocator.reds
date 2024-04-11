@@ -163,7 +163,8 @@ allocate-virtual: func [
 	size 	[integer!]						;-- allocated size in bytes (page size multiple)
 	exec? 	[logic!]						;-- TRUE => executable region
 	return: [int-ptr!]						;-- allocated memory region pointer
-	/local ptr
+	/local 
+		ptr [int-ptr!]
 ][
 	size: round-to size + 4	platform/page-size	;-- account for header (one word)
 	memory/total: memory/total + size
@@ -248,7 +249,9 @@ format-nodes: func [
 alloc-node-frame: func [
 	size 	[integer!]						;-- nb of nodes
 	return:	[node-frame!]					;-- newly initialized frame
-	/local sz frame
+	/local
+		frame [node-frame!]
+		 sz	  [integer!]
 ][
 	assert positive? size
 	sz: size * (size? node!) + (size? node-frame!) ;-- total required size for a node frame
@@ -365,7 +368,9 @@ collect-node-frames: func [
 ;-------------------------------------------
 alloc-series-frame: func [
 	return:	[series-frame!]					;-- newly initialized frame
-	/local size frame frm
+	/local 
+		frame frm [series-frame!]
+		size [integer!]
 ][
 	size: memory/s-size
 	if size < memory/s-max [memory/s-size: size * 2]
