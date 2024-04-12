@@ -34,7 +34,9 @@ collector: context [
 		buf-size:  min-size								;-- initial number of supported frames
 		count:	   0									;-- current number of stored frames
 		
-		compare-cb: func [[cdecl] a [int-ptr!] b [int-ptr!] return: [integer!]][a/value - b/value]
+		compare-cb: func [[cdecl] a [int-ptr!] b [int-ptr!] return: [integer!]][
+			SIGN_COMPARE_RESULT((as int-ptr! a/value) (as int-ptr! b/value))
+		]
 
 		build: func [									;-- build an array of node frames pointers
 			/local
@@ -83,7 +85,7 @@ collector: context [
 				p: list
 				loop count [
 					frm: as node! p/value + size? node-frame!
-					if all [frm <= node node <= as node! ((as byte-ptr! frm) + w)][return yes]
+					if all [frm <= node node < as node! ((as byte-ptr! frm) + w)][return yes]
 					p: p + 1
 				]
 			][											;== binary search for arrays bigger than 16 nodes
@@ -92,7 +94,7 @@ collector: context [
 				until [
 					p: s + ((as-integer e - s) >> 2 + 1 / 2) ;-- points to the middle of [s,e] segment
 					frm: as node! p/value + size? node-frame!
-					if all [frm <= node node <= as node! ((as byte-ptr! frm) + w)][return yes]
+					if all [frm <= node node < as node! ((as byte-ptr! frm) + w)][return yes]
 					end?: s = e							;-- gives a chance to probe the s = e segment
 					either (as node! p/value) < node [s: p][e: p - 1] ;-- chooses lower or upper segment
 					end?
@@ -102,7 +104,7 @@ collector: context [
 		]
 	]
 	
-	nodes-list: context [
+	nodes-list: context [								;-- nodes freeing batch handling
 		list:	  as int-ptr! 0
 		min-size: 20
 		buf-size: min-size								;-- initial number of supported nodes
@@ -131,7 +133,7 @@ collector: context [
 			loop count [
 				while [
 					frm: as int-ptr! p/value + size? node-frame!
-					not all [frm <= as node! n/value (as node! n/value) <= as node! ((as byte-ptr! frm) + w)]
+					not all [frm <= as node! n/value (as node! n/value) < as node! ((as byte-ptr! frm) + w)]
 				][
 					p: p + 1
 					assert p <= e
@@ -163,6 +165,7 @@ collector: context [
 				not all [(as byte-ptr! stack/bottom) <= p p <= (as byte-ptr! stack/top)] ;-- stack region is fixed
 				frames-list/find p
 				p/value <> 0
+				not frames-list/find as int-ptr! p/value ;-- freed nodes can still be on the stack!
 				keep p
 			][
 				;probe ["node pointer on stack: " p " : " as byte-ptr! p/value]
