@@ -773,8 +773,6 @@ collect-series-frames: func [
 	refs: memory/stk-refs
 
 	until [
-		;#if debug? = yes [check-series frame]
-
 		;@@ current frame may be released
 		;@@ rare case: the starting address of next frame may be identical to 
 		;@@ the tail of the last frame, add 1 to avoid moving
@@ -787,8 +785,15 @@ collect-series-frames: func [
 		]
 		frame: next - 1
 		frame = null
-		;#if debug? = yes [check-series frame]
 	]
+	;#if debug? = yes [					;; enable it once we get a visual exception reporting for panic exits!
+	;	frame: memory/s-head
+	;	until [
+	;		check-series frame
+	;		frame: frame/next
+	;		frame = null
+	;	]
+	;]
 ]
 
 
