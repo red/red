@@ -1340,13 +1340,8 @@ binary: context [
 				OP_XOR [p1/i xor p2/i]
 			]
 		]
-		if i < len [
-			switch type [
-				OP_AND [fill p + i p + len null]
-				OP_OR
-				OP_XOR [copy-memory p + i p2 + i len - i]
-			]
-		]
+		if i < len [copy-memory p + i p2 + i len - i]
+
 		left/node: node
 		left/head: 0
 		left
