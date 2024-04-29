@@ -982,9 +982,9 @@ parser: context [
 			t 		 [triple!]
 			p		 [positions!]
 			in		 [input!]
-			state	 [states!]
 			pos		 [byte-ptr!]						;-- required by BS_TEST_BIT_ALT()
 			s		 [series!]
+			state	 [states!]
 			type	 [integer!]
 			type2    [integer!]
 			dt-type	 [integer!]

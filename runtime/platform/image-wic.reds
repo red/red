@@ -928,11 +928,8 @@ OS-image: context [
 			clsid	[tagGUID]
 			stream	[IStream]
 			storage [IStorage]
-			stat	[tagSTATSTG value]
 			IStm	[interface! value]
 			ISto	[interface! value]
-			len		[integer!]
-			hr		[integer!]
 			IFAC	[IWICImagingFactory]
 			ienc	[com-ptr! value]
 			ethis	[this!]
@@ -940,8 +937,11 @@ OS-image: context [
 			iframe	[com-ptr! value]
 			fthis	[this!]
 			frame	[IWICBitmapFrameEncode]
+			len		[integer!]
+			hr		[integer!]
 			prop	[integer!]
 			rect	[RECT! value]
+			stat	[tagSTATSTG value]
 	][
 		switch format [
 			IMAGE_BMP  [clsid: GUID_ContainerFormatBmp]

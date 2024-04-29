@@ -1989,6 +1989,9 @@ OS-draw-arc: func [
 	/local
 		radius		[red-pair!]
 		angle		[red-integer!]
+		arc-points	[arcPOINTS!]
+		dc			[handle!]
+		pt			[red-point2D!]
 		rad-x		[integer!]
 		rad-y		[integer!]
 		start-x		[integer!]
@@ -2008,9 +2011,6 @@ OS-draw-arc: func [
 		closed?		[logic!]
 		prev-dir	[integer!]
 		arc-dir		[integer!]
-		arc-points	[arcPOINTS!]
-		dc			[handle!]
-		pt			[red-point2D!]
 		cx cy		[integer!]
 ][
 	radius: center + 1
