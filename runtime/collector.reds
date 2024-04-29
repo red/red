@@ -362,10 +362,7 @@ collector: context [
 	
 	do-mark-sweep: func [
 		/local
-			s		[series!]
 			p		[int-ptr!]
-			obj		[red-object!]
-			w		[red-word!]
 		#if debug? = yes [
 			file	[c-string!]
 			saved	[integer!]
