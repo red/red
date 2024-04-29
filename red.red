@@ -371,7 +371,7 @@ redc: context [
 			if encap? [fetch-cmdline]					;-- Fetch real command-line in UTF8 format
 			args: any [system/options/args system/script/args ""] ;-- ssa for quick-test.r
 		]	
-		?? args
+
 		;unless block? args [args: split-tokens args]
 		
 		target: default-target
@@ -448,7 +448,7 @@ redc: context [
 				system/options/path
 			]
 		]
-		?? base-path
+
 		opts: make opts config
 		opts/config-name: config-name
 		opts/build-prefix: base-path

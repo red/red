@@ -280,9 +280,9 @@ emitter: make-profilable context [
 				if integer? value [value: to float! value]
 				unless find [float! issue!] type?/word value [value: 0.0]
 				append ptr either type = 'float32! [
-					IEEE-754/to-binary32/rev value	;-- stored in little-endian
+					IEEE-754/to-binary32 value	;-- stored in little-endian
 				][
-					IEEE-754/to-binary64/rev value	;-- stored in little-endian
+					IEEE-754/to-binary64 value	;-- stored in little-endian
 				]
 			]
 			c-string! [

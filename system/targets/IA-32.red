@@ -845,7 +845,7 @@ make-profilable make target-class [
 							offset: emitter/local-offset? value
 							'value = last select compiler/locals value
 						][							;-- struct on stack case
-							either 127 < abs offset [
+							either 127 < absolute offset [
 								emit #{8D85}		;-- LEA eax, [ebp+n]	; 32-bit displacement
 								emit to-bin32 offset
 							][
@@ -1559,9 +1559,9 @@ make-profilable make target-class [
 			issue!
 			float! [
 				value: either all [cast cast/type/1 = 'float32! not cdecl][
-					IEEE-754/to-binary32/rev value
+					IEEE-754/to-binary32 value
 				][
-					value: IEEE-754/to-binary64/rev value
+					value: IEEE-754/to-binary64 value
 					emit #{68}						;-- PUSH high part
 					emit at value 5
 					value
@@ -1667,7 +1667,7 @@ make-profilable make target-class [
 				either keep [emit-casting value no][
 					unless all [
 						float?
-						any [float? value/data compiler/any-float? type]
+						any [float! = type? value/data compiler/any-float? type]
 					][
 						emit-casting/push value no
 					]

@@ -953,7 +953,7 @@ system-dialect: make-profilable context [
 			either resolve-alias? [resolve-aliased type][type]
 		]
 		
-		resolve-path-type: func [path [path! set-path!] /parent prev /local type path-error p1][
+		resolve-path-type: func [path [path! get-path! set-path!] /parent prev /local type path-error p1][
 			path-error: [
 				pc: skip pc -2
 				throw-error ["invalid path value:" mold path]
@@ -972,7 +972,7 @@ system-dialect: make-profilable context [
 			]
 
 			all [
-				get-word? path/1 word? path/2
+				any [get-word? path/1 get-path? path] word? path/2
 				'function! <> first resolve-struct-member-type type/2 path/2
 				return [pointer! [integer!]]			;-- struct member get-path! -> int-ptr!
 			]
@@ -1005,10 +1005,11 @@ system-dialect: make-profilable context [
 		
 		get-type: func [value /local type name][
 			switch/default type?/word value [
-				word! 	 [resolve-type value]
-				integer! [[integer!]]
-				path!	 [resolve-path-type value]
-				block!	 [
+				word! 	  [resolve-type value]
+				integer!  [[integer!]]
+				path!
+				get-path! [resolve-path-type value]
+				block!	  [
 					case [
 						find [set-word! set-path!] type?/word value/1 [none-type]
 						value/1 = 'not [get-type value/2]	;-- special case for NOT multitype native
@@ -1023,9 +1024,9 @@ system-dialect: make-profilable context [
 						'else [get-return-type/check value/1]
 					]
 				]
-				object!  [value/type]
-				tag!	 [either value = <last> [last-type][[logic!]]]
-				string!	 [[c-string!]]
+				object!   [value/type]
+				tag!	  [either value = <last> [last-type][[logic!]]]
+				string!	  [[c-string!]]
 				get-word! [
 					name: to word! value
 					
@@ -1362,16 +1363,6 @@ system-dialect: make-profilable context [
 			to paren! list
 		]
 		
-		order-ctx-candidates: func [a b][				;-- order by increasing path size,
-			to logic! not all [							;-- and word! before path!.
-				path? a
-				any [
-					word? b
-					all [path? b greater? length? a length? b]
-				]
-			]
-		]
-		
 		store-ns-symbol: func [name [word!] /local pos][
 			if ns-path [
 				either pos: find/skip sym-ctx-table name 2 [
@@ -1382,7 +1373,7 @@ system-dialect: make-profilable context [
 						pos/2: reduce [pos/2]
 					]
 					append/only pos/2 copy ns-path
-					sort/compare pos/2 :order-ctx-candidates
+					sort pos/2
 				][
 					append sym-ctx-table name
 					append/only sym-ctx-table copy ns-path
@@ -1454,6 +1445,10 @@ system-dialect: make-profilable context [
 				idx: idx + 2
 			]
 			true
+		]
+
+		path-to-word: func [path [path!]][
+			to word! replace/all form path slash decoration
 		]
 		
 		ns-decorate: func [path [path!] /global /set /local name][
@@ -2281,7 +2276,6 @@ system-dialect: make-profilable context [
 				unless find/only ns-list ns/1 [throw-error ["undefined context" ns/1]]
 			]
 			with-ns: unique copy ns
-			
 			list: clear []
 			foreach ns with-ns [
 				either empty? res: intersect list words: to block! second find/only ns-list ns [
@@ -2374,7 +2368,7 @@ system-dialect: make-profilable context [
 				offset: 3
 				[pc/2 pc/3]
 			][
-				if path? value: pc/2 [value: to word! form value]
+				if path? value: pc/2 [value: path-to-word value]
 				
 				unless all [word? value resolve-aliased/silent reduce [value]][
 					throw-error ["DECLARE argument type" value "not found or not supported"]
@@ -2543,7 +2537,7 @@ system-dialect: make-profilable context [
 		
 		comp-size?: has [type expr][
 			pc: next pc
-			if path? expr: pc/1 [expr: to word! form expr]
+			if path? expr: pc/1 [expr: path-to-word expr]
 			
 			if all [word? expr enum-name? expr][
 				pc: next pc
@@ -3162,7 +3156,7 @@ system-dialect: make-profilable context [
 		
 		comp-path: has [path value ns type name get?][
 			path: pc/1
-			if get?: get-word? path/1 [path/1: to word! path/1]
+			if get?: get-path? path [path: to path! path]
 			
 			either all [
 				not local-variable? path/1
@@ -3965,7 +3959,8 @@ system-dialect: make-profilable context [
 				set-word!	[comp-assignment]
 				word!		[comp-word]
 				get-word!	[comp-get-word]
-				path! 		[comp-path]
+				path!
+				get-path!	[comp-path]
 				set-path!	[comp-assignment]
 				paren!		[comp-block/only]
 				char!		[do pass]
@@ -4520,8 +4515,7 @@ system-dialect: make-profilable context [
 				nl mold emitter/code-buf nl
 			]
 		]
-probe length? emitter/code-buf
-probe length? emitter/data-buf
+
 		if opts/link? [
 			link-time: dt [
 				job/symbols: emitter/symbols
