@@ -246,6 +246,8 @@ win32-startup-ctx: context [
 					on-load hinstDLL
 					***-main
 				][
+					system/image: ***-exec-image
+					system/image/base: as byte-ptr! hinstDLL
 					on-load hinstDLL
 				]
 			]

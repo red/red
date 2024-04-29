@@ -1198,9 +1198,9 @@ context [
 		linker/set-image-info
 			job
 			base-address
-			(section-addr?/memory job 'code) - base-address
+			(section-addr?/memory job 'code)
 			length? job/sections/code/2
-			(section-addr?/memory job 'data) - base-address
+			(section-addr?/memory job 'data)
 			length? job/sections/data/2
 
 		if job/show-func-map? [linker/show-funcs-map job entry-point-address? job]

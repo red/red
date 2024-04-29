@@ -67,7 +67,7 @@ __stack!: alias struct! [
 ]
 
 __image!: alias struct! [
-	base	  [int-ptr!]					;-- base image address in memory
+	base	  [byte-ptr!]					;-- base image address in memory
 	code	  [integer!]					;-- code segment offset
 	code-size [integer!]					;-- code segment size
 	data	  [integer!]					;-- data segment offset
@@ -179,16 +179,11 @@ system!: alias struct! [					;-- store runtime accessible system values
 ]
 
 ***-exec-image: declare __image!			;-- reference ***-exec-image used by compiler to fill the slots
-system/image: ***-exec-image
+
+#if any [red-pass? = no all [type = 'exe dev-mode? = no]][
+	system/image: ***-exec-image			;-- set /image fields for standalone exe only (no libRedRT)
+]											;-- for libraries, it's set at library loading time.
 
 system/heap: declare __heap!
 system/heap/head: null
 system/heap/tail: null
-
-***-set-image-base: func [[cdecl] /local p][	;-- deferred code generation so system/image is defined
-	p: #switch target [IA-32 [system/cpu/ebx] ARM [system/cpu/r9]]
-	system/image/base: as int-ptr! p - system/image/code
-]
-
-;-- This MUST be the be first call in the runtime
-***-set-image-base 
