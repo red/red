@@ -808,7 +808,7 @@ system-dialect: make-profilable context [
 						count: count + 1
 						id: get-type-id/direct spec/1
 						if id >= 1000 [id: 100]
-						append array to char! id
+						append array id
 					)
 				]
 			]

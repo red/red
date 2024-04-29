@@ -208,8 +208,8 @@ make-profilable make target-class [
 		]
 		to-bin: get select [1 to-bin8 2 to-bin16 4 to-bin32] w
 		case/all [
-			2 < length? spec [emit to-bin to integer! compiler/unbox spec/3] ;-- emit displacement or immediate
-			3 < length? spec [emit to-bin to integer! compiler/unbox spec/4] ;-- emit displacement or immediate
+			2 < length? spec [emit to-bin make integer! compiler/unbox spec/3] ;-- emit displacement or immediate
+			3 < length? spec [emit to-bin make integer! compiler/unbox spec/4] ;-- emit displacement or immediate
 		]	
 	]
 	
@@ -815,7 +815,7 @@ make-profilable make target-class [
 		switch type?/word value [
 			char! [
 				emit #{B0}							;-- MOV al, value
-				emit value
+				emit to-integer value
 			]
 			logic! [
 				emit #{31C0}						;-- XOR eax, eax		; eax = 0 (FALSE)	
@@ -963,7 +963,7 @@ make-profilable make target-class [
 					#{C605}							;-- MOV byte [name], value		; global
 					#{C683}							;-- MOV byte [ebx+disp], value	; PIC
 					#{C645}							;-- MOV byte [ebp+n], value		; local
-				emit value
+				emit to-integer value
 			]
 			integer! [
 				do store-dword
@@ -1545,7 +1545,7 @@ make-profilable make target-class [
 			]
 			char! [
 				emit #{6A}							;-- PUSH value
-				emit value
+				emit to-integer value
 			]
 			integer! [
 				either all [-128 <= value value <= 127][
@@ -2449,7 +2449,7 @@ make-profilable make target-class [
 			emit to-bin32 offset
 		][
 			emit #{8D65}							;-- LEA esp, [ebp-locals]
-			emit to-char 256 - offset
+			emit 256 - offset
 		]
 		emit #{8F45F8}								;-- POP [ebp-8]
 		emit #{8F45FC}								;-- POP [ebp-4]

@@ -399,7 +399,7 @@ Red/System [
 	; nan +inf -inf zero one two five
 	; failed b i f g
 	; any1-fail all1-fail f-yes f-not fi-yes fi-not
-	; cmp= cmp< cmp> icmp= icmp< icmp> ecmp= ecmp< ecmp>
+	; cmp= cmp-lesser cmp-greater icmp= icmp-lesser icmp-greater ecmp= ecmp-lesser ecmp-greater
 
 	nan:  as float32!  0.0 / 0.0
 	+inf: as float32!  1.0 / 0.0
@@ -1002,8 +1002,8 @@ Red/System [
 
 	;; check point 9 - logic return values from nan comparison
 	cmp=: func [a [float32!] b [float32!] return: [logic!]] [a = b]
-	cmp<: func [a [float32!] b [float32!] return: [logic!]] [a < b]
-	cmp>: func [a [float32!] b [float32!] return: [logic!]] [a > b]
+	cmp-lesser: func [a [float32!] b [float32!] return: [logic!]] [a < b]
+	cmp-greater: func [a [float32!] b [float32!] return: [logic!]] [a > b]
 
 	--test-- "func nan 23"
 		failed: yes  unless cmp= nan nan [failed: no]
@@ -1014,19 +1014,19 @@ Red/System [
 		--assert not failed
 
 	--test-- "func nan 25"
-		failed: yes  unless cmp< one nan [failed: no]
+		failed: yes  unless cmp-lesser one nan [failed: no]
 		--assert not failed
 
 	--test-- "func nan 26"
-		failed: yes  unless cmp< nan one [failed: no]
+		failed: yes  unless cmp-lesser nan one [failed: no]
 		--assert not failed
 
 	--test-- "func nan 27"
-		failed: yes  unless cmp> one nan [failed: no]
+		failed: yes  unless cmp-greater one nan [failed: no]
 		--assert not failed
 
 	--test-- "func nan 28"
-		failed: yes  unless cmp> nan one [failed: no]
+		failed: yes  unless cmp-greater nan one [failed: no]
 		--assert not failed
 
 	--test-- "func nan 29"
@@ -1034,18 +1034,18 @@ Red/System [
 		--assert not failed
 
 	--test-- "func nan 30"
-		failed: yes  if     cmp< one two [failed: no]
+		failed: yes  if     cmp-lesser one two [failed: no]
 		--assert not failed
 
 	--test-- "func nan 31"
-		failed: yes  if     cmp> two one [failed: no]
+		failed: yes  if     cmp-greater two one [failed: no]
 		--assert not failed
 
 
 	;; ... integer return values from nan comparison
 	icmp=: func [a [float32!] b [float32!] return: [integer!]] [as integer! a = b]
-	icmp<: func [a [float32!] b [float32!] return: [integer!]] [as integer! a < b]
-	icmp>: func [a [float32!] b [float32!] return: [integer!]] [as integer! a > b]
+	icmp-lesser: func [a [float32!] b [float32!] return: [integer!]] [as integer! a < b]
+	icmp-greater: func [a [float32!] b [float32!] return: [integer!]] [as integer! a > b]
 
 	--test-- "func nan 32"
 		failed: yes  unless 0 <> icmp= nan nan [failed: no]
@@ -1056,19 +1056,19 @@ Red/System [
 		--assert not failed
 
 	--test-- "func nan 34"
-		failed: yes  unless 0 <> icmp< one nan [failed: no]
+		failed: yes  unless 0 <> icmp-lesser one nan [failed: no]
 		--assert not failed
 
 	--test-- "func nan 35"
-		failed: yes  unless 0 <> icmp< nan one [failed: no]
+		failed: yes  unless 0 <> icmp-lesser nan one [failed: no]
 		--assert not failed
 
 	--test-- "func nan 36"
-		failed: yes  unless 0 <> icmp> one nan [failed: no]
+		failed: yes  unless 0 <> icmp-greater one nan [failed: no]
 		--assert not failed
 
 	--test-- "func nan 37"
-		failed: yes  unless 0 <> icmp> nan one [failed: no]
+		failed: yes  unless 0 <> icmp-greater nan one [failed: no]
 		--assert not failed
 
 	--test-- "func nan 38"
@@ -1076,11 +1076,11 @@ Red/System [
 		--assert not failed
 
 	--test-- "func nan 39"
-		failed: yes  unless 1 <> icmp< one two [failed: no]
+		failed: yes  unless 1 <> icmp-lesser one two [failed: no]
 		--assert not failed
 
 	--test-- "func nan 40"
-		failed: yes  unless 1 <> icmp> two one [failed: no]
+		failed: yes  unless 1 <> icmp-greater two one [failed: no]
 		--assert not failed
 
 
@@ -1446,8 +1446,8 @@ Red/System [
 
 	;; check point 13 - funcs ending in either returning logic, passed out of the func
 	ecmp=: func [c [logic!] a [float32!] b [float32!] return: [logic!]] [either c [a = b][a <> b]]
-	ecmp<: func [c [logic!] a [float32!] b [float32!] return: [logic!]] [either c [a < b][a >= b]]
-	ecmp>: func [c [logic!] a [float32!] b [float32!] return: [logic!]] [either c [a > b][a <= b]]
+	ecmp-lesser: func [c [logic!] a [float32!] b [float32!] return: [logic!]] [either c [a < b][a >= b]]
+	ecmp-greater: func [c [logic!] a [float32!] b [float32!] return: [logic!]] [either c [a > b][a <= b]]
 
 	--test-- "return either logic nan 1"
 		failed: yes  unless ecmp= yes nan nan [failed: no]
@@ -1466,43 +1466,43 @@ Red/System [
 		--assert not failed
 
 	--test-- "return either logic nan 5"
-		failed: yes  unless ecmp< yes two one [failed: no]
+		failed: yes  unless ecmp-lesser yes two one [failed: no]
 		--assert not failed
 
 	--test-- "return either logic nan 6"
-		failed: yes  unless ecmp<  no one two [failed: no]
+		failed: yes  unless ecmp-lesser  no one two [failed: no]
 		--assert not failed
 
 	--test-- "return either logic nan 7"
-		failed: yes  unless ecmp< yes one nan [failed: no]
+		failed: yes  unless ecmp-lesser yes one nan [failed: no]
 		--assert not failed
 
 	--test-- "return either logic nan 8"
-		failed: yes  unless ecmp<  no one nan [failed: no]
+		failed: yes  unless ecmp-lesser  no one nan [failed: no]
 		--assert not failed
 
 	--test-- "return either logic nan 9"
-		failed: yes  unless ecmp< yes nan one [failed: no]
+		failed: yes  unless ecmp-lesser yes nan one [failed: no]
 		--assert not failed
 
 	--test-- "return either logic nan 10"
-		failed: yes  unless ecmp<  no nan one [failed: no]
+		failed: yes  unless ecmp-lesser  no nan one [failed: no]
 		--assert not failed
 
 	--test-- "return either logic nan 11"
-		failed: yes  unless ecmp> yes one nan [failed: no]
+		failed: yes  unless ecmp-greater yes one nan [failed: no]
 		--assert not failed
 
 	--test-- "return either logic nan 12"
-		failed: yes  unless ecmp>  no one nan [failed: no]
+		failed: yes  unless ecmp-greater  no one nan [failed: no]
 		--assert not failed
 
 	--test-- "return either logic nan 13"
-		failed: yes  unless ecmp> yes nan one [failed: no]
+		failed: yes  unless ecmp-greater yes nan one [failed: no]
 		--assert not failed
 
 	--test-- "return either logic nan 14"
-		failed: yes  unless ecmp>  no nan one [failed: no]
+		failed: yes  unless ecmp-greater  no nan one [failed: no]
 		--assert not failed
 
 ===end-group===

@@ -267,11 +267,11 @@ emitter: make-profilable context [
 			]
 			byte! [
 				either integer? value [
-					value: to char! value and 255		;-- truncate if required
+					value: value and 255		;-- truncate if required
 				][
 					unless char? value [value: #"^@"]
 				]
-				append ptr value
+				append ptr to-integer value
 			]
 			float! float64! float32! [
 				pad-data-buf either type = 'float32! [target/default-align][8] ;-- align 64-bit floats on 64-bit

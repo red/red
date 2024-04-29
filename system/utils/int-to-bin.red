@@ -20,6 +20,6 @@ int-to-bin: context [
 	]
 
 	set 'to-bin32 func [v [integer! char!]][			;TBD: add big-endian support
-		reverse to binary! v
+		reverse to binary! to integer! v
 	]
 ]
