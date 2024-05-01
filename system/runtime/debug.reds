@@ -85,7 +85,7 @@ __print-debug-stack: func [
 	funcs:	as byte-ptr! __debug-funcs
 	frame:	system/debug/frame
 	base:	as-integer system/image/base
-	ret:	as int-ptr! #either any [type <> 'exe PIC? = yes][address - base][address]
+	ret:	as int-ptr! address
 	top:	frame + 2
 	lines:	40								;-- max number of lines displayed
 	print-line "***"
@@ -94,11 +94,12 @@ __print-debug-stack: func [
 		top: frame
 		frame: as int-ptr! top/value
 		top: top + 1
-		ret: as int-ptr! #either any [type <> 'exe PIC? = yes][top/value - base][top/value]
+		ret: as int-ptr! top/value
 		top: frame + 2
 	]
 	if code = 98 [next-frame]				;-- 98 => assertion, jump over the injected ***-on-quit call frame.
-	
+
+	print-line "***   --Frame-- --Code--  --Call--"
 	until [
 		nb: __debug-funcs-nb
 		records: __debug-funcs
@@ -119,8 +120,10 @@ __print-debug-stack: func [
 			nb: nb - 1
 			zero? nb
 		]
-		unless zero? nb [
-			print ["***   stack: " as-c-string funcs + records/name]
+		either zero? nb [
+			print-line ["***   " frame "h " ret "h <external> "]
+		][
+			print ["***   " frame "h " ret "h " as-c-string funcs + records/name]
 			if records/args = as int-ptr! -1 [
 				print [lf lf]
 				exit						;-- exit if a "barrier" function is encountered (set by linker)
@@ -161,7 +164,7 @@ __print-debug-stack: func [
 			lines: lines - 1
 		]
 		next-frame
-		any [zero? nb zero? lines]
+		any [null? frame frame = as int-ptr! -1]
 	]
 ]
 
