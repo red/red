@@ -918,9 +918,9 @@ context [
 		linker/set-image-info
 			job
 			base-address
-			first  get-segment-info '__TEXT
+			(first  get-segment-info '__TEXT) - base-address
 			second get-segment-info '__TEXT
-			first  get-segment-info '__DATA
+			(first  get-segment-info '__DATA) - base-address
 			second get-segment-info '__DATA
 		
 		if job/show-func-map? [linker/show-funcs-map job get-section-addr '__text]
