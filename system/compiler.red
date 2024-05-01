@@ -245,7 +245,7 @@ system-dialect: make-profilable context [
 		ns-stack:		 none							;-- namespaces resolution stack
 		ns-list:		 make hash!  8					;-- namespaces definition list [name [word type...]...]
 		sym-ctx-table:	 make hash!  100				;-- reverse lookup table for contexts
-		globals:  	   	 make hash!  40					;-- list of globally defined symbols from scripts
+		globals:  	   	 make map!   200				;-- list of globally defined symbols from scripts
 		aliased-types: 	 make hash!  10					;-- list of aliased type definitions
 		keywords-list:	 make block! 20
 		
@@ -775,18 +775,11 @@ system-dialect: make-profilable context [
 				find globals name
 			]
 		]
-		
-		select-globals: func [name [word!] /local pos][
-			all [
-				pos: find globals name
-				pos/2
-			]
-		]
-		
+
 		get-variable-spec: func [name [word!]][
 			any [
 				all [locals select locals name]
-				select-globals name
+				select globals name
 			]
 		]
 		
@@ -921,7 +914,7 @@ system-dialect: make-profilable context [
 			type: any [
 				all [parent select parent name]
 				local?: all [locals select locals name]
-				select-globals name
+				select globals name
 			]
 			if all [local? not block? type][throw-error ["unknown type for local variable" name]]
 			
@@ -1401,7 +1394,7 @@ system-dialect: make-profilable context [
 		add-symbol: func [name [word!] value type][
 			unless type [type: get-type value]
 			if 'array! <> first head type [type: copy type]
-			append globals reduce [name type]
+			put globals name type
 			type
 		]
 		
@@ -4265,7 +4258,7 @@ system-dialect: make-profilable context [
  		emitter/start-epilog
  
 		;-- selective clean-up of compiler's internals
- 		remove/part find compiler/globals 'system 2		;-- avoid 'system redefinition clash
+		remove/key compiler/globals 'system				;-- avoid 'system redefinition clash
  		remove/part find emitter/symbols 'system 4
 		clear compiler/definitions
 		clear compiler/aliased-types
