@@ -461,6 +461,8 @@ Red/System [
 			bottom		[integer!]
 			pen-type	[integer!]
 			pen-color	[integer!]
+			brush-color	[integer!]
+			brush-type	[integer!]
 			font-color	[integer!]
 			font-color? [logic!]
 			flags		[integer!]

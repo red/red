@@ -23,8 +23,10 @@ draw-begin: func [
 	paint?		[logic!]
 	return: 	[draw-ctx!]
 ][
-	ctx/pen-type: DRAW_BRUSH_NONE
+	ctx/pen-type: DRAW_BRUSH_COLOR
 	ctx/font-color?: no
+	ctx/pen-color: 0
+	ctx/brush-type: DRAW_BRUSH_NONE
 	ctx
 ]
 
@@ -174,7 +176,11 @@ OS-draw-fill-pen: func [
 	off?	[logic!]
 	alpha?	[logic!]
 ][
+	if off? [ctx/brush-type: DRAW_BRUSH_NONE exit]
 
+	color: make-color-256 color
+	ctx/brush-color: color
+	ctx/brush-type: DRAW_BRUSH_COLOR
 ]
 
 OS-draw-line-width: func [
@@ -188,11 +194,101 @@ OS-draw-box: func [
 	ctx			[draw-ctx!]
 	upper		[red-pair!]
 	lower		[red-pair!]
+	/local
+		t		[integer!]
+		radiusX [float32!]
+		radiusY [float32!]
+		radius	[red-integer!]
+		w		[integer!]
+		h		[integer!]
+		up-x	[integer!]
+		up-y	[integer!]
+		low-x	[integer!]
+		low-y	[integer!]
+		x y		[integer!]
+		min-x	[integer!]
+		min-y	[integer!]
+		max-x	[integer!]
+		max-y	[integer!]
+		pt		[red-point2D!]
+		p		[pixel!]
+		fg bg	[integer!]
+		fill?	[logic!]
+		pen?	[logic!]
 ][
+	radius: null
+	if upper + 2 = lower [
+		radius: as red-integer! lower
+		radiusX: get-float32 radius
+		radiusY: radiusX
+		lower: lower - 1
+	]
 
+	GET_PAIR_XY_INT(upper up-x up-y)
+	GET_PAIR_XY_INT(lower low-x low-y)
+
+	if up-x > low-x [t: up-x up-x: low-x low-x: t]
+	if up-y > low-y [t: up-y up-y: low-y low-y: t]
+
+	h: ctx/bottom - ctx/top
+	w: ctx/right - ctx/left
+	if any [
+		up-x > w low-x <= 0
+		up-y > h low-y <= 0
+	][exit]
+
+	up-x: up-x + ctx/x
+	low-x: low-x + ctx/x
+	up-y: up-y + ctx/y
+	low-y: low-y + ctx/y
+
+	min-x: up-x
+	if up-x < ctx/x [min-x: ctx/x]
+	if low-x >= screen/width [low-x: screen/width - 1]
+
+	min-y: up-y
+	if up-y < ctx/y [min-y: ctx/y]
+	if low-y >= screen/height [low-y: screen/height - 1]
+
+	max-x: ctx/right
+	max-y: ctx/bottom
+
+	bg: 0
+	either ctx/brush-type = DRAW_BRUSH_COLOR [
+		fill?: yes
+		bg: ctx/brush-color
+	][fill?: no]
+	pen?: ctx/pen-type <> DRAW_BRUSH_NONE
+	y: min-y
+	while [all [y <= low-y y < max-y]][
+		x: min-x
+		p: screen/buffer + (screen/width * y + x)
+		while [all [x <= low-x x < max-x]][
+			if fill? [
+				p/bg-color: bg
+				p/code-point: 32		;-- space char
+			]
+			if pen? [
+				fg: ctx/pen-color
+				case [
+					all [x = up-x  y = up-y ][p/code-point: 250Ch]  ;-- #"┌"
+					all [x = low-x y = up-y ][p/code-point: 2510h]  ;-- #"┐"
+					all [x = up-x  y = low-y][p/code-point: 2514h]  ;-- #"└"
+					all [x = low-x y = low-y][p/code-point: 2518h]  ;-- #"┘"
+					any [x = up-x  x = low-x][p/code-point: 2502h]  ;-- #"│"
+					any [y = up-y  y = low-y][p/code-point: 2500h]  ;-- #"─"
+					true [fg: p/fg-color]
+				]
+				p/fg-color: fg
+			]
+			p: p + 1
+			x: x + 1
+		]
+		y: y + 1
+	]
 ]
 
-OS-draw-triangle: func [		;@@ TBD merge this function with OS-draw-polygon
+OS-draw-triangle: func [
 	ctx		[draw-ctx!]
 	start	[red-pair!]
 ][
