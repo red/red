@@ -652,6 +652,7 @@ cross-compact-frame: func [
 			]
 
 			if update? [
+				;probe ["(x-compact) move src=" src ", dst=" dst2 ", size=" size]
 				move-memory dst2 src size
 				update-series as series! dst2 delta size
 				if refs < tail [			;-- update pointers on native stack
@@ -659,6 +660,7 @@ cross-compact-frame: func [
 					while [all [refs < tail (as byte-ptr! refs/1) < (src + size)]][
 						ptr: as int-ptr! refs/2
 						ptr/value: ptr/value - delta
+						;probe ["(x-compact) update pointer " as int-ptr! refs/1 " on stack at: " ptr]
 						refs: refs + 2
 					]
 				]
@@ -700,58 +702,70 @@ compare-refs: func [[cdecl] a [int-ptr!] b [int-ptr!] return: [integer!]][
 extract-stack-refs: func [
 	store? [logic!]
 	/local
-		top	  [int-ptr!]
-		stk	  [int-ptr!]
-		p	  [int-ptr!]
-		refs  [int-ptr!]
-		tail  [int-ptr!]
+		frm	map	slot p base [int-ptr!]
+		refs tail [int-ptr!]
+		bits idx disp nb [integer!]
 ][
-	top:  system/stack/top
-	stk:  stk-bottom
+	frm: system/stack/frame
 	refs: memory/stk-refs
 	tail: refs + (memory/stk-sz * 2)
-	
-	;probe ["native stack slots: " (as-integer stk - top) >> 2]
+	base: as int-ptr! system/image/base + system/image/bitarray
+	frm: as int-ptr! frm/value				;-- skip extract-stack-refs own frame
+
 	until [
-		stk: stk - 1
-		p: as int-ptr! stk/value  
-		if all [
-			p > as int-ptr! FFFFh			;-- filter out too low values
-			p < as int-ptr! FFFFF000h		;-- filter out too high values
-			not all [(as byte-ptr! stack/bottom) <= p p <= (as byte-ptr! stack/top)] ;-- stack region is fixed
-			in-range? p
-		][	
-			;probe ["stack pointer: " p " : " as byte-ptr! p/value]
-			if store? [
-				if refs = tail [
-					;@@ for cases like issue #3628, should find a better way to handle it
-					refs: memory/stk-refs
-					memory/stk-sz: memory/stk-sz + 1000
-					refs: as int-ptr! realloc as byte-ptr! refs memory/stk-sz * 2 * size? int-ptr!
-					memory/stk-refs: refs
-					tail: refs + (memory/stk-sz * 2)
-					refs: tail - 2000
+		slot: frm - 3
+		assert slot/value >= 0				;-- should never hit STACK_BITMAP_BARRIER
+		map: base + slot/value
+		idx: 2
+		disp: 1
+		loop 2 [							;-- 1st loop: args, 2nd loop: locals
+			bits: map/value
+			while [bits <> 0][
+				idx: idx + disp
+				if bits and 1 <> 0 [
+					p: as int-ptr! frm/idx
+					if all [
+						p > as int-ptr! FFFFh		;-- filter out too low values
+						p < as int-ptr! FFFFF000h	;-- filter out too high values
+						not all [(as byte-ptr! stack/bottom) <= p p <= (as byte-ptr! stack/top)] ;-- stack region is fixed
+						in-range? p
+					][	
+						;probe ["(new) stack pointer: " p " : " as byte-ptr! p/value " (" frm + idx - 1 ")"]
+						if store? [
+							if refs = tail [
+								;@@ for cases like issue #3628, should find a better way to handle it
+								refs: memory/stk-refs
+								memory/stk-sz: memory/stk-sz + 1000
+								refs: as int-ptr! realloc as byte-ptr! refs memory/stk-sz * 2 * size? int-ptr!
+								memory/stk-refs: refs
+								tail: refs + (memory/stk-sz * 2)
+								refs: tail - 2000
+							]
+							refs/1: as-integer p			 ;-- pointer inside a frame
+							refs/2: as-integer frm + idx - 1 ;-- pointer address on stack
+							refs: refs + 2
+						]
+					]
 				]
-				refs/1: as-integer p	;-- pointer inside a frame				
-				refs/2: as-integer stk	;-- pointer address on stack
-				refs: refs + 2
+				bits: bits >> 1
 			]
+			map: map + 1
+			idx: -2
+			disp: -1
 		]
-		stk = top
+		frm: as int-ptr! frm/value			;-- jump to next stack frame
+		any [null? frm  frm = as int-ptr! -1  frm >= system/stk-root]
 	]
 	memory/stk-tail: refs
-	
-	if store? [
-		qsort
-			as byte-ptr! memory/stk-refs
-			(as-integer refs - memory/stk-refs) >> 2 / 2
-			8
-			:compare-refs
+	nb: (as-integer refs - memory/stk-refs) >> 2 / 2
+
+	if all [store? nb > 0][
+		qsort as byte-ptr! memory/stk-refs nb 8 :compare-refs
 
 		;tail: refs
 		;refs: memory/stk-refs
 		;until [
-		;	probe [#"[" as int-ptr! refs/1 #":" as int-ptr! refs/2 #"]"]
+		;	probe [refs ": [" as int-ptr! refs/1 #":" as int-ptr! refs/2 #"]"]
 		;	refs: refs + 2
 		;	refs = tail
 		;]
@@ -1121,6 +1135,7 @@ expand-series: func [
 	if new-sz <= 0 [fire [TO_ERROR(internal no-memory)]]
 
 	node: series/node
+	new: null								;-- avoids GC processing this slot on stack (optimization)
 	new: alloc-series-buffer new-sz / units units 0
 	series: as series-buffer! node/value	;-- refresh series after eventual GC pass
 	big?: new/flags and flag-series-big <> 0

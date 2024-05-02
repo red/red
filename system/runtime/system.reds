@@ -72,6 +72,7 @@ __image!: alias struct! [
 	code-size [integer!]					;-- code segment size
 	data	  [integer!]					;-- data segment offset
 	data-size [integer!]					;-- data segment size
+	bitarray  [integer!]					;-- offset for function args+locals pointer! bitmaps
 ]
 
 FPU-exceptions-mask!: alias struct! [		;-- standard exception mask (true => mask exception)
@@ -169,6 +170,7 @@ system!: alias struct! [					;-- store runtime accessible system values
 	debug		[__stack!]					;-- stack info for debugging (set on runtime error only, internal use)
 	image		[__image!]					;-- executable image memory layout info
 	heap		[__heap!]					;-- dynamically allocated memory frames
+	stk-root	[int-ptr!]
 ]
 
 #either any [libRedRT? = yes dev-mode? = no red-pass? = no][

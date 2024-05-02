@@ -17,8 +17,8 @@ make-profilable make target-class [
 	stack-slot-max:		8							;-- size of biggest datatype on stack (float64!)
 	args-offset:		8							;-- stack frame offset to arguments (fp + lr)
 	branch-offset-size:	4							;-- size of branch instruction
-	locals-offset:		8							;-- current offset from frame pointer to local variables (catch ID + addr)
-	def-locals-offset:	8							;-- default offset from frame pointer to local variables
+	locals-offset:		12							;-- offset from frame pointer to local variables (catch ID + addr + bitmap offset)
+	def-locals-offset:	12							;-- default offset from frame pointer to local variables
 	insn-size:			4
 	last-math-op:		none						;-- save last math op type for overflow checking
 
@@ -526,8 +526,9 @@ make-profilable make target-class [
 			compiler/job/need-main?
 		][
 			emit-i32 #{e1a0d00b}					;-- MOV sp, fp		; unwind root frame
-			emit-pop								;-- pop exceptions threshold slot
+			emit-pop								;-- pop arguments bitarray offset
 			emit-pop								;-- pop exceptions address slot
+			emit-pop								;-- pop exceptions threshold slot
 			emit-i32 #{e8bd0800}					;-- POP {fp}
 			emit-epilog '***_start [] 7 * 4 0		;-- restore all before returning in __libc_start_main()
 		]
@@ -2999,7 +3000,7 @@ make-profilable make target-class [
 			emit-i32 #{e1a0d00b}					;-- MOV sp, fp
 			
 			if callback? [offset: offset + (9 * 4) + (8 * 8)] ;-- skip saved regs: {r4-r11, lr}, {d8-d15}
-			offset: offset + (2 * 8)				;-- account for the 2 catch slots + 2 saved slots
+			offset: offset + (8 + 8 + 4)			;-- account for the 2 catch slots + 2 saved slots + bitmap slot
 			
 			either offset > 255 [
 				emit-load-imm32/reg offset 4
@@ -3011,7 +3012,7 @@ make-profilable make target-class [
 	]
 
 	emit-prolog: func [
-		name locals [block!]
+		name [word!] locals [block!] bitmap [integer!]
 		/local args-nb attribs args reg freg fargs-nb cb? locals-size pos extras
 	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
@@ -3085,6 +3086,7 @@ make-profilable make target-class [
 		
 		emit-push pick [-2 0] to logic! all [attribs find attribs 'catch]	;-- push catch flag
 		emit-push 0									;-- reserve slot for catch resume address
+		emit-push bitmap							;-- push the args/locals bitmap offset
 		
 		locals-offset: def-locals-offset			;@@ global state used in epilog
 		if cb? [

@@ -17,7 +17,7 @@ make-profilable make target-class [
 	stack-slot-max:		8							;-- size of biggest datatype on stack (float64!)
 	args-offset:		8							;-- stack frame offset to arguments (ebp + ret-addr)
 	branch-offset-size:	4							;-- size of JMP offset
-	locals-offset:		8							;-- offset from frame pointer to local variables (catch ID + addr)
+	locals-offset:		12							;-- offset from frame pointer to local variables (catch ID + addr + bitmap offset)
 	
 	fpu-cword: none									;-- x87 control word reference in emitter/symbols
 	fpu-flags: to integer! #{037A}					;-- default control word, division by zero
@@ -2440,7 +2440,7 @@ make-profilable make target-class [
 	
 	emit-close-catch: func [offset [integer!] global [logic!] callback? [logic!]][
 		if verbose >= 3 [print ">>>emitting CATCH epilog"]
-		offset: offset + (2 * 8)					;-- account for the 2 catch slots + 2 saved slots
+		offset: offset + (8 + 8 + 4)				;-- account for the 2 catch slots + 2 saved slots + bitmap slot
 		if callback? [offset: offset + 12]			;-- account for ebx,esi,edi saving slots
 		
 		either offset > 127 [
@@ -2455,7 +2455,7 @@ make-profilable make target-class [
 		emit #{8F45FC}								;-- POP [ebp-4]
 	]
 
-	emit-prolog: func [name [word!] locals [block!] /local fspec attribs offset locals-size][
+	emit-prolog: func [name [word!] locals [block!] bitmap [integer!] /local fspec attribs offset locals-size][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
 
 		fspec: select compiler/functions name
@@ -2468,6 +2468,7 @@ make-profilable make target-class [
 			attribs find attribs 'catch
 		]
 		emit-push 0									;-- reserve slot for catch resume address
+		emit-push bitmap							;-- push the args/locals bitmap offset
 
 		locals-size: either pos: find locals /local [emitter/calc-locals-offsets pos][0]
 		

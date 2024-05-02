@@ -18,6 +18,7 @@ emitter: make-profilable context [
 	breaks:	   make block! 1			;-- [[offset ...] [...] ...] (break jump points)
 	cont-next: make block! 1			;-- [[offset ...] [...] ...] (break jump points)
 	cont-back: make block! 1			;-- [[offset ...] [...] ...] (break jump points)
+	bits-buf:  make binary! 10'000
 	verbose:   0						;-- logs verbosity level
 	
 	target:	  none						;-- target code emitter object placeholder
@@ -765,6 +766,76 @@ emitter: make-profilable context [
 		size
 	]
 	
+	foreach-field: func [spec [block!] body [block!] /local type][
+		all [
+			'value = last spec
+			'struct! <> spec/1
+			spec: second compiler/find-aliased spec/1
+		]
+		body: bind/copy body 'type
+		if block? spec/1 [spec: next spec]				;-- skip struct's [attributs] if present
+
+		foreach [name t] spec [
+			either 'value = last type: t [
+				t: compiler/find-aliased t/1
+				foreach-field t/2 body
+			][
+				do body
+			]
+		]
+	]
+
+	encode-ptr-bitmap: func [locals [block!] /local ts out bits i name spec][
+		if empty? locals [return [0 - 0]]
+		ts: [pointer! struct! c-string!]
+		out: make block! 3
+		bits: i: 0
+
+		parse locals [
+			opt block!
+			any [
+				set name word! set spec block! (
+					if compiler/any-pointer?/with spec ts [
+						either 'value = last spec [
+							foreach-field spec [
+								if compiler/any-pointer?/with type ts [
+									bits: bits + (shift/left 1 i)
+								]
+								if (i: i + 1) > 31 [return [0 - 0 0]] ;-- returns a failing result
+							]
+							i: i - 1
+						][
+							bits: bits + (shift/left 1 i)
+						]
+					]
+					if (i: i + 1) > 31 [append out bits  bits: i: 0]
+				)
+				|  /local (
+					append out bits
+					append out '-						;-- inserts separator between args and locals bitmaps
+					bits: i: 0
+				)
+				| set-word! block!						;-- skip `return: [<type>]`
+			]
+		]
+		append out bits
+		unless find out '- [append out [- 0]]
+		out
+	]
+	
+	store-ptr-bitmap: func [list [block!] /local offset][
+		offset: (index? tail bits-buf) - 1 / datatypes/pointer!
+		append bits-buf reverse debase/base to-hex list/1 16
+		append bits-buf reverse debase/base to-hex list/3 16
+		offset
+	]
+	
+	store-bitmaps: does [
+		pad-data-buf target/ptr-size					;-- pointer alignment can be <> of integer
+		add-symbol '***-ptr-bitmaps (index? tail data-buf) - 1
+		append data-buf bits-buf
+	]
+	
 	push-struct: func [expr spec [block!]][
 		target/emit-load expr
 		target/emit-push-struct struct-slots?/direct spec/2
@@ -817,7 +888,7 @@ emitter: make-profilable context [
 		(abs total) - extra
 	]
 	
-	enter: func [name [word!] locals [block!] /local ret args-sz locals-sz extras pos][
+	enter: func [name [word!] locals [block!] offset [integer!] /local ret args-sz locals-sz extras pos][
 		symbols/:name/2: tail-ptr						;-- store function's entry point
 		all [
 			spec: find/last symbols name
@@ -829,7 +900,7 @@ emitter: make-profilable context [
 		;-- Implements Red/System calling convention -- (STDCALL)
 		args-sz: arguments-size?/push locals
 		
-		set [locals-sz extras] target/emit-prolog name locals
+		set [locals-sz extras] target/emit-prolog name locals offset
 		if verbose >= 2 [print ["args+locals stack:" mold emitter/stack]]
 		if extras <> 0 [args-sz: negate extras * target/stack-width]
 		
@@ -893,12 +964,12 @@ emitter: make-profilable context [
 			clear code-buf
 			clear data-buf
 			clear symbols
-			clear 	stack
-			clear 	exits
-			clear 	breaks
-			clear 	cont-next
-			clear 	cont-back
-
+			clear stack
+			clear exits
+			clear breaks
+			clear cont-next
+			clear cont-back
+			clear bits-buf
 		]
 		clear stack
 		path: pick [%system/targets/ %targets/] encap?
