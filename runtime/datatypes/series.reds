@@ -122,7 +122,11 @@ _series: context [
 		#if debug? = yes [if verbose > 0 [print-line "series/random"]]
 
 		either seed? [
-			ser/header: TYPE_UNSET				;-- TODO: calc series to seed.
+			s: GET_BUFFER(ser)
+			_random/srand murmur3-x86-32
+				(as byte-ptr! s/offset) + ser/head
+				(as-integer s/tail - s/offset) - ser/head
+			ser/header: TYPE_UNSET
 		][
 			s: GET_BUFFER(ser)
 			unit: GET_UNIT(s)

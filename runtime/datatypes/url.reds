@@ -208,21 +208,33 @@ url: context [
 		evt?	[logic!]
 		return:	[red-value!]
 		/local
-			s	[series!] 
-			new [red-string!]
-			unit [integer!]
+			s s2 [series!] 
+			str new  [red-string!]
+			unit unit2 len len2 slash [integer!]
+			left right [logic!]
 	][
 		either value <> null [							;-- set-path
 			fire [TO_ERROR(script bad-path-set) path element]
 		][
 			s: GET_BUFFER(parent)
 			unit: GET_UNIT(s)
-			new: string/make-at stack/push* 16 + string/rs-length? parent unit
-			if (as-integer #"/") <> string/get-char (as byte-ptr! s/tail) - unit unit [
-				string/concatenate-literal new "/"
-			]
+			len: string/rs-length? parent
+			new: string/make-at stack/push* 16 + len unit
 			if TYPE_OF(element) = TYPE_GET_WORD [element: _context/get as red-word! element]
+			
 			actions/form element new null 0
+			s2: GET_BUFFER(new)
+			unit2: GET_UNIT(s2)
+			len2: string/rs-length? new
+
+			slash: as-integer #"/"
+			left:  all [len > 0   slash = string/get-char (as byte-ptr! s/tail) - unit unit]
+			right: all [len2 > 0  slash = string/get-char (as byte-ptr! s2/offset) unit2]
+			case [
+				all [not left not right][new/node/value: as-integer string/insert-char s2 0 as-integer #"/"]
+				all [left right][s/tail: as red-value! (as byte-ptr! s/tail) - unit]
+				true [0]
+			]
 			string/concatenate new parent -1 0 yes yes
 			set-type as red-value! new TYPE_OF(parent)
 		]

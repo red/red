@@ -27,7 +27,7 @@ emitter: make-profilable context [
 	extension-flag: -2147483648			;-- for pointers bit-array encoding
 		
 	pointer: make-struct [
-		value [integer!]				;-- 32/64-bit, watch out for endianess!!
+		value [integer!]				;-- 32/64-bit, watch out for endianness!!
 	] none
 	
 	types-model: [

@@ -8,7 +8,7 @@ jobs:
     name: Build RPi Tests
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Build Red Tests
       uses: ./CI/Linux-32
@@ -20,13 +20,13 @@ jobs:
       with:
         command: rebol -qws system/tests/build-arm-tests.r -t RPi
 
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: rpi-tests-bin
         path: quick-test/runnable/arm-tests/red
         retention-days: 3
 
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: rpi-rs-bin
         path: quick-test/runnable/arm-tests/system
@@ -44,7 +44,7 @@ jobs:
         rm -rf ${{ github.workspace }}/*
 
     - name: Retrieve tests
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: rpi-rs-bin
 
@@ -55,7 +55,7 @@ jobs:
         ./run-all.sh
 
     # upload log file if any test failed
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       if: failure()
       with:
         name: RS-Tests-Armbian-log
@@ -73,7 +73,7 @@ jobs:
         rm -rf ${{ github.workspace }}/*
 
     - name: Retrieve tests
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: rpi-tests-bin
 
@@ -83,7 +83,7 @@ jobs:
         ./run-all.sh
 
     # upload log file if any test failed
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       if: failure()
       with:
         name: Red-Tests-Armbian-log
