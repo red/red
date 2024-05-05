@@ -21,10 +21,10 @@ emitter: make-profilable context [
 	bits-buf:  make binary! 10'000
 	verbose:   0						;-- logs verbosity level
 	
-	target:	  none						;-- target code emitter object placeholder
-	compiler: none						;-- just a short-cut
-	libc-init?:		 none				;-- TRUE if currently processing libc init part
-
+	target:	    none					;-- target code emitter object placeholder
+	compiler:   none					;-- just a short-cut
+	libc-init?:	none					;-- TRUE if currently processing libc init part
+	extension-flag: -2147483648			;-- for pointers bit-array encoding
 		
 	pointer: make-struct [
 		value [integer!]				;-- 32/64-bit, watch out for endianess!!
@@ -784,34 +784,70 @@ emitter: make-profilable context [
 			]
 		]
 	]
+	
+	compact-extension: func [list [block!] /local pos mask][
+		;; removes tail empty arrays (all bits are zeros)
+		if tail? next list [exit]						;-- if only one slot, no processing
+		pos: tail list									;-- process backward from tail
+		mask: complement extension-flag
+		while [
+			pos: back pos
+			all [
+				pos <> list
+				zero? pos/1 and mask					;-- if lower 31 bits are not set
+			]
+		][
+			pos/-1: pos/-1 and mask						;-- remove extension it from previous array
+			remove pos									;-- remove current empty bit-array
+		]
+	]
 
-	encode-ptr-bitmap: func [locals [block!] /local ts out bits i name spec][
-		if empty? locals [return [0 - 0]]
+	encode-ptr-bitmap: func [locals [block!] /local ts out bits i name spec step store][
+		;; Encode pointer type stack slots in arguments and locals using 31-bit bitarrays
+		;; Bit 31 (highest bit) if set, is used to denote more slots.
+		;; First bitarrays are for arguments, '- is used to separate args from locals.
+		;; General format: [<args1> ... <argsN> - <locs1> ... <locsN>]
+		;; In the vast majority, the minimum format [<int> - <int>] is enough
+		
+		if empty? locals [return [0 - 0]]				;-- no pointers at all
 		ts: [pointer! struct! c-string!]
 		out: make block! 3
 		bits: i: 0
-
+		
+		store: [
+			bits: bits or extension-flag				;-- set bit 31 to 1 to denote extension
+			append out bits
+			bits: 0
+			i: step - 1									;-- account fo 64-bit types across two bitarrays
+		]
+		
 		parse locals [
 			opt block!
 			any [
 				set name word! set spec block! (
-					if compiler/any-pointer?/with spec ts [
+					step: pick 2x1 to logic! find [float! float64!] spec/1 ;-- 64-bit types need 2 bits.
+					
+					either compiler/any-pointer?/with spec ts [
 						either 'value = last spec [
 							foreach-field spec [
+								step: pick 2x1 to logic! find [float! float64!] spec/1
 								if compiler/any-pointer?/with type ts [
 									bits: bits + (shift/left 1 i)
 								]
-								if (i: i + 1) > 31 [return [0 - 0 0]] ;-- returns a failing result
+								if (i: i + step) > 30 store
 							]
-							i: i - 1
 						][
 							bits: bits + (shift/left 1 i)
+							i: i + step
 						]
+					][
+						i: i + step
 					]
-					if (i: i + 1) > 31 [append out bits  bits: i: 0]
+					if i > 30 store
 				)
 				|  /local (
 					append out bits
+					compact-extension out				;-- remove tail empty arrays (arguments)
 					append out '-						;-- inserts separator between args and locals bitmaps
 					bits: i: 0
 				)
@@ -820,13 +856,16 @@ emitter: make-profilable context [
 		]
 		append out bits
 		unless find out '- [append out [- 0]]
+		compact-extension find/tail out '-				;-- remove tail empty arrays (locals)
 		out
 	]
 	
 	store-ptr-bitmap: func [list [block!] /local offset][
 		offset: (index? tail bits-buf) - 1 / datatypes/pointer!
-		append bits-buf reverse debase/base to-hex list/1 16
-		append bits-buf reverse debase/base to-hex list/3 16
+		until [
+			if list/1 <> '- [append bits-buf reverse debase/base to-hex list/1 16]
+			tail? list: next list
+		]
 		offset
 	]
 	

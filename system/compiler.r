@@ -1699,15 +1699,6 @@ system-dialect: make-profilable context [
 		
 		encode-pointers: func [name specs [block!] /local list offset b][
 			list: emitter/encode-ptr-bitmap specs
-			if 3 < length? list [
-				if zero? last list [take/last list]
-				if 3 < length? list [
-					throw-error [
-						"in function" name
-						", local variables of pointer! or struct! type too far away! (move them upper in the locals list)"
-					]
-				]
-			]
 			if verbose > 5 [
 				print [name ":" mold specs]
 				foreach n list [
@@ -1717,7 +1708,7 @@ system-dialect: make-profilable context [
 					]
 				]
 			]
-			emitter/store-ptr-bitmap list
+			emitter/store-ptr-bitmap list				;-- returns offset to caller
 		]
 		
 		expand-func-specs: func [spec /local pos p type][
