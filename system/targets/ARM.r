@@ -526,7 +526,7 @@ make-profilable make target-class [
 			compiler/job/need-main?
 		][
 			emit-i32 #{e1a0d00b}					;-- MOV sp, fp		; unwind root frame
-			emit-pop								;-- pop arguments bitarray offset
+			emit-pop								;-- pop arguments/locals bitarray slot
 			emit-pop								;-- pop exceptions address slot
 			emit-pop								;-- pop exceptions threshold slot
 			emit-i32 #{e8bd0800}					;-- POP {fp}

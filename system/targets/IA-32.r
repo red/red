@@ -70,6 +70,7 @@ make-profilable make target-class [
 			emit #{89EC}							;-- MOV esp, ebp
 			emit-pop								;-- pop exceptions threshold slot
 			emit-pop								;-- pop exceptions address slot
+			emit-pop								;-- pop arguments/locals bitarray slot
 			emit #{5D}								;-- POP ebp
 			args: switch/default compiler/job/OS [
 				Syllable [6]
