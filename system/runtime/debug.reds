@@ -75,6 +75,7 @@ __print-debug-stack: func [
 		ret			[int-ptr!]
 		funcs end	[byte-ptr!]
 		records next[__func-record!]
+		fun-base	[byte-ptr!]
 		nb			[integer!]
 		top frame	[int-ptr!]
 		s			[c-string!]
@@ -110,12 +111,13 @@ __print-debug-stack: func [
 				next: records + 1
 				end: next/entry
 			]
-			if all [
-				records/entry <= ret
-				ret < end
+			#either PIC? = yes [
+				fun-base: records/entry + system/image/base
+				end: end + system/image/base 
 			][
-				break
+				fun-base: records/entry
 			]
+			if all [fun-base <= ret  ret < end][break] ;-- function's body matches!
 			records: records + 1
 			nb: nb - 1
 			zero? nb
