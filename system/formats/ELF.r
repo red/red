@@ -546,9 +546,9 @@ context [
 		linker/set-image-info
 			job
 			base: any [job/base-address defs/base-address]
-			(get-address ".text") - base
+			(get-address ".text") - either job/PIC? [0][base]
 			get-size ".text"
-			(get-address ".data") - base
+			(get-address ".data") - either job/PIC? [0][base]
 			get-size ".data"
 
 		if job/show-func-map? [linker/show-funcs-map job get-address ".text"]
