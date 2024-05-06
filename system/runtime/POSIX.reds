@@ -150,6 +150,10 @@ posix-startup-ctx: context [
 					on-load
 					***-main
 				][
+					system/image: ***-exec-image
+					system/image/base: as byte-ptr! 
+						#either target = 'IA-32 [system/cpu/ebx][system/cpu/r9]
+						- system/image/code
 					on-load
 				]
 			]
