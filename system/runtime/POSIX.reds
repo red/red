@@ -145,15 +145,16 @@ posix-startup-ctx: context [
 			***-dll-entry-point: func [
 				[cdecl]
 			][
+				system/image: ***-exec-image
+				system/image/base: as byte-ptr! 
+					#either target = 'IA-32 [system/cpu/ebx][system/cpu/r9]
+					- system/image/code
+
 				#either red-pass? = no [		;-- only for pure R/S DLLs
 					***-boot-rs
 					on-load
 					***-main
 				][
-					system/image: ***-exec-image
-					system/image/base: as byte-ptr! 
-						#either target = 'IA-32 [system/cpu/ebx][system/cpu/r9]
-						- system/image/code
 					on-load
 				]
 			]

@@ -119,6 +119,11 @@ siginfo!: alias struct! [
 			apple	[struct! [s [c-string!]]]
 			pvars	[program-vars!]
 		][
+			system/image: ***-exec-image
+			system/image/base: as byte-ptr! 
+				#either target = 'IA-32 [system/cpu/ebx][system/cpu/r9]
+				- system/image/code
+
 			#either red-pass? = no [					;-- only for pure R/S DLLs
 				***-boot-rs
 				on-load argc argv envp apple pvars
