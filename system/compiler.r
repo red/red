@@ -4015,7 +4015,7 @@ system-dialect: make-profilable context [
 			exp:  make block! 1
 			
 			foreach fun list [
-				unless find/skip natives fun 7 [
+				unless find functions fun [
 					repend code [
 						to set-word! fun 'func get-proto fun []	;-- stdcall
 					]
