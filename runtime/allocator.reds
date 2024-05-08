@@ -561,6 +561,7 @@ cross-compact-frame: func [
 		dst		[byte-ptr!]
 		prev-dst [byte-ptr!]
 		dst2	[byte-ptr!]
+		set-cross [subroutine!]
 		delta	[integer!]
 		size	[integer!]
 		size2	[integer!]
@@ -568,6 +569,12 @@ cross-compact-frame: func [
 		cross?	[logic!]
 		update? [logic!]
 ][
+	set-cross: [
+		either free-sz > 52428 [cross?: yes][	;- 1MB * 5%
+			free-sz: 0
+			cross?: no
+		]
+	]
 	prev: frame/prev
 	if null? prev [							;-- first frame
 		return compact-series-frame frame refs
@@ -575,10 +582,7 @@ cross-compact-frame: func [
 
 	prev-dst: as byte-ptr! prev/heap
 	free-sz: as-integer prev/tail - prev/heap
-	either free-sz > 52428 [cross?: yes][	;- 1MB * 5%
-		free-sz: 0
-		cross?: no
-	]
+	set-cross
 
 	tail: memory/stk-tail
 	s: as series! frame + 1					;-- point to first series buffer
@@ -632,6 +636,7 @@ cross-compact-frame: func [
 						tail?: no
 					]
 					free-sz: free-sz - size
+					set-cross
 					delta: as-integer src - prev-dst
 					dst2: prev-dst
 					prev-dst: prev-dst + size
