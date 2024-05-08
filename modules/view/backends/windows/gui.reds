@@ -941,6 +941,7 @@ init: func [
 	]
 
 	collector/register as int-ptr! :on-gc-mark
+	time-meter/start _time_meter
 ]
 
 use-dark-mode?: func [

@@ -196,6 +196,7 @@ draw-begin: func [
 		rc		[RECT_F! value]
 		font-clr? [logic!]
 ][
+	time-meter/start _time_meter
 	zero-memory as byte-ptr! ctx size? draw-ctx!
 	ctx/pen-width:	as float32! 1.0
 	ctx/pen-join: D2D1_LINE_JOIN_MITER

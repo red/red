@@ -11,6 +11,13 @@ Red/System [
 ]
 
 painting?: no
+_time_meter: declare time-meter!
+
+#define LIMIT_RENDERING_RATE [
+	if (as float32! 16.6) > time-meter/elapse _time_meter [		;-- limit to 60 FPS
+		return 0
+	]
+]
 
 init-base-face: func [
 	handle		[handle!]
@@ -515,6 +522,7 @@ BaseWndProc: func [
 		WM_PAINT
 		WM_DISPLAYCHANGE [
 			if painting? [return 0]
+			LIMIT_RENDERING_RATE
 			if all [
 				(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) = 0	;-- not a layered window
 				0 <> GetWindowLong hWnd wc-offset		;-- linked with a face object
