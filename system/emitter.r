@@ -869,8 +869,17 @@ emitter: make-profilable context [
 		offset
 	]
 	
-	store-bitmaps: does [
+	store-bitmaps: func [compress? [logic!] /local len out][
 		pad-data-buf target/ptr-size					;-- pointer alignment can be <> of integer
+		append data-buf to-bin32 to-integer compress?
+		if compress? [
+			len: length? bits-buf
+			out: make binary! len
+			insert/dup out null len
+			len: redc/crush-compress bits-buf len out
+			if len <= 0 [compiler/throw-error "Compression of pointers bit-arrays failed!"]
+			bits-buf: out
+		]
 		add-symbol '***-ptr-bitmaps (index? tail data-buf) - 1
 		append data-buf bits-buf
 	]

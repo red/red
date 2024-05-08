@@ -112,8 +112,9 @@ memory: declare struct! [					; TBD: instanciate this structure per OS thread
 	stk-sz	 [integer!]						;-- size of stack references buffer in 64-bits slots
 ]
 
+bitarrays-base: declare int-ptr!			;-- points to bit-arrays table
 
-init-mem: does [
+init-mem: func [/local p [int-ptr!]][
 	memory/total:	 0
 	memory/s-start:	 _1MB
 	memory/s-max:	 _2MB
@@ -123,6 +124,10 @@ init-mem: does [
 	memory/stk-refs: as int-ptr! allocate memory/stk-sz * 2 * size? int-ptr!
 	
 	collector/nodes-list/init
+	
+	p: as int-ptr! system/image/base + system/image/bitarray
+	if p/0 = 1 [p: as int-ptr! crush/decompress as byte-ptr! p null]
+	bitarrays-base: p
 ]
 
 ;; (1) Series frames size will grow from 1MB up to 2MB (arbitrary selected). This
@@ -715,7 +720,7 @@ extract-stack-refs: func [
 	frm: system/stack/frame
 	refs: memory/stk-refs
 	tail: refs + (memory/stk-sz * 2)
-	base: as int-ptr! system/image/base + system/image/bitarray
+	base: bitarrays-base
 	frm: as int-ptr! frm/value							;-- skip extract-stack-refs own frame
 
 	until [

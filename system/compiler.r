@@ -4067,7 +4067,7 @@ system-dialect: make-profilable context [
 				add-dll-callbacks 						;-- make sure they are defined
 			]
 			comp-natives
-			emitter/store-bitmaps
+			emitter/store-bitmaps to-logic all [job/red-pass? redc/load-lib? job/redbin-compress?]
 			emitter/target/on-finalize
 			if verbose >= 2 [print ""]
 			emitter/reloc-native-calls
