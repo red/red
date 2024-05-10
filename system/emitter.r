@@ -807,7 +807,7 @@ emitter: make-profilable context [
 		;; Bit 31 (highest bit) if set, is used to denote more slots.
 		;; First bitarrays are for arguments, '- is used to separate args from locals.
 		;; General format: [<args1> ... <argsN> - <locs1> ... <locsN>]
-		;; In the vast majority, the minimum format [<int> - <int>] is enough
+		;; In the vast majority, the minimum format [<int> - <int>] is enough.
 		
 		if empty? locals [return [0 - 0]]				;-- no pointers at all
 		ts: [pointer! struct! c-string!]
