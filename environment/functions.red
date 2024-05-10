@@ -313,8 +313,8 @@ context [
 			]
 			fetch [
 				print [
-					p-indent "match:" mold/flat/part rule 50 newline
 					p-indent "input:" mold/flat/part input 50 p-indent
+					p-indent "match:" mold/flat/part rule 50 newline
 				]
 			]
 			match [print [p-indent "==>" pick ["matched" "not matched"]  match?]]
