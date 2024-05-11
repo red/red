@@ -750,10 +750,10 @@ encode-dyn-ptr: func [
 extract-stack-refs: func [
 	store? [logic!]
 	/local
-		frm	map	slot p base [int-ptr!]
+		frm	map	slot p base head [int-ptr!]
 		refs tail [int-ptr!]
 		bits idx disp nb [integer!]
-		ext? arg? [logic!]
+		ext? [logic!]
 ][
 	frm: system/stack/frame
 	refs: memory/stk-refs
@@ -765,21 +765,19 @@ extract-stack-refs: func [
 		slot: frm - 3									;-- position on bitmap slot
 		assert slot/value >= 0							;-- should never hit STACK_BITMAP_BARRIER
 		map: base + slot/value							;-- first corresponding bitmap slot
+		head: map										;-- saved head reference for later args bitmap detection
 		idx: 2											;-- arguments index (1-based)
 		disp: 1											;-- scanning direction
 		loop 2 [										;-- 1st loop: args, 2nd loop: locals
-			arg?: disp = 1
 			until [
 				bits: map/value							;-- read 31 slots bitmap
 				ext?: bits and 80000000h <> 0			;-- read extension bit
 				bits: bits and 7FFFFFFFh				;-- clear extension bit
 				if all [
-					arg?								;-- only for args bitmaps
-					not ext?							;-- ext? bit not set for special cases
+					map = head							;-- only for args bitmaps
 					any [bits = 40000000h bits = 20000000h] ;-- variadic/typed function call
 				][
-					bits: encode-dyn-ptr frm bits = 20000000h
-					map: map - 1
+					bits: encode-dyn-ptr frm bits = 20000000h ;-- replace bitmap by a dynamic one (32 stack slots only)
 				]
 				while [bits <> 0][
 					idx: idx + disp
