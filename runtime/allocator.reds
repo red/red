@@ -709,13 +709,51 @@ compare-refs: func [[cdecl] a [int-ptr!] b [int-ptr!] return: [integer!]][
 	SIGN_COMPARE_RESULT((as int-ptr! a/value) (as int-ptr! b/value))
 ]
 
+encode-dyn-ptr: func [
+	stk	    [int-ptr!]
+	typed?  [logic!]
+	return: [integer!]
+	/local
+		count i bits [integer!]
+		ptr? [logic!]
+][
+	stk: stk + 2
+	count: stk/value									;-- args count
+	stk: stk + 1
+	stk: as int-ptr! stk/value							;-- args pointer
+	i: 3												;-- skip variadic slots header
+	bits: 0
+	either typed? [										;-- typed call (RTTI available)
+		assert count <= 9								;-- 32 - 3, divided by 3 slots per argument
+		loop count [
+			switch stk/value [							;-- argument type ID
+				type-c-string!
+				type-byte-ptr!
+				type-int-ptr!
+				type-struct! [ptr?: yes]
+				default		 [ptr?: stk/value >= 1000]
+			]
+			i: i + 1
+			if ptr? [bits: bits or (1 << i)]			;-- mark pointer
+			i: i + 2									;-- skip 64-bit slot
+		]
+	][													;-- variadic call (no RTTI)
+		assert count <= 14								;-- 32 - 3 divided by 2 slots per argument
+		loop count [
+			bits: bits or (1 << i)						;-- mark each argument (safest option)
+			i: i + 2									;-- skip 64-bit slot
+		]
+	]
+	bits
+]
+
 extract-stack-refs: func [
 	store? [logic!]
 	/local
 		frm	map	slot p base [int-ptr!]
 		refs tail [int-ptr!]
 		bits idx disp nb [integer!]
-		ext? [logic!]
+		ext? arg? [logic!]
 ][
 	frm: system/stack/frame
 	refs: memory/stk-refs
@@ -730,10 +768,19 @@ extract-stack-refs: func [
 		idx: 2											;-- arguments index (1-based)
 		disp: 1											;-- scanning direction
 		loop 2 [										;-- 1st loop: args, 2nd loop: locals
+			arg?: disp = 1
 			until [
 				bits: map/value							;-- read 31 slots bitmap
 				ext?: bits and 80000000h <> 0			;-- read extension bit
 				bits: bits and 7FFFFFFFh				;-- clear extension bit
+				if all [
+					arg?								;-- only for args bitmaps
+					not ext?							;-- ext? bit not set for special cases
+					any [bits = 40000000h bits = 20000000h] ;-- variadic/typed function call
+				][
+					bits: encode-dyn-ptr frm bits = 20000000h
+					map: map - 1
+				]
 				while [bits <> 0][
 					idx: idx + disp
 					if bits and 1 <> 0 [				;-- check if the slot is a pointer

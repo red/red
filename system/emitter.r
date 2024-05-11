@@ -802,7 +802,7 @@ emitter: make-profilable context [
 		]
 	]
 
-	encode-ptr-bitmap: func [locals [block!] /local ts out bits i name spec step store][
+	encode-ptr-bitmap: func [locals [block!] /local ts out bits i name spec step store pos][
 		;; Encode pointer type stack slots in arguments and locals using 31-bit bitarrays
 		;; Bit 31 (highest bit) if set, is used to denote more slots.
 		;; First bitarrays are for arguments, '- is used to separate args from locals.
@@ -822,7 +822,14 @@ emitter: make-profilable context [
 		]
 		
 		parse locals [
-			opt block!
+			opt [pos: block! (
+				pos: either any [find pos/1 'typed  find pos/1 'variadic][
+					bits: pick [1073741824 536870912] to-logic find pos/1 'variadic ;-- variadic: 40000000h, typed: 20000000h
+					any [find pos /local  tail pos]
+				][
+					next pos
+				]
+			) :pos]
 			any [
 				set name word! set spec block! (
 					step: pick 2x1 to logic! find [float! float64!] spec/1 ;-- 64-bit types need 2 bits.
