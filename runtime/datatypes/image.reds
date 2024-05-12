@@ -1044,16 +1044,16 @@ image: context [
 		dup-arg  [red-value!]
 		return:	 [red-image!]
 		/local
-			type [integer!]
-			bmp1 [integer!]
-			bmp2 [integer!]
 			bin1 [int-ptr!]
 			bin2 [int-ptr!]
 			img2 [red-image!]
-			idx  [red-value! value]
-			head n i1 i2 [integer!]
-			w1 h1 w2 h2 [integer!]
-			x x1 y1 x2 y2 [integer!]
+			type [integer!]
+			bmp1 [integer!]
+			bmp2 [integer!]
+			idx  [red-integer! value]
+			head n i1 i2
+			w1 h1 w2 h2
+			x x1 y1 x2 y2
 			stride1 stride2 [integer!]
 	][
 		if OPTION?(dup-arg) [--NOT_IMPLEMENTED--]
@@ -1064,8 +1064,8 @@ image: context [
 		switch type [
 			TYPE_TUPLE [
 				ownership/check as red-value! img words/_change null head 1
-				integer/make-at idx img/head
-				poke img -1 idx value
+				integer/make-at as red-value! idx img/head
+				poke img -1 as red-value! idx value
 				img/head: head + 1
 				ownership/check as red-value! img words/_changed null head 1
 			]

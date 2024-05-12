@@ -1269,7 +1269,7 @@ init-calendar: func [
 	calendar [integer!]
 	data	 [red-value!]
 	/local
-		slot [red-value! value]
+		dt [red-date! value]
 ][
 	objc_msgSend [calendar sel_getUid "setDatePickerMode:" NSDatePickerModeSingle]
 	objc_msgSend [calendar sel_getUid "setDatePickerStyle:" NSDatePickerStyleClockAndCalendar]
@@ -1279,10 +1279,10 @@ init-calendar: func [
 	objc_msgSend [calendar sel_getUid "setAction:" sel_getUid "calendar-change"]
 	objc_msgSend [calendar sel_getUid "sendActionOn:" NSLeftMouseDown]
 	
-	date/make-at slot 1601 01 01 0.0 0 0 no no
-	objc_msgSend [calendar sel_getUid "setMinDate:" to-NSDate as red-date! slot]
-	date/make-at slot 9999 12 31 0.0 0 0 no no
-	objc_msgSend [calendar sel_getUid "setMaxDate:" to-NSDate as red-date! slot]
+	date/make-at as red-value! dt 1601 01 01 0.0 0 0 no no
+	objc_msgSend [calendar sel_getUid "setMinDate:" to-NSDate dt]
+	date/make-at as red-value! dt 9999 12 31 0.0 0 0 no no
+	objc_msgSend [calendar sel_getUid "setMaxDate:" to-NSDate dt]
 	
 	objc_msgSend [
 		calendar

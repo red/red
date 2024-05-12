@@ -1382,17 +1382,17 @@ redbin: context [
 		strings [red-binary!]
 		/local
 			data [red-value!]
-			slot [red-value! value]
+			slot [red-block! value]
 			old  [integer!]
 	][
 		old: offset
 		
-		slot/data1: 0
-		slot/data2: spec/data2
+		slot/head: 0
+		slot/node: as node! spec/data2
 		slot/header: TYPE_BLOCK
 		
 		offset: 0									;-- form artifical paths to spec and body blocks
-		data: slot
+		data: as red-value! slot
 		encode-value data payload symbols table strings
 		
 		offset: 1

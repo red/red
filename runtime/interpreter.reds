@@ -1116,7 +1116,7 @@ interpreter: context [
 		passive?  [logic!]
 		return:   [red-value!]
 		/local
-			real   [red-value! value]
+			real   [red-function! value]				;-- op! but uses function! (3 nodes) for better GC stack scanning support
 			next   [red-word!]
 			ctx	   [red-context!]
 			value  [red-value!]
@@ -1341,9 +1341,9 @@ interpreter: context [
 						if tracing? [fire-event EVT_FETCH code pc pc pc]
 						stack/top: prev
 						infix?: yes
-						copy-cell as red-value! op real
-						set-type real GET_OP_SUBTYPE(op)
-						pc: eval-code real pc + 1 end code sub? null as red-value! next null MODE_FETCH yes
+						copy-cell as red-value! op as red-value! real
+						set-type as red-value! real GET_OP_SUBTYPE(op)
+						pc: eval-code as red-value! real pc + 1 end code sub? null as red-value! next null MODE_FETCH yes
 						if tracing? [value: either sub? [stack/get-top][stack/arguments]]
 					]
 				]
