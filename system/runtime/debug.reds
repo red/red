@@ -93,9 +93,8 @@ __print-debug-stack: func [
 	
 	next-frame: [
 		top: frame
-		frame: as int-ptr! top/value
-		top: top + 1
-		ret: as int-ptr! top/value
+		frame: as int-ptr! top/1
+		ret:   as int-ptr! top/2
 		top: frame + 2
 	]
 	if code = 98 [next-frame]				;-- 98 => assertion, jump over the injected ***-on-quit call frame.
