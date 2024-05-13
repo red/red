@@ -752,9 +752,12 @@ extract-stack-refs: func [
 	/local
 		frm	map	slot p base head [int-ptr!]
 		refs tail [int-ptr!]
+		c-low c-high caller [byte-ptr!]
 		bits idx disp nb [integer!]
 		ext? [logic!]
 ][
+	c-low: system/image/base + system/image/code
+	c-high: c-low + system/image/code-size
 	frm: system/stack/frame
 	refs: memory/stk-refs
 	tail: refs + (memory/stk-sz * 2)
@@ -762,59 +765,62 @@ extract-stack-refs: func [
 	frm: as int-ptr! frm/value							;-- skip extract-stack-refs own frame
 
 	until [
-		slot: frm - 3									;-- position on bitmap slot
-		assert slot/value >= 0							;-- should never hit STACK_BITMAP_BARRIER
-		map: base + slot/value							;-- first corresponding bitmap slot
-		head: map										;-- saved head reference for later args bitmap detection
-		idx: 2											;-- arguments index (1-based)
-		disp: 1											;-- scanning direction
-		loop 2 [										;-- 1st loop: args, 2nd loop: locals
-			until [
-				bits: map/value							;-- read 31 slots bitmap
-				ext?: bits and 80000000h <> 0			;-- read extension bit
-				bits: bits and 7FFFFFFFh				;-- clear extension bit
-				if all [
-					map = head							;-- only for args bitmaps
-					any [bits = 40000000h bits = 20000000h] ;-- variadic/typed function call
-				][
-					bits: encode-dyn-ptr frm bits = 20000000h ;-- replace bitmap by a dynamic one (32 stack slots only)
-				]
-				while [bits <> 0][
-					idx: idx + disp
-					if bits and 1 <> 0 [				;-- check if the slot is a pointer
-						p: as int-ptr! frm/idx
-						if all [
-							p > as int-ptr! FFFFh		;-- filter out too low values
-							p < as int-ptr! FFFFF000h	;-- filter out too high values
-							not all [(as byte-ptr! stack/bottom) <= p p <= (as byte-ptr! stack/top)] ;-- stack region is fixed
-							in-range? p
-						][
-							;probe ["(new) stack pointer: " p " : " as byte-ptr! p/value " (" frm + idx - 1 ")"]
-							if store? [
-								if refs = tail [
-									;@@ for cases like issue #3628, should find a better way to handle it
-									refs: memory/stk-refs
-									memory/stk-sz: memory/stk-sz + 1000
-									refs: as int-ptr! realloc as byte-ptr! refs memory/stk-sz * 2 * size? int-ptr!
-									memory/stk-refs: refs
-									tail: refs + (memory/stk-sz * 2)
-									refs: tail - 2000
+		caller: as byte-ptr! frm/2
+		if all [c-low < caller caller < c-high][		;-- only process Red frames (skip externals)
+			slot: frm - 3								;-- position on bitmap slot
+			assert slot/value >= 0						;-- should never hit STACK_BITMAP_BARRIER
+			map: base + slot/value						;-- first corresponding bitmap slot
+			head: map									;-- saved head reference for later args bitmap detection
+			idx: 2										;-- arguments index (1-based)
+			disp: 1										;-- scanning direction
+			loop 2 [									;-- 1st loop: args, 2nd loop: locals
+				until [
+					bits: map/value						;-- read 31 slots bitmap
+					ext?: bits and 80000000h <> 0		;-- read extension bit
+					bits: bits and 7FFFFFFFh			;-- clear extension bit
+					if all [
+						map = head						;-- only for args bitmaps
+						any [bits = 40000000h bits = 20000000h] ;-- variadic/typed function call
+					][
+						bits: encode-dyn-ptr frm bits = 20000000h ;-- replace bitmap by a dynamic one (32 stack slots only)
+					]
+					while [bits <> 0][
+						idx: idx + disp
+						if bits and 1 <> 0 [			;-- check if the slot is a pointer
+							p: as int-ptr! frm/idx
+							if all [
+								p > as int-ptr! FFFFh	  ;-- filter out too low values
+								p < as int-ptr! FFFFF000h ;-- filter out too high values
+								not all [(as byte-ptr! stack/bottom) <= p p <= (as byte-ptr! stack/top)] ;-- stack region is fixed
+								in-range? p
+							][
+								;probe ["(new) stack pointer: " p " : " as byte-ptr! p/value " (" frm + idx - 1 ")"]
+								if store? [
+									if refs = tail [
+										;@@ for cases like issue #3628, should find a better way to handle it
+										refs: memory/stk-refs
+										memory/stk-sz: memory/stk-sz + 1000
+										refs: as int-ptr! realloc as byte-ptr! refs memory/stk-sz * 2 * size? int-ptr!
+										memory/stk-refs: refs
+										tail: refs + (memory/stk-sz * 2)
+										refs: tail - 2000
+									]
+									refs/1: as-integer p			 ;-- pointer inside a frame
+									refs/2: as-integer frm + idx - 1 ;-- pointer address on stack
+									refs: refs + 2
 								]
-								refs/1: as-integer p			 ;-- pointer inside a frame
-								refs/2: as-integer frm + idx - 1 ;-- pointer address on stack
-								refs: refs + 2
 							]
 						]
+						bits: bits >> 1					;-- next slot flag
 					]
-					bits: bits >> 1						;-- next slot flag
+					map: map + 1						;-- next 31 slots bitmap
+					not ext?							;-- loop until no more extended slots
 				]
-				map: map + 1							;-- next 31 slots bitmap
-				not ext?								;-- loop until no more extended slots
+				idx:  -2								;-- arguments index (1-based)
+				disp: -1								;-- scanning direction
 			]
-			idx:  -2									;-- arguments index (1-based)
-			disp: -1									;-- scanning direction
 		]
-		frm: as int-ptr! frm/value			;-- jump to next stack frame
+		frm: as int-ptr! frm/value						;-- jump to next stack frame
 		any [null? frm  frm = as int-ptr! -1  frm >= system/stk-root]
 	]
 	memory/stk-tail: refs
