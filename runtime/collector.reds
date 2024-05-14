@@ -329,6 +329,446 @@ collector: context [
 		]
 	]
 	
+	update-series: func [								;-- Update moved series internal pointers
+		s		[series!]								;-- start of series region with nodes to re-sync
+		offset	[integer!]
+		size	[integer!]
+		/local
+			tail [byte-ptr!]
+	][
+		tail: (as byte-ptr! s) + size
+		until [
+			s/node/value: as-integer s					;-- update the node pointer to the new series address
+			s/offset: as cell! (as byte-ptr! s/offset) - offset	;-- update offset and tail pointers
+			s/tail:   as cell! (as byte-ptr! s/tail) - offset
+			s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
+			tail <= as byte-ptr! s
+		]
+	]
+
+	compact-series-frame: func [						;-- Compact a series frame by moving down in-use series buffer regions
+		frame	[series-frame!]							;-- series frame to compact
+		refs	[int-ptr!]
+		return: [int-ptr!]								;-- returns the next stack pointer to process
+		/local
+			tail  [int-ptr!]
+			ptr	  [int-ptr!]
+			s	  [series!]
+			heap  [series!]
+			src	  [byte-ptr!]
+			dst	  [byte-ptr!]
+			delta [integer!]
+			size  [integer!]
+			tail? [logic!]
+	][
+		tail: memory/stk-tail
+		s: as series! frame + 1							;-- point to first series buffer
+		heap: frame/heap
+		src: null										;-- src will point to start of buffer region to move down
+		dst: null										;-- dst will point to start of free region
+
+		;assert heap > s
+		if heap = s [return refs]
+
+		until [
+			tail?: no
+			if s/flags and flag-gc-mark = 0 [			;-- check if it starts with a gap
+				if dst = null [dst: as byte-ptr! s]
+				;probe ["search live from: " s]
+				collector/nodes-list/store s/node
+				while [									;-- search for a live series
+					s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
+					tail?: s >= heap
+					not tail?
+				][
+					either s/flags and flag-gc-mark <> 0 [break][collector/nodes-list/store s/node]
+				]
+				;probe ["live found at: " s]
+			]
+			unless tail? [
+				src: as byte-ptr! s
+				;probe ["search gap from: " s]
+				until [									;-- search for a gap
+					s/flags: s/flags and not flag-gc-mark	;-- clear mark flag
+					s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
+					tail?: s >= heap
+					;@@ test tail? first, otherwise s/flags may crash if s = heap
+					any [tail? s/flags and flag-gc-mark = 0]
+				]
+				;probe ["gap found at: " s]
+				if dst <> null [
+					assert dst < src					;-- regions are moved down in memory
+					assert src < as byte-ptr! s 		;-- src should point at least at series - series/size
+
+					size: as-integer (as byte-ptr! s) - src
+					delta: as-integer src - dst
+					;probe ["move src=" src ", dst=" dst ", size=" size]
+					move-memory dst	src size
+					update-series as series! dst delta size
+
+					if refs < tail [					;-- update pointers on native stack
+						while [all [refs < tail (as byte-ptr! refs/1) < src]][refs: refs + 2]
+						while [all [refs < tail (as byte-ptr! refs/1) < (src + size)]][
+							ptr: as int-ptr! refs/2
+							ptr/value: ptr/value - delta
+							refs: refs + 2
+						]
+					]
+					dst: dst + size
+				]
+			]
+			tail?
+		]
+		if dst <> null [								;-- no compaction occurred, all series were in use
+			frame/heap: as series! dst					;-- set new heap after last moved region
+			#if debug? = yes [markfill as int-ptr! frame/heap as int-ptr! frame/tail]
+		]
+		refs
+	]
+
+	cross-compact-frame: func [
+		frame	[series-frame!]
+		refs	[int-ptr!]
+		return: [int-ptr!]
+		/local
+			prev	[series-frame!]
+			free-sz [integer!]
+			tail	[int-ptr!]
+			ptr		[int-ptr!]
+			s		[series!]
+			ss		[series!]
+			heap	[series!]
+			src		[byte-ptr!]
+			dst		[byte-ptr!]
+			prev-dst [byte-ptr!]
+			dst2	[byte-ptr!]
+			set-cross [subroutine!]
+			delta	[integer!]
+			size	[integer!]
+			size2	[integer!]
+			tail?	[logic!]
+			cross?	[logic!]
+			update? [logic!]
+	][
+		set-cross: [
+			either free-sz > 52428 [cross?: yes][		;- 1MB * 5%
+				free-sz: 0
+				cross?: no
+			]
+		]
+		prev: frame/prev
+		if null? prev [									;-- first frame
+			return compact-series-frame frame refs
+		]
+
+		prev-dst: as byte-ptr! prev/heap
+		free-sz: as-integer prev/tail - prev/heap
+		set-cross
+
+		tail: memory/stk-tail
+		s: as series! frame + 1							;-- point to first series buffer
+		heap: frame/heap
+		if heap = s [return refs]
+
+		src: null										;-- src will point to start of buffer region to move down
+		dst: null										;-- dst will point to start of free region
+		tail?: no
+
+		until [
+			if s/flags and flag-gc-mark = 0 [			;-- check if it starts with a gap
+				if dst = null [dst: as byte-ptr! s]
+				collector/nodes-list/store s/node
+				while [									;-- search for a live series
+					s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
+					tail?: s >= heap
+					not tail?
+				][
+					either s/flags and flag-gc-mark <> 0 [break][collector/nodes-list/store s/node]
+				]
+			]
+			unless tail? [
+				size: 0
+				src: as byte-ptr! s
+				until [									;-- search for a gap
+					s/flags: s/flags and not flag-gc-mark	;-- clear mark flag
+					size2: size
+					size: SERIES_BUFFER_PADDING + size + s/size + size? series-buffer!
+					ss: s								;-- save previous series pointer
+					s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
+					tail?: s >= heap
+					any [	;@@ test tail? first, otherwise s/flags may crash if s = heap
+						tail?	
+						all [cross? size >= free-sz]
+						s/flags and flag-gc-mark = 0
+					]
+				]
+
+				update?: yes
+				case [
+					any [
+						size <= free-sz
+						all [size2 > 0 size2 <= free-sz]
+					][
+						if dst = null [dst: src]
+						if size > free-sz [
+							size: size2
+							s: ss
+							s/flags: s/flags or flag-gc-mark
+							tail?: no
+						]
+						free-sz: free-sz - size
+						set-cross
+						delta: as-integer src - prev-dst
+						dst2: prev-dst
+						prev-dst: prev-dst + size
+					]
+					dst <> null [
+						assert dst < src				;-- regions are moved down in memory
+						assert src < as byte-ptr! s 	;-- src should point at least at series - series/size
+
+						size: as-integer (as byte-ptr! s) - src
+						delta: as-integer src - dst
+						dst2: dst
+						dst: dst + size
+					]
+					true [
+						update?: no
+						cross?: no
+					]
+				]
+
+				if update? [
+					;probe ["(x-compact) move src=" src ", dst=" dst2 ", size=" size]
+					move-memory dst2 src size
+					update-series as series! dst2 delta size
+					if refs < tail [			;-- update pointers on native stack
+						while [all [refs < tail (as byte-ptr! refs/1) < src]][refs: refs + 2]
+						while [all [refs < tail (as byte-ptr! refs/1) < (src + size)]][
+							ptr: as int-ptr! refs/2
+							ptr/value: ptr/value - delta
+							;probe ["(x-compact) update pointer " as int-ptr! refs/1 " on stack at: " ptr]
+							refs: refs + 2
+						]
+					]
+				]
+			]
+			tail?
+		]
+
+		prev/heap: as series! prev-dst
+		if dst <> null [								;-- no compaction occurred, all series were in use
+			frame/heap: as series! dst					;-- set new heap after last moved region
+			#if debug? = yes [markfill as int-ptr! frame/heap as int-ptr! frame/tail]
+		]
+		if all [dst = as byte-ptr! (frame + 1) frame/next <> null][		;-- cache last one
+			free-series-frame frame
+		]
+		refs
+	]
+
+	in-series-frame?: func [
+		p		[int-ptr!]
+		return: [logic!]
+		/local
+			frm [series-frame!]
+	][
+		frm: memory/s-head
+		until [
+			if all [(as int-ptr! frm + 1) <= p p < as int-ptr! frm/tail][return yes]
+			frm: frm/next
+			frm = null
+		]
+		no
+	]
+
+	compare-refs: func [[cdecl] a [int-ptr!] b [int-ptr!] return: [integer!]][
+		SIGN_COMPARE_RESULT((as int-ptr! a/value) (as int-ptr! b/value))
+	]
+
+	encode-dyn-ptr: func [
+		stk	    [int-ptr!]								;-- stack frame pointer
+		typed?  [logic!]
+		return: [integer!]								;-- return a bitmap of pointer slots
+		/local
+			count i bits [integer!]
+			ptr? [logic!]
+	][
+		stk: stk + 2
+		count: stk/value								;-- args count
+		stk: stk + 1
+		stk: as int-ptr! stk/value						;-- args pointer
+		i: 3											;-- skip variadic slots header
+		bits: 0
+		either typed? [									;-- typed call (RTTI available)
+			assert count <= 9							;-- 32 - 3, divided by 3 slots per argument
+			loop count [
+				switch stk/value [						;-- argument type ID
+					type-c-string!
+					type-byte-ptr!
+					type-int-ptr!
+					type-struct! [ptr?: yes]
+					default		 [ptr?: stk/value >= 1000]
+				]
+				i: i + 1
+				if ptr? [bits: bits or (1 << i)]		;-- mark pointer
+				i: i + 2								;-- skip 64-bit slot
+			]
+		][												;-- variadic call (no RTTI)
+			assert count <= 14							;-- 32 - 3 divided by 2 slots per argument
+			loop count [
+				bits: bits or (1 << i)					;-- mark each argument (safest option)
+				i: i + 2								;-- skip 64-bit slot
+			]
+		]
+		bits
+	]
+
+	scan-stack-refs: func [
+		store? [logic!]
+		/local
+			frm	map	slot p base head [int-ptr!]
+			refs tail [int-ptr!]
+			c-low c-high caller [byte-ptr!]
+			s [series!]
+			bits idx disp nb [integer!]
+			ext? [logic!]
+	][
+		c-low: system/image/base + system/image/code
+		c-high: c-low + system/image/code-size
+		frm: system/stack/frame
+		refs: memory/stk-refs
+		tail: refs + (memory/stk-sz * 2)
+		base: bitarrays-base
+		frm: as int-ptr! frm/value						;-- skip extract-stack-refs own frame
+
+		until [
+			caller: as byte-ptr! frm/2
+			if all [c-low < caller caller < c-high][	;-- only process Red frames (skip externals)
+				slot: frm - 3							;-- position on bitmap slot
+				assert slot/value >= 0					;-- should never hit STACK_BITMAP_BARRIER
+				map: base + slot/value					;-- first corresponding bitmap slot
+				head: map								;-- saved head reference for later args bitmap detection
+				idx: 2									;-- arguments index (1-based)
+				disp: 1									;-- scanning direction
+				loop 2 [								;-- 1st loop: args, 2nd loop: locals
+					until [
+						bits: map/value					;-- read 31 slots bitmap
+						ext?: bits and 80000000h <> 0	;-- read extension bit
+						bits: bits and 7FFFFFFFh		;-- clear extension bit
+						if all [
+							map = head					;-- only for args bitmaps
+							any [bits = 40000000h bits = 20000000h] ;-- variadic/typed function call
+						][
+							bits: encode-dyn-ptr frm bits = 20000000h ;-- replace bitmap by a dynamic one (32 stack slots only)
+						]
+						while [bits <> 0][
+							idx: idx + disp
+							if bits and 1 <> 0 [		;-- check if the slot is a pointer
+								p: as int-ptr! frm/idx
+								if all [
+									p > as int-ptr! FFFFh	  ;-- filter out too low values
+									p < as int-ptr! FFFFF000h ;-- filter out too high values
+								][
+									case [
+										all [			;=== Mark node! references ===
+											(as-integer p) and 3 = 0	;-- check if it's a valid int-ptr!
+											frames-list/find p
+											p/value <> 0
+											not frames-list/find as int-ptr! p/value ;-- freed nodes can still be on the stack!
+											keep p
+										][
+											;probe ["(scan) node pointer on stack: " p " : " as byte-ptr! p/value]
+											s: as series! p/value
+											if GET_UNIT(s) = 16 [mark-values s/offset s/tail]
+										]
+										all [
+											not all [(as byte-ptr! stack/bottom) <= p p <= (as byte-ptr! stack/top)] ;-- stack region is fixed
+											in-series-frame? p
+										][
+											;probe ["stack pointer: " p " : " as byte-ptr! p/value " (" frm + idx - 1 ")"]
+											if store? [	;=== Extract series references ===
+												if refs = tail [
+													;@@ for cases like issue #3628, should find a better way to handle it
+													refs: memory/stk-refs
+													memory/stk-sz: memory/stk-sz + 1000
+													refs: as int-ptr! realloc as byte-ptr! refs memory/stk-sz * 2 * size? int-ptr!
+													memory/stk-refs: refs
+													tail: refs + (memory/stk-sz * 2)
+													refs: tail - 2000
+												]
+												refs/1: as-integer p			 ;-- pointer inside a frame
+												refs/2: as-integer frm + idx - 1 ;-- pointer address on stack
+												refs: refs + 2
+											]
+										]
+										true [0]
+									]
+								]
+							]
+							bits: bits >> 1				;-- next slot flag
+						]
+						map: map + 1					;-- next 31 slots bitmap
+						not ext?						;-- loop until no more extended slots
+					]
+					idx:  -2							;-- arguments index (1-based)
+					disp: -1							;-- scanning direction
+				]
+			]
+			frm: as int-ptr! frm/value					;-- jump to next stack frame
+			any [null? frm  frm = as int-ptr! -1  frm >= system/stk-root]
+		]
+		memory/stk-tail: refs
+		nb: (as-integer refs - memory/stk-refs) >> 2 / 2
+
+		if all [store? nb > 0][
+			qsort as byte-ptr! memory/stk-refs nb 8 :compare-refs
+
+			;tail: refs
+			;refs: memory/stk-refs
+			;until [
+			;	probe [refs ": [" as int-ptr! refs/1 #":" as int-ptr! refs/2 #"]"]
+			;	refs: refs + 2
+			;	refs = tail
+			;]
+		]
+	]
+
+	collect-series-frames: func [
+		type	  [integer!]
+		/local
+			frame [series-frame!]
+			refs  [int-ptr!]
+			next  [series-frame!]
+	][
+		next: null
+		refs: null
+		frame: memory/s-head
+		refs: memory/stk-refs
+
+		until [
+			;@@ current frame may be released
+			;@@ rare case: the starting address of next frame may be identical to 
+			;@@ the tail of the last frame, add 1 to avoid moving
+			next: frame/next + 1
+
+			either type = COLLECTOR_RELEASE [
+				refs: cross-compact-frame frame refs
+			][
+				refs: compact-series-frame frame refs
+			]
+			frame: next - 1
+			frame = null
+		]
+		;#if debug? = yes [					;; enable it once we get a visual exception reporting for panic exits!
+		;	frame: memory/s-head
+		;	until [
+		;		check-series frame
+		;		frame: frame/next
+		;		frame = null
+		;	]
+		;]
+	]
+	
 	do-mark-sweep: func [
 		/local
 			p		[int-ptr!]
