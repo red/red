@@ -306,6 +306,7 @@ system/view/VID: context [
 		divides: none
 		calc-y?: no
 		do-with: none
+		scaling: 1x1
 		
 		obj-spec!:	make typeset! [block! object!]
 		sel-spec!:	make typeset! [integer! float! percent!]
@@ -382,7 +383,12 @@ system/view/VID: context [
 							string!	 [unless opts/text  [opts/text:  value]]
 							logic!
 							date!
-							percent! [unless opts/data  [opts/data:  value] yes]
+							percent! [
+								either opts/image [scaling: value][
+									unless opts/data [opts/data: value]
+								]
+								yes
+							]
 							image!	 [unless opts/image [opts/image: value]]
 							tuple!	 [
 								either opts/color [
@@ -447,7 +453,7 @@ system/view/VID: context [
 				x: either zero? oi/size/x [1][oi/size/x]
 				as-pair opts/size/x opts/size * (oi/size/y / x)
 			][
-				oi/size
+				oi/size * scaling
 			]
 		]
 		all [											;-- preprocess RTD inputs
