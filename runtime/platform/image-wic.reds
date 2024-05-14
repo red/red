@@ -273,6 +273,18 @@ OS-image: context [
 		Initialize					[function! [this [this!] pISource [this!] rec [RECT!] return: [integer!]]]
 	]
 
+	IWICBitmapFlipRotator: alias struct! [
+		QueryInterface				[QueryInterface!]
+		AddRef						[AddRef!]
+		Release						[Release!]
+		GetSize						[function! [this [this!] pWidth [int-ptr!] pHeight [int-ptr!] return: [integer!]]]
+		GetPixelFormat				[function! [this [this!] pPixelFormat [int-ptr!] return: [integer!]]]
+		GetResolution				[function! [this [this!] pX [float-ptr!] pY [float-ptr!] return: [integer!]]]
+		CopyPalette					[function! [this [this!] pIPalette [int-ptr!] return: [integer!]]]
+		CopyPixels					[function! [this [this!] prc [int-ptr!] stride [integer!] size [integer!] buffer [byte-ptr!] return: [integer!]]]
+		Initialize					[function! [this [this!] pISource [this!] options [integer!] return: [integer!]]]
+	]
+
 	make-node: func [
 		handle	[this!]
 		buffer	[this!]
@@ -486,8 +498,29 @@ OS-image: context [
 		if stride = 0 [stride: width * 4]
 		size: stride * height
 		ret: IFAC/CreateBitmapFromMemory wic-factory width height as integer! GUID_WICPixelFormat32bppBGRA stride size scan0 :bmp
-		bitmap/value: as integer! make-node null bmp/value 3 width height
+		bitmap/value: as integer! make-node bmp/value null 0 width height
 		ret
+	]
+
+	flip: func [
+		handle		[node!]
+		width		[integer!]
+		height		[integer!]
+		return:		[node!]
+		/local
+			inode	[img-node!]
+			IFAC	[IWICImagingFactory]
+			iflip	[com-ptr! value]
+			sthis	[this!]
+			flipper [IWICBitmapFlipRotator]
+	][
+		inode: as img-node! (as series! handle/value) + 1
+		IFAC: as IWICImagingFactory wic-factory/vtbl
+		IFAC/CreateBitmapFlipRotator wic-factory :iflip
+		sthis: iflip/value
+		flipper: as IWICBitmapFlipRotator sthis/vtbl
+		flipper/Initialize sthis inode/handle 10h
+		make-node sthis null 0 width height
 	]
 
 	create-bitmap-from-gdidib: func [

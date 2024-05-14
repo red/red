@@ -113,6 +113,7 @@ interface!: alias struct! [
 ]
 
 QueryInterface!: alias function! [
+	[stdcall]
 	this		[this!]
 	riid		[int-ptr!]
 	ppvObject	[interface!]
@@ -120,11 +121,13 @@ QueryInterface!: alias function! [
 ]
 
 AddRef!: alias function! [
+	[stdcall]
 	this		[this!]
 	return:		[integer!]
 ]
 
 Release!: alias function! [
+	[stdcall]
 	this		[this!]
 	return:		[integer!]
 ]
