@@ -690,7 +690,7 @@ cross-compact-frame: func [
 	refs
 ]
 
-in-range?: func [
+in-series-frame?: func [
 	p		[int-ptr!]
 	return: [logic!]
 	/local
@@ -747,12 +747,13 @@ encode-dyn-ptr: func [
 	bits
 ]
 
-extract-stack-refs: func [
+scan-stack-refs: func [
 	store? [logic!]
 	/local
 		frm	map	slot p base head [int-ptr!]
 		refs tail [int-ptr!]
 		c-low c-high caller [byte-ptr!]
+		s [series!]
 		bits idx disp nb [integer!]
 		ext? [logic!]
 ][
@@ -791,23 +792,40 @@ extract-stack-refs: func [
 							if all [
 								p > as int-ptr! FFFFh	  ;-- filter out too low values
 								p < as int-ptr! FFFFF000h ;-- filter out too high values
-								not all [(as byte-ptr! stack/bottom) <= p p <= (as byte-ptr! stack/top)] ;-- stack region is fixed
-								in-range? p
 							][
-								;probe ["(new) stack pointer: " p " : " as byte-ptr! p/value " (" frm + idx - 1 ")"]
-								if store? [
-									if refs = tail [
-										;@@ for cases like issue #3628, should find a better way to handle it
-										refs: memory/stk-refs
-										memory/stk-sz: memory/stk-sz + 1000
-										refs: as int-ptr! realloc as byte-ptr! refs memory/stk-sz * 2 * size? int-ptr!
-										memory/stk-refs: refs
-										tail: refs + (memory/stk-sz * 2)
-										refs: tail - 2000
+								case [
+									all [				;== Mark node! references ==
+										(as-integer p) and 3 = 0	;-- check if it's a valid int-ptr!
+										collector/frames-list/find p
+										p/value <> 0
+										not collector/frames-list/find as int-ptr! p/value ;-- freed nodes can still be on the stack!
+										collector/keep p
+									][
+										;probe ["(scan) node pointer on stack: " p " : " as byte-ptr! p/value]
+										s: as series! p/value
+										if GET_UNIT(s) = 16 [collector/mark-values s/offset s/tail]
 									]
-									refs/1: as-integer p			 ;-- pointer inside a frame
-									refs/2: as-integer frm + idx - 1 ;-- pointer address on stack
-									refs: refs + 2
+									all [
+										not all [(as byte-ptr! stack/bottom) <= p p <= (as byte-ptr! stack/top)] ;-- stack region is fixed
+										in-series-frame? p
+									][
+										;probe ["stack pointer: " p " : " as byte-ptr! p/value " (" frm + idx - 1 ")"]
+										if store? [		;== Extract series references ==
+											if refs = tail [
+												;@@ for cases like issue #3628, should find a better way to handle it
+												refs: memory/stk-refs
+												memory/stk-sz: memory/stk-sz + 1000
+												refs: as int-ptr! realloc as byte-ptr! refs memory/stk-sz * 2 * size? int-ptr!
+												memory/stk-refs: refs
+												tail: refs + (memory/stk-sz * 2)
+												refs: tail - 2000
+											]
+											refs/1: as-integer p			 ;-- pointer inside a frame
+											refs/2: as-integer frm + idx - 1 ;-- pointer address on stack
+											refs: refs + 2
+										]
+									]
+									true [0]
 								]
 							]
 						]
@@ -849,8 +867,6 @@ collect-series-frames: func [
 	next: null
 	refs: null
 	frame: memory/s-head
-
-	extract-stack-refs yes
 	refs: memory/stk-refs
 
 	until [

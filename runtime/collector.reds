@@ -145,37 +145,6 @@ collector: context [
 		]
 	]
 	
-	mark-stack-nodes: func [
-		/local
-			top	 [int-ptr!]
-			stk	 [int-ptr!]
-			p	 [int-ptr!]
-			s	 [series!]
-	][
-		top: system/stack/top
-		stk: stk-bottom
-		
-		until [
-			stk: stk - 1
-			p: as int-ptr! stk/value
-			if all [
-				(as-integer p) and 3 = 0		;-- check if it's a valid int-ptr!
-				p > as int-ptr! FFFFh			;-- filter out too low values
-				p < as int-ptr! FFFFF000h		;-- filter out too high values
-				not all [(as byte-ptr! stack/bottom) <= p p <= (as byte-ptr! stack/top)] ;-- stack region is fixed
-				frames-list/find p
-				p/value <> 0
-				not frames-list/find as int-ptr! p/value ;-- freed nodes can still be on the stack!
-				keep p
-			][
-				;probe ["node pointer on stack: " p " : " as byte-ptr! p/value]
-				s: as series! p/value
-				if GET_UNIT(s) = 16 [mark-values s/offset s/tail]
-			]
-			stk = top
-		]
-	]
-	
 	keep: func [
 		node	[node!]
 		return: [logic!]								;-- TRUE if newly marked, FALSE if already done
@@ -416,9 +385,9 @@ collector: context [
 			p: p + 1
 		]
 		
-		#if debug? = yes [if verbose > 1 [probe "marking nodes on native stack"]]
+		#if debug? = yes [if verbose > 1 [probe "scanning native stack"]]
 		frames-list/build
-		mark-stack-nodes
+		scan-stack-refs yes
 
 		#if debug? = yes [tm1: (platform/get-time yes yes) - tm]	;-- marking time
 
@@ -428,7 +397,7 @@ collector: context [
 		collect-big-frames
 		nodes-list/flush
 		collect-node-frames
-		;extract-stack-refs no
+		;scan-stack-refs no
 	
 		;-- unmark fixed series
 		unmark root/node
@@ -436,7 +405,6 @@ collector: context [
 		unmark call-stk/node
 		
 		stats/cycles: stats/cycles + 1
-		;probe "done!"
 
 		#if debug? = yes [
 			tm: (platform/get-time yes yes) - tm - tm1
