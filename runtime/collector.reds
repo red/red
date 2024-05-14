@@ -27,16 +27,16 @@ collector: context [
 	
 	indent: 0
 	
+	compare-cb: func [[cdecl] a [int-ptr!] b [int-ptr!] return: [integer!]][
+		SIGN_COMPARE_RESULT((as int-ptr! a/value) (as int-ptr! b/value))
+	]
+	
 	frames-list: context [
 		list:	   as node! 0
 		min-size:  1000
 		fit-cache: 16									;-- nb of pointers fitting into a typical 64 bytes L1 cache
 		buf-size:  min-size								;-- initial number of supported frames
 		count:	   0									;-- current number of stored frames
-		
-		compare-cb: func [[cdecl] a [int-ptr!] b [int-ptr!] return: [integer!]][
-			SIGN_COMPARE_RESULT((as int-ptr! a/value) (as int-ptr! b/value))
-		]
 
 		build: func [									;-- build an array of node frames pointers
 			/local
@@ -124,7 +124,7 @@ collector: context [
 				frm p e n [int-ptr!]
 				frm-nb w [integer!]
 		][
-			qsort as byte-ptr! list count 4 :frames-list/compare-cb
+			qsort as byte-ptr! list count 4 :compare-cb
 			p: frames-list/list
 			e: p + frames-list/count
 			w: nodes-per-frame * size? node!			;-- node frame width
@@ -581,10 +581,6 @@ collector: context [
 		no
 	]
 
-	compare-refs: func [[cdecl] a [int-ptr!] b [int-ptr!] return: [integer!]][
-		SIGN_COMPARE_RESULT((as int-ptr! a/value) (as int-ptr! b/value))
-	]
-
 	encode-dyn-ptr: func [
 		stk	    [int-ptr!]								;-- stack frame pointer
 		typed?  [logic!]
@@ -721,7 +717,7 @@ collector: context [
 		nb: (as-integer refs - memory/stk-refs) >> 2 / 2
 
 		if all [store? nb > 0][
-			qsort as byte-ptr! memory/stk-refs nb 8 :compare-refs
+			qsort as byte-ptr! memory/stk-refs nb 8 :compare-cb
 
 			;tail: refs
 			;refs: memory/stk-refs
