@@ -162,7 +162,7 @@ ISampleGrabber: alias struct! [
 	QueryInterface			[QueryInterface!]
 	AddRef					[AddRef!]
 	Release					[Release!]	
-	SetOneShot				[int-ptr!]
+	SetOneShot				[function! [this [this!] oneshot [integer!] return: [integer!]]]
 	SetMediaType			[function! [this [this!] pType [AM_MEDIA_TYPE] return: [integer!]]]
 	GetConnectedMediaType	[function! [this [this!] pType [AM_MEDIA_TYPE] return: [integer!]]]
 	SetBufferSamples		[int-ptr!]
@@ -179,7 +179,7 @@ camera!: alias struct! [
 	v-filter	[this!]
 	g-filter	[this!]
 	grabber		[this!]
-	grabber-cb	[this!]
+	grabber-cb	[int-ptr!]
 	window		[this!]
 	dev1		[this!]
 	dev2		[this!]
@@ -239,13 +239,25 @@ grabber-cb-buffer: func [
 		obj			[RedGrabberCB]
 		bmp			[integer!]
 		values		[red-value!]
+		img			[red-image!]
 ][
 	obj: as RedGrabberCB this
-	bmp: 0
-	OS-image/create-bitmap-from-scan0 obj/width obj/height 0 OS-image/fixed-format pBuffer :bmp
 	values: get-face-values obj/hWnd
-	image/init-image as red-image! values + FACE_OBJ_IMAGE OS-image/flip as node! bmp obj/width obj/height
+	img: as red-image! values + FACE_OBJ_IMAGE
+	if TYPE_OF(img) = TYPE_NONE [
+		bmp: 0
+		OS-image/create-bitmap-from-scan0 obj/width obj/height 0 OS-image/fixed-format pBuffer :bmp
+		image/init-image img OS-image/flip as node! bmp
+	]
 	0
+]
+
+camera-get-image: func [img [red-image!]][
+	img/header: TYPE_NONE
+	until [
+		platform/wait 0.01
+		TYPE_OF(img) = TYPE_IMAGE
+	]
 ]
 
 init-camera: func [
@@ -278,6 +290,9 @@ free-graph: func [cam [camera!] /local interface [IUnknown]][
 	COM_SAFE_RELEASE(interface cam/builder)
 	COM_SAFE_RELEASE(interface cam/graph)
 	COM_SAFE_RELEASE(interface cam/v-filter)
+	COM_SAFE_RELEASE(interface cam/grabber)
+	COM_SAFE_RELEASE(interface cam/g-filter)
+	free as byte-ptr! cam/grabber-cb
 ]
 
 teardown-graph: func [cam [camera!] /local w [IVideoWindow]][
@@ -346,7 +361,6 @@ init-graph: func [
 	cam/g-filter: IGrabFilter/ptr
 	cam/grabber: IGrab/ptr
 
-
 	zero-memory as byte-ptr! :mt size? AM_MEDIA_TYPE
 	mt/majortype/data1: MEDIATYPE_Video/1
 	mt/majortype/data2: MEDIATYPE_Video/2
@@ -359,7 +373,6 @@ init-graph: func [
 	;mt/subtype/data3: 2000539Fh
 	;mt/subtype/data4: 70A70BAFh
 
-	;-- 47504A4D-0000-0010-8000-00AA00389B71 (MJPG)
 	;-- 773C9AC0-3274-11D0-B724-00AA006C1A01 (argb)
 	mt/subtype/data1: 773C9AC0h
 	mt/subtype/data2: 11D03274h
@@ -402,7 +415,6 @@ build-preview-graph: func [
 	case [
 		hr = VFW_S_NOPREVIEWPIN [1]
 		hr <> 0 [
-			probe "video"
 			hr: builder/RenderStream cam/builder PIN_CATEGORY_PREVIEW MEDIATYPE_Video filter cam/g-filter null
 			case [
 				hr = VFW_S_NOPREVIEWPIN [1]
@@ -424,7 +436,7 @@ build-preview-graph: func [
 	grabber-cb/height: bmp/biHeight
 	grabber-cb/hWnd: hWnd
 	grabber-cb/vtbl: as int-ptr! SampleGrabberCB
-	cam/grabber-cb: as this! grabber-cb
+	cam/grabber-cb: as int-ptr! grabber-cb
 
 	grabber/SetCallback cam/grabber as int-ptr! grabber-cb 1
 	

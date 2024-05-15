@@ -504,8 +504,6 @@ OS-image: context [
 
 	flip: func [
 		handle		[node!]
-		width		[integer!]
-		height		[integer!]
 		return:		[node!]
 		/local
 			inode	[img-node!]
@@ -519,8 +517,8 @@ OS-image: context [
 		IFAC/CreateBitmapFlipRotator wic-factory :iflip
 		sthis: iflip/value
 		flipper: as IWICBitmapFlipRotator sthis/vtbl
-		flipper/Initialize sthis inode/handle 10h
-		make-node sthis null 0 width height
+		flipper/Initialize sthis inode/handle 10h		;-- flip horizontal
+		make-node sthis null 0 IMAGE_WIDTH(inode/size) IMAGE_HEIGHT(inode/size)
 	]
 
 	create-bitmap-from-gdidib: func [

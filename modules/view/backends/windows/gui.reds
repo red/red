@@ -2240,9 +2240,20 @@ change-image: func [
 	hWnd	[handle!]
 	values	[red-value!]
 	type	[integer!]
+	/local
+		img [red-image!]
 ][
-	if type = base [update-base hWnd null null values]
-	if any [type = button type = toggle][init-button hWnd values]
+	case [
+		type = base [update-base hWnd null null values]
+		any [type = button type = toggle][init-button hWnd values]
+		type = camera [
+			img: as red-image! values + FACE_OBJ_IMAGE
+			if TYPE_OF(img) = TYPE_NONE [
+				camera-get-image img
+			]
+		]
+		true [0]
+	]
 ]
 
 change-selection: func [
@@ -2805,10 +2816,19 @@ OS-to-image: func [
 		screen? [logic!]
 		bo		[tagPOINT value] 		;-- base offset
 		sym 	[integer!]
+		ret		[red-image!]
 ][
 	hWnd: null
 	word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
 	sym: symbol/resolve word/symbol
+	if sym = camera [
+		hWnd: face-handle? face
+		either null? hWnd [ret: as red-image! none-value][
+			ret: as red-image! (object/get-values face) + FACE_OBJ_IMAGE
+			camera-get-image ret
+		]
+		return ret
+	]
 	screen?: screen = sym
 	either screen? [
 		size: as red-pair! get-node-facet face/ctx FACE_OBJ_SIZE
