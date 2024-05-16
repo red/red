@@ -15,6 +15,11 @@ collector: context [
 	verbose: 0
 	active?: no
 	
+	#enum frame-type! [
+		FRAME_NODES
+		FRAME_SERIES
+	]
+	
 	stats: declare struct! [
 		cycles [integer!]
 	]
@@ -32,72 +37,113 @@ collector: context [
 	]
 	
 	frames-list: context [
-		list:	   as node! 0
 		min-size:  1000
 		fit-cache: 16									;-- nb of pointers fitting into a typical 64 bytes L1 cache
-		buf-size:  min-size								;-- initial number of supported frames
-		count:	   0									;-- current number of stored frames
 
-		build: func [									;-- build an array of node frames pointers
+		list!: alias struct! [
+			list  [int-ptr!] 							;-- array of frame pointers
+			size  [integer!]							;-- size of list (in pointers)
+			count [integer!]							;-- current number of stored frames
+		]
+		nodes: declare list!
+		series: declare list!
+		nodes/size:  min-size
+		series/size: min-size
+		
+		rebuild: func [									;-- build an array of node frames pointers
 			/local
 				frm	[node-frame!]
 				pos [int-ptr!]
+				s	[list!]
 				cnt [integer!]
 		][
-			if null? list [
-				;-- allocation alignement not guaranteed, so L1 cache optmization is only eventual.
-				list: as node! allocate buf-size * size? node!
-			]
-			cnt: 0
+			;-- allocation alignement not guaranteed, so L1 cache optmization is only eventual.
+			if null? nodes/list  [nodes/list:  as node! allocate min-size * size? int-ptr!]
+			if null? series/list [series/list: as node! allocate min-size * size? int-ptr!]
+			
+			s: nodes
 			frm: memory/n-head
-			pos: list
-			until [
-				pos/value: as-integer frm
-				pos: pos + 1
-				cnt: cnt + 1
-				if cnt >= buf-size [
-					buf-size: buf-size * 2
-					list: as node! realloc as byte-ptr! list buf-size * size? node!
-					pos: list + cnt
+			loop 2 [
+				cnt: 0
+				pos: s/list
+				until [
+					pos/value: as-integer frm
+					pos: pos + 1
+					cnt: cnt + 1
+					if cnt >= s/size [
+						s/size: s/size * 2
+						s/list: as int-ptr! realloc as byte-ptr! s/list s/size * size? int-ptr!
+						pos: s/list + cnt
+					]
+					frm: frm/next
+					frm = null
 				]
-				frm: frm/next
-				frm = null
+				if all [cnt > min-size cnt * 3 < s/size][	;-- shrink buffer if 2/3 or more are not used
+					s/size: cnt
+					s/list: as int-ptr! realloc as byte-ptr! s/list s/size * size? int-ptr!
+				]
+				qsort as byte-ptr! s/list cnt 4 :compare-cb	;-- sort the array
+				s/count: cnt
+				
+				s: series
+				frm: as node-frame! memory/s-head
 			]
-			if all [cnt > min-size cnt * 3 < buf-size][	;-- shrink buffer if 2/3 or more are not used
-				buf-size: cnt
-				list: as node! realloc as byte-ptr! list buf-size * size? node!
-			]
-			qsort as byte-ptr! list cnt 4 :compare-cb	;-- sort the array
-			count: cnt
 		]
 		
 		find: func [
-			node	[node!]
+			ptr		[int-ptr!]
+			type	[frame-type!]
 			return: [logic!]
 			/local
-				frm p s e [node!]
-				w	 [integer!]
-				end? [logic!]
-		][	
-			w: nodes-per-frame * size? node! 			;-- node frame width
-		
-			either count <= fit-cache [					;== linear search
-				p: list
-				loop count [
-					frm: as node! p/value + size? node-frame!
-					if all [frm <= node node < as node! ((as byte-ptr! frm) + w)][return yes]
-					p: p + 1
+				sfrm		 [series-frame!]
+				frm p b e	 [int-ptr!]
+				tail		 [byte-ptr!]
+				s			 [list!]
+				w h			 [integer!]
+				end? series? [logic!]
+		][
+			series?: type = FRAME_SERIES
+			s: either series? [h: size? series-frame!  series][h: size? node-frame!  nodes]
+			w: nodes-per-frame * size? node!			;-- fixed node frame width
+			
+			either s/count <= fit-cache [				;== linear search
+				p: s/list
+				either series? [
+					loop s/count [
+						sfrm: as series-frame! p/value
+						tail: (as byte-ptr! sfrm) + sfrm/size
+						if all [(as int-ptr! (as byte-ptr! sfrm) + h) <= ptr ptr < as int-ptr! tail][return yes]
+						p: p + 1
+					]
+				][
+					loop s/count [
+						frm: as int-ptr! p/value + h
+						if all [frm <= ptr ptr < as int-ptr! ((as byte-ptr! frm) + w)][return yes]
+						p: p + 1
+					]
 				]
 			][											;== binary search for arrays bigger than 16 nodes
-				s: list									;-- low pointer
-				e: list + (count - 1)					;-- high pointer
-				until [
-					p: s + ((as-integer e - s) >> 2 + 1 / 2) ;-- points to the middle of [s,e] segment
-					frm: as node! p/value + size? node-frame!
-					if all [frm <= node node < as node! ((as byte-ptr! frm) + w)][return yes]
-					end?: s = e							;-- gives a chance to probe the s = e segment
-					either (as node! p/value) < node [s: p][e: p - 1] ;-- chooses lower or upper segment
-					end?
+				b: s/list								;-- low pointer
+				e: s/list + (s/count - 1)				;-- high pointer
+				either series? [
+					until [
+						p: b + ((as-integer e - b) >> 2 + 1 / 2) ;-- points to the middle of [b,e] segment
+						sfrm: as series-frame! p/value
+						tail: (as byte-ptr! sfrm) + sfrm/size
+						if all [(as int-ptr! (as byte-ptr! sfrm) + h) <= ptr ptr < as int-ptr! tail][return yes]
+						end?: b = e						;-- gives a chance to probe the b = e segment
+						either (as int-ptr! p/value) < ptr [b: p][e: p - 1] ;-- chooses lower or upper segment
+						end?
+					]
+				][
+					until [
+						p: b + ((as-integer e - b) >> 2 + 1 / 2) ;-- points to the middle of [b,e] segment
+						frm: as int-ptr! p/value + h
+						if all [frm <= ptr ptr < as int-ptr! ((as byte-ptr! frm) + w)][return yes]
+						end?: b = e						;-- gives a chance to probe the b = e segment
+						either (as node! p/value) < ptr [b: p][e: p - 1] ;-- chooses lower or upper segment
+						end?
+					]
 				]
 			]
 			no
@@ -125,8 +171,8 @@ collector: context [
 				frm-nb w [integer!]
 		][
 			qsort as byte-ptr! list count 4 :compare-cb
-			p: frames-list/list
-			e: p + frames-list/count
+			p: frames-list/nodes/list
+			e: p + frames-list/nodes/count
 			w: nodes-per-frame * size? node!			;-- node frame width
 			n: list
 			
@@ -668,9 +714,9 @@ collector: context [
 									case [
 										all [			;=== Mark node! references ===
 											(as-integer p) and 3 = 0	;-- check if it's a valid int-ptr!
-											frames-list/find p
+											frames-list/find p FRAME_NODES
 											p/value <> 0
-											not frames-list/find as int-ptr! p/value ;-- freed nodes can still be on the stack!
+											not frames-list/find as int-ptr! p/value FRAME_NODES ;-- freed nodes can still be on the stack!
 											keep p
 										][
 											;probe ["(scan) node pointer on stack: " p " : " as byte-ptr! p/value]
@@ -679,7 +725,7 @@ collector: context [
 										]
 										all [
 											not all [(as byte-ptr! stack/bottom) <= p p <= (as byte-ptr! stack/top)] ;-- stack region is fixed
-											in-series-frame? p
+											frames-list/find p FRAME_SERIES
 										][
 											;probe ["stack pointer: " p " : " as byte-ptr! p/value " (" frm + idx - 1 ")"]
 											if store? [	;=== Extract series references ===
@@ -822,7 +868,7 @@ collector: context [
 		]
 		
 		#if debug? = yes [if verbose > 1 [probe "scanning native stack"]]
-		frames-list/build
+		frames-list/rebuild								;-- refresh nodes and series frames list
 		scan-stack-refs yes
 
 		#if debug? = yes [tm1: (platform/get-time yes yes) - tm]	;-- marking time
