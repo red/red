@@ -612,21 +612,6 @@ collector: context [
 		refs
 	]
 
-	in-series-frame?: func [
-		p		[int-ptr!]
-		return: [logic!]
-		/local
-			frm [series-frame!]
-	][
-		frm: memory/s-head
-		until [
-			if all [(as int-ptr! frm + 1) <= p p < as int-ptr! frm/tail][return yes]
-			frm: frm/next
-			frm = null
-		]
-		no
-	]
-
 	encode-dyn-ptr: func [
 		stk	    [int-ptr!]								;-- stack frame pointer
 		typed?  [logic!]
