@@ -107,6 +107,38 @@ select-camera*: func [
 	free node
 ]
 
+camera-get-image: func [
+	widget	[handle!]
+	img		[red-image!]
+	/local
+		cfg [integer!]
+		data	[integer!]
+		dlen	[integer!]
+		pixbuf	[handle!]
+][
+	cfg: as integer! GET-CAMERA-CFG(widget)
+	pixbuf: GET-CAMERA-IMG(widget)
+	if pixbuf <> null [pixbuf: gdk_pixbuf_copy pixbuf]
+
+	if all [
+		cfg <> 0
+		null? pixbuf
+		0 = camera-dev/trylock cfg
+	][
+		data: 0
+		dlen: 0
+		pixbuf: null
+		camera-dev/get-data cfg :data :dlen
+		if dlen <> 0 [
+			pixbuf: camera-dev/get-pixbuf cfg
+			camera-dev/signal cfg
+		]
+		camera-dev/unlock cfg
+	]
+	if pixbuf <> null [
+		image/init-image img OS-image/load-pixbuf pixbuf
+	]
+]
 
 init-camera: func [
 	widget		[handle!]
@@ -134,4 +166,16 @@ select-camera: func [
 	data: as red-block! values + FACE_OBJ_DATA
 	size: as red-pair! values + FACE_OBJ_SIZE
 	select-camera* widget data sel size/x size/y
+]
+
+stop-camera: func [
+	widget		[handle!]
+	/local
+		cfg		[integer!]
+][
+	cfg: as integer! GET-CAMERA-CFG(widget)
+	if cfg <> 0 [
+		camera-dev/close cfg
+		SET-CAMERA-CFG(widget 0)
+	]
 ]

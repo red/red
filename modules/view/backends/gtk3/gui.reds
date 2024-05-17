@@ -862,10 +862,9 @@ change-image: func [
 ][
 	;; DEBUG: print ["change-image " widget " type: " get-symbol-name type lf]
 	case [
-		; type = camera [
-		; 	snap-camera widget
-		; 	until [TYPE_OF(image) = TYPE_IMAGE]			;-- wait
-		; ]
+		all [type = camera TYPE_OF(image) = TYPE_NONE][
+			camera-get-image widget image
+		]
 		any [type = button type = toggle type = check type = radio][
 			if TYPE_OF(image) = TYPE_IMAGE [
 				img: gtk_image_new_from_pixbuf OS-image/to-pixbuf image
@@ -873,7 +872,6 @@ change-image: func [
 			]
 		]
 		true [0]
-
 	]
 ]
 
@@ -1250,7 +1248,11 @@ change-selection: func [
 			gtk_adjustment_set_page_size adj flt
 		]
 		type = camera [
-			select-camera widget idx
+			either idx < 0 [
+				stop-camera widget
+			][
+				select-camera widget idx
+			]
 		]
 		type = text-list [
 			g_signal_handlers_block_by_func(widget :text-list-selected-rows-changed widget)
@@ -2318,6 +2320,13 @@ OS-to-image: func [
 				ret: image/init-image as red-image! stack/push* OS-image/load-pixbuf pixbuf
 			]
 		]
+		type = camera [
+			widget: face-handle? face
+			either null? widget [ret: as red-image! none-value][
+				ret: as red-image! (object/get-values face) + FACE_OBJ_IMAGE
+				camera-get-image widget ret
+			]
+		]
 		true [
 			widget: face-handle? face
 			either null? widget [ret: as red-image! none-value][
@@ -2326,10 +2335,7 @@ OS-to-image: func [
 				win: gtk_widget_get_window widget
 				either not null? win [
 					GET_PAIR_XY_INT(size sx sy)
-					pixbuf: either any [
-						type = window
-						type = camera
-					][
+					pixbuf: either type = window [
 						gdk_pixbuf_get_from_window win 0 0 sx sy
 					][
 						gdk_pixbuf_get_from_window win as-integer offset/x as-integer offset/y sx sy
