@@ -25,14 +25,16 @@ update-rich-text: func [
 		len		[integer!]
 		values	[red-value!]
 		styles	[red-block!]
+		color	[red-tuple!]
 		str		[red-string!]
 		p		[pixel!]
 		i idx	[integer!]
-		cp		[integer!]
+		cp clr	[integer!]
 ][
 	values: get-face-values widget
 	styles: as red-block! values + FACE_OBJ_DATA
 	str:	as red-string! values + FACE_OBJ_TEXT
+	color:	as red-tuple! values + FACE_OBJ_COLOR
 
 	data: widget/data
 	len: string/rs-length? str
@@ -54,6 +56,16 @@ update-rich-text: func [
 		widget/data: data
 	]
 
+	clr: 0
+	if TYPE_OF(color) = TYPE_TUPLE [
+		if any [
+			TUPLE_SIZE?(color) = 3
+			color/array1 >>> 24 <> FFh
+		][
+			clr: make-color-256 get-tuple-color color
+		]
+	]
+
 	;-- fill attribute string buffer
 	p: as pixel! data
 	i: 0
@@ -63,7 +75,7 @@ update-rich-text: func [
 		i: i + 1
 		cp: string/rs-abs-at str idx
 		p/code-point: cp
-		p/bg-color: 0
+		p/bg-color: clr
 		p/fg-color: 0
 		p/flags: 0
 		idx: idx + 1

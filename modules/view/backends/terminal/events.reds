@@ -603,6 +603,7 @@ do-events: func [
 		any [no-wait? exit-loop?]
 	]
 	unless no-wait? [
+		tty/write as byte-ptr! "^(0D)^(0A)" 2	;-- move to next line
 		screen/set-cursor-bottom
 		if mouse-event? [
 			mouse-event?: no
