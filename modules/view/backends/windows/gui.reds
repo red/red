@@ -2813,10 +2813,12 @@ OS-to-image: func [
 		img		[red-image!]
 		word	[red-word!]
 		size	[red-pair!]
+		draw	[red-block!]
 		screen? [logic!]
 		bo		[tagPOINT value] 		;-- base offset
 		sym 	[integer!]
 		ret		[red-image!]
+		dctx	[draw-ctx! value]
 ][
 	hWnd: null
 	word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
@@ -2844,6 +2846,24 @@ OS-to-image: func [
 		width: rc/right - rc/left
 		height: rc/bottom - rc/top
 		dc: GetDC hWnd
+	]
+
+	if sym = base [
+		ReleaseDC hWnd dc
+		bmp: OS-image/make-image width height null null null
+		ret: image/init-image as red-image! stack/push* bmp
+
+		draw: as red-block! (object/get-values face) + FACE_OBJ_DRAW
+		either TYPE_OF(draw) = TYPE_BLOCK [
+			do-draw hwnd ret draw no no yes yes
+		][
+			catch RED_THROWN_ERROR [
+				draw-begin :dctx hWnd ret no yes
+				draw-end :dctx hWnd no no yes
+			]
+			system/thrown: 0
+		]
+		return ret
 	]
 
 	mdc: CreateCompatibleDC dc

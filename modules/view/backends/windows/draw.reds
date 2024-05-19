@@ -195,6 +195,7 @@ draw-begin: func [
 		factory [ID2D1Factory]
 		rc		[RECT_F! value]
 		font-clr? [logic!]
+		on-image? [logic!]
 ][
 	time-meter/start _time_meter
 	zero-memory as byte-ptr! ctx size? draw-ctx!
@@ -208,8 +209,9 @@ draw-begin: func [
 	t-mode: 1	;-- ClearType
 	this: d2d-ctx
 	dc: as ID2D1DeviceContext this/vtbl
+	on-image?: all [hWnd <> null paint? img <> null]
 
-	either hWnd <> null [
+	either all [hWnd <> null not on-image?][
 		target: get-hwnd-render-target hWnd on-graphic?
 		dc/SetTarget this target/bitmap
 		dc/setDpi this dpi-x dpi-y
@@ -330,22 +332,24 @@ draw-end: func [
 		rt		[render-target!]
 		hr		[integer!]
 		flags	[integer!]
+		hWnd?	[logic!]
 ][
 	loop ctx/clip-cnt [OS-clip-end ctx]
 	ctx/clip-cnt: 0
+	hWnd?: all [hWnd <> null ctx/image = null]
 
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
 	if ctx/image <> null [dc/PopAxisAlignedClip this]
 	dc/EndDraw this null null
-	if hWnd <> null [dc/SetTarget this null]
+	if hWnd? [dc/SetTarget this null]
 
 	release-ctx ctx		;@@ Possible improvement: cache resources for window target
 
 	if on-graphic? [exit]
 
 	rt: as render-target! ctx/target
-	either hWnd <> null [		;-- window target
+	either hWnd? [		;-- window target
 		this: rt/swapchain
 		sc: as IDXGISwapChain1 this/vtbl
 		flags: either g_standby? [DXGI_PRESENT_TEST][0]
