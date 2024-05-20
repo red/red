@@ -10,7 +10,7 @@ Red [
 	}
 ]
 
-#(
+#[
 	@origin	 1x1
 	@spacing 1x1
 	
@@ -130,4 +130,4 @@ Red [
 		template: [type: 'base size: 40x20]
 		init: [unless face/image [face/image: make image! face/size]]
 	]
-)
+]
