@@ -20,9 +20,9 @@ Red/System [
 #define TBOX_METRICS_OFFSET_LOWER	6
 
 #define PANGO_TEXT_MARKUP_SIZED		500
+#define PANGO_MAX_SIZE				16777216
 
 max-line-cnt:  0
-
 
 utf8-to-bytes: func [
 	text		[c-string!]
@@ -385,15 +385,18 @@ OS-text-box-layout: func [
 	]
 	len: -1
 	str: unicode/to-utf8 text :len
-	if ANY_COORD?(size) [
+	either ANY_COORD?(size) [
 		GET_PAIR_XY_INT(size sx sy)
-		if sx <> 0 [
-			pango_layout_set_width layout PANGO_SCALE * sx
-		]
-		if sy <> 0 [
-			pango_layout_set_height layout PANGO_SCALE * sy
-		]
+		sx: PANGO_SCALE * sx
+		sy: PANGO_SCALE * sy
+		if any [sx <= 0 sx >= PANGO_MAX_SIZE][sx: -1]
+		if any [sy <= 0 sy >= PANGO_MAX_SIZE][sy: -1]
+	][
+		sx: -1
+		sy: -1
 	]
+	pango_layout_set_width layout sx
+	pango_layout_set_height layout sy
 	pango_layout_set_wrap layout PANGO_WRAP_WORD_CHAR			;-- TBD: apply para
 	pango_layout_set_text layout str -1
 

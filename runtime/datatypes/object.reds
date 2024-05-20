@@ -93,6 +93,20 @@ object: context [
 		(as-integer s/tail - s/offset) >> 4
 	]
 	
+	clear-nl-flags: func [
+		s [series!]
+		/local
+			cell [red-value!]
+			tail [red-value!]
+	][
+		cell: s/offset
+		tail: s/tail
+		while [cell < tail][
+			cell/header: cell/header and flag-nl-mask
+			cell: cell + 1
+		]
+	]
+	
 	clear-words-flags: func [
 		ctx [red-context!]
 		/local
@@ -1127,6 +1141,7 @@ object: context [
 				interpreter/eval blk no
 				
 				clear-words-flags ctx
+				clear-nl-flags as series! ctx/values/value
 				obj/class: either any [new? not p-obj?][get-new-id][proto/class]
 				register-events obj ctx
 			]

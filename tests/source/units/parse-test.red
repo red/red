@@ -2985,6 +2985,21 @@ Red [
 		parse str b: [collect into  out rule] --assert out == res
 		parse str b: [collect after out rule] --assert out == res
 
+	--test-- "#5409"
+		f5409: function [block [block!] /local w][
+		  parse block rule: [
+		    change set w word! (
+		      attempt [if block? get/any w [f5409 get/any w]]
+		    )
+		  	| skip
+		  ]
+		  block
+		]
+		r1: [r2]
+		r2: [r1]
+		f5409 r1
+		--assert true
+
 ===end-group===
     
 ~~~end-file~~~

@@ -131,15 +131,31 @@ metrics?: function [
 ]
 
 set-flag: function [
-	"Sets a flag in a face object and returns the /flags facet value"
-	face  [object!]
-	value [any-type!]
+	"Sets (or clears) a flag in a face object; Returns the /flags facet value"
+	face  [object!]			"Face where flag to set/clear"
+	flag  [any-type!]		"Flag to set/clear"
+	/clear					"Clears the flag instead of setting it"
+	/toggle					"Set it if unset, clears it otherwise"
 ][
-	either flags: face/flags [
-		if word? flags [face/flags: flags: reduce [flags]]
-		either block? flags [append flags value][face/flags: value]
-	][
-		face/flags: value
+	flags: face/flags
+	case [
+		clear [
+			either block? flags [if pos: find flags flag [remove pos]][face/flags: none]
+		]
+		toggle [
+			either block? flags [
+				either pos: find flags flag [remove pos][append flags flag]
+			][
+				face/flags: either all [flags flags = flag][none][
+					either flags [reduce [flags flag]][reduce [flag]]
+				]
+			]
+		]
+		flags [
+			if word? flags [face/flags: flags: reduce [flags]]
+			either block? flags [append flags flag][face/flags: flag]
+		]
+		'else [face/flags: flag]
 	]
 	flags
 ]
@@ -223,13 +239,14 @@ on-face-deep-change*: function ["Internal use only" owner word target action new
 			either word = 'pane [
 				case [
 					action = 'moved [
+						diff?: yes
 						faces: skip head target index	;-- zero-based absolute index
 						loop part [
-							faces/1/parent: owner
+							either same? faces/1/parent owner [diff?: no][faces/1/parent: owner]
 							faces: next faces
 						]
 						;unless forced? [show owner]
-						system/view/platform/on-change-facet owner word target action new index part
+						if diff? [system/view/platform/on-change-facet owner word target action new index part]
 					]
 					find [remove clear take change] action [
 						either owner/type = 'screen [
@@ -493,7 +510,8 @@ face!: object [				;-- keep in sync with facet! enum
 				selected
 				block? data
 				find [drop-list drop-down text-list field area] type
-				set-quiet 'text copy pick data selected 
+				value: pick data selected
+				set-quiet 'text copy value
 			]
 
 			system/reactivity/check/only self any [saved word]
@@ -902,6 +920,7 @@ view: function [
 	;/modal					"Display a modal window (pop-up)"
 	/no-wait				"Return immediately - do not wait"
 	/no-sync				"Requires `show` calls to refresh faces"
+	/local sync? result
 ][
 	unless system/view/screens [system/view/platform/init]
 	
@@ -980,7 +999,7 @@ make-face: func [
 	css: make block! 2
 	reactors: make block! 4
 	spec: svv/fetch-options/no-skip face opts model blk css reactors no
-	if model/init [do bind model/init 'face]
+	if model/init [do bind model/init face]
 	svv/process-reactors reactors
 
 	if offset [face/offset: xy]
@@ -1117,7 +1136,7 @@ remove-event-func: function [
 	id [word! function!] "Handler name or function reference"
 ][
 	svh: system/view/handlers
-	pos: either word? :id [find svh id][find svh :id]
+	pos: either word? :id [find svh id][back find svh :id]
 	remove/part pos 2
 ]
 
@@ -1210,7 +1229,7 @@ alert: func [
 ;=== Global handlers ===
 
 ;-- Dragging face handler --
-insert-event-func 'dragging [
+insert-event-func 'dragging function [face event][
 	if all [
 		block? event/face/options
 		drag-evt: event/face/options/drag-on
@@ -1386,9 +1405,8 @@ insert-event-func 'tab function [face event][
 			value? 'gui-console-ctx
 			find/same gui-console-ctx/owned-faces face
 		]
-		face/type <> 'window
 	][
-		faces: find/same face/parent/pane face
+		faces: either face/type = 'window [face/pane][find/same face/parent/pane face]
 		unless back?: to-logic find event/flags 'SHIFT [
 			faces: either all [pane: get-face-pane face not empty? pane][pane][next faces]
 		]

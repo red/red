@@ -133,6 +133,12 @@ red: context [
 		if system/options/args [quit/return 1]
 		halt
 	]
+	
+	cut-lines: func [s [string!] n [integer!] /local c p][
+		c: 0
+		parse s [any [#"^/" p: (if n <= (c: c + 1) [append clear p "...]"]) | skip]]
+		s
+	]
 
 	throw-error: func [err [word! string! block!] /near code [block!]][
 		print [
@@ -146,7 +152,7 @@ red: context [
 		if pc [
 			print [
 				;"*** at line:" calc-line lf
-				"*** near:" mold any [code copy/part pc 8]
+				"*** near:" cut-lines mold any [code copy/part pc 8] 40
 			]
 		]
 		quit-on-error
@@ -518,7 +524,7 @@ red: context [
 					attempt [idx: get-word-index/with name ctx]
 				][
 					repend blk [
-						'word/push-local
+						pick [get-word/push-local word/push-local] get-word? original
 						either parent-object? obj ['octx][ctx] ;-- optional parametrized context reference (octx)
 						idx
 					]
@@ -1143,9 +1149,10 @@ red: context [
 			]
 		][
 			remove/part path 2
+			if paren? path/1 [path/1: do path/1]
 			if get? [path/1: to get-word! path/1]
 			either 1 = length? path [
-				switch type?/word pc/1: load mold path [
+				switch type?/word pc/1: any [attempt [load mold path] path/1][
 					set-word!	[comp-set-word]
 					word!		[comp-word]
 					get-word!	[comp-word/literal]
@@ -1249,10 +1256,10 @@ red: context [
 		flags: 0
 		foreach attrib spec/1 [
 			unless word? attrib [do-error]
-			flags: switch attrib [						;-- keep those flags synced with %runtime/definitions.reds
+			flags: switch/default attrib [				;-- keep those flags synced with %runtime/definitions.reds
 				trace	 [flags or to-integer #{00000400}]
 				no-trace [flags or to-integer #{00000200}]
-			]
+			][0]
 		]
 		flags
 	]
@@ -2568,14 +2575,13 @@ red: context [
 		insert-lf -9
 		
 		emit-open-frame 'forall
-		emit [loop natives/get-series-length as red-series! stack/arguments - 2]
-		insert-lf -7
+		emit 'forever
 		push-call 'forall
 		comp-sub-block 'forall-body						;-- compile body
 		pop-call
 		
 		append last output [							;-- inject at tail of body block
-			if natives/forall-next? [break]				;-- move series to next position
+			if natives/forall-next? [break]			;-- move series to next position
 		]
 		emit [
 			stack/unwind
@@ -2603,10 +2609,12 @@ red: context [
 		pc: next pc
 		
 		emit-open-frame 'remove-each
+		comp-expression/close-path						;-- compile series argument
+		emit-argument-type-check 1 'remove-each [stack/arguments]
 		emit [integer/push 0]							;-- store number of words to set
 		insert-lf -2
-		comp-expression/close-path						;-- compile series argument
-		emit-argument-type-check 1 'remove-each [stack/arguments + 1]
+		emit [stack/push stack/arguments]
+		insert-lf -2
 
 		either blk [
 			cond: compose [natives/foreach-next-block (length? blk)]
@@ -2632,7 +2640,7 @@ red: context [
 		]
 		pop-call
 		emit-close-frame
-		emit-close-frame
+		emit-close-frame/last
 	]
 	
 	comp-break: has [inner?][
@@ -2654,8 +2662,8 @@ red: context [
 			throw-error "CONTINUE used with no loop"
 		]
 		if 'forall = last loops [
-			emit 'natives/forall-next?					;-- move series to next position
-			insert-lf -1
+			emit copy/deep [if natives/forall-next? [break]]	;-- move series to next position
+			insert-lf -3
 		]
 		emit [stack/unroll-loop yes continue]
 		insert-lf -3

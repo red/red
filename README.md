@@ -60,7 +60,7 @@ More information at [red-lang.org](https://www.red-lang.org).
 
 [Download](https://www.red-lang.org/p/download.html) a GUI or CLI console binary suitable for your operating system, rename it at your convenience, then run it from shell or by double-clicking on it (Windows). You should see the following output:
 
-        ---== Red 0.6.4 ==--
+        ---== Red 0.6.5 ==--
         Type HELP for starting information.
 
         >>

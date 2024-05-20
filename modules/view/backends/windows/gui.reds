@@ -85,7 +85,7 @@ ime-font:		as tagLOGFONT allocate 92
 base-down-hwnd: as handle! 0
 
 dpi-factor:		as float32! 1.0
-inital-dpi:		96
+current-dpi:	96
 log-pixels-x:	0
 log-pixels-y:	0
 screen-size-x:	0
@@ -776,8 +776,6 @@ set-defaults: func [
 			len
 			#get system/view/fonts/system
 			UTF-16LE
-
-		font/lfHeight: font/lfHeight * log-pixels-y / inital-dpi	;-- font/lfHeight isn't affected by DPI change, we update it manually
 		integer/make-at 
 			#get system/view/fonts/size
 			0 - (font/lfHeight * 72 / log-pixels-y)
@@ -834,7 +832,7 @@ get-dpi: func [
 		log-pixels-x: GetDeviceCaps hScreen 88			;-- LOGPIXELSX
 		log-pixels-y: GetDeviceCaps hScreen 90			;-- LOGPIXELSY
 	]
-	inital-dpi: log-pixels-x
+	current-dpi: log-pixels-x
 	dpi-factor: (as float32! log-pixels-x) / as float32! 96.0
 ]
 
@@ -943,6 +941,7 @@ init: func [
 	]
 
 	collector/register as int-ptr! :on-gc-mark
+	time-meter/start _time_meter
 ]
 
 use-dark-mode?: func [
@@ -1931,6 +1930,15 @@ change-size: func [
 			;; TBD
 			0
 		]
+		type = group-box [
+			hWnd: as handle! GetWindowLong hWnd wc-offset - 4	;-- change frame's size too
+			SetWindowPos 
+					hWnd
+					as handle! 0
+					0 0
+					sz-x + cx sz-y + cy
+					SWP_NOMOVE or SWP_NOZORDER or SWP_NOACTIVATE
+		]
 		type = area		 [update-scrollbars hWnd null]
 		type = tab-panel [update-tab-contents hWnd FACE_OBJ_SIZE]
 		type = text		 [InvalidateRect hWnd null 1]	;-- issue #4388
@@ -2232,9 +2240,20 @@ change-image: func [
 	hWnd	[handle!]
 	values	[red-value!]
 	type	[integer!]
+	/local
+		img [red-image!]
 ][
-	if type = base [update-base hWnd null null values]
-	if any [type = button type = toggle][init-button hWnd values]
+	case [
+		type = base [update-base hWnd null null values]
+		any [type = button type = toggle][init-button hWnd values]
+		type = camera [
+			img: as red-image! values + FACE_OBJ_IMAGE
+			if TYPE_OF(img) = TYPE_NONE [
+				camera-get-image img
+			]
+		]
+		true [0]
+	]
 ]
 
 change-selection: func [
@@ -2794,13 +2813,24 @@ OS-to-image: func [
 		img		[red-image!]
 		word	[red-word!]
 		size	[red-pair!]
+		draw	[red-block!]
 		screen? [logic!]
 		bo		[tagPOINT value] 		;-- base offset
 		sym 	[integer!]
+		ret		[red-image!]
+		dctx	[draw-ctx! value]
 ][
 	hWnd: null
 	word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
 	sym: symbol/resolve word/symbol
+	if sym = camera [
+		hWnd: face-handle? face
+		either null? hWnd [ret: as red-image! none-value][
+			ret: as red-image! (object/get-values face) + FACE_OBJ_IMAGE
+			camera-get-image ret
+		]
+		return ret
+	]
 	screen?: screen = sym
 	either screen? [
 		size: as red-pair! get-node-facet face/ctx FACE_OBJ_SIZE
@@ -2816,6 +2846,24 @@ OS-to-image: func [
 		width: rc/right - rc/left
 		height: rc/bottom - rc/top
 		dc: GetDC hWnd
+	]
+
+	if sym = base [
+		ReleaseDC hWnd dc
+		bmp: OS-image/make-image width height null null null
+		ret: image/init-image as red-image! stack/push* bmp
+
+		draw: as red-block! (object/get-values face) + FACE_OBJ_DRAW
+		either TYPE_OF(draw) = TYPE_BLOCK [
+			do-draw hwnd ret draw no no yes yes
+		][
+			catch RED_THROWN_ERROR [
+				draw-begin :dctx hWnd ret no yes
+				draw-end :dctx hWnd no no yes
+			]
+			system/thrown: 0
+		]
+		return ret
 	]
 
 	mdc: CreateCompatibleDC dc

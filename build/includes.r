@@ -193,6 +193,7 @@ write %build/bin/sources.r set-cache [
 			%rules.red
 			%utils.red
 			%RTD.red
+			%styles.red
 			%VID.red
 			%backends/ [
 				%keycodes.reds

@@ -169,16 +169,21 @@ OS-draw-line-d2d: func [
 		pt1		[red-pair!]
 		this	[this!]
 		rt		[ID2D1HwndRenderTarget]
+		pt		[red-point2D!]
+		x1 y1	[float32!]
+		x2 y2	[float32!]
 ][
 	this: as this! ctx/dc
 	rt: as ID2D1HwndRenderTarget this/vtbl
 	pt0:  point
 
 	while [pt1: pt0 + 1 pt1 <= end][
+		GET_PAIR_XY(pt0 x1 y1)
+		GET_PAIR_XY(pt1 x2 y2)
 		rt/DrawLine
 			this
-			as float32! pt0/x as float32! pt0/y
-			as float32! pt1/x as float32! pt1/y
+			x1 y1
+			x2 y2
 			as this! ctx/pen
 			ctx/pen-width
 			null
@@ -213,12 +218,12 @@ OS-draw-circle-d2d: func [
 		this	[this!]
 		rt		[ID2D1HwndRenderTarget]
 		ellipse [D2D1_ELLIPSE value]
+		pt		[red-point2D!]
 ][
 	this: as this! ctx/dc
 	rt: as ID2D1HwndRenderTarget this/vtbl
 
-	ellipse/x: as float32! center/x
-	ellipse/y: as float32! center/y
+	GET_PAIR_XY(center ellipse/x ellipse/y)
 	ellipse/radiusX: get-float32 radius
 	ellipse/radiusY: ellipse/radiusX
 	if ctx/brush? [
@@ -237,14 +242,13 @@ OS-draw-box-d2d: func [
 		this	[this!]
 		rt		[ID2D1HwndRenderTarget]
 		rc		[RECT_F! value]
+		pt		[red-point2D!]
 ][
 	this: as this! ctx/dc
 	rt: as ID2D1HwndRenderTarget this/vtbl
 
-	rc/right: as float32! lower/x
-	rc/bottom: as float32! lower/y
-	rc/left: as float32! upper/x
-	rc/top: as float32! upper/y
+	GET_PAIR_XY(lower rc/right rc/bottom)
+	GET_PAIR_XY(upper rc/left rc/top)
 	if ctx/brush? [
 		rt/FillRectangle this rc as this! ctx/brush 
 	]
@@ -264,6 +268,8 @@ OS-draw-text-d2d: func [
 		layout	[this!]
 		fmt		[this!]
 		flags	[integer!]
+		x y		[float32!]
+		pt		[red-point2D!]
 ][
 	this: as this! ctx/dc
 	rt: as ID2D1HwndRenderTarget this/vtbl
@@ -276,7 +282,8 @@ OS-draw-text-d2d: func [
 	]
 	txt-box-draw-background ctx/brushes pos layout
 	flags: either win8+? [4][0]		;-- 4: D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT
-	rt/DrawTextLayout this as float32! pos/x as float32! pos/y layout as this! ctx/pen flags 
+	GET_PAIR_XY(pos x y)
+	rt/DrawTextLayout this x y layout as this! ctx/pen flags 
 ]
 
 xform: declare XFORM!
@@ -648,8 +655,8 @@ draw-begin: func [
 	]
 
 	if any [hWnd <> null on-graphic?][
-		if dpi-factor <> 100 [
-			ratio: (as float32! dpi-factor) / (as float32! 100.0)
+		if current-dpi <> 96 [
+			ratio: dpi-factor
 			GdipScaleWorldTransform graphics ratio ratio GDIPLUS_MATRIX_PREPEND
 			ctx/scale-ratio: ratio
 		]
@@ -783,8 +790,6 @@ gdi-calc-arc: func [
 	angle-len		[float!]
 	return:			[arcPOINTS!]
 	/local
-		radius		[red-pair!]
-		angle		[red-integer!]
 		start-x		[float!]
 		start-y		[float!]
 		end-x		[float!]
@@ -853,26 +858,28 @@ draw-curves: func [
 	/local
 		point	[tagPOINT]
 		pair	[red-pair!]
-		pt		[tagPOINT]
 		nb		[integer!]
 		count	[integer!]
+		x y		[integer!]
+		pt		[red-point2D!]
 ][
-	pt:     ctx/other/edges
+	point:  ctx/other/edges
 	pair:   start
 	nb:     0
 	count: (as-integer end - pair) >> 4 + 1
 	while [ all [ pair <= end nb < MAX_EDGES count >= nr-points ] ][
-		pt/x: ctx/other/path-last-point/x
-		pt/y: ctx/other/path-last-point/y
+		point/x: ctx/other/path-last-point/x
+		point/y: ctx/other/path-last-point/y
 		while [ nb < 3 ][
 			nb: nb + 1
-			pt: pt + 1
-			pt/x: either rel? [ pair/x + ctx/other/path-last-point/x ][ pair/x ]
-			pt/y: either rel? [ pair/y + ctx/other/path-last-point/y ][ pair/y ]
+			point: point + 1
+			GET_PAIR_XY_INT(pair x y)
+			point/x: either rel? [ x + ctx/other/path-last-point/x ][ x ]
+			point/y: either rel? [ y + ctx/other/path-last-point/y ][ y ]
 			if nb < nr-points [ pair: pair + 1 ]
 		]
-		ctx/other/path-last-point/x: pt/x
-		ctx/other/path-last-point/y: pt/y
+		ctx/other/path-last-point/x: point/x
+		ctx/other/path-last-point/y: point/y
 		either ctx/other/GDI+? [
 			GdipAddPathBeziersI ctx/gp-path ctx/other/edges nb + 1
 		][
@@ -881,7 +888,7 @@ draw-curves: func [
 
 		count: (as-integer end - pair) >> 4
 		nb: 0
-		pt: ctx/other/edges
+		point: ctx/other/edges
 		pair: pair + 1
 	]
 	ctx/other/last-point?: yes
@@ -900,12 +907,14 @@ draw-short-curves: func [
 	nr-points	[integer!]
 	/local
 		pair	[red-pair!]
-		pt		[tagPOINT]
+		point	[tagPOINT]
 		nb		[integer!]
 		control	[tagPOINT value]
 		count	[integer!]
+		pt		[red-point2D!]
+		x y		[integer!]
 ][
-	pt: ctx/other/edges
+	point: ctx/other/edges
 	nb: 0
 	pair: start
 	either ctx/other/prev-shape/type = SHAPE_CURVE [
@@ -916,30 +925,32 @@ draw-short-curves: func [
 		control/y: ctx/other/path-last-point/y
 	]
 	while [ pair <= end ][
-		pt/x: ctx/other/path-last-point/x
-		pt/y: ctx/other/path-last-point/y
-		pt: pt + 1
-		pt/x: ( 2 * ctx/other/path-last-point/x ) - control/x
-		pt/y: ( 2 * ctx/other/path-last-point/y ) - control/y
+		point/x: ctx/other/path-last-point/x
+		point/y: ctx/other/path-last-point/y
+		point: point + 1
+		point/x: ( 2 * ctx/other/path-last-point/x ) - control/x
+		point/y: ( 2 * ctx/other/path-last-point/y ) - control/y
 		if nr-points = 1 [
-			control/x: pt/x
-			control/y: pt/y
+			control/x: point/x
+			control/y: point/y
 		]
-		pt: pt + 1
-		pt/x: either rel? [ ctx/other/path-last-point/x + pair/x ][ pair/x ]
-		pt/y: either rel? [ ctx/other/path-last-point/y + pair/y ][ pair/y ]
+		point: point + 1
+		GET_PAIR_XY_INT(pair x y)
+		point/x: either rel? [ ctx/other/path-last-point/x + x ][ x ]
+		point/y: either rel? [ ctx/other/path-last-point/y + y ][ y ]
 		if nr-points = 2 [
-			control/x: pt/x
-			control/y: pt/y
+			control/x: point/x
+			control/y: point/y
 		]
-		pt: pt + 1
+		point: point + 1
 		loop nr-points - 1 [ pair: pair + 1 ]
 		if pair <= end [
-			pt/x: either rel? [ ctx/other/path-last-point/x + pair/x ][ pair/x ]
-			pt/y: either rel? [ ctx/other/path-last-point/y + pair/y ][ pair/y ]
+			GET_PAIR_XY_INT(pair x y)
+			point/x: either rel? [ ctx/other/path-last-point/x + x ][ x ]
+			point/y: either rel? [ ctx/other/path-last-point/y + y ][ y ]
 			ctx/other/last-point?: yes
-			ctx/other/path-last-point/x: pt/x
-			ctx/other/path-last-point/y: pt/y
+			ctx/other/path-last-point/x: point/x
+			ctx/other/path-last-point/y: point/y
 			pair: pair + 1
 			nb: nb + 4
 		]
@@ -952,7 +963,7 @@ draw-short-curves: func [
 		ctx/other/prev-shape/control/x: control/x
 		ctx/other/prev-shape/control/y: control/y
 
-		pt: ctx/other/edges
+		point: ctx/other/edges
 		nb: 0
 	]
 	ctx/other/connect-subpath: 1
@@ -1032,14 +1043,17 @@ OS-draw-shape-moveto: func [
 	coord	[red-pair!]
 	rel?	[logic!]
 	/local
-		pt	[tagPOINT]
+		point	[tagPOINT value]
+		pt		[red-point2D!]
+		x y		[integer!]
 ][
+	GET_PAIR_XY_INT(coord x y)
 	either all [ rel? ctx/other/last-point? ][
-		ctx/other/path-last-point/x: ctx/other/path-last-point/x + coord/x
-		ctx/other/path-last-point/y: ctx/other/path-last-point/y + coord/y
+		ctx/other/path-last-point/x: ctx/other/path-last-point/x + x
+		ctx/other/path-last-point/y: ctx/other/path-last-point/y + y
 	][
-		ctx/other/path-last-point/x: coord/x
-		ctx/other/path-last-point/y: coord/y
+		ctx/other/path-last-point/x: x
+		ctx/other/path-last-point/y: y
 	]
 	ctx/other/connect-subpath: 0
 	ctx/other/last-point?: yes
@@ -1047,8 +1061,7 @@ OS-draw-shape-moveto: func [
 	either ctx/other/GDI+? [
 		GdipStartPathFigure ctx/gp-path
 	][
-		pt: declare tagPOINT
-		MoveToEx ctx/dc ctx/other/path-last-point/x ctx/other/path-last-point/y pt
+		MoveToEx ctx/dc ctx/other/path-last-point/x ctx/other/path-last-point/y :point
 	]
 ]
 
@@ -1058,32 +1071,32 @@ OS-draw-shape-line: func [
 	end			[red-pair!]
 	rel?		[logic!]
 	/local
-		pt		[tagPOINT]
+		point	[tagPOINT]
 		nb		[integer!]
 		pair	[red-pair!]
+		pt		[red-point2D!]
 ][
-	pt: ctx/other/edges
+	point: ctx/other/edges
 	pair:  start
 	nb:	   0
 
 	if ctx/other/last-point? [
-		pt/x: ctx/other/path-last-point/x
-		pt/y: ctx/other/path-last-point/y
-		pt: pt + 1
+		point/x: ctx/other/path-last-point/x
+		point/y: ctx/other/path-last-point/y
+		point: point + 1
 		nb: nb + 1
 	]
 
 	while [pair <= end][
-		pt/x: pair/x
-		pt/y: pair/y
+		GET_PAIR_XY_INT(pair point/x point/y)
 		if rel? [
-			pt/x: pt/x + ctx/other/path-last-point/x
-			pt/y: pt/y + ctx/other/path-last-point/y
+			point/x: point/x + ctx/other/path-last-point/x
+			point/y: point/y + ctx/other/path-last-point/y
 		]
-		ctx/other/path-last-point/x: pt/x
-		ctx/other/path-last-point/y: pt/y
+		ctx/other/path-last-point/x: point/x
+		ctx/other/path-last-point/y: point/y
 		nb: nb + 1
-		pt: pt + 1
+		point: point + 1
 		pair: pair + 1
 		if any [pair > end nb = MAX_EDGES][
 			either ctx/other/GDI+? [
@@ -1093,7 +1106,7 @@ OS-draw-shape-line: func [
 			]
 			if all [pair <= end nb = MAX_EDGES][
 				nb: 0
-				pt: ctx/other/edges
+				point: ctx/other/edges
 				pair: pair - 1
 			]
 		]
@@ -1237,22 +1250,22 @@ OS-draw-shape-arc: func [
 		sqrt-val	[float!]
 		sign		[float!]
 		rad-check	[float!]
-		angle		[red-integer!]
-		center		[red-pair!]
 		m			[integer!]
 		path		[integer!]
 		arc-dir		[integer!]
 		prev-dir	[integer!]
-		pt			[tagPOINT]
 		arc-points	[arcPOINTS!]
 		dc			[handle!]
+		pt			[red-point2D!]
+		x y			[float!]
 ][
 	if ctx/other/last-point? [
 		;-- parse arguments
 		p1-x: as float! ctx/other/path-last-point/x
 		p1-y: as float! ctx/other/path-last-point/y
-		p2-x: either rel? [ p1-x + as float! end/x ][ as float! end/x ]
-		p2-y: either rel? [ p1-y + as float! end/y ][ as float! end/y ]
+		GET_PAIR_XY_F(end x y)
+		p2-x: either rel? [ p1-x + x ][ x ]
+		p2-y: either rel? [ p1-y + y ][ y ]
 		item: as red-integer! end + 1
 		radius-x: get-float item
 		item: item + 1
@@ -1384,7 +1397,7 @@ OS-draw-anti-alias: func [
 		GdipSetTextRenderingHint ctx/graphics TextRenderingHintAntiAliasGridFit
 	][
 		ctx/other/GDI+?: no
-		if any [ctx/on-image? dpi-factor <> 100][	;-- always use GDI+ to draw on image
+		if any [ctx/on-image? current-dpi <> 96][	;-- always use GDI+ to draw on image
 			ctx/other/anti-alias?: yes
 			ctx/other/GDI+?: yes
 		]
@@ -1396,26 +1409,27 @@ OS-draw-anti-alias: func [
 
 OS-draw-line: func [
 	ctx	   [draw-ctx!]
-	point  [red-pair!]
+	points [red-pair!]
 	end	   [red-pair!]
 	/local
 		start	[tagPOINT]
-		pt		[tagPOINT]
+		point	[tagPOINT]
 		nb		[integer!]
 		pair	[red-pair!]
+		pt		[red-point2D!]
+		x y		[integer!]
 ][
-	if ctx/other/D2D? [OS-draw-line-d2d ctx point end exit]
+	if ctx/other/D2D? [OS-draw-line-d2d ctx points end exit]
 
-	pt: ctx/other/edges
-	start: pt
-	pair:  point
+	point: ctx/other/edges
+	start: point
+	pair:  points
 	nb:	   0
 
 	while [pair <= end][
-		pt/x: pair/x
-		pt/y: pair/y
+		GET_PAIR_XY_INT(pair point/x point/y)
 		nb: nb + 1
-		pt: pt + 1
+		point: point + 1
 		pair: pair + 1
 		
 		if any [pair > end nb = MAX_EDGES][
@@ -1427,7 +1441,7 @@ OS-draw-line: func [
 			]
 			if all [pair <= end nb = MAX_EDGES][
 				nb: 0
-				pt: start
+				point: start
 				pair: pair - 1
 			]
 		]
@@ -1593,6 +1607,7 @@ OS-draw-box: func [
 		width	[integer!]
 		height	[integer!]
 		brush	[integer!]
+		pt		[red-point2D!]
 ][
 	if ctx/other/D2D? [
 		OS-draw-box-d2d ctx upper lower
@@ -1603,7 +1618,8 @@ OS-draw-box: func [
 		lower:  lower - 1
 		radius/value
 	][0]
-	up-x: upper/x up-y: upper/y low-x: lower/x low-y: lower/y
+	GET_PAIR_XY_INT(upper up-x up-y)
+	GET_PAIR_XY_INT(lower low-x low-y)
 	either positive? rad [
 		rad: rad * 2
 		width: low-x - up-x
@@ -1654,25 +1670,22 @@ OS-draw-triangle: func [		;@@ TBD merge this function with OS-draw-polygon
 	/local
 		pair  [red-pair!]
 		point [tagPOINT]
+		pt	  [red-point2D!]
 ][
 	point: ctx/other/edges
 
-	point/x: start/x									;-- 1st point
-	point/y: start/y
+	GET_PAIR_XY_INT(start point/x point/y)				;-- 1st point
 	point: point + 1
 
 	pair: start + 1
-	point/x: pair/x										;-- 2nd point
-	point/y: pair/y
+	GET_PAIR_XY_INT(pair point/x point/y)				;-- 2nd point
 	point: point + 1
 
 	pair: pair + 1
-	point/x: pair/x										;-- 3rd point
-	point/y: pair/y
+	GET_PAIR_XY_INT(pair point/x point/y)				;-- 3nd point
 	point: point + 1
 
-	point/x: start/x									;-- close the triangle
-	point/y: start/y
+	GET_PAIR_XY_INT(start point/x point/y)				;-- close the triangle
 
 	either ctx/other/GDI+? [
 		check-gradient-poly ctx ctx/other/edges 3
@@ -1703,22 +1716,21 @@ OS-draw-polygon: func [
 		pair  [red-pair!]
 		point [tagPOINT]
 		nb	  [integer!]
+		pt	  [red-point2D!]
 ][
 	point: ctx/other/edges
 	pair:  start
 	nb:	   0
 
 	while [all [pair <= end nb < MAX_EDGES]][
-		point/x: pair/x
-		point/y: pair/y
+		GET_PAIR_XY_INT(pair point/x point/y)
 		nb: nb + 1
 		point: point + 1
 		pair: pair + 1
 	]
 	;if nb = max-edges [fire error]
 
-	point/x: start/x									;-- close the polygon
-	point/y: start/y
+	GET_PAIR_XY_INT(start point/x point/y)				;-- close the polygon
 
 	either ctx/other/GDI+? [
 		check-gradient-poly ctx ctx/other/edges nb
@@ -1750,14 +1762,14 @@ OS-draw-spline: func [
 		pair  [red-pair!]
 		point [tagPOINT]
 		nb	  [integer!]
+		pt	  [red-point2D!]
 ][
 	point: ctx/other/edges
 	pair:  start
 	nb:	   0
 
 	while [all [pair <= end nb < MAX_EDGES]][
-		point/x: pair/x
-		point/y: pair/y
+		GET_PAIR_XY_INT(pair point/x point/y)
 		nb: nb + 1
 		point: point + 1
 		pair: pair + 1
@@ -1821,6 +1833,8 @@ OS-draw-circle: func [
 		w	  [integer!]
 		h	  [integer!]
 		f	  [red-float!]
+		pt	  [red-point2D!]
+		x y   [integer!]
 ][
 	if ctx/other/D2D? [
 		OS-draw-circle-d2d ctx center radius
@@ -1852,15 +1866,24 @@ OS-draw-circle: func [
 			w: as-integer f/value * 2.0
 		]
 	]
-	do-draw-ellipse ctx center/x - rad-x center/y - rad-y w h
+	GET_PAIR_XY_INT(center x y)
+	do-draw-ellipse ctx x - rad-x y - rad-y w h
 ]
 
 OS-draw-ellipse: func [
 	ctx		 [draw-ctx!]
 	upper	 [red-pair!]
 	diameter [red-pair!]
+	/local
+		u-x  [integer!]
+		u-y  [integer!]
+		d-x  [integer!]
+		d-y  [integer!]
+		pt	 [red-point2D!]
 ][
-	do-draw-ellipse ctx upper/x upper/y diameter/x diameter/y
+	GET_PAIR_XY_INT(upper u-x u-y)
+	GET_PAIR_XY_INT(diameter d-x d-y)
+	do-draw-ellipse ctx u-x u-y d-x d-y
 ]
 
 OS-draw-font: func [
@@ -1915,6 +1938,8 @@ OS-draw-text: func [
 		x		[integer!]
 		rect	[RECT_STRUCT_FLOAT32]
 		tm		[tagTEXTMETRIC]
+		fx fy	[float32!]
+		pt		[red-point2D!]
 ][
 	if ctx/other/D2D? [
 		OS-draw-text-d2d ctx pos text catch?
@@ -1923,6 +1948,7 @@ OS-draw-text: func [
 
 	if TYPE_OF(text) = TYPE_OBJECT [return false]
 
+	GET_PAIR_XY(pos fx fy)
 	len: -1
 	str: unicode/to-utf16-len text :len no
 	either any [
@@ -1931,16 +1957,16 @@ OS-draw-text: func [
 	][
 		x: 0
 		rect: as RECT_STRUCT_FLOAT32 :x
-		rect/x: as float32! pos/x
-		rect/y: as float32! pos/y
+		rect/x: fx
+		rect/y: fy
 		rect/width: as float32! 0
 		rect/height: as float32! 0
 		GdipDrawString ctx/graphics str len ctx/gp-font rect 0 ctx/gp-font-brush
 	][
 		tm: as tagTEXTMETRIC ctx/other/gradient-pen/colors
 		GetTextMetrics ctx/dc tm
-		x: dpi-scale pos/x
-		y: dpi-scale pos/y
+		x: dpi-scale fx
+		y: dpi-scale fy
 		p: str
 		while [len > 0][
 			if all [p/1 = #"^/" p/2 = #"^@"][
@@ -1984,10 +2010,11 @@ OS-draw-arc: func [
 		arc-dir		[integer!]
 		arc-points	[arcPOINTS!]
 		dc			[handle!]
+		pt			[red-point2D!]
+		cx cy		[integer!]
 ][
 	radius: center + 1
-	rad-x: radius/x
-	rad-y: radius/y
+	GET_PAIR_XY_INT(radius rad-x rad-y)
 	angle: as red-integer! radius + 1
 	angle-begin: as float32! angle/value
 	angle: angle + 1
@@ -1995,14 +2022,15 @@ OS-draw-arc: func [
 
 	closed?: angle < end
 
+	GET_PAIR_XY_INT(center cx cy)
 	either ctx/other/GDI+? [
 		either closed? [
 			if ctx/brush? [
 				GdipFillPieI
 					ctx/graphics
 					ctx/gp-brush
-					center/x - rad-x
-					center/y - rad-y
+					cx - rad-x
+					cy - rad-y
 					rad-x << 1
 					rad-y << 1
 					angle-begin
@@ -2011,8 +2039,8 @@ OS-draw-arc: func [
 			GdipDrawPieI
 				ctx/graphics
 				ctx/gp-pen
-				center/x - rad-x
-				center/y - rad-y
+				cx - rad-x
+				cy - rad-y
 				rad-x << 1
 				rad-y << 1
 				angle-begin
@@ -2021,8 +2049,8 @@ OS-draw-arc: func [
 			GdipDrawArcI
 				ctx/graphics
 				ctx/gp-pen
-				center/x - rad-x
-				center/y - rad-y
+				cx - rad-x
+				cy - rad-y
 				rad-x << 1
 				rad-y << 1
 				angle-begin
@@ -2034,8 +2062,8 @@ OS-draw-arc: func [
 		rad-y-float: as float32! rad-y
 
 		arc-points: gdi-calc-arc
-						as float! center/x
-						as float! center/y
+						as float! cx
+						as float! cy
 						as float! rad-x
 						as float! rad-y
 						as float! angle-begin
@@ -2046,10 +2074,10 @@ OS-draw-arc: func [
 		either closed? [
 			Pie
 				dc
-				center/x - rad-x
-				center/y - rad-y
-				center/x + rad-x
-				center/y + rad-y
+				cx - rad-x
+				cy - rad-y
+				cx + rad-x
+				cy + rad-y
 				as integer! arc-points/start-x
 				as integer! arc-points/start-y
 				as integer! arc-points/end-x
@@ -2057,10 +2085,10 @@ OS-draw-arc: func [
 		][
 			Arc
 				dc
-				center/x - rad-x
-				center/y - rad-y
-				center/x + rad-x
-				center/y + rad-y
+				cx - rad-x
+				cy - rad-y
+				cx + rad-x
+				cy + rad-y
 				as integer! arc-points/start-x
 				as integer! arc-points/start-y
 				as integer! arc-points/end-x
@@ -2081,6 +2109,10 @@ OS-draw-curve: func [
 		p3	  [red-pair!]
 		nb	  [integer!]
 		count [integer!]
+		pt	  [red-point2D!]
+		x y	  [integer!]
+		x2 y2 [integer!]
+		x3 y3 [integer!]
 ][
 	point: ctx/other/edges
 	pair:  start
@@ -2088,23 +2120,24 @@ OS-draw-curve: func [
 	count: (as-integer end - pair) >> 4 + 1
 
 	either count = 3 [			;-- p0, p1, p2 -> p0, (p0 + 2p1) / 3, (2p1 + p2) / 3, p2
-		point/x: pair/x
-		point/y: pair/y
+		GET_PAIR_XY_INT(pair x y)
+		point/x: x
+		point/y: y
 		point: point + 1
 		p2: pair + 1
 		p3: pair + 2
-		point/x: p2/x << 1 + pair/x / 3
-		point/y: p2/y << 1 + pair/y / 3
+		GET_PAIR_XY_INT(p2 x2 y2)
+		GET_PAIR_XY_INT(p3 x3 y3)
+		point/x: x2 << 1 + x / 3
+		point/y: y2 << 1 + y / 3
 		point: point + 1
-		point/x: p2/x << 1 + p3/x / 3
-		point/y: p2/y << 1 + p3/y / 3
+		point/x: x2 << 1 + x3 / 3
+		point/y: y2 << 1 + y3 / 3
 		point: point + 1
-		point/x: end/x
-		point/y: end/y
+		GET_PAIR_XY_INT(end point/x point/y)
 	][
 		until [
-			point/x: pair/x
-			point/y: pair/y
+			GET_PAIR_XY_INT(pair point/x point/y)
 			nb: nb + 1
 			point: point + 1
 			pair: pair + 1
@@ -2194,6 +2227,7 @@ OS-draw-image: func [
 		crop.h	[integer!]
 		dst		[red-image! value]
 		handle	[integer!]
+		pt		[red-point2D!]
 ][
 	either any [
 		start + 2 = end
@@ -2207,7 +2241,7 @@ OS-draw-image: func [
 	][
 		src.w: IMAGE_WIDTH(src/size)
 		src.h: IMAGE_HEIGHT(src/size)
-		either null? start [x: 0 y: 0][x: start/x y: start/y]
+		either null? start [x: 0 y: 0][GET_PAIR_XY_INT(start x y)]
 		unless null? crop1 [
 			crop2: crop1 + 1
 			crop.x: crop1/x
@@ -2230,8 +2264,9 @@ OS-draw-image: func [
 				]
 			]
 			start + 1 = end [
-				w: end/x - x
-				h: end/y - y
+				GET_PAIR_XY_INT(end w h)
+				w: w - x
+				h: h - y
 			]
 			true [return 0]
 		]
@@ -2273,15 +2308,18 @@ check-texture-box: func [
 	upper	[red-pair!]
 	/local
 		brush [integer!]
+		pt	  [red-point2D!]
+		fx fy [float!]
 ][
 	brush: 0
+	GET_PAIR_XY_F(upper fx fy)
 	if ctx/gp-pen-type = BRUSH_TYPE_TEXTURE [
 		brush: check-texture ctx true
-		texture-translate as-float upper/x as-float upper/y brush
+		texture-translate fx fy brush
 	]
 	if ctx/gp-brush-type = BRUSH_TYPE_TEXTURE [
 		brush: check-texture ctx false
-		texture-translate as-float upper/x as-float upper/y brush
+		texture-translate fx fy brush
 	]
 ]
 
@@ -3675,14 +3713,16 @@ OS-matrix-scale: func [
 OS-matrix-translate: func [
 	ctx			[draw-ctx!]
 	pen-fill	[integer!]
-	x			[integer!]
-	y			[integer!]
+	xy			[red-pair!]
 	/local
 		gradient	[gradient!]
 		pen?		[logic!]
 		brush		[integer!]
+		x y			[float32!]
+		pt			[red-point2D!]
 ][
 	ctx/other/GDI+?: yes
+	GET_PAIR_XY(xy x y)
 	either pen-fill <> -1 [
 		;-- translate pen or fill
 		pen?: either pen-fill = pen [ true ][ false ]
@@ -3696,8 +3736,8 @@ OS-matrix-translate: func [
 		;-- translate figure
 		GdipTranslateWorldTransform
 			ctx/graphics
-			as float32! x
-			as float32! y
+			x
+			y
 			ctx/other/matrix-order
 	]
 ]

@@ -18,7 +18,7 @@ Red/System [
 #define A_N_THREADS		100
 #define A_N_ITERS		100000
 
-#define COND_CC [#if OS <> 'Windows [[cdecl]]]
+#define COND_CC [#either OS = 'Windows [[stdcall]][[cdecl]]]
 
 ~~~start-file~~~ "atomic operations"
 

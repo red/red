@@ -563,7 +563,7 @@ cycles: context [
 					TYPE_BLOCK	  
 					TYPE_HASH	  [s: "[...]"			   size: 5 ]
 					TYPE_PAREN	  [s: "(...)"			   size: 5 ]
-					TYPE_MAP	  [s: "#(...)"			   size: 6 ]
+					TYPE_MAP	  [s: "#[...]"			   size: 6 ]
 					TYPE_OBJECT	  [s: "make object! [...]" size: 18]
 					TYPE_PATH
 					TYPE_GET_PATH 

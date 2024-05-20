@@ -72,7 +72,7 @@ object [
 	scroll-pos: 0
 
 	color?:		no
-	theme: #(
+	theme: #[
 		foreground	[0.0.0]
 		background	[252.252.252]
 		selected	[128.128.128.128]			;-- selected text background color
@@ -87,7 +87,7 @@ object [
 		tuple!		[0.0.0]
 		url!		[0.0.255 underline]
 		comment!	[128.128.128]
-	)
+	]
 
 	ask: func [question [string!] hist [block! none!] hide?][
 		history: either hist [hist][system/console/history]
@@ -177,7 +177,7 @@ object [
 		either s [
 			cnt: 0
 			if all [
-				not all [lf? not prin?]
+				prin?
 				not same? head line last lines
 			][
 				vprin copy/part str s
@@ -210,7 +210,6 @@ object [
 		][
 			refresh
 		]
-		if newline? [line: last lines]
 		()				;-- return unset!
 	]
 
@@ -414,7 +413,7 @@ object [
 	]
 
 	update-caret: func [/local len n s h lh offset][
-		unless all [line mouse-up?][exit]
+		unless all [line mouse-up? focused?][exit]
 		n: top
 		h: 0
 		len: length? skip lines top

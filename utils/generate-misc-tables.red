@@ -95,7 +95,20 @@ gen-float-classes-table: function [][
 	probe out
 ]
 
+gen-point-scan-table: function [][
+	out: make binary! 256
+	list: charset "0123456789 ^-.+-#eEINFAinfa"
+	
+	repeat i 256 [
+		c: to-char i - 1
+		append out pick #{0100} to-logic find list c 
+	]
+	print "--gen-point-scan-table-- (lexer/point-scan-table)"
+	probe out
+]
+
 gen-bitarray {@/-~^^{}"}
 gen-bin16-table
 gen-hexa-table
 gen-float-classes-table
+gen-point-scan-table

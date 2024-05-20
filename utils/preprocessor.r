@@ -339,7 +339,7 @@ preprocessor: context [
 	expand: func [
 		code [block! paren!] job [object! none!]
 		/clean
-		/local rule e pos cond value then else cases body keep? expr src saved file
+		/local rule e pos cond value then else cases body keep? expr src saved file new
 	][	
 		either clean [reset job][exec/config: job]
 
@@ -413,11 +413,14 @@ preprocessor: context [
 				) :s
 				| s: #local [block! | (syntax-error s next s)] e: (
 					repend stack [negate length? macros tail protos]
-					change/part s expand s/2 job e
+					saved: s
+					new: expand s/2 job
+					s: saved
+					change/part s new e
 					clear take/last stack
 					remove/part macros skip tail macros take/last stack
 					if tail? next macros [macros/1: <none>] ;-- re-inject a value to match (avoids infinite loops)
-				)
+				) :s
 				| s: #reset (reset job remove s) :s
 				| s: #trace [[
 					['on (trace?: on) | 'off (trace?: off)] (remove/part s 2) :s

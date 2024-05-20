@@ -3666,11 +3666,12 @@ system-dialect: make-profilable context [
 			]
 			
 			;-- postprocessing result
-			if all [block? expr not subrc?][			;-- if expr is a function call
+			if block? expr [							;-- if expr is a function call
 				all [
 					variable
 					'value = last last-type				;-- for a struct passed by value
 					word? expr/1
+					any [not subrc? throw-error "cannot return a struct by value from a subroutine"]
 					spec: select functions expr/1
 					pass-struct-pointer? spec emitter/struct-slots?/check spec/4
 					store?: no							;-- avoid emitting assignment code

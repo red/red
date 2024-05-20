@@ -402,20 +402,14 @@ binary: context [
 	]
 
 	encode-2: func [
+		buf		[byte-ptr!]
 		p		[byte-ptr!]
 		len		[integer!]
-		return: [node!]
+		return: [byte-ptr!]
 		/local
-			s		[series!]
 			b		[integer!]
 			n		[integer!]
-			node	[node!]
-			buf		[byte-ptr!]
 	][
-		node: alloc-bytes 8 * len + (2 * (len / 8) + 4)
-		s: as series! node/value
-		buf: as byte-ptr! s/offset
-
 		while [len > 0][
 			n: 80h
 			b: as-integer p/value
@@ -428,24 +422,17 @@ binary: context [
 			p: p + 1
 			len: len - 1
 		]
-		s/tail: as cell! buf
-		node
+		buf
 	]
 
 	encode-16: func [
+		buf		[byte-ptr!]
 		p		[byte-ptr!]
 		len		[integer!]
-		return: [node!]
+		return: [byte-ptr!]
 		/local
-			s		[series!]
-			node	[node!]
-			buf		[byte-ptr!]
 			cstr	[c-string!]
 	][
-		node: alloc-bytes len * 2 + (len / 32) + 32
-		s: as series! node/value
-		buf: as byte-ptr! s/offset
-
 		while [len > 0][
 			cstr: string/byte-to-hex as-integer p/value
 			buf/value: cstr/1
@@ -455,19 +442,16 @@ binary: context [
 			p: p + 1
 			len: len - 1
 		]
-		s/tail: as cell! buf
-		node
+		buf
 	]
 
 	encode-58: func [
+		bin		[byte-ptr!]
 		p		[byte-ptr!]
 		len		[integer!]
-		return:	[node!]
+		return:	[byte-ptr!]
 		/local
 			temp		[byte-ptr!]
-			node		[node!]
-			s			[series!]
-			bin			[byte-ptr!]
 			c			[integer!]
 			j			[integer!]
 			start		[integer!]
@@ -480,10 +464,6 @@ binary: context [
 	][
 		temp: allocate len
 		copy-memory temp p len
-
-		node: alloc-bytes len * 2
-		s: as series! node/value
-		bin: as byte-ptr! s/offset
 
 		zero-cnt: 1
 		while [
@@ -530,26 +510,19 @@ binary: context [
 		move-memory bin bin + j len
 
 		free temp
-		s/tail: as red-value! (bin + len)
-		node
+		bin + len
 	]
 
 	encode-64: func [
+		buf		[byte-ptr!]
 		p		[byte-ptr!]
 		len		[integer!]
-		return: [node!]
+		return: [byte-ptr!]
 		/local
-			s		[series!]
 			b1		[integer!]
 			b2		[integer!]
 			i		[integer!]
-			node	[node!]
-			buf		[byte-ptr!]
 	][
-		node: alloc-bytes 4 * len / 3 + (2 * (len / 32) + 5)
-		s: as series! node/value
-		buf: as byte-ptr! s/offset
-
 		while [len >= 3][
 			b1: as-integer p/1
 			b2: as-integer p/2
@@ -586,8 +559,7 @@ binary: context [
 			buf/4: #"="
 			buf: buf + 4
 		]
-		s/tail: as cell! buf
-		node
+		buf
 	]
 
 	decode-2: func [

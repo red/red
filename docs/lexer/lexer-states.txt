@@ -38,6 +38,7 @@ S_TIME_1ST
 S_TIME
 S_PAIR_1ST
 S_PAIR
+S_POINT
 S_MONEY_1ST
 S_MONEY
 S_MONEY_DEC
@@ -91,6 +92,7 @@ T_FLOAT_SP
 T_TUPLE
 T_DATE
 T_PAIR
+T_POINT
 T_TIME
 T_MONEY
 T_TAG
@@ -99,7 +101,6 @@ T_EMAIL
 T_HEX
 T_RAWSTRING
 T_REF
-T_POINT2D
 
 --- Lexical classes ---
 
@@ -173,6 +174,7 @@ delimit2:  ws | [ | ] | ( | ) | { | } | " | ; | < | # | : | / | EOF
 delimit11: ws | [ | ] | ( | ) | { | } | " | ; | < | / | \ | 0-9 | EOF
 delimit18: ws | [ | ] | ( | ) | { | } | : | ; | < | > | = | , | @ | / | EOF
 delimit3:  ws | [ | ] | ( | ) | { | } | " | % | ; | < | # | @ | / | \ | ^ | , | : | $ | EOF
+delimit30: cr | lf | [ | ] | ( | { | } | " | ' | : | x | T | h | H | / | \ | < | > | = | % | ; | @ | $ | ^ | C_C0 | C_BIN | C_EOF
 
 
 hexa:      C_ZERO | C_DIGIT | C_ALPHAX
@@ -182,6 +184,8 @@ word1st:   C_X | T | h | e | E | C_ALPHAL | C_ALPHAU | < | > | = | . | + | - | C
 word1st!=: C_X | T | h | e | E | C_ALPHAL | C_ALPHAU | < | > | . | + | - | C_BIN | C_WORD
 p-word1st: C_X | T | h | e | E | C_ALPHAL | C_ALPHAU | > | = | . | C_BIN | C_WORD
 p-word:    0-9 | ' | C_X | T | h | e | E | C_ALPHAL | C_ALPHAU | < | > | = | . | + | - | ^ | C_BIN | C_WORD
+
+point-char: space | tab | C_DIGIT | 0 | # | e | E | . | , | + | - | C_ALPHAL | C_ALPHAU | N | I
 
 --- FSM transitions ---
 
@@ -251,10 +255,10 @@ S_START->"#"->S_SHARP->"{"->S_BINARY->hexa|ws|"/"|"="|"+"->S_BINARY
                        \             \->dbl-quote->T_CHAR
                         \             \->EOF->T_ERROR
                          \
-                          \->"("->T_MAP_OP
+                          \->"["->T_MAP_OP
                            \
-                            \->"["->S_CONSTRUCT->not("]"|EOF)->S_CONSTRUCT
-                             \        \->"]"->T_CONS_MK
+                            \->"("->S_CONSTRUCT->not(")"|EOF)->S_CONSTRUCT
+                             \        \->")"->T_CONS_MK
                               \        \->EOF->T_ERROR
                                \
                                 \->not(delimit7)->S_ISSUE->not(delimit1|"/"|":")->S_ISSUE
@@ -450,6 +454,11 @@ S_PATH->p-word1st->S_PATH_WORD->p-word->S_PATH_WORD
                     \->delimit21->T_WORD
                      \->"@"->S_EMAIL
                       \->","|"#"|"%"|"$"->T_ERROR
+
+
+S_POINT->point-char->S_POINT
+ \->")"->T_POINT
+  \->delimit30->T_ERROR
 
 
 === Binary16 classes ===

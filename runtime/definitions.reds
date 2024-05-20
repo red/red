@@ -259,6 +259,7 @@ Red/System [
 						pen-pattern-cnt [integer!]
 						pen-grad-type	[integer!]
 						brush-grad-type	[integer!]
+						prev-pen-type	[integer!]
 						pen-width		[float32!]
 						pen-offset		[POINT_2F value]
 						brush-offset	[POINT_2F value]
@@ -411,6 +412,7 @@ Red/System [
 					matrix-order	[integer!]
 					device-matrix	[tagMATRIX value]
 					pattern?		[logic!]
+					line-width?		[logic!]
 					pen-width		[float!]
 					pen-pattern		[float-ptr!]
 					pen-color		[integer!]					;-- 00bbggrr format
@@ -496,6 +498,7 @@ Red/System [
 
 	#define MAX_FILE_REQ_BUF		4000h			;-- 16 KB
 	#define OFN_HIDEREADONLY		0004h
+	#define OFN_NOCHANGEDIR			0008h
 	#define OFN_EXPLORER			00080000h
 	#define OFN_ALLOWMULTISELECT	00000200h
 

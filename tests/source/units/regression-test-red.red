@@ -747,7 +747,7 @@ Red [
 		; TODO: need to check header
 
 	--test-- "#655"
-		--assert none? load "#[none]"
+		--assert none? load "#(none)"
 
 	--test-- "#656"
 		--assert not error? try [load "+1"]
@@ -934,7 +934,7 @@ Red [
 		--assert not error? try [load "-2147483648"]
 
 	--test-- "#791"
-		blk791: [2 #[none] 64 #[none]]
+		blk791: [2 #(none) 64 #(none)]
 		result791: copy []
 		parse blk791 [
 			collect into result791 [
@@ -1174,6 +1174,19 @@ Red [
 		--assert not error? try [b939/(#"x")]
 		--assert equal? #"y" b939/(#"x")
 		unset 'b939
+		
+	--test-- "#941"
+		foo941: function [a b] [
+			c: 10
+			d: 20
+			return [--assert true c --assert false d --assert false]
+		] 
+		--assert error? try [reduce foo941 1 2]
+		
+		foo941.2: function [a b] [c: 10 d: 20 return [c d]]
+		set 'err941 try [reduce foo941.2 1 2]
+		--assert error? :err941
+		--assert err941/arg1 = 'c
 
 	; --test-- "#943"
 		a943: none
@@ -1538,10 +1551,10 @@ Red [
 		--assert not error? try [test1199 ["" expect true]]
 
 	--test-- "#1206"
-		m1206: #(a 1 b 2)
+		m1206: #[a 1 b 2]
 		remove/key m1206 'a
 		remove/key m1206 'a
-		--assert equal? m1206 #(b 2)
+		--assert equal? m1206 #[b 2]
 		--assert equal? [b] keys-of m1206
 		--assert equal? [2] values-of m1206
 
@@ -1564,7 +1577,7 @@ Red [
 
 ; 	FIXME: causes internal compiler error, see #2198
 ;	--test-- "#1238"
-;		e: try [pick/case #(a 1 b 2) 'B]
+;		e: try [pick/case #[a 1 b 2] 'B]
 ;		--assert equal? 'case e/arg2
 
 	--test-- "#1243"
@@ -1891,7 +1904,7 @@ Red [
 		; GUI
 
 	--test-- "#1627"
-		--assert same? #[none] none
+		--assert same? #(none) none
 
 	; --test-- "#1628"
 		; GUI
@@ -1933,7 +1946,7 @@ Red [
 		; GUI
 
 	--test-- "#1680"
-		f1680: func [] [keys-of #(1 2) none]
+		f1680: func [] [keys-of #[1 2] none]
 		--assert not error? try [f1680]
 		unset 'f1680
 
@@ -2194,7 +2207,7 @@ Red [
 
 	comment: { print, probe and ?? should be mocked in this test
 	--test-- "#1807"
-		m1807: #(a1807: 1)
+		m1807: #[a1807: 1]
 		a1807: m1807/a1807
 		--assert not error? try [probe a1807]
 		--assert not error? try [print type? a1807]
@@ -2231,7 +2244,7 @@ Red [
 	}
 	
 	--test-- "#1834"
-		--assert equal? #(a: 3) extend/case extend/case make map! [a 1] [a 2] [a 3]
+		--assert equal? #[a: 3] extend/case extend/case make map! [a 1] [a 2] [a 3]
 
 	--test-- "#1835"
 		m1835: make map! [a 1 A1835 2]
@@ -2241,7 +2254,7 @@ Red [
 			make map! [a: 1 a 2]
 			make map! [a 1 a: 2]
 		m1835: make map! [a 1 A1835 2 a: 3 :a 4]
-		--assert equal? m1835 #(a: 4 A1835: 2)
+		--assert equal? m1835 #[a: 4 A1835: 2]
 		unset 'm1835
 
 	; --test-- "#1838"
@@ -2634,6 +2647,9 @@ b}
 
 	--test-- "#2125"
 		--assert 2 = length? find/only reduce [integer! 1] integer!
+		
+	--test-- "#2126"
+		--assert [a] = remove-each val [a 1] [not any-word? val]
 
 	; --test-- "#2133"
 		; OPEN
@@ -2736,7 +2752,7 @@ b}
 		unset 'e2195
 
 	--test-- "#2196"
-		m2196: #()
+		m2196: #[]
 		repeat k 70 [
 			m2196/:k: {x}
 			remove/key m2196 k
@@ -2745,9 +2761,9 @@ b}
 		unset 'm2196
 
 	--test-- "#2209"
-		m2209: #(a 1 b 2)
+		m2209: #[a 1 b 2]
 		remove/key m2209 'a
-		--assert equal? #(b: 2) m2209
+		--assert equal? #[b: 2] m2209
 		unset 'm2209
 
 	; --test-- "#2223"
@@ -2781,11 +2797,11 @@ b}
 		--assert equal? [100 100 123 3] reduce [(123 n/a) (1 + 2 n/a) (n/a 123) (n/a 1 + 2)]
 
 	--test-- "#2234"
-		m2234: #(a 1 b 2)
+		m2234: #[a 1 b 2]
 		remove/key m2234 'a
 		--assert not empty? keys-of m2234
 		--assert not empty? values-of m2234
-		m2234: #(a 1 b 2 c 3 d 4 e 5 f 6 g 7 h 8)
+		m2234: #[a 1 b 2 c 3 d 4 e 5 f 6 g 7 h 8]
 		remove/key m2234 'b
 		--assert equal? [a c d e f g h] keys-of m2234
 		--assert equal? [1 3 4 5 6 7 8] values-of m2234
@@ -3040,7 +3056,10 @@ comment {
 		--assert tail? next next next next i4056
 		--assert tail? next back next tail i4056
 
-    --test-- "#4203"
+	--test-- "#4126"
+		--assert unset? load "#(unset)"
+
+	--test-- "#4203"
 		test-file: to-file rejoin [runnable-dir "test.red"]
 		write test-file {
 			Red []
@@ -3123,10 +3142,10 @@ comment {
 		p4421: [a/b/c 'a/b/c :a/b/c a/b/c:]
 		foreach path p4421 [foreach [x y] path [append out reduce [x y]]]		
 		--assert out = [
-			a b	c #[none]
-			a b	c #[none]
-			a b	c #[none]
-			a b	c #[none]
+			a b	c #(none)
+			a b	c #(none)
+			a b	c #(none)
+			a b	c #(none)
 		]
 
 	--test-- "#4440"
@@ -3513,8 +3532,145 @@ comment {
 		--assert c5366
 		
 	--test-- "#5387"
-		--assert datatype? first load mold/all reduce [#[none!]]
+		--assert datatype? first load mold/all reduce [#(none!)]
+		
+	--test-- "#5398"
+		do [
+			code: [copy/part "x" 1]                                 ;) <-- /part triggers the bug
+			do code                                                 ;) <-- the culprit
+			--assert binary? encoded: system/codecs/redbin/encode load mold code none   ;) this succeeds
+			--assert binary? system/codecs/redbin/encode code none             ;) this crashes
+			code = system/codecs/redbin/decode encoded
+		]
 
+	--test-- "#5399"
+		r: reactor [x: 1 s: {abc}]
+		react [--assert true i: r/x r/s/:i]
+
+	--test-- "#5401"
+		;do [
+			f5401: does [
+				do/trace [parse "ab" [skip (return 1)]] func [e c o v r f][]
+				--assert false
+			]
+			--assert f5401 = 1
+
+			f5401.1: does [
+				do/trace [parse "ab" [skip (return 1)]] func [e c o v r f][]
+				--assert false
+			]
+			f5401.1
+		;]
+		
+	--test-- "#5403"
+		;do [
+			following5403: function [code [block!] cleanup [block!]] [
+				--assert code = [exit]
+				--assert cleanup = [--assert true]
+				do/trace code func [e c o v r f][
+					[end]
+					--assert code = [exit]
+					--assert cleanup = [--assert true]
+					do cleanup
+				]
+			]
+			following5403 [exit] [--assert true]
+		;]
+		
+	--test-- "#5405"
+			loop 1 [do/trace [break] func [e c o v r f][]]
+			--assert true
+		
+			while [true][
+				do/trace [parse "ab" [skip (break)]] func [e c o v r f][]
+				--assert false
+			]
+			--assert true
+		
+			loop 100 [
+				do/trace [parse "ab" [skip (break)]] func [e c o v r f][]
+				--assert false
+			]
+			--assert true
+		
+			following5405: function [code [block!] cleanup [block!]] [
+				--assert code = [break]
+				--assert cleanup = [--assert true]
+				loop 10 [
+					do/trace code func [e c o v r f][
+						[end]
+						--assert code = [break]
+						--assert cleanup = [--assert true]
+						do cleanup
+					]
+				]
+			]
+            following5405 [break] [--assert true]
+		
+	--test-- "#5422"
+		i5422: last s5422: [1 2 3 4 5]
+		forall s5422 [if even? s5422/1 [append s5422 i5422: i5422 + 1]]
+		--assert s5422 = [1 2 3 4 5 6 7 8 9]
+
+	--test-- "#5434"
+		f5434: func [][] 	 --assert error? try [apply 'f5434 [/x on 1 /y on 2]]
+		f5434.2: func [/z][] --assert error? try [apply 'f5434.2 [/x on 1 /y on 2]]
+	
+	--test-- "#5445"
+		#do [c5445: 0]
+		#local [#do [c5445: c5445 + 1]]
+		1 
+		#do [c5445: c5445 + 1]
+		--assert 2 = #do keep [c5445]
+		
+	--test-- "#5450"
+		context [
+			wrong: "correct"
+			correct: %/a/b/c/correct
+			path: %/a/b/c
+			--assert correct == path/:wrong
+			--assert correct == path/(wrong)
+			--assert correct == do [path/:wrong]
+		]
+
+	--test-- "#5460"
+		--assert error? try [to integer! 1.#nan]
+		
+	--test-- "#5477"
+		--assert 'zero-divide = get in try [1 / 0] 'id
+		
+	--test-- "#5485"
+		--assert error? set/any 'err try [do [f: func [x][]  f/x 1]]	  ;-- required DO to avoid the error being caught by compiler
+		--assert err/id = 'no-refine
+		--assert error? set/any 'err try [do [f: func [x][]  f/x false]]  ;-- required DO to avoid the error being caught by compiler
+		--assert err/id = 'no-refine
+
+	--test-- "#5496"
+		file: %/dir/file
+		url: https://example.com/
+		url2: https://example.com
+		home: %/home/
+		home2: %/home
+		
+		--assert home/:file  == %/home/dir/file
+		--assert home2/:file == %/home/dir/file
+		--assert url/:file == https://example.com/dir/file
+		--assert url2/:file == https://example.com/dir/file
+
+		file: %""
+		--assert home/:file	 == %/home/
+		--assert home2/:file == %/home/
+		--assert url/:file   == https://example.com/
+		--assert url2/:file  == https://example.com/
+
+		file: %/dir/file
+		home: %""
+		--assert home/:file == %/dir/file
+
+		url: clear http://
+		--assert url/:file == skip url:/dir/file 4
+		
+	
 ===end-group===
 
 ~~~end-file~~~

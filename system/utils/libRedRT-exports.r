@@ -119,6 +119,7 @@
 	red/word/duplicate
 
 	red/get-word/get
+	red/get-word/push-local
 	red/set-word/push-local
 
 	red/_context/get
@@ -212,7 +213,6 @@
 	red/natives/forall-end-adjust
 	red/natives/coerce-counter*
 	red/natives/inc-counter
-	red/natives/get-series-length
 
 	red/actions/make*
 	red/actions/random*

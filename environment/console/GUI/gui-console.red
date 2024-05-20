@@ -47,6 +47,7 @@ gui-console-ctx: context [
 	caret-clr:	0.0.0.1
 	caret-rate: 2
 	scroller:	make scroller! []
+	focused?:	yes
 
 	console-menu: [
 		#either config/OS = 'macOS [
@@ -242,12 +243,14 @@ gui-console-ctx: context [
 			]
 			on-resize: :on-resizing
 			on-focus: func [face [object!] event [event!]][
+				focused?: yes
 				caret/color: caret-clr
 				unless caret/enabled? [caret/enabled?: yes]
 				caret/rate: caret-rate
 				terminal/refresh/force
 			]
 			on-unfocus: func [face [object!] event [event!]][
+				focused?: no
 				if caret/enabled? [caret/enabled?: no]
 				caret/rate: none
 			]

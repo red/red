@@ -209,7 +209,7 @@ OS-request-file: func [
 	ofn/lpstrFileTitle: null
 	ofn/nMaxFileTitle: 0
 
-	ofn/Flags: OFN_HIDEREADONLY or OFN_EXPLORER
+	ofn/Flags: OFN_HIDEREADONLY or OFN_EXPLORER or OFN_NOCHANGEDIR
 	if multi? [ofn/Flags: ofn/Flags or OFN_ALLOWMULTISELECT]
 
 	ret: either save? [GetSaveFileName ofn][GetOpenFileName ofn]

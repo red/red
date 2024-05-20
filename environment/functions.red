@@ -313,8 +313,8 @@ context [
 			]
 			fetch [
 				print [
-					p-indent "match:" mold/flat/part rule 50 newline
-					p-indent "input:" mold/flat/part input 50 p-indent
+					p-indent "input:" mold/flat/part input 50 newline
+					p-indent "match:" mold/flat/part rule  50 p-indent
 				]
 			]
 			match [print [p-indent "==>" pick ["matched" "not matched"]  match?]]
@@ -421,19 +421,19 @@ load: function [
 	]
 	if pre-load: :system/lexer/pre-load [do [pre-load source length]]
 
-	out: case [
+	set/any 'out case [
 		part  [transcode/part source length]
 		into  [transcode/into source out]
 		;trap  [system/lexer/transcode to-string source out trap]
 		next  [
-			set position second out: transcode/next source
+			set position second set/any 'out transcode/next source
 			return either :all [reduce [out/1]][out/1]
 		]
 		'else [transcode source]
 	]
-	either trap [out][
-		unless :all [if 1 = length? out [out: out/1]]
-		out
+	either trap [:out][
+		unless :all [if 1 = length? :out [set/any 'out out/1]]
+		:out
 	]
 ]
 
@@ -612,6 +612,7 @@ normalize-dir: function [
 ][
 	unless file? dir [dir: to file! mold dir]
 	if slash <> first dir [dir: clean-path append copy system/options/path dir]
+	if find dir #"\" [dir: to-red-file dir]
 	unless dir? dir [dir: append copy dir slash]
 	dir
 ]
@@ -1089,7 +1090,7 @@ average: func [
 	block [block! vector! paren! hash!]
 ][
 	if empty? block [return none]
-	divide sum block to float! length? block
+	divide sum block length? block
 ]
 
 last?: func [

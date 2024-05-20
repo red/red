@@ -381,7 +381,7 @@ test
 	--test-- "#5070"
 		--compile-and-run-this {
 			Red []
-			m: #()
+			m: #[]
 			m/1:       does [1]
 			m/(2):     does [2]
 			m/key:     does [3]

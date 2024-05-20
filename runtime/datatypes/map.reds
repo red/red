@@ -240,6 +240,7 @@ map: context [
 		either blk? [
 			; use clone here to prevent extra copying of spec
 			blk: block/clone as red-block! spec no no
+			object/clear-nl-flags GET_BUFFER(blk)
 		][
 			blk: block/make-at as red-block! stack/push* size
 		]
@@ -358,11 +359,11 @@ map: context [
 
 		if cycles/detect? as red-value! map buffer :part yes [return part]
 		
-		string/concatenate-literal buffer "#("
+		string/concatenate-literal buffer "#["
 		prev: part - 2
 		part: serialize map buffer no all? flat? arg prev yes indent + 1 yes
 		if all [part <> prev indent > 0][part: object/do-indent buffer indent part]
-		string/append-char GET_BUFFER(buffer) as-integer #")"
+		string/append-char GET_BUFFER(buffer) as-integer #"]"
 		part - 1
 	]
 

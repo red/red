@@ -134,4 +134,88 @@ tokenizer: context [
 		slot/header: TYPE_TUPLE or (size << 19)
 	]
 
+	scan-money: func [
+		p		[byte-ptr!]
+		len		[integer!]
+		unit	[integer!]
+		error	[int-ptr!]
+		slot	[red-value!]
+		/local
+			c	 [integer!]
+			neg? [logic!]
+			s e cur st ds qt [byte-ptr!]
+			letter? do-error [subroutine!]
+	][
+		do-error: [error/value: -1 exit]
+		letter?: [
+			any [
+				all [(as-integer #"A") <= c c <= as-integer #"Z"]
+				all [(as-integer #"a") <= c c <= as-integer #"z"]
+			]
+		]
+		if len < 2 [do-error]
+		s: p
+		e: p + (len * unit)
+		c: string/get-char p unit						;-- +/-
+		neg?: c = as-integer #"-"
+		if any [neg? c = as-integer #"+"][
+			p: p + 1
+			c: string/get-char p unit
+		]
+
+		cur: null
+		if letter? [									;-- Currency symbol parsing
+			if p + 5 > e [do-error]						;-- minimal money value with currency
+			cur: p
+			loop 3 [
+				c: string/get-char p unit
+				unless letter? [do-error]
+				p: p + 1
+				if p >= e [do-error]
+			]
+			c: string/get-char p unit
+		]
+		
+		st: p
+		either c = as-integer #"$" [					;-- $ processing
+			p: p + 1
+			if p >= e [do-error]
+		][
+			if cur <> null [do-error]
+			st: st - 1
+		]
+		
+		ds: qt: null
+		while [p < e][
+			c: string/get-char p unit
+			case [
+				c = as-integer #"'" [
+					if any [
+						p - 1 = qt						;-- leading '
+						st + 1 = p						;-- $'
+						p + 1 = e						;-- ending '
+						ds <> null						;-- ' in fraction
+					][do-error]
+					qt: p
+				]
+				all [null? ds c = as-integer #"."][		;-- fraction
+					ds: p
+					if any [
+						p - 1 = s						;-- leading .
+						p - 1 = st						;-- $.
+						p - 1 = qt						;-- '.
+						p + 1 = e						;-- ending .
+					][do-error]
+				]
+				true [
+					c: c - #"0"
+					unless all [0 <= c c <= 9][do-error]
+				]
+			]
+			p: p + 1
+		]
+		slot: as red-value! money/make-at slot neg? cur st ds e
+		if null? slot [do-error]						;-- Currency symbol rejected
+	]
+
 ]

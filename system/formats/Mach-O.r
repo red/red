@@ -262,7 +262,7 @@ context [
 	] none
 	
 	pointer: make-struct [
-		value [integer!]			;-- 32/64-bit, watch out for endianess!!
+		value [integer!]			;-- 32/64-bit, watch out for endianness!!
 	] none
 
 	;-- Globals --

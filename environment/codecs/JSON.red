@@ -258,7 +258,7 @@ context [
     indent: none
     indent-level: 0
     normal-chars: none
-    escapes: #(
+    escapes: #[
         #"^"" {\"}
         #"\"  "\\"
         #"^H" "\b"
@@ -266,7 +266,7 @@ context [
         #"^/" "\n"
         #"^M" "\r"
         #"^-" "\t"
-    )
+    ]
 
     init-state: func [ind ascii?] [
         indent: ind

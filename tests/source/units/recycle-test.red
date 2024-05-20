@@ -77,7 +77,7 @@ Red [
 	--test-- "recycle-block-5"
 		rb5-mem: none
 		rb5-mem2: none
-		rb5-m: #(b: [1 2 3 4 5 6 7 8 9 10])
+		rb5-m: #[b: [1 2 3 4 5 6 7 8 9 10]]
 		recycle
 		rb5-mem: stats
 		
@@ -215,7 +215,7 @@ Red [
 		recycle
 		rm1-mem: stats
 		
-		rm1-map: #(a: 1 b: 2 c: 3 d: 4)
+		rm1-map: #[a: 1 b: 2 c: 3 d: 4]
 		rm1-map: none
 		
 		recycle
@@ -286,7 +286,7 @@ Red [
 		--test-- "recycle-map-5"
 		rm5-mem: none
 		rm5-mem2: none
-		rm5-map: #(a: 1 b: 2 c: 3 d: 4)
+		rm5-map: #[a: 1 b: 2 c: 3 d: 4]
 		rm5-str: "12345678901234567890"
 		recycle
 		rm5-mem: stats
@@ -307,10 +307,10 @@ Red [
 	--test-- "recycle-map-6"
 		rm6-mem: none
 		rm6-mem2: none
-		rm6-map: #(
+		rm6-map: #[
 			a: 1 b: 2 c: 3 d: 4 e: 5 f: 6
 			g: 7 h: 8 i: 9 j: 10 k: 11 l: 12
-		)
+		]
 		rm6-str: "12345678901234567890"
 		loop 10 [ append rm6-str rm6-str ]
 		recycle
@@ -377,10 +377,10 @@ Red [
 	--test-- "recycle-map-8"
 		rm8-mem: none
 		rm8-mem2: none
-		rm8-map: #(
+		rm8-map: #[
 			a: "" b: "" c: "" d: "" e: "" f: ""
 			g: "" h: "" i: "" j: "" k: "" l: ""
-		)
+		]
 		rm8-str: append make string! 200 "12345678901234567890"
 		loop 10 [ append rm8-str rm8-str ]
 		recycle
@@ -778,7 +778,7 @@ Red [
 		ro8-mem: none
 		ro8-mem1: none
 		ro8-o: make object! copy [
-			ro8-m: #(m: "12345678901234567890")
+			ro8-m: #[m: "12345678901234567890"]
 		]
 		recycle
 		ro8-mem: stats
@@ -795,7 +795,7 @@ Red [
 		ro9-mem: none
 		ro9-mem1: none
 		ro9-o: make object! copy [
-			ro9-m: #(m: #(m: #(m: #(m: #(m: #(m: "12345678901234567890"))))))
+			ro9-m: #[m: #[m: #[m: #[m: #[m: #[m: "12345678901234567890"]]]]]]
 		]
 		recycle
 		ro9-mem: stats

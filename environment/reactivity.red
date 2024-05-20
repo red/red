@@ -352,7 +352,7 @@ system/reactivity: context [
 				parse reaction rule: [
 					any [
 						item: [path! | lit-path! | get-path!] (
-							found?: identify-sources item/1 :reaction ctx
+							found?: found? or identify-sources item/1 :reaction ctx
 							parse item/1 rule
 						)
 						| set-path! | any-string!

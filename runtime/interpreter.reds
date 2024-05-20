@@ -895,7 +895,7 @@ interpreter: context [
 			value: value + 1
 		]
 		;====== Optional arguments fetching ======
-		if any [path <> null all [some? ref?]][
+		if any [path <> null some?][
 			path-end: either all [some? path = null][
 				ref-pos: pc - 1
 				end
@@ -911,7 +911,10 @@ interpreter: context [
 				
 				while [ref < as red-word! path-end][
 					get?: TYPE_OF(ref) = TYPE_GET_WORD
-					if all [TYPE_OF(ref) <> exp-type not get?][fire [TO_ERROR(script bad-refine) ref]]
+					if all [TYPE_OF(ref) <> exp-type not get?][
+						unless ref? [break]
+						fire [TO_ERROR(script bad-refine) ref]
+					]
 					if all [some? path = null][pc: pc + 1]
 					
 					t?: case [
@@ -931,9 +934,11 @@ interpreter: context [
 						get?		   [_context/find-word ctx ref/symbol no]
 						true		   [_context/bind-word ctx ref]
 					]
-					if index < 0 [fire [TO_ERROR(script no-refine) fname ref]]
 					value: head + index
-					assert all [value < tail TYPE_OF(value) = TYPE_REFINEMENT]
+					if any [
+						index < 0
+						all [value < tail TYPE_OF(value) <> TYPE_REFINEMENT]
+					][fire [TO_ERROR(script no-refine) fname ref]]
 					value: value + 1
 					sym-cnt: index + 1
 

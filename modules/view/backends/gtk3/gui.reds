@@ -45,6 +45,12 @@ log-pixels-y:		0
 screen-size-x:		0
 screen-size-y:		0
 
+#define CHECK_FACE_SIZE(size x y) [
+	if any [x > 65535 y > 65535][
+		fire [TO_ERROR(script invalid-arg) size]
+	]
+]
+
 get-face-obj: func [
 	handle		[handle!]
 	return:		[red-object!]
@@ -246,15 +252,10 @@ set-widget-child: func [
 		csym	[integer!]
 		clayout	[handle!]
 		playout	[handle!]
+		pt		[red-point2D!]
 ][
 	sym: get-widget-symbol parent
-	either TYPE_OF(offset) = TYPE_PAIR [
-		x: offset/x
-		y: offset/y
-	][
-		x: 0
-		y: 0
-	]
+	GET_PAIR_XY_INT(offset x y)
 	cvalues: get-face-values widget
 	ctype: as red-word! cvalues + FACE_OBJ_TYPE
 	csym: symbol/resolve ctype/symbol
@@ -319,9 +320,12 @@ set-widget-child-offset: func [
 		sym		[integer!]
 		cparent	[handle!]
 		alloc	[GtkAllocation! value]
+		pt		[red-point2D!]
+		x y		[integer!]
 ][
+	GET_PAIR_XY_INT(pos x y)
 	either type = window [
-		gtk_window_move widget pos/x pos/y
+		gtk_window_move widget x y
 	][
 		values: get-face-values widget
 		ntype: as red-word! values + FACE_OBJ_TYPE
@@ -335,7 +339,7 @@ set-widget-child-offset: func [
 			ntype: as red-word! values + FACE_OBJ_TYPE
 			sym: symbol/resolve ntype/symbol
 			cparent: get-face-child-layout parent sym
-			set-widget-offset cparent layout pos/x pos/y
+			set-widget-offset cparent layout x y
 		]
 		if type = base [
 			layout: GET-CARET-OWNER(widget)
@@ -459,6 +463,8 @@ free-handles: func [
 		cfg		[integer!]
 		last	[handle!]
 ][
+	if null? widget [exit]
+
 	values: get-face-values widget
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
@@ -804,7 +810,7 @@ remove-all-timers: func [
 
 		while [face < tail][
 			widget_: face-handle? face
-			unless null? widget [remove-all-timers widget_]
+			unless null? widget_ [remove-all-timers widget_]
 			face: face + 1
 		]
 	]
@@ -855,10 +861,9 @@ change-image: func [
 ][
 	;; DEBUG: print ["change-image " widget " type: " get-symbol-name type lf]
 	case [
-		; type = camera [
-		; 	snap-camera widget
-		; 	until [TYPE_OF(image) = TYPE_IMAGE]			;-- wait
-		; ]
+		all [type = camera TYPE_OF(image) = TYPE_NONE][
+			camera-get-image widget image
+		]
 		any [type = button type = toggle type = check type = radio][
 			if TYPE_OF(image) = TYPE_IMAGE [
 				img: gtk_image_new_from_pixbuf OS-image/to-pixbuf image
@@ -866,7 +871,6 @@ change-image: func [
 			]
 		]
 		true [0]
-
 	]
 ]
 
@@ -983,6 +987,7 @@ change-size: func [
 ][
 	GET_PAIR_XY_INT(size sx sy)
 	SET_PAIR_SIZE_FLAG(widget size)
+	CHECK_FACE_SIZE(size sx sy)
 	either type = window [
 		gtk_window_resize widget sx sy
 		gtk_widget_queue_draw widget
@@ -1242,7 +1247,11 @@ change-selection: func [
 			gtk_adjustment_set_page_size adj flt
 		]
 		type = camera [
-			select-camera widget idx
+			either idx < 0 [
+				stop-camera widget
+			][
+				select-camera widget idx
+			]
 		]
 		type = text-list [
 			g_signal_handlers_block_by_func(widget :text-list-selected-rows-changed widget)
@@ -1760,6 +1769,7 @@ OS-make-view: func [
 
 	if TYPE_OF(offset) = TYPE_POINT2D [as-pair as red-point2D! offset]
 	GET_PAIR_XY_INT(size sx sy)
+	CHECK_FACE_SIZE(size sx sy)
 
 	caption: either TYPE_OF(str) = TYPE_STRING [
 		len: -1
@@ -2213,6 +2223,8 @@ OS-destroy-view: func [
 		flags	[integer!]
 ][
 	handle: face-handle? face
+	if null? handle [exit]
+
 	values: object/get-values face
 	flags: get-flags as red-block! values + FACE_OBJ_FLAGS
 
@@ -2307,6 +2319,13 @@ OS-to-image: func [
 				ret: image/init-image as red-image! stack/push* OS-image/load-pixbuf pixbuf
 			]
 		]
+		type = camera [
+			widget: face-handle? face
+			either null? widget [ret: as red-image! none-value][
+				ret: as red-image! (object/get-values face) + FACE_OBJ_IMAGE
+				camera-get-image widget ret
+			]
+		]
 		true [
 			widget: face-handle? face
 			either null? widget [ret: as red-image! none-value][
@@ -2315,10 +2334,7 @@ OS-to-image: func [
 				win: gtk_widget_get_window widget
 				either not null? win [
 					GET_PAIR_XY_INT(size sx sy)
-					pixbuf: either any [
-						type = window
-						type = camera
-					][
+					pixbuf: either type = window [
 						gdk_pixbuf_get_from_window win 0 0 sx sy
 					][
 						gdk_pixbuf_get_from_window win as-integer offset/x as-integer offset/y sx sy

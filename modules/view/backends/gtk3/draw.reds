@@ -286,7 +286,7 @@ do-draw-pen: func [
 		cr		[handle!]
 ][
 	cr: dc/cr
-	either dc/pen? [
+	either all [dc/pen? dc/line-width?][
 		either all [
 			dc/grad-pen/on?
 			dc/grad-pen/pattern-on?
@@ -868,6 +868,7 @@ OS-draw-line-width: func [
 		w		[float!]
 ][
 	w: get-float as red-integer! width
+	dc/line-width?: w > 0.0
 	if w <= 0.0 [w: 1.0]
 	dc/pen-width: w
 	cairo_set_line_width dc/cr w
@@ -2549,7 +2550,7 @@ OS-draw-shape-arc: func [
 	cy: atan2f p2-y p2-x
 
 	cairo_save cr
-	cairo_new_sub_path cr
+	;cairo_new_sub_path cr
 	cairo_translate cr as float! center-x as float! center-y
 	cairo_rotate    cr as float! theta
 	cairo_scale     cr as float! radius-x as float! radius-y

@@ -44,66 +44,66 @@ Red [
         --assert {[^/    "A",^/    1^/]} = to-json/pretty ["A" 1] "    "
 
     --test-- "to-json-11"
-        --assert "{}" = to-json #()
+        --assert "{}" = to-json #[]
 
     --test-- "to-json-12"
         str: {{^/    "a": {^/        "b": {^/            "c": 3^/        }^/    }^/}}
-        src: #(
-            "a" #(
-                "b" #(
+        src: #[
+            "a" #[
+                "b" #[
                     "c" 3
-                )
-            )
-        )
+                ]
+            ]
+        ]
         --assert str = to-json/pretty src "    "
 
     --test-- "to-json-13"
         str: {{^/    "a": {^/        "b": {^/            "c": 3,^/            "d": 4^/        }^/    }^/}}
-        src: #(
-            "a" #(
-                "b" #(
+        src: #[
+            "a" #[
+                "b" #[
                     "c" 3
                     "d" 4
-                )
-            )
-        )
+                ]
+            ]
+        ]
         --assert str = to-json/pretty src "    "
 
     --test-- "to-json-14"
         str: {{^/    "A": 1,^/    "a": {^/        "b": {^/            "c": 3,^/            "d": [^/                "x",^/                "y",^/                [^/                    3,^/                    4^/                ],^/                "z"^/            ]^/        }^/    },^/    "B": 2^/}}
-        src: #(
+        src: #[
             "A" 1
-            "a" #(
-                "b" #(
+            "a" #[
+                "b" #[
                     "c" 3
                     "d" ["x" "y" [3 4] "z"]
-                )
-            )
+                ]
+            ]
             "B" 2
-        )
+        ]
         --assert str = to-json/pretty src "    "
 
     --test-- "to-json-15"
         --assert {["A",1]} = to-json ["A" 1]
 
     --test-- "to-json-16"
-        --assert {{"a":{"b":{"c":3}}}} = to-json #("a" #("b" #("c" 3)))
+        --assert {{"a":{"b":{"c":3}}}} = to-json #["a" #["b" #["c" 3]]]
 
     --test-- "to-json-17"
-        --assert {{"a":{"b":{"c":3,"d":4}}}} = to-json #("a" #("b" #("c" 3 "d" 4)))
+        --assert {{"a":{"b":{"c":3,"d":4}}}} = to-json #["a" #["b" #["c" 3 "d" 4]]]
 
     --test-- "to-json-18"
         str: {{"A":1,"a":{"b":{"c":3,"d":["x","y",[3,4],"z"]}},"B":2}}
-        src: #(
+        src: #[
             "A" 1
-            "a" #(
-                "b" #(
+            "a" #[
+                "b" #[
                     "c" 3
                     "d" ["x" "y" [3 4] "z"]
-                )
-            )
+                ]
+            ]
             "B" 2
-        )
+        ]
         --assert str = to-json src
 
 ===end-group===
@@ -111,7 +111,7 @@ Red [
 ===start-group=== "load-json"
 
     --test-- "load-json-1"
-        --assert #[none] = load-json "null"
+        --assert #(none) = load-json "null"
 
     --test-- "load-json-4"
         --assert 1 = load-json "1"
@@ -141,28 +141,28 @@ Red [
         --assert ["A" 1] = load-json {["A", 1]}
 
     --test-- "load-json-13"
-        --assert #() = load-json "{}"
+        --assert #[] = load-json "{}"
 
     --test-- "load-json-14"
-        --assert #(array: []) = load-json {{"array":[ ]}}
+        --assert #[array: []] = load-json {{"array":[ ]}}
 
     --test-- "load-json-15"
-        --assert #(a: #(b: #(c: 3))) = load-json {{"a": {"b": {"c": 3}}}}
+        --assert #[a: #[b: #[c: 3]]] = load-json {{"a": {"b": {"c": 3}}}}
 
     --test-- "load-json-16"
-        --assert #(a: #(b: #(c: 3 d: 4))) = load-json {{"a": { "b": {"c": 3, "d": 4}}}}
+        --assert #[a: #[b: #[c: 3 d: 4]]] = load-json {{"a": { "b": {"c": 3, "d": 4}}}}
 
     --test-- "load-json-17"
-        res: #(
+        res: #[
             A: 1
-            a: #(
-                b: #(
+            a: #[
+                b: #[
                     c: 3
                     d: ["x" "y" [3 4] "z"]
-                )
-            )
+                ]
+            ]
             B: 2
-        )
+        ]
         str: {{"A": 1, "a": {"b": { "c": 3, "d": [ "x", "y", [3, 4 ], "z"] }}, "B": 2}}
         --assert res = load-json str
 
@@ -176,10 +176,10 @@ Red [
         --assert error? try [load-json {"Not a tab \T"}]
 
     --test-- "load-json-21"
-        --assert #("<tag>" "value") = load-json {{"<tag>": "value"}}
+        --assert #["<tag>" "value"] = load-json {{"<tag>": "value"}}
 
     --test-- "load-json-22"
-        res: #(
+        res: #[
             tag: "value"
             "<tag" "value"
             ">tag" "value"
@@ -190,7 +190,7 @@ Red [
             "<tag>" "value"
             ">tag>" "value"
             "a<tag>b" "value"
-        )
+        ]
         str: {{"tag":"value","<tag":"value",">tag":"value","tag<":"value","<tag<":"value",">tag<":"value","tag>":"value","<tag>":"value",">tag>":"value","a<tag>b":"value"}}
         --assert res = load-json str
 
@@ -207,21 +207,21 @@ Red [
 ===start-group=== "json-codec"
 
     --test-- "json-codec-2"
-        res: #(
+        res: #[
             A: 1
-            a: #(
-                b: #(
+            a: #[
+                b: #[
                     c: 3
                     d: ["x" "y" [3 4] "z"]
-                )
-            )
+                ]
+            ]
             B: 2
-        )
+        ]
         str: {{"A": 1, "a": {"b": { "c": 3, "d": [ "x", "y", [3, 4 ], "z"] }}, "B": 2}}
         --assert res = load/as str 'json
 
     --test-- "json-codec-3"
-        --assert {{"a":{"b":{"c":3,"d":4}}}} = save/as none #("a" #("b" #("c" 3 "d" 4))) 'json
+        --assert {{"a":{"b":{"c":3,"d":4}}}} = save/as none #["a" #["b" #["c" 3 "d" 4]]] 'json
 
     --test-- "json-codec-4"
         str: copy ""

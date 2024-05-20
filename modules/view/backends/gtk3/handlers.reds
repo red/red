@@ -368,7 +368,6 @@ camera-draw: func [
 		cfg		[integer!]
 		data	[integer!]
 		dlen	[integer!]
-		input	[handle!]
 		pixbuf	[handle!]
 		last	[handle!]
 ][
@@ -384,8 +383,7 @@ camera-draw: func [
 		camera-dev/get-data cfg :data :dlen
 		if dlen <> 0 [
 			;-- now precess data
-			input: g_memory_input_stream_new_from_data as byte-ptr! data dlen null
-			pixbuf: gdk_pixbuf_new_from_stream input null null
+			pixbuf: camera-dev/get-pixbuf cfg
 			gdk_cairo_set_source_pixbuf cr pixbuf 0.0 0.0
 			cairo_paint cr
 			camera-dev/signal cfg
@@ -1247,7 +1245,7 @@ mouse-button-release-event: func [
 	if buf <> null [
 		w: cairo_image_surface_get_width buf
 		pixels: as int-ptr! cairo_image_surface_get_data buf
-		pixels: pixels + (y - 1 * w) + x
+		pixels: pixels + (y * w) + x
 		if pixels/1 and FF000000h = 0 [		;-- transparent pixel
 			return EVT_DISPATCH
 		]
@@ -1334,7 +1332,7 @@ mouse-button-press-event: func [
 	if buf <> null [
 		w: cairo_image_surface_get_width buf
 		pixels: as int-ptr! cairo_image_surface_get_data buf
-		pixels: pixels + (y - 1 * w) + x
+		pixels: pixels + (y * w) + x
 		if pixels/1 and FF000000h = 0 [		;-- transparent pixel
 			return EVT_DISPATCH
 		]
@@ -1397,7 +1395,7 @@ mouse-motion-notify-event: func [
 	if buf <> null [
 		w: cairo_image_surface_get_width buf
 		pixels: as int-ptr! cairo_image_surface_get_data buf
-		pixels: pixels + (y - 1 * w) + x
+		pixels: pixels + (y * w) + x
 		enter: GET-BASE-ENTER(widget)
 		either pixels/1 and FF000000h = 0 [		;-- transparent pixel
 			if enter <> null  [

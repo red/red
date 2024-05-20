@@ -11,12 +11,12 @@ jobs:
         echo "Cleaning up previous run"
         rm -rf ${{ github.workspace }}/*
 
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Run RS tests
       run: rebpro -qws system/tests/run-all.r --batch
 
     # upload log file if any test failed
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       if: failure()
       with:
         name: RS-Tests-macOS
@@ -30,7 +30,7 @@ jobs:
       run: rebpro -qws tests/run-all.r --batch
 
     # upload log file if any test failed
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       if: failure()
       with:
         name: Red-Tests-macOS
@@ -52,7 +52,7 @@ jobs:
     - name: Set env
       run: echo "red_toolchain=$(ls red-toolchain-*)" >> "$GITHUB_ENV"
 
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: ${{ env.red_toolchain }}
         path: red-toolchain-*

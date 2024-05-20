@@ -93,7 +93,7 @@ none: context [
 		#if debug? = yes [if verbose > 0 [print-line "none/mold"]]
 
 		either all? [
-			string/concatenate-literal buffer "#[none]"
+			string/concatenate-literal buffer "#(none)"
 			part - 7
 		] [
 			form value buffer arg part

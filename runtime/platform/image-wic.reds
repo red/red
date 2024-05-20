@@ -273,6 +273,18 @@ OS-image: context [
 		Initialize					[function! [this [this!] pISource [this!] rec [RECT!] return: [integer!]]]
 	]
 
+	IWICBitmapFlipRotator: alias struct! [
+		QueryInterface				[QueryInterface!]
+		AddRef						[AddRef!]
+		Release						[Release!]
+		GetSize						[function! [this [this!] pWidth [int-ptr!] pHeight [int-ptr!] return: [integer!]]]
+		GetPixelFormat				[function! [this [this!] pPixelFormat [int-ptr!] return: [integer!]]]
+		GetResolution				[function! [this [this!] pX [float-ptr!] pY [float-ptr!] return: [integer!]]]
+		CopyPalette					[function! [this [this!] pIPalette [int-ptr!] return: [integer!]]]
+		CopyPixels					[function! [this [this!] prc [int-ptr!] stride [integer!] size [integer!] buffer [byte-ptr!] return: [integer!]]]
+		Initialize					[function! [this [this!] pISource [this!] options [integer!] return: [integer!]]]
+	]
+
 	make-node: func [
 		handle	[this!]
 		buffer	[this!]
@@ -486,8 +498,27 @@ OS-image: context [
 		if stride = 0 [stride: width * 4]
 		size: stride * height
 		ret: IFAC/CreateBitmapFromMemory wic-factory width height as integer! GUID_WICPixelFormat32bppBGRA stride size scan0 :bmp
-		bitmap/value: as integer! make-node null bmp/value 3 width height
+		bitmap/value: as integer! make-node bmp/value null 0 width height
 		ret
+	]
+
+	flip: func [
+		handle		[node!]
+		return:		[node!]
+		/local
+			inode	[img-node!]
+			IFAC	[IWICImagingFactory]
+			iflip	[com-ptr! value]
+			sthis	[this!]
+			flipper [IWICBitmapFlipRotator]
+	][
+		inode: as img-node! (as series! handle/value) + 1
+		IFAC: as IWICImagingFactory wic-factory/vtbl
+		IFAC/CreateBitmapFlipRotator wic-factory :iflip
+		sthis: iflip/value
+		flipper: as IWICBitmapFlipRotator sthis/vtbl
+		flipper/Initialize sthis inode/handle 10h		;-- flip horizontal
+		make-node sthis null 0 IMAGE_WIDTH(inode/size) IMAGE_HEIGHT(inode/size)
 	]
 
 	create-bitmap-from-gdidib: func [
@@ -530,6 +561,7 @@ OS-image: context [
 			rect	[RECT! value]
 			ilock	[com-ptr! value]
 			inode	[img-node!]
+			hr		[integer!]
 	][
 		this: get-buffer img/node
 		IB: as IWICBitmap this/vtbl
@@ -542,7 +574,12 @@ OS-image: context [
 		rect/y: 0
 		rect/w: IMAGE_WIDTH(img/size)
 		rect/h: IMAGE_HEIGHT(img/size)
-		IB/Lock this rect flag :ilock
+		hr: IB/Lock this rect flag :ilock
+		if hr <> 0 [
+			#if debug? = yes [print-line ["WICBitmap Lock Error: " hr]]
+			fire [TO_ERROR(access bad-media)]
+			return 0
+		]
 		as integer! ilock/value
 	]
 
@@ -778,7 +815,7 @@ OS-image: context [
 			file/to-OS-path src
 			null
 			GENERIC_READ
-			1	;-- WICDecodeMetadataCacheOnLoad
+			0	;-- WICDecodeMetadataCacheOnDemand
 			:II [return null]
 		node: get-frame IFAC as com-ptr! :II 0 no
 		if null? node [return null]
@@ -905,7 +942,7 @@ OS-image: context [
 		CreateStreamOnHGlobal hMem true :s
 
 		IFAC: as IWICImagingFactory wic-factory/vtbl
-		if 0 <> IFAC/CreateDecoderFromStream wic-factory as int-ptr! s null 1 :idec [
+		if 0 <> IFAC/CreateDecoderFromStream wic-factory as int-ptr! s null 0 :idec [
 			return null
 		]
 		get-frame IFAC as com-ptr! :idec 0 no

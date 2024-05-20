@@ -1506,6 +1506,8 @@ redbin: context [
 		strings [red-binary!]
 		/local
 			value  [red-value!]
+			ref	   [red-value!]
+			ctx	   [red-context!]
 			node   [node!]
 			series [series!]
 			type   [integer!]
@@ -1515,6 +1517,16 @@ redbin: context [
 		;@@ TBD: #4537
 		if null? node [node: global-ctx]
 		
+		ctx: TO_CTX(node)
+		ref: as red-value! ctx + 1
+		type: TYPE_OF(ref)
+		if any [									 ;-- native function context case
+			type = TYPE_NONE
+			type = TYPE_UNSET
+			type = TYPE_BLOCK
+		][
+			node: global-ctx
+		]
 		if node = global-ctx [
 			header: header or REDBIN_SET_MASK
 			value:  _context/get-any data/data2 node
@@ -1537,12 +1549,11 @@ redbin: context [
 					reset
 					fire [TO_ERROR(access no-codec) data]
 				]
-				
-				assert any [type = TYPE_OBJECT type = TYPE_FUNCTION]
-				either type = TYPE_OBJECT [
-					encode-object value type payload symbols table strings
-				][
-					encode-function value type payload symbols table strings
+				switch type [
+					TYPE_OBJECT	  [encode-object value type payload symbols table strings]
+					TYPE_FUNCTION [encode-function value type payload symbols table strings]
+					TYPE_BLOCK	  [0]				;-- function's spec cache block, do nothing
+					default		  [assert false]
 				]
 			]
 		]

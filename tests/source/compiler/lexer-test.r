@@ -129,7 +129,7 @@ do %../../../encapper/lexer.r
 		]
 
 		foo/bar 'foo/bar foo/bar:
-		#[none] #[true ] #[false ] 
+		#(none) #(true ) #(false ) 
 	}
 	
 	result: [

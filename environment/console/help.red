@@ -363,7 +363,7 @@ help-ctx: context [
 					;	show the type tree for it.
 					datatype? :val [
 						either system/catalog/accessors/:word [
-							[col-1 DOC_SEP mold system/catalog/accessors/:word]
+							[col-1 DOC_SEP replace/all mold system/catalog/accessors/:word newline "^/^-"]
 						][
 							[col-1]
 						]

@@ -345,8 +345,8 @@ natives: context [
 		break?: no
 		
 		stack/mark-loop words/_body
-		series: as red-series! _context/get w	
-		loop get-series-length series [
+		series: as red-series! _context/get w
+		while [loop? series][
 			stack/reset
 			assert system/thrown = 0
 			catch RED_THROWN_BREAK	[interpreter/eval body no]
@@ -415,7 +415,7 @@ natives: context [
 			]
 			remove-each-next size
 		]
-		stack/set-last unset-value
+		stack/set-last value + 1
 		stack/unwind-last
 	]
 	
@@ -551,11 +551,13 @@ natives: context [
 			thrown [integer!]
 			fun?   [logic!]
 			defer? [logic!]
+			interp? [logic!]
 			do-block [subroutine!]
 	][
 		#typecheck [do expand? args next trace]
 		arg: stack/arguments
 		cframe: stack/get-ctop							;-- save the current call frame pointer
+		interp?: stack/eval? cframe yes
 		do-arg: stack/arguments + args
 		fun: 	as red-function! stack/arguments + trace
 		
@@ -564,6 +566,7 @@ natives: context [
 		]
 		fun?: OPTION?(fun)
 		if fun? [
+			stack/set-parent-func-flag					;-- (#5403, #5401) allows do/trace to fully catch exit/return exceptions
 			with [interpreter][
 				either trace? [fun?: no][				;-- pass-thru, ignore handler if one is in use already
 					fun-locs: _function/count-locals fun/spec 0 no
@@ -626,11 +629,22 @@ natives: context [
 		]
 		switch system/thrown [
 			RED_THROWN_BREAK
-			RED_THROWN_CONTINUE
+			RED_THROWN_CONTINUE [
+				either interp? [						;-- if parent call is interpreted,
+					re-throw
+					0									;-- 0 to make compiler happy
+				][
+					system/thrown						;-- request an early exit from caller
+				]
+			]
 			RED_THROWN_RETURN
 			RED_THROWN_EXIT [
-				either stack/eval? cframe yes [			;-- if parent call is interpreted,
-					re-throw 							;-- let the exception pass through
+				either interp? [						;-- if parent call is interpreted,
+					either fun? [						;-- if tracing mode, throw exception again as it was captured by DO
+						stack/throw-exit system/thrown = RED_THROWN_RETURN no yes
+					][
+						re-throw
+					]
 					0									;-- 0 to make compiler happy
 				][
 					system/thrown						;-- request an early exit from caller
@@ -1222,14 +1236,18 @@ natives: context [
 			native	[red-native!]
 			word	[red-word!]
 			res		[red-value!]
+			type	[integer!]
 	][
 		#typecheck in
 		obj:  as red-object! stack/arguments
 		word: as red-word! stack/arguments + 1
+		type: TYPE_OF(obj)
 		ctx: either any [
-			TYPE_OF(obj) = TYPE_OBJECT
-			TYPE_OF(obj) = TYPE_FUNCTION
-			TYPE_OF(obj) = TYPE_ROUTINE
+			type = TYPE_OBJECT
+			type = TYPE_ERROR
+			type = TYPE_PORT
+			type = TYPE_FUNCTION
+			type = TYPE_ROUTINE
 		][
 			GET_CTX(obj)
 		][
@@ -1534,6 +1552,10 @@ natives: context [
 			p	 [byte-ptr!]
 			len  [integer!]
 			ret  [red-binary!]
+			node [node!]
+			s	 [series!]
+			out	 [byte-ptr!]
+			gc?  [logic!]
 	][
 		#typecheck [enbase base-arg]
 		data: as red-string! stack/arguments
@@ -1555,14 +1577,29 @@ natives: context [
 		ret: as red-binary! data
 		ret/head: 0
 		ret/header: TYPE_NONE
-		ret/node: switch base [
-			64 [binary/encode-64 p len]
-			58 [binary/encode-58 p len]
-			16 [binary/encode-16 p len]
-			2  [binary/encode-2  p len]
+
+		gc?: collector/active?
+		collector/active?: no
+		node: switch base [
+			64 [alloc-bytes 4 * len / 3 + (2 * (len / 32) + 5)]
+			58 [alloc-bytes len * 2]
+			16 [alloc-bytes len * 2 + (len / 32) + 32]
+			2  [alloc-bytes 8 * len + (2 * (len / 8) + 4)]
 			default [fire [TO_ERROR(script invalid-arg) int] null]
 		]
-		if ret/node <> null [ret/header: TYPE_STRING]	;-- ret/node = null, return NONE
+		collector/active?: gc?
+		if null? node [exit]
+
+		s: as series! node/value
+		out: as byte-ptr! s/offset
+		s/tail: as red-value! switch base [
+			64 [binary/encode-64 out p len]
+			58 [binary/encode-58 out p len]
+			16 [binary/encode-16 out p len]
+			2  [binary/encode-2  out p len]
+		]
+		ret/node: node
+		ret/header: TYPE_STRING
 	]
 
 	negative?*: func [
@@ -2205,12 +2242,12 @@ natives: context [
 	
 	exit*: func [check? [logic!]][
 		#typecheck exit
-		stack/throw-exit no
+		stack/throw-exit no no
 	]
 	
 	return*: func [check? [logic!]][
 		#typecheck return
-		stack/throw-exit yes
+		stack/throw-exit yes no
 	]
 	
 	throw*: func [
@@ -3412,20 +3449,6 @@ natives: context [
 
 		if radians < 0 [f/value: f/value * 180.0 / PI]			;-- to degrees
 		f
-	]
-
-	get-series-length: func [
-		series  [red-series!]
-		return: [integer!]	
-		/local
-			img  [red-image!]
-	][
-		either TYPE_OF(series) = TYPE_IMAGE [
-			img: as red-image! series
-			IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) - img/head
-		][
-			_series/get-length series no
-		]
 	]
 
 	loop?: func [

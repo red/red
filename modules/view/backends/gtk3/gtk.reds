@@ -3332,6 +3332,10 @@ GPtrArray!: alias struct! [
 			error		[handle!]
 			return:		[handle!]
 		]
+		gdk_pixbuf_get_pixels: "gdk_pixbuf_get_pixels" [
+			pixbuf 		[handle!]
+			return: 	[byte-ptr!]
+		]
 		gdk_pixbuf_copy: "gdk_pixbuf_copy" [
 			pixbuf 		[handle!]
 			return: 	[handle!]
