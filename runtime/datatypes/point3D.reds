@@ -204,7 +204,7 @@ point3D: context [
 			]
 			TYPE_POINT2D [
 				pt: as red-point2D! spec
-				push as-float32 p/x as-float32 p/y as-float32 0.0
+				push pt/x pt/y 0.0
 			]			
 			TYPE_STRING [
 				copy-cell spec val					;-- save spec, load-value will change it

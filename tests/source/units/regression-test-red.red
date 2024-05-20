@@ -3670,6 +3670,8 @@ comment {
 		url: clear http://
 		--assert url/:file == skip url:/dir/file 4
 		
+	--test-- "#5505"
+		--assert (1, 1, 0) == to-point3D make point2D! 1
 	
 ===end-group===
 
