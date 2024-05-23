@@ -732,7 +732,7 @@ collector: context [
 									]
 								]
 							]
-							bits: bits >> 1				;-- next slot flag
+							bits: bits >>> 1			;-- next slot flag
 						]
 						map: map + 1					;-- next 31 slots bitmap
 						not ext?						;-- loop until no more extended slots
