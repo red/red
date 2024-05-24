@@ -373,7 +373,8 @@ update-scrollbars: func [
 		bool      [red-logic!]
 		wrap?     [logic!]
 		chars     [integer!]
-		c1 c2 h height width right bottom
+		c1 c2 	[byte!]
+		w h height width right bottom [integer!]
 ][
 	rect: declare RECT_STRUCT
 	values: get-face-values hWnd
@@ -400,10 +401,14 @@ update-scrollbars: func [
 			bool: as red-logic! (object/get-values para) + PARA_OBJ_WRAP?
 			wrap?: all [TYPE_OF(bool) = TYPE_LOGIC  bool/value] ;@@ no word wrap by default?
 		]
+		
+		size: GetTabbedTextExtent GetDC hWnd "M^(00)" 1 0 null ;-- measure one big character
+		height: WIN32_HIWORD(size)
+		width: size and FFFFh
 
 		txt-pos:   text
 		txt-start: text
-		height: 0
+		h: 0
 
 		forever [
 			c1: txt-pos/1
@@ -411,20 +416,19 @@ update-scrollbars: func [
 			if c2 = null-byte [
 				if any [c1 = #"^/" c1 = null-byte] [
 					chars: (as integer! (txt-pos - txt-start)) / 2
-					size: GetTabbedTextExtent hScreen txt-start chars 0 null
-					h: WIN32_HIWORD(size)
-					height: height + h
-					width: size and FFFFh
-					if width >= right [
+					w: width * chars
+					h: h + height
+					if w >= right [
 						either wrap? [
 							DrawText hScreen txt-start chars rect DT_CALCRECT or DT_EXPANDTABS or DT_WORDBREAK 
-							height: height - h + rect/bottom
+							h: h - height + rect/bottom
 						][
 							horz?: yes
+							break
 						]
-						if height >= bottom [ break ] ;no need to continue
+						if h >= bottom [break]
 					]
-					if c1 = null-byte [ break ]
+					if c1 = null-byte [break]			;-- no need to continue
 					txt-start: txt-pos + 2
 				]
 			]
@@ -432,10 +436,10 @@ update-scrollbars: func [
 		]
 
 		SelectObject hScreen saved
-		ShowScrollBar hWnd 1 height >= bottom	;-- SB_VERT
-		ShowScrollBar hWnd 0 horz?              ;-- SB_HORZ
+		ShowScrollBar hWnd 1 h >= bottom				;-- SB_VERT
+		ShowScrollBar hWnd 0 horz?						;-- SB_HORZ
 	][
-		ShowScrollBar hWnd 3 no					;-- SB_BOTH
+		ShowScrollBar hWnd 3 no							;-- SB_BOTH
 	]
 ]
 
@@ -1153,6 +1157,44 @@ get-selected: func [
 	int: as red-integer! get-facet msg FACE_OBJ_SELECTED
 	int/header: TYPE_INTEGER
 	int/value: idx
+]
+
+get-text-alt: func [
+	face [red-object!]
+	idx	 [integer!]
+	/local
+		str	 [red-string!]
+		out	 [c-string!]
+		hWnd [handle!]
+		size [integer!]
+][
+	hWnd: face-handle? face
+	if null? hWnd [exit]
+	
+	size: as-integer either idx = -1 [
+		SendMessage hWnd WM_GETTEXTLENGTH idx 0
+	][
+		SendMessage hWnd CB_GETLBTEXTLEN idx 0
+	]
+	if size >= 0 [
+		str: as red-string! (object/get-values face) + FACE_OBJ_TEXT
+		if TYPE_OF(str) <> TYPE_STRING [
+			string/make-at as red-value! str size UCS-2
+		]
+		if size = 0 [
+			string/rs-reset str
+			exit
+		]
+		out: unicode/get-cache str size + 1 * 4			;-- account for surrogate pairs and terminal NUL
+
+		either idx = -1 [
+			SendMessage hWnd WM_GETTEXT size + 1 as-integer out  ;-- account for NUL
+		][
+			SendMessage hWnd CB_GETLBTEXT idx as-integer out
+		]
+		unicode/load-utf16 null size str yes
+		ownership/bind as red-value! str face _text
+	]
 ]
 
 get-text: func [
