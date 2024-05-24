@@ -1559,6 +1559,7 @@ XFORM!: alias struct! [
 		SetWindowText: "SetWindowTextW" [
 			hWnd		[handle!]
 			lpString	[c-string!]
+			return:		[integer!]
 		]
 		GetWindowText: "GetWindowTextW" [
 			hWnd		[handle!]

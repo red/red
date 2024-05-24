@@ -37,6 +37,7 @@ Red/System [
 ]
 
 #define FACE_FREED(hwnd) [zero? GetWindowLong hwnd wc-offset]
+#define AREA_BUFFER_LIMIT 32768
 
 #include %win32.reds
 #include %direct2d.reds
@@ -2059,7 +2060,7 @@ extend-area-limit: func [
 	old:   as-integer SendMessage hWnd WM_GETTEXTLENGTH 0 0
 	
 	if extra + old > limit [
-		SendMessage hWnd EM_SETLIMITTEXT old + extra + 30'000 0
+		SendMessage hWnd EM_SETLIMITTEXT old + extra + AREA_BUFFER_LIMIT 0
 	]
 ]
 
@@ -2153,6 +2154,7 @@ change-text: func [
 		text [c-string!]
 		str  [red-string!]
 		len  [integer!]
+		n	 [integer!]
 ][
 	if any [
 		type = base
@@ -2191,6 +2193,15 @@ change-text: func [
 			update-scrollbars hWnd text
 		]
 		SetWindowText hWnd text
+		if type = area [
+			;-- too many `lf` convert to `crlf` in the edit control
+			len: as-integer SendMessage hWnd EM_GETLIMITTEXT 0 0
+			n: as-integer SendMessage hWnd WM_GETTEXTLENGTH 0 0
+			if n >= len [
+				extend-area-limit hWnd 16
+				SetWindowText hWnd text
+			]
+		]
 	]
 ]
 
