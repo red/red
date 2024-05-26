@@ -367,6 +367,8 @@ update-scrollbars: func [
 		horz?	[logic!]
 		vert?	[logic!]
 		size    [integer!]
+		max-n	[integer!]
+		start	[c-string!]
 		txt-start [c-string!]
 		txt-pos   [c-string!]
 		bool      [red-logic!]
@@ -402,6 +404,7 @@ update-scrollbars: func [
 		txt-pos:   text
 		txt-start: text
 		h: 0
+		max-n: 0
 
 		forever [
 			c1: txt-pos/1
@@ -411,25 +414,32 @@ update-scrollbars: func [
 					chars: (as integer! (txt-pos - txt-start)) / 2
 					w: width * chars
 					h: h + height
-					if w >= right [
+					if w > right [
 						either wrap? [
 							rect/bottom: bottom
 							rect/right: right
 							DrawText dc txt-start chars rect DT_CALCRECT or DT_EXPANDTABS or DT_WORDBREAK 
 							h: h - height + rect/bottom
 						][
+							if chars > max-n [
+								max-n: chars
+								start: txt-start
+							]
 							horz?: yes
 						]
 					]
 					if h >= bottom [vert?: yes]
-					if any [
-						c1 = null-byte
-						all [horz? vert?]
-					][break]			;-- no need to continue
+					if c1 = null-byte [break]			;-- no need to continue
 					txt-start: txt-pos + 2
 				]
 			]
 			txt-pos: txt-pos + 2
+		]
+
+		if horz? [	;-- check again in case it's not fixed-width font
+			size: GetTabbedTextExtent dc start max-n 0 null
+			w: size and FFFFh
+			horz?: w > right
 		]
 
 		ReleaseDC hWnd dc
