@@ -359,23 +359,23 @@ update-scrollbars: func [
 	hWnd [handle!]
 	text [c-string!] ;utf16 encoded string or null
 	/local
-		values	[red-value!]
-		str		[red-string!]
-		para	[red-object!]
-		dc		[handle!]
-		rect	[RECT_STRUCT value]
-		horz?	[logic!]
-		vert?	[logic!]
-		size    [integer!]
-		max-n	[integer!]
-		start	[c-string!]
+		values	  [red-value!]
+		str		  [red-string!]
+		para	  [red-object!]
+		dc		  [handle!]
+		rect	  [RECT_STRUCT value]
+		horz?	  [logic!]
+		vert?	  [logic!]
+		size      [integer!]
+		max-n	  [integer!]
+		start	  [c-string!]
 		txt-start [c-string!]
 		txt-pos   [c-string!]
 		bool      [red-logic!]
 		wrap?     [logic!]
 		chars     [integer!]
-		c1 c2 	[byte!]
-		w h height width right bottom [integer!]
+		c1 c2 	 [byte!]
+		w h height width right bottom bits [integer!]
 ][
 	values: get-face-values hWnd
 	str:  as red-string! values + FACE_OBJ_TEXT
@@ -383,6 +383,9 @@ update-scrollbars: func [
 	horz?: no
 	vert?: no
 	wrap?: no
+	
+	bits: get-flags as red-block! values + FACE_OBJ_FLAGS
+	if bits and FACET_FLAGS_NO_AUTO_SB <> 0 [exit]
 
 	either TYPE_OF(str) = TYPE_STRING [
 		GetClientRect hWnd rect

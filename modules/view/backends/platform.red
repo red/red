@@ -84,6 +84,7 @@ system/view/platform: context [
 				FACET_FLAGS_SCROLLABLE:	00040000h
 				FACET_FLAGS_PASSWORD:	00080000h
 				FACET_FLAGS_NO_SYNC:	00100000h
+				FACET_FLAGS_NO_AUTO_SB:	00200000h
 
 				FACET_FLAGS_POPUP:		01000000h
 				FACET_FLAGS_MODAL:		02000000h
@@ -290,6 +291,7 @@ system/view/platform: context [
 			scrollable:		symbol/make "scrollable"
 			password:		symbol/make "password"
 			no-sync:		symbol/make "no-sync"
+			no-auto-sb:		symbol/make "no-auto-sb"
 
 			_accelerated:	symbol/make "accelerated"
 
@@ -613,6 +615,7 @@ system/view/platform: context [
 						sym = scrollable [flags: flags or FACET_FLAGS_SCROLLABLE]
 						sym = password	 [flags: flags or FACET_FLAGS_PASSWORD]
 						sym = no-sync	 [flags: flags or FACET_FLAGS_NO_SYNC]
+						sym = no-auto-sb [flags: flags or FACET_FLAGS_NO_AUTO_SB]
 						true			 [fire [TO_ERROR(script invalid-arg) word]]
 					]
 					word: word + 1
