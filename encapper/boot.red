@@ -46,7 +46,7 @@ Red [
 	system/version: load system/version
 	
 	system/options/cache: either system/platform = 'Windows [
-		append to-red-file get-env "APPDATA" %/Red/
+		append any [attempt [to-red-file get-env "APPDATA"] %./] %/Red/
 	][
 		append any [attempt [to-red-file get-env "HOME"] %/tmp] %/.red/
 	]
