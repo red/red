@@ -88,6 +88,7 @@ write %build/bin/sources.r set-cache [
 		%definitions.reds
 		%deflate.reds
 		%dtoa.reds
+		%externals.reds
 		%hashtable.reds
 		%image-utils.reds
 		%interpreter.reds

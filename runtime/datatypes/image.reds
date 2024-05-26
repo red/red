@@ -12,6 +12,8 @@ Red/System [
 
 image: context [
 	verbose: 0
+	
+	ext-type: -1
 
 	acquire-buffer: func [
 		img		[red-image!]
@@ -294,10 +296,10 @@ image: context [
 		init-image img hr
 		img
 	]
+	
+	mark: func [node [node!]][OS-image/mark node]
 
-	delete: func [img [red-image!]][
-		OS-image/delete img
-	]
+	delete: func [img [red-image!]][OS-image/delete img/node]
 
 	encode: func [
 		image	[red-image!]
@@ -614,7 +616,7 @@ image: context [
 			]
 			TYPE_OBJECT [
 				#either modules contains 'View [
-					spec: stack/push spec						;-- store spec to avoid corruption (#2460)
+					spec: stack/push spec				;-- store spec to avoid corruption (#2460)
 					#call [face? spec]
 					ret: as red-logic! stack/arguments
 					if ret/value [return exec/gui/OS-to-image as red-object! spec]
@@ -1324,5 +1326,7 @@ image: context [
 			null			;update
 			null			;write
 		]
+		
+		ext-type: externals/register "image" as-integer :OS-image/delete
 	]
 ]

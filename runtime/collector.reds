@@ -242,7 +242,7 @@ collector: context [
 			routine [red-routine!]
 			native	[red-native!]
 			ctx		[red-context!]
-			image	[red-image!]
+			img		[red-image!]
 			len		[integer!]
 			type	[integer!]
 	][
@@ -343,8 +343,13 @@ collector: context [
 				]
 				#if any [OS = 'macOS OS = 'Linux OS = 'Windows][
 				TYPE_IMAGE [
-					image: as red-image! value
-					#if draw-engine <> 'GDI+ [if image/node <> null [keep image/node]]
+					img: as red-image! value
+					#if draw-engine <> 'GDI+ [
+						if img/node <> null [
+							keep img/node
+							image/mark img/node
+						]
+					]
 				]]
 				default [0]
 			]
@@ -859,6 +864,7 @@ collector: context [
 		#if debug? = yes [tm1: (platform/get-time yes yes) - tm]	;-- marking time
 
 		#if debug? = yes [if verbose > 1 [probe "sweeping..."]]
+		externals/sweep
 		_hashtable/sweep ownership/table
 		collect-series-frames COLLECTOR_RELEASE
 		collect-big-frames

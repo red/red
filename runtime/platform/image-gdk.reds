@@ -30,6 +30,7 @@ OS-image: context [
 		handle	[int-ptr!]
 		buffer	[int-ptr!]
 		size	[integer!]
+		extID	[integer!]								;-- external resources table ID
 	]
 
 	#either OS = 'Windows [
@@ -236,9 +237,14 @@ OS-image: context [
 		buf/value: color
 		color
 	]
-
-	delete: func [img [red-image!] /local inode [img-node!]][
-		inode: as img-node! (as series! img/node/value) + 1
+	
+	mark: func [node [node!] /local inode [img-node!]][
+		inode: as img-node! (as series! node/value) + 1
+		externals/mark inode/extID
+	]
+	
+	delete: func [node [node!] /local inode [img-node!]][
+		inode: as img-node! (as series! node/value) + 1
 		if inode/handle <> null [g_object_unref inode/handle inode/handle: null]
 		if inode/buffer <> null [free as byte-ptr! inode/buffer inode/buffer: null]
 	]
@@ -268,12 +274,13 @@ OS-image: context [
 			node	[node!]
 			inode	[img-node!]
 	][
-		node: alloc-cells 1					;-- 16 bytes
+		node: alloc-bytes 20
 		inode: as img-node! (as series! node/value) + 1
 		inode/flags: flags
 		inode/handle: handle
 		inode/buffer: buffer
 		inode/size: height << 16 or width
+		inode/extID: externals/store node image/ext-type
 		node
 	]
 

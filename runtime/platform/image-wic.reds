@@ -50,12 +50,12 @@ OS-image: context [
 	;-- flags bits layout
 	;	0: if set, has an editable buffer with unpremultiply data
 	;	1: if set, the editable buffer has been modified
-	;	2: if set, the image has been marked by the GC
 	img-node!: alias struct! [
 		flags	[integer!]
 		handle	[this!]
 		buffer	[this!]
 		size	[integer!]
+		extID	[integer!]								;-- external resources table ID
 	]
 
 	#import [
@@ -284,12 +284,13 @@ OS-image: context [
 			node	[node!]
 			inode	[img-node!]
 	][
-		node: alloc-cells 1			;-- 16 bytes
+		node: alloc-bytes 20
 		inode: as img-node! (as series! node/value) + 1
 		inode/flags: flags
 		inode/handle: handle
 		inode/buffer: buffer
 		inode/size: height << 16 or width
+		inode/extID: externals/store node image/ext-type
 		node
 	]
 
@@ -472,7 +473,7 @@ OS-image: context [
 		width		[integer!]
 		height		[integer!]
 		stride		[integer!]
-		format		[integer!]								;-- only support GUID_WICPixelFormat32bppBGRA for now
+		format		[integer!]							;-- only support GUID_WICPixelFormat32bppBGRA for now
 		scan0		[byte-ptr!]
 		bitmap		[int-ptr!]
 		return:		[integer!]
@@ -486,7 +487,7 @@ OS-image: context [
 		if stride = 0 [stride: width * 4]
 		size: stride * height
 		ret: IFAC/CreateBitmapFromMemory wic-factory width height as integer! GUID_WICPixelFormat32bppBGRA stride size scan0 :bmp
-		bitmap/value: as integer! make-node null bmp/value 3 width height
+		bitmap/value: as-integer make-node null bmp/value 3 width height
 		ret
 	]
 
@@ -686,13 +687,18 @@ OS-image: context [
 		0
 	]
 
+	mark: func [node [node!] /local inode [img-node!]][
+		inode: as img-node! (as series! node/value) + 1
+		externals/mark inode/extID
+	]
+
 	delete: func [
-		img			[red-image!]
+		node	  [node!]
 		/local
-			unk		[IUnknown]
-			inode	[img-node!]
+			unk	  [IUnknown]
+			inode [img-node!]
 	][
-		inode: as img-node! (as series! img/node/value) + 1
+		inode: as img-node! (as series! node/value) + 1
 		COM_SAFE_RELEASE(unk inode/handle)
 		COM_SAFE_RELEASE(unk inode/buffer)
 	]
@@ -790,8 +796,11 @@ OS-image: context [
 		if null? node [return null]
 		inode: as img-node! (as series! node/value) + 1
 		h: as this! inode/handle
-		if 0 <> IFAC/CreateBitmapFromSource
-			wic-factory h WICBitmapCacheOnLoad :bitmap [return null]
+		if 0 <> IFAC/CreateBitmapFromSource	wic-factory h WICBitmapCacheOnLoad :bitmap [
+			externals/remove inode/extID no
+			delete node
+			return null
+		]
 		COM_SAFE_RELEASE(unk h)
 		inode/handle: null
 		inode/buffer: bitmap/value

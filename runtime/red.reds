@@ -17,6 +17,7 @@ red: context [
 	#include %macros.reds
 	#include %tools.reds
 	#include %dtoa.reds
+	#include %externals.reds
 	
 	#switch OS [										;-- loading OS-specific bindings
 		Windows  [#include %platform/win32.reds]
@@ -171,6 +172,7 @@ red: context [
 		platform/init
 		_random/init
 		init-mem										;@@ needs a local context
+		externals/init
 		
 		name-table: as names! allocate TYPE_TOTAL_COUNT * size? names!	 ;-- datatype names table
 		action-table: as int-ptr! allocate 256 * TYPE_TOTAL_COUNT * size? pointer! ;-- actions jump table	
