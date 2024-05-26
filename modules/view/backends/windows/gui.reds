@@ -395,7 +395,7 @@ update-scrollbars: func [
 		]
 
 		dc: GetDC hWnd
-		size: GetTabbedTextExtent GetDC hWnd "M^(00)" 1 0 null ;-- measure one big character
+		size: GetTabbedTextExtent dc "M^(00)" 1 0 null ;-- measure one big character
 		height: WIN32_HIWORD(size)
 		width: size and FFFFh
 
