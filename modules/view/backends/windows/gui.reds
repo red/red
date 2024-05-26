@@ -361,12 +361,11 @@ update-scrollbars: func [
 	/local
 		values	[red-value!]
 		str		[red-string!]
-		font	[red-object!]
 		para	[red-object!]
-		hFont	[handle!]
-		saved	[handle!]
-		rect	[RECT_STRUCT]
+		dc		[handle!]
+		rect	[RECT_STRUCT value]
 		horz?	[logic!]
+		vert?	[logic!]
 		size    [integer!]
 		txt-start [c-string!]
 		txt-pos   [c-string!]
@@ -376,32 +375,26 @@ update-scrollbars: func [
 		c1 c2 	[byte!]
 		w h height width right bottom [integer!]
 ][
-	rect: declare RECT_STRUCT
 	values: get-face-values hWnd
 	str:  as red-string! values + FACE_OBJ_TEXT
 	para: as red-object! values + FACE_OBJ_PARA
 	horz?: no
+	vert?: no
 	wrap?: no
 
 	either TYPE_OF(str) = TYPE_STRING [
-		font: as red-object! values + FACE_OBJ_FONT
-		hFont: either TYPE_OF(font) = TYPE_OBJECT [
-			get-font-handle font 0
-		][
-			GetStockObject DEFAULT_GUI_FONT
-		]
 		GetClientRect hWnd rect
 		bottom: rect/bottom
 		right:  rect/right
 
-		saved: SelectObject hScreen hFont
 		if text = null [ text: unicode/to-utf16 str ]
 
 		if TYPE_OF(para) = TYPE_OBJECT [
 			bool: as red-logic! (object/get-values para) + PARA_OBJ_WRAP?
 			wrap?: all [TYPE_OF(bool) = TYPE_LOGIC  bool/value] ;@@ no word wrap by default?
 		]
-		
+
+		dc: GetDC hWnd
 		size: GetTabbedTextExtent GetDC hWnd "M^(00)" 1 0 null ;-- measure one big character
 		height: WIN32_HIWORD(size)
 		width: size and FFFFh
@@ -420,23 +413,27 @@ update-scrollbars: func [
 					h: h + height
 					if w >= right [
 						either wrap? [
-							DrawText hScreen txt-start chars rect DT_CALCRECT or DT_EXPANDTABS or DT_WORDBREAK 
+							rect/bottom: bottom
+							rect/right: right
+							DrawText dc txt-start chars rect DT_CALCRECT or DT_EXPANDTABS or DT_WORDBREAK 
 							h: h - height + rect/bottom
 						][
 							horz?: yes
-							break
 						]
-						if h >= bottom [break]
 					]
-					if c1 = null-byte [break]			;-- no need to continue
+					if h >= bottom [vert?: yes]
+					if any [
+						c1 = null-byte
+						all [horz? vert?]
+					][break]			;-- no need to continue
 					txt-start: txt-pos + 2
 				]
 			]
 			txt-pos: txt-pos + 2
 		]
 
-		SelectObject hScreen saved
-		ShowScrollBar hWnd 1 h >= bottom				;-- SB_VERT
+		ReleaseDC hWnd dc
+		ShowScrollBar hWnd 1 vert?						;-- SB_VERT
 		ShowScrollBar hWnd 0 horz?						;-- SB_HORZ
 	][
 		ShowScrollBar hWnd 3 no							;-- SB_BOTH
