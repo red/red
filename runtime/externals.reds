@@ -55,20 +55,42 @@ externals: context [
 		id + 1											;-- return a 1-based value (0 reserved for "no type")
 	]
 	
+	format: func [
+		p  [record!]
+		nb [integer!]
+		/local
+			i [integer!]
+	][
+		i: ((as-integer p - list) / size? record!) + 1	;-- first subsequent index
+		loop nb [										;-- build free slots list
+			p/header: flag-free							;-- no type when not in use (disables destructor)
+			p/handle: 0
+			p/next:   i									;-- store index of next slot
+			i: i + 1
+			p: p + 1
+		]
+		p: p - 1
+		p/next: tail-record								;-- -1: last slot
+	]
+	
 	store: func [
 		handle  [int-ptr!]
 		type	[integer!]
 		return: [integer!]								;-- array's index (zero-based)
 		/local
 			rec [record!]
-			next new [integer!]
+			next new half [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line ["externals/store: " handle]]]
 	
 		rec: list + free
 		if rec/next = tail-record [
-			;; realloc
-			0
+			half: size
+			size: size * 2
+			list: as record! realloc as byte-ptr! list size * size? record!
+			format list + half half
+			free: half
+			rec/next: free
 		]
 		new: free
 		free: rec/next
@@ -76,21 +98,34 @@ externals: context [
 		rec/handle: as-integer handle
 		rec/next: used
 		used: new
-		#if debug? = yes [if verbose > 0 [probe ["stored at: " new]]]
+		#if debug? = yes [if verbose > 0 [print-line ["stored at: " new]]]
 		new
 	]
 	
-	remove: func [
+	destroy: func [
+		rec [record!]
+		/local
+			ext  [ext-type!]
+			type [integer!]
+	][
+		type: rec/header and ext-type-mask
+		assert type < (as-integer top - types)
+		if type > 0 [									;-- if type id defined, call destructor
+			ext: types + (type - 1)						;-- 1-based value
+			#if debug? = yes [if verbose > 0 [print-line ["destructor: " as int-ptr! :ext/destructor]]]
+			if null <> :ext/destructor [ext/destructor as int-ptr! rec/handle]
+		]
+	]
+	
+	remove: func [										;-- remove a record directly
 		idx	  [integer!]
-		call? [logic!]
+		call? [logic!]									;-- YES: call destructor also
 		/local
 			rec p [record!]
 	][
 		assert idx < size
 		rec: as record! list + idx
-		if call? [
-			0 ;; call destructor
-		]
+		if call? [destroy rec]
 		
 		p: list + used									;-- update the used list
 		either idx = used [
@@ -118,8 +153,7 @@ externals: context [
 		/local
 			p	[int-ptr!]
 			rec [record!]
-			ext [ext-type!]
-			i bits type next [integer!]
+			i bits next [integer!]
 			head? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "externals/sweep"]]
@@ -132,13 +166,7 @@ externals: context [
 			next: rec/next
 			
 			either rec/header and flag-mark = 0 [
-				type: rec/header and ext-type-mask
-				assert type < (as-integer top - types)
-				if type > 0 [							;-- if type id defined, call destructor
-					ext: types + (type - 1)				;-- 1-based value
-					#if debug? = yes [if verbose > 0 [probe ["destructor: " as int-ptr! :ext/destructor]]]
-					if null <> :ext/destructor [ext/destructor as int-ptr! rec/handle]
-				]
+				destroy rec
 				if head? [used: next]					;-- removing record from head, move head to next record
 				
 				rec/header: flag-free					;-- no type when not in use
@@ -152,26 +180,12 @@ externals: context [
 		]
 	]
 	
-	init: func [
-		/local
-			rec [record!]
-			i   [integer!]
-	][
+	init: func [][
 		types: as ext-type! allocate max-types * size? ext-type!
 		top: types
 		
 		list: as record! allocate size * size? record!
-		i: 1											;-- build free slots list, first subsequent idx: 1
-		rec:  list
-		loop size [
-			rec/header: flag-free						;-- no type when not in use (disables destructor)
-			rec/handle: 0
-			rec/next:   i								;-- store index of next slot
-			i: i + 1
-			rec: rec + 1
-		]
-		rec: rec - 1
-		rec/next: tail-record							;-- -1: last slot
+		format list size
 		free: 0											;-- all records are free, start list from 1st one
 	]
 ]
