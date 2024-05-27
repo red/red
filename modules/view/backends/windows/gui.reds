@@ -941,6 +941,7 @@ init: func [
 	]
 
 	collector/register as int-ptr! :on-gc-mark
+	font-ext-type: externals/register "font" as-integer :delete-font
 ]
 
 use-dark-mode?: func [

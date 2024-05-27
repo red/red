@@ -366,9 +366,9 @@ red-time!: alias struct! [
 
 red-handle!: alias struct! [
 	header 	[integer!]								;-- cell header
-	padding	[integer!]								;-- align value on 64-bit boundary
+	type	[integer!]								;-- type of handle!
 	value	[integer!]								;-- 32-bit signed integer value
-	_pad	[integer!]	
+	extID	[integer!]								;-- externals registry ID
 ]
 
 red-money!: alias struct! [

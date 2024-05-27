@@ -13,6 +13,13 @@ Red/System [
 handle: context [
 	verbose: 0
 	
+	#enum handle-classes! [
+		HANDLE_CLASS_NULL
+		HANDLE_CLASS_WINDOW
+		HANDLE_CLASS_FONT0								;-- font at index 0
+		HANDLE_CLASS_FONT1								;-- font at index 1 (scaling)
+	]
+	
 	box: func [
 		value	[integer!]
 		return:	[red-handle!]

@@ -10,6 +10,8 @@ Red/System [
 	}
 ]
 
+font-ext-type: -1
+
 make-font: func [
 	face		[red-object!]
 	font		[red-object!]
@@ -207,6 +209,10 @@ get-hfont: func [				;-- get or create a HFONT handle from font! object
 	if null? hFont [hFont: make-font face font]
 	hFont
 ]
+
+mark-font: func [hFont [handle!]][]
+
+delete-font: func [hFont [handle!]][]
 
 free-font: func [
 	font [red-object!]
