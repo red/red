@@ -102,7 +102,7 @@ externals: context [
 		new
 	]
 	
-	destroy: func [
+	release: func [
 		rec [record!]
 		/local
 			ext  [ext-type!]
@@ -123,9 +123,11 @@ externals: context [
 		/local
 			rec p [record!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line ["externals/remove: " idx ", " call?]]]
+		
 		assert idx < size
 		rec: as record! list + idx
-		if call? [destroy rec]
+		if call? [release rec]
 		
 		p: list + used									;-- update the used list
 		either idx = used [
@@ -152,7 +154,7 @@ externals: context [
 	sweep: func [
 		/local
 			p	[int-ptr!]
-			rec [record!]
+			rec prev [record!]
 			i bits next [integer!]
 			head? [logic!]
 	][
@@ -160,14 +162,15 @@ externals: context [
 		
 		if used = tail-record [exit]					;-- early exit empty list
 		next: used
+		prev: null
 		until [
-			rec: as record! list + next
+			rec: list + next
 			head?: used = next
 			next: rec/next
 			
-			either rec/header and flag-mark = 0 [
-				destroy rec
-				if head? [used: next]					;-- removing record from head, move head to next record
+			either rec/header and flag-mark = 0 [		;-- not marked, free the record, release resource
+				release rec
+				either head? [used: next][prev/next: rec/next]	;-- connect previous/head record to next one (skipping current)
 				
 				rec/header: flag-free					;-- no type when not in use
 				rec/handle: 0
@@ -175,6 +178,7 @@ externals: context [
 				free: (as-integer rec - list) / size? record!
 			][
 				rec/header: rec/header and not flag-mark ;-- reset mark flag
+				prev: rec								 ;-- save last used record in the list
 			]
 			next = tail-record
 		]
