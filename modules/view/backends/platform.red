@@ -85,6 +85,7 @@ system/view/platform: context [
 				FACET_FLAGS_TRISTATE:	00020000h
 				FACET_FLAGS_SCROLLABLE:	00040000h
 				FACET_FLAGS_PASSWORD:	00080000h
+				FACET_FLAGS_NO_SYNC:	00100000h
 
 				FACET_FLAGS_POPUP:		01000000h
 				FACET_FLAGS_MODAL:		02000000h
@@ -290,6 +291,7 @@ system/view/platform: context [
 			tri-state:		symbol/make "tri-state"
 			scrollable:		symbol/make "scrollable"
 			password:		symbol/make "password"
+			no-sync:		symbol/make "no-sync"
 
 			_accelerated:	symbol/make "accelerated"
 
@@ -612,6 +614,7 @@ system/view/platform: context [
 						sym = tri-state  [flags: flags or FACET_FLAGS_TRISTATE]
 						sym = scrollable [flags: flags or FACET_FLAGS_SCROLLABLE]
 						sym = password	 [flags: flags or FACET_FLAGS_PASSWORD]
+						sym = no-sync	 [flags: flags or FACET_FLAGS_NO_SYNC]
 						true			 [fire [TO_ERROR(script invalid-arg) word]]
 					]
 					word: word + 1
@@ -687,6 +690,11 @@ system/view/platform: context [
 	][
 		if TYPE_OF(new) = TYPE_NONE [new: null]
 		gui/OS-update-facet owner word value action new index part
+	]
+	
+	update-text: routine [face [object!]][
+		#if OS = 'Windows [gui/get-text-alt face -1]
+		SET_RETURN(none-value)
 	]
 	
 	update-font: routine [font [object!] flags [integer!]][

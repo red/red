@@ -37,6 +37,7 @@ Red/System [
 ]
 
 #define FACE_FREED(hwnd) [zero? GetWindowLong hwnd wc-offset]
+#define AREA_BUFFER_LIMIT 32768
 
 #include %win32.reds
 #include %direct2d.reds
@@ -360,39 +361,34 @@ update-scrollbars: func [
 	/local
 		values	[red-value!]
 		str		[red-string!]
-		font	[red-object!]
 		para	[red-object!]
-		hFont	[handle!]
-		saved	[handle!]
-		rect	[RECT_STRUCT]
+		dc		[handle!]
+		rect	[RECT_STRUCT value]
 		horz?	[logic!]
+		vert?	[logic!]
 		size    [integer!]
+		max-n	[integer!]
+		start	[c-string!]
 		txt-start [c-string!]
 		txt-pos   [c-string!]
 		bool      [red-logic!]
 		wrap?     [logic!]
 		chars     [integer!]
-		c1 c2 h height width right bottom
+		c1 c2 	[byte!]
+		w h height width right bottom [integer!]
 ][
-	rect: declare RECT_STRUCT
 	values: get-face-values hWnd
 	str:  as red-string! values + FACE_OBJ_TEXT
 	para: as red-object! values + FACE_OBJ_PARA
 	horz?: no
+	vert?: no
 	wrap?: no
 
 	either TYPE_OF(str) = TYPE_STRING [
-		font: as red-object! values + FACE_OBJ_FONT
-		hFont: either TYPE_OF(font) = TYPE_OBJECT [
-			get-font-handle font 0
-		][
-			GetStockObject DEFAULT_GUI_FONT
-		]
 		GetClientRect hWnd rect
 		bottom: rect/bottom
 		right:  rect/right
 
-		saved: SelectObject hScreen hFont
 		if text = null [ text: unicode/to-utf16 str ]
 
 		if TYPE_OF(para) = TYPE_OBJECT [
@@ -400,9 +396,15 @@ update-scrollbars: func [
 			wrap?: all [TYPE_OF(bool) = TYPE_LOGIC  bool/value] ;@@ no word wrap by default?
 		]
 
+		dc: GetDC hWnd
+		size: GetTabbedTextExtent dc "M^(00)" 1 0 null ;-- measure one big character
+		height: WIN32_HIWORD(size)
+		width: size and FFFFh
+
 		txt-pos:   text
 		txt-start: text
-		height: 0
+		h: 0
+		max-n: 0
 
 		forever [
 			c1: txt-pos/1
@@ -410,31 +412,41 @@ update-scrollbars: func [
 			if c2 = null-byte [
 				if any [c1 = #"^/" c1 = null-byte] [
 					chars: (as integer! (txt-pos - txt-start)) / 2
-					size: GetTabbedTextExtent hScreen txt-start chars 0 null
-					h: WIN32_HIWORD(size)
-					height: height + h
-					width: size and FFFFh
-					if width >= right [
+					w: width * chars
+					h: h + height
+					if w > right [
 						either wrap? [
-							DrawText hScreen txt-start chars rect DT_CALCRECT or DT_EXPANDTABS or DT_WORDBREAK 
-							height: height - h + rect/bottom
+							rect/bottom: bottom
+							rect/right: right
+							DrawText dc txt-start chars rect DT_CALCRECT or DT_EXPANDTABS or DT_WORDBREAK 
+							h: h - height + rect/bottom
 						][
+							if chars > max-n [
+								max-n: chars
+								start: txt-start
+							]
 							horz?: yes
 						]
-						if height >= bottom [ break ] ;no need to continue
 					]
-					if c1 = null-byte [ break ]
+					if h >= bottom [vert?: yes]
+					if c1 = null-byte [break]			;-- no need to continue
 					txt-start: txt-pos + 2
 				]
 			]
 			txt-pos: txt-pos + 2
 		]
 
-		SelectObject hScreen saved
-		ShowScrollBar hWnd 1 height >= bottom	;-- SB_VERT
-		ShowScrollBar hWnd 0 horz?              ;-- SB_HORZ
+		if horz? [	;-- check again in case it's not fixed-width font
+			size: GetTabbedTextExtent dc start max-n 0 null
+			w: size and FFFFh
+			horz?: w > right
+		]
+
+		ReleaseDC hWnd dc
+		ShowScrollBar hWnd 1 vert?						;-- SB_VERT
+		ShowScrollBar hWnd 0 horz?						;-- SB_HORZ
 	][
-		ShowScrollBar hWnd 3 no					;-- SB_BOTH
+		ShowScrollBar hWnd 3 no							;-- SB_BOTH
 	]
 ]
 
@@ -1152,6 +1164,44 @@ get-selected: func [
 	int: as red-integer! get-facet msg FACE_OBJ_SELECTED
 	int/header: TYPE_INTEGER
 	int/value: idx
+]
+
+get-text-alt: func [
+	face [red-object!]
+	idx	 [integer!]
+	/local
+		str	 [red-string!]
+		out	 [c-string!]
+		hWnd [handle!]
+		size [integer!]
+][
+	hWnd: face-handle? face
+	if null? hWnd [exit]
+	
+	size: as-integer either idx = -1 [
+		SendMessage hWnd WM_GETTEXTLENGTH idx 0
+	][
+		SendMessage hWnd CB_GETLBTEXTLEN idx 0
+	]
+	if size >= 0 [
+		str: as red-string! (object/get-values face) + FACE_OBJ_TEXT
+		if TYPE_OF(str) <> TYPE_STRING [
+			string/make-at as red-value! str size UCS-2
+		]
+		if size = 0 [
+			string/rs-reset str
+			exit
+		]
+		out: unicode/get-cache str size + 1 * 4			;-- account for surrogate pairs and terminal NUL
+
+		either idx = -1 [
+			SendMessage hWnd WM_GETTEXT size + 1 as-integer out  ;-- account for NUL
+		][
+			SendMessage hWnd CB_GETLBTEXT idx as-integer out
+		]
+		unicode/load-utf16 null size str yes
+		ownership/bind as red-value! str face _text
+	]
 ]
 
 get-text: func [
@@ -2059,7 +2109,7 @@ extend-area-limit: func [
 	old:   as-integer SendMessage hWnd WM_GETTEXTLENGTH 0 0
 	
 	if extra + old > limit [
-		SendMessage hWnd EM_SETLIMITTEXT old + extra + 30'000 0
+		SendMessage hWnd EM_SETLIMITTEXT old + extra + AREA_BUFFER_LIMIT 0
 	]
 ]
 
@@ -2153,6 +2203,7 @@ change-text: func [
 		text [c-string!]
 		str  [red-string!]
 		len  [integer!]
+		n	 [integer!]
 ][
 	if any [
 		type = base
@@ -2191,6 +2242,15 @@ change-text: func [
 			update-scrollbars hWnd text
 		]
 		SetWindowText hWnd text
+		if type = area [
+			;-- too many `lf` convert to `crlf` in the edit control
+			len: as-integer SendMessage hWnd EM_GETLIMITTEXT 0 0
+			n: as-integer SendMessage hWnd WM_GETTEXTLENGTH 0 0
+			if n >= len [
+				extend-area-limit hWnd 16
+				SetWindowText hWnd text
+			]
+		]
 	]
 ]
 
