@@ -670,6 +670,13 @@ change-selection: func [
 	]
 ]
 
+get-text-alt: func [
+	face [red-object!]
+	idx	 [integer!]
+][
+	exit
+]
+
 OS-update-view: func [
 	face [red-object!]
 	/local
