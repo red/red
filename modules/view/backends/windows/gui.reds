@@ -412,6 +412,7 @@ update-scrollbars: func [
 			if c2 = null-byte [
 				if any [c1 = #"^/" c1 = null-byte] [
 					chars: (as integer! (txt-pos - txt-start)) / 2
+					chars: either c1 = #"^/" [chars - 2][chars - 1] 	;-- -2 exclude crlf, -1 exclude null-byte
 					w: width * chars
 					h: h + height
 					if w > right [
@@ -428,7 +429,10 @@ update-scrollbars: func [
 							horz?: yes
 						]
 					]
-					if h >= bottom [vert?: yes]
+					if h >= bottom [
+						vert?: yes
+						if wrap? [break]
+					]
 					if c1 = null-byte [break]			;-- no need to continue
 					txt-start: txt-pos + 2
 				]
@@ -436,7 +440,7 @@ update-scrollbars: func [
 			txt-pos: txt-pos + 2
 		]
 
-		if horz? [	;-- check again in case it's not fixed-width font
+		if all [not wrap? horz?][	;-- check again in case it's not fixed-width font
 			size: GetTabbedTextExtent dc start max-n 0 null
 			w: size and FFFFh
 			horz?: w > right
