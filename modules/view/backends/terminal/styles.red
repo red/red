@@ -128,6 +128,6 @@ Red [
 	image: [
 		default-actor: on-down
 		template: [type: 'base size: 40x20]
-		init: [unless face/image [face/image: make image! face/size]]
+		init: [unless image [image: make image! size]]
 	]
 ]
