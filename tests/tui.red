@@ -1,6 +1,6 @@
 Red [
 	Title:  "Red TUI test script"
-	Needs:	'View
+	Needs:  'View
 	Config: [GUI-engine: 'terminal]
 ]
 

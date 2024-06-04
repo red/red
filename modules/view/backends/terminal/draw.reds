@@ -141,12 +141,45 @@ OS-draw-anti-alias: func [
 
 ]
 
-OS-draw-line: func [
+OS-draw-line: func [									;-- using Brensenham's algorithm
 	ctx	   [draw-ctx!]
 	point  [red-pair!]
 	end	   [red-pair!]
+	/local
+		p  [pixel!]
+		pt [red-point2D!]
+		x0 y0 x1 y1 dx dy sx sy err e2 [integer!]
 ][
+	GET_PAIR_XY_INT(point x0 y0)
+	GET_PAIR_XY_INT(end   x1 y1)
 
+	dx: x1 - x0
+	if negative? dx [dx: 0 - dx]
+	sx: either x0 < x1 [1][-1]
+	dy: y1 - y0
+	if positive? dy [dy: 0 - dy]
+	sy: either y0 < y1 [1][-1]
+	err: dx + dy
+
+	forever [
+		if any [x0 >= screen/width y0 >= screen/height][break]
+		p: screen/buffer + (screen/width * y0 + x0)
+		p/bg-color: ctx/pen-color
+		p/code-point: 32								;-- space char
+
+		if all [x0 = x1 y0 = y1][break]
+		e2: err * 2
+		if e2 >= dy [
+			if x0 = x1 [break]
+			err: err + dy
+			x0: x0 + sx
+		]
+		if e2 <= dx [
+			if y0 = y1 [break]
+			err: err + dx
+			y0: y0 + sy
+		]
+	]
 ]
 
 OS-draw-line-pattern: func [
