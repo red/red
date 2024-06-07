@@ -141,18 +141,14 @@ OS-draw-anti-alias: func [
 
 ]
 
-OS-draw-line: func [									;-- using Brensenham's algorithm
-	ctx	   [draw-ctx!]
-	point  [red-pair!]
-	end	   [red-pair!]
+draw-line: func [										;-- using Brensenham's algorithm
+	ctx			[draw-ctx!]
+	x0 y0 x1 y1 [integer!]
 	/local
 		p  [pixel!]
 		pt [red-point2D!]
-		x0 y0 x1 y1 dx dy sx sy err e2 [integer!]
+		dx dy sx sy err e2 [integer!]
 ][
-	GET_PAIR_XY_INT(point x0 y0)
-	GET_PAIR_XY_INT(end   x1 y1)
-
 	dx: x1 - x0
 	if negative? dx [dx: 0 - dx]
 	sx: either x0 < x1 [1][-1]
@@ -164,8 +160,8 @@ OS-draw-line: func [									;-- using Brensenham's algorithm
 	forever [
 		if any [x0 >= screen/width y0 >= screen/height][break]
 		p: screen/buffer + (screen/width * y0 + x0)
-		p/bg-color: ctx/pen-color
-		p/code-point: 32								;-- space char
+		p/fg-color: ctx/pen-color
+		p/code-point: 2588h 							;-- solid block character
 
 		if all [x0 = x1 y0 = y1][break]
 		e2: err * 2
@@ -180,6 +176,19 @@ OS-draw-line: func [									;-- using Brensenham's algorithm
 			y0: y0 + sy
 		]
 	]
+]
+
+OS-draw-line: func [
+	ctx	   [draw-ctx!]
+	point  [red-pair!]
+	end	   [red-pair!]
+	/local
+		pt [red-point2D!]
+		x0 y0 x1 y1 [integer!]
+][
+	GET_PAIR_XY_INT(point x0 y0)
+	GET_PAIR_XY_INT(end   x1 y1)
+	draw-line ctx x0 y0 x1 y1
 ]
 
 OS-draw-line-pattern: func [
@@ -321,11 +330,71 @@ OS-draw-box: func [
 	]
 ]
 
+compare-refs: func [[cdecl] a [int-ptr!] b [int-ptr!] return: [integer!]][
+	SIGN_COMPARE_RESULT(a/2 b/2)
+]
+
 OS-draw-triangle: func [
 	ctx		[draw-ctx!]
 	start	[red-pair!]
+	/local
+		edges p [int-ptr!]
+		buf  	[pixel!]
+		pt 		[red-point2D!]
+		sx sy w h height i j seg f ax bx t x y [integer!]
+		a b		[float!]
+		half?	[logic!]
 ][
-
+	edges: [0 0 0 0 0 0]
+	p: edges
+	loop 3 [
+		GET_PAIR_XY_INT(start sx sy)
+		p/1: sx
+		p/2: sy
+		p: p + 2
+		start: start + 1
+	]
+	qsort as byte-ptr! edges 3 8 :compare-refs			;-- sort edges by y coordinate
+	p: edges
+	
+	if ctx/brush-type = DRAW_BRUSH_COLOR [				;-- fill pen set
+		w: screen/width
+		h: screen/height
+		height: p/6 - p/2
+		i: 0
+		while [i < height][
+			half?: any [p/4 - p/2 < i  p/4 = p/2]
+			seg: either half? [p/6 - p/4][p/4 - p/2]
+			a: (as-float i) / as-float height
+			f: either half? [p/4 - p/2][0]
+			b: (as-float i - f) / as-float seg
+			
+			ax: p/1 + (as-integer (as-float p/5 - p/1) * a)
+			bx: either half? [
+				p/3 + (as-integer (as-float p/5 - p/3) * b)
+			][
+				p/1 + (as-integer (as-float p/3 - p/1) * b)
+			]
+			if ax > bx [t: ax  ax: bx  bx: t]
+			j: ax
+			while [j <= bx][
+				x: j
+				y: p/2 + i
+				buf: screen/buffer + (w * y + x)
+				if all [x < w  y < h x >= 0 y >= 0][
+					buf/bg-color: ctx/brush-color
+					buf/code-point: 32					;-- space character
+				]
+				j: j + 1
+			]
+			i: i + 1
+		]
+	]
+	if ctx/pen-type <> DRAW_BRUSH_NONE [
+		draw-line ctx p/1 p/2 p/3 p/4					;-- draw edges last
+		draw-line ctx p/3 p/4 p/5 p/6
+		draw-line ctx p/5 p/6 p/1 p/2
+	]
 ]
 
 OS-draw-polygon: func [
@@ -352,7 +421,7 @@ draw-ellipse: func [									;-- using Brensenham's algorithm for ellipses (cent
 	a		[integer!]									;-- x radius
 	b		[integer!]									;-- y radius
 	/local
-		p buffer [pixel!]
+		p  [pixel!]
 		pt [red-point2D!]
 		w h x y -x -y r x' y' dx dy e2 a2 b2 err xc step [integer!]
 		plot [subroutine!]
