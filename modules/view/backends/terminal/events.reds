@@ -575,44 +575,50 @@ do-events: func [
 
 	t: 0
 	until [
-		n: tty/read-input yes
-		msg?: n > 0
-		if all [no-wait? not msg?][break]
+		catch RED_THROWN_ERROR [
+			n: tty/read-input yes
+			msg?: n > 0
+			if all [no-wait? not msg?][break]
 
-		delta: either t > DELTA_TIME [t][
-			tty/wait DELTA_TIME - t
-			DELTA_TIME
+			delta: either t > DELTA_TIME [t][
+				tty/wait DELTA_TIME - t
+				DELTA_TIME
+			]
+
+			time-meter/start :tm
+
+			timer/update delta
+			screen/render
+			ansi-parser/parse
+
+			if all [
+				last-mouse-evt = EVT_LEFT_UP
+				mouse-click-delta < 800
+			][
+				mouse-click-delta: mouse-click-delta + DELTA_TIME
+			]
+
+			t: as-integer time-meter/elapse :tm
+			assert t >= 0
 		]
-
-		time-meter/start :tm
-
-		timer/update delta
-		screen/render
-		ansi-parser/parse
-
-		if all [
-			last-mouse-evt = EVT_LEFT_UP
-			mouse-click-delta < 800
-		][
-			mouse-click-delta: mouse-click-delta + DELTA_TIME
+		if system/thrown = RED_THROWN_ERROR [
+			system/thrown: 0
+			exit-loop?: yes
 		]
-
-		t: as-integer time-meter/elapse :tm
-		assert t >= 0
 
 		any [no-wait? exit-loop?]
 	]
-	unless no-wait? [
-		tty/write as byte-ptr! "^(0D)^(0A)" 2	;-- move to next line
-		screen/set-cursor-bottom
-		if mouse-event? [
-			mouse-event?: no
-			tty/disable-mouse
-		]
-		tty/restore
-		tty/read-input no	;-- clear stdin queue
-		tty/show-cursor
-		screen/reset
+
+	tty/write as byte-ptr! "^(0D)^(0A)" 2	;-- move to next line
+	screen/set-cursor-bottom
+	if mouse-event? [
+		mouse-event?: no
+		tty/disable-mouse
 	]
+	tty/restore
+	tty/read-input no	;-- clear stdin queue
+	tty/show-cursor
+	screen/reset
+
 	msg?
 ]

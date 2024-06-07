@@ -871,7 +871,7 @@ _widget: context [
 		ctx/right: box/right
 		ctx/bottom: box/bottom
 		draw-begin :ctx as handle! widget null no yes
-		parse-draw :ctx draw no
+		parse-draw :ctx draw yes
 		draw-end :ctx as handle! widget no no yes
 	]
 ]
