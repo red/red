@@ -28,6 +28,7 @@ Red/System [
 #include %widgets/progress.reds
 #include %widgets/text-list.reds
 #include %widgets/rich-text.reds
+#include %widgets/group-box.reds
 
 color-profile: 0
 
@@ -386,6 +387,7 @@ OS-make-view: func [
 		sym = field  	[init-field widget]
 		sym = button 	[init-button widget]
 		sym = progress	[init-progress widget]
+		sym = group-box [init-group-box widget]
 		sym = text-list [init-text-list widget]
 		sym = rich-text [init-rich-text widget]
 		true			[0]
