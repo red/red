@@ -28,11 +28,18 @@ screen: context [
 	cursor-y:			0
 	offset-x:			0
 	offset-y:			0
+	alternate-screen?:	no
 
 	init: func [][
 		win-list: array/make 4 size? int-ptr!
 		captured: array/make 16 size? int-ptr!
 		esc-sequences: array/make 2000 1
+	]
+
+	enter-alter-screen: does [
+		if alternate-screen? [
+			tty/enter-alter-screen
+		]
 	]
 
 	reset: does [
@@ -57,6 +64,10 @@ screen: context [
 		last-mouse-evt:		0
 		mouse-click-delta:	0
 		mouse-event?:		no
+		if alternate-screen? [
+			tty/exit-alter-screen
+			alternate-screen?:	no
+		]
 	]
 
 	windows-cnt: func [
@@ -229,6 +240,9 @@ screen: context [
 		/local
 			p	[window-manager!]
 	][
+		if widget/flags and WIDGET_FLAG_FULLSCREEN <> 0 [
+			alternate-screen?: yes
+		]
 		current-win: widget
 		if null? focus-widget [focus-widget: widget]
 		p: as window-manager! zero-alloc size? window-manager!
@@ -529,7 +543,11 @@ screen: context [
 			sprintf [s "^[[%dA" relative-y]	;-- move up
 			ADD_STR(s)
 		]
-		ADD_STR("^[[0J")	;-- erase down to the bottom of the screen
+		either alternate-screen? [
+			ADD_STR("^[[H")		;-- move to top left
+		][
+			ADD_STR("^[[0J")	;-- erase down to the bottom of the screen
+		]
 
 		px/fg-color: 0
 		px/bg-color: 0

@@ -60,6 +60,14 @@ tty: context [
 		write as byte-ptr! "^[[6n" 4
 	]
 
+	enter-alter-screen: does [
+		enable AlternateScreen
+	]
+
+	exit-alter-screen: does [
+		disable AlternateScreen		
+	]
+
 	enable-mouse: does [
 		;-- enable mouse support
 		enable MouseVt200

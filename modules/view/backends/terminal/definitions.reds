@@ -82,6 +82,7 @@ tiny-str!: alias struct! [	;-- 32 bytes
 #define WIDGET_FLAG_MODAL		08000000h
 #define WIDGET_FLAG_PASSWORD	10000000h
 #define WIDGET_FLAG_RESIZE		20000000h
+#define WIDGET_FLAG_FULLSCREEN	40000000h
 
 #define WIDGET_TYPE(widget)				[widget/type]
 #define WIDGET_SET_FLAG(widget flag)	[widget/flags: widget/flags or flag]

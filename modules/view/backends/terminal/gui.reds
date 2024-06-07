@@ -355,6 +355,7 @@ OS-make-view: func [
 	if bits and FACET_FLAGS_ALL_OVER <> 0 [flags: flags or WIDGET_FLAG_ALL_OVER]
 	if bits and FACET_FLAGS_PASSWORD <> 0 [flags: flags or WIDGET_FLAG_PASSWORD]
 	if bits and FACET_FLAGS_FOCUSABLE <> 0 [flags: flags or WIDGET_FLAG_FOCUSABLE]
+	if bits and FACET_FLAGS_FULLSCREEN <> 0 [flags: flags or WIDGET_FLAG_FULLSCREEN]
 
 	if TYPE_OF(offset) = TYPE_PAIR [as-point2D as red-pair! offset]
 	either TYPE_OF(size) = TYPE_PAIR [

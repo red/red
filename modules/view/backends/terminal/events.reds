@@ -565,6 +565,7 @@ do-events: func [
 	][return no]
 
 	tty/init
+	screen/enter-alter-screen
 	exit-loop?: no
 
 	mouse?: as red-logic! #get system/view/platform/mouse-event?
