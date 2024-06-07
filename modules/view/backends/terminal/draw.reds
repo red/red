@@ -345,30 +345,108 @@ OS-draw-spline: func [
 
 ]
 
-do-draw-ellipse: func [
+draw-ellipse: func [									;-- using Brensenham's algorithm for ellipses (center, rx, ry)
 	ctx		[draw-ctx!]
-	x		[integer!]
-	y		[integer!]
-	width	[integer!]
-	height	[integer!]
+	x0		[integer!]									;-- x center
+	y0		[integer!]									;-- y center
+	a		[integer!]									;-- x radius
+	b		[integer!]									;-- y radius
+	/local
+		p buffer [pixel!]
+		pt [red-point2D!]
+		w h x y -x -y r x' y' dx dy e2 a2 b2 err xc step [integer!]
+		plot [subroutine!]
+		pen? fill? [logic!]
 ][
-
+	plot: [
+		if all [pen? x' < w  y' < h x' >= 0 y' >= 0][
+			p: screen/buffer + (w * y' + x')
+			p/fg-color: ctx/pen-color
+			p/code-point: 2588h 						;-- solid block character
+		]
+		if all [fill? x0 <> x'][						;-- scanline filling between x0 and the edge
+			xc: x0
+			step: either xc < x' [-1][1]
+			x': x' + step
+			p: screen/buffer + (w * y' + x')
+			while [x' <> (xc + step)][
+				if all [x' < w  y' < h x' >= 0 y' >= 0][
+					p/bg-color: ctx/brush-color
+					p/code-point: 32					;-- space character
+				]
+				x': x' + step
+				p: p + step
+			]
+		]
+	]
+	pen?:  ctx/pen-type <> DRAW_BRUSH_NONE
+	fill?: ctx/brush-type = DRAW_BRUSH_COLOR
+	w: screen/width
+	h: screen/height
+	x: 0 - a
+	y: 0
+	e2: b
+	dx: (x * 2 + 1) * e2 * e2
+	dy: x * x
+	err: dx + dy
+	a2: a * a
+	b2: b * b
+	
+	while [x <= 0][										;-- per quadrant drawing
+		-x: 0 - x
+		-y: 0 - y
+		x': x0 - x  y': y0 + y  plot
+		x': x0 + x  y': y0 + y  plot
+		x': x0 + x  y': y0 - y  plot
+		x': x0 - x  y': y0 - y  plot
+		
+		e2: err * 2
+		if e2 >= dx [
+			x: x + 1
+			dx: dx + (b2 * 2)
+			err: err + dx
+		]
+		if e2 <= dy [
+			y: y + 1
+			dy: dy + (a2 * 2)
+			err: err + dy
+		]
+	]
+	while [y: y + 1  y < b][
+		x': 0  y': y  plot
+		x': 0  y': 0 - y  plot
+	]
 ]
 
-OS-draw-circle: func [
+OS-draw-circle: func [									;-- using Brensenham's algorithm for ellipses (center, rx, ry)
 	ctx		[draw-ctx!]
 	center	[red-pair!]
 	radius	[red-integer!]
+	/local
+		pt [red-point2D!]
+		x0 y0 r [integer!]
 ][
-
+	GET_PAIR_XY_INT(center x0 y0)
+	r: radius/value
+	if r <= 0 [exit]
+	draw-ellipse ctx x0 y0 r * 2 r						;-- double the x radius size to compensate for non-squarred pixels
 ]
 
-OS-draw-ellipse: func [
-	ctx		 [draw-ctx!]
+OS-draw-ellipse: func [									;-- using Bresenham algorithm on a bounding box (top-left, bottom-right)
+	ctx		 [draw-ctx!]								;-- (https://zingl.github.io/Bresenham.pdf)
 	upper	 [red-pair!]
 	diameter [red-pair!]
+	/local
+		pt [red-point2D!]
+		x0 y0 a b [integer!]
 ][
-
+	GET_PAIR_XY_INT(upper x0 y0)
+	GET_PAIR_XY_INT(diameter a b)
+	if any [a <= 0 b <= 0][exit]
+	
+	a: as-integer (as-float a) + 0.5 / 2.0
+	b: as-integer (as-float b) + 0.5 / 2.0
+	draw-ellipse ctx x0 + a y0 + b a b
 ]
 
 OS-draw-font: func [
