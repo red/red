@@ -119,6 +119,7 @@ tty: context [
 			sz/x: columns
 			sz/y: rows
 		]
+		screen/on-resize columns rows
 	]
 
 	init: does [

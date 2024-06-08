@@ -42,6 +42,31 @@ screen: context [
 		]
 	]
 
+	on-resize: func [
+		w	[integer!]
+		h	[integer!]
+		/local
+			g-evt	[widget-event! value]
+			cnt i	[integer!]
+			wm		[window-manager!]
+			win		[widget!]
+	][
+		g-evt/pt/x: as float32! w
+		g-evt/pt/y: as float32! h
+		cnt: windows-cnt
+		i: 1
+		while [i <= cnt][
+			wm: as window-manager! array/pick-ptr win-list i
+			win: wm/window
+			g-evt/widget: win
+			win/on-event EVT_SIZE :g-evt
+			if 0 <> win/face [
+				make-event EVT_SIZE :g-evt 0
+			]
+			i: i + 1
+		]
+	]
+
 	reset: does [
 		free-windows
 		width:				0
