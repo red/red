@@ -30,6 +30,7 @@ Red/System [
 #include %widgets/rich-text.reds
 #include %widgets/group-box.reds
 #include %widgets/checkbox.reds
+#include %widgets/radio.reds
 
 color-profile: 0
 
@@ -401,6 +402,7 @@ OS-make-view: func [
 		sym = progress	[init-progress widget]
 		sym = group-box [init-group-box widget]
 		sym = check		[init-checkbox widget]
+		sym = radio		[init-radio widget]
 		sym = text-list [init-text-list widget]
 		sym = rich-text [init-rich-text widget]
 		true			[0]

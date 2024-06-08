@@ -576,7 +576,7 @@ do-events: func [
 
 	t: 0
 	until [
-		catch RED_THROWN_ERROR [
+		catch CATCH_ALL_EXCEPTIONS [
 			n: tty/read-input yes
 			msg?: n > 0
 			if all [no-wait? not msg?][break]

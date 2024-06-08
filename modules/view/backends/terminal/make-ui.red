@@ -110,3 +110,24 @@ make-checkbox-ui: function [
 	set-face-ui face ui
 	ui
 ]
+
+make-radio-ui: function [
+	face	[face!]
+	return: [string!]
+	/local
+		p	[face!]
+		f	[face!]
+		set? [logic!]
+][
+	set?: to logic! face/data
+	if set? [		;-- unset other radios in parent
+		if p: face/parent [
+			foreach f p/pane [
+				if not same? f face [f/data: no]
+			]
+		]
+	]
+	ui: repend copy pick ["◉ " "○ "] set? face/text
+	set-face-ui face ui
+	ui
+]

@@ -926,7 +926,8 @@ system/view/platform: context [
 					]
 				]]
 				terminal [
-					panel [0x0 0x0]
+					check:			[2x0  0x0]
+					radio:			[2x0  0x0]
 				]
 			]
 		]
