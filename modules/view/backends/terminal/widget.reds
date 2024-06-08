@@ -781,6 +781,7 @@ _widget: context [
 			rc		[rect!]
 			config	[render-config! value]
 			ctx		[draw-ctx! value]
+			ui		[red-string! value]
 	][
 		values: get-face-values widget
 		str:    as red-string! values + FACE_OBJ_TEXT
@@ -823,40 +824,52 @@ _widget: context [
 			config/align: align
 		]
 
-		;-- draw text
-		config/rich-text: null
-		either all [TYPE_OF(str) = TYPE_STRING WIDGET_TYPE(widget) = rich-text][
-			config/rich-text: widget/data
-		][
-			if all [
-				any [
-					TYPE_OF(str) <> TYPE_STRING
-					zero? string/rs-length? str
-				]
-				TYPE_OF(options) = TYPE_BLOCK
-			][
-				str: as red-string! block/select-word options word/load "hint" no
-				if TYPE_OF(str) = TYPE_STRING [
-					flags: flags or PIXEL_FAINT
-				]
-			]
+		;-- draw ui
+		if widget/ui <> null [
+			ui/header: TYPE_STRING
+			ui/head: 0
+			ui/node: widget/ui
+			ui/cache: null
+			config/flags: flags
+			render-text ui xx yy :box :config			
 		]
 
-		pos-x: xx
-		pos-y: yy
-		if TYPE_OF(str) = TYPE_STRING [
-			get-size widget :w :h
-			rc: as rect! :ctx/left
-			rc/left: 0
-			rc/top: 0
-			rc/right: w
-			rc/bottom: h
-			text-layout str rc :bbox config/align
-			pos-x: pos-x + bbox/left
-			pos-y: pos-y + bbox/top
+		;-- draw text
+		if flags and PIXEL_IGNORE_TEXT = 0 [
+			config/rich-text: null
+			either all [TYPE_OF(str) = TYPE_STRING WIDGET_TYPE(widget) = rich-text][
+				config/rich-text: widget/data
+			][
+				if all [
+					any [
+						TYPE_OF(str) <> TYPE_STRING
+						zero? string/rs-length? str
+					]
+					TYPE_OF(options) = TYPE_BLOCK
+				][
+					str: as red-string! block/select-word options word/load "hint" no
+					if TYPE_OF(str) = TYPE_STRING [
+						flags: flags or PIXEL_FAINT
+					]
+				]
+			]
+
+			pos-x: xx
+			pos-y: yy
+			if TYPE_OF(str) = TYPE_STRING [
+				get-size widget :w :h
+				rc: as rect! :ctx/left
+				rc/left: 0
+				rc/top: 0
+				rc/right: w
+				rc/bottom: h
+				text-layout str rc :bbox config/align
+				pos-x: pos-x + bbox/left
+				pos-y: pos-y + bbox/top
+			]
+			config/flags: flags
+			render-text str pos-x pos-y :box :config
 		]
-		config/flags: flags
-		render-text str pos-x pos-y :box :config
 
 		;-- do draw block
 		draw: as red-block! values + FACE_OBJ_DRAW

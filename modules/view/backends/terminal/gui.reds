@@ -29,6 +29,7 @@ Red/System [
 #include %widgets/text-list.reds
 #include %widgets/rich-text.reds
 #include %widgets/group-box.reds
+#include %widgets/checkbox.reds
 
 color-profile: 0
 
@@ -85,6 +86,16 @@ widget-data: func [
 ][
 	w: as widget! h
 	either null? w [null][w/data]
+]
+
+set-widget-ui: func [
+	h		[int-ptr!]
+	ui		[node!]
+	/local
+		w	[widget!]
+][
+	w: as widget! h
+	if w <> null [w/ui: ui]
 ]
 
 support-dark-mode?: func [
@@ -389,6 +400,7 @@ OS-make-view: func [
 		sym = button 	[init-button widget]
 		sym = progress	[init-progress widget]
 		sym = group-box [init-group-box widget]
+		sym = check		[init-checkbox widget]
 		sym = text-list [init-text-list widget]
 		sym = rich-text [init-rich-text widget]
 		true			[0]

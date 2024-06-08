@@ -158,6 +158,7 @@ widget!: alias struct! [
 	box			[RECT_F! value]
 	parent		[widget!]			;-- parent widget
 	image		[pixel!]
+	ui			[node!]
 	data		[int-ptr!]			;-- extra data for each type
 	update		[update-func!]
 	render		[render-func!]
@@ -199,6 +200,7 @@ window-manager!: alias struct! [
 	PIXEL_SKIP:			0400h
 	PIXEL_PASSWORD:		0800h
 	PIXEL_ANSI_SEQ:		1000h
+	PIXEL_IGNORE_TEXT:	2000h
 ]
 
 #define DRAW_PIXEL?(p) [p/flags and PIXEL_SKIP = 0]

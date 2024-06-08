@@ -43,6 +43,16 @@ widget-data: routine [
 	integer/box as-integer gui/widget-data widget
 ]
 
+set-face-ui: routine [
+	face	[object!]
+	ui		[string!]
+	/local
+		widget	[int-ptr!]
+][
+	widget: gui/face-handle? face
+	if widget <> null [gui/set-widget-ui widget ui/node]
+]
+
 make-progress-ui: function [
 	face	[face!]
 ][
@@ -90,4 +100,13 @@ make-text-list-ui: function [
 		i: i + 1
 	]
 	face/text: ui
+]
+
+make-checkbox-ui: function [
+	face	[face!]
+	return: [string!]
+][
+	ui: repend copy pick ["🞕 " "☐ "] to logic! face/data face/text
+	set-face-ui face ui
+	ui
 ]

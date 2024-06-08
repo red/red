@@ -602,7 +602,7 @@ do-events: func [
 			t: as-integer time-meter/elapse :tm
 			assert t >= 0
 		]
-		if system/thrown = RED_THROWN_ERROR [
+		if system/thrown <> 0 [
 			system/thrown: 0
 			exit-loop?: yes
 		]
