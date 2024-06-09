@@ -183,12 +183,18 @@ OS-draw-line: func [
 	point  [red-pair!]
 	end	   [red-pair!]
 	/local
+		p  [red-pair!]
 		pt [red-point2D!]
 		x0 y0 x1 y1 [integer!]
 ][
-	GET_PAIR_XY_INT(point x0 y0)
-	GET_PAIR_XY_INT(end   x1 y1)
-	draw-line ctx x0 y0 x1 y1
+	until [
+		p: point + 1
+		GET_PAIR_XY_INT(point x0 y0)
+		GET_PAIR_XY_INT(p   x1 y1)
+		draw-line ctx x0 y0 x1 y1
+		point: point + 1
+		p = end
+	]
 ]
 
 OS-draw-line-pattern: func [
