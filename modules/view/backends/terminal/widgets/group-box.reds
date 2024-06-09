@@ -96,8 +96,8 @@ draw-group-box: func [
 				all [x = max-x y = up-y ][p/code-point: either round? [256Eh][2510h]]  ;-- #"╮" or #"┐"
 				all [x = up-x  y = max-y][p/code-point: either round? [2570h][2514h]]  ;-- #"╰" or #"└"
 				all [x = max-x y = max-y][p/code-point: either round? [256Fh][2518h]]  ;-- #"╯" or #"┘"
-				any [x = up-x  x = max-x][p/code-point: either round? [2502h][2502h]]  ;-- #"│" or #"│"
-				any [y = up-y  y = max-y][p/code-point: either round? [2500h][2500h]]  ;-- #"─" or #"─"
+				any [x = up-x  x = max-x][p/code-point: 2502h]  ;-- #"│"
+				any [y = up-y  y = max-y][p/code-point: 2500h]  ;-- #"─"
 				true [fg: p/fg-color]
 			]
 			if color? [p/fg-color: fg]
