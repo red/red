@@ -231,7 +231,7 @@ send-event: func [
 make-red-event: func [
 	evt		[integer!]
 	obj		[widget!]
-	flags	[integer!]
+	data	[integer!]
 	return: [integer!]
 	/local
 		w-evt	[widget-event! value]
@@ -240,8 +240,9 @@ make-red-event: func [
 	ret: EVT_DISPATCH
 	if obj/flags and WIDGET_FLAG_DISABLE = 0 [
 		w-evt/widget: obj
+		w-evt/data: data
 		if 0 <> obj/face [
-			ret: make-event evt :w-evt flags
+			ret: make-event evt :w-evt 0
 		]
 	]
 	ret

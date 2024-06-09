@@ -26,14 +26,16 @@ on-text-list-event: func [
 	/local
 		widget	[widget!]
 		cp		[integer!]
+		cur-idx	[integer!]
 		idx		[integer!]
 		len		[integer!]
 		head	[integer!]
 		w h		[integer!]
 		off-y	[integer!]
+		ret		[integer!]
 		data	[red-block!]
 		values	[red-value!]
-		change? [logic!]
+		fstate	[red-value!]
 		selected [red-integer!]
 ][
 	widget: evt/widget
@@ -44,8 +46,8 @@ on-text-list-event: func [
 	w: 0 h: 0
 	_widget/get-size widget :w :h
 	head: as-integer widget/data
-	idx: selected/value
-	change?: no
+	cur-idx: selected/value
+	idx: cur-idx
 
 	case [
 		type = EVT_KEY [
@@ -60,7 +62,6 @@ on-text-list-event: func [
 				KEY_UP [
 					if idx > 1 [
 						idx: idx - 1
-						change?: yes
 					]
 					if all [idx - 1 < head head > 0][
 						head: head - 1
@@ -69,7 +70,6 @@ on-text-list-event: func [
 				KEY_DOWN [
 					if idx < len [
 						idx: idx + 1
-						change?: yes
 					]
 					if idx - h > head [
 						head: head + 1
@@ -80,7 +80,7 @@ on-text-list-event: func [
 			widget/data: as int-ptr! head
 		]
 		type = EVT_FOCUS [
-			change?: yes
+			screen/redraw widget
 		]
 		type = EVT_CLICK [
 			off-y: as-integer evt/pt/y
@@ -92,10 +92,24 @@ on-text-list-event: func [
 		true [0]
 	]
 
-	selected/value: idx
-	make-text-list-ui widget
-	screen/redraw widget
-	if change? [make-red-event EVT_CHANGE widget 0]
+	if cur-idx <> idx [		;-- select a different item
+		ret: make-red-event EVT_SELECT widget idx
+
+		fstate: values + FACE_OBJ_STATE
+		if TYPE_OF(fstate) <> TYPE_BLOCK [return 0]	;-- widget destroyed
+
+		values: get-face-values widget
+		selected: as red-integer! values + FACE_OBJ_SELECTED
+		if cur-idx <> selected/value [			;-- change item inside select handler
+			return 0
+		]
+		selected/value: idx
+		make-text-list-ui widget
+		screen/redraw widget
+		if ret = EVT_DISPATCH [
+			make-red-event EVT_CHANGE widget idx
+		]
+	]
 	0
 ]
 
