@@ -186,7 +186,7 @@ screen: context [
 			rc1	[RECT_F!]
 			rc2 [RECT_F!]
 	][
-		win: widget/parent
+		win: either widget/type = window [widget][widget/parent]
 		if all [win <> null win/type = window][
 			wm: as window-manager! win/data
 			rc1: wm/box

@@ -616,6 +616,7 @@ change-size: func [
 	GET_PAIR_XY(size sx sy)
 	box/right: box/left + sx
 	box/bottom: box/top + sy
+	screen/update-bounding-box widget
 ]
 
 change-enabled: func [
