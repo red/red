@@ -36,6 +36,8 @@ update-rich-text: func [
 	str:	as red-string! values + FACE_OBJ_TEXT
 	color:	as red-tuple! values + FACE_OBJ_COLOR
 
+	if TYPE_OF(str) <> TYPE_STRING [exit]
+
 	data: widget/data
 	len: string/rs-length? str
 
