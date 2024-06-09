@@ -30,14 +30,47 @@ draw-group-box: func [
 		min-y	[integer!]
 		max-x	[integer!]
 		max-y	[integer!]
+		sym		[integer!]
+		clr	fg	[integer!]
 		p		[pixel!]
 		values	[red-value!]
 		str		[red-string!]
+		font	[red-object!]
+		opts	[red-block!]
+		color	[red-tuple!]
+		corners	[red-word!]
+		round?	[logic!]
+		color?	[logic!]
 		config	[render-config! value]
 ][
-	_widget/render x y widget 0		;-- draw background
+	_widget/render x y widget PIXEL_IGNORE_TEXT		;-- draw background
 
 	;-- draw frame
+	color?: no
+	round?: no
+	values: get-face-values widget
+	opts: as red-block! values + FACE_OBJ_OPTIONS
+
+	if TYPE_OF(opts) = TYPE_BLOCK [
+		corners: as red-word! block/select-word opts word/load "border-corners" no
+		if TYPE_OF(corners) = TYPE_WORD [
+			sym: symbol/resolve corners/symbol
+			round?: sym = _round
+		]
+		color: as red-tuple! block/select-word opts word/load "border-color" no
+		switch TYPE_OF(color) [
+			TYPE_TUPLE [
+				color?: yes
+				clr: get-tuple-color color
+				clr: make-color-256 clr
+			]
+			TYPE_WORD [
+				color?: no
+			]
+			default [0]
+		]
+	]
+
 	w: 0
 	h: 0
 	_widget/get-size widget :w :h
@@ -57,15 +90,17 @@ draw-group-box: func [
 		x: min-x
 		p: screen/buffer + (screen/width * y + x)
 		while [all [x <= max-x x < xx]][
+			fg: clr
 			case [
-				all [x = up-x  y = up-y ][p/code-point: 256Dh]  ;-- #"╭"
-				all [x = max-x y = up-y ][p/code-point: 256Eh]  ;-- #"╮"
-				all [x = up-x  y = max-y][p/code-point: 2570h]  ;-- #"╰"
-				all [x = max-x y = max-y][p/code-point: 256Fh]  ;-- #"╯"
-				any [x = up-x  x = max-x][p/code-point: 2502h]  ;-- #"│"
-				any [y = up-y  y = max-y][p/code-point: 2500h]  ;-- #"─"
-				true [0]
+				all [x = up-x  y = up-y ][p/code-point: either round? [256Dh][250Ch]]  ;-- #"╭" or #"┌"
+				all [x = max-x y = up-y ][p/code-point: either round? [256Eh][2510h]]  ;-- #"╮" or #"┐"
+				all [x = up-x  y = max-y][p/code-point: either round? [2570h][2514h]]  ;-- #"╰" or #"└"
+				all [x = max-x y = max-y][p/code-point: either round? [256Fh][2518h]]  ;-- #"╯" or #"┘"
+				any [x = up-x  x = max-x][p/code-point: either round? [2502h][2502h]]  ;-- #"│" or #"│"
+				any [y = up-y  y = max-y][p/code-point: either round? [2500h][2500h]]  ;-- #"─" or #"─"
+				true [fg: p/fg-color]
 			]
+			if color? [p/fg-color: fg]
 			p: p + 1
 			x: x + 1
 		]
@@ -73,10 +108,15 @@ draw-group-box: func [
 	]
 
 	;-- draw title
-	values: get-face-values widget
-	str:    as red-string! values + FACE_OBJ_TEXT
+	str:  as red-string! values + FACE_OBJ_TEXT
+	font: as red-object! values + FACE_OBJ_FONT
 	if TYPE_OF(str) = TYPE_STRING [
 		zero-memory as byte-ptr! :config size? render-config!
+		if TYPE_OF(font) = TYPE_OBJECT [	;-- set color for both title and border
+			clr: get-font-color font
+			config/fg-color: make-color-256 clr
+		]
+		config/flags: PIXEL_ANSI_SEQ
 		_widget/render-text str up-x + 1 up-y :box :config
 	]
 ]
