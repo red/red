@@ -123,7 +123,7 @@ make-radio-ui: function [
 	if set? [		;-- unset other radios in parent
 		if p: face/parent [
 			foreach f p/pane [
-				if not same? f face [f/data: no]
+				if all [f/type = 'radio not same? f face][f/data: no]
 			]
 		]
 	]
