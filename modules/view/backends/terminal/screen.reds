@@ -331,8 +331,13 @@ screen: context [
 	]
 
 	update-mouse-offset: func [][
-		if offset-y + height > tty/rows [
-			offset-y: tty/rows - height
+		either alternate-screen? [
+			offset-x: 0
+			offset-y: 0
+		][
+			if offset-y + height > tty/rows [
+				offset-y: tty/rows - height
+			]
 		]
 	]
 
