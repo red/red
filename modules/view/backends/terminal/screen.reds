@@ -325,9 +325,9 @@ screen: context [
 	set-cursor-bottom: func [/local dx [integer!]][
 		if cursor-y > 0 [
 			dx: height - relative-y
-			tty/write as byte-ptr! "^M" 1
 			tty/cursor-down dx
 		]
+		tty/write as byte-ptr! "^M^/" 2
 	]
 
 	update-mouse-offset: func [][
