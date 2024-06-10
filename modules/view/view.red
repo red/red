@@ -1066,6 +1066,7 @@ get-focusable: function [
 	faces [block!]	"Position to start from in a face's pane"
 	/back			"Search backward"
 ][
+	origin: faces
 	checks: [
 		f/visible?
 		f/enabled?
@@ -1103,6 +1104,7 @@ get-focusable: function [
 	faces: find/same p/parent/pane p
 	p: faces/1
 	either p/type = 'window [
+		if same? p/pane origin [return origin/1]
 		get-focusable/:back either back [tail p/pane][p/pane] ;-- bounce down from window face
 	][
 		if p/parent/type = 'tab-panel [
@@ -1410,7 +1412,7 @@ insert-event-func 'tab function [face event][
 		unless back?: to-logic find event/flags 'SHIFT [
 			faces: either all [pane: get-face-pane face not empty? pane][pane][next faces]
 		]
-		set-focus any [
+		new: any [
 			all [
 				opt: face/options
 				any [
@@ -1420,6 +1422,7 @@ insert-event-func 'tab function [face event][
 			]
 			apply :get-focusable [faces /back back?]
 		]
+		unless same? new face [set-focus new]
 		return 'stop
 	]
 	event
