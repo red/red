@@ -262,10 +262,13 @@ write %build/bin/sources.r set-cache [
 					%v4l2.reds
 				]
 				%terminal/ [
-					%widgets [
+					%widgets/ [
 						%button.reds
+						%checkbox.reds
 						%field.reds
+						%group-box.reds
 						%progress.reds
+						%radio.reds
 						%rich-text.reds
 						%text-list.reds
 					]
@@ -278,6 +281,7 @@ write %build/bin/sources.r set-cache [
 					%make-ui.red
 					%para.reds
 					%screen.reds
+					%styles.red
 					%text-box.reds
 					%timer.reds
 					%tty.reds
