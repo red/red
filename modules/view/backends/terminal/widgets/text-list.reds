@@ -16,7 +16,7 @@ make-text-list-ui: func [
 		face	[red-object!]
 ][
 	face: get-face-obj widget
-	#call [system/view/platform/make-text-list-ui face]
+	#call [TUI-helpers/make-text-list-ui face]
 ]
 
 on-text-list-event: func [

@@ -17,7 +17,7 @@ make-radio-ui: func [
 		ui		[red-string!]
 ][
 	face: get-face-obj widget
-	#call [system/view/platform/make-radio-ui face]
+	#call [TUI-helpers/make-radio-ui face]
 	ui: as red-string! stack/arguments
 	widget/ui: ui/node
 ]

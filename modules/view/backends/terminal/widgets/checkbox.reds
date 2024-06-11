@@ -17,7 +17,7 @@ make-checkbox-ui: func [
 		ui		[red-string!]
 ][
 	face: get-face-obj widget
-	#call [system/view/platform/make-checkbox-ui face]
+	#call [TUI-helpers/make-checkbox-ui face]
 	ui: as red-string! stack/arguments
 	widget/ui: ui/node
 ]

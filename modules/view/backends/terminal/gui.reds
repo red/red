@@ -120,7 +120,7 @@ on-gc-mark: does [
 ]
 
 check-color-support: func [/local int [red-integer!]][
-	#call [system/view/platform/check-color-support]
+	#call [TUI-helpers/check-color-support]
 	int: as red-integer! stack/arguments
 	color-profile: int/value
 ]
@@ -291,7 +291,7 @@ OS-request-file: func [
 	multi?	[logic!]
 	return: [red-value!]
 ][
-	#call [system/view/platform/TUI-requesters/request-file title name filter save? multi?]
+	#call [TUI-helpers/request-file title name filter save? multi?]
 ]
 
 OS-request-dir: func [
@@ -302,7 +302,7 @@ OS-request-dir: func [
 	multi?	[logic!]
 	return: [red-value!]
 ][
-	#call [system/view/platform/TUI-requesters/request-dir title dir filter keep? multi?]
+	#call [TUI-helpers/request-dir title dir filter keep? multi?]
 ]
 
 update-scroller: func [

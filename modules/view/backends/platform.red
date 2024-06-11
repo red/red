@@ -10,9 +10,13 @@ Red [
 	}
 ]
 
-system/view/platform: context [
+#switch config/GUI-engine [
+	native   [#if config/OS = 'Android [#include %android/gui.red]]
+	terminal [#include %terminal/make-ui.red]
+	test     [#include %test/gui.red]
+]
 
-	#if config/GUI-engine = 'terminal [#include %terminal/make-ui.red]
+system/view/platform: context [
 
 	#system [
 
@@ -634,11 +638,11 @@ system/view/platform: context [
 						macOS    [#include %macOS/gui.reds]
 						; GTK backend (is it in conflict with %GTK/gui.reds)
 						Linux	 [#include %gtk3/gui.reds]
-						#default []					;-- Linux
+						#default []
 					]
 				]
-				test [#include %test/gui.reds]
-				GTK [#include %gtk3/gui.reds]
+				test 	 [#include %test/gui.reds]
+				GTK 	 [#include %gtk3/gui.reds]
 				terminal [#include %terminal/gui.reds]
 			]
 		]
@@ -1043,9 +1047,4 @@ system/view/platform: context [
 	product: none
 	
 	init
-]
-
-#switch config/GUI-engine [
-	native [#if config/OS = 'Android [#include %android/gui.red]]
-	test   [#include %test/gui.red]
 ]

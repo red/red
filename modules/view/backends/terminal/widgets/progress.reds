@@ -16,7 +16,7 @@ make-progress-ui: func [
 		face	[red-object!]
 ][
 	face: get-face-obj widget
-	#call [system/view/platform/make-progress-ui face]
+	#call [TUI-helpers/make-progress-ui face]
 ]
 
 init-progress: func [

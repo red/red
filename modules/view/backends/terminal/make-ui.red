@@ -10,136 +10,136 @@ Red [
 	}
 ]
 
-check-color-support: function [][
-	color-term: get-env "COLORTERM"
-	term: get-env "TERM"
-	if any [
-		find color-term "24bit"
-		find color-term "truecolor"
-	][return 4]
+TUI-helpers: context [
 
-	either any [
-		find color-term "256"
-		find term "256"
-	][2][4]
-]
+	check-color-support: function [][
+		color-term: get-env "COLORTERM"
+		term: get-env "TERM"
+		if any [
+			find color-term "24bit"
+			find color-term "truecolor"
+		][return 4]
 
-focused?: routine [
-	face	[object!]
-	/local
-		widget	[int-ptr!]
-		bool	[red-logic!]
-][
-	widget: gui/face-handle? face
-	logic/box either null? widget [false][gui/has-focus? widget]
-]
-
-widget-data: routine [
-	face	[object!]
-	/local
-		widget	[int-ptr!]
-][
-	widget: gui/face-handle? face
-	integer/box as-integer gui/widget-data widget
-]
-
-set-face-ui: routine [
-	face	[object!]
-	ui		[string!]
-	/local
-		widget	[int-ptr!]
-][
-	widget: gui/face-handle? face
-	if widget <> null [gui/set-widget-ui widget ui/node]
-]
-
-make-progress-ui: function [
-	face	[face!]
-][
-	proportion: face/data
-	case [
-		proportion <= 1e-16 [proportion: 0.0]
-		proportion >= 1.0 [proportion: 1.0]
-	]
-	ui: make string! 50
-	append ui #"["
-	bar: face/size/x - 2	;-- exclude [ and ]
-	val: to-integer round/ceiling bar * proportion
-	append/dup ui #"#" val
-	append/dup ui #" " bar - val
-	append ui #"]"
-	face/text: ui
-]
-
-make-text-list-ui: function [
-	face	[face!]
-][
-	data: face/data
-	unless any [block? data map? data hash? data][exit]
-
-	idx: face/selected
-	unless integer? idx [
-		idx: 1
-		if focused? face [face/selected: 1]
-	]
-	unless focused? face [idx: -1]
-
-	if idx > length? data [
-		idx: length? data
-		face/selected: idx
+		either any [
+			find color-term "256"
+			find term "256"
+		][2][4]
 	]
 
-	head: widget-data face		;-- we use widget/data to save the idx of the first entry
-	data: skip face/data head
-	i: head + 1
-	ui: make string! 200
-	foreach s data [
-		if i = idx [
-			append ui "^[[7m"	;-- highlight selected item
+	focused?: routine [
+		face	[object!]
+		/local
+			widget	[int-ptr!]
+			bool	[red-logic!]
+	][
+		widget: gui/face-handle? face
+		logic/box either null? widget [false][gui/has-focus? widget]
+	]
+
+	widget-data: routine [
+		face	[object!]
+		/local
+			widget	[int-ptr!]
+	][
+		widget: gui/face-handle? face
+		integer/box as-integer gui/widget-data widget
+	]
+
+	set-face-ui: routine [
+		face	[object!]
+		ui		[string!]
+		/local
+			widget	[int-ptr!]
+	][
+		widget: gui/face-handle? face
+		if widget <> null [gui/set-widget-ui widget ui/node]
+	]
+
+	make-progress-ui: function [
+		face	[face!]
+	][
+		proportion: face/data
+		case [
+			proportion <= 1e-16 [proportion: 0.0]
+			proportion >= 1.0 [proportion: 1.0]
 		]
-		append ui s
-		append ui lf
-		if i = idx [
-			append ui "^[[27m"	;-- reset highlight for next items
-		]
-		i: i + 1
+		ui: make string! 50
+		append ui #"["
+		bar: face/size/x - 2	;-- exclude [ and ]
+		val: to-integer round/ceiling bar * proportion
+		append/dup ui #"#" val
+		append/dup ui #" " bar - val
+		append ui #"]"
+		face/text: ui
 	]
-	face/text: ui
-]
 
-make-checkbox-ui: function [
-	face	[face!]
-	return: [string!]
-][
-	ui: repend copy pick ["🞕 " "☐ "] to logic! face/data face/text
-	set-face-ui face ui
-	ui
-]
+	make-text-list-ui: function [
+		face	[face!]
+	][
+		data: face/data
+		unless any [block? data map? data hash? data][exit]
 
-make-radio-ui: function [
-	face	[face!]
-	return: [string!]
-	/local
-		p	[face!]
-		f	[face!]
-		set? [logic!]
-][
-	set?: to logic! face/data
-	if set? [		;-- unset other radios in parent
-		if p: face/parent [
-			foreach f p/pane [
-				if all [f/type = 'radio not same? f face][f/data: no]
+		idx: face/selected
+		unless integer? idx [
+			idx: 1
+			if focused? face [face/selected: 1]
+		]
+		unless focused? face [idx: -1]
+
+		if idx > length? data [
+			idx: length? data
+			face/selected: idx
+		]
+
+		head: widget-data face		;-- we use widget/data to save the idx of the first entry
+		data: skip face/data head
+		i: head + 1
+		ui: make string! 200
+		foreach s data [
+			if i = idx [
+				append ui "^[[7m"	;-- highlight selected item
+			]
+			append ui s
+			append ui lf
+			if i = idx [
+				append ui "^[[27m"	;-- reset highlight for next items
+			]
+			i: i + 1
+		]
+		face/text: ui
+	]
+
+	make-checkbox-ui: function [
+		face	[face!]
+		return: [string!]
+	][
+		ui: repend copy pick ["🞕 " "☐ "] to logic! face/data face/text
+		set-face-ui face ui
+		ui
+	]
+
+	make-radio-ui: function [
+		face	[face!]
+		return: [string!]
+		/local
+			p	[face!]
+			f	[face!]
+			set? [logic!]
+	][
+		set?: to logic! face/data
+		if set? [		;-- unset other radios in parent
+			if p: face/parent [
+				foreach f p/pane [
+					if all [f/type = 'radio not same? f face][f/data: no]
+				]
 			]
 		]
+		ui: repend copy pick ["◉ " "○ "] set? face/text
+		set-face-ui face ui
+		ui
 	]
-	ui: repend copy pick ["◉ " "○ "] set? face/text
-	set-face-ui face ui
-	ui
-]
 
-;=== Requesters === 
-
-TUI-requesters: context [
+	;=== Requesters ===
 
 	get-files: function [root [file!] filters [block! none!] /dir /local f][
 		files: read root
