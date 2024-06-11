@@ -228,7 +228,8 @@ free-font: func [
 	h2: null
 	loop 2 [
 		hFont: get-font-handle font n
-		if all [hFont <> null hFont <> h2][
+		if hFont <> null [
+			assert hFont <> h2
 			DeleteObject hFont
 			h2: hFont
 			free?: yes

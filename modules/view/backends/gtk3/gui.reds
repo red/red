@@ -1677,7 +1677,7 @@ OS-show-window: func [
 		any [window-ready? n = 10000]
 	]
 	window-ready?: no
-	set-selected-focus win
+	;set-selected-focus win
 ]
 
 set-buffer: func [

@@ -3252,19 +3252,10 @@ GPtrArray!: alias struct! [
 			slant		[integer!]
 			weight		[integer!]
 		]
-		; cairo_set_font_size: "cairo_set_font_size" [
-		; 	cr			[handle!]
-		; 	size		[integer!]
-		; ]
-		;
 		cairo_font_extents: "cairo_font_extents" [
 			cr			[handle!]
 			extents		[cairo_font_extents_t!]
 		]
-		; cairo_show_text: "cairo_show_text" [
-		; 	cr			[handle!]
-		; 	text 		[c-string!]
-		; ]
 		cairo_image_surface_create: "cairo_image_surface_create" [
 			format		[cairo_format_t!]
 			width		[integer!]
