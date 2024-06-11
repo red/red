@@ -647,9 +647,7 @@ change-data: func [
 	w		[widget!]
 	values	[red-value!]
 ][
-	if WIDGET_TYPE(w) = rich-text [
-		update-rich-text w
-	]
+	0
 ]
 
 select-text: func [
@@ -790,7 +788,64 @@ OS-update-facet: func [
 	new	   [red-value!]
 	index  [integer!]
 	part   [integer!]
+	/local
+		sym		[integer!]
+		widget	[widget!]
+		type	[integer!]
+		len		[integer!]
+		blk		[red-block!]
+		sel		[red-integer!]
 ][
+	sym: symbol/resolve facet/symbol
+	
+	case [
+		sym = facets/pane [
+			sym: action/symbol
+		]
+		sym = facets/data [
+			widget: as widget! face-handle? face
+			if null? widget [exit]
+
+			type: WIDGET_TYPE(widget)
+			sym: action/symbol
+			case [
+				type = text-list [
+					blk: as red-block! value
+					sel: as red-integer! (object/get-values face) + FACE_OBJ_SELECTED
+					if TYPE_OF(blk) <> TYPE_BLOCK [exit]
+					if any [
+						sym = words/_remove/symbol
+						sym = words/_take/symbol
+						sym = words/_clear/symbol
+						sym = words/_move/symbol
+					][
+						len: block/rs-length? blk
+						if (as-integer widget/data) > index [widget/data: as int-ptr! index]
+						if all [			;-- cleared
+							zero? index
+							part >= len
+						][
+							widget/data: null
+						]
+						if TYPE_OF(sel) = TYPE_INTEGER [
+							part: len - part
+							if part < 0 [part: 0]
+							if sel/value > part [sel/value: part]
+						]
+					]
+				]
+				any [
+					type = drop-list
+					type = drop-down
+				][
+					if zero? part [exit]
+				]
+				type = tab-panel [0]
+				true [0]
+			]
+		]
+		true [0]
+	]
 	OS-update-view face
 ]
 

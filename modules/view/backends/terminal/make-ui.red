@@ -84,6 +84,11 @@ make-text-list-ui: function [
 	]
 	unless focused? face [idx: -1]
 
+	if idx > length? data [
+		idx: length? data
+		face/selected: idx
+	]
+
 	head: widget-data face		;-- we use widget/data to save the idx of the first entry
 	data: skip face/data head
 	i: head + 1
