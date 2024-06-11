@@ -76,5 +76,5 @@ view [
 		face/text: pick frames (frame % length? frames) + 1
 		frame: frame + 1
 	] return
-	text font-color gray "<-/->: change spinner | exit: ctrl-c"
+	text font-color gray "<-/->: change spinner"
 ]
