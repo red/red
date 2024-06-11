@@ -291,7 +291,7 @@ OS-request-file: func [
 	multi?	[logic!]
 	return: [red-value!]
 ][
-	as red-value! none-value
+	#call [system/view/platform/TUI-requesters/request-file title name filter save? multi?]
 ]
 
 OS-request-dir: func [
@@ -302,7 +302,7 @@ OS-request-dir: func [
 	multi?	[logic!]
 	return: [red-value!]
 ][
-	as red-value! none-value
+	#call [system/view/platform/TUI-requesters/request-dir title dir filter keep? multi?]
 ]
 
 update-scroller: func [

@@ -136,3 +136,108 @@ make-radio-ui: function [
 	set-face-ui face ui
 	ui
 ]
+
+;=== Requesters === 
+
+TUI-requesters: context [
+
+	get-files: function [root [file!] filters [block! none!] /dir /local f][
+		files: read root
+		either dir [
+			remove-each f files [not dir? f]
+			head insert files %../
+		][
+			remove-each f files [any [dir? f all [filters not find filters suffix? f]]]
+			files
+		]
+	]
+
+	request-file: function [
+		title	[string! none!]
+		name	[string! file! none!]
+		filter	[block! none!]
+		save?	[logic!]
+		multi?	[logic!]									;-- N/A
+	][
+		picked: none
+		msg: pick [" Save " " Open "] save?
+		title: any [title "Please choose a file:"]
+		name:  any [name ""]
+		if filter [filter: extract next filter 2]
+		root: what-dir
+
+		view [
+			style spacer: base transparent
+			style frame: group-box options [border-corners: round border-color: 64.64.64]
+				on-focus   [face/options/border-color: white]
+				on-unfocus [face/options/border-color: coal]
+
+			text title return
+			path: text 60 with [text: to-local-file root] return
+			frame " Folders " [
+				dirs: text-list 20x20 data (get-files/dir root none) on-key [
+					if event/key = enter [
+						new: pick dirs/data dirs/selected
+						root: either new = %../ [first split-path root][append root new]
+						path/text: to-local-file root
+						append clear dirs/data get-files/dir root none
+						dirs/selected: 1
+						append clear files/data get-files root filter
+						files/selected: 1
+					]
+				]
+			]
+			frame " Files " [
+				files: text-list 35x20 data (get-files root filter) on-key [
+					if event/key = enter [sfile/text: to-string pick files/data files/selected]
+				]
+			] return pad 0x-1
+
+			frame 60x3 [text "Selected:" sfile: field 45 name] return pad 20x0
+			button msg [unless empty? f: sfile/text [picked: root/(to-file f)] unview] pad 3x0
+			button " Cancel " [unview] return
+			spacer 1x1
+		]
+		picked
+	]
+
+	request-dir: function [
+		title	[string! none!]
+		dir		[string! file! none!]
+		filter	[block! none!]
+		keep?	[logic!]
+		multi?	[logic!]									;-- N/A
+	][
+		picked: none
+		title: any [title ""]
+		if filter [filter: extract next filter 2]
+		if string? dir [dir: to-red-file dir]
+		root: any [dir what-dir]
+
+		view [
+			style spacer: base transparent
+			style frame: group-box options [border-corners: round border-color: 64.64.64]
+				on-focus   [face/options/border-color: white]
+				on-unfocus [face/options/border-color: coal]
+
+			text title return
+			path: text 60 with [text: to-local-file root] return
+			frame " Folders " [
+				dirs: text-list 58x20 data (get-files/dir root none) on-key [
+					if event/key = enter [
+						new: pick dirs/data dirs/selected
+						root: either new = %../ [first split-path root][append root new]
+						sfile/text: copy path/text: to-local-file root
+						append clear dirs/data get-files/dir root none
+						dirs/selected: 1
+					]
+				]
+			] return
+			frame 60x3 [text "Selected:" sfile: field 45 ""] return pad 20x0
+			button " OK " [unless empty? f: sfile/text [picked: root] unview] pad 3x0
+			button " Cancel " [unview] return
+			spacer 1x1
+		]
+		picked
+	]
+]
