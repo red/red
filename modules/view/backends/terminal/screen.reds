@@ -118,10 +118,27 @@ screen: context [
 			if any [w > width h > height][		;-- require a bigger buffer
 				if buffer <> null [free as byte-ptr! buffer]
 				buffer: as pixel! allocate w * h * size? pixel!
-			]		
+			]
 			width: w
-			height: h	
+			height: h
 		]
+	]
+
+	set-buffer-size: func [
+		win		[widget!]
+		/local
+			wm	[window-manager!]
+			rc1	[RECT_F!]
+			rc2 [RECT_F!]
+	][
+		wm: as window-manager! win/data
+		rc1: wm/box
+		rc2: win/box
+		rc1/left: rc2/left
+		rc1/top: rc2/top
+		rc1/right: rc2/right
+		rc1/bottom: rc2/bottom
+		resize-buffer wm
 	]
 
 	clear-buffer: does [
@@ -568,14 +585,15 @@ screen: context [
 
 		str: as byte-ptr! :_buf
 		s: as c-string! str
-		ADD_BYTE(#"^M")		;-- move left
-		if relative-y > 0 [
-			sprintf [s "^[[%dA" relative-y]	;-- move up
-			ADD_STR(s)
-		]
+
 		either alternate-screen? [
 			ADD_STR("^[[H")		;-- move to top left
 		][
+			ADD_BYTE(#"^M")		;-- move left
+			if relative-y > 0 [
+				sprintf [s "^[[%dA" relative-y]	;-- move up
+				ADD_STR(s)
+			]
 			ADD_STR("^[[0J")	;-- erase down to the bottom of the screen
 		]
 
@@ -585,9 +603,9 @@ screen: context [
 		prev: px
 		end: px
 
-		p: buffer
 		y: 0
 		until [
+			p: buffer + (width * y)
 			x: 0
 			until [
 				if DRAW_PIXEL?(p) [

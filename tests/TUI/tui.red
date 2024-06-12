@@ -42,7 +42,7 @@ page-2: layout [
 
 	text 10 font-color green "Page 2" return
 
-	image 60x30 %../bridges/android/samples/eval/res/drawable-xxhdpi/ic_launcher.png return
+	image 60x30 %../../bridges/android/samples/eval/res/drawable-xxhdpi/ic_launcher.png return
 
 	text-list 13x3 select 2 data [
 		"1 apple"

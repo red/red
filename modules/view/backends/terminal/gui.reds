@@ -383,6 +383,12 @@ OS-make-view: func [
 	unless show?/value [flags: flags or WIDGET_FLAG_HIDDEN]
 	unless enable?/value [flags: flags or WIDGET_FLAG_DISABLE]
 
+	sym: symbol/resolve type/symbol
+	if sym = window [
+		offset/x: as float32! 0.0
+		offset/y: as float32! 0.0
+	]
+
 	widget: _widget/make as widget! parent
 	widget/flags: flags
 	widget/box/left: offset/x
@@ -392,7 +398,6 @@ OS-make-view: func [
 
 	copy-cell as cell! face as cell! :widget/face
 
-	sym: symbol/resolve type/symbol
 	widget/type: sym
 
 	case [
@@ -616,7 +621,7 @@ change-size: func [
 	GET_PAIR_XY(size sx sy)
 	box/right: box/left + sx
 	box/bottom: box/top + sy
-	screen/update-bounding-box widget
+	if widget/type = window [screen/set-buffer-size widget]
 ]
 
 change-enabled: func [

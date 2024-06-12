@@ -62,6 +62,7 @@ tty: context [
 
 	enter-alter-screen: does [
 		enable AlternateScreen
+		write as byte-ptr! "^[[2J" 4		;-- clear screen
 	]
 
 	exit-alter-screen: does [

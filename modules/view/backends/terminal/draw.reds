@@ -573,6 +573,7 @@ OS-draw-text: func [
 			w: as widget! OS-make-view box null
 			free?: yes
 		]
+		config/align: 0
 		config/rich-text: w/data
 	]
 	_widget/render-text text ctx/x + x ctx/y + y as rect! :ctx/left :config
