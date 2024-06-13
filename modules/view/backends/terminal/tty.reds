@@ -120,7 +120,7 @@ tty: context [
 			sz/x: columns
 			sz/y: rows
 		]
-		screen/on-resize columns rows
+		if raw-mode? [screen/on-resize columns rows]
 	]
 
 	init: does [
@@ -130,7 +130,7 @@ tty: context [
 			get-window-size
 			raw-mode?: yes
 		]
-		report-cursor-position
+		unless screen/alternate-screen? [report-cursor-position]
 	]
 
 	restore: does [

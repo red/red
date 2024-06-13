@@ -29,6 +29,7 @@ screen: context [
 	offset-x:			0
 	offset-y:			0
 	alternate-screen?:	no
+	in-alter-mode?:		no
 
 	init: func [][
 		win-list: array/make 4 size? int-ptr!
@@ -37,8 +38,16 @@ screen: context [
 	]
 
 	enter-alter-screen: does [
-		if alternate-screen? [
+		if all [alternate-screen? not in-alter-mode?][
 			tty/enter-alter-screen
+			in-alter-mode?: yes
+		]
+	]
+
+	exit-alter-screen: does [
+		if in-alter-mode? [
+			tty/exit-alter-screen
+			in-alter-mode?: no
 		]
 	]
 
@@ -65,6 +74,16 @@ screen: context [
 			]
 			i: i + 1
 		]
+		if in-alter-mode? [
+			render
+		]
+	]
+
+	clear: does [
+		if in-alter-mode? [
+			tty/write as byte-ptr! "^[[2J" 4
+			fflush 0
+		]
 	]
 
 	reset: does [
@@ -89,10 +108,6 @@ screen: context [
 		last-mouse-evt:		0
 		mouse-click-delta:	0
 		mouse-event?:		no
-		if alternate-screen? [
-			tty/exit-alter-screen
-			alternate-screen?:	no
-		]
 	]
 
 	windows-cnt: func [
@@ -160,6 +175,7 @@ screen: context [
 			p	[red-block!]
 			obj [red-object!]
 			end [red-object!]
+			h	[handle!]
 	][
 		if w/ui <> null [collector/keep w/ui]
 		p: CHILD_WIDGET(w)
@@ -167,7 +183,10 @@ screen: context [
 			obj: as red-object! block/rs-head p
 			end: as red-object! block/rs-tail p
 			while [obj < end][
-				_mark-widget as widget! get-face-handle obj
+				h: face-handle? obj
+				if h <> null [
+					_mark-widget as widget! h
+				]
 				obj: obj + 1
 			]
 		]
@@ -389,14 +408,17 @@ screen: context [
 			i	[integer!]
 			w	[widget!]
 			wm	[window-manager!]
+			wins [node!]
 	][
+		wins: array/copy win-list
 		cnt: windows-cnt
 		i: 1
 		while [i <= cnt][
-			wm: as window-manager! array/pick-ptr win-list i
+			wm: as window-manager! array/pick-ptr wins i
 			free-faces get-face-obj wm/window
 			i: i + 1
 		]
+		array/clear wins
 	]
 
 	#define ADD_BYTE(byte) [array/append-byte esc-sequences byte]

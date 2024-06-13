@@ -417,10 +417,9 @@ OS-make-view: func [
 		screen/update-bounding-box widget
 		screen/update-editable-widget widget
 		screen/update-focus-widget widget
-
-		if TYPE_OF(rate) <> TYPE_NONE [change-rate widget rate]
 		if TYPE_OF(image) = TYPE_IMAGE [change-image widget image]
 	]
+	if TYPE_OF(rate) <> TYPE_NONE [change-rate widget rate]
 
 	stack/unwind
 	as-integer widget
@@ -780,8 +779,10 @@ OS-destroy-view: func [
 	empty? [logic!]
 ][
 	free-faces face
-	if zero? screen/windows-cnt [
+	either zero? screen/windows-cnt [
 		post-quit-msg
+	][
+		screen/redraw null
 	]
 ]
 

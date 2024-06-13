@@ -616,10 +616,11 @@ do-events: func [
 		mouse-event?: no
 		tty/disable-mouse
 	]
+	screen/exit-alter-screen
 	tty/restore
 	tty/read-input no	;-- clear stdin queue
-	tty/show-cursor
 	screen/reset
+	tty/show-cursor
 
 	msg?
 ]
