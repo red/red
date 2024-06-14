@@ -779,9 +779,8 @@ OS-destroy-view: func [
 	empty? [logic!]
 ][
 	free-faces face
-	either zero? screen/windows-cnt [
-		post-quit-msg
-	][
+	post-quit-msg
+	if 0 < screen/windows-cnt [
 		screen/redraw null
 	]
 ]

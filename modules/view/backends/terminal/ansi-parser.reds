@@ -69,6 +69,8 @@ ansi-parser: context [
 
 	clear-buffer: does [
 		array/clear buffer
+		incomplete?: no
+		pos: 1
 	]
 
 	next-byte: func [return: [logic!]][
@@ -336,6 +338,8 @@ ansi-parser: context [
 				]
 				true [parse-utf8]
 			]
+			if end-of-buffer? [exit]
+
 			if incomplete? [
 				if cur > 1 [
 					move-memory pbuffer pbuffer + cur - 1 end - cur + 1

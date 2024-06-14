@@ -31,6 +31,7 @@ on-button-event: func [
 	cp: 0
 	if type = EVT_KEY [
 		cp: evt/data
+		if cp = 32 [send-mouse-event EVT_CLICK widget F32_0 F32_0 0]	;-- space key
 	]
 
 	if zero? cp [return 0]

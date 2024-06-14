@@ -24,8 +24,9 @@ flags-blk/header:	TYPE_BLOCK
 last-mouse-evt:		0
 mouse-click-delta:	0
 mouse-event?:		no
-mouse-x:		as float32! 0
-mouse-y:		as float32! 0
+mouse-x:			as float32! 0
+mouse-y:			as float32! 0
+event-loop-cnt:		0
 
 map-pt-from-win: func [
 	g		[widget!]
@@ -536,10 +537,8 @@ do-mouse-wheel: func [
 	res
 ]
 
-exit-loop?: no
-
 post-quit-msg: does [
-	exit-loop?: yes
+	event-loop-cnt: event-loop-cnt - 1
 ]
 
 #define DELTA_TIME 33
@@ -559,20 +558,28 @@ do-events: func [
 		tm		[time-meter! value]
 		t delta	[integer!]
 		mouse?	[red-logic!]
+		n-loop	[integer!]
+		reenter? [logic!]
 ][
-	if all [
-		not no-wait?
+	reenter?: any [
+		no-wait?
 		1 < screen/windows-cnt
-	][return no]
+	]
 
-	tty/init
-	screen/enter-alter-screen
-	exit-loop?: no
+	n-loop: event-loop-cnt
+	unless no-wait? [event-loop-cnt: event-loop-cnt + 1]
 
-	mouse?: as red-logic! #get system/view/platform/mouse-event?
-	if mouse?/value <> mouse-event? [
-		mouse-event?: mouse?/value
-		either mouse-event? [tty/enable-mouse][tty/disable-mouse]
+	either reenter? [
+		unless no-wait? [ansi-parser/clear-buffer]
+	][
+		tty/init
+		screen/enter-alter-screen
+
+		mouse?: as red-logic! #get system/view/platform/mouse-event?
+		if mouse?/value <> mouse-event? [
+			mouse-event?: mouse?/value
+			either mouse-event? [tty/enable-mouse][tty/disable-mouse]
+		]
 	]
 
 	t: 0
@@ -605,22 +612,27 @@ do-events: func [
 		]
 		if system/thrown <> 0 [
 			system/thrown: 0
-			exit-loop?: yes
+			post-quit-msg
 		]
 
-		any [no-wait? exit-loop?]
+		any [no-wait? n-loop >= event-loop-cnt]
 	]
 
-	screen/set-cursor-bottom
-	if mouse-event? [
-		mouse-event?: no
-		tty/disable-mouse
+	either reenter? [
+		tty/read-input no	;-- clear stdin queue
+		ansi-parser/clear-buffer
+	][
+		screen/set-cursor-bottom
+		if mouse-event? [
+			mouse-event?: no
+			tty/disable-mouse
+		]
+		screen/exit-alter-screen
+		tty/restore
+		tty/read-input no	;-- clear stdin queue
+		screen/reset
+		tty/show-cursor
 	]
-	screen/exit-alter-screen
-	tty/restore
-	tty/read-input no	;-- clear stdin queue
-	screen/reset
-	tty/show-cursor
 
 	msg?
 ]

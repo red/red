@@ -1435,17 +1435,8 @@ insert-event-func 'tab function [face event][
 			event/type = 'key
 			event/key = #"^["
 		][
-			system/view/platform/exit-event-loop
+			unview/all
+			'stop
 		]
-	]
-	insert-event-func 'space [
-		all [
-			event/type = 'key
-			event/key = #" "
-			switch event/face/type [ 
-				button	  [event/type: 'click]
-			]
-		]
-		event
 	]
 ]

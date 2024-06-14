@@ -426,9 +426,10 @@ screen: context [
 	#define ADD_STR(s) [array/append-bytes esc-sequences as byte-ptr! s length? s]
 
 	reset-cursor: func [/local s [c-string!] _buf [tiny-str! value]][
+		tty/write as byte-ptr! "^M" 1	;-- move to start of the line
 		if relative-y > 0 [
 			s: as c-string! :_buf
-			sprintf [s "^M^[[%dA^[[0J" relative-y]	;-- move left and move up
+			sprintf [s "^[[%dA^[[0J" relative-y]	;-- move up and erase line
 			tty/write as byte-ptr! s length? s
 			relative-y: 0
 		]

@@ -176,7 +176,7 @@ TUI-helpers: context [
 			path: text 60 with [text: to-local-file root] return
 			frame " Folders " [
 				dirs: text-list 20x20 data (get-files/dir root none) on-key [
-					if event/key = enter [
+					if all [event/key = enter dirs/selected][
 						new: pick dirs/data dirs/selected
 						root: either new = %../ [first split-path root][append root new]
 						path/text: to-local-file root
@@ -189,7 +189,9 @@ TUI-helpers: context [
 			]
 			frame " Files " [
 				files: text-list 35x20 data (get-files root filter) on-key [
-					if event/key = enter [sfile/text: to-string pick files/data files/selected]
+					if all [event/key = enter files/selected][
+						sfile/text: to-string pick files/data files/selected
+					]
 				]
 			] return pad 0x-1
 
