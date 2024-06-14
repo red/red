@@ -599,6 +599,7 @@ string-width?: func [
 back-to-console: func [][
 	if tty/raw-mode? [
 		screen/reset-cursor
+		screen/enter-tui?: no
 		fflush 0
 		tty/restore-output
 	]

@@ -80,6 +80,7 @@ on-text-list-event: func [
 			widget/data: as int-ptr! head
 		]
 		type = EVT_FOCUS [
+			make-text-list-ui widget
 			screen/redraw widget
 		]
 		type = EVT_CLICK [
