@@ -241,7 +241,7 @@ screen: context [
 			win	[widget!]
 			wm  [window-manager!]
 	][
-		if widget/type <> field [exit]
+		unless WIDGET_EDITABLE?(widget) [exit]
 
 		win: widget/parent
 		while [all [win <> null win/type <> window]][
@@ -664,7 +664,7 @@ screen: context [
 		
 		either all [
 			WIDGET_EDITABLE?(focus-widget)
-			any [cursor-x > 0 cursor-y > 0]
+			any [cursor-x >= 0 cursor-y >= 0]
 		][
 			s: as c-string! str
 			ADD_BYTE(#"^M")		;-- move left
@@ -701,7 +701,9 @@ screen: context [
 		resize-buffer wm
 		clear-buffer
 		render-widget wm/window
-		tty/hide-cursor
+		unless WIDGET_EDITABLE?(focus-widget) [
+			tty/hide-cursor
+		]
 		fflush 0
 		present
 		if WIDGET_EDITABLE?(focus-widget) [

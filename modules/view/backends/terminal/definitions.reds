@@ -83,6 +83,7 @@ tiny-str!: alias struct! [	;-- 32 bytes
 #define WIDGET_FLAG_PASSWORD	10000000h
 #define WIDGET_FLAG_RESIZE		20000000h
 #define WIDGET_FLAG_FULLSCREEN	40000000h
+#define WIDGET_FLAG_CARET		80000000h
 
 #define WIDGET_TYPE(widget)				[widget/type]
 #define WIDGET_SET_FLAG(widget flag)	[widget/flags: widget/flags or flag]
@@ -91,6 +92,7 @@ tiny-str!: alias struct! [	;-- 32 bytes
 #define WIDGET_EDITABLE?(widget)		[widget/flags and WIDGET_FLAG_EDITABLE <> 0]
 #define WIDGET_FOCUSABLE?(widget)		[widget/flags and WIDGET_FLAG_FOCUSABLE <> 0]
 #define WIDGET_PASSWORD?(widget)		[widget/flags and WIDGET_FLAG_PASSWORD <> 0]
+#define WIDGET_CARET?(widget)			[widget/flags and WIDGET_FLAG_CARET <> 0]
 
 point!: alias struct! [
 	x	[float32!]

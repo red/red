@@ -12,9 +12,10 @@ Red/System [
 
 tty: context [
 
-	columns:	-1
-	rows:		-1
-	raw-mode?:	 no
+	columns:		-1
+	rows:			-1
+	raw-mode?:	 	no
+	cursor-hide?:	no
 
 	#enum DECMode! [ ;-- DEC: Digital Equipment Corporation
   		LineWrapMode:			7
@@ -85,11 +86,17 @@ tty: context [
 	]
 
 	hide-cursor: does [
-		disable CursorMode
+		unless cursor-hide? [
+			disable CursorMode
+			cursor-hide?: yes
+		]
 	]
 
 	show-cursor: does [
-		enable CursorMode
+		if cursor-hide? [
+			enable CursorMode
+			cursor-hide?: no
+		]
 	]
 
 	cursor-down: func [

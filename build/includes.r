@@ -263,6 +263,7 @@ write %build/bin/sources.r set-cache [
 				]
 				%terminal/ [
 					%widgets/ [
+						%base.reds
 						%button.reds
 						%checkbox.reds
 						%field.reds

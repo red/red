@@ -554,6 +554,7 @@ OS-draw-text: func [
 		pt		[red-point2D!]
 		config	[render-config! value]
 		box		[red-object!]
+		para	[red-object!]
 		free?	[logic!]
 ][
 	GET_PAIR_XY_INT(pos x y)
@@ -573,7 +574,10 @@ OS-draw-text: func [
 			w: as widget! OS-make-view box null
 			free?: yes
 		]
-		config/align: 0
+		para: as red-object! (object/get-values box) + FACE_OBJ_PARA
+		if TYPE_OF(para) = TYPE_OBJECT [
+			config/align: get-para-flags para
+		]
 		config/rich-text: w/data
 	]
 	_widget/render-text text ctx/x + x ctx/y + y as rect! :ctx/left :config

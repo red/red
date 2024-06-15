@@ -23,6 +23,7 @@ Red/System [
 #include %widget.reds
 #include %screen.reds
 
+#include %widgets/base.reds
 #include %widgets/field.reds
 #include %widgets/button.reds
 #include %widgets/progress.reds
@@ -404,6 +405,7 @@ OS-make-view: func [
 		sym = window 	[screen/add-window widget]
 		sym = field  	[init-field widget]
 		sym = button 	[init-button widget]
+		sym = base		[init-base widget]
 		sym = progress	[init-progress widget]
 		sym = group-box [init-group-box widget]
 		sym = check		[init-checkbox widget]
