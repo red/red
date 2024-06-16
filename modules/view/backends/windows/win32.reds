@@ -371,7 +371,10 @@ Red/System [
 #define BST_PUSHED			4
 #define BST_FOCUS			8
 
+#define VK_BACK 			08h
 #define VK_TAB				09h
+#define VK_CLEAR 			0Ch
+#define VK_RETURN 			0Dh
 #define VK_SHIFT			10h
 #define VK_CONTROL			11h
 #define VK_MENU				12h

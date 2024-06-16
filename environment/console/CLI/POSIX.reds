@@ -328,11 +328,11 @@ init-console: func [
 		]
 	]
 	#if OS = 'macOS [
-		#if all [GUI-engine <> 'terminal modules contains 'View][
+		#if modules contains 'View [#if GUI-engine <> 'terminal [
 			with gui [
 				if NSApp <> 0 [do-events yes]
 			]
-		]
+		]]
 	]
 ]
 
