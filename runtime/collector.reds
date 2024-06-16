@@ -243,6 +243,7 @@ collector: context [
 			native	[red-native!]
 			ctx		[red-context!]
 			img		[red-image!]
+			h		[red-handle!]
 			len		[integer!]
 			type	[integer!]
 	][
@@ -343,6 +344,7 @@ collector: context [
 				]
 				#if any [OS = 'macOS OS = 'Linux OS = 'Windows][
 				TYPE_IMAGE [
+					#if debug? = yes [if verbose > 1 [print "image"]]
 					img: as red-image! value
 					#if draw-engine <> 'GDI+ [
 						if img/node <> null [
@@ -351,6 +353,11 @@ collector: context [
 						]
 					]
 				]]
+				TYPE_HANDLE [
+					#if debug? = yes [if verbose > 1 [print "handler"]]
+					h: as red-handle! value
+					if h/extID >= 0 [externals/mark h/extID]
+				]
 				default [0]
 			]
 			value: value + 1

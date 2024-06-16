@@ -634,7 +634,7 @@ system/view/platform: context [
 		]
 	]
 	
-	make-null-handle: routine [][handle/box 0]
+	make-null-handle: routine [][handle/box 0 handle/CLASS_NULL]
 
 	get-screen-size: routine [
 		id		[integer!]
@@ -718,7 +718,7 @@ system/view/platform: context [
 	]
 
 	make-view: routine [face [object!] parent [handle!]][
-		handle/box gui/OS-make-view face parent/value
+		handle/box gui/OS-make-view face parent/value handle/CLASS_WINDOW
 	]
 
 	draw-image: routine [image [image!] cmds [block!]][

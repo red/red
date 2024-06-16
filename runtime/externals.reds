@@ -112,7 +112,7 @@ externals: context [
 		assert type < (as-integer top - types)
 		if type > 0 [									;-- if type id defined, call destructor
 			ext: types + (type - 1)						;-- 1-based value
-			#if debug? = yes [if verbose > 0 [print-line ["destructor: " as int-ptr! :ext/destructor]]]
+			#if debug? = yes [if verbose > 0 [print-line ["destructor: " as int-ptr! :ext/destructor ", on: " as int-ptr! rec/handle]]]
 			if null <> :ext/destructor [ext/destructor as int-ptr! rec/handle]
 		]
 	]

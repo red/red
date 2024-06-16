@@ -109,7 +109,7 @@ make-font: func [
 	blk: as red-block! values + FONT_OBJ_STATE
 	either TYPE_OF(blk) <> TYPE_BLOCK [
 		block/make-at blk 2
-		handle/make-in blk as-integer hFont
+		handle/make-in blk as-integer hFont handle/CLASS_FONT
 	][
 		int: as red-integer! block/rs-head blk
 		int/header: TYPE_HANDLE
