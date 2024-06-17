@@ -665,7 +665,7 @@ collector: context [
 	scan-stack-refs: func [
 		store? [logic!]
 		/local
-			frm	map	slot p base head [int-ptr!]
+			frm	map	slot p base head prev [int-ptr!]
 			refs tail [int-ptr!]
 			c-low c-high caller [byte-ptr!]
 			s [series!]
@@ -678,10 +678,13 @@ collector: context [
 		refs: memory/stk-refs
 		tail: refs + (memory/stk-sz * 2)
 		base: bitarrays-base
+		prev: frm
 		frm: as int-ptr! frm/value						;-- skip extract-stack-refs own frame
 
 		until [
-			caller: as byte-ptr! frm/2
+			caller: either any [null? prev  prev = as int-ptr! -1  prev >= system/stk-root][null][
+				as byte-ptr! prev/2
+			]
 			if all [c-low < caller caller < c-high][	;-- only process Red frames (skip externals)
 				slot: frm - 3							;-- position on bitmap slot
 				assert slot/value >= 0					;-- should never hit STACK_BITMAP_BARRIER
@@ -753,6 +756,7 @@ collector: context [
 					disp: -1							;-- scanning direction
 				]
 			]
+			prev: frm
 			frm: as int-ptr! frm/value					;-- jump to next stack frame
 			any [null? frm  frm = as int-ptr! -1  frm >= system/stk-root]
 		]
