@@ -38,7 +38,7 @@ externals: context [
 	list: as record! 0
 	used: tail-record									;-- head of used slots list (index)
 	free: tail-record									;-- head of free slots list (index)
-	size: 1000
+	size: 1000											;-- starting records pool
 	
 	register: func [
 		name	[c-string!]
@@ -154,14 +154,46 @@ externals: context [
 	
 	sweep: func [
 		/local
-			p	[int-ptr!]
-			rec prev [record!]
-			i bits next [integer!]
-			head? [logic!]
+			p		  [int-ptr!]
+			rec prev  [record!]
+			next c c0 [integer!]
+			head?	  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "externals/sweep"]]
 		
 		if used = tail-record [exit]					;-- early exit empty list
+		
+		#if debug? = yes [
+			if verbose > 0 [probe "externals: checking linked lists..."]
+			next: free									;-- verify integrity of free records list
+			c: 0
+			while [next <> tail-record][
+				c: c + 1
+				assert used <> next
+				rec: list + next
+				assert all [
+					rec/header and flag-mark = 0
+					rec/header and flag-free <> 0 
+				]
+				next: rec/next
+			]
+			if verbose > 0 [probe ["externals/free size: " c]]
+			c0: c
+
+			next: used									;-- verify integrity of used records list
+			c: 0
+			while [next <> tail-record][
+				c: c + 1
+				assert free <> next
+				rec: list + next
+				assert rec/header and flag-free = 0
+				assert next <> rec/next
+				next: rec/next
+			]
+			if verbose > 0 [probe ["externals/used size: " c]]
+			assert c0 + c = size
+		]
+
 		next: used
 		prev: null
 		until [
@@ -183,6 +215,7 @@ externals: context [
 			]
 			next = tail-record
 		]
+		;; TBD: add list shrinking if used/free too small
 	]
 	
 	init: func [][
