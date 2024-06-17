@@ -85,12 +85,13 @@ externals: context [
 	
 		rec: list + free
 		if rec/next = tail-record [
+			assert free < size
 			half: size
 			size: size * 2
 			list: as record! realloc as byte-ptr! list size * size? record!
 			format list + half half
-			free: half
-			rec/next: free
+			rec: list + free
+			rec/next: half
 		]
 		new: free
 		free: rec/next
