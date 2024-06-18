@@ -758,7 +758,7 @@ collector: context [
 			]
 			prev: frm
 			frm: as int-ptr! frm/value					;-- jump to next stack frame
-			any [null? frm  frm = as int-ptr! -1  frm >= system/stk-root]
+			any [null? frm  frm = as int-ptr! -1  frm >= system/stk-root  frm < prev]
 		]
 		memory/stk-tail: refs
 		nb: (as-integer refs - memory/stk-refs) >> 2 / 2
