@@ -19,6 +19,10 @@ _time_meter: declare time-meter!
 	]
 ]
 
+#define BASE_FACE_PAINTED [
+	BASE_FACE_INIT and (GetWindowLong hWnd wc-offset - 12) <> 0
+]
+
 init-base-face: func [
 	handle		[handle!]
 	parent		[integer!]
@@ -522,7 +526,8 @@ BaseWndProc: func [
 		WM_PAINT
 		WM_DISPLAYCHANGE [
 			if painting? [return 0]
-			LIMIT_RENDERING_RATE
+			if BASE_FACE_PAINTED [LIMIT_RENDERING_RATE]
+
 			if all [
 				(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) = 0	;-- not a layered window
 				0 <> GetWindowLong hWnd wc-offset		;-- linked with a face object
@@ -554,6 +559,8 @@ BaseWndProc: func [
 				]
 				painting?: no
 				#either draw-engine = 'GDI+ [][EndPaint hWnd :ps]
+				flags: GetWindowLong hWnd wc-offset - 12 
+				SetWindowLong hWnd wc-offset - 12 flags or BASE_FACE_INIT
 				return 0
 			]
 		]
@@ -933,6 +940,8 @@ update-base: func [
 	rc/left: 0 rc/top: 0 rc/right: 0 rc/bottom: 0	;-- empty RECT
 	surf/ReleaseDC this :rc
 	surf/Release this
+	flags: GetWindowLong hWnd wc-offset - 12 
+	SetWindowLong hWnd wc-offset - 12 flags or BASE_FACE_INIT
 ]]
 
 ;-- blends the image of every encountered visible layered window into the DC
