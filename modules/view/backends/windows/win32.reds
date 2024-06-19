@@ -598,7 +598,6 @@ Red/System [
 #define BASE_FACE_D2D		4
 #define BASE_FACE_IME		8
 #define PAIR_SIZE_FACET		10h
-#define BASE_FACE_INIT		20h
 
 BUTTON_IMAGELIST: alias struct! [
 	handle		[integer!]
