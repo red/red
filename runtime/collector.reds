@@ -758,7 +758,12 @@ collector: context [
 			]
 			prev: frm
 			frm: as int-ptr! frm/value					;-- jump to next stack frame
-			any [null? frm  frm = as int-ptr! -1  frm >= system/stk-root  frm < prev]
+			if frm < prev [								;-- if broken frames chain
+				slot: prev - 4
+				frm: as int-ptr! slot/value				;-- use last known parent frame pointer
+				if frm < prev [break]
+			]
+			any [null? frm  frm = as int-ptr! -1  frm >= system/stk-root]
 		]
 		memory/stk-tail: refs
 		nb: (as-integer refs - memory/stk-refs) >> 2 / 2

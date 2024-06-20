@@ -78,6 +78,7 @@ __print-debug-stack: func [
 		fun-base	[byte-ptr!]
 		nb			[integer!]
 		top frame	[int-ptr!]
+		prev slot	[int-ptr!]
 		s			[c-string!]
 		value lines	[integer!]
 		base 		[integer!]
@@ -164,7 +165,13 @@ __print-debug-stack: func [
 			print lf
 			lines: lines - 1
 		]
+		prev: frame
 		next-frame
+		if frame < prev [							;-- if broken frames linked list
+			slot: prev - 4
+			frame: as int-ptr! slot/value			;-- use last known parent frame pointer
+			if frame < prev [break]
+		]
 		any [null? frame frame = as int-ptr! -1]
 	]
 ]

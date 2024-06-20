@@ -2324,6 +2324,9 @@ make-profilable make target-class [
 	]
 	
 	emit-call-import: func [args [block!] fspec [block!] spec [block!] attribs [block! none!] /local cdecl?][
+		emit #{892D}								;-- MOV [***-last-red-frame], ebp	; save frame pointer for later frames chaining
+		emit-reloc-addr emitter/symbols/***-last-red-frame
+		
 		cdecl?: fspec/3 = 'cdecl
 		if all [compiler/variadic? args/1 not cdecl?][emit-variadic-data args]
 
@@ -2461,6 +2464,11 @@ make-profilable make target-class [
 
 		fspec: select compiler/functions name
 		attribs: compiler/get-attributes fspec/4
+		
+		cb?: any [
+			fspec/5 = 'callback
+			all [attribs any [find attribs 'cdecl find attribs 'stdcall]]
+		]
 			
 		emit #{55}									;-- PUSH ebp
 		emit #{89E5}								;-- MOV ebp, esp
@@ -2470,16 +2478,18 @@ make-profilable make target-class [
 		]
 		emit-push 0									;-- reserve slot for catch resume address
 		emit-push bitmap							;-- push the args/locals bitmap offset
+		if cb? [
+			emit #{FF35}							;-- PUSH [***-last-red-frame]
+			emit-reloc-addr emitter/symbols/***-last-red-frame
+			locals-offset: locals-offset + 4
+		]
 
 		locals-size: either pos: find locals /local [emitter/calc-locals-offsets pos][0]
 		
 		unless zero? locals-size [
 			emit-reserve-stack (round/to/ceiling locals-size stack-width) / stack-width
 		]
-		if any [
-			fspec/5 = 'callback
-			all [attribs any [find attribs 'cdecl find attribs 'stdcall]]
-		][
+		if cb? [
 			emit #{53}								;-- PUSH ebx
 			emit #{56}								;-- PUSH esi
 			emit #{57}								;-- PUSH edi
@@ -2489,6 +2499,7 @@ make-profilable make target-class [
 				emit #{81EB}						;-- SUB ebx, <offset>
 				emit to-bin32 emitter/tail-ptr + 1 - offset	;-- +1 adjustment for CALL first opcode
 			]
+			locals-offset: locals-offset - 4
 		]
 		reduce [locals-size 0]
 	]
@@ -2552,7 +2563,7 @@ make-profilable make target-class [
 				any [find attribs 'cdecl find attribs 'stdcall]
 			]
 		][
-			offset: locals-size + locals-offset
+			offset: locals-size + locals-offset + 4
 			emit #{8DA5}							;-- LEA esp, [ebp-<offset>]
 			emit to-bin32 negate offset + 12		;-- account for 3 saved regs
 			emit #{5F}								;-- POP edi

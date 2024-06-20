@@ -2840,6 +2840,12 @@ make-profilable make target-class [
 	]
 	
 	emit-call-import: func [args [block!] fspec [block!] spec [block!] attribs [block! none!] /local extra type][
+		emit-variable '***-last-red-frame
+			#{e59cc000}								;-- LDR ip, [ip]		; global
+			#{e79cc009}								;-- LDR ip, [ip, sb]	; PIC
+			none															; local
+		emit-i32 #{e58cb000}						;-- STR fp, [ip]		; save frame pointer for later frames chaining
+		
 		if all [compiler/variadic? args/1 args/1 <> #custom fspec/3 <> 'cdecl][
 			emit-variadic-data args
 		]
@@ -3090,6 +3096,13 @@ make-profilable make target-class [
 		
 		locals-offset: def-locals-offset			;@@ global state used in epilog
 		if cb? [
+			emit-variable '***-last-red-frame
+				#{e59cc000}							;-- LDR ip, [ip]		; global
+				#{e79cc009}							;-- LDR ip, [ip, sb]	; PIC
+				none														; local
+			emit-i32 #{e52dc004}					;-- PUSH {ip} 			; save frame pointer for later frames chaining
+			locals-offset: locals-offset + 4
+			
 			;-- d8-d15 do not need saving as they are not used for now
 			emit-i32 #{e92d07f0}					;-- STMFD sp!, {r4-r10}
 			locals-offset: locals-offset + 28		;-- 7 * 4
@@ -3110,6 +3123,8 @@ make-profilable make target-class [
 		unless zero? locals-size [
 			emit-reserve-stack (round/to/ceiling locals-size stack-width) / stack-width
 		]
+		if cb? [locals-offset: locals-offset - 4]
+		
 		reduce [locals-size any [args-nb 0]]
 	]
 

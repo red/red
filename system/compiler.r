@@ -4119,6 +4119,7 @@ system-dialect: make-profilable context [
 	]
 	
 	emit-main-prolog: has [name spec][
+		emitter/add-symbol '***-last-red-frame 0
 		either job/type = 'exe [
 			emitter/target/on-init
 		][												;-- wrap global code in a function
