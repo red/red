@@ -130,130 +130,345 @@ Red/System [
 	]
 ]
 
-#if OS = 'Linux [
+#switch GUI-engine [
+	native [
+		#switch OS [
+			Windows  [
+				#enum brush-type! [
+					BRUSH_TYPE_NORMAL
+					BRUSH_TYPE_TEXTURE
+				]
 
-	point2f!: alias struct! [
-		x		[float!]
-		y		[float!]
+				tagPAINTSTRUCT: alias struct! [
+					hdc			 [handle!]
+					fErase		 [integer!]
+					left		 [integer!]
+					top			 [integer!]
+					right		 [integer!]
+					bottom		 [integer!]
+					fRestore	 [integer!]
+					fIncUpdate	 [integer!]
+					rgbReserved1 [integer!]
+					rgbReserved2 [integer!]
+					rgbReserved3 [integer!]
+					rgbReserved4 [integer!]
+					rgbReserved5 [integer!]
+					rgbReserved6 [integer!]
+					rgbReserved7 [integer!]
+					rgbReserved8 [integer!]
+				]
+
+				PATHDATA: alias struct! [
+					count       [integer!]
+					points      [POINT_2F]
+					types       [byte-ptr!]
+				]
+
+				gradient!: alias struct! [
+					extra           [integer!]          		;-- used when pen width > 1
+					path-data       [PATHDATA]          		;-- preallocated for performance reasons
+					points-data     [tagPOINT]          		;-- preallocated for performance reasons
+					matrix			[integer!]
+					colors			[int-ptr!]
+					colors-pos		[float32-ptr!]
+					spread			[integer!]
+					type            [integer!]          		;-- gradient on fly (just before drawing figure)
+					count           [integer!]          		;-- gradient stops count
+					data            [tagPOINT]          		;-- figure coordinates
+					positions?      [logic!]            		;-- true if positions are defined, false otherwise
+					created?        [logic!]            		;-- true if gradient brush created, false otherwise
+					transformed?	[logic!]					;-- true if transformation applied
+				]
+
+				curve-info!: alias struct! [
+					type    [integer!]
+					control [tagPOINT]
+				]
+
+				arcPOINTS!: alias struct! [
+					start-x     [float!]
+					start-y     [float!]
+					end-x       [float!]
+					end-y       [float!]
+				]
+
+				other!: alias struct! [
+					gradient-pen			[gradient!]
+					gradient-fill			[gradient!]
+					gradient-pen?			[logic!]
+					gradient-fill?			[logic!]
+					matrix-elems			[float32-ptr!]		;-- elements of matrix allocated in draw-begin for performance reason
+					paint					[tagPAINTSTRUCT]
+					edges					[tagPOINT]			;-- polygone edges buffer
+					types					[byte-ptr!]			;-- point type buffer
+					last-point?				[logic!]
+					path-last-point			[tagPOINT]
+					prev-shape				[curve-info!]
+					connect-subpath			[integer!]
+					matrix-order			[integer!]
+					anti-alias?				[logic!]
+					GDI+?					[logic!]
+					D2D?					[logic!]
+					pattern-image-fill		[integer!]
+					pattern-image-pen		[integer!]
+				]
+
+			#either draw-engine = none [
+					sub-path!: alias struct! [
+						path			[integer!]
+						sink			[integer!]
+						last-pt-x		[float32!]
+						last-pt-y		[float32!]
+						shape-curve?	[logic!]
+						control-x		[float32!]
+						control-y		[float32!]
+					]
+
+					shadow!: alias struct! [
+						offset-x		[float32!]
+						offset-y		[float32!]
+						blur			[float32!]
+						spread			[float32!]
+						color			[integer!]
+						inset?			[logic!]
+						next			[shadow!]
+					]
+					matrix3x2!: alias struct! [
+						_11				[float32!]
+						_12				[float32!]
+						_21				[float32!]
+						_22				[float32!]
+						_31				[float32!]
+						_32				[float32!]
+					]
+
+					#define DRAW_STATE_DATA [
+						state			[this!]
+						pen				[this!]
+						brush			[this!]
+						pen-style		[this!]
+						text-format		[this!]
+						pen-type		[integer!]
+						brush-type		[integer!]
+						pen-color		[integer!]
+						brush-color		[integer!]
+						font-color		[integer!]
+						pen-join		[integer!]
+						pen-cap			[integer!]
+						pen-pattern		[float32-ptr!]
+						pen-pattern-cnt [integer!]
+						pen-grad-type	[integer!]
+						brush-grad-type	[integer!]
+						prev-pen-type	[integer!]
+						pen-width		[float32!]
+						pen-offset		[POINT_2F value]
+						brush-offset	[POINT_2F value]
+						clip-cnt		[integer!]
+						font-color?		[logic!]
+						font?			[logic!]
+						shadow?			[logic!]
+					]
+
+					draw-state!: alias struct! [
+						DRAW_STATE_DATA
+					]
+
+					draw-ctx!: alias struct! [
+						dc				[ptr-ptr!]
+						DRAW_STATE_DATA
+						target			[int-ptr!]
+						hwnd			[int-ptr!]			;-- Window's handle
+						image			[int-ptr!]			;-- original image handle
+						pre-order?		[logic!]			;-- matrix order, default pre-order for row-major vector
+						draw-shape?		[logic!]
+						sub				[sub-path! value]
+						shadows			[shadow! value]
+					]
+				][
+					draw-ctx!: alias struct! [
+						dc				[int-ptr!]			;-- OS drawing object
+						hwnd			[int-ptr!]			;-- Window's handle
+						pen				[integer!]
+						brush			[integer!]
+						pen-join		[integer!]
+						pen-cap			[integer!]
+						pen-width		[float32!]
+						pen-style		[integer!]
+						pen-color		[integer!]			;-- 00bbggrr format
+						brush-color		[integer!]			;-- 00bbggrr format
+						font-color		[integer!]
+						bitmap			[int-ptr!]
+						brushes			[int-ptr!]
+						graphics		[integer!]			;-- gdiplus graphics
+						gp-state		[integer!]
+						gp-pen			[integer!]			;-- gdiplus pen
+						gp-pen-type 	[brush-type!]		;-- gdiplus pen type (for texture, another set of transformation functions must be applied)
+						gp-pen-saved	[integer!]
+						gp-brush		[integer!]			;-- gdiplus brush
+						gp-brush-type 	[brush-type!]		;-- gdiplus brush type (for texture, another set of transformation functions must be applied)
+						gp-font			[integer!]			;-- gdiplus font
+						gp-font-brush	[integer!]
+						gp-matrix		[integer!]
+						gp-path			[integer!]
+						image-attr		[integer!]			;-- gdiplus image attributes
+						scale-ratio		[float32!]
+						pen?			[logic!]
+						brush?			[logic!]
+						on-image?		[logic!]			;-- drawing on image?
+						alpha-pen?		[logic!]
+						alpha-brush?	[logic!]
+						font-color?		[logic!]
+						other 			[other!]
+					]
+				]
+			]
+			macOS    [
+				CGAffineTransform!: alias struct! [
+					a		[float32!]
+					b		[float32!]
+					c		[float32!]
+					d		[float32!]
+					tx		[float32!]
+					ty		[float32!]
+				]
+
+				draw-ctx!: alias struct! [
+					raw				[int-ptr!]					;-- OS drawing object: CGContext
+					matrix          [CGAffineTransform! value]
+					ctx-matrix      [CGAffineTransform! value]
+					pen-join		[integer!]
+					pen-cap			[integer!]
+					pen-width		[float32!]
+					pen-style		[integer!]
+					pen-color		[integer!]					;-- 00bbggrr format
+					brush-color		[integer!]					;-- 00bbggrr format
+					font-attrs		[integer!]
+					colorspace		[integer!]
+					grad-pen		[integer!]
+					grad-type		[integer!]
+					grad-spread		[integer!]
+					grad-x1			[float32!]
+					grad-y1			[float32!]
+					grad-x2			[float32!]
+					grad-y2			[float32!]
+					grad-radius		[float32!]
+					grad-pos?		[logic!]
+					grad-pen?		[logic!]
+					grad-brush?		[logic!]
+					pen?			[logic!]
+					brush?			[logic!]
+					on-image?		[logic!]					;-- drawing on image?
+					rect-y			[float32!]
+					pattern-blk		[int-ptr!]
+					pattern-mode	[integer!]
+					pattern-ver		[integer!]
+					pattern-draw	[integer!]
+					pattern-release [integer!]
+					pattern-w		[float32!]
+					pattern-h		[float32!]
+					last-pt-x		[float32!]					;-- below used by shape
+					last-pt-y		[float32!]
+					control-x		[float32!]
+					control-y		[float32!]
+					path			[integer!]
+					shape-curve?	[logic!]
+				]
+			]
+			Linux    [
+				point2f!: alias struct! [
+					x		[float!]
+					y		[float!]
+				]
+
+				tagMATRIX: alias struct! [
+					xx		[float!]
+					yx		[float!]
+					xy		[float!]
+					yy		[float!]
+					x0		[float!]
+					y0		[float!]
+				]
+
+				gradient!: alias struct! [
+					on?				[logic!]
+					spread			[integer!]
+					type			[integer!]					;-- gradient on fly (just before drawing figure)
+					matrix-on?		[logic!]
+					matrix			[tagMATRIX value]
+					colors			[int-ptr!]					;-- always on
+					colors-pos		[float32-ptr!]				;-- always on
+					count			[integer!]					;-- gradient stops count
+					zero-base?		[logic!]
+					offset-on?		[logic!]
+					offset			[point2f! value]			;-- figure coordinates
+					offset2			[point2f! value]
+					focal-on?		[logic!]
+					focal			[point2f! value]
+					pattern-on?		[logic!]
+					pattern			[int-ptr!]
+				]
+
+				#define DRAW_STATE_DATA [
+					matrix-order	[integer!]
+					device-matrix	[tagMATRIX value]
+					pattern?		[logic!]
+					line-width?		[logic!]
+					pen-width		[float!]
+					pen-pattern		[float-ptr!]
+					pen-color		[integer!]					;-- 00bbggrr format
+					brush-color		[integer!]					;-- 00bbggrr format
+					font-color		[integer!]
+					font-attrs		[handle!]					;-- pango attrs for fonts
+					font-antialias  [integer!]					;-- cairo fonts antialias
+					grad-pen		[gradient! value]
+					grad-brush		[gradient! value]
+					pen?			[logic!]
+					brush?			[logic!]
+					on-image?		[logic!]
+				]
+
+				draw-state!: alias struct! [
+					DRAW_STATE_DATA
+				]
+
+				draw-ctx!: alias struct! [
+					cr				[handle!]
+					DRAW_STATE_DATA
+					font-opts		[handle!]
+					control-x		[float32!]
+					control-y		[float32!]
+					shape-curve?	[logic!]
+				]
+
+				layout-ctx!: alias struct! [
+					layout			[handle!]					;-- Only for rich-text
+					text			[c-string!]
+					attrs			[handle!]
+				]
+			]
+			#default [0]
+		]
 	]
-
-	tagMATRIX: alias struct! [
-		xx		[float!]
-		yx		[float!]
-		xy		[float!]
-		yy		[float!]
-		x0		[float!]
-		y0		[float!]
-	]
-
-	gradient!: alias struct! [
-		on?				[logic!]
-		spread			[integer!]
-		type			[integer!]								;-- gradient on fly (just before drawing figure)
-		matrix-on?		[logic!]
-		matrix			[tagMATRIX value]
-		colors			[int-ptr!]								;-- always on
-		colors-pos		[float32-ptr!]							;-- always on
-		count			[integer!]								;-- gradient stops count
-		zero-base?		[logic!]
-		offset-on?		[logic!]
-		offset			[point2f! value]						;-- figure coordinates
-		offset2			[point2f! value]
-		focal-on?		[logic!]
-		focal			[point2f! value]
-		pattern-on?		[logic!]
-		pattern			[int-ptr!]
-	]
-
-	#define DRAW_STATE_DATA [
-		matrix-order	[integer!]
-		device-matrix	[tagMATRIX value]
-		pattern?		[logic!]
-		line-width?		[logic!]
-		pen-width		[float!]
-		pen-pattern		[float-ptr!]
-		pen-color		[integer!]					;-- 00bbggrr format
-		brush-color		[integer!]					;-- 00bbggrr format
-		font-color		[integer!]
-		font-attrs		[handle!]					;-- pango attrs for fonts
-		font-antialias  [integer!]					;-- cairo fonts antialias
-		grad-pen		[gradient! value]
-		grad-brush		[gradient! value]
-		pen?			[logic!]
-		brush?			[logic!]
-		on-image?		[logic!]
-	]
-
-	draw-state!: alias struct! [
-		DRAW_STATE_DATA
-	]
-
-	draw-ctx!: alias struct! [
-		cr				[handle!]
-		DRAW_STATE_DATA
-		font-opts		[handle!]
-		control-x		[float32!]
-		control-y		[float32!]
-		shape-curve?	[logic!]
-	]
-
-	layout-ctx!: alias struct! [
-		layout			[handle!]					;-- Only for rich-text
-		text			[c-string!]
-		attrs			[handle!]
-	]
-]
-
-#if OS = 'macOS [
-	CGAffineTransform!: alias struct! [
-		a		[float32!]
-		b		[float32!]
-		c		[float32!]
-		d		[float32!]
-		tx		[float32!]
-		ty		[float32!]
-	]
-
-	draw-ctx!: alias struct! [
-		raw				[int-ptr!]					;-- OS drawing object: CGContext
-		matrix          [CGAffineTransform! value]
-		ctx-matrix      [CGAffineTransform! value]
-		pen-join		[integer!]
-		pen-cap			[integer!]
-		pen-width		[float32!]
-		pen-style		[integer!]
-		pen-color		[integer!]					;-- 00bbggrr format
-		brush-color		[integer!]					;-- 00bbggrr format
-		font-attrs		[integer!]
-		colorspace		[integer!]
-		grad-pen		[integer!]
-		grad-type		[integer!]
-		grad-spread		[integer!]
-		grad-x1			[float32!]
-		grad-y1			[float32!]
-		grad-x2			[float32!]
-		grad-y2			[float32!]
-		grad-radius		[float32!]
-		grad-pos?		[logic!]
-		grad-pen?		[logic!]
-		grad-brush?		[logic!]
-		pen?			[logic!]
-		brush?			[logic!]
-		on-image?		[logic!]					;-- drawing on image?
-		rect-y			[float32!]
-		pattern-blk		[int-ptr!]
-		pattern-mode	[integer!]
-		pattern-ver		[integer!]
-		pattern-draw	[integer!]
-		pattern-release [integer!]
-		pattern-w		[float32!]
-		pattern-h		[float32!]
-		last-pt-x		[float32!]					;-- below used by shape
-		last-pt-y		[float32!]
-		control-x		[float32!]
-		control-y		[float32!]
-		path			[integer!]
-		shape-curve?	[logic!]
+	test 	 []
+	GTK 	 []
+	terminal [
+		draw-state!: alias struct! [unused [integer!]]
+		draw-ctx!: alias struct! [
+			dc			[handle!]
+			x			[integer!]
+			y			[integer!]
+			left		[integer!]
+			top			[integer!]
+			right		[integer!]
+			bottom		[integer!]
+			pen-type	[integer!]
+			pen-color	[integer!]
+			brush-color	[integer!]
+			brush-type	[integer!]
+			font-color	[integer!]
+			font-color? [logic!]
+			flags		[integer!]
+		]
 	]
 ]
 
@@ -297,205 +512,32 @@ Red/System [
 	#define BFFM_SELCHANGED			2
 	#define BFFM_SETSELECTION		1127
 
-	#enum brush-type! [
-		BRUSH_TYPE_NORMAL
-		BRUSH_TYPE_TEXTURE
-	]
+	#define KEY_EVENT 				 			01h
+	#define MOUSE_EVENT 			 			02h
+	#define WINDOW_BUFFER_SIZE_EVENT 			04h
+	#define MENU_EVENT 				 			08h
+	#define FOCUS_EVENT 			 			10h
+	#define ENHANCED_KEY 			 			0100h
+	#define ENABLE_PROCESSED_INPUT				01h
+	#define ENABLE_LINE_INPUT 					02h
+	#define ENABLE_ECHO_INPUT 					04h
+	#define ENABLE_WINDOW_INPUT         		08h
+	#define ENABLE_QUICK_EDIT_MODE				40h
+	#define ENABLE_VIRTUAL_TERMINAL_INPUT		0200h
+	#define ENABLE_VIRTUAL_TERMINAL_PROCESSING	04h
+	#define DISABLE_NEWLINE_AUTO_RETURN 		08h
 
 	this!: alias struct! [vtbl [int-ptr!]]
 	com-ptr!: alias struct! [value [this!]]
 
-	tagPAINTSTRUCT: alias struct! [
-		hdc			 [handle!]
-		fErase		 [integer!]
-		left		 [integer!]
-		top			 [integer!]
-		right		 [integer!]
-		bottom		 [integer!]
-		fRestore	 [integer!]
-		fIncUpdate	 [integer!]
-		rgbReserved1 [integer!]
-		rgbReserved2 [integer!]
-		rgbReserved3 [integer!]
-		rgbReserved4 [integer!]
-		rgbReserved5 [integer!]
-		rgbReserved6 [integer!]
-		rgbReserved7 [integer!]
-		rgbReserved8 [integer!]
-	]
-	
 	POINT_2F: alias struct! [
 		x		[float32!]
 		y		[float32!]
 	]
 
-	PATHDATA: alias struct! [
-		count       [integer!]
-		points      [POINT_2F]
-		types       [byte-ptr!]
-	]
-
 	tagPOINT: alias struct! [
 		x		[integer!]
 		y		[integer!]	
-	]
-
-	gradient!: alias struct! [
-		extra           [integer!]                              ;-- used when pen width > 1
-		path-data       [PATHDATA]                              ;-- preallocated for performance reasons
-		points-data     [tagPOINT]                              ;-- preallocated for performance reasons
-		matrix			[integer!]
-		colors			[int-ptr!]
-		colors-pos		[float32-ptr!]
-		spread			[integer!]
-		type            [integer!]                              ;-- gradient on fly (just before drawing figure)
-		count           [integer!]                              ;-- gradient stops count
-		data            [tagPOINT]                              ;-- figure coordinates
-		positions?      [logic!]                                ;-- true if positions are defined, false otherwise
-		created?        [logic!]                                ;-- true if gradient brush created, false otherwise
-		transformed?	[logic!]								;-- true if transformation applied
-	]
-
-	curve-info!: alias struct! [
-		type    [integer!]
-		control [tagPOINT]
-	]
-
-	arcPOINTS!: alias struct! [
-		start-x     [float!]
-		start-y     [float!]
-		end-x       [float!]
-		end-y       [float!]
-	]
-
-	other!: alias struct! [
-		gradient-pen			[gradient!]
-		gradient-fill			[gradient!]
-		gradient-pen?			[logic!]
-		gradient-fill?			[logic!]
-		matrix-elems			[float32-ptr!]		;-- elements of matrix allocated in draw-begin for performance reason
-		paint					[tagPAINTSTRUCT]
-		edges					[tagPOINT]					;-- polygone edges buffer
-		types					[byte-ptr!]					;-- point type buffer
-		last-point?				[logic!]
-		path-last-point			[tagPOINT]
-		prev-shape				[curve-info!]
-		connect-subpath			[integer!]
-		matrix-order			[integer!]
-		anti-alias?				[logic!]
-		GDI+?					[logic!]
-		D2D?					[logic!]
-		pattern-image-fill		[integer!]
-		pattern-image-pen		[integer!]
-	]
-
-#either draw-engine = none [
-		sub-path!: alias struct! [
-			path			[integer!]
-			sink			[integer!]
-			last-pt-x		[float32!]
-			last-pt-y		[float32!]
-			shape-curve?	[logic!]
-			control-x		[float32!]
-			control-y		[float32!]
-		]
-
-		shadow!: alias struct! [
-			offset-x		[float32!]
-			offset-y		[float32!]
-			blur			[float32!]
-			spread			[float32!]
-			color			[integer!]
-			inset?			[logic!]
-			next			[shadow!]
-		]
-		matrix3x2!: alias struct! [
-			_11				[float32!]
-			_12				[float32!]
-			_21				[float32!]
-			_22				[float32!]
-			_31				[float32!]
-			_32				[float32!]
-		]
-
-		#define DRAW_STATE_DATA [
-			state			[this!]
-			pen				[this!]
-			brush			[this!]
-			pen-style		[this!]
-			text-format		[this!]
-			pen-type		[integer!]
-			brush-type		[integer!]
-			pen-color		[integer!]
-			brush-color		[integer!]
-			font-color		[integer!]
-			pen-join		[integer!]
-			pen-cap			[integer!]
-			pen-pattern		[float32-ptr!]
-			pen-pattern-cnt [integer!]
-			pen-grad-type	[integer!]
-			brush-grad-type	[integer!]
-			prev-pen-type	[integer!]
-			pen-width		[float32!]
-			pen-offset		[POINT_2F value]
-			brush-offset	[POINT_2F value]
-			clip-cnt		[integer!]
-			font-color?		[logic!]
-			font?			[logic!]
-			shadow?			[logic!]
-		]
-
-		draw-state!: alias struct! [
-			DRAW_STATE_DATA
-		]
-
-		draw-ctx!: alias struct! [
-			dc				[ptr-ptr!]
-			DRAW_STATE_DATA
-			target			[int-ptr!]
-			hwnd			[int-ptr!]			;-- Window's handle
-			image			[int-ptr!]			;-- original image handle
-			pre-order?		[logic!]			;-- matrix order, default pre-order for row-major vector
-			draw-shape?		[logic!]
-			sub				[sub-path! value]
-			shadows			[shadow! value]
-		]
-	][
-		draw-ctx!: alias struct! [
-			dc				[int-ptr!]			;-- OS drawing object
-			hwnd			[int-ptr!]			;-- Window's handle
-			pen				[integer!]
-			brush			[integer!]
-			pen-join		[integer!]
-			pen-cap			[integer!]
-			pen-width		[float32!]
-			pen-style		[integer!]
-			pen-color		[integer!]			;-- 00bbggrr format
-			brush-color		[integer!]			;-- 00bbggrr format
-			font-color		[integer!]
-			bitmap			[int-ptr!]
-			brushes			[int-ptr!]
-			graphics		[integer!]			;-- gdiplus graphics
-			gp-state		[integer!]
-			gp-pen			[integer!]			;-- gdiplus pen
-			gp-pen-type 	[brush-type!]		;-- gdiplus pen type (for texture, another set of transformation functions must be applied)
-			gp-pen-saved	[integer!]
-			gp-brush		[integer!]			;-- gdiplus brush
-			gp-brush-type 	[brush-type!]		;-- gdiplus brush type (for texture, another set of transformation functions must be applied)
-			gp-font			[integer!]			;-- gdiplus font
-			gp-font-brush	[integer!]
-			gp-matrix		[integer!]
-			gp-path			[integer!]
-			image-attr		[integer!]			;-- gdiplus image attributes
-			scale-ratio		[float32!]
-			pen?			[logic!]
-			brush?			[logic!]
-			on-image?		[logic!]			;-- drawing on image?
-			alpha-pen?		[logic!]
-			alpha-brush?	[logic!]
-			font-color?		[logic!]
-			other 			[other!]
-		]
 	]
 ][
 	#define O_RDONLY	0
@@ -540,6 +582,180 @@ Red/System [
 	]
 	
 	#define BFFM_SETEXPANDED		1130
+
+	#define OS_POLLIN 		1
+
+	#case [
+		any [OS = 'macOS OS = 'FreeBSD OS = 'NetBSD] [
+			#define TIOCGWINSZ		40087468h
+			#define TERM_TCSADRAIN	1
+			#define TERM_VTIME		18
+			#define TERM_VMIN		17
+
+			#define TERM_BRKINT		02h
+			#define TERM_INPCK		10h
+			#define TERM_ISTRIP		20h
+			#define TERM_ICRNL		0100h
+			#define TERM_IXON		0200h
+			#define TERM_OPOST		01h
+			#define TERM_CS8		0300h
+			#define TERM_ISIG		80h
+			#define TERM_ICANON		0100h
+			#define TERM_ECHO		08h	
+			#define TERM_IEXTEN		4000h
+
+			termios!: alias struct! [
+				c_iflag			[integer!]
+				c_oflag			[integer!]
+				c_cflag			[integer!]
+				c_lflag			[integer!]
+				c_cc1			[integer!]						;-- c_cc[20]
+				c_cc2			[integer!]
+				c_cc3			[integer!]
+				c_cc4			[integer!]
+				c_cc5			[integer!]
+				c_ispeed		[integer!]
+				c_ospeed		[integer!]
+			]
+		]
+		true [													;-- Linux
+			#define TIOCGWINSZ		5413h
+			#define TERM_VTIME		6
+			#define TERM_VMIN		7
+
+			#define TERM_BRKINT		2
+			#define TERM_INPCK		20
+			#define TERM_ISTRIP		40
+			#define TERM_ICRNL		400
+			#define TERM_IXON		2000
+			#define TERM_OPOST		1
+			#define TERM_CS8		60
+			#define TERM_ISIG		1
+			#define TERM_ICANON		2
+			#define TERM_ECHO		10
+			#define TERM_IEXTEN		100000
+
+			#either OS = 'Android [
+				#define TERM_TCSADRAIN	5403h
+
+				termios!: alias struct! [
+					c_iflag			[integer!]
+					c_oflag			[integer!]
+					c_cflag			[integer!]
+					c_lflag			[integer!]
+					;c_line			[byte!]
+					c_cc1			[integer!]					;-- c_cc[19]
+					c_cc2			[integer!]
+					c_cc3			[integer!]
+					c_cc4			[integer!]
+					c_cc5			[integer!]
+				]
+			][
+				#define TERM_TCSADRAIN	1
+
+				termios!: alias struct! [						;-- sizeof(termios) = 60
+					c_iflag			[integer!]
+					c_oflag			[integer!]
+					c_cflag			[integer!]
+					c_lflag			[integer!]
+					c_line			[byte!]
+					c_cc1			[byte!]						;-- c_cc[32]
+					c_cc2			[byte!]
+					c_cc3			[byte!]
+					c_cc4			[integer!]
+					c_cc5			[integer!]
+					c_cc6			[integer!]
+					c_cc7			[integer!]
+					c_cc8			[integer!]
+					c_cc9			[integer!]
+					c_cc10			[integer!]
+					pad				[integer!]					;-- for proper alignment
+					c_ispeed		[integer!]
+					c_ospeed		[integer!]
+				]
+			]
+		]
+	]
+
+	pollfd!: alias struct! [
+		fd				[integer!]
+		events			[integer!]						;-- high 16-bit: events
+	]													;-- low  16-bit: revents
+
+	winsize!: alias struct! [
+		rowcol			[integer!]
+		xypixel			[integer!]
+	]
+
+	#either OS = 'Android [
+		tcgetattr: func [
+			fd		[integer!]
+			termios [termios!]
+			return: [integer!]
+		][
+			ioctl fd 5401h as winsize! termios
+		]
+		tcsetattr: func [
+			fd			[integer!]
+			opt_actions [integer!]
+			termios 	[termios!]
+			return: 	[integer!]
+		][
+			ioctl fd opt_actions as winsize! termios
+		]
+	][
+		#import [
+		LIBC-file cdecl [
+			tcgetattr: "tcgetattr" [
+				fd		[integer!]
+				termios [termios!]
+				return: [integer!]
+			]
+			tcsetattr: "tcsetattr" [
+				fd			[integer!]
+				opt_actions [integer!]
+				termios 	[termios!]
+				return: 	[integer!]
+			]
+		]]
+	]
+
+	#import [
+		LIBC-file cdecl [
+			_dup: "dup" [
+				fd		[integer!]
+				return: [integer!]
+			]
+			isatty: "isatty" [
+				fd		[integer!]
+				return:	[integer!]
+			]
+			read: "read" [
+				fd		[integer!]
+				buf		[byte-ptr!]
+				size	[integer!]
+				return: [integer!]
+			]
+			write: "write" [
+				fd		[integer!]
+				buf		[byte-ptr!]
+				size	[integer!]
+				return: [integer!]
+			]
+			poll: "poll" [
+				fds		[pollfd!]
+				nfds	[integer!]
+				timeout [integer!]
+				return: [integer!]
+			]
+			ioctl: "ioctl" [
+				fd		[integer!]
+				request	[integer!]
+				ws		[winsize!]
+				return: [integer!]
+			]
+		]
+	]
 ]
 
 ;=== Image definitions ===

@@ -591,7 +591,7 @@ vector: context [
 				v1: integer/do-math-op v1 v2 type null
 				switch unit [
 					1 [p/value: as-byte v1]
-					2 [p/1: as-byte v1 >> 8 p/2: as-byte v1]
+					2 [p/1: as-byte v1 and FFh p/2: as-byte v1 >> 8]
 					4 [p4: as int-ptr! p p4/value: v1]
 				]
 				i:  i  + 1

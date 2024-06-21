@@ -366,4 +366,70 @@ image-utils: context [
 		]
 		p
 	]
+
+	#define YUYV_K1	91881
+	#define YUYV_K2 46792
+	#define YUYV_K3 21889
+	#define YUYV_K4 116129
+
+	#define YUYV_saturate(value min-val max-val) [
+		case [
+			value < min-val [value: min-val]
+			value > max-val [value: max-val]
+			true [0]
+		]
+	]
+
+	YUYV-to-RGB32: func [
+		width		[integer!]
+		height		[integer!]
+		src			[byte-ptr!]
+		out			[int-ptr!]
+		/local
+			x y		[integer!]
+			p		[byte-ptr!]
+			uf vf	[integer!]
+			R G B	[integer!]
+			Y1 U Y2 V [integer!]
+	][
+		p: src
+		y: 0
+		while [y < height][
+			x: 0
+			while [x < width][
+				Y1: as-integer p/1
+				U:  as-integer p/2
+				Y2: as-integer p/3
+				V:  as-integer p/4
+
+				uf: U - 128
+				vf: V - 128
+
+				R: Y1 + (YUYV_K1 * vf >> 16)
+				G: Y1 - (YUYV_K2 * vf >> 16) - (YUYV_K3 * uf >> 16)
+				B: Y1 + (YUYV_K4 * uf >> 16)
+
+				YUYV_saturate(R 0 255)
+				YUYV_saturate(G 0 255)
+				YUYV_saturate(B 0 255)
+
+				out/value: B << 16 or (G << 8) or R or FF000000h
+				out: out + 1
+
+				R: Y2 + (YUYV_K1 * vf >> 16)
+				G: Y2 - (YUYV_K2 * vf >> 16) - (YUYV_K3 * uf >> 16)
+				B: Y2 + (YUYV_K4 * uf >> 16)
+
+				YUYV_saturate(R 0 255)
+				YUYV_saturate(G 0 255)
+				YUYV_saturate(B 0 255)
+
+				out/value: B << 16 or (G << 8) or R or FF000000h
+				out: out + 1
+				p: p + 4
+				x: x + 2
+			]
+			y: y + 1
+		]
+	]
 ]

@@ -10,7 +10,6 @@ Red/System [
 	}
 ]
 
-#include %../keycodes.reds
 #include %cocoa.reds
 #include %selectors.reds
 #include %events.reds

@@ -53,7 +53,6 @@ write %build/bin/sources.r set-cache [
 				%console.red
 				%input.red
 				%POSIX.reds
-				%wcwidth.reds
 				%win32.reds
 				%settings.red
 			]
@@ -112,6 +111,7 @@ write %build/bin/sources.r set-cache [
 		%unicode.reds
 		%utils.reds
 		%vector2d.reds
+		%wcwidth.reds
 		%datatypes/ [
 			%action.reds
 			%block.reds
@@ -261,6 +261,34 @@ write %build/bin/sources.r set-cache [
 					%text-box.reds
 					%text-list.reds
 					%v4l2.reds
+				]
+				%terminal/ [
+					%widgets/ [
+						%base.reds
+						%button.reds
+						%checkbox.reds
+						%field.reds
+						%group-box.reds
+						%progress.reds
+						%radio.reds
+						%rich-text.reds
+						%text-list.reds
+					]
+					%ansi-parser.reds
+					%definitions.reds
+					%draw.reds
+					%events.reds
+					%font.reds
+					%gui.reds
+					%make-ui.red
+					%para.reds
+					%screen.reds
+					%styles.red
+					%text-box.reds
+					%timer.reds
+					%tty.reds
+					%utils.reds
+					%widget.reds
 				]
 				%test/ [
 					%draw.reds

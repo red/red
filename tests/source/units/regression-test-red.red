@@ -3670,6 +3670,13 @@ comment {
 		url: clear http://
 		--assert url/:file == skip url:/dir/file 4
 		
+	--test-- "#5505"
+		--assert (1, 1, 0) == to-point3D make point2D! 1
+
+	--test-- "#5509"
+		v5509a: make vector! [integer! 32 [3 8 4 6]]
+		v5509b: make vector! [integer! 32 [4 0 1 -9]]
+		--assert v5509a + v5509b == make vector! [integer! 16 [7 8 5 -3]]
 	
 ===end-group===
 

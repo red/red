@@ -13,7 +13,7 @@ Red [
 system/view/VID: context [
 	styles: #include %styles.red
 	extras: #switch config/GUI-engine [
-		;TUI		 []
+		terminal [#include %backends/terminal/styles.red]
 		test	 [#include %backends/test/styles.red]
 		#default [
 			#switch config/OS [
@@ -300,12 +300,14 @@ system/view/VID: context [
 	fetch-options: function [
 		face [object!] opts [object!] style [block!] spec [block!] css [block!] reactors [block!] styling? [logic!]
 		/no-skip
+		/tight
 		return: [block!]
 	][
 		opt?: 	 yes
 		divides: none
 		calc-y?: no
 		do-with: none
+		scaling: 1x1
 		
 		obj-spec!:	make typeset! [block! object!]
 		sel-spec!:	make typeset! [integer! float! percent!]
@@ -382,7 +384,12 @@ system/view/VID: context [
 							string!	 [unless opts/text  [opts/text:  value]]
 							logic!
 							date!
-							percent! [unless opts/data  [opts/data:  value] yes]
+							percent! [
+								either opts/image [scaling: value][
+									unless opts/data [opts/data: value]
+								]
+								yes
+							]
 							image!	 [unless opts/image [opts/image: value]]
 							tuple!	 [
 								either opts/color [
@@ -403,15 +410,15 @@ system/view/VID: context [
 							]
 							block!	 [
 								switch/default face/type [
-									panel	  [layout/parent/styles value face divides css]
-									group-box [layout/parent/styles value face divides css]
+									panel	  [layout/parent/styles/:tight value face divides css]
+									group-box [layout/parent/styles/:tight value face divides css]
 									tab-panel [
 										unless parse value [some [string! block!]][throw-error spec]
 										face/pane: make block! (length? value) / 2
 										opts/data: extract value 2
 										max-sz: 0x0
 										foreach p extract next value 2 [
-											layout/parent/styles reduce ['panel copy p] face divides css
+											layout/parent/styles/:tight reduce ['panel copy p] face divides css
 											p: last face/pane
 											max-sz: max max-sz p/offset + p/size
 										]
@@ -447,7 +454,7 @@ system/view/VID: context [
 				x: either zero? oi/size/x [1][oi/size/x]
 				as-pair opts/size/x opts/size * (oi/size/y / x)
 			][
-				oi/size
+				oi/size * scaling
 			]
 		]
 		all [											;-- preprocess RTD inputs
@@ -721,7 +728,7 @@ system/view/VID: context [
 					][face/size/y: h]
 					unless styling? [face/parent: panel]
 
-					spec: fetch-options face opts style spec local-styles reactors to-logic styling?
+					spec: fetch-options/:tight face opts style spec local-styles reactors to-logic styling?
 					if all [style/init not styling?][do bind style/init face]
 
 					either styling? [

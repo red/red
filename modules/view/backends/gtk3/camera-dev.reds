@@ -121,4 +121,39 @@ camera-dev: context [
 	][
 		v4l2/collect cb
 	]
+
+	get-size: func [
+		cfg		[integer!]
+		w		[int-ptr!]
+		h		[int-ptr!]
+		/local
+			config [v4l2-config!]
+	][
+		config: as v4l2-config! cfg
+		w/value: config/width
+		h/value: config/height
+	]
+
+	get-pixbuf: func [
+		cfg		[integer!]
+		return: [int-ptr!]
+		/local
+			config [v4l2-config!]
+			pixbuf [int-ptr!]
+			input	[handle!]
+			w h	   [integer!]
+	][
+		config: as v4l2-config! cfg
+
+		pixbuf: either config/format = V4L2_PIX_FMT_MJPEG [
+			input: g_memory_input_stream_new_from_data config/buffer config/bused null
+			gdk_pixbuf_new_from_stream input null null
+		][
+			w: config/width
+			h: config/height
+			gdk_pixbuf_new 0 yes 8 w h
+		]
+		image-utils/YUYV-to-RGB32 w h config/buffer as int-ptr! gdk_pixbuf_get_pixels pixbuf
+		pixbuf
+	]
 ]

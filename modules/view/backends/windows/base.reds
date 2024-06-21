@@ -11,6 +11,14 @@ Red/System [
 ]
 
 painting?: no
+last-painted-base: as handle! 0
+_time_meter: declare time-meter!
+
+#define LIMIT_RENDERING_RATE [
+	if (as float32! 16.6) > time-meter/elapse _time_meter [		;-- limit to 60 FPS
+		return 0
+	]
+]
 
 init-base-face: func [
 	handle		[handle!]
@@ -464,6 +472,7 @@ BaseWndProc: func [
 		ps		[tagPAINTSTRUCT value]
 ][
 	switch msg [
+		WM_NCCREATE [last-painted-base: hWnd]
 		WM_MOUSEACTIVATE [
 			flags: GetWindowLong hWnd GWL_EXSTYLE
 			if flags and WS_EX_LAYERED > 0 [
@@ -503,6 +512,7 @@ BaseWndProc: func [
 				(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) <> 0
 				0 <> GetWindowLong hWnd wc-offset + 4
 			][
+				platform/Sleep 16
 				update-base hWnd null null get-face-values hWnd
 			][
 				InvalidateRect hWnd null 1
@@ -515,10 +525,14 @@ BaseWndProc: func [
 		WM_PAINT
 		WM_DISPLAYCHANGE [
 			if painting? [return 0]
+			if layered-win? last-painted-base [LIMIT_RENDERING_RATE]
+
 			if all [
 				(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) = 0	;-- not a layered window
 				0 <> GetWindowLong hWnd wc-offset		;-- linked with a face object
 			][
+				last-painted-base: hWnd
+
 				#either draw-engine = 'GDI+ [][BeginPaint hWnd :ps]
 				painting?: yes
 				draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
@@ -907,6 +921,7 @@ update-base: func [
 	bf/AlphaFormat: as-byte 1
 	flags: 2
 
+	last-painted-base: hWnd
 	either TYPE_OF(cmds) = TYPE_BLOCK [
 		do-draw hWnd null cmds yes no no yes
 	][

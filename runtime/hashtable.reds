@@ -19,6 +19,20 @@ Red/System [
 
 array: context [
 
+	make: func [
+		sz		[integer!]
+		unit	[integer!]
+		return:	[node!]
+		/local
+			node [node!]
+			s	 [series!]
+	][
+		node: alloc-bytes sz * unit
+		s: as series! node/value
+		s/flags: s/flags and flag-unit-mask or unit
+		node
+	]
+
 	length?: func [
 		node	[node!]
 		return: [integer!]
@@ -26,7 +40,7 @@ array: context [
 			s	[series!]
 	][
 		s: as series! node/value
-		as-integer s/tail - s/offset
+		(as-integer s/tail - s/offset) >> (log-b GET_UNIT(s))
 	]
 
 	clear: func [
@@ -36,6 +50,74 @@ array: context [
 	][
 		s: as series! node/value
 		s/tail: s/offset
+	]
+
+	clear-at: func [
+		node	[node!]
+		offset	[integer!]			;-- 1-based index
+		/local
+			s	[series!]
+	][
+		s: as series! node/value
+		s/tail: as cell! (as byte-ptr! s/offset) + (offset - 1 << (log-b GET_UNIT(s)))
+	]
+
+	copy: func [
+		node	[node!]
+		return: [node!]
+	][
+		copy-series as series! node/value
+	]
+
+	get-ptr: func [
+		node	[node!]
+		return: [byte-ptr!]
+		/local
+			s	[series!]
+	][
+		s: as series! node/value
+		as byte-ptr! s/offset
+	]
+
+	append-byte: func [
+		node	[node!]
+		val		[byte!]
+		/local
+			s	[series!]
+			p	[byte-ptr!]
+	][
+		s: as series! node/value
+		p: alloc-tail-unit s size? byte!
+		p/value: val
+	]
+
+	pick-byte: func [
+		node		[node!]
+		idx			[integer!]		;-- 1-based index
+		return:		[byte!]
+		/local
+			s		[series!]
+			p		[byte-ptr!]
+	][
+		s: as series! node/value
+		p: as byte-ptr! s/offset
+		assert p + idx - 1 < as byte-ptr! s/tail
+		p/idx
+	]
+
+	append-bytes: func [
+		node	[node!]
+		data	[byte-ptr!]
+		len		[integer!]
+		return: [byte-ptr!]
+		/local
+			s	[series!]
+			p	[byte-ptr!]
+	][
+		s: as series! node/value
+		p: alloc-tail-unit s len
+		copy-memory p data len
+		p
 	]
 
 	append-int: func [
@@ -99,6 +181,34 @@ array: context [
 		p/value: val
 	]
 
+	insert-ptr: func [
+		node		[node!]
+		ptr			[int-ptr!]
+		offset		[integer!]
+		/local
+			s		[series!]
+			p		[byte-ptr!]
+			pp		[ptr-ptr!]
+			unit	[integer!]
+	][
+		s: as series! node/value
+		unit: size? int-ptr!
+
+		if ((as byte-ptr! s/tail) + unit) > ((as byte-ptr! s + 1) + s/size) [
+			s: expand-series s 0
+		]
+		p: (as byte-ptr! s/offset) + (offset << (log-b unit))
+
+		move-memory		;-- make space
+			p + unit
+			p
+			as-integer (as byte-ptr! s/tail) - p
+
+		pp: as ptr-ptr! p
+		pp/value: ptr
+		s/tail: as cell! (as byte-ptr! s/tail) + unit
+	]
+
 	find-ptr: func [
 		node	[node!]
 		val		[int-ptr!]
@@ -150,6 +260,16 @@ array: context [
 		p: p + idx - 1
 		assert p < as ptr-ptr! s/tail
 		p/value: val
+	]
+
+	remove-ptr: func [
+		node	[node!]
+		val		[int-ptr!]
+		/local
+			n	[integer!]
+	][
+		n: find-ptr node val
+		if n <> -1 [remove-at node n size? int-ptr!]
 	]
 
 	remove-at: func [

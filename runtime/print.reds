@@ -152,6 +152,8 @@ dyn-print: context [
 			size	[integer!]
 			unit	[integer!]
 	][
+		#if GUI-engine = 'terminal [exec/gui/back-to-console]
+
 		series: GET_BUFFER(str)
 		unit: GET_UNIT(series)
 		offset: (as byte-ptr! series/offset) + (str/head << (log-b unit))
@@ -179,5 +181,6 @@ dyn-print: context [
 			]
 		]
 		fflush 0
+		#if GUI-engine = 'terminal [exec/gui/enter-tui]
 	]]
 ]

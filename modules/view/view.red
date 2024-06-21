@@ -815,6 +815,7 @@ show: function [
 			clear pending
 		]
 		if face/state/2 <> 0 [system/view/platform/update-view face]
+		obj: face/state/1
 	][
 		new?: yes
 		
@@ -883,7 +884,7 @@ show: function [
 	if all [new? object? face/actors in face/actors 'on-created][
 		do-safe [face/actors/on-created face none]		;@@ only called once
 	]
-	if all [new? face/type = 'window face/visible?][
+	if all [face/type = 'window face/visible?][
 		system/view/platform/show-window obj
 	]
 	show?
@@ -1065,6 +1066,7 @@ get-focusable: function [
 	faces [block!]	"Position to start from in a face's pane"
 	/back			"Search backward"
 ][
+	origin: faces
 	checks: [
 		f/visible?
 		f/enabled?
@@ -1102,6 +1104,7 @@ get-focusable: function [
 	faces: find/same p/parent/pane p
 	p: faces/1
 	either p/type = 'window [
+		if same? p/pane origin [return origin/1]
 		get-focusable/:back either back [tail p/pane][p/pane] ;-- bounce down from window face
 	][
 		if p/parent/type = 'tab-panel [
@@ -1409,7 +1412,7 @@ insert-event-func 'tab function [face event][
 		unless back?: to-logic find event/flags 'SHIFT [
 			faces: either all [pane: get-face-pane face not empty? pane][pane][next faces]
 		]
-		set-focus any [
+		new: any [
 			all [
 				opt: face/options
 				any [
@@ -1419,7 +1422,21 @@ insert-event-func 'tab function [face event][
 			]
 			apply :get-focusable [faces /back back?]
 		]
+		unless same? new face [set-focus new]
 		return 'stop
 	]
 	event
+]
+
+#if config/GUI-engine = 'terminal [
+	;-- ESC key handler
+	insert-event-func 'esc function [face event][
+		if all [
+			event/type = 'key
+			event/key = #"^["
+		][
+			unview/all
+			'stop
+		]
+	]
 ]

@@ -371,7 +371,10 @@ Red/System [
 #define BST_PUSHED			4
 #define BST_FOCUS			8
 
+#define VK_BACK 			08h
 #define VK_TAB				09h
+#define VK_CLEAR 			0Ch
+#define VK_RETURN 			0Dh
 #define VK_SHIFT			10h
 #define VK_CONTROL			11h
 #define VK_MENU				12h
@@ -1101,6 +1104,14 @@ XFORM!: alias struct! [
 		GetConsoleWindow: "GetConsoleWindow" [
 			return:			[int-ptr!]
 		]
+        QueryPerformanceFrequency: "QueryPerformanceFrequency" [
+            lpFrequency [LARGE_INTEGER]
+            return:     [logic!]
+        ]
+        QueryPerformanceCounter: "QueryPerformanceCounter" [
+            lpCount     [LARGE_INTEGER]
+            return:     [logic!]
+        ]
 	]
 	"User32.dll" stdcall [
 		GetCursorPos: "GetCursorPos" [
@@ -1551,6 +1562,7 @@ XFORM!: alias struct! [
 		SetWindowText: "SetWindowTextW" [
 			hWnd		[handle!]
 			lpString	[c-string!]
+			return:		[integer!]
 		]
 		GetWindowText: "GetWindowTextW" [
 			hWnd		[handle!]
@@ -3007,4 +3019,60 @@ to-gdiplus-color-fixed: func [
 	r: to-gdiplus-color color
 	if r >>> 24 = FFh [r: r xor 01000000h]
 	r
+]
+
+LARGE_INTEGER: alias struct! [
+    LowPart     [integer!]
+    HighPart    [integer!]
+]
+
+time-meter!: alias struct! [
+    base [LARGE_INTEGER value]
+]
+
+sub64: func [
+    a       [LARGE_INTEGER]
+    b       [LARGE_INTEGER]
+    return: [integer!]
+][
+    ;-- mov edx, [ebp + 8]
+    ;-- mov ecx, [ebp + 12]
+    ;-- mov eax, [edx]
+    ;-- mov edx, [edx + 4]
+    ;-- sub eax, [ecx]
+    ;-- sbb edx, [ecx + 4]
+    #inline [
+        #{8B55088B4D0C8B028B52042B011B5104}
+        return: [integer!]
+    ]
+]
+
+time-meter: context [
+    freq: 0
+
+    init: func [/local t [LARGE_INTEGER value]][
+        QueryPerformanceFrequency :t
+        freq: t/LowPart
+    ]
+
+    start: func [t [time-meter!]][
+        if zero? freq [init]
+        QueryPerformanceCounter t/base
+    ]
+
+    elapse: func [
+        t       [time-meter!]
+        return: [float32!]      ;-- millisecond
+        /local
+        	t1  [LARGE_INTEGER value]
+            d   [integer!]
+    ][
+        QueryPerformanceCounter t1
+        d: sub64 t1 t/base
+        if d < 0 [
+	        d: 7FFFFFFFh
+	        start t
+	    ]
+        (as float32! d) * (as float32! 1e3) / (as float32! freq)
+    ]
 ]
