@@ -473,7 +473,7 @@ free-handles: func [
 	free-color-provider widget
 	free-font-provider widget
 	rate: values + FACE_OBJ_RATE
-	if TYPE_OF(rate) <> TYPE_NONE [change-rate widget none-value]
+	if TYPE_OF(rate) <> TYPE_NONE [remove-widget-timer widget]
 
 	pane: as red-block! values + FACE_OBJ_PANE
 	if TYPE_OF(pane) = TYPE_BLOCK [
@@ -737,6 +737,7 @@ init: func [][
 	#if type = 'exe [set-env-theme]
 	set-app-theme "box, button.text-button {min-width: 1px; min-height: 1px;}" yes
 	collector/register as int-ptr! :on-gc-mark
+	font-ext-type: externals/register "font" as-integer :delete-font
 ]
 
 get-symbol-name: function [
@@ -788,22 +789,16 @@ remove-all-timers: func [
 	/local
 		widget_	[handle!]
 		pane	[red-block!]
-		type	[red-word!]
-		sym		[integer!]
 		face	[red-object!]
 		tail	[red-object!]
 		values	[red-value!]
 		rate	[red-value!]
 ][
-	remove-widget-timer widget
 	values: get-face-values widget
-	type: 	as red-word! values + FACE_OBJ_TYPE
 	pane: 	as red-block! values + FACE_OBJ_PANE
 	rate:	 values + FACE_OBJ_RATE
 
-	change-rate widget none-value
-
-	sym: 	symbol/resolve type/symbol
+	if TYPE_OF(rate) <> TYPE_NONE [remove-widget-timer widget]
 
 	if all [TYPE_OF(pane) = TYPE_BLOCK 0 <> block/rs-length? pane] [
 		face: as red-object! block/rs-head pane
@@ -1676,7 +1671,7 @@ OS-show-window: func [
 		any [window-ready? n = 10000]
 	]
 	window-ready?: no
-	set-selected-focus win
+	;set-selected-focus win
 ]
 
 set-buffer: func [
@@ -2232,9 +2227,6 @@ OS-destroy-view: func [
 
 	obj: as red-object! values + FACE_OBJ_PARA
 	if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj PARA_OBJ_PARENT]
-
-	;; TODO: This can be useless now!
-	remove-all-timers handle
 
 	free-handles handle no
 ]
