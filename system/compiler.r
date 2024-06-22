@@ -4119,12 +4119,12 @@ system-dialect: make-profilable context [
 	]
 	
 	emit-main-prolog: has [name spec][
-		emitter/add-symbol '***-last-red-frame 0
 		either job/type = 'exe [
 			emitter/target/on-init
 		][												;-- wrap global code in a function
 			emit-func-prolog '***-boot-rs
 		]
+		emitter/target/last-red-frame: emitter/store-value none 0 [integer!]
 	]
 
 	comp-start: has [script][
@@ -4354,7 +4354,7 @@ system-dialect: make-profilable context [
 				opts/runtime?
 			][
 				comp-start								;-- init libC properly
-			]		
+			]
 			if opts/runtime? [
 				comp-runtime-prolog to logic! loaded all [loaded job-data/3]
 			]

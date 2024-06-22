@@ -682,15 +682,9 @@ crypto: context [
 	true [											;-- macOS,Android,Syllable,FreeBSD,Linux-ARM
 		;-- Using OpenSSL Crypto library
 		#switch OS [
-			macOS [
-				#define LIBCRYPTO-file "libcrypto.dylib"
-			]
-			FreeBSD [
-				#define LIBCRYPTO-file "libcrypto.so.111"
-			]
-			NetBSD [
-				#define LIBCRYPTO-file "libcrypto.so"
-			]
+			macOS	 [#define LIBCRYPTO-file "libcrypto.dylib"]
+			FreeBSD  [#define LIBCRYPTO-file "libcrypto.so.111"]
+			NetBSD	 [#define LIBCRYPTO-file "libcrypto.so"]
 			#default [
 				#switch config-name [
 					RPi		  [#define LIBCRYPTO-file "libcrypto.so.1.1"]

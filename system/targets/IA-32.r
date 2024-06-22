@@ -2324,8 +2324,12 @@ make-profilable make target-class [
 	]
 	
 	emit-call-import: func [args [block!] fspec [block!] spec [block!] attribs [block! none!] /local cdecl?][
-		emit #{892D}								;-- MOV [***-last-red-frame], ebp	; save frame pointer for later frames chaining
-		emit-reloc-addr emitter/symbols/***-last-red-frame
+		either PIC? [
+			emit #{89AB}							;-- MOV dword [ebx+disp], ebp	; PIC
+		][
+			emit #{892D}							;-- MOV [last-red-frame], ebp	; global
+		]
+		emit-reloc-addr last-red-frame/2			;-- save frame pointer for later frames chaining
 		
 		cdecl?: fspec/3 = 'cdecl
 		if all [compiler/variadic? args/1 not cdecl?][emit-variadic-data args]
@@ -2352,6 +2356,13 @@ make-profilable make target-class [
 		cdecl?: fspec/3 = 'cdecl
 		
 		either routine [
+			either PIC? [
+				emit #{89AB}							;-- MOV dword [ebx+disp], ebp	; PIC
+			][
+				emit #{892D}							;-- MOV [last-red-frame], ebp	; global
+			]
+			emit-reloc-addr last-red-frame/2			;-- save frame pointer for later frames chaining
+
 			either 'local = last fspec [
 				name: pick tail fspec -2
 				either find form name slash [
@@ -2445,7 +2456,7 @@ make-profilable make target-class [
 	emit-close-catch: func [offset [integer!] global [logic!] callback? [logic!]][
 		if verbose >= 3 [print ">>>emitting CATCH epilog"]
 		offset: offset + (8 + 8 + 4)				;-- account for the 2 catch slots + 2 saved slots + bitmap slot
-		if callback? [offset: offset + 12]			;-- account for ebx,esi,edi saving slots
+		if callback? [offset: offset + 12 + 4]		;-- account for ebx,esi,edi saving slots + frames chaining slot
 		
 		either offset > 127 [
 			emit #{89EC}							;-- MOV esp, ebp
@@ -2479,8 +2490,12 @@ make-profilable make target-class [
 		emit-push 0									;-- reserve slot for catch resume address
 		emit-push bitmap							;-- push the args/locals bitmap offset
 		if cb? [
-			emit #{FF35}							;-- PUSH [***-last-red-frame]
-			emit-reloc-addr emitter/symbols/***-last-red-frame
+			either PIC? [
+				emit #{6A00}						;-- PUSH 0		; placeholder
+			][
+				emit #{FF35}						;-- PUSH [last-red-frame]
+				emit-reloc-addr last-red-frame/2
+			]
 			locals-offset: locals-offset + 4
 		]
 
@@ -2498,6 +2513,10 @@ make-profilable make target-class [
 				offset: emit-get-pc/ebx
 				emit #{81EB}						;-- SUB ebx, <offset>
 				emit to-bin32 emitter/tail-ptr + 1 - offset	;-- +1 adjustment for CALL first opcode
+				
+				emit #{8D83}						;-- LEA eax, [ebx+<last-red-frame>]
+				emit-reloc-addr last-red-frame/2
+				emit #{8945F0}						;-- MOV [ebp-10h], eax
 			]
 			locals-offset: locals-offset - 4
 		]
@@ -2563,7 +2582,7 @@ make-profilable make target-class [
 				any [find attribs 'cdecl find attribs 'stdcall]
 			]
 		][
-			offset: locals-size + locals-offset + 4
+			offset: locals-size + locals-offset + 4 ;-- account for frames chaining slot
 			emit #{8DA5}							;-- LEA esp, [ebp-<offset>]
 			emit to-bin32 negate offset + 12		;-- account for 3 saved regs
 			emit #{5F}								;-- POP edi

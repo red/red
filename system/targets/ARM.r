@@ -925,6 +925,19 @@ make-profilable make target-class [
 			emit-i32 join #{e28dd0}	to-bin8 size	;-- ADD sp, sp, size ; 8-bit displacement
 		]
 	]
+	
+	emit-frame-chaining: func [/store /push /local spec][
+		spec: last-red-frame/2
+		pools/collect/spec/with 0 spec #{e59fc000}	;-- MOV ip, #(last-red-frame)
+		if PIC? [emit-i32 #{e08cc009}]				;-- ADD ip, sb
+		case [
+			store [emit-i32 #{e58cb000}]			;-- STR fp, [ip]	; save frame pointer for later frames chaining	
+			push  [
+				emit-i32 #{e59cc000}				;-- LDR ip, [ip]
+				emit-i32 #{e92d1000}				;-- PUSH {ip} 		; push frame pointer on stack
+			]
+		]
+	]
 
 	emit-casting: func [value [object!] alt? [logic!] /local old type][
 		if value/keep? [exit]
@@ -2840,12 +2853,7 @@ make-profilable make target-class [
 	]
 	
 	emit-call-import: func [args [block!] fspec [block!] spec [block!] attribs [block! none!] /local extra type][
-		emit-variable '***-last-red-frame
-			#{e59cc000}								;-- LDR ip, [ip]		; global
-			#{e79cc009}								;-- LDR ip, [ip, sb]	; PIC
-			none															; local
-		emit-i32 #{e58cb000}						;-- STR fp, [ip]		; save frame pointer for later frames chaining
-		
+		emit-frame-chaining/store
 		if all [compiler/variadic? args/1 args/1 <> #custom fspec/3 <> 'cdecl][
 			emit-variadic-data args
 		]
@@ -2865,6 +2873,7 @@ make-profilable make target-class [
 		/local extra cb?
 	][
 		either routine [							;-- test for function! pointer case
+			emit-frame-chaining/store
 			if cb?: any [
 				fspec/5 = 'callback
 				all [attribs any [find attribs 'cdecl find attribs 'stdcall]]
@@ -3096,11 +3105,7 @@ make-profilable make target-class [
 		
 		locals-offset: def-locals-offset			;@@ global state used in epilog
 		if cb? [
-			emit-variable '***-last-red-frame
-				#{e59cc000}							;-- LDR ip, [ip]		; global
-				#{e79cc009}							;-- LDR ip, [ip, sb]	; PIC
-				none														; local
-			emit-i32 #{e52dc004}					;-- PUSH {ip} 			; save frame pointer for later frames chaining
+			emit-frame-chaining/push
 			locals-offset: locals-offset + 4
 			
 			;-- d8-d15 do not need saving as they are not used for now
@@ -3161,7 +3166,7 @@ make-profilable make target-class [
 				any [find attribs 'cdecl find attribs 'stdcall]
 			]
 		][
-			emit-i32 join #{e24bd0} to-bin8 locals-offset ;-- SUB sp, fp, offset
+			emit-i32 join #{e24bd0} to-bin8 locals-offset + 4 ;-- SUB sp, fp, offset  (account for frames chaining slot)
 			if all [slots fspec/3 = 'cdecl][
 				hf?: compiler/job/ABI = 'hard-float
 				either all [
