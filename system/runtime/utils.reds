@@ -10,6 +10,18 @@ Red/System [
 	}
 ]
 
+#define BACK_TO_CONSOLE [
+	#if any [OS = 'macOS OS = 'Windows OS = 'Linux][
+		#if GUI-engine = 'terminal [exec/gui/back-to-console]
+	]	
+]
+
+#define ENTER_TUI [
+	#if any [OS = 'macOS OS = 'Windows OS = 'Linux][
+		#if GUI-engine = 'terminal [exec/gui/enter-tui]
+	]
+]
+
 ;-------------------------------------------
 ;-- Print a given number of characters at max from a c-string
 ;-------------------------------------------
@@ -72,8 +84,7 @@ _print: func [
 		s		 [c-string!]
 		c		 [byte!]
 ][
-	#if GUI-engine = 'terminal [exec/gui/back-to-console]
-
+	BACK_TO_CONSOLE
 	until [
 		switch list/type [
 			type-logic!	   [prin either as-logic list/value ["true"]["false"]]
@@ -112,7 +123,7 @@ _print: func [
 		zero? count
 	]
 	fflush 0
-	#if GUI-engine = 'terminal [exec/gui/enter-tui]
+	ENTER_TUI
 ]
 
 ;-------------------------------------------
