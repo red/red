@@ -3105,6 +3105,11 @@ make-profilable make target-class [
 		
 		locals-offset: def-locals-offset			;@@ global state used in epilog
 		if cb? [
+			if PIC? [
+				emit-i32 #{e1a0900f}				;-- MOV sb, pc
+				pools/collect emitter/tail-ptr + 1 + 2 ;-- +1 adjustment for CALL first opcode
+				emit-i32 #{e0499000}				;-- SUB sb, r0
+			]
 			emit-frame-chaining/push
 			locals-offset: locals-offset + 4
 			
@@ -3115,11 +3120,6 @@ make-profilable make target-class [
 			if all [fspec/3 = 'cdecl <ret-ptr> = emitter/stack/1][
 				locals-offset: locals-offset + 4
 				emit-i32 #{e92d0001}				;-- PUSH {r0} ; save optional return struct pointer
-			]
-			if PIC? [
-				emit-i32 #{e1a0900f}				;-- MOV sb, pc
-				pools/collect emitter/tail-ptr + 1 + 2 ;-- +1 adjustment for CALL first opcode
-				emit-i32 #{e0499000}				;-- SUB sb, r0
 			]
 		]
 		
