@@ -1490,12 +1490,12 @@ make-profilable make target-class [
 					]
 				][
 					either offset: emitter/local-offset? value [
+						emit-load-local #{e3000000} abs offset	;-- MOV r0, offset
 						emit-i32 either negative? offset [
-							#{e24b00}					;-- SUB r0, fp, n
+							#{e04b0000}				;-- SUB r0, fp, r0
 						][
-							#{e28b00}					;-- ADD r0, fp, n
+							#{e08b0000}				;-- ADD r0, fp, r0
 						]
-						emit-i32 to-bin8 abs offset
 					][
 						pools/collect/spec 0 original
 						if PIC? [emit-i32 #{e0800009}]	;-- ADD r0, sb
