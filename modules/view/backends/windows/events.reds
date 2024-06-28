@@ -598,7 +598,7 @@ make-event: func [
 		EVT_MIDDLE_UP
 		EVT_DBL_CLICK
 		EVT_WHEEL [
-			gui-evt/flags: flags
+			gui-evt/flags: flags or check-extra-keys no
 		]
 		EVT_CLICK [
 			gui-evt/flags: check-extra-keys yes
@@ -1706,7 +1706,7 @@ process: func [
 		word   [red-word!]
 		over?  [logic!]
 ][
-	flags: decode-down-flags msg/wParam
+	flags: (decode-down-flags msg/wParam) or check-extra-keys yes
 	hWnd: msg/hWnd
 	switch msg/msg [
 		WM_MOUSEMOVE [
