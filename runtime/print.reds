@@ -152,7 +152,7 @@ dyn-print: context [
 			size	[integer!]
 			unit	[integer!]
 	][
-		#if GUI-engine = 'terminal [exec/gui/back-to-console]
+		BACK_TO_CONSOLE
 
 		series: GET_BUFFER(str)
 		unit: GET_UNIT(series)
@@ -181,6 +181,6 @@ dyn-print: context [
 			]
 		]
 		fflush 0
-		#if GUI-engine = 'terminal [exec/gui/enter-tui]
+		ENTER_TUI
 	]]
 ]
