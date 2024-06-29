@@ -748,9 +748,10 @@ system/view/platform: context [
 		ownership/check as red-value! image words/_poke as red-value! image -1 -1
 	]
 
-	draw-face: routine [face [object!] cmds [block!] /local int [red-integer!]][
-		int: as red-integer! (object/get-values face) + gui/FACE_OBJ_DRAW
-		gui/OS-draw-face as draw-ctx! int/value cmds
+	draw-face: routine [face [object!] cmds [block!] /local h [handle!] flags [integer!]][
+		flags: gui/get-flags as red-block! (object/get-values face) + gui/FACE_OBJ_FLAGS
+		h: gui/face-handle? face
+		if h <> null [gui/OS-draw-face h cmds flags]
 	]
 
 	do-event-loop: routine [no-wait? [logic!] /local bool [red-logic!]][

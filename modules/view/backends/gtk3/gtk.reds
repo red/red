@@ -3628,6 +3628,7 @@ camera-pixbuf:		g_quark_from_string "camera-pixbuf"
 base-buffer:		g_quark_from_string "base-buffer"
 base-enter:			g_quark_from_string "base-enter"
 pair-size-facet:	g_quark_from_string "pair-size-facet"
+draw-ctx-id:		g_quark_from_string "draw-ctx-id"
 ;im-string-id:		g_quark_from_string "im-string-id"
 ;im-start-id:		g_quark_from_string "im-start-id"
 

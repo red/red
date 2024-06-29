@@ -550,10 +550,9 @@ BaseWndProc: func [
 					DC: declare draw-ctx!				;@@ should declare it on stack
 					catch RED_THROWN_ERROR [
 						draw-begin DC hWnd null no yes
-						integer/make-at as red-value! draw as-integer DC
+						SetWindowLong hWnd OFFSET_DRAW_CTX as-integer DC
 						current-msg/hWnd: hWnd
 						make-event current-msg 0 EVT_DRAWING
-						draw/header: TYPE_NONE
 						draw-end DC hWnd no no yes
 					]
 					system/thrown: 0

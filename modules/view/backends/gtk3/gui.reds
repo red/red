@@ -2371,11 +2371,15 @@ OS-do-draw: func [
 ]
 
 OS-draw-face: func [
-	ctx			[draw-ctx!]
-	cmds		[red-block!]
+	hWnd	[handle!]
+	cmds	[red-block!]
+	flags	[integer!]
+	/local
+		ctx [draw-ctx!]
 ][
 	if TYPE_OF(cmds) = TYPE_BLOCK [
 		assert system/thrown = 0
+		ctx: as draw-ctx! g_object_get_qdata hWnd draw-ctx-id
 		catch RED_THROWN_ERROR [parse-draw ctx cmds yes]
 	]
 	if system/thrown = RED_THROWN_ERROR [system/thrown: 0]

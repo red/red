@@ -2492,12 +2492,26 @@ OS-do-draw: func [
 ]
 
 OS-draw-face: func [
-	ctx		[draw-ctx!]
+	hWnd	[handle!]
 	cmds	[red-block!]
+	flags	[integer!]
+	/local
+		ctx [integer!]
+		obj [integer!]
+		doc [integer!]
 ][
 	if TYPE_OF(cmds) = TYPE_BLOCK [
 		assert system/thrown = 0
-		catch RED_THROWN_ERROR [parse-draw ctx cmds yes]
+
+		obj: as-integer hWnd
+		if flags and FACET_FLAGS_SCROLLABLE <> 0 [
+			doc: objc_msgSend [obj sel_getUid "documentView"]
+			if doc <> 0 [obj: doc]
+		]
+
+		ctx: 0
+		object_getInstanceVariable obj IVAR_RED_DRAW_CTX :ctx
+		catch RED_THROWN_ERROR [parse-draw as draw-ctx! ctx cmds yes]
 	]
 	if system/thrown = RED_THROWN_ERROR [system/thrown: 0]
 ]
