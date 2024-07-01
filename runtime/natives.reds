@@ -501,7 +501,7 @@ natives: context [
 			blk	  [red-block!]
 			value [red-value!]
 			tail  [red-value!]
-			true? [logic!]
+			ret?  [logic!]
 	][
 		#typecheck [case all?]
 		blk: as red-block! stack/push stack/arguments
@@ -510,8 +510,9 @@ natives: context [
 		if value = tail [RETURN_NONE]
 
 		stack/mark-native words/_anon
-		true?: false
+		ret?: no
 		while [value < tail][
+			if all? >= 0 [ret?: no]
 			value: interpreter/eval-next blk value tail no	;-- eval condition
 			if value = tail [break]
 			either logic/true? [
@@ -522,14 +523,14 @@ natives: context [
 				][
 					value: interpreter/eval-next blk value tail no
 				]
-				if negative? all? [stack/unwind-last exit]	;-- early exit with last value on stack (unless /all)
-				true?: yes
+				if all? < 0 [stack/unwind-last exit]	;-- early exit with last value on stack (unless /all)
+				ret?: yes
 			][
 				value: value + 1						;-- single value only allowed for cases bodies
 			]
 		]
 		stack/unwind-last
-		unless true? [RETURN_NONE]
+		unless ret? [RETURN_NONE]
 	]
 	
 	do*: func [
