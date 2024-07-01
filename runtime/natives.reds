@@ -514,7 +514,7 @@ natives: context [
 		while [value < tail][
 			if all? >= 0 [ret?: no]
 			value: interpreter/eval-next blk value tail no	;-- eval condition
-			if value = tail [break]
+			if value = tail [fire [TO_ERROR(script need-value) words/_case]]
 			either logic/true? [
 				either TYPE_OF(value) = TYPE_BLOCK [	;-- if true, eval what follows it
 					stack/reset

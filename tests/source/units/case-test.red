@@ -302,8 +302,11 @@ Red [
 
 ===start-group=== "case reported issues"
 
-	--test-- "case-issue-504"
+	--test-- "#504"
 	--assert 1 = case [true 1 false 2]
+	
+	--test-- "#4899"
+	do [--assert error? try [case [1 = 2 ["1"] []]] ]
 	
 ===end-group===	
 
