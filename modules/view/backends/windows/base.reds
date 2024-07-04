@@ -496,7 +496,7 @@ BaseWndProc: func [
 		WM_SIZE  [
 		#either draw-engine = 'GDI+ [
 			either (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D = 0 [
-				unless zero? GetWindowLong hWnd wc-offset + 4 [
+				unless zero? GetWindowLong hWnd wc-offset [
 					update-base hWnd null null get-face-values hWnd
 				]
 			][
@@ -510,7 +510,7 @@ BaseWndProc: func [
 			]
 			either all [
 				(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) <> 0
-				0 <> GetWindowLong hWnd wc-offset + 4
+				0 <> GetWindowLong hWnd wc-offset
 			][
 				platform/Sleep 16
 				update-base hWnd null null get-face-values hWnd

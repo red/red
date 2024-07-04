@@ -39,7 +39,7 @@ Red/System [
 	any [sym = base sym = rich-text sym = window sym = panel]
 ]
 
-#define FACE_FREED(hwnd) [zero? GetWindowLong hwnd wc-offset]
+;#define FACE_FREED(hwnd) [zero? GetWindowLong hwnd wc-offset]
 #define AREA_BUFFER_LIMIT 32768
 
 #include %win32.reds
@@ -124,33 +124,28 @@ no-face?: func [
 	hWnd	[handle!]
 	return: [logic!]
 ][
-	(GetWindowLong hWnd wc-offset) and get-type-mask <> TYPE_OBJECT
+	zero? GetWindowLong hWnd wc-offset
 ]
 
 get-face-obj: func [
 	hWnd	[handle!]
 	return: [red-object!]
-	/local
-		face [red-object!]
 ][
 	if null? hWnd [return null]
-	face: declare red-object!
-	face/header: GetWindowLong hWnd wc-offset
-	face/ctx:	 as node! GetWindowLong hWnd wc-offset + 4
-	face/class:  GetWindowLong hWnd wc-offset + 8
-	face/on-set: as node! GetWindowLong hWnd wc-offset + 12
-	face
+	as red-object! externals/values/get GetWindowLong hWnd wc-offset
 ]
 
 get-face-values: func [
 	hWnd	[handle!]
 	return: [red-value!]
 	/local
+		face [red-object!]
 		ctx	 [red-context!]
 		node [node!]
 		s	 [series!]
 ][
-	node: as node! GetWindowLong hWnd wc-offset + 4
+	face: externals/values/get GetWindowLong handle wc-offset
+	node: face/ctx
 	ctx: TO_CTX(node)
 	s: as series! ctx/values/value
 	s/offset
@@ -180,10 +175,11 @@ get-facet: func [
 	msg		[tagMSG]
 	facet	[integer!]
 	return: [red-value!]
+	/local
+		face [red-object!]
 ][
-	get-node-facet 
-		as node! GetWindowLong get-widget-handle msg wc-offset + 4
-		facet
+	face: externals/values/get GetWindowLong handle wc-offset
+	get-node-facet face/ctx facet
 ]
 
 get-widget-handle: func [
@@ -745,6 +741,7 @@ free-faces: func [
 		SetWindowLong handle wc-offset - 4 -1
 	]
 
+	externals/values/remove GetWindowLong handle wc-offset
 	SetWindowLong handle wc-offset 0
 	state: values + FACE_OBJ_STATE
 	state/header: TYPE_NONE
@@ -1346,11 +1343,8 @@ store-face-to-hWnd: func [
 	hWnd	[handle!]
 	face	[red-object!]
 ][
-	if (GetWindowLong hWnd wc-offset) and get-type-mask = TYPE_OBJECT [exit]
-	SetWindowLong hWnd wc-offset				 face/header
-	SetWindowLong hWnd wc-offset + 4  as-integer face/ctx
-	SetWindowLong hWnd wc-offset + 8			 face/class
-	SetWindowLong hWnd wc-offset + 12 as-integer face/on-set
+	if GetWindowLong hWnd wc-offset > 0 [exit]
+	SetWindowLong hWnd wc-offset externals/values/store as red-value! face
 ]
 
 evolve-base-face: func [

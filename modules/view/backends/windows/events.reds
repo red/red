@@ -47,11 +47,12 @@ make-at: func [
 	face	[red-object!]
 	return: [red-object!]
 ][
-	face/header:		  GetWindowLong handle wc-offset
-	face/ctx:	 as node! GetWindowLong handle wc-offset + 4
-	face/class:			  GetWindowLong handle wc-offset + 8
-	face/on-set: as node! GetWindowLong handle wc-offset + 12
-	face
+	copy-cell (externals/values/get GetWindowLong handle wc-offset) face
+	;face/header:		  GetWindowLong handle wc-offset
+	;face/ctx:	 as node! GetWindowLong handle wc-offset + 4
+	;face/class:			  GetWindowLong handle wc-offset + 8
+	;face/on-set: as node! GetWindowLong handle wc-offset + 12
+	;face
 ]
 
 push-face: func [
@@ -1243,6 +1244,7 @@ WndProc: func [
 		font   [red-object!]
 		parent [red-object!]
 		draw   [red-block!]
+		face   [red-object!]
 		brush  [handle!]
 		nmhdr  [tagNMHDR]
 		gi	   [GESTUREINFO]
@@ -1300,7 +1302,7 @@ WndProc: func [
 					DX-resize-buffer target WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
 					either all [
 						(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) <> 0
-						0 <> GetWindowLong hWnd wc-offset + 4
+						0 <> GetWindowLong hWnd wc-offset
 					][
 						update-base hWnd null null values
 					][
@@ -1585,7 +1587,8 @@ WndProc: func [
 						SetTextColor as handle! wParam color
 					]
 				]
-				color: to-bgr as node! GetWindowLong handle wc-offset + 4 FACE_OBJ_COLOR
+				face: externals/values/get GetWindowLong handle wc-offset
+				color: to-bgr face/ctx FACE_OBJ_COLOR
 				either color = -1 [
 					if font? [
 						brush: either msg = WM_CTLCOLORSTATIC [

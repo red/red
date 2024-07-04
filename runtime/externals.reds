@@ -11,6 +11,95 @@ Red/System [
 ]
 
 externals: context [
+
+	values: context [									;-- Red values list management
+		verbose: 0
+		
+		list: as red-value! 0
+		size: 1000
+		free: -1
+		
+		format: func [
+			start [integer!]
+			/local
+				int tail [red-integer!]
+				s [series!]
+		][
+			s: GET_BUFFER(list)
+			int:  as red-integer! s/offset + start
+			tail: as red-integer! s/tail
+			i: start + 1
+			while [int < tail][
+				int/header: TYPE_INTEGER
+				int/value: i
+				i: i + 1
+				int: int + 1
+			]
+			int: int - 1
+			int/value: -1								;-- special value for list's tail
+			free: start									;-- set list's head		
+		]
+		
+		get: func [
+			id		[integer!]
+			return: [red-value!]
+			/local
+				s 	[series!]
+		][
+			id: id - 1
+			assert id < size
+			s: GET_BUFFER(list)
+			s/offset + id
+		]
+		
+		store: func [
+			value	[red-value!]
+			return: [integer!]
+			/local
+				int [red-integer!]
+				s	[series!]
+				id next half [integer!]
+		][
+			s: GET_BUFFER(list)
+			if free = -1 [
+				half: size
+				size: size * 2
+				s: expand-series s size * 2
+				format half
+			]
+			id: free
+			int: as red-integer! s/offset + id
+			next: int/value
+			copy-cell value as red-value! int
+			free: next
+			id + 1
+		]
+		
+		remove: func [
+			id [integer!]
+			/local
+				int [red-integer!]
+				s	[series!]
+		][
+			id: id - 1
+			assert id < size
+			s: GET_BUFFER(list)	
+			int: as red-integer! s/offset + id
+			int/type: TYPE_INTEGER
+			int/value: free
+			free: id
+		]
+		
+		init: func [
+			/local
+				int tail [red-integer!]
+				s [series!]
+		][
+			list: alloc-cells size
+			format 0
+		]
+	]
+	
 	verbose: 0
 	
 	flag-mark:	   80000000h
@@ -215,7 +304,7 @@ externals: context [
 			]
 			next = tail-record
 		]
-		;; TBD: add list shrinking if used/free too small
+		;; TBD: add list shrinking if used/free ratio too small
 	]
 	
 	init: func [][
