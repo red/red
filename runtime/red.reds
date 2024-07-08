@@ -331,6 +331,7 @@ red: context [
 	]
 	
 	cleanup: does [
+		#if debug? = yes [references/check-leaks]
 		free-all										;-- Red allocator's memory freeing
 		heap-free-all									;-- malloc-ed buffers freeing.
 	]

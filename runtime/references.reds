@@ -11,7 +11,7 @@ Red/System [
 ]
 
 references: context [									;-- Red values list management
-	verbose: 1
+	verbose: 0
 	
 	list: declare red-block!
 	size: 100
@@ -101,5 +101,25 @@ references: context [									;-- Red values list management
 	init: func [][
 		block/make-at list size
 		format 0
+	]
+
+	#if debug? = yes [
+		check-leaks: func [
+			/local
+				slot tail [red-integer!]
+				s [series!]
+				c [integer!]
+		][
+			s: GET_BUFFER(list)
+			assert s/offset + size = s/tail
+			slot: as red-integer! s/offset
+			tail: as red-integer! s/tail
+			c: 0
+			while [slot < tail][
+				if TYPE_OF(slot) <> TYPE_INTEGER [c: c + 1]
+				slot: slot + 1
+			]
+			if c > 0 [print-line ["*** Warning: " c " leaked reference values!"]]
+		]
 	]
 ]
