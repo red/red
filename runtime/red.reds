@@ -42,6 +42,7 @@ red: context [
 	#include %sort.reds
 	#include %hashtable.reds
 	#include %ownership.reds
+	#include %references.reds
 	
 	;--------------------------------------------
 	;-- Import OS dependent image functions
@@ -267,6 +268,7 @@ red: context [
 		lexer/init
 		redbin/boot-load system/boot-data no
 		interpreter/init
+		references/init
 		
 		#if debug? = yes [
 			datatype/verbose:	verbosity

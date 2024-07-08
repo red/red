@@ -39,7 +39,6 @@ Red/System [
 	any [sym = base sym = rich-text sym = window sym = panel]
 ]
 
-;#define FACE_FREED(hwnd) [zero? GetWindowLong hwnd wc-offset]
 #define AREA_BUFFER_LIMIT 32768
 
 #include %win32.reds
@@ -120,11 +119,11 @@ clean-up: does [
 	current-msg: null
 ]
 
-no-face?: func [
+face-set?: func [
 	hWnd	[handle!]
 	return: [logic!]
 ][
-	zero? GetWindowLong hWnd wc-offset
+	0 <> GetWindowLong hWnd wc-offset
 ]
 
 get-face-obj: func [
@@ -132,7 +131,7 @@ get-face-obj: func [
 	return: [red-object!]
 ][
 	if null? hWnd [return null]
-	as red-object! externals/values/get GetWindowLong hWnd wc-offset
+	as red-object! references/get GetWindowLong hWnd wc-offset
 ]
 
 get-face-values: func [
@@ -144,7 +143,7 @@ get-face-values: func [
 		node [node!]
 		s	 [series!]
 ][
-	face: externals/values/get GetWindowLong handle wc-offset
+	face: as red-object! references/get GetWindowLong hWnd wc-offset
 	node: face/ctx
 	ctx: TO_CTX(node)
 	s: as series! ctx/values/value
@@ -178,7 +177,7 @@ get-facet: func [
 	/local
 		face [red-object!]
 ][
-	face: externals/values/get GetWindowLong handle wc-offset
+	face: as red-object! references/get GetWindowLong get-widget-handle msg wc-offset
 	get-node-facet face/ctx facet
 ]
 
@@ -192,9 +191,9 @@ get-widget-handle: func [
 ][
 	hWnd: msg/hWnd
 
-	if no-face? hWnd [
+	unless face-set? hWnd [
 		hWnd: GetParent hWnd							;-- for composed widgets (try 1)
-		if no-face? hWnd [
+		unless face-set? hWnd [
 			hWnd: WindowFromPoint msg/x msg/y			;-- try 2
 			id: 0
 			GetWindowThreadProcessId hWnd :id
@@ -202,13 +201,13 @@ get-widget-handle: func [
 				id <> process-id
 				hWnd = GetConsoleWindow					;-- see #1290
 			] [ return as handle! -1 ]
-			if no-face? hWnd [
+			unless face-set? hWnd [
 				p: as int-ptr! GetWindowLong hWnd 0		;-- try 3
 				either null? p [
 					hWnd: as handle! -1					;-- not found
 				][
 					hWnd: as handle! p/2
-					if no-face? hWnd [hWnd: as handle! -1]	;-- not found
+					unless face-set? hWnd [hWnd: as handle! -1]	;-- not found
 				]
 			]
 		]
@@ -741,7 +740,7 @@ free-faces: func [
 		SetWindowLong handle wc-offset - 4 -1
 	]
 
-	externals/values/remove GetWindowLong handle wc-offset
+	references/remove GetWindowLong handle wc-offset
 	SetWindowLong handle wc-offset 0
 	state: values + FACE_OBJ_STATE
 	state/header: TYPE_NONE
@@ -1343,8 +1342,8 @@ store-face-to-hWnd: func [
 	hWnd	[handle!]
 	face	[red-object!]
 ][
-	if GetWindowLong hWnd wc-offset > 0 [exit]
-	SetWindowLong hWnd wc-offset externals/values/store as red-value! face
+	if face-set? hWnd [exit]
+	SetWindowLong hWnd wc-offset references/store as red-value! face
 ]
 
 evolve-base-face: func [

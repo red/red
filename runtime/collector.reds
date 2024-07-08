@@ -862,6 +862,7 @@ collector: context [
 		#if debug? = yes [if verbose > 1 [probe "marking globals"]]
 		if interpreter/near/node <> null [keep interpreter/near/node]
 		lexer/mark-buffers
+		keep references/list/node
 		
 		#if debug? = yes [if verbose > 1 [probe "marking globals from optional modules"]]
 		p: ext-markers

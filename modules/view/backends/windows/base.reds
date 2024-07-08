@@ -510,7 +510,7 @@ BaseWndProc: func [
 			]
 			either all [
 				(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) <> 0
-				0 <> GetWindowLong hWnd wc-offset
+				face-set? hWnd
 			][
 				platform/Sleep 16
 				update-base hWnd null null get-face-values hWnd
@@ -529,7 +529,7 @@ BaseWndProc: func [
 
 			if all [
 				(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) = 0	;-- not a layered window
-				0 <> GetWindowLong hWnd wc-offset		;-- linked with a face object
+				face-set? hWnd			;-- linked with a face object
 			][
 				last-painted-base: hWnd
 
