@@ -172,7 +172,7 @@ __print-debug-stack: func [
 			frame: as int-ptr! slot/value			;-- use last known parent frame pointer
 			if frame < prev [break]
 		]
-		any [null? frame frame = as int-ptr! -1]
+		any [null? frame frame = as int-ptr! -1 frame = prev]
 	]
 ]
 
