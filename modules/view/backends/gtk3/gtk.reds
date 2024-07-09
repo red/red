@@ -3599,10 +3599,7 @@ GPtrArray!: alias struct! [
 ]
 
 ;; Identifiers for qdata
-red-face-id1:		g_quark_from_string "red-face-id1"
-red-face-id2:		g_quark_from_string "red-face-id2"
-red-face-id3:		g_quark_from_string "red-face-id3"
-red-face-id4:		g_quark_from_string "red-face-id4"
+red-face-id:		g_quark_from_string "red-face-id"
 red-color-id:		g_quark_from_string "red-color-id"
 red-color-str:		g_quark_from_string "red-color-str"
 red-font-id:		g_quark_from_string "red-font-id"

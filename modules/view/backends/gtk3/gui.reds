@@ -54,15 +54,8 @@ screen-size-y:		0
 get-face-obj: func [
 	handle		[handle!]
 	return:		[red-object!]
-	/local
-		face	[red-object!]
 ][
-	face: declare red-object!
-	face/header: as integer! g_object_get_qdata handle red-face-id1
-	face/ctx:	 			 g_object_get_qdata handle red-face-id2
-	face/class:  as integer! g_object_get_qdata handle red-face-id3
-	face/on-set: 			 g_object_get_qdata handle red-face-id4
-	face
+	as red-object! references/get as integer! g_object_get_qdata handle red-face-id
 ]
 
 get-face-values: func [
@@ -1385,10 +1378,7 @@ store-face-to-obj: func [
 	obj			[handle!]
 	face		[red-object!]
 ][
-	g_object_set_qdata obj red-face-id1 as int-ptr! face/header
-	g_object_set_qdata obj red-face-id2				face/ctx
-	g_object_set_qdata obj red-face-id3 as int-ptr! face/class
-	g_object_set_qdata obj red-face-id4				face/on-set
+	g_object_set_qdata obj red-face-id as int-ptr! references/store as red-value! face
 ]
 
 init-combo-box: func [
