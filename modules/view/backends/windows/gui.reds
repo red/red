@@ -1601,6 +1601,7 @@ OS-make-view: func [
 			][
 				init-panel values as handle! parent
 				panel?: yes
+				GET_PAIR_XY(size sx sy)		;-- size adjusted
 			]
 		]
 		sym = tab-panel [
