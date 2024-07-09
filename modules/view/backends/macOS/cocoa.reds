@@ -277,15 +277,15 @@ tagSIZE: alias struct! [
 			name		[c-string!]
 			return:		[integer!]
 		]
-		ivar_getOffset: "ivar_getOffset" [
-			ivar		[integer!]
-			return:		[integer!]
-		]
-		class_getInstanceVariable: "class_getInstanceVariable" [
-			class		[integer!]
-			name		[c-string!]
-			return:		[integer!]
-		]
+		;ivar_getOffset: "ivar_getOffset" [
+		;	ivar		[integer!]
+		;	return:		[integer!]
+		;]
+		;class_getInstanceVariable: "class_getInstanceVariable" [
+		;	class		[integer!]
+		;	name		[c-string!]
+		;	return:		[integer!]
+		;]
 		class_addIvar: "class_addIvar" [
 			class		[integer!]
 			name		[c-string!]

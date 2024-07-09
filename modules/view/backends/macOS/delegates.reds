@@ -784,7 +784,7 @@ object-for-table: func [
 		font [red-object!]
 		face [red-object!]
 		attr [integer!]
-		ivar [integer!]
+		id	 [integer!]
 		idx  [integer!]
 		type [integer!]
 		str  [integer!]
@@ -806,8 +806,9 @@ object-for-table: func [
 	font: (as red-object! get-face-values obj) + FACE_OBJ_FONT
 	str: to-NSString as red-string! block/rs-abs-at data idx
 	if TYPE_OF(font) = TYPE_OBJECT [
-		ivar: class_getInstanceVariable object_getClass self IVAR_RED_FACE
-		face: as red-object! self + ivar_getOffset ivar
+		id: 0
+		object_getInstanceVariable self IVAR_RED_FACE :id
+		face: as red-object! references/get id
 		attr: make-font-attrs font face text-list
 		str: objc_msgSend [
 			objc_msgSend [objc_getClass "NSAttributedString" sel_getUid "alloc"]

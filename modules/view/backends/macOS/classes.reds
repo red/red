@@ -200,7 +200,7 @@ make-super-class: func [
 		class_addIvar new-class IVAR_RED_DRAW_CTX 4 2 "i"
 	]
 	if flags and STORE_FACE_FLAG <> 0 [
-		class_addIvar new-class IVAR_RED_FACE 16 2 "{red-face=iiii}"
+		class_addIvar new-class IVAR_RED_FACE 4 2 "i"
 		class_addMethod new-class sel-on-timer as-integer :red-timer-action "v@:@"
 		class_addMethod new-class sel_getUid "mouseEntered:" as-integer :mouse-entered "v@:@"
 		class_addMethod new-class sel_getUid "mouseExited:" as-integer :mouse-exited "v@:@"
