@@ -203,7 +203,12 @@ integer: context [
 			]
 			OP_MUL [
 				res: left * right
-				if system/cpu/overflow? [fire [TO_ERROR(math overflow)]]
+				if system/cpu/overflow? [
+					fl: as red-float! slot				;-- promote to float
+					fl/header: TYPE_FLOAT
+					fl/value: (as-float left) * as-float right
+					return 0							;-- place-holder value
+				]
 			]
 			OP_AND [res: left and right]
 			OP_OR  [res: left or right]
