@@ -462,7 +462,16 @@ _hashtable: context [
 		upper-bound	[integer!]
 		type		[integer!]
 	]
-	
+
+	rs-hashtable!: alias struct! [
+		size		[integer!]
+		flags		[int-ptr!]
+		key-vals	[int-ptr!]
+		n-occupied	[integer!]
+		n-buckets	[integer!]
+		upper-bound	[integer!]
+	]
+
 	mark: func [
 		table [node!]
 		/local
@@ -747,6 +756,298 @@ _hashtable: context [
 		hh/flags: copy-series as series! h/flags/value
 
 		node
+	]
+
+	_alloc: func [
+		size	[integer!]
+		filler	[byte!]
+		return: [byte-ptr!]
+	][
+		set-memory allocate size filler size
+	]
+
+	rs-init: func [
+		size	[integer!]
+		return: [int-ptr!]
+		/local
+			h			[rs-hashtable!]
+			f-buckets	[float!]
+			fsize		[float!]
+	][
+		h: as rs-hashtable! _alloc size? rs-hashtable! null-byte
+		if size < 4 [size: 4]
+		fsize: as-float size
+		f-buckets: fsize / _HT_HASH_UPPER
+		h/n-buckets: round-up as-integer f-buckets
+		f-buckets: as-float h/n-buckets
+		h/upper-bound: as-integer f-buckets * _HT_HASH_UPPER
+		h/flags: as int-ptr! _alloc h/n-buckets >> 2 #"^(AA)"
+		h/key-vals: as int-ptr! allocate h/n-buckets * 2 * size? int-ptr!
+		as int-ptr! h
+	]
+
+	rs-put: func [
+		table	[int-ptr!]
+		key		[integer!]
+		value	[integer!]
+		return: [logic!]		;-- return true if key already exist
+		/local
+			h [rs-hashtable!]
+			x i site last mask step hash n-buckets ii sh new-size [integer!]
+			keys flags k [int-ptr!]
+			del? find? [logic!]
+	][
+		h: as rs-hashtable! table
+		find?: false
+
+		if h/n-occupied >= h/upper-bound [			;-- update the hash table
+			new-size: either h/n-buckets > (h/size << 1) [-1][1]
+			n-buckets: h/n-buckets + new-size
+			rs-resize table n-buckets
+		]
+
+		keys: h/key-vals
+		flags: h/flags
+		n-buckets: h/n-buckets
+		x:	  n-buckets
+		site: n-buckets
+		mask: n-buckets - 1
+		hash: murmur3-x86-int key
+		i: hash and mask
+		_HT_CAL_FLAG_INDEX(i ii sh)
+		either _BUCKET_IS_EMPTY(flags ii sh) [x: i][
+			step: 0
+			last: i
+			while [
+				del?: _BUCKET_IS_DEL(flags ii sh)
+				k: keys + (i * 2)
+				all [
+					_BUCKET_IS_NOT_EMPTY(flags ii sh)
+					any [
+						del?
+						k/1 <> key
+					]
+				]
+			][
+				if del? [site: i]
+				step: step + 1
+				i: i + step and mask
+				_HT_CAL_FLAG_INDEX(i ii sh)
+				if i = last [x: site break]
+			]
+			if x = n-buckets [
+				x: either all [
+					_BUCKET_IS_EMPTY(flags ii sh)
+					site <> n-buckets
+				][site][i]
+			]
+		]
+		_HT_CAL_FLAG_INDEX(x ii sh)
+		case [
+			_BUCKET_IS_EMPTY(flags ii sh) [
+				h/n-occupied: h/n-occupied + 1
+			]
+			_BUCKET_IS_DEL(flags ii sh) [0]
+			true [find?: true]	;-- key already exist
+		]
+		k: keys + (x * 2)
+		k/2: value
+		unless find? [
+			k/1: key
+			_BUCKET_SET_BOTH_FALSE(flags ii sh)
+			h/size: h/size + 1
+		]
+		find?
+	]
+
+	rs-get: func [
+		table		[int-ptr!]
+		key			[integer!]
+		return:		[int-ptr!]		;-- return a pointer to the value, or NULL if not found
+		/local
+			h	[rs-hashtable!]
+			idx [integer!]
+	][
+		idx: rs-get-idx table key
+		either idx > -1 [
+			h: as rs-hashtable! table
+			h/key-vals + (idx * 2) + 1
+		][null]
+	]
+
+	rs-delete: func [
+		table		[int-ptr!]
+		key			[integer!]
+		/local
+			h		[rs-hashtable!]
+			idx		[integer!]
+			ii sh	[integer!]
+			flags	[int-ptr!]
+	][
+		idx: rs-get-idx table key
+		if idx > -1 [
+			_HT_CAL_FLAG_INDEX(idx ii sh)
+			h: as rs-hashtable! table
+			flags: h/flags
+			if _BUCKET_IS_HAS_KEY(flags ii sh) [
+				_BUCKET_SET_DEL_TRUE(flags ii sh)
+				h/size: h/size - 1
+			]
+		]
+	]
+
+	rs-get-idx: func [
+		table		[int-ptr!]
+		key			[integer!]
+		return:		[integer!]
+		/local
+			h [rs-hashtable!]
+			i last mask step hash n-buckets ii sh [integer!]
+			keys flags k [int-ptr!]
+	][
+		h: as rs-hashtable! table
+		keys: h/key-vals
+		flags: h/flags
+		n-buckets: h/n-buckets
+		mask: n-buckets - 1
+		hash: murmur3-x86-int key
+		i: hash and mask
+		_HT_CAL_FLAG_INDEX(i ii sh)
+
+		step: 0
+		last: i
+		while [
+			k: keys + (i * 2)
+			all [
+				_BUCKET_IS_NOT_EMPTY(flags ii sh)
+				any [
+					_BUCKET_IS_DEL(flags ii sh)
+					k/1 <> key
+				]
+			]
+		][
+			step: step + 1
+			i: i + step and mask
+			_HT_CAL_FLAG_INDEX(i ii sh)
+			if i = last [return -1]
+		]
+		either _BUCKET_IS_EITHER(flags ii sh) [-1][i]
+	]
+
+	rs-resize: func [
+		table			[int-ptr!]
+		new-buckets		[integer!]
+		return:			[integer!]
+		/local
+			h			[rs-hashtable!]
+			i j mask	[integer!]
+			step tmp	[integer!]
+			keys k		[int-ptr!]
+			n-buckets	[integer!]
+			new-size	[integer!]
+			break?		[logic!]
+			flags		[int-ptr!]
+			new-flags	[int-ptr!]
+			new-keys	[int-ptr!]
+			ii sh idx	[integer!]
+			key val		[integer!]
+			f			[float!]
+	][
+		h: as rs-hashtable! table
+
+		flags: h/flags
+		n-buckets: h/n-buckets
+		new-buckets: round-up new-buckets
+		if new-buckets < 4 [new-buckets: 4]
+		f: as-float new-buckets
+		new-size: as-integer f * _HT_HASH_UPPER + 0.5
+
+		either h/size >= new-size [return 0][
+			new-flags: as int-ptr! _alloc new-buckets >> 2 #"^(AA)"
+			if n-buckets < new-buckets [
+				new-keys: as int-ptr! realloc as byte-ptr! h/key-vals new-buckets * 2 * size? int-ptr!
+				if null? new-keys [
+					free as byte-ptr! new-flags
+					return -1
+				]
+			]
+		]
+
+		j: 0
+		mask: new-buckets - 1
+		keys: new-keys
+		until [
+			_HT_CAL_FLAG_INDEX(j ii sh)
+			if _BUCKET_IS_HAS_KEY(flags ii sh) [
+				_BUCKET_SET_DEL_TRUE(flags ii sh)
+				k: keys + (j * 2)
+				key: k/1
+				val: k/2
+				break?: no
+				until [									;-- kick-out process
+					step: 0
+					i: (murmur3-x86-int key) and mask
+					_HT_CAL_FLAG_INDEX(i ii sh)
+					while [_BUCKET_IS_NOT_EMPTY(new-flags ii sh)][
+						step: step + 1
+						i: i + step and mask
+						_HT_CAL_FLAG_INDEX(i ii sh)
+					]
+					_BUCKET_SET_EMPTY_FALSE(new-flags ii sh)
+					k: keys + (i * 2)
+					either all [
+						i < n-buckets
+						_BUCKET_IS_HAS_KEY(flags ii sh)
+					][
+						tmp: k/1 k/1: key key: tmp		;-- swap key
+						tmp: k/2 k/2: val val: tmp		;-- swap val
+						_BUCKET_SET_DEL_TRUE(flags ii sh)
+					][
+						k/1: key
+						k/2: val
+						break?: yes
+					]
+					break?
+				]
+			]
+			j = n-buckets
+		]
+		if n-buckets > new-buckets [			;-- shrink the hash table
+			new-keys: as int-ptr! realloc as byte-ptr! h/key-vals new-buckets * 2 * size? integer!
+		]
+		free as byte-ptr! flags
+		h/flags: new-flags
+		h/key-vals: new-keys
+		h/n-buckets: new-buckets
+		h/n-occupied: h/size
+		h/upper-bound: new-size
+		0
+	]
+
+	rs-destroy: func [
+		table	[int-ptr!]
+		/local
+			h	[rs-hashtable!]
+	][
+		if table <> null [
+			h: as rs-hashtable! table
+			free as byte-ptr! h/key-vals
+			free as byte-ptr! h/flags
+			free as byte-ptr! table
+		]
+	]
+
+	rs-clear: func [
+		table	[int-ptr!]
+		/local
+			h	[rs-hashtable!]
+	][
+		if table <> null [
+			h: as rs-hashtable! table
+			set-memory as byte-ptr! h/flags #"^(AA)" h/n-buckets >> 2
+			h/size: 0
+			h/n-occupied: 0
+		]
 	]
 
 	init: func [
@@ -1040,7 +1341,7 @@ _hashtable: context [
 		x:	  n-buckets
 		site: n-buckets
 		mask: n-buckets - 2
-		hash: key
+		hash: murmur3-x86-int key
 		i: hash and mask
 		_HT_CAL_FLAG_INDEX(i ii sh)
 		i: i + 1									;-- 1-based index
@@ -1120,7 +1421,7 @@ _hashtable: context [
 		s: as series! h/flags/value
 		flags: as int-ptr! s/offset
 		mask: h/n-buckets - 1
-		hash: key
+		hash: murmur3-x86-int key
 		i: hash and mask
 		_HT_CAL_FLAG_INDEX(i ii sh)
 		i: i + 1
@@ -1173,7 +1474,7 @@ _hashtable: context [
 		s: as series! h/flags/value
 		flags: as int-ptr! s/offset
 		mask: h/n-buckets - 1
-		hash: key
+		hash: murmur3-x86-int key
 		i: hash and mask
 		_HT_CAL_FLAG_INDEX(i ii sh)
 		i: i + 1
