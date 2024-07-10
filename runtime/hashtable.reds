@@ -581,7 +581,7 @@ _hashtable: context [
 	][
 		switch TYPE_OF(key) [
 			TYPE_INTEGER [murmur3-x86-int key/data2]
-			TYPE_ALL_WORD [symbol/resolve key/data2]
+			TYPE_ALL_WORD [murmur3-x86-int symbol/resolve key/data2]
 			TYPE_SYMBOL [hash-symbol as red-symbol! key]
 			TYPE_ANY_STRING [
 				hash-string as red-string! key case?
