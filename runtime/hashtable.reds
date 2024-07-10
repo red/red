@@ -629,9 +629,9 @@ _hashtable: context [
 			TYPE_ERROR
 			TYPE_PORT [murmur3-x86-int key/data1]
 			TYPE_DATATYPE
-			TYPE_LOGIC [key/data1]
+			TYPE_LOGIC [murmur3-x86-int key/data1]
 			TYPE_ACTION
-			TYPE_NATIVE [key/data3]
+			TYPE_NATIVE [murmur3-x86-int key/data3]
 			TYPE_MAP
 			TYPE_HANDLE
 			TYPE_EVENT [murmur3-x86-int key/data2]
@@ -1271,7 +1271,7 @@ _hashtable: context [
 						step: 0
 						either int? [
 							int-key: as int-ptr! ((as byte-ptr! blk) + idx)
-							hash: int-key/2
+							hash: murmur3-x86-int int-key/2
 						][
 							k: blk + (idx and 7FFFFFFFh)
 							hash: hash-value k no
@@ -2325,7 +2325,7 @@ _hashtable: context [
 		hash: symbol/resolve key
 		kk: either case? [hash][key]
 		mask: h/n-buckets - 1
-		i: hash and mask
+		i: (murmur3-x86-int hash) and mask
 		_HT_CAL_FLAG_INDEX(i ii sh)
 		i: i + 1
 		last: i
