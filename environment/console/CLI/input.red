@@ -429,6 +429,7 @@ unless system/console [
 
 				switch c [
 					KEY_ENTER [
+						move-cursor-bottom
 						add-history line
 						max: max + 1
 						string/rs-reset saved-line

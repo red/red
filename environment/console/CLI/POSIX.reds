@@ -19,6 +19,7 @@ saved-term: declare termios!
 utf-char: as-c-string allocate 10
 poller: 	declare pollfd!
 relative-y:	0
+bottom-y:	0
 init?:		no
 
 fd-read-char: func [
@@ -259,6 +260,7 @@ set-cursor-pos: func [
 
 	if zero? (size % columns) [emit #"^(0A)"]
 
+	bottom-y: y
 	if positive? y [				;-- set cursor position: y
 	    emit-string-int "^[[" y #"A"
 	    relative-y: relative-y - y
@@ -268,6 +270,10 @@ set-cursor-pos: func [
 	][
 		emit-string-int "^(0D)^[[" x #"C"
 	]
+]
+
+move-cursor-bottom: does [
+	if bottom-y > 0 [emit-string-int "^[[" bottom-y #"B"]
 ]
 
 output-to-screen: does [

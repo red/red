@@ -141,8 +141,9 @@ screenbuf-info!: alias struct! [	;-- size? screenbuf-info! = 22
 ]
 
 input-rec: declare input-record!
-saved-con:	 0
+saved-con: 0
 utf-char: allocate 10
+bottom-y: 0
 
 #define FIRST_WORD(int) (int and FFFFh)
 #define SECOND_WORD(int) (int >>> 16)
@@ -341,6 +342,11 @@ set-cursor-pos: func [
 		if yy < 0 [yy: 0]
 		cursor-pos: yy << 16 or xx
 	]
+	bottom-y: yy + (size / columns)
+]
+
+move-cursor-bottom: does [
+	SetConsoleCursorPosition stdout bottom-y << 16
 ]
 
 output-to-screen: func [/local n][
