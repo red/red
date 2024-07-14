@@ -259,7 +259,6 @@ system/console: context [
 					]
 				]
 			]
-			if all [not last-lf? not gui?][prin lf]
 		]
 		clear buffer
 	]
