@@ -395,7 +395,7 @@ expand: func [
 
 ls:		func ["Display a directory listing, for the current dir if none is given" 'dir [any-type!]][list-dir :dir]
 ll:		func ["Display a single column directory listing, for the current dir if none is given" 'dir [any-type!]][list-dir/col :dir 1]
-pwd:	func ["Displays the active directory path (Print Working Dir)"][prin mold system/options/path]
+pwd:	func ["Displays the active directory path (Print Working Dir)"][print mold system/options/path]
 halt:	func ["Stops evaluation and returns to the input prompt"][throw/name 'halt-request 'console]
 
 cd:	function [
