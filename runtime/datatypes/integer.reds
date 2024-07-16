@@ -195,11 +195,21 @@ integer: context [
 		switch type [
 			OP_ADD [
 				res: left + right
-				if system/cpu/overflow? [fire [TO_ERROR(math overflow)]]
+				if system/cpu/overflow? [
+					fl: as red-float! slot				;-- promote to float
+					fl/header: TYPE_FLOAT
+					fl/value: (as-float left) + as-float right
+					return 0							;-- place-holder value
+				]
 			]
 			OP_SUB [
 				res: left - right
-				if system/cpu/overflow? [fire [TO_ERROR(math overflow)]]
+				if system/cpu/overflow? [
+					fl: as red-float! slot				;-- promote to float
+					fl/header: TYPE_FLOAT
+					fl/value: (as-float left) - as-float right
+					return 0							;-- place-holder value]]
+				]
 			]
 			OP_MUL [
 				res: left * right
