@@ -420,13 +420,12 @@
 	red/report
 	red/_context/set
 	red/string/load-at
-	red/_hashtable/init
-	red/_hashtable/put
-	red/_hashtable/get
-	red/_hashtable/delete
-	red/_hashtable/get-next
-	red/_hashtable/copy
-	red/_hashtable/clear-map
+	red/_hashtable/rs-init
+	red/_hashtable/rs-put
+	red/_hashtable/rs-delete
+	red/_hashtable/rs-get
+	red/_hashtable/rs-clear
+	red/_hashtable/rs-destroy
 ][
 	red/root				red-block!
 	red/stk-bottom			int-ptr!

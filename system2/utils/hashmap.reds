@@ -9,16 +9,24 @@ Red/System [
 hashmap: context [
 	make: func [
 		size	[integer!]
-		return: [node!]
+		return: [int-ptr!]
 	][
-		red/_hashtable/init size null 1 1
+		red/_hashtable/rs-init size
 	]
 
 	put: func [
-		m	[node!]
-		key [cell!]
+		m	[int-ptr!]
+		key [integer!]
 		val [int-ptr!]
 	][
-		
+		red/_hashtable/rs-put m key as-integer val
+	]
+
+	get: func [
+		m	[int-ptr!]
+		key [integer!]
+		return: [ptr-ptr!]
+	][
+		as ptr-ptr! red/_hashtable/rs-get m key
 	]
 ]

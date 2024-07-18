@@ -142,6 +142,10 @@ parser: context [
 		exact-type	[int-ptr!]
 	]
 
+	rst-node!: alias struct! [
+		RST_NODE(int-ptr!)
+	]
+
 	var-decl!: alias struct! [	;-- variable declaration
 		RST_NODE(var-decl!)
 		typeref	[red-block!]
@@ -191,6 +195,8 @@ parser: context [
 	#define ISSUE?(v) [TYPE_OF(v) = TYPE_ISSUE]
 	#define FLOAT?(v) [TYPE_OF(v) = TYPE_FLOAT]
 	#define INTEGER?(v) [TYPE_OF(v) = TYPE_INTEGER]
+	#define CHAR?(v) [TYPE_OF(v) = TYPE_CHAR]
+	#define BINARY?(v) [TYPE_OF(v) = TYPE_BINARY]
 	#define STRING?(v) [TYPE_OF(v) = TYPE_STRING]
 	#define BLOCK?(v) [TYPE_OF(v) = TYPE_BLOCK]
 	#define PAREN?(V) [TYPE_OF(v) = TYPE_PAREN]
@@ -199,12 +205,20 @@ parser: context [
 	k_function:	symbol/make "function"
 	k_alias:	symbol/make "alias"
 	k_context:	symbol/make "context"
+	k_any:		symbol/make "any"
+	k_all:		symbol/make "all"
+	k_as:		symbol/make "as"
+	k_declare:	symbol/make "declare"
+	k_size?:	symbol/make "size?"
+	k_not:		symbol/make "not"
+	k_null:		symbol/make "null"
 	k_if:		symbol/make "if"
 	k_either:	symbol/make "either"
 	k_while:	symbol/make "while"
 	k_until:	symbol/make "until"
 	k_loop:		symbol/make "loop"
 	k_case:		symbol/make "case"
+	k_switch:	symbol/make "switch"
 	k_continue:	symbol/make "continue"
 	k_break:	symbol/make "break"
 	k_throw:	symbol/make "throw"
@@ -224,7 +238,7 @@ parser: context [
 	k_use:		symbol/make "use"
 
 	make-ctx: func [
-		name	[red-value!]
+		name	[cell!]
 		parent	[context!]
 		func?	[logic!]
 		return: [context!]
@@ -279,33 +293,69 @@ parser: context [
 		var
 	]
 
-	parse-expr: func [
-		pc		[red-value!]
-		end		[red-value!]
+	parse-call: func [
+		pc		[cell!]
+		end		[cell!]
 		ctx		[context!]
-		return: [red-value!]
+		return: [cell!]
+	][
+		pc
+	]
+
+	parse-expr: func [
+		pc		[cell!]
+		end		[cell!]
+		ctx		[context!]
+		return: [cell!]
 		/local
 			sym [integer!]
 			w	[red-word!]
+			p	[ptr-ptr!]
+			v	[rst-node!]
 	][
-		if WORD?(pc) [
-			w: as red-word! pc
-			sym: symbol/resolve w/symbol
-			case [
-				sym = k_if [0]
-				sym = k_either [0]
+		case [
+			WORD?(pc) [
+				w: as red-word! pc
+				sym: symbol/resolve w/symbol
+				case [
+					sym = k_either [0]
+					sym = k_case [0]
+					sym = k_switch [0]
+					sym = k_as [0]
+					sym = k_any [0]
+					sym = k_all [0]
+					sym = k_declare [0]
+					sym = k_size? [0]
+					sym = k_null [0]
+					true [
+						p: hashmap/get ctx/decls sym
+						if null? p [error-TBD] ;TBD error
+
+						v: as rst-node! p/value
+						switch RST_TYPE(v) [
+							RST_FUNC	[parse-call pc end ctx]
+							RST_VAR		[0]
+							default		[error-TBD]	;TBD unreachale
+						]
+					]
+				]
 			]
+			INTEGER?(pc) [0]
+			FLOAT?(pc) [0]
+			GET_WORD?(pc) [0]
+			PATH?(pc) [0]
+			GET_PATH?(pc) [0]
 		]
 		pc
 	]
 
 	parse-assignment: func [
-		pc		[red-value!]
-		end		[red-value!]
+		pc		[cell!]
+		end		[cell!]
 		ctx		[context!]
-		return: [red-value!]
+		return: [cell!]
 		/local
-			pc2 [red-value!]
+			pc2 [cell!]
 	][
 		pc2: peek-next pc end
 
@@ -313,41 +363,64 @@ parser: context [
 	]
 
 	parse-code: func [
-		pc		[red-value!]
-		end		[red-value!]
+		pc		[cell!]
+		end		[cell!]
 		ctx		[context!]
-		return: [red-value!]
+		return: [cell!]
+		/local
+			w	[red-word!]
+			sym [integer!]
 	][
-		either SET_WORD?(pc) [
-			parse-assignment pc end ctx
-		][
-			parse-expr pc end ctx
+		case [
+			SET_WORD?(pc) [parse-assignment pc end ctx]
+			WORD?(pc) [
+				w: as red-word! pc
+				sym: symbol/resolve w/symbol
+				case [
+					sym = k_if [0]
+					sym = k_while [0]
+					sym = k_until [0]
+					sym = k_loop [0]
+					sym = k_continue [0]
+					sym = k_break [0]
+					sym = k_throw [0]
+					sym = k_catch [0]
+					true [parse-expr pc end ctx]
+				]
+			]
+			true [parse-expr pc end ctx]
 		]
+		pc
 	]
 
 	parse-issue: func [
-		pc		[red-value!]
-		end		[red-value!]
+		pc		[cell!]
+		end		[cell!]
 		ctx		[context!]
-		return: [red-value!]
+		return: [cell!]
 	][
 		pc
 	]
 
 	add-decl: func [
 		ctx		[context!]
-		name	[red-value!]
+		name	[cell!]
 		decl	[int-ptr!]
 		return: [logic!]		;-- false if already exist
 		/local
-			key [red-value!]
-			val [red-value!]
+			w	[red-word!]
+			sym	[integer!]
 	][
-		true
+		w: as red-word! name
+		sym: symbol/resolve w/symbol
+		either null? hashmap/get ctx/decls sym [
+			hashmap/put ctx/decls sym decl
+			true
+		][false]
 	]
 
 	parse-context: func [
-		name	[red-value!]
+		name	[cell!]
 		src		[red-block!]
 		parent	[context!]
 		func?	[logic!]
@@ -359,6 +432,7 @@ parser: context [
 			sym [integer!]
 			w	[red-word!]
 			ctx [context!]
+			c2	[context!]
 	][
 		ctx: make-ctx name parent func?
 		pc: block/rs-head src
@@ -378,7 +452,10 @@ parser: context [
 						]
 						sym = k_context [
 							pc2: expect-next pc2 end TYPE_BLOCK
-							parse-context pc as red-block! pc2 ctx func?
+							c2: parse-context pc as red-block! pc2 ctx func?
+							unless add-decl ctx pc as int-ptr! c2 [
+								error-TBD ;TBD error
+							]
 							pc2 + 1
 						]
 						true [parse-assignment pc end ctx]
@@ -537,6 +614,10 @@ parser: context [
 		fn/body: body
 		fn/spec: spec
 		fn/exact-type: as int-ptr! parse-fn-spec spec fn
+
+		unless add-decl ctx pc as int-ptr! fn [
+			error-TBD ;TBD error cannot redefine symbol
+		]
 		as cell! body + 1
 	]
 ]
