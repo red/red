@@ -140,7 +140,10 @@ system-dialect: context [
 			unless job/red-pass? [process-config pc/2]
 			unless no-header [comp-header]
 
+			recycle
+			recycle/off
 			comp-dialect pc job
+			recycle/on
 		]
 
 		

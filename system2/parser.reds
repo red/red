@@ -70,7 +70,7 @@ parser: context [
 		pc
 	]
 
-	peek-1: func [
+	peek-next: func [
 		pc		[cell!]
 		end		[cell!]
 		return: [cell!]
@@ -181,21 +181,34 @@ parser: context [
 		ret-type	[int-ptr!]
 	]
 
-	#define SET_WORD?(v) [TYPE_OF(v) = TYPE_SET_WORD]
 	#define WORD?(v) [TYPE_OF(v) = TYPE_WORD]
+	#define SET_WORD?(v) [TYPE_OF(v) = TYPE_SET_WORD]
+	#define GET_WORD?(v) [TYPE_OF(v) = TYPE_GET_WORD]
+	#define PATH?(v) [TYPE_OF(v) = TYPE_PATH]
+	#define SET_PATH?(v) [TYPE_OF(v) = TYPE_SET_PATH]
+	#define GET_PATH?(v) [TYPE_OF(v) = TYPE_GET_PATH]
+	#define REFINEMENT?(v) [TYPE_OF(v) = TYPE_REFINEMENT]
+	#define ISSUE?(v) [TYPE_OF(v) = TYPE_ISSUE]
+	#define FLOAT?(v) [TYPE_OF(v) = TYPE_FLOAT]
+	#define INTEGER?(v) [TYPE_OF(v) = TYPE_INTEGER]
 	#define STRING?(v) [TYPE_OF(v) = TYPE_STRING]
 	#define BLOCK?(v) [TYPE_OF(v) = TYPE_BLOCK]
-	#define PATH?(v) [TYPE_OF(v) = TYPE_PATH]
-	#define REFINEMENT?(v) [TYPE_OF(v) = TYPE_REFINEMENT]
+	#define PAREN?(V) [TYPE_OF(v) = TYPE_PAREN]
 
 	k_func:		symbol/make "func"
 	k_function:	symbol/make "function"
 	k_alias:	symbol/make "alias"
+	k_context:	symbol/make "context"
 	k_if:		symbol/make "if"
+	k_either:	symbol/make "either"
 	k_while:	symbol/make "while"
+	k_until:	symbol/make "until"
+	k_loop:		symbol/make "loop"
 	k_case:		symbol/make "case"
 	k_continue:	symbol/make "continue"
 	k_break:	symbol/make "break"
+	k_throw:	symbol/make "throw"
+	k_catch:	symbol/make "catch"
 	k_variadic:	symbol/make "variadic"
 	k_stdcall:	symbol/make "stdcall"
 	k_cdecl:	symbol/make "cdecl"
@@ -203,9 +216,15 @@ parser: context [
 	k_typed:	symbol/make "typed"
 	k_custom:	symbol/make "custom"
 	k_return:	symbol/make "return"
+	k_exit:		symbol/make "exit"
 	k_local:	symbol/make "local"
+	k_assert:	symbol/make "assert"
+	k_comment:	symbol/make "comment"
+	k_with:		symbol/make "with"
+	k_use:		symbol/make "use"
 
 	make-ctx: func [
+		name	[red-value!]
 		parent	[context!]
 		func?	[logic!]
 		return: [context!]
@@ -215,9 +234,13 @@ parser: context [
 	][
 		sz: either func? [100][1000]
 		ctx: as context! malloc size? context!
+		ctx/token: name
 		ctx/parent: parent
 		ctx/decls: hashmap/make sz
 		SET_RST_TYPE(ctx RST_CONTEXT)
+		if parent <> null [
+			parent/next: ctx
+		]
 		ctx
 	]
 
@@ -256,7 +279,75 @@ parser: context [
 		var
 	]
 
+	parse-expr: func [
+		pc		[red-value!]
+		end		[red-value!]
+		ctx		[context!]
+		return: [red-value!]
+		/local
+			sym [integer!]
+			w	[red-word!]
+	][
+		if WORD?(pc) [
+			w: as red-word! pc
+			sym: symbol/resolve w/symbol
+			case [
+				sym = k_if [0]
+				sym = k_either [0]
+			]
+		]
+		pc
+	]
+
+	parse-assignment: func [
+		pc		[red-value!]
+		end		[red-value!]
+		ctx		[context!]
+		return: [red-value!]
+		/local
+			pc2 [red-value!]
+	][
+		pc2: peek-next pc end
+
+		pc
+	]
+
+	parse-code: func [
+		pc		[red-value!]
+		end		[red-value!]
+		ctx		[context!]
+		return: [red-value!]
+	][
+		either SET_WORD?(pc) [
+			parse-assignment pc end ctx
+		][
+			parse-expr pc end ctx
+		]
+	]
+
+	parse-issue: func [
+		pc		[red-value!]
+		end		[red-value!]
+		ctx		[context!]
+		return: [red-value!]
+	][
+		pc
+	]
+
+	add-decl: func [
+		ctx		[context!]
+		name	[red-value!]
+		decl	[int-ptr!]
+		return: [logic!]		;-- false if already exist
+		/local
+			key [red-value!]
+			val [red-value!]
+	][
+		true
+	]
+
 	parse-context: func [
+		name	[red-value!]
 		src		[red-block!]
 		parent	[context!]
 		func?	[logic!]
@@ -269,25 +360,33 @@ parser: context [
 			w	[red-word!]
 			ctx [context!]
 	][
-		ctx: make-ctx parent func?
+		ctx: make-ctx name parent func?
 		pc: block/rs-head src
 		end: block/rs-tail src
 		while [pc < end][
-			pc2: pc + 1
-			if all [SET_WORD?(pc) WORD?(pc2)][
-				w: as red-word! pc2
-				sym: symbol/resolve w/symbol
-				case [
-					any [sym = k_func sym = k_function][
-						pc2: fetch-func pc end ctx
+			pc2: peek-next pc end
+			pc: case [
+				all [SET_WORD?(pc) WORD?(pc2)][
+					w: as red-word! pc2
+					sym: symbol/resolve w/symbol
+					case [
+						any [sym = k_func sym = k_function][
+							fetch-func pc end ctx
+						]
+						sym = k_alias [
+							pc2 ;fetch alias
+						]
+						sym = k_context [
+							pc2: expect-next pc2 end TYPE_BLOCK
+							parse-context pc as red-block! pc2 ctx func?
+							pc2 + 1
+						]
+						true [parse-assignment pc end ctx]
 					]
-					sym = k_alias [
-						0 ;fetch alias
-					]
-					true [0]
 				]
+				ISSUE?(pc) [parse-issue pc end ctx]
+				true [parse-code pc end ctx]
 			]
-			pc: pc2
 		]
 		ctx
 	]

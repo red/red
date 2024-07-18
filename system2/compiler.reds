@@ -24,7 +24,7 @@ compiler: context [
 		src		[red-block!]
 		job		[red-object!]
 	][
-		parser/parse-context src null no
+		parser/parse-context null src null no
 	]
 
 	init: does [
