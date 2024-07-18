@@ -2182,7 +2182,7 @@ create-text-format: func [
 	format: 0
 	factory: as IDWriteFactory dwrite-factory/vtbl
 	factory/CreateTextFormat dwrite-factory name 0 weight style 5 size dw-locale-name :format
-	if save? [handle/make-at as red-value! h-font format]
+	if save? [handle/make-at as red-value! h-font format handle/CLASS_FONT]
 	format
 ]
 

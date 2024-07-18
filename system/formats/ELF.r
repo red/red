@@ -301,7 +301,7 @@ context [
 			structure segments sections commands layout
 			data-size data-reloc dynamic-size
 			get-address get-offset get-size get-meta get-data set-data
-			relro-offset pos list soname
+			relro-offset pos list soname base
 	] [
 		base-address: either any [job/type = 'dll job/PIC?][0][
 			any [job/base-address defs/base-address]
@@ -545,11 +545,11 @@ context [
 		
 		linker/set-image-info
 			job
-			any [job/base-address defs/base-address]
-			get-offset ".text"
-			get-size   ".text"
-			get-offset ".data"
-			get-size   ".data"
+			base: any [job/base-address defs/base-address]
+			(get-address ".text") - either job/PIC? [0][base]
+			get-size ".text"
+			(get-address ".data") - either job/PIC? [0][base]
+			get-size ".data"
 
 		if job/show-func-map? [linker/show-funcs-map job get-address ".text"]
 

@@ -169,7 +169,7 @@ point3D: context [
 			p	 [red-pair!]
 			pt	 [red-point2D!]
 			x	 [float32!]
-			val	 [red-value! value]
+			val	 [red-string! value]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "point3D/make"]]
 
@@ -207,7 +207,7 @@ point3D: context [
 				push pt/x pt/y 0.0
 			]			
 			TYPE_STRING [
-				copy-cell spec val					;-- save spec, load-value will change it
+				copy-cell spec as red-value! val		;-- save spec, load-value will change it
 				proto: load-value as red-string! spec
 				if TYPE_OF(proto) <> TYPE_POINT3D [
 					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_POINT3D val]

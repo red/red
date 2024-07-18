@@ -38,6 +38,7 @@ init-panel: func [
 			SendMessage phWnd TCM_ADJUSTRECT 0 as-integer calc-rect
 
 			pt: as red-point2D! values + FACE_OBJ_OFFSET
+			pt/header: TYPE_POINT2D
 			fx: as float32! calc-rect/left - win-rect/left
 			fy: as float32! calc-rect/top  - win-rect/top
 			either dpi-factor <> as float32! 1.0 [
@@ -49,6 +50,9 @@ init-panel: func [
 			]
 
 			pair: as red-pair! values + FACE_OBJ_SIZE
+			if TYPE_OF(pair) = TYPE_NONE [
+				pair/header: TYPE_POINT2D
+			]
 			pt: as red-point2D! pair
 			x: calc-rect/right  - calc-rect/left
 			y: calc-rect/bottom - calc-rect/top

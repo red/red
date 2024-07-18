@@ -176,11 +176,11 @@ make-at: func [
 	face	[red-object!]
 	return: [red-object!]
 	/local
-		ivar [integer!]
+		id	[integer!]
 ][
-	ivar: class_getInstanceVariable object_getClass view IVAR_RED_FACE
-	assert ivar <> 0
-	as red-object! copy-cell as cell! view + ivar_getOffset ivar as cell! face
+	id: 0
+	object_getInstanceVariable view IVAR_RED_FACE :id
+	as red-object! copy-cell as cell! references/get id as cell! face
 ]
 
 push-face: func [

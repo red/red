@@ -258,7 +258,7 @@ _request-file: func [
 		parent		[integer!]
 		dir			[integer!]
 		res			[integer!]
-		val			[red-value! value]
+		val			[red-file! value]
 		exist?		[logic!]
 ][
 	quit-modal-loop?: no

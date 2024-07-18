@@ -25,6 +25,7 @@ target-class: context [
 	width: 		none								;-- current operand width in bytes
 	signed?: 	none								;-- TRUE => signed op, FALSE => unsigned op
 	last-saved?: no									;-- TRUE => operand saved in another register
+	last-red-frame: none							;-- memory slot holding the last Red frame pointer before an external call
 	verbose:  	0									;-- logs verbosity level
 	
 	emit-casting: emit-call-syscall: emit-call-import: ;-- just pre-bind word to avoid contexts issue

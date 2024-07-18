@@ -343,9 +343,8 @@ base-draw: func [
 		system/thrown: 0
 		drawDC: declare draw-ctx!								;@@ should declare it on stack
 		draw-begin drawDC cr null no no
-		integer/make-at as red-value! draw as-integer drawDC
+		g_object_set_qdata widget draw-ctx-id as int-ptr! drawDC
 		make-event widget 0 EVT_DRAWING
-		draw/header: TYPE_NONE
 		draw-end drawDC cr no no no
 	]
 

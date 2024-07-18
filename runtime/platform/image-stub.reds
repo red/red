@@ -73,7 +73,7 @@ OS-image: context [
 		color
 	]
 
-	delete: func [img [red-image!]][]
+	delete: func [node [node!]][]
 
 	resize: func [
 		img		[red-image!]
@@ -93,6 +93,17 @@ OS-image: context [
 		return: [node!]
 	][
 		alloc-cells 1					;-- 16 bytes
+	]
+	
+	mark: func [node [node!] /local inode [img-node!]][
+		inode: as img-node! (as series! node/value) + 1
+		externals/mark inode/extID
+	]
+
+	delete: func [
+		node [node!]
+	][
+
 	]
 
 	;-- ARGB(image! buffer) <-> ABGR(gtk)

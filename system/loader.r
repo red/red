@@ -482,7 +482,7 @@ loader: make-profilable context [
 		
 		unless block? src [
 			expand-string src						;-- process string-level compiler directives
-			if error? set/any 'err try [src: lexer/process as-binary src][	;-- convert source to blocks
+			if error? set/any 'err try [src: lexer/process/hint as-binary src input][	;-- convert source to blocks
 				throw-error ["syntax error during LOAD phase:" mold disarm err]
 			]
 		]

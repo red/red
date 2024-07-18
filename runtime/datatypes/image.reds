@@ -12,6 +12,8 @@ Red/System [
 
 image: context [
 	verbose: 0
+	
+	ext-type: -1
 
 	acquire-buffer: func [
 		img		[red-image!]
@@ -127,29 +129,29 @@ image: context [
 		rect.w		[int-ptr!]
 		rect.h		[int-ptr!]
 		/local
-			w		[integer!]
-			h		[integer!]
-			w1		[integer!]
-			h1		[integer!]
 			vertex	[TRANS-VERTEX! value]
 			pos		[red-pair!]
-			vec1	[VECTOR2D! value]
-			vec2	[VECTOR2D! value]
-			vec3	[VECTOR2D! value]
-			crop.x	[integer!]
-			crop.y	[integer!]
-			crop.w	[integer!]
-			crop.h	[integer!]
 			crop2	[red-pair!]
-			handle	[integer!]
-			handle2	[integer!]
+			pt		[red-point2D!]
 			buf		[int-ptr!]
 			buf2	[int-ptr!]
 			pb		[byte-ptr!]
 			nbuf	[int-ptr!]
+			vec1	[VECTOR2D! value]
+			vec2	[VECTOR2D! value]
+			vec3	[VECTOR2D! value]
+			w		[integer!]
+			h		[integer!]
+			w1		[integer!]
+			h1		[integer!]
+			crop.x	[integer!]
+			crop.y	[integer!]
+			crop.w	[integer!]
+			crop.h	[integer!]
+			handle	[integer!]
+			handle2	[integer!]
 			neg-x?	[logic!]
 			neg-y?	[logic!]
-			pt		[red-point2D!]
 			fx fy	[float32!]
 	][
 		w: IMAGE_WIDTH(src/size)
@@ -294,10 +296,10 @@ image: context [
 		init-image img hr
 		img
 	]
+	
+	mark: func [node [node!]][OS-image/mark node]
 
-	delete: func [img [red-image!]][
-		OS-image/delete img
-	]
+	delete: func [img [red-image!]][OS-image/delete img/node]
 
 	encode: func [
 		image	[red-image!]
@@ -614,7 +616,7 @@ image: context [
 			]
 			TYPE_OBJECT [
 				#either modules contains 'View [
-					spec: stack/push spec						;-- store spec to avoid corruption (#2460)
+					spec: stack/push spec				;-- store spec to avoid corruption (#2460)
 					#call [face? spec]
 					ret: as red-logic! stack/arguments
 					if ret/value [return exec/gui/OS-to-image as red-object! spec]
@@ -1044,16 +1046,16 @@ image: context [
 		dup-arg  [red-value!]
 		return:	 [red-image!]
 		/local
-			type [integer!]
-			bmp1 [integer!]
-			bmp2 [integer!]
 			bin1 [int-ptr!]
 			bin2 [int-ptr!]
 			img2 [red-image!]
-			idx  [red-value! value]
-			head n i1 i2 [integer!]
-			w1 h1 w2 h2 [integer!]
-			x x1 y1 x2 y2 [integer!]
+			type [integer!]
+			bmp1 [integer!]
+			bmp2 [integer!]
+			idx  [red-integer! value]
+			head n i1 i2
+			w1 h1 w2 h2
+			x x1 y1 x2 y2
 			stride1 stride2 [integer!]
 	][
 		if OPTION?(dup-arg) [--NOT_IMPLEMENTED--]
@@ -1064,8 +1066,8 @@ image: context [
 		switch type [
 			TYPE_TUPLE [
 				ownership/check as red-value! img words/_change null head 1
-				integer/make-at idx img/head
-				poke img -1 idx value
+				integer/make-at as red-value! idx img/head
+				poke img -1 as red-value! idx value
 				img/head: head + 1
 				ownership/check as red-value! img words/_changed null head 1
 			]
@@ -1324,5 +1326,7 @@ image: context [
 			null			;update
 			null			;write
 		]
+		
+		ext-type: externals/register "image" as-integer :OS-image/delete
 	]
 ]

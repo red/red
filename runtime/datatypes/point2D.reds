@@ -156,7 +156,7 @@ point2D: context [
 			fl	 [red-float!]
 			p	 [red-pair!]
 			x	 [float32!]
-			val	 [red-value! value]
+			val	 [red-string! value]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "point2D/make"]]
 
@@ -188,7 +188,7 @@ point2D: context [
 				push as-float32 p/x as-float32 p/y
 			]
 			TYPE_STRING [
-				copy-cell spec val					;-- save spec, load-value will change it
+				copy-cell spec as red-value! val		;-- save spec, load-value will change it
 				proto: load-value as red-string! spec
 				if TYPE_OF(proto) <> TYPE_POINT2D [
 					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_POINT2D val]

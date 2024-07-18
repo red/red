@@ -47,11 +47,9 @@ make-at: func [
 	face	[red-object!]
 	return: [red-object!]
 ][
-	face/header:		  GetWindowLong handle wc-offset
-	face/ctx:	 as node! GetWindowLong handle wc-offset + 4
-	face/class:			  GetWindowLong handle wc-offset + 8
-	face/on-set: as node! GetWindowLong handle wc-offset + 12
-	face
+	as red-object! copy-cell
+		references/get GetWindowLong handle wc-offset
+		as red-value! face
 ]
 
 push-face: func [
@@ -766,8 +764,8 @@ process-command-event: func [
 			]
 		]
 		EN_CHANGE [											;-- sent also by CreateWindow
-			unless any [null? current-msg no-face? hWnd][	;-- ignore CreateWindow-time events
-				unless no-face? child [		  				;-- ignore CreateWindow-time events (fixes #1596)
+			unless any [null? current-msg not face-set? hWnd][	;-- ignore CreateWindow-time events
+				if face-set? child [		  				;-- ignore CreateWindow-time events (fixes #1596)
 					current-msg/hWnd: child	  				;-- force Edit handle
 					make-event current-msg -1 EVT_CHANGE
 					type: as red-word! get-facet current-msg FACE_OBJ_TYPE
@@ -1064,7 +1062,7 @@ set-window-info: func [
 		sx sy	[integer!]
 ][
 	ret?: no
-	unless no-face? hWnd [
+	if face-set? hWnd [
 		x: 0
 		y: 0
 		cx: 0
@@ -1237,16 +1235,13 @@ WndProc: func [
 		target [render-target!]
 		this   [this!]
 		rt	   [ID2D1HwndRenderTarget]
-		res	   [integer!]
-		color  [integer!]
-		type   [integer!]
-		pos	   [integer!]
 		handle [handle!]
 		rc	   [RECT_STRUCT]
 		values [red-value!]
 		font   [red-object!]
 		parent [red-object!]
 		draw   [red-block!]
+		face   [red-object!]
 		brush  [handle!]
 		nmhdr  [tagNMHDR]
 		gi	   [GESTUREINFO]
@@ -1258,6 +1253,10 @@ WndProc: func [
 		st	   [red-float!]
 		sel	   [red-float!]
 		w-type [red-word!]
+		res	   [integer!]
+		color  [integer!]
+		type   [integer!]
+		pos	   [integer!]
 		range  [float!]
 		flt	   [float!]
 		flags  [integer!]
@@ -1268,7 +1267,7 @@ WndProc: func [
 		y yy   [integer!]
 		ShouldAppsUseDarkMode [ShouldAppsUseDarkMode!]
 ][
-	if no-face? hWnd [return DefWindowProc hWnd msg wParam lParam]
+	unless face-set? hWnd [return DefWindowProc hWnd msg wParam lParam]
 
 	values: get-face-values hWnd
 	w-type: as red-word! values + FACE_OBJ_TYPE
@@ -1300,7 +1299,7 @@ WndProc: func [
 					DX-resize-buffer target WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
 					either all [
 						(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) <> 0
-						0 <> GetWindowLong hWnd wc-offset + 4
+						face-set? hWnd
 					][
 						update-base hWnd null null values
 					][
@@ -1469,7 +1468,7 @@ WndProc: func [
 		]
 		WM_NOTIFY [
 			nmhdr: as tagNMHDR lParam
-			if FACE_FREED(nmhdr/hWndFrom) [return 0]
+			unless face-set? nmhdr/hWndFrom [return 0]
 			switch nmhdr/code [
 				TCN_SELCHANGING [return process-tab-select nmhdr/hWndFrom]
 				TCN_SELCHANGE	[process-tab-change nmhdr/hWndFrom]
@@ -1585,7 +1584,8 @@ WndProc: func [
 						SetTextColor as handle! wParam color
 					]
 				]
-				color: to-bgr as node! GetWindowLong handle wc-offset + 4 FACE_OBJ_COLOR
+				face: as red-object! references/get GetWindowLong handle wc-offset
+				color: to-bgr face/ctx FACE_OBJ_COLOR
 				either color = -1 [
 					if font? [
 						brush: either msg = WM_CTLCOLORSTATIC [
@@ -1771,7 +1771,7 @@ process: func [
 		]
 		WM_LBUTTONUP	[
 			prev-captured: hWnd
-			if all [hWnd <> null hWnd = GetCapture not no-face? hWnd][
+			if all [hWnd <> null hWnd = GetCapture face-set? hWnd][
 				word: (as red-word! get-face-values hWnd) + FACE_OBJ_TYPE
 				if base = symbol/resolve word/symbol [ReleaseCapture]	;-- issue #4384
 			]

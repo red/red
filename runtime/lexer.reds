@@ -1904,16 +1904,16 @@ lexer: context [
 
 	load-date: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local
+			dt			   [red-date!]
+			p me		   [byte-ptr!]
+			m 	 		   [int-ptr!]
 			err year month day hour min tz-h tz-m len ylen dlen value
-			week wday yday 	 [integer!]
+			week wday yday [integer!]
 			do-error check-err check-all grab2 grab2r grab2-max grab-time-TZ
 			store-date grab4 calc-time [subroutine!]
-			dt				 [red-date!]
-			p me			 [byte-ptr!]
-			m 	 			 [int-ptr!]
-			sec	tm			 [float!]
-			time? TZ? neg?	 [logic!]
-			sep				 [byte!]
+			sec	tm		   [float!]
+			time? TZ? neg? [logic!]
+			sep			   [byte!]
 	][
 		p: s
 		dt: null 

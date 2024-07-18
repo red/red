@@ -190,11 +190,11 @@ check-arg-type: func [
 			ctx		[red-context!]
 			str		[red-string!]
 			val		[red-value!]
-			ver		[OSVERSIONINFO value]
-			info	[SYSTEM_INFO! value]
 			int		[red-integer!]
 			arch	[c-string!]
 			name	[c-string!]
+			info	[SYSTEM_INFO! value]
+			ver		[OSVERSIONINFO value]
 			build	[integer!]
 			server? [logic!]
 	][

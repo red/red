@@ -871,11 +871,8 @@ OS-do-draw: func [
 ]
 
 OS-draw-face: func [
-	ctx		[draw-ctx!]
+	hWnd	[handle!]
 	cmds	[red-block!]
+	flags	[integer!]
 ][
-	if TYPE_OF(cmds) = TYPE_BLOCK [
-		catch RED_THROWN_ERROR [parse-draw ctx cmds yes]
-	]
-	if system/thrown = RED_THROWN_ERROR [system/thrown: 0]
 ]

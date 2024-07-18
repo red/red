@@ -24,6 +24,12 @@ Red/System [
 			mask	[integer!]
 			return: [integer!]
 		]
+		atexit: "__cxa_atexit" [			;-- https://refspecs.linuxbase.org/LSB_3.1.1/LSB-Core-generic/LSB-Core-generic/baselib---cxa-atexit.html
+			handler		[int-ptr!]
+			arg			[int-ptr!]			;-- requires NULL in our use-case
+			dso_handle	[int-ptr!]			;-- requires NULL in our use-case
+			return:		[integer!]
+		]
 	]
 ]
 
@@ -124,7 +130,13 @@ posix-startup-ctx: context [
 		sigaction SIGBUS  __sigaction-options as sigaction! 0
 		sigaction SIGFPE  __sigaction-options as sigaction! 0
 		sigaction SIGSEGV __sigaction-options as sigaction! 0
+		
+		#if any [libRedRT? = yes dev-mode? = no red-pass? = no][ ;-- avoid installing quit handler more than once!
+			atexit as int-ptr! :on-quit null null
+		]
 	]
+	
+	on-quit: func [[cdecl]][heap-free-all]
 ]
 
 #if OS <> 'macOS [								;-- macOS has it's own start code
@@ -133,6 +145,11 @@ posix-startup-ctx: context [
 			***-dll-entry-point: func [
 				[cdecl]
 			][
+				system/image: ***-exec-image
+				system/image/base: as byte-ptr! 
+					#either target = 'IA-32 [system/cpu/ebx][system/cpu/r9]
+					- system/image/code
+
 				#either red-pass? = no [		;-- only for pure R/S DLLs
 					***-boot-rs
 					on-load

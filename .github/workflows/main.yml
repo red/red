@@ -42,7 +42,7 @@ jobs:
     - uses: actions/upload-artifact@v4
       if: failure()
       with:
-        name: core-test-log
+        name: core-test-release-log
         path: quick-test/quick-test.log
 
   Core-Debug:
