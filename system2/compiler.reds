@@ -13,17 +13,18 @@ compiler: context [
 	#include %parser.reds
 
 	_mempool: as mempool! 0
+	script: as cell! 0
 
 	;@@ the memory returned should be zeroed
 	malloc: func [size [integer!] return: [byte-ptr!]][
 		mempool/alloc _mempool size
 	]
 
-
 	comp-dialect: func [
 		src		[red-block!]
 		job		[red-object!]
 	][
+		script: object/rs-select job as cell! word/load "script"
 		parser/parse-context null src null no
 	]
 

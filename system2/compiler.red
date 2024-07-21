@@ -9,8 +9,17 @@ Red [
 #include %utils/helper.red
 #include %utils/secure-clean-path.red
 
-print-value: func [val][
-	probe val
+prin-cell: func [val][
+	prin val
+]
+
+prin-block: func [blk [block!] part [integer!]][
+	prin mold/part blk part
+]
+
+quit-on-error: does [
+	if system/options/args [quit/return 1]
+	halt
 ]
 
 #system [
@@ -36,6 +45,7 @@ system-dialect: context [
 		debug-info:			none						;-- debugging informations
 		base-address:		none						;-- base address
 		buffer: 			none						;-- output buffer
+		script:				none						;-- script file path
 	]
 	
 	options-class: make object! [
@@ -93,11 +103,6 @@ system-dialect: context [
 		script:			none							;-- source script file name
 		pc:				none							;-- source code input cursor
 
-		quit-on-error: does [
-			if system/options/args [quit/return 1]
-			halt
-		]
-
 		process-config: func [header [block!] /local spec old-PIC?][
 			if spec: select header first [config:][
 				do bind spec job
@@ -119,10 +124,11 @@ system-dialect: context [
 			pc: next pc
 		]
 
-		comp-dialect: routine [src [block!] job [object!]][
-			compiler/init
-			compiler/comp-dialect src job
+		comp-dialect: routine [src [block!] job [object!] /local blk [red-block! value]][
+			copy-cell as cell! src as cell! :blk
 
+			compiler/init
+			compiler/comp-dialect blk job
 			compiler/clean
 		]
 
@@ -134,6 +140,7 @@ system-dialect: context [
 			job: obj
 			pc: src
 			script: secure-clean-path file
+			job/script: script
 			runtime: to logic! runtime
 			allow-runtime?: all [not no-events job/runtime?]
 			
@@ -283,7 +290,7 @@ system-dialect: context [
 			]
 
 			set-verbose-level opts/verbosity
-			loader/init
+			loader/init job
 			
 			if all [
 				job/need-main?

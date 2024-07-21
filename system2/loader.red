@@ -7,6 +7,7 @@ Red [
 
 context [
 	verbose: 	  0
+	job:		  none
 	include-list: make hash! 20
 	ssp-stack: 	  make block! 5
 	defs:		  make block! 100
@@ -33,13 +34,14 @@ context [
 		compiler/quit-on-error
 	]
 
-	init: does [
+	init: func [_job [object!]] [
 		clear include-list
 		clear defs
 		clear ssp-stack
 		clear scripts-stk
 		current-script: line: none
 		insert defs <no-match>					;-- required to avoid empty rule (causes infinite loop)
+		job: _job
 	]
 
 	count-slash: func [file /local cnt][

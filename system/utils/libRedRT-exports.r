@@ -134,6 +134,7 @@
 	red/object/loc-ctx-fire-on-set*
 	red/object/fire-on-set*
 	red/object/get-values
+	red/object/rs-select
 
 	red/integer/get-any*
 	red/integer/get*

@@ -37,6 +37,18 @@ visit-fn!: alias function! [node [int-ptr!] data [int-ptr!] return: [int-ptr!]]
 	RST_IF
 	RST_EITHER
 	RST_WHILE
+	RST_ASSIGN
+	RST_INT
+	RST_FLOAT
+	RST_STRING
+	RST_BYTE
+	RST_LOGIC
+	RST_BINARY
+	RST_LIT_ARRAY		;-- literal array
+	RST_DECLARE
+	RST_NOT
+	RST_SIZEOF
+	RST_FN_CALL
 ]
 
 #enum fn-attr! [
@@ -51,14 +63,175 @@ visit-fn!: alias function! [node [int-ptr!] data [int-ptr!] return: [int-ptr!]]
 	FN_EXTERN:			0100h
 ]
 
+#enum rst-node-flag! [
+	RST_FLAG_FN_CTX:	1
+]
+
 #define SET_TYPE_KIND(node kind) [node/header: node/header and FFFFFF00h or kind]
 #define TYPE_KIND(node) (node/header and FFh)
 #define SET_TYPE_FLAGS(node flags) [node/header: node/header and FFh or (flags << 8)]
 
 #define SET_RST_TYPE(node type) [node/header: node/header and FFFFFF00h or type]
 #define RST_TYPE(node) (node/header and FFh)
+#define RST_FLAGS(node) (node/header and FFh >> 8)
+
+
+#define RST_NODE(self) [	;-- RST: R/S Syntax Tree
+	header	[integer!]		;-- rst-type! bits: 0 - 8
+	next	[self]
+	token	[cell!]
+]
+
+#define RST_STMT(self) [
+	RST_NODE(self)
+	accept	[accept-fn!]
+]
+
+#define RST_EXPR(self) [
+	RST_NODE(self)
+	accept		[accept-fn!]
+	type		[int-ptr!]
+	exact-type	[int-ptr!]
+]
+
+rst-node!: alias struct! [
+	RST_NODE(int-ptr!)
+]
+
+rst-stmt!: alias struct! [
+	RST_STMT(rst-stmt!)
+]
+
+rst-expr!: alias struct! [
+	RST_EXPR(rst-expr!)
+]
+
+var-decl!: alias struct! [	;-- variable declaration
+	RST_NODE(var-decl!)
+	typeref		[red-block!]
+	type		[int-ptr!]
+	init		[int-ptr!]	;-- init expression
+]
+
+context!: alias struct! [
+	RST_NODE(context!)
+	parent		[context!]
+	stmts		[rst-stmt!]
+	decls		[node!]
+]
+
+fn!: alias struct! [
+	RST_EXPR(fn!)
+	parent		[context!]
+	spec		[red-block!]
+	body		[red-block!]
+	locals		[var-decl!]
+]
+
+assignment!: alias struct! [
+	RST_EXPR(assignment!)
+	target		[var-decl!]
+	expr		[rst-expr!]
+]
+
+bin-expr!: alias struct! [
+	RST_EXPR(bin-expr!)
+	left		[rst-expr!]
+	right		[rst-expr!]
+]
+
+int-literal!: alias struct! [
+	RST_EXPR(int-literal!)
+	value		[integer!]
+]
+
+#define TYPE_HEADER [
+	header		[integer!]		;-- Kind and flags
+	token		[cell!]
+]
+
+fn-type!: alias struct! [
+	TYPE_HEADER
+	n-params	[integer!]
+	params		[var-decl!]
+	ret-typeref [red-block!]
+	ret-type	[int-ptr!]
+]
+
+#define WORD?(v) [TYPE_OF(v) = TYPE_WORD]
+#define SET_WORD?(v) [TYPE_OF(v) = TYPE_SET_WORD]
+#define GET_WORD?(v) [TYPE_OF(v) = TYPE_GET_WORD]
+#define PATH?(v) [TYPE_OF(v) = TYPE_PATH]
+#define SET_PATH?(v) [TYPE_OF(v) = TYPE_SET_PATH]
+#define GET_PATH?(v) [TYPE_OF(v) = TYPE_GET_PATH]
+#define REFINEMENT?(v) [TYPE_OF(v) = TYPE_REFINEMENT]
+#define ISSUE?(v) [TYPE_OF(v) = TYPE_ISSUE]
+#define FLOAT?(v) [TYPE_OF(v) = TYPE_FLOAT]
+#define INTEGER?(v) [TYPE_OF(v) = TYPE_INTEGER]
+#define CHAR?(v) [TYPE_OF(v) = TYPE_CHAR]
+#define BINARY?(v) [TYPE_OF(v) = TYPE_BINARY]
+#define STRING?(v) [TYPE_OF(v) = TYPE_STRING]
+#define BLOCK?(v) [TYPE_OF(v) = TYPE_BLOCK]
+#define PAREN?(V) [TYPE_OF(v) = TYPE_PAREN]
 
 parser: context [
+	src-blk: as red-block! 0
+	script: as cell! 0
+
+	k_func:		symbol/make "func"
+	k_function:	symbol/make "function"
+	k_alias:	symbol/make "alias"
+	k_context:	symbol/make "context"
+	k_any:		symbol/make "any"
+	k_all:		symbol/make "all"
+	k_as:		symbol/make "as"
+	k_declare:	symbol/make "declare"
+	k_size?:	symbol/make "size?"
+	k_not:		symbol/make "not"
+	k_null:		symbol/make "null"
+	k_if:		symbol/make "if"
+	k_either:	symbol/make "either"
+	k_while:	symbol/make "while"
+	k_until:	symbol/make "until"
+	k_loop:		symbol/make "loop"
+	k_case:		symbol/make "case"
+	k_switch:	symbol/make "switch"
+	k_continue:	symbol/make "continue"
+	k_break:	symbol/make "break"
+	k_throw:	symbol/make "throw"
+	k_catch:	symbol/make "catch"
+	k_variadic:	symbol/make "variadic"
+	k_stdcall:	symbol/make "stdcall"
+	k_cdecl:	symbol/make "cdecl"
+	k_infix:	symbol/make "infix"
+	k_typed:	symbol/make "typed"
+	k_custom:	symbol/make "custom"
+	k_return:	symbol/make "return"
+	k_exit:		symbol/make "exit"
+	k_local:	symbol/make "local"
+	k_assert:	symbol/make "assert"
+	k_comment:	symbol/make "comment"
+	k_with:		symbol/make "with"
+	k_use:		symbol/make "use"
+	k_true:		symbol/make "true"
+	k_false:	symbol/make "false"
+
+	;-- issue directives
+	k_import:		symbol/make "import"
+	k_export:		symbol/make "export"
+	k_syscall:		symbol/make "syscall"
+	k_call:			symbol/make "call"
+	k_get:			symbol/make "get"
+	k_in:			symbol/make "in"
+	k_enum:			symbol/make "enum"
+	k_verbose:		symbol/make "verbose"
+	k_u16:			symbol/make "u16"
+	k_inline:		symbol/make "inline"
+	k_script:		symbol/make "script"
+	k_user-code:	symbol/make "user-code"
+	k_typecheck:	symbol/make "typecheck"
+	k_build-date:	symbol/make "build-date"
+
 	peek: func [
 		pc		[cell!]
 		end		[cell!]
@@ -119,123 +292,73 @@ parser: context [
 		pc
 	]
 
-	error-TBD: does [
-		probe "Parse Error: TBD"
-		halt
+	calc-line: func [
+		pc		[cell!]
+		return: [integer!]
+		/local
+			idx		[integer!]
+			beg		[cell!]
+			header	[cell!]
+			prev	[integer!]
+			p		[red-pair!]
+	][
+		header: block/rs-abs-at src-blk 0
+		beg: block/rs-head src-blk
+		idx: (as-integer pc - beg) >> 4 + 1
+		prev: 1
+
+		while [
+			header: header + 1
+			header < beg
+		][
+			p: as red-pair! header
+			if p/y = idx [return p/x]
+			if p/y > idx [return prev]
+			prev: p/x
+		]
+		p/x
 	]
 
-	#define RST_NODE(self) [	;-- RST: R/S Syntax Tree
-		header	[integer!]		;-- rst-type! bits: 0 - 8
-		next	[self]
-		token	[cell!]
+	error-TBD: does [0]
+
+	throw-error: func [
+		[typed] count [integer!] list [typed-value!]
+		/local
+			s	[c-string!]
+			w	[red-word!]
+			pc	[cell!]
+			p	[cell!]
+			h	[integer!]
+	][
+		pc: as cell! list/value
+		list: list + 1
+		count: count - 1
+		
+		prin "*** Parse Error: "
+		until [
+			either list/type = type-c-string! [
+				s: as-c-string list/value prin s
+			][
+				w: as red-word! list/value
+				if w <> null [#call [prin-cell w]]
+			]
+
+			count: count - 1	
+			if count <> 0 [prin " "]
+
+			list: list + 1
+			zero? count
+		]
+		print "^/*** in file: " #call [prin-cell compiler/script]
+		print ["^/*** at line: " calc-line pc lf]
+		p: block/rs-head src-blk
+		h: src-blk/head
+		src-blk/head: (as-integer pc - p) >> 4 + h
+		print "*** near: " #call [prin-block src-blk 200]
+		src-blk/head: h
+		print "^/"
+		quit 1
 	]
-
-	#define RST_STMT(self) [
-		RST_NODE(self)
-		accept	[accept-fn!]
-	]
-
-	#define RST_EXPR(self) [
-		RST_NODE(self)
-		accept		[accept-fn!]
-		type		[int-ptr!]
-		exact-type	[int-ptr!]
-	]
-
-	rst-node!: alias struct! [
-		RST_NODE(int-ptr!)
-	]
-
-	var-decl!: alias struct! [	;-- variable declaration
-		RST_NODE(var-decl!)
-		typeref	[red-block!]
-		type		[int-ptr!]
-		init		[int-ptr!]	;-- init expression
-	]
-
-	member!: alias struct! [
-		RST_NODE(member!)
-	]
-
-	context!: alias struct! [
-		RST_NODE(context!)
-		parent		[context!]
-		members		[member!]
-		decls		[node!]
-	]
-
-	fn!: alias struct! [
-		RST_EXPR(fn!)
-		parent		[context!]
-		spec		[red-block!]
-		body		[red-block!]
-		locals		[var-decl!]
-	]
-
-	#define TYPE_HEADER [
-		header		[integer!]		;-- Kind and flags
-		token		[cell!]
-	]
-
-	fn-type!: alias struct! [
-		TYPE_HEADER
-		n-params	[integer!]
-		params		[var-decl!]
-		ret-typeref [red-block!]
-		ret-type	[int-ptr!]
-	]
-
-	#define WORD?(v) [TYPE_OF(v) = TYPE_WORD]
-	#define SET_WORD?(v) [TYPE_OF(v) = TYPE_SET_WORD]
-	#define GET_WORD?(v) [TYPE_OF(v) = TYPE_GET_WORD]
-	#define PATH?(v) [TYPE_OF(v) = TYPE_PATH]
-	#define SET_PATH?(v) [TYPE_OF(v) = TYPE_SET_PATH]
-	#define GET_PATH?(v) [TYPE_OF(v) = TYPE_GET_PATH]
-	#define REFINEMENT?(v) [TYPE_OF(v) = TYPE_REFINEMENT]
-	#define ISSUE?(v) [TYPE_OF(v) = TYPE_ISSUE]
-	#define FLOAT?(v) [TYPE_OF(v) = TYPE_FLOAT]
-	#define INTEGER?(v) [TYPE_OF(v) = TYPE_INTEGER]
-	#define CHAR?(v) [TYPE_OF(v) = TYPE_CHAR]
-	#define BINARY?(v) [TYPE_OF(v) = TYPE_BINARY]
-	#define STRING?(v) [TYPE_OF(v) = TYPE_STRING]
-	#define BLOCK?(v) [TYPE_OF(v) = TYPE_BLOCK]
-	#define PAREN?(V) [TYPE_OF(v) = TYPE_PAREN]
-
-	k_func:		symbol/make "func"
-	k_function:	symbol/make "function"
-	k_alias:	symbol/make "alias"
-	k_context:	symbol/make "context"
-	k_any:		symbol/make "any"
-	k_all:		symbol/make "all"
-	k_as:		symbol/make "as"
-	k_declare:	symbol/make "declare"
-	k_size?:	symbol/make "size?"
-	k_not:		symbol/make "not"
-	k_null:		symbol/make "null"
-	k_if:		symbol/make "if"
-	k_either:	symbol/make "either"
-	k_while:	symbol/make "while"
-	k_until:	symbol/make "until"
-	k_loop:		symbol/make "loop"
-	k_case:		symbol/make "case"
-	k_switch:	symbol/make "switch"
-	k_continue:	symbol/make "continue"
-	k_break:	symbol/make "break"
-	k_throw:	symbol/make "throw"
-	k_catch:	symbol/make "catch"
-	k_variadic:	symbol/make "variadic"
-	k_stdcall:	symbol/make "stdcall"
-	k_cdecl:	symbol/make "cdecl"
-	k_infix:	symbol/make "infix"
-	k_typed:	symbol/make "typed"
-	k_custom:	symbol/make "custom"
-	k_return:	symbol/make "return"
-	k_exit:		symbol/make "exit"
-	k_local:	symbol/make "local"
-	k_assert:	symbol/make "assert"
-	k_comment:	symbol/make "comment"
-	k_with:		symbol/make "with"
-	k_use:		symbol/make "use"
 
 	make-ctx: func [
 		name	[cell!]
@@ -250,6 +373,7 @@ parser: context [
 		ctx: as context! malloc size? context!
 		ctx/token: name
 		ctx/parent: parent
+		ctx/stmts: as rst-stmt! malloc size? rst-stmt!
 		ctx/decls: hashmap/make sz
 		SET_RST_TYPE(ctx RST_CONTEXT)
 		if parent <> null [
@@ -274,6 +398,36 @@ parser: context [
 		f/accept: :func_accept
 		SET_RST_TYPE(f RST_FUNC)
 		f
+	]
+
+	make-int: func [
+		value	[integer!]
+		pos		[cell!]
+		return: [int-literal!]
+		/local
+			int [int-literal!]
+	][
+		int: as int-literal! malloc size? int-literal!
+		SET_RST_TYPE(int RST_INT)
+		int/token: pos
+		int/value: value
+		int
+	]
+
+	make-assignment: func [
+		target	[var-decl!]
+		expr	[rst-expr!]
+		pos		[cell!]
+		return: [assignment!]
+		/local
+			assign [assignment!]
+	][
+		assign: as assignment! malloc size? assignment!
+		SET_RST_TYPE(assign RST_ASSIGN)
+		assign/token: pos
+		assign/target: target
+		assign/expr: expr
+		assign
 	]
 
 	make-variable: func [
@@ -305,11 +459,13 @@ parser: context [
 	parse-expr: func [
 		pc		[cell!]
 		end		[cell!]
+		expr	[ptr-ptr!]	;-- a pointer to receive the expr
 		ctx		[context!]
 		return: [cell!]
 		/local
 			sym [integer!]
 			w	[red-word!]
+			int [red-integer!]
 			p	[ptr-ptr!]
 			v	[rst-node!]
 	][
@@ -317,52 +473,119 @@ parser: context [
 			WORD?(pc) [
 				w: as red-word! pc
 				sym: symbol/resolve w/symbol
-				case [
-					sym = k_either [0]
-					sym = k_case [0]
-					sym = k_switch [0]
-					sym = k_as [0]
-					sym = k_any [0]
-					sym = k_all [0]
-					sym = k_declare [0]
-					sym = k_size? [0]
-					sym = k_null [0]
-					true [
-						p: hashmap/get ctx/decls sym
-						if null? p [error-TBD] ;TBD error
-
-						v: as rst-node! p/value
-						switch RST_TYPE(v) [
-							RST_FUNC	[parse-call pc end ctx]
-							RST_VAR		[0]
-							default		[error-TBD]	;TBD unreachale
-						]
+				p: hashmap/get ctx/decls sym
+				either p <> null [
+					v: as rst-node! p/value
+					switch RST_TYPE(v) [
+						RST_FUNC	[parse-call pc end ctx]
+						RST_VAR		[0]
+						default		[error-TBD]	;TBD unreachale
+					]
+				][
+					case [
+						sym = k_either [0]
+						sym = k_case [0]
+						sym = k_switch [0]
+						sym = k_as [0]
+						sym = k_any [0]
+						sym = k_all [0]
+						sym = k_declare [0]
+						sym = k_size? [0]
+						sym = k_null [0]
+						sym = k_true [0]
+						sym = k_false [0]
+						true [error-TBD]	;TBD unreachale
 					]
 				]
 			]
-			INTEGER?(pc) [0]
+			INTEGER?(pc) [
+				int: as red-integer! pc
+				expr/value: as int-ptr! make-int int/value pc
+			]
 			FLOAT?(pc) [0]
 			GET_WORD?(pc) [0]
 			PATH?(pc) [0]
 			GET_PATH?(pc) [0]
+			ISSUE?(pc) [
+				w: as red-word! pc
+				sym: symbol/resolve w/symbol
+				case [
+					sym = k_get [0]
+					sym = k_in [0]
+					sym = k_u16 [0]
+					true [error-TBD]	;TBD error
+				]
+			]
 		]
-		pc
+		pc + 1
+	]
+
+	find-var: func [
+		name	[red-word!]
+		ctx		[context!]
+		return: [var-decl!]
+		/local
+			sym [integer!]
+			val [ptr-ptr!]
+	][
+		sym: symbol/resolve name/symbol
+		until [
+			val: hashmap/get ctx/decls sym
+			ctx: ctx/parent
+			any [null? ctx val <> null]
+		]
+		either val <> null [
+			as var-decl! val/value
+		][null]
 	]
 
 	parse-assignment: func [
 		pc		[cell!]
 		end		[cell!]
+		out		[ptr-ptr!]
 		ctx		[context!]
 		return: [cell!]
 		/local
-			pc2 [cell!]
+			var		[var-decl!]
+			flags	[integer!]
+			list	[var-decl! value]
+			ptr		[ptr-value!]
+			set?	[logic!]
+			pos		[cell!]
 	][
-		pc2: peek-next pc end
-
+		var: null
+		set?: yes
+		case [
+			SET_WORD?(pc) [
+				var: find-var as red-word! pc ctx
+				flags: RST_FLAGS(ctx)
+				either flags and RST_FLAG_FN_CTX <> 0 [
+					if any [null? var RST_TYPE(var) <> RST_VAR][
+						throw-error [pc "undefined symbol:" pc]
+					]
+				][
+					if null? var [
+						list/next: null
+						var: make-variable pc null list
+						add-decl ctx pc as int-ptr! var
+					]
+				]
+				pos: pc
+			]
+			SET_PATH?(pc) [0]
+			true [
+				set?: no
+				pc: parse-expr pc end out ctx
+			]
+		]
+		if set? [
+			pc: parse-assignment peek-next pc end end :ptr ctx
+			out/value: as int-ptr! make-assignment var as rst-expr! ptr/value pos
+		]
 		pc
 	]
 
-	parse-code: func [
+	parse-statement: func [
 		pc		[cell!]
 		end		[cell!]
 		ctx		[context!]
@@ -370,9 +593,9 @@ parser: context [
 		/local
 			w	[red-word!]
 			sym [integer!]
+			ptr [ptr-value!]
 	][
 		case [
-			SET_WORD?(pc) [parse-assignment pc end ctx]
 			WORD?(pc) [
 				w: as red-word! pc
 				sym: symbol/resolve w/symbol
@@ -385,20 +608,45 @@ parser: context [
 					sym = k_break [0]
 					sym = k_throw [0]
 					sym = k_catch [0]
-					true [parse-expr pc end ctx]
+					true [pc: parse-expr pc end :ptr ctx]
 				]
 			]
-			true [parse-expr pc end ctx]
+			ISSUE?(pc) [
+				w: as red-word! pc
+				sym: symbol/resolve w/symbol
+				case [
+					sym = k_call [0]
+					sym = k_typecheck [0]
+					sym = k_inline [0]
+					sym = k_verbose [0]
+					sym = k_user-code [0]
+					sym = k_build-date [0]
+					true [pc: parse-expr pc end :ptr ctx]
+				]
+			]
+			true [pc: parse-assignment pc end :ptr ctx]
 		]
 		pc
 	]
 
-	parse-issue: func [
+	parse-directive: func [
 		pc		[cell!]
 		end		[cell!]
 		ctx		[context!]
 		return: [cell!]
+		/local
+			w	[red-word!]
+			sym [integer!]
 	][
+		w: as red-word! pc
+		sym: symbol/resolve w/symbol
+		case [
+			sym = k_import [0]
+			sym = k_export [0]
+			sym = k_syscall [0]
+			sym = k_script [0]
+			true [pc: parse-statement pc end ctx]
+		]
 		pc
 	]
 
@@ -433,7 +681,10 @@ parser: context [
 			w	[red-word!]
 			ctx [context!]
 			c2	[context!]
+			ptr [ptr-value!]
+			saved-blk [red-block!]
 	][
+		src-blk: src
 		ctx: make-ctx name parent func?
 		pc: block/rs-head src
 		end: block/rs-tail src
@@ -451,18 +702,22 @@ parser: context [
 							pc2 ;fetch alias
 						]
 						sym = k_context [
+							if func? [throw-error [pc "context has to be declared at root level"]]
+
 							pc2: expect-next pc2 end TYPE_BLOCK
+							saved-blk: src-blk
 							c2: parse-context pc as red-block! pc2 ctx func?
+							src-blk: saved-blk
 							unless add-decl ctx pc as int-ptr! c2 [
-								error-TBD ;TBD error
+								throw-error [pc "context name is already taken:" pc]
 							]
 							pc2 + 1
 						]
-						true [parse-assignment pc end ctx]
+						true [parse-assignment pc end :ptr ctx]
 					]
 				]
-				ISSUE?(pc) [parse-issue pc end ctx]
-				true [parse-code pc end ctx]
+				ISSUE?(pc) [parse-directive pc end ctx]
+				true [parse-statement pc end ctx]
 			]
 		]
 		ctx
