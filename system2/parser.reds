@@ -9,8 +9,24 @@ Red/System [
 
 visitor!: alias struct! [
 	VISITOR_FUNC(visit-if)
+	VISITOR_FUNC(visit-either)
+	VISITOR_FUNC(visit-case)
+	VISITOR_FUNC(visit-switch)
+	VISITOR_FUNC(visit-loop)
 	VISITOR_FUNC(visit-while)
+	VISITOR_FUNC(visit-until)
 	VISITOR_FUNC(visit-func)
+	VISITOR_FUNC(visit-break)
+	VISITOR_FUNC(visit-continue)
+	VISITOR_FUNC(visit-return)
+	VISITOR_FUNC(visit-exit)
+	VISITOR_FUNC(visit-fn-call)
+	VISITOR_FUNC(visit-assign)
+	VISITOR_FUNC(visit-bin-op)
+	VISITOR_FUNC(visit-var)
+	VISITOR_FUNC(visit-string)
+	VISITOR_FUNC(visit-array)
+	VISITOR_FUNC(visit-literal)
 ]
 
 #define ACCEPT_FN_SPEC [self [int-ptr!] v [visitor!] data [int-ptr!] return: [int-ptr!]]
@@ -116,8 +132,9 @@ var-decl!: alias struct! [	;-- variable declaration
 context!: alias struct! [
 	RST_NODE(context!)
 	parent		[context!]
+	child		[context!]
 	stmts		[rst-stmt!]
-	decls		[node!]
+	decls		[int-ptr!]
 ]
 
 fn!: alias struct! [
@@ -319,13 +336,13 @@ parser: context [
 		p/x
 	]
 
-	error-TBD: does [0]
+	error-TBD: does [probe "Error TBD" halt]
 
 	throw-error: func [
 		[typed] count [integer!] list [typed-value!]
 		/local
 			s	[c-string!]
-			w	[red-word!]
+			w	[cell!]
 			pc	[cell!]
 			p	[cell!]
 			h	[integer!]
@@ -339,8 +356,8 @@ parser: context [
 			either list/type = type-c-string! [
 				s: as-c-string list/value prin s
 			][
-				w: as red-word! list/value
-				if w <> null [#call [prin-cell w]]
+				w: as cell! list/value
+				if w <> null [prin-token w]
 			]
 
 			count: count - 1	
@@ -349,7 +366,7 @@ parser: context [
 			list: list + 1
 			zero? count
 		]
-		print "^/*** in file: " #call [prin-cell compiler/script]
+		print "^/*** in file: " prin-token compiler/script
 		print ["^/*** at line: " calc-line pc lf]
 		p: block/rs-head src-blk
 		h: src-blk/head
@@ -373,11 +390,11 @@ parser: context [
 		ctx: as context! malloc size? context!
 		ctx/token: name
 		ctx/parent: parent
-		ctx/stmts: as rst-stmt! malloc size? rst-stmt!
 		ctx/decls: hashmap/make sz
 		SET_RST_TYPE(ctx RST_CONTEXT)
 		if parent <> null [
-			parent/next: ctx
+			ctx/next: parent/child
+			parent/child: ctx
 		]
 		ctx
 	]
@@ -407,10 +424,14 @@ parser: context [
 		/local
 			int [int-literal!]
 	][
+		int_accept: func [ACCEPT_FN_SPEC][
+			v/visit-literal self data
+		]
 		int: as int-literal! malloc size? int-literal!
 		SET_RST_TYPE(int RST_INT)
 		int/token: pos
 		int/value: value
+		int/accept: :int_accept
 		int
 	]
 
@@ -422,11 +443,15 @@ parser: context [
 		/local
 			assign [assignment!]
 	][
+		assign_accept: func [ACCEPT_FN_SPEC][
+			v/visit-assign self data
+		]
 		assign: as assignment! malloc size? assignment!
 		SET_RST_TYPE(assign RST_ASSIGN)
 		assign/token: pos
 		assign/target: target
 		assign/expr: expr
+		assign/accept: :assign_accept
 		assign
 	]
 
@@ -552,6 +577,7 @@ parser: context [
 			ptr		[ptr-value!]
 			set?	[logic!]
 			pos		[cell!]
+			s		[rst-stmt!]
 	][
 		var: null
 		set?: yes
@@ -568,6 +594,9 @@ parser: context [
 						list/next: null
 						var: make-variable pc null list
 						add-decl ctx pc as int-ptr! var
+						pc: parse-assignment peek-next pc end end out ctx
+						var/init: out/value
+						set?: no
 					]
 				]
 				pos: pc
@@ -580,7 +609,9 @@ parser: context [
 		]
 		if set? [
 			pc: parse-assignment peek-next pc end end :ptr ctx
-			out/value: as int-ptr! make-assignment var as rst-expr! ptr/value pos
+			s: as rst-stmt! make-assignment var as rst-expr! ptr/value pos
+			s/next: ctx/stmts
+			ctx/stmts: s
 		]
 		pc
 	]
@@ -594,7 +625,11 @@ parser: context [
 			w	[red-word!]
 			sym [integer!]
 			ptr [ptr-value!]
+			s	[rst-stmt!]
+			add? [logic!]
 	][
+		add?: yes
+		ptr/value: null
 		case [
 			WORD?(pc) [
 				w: as red-word! pc
@@ -624,7 +659,16 @@ parser: context [
 					true [pc: parse-expr pc end :ptr ctx]
 				]
 			]
-			true [pc: parse-assignment pc end :ptr ctx]
+			true [
+				pc: parse-assignment pc end :ptr ctx
+				add?: no
+			]
+		]
+		if add? [
+			assert ptr/value <> null
+			s: as rst-stmt! ptr/value
+			s/next: ctx/stmts
+			ctx/stmts: s
 		]
 		pc
 	]
