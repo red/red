@@ -29,4 +29,19 @@ hashmap: context [
 	][
 		as ptr-ptr! red/_hashtable/rs-get m key
 	]
+
+	size?: func [
+		m	[int-ptr!]
+		return: [integer!]
+	][
+		red/_hashtable/rs-size? m
+	]
+
+	next: func [
+		m	[int-ptr!]
+		pos [int-ptr!]
+		return: [int-ptr!]
+	][
+		red/_hashtable/rs-next m pos
+	]
 ]

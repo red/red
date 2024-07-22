@@ -427,6 +427,8 @@
 	red/_hashtable/rs-get
 	red/_hashtable/rs-clear
 	red/_hashtable/rs-destroy
+	red/_hashtable/rs-size?
+	red/_hashtable/rs-next
 ][
 	red/root				red-block!
 	red/stk-bottom			int-ptr!

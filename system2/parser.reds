@@ -30,9 +30,10 @@ visitor!: alias struct! [
 ]
 
 #define ACCEPT_FN_SPEC [self [int-ptr!] v [visitor!] data [int-ptr!] return: [int-ptr!]]
+#define VISIT_FN_SPEC [node [int-ptr!] data [int-ptr!] return: [int-ptr!]]
 
 accept-fn!: alias function! [ACCEPT_FN_SPEC]
-visit-fn!: alias function! [node [int-ptr!] data [int-ptr!] return: [int-ptr!]]
+visit-fn!: alias function! [VISIT_FN_SPEC]
 
 #enum type-kind! [
 	TYPE_VOID
@@ -134,6 +135,7 @@ context!: alias struct! [
 	parent		[context!]
 	child		[context!]
 	stmts		[rst-stmt!]
+	last-stmt	[rst-stmt!]
 	decls		[int-ptr!]
 ]
 
@@ -390,6 +392,8 @@ parser: context [
 		ctx: as context! malloc size? context!
 		ctx/token: name
 		ctx/parent: parent
+		ctx/stmts: as rst-stmt! malloc size? rst-stmt!	;-- stmt head
+		ctx/last-stmt: ctx/stmts
 		ctx/decls: hashmap/make sz
 		SET_RST_TYPE(ctx RST_CONTEXT)
 		if parent <> null [
@@ -574,7 +578,6 @@ parser: context [
 			var		[var-decl!]
 			flags	[integer!]
 			list	[var-decl! value]
-			ptr		[ptr-value!]
 			set?	[logic!]
 			pos		[cell!]
 			s		[rst-stmt!]
@@ -584,6 +587,7 @@ parser: context [
 		case [
 			SET_WORD?(pc) [
 				var: find-var as red-word! pc ctx
+				pos: pc
 				flags: RST_FLAGS(ctx)
 				either flags and RST_FLAG_FN_CTX <> 0 [
 					if any [null? var RST_TYPE(var) <> RST_VAR][
@@ -599,7 +603,6 @@ parser: context [
 						set?: no
 					]
 				]
-				pos: pc
 			]
 			SET_PATH?(pc) [0]
 			true [
@@ -608,10 +611,10 @@ parser: context [
 			]
 		]
 		if set? [
-			pc: parse-assignment peek-next pc end end :ptr ctx
-			s: as rst-stmt! make-assignment var as rst-expr! ptr/value pos
-			s/next: ctx/stmts
-			ctx/stmts: s
+			pc: parse-assignment peek-next pc end end out ctx
+			s: as rst-stmt! make-assignment var as rst-expr! out/value pos
+			ctx/last-stmt/next: s
+			ctx/last-stmt: s
 		]
 		pc
 	]
@@ -667,8 +670,8 @@ parser: context [
 		if add? [
 			assert ptr/value <> null
 			s: as rst-stmt! ptr/value
-			s/next: ctx/stmts
-			ctx/stmts: s
+			ctx/last-stmt/next: s
+			ctx/last-stmt: s
 		]
 		pc
 	]
