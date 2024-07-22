@@ -39,6 +39,7 @@ compiler: context [
 
 	init: does [
 		_mempool: mempool/make
+		parser/init
 	]
 
 	clean: does [

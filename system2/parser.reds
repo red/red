@@ -31,9 +31,17 @@ visitor!: alias struct! [
 
 #define ACCEPT_FN_SPEC [self [int-ptr!] v [visitor!] data [int-ptr!] return: [int-ptr!]]
 #define VISIT_FN_SPEC [node [int-ptr!] data [int-ptr!] return: [int-ptr!]]
+#define KEYWORD_FN_SPEC [
+	pc		[cell!]
+	end		[cell!]
+	expr	[ptr-ptr!]	;-- a pointer to receive the expr
+	ctx		[context!]
+	return: [cell!]
+]
 
 accept-fn!: alias function! [ACCEPT_FN_SPEC]
 visit-fn!: alias function! [VISIT_FN_SPEC]
+keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 
 #enum type-kind! [
 	TYPE_VOID
@@ -159,6 +167,15 @@ bin-expr!: alias struct! [
 	right		[rst-expr!]
 ]
 
+literal!: alias struct! [
+	RST_EXPR(literal!)
+]
+
+logic-literal!: alias struct! [
+	RST_EXPR(literal!)
+	value		[logic!]
+]
+
 int-literal!: alias struct! [
 	RST_EXPR(int-literal!)
 	value		[integer!]
@@ -235,6 +252,21 @@ parser: context [
 	k_true:		symbol/make "true"
 	k_false:	symbol/make "false"
 
+	k_+:			symbol/make "+"
+	k_-:			symbol/make "-"
+	k_=:			symbol/make "="
+	k_>=:			symbol/make ">="
+	k_>:			symbol/make ">"
+	k_>>:			symbol/make ">>"
+	k_>>>:			symbol/make ">>>"
+	k_less:			symbol/make "<"
+	k_less_eq:		symbol/make "<="
+	k_not_eq:		symbol/make "<>"
+	k_slash:		symbol/make "/"
+	k_dbl_slash:	symbol/make "//"
+	k_percent:		symbol/make "%"
+	k_star:			symbol/make "*"	
+
 	;-- issue directives
 	k_import:		symbol/make "import"
 	k_export:		symbol/make "export"
@@ -250,6 +282,38 @@ parser: context [
 	k_user-code:	symbol/make "user-code"
 	k_typecheck:	symbol/make "typecheck"
 	k_build-date:	symbol/make "build-date"
+
+	keywords: as int-ptr! 0
+
+	init: does [
+		keywords: hashmap/make 300
+		hashmap/put keywords k_any		null
+        hashmap/put keywords k_all		null
+        hashmap/put keywords k_as		null
+        hashmap/put keywords k_declare	null
+        hashmap/put keywords k_size?	null
+        hashmap/put keywords k_not		null
+        hashmap/put keywords k_null		null
+        hashmap/put keywords k_if		null
+        hashmap/put keywords k_either	null
+        hashmap/put keywords k_while	null
+        hashmap/put keywords k_until	null
+        hashmap/put keywords k_loop		null
+        hashmap/put keywords k_case		null
+        hashmap/put keywords k_switch	null
+        hashmap/put keywords k_continue	null
+        hashmap/put keywords k_break	null
+        hashmap/put keywords k_throw	null
+        hashmap/put keywords k_catch	null
+        hashmap/put keywords k_return	null
+        hashmap/put keywords k_exit		null
+        hashmap/put keywords k_assert	null
+        hashmap/put keywords k_comment	null
+        hashmap/put keywords k_with		null
+        hashmap/put keywords k_use		null
+        hashmap/put keywords k_true		as int-ptr! :parse-logic
+        hashmap/put keywords k_false	as int-ptr! :parse-logic
+	]
 
 	peek: func [
 		pc		[cell!]
@@ -339,6 +403,10 @@ parser: context [
 	]
 
 	error-TBD: does [probe "Error TBD" halt]
+
+	unreachable: func [pc [cell!]][
+		throw-error [pc "Should not reach here!!!"]
+	]
 
 	throw-error: func [
 		[typed] count [integer!] list [typed-value!]
@@ -485,7 +553,27 @@ parser: context [
 		pc
 	]
 
-	parse-expr: func [
+	parse-logic: func [
+		KEYWORD_FN_SPEC
+		/local
+			b	[logic-literal!]
+			bl	[red-logic!]
+	][
+		bl: as red-logic! pc
+		b: as logic-literal! malloc size? logic-literal!
+		b_accept: func [ACCEPT_FN_SPEC][
+			v/visit-literal self data
+		]
+		SET_RST_TYPE(b RST_LOGIC)
+		b/token: pc
+		b/value: bl/value
+		b/accept: :b_accept
+
+		expr/value: as int-ptr! b
+		pc
+	]
+
+	parse-sub-expr: func [
 		pc		[cell!]
 		end		[cell!]
 		expr	[ptr-ptr!]	;-- a pointer to receive the expr
@@ -497,9 +585,10 @@ parser: context [
 			int [red-integer!]
 			p	[ptr-ptr!]
 			v	[rst-node!]
+			parse-keyword [keyword-fn!]
 	][
-		case [
-			WORD?(pc) [
+		switch TYPE_OF(pc) [
+			TYPE_WORD [
 				w: as red-word! pc
 				sym: symbol/resolve w/symbol
 				p: hashmap/get ctx/decls sym
@@ -508,34 +597,27 @@ parser: context [
 					switch RST_TYPE(v) [
 						RST_FUNC	[parse-call pc end ctx]
 						RST_VAR		[0]
-						default		[error-TBD]	;TBD unreachale
+						default		[unreachable pc]
 					]
 				][
-					case [
-						sym = k_either [0]
-						sym = k_case [0]
-						sym = k_switch [0]
-						sym = k_as [0]
-						sym = k_any [0]
-						sym = k_all [0]
-						sym = k_declare [0]
-						sym = k_size? [0]
-						sym = k_null [0]
-						sym = k_true [0]
-						sym = k_false [0]
-						true [error-TBD]	;TBD unreachale
+					p: hashmap/get keywords sym
+					either p <> null [		;-- keyword
+						parse-keyword: as keyword-fn! p/value
+						pc: parse-keyword pc end expr ctx
+					][
+						throw-error [pc "undefined symbol:" pc]
 					]
 				]
 			]
-			INTEGER?(pc) [
+			TYPE_INTEGER [
 				int: as red-integer! pc
 				expr/value: as int-ptr! make-int int/value pc
 			]
-			FLOAT?(pc) [0]
-			GET_WORD?(pc) [0]
-			PATH?(pc) [0]
-			GET_PATH?(pc) [0]
-			ISSUE?(pc) [
+			TYPE_FLOAT [0]
+			TYPE_GET_WORD [0]
+			TYPE_PATH [0]
+			TYPE_GET_PATH [0]
+			TYPE_ISSUE [
 				w: as red-word! pc
 				sym: symbol/resolve w/symbol
 				case [
@@ -545,8 +627,21 @@ parser: context [
 					true [error-TBD]	;TBD error
 				]
 			]
+			default [0]
 		]
 		pc + 1
+	]
+
+	parse-expr: func [
+		pc		[cell!]
+		end		[cell!]
+		expr	[ptr-ptr!]	;-- a pointer to receive the expr
+		ctx		[context!]
+		return: [cell!]
+	][
+		pc: parse-sub-expr pc end expr ctx
+
+		pc
 	]
 
 	find-var: func [
@@ -633,23 +728,9 @@ parser: context [
 	][
 		add?: yes
 		ptr/value: null
-		case [
-			WORD?(pc) [
-				w: as red-word! pc
-				sym: symbol/resolve w/symbol
-				case [
-					sym = k_if [0]
-					sym = k_while [0]
-					sym = k_until [0]
-					sym = k_loop [0]
-					sym = k_continue [0]
-					sym = k_break [0]
-					sym = k_throw [0]
-					sym = k_catch [0]
-					true [pc: parse-expr pc end :ptr ctx]
-				]
-			]
-			ISSUE?(pc) [
+		switch TYPE_OF(pc) [
+			TYPE_WORD [pc: parse-expr pc end :ptr ctx]
+			TYPE_ISSUE [
 				w: as red-word! pc
 				sym: symbol/resolve w/symbol
 				case [
@@ -662,7 +743,7 @@ parser: context [
 					true [pc: parse-expr pc end :ptr ctx]
 				]
 			]
-			true [
+			default [
 				pc: parse-assignment pc end :ptr ctx
 				add?: no
 			]
