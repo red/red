@@ -34,8 +34,24 @@ rst-printer: context [
 		null
 	]
 
-	printer/visit-assign: :visit-assign
-	printer/visit-literal: :visit-literal
+	visit-bin-op: func [
+		;node [int-ptr!] data [int-ptr!] return: [int-ptr!]
+		VISIT_FN_SPEC
+		/local
+			e		[bin-op!]
+			i		[integer!]
+	][
+		e: as bin-op! node
+		i: as-integer data
+		do-i i e/left/accept as int-ptr! e/left printer null prin " "
+		prin-token e/token prin " "
+		e/right/accept as int-ptr! e/right printer null
+		null
+	]
+
+	printer/visit-assign:	:visit-assign
+	printer/visit-literal:	:visit-literal
+	printer/visit-bin-op:	:visit-bin-op
 
 	do-i: func [i [integer!]][
 		loop i [prin "    "]
@@ -55,7 +71,7 @@ rst-printer: context [
 	]
 
 	print-var: func [
-		var		[var-decl!]
+		var		[variable!]
 		indent	[integer!]
 		/local
 			expr [rst-expr!]
@@ -85,10 +101,10 @@ rst-printer: context [
 		loop n [
 			kv: hashmap/next decls kv
 			expr: as rst-expr! kv/2
-			if RST_TYPE(expr) <> RST_CONTEXT [
+			if NODE_TYPE(expr) <> RST_CONTEXT [
 				empty?: no
 				prin "^/"
-				print-var as var-decl! expr indent + 1
+				print-var as variable! expr indent + 1
 			]
 		]
 		unless empty? [prin "^/" do-i indent] print-line "]"

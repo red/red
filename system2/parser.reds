@@ -55,14 +55,15 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	TYPE_NULL
 ]
 
-#enum rst-type! [
-	RST_VAR
+#enum rst-node-type! [
 	RST_CONTEXT
 	RST_FUNC
 	RST_IF
-	RST_EITHER
 	RST_WHILE
 	RST_ASSIGN
+	RST_EXPR
+	RST_VAR
+	RST_EITHER
 	RST_INT
 	RST_FLOAT
 	RST_STRING
@@ -70,6 +71,7 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	RST_LOGIC
 	RST_BINARY
 	RST_LIT_ARRAY		;-- literal array
+	RST_BIN_OP
 	RST_DECLARE
 	RST_NOT
 	RST_SIZEOF
@@ -89,20 +91,23 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 ]
 
 #enum rst-node-flag! [
-	RST_FLAG_FN_CTX:	1
+	RST_FN_CTX:		1
+	RST_INFIX_FN:	2
+	RST_INFIX_OP:	4
 ]
 
 #define SET_TYPE_KIND(node kind) [node/header: node/header and FFFFFF00h or kind]
 #define TYPE_KIND(node) (node/header and FFh)
 #define SET_TYPE_FLAGS(node flags) [node/header: node/header and FFh or (flags << 8)]
+#define TYPE_FLAGS(node) (node/header and FFh >> 8)
 
-#define SET_RST_TYPE(node type) [node/header: node/header and FFFFFF00h or type]
-#define RST_TYPE(node) (node/header and FFh)
-#define RST_FLAGS(node) (node/header and FFh >> 8)
-
+#define SET_NODE_TYPE(node type) [node/header: node/header and FFFFFF00h or type]
+#define SET_NODE_FLAGS(node flags) [node/header: node/header and FFh or (flags << 8)]
+#define NODE_TYPE(node) (node/header and FFh)
+#define NODE_FLAGS(node) (node/header and FFh >> 8)
 
 #define RST_NODE(self) [	;-- RST: R/S Syntax Tree
-	header	[integer!]		;-- rst-type! bits: 0 - 8
+	header	[integer!]		;-- rst-node-type! bits: 0 - 8
 	next	[self]
 	token	[cell!]
 ]
@@ -115,8 +120,17 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 #define RST_EXPR(self) [
 	RST_NODE(self)
 	accept		[accept-fn!]
-	type		[int-ptr!]
-	exact-type	[int-ptr!]
+	type		[rst-type!]
+	exact-type	[rst-type!]
+]
+
+#define TYPE_HEADER [
+	header		[integer!]		;-- Kind and flags
+	token		[cell!]
+]
+
+rst-type!: alias struct! [
+	TYPE_HEADER
 ]
 
 rst-node!: alias struct! [
@@ -131,10 +145,9 @@ rst-expr!: alias struct! [
 	RST_EXPR(rst-expr!)
 ]
 
-var-decl!: alias struct! [	;-- variable declaration
-	RST_NODE(var-decl!)
+variable!: alias struct! [	;-- variable declaration
+	RST_EXPR(variable!)
 	typeref		[red-block!]
-	type		[int-ptr!]
 	init		[int-ptr!]	;-- init expression
 ]
 
@@ -152,17 +165,18 @@ fn!: alias struct! [
 	parent		[context!]
 	spec		[red-block!]
 	body		[red-block!]
-	locals		[var-decl!]
+	locals		[variable!]
 ]
 
 assignment!: alias struct! [
 	RST_EXPR(assignment!)
-	target		[var-decl!]
+	target		[variable!]
 	expr		[rst-expr!]
 ]
 
-bin-expr!: alias struct! [
-	RST_EXPR(bin-expr!)
+bin-op!: alias struct! [
+	RST_EXPR(bin-op!)
+	op			[int-ptr!]
 	left		[rst-expr!]
 	right		[rst-expr!]
 ]
@@ -181,15 +195,10 @@ int-literal!: alias struct! [
 	value		[integer!]
 ]
 
-#define TYPE_HEADER [
-	header		[integer!]		;-- Kind and flags
-	token		[cell!]
-]
-
 fn-type!: alias struct! [
 	TYPE_HEADER
 	n-params	[integer!]
-	params		[var-decl!]
+	params		[variable!]
 	ret-typeref [red-block!]
 	ret-type	[int-ptr!]
 ]
@@ -283,10 +292,27 @@ parser: context [
 	k_typecheck:	symbol/make "typecheck"
 	k_build-date:	symbol/make "build-date"
 
-	keywords: as int-ptr! 0
+	keywords:  as int-ptr! 0
+	infix-Ops: as int-ptr! 0
 
 	init: does [
 		keywords: hashmap/make 300
+		infix-Ops: hashmap/make 100
+		hashmap/put infix-Ops k_+			null
+		hashmap/put infix-Ops k_-			null
+		hashmap/put infix-Ops k_=			null
+		hashmap/put infix-Ops k_>=			null
+		hashmap/put infix-Ops k_>			null
+		hashmap/put infix-Ops k_>>			null
+		hashmap/put infix-Ops k_>>>			null
+		hashmap/put infix-Ops k_less		null
+		hashmap/put infix-Ops k_less_eq		null
+		hashmap/put infix-Ops k_not_eq		null
+		hashmap/put infix-Ops k_slash		null
+		hashmap/put infix-Ops k_dbl_slash	null
+		hashmap/put infix-Ops k_percent		null
+		hashmap/put infix-Ops k_star		null
+
 		hashmap/put keywords k_any		null
         hashmap/put keywords k_all		null
         hashmap/put keywords k_as		null
@@ -315,24 +341,28 @@ parser: context [
         hashmap/put keywords k_false	as int-ptr! :parse-logic
 	]
 
-	peek: func [
+	advance: func [
 		pc		[cell!]
 		end		[cell!]
 		idx		[integer!]
 		return: [cell!]
 	][
 		pc: pc + idx
-		if pc >= end [probe "Parse Error: EOF" halt]
+		if pc >= end [
+			throw-error [pc - 1 "EOF: expect mroe code"]
+		]
 		pc
 	]
 
-	peek-next: func [
+	advance-next: func [
 		pc		[cell!]
 		end		[cell!]
 		return: [cell!]
 	][
 		pc: pc + 1
-		if pc >= end [probe "Parse Error: EOF" halt]
+		if pc >= end [
+			throw-error [pc - 1 "EOF: expect more code"]
+		]
 		pc
 	]
 
@@ -402,8 +432,6 @@ parser: context [
 		p/x
 	]
 
-	error-TBD: does [probe "Error TBD" halt]
-
 	unreachable: func [pc [cell!]][
 		throw-error [pc "Should not reach here!!!"]
 	]
@@ -463,7 +491,7 @@ parser: context [
 		ctx/stmts: as rst-stmt! malloc size? rst-stmt!	;-- stmt head
 		ctx/last-stmt: ctx/stmts
 		ctx/decls: hashmap/make sz
-		SET_RST_TYPE(ctx RST_CONTEXT)
+		SET_NODE_TYPE(ctx RST_CONTEXT)
 		if parent <> null [
 			ctx/next: parent/child
 			parent/child: ctx
@@ -485,8 +513,30 @@ parser: context [
 		f/token: name
 		f/parent: parent
 		f/accept: :func_accept
-		SET_RST_TYPE(f RST_FUNC)
+		SET_NODE_TYPE(f RST_FUNC)
 		f
+	]
+
+	make-bin-op: func [
+		op		[int-ptr!]
+		left	[rst-expr!]
+		right	[rst-expr!]
+		pos		[cell!]
+		return: [bin-op!]
+		/local
+			b	[bin-op!]
+	][
+		bin_accept: func [ACCEPT_FN_SPEC][
+			v/visit-bin-op self data
+		]
+		b: as bin-op! malloc size? bin-op!
+		b/token: pos
+		b/op: op
+		b/left: left
+		b/right: right
+		b/accept: :bin_accept
+		SET_NODE_TYPE(b RST_BIN_OP)
+		b
 	]
 
 	make-int: func [
@@ -500,7 +550,7 @@ parser: context [
 			v/visit-literal self data
 		]
 		int: as int-literal! malloc size? int-literal!
-		SET_RST_TYPE(int RST_INT)
+		SET_NODE_TYPE(int RST_INT)
 		int/token: pos
 		int/value: value
 		int/accept: :int_accept
@@ -508,7 +558,7 @@ parser: context [
 	]
 
 	make-assignment: func [
-		target	[var-decl!]
+		target	[variable!]
 		expr	[rst-expr!]
 		pos		[cell!]
 		return: [assignment!]
@@ -519,7 +569,7 @@ parser: context [
 			v/visit-assign self data
 		]
 		assign: as assignment! malloc size? assignment!
-		SET_RST_TYPE(assign RST_ASSIGN)
+		SET_NODE_TYPE(assign RST_ASSIGN)
 		assign/token: pos
 		assign/target: target
 		assign/expr: expr
@@ -530,13 +580,13 @@ parser: context [
 	make-variable: func [
 		name	[cell!]
 		typeref	[red-block!]
-		list	[var-decl!]
-		return: [var-decl!]
+		list	[variable!]
+		return: [variable!]
 		/local
-			var [var-decl!]
+			var [variable!]
 	][
-		var: as var-decl! malloc size? var-decl!
-		SET_RST_TYPE(var RST_VAR)
+		var: as variable! malloc size? variable!
+		SET_NODE_TYPE(var RST_VAR)
 		var/token: name
 		var/typeref: typeref
 		var/next: list/next
@@ -554,6 +604,7 @@ parser: context [
 	]
 
 	parse-logic: func [
+		;pc end expr ctx
 		KEYWORD_FN_SPEC
 		/local
 			b	[logic-literal!]
@@ -564,7 +615,7 @@ parser: context [
 		b_accept: func [ACCEPT_FN_SPEC][
 			v/visit-literal self data
 		]
-		SET_RST_TYPE(b RST_LOGIC)
+		SET_NODE_TYPE(b RST_LOGIC)
 		b/token: pc
 		b/value: bl/value
 		b/accept: :b_accept
@@ -594,7 +645,7 @@ parser: context [
 				p: hashmap/get ctx/decls sym
 				either p <> null [
 					v: as rst-node! p/value
-					switch RST_TYPE(v) [
+					switch NODE_TYPE(v) [
 						RST_FUNC	[parse-call pc end ctx]
 						RST_VAR		[0]
 						default		[unreachable pc]
@@ -605,7 +656,7 @@ parser: context [
 						parse-keyword: as keyword-fn! p/value
 						pc: parse-keyword pc end expr ctx
 					][
-						throw-error [pc "undefined symbol:" pc]
+						throw-error [pc "undefined symbol:" w]
 					]
 				]
 			]
@@ -624,12 +675,71 @@ parser: context [
 					sym = k_get [0]
 					sym = k_in [0]
 					sym = k_u16 [0]
-					true [error-TBD]	;TBD error
+					true [throw-error [pc "unknown directive:" w]]
 				]
 			]
 			default [0]
 		]
 		pc + 1
+	]
+
+	parse-infix-op: func [
+		pc		[cell!]
+		end		[cell!]
+		expr	[ptr-ptr!]
+		ctx		[context!]
+		return: [cell!]
+		/local
+			w		[red-word!]
+			infix?	[logic!]
+			ptr		[ptr-ptr!]
+			sym		[integer!]
+			node	[rst-expr!]
+			type	[rst-node-type!]
+			t		[rst-type!]
+			flag	[integer!]
+			bin		[bin-op!]
+			left	[rst-expr!]
+			right	[ptr-value!]
+			pos		[cell!]
+			op		[int-ptr!]
+	][
+		left: as rst-expr! expr/value
+		while [all [pc < end WORD?(pc)]][
+			flag: 0
+			infix?: no
+			w: as red-word! pc
+			sym: symbol/resolve w/symbol
+			either null <> hashmap/get infix-Ops sym [
+				infix?: yes
+				flag: RST_INFIX_OP
+				op: as int-ptr! sym
+			][
+				node: as rst-expr! find-var w ctx
+				either node <> null [
+					type: NODE_TYPE(node)
+					if any [type = RST_VAR type = RST_FUNC][
+						t: node/type
+						if all [t <> null TYPE_FLAGS(t) and FN_INFIX <> 0][
+							infix?: yes
+							flag: RST_INFIX_FN
+							op: as int-ptr! node
+						]
+					]
+				][
+					throw-error [pc "undefined symbol:" w]
+				]
+			]
+			either infix? [
+				pos: pc
+				pc: parse-sub-expr advance-next pc end end :right ctx
+				bin: make-bin-op op left as rst-expr! right/value pos
+				SET_NODE_FLAGS(bin flag)
+				left: as rst-expr! bin
+			][break]
+		]
+		expr/value: as int-ptr! left
+		pc
 	]
 
 	parse-expr: func [
@@ -640,14 +750,16 @@ parser: context [
 		return: [cell!]
 	][
 		pc: parse-sub-expr pc end expr ctx
-
+		if all [pc < end WORD?(pc)][
+			pc: parse-infix-op pc end expr ctx
+		]
 		pc
 	]
 
 	find-var: func [
 		name	[red-word!]
 		ctx		[context!]
-		return: [var-decl!]
+		return: [variable!]
 		/local
 			sym [integer!]
 			val [ptr-ptr!]
@@ -659,7 +771,7 @@ parser: context [
 			any [null? ctx val <> null]
 		]
 		either val <> null [
-			as var-decl! val/value
+			as variable! val/value
 		][null]
 	]
 
@@ -670,9 +782,9 @@ parser: context [
 		ctx		[context!]
 		return: [cell!]
 		/local
-			var		[var-decl!]
+			var		[variable!]
 			flags	[integer!]
-			list	[var-decl! value]
+			list	[variable! value]
 			set?	[logic!]
 			pos		[cell!]
 			s		[rst-stmt!]
@@ -683,9 +795,9 @@ parser: context [
 			SET_WORD?(pc) [
 				var: find-var as red-word! pc ctx
 				pos: pc
-				flags: RST_FLAGS(ctx)
-				either flags and RST_FLAG_FN_CTX <> 0 [
-					if any [null? var RST_TYPE(var) <> RST_VAR][
+				flags: NODE_FLAGS(ctx)
+				either flags and RST_FN_CTX <> 0 [
+					if any [null? var NODE_TYPE(var) <> RST_VAR][
 						throw-error [pc "undefined symbol:" pc]
 					]
 				][
@@ -693,7 +805,7 @@ parser: context [
 						list/next: null
 						var: make-variable pc null list
 						add-decl ctx pc as int-ptr! var
-						pc: parse-assignment peek-next pc end end out ctx
+						pc: parse-assignment advance-next pc end end out ctx
 						var/init: out/value
 						set?: no
 					]
@@ -706,7 +818,7 @@ parser: context [
 			]
 		]
 		if set? [
-			pc: parse-assignment peek-next pc end end out ctx
+			pc: parse-assignment advance-next pc end end out ctx
 			s: as rst-stmt! make-assignment var as rst-expr! out/value pos
 			ctx/last-stmt/next: s
 			ctx/last-stmt: s
@@ -817,35 +929,39 @@ parser: context [
 		pc: block/rs-head src
 		end: block/rs-tail src
 		while [pc < end][
-			pc2: peek-next pc end
-			pc: case [
-				all [SET_WORD?(pc) WORD?(pc2)][
-					w: as red-word! pc2
-					sym: symbol/resolve w/symbol
-					case [
-						any [sym = k_func sym = k_function][
-							fetch-func pc end ctx
-						]
-						sym = k_alias [
-							pc2 ;fetch alias
-						]
-						sym = k_context [
-							if func? [throw-error [pc "context has to be declared at root level"]]
-
-							pc2: expect-next pc2 end TYPE_BLOCK
-							saved-blk: src-blk
-							c2: parse-context pc as red-block! pc2 ctx func?
-							src-blk: saved-blk
-							unless add-decl ctx pc as int-ptr! c2 [
-								throw-error [pc "context name is already taken:" pc]
+			switch TYPE_OF(pc) [
+				TYPE_SET_WORD [
+					pc2: advance-next pc end
+					pc: either WORD?(pc2) [
+						w: as red-word! pc2
+						sym: symbol/resolve w/symbol
+						case [
+							any [sym = k_func sym = k_function][
+								fetch-func pc end ctx
 							]
-							pc2 + 1
+							sym = k_alias [
+								pc2 ;fetch alias
+							]
+							sym = k_context [
+								if func? [throw-error [pc "context has to be declared at root level"]]
+
+								pc2: expect-next pc2 end TYPE_BLOCK
+								saved-blk: src-blk
+								c2: parse-context pc as red-block! pc2 ctx func?
+								src-blk: saved-blk
+								unless add-decl ctx pc as int-ptr! c2 [
+									throw-error [pc "context name is already taken:" pc]
+								]
+								pc2 + 1
+							]
+							true [parse-assignment pc end :ptr ctx]
 						]
-						true [parse-assignment pc end :ptr ctx]
+					][
+						parse-assignment pc end :ptr ctx
 					]
 				]
-				ISSUE?(pc) [parse-directive pc end ctx]
-				true [parse-statement pc end ctx]
+				TYPE_ISSUE [pc: parse-directive pc end ctx]
+				default [pc: parse-statement pc end ctx]
 			]
 		]
 		ctx
@@ -871,11 +987,15 @@ parser: context [
 					sym = k_stdcall	 [FN_CC_STDCALL]
 					sym = k_variadic [FN_VARIADIC]
 					sym = k_typed	 [FN_TYPED]
+					sym = k_infix	 [FN_INFIX]
 					sym = k_custom	 [FN_CUSTOM]
-					true [0]	;TBD error
+					true [
+						throw-error [p "unknown func attribute:" p]
+						0
+					]
 				]
 			][
-				error-TBD ;TBD error
+				throw-error [p "invalid func attribute:" p]
 			]
 			p: p + 1
 		]
@@ -890,7 +1010,7 @@ parser: context [
 		/local
 			t	[cell!]
 			n	[integer!]
-			list [var-decl! value]
+			list [variable! value]
 	][
 		list/next: null
 		n: 0
@@ -898,7 +1018,7 @@ parser: context [
 			case [
 				any [WORD?(p) STRING?(p)][n: n + 1]
 				BLOCK?(p) [
-					if zero? n [error-TBD]	;TBD error
+					if zero? n [throw-error [p "missing locals"]]
 					t: p - 1
 					until [
 						if WORD?(t) [
@@ -909,7 +1029,7 @@ parser: context [
 						zero? n
 					]
 				]
-				true [error-TBD]	;TBD error
+				true [throw-error [p "invalid locals:" p]]
 			]
 			p: p + 1
 		]
@@ -930,7 +1050,7 @@ parser: context [
 			p2	[cell!]
 			w	[red-word!]
 			t s [integer!]
-			list [var-decl! value]
+			list [variable! value]
 			attr [integer!]
 	][
 		ft: as fn-type! malloc size? fn-type!
@@ -973,7 +1093,7 @@ parser: context [
 					s: 2
 					p: parse-local as cell! w + 1 end fn
 				]
-				true [error-TBD]	;TBD error
+				true [throw-error [w "invalid func spec" w]]
 			]
 			w: as red-word! skip p end TYPE_STRING
 		]
@@ -992,14 +1112,15 @@ parser: context [
 			body [red-block!]
 	][
 		fn: make-func pc ctx
-		body: as red-block! peek pc end 3
+		body: as red-block! advance pc end 3
 		spec: body - 1
 		fn/body: body
 		fn/spec: spec
-		fn/exact-type: as int-ptr! parse-fn-spec spec fn
+		fn/exact-type: as rst-type! parse-fn-spec spec fn
+		fn/type: fn/exact-type
 
 		unless add-decl ctx pc as int-ptr! fn [
-			error-TBD ;TBD error cannot redefine symbol
+			throw-error [pc "symbol name is already defined"]
 		]
 		as cell! body + 1
 	]
