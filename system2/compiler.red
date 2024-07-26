@@ -14,7 +14,7 @@ prin-cell: func [val][
 ]
 
 prin-block: func [blk [block!] part [integer!]][
-	prin mold/part blk part
+	prin either part > 0 [mold/part blk part][mold/flat blk]
 ]
 
 quit-on-error: does [

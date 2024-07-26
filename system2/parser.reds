@@ -43,32 +43,30 @@ accept-fn!: alias function! [ACCEPT_FN_SPEC]
 visit-fn!: alias function! [VISIT_FN_SPEC]
 keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 
-#enum type-kind! [
-	TYPE_VOID
-	TYPE_LOGIC
-	TYPE_INT
-	TYPE_FLOAT
-	TYPE_ARRAY
-	TYPE_STRUCT
-	TYPE_FUNC
-	TYPE_POINTER
-	TYPE_NULL
+#enum rst-type-kind! [
+	RST_TYPE_VOID
+	RST_TYPE_LOGIC
+	RST_TYPE_INT
+	RST_TYPE_BYTE
+	RST_TYPE_FLOAT
+	RST_TYPE_C_STR
+	RST_TYPE_FUNC
+	RST_TYPE_STRUCT
+	RST_TYPE_ARRAY
+	RST_TYPE_PTR
 ]
 
 #enum rst-node-type! [
-	RST_CONTEXT
-	RST_FUNC
-	RST_IF
-	RST_WHILE
-	RST_ASSIGN
-	RST_EXPR
-	RST_VAR
-	RST_EITHER
-	RST_INT
-	RST_FLOAT
-	RST_STRING
-	RST_BYTE
+	RST_VOID
 	RST_LOGIC
+	RST_INT
+	RST_BYTE
+	RST_FLOAT
+	RST_PTR
+	RST_NULL
+	RST_C_STR
+	RST_BYTE_PTR
+	RST_INT_PTR
 	RST_BINARY
 	RST_LIT_ARRAY		;-- literal array
 	RST_BIN_OP
@@ -76,6 +74,15 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	RST_NOT
 	RST_SIZEOF
 	RST_FN_CALL
+	RST_VAR
+	RST_EITHER
+	RST_EXPR_END		;-- end marker of expr types
+	RST_CONTEXT
+	RST_FUNC
+	RST_VAR_DECL
+	RST_IF
+	RST_WHILE
+	RST_ASSIGN
 ]
 
 #enum fn-attr! [
@@ -107,7 +114,7 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 #define NODE_FLAGS(node) (node/header and FFh >> 8)
 
 #define RST_NODE(self) [	;-- RST: R/S Syntax Tree
-	header	[integer!]		;-- rst-node-type! bits: 0 - 8
+	header	[integer!]		;-- rst-node-type! bits: 0 - 7
 	next	[self]
 	token	[cell!]
 ]
@@ -120,8 +127,8 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 #define RST_EXPR(self) [
 	RST_NODE(self)
 	accept		[accept-fn!]
+	cast-type	[rst-type!]
 	type		[rst-type!]
-	exact-type	[rst-type!]
 ]
 
 #define TYPE_HEADER [
@@ -145,10 +152,16 @@ rst-expr!: alias struct! [
 	RST_EXPR(rst-expr!)
 ]
 
-variable!: alias struct! [	;-- variable declaration
-	RST_EXPR(variable!)
+var-decl!: alias struct! [	;-- variable declaration
+	RST_NODE(var-decl!)
 	typeref		[red-block!]
-	init		[int-ptr!]	;-- init expression
+	type		[rst-type!]
+	init		[rst-expr!]	;-- init expression
+]
+
+variable!: alias struct! [
+	RST_EXPR(variable!)
+	decl		[var-decl!]
 ]
 
 context!: alias struct! [
@@ -158,6 +171,7 @@ context!: alias struct! [
 	stmts		[rst-stmt!]
 	last-stmt	[rst-stmt!]
 	decls		[int-ptr!]
+	typecache	[int-ptr!]
 ]
 
 fn!: alias struct! [
@@ -165,7 +179,7 @@ fn!: alias struct! [
 	parent		[context!]
 	spec		[red-block!]
 	body		[red-block!]
-	locals		[variable!]
+	locals		[var-decl!]
 ]
 
 assignment!: alias struct! [
@@ -195,10 +209,40 @@ int-literal!: alias struct! [
 	value		[integer!]
 ]
 
+;-- types
+
+#define INT_WIDTH(int) (int/header >>> 8 and FFh)
+#define INT_SIGNED?(int) (int/header and 00010000h <> 0)
+
+;-- /header bits: 0 - 7: kind, 8 - 15: width, 16: signed? 
+int-type!: alias struct! [
+	TYPE_HEADER
+	min			[integer!]
+	max			[integer!]
+]
+
+#define FLOAT_64?(f)  (f/header and 01000000h <> 0)
+#define FLOAT_FRAC(f) (f/header >>> 8 and FFh)
+#define FLOAT_EXP(f)  (f/header >>> 16 and FFh)
+
+;-- /header bits: 8 - 15: fraction width, 16 - 23: exp width, 24: is64?
+float-type!: alias struct! [
+	TYPE_HEADER
+]
+
+ptr-type!: alias struct! [
+	TYPE_HEADER
+	type		[rst-type!]
+]
+
+struct-type!: alias struct! [
+	TYPE_HEADER
+]
+
 fn-type!: alias struct! [
 	TYPE_HEADER
 	n-params	[integer!]
-	params		[variable!]
+	params		[var-decl!]
 	ret-typeref [red-block!]
 	ret-type	[int-ptr!]
 ]
@@ -558,7 +602,7 @@ parser: context [
 	]
 
 	make-assignment: func [
-		target	[variable!]
+		target	[var-decl!]
 		expr	[rst-expr!]
 		pos		[cell!]
 		return: [assignment!]
@@ -571,26 +615,40 @@ parser: context [
 		assign: as assignment! malloc size? assignment!
 		SET_NODE_TYPE(assign RST_ASSIGN)
 		assign/token: pos
-		assign/target: target
+		assign/target: make-variable target pos
 		assign/expr: expr
 		assign/accept: :assign_accept
 		assign
 	]
 
-	make-variable: func [
+	make-var-decl: func [
 		name	[cell!]
 		typeref	[red-block!]
-		list	[variable!]
+		list	[var-decl!]
+		return: [var-decl!]
+		/local
+			var [var-decl!]
+	][
+		var: as var-decl! malloc size? var-decl!
+		SET_NODE_TYPE(var RST_VAR_DECL)
+		var/token: name
+		var/typeref: typeref
+		var/next: list/next
+		list/next: var
+		var
+	]
+
+	make-variable: func [
+		decl	[var-decl!]
+		pos		[cell!]
 		return: [variable!]
 		/local
 			var [variable!]
 	][
 		var: as variable! malloc size? variable!
 		SET_NODE_TYPE(var RST_VAR)
-		var/token: name
-		var/typeref: typeref
-		var/next: list/next
-		list/next: var
+		var/token: pos
+		var/decl: decl
 		var
 	]
 
@@ -646,9 +704,9 @@ parser: context [
 				either p <> null [
 					v: as rst-node! p/value
 					switch NODE_TYPE(v) [
-						RST_FUNC	[parse-call pc end ctx]
-						RST_VAR		[0]
-						default		[unreachable pc]
+						RST_FUNC		[parse-call pc end ctx]
+						RST_VAR_DECL	[0]
+						default			[unreachable pc]
 					]
 				][
 					p: hashmap/get keywords sym
@@ -718,7 +776,7 @@ parser: context [
 				node: as rst-expr! find-var w ctx
 				either node <> null [
 					type: NODE_TYPE(node)
-					if any [type = RST_VAR type = RST_FUNC][
+					if any [type = RST_VAR_DECL type = RST_FUNC][
 						t: node/type
 						if all [t <> null TYPE_FLAGS(t) and FN_INFIX <> 0][
 							infix?: yes
@@ -759,7 +817,7 @@ parser: context [
 	find-var: func [
 		name	[red-word!]
 		ctx		[context!]
-		return: [variable!]
+		return: [var-decl!]
 		/local
 			sym [integer!]
 			val [ptr-ptr!]
@@ -771,7 +829,7 @@ parser: context [
 			any [null? ctx val <> null]
 		]
 		either val <> null [
-			as variable! val/value
+			as var-decl! val/value
 		][null]
 	]
 
@@ -782,9 +840,9 @@ parser: context [
 		ctx		[context!]
 		return: [cell!]
 		/local
-			var		[variable!]
+			var		[var-decl!]
 			flags	[integer!]
-			list	[variable! value]
+			list	[var-decl! value]
 			set?	[logic!]
 			pos		[cell!]
 			s		[rst-stmt!]
@@ -797,16 +855,16 @@ parser: context [
 				pos: pc
 				flags: NODE_FLAGS(ctx)
 				either flags and RST_FN_CTX <> 0 [
-					if any [null? var NODE_TYPE(var) <> RST_VAR][
+					if any [null? var NODE_TYPE(var) <> RST_VAR_DECL][
 						throw-error [pc "undefined symbol:" pc]
 					]
 				][
 					if null? var [
 						list/next: null
-						var: make-variable pc null list
+						var: make-var-decl pc null list
 						add-decl ctx pc as int-ptr! var
 						pc: parse-assignment advance-next pc end end out ctx
-						var/init: out/value
+						var/init: as rst-expr! out/value
 						set?: no
 					]
 				]
@@ -1010,7 +1068,7 @@ parser: context [
 		/local
 			t	[cell!]
 			n	[integer!]
-			list [variable! value]
+			list [var-decl! value]
 	][
 		list/next: null
 		n: 0
@@ -1022,7 +1080,7 @@ parser: context [
 					t: p - 1
 					until [
 						if WORD?(t) [
-							make-variable t as red-block! p list
+							make-var-decl t as red-block! p list
 						]
 						t: t - 1
 						n: n - 1
@@ -1050,11 +1108,11 @@ parser: context [
 			p2	[cell!]
 			w	[red-word!]
 			t s [integer!]
-			list [variable! value]
+			list [var-decl! value]
 			attr [integer!]
 	][
 		ft: as fn-type! malloc size? fn-type!
-		SET_TYPE_KIND(ft TYPE_FUNC)
+		SET_TYPE_KIND(ft RST_TYPE_FUNC)
 
 		p: block/rs-head spec
 		end: block/rs-tail spec
@@ -1077,7 +1135,7 @@ parser: context [
 				;; param = word "[" type "]" doc-string?
 				all [s = 0 WORD?(w)][
 					p2: expect-next p end TYPE_BLOCK
-					make-variable p as red-block! p2 list
+					make-var-decl p as red-block! p2 list
 					p: p2 + 1
 					ft/n-params: ft/n-params + 1
 				]
@@ -1116,8 +1174,7 @@ parser: context [
 		spec: body - 1
 		fn/body: body
 		fn/spec: spec
-		fn/exact-type: as rst-type! parse-fn-spec spec fn
-		fn/type: fn/exact-type
+		fn/type: as rst-type! parse-fn-spec spec fn
 
 		unless add-decl ctx pc as int-ptr! fn [
 			throw-error [pc "symbol name is already defined"]

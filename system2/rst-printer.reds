@@ -8,50 +8,28 @@ Red/System [
 rst-printer: context [
 	printer: declare visitor!
 
-	visit-assign: func [
-		;node [int-ptr!] data [int-ptr!] return: [int-ptr!]
-		VISIT_FN_SPEC
-		/local
-			a		[assignment!]
-			indent	[integer!]
-	][
-		a: as assignment! node
-		indent: as-integer data
-		do-i indent prin-token a/target/token prin ": "
+	prin-block: func [blk [red-block!]][
+		#call [prin-block blk -1]
+	]
+
+	visit-assign: func [a [assignment!] i [integer!]][
+		do-i i prin-token a/target/token prin ": "
 		a/expr/accept as int-ptr! a/expr printer null
-		null
 	]
 
-	visit-literal: func [
-		VISIT_FN_SPEC
-		/local
-			e		[rst-expr!]
-			i		[integer!]
-	][
-		e: as rst-expr! node
-		i: as-integer data
+	visit-literal: func [e [rst-expr!] i [integer!]][
 		do-i i prin-token e/token
-		null
 	]
 
-	visit-bin-op: func [
-		;node [int-ptr!] data [int-ptr!] return: [int-ptr!]
-		VISIT_FN_SPEC
-		/local
-			e		[bin-op!]
-			i		[integer!]
-	][
-		e: as bin-op! node
-		i: as-integer data
+	visit-bin-op: func [e [bin-op!] i [integer!]][
 		do-i i e/left/accept as int-ptr! e/left printer null prin " "
 		prin-token e/token prin " "
 		e/right/accept as int-ptr! e/right printer null
-		null
 	]
 
-	printer/visit-assign:	:visit-assign
-	printer/visit-literal:	:visit-literal
-	printer/visit-bin-op:	:visit-bin-op
+	printer/visit-assign:	as visit-fn! :visit-assign
+	printer/visit-literal:	as visit-fn! :visit-literal
+	printer/visit-bin-op:	as visit-fn! :visit-bin-op
 
 	do-i: func [i [integer!]][
 		loop i [prin "    "]
@@ -70,17 +48,27 @@ rst-printer: context [
 		]
 	]
 
-	print-var: func [
-		var		[variable!]
+	print-var-decl: func [
+		var		[var-decl!]
 		indent	[integer!]
 		/local
 			expr [rst-expr!]
 	][
 		do-i indent prin-token var/token prin ": "
 		if var/init <> null [
-			expr: as rst-expr! var/init
+			expr: var/init
 			expr/accept as int-ptr! expr printer null
 		]
+	]
+
+	print-func: func [
+		fn		[fn!]
+		indent	[integer!]
+		/local
+			expr [rst-expr!]
+	][
+		do-i indent prin-token fn/token prin ": func "
+		prin-block fn/spec
 	]
 
 	print-decls: func [
@@ -91,6 +79,7 @@ rst-printer: context [
 			kv		[int-ptr!]
 			expr	[rst-expr!]
 			empty?	[logic!]
+			type	[integer!]
 	][
 		n: hashmap/size? decls
 		if zero? n [exit]
@@ -101,10 +90,15 @@ rst-printer: context [
 		loop n [
 			kv: hashmap/next decls kv
 			expr: as rst-expr! kv/2
-			if NODE_TYPE(expr) <> RST_CONTEXT [
+			type: NODE_TYPE(expr)
+			if type <> RST_CONTEXT [
 				empty?: no
 				prin "^/"
-				print-var as variable! expr indent + 1
+			]
+			switch type [
+				RST_VAR_DECL [print-var-decl as var-decl! expr indent + 1]
+				RST_FUNC	 [print-func as fn! expr indent + 1]
+				default [0]
 			]
 		]
 		unless empty? [prin "^/" do-i indent] print-line "]"

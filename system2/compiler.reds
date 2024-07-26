@@ -12,6 +12,7 @@ compiler: context [
 	#include %utils/hashmap.reds
 	#include %parser.reds
 	#include %rst-printer.reds
+	#include %type-checker.reds
 
 	_mempool: as mempool! 0
 	script: as cell! 0
@@ -34,12 +35,14 @@ compiler: context [
 	][
 		script: object/rs-select job as cell! word/load "script"
 		ctx: parser/parse-context null src null no
+		type-checker/check ctx
 		rst-printer/print-program ctx
 	]
 
 	init: does [
 		_mempool: mempool/make
 		parser/init
+		;type-checker/init
 	]
 
 	clean: does [
