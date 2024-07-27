@@ -43,6 +43,33 @@ accept-fn!: alias function! [ACCEPT_FN_SPEC]
 visit-fn!: alias function! [VISIT_FN_SPEC]
 keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 
+#enum rst-op! [		;@@ order matters
+	RST_OP_ADD
+	RST_OP_SUB
+	RST_OP_MUL
+	RST_OP_DIV
+	RST_OP_MOD
+	RST_OP_REM
+	RST_OP_AND
+	RST_OP_OR
+	RST_OP_XOR
+	RST_OP_SHL
+	RST_OP_SAR
+	RST_OP_SHR
+	RST_OP_EQ
+	RST_OP_NE
+	RST_OP_LT
+	RST_OP_LTEQ
+	RST_OP_GT
+	RST_OP_GTEQ
+	RST_OP_SIZE
+	;-- sugar ops
+	RST_MIXED_EQ	;-- e.g. compare int with uint
+	RST_MIXED_NE
+	RST_MIXED_LT
+	RST_MIXED_LTEQ
+]
+
 #enum rst-type-kind! [
 	RST_TYPE_VOID
 	RST_TYPE_LOGIC
@@ -188,11 +215,14 @@ assignment!: alias struct! [
 	expr		[rst-expr!]
 ]
 
+get-op!: alias function! [type [rst-type!] return: [int-ptr!]]
+
 bin-op!: alias struct! [
 	RST_EXPR(bin-op!)
 	op			[int-ptr!]
 	left		[rst-expr!]
 	right		[rst-expr!]
+	get-op		[get-op!]
 ]
 
 literal!: alias struct! [
@@ -209,42 +239,9 @@ int-literal!: alias struct! [
 	value		[integer!]
 ]
 
-;-- types
-
-#define INT_WIDTH(int) (int/header >>> 8 and FFh)
-#define INT_SIGNED?(int) (int/header and 00010000h <> 0)
-
-;-- /header bits: 0 - 7: kind, 8 - 15: width, 16: signed? 
-int-type!: alias struct! [
-	TYPE_HEADER
-	min			[integer!]
-	max			[integer!]
-]
-
-#define FLOAT_64?(f)  (f/header and 01000000h <> 0)
-#define FLOAT_FRAC(f) (f/header >>> 8 and FFh)
-#define FLOAT_EXP(f)  (f/header >>> 16 and FFh)
-
-;-- /header bits: 8 - 15: fraction width, 16 - 23: exp width, 24: is64?
-float-type!: alias struct! [
-	TYPE_HEADER
-]
-
-ptr-type!: alias struct! [
-	TYPE_HEADER
-	type		[rst-type!]
-]
-
-struct-type!: alias struct! [
-	TYPE_HEADER
-]
-
-fn-type!: alias struct! [
-	TYPE_HEADER
-	n-params	[integer!]
-	params		[var-decl!]
-	ret-typeref [red-block!]
-	ret-type	[int-ptr!]
+float-literal!: alias struct! [
+	RST_EXPR(float-literal!)
+	value		[float!]
 ]
 
 #define WORD?(v) [TYPE_OF(v) = TYPE_WORD]
@@ -262,6 +259,8 @@ fn-type!: alias struct! [
 #define STRING?(v) [TYPE_OF(v) = TYPE_STRING]
 #define BLOCK?(v) [TYPE_OF(v) = TYPE_BLOCK]
 #define PAREN?(V) [TYPE_OF(v) = TYPE_PAREN]
+
+#include %type-system.reds
 
 parser: context [
 	src-blk: as red-block! 0
@@ -342,20 +341,20 @@ parser: context [
 	init: does [
 		keywords: hashmap/make 300
 		infix-Ops: hashmap/make 100
-		hashmap/put infix-Ops k_+			null
-		hashmap/put infix-Ops k_-			null
-		hashmap/put infix-Ops k_=			null
-		hashmap/put infix-Ops k_>=			null
-		hashmap/put infix-Ops k_>			null
-		hashmap/put infix-Ops k_>>			null
-		hashmap/put infix-Ops k_>>>			null
-		hashmap/put infix-Ops k_less		null
-		hashmap/put infix-Ops k_less_eq		null
-		hashmap/put infix-Ops k_not_eq		null
-		hashmap/put infix-Ops k_slash		null
-		hashmap/put infix-Ops k_dbl_slash	null
-		hashmap/put infix-Ops k_percent		null
-		hashmap/put infix-Ops k_star		null
+		hashmap/put infix-Ops k_+			as int-ptr! RST_OP_ADD
+		hashmap/put infix-Ops k_-			as int-ptr! RST_OP_SUB
+		hashmap/put infix-Ops k_=			as int-ptr! RST_OP_EQ
+		hashmap/put infix-Ops k_>=			as int-ptr! RST_OP_GTEQ
+		hashmap/put infix-Ops k_>			as int-ptr! RST_OP_GT
+		hashmap/put infix-Ops k_>>			as int-ptr! RST_OP_SAR
+		hashmap/put infix-Ops k_>>>			as int-ptr! RST_OP_SHR
+		hashmap/put infix-Ops k_less		as int-ptr! RST_OP_LT
+		hashmap/put infix-Ops k_less_eq		as int-ptr! RST_OP_LTEQ
+		hashmap/put infix-Ops k_not_eq		as int-ptr! RST_OP_NE
+		hashmap/put infix-Ops k_slash		as int-ptr! RST_OP_DIV
+		hashmap/put infix-Ops k_dbl_slash	as int-ptr! RST_OP_MOD
+		hashmap/put infix-Ops k_percent		as int-ptr! RST_OP_REM
+		hashmap/put infix-Ops k_star		as int-ptr! RST_OP_MUL
 
 		hashmap/put keywords k_any		null
         hashmap/put keywords k_all		null
@@ -584,21 +583,43 @@ parser: context [
 	]
 
 	make-int: func [
-		value	[integer!]
 		pos		[cell!]
 		return: [int-literal!]
 		/local
 			int [int-literal!]
+			i	[red-integer!]
 	][
+		i: as red-integer! pos
 		int_accept: func [ACCEPT_FN_SPEC][
 			v/visit-literal self data
 		]
 		int: as int-literal! malloc size? int-literal!
 		SET_NODE_TYPE(int RST_INT)
 		int/token: pos
-		int/value: value
+		int/value: i/value
 		int/accept: :int_accept
+		int/type: as rst-type! type-system/integer-type
 		int
+	]
+
+	make-float: func [
+		pos		[cell!]
+		return: [float-literal!]
+		/local
+			f		[float-literal!]
+			float	[red-float!]
+	][
+		float: as red-float! pos
+		float_accept: func [ACCEPT_FN_SPEC][
+			v/visit-literal self data
+		]
+		f: as float-literal! malloc size? float-literal!
+		SET_NODE_TYPE(f RST_INT)
+		f/token: pos
+		f/value: float/value
+		f/accept: :float_accept
+		f/type: as rst-type! type-system/float-type
+		f
 	]
 
 	make-assignment: func [
@@ -677,6 +698,7 @@ parser: context [
 		b/token: pc
 		b/value: bl/value
 		b/accept: :b_accept
+		b/type: type-system/logic-type
 
 		expr/value: as int-ptr! b
 		pc
@@ -691,7 +713,6 @@ parser: context [
 		/local
 			sym [integer!]
 			w	[red-word!]
-			int [red-integer!]
 			p	[ptr-ptr!]
 			v	[rst-node!]
 			parse-keyword [keyword-fn!]
@@ -719,10 +740,11 @@ parser: context [
 				]
 			]
 			TYPE_INTEGER [
-				int: as red-integer! pc
-				expr/value: as int-ptr! make-int int/value pc
+				expr/value: as int-ptr! make-int pc
 			]
-			TYPE_FLOAT [0]
+			TYPE_FLOAT [
+				expr/value: as int-ptr! make-float pc
+			]
 			TYPE_GET_WORD [0]
 			TYPE_PATH [0]
 			TYPE_GET_PATH [0]
@@ -761,6 +783,7 @@ parser: context [
 			right	[ptr-value!]
 			pos		[cell!]
 			op		[int-ptr!]
+			val		[ptr-ptr!]
 	][
 		left: as rst-expr! expr/value
 		while [all [pc < end WORD?(pc)]][
@@ -768,10 +791,11 @@ parser: context [
 			infix?: no
 			w: as red-word! pc
 			sym: symbol/resolve w/symbol
-			either null <> hashmap/get infix-Ops sym [
+			val: hashmap/get infix-Ops sym
+			either null <> val [
 				infix?: yes
 				flag: RST_INFIX_OP
-				op: as int-ptr! sym
+				op: val/value
 			][
 				node: as rst-expr! find-var w ctx
 				either node <> null [
@@ -781,7 +805,7 @@ parser: context [
 						if all [t <> null TYPE_FLAGS(t) and FN_INFIX <> 0][
 							infix?: yes
 							flag: RST_INFIX_FN
-							op: as int-ptr! node
+							op: as int-ptr! t
 						]
 					]
 				][

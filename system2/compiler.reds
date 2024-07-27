@@ -12,6 +12,7 @@ compiler: context [
 	#include %utils/hashmap.reds
 	#include %parser.reds
 	#include %rst-printer.reds
+	#include %op-cache.reds
 	#include %type-checker.reds
 
 	_mempool: as mempool! 0
@@ -42,7 +43,8 @@ compiler: context [
 	init: does [
 		_mempool: mempool/make
 		parser/init
-		;type-checker/init
+		op-cache/init
+		type-system/init
 	]
 
 	clean: does [
