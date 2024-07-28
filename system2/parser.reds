@@ -133,12 +133,12 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 #define SET_TYPE_KIND(node kind) [node/header: node/header and FFFFFF00h or kind]
 #define TYPE_KIND(node) (node/header and FFh)
 #define SET_TYPE_FLAGS(node flags) [node/header: node/header and FFh or (flags << 8)]
-#define TYPE_FLAGS(node) (node/header and FFh >> 8)
+#define TYPE_FLAGS(node) (node/header >> 8 and FFh)
 
 #define SET_NODE_TYPE(node type) [node/header: node/header and FFFFFF00h or type]
 #define SET_NODE_FLAGS(node flags) [node/header: node/header and FFh or (flags << 8)]
 #define NODE_TYPE(node) (node/header and FFh)
-#define NODE_FLAGS(node) (node/header and FFh >> 8)
+#define NODE_FLAGS(node) (node/header >> 8 and FFh)
 
 #define RST_NODE(self) [	;-- RST: R/S Syntax Tree
 	header	[integer!]		;-- rst-node-type! bits: 0 - 7
@@ -199,6 +199,8 @@ context!: alias struct! [
 	last-stmt	[rst-stmt!]
 	decls		[int-ptr!]
 	typecache	[int-ptr!]
+	src-blk		[red-block!]
+	script		[cell!]
 ]
 
 fn!: alias struct! [
@@ -215,14 +217,12 @@ assignment!: alias struct! [
 	expr		[rst-expr!]
 ]
 
-get-op!: alias function! [type [rst-type!] return: [int-ptr!]]
-
 bin-op!: alias struct! [
 	RST_EXPR(bin-op!)
 	op			[int-ptr!]
+	op-type		[fn-type!]
 	left		[rst-expr!]
 	right		[rst-expr!]
-	get-op		[get-op!]
 ]
 
 literal!: alias struct! [
@@ -263,9 +263,6 @@ float-literal!: alias struct! [
 #include %type-system.reds
 
 parser: context [
-	src-blk: as red-block! 0
-	script: as cell! 0
-
 	k_func:		symbol/make "func"
 	k_function:	symbol/make "function"
 	k_alias:	symbol/make "alias"
@@ -448,74 +445,23 @@ parser: context [
 		pc
 	]
 
-	calc-line: func [
-		pc		[cell!]
-		return: [integer!]
-		/local
-			idx		[integer!]
-			beg		[cell!]
-			header	[cell!]
-			prev	[integer!]
-			p		[red-pair!]
-	][
-		header: block/rs-abs-at src-blk 0
-		beg: block/rs-head src-blk
-		idx: (as-integer pc - beg) >> 4 + 1
-		prev: 1
-
-		while [
-			header: header + 1
-			header < beg
-		][
-			p: as red-pair! header
-			if p/y = idx [return p/x]
-			if p/y > idx [return prev]
-			prev: p/x
-		]
-		p/x
-	]
-
 	unreachable: func [pc [cell!]][
 		throw-error [pc "Should not reach here!!!"]
 	]
 
-	throw-error: func [
-		[typed] count [integer!] list [typed-value!]
+	make-params: func [
+		ltype	[rst-type!]
+		rtype	[rst-type!]
+		return: [ptr-ptr!]
 		/local
-			s	[c-string!]
-			w	[cell!]
-			pc	[cell!]
-			p	[cell!]
-			h	[integer!]
+			pt	[ptr-ptr!]
+			t2	[ptr-ptr!]
 	][
-		pc: as cell! list/value
-		list: list + 1
-		count: count - 1
-		
-		prin "*** Parse Error: "
-		until [
-			either list/type = type-c-string! [
-				s: as-c-string list/value prin s
-			][
-				w: as cell! list/value
-				if w <> null [prin-token w]
-			]
-
-			count: count - 1	
-			if count <> 0 [prin " "]
-
-			list: list + 1
-			zero? count
-		]
-		print "^/*** in file: " prin-token compiler/script
-		print ["^/*** at line: " calc-line pc lf]
-		p: block/rs-head src-blk
-		h: src-blk/head
-		src-blk/head: (as-integer pc - p) >> 4 + h
-		print "*** near: " #call [prin-block src-blk 200]
-		src-blk/head: h
-		print "^/"
-		quit 1
+		pt: as ptr-ptr! malloc 2 * size? int-ptr!
+		pt/value: as int-ptr! ltype
+		t2: pt + 1
+		t2/value: as int-ptr! rtype
+		pt
 	]
 
 	make-ctx: func [
@@ -539,6 +485,8 @@ parser: context [
 			ctx/next: parent/child
 			parent/child: ctx
 		]
+		ctx/src-blk: src-blk
+		ctx/script: script
 		ctx
 	]
 
@@ -668,6 +616,10 @@ parser: context [
 	][
 		var: as variable! malloc size? variable!
 		SET_NODE_TYPE(var RST_VAR)
+		var_accept: func [ACCEPT_FN_SPEC][
+			v/visit-var self data
+		]
+		var/accept: :var_accept
 		var/token: pos
 		var/decl: decl
 		var
@@ -726,7 +678,7 @@ parser: context [
 					v: as rst-node! p/value
 					switch NODE_TYPE(v) [
 						RST_FUNC		[parse-call pc end ctx]
-						RST_VAR_DECL	[0]
+						RST_VAR_DECL	[expr/value: as int-ptr! make-variable as var-decl! v pc]
 						default			[unreachable pc]
 					]
 				][

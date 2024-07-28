@@ -18,28 +18,14 @@ op-cache: context [
 
 	init-op: func [
 		f		[fn-type!]
+		op		[rst-op!]
 		param-t [ptr-ptr!]
 		ret-t	[rst-type!]
 	][
-		SET_TYPE_KIND(f RST_TYPE_FUNC)
+		f/header: op << 8 or RST_TYPE_FUNC
 		f/n-params: 2
 		f/param-types: param-t
 		f/ret-type: ret-t
-	]
-
-	make-params: func [
-		ltype	[rst-type!]
-		rtype	[rst-type!]
-		return: [ptr-ptr!]
-		/local
-			pt	[ptr-ptr!]
-			t2	[ptr-ptr!]
-	][
-		pt: as ptr-ptr! malloc 2 * size? int-ptr!
-		pt/value: as int-ptr! ltype
-		t2: pt + 1
-		t2/value: as int-ptr! rtype
-		pt
 	]
 
 	create: func [
@@ -51,26 +37,27 @@ op-cache: context [
 	][
 		f: as fn-type! malloc RST_OP_SIZE * size? fn-type!
 
-		pt: make-params type type
-		init-op f + RST_OP_ADD pt type
-		init-op f + RST_OP_SUB pt type
-		init-op f + RST_OP_MUL pt type
-		init-op f + RST_OP_DIV pt type
-		init-op f + RST_OP_MOD pt type
-		init-op f + RST_OP_REM pt type
-		init-op f + RST_OP_AND pt type
-		init-op f + RST_OP_OR  pt type
-		init-op f + RST_OP_XOR pt type
-		init-op f + RST_OP_EQ  pt type-system/logic-type
-		init-op f + RST_OP_NE  pt type-system/logic-type
-		init-op f + RST_OP_LT   pt type-system/logic-type
-		init-op f + RST_OP_LTEQ pt type-system/logic-type
-		init-op f + RST_OP_GT   pt type-system/logic-type
-		init-op f + RST_OP_GTEQ pt type-system/logic-type
-		pt: make-params type as rst-type! type-system/uint32-type
-		init-op f + RST_OP_SHL pt type
-		init-op f + RST_OP_SAR pt type
-		init-op f + RST_OP_SHR pt type
+		pt: parser/make-params type type
+		init-op f + RST_OP_ADD  RST_OP_ADD   pt type
+		init-op f + RST_OP_SUB  RST_OP_SUB   pt type
+		init-op f + RST_OP_MUL  RST_OP_MUL   pt type
+		init-op f + RST_OP_DIV  RST_OP_DIV   pt type
+		init-op f + RST_OP_MOD  RST_OP_MOD   pt type
+		init-op f + RST_OP_REM  RST_OP_REM   pt type
+		init-op f + RST_OP_AND  RST_OP_AND   pt type
+		init-op f + RST_OP_OR   RST_OP_OR    pt type
+		init-op f + RST_OP_XOR  RST_OP_XOR   pt type
+		init-op f + RST_OP_EQ   RST_OP_EQ    pt type-system/logic-type
+		init-op f + RST_OP_NE   RST_OP_NE    pt type-system/logic-type
+		init-op f + RST_OP_LT   RST_OP_LT    pt type-system/logic-type
+		init-op f + RST_OP_LTEQ RST_OP_LTEQ  pt type-system/logic-type
+		init-op f + RST_OP_GT   RST_OP_GT    pt type-system/logic-type
+		init-op f + RST_OP_GTEQ RST_OP_GTEQ  pt type-system/logic-type
+
+		pt: parser/make-params type as rst-type! type-system/uint32-type
+		init-op f + RST_OP_SHL RST_OP_SHL pt type
+		init-op f + RST_OP_SAR RST_OP_SAR pt type
+		init-op f + RST_OP_SHR RST_OP_SHR pt type
 		f
 	]
 

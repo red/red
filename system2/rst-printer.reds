@@ -21,6 +21,10 @@ rst-printer: context [
 		do-i i prin-token e/token
 	]
 
+	visit-var: func [v [variable!] i [integer!]][
+		do-i i prin-token v/token
+	]
+
 	visit-bin-op: func [e [bin-op!] i [integer!]][
 		do-i i e/left/accept as int-ptr! e/left printer null prin " "
 		prin-token e/token prin " "
@@ -30,6 +34,7 @@ rst-printer: context [
 	printer/visit-assign:	as visit-fn! :visit-assign
 	printer/visit-literal:	as visit-fn! :visit-literal
 	printer/visit-bin-op:	as visit-fn! :visit-bin-op
+	printer/visit-var:		as visit-fn! :visit-var
 
 	do-i: func [i [integer!]][
 		loop i [prin "    "]

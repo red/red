@@ -23,6 +23,13 @@ type-checker: context [
 		]
 	]
 
+	resolve-fn-type: func [
+		fn		[fn!]
+		ctx		[context!]
+	][
+		0
+	]
+
 	;; check assignment
 	visit-assign: func [
 		a [assignment!] expected [rst-type!] return: [rst-type!]
@@ -38,6 +45,10 @@ type-checker: context [
 		e/type
 	]
 
+	visit-var: func [v [variable!] expected [rst-type!] return: [rst-type!]][
+		v/decl/type
+	]
+
 	visit-bin-op: func [bin [bin-op!] expected [rst-type!] return: [rst-type!]
 		/local
 			op	[fn-type!]
@@ -45,13 +56,35 @@ type-checker: context [
 	][
 		ltype: as rst-type! bin/left/accept as int-ptr! bin/left checker as int-ptr! expected
 		rtype: as rst-type! bin/right/accept as int-ptr! bin/right checker as int-ptr! expected
-		op: either NODE_FLAGS(bin) and RST_INFIX_OP <> 0 [
-			lookup-infix-op as-integer bin/op ltype rtype
+		either NODE_FLAGS(bin) and RST_INFIX_OP <> 0 [
+			op: lookup-infix-op as-integer bin/op ltype rtype
+			if null? op [throw-error [bin/left/token "argument type mismatch for:" bin/token]]
 		][
 			assert bin/op <> null
-			as fn-type! bin/op
+			op: as fn-type! bin/op
 		]
-		null
+		op/ret-type
+	]
+
+	checker/visit-assign:	as visit-fn! :visit-assign
+	checker/visit-literal:	as visit-fn! :visit-literal
+	checker/visit-bin-op:	as visit-fn! :visit-bin-op
+	checker/visit-var:		as visit-fn! :visit-var
+
+	make-cmp-op: func [
+		op			[rst-op!]
+		ltype		[rst-type!]
+		rtype		[rst-type!]
+		return:		[fn-type!]
+		/local
+			ft		[fn-type!]
+	][
+		ft: as fn-type! malloc size? fn-type!
+		ft/header: op << 8 or RST_TYPE_FUNC
+		ft/n-params: 2
+		ft/param-types: parser/make-params ltype rtype
+		ft/ret-type: type-system/logic-type
+		ft
 	]
 
 	lookup-infix-op: func [
@@ -78,14 +111,41 @@ type-checker: context [
 					RST_TYPE_PTR [null]
 				]
 			]
-			all [INT_TYPE?(ltype) op >= RST_OP_SHL op <= RST_OP_SHR][
+			all [INT_TYPE?(ltype) op >= RST_OP_SHL op <= RST_OP_SHR][	; <<, >>, >>>
 				ft: op-cache/get-int-op op ltype
 			]
-			all [op >= RST_OP_EQ op <= RST_OP_GTEQ][
+			any [op = RST_OP_EQ op = RST_OP_NE][		; =, <>
 				utype: type-system/unify ltype rtype
 				if null? utype [
-					if all [INT_TYPE?(ltype) INT_TYPE?(rtype)][
-						ft: null
+					case [
+						all [INT_TYPE?(ltype) INT_TYPE?(rtype)][
+							op: either op = RST_OP_EQ [RST_MIXED_EQ][RST_MIXED_NE]
+							ft: make-cmp-op op ltype rtype
+						]
+						FLOAT_TYPE?(ltype) [utype: ltype]
+						FLOAT_TYPE?(rtype) [utype: rtype]
+						true [0]
+					]
+					if utype <> null [
+						ft: switch TYPE_KIND(utype) [
+							RST_TYPE_INT [op-cache/get-int-op op utype]
+							RST_TYPE_FLOAT [
+								either op <= RST_OP_DIV [
+									op-cache/get-float-op op utype
+								][null]
+							]
+							RST_TYPE_PTR [null]
+						]
+					]
+				]
+			]
+			all [op >= RST_OP_LT op <= RST_OP_GTEQ][	; <, <=, >, >=
+				utype: type-system/unify ltype rtype
+				if null? utype [
+					case [
+						all [INT_TYPE?(ltype) INT_TYPE?(rtype)][
+							ft: null
+						]
 					]
 					if FLOAT_TYPE?(rtype) [utype: rtype]
 				]
@@ -94,10 +154,6 @@ type-checker: context [
 		]
 		ft
 	]
-
-	checker/visit-assign:	as visit-fn! :visit-assign
-	checker/visit-literal:	as visit-fn! :visit-literal
-	checker/visit-bin-op:	as visit-fn! :visit-bin-op
 
 	check: func [
 		ctx		[context!]
@@ -111,14 +167,20 @@ type-checker: context [
 	][
 		if null? ctx [exit]
 
+		src-blk: ctx/src-blk
+		script: ctx/script
+
 		decls: ctx/decls
 		n: hashmap/size? decls
 		kv: null
 		loop n [
 			kv: hashmap/next decls kv
 			var: as var-decl! kv/2
-			type: NODE_TYPE(var)
-			if type = RST_VAR_DECL [infer-type var ctx]
+			switch NODE_TYPE(var) [
+				RST_VAR_DECL [infer-type var ctx]
+				RST_FUNC	 [resolve-fn-type as fn! var ctx]
+				default		 [0]
+			]
 		]
 
 		stmt: ctx/stmts
