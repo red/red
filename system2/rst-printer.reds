@@ -25,6 +25,16 @@ rst-printer: context [
 		do-i i prin-token v/token
 	]
 
+	visit-fn-call: func [fc [fn-call!] i [integer!] /local arg [rst-expr!]][
+		do-i i prin-token fc/token prin " ["
+		arg: fc/args
+		while [arg <> null][
+			arg/accept as int-ptr! arg printer null
+			arg: arg/next
+		]
+		prin "]"
+	]
+
 	visit-bin-op: func [e [bin-op!] i [integer!]][
 		do-i i e/left/accept as int-ptr! e/left printer null prin " "
 		prin-token e/token prin " "
@@ -35,6 +45,7 @@ rst-printer: context [
 	printer/visit-literal:	as visit-fn! :visit-literal
 	printer/visit-bin-op:	as visit-fn! :visit-bin-op
 	printer/visit-var:		as visit-fn! :visit-var
+	printer/visit-fn-call:	as visit-fn! :visit-fn-call
 
 	do-i: func [i [integer!]][
 		loop i [prin "    "]

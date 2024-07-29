@@ -7,6 +7,16 @@ Red/System [
 ]
 
 compiler: context [
+
+	#define enter-block(blk) [
+		saved-blk: cur-blk
+		cur-blk: blk
+	]
+
+	#define exit-block [
+		cur-blk: saved-blk
+	]
+
 	#include %utils/vector.reds
 	#include %utils/mempool.reds
 	#include %utils/hashmap.reds
@@ -16,7 +26,9 @@ compiler: context [
 	#include %type-checker.reds
 
 	_mempool: as mempool! 0
+
 	src-blk: as red-block! 0
+	cur-blk: as red-block! 0
 	script: as cell! 0
 
 	prin-token: func [v [cell!]][
@@ -39,9 +51,10 @@ compiler: context [
 			prev	[integer!]
 			p		[red-pair!]
 	][
-		header: block/rs-abs-at src-blk 0
-		beg: block/rs-head src-blk
-		idx: (as-integer pc - beg) >> 4 + 1 + 2		;-- skip 2 for header: Red/System [...]
+		header: block/rs-abs-at cur-blk 0
+		beg: block/rs-head cur-blk
+		idx: (as-integer pc - beg) >> 4 + 1
+		if cur-blk = src-blk [idx: idx + 2]		;-- skip header Red/System [...]
 		prev: 1
 
 		while [
@@ -69,7 +82,7 @@ compiler: context [
 		list: list + 1
 		count: count - 1
 		
-		prin "*** Parse Error: "
+		prin "*** Compilation Error: "
 		until [
 			either list/type = type-c-string! [
 				s: as-c-string list/value prin s
@@ -86,11 +99,11 @@ compiler: context [
 		]
 		print "^/*** in file: " prin-token compiler/script
 		print ["^/*** at line: " calc-line pc lf]
-		p: block/rs-head src-blk
-		h: src-blk/head
-		src-blk/head: (as-integer pc - p) >> 4 + h
-		print "*** near: " #call [prin-block src-blk 200]
-		src-blk/head: h
+		p: block/rs-head cur-blk
+		h: cur-blk/head
+		cur-blk/head: (as-integer pc - p) >> 4 + h
+		print "*** near: " #call [prin-block cur-blk 200]
+		cur-blk/head: h
 		print "^/"
 		quit 1
 	]
@@ -101,6 +114,7 @@ compiler: context [
 		/local
 			ctx [context!]
 	][
+		src-blk: src
 		script: object/rs-select job as cell! word/load "script"
 		ctx: parser/parse-context null src null no
 		type-checker/check ctx

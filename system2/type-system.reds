@@ -52,7 +52,7 @@ struct-type!: alias struct! [
 	TYPE_HEADER
 ]
 
-;-- /header bits: 8 - 15 sugar op
+;-- /header bits: 8 - 15 opcode
 #define FN_OPCODE(f) (f/header >>> 8 and FFh)
 fn-type!: alias struct! [
 	TYPE_HEADER
@@ -61,6 +61,16 @@ fn-type!: alias struct! [
 	ret-typeref [red-block!]
 	param-types [ptr-ptr!]
 	ret-type	[rst-type!]
+]
+
+make-void-type: func [
+	return: [rst-type!]
+	/local
+		type [rst-type!]
+][
+	type: as rst-type! malloc size? rst-type!
+	SET_TYPE_KIND(type RST_TYPE_VOID)
+	type
 ]
 
 make-int-type: func [
@@ -133,14 +143,40 @@ type-system: context [
 	uint8-type:		as int-type! 0
 	int64-type:		as int-type! 0
 	uint64-type:	as int-type! 0
+	void-type:		as rst-type! 0
+
+	k_integer!:		symbol/make "integer!"
+	k_float!:		symbol/make "float!"
+	k_byte!:		symbol/make "byte!"
+	k_cstr!:		symbol/make "c-string!"
+	k_float32!:		symbol/make "float32!"
+	k_float64!:		symbol/make "float64!"
+	k_logic!:		symbol/make "logic!"
+	k_int-ptr!:		symbol/make "int-ptr!"
+	k_byte-ptr!:	symbol/make "byte-ptr!"
 
 	init: func [][
+		void-type: make-void-type
 		integer-type: make-int-type 32 true
 		uint32-type: make-int-type 32 false
 		float-type: make-float-type 64
 		float32-type: make-float-type 32
 		logic-type: make-logic-type
 		byte-type: make-int-type 8 false
+	]
+
+	make-cache: func [
+		return: [int-ptr!]
+		/local
+			m	[int-ptr!]
+	][
+		m: hashmap/make 100
+		hashmap/put m k_integer! as int-ptr! integer-type
+		hashmap/put m k_float!	 as int-ptr! float-type
+		hashmap/put m k_byte!	 as int-ptr! byte-type
+		hashmap/put m k_float32! as int-ptr! float32-type
+		hashmap/put m k_logic!	 as int-ptr! logic-type
+		m
 	]
 
 	int-promotable?: func [		;-- check if int x is promotable to int y
@@ -190,6 +226,17 @@ type-system: context [
 		null
 	]
 
+	promotable?: func [
+		t1		[rst-type!]
+		t2		[rst-type!]
+		return: [logic!]
+		/local
+			r	[type-conv-result!]
+	][
+		r: convert t1 t2
+		all [r >= conv_same r <= conv_promote_ff]
+	]
+
 	convert: func [				;-- convert type x to type y
 		x	[rst-type!]
 		y	[rst-type!]
@@ -214,6 +261,13 @@ type-system: context [
 						]
 					]
 					default [0]
+				]
+			]
+			RST_TYPE_FLOAT [
+				either TYPE_KIND(y) = RST_TYPE_FLOAT [
+					0
+				][
+					return conv_illegal
 				]
 			]
 		]

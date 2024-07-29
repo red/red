@@ -23,11 +23,67 @@ type-checker: context [
 		]
 	]
 
+	fetch-type: func [
+		blk		[red-block!]
+		ctx		[context!]
+		return: [rst-type!]
+		/local
+			w	[red-word!]
+			sym [integer!]
+			val [ptr-ptr!]
+	][
+		w: as red-word! block/rs-head blk
+		sym: symbol/resolve w/symbol
+		until [
+			val: hashmap/get ctx/typecache sym
+			ctx: ctx/parent
+			any [null? ctx val <> null]
+		]
+		if null? val [throw-error [blk "undefined type:" w]]
+		as rst-type! val/value
+	]
+
 	resolve-fn-type: func [
 		fn		[fn!]
 		ctx		[context!]
+		/local
+			ft	[fn-type!]
+			pt	[ptr-ptr!]
+			v	[var-decl!]
+			saved-blk [red-block!]
 	][
-		0
+		enter-block(fn/spec)
+
+		ft: as fn-type! fn/type
+		assert ft/param-types = null
+		pt: as ptr-ptr! malloc ft/n-params * size? int-ptr!
+		ft/param-types: pt
+		v: ft/params
+		while [v <> null][
+			pt/value: as int-ptr! fetch-type v/typeref ctx
+			v: v/next
+			pt: pt + 1
+		]
+		either ft/ret-typeref <> null [
+			ft/ret-type: fetch-type ft/ret-typeref ctx
+		][
+			ft/ret-type: type-system/void-type
+		]
+
+		exit-block
+	]
+
+	check-args: func [
+		args	[rst-expr!]
+		types	[ptr-ptr!]
+	][
+		while [args <> null][
+			if null? args/accept as int-ptr! args checker types/value [
+				throw-error [args/token "type mismatch"]
+			]
+			args: args/next
+			types: types + 1
+		]
 	]
 
 	;; check assignment
@@ -35,18 +91,77 @@ type-checker: context [
 		a [assignment!] expected [rst-type!] return: [rst-type!]
 		/local
 			type	[rst-type!]
+			var		[variable!]
 	][
-		type: as rst-type! a/expr/accept as int-ptr! a/expr checker null	;-- expression's type
-		
-		null
+		var: a/target
+		a/expr/accept as int-ptr! a/expr checker as int-ptr! var/decl/type
+		type-system/void-type
 	]
 
-	visit-literal: func [e [literal!] expected [rst-type!] return: [rst-type!]][
+	visit-literal: func [e [literal!] expected [rst-type!] return: [rst-type!]
+		/local
+			int		[int-literal!]
+			t		[int-type!]
+			i		[integer!]
+			type	[rst-type!]
+	][
+		type: e/type
+		if all [expected <> null type/header <> expected/header][	;-- not the same type
+			either NODE_TYPE(e) = RST_INT [
+				int: as int-literal! e
+				i: int/value
+				switch TYPE_KIND(expected) [
+					RST_TYPE_INT [
+						t: as int-type! expected
+						either all [i >= t/min i <= t/max][
+							e/type: expected
+						][
+							if all [not INT_SIGNED?(t) i < 0][
+								throw-error [e/token "negative number used as unsigned"]
+							]
+							if any [i < t/min i > t/max][
+								throw-error [e/token "out of range:" t/min "-" t/max]
+							]
+						]
+					]
+					RST_TYPE_FLOAT [0]
+					default [0]
+				]
+			][
+				either type-system/promotable? type expected [
+					e/type: expected
+				][
+					throw-error [e/token "type mismatch"]
+				]
+			]
+		]
 		e/type
 	]
 
-	visit-var: func [v [variable!] expected [rst-type!] return: [rst-type!]][
-		v/decl/type
+	visit-var: func [v [variable!] expected [rst-type!] return: [rst-type!]
+		/local
+			vtype [rst-type!]
+	][
+		assert null? v/type
+		vtype: v/decl/type
+		v/type: either all [expected <> null vtype/header <> expected/header][
+			either type-system/promotable? vtype expected [
+				v/cast-type: expected
+			][
+				null
+			]
+			expected
+		][
+			vtype
+		]
+		v/type
+	]
+
+	visit-fn-call: func [fc [fn-call!] expected [rst-type!] return: [rst-type!] /local ft [fn-type!]][
+		ft: as fn-type! fc/type
+		if null? ft/param-types [0]	;-- resolve-fn-type
+		check-args fc/args ft/param-types
+		ft/ret-type
 	]
 
 	visit-bin-op: func [bin [bin-op!] expected [rst-type!] return: [rst-type!]
@@ -70,6 +185,7 @@ type-checker: context [
 	checker/visit-literal:	as visit-fn! :visit-literal
 	checker/visit-bin-op:	as visit-fn! :visit-bin-op
 	checker/visit-var:		as visit-fn! :visit-var
+	checker/visit-fn-call:	as visit-fn! :visit-fn-call
 
 	make-cmp-op: func [
 		op			[rst-op!]
@@ -126,16 +242,16 @@ type-checker: context [
 						FLOAT_TYPE?(rtype) [utype: rtype]
 						true [0]
 					]
-					if utype <> null [
-						ft: switch TYPE_KIND(utype) [
-							RST_TYPE_INT [op-cache/get-int-op op utype]
-							RST_TYPE_FLOAT [
-								either op <= RST_OP_DIV [
-									op-cache/get-float-op op utype
-								][null]
-							]
-							RST_TYPE_PTR [null]
+				]
+				if utype <> null [
+					ft: switch TYPE_KIND(utype) [
+						RST_TYPE_INT [op-cache/get-int-op op utype]
+						RST_TYPE_FLOAT [
+							either op <= RST_OP_DIV [
+								op-cache/get-float-op op utype
+							][null]
 						]
+						RST_TYPE_PTR [null]
 					]
 				]
 			]
@@ -167,7 +283,7 @@ type-checker: context [
 	][
 		if null? ctx [exit]
 
-		src-blk: ctx/src-blk
+		cur-blk: ctx/src-blk
 		script: ctx/script
 
 		decls: ctx/decls

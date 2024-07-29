@@ -211,6 +211,11 @@ fn!: alias struct! [
 	locals		[var-decl!]
 ]
 
+fn-call!: alias struct! [
+	RST_EXPR(fn-call!)
+	args		[rst-expr!]
+]
+
 assignment!: alias struct! [
 	RST_EXPR(assignment!)
 	target		[variable!]
@@ -464,6 +469,8 @@ parser: context [
 		pt
 	]
 
+
+
 	make-ctx: func [
 		name	[cell!]
 		parent	[context!]
@@ -485,8 +492,9 @@ parser: context [
 			ctx/next: parent/child
 			parent/child: ctx
 		]
-		ctx/src-blk: src-blk
+		ctx/src-blk: cur-blk
 		ctx/script: script
+		ctx/typecache: type-system/make-cache
 		ctx
 	]
 
@@ -562,7 +570,7 @@ parser: context [
 			v/visit-literal self data
 		]
 		f: as float-literal! malloc size? float-literal!
-		SET_NODE_TYPE(f RST_INT)
+		SET_NODE_TYPE(f RST_FLOAT)
 		f/token: pos
 		f/value: float/value
 		f/accept: :float_accept
@@ -593,7 +601,6 @@ parser: context [
 	make-var-decl: func [
 		name	[cell!]
 		typeref	[red-block!]
-		list	[var-decl!]
 		return: [var-decl!]
 		/local
 			var [var-decl!]
@@ -602,8 +609,6 @@ parser: context [
 		SET_NODE_TYPE(var RST_VAR_DECL)
 		var/token: name
 		var/typeref: typeref
-		var/next: list/next
-		list/next: var
 		var
 	]
 
@@ -628,9 +633,39 @@ parser: context [
 	parse-call: func [
 		pc		[cell!]
 		end		[cell!]
+		fn		[fn!]
+		out		[ptr-ptr!]
 		ctx		[context!]
 		return: [cell!]
+		/local
+			fc	[fn-call!]
+			n	[integer!]
+			ft	[fn-type!]
+			pp	[ptr-value!]
+			beg [rst-node! value]
+			cur [rst-node!]
 	][
+		fc: as fn-call! malloc size? fn-call!
+		SET_NODE_TYPE(fc RST_FN_CALL)
+		call_accept: func [ACCEPT_FN_SPEC][
+			v/visit-fn-call self data
+		]
+		fc/accept: :call_accept
+		fc/token: pc
+		fc/type: fn/type
+		ft: as fn-type! fn/type
+
+		beg/next: null
+		cur: :beg
+		n: ft/n-params
+		loop n [
+			pc: advance-next pc end
+			pc: parse-expr pc end :pp ctx
+			cur/next: pp/value
+			cur: as rst-node! cur/next
+		]
+		fc/args: as rst-expr! beg/next
+		out/value: as int-ptr! fc
 		pc
 	]
 
@@ -672,16 +707,15 @@ parser: context [
 		switch TYPE_OF(pc) [
 			TYPE_WORD [
 				w: as red-word! pc
-				sym: symbol/resolve w/symbol
-				p: hashmap/get ctx/decls sym
-				either p <> null [
-					v: as rst-node! p/value
+				v: as rst-node! find-word w ctx
+				either v <> null [
 					switch NODE_TYPE(v) [
-						RST_FUNC		[parse-call pc end ctx]
+						RST_FUNC		[pc: parse-call pc end as fn! v expr ctx]
 						RST_VAR_DECL	[expr/value: as int-ptr! make-variable as var-decl! v pc]
 						default			[unreachable pc]
 					]
 				][
+					sym: symbol/resolve w/symbol
 					p: hashmap/get keywords sym
 					either p <> null [		;-- keyword
 						parse-keyword: as keyword-fn! p/value
@@ -712,7 +746,7 @@ parser: context [
 			]
 			default [0]
 		]
-		pc + 1
+		pc
 	]
 
 	parse-infix-op: func [
@@ -736,12 +770,16 @@ parser: context [
 			pos		[cell!]
 			op		[int-ptr!]
 			val		[ptr-ptr!]
+			pc2		[cell!]
 	][
 		left: as rst-expr! expr/value
-		while [all [pc < end WORD?(pc)]][
+		while [
+			pc2: pc + 1
+			all [pc2 < end WORD?(pc2)]
+		][
 			flag: 0
 			infix?: no
-			w: as red-word! pc
+			w: as red-word! pc2
 			sym: symbol/resolve w/symbol
 			val: hashmap/get infix-Ops sym
 			either null <> val [
@@ -749,7 +787,7 @@ parser: context [
 				flag: RST_INFIX_OP
 				op: val/value
 			][
-				node: as rst-expr! find-var w ctx
+				node: as rst-expr! find-word w ctx
 				either node <> null [
 					type: NODE_TYPE(node)
 					if any [type = RST_VAR_DECL type = RST_FUNC][
@@ -761,12 +799,12 @@ parser: context [
 						]
 					]
 				][
-					throw-error [pc "undefined symbol:" w]
+					throw-error [pc2 "undefined symbol:" w]
 				]
 			]
 			either infix? [
-				pos: pc
-				pc: parse-sub-expr advance-next pc end end :right ctx
+				pos: pc2
+				pc: parse-sub-expr advance-next pc2 end end :right ctx
 				bin: make-bin-op op left as rst-expr! right/value pos
 				SET_NODE_FLAGS(bin flag)
 				left: as rst-expr! bin
@@ -784,13 +822,10 @@ parser: context [
 		return: [cell!]
 	][
 		pc: parse-sub-expr pc end expr ctx
-		if all [pc < end WORD?(pc)][
-			pc: parse-infix-op pc end expr ctx
-		]
-		pc
+		parse-infix-op pc end expr ctx
 	]
 
-	find-var: func [
+	find-word: func [
 		name	[red-word!]
 		ctx		[context!]
 		return: [var-decl!]
@@ -818,7 +853,6 @@ parser: context [
 		/local
 			var		[var-decl!]
 			flags	[integer!]
-			list	[var-decl! value]
 			set?	[logic!]
 			pos		[cell!]
 			s		[rst-stmt!]
@@ -827,7 +861,7 @@ parser: context [
 		set?: yes
 		case [
 			SET_WORD?(pc) [
-				var: find-var as red-word! pc ctx
+				var: find-word as red-word! pc ctx
 				pos: pc
 				flags: NODE_FLAGS(ctx)
 				either flags and RST_FN_CTX <> 0 [
@@ -836,8 +870,7 @@ parser: context [
 					]
 				][
 					if null? var [
-						list/next: null
-						var: make-var-decl pc null list
+						var: make-var-decl pc null
 						add-decl ctx pc as int-ptr! var
 						pc: parse-assignment advance-next pc end end out ctx
 						var/init: as rst-expr! out/value
@@ -958,7 +991,7 @@ parser: context [
 			ptr [ptr-value!]
 			saved-blk [red-block!]
 	][
-		src-blk: src
+		cur-blk: src
 		ctx: make-ctx name parent func?
 		pc: block/rs-head src
 		end: block/rs-tail src
@@ -980,13 +1013,13 @@ parser: context [
 								if func? [throw-error [pc "context has to be declared at root level"]]
 
 								pc2: expect-next pc2 end TYPE_BLOCK
-								saved-blk: src-blk
+								saved-blk: cur-blk
 								c2: parse-context pc as red-block! pc2 ctx func?
-								src-blk: saved-blk
+								cur-blk: saved-blk
 								unless add-decl ctx pc as int-ptr! c2 [
 									throw-error [pc "context name is already taken:" pc]
 								]
-								pc2 + 1
+								pc2
 							]
 							true [parse-assignment pc end :ptr ctx]
 						]
@@ -997,6 +1030,7 @@ parser: context [
 				TYPE_ISSUE [pc: parse-directive pc end ctx]
 				default [pc: parse-statement pc end ctx]
 			]
+			pc: pc + 1
 		]
 		ctx
 	]
@@ -1044,9 +1078,11 @@ parser: context [
 		/local
 			t	[cell!]
 			n	[integer!]
+			cur	[var-decl!]
 			list [var-decl! value]
 	][
 		list/next: null
+		cur: :list
 		n: 0
 		while [p < end][
 			case [
@@ -1056,7 +1092,8 @@ parser: context [
 					t: p - 1
 					until [
 						if WORD?(t) [
-							make-var-decl t as red-block! p list
+							cur/next: make-var-decl t as red-block! p
+							cur: cur/next
 						]
 						t: t - 1
 						n: n - 1
@@ -1084,6 +1121,7 @@ parser: context [
 			p2	[cell!]
 			w	[red-word!]
 			t s [integer!]
+			cur [var-decl!]
 			list [var-decl! value]
 			attr [integer!]
 	][
@@ -1104,6 +1142,7 @@ parser: context [
 		]
 
 		list/next: null
+		cur: :list
 		s: 0	;-- initial state
 		w: as red-word! p
 		while [w < as red-word! end][		;-- parse params, return: and /local
@@ -1111,7 +1150,8 @@ parser: context [
 				;; param = word "[" type "]" doc-string?
 				all [s = 0 WORD?(w)][
 					p2: expect-next p end TYPE_BLOCK
-					make-var-decl p as red-block! p2 list
+					cur/next: make-var-decl p as red-block! p2
+					cur: cur/next
 					p: p2 + 1
 					ft/n-params: ft/n-params + 1
 				]
@@ -1155,6 +1195,6 @@ parser: context [
 		unless add-decl ctx pc as int-ptr! fn [
 			throw-error [pc "symbol name is already defined"]
 		]
-		as cell! body + 1
+		as cell! body
 	]
 ]
