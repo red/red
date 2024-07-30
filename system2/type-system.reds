@@ -56,6 +56,7 @@ struct-type!: alias struct! [
 #define FN_OPCODE(f) (f/header >>> 8 and FFh)
 fn-type!: alias struct! [
 	TYPE_HEADER
+	spec		[red-block!]
 	n-params	[integer!]
 	params		[var-decl!]
 	ret-typeref [red-block!]
@@ -128,6 +129,43 @@ make-logic-type: func [
 
 #define INT_TYPE?(type)		[(type/header and FFh) = RST_TYPE_INT]
 #define FLOAT_TYPE?(type)	[(type/header and FFh) = RST_TYPE_FLOAT]
+
+type-name: func [
+	t		[rst-type!]
+	return: [c-string!]
+	/local
+		w	[integer!]
+][
+	switch TYPE_KIND(t) [
+		RST_TYPE_INT [
+			w: INT_WIDTH(t)
+			either INT_SIGNED?(t) [
+				switch w [
+					8	["int8!"]
+					16	["int16!"]
+					32	["int32!"]
+					default ["integer!"]
+				]
+			][
+				switch w [
+					8	["uint8!"]
+					16	["uint16!"]
+					32	["uint32!"]
+					default ["unsigned!"]
+				]
+			]
+		]
+		RST_TYPE_FLOAT [
+			either FLOAT_64?(t) ["float64!"]["float32!"]
+		]
+		RST_TYPE_BYTE ["byte!"]
+		RST_TYPE_LOGIC ["logic!"]
+		RST_TYPE_VOID ["void!"]
+		RST_TYPE_PTR ["pointer!"]
+		RST_TYPE_STRUCT ["struct!"]
+		default ["void!"]
+	]
+]
 
 type-system: context [
 	integer-type:	as int-type! 0

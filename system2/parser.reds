@@ -132,13 +132,13 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 
 #define SET_TYPE_KIND(node kind) [node/header: node/header and FFFFFF00h or kind]
 #define TYPE_KIND(node) (node/header and FFh)
-#define SET_TYPE_FLAGS(node flags) [node/header: node/header and FFh or (flags << 8)]
-#define TYPE_FLAGS(node) (node/header >> 8 and FFh)
+#define ADD_TYPE_FLAGS(node flags) [node/header: node/header or (flags << 8)]
+#define TYPE_FLAGS(node) (node/header >>> 8)
 
 #define SET_NODE_TYPE(node type) [node/header: node/header and FFFFFF00h or type]
-#define SET_NODE_FLAGS(node flags) [node/header: node/header and FFh or (flags << 8)]
+#define ADD_NODE_FLAGS(node flags) [node/header: node/header or (flags << 8)]
 #define NODE_TYPE(node) (node/header and FFh)
-#define NODE_FLAGS(node) (node/header >> 8 and FFh)
+#define NODE_FLAGS(node) (node/header >>> 8)
 
 #define RST_NODE(self) [	;-- RST: R/S Syntax Tree
 	header	[integer!]		;-- rst-node-type! bits: 0 - 7
@@ -206,7 +206,6 @@ context!: alias struct! [
 fn!: alias struct! [
 	RST_EXPR(fn!)
 	parent		[context!]
-	spec		[red-block!]
 	body		[red-block!]
 	locals		[var-decl!]
 ]
@@ -469,24 +468,20 @@ parser: context [
 		pt
 	]
 
-
-
 	make-ctx: func [
 		name	[cell!]
 		parent	[context!]
-		func?	[logic!]
+		size	[integer!]
 		return: [context!]
 		/local
 			ctx [context!]
-			sz	[integer!]
 	][
-		sz: either func? [100][1000]
 		ctx: as context! malloc size? context!
 		ctx/token: name
 		ctx/parent: parent
 		ctx/stmts: as rst-stmt! malloc size? rst-stmt!	;-- stmt head
 		ctx/last-stmt: ctx/stmts
-		ctx/decls: hashmap/make sz
+		ctx/decls: hashmap/make size
 		SET_NODE_TYPE(ctx RST_CONTEXT)
 		if parent <> null [
 			ctx/next: parent/child
@@ -806,7 +801,7 @@ parser: context [
 				pos: pc2
 				pc: parse-sub-expr advance-next pc2 end end :right ctx
 				bin: make-bin-op op left as rst-expr! right/value pos
-				SET_NODE_FLAGS(bin flag)
+				ADD_NODE_FLAGS(bin flag)
 				left: as rst-expr! bin
 			][break]
 		]
@@ -978,7 +973,7 @@ parser: context [
 		name	[cell!]
 		src		[red-block!]
 		parent	[context!]
-		func?	[logic!]
+		f-ctx	[context!]
 		return: [context!]
 		/local
 			pc	[cell!]
@@ -992,7 +987,7 @@ parser: context [
 			saved-blk [red-block!]
 	][
 		cur-blk: src
-		ctx: make-ctx name parent func?
+		ctx: either null? f-ctx [make-ctx name parent 1000][f-ctx]
 		pc: block/rs-head src
 		end: block/rs-tail src
 		while [pc < end][
@@ -1010,11 +1005,11 @@ parser: context [
 								pc2 ;fetch alias
 							]
 							sym = k_context [
-								if func? [throw-error [pc "context has to be declared at root level"]]
+								if f-ctx <> null [throw-error [pc "context has to be declared at root level"]]
 
 								pc2: expect-next pc2 end TYPE_BLOCK
 								saved-blk: cur-blk
-								c2: parse-context pc as red-block! pc2 ctx func?
+								c2: parse-context pc as red-block! pc2 ctx f-ctx
 								cur-blk: saved-blk
 								unless add-decl ctx pc as int-ptr! c2 [
 									throw-error [pc "context name is already taken:" pc]
@@ -1127,6 +1122,7 @@ parser: context [
 	][
 		ft: as fn-type! malloc size? fn-type!
 		SET_TYPE_KIND(ft RST_TYPE_FUNC)
+		ft/spec: spec
 
 		p: block/rs-head spec
 		end: block/rs-tail spec
@@ -1137,7 +1133,7 @@ parser: context [
 
 		if BLOCK?(p) [						;-- attributes
 			attr: get-attributes as red-block! p
-			SET_TYPE_FLAGS(ft attr)
+			ADD_TYPE_FLAGS(ft attr)
 			p: skip p + 1 end TYPE_STRING	;-- skip doc strings
 		]
 
@@ -1189,11 +1185,10 @@ parser: context [
 		body: as red-block! advance pc end 3
 		spec: body - 1
 		fn/body: body
-		fn/spec: spec
 		fn/type: as rst-type! parse-fn-spec spec fn
 
 		unless add-decl ctx pc as int-ptr! fn [
-			throw-error [pc "symbol name is already defined"]
+			throw-error [pc "symbol name was already defined"]
 		]
 		as cell! body
 	]

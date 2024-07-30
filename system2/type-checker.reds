@@ -19,7 +19,7 @@ type-checker: context [
 			var/type: as rst-type! var/init/accept as int-ptr! var/init checker null
 		][
 			assert var/typeref <> null
-			0
+			var/type: fetch-type var/typeref ctx
 		]
 	]
 
@@ -44,17 +44,15 @@ type-checker: context [
 	]
 
 	resolve-fn-type: func [
-		fn		[fn!]
+		ft		[fn-type!]
 		ctx		[context!]
 		/local
-			ft	[fn-type!]
 			pt	[ptr-ptr!]
 			v	[var-decl!]
 			saved-blk [red-block!]
 	][
-		enter-block(fn/spec)
+		enter-block(ft/spec)
 
-		ft: as fn-type! fn/type
 		assert ft/param-types = null
 		pt: as ptr-ptr! malloc ft/n-params * size? int-ptr!
 		ft/param-types: pt
@@ -73,104 +71,100 @@ type-checker: context [
 		exit-block
 	]
 
-	check-args: func [
-		args	[rst-expr!]
-		types	[ptr-ptr!]
+	check-expr: func [
+		msg			[c-string!]
+		e			[rst-expr!]
+		expected	[rst-type!]
+		ctx			[context!]
+		/local
+			type	[rst-type!]
+			int		[int-literal!]
+			i		[integer!]
+			t		[int-type!]
 	][
-		while [args <> null][
-			if null? args/accept as int-ptr! args checker types/value [
-				throw-error [args/token "type mismatch"]
+		type: e/type
+		if null? type [
+			type: as rst-type! e/accept as int-ptr! e checker as int-ptr! ctx
+			e/type: type
+		]
+		if type/header = expected/header [exit]	;-- same type
+
+		either NODE_TYPE(e) = RST_INT [		;-- int literal
+			int: as int-literal! e
+			i: int/value
+			switch TYPE_KIND(expected) [
+				RST_TYPE_INT [
+					t: as int-type! expected
+					either all [i >= t/min i <= t/max][
+						e/type: expected
+					][
+						if all [not INT_SIGNED?(t) i < 0][
+							throw-error [e/token "negative number used as unsigned"]
+						]
+						if any [i < t/min i > t/max][
+							throw-error [e/token "out of range:" t/min "-" t/max]
+						]
+					]
+				]
+				RST_TYPE_FLOAT [0]
+				default [0]
 			]
-			args: args/next
-			types: types + 1
+		][
+			either type-system/promotable? type expected [
+				e/cast-type: expected
+			][
+				throw-error [e/token msg "expected" type-name(expected) ", got" type-name(type)]
+			]
 		]
 	]
 
 	;; check assignment
 	visit-assign: func [
-		a [assignment!] expected [rst-type!] return: [rst-type!]
+		a [assignment!] ctx [context!] return: [rst-type!]
 		/local
 			type	[rst-type!]
 			var		[variable!]
 	][
 		var: a/target
-		a/expr/accept as int-ptr! a/expr checker as int-ptr! var/decl/type
+		check-expr "Assignment:" a/expr var/decl/type ctx
 		type-system/void-type
 	]
 
-	visit-literal: func [e [literal!] expected [rst-type!] return: [rst-type!]
-		/local
-			int		[int-literal!]
-			t		[int-type!]
-			i		[integer!]
-			type	[rst-type!]
-	][
-		type: e/type
-		if all [expected <> null type/header <> expected/header][	;-- not the same type
-			either NODE_TYPE(e) = RST_INT [
-				int: as int-literal! e
-				i: int/value
-				switch TYPE_KIND(expected) [
-					RST_TYPE_INT [
-						t: as int-type! expected
-						either all [i >= t/min i <= t/max][
-							e/type: expected
-						][
-							if all [not INT_SIGNED?(t) i < 0][
-								throw-error [e/token "negative number used as unsigned"]
-							]
-							if any [i < t/min i > t/max][
-								throw-error [e/token "out of range:" t/min "-" t/max]
-							]
-						]
-					]
-					RST_TYPE_FLOAT [0]
-					default [0]
-				]
-			][
-				either type-system/promotable? type expected [
-					e/type: expected
-				][
-					throw-error [e/token "type mismatch"]
-				]
-			]
-		]
+	visit-literal: func [e [literal!] ctx [context!] return: [rst-type!]][
 		e/type
 	]
 
-	visit-var: func [v [variable!] expected [rst-type!] return: [rst-type!]
-		/local
-			vtype [rst-type!]
-	][
-		assert null? v/type
-		vtype: v/decl/type
-		v/type: either all [expected <> null vtype/header <> expected/header][
-			either type-system/promotable? vtype expected [
-				v/cast-type: expected
-			][
-				null
-			]
-			expected
-		][
-			vtype
-		]
-		v/type
+	visit-var: func [v [variable!] ctx [context!] return: [rst-type!]][
+		v/decl/type
 	]
 
-	visit-fn-call: func [fc [fn-call!] expected [rst-type!] return: [rst-type!] /local ft [fn-type!]][
+	visit-fn-call: func [fc [fn-call!] ctx [context!] return: [rst-type!]
+		/local
+			ft	 	[fn-type!]
+			arg		[rst-expr!]
+			pt		[ptr-ptr!]
+	][
 		ft: as fn-type! fc/type
-		if null? ft/param-types [0]	;-- resolve-fn-type
-		check-args fc/args ft/param-types
+		if null? ft/param-types [resolve-fn-type ft ctx]
+
+		arg: fc/args
+		pt: ft/param-types
+		while [arg <> null][
+			check-expr "Function Call:" arg as rst-type! pt/value ctx
+			arg: arg/next
+			pt: pt + 1
+		]
+
 		ft/ret-type
 	]
 
-	visit-bin-op: func [bin [bin-op!] expected [rst-type!] return: [rst-type!]
+	visit-bin-op: func [bin [bin-op!] ctx [context!] return: [rst-type!]
 		/local
 			op	[fn-type!]
 			ltype rtype [rst-type!]
 	][
-		ltype: as rst-type! bin/left/accept as int-ptr! bin/left checker as int-ptr! expected
-		rtype: as rst-type! bin/right/accept as int-ptr! bin/right checker as int-ptr! expected
+		ltype: as rst-type! bin/left/accept as int-ptr! bin/left checker as int-ptr! ctx
+		rtype: as rst-type! bin/right/accept as int-ptr! bin/right checker as int-ptr! ctx
 		either NODE_FLAGS(bin) and RST_INFIX_OP <> 0 [
 			op: lookup-infix-op as-integer bin/op ltype rtype
 			if null? op [throw-error [bin/left/token "argument type mismatch for:" bin/token]]
@@ -280,6 +274,7 @@ type-checker: context [
 			var		[var-decl!]
 			type	[integer!]
 			decls	[int-ptr!]
+			f		[fn!]
 	][
 		if null? ctx [exit]
 
@@ -294,7 +289,10 @@ type-checker: context [
 			var: as var-decl! kv/2
 			switch NODE_TYPE(var) [
 				RST_VAR_DECL [infer-type var ctx]
-				RST_FUNC	 [resolve-fn-type as fn! var ctx]
+				RST_FUNC	 [
+					f: as fn! var
+					resolve-fn-type as fn-type! f/type ctx
+				]
 				default		 [0]
 			]
 		]

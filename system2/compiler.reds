@@ -108,17 +108,91 @@ compiler: context [
 		quit 1
 	]
 
-	comp-dialect: func [
+	comp-context: func [
+		name	[cell!]
 		src		[red-block!]
-		job		[red-object!]
+		parent	[context!]
+		f-ctx	[context!]
+		return: [context!]
 		/local
 			ctx [context!]
 	][
 		src-blk: src
-		script: object/rs-select job as cell! word/load "script"
-		ctx: parser/parse-context null src null no
+		ctx: parser/parse-context name src parent f-ctx
 		type-checker/check ctx
 		rst-printer/print-program ctx
+		ctx
+	]
+
+	init-func-ctx: func [
+		ctx			[context!]
+		fn			[fn!]
+		/local
+			ft		[fn-type!]
+			var		[var-decl!]
+			add-decls [subroutine!]
+	][
+		add-decls: [
+			while [var <> null][
+				unless parser/add-decl ctx var/token as int-ptr! var [
+					throw-error [var/token "symbol name was already defined"]
+				]
+				var: var/next
+			]
+		]
+
+		ADD_NODE_FLAGS(ctx RST_FN_CTX)
+
+		ft: as fn-type! fn/type
+		var: ft/params
+		add-decls
+
+		var: fn/locals
+		add-decls
+	]
+
+	comp-functions: func [
+		ctx		[context!]
+		/local
+			n		[integer!]
+			decls	[int-ptr!]
+			kv		[int-ptr!]
+			f-ctx	[context!]
+			fn		[fn!]
+	][
+		if null? ctx [exit]
+
+		decls: ctx/decls
+		n: hashmap/size? decls
+
+		kv: null
+		loop n [
+			kv: hashmap/next decls kv
+			fn: as fn! kv/2
+			if NODE_TYPE(fn) = RST_FUNC [
+				cur-blk: fn/body
+				f-ctx: parser/make-ctx fn/token ctx 100		;@@ reuse f-ctx?
+				init-func-ctx f-ctx fn
+				comp-context fn/token fn/body ctx f-ctx
+			]
+		]
+		comp-functions ctx/child
+		comp-functions ctx/next
+	]
+
+	comp-dialect: func [
+		src			[red-block!]
+		job			[red-object!]
+		/local
+			ctx 	[context!]
+			n		[integer!]
+			decls	[int-ptr!]
+			kv		[int-ptr!]
+			fn		[fn!]
+	][
+		script: object/rs-select job as cell! word/load "script"
+		ctx: comp-context null src null null
+		comp-functions ctx
 	]
 
 	init: does [

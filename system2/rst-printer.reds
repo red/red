@@ -71,9 +71,11 @@ rst-printer: context [
 			expr [rst-expr!]
 	][
 		do-i indent prin-token var/token prin ": "
-		if var/init <> null [
+		either var/init <> null [
 			expr: var/init
 			expr/accept as int-ptr! expr printer null
+		][
+			prin-block var/typeref
 		]
 	]
 
@@ -82,9 +84,11 @@ rst-printer: context [
 		indent	[integer!]
 		/local
 			expr [rst-expr!]
+			t	 [fn-type!]
 	][
 		do-i indent prin-token fn/token prin ": func "
-		prin-block fn/spec
+		t: as fn-type! fn/type
+		prin-block t/spec
 	]
 
 	print-decls: func [
@@ -136,7 +140,9 @@ rst-printer: context [
 		/local
 			child [context!]
 	][
-		do-i indent prin "context " prin-token ctx/token prin " [^/"
+		do-i indent prin "context "
+		if NODE_FLAGS(ctx) and RST_FN_CTX <> 0 [prin "func:"]
+		prin-token ctx/token prin " [^/"
 		print-decls ctx/decls indent + 1
 		print-stmts ctx/stmts indent + 1
 		child: ctx/child
