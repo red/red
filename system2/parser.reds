@@ -9,7 +9,6 @@ Red/System [
 
 visitor!: alias struct! [
 	VISITOR_FUNC(visit-if)
-	VISITOR_FUNC(visit-either)
 	VISITOR_FUNC(visit-case)
 	VISITOR_FUNC(visit-switch)
 	VISITOR_FUNC(visit-loop)
@@ -103,13 +102,25 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	RST_FN_CALL
 	RST_VAR
 	RST_EITHER
+	RST_SWITCH
+	RST_CASE
+	RST_ANY
+	RST_ALL
+	RST_ASSIGN
 	RST_EXPR_END		;-- end marker of expr types
 	RST_CONTEXT
 	RST_FUNC
 	RST_VAR_DECL
 	RST_IF
 	RST_WHILE
-	RST_ASSIGN
+	RST_LOOP
+	RST_UNTIL
+	RST_BREAK
+	RST_CONTINUE
+	RST_THROW
+	RST_CATCH
+	RST_RETURN
+	RST_EXIT
 ]
 
 #enum fn-attr! [
@@ -125,9 +136,12 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 ]
 
 #enum rst-node-flag! [
-	RST_FN_CTX:		1
-	RST_INFIX_FN:	2
-	RST_INFIX_OP:	4
+	RST_VAR_WRITE:	1	;-- var has been written
+	RST_VAR_LOCAL:	2	;-- local variable
+	RST_VAR_PARAM:	4	;-- var-decl! is a parameter
+	RST_FN_CTX:		8
+	RST_INFIX_FN:	10h
+	RST_INFIX_OP:	20h
 ]
 
 #define SET_TYPE_KIND(node kind) [node/header: node/header and FFFFFF00h or kind]
@@ -140,19 +154,25 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 #define NODE_TYPE(node) (node/header and FFh)
 #define NODE_FLAGS(node) (node/header >>> 8)
 
-#define RST_NODE(self) [	;-- RST: R/S Syntax Tree
+;-- fn-type! /header bits: 8 - 15 opcode, 16 - 31: attributes
+#define FN_OPCODE(f) (f/header >>> 8 and FFh)
+#define FN_ATTRS(f) (f/header >>> 16)
+#define ADD_FN_ATTRS(f attrs) [f/header: f/header or (attrs << 16)]
+#define SET_FN_OPCODE(f op) [f/header: f/header and FFFF00FFh or (op << 8)]
+
+#define RST_NODE_FIELDS(self) [	;-- RST: R/S Syntax Tree
 	header	[integer!]		;-- rst-node-type! bits: 0 - 7
 	next	[self]
 	token	[cell!]
 ]
 
-#define RST_STMT(self) [
-	RST_NODE(self)
+#define RST_STMT_FIELDS(self) [
+	RST_NODE_FIELDS(self)
 	accept	[accept-fn!]
 ]
 
-#define RST_EXPR(self) [
-	RST_NODE(self)
+#define RST_EXPR_FIELDS(self) [
+	RST_NODE_FIELDS(self)
 	accept		[accept-fn!]
 	cast-type	[rst-type!]
 	type		[rst-type!]
@@ -168,61 +188,100 @@ rst-type!: alias struct! [
 ]
 
 rst-node!: alias struct! [
-	RST_NODE(int-ptr!)
+	RST_NODE_FIELDS(rst-node!)
 ]
 
 rst-stmt!: alias struct! [
-	RST_STMT(rst-stmt!)
+	RST_STMT_FIELDS(rst-stmt!)
 ]
 
 rst-expr!: alias struct! [
-	RST_EXPR(rst-expr!)
+	RST_EXPR_FIELDS(rst-expr!)
 ]
 
+ssa-var!: alias struct! [
+	index		[integer!]
+	loop-bset	[integer!]	;-- loop bitset, var used in loops, can encode 32 loops
+	extra-bset	[byte-ptr!]
+]
+
+#define LOCAL?(var) (NODE_FLAGS(var) and RST_VAR_LOCAL <> 0)
+
 var-decl!: alias struct! [	;-- variable declaration
-	RST_NODE(var-decl!)
+	RST_NODE_FIELDS(var-decl!)
 	typeref		[red-block!]
 	type		[rst-type!]
 	init		[rst-expr!]	;-- init expression
+	ssa			[ssa-var!]
 ]
 
 variable!: alias struct! [
-	RST_EXPR(variable!)
+	RST_EXPR_FIELDS(variable!)
 	decl		[var-decl!]
 ]
 
 context!: alias struct! [
-	RST_NODE(context!)
+	RST_NODE_FIELDS(context!)
 	parent		[context!]
 	child		[context!]
 	stmts		[rst-stmt!]
 	last-stmt	[rst-stmt!]
 	decls		[int-ptr!]
 	typecache	[int-ptr!]
+	n-ssa-vars	[integer!]	;-- number of variable that written more than once
+	n-loops		[integer!]
+	loop-stack	[vector!]
 	src-blk		[red-block!]
 	script		[cell!]
 ]
 
 fn!: alias struct! [
-	RST_EXPR(fn!)
+	RST_EXPR_FIELDS(fn!)
 	parent		[context!]
 	body		[red-block!]
 	locals		[var-decl!]
+	ir			[ir-fn!]
 ]
 
 fn-call!: alias struct! [
-	RST_EXPR(fn-call!)
+	RST_EXPR_FIELDS(fn-call!)
 	args		[rst-expr!]
 ]
 
 assignment!: alias struct! [
-	RST_EXPR(assignment!)
+	RST_EXPR_FIELDS(assignment!)
 	target		[variable!]
 	expr		[rst-expr!]
 ]
 
+if!: alias struct! [
+	RST_EXPR_FIELDS(rst-node!)
+	cond		[rst-expr!]
+	t-branch	[rst-stmt!]
+	f-branch	[rst-stmt!]
+	true-blk	[red-block!]
+	false-blk	[red-block!]
+]
+
+while!: alias struct! [
+	RST_STMT_FIELDS(rst-node!)
+	loop-idx	[integer!]
+	cond		[rst-stmt!]
+	body		[rst-stmt!]
+	cond-blk	[red-block!]
+	body-blk	[red-block!]
+]
+
+continue!: alias struct! [
+	RST_STMT_FIELDS(rst-node!)
+]
+
+break!: alias struct! [
+	RST_STMT_FIELDS(rst-node!)
+]
+
 bin-op!: alias struct! [
-	RST_EXPR(bin-op!)
+	RST_EXPR_FIELDS(bin-op!)
 	op			[int-ptr!]
 	op-type		[fn-type!]
 	left		[rst-expr!]
@@ -230,21 +289,21 @@ bin-op!: alias struct! [
 ]
 
 literal!: alias struct! [
-	RST_EXPR(literal!)
+	RST_EXPR_FIELDS(literal!)
 ]
 
 logic-literal!: alias struct! [
-	RST_EXPR(literal!)
+	RST_EXPR_FIELDS(literal!)
 	value		[logic!]
 ]
 
 int-literal!: alias struct! [
-	RST_EXPR(int-literal!)
+	RST_EXPR_FIELDS(int-literal!)
 	value		[integer!]
 ]
 
 float-literal!: alias struct! [
-	RST_EXPR(float-literal!)
+	RST_EXPR_FIELDS(float-literal!)
 	value		[float!]
 ]
 
@@ -364,15 +423,15 @@ parser: context [
         hashmap/put keywords k_size?	null
         hashmap/put keywords k_not		null
         hashmap/put keywords k_null		null
-        hashmap/put keywords k_if		null
-        hashmap/put keywords k_either	null
-        hashmap/put keywords k_while	null
+        hashmap/put keywords k_if		as int-ptr! :parse-if
+        hashmap/put keywords k_either	as int-ptr! :parse-if
+        hashmap/put keywords k_while	as int-ptr! :parse-while
         hashmap/put keywords k_until	null
         hashmap/put keywords k_loop		null
         hashmap/put keywords k_case		null
         hashmap/put keywords k_switch	null
-        hashmap/put keywords k_continue	null
-        hashmap/put keywords k_break	null
+        hashmap/put keywords k_continue	as int-ptr! :parse-continue
+        hashmap/put keywords k_break	as int-ptr! :parse-break
         hashmap/put keywords k_throw	null
         hashmap/put keywords k_catch	null
         hashmap/put keywords k_return	null
@@ -453,7 +512,7 @@ parser: context [
 		throw-error [pc "Should not reach here!!!"]
 	]
 
-	make-params: func [
+	make-param-types: func [
 		ltype	[rst-type!]
 		rtype	[rst-type!]
 		return: [ptr-ptr!]
@@ -471,7 +530,7 @@ parser: context [
 	make-ctx: func [
 		name	[cell!]
 		parent	[context!]
-		size	[integer!]
+		fn?		[logic!]
 		return: [context!]
 		/local
 			ctx [context!]
@@ -481,9 +540,10 @@ parser: context [
 		ctx/parent: parent
 		ctx/stmts: as rst-stmt! malloc size? rst-stmt!	;-- stmt head
 		ctx/last-stmt: ctx/stmts
-		ctx/decls: hashmap/make size
+		ctx/decls: hashmap/make either fn? [100][1000]
+		ctx/loop-stack: vector/make size? integer! 32
 		SET_NODE_TYPE(ctx RST_CONTEXT)
-		if parent <> null [
+		if all [not fn? parent <> null][
 			ctx/next: parent/child
 			parent/child: ctx
 		]
@@ -656,11 +716,135 @@ parser: context [
 		loop n [
 			pc: advance-next pc end
 			pc: parse-expr pc end :pp ctx
-			cur/next: pp/value
-			cur: as rst-node! cur/next
+			cur/next: as rst-node! pp/value
+			cur: cur/next
 		]
 		fc/args: as rst-expr! beg/next
 		out/value: as int-ptr! fc
+		pc
+	]
+
+	parse-block: func [
+		blk		[red-block!]
+		ctx		[context!]
+		return: [rst-stmt!]
+		/local
+			pc	[cell!]
+			end [cell!]
+			stmt [rst-stmt! value]
+			last-stmt [rst-stmt!]
+			saved-blk [red-block!]
+	][
+		enter-block(blk)
+
+		stmt/next: null
+		last-stmt: ctx/last-stmt
+		ctx/last-stmt: :stmt
+
+		pc: block/rs-head blk
+		end: block/rs-tail blk
+		while [pc < end][
+			pc: parse-statement pc end ctx
+			pc: pc + 1
+		]
+
+		exit-block
+		ctx/last-stmt: last-stmt
+		stmt/next
+	]
+
+	parse-if: func [
+		;pc end expr ctx
+		KEYWORD_FN_SPEC
+		/local
+			w		[red-word!]
+			cond	[ptr-value!]
+			if-expr [if!]
+	][
+		if_accept: func [ACCEPT_FN_SPEC][
+			v/visit-if self data
+		]
+		w: as red-word! pc
+		pc: advance-next pc end		;-- skip keyword
+		pc: parse-expr pc end :cond ctx
+
+		if-expr: as if! malloc size? if!
+		SET_NODE_TYPE(if-expr RST_IF)
+		if-expr/token: as cell! w
+		if-expr/accept: :if_accept
+		if-expr/cond: as rst-expr! cond/value
+
+		pc: expect-next pc end TYPE_BLOCK
+		if-expr/true-blk: as red-block! pc
+		if-expr/t-branch: parse-block as red-block! pc ctx
+
+		if k_either = symbol/resolve w/symbol [
+			pc: expect-next pc end TYPE_BLOCK
+			if-expr/false-blk: as red-block! pc
+			if-expr/f-branch: parse-block as red-block! pc ctx
+		]
+		expr/value: as int-ptr! if-expr
+		pc
+	]
+
+	parse-while: func [
+		;pc end expr ctx
+		KEYWORD_FN_SPEC
+		/local
+			w		[while!]
+	][
+		while_accept: func [ACCEPT_FN_SPEC][
+			v/visit-while self data
+		]
+		w: as while! malloc size? while!
+		SET_NODE_TYPE(w RST_WHILE)
+		w/token: pc
+		w/accept: :while_accept
+
+		pc: expect-next pc end TYPE_BLOCK
+		w/cond-blk: as red-block! pc
+		w/cond: parse-block as red-block! pc ctx
+
+		pc: expect-next pc end TYPE_BLOCK
+		w/body-blk: as red-block! pc
+		w/body: parse-block as red-block! pc ctx
+		expr/value: as int-ptr! w
+		pc
+	]
+
+	parse-continue: func [
+		;pc end expr ctx
+		KEYWORD_FN_SPEC
+		/local
+			c	[continue!]
+	][
+		cont_accept: func [ACCEPT_FN_SPEC][
+			v/visit-continue self data
+		]
+		c: as continue! malloc size? continue!
+		SET_NODE_TYPE(c RST_CONTINUE)
+		c/token: pc
+		c/accept: :cont_accept
+
+		expr/value: as int-ptr! c
+		pc
+	]
+
+	parse-break: func [
+		;pc end expr ctx
+		KEYWORD_FN_SPEC
+		/local
+			b	[break!]
+	][
+		break_accept: func [ACCEPT_FN_SPEC][
+			v/visit-break self data
+		]
+		b: as break! malloc size? break!
+		SET_NODE_TYPE(b RST_CONTINUE)
+		b/token: pc
+		b/accept: :break_accept
+
+		expr/value: as int-ptr! b
 		pc
 	]
 
@@ -739,7 +923,7 @@ parser: context [
 					true [throw-error [pc "unknown directive:" w]]
 				]
 			]
-			default [0]
+			default [throw-error [pc "invalid expression"]]
 		]
 		pc
 	]
@@ -783,18 +967,16 @@ parser: context [
 				op: val/value
 			][
 				node: as rst-expr! find-word w ctx
-				either node <> null [
+				if node <> null [
 					type: NODE_TYPE(node)
 					if any [type = RST_VAR_DECL type = RST_FUNC][
 						t: node/type
-						if all [t <> null TYPE_FLAGS(t) and FN_INFIX <> 0][
+						if all [t <> null FN_ATTRS(t) and FN_INFIX <> 0][
 							infix?: yes
 							flag: RST_INFIX_FN
 							op: as int-ptr! t
 						]
 					]
-				][
-					throw-error [pc2 "undefined symbol:" w]
 				]
 			]
 			either infix? [
@@ -987,7 +1169,7 @@ parser: context [
 			saved-blk [red-block!]
 	][
 		cur-blk: src
-		ctx: either null? f-ctx [make-ctx name parent 1000][f-ctx]
+		ctx: either null? f-ctx [make-ctx name parent no][f-ctx]
 		pc: block/rs-head src
 		end: block/rs-tail src
 		while [pc < end][
@@ -1038,7 +1220,9 @@ parser: context [
 			end [red-word!]
 			attr [integer!]
 			sym [integer!]
+			saved-blk [red-block!]
 	][
+		enter-block(blk)
 		attr: 0
 		p: as red-word! block/rs-head blk
 		end: as red-word! block/rs-tail blk
@@ -1062,6 +1246,7 @@ parser: context [
 			]
 			p: p + 1
 		]
+		exit-block
 		attr
 	]
 
@@ -1089,6 +1274,7 @@ parser: context [
 						if WORD?(t) [
 							cur/next: make-var-decl t as red-block! p
 							cur: cur/next
+							ADD_NODE_FLAGS(cur RST_VAR_LOCAL)
 						]
 						t: t - 1
 						n: n - 1
@@ -1119,6 +1305,7 @@ parser: context [
 			cur [var-decl!]
 			list [var-decl! value]
 			attr [integer!]
+			saved-blk [red-block!]
 	][
 		ft: as fn-type! malloc size? fn-type!
 		SET_TYPE_KIND(ft RST_TYPE_FUNC)
@@ -1133,9 +1320,11 @@ parser: context [
 
 		if BLOCK?(p) [						;-- attributes
 			attr: get-attributes as red-block! p
-			ADD_TYPE_FLAGS(ft attr)
+			ADD_FN_ATTRS(ft attr)
 			p: skip p + 1 end TYPE_STRING	;-- skip doc strings
 		]
+
+		enter-block(spec)
 
 		list/next: null
 		cur: :list
@@ -1148,6 +1337,7 @@ parser: context [
 					p2: expect-next p end TYPE_BLOCK
 					cur/next: make-var-decl p as red-block! p2
 					cur: cur/next
+					ADD_NODE_FLAGS(cur RST_VAR_PARAM)
 					p: p2 + 1
 					ft/n-params: ft/n-params + 1
 				]
@@ -1167,6 +1357,8 @@ parser: context [
 			]
 			w: as red-word! skip p end TYPE_STRING
 		]
+		exit-block
+
 		ft/params: list/next
 		ft
 	]

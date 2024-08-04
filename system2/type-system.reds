@@ -52,8 +52,6 @@ struct-type!: alias struct! [
 	TYPE_HEADER
 ]
 
-;-- /header bits: 8 - 15 opcode
-#define FN_OPCODE(f) (f/header >>> 8 and FFh)
 fn-type!: alias struct! [
 	TYPE_HEADER
 	spec		[red-block!]

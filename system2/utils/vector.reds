@@ -76,4 +76,38 @@ vector: context [
 		p: as ptr-ptr! new-item vec
 		p/value: as int-ptr! ptr
 	]
+
+	append-int: func [
+		vec		[vector!]
+		int		[integer!]
+		/local
+			p	[int-ptr!]
+	][
+		p: new-item vec
+		p/value: int
+	]
+
+	remove-last: func [
+		vec		[vector!]
+	][
+		assert vec/used > 0
+		vec/used: vec/used - 1
+	]
+
+	pick-last-int: func [
+		vec		[vector!]
+		return: [integer!]
+		/local
+			p	[int-ptr!]
+	][
+		p: (as int-ptr! vec/data) + vec/used - 1
+		p/value
+	]
+
+	destroy: func [
+		vec		[vector!]
+	][
+		free vec/data
+		free as byte-ptr! vec
+	]
 ]

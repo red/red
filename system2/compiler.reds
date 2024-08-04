@@ -17,6 +17,24 @@ compiler: context [
 		cur-blk: saved-blk
 	]
 
+	#define ARRAY_DATA(arr) [as ptr-ptr! (arr + 1)]
+
+	ptr-array!: alias struct! [
+		length	[integer!]
+		;--data
+	]
+
+	make-ptr-array: func [
+		size	[integer!]
+		return: [ptr-array!]
+		/local
+			a	[ptr-array!]
+	][
+		a: as ptr-array! malloc (size * size? int-ptr!) + size? ptr-array!
+		a/length: size
+		a
+	]
+
 	#include %utils/vector.reds
 	#include %utils/mempool.reds
 	#include %utils/hashmap.reds
@@ -24,6 +42,7 @@ compiler: context [
 	#include %rst-printer.reds
 	#include %op-cache.reds
 	#include %type-checker.reds
+	#include %ir-graph.reds
 
 	_mempool: as mempool! 0
 
@@ -171,7 +190,7 @@ compiler: context [
 			fn: as fn! kv/2
 			if NODE_TYPE(fn) = RST_FUNC [
 				cur-blk: fn/body
-				f-ctx: parser/make-ctx fn/token ctx 100		;@@ reuse f-ctx?
+				f-ctx: parser/make-ctx fn/token ctx yes		;@@ reuse f-ctx?
 				init-func-ctx f-ctx fn
 				comp-context fn/token fn/body ctx f-ctx
 			]

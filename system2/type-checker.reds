@@ -118,16 +118,85 @@ type-checker: context [
 		]
 	]
 
+	check-stmts: func [
+		stmt	[rst-stmt!]
+		blk		[red-block!]
+		ctx		[context!]
+		return: [rst-type!]		;-- return type of last expression
+		/local
+			saved-blk [red-block!]
+			t	[rst-type!]
+	][
+		enter-block(blk)
+		while [stmt <> null][
+			t: as rst-type! stmt/accept as int-ptr! stmt checker as int-ptr! ctx
+			stmt: stmt/next
+		]
+		exit-block
+		t
+	]
+
+	check-write: func [
+		var		[variable!]
+		ctx		[context!]
+		return: [rst-type!]
+		/local
+			decl	[var-decl!]
+			ssa-v	[ssa-var!]
+			flags	[integer!]
+	][
+		switch NODE_TYPE(var) [
+			RST_VAR [
+				decl: var/decl
+				flags: NODE_FLAGS(decl)
+				if flags and RST_VAR_LOCAL <> 0 [
+					either NODE_FLAGS(decl) and RST_VAR_WRITE <> 0 [
+						if null? decl/ssa [
+							ssa-v: make-ssa-var
+							ssa-v/index: ctx/n-ssa-vars
+							decl/ssa: ssa-v
+							ctx/n-ssa-vars: ctx/n-ssa-vars + 1
+						]
+					][
+						ADD_NODE_FLAGS(decl RST_VAR_WRITE)
+					]
+				]
+				decl/type
+			]
+			default [null]
+		]
+	]
+
+	push-loop: func [
+		ctx		[context!]
+		return: [integer!]
+		/local
+			n	[integer!]
+	][
+		n: ctx/n-loops
+		vector/append-int ctx/loop-stack n
+		ctx/n-loops: n + 1
+		n
+	]
+
+	pop-loop: func [
+		ctx		[context!]
+	][
+		vector/remove-last ctx/loop-stack
+	]
+
 	;; check assignment
 	visit-assign: func [
 		a [assignment!] ctx [context!] return: [rst-type!]
 		/local
+			ltype	[rst-type!]
 			type	[rst-type!]
 			var		[variable!]
 	][
 		var: a/target
-		check-expr "Assignment:" a/expr var/decl/type ctx
-		type-system/void-type
+		ltype: check-write var ctx
+		check-expr "Assignment:" a/expr ltype ctx
+		ltype
 	]
 
 	visit-literal: func [e [literal!] ctx [context!] return: [rst-type!]][
@@ -136,6 +205,52 @@ type-checker: context [
 
 	visit-var: func [v [variable!] ctx [context!] return: [rst-type!]][
 		v/decl/type
+	]
+
+	visit-if: func [e [if!] ctx [context!] return: [rst-type!]
+		/local
+			stmt		[rst-stmt!]
+			saved-blk	[red-block!]
+			tt			[rst-type!]
+			tf			[rst-type!]
+			ut			[rst-type!]
+	][
+		check-expr "Condition:" e/cond type-system/logic-type ctx
+		tt: check-stmts e/t-branch e/true-blk ctx
+		tf: either e/f-branch <> null [
+			check-stmts e/f-branch e/false-blk ctx
+		][null]
+		either null? tf [tt][
+			ut: type-system/unify tt tf
+			either ut <> null [ut][type-system/void-type]
+		]
+	]
+
+	visit-while: func [w [while!] ctx [context!] return: [rst-type!]
+		/local
+			stmt		[rst-stmt!]
+			saved-blk	[red-block!]
+	][
+		w/loop-idx: push-loop ctx
+		stmt: w/cond
+		enter-block(w/cond-blk)
+		while [stmt/next <> null][		;-- check stmts except last one
+			stmt/accept as int-ptr! stmt checker as int-ptr! ctx
+			stmt: stmt/next
+		]
+		check-expr "While Condition:" as rst-expr! stmt type-system/logic-type ctx
+		exit-block
+
+		check-stmts w/body w/body-blk ctx
+		type-system/void-type
+	]
+
+	visit-break: func [b [break!] ctx [context!] return: [rst-type!]][
+		type-system/void-type
+	]
+
+	visit-continue: func [v [continue!] ctx [context!] return: [rst-type!]][
+		type-system/void-type
 	]
 
 	visit-fn-call: func [fc [fn-call!] ctx [context!] return: [rst-type!]
@@ -180,6 +295,10 @@ type-checker: context [
 	checker/visit-bin-op:	as visit-fn! :visit-bin-op
 	checker/visit-var:		as visit-fn! :visit-var
 	checker/visit-fn-call:	as visit-fn! :visit-fn-call
+	checker/visit-if:		as visit-fn! :visit-if
+	checker/visit-while:	as visit-fn! :visit-while
+	checker/visit-break:	as visit-fn! :visit-break
+	checker/visit-continue:	as visit-fn! :visit-continue
 
 	make-cmp-op: func [
 		op			[rst-op!]
@@ -192,9 +311,33 @@ type-checker: context [
 		ft: as fn-type! malloc size? fn-type!
 		ft/header: op << 8 or RST_TYPE_FUNC
 		ft/n-params: 2
-		ft/param-types: parser/make-params ltype rtype
+		ft/param-types: parser/make-param-types ltype rtype
 		ft/ret-type: type-system/logic-type
 		ft
+	]
+
+	make-mixed-cmp: func [
+		op			[rst-op!]
+		ltype		[rst-type!]
+		rtype		[rst-type!]
+		return:		[fn-type!]
+		/local
+			swap?	[logic!]
+			t		[rst-type!]
+	][
+		swap?: no
+		op: switch op [
+			RST_OP_LT [RST_MIXED_LT]
+			RST_OP_LTEQ [RST_MIXED_LTEQ]
+			RST_OP_GT [swap?: yes RST_MIXED_LT]
+			RST_OP_GTEQ [swap?: yes RST_MIXED_LTEQ]
+		]
+		if swap? [
+			t: ltype
+			ltype: rtype
+			rtype: t
+		]
+		make-cmp-op op ltype rtype
 	]
 
 	lookup-infix-op: func [
@@ -251,13 +394,22 @@ type-checker: context [
 			]
 			all [op >= RST_OP_LT op <= RST_OP_GTEQ][	; <, <=, >, >=
 				utype: type-system/unify ltype rtype
-				if null? utype [
-					case [
-						all [INT_TYPE?(ltype) INT_TYPE?(rtype)][
-							ft: null
-						]
+				either null? utype [
+					if all [INT_TYPE?(ltype) INT_TYPE?(rtype)][
+						return make-mixed-cmp op ltype rtype
 					]
 					if FLOAT_TYPE?(rtype) [utype: rtype]
+				][
+					utype: ltype
+				]
+				ft: switch TYPE_KIND(utype) [
+					RST_TYPE_INT [op-cache/get-int-op op utype]
+					RST_TYPE_FLOAT [
+						either op <= RST_OP_DIV [
+							op-cache/get-float-op op utype
+						][null]
+					]
+					RST_TYPE_PTR [null]
 				]
 			]
 			true [null]
@@ -272,7 +424,6 @@ type-checker: context [
 			n		[integer!]
 			kv		[int-ptr!]
 			var		[var-decl!]
-			type	[integer!]
 			decls	[int-ptr!]
 			f		[fn!]
 	][
@@ -304,6 +455,11 @@ type-checker: context [
 		][
 			stmt/accept as int-ptr! stmt checker as int-ptr! ctx
 		]
+
+		assert ctx/loop-stack <> null
+		vector/destroy ctx/loop-stack
+		ctx/loop-stack: null
+
 		check ctx/child
 		check ctx/next
 	]

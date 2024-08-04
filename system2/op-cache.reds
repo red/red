@@ -37,7 +37,7 @@ op-cache: context [
 	][
 		f: as fn-type! malloc RST_OP_SIZE * size? fn-type!
 
-		pt: parser/make-params type type
+		pt: parser/make-param-types type type
 		init-op f + RST_OP_ADD  RST_OP_ADD   pt type
 		init-op f + RST_OP_SUB  RST_OP_SUB   pt type
 		init-op f + RST_OP_MUL  RST_OP_MUL   pt type
@@ -54,7 +54,7 @@ op-cache: context [
 		init-op f + RST_OP_GT   RST_OP_GT    pt type-system/logic-type
 		init-op f + RST_OP_GTEQ RST_OP_GTEQ  pt type-system/logic-type
 
-		pt: parser/make-params type as rst-type! type-system/uint32-type
+		pt: parser/make-param-types type as rst-type! type-system/uint32-type
 		init-op f + RST_OP_SHL RST_OP_SHL pt type
 		init-op f + RST_OP_SAR RST_OP_SAR pt type
 		init-op f + RST_OP_SHR RST_OP_SHR pt type
