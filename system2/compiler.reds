@@ -17,27 +17,89 @@ compiler: context [
 		cur-blk: saved-blk
 	]
 
-	#define ARRAY_DATA(arr) [as ptr-ptr! (arr + 1)]
+	#define ARRAY_DATA(arr) (as ptr-ptr! (arr + 1))
+	#define array-value! [array-1! value]
+	#define INIT_ARRAY_VALUE(a v) [a/length: 1 a/value: as byte-ptr! v]
 
 	ptr-array!: alias struct! [
 		length	[integer!]
 		;--data
 	]
 
-	make-ptr-array: func [
-		size	[integer!]
-		return: [ptr-array!]
-		/local
-			a	[ptr-array!]
-	][
-		a: as ptr-array! malloc (size * size? int-ptr!) + size? ptr-array!
-		a/length: size
-		a
+	array-1!: alias struct! [		;-- ptr array with one value
+		length	[integer!]
+		value	[byte-ptr!]
+	]
+
+	empty-array: as ptr-array! 0
+
+	ptr-array: context [
+		make: func [
+			size	[integer!]
+			return: [ptr-array!]
+			/local
+				a	[ptr-array!]
+		][
+			a: as ptr-array! malloc (size * size? int-ptr!) + size? ptr-array!
+			a/length: size
+			a
+		]
+
+		copy: func [
+			arr		[ptr-array!]
+			return: [ptr-array!]
+			/local
+				new [ptr-array!]
+		][
+			new: make arr/length
+			copy-memory as byte-ptr! ARRAY_DATA(new) as byte-ptr! ARRAY_DATA(arr) arr/length * size? int-ptr!
+			new
+		]
+
+		grow: func [
+			arr		[ptr-array!]
+			length	[integer!]
+			return: [ptr-array!]
+			/local
+				a	[ptr-array!]
+		][
+			either length > arr/length [
+				a: make length
+				copy-memory as byte-ptr! ARRAY_DATA(a) as byte-ptr! ARRAY_DATA(arr) arr/length * size? int-ptr!
+				a
+			][
+				arr
+			]
+		]
+
+		append: func [
+			arr		[ptr-array!]
+			ptr		[byte-ptr!]
+			return: [ptr-array!]
+			/local
+				a	[ptr-array!]
+				len [integer!]
+				p	[ptr-ptr!]
+				pp	[ptr-ptr!]
+		][
+			len: arr/length
+			a: make len + 1
+			p: ARRAY_DATA(a)
+			pp: ARRAY_DATA(arr)
+			loop len [
+				p/value: pp/value
+				p: p + 1
+				pp: pp + 1
+			]
+			p/value: as int-ptr! ptr
+			a
+		]
 	]
 
 	#include %utils/vector.reds
 	#include %utils/mempool.reds
 	#include %utils/hashmap.reds
+	#include %opcode.reds
 	#include %parser.reds
 	#include %rst-printer.reds
 	#include %op-cache.reds
@@ -216,6 +278,8 @@ compiler: context [
 
 	init: does [
 		_mempool: mempool/make
+		empty-array: ptr-array/make 0
+
 		parser/init
 		op-cache/init
 		type-system/init

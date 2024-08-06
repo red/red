@@ -144,12 +144,12 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	RST_INFIX_OP:	20h
 ]
 
-#define SET_TYPE_KIND(node kind) [node/header: node/header and FFFFFF00h or kind]
+#define SET_TYPE_KIND(node kind) [node/header: kind]
 #define TYPE_KIND(node) (node/header and FFh)
 #define ADD_TYPE_FLAGS(node flags) [node/header: node/header or (flags << 8)]
 #define TYPE_FLAGS(node) (node/header >>> 8)
 
-#define SET_NODE_TYPE(node type) [node/header: node/header and FFFFFF00h or type]
+#define SET_NODE_TYPE(node type) [node/header: type]
 #define ADD_NODE_FLAGS(node flags) [node/header: node/header or (flags << 8)]
 #define NODE_TYPE(node) (node/header and FFh)
 #define NODE_FLAGS(node) (node/header >>> 8)
@@ -201,6 +201,7 @@ rst-expr!: alias struct! [
 
 ssa-var!: alias struct! [
 	index		[integer!]
+	value		[instr!]
 	loop-bset	[integer!]	;-- loop bitset, var used in loops, can encode 32 loops
 	extra-bset	[byte-ptr!]
 ]

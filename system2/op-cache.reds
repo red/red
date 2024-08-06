@@ -7,6 +7,25 @@ Red/System [
 
 #define INT_WIDTH_CNT	4	;-- int 8, 16, 32, 64
 
+#define op! fn-type!
+
+make-op: func [
+	opcode	 [opcode!]
+	n-params [integer!]
+	param-t	 [ptr-ptr!]
+	ret-t	 [rst-type!]
+	return:  [op!]
+	/local
+		op	 [op!]
+][
+	op: as op! malloc size? op!
+	op/header: opcode << 8 or RST_TYPE_FUNC
+	op/n-params: n-params
+	op/param-types: param-t
+	op/ret-type: ret-t
+	op
+]
+
 op-cache: context [
 	int-op-table: as ptr-ptr! 0
 	float-op-table: as ptr-ptr! 0
@@ -17,12 +36,12 @@ op-cache: context [
 	]
 
 	init-op: func [
-		f		[fn-type!]
-		op		[rst-op!]
+		f		[op!]
+		opcode	[integer!]
 		param-t [ptr-ptr!]
 		ret-t	[rst-type!]
 	][
-		f/header: op << 8 or RST_TYPE_FUNC
+		f/header: opcode << 8 or RST_TYPE_FUNC
 		f/n-params: 2
 		f/param-types: param-t
 		f/ret-type: ret-t
@@ -30,12 +49,12 @@ op-cache: context [
 
 	create: func [
 		type	[rst-type!]
-		return: [fn-type!]
+		return: [op!]
 		/local
-			f	[fn-type!]
+			f	[op!]
 			pt	[ptr-ptr!]
 	][
-		f: as fn-type! malloc RST_OP_SIZE * size? fn-type!
+		f: as op! malloc RST_OP_SIZE * size? op!
 
 		pt: parser/make-param-types type type
 		init-op f + RST_OP_ADD  RST_OP_ADD   pt type
@@ -62,26 +81,26 @@ op-cache: context [
 	]
 
 	get-int-op: func [
-		op		[rst-op!]
+		op		[opcode!]
 		type	[rst-type!]
-		return: [fn-type!]
+		return: [op!]
 		/local
 			w	[integer!]
-			ops	[fn-type!]
+			ops	[op!]
 			p	[ptr-ptr!]
 	][
 		w: INT_WIDTH(type)
 		p: int-op-table + (log-b w >> 3)
 		if INT_SIGNED?(type) [p: p + INT_WIDTH_CNT]
 		if null? p/value [p/value: as int-ptr! create type]
-		ops: as fn-type! p/value
+		ops: as op! p/value
 		ops + op
 	]
 
 	get-float-op: func [
-		op		[rst-op!]
+		op		[opcode!]
 		type	[rst-type!]
-		return:	[fn-type!]
+		return:	[op!]
 		/local
 			signed	[integer!]
 			p		[ptr-ptr!]
@@ -89,6 +108,6 @@ op-cache: context [
 		signed: as-integer FLOAT_64?(type)
 		p: float-op-table + signed
 		if null? p/value [p/value: as int-ptr! create type]
-		(as fn-type! p/value) + op
+		(as op! p/value) + op
 	]
 ]

@@ -142,7 +142,6 @@ type-checker: context [
 		return: [rst-type!]
 		/local
 			decl	[var-decl!]
-			ssa-v	[ssa-var!]
 			flags	[integer!]
 	][
 		switch NODE_TYPE(var) [
@@ -151,12 +150,8 @@ type-checker: context [
 				flags: NODE_FLAGS(decl)
 				if flags and RST_VAR_LOCAL <> 0 [
 					either NODE_FLAGS(decl) and RST_VAR_WRITE <> 0 [
-						if null? decl/ssa [
-							ssa-v: make-ssa-var
-							ssa-v/index: ctx/n-ssa-vars
-							decl/ssa: ssa-v
-							ctx/n-ssa-vars: ctx/n-ssa-vars + 1
-						]
+						decl/ssa/index: ctx/n-ssa-vars
+						ctx/n-ssa-vars: ctx/n-ssa-vars + 1
 					][
 						ADD_NODE_FLAGS(decl RST_VAR_WRITE)
 					]
@@ -439,7 +434,10 @@ type-checker: context [
 			kv: hashmap/next decls kv
 			var: as var-decl! kv/2
 			switch NODE_TYPE(var) [
-				RST_VAR_DECL [infer-type var ctx]
+				RST_VAR_DECL [
+					infer-type var ctx
+					var/ssa: make-ssa-var
+				]
 				RST_FUNC	 [
 					f: as fn! var
 					resolve-fn-type as fn-type! f/type ctx

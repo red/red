@@ -41,6 +41,7 @@ mempool: context [
 		/local
 			p	[byte-ptr!]
 	][
+		assert size <= MEM_CHUNK_SIZE
 		if m/used + size > MEM_CHUNK_SIZE [add-chunk m]
 		p: m/chunk + m/used
 		m/used: m/used + size
