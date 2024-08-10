@@ -896,6 +896,11 @@ update-base: func [
 		bf		[tagBLENDFUNCTION value]
 		graphic [integer!]
 		flags	[integer!]
+		h-above	[handle!]
+		rt		[integer!]
+		handle	[red-handle!]
+		blk		[red-block!]
+		face	[red-object!]
 		ctx		[draw-ctx! value]
 		this	[this!]
 		surf	[IDXGISurface1]
@@ -903,8 +908,30 @@ update-base: func [
 		rc		[RECT_STRUCT value]
 ][
 	if zero? (WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) [
-		InvalidateRect hWnd null 1
-		exit
+		either transparent-base?
+					as red-tuple! values + FACE_OBJ_COLOR
+					as red-image! values + FACE_OBJ_IMAGE [
+			h-above: GetWindow hWnd 3 ;-- GW_HWNDPREV get the window above hWnd
+			parent: GetParent hWnd
+			face: get-face-obj hWnd
+
+			;-- destroy the base face
+			free-faces face no
+			DestroyWindow hWnd
+
+			;-- recreate a layered window
+			hWnd: as handle! OS-make-view face as-integer parent
+			blk: as red-block! values + FACE_OBJ_STATE
+			blk/header: TYPE_BLOCK
+			handle: as red-handle! block/rs-head blk
+			handle/value: as-integer hWnd
+
+			;-- restore z-order
+			SetWindowPos hWnd h-above 0 0 0 0 1819
+		][
+			InvalidateRect hWnd null 1
+			exit
+		]
 	]
 
 	cmds: as red-block! values + FACE_OBJ_DRAW
