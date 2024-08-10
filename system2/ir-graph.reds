@@ -5,25 +5,12 @@ Red/System [
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
-#enum instr-kind! [
-	INS_NEW_PARAM
-	INS_NEW_VAR
-	INS_NEW_PHI
-	INS_UPDATE_VAR
-	INS_CONST
-	INS_CALL
-	INS_GOTO
-	INS_RETURN
-	INS_THROW
-	INS_END
-]
-
 #enum instr-flag! [
 	INS_PURE:		1		;-- no side-effects
 	INS_KILLED:		2		;-- instruction is dead
 ]
 
-;; /header, instr-kind: 0 - 7 bits, flags: 8 - 31 bits
+;; /header, opcode: 0 - 7 bits, flags: 8 - 31 bits
 #define IR_NODE_FIELDS(type) [
 	header	[integer!]
 	uid		[integer!]
@@ -37,8 +24,9 @@ Red/System [
 	uses	[df-edge!]
 ]
 
-#define INSTR_KIND(i) [i/header and FFh]
+#define INSTR_OPCODE(i) [i/header and FFh]
 #define INSTR_END?(i) (i/header and FFh = INS_END)
+#define INSTR_PHI?(i) (i/header and FFh = INS_PHI)
 
 ;; a control flow edge
 cf-edge!: alias struct! [
@@ -77,7 +65,7 @@ instr-goto!: alias struct! [
 ]
 
 instr-if!: alias struct! [
-	IR_NODE_FIELDS(instr!)
+	IR_INSTR_FIELDS(instr!)
 	succs	[ptr-array!]
 	cond	[instr!]
 	t-blk	[basic-block!]
@@ -113,9 +101,11 @@ instr-phi!: alias struct! [
 	block	[basic-block!]
 ]
 
-instr-call!: alias struct! [
+instr-op!: alias struct! [
 	IR_INSTR_FIELDS(instr!)
-	op		[op!]
+	n-params	[integer!]
+	param-types	[ptr-ptr!]		;-- an array of types
+	ret-type	[rst-type!]
 ]
 
 basic-block!: alias struct! [
@@ -135,12 +125,14 @@ ssa-merge!: alias struct! [
 	block		[basic-block!]
 	cur-vals	[ptr-array!]
 	pred-vals	[ptr-array!]
+	n-preds		[integer!]
 ]
 
 ssa-ctx!: alias struct! [
 	parent		[ssa-ctx!]
 	graph		[ir-fn!]
-	cur-bb		[basic-block!]
+	pt			[instr!]
+	block		[basic-block!]
 	cur-vals	[ptr-array!]
 	ssa-vars	[ptr-array!]
 	loop-start	[ssa-merge!]
@@ -194,11 +186,51 @@ ir-graph: context [
 		null
 	]
 
+	visit-if: func [e [if!] ctx [ssa-ctx!] return: [instr!]
+		/local
+			cond	[instr!]
+			t-ctx	[ssa-ctx! value]
+			f-ctx	[ssa-ctx! value]
+			t-val	[instr!]
+			f-val	[instr!]
+			merge	[ssa-merge! value]
+	][
+		cond: as instr! e/cond/accept as int-ptr! e/cond builder as int-ptr! ctx
+		
+		split-ssa-ctx ctx :t-ctx
+		split-ssa-ctx ctx :f-ctx
+		add-if cond t-ctx/block f-ctx/block ctx
+
+		t-val: gen-stmts e/t-branch t-ctx
+		f-val: either e/f-branch <> null [gen-stmts e/f-branch f-ctx][add-default-value e/type f-ctx]
+
+		init-merge :merge
+		merge-ctx :merge :t-ctx 
+		
+		null
+	]
+
+	visit-while: func [w [while!] ctx [ssa-ctx!] return: [instr!]][
+		null
+	]
+
+	visit-break: func [b [break!] ctx [ssa-ctx!] return: [instr!]][
+		null
+	]
+
+	visit-continue: func [v [continue!] ctx [ssa-ctx!] return: [instr!]][
+		null
+	]
+
 	builder/visit-assign:	as visit-fn! :visit-assign
 	builder/visit-literal:	as visit-fn! :visit-literal
 	builder/visit-bin-op:	as visit-fn! :visit-bin-op
 	builder/visit-var:		as visit-fn! :visit-var
 	builder/visit-fn-call:	as visit-fn! :visit-fn-call
+	builder/visit-if:		as visit-fn! :visit-if
+	builder/visit-while:	as visit-fn! :visit-while
+	builder/visit-break:	as visit-fn! :visit-break
+	builder/visit-continue:	as visit-fn! :visit-continue
 
 	make-bb: func [		;-- create basic-block!
 		return: [basic-block!]
@@ -231,31 +263,189 @@ ir-graph: context [
 		ir
 	]
 
-	make-ssa-ctx: func [
+	make-phi: func [
+		type	[rst-type!]
+		blk		[basic-block!]
+		args	[ptr-array!]
+		return: [instr-phi!]
+		/local
+			phi [instr-phi!]
+	][
+		phi: as instr-phi! malloc size? instr-phi!
+		phi/header: INS_PHI
+		phi/type: type
+		phi/block: blk
+		set-inputs as instr! phi args
+		block-insert-instr blk as instr! phi
+		phi
+	]
+
+	init-ssa-ctx: func [
+		ctx		[ssa-ctx!]
 		parent	[ssa-ctx!]
 		n-vars	[integer!]
 		bb		[basic-block!]
 		return: [ssa-ctx!]
-		/local
-			ctx [ssa-ctx!]
 	][
-		ctx: as ssa-ctx! malloc size? ssa-ctx!
+		set-memory as byte-ptr! ctx null-byte size? ssa-ctx!
+
 		ctx/parent: parent
-		ctx/cur-bb: bb
+		ctx/block: bb
 		if n-vars > 0 [
-			ctx/cur-vals: ptr-array/make n-vars
-			ctx/ssa-vars: either parent <> null [
-				parent/ssa-vars
+			either parent <> null [
+				ctx/cur-vals: parent/cur-vals
+				ctx/ssa-vars: parent/ssa-vars
 			][
-				ptr-array/make n-vars
+				ctx/cur-vals: ptr-array/make n-vars
+				ctx/ssa-vars: ptr-array/make n-vars
 			]
 		]
 		ctx
 	]
 
+	init-merge: func [
+		m		[ssa-merge!]
+	][
+		m/block: make-bb
+		m/cur-vals: null
+		m/pred-vals: ptr-array/make 2
+		m/n-preds: 0
+	]
+
+
+	kill-var: func [
+		v		[instr!]
+		m		[ssa-merge!]
+		/local
+			p	[instr-phi!]
+	][
+		if INSTR_PHI?(v) [
+			p: as instr-phi! v
+			if p/block = m/block [
+				kill-instr v
+				remove-instr v
+			]
+		]
+	]
+
+	split-ssa-ctx: func [
+		p-ctx	[ssa-ctx!]		;-- parent context
+		ctx		[ssa-ctx!]
+		return: [ssa-ctx!]
+	][
+		init-ssa-ctx ctx p-ctx p-ctx/cur-vals/length make-bb
+	]
+
+	merge-latest: func [
+		m		[ssa-merge!]
+		ctx		[ssa-ctx!]
+		/local
+			n i		[integer!]
+			n-preds	[integer!]
+			vals	[ptr-array!]
+			p		[ptr-ptr!]
+			mp		[ptr-ptr!]
+			pred-v	[instr!]
+			v		[instr!]
+			phi		[instr-phi!]
+			e		[df-edge!]
+			inputs	[ptr-array!]
+			parr	[ptr-ptr!]
+			pv		[ptr-ptr!]
+			pp		[ptr-ptr!]
+			var		[var-decl!]
+	][
+		;-- merge latest added predecessor's vals
+		n-preds: m/n-preds
+		p: ARRAY_DATA(m/pred-vals) + (n-preds - 1)
+		vals: as ptr-array! p/value
+
+		p: ARRAY_DATA(vals)
+		mp: ARRAY_DATA(m/cur-vals)
+		n: vals/length
+		i: 0
+		loop n [
+			pred-v: as instr! p/value
+			v: as instr! mp/value
+			if v <> null [
+				either null? pred-v [	;-- this var is dead on this edge
+					kill-var v m
+					mp/value: null
+				][
+					either INSTR_PHI?(v) [
+						phi: as instr-phi! v
+						if phi/block = m/block [
+							e: make-df-edge v pred-v
+							phi/inputs: ptr-array/append phi/inputs as byte-ptr! e
+						]
+					][
+						;-- add a new phi
+						if v <> pred-v [
+							inputs: ptr-array/make n-preds
+							parr: ARRAY_DATA(m/pred-vals)
+							pp: ARRAY_DATA(inputs)
+							loop n-preds [
+								vals: as ptr-array! parr/value
+								pv: ARRAY_DATA(vals) + i
+								pp/value: pv/value
+								parr: parr + 1
+								pp: pp + 1
+							]
+							pp: ARRAY_DATA(ctx/ssa-vars) + i
+							var: as var-decl! pp/value
+							mp/value: as int-ptr! make-phi var/type m/block inputs
+						]
+					]
+				]
+			]
+			i: i + 1
+			p: p + 1
+			mp: mp + 1
+		]
+	]
+
+	merge-edge: func [
+		e		[cf-edge!]
+		m		[ssa-merge!]
+		ctx		[ssa-ctx!]
+		/local
+			preds	[ptr-array!]
+			p		[ptr-ptr!]
+			i		[integer!]
+	][
+		assert e/dst = m/block
+
+		preds: m/pred-vals
+		i: m/n-preds
+		if i >= preds/length [
+			preds: ptr-array/grow preds preds/length + 4
+			m/pred-vals: preds
+		]
+		p: ARRAY_DATA(preds) + i
+		p/value: as int-ptr! ctx/cur-vals
+		m/n-preds: i + 1
+
+		either null? m/cur-vals [m/cur-vals: ptr-array/copy ctx/cur-vals][
+			merge-latest m ctx
+		]
+	]
+
+	merge-ctx: func [
+		m		[ssa-merge!]
+		ctx		[ssa-ctx!]
+		/local
+			e	[cf-edge!]
+	][
+		unless ctx/blk-closed? [
+			add-goto m/block ctx
+			e: block-successor ctx/block 0
+			merge-edge e m ctx
+		]
+	]
+
 	do-cast: func [
-		from	[rst-type!]
-		to-type	[rst-type!]
+		from-ty	[rst-type!]
+		to-ty	[rst-type!]
 		value	[instr!]
 		return: [instr!]
 	][
@@ -308,7 +498,6 @@ ir-graph: context [
 	][
 		p: bb/prev
 		unless INSTR_END?(p) [p: as instr! bb]
-		
 		insert-instr p ins
 	]
 
@@ -351,6 +540,7 @@ ir-graph: context [
 			data	[ptr-ptr!]
 	][
 		succs: block-successors bb
+		if null? succs [return null]
 		data: ARRAY_DATA(succs) + idx
 		as cf-edge! data/value
 	]
@@ -365,10 +555,19 @@ ir-graph: context [
 		either INSTR_END?(p) [as instr-end! p][null]
 	]
 
+	append: func [
+		i		[instr!]
+		ctx		[ssa-ctx!]
+	][
+		either null? ctx/pt [
+			block-append-instr ctx/block i
+		][insert-instr ctx/pt i]
+	]
+
 	has-phi?: func [
 		bb		[basic-block!]
 	][
-		INSTR_KIND(bb/next) = INS_NEW_PHI
+		INSTR_OPCODE(bb/next) = INS_PHI
 	]
 
 	remove-uses: func [			;-- remove `edge` from `ins`'s use list
@@ -412,6 +611,7 @@ ir-graph: context [
 	make-df-edge: func [
 		src		[instr!]
 		dest	[instr!]
+		return: [df-edge!]
 		/local
 			e	[df-edge!]
 	][
@@ -419,6 +619,22 @@ ir-graph: context [
 		e/src: src
 		e/dst: dest
 		if dest <> null [insert-uses e dest]
+		e
+	]
+
+	make-cf-edge: func [
+		src		[instr-end!]
+		dest	[basic-block!]
+		return: [cf-edge!]
+		/local
+			e	[cf-edge!]
+	][
+		e: as cf-edge! malloc size? cf-edge!
+		e/src: src
+		e/dst: dest
+		if dest <> null [
+			e/dst-idx: block-add-pred dest e
+		]
 		e
 	]
 
@@ -444,6 +660,39 @@ ir-graph: context [
 		][
 			ins/inputs: empty-array
 		]
+	]
+
+	set-succs: func [
+		ins		[instr-end!]
+		dest	[ptr-array!]
+		/local
+			s	[ptr-array!]
+			p	[ptr-ptr!]
+			pp	[ptr-ptr!]
+	][
+		s: ptr-array/make dest/length
+		p: ARRAY_DATA(s)
+		pp: ARRAY_DATA(dest)
+		loop s/length [
+			p/value: as int-ptr! make-cf-edge ins as basic-block! pp/value
+			p: p + 1
+			pp: pp + 1
+		]
+		ins/succs: s
+	]
+
+	gen-stmts: func [
+		stmt	[rst-stmt!]
+		ctx		[ssa-ctx!]
+		return: [instr!]		;-- return instr of last expression
+		/local
+			i	[instr!]
+	][
+		while [stmt <> null][
+			i: as instr! stmt/accept as int-ptr! stmt builder as int-ptr! ctx
+			stmt: stmt/next
+		]
+		i
 	]
 
 	gen-expr: func [
@@ -500,20 +749,77 @@ ir-graph: context [
 		]
 	]
 
-	add-call: func [
-		op		[op!]
+	make-goto: func [
+		target	[basic-block!]
+		return: [instr!]
+		/local
+			g	[instr-goto!]
+			arr [array-value!]
+	][
+		g: as instr-goto! malloc size? instr-goto!
+		INIT_ARRAY_VALUE(arr target)
+		set-succs as instr-end! g as ptr-array! :arr
+		as instr! g
+	]
+
+	add-goto: func [
+		target	[basic-block!]
+		ctx		[ssa-ctx!]
+	][
+		unless ctx/blk-closed? [
+			ctx/blk-closed?: yes
+			block-append-instr ctx/block make-goto target
+		]
+	]
+
+	add-if: func [
+		cond	[instr!]
+		t-blk	[basic-block!]
+		f-blk	[basic-block!]
+		ctx		[ssa-ctx!]
+		/local
+			i	[instr-if!]
+			arr [array-value!]
+	][
+		i: as instr-if! malloc size? instr-if!
+		i/header: INS_IF
+		i/cond: cond
+		i/t-blk: t-blk
+		i/f-blk: f-blk
+
+		INIT_ARRAY_VALUE(arr cond)
+		set-inputs as instr! i as ptr-array! :arr
+
+		ctx/blk-closed?: yes
+		append as instr! i ctx
+	]
+
+	make-op: func [
+		opcode	 [opcode!]
+		n-params [integer!]
+		param-t	 [ptr-ptr!]
+		ret-t	 [rst-type!]
+		return:  [instr-op!]
+		/local
+			op	 [instr-op!]
+	][
+		op: as instr-op! malloc size? instr-op!
+		op/header: opcode
+		op/n-params: n-params
+		op/param-types: param-t
+		op/ret-type: ret-t
+		op
+	]
+
+	add-op: func [
+		op		[instr-op!]
 		args	[ptr-array!]
 		ctx		[ssa-ctx!]
 		return: [instr!]
-		/local
-			c	[instr-call!]
 	][
-		c: as instr-call! malloc size? instr-call!
-		c/header: INS_CALL
-		c/op: op
-		set-inputs as instr! c args
-		unless ctx/blk-closed? [block-append-instr ctx/cur-bb as instr! c]
-		as instr! c
+		set-inputs as instr! op args
+		unless ctx/blk-closed? [append as instr! op ctx]
+		as instr! op
 	]
 
 	add-default-value: func [
@@ -522,10 +828,10 @@ ir-graph: context [
 		return:		[instr!]
 		/local
 			ins		[instr!]
-			op		[op!]
+			op		[instr-op!]
 	][
-		op: make-op op_default_value 0 null type
-		add-call op null ctx
+		op: make-op OP_DEFAULT_VALUE 0 null type
+		add-op op null ctx
 	]
 
 	add-new-var: func [
@@ -542,7 +848,7 @@ ir-graph: context [
 		v/type: type
 		v/index: idx
 		set-inputs as instr! v vals
-		block-append-instr ctx/cur-bb as instr! v
+		block-append-instr ctx/block as instr! v
 		as instr! v
 	]
 
@@ -579,7 +885,7 @@ ir-graph: context [
 		ctx		[context!]
 		return: [ir-fn!]
 		/local
-			ssa-ctx [ssa-ctx!]
+			ssa-ctx [ssa-ctx! value]
 			graph	[ir-fn!]
 			stmt	[rst-stmt!]
 			n		[integer!]
@@ -588,7 +894,7 @@ ir-graph: context [
 			decls	[int-ptr!]
 	][
 		graph: make-ir-fn fn
-		ssa-ctx: make-ssa-ctx null ctx/n-ssa-vars graph/start-bb
+		init-ssa-ctx :ssa-ctx null ctx/n-ssa-vars graph/start-bb
 
 		if ctx/n-ssa-vars > 0 [
 			decls: ctx/decls
@@ -598,7 +904,7 @@ ir-graph: context [
 				kv: hashmap/next decls kv
 				var: as var-decl! kv/2
 				if NODE_TYPE(var) = RST_VAR_DECL [
-					gen-var var ssa-ctx
+					gen-var var :ssa-ctx
 				]
 			]
 		]
@@ -608,7 +914,7 @@ ir-graph: context [
 			stmt: stmt/next
 			stmt <> null
 		][
-			stmt/accept as int-ptr! stmt builder as int-ptr! ssa-ctx
+			stmt/accept as int-ptr! stmt builder as int-ptr! :ssa-ctx
 		]
 
 		graph

@@ -7,7 +7,7 @@ Red/System [
 
 #enum type-conv-result! [
 	conv_illegal
-	conv_void
+	conv_ok				;-- cast is allowed
 	conv_same			;-- same type
 	conv_promote_ii		;-- promote int to int
 	conv_promote_if		;-- promote int to float
@@ -307,6 +307,16 @@ type-system: context [
 				]
 			]
 		]
+		conv_illegal
+	]
+
+	cast: func [
+		x	[rst-type!]
+		y	[rst-type!]
+		return: [type-conv-result!]
+	][
+		if x/header = y/header [return conv_same]
+
 		conv_illegal
 	]
 ]

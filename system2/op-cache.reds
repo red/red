@@ -9,23 +9,6 @@ Red/System [
 
 #define op! fn-type!
 
-make-op: func [
-	opcode	 [opcode!]
-	n-params [integer!]
-	param-t	 [ptr-ptr!]
-	ret-t	 [rst-type!]
-	return:  [op!]
-	/local
-		op	 [op!]
-][
-	op: as op! malloc size? op!
-	op/header: opcode << 8 or RST_TYPE_FUNC
-	op/n-params: n-params
-	op/param-types: param-t
-	op/ret-type: ret-t
-	op
-]
-
 op-cache: context [
 	int-op-table: as ptr-ptr! 0
 	float-op-table: as ptr-ptr! 0

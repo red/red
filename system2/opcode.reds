@@ -6,13 +6,27 @@ Red/System [
 ]
 
 #enum opcode! [
-	op_bool_eq
-	op_bool_and
-	op_bool_or
-	op_bool_not
+	INS_NEW_PARAM
+	INS_NEW_VAR
+	INS_UPDATE_VAR
+	INS_PHI
+	INS_IF
+	INS_SWITCH
+	INS_CONST
+	INS_GOTO
+	INS_RETURN
+	INS_THROW
+	INS_END
 
-	op_default_value
+	OP_BOOL_EQ
+	OP_BOOL_AND
+	OP_BOOL_OR
+	OP_BOOL_NOT
 
-	op_get_global
-	op_set_global
+	OP_DEFAULT_VALUE
+	
+	OP_CALL
+
+	OP_GET_GLOBAL
+	OP_SET_GLOBAL
 ]
