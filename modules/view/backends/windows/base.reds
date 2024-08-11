@@ -927,7 +927,7 @@ update-base: func [
 			handle/value: as-integer hWnd
 
 			;-- restore z-order
-			SetWindowPos hWnd h-above 0 0 0 0 1819
+			SetWindowPos hWnd h-above 0 0 0 0 1819 ;-- 1819: All SWP_NO* flags except SWP_NOZORDER
 		][
 			InvalidateRect hWnd null 1
 			exit
