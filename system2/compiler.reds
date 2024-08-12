@@ -19,7 +19,8 @@ compiler: context [
 
 	#define ARRAY_DATA(arr) (as ptr-ptr! (arr + 1))
 	#define array-value! [array-1! value]
-	#define INIT_ARRAY_VALUE(a v) [a/length: 1 a/value: as byte-ptr! v]
+	#define INIT_ARRAY_VALUE(a v) [a/length: 1 a/val-1: as byte-ptr! v]
+	#define INIT_ARRAY_2(a v1 v2) [a/length: 2 a/val-1: as byte-ptr! v1 a/val-2: as byte-ptr! v2]
 
 	ptr-array!: alias struct! [
 		length	[integer!]
@@ -28,7 +29,13 @@ compiler: context [
 
 	array-1!: alias struct! [		;-- ptr array with one value
 		length	[integer!]
-		value	[byte-ptr!]
+		val-1	[byte-ptr!]
+	]
+
+	array-2!: alias struct! [		;-- ptr array with two values
+		length	[integer!]
+		val-1	[byte-ptr!]
+		val-2	[byte-ptr!]
 	]
 
 	empty-array: as ptr-array! 0
@@ -189,19 +196,21 @@ compiler: context [
 		quit 1
 	]
 
-	comp-context: func [
-		name	[cell!]
-		src		[red-block!]
+	comp-fn: func [
+		fn		[fn!]
 		parent	[context!]
 		f-ctx	[context!]
 		return: [context!]
 		/local
+			src	[red-block!]
 			ctx [context!]
 	][
+		src: fn/body
 		src-blk: src
-		ctx: parser/parse-context name src parent f-ctx
+		ctx: parser/parse-context fn/token src parent f-ctx
 		type-checker/check ctx
 		rst-printer/print-program ctx
+		ir-graph/generate fn ctx
 		ctx
 	]
 
@@ -252,9 +261,10 @@ compiler: context [
 			fn: as fn! kv/2
 			if NODE_TYPE(fn) = RST_FUNC [
 				cur-blk: fn/body
-				f-ctx: parser/make-ctx fn/token ctx yes		;@@ reuse f-ctx?
+				f-ctx: parser/make-ctx fn/token ctx yes
 				init-func-ctx f-ctx fn
-				comp-context fn/token fn/body ctx f-ctx
+				comp-fn fn ctx f-ctx
+				comp-functions f-ctx		;-- compile funcs defined inside the func
 			]
 		]
 		comp-functions ctx/child
@@ -266,13 +276,13 @@ compiler: context [
 		job			[red-object!]
 		/local
 			ctx 	[context!]
-			n		[integer!]
-			decls	[int-ptr!]
-			kv		[int-ptr!]
-			fn		[fn!]
+			fn		[fn! value]
 	][
 		script: object/rs-select job as cell! word/load "script"
-		ctx: comp-context null src null null
+		fn/token: null
+		fn/body: src
+		fn/type: as rst-type! op-cache/void-op
+		ctx: comp-fn :fn null null
 		comp-functions ctx
 	]
 
@@ -287,5 +297,8 @@ compiler: context [
 
 	clean: does [
 		mempool/destroy _mempool
+		if ir-printer/blocks <> null [
+			vector/destroy ir-printer/blocks
+		]
 	]
 ]

@@ -12,10 +12,15 @@ Red/System [
 op-cache: context [
 	int-op-table: as ptr-ptr! 0
 	float-op-table: as ptr-ptr! 0
+	void-op: as op! 0
 
 	init: does [
 		int-op-table: as ptr-ptr! malloc INT_WIDTH_CNT * 2 * size? int-ptr!		;-- signed and unsigned
 		float-op-table: as ptr-ptr! malloc 2 * size? int-ptr!
+		void-op: as fn-type! malloc size? fn-type!
+		void-op/header: RST_TYPE_FUNC
+		void-op/n-params: 0
+		void-op/ret-type: type-system/void-type
 	]
 
 	init-op: func [

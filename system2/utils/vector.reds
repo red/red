@@ -8,7 +8,7 @@ Red/System [
 vector!: alias struct! [
 	obj-sz		[integer!]
 	capacity	[integer!]
-	used		[integer!]
+	length		[integer!]
 	data		[byte-ptr!]
 ]
 
@@ -22,7 +22,7 @@ vector: context [
 
 		vec/obj-sz: obj-sz
 		vec/capacity: capacity
-		vec/used: 0
+		vec/length: 0
 		vec/data: allocate capacity * obj-sz
 	]
 
@@ -36,6 +36,12 @@ vector: context [
 		vec: as vector! allocate size? vector!
 		init vec obj-sz capacity
 		vec
+	]
+
+	clear: func [
+		vec		[vector!]
+	][
+		vec/length: 0
 	]
 
 	grow: func [
@@ -57,14 +63,14 @@ vector: context [
 		vec/capacity: new-cap
 	]
 
-	new-item: func [vec [vector!] return: [int-ptr!] /local used [integer!]][
-		used: vec/used + 1
-		if used > vec/capacity [
-			grow vec used
+	new-item: func [vec [vector!] return: [int-ptr!] /local length [integer!]][
+		length: vec/length + 1
+		if length > vec/capacity [
+			grow vec length
 		]
 
-		vec/used: used
-		as int-ptr! (vec/data + (used - 1 * vec/obj-sz))
+		vec/length: length
+		as int-ptr! (vec/data + (length - 1 * vec/obj-sz))
 	]
 
 	append-ptr: func [
@@ -90,8 +96,8 @@ vector: context [
 	remove-last: func [
 		vec		[vector!]
 	][
-		assert vec/used > 0
-		vec/used: vec/used - 1
+		assert vec/length > 0
+		vec/length: vec/length - 1
 	]
 
 	pick-last-int: func [
@@ -100,7 +106,18 @@ vector: context [
 		/local
 			p	[int-ptr!]
 	][
-		p: (as int-ptr! vec/data) + vec/used - 1
+		p: (as int-ptr! vec/data) + vec/length - 1
+		p/value
+	]
+
+	pick-ptr: func [
+		vec		[vector!]
+		idx		[integer!]
+		return: [int-ptr!]
+		/local
+			p	[ptr-ptr!]
+	][
+		p: (as ptr-ptr! vec/data) + idx
 		p/value
 	]
 

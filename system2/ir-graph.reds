@@ -1,19 +1,20 @@
 Red/System [
 	File: 	 %ir-graph.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
+	Rights:  "Copyright (C) 2024 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
 #enum instr-flag! [
-	INS_PURE:		1		;-- no side-effects
-	INS_KILLED:		2		;-- instruction is dead
+	F_INS_PURE:		1		;-- no side-effects
+	F_INS_KILLED:	2		;-- instruction is dead
+	F_INS_END:		4
 ]
 
 ;; /header, opcode: 0 - 7 bits, flags: 8 - 31 bits
 #define IR_NODE_FIELDS(type) [
 	header	[integer!]
-	uid		[integer!]
+	mark	[integer!]
 	next	[type]
 	prev	[type]
 ]
@@ -25,7 +26,7 @@ Red/System [
 ]
 
 #define INSTR_OPCODE(i) [i/header and FFh]
-#define INSTR_END?(i) (i/header and FFh = INS_END)
+#define INSTR_END?(i) (i/header >>> 8 and F_INS_END <> 0)
 #define INSTR_PHI?(i) (i/header and FFh = INS_PHI)
 
 ;; a control flow edge
@@ -116,7 +117,7 @@ basic-block!: alias struct! [
 ]
 
 ir-fn!: alias struct! [
-	params		[instr-param!]
+	params		[ptr-array!]	;-- array of instr-param!
 	ret-type	[rst-type!]
 	start-bb	[basic-block!]
 ]
@@ -137,7 +138,7 @@ ssa-ctx!: alias struct! [
 	ssa-vars	[ptr-array!]
 	loop-start	[ssa-merge!]
 	loop-end	[ssa-merge!]
-	blk-closed?	[logic!]			;-- true: close current block
+	blk-closed?	[logic!]			;-- block closed by exit, return, break, continue or goto
 ]
 
 make-ssa-var: func [
@@ -149,6 +150,8 @@ make-ssa-var: func [
 	v/index: -1
 	v
 ]
+
+#include %ir-printer.reds
 
 ;-- a graph of IR nodes in SSA form
 ir-graph: context [
@@ -194,6 +197,9 @@ ir-graph: context [
 			t-val	[instr!]
 			f-val	[instr!]
 			merge	[ssa-merge! value]
+			arr2	[array-2! value]
+			t-closed? [logic!]
+			f-closed? [logic!]
 	][
 		cond: as instr! e/cond/accept as int-ptr! e/cond builder as int-ptr! ctx
 		
@@ -204,10 +210,26 @@ ir-graph: context [
 		t-val: gen-stmts e/t-branch t-ctx
 		f-val: either e/f-branch <> null [gen-stmts e/f-branch f-ctx][add-default-value e/type f-ctx]
 
+		t-closed?: t-ctx/blk-closed?	;-- save it as merge-ctx will close the block
+		f-closed?: f-ctx/blk-closed?
+
 		init-merge :merge
-		merge-ctx :merge :t-ctx 
-		
-		null
+		merge-ctx :merge :t-ctx
+		merge-ctx :merge :f-ctx
+		set-merge-ctx :merge ctx
+
+		case [
+			not t-closed? [
+				either f-closed? [t-val][
+					either t-val = f-val [t-val][
+						INIT_ARRAY_2(arr2 t-val f-val)
+						make-phi e/type merge/block as ptr-array! :arr2
+					]
+				]
+			]
+			not f-closed? [f-val]
+			true [null]
+		]
 	]
 
 	visit-while: func [w [while!] ctx [ssa-ctx!] return: [instr!]][
@@ -255,7 +277,7 @@ ir-graph: context [
 		ir/start-bb: make-bb
 		either fn <> null [
 			ft: as fn-type! fn/type
-			ir/ret-type: ft/Ret-type
+			ir/ret-type: ft/ret-type
 			fn/ir: ir
 		][
 			ir/ret-type: type-system/void-type
@@ -312,6 +334,20 @@ ir-graph: context [
 		m/n-preds: 0
 	]
 
+	set-merge-ctx: func [
+		m		[ssa-merge!]
+		ctx		[ssa-ctx!]
+	][
+		either m/n-preds > 0 [
+			ctx/block: m/block
+			ctx/cur-vals: m/cur-vals
+			ctx/blk-closed?: no
+		][
+			ctx/block: null
+			ctx/cur-vals: null
+			ctx/blk-closed?: yes
+		]
+	]
 
 	kill-var: func [
 		v		[instr!]
@@ -334,6 +370,26 @@ ir-graph: context [
 		return: [ssa-ctx!]
 	][
 		init-ssa-ctx ctx p-ctx p-ctx/cur-vals/length make-bb
+	]
+
+	merge-incoming: func [
+		m		[ssa-merge!]
+		ctx		[ssa-ctx!]
+		/local
+			succs	[ptr-array!]
+			n		[integer!]
+			p		[ptr-ptr!]
+			e		[cf-edge!]
+	][
+		succs: block-successors ctx/block
+		if succs <> null [
+			p: ARRAY_DATA(succs)
+			n: succs/length
+			loop n [
+				e: as cf-edge! p/value
+				if e/dst = m/block [merge-edge e m ctx]
+			]
+		]
 	]
 
 	merge-latest: func [
@@ -555,6 +611,49 @@ ir-graph: context [
 		either INSTR_END?(p) [as instr-end! p][null]
 	]
 
+	bfs-blocks: func [		;-- breadth first search for a graph
+		start-bb	[basic-block!]
+		vec			[vector!]
+		/local
+			succs	[ptr-array!]
+			i		[integer!]
+			b		[basic-block!]
+			e		[cf-edge!]
+			pp		[ptr-ptr!]
+	][
+		vector/clear vec
+		succs: block-successors start-bb
+		vector/append-ptr vec as byte-ptr! start-bb
+		if any [null? succs zero? succs/length][exit]
+
+		start-bb/mark: 1
+		i: 0
+		while [i < vec/length][
+			b: as basic-block! vector/pick-ptr vec i
+			succs: block-successors b
+			if succs <> null [
+				pp: ARRAY_DATA(succs)
+				loop succs/length [
+					e: as cf-edge! pp/value
+					b: e/dst
+					if b/mark < 1 [
+						b/mark: 1
+						vector/append-ptr vec as byte-ptr! b
+					]
+					pp: pp + 1
+				]
+			]
+			i: i + 1
+		]
+		;-- clear mark
+		pp: as ptr-ptr! vec/data
+		loop vec/length [
+			b: as basic-block! pp/value
+			b/mark: 0
+			pp: pp + 1
+		]
+	]
+
 	append: func [
 		i		[instr!]
 		ctx		[ssa-ctx!]
@@ -757,6 +856,7 @@ ir-graph: context [
 			arr [array-value!]
 	][
 		g: as instr-goto! malloc size? instr-goto!
+		g/header: F_INS_END << 8 or INS_GOTO
 		INIT_ARRAY_VALUE(arr target)
 		set-succs as instr-end! g as ptr-array! :arr
 		as instr! g
@@ -779,16 +879,19 @@ ir-graph: context [
 		ctx		[ssa-ctx!]
 		/local
 			i	[instr-if!]
-			arr [array-value!]
+			arr [array-2! value]
 	][
 		i: as instr-if! malloc size? instr-if!
-		i/header: INS_IF
+		i/header: F_INS_END << 8 or INS_IF
 		i/cond: cond
 		i/t-blk: t-blk
 		i/f-blk: f-blk
 
 		INIT_ARRAY_VALUE(arr cond)
 		set-inputs as instr! i as ptr-array! :arr
+
+		INIT_ARRAY_2(arr t-blk f-blk)
+		set-succs as instr-end! i as ptr-array! :arr
 
 		ctx/blk-closed?: yes
 		append as instr! i ctx
@@ -917,6 +1020,7 @@ ir-graph: context [
 			stmt/accept as int-ptr! stmt builder as int-ptr! :ssa-ctx
 		]
 
+		ir-printer/print-graph graph
 		graph
 	]
 ]
