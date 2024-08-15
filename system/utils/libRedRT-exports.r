@@ -10,6 +10,7 @@
 	red/select-key*
 	red/alloc-bytes
 	red/alloc-cells
+	red/alloc-tail-unit
 	red/get-cmdline-args
 	red/set-opt-refinement*
 	red/call-with-array*
@@ -429,6 +430,9 @@
 	red/_hashtable/rs-destroy
 	red/_hashtable/rs-size?
 	red/_hashtable/rs-next
+	red/_hashtable/init
+	red/_hashtable/get
+	red/_hashtable/put
 ][
 	red/root				red-block!
 	red/stk-bottom			int-ptr!

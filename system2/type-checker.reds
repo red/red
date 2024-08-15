@@ -11,16 +11,18 @@ type-checker: context [
 	infer-type: func [
 		var		[var-decl!]
 		ctx		[context!]
-		/local
-			type [rst-type!]
+		return: [rst-type!]
 	][
-		either var/init <> null [
-			assert null? var/typeref
-			var/type: as rst-type! var/init/accept as int-ptr! var/init checker null
-		][
-			assert var/typeref <> null
-			var/type: fetch-type var/typeref ctx
+		if null? var/type [
+			either var/init <> null [
+				assert null? var/typeref
+				var/type: as rst-type! var/init/accept as int-ptr! var/init checker null
+			][
+				assert var/typeref <> null
+				var/type: fetch-type var/typeref ctx
+			]
 		]
+		var/type
 	]
 
 	fetch-type: func [
@@ -199,7 +201,7 @@ type-checker: context [
 	]
 
 	visit-var: func [v [variable!] ctx [context!] return: [rst-type!]][
-		v/decl/type
+		infer-type v/decl ctx
 	]
 
 	visit-if: func [e [if!] ctx [context!] return: [rst-type!]

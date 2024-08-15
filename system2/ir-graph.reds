@@ -50,18 +50,18 @@ instr!: alias struct! [
 
 ;-- end instruction of a basic block
 instr-end!: alias struct! [
-	IR_NODE_FIELDS(instr!)
+	IR_INSTR_FIELDS(instr!)
 	succs	[ptr-array!]
 ]
 
 ;-- same as end
 instr-return!: alias struct! [
-	IR_NODE_FIELDS(instr!)
-	succs	[ptr-array!]	
+	IR_INSTR_FIELDS(instr!)
+	succs	[ptr-array!]
 ]
 
 instr-goto!: alias struct! [
-	IR_NODE_FIELDS(instr!)
+	IR_INSTR_FIELDS(instr!)
 	succs	[ptr-array!]
 ]
 
@@ -76,7 +76,7 @@ instr-if!: alias struct! [
 instr-const!: alias struct! [
 	IR_INSTR_FIELDS(instr!)
 	type	[rst-type!]
-	val		[literal!]
+	value	[cell!]
 ]
 
 ;-- instruction to create a function parameter
@@ -113,13 +113,16 @@ basic-block!: alias struct! [
 	;-- /next: point to the head instr
 	;-- /prev: point to the last instr
 	IR_NODE_FIELDS(instr!)
-	preds	[ptr-array!]
+	preds	[ptr-array!]		;-- array<cf-edge!>
 ]
 
 ir-fn!: alias struct! [
 	params		[ptr-array!]	;-- array of instr-param!
 	ret-type	[rst-type!]
 	start-bb	[basic-block!]
+	const-idx	[integer!]
+	const-vals	[ptr-array!]	;-- array<instr-const!>
+	const-map	[int-ptr!]
 ]
 
 ssa-merge!: alias struct! [
@@ -153,6 +156,8 @@ make-ssa-var: func [
 
 #include %ir-printer.reds
 
+#define N_CONST_CACHE		9
+
 ;-- a graph of IR nodes in SSA form
 ir-graph: context [
 
@@ -160,8 +165,16 @@ ir-graph: context [
 
 	visit-assign: func [
 		a [assignment!] ctx [ssa-ctx!] return: [instr!]
+		/local
+			lhs	[variable!]
+			rhs	[rst-expr!]
+			val [instr!]
 	][
-		null
+		lhs: a/target
+		rhs: a/expr
+		val: gen-expr rhs ctx
+		gen-var-write lhs/decl val ctx
+		val
 	]
 
 	visit-literal: func [e [literal!] ctx [ssa-ctx!] return: [instr!]][
@@ -275,6 +288,7 @@ ir-graph: context [
 	][
 		ir: as ir-fn! malloc size? ir-fn!
 		ir/start-bb: make-bb
+		ir/const-idx: N_CONST_CACHE
 		either fn <> null [
 			ft: as fn-type! fn/type
 			ir/ret-type: ft/ret-type
@@ -872,6 +886,236 @@ ir-graph: context [
 		]
 	]
 
+	const-null: func [
+		type	[rst-type!]
+		fn		[ir-fn!]
+		return: [instr-const!]
+	][
+		switch TYPE_KIND(type) [
+			RST_TYPE_LOGIC [const-false fn]
+			RST_TYPE_INT [const-int-zero fn]
+			RST_TYPE_VOID [nop fn]
+			default [get-const type null fn]
+		]
+	]
+
+	const-int: func [
+		val		[red-integer!]
+		fn		[ir-fn!]
+		return: [instr-const!]
+	][
+		switch val/value [
+			0 [const-int-zero fn]
+			1 [const-int-one fn]
+			2 [const-int-two fn]
+			4 [const-int-four fn]
+			default [get-const as rst-type! type-system/integer-type as cell! val fn]
+		]
+	]
+
+	const-float: func [
+		val		[red-float!]
+		fn		[ir-fn!]
+		return: [instr-const!]
+		/local
+			f	[float!]
+	][
+		f: val/value
+		case [
+			f = 0.0 [const-float-zero fn]
+			f = 1.0 [const-float-one fn]
+			true [get-const as rst-type! type-system/float-type as cell! val fn]
+		]
+	]
+
+	nop: func [
+		fn		[ir-fn!]
+		return: [instr-const!]
+	][
+		get-cached-const 0 type-system/void-type null fn
+	]
+
+	const-true: func [
+		fn		[ir-fn!]
+		return: [instr-const!]
+	][
+		get-cached-const 1 as rst-type! type-system/logic-type common-literals/logic-true fn
+	]
+
+	const-false: func [
+		fn		[ir-fn!]
+		return: [instr-const!]
+	][
+		get-cached-const 2 as rst-type! type-system/logic-type common-literals/logic-false fn
+	]
+
+	const-int-zero: func [
+		fn		[ir-fn!]
+		return: [instr-const!]
+	][
+		get-cached-const 3 as rst-type! type-system/integer-type common-literals/int-zero fn
+	]
+
+	const-int-one: func [
+		fn		[ir-fn!]
+		return: [instr-const!]
+	][
+		get-cached-const 4 as rst-type! type-system/integer-type common-literals/int-one fn
+	]
+
+	const-int-two: func [
+		fn		[ir-fn!]
+		return: [instr-const!]
+	][
+		get-cached-const 5 as rst-type! type-system/integer-type common-literals/int-two fn
+	]
+
+	const-int-four: func [
+		fn		[ir-fn!]
+		return: [instr-const!]
+	][
+		get-cached-const 6 as rst-type! type-system/integer-type common-literals/int-four fn
+	]
+
+	const-float-zero: func [
+		fn		[ir-fn!]
+		return: [instr-const!]
+	][
+		get-cached-const 7 as rst-type! type-system/float-type common-literals/float-zero fn
+	]
+
+	const-float-one: func [
+		fn		[ir-fn!]
+		return: [instr-const!]
+	][
+		get-cached-const 8 as rst-type! type-system/float-type common-literals/float-one fn
+	]
+
+	get-cached-const: func [
+		idx		[integer!]
+		type	[rst-type!]
+		val		[cell!]
+		fn		[ir-fn!]
+		return: [instr-const!]
+		/local
+			p	[ptr-ptr!]
+	][
+		if fn/const-vals <> null [
+			p: ARRAY_DATA(fn/const-vals) + idx
+			if p/value <> null [
+				return as instr-const! p/value
+			]
+		]
+		make-const idx type val fn
+	]
+
+	get-const: func [
+		type	[rst-type!]
+		val		[cell!]
+		fn		[ir-fn!]
+		return: [instr-const!]
+		/local
+			v	[red-handle!]
+			c	[instr-const!]
+			p	[ptr-ptr!]
+			n	[integer!]
+			vals [ptr-array!]
+	][
+		either fn/const-map <> null [
+			v: token-map/get fn/const-map val
+			if v <> null [return as instr-const! v/value]
+		][
+			vals: fn/const-vals
+			if vals <> null [
+				p: ARRAY_DATA(vals) + N_CONST_CACHE
+				n: fn/const-idx - N_CONST_CACHE
+				loop n [
+					c: as instr-const! p/value
+					if red/actions/compare c/value val COMP_STRICT_EQUAL [
+						return c
+					]
+				]
+			]
+		]
+		n: fn/const-idx
+		fn/const-idx: n + 1
+		make-const n type val fn
+	]
+
+	const-val: func [
+		type	[rst-type!]
+		val		[cell!]
+		fn		[ir-fn!]
+		return: [instr-const!]
+		/local
+			b	[red-logic!]
+	][
+		either null? val [const-null type fn][
+			switch TYPE_KIND(type) [
+				RST_TYPE_LOGIC [
+					b: as red-logic! val
+					either b/value [const-true fn][const-false fn]
+				]
+				RST_TYPE_INT [
+					either INT_WIDTH(type) <= 32 [
+						const-int as red-integer! val fn
+					][
+						null
+					]
+				]
+				RST_TYPE_FLOAT [
+					const-float as red-float! val fn
+				]
+				default [get-const type val fn]
+			]
+		]
+	]
+
+	make-const: func [
+		idx		[integer!]
+		type	[rst-type!]
+		val		[cell!]
+		fn		[ir-fn!]
+		return: [instr-const!]
+		/local
+			c		[instr-const!]
+			vals	[ptr-array!]
+			map		[int-ptr!]
+			p		[ptr-ptr!]
+			v		[instr-const!]
+	][
+		c: as instr-const! malloc size? instr-const!
+		c/header: INS_CONST
+		c/type: type
+		c/value: val
+
+		map: fn/const-map
+		vals: fn/const-vals
+		either null? vals [
+			vals: ptr-array/make N_CONST_CACHE + 4
+			vals: fn/const-vals
+		][
+			if fn/const-idx = vals/length [
+				map: token-map/make 50
+				fn/const-map: map
+				p: ARRAY_DATA(vals)
+				loop vals/length [
+					v: as instr-const! p/value
+					if v <> null [
+						token-map/put map v/value as int-ptr! v
+					]
+					p: p + 1
+				]
+			]
+		]
+		if map <> null [token-map/put map c/value as int-ptr! c]
+		if idx < N_CONST_CACHE [
+			p: ARRAY_DATA(vals) + idx
+			p/value: as int-ptr! c
+		]
+		c
+	]
+	
 	add-if: func [
 		cond	[instr!]
 		t-blk	[basic-block!]
@@ -933,8 +1177,9 @@ ir-graph: context [
 			ins		[instr!]
 			op		[instr-op!]
 	][
-		op: make-op OP_DEFAULT_VALUE 0 null type
-		add-op op null ctx
+		as instr! const-null type ctx/graph
+		;op: make-op OP_DEFAULT_VALUE 0 null type
+		;add-op op null ctx
 	]
 
 	add-new-var: func [
@@ -953,6 +1198,16 @@ ir-graph: context [
 		set-inputs as instr! v vals
 		block-append-instr ctx/block as instr! v
 		as instr! v
+	]
+
+	gen-var-write: func [
+		var		[var-decl!]
+		val		[instr!]
+		ctx		[ssa-ctx!]
+		return: [instr!]
+	][
+		set-cur-val var/ssa val ctx
+		val
 	]
 
 	gen-var: func [
@@ -978,8 +1233,8 @@ ir-graph: context [
 				add-default-value var/type ctx
 			]
 			set-cur-val ssa val ctx
-			INIT_ARRAY_VALUE(arr val)
-			add-new-var var/type idx as ptr-array! :arr ctx
+			;INIT_ARRAY_VALUE(arr val)
+			;add-new-var var/type idx as ptr-array! :arr ctx
 		]
 	]
 

@@ -103,6 +103,64 @@ compiler: context [
 		]
 	]
 
+	common-literals: context [
+		logic-true: as cell! 0
+		logic-false: as cell! 0
+		int-zero: as cell! 0
+		int-one: as cell! 0
+		int-two: as cell! 0
+		int-four: as cell! 0
+		float-zero: as cell! 0
+		float-one: as cell! 0
+
+		init: func [
+			/local
+				i	[red-integer!]
+				b	[red-logic!]
+				f	[red-float!]
+		][
+			logic-true: as cell! malloc size? cell!
+			b: as red-logic! logic-true
+			b/header: TYPE_LOGIC
+			b/value: true
+
+			logic-false: as cell! malloc size? cell!
+			b: as red-logic! logic-false
+			b/header: TYPE_LOGIC
+			b/value: false
+
+			int-zero: as cell! malloc size? cell!
+			i: as red-integer! int-zero
+			i/header: TYPE_INTEGER
+			i/value: 0
+
+			int-one: as cell! malloc size? cell!
+			i: as red-integer! int-one
+			i/header: TYPE_INTEGER
+			i/value: 1
+			
+			int-two: as cell! malloc size? cell!
+			i: as red-integer! int-two
+			i/header: TYPE_INTEGER
+			i/value: 2
+
+			int-four: as cell! malloc size? cell!
+			i: as red-integer! int-four
+			i/header: TYPE_INTEGER
+			i/value: 4
+
+			float-zero: as cell! malloc size? cell!
+			f: as red-float! float-zero
+			f/header: TYPE_FLOAT
+			f/value: 0.0
+
+			float-one: as cell! malloc size? cell!
+			f: as red-float! float-one
+			f/header: TYPE_FLOAT
+			f/value: 1.0
+		]
+	]
+
 	#include %utils/vector.reds
 	#include %utils/mempool.reds
 	#include %utils/hashmap.reds
@@ -290,6 +348,7 @@ compiler: context [
 		_mempool: mempool/make
 		empty-array: ptr-array/make 0
 
+		common-literals/init
 		parser/init
 		op-cache/init
 		type-system/init
