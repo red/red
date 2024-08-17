@@ -37,6 +37,7 @@ op-cache: context [
 
 	create: func [
 		type	[rst-type!]
+		offset	[integer!]
 		return: [op!]
 		/local
 			f	[op!]
@@ -45,26 +46,26 @@ op-cache: context [
 		f: as op! malloc RST_OP_SIZE * size? op!
 
 		pt: parser/make-param-types type type
-		init-op f + RST_OP_ADD  RST_OP_ADD   pt type
-		init-op f + RST_OP_SUB  RST_OP_SUB   pt type
-		init-op f + RST_OP_MUL  RST_OP_MUL   pt type
-		init-op f + RST_OP_DIV  RST_OP_DIV   pt type
-		init-op f + RST_OP_MOD  RST_OP_MOD   pt type
-		init-op f + RST_OP_REM  RST_OP_REM   pt type
-		init-op f + RST_OP_AND  RST_OP_AND   pt type
-		init-op f + RST_OP_OR   RST_OP_OR    pt type
-		init-op f + RST_OP_XOR  RST_OP_XOR   pt type
-		init-op f + RST_OP_EQ   RST_OP_EQ    pt type-system/logic-type
-		init-op f + RST_OP_NE   RST_OP_NE    pt type-system/logic-type
-		init-op f + RST_OP_LT   RST_OP_LT    pt type-system/logic-type
-		init-op f + RST_OP_LTEQ RST_OP_LTEQ  pt type-system/logic-type
-		init-op f + RST_OP_GT   RST_OP_GT    pt type-system/logic-type
-		init-op f + RST_OP_GTEQ RST_OP_GTEQ  pt type-system/logic-type
+		init-op f + RST_OP_ADD  OP_INT_ADD  + offset  pt type
+		init-op f + RST_OP_SUB  OP_INT_SUB  + offset  pt type
+		init-op f + RST_OP_MUL  OP_INT_MUL  + offset  pt type
+		init-op f + RST_OP_DIV  OP_INT_DIV  + offset  pt type
+		init-op f + RST_OP_MOD  OP_INT_MOD  + offset  pt type
+		init-op f + RST_OP_REM  OP_INT_REM  + offset  pt type
+		init-op f + RST_OP_AND  OP_INT_AND  + offset  pt type
+		init-op f + RST_OP_OR   OP_INT_OR   + offset  pt type
+		init-op f + RST_OP_XOR  OP_INT_XOR  + offset  pt type
+		init-op f + RST_OP_EQ   OP_INT_EQ   + offset  pt type-system/logic-type
+		init-op f + RST_OP_NE   OP_INT_NE   + offset  pt type-system/logic-type
+		init-op f + RST_OP_LT   OP_INT_LT   + offset  pt type-system/logic-type
+		init-op f + RST_OP_LTEQ OP_INT_LTEQ + offset  pt type-system/logic-type
+		init-op f + RST_OP_GT   OP_INT_LT   + offset  pt type-system/logic-type
+		init-op f + RST_OP_GTEQ OP_INT_LTEQ + offset  pt type-system/logic-type
 
 		pt: parser/make-param-types type as rst-type! type-system/uint32-type
-		init-op f + RST_OP_SHL RST_OP_SHL pt type
-		init-op f + RST_OP_SAR RST_OP_SAR pt type
-		init-op f + RST_OP_SHR RST_OP_SHR pt type
+		init-op f + RST_OP_SHL OP_INT_SHL pt type
+		init-op f + RST_OP_SAR OP_INT_SAR pt type
+		init-op f + RST_OP_SHR OP_INT_SHR pt type
 		f
 	]
 
@@ -80,7 +81,7 @@ op-cache: context [
 		w: INT_WIDTH(type)
 		p: int-op-table + (log-b w >> 3)
 		if INT_SIGNED?(type) [p: p + INT_WIDTH_CNT]
-		if null? p/value [p/value: as int-ptr! create type]
+		if null? p/value [p/value: as int-ptr! create type 0]
 		ops: as op! p/value
 		ops + op
 	]
@@ -95,7 +96,7 @@ op-cache: context [
 	][
 		signed: as-integer FLOAT_64?(type)
 		p: float-op-table + signed
-		if null? p/value [p/value: as int-ptr! create type]
+		if null? p/value [p/value: as int-ptr! create type OP_FLT_ADD - OP_INT_ADD]
 		(as op! p/value) + op
 	]
 ]

@@ -151,7 +151,10 @@ type-checker: context [
 				decl: var/decl
 				flags: NODE_FLAGS(decl)
 				if flags and RST_VAR_LOCAL <> 0 [
-					either NODE_FLAGS(decl) and RST_VAR_WRITE <> 0 [
+					either all [
+						NODE_FLAGS(decl) and RST_VAR_WRITE <> 0
+						decl/ssa/index < 0
+					][
 						decl/ssa/index: ctx/n-ssa-vars
 						ctx/n-ssa-vars: ctx/n-ssa-vars + 1
 					][
@@ -284,6 +287,7 @@ type-checker: context [
 			assert bin/op <> null
 			op: as fn-type! bin/op
 		]
+		bin/spec: op
 		op/ret-type
 	]
 
@@ -438,7 +442,9 @@ type-checker: context [
 			switch NODE_TYPE(var) [
 				RST_VAR_DECL [
 					infer-type var ctx
-					var/ssa: make-ssa-var
+					if null? var/ssa [
+						var/ssa: make-ssa-var
+					]
 				]
 				RST_FUNC	 [
 					f: as fn! var

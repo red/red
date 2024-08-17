@@ -283,7 +283,7 @@ break!: alias struct! [
 bin-op!: alias struct! [
 	RST_EXPR_FIELDS(bin-op!)
 	op			[int-ptr!]
-	op-type		[fn-type!]
+	spec		[fn-type!]
 	left		[rst-expr!]
 	right		[rst-expr!]
 ]
@@ -1305,6 +1305,7 @@ parser: context [
 			cur [var-decl!]
 			list [var-decl! value]
 			attr [integer!]
+			flag [integer!]
 			saved-blk [red-block!]
 	][
 		ft: as fn-type! malloc size? fn-type!
@@ -1337,7 +1338,8 @@ parser: context [
 					p2: expect-next p end TYPE_BLOCK
 					cur/next: make-var-decl p as red-block! p2
 					cur: cur/next
-					ADD_NODE_FLAGS(cur RST_VAR_PARAM)
+					flag: RST_VAR_PARAM or RST_VAR_LOCAL
+					ADD_NODE_FLAGS(cur flag)
 					p: p2 + 1
 					ft/n-params: ft/n-params + 1
 				]

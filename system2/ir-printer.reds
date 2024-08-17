@@ -21,8 +21,71 @@ ir-printer: context [
 		print ["#" b]
 	]
 
-	prin-ins: func [i [instr!]][
-		print ["@" i]
+	prin-ins: func [i [instr!] /local c [instr-const!]][
+		either INSTR_OPCODE(i) = INS_CONST [
+			c: as instr-const! i
+			prin-token c/value
+		][
+			print ["@" i]
+		]
+	]
+
+	prin-op: func [
+		i		[instr-op!]
+		/local
+			var [var-decl!]
+	][
+		switch INSTR_OPCODE(i) [
+			OP_BOOL_EQ			[prin "bool.="]
+			OP_BOOL_AND			[prin "bool.and"]
+			OP_BOOL_OR			[prin "bool.or"]
+			OP_BOOL_NOT			[prin "bool.not"]
+			OP_INT_ADD			[prin "int.add"]
+			OP_INT_SUB			[prin "int.sub"]
+			OP_INT_MUL			[prin "int.mul"]
+			OP_INT_DIV			[prin "int.div"]
+			OP_INT_MOD			[prin "int.mod"]
+			OP_INT_REM			[prin "int.rem"]
+			OP_INT_AND			[prin "int.and"]
+			OP_INT_OR			[prin "int.or"]
+			OP_INT_XOR			[prin "int.xor"]
+			OP_INT_SHL			[prin "int.<<"]
+			OP_INT_SAR			[prin "int.>>>"]
+			OP_INT_SHR			[prin "int.>>"]
+			OP_INT_EQ			[prin "int.="]
+			OP_INT_NE			[prin "int.<>"]
+			OP_INT_LT			[prin "int.<"]
+			OP_INT_LTEQ			[prin "int.<="]
+			OP_FLT_ADD			[prin "float.add"]
+			OP_FLT_SUB			[prin "float.sub"]
+			OP_FLT_MUL			[prin "float.mul"]
+			OP_FLT_DIV			[prin "float.div"]
+			OP_FLT_MOD			[prin "float.mod"]
+			OP_FLT_REM			[prin "float.rem"]
+			OP_FLT_ABS			[prin "float.abs"]
+			OP_FLT_CEIL			[prin "float.ceil"]
+			OP_FLT_FLOOR		[prin "float.floor"]
+			OP_FLT_SQRT			[prin "float.sqrt"]
+			OP_FLT_UNUSED		[prin "float.unused"]
+			OP_FLT_BITEQ		[prin "float.biteq"]
+			OP_FLT_EQ			[prin "float.="]
+			OP_FLT_NE			[prin "float.<>"]
+			OP_FLT_LT			[prin "float.<"]
+			OP_FLT_LTEQ			[prin "float.<="]
+			OP_DEFAULT_VALUE	[prin "default value"]
+			OP_CALL				[prin "call"]
+			OP_GET_GLOBAL		[
+				var: as var-decl! i/target
+				prin "get " prin-token var/token
+			]
+			OP_SET_GLOBAL		[
+				var: as var-decl! i/target
+				prin "set " prin-token var/token
+			]
+			default [
+				prin "unknown op"
+			]
+		]
 	]
 
 	print-instr: func [
@@ -43,10 +106,9 @@ ir-printer: context [
 			INS_PHI ["phi "]
 			INS_GOTO ["goto "]
 			INS_SWITCH ["switch "]
-			OP_DEFAULT_VALUE ["default value "]
 			default [
-				has-input?: no
-				">Invalid INSTR<"
+				prin-op as instr-op! i
+				" "
 			]
 		]
 		if has-input? [

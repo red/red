@@ -81,8 +81,9 @@ instr-const!: alias struct! [
 
 ;-- instruction to create a function parameter
 instr-param!: alias struct! [
-	IR_NODE_FIELDS(instr!)
+	IR_INSTR_FIELDS(instr!)
 	type	[rst-type!]
+	index	[integer!]
 ]
 
 ;-- instruction to create a variable
@@ -104,6 +105,7 @@ instr-phi!: alias struct! [
 
 instr-op!: alias struct! [
 	IR_INSTR_FIELDS(instr!)
+	target		[int-ptr!]
 	n-params	[integer!]
 	param-types	[ptr-ptr!]		;-- an array of types
 	ret-type	[rst-type!]
@@ -156,7 +158,8 @@ make-ssa-var: func [
 
 #include %ir-printer.reds
 
-#define N_CONST_CACHE		9
+#define N_COMMON_CONST		9
+#define N_CACHED_CONST		13
 
 ;-- a graph of IR nodes in SSA form
 ir-graph: context [
@@ -178,11 +181,22 @@ ir-graph: context [
 	]
 
 	visit-literal: func [e [literal!] ctx [ssa-ctx!] return: [instr!]][
-		null
+		as instr! const-val e/type e/token ctx/graph
 	]
 
-	visit-var: func [v [variable!] ctx [ssa-ctx!] return: [instr!]][
-		null
+	visit-var: func [v [variable!] ctx [ssa-ctx!] return: [instr!]
+		/local
+			decl	[var-decl!]
+			op		[instr-op!]
+	][
+		decl: v/decl
+		either LOCAL?(decl) [
+			get-cur-val decl/ssa ctx/cur-vals
+		][
+			op: make-op OP_GET_GLOBAL 0 null decl/type
+			op/target: as int-ptr! decl
+			add-op op null ctx
+		]
 	]
 
 	visit-fn-call: func [fc [fn-call!] ctx [ssa-ctx!] return: [instr!]
@@ -196,10 +210,19 @@ ir-graph: context [
 
 	visit-bin-op: func [bin [bin-op!] ctx [ssa-ctx!] return: [instr!]
 		/local
-			op	[fn-type!]
-			ltype rtype [instr!]
+			c	[integer!]
+			ft	[fn-type!]
+			op	[instr-op!]
+			arr [array-2! value]
+			lhs rhs [instr!]
 	][
-		null
+		lhs: gen-expr bin/left ctx
+		rhs: gen-expr bin/right ctx
+		ft: bin/spec
+		assert ft/n-params = 2
+		op: make-op FN_OPCODE(ft) 2 ft/param-types ft/ret-type
+		INIT_ARRAY_2(arr lhs rhs)
+		add-op op as ptr-array! :arr ctx
 	]
 
 	visit-if: func [e [if!] ctx [ssa-ctx!] return: [instr!]
@@ -279,18 +302,54 @@ ir-graph: context [
 		bb
 	]
 
+	make-param: func [
+		param	[var-decl!]
+		return: [instr-param!]
+		/local
+			p	[instr-param!]
+	][
+		p: as instr-param! malloc size? instr-param!
+		p/header: INS_PARAM
+		p/index: param/ssa/index
+		p/type: param/type
+		param/ssa/value: as instr! p
+		p
+	]
+
 	make-ir-fn: func [
 		fn			[fn!]
+		ctx			[ssa-ctx!]
 		return:		[ir-fn!]
 		/local
 			ir		[ir-fn!]
 			ft		[fn-type!]
+			param	[var-decl!]
+			parr	[ptr-array!]
+			p		[ptr-ptr!]
+			pp		[ptr-ptr!]
+			ins		[instr!]
 	][
 		ir: as ir-fn! malloc size? ir-fn!
 		ir/start-bb: make-bb
-		ir/const-idx: N_CONST_CACHE
+		ir/const-idx: N_COMMON_CONST
+		ctx/graph: ir
+		ctx/block: ir/start-bb
 		either fn <> null [
 			ft: as fn-type! fn/type
+			parr: ptr-array/make ft/n-params
+			p: ARRAY_DATA(parr)
+			pp: ARRAY_DATA(ctx/ssa-vars)
+			param: ft/params
+			while [param <> null][
+				ins: as instr! make-param param
+				p/value: as int-ptr! ins
+				pp/value: as int-ptr! param/ssa
+				set-cur-val param/ssa ins ctx
+				p: p + 1
+				pp: pp + 1
+				param: param/next
+			]
+			ir/params: parr
 			ir/ret-type: ft/ret-type
 			fn/ir: ir
 		][
@@ -331,6 +390,7 @@ ir-graph: context [
 			either parent <> null [
 				ctx/cur-vals: parent/cur-vals
 				ctx/ssa-vars: parent/ssa-vars
+				ctx/graph: parent/graph
 			][
 				ctx/cur-vals: ptr-array/make n-vars
 				ctx/ssa-vars: ptr-array/make n-vars
@@ -1027,8 +1087,8 @@ ir-graph: context [
 		][
 			vals: fn/const-vals
 			if vals <> null [
-				p: ARRAY_DATA(vals) + N_CONST_CACHE
-				n: fn/const-idx - N_CONST_CACHE
+				p: ARRAY_DATA(vals) + N_COMMON_CONST
+				n: fn/const-idx - N_COMMON_CONST
 				loop n [
 					c: as instr-const! p/value
 					if red/actions/compare c/value val COMP_STRICT_EQUAL [
@@ -1092,8 +1152,8 @@ ir-graph: context [
 		map: fn/const-map
 		vals: fn/const-vals
 		either null? vals [
-			vals: ptr-array/make N_CONST_CACHE + 4
-			vals: fn/const-vals
+			vals: ptr-array/make N_CACHED_CONST
+			fn/const-vals: vals
 		][
 			if fn/const-idx = vals/length [
 				map: token-map/make 50
@@ -1109,7 +1169,7 @@ ir-graph: context [
 			]
 		]
 		if map <> null [token-map/put map c/value as int-ptr! c]
-		if idx < N_CONST_CACHE [
+		if idx < N_CACHED_CONST [
 			p: ARRAY_DATA(vals) + idx
 			p/value: as int-ptr! c
 		]
@@ -1205,8 +1265,21 @@ ir-graph: context [
 		val		[instr!]
 		ctx		[ssa-ctx!]
 		return: [instr!]
+		/local
+			op	[instr-op!]
+			arr [ptr-ptr!]
+			args [array-value!]
 	][
-		set-cur-val var/ssa val ctx
+		either LOCAL?(var) [
+			set-cur-val var/ssa val ctx
+		][
+			arr: as ptr-ptr! malloc size? int-ptr!
+			arr/value: as int-ptr! var/type
+			op: make-op OP_SET_GLOBAL 1 arr type-system/void-type
+			op/target: as int-ptr! var
+			INIT_ARRAY_VALUE(args val)
+			add-op op as ptr-array! :args ctx
+		]
 		val
 	]
 
@@ -1222,7 +1295,7 @@ ir-graph: context [
 	][
 		ssa: var/ssa
 		idx: ssa/index
-		if idx > 0 [
+		if idx > -1 [
 			p: ARRAY_DATA(ctx/ssa-vars) + idx
 			p/value: as int-ptr! var
 		]
@@ -1251,8 +1324,8 @@ ir-graph: context [
 			var		[var-decl!]
 			decls	[int-ptr!]
 	][
-		graph: make-ir-fn fn
-		init-ssa-ctx :ssa-ctx null ctx/n-ssa-vars graph/start-bb
+		init-ssa-ctx :ssa-ctx null ctx/n-ssa-vars null
+		graph: make-ir-fn fn :ssa-ctx
 
 		if ctx/n-ssa-vars > 0 [
 			decls: ctx/decls
@@ -1261,7 +1334,10 @@ ir-graph: context [
 			loop n [
 				kv: hashmap/next decls kv
 				var: as var-decl! kv/2
-				if NODE_TYPE(var) = RST_VAR_DECL [
+				if all [
+					NODE_TYPE(var) = RST_VAR_DECL
+					NODE_FLAGS(var) and RST_VAR_PARAM = 0	;-- not a parameter
+				][
 					gen-var var :ssa-ctx
 				]
 			]
