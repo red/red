@@ -231,10 +231,21 @@ ir-printer: context [
 
 	print-graph: func [
 		ir		[ir-fn!]
+		/local
+			p	[ptr-ptr!]
 	][
 		if null? blocks [blocks: vector/make size? int-ptr! 100]
 		
 		print-line "SSA IR:"
+		if ir/params <> null [
+			indent 1 prin "params: "
+			p: ARRAY_DATA(ir/params)
+			loop ir/params/length [
+				prin-ins as instr! p/value sp
+				p: p + 1
+			]
+			nl
+		]
 		print-blocks ir/start-bb
 		print-line "------"
 	]

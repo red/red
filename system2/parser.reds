@@ -135,7 +135,6 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 ]
 
 #enum rst-node-flag! [
-	RST_VAR_WRITE:	1	;-- var has been written
 	RST_VAR_LOCAL:	2	;-- local variable
 	RST_VAR_PARAM:	4	;-- var-decl! is a parameter
 	RST_FN_CTX:		8
@@ -202,7 +201,7 @@ ssa-var!: alias struct! [
 	index		[integer!]
 	value		[instr!]
 	loop-bset	[integer!]	;-- loop bitset, var used in loops, can encode 32 loops
-	extra-bset	[byte-ptr!]
+	extra-bset	[ptr-array!]
 ]
 
 #define LOCAL?(var) (NODE_FLAGS(var) and RST_VAR_LOCAL <> 0)

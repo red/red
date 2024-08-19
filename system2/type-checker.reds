@@ -5,6 +5,62 @@ Red/System [
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
+mark-written-loop: func [
+	ssa		[ssa-var!]
+	idx		[integer!]
+	/local
+		n	[integer!]
+		arr [ptr-array!]
+		p	[int-ptr!]
+][
+	n: idx and 1Fh
+	either n = idx [		;-- idx < 32
+		ssa/loop-bset: ssa/loop-bset or (1 << n)
+	][
+		n: idx / 32
+		arr: ssa/extra-bset
+		either null? arr [
+			arr: ptr-array/make n
+			ssa/extra-bset: arr
+		][
+			if n > arr/length [
+				arr: ptr-array/grow arr n
+				ssa/extra-bset: arr
+			]
+		]
+		p: as int-ptr! ARRAY_DATA(arr)
+		p: p + (n - 1)
+		n: idx % 32
+		p/value: p/value or (1 << n)
+	]
+]
+
+written-in-loop?: func [
+	ssa		[ssa-var!]
+	idx		[integer!]
+	return: [logic!]
+	/local
+		n	[integer!]
+		arr [ptr-array!]
+		p	[int-ptr!]
+][
+	n: idx and 1Fh
+	either n = idx [		;-- idx < 32
+		ssa/loop-bset >>> n and 1 <> 0
+	][
+		n: idx / 32
+		arr: ssa/extra-bset
+		if any [
+			null? arr
+			n > arr/length
+		][return false]
+		p: as int-ptr! ARRAY_DATA(arr)
+		p: p + (n - 1)
+		n: idx % 32
+		p/value >>> n and 1 <> 0
+	]
+]
+
 type-checker: context [
 	checker: declare visitor!
 
@@ -144,21 +200,24 @@ type-checker: context [
 		return: [rst-type!]
 		/local
 			decl	[var-decl!]
-			flags	[integer!]
+			len		[integer!]
+			p		[int-ptr!]
+			ssa		[ssa-var!]
 	][
 		switch NODE_TYPE(var) [
 			RST_VAR [
 				decl: var/decl
-				flags: NODE_FLAGS(decl)
-				if flags and RST_VAR_LOCAL <> 0 [
-					either all [
-						NODE_FLAGS(decl) and RST_VAR_WRITE <> 0
-						decl/ssa/index < 0
-					][
-						decl/ssa/index: ctx/n-ssa-vars
+				if LOCAL?(decl) [
+					ssa: decl/ssa
+					if ssa/index < 0 [
+						ssa/index: ctx/n-ssa-vars
 						ctx/n-ssa-vars: ctx/n-ssa-vars + 1
-					][
-						ADD_NODE_FLAGS(decl RST_VAR_WRITE)
+					]
+					p: as int-ptr! ctx/loop-stack/data
+					len: ctx/loop-stack/length
+					while [len > 0][
+						mark-written-loop ssa p/len
+						len: len - 1
 					]
 				]
 				decl/type
@@ -242,6 +301,7 @@ type-checker: context [
 		exit-block
 
 		check-stmts w/body w/body-blk ctx
+		pop-loop ctx
 		type-system/void-type
 	]
 

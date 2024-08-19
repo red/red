@@ -139,11 +139,11 @@ ssa-ctx!: alias struct! [
 	graph		[ir-fn!]
 	pt			[instr!]
 	block		[basic-block!]
-	cur-vals	[ptr-array!]
-	ssa-vars	[ptr-array!]
+	cur-vals	[ptr-array!]		;-- array<instr!>
+	ssa-vars	[ptr-array!]		;-- array<var-decl!>
 	loop-start	[ssa-merge!]
 	loop-end	[ssa-merge!]
-	blk-closed?	[logic!]			;-- block closed by exit, return, break, continue or goto
+	closed?		[logic!]			;-- block closed by exit, return, break, continue or goto
 ]
 
 make-ssa-var: func [
@@ -246,13 +246,13 @@ ir-graph: context [
 		t-val: gen-stmts e/t-branch t-ctx
 		f-val: either e/f-branch <> null [gen-stmts e/f-branch f-ctx][add-default-value e/type f-ctx]
 
-		t-closed?: t-ctx/blk-closed?	;-- save it as merge-ctx will close the block
-		f-closed?: f-ctx/blk-closed?
+		t-closed?: t-ctx/closed?	;-- save it as merge-ctx will close the block
+		f-closed?: f-ctx/closed?
 
 		init-merge :merge
 		merge-ctx :merge :t-ctx
 		merge-ctx :merge :f-ctx
-		set-merge-ctx :merge ctx
+		set-ssa-ctx :merge ctx
 
 		case [
 			not t-closed? [
@@ -264,11 +264,40 @@ ir-graph: context [
 				]
 			]
 			not f-closed? [f-val]
-			true [null]
+			true [nop ctx/graph]
 		]
 	]
 
-	visit-while: func [w [while!] ctx [ssa-ctx!] return: [instr!]][
+	visit-while: func [w [while!] ctx [ssa-ctx!] return: [instr!]
+		/local
+			cond	[instr!]
+			m-start	[ssa-merge! value]
+			m-end	[ssa-merge! value]
+			loop-ctx [ssa-ctx! value]
+			body-ctx [ssa-ctx! value]
+			
+	][
+		init-merge :m-start		;-- merge point at the start of the loop
+		start-loop w/loop-idx :m-start ctx
+
+		init-ssa-ctx :loop-ctx ctx 0 m-start/block
+		loop-ctx/cur-vals: ptr-array/copy m-start/cur-vals
+
+		cond: gen-stmts w/cond loop-ctx
+		if loop-ctx/closed? [return null]	;-- return or exit in condition block
+
+		init-merge :m-end		;-- merge point at the end of the loop
+		loop-ctx/loop-start: :m-start
+		loop-ctx/loop-end: :m-end
+
+		split-ssa-ctx loop-ctx :body-ctx
+		add-if cond body-ctx/block m-end/block :loop-ctx
+		merge-incoming :m-end :loop-ctx		;-- merge loop-ctx into m-end
+
+		gen-stmts w/body :body-ctx
+		merge-ctx :m-start :body-ctx		;-- merge body-ctx into m-start
+
+		set-ssa-ctx :m-end ctx
 		null
 	]
 
@@ -343,7 +372,7 @@ ir-graph: context [
 			while [param <> null][
 				ins: as instr! make-param param
 				p/value: as int-ptr! ins
-				pp/value: as int-ptr! param/ssa
+				pp/value: as int-ptr! param
 				set-cur-val param/ssa ins ctx
 				p: p + 1
 				pp: pp + 1
@@ -386,17 +415,44 @@ ir-graph: context [
 
 		ctx/parent: parent
 		ctx/block: bb
-		if n-vars > 0 [
-			either parent <> null [
-				ctx/cur-vals: parent/cur-vals
-				ctx/ssa-vars: parent/ssa-vars
-				ctx/graph: parent/graph
-			][
-				ctx/cur-vals: ptr-array/make n-vars
-				ctx/ssa-vars: ptr-array/make n-vars
-			]
+		either parent <> null [
+			ctx/cur-vals: parent/cur-vals
+			ctx/ssa-vars: parent/ssa-vars
+			ctx/graph: parent/graph
+		][
+			ctx/cur-vals: ptr-array/make n-vars
+			ctx/ssa-vars: ptr-array/make n-vars
 		]
 		ctx
+	]
+
+	start-loop: func [
+		loop-idx	[integer!]
+		m			[ssa-merge!]
+		ctx			[ssa-ctx!]
+		/local
+			ssa-vars	[ptr-array!]
+			p			[ptr-ptr!]
+			pp			[ptr-ptr!]
+			pv			[ptr-ptr!]
+			var			[var-decl!]
+			nctx		[ssa-ctx!]
+	][
+		m/cur-vals: ptr-array/copy ctx/cur-vals
+		p: ARRAY_DATA(m/cur-vals)
+
+		ssa-vars: ctx/ssa-vars
+		pp: ARRAY_DATA(ssa-vars)
+		loop ssa-vars/length [
+			var: as var-decl! pp/value
+			assert var <> null
+			if written-in-loop? var/ssa loop-idx [
+				pv: p + var/ssa/index
+				pv/value: as int-ptr! make-phi var/type m/block null
+			]
+			pp: pp + 1
+		]
+		merge-ctx m ctx
 	]
 
 	init-merge: func [
@@ -408,18 +464,18 @@ ir-graph: context [
 		m/n-preds: 0
 	]
 
-	set-merge-ctx: func [
+	set-ssa-ctx: func [
 		m		[ssa-merge!]
 		ctx		[ssa-ctx!]
 	][
 		either m/n-preds > 0 [
 			ctx/block: m/block
 			ctx/cur-vals: m/cur-vals
-			ctx/blk-closed?: no
+			ctx/closed?: no
 		][
 			ctx/block: null
 			ctx/cur-vals: null
-			ctx/blk-closed?: yes
+			ctx/closed?: yes
 		]
 	]
 
@@ -566,7 +622,7 @@ ir-graph: context [
 		/local
 			e	[cf-edge!]
 	][
-		unless ctx/blk-closed? [
+		unless ctx/closed? [
 			add-goto m/block ctx
 			e: block-successor ctx/block 0
 			merge-edge e m ctx
@@ -877,7 +933,7 @@ ir-graph: context [
 			cast [rst-type!]
 			
 	][
-		unless ctx/blk-closed? [
+		unless ctx/closed? [
 			i: as instr! e/accept as int-ptr! e builder as int-ptr! ctx
 			if e/cast-type <> null [
 				do-cast e/cast-type e/type i
@@ -940,8 +996,8 @@ ir-graph: context [
 		target	[basic-block!]
 		ctx		[ssa-ctx!]
 	][
-		unless ctx/blk-closed? [
-			ctx/blk-closed?: yes
+		unless ctx/closed? [
+			ctx/closed?: yes
 			block-append-instr ctx/block make-goto target
 		]
 	]
@@ -1197,7 +1253,7 @@ ir-graph: context [
 		INIT_ARRAY_2(arr t-blk f-blk)
 		set-succs as instr-end! i as ptr-array! :arr
 
-		ctx/blk-closed?: yes
+		ctx/closed?: yes
 		append as instr! i ctx
 	]
 
@@ -1225,7 +1281,7 @@ ir-graph: context [
 		return: [instr!]
 	][
 		set-inputs as instr! op args
-		unless ctx/blk-closed? [append as instr! op ctx]
+		unless ctx/closed? [append as instr! op ctx]
 		as instr! op
 	]
 
@@ -1299,7 +1355,7 @@ ir-graph: context [
 			p: ARRAY_DATA(ctx/ssa-vars) + idx
 			p/value: as int-ptr! var
 		]
-		unless ctx/blk-closed? [
+		unless ctx/closed? [
 			val: either var/init <> null [
 				gen-expr var/init ctx
 			][
