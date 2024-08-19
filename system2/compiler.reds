@@ -295,14 +295,6 @@ compiler: context [
 		ft: as fn-type! fn/type
 		var: ft/params
 		add-decls
-		var: ft/params
-		while [var <> null][
-			ssa: make-ssa-var
-			var/ssa: ssa
-			ssa/index: ctx/n-ssa-vars
-			ctx/n-ssa-vars: ctx/n-ssa-vars + 1
-			var: var/next
-		]
 
 		var: fn/locals
 		add-decls

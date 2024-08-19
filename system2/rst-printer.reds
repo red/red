@@ -97,7 +97,10 @@ rst-printer: context [
 			expr [rst-expr!]
 	][
 		do-i indent prin-token var/token prin ": "
-		either var/init <> null [
+		either all [
+			var/init <> null
+			NODE_FLAGS(var) and RST_VAR_PARAM = 0
+		][
 			expr: var/init
 			expr/accept as int-ptr! expr printer null
 		][

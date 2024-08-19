@@ -70,7 +70,7 @@ type-checker: context [
 		return: [rst-type!]
 	][
 		if null? var/type [
-			either var/init <> null [
+			either all [var/init <> null NODE_FLAGS(var) and RST_VAR_PARAM = 0][
 				assert null? var/typeref
 				var/type: as rst-type! var/init/accept as int-ptr! var/init checker null
 			][
@@ -207,7 +207,7 @@ type-checker: context [
 		switch NODE_TYPE(var) [
 			RST_VAR [
 				decl: var/decl
-				if LOCAL?(decl) [
+				if all [LOCAL?(decl) ctx/level > 0][
 					ssa: decl/ssa
 					if ssa/index < 0 [
 						ssa/index: ctx/n-ssa-vars
@@ -274,11 +274,13 @@ type-checker: context [
 			tf			[rst-type!]
 			ut			[rst-type!]
 	][
+		ctx/level: ctx/level + 1
 		check-expr "Condition:" e/cond type-system/logic-type ctx
 		tt: check-stmts e/t-branch e/true-blk ctx
 		tf: either e/f-branch <> null [
 			check-stmts e/f-branch e/false-blk ctx
 		][null]
+		ctx/level: ctx/level - 1
 		either null? tf [tt][
 			ut: type-system/unify tt tf
 			either ut <> null [ut][type-system/void-type]
@@ -300,7 +302,10 @@ type-checker: context [
 		check-expr "While Condition:" as rst-expr! stmt type-system/logic-type ctx
 		exit-block
 
+		ctx/level: ctx/level + 1
 		check-stmts w/body w/body-blk ctx
+		ctx/level: ctx/level - 1
+
 		pop-loop ctx
 		type-system/void-type
 	]
@@ -502,9 +507,7 @@ type-checker: context [
 			switch NODE_TYPE(var) [
 				RST_VAR_DECL [
 					infer-type var ctx
-					if null? var/ssa [
-						var/ssa: make-ssa-var
-					]
+					var/ssa: make-ssa-var
 				]
 				RST_FUNC	 [
 					f: as fn! var

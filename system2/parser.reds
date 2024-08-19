@@ -210,7 +210,7 @@ var-decl!: alias struct! [	;-- variable declaration
 	RST_NODE_FIELDS(var-decl!)
 	typeref		[red-block!]
 	type		[rst-type!]
-	init		[rst-expr!]	;-- init expression
+	init		[rst-expr!]	;-- init expression or parameter idx
 	ssa			[ssa-var!]
 ]
 
@@ -230,6 +230,7 @@ context!: alias struct! [
 	n-ssa-vars	[integer!]	;-- number of variable that written more than once
 	n-loops		[integer!]
 	loop-stack	[vector!]
+	level		[integer!]
 	src-blk		[red-block!]
 	script		[cell!]
 ]
@@ -1339,6 +1340,7 @@ parser: context [
 					cur: cur/next
 					flag: RST_VAR_PARAM or RST_VAR_LOCAL
 					ADD_NODE_FLAGS(cur flag)
+					cur/init: as rst-expr! ft/n-params ;-- parameter index
 					p: p2 + 1
 					ft/n-params: ft/n-params + 1
 				]

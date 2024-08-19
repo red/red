@@ -353,9 +353,11 @@ ir-graph: context [
 			ir		[ir-fn!]
 			ft		[fn-type!]
 			param	[var-decl!]
+			ssa		[ssa-var!]
 			parr	[ptr-array!]
 			p		[ptr-ptr!]
 			pp		[ptr-ptr!]
+			pv		[ptr-ptr!]
 			ins		[instr!]
 	][
 		ir: as ir-fn! malloc size? ir-fn!
@@ -372,10 +374,13 @@ ir-graph: context [
 			while [param <> null][
 				ins: as instr! make-param param
 				p/value: as int-ptr! ins
-				pp/value: as int-ptr! param
-				set-cur-val param/ssa ins ctx
+				ssa: param/ssa
+				if ssa/index > -1 [
+					pv: pp + ssa/index
+					pv/value: as int-ptr! param
+				]
+				set-cur-val ssa ins ctx
 				p: p + 1
-				pp: pp + 1
 				param: param/next
 			]
 			ir/params: parr
