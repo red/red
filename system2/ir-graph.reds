@@ -301,11 +301,39 @@ ir-graph: context [
 		null
 	]
 
-	visit-break: func [b [break!] ctx [ssa-ctx!] return: [instr!]][
+	visit-break: func [b [break!] ctx [ssa-ctx!] return: [instr!]
+		/local p [ssa-ctx!]
+	][
+		p: ctx
+		while [p <> null][
+			if p/loop-end <> null [
+				merge-ctx p/loop-end ctx
+				return null
+			]
+			p: p/parent
+		]
 		null
 	]
 
-	visit-continue: func [v [continue!] ctx [ssa-ctx!] return: [instr!]][
+	visit-continue: func [v [continue!] ctx [ssa-ctx!] return: [instr!]
+		/local p [ssa-ctx!]
+	][
+		p: ctx
+		while [p <> null][
+			if p/loop-start <> null [
+				merge-ctx p/loop-start ctx
+				return null
+			]
+			p: p/parent
+		]
+		null
+	]
+
+	visit-return: func [r [return!] ctx [ssa-ctx!] return: [instr!]
+		/local val [instr!]
+	][
+		val: gen-expr r/expr ctx
+		add-return val ctx
 		null
 	]
 
@@ -318,6 +346,7 @@ ir-graph: context [
 	builder/visit-while:	as visit-fn! :visit-while
 	builder/visit-break:	as visit-fn! :visit-break
 	builder/visit-continue:	as visit-fn! :visit-continue
+	builder/visit-return:	as visit-fn! :visit-return
 
 	make-bb: func [		;-- create basic-block!
 		return: [basic-block!]
@@ -523,6 +552,7 @@ ir-graph: context [
 			loop n [
 				e: as cf-edge! p/value
 				if e/dst = m/block [merge-edge e m ctx]
+				p: p + 1
 			]
 		]
 	]
@@ -1321,6 +1351,23 @@ ir-graph: context [
 		as instr! v
 	]
 
+	add-return: func [
+		val		[instr!]
+		ctx		[ssa-ctx!]
+		/local
+			arr [array-value!]
+			r	[instr-return!]
+	][
+		if ctx/closed? [exit]
+		ctx/closed?: yes
+
+		INIT_ARRAY_VALUE(arr val)
+		r: as instr-return! malloc size? instr-return!
+		r/header: F_INS_END << 8 or INS_RETURN
+		set-inputs as instr! r as ptr-array! :arr
+		block-append-instr ctx/block as instr! r
+	]
+
 	gen-var-write: func [
 		var		[var-decl!]
 		val		[instr!]
@@ -1384,6 +1431,7 @@ ir-graph: context [
 			kv		[int-ptr!]
 			var		[var-decl!]
 			decls	[int-ptr!]
+			val		[instr!]
 	][
 		init-ssa-ctx :ssa-ctx null ctx/n-ssa-vars null
 		graph: make-ir-fn fn :ssa-ctx

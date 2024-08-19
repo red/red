@@ -8,6 +8,8 @@ Red/System [
 
 compiler: context [
 
+	verbose: 3
+
 	#define enter-block(blk) [
 		saved-blk: cur-blk
 		cur-blk: blk
@@ -265,9 +267,13 @@ compiler: context [
 	][
 		src: fn/body
 		src-blk: src
+		probe "parse"
 		ctx: parser/parse-context fn/token src parent f-ctx
+		probe "check"
 		type-checker/check ctx
+		probe "print RST"
 		rst-printer/print-program ctx
+		probe "generate SSA"
 		ir-graph/generate fn ctx
 		ctx
 	]
@@ -293,6 +299,8 @@ compiler: context [
 		ADD_NODE_FLAGS(ctx RST_FN_CTX)
 
 		ft: as fn-type! fn/type
+		ctx/ret-type: ft/ret-type
+
 		var: ft/params
 		add-decls
 

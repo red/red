@@ -311,10 +311,20 @@ type-checker: context [
 	]
 
 	visit-break: func [b [break!] ctx [context!] return: [rst-type!]][
+		if zero? ctx/loop-stack/length [throw-error [b/token "break must be in loop"]]
 		type-system/void-type
 	]
 
 	visit-continue: func [v [continue!] ctx [context!] return: [rst-type!]][
+		if zero? ctx/loop-stack/length [throw-error [v/token "continue must be in loop"]]
+		type-system/void-type
+	]
+
+	visit-return: func [v [return!] ctx [context!] return: [rst-type!]][
+		if NODE_FLAGS(ctx) and RST_FN_CTX = 0 [
+			throw-error [v/token "return is not allowed outside of a function"]
+		]
+		check-expr "Return:" v/expr ctx/ret-type ctx
 		type-system/void-type
 	]
 
@@ -365,6 +375,7 @@ type-checker: context [
 	checker/visit-while:	as visit-fn! :visit-while
 	checker/visit-break:	as visit-fn! :visit-break
 	checker/visit-continue:	as visit-fn! :visit-continue
+	checker/visit-return:	as visit-fn! :visit-return
 
 	make-cmp-op: func [
 		op			[rst-op!]
@@ -487,6 +498,7 @@ type-checker: context [
 		ctx		[context!]
 		/local
 			stmt	[rst-stmt!]
+			prev	[rst-stmt!]
 			n		[integer!]
 			kv		[int-ptr!]
 			var		[var-decl!]
@@ -519,10 +531,20 @@ type-checker: context [
 
 		stmt: ctx/stmts
 		while [
+			prev: stmt
 			stmt: stmt/next
 			stmt <> null
 		][
 			stmt/accept as int-ptr! stmt checker as int-ptr! ctx
+			if null? stmt/next [break]
+		]
+
+		if all [
+			ctx/ret-type <> type-system/void-type
+			NODE_TYPE(stmt) <> RST_RETURN
+		][
+			check-expr "Return:" as rst-expr! stmt ctx/ret-type ctx
+			prev/next: as rst-stmt! parser/make-return stmt/token as rst-expr! stmt
 		]
 
 		assert ctx/loop-stack <> null

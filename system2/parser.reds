@@ -226,6 +226,7 @@ context!: alias struct! [
 	stmts		[rst-stmt!]
 	last-stmt	[rst-stmt!]
 	decls		[int-ptr!]
+	ret-type	[rst-type!]
 	typecache	[int-ptr!]
 	n-ssa-vars	[integer!]	;-- number of variable that written more than once
 	n-loops		[integer!]
@@ -270,6 +271,11 @@ while!: alias struct! [
 	body		[rst-stmt!]
 	cond-blk	[red-block!]
 	body-blk	[red-block!]
+]
+
+return!: alias struct! [
+	RST_STMT_FIELDS(rst-node!)
+	expr		[rst-expr!]
 ]
 
 continue!: alias struct! [
@@ -434,7 +440,7 @@ parser: context [
         hashmap/put keywords k_break	as int-ptr! :parse-break
         hashmap/put keywords k_throw	null
         hashmap/put keywords k_catch	null
-        hashmap/put keywords k_return	null
+        hashmap/put keywords k_return	as int-ptr! :parse-return
         hashmap/put keywords k_exit		null
         hashmap/put keywords k_assert	null
         hashmap/put keywords k_comment	null
@@ -549,6 +555,7 @@ parser: context [
 		]
 		ctx/src-blk: cur-blk
 		ctx/script: script
+		ctx/ret-type: type-system/void-type
 		ctx/typecache: type-system/make-cache
 		ctx
 	]
@@ -765,7 +772,7 @@ parser: context [
 			v/visit-if self data
 		]
 		w: as red-word! pc
-		pc: advance-next pc end		;-- skip keyword
+		pc: advance-next pc end		;-- skip keyword: if/either
 		pc: parse-expr pc end :cond ctx
 
 		if-expr: as if! malloc size? if!
@@ -845,6 +852,41 @@ parser: context [
 		b/accept: :break_accept
 
 		expr/value: as int-ptr! b
+		pc
+	]
+
+	make-return: func [
+		pc		[cell!]
+		expr	[rst-expr!]
+		return: [return!]
+		/local
+			r	[return!]
+	][
+		return_accept: func [ACCEPT_FN_SPEC][
+			v/visit-return self data
+		]
+		r: as return! malloc size? return!
+		SET_NODE_TYPE(r RST_RETURN)
+		r/token: pc
+		r/accept: :return_accept
+		r/expr: expr
+		r
+	]
+
+	parse-return: func [
+		;pc end expr ctx
+		KEYWORD_FN_SPEC
+		/local
+			pos [cell!]
+			r	[return!]
+			val [ptr-value!]
+	][
+		pos: pc
+		pc: advance-next pc end		;-- skip keyword: return
+		pc: parse-expr pc end :val ctx
+		r: make-return pos as rst-expr! val/value
+
+		expr/value: as int-ptr! r
 		pc
 	]
 

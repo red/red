@@ -42,9 +42,16 @@ rst-printer: context [
 	]
 
 	visit-break: func [b [break!] i [integer!]][
+		do-i i prin "break"
 	]
 
 	visit-continue: func [v [continue!] i [integer!]][
+		do-i i prin "continue"
+	]
+
+	visit-return: func [r [return!] i [integer!]][
+		do-i i prin "return "
+		r/expr/accept as int-ptr! r/expr printer null
 	]
 
 	visit-fn-call: func [fc [fn-call!] i [integer!] /local arg [rst-expr!]][
@@ -72,6 +79,7 @@ rst-printer: context [
 	printer/visit-while:	as visit-fn! :visit-while
 	printer/visit-break:	as visit-fn! :visit-break
 	printer/visit-continue:	as visit-fn! :visit-continue
+	printer/visit-return:	as visit-fn! :visit-return
 
 	do-i: func [i [integer!]][
 		loop i [prin "    "]

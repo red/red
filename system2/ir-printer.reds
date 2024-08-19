@@ -95,15 +95,14 @@ ir-printer: context [
 			uses [df-edge!]
 			p	 [ptr-ptr!]
 			n	 [integer!]
-			has-input? [logic!]
 	][
 		indent 2
-		has-input?: yes
 		prin-ins i
 		sp
 		prin switch INSTR_OPCODE(i) [
 			INS_IF ["if "]
 			INS_PHI ["phi "]
+			INS_RETURN ["return "]
 			INS_GOTO ["goto "]
 			INS_SWITCH ["switch "]
 			default [
@@ -111,20 +110,19 @@ ir-printer: context [
 				" "
 			]
 		]
-		if has-input? [
-			args: i/inputs
-			if all [args <> null args/length > 0][
-				prin "("
-				p: ARRAY_DATA(args)
-				n: 0
-				loop args/length [
-					if n > 0 [prin ", "]
-					print-df-edge as df-edge! p/value
-					n: n + 1
-					p: p + 1
-				]
-				prin ") "
+
+		args: i/inputs
+		if all [args <> null args/length > 0][
+			prin "("
+			p: ARRAY_DATA(args)
+			n: 0
+			loop args/length [
+				if n > 0 [prin ", "]
+				print-df-edge as df-edge! p/value
+				n: n + 1
+				p: p + 1
 			]
+			prin ") "
 		]
 	]
 
