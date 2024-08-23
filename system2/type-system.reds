@@ -1,7 +1,7 @@
 Red/System [
 	File: 	 %type-system.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
+	Rights:  "Copyright (C) 2024 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
@@ -165,6 +165,8 @@ type-name: func [
 	]
 ]
 
+#define MAX_INT_WIDTH	64
+
 type-system: context [
 	integer-type:	as int-type! 0
 	byte-type:		as int-type! 0
@@ -191,14 +193,18 @@ type-system: context [
 	k_int-ptr!:		symbol/make "int-ptr!"
 	k_byte-ptr!:	symbol/make "byte-ptr!"
 
+	int-types: as ptr-array! 0
+
 	init: func [][
+		int-types: ptr-array/make 2 * MAX_INT_WIDTH + 1
+
 		void-type: make-void-type
-		integer-type: make-int-type 32 true
-		uint32-type: make-int-type 32 false
+		integer-type: get-int-type 32 true
+		uint32-type: get-int-type 32 false
 		float-type: make-float-type 64
 		float32-type: make-float-type 32
 		logic-type: make-logic-type
-		byte-type: make-int-type 8 false
+		byte-type: get-int-type 8 false
 	]
 
 	make-cache: func [
@@ -213,6 +219,23 @@ type-system: context [
 		hashmap/put m k_float32! as int-ptr! float32-type
 		hashmap/put m k_logic!	 as int-ptr! logic-type
 		m
+	]
+
+	get-int-type: func [
+		w		[integer!]
+		signed?	[logic!]
+		return: [int-type!]
+		/local
+			idx [integer!]
+			p	[ptr-ptr!]
+	][
+		if any [w <= 0 w > MAX_INT_WIDTH][return null]
+		idx: either signed? [w][w + MAX_INT_WIDTH]
+		p: ARRAY_DATA(int-types) + idx
+		if null? p/value [
+			p/value: as int-ptr! make-int-type w signed?
+		]
+		as int-type! p/value
 	]
 
 	int-promotable?: func [		;-- check if int x is promotable to int y

@@ -1,7 +1,7 @@
 Red/System [
 	File: 	 %opcode.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
+	Rights:  "Copyright (C) 2024 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
@@ -56,9 +56,14 @@ Red/System [
 	OP_FLT_LT
 	OP_FLT_LTEQ
 
+	OP_INT_CAST
+	OP_FLOAT_CAST
+	OP_INT_TO_F
+	OP_FLT_TO_I
+
 	OP_DEFAULT_VALUE
 	
-	OP_CALL
+	OP_CALL_FUNC
 
 	OP_GET_GLOBAL
 	OP_SET_GLOBAL

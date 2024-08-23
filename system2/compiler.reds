@@ -2,7 +2,7 @@ Red/System [
 	Title:   "Red/System compiler"
 	File: 	 %compiler.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
+	Rights:  "Copyright (C) 2024 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
@@ -54,6 +54,19 @@ compiler: context [
 			a
 		]
 
+		copy-n: func [
+			arr		[ptr-array!]
+			n		[integer!]
+			return: [ptr-array!]
+			/local
+				new [ptr-array!]
+		][
+			assert n >= arr/length
+			new: make n
+			copy-memory as byte-ptr! ARRAY_DATA(new) as byte-ptr! ARRAY_DATA(arr) n * size? int-ptr!
+			new
+		]
+
 		copy: func [
 			arr		[ptr-array!]
 			return: [ptr-array!]
@@ -102,6 +115,98 @@ compiler: context [
 			]
 			p/value: as int-ptr! ptr
 			a
+		]
+	]
+
+	dyn-array!: alias struct! [
+		length		[integer!]
+		data		[ptr-array!]
+	]
+
+	dyn-array: context [
+		init: func [
+			arr		[dyn-array!]
+			size	[integer!]
+			return: [dyn-array!]
+		][
+			arr/length: 0
+			arr/data: ptr-array/make size
+			arr
+		]
+
+		make: func [
+			size	[integer!]
+			return: [dyn-array!]
+		][
+			init as dyn-array! malloc size? dyn-array! size
+		]
+
+		clear: func [
+			arr		[dyn-array!]
+		][
+			arr/length: 0
+		]
+
+		grow: func [
+			arr		[dyn-array!]
+			new-sz	[integer!]
+			/local
+				new-cap [integer!]
+		][
+			if new-sz <= arr/data/length [exit]
+
+			new-cap: arr/data/length << 1
+			if new-sz > new-cap [new-cap: new-sz]
+
+			arr/data: ptr-array/grow arr/data new-cap
+		]
+
+		append: func [
+			arr		[dyn-array!]
+			ptr		[int-ptr!]
+			/local
+				p	[ptr-ptr!]
+				len [integer!]
+		][
+			len: arr/length + 1
+			if len > arr/data/length [
+				grow arr len
+			]
+
+			arr/length: len
+			p: ARRAY_DATA(arr/data) + (len - 1)
+			p/value: ptr
+		]
+
+		append-n: func [
+			"append N values"
+			arr		[dyn-array!]
+			parr	[ptr-array!]
+			/local
+				n	[integer!]
+				p	[ptr-ptr!]
+				pp	[ptr-ptr!]
+		][
+			n: arr/length + parr/length
+			if n > arr/data/length [
+				grow arr n
+			]
+
+			p: ARRAY_DATA(arr/data) + arr/length
+			pp: ARRAY_DATA(parr)
+			loop parr/length [
+				p/value: pp/value
+				p: p + 1
+				pp: pp + 1
+			]
+			arr/length: n
+		]
+
+		to-array: func [
+			arr		[dyn-array!]
+			return: [ptr-array!]
+		][
+			ptr-array/copy-n arr/data arr/length
 		]
 	]
 
@@ -170,14 +275,29 @@ compiler: context [
 	#include %parser.reds
 	#include %rst-printer.reds
 	#include %op-cache.reds
+	#include %config.reds
 	#include %type-checker.reds
 	#include %ir-graph.reds
+	#include %lowering.reds
 
 	_mempool: as mempool! 0
 
 	src-blk: as red-block! 0
 	cur-blk: as red-block! 0
 	script: as cell! 0
+
+	ir-module: as ir-module! 0
+
+	vector-to-array: func [
+		vec		[vector!]
+		return: [ptr-array!]
+		/local
+			arr [ptr-array!]
+	][
+		arr: ptr-array/make vec/length
+		copy-memory as byte-ptr! ARRAY_DATA(arr) vec/data arr/length * size? int-ptr!
+		arr
+	]
 
 	prin-token: func [v [cell!]][
 		if null? v [exit]
@@ -264,6 +384,7 @@ compiler: context [
 		/local
 			src	[red-block!]
 			ctx [context!]
+			ir	[ir-fn!]
 	][
 		src: fn/body
 		src-blk: src
@@ -274,7 +395,9 @@ compiler: context [
 		probe "print RST"
 		rst-printer/print-program ctx
 		probe "generate SSA"
-		ir-graph/generate fn ctx
+		ir: ir-graph/generate fn ctx
+		vector/append-ptr ir-module/functions as byte-ptr! ir
+		lowering/do-fn ir
 		ctx
 	]
 
@@ -346,6 +469,9 @@ compiler: context [
 			fn		[fn! value]
 	][
 		script: object/rs-select job as cell! word/load "script"
+		ir-module: as ir-module! malloc size? ir-module!
+		ir-module/functions: vector/make size? int-ptr! 100
+
 		fn/token: null
 		fn/body: src
 		fn/type: as rst-type! op-cache/void-op
@@ -361,6 +487,8 @@ compiler: context [
 		parser/init
 		op-cache/init
 		type-system/init
+
+		config/int-type: type-system/get-int-type config/int-width false
 	]
 
 	clean: does [

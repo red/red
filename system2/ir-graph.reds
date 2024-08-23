@@ -9,6 +9,8 @@ Red/System [
 	F_INS_PURE:		1		;-- no side-effects
 	F_INS_KILLED:	2		;-- instruction is dead
 	F_INS_END:		4
+
+	F_NO_INT_TRUNC: 0100h
 ]
 
 ;; /header, opcode: 0 - 7 bits, flags: 8 - 31 bits
@@ -21,10 +23,13 @@ Red/System [
 
 #define IR_INSTR_FIELDS(type) [
 	IR_NODE_FIELDS(type)
-	inputs	[ptr-array!]
-	uses	[df-edge!]
+	inputs	[ptr-array!]	;-- array<df-edge!>: [(src: self -> dst: input) ...]
+	uses	[df-edge!]		;-- (src: user -> dst: self)
+	link	[instr!]
 ]
 
+#define ADD_INS_FLAGS(i flags) [i/header: i/header or (flags << 8)]
+#define INSTR_FLAGS(i) (i/header >>> 8)
 #define INSTR_OPCODE(i) [i/header and FFh]
 #define INSTR_END?(i) (i/header >>> 8 and F_INS_END <> 0)
 #define INSTR_PHI?(i) (i/header and FFh = INS_PHI)
@@ -125,6 +130,13 @@ ir-fn!: alias struct! [
 	const-idx	[integer!]
 	const-vals	[ptr-array!]	;-- array<instr-const!>
 	const-map	[int-ptr!]
+	mark		[integer!]		;-- mark generation
+]
+
+ir-module!: alias struct! [
+	globals		[vector!]
+	structs		[vector!]
+	functions	[vector!]		;-- vector<ir-fn!>
 ]
 
 ssa-merge!: alias struct! [
@@ -154,6 +166,201 @@ make-ssa-var: func [
 	v: as ssa-var! malloc size? ssa-var!
 	v/index: -1
 	v
+]
+
+remove-uses: func [			;-- remove `edge` from `ins`'s use list
+	edge	[df-edge!]
+	ins		[instr!]
+	/local
+		n p	[df-edge!]
+][
+	p: edge/prev
+	n: edge/next
+	if ins/uses = edge [	;-- remove the head
+		ins/uses: n
+	]
+	if p <> null [p/next: n]
+	if n <> null [n/prev: p]
+	edge/next: null
+	edge/prev: null
+]
+
+insert-uses: func [			;-- insert `edge` into `ins`'s use list
+	edge	[df-edge!]
+	ins		[instr!]
+	/local
+		n p	[df-edge!]
+][
+	p: ins/uses
+	edge/next: p
+	if p <> null [p/prev: edge]
+	ins/uses: edge
+]
+
+update-uses: func [
+	edge	[df-edge!]
+	dest	[instr!]
+][
+	if edge/dst <> null [remove-uses edge edge/dst]
+	edge/dst: dest
+	if dest <> null [insert-uses edge dest]
+]
+
+insert-instr: func [		;-- insert instr! y before x
+	x		[instr!]
+	y		[instr!]
+	/local
+		p	[instr!]
+][
+	p: x/prev
+	if p <> null [
+		p/next: y
+		y/prev: p
+	]
+	x/prev: y
+	y/next: x
+]
+
+remove-instr: func [		;-- remove instr! x
+	x		[instr!]
+][
+	if x/prev <> null [x/prev/next: x/next]
+	if x/next <> null [x/next/prev: x/prev]
+	x/prev: null
+	x/next: null	
+]
+
+replace-instr: func [
+	"replace instr x with y in all uses"
+	x		[instr!]
+	y		[instr!]
+][
+	if x = y [exit]
+	while [x/uses <> null][
+		update-uses x/uses y ;-- update-uses modified x/uses
+	]
+]
+
+kill-instr: func [			;-- remove x from the use list of its inputs
+	x		[instr!]
+	/local
+		inputs	[ptr-array!]
+		p		[ptr-ptr!]
+][
+	inputs: x/inputs
+	p: ARRAY_DATA(inputs)
+	loop inputs/length [
+		update-uses as df-edge! p/value null
+		p: p + 1
+	]
+]
+
+block-append-instr: func [	;-- append instr to the end of a block
+	bb		[basic-block!]
+	ins		[instr!]
+	/local
+		p	[instr!]
+][
+	p: bb/prev
+	unless INSTR_END?(p) [p: as instr! bb]
+	insert-instr p ins
+]
+
+block-insert-instr: func [	;-- insert instr to the start of a block
+	bb		[basic-block!]
+	ins		[instr!]
+][
+	insert-instr bb/next ins
+]
+
+block-add-pred: func [		;-- add predecessor
+	bb		[basic-block!]
+	pred	[cf-edge!]
+	return: [integer!]
+][
+	bb/preds: ptr-array/append bb/preds as byte-ptr! pred
+	bb/preds/length - 1
+]
+
+block-successors: func [
+	bb		[basic-block!]
+	return: [ptr-array!]
+	/local
+		p	[instr-end!]
+][
+	p: as instr-end! bb/prev
+	either INSTR_END?(p) [
+		p/succs
+	][
+		null
+	]
+]
+
+block-successor: func [
+	bb		[basic-block!]
+	idx		[integer!]
+	return: [cf-edge!]
+	/local
+		succs	[ptr-array!]
+		data	[ptr-ptr!]
+][
+	succs: block-successors bb
+	if null? succs [return null]
+	data: ARRAY_DATA(succs) + idx
+	as cf-edge! data/value
+]
+
+block-end: func [
+	bb		[basic-block!]
+	return: [instr-end!]
+	/local
+		p	[instr!]
+][
+	p: bb/prev
+	either INSTR_END?(p) [as instr-end! p][null]
+]
+
+bfs-blocks: func [		;-- breadth first search for a graph
+	start-bb	[basic-block!]
+	vec			[vector!]
+	/local
+		succs	[ptr-array!]
+		i		[integer!]
+		b		[basic-block!]
+		e		[cf-edge!]
+		pp		[ptr-ptr!]
+][
+	vector/clear vec
+	succs: block-successors start-bb
+	vector/append-ptr vec as byte-ptr! start-bb
+	if any [null? succs zero? succs/length][exit]
+
+	start-bb/mark: 1
+	i: 0
+	while [i < vec/length][
+		b: as basic-block! vector/pick-ptr vec i
+		succs: block-successors b
+		if succs <> null [
+			pp: ARRAY_DATA(succs)
+			loop succs/length [
+				e: as cf-edge! pp/value
+				b: e/dst
+				if b/mark < 1 [
+					b/mark: 1
+					vector/append-ptr vec as byte-ptr! b
+				]
+				pp: pp + 1
+			]
+		]
+		i: i + 1
+	]
+	;-- clear mark
+	pp: as ptr-ptr! vec/data
+	loop vec/length [
+		b: as basic-block! pp/value
+		b/mark: 0
+		pp: pp + 1
+	]
 ]
 
 #include %ir-printer.reds
@@ -199,13 +406,8 @@ ir-graph: context [
 		]
 	]
 
-	visit-fn-call: func [fc [fn-call!] ctx [ssa-ctx!] return: [instr!]
-		/local
-			ft	 	[fn-type!]
-			arg		[rst-expr!]
-			pt		[ptr-ptr!]
-	][
-		null
+	visit-fn-call: func [fc [fn-call!] ctx [ssa-ctx!] return: [instr!]][
+		add-fn-call fc ctx
 	]
 
 	visit-bin-op: func [bin [bin-op!] ctx [ssa-ctx!] return: [instr!]
@@ -673,152 +875,6 @@ ir-graph: context [
 		value
 	]
 
-	insert-instr: func [		;-- insert instr! y before x
-		x		[instr!]
-		y		[instr!]
-		/local
-			p	[instr!]
-	][
-		p: x/prev
-		if p <> null [
-			p/next: y
-			y/prev: p
-		]
-		x/prev: y
-		y/next: x
-	]
-
-	remove-instr: func [		;-- remove instr! x
-		x		[instr!]
-	][
-		if x/prev <> null [x/prev/next: x/next]
-		if x/next <> null [x/next/prev: x/prev]
-		x/prev: null
-		x/next: null	
-	]
-
-	kill-instr: func [			;-- remove x from the use list of its inputs
-		x		[instr!]
-		/local
-			inputs	[ptr-array!]
-			p		[ptr-ptr!]
-	][
-		inputs: x/inputs
-		p: ARRAY_DATA(inputs)
-		loop inputs/length [
-			update-uses as df-edge! p/value null
-			p: p + 1
-		]
-	]
-
-	block-append-instr: func [	;-- append instr to the end of a block
-		bb		[basic-block!]
-		ins		[instr!]
-		/local
-			p	[instr!]
-	][
-		p: bb/prev
-		unless INSTR_END?(p) [p: as instr! bb]
-		insert-instr p ins
-	]
-
-	block-insert-instr: func [	;-- insert instr to the start of a block
-		bb		[basic-block!]
-		ins		[instr!]
-	][
-		insert-instr bb/next ins
-	]
-
-	block-add-pred: func [		;-- add predecessor
-		bb		[basic-block!]
-		pred	[cf-edge!]
-		return: [integer!]
-	][
-		bb/preds: ptr-array/append bb/preds as byte-ptr! pred
-		bb/preds/length - 1
-	]
-
-	block-successors: func [
-		bb		[basic-block!]
-		return: [ptr-array!]
-		/local
-			p	[instr-end!]
-	][
-		p: as instr-end! bb/prev
-		either INSTR_END?(p) [
-			p/succs
-		][
-			null
-		]
-	]
-
-	block-successor: func [
-		bb		[basic-block!]
-		idx		[integer!]
-		return: [cf-edge!]
-		/local
-			succs	[ptr-array!]
-			data	[ptr-ptr!]
-	][
-		succs: block-successors bb
-		if null? succs [return null]
-		data: ARRAY_DATA(succs) + idx
-		as cf-edge! data/value
-	]
-
-	block-end: func [
-		bb		[basic-block!]
-		return: [instr-end!]
-		/local
-			p	[instr!]
-	][
-		p: bb/prev
-		either INSTR_END?(p) [as instr-end! p][null]
-	]
-
-	bfs-blocks: func [		;-- breadth first search for a graph
-		start-bb	[basic-block!]
-		vec			[vector!]
-		/local
-			succs	[ptr-array!]
-			i		[integer!]
-			b		[basic-block!]
-			e		[cf-edge!]
-			pp		[ptr-ptr!]
-	][
-		vector/clear vec
-		succs: block-successors start-bb
-		vector/append-ptr vec as byte-ptr! start-bb
-		if any [null? succs zero? succs/length][exit]
-
-		start-bb/mark: 1
-		i: 0
-		while [i < vec/length][
-			b: as basic-block! vector/pick-ptr vec i
-			succs: block-successors b
-			if succs <> null [
-				pp: ARRAY_DATA(succs)
-				loop succs/length [
-					e: as cf-edge! pp/value
-					b: e/dst
-					if b/mark < 1 [
-						b/mark: 1
-						vector/append-ptr vec as byte-ptr! b
-					]
-					pp: pp + 1
-				]
-			]
-			i: i + 1
-		]
-		;-- clear mark
-		pp: as ptr-ptr! vec/data
-		loop vec/length [
-			b: as basic-block! pp/value
-			b/mark: 0
-			pp: pp + 1
-		]
-	]
-
 	append: func [
 		i		[instr!]
 		ctx		[ssa-ctx!]
@@ -832,44 +888,6 @@ ir-graph: context [
 		bb		[basic-block!]
 	][
 		INSTR_OPCODE(bb/next) = INS_PHI
-	]
-
-	remove-uses: func [			;-- remove `edge` from `ins`'s use list
-		edge	[df-edge!]
-		ins		[instr!]
-		/local
-			n p	[df-edge!]
-	][
-		p: edge/prev
-		n: edge/next
-		if ins/uses = edge [	;-- remove the head
-			ins/uses: n
-		]
-		if p <> null [p/next: n]
-		if n <> null [n/prev: p]
-		edge/next: null
-		edge/prev: null
-	]
-
-	insert-uses: func [			;-- insert `edge` into `ins`'s use list
-		edge	[df-edge!]
-		ins		[instr!]
-		/local
-			n p	[df-edge!]
-	][
-		p: ins/uses
-		edge/next: p
-		if p <> null [p/prev: edge]
-		ins/uses: edge
-	]
-
-	update-uses: func [
-		edge	[df-edge!]
-		dest	[instr!]
-	][
-		if edge/dst <> null [remove-uses edge edge/dst]
-		edge/dst: dest
-		if dest <> null [insert-uses edge dest]
 	]
 
 	make-df-edge: func [
@@ -1292,6 +1310,32 @@ ir-graph: context [
 		append as instr! i ctx
 	]
 
+	add-fn-call: func [
+		fc		[fn-call!]
+		ctx		[ssa-ctx!]
+		return: [instr!]
+		/local
+			ft	[fn-type!]
+			arg [rst-expr!]
+			op	[instr-op!]
+			arr [ptr-array!]
+			p	[ptr-ptr!]
+	][
+		ft: as fn-type! fc/fn/type
+		op: make-op OP_CALL_FUNC ft/n-params ft/param-types ft/ret-type
+		op/target: as int-ptr! fc/fn
+
+		arr: ptr-array/make ft/n-params
+		p: ARRAY_DATA(arr)
+		arg: fc/args
+		while [arg <> null][
+			p/value: arg/accept as int-ptr! arg builder as int-ptr! ctx
+			p: p + 1
+			arg: arg/next
+		]
+		add-op op arr ctx
+	]
+
 	make-op: func [
 		opcode	 [opcode!]
 		n-params [integer!]
@@ -1331,6 +1375,26 @@ ir-graph: context [
 		as instr! const-null type ctx/graph
 		;op: make-op OP_DEFAULT_VALUE 0 null type
 		;add-op op null ctx
+	]
+
+	add-int-cast: func [
+		"cast the result of instr i, from int to int"
+		i			[instr-op!]
+		t-from		[int-type!]
+		t-to		[int-type!]
+		ctx			[ssa-ctx!]
+		return:		[instr!]
+		/local
+			op		[instr-op!]
+			param	[ptr-ptr!]
+			args	[array-value!]
+	][
+		if t-from = t-to [return as instr! i]
+		param: as ptr-ptr! malloc size? int-ptr!
+		param/value: as int-ptr! t-from
+		op: make-op OP_INT_CAST 1 param as rst-type! t-to
+		INIT_ARRAY_VALUE(args i)
+		add-op op as ptr-array! :args ctx
 	]
 
 	add-new-var: func [

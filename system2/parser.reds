@@ -1,7 +1,7 @@
 Red/System [
 	File: 	 %parser.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
+	Rights:  "Copyright (C) 2024 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
@@ -246,6 +246,7 @@ fn!: alias struct! [
 
 fn-call!: alias struct! [
 	RST_EXPR_FIELDS(fn-call!)
+	fn			[fn!]
 	args		[rst-expr!]
 ]
 
@@ -714,7 +715,7 @@ parser: context [
 		]
 		fc/accept: :call_accept
 		fc/token: pc
-		fc/type: fn/type
+		fc/fn: fn
 		ft: as fn-type! fn/type
 
 		beg/next: null

@@ -34,6 +34,7 @@ ir-printer: context [
 		i		[instr-op!]
 		/local
 			var [var-decl!]
+			fn	[fn!]
 	][
 		switch INSTR_OPCODE(i) [
 			OP_BOOL_EQ			[prin "bool.="]
@@ -73,7 +74,10 @@ ir-printer: context [
 			OP_FLT_LT			[prin "float.<"]
 			OP_FLT_LTEQ			[prin "float.<="]
 			OP_DEFAULT_VALUE	[prin "default value"]
-			OP_CALL				[prin "call"]
+			OP_CALL_FUNC		[
+				fn: as fn! i/target
+				prin "call " prin-token fn/token
+			]
 			OP_GET_GLOBAL		[
 				var: as var-decl! i/target
 				prin "get " prin-token var/token
@@ -219,7 +223,7 @@ ir-printer: context [
 		/local
 			p		[ptr-ptr!]
 	][
-		ir-graph/bfs-blocks start-bb blocks
+		bfs-blocks start-bb blocks
 		p: as ptr-ptr! blocks/data
 		loop blocks/length [
 			print-block as basic-block! p/value

@@ -1,7 +1,7 @@
 Red/System [
 	File: 	 %type-checker.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
+	Rights:  "Copyright (C) 2024 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
@@ -109,9 +109,9 @@ type-checker: context [
 			v	[var-decl!]
 			saved-blk [red-block!]
 	][
+		if ft/param-types <> null [exit]		;-- already resolved
 		enter-block(ft/spec)
 
-		assert ft/param-types = null
 		pt: as ptr-ptr! malloc ft/n-params * size? int-ptr!
 		ft/param-types: pt
 		v: ft/params
@@ -334,10 +334,10 @@ type-checker: context [
 			arg		[rst-expr!]
 			pt		[ptr-ptr!]
 	][
-		ft: as fn-type! fc/type
-		if null? ft/param-types [resolve-fn-type ft ctx]
+		if null? fc/type [resolve-fn-type as fn-type! fc/fn/type ctx]
 
 		arg: fc/args
+		ft: as fn-type! fc/fn/type
 		pt: ft/param-types
 		while [arg <> null][
 			check-expr "Function Call:" arg as rst-type! pt/value ctx
@@ -345,7 +345,8 @@ type-checker: context [
 			pt: pt + 1
 		]
 
-		ft/ret-type
+		fc/type: ft/ret-type
+		fc/type
 	]
 
 	visit-bin-op: func [bin [bin-op!] ctx [context!] return: [rst-type!]
