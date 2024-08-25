@@ -69,19 +69,6 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	RST_MIXED_LTEQ
 ]
 
-#enum rst-type-kind! [
-	RST_TYPE_VOID
-	RST_TYPE_LOGIC
-	RST_TYPE_INT
-	RST_TYPE_BYTE
-	RST_TYPE_FLOAT
-	RST_TYPE_C_STR
-	RST_TYPE_FUNC
-	RST_TYPE_STRUCT
-	RST_TYPE_ARRAY
-	RST_TYPE_PTR
-]
-
 #enum rst-node-type! [
 	RST_VOID
 	RST_LOGIC
@@ -142,11 +129,6 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	RST_INFIX_OP:	20h
 ]
 
-#define SET_TYPE_KIND(node kind) [node/header: kind]
-#define TYPE_KIND(node) (node/header and FFh)
-#define ADD_TYPE_FLAGS(node flags) [node/header: node/header or (flags << 8)]
-#define TYPE_FLAGS(node) (node/header >>> 8)
-
 #define SET_NODE_TYPE(node type) [node/header: type]
 #define ADD_NODE_FLAGS(node flags) [node/header: node/header or (flags << 8)]
 #define NODE_TYPE(node) (node/header and FFh)
@@ -174,15 +156,6 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	accept		[accept-fn!]
 	cast-type	[rst-type!]
 	type		[rst-type!]
-]
-
-#define TYPE_HEADER [
-	header		[integer!]		;-- Kind and flags
-	token		[cell!]
-]
-
-rst-type!: alias struct! [
-	TYPE_HEADER
 ]
 
 rst-node!: alias struct! [
@@ -329,8 +302,6 @@ float-literal!: alias struct! [
 #define STRING?(v) [TYPE_OF(v) = TYPE_STRING]
 #define BLOCK?(v) [TYPE_OF(v) = TYPE_BLOCK]
 #define PAREN?(V) [TYPE_OF(v) = TYPE_PAREN]
-
-#include %type-system.reds
 
 parser: context [
 	k_func:		symbol/make "func"

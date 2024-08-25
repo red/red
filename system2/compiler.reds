@@ -291,13 +291,14 @@ compiler: context [
 	#include %utils/mempool.reds
 	#include %utils/hashmap.reds
 	#include %opcode.reds
-	#include %parser.reds
-	#include %rst-printer.reds
-	#include %op-cache.reds
+	#include %type-system.reds
+	#include %rst/parser.reds
+	#include %rst/rst-printer.reds
+	#include %rst/op-cache.reds
+	#include %rst/type-checker.reds
+	#include %ir/ir-graph.reds
+	#include %ir/lowering.reds
 	#include %config.reds
-	#include %type-checker.reds
-	#include %ir-graph.reds
-	#include %lowering.reds
 
 	_mempool: as mempool! 0
 

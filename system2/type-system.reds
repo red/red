@@ -18,7 +18,34 @@ Red/System [
 	conv_cast_ff
 ]
 
+#enum rst-type-kind! [
+	RST_TYPE_VOID
+	RST_TYPE_LOGIC
+	RST_TYPE_INT
+	RST_TYPE_BYTE
+	RST_TYPE_FLOAT
+	RST_TYPE_C_STR
+	RST_TYPE_FUNC
+	RST_TYPE_STRUCT
+	RST_TYPE_ARRAY
+	RST_TYPE_PTR
+]
+
 ;-- types
+
+#define SET_TYPE_KIND(node kind) [node/header: kind]
+#define TYPE_KIND(node) (node/header and FFh)
+#define ADD_TYPE_FLAGS(node flags) [node/header: node/header or (flags << 8)]
+#define TYPE_FLAGS(node) (node/header >>> 8)
+
+#define TYPE_HEADER [
+	header		[integer!]		;-- Kind and flags
+	token		[cell!]
+]
+
+rst-type!: alias struct! [
+	TYPE_HEADER
+]
 
 #define INT_WIDTH(int) (int/header >>> 8 and FFh)
 #define INT_SIGNED?(int) (int/header and 00010000h <> 0)
