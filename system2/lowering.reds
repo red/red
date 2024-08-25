@@ -14,7 +14,7 @@ lowering-env!: alias struct! [
 	fn				[ir-fn!]
 	cur-ctx			[ssa-ctx!]
 	ssa-ctx			[ssa-ctx!]
-	phis			[dyn-array! value]	;-- dyn-array<instr-phi!>
+	phis			[list!]				;-- list<instr-phi!>
 ]
 
 ;-- Lowering SSA IR to machine-level IR
@@ -213,7 +213,7 @@ lowering: context [
 		;-- trunc-i's input changed by map-keep, we need to set it back
 		p: ARRAY_DATA(trunc-i/inputs)
 		update-uses as df-edge! p/value as instr! i
-		;; XXX: Is below better than update-uses?
+		;; XXX
 		;; e: as df-edge! p/value
 		;; e/dst: as instr! i
 		trunc-i
@@ -225,6 +225,13 @@ lowering: context [
 	][
 		refresh-inputs as instr! i env
 		gen-truncate i as int-type! i/ret-type env
+	]
+
+	gen-call: func [
+		i		[instr!]
+		env		[lowering-env!]
+	][
+		refresh-inputs i env	
 	]
 
 	gen-op: func [
@@ -268,7 +275,7 @@ lowering: context [
 			OP_FLT_LT			[0]
 			OP_FLT_LTEQ			[0]
 			OP_DEFAULT_VALUE	[0]
-			OP_CALL_FUNC		[0]
+			OP_CALL_FUNC		[gen-call i env]
 			OP_GET_GLOBAL		[0]
 			OP_SET_GLOBAL		[0]
 			default [
@@ -278,12 +285,33 @@ lowering: context [
 		either i <> new [map i new env][MARK_INS(i env/mark)]
 	]
 
+	gen-phi: func [
+		i		[instr!]
+		env		[lowering-env!]
+		/local
+			new-i [ptr-array!]
+	][
+		if INSTR_FLAGS(i) and F_INS_KILLED <> 0 [exit]
+
+		new-i: get-new-instrs i env
+		either null? new-i [
+			either null? i/link [
+				refresh-inputs i env
+			][	;-- phi is replaced
+				0
+			]
+		][	;-- phi is replaced by N instrs
+			0
+		]
+	]
+
 	do-block: func [
 		bb			[basic-block!]
 		env			[lowering-env!]
 		/local
 			ctx		[ssa-ctx!]
 			i		[instr!]
+			next-i	[instr!]
 			code	[integer!]
 	][
 		ctx: env/cur-ctx
@@ -292,20 +320,24 @@ lowering: context [
 
 		i: bb/next
 		while [all [i <> null i <> bb]][
+			next-i: i/next		;-- i may be removed
 			code: INSTR_OPCODE(i)
 			switch code [
-				INS_PHI [0]
-				INS_RETURN [0]
+				INS_PHI [
+					env/phis: make-list as int-ptr! i env/phis
+					get-new-instrs i env
+				]
+				INS_RETURN [refresh-inputs i env]
 				default [
 					either code >= OP_BOOL_EQ [
 						env/cur-ctx/pt: i
 						gen-op i env
 					][
-						0
+						if i/inputs <> null [refresh-inputs i env]
 					]
 				]
 			]
-			i: i/next
+			i: next-i
 		]
 	]
 
@@ -320,6 +352,7 @@ lowering: context [
 			e		[cf-edge!]
 			pp		[ptr-ptr!]
 			vec		[vector!]
+			l		[list!]
 	][
 		ir-graph/init-ssa-ctx :cur-ctx null 0 null
 		env: as lowering-env! malloc size? lowering-env!
@@ -353,5 +386,11 @@ lowering: context [
 			i: i + 1
 		]
 		vector/destroy vec
+
+		l: env/phis
+		while [l <> null][
+			gen-phi as instr! l/head env
+			l: l/tail
+		]
 	]
 ]

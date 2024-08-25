@@ -61,7 +61,7 @@ compiler: context [
 			/local
 				new [ptr-array!]
 		][
-			assert n >= arr/length
+			assert n <= arr/length
 			new: make n
 			copy-memory as byte-ptr! ARRAY_DATA(new) as byte-ptr! ARRAY_DATA(arr) n * size? int-ptr!
 			new
@@ -208,6 +208,25 @@ compiler: context [
 		][
 			ptr-array/copy-n arr/data arr/length
 		]
+	]
+
+	;-- lisp-like list
+	list!: alias struct! [
+		head	[int-ptr!]
+		tail	[list!]
+	]
+
+	make-list: func [
+		head	[int-ptr!]
+		tail	[list!]
+		return: [list!] 
+		/local
+			l	[list!]
+	][
+		l: as list! malloc size? list!
+		l/head: head
+		l/tail: tail
+		l
 	]
 
 	common-literals: context [
@@ -397,7 +416,9 @@ compiler: context [
 		probe "generate SSA"
 		ir: ir-graph/generate fn ctx
 		vector/append-ptr ir-module/functions as byte-ptr! ir
+		probe "Lowering SSA"
 		lowering/do-fn ir
+		probe "SSA to machine code"
 		ctx
 	]
 
