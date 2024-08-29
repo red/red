@@ -125,6 +125,7 @@ basic-block!: alias struct! [
 
 ir-fn!: alias struct! [
 	params		[ptr-array!]	;-- array of instr-param!
+	param-types	[ptr-ptr!]
 	ret-type	[rst-type!]
 	start-bb	[basic-block!]
 	const-idx	[integer!]
@@ -358,7 +359,7 @@ bfs-blocks: func [		;-- breadth first search for a graph
 	pp: as ptr-ptr! vec/data
 	loop vec/length [
 		b: as basic-block! pp/value
-		b/mark: 0
+		b/mark: -1
 		pp: pp + 1
 	]
 ]
@@ -559,6 +560,7 @@ ir-graph: context [
 		bb/next: as instr! bb
 		bb/prev: as instr! bb
 		bb/preds: empty-array
+		bb/mark: -1
 		bb
 	]
 
@@ -615,6 +617,7 @@ ir-graph: context [
 				param: param/next
 			]
 			ir/params: parr
+			ir/param-types: ft/param-types
 			ir/ret-type: ft/ret-type
 			fn/ir: ir
 		][

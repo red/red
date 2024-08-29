@@ -7,8 +7,6 @@ Red/System [
 
 lowering-env!: alias struct! [
 	mark			[integer!]
-	code			[byte-ptr!]
-	data			[byte-ptr!]
 	buffer			[dyn-array! value]	;-- dyn-array<instr!>
 	new-instrs		[dyn-array! value]	;-- dyn-array<instr!>
 	fn				[ir-fn!]
@@ -192,10 +190,10 @@ lowering: context [
 		ADD_INS_FLAGS(i F_NO_INT_TRUNC)
 
 		w: INT_WIDTH(type)
-		arith-w: config/int-width
+		arith-w: target/int-width
 		if w >= arith-w [mark-return]
 		if all [
-			config/int32-arith?
+			target/int32-arith?
 			w <= 32
 		][
 			if w = 32 [mark-return]
@@ -203,8 +201,8 @@ lowering: context [
 		]
 
 		env/cur-ctx/pt: i/next
-		type: either arith-w = config/int-width [
-			config/int-type
+		type: either arith-w = target/int-width [
+			target/int-type
 		][
 			type-system/get-int-type arith-w false
 		]

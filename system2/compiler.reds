@@ -19,195 +19,12 @@ compiler: context [
 		cur-blk: saved-blk
 	]
 
-	#define ARRAY_DATA(arr) (as ptr-ptr! (arr + 1))
-	#define array-value! [array-1! value]
-	#define INIT_ARRAY_VALUE(a v) [a/length: 1 a/val-1: as byte-ptr! v]
-	#define INIT_ARRAY_2(a v1 v2) [a/length: 2 a/val-1: as byte-ptr! v1 a/val-2: as byte-ptr! v2]
-
-	ptr-array!: alias struct! [
-		length	[integer!]
-		;--data
+	#define LIST_INSERT(l item) [
+		l: make-list as int-ptr! item l
 	]
 
-	array-1!: alias struct! [		;-- ptr array with one value
-		length	[integer!]
-		val-1	[byte-ptr!]
-	]
-
-	array-2!: alias struct! [		;-- ptr array with two values
-		length	[integer!]
-		val-1	[byte-ptr!]
-		val-2	[byte-ptr!]
-	]
-
-	empty-array: as ptr-array! 0
-
-	ptr-array: context [
-		make: func [
-			size	[integer!]
-			return: [ptr-array!]
-			/local
-				a	[ptr-array!]
-		][
-			a: as ptr-array! malloc (size * size? int-ptr!) + size? ptr-array!
-			a/length: size
-			a
-		]
-
-		copy-n: func [
-			arr		[ptr-array!]
-			n		[integer!]
-			return: [ptr-array!]
-			/local
-				new [ptr-array!]
-		][
-			assert n <= arr/length
-			new: make n
-			copy-memory as byte-ptr! ARRAY_DATA(new) as byte-ptr! ARRAY_DATA(arr) n * size? int-ptr!
-			new
-		]
-
-		copy: func [
-			arr		[ptr-array!]
-			return: [ptr-array!]
-			/local
-				new [ptr-array!]
-		][
-			new: make arr/length
-			copy-memory as byte-ptr! ARRAY_DATA(new) as byte-ptr! ARRAY_DATA(arr) arr/length * size? int-ptr!
-			new
-		]
-
-		grow: func [
-			arr		[ptr-array!]
-			length	[integer!]
-			return: [ptr-array!]
-			/local
-				a	[ptr-array!]
-		][
-			either length > arr/length [
-				a: make length
-				copy-memory as byte-ptr! ARRAY_DATA(a) as byte-ptr! ARRAY_DATA(arr) arr/length * size? int-ptr!
-				a
-			][
-				arr
-			]
-		]
-
-		append: func [
-			arr		[ptr-array!]
-			ptr		[byte-ptr!]
-			return: [ptr-array!]
-			/local
-				a	[ptr-array!]
-				len [integer!]
-				p	[ptr-ptr!]
-				pp	[ptr-ptr!]
-		][
-			len: arr/length
-			a: make len + 1
-			p: ARRAY_DATA(a)
-			pp: ARRAY_DATA(arr)
-			loop len [
-				p/value: pp/value
-				p: p + 1
-				pp: pp + 1
-			]
-			p/value: as int-ptr! ptr
-			a
-		]
-	]
-
-	dyn-array!: alias struct! [
-		length		[integer!]
-		data		[ptr-array!]
-	]
-
-	dyn-array: context [
-		init: func [
-			arr		[dyn-array!]
-			size	[integer!]
-			return: [dyn-array!]
-		][
-			arr/length: 0
-			arr/data: ptr-array/make size
-			arr
-		]
-
-		make: func [
-			size	[integer!]
-			return: [dyn-array!]
-		][
-			init as dyn-array! malloc size? dyn-array! size
-		]
-
-		clear: func [
-			arr		[dyn-array!]
-		][
-			arr/length: 0
-		]
-
-		grow: func [
-			arr		[dyn-array!]
-			new-sz	[integer!]
-			/local
-				new-cap [integer!]
-		][
-			if new-sz <= arr/data/length [exit]
-
-			new-cap: arr/data/length << 1
-			if new-sz > new-cap [new-cap: new-sz]
-
-			arr/data: ptr-array/grow arr/data new-cap
-		]
-
-		append: func [
-			arr		[dyn-array!]
-			ptr		[int-ptr!]
-			/local
-				p	[ptr-ptr!]
-				len [integer!]
-		][
-			len: arr/length + 1
-			if len > arr/data/length [
-				grow arr len
-			]
-
-			arr/length: len
-			p: ARRAY_DATA(arr/data) + (len - 1)
-			p/value: ptr
-		]
-
-		append-n: func [
-			"append N values"
-			arr		[dyn-array!]
-			parr	[ptr-array!]
-			/local
-				n	[integer!]
-				p	[ptr-ptr!]
-				pp	[ptr-ptr!]
-		][
-			n: arr/length + parr/length
-			if n > arr/data/length [
-				grow arr n
-			]
-
-			p: ARRAY_DATA(arr/data) + arr/length
-			pp: ARRAY_DATA(parr)
-			loop parr/length [
-				p/value: pp/value
-				p: p + 1
-				pp: pp + 1
-			]
-			arr/length: n
-		]
-
-		to-array: func [
-			arr		[dyn-array!]
-			return: [ptr-array!]
-		][
-			ptr-array/copy-n arr/data arr/length
-		]
+	#define xmalloc(type) [
+		as type malloc size? type
 	]
 
 	;-- lisp-like list
@@ -290,6 +107,8 @@ compiler: context [
 	#include %utils/vector.reds
 	#include %utils/mempool.reds
 	#include %utils/hashmap.reds
+	#include %utils/array.reds
+	#include %utils/bit-table.reds
 	#include %opcode.reds
 	#include %type-system.reds
 	#include %rst/parser.reds
@@ -298,7 +117,26 @@ compiler: context [
 	#include %rst/type-checker.reds
 	#include %ir/ir-graph.reds
 	#include %ir/lowering.reds
-	#include %config.reds
+	#include %backend.reds
+	#include %x86/codegen.reds
+
+	target: context [
+		addr-width: 32		;-- width of address in bits
+		addr-size: 4		;-- size of address in bytes
+		addr-align: 4
+		page-align: 4096
+		int-width: 32
+		int-mask: 1 << int-width - 1
+		int-type: as int-type! 0
+		int32-arith?: yes		;-- native support for int32 arithmetic
+		int64-arith?: no		;-- native support for int64 arithmetic
+		big-endian?: no
+
+		;-- backend specific functions
+		alloc-regs: as fn-alloc-regs! 0
+		make-frame: as fn-make-frame! 0
+		generate:	as fn-generate! 0
+	]
 
 	_mempool: as mempool! 0
 
@@ -405,10 +243,11 @@ compiler: context [
 			src	[red-block!]
 			ctx [context!]
 			ir	[ir-fn!]
+			mf	[mach-fn!]
 	][
 		src: fn/body
 		src-blk: src
-		probe "parse"
+		probe "^/^/parse"
 		ctx: parser/parse-context fn/token src parent f-ctx
 		probe "check"
 		type-checker/check ctx
@@ -416,10 +255,11 @@ compiler: context [
 		rst-printer/print-program ctx
 		probe "generate SSA"
 		ir: ir-graph/generate fn ctx
-		vector/append-ptr ir-module/functions as byte-ptr! ir
+		;vector/append-ptr ir-module/functions as byte-ptr! ir
 		probe "Lowering SSA"
 		lowering/do-fn ir
 		probe "SSA to machine code"
+		mf: backend/generate ir
 		ctx
 	]
 
@@ -494,11 +334,18 @@ compiler: context [
 		ir-module: as ir-module! malloc size? ir-module!
 		ir-module/functions: vector/make size? int-ptr! 100
 
+		init-target job
+
 		fn/token: null
 		fn/body: src
 		fn/type: as rst-type! op-cache/void-op
 		ctx: comp-fn :fn null null
 		comp-functions ctx
+	]
+
+	init-target: func [job [red-object!]][
+		target/int-type: type-system/get-int-type target/int-width false
+		target/make-frame: :x86-make-frame
 	]
 
 	init: does [
@@ -509,8 +356,7 @@ compiler: context [
 		parser/init
 		op-cache/init
 		type-system/init
-
-		config/int-type: type-system/get-int-type config/int-width false
+		x86-reg-set/init
 	]
 
 	clean: does [

@@ -12,6 +12,8 @@ vector!: alias struct! [
 	data		[byte-ptr!]
 ]
 
+#define VECTOR_DATA(v) [as ptr-ptr! v/data]
+
 vector: context [
 	init: func [
 		vec			[vector!]
@@ -126,5 +128,11 @@ vector: context [
 	][
 		free vec/data
 		free as byte-ptr! vec
+	]
+]
+
+ptr-vector: context [
+	make: func [size [integer!] return: [vector!]][
+		vector/make size? int-ptr! size
 	]
 ]
