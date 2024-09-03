@@ -281,10 +281,11 @@ type-checker: context [
 			check-stmts e/f-branch e/false-blk ctx
 		][null]
 		ctx/level: ctx/level - 1
-		either null? tf [tt][
+		e/type: either null? tf [tt][
 			ut: type-system/unify tt tf
 			either ut <> null [ut][type-system/void-type]
 		]
+		e/type
 	]
 
 	visit-while: func [w [while!] ctx [context!] return: [rst-type!]

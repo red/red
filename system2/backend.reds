@@ -12,33 +12,100 @@ Red/System [
 	class_f64
 ]
 
+#define M_FLAG_FIXED	80000000h	;-- cannot insert before this instr
+#define M_FLAG_READ		40000000h	;-- a read instr
+#define M_FLAG_WRITE	20000000h	;-- a write instr
+
 fn-alloc-regs!: alias function! [codegen [codegen!]]
 fn-make-frame!: alias function! [ir [ir-fn!] return: [frame!]]
-fn-generate!: alias function! [ir [ir-fn!] frame [frame!]]
+fn-generate!: alias function! [cg [codegen!] blk [basic-block!] i [instr!]]
 
-operand!: alias struct! [
-	header		[integer!]
-	data		[int-ptr!]
+#define OPERAND_HEADER	[header [integer!]]
+
+#enum operand-kind! [
+	OD_USE
+	OD_DEF
+	OD_IMM
+	OD_SCRATCH
+	OD_KILL
+	OD_OVERWRITE
 ]
 
+operand!: alias struct! [
+	OPERAND_HEADER
+]
+
+use!: alias struct! [
+	OPERAND_HEADER
+	vreg		[vreg!]
+	constraint	[integer!]
+]
+
+def!: alias struct! [
+	OPERAND_HEADER
+	vreg		[vreg!]
+	constraint	[integer!]
+]
+
+immediate!: alias struct! [
+	OPERAND_HEADER
+	val			[cell!]
+]
+
+scratch!: alias struct! [
+	OPERAND_HEADER
+	reg-cls		[reg-class!]
+]
+
+kill!: alias struct! [
+	OPERAND_HEADER
+	constraint	[integer!]
+]
+
+overwrite!: alias struct! [
+	OPERAND_HEADER
+	dst			[vreg!]
+	src			[vreg!]
+	constraint	[integer!]
+]
+
+;-- header: 31 - 28 flags | 
+;-- x86: 20 - 19 rounding mode | 18 - 15 condition | 14 - 10 addressing mode | 9 - 0 opcode
+;-- arm: 
 mach-instr!: alias struct! [
 	header		[integer!]
-	operands	[ptr-array!]	;-- array<operand!>
 	prev		[mach-instr!]
 	next		[mach-instr!]
+	num			[integer!]		;-- num of the operands
+	;-- followed by operands
+	;operands	[operand!]
 ]
 
 mach-fn!: alias struct! [
 	code		[mach-instr!]
 ]
 
+#enum vreg-usage! [
+	USAGE_NONE
+	USAGE_ONCE
+	USAGE_MANY
+]
+
 vreg!: alias struct! [			;-- virtual register
+	prev		[vreg!]
+	next		[vreg!]
+	block		[basic-block!]
 	instr		[instr!]
-	num			[integer!]
-	n-vars		[integer!]
+	idx			[integer!]
 	start		[integer!]
 	end			[integer!]
 	live?		[logic!]
+	live-pos	[integer!]		;-- last live position
+	spill		[integer!]
+	hint		[integer!]
+	reg			[integer!]
+	reg-class	[reg-class!]
+	usage		[integer!]
 ]
 
 reg-set!: alias struct! [		;-- register set
@@ -68,7 +135,7 @@ frame!: alias struct! [
 codegen!: alias struct! [
 	mark		[integer!]
 	operands	[vector!]		;-- vector<operand!>
-	vars		[vector!]		;-- vector<vreg!>
+	vregs		[vector!]		;-- vector<vreg!>
 	blocks		[vector!]		;-- vector<block-info!>
 	instrs		[vector!]		;-- vector<mach-instr!>
 	first-i		[mach-instr!]
@@ -79,8 +146,10 @@ codegen!: alias struct! [
 	frame		[frame!]
 	rpo			[rpo!]
 	fn			[ir-fn!]
+	reg-set		[reg-set!]
 	ssa-ctx		[ssa-ctx!]
 	liveness	[bit-table!]
+	m			[instr-matcher!]
 ]
 
 loop-info!: alias struct! [
@@ -368,7 +437,7 @@ rpo: context [
 			if null? lp [
 				lp: as loop-info! malloc size? loop-info!
 				lp/index: loops/length
-				bit-table/grow bitmap lp/index + 2
+				bit-table/grow-row bitmap lp/index + 2
 				vector/append-ptr loops as byte-ptr! lp
 				ptr-array/poke loop-headers d/mark as int-ptr! lp
 			]
@@ -446,6 +515,29 @@ rpo: context [
 
 backend: context [
 
+	int-imm-caches: as ptr-array! 0
+
+	#include %x86/codegen.reds
+
+	#define put-operand(o) [
+		vector/append-ptr cg/operands as byte-ptr! o
+	]
+
+	init: func [
+		/local
+			p	[ptr-ptr!]
+			i	[integer!]
+	][
+		int-imm-caches: ptr-array/make 10
+		p: ARRAY_DATA(int-imm-caches)
+		i: -1
+		loop 10 [
+			p/value: as int-ptr! make-imm-int i
+			p: p + 1
+			i: i + 1
+		]
+	]
+
 	reg-class?: func [
 		type	[rst-type!]
 		return: [reg-class!]
@@ -471,6 +563,156 @@ backend: context [
 		]
 	]
 
+	update-usage: func [
+		reg		[vreg!]
+	][
+		if reg/spill < 0 [exit]		;-- constant value
+		either reg/usage = USAGE_NONE [
+			reg/usage: USAGE_ONCE
+		][
+			reg/usage: USAGE_MANY
+		]
+	]
+
+	make-overwrite: func [
+		dst		[vreg!]
+		src		[vreg!]
+		c		[integer!]
+		/local
+			x	[overwrite!]
+	][
+		x: xmalloc(overwrite!)
+		x/header: OD_OVERWRITE
+		x/dst: dst
+		x/src: src
+		x/constraint: c
+		x
+	]
+
+	make-use: func [
+		reg		[vreg!]
+		c		[integer!]
+		return: [use!]
+		/local
+			u	[use!]
+	][
+		u: xmalloc(use!)
+		u/header: OD_USE
+		u/vreg: reg
+		u/constraint: c
+		u
+	]
+
+	make-imm-int: func [
+		n		[integer!]
+		return: [immediate!]
+		/local
+			i	[immediate!]
+			int [red-integer!]
+	][
+		i: xmalloc(immediate!)
+		i/header: OD_IMM
+		int: xmalloc(red-integer!)
+		int/header: TYPE_INTEGER
+		int/value: n
+		i/val: as cell! int
+		i
+	]
+
+	overwrite-reg: func [
+		cg		[codegen!]
+		dst		[instr!]
+		src		[instr!]
+		/local
+			dreg [vreg!]
+			sreg [vreg!]
+			o	 [overwrite!]
+	][
+		dreg: get-vreg cg dst
+		assert dreg <> null
+		sreg: get-vreg cg src
+		assert sreg <> null
+		update-usage sreg
+		vector/append-ptr cg/operands as byte-ptr! make-overwrite dreg sreg 0
+	]
+
+	use-reg: func [
+		cg		[codegen!]
+		i		[instr!]
+		/local
+			v	[vreg!]
+	][
+		v: get-vreg cg i
+		update-usage v
+		vector/append-ptr cg/operands as byte-ptr! make-use v 0
+	]
+
+	use-imm: func [
+		cg		[codegen!]
+		val		[cell!]
+		/local
+			i	[immediate!]
+	][
+		i: xmalloc(immediate!)
+		i/header: OD_IMM
+		i/val: val
+		vector/append-ptr cg/operands as byte-ptr! i	
+	]
+
+	use-imm-int: func [
+		cg		[codegen!]
+		int		[integer!]
+		/local
+			i	[int-ptr!]
+	][
+		either all [int > -2 int < 9][
+			i: ptr-array/pick int-imm-caches int + 1
+		][
+			i: as int-ptr! make-imm-int int
+		]
+		vector/append-ptr cg/operands as byte-ptr! i
+	]
+
+	emit-instr: func [
+		cg		[codegen!]
+		op		[integer!]
+		/local
+			n	[integer!]
+			i	[mach-instr!]
+			cur [mach-instr!]
+			p	[ptr-ptr!]
+			po	[ptr-ptr!]
+			prev [mach-instr!]
+			operands [vector!]
+	][
+		operands: cg/operands
+		n: operands/length
+		i: as mach-instr! malloc (n * size? int-ptr!) + size? mach-instr!
+		i/header: op
+		i/num: n
+
+		p: as ptr-ptr! (i + 1)
+		po: as ptr-ptr! operands/data
+		loop n [
+			p/value: po/value
+			p: p + 1
+			po: po + 1
+		]
+		operands/length: 0
+
+		;-- insert before cur-i
+		cur: cg/cur-i
+		i/next: cur
+		prev: cur/prev
+		either prev <> null [
+			prev/next: i
+			i/prev: prev
+		][
+			cg/first-i: i
+		]
+		cur/prev: i
+	]
+
 	make-codegen: func [
 		fn		[ir-fn!]
 		rpo		[rpo!]
@@ -481,22 +723,209 @@ backend: context [
 	][
 		cg: xmalloc(codegen!)
 		cg/operands: ptr-vector/make 4
-		cg/vars: ptr-vector/make 8
+		cg/vregs: ptr-vector/make 8
 		cg/fn: fn
 		cg/frame: frame
 		cg/rpo: rpo
 		cg/blocks: rpo/blocks
 		cg/instrs: ptr-vector/make rpo/blocks/length
 		cg/liveness: bit-table/make rpo/blocks/length 32
+		cg/reg-set: frame/cc/reg-set
+		cg/m: matcher/make
 		cg/mark: fn/mark
 		fn/mark: fn/mark + 1
 		cg
 	]
 
-	gen-instrs: func [
+	make-instr: func [
+		op		 [integer!]
+		operands [ptr-array!]
+		return:	 [mach-instr!]
+		/local
+			i	 [mach-instr!]
+			p po [ptr-ptr!]
+	][
+		i: xmalloc(mach-instr!)
+		i/header: op
+		i/num: operands/length
+		p: as ptr-ptr! (i + 1)
+		po: ARRAY_DATA(operands)
+		loop i/num [
+			p/value: po/value
+			p: p + 1
+			po: po + 1
+		]
+		i
+	]
+
+	make-vreg: func [
+		cg		[codegen!]
+		i		[instr!]
+		return: [vreg!]
+		/local
+			v		[vreg!]
+			mark	[integer!]
+			len		[integer!]
+			cls		[integer!]
+			type	[rst-type!]
+			ivar	[instr-var!]
+			op		[instr-op!]
+			idx		[integer!]
+			vregs	[vector!]
+	][
+		mark: cg/fn/mark
+		cg/fn/mark: mark + 1
+
+		cls: class_i32
+		if i <> null [
+			either INSTR_FLAGS(i) and F_NOT_VOID = 0 [
+				return null
+			][
+				type: either INSTR_OPCODE(i) >= OP_BOOL_EQ [
+					op: as instr-op! i
+					op/ret-type
+				][
+					ivar: as instr-var! i
+					ivar/type
+				]
+				cls: reg-class? type
+			]
+			i/mark: mark
+		]
+	
+		idx: mark - cg/mark
+		len: idx + 2
+		bit-table/grow-column cg/liveness len
+
+		vregs: cg/vregs
+		vector/grow vregs len
+		vregs/length: len
+
+		v: xmalloc(vreg!)
+		v/instr: i
+		v/idx: idx
+		v/reg-class: cls
+		vector/poke-ptr vregs idx as int-ptr! v
+		if INSTR_OPCODE(i) and INS_CONST <> 0 [
+			v/spill: -2 - idx		;-- use negative spill to mark constants
+		]
+		v
+	]
+
+	get-vreg: func [
+		cg		[codegen!]
+		i		[instr!]
+		return: [vreg!]
+	][
+		if i/mark >= cg/fn/mark [
+			probe "get vreg error: invalid instr mark"
+			halt
+		]
+		if INSTR_FLAGS(i) and F_NOT_VOID = 0 [return null]
+
+		either i/mark <= cg/mark [
+			make-vreg cg i
+		][
+			as vreg! vector/pick-ptr cg/vregs i/mark - cg/mark
+		]
+	]
+
+	select-instr: func [
+		cg			[codegen!]
+		blk			[basic-block!]
+		i			[instr!]
+	][
+		switch INSTR_OPCODE(i) [
+			INS_IF
+			INS_GOTO
+			INS_RETURN
+			INS_SWITCH
+			INS_THROW [0]
+			default [
+				target/gen-op cg blk i
+			]
+		]
+	]
+
+	select-instrs: func [
+		cg			[codegen!]
+		blk			[basic-block!]
+		/local
+			i		[instr!]
+			vreg	[vreg!]
+	][
+		cg/cur-blk: blk
+		cg/end-i: cg/cur-i
+
+		i: blk/next
+		while [i <> blk][
+			vreg: get-vreg cg i
+			if vreg <> null [vreg/block: blk]
+			i: i/next
+		]
+
+		;-- select instr in reverse order
+		emit-instr cg I_BLK_END
+		cg/cur-i: cg/first-i			;-- set cur-i to head
+		i: blk/prev
+		while [i <> blk][
+			if INSTR_PHI?(i) [break]	;-- PHis are in the begin of the block
+			select-instr cg blk i
+			cg/cur-i: cg/first-i
+			i: i/prev
+		]
+		emit-instr cg I_BLK_BEG
+		cg/cur-i: cg/first-i
+	]
+
+	gather-liveness: func [
+		cg			[codegen!]
+		blk			[basic-block!]
+		/local
+			succs	[ptr-array!]
+			p		[ptr-ptr!]
+			e		[cf-edge!]
+	][
+		succs: block-successors blk
+		if succs <> null [
+			p: ARRAY_DATA(succs)
+			loop succs/length [
+				e: as cf-edge! p/value	
+				p: p + 1
+				bit-table/or-rows cg/liveness blk/mark e/dst/mark
+			]
+		]
+	]
+
+	gen-params: func [
 		cg		[codegen!]
 	][
 		
+	]
+
+	gen-instrs: func [
+		cg		[codegen!]
+		/local
+			i		[integer!]
+			p		[ptr-ptr!]
+			len		[integer!]
+			info	[block-info!]
+			blk		[basic-block!]
+	][
+		cg/cur-i: make-instr I_END empty-array
+		cg/last-i: cg/cur-i
+
+		p: VECTOR_DATA(cg/blocks)
+		len: cg/blocks/length
+		p: p + len
+		loop len [
+			p: p - 1
+			info: as block-info! p/value
+			blk: info/block
+			gather-liveness cg blk
+			select-instrs cg blk
+		]
+		gen-params cg
 	]
 
 	generate: func [
@@ -515,4 +944,5 @@ backend: context [
 		gen-instrs cg
 		m
 	]
+
 ]

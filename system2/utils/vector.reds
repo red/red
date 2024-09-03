@@ -123,6 +123,17 @@ vector: context [
 		p/value
 	]
 
+	poke-ptr: func [
+		vec		[vector!]
+		idx		[integer!]
+		val		[int-ptr!]
+		/local
+			p	[ptr-ptr!]
+	][
+		p: (as ptr-ptr! vec/data) + idx
+		p/value: val
+	]
+
 	destroy: func [
 		vec		[vector!]
 	][

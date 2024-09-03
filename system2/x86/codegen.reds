@@ -31,10 +31,37 @@ Red/System [
 #define SCRATCH			x86_EBP
 #define SSE_SCRATCH		x86_XMM7
 
+;-- REG: GPR
+;-- OP: register or stack
+;-- XOP: XMM register or stack
+;-- MRRSD: [reg + reg * scale + disp]
+#enum x86-addr-mode! [
+	AM_NONE
+	AM_REG_OP
+	AM_MRRSD_REG
+	AM_MRRSD_IMM
+	AM_REG_MRRSD
+	AM_OP
+	AM_OP_IMM
+	AM_OP_REG
+	AM_XMM_REG
+	AM_XMM_OP
+	AM_OP_XMM
+	AM_XMM_MRRSD
+	AM_MRRSD_XMM
+	AM_XMM_IMM 
+	AM_REG_XOP
+	AM_XMM_XMM
+]
+
+#define AM_SHIFT	10
+#define COND_SHIFT	15
+#define ROUND_SHIFT	19
+
 x86-reg-set: context [
 	regs: as reg-set! 0
 
-	init: func [/local arr [ptr-array!] p pa [ptr-ptr!]][
+	init: func [/local arr [ptr-array!] p pa [ptr-ptr!] pp pint [int-ptr!]][
 		arr: ptr-array/make x86_REG_ALL + 1
 		p: ARRAY_DATA(arr)
 		pa: p + x86_EAX
@@ -43,6 +70,11 @@ x86-reg-set: context [
 		regs/n-regs: 14
 		regs/regs: arr
 		regs/spill-start: arr/length
+
+		arr: int-array/make 4
+		pp: as int-ptr! ARRAY_DATA(arr)
+		pint: pp + class_i32
+		pint/value: x86_CLS_GPR
 	]
 ]
 
@@ -80,7 +112,7 @@ x86-rscall: context [	;-- red/system internal call-conv!
 		p: ARRAY_DATA(fn/params)
 		loop n-params [
 			param: as instr-param! p/value
-			cls: backend/reg-class? param/type
+			cls: reg-class? param/type
 			switch cls [
 				class_i32 [
 					either i-idx < size? param-regs [
@@ -122,7 +154,7 @@ x86-rscall: context [	;-- red/system internal call-conv!
 		ret-locs: int-array/make 1
 		rloc: as int-ptr! ARRAY_DATA(ret-locs)
 		either fn/ret-type <> null [
-			cls: backend/reg-class? fn/ret-type
+			cls: reg-class? fn/ret-type
 			i: 1 i-idx: 0 f-idx: 0 r-spill: 0
 			switch cls [
 				class_i32 [
@@ -173,11 +205,138 @@ x86-rscall: context [	;-- red/system internal call-conv!
 	]
 ]
 
-x86-generate: func [
-	ir		[ir-fn!]
-	frame	[frame!]
+int-op-width?: func [
+	i		[instr-op!]
+	return: [integer!]
+	/local
+		t	[int-type!]
 ][
-	
+	t: as int-type! i/ret-type
+	either TYPE_KIND(t) = RST_TYPE_INT [
+		INT_WIDTH(t)
+	][
+		32
+	]	
+]
+
+op-with-width: func [
+	op		[integer!]
+	i		[instr-op!]
+	return: [integer!]
+	/local
+		w	[integer!]
+][
+	w: int-op-width? i
+	either w > 32 [op + I_W_DIFF][op]
+]
+
+try-use-imm32: func [
+	cg		[codegen!]
+	i		[instr!]
+	return: [logic!]
+	/local
+		val [cell!]
+		b	[red-logic!]
+		c	[instr-const!]
+][
+	if null? i [
+		use-imm-int cg 0
+		return true
+	]
+	either INSTR_CONST?(i) [
+		c: as instr-const! i
+		val: c/value
+		if null? val [
+			use-imm cg null
+			return true
+		]
+		switch TYPE_OF(val) [
+			TYPE_INTEGER [use-imm cg val]
+			TYPE_LOGIC [
+				b: as red-logic! val
+				use-imm-int cg either b/value [1][0]
+			]
+			default [return false]
+		]
+		true
+	][false]
+]
+
+emit-simple-binop: func [
+	cg		[codegen!]
+	op		[integer!]
+	i		[instr!]
+][
+	overwrite-reg cg i cg/m/x
+	op: either try-use-imm32 cg cg/m/y [
+		op or (AM_OP_IMM << AM_SHIFT)
+	][
+		use-reg cg cg/m/y
+		op or (AM_REG_OP << AM_SHIFT)
+	]
+	emit-instr cg op
+]
+
+emit-int-binop: func [
+	cg		[codegen!]
+	op		[integer!]
+	i		[instr!]
+][
+	op: op-with-width op as instr-op! i
+	matcher/int-bin-op cg/m i		;-- init instr matcher with i
+	emit-simple-binop cg op i
+]
+
+x86-gen-op: func [
+	cg		[codegen!]
+	blk		[basic-block!]
+	i		[instr!]
+][
+	switch INSTR_OPCODE(i) [
+		OP_BOOL_EQ			[0]
+		OP_BOOL_AND			[0]
+		OP_BOOL_OR			[0]
+		OP_BOOL_NOT			[0]
+		OP_INT_ADD			[emit-int-binop cg I_ADDD i]
+		OP_INT_SUB			[0]
+		OP_INT_MUL			[0]
+		OP_INT_DIV			[0]
+		OP_INT_MOD			[0]
+		OP_INT_REM			[0]
+		OP_INT_AND			[0]
+		OP_INT_OR			[0]
+		OP_INT_XOR			[0]
+		OP_INT_SHL			[0]
+		OP_INT_SAR			[0]
+		OP_INT_SHR			[0]
+		OP_INT_EQ			[0]
+		OP_INT_NE			[0]
+		OP_INT_LT			[0]
+		OP_INT_LTEQ			[0]
+		OP_FLT_ADD			[0]
+		OP_FLT_SUB			[0]
+		OP_FLT_MUL			[0]
+		OP_FLT_DIV			[0]
+		OP_FLT_MOD			[0]
+		OP_FLT_REM			[0]
+		OP_FLT_ABS			[0]
+		OP_FLT_CEIL			[0]
+		OP_FLT_FLOOR		[0]
+		OP_FLT_SQRT			[0]
+		OP_FLT_UNUSED		[0]
+		OP_FLT_BITEQ		[0]
+		OP_FLT_EQ			[0]
+		OP_FLT_NE			[0]
+		OP_FLT_LT			[0]
+		OP_FLT_LTEQ			[0]
+		OP_DEFAULT_VALUE	[0]
+		OP_CALL_FUNC		[0]
+		OP_GET_GLOBAL		[0]
+		OP_SET_GLOBAL		[0]
+		default [
+			prin "codegen: unknown op"
+		]
+	]
 ]
 
 x86-make-frame: func [

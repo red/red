@@ -9,8 +9,13 @@ Red/System [
 	F_INS_PURE:		1		;-- no side-effects
 	F_INS_KILLED:	2		;-- instruction is dead
 	F_INS_END:		4
-
+	F_INS_LIVE:		8
+	F_NOT_VOID:		10h		;-- has a value
+	F_FOLDABLE:		20h		;-- constant fold
+	F_COMMUTATIVE:	40h		;-- (x, y) = (y, x)
+	F_ASSOCIATIVE:	80h		;-- ((x, y), z) = (x, (y, z))
 	F_NO_INT_TRUNC: 0100h
+	F_ZERO:			0200h	;-- zero value
 ]
 
 ;; /header, opcode: 0 - 7 bits, flags: 8 - 31 bits
@@ -33,6 +38,7 @@ Red/System [
 #define INSTR_OPCODE(i) [i/header and FFh]
 #define INSTR_END?(i) (i/header >>> 8 and F_INS_END <> 0)
 #define INSTR_PHI?(i) (i/header and FFh = INS_PHI)
+#define INSTR_CONST?(i) (i/header and FFh = INS_CONST)
 
 ;; a control flow edge
 cf-edge!: alias struct! [
@@ -571,7 +577,7 @@ ir-graph: context [
 			p	[instr-param!]
 	][
 		p: as instr-param! malloc size? instr-param!
-		p/header: INS_PARAM
+		p/header: INS_PARAM or (F_NOT_VOID << 8)
 		p/index: param/ssa/index
 		p/type: param/type
 		param/ssa/value: as instr! p
@@ -635,7 +641,7 @@ ir-graph: context [
 			phi [instr-phi!]
 	][
 		phi: as instr-phi! malloc size? instr-phi!
-		phi/header: INS_PHI
+		phi/header: INS_PHI or (F_NOT_VOID << 8)
 		phi/type: type
 		phi/block: blk
 		set-inputs as instr! phi args
@@ -1255,9 +1261,11 @@ ir-graph: context [
 			map		[int-ptr!]
 			p		[ptr-ptr!]
 			v		[instr-const!]
+			flags	[integer!]
 	][
 		c: as instr-const! malloc size? instr-const!
-		c/header: INS_CONST
+		flags: either type <> type-system/void-type [F_NOT_VOID << 8][0]
+		c/header: INS_CONST or flags
 		c/type: type
 		c/value: val
 
@@ -1347,9 +1355,11 @@ ir-graph: context [
 		return:  [instr-op!]
 		/local
 			op	 [instr-op!]
+			flags [integer!]
 	][
 		op: as instr-op! malloc size? instr-op!
-		op/header: opcode
+		flags: either ret-t <> type-system/void-type [F_NOT_VOID << 8][0]
+		op/header: opcode or flags
 		op/n-params: n-params
 		op/param-types: param-t
 		op/ret-type: ret-t

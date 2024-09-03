@@ -75,15 +75,98 @@ bit-table: context [
 		]
 	]
 
-	grow: func [
+	grow-row: func [
 		"grow this table to `rows` rows"
 		b		[bit-table!]
 		rows	[integer!]
+		/local
+			w	[integer!]
 	][
 		if b/rows < rows [
-			b/bits: as int-ptr! realloc as byte-ptr! b/bits rows * b/width * 4
-			set-memory as byte-ptr! (b/bits + (b/rows * b/width)) null-byte (rows - b/rows) * b/width * 4
+			w: b/width
+			b/bits: as int-ptr! realloc as byte-ptr! b/bits rows * w * 4
+			set-memory as byte-ptr! (b/bits + (b/rows * w)) null-byte (rows - b/rows) * w * 4
 			b/rows: rows
+		]
+	]
+
+	grow-column: func [
+		b		[bit-table!]
+		cols	[integer!]
+		/local
+			w	[integer!]
+			bw	[integer!]
+			i j [integer!]
+			n m [integer!]
+			bits [int-ptr!]
+			new	 [int-ptr!]
+			rows [integer!]
+			p pp [int-ptr!]
+	][
+		if cols <= b/cols [exit]
+		w: cols + 31 >>> 5
+		if w <= b/width [
+			b/cols: cols
+			exit
+		]
+		new: as int-ptr! zero-alloc b/rows * w * 4
+		bits: b/bits
+		i: 0 j: 0
+		rows: b/rows
+		bw: b/width
+		while [i < rows][
+			while [j < bw][
+				n: i * w + j
+				m: i * bw + j
+				p: new + n
+				pp: bits + m
+				p/value: pp/value
+				j: j + 1
+			]
+			i: i + 1
+		]
+		free as byte-ptr! bits
+		b/width: w
+		b/cols: cols
+		b/bits: new
+	]
+
+	or-rows: func [
+		"row a or row b into row a"
+		b		[bit-table!]
+		row-a	[integer!]
+		row-b	[integer!]
+		/local
+			pa	[int-ptr!]
+			pb	[int-ptr!]
+			w	[integer!]
+	][
+		w: b/width
+		pa: b/bits + (row-a * w)
+		pb: b/bits + (row-b * w)
+		loop w [
+			pa/value: pa/value or pb/value
+			pa: pa + 1
+			pb: pb + 1
+		]
+	]
+
+	and-rows: func [
+		b		[bit-table!]
+		row-a	[integer!]
+		row-b	[integer!]
+		/local
+			pa	[int-ptr!]
+			pb	[int-ptr!]
+			w	[integer!]
+	][
+		w: b/width
+		pa: b/bits + (row-a * w)
+		pb: b/bits + (row-b * w)
+		loop w [
+			pa/value: pa/value and pb/value
+			pa: pa + 1
+			pb: pb + 1
 		]
 	]
 

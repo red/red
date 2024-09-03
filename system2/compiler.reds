@@ -116,9 +116,9 @@ compiler: context [
 	#include %rst/op-cache.reds
 	#include %rst/type-checker.reds
 	#include %ir/ir-graph.reds
+	#include %ir/optimizer.reds
 	#include %ir/lowering.reds
 	#include %backend.reds
-	#include %x86/codegen.reds
 
 	target: context [
 		addr-width: 32		;-- width of address in bits
@@ -135,7 +135,7 @@ compiler: context [
 		;-- backend specific functions
 		alloc-regs: as fn-alloc-regs! 0
 		make-frame: as fn-make-frame! 0
-		generate:	as fn-generate! 0
+		gen-op:		as fn-generate! 0
 	]
 
 	_mempool: as mempool! 0
@@ -345,7 +345,8 @@ compiler: context [
 
 	init-target: func [job [red-object!]][
 		target/int-type: type-system/get-int-type target/int-width false
-		target/make-frame: :x86-make-frame
+		target/make-frame: :backend/x86-make-frame
+		target/gen-op: as fn-generate! :backend/x86-gen-op
 	]
 
 	init: does [
@@ -356,7 +357,8 @@ compiler: context [
 		parser/init
 		op-cache/init
 		type-system/init
-		x86-reg-set/init
+		backend/x86-reg-set/init
+		backend/init
 	]
 
 	clean: does [
