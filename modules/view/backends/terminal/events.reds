@@ -628,10 +628,10 @@ do-events: func [
 			tty/disable-mouse
 		]
 		screen/exit-alter-screen
+		tty/show-cursor
 		tty/restore
 		tty/read-input no	;-- clear stdin queue
 		screen/reset
-		tty/show-cursor
 	]
 
 	msg?
