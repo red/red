@@ -721,7 +721,8 @@ map: context [
 				k: k + 2
 				map/head: map/head + 2
 			][
-				_context/set w k
+				v: _context/set w k
+				if TYPE_OF(v) = TYPE_SET_WORD [v/header: TYPE_WORD]
 				w: w + 1
 				k: k + 1
 				i: i + 1
