@@ -69,6 +69,8 @@ overwrite!: alias struct! [
 	constraint	[integer!]
 ]
 
+#define MACH_OPCODE(i)	[i/header and 03FFh]
+
 ;-- header: 31 - 28 flags | 
 ;-- x86: 20 - 19 rounding mode | 18 - 15 condition | 14 - 10 addressing mode | 9 - 0 opcode
 ;-- arm: 
@@ -111,8 +113,8 @@ vreg!: alias struct! [			;-- virtual register
 reg-set!: alias struct! [		;-- register set
 	n-regs		[integer!]		;-- number of physical registers
 	regs		[ptr-array!]	;-- array<array<int>>: registers in each set
-	regs-cls	[array!]		;-- array<int>: registers in each class
-	scratch		[array!]		;-- array<int>: scratch registers in each class
+	regs-cls	[rs-array!]		;-- array<int>: registers in each class
+	scratch		[rs-array!]		;-- array<int>: scratch registers in each class
 	spill-start	[integer!]
 ]
 
@@ -120,8 +122,8 @@ call-conv!: alias struct! [
 	reg-set		[reg-set!]
 	param-types [ptr-ptr!]
 	ret-type	[rst-type!]
-	param-locs	[array!]
-	ret-locs	[array!]
+	param-locs	[rs-array!]
+	ret-locs	[rs-array!]
 	n-spilled	[integer!]
 ]
 
@@ -942,7 +944,112 @@ backend: context [
 		r: rpo/build fn
 		cg: make-codegen fn r frm
 		gen-instrs cg
+		m/code: cg/first-i
+		print-fn m
 		m
 	]
 
+	do-i: func [i [integer!]][
+		loop i [prin "  "]
+	]
+
+	prin-operand: func [
+		a		[operand!]
+		/local
+			u	[use!]
+			d	[def!]
+			imm [immediate!]
+			o	[overwrite!]
+	][
+		switch a/header and FFh [
+			OD_USE		[
+				prin "use#"
+				u: as use! a
+				print u/vreg/idx
+			]
+			OD_DEF [
+				prin "def#"
+				d: as def! a
+				print d/vreg/idx
+			]
+			OD_IMM [
+				prin "imm#"
+				imm: as immediate! a
+				prin-token imm/val
+			]
+			OD_OVERWRITE [
+				prin "write #"
+				o: as overwrite! a
+				print o/dst/idx
+				prin " #"
+				print o/src/idx
+			]
+			OD_SCRATCH	[prin "<scratch>"]
+			OD_KILL [0]
+		]
+	]
+
+	print-operands: func [
+		a		[ptr-ptr!]
+		n		[integer!]
+		/local
+			i	[integer!]
+	][
+		i: 0
+		loop n [
+			if i > 0 [prin ", "]
+			prin-operand as operand! a/value
+			a: a + 1
+			i: i + 1
+		]
+	]
+
+	print-op: func [
+		i		[mach-instr!]
+		ident	[integer!]
+		return: [integer!]
+	][
+		do-i ident
+		print ["opcode: " MACH_OPCODE(i) " "]
+		print-operands as ptr-ptr! i + 1 i/num
+		ident
+	]
+
+	print-instr: func [
+		i		[mach-instr!]
+		ident	[integer!]
+		return: [integer!]
+		/local
+			a	[ptr-ptr!]
+			n	[integer!]
+	][
+		n: i/num
+		a: as ptr-ptr! i + 1
+		switch MACH_OPCODE(i) [
+			I_NOP		[do-i ident + 1 prin "nop"]
+			I_BLK_BEG	[do-i ident prin "block begin"]
+			I_BLK_END	[do-i ident prin "block end"]
+			I_END		[do-i ident prin "end"]
+			I_RET		[do-i ident + 1 prin "ret " print-operands a n]
+			default 	[ident: -1 + print-op i ident + 1]
+		]
+		print lf
+		ident
+	]
+
+	print-fn: func [
+		fn		[mach-fn!]
+		/local
+			i	[mach-instr!]
+			ident [integer!]
+	][
+		print-line ["fn " fn]
+		i: fn/code
+		ident: 1
+		while [i <> null][
+			ident: print-instr i ident
+			i: i/next
+		]
+		print lf
+	]
 ]

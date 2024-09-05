@@ -10,13 +10,13 @@ Red/System [
 #define INIT_ARRAY_VALUE(a v) [a/length: 1 a/val-1: as byte-ptr! v]
 #define INIT_ARRAY_2(a v1 v2) [a/length: 2 a/val-1: as byte-ptr! v1 a/val-2: as byte-ptr! v2]
 
-array!: alias struct! [
+rs-array!: alias struct! [
 	length	[integer!]
 	;--data
 ]
 
-#define int-array! array!
-#define ptr-array! array!
+#define int-array! rs-array!
+#define ptr-array! rs-array!
 
 array-1!: alias struct! [		;-- ptr array with one value
 	length	[integer!]
@@ -34,11 +34,11 @@ empty-array: as ptr-array! 0
 int-array: context [
 	make: func [
 		size	[integer!]
-		return: [array!]
+		return: [rs-array!]
 		/local
-			a	[array!]
+			a	[rs-array!]
 	][
-		a: as array! malloc (size * size? integer!) + size? array!
+		a: as rs-array! malloc (size * size? integer!) + size? rs-array!
 		a/length: size
 		a
 	]

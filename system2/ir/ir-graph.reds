@@ -5,19 +5,6 @@ Red/System [
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
-#enum instr-flag! [
-	F_INS_PURE:		1		;-- no side-effects
-	F_INS_KILLED:	2		;-- instruction is dead
-	F_INS_END:		4
-	F_INS_LIVE:		8
-	F_NOT_VOID:		10h		;-- has a value
-	F_FOLDABLE:		20h		;-- constant fold
-	F_COMMUTATIVE:	40h		;-- (x, y) = (y, x)
-	F_ASSOCIATIVE:	80h		;-- ((x, y), z) = (x, (y, z))
-	F_NO_INT_TRUNC: 0100h
-	F_ZERO:			0200h	;-- zero value
-]
-
 ;; /header, opcode: 0 - 7 bits, flags: 8 - 31 bits
 #define IR_NODE_FIELDS(type) [
 	header	[integer!]
@@ -1371,9 +1358,14 @@ ir-graph: context [
 		args	[ptr-array!]
 		ctx		[ssa-ctx!]
 		return: [instr!]
+		/local
+			i flags [integer!]
 	][
 		set-inputs as instr! op args
 		unless ctx/closed? [append as instr! op ctx]
+		i: INSTR_OPCODE(op) + 1
+		flags: instr-flags/i
+		ADD_INS_FLAGS(op flags)
 		as instr! op
 	]
 

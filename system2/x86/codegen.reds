@@ -90,8 +90,8 @@ x86-rscall: context [	;-- red/system internal call-conv!
 		/local
 			spill-start [integer!]
 			n-params	[integer!]
-			param-locs	[array!]
-			ret-locs	[array!]
+			param-locs	[rs-array!]
+			ret-locs	[rs-array!]
 			p			[ptr-ptr!]
 			ploc rloc	[int-ptr!]
 			param		[instr-param!]

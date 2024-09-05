@@ -69,6 +69,86 @@ Red/System [
 	OP_SET_GLOBAL
 ]
 
+#enum instr-flag! [
+	F_INS_PURE:		1		;-- no side-effects
+	F_INS_KILLED:	2		;-- instruction is dead
+	F_INS_END:		4
+	F_INS_LIVE:		8
+	F_NOT_VOID:		10h		;-- has a value
+	F_FOLDABLE:		20h		;-- constant fold
+	F_COMMUTATIVE:	40h		;-- (x, y) = (y, x)
+	F_ASSOCIATIVE:	80h		;-- ((x, y), z) = (x, (y, z))
+	F_NO_INT_TRUNC: 0100h
+	F_ZERO:			0200h	;-- zero value
+]
+
+#define F_PF		21h		;-- F_INS_PURE or F_FOLDABLE
+#define F_PFC		61h		;-- F_PF or F_COMMUTATIVE
+#define F_PFCA		E1h		;-- F_PFC or F_ASSOCIATIVE
+
+instr-flags: [
+	0	;--INS_NEW_VAR
+	0	;--INS_UPDATE_VAR
+	0	;--INS_PARAM
+	0	;--INS_PHI
+	0	;--INS_CONST
+	0	;--INS_IF
+	0	;--INS_SWITCH
+	0	;--INS_GOTO
+	0	;--INS_RETURN
+	0	;--INS_THROW
+
+	F_PFC			;--OP_BOOL_EQ
+	F_PFCA			;--OP_BOOL_AND
+	F_PFCA			;--OP_BOOL_OR
+	F_PF			;--OP_BOOL_NOT
+
+	F_PFCA			;--OP_INT_ADD
+	F_PF			;--OP_INT_SUB
+	F_PFCA			;--OP_INT_MUL
+	F_FOLDABLE		;--OP_INT_DIV
+	F_FOLDABLE		;--OP_INT_MOD
+	F_FOLDABLE		;--OP_INT_REM
+	F_PFCA			;--OP_INT_AND
+	F_PFCA			;--OP_INT_OR
+	F_PFCA			;--OP_INT_XOR
+	F_PF			;--OP_INT_SHL
+	F_PF			;--OP_INT_SAR
+	F_PF			;--OP_INT_SHR
+	F_PFC			;--OP_INT_EQ
+	F_PF			;--OP_INT_NE
+	F_PF			;--OP_INT_LT
+	F_PF			;--OP_INT_LTEQ
+
+	F_PFCA			;--OP_FLT_ADD
+	F_PF			;--OP_FLT_SUB
+	F_PFCA			;--OP_FLT_MUL
+	F_PF			;--OP_FLT_DIV
+	F_FOLDABLE		;--OP_FLT_MOD
+	F_FOLDABLE		;--OP_FLT_REM
+	F_PF			;--OP_FLT_ABS
+	F_PF			;--OP_FLT_CEIL
+	F_PF			;--OP_FLT_FLOOR
+	F_PF			;--OP_FLT_SQRT
+	0	;--OP_FLT_UNUSED
+	F_PFC			;--OP_FLT_BITEQ
+	F_PFC			;--OP_FLT_EQ
+	F_PF			;--OP_FLT_NE
+	F_PF			;--OP_FLT_LT
+	F_PF			;--OP_FLT_LTEQ
+
+	0	;--OP_INT_CAST
+	0	;--OP_FLOAT_CAST
+	0	;--OP_INT_TO_F
+	0	;--OP_FLT_TO_I
+
+	0	;--OP_DEFAULT_VALUE
+	0	;--OP_CALL_FUNC
+
+	0	;--OP_GET_GLOBAL
+	0	;--OP_SET_GLOBAL
+]
+
 ;-- mach instr opcode
 #define I_ADDD		01h		#define I_ADDQ	11h
 #define I_ORD		02h		#define I_ORQ	12h
@@ -138,6 +218,7 @@ Red/System [
 
 #define I_W_DIFF		10h		;-- I_ADDQ - I_ADDD
 
+#define I_NOP		1000
 #define I_SAVE		1015
 #define I_RESTORE	1016
 #define I_RELOAD	1017
