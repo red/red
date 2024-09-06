@@ -179,6 +179,7 @@ Red [
 	--test-- "make19"	--assert error? try [make date! [32 1 2]]
 	--test-- "make20"	--assert error? try [make date! [99 1 2]]
 	--test-- "make21"	--assert 2-Jan-0100				  = make date! [100 1 2]
+	--test-- "make22"	--assert 1-Jan-2024/0:00:00.1	  = make date! [2024 1 1 0 0 0.1]
 	
 ===end-group===
 

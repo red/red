@@ -686,7 +686,7 @@ date: context [
 						]
 						TYPE_FLOAT [
 							fl: as red-float! v
-							i: as-integer fl/value
+							either cnt = 5 [t: fl/value][i: as-integer fl/value]
 						]
 						TYPE_TIME [
 							if cnt < 3 [throw-error spec]
