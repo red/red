@@ -215,6 +215,7 @@ fn!: alias struct! [
 	body		[red-block!]
 	locals		[var-decl!]
 	ir			[ir-fn!]
+	cc			[call-conv!]
 ]
 
 fn-call!: alias struct! [

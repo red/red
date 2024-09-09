@@ -61,12 +61,24 @@ Red/System [
 	OP_INT_TO_F
 	OP_FLT_TO_I
 
+	OP_PTR_ADD
+	OP_PTR_SUB
+	OP_PTR_EQ
+	OP_PTR_LT
+	OP_PTR_LTEQ
+	OP_PTR_CAS		;-- compare and swap
+	OP_PTR_LOAD
+	OP_PTR_STORE
+	
 	OP_DEFAULT_VALUE
 	
 	OP_CALL_FUNC
 
 	OP_GET_GLOBAL
 	OP_SET_GLOBAL
+
+	OP_CPU_IP		;-- get instruction pointer
+	OP_CPU_SP		;-- get stack pointer
 ]
 
 #enum instr-flag! [
@@ -142,11 +154,23 @@ instr-flags: [
 	0	;--OP_INT_TO_F
 	0	;--OP_FLT_TO_I
 
+	0	;--OP_PTR_ADD
+	0	;--OP_PTR_SUB
+	0	;--OP_PTR_EQ
+	0	;--OP_PTR_LT
+	0	;--OP_PTR_LTEQ
+	0	;--OP_PTR_CAS
+	0	;--OP_PTR_LOAD
+	0	;--OP_PTR_STORE
+	
 	0	;--OP_DEFAULT_VALUE
 	0	;--OP_CALL_FUNC
 
 	0	;--OP_GET_GLOBAL
 	0	;--OP_SET_GLOBAL
+
+	0	;-- OP_CPU_IP
+	0	;-- OP_CPU_SP
 ]
 
 ;-- mach instr opcode

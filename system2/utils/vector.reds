@@ -134,6 +134,17 @@ vector: context [
 		p/value: val
 	]
 
+	pop-last-ptr: func [
+		vec		[vector!]
+		return: [int-ptr!]
+		/local
+			p	[ptr-ptr!]
+	][
+		vec/length: vec/length - 1
+		p: (as ptr-ptr! vec/data) + vec/length
+		p/value
+	]
+
 	destroy: func [
 		vec		[vector!]
 	][

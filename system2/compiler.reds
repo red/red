@@ -136,6 +136,10 @@ compiler: context [
 		alloc-regs: as fn-alloc-regs! 0
 		make-frame: as fn-make-frame! 0
 		gen-op:		as fn-generate! 0
+		gen-if:		as fn-generate! 0
+		gen-switch:	as fn-generate! 0
+		gen-goto:	as fn-generate! 0
+		gen-throw:	as fn-generate! 0
 	]
 
 	_mempool: as mempool! 0
@@ -336,7 +340,7 @@ compiler: context [
 
 		init-target job
 
-		fn/token: null
+		set-memory as byte-ptr! :fn null-byte size? fn!
 		fn/body: src
 		fn/type: as rst-type! op-cache/void-op
 		ctx: comp-fn :fn null null
@@ -344,9 +348,11 @@ compiler: context [
 	]
 
 	init-target: func [job [red-object!]][
+		backend/x86-cond/init
 		target/int-type: type-system/get-int-type target/int-width false
 		target/make-frame: :backend/x86-make-frame
 		target/gen-op: as fn-generate! :backend/x86-gen-op
+		target/gen-if: as fn-generate! :backend/x86-gen-if
 	]
 
 	init: does [

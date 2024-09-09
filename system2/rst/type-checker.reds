@@ -116,7 +116,7 @@ type-checker: context [
 		ft/param-types: pt
 		v: ft/params
 		while [v <> null][
-			pt/value: as int-ptr! fetch-type v/typeref ctx
+			pt/value: as int-ptr! infer-type v ctx
 			v: v/next
 			pt: pt + 1
 		]

@@ -28,6 +28,8 @@ fn-generate!: alias function! [cg [codegen!] blk [basic-block!] i [instr!]]
 	OD_IMM
 	OD_SCRATCH
 	OD_KILL
+	OD_LABEL
+	OD_LIVEPOINT
 	OD_OVERWRITE
 ]
 
@@ -47,9 +49,22 @@ def!: alias struct! [
 	constraint	[integer!]
 ]
 
+label!: alias struct! [
+	OPERAND_HEADER
+	block		[basic-block!]
+	pos			[integer!]
+	refs		[list!]		;-- list<int>
+]
+
 immediate!: alias struct! [
 	OPERAND_HEADER
 	val			[cell!]
+]
+
+livepoint!: alias struct! [
+	OPERAND_HEADER
+	livepoint	[integer!]
+	cc			[call-conv!]
 ]
 
 scratch!: alias struct! [
@@ -113,7 +128,7 @@ vreg!: alias struct! [			;-- virtual register
 reg-set!: alias struct! [		;-- register set
 	n-regs		[integer!]		;-- number of physical registers
 	regs		[ptr-array!]	;-- array<array<int>>: registers in each set
-	regs-cls	[rs-array!]		;-- array<int>: registers in each class
+	regs-cls	[int-ptr!]		;-- array<int>: registers in each class
 	scratch		[rs-array!]		;-- array<int>: scratch registers in each class
 	spill-start	[integer!]
 ]
@@ -151,6 +166,7 @@ codegen!: alias struct! [
 	reg-set		[reg-set!]
 	ssa-ctx		[ssa-ctx!]
 	liveness	[bit-table!]
+	livepoints	[integer!]
 	m			[instr-matcher!]
 ]
 
@@ -166,7 +182,7 @@ block-info!: alias struct! [
 	block		[basic-block!]
 	start		[integer!]
 	end			[integer!]
-	label		[integer!]
+	label		[label!]
 	loop-info	[loop-info!]
 ]
 
@@ -180,6 +196,18 @@ rpo!: alias struct! [
 	loop-headers [ptr-array!]
 	bitmap		 [bit-table!]
 	start-bb	 [basic-block!]
+]
+
+make-label: func [
+	blk		[basic-block!]
+	return: [label!]
+	/local
+		l	[label!]
+][
+	l: xmalloc(label!)
+	l/header: od_label
+	l/block: blk
+	l
 ]
 
 rpo: context [
@@ -211,6 +239,7 @@ rpo: context [
 		b/block: bb
 		b/start: -1
 		b/end: -1
+		b/label: make-label bb
 		b
 	]
 
@@ -515,15 +544,25 @@ rpo: context [
 	]
 ]
 
-backend: context [
+#define CALLER_SPILL_BASE	100000000
+#define CALLEE_SPILL_BASE	200000000
 
+#define put-operand(o) [
+	vector/append-ptr cg/operands as byte-ptr! o
+]
+
+directly-after?: func [ ;-- b directly after a?
+	a	[basic-block!]
+	b	[basic-block!]
+	return: [logic!]
+][
+	a/mark + 1 = b/mark
+]
+
+backend: context [
 	int-imm-caches: as ptr-array! 0
 
 	#include %x86/codegen.reds
-
-	#define put-operand(o) [
-		vector/append-ptr cg/operands as byte-ptr! o
-	]
 
 	init: func [
 		/local
@@ -538,6 +577,68 @@ backend: context [
 			p: p + 1
 			i: i + 1
 		]
+	]
+
+	#define CALC_REG_INDEX(base) [
+		either idx <= cc/reg-set/n-regs [idx][
+			idx - cc/reg-set/spill-start + base
+		]
+	]
+
+	caller-param: func [
+		cc		[call-conv!]
+		i		[integer!]
+		return: [integer!]
+		/local
+			p	[int-ptr!]
+			idx [integer!]
+	][
+		p: as int-ptr! ARRAY_DATA(cc/param-locs)
+		p: p + i
+		idx: p/value
+		CALC_REG_INDEX(CALLER_SPILL_BASE)
+	]
+
+	caller-ret: func [
+		cc		[call-conv!]
+		i		[integer!]
+		return: [integer!]
+		/local
+			p	[int-ptr!]
+			idx [integer!]
+	][
+		p: as int-ptr! ARRAY_DATA(cc/ret-locs)
+		p: p + i
+		idx: p/value
+		CALC_REG_INDEX(CALLER_SPILL_BASE)
+	]
+
+	callee-param: func [
+		cc		[call-conv!]
+		i		[integer!]
+		return: [integer!]
+		/local
+			p	[int-ptr!]
+			idx [integer!]
+	][
+		p: as int-ptr! ARRAY_DATA(cc/param-locs)
+		p: p + i
+		idx: p/value
+		CALC_REG_INDEX(CALLEE_SPILL_BASE)
+	]
+
+	callee-ret: func [
+		cc		[call-conv!]
+		i		[integer!]
+		return: [integer!]		;-- reg idx or slot idx
+		/local
+			p	[int-ptr!]
+			idx [integer!]
+	][
+		p: as int-ptr! ARRAY_DATA(cc/ret-locs)
+		p: p + i
+		idx: p/value
+		CALC_REG_INDEX(CALLEE_SPILL_BASE)
 	]
 
 	reg-class?: func [
@@ -591,6 +692,20 @@ backend: context [
 		x
 	]
 
+	make-def: func [
+		reg		[vreg!]
+		c		[integer!]
+		return: [def!]
+		/local
+			d	[def!]
+	][
+		d: xmalloc(def!)
+		d/header: OD_DEF
+		d/vreg: reg
+		d/constraint: c
+		d
+	]
+
 	make-use: func [
 		reg		[vreg!]
 		c		[integer!]
@@ -621,6 +736,32 @@ backend: context [
 		i
 	]
 
+	kill: func [
+		cg		[codegen!]
+		c		[integer!]
+		/local
+			k	[kill!]
+	][
+		k: xmalloc(kill!)
+		k/header: OD_KILL
+		k/constraint: c
+		vector/append-ptr cg/operands as byte-ptr! k
+	]
+
+	live-point: func [
+		cg		[codegen!]
+		cc		[call-conv!]
+		/local
+			l	[livepoint!]
+	][
+		l: xmalloc(livepoint!)
+		l/header: OD_LIVEPOINT
+		l/livepoint: cg/livepoints
+		l/cc: cc
+		cg/livepoints: cg/livepoints + 1
+		vector/append-ptr cg/operands as byte-ptr! l
+	]
+
 	overwrite-reg: func [
 		cg		[codegen!]
 		dst		[instr!]
@@ -629,16 +770,42 @@ backend: context [
 			dreg [vreg!]
 			sreg [vreg!]
 			o	 [overwrite!]
+			p	 [int-ptr!]
 	][
 		dreg: get-vreg cg dst
 		assert dreg <> null
 		sreg: get-vreg cg src
 		assert sreg <> null
 		update-usage sreg
-		vector/append-ptr cg/operands as byte-ptr! make-overwrite dreg sreg 0
+		p: cg/reg-set/regs-cls + dreg/reg-class
+		vector/append-ptr cg/operands as byte-ptr! make-overwrite dreg sreg p/value
 	]
 
-	use-reg: func [
+	def-reg-fixed: func [
+		cg			[codegen!]
+		i			[instr!]
+		constraint	[integer!]
+		/local
+			v		[vreg!]
+	][
+		v: get-vreg cg i
+		if constraint < cg/reg-set/n-regs [v/hint: constraint]
+		vector/append-ptr cg/operands as byte-ptr! make-def v constraint
+	]
+
+	def-reg: func [
+		cg		[codegen!]
+		i		[instr!]
+		/local
+			v	[vreg!]
+			p	[int-ptr!]
+	][
+		v: get-vreg cg i
+		p: cg/reg-set/regs-cls + v/reg-class	;-- any regs in this class
+		vector/append-ptr cg/operands as byte-ptr! make-def v p/value
+	]
+
+	use-i: func [
 		cg		[codegen!]
 		i		[instr!]
 		/local
@@ -647,6 +814,41 @@ backend: context [
 		v: get-vreg cg i
 		update-usage v
 		vector/append-ptr cg/operands as byte-ptr! make-use v 0
+	]
+
+	use-reg: func [
+		cg		[codegen!]
+		i		[instr!]
+		/local
+			v	[vreg!]
+			p	[int-ptr!]
+	][
+		v: get-vreg cg i
+		update-usage v
+		p: cg/reg-set/regs-cls + v/reg-class	;-- any regs in this class
+		vector/append-ptr cg/operands as byte-ptr! make-use v p/value
+	]
+
+	use-reg-fixed: func [
+		cg		[codegen!]
+		i		[instr!]
+		c		[integer!]
+		/local
+			v	[vreg!]
+	][
+		v: get-vreg cg i
+		update-usage v
+		vector/append-ptr cg/operands as byte-ptr! make-use v c
+	]
+
+	use-label: func [
+		cg		[codegen!]
+		blk		[basic-block!]
+		/local
+			bi	[block-info!]
+	][
+		bi: as block-info! vector/pick-ptr cg/blocks blk/mark
+		vector/append-ptr cg/operands as byte-ptr! bi/label
 	]
 
 	use-imm: func [
@@ -659,6 +861,18 @@ backend: context [
 		i/header: OD_IMM
 		i/val: val
 		vector/append-ptr cg/operands as byte-ptr! i	
+	]
+
+	use-ptr: func [
+		cg		[codegen!]
+		p		[int-ptr!]
+		/local
+			f	[red-function!]
+	][
+		f: xmalloc(red-function!)
+		f/header: TYPE_FUNCTION
+		f/spec: p
+		use-imm cg as cell! f
 	]
 
 	use-imm-int: func [
@@ -838,14 +1052,12 @@ backend: context [
 		i			[instr!]
 	][
 		switch INSTR_OPCODE(i) [
-			INS_IF
+			INS_IF		[target/gen-if cg blk i]
 			INS_GOTO
 			INS_RETURN
 			INS_SWITCH
-			INS_THROW [0]
-			default [
-				target/gen-op cg blk i
-			]
+			INS_THROW	[0]
+			default		[target/gen-op cg blk i]
 		]
 	]
 
@@ -867,6 +1079,7 @@ backend: context [
 		]
 
 		;-- select instr in reverse order
+		use-label cg blk
 		emit-instr cg I_BLK_END
 		cg/cur-i: cg/first-i			;-- set cur-i to head
 		i: blk/prev
@@ -876,6 +1089,7 @@ backend: context [
 			cg/cur-i: cg/first-i
 			i: i/prev
 		]
+		use-label cg blk
 		emit-instr cg I_BLK_BEG
 		cg/cur-i: cg/first-i
 	]
@@ -960,6 +1174,7 @@ backend: context [
 			d	[def!]
 			imm [immediate!]
 			o	[overwrite!]
+			l	[label!]
 	][
 		switch a/header and FFh [
 			OD_USE		[
@@ -984,8 +1199,13 @@ backend: context [
 				prin " #"
 				print o/src/idx
 			]
+			OD_KILL [prin "kill"]
+			OD_LABEL [
+				l: as label! a
+				print ["block#" l/block]
+			]
+			OD_LIVEPOINT [prin "livepoint"]
 			OD_SCRATCH	[prin "<scratch>"]
-			OD_KILL [0]
 		]
 	]
 
@@ -1027,8 +1247,15 @@ backend: context [
 		a: as ptr-ptr! i + 1
 		switch MACH_OPCODE(i) [
 			I_NOP		[do-i ident + 1 prin "nop"]
-			I_BLK_BEG	[do-i ident prin "block begin"]
-			I_BLK_END	[do-i ident prin "block end"]
+			I_BLK_BEG	[
+				do-i ident prin "begin "
+				print-operands a n
+			]
+			I_BLK_END	[
+				do-i ident prin "end "
+				print-operands a n
+				print lf
+			]
 			I_END		[do-i ident prin "end"]
 			I_RET		[do-i ident + 1 prin "ret " print-operands a n]
 			default 	[ident: -1 + print-op i ident + 1]

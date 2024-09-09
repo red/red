@@ -66,9 +66,6 @@ instr-goto!: alias struct! [
 instr-if!: alias struct! [
 	IR_INSTR_FIELDS(instr!)
 	succs	[ptr-array!]
-	cond	[instr!]
-	t-blk	[basic-block!]
-	f-blk	[basic-block!]
 ]
 
 instr-const!: alias struct! [
@@ -117,6 +114,7 @@ basic-block!: alias struct! [
 ]
 
 ir-fn!: alias struct! [
+	mark		[integer!]		;-- mark generation
 	params		[ptr-array!]	;-- array of instr-param!
 	param-types	[ptr-ptr!]
 	ret-type	[rst-type!]
@@ -124,7 +122,7 @@ ir-fn!: alias struct! [
 	const-idx	[integer!]
 	const-vals	[ptr-array!]	;-- array<instr-const!>
 	const-map	[int-ptr!]
-	mark		[integer!]		;-- mark generation
+	fn			[fn!]
 ]
 
 ir-module!: alias struct! [
@@ -150,6 +148,18 @@ ssa-ctx!: alias struct! [
 	loop-start	[ssa-merge!]
 	loop-end	[ssa-merge!]
 	closed?		[logic!]			;-- block closed by exit, return, break, continue or goto
+]
+
+input0: func [
+	i		[instr!]
+	return: [instr!]
+	/local
+		p	[ptr-ptr!]
+		e	[df-edge!]
+][
+	p: ARRAY_DATA(i/inputs)
+	e: as df-edge! p/value
+	e/dst
 ]
 
 make-ssa-var: func [
@@ -587,6 +597,7 @@ ir-graph: context [
 			ins		[instr!]
 	][
 		ir: as ir-fn! malloc size? ir-fn!
+		ir/fn: fn
 		ir/start-bb: make-bb
 		ir/const-idx: N_COMMON_CONST
 		ctx/graph: ir
@@ -1294,9 +1305,6 @@ ir-graph: context [
 	][
 		i: as instr-if! malloc size? instr-if!
 		i/header: F_INS_END << 8 or INS_IF
-		i/cond: cond
-		i/t-blk: t-blk
-		i/f-blk: f-blk
 
 		INIT_ARRAY_VALUE(arr cond)
 		set-inputs as instr! i as ptr-array! :arr
@@ -1502,6 +1510,8 @@ ir-graph: context [
 			decls	[int-ptr!]
 			val		[instr!]
 	][
+		assert fn/ir = null
+
 		init-ssa-ctx :ssa-ctx null ctx/n-ssa-vars null
 		graph: make-ir-fn fn :ssa-ctx
 
