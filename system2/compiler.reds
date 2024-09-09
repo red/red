@@ -353,6 +353,7 @@ compiler: context [
 		target/make-frame: :backend/x86-make-frame
 		target/gen-op: as fn-generate! :backend/x86-gen-op
 		target/gen-if: as fn-generate! :backend/x86-gen-if
+		target/gen-goto: as fn-generate! :backend/x86-gen-goto
 	]
 
 	init: does [

@@ -31,7 +31,7 @@ Red/System [
 cf-edge!: alias struct! [
 	src		[instr-end!]
 	dst		[basic-block!]
-	dst-idx [integer!]
+	dst-idx [integer!]		;-- idx of this edge in dst's preds array
 ]
 
 ;; a data flow edge
@@ -158,6 +158,19 @@ input0: func [
 		e	[df-edge!]
 ][
 	p: ARRAY_DATA(i/inputs)
+	e: as df-edge! p/value
+	e/dst
+]
+
+instr-input: func [
+	i		[instr!]
+	idx		[integer!]
+	return: [instr!]
+	/local
+		p	[ptr-ptr!]
+		e	[df-edge!]
+][
+	p: ARRAY_DATA(i/inputs) + idx
 	e: as df-edge! p/value
 	e/dst
 ]

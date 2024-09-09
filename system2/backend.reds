@@ -805,6 +805,17 @@ backend: context [
 		vector/append-ptr cg/operands as byte-ptr! make-def v p/value
 	]
 
+	def-i: func [
+		cg		[codegen!]
+		i		[instr!]
+		/local
+			v	[vreg!]
+			p	[int-ptr!]
+	][
+		v: get-vreg cg i
+		vector/append-ptr cg/operands as byte-ptr! make-def v 0
+	]
+
 	use-i: func [
 		cg		[codegen!]
 		i		[instr!]
@@ -1046,15 +1057,62 @@ backend: context [
 		]
 	]
 
+	gen-phi-moves: func [
+		cg		[codegen!]
+		edge	[cf-edge!]
+		/local
+			i	[instr!]
+			idx [integer!]
+	][
+		idx: edge/dst-idx
+		i: edge/dst/next
+		while [INSTR_PHI?(i)][
+			def-i cg i
+			use-i cg instr-input i idx
+			i: i/next
+		]
+		emit-instr cg I_PMOVE
+	]
+
+	gen-return: func [
+		cg		[codegen!]
+		blk		[basic-block!]
+		i		[instr!]
+		/local
+			n	[integer!]
+			p	[ptr-ptr!]
+			e	[df-edge!]
+			cc	[call-conv!]
+	][
+		cc: cg/frame/cc
+		n: 0
+		p: ARRAY_DATA(i/inputs)
+		loop i/inputs/length [
+			e: as df-edge! p/value
+			use-reg-fixed cg e/dst caller-ret cc n
+			p: p + 1
+			n: n + 1
+		]
+		emit-instr cg I_RET
+	]
+
 	select-instr: func [
 		cg			[codegen!]
 		blk			[basic-block!]
 		i			[instr!]
+		/local
+			g		[instr-goto!]
+			p		[ptr-ptr!]
 	][
 		switch INSTR_OPCODE(i) [
 			INS_IF		[target/gen-if cg blk i]
-			INS_GOTO
-			INS_RETURN
+			INS_GOTO	[
+				g: as instr-goto! i
+				p: ARRAY_DATA(g/succs)
+				gen-phi-moves cg as cf-edge! p/value
+				target/gen-goto cg blk i
+			]
+			INS_RETURN	[gen-return cg blk i]
 			INS_SWITCH
 			INS_THROW	[0]
 			default		[target/gen-op cg blk i]
@@ -1113,10 +1171,45 @@ backend: context [
 		]
 	]
 
+	instr-live?: func [
+		cg		[codegen!]
+		i		[instr!]
+		blk		[basic-block!]
+		return: [logic!]
+	][
+		assert i/mark < cg/fn/mark
+
+		either i/mark <= cg/mark [false][
+			bit-table/pick cg/liveness blk/mark i/mark - cg/mark
+		]
+	]
+
 	gen-params: func [
 		cg		[codegen!]
+		blk		[basic-block!]
+		/local
+			arr [ptr-array!]
+			pp	[ptr-ptr!]
+			i	[instr!]
+			n	[integer!]
+			idx [integer!]
+			v	[vreg!]
 	][
-		
+		arr: cg/fn/params
+		pp: ARRAY_DATA(arr)
+		n: 0
+		loop arr/length [
+			i: as instr! pp/value
+			if instr-live? cg i blk [
+				v: get-vreg cg i
+				idx: caller-param cg/frame/cc n
+				def-reg-fixed cg i idx
+				if idx >= cg/reg-set/spill-start [v/spill: idx]
+			]
+			n: n + 1
+			pp: pp + 1
+		]
+		emit-instr cg I_ENTRY
 	]
 
 	gen-instrs: func [
@@ -1141,7 +1234,8 @@ backend: context [
 			gather-liveness cg blk
 			select-instrs cg blk
 		]
-		gen-params cg
+		gen-params cg blk
+		cg/cur-i: cg/first-i
 	]
 
 	generate: func [
@@ -1258,6 +1352,19 @@ backend: context [
 			]
 			I_END		[do-i ident prin "end"]
 			I_RET		[do-i ident + 1 prin "ret " print-operands a n]
+			I_PMOVE		[
+				do-i ident + 1 prin "parallel move"
+				n: n / 2
+				loop n [
+					print lf
+					do-i ident + 2
+					prin-operand as operand! a/value
+					prin " <- "
+					a: a + 1
+					prin-operand as operand! a/value
+					a: a + 1
+				]
+			]
 			default 	[ident: -1 + print-op i ident + 1]
 		]
 		print lf

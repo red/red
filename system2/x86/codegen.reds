@@ -539,6 +539,25 @@ emit-cond: func [
 	emit-instr cg I_JC or M_FLAG_FIXED or (cond/index << COND_SHIFT)
 ]
 
+x86-gen-goto: func [
+	cg		[codegen!]
+	blk		[basic-block!]
+	i		[instr-goto!]
+	/local
+		p	[ptr-ptr!]
+		e	[cf-edge!]
+		t	[basic-block!]
+][
+	p: ARRAY_DATA(i/succs)
+	e: as cf-edge! p/value
+	t: e/dst
+
+	unless directly-after? blk t [
+		use-label cg t
+		emit-instr cg I_JMP
+	]
+]
+
 x86-gen-if: func [
 	cg		[codegen!]
 	blk		[basic-block!]
@@ -572,7 +591,7 @@ x86-gen-if: func [
 			fallthru: s0
 			conds: x86-cond/pair-neg conds
 		]
-		true [		;-- it's an `either` statement
+		true [
 			target: s0
 			jmp: s1
 		]
