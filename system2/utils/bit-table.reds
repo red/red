@@ -176,4 +176,41 @@ bit-table: context [
 		free as byte-ptr! b/bits
 		free as byte-ptr! b
 	]
+
+	render-row: func [
+		b	[bit-table!]
+		row [integer!]
+		/local
+			i	[integer!]
+			end [integer!]
+			n	[integer!]
+			p	[int-ptr!]
+	][
+		print [row ": "]
+		i: row * b/width
+		end: i + b/width
+		while [i < end][
+			p: b/bits + i
+			n: p/value
+			loop 32 [
+				print n and 1
+				n: n >> 1
+			]
+			prin " "
+			i: i + 1
+		]
+		print lf
+	]
+
+	render: func [
+		b	[bit-table!]
+		/local
+			i	[integer!]
+	][
+		i: 0
+		while [i < b/rows][
+			render-row b i
+			i: i + 1
+		]
+	]
 ]

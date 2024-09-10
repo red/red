@@ -63,7 +63,7 @@ immediate!: alias struct! [
 
 livepoint!: alias struct! [
 	OPERAND_HEADER
-	livepoint	[integer!]
+	index		[integer!]
 	cc			[call-conv!]
 ]
 
@@ -150,24 +150,26 @@ frame!: alias struct! [
 ]
 
 codegen!: alias struct! [
-	mark		[integer!]
-	operands	[vector!]		;-- vector<operand!>
-	vregs		[vector!]		;-- vector<vreg!>
-	blocks		[vector!]		;-- vector<block-info!>
-	instrs		[vector!]		;-- vector<mach-instr!>
-	first-i		[mach-instr!]
-	last-i		[mach-instr!]
-	end-i		[mach-instr!]
-	cur-i		[mach-instr!]
-	cur-blk		[basic-block!]
-	frame		[frame!]
-	rpo			[rpo!]
-	fn			[ir-fn!]
-	reg-set		[reg-set!]
-	ssa-ctx		[ssa-ctx!]
-	liveness	[bit-table!]
-	livepoints	[integer!]
-	m			[instr-matcher!]
+	mark				[integer!]
+	operands			[vector!]		;-- vector<operand!>
+	vregs				[vector!]		;-- vector<vreg!>
+	blocks				[vector!]		;-- vector<block-info!>
+	instrs				[vector!]		;-- vector<mach-instr!>
+	first-i				[mach-instr!]
+	last-i				[mach-instr!]
+	end-i				[mach-instr!]
+	cur-i				[mach-instr!]
+	cur-blk				[basic-block!]
+	frame				[frame!]
+	rpo					[rpo!]
+	fn					[ir-fn!]
+	reg-set				[reg-set!]
+	ssa-ctx				[ssa-ctx!]
+	liveness			[bit-table!]
+	nlivepoints			[integer!]
+	livepoints			[vector!]		;-- vector<(basic-block!, instr!, livepoint!)>
+	compute-liveness?	[logic!]
+	m					[instr-matcher!]
 ]
 
 loop-info!: alias struct! [
@@ -756,9 +758,9 @@ backend: context [
 	][
 		l: xmalloc(livepoint!)
 		l/header: OD_LIVEPOINT
-		l/livepoint: cg/livepoints
+		l/index: cg/nlivepoints
 		l/cc: cc
-		cg/livepoints: cg/livepoints + 1
+		cg/nlivepoints: cg/nlivepoints + 1
 		vector/append-ptr cg/operands as byte-ptr! l
 	]
 
@@ -938,6 +940,60 @@ backend: context [
 			cg/first-i: i
 		]
 		cur/prev: i
+
+		if cg/compute-liveness? [update-liveness cg i]
+	]
+
+	update-liveness: func [
+		cg		[codegen!]
+		i		[mach-instr!]
+		/local
+			row	[integer!]
+			p	[ptr-ptr!]
+			o	[operand!]
+			d	[def!]
+			u	[use!]
+			w	[overwrite!]
+			lp	[livepoint!]
+			idx [integer!]
+			lv	[bit-table!]
+			v	[vector!]
+	][
+		row: either cg/cur-blk <> null [cg/cur-blk/mark][0]
+		p: as ptr-ptr! i + 1
+		lv: cg/liveness
+		loop i/num [
+			o: as operand! p/value
+			switch o/header and FFh [
+				OD_DEF [
+					d: as def! o
+					bit-table/clear lv row d/vreg/idx
+				]
+				OD_USE		[
+					u: as use! o
+					bit-table/set lv row u/vreg/idx
+				]
+				OD_OVERWRITE [
+					w: as overwrite! o
+					bit-table/clear lv row w/dst/idx
+					bit-table/set lv row w/src/idx
+				]
+				OD_LIVEPOINT [
+					lp: as livepoint! o
+					if lp/index >= 0 [
+						idx: cg/blocks/length + lp/index
+						bit-table/grow-row lv idx + 1
+						bit-table/or-rows lv idx row
+						v: cg/livepoints
+						vector/append-ptr v as byte-ptr! cg/cur-blk
+						vector/append-ptr v as byte-ptr! i
+						vector/append-ptr v as byte-ptr! o
+					]
+				]
+				default [0]
+			]
+			p: p + 1
+		]
 	]
 
 	make-codegen: func [
@@ -958,6 +1014,8 @@ backend: context [
 		cg/instrs: ptr-vector/make rpo/blocks/length
 		cg/liveness: bit-table/make rpo/blocks/length 32
 		cg/reg-set: frame/cc/reg-set
+		cg/livepoints: ptr-vector/make 6
+		cg/compute-liveness?: yes
 		cg/m: matcher/make
 		cg/mark: fn/mark
 		fn/mark: fn/mark + 1
@@ -1064,10 +1122,15 @@ backend: context [
 			i	[instr!]
 			idx [integer!]
 	][
-		idx: edge/dst-idx
 		i: edge/dst/next
 		while [INSTR_PHI?(i)][
 			def-i cg i
+			i: i/next
+		]
+
+		idx: edge/dst-idx
+		i: edge/dst/next
+		while [INSTR_PHI?(i)][
 			use-i cg instr-input i idx
 			i: i/next
 		]
@@ -1212,6 +1275,48 @@ backend: context [
 		emit-instr cg I_ENTRY
 	]
 
+	process-loop-liveness: func [
+		cg		[codegen!]
+		info	[block-info!]
+		/local
+			end	[integer!]
+			p	[ptr-ptr!]
+			len [integer!]
+			i	[integer!]
+			blk [basic-block!]
+			lv	[livepoint!]
+			tbl [bit-table!]
+			v	[vector!]
+			nblk [integer!]
+			cur-mark [integer!]
+			cur-blk [basic-block!]
+	][
+		nblk: cg/blocks/length
+		cur-blk: info/block
+		cur-mark: cur-blk/mark
+		end: info/loop-info/end
+		tbl: cg/liveness
+		v: cg/livepoints
+		p: as ptr-ptr! ptr-vector/tail v
+		len: v/length / 3
+		loop len [
+			p: p - 1
+			lv: as livepoint! p/value
+			p: p - 2
+			blk: as basic-block! p/value
+
+			if blk/mark >= end [break]
+			bit-table/or-rows tbl nblk + lv/index cur-mark
+		]
+
+		;-- propagate the liveness to all blocks in this loop
+		i: cur-mark + 1
+		while [i < end][
+			bit-table/or-rows tbl i cur-mark
+			i: i + 1
+		]
+	]
+
 	gen-instrs: func [
 		cg		[codegen!]
 		/local
@@ -1223,18 +1328,25 @@ backend: context [
 	][
 		cg/cur-i: make-instr I_END empty-array
 		cg/last-i: cg/cur-i
+		;bit-table/render cg/liveness
 
 		p: VECTOR_DATA(cg/blocks)
 		len: cg/blocks/length
 		p: p + len
-		loop len [
+		while [len > 0][
+			len: len - 1
 			p: p - 1
 			info: as block-info! p/value
 			blk: info/block
 			gather-liveness cg blk
 			select-instrs cg blk
+			if info/loop-info <> null [
+				process-loop-liveness cg info
+			]
+			vector/poke-ptr cg/instrs len as int-ptr! cg/first-i
 		]
 		gen-params cg blk
+		;bit-table/render cg/liveness
 		cg/cur-i: cg/first-i
 	]
 
@@ -1334,7 +1446,7 @@ backend: context [
 		ident	[integer!]
 		return: [integer!]
 		/local
-			a	[ptr-ptr!]
+			a b	[ptr-ptr!]
 			n	[integer!]
 	][
 		n: i/num
@@ -1355,14 +1467,15 @@ backend: context [
 			I_PMOVE		[
 				do-i ident + 1 prin "parallel move"
 				n: n / 2
+				b: a + n
 				loop n [
 					print lf
 					do-i ident + 2
 					prin-operand as operand! a/value
 					prin " <- "
 					a: a + 1
-					prin-operand as operand! a/value
-					a: a + 1
+					prin-operand as operand! b/value
+					b: b + 1
 				]
 			]
 			default 	[ident: -1 + print-op i ident + 1]

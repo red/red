@@ -157,4 +157,10 @@ ptr-vector: context [
 	make: func [size [integer!] return: [vector!]][
 		vector/make size? int-ptr! size
 	]
+
+	tail: func [
+		vec		[vector!]
+	][
+		(as ptr-ptr! vec/data) + vec/length
+	]
 ]
