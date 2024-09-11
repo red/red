@@ -120,6 +120,11 @@ compiler: context [
 	#include %ir/lowering.reds
 	#include %backend.reds
 
+	fn-alloc-regs!: alias function! [codegen [codegen!]]
+	fn-make-frame!: alias function! [ir [ir-fn!] return: [frame!]]
+	fn-generate!: alias function! [cg [codegen!] blk [basic-block!] i [instr!]]
+	fn-insert-instrs!: alias function! [cg [codegen!] v [vreg!] idx [integer!]]
+
 	target: context [
 		addr-width: 32		;-- width of address in bits
 		addr-size: 4		;-- size of address in bytes
@@ -140,6 +145,8 @@ compiler: context [
 		gen-switch:	as fn-generate! 0
 		gen-goto:	as fn-generate! 0
 		gen-throw:	as fn-generate! 0
+		gen-restore-vreg: as fn-insert-instrs! 0
+		gen-save-vreg: as fn-insert-instrs! 0
 	]
 
 	_mempool: as mempool! 0
@@ -354,6 +361,8 @@ compiler: context [
 		target/gen-op: as fn-generate! :backend/x86-gen-op
 		target/gen-if: as fn-generate! :backend/x86-gen-if
 		target/gen-goto: as fn-generate! :backend/x86-gen-goto
+		target/gen-restore-vreg: as fn-insert-instrs! :backend/x86-gen-restore
+		target/gen-save-vreg: as fn-insert-instrs! :backend/x86-gen-save
 	]
 
 	init: does [

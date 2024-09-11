@@ -16,10 +16,6 @@ Red/System [
 #define M_FLAG_READ		40000000h	;-- a read instr
 #define M_FLAG_WRITE	20000000h	;-- a write instr
 
-fn-alloc-regs!: alias function! [codegen [codegen!]]
-fn-make-frame!: alias function! [ir [ir-fn!] return: [frame!]]
-fn-generate!: alias function! [cg [codegen!] blk [basic-block!] i [instr!]]
-
 #define OPERAND_HEADER	[header [integer!]]
 
 #enum operand-kind! [
@@ -123,6 +119,8 @@ vreg!: alias struct! [			;-- virtual register
 	reg			[integer!]
 	reg-class	[reg-class!]
 	usage		[integer!]
+	pmove		[integer!]		;-- parallel move state
+	stack-idx	[integer!]
 ]
 
 reg-set!: alias struct! [		;-- register set
@@ -131,6 +129,7 @@ reg-set!: alias struct! [		;-- register set
 	regs-cls	[int-ptr!]		;-- array<int>: registers in each class
 	scratch		[rs-array!]		;-- array<int>: scratch registers in each class
 	spill-start	[integer!]
+	bitmap		[bit-table!]	;-- bitmap to check if a reg in the reg set
 ]
 
 call-conv!: alias struct! [
@@ -146,7 +145,10 @@ frame!: alias struct! [
 	cc			[call-conv!]
 	align		[integer!]
 	slot-size	[integer!]
-	size		[integer!]
+	size		[integer!]				;-- total frame size
+	spill-vars	[integer!]				;-- spilled variables
+	spill-args	[integer!]				;-- spilled arguments
+	tmp-slot	[integer!]
 ]
 
 codegen!: alias struct! [
@@ -561,10 +563,192 @@ directly-after?: func [ ;-- b directly after a?
 	a/mark + 1 = b/mark
 ]
 
+#define FRAME_SLOT_64	40000000h	;-- flag for a 64-bit stack slot
+
+frame-alloc-slot: func [
+	f		[frame!]
+	cls		[reg-class!]
+	return: [integer!]
+	/local
+		n s flag [integer!]
+][
+	flag: 0
+	n: switch cls [
+		class_i32 class_f32 [1]
+		class_i64 class_f64 [
+			flag: FRAME_SLOT_64
+			2
+		]
+		default [1]
+	]
+	s: f/cc/reg-set/spill-start + f/spill-vars
+	f/spill-vars: f/spill-vars + n
+	s or flag
+]
+
+frame-tmp-slot: func [
+	f		[frame!]
+	cls		[reg-class!]
+	return: [integer!]
+	/local
+		s flag [integer!]
+][
+	flag: either any [cls = class_i64 cls = class_f64][FRAME_SLOT_64][0]
+	if f/tmp-slot < 0 [
+		s: f/cc/reg-set/spill-start + f/spill-vars
+		f/spill-vars: f/spill-vars + 2
+	]
+	f/tmp-slot: s
+	s or flag
+]
+
+frame-slot-64?: func [
+	s		[integer!]
+	return: [logic!]
+][
+	s and FRAME_SLOT_64 <> 0
+]
+
+#define START_INSERTION [
+	saved-i: cg/cur-i
+	compute-lv?: cg/compute-liveness?
+	cg/compute-liveness?: false
+	cg/cur-i: next-i
+]
+
+#define END_INSERTION [
+	cg/compute-liveness?: compute-lv?
+	cg/cur-i: saved-i
+]
+
 backend: context [
 	int-imm-caches: as ptr-array! 0
 
 	#include %x86/codegen.reds
+	#include %reg-alloc.reds
+
+	remove-instr: func [		;-- remove mach-instr! x
+		x		[mach-instr!]
+	][
+		if x/prev <> null [x/prev/next: x/next]
+		if x/next <> null [x/next/prev: x/prev]
+		x/prev: null
+		x/next: null	
+	]
+
+	collect-pmove-dests: func [
+		i		[mach-instr!]
+		dests	[vector!]
+		/local
+			p	[ptr-ptr!]
+			pp	[ptr-ptr!]
+			n	[integer!]
+			d	[def!]
+			l	[list!]
+			u	[use!]
+			v	[vreg!]
+			idx [integer!]
+	][
+		vector/clear dests
+		p: as ptr-ptr! i + 1
+		n: i/num / 2
+		pp: p + n
+		loop n [
+			d: as def! p/value	
+			u: as use! pp/value
+			v: u/vreg
+			either v/pmove <= 0 [
+				v/pmove: dests/length / 2 + 1
+				vector/append-ptr dests as byte-ptr! v
+				vector/append-ptr dests as byte-ptr! make-list as int-ptr! d null
+			][
+				idx: (v/pmove - 1) * 2 + 1
+				l: as list! vector/pick-ptr dests idx	;-- def list
+				vector/poke-ptr dests idx as int-ptr! make-list as int-ptr! d l
+			]
+			p: p + 1
+			pp: pp + 1
+		]
+	]
+
+	insert-restore-vreg: func [
+		cg		[codegen!]
+		v		[vreg!]
+		reg		[integer!]
+		next-i	[mach-instr!]
+		/local
+			saved-i		[mach-instr!]
+			compute-lv?	[logic!]
+	][
+		START_INSERTION
+		target/gen-restore-vreg cg v reg
+		END_INSERTION
+	]
+
+	init-reg-set: func [
+		s		[reg-set!]
+		/local
+			p	[ptr-ptr!]
+			ps	[int-array!]
+			pp	[int-ptr!]
+			i	[integer!]
+			len [integer!]
+			map [bit-table!]
+	][
+		len: s/regs/length
+		map: bit-table/make s/n-regs + 1 len
+		p: ARRAY_DATA(s/regs)
+		i: 0
+		while [i < len][
+			ps: as int-array! p/value
+			if ps <> null [
+				pp: as int-ptr! ARRAY_DATA(ps)
+				loop ps/length [
+					bit-table/set map pp/value i
+					pp: pp + 1
+				]
+			]
+			p: p + 1
+			i: i + 1
+		]
+		s/bitmap: map
+	]
+
+	in-reg-set?: func [
+		s		[reg-set!]
+		reg-idx	[integer!]
+		set-idx	[integer!]
+		return: [logic!]
+	][
+		if any [reg-idx < 1 reg-idx >= s/regs/length][
+			return false
+		]
+		bit-table/pick s/bitmap reg-idx set-idx
+	]
+
+	is-reg?: func [
+		s	[reg-set!]
+		i	[integer!]
+		return: [logic!]
+	][
+		all [i > 0 i <= s/n-regs]
+	]
+
+	is-reg-set?: func [
+		s	[reg-set!]
+		i	[integer!]
+		return: [logic!]
+	][
+		all [i > 0 i <= s/regs/length]
+	]
+	
+	on-stack?: func [
+		s		[reg-set!]
+		i		[integer!]
+		return: [logic!]
+	][
+		i >= s/spill-start
+	]
 
 	init: func [
 		/local
@@ -1090,6 +1274,7 @@ backend: context [
 		v/instr: i
 		v/idx: idx
 		v/reg-class: cls
+		v/stack-idx: -2
 		vector/poke-ptr vregs idx as int-ptr! v
 		if INSTR_OPCODE(i) and INS_CONST <> 0 [
 			v/spill: -2 - idx		;-- use negative spill to mark constants
@@ -1364,6 +1549,7 @@ backend: context [
 		r: rpo/build fn
 		cg: make-codegen fn r frm
 		gen-instrs cg
+		reg-allocator/allocate cg
 		m/code: cg/first-i
 		print-fn m
 		m

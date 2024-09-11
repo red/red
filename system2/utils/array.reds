@@ -42,6 +42,18 @@ int-array: context [
 		a/length: size
 		a
 	]
+
+	pick: func [
+		arr		[int-array!]
+		i		[integer!]	;-- zero-based index
+		return: [integer!]
+		/local
+			p	[int-ptr!]
+	][
+		p: as int-ptr! ARRAY_DATA(arr)
+		p: p + i
+		p/value
+	]
 ]
 
 ptr-array: context [

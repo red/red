@@ -179,12 +179,102 @@ x86-cond: context [
 x86-reg-set: context [
 	reg-set: as reg-set! 0
 
+	a1:  [x86_EAX]
+	a2:  [x86_EBX]
+	a3:  [x86_ECX]
+	a4:  [x86_EDX]
+	a5:  [x86_ESI]
+	a6:  [x86_EDI]
+	a7:  [x86_XMM0]
+	a8:  [x86_XMM1]
+	a9:  [x86_XMM2]
+	a10: [x86_XMM3]
+	a11: [x86_XMM4]
+	a12: [x86_XMM5]
+	a13: [x86_XMM6]
+	a14: [x86_EAX x86_EBX x86_ECX x86_EDX x86_ESI x86_EDI]
+	a15: [x86_EDX x86_ECX x86_EAX x86_EBX]
+	a16: [x86_EAX x86_EDX]
+	a17: [x86_EAX x86_EBX x86_ECX x86_ESI x86_EDI]
+	a18: [x86_EAX x86_EBX x86_EDX x86_ESI x86_EDI]
+	a19: [x86_EAX x86_ECX x86_EDX x86_EBX x86_ESI x86_EDI]
+	a20: [x86_XMM0 x86_XMM1 x86_XMM2 x86_XMM3 x86_XMM4 x86_XMM5 x86_XMM6]
+	a21: [
+		x86_EAX x86_EBX x86_ECX x86_EDX x86_ESI x86_EDI
+		x86_XMM0 x86_XMM1 x86_XMM2 x86_XMM3 x86_XMM4 x86_XMM5 x86_XMM6
+	]
+
+	make-array: func [
+		data	[int-ptr!]
+		len		[integer!]
+		return: [int-array!]
+		/local
+			arr [int-array!]
+			p	[int-ptr!]
+	][
+		arr: int-array/make len
+		p: as int-ptr! ARRAY_DATA(arr)
+		loop len [
+			p/value: data/value
+			p: p + 1
+			data: data + 1
+		]
+		arr
+	]
+
+	sse-reg?: func [
+		i	[integer!]
+	][
+		all [i >= x86_XMM0 i <= x86_XMM7]
+	]
+
 	init: func [/local s [reg-set!] arr [ptr-array!] p pa [ptr-ptr!] pp [int-ptr!]][
 		arr: ptr-array/make x86_REG_ALL + 1
 		p: ARRAY_DATA(arr)
 		pa: p + x86_EAX
+		pa/value: as int-ptr! make-array a1 size? a1
+		pa: p + x86_EBX
+		pa/value: as int-ptr! make-array a2 size? a2
+		pa: p + x86_ECX
+		pa/value: as int-ptr! make-array a3 size? a3
+		pa: p + x86_EDX
+		pa/value: as int-ptr! make-array a4 size? a4
+		pa: p + x86_ESI
+		pa/value: as int-ptr! make-array a5 size? a5
+		pa: p + x86_EDI
+		pa/value: as int-ptr! make-array a6 size? a6
+		pa: p + x86_XMM0
+		pa/value: as int-ptr! make-array a7 size? a7
+		pa: p + x86_XMM1
+		pa/value: as int-ptr! make-array a8 size? a8
+		pa: p + x86_XMM2
+		pa/value: as int-ptr! make-array a9 size? a9
+		pa: p + x86_XMM3
+		pa/value: as int-ptr! make-array a10 size? a10
+		pa: p + x86_XMM4
+		pa/value: as int-ptr! make-array a11 size? a11
+		pa: p + x86_XMM5
+		pa/value: as int-ptr! make-array a12 size? a12
+		pa: p + x86_XMM6
+		pa/value: as int-ptr! make-array a13 size? a13
+		pa: p + x86_GPR
+		pa/value: as int-ptr! make-array a14 size? a14
+		pa: p + x86_BYTE
+		pa/value: as int-ptr! make-array a15 size? a15
+		pa: p + x86_EAX_EDX
+		pa/value: as int-ptr! make-array a16 size? a16
+		pa: p + x86_NOT_EDX
+		pa/value: as int-ptr! make-array a17 size? a17
+		pa: p + x86_NOT_ECX
+		pa/value: as int-ptr! make-array a18 size? a18
+		pa: p + x86_CLS_GPR
+		pa/value: as int-ptr! make-array a19 size? a19
+		pa: p + x86_CLS_SSE
+        pa/value: as int-ptr! make-array a20 size? a20
+		pa: p + x86_REG_ALL
+        pa/value: as int-ptr! make-array a21 size? a21
 
-		s: as reg-set! malloc size? reg-set!
+		s: xmalloc(reg-set!)
 		s/n-regs: 14
 		s/regs: arr
 		s/spill-start: arr/length
@@ -196,6 +286,7 @@ x86-reg-set: context [
 		pp/4: x86_CLS_SSE
 		s/regs-cls: pp
 
+		init-reg-set s
 		reg-set: s
 	]
 ]
@@ -680,5 +771,22 @@ x86-make-frame: func [
 	f/align: target/addr-align
 	f/slot-size: target/addr-size
 	f/size: target/addr-size
+	f/tmp-slot: -1
 	f
+]
+
+x86-gen-restore: func [
+	cg		[codegen!]
+	v		[vreg!]
+	idx		[integer!]
+][
+	
+]
+
+x86-gen-save: func [
+	cg		[codegen!]
+	v		[vreg!]
+	idx		[integer!]
+][
+	
 ]
