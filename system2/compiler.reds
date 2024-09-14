@@ -10,6 +10,10 @@ compiler: context [
 
 	verbose: 3
 
+	;-- used in red cell!
+	#define TYPE_INT64	100
+	#define TYPE_ADDR	101
+
 	#define enter-block(blk) [
 		saved-blk: cur-blk
 		cur-blk: blk
@@ -145,8 +149,8 @@ compiler: context [
 		gen-switch:	as fn-generate! 0
 		gen-goto:	as fn-generate! 0
 		gen-throw:	as fn-generate! 0
-		gen-restore-vreg: as fn-insert-instrs! 0
-		gen-save-vreg: as fn-insert-instrs! 0
+		gen-restore-var: as fn-insert-instrs! 0
+		gen-save-var: as fn-insert-instrs! 0
 	]
 
 	_mempool: as mempool! 0
@@ -361,8 +365,8 @@ compiler: context [
 		target/gen-op: as fn-generate! :backend/x86-gen-op
 		target/gen-if: as fn-generate! :backend/x86-gen-if
 		target/gen-goto: as fn-generate! :backend/x86-gen-goto
-		target/gen-restore-vreg: as fn-insert-instrs! :backend/x86-gen-restore
-		target/gen-save-vreg: as fn-insert-instrs! :backend/x86-gen-save
+		target/gen-restore-var: as fn-insert-instrs! :backend/x86-gen-restore
+		target/gen-save-var: as fn-insert-instrs! :backend/x86-gen-save
 	]
 
 	init: does [

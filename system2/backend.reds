@@ -127,8 +127,11 @@ reg-set!: alias struct! [		;-- register set
 	n-regs		[integer!]		;-- number of physical registers
 	regs		[ptr-array!]	;-- array<array<int>>: registers in each set
 	regs-cls	[int-ptr!]		;-- array<int>: registers in each class
-	scratch		[rs-array!]		;-- array<int>: scratch registers in each class
+	scratch		[integer!]
+	sse-scratch [integer!]
 	spill-start	[integer!]
+	caller-base	[integer!]
+	callee-base	[integer!]
 	bitmap		[bit-table!]	;-- bitmap to check if a reg in the reg set
 ]
 
@@ -555,6 +558,8 @@ rpo: context [
 	vector/append-ptr cg/operands as byte-ptr! o
 ]
 
+#define vreg-const?(v) [v/spill < 0]
+
 directly-after?: func [ ;-- b directly after a?
 	a	[basic-block!]
 	b	[basic-block!]
@@ -671,17 +676,31 @@ backend: context [
 		]
 	]
 
-	insert-restore-vreg: func [
+	insert-restore-var: func [
 		cg		[codegen!]
-		v		[vreg!]
-		reg		[integer!]
+		v		[vreg!]			;-- from
+		reg		[integer!]		;-- to
 		next-i	[mach-instr!]
 		/local
 			saved-i		[mach-instr!]
 			compute-lv?	[logic!]
 	][
 		START_INSERTION
-		target/gen-restore-vreg cg v reg
+		target/gen-restore-var cg v reg
+		END_INSERTION
+	]
+
+	insert-save-var: func [
+		cg		[codegen!]
+		reg		[integer!]		;-- from
+		v		[vreg!]			;-- to
+		next-i	[mach-instr!]
+		/local
+			saved-i		[mach-instr!]
+			compute-lv?	[logic!]
+	][
+		START_INSERTION
+		target/gen-save-var cg v reg
 		END_INSERTION
 	]
 
@@ -711,6 +730,8 @@ backend: context [
 			p: p + 1
 			i: i + 1
 		]
+		s/caller-base: CALLER_SPILL_BASE
+		s/callee-base: CALLEE_SPILL_BASE
 		s/bitmap: map
 	]
 
@@ -748,6 +769,14 @@ backend: context [
 		return: [logic!]
 	][
 		i >= s/spill-start
+	]
+
+	on-caller-stack?: func [
+		i		[integer!]
+		return: [logic!]
+	][
+		i: i and (not FRAME_SLOT_64)
+		all [i >= CALLER_SPILL_BASE i < CALLEE_SPILL_BASE]
 	]
 
 	init: func [
@@ -855,7 +884,7 @@ backend: context [
 	update-usage: func [
 		reg		[vreg!]
 	][
-		if reg/spill < 0 [exit]		;-- constant value
+		if vreg-const?(reg) [exit]		;-- constant value
 		either reg/usage = USAGE_NONE [
 			reg/usage: USAGE_ONCE
 		][
@@ -904,6 +933,18 @@ backend: context [
 		u/vreg: reg
 		u/constraint: c
 		u
+	]
+
+	make-imm: func [
+		val		[cell!]
+		return: [immediate!]
+		/local
+			i	[immediate!]
+	][
+		i: xmalloc(immediate!)
+		i/header: OD_IMM
+		i/val: val
+		i
 	]
 
 	make-imm-int: func [
@@ -1276,7 +1317,7 @@ backend: context [
 		v/reg-class: cls
 		v/stack-idx: -2
 		vector/poke-ptr vregs idx as int-ptr! v
-		if INSTR_OPCODE(i) and INS_CONST <> 0 [
+		if INSTR_CONST?(i) [
 			v/spill: -2 - idx		;-- use negative spill to mark constants
 		]
 		v
@@ -1549,7 +1590,7 @@ backend: context [
 		r: rpo/build fn
 		cg: make-codegen fn r frm
 		gen-instrs cg
-		reg-allocator/allocate cg
+		reg-allocator/alloc cg
 		m/code: cg/first-i
 		print-fn m
 		m
@@ -1567,22 +1608,40 @@ backend: context [
 			imm [immediate!]
 			o	[overwrite!]
 			l	[label!]
+			val [cell!]
+			t	[integer!]
 	][
 		switch a/header and FFh [
 			OD_USE		[
 				prin "use#"
 				u: as use! a
-				print u/vreg/idx
+				either null? u/vreg [
+					prin "null"
+				][
+					print u/vreg/idx
+				]
+				print [":" u/constraint]
 			]
 			OD_DEF [
 				prin "def#"
 				d: as def! a
-				print d/vreg/idx
+				either null? d/vreg [
+					prin "null"
+				][
+					print d/vreg/idx
+				]
+				print [":" d/constraint]
 			]
 			OD_IMM [
 				prin "imm#"
 				imm: as immediate! a
-				prin-token imm/val
+				val: imm/val
+				if val <> null [
+					t: TYPE_OF(val)
+					if any [t = TYPE_INTEGER t = TYPE_FLOAT][
+						prin-token val
+					]
+				]
 			]
 			OD_OVERWRITE [
 				prin "write #"

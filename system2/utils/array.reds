@@ -54,6 +54,18 @@ int-array: context [
 		p: p + i
 		p/value
 	]
+
+	poke: func [
+		arr		[int-array!]
+		i		[integer!]
+		val		[integer!]
+		/local
+			p	[int-ptr!]
+	][
+		p: as int-ptr! ARRAY_DATA(arr)
+		p: p + i
+		p/value: val
+	]
 ]
 
 ptr-array: context [

@@ -28,27 +28,27 @@ Red/System [
 #define x86_CLS_GPR		21
 #define x86_CLS_SSE		22
 #define x86_REG_ALL		23
-#define SCRATCH			x86_EBP
+#define x86_SCRATCH		x86_EBP
 #define SSE_SCRATCH		x86_XMM7
 
 ;-- REG: GPR
 ;-- OP: register or stack
 ;-- XOP: XMM register or stack
-;-- MRRSD: [reg + reg * scale + disp]
+;-- RRSD: [Reg + Reg * Scale + Disp]
 #enum x86-addr-mode! [
 	AM_NONE
 	AM_REG_OP
-	AM_MRRSD_REG
-	AM_MRRSD_IMM
-	AM_REG_MRRSD
+	AM_RRSD_REG
+	AM_RRSD_IMM
+	AM_REG_RRSD
 	AM_OP
 	AM_OP_IMM
 	AM_OP_REG
 	AM_XMM_REG
 	AM_XMM_OP
 	AM_OP_XMM
-	AM_XMM_MRRSD
-	AM_MRRSD_XMM
+	AM_XMM_RRSD
+	AM_RRSD_XMM
 	AM_XMM_IMM 
 	AM_REG_XOP
 	AM_XMM_XMM
@@ -278,6 +278,8 @@ x86-reg-set: context [
 		s/n-regs: 14
 		s/regs: arr
 		s/spill-start: arr/length
+		s/scratch: x86_SCRATCH
+		s/sse-scratch: SSE_SCRATCH
 
 		pp: as int-ptr! malloc 4 * size? integer!
 		pp/1: x86_CLS_GPR
@@ -775,18 +777,138 @@ x86-make-frame: func [
 	f
 ]
 
-x86-gen-restore: func [
+x86-long-to-reg: func [		;-- 64bit value to reg
 	cg		[codegen!]
-	v		[vreg!]
+	val		[cell!]
 	idx		[integer!]
 ][
-	
+	;TBD
+]
+
+x86-load-to-reg: func [		;-- load val into reg
+	cg		[codegen!]
+	v		[vreg!]
+	idx		[integer!]		;-- reg index
+	/local
+		cls [integer!]
+		op	[integer!]
+		d	[def!]
+		u	[use!]
+		i	[instr-const!]
+][
+	cls: v/reg-class
+	op: either any [cls = class_i32 cls = class_f32][I_MOVD][I_MOVQ]
+	either vreg-const?(v) [
+		;TBD handle 64bit value
+		d: make-def null idx
+		i: as instr-const! v/instr
+		u: as use! make-imm i/value
+		op: op or (AM_OP_IMM << AM_SHIFT)
+	][
+		d: make-def null idx
+		u: make-use v v/spill
+		op: op or (AM_REG_OP << AM_SHIFT)		
+	]
+	put-operand(d)
+	put-operand(u)
+	emit-instr cg op
+]
+
+x86-gen-restore: func [
+	cg		[codegen!]
+	v		[vreg!]		;-- from
+	idx		[integer!]	;-- to
+	/local
+		s	[reg-set!]
+		r	[integer!]
+		op	[integer!]
+		d	[def!]
+		u	[use!]
+		cls [integer!]
+][
+	s: cg/reg-set
+	cls: v/reg-class
+	if on-stack? s idx [
+		r: s/scratch
+		op: either cls = class_i32 [I_MOVD][I_MOVQ]
+		either all [
+			vreg-const?(v)
+			try-use-imm32 cg v/instr
+		][
+			u: as use! vector/pop-last-ptr cg/operands
+			d: make-def null idx
+			op: op or (AM_OP_IMM << AM_SHIFT)
+		][
+			r: s/scratch
+			x86-load-to-reg cg v r
+			d: make-def null idx
+			u: make-use v r
+			op: op or (AM_OP_REG << AM_SHIFT)
+		]
+		put-operand(d)
+		put-operand(u)
+		emit-instr cg op
+		exit
+	]
+	either all [x86_XMM0 <= idx idx <= x86_XMM7][
+		op: either cls = class_f32 [I_MOVSS][I_MOVSD]
+		d: make-def null idx
+		either vreg-const?(v) [
+			r: s/scratch
+			x86-load-to-reg cg v r
+			u: make-use v r
+			op: op or (AM_XMM_REG << AM_SHIFT)
+		][
+			u: make-use v v/spill
+			op: op or (AM_XMM_OP << AM_SHIFT)
+		]
+		put-operand(d)
+		put-operand(u)
+		emit-instr cg op
+	][
+		x86-load-to-reg cg v idx
+	]
 ]
 
 x86-gen-save: func [
 	cg		[codegen!]
-	v		[vreg!]
-	idx		[integer!]
+	v		[vreg!]		;-- to
+	idx		[integer!]	;-- from
+	/local
+		s	[reg-set!]
+		r	[integer!]
+		op	[integer!]
+		d	[def!]
+		u	[use!]
+		cls [integer!]
 ][
-	
+	if on-caller-stack? idx [exit]
+	s: cg/reg-set
+	if on-stack? s idx [
+		r: s/scratch
+		op: either v/reg-class = class_i32 [I_MOVD][I_MOVQ]
+		d: make-def null r
+		u: make-use null idx
+		put-operand(d)
+		put-operand(u)
+		emit-instr cg op or (AM_REG_OP << AM_SHIFT)
+		d: make-def v v/spill
+		u: make-use null r
+		put-operand(d)
+		put-operand(u)
+		emit-instr cg op or (AM_OP_REG << AM_SHIFT)
+		exit
+	]
+	cls: v/reg-class
+	op: switch cls [
+		class_i32 [I_MOVD or (AM_OP_REG << AM_SHIFT)]
+		class_i64 [I_MOVQ or (AM_OP_REG << AM_SHIFT)]
+		class_f32 [I_MOVSS or (AM_OP_XMM << AM_SHIFT)]
+		class_f64 [I_MOVSD or (AM_OP_XMM << AM_SHIFT)]
+	]
+	d: make-def v v/spill
+	u: make-use null idx
+	put-operand(d)
+	put-operand(u)
+	emit-instr cg op
 ]
