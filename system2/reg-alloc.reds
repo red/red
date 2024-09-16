@@ -33,6 +33,8 @@ reg-allocator: context [
 		move-dsts	[vector!]		;-- vector<(vreg!, list!)>
 		cursor		[integer!]		;-- point to next free slot
 		pos			[integer!]
+		cur-i		[mach-instr!]
+		next-i		[mach-instr!]
 		move-idx	[int-array!]
 		reg-moves	[vector!]		;-- vector<move-state!>
 		saves		[vector!]		;-- vector<move-state!>
@@ -83,11 +85,13 @@ reg-allocator: context [
 			v		[vreg!]
 			reg		[integer!]
 			frame	[frame!]
+			arr		[int-array!]
 			pint	[int-ptr!]
 			m-idx	[int-array!]
 			moves	[vector!]
 			saves	[vector!]
 			reloads	[vector!]
+			arg		[move-arg! value]
 			move-dsts [vector!]
 	][
 		frame: cg/frame
@@ -115,6 +119,8 @@ reg-allocator: context [
 			rstate/pos: rstate/pos + 1
 			prev: cur/prev
 			next: cur/next
+			rstate/cur-i: cur
+			rstate/next-i: next
 			opcode: MACH_OPCODE(cur)
 
 			if opcode = I_PMOVE [		;-- parallel move
@@ -123,7 +129,7 @@ reg-allocator: context [
 				len: move-dsts/length
 				n: 0
 				while [n < len][
-					emit-moves rstate n next
+					emit-pmoves rstate n next
 					n: n + 2
 				]
 				cur: prev
@@ -168,23 +174,280 @@ reg-allocator: context [
 			len: cur/num			;-- number of operands
 			p: as ptr-ptr! cur + 1	;-- point to operands
 
-			n: 0
+			;-- free regs in def! in this instruction
 			loop len [
 				o: as operand! p/value
 				switch o/header and FFh [
 					OD_DEF [
 						d: as def! o
-						
+						free-reg rstate d/vreg/reg no
 					]
 					OD_OVERWRITE [
-						
+						w: as overwrite! o
+						free-reg rstate w/dst/reg no
 					]
 					default [0]		;-- do nothing
 				]
 				p: p + 1
 			]
+
+			;-- allocate new regs for def!
+			p: as ptr-ptr! cur + 1	;-- point to operands
+			loop len [
+				o: as operand! p/value
+				switch o/header and FFh [
+					OD_DEF [
+						d: as def! o
+						reg: alloc-def-reg rstate d/vreg d/constraint
+						d/constraint: reg
+					]
+					OD_OVERWRITE [
+						w: as overwrite! o
+						reg: alloc-def-reg rstate w/dst w/constraint
+						w/constraint: reg
+					]
+					default [0]		;-- do nothing
+				]
+				p: p + 1
+			]
+
+			rstate/pos: rstate/pos + 1
+			p: as ptr-ptr! cur + 1	;-- point to operands
+			loop len [
+				o: as operand! p/value
+				switch o/header and FFh [
+					OD_DEF [
+						d: as def! o
+						free-reg rstate d/constraint yes
+					]
+					OD_OVERWRITE [
+						w: as overwrite! o
+						free-reg rstate w/constraint yes
+						alloc-use-reg rstate w/src w/constraint
+					]
+					OD_KILL [
+						k: as kill! o
+						if k/constraint < rset/regs/length [
+							arr: as int-array! ptr-array/pick rset/regs k/constraint
+							pint: as int-ptr! ARRAY_DATA(arr)
+							loop arr/length [
+								reg: pint/value
+								spill-reg rstate reg next
+								free-reg rstate reg yes
+								pint: pint + 1
+							]
+						]
+					]
+					OD_USE [
+						u: as use! o
+						reg: alloc-use-reg rstate u/vreg u/constraint
+						u/constraint: reg
+					]
+					default [0]		;-- do nothing
+				]
+				p: p + 1
+			]
+
+			emit-moves rstate next
+			if opcode = I_ENTRY [
+				pa: ARRAY_DATA(rstate/allocated)
+				n: 0
+				while [n < rstate/cursor][
+					p: pa + (n * 2)
+					v: as vreg! p/value
+					arg/src-v: v
+					arg/dst-v: v
+					arg/dst-reg: v/reg
+					arg/reg-cls: v/reg-class
+					if vreg-const?(v) [insert-move-imm cg :arg next]
+					n: n + 1
+				]
+			]
+
 			cur: prev
 		]
+	]
+
+	emit-moves: func [
+		s		[reg-state!]
+		next-i	[mach-instr!]
+		/local
+			cg		[codegen!]
+			saves	[vector!]
+			reloads [vector!]
+			v		[vreg!]
+			src		[integer!]
+			dst		[integer!]
+			i len	[integer!]
+			p		[byte-ptr!]
+			m		[move-state!]
+			vr		[vreg-reg!]
+			arg		[move-arg! value]
+	][
+		cg: s/cg
+		saves: s/saves
+		p: saves/data
+		loop saves/length [
+			m: as move-state! p
+			v: m/vreg
+			src: m/src
+			dst: m/dst
+			if src <> dst [
+				arg/src-v: v
+				arg/src-reg: src
+				arg/dst-v: v
+				arg/dst-reg: dst
+				arg/reg-cls: v/reg-class
+				insert-move-loc cg :arg next-i
+			]
+			p: p + size? move-state!
+		]
+
+		i: 0
+		len: s/reg-moves/length
+		while [i < len] [
+			emit-move s i next-i
+			i: i + 1
+		]
+
+		reloads: s/reloads
+		p: reloads/data
+		loop reloads/length [
+			vr: as vreg-reg! p
+			v: vr/vreg
+			arg/src-v: v
+			arg/dst-v: v
+			arg/dst-reg: v/reg
+			arg/reg-cls: v/reg-class
+			either vreg-const?(v) [
+				insert-move-imm cg :arg next-i
+			][
+				arg/src-reg: v/spill
+				insert-move-loc cg :arg next-i
+			]
+			p: p + size? vreg-reg!
+		]
+	]
+
+	emit-move: func [
+		s			[reg-state!]
+		idx			[integer!]
+		next-i		[mach-instr!]
+		/local
+			cg		[codegen!]
+			rset	[reg-set!]
+			i		[integer!]
+			moves	[vector!]
+			m		[move-state!]
+			dm		[move-state!]
+			v		[vreg!]
+			src dst [integer!]
+			state	[integer!]
+			cls		[integer!]
+			arg		[move-arg! value]
+			p		[int-ptr!]
+			scratch [integer!]
+	][
+		moves: s/reg-moves
+		m: as move-state! vector/pick moves idx
+		if m/state < V_LIVE [exit]
+
+		m/state: V_ON_STACK
+		v: m/vreg
+		src: m/src
+		dst: m/dst
+		rset: s/reg-set
+		cg: s/cg
+		arg/src-v: v
+		arg/dst-v: v
+		i: int-array/pick s/move-idx dst
+		if i >= 0 [
+			dm: as move-state! vector/pick moves i
+			state: dm/state
+			case [
+				state = V_ON_STACK [
+					cls: dm/vreg/reg-class
+					p: rset/scratch + cls
+					scratch: p/value
+					dm/state: V_IN_CYCLE
+					dm/dst: scratch
+					arg/src-reg: dst
+					arg/dst-reg: scratch
+					arg/reg-cls: cls
+					insert-move-loc cg :arg next-i
+				]
+				state = V_LIVE [
+					emit-move s i next-i
+				]
+				true [0]
+			]
+		]
+		m: as move-state! vector/pick moves idx
+		if m/state = V_IN_CYCLE [src: m/dst]	;-- scratch reg
+		arg/src-reg: src
+		arg/dst-reg: dst
+		arg/reg-cls: v/reg-class
+		insert-move-loc cg :arg next-i
+		m/state: V_DEAD
+		m/vreg: null
+		m/src: 0
+		m/dst: 0
+	]
+
+	spill-reg: func [
+		s			[reg-state!]
+		reg			[integer!]
+		next-i		[mach-instr!]
+		/local
+			i		[integer!]
+			p		[ptr-ptr!]
+			v		[vreg!]
+			cg		[codegen!]
+	][
+		i: int-array/pick s/states reg
+		if i < 0 [exit]
+		p: ARRAY_DATA(s/allocated) + (i * 2)
+		v: as vreg! p/value
+		cg: s/cg
+		alloc-slot cg/frame v
+		insert-restore-var cg v reg next-i
+	]
+
+	free-reg: func [
+		s			[reg-state!]
+		reg			[integer!]
+		clear?		[logic!]
+		/local
+			rset	[reg-set!]
+			i		[integer!]
+			p pa	[ptr-ptr!]
+			states	[int-ptr!]
+			ps		[int-ptr!]
+			cursor	[integer!]
+			v a		[vreg!]
+	][
+		rset: s/reg-set
+		unless is-reg? rset reg [exit]	;-- not a reg location
+
+		states: as int-ptr! ARRAY_DATA(s/states)
+		ps: states + reg
+		i: ps/value
+		if i < 0 [exit]		;-- this reg loc is not used
+
+		p: ARRAY_DATA(s/allocated) + (i * 2)
+		v: as vreg! p/value
+		cursor: s/cursor - 1
+		s/cursor: cursor
+		pa: ARRAY_DATA(s/allocated) + (cursor * 2)
+		a: as vreg! pa/value
+		if cursor > 0 [
+			p/value: as int-ptr! a
+			ps: states + a/reg
+			ps/value: i
+		]
+		ps: states + reg
+		ps/value: -1
+		if clear? [v/reg: 0]
 	]
 
 	choose-reg: func [
@@ -309,18 +572,142 @@ reg-allocator: context [
 		reg
 	]
 
-	alloc-reg: func [
+	move-reg: func [
+		s			[reg-state!]
+		v			[vreg!]
+		src			[integer!]
+		dst			[integer!]
+		/local
+			moves	[vector!]
+			m		[move-state!]
+			idx		[integer!]
+	][
+		if src = dst [exit]
+		moves: s/reg-moves
+		idx: moves/length
+		m: as move-state! vector/new-item moves
+		m/vreg: v
+		m/src: src
+		m/dst: dst
+		m/state: V_LIVE
+		if is-reg? s/reg-set src [int-array/poke s/move-idx src idx]
+	]
+
+	update-pos: func [
+		s			[reg-state!]
+		reg			[integer!]
+		/local
+			i		[integer!]
+			p		[ptr-ptr!]
+	][
+		i: int-array/pick s/states reg
+		if i < 0 [exit]
+		p: ARRAY_DATA(s/allocated) + (i * 2) + 1
+		p/value: as int-ptr! s/pos
+	]
+
+	reg-is-used?: func [
+		s			[reg-state!]
+		reg			[integer!]
+		return:		[logic!]
+		/local
+			idx		[integer!]
+			p		[ptr-ptr!]
+	][
+		idx: int-array/pick s/states reg
+		either idx < 0 [false][
+			p: ARRAY_DATA(s/allocated) + (idx * 2) + 1
+			s/pos = as-integer p/value
+		]
+	]
+
+	alloc-use-reg: func [
 		s			[reg-state!]
 		v			[vreg!]
 		constraint	[integer!]
+		return:		[integer!]
 		/local
 			reg		[integer!]
 			loc		[integer!]
+			m		[move-state!]
+			rset	[reg-set!]
+			cur-i	[mach-instr!]
+			cg		[codegen!]
+			arg		[move-arg! value]
+	][
+		cg: s/cg
+		cur-i: s/cur-i
+		rset: s/reg-set
+		reg: v/reg
+		loc: reg
+		if on-stack? rset constraint [
+			arg/src-v: v
+			arg/dst-v: v
+			arg/dst-reg: constraint
+			arg/reg-cls: v/reg-class
+			either vreg-const?(v) [
+				insert-move-imm cg :arg cur-i
+			][
+				either reg <> 0 [
+					update-pos s reg
+					arg/src-reg: reg
+				][
+					alloc-slot cg/frame v
+					arg/src-reg: v/spill
+				]
+				insert-move-loc cg :arg cur-i
+			]
+			return constraint
+		]
+		either all [
+			reg <> 0
+			constraint < rset/regs/length
+			any [
+				zero? constraint
+				in-reg-set? rset reg constraint
+			]
+		][
+			update-pos s reg
+		][
+			either reg-is-used? s reg [
+				free-reg s reg yes
+				loc: reassign-reg s v find-best-loc s v/reg-class v/hint constraint
+				arg/src-v: v
+				arg/dst-v: v
+				arg/src-reg: loc
+				arg/dst-reg: reg
+				arg/reg-cls: v/reg-class
+				insert-move-loc cg :arg cur-i
+			][
+				spill-reg s reg s/next-i
+				free-reg s reg yes
+				loc: reassign-reg s v find-best-loc s v/reg-class v/hint constraint
+			]
+		]
+		loc
+	]
+
+	alloc-def-reg: func [
+		s			[reg-state!]
+		v			[vreg!]
+		constraint	[integer!]
+		return:		[integer!]
+		/local
+			reg		[integer!]
+			loc		[integer!]
+			m		[move-state!]
 	][
 		reg: v/reg
 		v/reg: 0
 		loc: reassign-reg s v find-best-loc s v/reg-class reg constraint
-		
+		if reg <> 0 [move-reg s v loc reg]
+		if v/spill <> 0 [
+			m: as move-state! vector/new-item s/saves
+			m/vreg: v
+			m/src: loc
+			m/dst: v/spill
+		]
+		loc
 	]
 
 	alloc-slot: func [
@@ -344,7 +731,7 @@ reg-allocator: context [
 		int-array/pick rset idx
 	]
 
-	emit-moves: func [
+	emit-pmoves: func [
 		s		[reg-state!]
 		idx		[integer!]
 		next-i	[mach-instr!]
@@ -379,7 +766,7 @@ reg-allocator: context [
 				r: get-pmove-reg rset dv/reg-class 1
 				insert-restore-var cg dv r next-i
 			]
-			if i > 0 [emit-moves s i - 1 next-i]
+			if i > 0 [emit-pmoves s i - 1 next-i]
 			l: l/tail
 		]
 		alloc-slot frame v

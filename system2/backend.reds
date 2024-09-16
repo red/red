@@ -127,7 +127,8 @@ reg-set!: alias struct! [		;-- register set
 	n-regs		[integer!]		;-- number of physical registers
 	regs		[ptr-array!]	;-- array<array<int>>: registers in each set
 	regs-cls	[int-ptr!]		;-- array<int>: registers in each class
-	scratch		[integer!]
+	scratch		[int-ptr!]		;-- array<int>: scratch register in each class
+	gpr-scratch	[integer!]
 	sse-scratch [integer!]
 	spill-start	[integer!]
 	caller-base	[integer!]
@@ -191,6 +192,14 @@ block-info!: alias struct! [
 	end			[integer!]
 	label		[label!]
 	loop-info	[loop-info!]
+]
+
+move-arg!: alias struct! [
+	src-v		[vreg!]
+	dst-v		[vreg!]
+	src-reg	 	[integer!]
+	dst-reg		[integer!]
+	reg-cls 	[reg-class!]
 ]
 
 ;-- reverse post-order of basic blocks
@@ -704,6 +713,32 @@ backend: context [
 		END_INSERTION
 	]
 
+	insert-move-loc: func [		;-- move from loc to loc
+		cg		[codegen!]
+		arg		[move-arg!]
+		next-i	[mach-instr!]
+		/local
+			saved-i		[mach-instr!]
+			compute-lv?	[logic!]
+	][
+		START_INSERTION
+		target/gen-move-loc cg arg
+		END_INSERTION
+	]
+
+	insert-move-imm: func [		;-- move from vreg to loc
+		cg		[codegen!]
+		arg		[move-arg!]
+		next-i	[mach-instr!]
+		/local
+			saved-i		[mach-instr!]
+			compute-lv?	[logic!]
+	][
+		START_INSERTION
+		target/gen-move-imm cg arg
+		END_INSERTION
+	]
+
 	init-reg-set: func [
 		s		[reg-set!]
 		/local
@@ -1167,6 +1202,17 @@ backend: context [
 		cur/prev: i
 
 		if cg/compute-liveness? [update-liveness cg i]
+	]
+
+	emit-instr2: func [
+		cg		[codegen!]
+		op		[integer!]
+		o1		[def!]
+		o2		[use!]
+	][
+		put-operand(o1)
+		put-operand(o2)
+		emit-instr cg op
 	]
 
 	update-liveness: func [
@@ -1681,7 +1727,7 @@ backend: context [
 		return: [integer!]
 	][
 		do-i ident
-		print ["opcode: " MACH_OPCODE(i) " "]
+		print ["op: " MACH_OPCODE(i) " "]
 		print-operands as ptr-ptr! i + 1 i/num
 		ident
 	]

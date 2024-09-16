@@ -36,27 +36,45 @@ Red/System [
 ;-- XOP: XMM register or stack
 ;-- RRSD: [Reg + Reg * Scale + Disp]
 #enum x86-addr-mode! [
-	AM_NONE
-	AM_REG_OP
-	AM_RRSD_REG
-	AM_RRSD_IMM
-	AM_REG_RRSD
-	AM_OP
-	AM_OP_IMM
-	AM_OP_REG
-	AM_XMM_REG
-	AM_XMM_OP
-	AM_OP_XMM
-	AM_XMM_RRSD
-	AM_RRSD_XMM
-	AM_XMM_IMM 
-	AM_REG_XOP
-	AM_XMM_XMM
+	_AM_NONE
+	_AM_REG_OP
+	_AM_RRSD_REG
+	_AM_RRSD_IMM
+	_AM_REG_RRSD
+	_AM_OP
+	_AM_OP_IMM
+	_AM_OP_REG
+	_AM_XMM_REG
+	_AM_XMM_OP
+	_AM_OP_XMM
+	_AM_XMM_RRSD
+	_AM_RRSD_XMM
+	_AM_XMM_IMM 
+	_AM_REG_XOP
+	_AM_XMM_XMM
 ]
 
 #define AM_SHIFT	10
 #define COND_SHIFT	15
 #define ROUND_SHIFT	19
+
+;-- x86-addr-mode! left-shift by AM_SHIFT
+#define AM_NONE			0
+#define AM_REG_OP		0400h
+#define AM_RRSD_REG		0800h
+#define AM_RRSD_IMM		0C00h
+#define AM_REG_RRSD		1000h
+#define AM_OP			1400h
+#define AM_OP_IMM		1800h
+#define AM_OP_REG		1C00h
+#define AM_XMM_REG		2000h
+#define AM_XMM_OP		2400h
+#define AM_OP_XMM		2800h
+#define AM_XMM_RRSD		2C00h
+#define AM_RRSD_XMM		3000h
+#define AM_XMM_IMM 		3400h
+#define AM_REG_XOP		3800h
+#define AM_XMM_XMM		3C00h
 
 x86-cond!: alias struct! [
 	index		[integer!]
@@ -222,10 +240,8 @@ x86-reg-set: context [
 		arr
 	]
 
-	sse-reg?: func [
-		i	[integer!]
-	][
-		all [i >= x86_XMM0 i <= x86_XMM7]
+	#define sse-reg?(idx) [
+		all [x86_XMM0 <= idx idx <= x86_XMM7]
 	]
 
 	init: func [/local s [reg-set!] arr [ptr-array!] p pa [ptr-ptr!] pp [int-ptr!]][
@@ -274,11 +290,16 @@ x86-reg-set: context [
 		pa: p + x86_REG_ALL
         pa/value: as int-ptr! make-array a21 size? a21
 
+        pa: p + x86_SCRATCH
+        pa/value: as int-ptr! empty-array
+        pa: p + SSE_SCRATCH
+        pa/value: as int-ptr! empty-array
+
 		s: xmalloc(reg-set!)
 		s/n-regs: 14
 		s/regs: arr
 		s/spill-start: arr/length
-		s/scratch: x86_SCRATCH
+		s/gpr-scratch: x86_SCRATCH
 		s/sse-scratch: SSE_SCRATCH
 
 		pp: as int-ptr! malloc 4 * size? integer!
@@ -287,6 +308,13 @@ x86-reg-set: context [
 		pp/3: x86_CLS_SSE
 		pp/4: x86_CLS_SSE
 		s/regs-cls: pp
+
+		pp: as int-ptr! malloc 4 * size? integer!
+		pp/1: x86_SCRATCH
+		pp/2: x86_SCRATCH
+		pp/3: SSE_SCRATCH
+		pp/4: SSE_SCRATCH
+		s/scratch: pp
 
 		init-reg-set s
 		reg-set: s
@@ -501,10 +529,10 @@ emit-simple-binop: func [
 ][
 	overwrite-reg cg i cg/m/x
 	op: either try-use-imm32 cg cg/m/y [
-		op or (AM_OP_IMM << AM_SHIFT)
+		op or AM_OP_IMM
 	][
 		use-reg cg cg/m/y
-		op or (AM_REG_OP << AM_SHIFT)
+		op or AM_REG_OP
 	]
 	emit-instr cg op
 ]
@@ -582,11 +610,11 @@ emit-int-cmp: func [
 		ob: as operand! vector/pop-last-ptr cg/operands
 		use-i cg a
 		put-operand(ob)
-		op or (AM_OP_IMM << AM_SHIFT)
+		op or AM_OP_IMM
 	][
 		use-reg cg a
 		use-i cg b
-		op or (AM_REG_OP << AM_SHIFT)
+		op or AM_REG_OP
 	]
 	emit-instr cg op
 	x86-cond/make-pair cond null no
@@ -803,15 +831,13 @@ x86-load-to-reg: func [		;-- load val into reg
 		d: make-def null idx
 		i: as instr-const! v/instr
 		u: as use! make-imm i/value
-		op: op or (AM_OP_IMM << AM_SHIFT)
+		op: op or AM_OP_IMM
 	][
 		d: make-def null idx
 		u: make-use v v/spill
-		op: op or (AM_REG_OP << AM_SHIFT)		
+		op: op or AM_REG_OP		
 	]
-	put-operand(d)
-	put-operand(u)
-	emit-instr cg op
+	emit-instr2 cg op d u
 ]
 
 x86-gen-restore: func [
@@ -829,7 +855,7 @@ x86-gen-restore: func [
 	s: cg/reg-set
 	cls: v/reg-class
 	if on-stack? s idx [
-		r: s/scratch
+		r: s/gpr-scratch
 		op: either cls = class_i32 [I_MOVD][I_MOVQ]
 		either all [
 			vreg-const?(v)
@@ -837,34 +863,30 @@ x86-gen-restore: func [
 		][
 			u: as use! vector/pop-last-ptr cg/operands
 			d: make-def null idx
-			op: op or (AM_OP_IMM << AM_SHIFT)
+			op: op or AM_OP_IMM
 		][
-			r: s/scratch
+			r: s/gpr-scratch
 			x86-load-to-reg cg v r
 			d: make-def null idx
 			u: make-use v r
-			op: op or (AM_OP_REG << AM_SHIFT)
+			op: op or AM_OP_REG
 		]
-		put-operand(d)
-		put-operand(u)
-		emit-instr cg op
+		emit-instr2 cg op d u
 		exit
 	]
-	either all [x86_XMM0 <= idx idx <= x86_XMM7][
+	either sse-reg?(idx) [
 		op: either cls = class_f32 [I_MOVSS][I_MOVSD]
 		d: make-def null idx
 		either vreg-const?(v) [
-			r: s/scratch
+			r: s/gpr-scratch
 			x86-load-to-reg cg v r
 			u: make-use v r
-			op: op or (AM_XMM_REG << AM_SHIFT)
+			op: op or AM_XMM_REG
 		][
 			u: make-use v v/spill
-			op: op or (AM_XMM_OP << AM_SHIFT)
+			op: op or AM_XMM_OP
 		]
-		put-operand(d)
-		put-operand(u)
-		emit-instr cg op
+		emit-instr2 cg op d u
 	][
 		x86-load-to-reg cg v idx
 	]
@@ -885,30 +907,137 @@ x86-gen-save: func [
 	if on-caller-stack? idx [exit]
 	s: cg/reg-set
 	if on-stack? s idx [
-		r: s/scratch
+		r: s/gpr-scratch
 		op: either v/reg-class = class_i32 [I_MOVD][I_MOVQ]
 		d: make-def null r
 		u: make-use null idx
-		put-operand(d)
-		put-operand(u)
-		emit-instr cg op or (AM_REG_OP << AM_SHIFT)
+		emit-instr2 cg op or AM_REG_OP d u
 		d: make-def v v/spill
 		u: make-use null r
-		put-operand(d)
-		put-operand(u)
-		emit-instr cg op or (AM_OP_REG << AM_SHIFT)
+		emit-instr2 cg op or AM_OP_REG d u
 		exit
 	]
 	cls: v/reg-class
 	op: switch cls [
-		class_i32 [I_MOVD or (AM_OP_REG << AM_SHIFT)]
-		class_i64 [I_MOVQ or (AM_OP_REG << AM_SHIFT)]
-		class_f32 [I_MOVSS or (AM_OP_XMM << AM_SHIFT)]
-		class_f64 [I_MOVSD or (AM_OP_XMM << AM_SHIFT)]
+		class_i32 [I_MOVD or AM_OP_REG]
+		class_i64 [I_MOVQ or AM_OP_REG]
+		class_f32 [I_MOVSS or AM_OP_XMM]
+		class_f64 [I_MOVSD or AM_OP_XMM]
 	]
 	d: make-def v v/spill
 	u: make-use null idx
-	put-operand(d)
-	put-operand(u)
-	emit-instr cg op
+	emit-instr2 cg op d u
+]
+
+x86-gen-move-loc: func [
+	cg		[codegen!]
+	arg		[move-arg!]
+	/local
+		op cls	[integer!]
+		src dst [integer!]
+		rset	[reg-set!]
+		s-reg	[integer!]
+		d		[def!]
+		u		[use!]
+][
+	rset: cg/reg-set
+	s-reg: rset/gpr-scratch
+	cls: arg/reg-cls
+	src: arg/src-reg
+	dst: arg/dst-reg
+	op: either any [cls = class_i32 cls = class_f32][I_MOVD][I_MOVQ]
+	either on-stack? rset dst [
+		either on-stack? rset src [
+			d: make-def null s-reg
+			u: make-use arg/src-v src
+			emit-instr2 cg op or AM_REG_OP d u
+			d: make-def arg/dst-v dst
+			u: make-use null s-reg
+			emit-instr2 cg op or AM_OP_REG d u
+		][
+			d: make-def arg/dst-v dst
+			u: make-use arg/src-v src
+			op: either sse-reg?(src) [
+				op: either cls = class_f32 [I_MOVSS][I_MOVSD]
+				op or AM_OP_XMM
+			][
+				op or AM_OP_REG
+			]
+			emit-instr2 cg op d u
+		]
+	][
+		d: make-def arg/dst-v dst
+		u: make-use arg/src-v src
+		op: either sse-reg?(dst) [
+			op: either cls = class_f32 [I_MOVSS][I_MOVSD]
+			op or AM_XMM_OP
+		][
+			op or AM_REG_OP
+		]
+		emit-instr2 cg op d u
+	]
+]
+
+x86-gen-move-imm: func [
+	cg		[codegen!]
+	arg		[move-arg!]
+	/local
+		op cls	[integer!]
+		src-v	[vreg!]
+		dst-v	[vreg!]
+		dst		[integer!]
+		rset	[reg-set!]
+		s-reg	[integer!]
+		d		[def!]
+		u		[use!]
+		imm32?	[logic!]
+		imm		[operand!]
+		val		[cell!]
+		i		[instr-const!]
+][
+	rset: cg/reg-set
+	s-reg: rset/gpr-scratch
+	cls: arg/reg-cls
+	src-v: arg/src-v
+	dst-v: arg/dst-v
+	dst: arg/dst-reg
+	imm32?: try-use-imm32 cg src-v/instr
+	imm: either imm32? [as operand! vector/pop-last-ptr cg/operands][null]
+	op: either any [cls = class_i32 cls = class_f32][I_MOVD][I_MOVQ]
+	either on-stack? rset dst [
+		if imm32? [
+			d: make-def dst-v dst
+			emit-instr2 cg op or AM_OP_IMM d as use! imm
+			exit
+		]
+		arg/dst-v: null
+		arg/dst-reg: s-reg
+		x86-gen-move-imm cg arg
+
+		arg/src-v: null
+		arg/src-reg: s-reg
+		arg/dst-v: dst-v
+		arg/dst-reg: dst
+		x86-gen-move-loc cg arg
+	][
+		either sse-reg?(dst) [
+			arg/dst-v: null
+			arg/dst-reg: s-reg
+			x86-gen-move-imm cg arg
+			op: either cls = class_f32 [I_MOVSS][I_MOVSD]
+			d: make-def dst-v dst
+			u: make-use null s-reg
+			emit-instr2 cg op or AM_XMM_REG d u
+		][
+			d: make-def dst-v dst
+			either imm32? [
+				emit-instr2 cg op or AM_OP_IMM d as use! imm
+			][
+				i: as instr-const! src-v/instr
+				val: i/value
+				emit-instr2 cg I_MOVD or AM_OP_IMM d as use! make-imm val
+				;TBD handle 64bit value
+			]
+		]
+	]
 ]

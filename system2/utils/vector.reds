@@ -46,6 +46,14 @@ vector: context [
 		vec/length: 0
 	]
 
+	pick: func [
+		vec		[vector!]
+		idx		[integer!]
+		return: [int-ptr!]
+	][
+		as int-ptr! vec/data + (idx * vec/obj-sz)
+	]
+
 	grow: func [
 		vec		[vector!]
 		new-sz	[integer!]

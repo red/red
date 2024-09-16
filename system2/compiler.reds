@@ -128,6 +128,7 @@ compiler: context [
 	fn-make-frame!: alias function! [ir [ir-fn!] return: [frame!]]
 	fn-generate!: alias function! [cg [codegen!] blk [basic-block!] i [instr!]]
 	fn-insert-instrs!: alias function! [cg [codegen!] v [vreg!] idx [integer!]]
+	fn-insert-move!: alias function! [cg [codegen!] arg [move-arg!]]
 
 	target: context [
 		addr-width: 32		;-- width of address in bits
@@ -151,6 +152,8 @@ compiler: context [
 		gen-throw:	as fn-generate! 0
 		gen-restore-var: as fn-insert-instrs! 0
 		gen-save-var: as fn-insert-instrs! 0
+		gen-move-loc: as fn-insert-move! 0
+		gen-move-imm: as fn-insert-move! 0
 	]
 
 	_mempool: as mempool! 0
@@ -367,6 +370,8 @@ compiler: context [
 		target/gen-goto: as fn-generate! :backend/x86-gen-goto
 		target/gen-restore-var: as fn-insert-instrs! :backend/x86-gen-restore
 		target/gen-save-var: as fn-insert-instrs! :backend/x86-gen-save
+		target/gen-move-loc: as fn-insert-move! :backend/x86-gen-move-loc
+		target/gen-move-imm: as fn-insert-move! :backend/x86-gen-move-imm
 	]
 
 	init: does [
