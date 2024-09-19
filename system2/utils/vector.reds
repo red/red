@@ -73,6 +73,17 @@ vector: context [
 		vec/capacity: new-cap
 	]
 
+	acquire: func [vec [vector!] n [integer!] return: [byte-ptr!] /local new len [integer!]][
+		len: vec/length
+		new: len + n
+		if new > vec/capacity [
+			grow vec new
+		]
+
+		vec/length: new
+		vec/data + (len * vec/obj-sz)
+	]
+
 	new-item: func [vec [vector!] return: [int-ptr!] /local length [integer!]][
 		length: vec/length + 1
 		if length > vec/capacity [

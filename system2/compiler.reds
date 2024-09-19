@@ -31,6 +31,12 @@ compiler: context [
 		as type malloc size? type
 	]
 
+	mach-program!: alias struct! [
+		data-buf	[vector!]	;-- vector<byte!>
+		code-buf	[vector!]	;-- vector<byte!>
+		functions	[vector!]	;-- vector<codegen!>
+	]
+
 	;-- lisp-like list
 	list!: alias struct! [
 		head	[int-ptr!]
@@ -48,6 +54,14 @@ compiler: context [
 		l/head: head
 		l/tail: tail
 		l
+	]
+
+	align-up: func [
+		i		[integer!]
+		align	[integer!]
+		return: [integer!]
+	][
+		i + align - 1 / align * align
 	]
 
 	common-literals: context [
@@ -129,6 +143,7 @@ compiler: context [
 	fn-generate!: alias function! [cg [codegen!] blk [basic-block!] i [instr!]]
 	fn-insert-instrs!: alias function! [cg [codegen!] v [vreg!] idx [integer!]]
 	fn-insert-move!: alias function! [cg [codegen!] arg [move-arg!]]
+	fn-assemble!: alias function! [cg [codegen!] i [mach-instr!]]
 
 	target: context [
 		addr-width: 32		;-- width of address in bits
@@ -154,6 +169,7 @@ compiler: context [
 		gen-save-var: as fn-insert-instrs! 0
 		gen-move-loc: as fn-insert-move! 0
 		gen-move-imm: as fn-insert-move! 0
+		assemble: as fn-assemble! 0
 	]
 
 	_mempool: as mempool! 0
@@ -163,6 +179,7 @@ compiler: context [
 	script: as cell! 0
 
 	ir-module: as ir-module! 0
+	program: as mach-program! 0
 
 	vector-to-array: func [
 		vec		[vector!]
@@ -261,7 +278,7 @@ compiler: context [
 			src	[red-block!]
 			ctx [context!]
 			ir	[ir-fn!]
-			mf	[mach-fn!]
+			cg	[codegen!]
 	][
 		src: fn/body
 		src-blk: src
@@ -277,7 +294,8 @@ compiler: context [
 		probe "Lowering SSA"
 		lowering/do-fn ir
 		probe "SSA to machine code"
-		mf: backend/generate ir
+		cg: backend/generate ir
+		vector/append-ptr program/functions as byte-ptr! cg
 		ctx
 	]
 
@@ -347,10 +365,18 @@ compiler: context [
 		/local
 			ctx 	[context!]
 			fn		[fn! value]
+			cg		[codegen!]
+			p		[ptr-ptr!]
+			funcs	[vector!]
 	][
 		script: object/rs-select job as cell! word/load "script"
 		ir-module: as ir-module! malloc size? ir-module!
 		ir-module/functions: vector/make size? int-ptr! 100
+		program: xmalloc(mach-program!)
+		funcs: ptr-vector/make 100
+		program/functions: funcs
+		program/code-buf: vector/make 1 4096
+		program/data-buf: vector/make 1 4096
 
 		init-target job
 
@@ -359,19 +385,28 @@ compiler: context [
 		fn/type: as rst-type! op-cache/void-op
 		ctx: comp-fn :fn null null
 		comp-functions ctx
+
+		p: as ptr-ptr! funcs/data
+		loop funcs/length [
+			cg: as codegen! p/value
+			backend/assemble-instrs cg
+			p: p + 1
+		]
+		;dump-hex program/code-buf/data
 	]
 
 	init-target: func [job [red-object!]][
-		backend/x86-cond/init
+		backend/init
 		target/int-type: type-system/get-int-type target/int-width false
-		target/make-frame: :backend/x86-make-frame
-		target/gen-op: as fn-generate! :backend/x86-gen-op
-		target/gen-if: as fn-generate! :backend/x86-gen-if
-		target/gen-goto: as fn-generate! :backend/x86-gen-goto
-		target/gen-restore-var: as fn-insert-instrs! :backend/x86-gen-restore
-		target/gen-save-var: as fn-insert-instrs! :backend/x86-gen-save
-		target/gen-move-loc: as fn-insert-move! :backend/x86-gen-move-loc
-		target/gen-move-imm: as fn-insert-move! :backend/x86-gen-move-imm
+		target/make-frame: :backend/x86/make-frame
+		target/gen-op: as fn-generate! :backend/x86/gen-op
+		target/gen-if: as fn-generate! :backend/x86/gen-if
+		target/gen-goto: as fn-generate! :backend/x86/gen-goto
+		target/gen-restore-var: as fn-insert-instrs! :backend/x86/gen-restore
+		target/gen-save-var: as fn-insert-instrs! :backend/x86/gen-save
+		target/gen-move-loc: as fn-insert-move! :backend/x86/gen-move-loc
+		target/gen-move-imm: as fn-insert-move! :backend/x86/gen-move-imm
+		target/assemble: as fn-assemble! :backend/x86/assemble
 	]
 
 	init: does [
@@ -382,8 +417,6 @@ compiler: context [
 		parser/init
 		op-cache/init
 		type-system/init
-		backend/x86-reg-set/init
-		backend/init
 	]
 
 	clean: does [

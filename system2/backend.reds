@@ -81,6 +81,7 @@ overwrite!: alias struct! [
 ]
 
 #define MACH_OPCODE(i)	[i/header and 03FFh]
+#define x86_OPCODE(i)	[i and 03FFh]
 
 ;-- header: 31 - 28 flags | 
 ;-- x86: 20 - 19 rounding mode | 18 - 15 condition | 14 - 10 addressing mode | 9 - 0 opcode
@@ -92,10 +93,6 @@ mach-instr!: alias struct! [
 	num			[integer!]		;-- num of the operands
 	;-- followed by operands
 	;operands	[operand!]
-]
-
-mach-fn!: alias struct! [
-	code		[mach-instr!]
 ]
 
 #enum vreg-usage! [
@@ -153,6 +150,10 @@ frame!: alias struct! [
 	spill-vars	[integer!]				;-- spilled variables
 	spill-args	[integer!]				;-- spilled arguments
 	tmp-slot	[integer!]
+]
+
+assembler!: alias struct! [
+	buf			[vector!]
 ]
 
 codegen!: alias struct! [
@@ -623,6 +624,19 @@ frame-slot-64?: func [
 	s and FRAME_SLOT_64 <> 0
 ]
 
+compute-frame-size: func [
+	f		[frame!]
+	return: [integer!]
+	/local
+		slots	[integer!]
+		sz		[integer!]
+][
+	slots: f/spill-vars + f/spill-args
+	sz: align-up slots * f/slot-size + target/addr-size f/align
+	f/size: sz
+	sz
+]
+
 #define START_INSERTION [
 	saved-i: cg/cur-i
 	compute-lv?: cg/compute-liveness?
@@ -819,6 +833,8 @@ backend: context [
 			p	[ptr-ptr!]
 			i	[integer!]
 	][
+		x86-cond/init
+		x86-reg-set/init
 		int-imm-caches: ptr-array/make 10
 		p: ARRAY_DATA(int-imm-caches)
 		i: -1
@@ -1622,24 +1638,39 @@ backend: context [
 		cg/cur-i: cg/first-i
 	]
 
+	assemble-instrs: func [
+		cg		[codegen!]
+		/local
+			i	[mach-instr!]
+	][
+		cg/compute-liveness?: no
+		i: cg/first-i
+		while [i <> null][
+			cg/cur-i: i/next
+			target/assemble cg i
+			i: i/next
+		]
+	]
+
 	generate: func [
 		fn		[ir-fn!]
-		return: [mach-fn!]
+		return: [codegen!]
 		/local
 			frm	[frame!]
 			r	[rpo!]
 			cg	[codegen!]
-			m	[mach-fn!]
 	][
-		m: xmalloc(mach-fn!)
 		frm: target/make-frame fn
 		r: rpo/build fn
 		cg: make-codegen fn r frm
 		gen-instrs cg
+		probe "generate low-level IR"
+		print-fn cg/first-i
 		reg-allocator/alloc cg
-		m/code: cg/first-i
-		print-fn m
-		m
+		probe "after register allocation"
+		print-fn cg/first-i
+		compute-frame-size frm
+		cg
 	]
 
 	do-i: func [i [integer!]][
@@ -1776,13 +1807,12 @@ backend: context [
 	]
 
 	print-fn: func [
-		fn		[mach-fn!]
+		start-i	[mach-instr!]
 		/local
 			i	[mach-instr!]
 			ident [integer!]
 	][
-		print-line ["fn " fn]
-		i: fn/code
+		i: start-i
 		ident: 1
 		while [i <> null][
 			ident: print-instr i ident

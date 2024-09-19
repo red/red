@@ -9,25 +9,26 @@ Red/System [
 #define x86_ECX			2
 #define x86_EDX			3
 #define x86_EBX			4
-#define x86_ESI			5
-#define x86_EDI			6
-#define x86_XMM0		7
-#define x86_XMM1		8
-#define x86_XMM2		9
-#define x86_XMM3		10
-#define x86_XMM4		11
-#define x86_XMM5		12
-#define x86_XMM6		13
-#define x86_XMM7		14
-#define x86_EBP			15
-#define x86_GPR			16
-#define x86_BYTE		17
-#define x86_EAX_EDX		18
-#define x86_NOT_EDX		19
-#define x86_NOT_ECX		20
-#define x86_CLS_GPR		21
-#define x86_CLS_SSE		22
-#define x86_REG_ALL		23
+#define x86_ESP			5
+#define x86_EBP			6
+#define x86_ESI			7
+#define x86_EDI			8
+#define x86_XMM0		9
+#define x86_XMM1		10
+#define x86_XMM2		11
+#define x86_XMM3		12
+#define x86_XMM4		13
+#define x86_XMM5		14
+#define x86_XMM6		15
+#define x86_XMM7		16
+#define x86_GPR			17
+#define x86_BYTE		18
+#define x86_EAX_EDX		19
+#define x86_NOT_EDX		20
+#define x86_NOT_ECX		21
+#define x86_CLS_GPR		22
+#define x86_CLS_SSE		23
+#define x86_REG_ALL		24
 #define x86_SCRATCH		x86_EBP
 #define SSE_SCRATCH		x86_XMM7
 
@@ -57,6 +58,8 @@ Red/System [
 #define AM_SHIFT	10
 #define COND_SHIFT	15
 #define ROUND_SHIFT	19
+
+#define x86_COND(i)		[i >> COND_SHIFT and 0Fh]
 
 ;-- x86-addr-mode! left-shift by AM_SHIFT
 #define AM_NONE			0
@@ -240,6 +243,10 @@ x86-reg-set: context [
 		arr
 	]
 
+	#define gpr-reg?(idx) [
+		all [x86_EAX <= idx idx <= x86_EDI]
+	]
+
 	#define sse-reg?(idx) [
 		all [x86_XMM0 <= idx idx <= x86_XMM7]
 	]
@@ -294,9 +301,11 @@ x86-reg-set: context [
         pa/value: as int-ptr! empty-array
         pa: p + SSE_SCRATCH
         pa/value: as int-ptr! empty-array
+        pa: p + x86_ESP
+        pa/value: as int-ptr! empty-array
 
 		s: xmalloc(reg-set!)
-		s/n-regs: 14
+		s/n-regs: 16
 		s/regs: arr
 		s/spill-start: arr/length
 		s/gpr-scratch: x86_SCRATCH
@@ -451,593 +460,793 @@ x86-rs-cc: context [	;-- red/system internal call-conv!
 	]
 ]
 
-int-op-width?: func [
-	i		[instr-op!]
-	return: [integer!]
-	/local
-		t	[int-type!]
-][
-	t: as int-type! i/param-types/value		;-- type of first arg
-	either TYPE_KIND(t) = RST_TYPE_INT [
-		INT_WIDTH(t)
+x86: context [
+
+	#include %assembler.reds
+
+	int-op-width?: func [
+		i		[instr-op!]
+		return: [integer!]
+		/local
+			t	[int-type!]
 	][
-		32
+		t: as int-type! i/param-types/value		;-- type of first arg
+		either TYPE_KIND(t) = RST_TYPE_INT [
+			INT_WIDTH(t)
+		][
+			32
+		]
 	]
-]
 
-op-with-width: func [
-	op		[integer!]
-	i		[instr-op!]
-	return: [integer!]
-	/local
-		w	[integer!]
-][
-	w: int-op-width? i
-	either w > 32 [op + I_W_DIFF][op]
-]
-
-int-cmp-op: func [
-	i		[instr-op!]
-	return: [integer!]
-	/local
-		w	[integer!]
-][
-	w: int-op-width? i
-	switch w + 7 >> 3 [
-		1 [I_CMPB]
-		2 3 4 [I_CMPD]
-		default [I_CMPQ]
+	op-with-width: func [
+		op		[integer!]
+		i		[instr-op!]
+		return: [integer!]
+		/local
+			w	[integer!]
+	][
+		w: int-op-width? i
+		either w > 32 [op + I_W_DIFF][op]
 	]
-]
 
-try-use-imm32: func [
-	cg		[codegen!]
-	i		[instr!]
-	return: [logic!]
-	/local
-		val [cell!]
-		b	[red-logic!]
-		c	[instr-const!]
-][
-	if null? i [
-		use-imm-int cg 0
-		return true
+	int-cmp-op: func [
+		i		[instr-op!]
+		return: [integer!]
+		/local
+			w	[integer!]
+	][
+		w: int-op-width? i
+		switch w + 7 >> 3 [
+			1 [I_CMPB]
+			2 3 4 [I_CMPD]
+			default [I_CMPQ]
+		]
 	]
-	either INSTR_CONST?(i) [
-		c: as instr-const! i
-		val: c/value
-		if null? val [
-			use-imm cg null
+
+	try-use-imm32: func [
+		cg		[codegen!]
+		i		[instr!]
+		return: [logic!]
+		/local
+			val [cell!]
+			b	[red-logic!]
+			c	[instr-const!]
+	][
+		if null? i [
+			use-imm-int cg 0
 			return true
 		]
-		switch TYPE_OF(val) [
-			TYPE_INTEGER [use-imm cg val]
-			TYPE_LOGIC [
-				b: as red-logic! val
-				use-imm-int cg either b/value [1][0]
+		either INSTR_CONST?(i) [
+			c: as instr-const! i
+			val: c/value
+			if null? val [
+				use-imm cg null
+				return true
 			]
-			default [return false]
-		]
-		true
-	][false]
-]
+			switch TYPE_OF(val) [
+				TYPE_INTEGER [use-imm cg val]
+				TYPE_LOGIC [
+					b: as red-logic! val
+					use-imm-int cg either b/value [1][0]
+				]
+				default [return false]
+			]
+			true
+		][false]
+	]
 
-emit-simple-binop: func [
-	cg		[codegen!]
-	op		[integer!]
-	i		[instr!]
-][
-	overwrite-reg cg i cg/m/x
-	op: either try-use-imm32 cg cg/m/y [
-		op or AM_OP_IMM
+	emit-simple-binop: func [
+		cg		[codegen!]
+		op		[integer!]
+		i		[instr!]
 	][
-		use-reg cg cg/m/y
-		op or AM_REG_OP
-	]
-	emit-instr cg op
-]
-
-emit-int-binop: func [
-	cg		[codegen!]
-	op		[integer!]
-	i		[instr!]
-][
-	op: op-with-width op as instr-op! i
-	matcher/int-bin-op cg/m i		;-- init instr matcher with i
-	emit-simple-binop cg op i
-]
-
-emit-call: func [
-	cg		[codegen!]
-	i		[instr!]
-	/local
-		o	[instr-op!]
-		cc	[call-conv!]
-		p	[ptr-ptr!]
-		e	[df-edge!]
-		n	[integer!]
-][
-	o: as instr-op! i
-	cc: x86-rs-cc/make as fn! o/target
-	if cc/ret-type <> type-system/void-type [
-		def-reg-fixed cg i callee-ret cc 0
-	]
-
-	kill cg x86_REG_ALL
-	live-point cg cc
-	use-ptr cg o/target
-
-	n: 0
-	p: ARRAY_DATA(i/inputs)
-	loop i/inputs/length [
-		e: as df-edge! p/value
-		use-reg-fixed cg e/dst callee-param cc n
-		n: n + 1
-		p: p + 1
-	]
-	emit-instr cg I_CALL
-]
-
-emit-int-cmp: func [
-	cg		[codegen!]
-	i		[instr!]
-	op		[integer!]
-	cond	[x86-cond!]
-	return: [x86-cond-pair!]
-	/local
-		p	[ptr-ptr!]
-		e	[df-edge!]
-		a b [instr!]
-		t	[instr!]
-		ob	[operand!]
-][
-	p: ARRAY_DATA(i/inputs)
-	e: as df-edge! p/value
-	a: e/dst
-	p: p + 1
-	e: as df-edge! p/value
-	b: e/dst
-
-	if all [
-		INSTR_CONST?(a)
-		cond/commute <> null
-	][
-		t: a a: b b: t	;-- swap a and b
-		cond: cond/commute
-	]
-
-	op: either try-use-imm32 cg b [
-		ob: as operand! vector/pop-last-ptr cg/operands
-		use-i cg a
-		put-operand(ob)
-		op or AM_OP_IMM
-	][
-		use-reg cg a
-		use-i cg b
-		op or AM_REG_OP
-	]
-	emit-instr cg op
-	x86-cond/make-pair cond null no
-]
-
-emit-cmp: func [
-	cg		[codegen!]
-	i		[instr!]
-	return: [x86-cond-pair!]
-	/local
-		op	[integer!]
-		c	[x86-cond!]
-		o	[instr-op!]
-		t	[int-type!]
-][
-	switch INSTR_OPCODE(i) [
-		OP_BOOL_EQ
-		OP_BOOL_NOT
-		OP_INT_EQ
-		OP_INT_LT	[
-			o: as instr-op! i
-			op: int-cmp-op o
-			t: as int-type! o/param-types/value
-			c: either INT_SIGNED?(t) [x86-cond/lesser][x86-cond/carry]
-			emit-int-cmp cg i op c
-		]
-		OP_INT_LTEQ
-		OP_PTR_EQ
-		OP_PTR_LT
-		OP_PTR_LTEQ
-		OP_FLT_EQ
-		OP_FLT_LT
-		OP_FLT_LTEQ [null]
-	]
-]
-
-emit-cond: func [
-	cg		[codegen!]
-	cond	[x86-cond!]
-	target	[basic-block!]
-][
-	use-label cg target
-	emit-instr cg I_JC or M_FLAG_FIXED or (cond/index << COND_SHIFT)
-]
-
-x86-gen-goto: func [
-	cg		[codegen!]
-	blk		[basic-block!]
-	i		[instr-goto!]
-	/local
-		p	[ptr-ptr!]
-		e	[cf-edge!]
-		t	[basic-block!]
-][
-	p: ARRAY_DATA(i/succs)
-	e: as cf-edge! p/value
-	t: e/dst
-
-	unless directly-after? blk t [
-		use-label cg t
-		emit-instr cg I_JMP
-	]
-]
-
-x86-gen-if: func [
-	cg		[codegen!]
-	blk		[basic-block!]
-	i		[instr-if!]
-	/local
-		conds	[x86-cond-pair!]
-		p		[ptr-ptr!]
-		e		[cf-edge!]
-		jmp		[basic-block!]
-		target	[basic-block!]
-		fallthru [basic-block!]
-		s0 s1 s2 [basic-block!]
-][
-	conds: emit-cmp cg input0 as instr! i
-	p: ARRAY_DATA(i/succs)
-	e: as cf-edge! p/value
-	s0: e/dst	;-- true block
-	p: p + 1
-	e: as cf-edge! p/value
-	s1: e/dst	;-- false block
-
-	jmp: null
-	fallthru: null
-	case [
-		directly-after? blk s1 [	;-- fall thru to s1
-			target: s0
-			fallthru: s1
-		]
-		directly-after? blk s0 [
-			target: s1
-			fallthru: s0
-			conds: x86-cond/pair-neg conds
-		]
-		true [
-			target: s0
-			jmp: s1
-		]
-	]
-
-	case [
-		null? conds/cond2 [
-			emit-cond cg conds/cond1 target
-		]
-		conds/and? [
-			s2: either jmp <> null [jmp][fallthru]
-			emit-cond cg conds/cond1/negate s2
-			emit-cond cg conds/cond2 target
-		]
-		true [
-			emit-cond cg conds/cond1 target
-			emit-cond cg conds/cond2 target
-		]
-	]
-	if jmp <> null [
-		use-label cg jmp
-		emit-instr cg I_JMP or M_FLAG_FIXED
-	]
-]
-
-x86-gen-op: func [
-	cg		[codegen!]
-	blk		[basic-block!]
-	i		[instr!]
-][
-	switch INSTR_OPCODE(i) [
-		OP_BOOL_EQ			[0]
-		OP_BOOL_AND			[0]
-		OP_BOOL_OR			[0]
-		OP_BOOL_NOT			[0]
-		OP_INT_ADD			[emit-int-binop cg I_ADDD i]
-		OP_INT_SUB			[0]
-		OP_INT_MUL			[0]
-		OP_INT_DIV			[0]
-		OP_INT_MOD			[0]
-		OP_INT_REM			[0]
-		OP_INT_AND			[0]
-		OP_INT_OR			[0]
-		OP_INT_XOR			[0]
-		OP_INT_SHL			[0]
-		OP_INT_SAR			[0]
-		OP_INT_SHR			[0]
-		OP_INT_EQ			[0]
-		OP_INT_NE			[0]
-		OP_INT_LT			[0]
-		OP_INT_LTEQ			[0]
-		OP_FLT_ADD			[0]
-		OP_FLT_SUB			[0]
-		OP_FLT_MUL			[0]
-		OP_FLT_DIV			[0]
-		OP_FLT_MOD			[0]
-		OP_FLT_REM			[0]
-		OP_FLT_ABS			[0]
-		OP_FLT_CEIL			[0]
-		OP_FLT_FLOOR		[0]
-		OP_FLT_SQRT			[0]
-		OP_FLT_UNUSED		[0]
-		OP_FLT_BITEQ		[0]
-		OP_FLT_EQ			[0]
-		OP_FLT_NE			[0]
-		OP_FLT_LT			[0]
-		OP_FLT_LTEQ			[0]
-		OP_DEFAULT_VALUE	[0]
-		OP_CALL_FUNC		[emit-call cg i]
-		OP_GET_GLOBAL		[0]
-		OP_SET_GLOBAL		[0]
-		default [
-			prin "codegen: unknown op"
-		]
-	]
-]
-
-x86-make-frame: func [
-	ir		[ir-fn!]
-	return: [frame!]
-	/local
-		f	[frame!]
-][
-	f: xmalloc(frame!)
-	f/cc: x86-rs-cc/make ir/fn
-	f/align: target/addr-align
-	f/slot-size: target/addr-size
-	f/size: target/addr-size
-	f/tmp-slot: -1
-	f
-]
-
-x86-long-to-reg: func [		;-- 64bit value to reg
-	cg		[codegen!]
-	val		[cell!]
-	idx		[integer!]
-][
-	;TBD
-]
-
-x86-load-to-reg: func [		;-- load val into reg
-	cg		[codegen!]
-	v		[vreg!]
-	idx		[integer!]		;-- reg index
-	/local
-		cls [integer!]
-		op	[integer!]
-		d	[def!]
-		u	[use!]
-		i	[instr-const!]
-][
-	cls: v/reg-class
-	op: either any [cls = class_i32 cls = class_f32][I_MOVD][I_MOVQ]
-	either vreg-const?(v) [
-		;TBD handle 64bit value
-		d: make-def null idx
-		i: as instr-const! v/instr
-		u: as use! make-imm i/value
-		op: op or AM_OP_IMM
-	][
-		d: make-def null idx
-		u: make-use v v/spill
-		op: op or AM_REG_OP		
-	]
-	emit-instr2 cg op d u
-]
-
-x86-gen-restore: func [
-	cg		[codegen!]
-	v		[vreg!]		;-- from
-	idx		[integer!]	;-- to
-	/local
-		s	[reg-set!]
-		r	[integer!]
-		op	[integer!]
-		d	[def!]
-		u	[use!]
-		cls [integer!]
-][
-	s: cg/reg-set
-	cls: v/reg-class
-	if on-stack? s idx [
-		r: s/gpr-scratch
-		op: either cls = class_i32 [I_MOVD][I_MOVQ]
-		either all [
-			vreg-const?(v)
-			try-use-imm32 cg v/instr
+		overwrite-reg cg i cg/m/x
+		op: either try-use-imm32 cg cg/m/y [
+			op or AM_OP_IMM
 		][
-			u: as use! vector/pop-last-ptr cg/operands
+			use-reg cg cg/m/y
+			op or AM_REG_OP
+		]
+		emit-instr cg op
+	]
+
+	emit-int-binop: func [
+		cg		[codegen!]
+		op		[integer!]
+		i		[instr!]
+	][
+		op: op-with-width op as instr-op! i
+		matcher/int-bin-op cg/m i		;-- init instr matcher with i
+		emit-simple-binop cg op i
+	]
+
+	emit-call: func [
+		cg		[codegen!]
+		i		[instr!]
+		/local
+			o	[instr-op!]
+			cc	[call-conv!]
+			p	[ptr-ptr!]
+			e	[df-edge!]
+			n	[integer!]
+	][
+		o: as instr-op! i
+		cc: x86-rs-cc/make as fn! o/target
+		if cc/ret-type <> type-system/void-type [
+			def-reg-fixed cg i callee-ret cc 0
+		]
+
+		kill cg x86_REG_ALL
+		live-point cg cc
+		use-ptr cg o/target
+
+		n: 0
+		p: ARRAY_DATA(i/inputs)
+		loop i/inputs/length [
+			e: as df-edge! p/value
+			use-reg-fixed cg e/dst callee-param cc n
+			n: n + 1
+			p: p + 1
+		]
+		emit-instr cg I_CALL
+	]
+
+	emit-int-cmp: func [
+		cg		[codegen!]
+		i		[instr!]
+		op		[integer!]
+		cond	[x86-cond!]
+		return: [x86-cond-pair!]
+		/local
+			p	[ptr-ptr!]
+			e	[df-edge!]
+			a b [instr!]
+			t	[instr!]
+			ob	[operand!]
+	][
+		p: ARRAY_DATA(i/inputs)
+		e: as df-edge! p/value
+		a: e/dst
+		p: p + 1
+		e: as df-edge! p/value
+		b: e/dst
+
+		if all [
+			INSTR_CONST?(a)
+			cond/commute <> null
+		][
+			t: a a: b b: t	;-- swap a and b
+			cond: cond/commute
+		]
+
+		op: either try-use-imm32 cg b [
+			ob: as operand! vector/pop-last-ptr cg/operands
+			use-i cg a
+			put-operand(ob)
+			op or AM_OP_IMM
+		][
+			use-reg cg a
+			use-i cg b
+			op or AM_REG_OP
+		]
+		emit-instr cg op
+		x86-cond/make-pair cond null no
+	]
+
+	emit-cmp: func [
+		cg		[codegen!]
+		i		[instr!]
+		return: [x86-cond-pair!]
+		/local
+			op	[integer!]
+			c	[x86-cond!]
+			o	[instr-op!]
+			t	[int-type!]
+	][
+		switch INSTR_OPCODE(i) [
+			OP_BOOL_EQ
+			OP_BOOL_NOT
+			OP_INT_EQ
+			OP_INT_LT	[
+				o: as instr-op! i
+				op: int-cmp-op o
+				t: as int-type! o/param-types/value
+				c: either INT_SIGNED?(t) [x86-cond/lesser][x86-cond/carry]
+				emit-int-cmp cg i op c
+			]
+			OP_INT_LTEQ
+			OP_PTR_EQ
+			OP_PTR_LT
+			OP_PTR_LTEQ
+			OP_FLT_EQ
+			OP_FLT_LT
+			OP_FLT_LTEQ [null]
+		]
+	]
+
+	emit-cond: func [
+		cg		[codegen!]
+		cond	[x86-cond!]
+		target	[basic-block!]
+	][
+		use-label cg target
+		emit-instr cg I_JC or M_FLAG_FIXED or (cond/index << COND_SHIFT)
+	]
+
+	gen-goto: func [
+		cg		[codegen!]
+		blk		[basic-block!]
+		i		[instr-goto!]
+		/local
+			p	[ptr-ptr!]
+			e	[cf-edge!]
+			t	[basic-block!]
+	][
+		p: ARRAY_DATA(i/succs)
+		e: as cf-edge! p/value
+		t: e/dst
+
+		unless directly-after? blk t [
+			use-label cg t
+			emit-instr cg I_JMP
+		]
+	]
+
+	gen-if: func [
+		cg		[codegen!]
+		blk		[basic-block!]
+		i		[instr-if!]
+		/local
+			conds	[x86-cond-pair!]
+			p		[ptr-ptr!]
+			e		[cf-edge!]
+			jmp		[basic-block!]
+			target	[basic-block!]
+			fallthru [basic-block!]
+			s0 s1 s2 [basic-block!]
+	][
+		conds: emit-cmp cg input0 as instr! i
+		p: ARRAY_DATA(i/succs)
+		e: as cf-edge! p/value
+		s0: e/dst	;-- true block
+		p: p + 1
+		e: as cf-edge! p/value
+		s1: e/dst	;-- false block
+
+		jmp: null
+		fallthru: null
+		case [
+			directly-after? blk s1 [	;-- fall thru to s1
+				target: s0
+				fallthru: s1
+			]
+			directly-after? blk s0 [
+				target: s1
+				fallthru: s0
+				conds: x86-cond/pair-neg conds
+			]
+			true [
+				target: s0
+				jmp: s1
+			]
+		]
+
+		case [
+			null? conds/cond2 [
+				emit-cond cg conds/cond1 target
+			]
+			conds/and? [
+				s2: either jmp <> null [jmp][fallthru]
+				emit-cond cg conds/cond1/negate s2
+				emit-cond cg conds/cond2 target
+			]
+			true [
+				emit-cond cg conds/cond1 target
+				emit-cond cg conds/cond2 target
+			]
+		]
+		if jmp <> null [
+			use-label cg jmp
+			emit-instr cg I_JMP or M_FLAG_FIXED
+		]
+	]
+
+	gen-op: func [
+		cg		[codegen!]
+		blk		[basic-block!]
+		i		[instr!]
+	][
+		switch INSTR_OPCODE(i) [
+			OP_BOOL_EQ			[0]
+			OP_BOOL_AND			[0]
+			OP_BOOL_OR			[0]
+			OP_BOOL_NOT			[0]
+			OP_INT_ADD			[emit-int-binop cg I_ADDD i]
+			OP_INT_SUB			[0]
+			OP_INT_MUL			[0]
+			OP_INT_DIV			[0]
+			OP_INT_MOD			[0]
+			OP_INT_REM			[0]
+			OP_INT_AND			[0]
+			OP_INT_OR			[0]
+			OP_INT_XOR			[0]
+			OP_INT_SHL			[0]
+			OP_INT_SAR			[0]
+			OP_INT_SHR			[0]
+			OP_INT_EQ			[0]
+			OP_INT_NE			[0]
+			OP_INT_LT			[0]
+			OP_INT_LTEQ			[0]
+			OP_FLT_ADD			[0]
+			OP_FLT_SUB			[0]
+			OP_FLT_MUL			[0]
+			OP_FLT_DIV			[0]
+			OP_FLT_MOD			[0]
+			OP_FLT_REM			[0]
+			OP_FLT_ABS			[0]
+			OP_FLT_CEIL			[0]
+			OP_FLT_FLOOR		[0]
+			OP_FLT_SQRT			[0]
+			OP_FLT_UNUSED		[0]
+			OP_FLT_BITEQ		[0]
+			OP_FLT_EQ			[0]
+			OP_FLT_NE			[0]
+			OP_FLT_LT			[0]
+			OP_FLT_LTEQ			[0]
+			OP_DEFAULT_VALUE	[0]
+			OP_CALL_FUNC		[emit-call cg i]
+			OP_GET_GLOBAL		[0]
+			OP_SET_GLOBAL		[0]
+			default [
+				prin "codegen: unknown op"
+			]
+		]
+	]
+
+	make-frame: func [
+		ir		[ir-fn!]
+		return: [frame!]
+		/local
+			f	[frame!]
+	][
+		f: xmalloc(frame!)
+		f/cc: x86-rs-cc/make ir/fn
+		f/align: target/addr-align
+		f/slot-size: 4
+		f/size: target/addr-size
+		f/tmp-slot: -1
+		f
+	]
+
+	long-to-reg: func [		;-- 64bit value to reg
+		cg		[codegen!]
+		val		[cell!]
+		idx		[integer!]
+	][
+		;TBD
+	]
+
+	load-to-reg: func [		;-- load val into reg
+		cg		[codegen!]
+		v		[vreg!]
+		idx		[integer!]		;-- reg index
+		/local
+			cls [integer!]
+			op	[integer!]
+			d	[def!]
+			u	[use!]
+			i	[instr-const!]
+	][
+		cls: v/reg-class
+		op: either any [cls = class_i32 cls = class_f32][I_MOVD][I_MOVQ]
+		either vreg-const?(v) [
+			;TBD handle 64bit value
 			d: make-def null idx
+			i: as instr-const! v/instr
+			u: as use! make-imm i/value
 			op: op or AM_OP_IMM
 		][
-			r: s/gpr-scratch
-			x86-load-to-reg cg v r
 			d: make-def null idx
-			u: make-use v r
-			op: op or AM_OP_REG
-		]
-		emit-instr2 cg op d u
-		exit
-	]
-	either sse-reg?(idx) [
-		op: either cls = class_f32 [I_MOVSS][I_MOVSD]
-		d: make-def null idx
-		either vreg-const?(v) [
-			r: s/gpr-scratch
-			x86-load-to-reg cg v r
-			u: make-use v r
-			op: op or AM_XMM_REG
-		][
 			u: make-use v v/spill
-			op: op or AM_XMM_OP
+			op: op or AM_REG_OP		
 		]
 		emit-instr2 cg op d u
+	]
+
+	gen-restore: func [
+		cg		[codegen!]
+		v		[vreg!]		;-- from
+		idx		[integer!]	;-- to
+		/local
+			s	[reg-set!]
+			r	[integer!]
+			op	[integer!]
+			d	[def!]
+			u	[use!]
+			cls [integer!]
 	][
-		x86-load-to-reg cg v idx
+		s: cg/reg-set
+		cls: v/reg-class
+		if on-stack? s idx [
+			r: s/gpr-scratch
+			op: either cls = class_i32 [I_MOVD][I_MOVQ]
+			either all [
+				vreg-const?(v)
+				try-use-imm32 cg v/instr
+			][
+				u: as use! vector/pop-last-ptr cg/operands
+				d: make-def null idx
+				op: op or AM_OP_IMM
+			][
+				r: s/gpr-scratch
+				load-to-reg cg v r
+				d: make-def null idx
+				u: make-use v r
+				op: op or AM_OP_REG
+			]
+			emit-instr2 cg op d u
+			exit
+		]
+		either sse-reg?(idx) [
+			op: either cls = class_f32 [I_MOVSS][I_MOVSD]
+			d: make-def null idx
+			either vreg-const?(v) [
+				r: s/gpr-scratch
+				load-to-reg cg v r
+				u: make-use v r
+				op: op or AM_XMM_REG
+			][
+				u: make-use v v/spill
+				op: op or AM_XMM_OP
+			]
+			emit-instr2 cg op d u
+		][
+			load-to-reg cg v idx
+		]
 	]
-]
 
-x86-gen-save: func [
-	cg		[codegen!]
-	v		[vreg!]		;-- to
-	idx		[integer!]	;-- from
-	/local
-		s	[reg-set!]
-		r	[integer!]
-		op	[integer!]
-		d	[def!]
-		u	[use!]
-		cls [integer!]
-][
-	if on-caller-stack? idx [exit]
-	s: cg/reg-set
-	if on-stack? s idx [
-		r: s/gpr-scratch
-		op: either v/reg-class = class_i32 [I_MOVD][I_MOVQ]
-		d: make-def null r
-		u: make-use null idx
-		emit-instr2 cg op or AM_REG_OP d u
-		d: make-def v v/spill
-		u: make-use null r
-		emit-instr2 cg op or AM_OP_REG d u
-		exit
-	]
-	cls: v/reg-class
-	op: switch cls [
-		class_i32 [I_MOVD or AM_OP_REG]
-		class_i64 [I_MOVQ or AM_OP_REG]
-		class_f32 [I_MOVSS or AM_OP_XMM]
-		class_f64 [I_MOVSD or AM_OP_XMM]
-	]
-	d: make-def v v/spill
-	u: make-use null idx
-	emit-instr2 cg op d u
-]
-
-x86-gen-move-loc: func [
-	cg		[codegen!]
-	arg		[move-arg!]
-	/local
-		op cls	[integer!]
-		src dst [integer!]
-		rset	[reg-set!]
-		s-reg	[integer!]
-		d		[def!]
-		u		[use!]
-][
-	rset: cg/reg-set
-	s-reg: rset/gpr-scratch
-	cls: arg/reg-cls
-	src: arg/src-reg
-	dst: arg/dst-reg
-	op: either any [cls = class_i32 cls = class_f32][I_MOVD][I_MOVQ]
-	either on-stack? rset dst [
-		either on-stack? rset src [
-			d: make-def null s-reg
-			u: make-use arg/src-v src
+	gen-save: func [
+		cg		[codegen!]
+		v		[vreg!]		;-- to
+		idx		[integer!]	;-- from
+		/local
+			s	[reg-set!]
+			r	[integer!]
+			op	[integer!]
+			d	[def!]
+			u	[use!]
+			cls [integer!]
+	][
+		if on-caller-stack? idx [exit]
+		s: cg/reg-set
+		if on-stack? s idx [
+			r: s/gpr-scratch
+			op: either v/reg-class = class_i32 [I_MOVD][I_MOVQ]
+			d: make-def null r
+			u: make-use null idx
 			emit-instr2 cg op or AM_REG_OP d u
-			d: make-def arg/dst-v dst
-			u: make-use null s-reg
+			d: make-def v v/spill
+			u: make-use null r
 			emit-instr2 cg op or AM_OP_REG d u
+			exit
+		]
+		cls: v/reg-class
+		op: switch cls [
+			class_i32 [I_MOVD or AM_OP_REG]
+			class_i64 [I_MOVQ or AM_OP_REG]
+			class_f32 [I_MOVSS or AM_OP_XMM]
+			class_f64 [I_MOVSD or AM_OP_XMM]
+		]
+		d: make-def v v/spill
+		u: make-use null idx
+		emit-instr2 cg op d u
+	]
+
+	gen-move-loc: func [
+		cg		[codegen!]
+		arg		[move-arg!]
+		/local
+			op cls	[integer!]
+			src dst [integer!]
+			rset	[reg-set!]
+			s-reg	[integer!]
+			d		[def!]
+			u		[use!]
+	][
+		rset: cg/reg-set
+		s-reg: rset/gpr-scratch
+		cls: arg/reg-cls
+		src: arg/src-reg
+		dst: arg/dst-reg
+		op: either any [cls = class_i32 cls = class_f32][I_MOVD][I_MOVQ]
+		either on-stack? rset dst [
+			either on-stack? rset src [
+				d: make-def null s-reg
+				u: make-use arg/src-v src
+				emit-instr2 cg op or AM_REG_OP d u
+				d: make-def arg/dst-v dst
+				u: make-use null s-reg
+				emit-instr2 cg op or AM_OP_REG d u
+			][
+				d: make-def arg/dst-v dst
+				u: make-use arg/src-v src
+				op: either sse-reg?(src) [
+					op: either cls = class_f32 [I_MOVSS][I_MOVSD]
+					op or AM_OP_XMM
+				][
+					op or AM_OP_REG
+				]
+				emit-instr2 cg op d u
+			]
 		][
 			d: make-def arg/dst-v dst
 			u: make-use arg/src-v src
-			op: either sse-reg?(src) [
+			op: either sse-reg?(dst) [
 				op: either cls = class_f32 [I_MOVSS][I_MOVSD]
-				op or AM_OP_XMM
+				op or AM_XMM_OP
 			][
-				op or AM_OP_REG
+				op or AM_REG_OP
 			]
 			emit-instr2 cg op d u
 		]
-	][
-		d: make-def arg/dst-v dst
-		u: make-use arg/src-v src
-		op: either sse-reg?(dst) [
-			op: either cls = class_f32 [I_MOVSS][I_MOVSD]
-			op or AM_XMM_OP
-		][
-			op or AM_REG_OP
-		]
-		emit-instr2 cg op d u
 	]
-]
 
-x86-gen-move-imm: func [
-	cg		[codegen!]
-	arg		[move-arg!]
-	/local
-		op cls	[integer!]
-		src-v	[vreg!]
-		dst-v	[vreg!]
-		dst		[integer!]
-		rset	[reg-set!]
-		s-reg	[integer!]
-		d		[def!]
-		u		[use!]
-		imm32?	[logic!]
-		imm		[operand!]
-		val		[cell!]
-		i		[instr-const!]
-][
-	rset: cg/reg-set
-	s-reg: rset/gpr-scratch
-	cls: arg/reg-cls
-	src-v: arg/src-v
-	dst-v: arg/dst-v
-	dst: arg/dst-reg
-	imm32?: try-use-imm32 cg src-v/instr
-	imm: either imm32? [as operand! vector/pop-last-ptr cg/operands][null]
-	op: either any [cls = class_i32 cls = class_f32][I_MOVD][I_MOVQ]
-	either on-stack? rset dst [
-		if imm32? [
-			d: make-def dst-v dst
-			emit-instr2 cg op or AM_OP_IMM d as use! imm
-			exit
-		]
-		arg/dst-v: null
-		arg/dst-reg: s-reg
-		x86-gen-move-imm cg arg
-
-		arg/src-v: null
-		arg/src-reg: s-reg
-		arg/dst-v: dst-v
-		arg/dst-reg: dst
-		x86-gen-move-loc cg arg
+	gen-move-imm: func [
+		cg		[codegen!]
+		arg		[move-arg!]
+		/local
+			op cls	[integer!]
+			src-v	[vreg!]
+			dst-v	[vreg!]
+			dst		[integer!]
+			rset	[reg-set!]
+			s-reg	[integer!]
+			d		[def!]
+			u		[use!]
+			imm32?	[logic!]
+			imm		[operand!]
+			val		[cell!]
+			i		[instr-const!]
 	][
-		either sse-reg?(dst) [
+		rset: cg/reg-set
+		s-reg: rset/gpr-scratch
+		cls: arg/reg-cls
+		src-v: arg/src-v
+		dst-v: arg/dst-v
+		dst: arg/dst-reg
+		imm32?: try-use-imm32 cg src-v/instr
+		imm: either imm32? [as operand! vector/pop-last-ptr cg/operands][null]
+		op: either any [cls = class_i32 cls = class_f32][I_MOVD][I_MOVQ]
+		either on-stack? rset dst [
+			if imm32? [
+				d: make-def dst-v dst
+				emit-instr2 cg op or AM_OP_IMM d as use! imm
+				exit
+			]
 			arg/dst-v: null
 			arg/dst-reg: s-reg
-			x86-gen-move-imm cg arg
-			op: either cls = class_f32 [I_MOVSS][I_MOVSD]
-			d: make-def dst-v dst
-			u: make-use null s-reg
-			emit-instr2 cg op or AM_XMM_REG d u
+			gen-move-imm cg arg
+
+			arg/src-v: null
+			arg/src-reg: s-reg
+			arg/dst-v: dst-v
+			arg/dst-reg: dst
+			gen-move-loc cg arg
 		][
-			d: make-def dst-v dst
-			either imm32? [
-				emit-instr2 cg op or AM_OP_IMM d as use! imm
+			either sse-reg?(dst) [
+				arg/dst-v: null
+				arg/dst-reg: s-reg
+				gen-move-imm cg arg
+				op: either cls = class_f32 [I_MOVSS][I_MOVSD]
+				d: make-def dst-v dst
+				u: make-use null s-reg
+				emit-instr2 cg op or AM_XMM_REG d u
 			][
-				i: as instr-const! src-v/instr
-				val: i/value
-				emit-instr2 cg I_MOVD or AM_OP_IMM d as use! make-imm val
-				;TBD handle 64bit value
+				d: make-def dst-v dst
+				either imm32? [
+					emit-instr2 cg op or AM_OP_IMM d as use! imm
+				][
+					i: as instr-const! src-v/instr
+					val: i/value
+					emit-instr2 cg I_MOVD or AM_OP_IMM d as use! make-imm val
+					;TBD handle 64bit value
+				]
 			]
+		]
+	]
+
+	to-loc: func [
+		o		[operand!]
+		return: [integer!]
+		/local
+			d	[def!]
+			u	[use!]
+			w	[overwrite!]
+	][
+		switch o/header and FFh [
+			OD_DEF [
+				d: as def! o
+				d/constraint
+			]
+			OD_USE [
+				u: as use! o
+				u/constraint
+			]
+			OD_OVERWRITE [
+				w: as overwrite! o
+				w/constraint
+			]
+			default [
+				probe ["wrong operand type: " o/header and FFh]
+				0
+			]
+		]
+	]
+
+	adjust-frame: func [
+		frame	[frame!]
+		add?	[logic!]
+		/local
+			n	[integer!]
+			op	[integer!]
+	][
+		n: frame/size - target/addr-size		;-- return addr already pushed
+		if n > 0 [
+			op: either add? [asm/OP_ADD][asm/OP_SUB]
+			asm/emit-r-i x86-regs/esp n op
+		]
+	]
+
+	make-addr: func [
+		base	[integer!]
+		index	[integer!]
+		scale	[integer!]
+		disp	[integer!]
+		return: [x86-addr!]
+		/local
+			a	[x86-addr!]
+	][
+		a: xmalloc(x86-addr!)
+		a/base: base
+		a/index: index
+		a/scale: scale
+		a/disp: disp
+		a
+	]
+
+	loc-m: func [	;-- location idx to memory addr
+		f		[frame!]
+		r		[reg-set!]
+		loc		[integer!]
+		return:	[x86-addr!]
+		/local
+			word-sz [integer!]
+			offset	[integer!]
+	][
+		loc: loc and (not FRAME_SLOT_64)	;-- remove flag
+		offset: 0
+		word-sz: target/addr-size
+		case [
+			loc >= r/callee-base [
+				offset: word-sz * (loc - r/callee-base)
+			]
+			loc >= r/caller-base [
+				offset: word-sz * (loc - r/caller-base) + f/size
+			]
+			loc >= r/spill-start [
+				offset: word-sz * (loc - r/spill-start + f/spill-args)
+			]
+			true [probe ["invalid stack location: " loc]]
+		]
+		make-addr x86_ESP 0 1 offset
+	]
+
+	assemble-op: func [
+		op		[integer!]
+		p		[ptr-ptr!]
+		/local
+			l	[label!]
+			c	[integer!]
+	][
+		switch x86_OPCODE(op) [
+			I_JMP [
+				l: as label! p/value
+				either l/pos >= 0 [
+					asm/jmp-rel l/pos - asm/pos
+				][
+					asm/jmp-rel-addr l
+				]
+			]
+			I_JC [
+				l: as label! p/value
+				c: x86_COND(op)
+				either l/pos >= 0 [
+					asm/jc-rel c l/pos - asm/pos
+				][
+					asm/jc-rel-addr c l
+				]
+			]
+			default [0]
+		]
+	]
+
+	assemble-r-r: func [
+		op		[integer!]
+		a		[integer!]
+		b		[integer!]
+	][
+	]
+
+	assemble-r-m: func [
+		op		[integer!]
+		a		[integer!]
+		m		[x86-addr!]
+	][
+		
+	]
+
+	assemble: func [
+		cg		[codegen!]
+		i		[mach-instr!]
+		/local
+			op	[integer!]
+			m	[integer!]
+			reg [integer!]
+			loc [integer!]
+			l	[label!]
+			p	[ptr-ptr!]
+			ins [integer!]
+			rset [reg-set!]
+	][
+		rset: cg/reg-set
+		ins: i/header
+		op: x86_OPCODE(ins)
+		p: as ptr-ptr! i + 1	;-- point to operands
+		if op >= I_NOP [
+			switch op [
+				I_ENTRY [adjust-frame cg/frame no]
+				I_BLK_BEG [
+					l: as label! p/value
+					l/pos: asm/pos
+				]
+				I_RET [
+					adjust-frame cg/frame yes
+					asm/ret
+				]
+				default [0]
+			]
+			exit
+		]
+
+		m: i/header >> AM_SHIFT and 1Fh
+		switch m [
+			_AM_NONE [assemble-op ins p]
+			_AM_REG_OP [
+				reg: to-loc as operand! p/value
+				reg: reg - 1
+				p: p + 1
+				loc: to-loc as operand! p/value
+				either gpr-reg?(loc) [
+					assemble-r-r op reg loc - 1
+				][
+					assemble-r-m op reg loc-m cg/frame rset loc
+				]
+			]
+			_AM_RRSD_REG
+			_AM_RRSD_IMM
+			_AM_REG_RRSD
+			_AM_OP
+			_AM_OP_IMM
+			_AM_OP_REG
+			_AM_XMM_REG
+			_AM_XMM_OP
+			_AM_OP_XMM
+			_AM_XMM_RRSD
+			_AM_RRSD_XMM
+			_AM_XMM_IMM 
+			_AM_REG_XOP
+			_AM_XMM_XMM [0]
+			default [0]
 		]
 	]
 ]
