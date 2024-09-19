@@ -364,12 +364,19 @@ compiler: context [
 		job			[red-object!]
 		/local
 			ctx 	[context!]
-			fn		[fn! value]
+			fn		[fn!]
 			cg		[codegen!]
 			p		[ptr-ptr!]
 			funcs	[vector!]
+			code	[red-binary!]
+			len		[integer!]
+			s		[series!]
+			_job	[cell! value]
 	][
+		job: as red-object! copy-cell as cell! job _job		;-- job slot will be overwrite by lexer
 		script: object/rs-select job as cell! word/load "script"
+		code: as red-binary! object/rs-select job as cell! word/load "code-buf"
+
 		ir-module: as ir-module! malloc size? ir-module!
 		ir-module/functions: vector/make size? int-ptr! 100
 		program: xmalloc(mach-program!)
@@ -380,11 +387,18 @@ compiler: context [
 
 		init-target job
 
-		set-memory as byte-ptr! :fn null-byte size? fn!
+		fn: xmalloc(fn!)
 		fn/body: src
 		fn/type: as rst-type! op-cache/void-op
-		ctx: comp-fn :fn null null
-		comp-functions ctx
+
+		stack/mark-try-all words/_anon
+		catch CATCH_ALL_EXCEPTIONS [
+			ctx: comp-fn fn null null
+			comp-functions ctx
+			stack/unwind
+		]
+		stack/adjust-post-try
+		if system/thrown <> 0 [system/thrown: 0]
 
 		p: as ptr-ptr! funcs/data
 		loop funcs/length [
@@ -392,7 +406,14 @@ compiler: context [
 			backend/assemble-instrs cg
 			p: p + 1
 		]
-		;dump-hex program/code-buf/data
+		dump-hex program/code-buf/data
+
+		len: program/code-buf/length
+		red/binary/make-at as cell! code len
+		
+		s: GET_BUFFER(code)
+		copy-memory as byte-ptr! s/offset program/code-buf/data len
+		s/tail: as cell! (as byte-ptr! s/tail) + len
 	]
 
 	init-target: func [job [red-object!]][

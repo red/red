@@ -164,7 +164,8 @@
 	red/vector/get-value-int
 	red/vector/get-value-float
 	red/vector/set-value
-	
+
+	red/binary/make-at
 	red/binary/rs-head
 	red/binary/rs-tail
 	red/binary/rs-length?

@@ -8,6 +8,9 @@ Red [
 
 #include %utils/helper.red
 #include %utils/secure-clean-path.red
+#include %utils/int-to-bin.red
+#include %utils/unicode.red
+#include %utils/virtual-struct.red
 
 prin-cell: func [val][
 	prin val
@@ -32,6 +35,7 @@ system-dialect: context [
 	nl: 		  newline
 	
 	loader: #include %loader.red
+	linker: #include %linker.red
 
 	job!: make object! [
 		format: 			none						;-- 'PE | 'ELF | 'Mach-o
@@ -45,6 +49,9 @@ system-dialect: context [
 		debug-info:			none						;-- debugging informations
 		base-address:		none						;-- base address
 		buffer: 			none						;-- output buffer
+		code-buf:  			none
+		data-buf:  			none
+		imports:			none
 		script:				none						;-- script file path
 	]
 	
@@ -102,6 +109,31 @@ system-dialect: context [
 		job:			make job! []					;-- shortcut for job object
 		script:			none							;-- source script file name
 		pc:				none							;-- source code input cursor
+
+		get-arity: func [spec [block!] /local count][
+			count: 0
+			parse spec [opt block! any [word! block! (count: count + 1)]]
+			count
+		]
+
+		get-args-array: func [name [word!] /local count array spec][ ;-- used by linker for debug info
+			count: 0
+			array: clear #{}							;-- re-use buffer
+			
+			parse functions/:name/4 [
+				opt block!
+				any [
+					word!
+					spec: block! (
+						count: count + 1
+						id: get-type-id/direct spec/1
+						if id >= 1000 [id: 100]
+						append array to char! id
+					)
+				]
+			]
+			reduce [count array]
+		]
 
 		process-config: func [header [block!] /local spec old-PIC?][
 			if spec: select header first [config:][
@@ -204,6 +236,9 @@ system-dialect: context [
 				append job/build-basename file
 			]
 		]
+		job/code-buf: #{}
+		job/data-buf: #{00000000}
+		job/imports: []
 		job
 	]
 
@@ -291,7 +326,7 @@ system-dialect: context [
 
 			set-verbose-level opts/verbosity
 			loader/init job
-			
+
 			if all [
 				job/need-main?
 				not opts/use-natives?
@@ -303,14 +338,14 @@ system-dialect: context [
 			if opts/runtime? [
 				;comp-runtime-prolog to logic! loaded all [loaded job-data/3]
 			]
-			
+
 			resources: either loaded [job-data/4][make block! 8]
 			foreach file files [
 				either loaded [
 					src: loader/process/with job-data/1 file
 				][
 					src: loader/process file
-					if job/OS = 'Windows [collect-resources src/2 resources file]
+					;if job/OS = 'Windows [collect-resources src/2 resources file]
 				]
 				compiler/run job src file
 			]
@@ -319,6 +354,30 @@ system-dialect: context [
 			compiler/finalize							;-- compile all functions
 			set-verbose-level 0
 		]
+
+		if opts/link? [
+			job/runtime?: no
+			link-time: dt [
+				job/sections: compose/deep/only [
+					code   [- 	(job/code-buf)]
+					data   [- 	(job/data-buf)]
+					;import [- - (job/imports)]
+				]
+				;if job/OS = 'Windows [
+				;	if icon: find resources 'icon [
+				;		insert skip icon 2 reduce ['group-icon icon/2]
+				;	]
+				;	append resources reduce ['manifest none]		;-- always use manifest file in DLL and EXE
+				;]
+				;unless empty? resources [
+				;	append job/sections compose/deep/only [
+				;		rsrc   [- - (resources)]
+				;	]
+				;]
+				output: linker/build job
+			]
+		]
+
 		reduce [
 			comp-time
 			link-time
