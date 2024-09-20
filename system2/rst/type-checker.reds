@@ -207,7 +207,7 @@ type-checker: context [
 		switch NODE_TYPE(var) [
 			RST_VAR [
 				decl: var/decl
-				if all [LOCAL?(decl) ctx/level > 0][
+				if all [LOCAL_VAR?(decl) ctx/level > 0][
 					ssa: decl/ssa
 					if ssa/index < 0 [
 						ssa/index: ctx/n-ssa-vars

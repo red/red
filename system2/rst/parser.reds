@@ -177,7 +177,7 @@ ssa-var!: alias struct! [
 	extra-bset	[ptr-array!]
 ]
 
-#define LOCAL?(var) (NODE_FLAGS(var) and RST_VAR_LOCAL <> 0)
+#define LOCAL_VAR?(var) (NODE_FLAGS(var) and RST_VAR_LOCAL <> 0)
 
 var-decl!: alias struct! [	;-- variable declaration
 	RST_NODE_FIELDS(var-decl!)
@@ -288,21 +288,8 @@ float-literal!: alias struct! [
 	value		[float!]
 ]
 
-#define WORD?(v) [TYPE_OF(v) = TYPE_WORD]
-#define SET_WORD?(v) [TYPE_OF(v) = TYPE_SET_WORD]
-#define GET_WORD?(v) [TYPE_OF(v) = TYPE_GET_WORD]
-#define PATH?(v) [TYPE_OF(v) = TYPE_PATH]
-#define SET_PATH?(v) [TYPE_OF(v) = TYPE_SET_PATH]
-#define GET_PATH?(v) [TYPE_OF(v) = TYPE_GET_PATH]
-#define REFINEMENT?(v) [TYPE_OF(v) = TYPE_REFINEMENT]
-#define ISSUE?(v) [TYPE_OF(v) = TYPE_ISSUE]
-#define FLOAT?(v) [TYPE_OF(v) = TYPE_FLOAT]
-#define INTEGER?(v) [TYPE_OF(v) = TYPE_INTEGER]
-#define CHAR?(v) [TYPE_OF(v) = TYPE_CHAR]
-#define BINARY?(v) [TYPE_OF(v) = TYPE_BINARY]
-#define STRING?(v) [TYPE_OF(v) = TYPE_STRING]
-#define BLOCK?(v) [TYPE_OF(v) = TYPE_BLOCK]
-#define PAREN?(V) [TYPE_OF(v) = TYPE_PAREN]
+#define T_WORD?(v)  [TYPE_OF(v) = TYPE_WORD]
+#define T_BLOCK?(v) [TYPE_OF(v) = TYPE_BLOCK]
 
 parser: context [
 	k_func:		symbol/make "func"
@@ -969,7 +956,7 @@ parser: context [
 		left: as rst-expr! expr/value
 		while [
 			pc2: pc + 1
-			all [pc2 < end WORD?(pc2)]
+			all [pc2 < end T_WORD?(pc2)]
 		][
 			flag: 0
 			infix?: no
@@ -1051,8 +1038,8 @@ parser: context [
 	][
 		var: null
 		set?: yes
-		case [
-			SET_WORD?(pc) [
+		switch TYPE_OF(pc) [
+			TYPE_SET_WORD [
 				var: find-word as red-word! pc ctx
 				pos: pc
 				flags: NODE_FLAGS(ctx)
@@ -1070,8 +1057,8 @@ parser: context [
 					]
 				]
 			]
-			SET_PATH?(pc) [0]
-			true [
+			TYPE_SET_PATH [0]
+			default [
 				set?: no
 				pc: parse-expr pc end out ctx
 			]
@@ -1191,7 +1178,7 @@ parser: context [
 			switch TYPE_OF(pc) [
 				TYPE_SET_WORD [
 					pc2: advance-next pc end
-					pc: either WORD?(pc2) [
+					pc: either T_WORD?(pc2) [
 						w: as red-word! pc2
 						sym: symbol/resolve w/symbol
 						case [
@@ -1242,7 +1229,7 @@ parser: context [
 		p: as red-word! block/rs-head blk
 		end: as red-word! block/rs-tail blk
 		while [p < end][
-			either WORD?(p) [
+			either T_WORD?(p) [
 				sym: symbol/resolve p/symbol
 				attr: attr or case [
 					sym = k_cdecl	 [FN_CC_CDECL]
@@ -1273,6 +1260,7 @@ parser: context [
 		/local
 			t	[cell!]
 			n	[integer!]
+			ty	[integer!]
 			cur	[var-decl!]
 			list [var-decl! value]
 	][
@@ -1280,13 +1268,14 @@ parser: context [
 		cur: :list
 		n: 0
 		while [p < end][
+			ty: TYPE_OF(p)
 			case [
-				any [WORD?(p) STRING?(p)][n: n + 1]
-				BLOCK?(p) [
+				any [ty = TYPE_WORD ty = TYPE_STRING][n: n + 1]
+				ty = TYPE_BLOCK [
 					if zero? n [throw-error [p "missing locals"]]
 					t: p - 1
 					until [
-						if WORD?(t) [
+						if T_WORD?(t) [
 							cur/next: make-var-decl t as red-block! p
 							cur: cur/next
 							ADD_NODE_FLAGS(cur RST_VAR_LOCAL)
@@ -1321,6 +1310,7 @@ parser: context [
 			list [var-decl! value]
 			attr [integer!]
 			flag [integer!]
+			ty	 [integer!]
 			saved-blk [red-block!]
 	][
 		ft: as fn-type! malloc size? fn-type!
@@ -1334,7 +1324,7 @@ parser: context [
 
 		if p = end [return ft]
 
-		if BLOCK?(p) [						;-- attributes
+		if T_BLOCK?(p) [					;-- attributes
 			attr: get-attributes as red-block! p
 			ADD_FN_ATTRS(ft attr)
 			p: skip p + 1 end TYPE_STRING	;-- skip doc strings
@@ -1347,9 +1337,10 @@ parser: context [
 		s: 0	;-- initial state
 		w: as red-word! p
 		while [w < as red-word! end][		;-- parse params, return: and /local
+			ty: TYPE_OF(w)
 			case [
 				;; param = word "[" type "]" doc-string?
-				all [s = 0 WORD?(w)][
+				all [s = 0 ty = TYPE_WORD][
 					p2: expect-next p end TYPE_BLOCK
 					cur/next: make-var-decl p as red-block! p2
 					cur: cur/next
@@ -1360,14 +1351,14 @@ parser: context [
 					ft/n-params: ft/n-params + 1
 				]
 				;; return-spec = return: "[" type "]" doc-string?
-				all [s < 1 SET_WORD?(w) k_return = symbol/resolve w/symbol][
+				all [s < 1 ty = TYPE_SET_WORD k_return = symbol/resolve w/symbol][
 					s: 1
 					p: expect-next as cell! w end TYPE_BLOCK
 					ft/ret-typeref: as red-block! p
 					p: p + 1
 				]
 				;; local-var = word+ ("[" type "]")? doc-string?
-				all [s < 2 REFINEMENT?(w) k_local = symbol/resolve w/symbol fn <> null][
+				all [s < 2 ty = TYPE_REFINEMENT k_local = symbol/resolve w/symbol fn <> null][
 					s: 2
 					p: parse-local as cell! w + 1 end fn
 				]

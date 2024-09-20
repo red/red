@@ -172,7 +172,7 @@ system-dialect: context [
 			job: obj
 			pc: src
 			script: secure-clean-path file
-			job/script: script
+			do [job/script: script]
 			runtime: to logic! runtime
 			allow-runtime?: all [not no-events job/runtime?]
 			

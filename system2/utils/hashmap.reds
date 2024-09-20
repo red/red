@@ -46,8 +46,6 @@ hashmap: context [
 	]
 ]
 
-#define HASH_TABLE_MAP		1
-
 token-map: context [
 	hashtable!: alias struct! [
 		size		[integer!]
@@ -69,7 +67,7 @@ token-map: context [
 			blk [red-block! value]
 	][
 		block/make-at :blk size
-		red/_hashtable/init size blk HASH_TABLE_MAP 1
+		red/_hashtable/init size blk 1 1  ;-- HASH_TABLE_MAP: 1
 	]
 
 	put: func [

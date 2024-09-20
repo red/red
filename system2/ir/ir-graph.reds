@@ -414,7 +414,7 @@ ir-graph: context [
 			op		[instr-op!]
 	][
 		decl: v/decl
-		either LOCAL?(decl) [
+		either LOCAL_VAR?(decl) [
 			get-cur-val decl/ssa ctx/cur-vals
 		][
 			op: make-op OP_GET_GLOBAL 0 null decl/type
@@ -1468,7 +1468,7 @@ ir-graph: context [
 			arr [ptr-ptr!]
 			args [array-value!]
 	][
-		either LOCAL?(var) [
+		either LOCAL_VAR?(var) [
 			set-cur-val var/ssa val ctx
 		][
 			arr: as ptr-ptr! malloc size? int-ptr!
