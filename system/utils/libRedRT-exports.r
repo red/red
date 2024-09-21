@@ -399,6 +399,7 @@
 	red/block/rs-clear
 	red/object/rs-find
 	red/block/make-at
+	red/block/make-in
 	red/handle/make-in
 	red/unicode/to-utf8
 	red/string/to-hex

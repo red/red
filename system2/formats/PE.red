@@ -1154,6 +1154,7 @@ context [
 	]
 
 	build: func [job [object!] /local page out pad code-ptr][
+		probe "build PE"
 		clear imports-refs
 		
 		if find [dll drv] job/type [
@@ -1197,7 +1198,7 @@ context [
 		insert/dup tail job/buffer null pad-size? job/buffer
 
 		;resolve-import-refs job							;-- resolve DLL imports references
-		;resolve-data-refs job							;-- resolve data references
+		resolve-data-refs job							;-- resolve data references
 
 		;linker/set-image-info
 		;	job

@@ -1553,6 +1553,7 @@ ir-graph: context [
 		]
 
 		ir-printer/print-graph graph
+		fn/body: as red-block! vector/make size? integer! 2
 		graph
 	]
 ]

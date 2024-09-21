@@ -54,7 +54,7 @@ label!: alias struct! [
 
 immediate!: alias struct! [
 	OPERAND_HEADER
-	val			[cell!]
+	value		[cell!]
 ]
 
 livepoint!: alias struct! [
@@ -80,6 +80,7 @@ overwrite!: alias struct! [
 	constraint	[integer!]
 ]
 
+#define OPERAND_TYPE(o) [o/header and FFh]
 #define MACH_OPCODE(i)	[i/header and 03FFh]
 #define x86_OPCODE(i)	[i and 03FFh]
 
@@ -994,7 +995,7 @@ backend: context [
 	][
 		i: xmalloc(immediate!)
 		i/header: OD_IMM
-		i/val: val
+		i/value: val
 		i
 	]
 
@@ -1010,7 +1011,7 @@ backend: context [
 		int: xmalloc(red-integer!)
 		int/header: TYPE_INTEGER
 		int/value: n
-		i/val: as cell! int
+		i/value: as cell! int
 		i
 	]
 
@@ -1148,7 +1149,7 @@ backend: context [
 	][
 		i: xmalloc(immediate!)
 		i/header: OD_IMM
-		i/val: val
+		i/value: val
 		vector/append-ptr cg/operands as byte-ptr! i	
 	]
 
@@ -1642,7 +1643,9 @@ backend: context [
 		cg		[codegen!]
 		/local
 			i	[mach-instr!]
+			pos [integer!]
 	][
+		pos: program/code-buf/length	;-- func position in code-buf
 		cg/compute-liveness?: no
 		i: cg/first-i
 		while [i <> null][
@@ -1650,6 +1653,7 @@ backend: context [
 			target/assemble cg i
 			i: i/next
 		]
+		cg/mark: pos
 	]
 
 	generate: func [
@@ -1659,6 +1663,7 @@ backend: context [
 			frm	[frame!]
 			r	[rpo!]
 			cg	[codegen!]
+			pos [integer!]
 	][
 		frm: target/make-frame fn
 		r: rpo/build fn
@@ -1712,7 +1717,7 @@ backend: context [
 			OD_IMM [
 				prin "imm#"
 				imm: as immediate! a
-				val: imm/val
+				val: imm/value
 				if val <> null [
 					t: TYPE_OF(val)
 					if any [t = TYPE_INTEGER t = TYPE_FLOAT][

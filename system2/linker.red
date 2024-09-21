@@ -7,7 +7,7 @@ Red [
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
-context [
+linker: context [
 
 	PE: #include %formats/PE.red
 	ELF: context [build: func [job][]]
@@ -109,6 +109,7 @@ context [
 		/local 
 			data-offset ptr
 	][
+		probe "resolve-symbol-refs"
 		data-offset: either job/PIC? [data-ptr - code-ptr][data-ptr]
 		foreach [name spec] job/symbols [
 			unless empty? spec/3 [
@@ -288,7 +289,7 @@ context [
 		job/buffer: make binary! 512 * 1024
 
 		;clean-imports job/sections/import
-	
+
 		file-emitter: either job/OS = 'Windows [PE][ELF]
 		do [file-emitter/build job]
 

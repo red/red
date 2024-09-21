@@ -144,6 +144,7 @@ compiler: context [
 	fn-insert-instrs!: alias function! [cg [codegen!] v [vreg!] idx [integer!]]
 	fn-insert-move!: alias function! [cg [codegen!] arg [move-arg!]]
 	fn-assemble!: alias function! [cg [codegen!] i [mach-instr!]]
+	fn-patch-call!: alias function! [ref [integer!] pos [integer!]]
 
 	target: context [
 		addr-width: 32		;-- width of address in bits
@@ -170,6 +171,7 @@ compiler: context [
 		gen-move-loc: as fn-insert-move! 0
 		gen-move-imm: as fn-insert-move! 0
 		assemble: as fn-assemble! 0
+		patch-call: as fn-patch-call! 0
 	]
 
 	_mempool: as mempool! 0
@@ -368,14 +370,20 @@ compiler: context [
 			cg		[codegen!]
 			p		[ptr-ptr!]
 			funcs	[vector!]
+			refs	[vector!]
+			ref		[int-ptr!]
+			pos		[integer!]
 			code	[red-binary!]
+			symbols [red-block!]
 			len		[integer!]
 			s		[series!]
 			_job	[cell! value]
+			blk		[red-block!]
 	][
 		job: as red-object! copy-cell as cell! job _job		;-- job slot will be overwrite by lexer
 		script: object/rs-select job as cell! word/load "script"
 		code: as red-binary! object/rs-select job as cell! word/load "code-buf"
+		symbols: as red-block! object/rs-select job as cell! word/load "symbols"
 
 		ir-module: as ir-module! malloc size? ir-module!
 		ir-module/functions: vector/make size? int-ptr! 100
@@ -408,6 +416,33 @@ compiler: context [
 		]
 		dump-hex program/code-buf/data
 
+		p: as ptr-ptr! funcs/data
+		loop funcs/length [				;-- reloc native calls
+			cg: as codegen! p/value
+			pos: cg/mark
+			fn: cg/fn/fn
+			refs: as vector! fn/body
+			ref: as int-ptr! refs/data
+			loop refs/length [
+				target/patch-call ref/value pos
+				ref: ref + 1
+			]
+			p: p + 1
+		]
+		;p: as ptr-ptr! funcs/data
+		;loop funcs/length [
+		;	cg: as codegen! p/value
+		;	fn: cg/fn/fn
+		;	if 0 < red/block/rs-length? fn/body [
+		;		red/block/rs-append symbols fn/token
+		;		blk: red/block/make-in symbols 3
+		;		red/block/rs-append blk as cell! w-nref
+		;		red/integer/make-in blk cg/mark
+		;		red/block/rs-append blk as cell! fn/body
+		;	]
+		;	p: p + 1
+		;]
+
 		len: program/code-buf/length
 		red/binary/make-at as cell! code len
 		
@@ -428,6 +463,7 @@ compiler: context [
 		target/gen-move-loc: as fn-insert-move! :backend/x86/gen-move-loc
 		target/gen-move-imm: as fn-insert-move! :backend/x86/gen-move-imm
 		target/assemble: as fn-assemble! :backend/x86/assemble
+		target/patch-call: as fn-patch-call! :backend/x86/patch-call
 	]
 
 	init: does [

@@ -81,11 +81,24 @@ put-32be: func [d [integer!] /local buf [vector!] p [byte-ptr!]][
 	p/4: as byte! d
 ]
 
+change-at-32: func [
+	pos		[integer!]
+	d		[integer!]
+	/local
+		buf	[int-ptr!]
+][
+	buf: as int-ptr! program/code-buf/data + pos
+	buf/value: d
+]
+
 #define MOD_DISP0 		00h
 #define MOD_DISP8 		40h
 #define MOD_DISP32		80h
 #define MOD_REG 		C0h
 #define MOD_BITS		C0h
+
+#define ABS_ADDR		44332211h
+#define REL_ADDR		66554433h
 
 asm: context [
 
@@ -189,5 +202,11 @@ asm: context [
 		a		[label!]
 	][
 		
+	]
+
+	call-rel: func [
+		offset	[integer!]
+	][
+		emit-bd E8h offset
 	]
 ]

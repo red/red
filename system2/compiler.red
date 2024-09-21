@@ -11,6 +11,7 @@ Red [
 #include %utils/int-to-bin.red
 #include %utils/unicode.red
 #include %utils/virtual-struct.red
+#include %linker.red
 
 prin-cell: func [val][
 	prin val
@@ -35,7 +36,6 @@ system-dialect: context [
 	nl: 		  newline
 	
 	loader: #include %loader.red
-	linker: #include %linker.red
 
 	job!: make object! [
 		format: 			none						;-- 'PE | 'ELF | 'Mach-o
@@ -179,10 +179,7 @@ system-dialect: context [
 			unless job/red-pass? [process-config pc/2]
 			unless no-header [comp-header]
 
-			recycle
-			recycle/off
 			comp-dialect pc job
-			recycle/on
 		]
 
 		
@@ -238,7 +235,8 @@ system-dialect: context [
 		]
 		job/code-buf: #{}
 		job/data-buf: #{00000000}
-		job/imports: []
+		job/imports: make block! 10
+		job/symbols: make block! 10
 		job
 	]
 
@@ -310,6 +308,8 @@ system-dialect: context [
 			job [job!]
 			comp-time link-time err output src resources icon
 	][
+		recycle
+		recycle/off
 		comp-time: dt [
 			unless block? files [files: reduce [files]]
 			
@@ -356,7 +356,6 @@ system-dialect: context [
 		]
 
 		if opts/link? [
-			job/runtime?: no
 			link-time: dt [
 				job/sections: compose/deep/only [
 					code   [- 	(job/code-buf)]
@@ -378,6 +377,7 @@ system-dialect: context [
 			]
 		]
 
+		recycle/on
 		reduce [
 			comp-time
 			link-time

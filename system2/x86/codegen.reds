@@ -1141,12 +1141,24 @@ x86: context [
 		make-addr x86_ESP 0 1 offset
 	]
 
+	call-fn: func [v [cell!] /local fval [red-function!] f [fn!]][
+		assert v/header = TYPE_FUNCTION
+
+		fval: as red-function! v
+		f: as fn! fval/spec
+		vector/append-int as vector! f/body asm/pos	+ 1		;-- use fn!/body to save the ref idx
+
+		asm/call-rel REL_ADDR
+	]
+
 	assemble-op: func [
 		op		[integer!]
 		p		[ptr-ptr!]
 		/local
 			l	[label!]
 			c	[integer!]
+			f	[operand!]
+			imm [immediate!]
 	][
 		switch x86_OPCODE(op) [
 			I_JMP [
@@ -1164,6 +1176,17 @@ x86: context [
 					asm/jc-rel c l/pos - asm/pos
 				][
 					asm/jc-rel-addr c l
+				]
+			]
+			I_CALL [
+				p: p + 3	;-- target
+				f: as operand! p/value
+				switch OPERAND_TYPE(f) [
+					OD_IMM [
+						imm: as immediate! f
+						call-fn imm/value
+					]
+					default [0]
 				]
 			]
 			default [0]
@@ -1248,5 +1271,12 @@ x86: context [
 			_AM_XMM_XMM [0]
 			default [0]
 		]
+	]
+
+	patch-call: func [
+		ref		[integer!]
+		dst		[integer!]
+	][
+		change-at-32 ref dst - ref - target/addr-size
 	]
 ]
