@@ -522,7 +522,7 @@ context [
 			
 			foreach [def reloc] list [
 				pointer/value: ptr 
-				foreach ref reloc [change at code ref form-struct pointer]	;TBD: check endianness + x-compilation
+				foreach ref reloc [change at code ref + 1 form-struct pointer]	;TBD: check endianness + x-compilation
 				ptr: ptr + pointer-size
 			]
 		]
@@ -825,10 +825,10 @@ context [
 		oh/loader-flags:		0						;-- reserved, must be zero
 		oh/data-dir-nb:			16
 		;-- data directory
-		;oh/import-addr:			named-sect-addr? job 'import
-		;oh/import-size:			length? job/sections/import/2
-		;oh/IAT-addr:			named-sect-addr? job 'idata
-		;oh/IAT-size:			length? job/sections/idata/2
+		oh/import-addr:			named-sect-addr? job 'import
+		oh/import-size:			length? job/sections/import/2
+		oh/IAT-addr:			named-sect-addr? job 'idata
+		oh/IAT-size:			length? job/sections/idata/2
 		
 		if job/type = 'dll [
 			oh/export-addr:		named-sect-addr? job 'export
@@ -1178,7 +1178,7 @@ context [
 			linker/build-debug-func-names job code-ptr
 		]
 		
-		;build-import job								;-- populate import section buffer
+		build-import job								;-- populate import section buffer
 
 		if job/type = 'dll [build-export job]			;-- populate export section buffer
 
@@ -1197,7 +1197,7 @@ context [
 		]
 		insert/dup tail job/buffer null pad-size? job/buffer
 
-		;resolve-import-refs job							;-- resolve DLL imports references
+		resolve-import-refs job							;-- resolve DLL imports references
 		resolve-data-refs job							;-- resolve data references
 
 		;linker/set-image-info

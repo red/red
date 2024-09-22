@@ -1678,6 +1678,40 @@ backend: context [
 		cg
 	]
 
+	record-fn-call: func [
+		f		[fn!]
+		pos		[integer!]
+		/local
+			fn	[import-fn!]
+			v	[red-handle!]
+			fmap [int-ptr!]
+			refs [vector!]
+	][
+		either NODE_FLAGS(f) and RST_IMPORT_FN <> 0 [
+			fn: as import-fn! f
+			v: token-map/get program/imports fn/import-lib no
+			either v <> null [
+				fmap: as int-ptr! v/value
+			][
+				fmap: token-map/make 50
+				token-map/put program/imports fn/import-lib fmap
+			]
+			v: token-map/get fmap fn/import-name yes
+			either v <> null [
+				refs: as vector! v/value
+			][
+				refs: vector/make size? integer! 2
+				token-map/put fmap fn/import-name as int-ptr! refs
+			]
+		][
+			if null? f/body [
+				f/body: as red-block! vector/make size? integer! 2
+			]
+			refs: as vector! f/body	;-- use fn!/body to save the ref idx
+		]
+		vector/append-int refs pos
+	]
+
 	do-i: func [i [integer!]][
 		loop i [prin "  "]
 	]

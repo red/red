@@ -168,6 +168,23 @@ asm: context [
 		]
 	]
 
+	emit-m: func [
+		m		[integer!]
+		x		[integer!]
+	][
+		x: x and 7 << 3
+		emit-bd x or 5 m
+	]
+
+	emit-b-m-x: func [
+		b		[integer!]	;-- byte
+		m		[integer!]	;-- memory
+		x		[integer!]	;-- ext
+	][
+		put-b b
+		emit-m m x
+	]
+
 	ret: does [put-b C3h]
 
 	jmp-rel: func [
@@ -208,5 +225,11 @@ asm: context [
 		offset	[integer!]
 	][
 		emit-bd E8h offset
+	]
+
+	icall-rel: func [		;-- absolute indirect call
+		addr	[integer!]
+	][
+		emit-b-m-x FFh addr 2
 	]
 ]

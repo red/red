@@ -571,6 +571,8 @@ x86: context [
 			n	[integer!]
 	][
 		o: as instr-op! i
+		use-ptr cg o/target
+
 		cc: x86-rs-cc/make as fn! o/target
 		if cc/ret-type <> type-system/void-type [
 			def-reg-fixed cg i callee-ret cc 0
@@ -578,7 +580,6 @@ x86: context [
 
 		kill cg x86_REG_ALL
 		live-point cg cc
-		use-ptr cg o/target
 
 		n: 0
 		p: ARRAY_DATA(i/inputs)
@@ -1146,9 +1147,12 @@ x86: context [
 
 		fval: as red-function! v
 		f: as fn! fval/spec
-		vector/append-int as vector! f/body asm/pos	+ 1		;-- use fn!/body to save the ref idx
-
-		asm/call-rel REL_ADDR
+		either NODE_FLAGS(f) and RST_IMPORT_FN = 0 [
+			asm/call-rel REL_ADDR
+		][
+			asm/icall-rel REL_ADDR
+		]
+		record-fn-call f asm/pos - 4
 	]
 
 	assemble-op: func [
@@ -1179,7 +1183,6 @@ x86: context [
 				]
 			]
 			I_CALL [
-				p: p + 3	;-- target
 				f: as operand! p/value
 				switch OPERAND_TYPE(f) [
 					OD_IMM [

@@ -35,6 +35,7 @@ compiler: context [
 		data-buf	[vector!]	;-- vector<byte!>
 		code-buf	[vector!]	;-- vector<byte!>
 		functions	[vector!]	;-- vector<codegen!>
+		imports		[int-ptr!]	;-- token-map<libname, token-map<func-name, vector<int>>>
 	]
 
 	;-- lisp-like list
@@ -194,6 +195,19 @@ compiler: context [
 		arr
 	]
 
+	vector-to-block: func [
+		vec		[vector!]
+		blk		[red-block!]
+		/local
+			p	[int-ptr!]
+	][
+		p: as int-ptr! vec/data
+		loop vec/length [
+			red/integer/make-in blk p/value
+			p: p + 1
+		]
+	]
+
 	prin-token: func [v [cell!]][
 		if null? v [exit]
 		#call [prin-cell v]
@@ -349,7 +363,7 @@ compiler: context [
 		loop n [
 			kv: hashmap/next decls kv
 			fn: as fn! kv/2
-			if NODE_TYPE(fn) = RST_FUNC [
+			if all [NODE_TYPE(fn) = RST_FUNC NODE_FLAGS(fn) and RST_IMPORT_FN = 0][
 				cur-blk: fn/body
 				f-ctx: parser/make-ctx fn/token ctx yes
 				init-func-ctx f-ctx fn
@@ -375,21 +389,29 @@ compiler: context [
 			pos		[integer!]
 			code	[red-binary!]
 			symbols [red-block!]
+			imports [red-block!]
 			len		[integer!]
 			s		[series!]
+			val		[cell!]
+			s-tail	[cell!]
+			vv tt	[cell!]
 			_job	[cell! value]
 			blk		[red-block!]
+			h		[red-handle!]
+			mdata	[node!]
 	][
 		job: as red-object! copy-cell as cell! job _job		;-- job slot will be overwrite by lexer
 		script: object/rs-select job as cell! word/load "script"
 		code: as red-binary! object/rs-select job as cell! word/load "code-buf"
 		symbols: as red-block! object/rs-select job as cell! word/load "symbols"
+		imports: as red-block! object/rs-select job as cell! word/load "imports"
 
 		ir-module: as ir-module! malloc size? ir-module!
 		ir-module/functions: vector/make size? int-ptr! 100
 		program: xmalloc(mach-program!)
 		funcs: ptr-vector/make 100
 		program/functions: funcs
+		program/imports:  token-map/make 50
 		program/code-buf: vector/make 1 4096
 		program/data-buf: vector/make 1 4096
 
@@ -422,10 +444,12 @@ compiler: context [
 			pos: cg/mark
 			fn: cg/fn/fn
 			refs: as vector! fn/body
-			ref: as int-ptr! refs/data
-			loop refs/length [
-				target/patch-call ref/value pos
-				ref: ref + 1
+			if refs <> null [
+				ref: as int-ptr! refs/data
+				loop refs/length [
+					target/patch-call ref/value pos
+					ref: ref + 1
+				]
 			]
 			p: p + 1
 		]
@@ -442,6 +466,30 @@ compiler: context [
 		;	]
 		;	p: p + 1
 		;]
+
+		;-- populate job/imports
+		mdata: token-map/get-data program/imports
+		s: as series! mdata/value
+		val: s/offset
+		s-tail: s/tail
+
+		while [val < s-tail][
+			red/block/rs-append imports val		;-- libname
+			h: as red-handle! val + 1
+			mdata: token-map/get-data as int-ptr! h/value
+			s: as series! mdata/value
+			blk: red/block/make-in imports (as-integer (s/tail - s/offset)) >> 4
+			vv: s/offset
+			tt: s/tail
+			while [vv < tt][
+				red/block/rs-append blk vv		;-- func name
+				h: as red-handle! vv + 1
+				refs: as vector! h/value
+				vector-to-block refs red/block/make-in blk refs/length
+				vv: vv + 2
+			]
+			val: val + 2
+		]
 
 		len: program/code-buf/length
 		red/binary/make-at as cell! code len

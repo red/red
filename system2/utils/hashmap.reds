@@ -62,12 +62,9 @@ token-map: context [
 
 	make: func [
 		size	[integer!]
-		return: [int-ptr!]
-		/local
-			blk [red-block! value]
+		return: [int-ptr!]	;-- return node!
 	][
-		block/make-at :blk size
-		red/_hashtable/init size blk 1 1  ;-- HASH_TABLE_MAP: 1
+		red/_hashtable/init size null 1 1  ;-- HASH_TABLE_MAP: 1
 	]
 
 	put: func [
@@ -79,7 +76,8 @@ token-map: context [
 			t	[hashtable!]
 			v	[red-handle!]
 	][
-		t: as hashtable! m
+		s: as series! m/value
+		t: as hashtable! s/offset
 		s: as series! t/blk/value
 		key: red/copy-cell key as cell! red/alloc-tail-unit s (size? cell!) << 1
 		v: as red-handle! key + 1
@@ -89,11 +87,27 @@ token-map: context [
 	]
 
 	get: func [
-		m	[int-ptr!]
-		key [cell!]
+		m		[int-ptr!]
+		key		[cell!]
+		case?	[logic!]
 		return: [red-handle!]
+		/local
+			op  [integer!]
 	][
-		key: red/_hashtable/get m key 0 0 COMP_STRICT_EQUAL no no
+		op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
+		key: red/_hashtable/get m key 0 0 op no no
 		either key <> null [as red-handle! key + 1][null]
+	]
+
+	get-data: func [
+		m		[int-ptr!]
+		return: [node!]
+		/local
+			t	[hashtable!]
+			s	[series!]
+	][
+		s: as series! m/value
+		t: as hashtable! s/offset
+		t/blk
 	]
 ]

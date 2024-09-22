@@ -1211,7 +1211,7 @@ ir-graph: context [
 			vals [ptr-array!]
 	][
 		either fn/const-map <> null [
-			v: token-map/get fn/const-map val
+			v: token-map/get fn/const-map val yes
 			if v <> null [return as instr-const! v/value]
 		][
 			vals: fn/const-vals
@@ -1335,14 +1335,16 @@ ir-graph: context [
 		return: [instr!]
 		/local
 			ft	[fn-type!]
+			fn	[fn!]
 			arg [rst-expr!]
 			op	[instr-op!]
 			arr [ptr-array!]
 			p	[ptr-ptr!]
 	][
-		ft: as fn-type! fc/fn/type
+		fn: fc/fn
+		ft: as fn-type! fn/type
 		op: make-op OP_CALL_FUNC ft/n-params ft/param-types ft/ret-type
-		op/target: as int-ptr! fc/fn
+		op/target: as int-ptr! fn
 
 		arr: ptr-array/make ft/n-params
 		p: ARRAY_DATA(arr)
@@ -1553,7 +1555,7 @@ ir-graph: context [
 		]
 
 		ir-printer/print-graph graph
-		fn/body: as red-block! vector/make size? integer! 2
+		fn/body: null
 		graph
 	]
 ]

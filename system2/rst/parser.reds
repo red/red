@@ -127,6 +127,7 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	RST_FN_CTX:		8
 	RST_INFIX_FN:	10h
 	RST_INFIX_OP:	20h
+	RST_IMPORT_FN:	40h
 ]
 
 #define SET_NODE_TYPE(node type) [node/header: type]
@@ -216,6 +217,17 @@ fn!: alias struct! [
 	locals		[var-decl!]
 	ir			[ir-fn!]
 	cc			[call-conv!]
+]
+
+import-fn!: alias struct! [		;-- extends fn!
+	RST_EXPR_FIELDS(fn!)
+	parent		[context!]
+	body		[red-block!]
+	locals		[var-decl!]
+	ir			[ir-fn!]
+	cc			[call-conv!]
+	import-name [cell!]
+	import-lib	[cell!]
 ]
 
 fn-call!: alias struct! [
@@ -452,11 +464,13 @@ parser: context [
 	expect: func [
 		pc		[cell!]
 		type	[integer!]
+		return: [cell!]
 	][
 		if TYPE_OF(pc) <> type [
 			probe ["Parse Error: Expect " type " type"]
 			halt
 		]
+		pc
 	]
 
 	expect-next: func [
@@ -523,6 +537,7 @@ parser: context [
 	make-func: func [
 		name	[cell!]
 		parent	[context!]
+		import? [logic!]
 		return: [fn!]
 		/local
 			f	[fn!]
@@ -530,7 +545,7 @@ parser: context [
 		func_accept: func [ACCEPT_FN_SPEC][
 			v/visit-func self data
 		]
-		f: as fn! malloc size? fn!
+		f: as fn! either import? [malloc size? import-fn!][malloc size? fn!]
 		f/token: name
 		f/parent: parent
 		f/accept: :func_accept
@@ -1115,6 +1130,97 @@ parser: context [
 		pc
 	]
 
+	parse-import: func [
+		blk		[red-block!]
+		attr	[integer!]
+		lib		[cell!]
+		ctx		[context!]
+		/local
+			p			[cell!]
+			end			[cell!]
+			name		[cell!]
+			import-name	[cell!]
+			ft			[fn-type!]
+			fn			[import-fn!]
+			saved-blk	[red-block!]
+	][
+		p: block/rs-head blk
+		end: block/rs-tail blk
+		if p = end [exit]
+
+		enter-block(blk)
+
+		while [p < end][
+			name: expect p TYPE_SET_WORD
+			import-name: expect-next p end TYPE_STRING
+			p: expect-next import-name end TYPE_BLOCK
+
+			fn: as import-fn! make-func name ctx yes
+			fn/import-lib: lib
+			fn/import-name: import-name
+			ft: parse-fn-spec as red-block! p as fn! fn
+			fn/type: as rst-type! ft 
+			ADD_NODE_FLAGS(fn RST_IMPORT_FN)
+			ADD_FN_ATTRS(ft attr)
+
+			unless add-decl ctx name as int-ptr! fn [
+				throw-error [name "symbol name was already defined"]
+			]
+			p: p + 1
+		]
+
+		exit-block
+	]
+
+	parse-imports: func [
+		pc		[cell!]
+		end		[cell!]
+		ctx		[context!]
+		return: [cell!]
+		/local
+			blk [red-block!]
+			p	[cell!]
+			sym [integer!]
+			w	[red-word!]
+			fn	[import-fn!]
+			lib [cell!]
+			attr [integer!]
+			saved-blk [red-block!]
+	][
+		pc: expect-next pc end TYPE_BLOCK
+		blk: as red-block! pc
+		p: block/rs-head blk
+		end: block/rs-tail blk
+		if p = end [return pc]
+
+		enter-block(blk)
+
+		while [p < end][
+			lib: expect p TYPE_STRING
+			p: expect-next p end TYPE_WORD
+
+			;-- calling convention
+			w: as red-word! p
+			attr: 0
+			sym: symbol/resolve w/symbol
+			attr: attr or case [
+				sym = k_cdecl	 [FN_CC_CDECL]
+				sym = k_stdcall	 [FN_CC_STDCALL]
+				true [
+					throw-error [p "unknown calling convention:" p]
+					0
+				]
+			]
+
+			p: expect-next p end TYPE_BLOCK
+			parse-import as red-block! p attr lib ctx
+			p: p + 1
+		]
+
+		exit-block
+		pc
+	]
+
 	parse-directive: func [
 		pc		[cell!]
 		end		[cell!]
@@ -1127,7 +1233,9 @@ parser: context [
 		w: as red-word! pc
 		sym: symbol/resolve w/symbol
 		case [
-			sym = k_import [0]
+			sym = k_import [
+				pc: parse-imports pc end ctx
+			]
 			sym = k_export [0]
 			sym = k_syscall [0]
 			sym = k_script [0]
@@ -1382,7 +1490,7 @@ parser: context [
 			spec [red-block!]
 			body [red-block!]
 	][
-		fn: make-func pc ctx
+		fn: make-func pc ctx no
 		body: as red-block! advance pc end 3
 		spec: body - 1
 		fn/body: body

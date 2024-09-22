@@ -354,13 +354,13 @@ system-dialect: context [
 			compiler/finalize							;-- compile all functions
 			set-verbose-level 0
 		]
-
+probe job/imports
 		if opts/link? [
 			link-time: dt [
 				job/sections: compose/deep/only [
 					code   [- 	(job/code-buf)]
 					data   [- 	(job/data-buf)]
-					;import [- - (job/imports)]
+					import [- - (job/imports)]
 				]
 				;if job/OS = 'Windows [
 				;	if icon: find resources 'icon [
