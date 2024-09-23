@@ -434,6 +434,7 @@ compiler: context [
 		loop funcs/length [
 			cg: as codegen! p/value
 			backend/assemble-instrs cg
+			backend/patch-labels
 			p: p + 1
 		]
 		dump-hex program/code-buf/data

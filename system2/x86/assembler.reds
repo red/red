@@ -36,61 +36,6 @@ x86-addr!: alias struct! [
 	disp	[integer!]
 ]
 
-#define acquire-buf(n) [
-	buf: program/code-buf
-	p: vector/acquire buf n
-]
-
-put-b: func [b [integer!] /local buf [vector!] p [byte-ptr!]][
-	acquire-buf(1)
-	p/value: as byte! b
-]
-
-put-bb: func [b1 [integer!] b2 [integer!] /local buf [vector!] p [byte-ptr!]][
-	acquire-buf(2)
-	p/1: as byte! b1
-	p/2: as byte! b2
-]
-
-put-bbb: func [b1 [integer!] b2 [integer!] b3 [integer!] /local buf [vector!] p [byte-ptr!]][
-	acquire-buf(3)
-	p/1: as byte! b1
-	p/2: as byte! b2
-	p/3: as byte! b3
-]
-
-put-16: func [d [integer!] /local buf [vector!] p [byte-ptr!]][
-	acquire-buf(2)
-	p/1: as byte! d
-	p/2: as byte! d >> 8
-]
-
-;-- 32-bit little-endian integer!
-put-32: func [d [integer!] /local buf [vector!] p [byte-ptr!] pp [int-ptr!]][
-	acquire-buf(4)
-	pp: as int-ptr! p
-	pp/value: d
-]
-
-;-- 32-bit big-endian integer!
-put-32be: func [d [integer!] /local buf [vector!] p [byte-ptr!]][
-	acquire-buf(4)
-	p/1: as byte! d >> 24
-	p/2: as byte! d >> 16
-	p/3: as byte! d >> 8
-	p/4: as byte! d
-]
-
-change-at-32: func [
-	pos		[integer!]
-	d		[integer!]
-	/local
-		buf	[int-ptr!]
-][
-	buf: as int-ptr! program/code-buf/data + pos
-	buf/value: d
-]
-
 #define MOD_DISP0 		00h
 #define MOD_DISP8 		40h
 #define MOD_DISP32		80h
@@ -197,10 +142,11 @@ asm: context [
 		]
 	]
 
-	jmp-rel-addr: func [
-		a		[label!]
+	jmp-label: func [
+		l		[label!]
 	][
-		
+		emit-bd E9h REL_ADDR
+		record-label l pos - 4
 	]
 
 	jc-rel: func [
@@ -214,11 +160,12 @@ asm: context [
 		]	
 	]
 
-	jc-rel-addr: func [
+	jc-rel-label: func [
 		cond	[integer!]
-		a		[label!]
+		l		[label!]
 	][
-		
+		emit-bbd 0Fh 80h + cond REL_ADDR
+		record-label l pos - 4
 	]
 
 	call-rel: func [

@@ -225,7 +225,63 @@ make-label: func [
 	l: xmalloc(label!)
 	l/header: od_label
 	l/block: blk
+	l/pos: -1
 	l
+]
+
+#define acquire-buf(n) [
+	buf: program/code-buf
+	p: vector/acquire buf n
+]
+
+put-b: func [b [integer!] /local buf [vector!] p [byte-ptr!]][
+	acquire-buf(1)
+	p/value: as byte! b
+]
+
+put-bb: func [b1 [integer!] b2 [integer!] /local buf [vector!] p [byte-ptr!]][
+	acquire-buf(2)
+	p/1: as byte! b1
+	p/2: as byte! b2
+]
+
+put-bbb: func [b1 [integer!] b2 [integer!] b3 [integer!] /local buf [vector!] p [byte-ptr!]][
+	acquire-buf(3)
+	p/1: as byte! b1
+	p/2: as byte! b2
+	p/3: as byte! b3
+]
+
+put-16: func [d [integer!] /local buf [vector!] p [byte-ptr!]][
+	acquire-buf(2)
+	p/1: as byte! d
+	p/2: as byte! d >> 8
+]
+
+;-- 32-bit little-endian integer!
+put-32: func [d [integer!] /local buf [vector!] p [byte-ptr!] pp [int-ptr!]][
+	acquire-buf(4)
+	pp: as int-ptr! p
+	pp/value: d
+]
+
+;-- 32-bit big-endian integer!
+put-32be: func [d [integer!] /local buf [vector!] p [byte-ptr!]][
+	acquire-buf(4)
+	p/1: as byte! d >> 24
+	p/2: as byte! d >> 16
+	p/3: as byte! d >> 8
+	p/4: as byte! d
+]
+
+change-at-32: func [
+	pos		[integer!]
+	d		[integer!]
+	/local
+		buf	[int-ptr!]
+][
+	buf: as int-ptr! program/code-buf/data + pos
+	buf/value: d
 ]
 
 rpo: context [
@@ -652,6 +708,12 @@ compute-frame-size: func [
 
 backend: context [
 	int-imm-caches: as ptr-array! 0
+	used-labels: as list! 0
+
+	label-ref!: alias struct! [
+		label	[label!]
+		ref		[integer!]
+	]
 
 	#include %x86/codegen.reds
 	#include %reg-alloc.reds
@@ -1656,6 +1718,22 @@ backend: context [
 		cg/mark: pos
 	]
 
+	patch-labels: func [
+		/local
+			l	[list!]
+			r	[label-ref!]
+			pos [integer!]
+	][
+		l: used-labels
+		while [l <> null][
+			r: as label-ref! l/head
+			pos: r/ref
+			change-at-32 pos r/label/pos - pos - target/addr-size
+			l: l/tail
+		]
+		used-labels: null
+	]
+
 	generate: func [
 		fn		[ir-fn!]
 		return: [codegen!]
@@ -1676,6 +1754,18 @@ backend: context [
 		print-fn cg/first-i
 		compute-frame-size frm
 		cg
+	]
+
+	record-label: func [
+		l		[label!]
+		pos		[integer!]
+		/local
+			r	[label-ref!]
+	][
+		r: xmalloc(label-ref!)
+		r/label: l
+		r/ref: pos
+		used-labels: make-list as int-ptr! r used-labels
 	]
 
 	record-fn-call: func [

@@ -1170,7 +1170,7 @@ x86: context [
 				either l/pos >= 0 [
 					asm/jmp-rel l/pos - asm/pos
 				][
-					asm/jmp-rel-addr l
+					asm/jmp-label l
 				]
 			]
 			I_JC [
@@ -1179,7 +1179,7 @@ x86: context [
 				either l/pos >= 0 [
 					asm/jc-rel c l/pos - asm/pos
 				][
-					asm/jc-rel-addr c l
+					asm/jc-rel-label c l
 				]
 			]
 			I_CALL [
