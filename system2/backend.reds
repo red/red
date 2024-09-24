@@ -898,6 +898,8 @@ backend: context [
 	][
 		x86-cond/init
 		x86-reg-set/init
+		x86-stdcall/init
+		x86-internal-cc/init
 		int-imm-caches: ptr-array/make 10
 		p: ARRAY_DATA(int-imm-caches)
 		i: -1

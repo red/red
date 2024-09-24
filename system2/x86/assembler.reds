@@ -15,6 +15,14 @@ x86-regs: context [
 		ebp
 		esi
 		edi
+		r8
+		r9
+		r10
+		r11
+		r12
+		r13
+		r14
+		r15
 	]
 
 	#enum sse-reg! [
@@ -26,6 +34,14 @@ x86-regs: context [
 		xmm5
 		xmm6
 		xmm7
+		xmm8
+		xmm9
+		xmm10
+		xmm11
+		xmm12
+		xmm13
+		xmm14
+		xmm15
 	]
 ]
 
@@ -42,8 +58,10 @@ x86-addr!: alias struct! [
 #define MOD_REG 		C0h
 #define MOD_BITS		C0h
 
-#define ABS_ADDR		44332211h
-#define REL_ADDR		66554433h
+#define ABS_ADDR		7FFFFFF0h
+#define REL_ADDR		7FFFFFF1h
+#define ABS_FLAG		F0h
+#define REL_FLAG		F1h
 
 asm: context [
 
@@ -81,18 +99,18 @@ asm: context [
 
 	emit-r: func [
 		r		[integer!]
-		op		[basic-op!]
+		x		[integer!]
 	][
-		put-b MOD_REG or (op - 1 and 7 << 3) or (r and 7)
+		put-b MOD_REG or (x and 7 << 3) or (r and 7)
 	]
 
 	emit-b-r: func [
 		b		[integer!]
 		r		[integer!]
-		op		[basic-op!]
+		x		[integer!]
 	][
 		put-b b
-		emit-r r op
+		emit-r r x
 	]
 
 	emit-r-i: func [		;-- register, immediate
@@ -104,30 +122,167 @@ asm: context [
 			either r = x86-regs/eax [
 				emit-bd x86-eax-i/op i
 			][
-				emit-b-r 81h r op
+				emit-b-r 81h r op - 1
 				emit-d i
 			]
 		][
-			emit-b-r 83h r op
+			emit-b-r 83h r op - 1
 			put-b i
 		]
 	]
 
-	emit-m: func [
-		m		[integer!]
+	emit-offset: func [
+		offset	[integer!]
 		x		[integer!]
 	][
 		x: x and 7 << 3
-		emit-bd x or 5 m
+		either offset = REL_ADDR [
+			emit-bd x or 5 offset					;-- relative offset
+		][
+			emit-bbd x or x86-regs/esp 25h offset	;-- absolute offset
+		]
+	]
+
+	emit-rm: func [			;-- [register + disp], memory address via register
+		op		[integer!]
+		reg		[integer!]
+		m		[x86-addr!]
+		/local
+			modrm	[integer!]
+			disp	[integer!]
+			sib		[integer!]
+	][
+		modrm: op or reg
+		disp: m/disp
+		case [
+			reg = x86-regs/esp [
+				sib: 24h	;-- bits: 00100100
+				if zero? disp [
+					put-bb MOD_DISP0 or modrm sib
+					exit
+				]
+				either any [disp < -128 disp > 127][
+					emit-bbd MOD_DISP32 or modrm sib disp
+				][
+					put-bbb MOD_DISP8 or modrm sib disp
+				]
+			]
+			zero? disp [
+				either reg = x86-regs/ebp [
+					put-bb MOD_DISP8 or modrm 0
+				][
+					put-b MOD_DISP0 or modrm
+				]
+			]
+			any [disp < -128 disp > 127][
+				emit-bd MOD_DISP32 or modrm disp
+			]
+			true [
+				put-bb MOD_DISP8 or modrm disp
+			]
+		]
+	]
+
+	emit-m: func [
+		m		[x86-addr!]	;-- memory location
+		x		[integer!]	;-- ModR/M.reg
+		/local
+			base scale index disp modrm sib [integer!]
+	][
+		x: x and 7 << 3
+		base: m/base
+		index: m/index
+		scale: m/scale
+		disp: m/disp
+
+		if zero? index [
+			either zero? base [
+				either disp = REL_ADDR [
+					emit-bd x or 5 disp					;-- relative address
+				][
+					emit-bbd x or x86-regs/esp 25h disp	;-- absolute address
+				]
+			][
+				emit-rm x base m
+			]
+			exit
+		]
+
+		if zero? base [
+			if scale = 1 [
+				emit-rm x index m
+				exit
+			]
+			if scale = 2 [	;-- convert to reg + reg
+				scale: 1
+				base: index
+			]
+		]
+
+		modrm: x or x86-regs/esp
+
+		sib: index << 3
+		sib: sib or case [
+			scale = 2 [40h]
+			scale = 4 [80h]
+			scale = 8 [C0h]
+			true [0]
+		]
+
+		either base <> 0 [
+			sib: sib or base
+			modrm: modrm or case [
+				any [disp < -128 disp > 127][MOD_DISP32]
+				disp <> 0 [MOD_DISP8]
+				any [base = x86-regs/ebp base = x86-regs/r13][MOD_DISP8]
+				true [0]
+			]
+		][
+			sib: sib or x86-regs/ebp
+		]
+
+		case [
+			any [zero? base disp < -128 disp > 127][
+				emit-bbd modrm sib disp
+			]
+			modrm and C0h = MOD_DISP8 [
+				put-bbb modrm sib disp
+			]
+			true [put-bb modrm sib]
+		]
 	]
 
 	emit-b-m-x: func [
-		b		[integer!]	;-- byte
-		m		[integer!]	;-- memory
-		x		[integer!]	;-- ext
+		op		[integer!]	;-- byte
+		m		[x86-addr!]	;-- memory location
+		x		[integer!]	;-- Mod/RM.reg
 	][
-		put-b b
+		put-b op
 		emit-m m x
+	]
+
+	emit-b-r-m: func [
+		op		[integer!]
+		r		[integer!]
+		m		[x86-addr!]
+	][
+		emit-b-m-x op m r
+	]
+
+	emit-b-m-r: func [
+		op		[integer!]
+		m		[x86-addr!]
+		r		[integer!]
+	][
+		emit-b-m-x op m r
+	]
+
+	emit-b-r-r: func [
+		op		[integer!]
+		r1		[integer!]
+		r2		[integer!]
+	][
+		emit-b-r op r1 r2
 	]
 
 	ret: does [put-b C3h]
@@ -177,6 +332,44 @@ asm: context [
 	icall-rel: func [		;-- absolute indirect call
 		addr	[integer!]
 	][
-		emit-b-m-x FFh addr 2
+		put-b FFh
+		emit-offset addr 2
+	]
+
+	movd-r-m: func [
+		r		[integer!]	;-- dst
+		m		[x86-addr!]	;-- src
+	][
+		emit-b-r-m 8Bh r m
+	]
+
+	movd-m-r: func [
+		m		[x86-addr!]
+		r		[integer!]
+	][
+		emit-b-m-r 89h m r
+	]
+
+	movd-r-r: func [
+		r1		[integer!]
+		r2		[integer!]
+	][
+		emit-b-r-r 89h r1 r2
+	]
+
+	movd-m-i: func [
+		m		[x86-addr!]
+		imm		[integer!]
+	][
+		emit-b-m-x C7h m 0
+		put-32 imm
+	]
+
+	movd-r-i: func [
+		r		[integer!]
+		imm		[integer!]
+	][
+		put-b B8h + r
+		put-32 imm
 	]
 ]

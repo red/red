@@ -110,6 +110,7 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 ]
 
 #enum fn-attr! [
+	FN_CC_INTERNAL:		0
 	FN_CC_STDCALL:		1
 	FN_CC_CDECL:		2
 	FN_INFIX:			4

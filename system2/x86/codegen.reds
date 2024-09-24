@@ -225,24 +225,6 @@ x86-reg-set: context [
 		x86_XMM0 x86_XMM1 x86_XMM2 x86_XMM3 x86_XMM4 x86_XMM5 x86_XMM6
 	]
 
-	make-array: func [
-		data	[int-ptr!]
-		len		[integer!]
-		return: [int-array!]
-		/local
-			arr [int-array!]
-			p	[int-ptr!]
-	][
-		arr: int-array/make len
-		p: as int-ptr! ARRAY_DATA(arr)
-		loop len [
-			p/value: data/value
-			p: p + 1
-			data: data + 1
-		]
-		arr
-	]
-
 	#define gpr-reg?(idx) [
 		all [x86_EAX <= idx idx <= x86_EDI]
 	]
@@ -255,47 +237,47 @@ x86-reg-set: context [
 		arr: ptr-array/make x86_REG_ALL + 1
 		p: ARRAY_DATA(arr)
 		pa: p + x86_EAX
-		pa/value: as int-ptr! make-array a1 size? a1
+		pa/value: as int-ptr! make-int-array a1 size? a1
 		pa: p + x86_EBX
-		pa/value: as int-ptr! make-array a2 size? a2
+		pa/value: as int-ptr! make-int-array a2 size? a2
 		pa: p + x86_ECX
-		pa/value: as int-ptr! make-array a3 size? a3
+		pa/value: as int-ptr! make-int-array a3 size? a3
 		pa: p + x86_EDX
-		pa/value: as int-ptr! make-array a4 size? a4
+		pa/value: as int-ptr! make-int-array a4 size? a4
 		pa: p + x86_ESI
-		pa/value: as int-ptr! make-array a5 size? a5
+		pa/value: as int-ptr! make-int-array a5 size? a5
 		pa: p + x86_EDI
-		pa/value: as int-ptr! make-array a6 size? a6
+		pa/value: as int-ptr! make-int-array a6 size? a6
 		pa: p + x86_XMM0
-		pa/value: as int-ptr! make-array a7 size? a7
+		pa/value: as int-ptr! make-int-array a7 size? a7
 		pa: p + x86_XMM1
-		pa/value: as int-ptr! make-array a8 size? a8
+		pa/value: as int-ptr! make-int-array a8 size? a8
 		pa: p + x86_XMM2
-		pa/value: as int-ptr! make-array a9 size? a9
+		pa/value: as int-ptr! make-int-array a9 size? a9
 		pa: p + x86_XMM3
-		pa/value: as int-ptr! make-array a10 size? a10
+		pa/value: as int-ptr! make-int-array a10 size? a10
 		pa: p + x86_XMM4
-		pa/value: as int-ptr! make-array a11 size? a11
+		pa/value: as int-ptr! make-int-array a11 size? a11
 		pa: p + x86_XMM5
-		pa/value: as int-ptr! make-array a12 size? a12
+		pa/value: as int-ptr! make-int-array a12 size? a12
 		pa: p + x86_XMM6
-		pa/value: as int-ptr! make-array a13 size? a13
+		pa/value: as int-ptr! make-int-array a13 size? a13
 		pa: p + x86_GPR
-		pa/value: as int-ptr! make-array a14 size? a14
+		pa/value: as int-ptr! make-int-array a14 size? a14
 		pa: p + x86_BYTE
-		pa/value: as int-ptr! make-array a15 size? a15
+		pa/value: as int-ptr! make-int-array a15 size? a15
 		pa: p + x86_EAX_EDX
-		pa/value: as int-ptr! make-array a16 size? a16
+		pa/value: as int-ptr! make-int-array a16 size? a16
 		pa: p + x86_NOT_EDX
-		pa/value: as int-ptr! make-array a17 size? a17
+		pa/value: as int-ptr! make-int-array a17 size? a17
 		pa: p + x86_NOT_ECX
-		pa/value: as int-ptr! make-array a18 size? a18
+		pa/value: as int-ptr! make-int-array a18 size? a18
 		pa: p + x86_CLS_GPR
-		pa/value: as int-ptr! make-array a19 size? a19
+		pa/value: as int-ptr! make-int-array a19 size? a19
 		pa: p + x86_CLS_SSE
-        pa/value: as int-ptr! make-array a20 size? a20
+        pa/value: as int-ptr! make-int-array a20 size? a20
 		pa: p + x86_REG_ALL
-        pa/value: as int-ptr! make-array a21 size? a21
+        pa/value: as int-ptr! make-int-array a21 size? a21
 
         pa: p + x86_SCRATCH
         pa/value: as int-ptr! empty-array
@@ -330,12 +312,42 @@ x86-reg-set: context [
 	]
 ]
 
-x86-rs-cc: context [	;-- red/system internal call-conv!
-	param-regs: [x86_EDI x86_EAX x86_EDX x86_ECX x86_ESI]
-	ret-regs: [x86_EAX x86_EDX]
-	float-params: [x86_XMM0 x86_XMM1 x86_XMM2 x86_XMM3 x86_XMM4 x86_XMM5 x86_XMM6]
-	float-rets: [x86_XMM0 x86_XMM1]
-	
+x86-stdcall: context [
+	param-regs: as rs-array! 0
+	ret-regs: as rs-array! 0
+	float-params: as rs-array! 0
+	float-rets: as rs-array! 0
+
+	_ret-regs: [x86_EAX]
+
+	init: does [
+		param-regs: empty-array
+		ret-regs: make-int-array _ret-regs size? _ret-regs
+		float-params: empty-array
+		float-rets: empty-array
+	]
+]
+
+x86-internal-cc: context [
+	param-regs: as rs-array! 0
+	ret-regs: as rs-array! 0
+	float-params: as rs-array! 0
+	float-rets: as rs-array! 0
+
+	_param-regs: [x86_EDI x86_EAX x86_EDX x86_ECX x86_ESI]
+	_ret-regs: [x86_EAX x86_EDX]
+	_float-params: [x86_XMM0 x86_XMM1 x86_XMM2 x86_XMM3 x86_XMM4 x86_XMM5 x86_XMM6]
+	_float-rets: [x86_XMM0 x86_XMM1]
+
+	init: does [
+		param-regs: make-int-array _param-regs size? _param-regs
+		ret-regs: make-int-array _ret-regs size? _ret-regs
+		float-params: make-int-array _float-params size? _float-params
+		float-rets: make-int-array _float-rets size? _float-rets
+	]
+]
+
+x86-cc: context [	;-- red/system internal call-conv!
 	make: func [
 		fn		[fn!]
 		return: [call-conv!]
@@ -345,6 +357,7 @@ x86-rs-cc: context [	;-- red/system internal call-conv!
 			param-locs	[rs-array!]
 			ret-locs	[rs-array!]
 			p			[ptr-ptr!]
+			pp			[int-ptr!]
 			ploc rloc	[int-ptr!]
 			cls			[reg-class!]
 			i			[integer!]
@@ -353,10 +366,34 @@ x86-rs-cc: context [	;-- red/system internal call-conv!
 			r-spill		[integer!]
 			cc			[call-conv!]
 			ft			[fn-type!]
+			attr		[integer!]
+			param-regs	[int-array!]
+			ret-regs	[int-array!]
+			float-params [int-array!]
+			float-rets	[int-array!]
 	][
 		if fn/cc <> null [return fn/cc]
 
 		ft: as fn-type! fn/type
+		attr: FN_ATTRS(ft)
+		case [
+			attr and FN_CC_STDCALL <> 0 [
+				param-regs: 	x86-stdcall/param-regs
+				ret-regs: 		x86-stdcall/ret-regs
+				float-params: 	x86-stdcall/float-params
+				float-rets: 	x86-stdcall/float-rets
+			]
+			attr and FN_CC_CDECL <> 0 [
+				0
+			]
+			true [	;-- internal cc
+				param-regs: 	x86-internal-cc/param-regs
+				ret-regs:       x86-internal-cc/ret-regs
+				float-params:   x86-internal-cc/float-params
+				float-rets:     x86-internal-cc/float-rets
+			]
+		]
+		
 		spill-start: x86-reg-set/reg-set/spill-start
 		n-params: ft/n-params
 		param-locs: int-array/make n-params
@@ -369,27 +406,30 @@ x86-rs-cc: context [	;-- red/system internal call-conv!
 			cls: reg-class? as rst-type! p/value
 			switch cls [
 				class_i32 [
-					either i-idx < size? param-regs [
+					either i-idx < param-regs/length [
+						pp: as int-ptr! ARRAY_DATA(param-regs)
 						i-idx: i-idx + 1
-						ploc/i: param-regs/i-idx
+						ploc/i: pp/i-idx
 					][
 						ploc/i: spill-start + p-spill
 						p-spill: p-spill + 1
 					]
 				]
 				class_f32 [
-					either f-idx < size? float-params [
+					either f-idx < float-params/length [
+						pp: as int-ptr! ARRAY_DATA(float-params)
 						f-idx: f-idx + 1
-						ploc/i: float-params/f-idx
+						ploc/i: pp/f-idx
 					][
 						ploc/i: spill-start + p-spill
 						p-spill: p-spill + 1
 					]
 				]
 				class_f64 [
-					either f-idx < size? float-params [
+					either f-idx < float-params/length [
+						pp: as int-ptr! ARRAY_DATA(float-params)
 						f-idx: f-idx + 1
-						ploc/i: float-params/f-idx
+						ploc/i: pp/f-idx
 					][
 						ploc/i: spill-start + p-spill
 						p-spill: p-spill + 2
@@ -412,27 +452,30 @@ x86-rs-cc: context [	;-- red/system internal call-conv!
 			i: 1 i-idx: 0 f-idx: 0 r-spill: 0
 			switch cls [
 				class_i32 [
-					either i-idx < size? ret-regs [
+					either i-idx < ret-regs/length [
+						pp: as int-ptr! ARRAY_DATA(ret-regs)
 						i-idx: i-idx + 1
-						rloc/i: ret-regs/i-idx
+						rloc/i: pp/i-idx
 					][
 						rloc/i: spill-start + r-spill
 						r-spill: r-spill + 1
 					]
 				]
 				class_f32 [
-					either f-idx < size? float-rets [
+					either f-idx < float-rets/length [
+						pp: as int-ptr! ARRAY_DATA(float-rets)
 						f-idx: f-idx + 1
-						rloc/i: float-rets/f-idx
+						rloc/i: pp/f-idx
 					][
 						rloc/i: spill-start + r-spill
 						r-spill: r-spill + 1
 					]
 				]
 				class_f64 [
-					either f-idx < size? float-rets [
+					either f-idx < float-rets/length [
+						pp: as int-ptr! ARRAY_DATA(float-rets)
 						f-idx: f-idx + 1
-						rloc/i: float-rets/f-idx
+						rloc/i: pp/f-idx
 					][
 						rloc/i: spill-start + r-spill
 						r-spill: r-spill + 2
@@ -444,7 +487,8 @@ x86-rs-cc: context [	;-- red/system internal call-conv!
 				]
 			]
 		][
-			rloc/1: ret-regs/1
+			pp: as int-ptr! ARRAY_DATA(ret-regs)
+			rloc/1: pp/value
 		]
 
 		if p-spill > r-spill [r-spill: p-spill]
@@ -573,7 +617,7 @@ x86: context [
 		o: as instr-op! i
 		use-ptr cg o/target
 
-		cc: x86-rs-cc/make as fn! o/target
+		cc: x86-cc/make as fn! o/target
 		if cc/ret-type <> type-system/void-type [
 			def-reg-fixed cg i callee-ret cc 0
 		]
@@ -811,7 +855,7 @@ x86: context [
 			f	[frame!]
 	][
 		f: xmalloc(frame!)
-		f/cc: x86-rs-cc/make ir/fn
+		f/cc: x86-cc/make ir/fn
 		f/align: target/addr-align
 		f/slot-size: 4
 		f/size: target/addr-size
@@ -1084,6 +1128,35 @@ x86: context [
 		]
 	]
 
+	to-imm: func [
+		o		[operand!]
+		return: [integer!]
+		/local
+			i	[immediate!]
+			val [cell!]
+			int [red-integer!]
+			b	[red-logic!]
+			f	[red-float!]
+	][
+		i: as immediate! o
+		val: i/value
+		switch TYPE_OF(val) [
+			TYPE_INTEGER [
+				int: as red-integer! val
+				int/value
+			]
+			TYPE_LOGIC [
+				b: as red-logic! val
+				as-integer b/value
+			]
+			TYPE_FLOAT [
+				f: as red-float! val
+				as integer! keep f
+			]
+			default [probe ["to-imm: " TYPE_OF(val)] 0]
+		]
+	]
+
 	adjust-frame: func [
 		frame	[frame!]
 		add?	[logic!]
@@ -1115,11 +1188,11 @@ x86: context [
 		a
 	]
 
-	loc-m: func [	;-- location idx to memory addr
+	loc-to-addr: func [						;-- location idx to memory addr
+		loc		[integer!]
+		addr	[x86-addr!]
 		f		[frame!]
 		r		[reg-set!]
-		loc		[integer!]
-		return:	[x86-addr!]
 		/local
 			word-sz [integer!]
 			offset	[integer!]
@@ -1139,7 +1212,10 @@ x86: context [
 			]
 			true [probe ["invalid stack location: " loc]]
 		]
-		make-addr x86_ESP 0 1 offset
+		addr/base: x86-regs/esp
+		addr/index: 0
+		addr/scale: 1
+		addr/disp: offset
 	]
 
 	call-fn: func [v [cell!] /local fval [red-function!] f [fn!]][
@@ -1201,6 +1277,10 @@ x86: context [
 		a		[integer!]
 		b		[integer!]
 	][
+		switch op [
+			I_MOVD [asm/movd-r-r a b]
+			default [0]
+		]
 	]
 
 	assemble-r-m: func [
@@ -1208,7 +1288,43 @@ x86: context [
 		a		[integer!]
 		m		[x86-addr!]
 	][
-		
+		switch op [
+			I_MOVD [asm/movd-r-m a m]
+			default [0]
+		]
+	]
+
+	assemble-r-i: func [
+		op		[integer!]
+		r		[integer!]
+		imm		[integer!]
+	][
+		switch op [
+			I_MOVD [asm/movd-r-i r imm]
+			default [0]
+		]
+	]
+
+	assemble-m-i: func [
+		op		[integer!]
+		m		[x86-addr!]
+		imm		[integer!]
+	][
+		switch op [
+			I_MOVD [asm/movd-m-i m imm]
+			default [0]
+		]
+	]
+
+	assemble-m-r: func [
+		op		[integer!]
+		m		[x86-addr!]
+		a		[integer!]
+	][
+		switch op [
+			I_MOVD [asm/movd-m-r m a]
+			default [0]
+		]
 	]
 
 	assemble: func [
@@ -1219,10 +1335,12 @@ x86: context [
 			m	[integer!]
 			reg [integer!]
 			loc [integer!]
+			imm [integer!]
 			l	[label!]
 			p	[ptr-ptr!]
 			ins [integer!]
 			rset [reg-set!]
+			addr [x86-addr! value]
 	][
 		rset: cg/reg-set
 		ins: i/header
@@ -1255,15 +1373,39 @@ x86: context [
 				either gpr-reg?(loc) [
 					assemble-r-r op reg loc - 1
 				][
-					assemble-r-m op reg loc-m cg/frame rset loc
+					loc-to-addr loc :addr cg/frame rset
+					assemble-r-m op reg :addr
 				]
 			]
 			_AM_RRSD_REG
 			_AM_RRSD_IMM
 			_AM_REG_RRSD
-			_AM_OP
-			_AM_OP_IMM
-			_AM_OP_REG
+			_AM_OP [
+				0
+			]
+			_AM_OP_IMM [
+				loc: to-loc as operand! p/value
+				p: p + 1
+				imm: to-imm as operand! p/value
+				either gpr-reg?(loc) [
+					assemble-r-i op loc - 1 imm
+				][
+					loc-to-addr loc :addr cg/frame rset
+					assemble-m-i op :addr imm
+				]
+			]
+			_AM_OP_REG [
+				loc: to-loc as operand! p/value
+				p: p + 1
+				reg: to-loc as operand! p/value
+				reg: reg - 1
+				either gpr-reg?(loc) [
+					assemble-r-r op reg loc - 1
+				][
+					loc-to-addr loc :addr cg/frame rset
+					assemble-m-r op :addr reg
+				]
+			]
 			_AM_XMM_REG
 			_AM_XMM_OP
 			_AM_OP_XMM

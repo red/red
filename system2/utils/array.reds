@@ -31,6 +31,25 @@ array-2!: alias struct! [		;-- ptr array with two values
 
 empty-array: as ptr-array! 0
 
+make-int-array: func [
+	data	[int-ptr!]
+	len		[integer!]
+	return: [int-array!]
+	/local
+		arr [int-array!]
+		p	[int-ptr!]
+][
+	arr: int-array/make len
+	p: as int-ptr! ARRAY_DATA(arr)
+	loop len [
+		p/value: data/value
+		p: p + 1
+		data: data + 1
+	]
+	arr
+]
+
+
 int-array: context [
 	make: func [
 		size	[integer!]
