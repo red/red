@@ -613,11 +613,15 @@ x86: context [
 			p	[ptr-ptr!]
 			e	[df-edge!]
 			n	[integer!]
+			s	[integer!]
+			fn	[fn!]
+			ft	[fn-type!]
 	][
 		o: as instr-op! i
 		use-ptr cg o/target
 
-		cc: x86-cc/make as fn! o/target
+		fn: as fn! o/target
+		cc: x86-cc/make fn
 		if cc/ret-type <> type-system/void-type [
 			def-reg-fixed cg i callee-ret cc 0
 		]
@@ -626,12 +630,21 @@ x86: context [
 		live-point cg cc
 
 		n: 0
+		s: 1
 		p: ARRAY_DATA(i/inputs)
+
+		ft: as fn-type! fn/type
+		if FN_ATTRS(ft) <> FN_CC_INTERNAL [		;-- right-to-left order 
+			s: -1
+			n: i/inputs/length - 1
+			p: p + n
+		]
+		
 		loop i/inputs/length [
 			e: as df-edge! p/value
 			use-reg-fixed cg e/dst callee-param cc n
-			n: n + 1
-			p: p + 1
+			n: n + s
+			p: p + s
 		]
 		emit-instr cg I_CALL
 	]
