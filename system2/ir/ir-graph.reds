@@ -556,6 +556,25 @@ ir-graph: context [
 		null
 	]
 
+	visit-exit: func [r [exit!] ctx [ssa-ctx!] return: [instr!]
+	][
+		null
+	]
+
+	visit-comment: func [r [rst-stmt!] ctx [ssa-ctx!] return: [instr!]][
+		null
+	]
+
+	visit-switch: func [r [switch!] ctx [ssa-ctx!] return: [instr!]
+	][
+		null
+	]
+
+	visit-case: func [r [case!] ctx [ssa-ctx!] return: [instr!]
+	][
+		null
+	]
+
 	builder/visit-assign:	as visit-fn! :visit-assign
 	builder/visit-literal:	as visit-fn! :visit-literal
 	builder/visit-bin-op:	as visit-fn! :visit-bin-op
@@ -566,6 +585,10 @@ ir-graph: context [
 	builder/visit-break:	as visit-fn! :visit-break
 	builder/visit-continue:	as visit-fn! :visit-continue
 	builder/visit-return:	as visit-fn! :visit-return
+	builder/visit-exit:		as visit-fn! :visit-exit
+	builder/visit-comment:	as visit-fn! :visit-comment
+	builder/visit-case:		as visit-fn! :visit-case
+	builder/visit-switch:	as visit-fn! :visit-switch
 
 	make-bb: func [		;-- create basic-block!
 		return: [basic-block!]

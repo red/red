@@ -50,7 +50,7 @@ rst-type!: alias struct! [
 #define INT_WIDTH(int) (int/header >>> 8 and FFh)
 #define INT_SIGNED?(int) (int/header and 00010000h <> 0)
 
-;-- /header bits: 0 - 7: kind, 8 - 15: width, 16: signed? 
+;-- /header bits: 0 - 7: type kind, 8 - 15: width, 16: signed? 
 int-type!: alias struct! [
 	TYPE_HEADER
 	min			[integer!]
@@ -70,6 +70,9 @@ logic-type!: alias struct! [
 	TYPE_HEADER
 ]
 
+#define PTR_VALUE_SIZE(ptr) [ptr/header >>> 8]
+
+;-- /header bits: 8 - 31 size in bytes
 ptr-type!: alias struct! [
 	TYPE_HEADER
 	type		[rst-type!]
@@ -368,5 +371,12 @@ type-system: context [
 		if x/header = y/header [return conv_same]
 
 		conv_illegal
+	]
+
+	type-size?: func [
+		t		[rst-type!]
+		return: [integer!]		;-- size in byte
+	][
+		4
 	]
 ]

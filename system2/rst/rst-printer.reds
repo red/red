@@ -26,7 +26,7 @@ rst-printer: context [
 	]
 
 	visit-if: func [e [if!] i [integer!]][
-		do-i i prin-token e/token prin " "
+		do-i i prin either e/false-blk <> null ["either"]["if"] prin " "
 		e/cond/accept as int-ptr! e/cond printer null
 		prin " "
 		prin-block e/true-blk
@@ -41,6 +41,24 @@ rst-printer: context [
 		prin-block w/body-blk
 	]
 
+	visit-case: func [e [case!] i [integer!] /local c [if!]][
+		do-i i print-line "case ["
+		c: e/cases
+		while [c <> null][
+			c/cond/accept as int-ptr! c/cond printer as int-ptr! i + 1
+			prin " "
+			prin-block c/true-blk
+			print lf
+			c: as if! c/f-branch
+		]
+		do-i i print-line "]"
+	]
+
+	visit-switch: func [e [switch!] i [integer!]][
+		do-i i prin "switch "
+		e/expr/accept as int-ptr! e/expr printer as int-ptr! i + 1
+	]
+
 	visit-break: func [b [break!] i [integer!]][
 		do-i i prin "break"
 	]
@@ -52,6 +70,14 @@ rst-printer: context [
 	visit-return: func [r [return!] i [integer!]][
 		do-i i prin "return "
 		r/expr/accept as int-ptr! r/expr printer null
+	]
+
+	visit-exit: func [r [exit!] i [integer!]][
+		do-i i prin "exit"
+	]
+
+	visit-comment: func [r [rst-stmt!] i [integer!]][
+		0
 	]
 
 	visit-fn-call: func [fc [fn-call!] i [integer!] /local arg [rst-expr!]][
@@ -81,6 +107,10 @@ rst-printer: context [
 	printer/visit-break:	as visit-fn! :visit-break
 	printer/visit-continue:	as visit-fn! :visit-continue
 	printer/visit-return:	as visit-fn! :visit-return
+	printer/visit-exit:		as visit-fn! :visit-exit
+	printer/visit-comment:	as visit-fn! :visit-comment
+	printer/visit-case:		as visit-fn! :visit-case
+	printer/visit-switch:	as visit-fn! :visit-switch
 
 	do-i: func [i [integer!]][
 		loop i [prin "    "]

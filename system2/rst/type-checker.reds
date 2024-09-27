@@ -329,6 +329,25 @@ type-checker: context [
 		type-system/void-type
 	]
 
+	visit-exit: func [v [exit!] ctx [context!] return: [rst-type!]][
+		if NODE_FLAGS(ctx) and RST_FN_CTX = 0 [
+			throw-error [v/token "exit is not allowed outside of a function"]
+		]
+		type-system/void-type
+	]
+
+	visit-comment: func [v [rst-stmt!] ctx [context!] return: [rst-type!]][
+		type-system/void-type
+	]
+
+	visit-case: func [v [case!] ctx [context!] return: [rst-type!]][
+		type-system/void-type
+	]
+
+	visit-switch: func [v [switch!] ctx [context!] return: [rst-type!]][
+		type-system/void-type
+	]
+
 	visit-fn-call: func [fc [fn-call!] ctx [context!] return: [rst-type!]
 		/local
 			ft	 	[fn-type!]
@@ -378,6 +397,10 @@ type-checker: context [
 	checker/visit-break:	as visit-fn! :visit-break
 	checker/visit-continue:	as visit-fn! :visit-continue
 	checker/visit-return:	as visit-fn! :visit-return
+	checker/visit-exit:		as visit-fn! :visit-exit
+	checker/visit-comment:	as visit-fn! :visit-comment
+	checker/visit-case:		as visit-fn! :visit-case
+	checker/visit-switch:	as visit-fn! :visit-switch
 
 	make-cmp-op: func [
 		op			[rst-op!]

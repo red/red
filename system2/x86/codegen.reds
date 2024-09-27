@@ -731,6 +731,24 @@ x86: context [
 		emit-instr cg I_JC or M_FLAG_FIXED or (cond/index << COND_SHIFT)
 	]
 
+	emit-ptr-load: func [
+		cg		[codegen!]
+		i		[instr!]
+		/local
+			o	[instr-op!]
+			
+	][
+		o: as instr-op! i
+		o/ret-type
+	]
+
+	emit-ptr-store: func [
+		cg		[codegen!]
+		i		[instr!]
+	][
+		
+	]
+
 	gen-goto: func [
 		cg		[codegen!]
 		blk		[basic-block!]
@@ -853,8 +871,8 @@ x86: context [
 			OP_FLT_LTEQ			[0]
 			OP_DEFAULT_VALUE	[0]
 			OP_CALL_FUNC		[emit-call cg i]
-			OP_GET_GLOBAL		[0]
-			OP_SET_GLOBAL		[0]
+			OP_PTR_LOAD			[emit-ptr-load cg i]
+			OP_PTR_STORE		[emit-ptr-store cg i]
 			default [
 				prin "codegen: unknown op"
 			]

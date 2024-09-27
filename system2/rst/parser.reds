@@ -26,6 +26,7 @@ visitor!: alias struct! [
 	VISITOR_FUNC(visit-string)
 	VISITOR_FUNC(visit-array)
 	VISITOR_FUNC(visit-literal)
+	VISITOR_FUNC(visit-comment)
 ]
 
 #define ACCEPT_FN_SPEC [self [int-ptr!] v [visitor!] data [int-ptr!] return: [int-ptr!]]
@@ -107,6 +108,7 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	RST_CATCH
 	RST_RETURN
 	RST_EXIT
+	RST_COMMENT
 ]
 
 #enum fn-attr! [
@@ -187,6 +189,7 @@ var-decl!: alias struct! [	;-- variable declaration
 	type		[rst-type!]
 	init		[rst-expr!]	;-- init expression or parameter idx
 	ssa			[ssa-var!]
+	data-idx	[integer!]	;-- for global var, index in data section
 ]
 
 variable!: alias struct! [
@@ -252,6 +255,24 @@ if!: alias struct! [
 	false-blk	[red-block!]
 ]
 
+case!: alias struct! [
+	RST_EXPR_FIELDS(rst-node!)
+	cases		[if!]
+]
+
+switch-case!: alias struct! [
+	RST_NODE_FIELDS(switch-case!)
+	expr		[rst-expr!]
+	body		[rst-stmt!]
+]
+
+switch!: alias struct! [
+	RST_EXPR_FIELDS(rst-node!)
+	expr		[rst-expr!]
+	cases		[switch-case!]
+	defcase		[rst-stmt!]
+]
+
 while!: alias struct! [
 	RST_STMT_FIELDS(rst-node!)
 	loop-idx	[integer!]
@@ -264,6 +285,10 @@ while!: alias struct! [
 return!: alias struct! [
 	RST_STMT_FIELDS(rst-node!)
 	expr		[rst-expr!]
+]
+
+exit!: alias struct! [
+	RST_STMT_FIELDS(rst-node!)
 ]
 
 continue!: alias struct! [
@@ -342,6 +367,7 @@ parser: context [
 	k_use:		symbol/make "use"
 	k_true:		symbol/make "true"
 	k_false:	symbol/make "false"
+	k_default:	symbol/make "default"
 
 	k_+:			symbol/make "+"
 	k_-:			symbol/make "-"
@@ -395,30 +421,30 @@ parser: context [
 		hashmap/put infix-Ops k_percent		as int-ptr! RST_OP_REM
 		hashmap/put infix-Ops k_star		as int-ptr! RST_OP_MUL
 
-		hashmap/put keywords k_any		null
-        hashmap/put keywords k_all		null
-        hashmap/put keywords k_as		null
-        hashmap/put keywords k_declare	null
-        hashmap/put keywords k_size?	null
-        hashmap/put keywords k_not		null
-        hashmap/put keywords k_null		null
+		hashmap/put keywords k_any		as int-ptr! :parse-any
+        hashmap/put keywords k_all		as int-ptr! :parse-all
+        hashmap/put keywords k_as		as int-ptr! :parse-as
+        hashmap/put keywords k_declare	as int-ptr! :parse-declare
+        hashmap/put keywords k_size?	as int-ptr! :parse-size?
+        hashmap/put keywords k_not		as int-ptr! :parse-not
+        hashmap/put keywords k_null		as int-ptr! :parse-null
         hashmap/put keywords k_if		as int-ptr! :parse-if
         hashmap/put keywords k_either	as int-ptr! :parse-if
         hashmap/put keywords k_while	as int-ptr! :parse-while
-        hashmap/put keywords k_until	null
-        hashmap/put keywords k_loop		null
-        hashmap/put keywords k_case		null
-        hashmap/put keywords k_switch	null
+        hashmap/put keywords k_until	as int-ptr! :parse-until
+        hashmap/put keywords k_loop		as int-ptr! :parse-loop
+        hashmap/put keywords k_case		as int-ptr! :parse-case
+        hashmap/put keywords k_switch	as int-ptr! :parse-switch
         hashmap/put keywords k_continue	as int-ptr! :parse-continue
         hashmap/put keywords k_break	as int-ptr! :parse-break
-        hashmap/put keywords k_throw	null
-        hashmap/put keywords k_catch	null
+        hashmap/put keywords k_throw	as int-ptr! :parse-throw
+        hashmap/put keywords k_catch	as int-ptr! :parse-catch
         hashmap/put keywords k_return	as int-ptr! :parse-return
-        hashmap/put keywords k_exit		null
-        hashmap/put keywords k_assert	null
-        hashmap/put keywords k_comment	null
-        hashmap/put keywords k_with		null
-        hashmap/put keywords k_use		null
+        hashmap/put keywords k_exit		as int-ptr! :parse-exit
+        hashmap/put keywords k_assert	as int-ptr! :parse-assert
+        hashmap/put keywords k_comment	as int-ptr! :parse-comment
+        hashmap/put keywords k_with		as int-ptr! :parse-with
+        hashmap/put keywords k_use		as int-ptr! :parse-use
         hashmap/put keywords k_true		as int-ptr! :parse-logic
         hashmap/put keywords k_false	as int-ptr! :parse-logic
 	]
@@ -468,7 +494,7 @@ parser: context [
 		return: [cell!]
 	][
 		if TYPE_OF(pc) <> type [
-			probe ["Parse Error: Expect " type " type"]
+			throw-error [pc "Expect type:" type]
 			halt
 		]
 		pc
@@ -481,9 +507,9 @@ parser: context [
 		return: [cell!]
 	][
 		pc: pc + 1
-		if pc >= end [probe "Parse Error: EOF" halt]
+		if pc >= end [throw-error [pc - 1 "EOF: expect more code"]]
 		if TYPE_OF(pc) <> type [
-			probe ["Parse Error: Expect " type " type"]
+			throw-error [pc "Expect type:" type]
 			halt
 		]
 		pc
@@ -647,6 +673,7 @@ parser: context [
 		SET_NODE_TYPE(var RST_VAR_DECL)
 		var/token: name
 		var/typeref: typeref
+		var/data-idx: -1
 		var
 	]
 
@@ -736,38 +763,51 @@ parser: context [
 		stmt/next
 	]
 
-	parse-if: func [
-		;pc end expr ctx
-		KEYWORD_FN_SPEC
+	_parse-if: func [
+		pc		[cell!]
+		end		[cell!]
+		expr	[ptr-ptr!]
+		ctx		[context!]
+		either? [logic!]
+		return: [cell!]
 		/local
-			w		[red-word!]
 			cond	[ptr-value!]
 			if-expr [if!]
 	][
 		if_accept: func [ACCEPT_FN_SPEC][
 			v/visit-if self data
 		]
-		w: as red-word! pc
-		pc: advance-next pc end		;-- skip keyword: if/either
-		pc: parse-expr pc end :cond ctx
 
-		if-expr: as if! malloc size? if!
+		if-expr: xmalloc(if!)
 		SET_NODE_TYPE(if-expr RST_IF)
-		if-expr/token: as cell! w
+		if-expr/token: pc
 		if-expr/accept: :if_accept
+
+		pc: parse-expr pc end :cond ctx
 		if-expr/cond: as rst-expr! cond/value
 
 		pc: expect-next pc end TYPE_BLOCK
 		if-expr/true-blk: as red-block! pc
 		if-expr/t-branch: parse-block as red-block! pc ctx
 
-		if k_either = symbol/resolve w/symbol [
+		if either? [
 			pc: expect-next pc end TYPE_BLOCK
 			if-expr/false-blk: as red-block! pc
 			if-expr/f-branch: parse-block as red-block! pc ctx
-		]
+		]	
 		expr/value: as int-ptr! if-expr
 		pc
+	]
+
+	parse-if: func [
+		;pc end expr ctx
+		KEYWORD_FN_SPEC
+		/local
+			w		[red-word!]
+	][
+		w: as red-word! pc
+		pc: advance-next pc end		;-- skip keyword: if/either
+		_parse-if pc end expr ctx k_either = symbol/resolve w/symbol
 	]
 
 	parse-while: func [
@@ -865,6 +905,209 @@ parser: context [
 		expr/value: as int-ptr! r
 		pc
 	]
+
+	parse-exit: func [
+		KEYWORD_FN_SPEC
+		/local
+			e	[exit!]
+	][
+		exit_accept: func [ACCEPT_FN_SPEC][
+			v/visit-exit self data
+		]
+		e: xmalloc(exit!)
+		SET_NODE_TYPE(e RST_EXIT)
+		e/token: pc
+		e/accept: :exit_accept
+
+		expr/value: as int-ptr! e
+		pc
+	]
+
+	parse-any: func [
+		KEYWORD_FN_SPEC
+	][]
+
+	parse-all: func [
+		KEYWORD_FN_SPEC
+	][]
+
+	parse-as: func [
+		KEYWORD_FN_SPEC
+	][]
+
+	parse-declare: func [
+		KEYWORD_FN_SPEC
+	][]
+
+	parse-size?: func [
+		KEYWORD_FN_SPEC
+	][]
+
+	parse-not: func [
+		KEYWORD_FN_SPEC
+	][]
+
+	parse-null: func [
+		KEYWORD_FN_SPEC
+	][]
+
+	parse-until: func [
+		KEYWORD_FN_SPEC
+	][]
+
+	parse-loop: func [
+		KEYWORD_FN_SPEC
+	][]
+
+	parse-case: func [
+		KEYWORD_FN_SPEC
+		/local
+			c		[case!]
+			blk		[red-block!]
+			p		[cell!]
+			s-tail	[cell!]
+			e		[ptr-value!]
+			if-expr	[if!]
+			last-if [if!]
+			first-if [if!]
+			saved-blk [red-block!]
+	][
+		case_accept: func [ACCEPT_FN_SPEC][
+			v/visit-case self data
+		]
+
+		blk: as red-block! expect-next pc end TYPE_BLOCK
+		p: block/rs-head blk
+		s-tail: block/rs-tail blk
+		if p = s-tail [throw-error [pc "empty case block"]]
+
+		c: xmalloc(case!)
+		SET_NODE_TYPE(c RST_CASE)
+		c/token: pc
+		c/accept: :case_accept
+
+		enter-block(blk)
+		last-if: null
+		first-if: null
+		while [p < s-tail][
+			p: _parse-if p s-tail :e ctx no
+			if-expr: as if! e/value
+			if null? first-if [first-if: if-expr]
+			if last-if <> null [last-if/f-branch: as rst-stmt! if-expr]
+			last-if: if-expr
+			p: p + 1
+		]
+		exit-block
+
+		c/cases: first-if
+		expr/value: as int-ptr! c
+		as cell! blk
+	]
+
+	parse-switch: func [
+		KEYWORD_FN_SPEC
+		/local
+			s		[switch!]
+			c		[switch-case!]
+			cur		[switch-case!]
+			cases	[switch-case! value]
+			e		[rst-expr!]
+			ty		[integer!]
+			pv		[ptr-value!]
+			blk		[red-block!]
+			p		[cell!]
+			s-tail	[cell!]
+			w		[red-word!]
+			saved-blk [red-block!]
+	][
+		switch_accept: func [ACCEPT_FN_SPEC][
+			v/visit-switch self data
+		]
+	
+		s: xmalloc(switch!)
+		SET_NODE_TYPE(s RST_SWITCH)
+		s/token: pc
+		s/accept: :switch_accept
+
+		pc: advance-next pc end		;-- skip keyword switch
+		pc: parse-expr pc end :pv ctx
+		s/expr: as rst-expr! pv/value
+
+		blk: as red-block! expect-next pc end TYPE_BLOCK
+		p: block/rs-head blk
+		s-tail: block/rs-tail blk
+		if p = s-tail [throw-error [blk "empty switch block"]]
+
+		enter-block(blk)
+		cur: :cases
+		cur/next: null
+		while [p < s-tail][
+			w: as red-word! p
+			if all [T_WORD?(w) k_default = symbol/resolve w/symbol][
+				p: expect-next p s-tail TYPE_BLOCK
+				s/defcase: parse-block as red-block! p ctx
+				if p + 1 <> s-tail [throw-error [p "wrong syntax in SWITCH block"]]
+			]
+
+			c: xmalloc(switch-case!)
+			p: parse-expr p s-tail :pv ctx
+			e: as rst-expr! pv/value
+			ty: NODE_TYPE(e)
+			if all [ty <> RST_INT ty <> RST_BYTE][
+				throw-error [p "expect integer! or byte! literal value"]
+			]
+
+			p: expect-next p s-tail TYPE_BLOCK
+			c/body: parse-block as red-block! p ctx
+			c/expr: e
+			
+			cur/next: c
+			cur: c
+			p: p + 1
+		]
+		exit-block
+
+		s/cases: cases/next
+		expr/value: as int-ptr! s
+		as cell! blk
+	]
+
+	parse-throw: func [
+		KEYWORD_FN_SPEC
+	][]
+
+	parse-catch: func [
+		KEYWORD_FN_SPEC
+	][]
+
+	parse-assert: func [
+		KEYWORD_FN_SPEC
+	][]
+
+	parse-comment: func [
+		KEYWORD_FN_SPEC
+		/local
+			e	[rst-stmt!]
+	][
+		comment_accept: func [ACCEPT_FN_SPEC][
+			v/visit-comment self data
+		]
+		e: xmalloc(rst-stmt!)
+		SET_NODE_TYPE(e RST_COMMENT)
+		e/token: pc
+		e/accept: :comment_accept
+
+		expr/value: as int-ptr! e
+		pc + 1
+	]
+
+	parse-with: func [
+		KEYWORD_FN_SPEC
+	][]
+
+	parse-use: func [
+		KEYWORD_FN_SPEC
+	][]
 
 	parse-logic: func [
 		;pc end expr ctx
