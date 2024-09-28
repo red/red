@@ -26,6 +26,7 @@ Red/System [
 	RST_TYPE_FLOAT
 	RST_TYPE_C_STR
 	RST_TYPE_FUNC
+	RST_TYPE_NULL
 	RST_TYPE_STRUCT
 	RST_TYPE_ARRAY
 	RST_TYPE_PTR
@@ -99,6 +100,16 @@ make-void-type: func [
 ][
 	type: as rst-type! malloc size? rst-type!
 	SET_TYPE_KIND(type RST_TYPE_VOID)
+	type
+]
+
+make-null-type: func [
+	return: [rst-type!]
+	/local
+		type [rst-type!]
+][
+	type: xmalloc(rst-type!)
+	SET_TYPE_KIND(type RST_TYPE_NULL)
 	type
 ]
 
@@ -189,6 +200,7 @@ type-name: func [
 		RST_TYPE_BYTE ["byte!"]
 		RST_TYPE_LOGIC ["logic!"]
 		RST_TYPE_VOID ["void!"]
+		RST_TYPE_NULL ["null"]
 		RST_TYPE_PTR ["pointer!"]
 		RST_TYPE_STRUCT ["struct!"]
 		default ["void!"]
@@ -212,6 +224,7 @@ type-system: context [
 	int64-type:		as int-type! 0
 	uint64-type:	as int-type! 0
 	void-type:		as rst-type! 0
+	null-type:		as rst-type! 0
 
 	k_integer!:		symbol/make "integer!"
 	k_float!:		symbol/make "float!"
@@ -229,6 +242,7 @@ type-system: context [
 		int-types: ptr-array/make 2 * MAX_INT_WIDTH + 1
 
 		void-type: make-void-type
+		null-type: make-null-type
 		integer-type: get-int-type 32 true
 		uint32-type: get-int-type 32 false
 		float-type: make-float-type 64

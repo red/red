@@ -25,6 +25,8 @@ visitor!: alias struct! [
 	VISITOR_FUNC(visit-var)
 	VISITOR_FUNC(visit-string)
 	VISITOR_FUNC(visit-array)
+	VISITOR_FUNC(visit-not)
+	VISITOR_FUNC(visit-size?)
 	VISITOR_FUNC(visit-literal)
 	VISITOR_FUNC(visit-comment)
 ]
@@ -297,6 +299,11 @@ continue!: alias struct! [
 
 break!: alias struct! [
 	RST_STMT_FIELDS(rst-node!)
+]
+
+unary!: alias struct! [
+	RST_EXPR_FIELDS(unary!)
+	expr		[rst-expr!]
 ]
 
 bin-op!: alias struct! [
@@ -939,25 +946,121 @@ parser: context [
 		KEYWORD_FN_SPEC
 	][]
 
+	parse-unary: func [
+		pc		[cell!]
+		end		[cell!]
+		expr	[ptr-ptr!]
+		ctx		[context!]
+		return: [cell!]
+		/local
+			e	[unary!]
+			pv	[ptr-value!]
+	][
+		e: xmalloc(unary!)
+		e/token: pc
+		pc: advance-next pc end
+		pc: parse-expr pc end :pv ctx
+		e/expr: as rst-expr! pv/value
+		expr/value: as int-ptr! e
+		pc
+	]
+
 	parse-size?: func [
 		KEYWORD_FN_SPEC
-	][]
+		/local
+			e	[unary!]
+	][
+		sizeof_accept: func [ACCEPT_FN_SPEC][
+			v/visit-size? self data
+		]
+		pc: parse-unary pc end expr ctx
+
+		e: as unary! expr/value
+		e/accept: :sizeof_accept
+		SET_NODE_TYPE(e RST_SIZEOF)
+		pc
+	]
 
 	parse-not: func [
 		KEYWORD_FN_SPEC
-	][]
+		/local
+			e	[unary!]
+			pv	[ptr-value!]
+	][
+		not_accept: func [ACCEPT_FN_SPEC][
+			v/visit-not self data
+		]
+		pc: parse-unary pc end expr ctx
+
+		e: as unary! expr/value
+		e/accept: :not_accept
+		SET_NODE_TYPE(e RST_NOT)
+		pc
+	]
 
 	parse-null: func [
 		KEYWORD_FN_SPEC
-	][]
+		/local
+			e	[rst-expr!]
+	][
+		null_accept: func [ACCEPT_FN_SPEC][
+			v/visit-literal self data
+		]
+		e: xmalloc(rst-expr!)
+		SET_NODE_TYPE(e RST_NULL)
+		e/token: pc
+		e/accept: :null_accept
+		e/type: type-system/null-type
+
+		expr/value: as int-ptr! e
+		pc
+	]
 
 	parse-until: func [
 		KEYWORD_FN_SPEC
-	][]
+		/local
+			w		[while!]
+	][
+		until_accept: func [ACCEPT_FN_SPEC][
+			v/visit-until self data
+		]
+		w: as while! malloc size? while!
+		SET_NODE_TYPE(w RST_UNTIL)
+		w/token: pc
+		w/accept: :until_accept
+
+		pc: expect-next pc end TYPE_BLOCK
+		w/body-blk: as red-block! pc
+		w/body: parse-block as red-block! pc ctx
+		expr/value: as int-ptr! w
+		pc
+	]
 
 	parse-loop: func [
 		KEYWORD_FN_SPEC
-	][]
+			/local
+			w		[while!]
+			pv		[ptr-value!]
+	][
+		loop_accept: func [ACCEPT_FN_SPEC][
+			v/visit-loop self data
+		]
+		w: as while! malloc size? while!
+		SET_NODE_TYPE(w RST_LOOP)
+		w/token: pc
+		w/accept: :loop_accept
+
+		pc: advance-next pc end
+		w/cond-blk: as red-block! pc
+		pc: parse-expr pc end :pv ctx
+		w/cond: as rst-stmt! pv/value
+
+		pc: expect-next pc end TYPE_BLOCK
+		w/body-blk: as red-block! pc
+		w/body: parse-block as red-block! pc ctx
+		expr/value: as int-ptr! w
+		pc
+	]
 
 	parse-case: func [
 		KEYWORD_FN_SPEC

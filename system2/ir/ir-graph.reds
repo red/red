@@ -575,6 +575,16 @@ ir-graph: context [
 		null
 	]
 
+	visit-not: func [r [case!] ctx [ssa-ctx!] return: [instr!]
+	][
+		null
+	]
+
+	visit-size?: func [r [case!] ctx [ssa-ctx!] return: [instr!]
+	][
+		null
+	]
+
 	builder/visit-assign:	as visit-fn! :visit-assign
 	builder/visit-literal:	as visit-fn! :visit-literal
 	builder/visit-bin-op:	as visit-fn! :visit-bin-op
@@ -589,6 +599,8 @@ ir-graph: context [
 	builder/visit-comment:	as visit-fn! :visit-comment
 	builder/visit-case:		as visit-fn! :visit-case
 	builder/visit-switch:	as visit-fn! :visit-switch
+	builder/visit-not:		as visit-fn! :visit-not
+	builder/visit-size?:	as visit-fn! :visit-size?
 
 	make-bb: func [		;-- create basic-block!
 		return: [basic-block!]

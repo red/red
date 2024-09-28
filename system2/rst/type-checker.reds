@@ -348,6 +348,14 @@ type-checker: context [
 		type-system/void-type
 	]
 
+	visit-not: func [u [unary!] ctx [context!] return: [rst-type!]][
+		type-system/void-type
+	]
+
+	visit-size?: func [u [unary!] ctx [context!] return: [rst-type!]][
+		type-system/void-type
+	]
+
 	visit-fn-call: func [fc [fn-call!] ctx [context!] return: [rst-type!]
 		/local
 			ft	 	[fn-type!]
@@ -401,6 +409,8 @@ type-checker: context [
 	checker/visit-comment:	as visit-fn! :visit-comment
 	checker/visit-case:		as visit-fn! :visit-case
 	checker/visit-switch:	as visit-fn! :visit-switch
+	checker/visit-not:		as visit-fn! :visit-not
+	checker/visit-size?:	as visit-fn! :visit-size?
 
 	make-cmp-op: func [
 		op			[rst-op!]

@@ -54,6 +54,14 @@ rst-printer: context [
 		do-i i print-line "]"
 	]
 
+	visit-not: func [b [break!] i [integer!]][
+		do-i i prin "not"
+	]
+
+	visit-size?: func [b [break!] i [integer!]][
+		do-i i prin "size?"
+	]
+
 	visit-switch: func [e [switch!] i [integer!]][
 		do-i i prin "switch "
 		e/expr/accept as int-ptr! e/expr printer as int-ptr! i + 1
@@ -111,6 +119,8 @@ rst-printer: context [
 	printer/visit-comment:	as visit-fn! :visit-comment
 	printer/visit-case:		as visit-fn! :visit-case
 	printer/visit-switch:	as visit-fn! :visit-switch
+	printer/visit-not:		as visit-fn! :visit-not
+	printer/visit-size?:	as visit-fn! :visit-size?
 
 	do-i: func [i [integer!]][
 		loop i [prin "    "]
