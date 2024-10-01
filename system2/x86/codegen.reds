@@ -1497,11 +1497,10 @@ x86: context [
 			_AM_NONE [assemble-op ins p]
 			_AM_REG_OP [
 				reg: to-loc as operand! p/value
-				reg: reg - 1
 				p: p + 1
 				loc: to-loc as operand! p/value
 				either gpr-reg?(loc) [
-					assemble-r-r op reg loc - 1
+					assemble-r-r op reg loc
 				][
 					loc-to-addr loc :addr cg/frame rset
 					assemble-r-m op reg :addr
@@ -1511,7 +1510,6 @@ x86: context [
 			_AM_RRSD_IMM
 			_AM_REG_RRSD [
 				reg: to-loc as operand! p/value
-				reg: reg - 1
 				rrsd-to-addr p + 1 :addr
 				assemble-r-m op reg :addr
 			]
@@ -1523,7 +1521,7 @@ x86: context [
 				p: p + 1
 				imm: to-imm as operand! p/value
 				either gpr-reg?(loc) [
-					assemble-r-i op loc - 1 imm
+					assemble-r-i op loc imm
 				][
 					loc-to-addr loc :addr cg/frame rset
 					assemble-m-i op :addr imm
@@ -1533,9 +1531,8 @@ x86: context [
 				loc: to-loc as operand! p/value
 				p: p + 1
 				reg: to-loc as operand! p/value
-				reg: reg - 1
 				either gpr-reg?(loc) [
-					assemble-r-r op reg loc - 1
+					assemble-r-r op reg loc
 				][
 					loc-to-addr loc :addr cg/frame rset
 					assemble-m-r op :addr reg

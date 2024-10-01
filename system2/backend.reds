@@ -662,7 +662,7 @@ backend: context [
 	]
 
 	#include %x86/codegen.reds
-	#include %reg-alloc.reds
+	#include %reg-allocator.reds
 
 	remove-instr: func [		;-- remove mach-instr! x
 		x		[mach-instr!]

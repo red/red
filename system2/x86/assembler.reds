@@ -7,6 +7,7 @@ Red/System [
 
 x86-regs: context [
 	#enum gpr-reg! [
+		none
 		eax
 		ecx
 		edx
@@ -114,7 +115,7 @@ asm: context [
 		r		[integer!]
 		x		[integer!]
 	][
-		emit-b MOD_REG or (x and 7 << 3) or (r and 7)
+		emit-b MOD_REG or (x and 7 << 3) or (r - 1 and 7)
 	]
 
 	emit-b-r: func [
@@ -165,7 +166,7 @@ asm: context [
 			disp	[integer!]
 			sib		[integer!]
 	][
-		modrm: op or reg
+		modrm: op or (reg - 1)
 		disp: m/disp
 		case [
 			reg = x86-regs/esp [
@@ -233,9 +234,9 @@ asm: context [
 			]
 		]
 
-		modrm: x or x86-regs/esp
+		modrm: x or (x86-regs/esp - 1)
 
-		sib: index << 3
+		sib: index - 1 << 3
 		sib: sib or case [
 			scale = 2 [40h]
 			scale = 4 [80h]
@@ -244,7 +245,7 @@ asm: context [
 		]
 
 		either base <> 0 [
-			sib: sib or base
+			sib: sib or (base - 1)
 			modrm: modrm or case [
 				any [disp < -128 disp > 127][MOD_DISP32]
 				disp <> 0 [MOD_DISP8]
@@ -252,7 +253,7 @@ asm: context [
 				true [0]
 			]
 		][
-			sib: sib or x86-regs/ebp
+			sib: sib or (x86-regs/ebp - 1)
 		]
 
 		case [
@@ -280,7 +281,7 @@ asm: context [
 		r		[integer!]
 		m		[x86-addr!]
 	][
-		emit-b-m-x op m r
+		emit-b-m-x op m r - 1
 	]
 
 	emit-b-m-r: func [
@@ -288,7 +289,7 @@ asm: context [
 		m		[x86-addr!]
 		r		[integer!]
 	][
-		emit-b-m-x op m r
+		emit-b-m-x op m r - 1
 	]
 
 	emit-b-r-r: func [
