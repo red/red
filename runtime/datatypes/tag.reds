@@ -54,6 +54,21 @@ tag: context [
 		form tag buffer arg part
 	]
 
+	load-in: func [
+		src		 [c-string!]							;-- source string buffer
+		size	 [integer!]
+		blk		 [red-block!]
+		encoding [integer!]
+		return:  [red-tag!]
+		/local
+			t	 [cell!]
+	][
+		t: ALLOC_TAIL(blk)
+		string/load-at src size t encoding
+		set-type t TYPE_TAG
+		as red-tag! t
+	]
+
 	init: does [
 		datatype/register [
 			TYPE_TAG

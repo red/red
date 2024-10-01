@@ -234,7 +234,7 @@ system-dialect: context [
 			]
 		]
 		job/code-buf: #{}
-		job/data-buf: #{00000000}
+		job/data-buf: #{}
 		job/imports: make block! 10
 		job/symbols: make block! 10
 		job
@@ -355,6 +355,7 @@ system-dialect: context [
 			set-verbose-level 0
 		]
 probe job/imports
+probe job/symbols
 		if opts/link? [
 			link-time: dt [
 				job/sections: compose/deep/only [

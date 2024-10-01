@@ -91,6 +91,7 @@
 	red/set-word/push
 	red/string/push
 	red/tag/push
+	red/tag/load-in
 	red/time/push
 	red/tuple/push
 	red/typeset/push
@@ -424,6 +425,7 @@
 	red/report
 	red/_context/set
 	red/string/load-at
+	red/string/load-in
 	red/_hashtable/rs-init
 	red/_hashtable/rs-put
 	red/_hashtable/rs-delete

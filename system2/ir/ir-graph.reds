@@ -417,6 +417,7 @@ ir-graph: context [
 		either LOCAL_VAR?(decl) [
 			get-cur-val decl/ssa ctx/cur-vals
 		][
+			record-global decl
 			op: make-op OP_GET_GLOBAL 0 null decl/type
 			op/target: as int-ptr! decl
 			add-op op null ctx
@@ -1508,6 +1509,7 @@ ir-graph: context [
 		either LOCAL_VAR?(var) [
 			set-cur-val var/ssa val ctx
 		][
+			record-global var
 			arr: as ptr-ptr! malloc size? int-ptr!
 			arr/value: as int-ptr! var/type
 			op: make-op OP_SET_GLOBAL 1 arr type-system/void-type

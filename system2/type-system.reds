@@ -72,6 +72,7 @@ logic-type!: alias struct! [
 ]
 
 #define PTR_VALUE_SIZE(ptr) [ptr/header >>> 8]
+#define SET_PTR_VSIZE(ptr sz) [ptr/header: sz << 8 or (ptr/header and FFh)]
 
 ;-- /header bits: 8 - 31 size in bytes
 ptr-type!: alias struct! [
@@ -111,6 +112,18 @@ make-null-type: func [
 	type: xmalloc(rst-type!)
 	SET_TYPE_KIND(type RST_TYPE_NULL)
 	type
+]
+
+make-ptr-type: func [
+	vtype	[rst-type!]		;-- value type this pointer point to
+	return: [ptr-type!]
+	/local
+		t	[ptr-type!]
+][
+	t: xmalloc(ptr-type!)
+	t/header: RST_TYPE_PTR
+	t/type: vtype
+	t
 ]
 
 make-int-type: func [
@@ -168,6 +181,37 @@ make-logic-type: func [
 
 #define INT_TYPE?(type)		[(type/header and FFh) = RST_TYPE_INT]
 #define FLOAT_TYPE?(type)	[(type/header and FFh) = RST_TYPE_FLOAT]
+
+int-signed?: func [
+	t		[rst-type!]
+	return: [logic!]
+][
+	all [INT_TYPE?(t) INT_SIGNED?(t)]
+]
+
+type-size?: func [
+	t		[rst-type!]
+	return: [integer!]		;-- size in byte
+	/local
+		w	[integer!]
+][
+	switch TYPE_KIND(t) [
+		RST_TYPE_INT [
+			w: INT_WIDTH(t)
+			w >> 3
+		]
+		RST_TYPE_FLOAT [
+			either FLOAT_64?(t) [8][4]
+		]
+		RST_TYPE_BYTE [1]
+		RST_TYPE_LOGIC [1]
+		RST_TYPE_VOID [0]
+		RST_TYPE_NULL
+		RST_TYPE_PTR
+		RST_TYPE_STRUCT [target/addr-size]
+		default [0]	
+	]
+]
 
 type-name: func [
 	t		[rst-type!]
@@ -385,12 +429,5 @@ type-system: context [
 		if x/header = y/header [return conv_same]
 
 		conv_illegal
-	]
-
-	type-size?: func [
-		t		[rst-type!]
-		return: [integer!]		;-- size in byte
-	][
-		4
 	]
 ]

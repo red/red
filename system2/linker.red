@@ -125,7 +125,7 @@ linker: context [
 						]
 					]
 					ptr: form-struct pointer
-					parse spec/3 [any [ref: integer! (change at cbuf ref/1 ptr) | skip]]
+					parse spec/3 [any [ref: integer! (change skip cbuf ref/1 ptr) | skip]]
 				]
 			]
 			if block? spec/4 [
@@ -135,7 +135,7 @@ linker: context [
 					either job/PIC? [spec/2 - 1][code-ptr + spec/2 - 1]	;-- data to code references
 				]
 				ptr: form-struct pointer
-				foreach ref spec/4 [change at dbuf ref ptr]
+				foreach ref spec/4 [change skip dbuf ref ptr]
 			]
 		]
 	]

@@ -826,7 +826,7 @@ context [
 		oh/data-dir-nb:			16
 		;-- data directory
 		oh/import-addr:			named-sect-addr? job 'import
-		oh/import-size:			length? job/sections/import/2
+		oh/import-size:			10 * (2 + length? job/sections/import/3)
 		oh/IAT-addr:			named-sect-addr? job 'idata
 		oh/IAT-size:			length? job/sections/idata/2
 		

@@ -506,6 +506,13 @@ x86-cc: context [	;-- red/system internal call-conv!
 
 x86: context [
 
+	rrsd!: alias struct! [
+		base	[instr!]
+		index	[instr!]
+		scale	[integer!]
+		disp	[cell!]
+	]
+
 	#include %assembler.reds
 
 	int-op-width?: func [
@@ -731,15 +738,70 @@ x86: context [
 		emit-instr cg I_JC or M_FLAG_FIXED or (cond/index << COND_SHIFT)
 	]
 
+	match-rrsd: func [
+		i		[instr!]
+		addr	[rrsd!]
+		/local
+			c	[instr-const!]
+	][
+		if INSTR_CONST?(i) [
+			c: as instr-const! i
+			addr/base: null
+			addr/index: null
+			addr/scale: 1
+			addr/disp: c/value
+			exit
+		]
+	]
+
+	do-rrsd: func [
+		cg		[codegen!]
+		addr	[rrsd!]
+	][
+		either null? addr/base [use-imm-int cg 0][
+			use-reg cg addr/base
+		]
+		either null? addr/index [use-imm-int cg 0][
+			use-reg cg addr/index
+		]
+		use-imm-int cg addr/scale
+		use-imm cg addr/disp
+	]
+
 	emit-ptr-load: func [
 		cg		[codegen!]
 		i		[instr!]
 		/local
 			o	[instr-op!]
-			
+			vt	[rst-type!]
+			sz	[integer!]
+			op	[integer!]
+			addr [rrsd! value]
 	][
 		o: as instr-op! i
-		o/ret-type
+		vt: o/ret-type
+		sz: type-size? vt
+		match-rrsd input0 i :addr
+		either zero? sz [
+			0
+		][
+			switch sz [
+				1 [
+					op: either int-signed? vt [I_MOVBSX][I_MOVBZX]
+					op: AM_REG_RRSD or op
+				]
+				2 [
+					op: either int-signed? vt [I_MOVWSX][I_MOVWZX]
+					op: AM_REG_RRSD or op
+				]
+				4 [op: either INT_TYPE?(vt) [AM_REG_RRSD or I_MOVD][AM_XMM_RRSD or I_MOVSS]]
+				8 [op: either INT_TYPE?(vt) [AM_REG_RRSD or I_MOVQ][AM_XMM_RRSD or I_MOVSD]]
+				default [probe "invalid size for ptr load"]
+			]
+			def-reg cg i
+			do-rrsd cg :addr
+			emit-instr cg op
+		]
 	]
 
 	emit-ptr-store: func [
@@ -1249,6 +1311,43 @@ x86: context [
 		addr/disp: offset
 	]
 
+	rrsd-to-addr: func [
+		p		[ptr-ptr!]
+		addr	[x86-addr!]
+		/local
+			base	[integer!]
+			index	[integer!]
+			scale	[integer!]
+			disp	[integer!]
+			b		[operand!]
+			i		[operand!]
+			imm		[immediate!]
+			val		[cell!]
+			v		[val!]
+	][
+		b: as operand! p/value
+		base: either OPERAND_USE?(b) [to-loc b][0]
+		p: p + 1
+		i: as operand! p/value
+		index: either OPERAND_USE?(i) [to-loc i][0]
+		p: p + 1
+		scale: to-imm as operand! p/value
+		p: p + 1
+		imm: as immediate! p/value
+		val: imm/value
+		switch TYPE_OF(val) [
+			TYPE_ADDR [
+				disp: ABS_ADDR
+			]
+			default [disp: 0]
+		]
+		addr/base: base
+		addr/index: index
+		addr/scale: scale
+		addr/disp: disp
+		addr/ref: as val! val
+	]
+
 	call-fn: func [v [cell!] /local fval [red-function!] f [fn!]][
 		assert v/header = TYPE_FUNCTION
 
@@ -1410,7 +1509,12 @@ x86: context [
 			]
 			_AM_RRSD_REG
 			_AM_RRSD_IMM
-			_AM_REG_RRSD
+			_AM_REG_RRSD [
+				reg: to-loc as operand! p/value
+				reg: reg - 1
+				rrsd-to-addr p + 1 :addr
+				assemble-r-m op reg :addr
+			]
 			_AM_OP [
 				0
 			]
@@ -1453,6 +1557,6 @@ x86: context [
 		ref		[integer!]
 		dst		[integer!]
 	][
-		change-at-32 ref dst - ref - target/addr-size
+		change-at-32 program/code-buf/data ref dst - ref - target/addr-size
 	]
 ]

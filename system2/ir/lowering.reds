@@ -232,6 +232,131 @@ lowering: context [
 		refresh-inputs i env	
 	]
 
+	make-ptr-const: func [
+		type	[ptr-type!]
+		val		[var-decl!]
+		return: [instr-const!]
+		/local
+			c	[instr-const!]
+			v	[val!]
+	][
+		c: xmalloc(instr-const!)
+		c/header: F_NOT_VOID << 8 or INS_CONST
+		c/type: as rst-type! type
+		v: xmalloc(val!)
+		v/header: TYPE_ADDR
+		v/ptr: as int-ptr! val
+		c/value: as cell! v
+		c
+	]
+
+	ptr-load: func [
+		vtype	[rst-type!]
+		base	[instr!]
+		offset	[integer!]
+		ctx		[ssa-ctx!]
+		return: [instr!]
+		/local
+			op	[instr-op!]
+			args [array-value!]
+	][
+		op: ir-graph/make-op OP_PTR_LOAD 0 null vtype
+		INIT_ARRAY_VALUE(args base)
+		ir-graph/add-op op as ptr-array! :args ctx
+	]
+
+	ptr-store: func [
+		vtype	[rst-type!]		;-- value type
+		base	[instr!]
+		offset	[integer!]
+		val		[instr!]
+		ctx		[ssa-ctx!]
+		return: [instr!]
+		/local
+			op	[instr-op!]
+			args [array-2! value]
+	][
+		op: ir-graph/make-op OP_PTR_STORE 0 null vtype
+		INIT_ARRAY_2(args base val)
+		ir-graph/add-op op as ptr-array! :args ctx
+	]
+
+	gen-loads: func [
+		vtype	[rst-type!]		;-- value type
+		base	[instr!]
+		offset	[integer!]
+		ctx		[ssa-ctx!]
+		return: [ptr-array!]
+		/local
+			arr [ptr-array!]
+			i	[instr!]
+			p	[ptr-ptr!]
+	][
+		;-- TBD handle 64bit integer! on 32bit target, which will generate 2 loads
+		i: ptr-load vtype base offset ctx
+		arr: ptr-array/make 1
+		p: ARRAY_DATA(arr)
+		p/value: as int-ptr! i
+		arr
+	]
+
+	gen-stores: func [
+		vtype	[rst-type!]		;-- value type
+		base	[instr!]
+		offset	[integer!]
+		inputs	[ptr-array!]
+		ctx		[ssa-ctx!]
+		/local
+			pp	[ptr-ptr!]
+	][
+		;-- TBD handle 64bit integer! on 32bit target, which will generate 2 loads
+		pp: ARRAY_DATA(inputs)
+		ptr-store vtype base offset as instr! pp/value ctx
+	]
+
+	gen-get-global: func [
+		i		[instr!]
+		env		[lowering-env!]
+		/local
+			o	[instr-op!]
+			var	[var-decl!]
+			vt	[rst-type!]
+			ty	[ptr-type!]
+			ptr [instr-const!]
+			new [ptr-array!]
+	][
+		o: as instr-op! i
+		var: as var-decl! o/target
+		vt: var/type
+		ty: make-ptr-type vt
+		ptr: make-ptr-const ty var
+		new: gen-loads vt as instr! ptr 0 env/cur-ctx
+		map-n i new env
+	]
+
+	gen-set-global: func [
+		i		[instr!]
+		env		[lowering-env!]
+		/local
+			inputs [ptr-array!]
+			o	[instr-op!]
+			var	[var-decl!]
+			vt	[rst-type!]
+			ty	[ptr-type!]
+			ptr [instr-const!]
+			new [ptr-array!]
+	][
+		inputs: refresh-dests i/inputs env
+		o: as instr-op! i
+		var: as var-decl! o/target
+		vt: var/type
+		ty: make-ptr-type vt
+		ptr: make-ptr-const ty var
+		gen-stores vt as instr! ptr 0 inputs env/cur-ctx
+		kill-instr i
+		remove-instr i
+	]
+
 	gen-op: func [
 		i		[instr!]
 		env		[lowering-env!]
@@ -274,8 +399,8 @@ lowering: context [
 			OP_FLT_LTEQ			[0]
 			OP_DEFAULT_VALUE	[0]
 			OP_CALL_FUNC		[gen-call i env]
-			OP_GET_GLOBAL		[0]
-			OP_SET_GLOBAL		[0]
+			OP_GET_GLOBAL		[gen-get-global i env]
+			OP_SET_GLOBAL		[gen-set-global i env]
 			default [
 				probe ["Internal Error: Unknown Opcode: " INSTR_OPCODE(i)]
 			]

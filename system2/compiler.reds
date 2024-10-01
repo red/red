@@ -8,11 +8,23 @@ Red/System [
 
 compiler: context [
 
+	#include %utils/vector.reds
+	#include %utils/mempool.reds
+	#include %utils/hashmap.reds
+	#include %utils/array.reds
+	#include %utils/bit-table.reds
+
 	verbose: 3
 
 	;-- used in red cell!
-	#define TYPE_INT64	100
-	#define TYPE_ADDR	101
+	#define TYPE_INT64		100
+	#define TYPE_ADDR		101
+
+	val!: alias struct! [
+		header	[integer!]
+		value	[integer!]
+		ptr		[int-ptr!]
+	]
 
 	#define enter-block(blk) [
 		saved-blk: cur-blk
@@ -123,17 +135,155 @@ compiler: context [
 		]
 	]
 
-	#include %utils/vector.reds
-	#include %utils/mempool.reds
-	#include %utils/hashmap.reds
-	#include %utils/array.reds
-	#include %utils/bit-table.reds
+	#define acquire-buf(n) [
+		p: vector/acquire buf n
+	]
+
+	put-b: func [buf [vector!] b [integer!] /local p [byte-ptr!]][
+		acquire-buf(1)
+		p/value: as byte! b
+	]
+
+	put-bb: func [buf [vector!] b1 [integer!] b2 [integer!] /local p [byte-ptr!]][
+		acquire-buf(2)
+		p/1: as byte! b1
+		p/2: as byte! b2
+	]
+
+	put-bbb: func [buf [vector!] b1 [integer!] b2 [integer!] b3 [integer!] /local p [byte-ptr!]][
+		acquire-buf(3)
+		p/1: as byte! b1
+		p/2: as byte! b2
+		p/3: as byte! b3
+	]
+
+	put-16: func [buf [vector!] d [integer!] /local p [byte-ptr!]][
+		acquire-buf(2)
+		p/1: as byte! d
+		p/2: as byte! d >> 8
+	]
+
+	;-- 32-bit little-endian integer!
+	put-32: func [buf [vector!] d [integer!] /local p [byte-ptr!] pp [int-ptr!]][
+		acquire-buf(4)
+		pp: as int-ptr! p
+		pp/value: d
+	]
+
+	;-- 32-bit big-endian integer!
+	put-32be: func [buf [vector!] d [integer!] /local p [byte-ptr!]][
+		acquire-buf(4)
+		p/1: as byte! d >> 24
+		p/2: as byte! d >> 16
+		p/3: as byte! d >> 8
+		p/4: as byte! d
+	]
+
+	change-at-32: func [
+		p		[byte-ptr!]
+		pos		[integer!]
+		d		[integer!]
+		/local
+			buf	[int-ptr!]
+	][
+		buf: as int-ptr! p + pos
+		buf/value: d
+	]
+
 	#include %opcode.reds
 	#include %type-system.reds
 	#include %rst/parser.reds
 	#include %rst/rst-printer.reds
 	#include %rst/op-cache.reds
 	#include %rst/type-checker.reds
+
+	data-section: context [
+		buf: as vector! 0
+		relocs: as int-ptr! 0
+
+		acquire: func [
+			size	[integer!]
+		][
+			vector/acquire buf size
+		]
+
+		pos: func [return: [integer!]][buf/length]
+
+		emit-b: func [b [integer!]][
+			put-b buf b
+		]
+
+		emit-d: func [d [integer!]][put-32 buf d]
+
+		store-literal: func [
+			val		[rst-expr!]
+			return: [logic!]
+			/local
+				ty	[integer!]
+				b	[logic-literal!]
+				int [int-literal!]
+		][
+			ty: NODE_TYPE(val)
+			if ty > RST_LIT_ARRAY [return false]
+
+			switch ty [
+				RST_LOGIC	[
+					b: as logic-literal! val
+					emit-b as integer! b/value
+				]
+				RST_INT		[
+					int: as int-literal! val
+					emit-d int/value
+				]
+				RST_BYTE
+				RST_FLOAT
+				RST_NULL
+				RST_C_STR
+				RST_BINARY
+				RST_LIT_ARRAY [0]
+				default [0]
+			]
+			true
+		]
+	]
+
+	record-global: func [
+		var		[var-decl!]
+		/local
+			sz	[integer!]
+			idx [integer!]
+	][
+		if var/data-idx >= 0 [exit]
+
+		sz: type-size? var/type
+		idx: data-section/pos
+		var/data-idx: idx
+		unless data-section/store-literal var/init [
+			data-section/acquire sz
+		]
+	]
+
+	record-reloc-pos: func [
+		pos		[integer!]
+		ref		[val!]
+		/local
+			var [var-decl!]
+			map [int-ptr!]
+			p	[ptr-ptr!]
+			vec [vector!]
+	][
+		map: data-section/relocs
+		var: as var-decl! ref/ptr
+		p: hashmap/get map var/data-idx
+		either p <> null [
+			vec: as vector! p/value
+		][
+			vec: vector/make size? integer! 2
+			hashmap/put map var/data-idx as int-ptr! vec
+		]
+		vector/append-int vec pos
+	]
+
 	#include %ir/ir-graph.reds
 	#include %ir/optimizer.reds
 	#include %ir/lowering.reds
@@ -386,8 +536,11 @@ compiler: context [
 			funcs	[vector!]
 			refs	[vector!]
 			ref		[int-ptr!]
+			pint	[int-ptr!]
+			map		[int-ptr!]
 			pos		[integer!]
 			code	[red-binary!]
+			data	[red-binary!]
 			symbols [red-block!]
 			imports [red-block!]
 			len		[integer!]
@@ -396,15 +549,20 @@ compiler: context [
 			s-tail	[cell!]
 			vv tt	[cell!]
 			_job	[cell! value]
-			blk		[red-block!]
 			h		[red-handle!]
 			mdata	[node!]
+			w-global [cell!]
+			w-dash	 [cell!]
+			blk blk2 [red-block!]
 	][
 		job: as red-object! copy-cell as cell! job _job		;-- job slot will be overwrite by lexer
 		script: object/rs-select job as cell! word/load "script"
 		code: as red-binary! object/rs-select job as cell! word/load "code-buf"
+		data: as red-binary! object/rs-select job as cell! word/load "data-buf"
 		symbols: as red-block! object/rs-select job as cell! word/load "symbols"
 		imports: as red-block! object/rs-select job as cell! word/load "imports"
+		w-global: as cell! word/load "global"
+		w-dash: as cell! word/load "-"
 
 		ir-module: as ir-module! malloc size? ir-module!
 		ir-module/functions: vector/make size? int-ptr! 100
@@ -414,6 +572,8 @@ compiler: context [
 		program/imports:  token-map/make 50
 		program/code-buf: vector/make 1 4096
 		program/data-buf: vector/make 1 4096
+		data-section/buf: program/data-buf
+		data-section/relocs: hashmap/make 200
 
 		init-target job
 
@@ -437,7 +597,7 @@ compiler: context [
 			backend/patch-labels
 			p: p + 1
 		]
-		dump-hex program/code-buf/data
+		;dump-hex program/code-buf/data
 
 		p: as ptr-ptr! funcs/data
 		loop funcs/length [				;-- reloc native calls
@@ -454,19 +614,26 @@ compiler: context [
 			]
 			p: p + 1
 		]
-		;p: as ptr-ptr! funcs/data
-		;loop funcs/length [
-		;	cg: as codegen! p/value
-		;	fn: cg/fn/fn
-		;	if 0 < red/block/rs-length? fn/body [
-		;		red/block/rs-append symbols fn/token
-		;		blk: red/block/make-in symbols 3
-		;		red/block/rs-append blk as cell! w-nref
-		;		red/integer/make-in blk cg/mark
-		;		red/block/rs-append blk as cell! fn/body
-		;	]
-		;	p: p + 1
-		;]
+
+		;-- reloc symbols
+		map: data-section/relocs
+		len: hashmap/size? map
+		ref: null
+		loop len [
+			ref: hashmap/next map ref
+			red/tag/load-in "data" 6 symbols UTF-8
+			blk: red/block/make-in symbols 4
+			red/block/rs-append blk w-global
+			red/integer/make-in blk ref/1
+			refs: as vector! ref/2
+			blk2: red/block/make-in blk refs/length
+			pint: as int-ptr! refs/data
+			loop refs/length [
+				red/integer/make-in blk2 pint/value
+			]
+			red/block/rs-append blk w-dash
+			p: p + 1
+		]
 
 		;-- populate job/imports
 		mdata: token-map/get-data program/imports
@@ -492,11 +659,18 @@ compiler: context [
 			val: val + 2
 		]
 
+		;-- make code-buf
 		len: program/code-buf/length
 		red/binary/make-at as cell! code len
-		
 		s: GET_BUFFER(code)
 		copy-memory as byte-ptr! s/offset program/code-buf/data len
+		s/tail: as cell! (as byte-ptr! s/tail) + len
+
+		;-- make data-buf
+		len: program/data-buf/length
+		red/binary/make-at as cell! data len
+		s: GET_BUFFER(data)
+		copy-memory as byte-ptr! s/offset program/data-buf/data len
 		s/tail: as cell! (as byte-ptr! s/tail) + len
 	]
 

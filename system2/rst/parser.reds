@@ -78,13 +78,13 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	RST_INT
 	RST_BYTE
 	RST_FLOAT
-	RST_PTR
 	RST_NULL
 	RST_C_STR
-	RST_BYTE_PTR
-	RST_INT_PTR
 	RST_BINARY
 	RST_LIT_ARRAY		;-- literal array
+	RST_PTR
+	RST_BYTE_PTR
+	RST_INT_PTR
 	RST_BIN_OP
 	RST_DECLARE
 	RST_NOT
@@ -810,7 +810,7 @@ parser: context [
 		;pc end expr ctx
 		KEYWORD_FN_SPEC
 		/local
-			w		[red-word!]
+			w [red-word!]
 	][
 		w: as red-word! pc
 		pc: advance-next pc end		;-- skip keyword: if/either
