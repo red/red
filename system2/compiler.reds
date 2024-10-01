@@ -525,80 +525,16 @@ compiler: context [
 		comp-functions ctx/next
 	]
 
-	comp-dialect: func [
-		src			[red-block!]
-		job			[red-object!]
+	reloc-fn-calls: func [
+		funcs		[vector!]
 		/local
-			ctx 	[context!]
-			fn		[fn!]
-			cg		[codegen!]
 			p		[ptr-ptr!]
-			funcs	[vector!]
+			cg		[codegen!]
+			pos		[integer!]
+			fn		[fn!]
 			refs	[vector!]
 			ref		[int-ptr!]
-			pint	[int-ptr!]
-			map		[int-ptr!]
-			pos		[integer!]
-			code	[red-binary!]
-			data	[red-binary!]
-			symbols [red-block!]
-			imports [red-block!]
-			len		[integer!]
-			s		[series!]
-			val		[cell!]
-			s-tail	[cell!]
-			vv tt	[cell!]
-			_job	[cell! value]
-			h		[red-handle!]
-			mdata	[node!]
-			w-global [cell!]
-			w-dash	 [cell!]
-			blk blk2 [red-block!]
 	][
-		job: as red-object! copy-cell as cell! job _job		;-- job slot will be overwrite by lexer
-		script: object/rs-select job as cell! word/load "script"
-		code: as red-binary! object/rs-select job as cell! word/load "code-buf"
-		data: as red-binary! object/rs-select job as cell! word/load "data-buf"
-		symbols: as red-block! object/rs-select job as cell! word/load "symbols"
-		imports: as red-block! object/rs-select job as cell! word/load "imports"
-		w-global: as cell! word/load "global"
-		w-dash: as cell! word/load "-"
-
-		ir-module: as ir-module! malloc size? ir-module!
-		ir-module/functions: vector/make size? int-ptr! 100
-		program: xmalloc(mach-program!)
-		funcs: ptr-vector/make 100
-		program/functions: funcs
-		program/imports:  token-map/make 50
-		program/code-buf: vector/make 1 4096
-		program/data-buf: vector/make 1 4096
-		data-section/buf: program/data-buf
-		data-section/relocs: hashmap/make 200
-
-		init-target job
-
-		fn: xmalloc(fn!)
-		fn/body: src
-		fn/type: as rst-type! op-cache/void-op
-
-		stack/mark-try-all words/_anon
-		catch CATCH_ALL_EXCEPTIONS [
-			ctx: comp-fn fn null null
-			comp-functions ctx
-			stack/unwind
-		]
-		stack/adjust-post-try
-		if system/thrown <> 0 [system/thrown: 0]
-
-		p: as ptr-ptr! funcs/data
-		loop funcs/length [
-			cg: as codegen! p/value
-			backend/assemble-instrs cg
-			backend/patch-labels
-			p: p + 1
-		]
-		;dump-hex program/code-buf/data
-
 		p: as ptr-ptr! funcs/data
 		loop funcs/length [				;-- reloc native calls
 			cg: as codegen! p/value
@@ -614,12 +550,26 @@ compiler: context [
 			]
 			p: p + 1
 		]
+	]
 
-		;-- reloc symbols
+	fill-job-symbols: func [
+		symbols		[red-block!]
+		/local
+			map		[int-ptr!]
+			n		[integer!]
+			refs	[vector!]
+			ref		[int-ptr!]
+			pint	[int-ptr!]
+			w-global [cell!]
+			w-dash	 [cell!]
+			blk blk2 [red-block!]
+	][
+		w-global: as cell! word/load "global"
+		w-dash: as cell! word/load "-"
 		map: data-section/relocs
-		len: hashmap/size? map
+		n: hashmap/size? map
 		ref: null
-		loop len [
+		loop n [
 			ref: hashmap/next map ref
 			red/tag/load-in "data" 6 symbols UTF-8
 			blk: red/block/make-in symbols 4
@@ -632,10 +582,21 @@ compiler: context [
 				red/integer/make-in blk2 pint/value
 			]
 			red/block/rs-append blk w-dash
-			p: p + 1
 		]
+	]
 
-		;-- populate job/imports
+	fill-job-imports: func [
+		imports		[red-block!]
+		/local
+			mdata	[node!]
+			s		[series!]
+			val		[cell!]
+			s-tail	[cell!]
+			vv tt	[cell!]
+			blk		[red-block!]
+			refs	[vector!]
+			h		[red-handle!]
+	][
 		mdata: token-map/get-data program/imports
 		s: as series! mdata/value
 		val: s/offset
@@ -658,20 +619,103 @@ compiler: context [
 			]
 			val: val + 2
 		]
+	]
 
-		;-- make code-buf
+	fill-job-code: func [
+		code		[red-binary!]
+		/local
+			len		[integer!]
+			s		[series!]
+	][
 		len: program/code-buf/length
 		red/binary/make-at as cell! code len
 		s: GET_BUFFER(code)
 		copy-memory as byte-ptr! s/offset program/code-buf/data len
 		s/tail: as cell! (as byte-ptr! s/tail) + len
+	]
 
-		;-- make data-buf
+	fill-job-data: func [
+		data		[red-binary!]
+		/local
+			len		[integer!]
+			s		[series!]
+	][
 		len: program/data-buf/length
 		red/binary/make-at as cell! data len
 		s: GET_BUFFER(data)
 		copy-memory as byte-ptr! s/offset program/data-buf/data len
 		s/tail: as cell! (as byte-ptr! s/tail) + len
+	]
+
+	init-program: func [][
+		ir-module: as ir-module! malloc size? ir-module!
+		ir-module/functions: vector/make size? int-ptr! 100
+
+		program: xmalloc(mach-program!)
+		program/functions: ptr-vector/make 100
+		program/imports:  token-map/make 50
+		program/code-buf: vector/make 1 4096
+		program/data-buf: vector/make 1 4096
+
+		data-section/buf: program/data-buf
+		data-section/relocs: hashmap/make 200
+	]
+
+	comp-dialect: func [
+		src			[red-block!]
+		job			[red-object!]
+		/local
+			ctx 	[context!]
+			fn		[fn!]
+			cg		[codegen!]
+			p		[ptr-ptr!]
+			funcs	[vector!]
+			code	[red-binary!]
+			data	[red-binary!]
+			symbols [red-block!]
+			imports [red-block!]
+			_job	[cell! value]
+	][
+		job: as red-object! copy-cell as cell! job _job		;-- job slot will be overwrite by lexer
+		script: object/rs-select job as cell! word/load "script"
+		code: as red-binary! object/rs-select job as cell! word/load "code-buf"
+		data: as red-binary! object/rs-select job as cell! word/load "data-buf"
+		symbols: as red-block! object/rs-select job as cell! word/load "symbols"
+		imports: as red-block! object/rs-select job as cell! word/load "imports"
+
+		init-program
+		init-target job
+
+		fn: xmalloc(fn!)
+		fn/body: src
+		fn/type: as rst-type! op-cache/void-op
+
+		;-- compiling
+		stack/mark-try-all words/_anon
+		catch CATCH_ALL_EXCEPTIONS [
+			ctx: comp-fn fn null null
+			comp-functions ctx
+			stack/unwind
+		]
+		stack/adjust-post-try
+		if system/thrown <> 0 [system/thrown: 0]
+
+		;-- code generating
+		funcs: program/functions
+		p: as ptr-ptr! funcs/data
+		loop funcs/length [
+			cg: as codegen! p/value
+			backend/assemble-instrs cg
+			backend/patch-labels
+			p: p + 1
+		]
+		;dump-hex program/code-buf/data
+
+		reloc-fn-calls funcs
+		fill-job-symbols symbols
+		fill-job-imports imports
+		fill-job-code code
+		fill-job-data data
 	]
 
 	init-target: func [job [red-object!]][
