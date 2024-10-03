@@ -265,6 +265,6 @@ ir-printer: context [
 			nl
 		]
 		print-blocks ir/start-bb
-		print-line "------"
+		print-line ""
 	]
 ]

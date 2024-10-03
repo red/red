@@ -109,7 +109,6 @@ linker: context [
 		/local 
 			data-offset ptr
 	][
-		probe "resolve-symbol-refs"
 		data-offset: either job/PIC? [data-ptr - code-ptr][data-ptr]
 		foreach [name spec] job/symbols [
 			unless empty? spec/3 [

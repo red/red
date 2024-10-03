@@ -1696,14 +1696,15 @@ backend: context [
 		frm: target/make-frame fn
 		r: rpo/build fn
 		cg: make-codegen fn r frm
-		probe "generate low-level IR"
-		gen-instrs cg
-		print-fn cg/first-i
 
-		probe "do register allocation"
+		dprint "=> Generating low-level IR"
+		gen-instrs cg
+		if verbose >= 3 [print-fn cg/first-i]
+
+		dprint "=> Do register allocation"
 		reg-allocator/alloc cg
-		probe "after register allocation"
-		print-fn cg/first-i
+		if verbose >= 3 [print-fn cg/first-i]
+
 		compute-frame-size frm
 		cg
 	]

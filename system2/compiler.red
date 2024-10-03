@@ -354,9 +354,11 @@ system-dialect: context [
 			compiler/finalize							;-- compile all functions
 			set-verbose-level 0
 		]
-probe job/imports
-probe job/symbols
-probe job/data-buf
+		if verbose > 3 [
+			probe job/imports
+			probe job/symbols
+			probe job/data-buf
+		]
 		if opts/link? [
 			link-time: dt [
 				job/sections: compose/deep/only [

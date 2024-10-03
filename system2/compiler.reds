@@ -16,6 +16,15 @@ compiler: context [
 
 	verbose: 3
 
+	dprint: func [
+		[typed]	count [integer!] list [typed-value!]
+	][
+		if verbose >= 3 [
+			_print count list no
+			prin-byte lf
+		]
+	]
+
 	;-- used in red cell!
 	#define TYPE_INT64		100
 	#define TYPE_ADDR		101
@@ -484,19 +493,21 @@ compiler: context [
 	][
 		src: fn/body
 		src-blk: src
-		probe "^/^/parse"
+		dprint "^/^/=> Parsing"
 		ctx: parser/parse-context fn/token src parent f-ctx
-		probe "check"
+
+		dprint "=> Type checking"
 		type-checker/check ctx
-		probe "print RST"
-		rst-printer/print-program ctx
-		probe "generate SSA"
+		if verbose >= 3 [rst-printer/print-program ctx]
+
+		dprint "=> Generating SSA"
 		ir: ir-graph/generate fn ctx
-		;vector/append-ptr ir-module/functions as byte-ptr! ir
-		probe "Lowering SSA"
+		if verbose >= 3 [ir-printer/print-graph ir]
+
+		dprint "=> Lowering SSA"
 		lowering/do-fn ir
-		ir-printer/print-graph ir
-		probe "SSA to machine code"
+		if verbose >= 3 [ir-printer/print-graph ir]
+
 		cg: backend/generate ir
 		vector/append-ptr program/functions as byte-ptr! cg
 		ctx

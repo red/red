@@ -1591,7 +1591,6 @@ ir-graph: context [
 			stmt/accept as int-ptr! stmt builder as int-ptr! :ssa-ctx
 		]
 
-		ir-printer/print-graph graph
 		fn/body: null
 		graph
 	]

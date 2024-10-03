@@ -1154,7 +1154,6 @@ context [
 	]
 
 	build: func [job [object!] /local page out pad code-ptr][
-		probe "build PE"
 		clear imports-refs
 		
 		if find [dll drv] job/type [
