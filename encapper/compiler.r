@@ -2268,7 +2268,9 @@ red: context [
 				catch RED_THROWN_ERROR
 			]
 			insert-lf -2
+			push-call call
 			body: comp-sub-block 'try
+			pop-call call
 			if body/1 = 'stack/reset [remove body]
 			mark: tail output
 			insert body mark
@@ -3009,7 +3011,7 @@ red: context [
 	comp-return: does [
 		check-invalid-exit 'return
 		comp-expression
-		emit-exit-function
+		unless find expr-stack 'try-all [emit-exit-function]
 	]
 	
 	comp-self: func [original [any-word!] /local obj ctx][

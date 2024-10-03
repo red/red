@@ -3677,6 +3677,10 @@ comment {
 		v5509a: make vector! [integer! 32 [3 8 4 6]]
 		v5509b: make vector! [integer! 32 [4 0 1 -9]]
 		--assert v5509a + v5509b == make vector! [integer! 16 [7 8 5 -3]]
+		
+	--test-- "#5535"
+		f5535: does [try/all [return 1] 2]
+		--assert f5535 = 2
 	
 ===end-group===
 
