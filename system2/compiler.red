@@ -356,6 +356,7 @@ system-dialect: context [
 		]
 probe job/imports
 probe job/symbols
+probe job/data-buf
 		if opts/link? [
 			link-time: dt [
 				job/sections: compose/deep/only [

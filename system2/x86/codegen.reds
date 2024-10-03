@@ -620,7 +620,6 @@ x86: context [
 			p	[ptr-ptr!]
 			e	[df-edge!]
 			n	[integer!]
-			s	[integer!]
 			fn	[fn!]
 			ft	[fn-type!]
 	][
@@ -637,21 +636,12 @@ x86: context [
 		live-point cg cc
 
 		n: 0
-		s: 1
 		p: ARRAY_DATA(i/inputs)
-
-		ft: as fn-type! fn/type
-		if FN_ATTRS(ft) <> FN_CC_INTERNAL [		;-- right-to-left order 
-			s: -1
-			n: i/inputs/length - 1
-			p: p + n
-		]
-		
 		loop i/inputs/length [
 			e: as df-edge! p/value
 			use-reg-fixed cg e/dst callee-param cc n
-			n: n + s
-			p: p + s
+			n: n + 1
+			p: p + 1
 		]
 		emit-instr cg I_CALL
 	]
@@ -743,6 +733,8 @@ x86: context [
 		addr	[rrsd!]
 		/local
 			c	[instr-const!]
+			v	[val!]
+			var [var-decl!]
 	][
 		if INSTR_CONST?(i) [
 			c: as instr-const! i
@@ -794,8 +786,8 @@ x86: context [
 					op: either int-signed? vt [I_MOVWSX][I_MOVWZX]
 					op: AM_REG_RRSD or op
 				]
-				4 [op: either INT_TYPE?(vt) [AM_REG_RRSD or I_MOVD][AM_XMM_RRSD or I_MOVSS]]
-				8 [op: either INT_TYPE?(vt) [AM_REG_RRSD or I_MOVQ][AM_XMM_RRSD or I_MOVSD]]
+				4 [op: either FLOAT_TYPE?(vt) [AM_XMM_RRSD or I_MOVSS][AM_REG_RRSD or I_MOVD]]
+				8 [op: either FLOAT_TYPE?(vt) [AM_XMM_RRSD or I_MOVSD][AM_REG_RRSD or I_MOVQ]]
 				default [probe "invalid size for ptr load"]
 			]
 			def-reg cg i
@@ -807,8 +799,43 @@ x86: context [
 	emit-ptr-store: func [
 		cg		[codegen!]
 		i		[instr!]
+		/local
+			o	[instr-op!]
+			vt	[rst-type!]
+			sz	[integer!]
+			op	[integer!]
+			val [instr!]
+			addr [rrsd! value]
 	][
-		
+		o: as instr-op! i
+		vt: o/ret-type
+		sz: type-size? vt
+		match-rrsd input0 i :addr
+		do-rrsd cg :addr
+
+		val: instr-input i 1
+		either try-use-imm32 cg val [
+			op: switch sz [
+				0 [I_TESTD]
+				1 [I_MOVB]
+				2 [I_MOVW]
+				4 [I_MOVD]
+				8 [I_MOVQ]
+				default [probe "invaild size for ptr store" I_NOP]
+			]
+			op: op or AM_RRSD_IMM
+		][
+			op: switch sz [
+				0 [I_TESTD or AM_RRSD_REG]
+				1 [I_MOVB or AM_RRSD_REG]
+				2 [I_MOVW or AM_RRSD_REG]
+				4 [either FLOAT_TYPE?(vt) [I_MOVSS or AM_RRSD_XMM][I_MOVD or AM_RRSD_REG]]
+				8 [either FLOAT_TYPE?(vt) [I_MOVSD or AM_RRSD_XMM][I_MOVQ or AM_RRSD_REG]]
+				default [probe "invalid size for ptr store" I_NOP]
+			]
+			use-reg cg val
+		]
+		emit-instr cg op
 	]
 
 	gen-goto: func [
@@ -1323,7 +1350,6 @@ x86: context [
 			i		[operand!]
 			imm		[immediate!]
 			val		[cell!]
-			v		[val!]
 	][
 		b: as operand! p/value
 		base: either OPERAND_USE?(b) [to-loc b][0]
@@ -1348,11 +1374,11 @@ x86: context [
 		addr/ref: as val! val
 	]
 
-	call-fn: func [v [cell!] /local fval [red-function!] f [fn!]][
+	call-fn: func [v [cell!] /local fval [val!] f [fn!]][
 		assert v/header = TYPE_FUNCTION
 
-		fval: as red-function! v
-		f: as fn! fval/spec
+		fval: as val! v
+		f: as fn! fval/ptr
 		either NODE_FLAGS(f) and RST_IMPORT_FN = 0 [
 			asm/call-rel REL_ADDR
 		][
@@ -1506,8 +1532,15 @@ x86: context [
 					assemble-r-m op reg :addr
 				]
 			]
-			_AM_RRSD_REG
-			_AM_RRSD_IMM
+			_AM_RRSD_REG [
+				rrsd-to-addr p :addr
+				p: p + 4
+				reg: to-loc as operand! p/value
+				assemble-m-r op :addr reg
+			]
+			_AM_RRSD_IMM [
+				0
+			]
 			_AM_REG_RRSD [
 				reg: to-loc as operand! p/value
 				rrsd-to-addr p + 1 :addr

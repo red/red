@@ -21,10 +21,20 @@ ir-printer: context [
 		print ["#" b]
 	]
 
-	prin-ins: func [i [instr!] /local c [instr-const!]][
+	prin-ins: func [i [instr!] /local c [instr-const!] v [cell!] val [val!] var [var-decl!]][
 		either INSTR_OPCODE(i) = INS_CONST [
 			c: as instr-const! i
-			prin-token c/value
+			v: c/value
+			switch TYPE_OF(v) [
+				TYPE_ADDR [
+					val: as val! v
+					var: as var-decl! val/ptr
+					prin-token var/token
+					print ["&" val/ptr]
+				]
+				TYPE_INT64 [prin "int64"]
+				default [prin-token v]
+			]
 		][
 			print ["@" i]
 		]
@@ -85,6 +95,12 @@ ir-printer: context [
 			OP_SET_GLOBAL		[
 				var: as var-decl! i/target
 				prin "set " prin-token var/token
+			]
+			OP_PTR_LOAD	[
+				prin "load"
+			]
+			OP_PTR_STORE [
+				print "store"
 			]
 			default [
 				prin "unknown op"

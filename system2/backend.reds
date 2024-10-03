@@ -1167,11 +1167,11 @@ backend: context [
 		cg		[codegen!]
 		p		[int-ptr!]
 		/local
-			f	[red-function!]
+			f	[val!]
 	][
-		f: xmalloc(red-function!)
+		f: xmalloc(val!)
 		f/header: TYPE_FUNCTION
-		f/spec: p
+		f/ptr: p
 		use-imm cg as cell! f
 	]
 
@@ -1696,9 +1696,11 @@ backend: context [
 		frm: target/make-frame fn
 		r: rpo/build fn
 		cg: make-codegen fn r frm
-		gen-instrs cg
 		probe "generate low-level IR"
+		gen-instrs cg
 		print-fn cg/first-i
+
+		probe "do register allocation"
 		reg-allocator/alloc cg
 		probe "after register allocation"
 		print-fn cg/first-i
@@ -1766,6 +1768,8 @@ backend: context [
 			l	[label!]
 			val [cell!]
 			t	[integer!]
+			v	[val!]
+			var [var-decl!]
 	][
 		switch a/header and FFh [
 			OD_USE		[
@@ -1794,8 +1798,21 @@ backend: context [
 				val: imm/value
 				if val <> null [
 					t: TYPE_OF(val)
-					if any [t = TYPE_INTEGER t = TYPE_FLOAT][
-						prin-token val
+					switch t [
+						TYPE_INTEGER
+						TYPE_FLOAT [prin-token val]
+						TYPE_ADDR [
+							v: as val! val
+							var: as var-decl! v/ptr
+							prin-token var/token
+						]
+						TYPE_FUNCTION [
+							v: as val! val
+							print v/ptr
+						]
+						default [
+							0
+						]
 					]
 				]
 			]

@@ -199,7 +199,8 @@ compiler: context [
 
 	data-section: context [
 		buf: as vector! 0
-		relocs: as int-ptr! 0
+		code-to-data: as int-ptr! 0		;-- hashmap
+		data-to-data: as int-ptr! 0		;-- hashmap
 
 		acquire: func [
 			size	[integer!]
@@ -222,6 +223,11 @@ compiler: context [
 				ty	[integer!]
 				b	[logic-literal!]
 				int [int-literal!]
+				arr [array-literal!]
+				v	[cell!]
+				len	[integer!]
+				idx [integer!]
+				p	[byte-ptr!]
 		][
 			ty: NODE_TYPE(val)
 			if ty > RST_LIT_ARRAY [return false]
@@ -239,8 +245,33 @@ compiler: context [
 				RST_FLOAT
 				RST_NULL
 				RST_C_STR
-				RST_BINARY
-				RST_LIT_ARRAY [0]
+				RST_BINARY [0]
+				RST_LIT_ARRAY [
+					emit-d 0
+					idx: pos
+					record-reloc-pos data-to-data idx - 4 idx
+					arr: as array-literal! val
+					v: arr/token
+					switch TYPE_OF(v) [
+						TYPE_STRING [
+							len: -1
+							p: as byte-ptr! unicode/to-utf8 as red-string! v :len
+							either len >= 0 [
+								len: len + 1	;-- include null-byte
+								arr/length: len
+								loop len [
+									emit-b as integer! p/value
+									p: p + 1
+								]
+							][
+								emit-b as integer! null-byte
+							]
+						]
+						TYPE_BLOCK [
+							0
+						]
+					]
+				]
 				default [0]
 			]
 			true
@@ -251,37 +282,42 @@ compiler: context [
 		var		[var-decl!]
 		/local
 			sz	[integer!]
-			idx [integer!]
 	][
 		if var/data-idx >= 0 [exit]
 
 		sz: type-size? var/type
-		idx: data-section/pos
-		var/data-idx: idx
+		var/data-idx: data-section/pos
 		unless data-section/store-literal var/init [
 			data-section/acquire sz
 		]
 	]
 
 	record-reloc-pos: func [
+		map		[int-ptr!]
 		pos		[integer!]
-		ref		[val!]
+		ref		[integer!]
 		/local
-			var [var-decl!]
-			map [int-ptr!]
 			p	[ptr-ptr!]
 			vec [vector!]
 	][
-		map: data-section/relocs
-		var: as var-decl! ref/ptr
-		p: hashmap/get map var/data-idx
+		p: hashmap/get map ref
 		either p <> null [
 			vec: as vector! p/value
 		][
 			vec: vector/make size? integer! 2
-			hashmap/put map var/data-idx as int-ptr! vec
+			hashmap/put map ref as int-ptr! vec
 		]
 		vector/append-int vec pos
+	]
+
+	record-abs-ref: func [
+		pos		[integer!]
+		ref		[val!]
+		/local
+			var [var-decl!]
+	][
+		var: as var-decl! ref/ptr
+		record-reloc-pos data-section/code-to-data pos var/data-idx
 	]
 
 	#include %ir/ir-graph.reds
@@ -459,6 +495,7 @@ compiler: context [
 		;vector/append-ptr ir-module/functions as byte-ptr! ir
 		probe "Lowering SSA"
 		lowering/do-fn ir
+		ir-printer/print-graph ir
 		probe "SSA to machine code"
 		cg: backend/generate ir
 		vector/append-ptr program/functions as byte-ptr! cg
@@ -566,12 +603,12 @@ compiler: context [
 	][
 		w-global: as cell! word/load "global"
 		w-dash: as cell! word/load "-"
-		map: data-section/relocs
+		map: data-section/code-to-data
 		n: hashmap/size? map
 		ref: null
 		loop n [
 			ref: hashmap/next map ref
-			red/tag/load-in "data" 6 symbols UTF-8
+			red/tag/load-in "data" 4 symbols UTF-8
 			blk: red/block/make-in symbols 4
 			red/block/rs-append blk w-global
 			red/integer/make-in blk ref/1
@@ -580,8 +617,28 @@ compiler: context [
 			pint: as int-ptr! refs/data
 			loop refs/length [
 				red/integer/make-in blk2 pint/value
+				pint: pint + 1
 			]
 			red/block/rs-append blk w-dash
+		]
+
+		map: data-section/data-to-data
+		n: hashmap/size? map
+		ref: null
+		loop n [
+			ref: hashmap/next map ref
+			red/tag/load-in "data" 4 symbols UTF-8
+			blk: red/block/make-in symbols 4
+			red/block/rs-append blk w-global
+			red/integer/make-in blk ref/1
+			red/block/make-in blk 1	;-- empty block
+			refs: as vector! ref/2
+			blk2: red/block/make-in blk refs/length
+			pint: as int-ptr! refs/data
+			loop refs/length [
+				red/integer/make-in blk2 pint/value
+				pint: pint + 1
+			]
 		]
 	]
 
@@ -658,7 +715,8 @@ compiler: context [
 		program/data-buf: vector/make 1 4096
 
 		data-section/buf: program/data-buf
-		data-section/relocs: hashmap/make 200
+		data-section/code-to-data: hashmap/make 200
+		data-section/data-to-data: hashmap/make 200
 	]
 
 	comp-dialect: func [

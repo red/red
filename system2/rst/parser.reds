@@ -333,6 +333,11 @@ float-literal!: alias struct! [
 	value		[float!]
 ]
 
+array-literal!: alias struct! [
+	RST_EXPR_FIELDS(float-literal!)
+	length		[integer!]
+]
+
 #define T_WORD?(v)  [TYPE_OF(v) = TYPE_WORD]
 #define T_BLOCK?(v) [TYPE_OF(v) = TYPE_BLOCK]
 
@@ -607,6 +612,23 @@ parser: context [
 		b/accept: :bin_accept
 		SET_NODE_TYPE(b RST_BIN_OP)
 		b
+	]
+
+	make-lit-array: func [
+		pos		[cell!]
+		return: [array-literal!]
+		/local
+			a	[array-literal!]
+	][
+		array_accept: func [ACCEPT_FN_SPEC][
+			v/visit-literal self data
+		]
+		a: xmalloc(array-literal!)
+		SET_NODE_TYPE(a RST_LIT_ARRAY)
+		a/token: pos
+		a/accept: :array_accept
+		a/type: type-system/lit-array-type? pos
+		a
 	]
 
 	make-int: func [
@@ -1274,6 +1296,9 @@ parser: context [
 			TYPE_FLOAT [
 				expr/value: as int-ptr! make-float pc
 			]
+			TYPE_STRING [
+				expr/value: as int-ptr! make-lit-array pc
+			]
 			TYPE_GET_WORD [0]
 			TYPE_PATH [0]
 			TYPE_GET_PATH [0]
@@ -1385,6 +1410,13 @@ parser: context [
 		][null]
 	]
 
+	literal-expr?: func [
+		e		[rst-expr!]
+		return: [logic!]
+	][
+		NODE_TYPE(e) <= RST_LIT_ARRAY
+	]
+
 	parse-assignment: func [
 		pc		[cell!]
 		end		[cell!]
@@ -1394,12 +1426,10 @@ parser: context [
 		/local
 			var		[var-decl!]
 			flags	[integer!]
-			set?	[logic!]
 			pos		[cell!]
 			s		[rst-stmt!]
 	][
 		var: null
-		set?: yes
 		switch TYPE_OF(pc) [
 			TYPE_SET_WORD [
 				var: find-word as red-word! pc ctx
@@ -1415,22 +1445,25 @@ parser: context [
 						add-decl ctx pc as int-ptr! var
 						pc: parse-assignment advance-next pc end end out ctx
 						var/init: as rst-expr! out/value
-						set?: no
+						unless literal-expr? as rst-expr! out/value [
+							s: as rst-stmt! make-assignment var as rst-expr! out/value pos
+							ctx/last-stmt/next: s
+							ctx/last-stmt: s
+						]
+						return pc
 					]
 				]
 			]
 			TYPE_SET_PATH [0]
 			default [
-				set?: no
-				pc: parse-expr pc end out ctx
+				return parse-expr pc end out ctx
 			]
 		]
-		if set? [
-			pc: parse-assignment advance-next pc end end out ctx
-			s: as rst-stmt! make-assignment var as rst-expr! out/value pos
-			ctx/last-stmt/next: s
-			ctx/last-stmt: s
-		]
+
+		pc: parse-assignment advance-next pc end end out ctx
+		s: as rst-stmt! make-assignment var as rst-expr! out/value pos
+		ctx/last-stmt/next: s
+		ctx/last-stmt: s
 		pc
 	]
 

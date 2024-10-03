@@ -215,7 +215,7 @@ asm: context [
 					emit-bd x or 5 disp			;-- relative address
 				][
 					emit-bbd x or 4 25h disp	;-- absolute address
-					record-reloc-pos pos - 4 m/ref
+					record-abs-ref pos - 4 m/ref
 				]
 			][
 				emit-rm x base m

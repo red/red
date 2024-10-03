@@ -71,6 +71,12 @@ logic-type!: alias struct! [
 	TYPE_HEADER
 ]
 
+array-type!: alias struct! [
+	TYPE_HEADER
+	length		[integer!]
+	vtype		[rst-type!]
+]
+
 #define PTR_VALUE_SIZE(ptr) [ptr/header >>> 8]
 #define SET_PTR_VSIZE(ptr sz) [ptr/header: sz << 8 or (ptr/header and FFh)]
 
@@ -179,6 +185,20 @@ make-logic-type: func [
 	type
 ]
 
+make-array-type: func [
+	len		[integer!]
+	vtype	[rst-type!]		;-- value type
+	return: [rst-type!]
+	/local
+		a	[array-type!]
+][
+	a: xmalloc(array-type!)
+	SET_TYPE_KIND(a RST_TYPE_ARRAY)
+	a/length: len
+	a/vtype: vtype
+	as rst-type! a
+]
+
 #define INT_TYPE?(type)		[(type/header and FFh) = RST_TYPE_INT]
 #define FLOAT_TYPE?(type)	[(type/header and FFh) = RST_TYPE_FLOAT]
 
@@ -208,6 +228,7 @@ type-size?: func [
 		RST_TYPE_VOID [0]
 		RST_TYPE_NULL
 		RST_TYPE_PTR
+		RST_TYPE_ARRAY
 		RST_TYPE_STRUCT [target/addr-size]
 		default [0]	
 	]
@@ -269,6 +290,7 @@ type-system: context [
 	uint64-type:	as int-type! 0
 	void-type:		as rst-type! 0
 	null-type:		as rst-type! 0
+	cstr-type:		as rst-type! 0
 
 	k_integer!:		symbol/make "integer!"
 	k_float!:		symbol/make "float!"
@@ -293,6 +315,7 @@ type-system: context [
 		float32-type: make-float-type 32
 		logic-type: make-logic-type
 		byte-type: get-int-type 8 false
+		cstr-type: as rst-type! make-array-type 0 as rst-type! byte-type
 	]
 
 	make-cache: func [
@@ -306,7 +329,22 @@ type-system: context [
 		hashmap/put m k_byte!	 as int-ptr! byte-type
 		hashmap/put m k_float32! as int-ptr! float32-type
 		hashmap/put m k_logic!	 as int-ptr! logic-type
+		hashmap/put m k_cstr!	 as int-ptr! cstr-type
 		m
+	]
+
+	lit-array-type?: func [
+		val		[cell!]
+		return: [rst-type!]
+	][
+		switch TYPE_OF(val) [
+			TYPE_STRING [
+				cstr-type
+			]
+			TYPE_BLOCK [
+				null
+			]
+		]
 	]
 
 	get-int-type: func [
