@@ -1,7 +1,9 @@
 name: macOS-x86
 
-on: push
-
+on:
+  push:
+    branches:
+      - master
 jobs:
   Run-RS-Tests:
     runs-on: [self-hosted, macOS, X64]

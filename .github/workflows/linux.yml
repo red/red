@@ -1,6 +1,9 @@
 name: Linux-x86
 
-on: push
+on:
+  push:
+    branches:
+      - master
 
 jobs:
   Linux-Red-Tests:

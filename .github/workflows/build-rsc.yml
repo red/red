@@ -1,0 +1,31 @@
+name: Build-RSC
+
+on:
+  push:
+    branches:
+      - rsc2
+
+jobs:
+  Build:
+
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    - name: setup red repo
+      run: |
+        $url = "http://static.red-lang.org/build/rebview.exe"
+        $output = "$Env:GITHUB_WORKSPACE\rebview.exe"
+        (New-Object System.Net.WebClient).DownloadFile($url, $output)
+    - name: Build Red/System compiler
+      run: rebview.exe -qws red.r -r red.red
+      shell: cmd
+    - name: Compress binaries
+      uses: svenstaro/upx-action@v2
+      with:
+        files: |
+          red.exe
+    - uses: actions/upload-artifact@v4
+      with:
+        name: rsc
+        path: red.exe
