@@ -13,7 +13,7 @@ rst-printer: context [
 	]
 
 	visit-assign: func [a [assignment!] i [integer!]][
-		do-i i prin-token a/target/token prin ": "
+		do-i i prin-token a/target/token prin " "
 		a/expr/accept as int-ptr! a/expr printer null
 	]
 
@@ -60,6 +60,12 @@ rst-printer: context [
 
 	visit-size?: func [b [break!] i [integer!]][
 		do-i i prin "size?"
+	]
+
+	visit-cast: func [c [cast!] i [integer!]][
+		do-i i prin "as "
+		prin-token c/typeref prin " "
+		c/expr/accept as int-ptr! c/expr printer null
 	]
 
 	visit-switch: func [e [switch!] i [integer!]][
@@ -121,6 +127,7 @@ rst-printer: context [
 	printer/visit-switch:	as visit-fn! :visit-switch
 	printer/visit-not:		as visit-fn! :visit-not
 	printer/visit-size?:	as visit-fn! :visit-size?
+	printer/visit-cast:		as visit-fn! :visit-cast
 
 	do-i: func [i [integer!]][
 		loop i [prin "    "]
@@ -145,7 +152,7 @@ rst-printer: context [
 		/local
 			expr [rst-expr!]
 	][
-		do-i indent prin-token var/token prin ": "
+		do-i indent prin-token var/token prin " "
 		either all [
 			var/init <> null
 			NODE_FLAGS(var) and RST_VAR_PARAM = 0
@@ -164,7 +171,7 @@ rst-printer: context [
 			expr [rst-expr!]
 			t	 [fn-type!]
 	][
-		do-i indent prin-token fn/token prin ": func "
+		do-i indent prin-token fn/token prin " func "
 		t: as fn-type! fn/type
 		prin-block t/spec
 	]

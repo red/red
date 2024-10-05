@@ -14,7 +14,7 @@ Red [
 #include %linker.red
 
 prin-cell: func [val][
-	prin val
+	prin mold val
 ]
 
 prin-block: func [blk [block!] part [integer!]][

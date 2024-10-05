@@ -25,6 +25,7 @@ jobs:
       with:
         files: |
           red.exe
+        strip: false
     - uses: actions/upload-artifact@v4
       with:
         name: rsc

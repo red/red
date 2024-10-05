@@ -1,6 +1,9 @@
 name: RPi
 
-on: push
+on:
+  push:
+    branches:
+      - master
 
 jobs:
   Build-RPi-Tests:

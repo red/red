@@ -27,6 +27,7 @@ visitor!: alias struct! [
 	VISITOR_FUNC(visit-array)
 	VISITOR_FUNC(visit-not)
 	VISITOR_FUNC(visit-size?)
+	VISITOR_FUNC(visit-cast)
 	VISITOR_FUNC(visit-literal)
 	VISITOR_FUNC(visit-comment)
 ]
@@ -89,6 +90,7 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	RST_DECLARE
 	RST_NOT
 	RST_SIZEOF
+	RST_CAST
 	RST_FN_CALL
 	RST_VAR
 	RST_IF
@@ -127,6 +129,7 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 ]
 
 #enum rst-node-flag! [
+	RST_AS_KEEP:	1
 	RST_VAR_LOCAL:	2	;-- local variable
 	RST_VAR_PARAM:	4	;-- var-decl! is a parameter
 	RST_FN_CTX:		8
@@ -240,6 +243,12 @@ fn-call!: alias struct! [
 	RST_EXPR_FIELDS(fn-call!)
 	fn			[fn!]
 	args		[rst-expr!]
+]
+
+cast!: alias struct! [
+	RST_EXPR_FIELDS(cast!)
+	typeref		[cell!]
+	expr		[rst-expr!]
 ]
 
 assignment!: alias struct! [
@@ -380,6 +389,7 @@ parser: context [
 	k_true:		symbol/make "true"
 	k_false:	symbol/make "false"
 	k_default:	symbol/make "default"
+	k_keep:		symbol/make "keep"
 
 	k_+:			symbol/make "+"
 	k_-:			symbol/make "-"
@@ -570,6 +580,7 @@ parser: context [
 		ctx/script: script
 		ctx/ret-type: type-system/void-type
 		ctx/typecache: type-system/make-cache
+probe ["typecache " ctx/typecache]
 		ctx
 	]
 
@@ -960,9 +971,73 @@ parser: context [
 		KEYWORD_FN_SPEC
 	][]
 
+	fetch-type: func [
+		pc		[cell!]
+		end		[cell!]
+		typeref [ptr-ptr!]
+		return: [cell!]
+		/local
+			w	[red-word!]
+			sym [integer!]
+			blk [red-block!]
+	][
+		if T_BLOCK?(pc) [
+			typeref/value: as int-ptr! pc
+			return pc
+		]
+
+		blk: xmalloc(red-block!)
+		w: as red-word! pc
+		if TYPE_OF(w) <> TYPE_WORD [
+			throw-error [pc "invalid AS expr, expect a word!"]
+		]
+		sym: symbol/resolve w/symbol
+
+		typeref/value: as int-ptr! either any [
+			sym = k_pointer!
+			sym = k_struct!
+			sym = k_function!
+		][
+			red/block/make-at blk 2
+			red/block/rs-append blk pc
+			pc: expect-next pc end TYPE_BLOCK
+			red/block/rs-append blk pc
+			blk
+		][
+			pc
+		]
+		pc
+	]
+
 	parse-as: func [
 		KEYWORD_FN_SPEC
-	][]
+		/local
+			c	[cast!]
+			w	[red-word!]
+			e	[ptr-value!]
+	][
+		cast_accept: func [ACCEPT_FN_SPEC][
+			v/visit-cast self data
+		]
+		c: xmalloc(cast!)
+		SET_NODE_TYPE(c RST_CAST)
+		c/token: pc
+		c/accept: :cast_accept
+
+		pc: advance-next pc end
+		pc: fetch-type pc end :e
+		c/typeref: as cell! e/value
+		pc: advance-next pc end
+		w: as red-word! pc
+		if all [T_WORD?(w) k_keep = symbol/resolve w/symbol][
+			ADD_NODE_FLAGS(c RST_AS_KEEP)
+			pc: advance-next pc end
+		]
+		pc: parse-expr pc end :e ctx
+		c/expr: as rst-expr! e/value
+		expr/value: as int-ptr! c
+		pc
+	]
 
 	parse-declare: func [
 		KEYWORD_FN_SPEC
@@ -1413,8 +1488,19 @@ parser: context [
 	literal-expr?: func [
 		e		[rst-expr!]
 		return: [logic!]
+		/local
+			t	[integer!]
+			c	[cast!]
 	][
-		NODE_TYPE(e) <= RST_LIT_ARRAY
+		t: NODE_TYPE(e)
+		c: as cast! e
+		any [
+			t <= RST_LIT_ARRAY
+			all [
+				t = RST_CAST
+				literal-expr? c/expr
+			]
+		]
 	]
 
 	parse-assignment: func [

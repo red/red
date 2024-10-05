@@ -61,6 +61,53 @@ written-in-loop?: func [
 	]
 ]
 
+parse-type: func [
+	blk		[red-block!]
+	ctx		[context!]
+	return: [rst-type!]
+	/local
+		t	[rst-type!]
+		saved-blk [red-block!]
+][
+	enter-block(blk)
+	t: resolve-type block/rs-head blk block/rs-tail blk ctx
+	exit-block
+	t
+]
+
+resolve-type: func [
+	pc		[cell!]
+	end		[cell!]
+	ctx		[context!]
+	return: [rst-type!]
+	/local
+		w	[red-word!]
+		sym [integer!]
+		val	[ptr-ptr!]
+		t	[rst-type!]
+][
+	w: as red-word! pc
+	sym: symbol/resolve w/symbol
+	if sym = k_pointer! [
+		t: parse-type as red-block! parser/expect-next pc end TYPE_BLOCK ctx
+		return as rst-type! make-ptr-type t
+	]
+	if sym = k_struct! [
+		0
+	]
+	if sym = k_function! [
+		0	
+	]
+
+	until [
+		val: hashmap/get ctx/typecache sym
+		ctx: ctx/parent
+		any [null? ctx val <> null]
+	]
+	if null? val [throw-error [pc "undefined type:" w]]
+	as rst-type! val/value
+]
+
 type-checker: context [
 	checker: declare visitor!
 
@@ -72,33 +119,13 @@ type-checker: context [
 		if null? var/type [
 			either all [var/init <> null NODE_FLAGS(var) and RST_VAR_PARAM = 0][
 				assert null? var/typeref
-				var/type: as rst-type! var/init/accept as int-ptr! var/init checker null
+				var/type: as rst-type! var/init/accept as int-ptr! var/init checker as int-ptr! ctx
 			][
 				assert var/typeref <> null
-				var/type: fetch-type var/typeref ctx
+				var/type: parse-type var/typeref ctx
 			]
 		]
 		var/type
-	]
-
-	fetch-type: func [
-		blk		[red-block!]
-		ctx		[context!]
-		return: [rst-type!]
-		/local
-			w	[red-word!]
-			sym [integer!]
-			val [ptr-ptr!]
-	][
-		w: as red-word! block/rs-head blk
-		sym: symbol/resolve w/symbol
-		until [
-			val: hashmap/get ctx/typecache sym
-			ctx: ctx/parent
-			any [null? ctx val <> null]
-		]
-		if null? val [throw-error [blk "undefined type:" w]]
-		as rst-type! val/value
 	]
 
 	resolve-fn-type: func [
@@ -121,7 +148,7 @@ type-checker: context [
 			pt: pt + 1
 		]
 		either ft/ret-typeref <> null [
-			ft/ret-type: fetch-type ft/ret-typeref ctx
+			ft/ret-type: parse-type ft/ret-typeref ctx
 		][
 			ft/ret-type: type-system/void-type
 		]
@@ -356,6 +383,26 @@ type-checker: context [
 		type-system/void-type
 	]
 
+	visit-cast: func [c [cast!] ctx [context!] return: [rst-type!]
+		/local
+			tref  [cell!]
+			t1 t2 [rst-type!]
+	][
+		tref: c/typeref
+		t1: either T_BLOCK?(tref) [
+			parse-type as red-block! tref ctx
+		][
+			resolve-type tref tref ctx
+		]
+		c/type: t1
+		t2: as rst-type! c/expr/accept as int-ptr! c/expr checker as int-ptr! ctx
+		if conv_illegal = type-system/cast t2 t1 [
+			throw-error [c/token "invalid type casting"]
+		]
+		c/expr/cast-type: t1
+		t1
+	]
+
 	visit-fn-call: func [fc [fn-call!] ctx [context!] return: [rst-type!]
 		/local
 			ft	 	[fn-type!]
@@ -411,6 +458,7 @@ type-checker: context [
 	checker/visit-switch:	as visit-fn! :visit-switch
 	checker/visit-not:		as visit-fn! :visit-not
 	checker/visit-size?:	as visit-fn! :visit-size?
+	checker/visit-cast:		as visit-fn! :visit-cast
 
 	make-cmp-op: func [
 		op			[rst-op!]

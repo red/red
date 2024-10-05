@@ -274,6 +274,19 @@ type-name: func [
 
 #define MAX_INT_WIDTH	64
 
+k_integer!:		symbol/make "integer!"
+k_float!:		symbol/make "float!"
+k_byte!:		symbol/make "byte!"
+k_cstr!:		symbol/make "c-string!"
+k_float32!:		symbol/make "float32!"
+k_float64!:		symbol/make "float64!"
+k_logic!:		symbol/make "logic!"
+k_int-ptr!:		symbol/make "int-ptr!"
+k_byte-ptr!:	symbol/make "byte-ptr!"
+k_pointer!:		symbol/make "pointer!"
+k_struct!:		symbol/make "struct!"
+k_function!:	symbol/make "function!"
+
 type-system: context [
 	integer-type:	as int-type! 0
 	byte-type:		as int-type! 0
@@ -291,16 +304,6 @@ type-system: context [
 	void-type:		as rst-type! 0
 	null-type:		as rst-type! 0
 	cstr-type:		as rst-type! 0
-
-	k_integer!:		symbol/make "integer!"
-	k_float!:		symbol/make "float!"
-	k_byte!:		symbol/make "byte!"
-	k_cstr!:		symbol/make "c-string!"
-	k_float32!:		symbol/make "float32!"
-	k_float64!:		symbol/make "float64!"
-	k_logic!:		symbol/make "logic!"
-	k_int-ptr!:		symbol/make "int-ptr!"
-	k_byte-ptr!:	symbol/make "byte-ptr!"
 
 	int-types: as ptr-array! 0
 
@@ -459,13 +462,23 @@ type-system: context [
 		conv_illegal
 	]
 
-	cast: func [
+	cast: func [		;-- cast x to y
 		x	[rst-type!]
 		y	[rst-type!]
 		return: [type-conv-result!]
 	][
-		if x/header = y/header [return conv_same]
-
-		conv_illegal
+		switch TYPE_KIND(x) [
+			RST_TYPE_NULL [
+				switch TYPE_KIND(y) [
+					RST_TYPE_PTR [conv_ok]
+				]
+			]
+			RST_TYPE_PTR [
+				conv_ok
+			]
+			default [
+				either x/header = y/header [conv_same][conv_illegal]
+			]
+		]
 	]
 ]
