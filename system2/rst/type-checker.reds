@@ -70,42 +70,49 @@ parse-type: func [
 		saved-blk [red-block!]
 ][
 	enter-block(blk)
-	t: resolve-type block/rs-head blk block/rs-tail blk ctx
+	t: type-checker/resolve-type block/rs-head blk block/rs-tail blk ctx
 	exit-block
 	t
 ]
 
-resolve-type: func [
-	pc		[cell!]
-	end		[cell!]
+parse-struct: func [
+	spec	[red-block!]
 	ctx		[context!]
 	return: [rst-type!]
 	/local
-		w	[red-word!]
-		sym [integer!]
-		val	[ptr-ptr!]
-		t	[rst-type!]
+		st	[struct-type!]
+		val [cell!]
+		end [cell!]
+		n	[integer!]
+		p	[struct-field!]
+		saved-blk [red-block!]
 ][
-	w: as red-word! pc
-	sym: symbol/resolve w/symbol
-	if sym = k_pointer! [
-		t: parse-type as red-block! parser/expect-next pc end TYPE_BLOCK ctx
-		return as rst-type! make-ptr-type t
-	]
-	if sym = k_struct! [
-		0
-	]
-	if sym = k_function! [
-		0	
-	]
+	val: block/rs-head spec
+	end: block/rs-tail spec
+	n: (as-integer end - val) >> 5
+	if zero? n [throw-error [spec "empty struct"]]
 
-	until [
-		val: hashmap/get ctx/typecache sym
-		ctx: ctx/parent
-		any [null? ctx val <> null]
+	enter-block(spec)
+	p: as struct-field! malloc n * size? struct-field!
+	st: xmalloc(struct-type!)
+	SET_TYPE_KIND(st RST_TYPE_STRUCT)
+	st/n-fields: n
+	st/fields: p
+
+	while [val < end][
+		either T_WORD?(val) [
+			p/name: val
+		][
+			throw-error [val "expect a word!"]
+		]
+		val: parser/expect-next val end TYPE_BLOCK
+		p/type: parse-type as red-block! val ctx
+		p: p + 1
+		val: val + 1
 	]
-	if null? val [throw-error [pc "undefined type:" w]]
-	as rst-type! val/value
+	exit-block
+
+	as rst-type! st
 ]
 
 type-checker: context [
@@ -154,6 +161,50 @@ type-checker: context [
 		]
 
 		exit-block
+	]
+
+	resolve-type: func [
+		pc		[cell!]
+		end		[cell!]
+		ctx		[context!]
+		return: [rst-type!]
+		/local
+			w	[red-word!]
+			sym [integer!]
+			val	[ptr-ptr!]
+			t	[rst-type!]
+			ft	[fn-type!]
+	][
+		w: as red-word! pc
+		sym: symbol/resolve w/symbol
+		if sym = k_pointer! [
+			t: parse-type as red-block! parser/expect-next pc end TYPE_BLOCK ctx
+			return as rst-type! make-ptr-type t
+		]
+		if sym = k_struct! [
+			t: parse-struct as red-block! parser/expect-next pc end TYPE_BLOCK ctx
+			pc: pc + 2
+			if pc < end [
+				w: as red-word! pc
+				if k_value = symbol/resolve w/symbol [
+					t/header: t/header or FLAG_ST_VALUE
+				]
+			]
+			return t
+		]
+		if sym = k_function! [
+			ft: parser/parse-fn-spec as red-block! parser/expect-next pc end TYPE_BLOCK null
+			resolve-fn-type ft ctx
+			return as rst-type! ft
+		]
+
+		until [
+			val: hashmap/get ctx/typecache sym
+			ctx: ctx/parent
+			any [null? ctx val <> null]
+		]
+		if null? val [throw-error [pc "undefined type:" w]]
+		as rst-type! val/value
 	]
 
 	check-expr: func [
@@ -403,6 +454,21 @@ type-checker: context [
 		t1
 	]
 
+	visit-declare: func [c [declare!] ctx [context!] return: [rst-type!]
+		/local
+			tref	[cell!]
+			t1		[rst-type!]
+	][
+		tref: c/typeref
+		t1: either T_BLOCK?(tref) [
+			parse-type as red-block! tref ctx
+		][
+			resolve-type tref tref ctx
+		]
+		c/type: t1
+		t1
+	]
+
 	visit-fn-call: func [fc [fn-call!] ctx [context!] return: [rst-type!]
 		/local
 			ft	 	[fn-type!]
@@ -459,6 +525,7 @@ type-checker: context [
 	checker/visit-not:		as visit-fn! :visit-not
 	checker/visit-size?:	as visit-fn! :visit-size?
 	checker/visit-cast:		as visit-fn! :visit-cast
+	checker/visit-declare:	as visit-fn! :visit-declare
 
 	make-cmp-op: func [
 		op			[rst-op!]

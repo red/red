@@ -23,7 +23,7 @@ visitor!: alias struct! [
 	VISITOR_FUNC(visit-assign)
 	VISITOR_FUNC(visit-bin-op)
 	VISITOR_FUNC(visit-var)
-	VISITOR_FUNC(visit-string)
+	VISITOR_FUNC(visit-declare)
 	VISITOR_FUNC(visit-array)
 	VISITOR_FUNC(visit-not)
 	VISITOR_FUNC(visit-size?)
@@ -83,11 +83,11 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	RST_C_STR
 	RST_BINARY
 	RST_LIT_ARRAY		;-- literal array
+	RST_DECLARE
 	RST_PTR
 	RST_BYTE_PTR
 	RST_INT_PTR
 	RST_BIN_OP
-	RST_DECLARE
 	RST_NOT
 	RST_SIZEOF
 	RST_CAST
@@ -249,6 +249,11 @@ cast!: alias struct! [
 	RST_EXPR_FIELDS(cast!)
 	typeref		[cell!]
 	expr		[rst-expr!]
+]
+
+declare!: alias struct! [
+	RST_EXPR_FIELDS(declare!)
+	typeref		[cell!]
 ]
 
 assignment!: alias struct! [
@@ -1041,7 +1046,24 @@ probe ["typecache " ctx/typecache]
 
 	parse-declare: func [
 		KEYWORD_FN_SPEC
-	][]
+		/local
+			d	[declare!]
+			e	[ptr-value!]
+	][
+		declare_accept: func [ACCEPT_FN_SPEC][
+			v/visit-declare self data
+		]
+		d: xmalloc(declare!)
+		SET_NODE_TYPE(d RST_DECLARE)
+		d/token: pc
+		d/accept: :declare_accept
+
+		pc: advance-next pc end
+		pc: fetch-type pc end :e
+		d/typeref: as cell! e/value
+		expr/value: as int-ptr! d
+		pc
+	]
 
 	parse-unary: func [
 		pc		[cell!]
@@ -1495,7 +1517,7 @@ probe ["typecache " ctx/typecache]
 		t: NODE_TYPE(e)
 		c: as cast! e
 		any [
-			t <= RST_LIT_ARRAY
+			t <= RST_DECLARE
 			all [
 				t = RST_CAST
 				literal-expr? c/expr

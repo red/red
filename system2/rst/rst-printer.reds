@@ -68,6 +68,11 @@ rst-printer: context [
 		c/expr/accept as int-ptr! c/expr printer null
 	]
 
+	visit-declare: func [c [cast!] i [integer!]][
+		do-i i prin "declare "
+		prin-token c/typeref prin " "
+	]
+
 	visit-switch: func [e [switch!] i [integer!]][
 		do-i i prin "switch "
 		e/expr/accept as int-ptr! e/expr printer as int-ptr! i + 1
@@ -128,6 +133,7 @@ rst-printer: context [
 	printer/visit-not:		as visit-fn! :visit-not
 	printer/visit-size?:	as visit-fn! :visit-size?
 	printer/visit-cast:		as visit-fn! :visit-cast
+	printer/visit-declare:	as visit-fn! :visit-declare
 
 	do-i: func [i [integer!]][
 		loop i [prin "    "]

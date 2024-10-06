@@ -86,8 +86,18 @@ ptr-type!: alias struct! [
 	type		[rst-type!]
 ]
 
+struct-field!: alias struct! [
+	name		[cell!]
+	type		[rst-type!]
+]
+
+#define FLAG_ST_VALUE	0100h
+
 struct-type!: alias struct! [
 	TYPE_HEADER
+	size		[integer!]		;-- size of the struct in bytes
+	n-fields	[integer!]		;-- number of fields
+	fields		[struct-field!]	;-- array of struct-field!
 ]
 
 fn-type!: alias struct! [
@@ -214,6 +224,7 @@ type-size?: func [
 	return: [integer!]		;-- size in byte
 	/local
 		w	[integer!]
+		st	[struct-type!]
 ][
 	switch TYPE_KIND(t) [
 		RST_TYPE_INT [
@@ -228,8 +239,11 @@ type-size?: func [
 		RST_TYPE_VOID [0]
 		RST_TYPE_NULL
 		RST_TYPE_PTR
-		RST_TYPE_ARRAY
-		RST_TYPE_STRUCT [target/addr-size]
+		RST_TYPE_ARRAY [target/addr-size]
+		RST_TYPE_STRUCT [
+			st: as struct-type! t
+			st/size
+		]
 		default [0]	
 	]
 ]
@@ -286,6 +300,7 @@ k_byte-ptr!:	symbol/make "byte-ptr!"
 k_pointer!:		symbol/make "pointer!"
 k_struct!:		symbol/make "struct!"
 k_function!:	symbol/make "function!"
+k_value:		symbol/make "value"
 
 type-system: context [
 	integer-type:	as int-type! 0
@@ -471,6 +486,7 @@ type-system: context [
 			RST_TYPE_NULL [
 				switch TYPE_KIND(y) [
 					RST_TYPE_PTR [conv_ok]
+					default [conv_ok]
 				]
 			]
 			RST_TYPE_PTR [
