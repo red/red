@@ -136,6 +136,7 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	RST_INFIX_FN:	10h
 	RST_INFIX_OP:	20h
 	RST_IMPORT_FN:	40h
+	RST_SIZE_TYPE:	80h
 ]
 
 #define SET_NODE_TYPE(node type) [node/header: type]
@@ -204,19 +205,20 @@ variable!: alias struct! [
 
 context!: alias struct! [
 	RST_NODE_FIELDS(context!)
-	parent		[context!]
-	child		[context!]
-	stmts		[rst-stmt!]
-	last-stmt	[rst-stmt!]
-	decls		[int-ptr!]
-	ret-type	[rst-type!]
-	typecache	[int-ptr!]
-	n-ssa-vars	[integer!]	;-- number of variable that written more than once
-	n-loops		[integer!]
-	loop-stack	[vector!]
-	level		[integer!]
-	src-blk		[red-block!]
-	script		[cell!]
+	parent		 [context!]
+	child		 [context!]
+	stmts		 [rst-stmt!]
+	last-stmt	 [rst-stmt!]
+	decls		 [int-ptr!]
+	ret-type	 [rst-type!]
+	typecache	 [int-ptr!]
+	n-ssa-vars	 [integer!]	;-- number of variable that written more than once
+	n-loops		 [integer!]
+	loop-stack	 [vector!]
+	level		 [integer!]
+	src-blk		 [red-block!]
+	script		 [cell!]
+	throw-error? [logic!]
 ]
 
 fn!: alias struct! [
@@ -585,7 +587,7 @@ parser: context [
 		ctx/script: script
 		ctx/ret-type: type-system/void-type
 		ctx/typecache: type-system/make-cache
-probe ["typecache " ctx/typecache]
+		ctx/throw-error?: yes
 		ctx
 	]
 
@@ -1084,17 +1086,54 @@ probe ["typecache " ctx/typecache]
 		pc
 	]
 
+	parse-alias: func [
+		pc		[cell!]
+		end		[cell!]
+		ctx		[context!]
+		return: [cell!]
+		/local
+			name	[red-word!]
+			sym		[integer!]
+			val		[ptr-ptr!]
+			e		[ptr-value!]
+			t		[unresolved-type!]
+	][
+		name: as red-word! pc
+		sym: symbol/resolve name/symbol
+		val: hashmap/get ctx/typecache sym
+		if val <> null [
+			throw-error [pc "redefine type"]
+		]
+
+		pc: advance-next pc + 1 end
+		pc: fetch-type pc end :e
+
+		t: xmalloc(unresolved-type!)
+		SET_TYPE_KIND(t RST_TYPE_UNRESOLVED)
+		t/typeref: as cell! e/value
+		hashmap/put ctx/typecache sym as int-ptr! t
+		pc
+	]
+
 	parse-size?: func [
 		KEYWORD_FN_SPEC
 		/local
-			e	[unary!]
+			e	 [unary!]
+			err? [logic!]
 	][
 		sizeof_accept: func [ACCEPT_FN_SPEC][
 			v/visit-size? self data
 		]
+		err?: ctx/throw-error?
+		ctx/throw-error?: no
 		pc: parse-unary pc end expr ctx
+		ctx/throw-error?: err?
 
 		e: as unary! expr/value
+		if null? e/expr [	;-- not an expression, may be a type
+			e/expr: as rst-expr! pc
+			ADD_NODE_FLAGS(e RST_SIZE_TYPE)
+		]
 		e/accept: :sizeof_accept
 		SET_NODE_TYPE(e RST_SIZEOF)
 		pc
@@ -1383,7 +1422,12 @@ probe ["typecache " ctx/typecache]
 						parse-keyword: as keyword-fn! p/value
 						pc: parse-keyword pc end expr ctx
 					][
-						throw-error [pc "undefined symbol:" w]
+						either ctx/throw-error? [
+							throw-error [pc "undefined symbol:" w]
+						][
+							expr/value: null
+							return pc
+						]
 					]
 				]
 			]
@@ -1782,7 +1826,7 @@ probe ["typecache " ctx/typecache]
 								fetch-func pc end ctx
 							]
 							sym = k_alias [
-								pc2 ;fetch alias
+								parse-alias pc end ctx
 							]
 							sym = k_context [
 								if f-ctx <> null [throw-error [pc "context has to be declared at root level"]]

@@ -30,6 +30,7 @@ Red/System [
 	RST_TYPE_STRUCT
 	RST_TYPE_ARRAY
 	RST_TYPE_PTR
+	RST_TYPE_UNRESOLVED
 ]
 
 ;-- types
@@ -46,6 +47,11 @@ Red/System [
 
 rst-type!: alias struct! [
 	TYPE_HEADER
+]
+
+unresolved-type!: alias struct! [
+	TYPE_HEADER
+	typeref		[cell!]
 ]
 
 #define INT_WIDTH(int) (int/header >>> 8 and FFh)

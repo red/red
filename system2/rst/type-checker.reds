@@ -115,6 +115,18 @@ parse-struct: func [
 	as rst-type! st
 ]
 
+resolve-typeref: func [
+	tref	[cell!]
+	ctx		[context!]
+	return: [rst-type!]
+][
+	either T_BLOCK?(tref) [
+		parse-type as red-block! tref ctx
+	][
+		type-checker/resolve-type tref tref ctx
+	]
+]
+
 type-checker: context [
 	checker: declare visitor!
 
@@ -169,11 +181,13 @@ type-checker: context [
 		ctx		[context!]
 		return: [rst-type!]
 		/local
+			c	[context!]
 			w	[red-word!]
 			sym [integer!]
 			val	[ptr-ptr!]
 			t	[rst-type!]
 			ft	[fn-type!]
+			t1	[unresolved-type!]
 	][
 		w: as red-word! pc
 		sym: symbol/resolve w/symbol
@@ -198,12 +212,17 @@ type-checker: context [
 			return as rst-type! ft
 		]
 
+		c: ctx
 		until [
-			val: hashmap/get ctx/typecache sym
-			ctx: ctx/parent
-			any [null? ctx val <> null]
+			val: hashmap/get c/typecache sym
+			c: c/parent
+			any [null? c val <> null]
 		]
 		if null? val [throw-error [pc "undefined type:" w]]
+		t1: as unresolved-type! val/value
+		if TYPE_KIND(t1) = RST_TYPE_UNRESOLVED [
+			val/value: as int-ptr! resolve-typeref t1/typeref ctx
+		]
 		as rst-type! val/value
 	]
 
@@ -436,15 +455,9 @@ type-checker: context [
 
 	visit-cast: func [c [cast!] ctx [context!] return: [rst-type!]
 		/local
-			tref  [cell!]
 			t1 t2 [rst-type!]
 	][
-		tref: c/typeref
-		t1: either T_BLOCK?(tref) [
-			parse-type as red-block! tref ctx
-		][
-			resolve-type tref tref ctx
-		]
+		t1: resolve-typeref c/typeref ctx
 		c/type: t1
 		t2: as rst-type! c/expr/accept as int-ptr! c/expr checker as int-ptr! ctx
 		if conv_illegal = type-system/cast t2 t1 [
@@ -456,15 +469,9 @@ type-checker: context [
 
 	visit-declare: func [c [declare!] ctx [context!] return: [rst-type!]
 		/local
-			tref	[cell!]
 			t1		[rst-type!]
 	][
-		tref: c/typeref
-		t1: either T_BLOCK?(tref) [
-			parse-type as red-block! tref ctx
-		][
-			resolve-type tref tref ctx
-		]
+		t1: resolve-typeref c/typeref ctx
 		c/type: t1
 		t1
 	]
@@ -644,6 +651,26 @@ type-checker: context [
 		ft
 	]
 
+	resolve-types: func [
+		ctx			[context!]
+		/local
+			types	[int-ptr!]
+			n		[integer!]
+			kv		[int-ptr!]
+			t		[unresolved-type!]
+	][
+		types: ctx/typecache
+		n: hashmap/size? types
+		kv: null
+		loop n [
+			kv: hashmap/next types kv
+			t: as unresolved-type! kv/2
+			if TYPE_KIND(t) = RST_TYPE_UNRESOLVED [
+				kv/2: as-integer resolve-typeref t/typeref ctx
+			]
+		]
+	]
+
 	check: func [
 		ctx		[context!]
 		/local
@@ -659,6 +686,8 @@ type-checker: context [
 
 		cur-blk: ctx/src-blk
 		script: ctx/script
+
+		resolve-types ctx
 
 		decls: ctx/decls
 		n: hashmap/size? decls
