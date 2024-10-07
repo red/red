@@ -1002,7 +1002,7 @@ make-face: func [
 	if model/init [do bind model/init face]
 	svv/process-reactors reactors
 
-	if offset [face/offset: xy]
+	face/offset: any [xy face/offset 0x0]
 	if size [face/size: wh]
 	face
 ]
