@@ -1259,7 +1259,7 @@ insert-event-func 'dragging function [face event][
 			if drag-info: face/state/4 [
 				either type = 'over [
 					unless event/away? [
-						new: face/offset + event/offset - drag-info/1
+						new: (any [face/offset 0x0]) + event/offset - drag-info/1
 						if face/offset <> new [
 							if box: drag-info/2 [new: min box/max max box/min new]
 							if face/offset <> new [face/offset: new]
