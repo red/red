@@ -424,6 +424,10 @@ ir-graph: context [
 		]
 	]
 
+	visit-get-ptr: func [g [get-ptr!] ctx [ssa-ctx!] return: [instr!]][
+		null
+	]
+
 	visit-fn-call: func [fc [fn-call!] ctx [ssa-ctx!] return: [instr!]][
 		add-fn-call fc ctx
 	]
@@ -614,6 +618,7 @@ ir-graph: context [
 	builder/visit-size?:	as visit-fn! :visit-size?
 	builder/visit-cast:		as visit-fn! :visit-cast
 	builder/visit-declare:	as visit-fn! :visit-declare
+	builder/visit-get-ptr:	as visit-fn! :visit-get-ptr
 
 	make-bb: func [		;-- create basic-block!
 		return: [basic-block!]

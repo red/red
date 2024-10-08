@@ -99,6 +99,10 @@ rst-printer: context [
 		0
 	]
 
+	visit-get-ptr: func [g [get-ptr!] i [integer!]][
+		0
+	]
+
 	visit-fn-call: func [fc [fn-call!] i [integer!] /local arg [rst-expr!]][
 		do-i i prin-token fc/token prin " ["
 		arg: fc/args
@@ -134,6 +138,7 @@ rst-printer: context [
 	printer/visit-size?:	as visit-fn! :visit-size?
 	printer/visit-cast:		as visit-fn! :visit-cast
 	printer/visit-declare:	as visit-fn! :visit-declare
+	printer/visit-get-ptr:	as visit-fn! :visit-get-ptr
 
 	do-i: func [i [integer!]][
 		loop i [prin "    "]

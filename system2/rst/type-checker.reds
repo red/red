@@ -453,6 +453,10 @@ type-checker: context [
 		type-system/void-type
 	]
 
+	visit-get-ptr: func [g [get-ptr!] ctx [context!] return: [rst-type!]][
+		type-system/void-type
+	]
+
 	visit-cast: func [c [cast!] ctx [context!] return: [rst-type!]
 		/local
 			t1 t2 [rst-type!]
@@ -533,6 +537,7 @@ type-checker: context [
 	checker/visit-size?:	as visit-fn! :visit-size?
 	checker/visit-cast:		as visit-fn! :visit-cast
 	checker/visit-declare:	as visit-fn! :visit-declare
+	checker/visit-get-ptr:	as visit-fn! :visit-get-ptr
 
 	make-cmp-op: func [
 		op			[rst-op!]

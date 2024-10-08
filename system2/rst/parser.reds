@@ -24,7 +24,7 @@ visitor!: alias struct! [
 	VISITOR_FUNC(visit-bin-op)
 	VISITOR_FUNC(visit-var)
 	VISITOR_FUNC(visit-declare)
-	VISITOR_FUNC(visit-array)
+	VISITOR_FUNC(visit-get-ptr)
 	VISITOR_FUNC(visit-not)
 	VISITOR_FUNC(visit-size?)
 	VISITOR_FUNC(visit-cast)
@@ -84,7 +84,7 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	RST_BINARY
 	RST_LIT_ARRAY		;-- literal array
 	RST_DECLARE
-	RST_PTR
+	RST_GET_PTR
 	RST_BYTE_PTR
 	RST_INT_PTR
 	RST_BIN_OP
@@ -246,6 +246,11 @@ fn-call!: alias struct! [
 	RST_EXPR_FIELDS(fn-call!)
 	fn			[fn!]
 	args		[rst-expr!]
+]
+
+get-ptr!: alias struct! [
+	RST_EXPR_FIELDS(get-ptr!)
+	expr		[rst-expr!]
 ]
 
 cast!: alias struct! [
@@ -631,6 +636,35 @@ parser: context [
 		b/accept: :bin_accept
 		SET_NODE_TYPE(b RST_BIN_OP)
 		b
+	]
+
+	parse-get-word: func [
+		pc		[cell!]
+		ctx		[context!]
+		return: [get-ptr!]
+		/local
+			v	[rst-node!]
+			ty	[integer!]
+			g	[get-ptr!]
+	][
+		get-ptr_accept: func [ACCEPT_FN_SPEC][
+			v/visit-get-ptr self data
+		]
+
+		v: find-word as red-word! pc ctx -1
+		either v <> null [
+			ty: NODE_TYPE(v)
+			assert any [ty = RST_VAR_DECL ty = RST_FUNC]
+			g: xmalloc(get-ptr!)
+			SET_NODE_TYPE(g RST_GET_PTR)
+			g/token: pc
+			g/accept: :get-ptr_accept
+			g/expr: as rst-expr! v
+			g
+		][
+			throw-error [pc "undefined symbol:" pc]
+			null
+		]
 	]
 
 	make-lit-array: func [
@@ -1494,7 +1528,7 @@ parser: context [
 				expr/value: as int-ptr! make-lit-array pc
 			]
 			TYPE_GET_WORD [
-				
+				expr/value: as int-ptr! parse-get-word pc ctx
 			]
 			TYPE_PATH [0]
 			TYPE_GET_PATH [0]
