@@ -210,6 +210,7 @@ context!: alias struct! [
 	stmts		 [rst-stmt!]
 	last-stmt	 [rst-stmt!]
 	decls		 [int-ptr!]
+	with-ns		 [vector!]
 	ret-type	 [rst-type!]
 	typecache	 [int-ptr!]
 	n-ssa-vars	 [integer!]	;-- number of variable that written more than once
@@ -1364,7 +1365,59 @@ parser: context [
 
 	parse-with: func [
 		KEYWORD_FN_SPEC
-	][]
+		/local
+			blk		 [red-block!]
+			with-ns	 [vector!]
+			ns-size	 [integer!]
+			c		 [context!]
+			val		 [cell!]
+			s-tail	 [cell!]
+			saved-blk [red-block!]
+	][
+		blk: as red-block! advance-next pc end
+		with-ns: ctx/with-ns
+		if null? with-ns [
+			with-ns: ptr-vector/make 4
+			ctx/with-ns: with-ns
+		]
+
+		ns-size: with-ns/length
+
+		either T_WORD?(blk) [
+			c: find-context as red-word! blk ctx
+			vector/append-ptr with-ns as byte-ptr! c
+		][
+			if TYPE_OF(blk) <> TYPE_BLOCK [throw-error [blk "expected word! or block!"]]
+			val: block/rs-head blk
+			s-tail: block/rs-tail blk
+			enter-block(blk)
+			while [val < s-tail][
+				c: find-context as red-word! val ctx
+				vector/append-ptr with-ns as byte-ptr! c
+				val: val + 1
+			]
+			exit-block
+		]
+
+		pc: expect-next pc + 1 end TYPE_BLOCK
+		blk: as red-block! pc
+		enter-block(blk)
+		val: block/rs-head blk
+		s-tail: block/rs-tail blk
+		while [val < s-tail][
+			val: parse-statement val s-tail ctx
+			val: val + 1
+		]
+		exit-block
+
+		either zero? ns-size [
+			vector/destroy with-ns
+			ctx/with-ns: null
+		][
+			with-ns/length: ns-size		;-- pop back
+		]
+		pc
+	]
 
 	parse-use: func [
 		KEYWORD_FN_SPEC
@@ -1408,7 +1461,7 @@ parser: context [
 		switch TYPE_OF(pc) [
 			TYPE_WORD [
 				w: as red-word! pc
-				v: as rst-node! find-word w ctx
+				v: find-word w ctx -1
 				either v <> null [
 					switch NODE_TYPE(v) [
 						RST_FUNC		[pc: parse-call pc end as fn! v expr ctx]
@@ -1440,7 +1493,9 @@ parser: context [
 			TYPE_STRING [
 				expr/value: as int-ptr! make-lit-array pc
 			]
-			TYPE_GET_WORD [0]
+			TYPE_GET_WORD [
+				
+			]
 			TYPE_PATH [0]
 			TYPE_GET_PATH [0]
 			TYPE_ISSUE [
@@ -1496,7 +1551,7 @@ parser: context [
 				flag: RST_INFIX_OP
 				op: val/value
 			][
-				node: as rst-expr! find-word w ctx
+				node: as rst-expr! find-word w ctx -1
 				if node <> null [
 					type: NODE_TYPE(node)
 					if any [type = RST_VAR_DECL type = RST_FUNC][
@@ -1532,23 +1587,73 @@ parser: context [
 		parse-infix-op pc end expr ctx
 	]
 
+	find-with-ns: func [
+		name	[red-word!]
+		ctx		[context!]
+		type	[integer!]
+		return: [rst-node!]
+		/local
+			v	[vector!]
+			n	[integer!]
+			p	[ptr-ptr!]
+			c	[context!]
+			d	[rst-node!]
+	][
+		v: ctx/with-ns
+		n: VECTOR_SIZE?(v)
+		if zero? n [return null]
+
+		p: VECTOR_DATA(v)
+		p: p + n		;-- reverse order
+		loop n [
+			p: p - 1
+			c: as context! p/value
+			d: find-word name c type
+			if d <> null [return d]
+		]
+		null
+	]
+
 	find-word: func [
 		name	[red-word!]
 		ctx		[context!]
-		return: [var-decl!]
+		type	[integer!]		;-- if < 0: match any type
+		return: [rst-node!]
 		/local
 			sym [integer!]
 			val [ptr-ptr!]
+			d	[rst-node!]
 	][
 		sym: symbol/resolve name/symbol
-		until [
-			val: hashmap/get ctx/decls sym
-			ctx: ctx/parent
-			any [null? ctx val <> null]
+		while [ctx <> null][
+			until [
+				if ctx/with-ns <> null [
+					d: find-with-ns name ctx type
+					if d <> null [return d]
+				]
+
+				val: hashmap/get ctx/decls sym
+				ctx: ctx/parent
+				any [null? ctx val <> null]
+			]
+			if val <> null [
+				d: as rst-node! val/value
+				if any [type < 0 NODE_TYPE(d) = type][return d]
+			]
 		]
-		either val <> null [
-			as var-decl! val/value
-		][null]
+		null
+	]
+
+	find-context: func [
+		name	[red-word!]
+		ctx		[context!]
+		return: [context!]
+		/local
+			c	[context!]
+	][
+		c: as context! find-word name ctx RST_CONTEXT
+		if null? c [throw-error [name "undeclared context"]]
+		c
 	]
 
 	literal-expr?: func [
@@ -1584,11 +1689,11 @@ parser: context [
 		var: null
 		switch TYPE_OF(pc) [
 			TYPE_SET_WORD [
-				var: find-word as red-word! pc ctx
+				var: as var-decl! find-word as red-word! pc ctx RST_VAR_DECL
 				pos: pc
 				flags: NODE_FLAGS(ctx)
 				either flags and RST_FN_CTX <> 0 [
-					if any [null? var NODE_TYPE(var) <> RST_VAR_DECL][
+					if null? var [
 						throw-error [pc "undefined symbol:" pc]
 					]
 				][

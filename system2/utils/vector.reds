@@ -13,6 +13,7 @@ vector!: alias struct! [
 ]
 
 #define VECTOR_DATA(v) [as ptr-ptr! v/data]
+#define VECTOR_SIZE?(v) [v/length]
 
 vector: context [
 	init: func [
