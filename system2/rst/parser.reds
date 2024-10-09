@@ -30,6 +30,8 @@ visitor!: alias struct! [
 	VISITOR_FUNC(visit-cast)
 	VISITOR_FUNC(visit-literal)
 	VISITOR_FUNC(visit-comment)
+	VISITOR_FUNC(visit-path)
+	VISITOR_FUNC(visit-any-all)
 ]
 
 #define ACCEPT_FN_SPEC [self [int-ptr!] v [visitor!] data [int-ptr!] return: [int-ptr!]]
@@ -85,8 +87,6 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	RST_LIT_ARRAY		;-- literal array
 	RST_DECLARE
 	RST_GET_PTR
-	RST_BYTE_PTR
-	RST_INT_PTR
 	RST_BIN_OP
 	RST_NOT
 	RST_SIZEOF
@@ -99,6 +99,7 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	RST_ANY
 	RST_ALL
 	RST_ASSIGN
+	RST_PATH
 	RST_EXPR_END		;-- end marker of expr types
 	RST_CONTEXT
 	RST_FUNC
@@ -253,6 +254,12 @@ get-ptr!: alias struct! [
 	expr		[rst-expr!]
 ]
 
+path!: alias struct! [
+	RST_EXPR_FIELDS(path!)
+	receiver	[rst-node!]
+	expr		[rst-expr!]
+]
+
 cast!: alias struct! [
 	RST_EXPR_FIELDS(cast!)
 	typeref		[cell!]
@@ -282,6 +289,11 @@ if!: alias struct! [
 case!: alias struct! [
 	RST_EXPR_FIELDS(rst-node!)
 	cases		[if!]
+]
+
+any-all!: alias struct! [
+	RST_EXPR_FIELDS(any-all!)
+	conds		[rst-expr!]
 ]
 
 switch-case!: alias struct! [
@@ -1005,13 +1017,69 @@ parser: context [
 		pc
 	]
 
+	parse-any-all: func [
+		KEYWORD_FN_SPEC		
+		/local
+			a		[any-all!]
+			blk		[red-block!]
+			val		[cell!]
+			s-tail	[cell!]
+			pv		[ptr-value!]
+			cond	[rst-expr!]
+			cur		[rst-expr!]
+			eval	[rst-expr! value]
+			saved-blk [red-block!]
+	][
+		any-all_accept: func [ACCEPT_FN_SPEC][
+			v/visit-any-all self data
+		]
+		blk: as red-block! expect-next pc end TYPE_BLOCK
+		val: block/rs-head blk
+		s-tail: block/rs-tail blk
+		if val = s-tail [throw-error [pc "empty block"]]
+
+		enter-block(blk)
+
+		cur: :eval
+		while [val < s-tail][
+			val: parse-expr val s-tail :pv ctx
+			cond: as rst-expr! pv/value
+			cur/next: cond
+			cur: cond
+			val: val + 1
+		]
+		a: xmalloc(any-all!)
+		a/token: pc
+		a/accept: :any-all_accept
+		a/type: type-system/logic-type
+		a/conds: eval/next
+
+		exit-block
+		expr/value: as int-ptr! a
+		as cell! blk
+	]
+
 	parse-any: func [
 		KEYWORD_FN_SPEC
-	][]
+		/local
+			node [rst-node!]
+	][
+		parse-any-all pc end expr ctx
+		node: as rst-node! expr/value
+		SET_NODE_TYPE(node RST_ANY)
+		pc + 1
+	]
 
 	parse-all: func [
 		KEYWORD_FN_SPEC
-	][]
+		/local
+			node [rst-node!]
+	][
+		parse-any-all pc end expr ctx
+		node: as rst-node! expr/value
+		SET_NODE_TYPE(node RST_ALL)
+		pc + 1
+	]
 
 	fetch-type: func [
 		pc		[cell!]
@@ -1479,6 +1547,108 @@ parser: context [
 		pc
 	]
 
+	make-path: func [
+		pos			[cell!]
+		receiver	[rst-node!]
+		expr		[rst-expr!]
+		return: 	[path!]
+		/local
+			p		[path!]
+	][
+		path_accept: func [ACCEPT_FN_SPEC][
+			v/visit-path self data
+		]
+		p: xmalloc(path!)
+		SET_NODE_TYPE(p RST_PATH)
+		p/token: pos
+		p/accept: :path_accept
+		p/receiver: receiver
+		p/expr: expr
+		p
+	]
+
+	parse-struct-member: func [
+		ty		[struct-type!]
+		name	[cell!]
+	][
+		0
+	]
+
+	parse-path: func [
+		pc		[cell!]
+		end		[cell!]
+		expr	[ptr-ptr!]	;-- a pointer to receive the expr
+		ctx		[context!]
+		return: [cell!]
+		/local
+			w		[red-word!]
+			sym		[integer!]
+			val		[cell!]
+			s-tail	[cell!]
+			c		[context!]
+			v		[rst-node!]
+			pp		[ptr-ptr!]
+			ty		[integer!]
+			t		[rst-type!]
+			p		[path!]
+	][
+		val: block/rs-head as red-block! pc
+		s-tail: block/rs-tail as red-block! pc
+		v: find-word as red-word! val ctx -1	;-- resolve first word
+		c: ctx
+		either v <> null [
+			ty: NODE_TYPE(v)
+			if ty = RST_CONTEXT [
+				while [
+					val: val + 1
+					w: as red-word! val
+					all [
+						val < s-tail
+						T_WORD?(w)
+					]
+				][
+					sym: symbol/resolve w/symbol
+					c: as context! v
+					pp: hashmap/get c/decls sym
+					either pp <> null [
+						v: as rst-node! pp/value
+						ty: NODE_TYPE(v)
+						if ty <> RST_CONTEXT [break]
+					][
+						throw-error [pc "undefine symbol in path:" w]
+					]
+				]
+			]
+			if val = s-tail [throw-error [pc "invaid path"]]
+			either val + 1 = s-tail [
+				switch ty [
+					RST_FUNC		[pc: parse-call pc end as fn! v expr ctx]
+					RST_VAR_DECL	[expr/value: as int-ptr! make-variable as var-decl! v pc]
+					default			[throw-error [pc "invalid path"]]
+				]
+			][
+				if ty <> RST_VAR_DECL [throw-error [pc "invalid path"]]
+				while [val < s-tail][
+					t: type-checker/infer-type as var-decl! v ctx
+					val: val + 1
+					switch TYPE_KIND(t) [
+						RST_TYPE_STRUCT [
+							0 ;parse-struct-member t val
+						]
+						RST_TYPE_PTR [0]
+						RST_TYPE_ARRAY [0]
+						default [throw-error [pc "invalid path"]]
+					]
+				]
+			]
+		][
+			;-- system/*
+			
+			throw-error [pc "undefine symbol in path:" val]
+		]
+		pc
+	]
+
 	parse-sub-expr: func [
 		pc		[cell!]
 		end		[cell!]
@@ -1530,7 +1700,9 @@ parser: context [
 			TYPE_GET_WORD [
 				expr/value: as int-ptr! parse-get-word pc ctx
 			]
-			TYPE_PATH [0]
+			TYPE_PATH [
+				pc: parse-path pc end expr ctx
+			]
 			TYPE_GET_PATH [0]
 			TYPE_ISSUE [
 				w: as red-word! pc

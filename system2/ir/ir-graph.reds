@@ -566,6 +566,14 @@ ir-graph: context [
 		null
 	]
 
+	visit-path: func [p [path!] ctx [ssa-ctx!] return: [instr!]][
+		null
+	]
+
+	visit-any-all: func [p [path!] ctx [ssa-ctx!] return: [instr!]][
+		null
+	]
+
 	visit-comment: func [r [rst-stmt!] ctx [ssa-ctx!] return: [instr!]][
 		null
 	]
@@ -619,6 +627,8 @@ ir-graph: context [
 	builder/visit-cast:		as visit-fn! :visit-cast
 	builder/visit-declare:	as visit-fn! :visit-declare
 	builder/visit-get-ptr:	as visit-fn! :visit-get-ptr
+	builder/visit-path:		as visit-fn! :visit-path
+	builder/visit-any-all:	as visit-fn! :visit-any-all
 
 	make-bb: func [		;-- create basic-block!
 		return: [basic-block!]

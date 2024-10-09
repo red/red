@@ -95,6 +95,14 @@ rst-printer: context [
 		do-i i prin "exit"
 	]
 
+	visit-path: func [p [path!] i [integer!]][
+		do-i i prin "path"
+	]
+
+	visit-any-all: func [p [path!] i [integer!]][
+		do-i i prin "anyall"
+	]
+
 	visit-comment: func [r [rst-stmt!] i [integer!]][
 		0
 	]
@@ -139,6 +147,8 @@ rst-printer: context [
 	printer/visit-cast:		as visit-fn! :visit-cast
 	printer/visit-declare:	as visit-fn! :visit-declare
 	printer/visit-get-ptr:	as visit-fn! :visit-get-ptr
+	printer/visit-path:		as visit-fn! :visit-path
+	printer/visit-any-all:	as visit-fn! :visit-any-all
 
 	do-i: func [i [integer!]][
 		loop i [prin "    "]
