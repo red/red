@@ -658,6 +658,24 @@ parser: context [
 		b
 	]
 
+	make-get-ptr: func [
+		pc			[cell!]
+		expr		[rst-expr!]
+		return:		[get-ptr!]
+		/local
+			g		[get-ptr!]
+	][
+		get-ptr_accept: func [ACCEPT_FN_SPEC][
+			v/visit-get-ptr self data
+		]
+		g: xmalloc(get-ptr!)
+		SET_NODE_TYPE(g RST_GET_PTR)
+		g/token: pc
+		g/accept: :get-ptr_accept
+		g/expr: expr
+		g
+	]
+
 	parse-get-word: func [
 		pc		[cell!]
 		ctx		[context!]
@@ -665,22 +683,14 @@ parser: context [
 		/local
 			v	[rst-node!]
 			ty	[integer!]
-			g	[get-ptr!]
 	][
-		get-ptr_accept: func [ACCEPT_FN_SPEC][
-			v/visit-get-ptr self data
-		]
-
 		v: find-word as red-word! pc ctx -1
 		either v <> null [
 			ty: NODE_TYPE(v)
-			assert any [ty = RST_VAR_DECL ty = RST_FUNC]
-			g: xmalloc(get-ptr!)
-			SET_NODE_TYPE(g RST_GET_PTR)
-			g/token: pc
-			g/accept: :get-ptr_accept
-			g/expr: as rst-expr! v
-			g
+			if all [ty <> RST_VAR_DECL ty <> RST_FUNC][
+				throw-error [pc "invalid get-word"]
+			]
+			make-get-ptr pc as rst-expr! v
 		][
 			throw-error [pc "undefined symbol:" pc]
 			null
@@ -1646,7 +1656,9 @@ parser: context [
 			ptr		[ptr-type!]
 			arr		[array-type!]
 			int		[red-integer!]
+			get?	[logic!]
 	][
+		get?: TYPE_OF(pc) = TYPE_GET_PATH
 		val: block/rs-head as red-block! pc
 		s-tail: block/rs-tail as red-block! pc
 		v: find-word as red-word! val ctx -1	;-- resolve first word
@@ -1674,12 +1686,19 @@ parser: context [
 					]
 				]
 			]
-			if val = s-tail [throw-error [pc "invaid path"]]
+			if val = s-tail [throw-error [pc "invalid path"]]
 			either val + 1 = s-tail [
-				switch ty [
-					RST_FUNC		[pc: parse-call pc end as fn! v expr ctx]
-					RST_VAR_DECL	[expr/value: as int-ptr! make-variable as var-decl! v pc]
-					default			[throw-error [pc "invalid path"]]
+				either get? [
+					if all [ty <> RST_FUNC ty <> RST_VAR_DECL][
+						throw-error [pc "invalid get-word:" val]
+					]
+					expr/value: as int-ptr! make-get-ptr pc as rst-expr! v
+				][
+					switch ty [
+						RST_FUNC		[pc: parse-call pc end as fn! v expr ctx]
+						RST_VAR_DECL	[expr/value: as int-ptr! make-variable as var-decl! v pc]
+						default			[throw-error [pc "invalid path"]]
+					]
 				]
 			][
 				if ty <> RST_VAR_DECL [throw-error [pc "invalid path"]]
@@ -1717,7 +1736,7 @@ parser: context [
 									idx: int/value
 								]
 								TYPE_PAREN [
-									0
+									m/expr: parse-paren as red-block! val ctx
 								]
 								default [throw-error [pc "wrong index value" val]]
 							]
@@ -1735,10 +1754,14 @@ parser: context [
 				]
 				p: make-path pc v node/next
 				p/type: t
-				either TYPE_KIND(t) = RST_TYPE_FUNC [		;-- function member in struct
-					pc: parse-call pc end as fn! p expr ctx 
+				either get? [
+					expr/value: as int-ptr! make-get-ptr pc as rst-expr! p
 				][
-					expr/value: as int-ptr! p
+					either TYPE_KIND(t) = RST_TYPE_FUNC [		;-- function member in struct
+						pc: parse-call pc end as fn! p expr ctx 
+					][
+						expr/value: as int-ptr! p
+					]
 				]
 			]
 		][
@@ -1747,6 +1770,39 @@ parser: context [
 			throw-error [pc "undefine symbol in path:" val]
 		]
 		pc
+	]
+
+	make-void-node: func [
+		pos		[cell!]
+		return: [rst-expr!]
+		/local
+			v	[rst-expr!]
+	][
+		v: xmalloc(rst-expr!)
+		SET_NODE_TYPE(v RST_VOID)
+		v/token: pos
+		v/type: type-system/void-type
+		v
+	]
+
+	parse-paren: func [
+		blk		[red-block!]
+		ctx		[context!]
+		return: [rst-expr!]
+		/local
+			pc	[cell!]
+			end [cell!]
+			pv	[ptr-value!]
+	][
+		pc: block/rs-head blk
+		end: block/rs-tail blk
+		either pc < end [
+			pc: parse-expr pc end :pv ctx
+			if pc + 1 < end [throw-error [blk "only one expression is allowed in paren"]]
+			as rst-expr! pv/value
+		][
+			make-void-node as cell! blk
+		]
 	]
 
 	parse-sub-expr: func [
@@ -1800,10 +1856,12 @@ parser: context [
 			TYPE_GET_WORD [
 				expr/value: as int-ptr! parse-get-word pc ctx
 			]
-			TYPE_PATH [
+			TYPE_PAREN [
+				expr/value: as int-ptr! parse-paren as red-block! pc ctx
+			]
+			TYPE_PATH TYPE_GET_PATH [
 				pc: parse-path pc end expr ctx
 			]
-			TYPE_GET_PATH [0]
 			TYPE_ISSUE [
 				w: as red-word! pc
 				sym: symbol/resolve w/symbol
