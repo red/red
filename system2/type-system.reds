@@ -77,23 +77,23 @@ logic-type!: alias struct! [
 	TYPE_HEADER
 ]
 
-array-type!: alias struct! [
-	TYPE_HEADER
-	length		[integer!]
-	vtype		[rst-type!]
-]
-
-#define PTR_VALUE_SIZE(ptr) [ptr/header >>> 8]
-#define SET_PTR_VSIZE(ptr sz) [ptr/header: sz << 8 or (ptr/header and FFh)]
-
 ;-- /header bits: 8 - 31 size in bytes
 ptr-type!: alias struct! [
 	TYPE_HEADER
 	type		[rst-type!]
 ]
 
+array-type!: alias struct! [	;-- inherit ptr-type!
+	TYPE_HEADER
+	type		[rst-type!]
+	length		[integer!]
+]
+
+#define PTR_VALUE_SIZE(ptr) [ptr/header >>> 8]
+#define SET_PTR_VSIZE(ptr sz) [ptr/header: sz << 8 or (ptr/header and FFh)]
+
 struct-field!: alias struct! [
-	name		[cell!]
+	name		[red-word!]
 	type		[rst-type!]
 ]
 
@@ -211,7 +211,7 @@ make-array-type: func [
 	a: xmalloc(array-type!)
 	SET_TYPE_KIND(a RST_TYPE_ARRAY)
 	a/length: len
-	a/vtype: vtype
+	a/type: vtype
 	as rst-type! a
 ]
 

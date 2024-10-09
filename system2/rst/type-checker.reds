@@ -101,7 +101,7 @@ parse-struct: func [
 
 	while [val < end][
 		either T_WORD?(val) [
-			p/name: val
+			p/name: as red-word! val
 		][
 			throw-error [val "expect a word!"]
 		]

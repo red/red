@@ -100,6 +100,7 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	RST_ALL
 	RST_ASSIGN
 	RST_PATH
+	RST_MEMBER
 	RST_EXPR_END		;-- end marker of expr types
 	RST_CONTEXT
 	RST_FUNC
@@ -257,7 +258,14 @@ get-ptr!: alias struct! [
 path!: alias struct! [
 	RST_EXPR_FIELDS(path!)
 	receiver	[rst-node!]
+	subs		[rst-node!]
+]
+
+member!: alias struct! [
+	RST_NODE_FIELDS(member!)
+	index		[integer!]
 	expr		[rst-expr!]
+	type		[rst-type!]
 ]
 
 cast!: alias struct! [
@@ -803,6 +811,7 @@ parser: context [
 			pp	[ptr-value!]
 			beg [rst-node! value]
 			cur [rst-node!]
+			p	[path!]
 	][
 		fc: as fn-call! malloc size? fn-call!
 		SET_NODE_TYPE(fc RST_FN_CALL)
@@ -812,7 +821,12 @@ parser: context [
 		fc/accept: :call_accept
 		fc/token: pc
 		fc/fn: fn
-		ft: as fn-type! fn/type
+		either NODE_TYPE(fn) = RST_FUNC [
+			ft: as fn-type! fn/type
+		][
+			p: as path! fn
+			ft: as fn-type! p/type
+		]
 
 		beg/next: null
 		cur: :beg
@@ -1550,7 +1564,7 @@ parser: context [
 	make-path: func [
 		pos			[cell!]
 		receiver	[rst-node!]
-		expr		[rst-expr!]
+		subs		[rst-node!]
 		return: 	[path!]
 		/local
 			p		[path!]
@@ -1563,15 +1577,48 @@ parser: context [
 		p/token: pos
 		p/accept: :path_accept
 		p/receiver: receiver
-		p/expr: expr
+		p/subs: subs
 		p
+	]
+
+	make-member: func [
+		name		[cell!]
+		return:		[member!]
+		/local
+			m		[member!]
+	][
+		m: xmalloc(member!)
+		SET_NODE_TYPE(m RST_MEMBER)
+		m/token: name
+		m
 	]
 
 	parse-struct-member: func [
 		ty		[struct-type!]
 		name	[cell!]
+		return: [member!]
+		/local
+			m	[member!]
+			sym [integer!]
+			w	[red-word!]
+			f	[struct-field!]
+			i	[integer!]
 	][
-		0
+		m: make-member name
+		w: as red-word! name
+		sym: symbol/resolve w/symbol
+		f: ty/fields
+		i: 0
+		loop ty/n-fields [
+			if sym = symbol/resolve f/name/symbol [
+				m/index: i
+				m/type: f/type
+				return m
+			]
+			i: i + 1
+			f: f + 1
+		]
+		null
 	]
 
 	parse-path: func [
@@ -1587,10 +1634,18 @@ parser: context [
 			s-tail	[cell!]
 			c		[context!]
 			v		[rst-node!]
+			sub		[rst-node!]
+			cur		[rst-node!]
+			node	[rst-node! value]
 			pp		[ptr-ptr!]
 			ty		[integer!]
+			idx		[integer!]
+			m		[member!]
 			t		[rst-type!]
 			p		[path!]
+			ptr		[ptr-type!]
+			arr		[array-type!]
+			int		[red-integer!]
 	][
 		val: block/rs-head as red-block! pc
 		s-tail: block/rs-tail as red-block! pc
@@ -1628,17 +1683,62 @@ parser: context [
 				]
 			][
 				if ty <> RST_VAR_DECL [throw-error [pc "invalid path"]]
+
+				t: type-checker/infer-type as var-decl! v ctx
+				cur: :node
 				while [val < s-tail][
-					t: type-checker/infer-type as var-decl! v ctx
 					val: val + 1
 					switch TYPE_KIND(t) [
 						RST_TYPE_STRUCT [
-							0 ;parse-struct-member t val
+							if TYPE_OF(val) <> TYPE_WORD [
+								throw-error [pc "expect a word for struct member" val]
+							]
+							m: parse-struct-member as struct-type! t val
+							t: m/type
+							sub: as rst-node! m
 						]
-						RST_TYPE_PTR [0]
-						RST_TYPE_ARRAY [0]
+						RST_TYPE_PTR RST_TYPE_ARRAY [
+							idx: 0
+							m: make-member val
+							switch TYPE_OF(val) [
+								TYPE_WORD [
+									w: as red-word! val
+									sym: symbol/resolve w/symbol
+									either k_value = sym [
+										idx: 0
+									][
+										sub: find-word w ctx RST_VAR_DECL
+										if null? sub [throw-error [pc "wrong index value"] val]
+										m/expr: as rst-expr! sub
+									]
+								]
+								TYPE_INTEGER [
+									int: as red-integer! val
+									idx: int/value
+								]
+								TYPE_PAREN [
+									0
+								]
+								default [throw-error [pc "wrong index value" val]]
+							]
+							ptr: as ptr-type! t
+							t: ptr/type
+							m/type: t
+							m/index: idx
+							sub: as rst-node! m
+						]
 						default [throw-error [pc "invalid path"]]
 					]
+					if null? sub [throw-error [pc "invalid path value:" val]]
+					cur/next: sub
+					cur: sub
+				]
+				p: make-path pc v node/next
+				p/type: t
+				either TYPE_KIND(t) = RST_TYPE_FUNC [		;-- function member in struct
+					pc: parse-call pc end as fn! p expr ctx 
+				][
+					expr/value: as int-ptr! p
 				]
 			]
 		][
