@@ -21,11 +21,10 @@ jobs:
       run: rebview.exe -qws red.r -r red.red
       shell: cmd
     - name: Compress binaries
-      uses: svenstaro/upx-action@v2
+      uses: crazy-max/ghaction-upx@v3
       with:
         files: |
           red.exe
-        strip: false
     - uses: actions/upload-artifact@v4
       with:
         name: rsc
