@@ -281,7 +281,7 @@ declare!: alias struct! [
 
 assignment!: alias struct! [
 	RST_EXPR_FIELDS(assignment!)
-	target		[variable!]
+	target		[rst-expr!]
 	expr		[rst-expr!]
 ]
 
@@ -438,6 +438,9 @@ parser: context [
 	k_dbl_slash:	symbol/make "//"
 	k_percent:		symbol/make "%"
 	k_star:			symbol/make "*"	
+	k_and:			symbol/make "and"
+	k_or:			symbol/make "or"
+	k_xor:			symbol/make "xor"
 
 	;-- issue directives
 	k_import:		symbol/make "import"
@@ -475,6 +478,9 @@ parser: context [
 		hashmap/put infix-Ops k_dbl_slash	as int-ptr! RST_OP_MOD
 		hashmap/put infix-Ops k_percent		as int-ptr! RST_OP_REM
 		hashmap/put infix-Ops k_star		as int-ptr! RST_OP_MUL
+		hashmap/put infix-Ops k_and			as int-ptr! RST_OP_ADD
+		hashmap/put infix-Ops k_or			as int-ptr! RST_OP_OR
+		hashmap/put infix-Ops k_xor			as int-ptr! RST_OP_XOR
 
 		hashmap/put keywords k_any		as int-ptr! :parse-any
         hashmap/put keywords k_all		as int-ptr! :parse-all
@@ -512,7 +518,7 @@ parser: context [
 	][
 		pc: pc + idx
 		if pc >= end [
-			throw-error [pc - 1 "EOF: expect mroe code"]
+			throw-error [pc - 1 "EOF: expect more code"]
 		]
 		pc
 	]
@@ -755,7 +761,7 @@ parser: context [
 	]
 
 	make-assignment: func [
-		target	[var-decl!]
+		target	[rst-expr!]
 		expr	[rst-expr!]
 		pos		[cell!]
 		return: [assignment!]
@@ -768,7 +774,7 @@ parser: context [
 		assign: as assignment! malloc size? assignment!
 		SET_NODE_TYPE(assign RST_ASSIGN)
 		assign/token: pos
-		assign/target: make-variable target pos
+		assign/target: target
 		assign/expr: expr
 		assign/accept: :assign_accept
 		assign
@@ -1656,9 +1662,12 @@ parser: context [
 			ptr		[ptr-type!]
 			arr		[array-type!]
 			int		[red-integer!]
-			get?	[logic!]
+			get? 	[logic!]
+			set?	[logic!]
 	][
-		get?: TYPE_OF(pc) = TYPE_GET_PATH
+		ty: TYPE_OF(pc)
+		get?: ty = TYPE_GET_PATH
+		set?: ty = TYPE_SET_PATH
 		val: block/rs-head as red-block! pc
 		s-tail: block/rs-tail as red-block! pc
 		v: find-word as red-word! val ctx -1	;-- resolve first word
@@ -1688,14 +1697,20 @@ parser: context [
 			]
 			if val = s-tail [throw-error [pc "invalid path"]]
 			either val + 1 = s-tail [
+				if all [ty <> RST_FUNC ty <> RST_VAR_DECL][
+					throw-error [pc "invalid path value:" val]
+				]
 				either get? [
-					if all [ty <> RST_FUNC ty <> RST_VAR_DECL][
-						throw-error [pc "invalid get-word:" val]
-					]
 					expr/value: as int-ptr! make-get-ptr pc as rst-expr! v
 				][
 					switch ty [
-						RST_FUNC		[pc: parse-call pc end as fn! v expr ctx]
+						RST_FUNC		[
+							either set? [
+								expr/value: as int-ptr! v
+							][
+								pc: parse-call pc end as fn! v expr ctx
+							]
+						]
 						RST_VAR_DECL	[expr/value: as int-ptr! make-variable as var-decl! v pc]
 						default			[throw-error [pc "invalid path"]]
 					]
@@ -1754,13 +1769,15 @@ parser: context [
 				]
 				p: make-path pc v node/next
 				p/type: t
-				either get? [
-					expr/value: as int-ptr! make-get-ptr pc as rst-expr! p
-				][
-					either TYPE_KIND(t) = RST_TYPE_FUNC [		;-- function member in struct
-						pc: parse-call pc end as fn! p expr ctx 
-					][
-						expr/value: as int-ptr! p
+				case [
+					get? [expr/value: as int-ptr! make-get-ptr pc as rst-expr! p]
+					set? [expr/value: as int-ptr! p]
+					true [
+						either TYPE_KIND(t) = RST_TYPE_FUNC [		;-- function member in struct
+							pc: parse-call pc end as fn! p expr ctx 
+						][
+							expr/value: as int-ptr! p
+						]
 					]
 				]
 			]
@@ -2049,8 +2066,9 @@ parser: context [
 			flags	[integer!]
 			pos		[cell!]
 			s		[rst-stmt!]
+			e		[rst-expr!]
 	][
-		var: null
+		e: null
 		switch TYPE_OF(pc) [
 			TYPE_SET_WORD [
 				var: as var-decl! find-word as red-word! pc ctx RST_VAR_DECL
@@ -2067,7 +2085,8 @@ parser: context [
 						pc: parse-assignment advance-next pc end end out ctx
 						var/init: as rst-expr! out/value
 						unless literal-expr? as rst-expr! out/value [
-							s: as rst-stmt! make-assignment var as rst-expr! out/value pos
+							e: as rst-expr! make-variable var pos
+							s: as rst-stmt! make-assignment e as rst-expr! out/value pos
 							ctx/last-stmt/next: s
 							ctx/last-stmt: s
 						]
@@ -2075,14 +2094,17 @@ parser: context [
 					]
 				]
 			]
-			TYPE_SET_PATH [0]
+			TYPE_SET_PATH [
+				parse-path pc end out ctx
+				e: as rst-expr! out/value
+			]
 			default [
 				return parse-expr pc end out ctx
 			]
 		]
 
 		pc: parse-assignment advance-next pc end end out ctx
-		s: as rst-stmt! make-assignment var as rst-expr! out/value pos
+		s: as rst-stmt! make-assignment e as rst-expr! out/value pos
 		ctx/last-stmt/next: s
 		ctx/last-stmt: s
 		pc

@@ -393,14 +393,24 @@ ir-graph: context [
 	visit-assign: func [
 		a [assignment!] ctx [ssa-ctx!] return: [instr!]
 		/local
-			lhs	[variable!]
+			lhs	[rst-expr!]
 			rhs	[rst-expr!]
 			val [instr!]
+			var [variable!]
 	][
 		lhs: a/target
 		rhs: a/expr
 		val: gen-expr rhs ctx
-		gen-var-write lhs/decl val ctx
+		switch NODE_TYPE(lhs) [
+			RST_VAR [
+				var: as variable! lhs
+				gen-var-write var/decl val ctx
+			]
+			RST_PATH [
+				0
+			]
+			default [0]
+		]
 		val
 	]
 

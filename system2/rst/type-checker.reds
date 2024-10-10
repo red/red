@@ -292,7 +292,7 @@ type-checker: context [
 	]
 
 	check-write: func [
-		var		[variable!]
+		e		[rst-expr!]
 		ctx		[context!]
 		return: [rst-type!]
 		/local
@@ -300,9 +300,11 @@ type-checker: context [
 			len		[integer!]
 			p		[int-ptr!]
 			ssa		[ssa-var!]
+			var		[variable!]
 	][
-		switch NODE_TYPE(var) [
+		switch NODE_TYPE(e) [
 			RST_VAR [
+				var: as variable! e
 				decl: var/decl
 				if all [LOCAL_VAR?(decl) ctx/level > 0][
 					ssa: decl/ssa
@@ -347,7 +349,7 @@ type-checker: context [
 		/local
 			ltype	[rst-type!]
 			type	[rst-type!]
-			var		[variable!]
+			var		[rst-expr!]
 	][
 		var: a/target
 		ltype: check-write var ctx
