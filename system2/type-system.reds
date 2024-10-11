@@ -325,6 +325,8 @@ type-system: context [
 	void-type:		as rst-type! 0
 	null-type:		as rst-type! 0
 	cstr-type:		as rst-type! 0
+	int-ptr-type:	as rst-type! 0
+	byte-ptr-type:	as rst-type! 0
 
 	int-types: as ptr-array! 0
 
@@ -340,6 +342,8 @@ type-system: context [
 		logic-type: make-logic-type
 		byte-type: get-int-type 8 false
 		cstr-type: as rst-type! make-array-type 0 as rst-type! byte-type
+		int-ptr-type: as rst-type! make-ptr-type as rst-type! integer-type
+		byte-ptr-type: as rst-type! make-ptr-type as rst-type! byte-type
 	]
 
 	make-cache: func [

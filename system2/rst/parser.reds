@@ -127,15 +127,18 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	N_PUSH
 	N_POP
 	N_LOG_B
-	N_STACK_TOP
-	N_STACK_FRAME
+	N_GET_STACK_TOP
+	N_SET_STACK_TOP
+	N_GET_STACK_FRAME
+	N_SET_STACK_FRAME
 	N_STACK_ALIGN
 	N_STACK_ALLOC
 	N_STACK_FREE
 	N_STACK_PUSH_ALL
 	N_STACK_POP_ALL
 	N_PC
-	N_CPU_REG
+	N_GET_CPU_REG
+	N_SET_CPU_REG
 	N_CPU_OVERFLOW
 	N_IO_READ
 	N_IO_WRITE
@@ -144,6 +147,7 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	N_ATOMIC_STORE
 	N_ATOMIC_CAS
 	N_ATOMIC_BIN_OP
+	N_NATIVE_NUM		;-- number of natives
 ]
 
 #enum fn-attr! [
@@ -379,7 +383,7 @@ catch!: alias struct! [
 ]
 
 native!: alias struct! [
-	symbol		[integer!]
+	id			[integer!]
 	n-params	[integer!]
 	param-types [ptr-ptr!]
 	ret-type	[rst-type!]
@@ -509,12 +513,70 @@ parser: context [
 	k_typecheck:	symbol/make "typecheck"
 	k_build-date:	symbol/make "build-date"
 
+	;-- system/*
+	k_system:		symbol/make "system"
+	k_stack:		symbol/make "stack"
+	k_io:			symbol/make "io"
+	k_pc:			symbol/make "pc"
+	k_cpu:			symbol/make "cpu"
+	k_eax:			symbol/make "eax"
+	k_ecx:			symbol/make "ecx"
+	k_edx:			symbol/make "edx"
+	k_ebx:			symbol/make "ebx"
+	k_esp:			symbol/make "esp"
+	k_ebp:			symbol/make "ebp"
+	k_esi:			symbol/make "esi"
+	k_edi:			symbol/make "edi"
+	k_read:			symbol/make "read"
+	k_write:		symbol/make "write"
+	k_top:			symbol/make "top"
+	k_frame:		symbol/make "frame"
+	k_align:		symbol/make "align"
+	k_allocate:		symbol/make "allocate"
+	k_free:			symbol/make "free"
+	k_push-all:		symbol/make "push-all"
+	k_pop-all:		symbol/make "pop-all"
+	k_overflow?:	symbol/make "overflow?"
+	k_atomic:		symbol/make "atomic"
+	k_fence:		symbol/make "fence"
+	k_load:			symbol/make "load"
+	k_store:		symbol/make "store"
+	k_cas:			symbol/make "cas"
+	k_words:		symbol/make "words"
+	k_add:			symbol/make "add"
+	k_sub:			symbol/make "sub"
+	k_or:			symbol/make "or"
+	k_xor:			symbol/make "xor"
+	k_and:			symbol/make "and"
+	k_old:			symbol/make "old"
+	k_zero:			symbol/make "zero"
+
 	keywords:  as int-ptr! 0
 	infix-Ops: as int-ptr! 0
 
-	native-push:	as native! 0
-	native-pop:		as native! 0
-	native-log-b:	as native! 0
+	native-push:		as native! 0
+	native-pop:			as native! 0
+	native-log-b:		as native! 0
+	get-stack-top:		as native! 0
+	set-stack-top:		as native! 0
+	get-stack-frame:	as native! 0
+	set-stack-frame:	as native! 0
+	stack-align:		as native! 0
+	stack-allocate: 	as native! 0
+	stack-free:			as native! 0
+	stack-push-all: 	as native! 0
+	stack-pop-all:		as native! 0
+	system-pc:			as native! 0
+	get-cup-reg:		as native! 0
+	set-cup-reg:		as native! 0
+	cpu-overflow?:		as native! 0
+	io-write:			as native! 0
+	io-read:			as native! 0
+	atomic-fence:		as native! 0
+	atomic-load:		as native! 0
+	atomic-store:		as native! 0
+	atomic-cas:			as native! 0
+	atomic-bin-op:		as native! 0
 
 	init: func [/local arr [ptr-ptr!]][
 		keywords: hashmap/make 300
@@ -567,15 +629,28 @@ parser: context [
         hashmap/put keywords k_pop		as int-ptr! :parse-pop
         hashmap/put keywords k_log-b	as int-ptr! :parse-log-b
 
-		arr: as ptr-ptr! malloc size? int-ptr!
-		arr/value: as int-ptr! type-system/integer-type
-        native-push: make-native k_push 1 arr type-system/void-type
-        native-pop: make-native k_pop 0 null as rst-type! type-system/integer-type
-        native-log-b: make-native k_log-b 1 arr as rst-type! type-system/integer-type
+		with type-system [
+			arr: as ptr-ptr! malloc size? int-ptr!
+			arr/value: as int-ptr! integer-type
+	        native-push: make-native N_PUSH 1 arr void-type
+	        native-pop: make-native N_POP 0 null as rst-type! integer-type
+	        native-log-b: make-native N_LOG_B 1 arr as rst-type! integer-type
+
+			arr: as ptr-ptr! malloc size? int-ptr!
+			arr/value: as int-ptr! int-ptr-type
+	        get-stack-top: make-native N_GET_STACK_TOP 0 null int-ptr-type
+	        set-stack-top: make-native N_SET_STACK_TOP 1 arr void-type
+
+	        arr: as ptr-ptr! malloc 2 * size? int-ptr!
+	        stack-allocate: make-native N_STACK_ALLOC 2 arr int-ptr-type
+			arr/value: as int-ptr! integer-type		;-- slots
+			arr: arr + 1
+			arr/value: as int-ptr! logic-type		;-- /zero
+        ]
 	]
 
 	make-native: func [
-		symbol		[integer!]
+		id			[integer!]
 		n-params	[integer!]
 		ptypes		[ptr-ptr!]
 		ret-type	[rst-type!]
@@ -584,7 +659,7 @@ parser: context [
 			f		[native!]
 	][
 		f: xmalloc(native!)
-		f/symbol: symbol
+		f/id: id
 		f/n-params: n-params
 		f/param-types: ptypes
 		f/ret-type: ret-type
@@ -1692,34 +1767,44 @@ parser: context [
 		KEYWORD_FN_SPEC
 	][]
 
-	parse-logic: func [
-		;pc end expr ctx
-		KEYWORD_FN_SPEC
+	make-logic: func [
+		pc		[cell!]
+		val		[logic!]
+		return: [rst-expr!]
 		/local
-			b	[logic-literal!]
-			bl	[red-logic!]
+			b	[logic-literal!]			
 	][
-		bl: as red-logic! pc
 		b: as logic-literal! malloc size? logic-literal!
 		b_accept: func [ACCEPT_FN_SPEC][
 			v/visit-literal self data
 		]
 		SET_NODE_TYPE(b RST_LOGIC)
 		b/token: pc
-		b/value: bl/value
+		b/value: val
 		b/accept: :b_accept
 		b/type: type-system/logic-type
+		as rst-expr! b
+	]
 
-		expr/value: as int-ptr! b
+	parse-logic: func [
+		;pc end expr ctx
+		KEYWORD_FN_SPEC
+		/local
+			bl	[red-logic!]
+	][
+		bl: as red-logic! pc
+		expr/value: as int-ptr! make-logic pc bl/value
 		pc
 	]
 
 	make-native-call: func [
 		pos		[cell!]
 		native	[native!]
+		args	[rst-expr!]
 		return: [native-call!]
 		/local
 			e	[native-call!]
+			pv	[ptr-value!]
 	][
 		native_accept: func [ACCEPT_FN_SPEC][
 			v/visit-native self data
@@ -1729,6 +1814,7 @@ parser: context [
 		e/token: pos
 		e/accept: :native_accept
 		e/native: native
+		e/args: args
 		e/type: native/ret-type
 		e
 	]
@@ -1739,9 +1825,8 @@ parser: context [
 			e	[native-call!]
 			pv	[ptr-value!]
 	][
-		e: make-native-call pc native-push
 		pc: fetch-args pc end :pv ctx 1
-		e/args: as rst-expr! pv/value
+		e: make-native-call pc native-push as rst-expr! pv/value
 		expr/value: as int-ptr! e
 		pc
 	]
@@ -1751,7 +1836,7 @@ parser: context [
 		/local
 			e	[native-call!]
 	][
-		e: make-native-call pc native-pop
+		e: make-native-call pc native-pop null
 		expr/value: as int-ptr! e
 		pc
 	]
@@ -1762,9 +1847,8 @@ parser: context [
 			e	[native-call!]
 			pv	[ptr-value!]
 	][
-		e: make-native-call pc native-log-b
 		pc: fetch-args pc end :pv ctx 1
-		e/args: as rst-expr! pv/value
+		e: make-native-call pc native-log-b as rst-expr! pv/value
 		expr/value: as int-ptr! e
 		pc
 	]
@@ -1829,6 +1913,105 @@ parser: context [
 		null
 	]
 
+	parse-system-path: func [
+		pc		[cell!]
+		end		[cell!]
+		expr	[ptr-ptr!]
+		ctx		[context!]
+		return: [cell!]
+		/local
+			ty sym	[integer!]
+			w		[red-word!]
+			set? 	[logic!]
+			val		[cell!]
+			s-tail	[cell!]
+			f		[native!]
+			pv		[ptr-value!]
+			args	[rst-expr!]
+			z?		[logic!]
+			check-pc [subroutine!]
+	][
+		check-pc: [
+			if any [
+				val = s-tail
+				TYPE_OF(w) <> TYPE_WORD
+			][throw-error [pc "invalid path"]]
+		]
+		ty: TYPE_OF(pc)
+		if ty = TYPE_GET_PATH [return null]
+		set?: ty = TYPE_SET_PATH
+		val: block/rs-head as red-block! pc
+		s-tail: block/rs-tail as red-block! pc
+
+		val: val + 1
+		if TYPE_OF(val) <> TYPE_WORD [throw-error [pc "invalid path value:" val]]
+		w: as red-word! val
+		sym: symbol/resolve w/symbol
+		val: val + 1
+		w: as red-word! val
+		expr/value: as int-ptr! case [
+			sym = k_stack [
+				check-pc
+				sym: symbol/resolve w/symbol
+				case [
+					sym = k_top [
+						f: either set? [set-stack-top][get-stack-top]
+						make-native-call pc f null
+					]
+					sym = k_frame [
+						f: either set? [set-stack-frame][get-stack-frame]
+						make-native-call pc f null
+					]
+					sym = k_allocate [
+						if set? [return null]
+						w: as red-word! val + 1
+						z?: no
+						if (as cell! w) < s-tail [
+							val: as cell! w
+							either all [T_WORD?(w) k_zero = symbol/resolve w/symbol][
+								z?: yes
+							][
+								return null
+							]
+						]
+						pc: fetch-args pc end :pv ctx 1
+						args: as rst-expr! pv/value
+						args/next: make-logic as cell! w z?
+						make-native-call pc stack-allocate args
+					]
+					true [
+						pc: null
+						null
+					]
+				]
+			]
+			sym = k_atomic [
+				0
+			]
+			sym = k_words [
+				0
+			]
+			sym = k_alias [
+				0
+			]
+			sym = k_pc [
+				0
+			]
+			sym = k_cpu [
+				0
+			]
+			sym = k_io [
+				0
+			]
+			true [
+				pc: null
+				null
+			]
+		]
+		if val + 1 < s-tail [throw-error [pc "invalid path value:" val + 1]]
+		pc
+	]
+
 	parse-path: func [
 		pc		[cell!]
 		end		[cell!]
@@ -1857,126 +2040,128 @@ parser: context [
 			get? 	[logic!]
 			set?	[logic!]
 	][
+		val: block/rs-head as red-block! pc
+		s-tail: block/rs-tail as red-block! pc
+
+		w: as red-word! val
+		if k_system = symbol/resolve w/symbol [	;-- special case: system/*
+			pc: parse-system-path pc end expr ctx
+			if pc <> null [return pc]
+		]
+
 		ty: TYPE_OF(pc)
 		get?: ty = TYPE_GET_PATH
 		set?: ty = TYPE_SET_PATH
-		val: block/rs-head as red-block! pc
-		s-tail: block/rs-tail as red-block! pc
-		v: find-word as red-word! val ctx -1	;-- resolve first word
+		v: find-word w ctx -1	;-- resolve first word
 		c: ctx
-		either v <> null [
-			ty: NODE_TYPE(v)
-			if ty = RST_CONTEXT [
-				while [
-					val: val + 1
-					w: as red-word! val
-					all [
-						val < s-tail
-						T_WORD?(w)
-					]
-				][
-					sym: symbol/resolve w/symbol
-					c: as context! v
-					pp: hashmap/get c/decls sym
-					either pp <> null [
-						v: as rst-node! pp/value
-						ty: NODE_TYPE(v)
-						if ty <> RST_CONTEXT [break]
-					][
-						throw-error [pc "undefine symbol in path:" w]
-					]
-				]
-			]
-			if val = s-tail [throw-error [pc "invalid path"]]
-			either val + 1 = s-tail [
-				if all [ty <> RST_FUNC ty <> RST_VAR_DECL][
-					throw-error [pc "invalid path value:" val]
-				]
-				either get? [
-					expr/value: as int-ptr! make-get-ptr pc as rst-expr! v
-				][
-					switch ty [
-						RST_FUNC		[
-							either set? [
-								expr/value: as int-ptr! v
-							][
-								pc: parse-call pc end as fn! v expr ctx
-							]
-						]
-						RST_VAR_DECL	[expr/value: as int-ptr! make-variable as var-decl! v pc]
-						default			[throw-error [pc "invalid path"]]
-					]
+		if null? v [throw-error [pc "undefine symbol in path:" val]]
+		ty: NODE_TYPE(v)
+		if ty = RST_CONTEXT [
+			while [
+				val: val + 1
+				w: as red-word! val
+				all [
+					val < s-tail
+					T_WORD?(w)
 				]
 			][
-				if ty <> RST_VAR_DECL [throw-error [pc "invalid path"]]
-
-				t: type-checker/infer-type as var-decl! v ctx
-				cur: :node
-				while [val < s-tail][
-					val: val + 1
-					switch TYPE_KIND(t) [
-						RST_TYPE_STRUCT [
-							if TYPE_OF(val) <> TYPE_WORD [
-								throw-error [pc "expect a word for struct member" val]
-							]
-							m: parse-struct-member as struct-type! t val
-							t: m/type
-							sub: as rst-node! m
-						]
-						RST_TYPE_PTR RST_TYPE_ARRAY [
-							idx: 0
-							m: make-member val
-							switch TYPE_OF(val) [
-								TYPE_WORD [
-									w: as red-word! val
-									sym: symbol/resolve w/symbol
-									either k_value = sym [
-										idx: 0
-									][
-										sub: find-word w ctx RST_VAR_DECL
-										if null? sub [throw-error [pc "wrong index value"] val]
-										m/expr: as rst-expr! sub
-									]
-								]
-								TYPE_INTEGER [
-									int: as red-integer! val
-									idx: int/value
-								]
-								TYPE_PAREN [
-									m/expr: parse-paren as red-block! val ctx
-								]
-								default [throw-error [pc "wrong index value" val]]
-							]
-							ptr: as ptr-type! t
-							t: ptr/type
-							m/type: t
-							m/index: idx
-							sub: as rst-node! m
-						]
-						default [throw-error [pc "invalid path"]]
-					]
-					if null? sub [throw-error [pc "invalid path value:" val]]
-					cur/next: sub
-					cur: sub
+				sym: symbol/resolve w/symbol
+				c: as context! v
+				pp: hashmap/get c/decls sym
+				either pp <> null [
+					v: as rst-node! pp/value
+					ty: NODE_TYPE(v)
+					if ty <> RST_CONTEXT [break]
+				][
+					throw-error [pc "undefine symbol in path:" w]
 				]
-				p: make-path pc v node/next
-				p/type: t
-				case [
-					get? [expr/value: as int-ptr! make-get-ptr pc as rst-expr! p]
-					set? [expr/value: as int-ptr! p]
-					true [
-						either TYPE_KIND(t) = RST_TYPE_FUNC [		;-- function member in struct
-							pc: parse-call pc end as fn! p expr ctx 
+			]
+		]
+		if val = s-tail [throw-error [pc "invalid path"]]
+		either val + 1 = s-tail [
+			if all [ty <> RST_FUNC ty <> RST_VAR_DECL][
+				throw-error [pc "invalid path value:" val]
+			]
+			either get? [
+				expr/value: as int-ptr! make-get-ptr pc as rst-expr! v
+			][
+				switch ty [
+					RST_FUNC		[
+						either set? [
+							expr/value: as int-ptr! v
 						][
-							expr/value: as int-ptr! p
+							pc: parse-call pc end as fn! v expr ctx
 						]
 					]
+					RST_VAR_DECL	[expr/value: as int-ptr! make-variable as var-decl! v pc]
+					default			[throw-error [pc "invalid path"]]
 				]
 			]
 		][
-			;-- system/*
-			
-			throw-error [pc "undefine symbol in path:" val]
+			if ty <> RST_VAR_DECL [throw-error [pc "invalid path"]]
+
+			t: type-checker/infer-type as var-decl! v ctx
+			cur: :node
+			while [val < s-tail][
+				val: val + 1
+				switch TYPE_KIND(t) [
+					RST_TYPE_STRUCT [
+						if TYPE_OF(val) <> TYPE_WORD [
+							throw-error [pc "expect a word for struct member" val]
+						]
+						m: parse-struct-member as struct-type! t val
+						t: m/type
+						sub: as rst-node! m
+					]
+					RST_TYPE_PTR RST_TYPE_ARRAY [
+						idx: 0
+						m: make-member val
+						switch TYPE_OF(val) [
+							TYPE_WORD [
+								w: as red-word! val
+								sym: symbol/resolve w/symbol
+								either k_value = sym [
+									idx: 0
+								][
+									sub: find-word w ctx RST_VAR_DECL
+									if null? sub [throw-error [pc "wrong index value"] val]
+									m/expr: as rst-expr! sub
+								]
+							]
+							TYPE_INTEGER [
+								int: as red-integer! val
+								idx: int/value
+							]
+							TYPE_PAREN [
+								m/expr: parse-paren as red-block! val ctx
+							]
+							default [throw-error [pc "wrong index value" val]]
+						]
+						ptr: as ptr-type! t
+						t: ptr/type
+						m/type: t
+						m/index: idx
+						sub: as rst-node! m
+					]
+					default [throw-error [pc "invalid path"]]
+				]
+				if null? sub [throw-error [pc "invalid path value:" val]]
+				cur/next: sub
+				cur: sub
+			]
+			p: make-path pc v node/next
+			p/type: t
+			case [
+				get? [expr/value: as int-ptr! make-get-ptr pc as rst-expr! p]
+				set? [expr/value: as int-ptr! p]
+				true [
+					either TYPE_KIND(t) = RST_TYPE_FUNC [		;-- function member in struct
+						pc: parse-call pc end as fn! p expr ctx 
+					][
+						expr/value: as int-ptr! p
+					]
+				]
+			]
 		]
 		pc
 	]
