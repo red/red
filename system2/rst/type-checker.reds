@@ -439,6 +439,22 @@ type-checker: context [
 		type-system/void-type
 	]
 
+	visit-throw: func [p [path!] ctx [context!] return: [rst-type!]][
+		type-system/void-type
+	]
+
+	visit-catch: func [p [path!] ctx [context!] return: [rst-type!]][
+		type-system/void-type
+	]
+
+	visit-native: func [p [path!] ctx [context!] return: [rst-type!]][
+		type-system/void-type
+	]
+
+	visit-assert: func [p [path!] ctx [context!] return: [rst-type!]][
+		type-system/void-type
+	]
+
 	visit-path: func [p [path!] ctx [context!] return: [rst-type!]][
 		type-system/void-type
 	]
@@ -550,6 +566,10 @@ type-checker: context [
 	checker/visit-get-ptr:	as visit-fn! :visit-get-ptr
 	checker/visit-path:		as visit-fn! :visit-path
 	checker/visit-any-all:	as visit-fn! :visit-any-all
+	checker/visit-throw:	as visit-fn! :visit-throw
+	checker/visit-catch:	as visit-fn! :visit-catch
+	checker/visit-native:	as visit-fn! :visit-native
+	checker/visit-assert:	as visit-fn! :visit-assert
 
 	make-cmp-op: func [
 		op			[rst-op!]

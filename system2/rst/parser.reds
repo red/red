@@ -32,6 +32,10 @@ visitor!: alias struct! [
 	VISITOR_FUNC(visit-comment)
 	VISITOR_FUNC(visit-path)
 	VISITOR_FUNC(visit-any-all)
+	VISITOR_FUNC(visit-throw)
+	VISITOR_FUNC(visit-catch)
+	VISITOR_FUNC(visit-native)
+	VISITOR_FUNC(visit-assert)
 ]
 
 #define ACCEPT_FN_SPEC [self [int-ptr!] v [visitor!] data [int-ptr!] return: [int-ptr!]]
@@ -92,6 +96,7 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	RST_SIZEOF
 	RST_CAST
 	RST_FN_CALL
+	RST_NATIVE_CALL
 	RST_VAR
 	RST_IF
 	RST_SWITCH
@@ -114,7 +119,31 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	RST_CATCH
 	RST_RETURN
 	RST_EXIT
+	RST_ASSERT
 	RST_COMMENT
+]
+
+#enum rst-native! [
+	N_PUSH
+	N_POP
+	N_LOG_B
+	N_STACK_TOP
+	N_STACK_FRAME
+	N_STACK_ALIGN
+	N_STACK_ALLOC
+	N_STACK_FREE
+	N_STACK_PUSH_ALL
+	N_STACK_POP_ALL
+	N_PC
+	N_CPU_REG
+	N_CPU_OVERFLOW
+	N_IO_READ
+	N_IO_WRITE
+	N_ATOMIC_FENCE
+	N_ATOMIC_LOAD
+	N_ATOMIC_STORE
+	N_ATOMIC_CAS
+	N_ATOMIC_BIN_OP
 ]
 
 #enum fn-attr! [
@@ -343,6 +372,25 @@ break!: alias struct! [
 	RST_STMT_FIELDS(rst-node!)
 ]
 
+catch!: alias struct! [
+	RST_STMT_FIELDS(rst-node!)
+	filter		[integer!]
+	body		[rst-stmt!]
+]
+
+native!: alias struct! [
+	symbol		[integer!]
+	n-params	[integer!]
+	param-types [ptr-ptr!]
+	ret-type	[rst-type!]
+]
+
+native-call!: alias struct! [
+	RST_EXPR_FIELDS(native-call!)
+	native		[native!]
+	args		[rst-expr!]
+]
+
 unary!: alias struct! [
 	RST_EXPR_FIELDS(unary!)
 	expr		[rst-expr!]
@@ -423,6 +471,9 @@ parser: context [
 	k_false:	symbol/make "false"
 	k_default:	symbol/make "default"
 	k_keep:		symbol/make "keep"
+	k_push:		symbol/make "push"
+	k_pop:		symbol/make "pop"
+	k_log-b:	symbol/make "log-b"
 
 	k_+:			symbol/make "+"
 	k_-:			symbol/make "-"
@@ -461,7 +512,11 @@ parser: context [
 	keywords:  as int-ptr! 0
 	infix-Ops: as int-ptr! 0
 
-	init: does [
+	native-push:	as native! 0
+	native-pop:		as native! 0
+	native-log-b:	as native! 0
+
+	init: func [/local arr [ptr-ptr!]][
 		keywords: hashmap/make 300
 		infix-Ops: hashmap/make 100
 		hashmap/put infix-Ops k_+			as int-ptr! RST_OP_ADD
@@ -508,6 +563,32 @@ parser: context [
         hashmap/put keywords k_use		as int-ptr! :parse-use
         hashmap/put keywords k_true		as int-ptr! :parse-logic
         hashmap/put keywords k_false	as int-ptr! :parse-logic
+        hashmap/put keywords k_push		as int-ptr! :parse-push
+        hashmap/put keywords k_pop		as int-ptr! :parse-pop
+        hashmap/put keywords k_log-b	as int-ptr! :parse-log-b
+
+		arr: as ptr-ptr! malloc size? int-ptr!
+		arr/value: as int-ptr! type-system/integer-type
+        native-push: make-native k_push 1 arr type-system/void-type
+        native-pop: make-native k_pop 0 null as rst-type! type-system/integer-type
+        native-log-b: make-native k_log-b 1 arr as rst-type! type-system/integer-type
+	]
+
+	make-native: func [
+		symbol		[integer!]
+		n-params	[integer!]
+		ptypes		[ptr-ptr!]
+		ret-type	[rst-type!]
+		return:		[native!]
+		/local
+			f		[native!]
+	][
+		f: xmalloc(native!)
+		f/symbol: symbol
+		f/n-params: n-params
+		f/param-types: ptypes
+		f/ret-type: ret-type
+		f
 	]
 
 	advance: func [
@@ -813,6 +894,30 @@ parser: context [
 		var
 	]
 
+	fetch-args: func [
+		pc		[cell!]
+		end		[cell!]
+		args	[ptr-ptr!]
+		ctx		[context!]
+		n		[integer!]
+		return: [cell!]
+		/local
+			beg [rst-node! value]
+			cur [rst-node!]
+			pp	[ptr-value!]
+	][
+		beg/next: null
+		cur: :beg
+		loop n [
+			pc: advance-next pc end
+			pc: parse-expr pc end :pp ctx
+			cur/next: as rst-node! pp/value
+			cur: cur/next
+		]
+		args/value: as int-ptr! beg/next
+		pc
+	]
+
 	parse-call: func [
 		pc		[cell!]
 		end		[cell!]
@@ -824,10 +929,8 @@ parser: context [
 			fc	[fn-call!]
 			n	[integer!]
 			ft	[fn-type!]
-			pp	[ptr-value!]
-			beg [rst-node! value]
-			cur [rst-node!]
 			p	[path!]
+			pp	[ptr-value!]
 	][
 		fc: as fn-call! malloc size? fn-call!
 		SET_NODE_TYPE(fc RST_FN_CALL)
@@ -843,17 +946,9 @@ parser: context [
 			p: as path! fn
 			ft: as fn-type! p/type
 		]
-
-		beg/next: null
-		cur: :beg
 		n: ft/n-params
-		loop n [
-			pc: advance-next pc end
-			pc: parse-expr pc end :pp ctx
-			cur/next: as rst-node! pp/value
-			cur: cur/next
-		]
-		fc/args: as rst-expr! beg/next
+		pc: fetch-args pc end :pp ctx n
+		fc/args: as rst-expr! pp/value
 		out/value: as int-ptr! fc
 		pc
 	]
@@ -1276,7 +1371,6 @@ parser: context [
 		KEYWORD_FN_SPEC
 		/local
 			e	[unary!]
-			pv	[ptr-value!]
 	][
 		not_accept: func [ACCEPT_FN_SPEC][
 			v/visit-not self data
@@ -1468,15 +1562,58 @@ parser: context [
 
 	parse-throw: func [
 		KEYWORD_FN_SPEC
-	][]
+		/local
+			e	[unary!]
+	][
+		throw_accept: func [ACCEPT_FN_SPEC][
+			v/visit-throw self data
+		]
+		pc: parse-unary pc end expr ctx
+
+		e: as unary! expr/value
+		e/accept: :throw_accept
+		SET_NODE_TYPE(e RST_THROW)
+		expr/value: as int-ptr! e
+		pc
+	]
 
 	parse-catch: func [
 		KEYWORD_FN_SPEC
-	][]
+		/local
+			c	[catch!]
+			int [red-integer!]
+	][
+		catch_accept: func [ACCEPT_FN_SPEC][
+			v/visit-catch self data
+		]
+		int: as red-integer! expect-next pc end TYPE_INTEGER
+		pc: expect-next as cell! int end TYPE_BLOCK
+		c: xmalloc(catch!)
+		SET_NODE_TYPE(c RST_CATCH)
+		c/token: pc
+		c/filter: int/value
+		c/body: parse-block as red-block! pc ctx
+		c/accept: :catch_accept
+		expr/value: as int-ptr! c
+		pc
+	]
 
 	parse-assert: func [
 		KEYWORD_FN_SPEC
-	][]
+		/local
+			e	[unary!]
+	][
+		assert_accept: func [ACCEPT_FN_SPEC][
+			v/visit-assert self data
+		]
+		pc: parse-unary pc end expr ctx
+
+		e: as unary! expr/value
+		e/accept: :assert_accept
+		SET_NODE_TYPE(e RST_ASSERT)
+		expr/value: as int-ptr! e
+		pc
+	]
 
 	parse-comment: func [
 		KEYWORD_FN_SPEC
@@ -1574,6 +1711,61 @@ parser: context [
 		b/type: type-system/logic-type
 
 		expr/value: as int-ptr! b
+		pc
+	]
+
+	make-native-call: func [
+		pos		[cell!]
+		native	[native!]
+		return: [native-call!]
+		/local
+			e	[native-call!]
+	][
+		native_accept: func [ACCEPT_FN_SPEC][
+			v/visit-native self data
+		]
+		e: xmalloc(native-call!)
+		SET_NODE_TYPE(e RST_NATIVE_CALL)
+		e/token: pos
+		e/accept: :native_accept
+		e/native: native
+		e/type: native/ret-type
+		e
+	]
+
+	parse-push: func [
+		KEYWORD_FN_SPEC
+		/local
+			e	[native-call!]
+			pv	[ptr-value!]
+	][
+		e: make-native-call pc native-push
+		pc: fetch-args pc end :pv ctx 1
+		e/args: as rst-expr! pv/value
+		expr/value: as int-ptr! e
+		pc
+	]
+
+	parse-pop: func [
+		KEYWORD_FN_SPEC
+		/local
+			e	[native-call!]
+	][
+		e: make-native-call pc native-pop
+		expr/value: as int-ptr! e
+		pc
+	]
+
+	parse-log-b: func [
+		KEYWORD_FN_SPEC
+		/local
+			e	[native-call!]
+			pv	[ptr-value!]
+	][
+		e: make-native-call pc native-log-b
+		pc: fetch-args pc end :pv ctx 1
+		e/args: as rst-expr! pv/value
+		expr/value: as int-ptr! e
 		pc
 	]
 
@@ -2369,6 +2561,7 @@ parser: context [
 					sym = k_typed	 [FN_TYPED]
 					sym = k_infix	 [FN_INFIX]
 					sym = k_custom	 [FN_CUSTOM]
+					sym = k_catch	 [FN_CATCH]
 					true [
 						throw-error [p "unknown func attribute:" p]
 						0

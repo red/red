@@ -111,6 +111,22 @@ rst-printer: context [
 		0
 	]
 
+	visit-throw: func [r [rst-stmt!] i [integer!]][
+		0
+	]
+
+	visit-catch: func [r [rst-stmt!] i [integer!]][
+		0
+	]
+
+	visit-native: func [r [rst-stmt!] i [integer!]][
+		0
+	]
+
+	visit-assert: func [r [rst-stmt!] i [integer!]][
+		0
+	]
+
 	visit-fn-call: func [fc [fn-call!] i [integer!] /local arg [rst-expr!]][
 		do-i i prin-token fc/token prin " ["
 		arg: fc/args
@@ -149,6 +165,10 @@ rst-printer: context [
 	printer/visit-get-ptr:	as visit-fn! :visit-get-ptr
 	printer/visit-path:		as visit-fn! :visit-path
 	printer/visit-any-all:	as visit-fn! :visit-any-all
+	printer/visit-throw:	as visit-fn! :visit-throw
+	printer/visit-catch:	as visit-fn! :visit-catch
+	printer/visit-native:	as visit-fn! :visit-native
+	printer/visit-assert:	as visit-fn! :visit-assert
 
 	do-i: func [i [integer!]][
 		loop i [prin "    "]
