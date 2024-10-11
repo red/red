@@ -226,6 +226,7 @@ map: context [
 				]
 				size: get-int-from spec
 				if negative? size [fire [TO_ERROR(script out-of-range) spec]]
+				size: size * 2
 			]
 			TYPE_ANY_LIST [
 				size: block/rs-length? as red-block! spec
@@ -236,7 +237,7 @@ map: context [
 			default [fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_MAP spec]]
 		]
 
-		if zero? size [size: 1]
+		if zero? size [size: 2]
 		either blk? [
 			; use clone here to prevent extra copying of spec
 			blk: block/clone as red-block! spec no no
