@@ -105,6 +105,7 @@ draw-begin: func [
 	ctx/matrix-order:	MATRIX-PREPEND
 	ctx/pattern?:		pattern?
 	ctx/font-antialias: CAIRO_ANTIALIAS_DEFAULT
+	ctx/line-width?:	yes
 
 	cairo_get_matrix cr as cairo_matrix_t! ctx/device-matrix
 	cairo_identity_matrix cr
@@ -1465,24 +1466,37 @@ OS-draw-curve: func [
 		saved	[cairo_matrix_t! value]
 		pt		[red-point2D!]
 		sx sy p2x p2y p3x p3y [float!]
+		cp1x	[float!]
+		cp1y	[float!]
+		cp2x	[float!]
+		cp2y	[float!]
 ][
 	cr: dc/cr
-
-	ctx-matrix-adapt dc saved
-	if (as-integer end - start) >> 4 = 3    ; four input points
-	[
-		GET_PAIR_XY_F(start sx sy)
-		cairo_move_to cr sx sy
-		start: start + 1
-	]
-
 	p2: start + 1
 	p3: start + 2
 	GET_PAIR_XY_F(start sx sy)
 	GET_PAIR_XY_F(p2 p2x p2y)
 	GET_PAIR_XY_F(p3 p3x p3y)
-	cairo_curve_to cr sx sy p2x p2y p3x p3y
-	check-grad-line dc/grad-pen start start + 2
+
+	ctx-matrix-adapt dc saved
+	either (as-integer end - start) >> 4 = 2 [	;-- three points
+		;-- p0, p1, p2  -->  p0, (p0 + 2p1) / 3, (2p1 + p2) / 3, p2
+		cp1x: (p2x * 2.0) + sx / 3.0
+		cp1y: (p2y * 2.0) + sy / 3.0
+		cp2x: (p2x * 2.0) + p3x / 3.0
+		cp2y: (p2y * 2.0) + p3y / 3.0
+
+	][	; four input points
+		cp1x: p2x
+		cp1y: p2y
+		cp2x: p3x
+		cp2y: p3y
+	]
+	
+	cairo_move_to cr sx sy
+	GET_PAIR_XY_F(end sx sy)
+	cairo_curve_to cr cp1x cp1y cp2x cp2y sx sy
+	check-grad-line dc/grad-pen start end
 	do-draw-pen dc
 	ctx-matrix-unadapt dc saved
 ]
