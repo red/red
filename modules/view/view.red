@@ -234,7 +234,8 @@ on-face-deep-change*: function ["Internal use only" owner word target action new
 			system/view/auto-sync?
 			owner/type = 'screen						;-- not postponing windows events
 		][
-			state/2: state/2 or (1 << ((index? in owner word) - 1))
+			unless w: in owner word [exit]
+			state/2: state/2 or (1 << ((index? w) - 1))
 			
 			either word = 'pane [
 				case [
