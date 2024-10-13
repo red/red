@@ -172,7 +172,7 @@ lowering: context [
 
 	gen-truncate: func [
 		i		[instr-op!]
-		type	[int-type!]
+		type	[rst-type!]
 		env		[lowering-env!]
 		return: [instr!]
 		/local
@@ -206,7 +206,7 @@ lowering: context [
 		][
 			type-system/get-int-type arith-w false
 		]
-		trunc-i: ir-graph/add-int-cast i type as int-type! i/ret-type env/cur-ctx
+		trunc-i: ir-graph/add-int-cast i type i/ret-type env/cur-ctx
 		map-keep as instr! i trunc-i env
 		;-- trunc-i's input changed by map-keep, we need to set it back
 		p: ARRAY_DATA(trunc-i/inputs)
@@ -222,7 +222,7 @@ lowering: context [
 		env		[lowering-env!]
 	][
 		refresh-inputs as instr! i env
-		gen-truncate i as int-type! i/ret-type env
+		gen-truncate i i/ret-type env
 	]
 
 	gen-call: func [
@@ -328,7 +328,7 @@ lowering: context [
 		o: as instr-op! i
 		var: as var-decl! o/target
 		vt: var/type
-		ty: make-ptr-type vt
+		ty: as ptr-type! make-ptr-type vt
 		ptr: make-ptr-const ty var
 		new: gen-loads vt as instr! ptr 0 env/cur-ctx
 		map-n i new env
@@ -350,7 +350,7 @@ lowering: context [
 		o: as instr-op! i
 		var: as var-decl! o/target
 		vt: var/type
-		ty: make-ptr-type vt
+		ty: as ptr-type! make-ptr-type vt
 		ptr: make-ptr-const ty var
 		gen-stores vt as instr! ptr 0 inputs env/cur-ctx
 		kill-instr i

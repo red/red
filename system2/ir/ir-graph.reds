@@ -628,7 +628,7 @@ ir-graph: context [
 		null
 	]
 
-	visit-native: func [r [case!] ctx [ssa-ctx!] return: [instr!]
+	visit-native-call: func [r [case!] ctx [ssa-ctx!] return: [instr!]
 	][
 		null
 	]
@@ -638,31 +638,31 @@ ir-graph: context [
 		null
 	]
 
-	builder/visit-assign:	as visit-fn! :visit-assign
-	builder/visit-literal:	as visit-fn! :visit-literal
-	builder/visit-bin-op:	as visit-fn! :visit-bin-op
-	builder/visit-var:		as visit-fn! :visit-var
-	builder/visit-fn-call:	as visit-fn! :visit-fn-call
-	builder/visit-if:		as visit-fn! :visit-if
-	builder/visit-while:	as visit-fn! :visit-while
-	builder/visit-break:	as visit-fn! :visit-break
-	builder/visit-continue:	as visit-fn! :visit-continue
-	builder/visit-return:	as visit-fn! :visit-return
-	builder/visit-exit:		as visit-fn! :visit-exit
-	builder/visit-comment:	as visit-fn! :visit-comment
-	builder/visit-case:		as visit-fn! :visit-case
-	builder/visit-switch:	as visit-fn! :visit-switch
-	builder/visit-not:		as visit-fn! :visit-not
-	builder/visit-size?:	as visit-fn! :visit-size?
-	builder/visit-cast:		as visit-fn! :visit-cast
-	builder/visit-declare:	as visit-fn! :visit-declare
-	builder/visit-get-ptr:	as visit-fn! :visit-get-ptr
-	builder/visit-path:		as visit-fn! :visit-path
-	builder/visit-any-all:	as visit-fn! :visit-any-all
-	builder/visit-throw:	as visit-fn! :visit-throw
-	builder/visit-catch:	as visit-fn! :visit-catch
-	builder/visit-native:	as visit-fn! :visit-native
-	builder/visit-assert:	as visit-fn! :visit-assert
+	builder/visit-assign:		as visit-fn! :visit-assign
+	builder/visit-literal:		as visit-fn! :visit-literal
+	builder/visit-bin-op:		as visit-fn! :visit-bin-op
+	builder/visit-var:			as visit-fn! :visit-var
+	builder/visit-fn-call:		as visit-fn! :visit-fn-call
+	builder/visit-native-call:	as visit-fn! :visit-native-call
+	builder/visit-if:			as visit-fn! :visit-if
+	builder/visit-while:		as visit-fn! :visit-while
+	builder/visit-break:		as visit-fn! :visit-break
+	builder/visit-continue:		as visit-fn! :visit-continue
+	builder/visit-return:		as visit-fn! :visit-return
+	builder/visit-exit:			as visit-fn! :visit-exit
+	builder/visit-comment:		as visit-fn! :visit-comment
+	builder/visit-case:			as visit-fn! :visit-case
+	builder/visit-switch:		as visit-fn! :visit-switch
+	builder/visit-not:			as visit-fn! :visit-not
+	builder/visit-size?:		as visit-fn! :visit-size?
+	builder/visit-cast:			as visit-fn! :visit-cast
+	builder/visit-declare:		as visit-fn! :visit-declare
+	builder/visit-get-ptr:		as visit-fn! :visit-get-ptr
+	builder/visit-path:			as visit-fn! :visit-path
+	builder/visit-any-all:		as visit-fn! :visit-any-all
+	builder/visit-throw:		as visit-fn! :visit-throw
+	builder/visit-catch:		as visit-fn! :visit-catch
+	builder/visit-assert:		as visit-fn! :visit-assert
 
 	make-bb: func [		;-- create basic-block!
 		return: [basic-block!]
@@ -1195,7 +1195,7 @@ ir-graph: context [
 			1 [const-int-one fn]
 			2 [const-int-two fn]
 			4 [const-int-four fn]
-			default [get-const as rst-type! type-system/integer-type as cell! val fn]
+			default [get-const type-system/integer-type as cell! val fn]
 		]
 	]
 
@@ -1210,7 +1210,7 @@ ir-graph: context [
 		case [
 			f = 0.0 [const-float-zero fn]
 			f = 1.0 [const-float-one fn]
-			true [get-const as rst-type! type-system/float-type as cell! val fn]
+			true [get-const type-system/float-type as cell! val fn]
 		]
 	]
 
@@ -1225,56 +1225,56 @@ ir-graph: context [
 		fn		[ir-fn!]
 		return: [instr-const!]
 	][
-		get-cached-const 1 as rst-type! type-system/logic-type common-literals/logic-true fn
+		get-cached-const 1 type-system/logic-type common-literals/logic-true fn
 	]
 
 	const-false: func [
 		fn		[ir-fn!]
 		return: [instr-const!]
 	][
-		get-cached-const 2 as rst-type! type-system/logic-type common-literals/logic-false fn
+		get-cached-const 2 type-system/logic-type common-literals/logic-false fn
 	]
 
 	const-int-zero: func [
 		fn		[ir-fn!]
 		return: [instr-const!]
 	][
-		get-cached-const 3 as rst-type! type-system/integer-type common-literals/int-zero fn
+		get-cached-const 3 type-system/integer-type common-literals/int-zero fn
 	]
 
 	const-int-one: func [
 		fn		[ir-fn!]
 		return: [instr-const!]
 	][
-		get-cached-const 4 as rst-type! type-system/integer-type common-literals/int-one fn
+		get-cached-const 4 type-system/integer-type common-literals/int-one fn
 	]
 
 	const-int-two: func [
 		fn		[ir-fn!]
 		return: [instr-const!]
 	][
-		get-cached-const 5 as rst-type! type-system/integer-type common-literals/int-two fn
+		get-cached-const 5 type-system/integer-type common-literals/int-two fn
 	]
 
 	const-int-four: func [
 		fn		[ir-fn!]
 		return: [instr-const!]
 	][
-		get-cached-const 6 as rst-type! type-system/integer-type common-literals/int-four fn
+		get-cached-const 6 type-system/integer-type common-literals/int-four fn
 	]
 
 	const-float-zero: func [
 		fn		[ir-fn!]
 		return: [instr-const!]
 	][
-		get-cached-const 7 as rst-type! type-system/float-type common-literals/float-zero fn
+		get-cached-const 7 type-system/float-type common-literals/float-zero fn
 	]
 
 	const-float-one: func [
 		fn		[ir-fn!]
 		return: [instr-const!]
 	][
-		get-cached-const 8 as rst-type! type-system/float-type common-literals/float-one fn
+		get-cached-const 8 type-system/float-type common-literals/float-one fn
 	]
 
 	get-cached-const: func [
@@ -1505,8 +1505,8 @@ ir-graph: context [
 	add-int-cast: func [
 		"cast the result of instr i, from int to int"
 		i			[instr-op!]
-		t-from		[int-type!]
-		t-to		[int-type!]
+		t-from		[rst-type!]
+		t-to		[rst-type!]
 		ctx			[ssa-ctx!]
 		return:		[instr!]
 		/local
@@ -1517,7 +1517,7 @@ ir-graph: context [
 		if t-from = t-to [return as instr! i]
 		param: as ptr-ptr! malloc size? int-ptr!
 		param/value: as int-ptr! t-from
-		op: make-op OP_INT_CAST 1 param as rst-type! t-to
+		op: make-op OP_INT_CAST 1 param t-to
 		INIT_ARRAY_VALUE(args i)
 		add-op op as ptr-array! :args ctx
 	]

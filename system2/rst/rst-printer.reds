@@ -119,7 +119,7 @@ rst-printer: context [
 		0
 	]
 
-	visit-native: func [r [rst-stmt!] i [integer!]][
+	visit-native-call: func [r [rst-stmt!] i [integer!]][
 		0
 	]
 
@@ -144,31 +144,31 @@ rst-printer: context [
 		e/right/accept as int-ptr! e/right printer null
 	]
 
-	printer/visit-assign:	as visit-fn! :visit-assign
-	printer/visit-literal:	as visit-fn! :visit-literal
-	printer/visit-bin-op:	as visit-fn! :visit-bin-op
-	printer/visit-var:		as visit-fn! :visit-var
-	printer/visit-fn-call:	as visit-fn! :visit-fn-call
-	printer/visit-if:		as visit-fn! :visit-if
-	printer/visit-while:	as visit-fn! :visit-while
-	printer/visit-break:	as visit-fn! :visit-break
-	printer/visit-continue:	as visit-fn! :visit-continue
-	printer/visit-return:	as visit-fn! :visit-return
-	printer/visit-exit:		as visit-fn! :visit-exit
-	printer/visit-comment:	as visit-fn! :visit-comment
-	printer/visit-case:		as visit-fn! :visit-case
-	printer/visit-switch:	as visit-fn! :visit-switch
-	printer/visit-not:		as visit-fn! :visit-not
-	printer/visit-size?:	as visit-fn! :visit-size?
-	printer/visit-cast:		as visit-fn! :visit-cast
-	printer/visit-declare:	as visit-fn! :visit-declare
-	printer/visit-get-ptr:	as visit-fn! :visit-get-ptr
-	printer/visit-path:		as visit-fn! :visit-path
-	printer/visit-any-all:	as visit-fn! :visit-any-all
-	printer/visit-throw:	as visit-fn! :visit-throw
-	printer/visit-catch:	as visit-fn! :visit-catch
-	printer/visit-native:	as visit-fn! :visit-native
-	printer/visit-assert:	as visit-fn! :visit-assert
+	printer/visit-assign:		as visit-fn! :visit-assign
+	printer/visit-literal:		as visit-fn! :visit-literal
+	printer/visit-bin-op:		as visit-fn! :visit-bin-op
+	printer/visit-var:			as visit-fn! :visit-var
+	printer/visit-fn-call:		as visit-fn! :visit-fn-call
+	printer/visit-if:			as visit-fn! :visit-if
+	printer/visit-while:		as visit-fn! :visit-while
+	printer/visit-break:		as visit-fn! :visit-break
+	printer/visit-continue:		as visit-fn! :visit-continue
+	printer/visit-return:		as visit-fn! :visit-return
+	printer/visit-exit:			as visit-fn! :visit-exit
+	printer/visit-comment:		as visit-fn! :visit-comment
+	printer/visit-case:			as visit-fn! :visit-case
+	printer/visit-switch:		as visit-fn! :visit-switch
+	printer/visit-not:			as visit-fn! :visit-not
+	printer/visit-size?:		as visit-fn! :visit-size?
+	printer/visit-cast:			as visit-fn! :visit-cast
+	printer/visit-declare:		as visit-fn! :visit-declare
+	printer/visit-get-ptr:		as visit-fn! :visit-get-ptr
+	printer/visit-path:			as visit-fn! :visit-path
+	printer/visit-any-all:		as visit-fn! :visit-any-all
+	printer/visit-throw:		as visit-fn! :visit-throw
+	printer/visit-catch:		as visit-fn! :visit-catch
+	printer/visit-native-call:	as visit-fn! :visit-native-call
+	printer/visit-assert:		as visit-fn! :visit-assert
 
 	do-i: func [i [integer!]][
 		loop i [prin "    "]

@@ -193,7 +193,7 @@ type-checker: context [
 		sym: symbol/resolve w/symbol
 		if sym = k_pointer! [
 			t: parse-type as red-block! parser/expect-next pc end TYPE_BLOCK ctx
-			return as rst-type! make-ptr-type t
+			return make-ptr-type t
 		]
 		if sym = k_struct! [
 			t: parse-struct as red-block! parser/expect-next pc end TYPE_BLOCK ctx
@@ -268,7 +268,7 @@ type-checker: context [
 			either type-system/promotable? type expected [
 				e/cast-type: expected
 			][
-				throw-error [e/token msg "expected" type-name(expected) ", got" type-name(type)]
+				throw-error [e/token msg "expected" type-name expected  ", got" type-name type]
 			]
 		]
 	]
@@ -368,7 +368,6 @@ type-checker: context [
 	visit-if: func [e [if!] ctx [context!] return: [rst-type!]
 		/local
 			stmt		[rst-stmt!]
-			saved-blk	[red-block!]
 			tt			[rst-type!]
 			tf			[rst-type!]
 			ut			[rst-type!]
@@ -439,48 +438,92 @@ type-checker: context [
 		type-system/void-type
 	]
 
-	visit-throw: func [p [path!] ctx [context!] return: [rst-type!]][
+	visit-throw: func [p [unary!] ctx [context!] return: [rst-type!]][
+		check-expr "Throw:" p/expr type-system/integer-type ctx
 		type-system/void-type
 	]
 
-	visit-catch: func [p [path!] ctx [context!] return: [rst-type!]][
+	visit-catch: func [p [catch!] ctx [context!] return: [rst-type!]][
+		ctx/level: ctx/level + 1
+		check-stmts p/body as red-block! p/token ctx
+		ctx/level: ctx/level - 1		
 		type-system/void-type
 	]
 
-	visit-native: func [p [path!] ctx [context!] return: [rst-type!]][
-		type-system/void-type
+	visit-native-call: func [e [native-call!] ctx [context!] return: [rst-type!]][
+		e/type
 	]
 
-	visit-assert: func [p [path!] ctx [context!] return: [rst-type!]][
+	visit-assert: func [p [unary!] ctx [context!] return: [rst-type!]][
 		type-system/void-type
 	]
 
 	visit-path: func [p [path!] ctx [context!] return: [rst-type!]][
-		type-system/void-type
+		p/type
 	]
 
-	visit-any-all: func [p [path!] ctx [context!] return: [rst-type!]][
-		type-system/void-type
+	visit-any-all: func [p [any-all!] ctx [context!] return: [rst-type!]][
+		type-system/logic-type
 	]
 
-	visit-case: func [v [case!] ctx [context!] return: [rst-type!]][
-		type-system/void-type
+	visit-case: func [e [case!] ctx [context!] return: [rst-type!]][
+		e/type: visit-if e/cases ctx
+		e/type
 	]
 
-	visit-switch: func [v [switch!] ctx [context!] return: [rst-type!]][
-		type-system/void-type
+	visit-switch: func [s [switch!] ctx [context!] return: [rst-type!]
+		/local
+			cases		[switch-case!]
+			t			[rst-type!]
+			tt			[rst-type!]
+			unified?	[logic!]
+	][
+		ctx/level: ctx/level + 1
+		check-expr "Expr:" s/expr type-system/integer-type ctx
+
+		unified?: yes
+		tt: null
+		cases: s/cases
+		while [cases <> null][
+			t: check-stmts cases/body as red-block! cases/token ctx
+			either tt <> null [
+				tt: type-system/unify t tt
+				if null? tt [unified?: no]
+			][tt: t]
+			cases: cases/next
+		]
+		ctx/level: ctx/level - 1
+		t: either unified? [tt][type-system/void-type]
+		s/type: t
+		t
 	]
 
-	visit-not: func [u [unary!] ctx [context!] return: [rst-type!]][
-		type-system/void-type
+	visit-not: func [u [unary!] ctx [context!] return: [rst-type!]
+		/local
+			t	[rst-type!]
+			ty	[integer!]
+	][
+		t: as rst-type! u/expr/accept as int-ptr! u/expr checker as int-ptr! ctx
+		ty: TYPE_KIND(t)
+		if all [ty <> RST_TYPE_INT ty <> RST_TYPE_LOGIC][
+			throw-error [u/token "expected type integer! or logic!"]
+		]
+		u/type: t
+		t
 	]
 
 	visit-size?: func [u [unary!] ctx [context!] return: [rst-type!]][
-		type-system/void-type
+		type-system/integer-type
 	]
 
-	visit-get-ptr: func [g [get-ptr!] ctx [context!] return: [rst-type!]][
-		type-system/void-type
+	visit-get-ptr: func [g [get-ptr!] ctx [context!] return: [rst-type!]
+		/local
+			t	[rst-type!]
+	][
+		t: as rst-type! g/expr/accept as int-ptr! g/expr checker as int-ptr! ctx
+		t: make-ptr-type t
+		g/type: t
+		t
 	]
 
 	visit-cast: func [c [cast!] ctx [context!] return: [rst-type!]
@@ -545,31 +588,31 @@ type-checker: context [
 		op/ret-type
 	]
 
-	checker/visit-assign:	as visit-fn! :visit-assign
-	checker/visit-literal:	as visit-fn! :visit-literal
-	checker/visit-bin-op:	as visit-fn! :visit-bin-op
-	checker/visit-var:		as visit-fn! :visit-var
-	checker/visit-fn-call:	as visit-fn! :visit-fn-call
-	checker/visit-if:		as visit-fn! :visit-if
-	checker/visit-while:	as visit-fn! :visit-while
-	checker/visit-break:	as visit-fn! :visit-break
-	checker/visit-continue:	as visit-fn! :visit-continue
-	checker/visit-return:	as visit-fn! :visit-return
-	checker/visit-exit:		as visit-fn! :visit-exit
-	checker/visit-comment:	as visit-fn! :visit-comment
-	checker/visit-case:		as visit-fn! :visit-case
-	checker/visit-switch:	as visit-fn! :visit-switch
-	checker/visit-not:		as visit-fn! :visit-not
-	checker/visit-size?:	as visit-fn! :visit-size?
-	checker/visit-cast:		as visit-fn! :visit-cast
-	checker/visit-declare:	as visit-fn! :visit-declare
-	checker/visit-get-ptr:	as visit-fn! :visit-get-ptr
-	checker/visit-path:		as visit-fn! :visit-path
-	checker/visit-any-all:	as visit-fn! :visit-any-all
-	checker/visit-throw:	as visit-fn! :visit-throw
-	checker/visit-catch:	as visit-fn! :visit-catch
-	checker/visit-native:	as visit-fn! :visit-native
-	checker/visit-assert:	as visit-fn! :visit-assert
+	checker/visit-assign:		as visit-fn! :visit-assign
+	checker/visit-literal:		as visit-fn! :visit-literal
+	checker/visit-bin-op:		as visit-fn! :visit-bin-op
+	checker/visit-var:			as visit-fn! :visit-var
+	checker/visit-fn-call:		as visit-fn! :visit-fn-call
+	checker/visit-native-call:	as visit-fn! :visit-native-call
+	checker/visit-if:			as visit-fn! :visit-if
+	checker/visit-while:		as visit-fn! :visit-while
+	checker/visit-break:		as visit-fn! :visit-break
+	checker/visit-continue:		as visit-fn! :visit-continue
+	checker/visit-return:		as visit-fn! :visit-return
+	checker/visit-exit:			as visit-fn! :visit-exit
+	checker/visit-comment:		as visit-fn! :visit-comment
+	checker/visit-case:			as visit-fn! :visit-case
+	checker/visit-switch:		as visit-fn! :visit-switch
+	checker/visit-not:			as visit-fn! :visit-not
+	checker/visit-size?:		as visit-fn! :visit-size?
+	checker/visit-cast:			as visit-fn! :visit-cast
+	checker/visit-declare:		as visit-fn! :visit-declare
+	checker/visit-get-ptr:		as visit-fn! :visit-get-ptr
+	checker/visit-path:			as visit-fn! :visit-path
+	checker/visit-any-all:		as visit-fn! :visit-any-all
+	checker/visit-throw:		as visit-fn! :visit-throw
+	checker/visit-catch:		as visit-fn! :visit-catch
+	checker/visit-assert:		as visit-fn! :visit-assert
 
 	make-cmp-op: func [
 		op			[rst-op!]

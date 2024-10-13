@@ -62,7 +62,7 @@ op-cache: context [
 		init-op f + RST_OP_GT   OP_INT_LT   + offset  pt type-system/logic-type
 		init-op f + RST_OP_GTEQ OP_INT_LTEQ + offset  pt type-system/logic-type
 
-		pt: parser/make-param-types type as rst-type! type-system/uint32-type
+		pt: parser/make-param-types type type-system/uint32-type
 		init-op f + RST_OP_SHL OP_INT_SHL pt type
 		init-op f + RST_OP_SAR OP_INT_SAR pt type
 		init-op f + RST_OP_SHR OP_INT_SHR pt type

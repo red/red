@@ -349,7 +349,7 @@ compiler: context [
 		page-align: 4096
 		int-width: 32
 		int-mask: 1 << int-width - 1
-		int-type: as int-type! 0
+		int-type: as rst-type! 0
 		int32-arith?: yes		;-- native support for int32 arithmetic
 		int64-arith?: no		;-- native support for int64 arithmetic
 		big-endian?: no

@@ -24,7 +24,6 @@ Red/System [
 	RST_TYPE_INT
 	RST_TYPE_BYTE
 	RST_TYPE_FLOAT
-	RST_TYPE_C_STR
 	RST_TYPE_FUNC
 	RST_TYPE_NULL
 	RST_TYPE_STRUCT
@@ -138,20 +137,20 @@ make-null-type: func [
 
 make-ptr-type: func [
 	vtype	[rst-type!]		;-- value type this pointer point to
-	return: [ptr-type!]
+	return: [rst-type!]
 	/local
 		t	[ptr-type!]
 ][
 	t: xmalloc(ptr-type!)
 	t/header: RST_TYPE_PTR
 	t/type: vtype
-	t
+	as rst-type! t
 ]
 
 make-int-type: func [
 	width	[integer!]
 	signed? [logic!]
-	return: [int-type!]
+	return: [rst-type!]
 	/local
 		type [int-type!]
 		sign [integer!]
@@ -165,12 +164,12 @@ make-int-type: func [
 	][
 		0
 	]
-	type
+	as rst-type! type
 ]
 
 make-float-type: func [
 	width	[integer!]
-	return: [float-type!]
+	return: [rst-type!]
 	/local
 		type [float-type!]
 		frac [integer!]
@@ -188,17 +187,17 @@ make-float-type: func [
 		is64: 0
 	]
 	type/header: RST_TYPE_FLOAT or (frac << 8) or (exp << 16) or is64
-	type
+	as rst-type! type
 ]
 
 make-logic-type: func [
-	return: [logic-type!]
+	return: [rst-type!]
 	/local
 		type [logic-type!]
 ][
 	type: as logic-type! malloc size? float-type!
 	SET_TYPE_KIND(type RST_TYPE_LOGIC)
-	type
+	as rst-type! type
 ]
 
 make-array-type: func [
@@ -286,8 +285,10 @@ type-name: func [
 		RST_TYPE_LOGIC ["logic!"]
 		RST_TYPE_VOID ["void!"]
 		RST_TYPE_NULL ["null"]
+		RST_TYPE_FUNC ["function!"]
 		RST_TYPE_PTR ["pointer!"]
 		RST_TYPE_STRUCT ["struct!"]
+		RST_TYPE_ARRAY ["array!"]
 		default ["void!"]
 	]
 ]
@@ -309,19 +310,19 @@ k_function!:	symbol/make "function!"
 k_value:		symbol/make "value"
 
 type-system: context [
-	integer-type:	as int-type! 0
-	byte-type:		as int-type! 0
-	float-type:		as float-type! 0
-	float32-type:	as float-type! 0
-	logic-type:		as logic-type! 0
-	int32-type:		as int-type! 0
-	uint32-type:	as int-type! 0
-	int16-type:		as int-type! 0
-	uint16-type:	as int-type! 0
-	int8-type:		as int-type! 0
-	uint8-type:		as int-type! 0
-	int64-type:		as int-type! 0
-	uint64-type:	as int-type! 0
+	integer-type:	as rst-type! 0
+	byte-type:		as rst-type! 0
+	float-type:		as rst-type! 0
+	float32-type:	as rst-type! 0
+	logic-type:		as rst-type! 0
+	int32-type:		as rst-type! 0
+	uint32-type:	as rst-type! 0
+	int16-type:		as rst-type! 0
+	uint16-type:	as rst-type! 0
+	int8-type:		as rst-type! 0
+	uint8-type:		as rst-type! 0
+	int64-type:		as rst-type! 0
+	uint64-type:	as rst-type! 0
 	void-type:		as rst-type! 0
 	null-type:		as rst-type! 0
 	cstr-type:		as rst-type! 0
@@ -341,9 +342,9 @@ type-system: context [
 		float32-type: make-float-type 32
 		logic-type: make-logic-type
 		byte-type: get-int-type 8 false
-		cstr-type: as rst-type! make-array-type 0 as rst-type! byte-type
-		int-ptr-type: as rst-type! make-ptr-type as rst-type! integer-type
-		byte-ptr-type: as rst-type! make-ptr-type as rst-type! byte-type
+		cstr-type: make-array-type 0 byte-type
+		int-ptr-type: make-ptr-type integer-type
+		byte-ptr-type: make-ptr-type byte-type
 	]
 
 	make-cache: func [
@@ -378,7 +379,7 @@ type-system: context [
 	get-int-type: func [
 		w		[integer!]
 		signed?	[logic!]
-		return: [int-type!]
+		return: [rst-type!]
 		/local
 			idx [integer!]
 			p	[ptr-ptr!]
@@ -389,7 +390,7 @@ type-system: context [
 		if null? p/value [
 			p/value: as int-ptr! make-int-type w signed?
 		]
-		as int-type! p/value
+		as rst-type! p/value
 	]
 
 	int-promotable?: func [		;-- check if int x is promotable to int y

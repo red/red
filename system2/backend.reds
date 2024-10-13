@@ -934,7 +934,6 @@ backend: context [
 			RST_TYPE_FLOAT [
 				return either FLOAT_64?(type) [class_f64][class_f32]
 			]
-			RST_TYPE_C_STR
 			RST_TYPE_FUNC
 			RST_TYPE_STRUCT
 			RST_TYPE_ARRAY

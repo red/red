@@ -20,6 +20,7 @@ visitor!: alias struct! [
 	VISITOR_FUNC(visit-return)
 	VISITOR_FUNC(visit-exit)
 	VISITOR_FUNC(visit-fn-call)
+	VISITOR_FUNC(visit-native-call)
 	VISITOR_FUNC(visit-assign)
 	VISITOR_FUNC(visit-bin-op)
 	VISITOR_FUNC(visit-var)
@@ -34,7 +35,6 @@ visitor!: alias struct! [
 	VISITOR_FUNC(visit-any-all)
 	VISITOR_FUNC(visit-throw)
 	VISITOR_FUNC(visit-catch)
-	VISITOR_FUNC(visit-native)
 	VISITOR_FUNC(visit-assert)
 ]
 
@@ -633,8 +633,8 @@ parser: context [
 			arr: as ptr-ptr! malloc size? int-ptr!
 			arr/value: as int-ptr! integer-type
 	        native-push: make-native N_PUSH 1 arr void-type
-	        native-pop: make-native N_POP 0 null as rst-type! integer-type
-	        native-log-b: make-native N_LOG_B 1 arr as rst-type! integer-type
+	        native-pop: make-native N_POP 0 null integer-type
+	        native-log-b: make-native N_LOG_B 1 arr integer-type
 
 			arr: as ptr-ptr! malloc size? int-ptr!
 			arr/value: as int-ptr! int-ptr-type
@@ -892,7 +892,7 @@ parser: context [
 		int/token: pos
 		int/value: i/value
 		int/accept: :int_accept
-		int/type: as rst-type! type-system/integer-type
+		int/type: type-system/integer-type
 		int
 	]
 
@@ -912,7 +912,7 @@ parser: context [
 		f/token: pos
 		f/value: float/value
 		f/accept: :float_accept
-		f/type: as rst-type! type-system/float-type
+		f/type: type-system/float-type
 		f
 	]
 
@@ -1531,8 +1531,7 @@ parser: context [
 			s-tail	[cell!]
 			e		[ptr-value!]
 			if-expr	[if!]
-			last-if [if!]
-			first-if [if!]
+			cur-if	[if!]
 			saved-blk [red-block!]
 	][
 		case_accept: func [ACCEPT_FN_SPEC][
@@ -1550,19 +1549,20 @@ parser: context [
 		c/accept: :case_accept
 
 		enter-block(blk)
-		last-if: null
-		first-if: null
+		p: _parse-if p s-tail :e ctx no
+		p: p + 1
+		if-expr: as if! e/value
+		c/cases: if-expr
+		cur-if: if-expr
 		while [p < s-tail][
 			p: _parse-if p s-tail :e ctx no
-			if-expr: as if! e/value
-			if null? first-if [first-if: if-expr]
-			if last-if <> null [last-if/f-branch: as rst-stmt! if-expr]
-			last-if: if-expr
+			if-expr: as if! e/value	
+			cur-if/f-branch: as rst-stmt! if-expr
+			cur-if: if-expr
 			p: p + 1
 		]
 		exit-block
 
-		c/cases: first-if
 		expr/value: as int-ptr! c
 		as cell! blk
 	]
@@ -1575,6 +1575,8 @@ parser: context [
 			cur		[switch-case!]
 			cases	[switch-case! value]
 			e		[rst-expr!]
+			cur-e	[rst-expr!]
+			ev		[rst-expr! value]
 			ty		[integer!]
 			pv		[ptr-value!]
 			blk		[red-block!]
@@ -1606,24 +1608,34 @@ parser: context [
 		cur/next: null
 		while [p < s-tail][
 			w: as red-word! p
-			if all [T_WORD?(w) k_default = symbol/resolve w/symbol][
+			if all [T_WORD?(w) k_default = symbol/resolve w/symbol][	;-- must be last case
 				p: expect-next p s-tail TYPE_BLOCK
 				s/defcase: parse-block as red-block! p ctx
 				if p + 1 <> s-tail [throw-error [p "wrong syntax in SWITCH block"]]
+				break
 			]
 
-			c: xmalloc(switch-case!)
-			p: parse-expr p s-tail :pv ctx
-			e: as rst-expr! pv/value
-			ty: NODE_TYPE(e)
-			if all [ty <> RST_INT ty <> RST_BYTE][
-				throw-error [p "expect integer! or byte! literal value"]
+			ev/next: null
+			cur-e: :ev
+			while [all [p < s-tail TYPE_OF(p) <> TYPE_BLOCK]][
+				p: parse-expr p s-tail :pv ctx
+				e: as rst-expr! pv/value
+				ty: NODE_TYPE(e)
+				if all [ty <> RST_INT ty <> RST_BYTE][
+					throw-error [p "expect integer! or byte! literal value"]
+				]
+				cur-e/next: e
+				cur-e: e
+				p: p + 1
 			]
+			if null? ev/next [throw-error [p - 1 "missing case expression in SWITCH"]]
 
 			p: expect-next p s-tail TYPE_BLOCK
+			c: xmalloc(switch-case!)
+			c/token: p
 			c/body: parse-block as red-block! p ctx
-			c/expr: e
-			
+			c/expr: ev/next
+
 			cur/next: c
 			cur: c
 			p: p + 1
@@ -1807,7 +1819,7 @@ parser: context [
 			pv	[ptr-value!]
 	][
 		native_accept: func [ACCEPT_FN_SPEC][
-			v/visit-native self data
+			v/visit-native-call self data
 		]
 		e: xmalloc(native-call!)
 		SET_NODE_TYPE(e RST_NATIVE_CALL)
