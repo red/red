@@ -32,6 +32,9 @@ Red/System [
 	RST_TYPE_UNRESOLVED
 ]
 
+#define T_WORD?(v)  [TYPE_OF(v) = TYPE_WORD]
+#define T_BLOCK?(v) [TYPE_OF(v) = TYPE_BLOCK]
+
 ;-- types
 
 #define SET_TYPE_KIND(node kind) [node/header: kind]
@@ -307,6 +310,7 @@ k_byte-ptr!:	symbol/make "byte-ptr!"
 k_pointer!:		symbol/make "pointer!"
 k_struct!:		symbol/make "struct!"
 k_function!:	symbol/make "function!"
+k_subroutine!:	symbol/make "subroutine!"
 k_value:		symbol/make "value"
 
 type-system: context [
@@ -366,13 +370,10 @@ type-system: context [
 		val		[cell!]
 		return: [rst-type!]
 	][
-		switch TYPE_OF(val) [
-			TYPE_STRING [
-				cstr-type
-			]
-			TYPE_BLOCK [
-				null
-			]
+		either T_BLOCK?(val) [
+			null
+		][
+			cstr-type
 		]
 	]
 
