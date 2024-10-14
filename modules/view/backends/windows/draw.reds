@@ -239,6 +239,9 @@ draw-begin: func [
 		this: rt/value
 		target/dc: this
 		dc: as ID2D1DeviceContext this/vtbl
+		if hWnd <> null [		;-- to-image face
+			dc/setDpi this dpi-x dpi-y
+		]
 	]
 	ctx/dc: as ptr-ptr! this
 	ctx/target: as int-ptr! target
