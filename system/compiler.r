@@ -2285,7 +2285,7 @@ system-dialect: make-profilable context [
 			
 			unless find locals /local [append locals /local]
 			append locals spec
-			size: emitter/calc-locals-offsets use-locals
+			size: emitter/calc-locals-offsets/only use-locals
 			emitter/target/emit-reserve-stack slots: size / 4
 			func-locals-sz: func-locals-sz + size
 			
@@ -2464,7 +2464,7 @@ system-dialect: make-profilable context [
 			ret
 		]
 
-		comp-catch: has [offset locals-size unused chunk start end cb?][
+		comp-catch: has [offset locals-size unused chunk start end cb? attribs spec][
 			pc: next pc
 			fetch-expression/keep/final 'catch
 			if any [not last-type last-type <> [integer!]][
@@ -2484,8 +2484,17 @@ system-dialect: make-profilable context [
 			chunk: emitter/chunks/join start chunk
 			
 			locals-size: any [all [locals func-locals-sz] 0]
-			cb?: to logic! all [locals 'callback = last functions/:func-name]
-			
+			cb?: to-logic all [
+				func-name								;-- if none => global code
+				spec: functions/:func-name
+				any [
+					spec/5 = 'callback
+					all [
+						attribs: get-attributes spec/4
+						any [find attribs 'cdecl find attribs 'stdcall]
+					]
+				]
+			]
 			end: comp-chunked [emitter/target/emit-close-catch locals-size not locals cb?]
 			chunk: emitter/chunks/join chunk end
 			emitter/merge chunk

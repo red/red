@@ -18,6 +18,7 @@ make-profilable make target-class [
 	args-offset:		8							;-- stack frame offset to arguments (ebp + ret-addr)
 	branch-offset-size:	4							;-- size of JMP offset
 	locals-offset:		12							;-- offset from frame pointer to local variables (catch ID + addr + bitmap offset)
+	def-locals-offset:	12							;-- default offset from frame pointer to local variables
 	
 	fpu-cword: none									;-- x87 control word reference in emitter/symbols
 	fpu-flags: to integer! #{037A}					;-- default control word, division by zero
@@ -712,7 +713,7 @@ make-profilable make target-class [
 	]
 	
 	emit-clear-slot: func [name [word!] /local opcode offset][
-		opcode: #{C745}								;-- MOV dword [ebp+n], value	; local
+		opcode: #{C745}								;-- MOV dword [ebp+n], 0	; local
 		offset: stack-encode emitter/local-offset? name
 		emit adjust-disp32 opcode offset
 		emit offset
@@ -2455,8 +2456,8 @@ make-profilable make target-class [
 	
 	emit-close-catch: func [offset [integer!] global [logic!] callback? [logic!]][
 		if verbose >= 3 [print ">>>emitting CATCH epilog"]
-		offset: offset + (8 + 8 + 4)				;-- account for the 2 catch slots + 2 saved slots + bitmap slot
-		if callback? [offset: offset + 12 + 4]		;-- account for ebx,esi,edi saving slots + frames chaining slot
+		offset: offset + locals-offset + 8 			;-- account for the 2 saved slots
+		if callback? [offset: offset + 12]			;-- account for ebx,esi,edi saving slots
 		
 		either offset > 127 [
 			emit #{89EC}							;-- MOV esp, ebp
@@ -2489,6 +2490,8 @@ make-profilable make target-class [
 		]
 		emit-push 0									;-- reserve slot for catch resume address
 		emit-push bitmap							;-- push the args/locals bitmap offset
+		
+		locals-offset: def-locals-offset			;@@ global state used in epilog
 		if cb? [
 			either PIC? [
 				emit #{6A00}						;-- PUSH 0		; placeholder
@@ -2518,7 +2521,6 @@ make-profilable make target-class [
 				emit-reloc-addr last-red-frame/2
 				emit #{8945F0}						;-- MOV [ebp-10h], eax
 			]
-			locals-offset: locals-offset - 4
 		]
 		reduce [locals-size 0]
 	]
@@ -2582,7 +2584,7 @@ make-profilable make target-class [
 				any [find attribs 'cdecl find attribs 'stdcall]
 			]
 		][
-			offset: locals-size + locals-offset + 4 ;-- account for frames chaining slot
+			offset: locals-size + locals-offset
 			emit #{8DA5}							;-- LEA esp, [ebp-<offset>]
 			emit to-bin32 negate offset + 12		;-- account for 3 saved regs
 			emit #{5F}								;-- POP edi
