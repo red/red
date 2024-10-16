@@ -16,8 +16,8 @@ emitter: make-profilable context [
 	stack: 	   make block! 40			;-- [name offset ...]
 	exits:	   make block! 1			;-- [offset ...]	(funcs exits points)
 	breaks:	   make block! 1			;-- [[offset ...] [...] ...] (break jump points)
-	cont-next: make block! 1			;-- [[offset ...] [...] ...] (break jump points)
-	cont-back: make block! 1			;-- [[offset ...] [...] ...] (break jump points)
+	cont-next: make block! 1			;-- [[offset ...] [...] ...] (continue skip jump points)
+	cont-back: make block! 1			;-- [[offset ...] [...] ...] (continue back jump points)
 	bits-buf:  make binary! 10'000
 	verbose:   0						;-- logs verbosity level
 	
@@ -928,7 +928,7 @@ emitter: make-profilable context [
 		clear subs
 	]
 
-	calc-locals-offsets: func [spec [block!] /local total var sz extra][
+	calc-locals-offsets: func [spec [block!] /only /local total var sz extra][
 		total: negate extra: target/locals-offset
 		while [not tail? spec: next spec][
 			var: spec/1
@@ -938,7 +938,7 @@ emitter: make-profilable context [
 			][
 				sz: target/stack-slot-max				;-- type to be inferred
 			]
-			repend stack [var (total: total - sz)] 		;-- store stack offsets
+			unless only [repend stack [var (total: total - sz)]] 		;-- store stack offsets
 		]
 		(abs total) - extra
 	]
