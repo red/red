@@ -3015,7 +3015,7 @@ make-profilable make target-class [
 			emit-i32 #{e1a0d00b}					;-- MOV sp, fp
 			
 			if callback? [offset: offset + (9 * 4) + (8 * 8)] ;-- skip saved regs: {r4-r11, lr}, {d8-d15}
-			offset: offset + (8 + 8 + 4)			;-- account for the 2 catch slots + 2 saved slots + bitmap slot
+			offset: offset + locals-offset + 8 		;-- account for the 2 saved slots
 			
 			either offset > 255 [
 				emit-load-imm32/reg offset 4
@@ -3128,7 +3128,6 @@ make-profilable make target-class [
 		unless zero? locals-size [
 			emit-reserve-stack (round/to/ceiling locals-size stack-width) / stack-width
 		]
-		if cb? [locals-offset: locals-offset - 4]
 		
 		reduce [locals-size any [args-nb 0]]
 	]
@@ -3166,7 +3165,7 @@ make-profilable make target-class [
 				any [find attribs 'cdecl find attribs 'stdcall]
 			]
 		][
-			emit-i32 join #{e24bd0} to-bin8 locals-offset + 4 ;-- SUB sp, fp, offset  (account for frames chaining slot)
+			emit-i32 join #{e24bd0} to-bin8 locals-offset ;-- SUB sp, fp, offset
 			if all [slots fspec/3 = 'cdecl][
 				hf?: compiler/job/ABI = 'hard-float
 				either all [
