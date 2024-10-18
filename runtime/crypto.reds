@@ -694,6 +694,7 @@ crypto: context [
 			#default [
 				#switch config-name [
 					RPi		  [#define LIBCRYPTO-file "libcrypto.so.1.1"]
+					RPi-GTK	  [#define LIBCRYPTO-file "libcrypto.so.1.1"]
 					Linux-ARM [#define LIBCRYPTO-file "libcrypto.so.1.1"]
 					#default  [#define LIBCRYPTO-file "libcrypto.so.1.0.2"]
 				]
