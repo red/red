@@ -1093,6 +1093,7 @@ focus-out-event: func [
 	/local
 		face	[red-object!]
 		values	[red-value!]
+		state	[red-value!]
 		type	[red-word!]
 		sym		[integer!]
 		im		[handle!]
@@ -1109,6 +1110,11 @@ focus-out-event: func [
 		;probe ["unfocus: " im]
 		gtk_im_context_focus_out im
 	]
+	state: values + FACE_OBJ_STATE
+	if TYPE_OF(state) = TYPE_NONE [
+		return EVT_DISPATCH
+	]
+
 	make-event widget 0 EVT_UNFOCUS
 	EVT_DISPATCH
 ]
