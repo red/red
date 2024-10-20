@@ -694,7 +694,7 @@ system/view/VID: context [
 						max-sz: 0
 					]
 					space	[spacing: fetch-argument pos-size! spec]
-					origin	[origin: bound: current: cursor: pad + top-left: fetch-argument pos-size! spec  max-sz: 0 do reset]
+					origin	[do reset  origin: bound: current: cursor: pad + top-left: fetch-argument pos-size! spec  max-sz: 0]
 					at		[at-offset: fetch-expr 'spec spec: back spec]
 					pad		[cursor: cursor + fetch-argument pos-size! spec]
 					do		[do-safe bind fetch-argument block! spec panel]
