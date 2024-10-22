@@ -686,7 +686,7 @@ crypto: context [
 				#define LIBCRYPTO-file "libcrypto.dylib"
 			]
 			FreeBSD [
-				#define LIBCRYPTO-file "libcrypto.so.111"
+				#define LIBCRYPTO-file "libcrypto.so.30"
 			]
 			NetBSD [
 				#define LIBCRYPTO-file "libcrypto.so"
