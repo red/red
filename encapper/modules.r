@@ -14,6 +14,6 @@ REBOL [
 ]
 
 ;-- Name ------ Entry file ------------------------ OS availability -----
-	View		%modules/view/view.red				[Windows macOS Linux]
+	View		%modules/view/view.red				all
 	JSON		%environment/codecs/JSON.red		all
 	CSV 		%environment/codecs/CSV.red			all
