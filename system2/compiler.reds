@@ -519,7 +519,6 @@ compiler: context [
 		/local
 			ft		[fn-type!]
 			var		[var-decl!]
-			ssa		[ssa-var!]
 			add-decls [subroutine!]
 	][
 		add-decls: [
@@ -760,6 +759,7 @@ compiler: context [
 		fn/type: as rst-type! op-cache/void-op
 
 		;-- compiling
+		;-- TBD compile functions with multi-threads
 		stack/mark-try-all words/_anon
 		catch CATCH_ALL_EXCEPTIONS [
 			ctx: comp-fn fn null null
@@ -769,7 +769,7 @@ compiler: context [
 		stack/adjust-post-try
 		if system/thrown <> 0 [system/thrown: 0]
 
-		;-- code generating
+		;-- generating machine code
 		funcs: program/functions
 		p: as ptr-ptr! funcs/data
 		loop funcs/length [
@@ -781,6 +781,8 @@ compiler: context [
 		;dump-hex program/code-buf/data
 
 		reloc-fn-calls funcs
+
+		;-- fill the job object, we'll do the rest part in Red
 		fill-job-symbols symbols
 		fill-job-imports imports
 		fill-job-code code

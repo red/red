@@ -312,6 +312,22 @@ x86-reg-set: context [
 	]
 ]
 
+x86-cdecl: context [
+	param-regs: as rs-array! 0
+	ret-regs: as rs-array! 0
+	float-params: as rs-array! 0
+	float-rets: as rs-array! 0
+
+	_ret-regs: [x86_EAX]
+
+	init: does [
+		param-regs: empty-array
+		ret-regs: make-int-array _ret-regs size? _ret-regs
+		float-params: empty-array
+		float-rets: empty-array
+	]
+]
+
 x86-stdcall: context [
 	param-regs: as rs-array! 0
 	ret-regs: as rs-array! 0
@@ -328,7 +344,7 @@ x86-stdcall: context [
 	]
 ]
 
-x86-internal-cc: context [
+x86-internal-cc: context [	;-- red/system internal call-conv!
 	param-regs: as rs-array! 0
 	ret-regs: as rs-array! 0
 	float-params: as rs-array! 0
@@ -347,33 +363,35 @@ x86-internal-cc: context [
 	]
 ]
 
-x86-cc: context [	;-- red/system internal call-conv!
+x86-cc: context [
 	make: func [
 		fn		[fn!]
 		return: [call-conv!]
 		/local
-			spill-start [integer!]
-			n-params	[integer!]
-			param-locs	[rs-array!]
-			ret-locs	[rs-array!]
-			p			[ptr-ptr!]
-			pp			[int-ptr!]
-			ploc rloc	[int-ptr!]
-			cls			[reg-class!]
-			i			[integer!]
-			i-idx f-idx [integer!]
-			p-spill		[integer!]
-			r-spill		[integer!]
-			cc			[call-conv!]
-			ft			[fn-type!]
-			attr		[integer!]
-			param-regs	[int-array!]
-			ret-regs	[int-array!]
-			float-params [int-array!]
-			float-rets	[int-array!]
+			spill-start 	[integer!]
+			n-params		[integer!]
+			param-locs		[rs-array!]
+			ret-locs		[rs-array!]
+			p				[ptr-ptr!]
+			pp				[int-ptr!]
+			ploc rloc		[int-ptr!]
+			cls				[reg-class!]
+			i				[integer!]
+			i-idx f-idx 	[integer!]
+			p-spill			[integer!]
+			r-spill			[integer!]
+			cc				[call-conv!]
+			ft				[fn-type!]
+			attr			[integer!]
+			param-regs		[int-array!]
+			ret-regs		[int-array!]
+			float-params	[int-array!]
+			float-rets		[int-array!]
+			callee-clean?	[logic!]
 	][
 		if fn/cc <> null [return fn/cc]
 
+		callee-clean?: yes
 		ft: as fn-type! fn/type
 		attr: FN_ATTRS(ft)
 		case [
@@ -384,7 +402,11 @@ x86-cc: context [	;-- red/system internal call-conv!
 				float-rets: 	x86-stdcall/float-rets
 			]
 			attr and FN_CC_CDECL <> 0 [
-				0
+				callee-clean?: no
+				param-regs: 	x86-cdecl/param-regs
+				ret-regs: 		x86-cdecl/ret-regs
+				float-params: 	x86-cdecl/float-params
+				float-rets: 	x86-cdecl/float-rets
 			]
 			true [	;-- internal cc
 				param-regs: 	x86-internal-cc/param-regs
@@ -499,6 +521,7 @@ x86-cc: context [	;-- red/system internal call-conv!
 		cc/param-locs: param-locs
 		cc/ret-locs: ret-locs
 		cc/n-spilled: r-spill
+		cc/callee-clean?: callee-clean?
 		fn/cc: cc
 		cc
 	]

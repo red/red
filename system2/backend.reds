@@ -136,12 +136,13 @@ reg-set!: alias struct! [		;-- register set
 ]
 
 call-conv!: alias struct! [
-	reg-set		[reg-set!]
-	param-types [ptr-ptr!]
-	ret-type	[rst-type!]
-	param-locs	[rs-array!]
-	ret-locs	[rs-array!]
-	n-spilled	[integer!]
+	reg-set			[reg-set!]
+	param-types 	[ptr-ptr!]
+	ret-type		[rst-type!]
+	param-locs		[rs-array!]
+	ret-locs		[rs-array!]
+	n-spilled		[integer!]
+	callee-clean?	[logic!]			;-- callee cleans the stack
 ]
 
 frame!: alias struct! [
@@ -654,7 +655,9 @@ compute-frame-size: func [
 
 backend: context [
 	int-imm-caches: as ptr-array! 0
-	used-labels: as list! 0
+	imm-false:		as immediate! 0
+	imm-true:		as immediate! 0
+	used-labels:	as list! 0
 
 	label-ref!: alias struct! [
 		label	[label!]
@@ -845,6 +848,7 @@ backend: context [
 		x86-cond/init
 		x86-reg-set/init
 		x86-stdcall/init
+		x86-cdecl/init
 		x86-internal-cc/init
 		int-imm-caches: ptr-array/make 10
 		p: ARRAY_DATA(int-imm-caches)
@@ -854,6 +858,8 @@ backend: context [
 			p: p + 1
 			i: i + 1
 		]
+		imm-false: make-imm-bool false
+		imm-true: make-imm-bool true
 	]
 
 	#define CALC_REG_INDEX(base) [
@@ -1024,6 +1030,22 @@ backend: context [
 		i
 	]
 
+	make-imm-bool: func [
+		bool	[logic!]
+		return: [immediate!]
+		/local
+			i	[immediate!]
+			b	[red-logic!]
+	][
+		i: xmalloc(immediate!)
+		i/header: OD_IMM
+		b: xmalloc(red-logic!)
+		b/header: TYPE_LOGIC
+		b/value: bool
+		i/value: as cell! b
+		i
+	]
+
 	kill: func [
 		cg		[codegen!]
 		c		[integer!]
@@ -1172,6 +1194,16 @@ backend: context [
 		f/header: TYPE_FUNCTION
 		f/ptr: p
 		use-imm cg as cell! f
+	]
+
+	use-bool: func [
+		cg		[codegen!]
+		bool	[logic!]
+		/local
+			i	[immediate!]
+	][
+		i: either bool [imm-true][imm-false]
+		vector/append-ptr cg/operands as byte-ptr! i
 	]
 
 	use-imm-int: func [

@@ -306,7 +306,7 @@ type-checker: context [
 			RST_VAR [
 				var: as variable! e
 				decl: var/decl
-				if all [LOCAL_VAR?(decl) ctx/level > 0][
+				if LOCAL_VAR?(decl) [
 					ssa: decl/ssa
 					if ssa/index < 0 [
 						ssa/index: ctx/n-ssa-vars
@@ -372,13 +372,11 @@ type-checker: context [
 			tf			[rst-type!]
 			ut			[rst-type!]
 	][
-		ctx/level: ctx/level + 1
 		check-expr "Condition:" e/cond type-system/logic-type ctx
 		tt: check-stmts e/t-branch e/true-blk ctx
 		tf: either e/f-branch <> null [
 			check-stmts e/f-branch e/false-blk ctx
 		][null]
-		ctx/level: ctx/level - 1
 		e/type: either null? tf [tt][
 			ut: type-system/unify tt tf
 			either ut <> null [ut][type-system/void-type]
@@ -401,9 +399,7 @@ type-checker: context [
 		check-expr "While Condition:" as rst-expr! stmt type-system/logic-type ctx
 		exit-block
 
-		ctx/level: ctx/level + 1
 		check-stmts w/body w/body-blk ctx
-		ctx/level: ctx/level - 1
 
 		pop-loop ctx
 		type-system/void-type
@@ -444,9 +440,7 @@ type-checker: context [
 	]
 
 	visit-catch: func [p [catch!] ctx [context!] return: [rst-type!]][
-		ctx/level: ctx/level + 1
 		check-stmts p/body as red-block! p/token ctx
-		ctx/level: ctx/level - 1		
 		type-system/void-type
 	]
 
@@ -478,7 +472,6 @@ type-checker: context [
 			tt			[rst-type!]
 			unified?	[logic!]
 	][
-		ctx/level: ctx/level + 1
 		check-expr "Expr:" s/expr type-system/integer-type ctx
 
 		unified?: yes
@@ -492,7 +485,7 @@ type-checker: context [
 			][tt: t]
 			cases: cases/next
 		]
-		ctx/level: ctx/level - 1
+
 		t: either unified? [tt][type-system/void-type]
 		s/type: t
 		t
@@ -778,7 +771,7 @@ type-checker: context [
 			switch NODE_TYPE(var) [
 				RST_VAR_DECL [
 					infer-type var ctx
-					var/ssa: make-ssa-var
+					if LOCAL_VAR?(var) [var/ssa: make-ssa-var]
 				]
 				RST_FUNC	 [
 					f: as fn! var

@@ -385,7 +385,7 @@ bfs-blocks: func [		;-- breadth first search for a graph
 #define N_COMMON_CONST		9
 #define N_CACHED_CONST		13
 
-;-- a graph of IR nodes in SSA form
+;-- a graph of IR nodes in SSA form, machine independent
 ir-graph: context [
 
 	builder: declare visitor!
@@ -1596,16 +1596,6 @@ ir-graph: context [
 		if idx > -1 [
 			p: ARRAY_DATA(ctx/ssa-vars) + idx
 			p/value: as int-ptr! var
-		]
-		unless ctx/closed? [
-			val: either var/init <> null [
-				gen-expr var/init ctx
-			][
-				add-default-value var/type ctx
-			]
-			set-cur-val ssa val ctx
-			;INIT_ARRAY_VALUE(arr val)
-			;add-new-var var/type idx as ptr-array! :arr ctx
 		]
 	]
 

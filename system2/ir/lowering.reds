@@ -15,7 +15,7 @@ lowering-env!: alias struct! [
 	phis			[list!]				;-- list<instr-phi!>
 ]
 
-;-- Lowering SSA IR to machine-level IR
+;-- Lowering SSA IR to machine-level IR in-place
 lowering: context [
 
 	#define MARK_INS(i m) [
