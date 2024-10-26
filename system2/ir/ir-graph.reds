@@ -1437,13 +1437,33 @@ ir-graph: context [
 			op	[instr-op!]
 			arr [ptr-array!]
 			p	[ptr-ptr!]
+			np	[integer!]
 	][
 		fn: fc/fn
 		ft: as fn-type! fn/type
-		op: make-op OP_CALL_FUNC ft/n-params ft/param-types ft/ret-type
+		np: ft/n-params
+		op: make-op OP_CALL_FUNC np ft/param-types ft/ret-type
 		op/target: as int-ptr! fn
 
-		arr: ptr-array/make ft/n-params
+		if np = -1 [		;-- variadic function, count args
+			np: 0
+			arg: fc/args
+			while [arg <> null][
+				np: np + 1
+				arg: arg/next
+			]
+			op/n-params: np
+			p: as ptr-ptr! malloc np * size? int-ptr!
+			op/param-types: p
+			arg: fc/args
+			while [arg <> null][
+				p/value: as int-ptr! arg/type
+				p: p + 1
+				arg: arg/next
+			]
+		]
+
+		arr: ptr-array/make np
 		p: ARRAY_DATA(arr)
 		arg: fc/args
 		while [arg <> null][

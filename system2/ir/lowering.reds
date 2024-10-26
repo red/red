@@ -476,6 +476,8 @@ lowering: context [
 			pp		[ptr-ptr!]
 			vec		[vector!]
 			l		[list!]
+			arr		[ptr-array!]
+			ins		[instr!]
 	][
 		ir-graph/init-ssa-ctx :cur-ctx null 0 null
 		env: as lowering-env! malloc size? lowering-env!
@@ -485,6 +487,14 @@ lowering: context [
 		dyn-array/init env/new-instrs 4
 		env/mark: fn/mark + 1
 		fn/mark: fn/mark + 2
+
+		arr: fn/params
+		pp: ARRAY_DATA(arr)
+		loop arr/length [
+			ins: as instr! pp/value
+			MARK_INS(ins env/mark)
+			pp: pp + 1
+		]
 
 		vec: vector/make size? int-ptr! 4
 		vector/append-ptr vec as byte-ptr! fn/start-bb

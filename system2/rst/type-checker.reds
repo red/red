@@ -136,7 +136,7 @@ type-checker: context [
 		return: [rst-type!]
 	][
 		if null? var/type [
-			either all [var/init <> null NODE_FLAGS(var) and RST_VAR_PARAM = 0][
+			either var/init <> null [
 				assert null? var/typeref
 				var/type: as rst-type! var/init/accept as int-ptr! var/init checker as int-ptr! ctx
 			][
@@ -158,13 +158,15 @@ type-checker: context [
 		if ft/param-types <> null [exit]		;-- already resolved
 		enter-block(ft/spec)
 
-		pt: as ptr-ptr! malloc ft/n-params * size? int-ptr!
-		ft/param-types: pt
-		v: ft/params
-		while [v <> null][
-			pt/value: as int-ptr! infer-type v ctx
-			v: v/next
-			pt: pt + 1
+		if ft/n-params > 0 [
+			pt: as ptr-ptr! malloc ft/n-params * size? int-ptr!
+			ft/param-types: pt
+			v: ft/params
+			while [v <> null][
+				pt/value: as int-ptr! infer-type v ctx
+				v: v/next
+				pt: pt + 1
+			]
 		]
 		either ft/ret-typeref <> null [
 			ft/ret-type: parse-type ft/ret-typeref ctx
@@ -547,19 +549,31 @@ type-checker: context [
 			ft	 	[fn-type!]
 			arg		[rst-expr!]
 			pt		[ptr-ptr!]
+			type	[rst-type!]
 	][
 		if null? fc/type [resolve-fn-type as fn-type! fc/fn/type ctx]
 
-		arg: fc/args
 		ft: as fn-type! fc/fn/type
-		pt: ft/param-types
-		while [arg <> null][
-			check-expr "Function Call:" arg as rst-type! pt/value ctx
-			arg: arg/next
-			pt: pt + 1
-		]
-
 		fc/type: ft/ret-type
+		either FN_ATTRS(ft) and FN_VARIADIC = 0 [
+			pt: ft/param-types
+			arg: fc/args
+			while [arg <> null][
+				check-expr "Function Call:" arg as rst-type! pt/value ctx
+				arg: arg/next
+				pt: pt + 1
+			]
+		][	;-- variadic func, only infer type, no checking
+			arg: fc/args
+			while [arg <> null][
+				type: arg/type
+				if null? type [
+					type: as rst-type! arg/accept as int-ptr! arg checker as int-ptr! ctx
+					arg/type: type
+				]
+				arg: arg/next
+			]
+		]
 		fc/type
 	]
 

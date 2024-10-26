@@ -183,6 +183,7 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 ;-- fn-type! /header bits: 8 - 15 opcode, 16 - 31: attributes
 #define FN_OPCODE(f) (f/header >>> 8 and FFh)
 #define FN_ATTRS(f) (f/header >>> 16)
+#define FN_VARIADIC?(f) (f/header >> 16 and FN_VARIADIC <> 0)
 #define ADD_FN_ATTRS(f attrs) [f/header: f/header or (attrs << 16)]
 #define SET_FN_OPCODE(f op) [f/header: f/header and FFFF00FFh or (op << 8)]
 
@@ -996,14 +997,38 @@ parser: context [
 			beg [rst-node! value]
 			cur [rst-node!]
 			pp	[ptr-value!]
+			blk	[red-block!]
+			s 	[cell!]
+			e	[cell!]
+			i	[integer!]
+			saved-blk [red-block!]
 	][
+		pc: advance-next pc end
+		if T_BLOCK?(pc) [
+			blk: as red-block! pc
+			s: block/rs-head blk
+			e: block/rs-tail blk
+			if n = -1 [		;-- variadic
+				n: block/rs-length? blk
+			]
+			enter-block(blk)
+			fetch-args s - 1 e args ctx n
+			exit-block
+			return pc
+		]
+		if n = -1 [
+			throw-error [pc "expected a block of arguments for variadic function"]
+		]
 		beg/next: null
 		cur: :beg
-		loop n [
-			pc: advance-next pc end
+		i: 1
+		forever [
 			pc: parse-expr pc end :pp ctx
 			cur/next: as rst-node! pp/value
 			cur: cur/next
+			if i = n [break]
+			i: i + 1
+			pc: advance-next pc end
 		]
 		args/value: as int-ptr! beg/next
 		pc
@@ -1038,7 +1063,7 @@ parser: context [
 			ft: as fn-type! p/type
 		]
 		n: ft/n-params
-		pc: fetch-args pc end :pp ctx n
+		if n <> 0 [pc: fetch-args pc end :pp ctx n]
 		fc/args: as rst-expr! pp/value
 		out/value: as int-ptr! fc
 		pc
@@ -2922,7 +2947,6 @@ parser: context [
 					cur: cur/next
 					flag: RST_VAR_PARAM or RST_VAR_LOCAL
 					ADD_NODE_FLAGS(cur flag)
-					cur/init: as rst-expr! ft/n-params ;-- parameter index
 					p: p2 + 1
 					ft/n-params: ft/n-params + 1
 				]
@@ -2944,6 +2968,7 @@ parser: context [
 		]
 		exit-block
 
+		if FN_VARIADIC?(ft) [ft/n-params: -1]
 		ft/params: list/next
 		ft
 	]

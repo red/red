@@ -366,6 +366,7 @@ x86-internal-cc: context [	;-- red/system internal call-conv!
 x86-cc: context [
 	make: func [
 		fn		[fn!]
+		op		[instr-op!]
 		return: [call-conv!]
 		/local
 			spill-start 	[integer!]
@@ -388,12 +389,14 @@ x86-cc: context [
 			float-params	[int-array!]
 			float-rets		[int-array!]
 			callee-clean?	[logic!]
+			variadic?		[logic!]
 	][
 		if fn/cc <> null [return fn/cc]
 
 		callee-clean?: yes
 		ft: as fn-type! fn/type
 		attr: FN_ATTRS(ft)
+		variadic?: attr and FN_VARIADIC <> 0
 		case [
 			attr and FN_CC_STDCALL <> 0 [
 				param-regs: 	x86-stdcall/param-regs
@@ -417,13 +420,13 @@ x86-cc: context [
 		]
 		
 		spill-start: x86-reg-set/reg-set/spill-start
-		n-params: ft/n-params
+		n-params: either variadic? [op/n-params][ft/n-params]
 		param-locs: int-array/make n-params
 		ploc: as int-ptr! ARRAY_DATA(param-locs)
 
 		;-- locations of each parameter
 		p-spill: 0 i-idx: 0 f-idx: 0 i: 1
-		p: ft/param-types
+		p: either op <> null [op/param-types][ft/param-types]
 		loop n-params [
 			cls: reg-class? as rst-type! p/value
 			switch cls [
@@ -522,7 +525,7 @@ x86-cc: context [
 		cc/ret-locs: ret-locs
 		cc/n-spilled: r-spill
 		cc/callee-clean?: callee-clean?
-		fn/cc: cc
+		unless variadic? [fn/cc: cc]
 		cc
 	]
 ]
@@ -650,7 +653,7 @@ x86: context [
 		use-ptr cg o/target
 
 		fn: as fn! o/target
-		cc: x86-cc/make fn
+		cc: x86-cc/make fn o
 		if cc/ret-type <> type-system/void-type [
 			def-reg-fixed cg i callee-ret cc 0
 		]
@@ -944,6 +947,7 @@ x86: context [
 		blk		[basic-block!]
 		i		[instr!]
 	][
+		;ir-printer/print-instr i
 		switch INSTR_OPCODE(i) [
 			OP_BOOL_EQ			[0]
 			OP_BOOL_AND			[0]
@@ -998,7 +1002,7 @@ x86: context [
 			f	[frame!]
 	][
 		f: xmalloc(frame!)
-		f/cc: x86-cc/make ir/fn
+		f/cc: x86-cc/make ir/fn null
 		f/align: target/addr-align
 		f/slot-size: 4
 		f/size: target/addr-size
