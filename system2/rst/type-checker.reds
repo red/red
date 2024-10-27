@@ -363,6 +363,10 @@ type-checker: context [
 		e/type
 	]
 
+	visit-lit-array: func [e [literal!] ctx [context!] return: [rst-type!]][
+		e/type
+	]
+
 	visit-var: func [v [variable!] ctx [context!] return: [rst-type!]][
 		infer-type v/decl ctx
 	]
@@ -597,6 +601,7 @@ type-checker: context [
 
 	checker/visit-assign:		as visit-fn! :visit-assign
 	checker/visit-literal:		as visit-fn! :visit-literal
+	checker/visit-lit-array:	as visit-fn! :visit-lit-array
 	checker/visit-bin-op:		as visit-fn! :visit-bin-op
 	checker/visit-var:			as visit-fn! :visit-var
 	checker/visit-fn-call:		as visit-fn! :visit-fn-call

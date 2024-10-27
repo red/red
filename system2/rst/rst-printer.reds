@@ -21,6 +21,10 @@ rst-printer: context [
 		do-i i prin-token e/token
 	]
 
+	visit-lit-array: func [e [rst-expr!] i [integer!]][
+		do-i i prin-token e/token
+	]
+
 	visit-var: func [v [variable!] i [integer!]][
 		do-i i prin-token v/token
 	]
@@ -146,6 +150,7 @@ rst-printer: context [
 
 	printer/visit-assign:		as visit-fn! :visit-assign
 	printer/visit-literal:		as visit-fn! :visit-literal
+	printer/visit-lit-array:	as visit-fn! :visit-lit-array
 	printer/visit-bin-op:		as visit-fn! :visit-bin-op
 	printer/visit-var:			as visit-fn! :visit-var
 	printer/visit-fn-call:		as visit-fn! :visit-fn-call

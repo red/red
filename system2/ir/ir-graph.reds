@@ -418,6 +418,20 @@ ir-graph: context [
 		as instr! const-val e/type e/token ctx/graph
 	]
 
+	visit-lit-array: func [e [literal!] ctx [ssa-ctx!] return: [instr!]
+		/local
+			decl	[var-decl!]
+			op		[instr-op!]
+	][
+		decl: parser/make-var-decl e/token null
+		decl/init: as rst-expr! e
+		decl/type: e/type
+		record-global decl
+		op: make-op OP_GET_GLOBAL 0 null decl/type
+		op/target: as int-ptr! decl
+		add-op op null ctx
+	]
+
 	visit-var: func [v [variable!] ctx [ssa-ctx!] return: [instr!]
 		/local
 			decl	[var-decl!]
@@ -640,6 +654,7 @@ ir-graph: context [
 
 	builder/visit-assign:		as visit-fn! :visit-assign
 	builder/visit-literal:		as visit-fn! :visit-literal
+	builder/visit-lit-array:	as visit-fn! :visit-lit-array
 	builder/visit-bin-op:		as visit-fn! :visit-bin-op
 	builder/visit-var:			as visit-fn! :visit-var
 	builder/visit-fn-call:		as visit-fn! :visit-fn-call

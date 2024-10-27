@@ -30,6 +30,7 @@ visitor!: alias struct! [
 	VISITOR_FUNC(visit-size?)
 	VISITOR_FUNC(visit-cast)
 	VISITOR_FUNC(visit-literal)
+	VISITOR_FUNC(visit-lit-array)
 	VISITOR_FUNC(visit-comment)
 	VISITOR_FUNC(visit-path)
 	VISITOR_FUNC(visit-any-all)
@@ -883,7 +884,7 @@ parser: context [
 			a	[array-literal!]
 	][
 		array_accept: func [ACCEPT_FN_SPEC][
-			v/visit-literal self data
+			v/visit-lit-array self data
 		]
 		a: xmalloc(array-literal!)
 		SET_NODE_TYPE(a RST_LIT_ARRAY)
