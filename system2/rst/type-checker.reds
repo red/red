@@ -129,6 +129,34 @@ resolve-typeref: func [
 
 type-checker: context [
 	checker: declare visitor!
+	init: does [
+		checker/visit-assign:		as visit-fn! :visit-assign
+		checker/visit-literal:		as visit-fn! :visit-literal
+		checker/visit-lit-array:	as visit-fn! :visit-lit-array
+		checker/visit-bin-op:		as visit-fn! :visit-bin-op
+		checker/visit-var:			as visit-fn! :visit-var
+		checker/visit-fn-call:		as visit-fn! :visit-fn-call
+		checker/visit-native-call:	as visit-fn! :visit-native-call
+		checker/visit-if:			as visit-fn! :visit-if
+		checker/visit-while:		as visit-fn! :visit-while
+		checker/visit-break:		as visit-fn! :visit-break
+		checker/visit-continue:		as visit-fn! :visit-continue
+		checker/visit-return:		as visit-fn! :visit-return
+		checker/visit-exit:			as visit-fn! :visit-exit
+		checker/visit-comment:		as visit-fn! :visit-comment
+		checker/visit-case:			as visit-fn! :visit-case
+		checker/visit-switch:		as visit-fn! :visit-switch
+		checker/visit-not:			as visit-fn! :visit-not
+		checker/visit-size?:		as visit-fn! :visit-size?
+		checker/visit-cast:			as visit-fn! :visit-cast
+		checker/visit-declare:		as visit-fn! :visit-declare
+		checker/visit-get-ptr:		as visit-fn! :visit-get-ptr
+		checker/visit-path:			as visit-fn! :visit-path
+		checker/visit-any-all:		as visit-fn! :visit-any-all
+		checker/visit-throw:		as visit-fn! :visit-throw
+		checker/visit-catch:		as visit-fn! :visit-catch
+		checker/visit-assert:		as visit-fn! :visit-assert
+	]
 
 	infer-type: func [
 		var		[var-decl!]
@@ -598,33 +626,6 @@ type-checker: context [
 		bin/spec: op
 		op/ret-type
 	]
-
-	checker/visit-assign:		as visit-fn! :visit-assign
-	checker/visit-literal:		as visit-fn! :visit-literal
-	checker/visit-lit-array:	as visit-fn! :visit-lit-array
-	checker/visit-bin-op:		as visit-fn! :visit-bin-op
-	checker/visit-var:			as visit-fn! :visit-var
-	checker/visit-fn-call:		as visit-fn! :visit-fn-call
-	checker/visit-native-call:	as visit-fn! :visit-native-call
-	checker/visit-if:			as visit-fn! :visit-if
-	checker/visit-while:		as visit-fn! :visit-while
-	checker/visit-break:		as visit-fn! :visit-break
-	checker/visit-continue:		as visit-fn! :visit-continue
-	checker/visit-return:		as visit-fn! :visit-return
-	checker/visit-exit:			as visit-fn! :visit-exit
-	checker/visit-comment:		as visit-fn! :visit-comment
-	checker/visit-case:			as visit-fn! :visit-case
-	checker/visit-switch:		as visit-fn! :visit-switch
-	checker/visit-not:			as visit-fn! :visit-not
-	checker/visit-size?:		as visit-fn! :visit-size?
-	checker/visit-cast:			as visit-fn! :visit-cast
-	checker/visit-declare:		as visit-fn! :visit-declare
-	checker/visit-get-ptr:		as visit-fn! :visit-get-ptr
-	checker/visit-path:			as visit-fn! :visit-path
-	checker/visit-any-all:		as visit-fn! :visit-any-all
-	checker/visit-throw:		as visit-fn! :visit-throw
-	checker/visit-catch:		as visit-fn! :visit-catch
-	checker/visit-assert:		as visit-fn! :visit-assert
 
 	make-cmp-op: func [
 		op			[rst-op!]

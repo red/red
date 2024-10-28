@@ -812,6 +812,9 @@ compiler: context [
 		parser/init
 		op-cache/init
 		type-system/init
+		type-checker/init
+		rst-printer/init
+		ir-graph/init
 	]
 
 	clean: does [

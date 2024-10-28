@@ -387,8 +387,35 @@ bfs-blocks: func [		;-- breadth first search for a graph
 
 ;-- a graph of IR nodes in SSA form, machine independent
 ir-graph: context [
-
 	builder: declare visitor!
+	init: does [
+		builder/visit-assign:		as visit-fn! :visit-assign
+		builder/visit-literal:		as visit-fn! :visit-literal
+		builder/visit-lit-array:	as visit-fn! :visit-lit-array
+		builder/visit-bin-op:		as visit-fn! :visit-bin-op
+		builder/visit-var:			as visit-fn! :visit-var
+		builder/visit-fn-call:		as visit-fn! :visit-fn-call
+		builder/visit-native-call:	as visit-fn! :visit-native-call
+		builder/visit-if:			as visit-fn! :visit-if
+		builder/visit-while:		as visit-fn! :visit-while
+		builder/visit-break:		as visit-fn! :visit-break
+		builder/visit-continue:		as visit-fn! :visit-continue
+		builder/visit-return:		as visit-fn! :visit-return
+		builder/visit-exit:			as visit-fn! :visit-exit
+		builder/visit-comment:		as visit-fn! :visit-comment
+		builder/visit-case:			as visit-fn! :visit-case
+		builder/visit-switch:		as visit-fn! :visit-switch
+		builder/visit-not:			as visit-fn! :visit-not
+		builder/visit-size?:		as visit-fn! :visit-size?
+		builder/visit-cast:			as visit-fn! :visit-cast
+		builder/visit-declare:		as visit-fn! :visit-declare
+		builder/visit-get-ptr:		as visit-fn! :visit-get-ptr
+		builder/visit-path:			as visit-fn! :visit-path
+		builder/visit-any-all:		as visit-fn! :visit-any-all
+		builder/visit-throw:		as visit-fn! :visit-throw
+		builder/visit-catch:		as visit-fn! :visit-catch
+		builder/visit-assert:		as visit-fn! :visit-assert
+	]
 
 	visit-assign: func [
 		a [assignment!] ctx [ssa-ctx!] return: [instr!]
@@ -651,33 +678,6 @@ ir-graph: context [
 	][
 		null
 	]
-
-	builder/visit-assign:		as visit-fn! :visit-assign
-	builder/visit-literal:		as visit-fn! :visit-literal
-	builder/visit-lit-array:	as visit-fn! :visit-lit-array
-	builder/visit-bin-op:		as visit-fn! :visit-bin-op
-	builder/visit-var:			as visit-fn! :visit-var
-	builder/visit-fn-call:		as visit-fn! :visit-fn-call
-	builder/visit-native-call:	as visit-fn! :visit-native-call
-	builder/visit-if:			as visit-fn! :visit-if
-	builder/visit-while:		as visit-fn! :visit-while
-	builder/visit-break:		as visit-fn! :visit-break
-	builder/visit-continue:		as visit-fn! :visit-continue
-	builder/visit-return:		as visit-fn! :visit-return
-	builder/visit-exit:			as visit-fn! :visit-exit
-	builder/visit-comment:		as visit-fn! :visit-comment
-	builder/visit-case:			as visit-fn! :visit-case
-	builder/visit-switch:		as visit-fn! :visit-switch
-	builder/visit-not:			as visit-fn! :visit-not
-	builder/visit-size?:		as visit-fn! :visit-size?
-	builder/visit-cast:			as visit-fn! :visit-cast
-	builder/visit-declare:		as visit-fn! :visit-declare
-	builder/visit-get-ptr:		as visit-fn! :visit-get-ptr
-	builder/visit-path:			as visit-fn! :visit-path
-	builder/visit-any-all:		as visit-fn! :visit-any-all
-	builder/visit-throw:		as visit-fn! :visit-throw
-	builder/visit-catch:		as visit-fn! :visit-catch
-	builder/visit-assert:		as visit-fn! :visit-assert
 
 	make-bb: func [		;-- create basic-block!
 		return: [basic-block!]
