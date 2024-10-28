@@ -1849,10 +1849,10 @@ backend: context [
 				]
 			]
 			OD_OVERWRITE [
-				prin "write #"
+				prin "overwrite dst#"
 				o: as overwrite! a
 				print o/dst/idx
-				prin " #"
+				prin " src#"
 				print o/src/idx
 			]
 			OD_KILL [prin "kill"]

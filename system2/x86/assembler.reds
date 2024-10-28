@@ -79,9 +79,9 @@ asm: context [
 	]
 
 	;;opcodes:	add  or adc sbb and sub xor cmp
-	x86-rm-r:  [01h 09h 11h 19h 21h 29h 31h 39h]
-	x86-r-rm:  [03h 0Bh 13h 1Bh 23h 2Bh 33h 3Bh]
-	x86-eax-i: [05h 0Dh 15h 1Dh 25h 2Dh 35h 3Dh]
+	op-rm-r:  [01h 09h 11h 19h 21h 29h 31h 39h]
+	op-r-rm:  [03h 0Bh 13h 1Bh 23h 2Bh 33h 3Bh]
+	op-eax-i: [05h 0Dh 15h 1Dh 25h 2Dh 35h 3Dh]
 
 	pos: func [return: [integer!]][
 		program/code-buf/length
@@ -118,7 +118,7 @@ asm: context [
 		emit-b MOD_REG or (x and 7 << 3) or (r - 1 and 7)
 	]
 
-	emit-b-r: func [
+	emit-b-r-x: func [
 		b		[integer!]
 		r		[integer!]
 		x		[integer!]
@@ -134,13 +134,13 @@ asm: context [
 	][
 		either any [i < -128 i > 127][
 			either r = x86-regs/eax [
-				emit-bd x86-eax-i/op i
+				emit-bd op-eax-i/op i
 			][
-				emit-b-r 81h r op - 1
+				emit-b-r-x 81h r op - 1
 				emit-d i
 			]
 		][
-			emit-b-r 83h r op - 1
+			emit-b-r-x 83h r op - 1
 			emit-b i
 		]
 	]
@@ -297,7 +297,45 @@ asm: context [
 		r1		[integer!]
 		r2		[integer!]
 	][
-		emit-b-r op r1 r2
+		emit-b-r-x op r1 r2
+	]
+
+	emit-r-r: func [
+		r1		[integer!]
+		r2		[integer!]
+		op		[basic-op!]
+	][
+		emit-b-r-r op-rm-r/op r1 r1
+	]
+
+	emit-r-m: func [
+		r		[integer!]
+		m		[x86-addr!]
+		op		[basic-op!]
+	][
+		emit-b-r-m op-r-rm/op r m 
+	]
+
+	emit-m-r: func [
+		m		[x86-addr!]
+		r		[integer!]
+		op		[basic-op!]
+	][
+		emit-b-m-r op-rm-r/op m r
+	]
+
+	emit-m-i: func [
+		m		[x86-addr!]
+		i		[integer!]
+		op		[basic-op!]
+	][
+		either any [i < -128 i > 127][
+			emit-b-m-x 81h m op
+			emit-d i
+		][
+			emit-b-m-x 83h m op
+			emit-b i
+		]
 	]
 
 	ret: does [emit-b C3h]
@@ -386,6 +424,41 @@ asm: context [
 	][
 		emit-b B8h + r
 		emit-d imm
+	]
+
+	add-r-i: func [
+		r		[integer!]
+		imm		[integer!]
+	][
+		emit-r-i r imm OP_ADD
+	]
+
+	add-r-r: func [
+		r1		[integer!]
+		r2		[integer!]
+	][
+		emit-r-r r1 r2 OP_ADD
+	]
+
+	add-r-m: func [
+		r		[integer!]
+		m		[x86-addr!]
+	][
+		emit-r-m r m OP_ADD
+	]
+
+	add-m-r: func [
+		m		[x86-addr!]
+		r		[integer!]
+	][
+		emit-m-r m r OP_ADD
+	]
+
+	add-m-i: func [
+		m		[x86-addr!]
+		imm		[integer!]
+	][
+		emit-m-i m imm OP_ADD - 1
 	]
 ]
 
@@ -604,6 +677,7 @@ assemble-r-r: func [
 ][
 	switch op [
 		I_MOVD [asm/movd-r-r a b]
+		I_ADDD [asm/add-r-r a b]
 		default [0]
 	]
 ]
@@ -615,6 +689,7 @@ assemble-r-m: func [
 ][
 	switch op [
 		I_MOVD [asm/movd-r-m a m]
+		I_ADDD [asm/add-r-m a m]
 		default [0]
 	]
 ]
@@ -626,6 +701,7 @@ assemble-r-i: func [
 ][
 	switch op [
 		I_MOVD [asm/movd-r-i r imm]
+		I_ADDD [asm/add-r-i r imm]
 		default [0]
 	]
 ]
@@ -637,6 +713,7 @@ assemble-m-i: func [
 ][
 	switch op [
 		I_MOVD [asm/movd-m-i m imm]
+		I_ADDD [asm/add-m-i m imm]
 		default [0]
 	]
 ]
@@ -648,6 +725,7 @@ assemble-m-r: func [
 ][
 	switch op [
 		I_MOVD [asm/movd-m-r m a]
+		I_ADDD [asm/add-m-r m a]
 		default [0]
 	]
 ]
