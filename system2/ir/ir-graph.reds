@@ -17,7 +17,7 @@ Red/System [
 	IR_NODE_FIELDS(type)
 	inputs	[ptr-array!]	;-- array<df-edge!>: [(src: self -> dst: input) ...]
 	uses	[df-edge!]		;-- (src: user -> dst: self)
-	link	[instr!]
+	instr	[instr!]		;-- map this instr -> instr
 ]
 
 #define ADD_INS_FLAGS(i flags) [i/header: i/header or (flags << 8)]
@@ -111,6 +111,7 @@ basic-block!: alias struct! [
 	;-- /prev: point to the last instr
 	IR_NODE_FIELDS(instr!)
 	preds	[ptr-array!]		;-- array<cf-edge!>
+	marker	[integer!]
 ]
 
 ir-fn!: alias struct! [
@@ -170,8 +171,11 @@ instr-input: func [
 		p	[ptr-ptr!]
 		e	[df-edge!]
 ][
-	p: ARRAY_DATA(i/inputs) + idx
+	p: ARRAY_DATA(i/inputs)
+	probe i/inputs/length
+	p: p + idx
 	e: as df-edge! p/value
+	?? e
 	e/dst
 ]
 
@@ -352,7 +356,7 @@ bfs-blocks: func [		;-- breadth first search for a graph
 	vector/append-ptr vec as byte-ptr! start-bb
 	if any [null? succs zero? succs/length][exit]
 
-	start-bb/mark: 1
+	start-bb/marker: 1
 	i: 0
 	while [i < vec/length][
 		b: as basic-block! vector/pick-ptr vec i
@@ -362,8 +366,8 @@ bfs-blocks: func [		;-- breadth first search for a graph
 			loop succs/length [
 				e: as cf-edge! pp/value
 				b: e/dst
-				if b/mark < 1 [
-					b/mark: 1
+				if b/marker < 1 [
+					b/marker: 1
 					vector/append-ptr vec as byte-ptr! b
 				]
 				pp: pp + 1
@@ -375,7 +379,7 @@ bfs-blocks: func [		;-- breadth first search for a graph
 	pp: as ptr-ptr! vec/data
 	loop vec/length [
 		b: as basic-block! pp/value
-		b/mark: -1
+		b/marker: -1
 		pp: pp + 1
 	]
 ]
@@ -689,6 +693,7 @@ ir-graph: context [
 		bb/prev: as instr! bb
 		bb/preds: empty-array
 		bb/mark: -1
+		bb/marker: -1
 		bb
 	]
 

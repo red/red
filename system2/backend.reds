@@ -1133,6 +1133,7 @@ backend: context [
 			v	[vreg!]
 	][
 		v: get-vreg cg i
+		if null? v [exit]
 		update-usage v
 		vector/append-ptr cg/operands as byte-ptr! make-use v 0
 	]
@@ -1145,6 +1146,7 @@ backend: context [
 			p	[int-ptr!]
 	][
 		v: get-vreg cg i
+		if null? v [exit]
 		update-usage v
 		p: cg/reg-set/regs-cls + v/reg-class	;-- any regs in this class
 		vector/append-ptr cg/operands as byte-ptr! make-use v p/value
@@ -1158,6 +1160,7 @@ backend: context [
 			v	[vreg!]
 	][
 		v: get-vreg cg i
+		if null? v [exit]
 		update-usage v
 		vector/append-ptr cg/operands as byte-ptr! make-use v c
 	]
@@ -1436,6 +1439,7 @@ backend: context [
 			probe "get vreg error: invalid instr mark"
 			halt
 		]
+		;ir-printer/print-instr i
 		if INSTR_FLAGS(i) and F_NOT_VOID = 0 [return null]
 
 		either i/mark <= cg/mark [
@@ -1453,14 +1457,14 @@ backend: context [
 			idx [integer!]
 	][
 		i: edge/dst/next
-		while [INSTR_PHI?(i)][
+		while [all [i <> null INSTR_PHI?(i)]][
 			def-i cg i
 			i: i/next
 		]
 
 		idx: edge/dst-idx
 		i: edge/dst/next
-		while [INSTR_PHI?(i)][
+		while [all [i <> null INSTR_PHI?(i)]][
 			use-i cg instr-input i idx
 			i: i/next
 		]
@@ -1497,6 +1501,7 @@ backend: context [
 			g		[instr-goto!]
 			p		[ptr-ptr!]
 	][
+		ir-printer/print-instr i print lf
 		switch INSTR_OPCODE(i) [
 			INS_IF		[target/gen-if cg blk i]
 			INS_GOTO	[

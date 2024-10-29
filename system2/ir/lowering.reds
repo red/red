@@ -20,7 +20,7 @@ lowering: context [
 
 	#define MARK_INS(i m) [
 		i/mark: m
-		i/link: null
+		i/instr: null
 	]
 
 	map: func [
@@ -29,7 +29,7 @@ lowering: context [
 		env		[lowering-env!]
 	][
 		old/mark: env/mark
-		old/link: new
+		old/instr: new
 		new/mark: env/mark
 		replace-instr old new
 		remove-instr old
@@ -41,7 +41,7 @@ lowering: context [
 		env		[lowering-env!]
 	][
 		old/mark: env/mark
-		old/link: new
+		old/instr: new
 		new/mark: env/mark
 		replace-instr old new
 	]
@@ -64,7 +64,7 @@ lowering: context [
 			map old as instr! p/value env
 		][
 			fn: env/fn
-			old/link: null
+			old/instr: null
 			old/mark: fn/mark
 			fn/mark: fn/mark + 1
 
@@ -136,7 +136,7 @@ lowering: context [
 			old: e/dst
 			new: get-new-instrs old env
 			either null? new [
-				i: either old/link <> null [old/link][old]
+				i: either old/instr <> null [old/instr][old]
 				dyn-array/append buf as int-ptr! i
 			][
 				dyn-array/append-n buf new
@@ -412,19 +412,51 @@ lowering: context [
 		i		[instr!]
 		env		[lowering-env!]
 		/local
-			new-i [ptr-array!]
+			new-i	[ptr-array!]
+			i2		[instr!]
+			inputs	[ptr-array!]
+			arr		[ptr-array!]
+			len n j	[integer!]
+			ninputs [integer!]
+			p pp pi	[ptr-ptr!]
+			p2		[ptr-ptr!]
 	][
 		if INSTR_FLAGS(i) and F_INS_KILLED <> 0 [exit]
 
 		new-i: get-new-instrs i env
 		either null? new-i [
-			either null? i/link [
+			either null? i/instr [
 				refresh-inputs i env
-			][	;-- phi is replaced
-				0
+			][	;-- phi is replaced by 1 instr
+				i2: i/instr
+				insert-instr i i2
+				ir-graph/set-inputs i2 refresh-dests i/inputs env
+				remove-instr i
 			]
 		][	;-- phi is replaced by N instrs
-			0
+			ninputs: i/inputs/length
+			inputs: refresh-dests i/inputs env
+			pi: ARRAY_DATA(inputs)
+			len: new-i/length
+			p: ARRAY_DATA(new-i)
+			n: 0
+			while [n < len][
+				i2: as instr! p/value
+				insert-instr i i2
+				arr: ptr-array/make ninputs
+				pp: ARRAY_DATA(arr)
+				j: 0
+				while [j < ninputs][
+					p2: pi + n + (j * ninputs)
+					pp/value: p2/value
+					pp: pp + 1
+					j: j + 1
+				]
+				ir-graph/set-inputs i2 arr
+				n: n + 1
+				p: p + 1
+			]
+			remove-instr i
 		]
 	]
 
@@ -479,7 +511,8 @@ lowering: context [
 			arr		[ptr-array!]
 			ins		[instr!]
 	][
-		ir-graph/init-ssa-ctx :cur-ctx null 0 null
+		ir-graph/init-ssa-ctx :cur-ctx null 0 fn/start-bb
+		cur-ctx/graph: fn
 		env: as lowering-env! malloc size? lowering-env!
 		env/cur-ctx: :cur-ctx
 		env/fn: fn

@@ -714,6 +714,17 @@ x86: context [
 		x86-cond/make-pair cond null no
 	]
 
+	emit-default-cmp: func [
+		cg		[codegen!]
+		i		[instr!]
+		return: [x86-cond-pair!]
+	][
+		use-i cg i
+		use-imm-int cg 0
+		emit-instr cg I_CMPB or AM_OP_IMM
+		x86-cond/make-pair x86-cond/not-zero null no
+	]
+
 	emit-cmp: func [
 		cg		[codegen!]
 		i		[instr!]
@@ -725,9 +736,16 @@ x86: context [
 			t	[int-type!]
 	][
 		switch INSTR_OPCODE(i) [
-			OP_BOOL_EQ
-			OP_BOOL_NOT
-			OP_INT_EQ
+			OP_BOOL_EQ	[
+				emit-int-cmp cg i I_CMPB x86-cond/zero
+			]
+			OP_BOOL_NOT	[
+				x86-cond/pair-neg emit-cmp cg i
+			]
+			OP_INT_EQ	[
+				op: int-cmp-op as instr-op! i
+				emit-int-cmp cg i op x86-cond/zero
+			]
 			OP_INT_LT	[
 				o: as instr-op! i
 				op: int-cmp-op o
@@ -735,13 +753,20 @@ x86: context [
 				c: either INT_SIGNED?(t) [x86-cond/lesser][x86-cond/carry]
 				emit-int-cmp cg i op c
 			]
-			OP_INT_LTEQ
+			OP_INT_LTEQ	[
+				o: as instr-op! i
+				op: int-cmp-op o
+				t: as int-type! o/param-types/value
+				c: either INT_SIGNED?(t) [x86-cond/lesser-eq][x86-cond/not-aux-carry]
+				emit-int-cmp cg i op c
+			]
 			OP_PTR_EQ
 			OP_PTR_LT
 			OP_PTR_LTEQ
 			OP_FLT_EQ
 			OP_FLT_LT
 			OP_FLT_LTEQ [null]
+			default [emit-default-cmp cg i]
 		]
 	]
 
@@ -946,13 +971,20 @@ x86: context [
 		cg		[codegen!]
 		blk		[basic-block!]
 		i		[instr!]
+		/local
+			conds [x86-cond-pair!]
 	][
 		;ir-printer/print-instr i
 		switch INSTR_OPCODE(i) [
-			OP_BOOL_EQ			[0]
+			OP_BOOL_EQ			
+			OP_BOOL_NOT			
+			OP_INT_EQ			
+			OP_INT_LT			
+			OP_INT_LTEQ			[
+				conds: emit-cmp cg i
+			]
 			OP_BOOL_AND			[0]
 			OP_BOOL_OR			[0]
-			OP_BOOL_NOT			[0]
 			OP_INT_ADD			[emit-int-binop cg I_ADDD i]
 			OP_INT_SUB			[0]
 			OP_INT_MUL			[0]
@@ -965,10 +997,7 @@ x86: context [
 			OP_INT_SHL			[0]
 			OP_INT_SAR			[0]
 			OP_INT_SHR			[0]
-			OP_INT_EQ			[0]
 			OP_INT_NE			[0]
-			OP_INT_LT			[0]
-			OP_INT_LTEQ			[0]
 			OP_FLT_ADD			[0]
 			OP_FLT_SUB			[0]
 			OP_FLT_MUL			[0]
