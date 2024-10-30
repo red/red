@@ -49,6 +49,13 @@ Red [
 		type:		'exe
 		sub-system: 'console
 	]
+	MSDOS-64 [									; Windows default target
+		OS:			'Windows
+		format: 	'PE
+		type:		'exe
+		sub-system: 'console
+		target:		'AMD64
+	]
 	;-------------------------
 	Windows [
 		OS:			'Windows

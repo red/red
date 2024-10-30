@@ -84,6 +84,8 @@ context [
 	;	]
 	;]
 
+	PE64?: no
+
 	defs: [
 		PE-signature #{50450000}						;-- "PE^@^@"
 		image [
@@ -332,6 +334,76 @@ context [
 		reserved2			[integer!]		;-- reserved, must be zero
 	] none
 
+	optional-header64: make-struct [		;-- optional header for image only
+		magic				[short]			;-- different for 32/64-bit
+		major-link-version	[char]
+		minor-link-version	[char]
+		code-size			[integer!]
+		initdata-size		[integer!]
+		uninitdata-size		[integer!]
+		entry-point-addr	[integer!]
+		code-base			[integer!]
+		image-base			[integer!]		;-- 8 bytes for 64-bit
+		_image-base			[integer!]
+		memory-align		[integer!]
+		file-align			[integer!]
+		major-OS-version	[short]			;-- should be 4.0
+		minor-OS-version	[short]
+		major-img-version	[short]
+		minor-img-version	[short]
+		major-sub-version	[short]
+		minor-sub-version	[short]
+		win32-ver-value		[integer!]		;-- reserved, must be zero
+		image-size			[integer!]
+		headers-size		[integer!]
+		checksum			[integer!]		;-- for drivers and DLL only
+		sub-system			[short]
+		dll-flags			[short]			;-- DLL only
+		stack-res-size		[integer!]		;-- 8 bytes for 64-bit
+		_stack-res-size		[integer!]
+		stack-com-size		[integer!]		;-- 8 bytes for 64-bit
+		_stack-com-size		[integer!]
+		heap-res-size		[integer!]		;-- 8 bytes for 64-bit
+		_heap-res-size		[integer!]
+		heap-com-size		[integer!]		;-- 8 bytes for 64-bit
+		_heap-com-size		[integer!]
+		loader-flags		[integer!]		;-- reserved, must be zero
+		data-dir-nb			[integer!]
+		;-- Data Directory
+		export-addr			[integer!]
+		export-size			[integer!]
+		import-addr			[integer!]
+		import-size			[integer!]
+		rsrc-addr			[integer!]
+		rsrc-size			[integer!]
+		except-addr			[integer!]
+		except-size			[integer!]
+		cert-addr			[integer!]
+		cert-size			[integer!]
+		reloc-addr			[integer!]
+		reloc-size			[integer!]
+		debug-addr			[integer!]
+		debug-size			[integer!]
+		arch-addr			[integer!]		;-- reserved, must be zero
+		arch-size			[integer!]		;-- reserved, must be zero
+		gptr-addr			[integer!]
+		gptr-size			[integer!]
+		TLS-addr			[integer!]
+		TLS-size			[integer!]
+		config-addr			[integer!]
+		config-size			[integer!]
+		b-import-addr		[integer!]
+		b-import-size		[integer!]
+		IAT-addr			[integer!]
+		IAT-size			[integer!]
+		d-import-addr		[integer!]
+		d-import-size		[integer!]
+		CLR-addr			[integer!]
+		CLR-size			[integer!]
+		reserved			[integer!]		;-- reserved, must be zero
+		reserved2			[integer!]		;-- reserved, must be zero
+	] none
+
 	section-header: make-struct [
 		name				[float!]		;-- placeholder for an 8 bytes string
 		virtual-size		[integer!]
@@ -356,7 +428,7 @@ context [
 	ILT-struct: make-struct [
 		rva	[integer!]						;-- 32/64-bit
 	] none
-	
+
 	export-directory: make-struct [
 		flags				[integer!]
 		timestamp			[integer!]
@@ -431,7 +503,7 @@ context [
 	ILT-size:			4					;-- Import Lookup Table size (8 for 64-bit)
 	pointer-size:		4					;-- Pointer size (8 for 64-bit)
 	imports-refs:		make block! 10		;-- [ptr [DLL imports] ...]
-	opt-header-size:	length? form-struct optional-header
+	opt-header-size:	224
 	ep-mem-page: 		none
 	ep-file-page:		none
 
@@ -516,22 +588,35 @@ context [
 	resolve-import-refs: func [job [object!] /local code code-base][
 		code: job/sections/code/2
 		code-base: section-addr?/memory job 'code
-		
-		foreach [ptr list] imports-refs [
-			ptr: either job/PIC? [ptr - code-base][base-address + ptr]
-			
-			foreach [def reloc] list [
-				pointer/value: ptr 
-				foreach ref reloc [change at code ref + 1 form-struct pointer]	;TBD: check endianness + x-compilation
-				ptr: ptr + pointer-size
+
+		either PE64? [
+			foreach [ptr list] imports-refs [
+				ptr: ptr - code-base
+				foreach [def reloc] list [
+					foreach ref reloc [
+						pointer/value: ptr - ref - 4	;-- RIP-relative
+						change at code ref + 1 form-struct pointer
+					]
+					ptr: ptr + pointer-size
+				]
+			]
+		][
+			foreach [ptr list] imports-refs [
+				ptr: either job/PIC? [ptr - code-base][base-address + ptr]
+
+				foreach [def reloc] list [
+					pointer/value: ptr 
+					foreach ref reloc [change at code ref + 1 form-struct pointer]	;TBD: check endianness + x-compilation
+					ptr: ptr + pointer-size
+				]
 			]
 		]
 	]
 	
 	build-import: func [
 		job [object!]
-		/local spec IDTs ILTs out dlls hints idt ilt ptr ILTs-base hints-base
-			dlls-base IAT-base ILT-size idx IAT-buffer len offset list idata
+		/local spec IDTs ILTs out dlls hints idt ilt ptr ILTs-base hints-base ordinal
+			dlls-base IAT-base ILT-size idx IAT-buffer len offset list idata null-ILT
 	][
 		spec:		job/sections/import
 		IDTs: 		make block! len: divide length? spec/3 2	;-- list of directory entries
@@ -557,7 +642,8 @@ context [
 			append/only ILTs make block! 50
 			linker/check-dup-symbols job list
 			foreach [def reloc] list [
-				append last ILTs ilt: make-struct ILT-struct none
+				ilt: make-struct ILT-struct none
+				append last ILTs ilt
 				ilt/rva: length? hints
 				repend hints [#{0000} form def null]	;-- Ordinal is zero, not used
 				if even? length? def [append hints null]
@@ -568,7 +654,8 @@ context [
 
 		ptr:		section-addr?/memory job 'import
 		ILTs-base:  ptr + (1 + (length? IDTs) * length? form-struct import-directory)
-		hints-base: ILTs-base + (len *  ILT-size: length? form-struct ILT-struct)
+		ILT-size: length? form-struct ILT-struct
+		hints-base: ILTs-base + (len * ILT-size)
 		dlls-base:	hints-base + length? hints
 
 		idx: 0
@@ -582,14 +669,15 @@ context [
 			IDTs/:idx: offset
 		]
 		append out form-struct import-directory			;-- Ending null directory entry
-		
+
+		null-ILT: form-struct ILT-struct
 		IAT-buffer: tail out
 		foreach dll ILTs [
 			foreach ilt dll [
 				ilt/rva: ilt/rva + hints-base
 				append out form-struct ilt
 			]
-			append out form-struct ILT-struct			;-- Ending null ILT entry
+			append out null-ILT							;-- Ending null ILT entry
 		]
 		IAT-buffer: copy IAT-buffer
 		repend out [hints dlls]
@@ -599,7 +687,7 @@ context [
 		insert skip find job/sections 'import 2 idata
 		
 		ptr: section-addr?/memory job 'idata
-		idx: 1		
+		idx: 1
 		foreach offset IDTs [
 			change skip out (idx * 20) - 4 to-bin32 IAT-base: ptr + offset
 			list: pick spec/3 idx * 2
@@ -746,8 +834,8 @@ context [
 		fh/symbols-ptr: 	 0
 		fh/opt-headers-size: opt-header-size
 		fh/flags:			 to integer! defs/c-flags/executable-image
-									  or defs/c-flags/machine-32bit
 									  or defs/c-flags/large-address-aware
+		unless PE64? [fh/flags: fh/flags or to integer! defs/c-flags/machine-32bit]
 		
 		unless find job/sections 'reloc	[
 			fh/flags: fh/flags or to integer! defs/c-flags/relocs-stripped
@@ -794,7 +882,7 @@ context [
 		]
 
 		oh: make-struct optional-header none
-		oh/magic:				to integer! #{010B}		;-- PE32 magic number
+		oh/magic:				to integer! either PE64? [#{020B}][#{010B}]
 		oh/major-link-version:  14						;-- required to be > 3.5 by Windows to load the PE file!
 		oh/minor-link-version:	0						;-- API from WinTrust and DbgHlp libraries won't work otherwise!
 		oh/code-size:			round/to/ceiling (length? job/sections/code/2) file-align
@@ -802,15 +890,17 @@ context [
 		oh/uninitdata-size:		0			
 		oh/entry-point-addr:	ep						;-- entry point is set to beginning of CODE
 		oh/code-base:			code-base
-		oh/data-base:			to-integer (code-page + round/ceiling (length? job/sections/code/2) / memory-align) * memory-align
+		unless PE64? [
+			oh/data-base:		to-integer (code-page + round/ceiling (length? job/sections/code/2) / memory-align) * memory-align
+		]
 		oh/image-base:			base-address
 		oh/memory-align:		memory-align
 		oh/file-align:			file-align
-		oh/major-OS-version:	4
+		oh/major-OS-version:	either PE64? [6][4]
 		oh/minor-OS-version:	0
 		oh/major-img-version:	0
 		oh/minor-img-version:	0
-		oh/major-sub-version:	4
+		oh/major-sub-version:	either PE64? [6][4]
 		oh/minor-sub-version:	0
 		oh/win32-ver-value:		0						;-- reserved, must be zero
 		oh/image-size:			image-size? job
@@ -1155,7 +1245,19 @@ context [
 
 	build: func [job [object!] /local page out pad code-ptr][
 		clear imports-refs
-		
+
+		PE64?: job/target = 'AMD64
+		if PE64? [
+			optional-header: optional-header64
+			opt-header-size: length? form-struct optional-header64
+			ILT-struct: make-struct [
+				rva  [integer!]
+				_rva [integer!]
+			] none
+			ILT-size: 8
+			pointer-size: 8
+		]
+
 		if find [dll drv] job/type [
 			append job/sections [reloc [- - -]]			;-- inject reloc section
 		]
