@@ -340,7 +340,7 @@ _function: context [
 				]
 				TYPE_SET_WORD [								 ;-- only return: is allowed as a set-word!
 					w: as red-word! value
-					if words/return* <> symbol/resolve w/symbol [do-error]
+					if any [words/return* <> symbol/resolve w/symbol local?][do-error]
 					next: value + 1
 					next2: next + 1
 					unless all [
