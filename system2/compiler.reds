@@ -16,6 +16,13 @@ compiler: context [
 
 	verbose: 3
 
+	#enum arch-id! [
+		arch-x86
+		arch-x86-64
+		arch-arm
+		arch-arm64
+	]
+
 	dprint: func [
 		[typed]	count [integer!] list [typed-value!]
 	][
@@ -336,13 +343,16 @@ compiler: context [
 
 	fn-alloc-regs!: alias function! [codegen [codegen!]]
 	fn-make-frame!: alias function! [ir [ir-fn!] return: [frame!]]
+	fn-make-cc!: alias function! [fn [fn!] op [instr-op!] return: [call-conv!]]
 	fn-generate!: alias function! [cg [codegen!] blk [basic-block!] i [instr!]]
 	fn-insert-instrs!: alias function! [cg [codegen!] v [vreg!] idx [integer!]]
 	fn-insert-move!: alias function! [cg [codegen!] arg [move-arg!]]
 	fn-assemble!: alias function! [cg [codegen!] i [mach-instr!]]
 	fn-patch-call!: alias function! [ref [integer!] pos [integer!]]
+	fn-is-reg!: alias function! [r [integer!] return: [logic!]]
 
 	target: context [
+		arch: arch-x86
 		addr-width: 32		;-- width of address in bits
 		addr-size: 4		;-- size of address in bytes
 		addr-align: 4
@@ -357,6 +367,7 @@ compiler: context [
 		;-- backend specific functions
 		alloc-regs: as fn-alloc-regs! 0
 		make-frame: as fn-make-frame! 0
+		make-cc:	as fn-make-cc! 0
 		gen-op:		as fn-generate! 0
 		gen-if:		as fn-generate! 0
 		gen-switch:	as fn-generate! 0
@@ -368,6 +379,8 @@ compiler: context [
 		gen-move-imm: as fn-insert-move! 0
 		assemble: as fn-assemble! 0
 		patch-call: as fn-patch-call! 0
+		gpr-reg?: as fn-is-reg! 0
+		xmm-reg?: as fn-is-reg! 0
 	]
 
 	_mempool: as mempool! 0
@@ -789,19 +802,23 @@ compiler: context [
 		fill-job-data data
 	]
 
-	init-target: func [job [red-object!]][
+	init-target: func [
+		job [red-object!]
+		/local
+			w	[red-word!]
+			sym [integer!]
+	][
+		w: as red-word! object/rs-select job as cell! word/load "target"
+		sym: symbol/resolve w/symbol
+		target/arch: case [
+			sym = symbol/make "IA-32" [arch-x86]
+			sym = symbol/make "AMD64" [arch-x86-64]
+			sym = symbol/make "arm"	  [arch-arm]
+			sym = symbol/make "arm64" [arch-arm64]
+		]
+
 		backend/init
-		target/int-type: type-system/get-int-type target/int-width false
-		target/make-frame: :backend/x86/make-frame
-		target/gen-op: as fn-generate! :backend/x86/gen-op
-		target/gen-if: as fn-generate! :backend/x86/gen-if
-		target/gen-goto: as fn-generate! :backend/x86/gen-goto
-		target/gen-restore-var: as fn-insert-instrs! :backend/x86/gen-restore
-		target/gen-save-var: as fn-insert-instrs! :backend/x86/gen-save
-		target/gen-move-loc: as fn-insert-move! :backend/x86/gen-move-loc
-		target/gen-move-imm: as fn-insert-move! :backend/x86/gen-move-imm
-		target/assemble: as fn-assemble! :backend/x86/assemble
-		target/patch-call: as fn-patch-call! :backend/x86/patch-call
+		target/int-type: type-system/get-int-type target/int-width true
 	]
 
 	init: does [
@@ -809,9 +826,9 @@ compiler: context [
 		empty-array: ptr-array/make 0
 
 		common-literals/init
+		type-system/init	;@@ init it first
 		parser/init
 		op-cache/init
-		type-system/init
 		type-checker/init
 		rst-printer/init
 		ir-graph/init

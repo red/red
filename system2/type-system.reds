@@ -247,7 +247,7 @@ type-size?: func [
 		RST_TYPE_VOID [0]
 		RST_TYPE_NULL
 		RST_TYPE_PTR
-		RST_TYPE_ARRAY [target/addr-size]
+		RST_TYPE_ARRAY [4]
 		RST_TYPE_STRUCT [
 			st: as struct-type! t
 			st/size
@@ -342,6 +342,8 @@ type-system: context [
 		null-type: make-null-type
 		integer-type: get-int-type 32 true
 		uint32-type: get-int-type 32 false
+		int64-type: get-int-type 64 true
+		uint64-type: get-int-type 64 false
 		float-type: make-float-type 64
 		float32-type: make-float-type 32
 		logic-type: make-logic-type

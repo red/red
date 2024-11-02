@@ -8,14 +8,14 @@ Red/System [
 x86-regs: context [
 	#enum gpr-reg! [
 		none
-		eax
-		ecx
-		edx
-		ebx
-		esp
-		ebp
-		esi
-		edi
+		eax		;- rax
+		ecx		;- rcx
+		edx		;- rdx
+		ebx		;- rbx
+		esp		;- rsp
+		ebp		;- rbp
+		esi		;- rsi
+		edi		;- rdi
 		r8
 		r9
 		r10
@@ -153,6 +153,19 @@ asm: context [
 		x		[integer!]
 	][
 		emit-b MOD_REG or (x and 7 << 3) or (r - 1 and 7)
+	]
+
+	emit-b-r-rex: func [
+		b		[integer!]
+		r		[integer!]
+		rex		[integer!]
+	][
+		rex: rex or rex-r r REX_B
+		if rex <> 0 [
+			emit-b REX_BYTE or rex
+			r: r - 8
+		]
+		emit-b b + (r - 1)
 	]
 
 	emit-b-r-x: func [
@@ -378,7 +391,7 @@ asm: context [
 		b: b or rex-r r2 REX_R
 		rex: rex or b
 		if rex <> 0 [emit-b REX_BYTE or rex]
-		emit-b-r-x op r1 r2
+		emit-b-r-x op r1 r2 - 1
 	]
 
 	emit-r-r: func [
@@ -387,7 +400,7 @@ asm: context [
 		op		[basic-op!]
 		rex		[integer!]
 	][
-		emit-b-r-r op-rm-r/op r1 r1 rex
+		emit-b-r-r op-rm-r/op r1 r2 rex
 	]
 
 	emit-r-m: func [
@@ -507,8 +520,69 @@ asm: context [
 		r		[integer!]
 		imm		[integer!]
 	][
-		emit-b B8h + r
+		if zero? imm [
+			xor-r-r r r NO_REX
+			exit
+		]
+		emit-b-r-rex B8h r NO_REX
 		emit-d imm
+	]
+
+	movq-r-r: func [
+		r1		[integer!]
+		r2		[integer!]
+	][
+		emit-b-r-r 89h r1 r2 REX_W
+	]
+
+	movq-r-m: func [
+		r		[integer!]	;-- dst
+		m		[x86-addr!]	;-- src
+	][
+		emit-b-r-m 8Bh r m REX_W
+	]
+
+	movq-m-r: func [
+		m		[x86-addr!]
+		r		[integer!]
+	][
+		emit-b-m-r 89h m r REX_W
+	]
+
+	movq-m-i: func [
+		m		[x86-addr!]
+		imm		[integer!]
+	][
+		emit-b-m-x C7h m 0 REX_W
+		emit-d imm
+	]
+
+	movq-r-i: func [
+		r		[integer!]
+		imm		[integer!]
+	][
+		if zero? imm [
+			xor-r-r r r NO_REX
+			exit
+		]
+		emit-b-r-x-rex C7h r 0 REX_W
+		emit-d imm			
+	]
+
+	xor-r-r: func [
+		r1		[integer!]
+		r2		[integer!]
+		rex		[integer!]
+	][
+		emit-r-r r1 r2 OP_XOR rex
+	]
+	
+	sub-r-i: func [
+		r		[integer!]
+		imm		[integer!]
+		rex		[integer!]
+	][
+		emit-r-i r imm OP_SUB rex
 	]
 
 	add-r-i: func [
@@ -569,7 +643,8 @@ asm: context [
 			emit-bb 3Ch imm
 		][
 			rex: either r > 8 [REX_BYTE][NO_REX]
-			emit-b-r-x 80h r 7 rex
+			if rex <> 0 [emit-b REX_BYTE or rex]
+			emit-b-r-x 80h r 7
 			emit-b imm
 		]
 	]
@@ -637,12 +712,14 @@ adjust-frame: func [
 	add?	[logic!]
 	/local
 		n	[integer!]
-		op	[integer!]
 ][
 	n: frame/size - target/addr-size		;-- return addr already pushed
 	if n > 0 [
-		op: either add? [asm/OP_ADD][asm/OP_SUB]
-		asm/emit-r-i x86-regs/esp n op
+		either add? [
+			asm/add-r-i x86-regs/esp n REX_W
+		][
+			asm/sub-r-i x86-regs/esp n REX_W
+		]
 	]
 ]
 
@@ -790,6 +867,7 @@ assemble-r-r: func [
 ][
 	switch op [
 		I_MOVD [asm/movd-r-r a b]
+		I_MOVQ [asm/movq-r-r a b]
 		I_ADDD [asm/add-r-r a b NO_REX]
 		default [0]
 	]
@@ -802,6 +880,7 @@ assemble-r-m: func [
 ][
 	switch op [
 		I_MOVD [asm/movd-r-m a m]
+		I_MOVQ [asm/movq-r-m a m]
 		I_ADDD [asm/add-r-m a m NO_REX]
 		default [0]
 	]
@@ -814,6 +893,7 @@ assemble-r-i: func [
 ][
 	switch op [
 		I_MOVD [asm/movd-r-i r imm]
+		I_MOVQ [asm/movq-r-i r imm]
 		I_ADDD [asm/add-r-i r imm NO_REX]
 		I_CMPD [asm/cmp-r-i r imm NO_REX]
 		I_CMPB [asm/cmpb-r-i r imm]
@@ -828,6 +908,7 @@ assemble-m-i: func [
 ][
 	switch op [
 		I_MOVD [asm/movd-m-i m imm]
+		I_MOVQ [asm/movq-m-i m imm]
 		I_ADDD [asm/add-m-i m imm NO_REX]
 		default [0]
 	]
@@ -840,6 +921,7 @@ assemble-m-r: func [
 ][
 	switch op [
 		I_MOVD [asm/movd-m-r m a]
+		I_MOVQ [asm/movq-m-r m a]
 		I_ADDD [asm/add-m-r m a NO_REX]
 		default [0]
 	]
@@ -887,7 +969,7 @@ assemble: func [
 			reg: to-loc as operand! p/value
 			p: p + 1
 			loc: to-loc as operand! p/value
-			either gpr-reg?(loc) [
+			either target/gpr-reg? loc [
 				assemble-r-r op reg loc
 			][
 				loc-to-addr loc :addr cg/frame rset
@@ -915,7 +997,7 @@ assemble: func [
 			loc: to-loc as operand! p/value
 			p: p + 1
 			imm: to-imm as operand! p/value
-			either gpr-reg?(loc) [
+			either target/gpr-reg? loc [
 				assemble-r-i op loc imm
 			][
 				loc-to-addr loc :addr cg/frame rset
@@ -926,7 +1008,7 @@ assemble: func [
 			loc: to-loc as operand! p/value
 			p: p + 1
 			reg: to-loc as operand! p/value
-			either gpr-reg?(loc) [
+			either target/gpr-reg? loc [
 				assemble-r-r op reg loc
 			][
 				loc-to-addr loc :addr cg/frame rset

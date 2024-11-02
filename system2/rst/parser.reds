@@ -900,17 +900,19 @@ parser: context [
 		/local
 			int [int-literal!]
 			i	[red-integer!]
+			v	[integer!]
 	][
 		i: as red-integer! pos
+		v: i/value
 		int_accept: func [ACCEPT_FN_SPEC][
 			v/visit-literal self data
 		]
 		int: as int-literal! malloc size? int-literal!
 		SET_NODE_TYPE(int RST_INT)
-		int/token: pos
-		int/value: i/value
 		int/accept: :int_accept
-		int/type: type-system/integer-type
+		int/token: pos
+		int/value: v
+		int/type: either v < 0 [target/int-type][type-system/integer-type]
 		int
 	]
 

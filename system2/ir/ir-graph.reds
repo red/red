@@ -172,10 +172,8 @@ instr-input: func [
 		e	[df-edge!]
 ][
 	p: ARRAY_DATA(i/inputs)
-	probe i/inputs/length
 	p: p + idx
 	e: as df-edge! p/value
-	?? e
 	e/dst
 ]
 
@@ -1219,6 +1217,20 @@ ir-graph: context [
 		]
 	]
 
+	const-int64: func [
+		val		[red-integer!]
+		fn		[ir-fn!]
+		return: [instr-const!]
+	][
+		switch val/value [
+			0 [const-int-zero fn]
+			1 [const-int-one fn]
+			2 [const-int-two fn]
+			4 [const-int-four fn]
+			default [get-const type-system/int64-type as cell! val fn]
+		]
+	]
+
 	const-float: func [
 		val		[red-float!]
 		fn		[ir-fn!]
@@ -1355,6 +1367,7 @@ ir-graph: context [
 		return: [instr-const!]
 		/local
 			b	[red-logic!]
+			i [red-integer!]
 	][
 		either null? val [const-null type fn][
 			switch TYPE_KIND(type) [
@@ -1363,10 +1376,11 @@ ir-graph: context [
 					either b/value [const-true fn][const-false fn]
 				]
 				RST_TYPE_INT [
-					either INT_WIDTH(type) <= 32 [
+					i: as red-integer! val
+					either all [i/value >= 0 INT_WIDTH(type) <= 32] [
 						const-int as red-integer! val fn
 					][
-						null
+						const-int64 as red-integer! val fn
 					]
 				]
 				RST_TYPE_FLOAT [
