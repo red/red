@@ -358,7 +358,7 @@ _function: context [
 				TYPE_REFINEMENT [
 					w: as red-word! value 
 					either refinements/local/symbol = symbol/resolve w/symbol [local?: yes][
-						if local? [do-error]
+						if any [local? ret?][do-error]
 					]
 					next: value + 1
 					if next < end [

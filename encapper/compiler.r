@@ -1389,7 +1389,11 @@ red: context [
 			opt string!
 			opt [pos: block! (flags: decode-attributes pos) opt string!]
 			any [
-				pos: /local (loc?: yes append symbols 'local) [
+				pos: /local (
+					if loc? [stop: [end skip]]
+					append symbols 'local
+					loc?: yes
+				) stop [
 					any [
 						pos: word! (
 							unless find symbols word: to word! pos/1 [
@@ -1401,12 +1405,12 @@ red: context [
 					]
 				]
 				| set-word! (
-					if any [return? pos/1 <> return-def][stop: [end skip]]
+					if any [loc? return? pos/1 <> return-def][stop: [end skip]]
 					return?: yes						;-- allow only one return: statement
 				) stop pos: block! opt string!
 				| [
 					[word! | lit-word! | get-word!] opt block! opt string!
-					| refinement! opt string! (if loc? [stop: [end skip]]) stop
+					| refinement! opt string! (if any [loc? return?][stop: [end skip]]) stop
 				] (append symbols to word! pos/1)
 			]
 		][

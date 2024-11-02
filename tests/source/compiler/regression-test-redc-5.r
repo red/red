@@ -256,7 +256,7 @@ test
 	--test-- "#4527"
 		--compile-and-run-this {
 			Red []
-			f: function [b [block!] /local i return: [default!]] [
+			f: function [b [block!] return: [default!] /local i ] [	;-- modified after #5552
 				c: clear []
 				probe c
 				foreach x c [1]
