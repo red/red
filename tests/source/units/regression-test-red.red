@@ -3681,6 +3681,14 @@ comment {
 	--test-- "#5535"
 		f5535: does [try/all [return 1] 2]
 		--assert f5535 = 2
+		
+	--test-- "#5552"
+		do [
+			--assert error? try [fun: function [/ref x /local y return: [block!]] [a: 1 print "OK"]]
+			--assert error? try [fun: function [/ref x /local y return: [block!] "locals follow docstring ->"] [a: 1 print "OK"]]
+			--assert error? try [f: func [a [block!] return: [block!] /ref   /local x][]]
+			--assert error? try [f: func [a [block!] return: [block!] /ref y /local x][]]
+		]
 	
 ===end-group===
 

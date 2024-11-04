@@ -433,6 +433,23 @@ test
 		}
 		--assert compiled?
 		--assert (load qt/output) > 0
+		
+	--test-- "#5552.1"
+		--compile-this {Red [] f552: function [/ref x /local y return: [block!]][a: 1 print "OK"]}
+		--assert not compiled?
+		--assert found? find qt/comp-output "invalid function"
+	--test-- "#5552.2"	
+		--compile-this {Red [] f552: function [/ref x /local y return: [block!] "locals follow docstring ->"][a: 1 print "OK"]}
+		--assert not compiled?
+		--assert found? find qt/comp-output "invalid function"
+	--test-- "#5552.3"	
+		--compile-this {Red [] f552: func [a [block!] return: [block!] /ref /local x][]}
+		--assert not compiled?
+		--assert found? find qt/comp-output "invalid function"
+	--test-- "#5552.4"	
+		--compile-this {Red [] f552: func [a [block!] return: [block!] /ref y /local x][]}
+		--assert not compiled?
+		--assert found? find qt/comp-output "invalid function"
 
 ===end-group===
 
