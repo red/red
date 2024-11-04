@@ -854,62 +854,6 @@ backend: context [
 			p	[ptr-ptr!]
 			i	[integer!]
 	][
-		x86-cond/init
-		with [target][
-			switch arch [
-				arch-x86 [
-					addr-width: 32		;-- width of address in bits
-					addr-size: 4		;-- size of address in bytes
-					addr-align: 4
-					page-align: 4096
-					int-width: 32
-					int-mask: 1 << int-width - 1
-					int64-arith?: no	;-- native support for int64 arithmetic
-					x86-reg-set/init
-					x86-stdcall/init
-					x86-cdecl/init
-					x86-internal-cc/init
-					target/make-cc: :x86-cc/make
-					target/make-frame: :x86/make-frame
-					target/gen-op: as fn-generate! :x86/gen-op
-					target/gen-if: as fn-generate! :x86/gen-if
-					target/gen-goto: as fn-generate! :x86/gen-goto
-					target/gen-restore-var: as fn-insert-instrs! :x86/gen-restore
-					target/gen-save-var: as fn-insert-instrs! :x86/gen-save
-					target/gen-move-loc: as fn-insert-move! :x86/gen-move-loc
-					target/gen-move-imm: as fn-insert-move! :x86/gen-move-imm
-					target/assemble: as fn-assemble! :x86/assemble
-					target/patch-call: as fn-patch-call! :x86/patch-call
-				]
-				arch-x86-64 [
-					addr-width: 64		;-- width of address in bits
-					addr-size: 8		;-- size of address in bytes
-					addr-align: 8
-					page-align: 4096
-					int-width: 64
-					int-mask: 1 << int-width - 1
-					int64-arith?: yes	;-- native support for int64 arithmetic
-					x64-reg-set/init
-					x64-win-cc/init
-					x64-internal-cc/init
-					target/make-cc: :x64-cc/make
-					target/make-frame: :x86/make-frame
-					target/gen-op: as fn-generate! :x86/gen-op
-					target/gen-if: as fn-generate! :x86/gen-if
-					target/gen-goto: as fn-generate! :x86/gen-goto
-					target/gen-restore-var: as fn-insert-instrs! :x86/gen-restore
-					target/gen-save-var: as fn-insert-instrs! :x86/gen-save
-					target/gen-move-loc: as fn-insert-move! :x86/gen-move-loc
-					target/gen-move-imm: as fn-insert-move! :x86/gen-move-imm
-					target/assemble: as fn-assemble! :x86/assemble
-					target/patch-call: as fn-patch-call! :x86/patch-call
-				]
-				arch-arm
-				arch-arm64 [0]
-				default [0]
-			]
-		]
-
 		int-imm-caches: ptr-array/make 10
 		p: ARRAY_DATA(int-imm-caches)
 		i: -1

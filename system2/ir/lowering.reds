@@ -314,6 +314,19 @@ lowering: context [
 		ptr-store vtype base offset as instr! pp/value ctx
 	]
 
+	norm-global-type: func [
+		ty		[rst-type!]
+		return: [rst-type!]
+	][
+		switch TYPE_KIND(ty) [
+			RST_TYPE_ARRAY
+			RST_TYPE_STRUCT [
+				type-system/int32-type	;-- 32-bit reference to data section
+			]
+			default [ty]	
+		]
+	]
+
 	gen-get-global: func [
 		i		[instr!]
 		env		[lowering-env!]
@@ -330,7 +343,7 @@ lowering: context [
 		vt: var/type
 		ty: as ptr-type! make-ptr-type vt
 		ptr: make-ptr-const ty var
-		new: gen-loads vt as instr! ptr 0 env/cur-ctx
+		new: gen-loads norm-global-type vt as instr! ptr 0 env/cur-ctx
 		map-n i new env
 	]
 
@@ -352,7 +365,7 @@ lowering: context [
 		vt: var/type
 		ty: as ptr-type! make-ptr-type vt
 		ptr: make-ptr-const ty var
-		gen-stores vt as instr! ptr 0 inputs env/cur-ctx
+		gen-stores norm-global-type vt as instr! ptr 0 inputs env/cur-ctx
 		kill-instr i
 		remove-instr i
 	]

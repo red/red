@@ -43,7 +43,7 @@ Red/System [
 #define TYPE_FLAGS(node) (node/header >>> 8)
 
 #define TYPE_HEADER [
-	header		[integer!]		;-- Kind and flags
+	header		[integer!]		;-- Kind: 0 - 7 bits and flags
 	token		[cell!]
 ]
 
@@ -79,7 +79,10 @@ logic-type!: alias struct! [
 	TYPE_HEADER
 ]
 
-;-- /header bits: 8 - 31 size in bytes
+#define PTR_SIZE?(ptr) (ptr/header >>> 8 and 0Fh)
+#define SET_PTR_SIZE(ptr sz) [ptr/header and FFh or (sz << 8)]
+
+;-- /header bits: 8 - 11: pointer size in byte
 ptr-type!: alias struct! [
 	TYPE_HEADER
 	type		[rst-type!]
@@ -90,9 +93,6 @@ array-type!: alias struct! [	;-- inherit ptr-type!
 	type		[rst-type!]
 	length		[integer!]
 ]
-
-#define PTR_VALUE_SIZE(ptr) [ptr/header >>> 8]
-#define SET_PTR_VSIZE(ptr sz) [ptr/header: sz << 8 or (ptr/header and FFh)]
 
 struct-field!: alias struct! [
 	name		[red-word!]
@@ -145,7 +145,7 @@ make-ptr-type: func [
 		t	[ptr-type!]
 ][
 	t: xmalloc(ptr-type!)
-	t/header: RST_TYPE_PTR
+	t/header: RST_TYPE_PTR or (target/addr-size << 8)
 	t/type: vtype
 	as rst-type! t
 ]
@@ -245,9 +245,9 @@ type-size?: func [
 		RST_TYPE_BYTE [1]
 		RST_TYPE_LOGIC [1]
 		RST_TYPE_VOID [0]
+		RST_TYPE_PTR [PTR_SIZE?(t)]
 		RST_TYPE_NULL
-		RST_TYPE_PTR
-		RST_TYPE_ARRAY [4]
+		RST_TYPE_ARRAY [target/addr-size]
 		RST_TYPE_STRUCT [
 			st: as struct-type! t
 			st/size
@@ -341,6 +341,7 @@ type-system: context [
 		void-type: make-void-type
 		null-type: make-null-type
 		integer-type: get-int-type 32 true
+		int32-type: get-int-type 32 true
 		uint32-type: get-int-type 32 false
 		int64-type: get-int-type 64 true
 		uint64-type: get-int-type 64 false
@@ -351,6 +352,7 @@ type-system: context [
 		cstr-type: make-array-type 0 byte-type
 		int-ptr-type: make-ptr-type integer-type
 		byte-ptr-type: make-ptr-type byte-type
+		target/int-type: get-int-type target/int-width true
 	]
 
 	make-cache: func [

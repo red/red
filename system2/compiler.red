@@ -159,7 +159,7 @@ system-dialect: context [
 		comp-dialect: routine [src [block!] job [object!] /local blk [red-block! value]][
 			copy-cell as cell! src as cell! :blk
 
-			compiler/init
+			compiler/init job
 			compiler/comp-dialect blk job
 			compiler/clean
 		]

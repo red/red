@@ -35,6 +35,7 @@ compiler: context [
 	;-- used in red cell!
 	#define TYPE_INT64		100
 	#define TYPE_ADDR		101
+	#define TYPE_REF		102
 
 	val!: alias struct! [
 		header	[integer!]
@@ -765,7 +766,6 @@ compiler: context [
 		imports: as red-block! object/rs-select job as cell! word/load "imports"
 
 		init-program
-		init-target job
 
 		fn: xmalloc(fn!)
 		fn/body: src
@@ -817,14 +817,73 @@ compiler: context [
 			sym = symbol/make "arm64" [arch-arm64]
 		]
 
-		backend/init
-		target/int-type: type-system/get-int-type target/int-width true
+		with [target backend][
+			switch arch [
+				arch-x86 [
+					addr-width: 32		;-- width of address in bits
+					addr-size: 4		;-- size of address in bytes
+					addr-align: 4
+					page-align: 4096
+					int-width: 32
+					int-mask: 1 << int-width - 1
+					int64-arith?: no	;-- native support for int64 arithmetic
+
+					x86-cond/init
+					x86-reg-set/init
+					x86-stdcall/init
+					x86-cdecl/init
+					x86-internal-cc/init
+					
+					target/make-cc: :x86-cc/make
+					target/make-frame: :x86/make-frame
+					target/gen-op: as fn-generate! :x86/gen-op
+					target/gen-if: as fn-generate! :x86/gen-if
+					target/gen-goto: as fn-generate! :x86/gen-goto
+					target/gen-restore-var: as fn-insert-instrs! :x86/gen-restore
+					target/gen-save-var: as fn-insert-instrs! :x86/gen-save
+					target/gen-move-loc: as fn-insert-move! :x86/gen-move-loc
+					target/gen-move-imm: as fn-insert-move! :x86/gen-move-imm
+					target/assemble: as fn-assemble! :x86/assemble
+					target/patch-call: as fn-patch-call! :x86/patch-call
+				]
+				arch-x86-64 [
+					addr-width: 64		;-- width of address in bits
+					addr-size: 8		;-- size of address in bytes
+					addr-align: 8
+					page-align: 4096
+					int-width: 64
+					int-mask: 1 << int-width - 1
+					int64-arith?: yes	;-- native support for int64 arithmetic
+
+					x86-cond/init
+					x64-reg-set/init
+					x64-win-cc/init
+					x64-internal-cc/init
+
+					target/make-cc: :x64-cc/make
+					target/make-frame: :x86/make-frame
+					target/gen-op: as fn-generate! :x86/gen-op
+					target/gen-if: as fn-generate! :x86/gen-if
+					target/gen-goto: as fn-generate! :x86/gen-goto
+					target/gen-restore-var: as fn-insert-instrs! :x86/gen-restore
+					target/gen-save-var: as fn-insert-instrs! :x86/gen-save
+					target/gen-move-loc: as fn-insert-move! :x86/gen-move-loc
+					target/gen-move-imm: as fn-insert-move! :x86/gen-move-imm
+					target/assemble: as fn-assemble! :x86/assemble
+					target/patch-call: as fn-patch-call! :x86/patch-call
+				]
+				arch-arm
+				arch-arm64 [0]
+				default [0]
+			]
+		]
 	]
 
-	init: does [
+	init: func [job [red-object!]][
 		_mempool: mempool/make
 		empty-array: ptr-array/make 0
 
+		init-target job
 		common-literals/init
 		type-system/init	;@@ init it first
 		parser/init
@@ -832,6 +891,7 @@ compiler: context [
 		type-checker/init
 		rst-printer/init
 		ir-graph/init
+		backend/init
 	]
 
 	clean: does [
