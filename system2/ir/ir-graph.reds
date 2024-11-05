@@ -491,13 +491,18 @@ ir-graph: context [
 			ft	[fn-type!]
 			op	[instr-op!]
 			arr [array-2! value]
-			lhs rhs [instr!]
+			lhs rhs tmp [instr!]
 	][
 		lhs: gen-expr bin/left ctx
 		rhs: gen-expr bin/right ctx
 		ft: bin/spec
 		assert ft/n-params = 2
 		op: make-op FN_OPCODE(ft) 2 ft/param-types ft/ret-type
+		if FN_COMMUTE?(ft) [	;-- swap args
+			tmp: lhs
+			lhs: rhs
+			rhs: tmp
+		]
 		INIT_ARRAY_2(arr lhs rhs)
 		add-op op as ptr-array! :arr ctx
 	]

@@ -28,11 +28,13 @@ op-cache: context [
 		opcode	[integer!]
 		param-t [ptr-ptr!]
 		ret-t	[rst-type!]
+		return: [op!]
 	][
 		f/header: opcode << 8 or RST_TYPE_FUNC
 		f/n-params: 2
 		f/param-types: param-t
 		f/ret-type: ret-t
+		f
 	]
 
 	create: func [
@@ -41,6 +43,7 @@ op-cache: context [
 		return: [op!]
 		/local
 			f	[op!]
+			fn	[op!]
 			pt	[ptr-ptr!]
 	][
 		f: as op! malloc RST_OP_SIZE * size? op!
@@ -59,8 +62,11 @@ op-cache: context [
 		init-op f + RST_OP_NE   OP_INT_NE   + offset  pt type-system/logic-type
 		init-op f + RST_OP_LT   OP_INT_LT   + offset  pt type-system/logic-type
 		init-op f + RST_OP_LTEQ OP_INT_LTEQ + offset  pt type-system/logic-type
-		init-op f + RST_OP_GT   OP_INT_LT   + offset  pt type-system/logic-type
-		init-op f + RST_OP_GTEQ OP_INT_LTEQ + offset  pt type-system/logic-type
+
+		fn: init-op f + RST_OP_GT OP_INT_LT + offset pt type-system/logic-type
+		ADD_FN_ATTRS(fn FN_COMMUTE)
+		fn: init-op f + RST_OP_GTEQ OP_INT_LTEQ + offset  pt type-system/logic-type
+		ADD_FN_ATTRS(fn FN_COMMUTE)
 
 		pt: parser/make-param-types type type-system/uint32-type
 		init-op f + RST_OP_SHL OP_INT_SHL pt type

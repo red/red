@@ -163,6 +163,7 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	FN_CUSTOM:			40h
 	FN_CATCH:			80h
 	FN_EXTERN:			0100h
+	FN_COMMUTE:			0200h
 ]
 
 #enum rst-node-flag! [
@@ -185,6 +186,7 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 #define FN_OPCODE(f) (f/header >>> 8 and FFh)
 #define FN_ATTRS(f) (f/header >>> 16)
 #define FN_VARIADIC?(f) (f/header >> 16 and FN_VARIADIC <> 0)
+#define FN_COMMUTE?(f) (f/header >> 16 and FN_COMMUTE <> 0)
 #define ADD_FN_ATTRS(f attrs) [f/header: f/header or (attrs << 16)]
 #define SET_FN_OPCODE(f op) [f/header: f/header and FFFF00FFh or (op << 8)]
 

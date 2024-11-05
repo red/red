@@ -631,12 +631,13 @@ type-checker: context [
 		op			[rst-op!]
 		ltype		[rst-type!]
 		rtype		[rst-type!]
+		attrs		[integer!]
 		return:		[fn-type!]
 		/local
 			ft		[fn-type!]
 	][
 		ft: as fn-type! malloc size? fn-type!
-		ft/header: op << 8 or RST_TYPE_FUNC
+		ft/header: attrs << 16 or (op << 8) or RST_TYPE_FUNC
 		ft/n-params: 2
 		ft/param-types: parser/make-param-types ltype rtype
 		ft/ret-type: type-system/logic-type
@@ -651,8 +652,10 @@ type-checker: context [
 		/local
 			swap?	[logic!]
 			t		[rst-type!]
+			attr	[integer!]
 	][
 		swap?: no
+		attr: 0
 		op: switch op [
 			RST_OP_LT [RST_MIXED_LT]
 			RST_OP_LTEQ [RST_MIXED_LTEQ]
@@ -663,8 +666,9 @@ type-checker: context [
 			t: ltype
 			ltype: rtype
 			rtype: t
+			attr: FN_COMMUTE
 		]
-		make-cmp-op op ltype rtype
+		make-cmp-op op ltype rtype attr
 	]
 
 	lookup-infix-op: func [
@@ -700,7 +704,7 @@ type-checker: context [
 					case [
 						all [INT_TYPE?(ltype) INT_TYPE?(rtype)][
 							op: either op = RST_OP_EQ [RST_MIXED_EQ][RST_MIXED_NE]
-							ft: make-cmp-op op ltype rtype
+							ft: make-cmp-op op ltype rtype 0
 						]
 						FLOAT_TYPE?(ltype) [utype: ltype]
 						FLOAT_TYPE?(rtype) [utype: rtype]
