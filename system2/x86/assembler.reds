@@ -669,6 +669,9 @@ asm: context [
 		emit-b-m-x 80h m 7 NO_REX
 		emit-b imm
 	]
+
+	neg-r: func [r [integer!] rex [integer!]][emit-b-r-x-rex F7h r 3 rex]
+	neg-m: func [m [x86-addr!] rex [integer!]][emit-b-m-x F7h m 3 rex]
 ]
 
 to-loc: func [
@@ -881,6 +884,28 @@ assemble-op: func [
 	]
 ]
 
+assemble-r: func [
+	op		[integer!]
+	r		[integer!]
+][
+	switch op [
+		I_NOTD	[0]
+		I_NEGD	[asm/neg-r r NO_REX]
+		default [0]
+	]
+]
+
+assemble-m: func [
+	op		[integer!]
+	m		[x86-addr!]
+][
+	switch op [
+		I_NOTD	[0]
+		I_NEGD	[asm/neg-m m NO_REX]
+		default [0]
+	]
+]
+
 assemble-r-r: func [
 	op		[integer!]
 	a		[integer!]
@@ -1037,7 +1062,10 @@ assemble: func [
 			assemble-m-r op :addr reg
 		]
 		_AM_RRSD_IMM [
-			0
+			rrsd-to-addr p :addr
+			p: p + 4
+			imm: to-imm as operand! p/value
+			assemble-m-i op :addr imm
 		]
 		_AM_REG_RRSD [
 			reg: to-loc as operand! p/value
@@ -1045,7 +1073,13 @@ assemble: func [
 			assemble-r-m op reg :addr
 		]
 		_AM_OP [
-			0
+			loc: to-loc as operand! p/value
+			either target/gpr-reg? loc [
+				assemble-r op loc
+			][
+				loc-to-addr loc :addr cg/frame rset	
+				assemble-m op :addr
+			]
 		]
 		_AM_OP_IMM [
 			loc: to-loc as operand! p/value

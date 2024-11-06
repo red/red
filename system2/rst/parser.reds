@@ -991,6 +991,40 @@ parser: context [
 		var
 	]
 
+	fetch-block-args: func [
+		blk		[red-block!]
+		args	[ptr-ptr!]
+		ctx		[context!]
+		return: [integer!]
+		/local
+			pc 	[cell!]
+			end	[cell!]
+			beg [rst-node! value]
+			cur [rst-node!]
+			pp	[ptr-value!]
+			n	[integer!]
+			saved-blk [red-block!]
+	][
+		n: 0
+		beg/next: null
+		cur: :beg
+		pc: block/rs-head blk
+		end: block/rs-tail blk
+		
+		enter-block(blk)
+		while [pc < end][
+			pc: parse-expr pc end :pp ctx
+			cur/next: as rst-node! pp/value
+			cur: cur/next
+			n: n + 1
+			pc: pc + 1
+		]
+		exit-block
+
+		args/value: as int-ptr! beg/next		
+		n
+	]
+
 	fetch-args: func [
 		pc		[cell!]
 		end		[cell!]
@@ -1003,22 +1037,16 @@ parser: context [
 			cur [rst-node!]
 			pp	[ptr-value!]
 			blk	[red-block!]
-			s 	[cell!]
-			e	[cell!]
+			cnt [integer!]
 			i	[integer!]
-			saved-blk [red-block!]
 	][
 		pc: advance-next pc end
 		if T_BLOCK?(pc) [
 			blk: as red-block! pc
-			s: block/rs-head blk
-			e: block/rs-tail blk
-			if n = -1 [		;-- variadic
-				n: block/rs-length? blk
+			cnt: fetch-block-args blk args ctx
+			if all [n > 0 n <> cnt][
+				throw-error [pc "wrong number of arguments"]
 			]
-			enter-block(blk)
-			fetch-args s - 1 e args ctx n
-			exit-block
 			return pc
 		]
 		if n = -1 [

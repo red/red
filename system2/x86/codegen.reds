@@ -1327,6 +1327,7 @@ x86: context [
 		i		[instr!]
 		/local
 			conds [x86-cond-pair!]
+			m	  [instr-matcher!]
 	][
 		;ir-printer/print-instr i
 		switch INSTR_OPCODE(i) [
@@ -1337,17 +1338,26 @@ x86: context [
 			OP_INT_LTEQ			[
 				conds: emit-cmp cg i
 			]
-			OP_BOOL_AND			[0]
-			OP_BOOL_OR			[0]
+			OP_BOOL_AND			[emit-simple-binop cg I_ANDD i]
+			OP_BOOL_OR			[emit-simple-binop cg I_ORD i]
 			OP_INT_ADD			[emit-int-binop cg I_ADDD i]
-			OP_INT_SUB			[0]
+			OP_INT_SUB			[
+				m: cg/m
+				matcher/int-bin-op m i
+				either all [m/x-const? zero? m/int-x][
+					overwrite-reg cg i m/y
+					emit-instr cg I_NEGD or AM_OP
+				][
+					emit-int-binop cg I_SUBD i
+				]
+			]
 			OP_INT_MUL			[0]
 			OP_INT_DIV			[0]
 			OP_INT_MOD			[0]
 			OP_INT_REM			[0]
-			OP_INT_AND			[0]
-			OP_INT_OR			[0]
-			OP_INT_XOR			[0]
+			OP_INT_AND			[emit-int-binop cg I_ANDD i]
+			OP_INT_OR			[emit-int-binop cg I_ORD i]
+			OP_INT_XOR			[emit-int-binop cg I_XORD i]
 			OP_INT_SHL			[0]
 			OP_INT_SAR			[0]
 			OP_INT_SHR			[0]
