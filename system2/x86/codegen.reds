@@ -1328,6 +1328,7 @@ x86: context [
 		/local
 			conds [x86-cond-pair!]
 			m	  [instr-matcher!]
+			op	  [integer!]
 	][
 		;ir-printer/print-instr i
 		switch INSTR_OPCODE(i) [
@@ -1346,12 +1347,24 @@ x86: context [
 				matcher/int-bin-op m i
 				either all [m/x-const? zero? m/int-x][
 					overwrite-reg cg i m/y
-					emit-instr cg I_NEGD or AM_OP
+					op: op-with-width I_NEGD as instr-op! i
+					emit-instr cg op or AM_OP
 				][
 					emit-int-binop cg I_SUBD i
 				]
 			]
-			OP_INT_MUL			[0]
+			OP_INT_MUL			[
+				m: cg/m
+				op: op-with-width I_MULD as instr-op! i
+				matcher/int-bin-op m i
+				overwrite-reg cg i m/x
+				either try-use-imm32 cg m/y [
+					emit-instr cg op or AM_OP_IMM
+				][
+					use-i cg m/y
+					emit-instr cg op or AM_REG_OP
+				]
+			]
 			OP_INT_DIV			[0]
 			OP_INT_MOD			[0]
 			OP_INT_REM			[0]

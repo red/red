@@ -72,6 +72,8 @@ x86-addr!: alias struct! [
 #define ABS_FLAG		F0h
 #define REL_FLAG		F1h
 
+#define emit_rex [if rex <> 0 [emit-b REX_BYTE or rex]]
+
 asm: context [
 
 	rex-byte: 0
@@ -184,8 +186,58 @@ asm: context [
 		rex		[integer!]
 	][
 		rex: rex or rex-r r REX_B
-		if rex <> 0 [emit-b REX_BYTE or rex]
+		emit_rex
 		emit-b-r-x b r x
+	]
+
+	emit-bb-r-x: func [
+		b1		[integer!]
+		b2		[integer!]
+		r		[integer!]
+		x		[integer!]
+	][
+		emit-bb b1 b2
+		emit-r r x
+	]
+
+	emit-bb-m-x: func [
+		b1		[integer!]
+		b2		[integer!]
+		m		[x86-addr!]
+		x		[integer!]
+	][
+		emit-bb b1 b2
+		emit-m m x
+	]
+
+	emit-bb-rr: func [
+		b1		[integer!]
+		b2		[integer!]
+		r1		[integer!]
+		r2		[integer!]
+		rex		[integer!]
+		/local
+			flag [integer!]
+	][
+		flag: rex-r r2 REX_B
+		rex: rex or flag or rex-r r1 REX_R
+		emit_rex
+		emit-bb-r-x b1 b2 r2 r1
+	]
+
+	emit-bb-rm: func [
+		b1		[integer!]
+		b2		[integer!]
+		r		[integer!]
+		m		[x86-addr!]
+		rex		[integer!]
+		/local
+			flag [integer!]
+	][
+		flag: rex-r r REX_R
+		rex: rex or flag or rex-m m REX_B
+		emit_rex
+		emit-bb-m-x b1 b2 m r
 	]
 
 	emit-r-i: func [		;-- register, immediate
@@ -344,7 +396,7 @@ asm: context [
 		rex		[integer!]	;-- rex byte
 	][
 		rex: rex or rex-m m REX_B
-		if rex <> 0 [emit-b REX_BYTE or rex]
+		emit_rex
 		emit-b op
 		emit-m m x
 	]
@@ -360,7 +412,7 @@ asm: context [
 		b: rex-r r REX_R
 		b: b or rex-m m REX_B
 		rex: rex or b
-		if rex <> 0 [emit-b REX_BYTE or rex]
+		emit_rex
 		emit-b-m op m r - 1
 	]
 
@@ -375,7 +427,7 @@ asm: context [
 		b: rex-m m REX_B
 		b: b or rex-r r REX_R
 		rex: rex or b
-		if rex <> 0 [emit-b REX_BYTE or rex]		
+		emit_rex		
 		emit-b-m op m r - 1
 	]
 
@@ -390,7 +442,7 @@ asm: context [
 		b: rex-r r1 REX_B
 		b: b or rex-r r2 REX_R
 		rex: rex or b
-		if rex <> 0 [emit-b REX_BYTE or rex]
+		emit_rex
 		emit-b-r-x op r1 r2 - 1
 	]
 
@@ -568,6 +620,22 @@ asm: context [
 		emit-b-r-x-rex C7h r 0 REX_W
 		emit-d imm			
 	]
+
+	imul-r-i: func [r  [integer!] imm [integer!] rex [integer!]][
+		rex: rex or rex-r r REX_B or REX_R
+		emit_rex
+		either any [imm < -128 imm > 127][
+			emit-b-r-x 69h r r - 1
+			emit-d imm
+		][
+			emit-b-r-x 6Bh r r - 1
+			emit-b imm
+		]
+	]
+	imul-r-r: func [r1 [integer!] r2 [integer!] rex [integer!]][emit-bb-rr 0Fh AFh r1 r2 rex]
+	imul-r-m: func [r  [integer!] m [x86-addr!] rex [integer!]][emit-bb-rm 0Fh AFh r m rex]
+	imul-r: func [r [integer!]  rex [integer!]][emit-b-r-x-rex F7h r 5 rex]
+	imul-m: func [m [x86-addr!] rex [integer!]][emit-b-m-x F7h m 5 rex]
 
 	and-r-i: func [r [integer!] imm [integer!]  rex [integer!]][emit-r-i r imm x86_AND rex]
 	and-r-r: func [r1 [integer!] r2 [integer!]  rex [integer!]][emit-r-r r1 r2 x86_AND rex]
@@ -891,6 +959,7 @@ assemble-r: func [
 	switch op [
 		I_NOTD	[0]
 		I_NEGD	[asm/neg-r r NO_REX]
+		I_MULD [asm/imul-r r NO_REX]
 		default [0]
 	]
 ]
@@ -902,6 +971,7 @@ assemble-m: func [
 	switch op [
 		I_NOTD	[0]
 		I_NEGD	[asm/neg-m m NO_REX]
+		I_MULD [asm/imul-m m NO_REX]
 		default [0]
 	]
 ]
@@ -922,6 +992,7 @@ assemble-r-r: func [
 		I_XORD [asm/xor-r-r a b NO_REX]
 		I_CMPD [asm/cmp-r-r a b NO_REX]
 		I_CMPB [asm/cmpb-r-r a b]
+		I_MULD [asm/imul-r-r a b NO_REX]
 		default [0]
 	]
 ]
@@ -942,6 +1013,7 @@ assemble-r-m: func [
 		I_XORD [asm/xor-r-m a m NO_REX]
 		I_CMPD [asm/cmp-r-m a m NO_REX]
 		I_CMPB [asm/cmpb-r-m a m]
+		I_MULD [asm/imul-r-m a m NO_REX]
 		default [0]
 	]
 ]
@@ -962,6 +1034,7 @@ assemble-r-i: func [
 		I_XORD [asm/xor-r-i r imm NO_REX]
 		I_CMPD [asm/cmp-r-i r imm NO_REX]
 		I_CMPB [asm/cmpb-r-i r imm]
+		I_MULD [asm/imul-r-i r imm NO_REX]
 		default [0]
 	]
 ]
