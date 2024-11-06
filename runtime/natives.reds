@@ -2040,6 +2040,7 @@ natives: context [
 	]
 	
 	handle-thrown-error: func [
+		keep? [logic!]									;-- TRUE: capture stack
 		/local
 			err	[red-object!]
 			id  [integer!]
@@ -2047,6 +2048,7 @@ natives: context [
 	][
 		err: as red-object! stack/get-top
 		assert TYPE_OF(err) = TYPE_ERROR
+		if keep? [error/capture err]
 		id: error/get-id err
 		type: error/get-type err
 		either all [id = type id = words/errors/throw/symbol] [			;-- check if error is of type THROW
