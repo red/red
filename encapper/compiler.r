@@ -2285,12 +2285,17 @@ red: context [
 			unless all? [
 				emit [switch system/thrown]
 				handlers: build-exception-handler
-				insert handlers/1 [
+				insert handlers/1 compose/deep [
 					RED_THROWN_ERROR  [
-						natives/handle-thrown-error
+						natives/handle-thrown-error (pick [true false] keep?)
 					]
 				]
 				emit handlers
+			]
+			if all [keep? all?][
+				emit [
+					error/capture as red-object! stack/get-top
+				]
 			]
 			emit either all? [
 				[
