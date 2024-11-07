@@ -989,6 +989,64 @@ x86: context [
 		emit-simple-binop cg op i
 	]
 
+	emit-int-div: func [
+		cg		[codegen!]
+		i		[instr!]
+		mod?	[logic!]
+		/local
+			x	[instr!]
+			op	[instr-op!]
+			c	[instr-const!]
+			p	[ptr-ptr!]
+			int [integer!]
+			ext [vreg!]
+			val [red-integer!]
+			reg [integer!]
+			t	[int-type!]
+			opcode [integer!]
+	][
+		x: input0 i
+		op: as instr-op! i
+		p: op/param-types
+		t: as int-type! p/value			;-- type of x
+
+		either INT_SIGNED?(t) [
+			either INSTR_CONST?(x) [	;-- constant fold
+				c: as instr-const! x
+				int: int-unbox c/value
+				ext: either int < 0 [
+					val: xmalloc(red-integer!)
+					val/header: TYPE_INTEGER
+					val/value: -1
+					c: either INT_WIDTH(t) > 32 [ir-graph/const-int64 val cg/fn][ir-graph/const-int val cg/fn]
+					get-vreg cg as instr! c
+				][
+					get-vreg cg as instr! ir-graph/const-int-zero cg/fn
+				]
+			][
+				ext: make-tmp-vreg cg as rst-type! t
+				opcode: either INT_WIDTH(t) > 32 [I_CQO][I_CDQ]
+				def-vreg cg ext x86_EDX
+				use-reg-fixed cg x x86_EAX
+				emit-instr cg opcode or AM_OP_REG
+			]
+		][
+			ext: get-vreg cg as instr! ir-graph/const-int-zero cg/fn
+		]
+
+		reg: either mod? [x86_EDX][x86_EAX]
+		def-reg-fixed cg i reg
+		reg: either mod? [x86_EAX][x86_EDX]
+		kill cg reg
+		use-reg-fixed cg x x86_EAX
+		use-vreg cg ext x86_EDX
+		reg: either target/arch = arch-x86 [x86_NOT_EDX][x64_NOT_RAX_RDX]
+		use-reg-fixed cg input1 i reg
+		opcode: either INT_SIGNED?(t) [I_IDIVD][I_DIVD]
+		if INT_WIDTH(t) > 32 [opcode: opcode + I_W_DIFF]
+		emit-instr cg opcode
+	]
+
 	emit-call: func [
 		cg		[codegen!]
 		i		[instr!]
@@ -1365,8 +1423,8 @@ x86: context [
 					emit-instr cg op or AM_REG_OP
 				]
 			]
-			OP_INT_DIV			[0]
-			OP_INT_MOD			[0]
+			OP_INT_DIV			[emit-int-div cg i no]
+			OP_INT_MOD			[emit-int-div cg i yes]
 			OP_INT_REM			[0]
 			OP_INT_AND			[emit-int-binop cg I_ANDD i]
 			OP_INT_OR			[emit-int-binop cg I_ORD i]

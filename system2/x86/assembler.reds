@@ -618,8 +618,14 @@ asm: context [
 			exit
 		]
 		emit-b-r-x-rex C7h r 0 REX_W
-		emit-d imm			
+		emit-d imm
 	]
+
+	cdq: func [][emit-b 99h]
+	cqo: func [][emit-bb REX_BYTE or REX_W 99h]
+
+	idiv-r: func [r [integer!] rex [integer!]][emit-b-r-x-rex F7h r 7 rex]
+	idiv-m: func [m [x86-addr!] rex [integer!]][emit-b-m-x F7h m 7 rex]
 
 	imul-r-i: func [r  [integer!] imm [integer!] rex [integer!]][
 		rex: rex or rex-r r REX_B or REX_R
@@ -912,6 +918,7 @@ call-fn: func [v [cell!] /local fval [val!] f [fn!]][
 ]
 
 assemble-op: func [
+	cg		[codegen!]
 	op		[integer!]
 	p		[ptr-ptr!]
 	/local
@@ -919,6 +926,8 @@ assemble-op: func [
 		c	[integer!]
 		f	[operand!]
 		imm [immediate!]
+		loc [integer!]
+		addr [x86-addr! value]
 ][
 	switch x86_OPCODE(op) [
 		I_JMP [
@@ -948,6 +957,16 @@ assemble-op: func [
 				default [0]
 			]
 		]
+		I_IDIVD I_DIVD I_IDIVQ I_DIVQ [
+			p: p + 4
+			loc: to-loc as operand! p/value
+			either target/gpr-reg? loc [
+				assemble-r op loc
+			][
+				loc-to-addr loc :addr cg/frame cg/reg-set
+				assemble-m op :addr
+			]
+		]
 		default [0]
 	]
 ]
@@ -959,7 +978,8 @@ assemble-r: func [
 	switch op [
 		I_NOTD	[0]
 		I_NEGD	[asm/neg-r r NO_REX]
-		I_MULD [asm/imul-r r NO_REX]
+		I_MULD	[asm/imul-r r NO_REX]
+		I_IDIVD	[asm/idiv-r r NO_REX]
 		default [0]
 	]
 ]
@@ -971,7 +991,8 @@ assemble-m: func [
 	switch op [
 		I_NOTD	[0]
 		I_NEGD	[asm/neg-m m NO_REX]
-		I_MULD [asm/imul-m m NO_REX]
+		I_MULD	[asm/imul-m m NO_REX]
+		I_IDIVD	[asm/idiv-m m NO_REX]
 		default [0]
 	]
 ]
@@ -993,6 +1014,8 @@ assemble-r-r: func [
 		I_CMPD [asm/cmp-r-r a b NO_REX]
 		I_CMPB [asm/cmpb-r-r a b]
 		I_MULD [asm/imul-r-r a b NO_REX]
+		I_CDQ  [asm/cdq]
+		I_CQO  [asm/cqo]
 		default [0]
 	]
 ]
@@ -1116,7 +1139,7 @@ assemble: func [
 
 	m: i/header >> AM_SHIFT and 1Fh
 	switch m [
-		_AM_NONE [assemble-op ins p]
+		_AM_NONE [assemble-op cg ins p]
 		_AM_REG_OP [
 			reg: to-loc as operand! p/value
 			p: p + 1

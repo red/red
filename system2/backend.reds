@@ -1130,6 +1130,17 @@ backend: context [
 		vector/append-ptr cg/operands as byte-ptr! make-def v 0
 	]
 
+	def-vreg: func [
+		cg			[codegen!]
+		vreg		[vreg!]
+		constraint	[integer!]
+	][
+		if vreg <> null [
+			vreg/hint: either constraint < cg/reg-set/n-regs [constraint][0]
+		]
+		vector/append-ptr cg/operands as byte-ptr! make-def vreg constraint
+	]
+
 	use-i: func [
 		cg		[codegen!]
 		i		[instr!]
@@ -1167,6 +1178,15 @@ backend: context [
 		if null? v [exit]
 		update-usage v
 		vector/append-ptr cg/operands as byte-ptr! make-use v c
+	]
+
+	use-vreg: func [
+		cg			[codegen!]
+		v			[vreg!]
+		constraint [integer!]
+	][
+		update-usage v
+		vector/append-ptr cg/operands as byte-ptr! make-use v constraint
 	]
 
 	use-label: func [
@@ -1428,7 +1448,7 @@ backend: context [
 		v/reg-class: cls
 		v/stack-idx: -2
 		vector/poke-ptr vregs idx as int-ptr! v
-		if INSTR_CONST?(i) [
+		if all [i <> null INSTR_CONST?(i)][
 			v/spill: -2 - idx		;-- use negative spill to mark constants
 		]
 		v
@@ -1451,6 +1471,18 @@ backend: context [
 		][
 			as vreg! vector/pick-ptr cg/vregs i/mark - cg/mark
 		]
+	]
+
+	make-tmp-vreg: func [
+		cg		[codegen!]
+		t		[rst-type!]
+		return: [vreg!]
+		/local
+			v	[vreg!]
+	][
+		v: make-vreg cg null
+		v/reg-class: reg-class? t
+		v
 	]
 
 	gen-phi-moves: func [

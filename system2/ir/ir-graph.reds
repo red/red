@@ -151,6 +151,23 @@ ssa-ctx!: alias struct! [
 	closed?		[logic!]			;-- block closed by exit, return, break, continue or goto
 ]
 
+int-unbox: func [
+	val		[cell!]
+	return: [integer!]
+	/local
+		int [red-integer!]
+][
+	either null? val [0][
+		either TYPE_OF(val) = TYPE_INTEGER [
+			int: as red-integer! val
+			int/value
+		][
+			probe "expected integer value"
+			0
+		]
+	]
+]
+
 input0: func [
 	i		[instr!]
 	return: [instr!]
@@ -159,6 +176,19 @@ input0: func [
 		e	[df-edge!]
 ][
 	p: ARRAY_DATA(i/inputs)
+	e: as df-edge! p/value
+	e/dst
+]
+
+input1: func [
+	i		[instr!]
+	return: [instr!]
+	/local
+		p	[ptr-ptr!]
+		e	[df-edge!]
+][
+	p: ARRAY_DATA(i/inputs)
+	p: p + 1
 	e: as df-edge! p/value
 	e/dst
 ]
