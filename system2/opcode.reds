@@ -215,6 +215,7 @@ instr-flags: [
 #define I_PSRLD		47h		#define I_PSRLQ		57h
 
 #define I_TRUNCS_U64 48h	#define I_TRUNCD_U64 58h
+#define I_IMODD		 49h	#define I_IMODQ		59h
  
 #define I_MOVB			60h
 #define I_MOVBSX		61h

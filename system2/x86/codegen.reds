@@ -121,6 +121,25 @@ Red/System [
 #define AM_REG_XOP		3800h
 #define AM_XMM_XMM		3C00h
 
+#enum x86-cond-flag! [
+	jc_overflow			;-- JO
+	jc_not_overflow		;-- JNO
+	jc_carry			;-- JC
+	jc_not_carry		;-- JNC
+	jc_zero				;-- JZ
+	jc_not_zero			;-- JNZ
+	jc_not_above		;-- JNA
+	jc_above			;-- JA
+	jc_sign				;-- JS
+	jc_not_sign			;-- JNS
+	jc_parity			;-- JP
+	jc_not_parity		;-- JNP
+	jc_lesser			;-- JL
+	jc_greater_eq		;-- JGE
+	jc_lesser_eq		;-- JLE
+	jc_greater			;-- JG
+]
+
 x86-cond!: alias struct! [
 	index		[integer!]
 	negate		[x86-cond!]
@@ -140,8 +159,8 @@ x86-cond: context [
 	not-carry:		as x86-cond! 0
 	zero:			as x86-cond! 0
 	not-zero:		as x86-cond! 0
-	aux-carry:		as x86-cond! 0
-	not-aux-carry:	as x86-cond! 0
+	above:		as x86-cond! 0
+	not-above:	as x86-cond! 0
 	sign:			as x86-cond! 0
 	not-sign:		as x86-cond! 0
 	parity:			as x86-cond! 0
@@ -211,8 +230,8 @@ x86-cond: context [
 		not-carry:		make 3
 		zero:			make 4
 		not-zero:		make 5
-		not-aux-carry:	make 6
-		aux-carry:		make 7
+		not-above:	make 6
+		above:		make 7
 		sign:			make 8
 		not-sign:		make 9
 		parity:			make 10
@@ -234,8 +253,8 @@ x86-cond: context [
 		commute not-zero not-zero
 		commute lesser greater
 		commute lesser-eq greater-eq
-		commute not-aux-carry not-carry
-		commute aux-carry carry
+		commute not-above not-carry
+		commute above carry
 	]
 ]
 
@@ -992,7 +1011,7 @@ x86: context [
 	emit-int-div: func [
 		cg		[codegen!]
 		i		[instr!]
-		mod?	[logic!]
+		kind	[divide-result!]		;-- 0: div, 1: remainder, 2: modulo
 		/local
 			x	[instr!]
 			op	[instr-op!]
@@ -1034,15 +1053,17 @@ x86: context [
 			ext: get-vreg cg as instr! ir-graph/const-int-zero cg/fn
 		]
 
-		reg: either mod? [x86_EDX][x86_EAX]
+		reg: either kind = div_quotient [x86_EAX][x86_EDX]
 		def-reg-fixed cg i reg
-		reg: either mod? [x86_EAX][x86_EDX]
+		reg: either kind = div_quotient [x86_EDX][x86_EAX]
 		kill cg reg
 		use-reg-fixed cg x x86_EAX
 		use-vreg cg ext x86_EDX
 		reg: either target/arch = arch-x86 [x86_NOT_EDX][x64_NOT_RAX_RDX]
 		use-reg-fixed cg input1 i reg
-		opcode: either INT_SIGNED?(t) [I_IDIVD][I_DIVD]
+		opcode: either INT_SIGNED?(t) [
+			either kind = div_modulo [I_IMODD][I_IDIVD]
+		][I_DIVD]
 		if INT_WIDTH(t) > 32 [opcode: opcode + I_W_DIFF]
 		emit-instr cg opcode
 	]
@@ -1169,7 +1190,7 @@ x86: context [
 				o: as instr-op! i
 				op: int-cmp-op o
 				t: as int-type! o/param-types/value
-				c: either INT_SIGNED?(t) [x86-cond/lesser-eq][x86-cond/not-aux-carry]
+				c: either INT_SIGNED?(t) [x86-cond/lesser-eq][x86-cond/not-above]
 				emit-int-cmp cg i op c
 			]
 			OP_PTR_EQ
@@ -1423,9 +1444,9 @@ x86: context [
 					emit-instr cg op or AM_REG_OP
 				]
 			]
-			OP_INT_DIV			[emit-int-div cg i no]
-			OP_INT_MOD			[emit-int-div cg i yes]
-			OP_INT_REM			[0]
+			OP_INT_DIV			[emit-int-div cg i div_quotient]
+			OP_INT_MOD			[emit-int-div cg i div_modulo]
+			OP_INT_REM			[emit-int-div cg i div_remainder]
 			OP_INT_AND			[emit-int-binop cg I_ANDD i]
 			OP_INT_OR			[emit-int-binop cg I_ORD i]
 			OP_INT_XOR			[emit-int-binop cg I_XORD i]

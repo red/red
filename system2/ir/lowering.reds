@@ -380,10 +380,10 @@ lowering: context [
 		switch INSTR_OPCODE(i) [
 			OP_INT_ADD
 			OP_INT_SUB
-			OP_INT_MUL			[gen-truncate-op as instr-op! i env]
-			OP_INT_DIV			[0]
-			OP_INT_MOD			[0]
-			OP_INT_REM			[0]
+			OP_INT_MUL			
+			OP_INT_DIV			
+			OP_INT_REM			
+			OP_INT_MOD			[gen-truncate-op as instr-op! i env]
 			OP_INT_AND			[0]
 			OP_INT_OR			[0]
 			OP_INT_XOR			[0]

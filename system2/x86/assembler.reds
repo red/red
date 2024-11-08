@@ -94,6 +94,10 @@ asm: context [
 	op-r-rm:  [03h 0Bh 13h 1Bh 23h 2Bh 33h 3Bh]
 	op-eax-i: [05h 0Dh 15h 1Dh 25h 2Dh 35h 3Dh]
 
+	get-buffer: func [return: [byte-ptr!]][
+		program/code-buf/data
+	]
+
 	pos: func [return: [integer!]][
 		program/code-buf/length
 	]
@@ -222,7 +226,7 @@ asm: context [
 		flag: rex-r r2 REX_B
 		rex: rex or flag or rex-r r1 REX_R
 		emit_rex
-		emit-bb-r-x b1 b2 r2 r1
+		emit-bb-r-x b1 b2 r2 r1 - 1
 	]
 
 	emit-bb-rm: func [
@@ -237,7 +241,7 @@ asm: context [
 		flag: rex-r r REX_R
 		rex: rex or flag or rex-m m REX_B
 		emit_rex
-		emit-bb-m-x b1 b2 m r
+		emit-bb-m-x b1 b2 m r - 1
 	]
 
 	emit-r-i: func [		;-- register, immediate
@@ -744,8 +748,69 @@ asm: context [
 		emit-b imm
 	]
 
+	bt-r-i: func [r [integer!] i [integer!] rex [integer!]][
+		rex: rex or rex-r r REX_B
+		emit_rex
+		emit-bb-r-x 0Fh BAh r 6
+		emit-b i
+	]
+
+	bt-m-i: func [m [x86-addr!] i [integer!] rex [integer!]][
+		rex: rex or rex-m m REX_B
+		emit_rex
+		emit-bb-m-x 0Fh BAh m 6
+		emit-b i
+	]
+
 	neg-r: func [r [integer!] rex [integer!]][emit-b-r-x-rex F7h r 3 rex]
 	neg-m: func [m [x86-addr!] rex [integer!]][emit-b-m-x F7h m 3 rex]
+
+	;-- micro assembler
+	imod-r: func [r [integer!] rex [integer!] /local off-1 off-2 [integer!] pb p [byte-ptr!]][
+		pb: get-buffer
+		idiv-r r rex
+		; if modulo < 0 [
+		;   if divisor < 0 [divisor: negate divisor]
+		; 	 modulo: modulo + divisor
+		; ]
+		movd-r-r x86-regs/eax x86-regs/edx
+		bt-r-i x86-regs/eax 31 rex
+		off-1: pos + 1
+		jc-rel jc_not_carry 0
+		bt-r-i r 31 rex
+		off-2: pos + 1
+		jc-rel jc_not_carry 0
+		neg-r r rex
+		p: pb + off-2
+		p/value: as byte! pos - off-2 - 1
+		add-r-r x86-regs/edx r rex
+		p: pb + off-1
+		p/value: as byte! pos - off-1 - 1
+	]
+
+	imod-m: func [m [x86-addr!] rex [integer!] /local off-1 off-2 ra [integer!] pb p [byte-ptr!]][
+		pb: get-buffer
+		idiv-m m rex
+		; if modulo < 0 [
+		;   if divisor < 0 [divisor: negate divisor]
+		; 	 modulo: modulo + divisor
+		; ]
+		ra: x86-regs/eax
+		movd-r-r ra x86-regs/edx
+		bt-r-i ra 31 rex
+		off-1: pos + 1
+		jc-rel jc_not_carry 0	;-- JNC exit:
+		movd-r-m ra m
+		bt-r-i ra 31 rex
+		jc-rel jc_not_carry 0	;-- JNC add:
+		off-2: pos + 1
+		neg-r ra rex
+		p: pb + off-2
+		p/value: as byte! pos - off-2 - 1
+		add-r-r x86-regs/edx ra rex		;-- add: 
+		p: pb + off-1
+		p/value: as byte! pos - off-1 - 1
+	]
 ]
 
 to-loc: func [
@@ -957,7 +1022,7 @@ assemble-op: func [
 				default [0]
 			]
 		]
-		I_IDIVD I_DIVD I_IDIVQ I_DIVQ [
+		I_IDIVD I_DIVD I_IDIVQ I_DIVQ I_IMODD I_IMODQ [
 			p: p + 4
 			loc: to-loc as operand! p/value
 			either target/gpr-reg? loc [
@@ -980,6 +1045,7 @@ assemble-r: func [
 		I_NEGD	[asm/neg-r r NO_REX]
 		I_MULD	[asm/imul-r r NO_REX]
 		I_IDIVD	[asm/idiv-r r NO_REX]
+		I_IMODD [asm/imod-r r NO_REX]
 		default [0]
 	]
 ]
@@ -993,6 +1059,7 @@ assemble-m: func [
 		I_NEGD	[asm/neg-m m NO_REX]
 		I_MULD	[asm/imul-m m NO_REX]
 		I_IDIVD	[asm/idiv-m m NO_REX]
+		I_IMODD [asm/imod-m m NO_REX]
 		default [0]
 	]
 ]

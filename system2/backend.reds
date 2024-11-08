@@ -85,6 +85,12 @@ overwrite!: alias struct! [
 #define MACH_OPCODE(i)	[i/header and 03FFh]
 #define x86_OPCODE(i)	[i and 03FFh]
 
+#enum divide-result! [
+	div_quotient
+	div_remainder
+	div_modulo			;-- Euclidean division
+]
+
 ;-- header: 31 - 28 flags | 
 ;-- x86: 20 - 19 rounding mode | 18 - 15 condition | 14 - 10 addressing mode | 9 - 0 opcode
 ;-- arm: 
@@ -1995,6 +2001,8 @@ backend: context [
 			I_PCMPEQD		["pcmpeq.d"]
 			I_UCOMISS		["ucomiss"]
 			I_ENTRY			["entry"]
+			I_IMODD			["imod.d"]
+			I_IMODQ			["imod.q"]
 			default 		["unknown op"]
 		]
 	]
