@@ -23,6 +23,7 @@ error: context [
 		field-near
 		field-where
 		field-stack
+		field-files
 	]
 	
 	set-where: func [
@@ -120,6 +121,14 @@ error: context [
 			blk: as red-block! field
 			block/make-at blk 20
 			stack/trace-in level blk ptr
+			
+			blk: as red-block! #get system/state/source-files
+			unless block/rs-tail? blk [
+				copy-cell 
+					as red-value! block/clone blk no no
+					(object/get-values err) + field-files
+				stack/pop 1
+			]
 		]
 	]
 	
@@ -426,6 +435,14 @@ error: context [
 				default [0]
 			]
 		]
+		
+		value: base + field-files
+		if TYPE_OF(value) = TYPE_BLOCK [
+			string/concatenate-literal buffer "^/*** Files: "
+			part: part - 12
+			part: actions/mold base + field-files buffer yes no yes arg2 40 0
+		]
+		
 		part
 	]
 	
