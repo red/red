@@ -1008,6 +1008,36 @@ x86: context [
 		emit-simple-binop cg op i
 	]
 
+	emit-shift: func [
+		cg		[codegen!]
+		op		[integer!]
+		i		[instr!]
+		/local
+			o	[instr-op!]
+			t	[int-type!]
+			s w [integer!]
+			reg [integer!]
+			m	[instr-matcher!]
+	][
+		o: as instr-op! i
+		t: as int-type! o/param-types/value		;-- type of first arg
+		w: INT_WIDTH(t)
+		op: either w > 32 [op + I_W_DIFF][op]
+		m: cg/m
+		matcher/int-bin-op m i
+		either m/y-const? [
+			s: either m/long-int? [m/int-y][m/int-y]
+			overwrite-reg cg i m/x
+			use-imm-int cg s
+			emit-instr cg op or AM_OP_IMM
+		][
+			reg: either w > 32 [x64_NOT_RCX][x86_NOT_ECX]
+			overwrite-reg-fixed cg i m/x reg
+			use-reg-fixed cg m/y x86_ECX
+			emit-instr cg op or AM_OP
+		]
+	]
+
 	emit-int-div: func [
 		cg		[codegen!]
 		i		[instr!]
@@ -1450,9 +1480,9 @@ x86: context [
 			OP_INT_AND			[emit-int-binop cg I_ANDD i]
 			OP_INT_OR			[emit-int-binop cg I_ORD i]
 			OP_INT_XOR			[emit-int-binop cg I_XORD i]
-			OP_INT_SHL			[0]
-			OP_INT_SAR			[0]
-			OP_INT_SHR			[0]
+			OP_INT_SHL			[emit-shift cg I_SHLD i]
+			OP_INT_SAR			[emit-shift cg I_SARD i]
+			OP_INT_SHR			[emit-shift cg I_SHRD i]
 			OP_INT_NE			[0]
 			OP_FLT_ADD			[0]
 			OP_FLT_SUB			[0]

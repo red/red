@@ -491,6 +491,7 @@ parser: context [
 	k_=:			symbol/make "="
 	k_>=:			symbol/make ">="
 	k_>:			symbol/make ">"
+	k_<<:			symbol/make "<<"
 	k_>>:			symbol/make ">>"
 	k_>>>:			symbol/make ">>>"
 	k_less:			symbol/make "<"
@@ -593,6 +594,7 @@ parser: context [
 		hashmap/put infix-Ops k_=			as int-ptr! RST_OP_EQ
 		hashmap/put infix-Ops k_>=			as int-ptr! RST_OP_GTEQ
 		hashmap/put infix-Ops k_>			as int-ptr! RST_OP_GT
+		hashmap/put infix-Ops k_<<			as int-ptr! RST_OP_SHL
 		hashmap/put infix-Ops k_>>			as int-ptr! RST_OP_SAR
 		hashmap/put infix-Ops k_>>>			as int-ptr! RST_OP_SHR
 		hashmap/put infix-Ops k_less		as int-ptr! RST_OP_LT

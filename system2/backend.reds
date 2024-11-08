@@ -1101,6 +1101,24 @@ backend: context [
 		vector/append-ptr cg/operands as byte-ptr! make-overwrite dreg sreg p/value
 	]
 
+	overwrite-reg-fixed: func [
+		cg		[codegen!]
+		dst		[instr!]
+		src		[instr!]
+		c		[integer!]		;-- constraint
+		/local
+			dreg [vreg!]
+			sreg [vreg!]
+			o	 [overwrite!]
+	][
+		dreg: get-vreg cg dst
+		assert dreg <> null
+		sreg: get-vreg cg src
+		assert sreg <> null
+		update-usage sreg
+		vector/append-ptr cg/operands as byte-ptr! make-overwrite dreg sreg c
+	]
+
 	def-reg-fixed: func [
 		cg			[codegen!]
 		i			[instr!]

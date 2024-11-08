@@ -748,22 +748,69 @@ asm: context [
 		emit-b imm
 	]
 
-	bt-r-i: func [r [integer!] i [integer!] rex [integer!]][
+	btr-r-i: func [r [integer!] i [integer!] rex [integer!]][
 		rex: rex or rex-r r REX_B
 		emit_rex
 		emit-bb-r-x 0Fh BAh r 6
 		emit-b i
 	]
 
-	bt-m-i: func [m [x86-addr!] i [integer!] rex [integer!]][
+	btr-m-i: func [m [x86-addr!] i [integer!] rex [integer!]][
 		rex: rex or rex-m m REX_B
 		emit_rex
 		emit-bb-m-x 0Fh BAh m 6
 		emit-b i
 	]
 
+	bt-r-i: func [r [integer!] i [integer!] rex [integer!]][
+		rex: rex or rex-r r REX_B
+		emit_rex
+		emit-bb-r-x 0Fh BAh r 4
+		emit-b i
+	]
+
+	bt-m-i: func [m [x86-addr!] i [integer!] rex [integer!]][
+		rex: rex or rex-m m REX_B
+		emit_rex
+		emit-bb-m-x 0Fh BAh m 4
+		emit-b i
+	]
+
 	neg-r: func [r [integer!] rex [integer!]][emit-b-r-x-rex F7h r 3 rex]
 	neg-m: func [m [x86-addr!] rex [integer!]][emit-b-m-x F7h m 3 rex]
+
+	shift-r-i: func [r [integer!] i [integer!] rex [integer!] op [integer!]][
+		either i = 1 [
+			emit-b-r-x-rex D1h r op rex
+		][
+			emit-b-r-x-rex C1h r op rex
+			emit-b i
+		]
+	]
+	shift-m-i: func [m [x86-addr!] i [integer!] rex [integer!] op [integer!]][
+		either i = 1 [
+			emit-b-m-x D1h m op rex
+		][
+			emit-b-m-x C1h m op rex
+			emit-b i
+		]
+	]
+	
+	shl-r-i: func [r [integer!] i [integer!] rex [integer!]][shift-r-i r i rex 4]
+	shr-r-i: func [r [integer!] i [integer!] rex [integer!]][shift-r-i r i rex 5]
+	sar-r-i: func [r [integer!] i [integer!] rex [integer!]][shift-r-i r i rex 7]
+
+	shl-m-i: func [m [x86-addr!] i [integer!] rex [integer!]][shift-m-i m i rex 4]
+	shr-m-i: func [m [x86-addr!] i [integer!] rex [integer!]][shift-m-i m i rex 5]
+	sar-m-i: func [m [x86-addr!] i [integer!] rex [integer!]][shift-m-i m i rex 7]
+
+	shl-r: func [r [integer!] rex [integer!]][emit-b-r-x-rex D3h r rex 4]
+	shr-r: func [r [integer!] rex [integer!]][emit-b-r-x-rex D3h r rex 5]
+	sar-r: func [r [integer!] rex [integer!]][emit-b-r-x-rex D3h r rex 7]
+
+	shl-m: func [m [x86-addr!] rex [integer!]][emit-b-m-x D3h m rex 4]
+	shr-m: func [m [x86-addr!] rex [integer!]][emit-b-m-x D3h m rex 5]
+	sar-m: func [m [x86-addr!] rex [integer!]][emit-b-m-x D3h m rex 7]
 
 	;-- micro assembler
 	imod-r: func [r [integer!] rex [integer!] /local off-1 off-2 [integer!] pb p [byte-ptr!]][
@@ -773,8 +820,7 @@ asm: context [
 		;   if divisor < 0 [divisor: negate divisor]
 		; 	 modulo: modulo + divisor
 		; ]
-		movd-r-r x86-regs/eax x86-regs/edx
-		bt-r-i x86-regs/eax 31 rex
+		bt-r-i x86-regs/edx 31 rex
 		off-1: pos + 1
 		jc-rel jc_not_carry 0
 		bt-r-i r 31 rex
@@ -796,8 +842,7 @@ asm: context [
 		; 	 modulo: modulo + divisor
 		; ]
 		ra: x86-regs/eax
-		movd-r-r ra x86-regs/edx
-		bt-r-i ra 31 rex
+		bt-r-i x86-regs/edx 31 rex
 		off-1: pos + 1
 		jc-rel jc_not_carry 0	;-- JNC exit:
 		movd-r-m ra m
@@ -1045,6 +1090,9 @@ assemble-r: func [
 		I_NEGD	[asm/neg-r r NO_REX]
 		I_MULD	[asm/imul-r r NO_REX]
 		I_IDIVD	[asm/idiv-r r NO_REX]
+		I_SHLD [asm/shl-r r NO_REX]
+		I_SARD [asm/sar-r r NO_REX]
+		I_SHRD [asm/shr-r r NO_REX]
 		I_IMODD [asm/imod-r r NO_REX]
 		default [0]
 	]
@@ -1059,6 +1107,9 @@ assemble-m: func [
 		I_NEGD	[asm/neg-m m NO_REX]
 		I_MULD	[asm/imul-m m NO_REX]
 		I_IDIVD	[asm/idiv-m m NO_REX]
+		I_SHLD [asm/shl-m m NO_REX]
+		I_SARD [asm/sar-m m NO_REX]
+		I_SHRD [asm/shr-m m NO_REX]
 		I_IMODD [asm/imod-m m NO_REX]
 		default [0]
 	]
@@ -1125,6 +1176,9 @@ assemble-r-i: func [
 		I_CMPD [asm/cmp-r-i r imm NO_REX]
 		I_CMPB [asm/cmpb-r-i r imm]
 		I_MULD [asm/imul-r-i r imm NO_REX]
+		I_SHLD [asm/shl-r-i r imm NO_REX]
+		I_SARD [asm/sar-r-i r imm NO_REX]
+		I_SHRD [asm/shr-r-i r imm NO_REX]
 		default [0]
 	]
 ]
@@ -1145,6 +1199,9 @@ assemble-m-i: func [
 		I_XORD [asm/xor-m-i m imm NO_REX]
 		I_CMPD [asm/cmp-m-i m imm NO_REX]
 		I_CMPB [asm/cmpb-m-i m imm]
+		I_SHLD [asm/shl-m-i m imm NO_REX]
+		I_SARD [asm/sar-m-i m imm NO_REX]
+		I_SHRD [asm/shr-m-i m imm NO_REX]
 		default [0]
 	]
 ]
