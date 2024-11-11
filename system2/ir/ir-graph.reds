@@ -554,6 +554,7 @@ ir-graph: context [
 		split-ssa-ctx ctx :t-ctx
 		split-ssa-ctx ctx :f-ctx
 		add-if cond t-ctx/block f-ctx/block ctx
+		remove-instr cond
 
 		t-val: gen-stmts e/t-branch t-ctx
 		f-val: either e/f-branch <> null [gen-stmts e/f-branch f-ctx][add-default-value e/type f-ctx]

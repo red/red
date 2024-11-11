@@ -812,6 +812,63 @@ asm: context [
 	shr-m: func [m [x86-addr!] rex [integer!]][emit-b-m-x D3h m rex 5]
 	sar-m: func [m [x86-addr!] rex [integer!]][emit-b-m-x D3h m rex 7]
 
+	movss-s-s: func [r1 [integer!] r2 [integer!]][
+		emit-b F3h
+		emit-bb-rr 0Fh 10h r1 r2 NO_REX
+	]
+	movss-s-m: func [r [integer!] m [x86-addr!]][
+		emit-b F3h
+		emit-bb-rm 0Fh 10h r m NO_REX
+	]
+	movss-m-s: func [m [x86-addr!] r [integer!]][
+		emit-b F3h
+		emit-bb-rm 0Fh 11h r m NO_REX
+	]
+	movsd-s-s: func [r1 [integer!] r2 [integer!]][
+		emit-b F2h
+		emit-bb-rr 0Fh 10h r1 r2 NO_REX
+	]
+	movsd-s-m: func [r [integer!] m [x86-addr!]][
+		emit-b F2h
+		emit-bb-rm 0Fh 10h r m NO_REX
+	]
+	movsd-m-s: func [m [x86-addr!] r [integer!]][
+		emit-b F2h
+		emit-bb-rm 0Fh 11h r m NO_REX
+	]
+
+	movd-s-r: func [s [integer!] r [integer!]][
+		emit-b 66h
+		emit-bb-rr 0Fh 6Eh s r NO_REX
+	]
+	movd-r-s: func [r [integer!] s [integer!]][
+		emit-b 66h
+		emit-bb-rr 0Fh 7Eh s r NO_REX
+	]
+	movq-s-r: func [s [integer!] r [integer!]][
+		emit-b 66h
+		emit-bb-rr 0Fh 6Eh s r REX_W
+	]
+	movq-r-s: func [r [integer!] s [integer!]][
+		emit-b 66h
+		emit-bb-rr 0Fh 7Eh s r REX_W
+	]
+
+	ucomisd-s-s: func [r1 [integer!] r2 [integer!]][
+		emit-b 66h
+		emit-bb-rr 0Fh 2Eh r1 r2 NO_REX
+	]
+	ucomisd-s-m: func [r1 [integer!] m [x86-addr!]][
+		emit-b 66h
+		emit-bb-rm 0Fh 2Eh r1 m NO_REX
+	]
+	ucomiss-s-s: func [r1 [integer!] r2 [integer!]][
+		emit-bb-rr 0Fh 2Eh r1 r2 NO_REX
+	]
+	ucomiss-s-m: func [r1 [integer!] m [x86-addr!]][
+		emit-bb-rm 0Fh 2Eh r1 m NO_REX
+	]
+
 	;-- micro assembler
 	imod-r: func [r [integer!] rex [integer!] /local off-1 off-2 [integer!] pb p [byte-ptr!]][
 		pb: get-buffer
@@ -884,6 +941,13 @@ to-loc: func [
 			0
 		]
 	]
+]
+
+to-xmmr: func [
+	o		[operand!]
+	return: [integer!]
+][
+	target/to-xmm-reg to-loc o
 ]
 
 to-imm: func [
@@ -1226,6 +1290,70 @@ assemble-m-r: func [
 	]
 ]
 
+assemble-s-s: func [	;-- sse registers
+	op		[integer!]
+	a		[integer!]
+	b		[integer!]
+][
+	switch op [
+		I_MOVSS		[asm/movss-s-s a b]
+		I_MOVSD		[asm/movsd-s-s a b]
+		I_UCOMISS	[asm/ucomiss-s-s a b]
+		I_UCOMISD	[asm/ucomisd-s-s a b]
+		default		[0]
+	]
+]
+
+assemble-s-m: func [	;-- sse register, memory address
+	op		[integer!]
+	a		[integer!]
+	m		[x86-addr!]
+][
+	switch op [
+		I_MOVSS		[asm/movss-s-m a m]
+		I_MOVSD		[asm/movsd-s-m a m]
+		I_UCOMISS	[asm/ucomiss-s-m a m]
+		I_UCOMISD	[asm/ucomisd-s-m a m]
+		default		[0]
+	]
+]
+
+assemble-m-s: func [
+	op		[integer!]
+	m		[x86-addr!]
+	a		[integer!]
+][
+	switch op [
+		I_MOVSS		[asm/movss-m-s m a]
+		I_MOVSD		[asm/movsd-m-s m a]
+		default		[0]
+	]
+]
+
+assemble-s-r: func [	;-- sse register, gpr
+	op		[integer!]
+	a		[integer!]
+	r		[integer!]
+][
+	switch op [
+		I_MOVSS		[asm/movd-s-r a r]
+		I_MOVSD		[asm/movq-s-r a r]
+		default		[0]
+	]
+]
+
+assemble-r-s: func [
+	op		[integer!]
+	r		[integer!]
+	a		[integer!]
+][
+	switch op [
+		I_MOVSS		[asm/movd-s-r r a]
+		I_MOVSD		[asm/movq-s-r r a]
+		default		[0]
+	]
+]
+
 assemble: func [
 	cg		[codegen!]
 	i		[mach-instr!]
@@ -1323,14 +1451,65 @@ assemble: func [
 				assemble-m-r op :addr reg
 			]
 		]
-		_AM_XMM_REG
-		_AM_XMM_OP
-		_AM_OP_XMM
-		_AM_XMM_RRSD
-		_AM_RRSD_XMM
-		_AM_XMM_IMM 
-		_AM_REG_XOP
-		_AM_XMM_XMM [0]
+		_AM_XMM_REG [
+			reg: to-xmmr as operand! p/value
+			p: p + 1
+			assemble-s-r op reg to-loc as operand! p/value
+		]
+		_AM_XMM_OP [
+			reg: to-xmmr as operand! p/value
+			p: p + 1
+			loc: to-loc as operand! p/value
+			either target/xmm-reg? loc [
+				assemble-s-s op reg target/to-xmm-reg loc
+			][
+				loc-to-addr loc :addr cg/frame rset
+				assemble-s-m op reg :addr
+			]
+		]
+		_AM_OP_XMM [
+			loc: to-loc as operand! p/value
+			p: p + 1
+			reg: to-xmmr as operand! p/value
+			either target/xmm-reg? loc [
+				assemble-s-s op target/to-xmm-reg loc reg
+			][
+				loc-to-addr loc :addr cg/frame rset
+				assemble-m-s op addr reg
+			]
+		]
+		_AM_XMM_RRSD [
+			reg: to-xmmr as operand! p/value
+			rrsd-to-addr p + 1 :addr
+			assemble-s-m op reg :addr
+		]
+		_AM_RRSD_XMM [
+			rrsd-to-addr p :addr
+			p: p + 4
+			reg: to-xmmr as operand! p/value
+			assemble-m-s op :addr reg
+		]
+		_AM_XMM_IMM [
+			rrsd-to-addr p :addr
+			p: p + 4
+			assemble-m-i op addr to-imm as operand! p/value
+		]
+		_AM_REG_XOP [
+			reg: to-loc as operand! p/value
+			p: p + 1
+			loc: to-loc as operand! p/value
+			either target/xmm-reg? loc [
+				assemble-r-s op reg target/to-xmm-reg loc
+			][
+				loc-to-addr loc :addr cg/frame rset
+				assemble-r-m op reg addr
+			]
+		]
+		_AM_XMM_XMM [
+			reg: to-xmmr as operand! p/value
+			p: p + 1
+			assemble-s-s op reg to-xmmr as operand! p/value
+		]
 		default [0]
 	]
 ]

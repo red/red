@@ -245,6 +245,8 @@ compiler: context [
 				len	[integer!]
 				idx [integer!]
 				p	[byte-ptr!]
+				pp	[int-ptr!]
+				f	[float-literal!]
 		][
 			ty: NODE_TYPE(val)
 			if ty > RST_LIT_ARRAY [return false]
@@ -258,8 +260,13 @@ compiler: context [
 					int: as int-literal! val
 					emit-d int/value
 				]
-				RST_BYTE
-				RST_FLOAT
+				RST_BYTE [0]
+				RST_FLOAT [
+					f: as float-literal! val
+					pp: :f/value
+					emit-d pp/1
+					emit-d pp/2
+				]
 				RST_NULL
 				RST_C_STR
 				RST_BINARY [0]
@@ -351,6 +358,7 @@ compiler: context [
 	fn-assemble!: alias function! [cg [codegen!] i [mach-instr!]]
 	fn-patch-call!: alias function! [ref [integer!] pos [integer!]]
 	fn-is-reg!: alias function! [r [integer!] return: [logic!]]
+	fn-to-xmmr!: alias function! [r [integer!] return: [integer!]]
 
 	target: context [
 		arch: arch-x86
@@ -382,6 +390,7 @@ compiler: context [
 		patch-call: as fn-patch-call! 0
 		gpr-reg?: as fn-is-reg! 0
 		xmm-reg?: as fn-is-reg! 0
+		to-xmm-reg: as fn-to-xmmr! 0
 	]
 
 	_mempool: as mempool! 0

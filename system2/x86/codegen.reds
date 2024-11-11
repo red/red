@@ -333,6 +333,13 @@ x64-reg-set: context [
 		all [x64_XMM0 <= r r <= x64_XMM15]
 	]
 
+	_to-xmm-reg: func [
+		r		[integer!]
+		return: [integer!]
+	][
+		r - (x64_XMM0 - 1)
+	]
+
 	init: func [/local s [reg-set!] arr [ptr-array!] p pa [ptr-ptr!] pp [int-ptr!]][
 		arr: ptr-array/make x64_REG_ALL + 1
 		p: ARRAY_DATA(arr)
@@ -404,6 +411,7 @@ x64-reg-set: context [
 		reg-set: s
 		target/gpr-reg?: as fn-is-reg! :_gpr-reg?
 		target/xmm-reg?: :_xmm-reg?
+		target/to-xmm-reg: :_to-xmm-reg
 	]
 ]
 
@@ -621,6 +629,13 @@ x86-reg-set: context [
 		all [x86_XMM0 <= r r <= x86_XMM7]
 	]
 
+	_to-xmm-reg: func [
+		r		[integer!]
+		return: [integer!]
+	][
+		r - (x86_XMM0 - 1)
+	]
+
 	init: func [/local s [reg-set!] arr [ptr-array!] p pa [ptr-ptr!] pp [int-ptr!]][
 		arr: ptr-array/make x86_REG_ALL + 1
 		p: ARRAY_DATA(arr)
@@ -678,6 +693,7 @@ x86-reg-set: context [
 		reg-set: s
 		target/gpr-reg?: as fn-is-reg! :_gpr-reg?
 		target/xmm-reg?: :_xmm-reg?
+		target/to-xmm-reg: :_to-xmm-reg
 	]
 ]
 
@@ -1188,6 +1204,25 @@ x86: context [
 		x86-cond/make-pair x86-cond/not-zero null no
 	]
 
+	emit-float-cmp: func [
+		cg		[codegen!]
+		i		[instr!]
+		cond	[x86-cond!]
+		return: [x86-cond-pair!]
+		/local
+			o	[instr-op!]
+			t	[rst-type!]
+			op	[integer!]
+	][
+		o: as instr-op! i
+		t: as rst-type! o/param-types/value
+		op: either FLOAT_64?(t) [I_UCOMISD][I_UCOMISS]
+		use-reg cg input0 i
+		use-i cg input1 i
+		emit-instr cg op or AM_XMM_OP
+		x86-cond/make-pair cond null no
+	]
+
 	emit-cmp: func [
 		cg		[codegen!]
 		i		[instr!]
@@ -1209,6 +1244,10 @@ x86: context [
 				op: int-cmp-op as instr-op! i
 				emit-int-cmp cg i op x86-cond/zero
 			]
+			OP_INT_NE	[
+				op: int-cmp-op as instr-op! i
+				emit-int-cmp cg i op x86-cond/not-zero
+			]
 			OP_INT_LT	[
 				o: as instr-op! i
 				op: int-cmp-op o
@@ -1226,10 +1265,43 @@ x86: context [
 			OP_PTR_EQ
 			OP_PTR_LT
 			OP_PTR_LTEQ
-			OP_FLT_EQ
-			OP_FLT_LT
-			OP_FLT_LTEQ [null]
+			OP_FLT_EQ [emit-float-cmp cg i x86-cond/zero]
+			OP_FLT_NE [x86-cond/pair-neg emit-float-cmp cg i x86-cond/zero]
+			OP_FLT_LT [emit-float-cmp cg i x86-cond/carry]
+			OP_FLT_LTEQ [emit-float-cmp cg i x86-cond/not-above]
 			default [emit-default-cmp cg i]
+		]
+	]
+
+	emit-setc: func [	;-- Set if carry
+		cg		[codegen!]
+		conds	[x86-cond-pair!]
+		dst		[vreg!]
+		/local
+			op	[integer!]
+			c	[integer!]
+			reg [integer!]
+			t1	[vreg!]
+			t2	[vreg!]
+	][
+		op: I_SETC or M_FLAG_FIXED
+		reg: cg/reg-set/regs-cls/value		;-- GPR class
+		c: conds/cond1/index << COND_SHIFT
+		either null? conds/cond2 [
+			def-vreg cg dst reg
+			emit-instr cg op or c
+		][
+			t1: make-tmp-vreg cg type-system/logic-type
+			t2: make-tmp-vreg cg type-system/logic-type
+			def-vreg cg t1 reg
+			emit-instr cg op or c
+			def-vreg cg t2 reg
+			c: conds/cond2/index << COND_SHIFT
+			emit-instr cg op or c
+			op: either conds/and? [I_ANDD][I_ORD]
+			overwrite-vreg cg dst t1 reg
+			use-vreg cg t2 0
+			emit-instr cg op or AM_REG_OP
 		]
 	]
 
@@ -1395,7 +1467,7 @@ x86: context [
 		jmp: null
 		fallthru: null
 		case [
-			directly-after? blk s1 [	;-- fall thru to s1
+			directly-after? blk s1 [			;-- fall thru to s1
 				target: s0
 				fallthru: s1
 			]
@@ -1426,7 +1498,7 @@ x86: context [
 		]
 		if jmp <> null [
 			use-label cg jmp
-			emit-instr cg I_JMP or M_FLAG_FIXED
+			emit-instr cg I_JMP or M_FLAG_FIXED	;-- flag-fixed: cannot insert instr before this one
 		]
 	]
 
@@ -1441,12 +1513,18 @@ x86: context [
 	][
 		;ir-printer/print-instr i
 		switch INSTR_OPCODE(i) [
-			OP_BOOL_EQ			
-			OP_BOOL_NOT			
-			OP_INT_EQ			
-			OP_INT_LT			
-			OP_INT_LTEQ			[
+			OP_BOOL_EQ
+			OP_BOOL_NOT
+			OP_INT_EQ
+			OP_INT_NE
+			OP_INT_LT
+			OP_INT_LTEQ
+			OP_FLT_EQ
+			OP_FLT_NE
+			OP_FLT_LT
+			OP_FLT_LTEQ [
 				conds: emit-cmp cg i
+				emit-setc cg conds get-vreg cg i
 			]
 			OP_BOOL_AND			[emit-simple-binop cg I_ANDD i]
 			OP_BOOL_OR			[emit-simple-binop cg I_ORD i]
@@ -1483,7 +1561,6 @@ x86: context [
 			OP_INT_SHL			[emit-shift cg I_SHLD i]
 			OP_INT_SAR			[emit-shift cg I_SARD i]
 			OP_INT_SHR			[emit-shift cg I_SHRD i]
-			OP_INT_NE			[0]
 			OP_FLT_ADD			[0]
 			OP_FLT_SUB			[0]
 			OP_FLT_MUL			[0]
@@ -1496,10 +1573,6 @@ x86: context [
 			OP_FLT_SQRT			[0]
 			OP_FLT_UNUSED		[0]
 			OP_FLT_BITEQ		[0]
-			OP_FLT_EQ			[0]
-			OP_FLT_NE			[0]
-			OP_FLT_LT			[0]
-			OP_FLT_LTEQ			[0]
 			OP_DEFAULT_VALUE	[0]
 			OP_CALL_FUNC		[emit-call cg i]
 			OP_PTR_LOAD			[emit-ptr-load cg i]
@@ -1575,7 +1648,7 @@ x86: context [
 		s: cg/reg-set
 		cls: v/reg-class
 		if on-stack? s idx [
-			r: s/gpr-scratch
+			r: x86_SCRATCH
 			op: either cls = class_i32 [I_MOVD][I_MOVQ]
 			either all [
 				vreg-const?(v)
@@ -1585,7 +1658,7 @@ x86: context [
 				d: make-def null idx
 				op: op or AM_OP_IMM
 			][
-				r: s/gpr-scratch
+				r: x86_SCRATCH
 				load-to-reg cg v r
 				d: make-def null idx
 				u: make-use v r
@@ -1598,7 +1671,7 @@ x86: context [
 			op: either cls = class_f32 [I_MOVSS][I_MOVSD]
 			d: make-def null idx
 			either vreg-const?(v) [
-				r: s/gpr-scratch
+				r: x86_SCRATCH
 				load-to-reg cg v r
 				u: make-use v r
 				op: op or AM_XMM_REG
@@ -1627,7 +1700,7 @@ x86: context [
 		if on-caller-stack? idx [exit]
 		s: cg/reg-set
 		if on-stack? s idx [
-			r: s/gpr-scratch
+			r: x86_SCRATCH
 			op: either v/reg-class = class_i32 [I_MOVD][I_MOVQ]
 			d: make-def null r
 			u: make-use null idx
@@ -1659,21 +1732,31 @@ x86: context [
 			s-reg	[integer!]
 			d		[def!]
 			u		[use!]
+			m1 m2	[integer!]
 	][
 		rset: cg/reg-set
-		s-reg: rset/gpr-scratch
+		s-reg: x86_SCRATCH
 		cls: arg/reg-cls
 		src: arg/src-reg
 		dst: arg/dst-reg
 		op: either any [cls = class_i32 cls = class_f32][I_MOVD][I_MOVQ]
 		either on-stack? rset dst [
 			either on-stack? rset src [
+				either all [cls = class_f64 target/arch = arch-x86][
+					s-reg: SSE_SCRATCH
+					op: I_MOVSD
+					m1: AM_XMM_OP
+					m2: AM_OP_XMM
+				][
+					m1: AM_REG_OP
+					m2: AM_OP_REG
+				]
 				d: make-def null s-reg
 				u: make-use arg/src-v src
-				emit-instr2 cg op or AM_REG_OP d u
+				emit-instr2 cg op or m1 d u
 				d: make-def arg/dst-v dst
 				u: make-use null s-reg
-				emit-instr2 cg op or AM_OP_REG d u
+				emit-instr2 cg op or m2 d u
 			][
 				d: make-def arg/dst-v dst
 				u: make-use arg/src-v src
@@ -1716,7 +1799,7 @@ x86: context [
 			i		[instr-const!]
 	][
 		rset: cg/reg-set
-		s-reg: rset/gpr-scratch
+		s-reg: x86_SCRATCH
 		cls: arg/reg-cls
 		src-v: arg/src-v
 		dst-v: arg/dst-v

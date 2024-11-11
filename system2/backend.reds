@@ -13,8 +13,9 @@ Red/System [
 ]
 
 #define M_FLAG_FIXED	80000000h	;-- cannot insert before this instr
-#define M_FLAG_READ		40000000h	;-- a read instr
-#define M_FLAG_WRITE	20000000h	;-- a write instr
+#define M_FLAG_COPY		40000000h	;-- instr can be copied
+#define M_FLAG_READ		20000000h	;-- a read instr
+#define M_FLAG_WRITE	10000000h	;-- a write instr
 
 #define OPERAND_HEADER	[header [integer!]]
 
@@ -1089,7 +1090,6 @@ backend: context [
 		/local
 			dreg [vreg!]
 			sreg [vreg!]
-			o	 [overwrite!]
 			p	 [int-ptr!]
 	][
 		dreg: get-vreg cg dst
@@ -1109,7 +1109,6 @@ backend: context [
 		/local
 			dreg [vreg!]
 			sreg [vreg!]
-			o	 [overwrite!]
 	][
 		dreg: get-vreg cg dst
 		assert dreg <> null
@@ -1117,6 +1116,16 @@ backend: context [
 		assert sreg <> null
 		update-usage sreg
 		vector/append-ptr cg/operands as byte-ptr! make-overwrite dreg sreg c
+	]
+
+	overwrite-vreg: func [
+		cg		[codegen!]
+		dst		[vreg!]
+		src		[vreg!]
+		c		[integer!]		;-- constraint
+	][
+		update-usage src
+		vector/append-ptr cg/operands as byte-ptr! make-overwrite dst src c
 	]
 
 	def-reg-fixed: func [
@@ -2017,7 +2026,10 @@ backend: context [
 			I_MOVSS			["mov.ss"]
 			I_CVTSS2SD		["cvtss2sd"]
 			I_PCMPEQD		["pcmpeq.d"]
+			I_MOVSS			["movss"]
+			I_MOVSD			["movsd"]
 			I_UCOMISS		["ucomiss"]
+			I_UCOMISD		["ucomisd"]
 			I_ENTRY			["entry"]
 			I_IMODD			["imod.d"]
 			I_IMODQ			["imod.q"]

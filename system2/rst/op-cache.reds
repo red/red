@@ -97,11 +97,11 @@ op-cache: context [
 		type	[rst-type!]
 		return:	[op!]
 		/local
-			signed	[integer!]
-			p		[ptr-ptr!]
+			f64	[integer!]
+			p	[ptr-ptr!]
 	][
-		signed: as-integer FLOAT_64?(type)
-		p: float-op-table + signed
+		f64: as-integer FLOAT_64?(type)
+		p: float-op-table + f64
 		if null? p/value [p/value: as int-ptr! create type OP_FLT_ADD - OP_INT_ADD]
 		(as op! p/value) + op
 	]
