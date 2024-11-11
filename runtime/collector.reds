@@ -19,6 +19,11 @@ collector: context [
 		FRAME_NODES
 		FRAME_SERIES
 	]
+
+	prefs: declare struct! [
+		nodes-gc-trigger 		[integer!]				;-- 0-31: node GC trigger age (in stats/cycles)
+		nodes-core-nb			[integer!]				;-- threshold below which no nodes compacting is done
+	]
 	
 	stats: declare struct! [
 		cycles [integer!]
@@ -28,10 +33,20 @@ collector: context [
 	ext-markers: as int-ptr! allocate ext-size * size? int-ptr!
 	ext-top: ext-markers
 	
-	stats/cycles: 0
+	refs: as int-ptr! 0
+	refs-size: 200
+
 	
 	indent: 0
 	
+	init: func [
+		/local mask [integer!]
+	][
+		stats/cycles: 			0
+		prefs/nodes-gc-trigger: 5						;-- trigger if node frame is unchanged after 5 cycles
+		prefs/nodes-core-nb:	5
+	]
+
 	compare-cb: func [[cdecl] a [int-ptr!] b [int-ptr!] return: [integer!]][
 		SIGN_COMPARE_RESULT((as int-ptr! a/value) (as int-ptr! b/value))
 	]
@@ -45,7 +60,7 @@ collector: context [
 			size  [integer!]							;-- size of list (in pointers)
 			count [integer!]							;-- current number of stored frames
 		]
-		nodes: declare list!
+		nodes:  declare list!
 		series: declare list!
 		nodes/size:  min-size
 		series/size: min-size
@@ -190,6 +205,125 @@ collector: context [
 			count: 0
 		]
 	]
+comment {
+test: func [
+    /local
+        hs [int-ptr!]
+        p [int-ptr!]
+][
+    hs: _hashtable/rs-init 200
+    _hashtable/rs-put hs 11 12  ;-- put key value
+    _hashtable/rs-put hs 22 34
+    p: _hashtable/rs-get hs 22  ;-- return a pointer to value
+    if p <> null [
+        probe p/value
+    ]
+    _hashtable/rs-delete hs 22  ;-- delete a key
+    _hashtable/rs-clear hs      ;-- clear all the items
+    _hashtable/rs-destroy hs    ;-- destroy and free the hash table
+]
+}
+	compact-node: func [
+		src		[node-frame!]
+		refs	[int-ptr!]
+		/local
+			frame dst  [node-frame!]
+			node slot head tail fhead [node!]
+			select-dst [subroutine!]
+	][
+		select-dst: [									;-- subroutine for finding a destination frame
+			frame: memory/n-head
+			while [all [frame <> null frame/head = null]][frame: frame/next]
+			if any [null? frame frame = src][throw 1]		;-- no more free frames!
+			frame
+		]
+		
+		dst: select-dst
+		head: as node! src + 1							;-- skip frame header
+		slot: head
+		tail: slot + src/nodes
+
+		loop src/nodes [								;-- loop over each nodes in frame
+			node: as node! slot/value
+			if all [node <> null any [node < head  tail < node]][	;-- move node to dst frame if node is not part of the internal free list
+				if null? dst/head [dst: select-dst]		;-- if dst frame is full, find a new one
+				fhead: dst/head							;-- alloc node slot in dst frame
+				dst/head: as node! fhead/value
+				fhead/value: as-integer node
+				_hashtable/rs-put refs as-integer slot as-integer fhead	;-- store old (key), new (value) pair
+				
+				slot/value: as-integer src/head			;-- free src node slot
+				src/head: slot
+				;#if debug? = yes [if verbose > 0 [
+				print-line ["rellocation node: " slot " from frame " src " to " dst]
+				;]]
+				
+				dst/used: dst/used + 1					;-- src/used will be decremented later by free-node calls
+			]
+			slot: slot + 1
+		]
+	]
+		
+	do-node-cycle: func [
+		;return: [logic!]								;-- TRUE: need to allocate a new node frame
+		/local
+			frame next [node-frame!]
+			mask !mask cnt [integer!]
+	][
+		;unless active? [exit]
+		
+		;; compact node frames:
+		;; - select one/more frames to compact
+		;; - do the compacting and hashtable filling
+		;; scan the heap and update moved nodes
+		;; scan the stack and update moved nodes
+	
+		;; conditions for triggering a pass:
+		;; - allocation pressure for new nodes 
+		;;     P = allocs / dt
+		;;		   nodes allocated since last GC pass or node recycle
+		;;         inc/dec trend over last 3/5 GC passes
+		;;	   v   ratio allocated/freed since last GC, over last 3/5 GC passes
+		;;
+		;;    After a GC pass, 
+		;;		  if freeing pressure > threshold
+		;;		  if allocation pressure > threshold
+
+;; select unmodified node frames (same used and free values) of old age (> n cycles)
+;; 
+;;
+;;
+		;; loop over node frames [
+		;;		if frame unchanged for x cycles [add to compacting list]
+		;; ]
+		;;
+		;; if compact list not empty [do-compacting]
+;probe "-do-node-cycle-"		
+		!mask: 1
+		loop prefs/nodes-gc-trigger [
+			!mask: !mask << 1
+			!mask: !mask or 1
+		]
+
+		cnt: 0
+		frame: memory/n-head
+		catch 1 [										;-- if exception 1, stop compacting
+			while [frame <> null][
+				next: frame/next			
+;probe ["used: " frame/used ", free: " frame/nodes - frame/used ", birth: " frame/birth ", a-used: " as int-ptr! frame/a-used]
+				if all [
+					cnt >= prefs/nodes-core-nb
+					any [frame/a-used and !mask = !mask frame/used < 100]
+					frame/used < 5000
+				][
+					if refs = null [refs: _hashtable/rs-init refs-size]
+					compact-node frame refs
+				]
+				cnt: cnt + 1
+				frame: next
+			]
+		]
+	]
 	
 	keep: func [
 		node	[node!]
@@ -198,11 +332,23 @@ collector: context [
 			s	  [series!]
 			new?  [logic!]
 			flags [integer!]
+			
+			new [node!]
 	][
 		s: as series! node/value
 		flags: s/flags
 		new?: flags and flag-gc-mark = 0
-		if new? [s/flags: flags or flag-gc-mark]
+		if new? [
+			s/flags: flags or flag-gc-mark
+			
+			if refs <> null [
+				new: _hashtable/rs-get refs as-integer node
+				if new <> null [
+					s: as series! node/value
+					s/node: as node! new/value			;-- update series' back-reference
+				]
+			]
+		]
 		new?
 	]
 
@@ -663,10 +809,12 @@ collector: context [
 	]
 
 	scan-stack-refs: func [
+		table  [int-ptr!]								;-- optional table for nodes relocation
 		store? [logic!]
 		/local
 			frm	map	slot p base head prev [int-ptr!]
-			refs tail [int-ptr!]
+			refs tail new [int-ptr!]
+			node [node!]
 			c-low c-high caller [byte-ptr!]
 			s [series!]
 			bits idx disp nb [integer!]
@@ -728,7 +876,7 @@ collector: context [
 											frames-list/find p FRAME_SERIES
 										][
 											;probe ["stack pointer: " p " : " as byte-ptr! p/value " (" frm + idx - 1 ")"]
-											if store? [	;=== Extract series references ===
+											either store? [	;=== Extract series references ===
 												if refs = tail [
 													;@@ for cases like issue #3628, should find a better way to handle it
 													refs: memory/stk-refs
@@ -741,6 +889,16 @@ collector: context [
 												refs/1: as-integer p			 ;-- pointer inside a frame
 												refs/2: as-integer frm + idx - 1 ;-- pointer address on stack
 												refs: refs + 2
+											][
+												if table <> null [
+													new: _hashtable/rs-get table p/value
+													if new <> null [
+														node: as node! p/value
+														s: as series! node/value
+														s/node: as node! new/value	;-- update series' back-reference
+														p/value: new/value	;-- update address of relocated node pointer
+													]
+												]
 											]
 										]
 										true [0]
@@ -828,26 +986,27 @@ collector: context [
 		]
 			cb		[function! []]
 	][
-		#if debug? = yes [if verbose > 0 [
-			#if OS = 'Windows [platform/dos-console?: no]
-			file: "                      "
-			sprintf [file "live-values-%d.log" stats/cycles]
-			saved: stdout
-			stdout: simple-io/open-file file simple-io/RIO_APPEND no
-		]]
+;		#if debug? = yes [if verbose > 0 [
+;			#if OS = 'Windows [platform/dos-console?: no]
+;			file: "                      "
+;			sprintf [file "live-values-%d.log" stats/cycles]
+;			saved: stdout
+;			stdout: simple-io/open-file file simple-io/RIO_APPEND no
+;		]]
 
-		#if debug? = yes [
-			if verbose > 2 [stack-trace]
+;		#if debug? = yes [
+;			if verbose > 2 [stack-trace]
 			buf: "                                                               "
 			tm: platform/get-time yes yes
-			print [
-				"root: " block/rs-length? root "/" ***-root-size
-				", runs: " stats/cycles
-				", mem: " 	memory-info null 1
-			]
-			if verbose > 1 [probe "^/marking..."]
-		]
-
+;			print [
+;				"root: " block/rs-length? root "/" ***-root-size
+;				", runs: " stats/cycles
+;				", mem: " 	memory-info null 1
+;			]
+;			if verbose > 1 [probe "^/marking..."]
+;		]
+;probe "gc start"		
+		do-node-cycle
 		mark-block root
 		#if debug? = yes [if verbose > 1 [probe "marking symbol table"]]
 		_hashtable/mark symbol/table					;-- will mark symbols
@@ -876,7 +1035,7 @@ collector: context [
 		
 		#if debug? = yes [if verbose > 1 [probe "scanning native stack"]]
 		frames-list/rebuild								;-- refresh nodes and series frames list
-		scan-stack-refs yes
+		scan-stack-refs refs yes
 
 		#if debug? = yes [tm1: (platform/get-time yes yes) - tm]	;-- marking time
 
@@ -887,7 +1046,8 @@ collector: context [
 		collect-big-frames
 		nodes-list/flush
 		collect-node-frames
-		;scan-stack-refs no
+		;scan-stack-refs null no
+		 if refs <> null [_hashtable/rs-destroy refs]		;-- clear all the node entries
 	
 		;-- unmark fixed series
 		unmark root/node
@@ -895,17 +1055,17 @@ collector: context [
 		unmark call-stk/node
 		
 		stats/cycles: stats/cycles + 1
-
-		#if debug? = yes [
-			tm: (platform/get-time yes yes) - tm - tm1
-			sprintf [buf ", mark: %.1fms, sweep: %.1fms" tm1 * 1000.0 tm * 1000.0]
-			probe [" => " memory-info null 1 buf]
-			if verbose > 0 [
-				simple-io/close-file stdout
-				stdout: saved
-				#if OS = 'Windows [platform/dos-console?: yes]
-			]
-		]
+;probe "gc end"
+;		#if debug? = yes [
+;			tm: (platform/get-time yes yes) - tm - tm1
+;			sprintf [buf ", mark: %.1fms, sweep: %.1fms" tm1 * 1000.0 tm * 1000.0]
+;			probe [" => " memory-info null 1 buf]
+;			if verbose > 0 [
+;				simple-io/close-file stdout
+;				stdout: saved
+;				#if OS = 'Windows [platform/dos-console?: yes]
+;			]
+;		]
 	]
 	
 	do-cycle: does [

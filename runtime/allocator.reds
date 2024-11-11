@@ -86,6 +86,9 @@ node-frame!: alias struct! [				;-- node frame header
 	nodes	[integer!]						;-- number of nodes
 	head	[node!]							;-- entry node for the free list (can be null if full)
 	used	[integer!]						;-- number of used nodes in the list
+	birth	[integer!]						;-- GC cycle runs when that node frame has been allocated
+	p-used	[integer!]						;-- used nodes at last GC cycle
+	a-used	[integer!]						;-- bit array of previously used states (1: unchanged/cycle, 0: changed)
 ]
 
 big-frame!: alias struct! [					;-- big frame header (for >= 2MB series)
@@ -262,10 +265,13 @@ alloc-node-frame: func [
 	sz: size * (size? node!) + (size? node-frame!) ;-- total required size for a node frame
 	frame: as node-frame! allocate-virtual sz no ;-- R/W only
 
-	frame/prev:  null
-	frame/next:  null
-	frame/nodes: size
-	frame/used:  0
+	frame/prev:   null
+	frame/next:   null
+	frame/nodes:  size
+	frame/used:   0
+	frame/birth:  collector/stats/cycles
+	frame/p-used: 0
+	frame/a-used: 0
 
 	either null? memory/n-head [
 		memory/n-head: frame				;-- first item in the list
@@ -287,6 +293,7 @@ alloc-node-frame: func [
 free-node-frame: func [
 	frame [node-frame!]						;-- frame to release
 ][
+;probe ["node frame freed: " frame]
 	either null? frame/prev [				;-- if frame = head
 		memory/n-head: frame/next			;-- head now points to next one
 	][
@@ -363,6 +370,10 @@ collect-node-frames: func [
 				memory/n-active: frame
 				unset?: no
 			]
+			frame/a-used: frame/a-used << 1 
+			frame/a-used: frame/a-used or as-integer frame/p-used = frame/used
+;probe [frame ": " as int-ptr! frame/a-used ", " frame/used]
+			frame/p-used: frame/used		;-- save used nodes (stats purposes)
 		]
 		frame: next
 	]
