@@ -688,7 +688,7 @@ type-checker: context [
 				ft: switch TYPE_KIND(utype) [
 					RST_TYPE_INT [op-cache/get-int-op op utype]
 					RST_TYPE_FLOAT [
-						either op <= RST_OP_DIV [
+						either op <= RST_OP_REM [
 							op-cache/get-float-op op utype
 						][null]
 					]
@@ -714,11 +714,7 @@ type-checker: context [
 				if utype <> null [
 					ft: switch TYPE_KIND(utype) [
 						RST_TYPE_INT [op-cache/get-int-op op utype]
-						RST_TYPE_FLOAT [
-							either op <= RST_OP_DIV [
-								op-cache/get-float-op op utype
-							][null]
-						]
+						RST_TYPE_FLOAT [op-cache/get-float-op op utype]
 						RST_TYPE_PTR [null]
 					]
 				]
@@ -735,11 +731,7 @@ type-checker: context [
 				]
 				ft: switch TYPE_KIND(utype) [
 					RST_TYPE_INT [op-cache/get-int-op op utype]
-					RST_TYPE_FLOAT [
-						either op <= RST_OP_DIV [
-							op-cache/get-float-op op utype
-						][null]
-					]
+					RST_TYPE_FLOAT [op-cache/get-float-op op utype]
 					RST_TYPE_PTR [null]
 				]
 			]

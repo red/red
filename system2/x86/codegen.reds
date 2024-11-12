@@ -1319,8 +1319,6 @@ x86: context [
 		addr	[rrsd!]
 		/local
 			c	[instr-const!]
-			v	[val!]
-			var [var-decl!]
 	][
 		if INSTR_CONST?(i) [
 			c: as instr-const! i
@@ -1601,12 +1599,37 @@ x86: context [
 	long-to-reg: func [		;-- 64bit value to reg
 		cg		[codegen!]
 		val		[cell!]
-		idx		[integer!]
+		reg		[integer!]
+		cls		[integer!]
+		/local
+			var	[var-decl!]
+			v	[val!]
+			op	[integer!]
+			addr [rrsd! value]
 	][
-		;TBD
+		v: as val! val
+		var: xmalloc(var-decl!)
+		var/data-idx: data-section/pos
+		data-section/emit-val v
+		v/header: TYPE_ADDR
+		v/ptr: as int-ptr! var
+
+		def-vreg cg null reg
+		addr/base: null
+		addr/index: null
+		addr/scale: 1
+		addr/disp: val
+		do-rrsd cg :addr
+
+		either all [cls = class_f64 target/arch = arch-x86][
+			op: I_MOVSD or AM_XMM_RRSD
+		][
+			op: I_MOVQ or AM_REG_RRSD
+		]
+		emit-instr cg op
 	]
 
-	load-to-reg: func [		;-- load val into reg
+	load-to-reg: func [			;-- load val into reg
 		cg		[codegen!]
 		v		[vreg!]
 		idx		[integer!]		;-- reg index
@@ -1616,19 +1639,29 @@ x86: context [
 			d	[def!]
 			u	[use!]
 			i	[instr-const!]
+			m	[integer!]
 	][
 		cls: v/reg-class
 		op: either any [cls = class_i32 cls = class_f32][I_MOVD][I_MOVQ]
 		either vreg-const?(v) [
-			;TBD handle 64bit value
-			d: make-def null idx
 			i: as instr-const! v/instr
+			if op = I_MOVQ [
+				long-to-reg cg i/value idx cls
+				exit
+			]
+			d: make-def null idx
 			u: as use! make-imm i/value
 			op: op or AM_OP_IMM
 		][
+			either all [cls = class_f64 target/arch = arch-x86][
+				op: I_MOVSD
+				m: AM_XMM_OP
+			][
+				m: AM_REG_OP
+			]
 			d: make-def null idx
 			u: make-use v v/spill
-			op: op or AM_REG_OP		
+			op: op or m
 		]
 		emit-instr2 cg op d u
 	]
@@ -1644,6 +1677,7 @@ x86: context [
 			d	[def!]
 			u	[use!]
 			cls [integer!]
+			m	[integer!]
 	][
 		s: cg/reg-set
 		cls: v/reg-class
@@ -1658,11 +1692,17 @@ x86: context [
 				d: make-def null idx
 				op: op or AM_OP_IMM
 			][
-				r: x86_SCRATCH
+				either all [cls = class_f64 target/arch = arch-x86][
+					r: SSE_SCRATCH
+					op: I_MOVSD
+					m: AM_OP_XMM
+				][
+					m: AM_OP_REG
+				]
 				load-to-reg cg v r
 				d: make-def null idx
 				u: make-use v r
-				op: op or AM_OP_REG
+				op: op or m
 			]
 			emit-instr2 cg op d u
 			exit
@@ -1671,10 +1711,16 @@ x86: context [
 			op: either cls = class_f32 [I_MOVSS][I_MOVSD]
 			d: make-def null idx
 			either vreg-const?(v) [
-				r: x86_SCRATCH
+				r: either target/arch = arch-x86 [
+					m: AM_XMM_XMM
+					SSE_SCRATCH
+				][
+					m: AM_XMM_REG
+					x86_SCRATCH
+				]
 				load-to-reg cg v r
 				u: make-use v r
-				op: op or AM_XMM_REG
+				op: op or m
 			][
 				u: make-use v v/spill
 				op: op or AM_XMM_OP
@@ -1696,21 +1742,31 @@ x86: context [
 			d	[def!]
 			u	[use!]
 			cls [integer!]
+			m1 m2 [integer!]
 	][
 		if on-caller-stack? idx [exit]
 		s: cg/reg-set
+		cls: v/reg-class
 		if on-stack? s idx [
 			r: x86_SCRATCH
-			op: either v/reg-class = class_i32 [I_MOVD][I_MOVQ]
+			op: either cls = class_i32 [I_MOVD][I_MOVQ]
+			either all [cls = class_f64 target/arch = arch-x86][
+				r: SSE_SCRATCH
+				op: I_MOVSD
+				m1: AM_XMM_OP
+				m2: AM_OP_XMM
+			][
+				m1: AM_REG_OP
+				m2: AM_OP_REG
+			]
 			d: make-def null r
 			u: make-use null idx
-			emit-instr2 cg op or AM_REG_OP d u
+			emit-instr2 cg op or m1 d u
 			d: make-def v v/spill
 			u: make-use null r
-			emit-instr2 cg op or AM_OP_REG d u
+			emit-instr2 cg op or m2 d u
 			exit
 		]
-		cls: v/reg-class
 		op: switch cls [
 			class_i32 [I_MOVD or AM_OP_REG]
 			class_i64 [I_MOVQ or AM_OP_REG]
@@ -1797,10 +1853,13 @@ x86: context [
 			imm		[operand!]
 			val		[cell!]
 			i		[instr-const!]
+			m		[integer!]
 	][
 		rset: cg/reg-set
-		s-reg: x86_SCRATCH
 		cls: arg/reg-cls
+		s-reg: either all [cls = class_f64 target/arch = arch-x86][
+			SSE_SCRATCH
+		][x86_SCRATCH]
 		src-v: arg/src-v
 		dst-v: arg/dst-v
 		dst: arg/dst-reg
@@ -1827,10 +1886,14 @@ x86: context [
 				arg/dst-v: null
 				arg/dst-reg: s-reg
 				gen-move-imm cg arg
-				op: either cls = class_f32 [I_MOVSS][I_MOVSD]
+				m: AM_XMM_REG
+				op: either cls = class_f32 [I_MOVSS][
+					if s-reg = SSE_SCRATCH [m: AM_XMM_XMM]
+					I_MOVSD
+				]
 				d: make-def dst-v dst
 				u: make-use null s-reg
-				emit-instr2 cg op or AM_XMM_REG d u
+				emit-instr2 cg op or m d u
 			][
 				d: make-def dst-v dst
 				either imm32? [

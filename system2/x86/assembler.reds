@@ -494,6 +494,10 @@ asm: context [
 
 	ret: does [emit-b C3h]
 
+	push-i: func [i [integer!]][
+		emit-bd 68h i
+	]
+
 	jmp-rel: func [
 		offset	[integer!]
 	][
@@ -1332,12 +1336,12 @@ assemble-m-s: func [
 
 assemble-s-r: func [	;-- sse register, gpr
 	op		[integer!]
-	a		[integer!]
+	s		[integer!]
 	r		[integer!]
 ][
 	switch op [
-		I_MOVSS		[asm/movd-s-r a r]
-		I_MOVSD		[asm/movq-s-r a r]
+		I_MOVSS		[asm/movd-s-r s r]
+		I_MOVSD		[asm/movq-s-r s r]
 		default		[0]
 	]
 ]
@@ -1345,11 +1349,11 @@ assemble-s-r: func [	;-- sse register, gpr
 assemble-r-s: func [
 	op		[integer!]
 	r		[integer!]
-	a		[integer!]
+	s		[integer!]
 ][
 	switch op [
-		I_MOVSS		[asm/movd-s-r r a]
-		I_MOVSD		[asm/movq-s-r r a]
+		I_MOVSS		[asm/movd-r-s r s]
+		I_MOVSD		[asm/movq-r-s r s]
 		default		[0]
 	]
 ]
@@ -1490,9 +1494,7 @@ assemble: func [
 			assemble-m-s op :addr reg
 		]
 		_AM_XMM_IMM [
-			rrsd-to-addr p :addr
-			p: p + 4
-			assemble-m-i op addr to-imm as operand! p/value
+			reg: to-xmmr as operand! p/value
 		]
 		_AM_REG_XOP [
 			reg: to-loc as operand! p/value

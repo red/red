@@ -233,6 +233,18 @@ compiler: context [
 
 		emit-d: func [d [integer!]][put-32 buf d]
 
+		emit-val: func [v [val!] /local f [red-float!] p [int-ptr!]][
+			switch TYPE_OF(v) [
+				TYPE_FLOAT [
+					f: as red-float! v
+					p: :f/value
+					emit-d p/1
+					emit-d p/2
+				]
+				default [0]
+			]
+		]
+
 		store-literal: func [
 			val		[rst-expr!]
 			return: [logic!]
