@@ -97,11 +97,19 @@ Red/System [
 	_AM_XMM_XMM
 ]
 
+#enum x86-rounding! [
+	x86_TO_NEAREST
+	x86_NEG_INF
+	x86_POS_INF
+	x86_TO_ZERO
+]
+
 #define AM_SHIFT	10
 #define COND_SHIFT	15
 #define ROUND_SHIFT	19
 
 #define x86_COND(i)		[i >> COND_SHIFT and 0Fh]
+#define x86_ROUNDING(i) [i >> ROUND_SHIFT and 3]
 
 ;-- x86-addr-mode! left-shift by AM_SHIFT
 #define AM_NONE			0
@@ -1024,6 +1032,31 @@ x86: context [
 		emit-simple-binop cg op i
 	]
 
+	emit-float-binop: func [
+		cg		[codegen!]
+		op		[integer!]
+		i		[instr!]
+		/local
+			o	[instr-op!]
+			t	[rst-type!]
+			d x [vreg!]
+			p	[int-ptr!]
+			reg [integer!]
+	][
+		o: as instr-op! i
+		t: as rst-type! o/param-types/value
+		if FLOAT_64?(t) [op: op + 10h]
+
+		d: get-vreg cg i
+		x: get-vreg cg input0 i
+		p: cg/reg-set/regs-cls + d/reg-class	;-- any reg in this reg class
+		reg: p/value
+
+		overwrite-vreg cg d x reg
+		use-i cg input1 i
+		emit-instr cg op or AM_XMM_OP
+	]
+
 	emit-shift: func [
 		cg		[codegen!]
 		op		[integer!]
@@ -1559,17 +1592,14 @@ x86: context [
 			OP_INT_SHL			[emit-shift cg I_SHLD i]
 			OP_INT_SAR			[emit-shift cg I_SARD i]
 			OP_INT_SHR			[emit-shift cg I_SHRD i]
-			OP_FLT_ADD			[0]
-			OP_FLT_SUB			[0]
-			OP_FLT_MUL			[0]
-			OP_FLT_DIV			[0]
-			OP_FLT_MOD			[0]
-			OP_FLT_REM			[0]
+			OP_FLT_ADD			[emit-float-binop cg I_ADDSS i]
+			OP_FLT_SUB			[emit-float-binop cg I_SUBSS i]
+			OP_FLT_MUL			[emit-float-binop cg I_MULSS i]
+			OP_FLT_DIV			[emit-float-binop cg I_DIVSS i]
 			OP_FLT_ABS			[0]
 			OP_FLT_CEIL			[0]
 			OP_FLT_FLOOR		[0]
 			OP_FLT_SQRT			[0]
-			OP_FLT_UNUSED		[0]
 			OP_FLT_BITEQ		[0]
 			OP_DEFAULT_VALUE	[0]
 			OP_CALL_FUNC		[emit-call cg i]
