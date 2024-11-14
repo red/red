@@ -19,7 +19,6 @@ rst-printer: context [
 		printer/visit-break:		as visit-fn! :visit-break
 		printer/visit-continue:		as visit-fn! :visit-continue
 		printer/visit-return:		as visit-fn! :visit-return
-		printer/visit-exit:			as visit-fn! :visit-exit
 		printer/visit-comment:		as visit-fn! :visit-comment
 		printer/visit-case:			as visit-fn! :visit-case
 		printer/visit-switch:		as visit-fn! :visit-switch
@@ -119,12 +118,13 @@ rst-printer: context [
 	]
 
 	visit-return: func [r [return!] i [integer!]][
-		do-i i prin "return "
-		r/expr/accept as int-ptr! r/expr printer null
-	]
-
-	visit-exit: func [r [exit!] i [integer!]][
-		do-i i prin "exit"
+		do-i i
+		either null? r/expr [
+			prin "exit"
+		][
+			prin "return "
+			r/expr/accept as int-ptr! r/expr printer null
+		]
 	]
 
 	visit-path: func [p [path!] i [integer!]][
@@ -140,7 +140,7 @@ rst-printer: context [
 	]
 
 	visit-get-ptr: func [g [get-ptr!] i [integer!]][
-		0
+		do-i i print "get-ptr"
 	]
 
 	visit-throw: func [r [rst-stmt!] i [integer!]][

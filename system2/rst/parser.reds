@@ -18,7 +18,6 @@ visitor!: alias struct! [
 	VISITOR_FUNC(visit-break)
 	VISITOR_FUNC(visit-continue)
 	VISITOR_FUNC(visit-return)
-	VISITOR_FUNC(visit-exit)
 	VISITOR_FUNC(visit-fn-call)
 	VISITOR_FUNC(visit-native-call)
 	VISITOR_FUNC(visit-assign)
@@ -120,7 +119,6 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	RST_THROW
 	RST_CATCH
 	RST_RETURN
-	RST_EXIT
 	RST_ASSERT
 	RST_COMMENT
 ]
@@ -228,6 +226,7 @@ ssa-var!: alias struct! [
 ]
 
 #define LOCAL_VAR?(var) (NODE_FLAGS(var) and RST_VAR_LOCAL <> 0)
+#define GLOBAL_VAR?(var) (NODE_FLAGS(var) and RST_VAR_LOCAL = 0)
 
 var-decl!: alias struct! [	;-- variable declaration
 	RST_NODE_FIELDS(var-decl!)
@@ -236,6 +235,7 @@ var-decl!: alias struct! [	;-- variable declaration
 	init		[rst-expr!]	;-- init expression or parameter idx
 	ssa			[ssa-var!]
 	data-idx	[integer!]	;-- for global var, index in data section
+	blkref		[red-block!]
 ]
 
 sub-fn!: alias struct! [
@@ -372,10 +372,6 @@ while!: alias struct! [
 return!: alias struct! [
 	RST_STMT_FIELDS(rst-node!)
 	expr		[rst-expr!]
-]
-
-exit!: alias struct! [
-	RST_STMT_FIELDS(rst-node!)
 ]
 
 continue!: alias struct! [
@@ -967,10 +963,11 @@ parser: context [
 		/local
 			var [var-decl!]
 	][
-		var: as var-decl! malloc size? var-decl!
+		var: xmalloc(var-decl!)
 		SET_NODE_TYPE(var RST_VAR_DECL)
 		var/token: name
 		var/typeref: typeref
+		var/blkref: cur-blk
 		var/data-idx: -1
 		var
 	]
@@ -1051,6 +1048,7 @@ parser: context [
 			]
 			return pc
 		]
+		
 		if n = -1 [
 			throw-error [pc "expected a block of arguments for variadic function"]
 		]
@@ -1279,17 +1277,10 @@ parser: context [
 	parse-exit: func [
 		KEYWORD_FN_SPEC
 		/local
-			e	[exit!]
+			r	[return!]
 	][
-		exit_accept: func [ACCEPT_FN_SPEC][
-			v/visit-exit self data
-		]
-		e: xmalloc(exit!)
-		SET_NODE_TYPE(e RST_EXIT)
-		e/token: pc
-		e/accept: :exit_accept
-
-		expr/value: as int-ptr! e
+		r: make-return pc null
+		expr/value: as int-ptr! r
 		pc
 	]
 
@@ -2318,7 +2309,7 @@ parser: context [
 						pc: parse-keyword pc end expr ctx
 					][
 						either ctx/throw-error? [
-							throw-error [pc "undefined symbol:" w]
+							throw-error [pc "undefined symbol2:" w]
 						][
 							expr/value: null
 							return pc
@@ -2527,6 +2518,45 @@ parser: context [
 		ctx		[context!]
 		return: [cell!]
 		/local
+			p s	[rst-stmt!]
+			var [variable!]
+			v	[var-decl!]
+			t	[rst-expr!]
+			a	[assignment!]
+	][
+		s: ctx/last-stmt
+		p: s
+		pc: _parse-assignment pc end out ctx
+		while [
+			s: s/next
+			s <> null
+		][
+			a: as assignment! s
+			t: a/target
+			if NODE_TYPE(t) = RST_VAR [
+				var: as variable! t
+				v: var/decl
+				if null? v/init [
+					v/init: a/expr
+					if all [GLOBAL_VAR?(v) literal-expr? a/expr][	;-- remove this assignment
+						continue
+					]
+				]
+			]
+			p/next: s
+			p: s
+		]
+		ctx/last-stmt: p
+		pc
+	]
+
+	_parse-assignment: func [
+		pc		[cell!]
+		end		[cell!]
+		out		[ptr-ptr!]
+		ctx		[context!]
+		return: [cell!]
+		/local
 			var		[var-decl!]
 			flags	[integer!]
 			pos		[cell!]
@@ -2534,30 +2564,22 @@ parser: context [
 			e		[rst-expr!]
 	][
 		e: null
+		pos: pc
 		switch TYPE_OF(pc) [
 			TYPE_SET_WORD [
 				var: as var-decl! find-word as red-word! pc ctx RST_VAR_DECL
-				pos: pc
 				flags: NODE_FLAGS(ctx)
-				either flags and RST_FN_CTX <> 0 [
+				either flags and RST_FN_CTX <> 0 [	;-- in function context
 					if null? var [
 						throw-error [pc "undefined symbol:" pc]
 					]
-				][
+				][	;-- global context
 					if null? var [
 						var: make-var-decl pc null
 						add-decl ctx pc as int-ptr! var
-						pc: parse-assignment advance-next pc end end out ctx
-						var/init: as rst-expr! out/value
-						unless literal-expr? as rst-expr! out/value [
-							e: as rst-expr! make-variable var pos
-							s: as rst-stmt! make-assignment e as rst-expr! out/value pos
-							ctx/last-stmt/next: s
-							ctx/last-stmt: s
-						]
-						return pc
 					]
 				]
+				e: as rst-expr! make-variable var pos
 			]
 			TYPE_SET_PATH [
 				parse-path pc end out ctx
@@ -2568,7 +2590,7 @@ parser: context [
 			]
 		]
 
-		pc: parse-assignment advance-next pc end end out ctx
+		pc: _parse-assignment advance-next pc end end out ctx
 		s: as rst-stmt! make-assignment e as rst-expr! out/value pos
 		ctx/last-stmt/next: s
 		ctx/last-stmt: s
@@ -2898,8 +2920,22 @@ parser: context [
 			n	[integer!]
 			ty	[integer!]
 			cur	[var-decl!]
+			blk [red-block!]
 			list [var-decl! value]
+			add-locals [subroutine!]
 	][
+		add-locals: [
+			until [
+				if T_WORD?(t) [
+					cur/next: make-var-decl t blk
+					cur: cur/next
+					ADD_NODE_FLAGS(cur RST_VAR_LOCAL)
+				]
+				t: t - 1
+				n: n - 1
+				zero? n
+			]
+		]
 		list/next: null
 		cur: :list
 		n: 0
@@ -2910,20 +2946,17 @@ parser: context [
 				ty = TYPE_BLOCK [
 					if zero? n [throw-error [p "missing locals"]]
 					t: p - 1
-					until [
-						if T_WORD?(t) [
-							cur/next: make-var-decl t as red-block! p
-							cur: cur/next
-							ADD_NODE_FLAGS(cur RST_VAR_LOCAL)
-						]
-						t: t - 1
-						n: n - 1
-						zero? n
-					]
+					blk: as red-block! p
+					add-locals
 				]
 				true [throw-error [p "invalid locals:" p]]
 			]
 			p: p + 1
+		]
+		if n > 0 [
+			t: p - 1
+			blk: null
+			add-locals
 		]
 		if fn <> null [
 			fn/locals: list/next

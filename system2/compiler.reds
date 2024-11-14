@@ -801,7 +801,7 @@ compiler: context [
 			stack/unwind
 		]
 		stack/adjust-post-try
-		if system/thrown <> 0 [system/thrown: 0]
+		if system/thrown <> 0 [re-throw]
 
 		;-- generating machine code
 		funcs: program/functions

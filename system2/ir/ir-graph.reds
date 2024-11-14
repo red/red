@@ -433,7 +433,6 @@ ir-graph: context [
 		builder/visit-break:		as visit-fn! :visit-break
 		builder/visit-continue:		as visit-fn! :visit-continue
 		builder/visit-return:		as visit-fn! :visit-return
-		builder/visit-exit:			as visit-fn! :visit-exit
 		builder/visit-comment:		as visit-fn! :visit-comment
 		builder/visit-case:			as visit-fn! :visit-case
 		builder/visit-switch:		as visit-fn! :visit-switch
@@ -645,13 +644,8 @@ ir-graph: context [
 	visit-return: func [r [return!] ctx [ssa-ctx!] return: [instr!]
 		/local val [instr!]
 	][
-		val: gen-expr r/expr ctx
+		val: either r/expr <> null [gen-expr r/expr ctx][null]
 		add-return val ctx
-		null
-	]
-
-	visit-exit: func [r [exit!] ctx [ssa-ctx!] return: [instr!]
-	][
 		null
 	]
 
@@ -1640,7 +1634,11 @@ ir-graph: context [
 		if ctx/closed? [exit]
 		ctx/closed?: yes
 
-		INIT_ARRAY_VALUE(arr val)
+		either val <> null [
+			INIT_ARRAY_VALUE(arr val)
+		][
+			arr/length: 0		;-- emtpy array
+		]
 		r: as instr-return! malloc size? instr-return!
 		r/header: F_INS_END << 8 or INS_RETURN
 		set-inputs as instr! r as ptr-array! :arr

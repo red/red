@@ -142,7 +142,6 @@ type-checker: context [
 		checker/visit-break:		as visit-fn! :visit-break
 		checker/visit-continue:		as visit-fn! :visit-continue
 		checker/visit-return:		as visit-fn! :visit-return
-		checker/visit-exit:			as visit-fn! :visit-exit
 		checker/visit-comment:		as visit-fn! :visit-comment
 		checker/visit-case:			as visit-fn! :visit-case
 		checker/visit-switch:		as visit-fn! :visit-switch
@@ -162,15 +161,20 @@ type-checker: context [
 		var		[var-decl!]
 		ctx		[context!]
 		return: [rst-type!]
+		/local
+			saved-blk [red-block!]
 	][
 		if null? var/type [
-			either var/init <> null [
-				assert null? var/typeref
-				var/type: as rst-type! var/init/accept as int-ptr! var/init checker as int-ptr! ctx
-			][
-				assert var/typeref <> null
-				var/type: parse-type var/typeref ctx
+			enter-block(var/blkref)
+			var/type: case [
+				var/typeref <> null [parse-type var/typeref ctx]
+				var/init <> null [as rst-type! var/init/accept as int-ptr! var/init checker as int-ptr! ctx]
+				true [
+					throw-error [var/token "unused local variable" var/token]
+					null
+				]
 			]
+			exit-block
 		]
 		var/type
 	]
@@ -451,15 +455,12 @@ type-checker: context [
 
 	visit-return: func [v [return!] ctx [context!] return: [rst-type!]][
 		if NODE_FLAGS(ctx) and RST_FN_CTX = 0 [
-			throw-error [v/token "return is not allowed outside of a function"]
+			throw-error [v/token "exit/return is not allowed outside of a function"]
 		]
-		check-expr "Return:" v/expr ctx/ret-type ctx
-		type-system/void-type
-	]
-
-	visit-exit: func [v [exit!] ctx [context!] return: [rst-type!]][
-		if NODE_FLAGS(ctx) and RST_FN_CTX = 0 [
-			throw-error [v/token "exit is not allowed outside of a function"]
+		either v/expr <> null [check-expr "Return:" v/expr ctx/ret-type ctx][
+			if ctx/ret-type <> type-system/void-type [
+				throw-error [v/token "expected a return value"]
+			]
 		]
 		type-system/void-type
 	]
@@ -807,12 +808,15 @@ type-checker: context [
 			if null? stmt/next [break]
 		]
 
-		if all [
-			ctx/ret-type <> type-system/void-type
-			NODE_TYPE(stmt) <> RST_RETURN
-		][
-			check-expr "Return:" as rst-expr! stmt ctx/ret-type ctx
-			prev/next: as rst-stmt! parser/make-return stmt/token as rst-expr! stmt
+		if NODE_TYPE(stmt) <> RST_RETURN [
+			either ctx/ret-type <> type-system/void-type [
+				check-expr "Return:" as rst-expr! stmt ctx/ret-type ctx
+				prev/next: as rst-stmt! parser/make-return stmt/token as rst-expr! stmt
+			][
+				if NODE_FLAGS(ctx) and RST_FN_CTX <> 0 [
+					stmt/next: as rst-stmt! parser/make-return stmt/token null
+				]
+			]
 		]
 
 		assert ctx/loop-stack <> null
