@@ -1455,6 +1455,33 @@ x86: context [
 		emit-instr cg op
 	]
 
+	emit-get-ptr: func [
+		cg		[codegen!]
+		i		[instr!]
+		/local
+			o	[instr-op!]
+			e	[rst-expr!]
+			var	[var-decl!]
+			op	[integer!]
+	][
+		def-reg cg i
+		o: as instr-op! i
+		e: as rst-expr! o/target
+		switch NODE_TYPE(e) [
+			RST_VAR_DECL [
+				var: as var-decl! e
+				either LOCAL_VAR?(var) [
+					op: target/arch = arch-x86 [I_LEAD][I_LEAQ]
+					op: op or AM_REG_RRSD
+				][
+					
+				]
+			]
+			default [0]
+		]
+		emit-instr cg op
+	]
+
 	gen-goto: func [
 		cg		[codegen!]
 		blk		[basic-block!]
@@ -1603,6 +1630,7 @@ x86: context [
 			OP_FLT_BITEQ		[0]
 			OP_DEFAULT_VALUE	[0]
 			OP_CALL_FUNC		[emit-call cg i]
+			OP_GET_PTR			[emit-get-ptr cg i]
 			OP_PTR_LOAD			[emit-ptr-load cg i]
 			OP_PTR_STORE		[emit-ptr-store cg i]
 			default [

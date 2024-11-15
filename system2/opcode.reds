@@ -69,6 +69,7 @@ Red/System [
 	OP_PTR_CAS		;-- compare and swap
 	OP_PTR_LOAD
 	OP_PTR_STORE
+	OP_GET_PTR
 	
 	OP_DEFAULT_VALUE
 	
@@ -162,6 +163,7 @@ instr-flags: [
 	0	;--OP_PTR_CAS
 	0	;--OP_PTR_LOAD
 	0	;--OP_PTR_STORE
+	0	;--OP_GET_PTR
 	
 	0	;--OP_DEFAULT_VALUE
 	0	;--OP_CALL_FUNC

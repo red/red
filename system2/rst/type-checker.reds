@@ -546,9 +546,19 @@ type-checker: context [
 
 	visit-get-ptr: func [g [get-ptr!] ctx [context!] return: [rst-type!]
 		/local
+			e	[rst-expr!]
 			t	[rst-type!]
+			f	[fn!]
 	][
-		t: as rst-type! g/expr/accept as int-ptr! g/expr checker as int-ptr! ctx
+		e: g/expr
+		t: switch NODE_TYPE(e) [
+			RST_VAR_DECL [infer-type as var-decl! e ctx]
+			RST_FUNC [
+				f: as fn! e
+				f/type
+			]
+			default [as rst-type! g/expr/accept as int-ptr! e checker as int-ptr! ctx]
+		]
 		t: make-ptr-type t
 		g/type: t
 		t

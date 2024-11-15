@@ -220,7 +220,7 @@ rst-expr!: alias struct! [
 
 ssa-var!: alias struct! [
 	index		[integer!]
-	value		[instr!]
+	instr		[instr!]
 	loop-bset	[integer!]	;-- loop bitset, var used in loops, can encode 32 loops
 	extra-bset	[ptr-array!]
 ]

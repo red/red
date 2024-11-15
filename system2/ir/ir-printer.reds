@@ -102,6 +102,9 @@ ir-printer: context [
 			OP_PTR_STORE [
 				print "store"
 			]
+			OP_GET_PTR [
+				print "get-ptr"
+			]
 			default [
 				prin "unknown op"
 			]

@@ -506,8 +506,14 @@ ir-graph: context [
 		]
 	]
 
-	visit-get-ptr: func [g [get-ptr!] ctx [ssa-ctx!] return: [instr!]][
-		null
+	visit-get-ptr: func [g [get-ptr!] ctx [ssa-ctx!] return: [instr!]
+		/local
+			e		[rst-expr!]
+	][
+		e: g/expr
+		op: make-op OP_GET_PTR 0 null g/type
+		op/target: as int-ptr! e
+		add-op op null ctx
 	]
 
 	visit-fn-call: func [fc [fn-call!] ctx [ssa-ctx!] return: [instr!]][
@@ -1171,7 +1177,7 @@ ir-graph: context [
 			p: ARRAY_DATA(cur-vals) + var/index
 			as instr! p/value
 		][
-			var/value
+			var/instr
 		]
 	]
 
@@ -1192,7 +1198,7 @@ ir-graph: context [
 			p: ARRAY_DATA(ctx/cur-vals) + var/index
 			p/value: as int-ptr! val
 		][
-			var/value: val
+			var/instr: val
 		]
 	]
 

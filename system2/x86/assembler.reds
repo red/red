@@ -532,6 +532,14 @@ asm: context [
 		emit-bd 68h i
 	]
 
+	lea: func [r [integer!] m [x86-addr!]][
+		emit-b-r-m 8Dh r m NO_REX
+	]
+
+	leaq: func [r [integer!] m [x86-addr!]][
+		emit-b-r-m 8Dh r m REX_W
+	]
+
 	jmp-rel: func [
 		offset	[integer!]
 	][
