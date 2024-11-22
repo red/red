@@ -111,9 +111,9 @@ __print-debug-stack: func [
 				next: records + 1
 				end: next/entry
 			]
-			#either PIC? = yes [
-				fun-base: records/entry + system/image/base
-				end: end + system/image/base 
+			#either any [libRedRT? = yes libRed? = yes PIC? = yes][
+				fun-base: records/entry + base
+				end: end + base 
 			][
 				fun-base: records/entry
 			]
