@@ -114,7 +114,7 @@ set-dark-mode: func [
 ]
 
 on-gc-mark: does [
-	collector/keep flags-blk/node
+	collector/keep :flags-blk/node
 	ansi-parser/on-gc-mark
 	screen/on-gc-mark
 	timer/on-gc-mark

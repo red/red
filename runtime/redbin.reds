@@ -237,7 +237,7 @@ redbin: context [
 			top: top + size + 1
 		]
 
-		on-gc-mark: does [_hashtable/mark map]
+		on-gc-mark: does [_hashtable/mark as int-ptr! :map]
 		
 		reset: func [/local min-size] [
 			min-size: 16'384
@@ -251,7 +251,7 @@ redbin: context [
 			]
 			top: list
 			either null? map [
-				map: _hashtable/init 1024 null HASH_TABLE_INTEGER 1
+				map: _hashtable/init 1024 null HASH_TABLE_INTEGER 1				
 				collector/register as int-ptr! :on-gc-mark
 			][
 				_hashtable/clear-map map

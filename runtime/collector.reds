@@ -34,7 +34,7 @@ collector: context [
 	ext-top: ext-markers
 	
 	refs: as int-ptr! 0
-	refs-size: 200
+	refs-size: 20000
 
 	
 	indent: 0
@@ -167,7 +167,7 @@ collector: context [
 	
 	nodes-list: context [								;-- nodes freeing batch handling
 		list:	  as int-ptr! 0
-		min-size: 20
+		min-size: 20000
 		buf-size: min-size								;-- initial number of supported nodes
 		count:	  0										;-- current number of stored nodes
 		
@@ -182,7 +182,7 @@ collector: context [
 		
 		flush: func [									;-- assumes frames-list buffer is built and sorted
 			/local
-				frm p e n [int-ptr!]
+				frm p e n node new [int-ptr!]
 				frm-nb w [integer!]
 		][
 			qsort as byte-ptr! list count 4 :compare-cb
@@ -192,49 +192,41 @@ collector: context [
 			n: list
 			
 			loop count [
+				node: as node! n/value
+				if collector/refs <> null [
+					new: _hashtable/rs-get collector/refs as-integer node
+					if new <> null [
+						;probe ["freeing node: " node ", new: " as node! new/value]
+						node: as node! new/value
+					]
+				]
 				while [
 					frm: as int-ptr! p/value + size? node-frame!
-					not all [frm <= as node! n/value (as node! n/value) < as node! ((as byte-ptr! frm) + w)]
+					not all [frm <= node  node < as node! ((as byte-ptr! frm) + w)]
 				][
 					p: p + 1
 					assert p <= e
 				]
-				free-node as node-frame! p/value as node! n/value
+				free-node as node-frame! p/value node
 				n: n + 1
 			]
 			count: 0
 		]
 	]
-comment {
-test: func [
-    /local
-        hs [int-ptr!]
-        p [int-ptr!]
-][
-    hs: _hashtable/rs-init 200
-    _hashtable/rs-put hs 11 12  ;-- put key value
-    _hashtable/rs-put hs 22 34
-    p: _hashtable/rs-get hs 22  ;-- return a pointer to value
-    if p <> null [
-        probe p/value
-    ]
-    _hashtable/rs-delete hs 22  ;-- delete a key
-    _hashtable/rs-clear hs      ;-- clear all the items
-    _hashtable/rs-destroy hs    ;-- destroy and free the hash table
-]
-}
+
 	compact-node: func [
 		src		[node-frame!]
 		refs	[int-ptr!]
 		/local
+			s [series!]
 			frame dst  [node-frame!]
-			node slot head tail fhead [node!]
+			node slot head tail new [node!]
 			select-dst [subroutine!]
 	][
 		select-dst: [									;-- subroutine for finding a destination frame
 			frame: memory/n-head
 			while [all [frame <> null frame/head = null]][frame: frame/next]
-			if any [null? frame frame = src][throw 1]		;-- no more free frames!
+			if any [null? frame frame = src][throw 1]	;-- no more free frames!
 			frame
 		]
 		
@@ -247,18 +239,20 @@ test: func [
 			node: as node! slot/value
 			if all [node <> null any [node < head  tail < node]][	;-- move node to dst frame if node is not part of the internal free list
 				if null? dst/head [dst: select-dst]		;-- if dst frame is full, find a new one
-				fhead: dst/head							;-- alloc node slot in dst frame
-				dst/head: as node! fhead/value
-				fhead/value: as-integer node
-				_hashtable/rs-put refs as-integer slot as-integer fhead	;-- store old (key), new (value) pair
-				
+				new: dst/head							;-- alloc node slot in dst frame
+				dst/head: as node! new/value			;-- set free list head to next free slot
+				new/value: as-integer node
+				_hashtable/rs-put refs as-integer slot as-integer new	;-- store old (key), new (value) pair
 				slot/value: as-integer src/head			;-- free src node slot
 				src/head: slot
-				;#if debug? = yes [if verbose > 0 [
-				print-line ["rellocation node: " slot " from frame " src " to " dst]
-				;]]
 				
-				dst/used: dst/used + 1					;-- src/used will be decremented later by free-node calls
+				s: as series! node
+				s/node: new								;-- update back-reference
+	
+				print-line ["rellocation node: " slot " from frame " src " to " dst]
+				
+				src/used: src/used - 1
+				dst/used: dst/used + 1
 			]
 			slot: slot + 1
 		]
@@ -267,11 +261,9 @@ test: func [
 	do-node-cycle: func [
 		;return: [logic!]								;-- TRUE: need to allocate a new node frame
 		/local
-			frame next [node-frame!]
+			frame [node-frame!]
 			mask !mask cnt [integer!]
 	][
-		;unless active? [exit]
-		
 		;; compact node frames:
 		;; - select one/more frames to compact
 		;; - do the compacting and hashtable filling
@@ -289,15 +281,6 @@ test: func [
 		;;		  if freeing pressure > threshold
 		;;		  if allocation pressure > threshold
 
-;; select unmodified node frames (same used and free values) of old age (> n cycles)
-;; 
-;;
-;;
-		;; loop over node frames [
-		;;		if frame unchanged for x cycles [add to compacting list]
-		;; ]
-		;;
-		;; if compact list not empty [do-compacting]
 ;probe "-do-node-cycle-"		
 		!mask: 1
 		loop prefs/nodes-gc-trigger [
@@ -308,9 +291,8 @@ test: func [
 		cnt: 0
 		frame: memory/n-head
 		catch 1 [										;-- if exception 1, stop compacting
-			while [frame <> null][
-				next: frame/next			
-;probe ["used: " frame/used ", free: " frame/nodes - frame/used ", birth: " frame/birth ", a-used: " as int-ptr! frame/a-used]
+			until [
+				;probe [frame ", used: " frame/used ", free: " frame/nodes - frame/used ", birth: " frame/birth ", a-used: " as int-ptr! frame/a-used]
 				if all [
 					cnt >= prefs/nodes-core-nb
 					any [frame/a-used and !mask = !mask frame/used < 100]
@@ -320,35 +302,35 @@ test: func [
 					compact-node frame refs
 				]
 				cnt: cnt + 1
-				frame: next
+				frame: frame/next
+				frame = null
 			]
 		]
+		system/thrown: 0
 	]
 	
 	keep: func [
-		node	[node!]
+		ptr		[int-ptr!]
 		return: [logic!]								;-- TRUE if newly marked, FALSE if already done
 		/local
+			node  [node!]
 			s	  [series!]
 			new?  [logic!]
 			flags [integer!]
-			
 			new [node!]
 	][
+		if refs <> null [
+			new: _hashtable/rs-get refs as-integer ptr/value
+			if new <> null [
+				;probe ["(keep) ptr: " ptr ", node: " ptr/value ", new: " as node! new/value]
+				ptr/value: new/value
+			]
+		]	
+		node: as node! ptr/value
 		s: as series! node/value
 		flags: s/flags
 		new?: flags and flag-gc-mark = 0
-		if new? [
-			s/flags: flags or flag-gc-mark
-			
-			if refs <> null [
-				new: _hashtable/rs-get refs as-integer node
-				if new <> null [
-					s: as series! node/value
-					s/node: as node! new/value			;-- update series' back-reference
-				]
-			]
-		]
+		if new? [s/flags: flags or flag-gc-mark]
 		new?
 	]
 
@@ -361,16 +343,18 @@ test: func [
 	]
 	
 	mark-context: func [
-		node [node!]
+		ptr		[int-ptr!]
 		/local
+			node [node!]
 			ctx  [red-context!]
 			slot [red-value!]
 	][
-		if keep node [
+		if keep ptr [
+			node: as node! ptr/value
 			ctx: TO_CTX(node)							;-- [context! function!|object!]
 			slot: as red-value! ctx
-			_hashtable/mark ctx/symbols
-			unless ON_STACK?(ctx) [mark-block-node ctx/values]
+			_hashtable/mark :ctx/symbols
+			unless ON_STACK?(ctx) [mark-block-node :ctx/values]
 			mark-values slot + 1 slot + 2				;-- mark the back-reference value (2nd value)
 		]
 	]
@@ -412,9 +396,9 @@ test: func [
 					if word/ctx <> null [
 						#if debug? = yes [if verbose > 1 [print-symbol word]]
 						either word/symbol = words/self [
-							mark-block-node word/ctx
+							mark-block-node :word/ctx
 						][
-							mark-context word/ctx
+							mark-context :word/ctx
 						]
 					]
 				]
@@ -429,62 +413,62 @@ test: func [
 				]
 				TYPE_SYMBOL [
 					series: as red-series! value
-					keep as node! series/extra
-					if series/node <> null [keep series/node]
+					keep :series/extra
+					if series/node <> null [keep :series/node]
 				]
 				TYPE_ANY_STRING [
 					#if debug? = yes [if verbose > 1 [print as-c-string string/rs-head as red-string! value]]
 					series: as red-series! value
-					keep series/node
-					if series/extra <> 0 [keep as node! series/extra]
+					keep :series/node
+					if series/extra <> 0 [keep :series/extra]
 				]
 				TYPE_BINARY
 				TYPE_VECTOR
 				TYPE_BITSET [
 					;probe ["bitset, type: " TYPE_OF(value)]
 					series: as red-series! value
-					keep series/node
+					keep :series/node
 				]
 				TYPE_ERROR
 				TYPE_PORT
 				TYPE_OBJECT [
 					#if debug? = yes [if verbose > 1 [print "object"]]
 					obj: as red-object! value
-					mark-context obj/ctx
-					if obj/on-set <> null [keep obj/on-set]
+					mark-context :obj/ctx
+					if obj/on-set <> null [keep :obj/on-set]
 				]
 				TYPE_CONTEXT [
 					#if debug? = yes [if verbose > 1 [print "context"]]
 					ctx: as red-context! value
-					;keep ctx/self
-					_hashtable/mark ctx/symbols
-					unless ON_STACK?(ctx) [mark-block-node ctx/values]
+					;keep :ctx/self
+					_hashtable/mark :ctx/symbols
+					unless ON_STACK?(ctx) [mark-block-node :ctx/values]
 				]
 				TYPE_HASH
 				TYPE_MAP [
 					#if debug? = yes [if verbose > 1 [print "hash/map"]]
 					hash: as red-hash! value
-					mark-block-node hash/node
-					_hashtable/mark hash/table			;@@ check if previously marked
+					mark-block-node :hash/node
+					_hashtable/mark :hash/table			;@@ check if previously marked
 				]
 				TYPE_FUNCTION
 				TYPE_ROUTINE [
 					#if debug? = yes [if verbose > 1 [print "function"]]
 					fun: as red-function! value
-					mark-context fun/ctx
-					mark-block-node fun/spec
-					mark-block-node fun/more
+					mark-context :fun/ctx
+					mark-block-node :fun/spec
+					mark-block-node :fun/more
 				]
 				TYPE_ACTION
 				TYPE_NATIVE
 				TYPE_OP [
 					native: as red-native! value
-					mark-block-node native/spec
-					mark-block-node native/more
+					mark-block-node :native/spec
+					mark-block-node :native/more
 					if TYPE_OF(native) = TYPE_OP [
 						type: GET_OP_SUBTYPE(native)
 						if any [type = TYPE_FUNCTION type = TYPE_ROUTINE][
-							mark-context as node! native/code
+							mark-context :native/code
 						]
 					]
 				]
@@ -494,7 +478,7 @@ test: func [
 					img: as red-image! value
 					#if draw-engine <> 'GDI+ [
 						if img/node <> null [
-							keep img/node
+							keep :img/node
 							image/mark img/node
 						]
 					]
@@ -512,11 +496,13 @@ test: func [
 	]
 	
 	mark-block-node: func [
-		node [node!]
+		ptr	[int-ptr!]
 		/local
-			s [series!]
+			node [node!]
+			s	 [series!]
 	][
-		if keep node [
+		if keep ptr [
+			node: as node! ptr/value
 			s: as series! node/value
 			mark-values s/offset s/tail
 		]
@@ -527,7 +513,7 @@ test: func [
 		/local
 			s [series!]
 	][
-		if keep blk/node [
+		if keep :blk/node [
 			s: GET_BUFFER(blk)
 			mark-values s/offset s/tail
 		]
@@ -812,7 +798,7 @@ test: func [
 		table  [int-ptr!]								;-- optional table for nodes relocation
 		store? [logic!]
 		/local
-			frm	map	slot p base head prev [int-ptr!]
+			frm	map	slot p sp base head prev [int-ptr!]
 			refs tail new [int-ptr!]
 			node [node!]
 			c-low c-high caller [byte-ptr!]
@@ -859,15 +845,17 @@ test: func [
 									p > as int-ptr! FFFFh	  ;-- filter out too low values
 									p < as int-ptr! FFFFF000h ;-- filter out too high values
 								][
+									sp: frm + idx - 1
 									case [
 										all [			;=== Mark node! references ===
 											(as-integer p) and 3 = 0	;-- check if it's a valid int-ptr!
 											frames-list/find p FRAME_NODES
 											p/value <> 0
 											not frames-list/find as int-ptr! p/value FRAME_NODES ;-- freed nodes can still be on the stack!
-											keep p
+											keep sp
 										][
 											;probe ["(scan) node pointer on stack: " p " : " as byte-ptr! p/value]
+											p: as int-ptr! sp/value		;-- refresh it after `keep sp` call
 											s: as series! p/value
 											if GET_UNIT(s) = 16 [mark-values s/offset s/tail]
 										]
@@ -876,7 +864,7 @@ test: func [
 											frames-list/find p FRAME_SERIES
 										][
 											;probe ["stack pointer: " p " : " as byte-ptr! p/value " (" frm + idx - 1 ")"]
-											either store? [	;=== Extract series references ===
+											if store? [	;=== Extract series references ===
 												if refs = tail [
 													;@@ for cases like issue #3628, should find a better way to handle it
 													refs: memory/stk-refs
@@ -886,19 +874,9 @@ test: func [
 													tail: refs + (memory/stk-sz * 2)
 													refs: tail - 2000
 												]
-												refs/1: as-integer p			 ;-- pointer inside a frame
-												refs/2: as-integer frm + idx - 1 ;-- pointer address on stack
+												refs/1: as-integer p	;-- pointer inside a frame
+												refs/2: as-integer sp	;-- pointer address on stack
 												refs: refs + 2
-											][
-												if table <> null [
-													new: _hashtable/rs-get table p/value
-													if new <> null [
-														node: as node! p/value
-														s: as series! node/value
-														s/node: as node! new/value	;-- update series' back-reference
-														p/value: new/value	;-- update address of relocated node pointer
-													]
-												]
 											]
 										]
 										true [0]
@@ -986,42 +964,42 @@ test: func [
 		]
 			cb		[function! []]
 	][
-;		#if debug? = yes [if verbose > 0 [
-;			#if OS = 'Windows [platform/dos-console?: no]
-;			file: "                      "
-;			sprintf [file "live-values-%d.log" stats/cycles]
-;			saved: stdout
-;			stdout: simple-io/open-file file simple-io/RIO_APPEND no
-;		]]
+		#if debug? = yes [if verbose > 0 [
+			#if OS = 'Windows [platform/dos-console?: no]
+			file: "                      "
+			sprintf [file "live-values-%d.log" stats/cycles]
+			saved: stdout
+			stdout: simple-io/open-file file simple-io/RIO_APPEND no
+		]]
 
-;		#if debug? = yes [
-;			if verbose > 2 [stack-trace]
+		#if debug? = yes [
+			if verbose > 2 [stack-trace]
 			buf: "                                                               "
 			tm: platform/get-time yes yes
-;			print [
-;				"root: " block/rs-length? root "/" ***-root-size
-;				", runs: " stats/cycles
-;				", mem: " 	memory-info null 1
-;			]
-;			if verbose > 1 [probe "^/marking..."]
-;		]
-;probe "gc start"		
+			print [
+				"root: " block/rs-length? root "/" ***-root-size
+				", runs: " stats/cycles
+				", mem: " 	memory-info null 1
+			]
+			if verbose > 1 [probe "^/marking..."]
+		]
+;probe ["-- run: " stats/cycles " --"]
 		do-node-cycle
 		mark-block root
 		#if debug? = yes [if verbose > 1 [probe "marking symbol table"]]
-		_hashtable/mark symbol/table					;-- will mark symbols
+		_hashtable/mark as int-ptr! :symbol/table		;-- will mark symbols
 		#if debug? = yes [if verbose > 1 [probe "marking ownership table"]]
-		_hashtable/mark ownership/table
+		_hashtable/mark as int-ptr! :ownership/table
 
 		#if debug? = yes [if verbose > 1 [probe "marking stack"]]
-		keep arg-stk/node
-		keep call-stk/node
+		keep :arg-stk/node
+		keep :call-stk/node
 		mark-values stack/bottom stack/top
 		
 		#if debug? = yes [if verbose > 1 [probe "marking globals"]]
-		if interpreter/near/node <> null [keep interpreter/near/node]
+		if interpreter/near/node <> null [keep :interpreter/near/node]
 		lexer/mark-buffers
-		keep references/list/node
+		keep :references/list/node
 		
 		#if debug? = yes [if verbose > 1 [probe "marking globals from optional modules"]]
 		p: ext-markers
@@ -1046,8 +1024,11 @@ test: func [
 		collect-big-frames
 		nodes-list/flush
 		collect-node-frames
-		;scan-stack-refs null no
-		 if refs <> null [_hashtable/rs-destroy refs]		;-- clear all the node entries
+
+		if refs <> null [
+			_hashtable/rs-destroy refs
+			refs: null
+		]		;-- clear all the node entries
 	
 		;-- unmark fixed series
 		unmark root/node
@@ -1055,17 +1036,17 @@ test: func [
 		unmark call-stk/node
 		
 		stats/cycles: stats/cycles + 1
-;probe "gc end"
-;		#if debug? = yes [
-;			tm: (platform/get-time yes yes) - tm - tm1
-;			sprintf [buf ", mark: %.1fms, sweep: %.1fms" tm1 * 1000.0 tm * 1000.0]
-;			probe [" => " memory-info null 1 buf]
-;			if verbose > 0 [
-;				simple-io/close-file stdout
-;				stdout: saved
-;				#if OS = 'Windows [platform/dos-console?: yes]
-;			]
-;		]
+
+		#if debug? = yes [
+			tm: (platform/get-time yes yes) - tm - tm1
+			sprintf [buf ", mark: %.1fms, sweep: %.1fms" tm1 * 1000.0 tm * 1000.0]
+			probe [" => " memory-info null 1 buf]
+			if verbose > 0 [
+				simple-io/close-file stdout
+				stdout: saved
+				#if OS = 'Windows [platform/dos-console?: yes]
+			]
+		]
 	]
 	
 	do-cycle: does [

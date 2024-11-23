@@ -473,8 +473,9 @@ _hashtable: context [
 	]
 
 	mark: func [
-		table [node!]
+		ptr [int-ptr!]
 		/local
+			table [node!]
 			s	 [series!]
 			h	 [hashtable!]
 			val	 [red-value!]
@@ -483,24 +484,25 @@ _hashtable: context [
 			e	 [ptr-ptr!]
 			type	 [integer!]
 	][
-		collector/keep table
+		collector/keep ptr
+		table: as node! ptr/value
 		s: as series! table/value
 		h: as hashtable! s/offset
 		type: h/type
 		if type = HASH_TABLE_HASH [
-			collector/keep h/indexes
-			collector/keep h/chains
+			collector/keep :h/indexes
+			collector/keep :h/chains
 			s: as series! h/chains/value
 			p: as ptr-ptr! s/offset
 			e: as ptr-ptr! s/tail
 			while [p < e][
-				if p/value <> null [collector/keep p/value]
+				if p/value <> null [collector/keep as int-ptr! p]
 				p: p + 1
 			]
 		]
-		collector/keep h/flags
-		collector/keep h/keys
-		if type > 1 [collector/keep h/blk]
+		collector/keep :h/flags
+		collector/keep :h/keys
+		if type > 1 [collector/keep :h/blk]
 	]
 
 	sweep: func [

@@ -146,7 +146,13 @@ datatype: context [
 		#if debug? = yes [if verbose > 0 [print-line "datatype/mold"]]
 
 		name: name-table + dt/value
+?? name-table
+dump4 name-table
+dump4 dt
+?? name
+dump4 name
 		if all? [string/concatenate-literal buffer "#("]
+probe name/size		
 		string/concatenate-literal-part buffer name/buffer name/size + 1
 		if all? [
 			string/append-char GET_BUFFER(buffer) as-integer #")"

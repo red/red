@@ -601,7 +601,7 @@ lexer: context [
 			until [
 				assert s/buffer <= s/tail
 				collector/mark-values s/buffer s/tail
-				if s/in-series <> null [collector/keep s/in-series/node]
+				if s/in-series <> null [collector/keep :s/in-series/node]
 				s: s/next
 				null? s
 			]

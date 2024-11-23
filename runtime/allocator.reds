@@ -284,6 +284,7 @@ alloc-node-frame: func [
 	]
 	
 	format-nodes frame						;-- prepare the node frame for use
+;probe ["node frame allocated: " frame]
 	frame
 ]
 
@@ -435,6 +436,7 @@ alloc-series-frame: func [
 free-series-frame: func [
 	frame [series-frame!]					;-- frame to release
 ][
+;probe ["series frame freed: " frame]
 	either null? frame/prev [				;-- if frame = head
 		memory/s-head: frame/next			;-- head now points to next one
 	][
