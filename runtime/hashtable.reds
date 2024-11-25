@@ -980,7 +980,6 @@ _hashtable: context [
 		keys: new-keys
 		until [
 			_HT_CAL_FLAG_INDEX(j ii sh)
-			j: j + 1
 			if _BUCKET_IS_HAS_KEY(flags ii sh) [
 				_BUCKET_SET_DEL_TRUE(flags ii sh)
 				k: keys + (j * 2)
@@ -1013,6 +1012,7 @@ _hashtable: context [
 					break?
 				]
 			]
+			j: j + 1
 			j = n-buckets
 		]
 		if n-buckets > new-buckets [			;-- shrink the hash table
