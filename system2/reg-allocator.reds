@@ -255,11 +255,13 @@ reg-allocator: context [
 				while [n < rstate/cursor][
 					p: pa + (n * 2)
 					v: as vreg! p/value
-					arg/src-v: v
-					arg/dst-v: v
-					arg/dst-reg: v/reg
-					arg/reg-cls: v/reg-class
-					if vreg-const?(v) [insert-move-imm cg :arg next]
+					if vreg-const?(v) [
+						arg/src-v: v
+						arg/dst-v: v
+						arg/dst-reg: v/reg
+						arg/reg-cls: v/reg-class
+						insert-move-imm cg :arg next
+					]
 					n: n + 1
 				]
 			]

@@ -1206,6 +1206,7 @@ rrsd-to-addr: func [
 		i		[operand!]
 		imm		[immediate!]
 		val		[cell!]
+		int		[red-integer!]
 ][
 	b: as operand! p/value
 	base: either OPERAND_USE?(b) [to-loc b][0]
@@ -1220,6 +1221,10 @@ rrsd-to-addr: func [
 	switch TYPE_OF(val) [
 		TYPE_ADDR [
 			disp: ABS_ADDR
+		]
+		TYPE_INTEGER [
+			int: as red-integer! val
+			disp: int/value
 		]
 		default [disp: 0]
 	]
@@ -1371,6 +1376,8 @@ assemble-r-m: func [
 		I_CMPD [asm/cmp-r-m a m NO_REX]
 		I_CMPB [asm/cmpb-r-m a m]
 		I_MULD [asm/imul-r-m a m NO_REX]
+		I_LEAD [asm/lea a m]
+		I_LEAQ [asm/leaq a m]
 		default [0]
 	]
 ]

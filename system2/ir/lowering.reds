@@ -370,6 +370,26 @@ lowering: context [
 		remove-instr i
 	]
 
+	gen-set-local: func [
+		i		[instr!]
+		env		[lowering-env!]
+		/local
+			inputs [ptr-array!]
+			o	[instr-op!]
+			var	[ssa-var!]
+			vt	[rst-type!]
+			ty	[ptr-type!]
+			ptr [instr-const!]
+			new [ptr-array!]
+	][
+		inputs: refresh-dests i/inputs env
+		o: as instr-op! i
+		var: as ssa-var! o/target
+		gen-stores type-system/integer-type var/instr 0 inputs env/cur-ctx
+		kill-instr i
+		remove-instr i
+	]
+
 	gen-op: func [
 		i		[instr!]
 		env		[lowering-env!]
@@ -398,6 +418,7 @@ lowering: context [
 			OP_CALL_FUNC		[gen-call i env]
 			OP_GET_GLOBAL		[gen-get-global i env]
 			OP_SET_GLOBAL		[gen-set-global i env]
+			OP_SET_LOCAL		[gen-set-local i env]
 			default [
 				probe ["Internal Error: Unknown Opcode: " INSTR_OPCODE(i)]
 			]

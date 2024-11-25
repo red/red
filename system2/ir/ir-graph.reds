@@ -509,6 +509,7 @@ ir-graph: context [
 	visit-get-ptr: func [g [get-ptr!] ctx [ssa-ctx!] return: [instr!]
 		/local
 			e		[rst-expr!]
+			op		[instr-op!]
 	][
 		e: g/expr
 		op: make-op OP_GET_PTR 0 null g/type
@@ -741,7 +742,7 @@ ir-graph: context [
 		p/header: INS_PARAM or (F_NOT_VOID << 8)
 		p/index: param/ssa/index
 		p/type: param/type
-		param/ssa/value: as instr! p
+		param/ssa/instr: as instr! p
 		p
 	]
 
@@ -779,8 +780,8 @@ ir-graph: context [
 				if ssa/index > -1 [
 					pv: pp + ssa/index
 					pv/value: as int-ptr! param
+					set-cur-val ssa param/type ins ctx
 				]
-				set-cur-val ssa ins ctx
 				p: p + 1
 				param: param/next
 			]
@@ -1183,22 +1184,37 @@ ir-graph: context [
 
 	set-cur-val: func [
 		var			[ssa-var!]
+		type		[rst-type!]
 		val			[instr!]
 		ctx			[ssa-ctx!]
 		/local
-			p		[ptr-ptr!]
+			p arr	[ptr-ptr!]
+			idx		[integer!]
+			op		[instr-op!]
+			args	[array-value!]
 	][
-		either var/index >= 0 [
-			if all [
-				ctx/parent <> null
-				ctx/parent/cur-vals = ctx/cur-vals
-			][
-				ctx/cur-vals: ptr-array/copy ctx/parent/cur-vals
+		idx: var/index
+		case [
+			idx >= 0 [
+				if all [
+					ctx/parent <> null
+					ctx/parent/cur-vals = ctx/cur-vals
+				][
+					ctx/cur-vals: ptr-array/copy ctx/parent/cur-vals
+				]
+				p: ARRAY_DATA(ctx/cur-vals) + var/index
+				p/value: as int-ptr! val
 			]
-			p: ARRAY_DATA(ctx/cur-vals) + var/index
-			p/value: as int-ptr! val
-		][
-			var/instr: val
+			idx = -1 [var/instr: val]
+			idx = -2 [
+				arr: as ptr-ptr! malloc size? int-ptr!
+				arr/value: as int-ptr! type
+				op: make-op OP_SET_LOCAL 1 arr type-system/void-type
+				op/target: as int-ptr! var
+				INIT_ARRAY_VALUE(args val)
+				add-op op as ptr-array! :args ctx
+			]
+			true [probe ["set-cur-val: " idx]]
 		]
 	]
 
@@ -1612,6 +1628,18 @@ ir-graph: context [
 		add-op op as ptr-array! :args ctx
 	]
 
+	make-local-var: func [
+		type	[rst-type!]
+		return: [instr!]
+		/local
+			v	[instr-var!]
+	][
+		v: xmalloc(instr-var!)
+		v/header: INS_VAR or (F_NOT_VOID << 8)
+		v/type: type
+		as instr! v
+	]
+
 	add-new-var: func [
 		type	[rst-type!]
 		idx		[integer!]
@@ -1622,7 +1650,7 @@ ir-graph: context [
 			v	[instr-var!]
 	][
 		v: as instr-var! malloc size? instr-var!
-		v/header: INS_NEW_VAR
+		v/header: INS_VAR or (F_NOT_VOID << 8)
 		v/type: type
 		v/index: idx
 		set-inputs as instr! v vals
@@ -1662,7 +1690,7 @@ ir-graph: context [
 			args [array-value!]
 	][
 		either LOCAL_VAR?(var) [
-			set-cur-val var/ssa val ctx
+			set-cur-val var/ssa var/type val ctx
 		][
 			record-global var
 			arr: as ptr-ptr! malloc size? int-ptr!

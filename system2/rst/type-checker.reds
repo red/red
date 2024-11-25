@@ -342,7 +342,7 @@ type-checker: context [
 				decl: var/decl
 				if LOCAL_VAR?(decl) [
 					ssa: decl/ssa
-					if ssa/index < 0 [
+					if ssa/index = -1 [
 						ssa/index: ctx/n-ssa-vars
 						ctx/n-ssa-vars: ctx/n-ssa-vars + 1
 					]
@@ -546,18 +546,30 @@ type-checker: context [
 
 	visit-get-ptr: func [g [get-ptr!] ctx [context!] return: [rst-type!]
 		/local
+			d	[var-decl!]
 			e	[rst-expr!]
 			t	[rst-type!]
+			sv	[ssa-var!]
 			f	[fn!]
 	][
 		e: g/expr
-		t: switch NODE_TYPE(e) [
-			RST_VAR_DECL [infer-type as var-decl! e ctx]
+		switch NODE_TYPE(e) [
+			RST_VAR_DECL [
+				d: as var-decl! e
+				t: infer-type d ctx
+				if LOCAL_VAR?(d) [
+					sv: d/ssa
+					if sv/index <> -2 [
+						sv/index: -2
+						sv/instr: ir-graph/make-local-var t
+					]
+				]
+			]
 			RST_FUNC [
 				f: as fn! e
-				f/type
+				t: f/type
 			]
-			default [as rst-type! g/expr/accept as int-ptr! e checker as int-ptr! ctx]
+			default [t: as rst-type! g/expr/accept as int-ptr! e checker as int-ptr! ctx]
 		]
 		t: make-ptr-type t
 		g/type: t

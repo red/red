@@ -92,6 +92,7 @@ ir-printer: context [
 				var: as var-decl! i/target
 				prin "get " prin-token var/token
 			]
+			OP_SET_LOCAL
 			OP_SET_GLOBAL		[
 				var: as var-decl! i/target
 				prin "set " prin-token var/token

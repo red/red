@@ -6,7 +6,7 @@ Red/System [
 ]
 
 #enum opcode! [
-	INS_NEW_VAR
+	INS_VAR
 	INS_UPDATE_VAR
 	INS_PARAM
 	INS_PHI
@@ -77,6 +77,7 @@ Red/System [
 
 	OP_GET_GLOBAL
 	OP_SET_GLOBAL
+	OP_SET_LOCAL
 
 	OP_CPU_IP		;-- get instruction pointer
 	OP_CPU_SP		;-- get stack pointer
@@ -100,7 +101,7 @@ Red/System [
 #define F_PFCA		E1h		;-- F_PFC or F_ASSOCIATIVE
 
 instr-flags: [
-	0	;--INS_NEW_VAR
+	0	;--INS_VAR
 	0	;--INS_UPDATE_VAR
 	0	;--INS_PARAM
 	0	;--INS_PHI
@@ -170,6 +171,7 @@ instr-flags: [
 
 	0	;--OP_GET_GLOBAL
 	0	;--OP_SET_GLOBAL
+	0	;--OP_SET_LOCAL
 
 	0	;-- OP_CPU_IP
 	0	;-- OP_CPU_SP

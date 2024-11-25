@@ -1348,18 +1348,38 @@ x86: context [
 	]
 
 	match-rrsd: func [
+		cg		[codegen!]
 		i		[instr!]
 		addr	[rrsd!]
 		/local
 			c	[instr-const!]
+			ins [integer!]
+			v	[vreg!]
+			int [red-integer!]
 	][
-		if INSTR_CONST?(i) [
-			c: as instr-const! i
-			addr/base: null
-			addr/index: null
-			addr/scale: 1
-			addr/disp: c/value
-			exit
+		switch INSTR_OPCODE(i) [
+			INS_CONST [
+				c: as instr-const! i
+				addr/base: null
+				addr/index: null
+				addr/scale: 1
+				addr/disp: c/value
+			]
+			INS_PARAM
+			INS_VAR [
+				v: get-vreg cg i
+				v/reg: x86-regs/esp
+				reg-allocator/alloc-slot cg/frame v
+				int: xmalloc(red-integer!)
+				int/header: TYPE_INTEGER
+				int/value: v/spill
+
+				addr/base: i
+				addr/index: null
+				addr/scale: 1
+				addr/disp: as cell! int
+			]
+			default [0]
 		]
 	]
 
@@ -1390,7 +1410,7 @@ x86: context [
 		o: as instr-op! i
 		vt: o/ret-type
 		sz: type-size? vt
-		match-rrsd input0 i :addr
+		match-rrsd cg input0 i :addr
 		either zero? sz [
 			0
 		][
@@ -1427,7 +1447,7 @@ x86: context [
 		o: as instr-op! i
 		vt: o/ret-type
 		sz: type-size? vt
-		match-rrsd input0 i :addr
+		match-rrsd cg input0 i :addr
 		do-rrsd cg :addr
 
 		val: instr-input i 1
@@ -1462,6 +1482,8 @@ x86: context [
 			o	[instr-op!]
 			e	[rst-expr!]
 			var	[var-decl!]
+			sv	[ssa-var!]
+			v	[vreg!]
 			op	[integer!]
 	][
 		def-reg cg i
@@ -1471,10 +1493,14 @@ x86: context [
 			RST_VAR_DECL [
 				var: as var-decl! e
 				either LOCAL_VAR?(var) [
-					op: target/arch = arch-x86 [I_LEAD][I_LEAQ]
-					op: op or AM_REG_RRSD
+					sv: var/ssa
+					v: get-vreg cg sv/instr
+					reg-allocator/alloc-slot cg/frame v
+					op: either target/arch = arch-x86 [I_LEAD][I_LEAQ]
+					op: op or AM_REG_OP
+					use-vreg cg v v/spill
 				][
-					
+					0
 				]
 			]
 			default [0]

@@ -1216,7 +1216,7 @@ backend: context [
 	use-vreg: func [
 		cg			[codegen!]
 		v			[vreg!]
-		constraint [integer!]
+		constraint	[integer!]
 	][
 		update-usage v
 		vector/append-ptr cg/operands as byte-ptr! make-use v constraint
@@ -1494,6 +1494,7 @@ backend: context [
 	][
 		if i/mark >= cg/fn/mark [
 			probe "get vreg error: invalid instr mark"
+			assert 1 = 0
 			halt
 		]
 		;ir-printer/print-instr i
