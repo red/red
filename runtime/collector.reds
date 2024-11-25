@@ -213,6 +213,23 @@ collector: context [
 			count: 0
 		]
 	]
+	
+	enough-target-slots?: func [
+		src		[node-frame!]
+		return: [logic!]
+		/local
+			frame [node-frame!]
+			cnt	  [integer!]
+	][
+		frame: memory/n-head
+		cnt: 0
+		until [
+			if frame <> src [cnt: cnt + nodes-per-frame - frame/used]
+			frame: frame/next
+			frame = null
+		]
+		src/used < cnt
+	]
 
 	compact-node: func [
 		src		[node-frame!]
@@ -225,7 +242,7 @@ collector: context [
 	][
 		select-dst: [									;-- subroutine for finding a destination frame
 			frame: memory/n-head
-			while [all [frame <> null frame/head = null]][frame: frame/next]
+			while [all [frame <> null frame <> src frame/head = null]][frame: frame/next]
 			if any [null? frame frame = src][throw 1]	;-- no more free frames!
 			frame
 		]
@@ -243,8 +260,8 @@ collector: context [
 				dst/head: as node! new/value			;-- set free list head to next free slot
 				new/value: as-integer node
 				_hashtable/rs-put refs as-integer slot as-integer new	;-- store old (key), new (value) pair
-				slot/value: as-integer src/head			;-- free src node slot
-				src/head: slot
+				;slot/value: as-integer src/head			;-- free src node slot
+				;src/head: slot
 				
 				s: as series! node
 				s/node: new								;-- update back-reference
@@ -297,6 +314,7 @@ collector: context [
 					cnt >= prefs/nodes-core-nb
 					any [frame/a-used and !mask = !mask frame/used < 100]
 					frame/used < 5000
+					enough-target-slots? frame
 				][
 					if refs = null [refs: _hashtable/rs-init refs-size]
 					compact-node frame refs
