@@ -3689,6 +3689,23 @@ comment {
 			--assert error? try [f: func [a [block!] return: [block!] /ref   /local x][]]
 			--assert error? try [f: func [a [block!] return: [block!] /ref y /local x][]]
 		]
+		
+	--test-- "#5562"
+		--assert error! = scan "(,)"
+		--assert error! = scan "(,1)"
+		--assert error! = scan "(, 1)"
+		--assert error! = scan "(1,,1)"
+		--assert error! = scan "(,,1)"
+		--assert error! = scan "(1,,)"
+		--assert error! = scan "(1,, 1)"
+		--assert error! = scan "(1, ,1)"
+		--assert error! = scan "(1, , 1)"
+		--assert error! = scan "(1 ,,1)"
+		--assert error! = scan "(1 , ,1)"
+		--assert error! = scan "(1 , , 1)"
+		--assert error? try [load "(,1)"]
+		--assert error? try [load "(,1,2)"]
+		--assert error? try [load "(,,2)"]
 	
 ===end-group===
 
