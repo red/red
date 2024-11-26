@@ -83,7 +83,7 @@ system/reactivity: context [
 			if all [
 				word? p/2
 				object? :obj							;-- rough checks for reactive object
-				in obj 'on-change*
+				reflect obj 'events?
 			][
 				add-relation obj p/2 :reaction ctx
 				found?: yes
@@ -322,8 +322,10 @@ system/reactivity: context [
 							item: item/1
 							if all [pos: find objs item/1 word? item/2][
 								obj: pick objects 1 + index? pos
-								add-relation obj item/2 :reaction objects
-								found?: yes
+								if reflect obj 'events? [
+									add-relation obj item/2 :reaction objects
+									found?: yes
+								]
 							]
 						)
 						| set-path! | any-string!

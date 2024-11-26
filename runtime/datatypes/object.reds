@@ -1238,6 +1238,9 @@ object: context [
 			field = words/owner [
 				return as red-block! logic/box ctx/header and flag-owner <> 0
 			]
+			field = words/events? [
+				return as red-block! logic/box obj/on-set <> null
+			]
 			true [
 				--NOT_IMPLEMENTED--						;@@ raise error
 			]
