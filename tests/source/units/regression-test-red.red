@@ -3706,6 +3706,10 @@ comment {
 		--assert error? try [load "(,1)"]
 		--assert error? try [load "(,1,2)"]
 		--assert error? try [load "(,,2)"]
+		
+	--test-- "#5565"
+		react/link func [a b] [b/x: a/x] reduce [o1: object [x: 1] o2: object [x: 2]]
+		--assert o2/x = 2
 	
 ===end-group===
 
