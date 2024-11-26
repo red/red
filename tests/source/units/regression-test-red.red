@@ -3380,7 +3380,7 @@ comment {
 
 	--test-- "#5058"
 		--assert strict-equal?
-			"1 a ^/2 b ^/3 c"
+			"1 a^/2 b^/3 c"
 			mold/only new-line/all/skip [1 a 2 b 3 c] yes 2
 
 	--test-- "#5066"
