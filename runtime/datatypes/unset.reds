@@ -97,7 +97,8 @@ unset: context [
 			string/concatenate-literal buffer "#(unset)"
 			part - 8
 		][
-			form value buffer arg part
+			string/concatenate-literal buffer "unset"
+			part - 5
 		]
 	]
 	
