@@ -42,7 +42,7 @@ make-dir/deep runnable-dir
   ]  
 ]
 qt-file-name: none
-qt-verbose: yes
+qt-verbose: false
 
 ;; temp file for tests involving `write` and `save`
 qt-temp-file: qt-tmp-file: append copy tmp: dirize %. %testfile.txt

@@ -284,7 +284,6 @@ alloc-node-frame: func [
 	]
 	
 	format-nodes frame						;-- prepare the node frame for use
-;probe ["node frame allocated: " frame]
 	frame
 ]
 
@@ -294,7 +293,6 @@ alloc-node-frame: func [
 free-node-frame: func [
 	frame [node-frame!]						;-- frame to release
 ][
-;probe ["node frame freed: " frame]
 	either null? frame/prev [				;-- if frame = head
 		memory/n-head: frame/next			;-- head now points to next one
 	][
@@ -373,7 +371,6 @@ collect-node-frames: func [
 			]
 			frame/a-used: frame/a-used << 1 
 			frame/a-used: frame/a-used or as-integer frame/p-used = frame/used
-;probe [frame ": " as int-ptr! frame/a-used ", " frame/used]
 			frame/p-used: frame/used		;-- save used nodes (stats purposes)
 		]
 		frame: next
@@ -436,7 +433,6 @@ alloc-series-frame: func [
 free-series-frame: func [
 	frame [series-frame!]					;-- frame to release
 ][
-;probe ["series frame freed: " frame]
 	either null? frame/prev [				;-- if frame = head
 		memory/s-head: frame/next			;-- head now points to next one
 	][

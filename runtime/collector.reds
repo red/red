@@ -259,15 +259,10 @@ collector: context [
 				new: dst/head							;-- alloc node slot in dst frame
 				dst/head: as node! new/value			;-- set free list head to next free slot
 				new/value: as-integer node
-				_hashtable/rs-put refs as-integer slot as-integer new	;-- store old (key), new (value) pair
-				;slot/value: as-integer src/head			;-- free src node slot
-				;src/head: slot
-				
+				_hashtable/rs-put refs as-integer slot as-integer new	;-- store old (key), new (value) pair				
 				s: as series! node
-				s/node: new								;-- update back-reference
-	
-				print-line ["rellocation node: " slot " from frame " src " to " dst]
-				
+				s/node: new								;-- update back-reference	
+				;print-line ["rellocation node: " slot " from frame " src " to " dst]				
 				src/used: src/used - 1
 				dst/used: dst/used + 1
 			]
@@ -276,29 +271,10 @@ collector: context [
 	]
 		
 	do-node-cycle: func [
-		;return: [logic!]								;-- TRUE: need to allocate a new node frame
 		/local
 			frame [node-frame!]
 			mask !mask cnt [integer!]
 	][
-		;; compact node frames:
-		;; - select one/more frames to compact
-		;; - do the compacting and hashtable filling
-		;; scan the heap and update moved nodes
-		;; scan the stack and update moved nodes
-	
-		;; conditions for triggering a pass:
-		;; - allocation pressure for new nodes 
-		;;     P = allocs / dt
-		;;		   nodes allocated since last GC pass or node recycle
-		;;         inc/dec trend over last 3/5 GC passes
-		;;	   v   ratio allocated/freed since last GC, over last 3/5 GC passes
-		;;
-		;;    After a GC pass, 
-		;;		  if freeing pressure > threshold
-		;;		  if allocation pressure > threshold
-
-;probe "-do-node-cycle-"		
 		!mask: 1
 		loop prefs/nodes-gc-trigger [
 			!mask: !mask << 1
@@ -443,7 +419,6 @@ collector: context [
 				TYPE_BINARY
 				TYPE_VECTOR
 				TYPE_BITSET [
-					;probe ["bitset, type: " TYPE_OF(value)]
 					series: as red-series! value
 					keep :series/node
 				]
@@ -1001,7 +976,7 @@ collector: context [
 			]
 			if verbose > 1 [probe "^/marking..."]
 		]
-;probe ["-- run: " stats/cycles " --"]
+
 		do-node-cycle
 		mark-block root
 		#if debug? = yes [if verbose > 1 [probe "marking symbol table"]]
@@ -1044,9 +1019,9 @@ collector: context [
 		collect-node-frames
 
 		if refs <> null [
-			_hashtable/rs-destroy refs
+			_hashtable/rs-destroy refs					;-- clear all the node entries
 			refs: null
-		]		;-- clear all the node entries
+		]
 	
 		;-- unmark fixed series
 		unmark root/node
