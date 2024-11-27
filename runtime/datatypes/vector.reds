@@ -822,9 +822,12 @@ vector: context [
 		unit: GET_UNIT(s)
 		type: vec/type
 
-		either any [
-			all [unit = 4 any [type = TYPE_CHAR type = TYPE_INTEGER]]
-			all [unit = 8 any [type = TYPE_FLOAT type = TYPE_PERCENT]]
+		either all [
+			s/offset < s/tail							;-- if empty, use the verbose serialization
+			any [
+				all [unit = 4 any [type = TYPE_CHAR type = TYPE_INTEGER]]
+				all [unit = 8 any [type = TYPE_FLOAT type = TYPE_PERCENT]]
+			]
 		][
 			part: serialize vec buffer only? all? flat? arg part yes
 			string/append-char GET_BUFFER(buffer) as-integer #"]"

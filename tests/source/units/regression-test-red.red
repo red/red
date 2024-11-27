@@ -3710,6 +3710,9 @@ comment {
 	--test-- "#5565"
 		react/link func [a b] [b/x: a/x] reduce [o1: object [x: 1] o2: object [x: 2]]
 		--assert o2/x = 2
+		
+	--test-- "#5561"
+		--assert "make vector! [float! 64 []]" == mold/all clear make vector! [0.0]
 	
 ===end-group===
 
