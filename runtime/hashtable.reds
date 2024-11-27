@@ -502,7 +502,7 @@ _hashtable: context [
 		]
 		collector/keep :h/flags
 		collector/keep :h/keys
-		if type > 1 [collector/keep :h/blk]
+		if type > 1 [collector/mark-block-node :h/blk]
 	]
 
 	sweep: func [
