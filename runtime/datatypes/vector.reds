@@ -815,9 +815,10 @@ vector: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "vector/mold"]]
 		
-		string/concatenate-literal buffer "make vector! ["
-		part: part - 14
-
+		unless only? [
+			string/concatenate-literal buffer "make vector! ["
+			part: part - 14
+		]
 		s: GET_BUFFER(vec)
 		unit: GET_UNIT(s)
 		type: vec/type
@@ -830,8 +831,10 @@ vector: context [
 			]
 		][
 			part: serialize vec buffer only? all? flat? arg part yes
-			string/append-char GET_BUFFER(buffer) as-integer #"]"
-			part - 1
+			either only? [part][
+				string/append-char GET_BUFFER(buffer) as-integer #"]"
+				part - 1
+			]
 		][
 			string/concatenate-literal buffer switch type [
 				TYPE_CHAR		[part: part - 5 "char!"]
@@ -851,8 +854,10 @@ vector: context [
 
 			part: serialize vec buffer only? all? flat? arg part yes
 
-			string/concatenate-literal buffer "]]"
-			part - 2
+			either only? [part][
+				string/concatenate-literal buffer "]]"
+				part - 2
+			]
 		]
 	]
 

@@ -85,8 +85,11 @@ hash: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "hash/mold"]]
 
-		string/concatenate-literal buffer "make hash! "
-		block/mold as red-block! hash buffer no all? flat? arg part - 11 indent
+		unless only? [
+			string/concatenate-literal buffer "make hash! "
+			part: part - 11
+		]
+		block/mold as red-block! hash buffer only? all? flat? arg part indent
 	]
 
 	copy: func [

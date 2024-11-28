@@ -655,8 +655,10 @@ image: context [
 		width: IMAGE_WIDTH(img/size)
 		height: IMAGE_HEIGHT(img/size)
 
-		string/concatenate-literal buffer "make image! ["
-		part: part - 13
+		unless only? [
+			string/concatenate-literal buffer "make image! ["
+			part: part - 13
+		]
 		formed: integer/form-signed width
 		string/concatenate-literal buffer formed
 		part: part - system/words/length? formed
@@ -736,8 +738,10 @@ image: context [
 			string/append-char GET_BUFFER(buffer) as-integer #"}"
 		]
 		OS-image/unlock-bitmap img bitmap
-		string/append-char GET_BUFFER(buffer) as-integer #"]"
-		part - 2												;-- #"}" and #"]"
+		either only? [part][
+			string/append-char GET_BUFFER(buffer) as-integer #"]"
+			part - 2									;-- #"}" and #"]"
+		]
 	]
 
 	form: func [

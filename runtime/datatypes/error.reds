@@ -459,11 +459,16 @@ error: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "error/mold"]]
 
-		string/concatenate-literal buffer "make error! ["
-		part: object/serialize obj buffer only? all? flat? arg part - 13 yes indent + 1 yes
+		unless only? [
+			string/concatenate-literal buffer "make error! ["
+			part: part - 13
+		]
+		part: object/serialize obj buffer only? all? flat? arg part yes indent + 1 yes
 		if indent > 0 [part: object/do-indent buffer indent part]
-		string/append-char GET_BUFFER(buffer) as-integer #"]"
-		part - 1
+		either only? [part][
+			string/append-char GET_BUFFER(buffer) as-integer #"]"
+			part - 1
+		]
 	]
 	
 	eval-path: func [

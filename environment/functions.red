@@ -472,10 +472,11 @@ save: function [
 			]
 		]
 		unless find-encoder? [
+			only: block? :value
 			data: either all [
-				append mold/all/only :value newline
+				append mold/all/:only :value newline
 			][
-				mold/only :value
+				mold/:only :value
 			]
 			case/all [
 				not binary? data [data: to binary! data]
