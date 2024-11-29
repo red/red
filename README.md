@@ -2,7 +2,6 @@
 [![Windows build 2](https://github.com/red/red/workflows/Windows/badge.svg)](https://github.com/red/red/actions?query=workflow%3AWindows)
 [![Linux build 2](https://github.com/red/red/workflows/Linux-x86/badge.svg)](https://github.com/red/red/actions?query=workflow%3ALinux-x86)
 [![ARMhf build 2](https://github.com/red/red/workflows/RPi/badge.svg)](https://github.com/red/red/actions?query=workflow%3ARPi)
-[![macOS build 2](https://github.com/red/red/workflows/macOS-x86/badge.svg)](https://github.com/red/red/actions?query=workflow%3AmacOS-x86)
 
 # Red Programming Language
 
