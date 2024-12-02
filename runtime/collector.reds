@@ -314,7 +314,7 @@ collector: context [
 			new [node!]
 	][
 		if refs <> null [
-			new: _hashtable/rs-get refs as-integer ptr/value
+			new: _hashtable/rs-get refs ptr/value
 			if new <> null [
 				;probe ["(keep) ptr: " ptr ", node: " ptr/value ", new: " as node! new/value]
 				ptr/value: new/value
