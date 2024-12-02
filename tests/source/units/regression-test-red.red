@@ -3713,6 +3713,11 @@ comment {
 		
 	--test-- "#5561"
 		--assert "make vector! [float! 64 []]" == mold/all clear make vector! [0.0]
+		
+	--test-- "#5568"
+		r5568: reactor [x: 0 unset 'x]
+		--assert none? react [r5568/x]
+		--assert none? react [r5568/y]
 	
 ===end-group===
 
