@@ -524,18 +524,20 @@ _hashtable: context [
 		val: s/offset
 		end: s/tail
 		while [val < end][
-			node: as node! val/data1
-			if node <> null [
-				s: as series! node/value
-				either s/flags and flag-gc-mark = 0 [
-					delete-key table as-integer node
-					val/data1: 0
-				][	;-- check owner
-					obj: as red-object! val + 2
-					s: as series! obj/ctx/value
-					if s/flags and flag-gc-mark = 0 [
+			if val/header = TYPE_UNSET [		;-- only sweep alive key. key was deleted if val/header = TYPE_VALUE
+				node: as node! val/data1
+				if node <> null [
+					s: as series! node/value
+					either s/flags and flag-gc-mark = 0 [
 						delete-key table as-integer node
 						val/data1: 0
+					][	;-- check owner
+						obj: as red-object! val + 2
+						s: as series! obj/ctx/value
+						if s/flags and flag-gc-mark = 0 [
+							delete-key table as-integer node
+							val/data1: 0
+						]
 					]
 				]
 			]

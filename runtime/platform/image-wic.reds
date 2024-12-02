@@ -828,7 +828,7 @@ OS-image: context [
 		inode: as img-node! (as series! node/value) + 1
 		h: as this! inode/handle
 		if 0 <> IFAC/CreateBitmapFromSource	wic-factory h WICBitmapCacheOnLoad :bitmap [
-			externals/remove inode/extID no
+			inode/extID: externals/remove inode/extID no
 			delete node
 			return null
 		]

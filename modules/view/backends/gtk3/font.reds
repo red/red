@@ -372,7 +372,7 @@ free-font: func [
 	if h <> null [
 		hFont: as handle! h/value
 		pango_attr_list_unref hFont
-		externals/remove h/extID no
+		h/extID: externals/remove h/extID no
 		state: as red-block! (object/get-values font) + FONT_OBJ_STATE
 		state/header: TYPE_NONE
 	]
