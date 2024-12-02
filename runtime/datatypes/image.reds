@@ -714,6 +714,7 @@ image: context [
 			part: object/do-indent buffer indent part - 1
 		]
 		string/append-char GET_BUFFER(buffer) as-integer #"}"
+		part: part - 1
 
 		if alpha? [
 			data: data - (width * height)
@@ -724,11 +725,14 @@ image: context [
 			while [data < end][
 				pixel: data/value
 				string/concatenate-literal buffer string/byte-to-hex 255 - (pixel >>> 24)
+				part: part - 1
 				unless flat? [
 					count: count + 1
-					if count % 10 = 0 [string/append-char GET_BUFFER(buffer) as-integer lf]
+					if count % 10 = 0 [
+						string/append-char GET_BUFFER(buffer) as-integer lf
+						part: part - 1
+					]
 				]
-				part: part - 2
 				if all [OPTION?(arg) part <= 0][
 					OS-image/unlock-bitmap img bitmap
 					return part
@@ -736,11 +740,12 @@ image: context [
 				data: data + 1
 			]
 			string/append-char GET_BUFFER(buffer) as-integer #"}"
+			part: part - 1
 		]
 		OS-image/unlock-bitmap img bitmap
 		either only? [part][
 			string/append-char GET_BUFFER(buffer) as-integer #"]"
-			part - 2									;-- #"}" and #"]"
+			part - 1
 		]
 	]
 
