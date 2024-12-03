@@ -297,10 +297,11 @@ array: context [
 
 #define MAP_KEY_DELETED		[0]
 
-#define HASH_TABLE_HASH		0
-#define HASH_TABLE_MAP		1
-#define HASH_TABLE_SYMBOL	2
-#define HASH_TABLE_INTEGER	3
+#define HASH_TABLE_HASH			0
+#define HASH_TABLE_MAP			1
+#define HASH_TABLE_SYMBOL		2
+#define HASH_TABLE_INTEGER		3
+#define HASH_TABLE_OWNERSHIP	4
 
 #define HASH_SYMBOL_BLOCK	1
 #define HASH_SYMBOL_CONTEXT	2
@@ -482,7 +483,8 @@ _hashtable: context [
 			end	 [red-value!]
 			p	 [ptr-ptr!]
 			e	 [ptr-ptr!]
-			type	 [integer!]
+			type [integer!]
+			vsize [integer!]
 	][
 		collector/keep ptr
 		table: as node! ptr/value
@@ -502,6 +504,18 @@ _hashtable: context [
 		]
 		collector/keep :h/flags
 		collector/keep :h/keys
+
+		if type = HASH_TABLE_OWNERSHIP [
+			vsize: as integer! h/indexes
+			vsize: vsize >> 4
+			s: as series! h/blk/value
+			val: s/offset
+			end: s/tail
+			while [val < end][
+				collector/keep :val/data1	;-- mark node key
+				val: val + vsize
+			]
+		]
 		if type > 0 [collector/mark-block-node :h/blk]
 	]
 
@@ -513,13 +527,16 @@ _hashtable: context [
 			val	 [red-value!]
 			end	 [red-value!]
 			obj  [red-object!]
+			vsize [integer!]
 			node [node!]
 	][
 		s: as series! table/value
 		h: as hashtable! s/offset
 
-		assert h/type = HASH_TABLE_INTEGER
+		assert h/type = HASH_TABLE_OWNERSHIP
 
+		vsize: as integer! h/indexes
+		vsize: vsize >> 4
 		s: as series! h/blk/value
 		val: s/offset
 		end: s/tail
@@ -541,7 +558,7 @@ _hashtable: context [
 					]
 				]
 			]
-			val: val + 4
+			val: val + vsize
 		]
 	]
 
@@ -1087,7 +1104,7 @@ _hashtable: context [
 		s: as series! node/value
 		h: as hashtable! s/offset
 		h/type: type
-		if type = HASH_TABLE_INTEGER [h/indexes: as node! vsize + 1 << 4]
+		if type >= HASH_TABLE_INTEGER [h/indexes: as node! vsize + 1 << 4]
 
 		if size < 4 [size: 4]
 		fsize: as-float size
@@ -1108,7 +1125,7 @@ _hashtable: context [
 		]
 		h/flags: flags
 		h/keys: keys
-		either any [type = HASH_TABLE_INTEGER blk = null][
+		either any [type >= HASH_TABLE_INTEGER blk = null][
 			h/blk: alloc-cells size
 		][
 			h/blk: blk/node
@@ -1240,7 +1257,7 @@ _hashtable: context [
 		s: as series! node/value
 		h: as hashtable! s/offset
 
-		int?: h/type = HASH_TABLE_INTEGER
+		int?: h/type >= HASH_TABLE_INTEGER
 		s: as series! h/blk/value
 		blk: s/offset
 		s: as series! h/flags/value
