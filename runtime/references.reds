@@ -67,7 +67,7 @@ references: context [									;-- Red values list management
 			half: size
 			size: size * 2
 			#if debug? = yes [if verbose > 0 [print-line ["reference/store: expand storage to " size]]]
-			s: expand-series s size * size cell!			;-- convert size to bytes
+			s: expand-series s size * size? cell!			;-- convert size to bytes
 			format half
 		]
 		id: free
