@@ -2123,7 +2123,7 @@ lexer: context [
 			sp?: no
 			skip-ws
 			s: p
-			if p/1 = #")" [throw-error lex s e TYPE_POINT2D]
+			if any [p/1 = #"," p/1 = #")"][throw-error lex s e TYPE_POINT2D]
 			while [all [p/1 <> #"," p/1 <> #")" p/1 <> #" " p/1 <> #"^-"]][
 				if p/1 = #"#" [sp?: yes]
 				p: p + 1

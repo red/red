@@ -31,6 +31,42 @@ date: context [
 	#define DATE_SET_TIME_FLAG(d)	 (d or 00010000h)
 	#define DATE_CLEAR_TIME_FLAG(d)	 (d and FFFEFFFFh)
 	
+	#enum spec-states! [
+		S_START			;-- 0
+		S_D				;-- 1
+		S_M				;-- 2
+		S_Y 			;-- 3
+		S_T 			;-- 4
+		S_TZ 			;-- 5
+		S_TH			;-- 6
+		S_THM			;-- 7
+		S_H				;-- 8
+		S_HM			;-- 9
+		S_HMS			;-- 10
+		S_HMSZ			;-- 11
+		S_HMSH			;-- 12
+		S_HMSHM			;-- 13
+		S_END			;-- 14
+		S_ERR:			FFh
+	]
+
+	spec-FSM: #{
+		0100FF00FF00	;-- S_START
+		0201FF00FF00	;-- S_D
+		0302FF00FF00	;-- S_M
+		0803040AFF00	;-- S_Y
+		0606050CFF00	;-- S_T
+		FF00FF00FF00	;-- S_TZ
+		0707FF00FF00	;-- S_TH
+		FF00FF00FF00	;-- S_THM
+		0904FF00FF00	;-- S_H
+		0A05FF000A08	;-- S_HM
+		0C060B0CFF00	;-- S_HMS
+		FF00FF00FF00	;-- S_HMSZ
+		0D07FF00FF00	;-- S_HMSH
+		FF00FF00FF00	;-- S_HMSHM
+	}
+
 	throw-error: func [spec [red-value!]][
 		fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_DATE spec]
 	]
@@ -629,117 +665,103 @@ date: context [
 		/local
 			value [red-value!]
 			tail  [red-value!]
-			v	  [red-value!]
 			int	  [red-integer!]
 			fl	  [red-float!]
-			tm	  [red-time!]
 			dt	  [red-date!]
+			vars  [int-ptr!]
+			table [byte-ptr!]
+			fp	  [float-ptr!]
 			cnt   [integer!]
-			i	  [integer!]
-			year  [integer!]
-			month [integer!]
-			day   [integer!]
-			hour  [integer!]
-			min	  [integer!]
-			mn	  [integer!]
-			sec   [integer!]
+			state [integer!]
+			prev  [integer!]							;!! do not change following variables !!
+			zone-t[float!]								;-- 12  (64-bit)
+			ftime [float!]								;-- 10  (64-bit)
+			sec-t [float!]								;-- 8   (64-bit)
+			zone-m[integer!]							;-- 7
+			zone-h[integer!]							;-- 6
+			sec   [integer!]							;-- 5
+			min	  [integer!]							;-- 4
+			hour  [integer!]							;-- 3
+			year  [integer!]							;-- 2
+			month [integer!]							;-- 1
+			day   [integer!]							;-- 0 (offsets)
 			zone  [integer!]
 			d	  [integer!]
 			h	  [integer!]
+			idx   [integer!]
+			offset [integer!]
+			tmp	  [integer!]
 			t	  [float!]
-			ftime [float!]
-			sec-t [float!]
-			zone-t[float!]
 			neg?  [logic!]
 	][
 		if TYPE_OF(spec) = TYPE_DATE [return spec]
+
+		year: month: day: hour:	min: sec: zone:	zone-h:	zone-m: 0
+		sec-t: zone-t: ftime: 0.0
 		
-		year:   0
-		month:  1
-		day:    1
-		ftime:	0.0
-		hour:	0
-		min:	0
-		sec:	0
-		sec-t:	0.0
-		zone:	0
-		zone-t:	0.0
-		
+		table: spec-FSM
+		vars: :day
+		state: S_START
+
 		switch TYPE_OF(spec) [
 			TYPE_ANY_LIST [
 				value: block/rs-head as red-block! spec
 				tail:  block/rs-tail as red-block! spec
 				
 				cnt: 0
-				while [value < tail][
-					i: 0
-					t: 0.0
-					v: either TYPE_OF(value) = TYPE_WORD [
-						_context/get as red-word! value
-					][
-						value
+				while [value < tail][					;-- FSM loop
+					type: TYPE_OF(value)
+					idx: switch type [
+						TYPE_INTEGER [1]
+						TYPE_TIME	 [3]
+						TYPE_FLOAT	 [5]
+						default		 [-1]
 					]
-					switch TYPE_OF(v) [
-						TYPE_INTEGER [
-							int: as red-integer! v
-							i: int/value
-						]
-						TYPE_FLOAT [
-							fl: as red-float! v
-							i: as-integer fl/value
-						]
-						TYPE_TIME [
-							if cnt < 3 [throw-error spec]
-							tm: as red-time! v
-							t: tm/time
-						]
-						default [throw-error spec]
+					if idx < 0 [throw-error spec]
+					prev: state
+					state: as-integer table/idx			;-- reading next state
+					idx: idx + 1
+					offset: as-integer table/idx		;-- data storage offset
+					
+					either type = TYPE_INTEGER [
+						int: as red-integer! value
+						offset: offset + 1				;-- 1-based array access
+						vars/offset: int/value
+					][				
+						fl: as red-float! value
+						fp: as float-ptr! vars + offset
+						fp/value: fl/value
 					]
-					switch cnt [
-						0 [day:	  i]
-						1 [month: i]
-						2 [year:  i]
-						3 [hour:  i ftime:	t]
-						4 [min:	  i zone-t:	t]
-						5 [sec:	  i sec-t:	t]
-						6 [zone:  i zone-t:	t]
-						default [throw-error spec]
-					]
+					if idx = S_END [break]
+					table: spec-FSM + (state * 6)		;-- jump to next state
 					cnt: cnt + 1
 					value: value + 1
 				]
-				if any [
-					all [cnt < 3 cnt > 7]				;-- nb of args out of range
-					all [cnt = 4 hour <> 0]				;-- time expected to be a time! value
-					all [cnt = 5 hour <> 0]				;-- time expected to be a time! value
-				][throw-error spec]
-				
-				if any [cnt = 5 cnt = 7][
-					either all [
-						any [all [cnt = 5 min = 0] all [cnt = 7 zone = 0]]
-						zone-t <> 0.0
-					][
-						i: time/get-hours zone-t
-						mn: (time/get-minutes zone-t) / 15
-					][
-						i: either all [cnt = 5 min <> 0][min][zone]
-						mn: 0
-					]
-					if all [cnt = 7 zone-t = 0.0 any [zone > 15 zone < -15]][
-						throw-error spec
-					]
-					neg?: either i < 0 [i: 0 - i yes][no]
-					zone: i << 2 and 7Fh or mn
-					if neg? [zone: DATE_SET_ZONE_NEG(zone)]
-				]
-				if any [cnt = 6 cnt = 7][
-					t: ((as-float hour) * 3600.0) + ((as-float min) * 60.0)
-					ftime: either sec-t = 0.0 [t + as-float sec][t + sec-t]
-				]
+				if any [state = S_ERR cnt < 3][throw-error spec] ;-- at least d/m/y needed
+				if state = S_END [state: prev]			;-- remember pre-exit state (used to identify patterns in post-processing)
 			]
 			default [throw-error spec]
 		]
-		if all [day >= 100 day > year][i: year year: day day: i]	;-- allow year to be first
+		;-- post-processing --
+		
+		if all [day >= 100 day > year][tmp: year year: day day: tmp]	;-- allow year to be first
+		
+		if any [state = S_TZ state = S_HMSZ][
+			zone-h: time/get-hours zone-t
+			zone-m: time/get-minutes zone-t
+		]
+		if zone-m <> 0 [zone-m: zone-m / 15]
+
+		if any [zone-h <> 0 zone-m <> 0][
+			neg?: either zone-h < 0 [zone-h: 0 - zone-h yes][no]
+			zone: zone-h << 2 and 7Fh or zone-m
+			if neg? [zone: DATE_SET_ZONE_NEG(zone)]
+		]
+
+		if S_H <= state [
+			t: ((as-float hour) * 3600.0) + ((as-float min) * 60.0)
+			ftime: either sec-t = 0.0 [t + as-float sec][t + sec-t]
+		]
 
 		dt: as red-date! stack/arguments
 		dt/header: TYPE_DATE
@@ -751,7 +773,7 @@ date: context [
 		unless norm? [
 			d: dt/date
 			h: time/get-hours ftime
-			if any [cnt = 4 cnt = 5][min: time/get-minutes ftime]
+			if state < S_HM [min: time/get-minutes ftime]
 			if any [
 				year  <> DATE_GET_YEAR(d)
 				month <> DATE_GET_MONTH(d)
@@ -768,7 +790,6 @@ date: context [
 		]
 		dt/date: DATE_SET_ZONE(dt/date zone)
 		set-time dt dt/time yes
-		
 		as red-value! dt
 	]
 

@@ -269,18 +269,44 @@ Red [
 
   --test-- "case-logic-1"
     cl: true
-  --assert case [ cl = true [true] cl = false [false] true [false]]
+  	--assert case [ cl = true [true] cl = false [false] true [false]]
   
   --test-- "case-logic-2"
     cl: false
-  --assert false = case [ cl = true [true] cl = false [false] true [true]]
-
+  	--assert false = case [ cl = true [true] cl = false [false] true [true]]
+  
+  do [													; only for interpreter (cf. #5517)
+ --test-- "case-logic-3"
+  	--assert none? case [false true  false true]
+ 
+ --test-- "case-logic-4"
+ 	--assert none? case/all [true true  none true]
+ 
+ --test-- "case-logic-5"
+ 	--assert none? case/all [true true  no true]
+ 
+ --test-- "case-logic-6"
+ 	--assert none? case/all [false true  false true]
+ 
+ --test-- "case-logic-7"
+ 	--assert none? case/all [true true  false false]
+ 	
+ --test-- "case-logic-8"
+ 	--assert false == case/all [true true  true false]
+ 
+ --test-- "case-logic-9"
+ 	--assert 123 = case/all [true true  true 123]
+	]
+	
 ===end-group===
 
 ===start-group=== "case reported issues"
 
-	--test-- "case-issue-504"
+	--test-- "#504"
 	--assert 1 = case [true 1 false 2]
+	
+	--test-- "#4899"
+	do [--assert error? try [case [1 = 2 ["1"] []]] ]
 	
 ===end-group===	
 

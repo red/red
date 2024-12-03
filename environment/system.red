@@ -289,6 +289,7 @@ system: context [
 		]
 		last-error:  none
 		stack-trace: 1									;-- 0: disabled
+		source-files: make block! 4
 		
 		callbacks: object [
 			lexer?: 	  no							;-- called by transcode/trace
@@ -434,7 +435,7 @@ system: context [
 			spec: scheme: actor: awake: state: data: extra: none
 		]
 		error: object [
-			code: type: id: arg1: arg2: arg3: near: where: stack: none
+			code: type: id: arg1: arg2: arg3: near: where: stack: files: none
 		]
 		file-info: object [
 			name: size: date: type: none

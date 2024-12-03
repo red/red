@@ -340,7 +340,7 @@ _function: context [
 				]
 				TYPE_SET_WORD [								 ;-- only return: is allowed as a set-word!
 					w: as red-word! value
-					if words/return* <> symbol/resolve w/symbol [do-error]
+					if any [words/return* <> symbol/resolve w/symbol local?][do-error]
 					next: value + 1
 					next2: next + 1
 					unless all [
@@ -358,7 +358,7 @@ _function: context [
 				TYPE_REFINEMENT [
 					w: as red-word! value 
 					either refinements/local/symbol = symbol/resolve w/symbol [local?: yes][
-						if local? [do-error]
+						if any [local? ret?][do-error]
 					]
 					next: value + 1
 					if next < end [

@@ -19,6 +19,7 @@ saved-term: declare termios!
 utf-char: as-c-string allocate 10
 poller: 	declare pollfd!
 relative-y:	0
+bottom-y:	0
 init?:		no
 
 fd-read-char: func [
@@ -169,28 +170,31 @@ emit-red-char: func [
 ]
 
 query-cursor: func [
-	col		[int-ptr!]
+	pos		[int-ptr!]
 	return: [logic!]								;-- FALSE: failed to retrieve it
 	/local
-		c [byte!]
-		n [integer!]
+		c	[byte!]
+		n x y [integer!]
 ][
 	emit-string "^[[6n"								;-- ask for cursor location
 	if all [
 		  esc = fd-read-char 100
 		 #"[" = fd-read-char 100
 	][
+		x: 0
+		y: 0
+		n: 0
 		while [true][
 			c: fd-read-char 100
-			n: 0
 			case [
-				c = #";" [n: 0]
+				c = #";" [y: n - 1 n: 0]
 				all [c = #"R" n <> 0 n < 1000][
-					col/value: n
+					x: n - 1
+					pos/value: y << 16 or x
 					return true
 				]
 				all [#"0" <= c c <= #"9"][
-					n: n * 10 + (c - #"0")
+					n: n * 10 + as-integer (c - #"0")
 				]
 				true [
 					return true
@@ -223,7 +227,11 @@ get-window-size: func [
 
 reset-cursor-pos: does [
 	if positive? relative-y [emit-string-int "^[[" relative-y #"A"]	;-- move to origin row
-	emit cr
+	either cursor-pos and FFFFh = 0 [
+		emit cr
+	][
+		emit-string-int "^[[" cursor-pos and FFFFh + 1 #"G"
+	]
 ]
 
 erase-to-bottom: does [
@@ -252,6 +260,7 @@ set-cursor-pos: func [
 
 	if zero? (size % columns) [emit #"^(0A)"]
 
+	bottom-y: y
 	if positive? y [				;-- set cursor position: y
 	    emit-string-int "^[[" y #"A"
 	    relative-y: relative-y - y
@@ -261,6 +270,10 @@ set-cursor-pos: func [
 	][
 		emit-string-int "^(0D)^[[" x #"C"
 	]
+]
+
+move-cursor-bottom: does [
+	if bottom-y > 0 [emit-string-int "^[[" bottom-y #"B"]
 ]
 
 output-to-screen: does [

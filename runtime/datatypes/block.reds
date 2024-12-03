@@ -497,9 +497,10 @@ block: context [
 				return part
 			]
 			depth: depth + 1
-			if all [
+			
+			either all [
 				not flat?
-				value/header and flag-new-line <> 0	;-- new-line marker
+				value/header and flag-new-line <> 0		;-- new-line marker
 			][
 				if all [not only? value = head][
 					lf?: on
@@ -511,24 +512,19 @@ block: context [
 				]
 				loop indent [string/concatenate-literal buffer "    "]
 				part: part - (indent * 4)
+			][
+				if value > head [
+					string/append-char GET_BUFFER(buffer) as-integer space
+					part: part - 1
+				]	
 			]
-			
 			part: actions/mold value buffer no all? flat? arg part indent
 			
-			if positive? depth [
-				string/append-char GET_BUFFER(buffer) as-integer space
-				part: part - 1
-			]
 			depth: depth - 1
 			value: value + 1
 		]
 		cycles/pop
 		
-		s: GET_BUFFER(buffer)
-		if value <> head [								;-- test if not empty block
-			s/tail: as cell! (as byte-ptr! s/tail) - GET_UNIT(s) ;-- remove extra white space
-			part: part + 1
-		]
 		if lf? [
 			indent: indent - 1
 			string/append-char GET_BUFFER(buffer) as-integer lf

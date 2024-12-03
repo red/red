@@ -501,7 +501,7 @@ natives: context [
 			blk	  [red-block!]
 			value [red-value!]
 			tail  [red-value!]
-			true? [logic!]
+			ret?  [logic!]
 	][
 		#typecheck [case all?]
 		blk: as red-block! stack/push stack/arguments
@@ -510,10 +510,11 @@ natives: context [
 		if value = tail [RETURN_NONE]
 
 		stack/mark-native words/_anon
-		true?: false
+		ret?: no
 		while [value < tail][
+			if all? >= 0 [ret?: no]
 			value: interpreter/eval-next blk value tail no	;-- eval condition
-			if value = tail [break]
+			if value = tail [fire [TO_ERROR(script need-value) words/_case]]
 			either logic/true? [
 				either TYPE_OF(value) = TYPE_BLOCK [	;-- if true, eval what follows it
 					stack/reset
@@ -522,14 +523,14 @@ natives: context [
 				][
 					value: interpreter/eval-next blk value tail no
 				]
-				if negative? all? [stack/unwind-last exit]	;-- early exit with last value on stack (unless /all)
-				true?: yes
+				if all? < 0 [stack/unwind-last exit]	;-- early exit with last value on stack (unless /all)
+				ret?: yes
 			][
 				value: value + 1						;-- single value only allowed for cases bodies
 			]
 		]
 		stack/unwind-last
-		unless true? [RETURN_NONE]
+		unless ret? [RETURN_NONE]
 	]
 	
 	do*: func [
@@ -2039,6 +2040,7 @@ natives: context [
 	]
 	
 	handle-thrown-error: func [
+		keep? [logic!]									;-- TRUE: capture stack
 		/local
 			err	[red-object!]
 			id  [integer!]
@@ -2046,6 +2048,7 @@ natives: context [
 	][
 		err: as red-object! stack/get-top
 		assert TYPE_OF(err) = TYPE_ERROR
+		if keep? [error/capture err]
 		id: error/get-id err
 		type: error/get-type err
 		either all [id = type id = words/errors/throw/symbol] [			;-- check if error is of type THROW

@@ -328,7 +328,10 @@ screen: context [
 		active-win: wm
 		set-focus-widget w wm
 
-		if wm/editable = 0 [tty/hide-cursor]
+		if all [
+			wm/editable = 0
+			tty/raw-mode?
+		][tty/hide-cursor]
 
 		hover-widget: null
 		captured-widget: null

@@ -70,7 +70,7 @@ system/reactivity: context [
 		unless find/same/skip relations new-rel 4 [append relations new-rel]
 	]
 	
-	identify-sources: function [path [any-path!] reaction ctx return: [logic!]][
+	identify-sources: function [path [any-path!] reaction ctx return: [logic!] /local obj][
 		p: path
 		found?: no
 		if any [not word? p/1 find not-safe! type? get/any p/1][return no]
@@ -78,12 +78,12 @@ system/reactivity: context [
 		until [
 			if all [not tail? next p not word? p/2][return no] ;-- accessor not a word
 			slice: copy/part path next p
-			obj: try [get/any :slice]
+			set/any 'obj try [get/any :slice]
 			if find not-safe! type? :obj [return no]
 			if all [
 				word? p/2
 				object? :obj							;-- rough checks for reactive object
-				in obj 'on-change*
+				reflect obj 'events?
 			][
 				add-relation obj p/2 :reaction ctx
 				found?: yes
@@ -322,8 +322,10 @@ system/reactivity: context [
 							item: item/1
 							if all [pos: find objs item/1 word? item/2][
 								obj: pick objects 1 + index? pos
-								add-relation obj item/2 :reaction objects
-								found?: yes
+								if reflect obj 'events? [
+									add-relation obj item/2 :reaction objects
+									found?: yes
+								]
 							]
 						)
 						| set-path! | any-string!

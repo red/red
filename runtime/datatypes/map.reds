@@ -79,8 +79,10 @@ map: context [
 				blank: space
 			][
 				if mold? [
-					string/append-char GET_BUFFER(buffer) as-integer lf
-					part: part - 1
+					either only? [indent?: no][
+						string/append-char GET_BUFFER(buffer) as-integer lf
+						part: part - 1
+					]
 				]
 				blank: lf
 			]
@@ -226,6 +228,7 @@ map: context [
 				]
 				size: get-int-from spec
 				if negative? size [fire [TO_ERROR(script out-of-range) spec]]
+				size: size * 2
 			]
 			TYPE_ANY_LIST [
 				size: block/rs-length? as red-block! spec
@@ -236,7 +239,7 @@ map: context [
 			default [fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_MAP spec]]
 		]
 
-		if zero? size [size: 1]
+		if zero? size [size: 2]
 		either blk? [
 			; use clone here to prevent extra copying of spec
 			blk: block/clone as red-block! spec no no
@@ -359,12 +362,17 @@ map: context [
 
 		if cycles/detect? as red-value! map buffer :part yes [return part]
 		
-		string/concatenate-literal buffer "#["
-		prev: part - 2
-		part: serialize map buffer no all? flat? arg prev yes indent + 1 yes
-		if all [part <> prev indent > 0][part: object/do-indent buffer indent part]
-		string/append-char GET_BUFFER(buffer) as-integer #"]"
-		part - 1
+		unless only? [
+			string/concatenate-literal buffer "#["
+			prev: part - 2
+		]
+		part: serialize map buffer only? all? flat? arg prev yes indent + 1 yes
+		
+		either only? [part][
+			if all [part <> prev indent > 0][part: object/do-indent buffer indent part]
+			string/append-char GET_BUFFER(buffer) as-integer #"]"
+			part - 1
+		]
 	]
 
 	compare-each: func [
@@ -721,7 +729,8 @@ map: context [
 				k: k + 2
 				map/head: map/head + 2
 			][
-				_context/set w k
+				v: _context/set w k
+				if TYPE_OF(v) = TYPE_SET_WORD [v/header: TYPE_WORD]
 				w: w + 1
 				k: k + 1
 				i: i + 1

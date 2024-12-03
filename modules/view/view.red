@@ -234,7 +234,8 @@ on-face-deep-change*: function ["Internal use only" owner word target action new
 			system/view/auto-sync?
 			owner/type = 'screen						;-- not postponing windows events
 		][
-			state/2: state/2 or (1 << ((index? in owner word) - 1))
+			unless w: in owner word [exit]
+			state/2: state/2 or (1 << ((index? w) - 1))
 			
 			either word = 'pane [
 				case [
@@ -1002,7 +1003,7 @@ make-face: func [
 	if model/init [do bind model/init face]
 	svv/process-reactors reactors
 
-	if offset [face/offset: xy]
+	face/offset: any [xy face/offset 0x0]
 	if size [face/size: wh]
 	face
 ]
@@ -1259,7 +1260,7 @@ insert-event-func 'dragging function [face event][
 			if drag-info: face/state/4 [
 				either type = 'over [
 					unless event/away? [
-						new: face/offset + event/offset - drag-info/1
+						new: (any [face/offset 0x0]) + event/offset - drag-info/1
 						if face/offset <> new [
 							if box: drag-info/2 [new: min box/max max box/min new]
 							if face/offset <> new [face/offset: new]

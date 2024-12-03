@@ -832,9 +832,10 @@ binary: context [
 		tail: as byte-ptr! s/tail
 		size: as-integer tail - head
 
-		string/concatenate-literal buffer "#{"
-		part: part - 2
-
+		unless only? [
+			string/concatenate-literal buffer "#{"
+			part: part - 2
+		]
 		bytes: 0
 		if all [size > 30 not flat?][
 			string/append-char GET_BUFFER(buffer) as-integer lf
@@ -855,8 +856,10 @@ binary: context [
 			string/append-char GET_BUFFER(buffer) as-integer lf
 			part: part - 1
 		]
-		string/append-char GET_BUFFER(buffer) as-integer #"}"
-		part - 1
+		either only? [part][
+			string/append-char GET_BUFFER(buffer) as-integer #"}"
+			part - 1
+		]
 	]
 
 	make-at: func [

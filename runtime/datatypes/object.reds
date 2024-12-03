@@ -595,8 +595,10 @@ object: context [
 			blank: as-integer space
 		][
 			if mold? [
-				string/append-char GET_BUFFER(buffer) as-integer lf
-				part: part - 1
+				either only? [indent?: no][
+					string/append-char GET_BUFFER(buffer) as-integer lf
+					part: part - 1
+				]
 			]
 			blank: as-integer lf
 		]
@@ -623,7 +625,7 @@ object: context [
 					string/append-char GET_BUFFER(buffer) as-integer #"'" ;-- create a literal word
 					part: part - 1
 				]
-				part: actions/mold value buffer only? all? flat? arg part tabs
+				part: actions/mold value buffer no all? flat? arg part tabs
 
 				if any [indent? sym + 1 < s-tail][			;-- no final LF when FORMed
 					string/append-char GET_BUFFER(buffer) blank
@@ -1238,6 +1240,9 @@ object: context [
 			field = words/owner [
 				return as red-block! logic/box ctx/header and flag-owner <> 0
 			]
+			field = words/events? [
+				return as red-block! logic/box obj/on-set <> null
+			]
 			true [
 				--NOT_IMPLEMENTED--						;@@ raise error
 			]
@@ -1274,11 +1279,16 @@ object: context [
 		
 		if cycles/detect? as red-value! obj buffer :part yes [return part]
 		
-		string/concatenate-literal buffer "make object! ["
-		part: serialize obj buffer no all? flat? arg part - 14 yes indent + 1 yes
+		unless only? [
+			string/concatenate-literal buffer "make object! ["
+			part: part - 14
+		]
+		part: serialize obj buffer only? all? flat? arg part yes indent + 1 yes
 		if all [not flat? indent > 0][part: do-indent buffer indent part]
-		string/append-char GET_BUFFER(buffer) as-integer #"]"
-		part - 1
+		either only? [part][
+			string/append-char GET_BUFFER(buffer) as-integer #"]"
+			part - 1
+		]
 	]
 	
 	eval-path: func [

@@ -81,6 +81,8 @@ unless system/console [
 		output?:	yes
 		pasting?:	no
 		hide-input?: no
+		first-print?: yes
+		cursor-pos:	0
 
 		init-globals: func [][
 			saved-line: string/rs-make-at ALLOC_TAIL(root) 1
@@ -340,17 +342,25 @@ unless system/console [
 				hide?  [logic!]
 		][
 			line: input-line
+			bytes: 0
 
-			either output? [					;-- erase down to the bottom of the screen
-				reset-cursor-pos
-				erase-to-bottom
+			either all [not pasting? first-print?][
+				first-print?: no
+				query-cursor :cursor-pos
 			][
-				#if OS <> 'Windows [reset-cursor-pos][0]
+				either output? [					;-- erase down to the bottom of the screen
+					reset-cursor-pos
+					erase-to-bottom
+				][
+					#if OS <> 'Windows [reset-cursor-pos][0]
+				]
 			]
+
+			bytes: cursor-pos and FFFFh ;-- get cursor pos x
 			init-buffer line prompt
 			hide?: hide-input?
 			hide-input?: no
-			bytes: emit-red-string prompt columns no
+			bytes: bytes + emit-red-string prompt columns no
 			hide-input?: hide?
 
 			psize: bytes // columns
@@ -419,6 +429,7 @@ unless system/console [
 
 				switch c [
 					KEY_ENTER [
+						move-cursor-bottom
 						add-history line
 						max: max + 1
 						string/rs-reset saved-line
@@ -570,6 +581,8 @@ unless system/console [
 		][
 			either console? [
 				hide-input?: hidden?
+				first-print?: yes
+				cursor-pos: 0
 				console-edit prompt-str
 				restore
 				print-line ""

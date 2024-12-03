@@ -2538,7 +2538,7 @@ b}
 	; --test-- "#2070"
 		; GUI
 
-	; --test-- "#2072"
+	 --test-- "#2072"
 		m2072: make map! 10
 		a2072: [1 2 3]
 		m2072/a: a2072
@@ -3380,7 +3380,7 @@ comment {
 
 	--test-- "#5058"
 		--assert strict-equal?
-			"1 a ^/2 b ^/3 c"
+			"1 a^/2 b^/3 c"
 			mold/only new-line/all/skip [1 a 2 b 3 c] yes 2
 
 	--test-- "#5066"
@@ -3677,6 +3677,47 @@ comment {
 		v5509a: make vector! [integer! 32 [3 8 4 6]]
 		v5509b: make vector! [integer! 32 [4 0 1 -9]]
 		--assert v5509a + v5509b == make vector! [integer! 16 [7 8 5 -3]]
+		
+	--test-- "#5535"
+		f5535: does [try/all [return 1] 2]
+		--assert f5535 = 2
+		
+	--test-- "#5552"
+		do [
+			--assert error? try [fun: function [/ref x /local y return: [block!]] [a: 1 print "OK"]]
+			--assert error? try [fun: function [/ref x /local y return: [block!] "locals follow docstring ->"] [a: 1 print "OK"]]
+			--assert error? try [f: func [a [block!] return: [block!] /ref   /local x][]]
+			--assert error? try [f: func [a [block!] return: [block!] /ref y /local x][]]
+		]
+		
+	--test-- "#5562"
+		--assert error! = scan "(,)"
+		--assert error! = scan "(,1)"
+		--assert error! = scan "(, 1)"
+		--assert error! = scan "(1,,1)"
+		--assert error! = scan "(,,1)"
+		--assert error! = scan "(1,,)"
+		--assert error! = scan "(1,, 1)"
+		--assert error! = scan "(1, ,1)"
+		--assert error! = scan "(1, , 1)"
+		--assert error! = scan "(1 ,,1)"
+		--assert error! = scan "(1 , ,1)"
+		--assert error! = scan "(1 , , 1)"
+		--assert error? try [load "(,1)"]
+		--assert error? try [load "(,1,2)"]
+		--assert error? try [load "(,,2)"]
+		
+	--test-- "#5565"
+		react/link func [a b] [b/x: a/x] reduce [o1: object [x: 1] o2: object [x: 2]]
+		--assert o2/x = 2
+		
+	--test-- "#5561"
+		--assert "make vector! [float! 64 []]" == mold/all clear make vector! [0.0]
+		
+	--test-- "#5568"
+		r5568: reactor [x: 0 unset 'x]
+		--assert none? react [r5568/x]
+		--assert none? react [r5568/y]
 	
 ===end-group===
 

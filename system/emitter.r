@@ -50,6 +50,7 @@ emitter: make-profilable context [
 		struct!		4	-				;-- 32-bit, 8 for 64-bit ; struct! passed by reference
 		function!	4	-				;-- 32-bit, 8 for 64-bit
 		subroutine!	4	-				;-- 32-bit, 8 for 64-bit
+		array!		4	-				;-- 32-bit, 8 for 64-bit
 	]
 	
 	datatypes: none						;-- initialized by init function
