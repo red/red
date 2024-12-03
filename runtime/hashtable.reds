@@ -473,6 +473,91 @@ _hashtable: context [
 		upper-bound	[integer!]
 	]
 
+	dump: func [
+		table	[node!]
+		/local
+			s	[series!]
+			h	[hashtable!]
+			blk [red-value!]
+			k	[red-value!]
+			val [red-value!]
+			int? [logic!]
+			n-buckets key vsize j ii sh idx [integer!]
+			keys flags int-key [int-ptr!]
+	][
+		s: as series! table/value
+		h: as hashtable! s/offset
+		int?: h/type >= HASH_TABLE_INTEGER
+		s: as series! h/blk/value
+		blk: s/offset
+		s: as series! h/flags/value
+		flags: as int-ptr! s/offset
+		n-buckets: h/n-buckets
+
+		s: as series! h/keys/value
+		keys: as int-ptr! s/offset
+		probe "^/== Deleted keys =="
+		j: 0
+		until [
+			_HT_CAL_FLAG_INDEX(j ii sh)
+			j: j + 1
+			if _BUCKET_IS_DEL(flags ii sh) [
+				idx: keys/j
+				either int? [
+					int-key: as int-ptr! ((as byte-ptr! blk) + idx)
+					key: int-key/2
+					print [as int-ptr! key " "]
+					vsize: (as-integer h/indexes) >> 4
+					val: (as red-value! int-key) + 1
+					loop vsize - 1 [	;-- print values
+						print [TYPE_OF(val) " "]
+						val: val + 1
+					]
+				][
+					k: blk + (idx and 7FFFFFFFh)
+					print TYPE_OF(k)
+					print " "
+					if h/type <> HASH_TABLE_HASH [
+						val: k + 1
+						print TYPE_OF(val)
+					]
+				]
+				print lf
+			]
+			j = n-buckets
+		]
+		probe "== Alive keys =="
+		j: 0
+		until [
+			_HT_CAL_FLAG_INDEX(j ii sh)
+			j: j + 1
+			if _BUCKET_IS_HAS_KEY(flags ii sh) [
+				idx: keys/j
+				either int? [
+					int-key: as int-ptr! ((as byte-ptr! blk) + idx)
+					key: int-key/2
+					print [as int-ptr! key " "]
+					vsize: (as-integer h/indexes) >> 4
+					val: (as red-value! int-key) + 1
+					loop vsize - 1 [	;-- print values
+						print [TYPE_OF(val) " "]
+						val: val + 1
+					]
+				][
+					k: blk + (idx and 7FFFFFFFh)
+					print TYPE_OF(k)
+					print " "
+					if h/type <> HASH_TABLE_HASH [
+						val: k + 1
+						print TYPE_OF(val)
+					]
+				]
+				print lf
+			]
+			j = n-buckets
+		]
+	]
+
 	mark: func [
 		ptr [int-ptr!]
 		/local
