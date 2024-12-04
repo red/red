@@ -726,6 +726,10 @@ Red/System [
 		f4926: either true [as-float thru4926 i][3.1415]
 		--assert 420.0 = f4926
 
+	--test-- "#5572"
+		x5572: as float32! 2
+		--assert 2.0 = as-float x5572
+
 ===end-group===
 
 ~~~end-file~~~
