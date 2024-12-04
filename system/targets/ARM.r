@@ -2079,7 +2079,7 @@ make-profilable make target-class [
 				float?: find [float! float64! float32!] value/type/1
 				
 				conv-int-float?: any [
-					all [float? type/1 = 'integer!]
+					all [float? find [integer! float32!] type/1]
 					all [
 						find [float! float64! float32!] type/1
 						value/type/1 = 'integer!
