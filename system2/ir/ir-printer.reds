@@ -106,6 +106,12 @@ ir-printer: context [
 			OP_GET_PTR [
 				print "get-ptr"
 			]
+			OP_GET_FIELD [
+				print "get-field"
+			]
+			OP_SET_FIELD [
+				print "set-field"
+			]
 			default [
 				prin "unknown op"
 			]

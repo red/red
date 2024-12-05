@@ -1053,6 +1053,7 @@ _hashtable: context [
 					break?
 				]
 			]
+			j: j + 1
 			j = n-buckets
 		]
 		if n-buckets > new-buckets [			;-- shrink the hash table

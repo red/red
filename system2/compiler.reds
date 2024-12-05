@@ -245,6 +245,12 @@ compiler: context [
 			]
 		]
 
+		record-pos: func [/local idx [integer!]][
+			emit-d 0
+			idx: pos
+			record-reloc-pos data-to-data idx - 4 idx
+		]
+
 		store-literal: func [
 			val		[rst-expr!]
 			return: [logic!]
@@ -283,9 +289,7 @@ compiler: context [
 				RST_C_STR
 				RST_BINARY [0]
 				RST_LIT_ARRAY [
-					emit-d 0
-					idx: pos
-					record-reloc-pos data-to-data idx - 4 idx
+					record-pos
 					arr: as array-literal! val
 					v: arr/token
 					switch TYPE_OF(v) [
@@ -317,14 +321,17 @@ compiler: context [
 	record-global: func [
 		var		[var-decl!]
 		/local
-			sz	[integer!]
+			sz idx [integer!]
 	][
 		if var/data-idx >= 0 [exit]
 
 		sz: type-size? var/type
-		var/data-idx: data-section/pos
-		unless data-section/store-literal var/init [
-			data-section/acquire sz
+		with [data-section][
+			var/data-idx: pos
+			unless store-literal var/init [
+				record-pos
+				acquire sz
+			]
 		]
 	]
 
@@ -513,6 +520,10 @@ compiler: context [
 		cur-blk/head: h
 		print "^/"
 		quit 1
+	]
+
+	unreachable: func [pc [cell!]][
+		throw-error [pc "Should not reach here!!!"]
 	]
 
 	comp-fn: func [

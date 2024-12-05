@@ -230,9 +230,9 @@ ssa-var!: alias struct! [
 
 var-decl!: alias struct! [	;-- variable declaration
 	RST_NODE_FIELDS(var-decl!)
+	init		[rst-expr!]	;-- init expression or parameter idx
 	typeref		[red-block!]
 	type		[rst-type!]
-	init		[rst-expr!]	;-- init expression or parameter idx
 	ssa			[ssa-var!]
 	data-idx	[integer!]	;-- for global var, index in data section
 	blkref		[red-block!]
@@ -300,8 +300,8 @@ get-ptr!: alias struct! [
 
 path!: alias struct! [
 	RST_EXPR_FIELDS(path!)
-	receiver	[rst-node!]
-	subs		[rst-node!]
+	receiver	[var-decl!]
+	subs		[member!]
 ]
 
 member!: alias struct! [
@@ -735,10 +735,6 @@ parser: context [
 			halt
 		]
 		pc
-	]
-
-	unreachable: func [pc [cell!]][
-		throw-error [pc "Should not reach here!!!"]
 	]
 
 	make-param-types: func [
@@ -1934,8 +1930,8 @@ parser: context [
 
 	make-path: func [
 		pos			[cell!]
-		receiver	[rst-node!]
-		subs		[rst-node!]
+		receiver	[var-decl!]
+		subs		[member!]
 		return: 	[path!]
 		/local
 			p		[path!]
@@ -2156,10 +2152,10 @@ parser: context [
 				]
 			]
 		]
-		if val = s-tail [throw-error [pc "invalid path"]]
+		if val = s-tail [throw-error [pc "invalid path"]]	;-- invalid case: ctx1/ctx2
 		either val + 1 = s-tail [
 			if all [ty <> RST_FUNC ty <> RST_VAR_DECL][
-				throw-error [pc "invalid path value:" val]
+				throw-error [pc "invalid path value:" val]	;-- invalid case: ctx/struct
 			]
 			either get? [
 				expr/value: as int-ptr! make-get-ptr pc as rst-expr! v
@@ -2181,8 +2177,8 @@ parser: context [
 
 			t: type-checker/infer-type as var-decl! v ctx
 			cur: :node
+			val: val + 1
 			while [val < s-tail][
-				val: val + 1
 				switch TYPE_KIND(t) [
 					RST_TYPE_STRUCT [
 						if TYPE_OF(val) <> TYPE_WORD [
@@ -2225,10 +2221,11 @@ parser: context [
 					default [throw-error [pc "invalid path"]]
 				]
 				if null? sub [throw-error [pc "invalid path value:" val]]
+				val: val + 1
 				cur/next: sub
 				cur: sub
 			]
-			p: make-path pc v node/next
+			p: make-path pc as var-decl! v as member! node/next
 			p/type: t
 			case [
 				get? [expr/value: as int-ptr! make-get-ptr pc as rst-expr! p]

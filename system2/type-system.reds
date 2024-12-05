@@ -97,6 +97,7 @@ array-type!: alias struct! [	;-- inherit ptr-type!
 struct-field!: alias struct! [
 	name		[red-word!]
 	type		[rst-type!]
+	offset		[integer!]
 ]
 
 #define FLAG_ST_VALUE	0100h
@@ -227,6 +228,40 @@ int-signed?: func [
 	all [INT_TYPE?(t) INT_SIGNED?(t)]
 ]
 
+field-offset?: func [
+	st		[struct-type!]
+	idx		[integer!]
+	return: [integer!]
+	/local
+		f	[struct-field!]
+][
+	assert idx < st/n-fields
+	f: st/fields + idx
+	f/offset
+]
+
+struct-size?: func [
+	st		[struct-type!]
+	return: [integer!]
+	/local
+		f	[struct-field!]
+		sz	[integer!]
+		n	[integer!]
+		ofs [integer!]
+][
+	sz: 0
+	f: st/fields
+	loop st/n-fields [
+		n: type-size? f/type
+		ofs: either n > 1 [align-up sz n][sz]
+		sz: ofs + n
+		f/offset: ofs
+		f: f + 1
+	]
+	st/size: sz
+	sz
+]
+
 type-size?: func [
 	t		[rst-type!]
 	return: [integer!]		;-- size in byte
@@ -250,7 +285,7 @@ type-size?: func [
 		RST_TYPE_ARRAY [target/addr-size]
 		RST_TYPE_STRUCT [
 			st: as struct-type! t
-			st/size
+			either st/size > -1 [st/size][struct-size? st]
 		]
 		default [0]	
 	]

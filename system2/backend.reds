@@ -1493,7 +1493,7 @@ backend: context [
 		return: [vreg!]
 	][
 		if i/mark >= cg/fn/mark [
-			probe "get vreg error: invalid instr mark"
+			probe ["get vreg error: invalid instr mark " i/mark " " cg/fn/mark]
 			assert 1 = 0
 			halt
 		]

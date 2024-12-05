@@ -250,6 +250,31 @@ lowering: context [
 		c
 	]
 
+	ptr-add: func [
+		base	[instr!]
+		offset	[instr!]
+		ctx		[ssa-ctx!]
+		return: [instr!]
+		/local
+			op		[instr-op!]
+			ty		[rst-type!]
+			ptypes	[ptr-ptr!]
+			args	[array-2! value]
+	][
+		ty: instr-type? base
+		;either INSTR_CONST?(offset) [
+			
+		;][
+			ptypes: as ptr-ptr! malloc 2 * size? int-ptr!
+			op: ir-graph/make-op OP_PTR_ADD 2 ptypes ty
+			ptypes/value: as int-ptr! ty
+			ptypes: ptypes + 1
+			ptypes/value: as int-ptr! type-system/get-int-type target/int-width yes
+			INIT_ARRAY_2(args base offset)
+			ir-graph/add-op op as ptr-array! :args ctx
+		;]
+	]
+
 	ptr-load: func [
 		vtype	[rst-type!]
 		base	[instr!]
@@ -274,8 +299,17 @@ lowering: context [
 		return: [instr!]
 		/local
 			op	[instr-op!]
+			ofs [instr!]
+			int [red-integer!]
 			args [array-2! value]
 	][
+		if offset <> 0 [
+			int: xmalloc(red-integer!)
+			int/header: TYPE_INTEGER
+			int/value: offset
+			ofs: as instr! ir-graph/const-int int ctx/graph
+			base: ptr-add base ofs ctx
+		]
 		op: ir-graph/make-op OP_PTR_STORE 0 null vtype
 		INIT_ARRAY_2(args base val)
 		ir-graph/add-op op as ptr-array! :args ctx
@@ -305,12 +339,14 @@ lowering: context [
 		base	[instr!]
 		offset	[integer!]
 		inputs	[ptr-array!]
+		start	[integer!]		;-- start idx of args in inputs array
 		ctx		[ssa-ctx!]
 		/local
 			pp	[ptr-ptr!]
 	][
 		;-- TBD handle 64bit integer! on 32bit target, which will generate 2 loads
 		pp: ARRAY_DATA(inputs)
+		pp: pp + start
 		ptr-store vtype base offset as instr! pp/value ctx
 	]
 
@@ -357,7 +393,6 @@ lowering: context [
 			vt	[rst-type!]
 			ty	[ptr-type!]
 			ptr [instr-const!]
-			new [ptr-array!]
 	][
 		inputs: refresh-dests i/inputs env
 		o: as instr-op! i
@@ -365,7 +400,7 @@ lowering: context [
 		vt: var/type
 		ty: as ptr-type! make-ptr-type vt
 		ptr: make-ptr-const ty var
-		gen-stores norm-global-type vt as instr! ptr 0 inputs env/cur-ctx
+		gen-stores norm-global-type vt as instr! ptr 0 inputs 0 env/cur-ctx
 		kill-instr i
 		remove-instr i
 	]
@@ -377,15 +412,40 @@ lowering: context [
 			inputs [ptr-array!]
 			o	[instr-op!]
 			var	[ssa-var!]
-			vt	[rst-type!]
-			ty	[ptr-type!]
-			ptr [instr-const!]
-			new [ptr-array!]
 	][
 		inputs: refresh-dests i/inputs env
 		o: as instr-op! i
 		var: as ssa-var! o/target
-		gen-stores type-system/integer-type var/instr 0 inputs env/cur-ctx
+		gen-stores type-system/integer-type var/instr 0 inputs 0 env/cur-ctx
+		kill-instr i
+		remove-instr i
+	]
+
+	gen-set-field: func [
+		i		[instr!]
+		env		[lowering-env!]
+		/local
+			o		[instr-op!]
+			m		[member!]
+			p		[ptr-ptr!]
+			ty		[struct-type!]
+			vt		[rst-type!]
+			base	[instr!]
+			offset	[integer!]
+			inputs	[ptr-array!]
+	][
+		inputs: refresh-dests i/inputs env
+		
+		o: as instr-op! i
+		p: o/param-types
+		ty: as struct-type! p/value	;-- struct type
+		p: p + 1
+		vt: as rst-type! p/value	;-- field type
+
+		m: as member! o/target
+		offset: field-offset? ty m/index
+		base: as instr! ptr-array/pick inputs 0
+		gen-stores vt base offset inputs 1 env/cur-ctx
 		kill-instr i
 		remove-instr i
 	]
@@ -419,6 +479,7 @@ lowering: context [
 			OP_GET_GLOBAL		[gen-get-global i env]
 			OP_SET_GLOBAL		[gen-set-global i env]
 			OP_SET_LOCAL		[gen-set-local i env]
+			OP_SET_FIELD		[gen-set-field i env]
 			default [
 				probe ["Internal Error: Unknown Opcode: " INSTR_OPCODE(i)]
 			]

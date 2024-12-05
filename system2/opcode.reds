@@ -6,81 +6,83 @@ Red/System [
 ]
 
 #enum opcode! [
-	INS_VAR
-	INS_UPDATE_VAR
-	INS_PARAM
-	INS_PHI
-	INS_CONST
-	INS_IF
-	INS_SWITCH
-	INS_GOTO
-	INS_RETURN
-	INS_THROW
+	INS_VAR				;-- 0
+	INS_UPDATE_VAR		;-- 1
+	INS_PARAM           ;-- 2
+	INS_PHI             ;-- 3
+	INS_CONST           ;-- 4
+	INS_IF              ;-- 5
+	INS_SWITCH          ;-- 6
+	INS_GOTO            ;-- 7
+	INS_RETURN          ;-- 8
+	INS_THROW           ;-- 9
+                        
+	OP_BOOL_EQ          ;-- 10
+	OP_BOOL_AND         ;-- 11
+	OP_BOOL_OR          ;-- 12
+	OP_BOOL_NOT         ;-- 13
+                        
+	OP_INT_ADD          ;-- 14
+	OP_INT_SUB          ;-- 15
+	OP_INT_MUL          ;-- 16
+	OP_INT_DIV          ;-- 17
+	OP_INT_MOD          ;-- 18
+	OP_INT_REM          ;-- 19
+	OP_INT_AND          ;-- 20
+	OP_INT_OR           ;-- 21
+	OP_INT_XOR          ;-- 22
+	OP_INT_SHL          ;-- 23
+	OP_INT_SAR          ;-- 24
+	OP_INT_SHR          ;-- 25
+	OP_INT_EQ           ;-- 26
+	OP_INT_NE           ;-- 27
+	OP_INT_LT           ;-- 28
+	OP_INT_LTEQ         ;-- 29
+                        
+	OP_FLT_ADD          ;-- 30
+	OP_FLT_SUB          ;-- 31
+	OP_FLT_MUL          ;-- 32
+	OP_FLT_DIV          ;-- 33
+	OP_FLT_MOD          ;-- 34
+	OP_FLT_REM          ;-- 35
+	OP_FLT_ABS          ;-- 36
+	OP_FLT_CEIL         ;-- 37
+	OP_FLT_FLOOR        ;-- 38
+	OP_FLT_SQRT         ;-- 39
+	OP_FLT_UNUSED       ;-- 40
+	OP_FLT_BITEQ        ;-- 41
+	OP_FLT_EQ           ;-- 42
+	OP_FLT_NE           ;-- 43
+	OP_FLT_LT           ;-- 44
+	OP_FLT_LTEQ         ;-- 45
 
-	OP_BOOL_EQ
-	OP_BOOL_AND
-	OP_BOOL_OR
-	OP_BOOL_NOT
+	OP_INT_CAST         ;-- 46
+	OP_FLOAT_CAST       ;-- 47
+	OP_INT_TO_F         ;-- 48
+	OP_FLT_TO_I			;-- 49
 
-	OP_INT_ADD
-	OP_INT_SUB
-	OP_INT_MUL
-	OP_INT_DIV
-	OP_INT_MOD
-	OP_INT_REM
-	OP_INT_AND
-	OP_INT_OR
-	OP_INT_XOR
-	OP_INT_SHL
-	OP_INT_SAR
-	OP_INT_SHR
-	OP_INT_EQ
-	OP_INT_NE
-	OP_INT_LT
-	OP_INT_LTEQ
-
-	OP_FLT_ADD
-	OP_FLT_SUB
-	OP_FLT_MUL
-	OP_FLT_DIV
-	OP_FLT_MOD
-	OP_FLT_REM
-	OP_FLT_ABS
-	OP_FLT_CEIL
-	OP_FLT_FLOOR
-	OP_FLT_SQRT
-	OP_FLT_UNUSED
-	OP_FLT_BITEQ
-	OP_FLT_EQ
-	OP_FLT_NE
-	OP_FLT_LT
-	OP_FLT_LTEQ
-
-	OP_INT_CAST
-	OP_FLOAT_CAST
-	OP_INT_TO_F
-	OP_FLT_TO_I
-
-	OP_PTR_ADD
-	OP_PTR_SUB
-	OP_PTR_EQ
-	OP_PTR_LT
-	OP_PTR_LTEQ
-	OP_PTR_CAS		;-- compare and swap
-	OP_PTR_LOAD
-	OP_PTR_STORE
-	OP_GET_PTR
+	OP_PTR_ADD			;-- 50
+	OP_PTR_SUB			;-- 51
+	OP_PTR_EQ			;-- 52
+	OP_PTR_LT			;-- 53
+	OP_PTR_LTEQ			;-- 54
+	OP_PTR_CAS			;-- 55 compare and swap
+	OP_PTR_LOAD			;-- 56
+	OP_PTR_STORE		;-- 57
+	OP_GET_PTR			;-- 58
 	
-	OP_DEFAULT_VALUE
+	OP_DEFAULT_VALUE	;-- 59
 	
-	OP_CALL_FUNC
+	OP_CALL_FUNC		;-- 60
 
-	OP_GET_GLOBAL
-	OP_SET_GLOBAL
-	OP_SET_LOCAL
+	OP_SET_FIELD		;-- 61
+	OP_GET_FIELD		;-- 62
+	OP_GET_GLOBAL		;-- 63
+	OP_SET_GLOBAL		;-- 64
+	OP_SET_LOCAL		;-- 65
 
-	OP_CPU_IP		;-- get instruction pointer
-	OP_CPU_SP		;-- get stack pointer
+	OP_CPU_IP			;-- 66 get instruction pointer
+	OP_CPU_SP			;-- 67 get stack pointer
 ]
 
 #enum instr-flag! [
@@ -169,6 +171,8 @@ instr-flags: [
 	0	;--OP_DEFAULT_VALUE
 	0	;--OP_CALL_FUNC
 
+	0	;--OP_SET_FIELD
+	0	;--OP_GET_FIELD
 	0	;--OP_GET_GLOBAL
 	0	;--OP_SET_GLOBAL
 	0	;--OP_SET_LOCAL

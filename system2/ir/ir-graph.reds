@@ -26,6 +26,7 @@ Red/System [
 #define INSTR_END?(i) (i/header >>> 8 and F_INS_END <> 0)
 #define INSTR_PHI?(i) (i/header and FFh = INS_PHI)
 #define INSTR_CONST?(i) (i/header and FFh = INS_CONST)
+#define INSTR_OP?(i) (i/header and FFh >= OP_BOOL_EQ)
 
 ;; a control flow edge
 cf-edge!: alias struct! [
@@ -191,6 +192,22 @@ input1: func [
 	p: p + 1
 	e: as df-edge! p/value
 	e/dst
+]
+
+instr-type?: func [
+	i		[instr!]
+	return: [rst-type!]
+	/local
+		o	[instr-op!]
+		v	[instr-var!]
+][
+	either INSTR_OP?(i) [
+		o: as instr-op! i
+		o/ret-type
+	][
+		v: as instr-var! i
+		v/type
+	]
 ]
 
 instr-input: func [
@@ -465,7 +482,7 @@ ir-graph: context [
 				gen-var-write var/decl val ctx
 			]
 			RST_PATH [
-				0
+				gen-path-write as path! lhs val ctx
 			]
 			default [0]
 		]
@@ -490,20 +507,8 @@ ir-graph: context [
 		add-op op null ctx
 	]
 
-	visit-var: func [v [variable!] ctx [ssa-ctx!] return: [instr!]
-		/local
-			decl	[var-decl!]
-			op		[instr-op!]
-	][
-		decl: v/decl
-		either LOCAL_VAR?(decl) [
-			get-cur-val decl/ssa ctx/cur-vals
-		][
-			record-global decl
-			op: make-op OP_GET_GLOBAL 0 null decl/type
-			op/target: as int-ptr! decl
-			add-op op null ctx
-		]
+	visit-var: func [v [variable!] ctx [ssa-ctx!] return: [instr!]][
+		gen-var-read v/decl ctx
 	]
 
 	visit-get-ptr: func [g [get-ptr!] ctx [ssa-ctx!] return: [instr!]
@@ -1677,6 +1682,71 @@ ir-graph: context [
 		r/header: F_INS_END << 8 or INS_RETURN
 		set-inputs as instr! r as ptr-array! :arr
 		block-append-instr ctx/block as instr! r
+	]
+
+	gen-path-write: func [
+		p		[path!]
+		val		[instr!]
+		ctx		[ssa-ctx!]
+		return: [instr!]
+		/local
+			var		[var-decl!]
+			type	[rst-type!]
+			m		[member!]
+			obj		[instr!]
+			op		[instr-op!]
+			ptypes	[ptr-ptr!]
+			args	[array-2! value]
+	][
+		var: p/receiver
+		obj: gen-var-read var ctx
+
+		type: var/type
+		switch TYPE_KIND(type) [
+			RST_TYPE_STRUCT [
+				m: p/subs
+				until [
+					either null? m/next [
+						ptypes: as ptr-ptr! malloc 2 * size? int-ptr!
+						op: make-op OP_SET_FIELD 2 ptypes type-system/void-type
+						ptypes/value: as int-ptr! type
+						ptypes: ptypes + 1
+						ptypes/value: as int-ptr! m/type
+						INIT_ARRAY_2(args obj val)
+						add-op op as ptr-array! :args ctx
+					][
+						ptypes: as ptr-ptr! malloc size? int-ptr!
+						ptypes/value: as int-ptr! type
+						op: make-op OP_GET_FIELD 1 ptypes m/type
+						type: m/type
+						INIT_ARRAY_VALUE(args obj)
+						obj: add-op op as ptr-array! :args ctx
+					]
+					op/target: as int-ptr! m
+					m: m/next
+					null? m
+				]
+			]
+			default [0]
+		]
+		val
+	]
+
+	gen-var-read: func [
+		decl	[var-decl!]
+		ctx		[ssa-ctx!]
+		return: [instr!]
+		/local
+			op	[instr-op!]
+	][
+		either LOCAL_VAR?(decl) [
+			get-cur-val decl/ssa ctx/cur-vals
+		][
+			record-global decl
+			op: make-op OP_GET_GLOBAL 0 null decl/type
+			op/target: as int-ptr! decl
+			add-op op null ctx
+		]
 	]
 
 	gen-var-write: func [

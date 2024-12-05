@@ -96,6 +96,7 @@ parse-struct: func [
 	p: as struct-field! malloc n * size? struct-field!
 	st: xmalloc(struct-type!)
 	SET_TYPE_KIND(st RST_TYPE_STRUCT)
+	st/size: -1
 	st/n-fields: n
 	st/fields: p
 
@@ -335,6 +336,7 @@ type-checker: context [
 			p		[int-ptr!]
 			ssa		[ssa-var!]
 			var		[variable!]
+			path	[path!]
 	][
 		switch NODE_TYPE(e) [
 			RST_VAR [
@@ -355,7 +357,14 @@ type-checker: context [
 				]
 				decl/type
 			]
-			default [null]
+			RST_PATH [
+				path: as path! e
+				path/type
+			]
+			default [
+				unreachable e/token
+				null
+			]
 		]
 	]
 

@@ -1218,15 +1218,17 @@ rrsd-to-addr: func [
 	p: p + 1
 	imm: as immediate! p/value
 	val: imm/value
-	switch TYPE_OF(val) [
-		TYPE_ADDR [
-			disp: ABS_ADDR
+	either null? val [disp: 0][
+		switch TYPE_OF(val) [
+			TYPE_ADDR [
+				disp: ABS_ADDR
+			]
+			TYPE_INTEGER [
+				int: as red-integer! val
+				disp: int/value
+			]
+			default [disp: 0]
 		]
-		TYPE_INTEGER [
-			int: as red-integer! val
-			disp: int/value
-		]
-		default [disp: 0]
 	]
 	addr/base: base
 	addr/index: index

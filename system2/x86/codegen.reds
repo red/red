@@ -1347,6 +1347,69 @@ x86: context [
 		emit-instr cg I_JC or M_FLAG_FIXED or (cond/index << COND_SHIFT)
 	]
 
+	add-vals: func [
+		v1		[cell!]
+		v2		[cell!]
+		return: [cell!]
+		/local
+			v	[cell!]
+			n1	[red-integer!]
+			n2	[red-integer!]
+	][
+		if null? v1 [return v2]
+		if null? v2 [return v1]
+		switch TYPE_OF(v1) [
+			TYPE_INTEGER [
+				switch TYPE_OF(v2) [
+					TYPE_INTEGER [
+						v: xmalloc(cell!)
+						copy-cell v1 v
+						n1: as red-integer! v
+						n2: as red-integer! v2
+						n1/value: n1/value + n2/value
+						v
+					]
+					default [null]
+				]
+			]
+			default [null]
+		]
+	]
+
+	match-addr-add: func [
+		i		[instr!]
+		disp	[cell!]
+		addr	[rrsd!]
+		/local
+			p	[ptr-ptr!]
+			x y [instr!]
+			c	[instr-const!]
+			disp2 [cell!]
+	][
+		p: ARRAY_DATA(i/inputs)
+		x: as instr! p/value
+		p: p + 1
+		y: as instr! p/value
+		if INSTR_CONST?(x) [
+			c: as instr-const! x
+			disp2: add-vals disp c/value
+			if disp2 <> null [
+				match-addr-add y disp2 addr
+				exit
+			]
+		]
+		if INSTR_CONST?(y) [
+			c: as instr-const! y
+			disp2: add-vals disp c/value
+			if disp2 <> null [
+				match-addr-add x disp2 addr
+				exit
+			]
+		]
+		addr/base: i
+		addr/disp: disp
+	]
+
 	match-rrsd: func [
 		cg		[codegen!]
 		i		[instr!]
@@ -1379,7 +1442,17 @@ x86: context [
 				addr/scale: 1
 				addr/disp: as cell! int
 			]
-			default [0]
+			OP_PTR_ADD [
+				match-addr-add i null addr
+				addr/index: null
+				addr/scale: 1
+			]
+			default [
+				addr/base: i
+				addr/index: null
+				addr/scale: 1
+				addr/disp: null
+			]
 		]
 	]
 
@@ -1473,6 +1546,13 @@ x86: context [
 			use-reg cg val
 		]
 		emit-instr cg op
+	]
+
+	emit-ptr-add: func [
+		cg		[codegen!]
+		i		[instr!]
+	][
+		0
 	]
 
 	emit-get-ptr: func [
@@ -1595,7 +1675,7 @@ x86: context [
 			m	  [instr-matcher!]
 			op	  [integer!]
 	][
-		;ir-printer/print-instr i
+		ir-printer/print-instr i print lf
 		switch INSTR_OPCODE(i) [
 			OP_BOOL_EQ
 			OP_BOOL_NOT
@@ -1659,8 +1739,9 @@ x86: context [
 			OP_GET_PTR			[emit-get-ptr cg i]
 			OP_PTR_LOAD			[emit-ptr-load cg i]
 			OP_PTR_STORE		[emit-ptr-store cg i]
+			OP_PTR_ADD			[emit-ptr-add cg i]
 			default [
-				prin "codegen: unknown op"
+				probe ["codegen: unknown op " INSTR_OPCODE(i)]
 			]
 		]
 	]
