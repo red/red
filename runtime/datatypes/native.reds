@@ -76,7 +76,7 @@ native: context [
 			]
 			field = words/body [
 				type: GET_OP_SUBTYPE(native)
-				either all [TYPE_OF(native) = TYPE_OP type = TYPE_FUNCTION type = TYPE_ROUTINE][
+				either all [TYPE_OF(native) = TYPE_OP any [type = TYPE_FUNCTION type = TYPE_ROUTINE]][
 					s: as series! native/more/value
 					stack/set-last s/offset
 				][
