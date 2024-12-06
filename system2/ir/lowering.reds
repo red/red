@@ -282,9 +282,18 @@ lowering: context [
 		ctx		[ssa-ctx!]
 		return: [instr!]
 		/local
+			ofs [instr!]
+			int [red-integer!]
 			op	[instr-op!]
 			args [array-value!]
 	][
+		if offset <> 0 [
+			int: xmalloc(red-integer!)
+			int/header: TYPE_INTEGER
+			int/value: offset
+			ofs: as instr! ir-graph/const-int int ctx/graph
+			base: ptr-add base ofs ctx
+		]
 		op: ir-graph/make-op OP_PTR_LOAD 0 null vtype
 		INIT_ARRAY_VALUE(args base)
 		ir-graph/add-op op as ptr-array! :args ctx
@@ -450,6 +459,35 @@ lowering: context [
 		remove-instr i
 	]
 
+	gen-get-field: func [
+		i		[instr!]
+		env		[lowering-env!]
+		/local
+			o		[instr-op!]
+			m		[member!]
+			p		[ptr-ptr!]
+			ty		[struct-type!]
+			vt		[rst-type!]
+			base	[instr!]
+			offset	[integer!]
+			inputs	[ptr-array!]
+			new		[ptr-array!]
+	][
+		inputs: refresh-dests i/inputs env
+		
+		o: as instr-op! i
+		p: o/param-types
+		ty: as struct-type! p/value	;-- struct type
+
+		m: as member! o/target
+		vt: m/type
+		offset: field-offset? ty m/index
+		base: as instr! ptr-array/pick inputs 0
+		new: gen-loads vt base offset env/cur-ctx
+		map-n i new env
+	]
+
+
 	gen-op: func [
 		i		[instr!]
 		env		[lowering-env!]
@@ -480,8 +518,9 @@ lowering: context [
 			OP_SET_GLOBAL		[gen-set-global i env]
 			OP_SET_LOCAL		[gen-set-local i env]
 			OP_SET_FIELD		[gen-set-field i env]
+			OP_GET_FIELD		[gen-get-field i env]
 			default [
-				probe ["Internal Error: Unknown Opcode: " INSTR_OPCODE(i)]
+				dprint ["Internal Error: Unknown Opcode: " INSTR_OPCODE(i)]
 			]
 		]
 		either i <> new [map i new env][MARK_INS(i env/mark)]

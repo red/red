@@ -662,7 +662,7 @@ ir-graph: context [
 	]
 
 	visit-path: func [p [path!] ctx [ssa-ctx!] return: [instr!]][
-		null
+		gen-path-read p ctx
 	]
 
 	visit-any-all: func [p [path!] ctx [ssa-ctx!] return: [instr!]][
@@ -1730,6 +1730,43 @@ ir-graph: context [
 			default [0]
 		]
 		val
+	]
+
+	gen-path-read: func [
+		p		[path!]
+		ctx		[ssa-ctx!]
+		return: [instr!]
+		/local
+			var		[var-decl!]
+			type	[rst-type!]
+			m		[member!]
+			obj		[instr!]
+			op		[instr-op!]
+			ptypes	[ptr-ptr!]
+			args	[array-value!]
+	][
+		var: p/receiver
+		obj: gen-var-read var ctx
+
+		type: var/type
+		switch TYPE_KIND(type) [
+			RST_TYPE_STRUCT [
+				m: p/subs
+				until [
+					ptypes: as ptr-ptr! malloc size? int-ptr!
+					ptypes/value: as int-ptr! type
+					op: make-op OP_GET_FIELD 1 ptypes m/type
+					op/target: as int-ptr! m
+					type: m/type
+					INIT_ARRAY_VALUE(args obj)
+					obj: add-op op as ptr-array! :args ctx
+					m: m/next
+					null? m
+				]
+			]
+			default [0]
+		]
+		obj
 	]
 
 	gen-var-read: func [

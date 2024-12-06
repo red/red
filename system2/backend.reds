@@ -1442,8 +1442,6 @@ backend: context [
 			len		[integer!]
 			cls		[integer!]
 			type	[rst-type!]
-			ivar	[instr-var!]
-			op		[instr-op!]
 			idx		[integer!]
 			vregs	[vector!]
 	][
@@ -1455,13 +1453,7 @@ backend: context [
 			either INSTR_FLAGS(i) and F_NOT_VOID = 0 [
 				return null
 			][
-				type: either INSTR_OPCODE(i) >= OP_BOOL_EQ [
-					op: as instr-op! i
-					op/ret-type
-				][
-					ivar: as instr-var! i
-					ivar/type
-				]
+				type: instr-type? i
 				cls: reg-class? type
 			]
 			i/mark: mark

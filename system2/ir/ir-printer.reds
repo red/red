@@ -98,11 +98,12 @@ ir-printer: context [
 				prin "set " prin-token var/token
 			]
 			OP_PTR_LOAD	[
-				prin "load"
+				prin "ptr load"
 			]
 			OP_PTR_STORE [
-				print "store"
+				print "ptr store"
 			]
+			OP_PTR_ADD [print "ptr add"]
 			OP_GET_PTR [
 				print "get-ptr"
 			]

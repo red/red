@@ -1548,13 +1548,6 @@ x86: context [
 		emit-instr cg op
 	]
 
-	emit-ptr-add: func [
-		cg		[codegen!]
-		i		[instr!]
-	][
-		0
-	]
-
 	emit-get-ptr: func [
 		cg		[codegen!]
 		i		[instr!]
@@ -1739,9 +1732,12 @@ x86: context [
 			OP_GET_PTR			[emit-get-ptr cg i]
 			OP_PTR_LOAD			[emit-ptr-load cg i]
 			OP_PTR_STORE		[emit-ptr-store cg i]
-			OP_PTR_ADD			[emit-ptr-add cg i]
+			OP_PTR_ADD			[
+				matcher/bin-op cg/m i		;-- init instr matcher with i
+				emit-simple-binop cg I_ADDD i
+			]
 			default [
-				probe ["codegen: unknown op " INSTR_OPCODE(i)]
+				dprint ["codegen: unknown op " INSTR_OPCODE(i)]
 			]
 		]
 	]
