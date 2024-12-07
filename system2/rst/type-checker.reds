@@ -303,7 +303,7 @@ type-checker: context [
 			either type-system/promotable? type expected [
 				e/cast-type: expected
 			][
-				throw-error [e/token msg "expected" type-name expected  ", got" type-name type]
+				throw-error [e/token msg "expected" type-name expected ", got" type-name type]
 			]
 		]
 	]

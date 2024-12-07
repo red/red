@@ -524,6 +524,7 @@ type-system: context [
 					return conv_illegal
 				]
 			]
+			default [conv_illegal]
 		]
 		conv_illegal
 	]

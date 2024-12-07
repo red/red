@@ -233,9 +233,16 @@ var-decl!: alias struct! [	;-- variable declaration
 	init		[rst-expr!]	;-- init expression or parameter idx
 	typeref		[red-block!]
 	type		[rst-type!]
-	ssa			[ssa-var!]
 	data-idx	[integer!]	;-- for global var, index in data section
 	blkref		[red-block!]
+	ssa			[ssa-var!]
+]
+
+declare!: alias struct! [
+	RST_EXPR_FIELDS(declare!)
+	data-idx	[integer!]	 ;-- @@ keep it the same offset as in var-decl!
+	blkref		[red-block!] ;-- @@ keep it the same offset as in var-decl!
+	typeref		[cell!]
 ]
 
 sub-fn!: alias struct! [
@@ -315,11 +322,6 @@ cast!: alias struct! [
 	RST_EXPR_FIELDS(cast!)
 	typeref		[cell!]
 	expr		[rst-expr!]
-]
-
-declare!: alias struct! [
-	RST_EXPR_FIELDS(declare!)
-	typeref		[cell!]
 ]
 
 assignment!: alias struct! [

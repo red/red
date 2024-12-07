@@ -698,9 +698,13 @@ ir-graph: context [
 		null
 	]
 
-	visit-declare: func [r [case!] ctx [ssa-ctx!] return: [instr!]
+	visit-declare: func [d [declare!] ctx [ssa-ctx!] return: [instr!]
+		/local op [instr-op!]
 	][
-		null
+		record-global as var-decl! d
+		op: make-op OP_GET_GLOBAL 0 null d/type
+		op/target: as int-ptr! d
+		add-op op null ctx
 	]
 
 	visit-throw: func [r [case!] ctx [ssa-ctx!] return: [instr!]
