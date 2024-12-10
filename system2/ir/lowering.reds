@@ -487,6 +487,41 @@ lowering: context [
 		map-n i new env
 	]
 
+	gen-array-get: func [
+		i		[instr!]
+		env		[lowering-env!]
+		/local
+			o		[instr-op!]
+			m		[member!]
+			vt		[rst-type!]
+			base	[instr!]
+			inputs	[ptr-array!]
+			new		[ptr-array!]
+			p		[ptr-ptr!]
+			p2		[ptr-ptr!]
+			ctx		[ssa-ctx!]
+	][
+		inputs: refresh-dests i/inputs env
+
+		ctx: env/cur-ctx
+		o: as instr-op! i
+		m: as member! o/target
+		vt: m/type
+		p: ARRAY_DATA(inputs)
+		p2: p + 1
+		base: ptr-add as instr! p/value as instr! p2/value ctx
+		new: gen-loads vt base 0 ctx
+		map-n i new env
+	]
+
+	gen-array-set: func [
+		i		[instr!]
+		env		[lowering-env!]
+		/local
+			o	[instr-op!]
+	][
+		0
+	]
 
 	gen-op: func [
 		i		[instr!]
@@ -519,6 +554,8 @@ lowering: context [
 			OP_SET_LOCAL		[gen-set-local i env]
 			OP_SET_FIELD		[gen-set-field i env]
 			OP_GET_FIELD		[gen-get-field i env]
+			OP_ARRAY_GET		[gen-array-get i env]
+			OP_ARRAY_SET		[gen-array-set i env]
 			default [
 				dprint ["Internal Error: Unknown Opcode: " INSTR_OPCODE(i)]
 			]

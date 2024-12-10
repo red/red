@@ -83,6 +83,9 @@ Red/System [
 
 	OP_CPU_IP			;-- 66 get instruction pointer
 	OP_CPU_SP			;-- 67 get stack pointer
+
+	OP_ARRAY_GET		;-- 68
+	OP_ARRAY_SET		;-- 69
 ]
 
 #enum instr-flag! [
@@ -179,6 +182,9 @@ instr-flags: [
 
 	0	;-- OP_CPU_IP
 	0	;-- OP_CPU_SP
+
+	0	;-- OP_ARRAY_GET
+	0	;-- OP_ARRAY_SET
 ]
 
 ;-- mach instr opcode

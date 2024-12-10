@@ -1959,6 +1959,7 @@ parser: context [
 		m: xmalloc(member!)
 		SET_NODE_TYPE(m RST_MEMBER)
 		m/token: name
+		m/index: -1
 		m
 	]
 
@@ -2207,7 +2208,7 @@ parser: context [
 							]
 							TYPE_INTEGER [
 								int: as red-integer! val
-								idx: int/value
+								idx: int/value - 1
 							]
 							TYPE_PAREN [
 								m/expr: parse-paren as red-block! val ctx
@@ -2218,6 +2219,7 @@ parser: context [
 						t: ptr/type
 						m/type: t
 						m/index: idx
+						if idx < 0 [throw-error [pc "cannot use negative index value" val]]
 						sub: as rst-node! m
 					]
 					default [throw-error [pc "invalid path"]]

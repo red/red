@@ -496,7 +496,20 @@ type-checker: context [
 		type-system/void-type
 	]
 
-	visit-path: func [p [path!] ctx [context!] return: [rst-type!]][
+	visit-path: func [p [path!] ctx [context!] return: [rst-type!]
+		/local var [var-decl!] type [rst-type!] t [integer!] m [member!]
+	][
+		var: p/receiver
+		type: var/type
+		t: TYPE_KIND(type)
+		if any [t = RST_TYPE_PTR t = RST_TYPE_ARRAY][
+			m: p/subs
+			until [
+				if m/expr <> null [check-expr "Path Index:" m/expr type-system/integer-type ctx]
+				m: m/next
+				null? m
+			]
+		]
 		p/type
 	]
 

@@ -1736,6 +1736,53 @@ ir-graph: context [
 		val
 	]
 
+	path-member-read: func [
+		obj		[instr!]
+		type	[rst-type!]
+		m		[member!]
+		ctx		[ssa-ctx!]
+		return: [instr!]
+		/local
+			op		[instr-op!]
+			pp		[ptr-ptr!]
+			ptypes	[ptr-ptr!]
+			args	[array-2! value]
+			idx		[instr!]
+			int		[red-integer!]
+	][
+		switch TYPE_KIND(type) [
+			RST_TYPE_STRUCT [
+				ptypes: as ptr-ptr! malloc size? int-ptr!
+				ptypes/value: as int-ptr! type
+				op: make-op OP_GET_FIELD 1 ptypes m/type
+				op/target: as int-ptr! m
+				INIT_ARRAY_VALUE(args obj)
+			]
+			RST_TYPE_PTR RST_TYPE_ARRAY [
+				ptypes: as ptr-ptr! malloc 2 * size? int-ptr!
+				pp: ptypes
+				pp/value: as int-ptr! type
+				pp: pp + 1
+				pp/value: as int-ptr! type-system/integer-type		;-- index type
+				op: make-op OP_ARRAY_GET 2 ptypes m/type
+				op/target: as int-ptr! m
+
+				idx: either m/expr <> null [gen-expr m/expr ctx][
+					int: as red-integer! m/token
+					int/header: TYPE_INTEGER
+					int/value: m/index
+					as instr! const-int int ctx/graph
+				]
+				INIT_ARRAY_2(args obj idx)
+			]
+			default [
+				dprint ["path-member-read error: " type]
+				halt
+			]
+		]
+		add-op op as ptr-array! :args ctx
+	]
+
 	gen-path-read: func [
 		p		[path!]
 		ctx		[ssa-ctx!]
@@ -1745,30 +1792,17 @@ ir-graph: context [
 			type	[rst-type!]
 			m		[member!]
 			obj		[instr!]
-			op		[instr-op!]
-			ptypes	[ptr-ptr!]
-			args	[array-value!]
 	][
 		var: p/receiver
 		obj: gen-var-read var ctx
 
+		m: p/subs
 		type: var/type
-		switch TYPE_KIND(type) [
-			RST_TYPE_STRUCT [
-				m: p/subs
-				until [
-					ptypes: as ptr-ptr! malloc size? int-ptr!
-					ptypes/value: as int-ptr! type
-					op: make-op OP_GET_FIELD 1 ptypes m/type
-					op/target: as int-ptr! m
-					type: m/type
-					INIT_ARRAY_VALUE(args obj)
-					obj: add-op op as ptr-array! :args ctx
-					m: m/next
-					null? m
-				]
-			]
-			default [0]
+		until [
+			obj: path-member-read obj type m ctx
+			type: m/type
+			m: m/next
+			null? m
 		]
 		obj
 	]
