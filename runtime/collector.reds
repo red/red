@@ -259,10 +259,10 @@ collector: context [
 				new: dst/head							;-- alloc node slot in dst frame
 				dst/head: as node! new/value			;-- set free list head to next free slot
 				new/value: as-integer node
-				_hashtable/rs-put refs as-integer slot as-integer new	;-- store old (key), new (value) pair				
+				_hashtable/rs-put refs as-integer slot as-integer new	;-- store old (key), new (value) pair
 				s: as series! node
-				s/node: new								;-- update back-reference	
-				;print-line ["rellocation node: " slot " from frame " src " to " dst]				
+				s/node: new								;-- update back-reference
+				;print-line ["rellocation node: " slot " from frame " src " to " dst]
 				src/used: src/used - 1
 				dst/used: dst/used + 1
 			]
@@ -881,7 +881,7 @@ collector: context [
 						map: map + 1					;-- next 31 slots bitmap
 						not ext?						;-- loop until no more extended slots
 					]
-					idx:  -2							;-- arguments index (1-based)
+					idx:  -2							;-- locals index (1-based)
 					disp: -1							;-- scanning direction
 				]
 			]
