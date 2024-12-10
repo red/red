@@ -767,19 +767,23 @@ emitter: make-profilable context [
 		size
 	]
 	
+	reverse-fields: func [spec [block!]][
+		take/last head insert reverse spec: copy spec '_
+		spec
+	]
+	
 	foreach-field: func [spec [block!] body [block!] /local type][
 		all [
 			'value = last spec
 			'struct! <> spec/1
-			spec: second compiler/find-aliased spec/1
+			spec: reverse-fields second compiler/find-aliased spec/1
 		]
 		body: bind/copy body 'type
 		if block? spec/1 [spec: next spec]				;-- skip struct's [attributs] if present
 
-		foreach [name t] spec [
-			either 'value = last type: t [
-				t: compiler/find-aliased t/1
-				foreach-field t/2 body
+		forskip spec 2 [
+			either 'value = last type: spec/2 [
+				foreach-field second compiler/find-aliased spec/2/1 body
 			][
 				do body
 			]
@@ -838,9 +842,9 @@ emitter: make-profilable context [
 					either compiler/any-pointer?/with spec ts [
 						either 'value = last spec [
 							foreach-field spec [
-								step: pick 2x1 to logic! find [float! float64!] spec/1
+								step: pick 2x1 to logic! find [float! float64!] type/1
 								if compiler/any-pointer?/with type ts [
-									bits: bits + (shift/left 1 i)
+									bits: bits or (shift/left 1 i)
 								]
 								if (i: i + step) > 30 store
 							]
