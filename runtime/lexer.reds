@@ -602,6 +602,7 @@ lexer: context [
 				assert s/buffer <= s/tail
 				collector/mark-values s/buffer s/tail
 				if s/in-series <> null [collector/keep :s/in-series/node]
+				if s/fun-ptr   <> null [collector/mark-values as cell! s/fun-ptr as cell! s/fun-ptr + 1]
 				s: s/next
 				null? s
 			]
