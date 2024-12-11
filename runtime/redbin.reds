@@ -2093,6 +2093,7 @@ redbin: context [
 			argb:   binary/load pixels size
 			
 			slot: as red-image! ALLOC_TAIL(parent)
+			slot/header: TYPE_UNSET						;-- ensures GC-safety
 			slot/head: data/2
 			slot/size: data/3
 			slot/node: OS-image/make-image width height null null null
