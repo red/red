@@ -235,7 +235,8 @@ collector: context [
 		src		[node-frame!]
 		refs	[int-ptr!]
 		/local
-			ptr slot head tail new [int-ptr!]
+			slot head tail new [node!]
+			ptr [int-ptr!]
 			frame dst  [node-frame!]
 			s [series!]
 			select-dst [subroutine!]
@@ -248,8 +249,8 @@ collector: context [
 		]
 		
 		dst: select-dst
-		head: as int-ptr! src + 1						;-- skip frame header
-		slot: head										;-- 1st node's value slot
+		head: as node! src + 1							;-- skip frame header
+		slot: head										;-- 1st node slot
 		tail: slot + src/nodes
 
 		loop src/nodes [								;-- loop over each node's value in frame
@@ -257,12 +258,12 @@ collector: context [
 			if all [ptr <> null any [ptr < head  tail < ptr]][	;-- move node's value to dst frame if node is not part of the internal free list
 				if null? dst/head [dst: select-dst]		;-- if dst frame is full, find a new one
 				new: dst/head							;-- alloc node slot in dst frame
-				dst/head: as int-ptr! new/value			;-- set free list head to next free slot
+				dst/head: as node! new/value			;-- set free list head to next free slot
 				new/value: as-integer ptr
 				_hashtable/rs-put refs as-integer slot as-integer new	;-- store old (key), new (value) pair
+				;print-line ["relocating node: " slot " from frame " src " to " dst " (new: " new ")"]
 				s: as series! ptr
 				s/node: new								;-- update back-reference
-				;print-line ["rellocation node: " slot " from frame " src " to " dst]
 				src/used: src/used - 1
 				dst/used: dst/used + 1
 			]
@@ -311,12 +312,12 @@ collector: context [
 			s	  [series!]
 			new?  [logic!]
 			flags [integer!]
-			new [node!]
+			new	  [node!]
 	][
 		if refs <> null [
 			new: _hashtable/rs-get refs ptr/value
 			if new <> null [
-				;probe ["(keep) ptr: " ptr ", node: " ptr/value ", new: " as node! new/value]
+				;probe ["(keep) ptr: " ptr ", node: " as node! ptr/value ", new: " as node! new/value]
 				ptr/value: new/value
 			]
 		]	
