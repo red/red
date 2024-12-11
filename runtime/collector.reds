@@ -235,9 +235,9 @@ collector: context [
 		src		[node-frame!]
 		refs	[int-ptr!]
 		/local
-			s [series!]
+			ptr slot head tail new [int-ptr!]
 			frame dst  [node-frame!]
-			node slot head tail new [node!]
+			s [series!]
 			select-dst [subroutine!]
 	][
 		select-dst: [									;-- subroutine for finding a destination frame
@@ -248,19 +248,19 @@ collector: context [
 		]
 		
 		dst: select-dst
-		head: as node! src + 1							;-- skip frame header
-		slot: head
+		head: as int-ptr! src + 1						;-- skip frame header
+		slot: head										;-- 1st node's value slot
 		tail: slot + src/nodes
 
-		loop src/nodes [								;-- loop over each nodes in frame
-			node: as node! slot/value
-			if all [node <> null any [node < head  tail < node]][	;-- move node to dst frame if node is not part of the internal free list
+		loop src/nodes [								;-- loop over each node's value in frame
+			ptr: as int-ptr! slot/value
+			if all [ptr <> null any [ptr < head  tail < ptr]][	;-- move node's value to dst frame if node is not part of the internal free list
 				if null? dst/head [dst: select-dst]		;-- if dst frame is full, find a new one
 				new: dst/head							;-- alloc node slot in dst frame
-				dst/head: as node! new/value			;-- set free list head to next free slot
-				new/value: as-integer node
+				dst/head: as int-ptr! new/value			;-- set free list head to next free slot
+				new/value: as-integer ptr
 				_hashtable/rs-put refs as-integer slot as-integer new	;-- store old (key), new (value) pair
-				s: as series! node
+				s: as series! ptr
 				s/node: new								;-- update back-reference
 				;print-line ["rellocation node: " slot " from frame " src " to " dst]
 				src/used: src/used - 1
