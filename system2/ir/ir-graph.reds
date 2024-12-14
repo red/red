@@ -1215,7 +1215,7 @@ ir-graph: context [
 				p/value: as int-ptr! val
 			]
 			idx = -1 [var/instr: val]
-			idx = -2 [
+			idx = -2 [		;-- local is forced on stack
 				arr: as ptr-ptr! malloc size? int-ptr!
 				arr/value: as int-ptr! type
 				op: make-op OP_SET_LOCAL 1 arr type-system/void-type
@@ -1813,9 +1813,17 @@ ir-graph: context [
 		return: [instr!]
 		/local
 			op	[instr-op!]
+			t	[rst-type!]
 	][
 		either LOCAL_VAR?(decl) [
-			get-cur-val decl/ssa ctx/cur-vals
+			t: decl/type
+			either STRUCT_VALUE?(t) [
+				op: make-op OP_GET_PTR 0 null t
+				op/target: as int-ptr! decl
+				add-op op null ctx
+			][
+				get-cur-val decl/ssa ctx/cur-vals
+			]
 		][
 			record-global decl
 			op: make-op OP_GET_GLOBAL 0 null decl/type
@@ -1852,8 +1860,6 @@ ir-graph: context [
 		var		[var-decl!]
 		ctx		[ssa-ctx!]
 		/local
-			val [instr!]
-			arr [array-value!]
 			ssa [ssa-var!]
 			idx [integer!]
 			p	[ptr-ptr!]

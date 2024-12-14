@@ -258,7 +258,15 @@ type-checker: context [
 		if TYPE_KIND(t1) = RST_TYPE_UNRESOLVED [
 			val/value: as int-ptr! resolve-typeref t1/typeref ctx
 		]
-		as rst-type! val/value
+		pc: pc + 1
+		t: as rst-type! val/value
+		if all [pc < end TYPE_KIND(t) = RST_TYPE_STRUCT][
+			w: as red-word! pc
+			if k_value = symbol/resolve w/symbol [
+				t/header: t/header or FLAG_ST_VALUE
+			]
+		]
+		t
 	]
 
 	check-expr: func [
@@ -358,8 +366,8 @@ type-checker: context [
 				decl/type
 			]
 			RST_PATH [
-				path: as path! e
-				path/type
+				probe "check-write-path"
+				visit-path as path! e ctx
 			]
 			default [
 				unreachable e/token
@@ -386,6 +394,24 @@ type-checker: context [
 		vector/remove-last ctx/loop-stack
 	]
 
+	check-struct-value: func [
+		var		[var-decl!]
+		ctx		[context!]
+		return: [rst-type!]
+		/local t [rst-type!] sv [ssa-var!]
+	][
+		t: var/type
+		probe ["struct header " as int-ptr! t/header]
+		if all [LOCAL_VAR?(var) STRUCT_VALUE?(t)][
+			sv: var/ssa
+			if sv/index <> -2 [
+				sv/index: -2
+				sv/instr: ir-graph/make-local-var t
+			]
+		]
+		t
+	]
+
 	;; check assignment
 	visit-assign: func [
 		a [assignment!] ctx [context!] return: [rst-type!]
@@ -408,8 +434,10 @@ type-checker: context [
 		e/type
 	]
 
-	visit-var: func [v [variable!] ctx [context!] return: [rst-type!]][
-		infer-type v/decl ctx
+	visit-var: func [v [variable!] ctx [context!] return: [rst-type!] /local d [var-decl!]][
+		d: v/decl
+		infer-type d ctx
+		check-struct-value d ctx
 	]
 
 	visit-if: func [e [if!] ctx [context!] return: [rst-type!]
@@ -500,6 +528,7 @@ type-checker: context [
 		/local var [var-decl!] type [rst-type!] t [integer!] m [member!]
 	][
 		var: p/receiver
+		check-struct-value var ctx
 		type: var/type
 		t: TYPE_KIND(type)
 		if any [t = RST_TYPE_PTR t = RST_TYPE_ARRAY][

@@ -43,7 +43,7 @@ Red/System [
 #define TYPE_FLAGS(node) (node/header >>> 8)
 
 #define TYPE_HEADER [
-	header		[integer!]		;-- Kind: 0 - 7 bits and flags
+	header		[integer!]		;-- Kind: 0 - 7 bits, flags: 8 - 31
 	token		[cell!]
 ]
 
@@ -101,6 +101,7 @@ struct-field!: alias struct! [
 ]
 
 #define FLAG_ST_VALUE	0100h
+#define STRUCT_VALUE?(t) [t/header = (FLAG_ST_VALUE or RST_TYPE_STRUCT)]
 
 struct-type!: alias struct! [
 	TYPE_HEADER

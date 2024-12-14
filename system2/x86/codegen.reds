@@ -1347,6 +1347,22 @@ x86: context [
 		emit-instr cg I_JC or M_FLAG_FIXED or (cond/index << COND_SHIFT)
 	]
 
+	alloc-local-var: func [
+		cg		[codegen!]
+		ivar	[instr-var!]
+		return: [vreg!]
+		/local
+			type [rst-type!]
+			n	 [integer!]
+			v	 [vreg!]
+	][
+		v: get-vreg cg as instr! ivar
+		if zero? v/spill [
+			v/spill: frame-alloc cg/frame type-size? ivar/type
+		]
+		v
+	]
+
 	add-vals: func [
 		v1		[cell!]
 		v2		[cell!]
@@ -1430,9 +1446,8 @@ x86: context [
 			]
 			INS_PARAM
 			INS_VAR [
-				v: get-vreg cg i
+				v: alloc-local-var cg as instr-var! i
 				v/reg: x86-regs/esp
-				reg-allocator/alloc-slot cg/frame v
 				int: xmalloc(red-integer!)
 				int/header: TYPE_INTEGER
 				int/value: v/spill
@@ -1567,8 +1582,7 @@ x86: context [
 				var: as var-decl! e
 				either LOCAL_VAR?(var) [
 					sv: var/ssa
-					v: get-vreg cg sv/instr
-					reg-allocator/alloc-slot cg/frame v
+					v: alloc-local-var cg as instr-var! sv/instr
 					op: either target/arch = arch-x86 [I_LEAD][I_LEAQ]
 					op: op or AM_REG_OP
 					use-vreg cg v v/spill

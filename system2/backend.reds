@@ -591,6 +591,19 @@ directly-after?: func [ ;-- b directly after a?
 
 #define FRAME_SLOT_64	40000000h	;-- flag for a 64-bit stack slot
 
+frame-alloc: func [
+	f		[frame!]
+	sz		[integer!]
+	return: [integer!]
+	/local
+		n s [integer!]
+][
+	n: sz + f/slot-size - 1 / f/slot-size
+	s: f/cc/reg-set/spill-start + f/spill-vars
+	f/spill-vars: f/spill-vars + n
+	s
+]
+
 frame-alloc-slot: func [
 	f		[frame!]
 	cls		[reg-class!]
