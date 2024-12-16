@@ -89,6 +89,7 @@ node-frame!: alias struct! [				;-- node frame header
 	birth	[integer!]						;-- GC cycle runs when that node frame has been allocated
 	p-used	[integer!]						;-- used nodes at last GC cycle
 	a-used	[integer!]						;-- bit array of previously used states (1: unchanged/cycle, 0: changed)
+	locked? [logic!]						;-- frame is locked from new node allocations (scheduled to be freed)
 ]
 
 big-frame!: alias struct! [					;-- big frame header (for >= 2MB series)
@@ -272,6 +273,7 @@ alloc-node-frame: func [
 	frame/birth:  collector/stats/cycles
 	frame/p-used: 0
 	frame/a-used: 0
+	frame/locked?: no
 
 	either null? memory/n-head [
 		memory/n-head: frame				;-- first item in the list
@@ -306,6 +308,7 @@ free-node-frame: func [
 	]
 	if memory/n-active = frame [
 		memory/n-active: memory/n-tail		;-- reset active frame to last one @@
+		assert not memory/n-tail/locked?
 	]
 	assert not all [						;-- ensure that list is not empty
 		null? memory/n-head
@@ -326,7 +329,7 @@ alloc-node: func [
 	frame: memory/n-active					;-- take node from active node frame
 	if null? frame/head [
 		frame: memory/n-head
-		while [all [frame <> null frame/head = null]][frame: frame/next]
+		while [all [frame <> null any [frame/head = null frame/locked?]]][frame: frame/next]
 		if null? frame [frame: alloc-node-frame nodes-per-frame]
 		memory/n-active: frame
 	]
@@ -362,7 +365,7 @@ collect-node-frames: func [
 	frame: memory/n-head
 	while [frame <> null][
 		next: frame/next
-		either zero? frame/used [
+		either any [zero? frame/used frame/locked?][
 			free-node-frame frame
 		][
 			if all [unset? frame/used < frame/nodes][

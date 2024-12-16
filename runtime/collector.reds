@@ -185,6 +185,7 @@ collector: context [
 				frm p e n node new [int-ptr!]
 				frm-nb w [integer!]
 		][
+			if zero? count [exit]
 			qsort as byte-ptr! list count 4 :compare-cb
 			p: frames-list/nodes/list
 			e: p + frames-list/nodes/count
@@ -193,30 +194,23 @@ collector: context [
 			
 			loop count [
 				node: as node! n/value
-				if collector/refs <> null [
-					new: _hashtable/rs-get collector/refs as-integer node
-					if new <> null [
-						;probe ["freeing node: " node ", new: " as node! new/value]
-						node: as node! new/value
-					]
-				]
 				while [
 					frm: as int-ptr! p/value + size? node-frame!
 					not all [frm <= node  node < as node! ((as byte-ptr! frm) + w)]
 				][
 					p: p + 1
-					assert p <= e
+					assert p <= e						;-- parent frame should always be found
 				]
 				free-node as node-frame! p/value node
+				n/value: 0								;-- not strictly needed, but cleaner that way.
 				n: n + 1
 			]
-			count: 0
+			count: 0									;-- resets the list to its head (clears the list content)
 		]
 	]
 	
-	enough-target-slots?: func [
-		src		[node-frame!]
-		return: [logic!]
+	calc-free-slots: func [
+		return: [integer!]
 		/local
 			frame [node-frame!]
 			cnt	  [integer!]
@@ -224,11 +218,11 @@ collector: context [
 		frame: memory/n-head
 		cnt: 0
 		until [
-			if frame <> src [cnt: cnt + nodes-per-frame - frame/used]
+			if all [frame/head <> null not frame/locked?][cnt: cnt + nodes-per-frame - frame/used]
 			frame: frame/next
 			frame = null
 		]
-		src/used < cnt
+		cnt
 	]
 
 	compact-node: func [
@@ -243,8 +237,8 @@ collector: context [
 	][
 		select-dst: [									;-- subroutine for finding a destination frame
 			frame: memory/n-head
-			while [all [frame <> null frame <> src frame/head = null]][frame: frame/next]
-			if any [null? frame frame = src][throw 1]	;-- no more free frames!
+			while [any [frame = src frame/head = null frame/locked?]][frame: frame/next]
+			assert frame <> null
 			frame
 		]
 		
@@ -264,18 +258,20 @@ collector: context [
 				;print-line ["relocating node: " slot " from frame " src " to " dst " (new: " new ")"]
 				s: as series! ptr
 				s/node: new								;-- update back-reference
-				src/used: src/used - 1
+				src/used: src/used - 1					;-- not strictly needed, just for sake of internal consistency
 				dst/used: dst/used + 1
 			]
 			slot: slot + 1
 		]
+		src/locked?: yes								;-- prevents new allocations, scheduled for freeing at end of GC pass
 	]
-		
+	
 	do-node-cycle: func [
 		/local
 			frame [node-frame!]
-			mask !mask cnt [integer!]
+			mask !mask cnt avail [integer!]
 	][
+		assert nodes-list/count = 0
 		!mask: 1
 		loop prefs/nodes-gc-trigger [
 			!mask: !mask << 1
@@ -283,36 +279,34 @@ collector: context [
 		]
 
 		cnt: 0
+		avail: calc-free-slots							;-- nb of potential free destination slots
 		frame: memory/n-head
-		catch 1 [										;-- if exception 1, stop compacting
-			until [
-				;probe [frame ", used: " frame/used ", free: " frame/nodes - frame/used ", birth: " frame/birth ", a-used: " as int-ptr! frame/a-used]
-				if all [
-					cnt >= prefs/nodes-core-nb
-					any [frame/a-used and !mask = !mask frame/used < 100]
-					frame/used < 5000
-					enough-target-slots? frame
-				][
-					if refs = null [refs: _hashtable/rs-init refs-size]
-					compact-node frame refs
-				]
-				cnt: cnt + 1
-				frame: frame/next
-				frame = null
+		until [
+			;probe [frame ", used: " frame/used ", free: " frame/nodes - frame/used ", birth: " frame/birth ", a-used: " as int-ptr! frame/a-used]
+			if all [
+				cnt >= prefs/nodes-core-nb
+				any [frame/a-used and !mask = !mask frame/used < 100]
+				frame/used < 5000						;-- only compact frames with < 50% usage
+				avail > 0
+			][
+				if refs = null [refs: _hashtable/rs-init refs-size]
+				avail: avail - frame/used
+				compact-node frame refs
 			]
+			cnt: cnt + 1
+			frame: frame/next
+			frame = null
 		]
-		system/thrown: 0
 	]
 	
 	keep: func [
 		ptr		[int-ptr!]
 		return: [logic!]								;-- TRUE if newly marked, FALSE if already done
 		/local
-			node  [node!]
+			node new [node!]
 			s	  [series!]
 			new?  [logic!]
 			flags [integer!]
-			new	  [node!]
 	][
 		if refs <> null [
 			new: _hashtable/rs-get refs ptr/value
