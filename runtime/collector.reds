@@ -253,7 +253,7 @@ collector: context [
 				if null? dst/head [dst: select-dst]		;-- if dst frame is full, find a new one
 				new: dst/head							;-- alloc node slot in dst frame
 				dst/head: as node! new/value			;-- set free list head to next free slot
-				new/value: as-integer ptr
+				new/value: as-integer ptr				;-- transfer the node's value
 				_hashtable/rs-put refs as-integer slot as-integer new	;-- store old (key), new (value) pair
 				;print-line ["relocating node: " slot " from frame " src " to " dst " (new: " new ")"]
 				s: as series! ptr
@@ -263,7 +263,7 @@ collector: context [
 			]
 			slot: slot + 1
 		]
-		src/locked?: yes								;-- prevents new allocations, scheduled for freeing at end of GC pass
+		src/locked?: yes								;-- prevents new allocations, schedules for freeing at end of GC pass
 	]
 	
 	do-node-cycle: func [

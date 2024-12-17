@@ -333,6 +333,7 @@ alloc-node: func [
 		if null? frame [frame: alloc-node-frame nodes-per-frame]
 		memory/n-active: frame
 	]
+	assert not frame/locked?
 	node: frame/head
 	frame/head: as node! node/value
 	node/value: 0
