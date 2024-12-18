@@ -1046,6 +1046,7 @@ collector: context [
 				stdout: saved
 				#if OS = 'Windows [platform/dos-console?: yes]
 			]
+			validate
 		]
 	]
 	
@@ -1067,5 +1068,115 @@ collector: context [
 			p: p + 1
 		]
 	]
+;comment {	
+	#if debug? = yes [
+		;== Memory integrity checkings ==
+		
+		#enum errors! [
+			NODE_FRM_HEAD: 1
+			NODE_FRM_NO_LOCK
+			NODE_FRM_SIZE
+			NODE_FRM_USED
+			NODE_FRM_FREE
+			NODE_FRM_USED_CTRL
+		]
+		
+		messages: [
+			"node frame's /prev is not Null at linked-list head"
+			"locked node frame not freed"
+			"node frame slots size invalid"
+			"node frame used slots value out of range"
+			"node frame free slots inconsistent"
+			"node frame counted used slots does not match frame's /used value"
+		]
+		
+		--assert: func [id [integer!] b [logic!]][
+			unless b [
+				print-line [
+					"^/** Error: "
+					as-c-string messages/id 
+					"! (" id ")^/stopping..."
+				]
+				quit -1
+			]
+		]
+
+		check-node-frames: func [
+			verbose [integer!]
+			/local
+				frame	[node-frame!]
+				p v [int-ptr!]
+				head tail slot [node!]
+				free used w [integer!]
+		][
+			if verbose > 0 [print lf]
+			
+			frame: memory/n-head
+			--assert NODE_FRM_HEAD frame/prev = null
+						
+			until [
+				;-- header checkings
+				--assert NODE_FRM_NO_LOCK	not frame/locked?
+				--assert NODE_FRM_SIZE		frame/nodes = nodes-per-frame
+				--assert NODE_FRM_USED		all [0 <= frame/used  frame/used <= nodes-per-frame]
+				
+				;-- free slots list consistency checking
+				free: 0
+				p: frame/head
+				
+				while [p <> null][
+					free: free + 1
+					p: as int-ptr! p/value				;-- next free slot
+				]
+				if verbose > 0 [probe ["Frame: " frame ", /used: " frame/used ", free: " free]]
+				--assert NODE_FRM_FREE nodes-per-frame - frame/used = free
+				
+				;-- full slots checking
+				head: as node! frame + 1				;-- skip frame header
+				slot: head
+				tail: slot + frame/nodes
+				w: nodes-per-frame * size? node!		;-- fixed node frame width
+				used: 0
+				
+				loop frame/nodes [
+					v: as int-ptr! slot/value
+					unless any [null? v all [head <= v v < tail]][
+						used: used + 1
+						;also check if part of series frame
+					]
+					slot: slot + 1
+				]
+				if verbose > 0 [probe ["Frame: " frame ", /used: " frame/used ", counted: " used]]
+				--assert NODE_FRM_USED_CTRL frame/used = used
+				
+				frame: frame/next
+				frame = null
+			]
+		]
+		
+		validate: func [
+			/local verbosity [integer!]
+		][
+			verbosity: 0
+			print-line "^/== Memory Checks=="
+			print "=> nodes frames checking..."
+			check-node-frames verbosity
+			print-line "OK"
+		]
+		
+		; series frames checkings (normal + big)
+		;	- frame header sanity checks
+		;   - series header checks
+		;	- values series header checks
+		
+		; node frames checkings
+		;	- frame header sanity checks
+		;	- nodes free list checks
+		;	- node's value validity check (series pointers)
 	
+		; check live values validity
+		; check all stack slot pointers validity
+	
+	]
+;}
 ]
