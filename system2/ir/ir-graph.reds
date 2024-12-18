@@ -678,9 +678,8 @@ ir-graph: context [
 		null
 	]
 
-	visit-case: func [r [case!] ctx [ssa-ctx!] return: [instr!]
-	][
-		null
+	visit-case: func [c [case!] ctx [ssa-ctx!] return: [instr!]][
+		visit-if c/cases ctx
 	]
 
 	visit-not: func [r [case!] ctx [ssa-ctx!] return: [instr!]

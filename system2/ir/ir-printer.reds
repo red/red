@@ -25,6 +25,10 @@ ir-printer: context [
 		either INSTR_OPCODE(i) = INS_CONST [
 			c: as instr-const! i
 			v: c/value
+			if null? v [
+				print ["&null"]
+				exit
+			]
 			switch TYPE_OF(v) [
 				TYPE_ADDR [
 					val: as val! v
