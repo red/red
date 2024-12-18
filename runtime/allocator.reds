@@ -93,10 +93,9 @@ node-frame!: alias struct! [				;-- node frame header
 ]
 
 big-frame!: alias struct! [					;-- big frame header (for >= 2MB series)
-	flags	[integer!]						;-- bit 30: 1 (type = big)
 	next	[big-frame!]					;-- next frame or null
+	prev	[big-frame!]					;-- always null (single linked-list)
 	size	[integer!]						;-- size (up to 4GB - size? header)
-	padding [integer!]						;-- make this header same size as series-buffer! header
 ]
 
 memory: declare struct! [					; TBD: instanciate this structure per OS thread
@@ -894,6 +893,7 @@ alloc-big: func [
 	frame: as big-frame! allocate-virtual sz no ;-- R/W only
 
 	frame/next: null
+	frame/prev: null
 	frame/size: size
 	
 	either null? memory/b-head [

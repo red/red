@@ -71,16 +71,13 @@ collector: context [
 				pos [int-ptr!]
 				s	[list!]
 				cnt [integer!]
+				process [subroutine!]
 		][
 			;-- allocation alignement not guaranteed, so L1 cache optmization is only eventual.
 			if null? nodes/list  [nodes/list:  as node! allocate min-size * size? int-ptr!]
 			if null? series/list [series/list: as node! allocate min-size * size? int-ptr!]
 			
-			s: nodes
-			frm: memory/n-head
-			loop 2 [
-				cnt: 0
-				pos: s/list
+			process: [
 				until [
 					pos/value: as-integer frm
 					pos: pos + 1
@@ -99,9 +96,24 @@ collector: context [
 				]
 				qsort as byte-ptr! s/list cnt 4 :compare-cb	;-- sort the array
 				s/count: cnt
-				
-				s: series
-				frm: as node-frame! memory/s-head
+			]
+			
+			s: nodes									;-- node frames
+			frm: memory/n-head
+			cnt: 0
+			pos: s/list
+			process
+			
+			s: series									;-- regular series frames
+			frm: as node-frame! memory/s-head			
+			cnt: 0
+			pos: s/list
+			process
+			
+			if memory/b-head <> null [					;-- big series
+				frm: as node-frame! memory/b-head
+				pos: s/list + cnt
+				process
 			]
 		]
 		
@@ -273,21 +285,21 @@ collector: context [
 	][
 		assert nodes-list/count = 0
 		!mask: 1
-		loop prefs/nodes-gc-trigger [
+		loop prefs/nodes-gc-trigger [					;-- create mask for checking frame usage across last 32 GC passes
 			!mask: !mask << 1
 			!mask: !mask or 1
 		]
 
 		cnt: 0
-		avail: calc-free-slots							;-- nb of potential free destination slots
+		avail: calc-free-slots							;-- nb of potential free destination slots (including the ones from frames to be compacted)
 		frame: memory/n-head
 		until [
 			;probe [frame ", used: " frame/used ", free: " frame/nodes - frame/used ", birth: " frame/birth ", a-used: " as int-ptr! frame/a-used]
 			if all [
-				cnt >= prefs/nodes-core-nb
-				any [frame/a-used and !mask = !mask frame/used < 100]
+				cnt >= prefs/nodes-core-nb				;-- leave the first node frames untouched (5 by default)
+				frame/a-used and !mask = !mask			;-- node frame been unused for several GC passes (5 by default)
 				frame/used < 5000						;-- only compact frames with < 50% usage
-				avail > 0
+				frame/used * 2 < avail					;-- and only if enough destination slots left
 			][
 				if refs = null [refs: _hashtable/rs-init refs-size]
 				avail: avail - frame/used
