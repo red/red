@@ -302,7 +302,7 @@ collector: context [
 				frame/used * 2 < avail					;-- and only if enough destination slots left
 			][
 				if refs = null [refs: _hashtable/rs-init refs-size]
-				avail: avail - frame/used
+				avail: avail - nodes-per-frame + frame/used
 				compact-node frame refs
 			]
 			cnt: cnt + 1
