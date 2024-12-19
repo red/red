@@ -104,9 +104,25 @@ rst-printer: context [
 		prin-token c/typeref prin " "
 	]
 
-	visit-switch: func [e [switch!] i [integer!]][
+	visit-switch: func [e [switch!] i [integer!] /local cases [switch-case!]][
 		do-i i prin "switch "
-		e/expr/accept as int-ptr! e/expr printer as int-ptr! i + 1
+		e/expr/accept as int-ptr! e/expr printer null
+		cases: e/cases
+		while [cases <> null][
+			print lf
+			do-i i + 1
+			cases/expr/accept as int-ptr! cases/expr printer null
+			prin " "
+			prin-block as red-block! cases/token
+			cases: cases/next
+		]
+		if e/defcase <> null [
+			print lf
+			do-i i + 1
+			prin "default "
+			cases: e/defcase
+			prin-block as red-block! cases/token
+		]
 	]
 
 	visit-break: func [b [break!] i [integer!]][

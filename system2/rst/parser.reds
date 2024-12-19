@@ -359,7 +359,7 @@ switch!: alias struct! [
 	RST_EXPR_FIELDS(rst-node!)
 	expr		[rst-expr!]
 	cases		[switch-case!]
-	defcase		[rst-stmt!]
+	defcase		[switch-case!]
 ]
 
 while!: alias struct! [
@@ -1675,7 +1675,10 @@ parser: context [
 			w: as red-word! p
 			if all [T_WORD?(w) k_default = symbol/resolve w/symbol][	;-- must be last case
 				p: expect-next p s-tail TYPE_BLOCK
-				s/defcase: parse-block as red-block! p ctx
+				c: xmalloc(switch-case!)
+				c/token: p
+				c/body: parse-block as red-block! p ctx
+				s/defcase: c
 				if p + 1 <> s-tail [throw-error [p "wrong syntax in SWITCH block"]]
 				break
 			]
@@ -1695,7 +1698,7 @@ parser: context [
 			]
 			if null? ev/next [throw-error [p - 1 "missing case expression in SWITCH"]]
 
-			p: expect-next p s-tail TYPE_BLOCK
+			p: expect p TYPE_BLOCK
 			c: xmalloc(switch-case!)
 			c/token: p
 			c/body: parse-block as red-block! p ctx

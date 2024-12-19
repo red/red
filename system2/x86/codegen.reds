@@ -1682,7 +1682,7 @@ x86: context [
 			m	  [instr-matcher!]
 			op	  [integer!]
 	][
-		ir-printer/print-instr i print lf
+		;ir-printer/print-instr i print lf
 		switch INSTR_OPCODE(i) [
 			OP_BOOL_EQ
 			OP_BOOL_NOT

@@ -462,6 +462,8 @@ type-system: context [
 		t2		[rst-type!]
 		return: [rst-type!]
 	][
+		if any [null? t1 null? t2][return null]
+
 		if t1/header = t2/header [return t1]	;-- same type
 		switch TYPE_KIND(t1) [
 			RST_TYPE_INT [

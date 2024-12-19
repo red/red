@@ -401,7 +401,6 @@ type-checker: context [
 		/local t [rst-type!] sv [ssa-var!]
 	][
 		t: var/type
-		probe ["struct header " as int-ptr! t/header]
 		if all [LOCAL_VAR?(var) STRUCT_VALUE?(t)][
 			sv: var/ssa
 			if sv/index <> -2 [
@@ -565,13 +564,21 @@ type-checker: context [
 		cases: s/cases
 		while [cases <> null][
 			t: check-stmts cases/body as red-block! cases/token ctx
-			either tt <> null [
+			either all [unified? tt <> null][
 				tt: type-system/unify t tt
 				if null? tt [unified?: no]
 			][tt: t]
 			cases: cases/next
 		]
 
+		if s/defcase <> null [
+			cases: s/defcase
+			t: check-stmts cases/body as red-block! cases/token ctx
+			either all [unified? tt <> null][
+				tt: type-system/unify t tt
+				if null? tt [unified?: no]
+			][tt: t]
+		]
 		t: either unified? [tt][type-system/void-type]
 		s/type: t
 		t
