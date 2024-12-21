@@ -673,9 +673,76 @@ ir-graph: context [
 		null
 	]
 
-	visit-switch: func [r [switch!] ctx [ssa-ctx!] return: [instr!]
+	visit-switch: func [s [switch!] ctx [ssa-ctx!] return: [instr!]
+		/local
+			key		[instr!]
+			cond	[instr!]
+			const	[instr-const!]
+			op		[instr-op!]
+			val		[instr!]
+			ty		[rst-type!]
+			c		[switch-case!]
+			e		[rst-expr!]
+			t-ctx	[ssa-ctx! value]
+			f-ctx	[ssa-ctx! value]
+			cur		[ssa-ctx! value]
+			end		[ssa-merge! value]
+			args	[array-2! value]
+			ret-val [ptr-array!]
+			p		[ptr-ptr!]
+			n		[integer!]
 	][
-		null
+		key: gen-expr s/expr ctx
+		ty: s/expr/type
+		if ctx/closed? [return null]	;@@ s/expr closed current block?
+
+		init-merge :end
+		init-ssa-ctx :cur ctx 0 ctx/block
+		cur/parent: ctx/parent
+		c: s/cases
+		n: 0
+		while [c <> null][
+			n: n + 1
+			c: c/next
+		]
+		if s/defcase <> null [n: n + 1]
+		ret-val: ptr-array/make n
+		p: ARRAY_DATA(ret-val)
+
+		c: s/cases
+		while [c <> null][				;-- generate if cascade
+			e: c/expr
+			split-ssa-ctx ctx :t-ctx
+			while [e <> null][
+				split-ssa-ctx cur :f-ctx
+
+				const: const-val e/type e/token ctx/graph
+				INIT_ARRAY_2(args key const)
+				op: typed-equal ty
+				cond: add-op op as ptr-array! :args :cur
+				add-if cond t-ctx/block f-ctx/block :cur
+
+				cur/block: f-ctx/block
+				cur/parent: f-ctx/parent
+				e: e/next
+			]
+			p/value: as int-ptr! gen-stmts c/body :t-ctx
+			p: p + 1
+			merge-ctx :end :t-ctx
+			c: c/next
+		]
+
+		if s/defcase <> null [
+			c: s/defcase
+			cur/closed?: no
+			p/value: as int-ptr! gen-stmts c/body :cur
+			merge-ctx :end :cur
+		]
+		val: either s/type = type-system/void-type [null][
+			make-phi s/type end/block ret-val
+		]
+		set-ssa-ctx :end ctx
+		val
 	]
 
 	visit-case: func [c [case!] ctx [ssa-ctx!] return: [instr!]][
@@ -1248,6 +1315,28 @@ ir-graph: context [
 			ctx/closed?: yes
 			block-append-instr ctx/block make-goto target
 		]
+	]
+
+	typed-equal: func [
+		t		[rst-type!]
+		return: [instr-op!]
+		/local
+			code [integer!]
+			arr	[ptr-ptr!]
+			op	[instr-op!]
+	][
+		code: switch TYPE_KIND(t) [
+			RST_TYPE_INT	[OP_INT_EQ]
+			RST_TYPE_FLOAT	[OP_FLT_EQ]
+			RST_TYPE_PTR	[OP_PTR_EQ]
+			default [OP_INT_EQ]
+		]
+		arr: as ptr-ptr! malloc 2 * size? int-ptr!
+		op: make-op code 2 arr type-system/logic-type
+		arr/value: as int-ptr! t
+		arr: arr + 1
+		arr/value: as int-ptr! t
+		op
 	]
 
 	const-null: func [
