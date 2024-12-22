@@ -299,10 +299,10 @@ collector: context [
 				cnt >= prefs/nodes-core-nb				;-- leave the first node frames untouched (5 by default)
 				frame/a-used and !mask = !mask			;-- node frame been unused for several GC passes (5 by default)
 				frame/used < 5000						;-- only compact frames with < 50% usage
-				frame/used * 2 < avail					;-- and only if enough destination slots left
+				avail > nodes-per-frame					;-- and only if enough destination slots left, simplified from: frame/used < (avail - (nodes-per-frame - frame/used))
 			][
 				if refs = null [refs: _hashtable/rs-init refs-size]
-				avail: avail - nodes-per-frame + frame/used
+				avail: avail - nodes-per-frame
 				compact-node frame refs
 			]
 			cnt: cnt + 1
