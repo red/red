@@ -42,6 +42,7 @@ hash: context [
 				size: block/rs-length? as red-block! spec
 				blk?: yes
 			]
+			TYPE_HASH [return copy as red-hash! spec as red-hash! proto null no null]
 			default [
 				return to proto spec type
 			]
@@ -73,7 +74,11 @@ hash: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "hash/to"]]
 
-		make proto (as red-value! block/to proto spec TYPE_BLOCK) -1
+		either TYPE_OF(spec) = TYPE_HASH [
+			copy as red-hash! spec as red-hash! proto null no null
+		][
+			make proto (as red-value! block/to proto spec TYPE_BLOCK) -1
+		]
 	]
 
 	mold: func [
@@ -98,25 +103,19 @@ hash: context [
 
 	copy: func [
 		hash    	[red-hash!]
-		new			[red-block!]
+		new			[red-hash!]
 		part-arg	[red-value!]
 		deep?		[logic!]
 		types		[red-value!]
-		return:		[red-series!]
-		/local
-			size	[integer!]
-			table	[node!]
+		return:		[red-hash!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "hash/copy"]]
 
-		block/copy as red-block! hash new part-arg deep? types
-		new/header: TYPE_BLOCK							;-- _hashtable/init may trigger GC. `new` is actually a block for now.
-		size: block/rs-length? new
-		table: _hashtable/init size new HASH_TABLE_HASH 1
-		hash: as red-hash! new
-		hash/header: TYPE_HASH							;-- implicit reset of all header flags
-		hash/table: table
-		as red-series! hash
+		new: as red-hash! block/clone as red-block! hash deep? yes
+		new/table:  hash/table	;-- set it to old table, _hashtable/copy below may trigger GC
+		new/table:  _hashtable/copy hash/table new/node
+		new/header: TYPE_HASH
+		new
 	]
 
 	sort: func [
