@@ -1591,12 +1591,12 @@ _hashtable: context [
 		h/size: h/size - 1
 	]
 
-	copy: func [				;-- only map! use it
+	copy: func [
 		node	[node!]
 		blk		[node!]
 		return: [node!]
 		/local s [series!] h [hashtable!] ss [series!] hh [hashtable!]
-			new [node!]
+			new flags keys indexes chains [node!]
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -1605,9 +1605,17 @@ _hashtable: context [
 		ss: as series! new/value
 		hh: as hashtable! ss/offset
 
-		hh/flags: copy-series as series! h/flags/value
-		hh/keys: copy-series as series! h/keys/value
+		flags: copy-series as series! h/flags/value
+		hh/flags: flags
+		keys: copy-series as series! h/keys/value
+		hh/keys: keys
 		hh/blk: blk
+		if h/type = HASH_TABLE_HASH [
+			indexes: copy-series as series! h/indexes/value
+			hh/indexes: indexes
+			chains: copy-series as series! h/chains/value
+			hh/chains: chains
+		]
 		new
 	]
 

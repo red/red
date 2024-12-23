@@ -750,8 +750,6 @@ map: context [
 		deep?		[logic!]
 		types		[red-value!]
 		return:		[red-hash!]
-		/local
-			saved	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/copy"]]
 
