@@ -724,6 +724,7 @@ ir-graph: context [
 
 				cur/block: f-ctx/block
 				cur/parent: f-ctx/parent
+				cur/closed?: no
 				e: e/next
 			]
 			p/value: as int-ptr! gen-stmts c/body :t-ctx
@@ -734,7 +735,6 @@ ir-graph: context [
 
 		if s/defcase <> null [
 			c: s/defcase
-			cur/closed?: no
 			p/value: as int-ptr! gen-stmts c/body :cur
 			merge-ctx :end :cur
 		]

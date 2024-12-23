@@ -557,7 +557,7 @@ lowering: context [
 			OP_ARRAY_GET		[gen-array-get i env]
 			OP_ARRAY_SET		[gen-array-set i env]
 			default [
-				dprint ["Internal Error: Unknown Opcode: " INSTR_OPCODE(i)]
+				0 ;dprint ["Internal Error: Unknown Opcode: " INSTR_OPCODE(i)]
 			]
 		]
 		either i <> new [map i new env][MARK_INS(i env/mark)]
