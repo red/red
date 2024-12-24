@@ -628,18 +628,16 @@ _hashtable: context [
 		while [val < end][
 			if val/header = TYPE_UNSET [		;-- only sweep alive key. key was deleted if val/header = TYPE_VALUE
 				node: as node! val/data1
-				if node <> null [
-					s: as series! node/value
-					either s/flags and flag-gc-mark = 0 [
+				assert node <> null
+				either s/flags and flag-gc-mark = 0 [
+					delete-key table as-integer node
+					val/data1: 0
+				][	;-- check owner
+					obj: as red-object! val + 2
+					s: as series! obj/ctx/value
+					if s/flags and flag-gc-mark = 0 [
 						delete-key table as-integer node
 						val/data1: 0
-					][	;-- check owner
-						obj: as red-object! val + 2
-						s: as series! obj/ctx/value
-						if s/flags and flag-gc-mark = 0 [
-							delete-key table as-integer node
-							val/data1: 0
-						]
 					]
 				]
 			]
@@ -1266,6 +1264,7 @@ _hashtable: context [
 			flags		[node!]
 			new-blk		[node!]
 			i sz		[integer!]
+			start		[red-value!]
 			end			[red-value!]
 			value		[red-value!]
 			key			[red-value!]
@@ -1295,11 +1294,12 @@ _hashtable: context [
 		vsize: vsize - size? red-value!
 
 		s: as series! h/blk/value
+		start: s/offset
 		end: s/tail
 		i: 0
 		h/blk: alloc-cells sz * len
 		while [
-			value: s/offset + i
+			value: start + i
 			value < end
 		][
 			k: as int-ptr! value
@@ -1629,7 +1629,7 @@ _hashtable: context [
 			s [series!] h [hashtable!] x [integer!] i [integer!] site [integer!]
 			last [integer!] mask [integer!] step [integer!] keys [int-ptr!]
 			hash [integer!] n-buckets [integer!] flags [int-ptr!] ii [integer!]
-			sh [integer!] continue? saved [logic!] blk [red-value!] idx [integer!]
+			sh [integer!] continue? [logic!] blk [red-value!] idx [integer!]
 			type [integer!] del? chain? [logic!] indexes chain [int-ptr!] k [red-value!]
 	][
 		s: as series! node/value
@@ -1651,9 +1651,6 @@ _hashtable: context [
 			s: as series! node/value
 			h: as hashtable! s/offset
 		]
-
-		saved: collector/active?
-		collector/active?: no						;-- turn off GC
 
 		s: as series! h/blk/value
 		idx: (as-integer (key - s/offset)) >> 4
@@ -1749,7 +1746,6 @@ _hashtable: context [
 			idx: idx + 1
 			indexes/idx: x
 		]
-		collector/active?: saved
 		key
 	]
 
