@@ -1629,7 +1629,7 @@ _hashtable: context [
 			s [series!] h [hashtable!] x [integer!] i [integer!] site [integer!]
 			last [integer!] mask [integer!] step [integer!] keys [int-ptr!]
 			hash [integer!] n-buckets [integer!] flags [int-ptr!] ii [integer!]
-			sh [integer!] continue? [logic!] blk [red-value!] idx [integer!]
+			sh [integer!] continue? saved [logic!] blk [red-value!] idx [integer!]
 			type [integer!] del? chain? [logic!] indexes chain [int-ptr!] k [red-value!]
 	][
 		s: as series! node/value
@@ -1651,6 +1651,9 @@ _hashtable: context [
 			s: as series! node/value
 			h: as hashtable! s/offset
 		]
+
+		saved: collector/active?
+		collector/active?: no						;-- turn off GC
 
 		s: as series! h/blk/value
 		idx: (as-integer (key - s/offset)) >> 4
@@ -1746,6 +1749,7 @@ _hashtable: context [
 			idx: idx + 1
 			indexes/idx: x
 		]
+		collector/active?: saved
 		key
 	]
 
