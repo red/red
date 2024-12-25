@@ -248,8 +248,11 @@ collector: context [
 			select-dst [subroutine!]
 	][
 		select-dst: [									;-- subroutine for finding a destination frame
-			frame: memory/n-head
-			while [any [frame = src frame/head = null frame/locked?]][frame: frame/next]
+			frame: memory/n-active
+			if null? frame/head [
+				while [any [frame = src frame/head = null frame/locked?]][frame: frame/prev]
+				memory/n-active: frame
+			]
 			assert frame <> null
 			frame
 		]
@@ -275,6 +278,7 @@ collector: context [
 			]
 			slot: slot + 1
 		]
+		assert src/used = 0
 		src/locked?: yes								;-- prevents new allocations, schedules for freeing at end of GC pass
 	]
 	
@@ -290,6 +294,11 @@ collector: context [
 			!mask: !mask or 1
 		]
 
+		frame: memory/n-tail
+		while [all [frame <> null null? frame/head]][frame: frame/prev]
+		if null? frame [exit]							;-- all the frames are full
+		memory/n-active: frame							;-- initialize dst
+
 		cnt: 0
 		avail: calc-free-slots							;-- nb of potential free destination slots (including the ones from frames to be compacted)
 		frame: memory/n-head
@@ -300,6 +309,7 @@ collector: context [
 				frame/a-used and !mask = !mask			;-- node frame been unused for several GC passes (5 by default)
 				frame/used < 5000						;-- only compact frames with < 50% usage
 				avail > nodes-per-frame					;-- and only if enough destination slots left, simplified from: frame/used < (avail - (nodes-per-frame - frame/used))
+				frame <> memory/n-active				;-- src <> dst
 			][
 				if refs = null [refs: _hashtable/rs-init refs-size]
 				avail: avail - nodes-per-frame
