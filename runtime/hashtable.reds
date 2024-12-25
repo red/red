@@ -629,6 +629,7 @@ _hashtable: context [
 			if val/header = TYPE_UNSET [		;-- only sweep alive key. key was deleted if val/header = TYPE_VALUE
 				node: as node! val/data1
 				assert node <> null
+				s: as series! node/value
 				either s/flags and flag-gc-mark = 0 [
 					delete-key table as-integer node
 					val/data1: 0
@@ -1425,9 +1426,13 @@ _hashtable: context [
 			hash [integer!] n-buckets [integer!] flags [int-ptr!] ii [integer!]
 			sh [integer!] blk [byte-ptr!] idx [integer!] del? [logic!] k [int-ptr!]
 			vsize [integer!] blk-node [series!] len [integer!] value [red-value!]
+			saved [logic!]
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
+
+		saved: collector/active?
+		collector/active?: no						;-- turn off GC
 
 		if h/n-occupied >= h/upper-bound [			;-- update the hash table
 			vsize: either h/n-buckets > (h/size << 1) [-1][1]
@@ -1498,6 +1503,7 @@ _hashtable: context [
 			]
 			true [k: as int-ptr! blk + keys/x]
 		]
+		collector/active?: saved
 		len: vsize >> 4
 		value: as cell! k
 		loop len [
