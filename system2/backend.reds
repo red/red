@@ -136,6 +136,7 @@ reg-set!: alias struct! [		;-- register set
 	scratch		[int-ptr!]		;-- array<int>: scratch register in each class
 	gpr-scratch	[integer!]
 	sse-scratch [integer!]
+	frame-start [integer!]
 	spill-start	[integer!]
 	caller-base	[integer!]
 	callee-base	[integer!]
@@ -599,8 +600,8 @@ frame-alloc: func [
 		n s [integer!]
 ][
 	n: sz + f/slot-size - 1 / f/slot-size
-	s: f/cc/reg-set/spill-start + f/spill-vars
 	f/spill-vars: f/spill-vars + n
+	s: f/cc/reg-set/spill-start + f/spill-vars - 1
 	s
 ]
 
@@ -620,8 +621,8 @@ frame-alloc-slot: func [
 		]
 		default [1]
 	]
-	s: f/cc/reg-set/spill-start + f/spill-vars
 	f/spill-vars: f/spill-vars + n
+	s: f/cc/reg-set/spill-start + f/spill-vars - 1
 	s or flag
 ]
 
@@ -634,8 +635,8 @@ frame-tmp-slot: func [
 ][
 	flag: either any [cls = class_i64 cls = class_f64][FRAME_SLOT_64][0]
 	if f/tmp-slot < 0 [
-		s: f/cc/reg-set/spill-start + f/spill-vars
 		f/spill-vars: f/spill-vars + 2
+		s: f/cc/reg-set/spill-start + f/spill-vars - 1
 	]
 	f/tmp-slot: s
 	s or flag
@@ -656,7 +657,7 @@ compute-frame-size: func [
 		sz		[integer!]
 ][
 	slots: f/spill-vars + f/spill-args
-	sz: align-up slots * f/slot-size + target/addr-size f/align
+	sz: align-up slots * f/slot-size + (target/addr-size * 2) f/align
 	f/size: sz
 	sz
 ]
@@ -888,7 +889,7 @@ backend: context [
 
 	#define CALC_REG_INDEX(base) [
 		either idx <= cc/reg-set/n-regs [idx][
-			idx - cc/reg-set/spill-start + base
+			idx - cc/reg-set/frame-start + base
 		]
 	]
 

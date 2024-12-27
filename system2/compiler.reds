@@ -877,6 +877,7 @@ compiler: context [
 					target/gen-move-imm: as fn-insert-move! :x86/gen-move-imm
 					target/assemble: as fn-assemble! :x86/assemble
 					target/patch-call: as fn-patch-call! :x86/patch-call
+					x86/asm/rex-byte: 0
 				]
 				arch-x86-64 [
 					addr-width: 64		;-- width of address in bits
@@ -903,6 +904,7 @@ compiler: context [
 					target/gen-move-imm: as fn-insert-move! :x86/gen-move-imm
 					target/assemble: as fn-assemble! :x86/assemble
 					target/patch-call: as fn-patch-call! :x86/patch-call
+					x86/asm/rex-byte: REX_W
 				]
 				arch-arm
 				arch-arm64 [0]

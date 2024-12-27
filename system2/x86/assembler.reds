@@ -114,6 +114,11 @@ asm: context [
 		put-bbb program/code-buf b1 b2 b3
 	]
 
+	emit-bw: func [b [integer!] n [integer!]][
+		put-b program/code-buf b
+		put-16 program/code-buf n
+	]
+
 	emit-d: func [d [integer!]][put-32 program/code-buf d]
 
 	emit-bd: func [b [integer!] d [integer!]][
@@ -526,10 +531,21 @@ asm: context [
 		]
 	]
 
+	leave: does [emit-b C9h]
+
 	ret: does [emit-b C3h]
+	retn: func [n [integer!]][emit-bw C2h n]
 
 	push-i: func [i [integer!]][
-		emit-bd 68h i
+		either any [i < -128 i > 127][
+			emit-bd 68h i
+		][
+			emit-bb 6Ah i
+		]
+	]
+
+	push-r: func [r [integer!]][
+		emit-b-r-rex 50h r NO_REX
 	]
 
 	lea: func [r [integer!] m [x86-addr!]][
@@ -587,6 +603,13 @@ asm: context [
 	][
 		emit-b FFh
 		emit-offset addr 2
+	]
+
+	mov-r-r: func [
+		r1		[integer!]	;-- dst
+		r2		[integer!]	;-- src
+	][
+		emit-b-r-r 89h r1 r2 rex-byte
 	]
 
 	movd-r-m: func [
@@ -1137,7 +1160,7 @@ adjust-frame: func [
 	/local
 		n	[integer!]
 ][
-	n: frame/size - target/addr-size		;-- return addr already pushed
+	n: frame/size - (2 * target/addr-size)		;-- minus return addr and ebp
 	if n > 0 [
 		either add? [
 			asm/add-r-i x86-regs/esp n REX_W
@@ -1178,17 +1201,17 @@ loc-to-addr: func [						;-- location idx to memory addr
 	word-sz: target/addr-size
 	case [
 		loc >= r/callee-base [
-			offset: word-sz * (loc - r/callee-base)
+			offset: word-sz * (loc - r/callee-base) - f/size
 		]
 		loc >= r/caller-base [
-			offset: word-sz * (loc - r/caller-base) + f/size
+			offset: word-sz * (loc - r/caller-base)
 		]
 		loc >= r/spill-start [
-			offset: word-sz * (loc - r/spill-start + f/spill-args)
+			offset: word-sz * (loc - r/frame-start + f/spill-args) - f/size
 		]
 		true [probe ["invalid stack location: " loc]]
 	]
-	addr/base: x86-regs/esp
+	addr/base: x86-regs/ebp
 	addr/index: 0
 	addr/scale: 1
 	addr/disp: offset
@@ -1556,13 +1579,17 @@ assemble: func [
 	p: as ptr-ptr! i + 1	;-- point to operands
 	if op >= I_NOP [
 		switch op [
-			I_ENTRY [adjust-frame cg/frame no]
+			I_ENTRY [
+				asm/push-r x86-regs/ebp
+				asm/mov-r-r x86-regs/ebp x86-regs/esp
+				adjust-frame cg/frame no
+			]
 			I_BLK_BEG [
 				l: as label! p/value
 				l/pos: asm/pos
 			]
 			I_RET [
-				adjust-frame cg/frame yes
+				asm/leave
 				asm/ret
 			]
 			default [0]

@@ -29,7 +29,7 @@ Red/System [
 #define x86_CLS_GPR		22
 #define x86_CLS_SSE		23
 #define x86_REG_ALL		24
-#define x86_SCRATCH		x86_EBP
+#define x86_SCRATCH		x86_EDI
 #define SSE_SCRATCH		x86_XMM7
 
 #define x64_RAX			1
@@ -71,8 +71,10 @@ Red/System [
 #define x64_NOT_RAX		37
 #define x64_NOT_RAX_RDX 38
 #define x64_REG_ALL		39
-#define x64_SCRATCH		x64_RBP
+#define x64_SCRATCH		x64_RDI
 #define XMM_SCRATCH		x64_XMM7
+
+#define EXTRA_FRAME_SLOTS	2		;-- return address and ebp value
 
 ;-- REG: GPR
 ;-- OP: register or stack
@@ -306,7 +308,7 @@ x64-reg-set: context [
     a28: [x64_XMM14]
     a29: [x64_XMM15]
     a30: [
-	    x64_RAX x64_RBX x64_RCX x64_RDX x64_RSI x64_RDI
+	    x64_RAX x64_RBX x64_RCX x64_RDX x64_RSI
 	    x64_R8 x64_R9 x64_R10 x64_R11 x64_R12 x64_R13 x64_R14 x64_R15
 	]
     a31: [
@@ -315,15 +317,15 @@ x64-reg-set: context [
     ]
     a32: [x64_RAX x64_RDX]
     a33: [	;-- no rcx
-	    x64_RAX x64_RBX x64_RDX x64_RSI x64_RDI
+	    x64_RAX x64_RBX x64_RDX x64_RSI
 	    x64_R8 x64_R9 x64_R10 x64_R11 x64_R12 x64_R13 x64_R14 x64_R15
     ]
     a34: [	;-- no rax
-	    x64_RBX x64_RCX x64_RDX x64_RSI x64_RDI
+	    x64_RBX x64_RCX x64_RDX x64_RSI
 	    x64_R8 x64_R9 x64_R10 x64_R11 x64_R12 x64_R13 x64_R14 x64_R15
     ]
     a35: [	;-- no rax, rdx
-	    x64_RBX x64_RCX x64_RSI x64_RDI
+	    x64_RBX x64_RCX x64_RSI
 	    x64_R8 x64_R9 x64_R10 x64_R11 x64_R12 x64_R13 x64_R14 x64_R15
     ]
 
@@ -397,7 +399,8 @@ x64-reg-set: context [
 		s: xmalloc(reg-set!)
 		s/n-regs: 32
 		s/regs: arr
-		s/spill-start: arr/length
+		s/frame-start: arr/length
+		s/spill-start: arr/length + EXTRA_FRAME_SLOTS		
 		s/gpr-scratch: x64_SCRATCH
 		s/sse-scratch: XMM_SCRATCH
 
@@ -448,7 +451,7 @@ x64-internal-cc: context [
 	float-params: as rs-array! 0
 	float-rets: as rs-array! 0
 
-	_param-regs: [x64_RDI x64_RSI x64_RDX x64_RCX x64_R8 x64_R9]
+	_param-regs: [x64_RSI x64_RDX x64_RCX x64_R8 x64_R9]
 	_ret-regs: [x64_RAX x64_RDX]
 	_float-params: [x64_XMM0 x64_XMM1 x64_XMM2 x64_XMM3 x64_XMM4 x64_XMM5 x64_XMM6]
 	_float-rets: [x64_XMM0 x64_XMM1]
@@ -611,15 +614,15 @@ x86-reg-set: context [
 	a11: [x86_XMM4]
 	a12: [x86_XMM5]
 	a13: [x86_XMM6]
-	a14: [x86_EAX x86_EBX x86_ECX x86_EDX x86_ESI x86_EDI]
+	a14: [x86_EAX x86_EBX x86_ECX x86_EDX x86_ESI]
 	a15: [x86_EDX x86_ECX x86_EAX x86_EBX]
 	a16: [x86_EAX x86_EDX]
-	a17: [x86_EAX x86_EBX x86_ECX x86_ESI x86_EDI]
-	a18: [x86_EAX x86_EBX x86_EDX x86_ESI x86_EDI]
-	a19: [x86_EAX x86_ECX x86_EDX x86_EBX x86_ESI x86_EDI]
+	a17: [x86_EAX x86_EBX x86_ECX x86_ESI]
+	a18: [x86_EAX x86_EBX x86_EDX x86_ESI]
+	a19: [x86_EAX x86_ECX x86_EDX x86_EBX x86_ESI]
 	a20: [x86_XMM0 x86_XMM1 x86_XMM2 x86_XMM3 x86_XMM4 x86_XMM5 x86_XMM6]
 	a21: [
-		x86_EAX x86_EBX x86_ECX x86_EDX x86_ESI x86_EDI
+		x86_EAX x86_EBX x86_ECX x86_EDX x86_ESI
 		x86_XMM0 x86_XMM1 x86_XMM2 x86_XMM3 x86_XMM4 x86_XMM5 x86_XMM6
 	]
 
@@ -679,7 +682,8 @@ x86-reg-set: context [
 		s: xmalloc(reg-set!)
 		s/n-regs: 16
 		s/regs: arr
-		s/spill-start: arr/length
+		s/frame-start: arr/length
+		s/spill-start: arr/length + EXTRA_FRAME_SLOTS
 		s/gpr-scratch: x86_SCRATCH
 		s/sse-scratch: SSE_SCRATCH
 
@@ -743,7 +747,7 @@ x86-internal-cc: context [	;-- red/system internal call-conv!
 	float-params: as rs-array! 0
 	float-rets: as rs-array! 0
 
-	_param-regs: [x86_EDI x86_EAX x86_EDX x86_ECX x86_ESI]
+	_param-regs: [x86_EAX x86_EDX x86_ECX x86_ESI]
 	_ret-regs: [x86_EAX x86_EDX]
 	_float-params: [x86_XMM0 x86_XMM1 x86_XMM2 x86_XMM3 x86_XMM4 x86_XMM5 x86_XMM6]
 	_float-rets: [x86_XMM0 x86_XMM1]
