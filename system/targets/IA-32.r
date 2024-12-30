@@ -792,8 +792,7 @@ make-profilable make target-class [
 		either op [
 			emit add-condition op copy #{0F90}			;--	SETcc al
 			emit #{C0}
-			emit #{30E4}								;-- XOR ah, ah
-			emit #{98}									;--	CWDE		; sign-extend ax to eax
+			emit #{0FB6C0}								;-- MOVZX eax, al ; zero-extend al to eax
 			reduce [0 0]
 		][
 			emit #{31C0}								;-- 	  XOR eax, eax	; eax = 0 (FALSE)
