@@ -250,7 +250,7 @@ collector: context [
 		select-dst: [									;-- subroutine for finding a destination frame
 			frame: memory/n-active
 			if null? frame/head [
-				while [any [frame = src frame/head = null frame/locked?]][frame: frame/prev]
+				while [any [frame = src frame/head = null frame/locked?]][frame: frame/next]
 				memory/n-active: frame
 			]
 			assert frame <> null
@@ -294,14 +294,14 @@ collector: context [
 			!mask: !mask or 1
 		]
 
-		frame: memory/n-tail
-		while [all [frame <> null null? frame/head]][frame: frame/prev]
+		frame: memory/n-head
+		while [all [frame <> null null? frame/head]][frame: frame/next]
 		if null? frame [exit]							;-- all the frames are full
 		memory/n-active: frame							;-- initialize dst
 
 		cnt: 0
 		avail: calc-free-slots							;-- nb of potential free destination slots (including the ones from frames to be compacted)
-		frame: memory/n-head
+		frame: memory/n-tail
 		until [
 			;probe [frame ", used: " frame/used ", free: " frame/nodes - frame/used ", birth: " frame/birth ", a-used: " as int-ptr! frame/a-used]
 			if all [
@@ -316,7 +316,7 @@ collector: context [
 				compact-node frame refs
 			]
 			cnt: cnt + 1
-			frame: frame/next
+			frame: frame/prev
 			frame = null
 		]
 	]
