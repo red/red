@@ -974,7 +974,7 @@ collector: context [
 		]
 			cb		[function! []]
 	][
-		#if debug? = yes [if verbose > 0 [
+		#if debug? = yes [if verbose > 1 [
 			#if OS = 'Windows [platform/dos-console?: no]
 			file: "                      "
 			sprintf [file "live-values-%d.log" stats/cycles]
@@ -983,7 +983,7 @@ collector: context [
 		]]
 
 		#if debug? = yes [
-			if verbose > 2 [stack-trace]
+			if verbose > 3 [stack-trace]
 			buf: "                                                               "
 			tm: platform/get-time yes yes
 			print [
@@ -1051,12 +1051,12 @@ collector: context [
 			tm: (platform/get-time yes yes) - tm - tm1
 			sprintf [buf ", mark: %.1fms, sweep: %.1fms" tm1 * 1000.0 tm * 1000.0]
 			probe [" => " memory-info null 1 buf]
-			if verbose > 0 [
+			if verbose > 1 [
 				simple-io/close-file stdout
 				stdout: saved
 				#if OS = 'Windows [platform/dos-console?: yes]
 			]
-			validate
+			if verbose > 0 [validate]
 		]
 	]
 	
