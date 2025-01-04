@@ -149,6 +149,7 @@ ssa-ctx!: alias struct! [
 	ssa-vars	[ptr-array!]		;-- array<var-decl!>
 	loop-start	[ssa-merge!]
 	loop-end	[ssa-merge!]
+	catch-end	[ssa-merge!]
 	closed?		[logic!]			;-- block closed by exit, return, break, continue or goto
 ]
 
@@ -773,13 +774,52 @@ ir-graph: context [
 		add-op op null ctx
 	]
 
-	visit-throw: func [r [case!] ctx [ssa-ctx!] return: [instr!]
+	visit-throw: func [t [unary!] ctx [ssa-ctx!] return: [instr!]
+		/local op [instr-op!] e [int-literal!] p [ssa-ctx!]
 	][
+		p: ctx
+		while [p <> null][
+			if p/catch-end <> null [
+				e: as int-literal! t/expr
+				op: make-op OP_THROW 0 null type-system/void-type
+				op/target: as int-ptr! e/value
+				add-op op null ctx
+
+				merge-ctx p/catch-end ctx
+				return null
+			]
+			p: p/parent
+		]
 		null
 	]
 
-	visit-catch: func [r [case!] ctx [ssa-ctx!] return: [instr!]
+	visit-catch: func [c [catch!] ctx [ssa-ctx!] return: [instr!]
+		/local
+			op		[instr-op!]
+			c-end	[ssa-merge! value]
+			arr		[int-ptr!]
+			p		[int-ptr!]
+			int		[red-integer!]
 	][
+		init-merge :c-end		;-- merge point at the end of the catch
+		ctx/catch-end: :c-end
+
+		arr: as int-ptr! malloc 4 * size? integer!
+		p: arr + 1
+		int: as red-integer! c/filter
+		p/value: int/value
+		
+		op: make-op OP_CATCH_BEG 0 null type-system/void-type
+		op/target: arr
+		add-op op null ctx
+
+		gen-stmts c/body ctx
+		
+		set-ssa-ctx :c-end ctx
+
+		op: make-op OP_CATCH_END 0 null type-system/void-type
+		op/target: arr
+		add-op op null ctx
 		null
 	]
 

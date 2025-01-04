@@ -386,7 +386,7 @@ break!: alias struct! [
 
 catch!: alias struct! [
 	RST_STMT_FIELDS(rst-node!)
-	filter		[integer!]
+	filter		[red-integer!]
 	body		[rst-stmt!]
 ]
 
@@ -1746,7 +1746,7 @@ parser: context [
 		c: xmalloc(catch!)
 		SET_NODE_TYPE(c RST_CATCH)
 		c/token: pc
-		c/filter: int/value
+		c/filter: int
 		c/body: parse-block as red-block! pc ctx
 		c/accept: :catch_accept
 		expr/value: as int-ptr! c

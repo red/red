@@ -5,6 +5,9 @@ Red/System [
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
+#define EXTRA_FRAME_SLOTS	2		;-- catch value + catch address
+#define INIT_FRAME_SLOTS	4		;-- return address + ebp value + EXTRA_FRAME_SLOTS
+
 #enum reg-class! [
 	class_i32
 	class_i64
@@ -657,7 +660,8 @@ compute-frame-size: func [
 		sz		[integer!]
 ][
 	slots: f/spill-vars + f/spill-args
-	sz: align-up slots * f/slot-size + (target/addr-size * 2) f/align
+	sz: slots * f/slot-size + (target/addr-size * INIT_FRAME_SLOTS)
+	sz: align-up sz f/align
 	f/size: sz
 	sz
 ]
@@ -1980,8 +1984,8 @@ backend: context [
 			I_CALLER_SP		["caller-sp"]
 			I_TEST_ALLOC	["test-alloc"]
 			I_CMPB			["cmp.b"]
+			I_CATCH			["catch"]
 			I_THROW			["throw"]
-			I_THROWC		["throwc"]
 			I_CMPXCHG8		["cmpxchg8"]
 			I_CMPXCHG16		["cmpxchg16"]
 			I_CMPXCHG32		["cmpxchg32"]

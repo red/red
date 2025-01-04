@@ -74,8 +74,6 @@ Red/System [
 #define x64_SCRATCH		x64_RDI
 #define XMM_SCRATCH		x64_XMM7
 
-#define EXTRA_FRAME_SLOTS	2		;-- return address and ebp value
-
 ;-- REG: GPR
 ;-- OP: register or stack
 ;-- XOP: XMM register or stack
@@ -1188,6 +1186,39 @@ x86: context [
 		emit-instr cg I_CALL
 	]
 
+	emit-catch: func [
+		cg		[codegen!]
+		i		[instr!]
+		beg?	[logic!]
+		/local
+			o	[instr-op!]
+			p	[int-ptr!]
+	][
+		o: as instr-op! i
+		p: o/target
+
+		use-ptr cg p
+		if beg? [
+			kill cg x86_EAX
+			p/1: 0	;-- open catch
+			;-- alloc slots to save the old catch value and address
+			p/3: frame-alloc cg/frame target/addr-size
+			p/4: frame-alloc cg/frame target/addr-size
+		]
+		emit-instr cg I_CATCH
+	]
+
+	emit-throw: func [
+		cg		[codegen!]
+		i		[instr!]
+		/local
+			o	[instr-op!]
+	][
+		o: as instr-op! i
+		use-imm-int cg as-integer o/target		;-- throw value
+		emit-instr cg I_THROW
+	]
+
 	emit-int-cmp: func [
 		cg		[codegen!]
 		i		[instr!]
@@ -1754,6 +1785,9 @@ x86: context [
 				matcher/bin-op cg/m i		;-- init instr matcher with i
 				emit-simple-binop cg I_ADDD i
 			]
+			OP_CATCH_BEG		[emit-catch cg i yes]
+			OP_CATCH_END		[emit-catch cg i no]
+			OP_THROW			[emit-throw cg i]
 			default [
 				dprint ["codegen: unknown op " INSTR_OPCODE(i)]
 			]

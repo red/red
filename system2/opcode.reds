@@ -86,6 +86,10 @@ Red/System [
 
 	OP_ARRAY_GET		;-- 68
 	OP_ARRAY_SET		;-- 69
+
+	OP_CATCH_BEG		;-- 70
+	OP_CATCH_END		;-- 71
+	OP_THROW			;-- 72
 ]
 
 #enum instr-flag! [
@@ -185,6 +189,10 @@ instr-flags: [
 
 	0	;-- OP_ARRAY_GET
 	0	;-- OP_ARRAY_SET
+
+	0	;-- OP_CATCH_BEG
+	0	;-- OP_CATCH_END
+	0	;-- OP_THROW
 ]
 
 ;-- mach instr opcode
@@ -245,8 +253,8 @@ instr-flags: [
 #define I_CALLER_SP		6Bh
 #define I_TEST_ALLOC	6Ch
 #define I_CMPB			6Fh
-#define I_THROW			70h
-#define I_THROWC		71h
+#define I_CATCH			70h
+#define I_THROW			71h
 #define I_CMPXCHG8		72h
 #define I_CMPXCHG16		73h
 #define I_CMPXCHG32		74h

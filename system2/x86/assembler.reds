@@ -536,6 +536,15 @@ asm: context [
 	ret: does [emit-b C3h]
 	retn: func [n [integer!]][emit-bw C2h n]
 
+	pop-r: func [r [integer!]][
+		emit-b-r-rex 58h r NO_REX
+	]
+	pop: func [m [x86-addr!]][
+		emit-b-m-x 8Fh m 0 rex-byte
+	]
+
+	push: func [m [x86-addr!]][emit-b-m-x FFh m 6 rex-byte]
+
 	push-i: func [i [integer!]][
 		either any [i < -128 i > 127][
 			emit-bd 68h i
@@ -610,6 +619,40 @@ asm: context [
 		r2		[integer!]	;-- src
 	][
 		emit-b-r-r 89h r1 r2 rex-byte
+	]
+
+	mov-m-r: func [
+		m		[x86-addr!]	;-- dst
+		r		[integer!]	;-- src
+	][
+		emit-b-m-r 89h m r rex-byte		
+	]
+
+	mov-r-m: func [
+		r		[integer!]
+		m		[x86-addr!]
+	][
+		emit-b-r-m 8Bh r m rex-byte
+	]
+
+	mov-r-i: func [
+		r		[integer!]
+		imm		[integer!]
+	][
+		if zero? imm [
+			xor-r-r r r rex-byte
+			exit
+		]
+		emit-b-r-rex B8h r rex-byte
+		emit-d imm
+	]
+
+	mov-m-i: func [
+		m		[x86-addr!]
+		imm		[integer!]
+	][
+		emit-b-m-x C7h m 0 rex-byte
+		emit-d imm
 	]
 
 	movd-r-m: func [
@@ -1281,8 +1324,11 @@ assemble-op: func [
 		l	[label!]
 		c	[integer!]
 		f	[operand!]
+		val [val!]
 		imm [immediate!]
 		loc [integer!]
+		pp	[int-ptr!]
+		pos [integer!]
 		addr [x86-addr! value]
 ][
 	switch x86_OPCODE(op) [
@@ -1322,6 +1368,53 @@ assemble-op: func [
 				loc-to-addr loc :addr cg/frame cg/reg-set
 				assemble-m op :addr
 			]
+		]
+		I_CATCH [
+			addr/base: x86-regs/ebp
+			addr/index: 0
+			addr/scale: 1
+			imm: as immediate! p/value
+			val: as val! imm/value
+			pp: val/ptr
+
+			either zero? pp/value [		;-- open catch
+				pp/value: asm/pos
+
+				addr/disp: -4
+				asm/mov-r-m x86-regs/eax :addr		;-- mov eax, [ebp - 4]
+				loc-to-addr pp/3 :addr cg/frame cg/reg-set
+				asm/mov-m-r :addr x86-regs/eax		;-- mov [ebp - x1], eax
+
+				addr/disp: -8
+				asm/mov-r-m x86-regs/eax :addr		;-- mov eax, [ebp - 8]
+				loc-to-addr pp/4 :addr cg/frame cg/reg-set
+				asm/mov-m-r :addr x86-regs/eax		;-- mov [ebp - x2], eax
+				
+				asm/mov-r-i x86-regs/eax pp/2		;-- mov eax, catch filter
+				addr/disp: -4
+				asm/mov-m-r :addr x86-regs/eax
+				asm/call-rel 0						;-- call next
+				asm/pop-r x86-regs/eax				;-- pop eax
+				asm/add-r-i x86-regs/eax 256 NO_REX	;-- add eax, <offset>
+				addr/disp: -8
+				asm/mov-m-r :addr x86-regs/eax		;-- mov [ebp - 8], eax
+			][
+				pos: pp/value
+				change-at-32 program/code-buf/data pos + 27 asm/pos - pos - 25
+
+				loc-to-addr pp/3 :addr cg/frame cg/reg-set				
+				asm/mov-r-m x86-regs/edi :addr		;-- mov edi, [ebp - x1]
+				addr/disp: -4
+				asm/mov-m-r :addr x86-regs/edi		;-- mov [ebp - 4], edi
+
+				loc-to-addr pp/4 :addr cg/frame cg/reg-set
+				asm/mov-r-m x86-regs/edi :addr		;-- mov edi, [ebp - x2]
+				addr/disp: -8
+				asm/mov-m-r :addr x86-regs/edi		;-- mov [ebp - 8], edi
+			]
+		]
+		I_THROW [
+			0
 		]
 		default [0]
 	]

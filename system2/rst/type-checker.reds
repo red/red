@@ -366,7 +366,6 @@ type-checker: context [
 				decl/type
 			]
 			RST_PATH [
-				probe "check-write-path"
 				visit-path as path! e ctx
 			]
 			default [
