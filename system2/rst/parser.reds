@@ -1094,7 +1094,7 @@ parser: context [
 			ft: as fn-type! p/type
 		]
 		n: ft/n-params
-		if n <> 0 [pc: fetch-args pc end :pp ctx n]
+		either n <> 0 [pc: fetch-args pc end :pp ctx n][pp/value: null]
 		fc/args: as rst-expr! pp/value
 		out/value: as int-ptr! fc
 		pc

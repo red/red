@@ -600,7 +600,6 @@ ir-graph: context [
 			m-end	[ssa-merge! value]
 			loop-ctx [ssa-ctx! value]
 			body-ctx [ssa-ctx! value]
-			
 	][
 		init-merge :m-start		;-- merge point at the start of the loop
 		start-loop w/loop-idx :m-start ctx
@@ -777,14 +776,13 @@ ir-graph: context [
 	visit-throw: func [t [unary!] ctx [ssa-ctx!] return: [instr!]
 		/local op [instr-op!] e [int-literal!] p [ssa-ctx!]
 	][
+		e: as int-literal! t/expr
+		op: make-op OP_THROW 0 null type-system/void-type
+		op/target: as int-ptr! e/value
+		add-op op null ctx
 		p: ctx
 		while [p <> null][
 			if p/catch-end <> null [
-				e: as int-literal! t/expr
-				op: make-op OP_THROW 0 null type-system/void-type
-				op/target: as int-ptr! e/value
-				add-op op null ctx
-
 				merge-ctx p/catch-end ctx
 				return null
 			]
@@ -796,13 +794,15 @@ ir-graph: context [
 	visit-catch: func [c [catch!] ctx [ssa-ctx!] return: [instr!]
 		/local
 			op		[instr-op!]
+			c-ctx	[ssa-ctx! value]
 			c-end	[ssa-merge! value]
 			arr		[int-ptr!]
 			p		[int-ptr!]
 			int		[red-integer!]
 	][
+		init-ssa-ctx :c-ctx ctx 0 ctx/block
 		init-merge :c-end		;-- merge point at the end of the catch
-		ctx/catch-end: :c-end
+		c-ctx/catch-end: :c-end
 
 		arr: as int-ptr! malloc 4 * size? integer!
 		p: arr + 1
@@ -813,9 +813,15 @@ ir-graph: context [
 		op/target: arr
 		add-op op null ctx
 
-		gen-stmts c/body ctx
-		
-		set-ssa-ctx :c-end ctx
+		gen-stmts c/body c-ctx
+
+		either c-end/n-preds > 0 [
+			ctx/closed?: no
+			ctx/block: c-end/block
+			ctx/cur-vals: c-end/cur-vals
+		][
+			ctx/block: c-ctx/block
+		]
 
 		op: make-op OP_CATCH_END 0 null type-system/void-type
 		op/target: arr

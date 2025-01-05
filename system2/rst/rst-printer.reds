@@ -160,11 +160,13 @@ rst-printer: context [
 	]
 
 	visit-throw: func [r [rst-stmt!] i [integer!]][
-		0
+		do-i i print "throw"
 	]
 
-	visit-catch: func [r [rst-stmt!] i [integer!]][
-		0
+	visit-catch: func [c [catch!] i [integer!]][
+		do-i i print "catch [^/"
+		print-body c/body i + 1
+		do-i i print "]"
 	]
 
 	visit-native-call: func [r [rst-stmt!] i [integer!]][
@@ -194,6 +196,17 @@ rst-printer: context [
 
 	do-i: func [i [integer!]][
 		loop i [prin "    "]
+	]
+
+	print-body: func [
+		stmt	[rst-stmt!]
+		indent	[integer!]
+	][
+		while [stmt <> null][
+			stmt/accept as int-ptr! stmt printer as int-ptr! indent
+			stmt: stmt/next
+			prin "^/"
+		]
 	]
 
 	print-stmts: func [

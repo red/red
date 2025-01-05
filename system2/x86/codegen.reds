@@ -1216,6 +1216,7 @@ x86: context [
 	][
 		o: as instr-op! i
 		use-imm-int cg as-integer o/target		;-- throw value
+		kill cg x86_EAX
 		emit-instr cg I_THROW
 	]
 

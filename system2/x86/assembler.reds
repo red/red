@@ -582,6 +582,16 @@ asm: context [
 		record-label l pos - 4
 	]
 
+	jmp-r: func [
+		r		[integer!]
+		/local
+			rex [integer!]
+	][
+		rex: rex-r r REX_B
+		emit_rex
+		emit-b-r-x FFh r 4
+	]
+
 	jc-rel: func [
 		cond	[integer!]
 		offset	[integer!]
@@ -1326,6 +1336,7 @@ assemble-op: func [
 		f	[operand!]
 		val [val!]
 		imm [immediate!]
+		int [red-integer!]
 		loc [integer!]
 		pp	[int-ptr!]
 		pos [integer!]
@@ -1414,7 +1425,23 @@ assemble-op: func [
 			]
 		]
 		I_THROW [
-			0
+			addr/base: x86-regs/ebp
+			addr/index: 0
+			addr/scale: 1
+			imm: as immediate! p/value
+			int: as red-integer! imm/value
+			asm/mov-r-i x86-regs/eax int/value		;-- mov eax, throw value
+			asm/jmp-rel 3							;--			jmp _1st
+			asm/leave								;-- _loop:	leave
+			addr/disp: -4
+			asm/cmp-m-r :addr x86-regs/eax NO_REX	;-- cmp [ebp - 4], eax
+			asm/jc-rel jc_carry -4					;-- jb _loop
+			addr/disp: -8
+			asm/mov-r-m x86-regs/edi :addr			;-- mov edi, [ebp - 8]
+			asm/cmp-r-i x86-regs/edi 0 NO_REX		;-- cmp edi, 0
+			asm/jc-rel jc_zero 4					;-- jz _end
+			asm/jmp-r x86-regs/edi					;-- jmp edi
+													;-- _end
 		]
 		default [0]
 	]
