@@ -2382,7 +2382,7 @@ natives: context [
 			#either GUI-engine = 'terminal [
 				exec/gui/try-events
 			][
-				exec/gui/do-events yes
+				exec/gui/do-events yes null
 			]
 		]
 	]

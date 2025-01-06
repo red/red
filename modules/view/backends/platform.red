@@ -854,7 +854,7 @@ system/view/platform: context [
 
 	do-event-loop: routine [no-wait? [logic!] /local bool [red-logic!]][
 		bool: as red-logic! stack/arguments
-		bool/value:  gui/do-events no-wait?
+		bool/value:  gui/do-events no-wait? null
 		bool/header: TYPE_LOGIC
 	]
 

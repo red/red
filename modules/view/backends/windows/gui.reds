@@ -702,6 +702,7 @@ free-faces: func [
 
 	if null? handle [exit]
 
+	flush-events handle
 	values: object/get-values face
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
