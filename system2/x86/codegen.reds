@@ -1433,29 +1433,36 @@ x86: context [
 		disp	[cell!]
 		addr	[rrsd!]
 		/local
+			op	[integer!]
 			p	[ptr-ptr!]
+			e	[df-edge!]
 			x y [instr!]
 			c	[instr-const!]
 			disp2 [cell!]
 	][
-		p: ARRAY_DATA(i/inputs)
-		x: as instr! p/value
-		p: p + 1
-		y: as instr! p/value
-		if INSTR_CONST?(x) [
-			c: as instr-const! x
-			disp2: add-vals disp c/value
-			if disp2 <> null [
-				match-addr-add y disp2 addr
-				exit
+		op: INSTR_OPCODE(i)
+		if any [op = OP_PTR_ADD op = OP_INT_ADD][
+			p: ARRAY_DATA(i/inputs)
+			e: as df-edge! p/value
+			x: e/dst
+			p: p + 1
+			e: as df-edge! p/value
+			y: e/dst
+			if INSTR_CONST?(x) [
+				c: as instr-const! x
+				disp2: add-vals disp c/value
+				if disp2 <> null [
+					match-addr-add y disp2 addr
+					exit
+				]
 			]
-		]
-		if INSTR_CONST?(y) [
-			c: as instr-const! y
-			disp2: add-vals disp c/value
-			if disp2 <> null [
-				match-addr-add x disp2 addr
-				exit
+			if INSTR_CONST?(y) [
+				c: as instr-const! y
+				disp2: add-vals disp c/value
+				if disp2 <> null [
+					match-addr-add x disp2 addr
+					exit
+				]
 			]
 		]
 		addr/base: i
