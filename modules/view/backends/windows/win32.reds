@@ -2945,11 +2945,6 @@ XFORM!: alias struct! [
 		]
 	]
 	LIBC-file cdecl [
-		realloc: "realloc" [						"Resize and return allocated memory."
-			memory			[byte-ptr!]
-			size			[integer!]
-			return:			[byte-ptr!]
-		]
 		wcslen: "wcslen" [
 			str				[c-string!]
 			return:			[integer!]

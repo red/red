@@ -13,6 +13,7 @@ Red/System [
 ;; ===== Extra slots usage in Window structs =====
 ;;
 ;;		-60  :							<- TOP
+;;		-40  : base: draw-ctx! pointer
 ;;		-36  : Direct2D render target
 ;;		-32	 : base: mouse capture count
 ;;			 : window: default font
@@ -32,11 +33,12 @@ Red/System [
 ;;		  12 : |
 ;;		  16 : FACE_OBJ_FLAGS        <- BOTTOM
 
+#define OFFSET_DRAW_CTX	[wc-offset - 40]
+
 #define IS_D2D_FACE(sym) [
 	any [sym = base sym = rich-text sym = window sym = panel]
 ]
 
-#define FACE_FREED(hwnd) [zero? GetWindowLong hwnd wc-offset]
 #define AREA_BUFFER_LIMIT 32768
 
 #include %win32.reds
@@ -117,37 +119,32 @@ clean-up: does [
 	current-msg: null
 ]
 
-no-face?: func [
+face-set?: func [
 	hWnd	[handle!]
 	return: [logic!]
 ][
-	(GetWindowLong hWnd wc-offset) and get-type-mask <> TYPE_OBJECT
+	0 <> GetWindowLong hWnd wc-offset
 ]
 
 get-face-obj: func [
 	hWnd	[handle!]
 	return: [red-object!]
-	/local
-		face [red-object!]
 ][
 	if null? hWnd [return null]
-	face: declare red-object!
-	face/header: GetWindowLong hWnd wc-offset
-	face/ctx:	 as node! GetWindowLong hWnd wc-offset + 4
-	face/class:  GetWindowLong hWnd wc-offset + 8
-	face/on-set: as node! GetWindowLong hWnd wc-offset + 12
-	face
+	as red-object! references/get GetWindowLong hWnd wc-offset
 ]
 
 get-face-values: func [
 	hWnd	[handle!]
 	return: [red-value!]
 	/local
+		face [red-object!]
 		ctx	 [red-context!]
 		node [node!]
 		s	 [series!]
 ][
-	node: as node! GetWindowLong hWnd wc-offset + 4
+	face: as red-object! references/get GetWindowLong hWnd wc-offset
+	node: face/ctx
 	ctx: TO_CTX(node)
 	s: as series! ctx/values/value
 	s/offset
@@ -177,10 +174,11 @@ get-facet: func [
 	msg		[tagMSG]
 	facet	[integer!]
 	return: [red-value!]
+	/local
+		face [red-object!]
 ][
-	get-node-facet 
-		as node! GetWindowLong get-widget-handle msg wc-offset + 4
-		facet
+	face: as red-object! references/get GetWindowLong get-widget-handle msg wc-offset
+	get-node-facet face/ctx facet
 ]
 
 get-widget-handle: func [
@@ -193,9 +191,9 @@ get-widget-handle: func [
 ][
 	hWnd: msg/hWnd
 
-	if no-face? hWnd [
+	unless face-set? hWnd [
 		hWnd: GetParent hWnd							;-- for composed widgets (try 1)
-		if no-face? hWnd [
+		unless face-set? hWnd [
 			hWnd: WindowFromPoint msg/x msg/y			;-- try 2
 			id: 0
 			GetWindowThreadProcessId hWnd :id
@@ -203,13 +201,13 @@ get-widget-handle: func [
 				id <> process-id
 				hWnd = GetConsoleWindow					;-- see #1290
 			] [ return as handle! -1 ]
-			if no-face? hWnd [
+			unless face-set? hWnd [
 				p: as int-ptr! GetWindowLong hWnd 0		;-- try 3
 				either null? p [
 					hWnd: as handle! -1					;-- not found
 				][
 					hWnd: as handle! p/2
-					if no-face? hWnd [hWnd: as handle! -1]	;-- not found
+					unless face-set? hWnd [hWnd: as handle! -1]	;-- not found
 				]
 			]
 		]
@@ -725,9 +723,8 @@ free-faces: func [
 			;-- destroy the extra frame window
 			DestroyWindow as handle! GetWindowLong handle wc-offset - 4 as-integer handle
 		]
-		sym = panel [
-			DestroyWindow handle
-		]
+		sym = panel [DestroyWindow handle]
+		sym = camera [stop-camera handle]
 		true [
 			0
 			;; handle user-provided classes too
@@ -742,6 +739,7 @@ free-faces: func [
 		SetWindowLong handle wc-offset - 4 -1
 	]
 
+	references/remove GetWindowLong handle wc-offset
 	SetWindowLong handle wc-offset 0
 	state: values + FACE_OBJ_STATE
 	state/header: TYPE_NONE
@@ -888,7 +886,7 @@ get-metrics: func [
 ]
 
 on-gc-mark: does [
-	collector/keep flags-blk/node
+	collector/keep :flags-blk/node
 ]
 
 init: func [
@@ -957,7 +955,8 @@ init: func [
 	]
 
 	collector/register as int-ptr! :on-gc-mark
-	time-meter/start _time_meter
+	time-meter/start _time_meter	
+	font-ext-type: externals/register "font" as-integer :delete-font
 ]
 
 use-dark-mode?: func [
@@ -1342,11 +1341,8 @@ store-face-to-hWnd: func [
 	hWnd	[handle!]
 	face	[red-object!]
 ][
-	if (GetWindowLong hWnd wc-offset) and get-type-mask = TYPE_OBJECT [exit]
-	SetWindowLong hWnd wc-offset				 face/header
-	SetWindowLong hWnd wc-offset + 4  as-integer face/ctx
-	SetWindowLong hWnd wc-offset + 8			 face/class
-	SetWindowLong hWnd wc-offset + 12 as-integer face/on-set
+	if face-set? hWnd [exit]
+	SetWindowLong hWnd wc-offset references/store as red-value! face
 ]
 
 evolve-base-face: func [
@@ -1496,6 +1492,12 @@ OS-make-view: func [
 		rate	  [red-value!]
 		options	  [red-block!]
 		fl		  [red-float!]
+		rc		  [RECT_STRUCT value]
+		si		  [tagSCROLLINFO]
+		pt		  [red-point2D!]
+		handle	  [handle!]
+		hWnd	  [handle!]
+		p		  [ext-class!]
 		flags n	  [integer!]
 		ws-flags  [integer!]
 		bits	  [integer!]
@@ -1504,9 +1506,6 @@ OS-make-view: func [
 		class	  [c-string!]
 		caption   [c-string!]
 		value	  [integer!]
-		handle	  [handle!]
-		hWnd	  [handle!]
-		p		  [ext-class!]
 		id		  [integer!]
 		vertical? [logic!]
 		panel?	  [logic!]
@@ -1514,11 +1513,8 @@ OS-make-view: func [
 		para?	  [logic!]
 		off-x	  [integer!]
 		off-y	  [integer!]
-		rc		  [RECT_STRUCT value]
-		si		  [tagSCROLLINFO]
 		ratio	  [float!]
 		sx sy f32 [float32!]
-		pt		  [red-point2D!]
 		ex-flags  [integer!]
 ][
 	stack/mark-native words/_body
@@ -1604,6 +1600,7 @@ OS-make-view: func [
 			][
 				init-panel values as handle! parent
 				panel?: yes
+				GET_PAIR_XY(size sx sy)		;-- size adjusted
 			]
 		]
 		sym = tab-panel [
@@ -2970,11 +2967,15 @@ OS-do-draw: func [
 ]
 
 OS-draw-face: func [
-	ctx		[draw-ctx!]
+	hWnd	[handle!]
 	cmds	[red-block!]
+	flags	[integer!]
+	/local
+		ctx [draw-ctx!]
 ][
 	if TYPE_OF(cmds) = TYPE_BLOCK [
 		assert system/thrown = 0
+		ctx: as draw-ctx! GetWindowLong hWnd OFFSET_DRAW_CTX
 		catch RED_THROWN_ERROR [parse-draw ctx cmds yes]
 	]
 	if system/thrown = RED_THROWN_ERROR [system/thrown: 0]

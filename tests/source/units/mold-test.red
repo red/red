@@ -233,7 +233,7 @@ Red [
 		s-mo-err: mold/only try [1 / 0]
 		remove/part pos: find/tail s-mo-err "stack: " find pos lf
 		remove/part pos: find/tail s-mo-err "near: " find pos #"w"	
-		--assert s-mo-err == probe {code: 400^/type: 'math^/id: 'zero-divide^/arg1: none^/arg2: none^/arg3: none^/near: where: '/^/stack: ^/files: none}
+		--assert s-mo-err == {code: 400^/type: 'math^/id: 'zero-divide^/arg1: none^/arg2: none^/arg3: none^/near: where: '/^/stack: ^/files: none}
 
 ===end-group===
 

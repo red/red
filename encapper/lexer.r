@@ -48,6 +48,7 @@ lexer: context [
 	sec:	none
 	date:	none
 	ee:		none
+	file:	none
 	
 	;====== Parsing rules ======
 
@@ -748,8 +749,9 @@ lexer: context [
 				]
 				""
 			]
+			either file [rejoin ["^/*** origin: " mold file]][""]
 			"^/*** line: " line
-			"^/*** at: " mold copy/part pos 40
+			"^/*** at: " mold copy/part either tail? pos [skip pos -40][pos] 40
 		]
 		stack/clean-up
 		either encap? [quit][halt]
@@ -976,8 +978,9 @@ lexer: context [
 		pos
 	]
 	
-	process: func [src [string! binary!] /local blk][
+	process: func [src [string! binary!] /hint file /local blk][
 		old-line: line: 1
+		lexer/file: file
 		count?: yes
 		stack/clean-up
 		blk: stack/allocate block! 100				;-- root block

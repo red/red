@@ -34,11 +34,6 @@ ext-process: context [
 
 	#import [
 		LIBC-file cdecl [
-			realloc: "realloc" [				"Resize and return allocated memory."
-				memory			[byte-ptr!]
-				size			[integer!]
-				return:			[byte-ptr!]
-			]
 			strstr: "strstr" [					"Search for sub-string."
 				string			[c-string!]
 				substring		[c-string!]

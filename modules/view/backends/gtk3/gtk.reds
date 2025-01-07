@@ -3599,10 +3599,7 @@ GPtrArray!: alias struct! [
 ]
 
 ;; Identifiers for qdata
-red-face-id1:		g_quark_from_string "red-face-id1"
-red-face-id2:		g_quark_from_string "red-face-id2"
-red-face-id3:		g_quark_from_string "red-face-id3"
-red-face-id4:		g_quark_from_string "red-face-id4"
+red-face-id:		g_quark_from_string "red-face-id"
 red-color-id:		g_quark_from_string "red-color-id"
 red-color-str:		g_quark_from_string "red-color-str"
 red-font-id:		g_quark_from_string "red-font-id"
@@ -3628,6 +3625,7 @@ camera-pixbuf:		g_quark_from_string "camera-pixbuf"
 base-buffer:		g_quark_from_string "base-buffer"
 base-enter:			g_quark_from_string "base-enter"
 pair-size-facet:	g_quark_from_string "pair-size-facet"
+draw-ctx-id:		g_quark_from_string "draw-ctx-id"
 ;im-string-id:		g_quark_from_string "im-string-id"
 ;im-start-id:		g_quark_from_string "im-start-id"
 

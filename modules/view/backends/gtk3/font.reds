@@ -10,6 +10,7 @@ Red/System [
 	}
 ]
 
+font-ext-type: -1
 default-attrs: as handle! 0
 
 init-default-handle: does [
@@ -281,6 +282,11 @@ free-pango-attrs: func [
 	pango_attr_list_unref attrs
 ]
 
+
+mark-font: func [hFont [handle!]][]
+
+delete-font: func [h [handle!]][pango_attr_list_unref h]
+
 make-font: func [
 	face		[red-object!]
 	font		[red-object!]
@@ -289,7 +295,7 @@ make-font: func [
 		attrs	[handle!]
 		values	[red-value!]
 		blk		[red-block!]
-		int		[red-integer!]
+		h		[red-handle!]
 ][
 	if TYPE_OF(font) <> TYPE_OBJECT [
 		return null
@@ -299,13 +305,13 @@ make-font: func [
 	blk: as red-block! values + FONT_OBJ_STATE
 	either TYPE_OF(blk) <> TYPE_BLOCK [
 		block/make-at blk 2
-		handle/make-in blk as-integer attrs
+		h: handle/make-in blk as-integer attrs handle/CLASS_FONT
 		none/make-in blk
 	][
-		int: as red-integer! block/rs-head blk
-		int/header: TYPE_HANDLE
-		int/value: as-integer attrs
+		h: as red-handle! block/rs-head blk
+		h: handle/make-at as red-value! h as-integer attrs handle/CLASS_FONT
 	]
+	if attrs <> null [h/extID: externals/store attrs font-ext-type]
 
 	blk: as red-block! values + FONT_OBJ_PARENT
 	if all [face <> null TYPE_OF(blk) <> TYPE_BLOCK][
@@ -315,22 +321,31 @@ make-font: func [
 	attrs
 ]
 
-get-font-handle: func [
-	font		[red-object!]
-	idx			[integer!]
-	return:		[handle!]
+get-font-handle-slot: func [
+	font	[red-object!]
+	idx		[integer!]							;-- 0-based index
+	return: [red-handle!]
 	/local
-		state	[red-block!]
-		handle	[red-handle!]
+		state [red-block!]
+		h	  [red-handle!]
 ][
 	state: as red-block! (object/get-values font) + FONT_OBJ_STATE
 	if TYPE_OF(state) = TYPE_BLOCK [
-		handle: (as red-handle! block/rs-head state) + idx
-		if TYPE_OF(handle) = TYPE_HANDLE [
-			return as handle! handle/value
-		]
+		h: (as red-handle! block/rs-head state) + idx
+		if TYPE_OF(h) = TYPE_HANDLE [return h]
 	]
 	null
+]
+
+get-font-handle: func [
+	font	[red-object!]
+	idx		[integer!]							;-- 0-based index
+	return: [handle!]
+	/local
+		h [red-handle!]
+][
+	h: get-font-handle-slot font idx
+	either null? h [null][as handle! h/value]
 ]
 
 get-font: func [
@@ -350,11 +365,14 @@ free-font: func [
 	font		[red-object!]
 	/local
 		state	[red-block!]
+		h		[red-handle!]
 		hFont	[handle!]
 ][
-	hFont: get-font-handle font 0
-	if hFont <> null [
-		;pango_attr_list_unref hFont
+	h: get-font-handle-slot font 0
+	if h <> null [
+		hFont: as handle! h/value
+		pango_attr_list_unref hFont
+		h/extID: externals/remove h/extID no
 		state: as red-block! (object/get-values font) + FONT_OBJ_STATE
 		state/header: TYPE_NONE
 	]
@@ -373,8 +391,7 @@ update-font: func [
 		FONT_OBJ_ANGLE
 		FONT_OBJ_ANTI-ALIAS? [
 			if TYPE_OF(font) = TYPE_OBJECT [
-				hFont: get-font-handle font 0
-				;unless null? hFont [pango_attr_list_unref hFont]
+				free-font font
 				make-font null font
 			]
 		]
@@ -465,8 +482,7 @@ change-font: func [
 		true [0]
 	]
 
-	hFont: get-font-handle font 0
-	;unless null? hFont [pango_attr_list_unref hFont]
+	free-font font
 	make-font face font
 ]
 

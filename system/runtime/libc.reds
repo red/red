@@ -12,17 +12,17 @@ Red/System [
 
 #import [
 	LIBC-file cdecl [
-		allocate:	 "malloc" [
+		libC.malloc:	 "malloc" [
 			size		[integer!]
 			return:		[byte-ptr!]
 		]
-		free:		 "free" [
+		libC.free:		 "free" [
 			block		[byte-ptr!]
 		]
-		realloc:	"realloc" [		"Resize and return allocated memory."
-			memory			[byte-ptr!]
-			size			[integer!]
-			return:			[byte-ptr!]
+		libC.realloc:	"realloc" [		"Resize and return allocated memory."
+			block		[byte-ptr!]
+			size		[integer!]
+			return:		[byte-ptr!]
 		]
 		set-memory:	 "memset" [
 			target		[byte-ptr!]
@@ -169,13 +169,6 @@ Red/System [
 		]
 		libc.copy-memory target source size
 	]
-]
-
-zero-alloc: func [
-	size		[integer!]
-	return:		[byte-ptr!]
-][
-	set-memory allocate size null-byte size
 ]
 
 #either unicode? = yes [

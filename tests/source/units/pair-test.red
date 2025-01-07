@@ -167,7 +167,7 @@ Red [
 		
 	--test-- "pdiv-3"
 		pdiv3-p: 2147483647x2147483647
-		--assert equal? pdiv3-p / 2 1073741823x1073741823
+		--assert equal? pdiv3-p / 2 to-point2D 2147483647 / 2
 		
 	--test-- "pdiv-4"
 		pdiv4-p: -2147483648x-2147483648

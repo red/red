@@ -29,29 +29,42 @@ memory-info: func [
 	verbose [integer!]						;-- stat verbosity level (1, 2 or 3)
 	return:	[float!]						;-- total bytes used (verbose = 1)
 	/local
-		n-frame s-frame b-frame free-nodes base list nodes series bigs used cell saved
-		len
+		n-frame		[node-frame!]
+		s-frame		[series-frame!]
+		b-frame		[big-frame!]
+		list		[red-block!]
+		nodes		[red-block!]
+		series		[red-block!]
+		bigs		[red-block!]
+		int			[red-integer!]
+		h-frame		[heap-frame!]
+		base		[byte-ptr!]
+		used		[float!]
+		total		[float!]
+		saved		[logic!]
+		len			[integer!]
+		push-value	[subroutine!]
 ][
 	saved: collector/active?
 	collector/active?: no
 	assert all [1 <= verbose verbose <= 3]
-	used: 0.0
+	used: total: 0.0
 
 ;-- Node frames stats --
 	if verbose > 1 [nodes: block/make-in blk 8]
 	n-frame: memory/n-head
 
 	while [n-frame <> null][
-		free-nodes: (as-integer (n-frame/top + 1 - n-frame/bottom)) / 4
 		if verbose = 1 [
-			used: used + as-float ((n-frame/nodes - free-nodes) * 4)
+			used: used + as-float n-frame/used * size? node!
 		]
 		if verbose >= 2 [
 			list: block/make-in nodes 8
-			integer/make-in list free-nodes
-			integer/make-in list n-frame/nodes - free-nodes
+			integer/make-in list n-frame/nodes - n-frame/used
+			integer/make-in list n-frame/used
 			integer/make-in list n-frame/nodes
 			list/header: list/header or flag-new-line
+			total: total + as-float ((n-frame/nodes * size? node!) + size? node-frame!)
 		]
 		n-frame: n-frame/next
 	]
@@ -72,6 +85,7 @@ memory-info: func [
 			integer/make-in list as-integer (as byte-ptr! s-frame/heap) - base
 			integer/make-in list as-integer s-frame/tail - base
 			list/header: list/header or flag-new-line
+			total: total + as-float (s-frame/size + size? series-frame!)
 		]
 		s-frame: s-frame/next
 	]
@@ -85,13 +99,35 @@ memory-info: func [
 			used: used + as-float b-frame/size
 		]
 		if verbose >= 2 [
-			cell: integer/make-in bigs b-frame/size
-			cell/header: cell/header or flag-new-line
+			int: integer/make-in bigs b-frame/size
+			int/header: int/header or flag-new-line
+			total: total + as-float (b-frame/size + size? big-frame!)
 		]
 		b-frame: b-frame/next
 	]
+	
+	push-value: [
+		either total > 2147483647.0 [
+			float/make-at ALLOC_TAIL(blk) total
+		][
+			integer/make-in blk as-integer total
+		]
+	]
+	
+;-- store total allocated from OS --
+	if verbose >= 2 [
+		push-value							;-- Total allocated by Red allocator
+		total: 0.0
+		h-frame: system/heap/head
+		while [h-frame <> null][
+			total: total + as-float (h-frame/size + size? heap-frame!)
+			#if debug? = yes [total: total + as-float size? alloc-guard!]
+			h-frame: h-frame/next
+		]
+		push-value							;-- Total allocated by Red low-level sub-system
+	]
+	
 	collector/active?: saved
-
 	used
 ]
 
@@ -211,7 +247,7 @@ memory-info: func [
 	;-------------------------------------------
 	memory-stats: func [
 		verbose [integer!]						;-- stat verbosity level (1, 2 or 3)
-		/local count n-frame s-frame b-frame free-nodes base
+		/local count n-frame s-frame b-frame base
 	][
 		assert all [1 <= verbose verbose <= 3]
 		
@@ -225,10 +261,9 @@ memory-info: func [
 		while [n-frame <> null][
 			if verbose >= 2 [
 				print ["#" count + 1 ": "]
-				free-nodes: (as-integer (n-frame/top + 1 - n-frame/bottom)) / 4
 				frame-stats 
-					free-nodes
-					n-frame/nodes - free-nodes
+					n-frame/nodes - n-frame/used
+					n-frame/used
 					n-frame/nodes
 			]
 			count: count + 1

@@ -113,7 +113,7 @@ _series: context [
 			size [integer!]
 			unit [integer!]
 			len	 [integer!]
-			val  [red-value! value]
+			val  [red-value! value]						;-- used for swapping values, GC-safe.
 			temp [byte-ptr!]
 			idx	 [byte-ptr!]
 			head [byte-ptr!]
@@ -163,7 +163,7 @@ _series: context [
 				]
 			][
 				len: size
-				temp: as byte-ptr! :val
+				temp: as byte-ptr! val
 				while [size > 0][
 					idx: head + ((-1 + _random/int-uniform-distr secure? size) << (log-b unit))
 					if idx <> head [
@@ -918,7 +918,7 @@ _series: context [
 			tail	[byte-ptr!]
 			tail2	[byte-ptr!]
 			temp	[byte-ptr!]
-			val     [red-value! value]
+			val     [red-value! value]					;-- used for swapping values, GC-safe.
 			int		[red-integer!]
 			ser2	[red-series!]
 			hash?	[logic!]
@@ -981,7 +981,7 @@ _series: context [
 		big?: all [skip? skip <> 1]
 		if all [positive? part head + part < tail][tail: head + part]
 		tail: tail - unit								;-- point to last value or multi-value record
-		temp: either big? [allocate unit][as byte-ptr! :val]
+		temp: either big? [allocate unit][as byte-ptr! val]
 		while [head < tail][							;-- TODO: optimise it according to unit
 			copy-memory temp head unit
 			copy-memory head tail unit

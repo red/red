@@ -1989,6 +1989,9 @@ OS-draw-arc: func [
 	/local
 		radius		[red-pair!]
 		angle		[red-integer!]
+		arc-points	[arcPOINTS!]
+		dc			[handle!]
+		pt			[red-point2D!]
 		rad-x		[integer!]
 		rad-y		[integer!]
 		start-x		[integer!]
@@ -2008,9 +2011,6 @@ OS-draw-arc: func [
 		closed?		[logic!]
 		prev-dir	[integer!]
 		arc-dir		[integer!]
-		arc-points	[arcPOINTS!]
-		dc			[handle!]
-		pt			[red-point2D!]
 		cx cy		[integer!]
 ][
 	radius: center + 1
@@ -2531,7 +2531,7 @@ OS-draw-brush-pattern: func [
 	/local
 		pat-image	[red-image!]
 		bkg-alpha	[byte!]
-		p-alpha		[red-value! value]
+		p-alpha		[red-binary! value]
 		bin			[red-binary!]
 		s			[series!]
 		p			[byte-ptr!]
@@ -2548,6 +2548,7 @@ OS-draw-brush-pattern: func [
 	pat-image/size:   size/y << 16 or size/x
 	bkg-alpha:        as byte! 0
 	len:              size/x * size/y
+	p-alpha/node:	  null								;-- avoid garbage during GC stack pointers scanning
 	bin: binary/make-at :p-alpha len
 	s: GET_BUFFER(bin)
 	p: as byte-ptr! s/offset

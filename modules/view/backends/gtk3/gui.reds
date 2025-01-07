@@ -54,15 +54,8 @@ screen-size-y:		0
 get-face-obj: func [
 	handle		[handle!]
 	return:		[red-object!]
-	/local
-		face	[red-object!]
 ][
-	face: declare red-object!
-	face/header: as integer! g_object_get_qdata handle red-face-id1
-	face/ctx:	 			 g_object_get_qdata handle red-face-id2
-	face/class:  as integer! g_object_get_qdata handle red-face-id3
-	face/on-set: 			 g_object_get_qdata handle red-face-id4
-	face
+	as red-object! references/get as integer! g_object_get_qdata handle red-face-id
 ]
 
 get-face-values: func [
@@ -472,7 +465,7 @@ free-handles: func [
 	free-color-provider widget
 	free-font-provider widget
 	rate: values + FACE_OBJ_RATE
-	if TYPE_OF(rate) <> TYPE_NONE [change-rate widget none-value]
+	if TYPE_OF(rate) <> TYPE_NONE [remove-widget-timer widget]
 
 	pane: as red-block! values + FACE_OBJ_PANE
 	if TYPE_OF(pane) = TYPE_BLOCK [
@@ -515,7 +508,7 @@ free-handles: func [
 ]
 
 on-gc-mark: does [
-	collector/keep flags-blk/node
+	collector/keep :flags-blk/node
 ]
 
 parse-font-name: func [
@@ -736,6 +729,7 @@ init: func [][
 	#if type = 'exe [set-env-theme]
 	set-app-theme "box, button.text-button {min-width: 1px; min-height: 1px;}" yes
 	collector/register as int-ptr! :on-gc-mark
+	font-ext-type: externals/register "font" as-integer :delete-font
 ]
 
 get-symbol-name: function [
@@ -787,22 +781,16 @@ remove-all-timers: func [
 	/local
 		widget_	[handle!]
 		pane	[red-block!]
-		type	[red-word!]
-		sym		[integer!]
 		face	[red-object!]
 		tail	[red-object!]
 		values	[red-value!]
 		rate	[red-value!]
 ][
-	remove-widget-timer widget
 	values: get-face-values widget
-	type: 	as red-word! values + FACE_OBJ_TYPE
 	pane: 	as red-block! values + FACE_OBJ_PANE
 	rate:	 values + FACE_OBJ_RATE
 
-	change-rate widget none-value
-
-	sym: 	symbol/resolve type/symbol
+	if TYPE_OF(rate) <> TYPE_NONE [remove-widget-timer widget]
 
 	if all [TYPE_OF(pane) = TYPE_BLOCK 0 <> block/rs-length? pane] [
 		face: as red-object! block/rs-head pane
@@ -1390,10 +1378,7 @@ store-face-to-obj: func [
 	obj			[handle!]
 	face		[red-object!]
 ][
-	g_object_set_qdata obj red-face-id1 as int-ptr! face/header
-	g_object_set_qdata obj red-face-id2				face/ctx
-	g_object_set_qdata obj red-face-id3 as int-ptr! face/class
-	g_object_set_qdata obj red-face-id4				face/on-set
+	g_object_set_qdata obj red-face-id as int-ptr! references/store as red-value! face
 ]
 
 init-combo-box: func [
@@ -2234,9 +2219,6 @@ OS-destroy-view: func [
 	obj: as red-object! values + FACE_OBJ_PARA
 	if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj PARA_OBJ_PARENT]
 
-	;; TODO: This can be useless now!
-	remove-all-timers handle
-
 	free-handles handle no
 ]
 
@@ -2379,11 +2361,15 @@ OS-do-draw: func [
 ]
 
 OS-draw-face: func [
-	ctx			[draw-ctx!]
-	cmds		[red-block!]
+	hWnd	[handle!]
+	cmds	[red-block!]
+	flags	[integer!]
+	/local
+		ctx [draw-ctx!]
 ][
 	if TYPE_OF(cmds) = TYPE_BLOCK [
 		assert system/thrown = 0
+		ctx: as draw-ctx! g_object_get_qdata hWnd draw-ctx-id
 		catch RED_THROWN_ERROR [parse-draw ctx cmds yes]
 	]
 	if system/thrown = RED_THROWN_ERROR [system/thrown: 0]

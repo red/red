@@ -1426,6 +1426,7 @@ block: context [
 			table	[node!]
 			int		[red-integer!]
 			b		[red-block!]
+			action	[red-word!]
 			s		[series!]
 			err		[integer!]
 			h		[integer!]
@@ -1439,7 +1440,6 @@ block: context [
 			hash?	[logic!]
 			rehash? [logic!]
 			chk?	[logic!]
-			action	[red-word!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/insert"]]
 		

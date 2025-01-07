@@ -173,11 +173,7 @@ win32-startup-ctx: context [
 	;-- Runtime functions --
 	
 	x87-cword: 0									;-- store previous control word in case it needs
-													;-- to be restored (on callbacks exit e.g.)
-	memory-blocks: declare struct! [
-		argv	[pointer! [integer!]]
-	]
-	
+													;-- to be restored (on callbacks exit e.g.)	
 	;-------------------------------------------
 	;-- Initialize environment
 	;-------------------------------------------
@@ -226,19 +222,9 @@ win32-startup-ctx: context [
 		system/args-list: as str-array! argv
 		system/args-count: c
 		system/env-vars: null
-		memory-blocks/argv: argv
 	]
 	
-	on-quit: func [/local arg][
-		if memory-blocks/argv <> null [
-			arg: memory-blocks/argv
-			while [arg/value <> 0][
-				free as byte-ptr! arg/value
-				arg: arg + 1
-			]
-			free as byte-ptr! memory-blocks/argv
-		]
-	]
+	on-quit: does [heap-free-all]
 	
 	#if type = 'exe [init]							;-- call init codes for executables only
 ]
@@ -260,6 +246,8 @@ win32-startup-ctx: context [
 					on-load hinstDLL
 					***-main
 				][
+					system/image: ***-exec-image
+					system/image/base: as byte-ptr! hinstDLL
 					on-load hinstDLL
 				]
 			]

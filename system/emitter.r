@@ -16,14 +16,15 @@ emitter: make-profilable context [
 	stack: 	   make block! 40			;-- [name offset ...]
 	exits:	   make block! 1			;-- [offset ...]	(funcs exits points)
 	breaks:	   make block! 1			;-- [[offset ...] [...] ...] (break jump points)
-	cont-next: make block! 1			;-- [[offset ...] [...] ...] (break jump points)
-	cont-back: make block! 1			;-- [[offset ...] [...] ...] (break jump points)
+	cont-next: make block! 1			;-- [[offset ...] [...] ...] (continue skip jump points)
+	cont-back: make block! 1			;-- [[offset ...] [...] ...] (continue back jump points)
+	bits-buf:  make binary! 10'000
 	verbose:   0						;-- logs verbosity level
 	
-	target:	  none						;-- target code emitter object placeholder
-	compiler: none						;-- just a short-cut
-	libc-init?:		 none				;-- TRUE if currently processing libc init part
-
+	target:	    none					;-- target code emitter object placeholder
+	compiler:   none					;-- just a short-cut
+	libc-init?:	none					;-- TRUE if currently processing libc init part
+	extension-flag: -2147483648			;-- for pointers bit-array encoding
 		
 	pointer: make-struct [
 		value [integer!]				;-- 32/64-bit, watch out for endianness!!
@@ -766,6 +767,135 @@ emitter: make-profilable context [
 		size
 	]
 	
+	reverse-fields: func [spec [block!]][
+		take/last head insert reverse spec: copy spec '_
+		spec
+	]
+	
+	foreach-field: func [spec [block!] body [block!] /local type][
+		all [
+			'value = last spec
+			'struct! <> spec/1
+			spec: reverse-fields second compiler/find-aliased spec/1
+		]
+		body: bind/copy body 'type
+		if block? spec/1 [spec: next spec]				;-- skip struct's [attributs] if present
+
+		forskip spec 2 [
+			either 'value = last type: spec/2 [
+				foreach-field second compiler/find-aliased spec/2/1 body
+			][
+				do body
+			]
+		]
+	]
+	
+	compact-extension: func [list [block!] /local pos mask][
+		;; removes tail empty arrays (all bits are zeros)
+		if tail? next list [exit]						;-- if only one slot, no processing
+		pos: tail list									;-- process backward from tail
+		mask: complement extension-flag
+		while [
+			pos: back pos
+			all [
+				pos <> list
+				zero? pos/1 and mask					;-- if lower 31 bits are not set
+			]
+		][
+			pos/-1: pos/-1 and mask						;-- remove extension it from previous array
+			remove pos									;-- remove current empty bit-array
+		]
+	]
+
+	encode-ptr-bitmap: func [locals [block!] /local ts out bits i name spec step store pos][
+		;; Encode pointer type stack slots in arguments and locals using 31-bit bitarrays
+		;; Bit 31 (highest bit) if set, is used to denote more slots.
+		;; First bitarrays are for arguments, '- is used to separate args from locals.
+		;; General format: [<args1> ... <argsN> - <locs1> ... <locsN>]
+		;; In the vast majority, the minimum format [<int> - <int>] is enough.
+		
+		if empty? locals [return [0 - 0]]				;-- no pointers at all
+		ts: [pointer! struct! c-string!]
+		out: make block! 3
+		bits: i: 0
+		
+		store: [
+			bits: bits or extension-flag				;-- set bit 31 to 1 to denote extension
+			append out bits
+			bits: 0
+			i: step - 1									;-- account fo 64-bit types across two bitarrays
+		]
+		
+		parse locals [
+			opt [pos: block! (
+				pos: either any [find pos/1 'typed  find pos/1 'variadic][
+					bits: pick [1073741824 536870912] to-logic find pos/1 'variadic ;-- variadic: 40000000h, typed: 20000000h
+					any [find pos /local  tail pos]
+				][
+					next pos
+				]
+			) :pos]
+			any [
+				set name word! set spec block! (
+					step: pick 2x1 to logic! find [float! float64!] spec/1 ;-- 64-bit types need 2 bits.
+					
+					either compiler/any-pointer?/with spec ts [
+						either 'value = last spec [
+							foreach-field spec [
+								step: pick 2x1 to logic! find [float! float64!] type/1
+								if compiler/any-pointer?/with type ts [
+									bits: bits or (shift/left 1 i)
+								]
+								if (i: i + step) > 30 store
+							]
+						][
+							bits: bits + (shift/left 1 i)
+							i: i + step
+						]
+					][
+						i: i + step
+					]
+					if i > 30 store
+				)
+				|  /local (
+					append out bits
+					compact-extension out				;-- remove tail empty arrays (arguments)
+					append out '-						;-- inserts separator between args and locals bitmaps
+					bits: i: 0
+				)
+				| set-word! block!						;-- skip `return: [<type>]`
+			]
+		]
+		append out bits
+		unless find out '- [append out [- 0]]
+		compact-extension find/tail out '-				;-- remove tail empty arrays (locals)
+		out
+	]
+	
+	store-ptr-bitmap: func [list [block!] /local offset][
+		offset: (index? tail bits-buf) - 1 / datatypes/pointer!
+		until [
+			if list/1 <> '- [append bits-buf reverse debase/base to-hex list/1 16]
+			tail? list: next list
+		]
+		offset
+	]
+	
+	store-bitmaps: func [compress? [logic!] /local len out][
+		pad-data-buf target/ptr-size					;-- pointer alignment can be <> of integer
+		append data-buf to-bin32 to-integer compress?
+		if compress? [
+			len: length? bits-buf
+			out: make binary! len
+			insert/dup out null len
+			len: redc/crush-compress bits-buf len out
+			if len <= 0 [compiler/throw-error "Compression of pointers bit-arrays failed!"]
+			bits-buf: out
+		]
+		add-symbol '***-ptr-bitmaps (index? tail data-buf) - 1
+		append data-buf bits-buf
+	]
+	
 	push-struct: func [expr spec [block!]][
 		target/emit-load expr
 		target/emit-push-struct struct-slots?/direct spec/2
@@ -803,7 +933,7 @@ emitter: make-profilable context [
 		clear subs
 	]
 
-	calc-locals-offsets: func [spec [block!] /local total var sz extra][
+	calc-locals-offsets: func [spec [block!] /only /local total var sz extra][
 		total: negate extra: target/locals-offset
 		while [not tail? spec: next spec][
 			var: spec/1
@@ -813,12 +943,12 @@ emitter: make-profilable context [
 			][
 				sz: target/stack-slot-max				;-- type to be inferred
 			]
-			repend stack [var (total: total - sz)] 		;-- store stack offsets
+			unless only [repend stack [var (total: total - sz)]] 		;-- store stack offsets
 		]
 		(abs total) - extra
 	]
 	
-	enter: func [name [word!] locals [block!] /local ret args-sz locals-sz extras pos][
+	enter: func [name [word!] locals [block!] offset [integer!] /local ret args-sz locals-sz extras pos][
 		symbols/:name/2: tail-ptr						;-- store function's entry point
 		all [
 			spec: find/last symbols name
@@ -830,7 +960,7 @@ emitter: make-profilable context [
 		;-- Implements Red/System calling convention -- (STDCALL)
 		args-sz: arguments-size?/push locals
 		
-		set [locals-sz extras] target/emit-prolog name locals
+		set [locals-sz extras] target/emit-prolog name locals offset
 		if verbose >= 2 [print ["args+locals stack:" mold emitter/stack]]
 		if extras <> 0 [args-sz: negate extras * target/stack-width]
 		
@@ -894,12 +1024,12 @@ emitter: make-profilable context [
 			clear code-buf
 			clear data-buf
 			clear symbols
-			clear 	stack
-			clear 	exits
-			clear 	breaks
-			clear 	cont-next
-			clear 	cont-back
-
+			clear stack
+			clear exits
+			clear breaks
+			clear cont-next
+			clear cont-back
+			clear bits-buf
 		]
 		clear stack
 		path: pick [%system/targets/ %targets/] encap?

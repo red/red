@@ -650,7 +650,7 @@ system/view/platform: context [
 
 	mouse-event?: #either config/GUI-engine = 'terminal [no][yes]
 
-	make-null-handle: routine [][handle/box 0]
+	make-null-handle: routine [][handle/box 0 handle/CLASS_NULL]
 
 	get-screen-size: routine [
 		id		[integer!]
@@ -739,7 +739,7 @@ system/view/platform: context [
 	]
 
 	make-view: routine [face [object!] parent [handle!]][
-		handle/box gui/OS-make-view face parent/value
+		handle/box gui/OS-make-view face parent/value handle/CLASS_WINDOW
 	]
 
 	draw-image: routine [image [image!] cmds [block!]][
@@ -748,9 +748,10 @@ system/view/platform: context [
 		ownership/check as red-value! image words/_poke as red-value! image -1 -1
 	]
 
-	draw-face: routine [face [object!] cmds [block!] /local int [red-integer!]][
-		int: as red-integer! (object/get-values face) + gui/FACE_OBJ_DRAW
-		gui/OS-draw-face as draw-ctx! int/value cmds
+	draw-face: routine [face [object!] cmds [block!] /local h [handle!] flags [integer!]][
+		flags: gui/get-flags as red-block! (object/get-values face) + gui/FACE_OBJ_FLAGS
+		h: gui/face-handle? face
+		if h <> null [gui/OS-draw-face h cmds flags]
 	]
 
 	do-event-loop: routine [no-wait? [logic!] /local bool [red-logic!]][

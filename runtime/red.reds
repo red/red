@@ -17,6 +17,7 @@ red: context [
 	#include %macros.reds
 	#include %tools.reds
 	#include %dtoa.reds
+	#include %externals.reds
 	
 	#switch OS [										;-- loading OS-specific bindings
 		Windows  [#include %platform/win32.reds]
@@ -41,6 +42,7 @@ red: context [
 	#include %sort.reds
 	#include %hashtable.reds
 	#include %ownership.reds
+	#include %references.reds
 	
 	;--------------------------------------------
 	;-- Import OS dependent image functions
@@ -172,6 +174,7 @@ red: context [
 		platform/init
 		_random/init
 		init-mem										;@@ needs a local context
+		externals/init
 		
 		name-table: as names! allocate TYPE_TOTAL_COUNT * size? names!	 ;-- datatype names table
 		action-table: as int-ptr! allocate 256 * TYPE_TOTAL_COUNT * size? pointer! ;-- actions jump table	
@@ -242,8 +245,8 @@ red: context [
 		alloc-series-frame								;-- first frame of 1MB
 
 		root:		block/make-fixed null ***-root-size
-		arg-stk:	block/make-fixed root 2 * 2000
-		call-stk:	block/make-fixed root 20 * 2000
+		arg-stk:	block/make-fixed root 2000
+		call-stk:	block/make-fixed root 2500			;-- 2000 call slots (20b/slot)
 		symbols: 	block/make-in root 4000
 		global-ctx: _context/create 4000 no no null CONTEXT_GLOBAL
 
@@ -265,6 +268,8 @@ red: context [
 		lexer/init
 		redbin/boot-load system/boot-data no
 		interpreter/init
+		references/init
+		collector/init
 		
 		#if debug? = yes [
 			datatype/verbose:	verbosity
@@ -327,16 +332,9 @@ red: context [
 	]
 	
 	cleanup: does [
-		free-all										;-- Allocator's memory freeing
-		free as byte-ptr! natives/table
-		free as byte-ptr! actions/table
-		free as byte-ptr! _random/table
-		free as byte-ptr! name-table
-		free as byte-ptr! action-table
-		free as byte-ptr! cycles/bottom
-		free as byte-ptr! crypto/crc32-table
-		free as byte-ptr! redbin/path/stack
-		free as byte-ptr! redbin/reference/list
+		#if debug? = yes [references/check-leaks]
+		free-all										;-- Red allocator's memory freeing
+		heap-free-all									;-- malloc-ed buffers freeing.
 	]
 	
 	#if type = 'dll [

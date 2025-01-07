@@ -1169,6 +1169,7 @@ context [
 
 		if job/debug? [
 			code-ptr: entry-point-address? job
+			if any [job/libRedRT? job/libRed? job/PIC?][code-ptr: code-ptr - to-integer defs/image/dll-base-address]
 			linker/build-debug-lines job code-ptr
 			linker/build-debug-func-names job code-ptr
 		]
@@ -1198,9 +1199,9 @@ context [
 		linker/set-image-info
 			job
 			base-address
-			(section-addr?/memory job 'code) - base-address
+			(section-addr?/memory job 'code)
 			length? job/sections/code/2
-			(section-addr?/memory job 'data) - base-address
+			(section-addr?/memory job 'data)
 			length? job/sections/data/2
 
 		if job/show-func-map? [linker/show-funcs-map job entry-point-address? job]

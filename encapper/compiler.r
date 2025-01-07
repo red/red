@@ -1446,7 +1446,7 @@ red: context [
 		
 		out: copy []
 		either prolog [
-			insert find/tail locals 'saved 'prev
+			insert next find/tail locals 'saved [prev [logic!]]
 			append out [
 				prev: interpreter/tracing?
 			]
@@ -2687,7 +2687,7 @@ red: context [
 	][
 		push-locals copy symbols						;-- prepare compiled spec block
 		forall symbols [symbols/1: decorate-symbol/no-alias symbols/1]
-		locals: append copy [/local ctx saved] symbols
+		locals: append copy [/local ctx [red-context!] saved [node!]] symbols ;-- symbols can stay untyped as they are stored on the Red stack (GC protected)
 		set/any 'tracing make-attributs/prolog spec locals
 		blk: either container-obj? [head insert copy locals [octx [node!]]][locals]
 		emit reduce [to set-word! decorate-func/strict name 'func blk]

@@ -1194,23 +1194,23 @@ struct-local-foo2
 	--test-- "svb50"
 		localsbvf: func [
 			/local 
+				p-int [int-ptr!]
+				pf	  [pointer! [float!]]
+				n1 	  [n1!]
+				n2	  [n2!]
+				n3	  [n3!]
+				nest6 [nested1!]
+				nest7 [nested2!]
+				nest8 [nested3!]
 				sv1   [tiny! value]
 				sv2   [small! value]
 				sv3   [big! value] 
 				sv4   [huge! value]
-				p-int [int-ptr!]
-				n1 	  [n1!]
-				n2	  [n2!]
-				n3	  [n3!]
-				pf	  [pointer! [float!]]
 				nest1 [nested1! value]
 				nest2 [nested2! value]
 				nest3 [nested3! value]
 				nest4 [nested4! value]
 				nest5 [nested5! value]
-				nest6 [nested1!]
-				nest7 [nested2!]
-				nest8 [nested3!]
 		][
 			--test-- "loc-svb1"
 				sbvf1 s1 741

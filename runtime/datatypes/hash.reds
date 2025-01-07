@@ -52,8 +52,12 @@ hash: context [
 		either type = -1 [							;-- called by TO
 			blk: as red-block! spec
 		][
-			blk: block/make-at as red-block! stack/push* size
-			if blk? [block/copy as red-block! spec blk null no null]
+			blk: as red-block! stack/push*
+			either blk? [
+				block/copy as red-block! spec blk null no null
+			][
+				block/make-at blk size
+			]
 		]
 		table: _hashtable/init size blk HASH_TABLE_HASH 1
 		hash: as red-hash! blk

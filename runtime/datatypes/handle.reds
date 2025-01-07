@@ -13,66 +13,60 @@ Red/System [
 handle: context [
 	verbose: 0
 	
+	#enum handle-classes! [
+		CLASS_NULL										;-- null class (to be removed)
+		CLASS_FD										;-- file descriptor
+		CLASS_WINDOW									;-- window handle
+		CLASS_FONT										;-- font handle
+		CLASS_RICHTEXT									;-- rich-text handle
+	]
+	
+	names: ["null" "fd" "window" "font" "rich-text"]
+	
 	box: func [
 		value	[integer!]
+		type	[integer!]
 		return:	[red-handle!]
-		/local
-			h [red-handle!]
 	][
-		h: as red-handle! stack/arguments
-		h/header: TYPE_HANDLE
-		h/value: value
-		h
+		make-at stack/arguments value type
 	]
 
 	make-in: func [
 		parent 	[red-block!]
 		value 	[integer!]
+		type	[integer!]
 		return: [red-handle!]
-		/local
-			h	[red-handle!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "handle/make-in"]]
-		
-		h: as red-handle! ALLOC_TAIL(parent)
-		h/header: TYPE_HANDLE
-		h/value: value
-		h
+		make-at ALLOC_TAIL(parent) value type
 	]
 
 	make-at: func [
 		slot	[red-value!]
 		value	[integer!]
+		type	[integer!]
 		return:	[red-handle!]
 		/local
 			h	[red-handle!]
 	][
 		h: as red-handle! slot
 		h/header: TYPE_HANDLE
-		h/value: value
+		h/type:	  type
+		h/value:  value
+		h/extID:  -1
 		h
 	]
 
 	push: func [
 		value	[handle!]
+		type	[integer!]
 		return: [red-handle!]
-		/local
-			hndl [red-handle!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "handle/push"]]
-		
-		hndl: as red-handle! stack/push*
-		hndl/header: TYPE_HANDLE
-		hndl/value: as integer! value
-		hndl
+		make-at stack/push* as integer! value type
 	]
 	
-	push-null: func [return: [red-handle!] /local hndl [red-handle!]][
-		hndl: as red-handle! stack/push*
-		hndl/header: TYPE_HANDLE
-		hndl/value: 0
-		hndl
-	]
+	push-null: func [return: [red-handle!]][push as handle! 0 CLASS_NULL]
 
 	;-- Actions --
 
@@ -103,17 +97,25 @@ handle: context [
 		part 	[integer!]
 		indent	[integer!]
 		return: [integer!]
+		/local
+			type [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "handle/mold"]]
 		
 		either all? [
 			string/concatenate-literal buffer "#[handle! "
 			part: form h buffer arg part
+			type: h/type
+			if type > 0 [
+				string/append-char GET_BUFFER(buffer) as-integer space
+				string/concatenate-literal buffer as-c-string names/type
+				part: part + 1 + length? as-c-string names/type
+			]
 			string/append-char GET_BUFFER(buffer) as-integer #"]"
 			part + 11
 		][
 			string/concatenate-literal buffer "handle!"
-			part + 11
+			part + 7
 		]
 	]
 
@@ -133,6 +135,8 @@ handle: context [
 	]
 	
 	init: does [
+		names: names + 1								;-- make this array 0-based
+		
 		datatype/register [
 			TYPE_HANDLE
 			TYPE_INTEGER

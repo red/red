@@ -496,7 +496,7 @@ BaseWndProc: func [
 		WM_SIZE  [
 		#either draw-engine = 'GDI+ [
 			either (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D = 0 [
-				unless zero? GetWindowLong hWnd wc-offset + 4 [
+				unless zero? GetWindowLong hWnd wc-offset [
 					update-base hWnd null null get-face-values hWnd
 				]
 			][
@@ -510,7 +510,7 @@ BaseWndProc: func [
 			]
 			either all [
 				(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) <> 0
-				0 <> GetWindowLong hWnd wc-offset + 4
+				face-set? hWnd
 			][
 				platform/Sleep 16
 				update-base hWnd null null get-face-values hWnd
@@ -529,7 +529,7 @@ BaseWndProc: func [
 
 			if all [
 				(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) = 0	;-- not a layered window
-				0 <> GetWindowLong hWnd wc-offset		;-- linked with a face object
+				face-set? hWnd			;-- linked with a face object
 			][
 				last-painted-base: hWnd
 
@@ -550,10 +550,9 @@ BaseWndProc: func [
 					DC: declare draw-ctx!				;@@ should declare it on stack
 					catch RED_THROWN_ERROR [
 						draw-begin DC hWnd null no yes
-						integer/make-at as red-value! draw as-integer DC
+						SetWindowLong hWnd OFFSET_DRAW_CTX as-integer DC
 						current-msg/hWnd: hWnd
 						make-event current-msg 0 EVT_DRAWING
-						draw/header: TYPE_NONE
 						draw-end DC hWnd no no yes
 					]
 					system/thrown: 0
@@ -808,14 +807,14 @@ update-base: func [
 		para	[red-object!]
 		sz		[red-pair!]
 		pt		[red-point2D!]
+		hBitmap [handle!]
+		hBackDC [handle!]
+		bf		[tagBLENDFUNCTION value]
 		x y 	[float32!]
 		height	[integer!]
 		width	[integer!]
 		size	[tagSIZE]
-		hBitmap [handle!]
-		hBackDC [handle!]
 		ptSrc	[tagPOINT value]
-		bf		[tagBLENDFUNCTION value]
 		graphic [integer!]
 		flags	[integer!]
 ][
@@ -886,14 +885,18 @@ update-base: func [
 		para	[red-object!]
 		sz		[red-pair!]
 		pt		[red-point2D!]
+		hBitmap [handle!]
+		hBackDC [handle!]
+		this	[this!]
+		surf	[IDXGISurface1]
+		hdc		[ptr-value!]
+		size	[tagSIZE]
+		ctx		[draw-ctx! value]
+		bf		[tagBLENDFUNCTION value]
+		ptSrc	[tagPOINT value]
 		x y 	[float32!]
 		height	[integer!]
 		width	[integer!]
-		size	[tagSIZE]
-		hBitmap [handle!]
-		hBackDC [handle!]
-		ptSrc	[tagPOINT value]
-		bf		[tagBLENDFUNCTION value]
 		graphic [integer!]
 		flags	[integer!]
 		h-above	[handle!]
@@ -901,10 +904,6 @@ update-base: func [
 		handle	[red-handle!]
 		blk		[red-block!]
 		face	[red-object!]
-		ctx		[draw-ctx! value]
-		this	[this!]
-		surf	[IDXGISurface1]
-		hdc		[ptr-value!]
 		rc		[RECT_STRUCT value]
 ][
 	if zero? (WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) [

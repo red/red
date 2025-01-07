@@ -13,6 +13,8 @@ Red/System [
 pair: context [
 	verbose: 0
 	
+	#enum operand! [LEFT_OP RIGHT_OP]
+	
 	get-named-index: func [
 		w		[red-word!]
 		ref		[red-value!]
@@ -39,10 +41,19 @@ pair: context [
 			right [red-pair!]
 			int	  [red-integer!]
 			fl	  [red-float!]
-			p	  [red-point2D!]
+			slot  [red-integer! value]
 			x y	  [integer!]
+			x' y' [integer!]
 			f n   [float!]
+			promo [subroutine!]
 	][
+		promo: [
+			right/x: x
+			right/y: y
+			promote LEFT_OP
+			promote RIGHT_OP
+			return as red-pair! point2D/do-math op
+		]
 		left: as red-pair! stack/arguments
 		right: left + 1
 		
@@ -59,7 +70,7 @@ pair: context [
 				y: x
 			]
 			TYPE_POINT2D [
-				promote-left
+				promote LEFT_OP
 				return as red-pair! point2D/do-math op
 			]
 			TYPE_FLOAT TYPE_PERCENT [
@@ -89,17 +100,24 @@ pair: context [
 				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(right)]
 			]
 		]
-		left/x: integer/do-math-op left/x x op null
-		left/y: integer/do-math-op left/y y op null
+		slot/header: TYPE_UNSET
+		x': integer/do-math-op left/x x op slot
+		if TYPE_OF(slot) <> TYPE_UNSET [promo]
+		left/x: x'
+		
+		y': integer/do-math-op left/y y op slot
+		if TYPE_OF(slot) <> TYPE_UNSET [promo]
+		left/y: y'
 		left
 	]
 	
-	promote-left: func [
+	promote: func [
+		arg [operand!]
 		/local
 			p  [red-pair!]
 			pt [red-point2D!]
 	][
-		p: as red-pair! stack/arguments
+		p: as red-pair! stack/arguments + arg
 		pt: as red-point2D! p
 		pt/header: TYPE_POINT2D
 		pt/x: as-float32 p/x
@@ -360,7 +378,7 @@ pair: context [
 		#if debug? = yes [if verbose > 0 [print-line "pair/compare"]]
 
 		if TYPE_OF(right) = TYPE_POINT2D [				;-- promote left to point2D in such case
-			promote-left
+			promote LEFT_OP
 			return point2D/compare as red-point2D! left as red-point2D! right op
 		]
 		if TYPE_OF(right) <> TYPE_PAIR [RETURN_COMPARE_OTHER]

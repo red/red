@@ -37,6 +37,8 @@ gpio-scheme: context [
 				]
 			]
 
+			#define RPI_GPIO_PERIPH_RPI5	00000000h	;-- RPi 5 (unsupported global mem access!)
+			#define RPI_GPIO_PERIPH_RPI4	FE000000h	;-- RPi 4 & 400 peripherals
 			#define RPI_GPIO_PERIPH_RPI23	3F000000h	;-- RPi 2 & 3 peripherals
 			#define RPI_GPIO_PERIPH_RPI01	20000000h	;-- RPi zero & 1 peripherals
 			#define RPI_GPIO_OFFSET			00200000h
@@ -46,7 +48,13 @@ gpio-scheme: context [
 			#define RPI_BCM_PASSWORD		5A000000h
 			
 			#define RPI_PWMCLK_CNTL			40
- 			#define RPI_PWMCLK_DIV			41
+			#define RPI_PWMCLK_DIV			41
+			
+			;-- 2711 has a different mechanism for pin pull-up/down/enable
+			#define RPI_GPPUPPDN0			57			;-- Pin pull-up/down for pins 15:0
+			#define RPI_GPPUPPDN1			58			;-- Pin pull-up/down for pins 31:16
+			#define RPI_GPPUPPDN2			59			;-- Pin pull-up/down for pins 47:32
+			#define RPI_GPPUPPDN3			60			;-- Pin pull-up/down for pins 57:48
 
 			#enum gpio-pins! [
 				GPFSEL0:	00h
@@ -85,9 +93,12 @@ gpio-scheme: context [
 				MODE_OUTPUT
 				MODE_PWM_OUTPUT
 				MODE_GPIO_CLOCK
-				MODE_4									;-- not defined yet
-				MODE_5
-				MODE_6
+				MODE_SOFT_PWM_OUTPUT
+				MODE_SOFT_TONE_OUTPUT
+				MODE_PWM_TONE_OUTPUT
+				MODE_PM_OFF
+				MODE_PWM_MS_OUTPUT
+				MODE_PWM_BAL_OUTPUT
 			]
 
 			#enum pull-updown! [
@@ -313,38 +324,41 @@ gpio-scheme: context [
 			]
 		]
 	]
-	
+		
 	models: [
-	;-- Name ---------- Mapping --
-		"Model A"		old
-		"Model B"		old
-		"Model A+"		old
-		"Model B+"		old
-		"Pi 2"			new
-		"Alpha"			old
-		"CM"			old
-		"Unknown07"		new
-		"Pi 3"			new
-		"Pi Zero"		old
-		"CM3"			new
-		"Unknown11"		new
-		"Pi Zero-W"		old
-		"Pi 3B+"		new
-		"Pi 3A+"		new
-		"Unknown15"		new
-		"CM3+"			new
-		"Unknown17"		new
-		"Unknown18"		new
-		"Unknown19"		new
+	;-- Name -------- Generation --
+		"Model A"		1
+		"Model B"		1
+		"Model A+"		1
+		"Model B+"		1
+		"Pi 2"			2
+		"Alpha"			1
+		"CM"			1
+		"Unknown07"		2
+		"Pi 3"			2
+		"Pi Zero"		1
+		"CM3"			2
+		"Unknown11"		2
+		"Pi Zero-W"		1
+		"Pi 3B+"		2
+		"Pi 3A+"		2
+		"Unknown15"		2
+		"CM3+"			2
+		"Pi 4B"			4
+		"Pi Zero2-W"	2
+		"Pi 400"		4
+		"CM4"			4
+		"CM4S"			4
+		"Unknown22"		4
+		"Pi 5"			5
 	]
 	
 	gpio.open: routine [
 		state [block!]
-		old?  [logic!]
+		model [integer!]
 		/local
 			handle [red-handle!]
 			fd	   [integer!]
-			model  [integer!]
 			base   [byte-ptr!]
 			i	   [integer!]
 	][
@@ -353,7 +367,13 @@ gpio-scheme: context [
 			fd: platform/io-open "/dev/gpiomem" 00101002h ;-- O_RDWR or O_SYNC
 			either fd < 0 [exit][model: 0]				;-- relative addressing
 		][
-			model: either old? [RPI_GPIO_PERIPH_RPI01][RPI_GPIO_PERIPH_RPI23] ;-- absolute addressing
+			model: switch model [						;-- absolute addressing
+				1 [RPI_GPIO_PERIPH_RPI01]
+				2 [RPI_GPIO_PERIPH_RPI23]
+				4 [RPI_GPIO_PERIPH_RPI4]
+				5 [RPI_GPIO_PERIPH_RPI5]				;@@ unsupported
+				default [0]
+			]
 		]
 		handle: as red-handle! block/rs-head state
 		handle/header: TYPE_HANDLE
@@ -432,7 +452,7 @@ gpio-scheme: context [
 		
 		;-- fd (handle!), base (handle!), pwm (handle!), clk (handle!)
 		state: port/state: copy [none none none none]
-		gpio.open state 'old = pick models model + 1 * 2 	;-- model is 0-based
+		gpio.open state pick models model + 1 * 2 	;-- model is 0-based
 		
 		err: [
 			"failed to open /dev/mem and /dev/gpiomem, retry with `sudo`"

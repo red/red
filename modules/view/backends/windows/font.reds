@@ -10,6 +10,8 @@ Red/System [
 	}
 ]
 
+font-ext-type: -1
+
 make-font: func [
 	face		[red-object!]
 	font		[red-object!]
@@ -31,6 +33,7 @@ OS-make-font: func [
 		style	[red-word!]
 		str		[red-string!]
 		blk		[red-block!]
+		h		[red-handle!]
 		weight	[integer!]
 		height	[integer!]
 		angle	[integer!]
@@ -128,18 +131,24 @@ OS-make-font: func [
 	blk: as red-block! values + FONT_OBJ_STATE
 	either TYPE_OF(blk) <> TYPE_BLOCK [
 		block/make-at blk 3
-		either scaling? [handle/make-in blk as-integer hFont][none/make-in blk]
+		either scaling? [
+			h: handle/make-in blk as-integer hFont handle/CLASS_FONT
+			if hFont <> null [h/extID: externals/store hFont font-ext-type]
+		][
+			none/make-in blk
+		]
 		none/make-in blk								;-- DWrite font
 		either scaling? [
 			none/make-in blk
 		][
-			handle/make-in blk as-integer hFont
+			h: handle/make-in blk as-integer hFont handle/CLASS_FONT
+			if hFont <> null [h/extID: externals/store hFont font-ext-type]
 		]
 	][
-		int: as red-integer! block/rs-head blk
-		either scaling? [OS-make-font face font no][int: int + 2]
-		int/header: TYPE_HANDLE
-		int/value: as-integer hFont
+		h: as red-handle! block/rs-head blk
+		either scaling? [OS-make-font face font no][h: h + 2]
+		h: handle/make-at as red-value! h as-integer hFont handle/CLASS_FONT
+		if hFont <> null [h/extID: externals/store hFont font-ext-type]
 	]
 
 	blk: as red-block! values + FONT_OBJ_PARENT
@@ -177,22 +186,31 @@ set-font: func [
 	SendMessage hWnd WM_SETFONT as-integer hFont 0
 ]
 
+get-font-handle-slot: func [
+	font	[red-object!]
+	idx		[integer!]							;-- 0-based index
+	return: [red-handle!]
+	/local
+		state [red-block!]
+		h	  [red-handle!]
+][
+	state: as red-block! (object/get-values font) + FONT_OBJ_STATE
+	if TYPE_OF(state) = TYPE_BLOCK [
+		h: (as red-handle! block/rs-head state) + idx
+		if TYPE_OF(h) = TYPE_HANDLE [return h]
+	]
+	null
+]
+
 get-font-handle: func [
 	font	[red-object!]
 	idx		[integer!]							;-- 0-based index
 	return: [handle!]
 	/local
-		state  [red-block!]
-		handle [red-handle!]
+		h [red-handle!]
 ][
-	state: as red-block! (object/get-values font) + FONT_OBJ_STATE
-	if TYPE_OF(state) = TYPE_BLOCK [
-		handle: (as red-handle! block/rs-head state) + idx
-		if TYPE_OF(handle) = TYPE_HANDLE [
-			return as handle! handle/value
-		]
-	]
-	null
+	h: get-font-handle-slot font idx
+	either null? h [null][as handle! h/value]
 ]
 
 get-hfont: func [				;-- get or create a HFONT handle from font! object
@@ -208,10 +226,15 @@ get-hfont: func [				;-- get or create a HFONT handle from font! object
 	hFont
 ]
 
+mark-font: func [hFont [handle!]][]
+
+delete-font: func [h [handle!]][DeleteObject h]
+
 free-font: func [
 	font [red-object!]
 	/local
 		state [red-block!]
+		h	  [red-handle!]
 		hFont [handle!]
 		h2	  [handle!]
 		this  [this!]
@@ -231,6 +254,8 @@ free-font: func [
 		if hFont <> null [
 			assert hFont <> h2
 			DeleteObject hFont
+			h: get-font-handle-slot font n
+			h/extID: externals/remove h/extID no
 			h2: hFont
 			free?: yes
 		]

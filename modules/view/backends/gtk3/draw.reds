@@ -1644,7 +1644,7 @@ OS-draw-image: func [
 		if dst/header = TYPE_NONE [return 0]
 		pixbuf: OS-image/to-pixbuf dst
 		GDK-draw-image dc dc/cr pixbuf x y w h
-		OS-image/delete dst
+		OS-image/delete dst/node
 	][
 		src.w: IMAGE_WIDTH(src/size)
 		src.h: IMAGE_HEIGHT(src/size)

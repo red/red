@@ -154,14 +154,17 @@ lexer: context [
 	}
 	
 	float-transitions: #{
-		07000107020707
-		07070103020106
-		07070203070206
-		07040507070707
-		07070507070707
-		07070507070706
-		06060606060606
-		07070707070707
+		0A00010A040A0A
+		0A0A0106050209
+		0A0A010A0A0A0A
+		0A0A03060A0409
+		0A0A030A0A0A0A
+		0A0A030A0A0A09
+		0A07080A0A0A0A
+		0A0A080A0A0A0A
+		0A0A080A0A0A09
+		09090909090909
+		0A0A0A0A0A0A0A
 	}
 	
 	;-- Bit-array for /-~^{}"
@@ -598,7 +601,8 @@ lexer: context [
 			until [
 				assert s/buffer <= s/tail
 				collector/mark-values s/buffer s/tail
-				if s/in-series <> null [collector/keep s/in-series/node]
+				if s/in-series <> null [collector/keep :s/in-series/node]
+				if s/fun-ptr   <> null [collector/mark-values as cell! s/fun-ptr as cell! s/fun-ptr + 1]
 				s: s/next
 				null? s
 			]
@@ -1432,7 +1436,7 @@ lexer: context [
 			p = e
 		]
 		index: state * (size? float-char-classes!) + C_FL_EOF
-		7 <> as-integer float-transitions/index			;-- T_FL_ERROR,  true: float, false: error
+		10 <> as-integer float-transitions/index		;-- T_FL_ERROR,  true: float, false: error
 	]
 	
 	load-integer: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
@@ -1904,16 +1908,16 @@ lexer: context [
 
 	load-date: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local
+			dt			   [red-date!]
+			p me		   [byte-ptr!]
+			m 	 		   [int-ptr!]
 			err year month day hour min tz-h tz-m len ylen dlen value
-			week wday yday 	 [integer!]
+			week wday yday [integer!]
 			do-error check-err check-all grab2 grab2r grab2-max grab-time-TZ
 			store-date grab4 calc-time [subroutine!]
-			dt				 [red-date!]
-			p me			 [byte-ptr!]
-			m 	 			 [int-ptr!]
-			sec	tm			 [float!]
-			time? TZ? neg?	 [logic!]
-			sep				 [byte!]
+			sec	tm		   [float!]
+			time? TZ? neg? [logic!]
+			sep			   [byte!]
 	][
 		p: s
 		dt: null 

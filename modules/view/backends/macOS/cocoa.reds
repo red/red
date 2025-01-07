@@ -159,8 +159,9 @@ Red/System [
 #define NSWindowsCP1250StringEncoding	15
 #define NSUTF16LittleEndianStringEncoding	94000100h
 
-#define IVAR_RED_FACE	"red-face"				;-- struct! 16 bytes, for storing red face object
-#define IVAR_RED_DATA	"red-data"				;-- integer! 4 bytes, for storing extra red data
+#define IVAR_RED_FACE		"red-face"		;-- struct! 16 bytes, for storing red face object
+#define IVAR_RED_DATA		"red-data"		;-- integer! 4 bytes, for storing extra red data
+#define IVAR_RED_DRAW_CTX	"red-draw-ctx"	;-- pointer! 4 bytes, for storing draw-ctx!
 #define NSString(cStr) [objc_msgSend [objc_getClass "NSString" sel_getUid "stringWithUTF8String:" cStr]] 
 
 #define RedNSEventKey			4000FFF0h
@@ -276,15 +277,15 @@ tagSIZE: alias struct! [
 			name		[c-string!]
 			return:		[integer!]
 		]
-		ivar_getOffset: "ivar_getOffset" [
-			ivar		[integer!]
-			return:		[integer!]
-		]
-		class_getInstanceVariable: "class_getInstanceVariable" [
-			class		[integer!]
-			name		[c-string!]
-			return:		[integer!]
-		]
+		;ivar_getOffset: "ivar_getOffset" [
+		;	ivar		[integer!]
+		;	return:		[integer!]
+		;]
+		;class_getInstanceVariable: "class_getInstanceVariable" [
+		;	class		[integer!]
+		;	name		[c-string!]
+		;	return:		[integer!]
+		;]
 		class_addIvar: "class_addIvar" [
 			class		[integer!]
 			name		[c-string!]

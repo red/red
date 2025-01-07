@@ -22,7 +22,7 @@ with red [
 	dump-series-frame memory/s-active
 
 	print [lf ">> freeing 2nd series" lf]
-	free-series memory/s-head s2
+	;free-series memory/s-head s2
 	dump-series-frame memory/s-active
 	print [lf ">> compacting frame" lf]
 	compact-series-frame memory/s-active
@@ -57,7 +57,7 @@ with red [
 	until [
 		idx: idx - 1
 		print-wide [idx ":" as byte-ptr! array/idx lf]
-		free-series memory/s-head as int-ptr! array/idx
+		;free-series memory/s-head as int-ptr! array/idx
 		idx = 1
 	]
 

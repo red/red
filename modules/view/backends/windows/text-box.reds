@@ -345,12 +345,12 @@ OS-text-box-layout: func [
 		][
 			block/make-at state 4
 			none/make-in state					;-- 1: text layout
-			handle/make-in state 0				;-- 2: target
+			handle/make-in state 0 handle/CLASS_RICHTEXT	;-- 2: target
 			none/make-in state					;-- 3: text
 			logic/make-in state false			;-- 4: layout?
 			pval: block/rs-head state
 		]
-		handle/make-at pval + 1 as-integer target
+		handle/make-at pval + 1 as-integer target handle/CLASS_RICHTEXT
 		DT_WORDBREAK	;-- wrap by default
 	][5]	;-- base face
 	vec: target/styles
@@ -374,7 +374,7 @@ OS-text-box-layout: func [
 
 	if pval <> null [copy-cell as red-value! str pval + 2]		;-- save text
 	layout: create-text-layout str fmt w h
-	if pval <> null [handle/make-at pval as-integer layout]
+	if pval <> null [handle/make-at pval as-integer layout handle/CLASS_RICHTEXT]
 
 	styles: as red-block! values + FACE_OBJ_DATA
 	if all [

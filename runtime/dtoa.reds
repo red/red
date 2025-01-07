@@ -758,12 +758,12 @@ dtoa: context [
 		return: [c-string!]
 		/local
 			b b1 mlo mhi SS delta [big-int!]
+			d d2 [int64!]
 			s s0 [c-string!]
 			DTOA_RETURN_1 DTOA_RETURN DTOA_ROUND_OFF [subroutine!]
 			fsave ds kf [float!]
 			bbits b2 b5 be i j j1 k k0 ki m2 m5 s2 s5 L x w0 w1 ww0 ilim [integer!]
 			sign? spec_case denorm k_check [logic!]
-			d d2 [int64!]
 			dig [byte!]
 	][
 		s0:    "-000000000000000000000000000000"		;-- 32 bits including ending null char
@@ -1320,16 +1320,16 @@ dtoa: context [
 		ret		[int-ptr!]		;-- mandatory
 		return: [float!]
 		/local
+			bb bb1 bd bd0 bs delta [big-int!]
+			s s0 s1 [byte-ptr!]
+			d d0 d2 [int64!]
+			bc [cmp-info! value]
 			STRTOD_RETURN STRTOD_OVERFLOW STRTOD_BREAK STRTOD_DROP_DOWN prescan [subroutine!]
 			rv rv0 aadj2 aadj aadj1 adj [float!]
-			bb bb1 bd bd0 bs delta [big-int!]
 			bbe bb2 bb5 bd2 bd5 bs2 dsign e e1 w0 w1 ndigits fraclen
 			i j k nd nd0 odd y z L n [integer!]
 			neg? next? e-neg? [logic!]
-			s s0 s1 [byte-ptr!]
-			d d0 d2 [int64!]
 			c  [byte!]
-			bc [cmp-info! value]
 	][
 		bb:        null
 		bb1:       null

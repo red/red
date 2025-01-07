@@ -32,7 +32,7 @@ timer: context [
 	]
 
 	on-gc-mark: does [
-		collector/keep timer-list
+		collector/keep :timer-list
 	]
 
 	timer-proc: func [

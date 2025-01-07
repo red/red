@@ -51,9 +51,9 @@ url: context [
 		return:	[red-value!]
 		/local
 			p	[red-object!]
-			v	[red-value! value]
+			v	[red-url! value]
 	][
-		copy-cell as red-value! url :v
+		copy-cell as red-value! url as red-value! v	
 		#call [url-parser/parse-url url]
 		p: as red-object! stack/arguments
 
@@ -61,7 +61,7 @@ url: context [
 			p: port/make none-value as red-value! p TYPE_NONE
 			if open? [actions/open as red-value! p new? read? write? seek? allow]
 		][
-			fire [TO_ERROR(script invalid-arg) :v]
+			fire [TO_ERROR(script invalid-arg) v]
 		]
 		as red-value! p
 	]
