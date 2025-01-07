@@ -209,9 +209,9 @@ screen: context [
 	]
 
 	on-gc-mark: func [][
-		collector/keep :win-list
-		collector/keep :captured
-		collector/keep :esc-sequences
+		collector/keep as int-ptr! :win-list
+		collector/keep as int-ptr! :captured
+		collector/keep as int-ptr! :esc-sequences
 		mark-widgets
 	]
 
