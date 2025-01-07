@@ -788,7 +788,7 @@ x86-cc: context [
 	][
 		if fn/cc <> null [return fn/cc]
 
-		callee-clean?: yes
+		callee-clean?: no
 		ft: as fn-type! fn/type
 		attr: FN_ATTRS(ft)
 		variadic?: attr and FN_VARIADIC <> 0
@@ -798,9 +798,9 @@ x86-cc: context [
 				ret-regs: 		x86-stdcall/ret-regs
 				float-params: 	x86-stdcall/float-params
 				float-rets: 	x86-stdcall/float-rets
+				callee-clean?:	yes
 			]
 			attr and FN_CC_CDECL <> 0 [
-				callee-clean?: no
 				param-regs: 	x86-cdecl/param-regs
 				ret-regs: 		x86-cdecl/ret-regs
 				float-params: 	x86-cdecl/float-params
@@ -1162,18 +1162,18 @@ x86: context [
 			ft	[fn-type!]
 	][
 		o: as instr-op! i
-		use-ptr cg o/target
-
 		fn: as fn! o/target
 		cc: target/make-cc fn o
 		alloc-caller-space cg/frame cc
 		
+		use-ptr cg as int-ptr! fn
+		live-point cg cc
+
 		if cc/ret-type <> type-system/void-type [
 			def-reg-fixed cg i callee-ret cc 0
 		]
 
 		kill cg x86_REG_ALL
-		live-point cg cc
 
 		n: 0
 		p: ARRAY_DATA(i/inputs)
@@ -1184,6 +1184,11 @@ x86: context [
 			p: p + 1
 		]
 		emit-instr cg I_CALL
+
+		if all [cc/callee-clean? n > 0][
+			use-imm-int cg n
+			emit-instr cg I_SET_SP
+		]
 	]
 
 	emit-catch: func [

@@ -1213,7 +1213,7 @@ adjust-frame: func [
 	/local
 		n	[integer!]
 ][
-	n: frame/size - (2 * target/addr-size)		;-- minus return addr and ebp
+	n: frame/size - (INIT_FRAME_SLOTS * target/addr-size)	;-- minus return addr, ebp, catch value and catch address
 	if n > 0 [
 		either add? [
 			asm/add-r-i x86-regs/esp n REX_W
@@ -1332,11 +1332,10 @@ assemble-op: func [
 	p		[ptr-ptr!]
 	/local
 		l	[label!]
-		c	[integer!]
+		c n [integer!]
 		f	[operand!]
 		val [val!]
 		imm [immediate!]
-		int [red-integer!]
 		loc [integer!]
 		pp	[int-ptr!]
 		pos [integer!]
@@ -1422,15 +1421,17 @@ assemble-op: func [
 				asm/mov-r-m x86-regs/edi :addr		;-- mov edi, [ebp - x2]
 				addr/disp: -8
 				asm/mov-m-r :addr x86-regs/edi		;-- mov [ebp - 8], edi
+				asm/mov-r-r x86-regs/esp x86-regs/ebp
+				n: cg/frame/size - (2 * target/addr-size)	;-- minus return addr and ebp
+				asm/sub-r-i x86-regs/esp n NO_REX
 			]
 		]
 		I_THROW [
 			addr/base: x86-regs/ebp
 			addr/index: 0
 			addr/scale: 1
-			imm: as immediate! p/value
-			int: as red-integer! imm/value
-			asm/mov-r-i x86-regs/eax int/value		;-- mov eax, throw value
+			n: to-imm as operand! p/value
+			asm/mov-r-i x86-regs/eax n				;-- mov eax, throw value
 			asm/jmp-rel 3							;--			jmp _1st
 			asm/leave								;-- _loop:	leave
 			addr/disp: -4
@@ -1442,6 +1443,10 @@ assemble-op: func [
 			asm/jc-rel jc_zero 4					;-- jz _end
 			asm/jmp-r x86-regs/edi					;-- jmp edi
 													;-- _end
+		]
+		I_SET_SP [
+			n: target/addr-size * to-imm as operand! p/value
+			asm/sub-r-i x86-regs/esp n NO_REX
 		]
 		default [0]
 	]
@@ -1696,12 +1701,14 @@ assemble: func [
 	rset: cg/reg-set
 	ins: i/header
 	op: x86_OPCODE(ins)
-	p: as ptr-ptr! i + 1	;-- point to operands
+	p: as ptr-ptr! i + 1		;-- point to operands
 	if op >= I_NOP [
 		switch op [
 			I_ENTRY [
 				asm/push-r x86-regs/ebp
 				asm/mov-r-r x86-regs/ebp x86-regs/esp
+				asm/push-i 0	;-- init catch value
+				asm/push-i 0	;-- init catch address
 				adjust-frame cg/frame no
 			]
 			I_BLK_BEG [

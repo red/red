@@ -249,9 +249,9 @@ instr-flags: [
 #define I_JC			67h
 #define I_SETC			68h
 #define I_CALL			69h
-#define I_CALLER_IP		6Ah
-#define I_CALLER_SP		6Bh
-#define I_TEST_ALLOC	6Ch
+#define I_GET_IP		6Ah
+#define I_GET_SP		6Bh
+#define I_SET_SP		6Ch
 #define I_CMPB			6Fh
 #define I_CATCH			70h
 #define I_THROW			71h
