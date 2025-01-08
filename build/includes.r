@@ -101,6 +101,7 @@ write %build/bin/sources.r set-cache [
 		%random.reds
 		%red.reds
 		%redbin.reds
+		%references.reds
 		%simple-io.reds
 		%sort.reds
 		%stack.reds
