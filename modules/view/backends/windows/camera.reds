@@ -241,6 +241,8 @@ grabber-cb-buffer: func [
 		values		[red-value!]
 		img			[red-image!]
 ][
+	if collector/running? [return 0]
+
 	obj: as RedGrabberCB this
 	values: get-face-values obj/hWnd
 	img: as red-image! values + FACE_OBJ_IMAGE

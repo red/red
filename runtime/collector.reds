@@ -12,8 +12,12 @@ Red/System [
 ]
 
 collector: context [
+	#define GC_DONE		0
+	#define GC_RUNNING	1
+
 	verbose: 0
 	active?: no
+	state: GC_DONE
 	
 	#enum frame-type! [
 		FRAME_NODES
@@ -974,6 +978,8 @@ collector: context [
 		]
 			cb		[function! []]
 	][
+		system/atomic/store :state GC_RUNNING
+
 		#if debug? = yes [if verbose > 1 [
 			#if OS = 'Windows [platform/dos-console?: no]
 			file: "                      "
@@ -1058,8 +1064,13 @@ collector: context [
 			]
 			if verbose > 0 [validate]
 		]
+		system/atomic/store :state GC_DONE
 	]
-	
+
+	running?: func [return: [logic!]][
+		GC_RUNNING = system/atomic/load :state
+	]
+
 	do-cycle: does [
 		unless active? [exit]
 		do-mark-sweep
