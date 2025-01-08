@@ -307,11 +307,20 @@ teardown-graph: func [cam [camera!] /local w [IVideoWindow]][
 	]
 ]
 
-stop-camera: func [handle [handle!] /local cam [camera!]][
+stop-camera: func [handle [handle!] return: [camera!] /local cam [camera!] ][
 	cam: as camera! GetWindowLong handle wc-offset - 4
 	unless null? cam [
 		teardown-graph cam
 		free-graph cam
+	]
+	cam
+]
+
+destroy-camera: func [handle [handle!] /local cam [camera!]][
+	cam: stop-camera handle
+	if cam <> null [
+		SetWindowLong handle wc-offset - 4 0
+		free as byte-ptr! cam
 	]
 ]
 
@@ -592,12 +601,6 @@ CameraWndProc: func [
 	/local
 		cam [camera!]
 ][
-	if msg = WM_DESTROY [
-		cam: as camera! GetWindowLong hWnd wc-offset - 4
-		unless null? cam [
-			teardown-graph cam
-			free-graph cam
-		]
-	]
+	if msg = WM_DESTROY [destroy-camera hWnd]
 	DefWindowProc hWnd msg wParam lParam
 ]
