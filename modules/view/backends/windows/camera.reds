@@ -194,6 +194,7 @@ camera!: alias struct! [
 
 
 SampleGrabberCB: declare ISampleGrabberCB
+camera-ratio:	 0.0									;-- used to pass ratio info from deep code to init-camera 
 
 grabber-cb-addref: func [
 	[stdcall]
@@ -268,6 +269,7 @@ init-camera: func [
 	hWnd	[handle!]
 	data	[red-block!]
 	sel		[red-integer!]
+	ratio	[red-float!]
 	open?	[logic!]
 	/local
 		cam [camera!]
@@ -284,7 +286,9 @@ init-camera: func [
 
 	SetWindowLong hWnd wc-offset - 4 val
 	if TYPE_OF(sel) = TYPE_INTEGER [
+		camera-ratio: 0.0
 		if select-camera hWnd sel/value - 1 [
+			if TYPE_OF(ratio) = TYPE_FLOAT [ratio/value: camera-ratio]
 			toggle-preview hWnd true
 		]
 	]
@@ -419,6 +423,7 @@ build-preview-graph: func [
 		grabber-cb	[RedGrabberCB]
 		info	[int-ptr!]
 		bmp		[BITMAPINFOHEADER]
+		w h		[integer!]
 ][
 	builder: as ICaptureGraphBuilder2 cam/builder/vtbl
 	graph:   as IGraphBuilder cam/graph/vtbl
@@ -455,11 +460,19 @@ build-preview-graph: func [
 	
 	hr: graph/QueryInterface cam/graph IID_IVideoWindow IVM
 	either zero? hr [
+		camera-ratio: (as-float bmp/biWidth) / as-float bmp/biHeight
 		GetClientRect hWnd rect
 		video: as IVideoWindow IVM/ptr/vtbl
 		video/put_Owner IVM/ptr hWnd
 		video/put_WindowStyle IVM/ptr WS_CHILD
-		video/SetWindowPosition IVM/ptr 0 0 rect/right rect/bottom
+		w: rect/right
+		h: rect/bottom
+		either bmp/biWidth >= bmp/biHeight [
+			h: rect/right * bmp/biHeight / bmp/biWidth
+		][
+			w: rect/bottom * bmp/biWidth / bmp/biHeight
+		]
+		video/SetWindowPosition IVM/ptr 0 0 w h
 		video/put_Visible IVM/ptr -1
 		cam/window: IVM/ptr
 	][
@@ -591,6 +604,41 @@ collect-camera: func [
 	cam/num: cnt
 	em/Release IEnum/ptr
 	as-integer cam
+]
+
+update-camera: func [
+	hWnd	[handle!]
+	sx		[integer!]
+	sy		[integer!]
+	ratio	[red-float!]
+	/local
+		cam		[camera!]
+		IVM		[interface! value]
+		graph	[IGraphBuilder]
+		grabber-cb	[RedGrabberCB]
+		video	[IVideoWindow]
+		hr		[integer!]
+][
+	if TYPE_OF(ratio) = TYPE_FLOAT [
+		camera-ratio: ratio/value
+		either camera-ratio >= 1.0 [
+			sx: as-integer ((as-float sy) * camera-ratio)
+		][
+			sy: as-integer ((as-float sx) * camera-ratio)
+		]
+	]
+	cam: as camera! GetWindowLong hWnd wc-offset - 4
+	grabber-cb: as RedGrabberCB cam/grabber-cb
+	grabber-cb/width:  sx
+	grabber-cb/height: sy
+	
+	graph: as IGraphBuilder cam/graph/vtbl
+	hr: graph/QueryInterface cam/graph IID_IVideoWindow IVM
+	;assert zero? hr
+	video: as IVideoWindow IVM/ptr/vtbl
+	video/SetWindowPosition IVM/ptr 0 0 sx sy
+	video/put_Visible IVM/ptr -1
+	cam/window: IVM/ptr
 ]
 
 CameraWndProc: func [

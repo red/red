@@ -1264,6 +1264,10 @@ get-position-value: func [
 	as-integer f
 ]
 
+get-ratio: func [face [red-object!] return: [red-float!]][
+	as red-float! object/rs-select face as red-value! _ratio
+]
+
 set-scroller-metrics: func [
 	msg	[tagMSG]
 	si	[tagSCROLLINFO]
@@ -1785,7 +1789,7 @@ OS-make-view: func [
 
 	;-- extra initialization
 	case [
-		sym = camera	[init-camera handle data selected false]
+		sym = camera	[init-camera handle data selected get-ratio face false]
 		sym = text-list [init-text-list handle data selected]
 		sym = base		[init-base-face handle parent values alpha? ex-flags]
 		sym = panel		[if alpha? [init-base-face handle parent values alpha? ex-flags]]
@@ -1993,6 +1997,7 @@ change-size: func [
 		type = area		 [update-scrollbars hWnd null]
 		type = tab-panel [update-tab-contents hWnd FACE_OBJ_SIZE]
 		type = text		 [InvalidateRect hWnd null 1]	;-- issue #4388
+		type = camera	 [update-camera hWnd sz-x + cx sz-y + cy get-ratio get-face-obj hWnd]
 		true	  		 [0]
 	]
 ]

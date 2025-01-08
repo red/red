@@ -358,6 +358,7 @@ system/view/platform: context [
 			_time:			word/load "time"
 			_drawing:		word/load "drawing"
 			_scroll:		word/load "scroll"
+			_ratio:			word/load "ratio"
 
 			_vertical:		word/load "vertical"
 			_horizontal:	word/load "horizontal"
