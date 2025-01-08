@@ -1123,13 +1123,13 @@ insert-event-func: function [
 	name [word!]
 	fun  [block! function!] "A function or a function body block"
 ][
+	if block? :fun [fun: apply :function [copy [face event] fun]]	;@@ compiler chokes on 'function call
 	if any [
 		find svh: system/view/handlers name
 		find/same svh :fun
 	][
 		return none
 	]
-	if block? :fun [fun: apply :function [copy [face event] fun]]	;@@ compiler chokes on 'function call
 	insert svh reduce [name :fun]
 	:fun
 ]
