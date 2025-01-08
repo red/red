@@ -3718,6 +3718,10 @@ comment {
 		r5568: reactor [x: 0 unset 'x]
 		--assert none? react [r5568/x]
 		--assert none? react [r5568/y]
+
+	--test-- "#5579"
+		h5579: make hash! [1 2]
+		--assert h5579 = copy/part make hash! [1 2 3 4 5 6 7 8] 2
 	
 ===end-group===
 

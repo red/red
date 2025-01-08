@@ -111,7 +111,7 @@ hash: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "hash/copy"]]
 
-		new: as red-hash! block/clone as red-block! hash deep? yes
+		block/copy as red-block! hash as red-block! new part-arg deep? types
 		new/table:  hash/table	;-- set it to old table, _hashtable/copy below may trigger GC
 		new/table:  _hashtable/copy hash/table new/node
 		new/header: TYPE_HASH
