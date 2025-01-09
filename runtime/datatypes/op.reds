@@ -122,7 +122,6 @@ op: context [
 			more [red-value!]
 			fun	 [red-function!]
 			blk	 [red-block!]
-			node [node!]
 			s	 [series!]
 			pre	 [c-string!]
 			body?[logic!]
@@ -149,8 +148,7 @@ op: context [
 		stack/unwind
 		
 		either body? [										;-- mold body if available
-			node: as node! op/code
-			s: as series! node/value
+			s: as series! op/more/value
 			blk: as red-block! s/offset
 			if TYPE_OF(blk) = TYPE_BLOCK [
 				part: block/mold blk buffer no all? flat? arg part indent
