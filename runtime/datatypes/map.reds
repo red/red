@@ -142,7 +142,8 @@ map: context [
 
 		src: as red-block! spec
 		size: block/rs-length? src
-
+		if size % 2 <> 0 [fire [TO_ERROR(script invalid-arg) spec]]
+		
 		s: GET_BUFFER(map)
 		size: as-integer s/tail + size - s/offset
 		if size > s/size [expand-series s size]
