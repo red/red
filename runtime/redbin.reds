@@ -251,7 +251,7 @@ redbin: context [
 			]
 			top: list
 			either null? map [
-				map: _hashtable/init 1024 null HASH_TABLE_INTEGER 1
+				map: _hashtable/init 1024 null HASH_TABLE_NODE_KEY 1
 				collector/register as int-ptr! :on-gc-mark
 			][
 				_hashtable/clear-map map

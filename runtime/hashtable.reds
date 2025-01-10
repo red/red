@@ -300,7 +300,7 @@ array: context [
 #define HASH_TABLE_HASH			0
 #define HASH_TABLE_MAP			1
 #define HASH_TABLE_SYMBOL		2
-#define HASH_TABLE_INTEGER		3
+#define HASH_TABLE_NODE_KEY		3		;-- key must be a node, GC will mark it
 #define HASH_TABLE_OWNERSHIP	4
 
 #define HASH_SYMBOL_BLOCK	1
@@ -487,7 +487,7 @@ _hashtable: context [
 	][
 		s: as series! table/value
 		h: as hashtable! s/offset
-		int?: h/type >= HASH_TABLE_INTEGER
+		int?: h/type >= HASH_TABLE_NODE_KEY
 		s: as series! h/blk/value
 		blk: s/offset
 		s: as series! h/flags/value
@@ -562,6 +562,7 @@ _hashtable: context [
 		ptr [int-ptr!]
 		/local
 			table [node!]
+			node [node!]
 			s	 [series!]
 			h	 [hashtable!]
 			val	 [red-value!]
@@ -590,7 +591,7 @@ _hashtable: context [
 		collector/keep :h/flags
 		collector/keep :h/keys
 
-		if type = HASH_TABLE_OWNERSHIP [
+		if type >= HASH_TABLE_NODE_KEY [ 
 			vsize: as integer! h/indexes
 			vsize: vsize >> 4
 			s: as series! h/blk/value
@@ -598,6 +599,9 @@ _hashtable: context [
 			end: s/tail
 			while [val < end][
 				collector/keep :val/data1	;-- mark node key
+				node: as node! val/data1
+				s: as series! node/value
+				if GET_UNIT(s) = 16 [collector/mark-values s/offset s/tail]		
 				val: val + vsize
 			]
 		]
@@ -612,13 +616,15 @@ _hashtable: context [
 			val	 [red-value!]
 			end	 [red-value!]
 			obj  [red-object!]
+			type [integer!]
 			vsize [integer!]
 			node [node!]
 	][
 		s: as series! table/value
 		h: as hashtable! s/offset
 
-		assert h/type = HASH_TABLE_OWNERSHIP
+		type: h/type
+		assert type >= HASH_TABLE_NODE_KEY
 
 		vsize: as integer! h/indexes
 		vsize: vsize >> 4
@@ -626,19 +632,21 @@ _hashtable: context [
 		val: s/offset
 		end: s/tail
 		while [val < end][
-			if val/header = TYPE_UNSET [		;-- only sweep alive key. key was deleted if val/header = TYPE_VALUE
+			if val/header = TYPE_UNSET [			;-- only sweep alive key. key was deleted if val/header = TYPE_VALUE
 				node: as node! val/data1
 				assert node <> null
 				s: as series! node/value
 				either s/flags and flag-gc-mark = 0 [
 					delete-key table as-integer node
 					val/data1: 0
-				][	;-- check owner
-					obj: as red-object! val + 2
-					s: as series! obj/ctx/value
-					if s/flags and flag-gc-mark = 0 [
-						delete-key table as-integer node
-						val/data1: 0
+				][
+					if type = HASH_TABLE_OWNERSHIP [
+						obj: as red-object! val + 2	;-- check owner
+						s: as series! obj/ctx/value
+						if s/flags and flag-gc-mark = 0 [
+							delete-key table as-integer node
+							val/data1: 0
+						]
 					]
 				]
 			]
@@ -1174,7 +1182,7 @@ _hashtable: context [
 			f-buckets	[float!]
 			fsize		[float!]
 			skip		[integer!]
-			saved		[logic!]
+			hash		[red-hash!]
 	][
 		node: _alloc-bytes-filled size? hashtable! #"^(00)"
 		if type = HASH_TABLE_SYMBOL [
@@ -1188,7 +1196,7 @@ _hashtable: context [
 		s: as series! node/value
 		h: as hashtable! s/offset
 		h/type: type
-		if type >= HASH_TABLE_INTEGER [h/indexes: as node! vsize + 1 << 4]
+		if type >= HASH_TABLE_NODE_KEY [h/indexes: as node! vsize + 1 << 4]
 
 		if size < 4 [size: 4]
 		fsize: as-float size
@@ -1209,14 +1217,19 @@ _hashtable: context [
 		]
 		h/flags: flags
 		h/keys: keys
-		either any [type >= HASH_TABLE_INTEGER blk = null][
+		either any [type >= HASH_TABLE_NODE_KEY blk = null][
 			h/blk: alloc-cells size
 		][
 			h/blk: blk/node
-			saved: collector/active?
-			collector/active?: no							;-- turn off GC
+			if type = HASH_TABLE_HASH [
+				hash: as red-hash! stack/push* ;@@ push on stack to mark it properly, especially `h/chains`
+				hash/header: TYPE_HASH
+				hash/head: 0
+				hash/node: h/blk
+				hash/table: node
+			]
 			put-all node blk/head skip
-			collector/active?: saved
+			if type = HASH_TABLE_HASH [stack/pop 1]
 		]
 		node
 	]
@@ -1263,6 +1276,7 @@ _hashtable: context [
 			new-size	[integer!]
 			f			[float!]
 			flags		[node!]
+			blk			[node!]
 			new-blk		[node!]
 			i sz		[integer!]
 			start		[red-value!]
@@ -1294,7 +1308,8 @@ _hashtable: context [
 		len: vsize >> 4
 		vsize: vsize - size? red-value!
 
-		s: as series! h/blk/value
+		blk: h/blk		;-- @@ put it on stack, so GC can mark it
+		s: as series! blk/value
 		start: s/offset
 		end: s/tail
 		i: 0
@@ -1343,7 +1358,7 @@ _hashtable: context [
 		s: as series! node/value
 		h: as hashtable! s/offset
 
-		int?: h/type >= HASH_TABLE_INTEGER
+		int?: h/type >= HASH_TABLE_NODE_KEY
 		s: as series! h/blk/value
 		blk: s/offset
 		s: as series! h/flags/value
@@ -1426,13 +1441,9 @@ _hashtable: context [
 			hash [integer!] n-buckets [integer!] flags [int-ptr!] ii [integer!]
 			sh [integer!] blk [byte-ptr!] idx [integer!] del? [logic!] k [int-ptr!]
 			vsize [integer!] blk-node [series!] len [integer!] value [red-value!]
-			saved [logic!]
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
-
-		saved: collector/active?
-		collector/active?: no						;-- turn off GC
 
 		if h/n-occupied >= h/upper-bound [			;-- update the hash table
 			vsize: either h/n-buckets > (h/size << 1) [-1][1]
@@ -1503,7 +1514,7 @@ _hashtable: context [
 			]
 			true [k: as int-ptr! blk + keys/x]
 		]
-		collector/active?: saved
+
 		len: vsize >> 4
 		value: as cell! k
 		loop len [
@@ -1635,7 +1646,7 @@ _hashtable: context [
 			s [series!] h [hashtable!] x [integer!] i [integer!] site [integer!]
 			last [integer!] mask [integer!] step [integer!] keys [int-ptr!]
 			hash [integer!] n-buckets [integer!] flags [int-ptr!] ii [integer!]
-			sh [integer!] continue? saved [logic!] blk [red-value!] idx [integer!]
+			sh [integer!] continue? [logic!] blk [red-value!] idx [integer!]
 			type [integer!] del? chain? [logic!] indexes chain [int-ptr!] k [red-value!]
 	][
 		s: as series! node/value
@@ -1657,9 +1668,6 @@ _hashtable: context [
 			s: as series! node/value
 			h: as hashtable! s/offset
 		]
-
-		saved: collector/active?
-		collector/active?: no						;-- turn off GC
 
 		s: as series! h/blk/value
 		idx: (as-integer (key - s/offset)) >> 4
@@ -1755,7 +1763,6 @@ _hashtable: context [
 			idx: idx + 1
 			indexes/idx: x
 		]
-		collector/active?: saved
 		key
 	]
 
@@ -2121,18 +2128,15 @@ _hashtable: context [
 		change? [logic!]					;-- deleted or inserted items
 		return: [integer!]
 		/local s [series!] h [hashtable!] indexes chain p e keys index flags [int-ptr!]
-			i c-idx idx part ii sh n [integer!] table [node!] saved [logic!]
+			i c-idx idx part ii sh n [integer!] table [node!]
 	][
 		if size > 30000 [return HASH_TABLE_ERR_REHASH]
-
-		saved: collector/active?
-		collector/active?: no
 
 		if null? refresh-buffer [
 			refresh-buffer: as red-hash! ALLOC_TAIL(root)
 			refresh-buffer/header: TYPE_MAP
 			refresh-buffer/node: alloc-bytes 4
-			refresh-buffer/table: init 1024 null HASH_TABLE_INTEGER 0
+			refresh-buffer/table: init 1024 null HASH_TABLE_NODE_KEY 0
 		]
 		table: refresh-buffer/table
 
@@ -2213,7 +2217,7 @@ _hashtable: context [
 				as byte-ptr! indexes + head
 				size * 4
 		]
-		collector/active?: saved
+
 		HASH_TABLE_ERR_OK
 	]
 
