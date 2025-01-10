@@ -211,7 +211,7 @@ collector: context [
 			loop count [
 				node: as node! n/value
 				while [
-					frm: as int-ptr! p/value + size? node-frame!
+					frm: as int-ptr! ((as node-frame! p/value) + 1)
 					not all [frm <= node  node < as node! ((as byte-ptr! frm) + w)]
 				][
 					p: p + 1
