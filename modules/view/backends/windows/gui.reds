@@ -1789,7 +1789,7 @@ OS-make-view: func [
 
 	;-- extra initialization
 	case [
-		sym = camera	[init-camera handle data selected get-ratio face false]
+		sym = camera	[init-camera handle data selected get-ratio face]
 		sym = text-list [init-text-list handle data selected]
 		sym = base		[init-base-face handle parent values alpha? ex-flags]
 		sym = panel		[if alpha? [init-base-face handle parent values alpha? ex-flags]]
@@ -2315,7 +2315,7 @@ change-image: func [
 		type = camera [
 			img: as red-image! values + FACE_OBJ_IMAGE
 			if TYPE_OF(img) = TYPE_NONE [
-				camera-get-image img
+				camera-wait-image img
 			]
 		]
 		true [0]
@@ -2893,7 +2893,7 @@ OS-to-image: func [
 		hWnd: face-handle? face
 		either null? hWnd [ret: as red-image! none-value][
 			ret: as red-image! (object/get-values face) + FACE_OBJ_IMAGE
-			camera-get-image ret
+			camera-wait-image ret
 		]
 		return ret
 	]

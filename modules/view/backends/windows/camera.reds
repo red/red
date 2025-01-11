@@ -255,7 +255,7 @@ grabber-cb-buffer: func [
 	0
 ]
 
-camera-get-image: func [img [red-image!] /local timeout [float32!]][
+camera-wait-image: func [img [red-image!] /local timeout [float32!]][
 	timeout: as float32! 0.0
 	img/header: TYPE_NONE
 	until [
@@ -270,7 +270,6 @@ init-camera: func [
 	data	[red-block!]
 	sel		[red-integer!]
 	ratio	[red-float!]
-	open?	[logic!]
 	/local
 		cam [camera!]
 		val [integer!] 
@@ -613,8 +612,7 @@ update-camera: func [
 	ratio	[red-float!]
 	/local
 		cam		[camera!]
-		IVM		[interface! value]
-		graph	[IGraphBuilder]
+		grabber	[ISampleGrabber]
 		grabber-cb	[RedGrabberCB]
 		video	[IVideoWindow]
 		hr		[integer!]
@@ -627,18 +625,19 @@ update-camera: func [
 			sy: as-integer ((as-float sx) * camera-ratio)
 		]
 	]
+
 	cam: as camera! GetWindowLong hWnd wc-offset - 4
+	grabber: as ISampleGrabber cam/grabber/vtbl
+	grabber/SetCallback cam/grabber null 1		;-- cancel callback
+
+	if cam/window <> null [
+		video: as IVideoWindow cam/window/vtbl
+		video/SetWindowPosition cam/window 0 0 sx sy
+	]
 	grabber-cb: as RedGrabberCB cam/grabber-cb
 	grabber-cb/width:  sx
 	grabber-cb/height: sy
-	
-	graph: as IGraphBuilder cam/graph/vtbl
-	hr: graph/QueryInterface cam/graph IID_IVideoWindow IVM
-	;assert zero? hr
-	video: as IVideoWindow IVM/ptr/vtbl
-	video/SetWindowPosition IVM/ptr 0 0 sx sy
-	video/put_Visible IVM/ptr -1
-	cam/window: IVM/ptr
+	grabber/SetCallback cam/grabber as int-ptr! grabber-cb 1
 ]
 
 CameraWndProc: func [
