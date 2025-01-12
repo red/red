@@ -2346,7 +2346,7 @@ change-selection: func [
 		]
 		sym = camera [
 			either TYPE_OF(int) = TYPE_NONE [
-				destroy-camera hWnd
+				stop-camera hWnd 
 			][
 				if select-camera hWnd int/value - 1 [
 					toggle-preview hWnd true
