@@ -3488,11 +3488,11 @@ comment {
 			s0: recycle
 			r: make reactor! [a: append/dup [] 'x 10'000] 
 			s1: recycle
-			--assert s1 - s0 >= 260'000
+			--assert s1 - s0 >= 160'000
 			r: none
 		}
 		s2: recycle
-		--assert s2 - s0 < 2000
+		--assert s2 - s0 < 1000
 
 	--test-- "#5238"
 		h: make hash! [1 2 3 4 5 6 7 8 9 10 11 12 13]

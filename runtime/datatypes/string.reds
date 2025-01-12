@@ -2494,6 +2494,8 @@ string: context [
 			added	  [integer!]
 			type	  [integer!]
 			index	  [integer!]
+			slots	  [integer!]
+			size	  [integer!]
 			tail?	  [logic!]
 			chk?	  [logic!]
 	][
@@ -2540,6 +2542,13 @@ string: context [
 			str/head
 		]
 		chk?: ownership/check as red-value! str action value index part
+
+		slots: either part > 0 [cnt * part][cnt]
+		size: as-integer (as byte-ptr! s/tail) - (as byte-ptr! s/offset) + slots
+		if size > s/size [
+			if cnt <= 4 [size: size * 2]				;-- double it if low number of inserted slots
+			s: expand-series s size
+		]
 		
 		while [not zero? cnt][							;-- /dup support
 			type: TYPE_OF(value)

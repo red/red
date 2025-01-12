@@ -1512,9 +1512,13 @@ block: context [
 		]
 		chk?: ownership/check as red-value! blk action value index slots
 
+		size: as-integer s/tail + slots - s/offset
+		if size > s/size [
+			if cnt <= 4 [size: size * 2]				;-- double it if low number of inserted slots
+			s: expand-series s size
+		]
+		
 		unless tail? [									;TBD: process head? case separately
-			size: as-integer s/tail + slots - s/offset
-			if size > s/size [s: expand-series s size * 2]
 			head: s/offset + h
 			move-memory									;-- make space
 				as byte-ptr! head + slots
