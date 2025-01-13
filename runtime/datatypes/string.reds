@@ -2544,6 +2544,7 @@ string: context [
 		chk?: ownership/check as red-value! str action value index part
 
 		slots: either part > 0 [cnt * part][cnt]
+		slots: slots * GET_UNIT(s)
 		size: as-integer (as byte-ptr! s/tail) - (as byte-ptr! s/offset) + slots
 		if size > s/size [
 			if cnt <= 4 [size: size * 2]				;-- double it if low number of inserted slots
