@@ -141,6 +141,10 @@ get-face-handle: func [
 	int/value
 ]
 
+get-ratio: func [face [red-object!] return: [red-float!]][
+	as red-float! object/rs-select face as red-value! _ratio
+]
+
 get-child-from-xy: func [
 	parent	[handle!]
 	x		[integer!]
