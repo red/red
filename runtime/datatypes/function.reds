@@ -462,11 +462,11 @@ _function: context [
 
 		f-ctx: either null? ctx [_context/make spec yes no CONTEXT_FUNCTION][ctx]
 		fun: as red-function! stack/push*
-		fun/header: TYPE_UNSET
+		fun/header: TYPE_FUNCTION or flags
 		fun/spec:	spec/node
 		fun/ctx:	f-ctx
+		fun/more:	spec/node	;@@ just to make GC happy
 		fun/more:	alloc-unset-cells 5
-		fun/header: TYPE_FUNCTION or flags
 		
 		s: as series! f-ctx/value
 		copy-cell as red-value! fun s/offset + 1		;-- set back-reference

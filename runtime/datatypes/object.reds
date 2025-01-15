@@ -888,11 +888,10 @@ object: context [
 			s	[series!]
 	][
 		obj: as red-object! stack/push*
-		obj/header: TYPE_UNSET
+		obj/header: TYPE_OBJECT
 		obj/ctx:	ctx
 		obj/class:	class
 		obj/on-set: evt
-		obj/header: TYPE_OBJECT
 		
 		s: as series! ctx/value
 		copy-cell as red-value! obj s/offset + 1		;-- set back-reference
