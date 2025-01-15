@@ -59,16 +59,18 @@ routine: context [
 			int	   [red-integer!]
 			more   [series!]
 			flag   [integer!]
+			ctx	   [node!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "routine/push"]]
 
 		flag: either extern? [flag-extern-code][0]
+		ctx: _context/make spec yes no CONTEXT_FUNCTION
 		cell: as red-routine! stack/push*
-		cell/header: TYPE_UNSET
-		cell/ctx:	 _context/make spec yes no CONTEXT_FUNCTION
-		cell/spec:	 spec/node
-		cell/more:	 alloc-cells 5
 		cell/header: TYPE_ROUTINE or flag				;-- implicit reset of all header flags
+		cell/ctx:	 ctx
+		cell/spec:	 spec/node
+		cell/more:	 spec/node							;@@ make GC happy
+		cell/more:	 alloc-cells 5
 		
 		more: as series! cell/more/value
 		value: either null? body [none-value][as red-value! body]
