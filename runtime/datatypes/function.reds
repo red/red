@@ -455,6 +455,7 @@ _function: context [
 			int	   [red-integer!]
 			args   [red-block!]
 			more   [series!]
+			m n [integer!]
 			s	   [series!]
 			f-ctx  [node!]
 	][
@@ -470,7 +471,8 @@ _function: context [
 		
 		s: as series! f-ctx/value
 		copy-cell as red-value! fun s/offset + 1		;-- set back-reference
-		
+
+		more: as series! fun/more/value
 		either null? body [
 			value: none-value
 		][
@@ -478,7 +480,6 @@ _function: context [
 			stack/pop 1
 			value: as red-value! body
 		]
-		more: as series! fun/more/value
 		copy-cell value alloc-tail more					;-- store body block or none
 		
 		alloc-tail more									;-- skip the precompiled args slot
