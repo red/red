@@ -812,7 +812,7 @@ collector: context [
 		table  [int-ptr!]								;-- optional table for nodes relocation
 		store? [logic!]
 		/local
-			frm	map	slot p sp base head prev [int-ptr!]
+			frm	map	slot p sp b base base' head prev [int-ptr!]
 			refs tail new [int-ptr!]
 			node [node!]
 			c-low c-high caller [byte-ptr!]
@@ -826,6 +826,7 @@ collector: context [
 		refs: memory/stk-refs
 		tail: refs + (memory/stk-sz * 2)
 		base: bitarrays-base
+		base': lib-bitarrays-base						;-- points to libRedRT's bitmap array
 		prev: frm
 		frm: as int-ptr! frm/value						;-- skip extract-stack-refs own frame
 
@@ -836,7 +837,8 @@ collector: context [
 			if all [c-low < caller caller < c-high][	;-- only process Red frames (skip externals)
 				slot: frm - 3							;-- position on bitmap slot
 				assert slot/value >= 0					;-- should never hit STACK_BITMAP_BARRIER
-				map: base + slot/value					;-- first corresponding bitmap slot
+				b: either slot/value and 40000000h <> 0 [base'][base] ;-- select exe or dll's bitmap array
+				map: b + slot/value						;-- first corresponding bitmap slot
 				head: map								;-- saved head reference for later args bitmap detection
 				idx: 2									;-- arguments index (1-based)
 				disp: 1									;-- scanning direction
