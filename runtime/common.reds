@@ -23,6 +23,12 @@ names!: alias struct! [
 name-table:	  as names! 0	 						;-- datatype names table
 action-table: as int-ptr! 0							;-- actions jump table
 
+#if all [libRedRT? = yes type = 'dll][
+	get-libRedRT-bitarray: func [return: [int-ptr!]][
+		as int-ptr! system/image/base + system/image/bitarray
+	]
+]
+
 get-build-date: func [return: [c-string!]][			;-- used by red.r
 	#build-date
 ]

@@ -1754,6 +1754,9 @@ system-dialect: make-profilable context [
 				]
 			]
 			offset: encode-pointers name specs
+			if all [job/libRedRT? job/type = 'dll][
+				offset: offset or to integer! #40000000		;-- set bit 30 flag on bitmap offset for libRedRT code
+			]
 			add-function type reduce [name none specs] cc
 			emitter/add-native name
 			repend natives [
