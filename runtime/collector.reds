@@ -838,7 +838,7 @@ collector: context [
 				slot: frm - 3							;-- position on bitmap slot
 				assert slot/value >= 0					;-- should never hit STACK_BITMAP_BARRIER
 				b: either slot/value and 40000000h <> 0 [base'][base] ;-- select exe or dll's bitmap array
-				map: b + slot/value						;-- first corresponding bitmap slot
+				map: b + (slot/value and 0FFFFFFFh)		;-- first corresponding bitmap slot (removing bit flags)
 				head: map								;-- saved head reference for later args bitmap detection
 				idx: 2									;-- arguments index (1-based)
 				disp: 1									;-- scanning direction
