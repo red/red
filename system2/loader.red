@@ -55,12 +55,6 @@ context [
 	]
 
 	included?: func [file [file!]][
-		all [
-			encap?
-			encap-fs/base
-			slash <> first file
-			file: join encap-fs/base file
-		]
 		;attempt [file: get-modes file 'full-path]
 		either find include-list file [true][
 			append include-list file
@@ -303,8 +297,8 @@ context [
 						s: remove/part s e			;-- already included, drop it
 					][
 						if verbose > 0 [print ["...including file:" mold name]]
-						value: either all [encap? own][
-							mark: tail encap-fs/base
+						value: either own [
+							;mark: tail encap-fs/base
 							process/short/sub/own name
 						][
 							name: push-system-path name
@@ -312,7 +306,7 @@ context [
 						]
 						e: change/part s skip value 2 e	;-- skip Red/System header
 
-						value: either all [encap? own not empty? mark][
+						value: either all [own not empty? mark][
 							count-slash mark
 						][
 							0
@@ -360,7 +354,7 @@ context [
 					]
 				) :s
 				| s: #pop-path set value integer! e: (
-					either all [encap? own][
+					either own [
 						unless zero? value [pop-encap-path value]
 					][
 						pop-system-path

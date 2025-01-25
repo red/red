@@ -85,6 +85,7 @@ parse-struct: func [
 		end [cell!]
 		n	[integer!]
 		p	[struct-field!]
+		ty	[rst-type!]
 		saved-blk [red-block!]
 ][
 	val: block/rs-head spec
@@ -107,7 +108,8 @@ parse-struct: func [
 			throw-error [val "expect a word!"]
 		]
 		val: parser/expect-next val end TYPE_BLOCK
-		p/type: parse-type as red-block! val ctx
+		ty: parse-type as red-block! val ctx
+		p/type: either ty <> TYPE_RESOLVING [ty][as rst-type! st]
 		p: p + 1
 		val: val + 1
 	]
@@ -254,11 +256,20 @@ type-checker: context [
 			any [null? c val <> null]
 		]
 		if null? val [throw-error [pc "undefined type:" w]]
-		t1: as unresolved-type! val/value
-		if TYPE_KIND(t1) = RST_TYPE_UNRESOLVED [
-			val/value: as int-ptr! resolve-typeref t1/typeref ctx
-		]
+
 		pc: pc + 1
+		t1: as unresolved-type! val/value
+		switch TYPE_KIND(t1) [
+			RST_TYPE_UNRESOLVED [
+				SET_TYPE_KIND(t1 RST_TYPE_RESOLVING)
+				val/value: as int-ptr! resolve-typeref t1/typeref ctx
+			]
+			RST_TYPE_RESOLVING [	;-- structure self-reference
+				if pc < end [throw-error [pc "invalid syntax"]]
+				return TYPE_RESOLVING
+			]
+			default [0]
+		]
 		t: as rst-type! val/value
 		if all [pc < end TYPE_KIND(t) = RST_TYPE_STRUCT][
 			w: as red-word! pc
@@ -662,12 +673,15 @@ type-checker: context [
 			arg		[rst-expr!]
 			pt		[ptr-ptr!]
 			type	[rst-type!]
+			attr	[integer!]
 	][
+		;dprint "[Type Checker] visit-fn-call"
 		if null? fc/type [resolve-fn-type as fn-type! fc/fn/type ctx]
 
 		ft: as fn-type! fc/fn/type
 		fc/type: ft/ret-type
-		either FN_ATTRS(ft) and FN_VARIADIC = 0 [
+		attr: FN_ATTRS(ft)
+		either attr and (FN_VARIADIC or FN_TYPED) = 0 [
 			pt: ft/param-types
 			arg: fc/args
 			while [arg <> null][
@@ -675,7 +689,7 @@ type-checker: context [
 				arg: arg/next
 				pt: pt + 1
 			]
-		][	;-- variadic func, only infer type, no checking
+		][	;-- variadic/typed func, only infer type, no checking
 			arg: fc/args
 			while [arg <> null][
 				type: arg/type
@@ -686,6 +700,7 @@ type-checker: context [
 				arg: arg/next
 			]
 		]
+		;dprint "[Type Checker] visit-fn-call done"
 		fc/type
 	]
 
@@ -835,6 +850,7 @@ type-checker: context [
 			kv: hashmap/next types kv
 			t: as unresolved-type! kv/2
 			if TYPE_KIND(t) = RST_TYPE_UNRESOLVED [
+				SET_TYPE_KIND(t RST_TYPE_RESOLVING)
 				kv/2: as-integer resolve-typeref t/typeref ctx
 			]
 		]

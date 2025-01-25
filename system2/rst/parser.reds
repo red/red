@@ -5,6 +5,8 @@ Red/System [
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
+#define TYPE_RESOLVING [as rst-type! -1]
+
 #define VISITOR_FUNC(name) [name [visit-fn!]]
 
 visitor!: alias struct! [
@@ -106,11 +108,12 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	RST_ASSIGN
 	RST_PATH
 	RST_MEMBER
-	RST_EXPR_END		;-- end marker of expr types
-	RST_CONTEXT
-	RST_FUNC
-	RST_SUBROUTINE
-	RST_VAR_DECL
+	RST_EXPR_END		;-- 26 end marker of expr types
+	RST_CONTEXT			;-- 27
+	RST_FUNC			;-- 28
+	RST_SUBROUTINE		;-- 29
+	RST_VAR_DECL		;-- 30
+	RST_ENUM			;-- 31
 	RST_WHILE
 	RST_LOOP
 	RST_UNTIL
@@ -184,6 +187,7 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 #define FN_OPCODE(f) (f/header >>> 8 and FFh)
 #define FN_ATTRS(f) (f/header >>> 16)
 #define FN_VARIADIC?(f) (f/header >> 16 and FN_VARIADIC <> 0)
+#define FN_TYPED?(f) (f/header >> 16 and FN_TYPED <> 0)
 #define FN_COMMUTE?(f) (f/header >> 16 and FN_COMMUTE <> 0)
 #define ADD_FN_ATTRS(f attrs) [f/header: f/header or (attrs << 16)]
 #define SET_FN_OPCODE(f op) [f/header: f/header and FFFF00FFh or (op << 8)]
@@ -236,6 +240,12 @@ var-decl!: alias struct! [	;-- variable declaration
 	data-idx	[integer!]	;-- for global var, index in data section
 	blkref		[red-block!]
 	ssa			[ssa-var!]
+]
+
+enumerator!: alias struct! [
+	RST_NODE_FIELDS(enumerator!)
+	n-cases		[integer!]
+	cases		[member!]
 ]
 
 declare!: alias struct! [
@@ -647,6 +657,8 @@ parser: context [
 			arr/value: as int-ptr! int-ptr-type
 	        get-stack-top: make-native N_GET_STACK_TOP 0 null int-ptr-type
 	        set-stack-top: make-native N_SET_STACK_TOP 1 arr void-type
+	        get-stack-frame: make-native N_GET_STACK_FRAME 0 null int-ptr-type
+	        set-stack-frame: make-native N_SET_STACK_FRAME 1 arr void-type
 
 	        arr: as ptr-ptr! malloc 2 * size? int-ptr!
 	        stack-allocate: make-native N_STACK_ALLOC 2 arr int-ptr-type
@@ -892,6 +904,28 @@ parser: context [
 		a
 	]
 
+	make-byte: func [
+		pos		[cell!]
+		return:	[int-literal!]
+		/local
+			int [int-literal!]
+			c	[red-char!]
+			v	[integer!]
+	][
+		c: as red-char! pos
+		v: c/value
+		byte_accept: func [ACCEPT_FN_SPEC][
+			v/visit-literal self data
+		]
+		int: as int-literal! malloc size? int-literal!
+		SET_NODE_TYPE(int RST_BYTE)
+		int/accept: :byte_accept
+		int/token: pos
+		int/value: v
+		int/type: type-system/byte-type
+		int
+	]
+
 	make-int: func [
 		pos		[cell!]
 		return: [int-literal!]
@@ -1047,8 +1081,10 @@ parser: context [
 			return pc
 		]
 		
-		if n = -1 [
-			throw-error [pc "expected a block of arguments for variadic function"]
+		case [
+			n = -1 [throw-error [pc "expected a block of arguments for variadic function"]]
+			n = -2 [n: 1]	;-- typed function call
+			true [0]
 		]
 		beg/next: null
 		cur: :beg
@@ -2036,12 +2072,26 @@ parser: context [
 				sym: symbol/resolve w/symbol
 				case [
 					sym = k_top [
-						f: either set? [set-stack-top][get-stack-top]
-						make-native-call pc f null
+						either set? [
+							pc: fetch-args pc end :pv ctx 1
+							args: as rst-expr! pv/value
+							f: set-stack-top
+						][
+							args: null
+							f: get-stack-top
+						]
+						make-native-call pc f args
 					]
 					sym = k_frame [
-						f: either set? [set-stack-frame][get-stack-frame]
-						make-native-call pc f null
+							either set? [
+							pc: fetch-args pc end :pv ctx 1
+							args: as rst-expr! pv/value
+							f: set-stack-frame
+						][
+							args: null
+							f: get-stack-frame
+						]
+						make-native-call pc f args
 					]
 					sym = k_allocate [
 						if set? [return null]
@@ -2102,7 +2152,7 @@ parser: context [
 		/local
 			w		[red-word!]
 			sym		[integer!]
-			val		[cell!]
+			val pc2 [cell!]
 			s-tail	[cell!]
 			c		[context!]
 			v		[rst-node!]
@@ -2126,8 +2176,8 @@ parser: context [
 
 		w: as red-word! val
 		if k_system = symbol/resolve w/symbol [	;-- special case: system/*
-			pc: parse-system-path pc end expr ctx
-			if pc <> null [return pc]
+			pc2: parse-system-path pc end expr ctx
+			if pc2 <> null [return pc2]
 		]
 
 		ty: TYPE_OF(pc)
@@ -2323,6 +2373,9 @@ parser: context [
 			]
 			TYPE_INTEGER [
 				expr/value: as int-ptr! make-int pc
+			]
+			TYPE_CHAR [
+				expr/value: as int-ptr! make-byte pc
 			]
 			TYPE_FLOAT [
 				expr/value: as int-ptr! make-float pc
@@ -2586,7 +2639,8 @@ parser: context [
 				e: as rst-expr! make-variable var pos
 			]
 			TYPE_SET_PATH [
-				parse-path pc end out ctx
+				pc: parse-path pc end out ctx
+				if pc <> pos [return pc]	;-- a system/* call
 				e: as rst-expr! out/value
 			]
 			default [
@@ -2642,6 +2696,72 @@ parser: context [
 			ctx/last-stmt: s
 		]
 		pc
+	]
+
+	parse-enum: func [
+		pc		[cell!]
+		end		[cell!]
+		ctx		[context!]
+		return: [cell!]
+		/local
+			n cnt	[integer!]
+			e		[enumerator!]
+			m		[member!]
+			cur		[member!]
+			beg		[rst-node! value]
+			type	[rst-type!]
+			name	[cell!]
+			p tail	[cell!]
+			int		[red-integer!]
+			blk		[red-block!]
+			saved-blk [red-block!]
+	][
+		name: expect-next pc end TYPE_WORD 
+		blk: as red-block! expect-next name end TYPE_BLOCK
+
+		p: block/rs-head blk
+		tail: block/rs-tail blk
+		if p = tail [return as cell! blk]
+
+		e: xmalloc(enumerator!)
+		type: make-enum-type name as int-ptr! e
+
+		enter-block(blk)
+		cur: as member! :beg
+		n: 0
+		cnt: 0
+		while [p < tail][
+			m: make-member p
+			m/type: type
+			unless add-decl ctx p as int-ptr! m [
+				throw-error [p "symbol name was already defined"]
+			]
+			switch TYPE_OF(p) [
+				TYPE_WORD [
+					m/index: n
+				]
+				TYPE_SET_WORD [
+					p: expect-next p tail TYPE_INTEGER
+					int: as red-integer! p
+					n: int/value
+					m/index: n
+				]
+				default [throw-error [p "invalid syntax"]]
+			]
+			cur/next: m
+			cur: m
+			cnt: cnt + 1
+			n: n + 1
+			p: p + 1
+		]
+		exit-block
+
+		e/n-cases: cnt
+		e/cases: as member! beg/next
+		unless add-decl ctx name as int-ptr! e [
+			throw-error [name "symbol name was already defined"]
+		]
+		as cell! blk
 	]
 
 	parse-import: func [
@@ -2747,12 +2867,20 @@ parser: context [
 		w: as red-word! pc
 		sym: symbol/resolve w/symbol
 		case [
+			sym = k_enum [
+				pc: parse-enum pc end ctx
+			]
 			sym = k_import [
 				pc: parse-imports pc end ctx
 			]
 			sym = k_export [0]
 			sym = k_syscall [0]
-			sym = k_script [0]
+			sym = k_script [
+				pc: advance-next pc end
+				if TYPE_OF(pc) = TYPE_FILE [
+					compiler/script: pc
+				]
+			]
 			true [pc: parse-statement pc end ctx]
 		]
 		pc
@@ -3040,7 +3168,11 @@ parser: context [
 		]
 		exit-block
 
-		if FN_VARIADIC?(ft) [ft/n-params: -1]
+		case [
+			FN_VARIADIC?(ft) [ft/n-params: -1]
+			FN_TYPED?(ft) [ft/n-params: -2]
+			true [0]
+		]
 		ft/params: list/next
 		ft
 	]

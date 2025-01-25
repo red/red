@@ -24,12 +24,14 @@ Red/System [
 	RST_TYPE_INT
 	RST_TYPE_BYTE
 	RST_TYPE_FLOAT
+	RST_TYPE_ENUM
 	RST_TYPE_FUNC
 	RST_TYPE_NULL
 	RST_TYPE_STRUCT
 	RST_TYPE_ARRAY
 	RST_TYPE_PTR
 	RST_TYPE_UNRESOLVED
+	RST_TYPE_RESOLVING
 ]
 
 #define T_WORD?(v)  [TYPE_OF(v) = TYPE_WORD]
@@ -110,6 +112,11 @@ struct-type!: alias struct! [
 	fields		[struct-field!]	;-- array of struct-field!
 ]
 
+enum-type!: alias struct! [
+	TYPE_HEADER
+	enum		[enumerator!]
+]
+
 fn-type!: alias struct! [
 	TYPE_HEADER
 	spec		[red-block!]
@@ -128,6 +135,20 @@ make-void-type: func [
 	type: as rst-type! malloc size? rst-type!
 	SET_TYPE_KIND(type RST_TYPE_VOID)
 	type
+]
+
+make-enum-type: func [
+	id			[cell!]
+	enumerator	[int-ptr!]
+	return:		[rst-type!]
+	/local
+		type [enum-type!]
+][
+	type: xmalloc(enum-type!)
+	SET_TYPE_KIND(type RST_TYPE_ENUM)
+	type/token: id
+	type/enum: as enumerator! enumerator
+	as rst-type! type
 ]
 
 make-null-type: func [
@@ -526,6 +547,9 @@ type-system: context [
 				][
 					return conv_illegal
 				]
+			]
+			RST_TYPE_NULL [
+				if TYPE_KIND(y) >= RST_TYPE_FUNC [return conv_same]
 			]
 			default [conv_illegal]
 		]
