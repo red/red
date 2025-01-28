@@ -188,13 +188,16 @@ type-checker: context [
 		/local
 			pt	[ptr-ptr!]
 			v	[var-decl!]
+			n	[integer!]
 			saved-blk [red-block!]
 	][
 		if ft/param-types <> null [exit]		;-- already resolved
 		enter-block(ft/spec)
 
-		if ft/n-params > 0 [
-			pt: as ptr-ptr! malloc ft/n-params * size? int-ptr!
+		n: ft/n-params
+		if any [n > 0 n = -2][
+			if n = -2 [n: 2]	;-- typed func
+			pt: as ptr-ptr! malloc n * size? int-ptr!
 			ft/param-types: pt
 			v: ft/params
 			while [v <> null][
@@ -237,9 +240,7 @@ type-checker: context [
 			pc: pc + 2
 			if pc < end [
 				w: as red-word! pc
-				if k_value = symbol/resolve w/symbol [
-					t/header: t/header or FLAG_ST_VALUE
-				]
+				if k_value = symbol/resolve w/symbol [SET_STRUCT_VALUE(t)]
 			]
 			return t
 		]
@@ -273,9 +274,7 @@ type-checker: context [
 		t: as rst-type! val/value
 		if all [pc < end TYPE_KIND(t) = RST_TYPE_STRUCT][
 			w: as red-word! pc
-			if k_value = symbol/resolve w/symbol [
-				t/header: t/header or FLAG_ST_VALUE
-			]
+			if k_value = symbol/resolve w/symbol [SET_STRUCT_VALUE(t)]
 		]
 		t
 	]
@@ -525,8 +524,21 @@ type-checker: context [
 		type-system/void-type
 	]
 
-	visit-native-call: func [e [native-call!] ctx [context!] return: [rst-type!]][
-		e/type
+	visit-native-call: func [nc [native-call!] ctx [context!] return: [rst-type!]
+		/local
+			pt [ptr-ptr!]
+			fn [native!]
+			arg [rst-expr!]
+	][
+		fn: nc/native
+		pt: fn/param-types
+		arg: nc/args
+		while [arg <> null][
+			check-expr "Native Instr:" arg as rst-type! pt/value ctx
+			arg: arg/next
+			pt: pt + 1
+		]
+		nc/type
 	]
 
 	visit-assert: func [p [unary!] ctx [context!] return: [rst-type!]][
@@ -663,6 +675,7 @@ type-checker: context [
 			t1		[rst-type!]
 	][
 		t1: resolve-typeref c/typeref ctx
+		SET_STRUCT_VALUE(t1)
 		c/type: t1
 		t1
 	]
@@ -899,6 +912,7 @@ type-checker: context [
 			stmt: stmt/next
 			stmt <> null
 		][
+			;rst-printer/print-stmt stmt
 			stmt/accept as int-ptr! stmt checker as int-ptr! ctx
 			if null? stmt/next [break]
 		]

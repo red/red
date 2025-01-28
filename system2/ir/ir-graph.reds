@@ -829,9 +829,30 @@ ir-graph: context [
 		null
 	]
 
-	visit-native-call: func [r [case!] ctx [ssa-ctx!] return: [instr!]
+	visit-native-call: func [nc [native-call!] ctx [ssa-ctx!] return: [instr!]
+		/local
+			fn	[native!]
+			np	[integer!]
+			op	[instr-op!]
+			arr [ptr-array!]
+			p	[ptr-ptr!]
+			arg [rst-expr!]
 	][
-		null
+		fn: nc/native
+		np: fn/n-params
+		op: make-op OP_CALL_NATIVE np fn/param-types fn/ret-type
+		op/target: as int-ptr! fn
+
+		arr: ptr-array/make np
+		p: ARRAY_DATA(arr)
+		arg: nc/args
+		while [arg <> null][
+			p/value: arg/accept as int-ptr! arg builder as int-ptr! ctx
+			p: p + 1
+			arg: arg/next
+		]
+
+		add-op op arr ctx
 	]
 
 	visit-assert: func [r [case!] ctx [ssa-ctx!] return: [instr!]
@@ -1665,8 +1686,10 @@ ir-graph: context [
 			arg [rst-expr!]
 			op	[instr-op!]
 			arr [ptr-array!]
-			p	[ptr-ptr!]
-			np	[integer!]
+			op2 [instr-op!]
+			int [red-integer!]
+			p pp [ptr-ptr!]
+			np n [integer!]
 	][
 		fn: fc/fn
 		ft: as fn-type! fn/type
@@ -1674,31 +1697,51 @@ ir-graph: context [
 		op: make-op OP_CALL_FUNC np ft/param-types ft/ret-type
 		op/target: as int-ptr! fn
 
-		if np = -1 [		;-- variadic function, count args
-			np: 0
+		either np < 0 [			;-- variadic/typed function, count args
+			n: 0
 			arg: fc/args
 			while [arg <> null][
-				np: np + 1
+				n: n + 1
 				arg: arg/next
 			]
-			op/n-params: np
-			p: as ptr-ptr! malloc np * size? int-ptr!
-			op/param-types: p
+			pp: as ptr-ptr! malloc n * size? int-ptr!
+			p: pp
 			arg: fc/args
 			while [arg <> null][
 				p/value: as int-ptr! arg/type
 				p: p + 1
 				arg: arg/next
 			]
+			if np = -1 [	;-- variadic func
+				op/n-params: n
+				op/param-types: pp
+			]
+		][
+			n: np
 		]
 
-		arr: ptr-array/make np
+		arr: ptr-array/make n
 		p: ARRAY_DATA(arr)
 		arg: fc/args
 		while [arg <> null][
 			p/value: arg/accept as int-ptr! arg builder as int-ptr! ctx
 			p: p + 1
 			arg: arg/next
+		]
+
+		if np = -2 [	;-- typed func
+			p: ft/param-types + 1	;-- typed-value!
+			op2: make-op OP_TYPED_VALUE n pp as rst-type! p/value
+			set-inputs as instr! op2 arr
+
+			int: xmalloc(red-integer!)
+			int/header: TYPE_INTEGER
+			int/value: n
+			arr: ptr-array/make 2
+			p: ARRAY_DATA(arr)
+			p/value: as int-ptr! const-int int ctx/graph
+			p: p + 1
+			p/value: as int-ptr! op2
 		]
 		add-op op arr ctx
 	]

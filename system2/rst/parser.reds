@@ -648,9 +648,12 @@ parser: context [
 
 		with type-system [
 			arr: as ptr-ptr! malloc size? int-ptr!
-			arr/value: as int-ptr! integer-type
+			arr/value: as int-ptr! any-type
 	        native-push: make-native N_PUSH 1 arr void-type
 	        native-pop: make-native N_POP 0 null integer-type
+
+			arr: as ptr-ptr! malloc size? int-ptr!
+			arr/value: as int-ptr! integer-type
 	        native-log-b: make-native N_LOG_B 1 arr integer-type
 
 			arr: as ptr-ptr! malloc size? int-ptr!
@@ -665,6 +668,8 @@ parser: context [
 			arr/value: as int-ptr! integer-type		;-- slots
 			arr: arr + 1
 			arr/value: as int-ptr! logic-type		;-- /zero
+
+			system-pc: make-native N_PC 0 null byte-ptr-type
         ]
 	]
 
@@ -2083,7 +2088,7 @@ parser: context [
 						make-native-call pc f args
 					]
 					sym = k_frame [
-							either set? [
+						either set? [
 							pc: fetch-args pc end :pv ctx 1
 							args: as rst-expr! pv/value
 							f: set-stack-frame
@@ -2126,7 +2131,7 @@ parser: context [
 				0
 			]
 			sym = k_pc [
-				0
+				make-native-call pc system-pc null
 			]
 			sym = k_cpu [
 				0
@@ -2136,7 +2141,7 @@ parser: context [
 			]
 			true [
 				pc: null
-				null
+				0
 			]
 		]
 		if val + 1 < s-tail [throw-error [pc "invalid path value:" val + 1]]

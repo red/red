@@ -209,6 +209,11 @@ rst-printer: context [
 		]
 	]
 
+	print-stmt: func [stmt [rst-stmt!]][
+		stmt/accept as int-ptr! stmt printer null
+		prin "^/"
+	]
+
 	print-stmts: func [
 		stmt	[rst-stmt!]
 		indent	[integer!]

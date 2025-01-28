@@ -1191,6 +1191,36 @@ x86: context [
 		]
 	]
 
+	emit-call-native: func [
+		cg		[codegen!]
+		i		[instr!]
+		/local
+			o	[instr-op!]
+			p	[ptr-ptr!]
+			e	[df-edge!]
+			n	[integer!]
+			fn	[native!]
+	][
+		o: as instr-op! i
+		fn: as native! o/target
+
+		use-imm-int cg fn/id
+
+		if fn/ret-type <> type-system/void-type [
+			def-reg cg i
+		]
+
+		n: 0
+		p: ARRAY_DATA(i/inputs)
+		loop i/inputs/length [
+			e: as df-edge! p/value
+			use-reg cg e/dst
+			n: n + 1
+			p: p + 1
+		]
+		emit-instr cg I_CALL_NATIVE
+	]
+
 	emit-catch: func [
 		cg		[codegen!]
 		i		[instr!]
@@ -1801,6 +1831,7 @@ x86: context [
 			OP_CATCH_BEG		[emit-catch cg i yes]
 			OP_CATCH_END		[emit-catch cg i no]
 			OP_THROW			[emit-throw cg i]
+			OP_CALL_NATIVE		[emit-call-native cg i]
 			default [
 				dprint ["codegen: unknown op " INSTR_OPCODE(i)]
 			]

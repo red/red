@@ -30,6 +30,7 @@ Red/System [
 	RST_TYPE_STRUCT
 	RST_TYPE_ARRAY
 	RST_TYPE_PTR
+	RST_TYPE_ANY
 	RST_TYPE_UNRESOLVED
 	RST_TYPE_RESOLVING
 ]
@@ -103,6 +104,7 @@ struct-field!: alias struct! [
 ]
 
 #define FLAG_ST_VALUE	0100h
+#define SET_STRUCT_VALUE(t) [t/header: t/header or FLAG_ST_VALUE]
 #define STRUCT_VALUE?(t) [t/header = (FLAG_ST_VALUE or RST_TYPE_STRUCT)]
 
 struct-type!: alias struct! [
@@ -127,13 +129,14 @@ fn-type!: alias struct! [
 	ret-type	[rst-type!]
 ]
 
-make-void-type: func [
+make-type: func [
+	id		[integer!]
 	return: [rst-type!]
 	/local
 		type [rst-type!]
 ][
 	type: as rst-type! malloc size? rst-type!
-	SET_TYPE_KIND(type RST_TYPE_VOID)
+	SET_TYPE_KIND(type id)
 	type
 ]
 
@@ -307,7 +310,14 @@ type-size?: func [
 		RST_TYPE_ARRAY [target/addr-size]
 		RST_TYPE_STRUCT [
 			st: as struct-type! t
-			either st/size > -1 [st/size][struct-size? st]
+			either st/size > -1 [st/size][
+				either STRUCT_VALUE?(st) [
+					struct-size? st
+				][
+					st/size: target/addr-size
+					st/size
+				]
+			]
 		]
 		default [0]	
 	]
@@ -389,13 +399,15 @@ type-system: context [
 	cstr-type:		as rst-type! 0
 	int-ptr-type:	as rst-type! 0
 	byte-ptr-type:	as rst-type! 0
+	any-type:		as rst-type! 0
 
 	int-types: as ptr-array! 0
 
 	init: func [][
 		int-types: ptr-array/make 2 * MAX_INT_WIDTH + 1
 
-		void-type: make-void-type
+		void-type: make-type RST_TYPE_VOID
+		any-type: make-type RST_TYPE_ANY
 		null-type: make-null-type
 		integer-type: get-int-type 32 true
 		int32-type: get-int-type 32 true
@@ -523,6 +535,8 @@ type-system: context [
 			frac [integer!]
 	][
 		if x/header = y/header [return conv_same]
+
+		if TYPE_KIND(y) = RST_TYPE_ANY [return conv_same]
 
 		switch TYPE_KIND(x) [
 			RST_TYPE_INT [

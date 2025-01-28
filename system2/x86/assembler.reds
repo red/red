@@ -1448,6 +1448,9 @@ assemble-op: func [
 			n: target/addr-size * to-imm as operand! p/value
 			asm/sub-r-i x86-regs/esp n NO_REX
 		]
+		I_CALL_NATIVE [
+			0
+		]
 		default [0]
 	]
 ]

@@ -122,6 +122,8 @@ ir-printer: context [
 			OP_CATCH_BEG [print "catch begin"]
 			OP_CATCH_END [print "catch end"]
 			OP_THROW [print "throw"]
+			OP_TYPED_VALUE [print "typed-value"]
+			OP_CALL_NATIVE [print "call native"]
 			default [
 				print ["unknown op " INSTR_OPCODE(i)]
 			]

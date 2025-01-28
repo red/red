@@ -90,6 +90,8 @@ Red/System [
 	OP_CATCH_BEG		;-- 70
 	OP_CATCH_END		;-- 71
 	OP_THROW			;-- 72
+	OP_TYPED_VALUE		;-- 73
+	OP_CALL_NATIVE		;-- 74
 ]
 
 #enum instr-flag! [
@@ -193,6 +195,8 @@ instr-flags: [
 	0	;-- OP_CATCH_BEG
 	0	;-- OP_CATCH_END
 	0	;-- OP_THROW
+	0	;-- OP_TYPED_VALUE
+	0	;-- OP_CALL_NATIVE
 ]
 
 ;-- mach instr opcode
@@ -262,6 +266,7 @@ instr-flags: [
 #define I_MOVD			76h
 #define I_MOVQ			77h
 #define I_SYSCALL		78h
+#define I_CALL_NATIVE	79h
 
 #define I_W_DIFF		10h		;-- I_ADDQ - I_ADDD
 
