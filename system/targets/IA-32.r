@@ -553,12 +553,12 @@ make-profilable make target-class [
 	]
 	
 	emit-atomic-load: func [order [word!]][
-		if verbose >= 3 [print [">>>emitting ATOMIC-LOAD" mold ptr mold order]]
+		if verbose >= 3 [print [">>>emitting ATOMIC-LOAD" mold order]]
 		emit #{8B00}								;-- MOV eax, [eax]
 	]
 	
 	emit-atomic-store: func [value order [word!]][
-		if verbose >= 3 [print [">>>emitting ATOMIC-STORE" mold ptr mold value mold order]]
+		if verbose >= 3 [print [">>>emitting ATOMIC-STORE" mold value mold order]]
 		emit #{89C6} 								;-- MOV esi, eax
 		emit-load value
 		emit #{8906}								;-- MOV [esi], eax
@@ -566,7 +566,7 @@ make-profilable make target-class [
 	]
 	
 	emit-atomic-math: func [op [word!] right-op old? [logic!] ret? [logic!] order [word!]][
-		if verbose >= 3 [print [">>>emitting ATOMIC-MATH-OP" mold ptr mold op mold value mold ret? mold order]]
+		if verbose >= 3 [print [">>>emitting ATOMIC-MATH-OP" mold op mold value mold ret? mold order]]
 		emit #{89C6} 								;-- MOV esi, eax
 		emit-load right-op
 		either any [old? ret?][
@@ -612,7 +612,7 @@ make-profilable make target-class [
 	]
 	
 	emit-atomic-cas: func [check value ret? [logic!] order [word!]][
-		if verbose >= 3 [print [">>>emitting ATOMIC-CAS" mold ptr mold check mold value ret? mold order]]
+		if verbose >= 3 [print [">>>emitting ATOMIC-CAS" mold check mold value ret? mold order]]
 		emit #{89C6} 								;-- MOV esi, eax
 		emit-load value
 		emit-move-path-alt							;-- load new value in edx
