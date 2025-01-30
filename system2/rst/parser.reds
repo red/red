@@ -2348,6 +2348,8 @@ parser: context [
 			w	[red-word!]
 			p	[ptr-ptr!]
 			v	[rst-node!]
+			m	[member!]
+			int [red-integer!]
 			parse-keyword [keyword-fn!]
 	][
 		switch TYPE_OF(pc) [
@@ -2358,6 +2360,13 @@ parser: context [
 					switch NODE_TYPE(v) [
 						RST_FUNC		[pc: parse-call pc end as fn! v expr ctx]
 						RST_VAR_DECL	[expr/value: as int-ptr! make-variable as var-decl! v pc]
+						RST_MEMBER		[	;-- enum value
+							m: as member! v
+							int: as red-integer! m/token
+							int/header: TYPE_INTEGER
+							int/value: m/index
+							expr/value: as int-ptr! make-int as cell! int
+						]
 						default			[unreachable pc]
 					]
 				][
@@ -2716,9 +2725,12 @@ parser: context [
 			beg		[rst-node! value]
 			type	[rst-type!]
 			name	[cell!]
+			w		[red-word!]
 			p tail	[cell!]
 			int		[red-integer!]
 			blk		[red-block!]
+			sym		[integer!]
+			val		[ptr-ptr!]
 			saved-blk [red-block!]
 	][
 		name: expect-next pc end TYPE_WORD 
@@ -2763,9 +2775,13 @@ parser: context [
 
 		e/n-cases: cnt
 		e/cases: as member! beg/next
-		unless add-decl ctx name as int-ptr! e [
-			throw-error [name "symbol name was already defined"]
+
+		w: as red-word! name
+		sym: symbol/resolve w/symbol
+		if null <> hashmap/get ctx/typecache sym [
+			throw-error [name "redefine type"]
 		]
+		hashmap/put ctx/typecache sym as int-ptr! type
 		as cell! blk
 	]
 

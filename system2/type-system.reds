@@ -552,6 +552,7 @@ type-system: context [
 							if INT_WIDTH(x) <= (frac + 1) [return conv_promote_if]
 						]
 					]
+					RST_TYPE_ENUM [conv_same]
 					default [0]
 				]
 			]
