@@ -3732,10 +3732,14 @@ comment {
 		--assert "table/+/(m/col)" = mold 'table/+/(m/col)
 		--assert "table/-/(m/col)" = mold 'table/-/(m/col)
 		
-	--test-- "#559"
+	--test-- "#5589"
 		--assert 3 = length? 'table/++/(m/col)
 		--assert "table/++/(m/col)" = mold 'table/++/(m/col)
 		--assert "table/--/(m/col)" = mold 'table/--/(m/col)
+
+	--test-- "#5590"
+		--assert 3 = length? first [=/-/=]
+		--assert "[=/-/=]" = mold [=/-/=]
 	
 ===end-group===
 
