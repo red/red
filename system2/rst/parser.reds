@@ -276,6 +276,7 @@ context!: alias struct! [
 	with-ns		 [vector!]
 	ret-type	 [rst-type!]
 	typecache	 [int-ptr!]
+	n-typed		 [integer!]	;-- number of typed values
 	n-ssa-vars	 [integer!]	;-- number of variable that written more than once
 	n-loops		 [integer!]
 	loop-stack	 [vector!]
@@ -1040,6 +1041,7 @@ parser: context [
 			pp	[ptr-value!]
 			n	[integer!]
 			saved-blk [red-block!]
+			n-args [rst-node!]
 	][
 		n: 0
 		beg/next: null
@@ -1057,7 +1059,10 @@ parser: context [
 		]
 		exit-block
 
-		args/value: as int-ptr! beg/next		
+		n-args: xmalloc(rst-node!)
+		n-args/header: n
+		n-args/next: beg/next
+		args/value: as int-ptr! n-args
 		n
 	]
 
@@ -1075,6 +1080,7 @@ parser: context [
 			blk	[red-block!]
 			cnt [integer!]
 			i	[integer!]
+			n-args [rst-node!]
 	][
 		pc: advance-next pc end
 		if T_BLOCK?(pc) [
@@ -1083,12 +1089,21 @@ parser: context [
 			if all [n > 0 n <> cnt][
 				throw-error [pc "wrong number of arguments"]
 			]
+			if all [
+				n = -2
+				ctx/n-typed < cnt
+			][
+				ctx/n-typed: cnt
+			]
 			return pc
 		]
-		
+
 		case [
 			n = -1 [throw-error [pc "expected a block of arguments for variadic function"]]
-			n = -2 [n: 1]	;-- typed function call
+			n = -2 [	;-- typed function call
+				n: 1
+				if ctx/n-typed < 1 [ctx/n-typed: 1]
+			]
 			true [0]
 		]
 		beg/next: null
@@ -1102,7 +1117,10 @@ parser: context [
 			i: i + 1
 			pc: advance-next pc end
 		]
-		args/value: as int-ptr! beg/next
+		n-args: xmalloc(rst-node!)
+		n-args/header: n	;-- store number of args in header
+		n-args/next: beg/next
+		args/value: as int-ptr! n-args
 		pc
 	]
 

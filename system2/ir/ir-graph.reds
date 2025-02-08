@@ -124,6 +124,7 @@ ir-fn!: alias struct! [
 	const-idx	[integer!]
 	const-vals	[ptr-array!]	;-- array<instr-const!>
 	const-map	[int-ptr!]
+	n-typed		[integer!]
 	fn			[fn!]
 ]
 
@@ -845,7 +846,7 @@ ir-graph: context [
 
 		arr: ptr-array/make np
 		p: ARRAY_DATA(arr)
-		arg: nc/args
+		arg: nc/args/next
 		while [arg <> null][
 			p/value: arg/accept as int-ptr! arg builder as int-ptr! ctx
 			p: p + 1
@@ -1697,16 +1698,12 @@ ir-graph: context [
 		op: make-op OP_CALL_FUNC np ft/param-types ft/ret-type
 		op/target: as int-ptr! fn
 
-		either np < 0 [			;-- variadic/typed function, count args
-			n: 0
+		either np < 0 [		;-- variadic/typed function
 			arg: fc/args
-			while [arg <> null][
-				n: n + 1
-				arg: arg/next
-			]
+			n: arg/header	;-- number of args
 			pp: as ptr-ptr! malloc n * size? int-ptr!
 			p: pp
-			arg: fc/args
+			arg: arg/next
 			while [arg <> null][
 				p/value: as int-ptr! arg/type
 				p: p + 1
@@ -1722,7 +1719,7 @@ ir-graph: context [
 
 		arr: ptr-array/make n
 		p: ARRAY_DATA(arr)
-		arg: fc/args
+		arg: fc/args/next
 		while [arg <> null][
 			p/value: arg/accept as int-ptr! arg builder as int-ptr! ctx
 			p: p + 1
@@ -1732,7 +1729,7 @@ ir-graph: context [
 		if np = -2 [	;-- typed func
 			p: ft/param-types + 1	;-- typed-value!
 			op2: make-op OP_TYPED_VALUE n pp as rst-type! p/value
-			set-inputs as instr! op2 arr
+			add-op op2 arr ctx
 
 			int: xmalloc(red-integer!)
 			int/header: TYPE_INTEGER
@@ -1742,6 +1739,7 @@ ir-graph: context [
 			p/value: as int-ptr! const-int int ctx/graph
 			p: p + 1
 			p/value: as int-ptr! op2
+			ft/n-params: 2
 		]
 		add-op op arr ctx
 	]
@@ -2067,6 +2065,7 @@ ir-graph: context [
 
 		init-ssa-ctx :ssa-ctx null ctx/n-ssa-vars null
 		graph: make-ir-fn fn :ssa-ctx
+		graph/n-typed: ctx/n-typed
 
 		if ctx/n-ssa-vars > 0 [
 			decls: ctx/decls

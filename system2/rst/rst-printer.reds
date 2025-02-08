@@ -179,7 +179,7 @@ rst-printer: context [
 
 	visit-fn-call: func [fc [fn-call!] i [integer!] /local arg [rst-expr!]][
 		do-i i prin-token fc/token prin " ["
-		arg: fc/args
+		arg: fc/args/next
 		while [arg <> null][
 			arg/accept as int-ptr! arg printer null
 			prin " "

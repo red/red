@@ -1335,10 +1335,13 @@ assemble-op: func [
 		c n [integer!]
 		f	[operand!]
 		val [val!]
+		o	[instr-op!]
 		imm [immediate!]
 		loc [integer!]
 		pp	[int-ptr!]
 		pos [integer!]
+		t	[rst-type!]
+		rset [reg-set!]
 		addr [x86-addr! value]
 ][
 	switch x86_OPCODE(op) [
@@ -1380,6 +1383,7 @@ assemble-op: func [
 			]
 		]
 		I_CATCH [
+			rset: cg/reg-set
 			addr/base: x86-regs/ebp
 			addr/index: 0
 			addr/scale: 1
@@ -1392,12 +1396,12 @@ assemble-op: func [
 
 				addr/disp: -4
 				asm/mov-r-m x86-regs/eax :addr		;-- mov eax, [ebp - 4]
-				loc-to-addr pp/3 :addr cg/frame cg/reg-set
+				loc-to-addr pp/3 :addr cg/frame rset
 				asm/mov-m-r :addr x86-regs/eax		;-- mov [ebp - x1], eax
 
 				addr/disp: -8
 				asm/mov-r-m x86-regs/eax :addr		;-- mov eax, [ebp - 8]
-				loc-to-addr pp/4 :addr cg/frame cg/reg-set
+				loc-to-addr pp/4 :addr cg/frame rset
 				asm/mov-m-r :addr x86-regs/eax		;-- mov [ebp - x2], eax
 				
 				asm/mov-r-i x86-regs/eax pp/2		;-- mov eax, catch filter
@@ -1412,12 +1416,12 @@ assemble-op: func [
 				pos: pp/value
 				change-at-32 program/code-buf/data pos + 27 asm/pos - pos - 25
 
-				loc-to-addr pp/3 :addr cg/frame cg/reg-set				
+				loc-to-addr pp/3 :addr cg/frame rset				
 				asm/mov-r-m x86-regs/edi :addr		;-- mov edi, [ebp - x1]
 				addr/disp: -4
 				asm/mov-m-r :addr x86-regs/edi		;-- mov [ebp - 4], edi
 
-				loc-to-addr pp/4 :addr cg/frame cg/reg-set
+				loc-to-addr pp/4 :addr cg/frame rset
 				asm/mov-r-m x86-regs/edi :addr		;-- mov edi, [ebp - x2]
 				addr/disp: -8
 				asm/mov-m-r :addr x86-regs/edi		;-- mov [ebp - 8], edi

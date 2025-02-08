@@ -1149,6 +1149,55 @@ x86: context [
 		emit-instr cg opcode
 	]
 
+	emit-typed-value: func [
+		cg		[codegen!]
+		i		[instr!]
+		/local
+			o	[instr-op!]
+			p	[ptr-ptr!]
+			e	[df-edge!]
+			t	[rst-type!]
+			id	[integer!]
+			op	[integer!]
+			val [red-integer!]
+			slot [integer!]
+			types [ptr-ptr!]
+	][
+		o: as instr-op! i
+		types: o/param-types
+
+		slot: cg/frame/typed-value
+		def-reg cg i
+
+		p: ARRAY_DATA(i/inputs)
+		loop i/inputs/length [
+			t: as rst-type! types/value
+			id: switch TYPE_KIND(t) [
+				RST_TYPE_LOGIC [1]
+				RST_TYPE_INT RST_TYPE_ENUM [2]
+				RST_TYPE_BYTE [3]
+				RST_TYPE_FLOAT [either FLOAT_64?(t) [5][4]]
+				RST_TYPE_ARRAY [6]
+				RST_TYPE_PTR RST_TYPE_NULL [8]
+				RST_TYPE_STRUCT [1000]
+				default [0]
+			]
+			val: xmalloc(red-integer!)
+			val/header: TYPE_INTEGER
+			val/value: id
+			use-reg-fixed cg as instr! ir-graph/const-int val cg/fn slot
+
+			e: as df-edge! p/value
+			use-reg-fixed cg e/dst slot + 1
+			slot: slot + 3
+			p: p + 1
+			types: types + 1
+		]
+		op: either target/arch = arch-x86 [I_LEAD][I_LEAQ]
+		op: op or AM_REG_OP
+		emit-instr cg op
+	]
+
 	emit-call: func [
 		cg		[codegen!]
 		i		[instr!]
@@ -1159,7 +1208,6 @@ x86: context [
 			e	[df-edge!]
 			n	[integer!]
 			fn	[fn!]
-			ft	[fn-type!]
 	][
 		o: as instr-op! i
 		fn: as fn! o/target
@@ -1525,15 +1573,11 @@ x86: context [
 			INS_PARAM
 			INS_VAR [
 				v: alloc-local-var cg as instr-var! i
-				v/reg: x86-regs/esp
-				int: xmalloc(red-integer!)
-				int/header: TYPE_INTEGER
-				int/value: v/spill
-
+				v/reg: x86-regs/ebp
 				addr/base: i
 				addr/index: null
 				addr/scale: 1
-				addr/disp: as cell! int
+				addr/disp: null
 			]
 			OP_PTR_ADD [
 				match-addr-add i null addr
@@ -1832,6 +1876,7 @@ x86: context [
 			OP_CATCH_END		[emit-catch cg i no]
 			OP_THROW			[emit-throw cg i]
 			OP_CALL_NATIVE		[emit-call-native cg i]
+			OP_TYPED_VALUE		[emit-typed-value cg i]
 			default [
 				dprint ["codegen: unknown op " INSTR_OPCODE(i)]
 			]
@@ -1850,6 +1895,10 @@ x86: context [
 		f/slot-size: target/addr-size
 		f/size: target/addr-size
 		f/tmp-slot: -1
+		if ir/n-typed > 0 [
+			f/typed-value: f/cc/reg-set/spill-start
+			f/spill-vars: f/spill-vars + (ir/n-typed * 3)
+		]
 		f
 	]
 

@@ -164,6 +164,7 @@ frame!: alias struct! [
 	spill-vars	[integer!]				;-- spilled variables
 	spill-args	[integer!]				;-- spilled arguments
 	tmp-slot	[integer!]
+	typed-value [integer!]
 ]
 
 assembler!: alias struct! [

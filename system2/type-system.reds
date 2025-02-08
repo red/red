@@ -261,6 +261,7 @@ field-offset?: func [
 		f	[struct-field!]
 ][
 	assert idx < st/n-fields
+	if st/size < 0 [struct-size? st]	;-- fill /offset
 	f: st/fields + idx
 	f/offset
 ]

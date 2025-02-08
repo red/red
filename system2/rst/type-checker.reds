@@ -532,7 +532,7 @@ type-checker: context [
 	][
 		fn: nc/native
 		pt: fn/param-types
-		arg: nc/args
+		arg: nc/args/next
 		while [arg <> null][
 			check-expr "Native Instr:" arg as rst-type! pt/value ctx
 			arg: arg/next
@@ -696,14 +696,14 @@ type-checker: context [
 		attr: FN_ATTRS(ft)
 		either attr and (FN_VARIADIC or FN_TYPED) = 0 [
 			pt: ft/param-types
-			arg: fc/args
+			arg: fc/args/next
 			while [arg <> null][
 				check-expr "Function Call:" arg as rst-type! pt/value ctx
 				arg: arg/next
 				pt: pt + 1
 			]
 		][	;-- variadic/typed func, only infer type, no checking
-			arg: fc/args
+			arg: fc/args/next
 			while [arg <> null][
 				type: arg/type
 				if null? type [
