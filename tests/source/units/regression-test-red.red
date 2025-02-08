@@ -3725,10 +3725,17 @@ comment {
 		
 	--test-- "#5587"
 		--assert '+ = first quote +/1/5
+		--assert '- = first quote -/1/5
 		
 	--test-- "#5588"
 		--assert 3 = length? 'table/+/(m/col)
 		--assert "table/+/(m/col)" = mold 'table/+/(m/col)
+		--assert "table/-/(m/col)" = mold 'table/-/(m/col)
+		
+	--test-- "#559"
+		--assert 3 = length? 'table/++/(m/col)
+		--assert "table/++/(m/col)" = mold 'table/++/(m/col)
+		--assert "table/--/(m/col)" = mold 'table/--/(m/col)
 	
 ===end-group===
 
