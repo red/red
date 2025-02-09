@@ -1925,7 +1925,7 @@ natives: context [
 				pt: as red-point3D! i
 				all [pt/x = as-float32 0 pt/y = as-float32 0]
 			]
-			TYPE_POINT2D [
+			TYPE_POINT3D [
 				pt: as red-point3D! i
 				all [pt/x = as-float32 0 pt/y = as-float32 0 pt/z = as-float32 0]
 			]
