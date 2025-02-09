@@ -3723,6 +3723,12 @@ comment {
 		h5579: make hash! [1 2]
 		--assert h5579 = copy/part make hash! [1 2 3 4 5 6 7 8] 2
 
+	--test-- "#5584"
+		do [											;-- compiler would catch that error
+			f5584: func [/local y][probe 22]
+			--assert error? try [f5584/y]
+		]
+
 	--test-- "#5586"
 		100x100 / 100x99 = (1, 1.010101)
 		
