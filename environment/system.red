@@ -270,7 +270,7 @@ system: context [
 				;bad-series:		"invalid series"
 				limit-hit:			["internal limit reached:" :arg1]
 				;bad-sys-func:		["invalid or missing system function:" :arg1]
-				too-deep:			"block or paren series is too deep to display"
+				too-deep:			"block or paren series is too deep to process"
 				no-cycle:			"circular reference not allowed"
 				feature-na:			"feature not available"
 				not-done:			"reserved for future use (or not yet implemented)"
