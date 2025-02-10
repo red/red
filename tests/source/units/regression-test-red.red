@@ -3729,6 +3729,19 @@ comment {
 			--assert error? try [f5584/y]
 		]
 
+	--test-- "#5585"
+		do [											;-- compiler would catch that error
+			--assert error? try [
+				func [
+				  return: [integer!] "abcd" 
+				  return: [integer!]
+				  /local xx
+				][
+					123456
+				]
+			]
+		]
+
 	--test-- "#5586"
 		100x100 / 100x99 = (1, 1.010101)
 		
