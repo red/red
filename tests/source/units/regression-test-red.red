@@ -3645,6 +3645,12 @@ comment {
 		--assert error? set/any 'err try [do [f: func [x][]  f/x false]]  ;-- required DO to avoid the error being caught by compiler
 		--assert err/id = 'no-refine
 
+	--test-- "#5490"
+		--assert (1,1) = min 1x1 (1.#inf,1.#inf)
+		--assert (1,1) = min 1x1 1.#inf
+		--assert "(1.#NaN, 1.#NaN)" = mold max 1x1 (1.#nan,1.#nan)
+		--assert "(1.#NaN, 1.#NaN)" = mold max 1x1 1.#nan
+
 	--test-- "#5496"
 		file: %/dir/file
 		url: https://example.com/
