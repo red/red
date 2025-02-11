@@ -48,6 +48,7 @@ Red/System [
 #define TYPE_HEADER [
 	header		[integer!]		;-- Kind: 0 - 7 bits, flags: 8 - 31
 	token		[cell!]
+	ptr-type	[rst-type!]
 ]
 
 rst-type!: alias struct! [
@@ -88,11 +89,13 @@ logic-type!: alias struct! [
 ;-- /header bits: 8 - 11: pointer size in byte
 ptr-type!: alias struct! [
 	TYPE_HEADER
+	op-table	[fn-type!]			;-- cache of ptr operators
 	type		[rst-type!]
 ]
 
 array-type!: alias struct! [	;-- inherit ptr-type!
 	TYPE_HEADER
+	op-table	[fn-type!]
 	type		[rst-type!]
 	length		[integer!]
 ]
@@ -109,6 +112,7 @@ struct-field!: alias struct! [
 
 struct-type!: alias struct! [
 	TYPE_HEADER
+	op-table	[fn-type!]
 	size		[integer!]		;-- size of the struct in bytes
 	n-fields	[integer!]		;-- number of fields
 	fields		[struct-field!]	;-- array of struct-field!
@@ -170,9 +174,11 @@ make-ptr-type: func [
 	/local
 		t	[ptr-type!]
 ][
+	if vtype/ptr-type <> null [return vtype/ptr-type]
 	t: xmalloc(ptr-type!)
 	t/header: RST_TYPE_PTR or (target/addr-size << 8)
 	t/type: vtype
+	vtype/ptr-type: as rst-type! t
 	as rst-type! t
 ]
 
@@ -278,7 +284,7 @@ struct-size?: func [
 	sz: 0
 	f: st/fields
 	loop st/n-fields [
-		n: type-size? f/type
+		n: type-size? f/type no
 		ofs: either n > 1 [align-up sz n][sz]
 		sz: ofs + n
 		f/offset: ofs
@@ -290,6 +296,7 @@ struct-size?: func [
 
 type-size?: func [
 	t		[rst-type!]
+	st?		[logic!]
 	return: [integer!]		;-- size in byte
 	/local
 		w	[integer!]
@@ -312,7 +319,7 @@ type-size?: func [
 		RST_TYPE_STRUCT [
 			st: as struct-type! t
 			either st/size > -1 [st/size][
-				either STRUCT_VALUE?(st) [
+				either any [st? STRUCT_VALUE?(st)][
 					struct-size? st
 				][
 					st/size: target/addr-size

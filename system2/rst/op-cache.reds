@@ -105,4 +105,46 @@ op-cache: context [
 		if null? p/value [p/value: as int-ptr! create type OP_FLT_ADD - OP_INT_ADD]
 		(as op! p/value) + op
 	]
+
+	get-ptr-op: func [
+		op		[opcode!]
+		type	[ptr-type!]
+		return: [op!]
+		/local
+			f	[op!]
+			fn	[op!]
+			t	[rst-type!]
+			pt	[ptr-ptr!]
+			beg [integer!]
+			idx [integer!]
+	][
+		f: type/op-table
+		t: as rst-type! type
+		beg: OP_PTR_ADD
+		if null? f [
+			f: as op! malloc (OP_GET_PTR - OP_PTR_ADD) * size? op!
+
+			pt: parser/make-param-types t type-system/integer-type
+			init-op f + (OP_PTR_ADD - beg)  OP_PTR_ADD   pt t
+			init-op f + (OP_PTR_SUB - beg)  OP_PTR_SUB   pt t
+
+			pt: parser/make-param-types t t
+			init-op f + (OP_PTR_EQ - beg)   OP_PTR_EQ    pt type-system/logic-type
+			init-op f + (OP_PTR_NE - beg)   OP_PTR_NE    pt type-system/logic-type
+			init-op f + (OP_PTR_LT - beg)   OP_PTR_LT    pt type-system/logic-type
+			init-op f + (OP_PTR_LTEQ - beg) OP_PTR_LTEQ  pt type-system/logic-type
+			type/op-table: f
+		]
+
+		idx: switch op [
+			RST_OP_ADD [OP_PTR_ADD]
+			RST_OP_EQ [OP_PTR_EQ]
+			RST_OP_NE [OP_PTR_NE]
+			RST_OP_SUB [OP_PTR_SUB]
+			RST_OP_LT [OP_PTR_LT]
+			RST_OP_LTEQ [OP_PTR_LTEQ]
+			default [dprint ["invalid ptr op: " op] 0]
+		]
+		f + (idx - beg)
+	]
 ]

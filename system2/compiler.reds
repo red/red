@@ -325,7 +325,7 @@ compiler: context [
 	][
 		if var/data-idx >= 0 [exit]
 
-		sz: type-size? var/type
+		sz: type-size? var/type yes
 		with [data-section][
 			var/data-idx: pos
 			unless store-literal var/init [

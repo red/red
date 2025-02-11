@@ -719,14 +719,33 @@ type-checker: context [
 
 	visit-bin-op: func [bin [bin-op!] ctx [context!] return: [rst-type!]
 		/local
-			op	[fn-type!]
+			op op2	[fn-type!]
+			code sz [integer!]
+			int 	[red-integer!]
+			e right [rst-expr!]
+			b		[bin-op!]
 			ltype rtype [rst-type!]
 	][
+		right: bin/right
 		ltype: as rst-type! bin/left/accept as int-ptr! bin/left checker as int-ptr! ctx
-		rtype: as rst-type! bin/right/accept as int-ptr! bin/right checker as int-ptr! ctx
+		rtype: as rst-type! right/accept as int-ptr! right checker as int-ptr! ctx
 		either NODE_FLAGS(bin) and RST_INFIX_OP <> 0 [
 			op: lookup-infix-op as-integer bin/op ltype rtype
 			if null? op [throw-error [bin/left/token "argument type mismatch for:" bin/token]]
+
+			code: FN_OPCODE(op)
+			if any [code = OP_PTR_ADD code = OP_PTR_SUB][
+				int: xmalloc(red-integer!)
+				int/header: TYPE_INTEGER
+				int/value: type-size? ltype yes
+
+				e: as rst-expr! parser/make-int as cell! int
+				b: parser/make-bin-op as int-ptr! RST_OP_MUL right e right/token
+				ADD_NODE_FLAGS(b RST_INFIX_OP)
+
+				visit-bin-op b ctx
+				bin/right: as rst-expr! b
+			]
 		][
 			assert bin/op <> null
 			op: as fn-type! bin/op
@@ -765,10 +784,10 @@ type-checker: context [
 		swap?: no
 		attr: 0
 		op: switch op [
-			RST_OP_LT [RST_MIXED_LT]
-			RST_OP_LTEQ [RST_MIXED_LTEQ]
-			RST_OP_GT [swap?: yes RST_MIXED_LT]
-			RST_OP_GTEQ [swap?: yes RST_MIXED_LTEQ]
+			RST_OP_LT [OP_MIXED_LT]
+			RST_OP_LTEQ [OP_MIXED_LTEQ]
+			RST_OP_GT [swap?: yes OP_MIXED_LT]
+			RST_OP_GTEQ [swap?: yes OP_MIXED_LTEQ]
 		]
 		if swap? [
 			t: ltype
@@ -777,6 +796,15 @@ type-checker: context [
 			attr: FN_COMMUTE
 		]
 		make-cmp-op op ltype rtype attr
+	]
+
+	commute: func [
+		op		[rst-op!]
+		ltype	[rst-type!]
+		rtype	[rst-type!]
+		return: [fn-type!]
+	][
+		make-cmp-op op rtype ltype FN_COMMUTE
 	]
 
 	lookup-infix-op: func [
@@ -800,7 +828,9 @@ type-checker: context [
 							op-cache/get-float-op op utype
 						][null]
 					]
-					RST_TYPE_PTR [null]
+					RST_TYPE_PTR RST_TYPE_STRUCT [
+						op-cache/get-ptr-op op as ptr-type! utype
+					]
 				]
 			]
 			all [INT_TYPE?(ltype) op >= RST_OP_SHL op <= RST_OP_SHR][	; <<, >>, >>>
@@ -811,7 +841,7 @@ type-checker: context [
 				if null? utype [
 					case [
 						all [INT_TYPE?(ltype) INT_TYPE?(rtype)][
-							op: either op = RST_OP_EQ [RST_MIXED_EQ][RST_MIXED_NE]
+							op: either op = RST_OP_EQ [OP_MIXED_EQ][OP_MIXED_NE]
 							ft: make-cmp-op op ltype rtype 0
 						]
 						FLOAT_TYPE?(ltype) [utype: ltype]

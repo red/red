@@ -54,7 +54,7 @@ accept-fn!: alias function! [ACCEPT_FN_SPEC]
 visit-fn!: alias function! [VISIT_FN_SPEC]
 keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 
-#enum rst-op! [		;@@ order matters
+#enum rst-op! [		;@@ infix ops, order matters
 	RST_OP_ADD
 	RST_OP_SUB
 	RST_OP_MUL
@@ -74,11 +74,6 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	RST_OP_GT
 	RST_OP_GTEQ
 	RST_OP_SIZE
-	;-- sugar ops
-	RST_MIXED_EQ	;-- e.g. compare int with uint
-	RST_MIXED_NE
-	RST_MIXED_LT
-	RST_MIXED_LTEQ
 ]
 
 #enum rst-node-type! [

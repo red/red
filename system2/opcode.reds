@@ -64,34 +64,41 @@ Red/System [
 	OP_PTR_ADD			;-- 50
 	OP_PTR_SUB			;-- 51
 	OP_PTR_EQ			;-- 52
-	OP_PTR_LT			;-- 53
-	OP_PTR_LTEQ			;-- 54
-	OP_PTR_CAS			;-- 55 compare and swap
-	OP_PTR_LOAD			;-- 56
-	OP_PTR_STORE		;-- 57
-	OP_GET_PTR			;-- 58
+	OP_PTR_NE			;-- 53
+	OP_PTR_LT			;-- 54
+	OP_PTR_LTEQ			;-- 55
+	OP_PTR_CAS			;-- 56 compare and swap
+	OP_PTR_LOAD			;-- 57
+	OP_PTR_STORE		;-- 58
+	OP_PTR_AT			;-- 59
+	OP_GET_PTR			;-- 60
 	
-	OP_DEFAULT_VALUE	;-- 59
+	OP_DEFAULT_VALUE	;-- 61
 	
-	OP_CALL_FUNC		;-- 60
+	OP_CALL_FUNC		;-- 62
 
-	OP_SET_FIELD		;-- 61
-	OP_GET_FIELD		;-- 62
-	OP_GET_GLOBAL		;-- 63
-	OP_SET_GLOBAL		;-- 64
-	OP_SET_LOCAL		;-- 65
+	OP_SET_FIELD		;-- 63
+	OP_GET_FIELD		;-- 64
+	OP_GET_GLOBAL		;-- 65
+	OP_SET_GLOBAL		;-- 66
+	OP_SET_LOCAL		;-- 67
 
-	OP_CPU_IP			;-- 66 get instruction pointer
-	OP_CPU_SP			;-- 67 get stack pointer
+	OP_CPU_IP			;-- 68 get instruction pointer
+	OP_CPU_SP			;-- 69 get stack pointer
 
-	OP_ARRAY_GET		;-- 68
-	OP_ARRAY_SET		;-- 69
+	OP_ARRAY_GET		;-- 70
+	OP_ARRAY_SET		;-- 71
 
-	OP_CATCH_BEG		;-- 70
-	OP_CATCH_END		;-- 71
-	OP_THROW			;-- 72
-	OP_TYPED_VALUE		;-- 73
-	OP_CALL_NATIVE		;-- 74
+	OP_CATCH_BEG		;-- 72
+	OP_CATCH_END		;-- 73
+	OP_THROW			;-- 74
+	OP_TYPED_VALUE		;-- 75
+	OP_CALL_NATIVE		;-- 76
+
+	OP_MIXED_EQ			;-- e.g. compare int with uint
+	OP_MIXED_NE
+	OP_MIXED_LT
+	OP_MIXED_LTEQ
 ]
 
 #enum instr-flag! [
@@ -167,14 +174,16 @@ instr-flags: [
 	0	;--OP_INT_TO_F
 	0	;--OP_FLT_TO_I
 
-	0	;--OP_PTR_ADD
-	0	;--OP_PTR_SUB
-	0	;--OP_PTR_EQ
-	0	;--OP_PTR_LT
-	0	;--OP_PTR_LTEQ
+	F_PF			;--OP_PTR_ADD
+	F_PF			;--OP_PTR_SUB
+	F_PFC			;--OP_PTR_EQ
+	F_PF			;--OP_PTR_NE
+	F_PF			;--OP_PTR_LT
+	F_PF			;--OP_PTR_LTEQ
 	0	;--OP_PTR_CAS
 	0	;--OP_PTR_LOAD
 	0	;--OP_PTR_STORE
+	0	;--OP_PTR_AT
 	0	;--OP_GET_PTR
 	
 	0	;--OP_DEFAULT_VALUE
@@ -197,6 +206,11 @@ instr-flags: [
 	0	;-- OP_THROW
 	0	;-- OP_TYPED_VALUE
 	0	;-- OP_CALL_NATIVE
+
+	0	;-- OP_MIXED_EQ			;-- e.g. compare int with uint
+	0	;-- OP_MIXED_NE
+	0	;-- OP_MIXED_LT
+	0	;-- OP_MIXED_LTEQ
 ]
 
 ;-- mach instr opcode

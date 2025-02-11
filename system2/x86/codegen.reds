@@ -1477,7 +1477,7 @@ x86: context [
 	][
 		v: get-vreg cg as instr! ivar
 		if zero? v/spill [
-			v/spill: frame-alloc cg/frame type-size? ivar/type
+			v/spill: frame-alloc cg/frame type-size? ivar/type no
 		]
 		v
 	]
@@ -1619,7 +1619,7 @@ x86: context [
 	][
 		o: as instr-op! i
 		vt: o/ret-type
-		sz: type-size? vt
+		sz: type-size? vt no
 		match-rrsd cg input0 i :addr
 		either zero? sz [
 			0
@@ -1656,7 +1656,7 @@ x86: context [
 	][
 		o: as instr-op! i
 		vt: o/ret-type
-		sz: type-size? vt
+		sz: type-size? vt no
 		match-rrsd cg input0 i :addr
 		do-rrsd cg :addr
 
