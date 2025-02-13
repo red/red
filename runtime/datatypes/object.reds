@@ -1521,9 +1521,14 @@ object: context [
 		value	[red-value!]
 		case?	[logic!]
 		return:	[red-value!]
+		/local
+			word [red-word!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/put"]]
 
+		word: as red-word! field
+		if TYPE_OF(word) <> TYPE_WORD [fire [TO_ERROR(script invalid-key-type) datatype/push TYPE_OF(word)]]
+		
 		eval-path obj field value as red-value! none-value null null -1 case? no yes no
 		value
 	]
