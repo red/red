@@ -457,12 +457,12 @@ point3D: context [
 		]
 		scalexy?: all [
 			OPTION?(fscale)
-			TYPE_OF(fscale) = TYPE_POINT3D
+			any [TYPE_OF(fscale) = TYPE_POINT3D TYPE_OF(fscale) = TYPE_POINT2D]
 		]
 		if scalexy? [
 			p: as red-point3D! fscale
 			fy: as float! p/y
-			fz: as float! p/z
+			fz: either TYPE_OF(fscale) = TYPE_POINT2D [0.0][as float! p/z]
 			fscale/header: TYPE_FLOAT
 			fscale/value: as float! p/x
 		]

@@ -411,7 +411,7 @@ point2D: context [
 		]
 		scalexy?: all [
 			OPTION?(fscale)
-			any [TYPE_OF(fscale) = TYPE_POINT2D TYPE_OF(fscale) = TYPE_PAIR]
+			any [TYPE_OF(fscale) = TYPE_POINT2D TYPE_OF(fscale) = TYPE_PAIR TYPE_OF(fscale) = TYPE_POINT3D]
 		]
 		if scalexy? [
 			either TYPE_OF(fscale) = TYPE_PAIR [
