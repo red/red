@@ -704,6 +704,41 @@ float: context [
 	][
 		any [value = 1.#INF value = -1.#INF NaN? value]
 	]
+	
+	;-- ported from equivalent C code at: https://gist.github.com/dockimbel/e479ad63adcacb690dd80c8ebec10de9
+	almost-equal32: func [
+		left	[float32!]
+		right	[float32!]
+		return: [logic!]
+		/local
+			l r al ar max-inf [integer!]
+	][
+		if any [NaN-f32? left NaN-f32? right][return no]
+		if left = right [return yes]					;-- for NaN, also raise error in default mode
+		
+		;-- handle large numbers as almost equal to infinity using bit manipulation
+		l: as-integer keep left
+		r: as-integer keep right
+		al: l and 7FFFFFFFh
+		ar: r and 7FFFFFFFh
+		max-inf: 7F7FFFFFh								;-- largest finite float
+		
+		if any [al >= max-inf ar >= max-inf][
+			return any [
+				all [
+					any [l = 7F800000h l = FF800000h]
+					any [r = 7F800000h r = FF800000h]
+				]
+				(integer/abs (al - ar)) < 100000h
+			]
+		]
+		if all [al = 0 ar = 0][return yes]				;-- handle negative and positive zero as equal
+		
+		;-- make the integer representation ordered as a two's complement integer
+		if al < 0 [al: 80000000 - al]
+		if ar < 0 [ar: 80000000 - ar]
+		(integer/abs al - ar) <= 10						;-- 10 ULP threshold
+	]
 
 	;@@ using 64bit integer will simplify it significantly.
 	;-- returns false if either number is (or both are) NAN.
@@ -772,7 +807,7 @@ float: context [
 			]
 		]
 
-		diff <= (as byte-ptr! 10)
+		diff <= (as byte-ptr! 10)					;-- 10 ULP threshold
 	]
 
 	compare: func [
