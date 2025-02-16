@@ -3725,6 +3725,14 @@ comment {
 		--assert none? react [r5568/x]
 		--assert none? react [r5568/y]
 
+	--test-- "#5569"
+		--assert (1, 5.7) = round/to (1.234, 5.678) (1, 0.1, 0)
+		--assert (1, 5.7) = round/to (1.234, 5.678) (1, 0.1, 10)
+		--assert (1, 5.7) = round/to (1.234, 5.678) (1, 0.1, 1)
+		--assert (1, 5.7) = round/to (1.234, 5.678) (1, 0.1, 2)
+		--assert (1, 5.7) = round/to (1.234, 5.678) (1, 0.1, 3)
+		--assert (0, 10, 9.876) = round/to (1.234, 5.678, 9.876) (10, 10)
+
 	--test-- "#5579"
 		h5579: make hash! [1 2]
 		--assert h5579 = copy/part make hash! [1 2 3 4 5 6 7 8] 2
