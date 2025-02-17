@@ -322,6 +322,10 @@ Red/System [
 		ab: as float32! (as-float angle/value) * 3.14 / 180.0
 		--assert ab = as float32! 1.57
 
+	--test-- "int-cast-57"
+		f32: as float32! keep 1069547520
+		--assertf32~= f32 as float32! 1.5 1E-6
+
 ===end-group===
 
 ===start-group=== "cast from float!"
@@ -416,6 +420,11 @@ Red/System [
 	--test-- "fl32-cast-9"
 		c: as integer! foo47 as float32! 789.0
 		--assert c = 789
+		
+	--test-- "fl32-cast-10"
+		f32: as float32! 1.5
+		c: as integer! keep f32
+		--assert c = 1069547520
 
 ===end-group===
 
