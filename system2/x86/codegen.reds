@@ -513,7 +513,9 @@ x64-cc: context [
 		]
 		
 		spill-start: x64-reg-set/reg-set/spill-start
-		n-params: either variadic? [op/n-params][ft/n-params]
+		n-params: either variadic? [op/n-params][
+			either ft/n-params < 0 [2][ft/n-params]
+		]
 		param-locs: int-array/make n-params
 		ploc: as int-ptr! ARRAY_DATA(param-locs)
 
@@ -815,7 +817,9 @@ x86-cc: context [
 		]
 		
 		spill-start: x86-reg-set/reg-set/spill-start
-		n-params: either variadic? [op/n-params][ft/n-params]
+		n-params: either variadic? [op/n-params][
+			either ft/n-params < 0 [2][ft/n-params]
+		]
 		param-locs: int-array/make n-params
 		ploc: as int-ptr! ARRAY_DATA(param-locs)
 
@@ -1756,6 +1760,8 @@ x86: context [
 		p: p + 1
 		e: as cf-edge! p/value
 		s1: e/dst	;-- false block
+
+		if s1 = blk [gen-phi-moves cg e]		;-- speical case for `until`
 
 		jmp: null
 		fallthru: null

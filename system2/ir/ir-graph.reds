@@ -449,6 +449,7 @@ ir-graph: context [
 		builder/visit-native-call:	as visit-fn! :visit-native-call
 		builder/visit-if:			as visit-fn! :visit-if
 		builder/visit-while:		as visit-fn! :visit-while
+		builder/visit-until:		as visit-fn! :visit-until
 		builder/visit-break:		as visit-fn! :visit-break
 		builder/visit-continue:		as visit-fn! :visit-continue
 		builder/visit-return:		as visit-fn! :visit-return
@@ -602,7 +603,7 @@ ir-graph: context [
 			loop-ctx [ssa-ctx! value]
 			body-ctx [ssa-ctx! value]
 	][
-		init-merge :m-start		;-- merge point at the start of the loop
+		init-merge :m-start					;-- merge point at the start of the loop
 		start-loop w/loop-idx :m-start ctx
 
 		init-ssa-ctx :loop-ctx ctx 0 m-start/block
@@ -611,17 +612,46 @@ ir-graph: context [
 		cond: gen-stmts w/cond loop-ctx
 		if loop-ctx/closed? [return null]	;-- return or exit in condition block
 
-		init-merge :m-end		;-- merge point at the end of the loop
+		init-merge :m-end					;-- merge point at the end of the loop
 		loop-ctx/loop-start: :m-start
 		loop-ctx/loop-end: :m-end
 
-		split-ssa-ctx loop-ctx :body-ctx
+		split-ssa-ctx :loop-ctx :body-ctx
 		add-if cond body-ctx/block m-end/block :loop-ctx
 		merge-incoming :m-end :loop-ctx		;-- merge loop-ctx into m-end
 
 		gen-stmts w/body :body-ctx
 		merge-ctx :m-start :body-ctx		;-- merge body-ctx into m-start
 
+		remove-instr cond
+		set-ssa-ctx :m-end ctx
+		null
+	]
+
+	visit-until: func [w [while!] ctx [ssa-ctx!] return: [instr!]
+		/local
+			cond	[instr!]
+			m-start	[ssa-merge! value]
+			m-end	[ssa-merge! value]
+			body-ctx [ssa-ctx! value]
+	][
+		init-merge :m-start					;-- merge point at the start of the loop
+		init-merge :m-end					;-- merge point at the end of the loop
+		start-loop w/loop-idx :m-start ctx
+
+		init-ssa-ctx :body-ctx ctx 0 m-start/block
+		body-ctx/cur-vals: ptr-array/copy m-start/cur-vals
+		body-ctx/loop-start: :m-start
+		body-ctx/loop-end: :m-end
+
+		cond: gen-stmts w/body :body-ctx
+		if body-ctx/closed? [return null]	;-- return or exit in condition block
+
+		add-if cond m-end/block m-start/block :body-ctx
+		merge-incoming :m-end :body-ctx		;-- merge body-ctx into m-end
+		merge-incoming :m-start :body-ctx
+
+		remove-instr cond
 		set-ssa-ctx :m-end ctx
 		null
 	]
@@ -846,13 +876,14 @@ ir-graph: context [
 
 		arr: ptr-array/make np
 		p: ARRAY_DATA(arr)
-		arg: nc/args/next
-		while [arg <> null][
-			p/value: arg/accept as int-ptr! arg builder as int-ptr! ctx
-			p: p + 1
-			arg: arg/next
+		if nc/args <> null [
+			arg: nc/args/next
+			while [arg <> null][
+				p/value: arg/accept as int-ptr! arg builder as int-ptr! ctx
+				p: p + 1
+				arg: arg/next
+			]
 		]
-
 		add-op op arr ctx
 	]
 
@@ -903,6 +934,7 @@ ir-graph: context [
 			pp		[ptr-ptr!]
 			pv		[ptr-ptr!]
 			ins		[instr!]
+			n		[integer!]
 	][
 		ir: as ir-fn! malloc size? ir-fn!
 		ir/fn: fn
@@ -912,21 +944,25 @@ ir-graph: context [
 		ctx/block: ir/start-bb
 		either fn <> null [
 			ft: as fn-type! fn/type
-			parr: ptr-array/make ft/n-params
-			p: ARRAY_DATA(parr)
-			pp: ARRAY_DATA(ctx/ssa-vars)
-			param: ft/params
-			while [param <> null][
-				ins: as instr! make-param param
-				p/value: as int-ptr! ins
-				ssa: param/ssa
-				if ssa/index > -1 [
-					pv: pp + ssa/index
-					pv/value: as int-ptr! param
-					set-cur-val ssa param/type ins ctx
+			n: ft/n-params
+			if n < 0 [n: 2]		;-- variadic/typed func
+			parr: ptr-array/make n
+			if n > 0 [
+				p: ARRAY_DATA(parr)
+				pp: ARRAY_DATA(ctx/ssa-vars)
+				param: ft/params
+				while [param <> null][
+					ins: as instr! make-param param
+					p/value: as int-ptr! ins
+					ssa: param/ssa
+					if ssa/index > -1 [
+						pv: pp + ssa/index
+						pv/value: as int-ptr! param
+						set-cur-val ssa param/type ins ctx
+					]
+					p: p + 1
+					param: param/next
 				]
-				p: p + 1
-				param: param/next
 			]
 			ir/params: parr
 			ir/param-types: ft/param-types
@@ -1719,13 +1755,14 @@ ir-graph: context [
 
 		arr: ptr-array/make n
 		p: ARRAY_DATA(arr)
-		arg: fc/args/next
-		while [arg <> null][
-			p/value: arg/accept as int-ptr! arg builder as int-ptr! ctx
-			p: p + 1
-			arg: arg/next
+		if fc/args <> null [
+			arg: fc/args/next
+			while [arg <> null][
+				p/value: arg/accept as int-ptr! arg builder as int-ptr! ctx
+				p: p + 1
+				arg: arg/next
+			]
 		]
-
 		if np = -2 [	;-- typed func
 			p: ft/param-types + 1	;-- typed-value!
 			op2: make-op OP_TYPED_VALUE n pp as rst-type! p/value
@@ -1739,7 +1776,6 @@ ir-graph: context [
 			p/value: as int-ptr! const-int int ctx/graph
 			p: p + 1
 			p/value: as int-ptr! op2
-			ft/n-params: 2
 		]
 		add-op op arr ctx
 	]

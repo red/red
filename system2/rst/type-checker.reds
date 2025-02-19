@@ -142,6 +142,7 @@ type-checker: context [
 		checker/visit-native-call:	as visit-fn! :visit-native-call
 		checker/visit-if:			as visit-fn! :visit-if
 		checker/visit-while:		as visit-fn! :visit-while
+		checker/visit-until:		as visit-fn! :visit-until
 		checker/visit-break:		as visit-fn! :visit-break
 		checker/visit-continue:		as visit-fn! :visit-continue
 		checker/visit-return:		as visit-fn! :visit-return
@@ -488,6 +489,27 @@ type-checker: context [
 		type-system/void-type
 	]
 
+	visit-until: func [w [while!] ctx [context!] return: [rst-type!]
+		/local
+			stmt		[rst-stmt!]
+			saved-blk	[red-block!]
+	][
+		w/loop-idx: push-loop ctx
+		enter-block(w/body-blk)
+	
+		stmt: w/body
+		while [stmt/next <> null][		;-- check stmts except last one
+			stmt/accept as int-ptr! stmt checker as int-ptr! ctx
+			stmt: stmt/next
+		]
+		w/cond: stmt
+		check-expr "Until Condition:" as rst-expr! stmt type-system/logic-type ctx
+
+		exit-block
+		pop-loop ctx
+		type-system/void-type
+	]
+
 	visit-break: func [b [break!] ctx [context!] return: [rst-type!]][
 		if zero? ctx/loop-stack/length [throw-error [b/token "break must be in loop"]]
 		type-system/void-type
@@ -532,11 +554,13 @@ type-checker: context [
 	][
 		fn: nc/native
 		pt: fn/param-types
-		arg: nc/args/next
-		while [arg <> null][
-			check-expr "Native Instr:" arg as rst-type! pt/value ctx
-			arg: arg/next
-			pt: pt + 1
+		if nc/args <> null [
+			arg: nc/args/next
+			while [arg <> null][
+				check-expr "Native Instr:" arg as rst-type! pt/value ctx
+				arg: arg/next
+				pt: pt + 1
+			]
 		]
 		nc/type
 	]
@@ -696,21 +720,25 @@ type-checker: context [
 		attr: FN_ATTRS(ft)
 		either attr and (FN_VARIADIC or FN_TYPED) = 0 [
 			pt: ft/param-types
-			arg: fc/args/next
-			while [arg <> null][
-				check-expr "Function Call:" arg as rst-type! pt/value ctx
-				arg: arg/next
-				pt: pt + 1
+			if fc/args <> null [
+				arg: fc/args/next
+				while [arg <> null][
+					check-expr "Function Call:" arg as rst-type! pt/value ctx
+					arg: arg/next
+					pt: pt + 1
+				]
 			]
 		][	;-- variadic/typed func, only infer type, no checking
-			arg: fc/args/next
-			while [arg <> null][
-				type: arg/type
-				if null? type [
-					type: as rst-type! arg/accept as int-ptr! arg checker as int-ptr! ctx
-					arg/type: type
+			if fc/args <> null [
+				arg: fc/args/next
+				while [arg <> null][
+					type: arg/type
+					if null? type [
+						type: as rst-type! arg/accept as int-ptr! arg checker as int-ptr! ctx
+						arg/type: type
+					]
+					arg: arg/next
 				]
-				arg: arg/next
 			]
 		]
 		;dprint "[Type Checker] visit-fn-call done"

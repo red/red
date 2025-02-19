@@ -611,6 +611,20 @@ asm: context [
 		record-label l pos - 4
 	]
 
+	setc: func [
+		cond	[integer!]
+		reg		[integer!]
+		/local
+			op	[integer!]
+			rex [integer!]
+	][
+		op: 90h + cond
+		rex: rex-r reg REX_B
+		if reg >= 5 [rex: rex or REX_BYTE]
+		emit_rex
+		emit-bb-r-x 0Fh op reg 0
+	]
+
 	call-rel: func [
 		offset	[integer!]
 	][
@@ -1371,6 +1385,11 @@ assemble-op: func [
 				]
 				default [0]
 			]
+		]
+		I_SETC [
+			loc: to-loc as operand! p/value
+			c: x86_COND(op)
+			asm/setc c loc
 		]
 		I_IDIVD I_DIVD I_IDIVQ I_DIVQ I_IMODD I_IMODQ [
 			p: p + 4

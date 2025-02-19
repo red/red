@@ -16,6 +16,7 @@ rst-printer: context [
 		printer/visit-fn-call:		as visit-fn! :visit-fn-call
 		printer/visit-if:			as visit-fn! :visit-if
 		printer/visit-while:		as visit-fn! :visit-while
+		printer/visit-until:		as visit-fn! :visit-until
 		printer/visit-break:		as visit-fn! :visit-break
 		printer/visit-continue:		as visit-fn! :visit-continue
 		printer/visit-return:		as visit-fn! :visit-return
@@ -69,6 +70,11 @@ rst-printer: context [
 	visit-while: func [w [while!] i [integer!]][
 		do-i i prin-token w/token prin " "
 		prin-block w/cond-blk
+		prin-block w/body-blk
+	]
+
+	visit-until: func [w [while!] i [integer!]][
+		do-i i prin-token w/token prin " "
 		prin-block w/body-blk
 	]
 
@@ -179,11 +185,13 @@ rst-printer: context [
 
 	visit-fn-call: func [fc [fn-call!] i [integer!] /local arg [rst-expr!]][
 		do-i i prin-token fc/token prin " ["
-		arg: fc/args/next
-		while [arg <> null][
-			arg/accept as int-ptr! arg printer null
-			prin " "
-			arg: arg/next
+		if fc/args <> null [
+			arg: fc/args/next
+			while [arg <> null][
+				arg/accept as int-ptr! arg printer null
+				prin " "
+				arg: arg/next
+			]
 		]
 		prin "]"
 	]

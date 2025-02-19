@@ -177,6 +177,7 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 #define ADD_NODE_FLAGS(node flags) [node/header: node/header or (flags << 8)]
 #define NODE_TYPE(node) (node/header and FFh)
 #define NODE_FLAGS(node) (node/header >>> 8)
+#define RST_WHILE?(node) [node/header and FFh = RST_WHILE]
 
 ;-- fn-type! /header bits: 8 - 15 opcode, 16 - 31: attributes
 #define FN_OPCODE(f) (f/header >>> 8 and FFh)
