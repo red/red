@@ -267,7 +267,7 @@ instr-flags: [
 #define I_JC			67h
 #define I_SETC			68h
 #define I_CALL			69h
-#define I_GET_IP		6Ah
+#define I_GET_PC		6Ah
 #define I_GET_SP		6Bh
 #define I_SET_SP		6Ch
 #define I_CMPB			6Fh
@@ -280,7 +280,9 @@ instr-flags: [
 #define I_MOVD			76h
 #define I_MOVQ			77h
 #define I_SYSCALL		78h
-#define I_CALL_NATIVE	79h
+#define I_PUSH			79h
+#define I_POP			80h
+#define I_CALL_NATIVE	81h
 
 #define I_W_DIFF		10h		;-- I_ADDQ - I_ADDD
 

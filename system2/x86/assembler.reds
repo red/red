@@ -1471,8 +1471,16 @@ assemble-op: func [
 			n: target/addr-size * to-imm as operand! p/value
 			asm/sub-r-i x86-regs/esp n NO_REX
 		]
-		I_CALL_NATIVE [
-			0
+		I_GET_PC [
+			loc: to-loc as operand! p/value
+			asm/call-rel 0							;-- call next
+			either target/gpr-reg? loc [
+				asm/pop-r loc
+			][
+				asm/pop-r x86-regs/edi
+				loc-to-addr loc :addr cg/frame cg/reg-set
+				assemble-m-r op :addr x86-regs/edi
+			]
 		]
 		default [0]
 	]

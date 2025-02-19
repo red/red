@@ -1981,7 +1981,7 @@ backend: context [
 			I_JC			["jc"]
 			I_SETC			["setc"]
 			I_CALL			["call"]
-			I_GET_IP		["get-ip"]
+			I_GET_PC		["get-pc"]
 			I_GET_SP		["get-sp"]
 			I_SET_SP		["set-sp"]
 			I_CMPB			["cmp.b"]

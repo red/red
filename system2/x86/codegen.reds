@@ -1250,27 +1250,73 @@ x86: context [
 			o	[instr-op!]
 			p	[ptr-ptr!]
 			e	[df-edge!]
-			n	[integer!]
 			fn	[native!]
+			ii	[instr!]
+			v	[vreg!]
+			n id op [integer!]
 	][
 		o: as instr-op! i
 		fn: as native! o/target
+		id: fn/id
 
-		use-imm-int cg fn/id
-
-		if fn/ret-type <> type-system/void-type [
-			def-reg cg i
+		switch id [
+			N_PUSH [
+				use-imm-int cg 0
+				ii: input0 i
+				op: either try-use-imm32 cg ii [
+					I_PUSH or AM_OP_IMM
+				][
+					use-reg cg ii
+					I_PUSH or AM_REG_OP
+				]
+				emit-instr cg op
+			]
+			N_POP [
+				def-reg cg i
+				emit-instr cg I_POP
+			]
+			N_LOG_B [0]
+			N_GET_STACK_TOP
+			N_GET_STACK_FRAME [
+				def-reg cg i
+				n: either id = N_GET_STACK_TOP [x86_ESP][x86_EBP]
+				use-reg-fixed cg i n
+				emit-instr cg I_MOVD or AM_REG_OP
+			]
+			N_SET_STACK_TOP
+			N_SET_STACK_FRAME [
+				n: either id = N_GET_STACK_TOP [x86_ESP][x86_EBP]
+				def-reg-fixed cg i n
+				ii: input0 i
+				op: either try-use-imm32 cg ii [
+					I_MOVD or AM_OP_IMM
+				][
+					use-reg cg ii
+					I_MOVD or AM_REG_OP
+				]
+				emit-instr cg op
+			]
+			N_STACK_ALIGN
+			N_STACK_ALLOC
+			N_STACK_FREE
+			N_STACK_PUSH_ALL
+			N_STACK_POP_ALL
+			N_PC [
+				def-reg cg i
+				emit-instr cg I_GET_PC
+			]
+			N_GET_CPU_REG
+			N_SET_CPU_REG
+			N_CPU_OVERFLOW
+			N_IO_READ
+			N_IO_WRITE
+			N_ATOMIC_FENCE
+			N_ATOMIC_LOAD
+			N_ATOMIC_STORE
+			N_ATOMIC_CAS
+			N_ATOMIC_BIN_OP [0]
+			default [0]
 		]
-
-		n: 0
-		p: ARRAY_DATA(i/inputs)
-		loop i/inputs/length [
-			e: as df-edge! p/value
-			use-reg cg e/dst
-			n: n + 1
-			p: p + 1
-		]
-		emit-instr cg I_CALL_NATIVE
 	]
 
 	emit-catch: func [
@@ -1663,7 +1709,6 @@ x86: context [
 		sz: type-size? vt no
 		match-rrsd cg input0 i :addr
 		do-rrsd cg :addr
-
 		val: instr-input i 1
 		either try-use-imm32 cg val [
 			op: switch sz [
