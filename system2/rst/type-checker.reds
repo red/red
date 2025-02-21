@@ -645,6 +645,11 @@ type-checker: context [
 	]
 
 	visit-size?: func [u [unary!] ctx [context!] return: [rst-type!]][
+		u/cast-type: either NODE_FLAGS(u) and RST_SIZE_TYPE <> 0 [
+			resolve-typeref as cell! u/expr ctx
+		][
+			as rst-type! u/expr/accept as int-ptr! u/expr checker as int-ptr! ctx
+		]
 		type-system/integer-type
 	]
 
@@ -699,7 +704,6 @@ type-checker: context [
 			t1		[rst-type!]
 	][
 		t1: resolve-typeref c/typeref ctx
-		SET_STRUCT_VALUE(t1)
 		c/type: t1
 		t1
 	]
@@ -856,7 +860,7 @@ type-checker: context [
 							op-cache/get-float-op op utype
 						][null]
 					]
-					RST_TYPE_PTR RST_TYPE_STRUCT [
+					default [
 						op-cache/get-ptr-op op as ptr-type! utype
 					]
 				]
@@ -881,7 +885,9 @@ type-checker: context [
 					ft: switch TYPE_KIND(utype) [
 						RST_TYPE_INT [op-cache/get-int-op op utype]
 						RST_TYPE_FLOAT [op-cache/get-float-op op utype]
-						RST_TYPE_PTR [null]
+						default [
+							op-cache/get-ptr-op op as ptr-type! utype
+						]
 					]
 				]
 			]
@@ -898,7 +904,9 @@ type-checker: context [
 				ft: switch TYPE_KIND(utype) [
 					RST_TYPE_INT [op-cache/get-int-op op utype]
 					RST_TYPE_FLOAT [op-cache/get-float-op op utype]
-					RST_TYPE_PTR [null]
+					default [
+						op-cache/get-ptr-op op as ptr-type! utype
+					]
 				]
 			]
 			true [null]

@@ -119,6 +119,10 @@ asm: context [
 		put-16 program/code-buf n
 	]
 
+	emit-w: func [w [integer!]][
+		put-16 program/code-buf w
+	]
+
 	emit-d: func [d [integer!]][put-32 program/code-buf d]
 
 	emit-bd: func [b [integer!] d [integer!]][
@@ -759,6 +763,153 @@ asm: context [
 		]
 		emit-b-r-x-rex C7h r 0 REX_W
 		emit-d imm
+	]
+
+	movb-r-m: func [
+		r		[integer!]	;-- dst
+		m		[x86-addr!]	;-- src
+		/local
+			rex [integer!]
+	][
+		rex: either r > 4 [REX_BYTE][0]
+		emit-b-r-m 8Ah r m rex
+	]
+
+	movb-m-r: func [
+		m		[x86-addr!]
+		r		[integer!]
+		/local
+			rex [integer!]
+	][
+		rex: either r > 4 [REX_BYTE][0]
+		emit-b-m-r 88h m r rex
+	]
+
+	movb-r-r: func [
+		r1		[integer!]
+		r2		[integer!]
+		/local
+			rex [integer!]
+	][
+		rex: either any [r1 > 4 r2 > 4][REX_BYTE][0]
+		emit-b-r-r 88h r1 r2 rex
+	]
+
+	movb-m-i: func [
+		m		[x86-addr!]
+		imm		[integer!]
+	][
+		emit-b-m-x C6h m 0 NO_REX
+		emit-b imm
+	]
+
+	movb-r-i: func [
+		r		[integer!]
+		imm		[integer!]
+		/local
+			rex [integer!]
+	][
+		rex: either r > 4 [REX_BYTE][0]
+		emit-b-r-rex B0h r rex
+		emit-b imm
+	]
+
+	movbsx-r-r: func [
+		r1		[integer!]
+		r2		[integer!]
+	][
+		emit-bb-rr 0Fh BEh r1 r2 rex-byte
+	]
+
+	movbsx-r-m: func [
+		r		[integer!]	;-- dst
+		m		[x86-addr!]	;-- src
+	][
+		emit-bb-rm 0Fh BEh r m rex-byte
+	]
+
+	movbzx-r-r: func [
+		r1		[integer!]
+		r2		[integer!]
+	][
+		emit-bb-rr 0Fh B6h r1 r2 rex-byte
+	]
+
+	movbzx-r-m: func [
+		r		[integer!]	;-- dst
+		m		[x86-addr!]	;-- src
+	][
+		emit-bb-rm 0Fh B6h r m rex-byte
+	]
+
+	movwsx-r-r: func [
+		r1		[integer!]
+		r2		[integer!]
+	][
+		emit-bb-rr 0Fh BFh r1 r2 rex-byte
+	]
+
+	movwsx-r-m: func [
+		r		[integer!]	;-- dst
+		m		[x86-addr!]	;-- src
+	][
+		emit-bb-rm 0Fh BFh r m rex-byte
+	]
+
+	movwzx-r-r: func [
+		r1		[integer!]
+		r2		[integer!]
+	][
+		emit-bb-rr 0Fh B7h r1 r2 rex-byte
+	]
+
+	movwzx-r-m: func [
+		r		[integer!]	;-- dst
+		m		[x86-addr!]	;-- src
+	][
+		emit-bb-rm 0Fh B7h r m rex-byte
+	]
+
+	movw-r-m: func [
+		r		[integer!]	;-- dst
+		m		[x86-addr!]	;-- src
+	][
+		emit-b PREFIX_W
+		emit-b-r-m 8Bh r m NO_REX
+	]
+
+	movw-m-r: func [
+		m		[x86-addr!]
+		r		[integer!]
+	][
+		emit-b PREFIX_W
+		emit-b-m-r 89h m r NO_REX
+	]
+
+	movw-r-r: func [
+		r1		[integer!]
+		r2		[integer!]
+	][
+		emit-b PREFIX_W
+		emit-b-r-r 89h r1 r2 NO_REX
+	]
+
+	movw-m-i: func [
+		m		[x86-addr!]
+		imm		[integer!]
+	][
+		emit-b PREFIX_W
+		emit-b-m-x C7h m 0 NO_REX
+		emit-w imm
+	]
+
+	movw-r-i: func [
+		r		[integer!]
+		imm		[integer!]
+	][
+		emit-b PREFIX_W
+		emit-b-r-rex B8h r NO_REX
+		emit-w imm
 	]
 
 	cdq: func [][emit-b 99h]
@@ -1528,6 +1679,11 @@ assemble-r-r: func [
 	switch op [
 		I_MOVD [asm/movd-r-r a b]
 		I_MOVQ [asm/movq-r-r a b]
+		I_MOVB [asm/movb-r-r a b]
+		I_MOVBSX [asm/movbsx-r-r a b]
+		I_MOVBZX [asm/movbzx-r-r a b]
+		I_MOVWSX [asm/movwsx-r-r a b]
+		I_MOVWZX [asm/movwzx-r-r a b]
 		I_ADDD [asm/add-r-r a b NO_REX]
 		I_ORD  [asm/or-r-r a b NO_REX]
 		I_ADCD [asm/adc-r-r a b NO_REX]
@@ -1551,6 +1707,12 @@ assemble-r-m: func [
 	switch op [
 		I_MOVD [asm/movd-r-m a m]
 		I_MOVQ [asm/movq-r-m a m]
+		I_MOVB [asm/movb-r-m a m]
+		I_MOVBSX [asm/movbsx-r-m a m]
+		I_MOVBZX [asm/movbzx-r-m a m]
+		I_MOVW	 [asm/movw-r-m a m]
+		I_MOVWSX [asm/movwsx-r-m a m]
+		I_MOVWZX [asm/movwzx-r-m a m]
 		I_ADDD [asm/add-r-m a m NO_REX]
 		I_ORD  [asm/or-r-m a m NO_REX]
 		I_ADCD [asm/adc-r-m a m NO_REX]

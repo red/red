@@ -785,14 +785,19 @@ ir-graph: context [
 		null
 	]
 
-	visit-size?: func [r [case!] ctx [ssa-ctx!] return: [instr!]
-	][
-		null
+	visit-size?: func [u [unary!] ctx [ssa-ctx!] return: [instr!] /local int [red-integer!]][
+		int: as red-integer! u/token
+		int/header: TYPE_INTEGER
+		int/value: type-size? u/cast-type yes
+		as instr! const-int int ctx/graph
 	]
 
-	visit-cast: func [r [case!] ctx [ssa-ctx!] return: [instr!]
+	visit-cast: func [c [cast!] ctx [ssa-ctx!] return: [instr!]
+		/local
+			val [instr!]
 	][
-		null
+		val: gen-expr c/expr ctx
+		val
 	]
 
 	visit-declare: func [d [declare!] ctx [ssa-ctx!] return: [instr!]
@@ -2124,6 +2129,7 @@ ir-graph: context [
 			stmt: stmt/next
 			stmt <> null
 		][
+			;rst-printer/print-stmt stmt
 			stmt/accept as int-ptr! stmt builder as int-ptr! :ssa-ctx
 		]
 

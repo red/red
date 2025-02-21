@@ -1553,12 +1553,12 @@ parser: context [
 		ctx/throw-error?: err?
 
 		e: as unary! expr/value
+		SET_NODE_TYPE(e RST_SIZEOF)
 		if null? e/expr [	;-- not an expression, may be a type
 			e/expr: as rst-expr! pc
 			ADD_NODE_FLAGS(e RST_SIZE_TYPE)
 		]
 		e/accept: :sizeof_accept
-		SET_NODE_TYPE(e RST_SIZEOF)
 		pc
 	]
 
@@ -2712,10 +2712,12 @@ parser: context [
 					true [pc: parse-expr pc end :ptr ctx]
 				]
 			]
-			default [
+			TYPE_SET_WORD
+			TYPE_SET_PATH [
 				pc: parse-assignment pc end :ptr ctx
 				add?: no
 			]
+			default [pc: parse-expr pc end :ptr ctx]
 		]
 		if add? [
 			assert ptr/value <> null

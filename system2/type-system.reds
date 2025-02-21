@@ -318,13 +318,10 @@ type-size?: func [
 		RST_TYPE_ARRAY [target/addr-size]
 		RST_TYPE_STRUCT [
 			st: as struct-type! t
-			either st/size > -1 [st/size][
-				either any [st? STRUCT_VALUE?(st)][
-					struct-size? st
-				][
-					st/size: target/addr-size
-					st/size
-				]
+			either any [st? STRUCT_VALUE?(st)][
+				either st/size > -1 [st/size][struct-size? st]
+			][
+				target/addr-size
 			]
 		]
 		default [0]	
@@ -518,10 +515,11 @@ type-system: context [
 					]
 					default [null]
 				]
+				null
 			]
-			default [null]
+			RST_TYPE_NULL [t2]
+			default [t1]
 		]
-		null
 	]
 
 	promotable?: func [
@@ -574,7 +572,9 @@ type-system: context [
 			RST_TYPE_NULL [
 				if TYPE_KIND(y) >= RST_TYPE_FUNC [return conv_same]
 			]
-			default [conv_illegal]
+			default [
+				if TYPE_KIND(y) >= RST_TYPE_FUNC [return conv_ok]
+			]
 		]
 		conv_illegal
 	]
@@ -593,6 +593,13 @@ type-system: context [
 			]
 			RST_TYPE_PTR [
 				conv_ok
+			]
+			RST_TYPE_STRUCT [
+				switch TYPE_KIND(y) [
+					RST_TYPE_PTR
+					RST_TYPE_INT [conv_ok]
+					default [conv_illegal]
+				]
 			]
 			default [
 				either x/header = y/header [conv_same][conv_illegal]
