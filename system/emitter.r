@@ -807,7 +807,7 @@ emitter: make-profilable context [
 		]
 	]
 
-	encode-ptr-bitmap: func [locals [block!] /local ts out bits i name spec step store pos][
+	encode-ptr-bitmap: func [locals [block!] cb? [logic!] /local ts out bits i name spec step store pos][
 		;; Encode pointer type stack slots in arguments and locals using 31-bit bitarrays
 		;; Bit 31 (highest bit) if set, is used to denote more slots.
 		;; First bitarrays are for arguments, '- is used to separate args from locals.
@@ -817,7 +817,8 @@ emitter: make-profilable context [
 		if empty? locals [return [0 - 0]]				;-- no pointers at all
 		ts: [pointer! struct! c-string!]
 		out: make block! 3
-		bits: i: 0
+		bits: 0
+		i: pick 1x0 cb?									;-- account for optional extra stack slot for Red runtime return address (callback cases)
 		
 		store: [
 			bits: bits or extension-flag				;-- set bit 31 to 1 to denote extension
