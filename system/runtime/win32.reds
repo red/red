@@ -241,13 +241,15 @@ win32-startup-ctx: context [
 	][
 		switch fdwReason [
 			DLL_PROCESS_ATTACH [
+				system/image: ***-exec-image
+				system/image/base: as byte-ptr! hinstDLL
+				***-init-system-image
+				
 				#either red-pass? = no [			;-- only for pure R/S DLLs
 					***-boot-rs
 					on-load hinstDLL
 					***-main
 				][
-					system/image: ***-exec-image
-					system/image/base: as byte-ptr! hinstDLL
 					on-load hinstDLL
 				]
 			]

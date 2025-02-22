@@ -150,6 +150,8 @@ posix-startup-ctx: context [
 					#either target = 'IA-32 [system/cpu/ebx][system/cpu/r9]
 					- system/image/code
 
+				***-init-system-image
+				
 				#either red-pass? = no [		;-- only for pure R/S DLLs
 					***-boot-rs
 					on-load
