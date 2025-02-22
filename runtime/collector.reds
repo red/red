@@ -815,13 +815,17 @@ collector: context [
 			frm	map	slot p sp b base base' head prev [int-ptr!]
 			refs tail new [int-ptr!]
 			node [node!]
-			c-low c-high caller [byte-ptr!]
+			c-low c-high lib-low lib-high caller [byte-ptr!]
 			s [series!]
 			bits idx disp nb [integer!]
 			ext? [logic!]
 	][
 		c-low: system/image/base + system/image/code
 		c-high: c-low + system/image/code-size
+		#if libRedRT? = yes [
+			lib-low: system/lib-image/base + system/lib-image/code
+			lib-high: lib-low + system/lib-image/code-size
+		]
 		frm: system/stack/frame
 		refs: memory/stk-refs
 		tail: refs + (memory/stk-sz * 2)
@@ -831,10 +835,18 @@ collector: context [
 		frm: as int-ptr! frm/value						;-- skip extract-stack-refs own frame
 
 		until [
-			caller: either any [null? prev  prev = as int-ptr! -1  prev >= system/stk-root][null][
+			caller: either any [null? prev  prev = as int-ptr! -1  prev >= stk-bottom][null][
 				as byte-ptr! prev/2
 			]
-			if all [c-low < caller caller < c-high][	;-- only process Red frames (skip externals)
+		#either libRedRT? = yes [
+			if any [									;-- only process Red frames (skip externals)
+				all [c-low < caller caller < c-high]
+				all [lib-low < caller caller < lib-high]
+			]
+		][
+			if all [c-low < caller caller < c-high]		;-- only process Red frames (skip externals)
+		]
+			[
 				slot: frm - 3							;-- position on bitmap slot
 				assert slot/value >= 0					;-- should never hit STACK_BITMAP_BARRIER
 				b: either slot/value and 40000000h <> 0 [base'][base] ;-- select exe or dll's bitmap array
@@ -915,7 +927,7 @@ collector: context [
 				frm: as int-ptr! slot/value				;-- use last known parent frame pointer
 				if frm < prev [break]
 			]
-			any [null? frm  frm = as int-ptr! -1  frm >= system/stk-root]
+			any [null? frm  frm = as int-ptr! -1  frm >= stk-bottom]
 		]
 		memory/stk-tail: refs
 		nb: (as-integer refs - memory/stk-refs) >> 2 / 2
