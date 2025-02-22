@@ -134,8 +134,8 @@ init-mem: func [/local p [int-ptr!]][
 	if p/0 = 1 [p: as int-ptr! crush/decompress as byte-ptr! p null]
 	bitarrays-base: p
 
-	#if all [libRedRT? = yes type = 'exe][
-		p: get-libRedRT-bitarray
+	#if libRedRT? = yes [
+		p: as int-ptr! system/lib-image/base + system/lib-image/bitarray
 		if p/0 = 1 [p: as int-ptr! crush/decompress as byte-ptr! p null]
 		lib-bitarrays-base: p
 	]
