@@ -2470,7 +2470,7 @@ make-profilable make target-class [
 		emit #{8F45FC}								;-- POP [ebp-4]
 	]
 
-	emit-prolog: func [name [word!] locals [block!] bitmap [integer!] /local fspec attribs offset locals-size][
+	emit-prolog: func [name [word!] locals [block!] bitmap [integer!] /local fspec attribs offset locals-size cb?][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
 
 		fspec: select compiler/functions name
@@ -2491,15 +2491,13 @@ make-profilable make target-class [
 		emit-push bitmap							;-- push the args/locals bitmap offset
 		
 		locals-offset: def-locals-offset			;@@ global state used in epilog
-		if cb? [
-			either PIC? [
-				emit #{6A00}						;-- PUSH 0		; placeholder
-			][
-				emit #{FF35}						;-- PUSH [last-red-frame]
-				emit-reloc-addr last-red-frame/2
-			]
-			locals-offset: locals-offset + 4
+		either any [PIC? none? last-red-frame][
+			emit #{6A00}						;-- PUSH 0		; placeholder
+		][
+			emit #{FF35}						;-- PUSH [last-red-frame]
+			emit-reloc-addr last-red-frame/2
 		]
+		locals-offset: locals-offset + 4
 
 		locals-size: either pos: find locals /local [emitter/calc-locals-offsets pos][0]
 		
