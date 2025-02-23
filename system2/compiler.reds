@@ -285,7 +285,7 @@ compiler: context [
 					emit-d pp/1
 					emit-d pp/2
 				]
-				RST_NULL
+				RST_NULL [emit-d 0]
 				RST_C_STR
 				RST_BINARY [0]
 				RST_LIT_ARRAY [

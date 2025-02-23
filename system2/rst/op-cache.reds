@@ -138,9 +138,9 @@ op-cache: context [
 
 		idx: switch op [
 			RST_OP_ADD [OP_PTR_ADD]
+			RST_OP_SUB [OP_PTR_SUB]
 			RST_OP_EQ [OP_PTR_EQ]
 			RST_OP_NE [OP_PTR_NE]
-			RST_OP_SUB [OP_PTR_SUB]
 			RST_OP_LT [OP_PTR_LT]
 			RST_OP_LTEQ [OP_PTR_LTEQ]
 			default [dprint ["invalid ptr op: " op] 0]

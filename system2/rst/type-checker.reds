@@ -689,6 +689,8 @@ type-checker: context [
 		/local
 			t1 t2 [rst-type!]
 	][
+		if c/type <> null [return c/type]
+
 		t1: resolve-typeref c/typeref ctx
 		c/type: t1
 		t2: as rst-type! c/expr/accept as int-ptr! c/expr checker as int-ptr! ctx
@@ -754,6 +756,7 @@ type-checker: context [
 			op op2	[fn-type!]
 			code sz [integer!]
 			int 	[red-integer!]
+			ptr		[ptr-type!]
 			e right [rst-expr!]
 			b		[bin-op!]
 			ltype rtype [rst-type!]
@@ -767,16 +770,19 @@ type-checker: context [
 
 			code: FN_OPCODE(op)
 			if any [code = OP_PTR_ADD code = OP_PTR_SUB][
-				int: xmalloc(red-integer!)
-				int/header: TYPE_INTEGER
-				int/value: type-size? ltype yes
+				ptr: as ptr-type! ltype
+				sz: type-size? ptr/type yes
+				if sz > 1 [
+					int: xmalloc(red-integer!)
+					int/header: TYPE_INTEGER
+					int/value: sz
 
-				e: as rst-expr! parser/make-int as cell! int
-				b: parser/make-bin-op as int-ptr! RST_OP_MUL right e right/token
-				ADD_NODE_FLAGS(b RST_INFIX_OP)
-
-				visit-bin-op b ctx
-				bin/right: as rst-expr! b
+					e: as rst-expr! parser/make-int as cell! int
+					b: parser/make-bin-op as int-ptr! RST_OP_MUL right e right/token
+					ADD_NODE_FLAGS(b RST_INFIX_OP)
+					visit-bin-op b ctx
+					bin/right: as rst-expr! b
+				]
 			]
 		][
 			assert bin/op <> null

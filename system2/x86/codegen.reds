@@ -1923,6 +1923,10 @@ x86: context [
 				matcher/bin-op cg/m i		;-- init instr matcher with i
 				emit-simple-binop cg I_ADDD i
 			]
+			OP_PTR_SUB [
+				matcher/bin-op cg/m i
+				emit-simple-binop cg I_SUBD i
+			]
 			OP_CATCH_BEG		[emit-catch cg i yes]
 			OP_CATCH_END		[emit-catch cg i no]
 			OP_THROW			[emit-throw cg i]

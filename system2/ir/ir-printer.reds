@@ -108,6 +108,11 @@ ir-printer: context [
 				print "ptr store"
 			]
 			OP_PTR_ADD [print "ptr add"]
+			OP_PTR_SUB [print "ptr sub"]
+			OP_PTR_EQ  [print "ptr ="]
+			OP_PTR_NE  [print "ptr <>"]
+			OP_PTR_LT  [print "ptr <"]
+			OP_PTR_LTEQ [print "ptr <="]
 			OP_GET_PTR [
 				print "get-ptr"
 			]

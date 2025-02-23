@@ -2583,17 +2583,9 @@ parser: context [
 		return: [logic!]
 		/local
 			t	[integer!]
-			c	[cast!]
 	][
 		t: NODE_TYPE(e)
-		c: as cast! e
-		any [
-			t <= RST_DECLARE
-			all [
-				t = RST_CAST
-				literal-expr? c/expr
-			]
-		]
+		t <= RST_DECLARE
 	]
 
 	parse-assignment: func [

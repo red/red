@@ -1368,6 +1368,9 @@ to-imm: func [
 			f: as red-float! val
 			as integer! keep f
 		]
+		TYPE_WORD [		;-- null
+			0
+		]
 		default [probe ["to-imm: " TYPE_OF(val)] 0]
 	]
 ]
