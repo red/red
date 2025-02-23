@@ -916,7 +916,7 @@ collector: context [
 						map: map + 1					;-- next 31 slots bitmap
 						not ext?						;-- loop until no more extended slots
 					]
-					idx:  -2							;-- locals index (1-based)
+					idx:  -3							;-- locals index (1-based)
 					disp: -1							;-- scanning direction
 				]
 			]

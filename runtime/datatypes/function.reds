@@ -450,12 +450,9 @@ _function: context [
 		return:	 [node!]								;-- return function's local context reference
 		/local
 			fun    [red-function!]
-			native [red-native!]
 			value  [red-value!]
 			int	   [red-integer!]
-			args   [red-block!]
 			more   [series!]
-			m n [integer!]
 			s	   [series!]
 			f-ctx  [node!]
 	][
@@ -463,11 +460,11 @@ _function: context [
 
 		f-ctx: either null? ctx [_context/make spec yes no CONTEXT_FUNCTION][ctx]
 		fun: as red-function! stack/push*
-		fun/header: TYPE_FUNCTION or flags
+		fun/header: TYPE_UNSET							;-- GC-friendly value slot
 		fun/spec:	spec/node
 		fun/ctx:	f-ctx
-		fun/more:	spec/node	;@@ just to make GC happy
 		fun/more:	alloc-unset-cells 5
+		fun/header: TYPE_FUNCTION or flags
 		
 		s: as series! f-ctx/value
 		copy-cell as red-value! fun s/offset + 1		;-- set back-reference

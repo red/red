@@ -1697,8 +1697,8 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		encode-pointers: func [name specs [block!] cb? [logic!] /local list offset b][	
-			list: emitter/encode-ptr-bitmap specs cb?
+		encode-pointers: func [name specs [block!] /local list offset b][
+			list: emitter/encode-ptr-bitmap specs
 			if verbose > 5 [
 				print [name ":" mold specs]
 				foreach n list [
@@ -1753,7 +1753,7 @@ system-dialect: make-profilable context [
 					find attribs 'stdcall [cc: 'stdcall]	;-- get ready when fastcall will be the default cc
 				]
 			]
-			offset: encode-pointers name specs to-logic cc
+			offset: encode-pointers name specs
 			if all [job/libRedRT? job/type = 'dll][
 				offset: offset or to integer! #40000000		;-- set bit 30 flag on bitmap offset for libRedRT code
 			]
