@@ -3117,11 +3117,13 @@ make-profilable make target-class [
 			emit-i32 #{e92d07f0}					;-- STMFD sp!, {r4-r10}
 			locals-offset: locals-offset + 28		;-- 7 * 4
 			
-			if all [fspec/3 = 'cdecl <ret-ptr> = emitter/stack/1][
-				locals-offset: locals-offset + 4
-				emit-i32 #{e92d0001}				;-- PUSH {r0} ; save optional return struct pointer
-			]
+			;if all [fspec/3 = 'cdecl <ret-ptr> = emitter/stack/1][
+			;	locals-offset: locals-offset + 4
+			;	emit-i32 #{e92d0001}				;-- PUSH {r0} ; save optional return struct pointer
+			;]
 		]
+		locals-offset: locals-offset + 4
+		emit-i32 #{e92d0001}				;-- PUSH {r0} ; save optional return struct pointer
 		
 		locals-size: either pos: find locals /local [emitter/calc-locals-offsets pos][0]
 		
