@@ -3104,27 +3104,30 @@ make-profilable make target-class [
 		emit-push bitmap							;-- push the args/locals bitmap offset
 		
 		locals-offset: def-locals-offset			;@@ global state used in epilog
+		
+		either none? last-red-frame [
+			emit-push 0								;-- placeholder
+		][
+			emit-frame-chaining/push
+		]
+		locals-offset: locals-offset + 4
+		
 		if cb? [
 			if PIC? [
 				emit-i32 #{e1a0900f}				;-- MOV sb, pc
 				pools/collect emitter/tail-ptr + 1 + 2 ;-- +1 adjustment for CALL first opcode
 				emit-i32 #{e0499000}				;-- SUB sb, r0
 			]
-			emit-frame-chaining/push
-			locals-offset: locals-offset + 4
 			
 			;-- d8-d15 do not need saving as they are not used for now
 			emit-i32 #{e92d07f0}					;-- STMFD sp!, {r4-r10}
 			locals-offset: locals-offset + 28		;-- 7 * 4
 			
-			;if all [fspec/3 = 'cdecl <ret-ptr> = emitter/stack/1][
-			;	locals-offset: locals-offset + 4
-			;	emit-i32 #{e92d0001}				;-- PUSH {r0} ; save optional return struct pointer
-			;]
+			if all [fspec/3 = 'cdecl <ret-ptr> = emitter/stack/1][
+				locals-offset: locals-offset + 4
+				emit-i32 #{e92d0001}				;-- PUSH {r0} ; save optional return struct pointer
+			]
 		]
-		locals-offset: locals-offset + 4
-		emit-i32 #{e92d0001}				;-- PUSH {r0} ; save optional return struct pointer
-		
 		locals-size: either pos: find locals /local [emitter/calc-locals-offsets pos][0]
 		
 		unless zero? locals-size [
