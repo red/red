@@ -1468,7 +1468,7 @@ make-profilable make target-class [
 						'value = last select compiler/locals value
 					][									;-- struct on stack case
 						either 255 < abs offset [
-							emit-load-imm32/reg offset 4
+							emit-load-imm32/reg abs offset 4
 							emit-i32 pick [
 								#{e04b0004}				;-- SUB r0, fp, r4	; local, 32-bit displacement
 								#{e08b0004}				;-- ADD r0, fp, r4	; arg, 32-bit displacement
