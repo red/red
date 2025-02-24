@@ -17,8 +17,8 @@ make-profilable make target-class [
 	stack-slot-max:		8							;-- size of biggest datatype on stack (float64!)
 	args-offset:		8							;-- stack frame offset to arguments (fp + lr)
 	branch-offset-size:	4							;-- size of branch instruction
-	locals-offset:		12							;-- offset from frame pointer to local variables (catch ID + addr + bitmap offset)
-	def-locals-offset:	12							;-- default offset from frame pointer to local variables
+	locals-offset:		16							;-- offset from frame pointer to local variables (catch ID + addr + bitmap offset)
+	def-locals-offset:	16							;-- default offset from frame pointer to local variables
 	insn-size:			4
 	last-math-op:		none						;-- save last math op type for overflow checking
 
@@ -3105,19 +3105,13 @@ make-profilable make target-class [
 		
 		locals-offset: def-locals-offset			;@@ global state used in epilog
 		
-		either none? last-red-frame [
-			emit-push 0								;-- placeholder
-		][
-			emit-frame-chaining/push
-		]
-		locals-offset: locals-offset + 4
-		
-		if cb? [
+		either cb? [
 			if PIC? [
 				emit-i32 #{e1a0900f}				;-- MOV sb, pc
 				pools/collect emitter/tail-ptr + 1 + 2 ;-- +1 adjustment for CALL first opcode
 				emit-i32 #{e0499000}				;-- SUB sb, r0
 			]
+			emit-frame-chaining/push
 			
 			;-- d8-d15 do not need saving as they are not used for now
 			emit-i32 #{e92d07f0}					;-- STMFD sp!, {r4-r10}
@@ -3127,6 +3121,8 @@ make-profilable make target-class [
 				locals-offset: locals-offset + 4
 				emit-i32 #{e92d0001}				;-- PUSH {r0} ; save optional return struct pointer
 			]
+		][
+			emit-push 0								;-- placeholder for fourth slot
 		]
 		locals-size: either pos: find locals /local [emitter/calc-locals-offsets pos][0]
 		

@@ -17,8 +17,8 @@ make-profilable make target-class [
 	stack-slot-max:		8							;-- size of biggest datatype on stack (float64!)
 	args-offset:		8							;-- stack frame offset to arguments (ebp + ret-addr)
 	branch-offset-size:	4							;-- size of JMP offset
-	locals-offset:		12							;-- offset from frame pointer to local variables (catch ID + addr + bitmap offset)
-	def-locals-offset:	12							;-- default offset from frame pointer to local variables
+	locals-offset:		16							;-- offset from frame pointer to local variables (catch ID + addr + bitmap offset)
+	def-locals-offset:	16							;-- default offset from frame pointer to local variables
 	
 	fpu-cword: none									;-- x87 control word reference in emitter/symbols
 	fpu-flags: to integer! #{037A}					;-- default control word, division by zero
@@ -2497,7 +2497,6 @@ make-profilable make target-class [
 			emit #{FF35}						;-- PUSH [last-red-frame]
 			emit-reloc-addr last-red-frame/2
 		]
-		locals-offset: locals-offset + 4
 
 		locals-size: either pos: find locals /local [emitter/calc-locals-offsets pos][0]
 		
