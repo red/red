@@ -455,16 +455,20 @@ _function: context [
 			more   [series!]
 			s	   [series!]
 			f-ctx  [node!]
+			allow? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_function/push"]]
 
 		f-ctx: either null? ctx [_context/make spec yes no CONTEXT_FUNCTION][ctx]
+		
+		allow?: collector/active?
+		collector/active?: no
 		fun: as red-function! stack/push*
-		fun/header: TYPE_UNSET							;-- GC-friendly value slot
+		fun/header: TYPE_FUNCTION or flags
 		fun/spec:	spec/node
 		fun/ctx:	f-ctx
 		fun/more:	alloc-unset-cells 5
-		fun/header: TYPE_FUNCTION or flags
+		collector/active?: allow?
 		
 		s: as series! f-ctx/value
 		copy-cell as red-value! fun s/offset + 1		;-- set back-reference
