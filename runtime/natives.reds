@@ -1925,7 +1925,7 @@ natives: context [
 				pt: as red-point3D! i
 				all [pt/x = as-float32 0 pt/y = as-float32 0]
 			]
-			TYPE_POINT2D [
+			TYPE_POINT3D [
 				pt: as red-point3D! i
 				all [pt/x = as-float32 0 pt/y = as-float32 0 pt/z = as-float32 0]
 			]
@@ -3242,6 +3242,17 @@ natives: context [
 					]
 					TYPE_FLOAT
 					TYPE_INTEGER [
+						if type2 = TYPE_FLOAT [
+							fval: as red-float! arg2
+							if any [integer/overflow? fval float/special? fval/value][
+								pt2: as red-point2D! arg2	;-- promote argument to point2D!
+								pt2/header: TYPE_POINT2D
+								pt2/x: as-float32 fval/value
+								pt2/y: pt2/x
+								max-min max?
+								exit
+							]
+						]
 						i: arg-to-integer arg2
 						either max? [
 							if p/x < i [p/x: i]
@@ -3376,7 +3387,7 @@ natives: context [
 			int/value
 		][
 			fl: as red-float! arg
-			if any [integer/overflow? fl float/NaN? fl/value][
+			if any [integer/overflow? fl float/special? fl/value][
 				fire [TO_ERROR(script type-limit) datatype/push TYPE_INTEGER]
 			]
 			as-integer fl/value

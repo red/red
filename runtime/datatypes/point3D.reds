@@ -397,9 +397,9 @@ point3D: context [
 		switch op [
 			COMP_EQUAL
 			COMP_NOT_EQUAL 	[
-				either float/almost-equal as-float left/x as-float right/x [
-					either float/almost-equal as-float left/y as-float right/y [
-						res: as-integer not float/almost-equal as-float left/z as-float right/z
+				either float/almost-equal32 left/x right/x [
+					either float/almost-equal32 left/y right/y [
+						res: as-integer not float/almost-equal32 left/z right/z
 					][
 						res: 1
 					]
@@ -425,8 +425,8 @@ point3D: context [
 			]
 			default [
 				delta: left/x - right/x
-				if float/almost-equal 0.0 as-float delta [delta: left/y - right/y]
-				if float/almost-equal 0.0 as-float delta [delta: left/z - right/z]
+				if float/almost-equal32 0.0 delta [delta: left/y - right/y]
+				if float/almost-equal32 0.0 delta [delta: left/z - right/z]
 				res: either delta < as float32! 0.0 [-1][either delta > as float32! 0.0 [1][0]]
 			]
 		]
@@ -457,12 +457,12 @@ point3D: context [
 		]
 		scalexy?: all [
 			OPTION?(fscale)
-			TYPE_OF(fscale) = TYPE_POINT3D
+			any [TYPE_OF(fscale) = TYPE_POINT3D TYPE_OF(fscale) = TYPE_POINT2D]
 		]
 		if scalexy? [
 			p: as red-point3D! fscale
 			fy: as float! p/y
-			fz: as float! p/z
+			fz: either TYPE_OF(fscale) = TYPE_POINT2D [0.0][as float! p/z]
 			fscale/header: TYPE_FLOAT
 			fscale/value: as float! p/x
 		]

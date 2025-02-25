@@ -301,7 +301,6 @@ make-profilable make target-class [
 	]
 	
 	emit-casting: func [value [object!] alt? [logic!] /push /local type old][
-		if value/keep? [exit]
 		type: compiler/get-type value/data
 		case [
 			value/type/1 = 'logic! [
@@ -330,15 +329,19 @@ make-profilable make target-class [
 			all [value/type/1 = 'integer! find [float! float64! float32!] type/1][
 				if verbose >= 3 [print [">>>converting from" type/1 "to integer!"]]
 				emit #{83EC04}						;-- SUB esp, 4
-				either compiler/job/cpu-version >= 4.0 [ ;-- Only CPUs with SSE3, >= Pentium 4
-					emit #{DB0C24}					;-- FISTTP dword [esp]	; save as 32-bit truncated
+				either all [value/keep? type/1 = 'float32!][
+					emit #{D91C24}					;-- FSTP dword [esp]	; save as 32-bit
 				][
-					emit-push to integer! #{0E7F}	;-- set FPU_X87_ROUNDING_ZERO mode
-					emit #{D92C24}					;-- FLDCW [esp]
-					emit #{83C404}					;-- ADD esp, 4			; free space
-					emit #{DB1C24}					;-- FISTP dword [esp]	; save as 32-bit
-					emit #{D92D}					;-- FLDCW [<word>]	 	; global
-					emit-reloc-addr fpu-cword/2		;-- one-based index
+					either compiler/job/cpu-version >= 4.0 [ ;-- Only CPUs with SSE3, >= Pentium 4
+						emit #{DB0C24}				;-- FISTTP dword [esp]	; save as 32-bit truncated
+					][
+						emit-push to integer! #{0E7F};-- set FPU_X87_ROUNDING_ZERO mode
+						emit #{D92C24}				;-- FLDCW [esp]
+						emit #{83C404}				;-- ADD esp, 4			; free space
+						emit #{DB1C24}				;-- FISTP dword [esp]	; save as 32-bit
+						emit #{D92D}				;-- FLDCW [<word>]	 	; global
+						emit-reloc-addr fpu-cword/2	;-- one-based index
+					]
 				]
 				unless push [
 					either alt? [
@@ -355,7 +358,11 @@ make-profilable make target-class [
 				][
 					emit #{50}						;-- PUSH eax
 				]
-				emit #{DB0424}						;-- FILD dword [esp]	; load as 32-bit
+				either value/keep? [
+					emit #{D90424}					;-- FLD dword [esp]		; load as 32-bit
+				][
+					emit #{DB0424}					;-- FILD dword [esp]	; load integer as 32-bit float
+				]
 				either push [
 					emit #{D91C24}					;-- FSTP dword [esp]	; save as 32-bit
 				][

@@ -3645,6 +3645,12 @@ comment {
 		--assert error? set/any 'err try [do [f: func [x][]  f/x false]]  ;-- required DO to avoid the error being caught by compiler
 		--assert err/id = 'no-refine
 
+	--test-- "#5490"
+		--assert (1,1) = min 1x1 (1.#inf,1.#inf)
+		--assert (1,1) = min 1x1 1.#inf
+		--assert "(1.#NaN, 1.#NaN)" = mold max 1x1 (1.#nan,1.#nan)
+		--assert "(1.#NaN, 1.#NaN)" = mold max 1x1 1.#nan
+
 	--test-- "#5496"
 		file: %/dir/file
 		url: https://example.com/
@@ -3719,9 +3725,57 @@ comment {
 		--assert none? react [r5568/x]
 		--assert none? react [r5568/y]
 
+	--test-- "#5569"
+		--assert (1, 5.7) = round/to (1.234, 5.678) (1, 0.1, 0)
+		--assert (1, 5.7) = round/to (1.234, 5.678) (1, 0.1, 10)
+		--assert (1, 5.7) = round/to (1.234, 5.678) (1, 0.1, 1)
+		--assert (1, 5.7) = round/to (1.234, 5.678) (1, 0.1, 2)
+		--assert (1, 5.7) = round/to (1.234, 5.678) (1, 0.1, 3)
+		--assert (0, 10, 9.876) = round/to (1.234, 5.678, 9.876) (10, 10)
+
 	--test-- "#5579"
 		h5579: make hash! [1 2]
 		--assert h5579 = copy/part make hash! [1 2 3 4 5 6 7 8] 2
+
+	--test-- "#5584"
+		do [											;-- compiler would catch that error
+			f5584: func [/local y][probe 22]
+			--assert error? try [f5584/y]
+		]
+
+	--test-- "#5585"
+		do [											;-- compiler would catch that error
+			--assert error? try [
+				func [
+				  return: [integer!] "abcd" 
+				  return: [integer!]
+				  /local xx
+				][
+					123456
+				]
+			]
+		]
+
+	--test-- "#5586"
+		100x100 / 100x99 = (1, 1.010101)
+		
+	--test-- "#5587"
+		--assert '+ = first quote +/1/5
+		--assert '- = first quote -/1/5
+		
+	--test-- "#5588"
+		--assert 3 = length? 'table/+/(m/col)
+		--assert "table/+/(m/col)" = mold 'table/+/(m/col)
+		--assert "table/-/(m/col)" = mold 'table/-/(m/col)
+		
+	--test-- "#5589"
+		--assert 3 = length? 'table/++/(m/col)
+		--assert "table/++/(m/col)" = mold 'table/++/(m/col)
+		--assert "table/--/(m/col)" = mold 'table/--/(m/col)
+
+	--test-- "#5590"
+		--assert 3 = length? first [=/-/=]
+		--assert "[=/-/=]" = mold [=/-/=]
 	
 ===end-group===
 

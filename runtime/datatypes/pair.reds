@@ -106,7 +106,10 @@ pair: context [
 		left/x: x'
 		
 		y': integer/do-math-op left/y y op slot
-		if TYPE_OF(slot) <> TYPE_UNSET [promo]
+		if TYPE_OF(slot) <> TYPE_UNSET [
+			left/x: x									;-- reset left/x in case math op was already done (#5586)
+			promo
+		]
 		left/y: y'
 		left
 	]

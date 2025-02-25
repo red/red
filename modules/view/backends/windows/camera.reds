@@ -260,7 +260,7 @@ camera-get-image: func [img [red-image!] /local timeout [float32!]][
 	until [
 		platform/wait 0.01
 		timeout: timeout + as float32! 0.01
-		any [TYPE_OF(img) = TYPE_IMAGE timeout > as float32! 0.1]
+		any [TYPE_OF(img) = TYPE_IMAGE timeout > as float32! 3.0]
 	]
 ]
 
