@@ -1643,7 +1643,11 @@ make-profilable make target-class [
 				do store-word
 			]
 			string! paren! binary! [
-				if all [spec not PIC?][emit-load-literal-ptr spec/2]
+				either all [binary? value 'float32! = first compiler/get-type name][ ;-- `as float32! keep` case
+					emit-load-imm32 to integer! head reverse value
+				][
+					if all [spec not PIC?][emit-load-literal-ptr spec/2]
+				]
 				do store-word
 			]
 		]

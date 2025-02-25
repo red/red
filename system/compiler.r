@@ -1127,7 +1127,11 @@ system-dialect: make-profilable context [
 				]
 				float! float32! [
 					if type/1 = 'integer! [
-						value: to decimal! value
+						value: either all [obj/keep? ctype/1 = 'float32!][
+							head reverse debase/base to-hex value 16
+						][
+							to decimal! value
+						]
 					]
 				]
 			]

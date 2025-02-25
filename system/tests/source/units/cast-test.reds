@@ -325,6 +325,21 @@ Red/System [
 	--test-- "int-cast-57"
 		f32: as float32! keep 1069547520
 		--assertf32~= f32 as float32! 1.5 1E-6
+		
+	--test-- "int-cast-58"
+		f32: as float32! keep 1073741824
+		--assertf32~= f32 as float32! 2.0 1E-6
+		
+		test-int-cast-59: func [/local f32 [float32!]][
+			--test-- "int-cast-59"
+				f32: as float32! keep 1069547520
+				--assertf32~= f32 as float32! 1.5 1E-6
+
+			--test-- "int-cast-60"
+				f32: as float32! keep 1073741824
+				--assertf32~= f32 as float32! 2.0 1E-6
+		]
+		test-int-cast-59
 
 ===end-group===
 

@@ -1050,7 +1050,11 @@ make-profilable make target-class [
 						#{8945}						;-- MOV [ebp+n], eax	; local
 				][
 					do store-dword
-					emit-reloc-addr spec/2
+					either all [binary? value 'float32! = first compiler/get-type name][ ;-- `as float32! keep` case
+						emit value
+					][
+						emit-reloc-addr spec/2
+					]
 				]
 			]
 		]

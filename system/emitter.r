@@ -279,13 +279,16 @@ emitter: make-profilable context [
 			float! float64! float32! [
 				pad-data-buf either type = 'float32! [target/default-align][8] ;-- align 64-bit floats on 64-bit
 				ptr: tail data-buf
-				value: compiler/unbox value
-				if integer? value [value: to decimal! value]
-				unless find [decimal! issue!] type?/word value [value: 0.0]
-				append ptr either type = 'float32! [
-					IEEE-754/to-binary32/rev value	;-- stored in little-endian
-				][
-					IEEE-754/to-binary64/rev value	;-- stored in little-endian
+				either binary? value [append ptr value][ ;-- `as float32! keep` case
+					value: compiler/unbox value
+					if integer? value [value: to decimal! value]
+					
+					unless find [decimal! issue!] type?/word value [value: 0.0]
+					append ptr either type = 'float32! [
+						IEEE-754/to-binary32/rev value	;-- stored in little-endian
+					][
+						IEEE-754/to-binary64/rev value	;-- stored in little-endian
+					]
 				]
 			]
 			c-string! [
