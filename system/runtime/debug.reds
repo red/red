@@ -73,6 +73,7 @@ __print-debug-stack: func [
 		pf			[float-ptr!]
 		next-frame	[subroutine!]
 		ret			[int-ptr!]
+		clow chigh	[int-ptr!]
 		funcs end	[byte-ptr!]
 		records next[__func-record!]
 		fun-base	[byte-ptr!]
@@ -81,14 +82,15 @@ __print-debug-stack: func [
 		prev slot	[int-ptr!]
 		s			[c-string!]
 		value lines	[integer!]
-		base 		[integer!]
+		base size	[integer!]
 		unused		[float!]
 ][
 	funcs:	as byte-ptr! __debug-funcs
 	frame:	system/debug/frame
-	base:	as-integer system/image/base
 	ret:	as int-ptr! address
 	top:	frame + 2
+	clow:	as int-ptr! system/image/base + system/image/code
+	chigh:  as int-ptr! (as byte-ptr! clow) + system/image/code-size
 	lines:	40								;-- max number of lines displayed
 	print-line "***"
 	
@@ -102,6 +104,16 @@ __print-debug-stack: func [
 
 	print-line "***   --Frame-- --Code--  --Call--"
 	until [
+		base: either any [
+			system/lib-image = null
+			all [clow <= ret ret < chigh]
+		][
+			size: system/image/code-size
+			as-integer system/image/base
+		][
+			size: system/lib-image/code-size
+			as-integer system/lib-image/base
+		]
 		nb: __debug-funcs-nb
 		records: __debug-funcs
 		until [
@@ -123,7 +135,12 @@ __print-debug-stack: func [
 			zero? nb
 		]
 		either zero? nb [
-			print-line ["***   " frame "h " ret "h <external> "]
+			print ["***   " frame "h " ret "h "]
+			;either all [(as int-ptr! base) < ret ret < as int-ptr! base + size][
+			;	print-line "<global> "
+			;][
+				print-line "<external> "
+			;]
 		][
 			print ["***   " frame "h " ret "h " as-c-string funcs + records/name]
 			if records/args = as int-ptr! -1 [
