@@ -1127,7 +1127,11 @@ system-dialect: make-profilable context [
 				]
 				float! float32! [
 					if type/1 = 'integer! [
-						value: to decimal! value
+						value: either all [obj/keep? ctype/1 = 'float32!][
+							head reverse debase/base to-hex value 16
+						][
+							to decimal! value
+						]
 					]
 				]
 			]
@@ -1754,6 +1758,9 @@ system-dialect: make-profilable context [
 				]
 			]
 			offset: encode-pointers name specs
+			if all [job/libRedRT? job/type = 'dll][
+				offset: offset or to integer! #40000000		;-- set bit 30 flag on bitmap offset for libRedRT code
+			]
 			add-function type reduce [name none specs] cc
 			emitter/add-native name
 			repend natives [

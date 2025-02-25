@@ -116,6 +116,8 @@ memory: declare struct! [					; TBD: instanciate this structure per OS thread
 ]
 
 bitarrays-base: declare int-ptr!			;-- points to bit-arrays table
+lib-bitarrays-base: declare int-ptr! 		;-- points to bit-arrays table (libRedRT image)
+
 
 init-mem: func [/local p [int-ptr!]][
 	memory/total:	 0
@@ -131,6 +133,12 @@ init-mem: func [/local p [int-ptr!]][
 	p: as int-ptr! system/image/base + system/image/bitarray
 	if p/0 = 1 [p: as int-ptr! crush/decompress as byte-ptr! p null]
 	bitarrays-base: p
+
+	#if libRedRT? = yes [
+		p: as int-ptr! system/lib-image/base + system/lib-image/bitarray
+		if p/0 = 1 [p: as int-ptr! crush/decompress as byte-ptr! p null]
+		lib-bitarrays-base: p
+	]
 ]
 
 ;; (1) Series frames size will grow from 1MB up to 2MB (arbitrary selected). This

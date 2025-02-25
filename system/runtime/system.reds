@@ -169,22 +169,28 @@ system!: alias struct! [					;-- store runtime accessible system values
 	boot-data	[byte-ptr!]					;-- Redbin encoded boot data (only for Red programs)
 	debug		[__stack!]					;-- stack info for debugging (set on runtime error only, internal use)
 	image		[__image!]					;-- executable image memory layout info
+	lib-image	[__image!]					;-- executable image memory layout info
 	heap		[__heap!]					;-- dynamically allocated memory frames
 	stk-root	[int-ptr!]
 ]
 
-#either any [libRedRT? = yes dev-mode? = no red-pass? = no][
+#either any [all [libRedRT? = yes type = 'dll] dev-mode? = no red-pass? = no][
 	system: declare system!
-	#if all [libRedRT? = yes dev-mode? = yes][#export [system]]	;-- exclude it from libRed
+	#if all [libRedRT? = yes type = 'dll][#export [system]] ;-- exclude it from libRed
 ][
 	#import [LIBREDRT-file stdcall [system: "system" [system!]]]
 ]
 
 ***-exec-image: declare __image!			;-- reference ***-exec-image used by compiler to fill the slots
 
-#if any [red-pass? = no all [type = 'exe dev-mode? = no]][
-	system/image: ***-exec-image			;-- set /image fields for standalone exe only (no libRedRT)
-]											;-- for libraries, it's set at library loading time.
+#either type = 'dll [
+	***-init-system-image: func [][			;-- must use a wrapping function so ` copy-memory` is reachable
+		system/lib-image: declare __image!
+		copy-memory as byte-ptr! system/lib-image as byte-ptr! system/image size? __image!
+	]
+][											;-- for libraries, it's set at library loading time.
+	system/image: ***-exec-image
+]
 
 system/heap: declare __heap!
 system/heap/head: null

@@ -17,8 +17,8 @@ make-profilable make target-class [
 	stack-slot-max:		8							;-- size of biggest datatype on stack (float64!)
 	args-offset:		8							;-- stack frame offset to arguments (ebp + ret-addr)
 	branch-offset-size:	4							;-- size of JMP offset
-	locals-offset:		12							;-- offset from frame pointer to local variables (catch ID + addr + bitmap offset)
-	def-locals-offset:	12							;-- default offset from frame pointer to local variables
+	locals-offset:		16							;-- offset from frame pointer to local variables (catch ID + addr + bitmap offset)
+	def-locals-offset:	16							;-- default offset from frame pointer to local variables
 	
 	fpu-cword: none									;-- x87 control word reference in emitter/symbols
 	fpu-flags: to integer! #{037A}					;-- default control word, division by zero
@@ -560,12 +560,12 @@ make-profilable make target-class [
 	]
 	
 	emit-atomic-load: func [order [word!]][
-		if verbose >= 3 [print [">>>emitting ATOMIC-LOAD" mold ptr mold order]]
+		if verbose >= 3 [print [">>>emitting ATOMIC-LOAD" mold order]]
 		emit #{8B00}								;-- MOV eax, [eax]
 	]
 	
 	emit-atomic-store: func [value order [word!]][
-		if verbose >= 3 [print [">>>emitting ATOMIC-STORE" mold ptr mold value mold order]]
+		if verbose >= 3 [print [">>>emitting ATOMIC-STORE" mold value mold order]]
 		emit #{89C6} 								;-- MOV esi, eax
 		emit-load value
 		emit #{8906}								;-- MOV [esi], eax
@@ -573,7 +573,7 @@ make-profilable make target-class [
 	]
 	
 	emit-atomic-math: func [op [word!] right-op old? [logic!] ret? [logic!] order [word!]][
-		if verbose >= 3 [print [">>>emitting ATOMIC-MATH-OP" mold ptr mold op mold value mold ret? mold order]]
+		if verbose >= 3 [print [">>>emitting ATOMIC-MATH-OP" mold op mold value mold ret? mold order]]
 		emit #{89C6} 								;-- MOV esi, eax
 		emit-load right-op
 		either any [old? ret?][
@@ -619,7 +619,7 @@ make-profilable make target-class [
 	]
 	
 	emit-atomic-cas: func [check value ret? [logic!] order [word!]][
-		if verbose >= 3 [print [">>>emitting ATOMIC-CAS" mold ptr mold check mold value ret? mold order]]
+		if verbose >= 3 [print [">>>emitting ATOMIC-CAS" mold check mold value ret? mold order]]
 		emit #{89C6} 								;-- MOV esi, eax
 		emit-load value
 		emit-move-path-alt							;-- load new value in edx
@@ -1050,7 +1050,11 @@ make-profilable make target-class [
 						#{8945}						;-- MOV [ebp+n], eax	; local
 				][
 					do store-dword
-					emit-reloc-addr spec/2
+					either all [binary? value 'float32! = first compiler/get-type name][ ;-- `as float32! keep` case
+						emit value
+					][
+						emit-reloc-addr spec/2
+					]
 				]
 			]
 		]
@@ -2477,7 +2481,7 @@ make-profilable make target-class [
 		emit #{8F45FC}								;-- POP [ebp-4]
 	]
 
-	emit-prolog: func [name [word!] locals [block!] bitmap [integer!] /local fspec attribs offset locals-size][
+	emit-prolog: func [name [word!] locals [block!] bitmap [integer!] /local fspec attribs offset locals-size cb?][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
 
 		fspec: select compiler/functions name
@@ -2498,14 +2502,11 @@ make-profilable make target-class [
 		emit-push bitmap							;-- push the args/locals bitmap offset
 		
 		locals-offset: def-locals-offset			;@@ global state used in epilog
-		if cb? [
-			either PIC? [
-				emit #{6A00}						;-- PUSH 0		; placeholder
-			][
-				emit #{FF35}						;-- PUSH [last-red-frame]
-				emit-reloc-addr last-red-frame/2
-			]
-			locals-offset: locals-offset + 4
+		either any [PIC? none? last-red-frame][
+			emit #{6A00}						;-- PUSH 0		; placeholder
+		][
+			emit #{FF35}						;-- PUSH [last-red-frame]
+			emit-reloc-addr last-red-frame/2
 		]
 
 		locals-size: either pos: find locals /local [emitter/calc-locals-offsets pos][0]

@@ -450,27 +450,30 @@ _function: context [
 		return:	 [node!]								;-- return function's local context reference
 		/local
 			fun    [red-function!]
-			native [red-native!]
 			value  [red-value!]
 			int	   [red-integer!]
-			args   [red-block!]
 			more   [series!]
 			s	   [series!]
 			f-ctx  [node!]
+			allow? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_function/push"]]
 
 		f-ctx: either null? ctx [_context/make spec yes no CONTEXT_FUNCTION][ctx]
+		
+		allow?: collector/active?
+		collector/active?: no
 		fun: as red-function! stack/push*
 		fun/header: TYPE_FUNCTION or flags
 		fun/spec:	spec/node
 		fun/ctx:	f-ctx
-		fun/more:	spec/node	;@@ just to make GC happy
 		fun/more:	alloc-unset-cells 5
+		collector/active?: allow?
 		
 		s: as series! f-ctx/value
 		copy-cell as red-value! fun s/offset + 1		;-- set back-reference
-		
+
+		more: as series! fun/more/value
 		either null? body [
 			value: none-value
 		][
@@ -478,7 +481,6 @@ _function: context [
 			stack/pop 1
 			value: as red-value! body
 		]
-		more: as series! fun/more/value
 		copy-cell value alloc-tail more					;-- store body block or none
 		
 		alloc-tail more									;-- skip the precompiled args slot

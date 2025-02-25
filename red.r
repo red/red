@@ -384,7 +384,7 @@ redc: context [
 		]
 	]
 	
-	build-libRedRT: func [opts [object!] /local script result file path][
+	build-libRedRT: func [opts [object!] /local script result file path saved][
 		print "Compiling libRedRT..."
 		file: libRedRT/lib-file
 		path: get-output-path opts
@@ -416,9 +416,12 @@ redc: context [
 			"...compilation time :" format-time result/2 "ms^/"
 			"^/Compiling to native code..."
 		]
+		saved: opts/verbosity
+		opts/verbosity: max 0 opts/verbosity - 3
 		unless encap? [change-dir %system/]
 		result: system-dialect/compile/options/loaded file opts result
 		unless encap? [change-dir %../]
+		opts/verbosity: saved
 		show-stats result
 	]
 	
