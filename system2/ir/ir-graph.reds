@@ -568,9 +568,9 @@ ir-graph: context [
 		split-ssa-ctx ctx :t-ctx
 		split-ssa-ctx ctx :f-ctx
 		add-if cond t-ctx/block f-ctx/block ctx
-		remove-instr cond
 
 		t-val: gen-stmts e/t-branch t-ctx
+
 		f-val: either e/f-branch <> null [gen-stmts e/f-branch f-ctx][add-default-value e/type f-ctx]
 
 		t-closed?: t-ctx/closed?	;-- save it as merge-ctx will close the block
@@ -623,7 +623,6 @@ ir-graph: context [
 		gen-stmts w/body :body-ctx
 		merge-ctx :m-start :body-ctx		;-- merge body-ctx into m-start
 
-		remove-instr cond
 		set-ssa-ctx :m-end ctx
 		null
 	]
@@ -651,7 +650,6 @@ ir-graph: context [
 		merge-incoming :m-end :body-ctx		;-- merge body-ctx into m-end
 		merge-incoming :m-start :body-ctx
 
-		remove-instr cond
 		set-ssa-ctx :m-end ctx
 		null
 	]
@@ -696,8 +694,58 @@ ir-graph: context [
 		gen-path-read p ctx
 	]
 
-	visit-any-all: func [p [path!] ctx [ssa-ctx!] return: [instr!]][
-		null
+	visit-any-all: func [e [any-all!] ctx [ssa-ctx!] return: [instr!]
+		/local
+			c		[rst-expr!]
+			any?	[logic!]
+			l-val	[instr!]
+			m		[ssa-merge! value]
+			f-ctx	[ssa-ctx!]
+			old-ctx [ssa-ctx!]
+			n		[integer!]
+			arr		[ptr-array!]
+			p		[ptr-ptr!]
+	][
+		old-ctx: ctx
+		c: e/conds
+		n: 0
+		while [c <> null][
+			n: n + 1
+			c: c/next
+		]
+		arr: ptr-array/make n
+		p: ARRAY_DATA(arr)
+		f-ctx: as ssa-ctx! system/stack/allocate (size? ssa-ctx!) * n / 4 + 1
+
+		any?: NODE_TYPE(e) = RST_ANY
+		init-merge :m
+		c: e/conds
+		while [c <> null][
+			l-val: gen-expr c ctx
+			p/value: as int-ptr! l-val
+			p: p + 1
+			c: c/next
+			if null? c [
+				merge-ctx :m ctx 
+				break
+			]
+
+			;TBD fold if l-val is a const
+			;if INSTR_CONST?(l-val) [return fold-left any? to logic!]
+
+			split-ssa-ctx ctx f-ctx
+			either any? [
+				add-if l-val m/block f-ctx/block ctx
+			][
+				add-if l-val f-ctx/block m/block ctx
+			]
+			merge-incoming :m ctx
+
+			ctx: f-ctx
+			f-ctx: f-ctx + 1
+		]
+		set-ssa-ctx :m old-ctx
+		as instr! make-phi type-system/logic-type m/block arr
 	]
 
 	visit-comment: func [r [rst-stmt!] ctx [ssa-ctx!] return: [instr!]][
@@ -1456,8 +1504,7 @@ ir-graph: context [
 		switch TYPE_KIND(type) [
 			RST_TYPE_LOGIC [const-false fn]
 			RST_TYPE_INT [const-int-zero fn]
-			RST_TYPE_VOID [nop fn]
-			default [get-const type null fn]
+			default [nop fn]
 		]
 	]
 
@@ -1688,10 +1735,11 @@ ir-graph: context [
 				]
 			]
 		]
-		if map <> null [token-map/put map c/value as int-ptr! c]
-		if idx < N_CACHED_CONST [
+		either idx < N_CACHED_CONST [
 			p: ARRAY_DATA(vals) + idx
 			p/value: as int-ptr! c
+		][
+			token-map/put map c/value as int-ptr! c
 		]
 		c
 	]

@@ -150,7 +150,7 @@ rst-printer: context [
 	]
 
 	visit-path: func [p [path!] i [integer!]][
-		do-i i prin "path"
+		do-i i prin-token p/token
 	]
 
 	visit-any-all: func [p [path!] i [integer!]][

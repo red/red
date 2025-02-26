@@ -294,12 +294,26 @@ struct-size?: func [
 	sz
 ]
 
+ptr-value-size?: func [
+	t		[rst-type!]
+	return: [integer!]
+	/local
+		ptr [ptr-type!]
+][
+	if TYPE_KIND(t) = RST_TYPE_PTR [
+		ptr: as ptr-type! t
+		t: ptr/type
+	]
+	type-size? t yes
+]
+
 type-size?: func [
 	t		[rst-type!]
 	st?		[logic!]
 	return: [integer!]		;-- size in byte
 	/local
 		w	[integer!]
+		ptr [ptr-type!]
 		st	[struct-type!]
 ][
 	switch TYPE_KIND(t) [
@@ -506,10 +520,7 @@ type-system: context [
 		switch TYPE_KIND(t1) [
 			RST_TYPE_INT [
 				switch TYPE_KIND(t2) [
-					RST_TYPE_INT [
-						if int-promotable? t1 t2 [return t2]
-						if int-promotable? t2 t1 [return t1]
-					]
+					RST_TYPE_INT [return t1]
 					RST_TYPE_FLOAT [
 						if promotable-to-float? t1 t2 [return t2]
 					]
@@ -596,10 +607,17 @@ type-system: context [
 			]
 			RST_TYPE_STRUCT [
 				switch TYPE_KIND(y) [
+					RST_TYPE_STRUCT
 					RST_TYPE_PTR
 					RST_TYPE_INT [conv_ok]
 					default [conv_illegal]
 				]
+			]
+			RST_TYPE_INT [
+				conv_ok
+			]
+			RST_TYPE_ARRAY [
+				conv_ok
 			]
 			default [
 				either x/header = y/header [conv_same][conv_illegal]

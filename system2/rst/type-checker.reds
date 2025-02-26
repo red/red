@@ -461,11 +461,10 @@ type-checker: context [
 		tf: either e/f-branch <> null [
 			check-stmts e/f-branch e/false-blk ctx
 		][null]
-		e/type: either null? tf [tt][
-			ut: type-system/unify tt tf
-			either ut <> null [ut][type-system/void-type]
-		]
-		e/type
+		ut: either null? tf [tt][type-system/unify tt tf]
+		if null? ut [ut: type-system/void-type]
+		e/type: ut
+		ut
 	]
 
 	visit-while: func [w [while!] ctx [context!] return: [rst-type!]
@@ -587,7 +586,12 @@ type-checker: context [
 		p/type
 	]
 
-	visit-any-all: func [p [any-all!] ctx [context!] return: [rst-type!]][
+	visit-any-all: func [e [any-all!] ctx [context!] return: [rst-type!] /local c [rst-expr!]][
+		c: e/conds
+		while [c <> null][
+			check-expr "Any/All:" c type-system/logic-type ctx
+			c: c/next
+		]
 		type-system/logic-type
 	]
 
@@ -689,6 +693,7 @@ type-checker: context [
 		/local
 			t1 t2 [rst-type!]
 	][
+		;rst-printer/print-stmt as rst-stmt! c
 		if c/type <> null [return c/type]
 
 		t1: resolve-typeref c/typeref ctx
@@ -718,6 +723,7 @@ type-checker: context [
 			type	[rst-type!]
 			attr	[integer!]
 	][
+		;rst-printer/print-stmt as rst-stmt! fc
 		;dprint "[Type Checker] visit-fn-call"
 		if null? fc/type [resolve-fn-type as fn-type! fc/fn/type ctx]
 
@@ -756,11 +762,11 @@ type-checker: context [
 			op op2	[fn-type!]
 			code sz [integer!]
 			int 	[red-integer!]
-			ptr		[ptr-type!]
 			e right [rst-expr!]
 			b		[bin-op!]
 			ltype rtype [rst-type!]
 	][
+		rst-printer/print-stmt as rst-stmt! bin
 		right: bin/right
 		ltype: as rst-type! bin/left/accept as int-ptr! bin/left checker as int-ptr! ctx
 		rtype: as rst-type! right/accept as int-ptr! right checker as int-ptr! ctx
@@ -770,8 +776,7 @@ type-checker: context [
 
 			code: FN_OPCODE(op)
 			if any [code = OP_PTR_ADD code = OP_PTR_SUB][
-				ptr: as ptr-type! ltype
-				sz: type-size? ptr/type yes
+				sz: ptr-value-size? ltype
 				if sz > 1 [
 					int: xmalloc(red-integer!)
 					int/header: TYPE_INTEGER

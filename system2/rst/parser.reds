@@ -789,7 +789,7 @@ parser: context [
 			parent/child: ctx
 		]
 		ctx/src-blk: cur-blk
-		ctx/script: script
+		ctx/script: compiler/script
 		ctx/ret-type: type-system/void-type
 		ctx/typecache: type-system/make-cache
 		ctx/throw-error?: yes
@@ -1371,7 +1371,6 @@ parser: context [
 		a: xmalloc(any-all!)
 		a/token: pc
 		a/accept: :any-all_accept
-		a/type: type-system/logic-type
 		a/conds: eval/next
 
 		exit-block
