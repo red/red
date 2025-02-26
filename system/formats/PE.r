@@ -1169,6 +1169,7 @@ context [
 
 		if job/debug? [
 			code-ptr: entry-point-address? job
+			if any [job/libRedRT? job/libRed? job/PIC?][code-ptr: code-ptr - to-integer defs/image/dll-base-address]
 			linker/build-debug-lines job code-ptr
 			linker/build-debug-func-names job code-ptr
 		]

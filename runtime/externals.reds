@@ -119,8 +119,9 @@ externals: context [
 	]
 	
 	remove: func [										;-- remove a record directly
-		idx	  [integer!]
-		call? [logic!]									;-- YES: call destructor also
+		idx		[integer!]
+		call?	[logic!]								;-- YES: call destructor also
+		return: [integer!]
 		/local
 			rec p [record!]
 	][
@@ -142,6 +143,7 @@ externals: context [
 		rec/handle: 0
 		rec/next:   free
 		free: (as-integer rec - list) / size? record!	;-- insert rec at head of free list
+		-1
 	]
 
 	mark: func [idx [integer!] /local rec [record!]][

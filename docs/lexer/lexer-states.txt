@@ -490,12 +490,18 @@ T_FL_ERROR										;-- 7
 S_FL_START->"+"|"-"->S_FL_START
 
 S_FL_START->"."|","->S_FL_DEC
-    \->digit->S_FL_NUM->digit|"'"->S_FL_NUM
+    \->digit->S_FL_NUM->digit->S_FL_NUM
                   \->"."|","->S_FL_DEC
                    \->"e"|"E"->S_FL_EXP
+                    \->"'"->S_FL_NUMQ
+                                \->digit->S_FL_NUM
+                                 \->else->S_FL_ERROR
                    
-S_FL_DEC->digit|"'"->S_FL_DEC
+S_FL_DEC->digit->S_FL_DEC
     \->"e"|"E"->S_FL_EXP
+     \->"'"->S_FL_DECQ
+                 \->digit->S_FL_DEC
+                  \->else->S_FL_ERROR
     
 S_FL_EXP->"+"|"-"->S_FL_EXPS->digit->S_FL_EXPD
 	\->digit->S_FL_EXPD

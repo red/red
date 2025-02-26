@@ -218,5 +218,23 @@ Red [
 
 ===end-group=== 
 
+===start-group=== "mold-only"
+
+	--test-- "mo-map"	--assert {a: 2^/b: 3^/c: 4} == mold/only #[a: 2 b: 3 c: 4]
+	--test-- "mo-obj"	--assert {a: 2^/b: 3^/c: 4} == mold/only object [a: 2 b: 3 c: 4]
+	--test-- "mo-vec"	--assert "1 2 3 4" == mold/only make vector! [1 2 3 4]
+	--test-- "mo-hash"	--assert "1 2 3 4" == mold/only make hash! [1 2 3 4]
+	--test-- "mo-paren"	--assert "1 2 3 4" == mold/only to-paren [1 2 3 4]
+	--test-- "mo-image"	--assert "2x2 #{112233FFFFFFFFFFFFFFFFFF}" == mold/only make image! [2x2 #{11223344}]
+	--test-- "mo-bin"	--assert "1122334455" == mold/only #{1122334455}
+	--test-- "mo-type"	--assert "integer! float! percent!" == mold/only number!
+	
+	--test-- "mo-err"
+		s-mo-err: mold/only try [1 / 0]
+		remove/part pos: find/tail s-mo-err "stack: " find pos lf
+		remove/part pos: find/tail s-mo-err "near: " find pos #"w"	
+		--assert s-mo-err == {code: 400^/type: 'math^/id: 'zero-divide^/arg1: none^/arg2: none^/arg3: none^/near: where: '/^/stack: ^/files: none}
+
+===end-group===
 
 ~~~end-file~~~

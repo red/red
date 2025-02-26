@@ -23,6 +23,7 @@ error: context [
 		field-near
 		field-where
 		field-stack
+		field-files
 	]
 	
 	set-where: func [
@@ -120,6 +121,14 @@ error: context [
 			blk: as red-block! field
 			block/make-at blk 20
 			stack/trace-in level blk ptr
+			
+			blk: as red-block! #get system/state/source-files
+			unless block/rs-tail? blk [
+				copy-cell 
+					as red-value! block/clone blk no no
+					(object/get-values err) + field-files
+				stack/pop 1
+			]
 		]
 	]
 	
@@ -426,6 +435,14 @@ error: context [
 				default [0]
 			]
 		]
+		
+		value: base + field-files
+		if TYPE_OF(value) = TYPE_BLOCK [
+			string/concatenate-literal buffer "^/*** Files: "
+			part: part - 12
+			part: actions/mold base + field-files buffer yes no yes arg2 40 0
+		]
+		
 		part
 	]
 	
@@ -442,11 +459,16 @@ error: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "error/mold"]]
 
-		string/concatenate-literal buffer "make error! ["
-		part: object/serialize obj buffer only? all? flat? arg part - 13 yes indent + 1 yes
+		unless only? [
+			string/concatenate-literal buffer "make error! ["
+			part: part - 13
+		]
+		part: object/serialize obj buffer only? all? flat? arg part yes indent + 1 yes
 		if indent > 0 [part: object/do-indent buffer indent part]
-		string/append-char GET_BUFFER(buffer) as-integer #"]"
-		part - 1
+		either only? [part][
+			string/append-char GET_BUFFER(buffer) as-integer #"]"
+			part - 1
+		]
 	]
 	
 	eval-path: func [

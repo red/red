@@ -938,6 +938,7 @@ interpreter: context [
 					if any [
 						index < 0
 						all [value < tail TYPE_OF(value) <> TYPE_REFINEMENT]
+						value >= tail					;-- when invoking a local word as refinement (#5584)
 					][fire [TO_ERROR(script no-refine) fname ref]]
 					value: value + 1
 					sym-cnt: index + 1

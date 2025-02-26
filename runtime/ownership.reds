@@ -268,6 +268,6 @@ ownership: context [
 	]
 	
 	init: does [
-		table: _hashtable/init size null HASH_TABLE_INTEGER 3
+		table: _hashtable/init size null HASH_TABLE_OWNERSHIP 3
 	]
 ]

@@ -798,8 +798,8 @@ Red [
 			1.373691897708523e131
 			do load "27847278432473892748932789483290483789743824832478237843927849327492 * 4932948478392784372894783927403290437147389024920147892940729142"
 		; I've changed this, see issue #710			-- hiiamboris
-		--assert error? try [74789 * 849032]
-		;--assert not error? try [74789 * 849032]
+		;--assert error? try [74789 * 849032]
+		--assert not error? try [74789 * 849032]
 
 	--test-- "#714"
 		a714: load/all "a714"
@@ -2538,7 +2538,7 @@ b}
 	; --test-- "#2070"
 		; GUI
 
-	; --test-- "#2072"
+	 --test-- "#2072"
 		m2072: make map! 10
 		a2072: [1 2 3]
 		m2072/a: a2072
@@ -3380,7 +3380,7 @@ comment {
 
 	--test-- "#5058"
 		--assert strict-equal?
-			"1 a ^/2 b ^/3 c"
+			"1 a^/2 b^/3 c"
 			mold/only new-line/all/skip [1 a 2 b 3 c] yes 2
 
 	--test-- "#5066"
@@ -3488,11 +3488,11 @@ comment {
 			s0: recycle
 			r: make reactor! [a: append/dup [] 'x 10'000] 
 			s1: recycle
-			--assert s1 - s0 >= 260'000
+			--assert s1 - s0 >= 160'000
 			r: none
 		}
 		s2: recycle
-		--assert s2 - s0 < 2000
+		--assert s2 - s0 < 1000
 
 	--test-- "#5238"
 		h: make hash! [1 2 3 4 5 6 7 8 9 10 11 12 13]
@@ -3645,6 +3645,12 @@ comment {
 		--assert error? set/any 'err try [do [f: func [x][]  f/x false]]  ;-- required DO to avoid the error being caught by compiler
 		--assert err/id = 'no-refine
 
+	--test-- "#5490"
+		--assert (1,1) = min 1x1 (1.#inf,1.#inf)
+		--assert (1,1) = min 1x1 1.#inf
+		--assert "(1.#NaN, 1.#NaN)" = mold max 1x1 (1.#nan,1.#nan)
+		--assert "(1.#NaN, 1.#NaN)" = mold max 1x1 1.#nan
+
 	--test-- "#5496"
 		file: %/dir/file
 		url: https://example.com/
@@ -3677,6 +3683,99 @@ comment {
 		v5509a: make vector! [integer! 32 [3 8 4 6]]
 		v5509b: make vector! [integer! 32 [4 0 1 -9]]
 		--assert v5509a + v5509b == make vector! [integer! 16 [7 8 5 -3]]
+		
+	--test-- "#5535"
+		f5535: does [try/all [return 1] 2]
+		--assert f5535 = 2
+		
+	--test-- "#5552"
+		do [
+			--assert error? try [fun: function [/ref x /local y return: [block!]] [a: 1 print "OK"]]
+			--assert error? try [fun: function [/ref x /local y return: [block!] "locals follow docstring ->"] [a: 1 print "OK"]]
+			--assert error? try [f: func [a [block!] return: [block!] /ref   /local x][]]
+			--assert error? try [f: func [a [block!] return: [block!] /ref y /local x][]]
+		]
+		
+	--test-- "#5562"
+		--assert error! = scan "(,)"
+		--assert error! = scan "(,1)"
+		--assert error! = scan "(, 1)"
+		--assert error! = scan "(1,,1)"
+		--assert error! = scan "(,,1)"
+		--assert error! = scan "(1,,)"
+		--assert error! = scan "(1,, 1)"
+		--assert error! = scan "(1, ,1)"
+		--assert error! = scan "(1, , 1)"
+		--assert error! = scan "(1 ,,1)"
+		--assert error! = scan "(1 , ,1)"
+		--assert error! = scan "(1 , , 1)"
+		--assert error? try [load "(,1)"]
+		--assert error? try [load "(,1,2)"]
+		--assert error? try [load "(,,2)"]
+		
+	--test-- "#5565"
+		react/link func [a b] [b/x: a/x] reduce [o1: object [x: 1] o2: object [x: 2]]
+		--assert o2/x = 2
+		
+	--test-- "#5561"
+		--assert "make vector! [float! 64 []]" == mold/all clear make vector! [0.0]
+		
+	--test-- "#5568"
+		r5568: reactor [x: 0 unset 'x]
+		--assert none? react [r5568/x]
+		--assert none? react [r5568/y]
+
+	--test-- "#5569"
+		--assert (1, 5.7) = round/to (1.234, 5.678) (1, 0.1, 0)
+		--assert (1, 5.7) = round/to (1.234, 5.678) (1, 0.1, 10)
+		--assert (1, 5.7) = round/to (1.234, 5.678) (1, 0.1, 1)
+		--assert (1, 5.7) = round/to (1.234, 5.678) (1, 0.1, 2)
+		--assert (1, 5.7) = round/to (1.234, 5.678) (1, 0.1, 3)
+		--assert (0, 10, 9.876) = round/to (1.234, 5.678, 9.876) (10, 10)
+
+	--test-- "#5579"
+		h5579: make hash! [1 2]
+		--assert h5579 = copy/part make hash! [1 2 3 4 5 6 7 8] 2
+
+	--test-- "#5584"
+		do [											;-- compiler would catch that error
+			f5584: func [/local y][probe 22]
+			--assert error? try [f5584/y]
+		]
+
+	--test-- "#5585"
+		do [											;-- compiler would catch that error
+			--assert error? try [
+				func [
+				  return: [integer!] "abcd" 
+				  return: [integer!]
+				  /local xx
+				][
+					123456
+				]
+			]
+		]
+
+	--test-- "#5586"
+		100x100 / 100x99 = (1, 1.010101)
+		
+	--test-- "#5587"
+		--assert '+ = first quote +/1/5
+		--assert '- = first quote -/1/5
+		
+	--test-- "#5588"
+		--assert 3 = length? 'table/+/(m/col)
+		--assert "table/+/(m/col)" = mold 'table/+/(m/col)
+		--assert "table/-/(m/col)" = mold 'table/-/(m/col)
+		
+	--test-- "#5589"
+		--assert 3 = length? 'table/++/(m/col)
+		--assert "table/++/(m/col)" = mold 'table/++/(m/col)
+		--assert "table/--/(m/col)" = mold 'table/--/(m/col)
+
+	--test-- "#5590"
+		--assert 3 = length? first [=/-/=]
+		--assert "[=/-/=]" = mold [=/-/=]
 	
 ===end-group===
 

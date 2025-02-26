@@ -490,6 +490,13 @@ system/view/VID: context [
 				unless find actors name [repend actors [name f s b]]
 			]
 		]
+		if block? style/template/actors [
+			unless block? actors [actors: opts/actors: make block! 4]
+			foreach [name f s b] style/template/actors [
+				unless find actors name [repend actors [name f s b]]
+			]
+		]
+		
 		if opts/flags [opts/flags: set-flag face opts/flags]	;-- pre-merge /flags facets
 		
 		set/some face opts								;-- merge default+styles and user options
@@ -687,7 +694,7 @@ system/view/VID: context [
 						max-sz: 0
 					]
 					space	[spacing: fetch-argument pos-size! spec]
-					origin	[origin: cursor: pad + top-left: fetch-argument pos-size! spec]
+					origin	[do reset  origin: bound: current: cursor: pad + top-left: fetch-argument pos-size! spec  max-sz: 0]
 					at		[at-offset: fetch-expr 'spec spec: back spec]
 					pad		[cursor: cursor + fetch-argument pos-size! spec]
 					do		[do-safe bind fetch-argument block! spec panel]
@@ -823,7 +830,7 @@ system/view/VID: context [
 
 			if options [set/some panel make object! user-opts]
 			if flags [panel/flags: either panel/flags [unique union to-block panel/flags to-block flgs][flgs]]
-			if block? panel/actors [panel/actors: context panel/actors]
+			if all [block? panel/actors panel/type = 'window][panel/actors: context panel/actors]
 		
 			if panel/type = 'window [
 				panel/parent: system/view/screens/1

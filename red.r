@@ -384,7 +384,7 @@ redc: context [
 		]
 	]
 	
-	build-libRedRT: func [opts [object!] /local script result file path][
+	build-libRedRT: func [opts [object!] /local script result file path saved][
 		print "Compiling libRedRT..."
 		file: libRedRT/lib-file
 		path: get-output-path opts
@@ -416,9 +416,12 @@ redc: context [
 			"...compilation time :" format-time result/2 "ms^/"
 			"^/Compiling to native code..."
 		]
+		saved: opts/verbosity
+		opts/verbosity: max 0 opts/verbosity - 3
 		unless encap? [change-dir %system/]
 		result: system-dialect/compile/options/loaded file opts result
 		unless encap? [change-dir %../]
+		opts/verbosity: saved
 		show-stats result
 	]
 	
@@ -545,7 +548,7 @@ redc: context [
 	parse-options: func [
 		args [string! none!]
 		/local src opts output target verbose filename config config-name base-path type
-		mode target? cmd spec cmds ws ssp view? modes
+		mode target? cmd spec cmds ws ssp modes
 	][
 		unless args [
 			if encap? [fetch-cmdline]					;-- Fetch real command-line in UTF8 format
@@ -558,8 +561,6 @@ redc: context [
 			link?: yes
 			libRedRT-update?: no
 		]
-		view?: yes										;-- include view module by default
-
 		either empty? args [
 			mode: 'help
 		][
@@ -592,7 +593,7 @@ redc: context [
 				| "--red-only"					(opts/red-only?: yes)
 				| "--dev"						(opts/dev-mode?: yes)
 				| "--no-runtime"				(opts/runtime?: no)		;@@ overridable by config!
-				| "--no-view"					(opts/GUI-engine: none view?: no)
+				| "--no-view"					(opts/GUI-engine: none)
 				| "--no-compress"				(opts/redbin-compress?: no)
 				| "--show-func-map"				(opts/show-func-map?: yes)
 				| "--" break							;-- stop options processing

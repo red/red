@@ -1925,7 +1925,7 @@ natives: context [
 				pt: as red-point3D! i
 				all [pt/x = as-float32 0 pt/y = as-float32 0]
 			]
-			TYPE_POINT2D [
+			TYPE_POINT3D [
 				pt: as red-point3D! i
 				all [pt/x = as-float32 0 pt/y = as-float32 0 pt/z = as-float32 0]
 			]
@@ -2040,6 +2040,7 @@ natives: context [
 	]
 	
 	handle-thrown-error: func [
+		keep? [logic!]									;-- TRUE: capture stack
 		/local
 			err	[red-object!]
 			id  [integer!]
@@ -2047,6 +2048,7 @@ natives: context [
 	][
 		err: as red-object! stack/get-top
 		assert TYPE_OF(err) = TYPE_ERROR
+		if keep? [error/capture err]
 		id: error/get-id err
 		type: error/get-type err
 		either all [id = type id = words/errors/throw/symbol] [			;-- check if error is of type THROW
@@ -3240,6 +3242,17 @@ natives: context [
 					]
 					TYPE_FLOAT
 					TYPE_INTEGER [
+						if type2 = TYPE_FLOAT [
+							fval: as red-float! arg2
+							if any [integer/overflow? fval float/special? fval/value][
+								pt2: as red-point2D! arg2	;-- promote argument to point2D!
+								pt2/header: TYPE_POINT2D
+								pt2/x: as-float32 fval/value
+								pt2/y: pt2/x
+								max-min max?
+								exit
+							]
+						]
 						i: arg-to-integer arg2
 						either max? [
 							if p/x < i [p/x: i]
@@ -3374,7 +3387,7 @@ natives: context [
 			int/value
 		][
 			fl: as red-float! arg
-			if any [integer/overflow? fl float/NaN? fl/value][
+			if any [integer/overflow? fl float/special? fl/value][
 				fire [TO_ERROR(script type-limit) datatype/push TYPE_INTEGER]
 			]
 			as-integer fl/value

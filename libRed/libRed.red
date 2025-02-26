@@ -277,7 +277,7 @@ Red [
 		collector/mark-block extern-blk
 		if last-error <> null [
 			err: as red-object! last-error
-			if TYPE_OF(err) = TYPE_ERROR [collector/mark-context err/ctx]
+			if TYPE_OF(err) = TYPE_ERROR [collector/mark-context :err/ctx]
 		]
 		ring/mark
 	]

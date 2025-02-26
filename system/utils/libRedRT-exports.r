@@ -14,6 +14,7 @@
 	red/get-cmdline-args
 	red/set-opt-refinement*
 	red/call-with-array*
+	red/get-libRedRT-bitarray
 
 	red/redbin/boot-load
 

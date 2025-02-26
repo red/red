@@ -23,6 +23,12 @@ names!: alias struct! [
 name-table:	  as names! 0	 						;-- datatype names table
 action-table: as int-ptr! 0							;-- actions jump table
 
+#if all [libRedRT? = yes type = 'dll][
+	get-libRedRT-bitarray: func [return: [int-ptr!]][
+		as int-ptr! system/image/base + system/image/bitarray
+	]
+]
+
 get-build-date: func [return: [c-string!]][			;-- used by red.r
 	#build-date
 ]
@@ -605,6 +611,7 @@ words: context [
 	values:			-1
 	owner:			-1
 	owned:			-1
+	events?:		-1
 	
 	windows:		-1
 	syllable:		-1
@@ -929,6 +936,7 @@ words: context [
 		values:			symbol/make "values"
 		owner:			symbol/make "owner"
 		owned:			symbol/make "owned"
+		events?:		symbol/make "events?"
 
 		_true:			symbol/make "true"
 		_false:			symbol/make "false"

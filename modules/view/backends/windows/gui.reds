@@ -723,9 +723,8 @@ free-faces: func [
 			;-- destroy the extra frame window
 			DestroyWindow as handle! GetWindowLong handle wc-offset - 4 as-integer handle
 		]
-		sym = panel [
-			DestroyWindow handle
-		]
+		sym = panel [DestroyWindow handle]
+		sym = camera [stop-camera handle]
 		true [
 			0
 			;; handle user-provided classes too
@@ -887,7 +886,7 @@ get-metrics: func [
 ]
 
 on-gc-mark: does [
-	collector/keep flags-blk/node
+	collector/keep :flags-blk/node
 ]
 
 init: func [
@@ -2342,7 +2341,7 @@ change-selection: func [
 		]
 		sym = camera [
 			either TYPE_OF(int) = TYPE_NONE [
-				stop-camera hWnd
+				destroy-camera hWnd
 			][
 				if select-camera hWnd int/value - 1 [
 					toggle-preview hWnd true

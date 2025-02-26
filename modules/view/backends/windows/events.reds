@@ -1668,6 +1668,7 @@ WndProc: func [
 				update-window as red-block! values null
 			]
 			if hidden-hwnd <> null [
+				;@@ FIXME this may cause issue if the face inside hidden-hwnd has been GCed
 				values: (get-face-values hidden-hwnd) + FACE_OBJ_EXT3
 				values/header: TYPE_NONE
 				target: as render-target! GetWindowLong hidden-hwnd wc-offset - 36

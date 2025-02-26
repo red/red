@@ -178,7 +178,7 @@ screen: context [
 			end [red-object!]
 			h	[handle!]
 	][
-		if w/ui <> null [collector/keep w/ui]
+		if w/ui <> null [collector/keep :w/ui]
 		p: CHILD_WIDGET(w)
 		if TYPE_OF(p) = TYPE_BLOCK [
 			obj: as red-object! block/rs-head p
@@ -209,9 +209,9 @@ screen: context [
 	]
 
 	on-gc-mark: func [][
-		collector/keep win-list
-		collector/keep captured
-		collector/keep esc-sequences
+		collector/keep as int-ptr! :win-list
+		collector/keep as int-ptr! :captured
+		collector/keep as int-ptr! :esc-sequences
 		mark-widgets
 	]
 
@@ -328,7 +328,10 @@ screen: context [
 		active-win: wm
 		set-focus-widget w wm
 
-		if wm/editable = 0 [tty/hide-cursor]
+		if all [
+			wm/editable = 0
+			tty/raw-mode?
+		][tty/hide-cursor]
 
 		hover-widget: null
 		captured-widget: null

@@ -16,8 +16,8 @@ emitter: make-profilable context [
 	stack: 	   make block! 40			;-- [name offset ...]
 	exits:	   make block! 1			;-- [offset ...]	(funcs exits points)
 	breaks:	   make block! 1			;-- [[offset ...] [...] ...] (break jump points)
-	cont-next: make block! 1			;-- [[offset ...] [...] ...] (break jump points)
-	cont-back: make block! 1			;-- [[offset ...] [...] ...] (break jump points)
+	cont-next: make block! 1			;-- [[offset ...] [...] ...] (continue skip jump points)
+	cont-back: make block! 1			;-- [[offset ...] [...] ...] (continue back jump points)
 	bits-buf:  make binary! 10'000
 	verbose:   0						;-- logs verbosity level
 	
@@ -50,6 +50,7 @@ emitter: make-profilable context [
 		struct!		4	-				;-- 32-bit, 8 for 64-bit ; struct! passed by reference
 		function!	4	-				;-- 32-bit, 8 for 64-bit
 		subroutine!	4	-				;-- 32-bit, 8 for 64-bit
+		array!		4	-				;-- 32-bit, 8 for 64-bit
 	]
 	
 	datatypes: none						;-- initialized by init function
@@ -278,13 +279,16 @@ emitter: make-profilable context [
 			float! float64! float32! [
 				pad-data-buf either type = 'float32! [target/default-align][8] ;-- align 64-bit floats on 64-bit
 				ptr: tail data-buf
-				value: compiler/unbox value
-				if integer? value [value: to decimal! value]
-				unless find [decimal! issue!] type?/word value [value: 0.0]
-				append ptr either type = 'float32! [
-					IEEE-754/to-binary32/rev value	;-- stored in little-endian
-				][
-					IEEE-754/to-binary64/rev value	;-- stored in little-endian
+				either binary? value [append ptr value][ ;-- `as float32! keep` case
+					value: compiler/unbox value
+					if integer? value [value: to decimal! value]
+					
+					unless find [decimal! issue!] type?/word value [value: 0.0]
+					append ptr either type = 'float32! [
+						IEEE-754/to-binary32/rev value	;-- stored in little-endian
+					][
+						IEEE-754/to-binary64/rev value	;-- stored in little-endian
+					]
 				]
 			]
 			c-string! [
@@ -766,19 +770,23 @@ emitter: make-profilable context [
 		size
 	]
 	
+	reverse-fields: func [spec [block!]][
+		take/last head insert reverse spec: copy spec '_
+		spec
+	]
+	
 	foreach-field: func [spec [block!] body [block!] /local type][
 		all [
 			'value = last spec
 			'struct! <> spec/1
-			spec: second compiler/find-aliased spec/1
+			spec: reverse-fields second compiler/find-aliased spec/1
 		]
 		body: bind/copy body 'type
 		if block? spec/1 [spec: next spec]				;-- skip struct's [attributs] if present
 
-		foreach [name t] spec [
-			either 'value = last type: t [
-				t: compiler/find-aliased t/1
-				foreach-field t/2 body
+		forskip spec 2 [
+			either 'value = last type: spec/2 [
+				foreach-field second compiler/find-aliased spec/2/1 body
 			][
 				do body
 			]
@@ -837,9 +845,9 @@ emitter: make-profilable context [
 					either compiler/any-pointer?/with spec ts [
 						either 'value = last spec [
 							foreach-field spec [
-								step: pick 2x1 to logic! find [float! float64!] spec/1
+								step: pick 2x1 to logic! find [float! float64!] type/1
 								if compiler/any-pointer?/with type ts [
-									bits: bits + (shift/left 1 i)
+									bits: bits or (shift/left 1 i)
 								]
 								if (i: i + step) > 30 store
 							]
@@ -928,7 +936,7 @@ emitter: make-profilable context [
 		clear subs
 	]
 
-	calc-locals-offsets: func [spec [block!] /local total var sz extra][
+	calc-locals-offsets: func [spec [block!] /only /local total var sz extra][
 		total: negate extra: target/locals-offset
 		while [not tail? spec: next spec][
 			var: spec/1
@@ -938,7 +946,7 @@ emitter: make-profilable context [
 			][
 				sz: target/stack-slot-max				;-- type to be inferred
 			]
-			repend stack [var (total: total - sz)] 		;-- store stack offsets
+			unless only [repend stack [var (total: total - sz)]] 		;-- store stack offsets
 		]
 		(abs total) - extra
 	]

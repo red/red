@@ -255,7 +255,7 @@ free-font: func [
 			assert hFont <> h2
 			DeleteObject hFont
 			h: get-font-handle-slot font n
-			externals/remove h/extID no
+			h/extID: externals/remove h/extID no
 			h2: hFont
 			free?: yes
 		]

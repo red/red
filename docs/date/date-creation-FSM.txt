@@ -1,0 +1,64 @@
+=== Date creation FSM ===
+
+--Transitions--
+
+int:  integer! value
+time: time! value
+tail: spec block tail reached
+num:  integer! or float! value
+
+--States--
+
+S_START:	0
+S_D:		1
+S_M:		2
+S_Y:		3
+S_T:		4
+S_TZ:		5
+S_TH:		6
+S_THM:		7
+S_H:		8
+S_HM:		9
+S_HMS:		10
+S_HMSZ:		11
+S_HMSH:		12
+S_HMSHM		13
+S_END:		14
+S_ERR:		15
+
+--FSM--
+
+S_START->int->S_D
+	  |->S_ERR
+
+S_D->int->S_M->int->S_Y
+  |->S_ERR  |->S_ERR
+
+S_Y->time->S_T
+  |->int->S_H
+  |->tail->S_END
+  |->S_ERR
+
+S_T->time->S_TZ->tail->S_END
+  |           |->S_ERR
+  |
+  |->int->S_TH->int->S_THM->tail->S_END
+  |          |           |->S_ERR
+  |          |->tail->S_END
+  |          |->S_ERR
+  |->tail->S_END
+  |->S_ERR
+
+S_H->int->S_HM->num->S_HMS->time->S_HMSZ->tail->S_END
+  |          |           |             |->S_ERR
+  |          |           |
+  |          |           |->int->S_HMSH->int->S_HMSHM->tail->S_END
+  |          |           |            |             |->S_ERR
+  |          |           |            |->tail->S_END
+  |          |           |            |->S_ERR
+  |          |           |->tail->S_END
+  |          |           |->S_ERR
+  |          |->tail->S_END
+  |          |->S_ERR
+  |->tail->S_END
+  |->S_ERR

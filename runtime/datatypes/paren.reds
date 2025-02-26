@@ -37,11 +37,15 @@ paren: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "paren/mold"]]
 		
-		string/append-char GET_BUFFER(buffer) as-integer #"("
-		part: part - 1
+		unless only? [
+			string/append-char GET_BUFFER(buffer) as-integer #"("
+			part: part - 1
+		]
 		part: block/mold-each paren buffer only? all? flat? arg part indent
-		string/append-char GET_BUFFER(buffer) as-integer #")"
-		part - 1
+		either only? [part][
+			string/append-char GET_BUFFER(buffer) as-integer #")"
+			part - 1
+		]
 	]
 
 	init: does [

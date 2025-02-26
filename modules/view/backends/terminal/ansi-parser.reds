@@ -36,7 +36,7 @@ ansi-parser: context [
 	]
 
 	on-gc-mark: does [
-		collector/keep buffer
+		collector/keep as int-ptr! :buffer
 	]
 
 	add-byte: func [

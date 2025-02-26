@@ -313,9 +313,9 @@ get-metrics: func [][
 ]
 
 on-gc-mark: does [
-	collector/keep flags-blk/node
-	collector/keep win-array/node
-	collector/keep active-wins/node
+	collector/keep :flags-blk/node
+	collector/keep :win-array/node
+	collector/keep :active-wins/node
 ]
 
 support-dark-mode?: func [

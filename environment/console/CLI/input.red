@@ -344,7 +344,7 @@ unless system/console [
 			line: input-line
 			bytes: 0
 
-			either first-print? [
+			either all [not pasting? first-print?][
 				first-print?: no
 				query-cursor :cursor-pos
 			][

@@ -24,6 +24,12 @@ Red [
 		--assert unset! = type? mm2-m/a
 		--assert 2 = mm2-m/b
 		--assert 3 = mm2-m/c
+		
+	--test-- "map-make-3"
+		--assert map? make map! 2
+		--assert map? make map! 4.1
+		--assert map? make map! 3
+		--assert map? make map! 5.1
 	
 ===end-group=== 
 

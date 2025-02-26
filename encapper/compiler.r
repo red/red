@@ -1389,7 +1389,11 @@ red: context [
 			opt string!
 			opt [pos: block! (flags: decode-attributes pos) opt string!]
 			any [
-				pos: /local (loc?: yes append symbols 'local) [
+				pos: /local (
+					if loc? [stop: [end skip]]
+					append symbols 'local
+					loc?: yes
+				) stop [
 					any [
 						pos: word! (
 							unless find symbols word: to word! pos/1 [
@@ -1401,12 +1405,12 @@ red: context [
 					]
 				]
 				| set-word! (
-					if any [return? pos/1 <> return-def][stop: [end skip]]
+					if any [loc? return? pos/1 <> return-def][stop: [end skip]]
 					return?: yes						;-- allow only one return: statement
 				) stop pos: block! opt string!
 				| [
 					[word! | lit-word! | get-word!] opt block! opt string!
-					| refinement! opt string! (if loc? [stop: [end skip]]) stop
+					| refinement! opt string! (if any [loc? return?][stop: [end skip]]) stop
 				] (append symbols to word! pos/1)
 			]
 		][
@@ -2268,7 +2272,9 @@ red: context [
 				catch RED_THROWN_ERROR
 			]
 			insert-lf -2
+			push-call call
 			body: comp-sub-block 'try
+			pop-call call
 			if body/1 = 'stack/reset [remove body]
 			mark: tail output
 			insert body mark
@@ -2279,12 +2285,17 @@ red: context [
 			unless all? [
 				emit [switch system/thrown]
 				handlers: build-exception-handler
-				insert handlers/1 [
+				insert handlers/1 compose/deep [
 					RED_THROWN_ERROR  [
-						natives/handle-thrown-error
+						natives/handle-thrown-error (pick [true false] keep?)
 					]
 				]
 				emit handlers
+			]
+			if all [keep? all?][
+				emit [
+					error/capture as red-object! stack/get-top
+				]
 			]
 			emit either all? [
 				[
@@ -3009,7 +3020,7 @@ red: context [
 	comp-return: does [
 		check-invalid-exit 'return
 		comp-expression
-		emit-exit-function
+		unless find expr-stack 'try-all [emit-exit-function]
 	]
 	
 	comp-self: func [original [any-word!] /local obj ctx][

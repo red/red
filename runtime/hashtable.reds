@@ -297,10 +297,11 @@ array: context [
 
 #define MAP_KEY_DELETED		[0]
 
-#define HASH_TABLE_HASH		0
-#define HASH_TABLE_MAP		1
-#define HASH_TABLE_SYMBOL	2
-#define HASH_TABLE_INTEGER	3
+#define HASH_TABLE_HASH			0
+#define HASH_TABLE_MAP			1
+#define HASH_TABLE_SYMBOL		2
+#define HASH_TABLE_NODE_KEY		3		;-- key must be a node, GC will mark it
+#define HASH_TABLE_OWNERSHIP	4
 
 #define HASH_SYMBOL_BLOCK	1
 #define HASH_SYMBOL_CONTEXT	2
@@ -472,35 +473,139 @@ _hashtable: context [
 		upper-bound	[integer!]
 	]
 
-	mark: func [
-		table [node!]
+	dump: func [
+		table	[node!]
 		/local
+			s	[series!]
+			h	[hashtable!]
+			blk [red-value!]
+			k	[red-value!]
+			val [red-value!]
+			int? [logic!]
+			n-buckets key vsize j ii sh idx [integer!]
+			keys flags int-key [int-ptr!]
+	][
+		s: as series! table/value
+		h: as hashtable! s/offset
+		int?: h/type >= HASH_TABLE_NODE_KEY
+		s: as series! h/blk/value
+		blk: s/offset
+		s: as series! h/flags/value
+		flags: as int-ptr! s/offset
+		n-buckets: h/n-buckets
+
+		s: as series! h/keys/value
+		keys: as int-ptr! s/offset
+		probe "^/== Deleted keys =="
+		j: 0
+		until [
+			_HT_CAL_FLAG_INDEX(j ii sh)
+			j: j + 1
+			if _BUCKET_IS_DEL(flags ii sh) [
+				idx: keys/j
+				either int? [
+					int-key: as int-ptr! ((as byte-ptr! blk) + idx)
+					key: int-key/2
+					print [as int-ptr! key " "]
+					vsize: (as-integer h/indexes) >> 4
+					val: (as red-value! int-key) + 1
+					loop vsize - 1 [	;-- print values
+						print [TYPE_OF(val) " "]
+						val: val + 1
+					]
+				][
+					k: blk + (idx and 7FFFFFFFh)
+					print TYPE_OF(k)
+					print " "
+					if h/type <> HASH_TABLE_HASH [
+						val: k + 1
+						print TYPE_OF(val)
+					]
+				]
+				print lf
+			]
+			j = n-buckets
+		]
+		probe "== Alive keys =="
+		j: 0
+		until [
+			_HT_CAL_FLAG_INDEX(j ii sh)
+			j: j + 1
+			if _BUCKET_IS_HAS_KEY(flags ii sh) [
+				idx: keys/j
+				either int? [
+					int-key: as int-ptr! ((as byte-ptr! blk) + idx)
+					key: int-key/2
+					print [as int-ptr! key " "]
+					vsize: (as-integer h/indexes) >> 4
+					val: (as red-value! int-key) + 1
+					loop vsize - 1 [	;-- print values
+						print [TYPE_OF(val) " "]
+						val: val + 1
+					]
+				][
+					k: blk + (idx and 7FFFFFFFh)
+					print TYPE_OF(k)
+					print " "
+					if h/type <> HASH_TABLE_HASH [
+						val: k + 1
+						print TYPE_OF(val)
+					]
+				]
+				print lf
+			]
+			j = n-buckets
+		]
+	]
+
+	mark: func [
+		ptr [int-ptr!]
+		/local
+			table [node!]
+			node [node!]
 			s	 [series!]
 			h	 [hashtable!]
 			val	 [red-value!]
 			end	 [red-value!]
 			p	 [ptr-ptr!]
 			e	 [ptr-ptr!]
-			type	 [integer!]
+			type [integer!]
+			vsize [integer!]
 	][
-		collector/keep table
+		collector/keep ptr
+		table: as node! ptr/value
 		s: as series! table/value
 		h: as hashtable! s/offset
 		type: h/type
 		if type = HASH_TABLE_HASH [
-			collector/keep h/indexes
-			collector/keep h/chains
+			collector/keep :h/indexes
+			collector/keep :h/chains
 			s: as series! h/chains/value
 			p: as ptr-ptr! s/offset
 			e: as ptr-ptr! s/tail
 			while [p < e][
-				if p/value <> null [collector/keep p/value]
+				if p/value <> null [collector/keep as int-ptr! p]
 				p: p + 1
 			]
 		]
-		collector/keep h/flags
-		collector/keep h/keys
-		if type > 1 [collector/keep h/blk]
+		collector/keep :h/flags
+		collector/keep :h/keys
+
+		if type >= HASH_TABLE_NODE_KEY [ 
+			vsize: as integer! h/indexes
+			vsize: vsize >> 4
+			s: as series! h/blk/value
+			val: s/offset
+			end: s/tail
+			while [val < end][
+				collector/keep :val/data1	;-- mark node key
+				node: as node! val/data1
+				s: as series! node/value
+				if GET_UNIT(s) = 16 [collector/mark-values s/offset s/tail]		
+				val: val + vsize
+			]
+		]
+		if type > 0 [collector/mark-block-node :h/blk]
 	]
 
 	sweep: func [
@@ -511,33 +616,41 @@ _hashtable: context [
 			val	 [red-value!]
 			end	 [red-value!]
 			obj  [red-object!]
+			type [integer!]
+			vsize [integer!]
 			node [node!]
 	][
 		s: as series! table/value
 		h: as hashtable! s/offset
 
-		assert h/type = HASH_TABLE_INTEGER
+		type: h/type
+		assert type >= HASH_TABLE_NODE_KEY
 
+		vsize: as integer! h/indexes
+		vsize: vsize >> 4
 		s: as series! h/blk/value
 		val: s/offset
 		end: s/tail
 		while [val < end][
-			node: as node! val/data1
-			if node <> null [
+			if val/header = TYPE_UNSET [			;-- only sweep alive key. key was deleted if val/header = TYPE_VALUE
+				node: as node! val/data1
+				assert node <> null
 				s: as series! node/value
 				either s/flags and flag-gc-mark = 0 [
 					delete-key table as-integer node
 					val/data1: 0
-				][	;-- check owner
-					obj: as red-object! val + 2
-					s: as series! obj/ctx/value
-					if s/flags and flag-gc-mark = 0 [
-						delete-key table as-integer node
-						val/data1: 0
+				][
+					if type = HASH_TABLE_OWNERSHIP [
+						obj: as red-object! val + 2	;-- check owner
+						s: as series! obj/ctx/value
+						if s/flags and flag-gc-mark = 0 [
+							delete-key table as-integer node
+							val/data1: 0
+						]
 					]
 				]
 			]
-			val: val + 4
+			val: val + vsize
 		]
 	]
 
@@ -1112,7 +1225,7 @@ _hashtable: context [
 			f-buckets	[float!]
 			fsize		[float!]
 			skip		[integer!]
-			saved		[logic!]
+			hash		[red-hash!]
 	][
 		node: _alloc-bytes-filled size? hashtable! #"^(00)"
 		if type = HASH_TABLE_SYMBOL [
@@ -1126,7 +1239,7 @@ _hashtable: context [
 		s: as series! node/value
 		h: as hashtable! s/offset
 		h/type: type
-		if type = HASH_TABLE_INTEGER [h/indexes: as node! vsize + 1 << 4]
+		if type >= HASH_TABLE_NODE_KEY [h/indexes: as node! vsize + 1 << 4]
 
 		if size < 4 [size: 4]
 		fsize: as-float size
@@ -1147,14 +1260,19 @@ _hashtable: context [
 		]
 		h/flags: flags
 		h/keys: keys
-		either any [type = HASH_TABLE_INTEGER blk = null][
+		either any [type >= HASH_TABLE_NODE_KEY blk = null][
 			h/blk: alloc-cells size
 		][
 			h/blk: blk/node
-			saved: collector/active?
-			collector/active?: no							;-- turn off GC
+			if type = HASH_TABLE_HASH [
+				hash: as red-hash! stack/push* ;@@ push on stack to mark it properly, especially `h/chains`
+				hash/header: TYPE_HASH
+				hash/head: 0
+				hash/node: h/blk
+				hash/table: node
+			]
 			put-all node blk/head skip
-			collector/active?: saved
+			if type = HASH_TABLE_HASH [stack/pop 1]
 		]
 		node
 	]
@@ -1201,8 +1319,10 @@ _hashtable: context [
 			new-size	[integer!]
 			f			[float!]
 			flags		[node!]
+			blk			[node!]
 			new-blk		[node!]
 			i sz		[integer!]
+			start		[red-value!]
 			end			[red-value!]
 			value		[red-value!]
 			key			[red-value!]
@@ -1231,12 +1351,14 @@ _hashtable: context [
 		len: vsize >> 4
 		vsize: vsize - size? red-value!
 
-		s: as series! h/blk/value
+		blk: h/blk		;-- @@ put it on stack, so GC can mark it
+		s: as series! blk/value
+		start: s/offset
 		end: s/tail
 		i: 0
 		h/blk: alloc-cells sz * len
 		while [
-			value: s/offset + i
+			value: start + i
 			value < end
 		][
 			k: as int-ptr! value
@@ -1279,7 +1401,7 @@ _hashtable: context [
 		s: as series! node/value
 		h: as hashtable! s/offset
 
-		int?: h/type = HASH_TABLE_INTEGER
+		int?: h/type >= HASH_TABLE_NODE_KEY
 		s: as series! h/blk/value
 		blk: s/offset
 		s: as series! h/flags/value
@@ -1435,6 +1557,7 @@ _hashtable: context [
 			]
 			true [k: as int-ptr! blk + keys/x]
 		]
+
 		len: vsize >> 4
 		value: as cell! k
 		loop len [
@@ -1566,7 +1689,7 @@ _hashtable: context [
 			s [series!] h [hashtable!] x [integer!] i [integer!] site [integer!]
 			last [integer!] mask [integer!] step [integer!] keys [int-ptr!]
 			hash [integer!] n-buckets [integer!] flags [int-ptr!] ii [integer!]
-			sh [integer!] continue? saved [logic!] blk [red-value!] idx [integer!]
+			sh [integer!] continue? [logic!] blk [red-value!] idx [integer!]
 			type [integer!] del? chain? [logic!] indexes chain [int-ptr!] k [red-value!]
 	][
 		s: as series! node/value
@@ -1588,9 +1711,6 @@ _hashtable: context [
 			s: as series! node/value
 			h: as hashtable! s/offset
 		]
-
-		saved: collector/active?
-		collector/active?: no						;-- turn off GC
 
 		s: as series! h/blk/value
 		idx: (as-integer (key - s/offset)) >> 4
@@ -1686,7 +1806,6 @@ _hashtable: context [
 			idx: idx + 1
 			indexes/idx: x
 		]
-		collector/active?: saved
 		key
 	]
 
@@ -1936,12 +2055,12 @@ _hashtable: context [
 		h/size: h/size - 1
 	]
 
-	copy: func [				;-- only map! use it
+	copy: func [
 		node	[node!]
 		blk		[node!]
 		return: [node!]
 		/local s [series!] h [hashtable!] ss [series!] hh [hashtable!]
-			new [node!]
+			new flags keys indexes chains [node!]
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -1950,9 +2069,17 @@ _hashtable: context [
 		ss: as series! new/value
 		hh: as hashtable! ss/offset
 
-		hh/flags: copy-series as series! h/flags/value
-		hh/keys: copy-series as series! h/keys/value
+		flags: copy-series as series! h/flags/value
+		hh/flags: flags
+		keys: copy-series as series! h/keys/value
+		hh/keys: keys
 		hh/blk: blk
+		if h/type = HASH_TABLE_HASH [
+			indexes: copy-series as series! h/indexes/value
+			hh/indexes: indexes
+			chains: copy-series as series! h/chains/value
+			hh/chains: chains
+		]
 		new
 	]
 
@@ -2044,18 +2171,15 @@ _hashtable: context [
 		change? [logic!]					;-- deleted or inserted items
 		return: [integer!]
 		/local s [series!] h [hashtable!] indexes chain p e keys index flags [int-ptr!]
-			i c-idx idx part ii sh n [integer!] table [node!] saved [logic!]
+			i c-idx idx part ii sh n [integer!] table [node!]
 	][
 		if size > 30000 [return HASH_TABLE_ERR_REHASH]
-
-		saved: collector/active?
-		collector/active?: no
 
 		if null? refresh-buffer [
 			refresh-buffer: as red-hash! ALLOC_TAIL(root)
 			refresh-buffer/header: TYPE_MAP
 			refresh-buffer/node: alloc-bytes 4
-			refresh-buffer/table: init 1024 null HASH_TABLE_INTEGER 0
+			refresh-buffer/table: init 1024 null HASH_TABLE_NODE_KEY 0
 		]
 		table: refresh-buffer/table
 
@@ -2136,7 +2260,7 @@ _hashtable: context [
 				as byte-ptr! indexes + head
 				size * 4
 		]
-		collector/active?: saved
+
 		HASH_TABLE_ERR_OK
 	]
 

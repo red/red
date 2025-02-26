@@ -508,7 +508,7 @@ free-handles: func [
 ]
 
 on-gc-mark: does [
-	collector/keep flags-blk/node
+	collector/keep :flags-blk/node
 ]
 
 parse-font-name: func [

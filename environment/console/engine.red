@@ -213,7 +213,7 @@ system/console: context [
 		'stop <> catch [transcode/trace buffer :delimiter-lex] ;-- catches 'stop and 'break
 	]
 	
-	try-do: func [code /local result return: [any-type!]][
+	try-do: func [code return: [any-type!] /local result][
 		set/any 'result try/all/keep [
 			either 'halt-request = set/any 'result catch/name code 'console [
 				print "(halted)"						;-- return an unset value

@@ -93,8 +93,13 @@ unset: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "unset/mold"]]
 		
-		string/concatenate-literal buffer "unset"
-		part - 5
+		either all? [
+			string/concatenate-literal buffer "#(unset)"
+			part - 8
+		][
+			string/concatenate-literal buffer "unset"
+			part - 5
+		]
 	]
 	
 	compare: func [

@@ -269,6 +269,7 @@ red: context [
 		redbin/boot-load system/boot-data no
 		interpreter/init
 		references/init
+		collector/init
 		
 		#if debug? = yes [
 			datatype/verbose:	verbosity

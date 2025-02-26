@@ -266,6 +266,65 @@ typeset: context [
 		]
 		blk
 	]
+	
+	serialize: func [
+		sets	[red-typeset!]
+		buffer	[red-string!]
+		only?	[logic!]
+		all?	[logic!]
+		flat?	[logic!]
+		arg		[red-value!]
+		part	[integer!]
+		return: [integer!]
+		/local
+			array	[byte-ptr!]
+			pos		[byte-ptr!]							;-- required by BS_TEST_BIT
+			name	[names!]
+			id		[integer!]
+			cnt		[integer!]
+			s		[series!]
+			part?	[logic!]
+			set?	[logic!]							;-- required by BS_TEST_BIT
+	][
+		#if debug? = yes [if verbose > 0 [print-line "typeset/form"]]
+
+		part?: OPTION?(arg)
+		array: (as byte-ptr! sets) + 4
+		id: 1
+		cnt: 0
+		unless only? [
+			string/concatenate-literal buffer "make typeset! ["
+			part: part - 15
+		]
+		until [
+			BS_TEST_BIT(array id set?)
+			if set? [
+				if all [part? negative? part][return part]
+				name: name-table + id
+				string/concatenate-literal-part buffer name/buffer name/size + 1
+				string/append-char GET_BUFFER(buffer) as-integer space
+				part: part - name/size - 2
+				cnt: cnt + 1
+			]
+			id: id + 1
+			id > datatype/top-id
+		]
+		s: GET_BUFFER(buffer)
+		either only? [
+			if s/offset < s/tail [
+				s/tail: as red-value! ((as byte-ptr! s/tail) - GET_UNIT(s))
+				part: part + 1
+			]
+		][
+			either zero? cnt [
+				string/append-char s as-integer #"]"
+			][
+				string/poke-char s (as byte-ptr! s/tail) - 1 as-integer #"]"
+			]
+		]
+		part
+	]
+
 
 	;-- Actions --
 
@@ -317,44 +376,10 @@ typeset: context [
 		arg		[red-value!]
 		part	[integer!]
 		return: [integer!]
-		/local
-			array	[byte-ptr!]
-			pos		[byte-ptr!]							;-- required by BS_TEST_BIT
-			name	[names!]
-			id		[integer!]
-			cnt		[integer!]
-			s		[series!]
-			part?	[logic!]
-			set?	[logic!]							;-- required by BS_TEST_BIT
 	][
 		#if debug? = yes [if verbose > 0 [print-line "typeset/form"]]
 
-		part?: OPTION?(arg)
-		array: (as byte-ptr! sets) + 4
-		id: 1
-		cnt: 0
-		string/concatenate-literal buffer "make typeset! ["
-		part: part - 15
-		until [
-			BS_TEST_BIT(array id set?)
-			if set? [
-				if all [part? negative? part][return part]
-				name: name-table + id
-				string/concatenate-literal-part buffer name/buffer name/size + 1
-				string/append-char GET_BUFFER(buffer) as-integer space
-				part: part - name/size - 2
-				cnt: cnt + 1
-			]
-			id: id + 1
-			id > datatype/top-id
-		]
-		s: GET_BUFFER(buffer)
-		either zero? cnt [
-			string/append-char s as-integer #"]"
-		][
-			string/poke-char s (as byte-ptr! s/tail) - 1 as-integer #"]"
-		]
-		part
+		serialize sets buffer no no no arg part
 	]
 
 	mold: func [
@@ -369,7 +394,7 @@ typeset: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "typeset/mold"]]
 
-		form sets buffer arg part
+		serialize sets buffer only? all? flat? arg part
 	]
 
 	compare: func [

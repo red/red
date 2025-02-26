@@ -86,13 +86,16 @@ node-frame!: alias struct! [				;-- node frame header
 	nodes	[integer!]						;-- number of nodes
 	head	[node!]							;-- entry node for the free list (can be null if full)
 	used	[integer!]						;-- number of used nodes in the list
+	birth	[integer!]						;-- GC cycle runs when that node frame has been allocated
+	p-used	[integer!]						;-- used nodes at last GC cycle
+	a-used	[integer!]						;-- bit array of previously used states (1: unchanged/cycle, 0: changed)
+	locked? [logic!]						;-- frame is locked from new node allocations (scheduled to be freed)
 ]
 
 big-frame!: alias struct! [					;-- big frame header (for >= 2MB series)
-	flags	[integer!]						;-- bit 30: 1 (type = big)
 	next	[big-frame!]					;-- next frame or null
+	prev	[big-frame!]					;-- always null (single linked-list)
 	size	[integer!]						;-- size (up to 4GB - size? header)
-	padding [integer!]						;-- make this header same size as series-buffer! header
 ]
 
 memory: declare struct! [					; TBD: instanciate this structure per OS thread
@@ -113,6 +116,8 @@ memory: declare struct! [					; TBD: instanciate this structure per OS thread
 ]
 
 bitarrays-base: declare int-ptr!			;-- points to bit-arrays table
+lib-bitarrays-base: declare int-ptr! 		;-- points to bit-arrays table (libRedRT image)
+
 
 init-mem: func [/local p [int-ptr!]][
 	memory/total:	 0
@@ -128,6 +133,12 @@ init-mem: func [/local p [int-ptr!]][
 	p: as int-ptr! system/image/base + system/image/bitarray
 	if p/0 = 1 [p: as int-ptr! crush/decompress as byte-ptr! p null]
 	bitarrays-base: p
+
+	#if libRedRT? = yes [
+		p: as int-ptr! system/lib-image/base + system/lib-image/bitarray
+		if p/0 = 1 [p: as int-ptr! crush/decompress as byte-ptr! p null]
+		lib-bitarrays-base: p
+	]
 ]
 
 ;; (1) Series frames size will grow from 1MB up to 2MB (arbitrary selected). This
@@ -262,10 +273,14 @@ alloc-node-frame: func [
 	sz: size * (size? node!) + (size? node-frame!) ;-- total required size for a node frame
 	frame: as node-frame! allocate-virtual sz no ;-- R/W only
 
-	frame/prev:  null
-	frame/next:  null
-	frame/nodes: size
-	frame/used:  0
+	frame/prev:   null
+	frame/next:   null
+	frame/nodes:  size
+	frame/used:   0
+	frame/birth:  collector/stats/cycles
+	frame/p-used: 0
+	frame/a-used: 0
+	frame/locked?: no
 
 	either null? memory/n-head [
 		memory/n-head: frame				;-- first item in the list
@@ -300,6 +315,7 @@ free-node-frame: func [
 	]
 	if memory/n-active = frame [
 		memory/n-active: memory/n-tail		;-- reset active frame to last one @@
+		assert not memory/n-tail/locked?
 	]
 	assert not all [						;-- ensure that list is not empty
 		null? memory/n-head
@@ -320,10 +336,11 @@ alloc-node: func [
 	frame: memory/n-active					;-- take node from active node frame
 	if null? frame/head [
 		frame: memory/n-head
-		while [all [frame <> null frame/head = null]][frame: frame/next]
+		while [all [frame <> null any [frame/head = null frame/locked?]]][frame: frame/next]
 		if null? frame [frame: alloc-node-frame nodes-per-frame]
 		memory/n-active: frame
 	]
+	assert not frame/locked?
 	node: frame/head
 	frame/head: as node! node/value
 	node/value: 0
@@ -356,13 +373,16 @@ collect-node-frames: func [
 	frame: memory/n-head
 	while [frame <> null][
 		next: frame/next
-		either zero? frame/used [
+		either any [zero? frame/used frame/locked?][
 			free-node-frame frame
 		][
 			if all [unset? frame/used < frame/nodes][
 				memory/n-active: frame
 				unset?: no
 			]
+			frame/a-used: frame/a-used << 1 
+			frame/a-used: frame/a-used or as-integer frame/p-used = frame/used
+			frame/p-used: frame/used		;-- save used nodes (stats purposes)
 		]
 		frame: next
 	]
@@ -881,6 +901,7 @@ alloc-big: func [
 	frame: as big-frame! allocate-virtual sz no ;-- R/W only
 
 	frame/next: null
+	frame/prev: null
 	frame/size: size
 	
 	either null? memory/b-head [
