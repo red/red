@@ -2390,7 +2390,7 @@ lexer: context [
 		/local
 			cp class index state prev flags line mark offset idx [integer!]
 			term? load?	ld? scan? events? err? [logic!]
-			p e	start s in-end [byte-ptr!]
+			p e	start s [byte-ptr!]
 			slot		[cell!]
 			do-scan		[scanner!]
 			do-load		[loader!]
@@ -2398,7 +2398,6 @@ lexer: context [
 		line: 1
 		ld?: lex/load?
 		events?: lex/fun-ptr <> null
-		in-end: lex/in-end
 		until [
 			flags: 0									;=== Pre-scanning stage ===
 			term?: no
@@ -2408,7 +2407,8 @@ lexer: context [
 			start: p									;-- token starting position (including whitespaces)
 			mark: line
 			offset: 0									;-- leading whitespaces counter
-			loop as-integer in-end - p [			;-- prescanning loop
+			
+			loop as-integer lex/in-end - p [			;-- prescanning loop
 				#if debug? = yes [if verbose > 0 [probe ["=== " p/1 " ==="]]]
 				cp: as-integer p/value
 				flags: lex-classes/cp and FFFFFF00h or flags
@@ -2451,7 +2451,7 @@ lexer: context [
 			if state = T_WORD [
 				s: skip-whitespaces lex s lex/tok-end TYPE_WORD ;-- Unicode spaces are parsed as words, skip them upfront!
 				if s = p [
-					either lex/in-pos < in-end [continue][ ;-- empty token, move to next one
+					either lex/in-pos < lex/in-end [continue][ ;-- empty token, move to next one
 						state: T_EOF do-scan: :scan-eof index: 1 lex/scanned: 0 ;-- force EOF if empty input after skipping
 					]
 				]
@@ -2509,13 +2509,13 @@ lexer: context [
 				]
 			]
 			lex/last: lex/scanned
-			lex/in-pos >= in-end
+			lex/in-pos >= lex/in-end
 		]
 		if all [lex/entry = S_M_STRING zero? lex/scanned][ ;-- {...} string not closed
-			catch LEX_ERR [throw-error lex lex/mstr-s in-end TYPE_STRING]
+			catch LEX_ERR [throw-error lex lex/mstr-s lex/in-end TYPE_STRING]
 			system/thrown: 0
 		]
-		assert lex/in-pos = in-end
+		assert lex/in-pos = lex/in-end
 	]
 
 	scan: func [
