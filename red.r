@@ -596,7 +596,7 @@ redc: context [
 				| "--no-view"					(opts/GUI-engine: none)
 				| "--no-compress"				(opts/redbin-compress?: no)
 				| "--show-func-map"				(opts/show-func-map?: yes)
-				| "--view" set engine skip		(opts/GUI-engine: load engine)
+				| "--view" set engine skip		(append any [spec spec: copy []] compose [GUI-engine: (to-lit-word load engine)])
 				| "--" break							;-- stop options processing
 			]
 			set filename skip (unless empty? filename [src: load-filename filename])
