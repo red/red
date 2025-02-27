@@ -2128,15 +2128,17 @@ _hashtable: context [
 		change? [logic!]					;-- deleted or inserted items
 		return: [integer!]
 		/local s [series!] h [hashtable!] indexes chain p e keys index flags [int-ptr!]
-			i c-idx idx part ii sh n [integer!] table [node!]
+			i c-idx idx part ii sh n [integer!] table buf [node!]
 	][
 		if size > 30000 [return HASH_TABLE_ERR_REHASH]
 
 		if null? refresh-buffer [
+			buf: alloc-bytes 4
+			table: init 1024 null HASH_TABLE_NODE_KEY 0
 			refresh-buffer: as red-hash! ALLOC_TAIL(root)
 			refresh-buffer/header: TYPE_MAP
-			refresh-buffer/node: alloc-bytes 4
-			refresh-buffer/table: init 1024 null HASH_TABLE_NODE_KEY 0
+			refresh-buffer/node: buf
+			refresh-buffer/table: table
 		]
 		table: refresh-buffer/table
 
