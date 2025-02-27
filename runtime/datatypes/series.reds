@@ -1027,6 +1027,7 @@ _series: context [
 			part	[integer!]
 			bytes	[integer!]
 			size	[integer!]
+			ty		[integer!]
 			hash	[red-hash!]
 			part2	[integer!]
 			check?	[logic!]
@@ -1044,6 +1045,7 @@ _series: context [
 		part: 1
 		part2: 1
 		part?: OPTION?(part-arg)
+		ty: TYPE_OF(ser)
 
 		if part? [
 			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
@@ -1052,7 +1054,7 @@ _series: context [
 			][
 				ser2: as red-series! part-arg
 				unless all [
-					TYPE_OF(ser2) = TYPE_OF(ser)		;-- handles ANY-STRING!
+					TYPE_OF(ser2) = ty					;-- handles ANY-STRING!
 					ser2/node = ser/node
 				][
 					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
@@ -1083,8 +1085,8 @@ _series: context [
 		]
 
 		ser2: as red-series! stack/push*
-		ser2/header: TYPE_OF(ser)
-		ser2/extra:  either TYPE_OF(ser) = TYPE_VECTOR [ser/extra][0]
+		ser2/header: ty
+		ser2/extra:  either any [ty = TYPE_VECTOR ty = TYPE_HASH][ser/extra][0]
 		ser2/node:   node
 		ser2/head:   0
 
@@ -1115,7 +1117,7 @@ _series: context [
 			s/tail: as cell! tail - bytes
 		]
 
-		if TYPE_OF(ser) = TYPE_HASH [
+		if ty = TYPE_HASH [
 			unit: either last? [size][ser/head + part]
 			hash: as red-hash! ser
 			_hashtable/refresh hash/table 0 - part unit size - unit yes
