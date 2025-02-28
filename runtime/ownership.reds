@@ -70,6 +70,7 @@ ownership: context [
 							value: value + 1
 						]
 					]
+					value/header: TYPE_UNSET
 				]
 			]
 			type = TYPE_BITSET [

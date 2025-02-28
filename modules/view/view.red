@@ -514,6 +514,8 @@ face!: object [				;-- keep in sync with facet! enum
 				value: pick data selected
 				set-quiet 'text copy value
 			]
+			
+			if all [old <> new image? old][system/view/platform/detach-image old]
 
 			system/reactivity/check/only self any [saved word]
 
