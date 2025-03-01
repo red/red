@@ -519,7 +519,7 @@ map: context [
 			op		[integer!]
 			s		[series!]
 			size	[int-ptr!]
-			k		[red-value! value]
+			k		[red-value!]
 	][
 		op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
 		table: parent/table
@@ -527,6 +527,7 @@ map: context [
 
 		either value <> null [						;-- set value
 			either key = null [
+				k: stack/push*
 				copy-cell element k
 				preprocess-key k path
 				s: as series! parent/node/value
