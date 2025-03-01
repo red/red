@@ -70,7 +70,7 @@ ownership: context [
 							value: value + 1
 						]
 					]
-					value/header: TYPE_UNSET
+					loop 3 [value/header: TYPE_UNSET  value: value + 1] ;-- clear all related slots
 				]
 			]
 			type = TYPE_BITSET [
@@ -79,7 +79,10 @@ ownership: context [
 				s: GET_BUFFER(bits)
 				s/flags: s/flags and not flag-series-owned
 				value: _hashtable/get-value table as-integer node
-				unless null? value [_hashtable/delete-key table as-integer node]
+				unless null? value [
+					_hashtable/delete-key table as-integer node
+					loop 3 [value/header: TYPE_UNSET  value: value + 1] ;-- clear all related slots
+				]
 			]
 			true [0]
 		]
