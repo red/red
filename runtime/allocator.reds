@@ -249,6 +249,7 @@ format-nodes: func [
 		head tail node [node!]
 ][
 	head: as node! frame + 1
+	?? head
 	tail: (head + frame/nodes) - 1			;-- exclude last slot from the loop
 	frame/head: head
 	node: head
@@ -321,6 +322,7 @@ free-node-frame: func [
 		null? memory/n-head
 		null? memory/n-tail
 	]
+	probe ["fa " frame]
 	free-virtual as int-ptr! frame			;-- release the memory to the OS
 ]
 
@@ -342,6 +344,8 @@ alloc-node: func [
 	]
 	assert not frame/locked?
 	node: frame/head
+?? node
+probe ["v " as int-ptr! node/value]
 	frame/head: as node! node/value
 	node/value: 0
 	frame/used: frame/used + 1
@@ -355,6 +359,7 @@ free-node: func [
 	frame [node-frame!]
 	node  [int-ptr!]						;-- node to release
 ][
+	probe ["f " node " " frame/head]
 	assert node <> null
 	node/value: as-integer frame/head
 	frame/head: node

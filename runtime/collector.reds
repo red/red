@@ -345,7 +345,7 @@ collector: context [
 		s: as series! node/value
 		flags: s/flags
 		new?: flags and flag-gc-mark = 0
-		if new? [s/flags: flags or flag-gc-mark]
+		if new? [probe ["k " ptr " " node " " s] s/flags: flags or flag-gc-mark]
 		new?
 	]
 
