@@ -136,7 +136,7 @@ map: context [
 			key		[red-value!]
 			val		[red-value!]
 			psize	[int-ptr!]
-			kkey	[red-value! value]
+			kkey	[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/extend"]]
 
@@ -154,6 +154,7 @@ map: context [
 
 		op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
 		table: map/table
+		kkey: stack/push*
 		while [cell < tail][
 			key: _hashtable/get table cell 0 0 op no no
 			value: cell + 1
