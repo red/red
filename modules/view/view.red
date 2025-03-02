@@ -515,7 +515,7 @@ face!: object [				;-- keep in sync with facet! enum
 				set-quiet 'text copy value
 			]
 			
-			if all [old <> new image? old][system/view/platform/detach-image old]
+			if all [not same? :old :new image? :old][system/view/platform/detach-image old]
 
 			system/reactivity/check/only self any [saved word]
 
