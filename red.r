@@ -548,7 +548,7 @@ redc: context [
 	parse-options: func [
 		args [string! none!]
 		/local src opts output target verbose filename config config-name base-path type
-		mode target? cmd spec cmds ws ssp modes
+		mode target? cmd spec cmds ws ssp modes engine
 	][
 		unless args [
 			if encap? [fetch-cmdline]					;-- Fetch real command-line in UTF8 format
@@ -596,6 +596,7 @@ redc: context [
 				| "--no-view"					(opts/GUI-engine: none)
 				| "--no-compress"				(opts/redbin-compress?: no)
 				| "--show-func-map"				(opts/show-func-map?: yes)
+				| "--view" set engine skip		(append any [spec spec: copy []] compose [GUI-engine: (to-lit-word load engine)])
 				| "--" break							;-- stop options processing
 			]
 			set filename skip (unless empty? filename [src: load-filename filename])

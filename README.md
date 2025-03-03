@@ -191,6 +191,8 @@ The Red toolchain comes as a single executable file that you can [download](http
     --no-view                      : Do not include VIEW module in the CLI console
                                      and the libRedRT.
 
+    --view <engine>                : Select the VIEW engine (native, terminal, GTK, test)
+
     --red-only                     : Stop just after Red-level compilation.
                                      Use higher verbose level to see compiler
                                      output. (internal debugging purpose)

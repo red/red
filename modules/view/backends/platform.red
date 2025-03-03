@@ -719,6 +719,11 @@ system/view/platform: context [
 		SET_RETURN(none-value)
 	]
 	
+	detach-image: routine [img [image!]][
+		ownership/unbind as red-value! img
+		SET_RETURN(none-value)
+	]
+	
 	update-view: routine [face [object!]][
 		gui/OS-update-view face
 		SET_RETURN(none-value)

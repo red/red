@@ -136,7 +136,7 @@ map: context [
 			key		[red-value!]
 			val		[red-value!]
 			psize	[int-ptr!]
-			kkey	[red-value! value]
+			kkey	[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/extend"]]
 
@@ -154,6 +154,7 @@ map: context [
 
 		op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
 		table: map/table
+		kkey: stack/push*
 		while [cell < tail][
 			key: _hashtable/get table cell 0 0 op no no
 			value: cell + 1
@@ -519,7 +520,7 @@ map: context [
 			op		[integer!]
 			s		[series!]
 			size	[int-ptr!]
-			k		[red-value! value]
+			k		[red-value!]
 	][
 		op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
 		table: parent/table
@@ -527,6 +528,7 @@ map: context [
 
 		either value <> null [						;-- set value
 			either key = null [
+				k: stack/push*
 				copy-cell element k
 				preprocess-key k path
 				s: as series! parent/node/value
