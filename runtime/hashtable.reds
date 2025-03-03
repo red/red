@@ -899,6 +899,49 @@ _hashtable: context [
 		as int-ptr! h
 	]
 
+	rs-size?: func [
+		table	[int-ptr!]
+		return: [integer!]
+		/local
+			h	[rs-hashtable!]
+	][
+		h: as rs-hashtable! table
+		h/size
+	]
+
+	rs-next: func [
+		table	[int-ptr!]
+		pos		[int-ptr!]	;-- current position
+		return: [int-ptr!]
+		/local
+			h	[rs-hashtable!]
+			keys flags end [int-ptr!]
+			n-buckets ii sh i [integer!]
+	][
+		h: as rs-hashtable! table
+		keys: h/key-vals
+		flags: h/flags
+		n-buckets: h/n-buckets
+		end: keys + (n-buckets * 2)
+		i: either null? pos [
+			pos: keys
+			0
+		][
+			pos: pos + 2
+			(as-integer pos - keys) >> 3
+		]
+
+		while [pos < end][
+			_HT_CAL_FLAG_INDEX(i ii sh)
+			if _BUCKET_IS_HAS_KEY(flags ii sh) [
+				return pos
+			]
+			pos: pos + 2
+			i: i + 1
+		]
+		null
+	]
+
 	rs-put: func [
 		table	[int-ptr!]
 		key		[integer!]
