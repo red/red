@@ -1997,7 +1997,7 @@ change-size: func [
 		type = area		 [update-scrollbars hWnd null]
 		type = tab-panel [update-tab-contents hWnd FACE_OBJ_SIZE]
 		type = text		 [InvalidateRect hWnd null 1]	;-- issue #4388
-		type = camera	 [update-camera hWnd sz-x + cx sz-y + cy get-ratio get-face-obj hWnd]
+		type = camera	 [update-camera hWnd sz-x + cx sz-y + cy]
 		true	  		 [0]
 	]
 ]

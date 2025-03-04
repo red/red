@@ -265,6 +265,30 @@ camera-wait-image: func [img [red-image!] /local timeout [float32!]][
 	]
 ]
 
+set-camera-viewport: func [
+	this	[this!]
+	video	[IVideoWindow]
+	sx		[integer!]
+	sy		[integer!]
+	/local
+		w h offx offy [integer!]
+		hf wf [float!]
+][
+	offx: offy: w: h: 0
+	w: sx
+	h: sy
+	either camera-ratio >= 1.0 [
+		hf: (as-float w) / camera-ratio
+		offy: float/round-to-int (as-float sy) - hf / 2.0
+		h: float/round-to-int hf
+	][
+		wf: (as-float h) * camera-ratio
+		offy: float/round-to-int (as-float sx) - wf / 2.0
+		w: float/round-to-int wf
+	]
+	video/SetWindowPosition this offx offy w h
+]
+
 init-camera: func [
 	hWnd	[handle!]
 	data	[red-block!]
@@ -422,7 +446,6 @@ build-preview-graph: func [
 		grabber-cb	[RedGrabberCB]
 		info	[int-ptr!]
 		bmp		[BITMAPINFOHEADER]
-		w h x y [integer!]
 ][
 	builder: as ICaptureGraphBuilder2 cam/builder/vtbl
 	graph:   as IGraphBuilder cam/graph/vtbl
@@ -465,9 +488,7 @@ build-preview-graph: func [
 		video: as IVideoWindow IVM/ptr/vtbl
 		video/put_Owner IVM/ptr hWnd
 		video/put_WindowStyle IVM/ptr WS_CHILD
-		w: rect/right
-		h: rect/bottom
-		update-camera-size cam w h
+		set-camera-viewport IVM/ptr video rect/right rect/bottom
 		video/put_Visible IVM/ptr -1
 	][
 		cam/window: null
@@ -636,15 +657,11 @@ update-camera: func [
 	hWnd	[handle!]
 	sx		[integer!]
 	sy		[integer!]
-	ratio	[red-float!]
 	/local
-		cam [camera!]
+		cam	[camera!]
 ][
-	if TYPE_OF(ratio) = TYPE_FLOAT [
-		camera-ratio: ratio/value
-	]
 	cam: as camera! GetWindowLong hWnd wc-offset - 4
-	update-camera-size cam sx sy
+	if cam/window <> null [set-camera-viewport cam/window as IVideoWindow cam/window/vtbl sx sy]
 ]
 
 CameraWndProc: func [
