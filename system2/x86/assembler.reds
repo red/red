@@ -1416,13 +1416,16 @@ loc-to-addr: func [						;-- location idx to memory addr
 	/local
 		word-sz [integer!]
 		offset	[integer!]
+		reg		[integer!]
 ][
 	loc: loc and (not FRAME_SLOT_64)	;-- remove flag
 	offset: 0
 	word-sz: target/addr-size
+	reg: x86-regs/ebp
 	case [
 		loc >= r/callee-base [
-			offset: word-sz * (loc - r/callee-base) - f/size
+			reg: x86-regs/esp
+			offset: word-sz * (loc - r/callee-base)
 		]
 		loc >= r/caller-base [
 			offset: word-sz * (loc - r/caller-base)
@@ -1432,7 +1435,7 @@ loc-to-addr: func [						;-- location idx to memory addr
 		]
 		true [probe ["invalid stack location: " loc]]
 	]
-	addr/base: x86-regs/ebp
+	addr/base: reg
 	addr/index: 0
 	addr/scale: 1
 	addr/disp: offset
@@ -1623,7 +1626,11 @@ assemble-op: func [
 		]
 		I_SET_SP [
 			n: target/addr-size * to-imm as operand! p/value
-			asm/sub-r-i x86-regs/esp n NO_REX
+			either n > 0 [
+				asm/sub-r-i x86-regs/esp n NO_REX
+			][
+				asm/add-r-i x86-regs/esp 0 - n NO_REX
+			]
 		]
 		I_GET_PC [
 			loc: to-loc as operand! p/value

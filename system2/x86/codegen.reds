@@ -767,6 +767,7 @@ x86-cc: context [
 		return: [call-conv!]
 		/local
 			spill-start 	[integer!]
+			frame-start		[integer!]
 			n-params		[integer!]
 			param-locs		[rs-array!]
 			ret-locs		[rs-array!]
@@ -817,6 +818,7 @@ x86-cc: context [
 		]
 		
 		spill-start: x86-reg-set/reg-set/spill-start
+		frame-start: x86-reg-set/reg-set/frame-start
 		n-params: either variadic? [op/n-params][
 			either ft/n-params < 0 [2][ft/n-params]
 		]
@@ -835,7 +837,7 @@ x86-cc: context [
 						i-idx: i-idx + 1
 						ploc/i: pp/i-idx
 					][
-						ploc/i: spill-start + p-spill
+						ploc/i: frame-start + p-spill
 						p-spill: p-spill + 1
 					]
 				]
@@ -845,7 +847,7 @@ x86-cc: context [
 						f-idx: f-idx + 1
 						ploc/i: pp/f-idx
 					][
-						ploc/i: spill-start + p-spill
+						ploc/i: frame-start + p-spill
 						p-spill: p-spill + 1
 					]
 				]
@@ -855,12 +857,12 @@ x86-cc: context [
 						f-idx: f-idx + 1
 						ploc/i: pp/f-idx
 					][
-						ploc/i: spill-start + p-spill
+						ploc/i: frame-start + p-spill
 						p-spill: p-spill + 2
 					]
 				]
 				class_i64 [
-					ploc/i: spill-start + p-spill
+					ploc/i: frame-start + p-spill
 					p-spill: p-spill + 2
 				]
 			]
@@ -1212,12 +1214,24 @@ x86: context [
 			e	[df-edge!]
 			n	[integer!]
 			fn	[fn!]
+			n-spilled	 [integer!]
+			fixed-stack? [logic!]
 	][
 		o: as instr-op! i
 		fn: as fn! o/target
+		fixed-stack?: cg/fixed-stack?
+
 		cc: target/make-cc fn o
-		alloc-caller-space cg/frame cc
-		
+		n-spilled: cc/n-spilled
+		either fixed-stack? [
+			alloc-caller-space cg/frame cc
+		][
+			if n-spilled > 0 [
+				use-imm-int cg n-spilled
+				emit-instr cg I_SET_SP
+			]
+		]
+
 		use-ptr cg as int-ptr! fn
 		live-point cg cc
 
@@ -1237,9 +1251,18 @@ x86: context [
 		]
 		emit-instr cg I_CALL
 
-		if all [cc/callee-clean? n > 0][
-			use-imm-int cg n
-			emit-instr cg I_SET_SP
+		if n-spilled > 0 [
+			either fixed-stack? [
+				if cc/callee-clean? [
+					use-imm-int cg n-spilled
+					emit-instr cg I_SET_SP			
+				]
+			][
+				unless cc/callee-clean? [
+					use-imm-int cg 0 - n-spilled
+					emit-instr cg I_SET_SP
+				]
+			]
 		]
 	]
 
@@ -1296,8 +1319,27 @@ x86: context [
 				]
 				emit-instr cg op
 			]
-			N_STACK_ALIGN
-			N_STACK_ALLOC
+			N_STACK_ALIGN [0]
+			N_STACK_ALLOC [
+				v: make-tmp-vreg cg type-system/integer-type
+				def-vreg cg v x86_EDI
+				ii: input0 i
+				op: either try-use-imm32 cg ii [
+					I_MOVD or AM_OP_IMM
+				][
+					use-reg cg ii
+					I_MOVD or AM_REG_OP
+				]
+				emit-instr cg op
+
+				def-vreg cg v x86_EDI
+				use-imm-int cg 2
+				emit-instr cg I_SHLD or AM_OP_IMM
+
+				def-reg-fixed cg i x86_ESP
+				use-vreg cg v x86_EDI
+				emit-instr cg I_SUBD or AM_REG_OP
+			]
 			N_STACK_FREE
 			N_STACK_PUSH_ALL
 			N_STACK_POP_ALL

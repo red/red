@@ -468,7 +468,7 @@ reg-allocator: context [
 			pa		[ptr-ptr!]
 			allocated [ptr-ptr!]
 	][
-		if any [constraint = x86_ESP constraint = x86_EBP][return constraint]
+		if any [constraint = x86_ESP constraint = x86_EBP constraint = x86_EDI][return constraint]
 
 		states: as int-ptr! ARRAY_DATA(s/states)
 		allocated: ARRAY_DATA(s/allocated)

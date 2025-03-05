@@ -191,6 +191,7 @@ codegen!: alias struct! [
 	nlivepoints			[integer!]
 	livepoints			[vector!]		;-- vector<(basic-block!, instr!, livepoint!)>
 	compute-liveness?	[logic!]
+	fixed-stack?		[logic!]
 	m					[instr-matcher!]
 ]
 
@@ -1411,8 +1412,11 @@ backend: context [
 		return: [codegen!]
 		/local
 			cg	[codegen!]
+			f	[fn!]
 	][
 		cg: xmalloc(codegen!)
+		f: fn/fn
+		cg/fixed-stack?: NODE_FLAGS(f) and RST_DYN_ALLOC = 0
 		cg/operands: ptr-vector/make 4
 		cg/vregs: ptr-vector/make 8
 		cg/fn: fn

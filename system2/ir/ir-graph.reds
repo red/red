@@ -1722,7 +1722,7 @@ ir-graph: context [
 			vals: ptr-array/make N_CACHED_CONST
 			fn/const-vals: vals
 		][
-			if fn/const-idx = vals/length [
+			if idx = vals/length [
 				map: token-map/make 50
 				fn/const-map: map
 				p: ARRAY_DATA(vals)
@@ -2152,6 +2152,7 @@ ir-graph: context [
 	][
 		assert fn/ir = null
 
+		if ctx/dyn-alloc? [ADD_NODE_FLAGS(fn RST_DYN_ALLOC)]
 		init-ssa-ctx :ssa-ctx null ctx/n-ssa-vars null
 		graph: make-ir-fn fn :ssa-ctx
 		graph/n-typed: ctx/n-typed

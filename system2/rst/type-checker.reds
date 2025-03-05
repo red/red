@@ -766,7 +766,7 @@ type-checker: context [
 			b		[bin-op!]
 			ltype rtype [rst-type!]
 	][
-		rst-printer/print-stmt as rst-stmt! bin
+		;rst-printer/print-stmt as rst-stmt! bin
 		right: bin/right
 		ltype: as rst-type! bin/left/accept as int-ptr! bin/left checker as int-ptr! ctx
 		rtype: as rst-type! right/accept as int-ptr! right checker as int-ptr! ctx

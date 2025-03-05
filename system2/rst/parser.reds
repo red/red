@@ -171,6 +171,7 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	RST_INFIX_OP:	20h
 	RST_IMPORT_FN:	40h
 	RST_SIZE_TYPE:	80h
+	RST_DYN_ALLOC:	0100h
 ]
 
 #define SET_NODE_TYPE(node type) [node/header: type]
@@ -279,6 +280,7 @@ context!: alias struct! [
 	src-blk		 [red-block!]
 	script		 [cell!]
 	throw-error? [logic!]
+	dyn-alloc?	 [logic!]
 ]
 
 fn!: alias struct! [
@@ -2123,9 +2125,10 @@ parser: context [
 								return null
 							]
 						]
+						ctx/dyn-alloc?: yes
 						pc: fetch-args pc end :pv ctx 1
 						args: as rst-expr! pv/value
-						args/next: make-logic as cell! w z?
+						args/next/next: make-logic as cell! w z?
 						make-native-call pc stack-allocate args
 					]
 					true [
