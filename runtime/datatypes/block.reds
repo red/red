@@ -1785,16 +1785,16 @@ block: context [
 			value	[red-value!]
 			tail	[red-value!]
 			key		[red-value!]
+			table	[node!]
+			hash	[node!]
+			s		[series!]
 			comp-op [integer!]
 			i		[integer!]
 			n		[integer!]
-			s		[series!]
 			len		[integer!]
 			step	[integer!]
 			head	[integer!]
 			type	[integer!]
-			table	[node!]
-			hash	[node!]
 			check?	[logic!]
 			invert? [logic!]
 			both?	[logic!]
@@ -1802,7 +1802,6 @@ block: context [
 			append?	[logic!]
 			blk?	[logic!]
 			hash?	[logic!]
-			saved	[logic!]
 			any-blk? [logic!]
 	][
 		step: 1
@@ -1837,8 +1836,6 @@ block: context [
 		if all [not hash? op <> OP_UNIQUE][hash?: TYPE_OF(blk2) = TYPE_HASH]
 
 		comp-op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
-		saved: collector/active?
-		collector/active?: no
 		until [
 			s: GET_BUFFER(blk1)
 			value: s/offset + blk1/head
@@ -1903,7 +1900,6 @@ block: context [
 			][n: 0]
 			zero? n
 		]
-		collector/active?: saved
 
 		either hash? [
 			hs: as red-hash! blk2
