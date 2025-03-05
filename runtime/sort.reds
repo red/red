@@ -66,8 +66,11 @@ _sort: context [
 		b		 [byte-ptr!]
 		n		 [integer!]
 		swaptype [integer!]
-		/local cnt [integer!] i [byte-ptr!] j [byte-ptr!]
-			ii [int-ptr!] jj [int-ptr!] t1 [byte!] t2 [integer!]
+		/local
+			i j		[byte-ptr!]
+			ii jj	[int-ptr!]
+			t2 cnt	[integer!]
+			t1		[byte!]
 	][
 		either zero? swaptype [
 			cnt: n >> 2
@@ -101,7 +104,7 @@ _sort: context [
 		flags	[integer!]
 		cmpfunc [integer!]
 		return: [byte-ptr!]
-		/local cmp
+		/local cmp [cmpfunc!]
 	][
 		cmp: as cmpfunc! cmpfunc
 		either negative? cmp a b op flags [
@@ -123,10 +126,10 @@ _sort: context [
 		flags	[integer!]
 		cmpfunc [integer!]
 		/local
-			a [byte-ptr!] b [byte-ptr!] c [byte-ptr!] d [byte-ptr!] m [byte-ptr!]
-			n [byte-ptr!] end [byte-ptr!] i [byte-ptr!] j [byte-ptr!] r [integer!]
-			part [integer!] result [integer!] swaptype [integer!] swapped? [logic!]
-			cmp
+			a b c d m n end i j [byte-ptr!] 
+			r part result swaptype [integer!]
+			swapped? [logic!]
+			cmp [cmpfunc!]
 	][
 		cmp: as cmpfunc! cmpfunc
 		SORT_SWAPINIT(base width)
@@ -237,7 +240,9 @@ _sort: context [
 		n1		[integer!]
 		n2		[integer!]
 		width	[integer!]
-		/local end cnt b1 swaptype i j t
+		/local
+			end b1 [byte-ptr!]
+			swaptype [integer!]
 	][
 		SORT_SWAPINIT(base width)
 		while [all [n1 <> 0 n2 <> 0]][
@@ -262,7 +267,8 @@ _sort: context [
 		SORT_ARGS_EXT_DEF
 		return: [integer!]
 		/local
-			cmp a b c
+			cmp [cmpfunc!]
+			a b c [integer!]
 	][
 		cmp: as cmpfunc! cmpfunc
 		a: -1
@@ -281,7 +287,8 @@ _sort: context [
 		SORT_ARGS_EXT_DEF
 		return: [integer!]
 		/local
-			cmp a b c
+			cmp [cmpfunc!]
+			a b c [integer!]
 	][
 		cmp: as cmpfunc! cmpfunc
 		a: -1
@@ -298,7 +305,9 @@ _sort: context [
 		n1		[integer!]
 		n2		[integer!]
 		SORT_ARGS_EXT_DEF
-		/local cmp h
+		/local 
+			cmp [cmpfunc!]
+			h 	[integer!]
 	][
 		cmp: as cmpfunc! cmpfunc
 		either n1 < n2 [
@@ -346,7 +355,9 @@ _sort: context [
 		n2		[integer!]
 		SORT_ARGS_EXT_DEF
 		/local
-			cmp K k1 k2 m1 m2 ak
+			ak	[byte-ptr!]
+			cmp [cmpfunc!]
+			K k1 k2 m1 m2 [integer!]
 	][
 		cmp: as cmpfunc! cmpfunc
 		if any [n1 < 9 n2 < 9][
@@ -389,7 +400,9 @@ _sort: context [
 		flags	[integer!]
 		cmpfunc [integer!]
 		/local
-			cmp m pm0 pm1 h p0 p1 rest swaptype i j t
+			pm0	pm1 [byte-ptr!]
+			cmp [cmpfunc!]
+			m h p0 p1 rest swaptype [integer!]
 	][
 		SORT_SWAPINIT(base width)
 		cmp: as cmpfunc! cmpfunc
