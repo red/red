@@ -1203,15 +1203,15 @@ block: context [
 			int  [red-integer!]
 			d    [red-float!]
 			f	 [red-function!]
-			all? [logic!]
-			num  [integer!]
-			cnt  [integer!]
 			blk1 [red-block!]
 			blk2 [red-block!]
 			v1	 [red-value!]
 			v2	 [red-value!]
 			s1   [series!]
 			s2   [series!]
+			all? [logic!]
+			num  [integer!]
+			cnt  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/compare-call"]]
 
@@ -1230,10 +1230,8 @@ block: context [
 		num: flags >>> 2
 		if all [all? num > 0][
 			if null? compare-arg-a [
-				compare-arg-a: ALLOC_TAIL(root)
-				compare-arg-b: ALLOC_TAIL(root)
-				make-at as red-block! compare-arg-a 1
-				make-at as red-block! compare-arg-b 1
+				compare-arg-a: as cell! make-fixed root 1
+				compare-arg-b: as cell! make-fixed root 1
 			]
 			blk1: as red-block! copy-cell compare-arg-a v1
 			blk2: as red-block! copy-cell compare-arg-b v2
@@ -1294,12 +1292,12 @@ block: context [
 		/local
 			s		[series!]
 			head	[red-value!]
+			int		[red-integer!]
+			blk2	[red-block!]
 			cmp		[integer!]
 			len		[integer!]
 			len2	[integer!]
 			step	[integer!]
-			int		[red-integer!]
-			blk2	[red-block!]
 			op		[integer!]
 			flags	[integer!]
 			offset	[integer!]
@@ -1395,14 +1393,11 @@ block: context [
 			]
 		]
 		chk?: ownership/check as red-value! blk words/_sort null blk/head 0
-		saved: collector/active?
-		collector/active?: no							;-- turn off GC
 		either stable? [
 			_sort/mergesort as byte-ptr! head len step * (size? red-value!) op flags cmp
 		][
 			_sort/qsort as byte-ptr! head len step * (size? red-value!) op flags cmp
 		]
-		collector/active?: saved
 		if chk? [ownership/check as red-value! blk words/_sorted null blk/head 0]
 		blk
 	]

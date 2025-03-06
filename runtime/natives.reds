@@ -1576,8 +1576,6 @@ natives: context [
 
 		ret: as red-binary! data
 		ret/head: 0
-		ret/header: TYPE_NONE
-		node: ret/node									;-- ensures that node is visible to GC (#5404)
 
 		node: switch base [
 			64 [alloc-bytes 4 * len / 3 + (2 * (len / 32) + 5)]
@@ -1586,7 +1584,10 @@ natives: context [
 			2  [alloc-bytes 8 * len + (2 * (len / 8) + 4)]
 			default [fire [TO_ERROR(script invalid-arg) int] null]
 		]
-		if null? node [exit]
+		if null? node [
+			ret/header: TYPE_NONE
+			exit
+		]
 
 		s: as series! node/value
 		out: as byte-ptr! s/offset
