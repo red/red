@@ -21,7 +21,7 @@ Red/System [
 	OP_BOOL_AND         ;-- 11
 	OP_BOOL_OR          ;-- 12
 	OP_BOOL_NOT         ;-- 13
-                        
+
 	OP_INT_ADD          ;-- 14
 	OP_INT_SUB          ;-- 15
 	OP_INT_MUL          ;-- 16

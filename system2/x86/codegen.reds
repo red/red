@@ -1482,7 +1482,7 @@ x86: context [
 				emit-int-cmp cg i I_CMPB x86-cond/zero
 			]
 			OP_BOOL_NOT	[
-				x86-cond/pair-neg emit-cmp cg i
+				x86-cond/pair-neg emit-cmp cg input0 i
 			]
 			OP_INT_EQ	[
 				op: int-cmp-op as instr-op! i
@@ -1556,6 +1556,25 @@ x86: context [
 	][
 		use-label cg target
 		emit-instr cg I_JC or M_FLAG_FIXED or (cond/index << COND_SHIFT)
+	]
+
+	emit-not: func [
+		cg		[codegen!]
+		i		[instr!]
+		/local
+			o	[instr-op!]
+			t	[rst-type!]
+			c	[x86-cond-pair!]
+	][
+		o: as instr-op! i
+		t: o/ret-type
+		either INT_TYPE?(t) [
+			overwrite-reg cg i input0 i
+			emit-instr cg I_NOTD or AM_OP
+		][
+			c: x86-cond/pair-neg emit-cmp cg i
+			emit-setc cg c get-vreg cg i
+		]
 	]
 
 	alloc-local-var: func [
@@ -1899,8 +1918,8 @@ x86: context [
 	][
 		;ir-printer/print-instr i print lf
 		switch INSTR_OPCODE(i) [
+			OP_BOOL_NOT [emit-not cg i]
 			OP_BOOL_EQ
-			OP_BOOL_NOT
 			OP_INT_EQ
 			OP_INT_NE
 			OP_INT_LT

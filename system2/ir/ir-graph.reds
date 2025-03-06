@@ -828,9 +828,15 @@ ir-graph: context [
 		visit-if c/cases ctx
 	]
 
-	visit-not: func [r [case!] ctx [ssa-ctx!] return: [instr!]
+	visit-not: func [e [unary!] ctx [ssa-ctx!] return: [instr!]
+		/local val [instr!] op [instr-op!] arr [ptr-ptr!] args [array-value!]
 	][
-		null
+		arr: as ptr-ptr! malloc size? int-ptr!
+		arr/value: as int-ptr! e/type
+		op: make-op OP_BOOL_NOT 1 arr e/type
+		val: gen-expr e/expr ctx
+		INIT_ARRAY_VALUE(args val)
+		add-op op as ptr-array! :args ctx
 	]
 
 	visit-size?: func [u [unary!] ctx [ssa-ctx!] return: [instr!] /local int [red-integer!]][

@@ -1,0 +1,16 @@
+﻿quick-test/runnable
+quick-test/quick-test.log
+quick-test/testfile.txt
+build/git.r
+system/tests/source/units/auto-tests
+system/hello-red.reds
+system/libRedRT-extras.r
+system/rs-preprocess.reds
+tests/tmp$
+tests/testfile.txt
+crush.dll
+libRedRT-extras.r
+tmp$
+tests/source/units/auto-tests
+*.exe
+*.bak

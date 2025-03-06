@@ -14,13 +14,38 @@ op-cache: context [
 	float-op-table: as ptr-ptr! 0
 	void-op: as op! 0
 
-	init: does [
+	op-bool-eq: as op! 0
+	op-bool-and: as op! 0
+	op-bool-or: as op! 0
+	op-bool-not: as op! 0
+
+	init: func [/local pt [ptr-ptr!]][
 		int-op-table: as ptr-ptr! malloc INT_WIDTH_CNT * 2 * size? int-ptr!		;-- signed and unsigned
 		float-op-table: as ptr-ptr! malloc 2 * size? int-ptr!
 		void-op: as fn-type! malloc size? fn-type!
 		void-op/header: RST_TYPE_FUNC
 		void-op/n-params: 0
 		void-op/ret-type: type-system/void-type
+
+		pt: as ptr-ptr! malloc size? int-ptr!
+		pt/value: as int-ptr! type-system/logic-type
+		op-bool-not: make-op OP_BOOL_NOT pt type-system/logic-type
+	]
+
+	make-op: func [
+		opcode	[integer!]
+		param-t [ptr-ptr!]
+		ret-t	[rst-type!]
+		return: [op!]
+		/local
+			f	[op!]
+	][
+		f: xmalloc(op!)
+		f/header: opcode << 8 or RST_TYPE_FUNC
+		f/n-params: 1
+		f/param-types: param-t
+		f/ret-type: ret-t
+		f
 	]
 
 	init-op: func [

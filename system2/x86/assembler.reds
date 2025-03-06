@@ -89,7 +89,7 @@ asm: context [
 		x86_CMP
 	]
 
-	;;opcodes:	add  or adc sbb and sub xor cmp
+	;;opcodes: add  or adc sbb and sub xor cmp
 	op-rm-r:  [01h 09h 11h 19h 21h 29h 31h 39h]
 	op-r-rm:  [03h 0Bh 13h 1Bh 23h 2Bh 33h 3Bh]
 	op-eax-i: [05h 0Dh 15h 1Dh 25h 2Dh 35h 3Dh]
@@ -1063,6 +1063,8 @@ asm: context [
 		emit-b i
 	]
 
+	not-r: func [r [integer!] rex [integer!]][emit-b-r-x-rex F7h r 2 rex]
+	not-m: func [m [x86-addr!] rex [integer!]][emit-b-m-x F7h m 2 rex]
 	neg-r: func [r [integer!] rex [integer!]][emit-b-r-x-rex F7h r 3 rex]
 	neg-m: func [m [x86-addr!] rex [integer!]][emit-b-m-x F7h m 3 rex]
 
@@ -1652,7 +1654,7 @@ assemble-r: func [
 	r		[integer!]
 ][
 	switch op [
-		I_NOTD	[0]
+		I_NOTD	[asm/not-r r NO_REX]
 		I_NEGD	[asm/neg-r r NO_REX]
 		I_MULD	[asm/imul-r r NO_REX]
 		I_IDIVD	[asm/idiv-r r NO_REX]
@@ -1669,7 +1671,7 @@ assemble-m: func [
 	m		[x86-addr!]
 ][
 	switch op [
-		I_NOTD	[0]
+		I_NOTD	[asm/not-m m NO_REX]
 		I_NEGD	[asm/neg-m m NO_REX]
 		I_MULD	[asm/imul-m m NO_REX]
 		I_IDIVD	[asm/idiv-m m NO_REX]
