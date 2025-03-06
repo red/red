@@ -1230,10 +1230,8 @@ block: context [
 		num: flags >>> 2
 		if all [all? num > 0][
 			if null? compare-arg-a [
-				compare-arg-a: ALLOC_TAIL(root)
-				compare-arg-b: ALLOC_TAIL(root)
-				make-at as red-block! compare-arg-a 1
-				make-at as red-block! compare-arg-b 1
+				compare-arg-a: as cell! make-fixed root 1
+				compare-arg-b: as cell! make-fixed root 1
 			]
 			blk1: as red-block! copy-cell compare-arg-a v1
 			blk2: as red-block! copy-cell compare-arg-b v2
