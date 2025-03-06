@@ -830,7 +830,6 @@ Red [
 				s1b2: load/as s1bin 'redbin
 				recycle
 				--assert s1b == s1b2
-?? s1t				
 				--assert s1t < 0:0:1					;-- should be ~40ms
 			]
 			unset [s1b s1b2 s1bin]
