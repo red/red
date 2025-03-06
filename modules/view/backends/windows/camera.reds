@@ -272,18 +272,20 @@ set-camera-viewport: func [
 	sy		[integer!]
 	/local
 		w h offx offy [integer!]
-		hf wf [float!]
+		r hf wf [float!]
 ][
-	offx: offy: w: h: 0
+	offx: offy: 0
 	w: sx
 	h: sy
-	either camera-ratio >= 1.0 [
-		hf: (as-float w) / camera-ratio
-		offy: float/round-to-int (as-float sy) - hf / 2.0
+	r: camera-ratio
+	
+	either (as-float sy) * r >= as-float sx [
+		hf: either r >= 1.0 [(as-float w) / r][(as-float w) * r]	;-- height of viewport respecting aspect ratio
+		offy: float/round-to-int (as-float sy) - hf / 2.0			;-- black bars size
 		h: float/round-to-int hf
 	][
-		wf: (as-float h) * camera-ratio
-		offy: float/round-to-int (as-float sx) - wf / 2.0
+		wf: either r >= 1.0 [(as-float h) * r][(as-float h) / r]	;-- width of viewport respecting aspect ratio
+		offx: float/round-to-int (as-float sx) - wf / 2.0			;-- black bars size
 		w: float/round-to-int wf
 	]
 	video/SetWindowPosition this offx offy w h
@@ -487,7 +489,7 @@ build-preview-graph: func [
 		GetClientRect hWnd rect
 		video: as IVideoWindow IVM/ptr/vtbl
 		video/put_Owner IVM/ptr hWnd
-		video/put_WindowStyle IVM/ptr WS_CHILD
+		video/put_WindowStyle IVM/ptr WS_CHILD or WS_CLIPCHILDREN or WS_CLIPSIBLINGS
 		set-camera-viewport IVM/ptr video rect/right rect/bottom
 		video/put_Visible IVM/ptr -1
 	][
