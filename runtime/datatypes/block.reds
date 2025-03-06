@@ -1203,15 +1203,15 @@ block: context [
 			int  [red-integer!]
 			d    [red-float!]
 			f	 [red-function!]
-			all? [logic!]
-			num  [integer!]
-			cnt  [integer!]
 			blk1 [red-block!]
 			blk2 [red-block!]
 			v1	 [red-value!]
 			v2	 [red-value!]
 			s1   [series!]
 			s2   [series!]
+			all? [logic!]
+			num  [integer!]
+			cnt  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/compare-call"]]
 
@@ -1292,12 +1292,12 @@ block: context [
 		/local
 			s		[series!]
 			head	[red-value!]
+			int		[red-integer!]
+			blk2	[red-block!]
 			cmp		[integer!]
 			len		[integer!]
 			len2	[integer!]
 			step	[integer!]
-			int		[red-integer!]
-			blk2	[red-block!]
 			op		[integer!]
 			flags	[integer!]
 			offset	[integer!]
@@ -1393,14 +1393,11 @@ block: context [
 			]
 		]
 		chk?: ownership/check as red-value! blk words/_sort null blk/head 0
-		saved: collector/active?
-		collector/active?: no							;-- turn off GC
 		either stable? [
 			_sort/mergesort as byte-ptr! head len step * (size? red-value!) op flags cmp
 		][
 			_sort/qsort as byte-ptr! head len step * (size? red-value!) op flags cmp
 		]
-		collector/active?: saved
 		if chk? [ownership/check as red-value! blk words/_sorted null blk/head 0]
 		blk
 	]
