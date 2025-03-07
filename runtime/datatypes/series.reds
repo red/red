@@ -626,12 +626,12 @@ _series: context [
 			if part > size [part: size]
 		][size: size - head]
 
+		n: either part? [part][items * cnt]
+		if n > size [n: size]
+		ownership/check as red-value! ser words/_change null head n
+
 		rehash?: yes
 		either any [blk? self?][
-			n: either part? [part][items * cnt]
-			if n > size [n: size]
-			ownership/check as red-value! ser words/_change null head n
-
 			added: either part? [items - part][items - size]
 			added: added << unit
 			n: (as-integer (s/tail - s/offset)) + added
