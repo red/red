@@ -1267,7 +1267,7 @@ insert-event-func 'dragging function [face event][
 							if box: drag-info/2 [new: min box/max max box/min new]
 							if face/offset <> new [face/offset: new]
 							set/any 'result do-actor face event 'drag ;-- avoid calling on-over actor
-							unless system/view/auto-sync? [show face]
+							show face/parent
 							return :result
 						]
 					]
