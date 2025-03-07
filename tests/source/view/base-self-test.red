@@ -805,7 +805,7 @@ maybe-display-shortly: func [
 		view compose [
 			across
 			image (:im/1) rate bst-show-delay on-time [unview] focus on-key-down [unview]
-			(collect [foreach im next im [keep 'image keep im]])
+			(collect [foreach im' next im [keep 'image keep im']])
 			return area 300x200 wrap msg
 		]
 	]
@@ -1307,17 +1307,17 @@ view/no-wait [text "This window is a workaround for R2 call bug which hides firs
 
 	--test-- "tic-1 size adequacy"
 		bst-im: shoot [base 100x100]
-		bst-sz: 100x100 * system/view/metrics/dpi / 96.0
+		bst-sz: to pair! 100x100 * system/view/metrics/dpi / 96.0
 		--assert test-size-match? bst-im bst-sz
 
 	--test-- "tic-2 presence of non-client area"
 		bst-im: shoot/whole [base 200x200]
-		bst-sz: 200x200 * system/view/metrics/dpi / 96.0
+		bst-sz: to pair! 200x200 * system/view/metrics/dpi / 96.0
 		;-- non-client area should be bigger than the base:
 		--assert within? bst-sz + 0x10 0x0 bst-im/size
 
 	--test-- "tic-3 capture of color blending"
-		bst-sz: 200x200 * system/view/metrics/dpi / 96.0
+		bst-sz: to pair! 200x200 * system/view/metrics/dpi / 96.0
 		bst-clr: blue + 0.0.0.128
 		bst-clr1: blue / 2
 		bst-clr2: blue - (blue / 4)
@@ -1340,7 +1340,7 @@ view/no-wait [text "This window is a workaround for R2 call bug which hides firs
 		--assert test-color-match? bst-im bst-cs/5 bst-clr2
 
 	--test-- "tic-4 overlapping bases"
-		bst-sz: 100x100 * system/view/metrics/dpi / 96.0
+		bst-sz: to pair! 100x100 * system/view/metrics/dpi / 96.0
 		bst-im: shoot [
 			at 0x0 base 100x100 white
 			at 10x10 base 80x80 255.0.0.128
@@ -1355,7 +1355,7 @@ view/no-wait [text "This window is a workaround for R2 call bug which hides firs
 
 	four-ways [
 	--test-- "tic-5 to-image of an image"
-	 	bst-sz: 100x100 * bst-sc: system/view/metrics/dpi / 96.0
+	 	bst-sz: to pair! 100x100 * bst-sc: system/view/metrics/dpi / 96.0
 		bst-im: draw 100x100 compose [matrix [-1 0 0 1 100 0] font (copy bst-font1) text 0x0 "TEXT"]
 		bst-im1: shoot [image bst-im]
 		bst-im2: shoot [base 100x100 draw [image bst-im]]
