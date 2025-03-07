@@ -41,8 +41,9 @@ pair: context [
 			right [red-pair!]
 			int	  [red-integer!]
 			fl	  [red-float!]
+			pt	  [red-point2D!]
 			slot  [red-integer! value]
-			x y	  [integer!]
+			x y sx[integer!]
 			x' y' [integer!]
 			f n   [float!]
 			promo [subroutine!]
@@ -56,6 +57,7 @@ pair: context [
 		]
 		left: as red-pair! stack/arguments
 		right: left + 1
+		sx: left/x
 		
 		assert TYPE_OF(left) = TYPE_PAIR
 		
@@ -79,14 +81,18 @@ pair: context [
 				switch op [
 					OP_MUL [
 						if float/special? f [fire [TO_ERROR(script invalid-arg) right]]
-						left/x: as-integer (as-float left/x) * f
-						left/y: as-integer (as-float left/y) * f
+						pt: as red-point2D! left
+						pt/header: TYPE_POINT2D
+						pt/x: as-float32 (as-float left/x) * f
+						pt/y: as-float32 (as-float left/y) * f
 						return left
 					]
 					OP_DIV [
 						if float/NaN? f [fire [TO_ERROR(script invalid-arg) right]]
-						left/x: as-integer (as-float left/x) / f
-						left/y: as-integer (as-float left/y) / f
+						pt: as red-point2D! left
+						pt/header: TYPE_POINT2D
+						pt/x: as-float32 (as-float left/x) / f
+						pt/y: as-float32 (as-float left/y) / f
 						return left
 					]
 					default [
@@ -107,7 +113,7 @@ pair: context [
 		
 		y': integer/do-math-op left/y y op slot
 		if TYPE_OF(slot) <> TYPE_UNSET [
-			left/x: x									;-- reset left/x in case math op was already done (#5586)
+			left/x: sx									;-- reset left/x in case math op was already done (#5586)
 			promo
 		]
 		left/y: y'

@@ -3781,6 +3781,10 @@ comment {
 		loop 1e6 [put #[] random "abcdefghi" 1]
 		loop 1e6 [put #[] random copy #{acadadeefacebeedadfeed2025} 1]
 		--assert true 									;-- just check that it didn't crash
+		
+	--test-- "#5598"
+		--assert 2560x1440 - 280x325 / 2   = (1140, 557.5)
+		--assert 2560x1440 - 280x325 / 2.0 = (1140, 557.5)
 	
 ===end-group===
 
