@@ -666,7 +666,7 @@ interpreter: context [
 				evt?: either ser = null [no][
 					obj: as red-object! ser
 					switch TYPE_OF(ser) [
-						TYPE_OBJECT [all [obj/on-set <> null TYPE_OF(p-item) = TYPE_WORD]]
+						TYPE_OBJECT 	 [all [obj/on-set <> null TYPE_OF(p-item) = TYPE_WORD]]
 						TYPE_ANY_BLOCK   [gparent <> null]
 						default			 [no]
 					]
