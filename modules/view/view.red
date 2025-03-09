@@ -1363,6 +1363,8 @@ insert-event-func 'reactors [
 		
 		if facet [system/reactivity/check/only face facet]
 	]
+	if event/type = 'focus [system/reactivity/check/only event/window 'selected]
+	
 	if event/face/type = 'window [
 		switch event/type [
 			move moving 	[system/reactivity/check/only event/face 'offset]
