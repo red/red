@@ -224,6 +224,7 @@ ssa-var!: alias struct! [
 	instr		[instr!]
 	loop-bset	[integer!]	;-- loop bitset, var used in loops, can encode 32 loops
 	extra-bset	[ptr-array!]
+	decl		[var-decl!]
 ]
 
 #define LOCAL_VAR?(var) (NODE_FLAGS(var) and RST_VAR_LOCAL <> 0)

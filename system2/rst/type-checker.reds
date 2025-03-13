@@ -973,7 +973,7 @@ type-checker: context [
 			switch NODE_TYPE(var) [
 				RST_VAR_DECL [
 					infer-type var ctx
-					if LOCAL_VAR?(var) [var/ssa: make-ssa-var]
+					if LOCAL_VAR?(var) [make-ssa-var var]
 				]
 				RST_FUNC	 [
 					f: as fn! var

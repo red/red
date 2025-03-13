@@ -26,7 +26,7 @@ ir-printer: context [
 			c: as instr-const! i
 			v: c/value
 			if null? v [
-				print ["&null"]
+				print ["null"]
 				exit
 			]
 			switch TYPE_OF(v) [
@@ -207,7 +207,7 @@ ir-printer: context [
 		e		[df-edge!]
 	][
 		either any [null? e null? e/dst][
-			prin "null"
+			prin "null-edge"
 		][
 			prin-ins e/dst
 		]

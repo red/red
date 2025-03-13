@@ -227,12 +227,15 @@ instr-input: func [
 ]
 
 make-ssa-var: func [
+	var			[var-decl!]
 	return:		[ssa-var!]
 	/local
 		v		[ssa-var!]
 ][
 	v: as ssa-var! malloc size? ssa-var!
 	v/index: -1
+	v/decl: var
+	var/ssa: v
 	v
 ]
 
@@ -439,7 +442,9 @@ bfs-blocks: func [		;-- breadth first search for a graph
 ;-- a graph of IR nodes in SSA form, machine independent
 ir-graph: context [
 	builder: declare visitor!
-	init: does [
+	const_null: as instr-const! 0
+
+	init: func [/local c [instr-const!]] [
 		builder/visit-assign:		as visit-fn! :visit-assign
 		builder/visit-literal:		as visit-fn! :visit-literal
 		builder/visit-lit-array:	as visit-fn! :visit-lit-array
@@ -466,6 +471,11 @@ ir-graph: context [
 		builder/visit-throw:		as visit-fn! :visit-throw
 		builder/visit-catch:		as visit-fn! :visit-catch
 		builder/visit-assert:		as visit-fn! :visit-assert
+
+		c: as instr-const! malloc size? instr-const!
+		c/header: INS_CONST or (F_NOT_VOID << 8)
+		c/type: type-system/null-type
+		const_null: c
 	]
 
 	visit-assign: func [
@@ -492,22 +502,71 @@ ir-graph: context [
 		val
 	]
 
-	visit-literal: func [e [literal!] ctx [ssa-ctx!] return: [instr!]][
-		as instr! const-val e/type e/token ctx/graph
-	]
-
-	visit-lit-array: func [e [literal!] ctx [ssa-ctx!] return: [instr!]
+	make-global-literal: func [
+		e		[literal!]
+		t		[rst-type!]
+		ctx		[ssa-ctx!]
+		return: [instr!]
 		/local
-			decl	[var-decl!]
-			op		[instr-op!]
+			decl [var-decl!]
+			op	 [instr-op!]
 	][
 		decl: parser/make-var-decl e/token null
 		decl/init: as rst-expr! e
-		decl/type: e/type
+		decl/type: t
 		record-global decl
-		op: make-op OP_GET_GLOBAL 0 null decl/type
+		op: make-op OP_GET_GLOBAL 0 null t
 		op/target: as int-ptr! decl
 		add-op op null ctx
+	]
+
+	visit-literal: func [e [literal!] ctx [ssa-ctx!] return: [instr!]
+		/local
+			cast-t t [rst-type!]
+			f64		 [red-float!]
+			f32		 [red-float32!]
+			int		 [red-integer!]
+			f32?	 [logic!]
+	][
+		t: e/type
+		cast-t: e/cast-type
+		if cast-t <> null [
+			if FLOAT_TYPE?(cast-t) [
+				f32?: FLOAT_32?(cast-t)
+				switch TYPE_KIND(t) [
+					RST_TYPE_FLOAT [
+						f64: as red-float! e/token
+						if f32? [
+							f32: as red-float32! f64
+							f32/value: as float32! f64/value
+						]
+					]
+					RST_TYPE_INT [
+						int: as red-integer! e/token
+						either f32? [
+							f32: as red-float32! int
+							f32/header: TYPE_FLOAT
+							f32/value: as float32! int/value
+						][
+							f64: as red-float! int
+							f64/header: TYPE_FLOAT
+							f64/value: as float! int/value
+						]
+					]
+					default [unreachable e/token]
+				]
+			]
+			t: cast-t
+		]
+		either all [FLOAT_TYPE?(t) FLOAT_64?(t)][
+			make-global-literal e t ctx
+		][
+			as instr! const-val t e/token ctx/graph
+		]
+	]
+
+	visit-lit-array: func [e [literal!] ctx [ssa-ctx!] return: [instr!]][
+		make-global-literal e e/type ctx
 	]
 
 	visit-var: func [v [variable!] ctx [ssa-ctx!] return: [instr!]][
@@ -1200,11 +1259,8 @@ ir-graph: context [
 		loop n [
 			pred-v: as instr! p/value
 			v: as instr! mp/value
-			if v <> null [
-				either null? pred-v [	;-- this var is dead on this edge
-					kill-var v m
-					mp/value: null
-				][
+			either v <> null [
+				if pred-v <> null [
 					either INSTR_PHI?(v) [
 						phi: as instr-phi! v
 						if phi/block = m/block [
@@ -1230,6 +1286,8 @@ ir-graph: context [
 						]
 					]
 				]
+			][
+				mp/value: as int-ptr! pred-v
 			]
 			i: i + 1
 			p: p + 1
@@ -1411,13 +1469,21 @@ ir-graph: context [
 		return:		[instr!]
 		/local
 			p		[ptr-ptr!]
+			ins		[instr!]
+			decl	[var-decl!]
 	][
-		either var/index >= 0 [
+		ins: either var/index >= 0 [
 			p: ARRAY_DATA(cur-vals) + var/index
 			as instr! p/value
 		][
 			var/instr
 		]
+		if null? ins [
+			decl: var/decl
+			cur-blk: decl/blkref
+			throw-error [decl/token "local variable used before being initialized!"]
+		]
+		ins
 	]
 
 	set-cur-val: func [
@@ -1555,6 +1621,14 @@ ir-graph: context [
 			f = 1.0 [const-float-one fn]
 			true [get-const type-system/float-type as cell! val fn]
 		]
+	]
+
+	const-float32: func [
+		val		[red-float32!]
+		fn		[ir-fn!]
+		return: [instr-const!]
+	][
+		get-const type-system/float32-type as cell! val fn
 	]
 
 	nop: func [
@@ -1695,8 +1769,13 @@ ir-graph: context [
 					]
 				]
 				RST_TYPE_FLOAT [
-					const-float as red-float! val fn
+					either FLOAT_64?(type) [
+						const-float as red-float! val fn
+					][
+						const-float32 as red-float32! val fn
+					]
 				]
+				RST_TYPE_NULL [const_null]
 				default [get-const type val fn]
 			]
 		]
@@ -1731,14 +1810,6 @@ ir-graph: context [
 			if idx = vals/length [
 				map: token-map/make 50
 				fn/const-map: map
-				p: ARRAY_DATA(vals)
-				loop vals/length [
-					v: as instr-const! p/value
-					if v <> null [
-						token-map/put map v/value as int-ptr! v
-					]
-					p: p + 1
-				]
 			]
 		]
 		either idx < N_CACHED_CONST [

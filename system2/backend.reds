@@ -605,8 +605,8 @@ frame-alloc: func [
 		n s [integer!]
 ][
 	n: sz + f/slot-size - 1 / f/slot-size
+	s: f/cc/reg-set/spill-start + f/spill-vars
 	f/spill-vars: f/spill-vars + n
-	s: f/cc/reg-set/spill-start + f/spill-vars - 1
 	s
 ]
 
@@ -626,8 +626,8 @@ frame-alloc-slot: func [
 		]
 		default [1]
 	]
+	s: f/cc/reg-set/spill-start + f/spill-vars
 	f/spill-vars: f/spill-vars + n
-	s: f/cc/reg-set/spill-start + f/spill-vars - 1
 	s or flag
 ]
 
@@ -640,8 +640,8 @@ frame-tmp-slot: func [
 ][
 	flag: either any [cls = class_i64 cls = class_f64][FRAME_SLOT_64][0]
 	if f/tmp-slot < 0 [
+		s: f/cc/reg-set/spill-start + f/spill-vars
 		f/spill-vars: f/spill-vars + 2
-		s: f/cc/reg-set/spill-start + f/spill-vars - 1
 	]
 	f/tmp-slot: s
 	s or flag
@@ -2049,6 +2049,7 @@ backend: context [
 			I_ENTRY			["entry"]
 			I_IMODD			["imod.d"]
 			I_IMODQ			["imod.q"]
+			I_FSTP			["fstp"]
 			default 		["unknown op"]
 		]
 	]

@@ -1308,6 +1308,21 @@ asm: context [
 		p: pb + off-1
 		p/value: as byte! pos - off-1 - 1
 	]
+
+	;-- x87 FPU
+	fstp-d: func [
+		m	[x86-addr!]
+	][
+		emit-b D9h
+		emit-m m 03h
+	]
+
+	fstp-q: func [
+		m	[x86-addr!]
+	][
+		emit-b DDh
+		emit-m m 03h
+	]
 ]
 
 to-loc: func [
@@ -1353,10 +1368,12 @@ to-imm: func [
 		val [cell!]
 		int [red-integer!]
 		b	[red-logic!]
-		f	[red-float!]
+		f	[red-float32!]
+		p	[int-ptr!]
 ][
 	i: as immediate! o
 	val: i/value
+	if null? val [return 0]
 	switch TYPE_OF(val) [
 		TYPE_INTEGER [
 			int: as red-integer! val
@@ -1367,8 +1384,9 @@ to-imm: func [
 			as-integer b/value
 		]
 		TYPE_FLOAT [
-			f: as red-float! val
-			as integer! keep f
+			f: as red-float32! val
+			p: :f/value
+			p/value
 		]
 		TYPE_WORD [		;-- null
 			0
@@ -1486,25 +1504,13 @@ rrsd-to-addr: func [
 	addr/ref: as val! val
 ]
 
-call-fn: func [v [cell!] /local fval [val!] f [fn!]][
-	assert v/header = TYPE_FUNCTION
-
-	fval: as val! v
-	f: as fn! fval/ptr
-	either NODE_FLAGS(f) and RST_IMPORT_FN = 0 [
-		asm/call-rel REL_ADDR
-	][
-		asm/icall-rel REL_ADDR
-	]
-	record-fn-call f asm/pos - 4
-]
-
 assemble-op: func [
 	cg		[codegen!]
 	op		[integer!]
 	p		[ptr-ptr!]
 	/local
 		l	[label!]
+		lvp [livepoint!]
 		c n [integer!]
 		f	[operand!]
 		val [val!]
@@ -1514,6 +1520,8 @@ assemble-op: func [
 		pp	[int-ptr!]
 		pos [integer!]
 		t	[rst-type!]
+		ft	[fn-type!]
+		fn	[fn!]
 		rset [reg-set!]
 		addr [x86-addr! value]
 ][
@@ -1540,7 +1548,27 @@ assemble-op: func [
 			switch OPERAND_TYPE(f) [
 				OD_IMM [
 					imm: as immediate! f
-					call-fn imm/value
+					val: as val! imm/value
+					assert val/header = TYPE_FUNCTION
+
+					fn: as fn! val/ptr
+					either NODE_FLAGS(fn) and RST_IMPORT_FN = 0 [
+						asm/call-rel REL_ADDR
+					][
+						asm/icall-rel REL_ADDR
+					]
+					record-fn-call fn asm/pos - 4
+
+					ft: as fn-type! fn/type
+					t: ft/ret-type
+					if FLOAT_TYPE?(t) [
+						loc-to-addr CALLEE_SPILL_BASE :addr cg/frame cg/reg-set
+						either FLOAT_64?(t) [
+							asm/fstp-q :addr
+						][
+							asm/fstp-d :addr
+						]
+					]
 				]
 				default [0]
 			]
@@ -1559,6 +1587,11 @@ assemble-op: func [
 				loc-to-addr loc :addr cg/frame cg/reg-set
 				assemble-m op :addr
 			]
+		]
+		I_FSTP [
+			loc: to-loc as operand! p/value
+			loc-to-addr loc :addr cg/frame cg/reg-set
+			asm/fstp-q :addr
 		]
 		I_CATCH [
 			rset: cg/reg-set

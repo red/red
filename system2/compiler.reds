@@ -505,7 +505,7 @@ compiler: context [
 				if w <> null [prin-token w]
 			]
 
-			count: count - 1	
+			count: count - 1
 			if count <> 0 [prin " "]
 
 			list: list + 1

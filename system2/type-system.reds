@@ -70,6 +70,7 @@ int-type!: alias struct! [
 	max			[integer!]
 ]
 
+#define FLOAT_32?(f)  (f/header and 01000000h = 0)
 #define FLOAT_64?(f)  (f/header and 01000000h <> 0)
 #define FLOAT_FRAC(f) (f/header >>> 8 and FFh)
 #define FLOAT_EXP(f)  (f/header >>> 16 and FFh)
@@ -299,8 +300,10 @@ ptr-value-size?: func [
 	return: [integer!]
 	/local
 		ptr [ptr-type!]
+		ty	[integer!]
 ][
-	if TYPE_KIND(t) = RST_TYPE_PTR [
+	ty: TYPE_KIND(t)
+	if any [ty = RST_TYPE_PTR ty = RST_TYPE_ARRAY][
 		ptr: as ptr-type! t
 		t: ptr/type
 	]
@@ -617,6 +620,9 @@ type-system: context [
 				conv_ok
 			]
 			RST_TYPE_ARRAY [
+				conv_ok
+			]
+			RST_TYPE_FLOAT [
 				conv_ok
 			]
 			default [

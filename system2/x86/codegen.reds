@@ -885,7 +885,7 @@ x86-cc: context [
 						i-idx: i-idx + 1
 						rloc/i: pp/i-idx
 					][
-						rloc/i: spill-start + r-spill
+						rloc/i: frame-start + r-spill
 						r-spill: r-spill + 1
 					]
 				]
@@ -895,7 +895,7 @@ x86-cc: context [
 						f-idx: f-idx + 1
 						rloc/i: pp/f-idx
 					][
-						rloc/i: spill-start + r-spill
+						rloc/i: frame-start + r-spill
 						r-spill: r-spill + 1
 					]
 				]
@@ -905,12 +905,12 @@ x86-cc: context [
 						f-idx: f-idx + 1
 						rloc/i: pp/f-idx
 					][
-						rloc/i: spill-start + r-spill
+						rloc/i: frame-start + r-spill
 						r-spill: r-spill + 2
 					]
 				]
 				class_i64 [
-					rloc/i: spill-start + r-spill
+					rloc/i: frame-start + r-spill
 					r-spill: r-spill + 2
 				]
 			]
@@ -1213,6 +1213,7 @@ x86: context [
 			p	[ptr-ptr!]
 			e	[df-edge!]
 			n	[integer!]
+			rt	[rst-type!]
 			fn	[fn!]
 			n-spilled	 [integer!]
 			fixed-stack? [logic!]
@@ -1235,7 +1236,8 @@ x86: context [
 		use-ptr cg as int-ptr! fn
 		live-point cg cc
 
-		if cc/ret-type <> type-system/void-type [
+		rt: cc/ret-type
+		if rt <> type-system/void-type [
 			def-reg-fixed cg i callee-ret cc 0
 		]
 
@@ -1506,9 +1508,10 @@ x86: context [
 				c: either INT_SIGNED?(t) [x86-cond/lesser-eq][x86-cond/not-above]
 				emit-int-cmp cg i op c
 			]
-			OP_PTR_EQ
-			OP_PTR_LT
-			OP_PTR_LTEQ
+			OP_PTR_EQ [emit-int-cmp cg i I_CMPD x86-cond/zero]
+			OP_PTR_NE [emit-int-cmp cg i I_CMPD x86-cond/not-zero]
+			OP_PTR_LT [emit-int-cmp cg i I_CMPD x86-cond/carry]
+			OP_PTR_LTEQ [emit-int-cmp cg i I_CMPD x86-cond/not-above]
 			OP_FLT_EQ [emit-float-cmp cg i x86-cond/zero]
 			OP_FLT_NE [x86-cond/pair-neg emit-float-cmp cg i x86-cond/zero]
 			OP_FLT_LT [emit-float-cmp cg i x86-cond/carry]
@@ -1924,6 +1927,10 @@ x86: context [
 			OP_INT_NE
 			OP_INT_LT
 			OP_INT_LTEQ
+			OP_PTR_EQ
+			OP_PTR_NE
+			OP_PTR_LT
+			OP_PTR_LTEQ
 			OP_FLT_EQ
 			OP_FLT_NE
 			OP_FLT_LT
@@ -2268,7 +2275,6 @@ x86: context [
 			dst-v	[vreg!]
 			dst		[integer!]
 			rset	[reg-set!]
-			s-reg	[integer!]
 			d		[def!]
 			u		[use!]
 			imm32?	[logic!]
@@ -2279,9 +2285,6 @@ x86: context [
 	][
 		rset: cg/reg-set
 		cls: arg/reg-cls
-		s-reg: either all [cls = class_f64 target/arch = arch-x86][
-			SSE_SCRATCH
-		][x86_SCRATCH]
 		src-v: arg/src-v
 		dst-v: arg/dst-v
 		dst: arg/dst-reg
@@ -2295,27 +2298,23 @@ x86: context [
 				exit
 			]
 			arg/dst-v: null
-			arg/dst-reg: s-reg
+			arg/dst-reg: x86_SCRATCH
 			gen-move-imm cg arg
 
 			arg/src-v: null
-			arg/src-reg: s-reg
+			arg/src-reg: x86_SCRATCH
 			arg/dst-v: dst-v
 			arg/dst-reg: dst
 			gen-move-loc cg arg
 		][
 			either target/xmm-reg? dst [
 				arg/dst-v: null
-				arg/dst-reg: s-reg
+				arg/dst-reg: x86_SCRATCH
 				gen-move-imm cg arg
-				m: AM_XMM_REG
-				op: either cls = class_f32 [I_MOVSS][
-					if s-reg = SSE_SCRATCH [m: AM_XMM_XMM]
-					I_MOVSD
-				]
+				op: either cls = class_f32 [I_MOVSS][I_MOVSD]
 				d: make-def dst-v dst
-				u: make-use null s-reg
-				emit-instr2 cg op or m d u
+				u: make-use null x86_SCRATCH
+				emit-instr2 cg op or AM_XMM_REG d u
 			][
 				d: make-def dst-v dst
 				either imm32? [
