@@ -798,14 +798,12 @@ collector: context [
 				if ptr? [bits: bits or (1 << i)]		;-- mark pointer
 				i: i + 2								;-- skip 64-bit slot
 			]
+			bits
 		][												;-- variadic call (no RTTI)
 			assert count <= 14							;-- 32 - 3 divided by 2 slots per argument
-			loop count [
-				bits: bits or (1 << i)					;-- mark each argument (safest option)
-				i: i + 2								;-- skip 64-bit slot
-			]
+			bits: (1 << (count * 2)) - 1				;-- set bits for all required positions
+			bits and 55555555h << i						;-- mask to keep only even positions, offset by i bits
 		]
-		bits
 	]
 
 	scan-stack-refs: func [
