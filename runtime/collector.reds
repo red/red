@@ -772,7 +772,7 @@ collector: context [
 
 	encode-dyn-ptr: func [
 		stk	    [int-ptr!]								;-- stack frame pointer
-		typed?  [logic!]
+		typed?  [logic!]								;-- typed or generic variadic function
 		return: [integer!]								;-- return a bitmap of pointer slots
 		/local
 			count i bits [integer!]
@@ -810,7 +810,7 @@ collector: context [
 
 	scan-stack-refs: func [
 		table  [int-ptr!]								;-- optional table for nodes relocation
-		store? [logic!]
+		store? [logic!]									;-- store series pointers in a list for later eventual update
 		/local
 			frm	map	slot p sp b base base' head prev [int-ptr!]
 			refs tail new [int-ptr!]

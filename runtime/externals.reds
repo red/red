@@ -13,10 +13,10 @@ Red/System [
 externals: context [
 	verbose: 0
 	
-	flag-mark:	   80000000h
-	flag-free:	   40000000h
+	flag-mark:	   80000000h							;-- mark a record as alive (for GC)
+	flag-free:	   40000000h							;-- mark a record as free
 	ext-type-mask: 000000FFh
-	tail-record:   FFFFFFFFh
+	tail-record:   FFFFFFFFh							;-- marker for records list tail
 	
 	destructor!: alias function! [handle [int-ptr!]]
 	
@@ -40,9 +40,9 @@ externals: context [
 	free: tail-record									;-- head of free slots list (index)
 	size: 1000											;-- starting records pool
 	
-	register: func [
-		name	[c-string!]
-		fun		[integer!]
+	register: func [									;-- register a new external class
+		name	[c-string!]								;-- internal class name
+		fun		[integer!]								;-- pointer to a destructor function
 		return: [integer!]								;-- return assigned type ID
 		/local
 			id  [integer!]
@@ -55,9 +55,9 @@ externals: context [
 		id + 1											;-- return a 1-based value (0 reserved for "no type")
 	]
 	
-	format: func [
-		p  [record!]
-		nb [integer!]
+	format: func [										;-- clears fully or partially a list of records
+		p  [record!]									;-- starting record pointer
+		nb [integer!]									;-- nb of records to clear
 		/local
 			i [integer!]
 	][
@@ -73,10 +73,10 @@ externals: context [
 		p/next: tail-record								;-- -1: last slot
 	]
 	
-	store: func [
-		handle  [int-ptr!]
-		type	[integer!]
-		return: [integer!]								;-- array's index (zero-based)
+	store: func [										;-- store a new external resource in a record
+		handle  [int-ptr!]								;-- resource handle to store
+		type	[integer!]								;-- a valid type ID (previously registered)
+		return: [integer!]								;-- record's index (zero-based)
 		/local
 			rec [record!]
 			next new half [integer!]
@@ -103,7 +103,7 @@ externals: context [
 		new
 	]
 	
-	release: func [
+	release: func [										;-- release an external resource by calling its destructor
 		rec [record!]
 		/local
 			ext  [ext-type!]
@@ -119,9 +119,9 @@ externals: context [
 	]
 	
 	remove: func [										;-- remove a record directly
-		idx		[integer!]
+		idx		[integer!]								;-- record index
 		call?	[logic!]								;-- YES: call destructor also
-		return: [integer!]
+		return: [integer!]								;-- returns the no-ID value (-1)
 		/local
 			rec p [record!]
 	][
@@ -146,7 +146,7 @@ externals: context [
 		-1
 	]
 
-	mark: func [idx [integer!] /local rec [record!]][
+	mark: func [idx [integer!] /local rec [record!]][	;-- mark an alive record
 		#if debug? = yes [if verbose > 0 [print-line ["externals/mark: " idx]]]
 		assert idx < size
 		rec: as record! list + idx
@@ -154,7 +154,7 @@ externals: context [
 		rec/header: rec/header or flag-mark
 	]
 	
-	sweep: func [
+	sweep: func [										;-- collect unreachable records (called by GC)
 		/local
 			p		  [int-ptr!]
 			rec prev  [record!]
