@@ -1161,7 +1161,10 @@ natives: context [
 		case [
 			show >= 0 [
 				;TBD
-				integer/box memory/total
+				blk: block/push-only* 5
+				memory-info blk 2
+				#call [show-memory-stats blk]
+				stack/set-last unset-value
 			]
 			info >= 0 [
 				blk: block/push-only* 5

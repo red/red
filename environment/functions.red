@@ -1062,6 +1062,43 @@ to-local-date: func [
 	date
 ]
 
+show-memory-stats: function [data [block!]][
+	repeat class 2 [
+		print [lf #"[" pad form pick [Nodes Series] class 6 "] -- Free ----- Used ----- Total --"]
+		used: total: 0
+		either empty? data/:class [
+			repeat i 3 [prin pad/left copy "-" pick [16 11 12] i]
+			prin lf
+		][
+			c: 0
+			foreach frm data/:class [
+				prin ["  " pad append form c: c + 1 #":" 4]
+				repeat i 3 [prin pad/left form frm/:i pick [11 11 12] i]
+				prin lf
+				used: used + frm/2
+				total: total + frm/3
+			]
+		]
+		unit: pick ["nodes" "bytes"] class
+		print ["  --^/  Used     : " used  unit]
+		print ["  Allocated: " total unit]
+	]
+	c: total: 0
+	print "^/[ Big    ]"
+	unless empty? data/3 [
+		foreach frm data/3 [
+			prin ["  " pad append form c: c + 1 #":" 4]
+			print pad/left frm 11
+			total: total + frm
+		]
+	]
+	print [
+		"  --^/  Allocated: " total  "bytes^/"
+		"--^/Total allocated from OS:" pad/left form data/4 9 lf
+		"Total allocated on heap:" pad/left form data/5 9 lf
+	]
+]
+
 transcode-trace: func [
 	"Shortcut function for transcoding while tracing all lexer events"
 	src [binary! string!]
