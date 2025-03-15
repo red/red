@@ -292,11 +292,7 @@ collector: context [
 			mask !mask cnt avail [integer!]
 	][
 		assert nodes-list/count = 0
-		!mask: 1
-		loop prefs/nodes-gc-trigger [					;-- create mask for checking frame usage across last 32 GC passes
-			!mask: !mask << 1
-			!mask: !mask or 1
-		]
+		!mask: 1 << (prefs/nodes-gc-trigger + 1) - 1	;-- create mask for checking frame usage across last 32 GC passes
 
 		frame: memory/n-head
 		while [all [frame <> null null? frame/head]][frame: frame/next]
