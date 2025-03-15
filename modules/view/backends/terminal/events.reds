@@ -56,7 +56,7 @@ get-event-window: func [
 	evt		[red-event!]
 	return: [red-value!]
 ][
-	as red-value! none-value
+	as red-value! none/push
 ]
 
 get-event-face: func [
