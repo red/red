@@ -26,7 +26,7 @@ collector: context [
 
 	prefs: declare struct! [
 		nodes-gc-trigger 		[integer!]				;-- 0-31: node GC trigger age (in stats/cycles)
-		nodes-core-nb			[integer!]				;-- threshold below which no nodes compacting is done
+		;nodes-core-nb			[integer!]				;-- threshold below which no nodes compacting is done
 	]
 	
 	stats: declare struct! [
@@ -48,7 +48,6 @@ collector: context [
 	][
 		stats/cycles: 			0
 		prefs/nodes-gc-trigger: 5						;-- trigger if node frame is unchanged after 5 cycles
-		prefs/nodes-core-nb:	5
 	]
 
 	compare-cb: func [[cdecl] a [int-ptr!] b [int-ptr!] return: [integer!]][
@@ -289,7 +288,7 @@ collector: context [
 	do-node-cycle: func [
 		/local
 			frame [node-frame!]
-			mask !mask cnt avail [integer!]
+			mask !mask avail [integer!]
 	][
 		assert nodes-list/count = 0
 		!mask: 1 << (prefs/nodes-gc-trigger + 1) - 1	;-- create mask for checking frame usage across last 32 GC passes
@@ -299,13 +298,11 @@ collector: context [
 		if null? frame [exit]							;-- all the frames are full
 		memory/n-active: frame							;-- initialize dst
 
-		cnt: 0
 		avail: calc-free-slots							;-- nb of potential free destination slots (including the ones from frames to be compacted)
 		frame: memory/n-tail
 		until [
 			;probe [frame ", used: " frame/used ", free: " frame/nodes - frame/used ", birth: " frame/birth ", a-used: " as int-ptr! frame/a-used]
 			if all [
-				cnt >= prefs/nodes-core-nb				;-- leave the first node frames untouched (5 by default)
 				frame/a-used and !mask = !mask			;-- node frame been unused for several GC passes (5 by default)
 				frame/used < 5000						;-- only compact frames with < 50% usage
 				avail > nodes-per-frame					;-- and only if enough destination slots left, simplified from: frame/used < (avail - (nodes-per-frame - frame/used))
@@ -315,7 +312,6 @@ collector: context [
 				avail: avail - nodes-per-frame
 				compact-node frame refs
 			]
-			cnt: cnt + 1
 			frame: frame/prev
 			frame = null
 		]
