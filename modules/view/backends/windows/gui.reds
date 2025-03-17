@@ -1833,8 +1833,8 @@ OS-make-view: func [
 			f32: either vertical? [sy][sx]
 			off-x: get-position-value as red-float! data f32
 			value: as-integer f32
-			if vertical? [off-x: (as-integer sy) - off-x]
 			either sym = slider [
+				if vertical? [off-x: (as-integer sy) - off-x]
 				SendMessage handle TBM_SETRANGE 1 value << 16
 				SendMessage handle TBM_SETPOS 1 off-x
 			][
@@ -2404,9 +2404,10 @@ change-data: func [
 			f: as red-float! data
 			size: as red-pair! values + FACE_OBJ_SIZE
 			flt: f/value
-			range: either size/y > size/x [flt: 1.0 - flt size/y][size/x]
+			range: either size/y > size/x [size/y][size/x]
 			flt: flt * as-float range
 			either type = slider [
+				if size/y > size/x [flt: 1.0 - flt]
 				SendMessage hWnd TBM_SETPOS 1 as-integer flt
 			][
 				SendMessage hWnd PBM_SETPOS as-integer flt 0
