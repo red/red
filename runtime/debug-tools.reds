@@ -40,7 +40,7 @@ memory-info: func [
 		h-frame		[heap-frame!]
 		base		[byte-ptr!]
 		used		[float!]
-		total		[float!]
+		total heap	[float!]
 		saved		[logic!]
 		len			[integer!]
 		push-value	[subroutine!]
@@ -116,14 +116,16 @@ memory-info: func [
 	
 ;-- store total allocated from OS --
 	if verbose >= 2 [
-		push-value							;-- Total allocated by Red allocator
-		total: 0.0
+		heap: 0.0
 		h-frame: system/heap/head
 		while [h-frame <> null][
-			total: total + as-float (h-frame/size + size? heap-frame!)
-			#if debug? = yes [total: total + as-float size? alloc-guard!]
+			heap: heap + as-float (h-frame/size + size? heap-frame!)
+			#if debug? = yes [heap: heap + as-float size? alloc-guard!]
 			h-frame: h-frame/next
 		]
+		total: total + heap
+		push-value							;-- Total allocated by Red allocator
+		total: heap
 		push-value							;-- Total allocated by Red low-level sub-system
 	]
 	
