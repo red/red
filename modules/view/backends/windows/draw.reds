@@ -185,6 +185,7 @@ draw-begin: func [
 		text	[red-string!]
 		red-img [red-image!]
 		font	[red-object!]
+		type	[red-word!]
 		pos		[red-pair! value]
 		pos2	[red-pair!]
 		rt		[com-ptr! value]
@@ -194,14 +195,15 @@ draw-begin: func [
 		props	[D2D1_RENDER_TARGET_PROPERTIES value]
 		factory [ID2D1Factory]
 		rc		[RECT_F! value]
+		sym		[integer!]
 		font-clr? [logic!]
 		on-image? [logic!]
 ][
 	time-meter/start _time_meter
 	zero-memory as byte-ptr! ctx size? draw-ctx!
 	ctx/pen-width:	as float32! 1.0
-	ctx/pen-join: D2D1_LINE_JOIN_MITER
-	ctx/pen-cap: D2D1_CAP_STYLE_FLAT
+	ctx/pen-join:	D2D1_LINE_JOIN_MITER
+	ctx/pen-cap:	D2D1_CAP_STYLE_FLAT
 	ctx/pen-style:	null
 	ctx/hwnd:		hWnd
 	update-pen-style ctx
@@ -286,9 +288,11 @@ draw-begin: func [
 				throw RED_THROWN_ERROR 
 			]
 		]
-
+		type: as red-word! values + FACE_OBJ_TYPE
+		sym: symbol/resolve type/symbol
+		
 		text: as red-string! values + FACE_OBJ_TEXT
-		if TYPE_OF(text) = TYPE_STRING [
+		if all [sym <> window TYPE_OF(text) = TYPE_STRING][
 			point2D/make-at as red-value! :pos F32_0 F32_0
 			font: as red-object! values + FACE_OBJ_FONT
 			font-clr?: no
