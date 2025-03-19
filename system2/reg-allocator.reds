@@ -33,7 +33,7 @@ reg-allocator: context [
 		move-dsts	[vector!]		;-- vector<(vreg!, list!)>
 		cursor		[integer!]		;-- point to next free slot
 		pos			[integer!]
-		cur-i		[mach-instr!]
+		prev-i		[mach-instr!]
 		next-i		[mach-instr!]
 		move-idx	[int-array!]
 		reg-moves	[vector!]		;-- vector<move-state!>
@@ -119,7 +119,7 @@ reg-allocator: context [
 			rstate/pos: rstate/pos + 1
 			prev: cur/prev
 			next: cur/next
-			rstate/cur-i: cur
+			rstate/prev-i: prev
 			rstate/next-i: next
 			opcode: MACH_OPCODE(cur)
 
@@ -248,7 +248,7 @@ reg-allocator: context [
 				p: p + 1
 			]
 
-			emit-moves rstate next
+			emit-moves rstate cur/next
 			if opcode = I_ENTRY [
 				pa: ARRAY_DATA(rstate/allocated)
 				n: 0
@@ -319,7 +319,7 @@ reg-allocator: context [
 			v: vr/vreg
 			arg/src-v: v
 			arg/dst-v: v
-			arg/dst-reg: v/reg
+			arg/dst-reg: vr/reg
 			arg/reg-cls: v/reg-class
 			either vreg-const?(v) [
 				insert-move-imm cg :arg next-i
@@ -444,6 +444,9 @@ reg-allocator: context [
 		a: as vreg! pa/value
 		if cursor > 0 [
 			p/value: as int-ptr! a
+			p: p + 1
+			pa: pa + 1
+			p/value: pa/value
 			ps: states + a/reg
 			ps/value: i
 		]
@@ -534,6 +537,7 @@ reg-allocator: context [
 			p	[ptr-ptr!]
 			r	[vreg!]
 	][
+		assert reg <> 0
 		i: int-array/pick s/states reg
 		either i < 0 [
 			idx: s/cursor
@@ -635,13 +639,13 @@ reg-allocator: context [
 			loc		[integer!]
 			m		[move-state!]
 			rset	[reg-set!]
-			cur-i	[mach-instr!]
+			prev	[mach-instr!]
 			cg		[codegen!]
 			arg		[move-arg! value]
 	][
 		cg: s/cg
-		cur-i: s/cur-i
 		rset: s/reg-set
+		prev: s/prev-i
 		reg: v/reg
 		loc: reg
 		if on-stack? rset constraint [
@@ -650,7 +654,7 @@ reg-allocator: context [
 			arg/dst-reg: constraint
 			arg/reg-cls: v/reg-class
 			either vreg-const?(v) [
-				insert-move-imm cg :arg cur-i
+				insert-move-imm cg :arg prev/next
 			][
 				either reg <> 0 [
 					update-pos s reg
@@ -659,7 +663,7 @@ reg-allocator: context [
 					alloc-slot cg/frame v
 					arg/src-reg: v/spill
 				]
-				insert-move-loc cg :arg cur-i
+				insert-move-loc cg :arg prev/next
 			]
 			return constraint
 		]
@@ -681,7 +685,7 @@ reg-allocator: context [
 				arg/src-reg: loc
 				arg/dst-reg: reg
 				arg/reg-cls: v/reg-class
-				insert-move-loc cg :arg cur-i
+				insert-move-loc cg :arg prev/next
 			][
 				spill-reg s reg s/next-i
 				free-reg s reg yes

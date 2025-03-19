@@ -452,7 +452,15 @@ lowering: context [
 		vt: as rst-type! p/value	;-- field type
 
 		m: as member! o/target
-		offset: field-offset? ty m/index
+		offset: switch TYPE_KIND(ty) [
+			RST_TYPE_STRUCT [
+				field-offset? ty m/index
+			]
+			RST_TYPE_ARRAY RST_TYPE_PTR [
+				m/index * type-size? vt yes
+			]
+			default [dprint ["unsupported set-field " TYPE_KIND(ty)] 0]
+		]
 		base: as instr! ptr-array/pick inputs 0
 		gen-stores vt base offset inputs 1 env/cur-ctx
 		kill-instr i
@@ -630,6 +638,7 @@ lowering: context [
 
 		i: bb/next
 		while [all [i <> null i <> bb]][
+			;ir-printer/print-instr i
 			next-i: i/next		;-- i may be removed
 			code: INSTR_OPCODE(i)
 			switch code [

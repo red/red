@@ -154,6 +154,7 @@ call-conv!: alias struct! [
 	ret-locs		[rs-array!]
 	n-spilled		[integer!]
 	callee-clean?	[logic!]			;-- callee cleans the stack
+	fpu?			[logic!]
 ]
 
 frame!: alias struct! [
@@ -1077,6 +1078,17 @@ backend: context [
 		i
 	]
 
+	any-reg: func [
+		cg		[codegen!]
+		v		[vreg!]
+		return: [integer!]
+		/local
+			p	[int-ptr!]
+	][
+		p: cg/reg-set/regs-cls + v/reg-class	;-- any regs in this class
+		p/value
+	]
+
 	kill: func [
 		cg		[codegen!]
 		c		[integer!]
@@ -1876,6 +1888,19 @@ backend: context [
 		vector/append-int refs pos
 	]
 
+	record-fn-ref: func [		;-- for function pointer
+		f		[fn!]
+		pos		[integer!]
+		/local
+			refs [vector!]
+	][
+		if null? f/refs [
+			f/refs: vector/make size? integer! 2
+		]
+		refs: f/refs
+		vector/append-int refs pos
+	]
+
 	do-i: func [i [integer!]][
 		loop i [prin "  "]
 	]
@@ -1933,6 +1958,8 @@ backend: context [
 							print v/ptr
 						]
 						default [
+							prin "type:" print t
+							prin ":" prin-token as cell! val
 							0
 						]
 					]
@@ -1942,8 +1969,10 @@ backend: context [
 				prin "overwrite dst#"
 				o: as overwrite! a
 				print o/dst/idx
+				print [":" o/constraint]
 				prin " src#"
 				print o/src/idx
+				print [":" o/constraint]
 			]
 			OD_KILL [prin "kill"]
 			OD_LABEL [

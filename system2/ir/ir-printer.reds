@@ -87,6 +87,10 @@ ir-printer: context [
 			OP_FLT_NE			[prin "float.<>"]
 			OP_FLT_LT			[prin "float.<"]
 			OP_FLT_LTEQ			[prin "float.<="]
+			OP_INT_CAST			[prin "int-to-int"]
+			OP_FLOAT_CAST		[prin "float-to-float"]
+			OP_INT_TO_F			[prin "int-to-float"]
+			OP_FLT_TO_I			[prin "float-to-int"]
 			OP_DEFAULT_VALUE	[prin "default value"]
 			OP_CALL_FUNC		[
 				fn: as fn! i/target

@@ -788,10 +788,12 @@ x86-cc: context [
 			float-rets		[int-array!]
 			callee-clean?	[logic!]
 			variadic?		[logic!]
+			fpu?			[logic!]
 	][
 		if fn/cc <> null [return fn/cc]
 
 		callee-clean?: no
+		fpu?: yes
 		ft: as fn-type! fn/type
 		attr: FN_ATTRS(ft)
 		variadic?: attr and FN_VARIADIC <> 0
@@ -814,6 +816,7 @@ x86-cc: context [
 				ret-regs:       x86-internal-cc/ret-regs
 				float-params:   x86-internal-cc/float-params
 				float-rets:     x86-internal-cc/float-rets
+				fpu?: no
 			]
 		]
 		
@@ -928,6 +931,7 @@ x86-cc: context [
 		cc/ret-locs: ret-locs
 		cc/n-spilled: r-spill
 		cc/callee-clean?: callee-clean?
+		cc/fpu?: fpu?
 		unless variadic? [fn/cc: cc]
 		cc
 	]
@@ -1038,6 +1042,110 @@ x86: context [
 		op: op-with-width op as instr-op! i
 		matcher/int-bin-op cg/m i		;-- init instr matcher with i
 		emit-simple-binop cg op i
+	]
+
+	emit-float-to-i: func [
+		cg		[codegen!]
+		i		[instr!]
+	][
+		
+	]
+
+	emit-int-to-f: func [
+		cg		[codegen!]
+		i		[instr!]
+	][
+		
+	]
+
+	emit-float-cast: func [
+		cg		[codegen!]
+		i		[instr!]
+	][
+		
+	]
+
+	emit-int-cast: func [
+		cg		[codegen!]
+		i		[instr!]
+		/local
+			o	[instr-op!]
+			ft	[rst-type!]
+			tt	[rst-type!]
+			int [int-type!]
+			w	[integer!]
+	][
+		o: as instr-op! i
+		ft: as rst-type! o/param-types/value
+		tt: o/ret-type
+
+		;; if width(tt) <= 32
+		w: INT_WIDTH(tt)
+		case [
+			w = 32 [
+				emit-movd cg i
+				exit
+			]
+			w < 32 [
+				either INT_SIGNED?(tt) [
+					emit-shift-2 cg i I_SHLD I_SARD 32 - w
+				][
+					int: as int-type! tt
+					overwrite-reg cg i input0 i
+					use-imm-int cg int/max
+					emit-instr cg I_ANDD or AM_OP_IMM
+				]
+				exit
+			]
+			true [0]
+		]
+
+		;; if width(tt) > 32
+		w: INT_WIDTH(ft)
+		case [
+			w <= 32 [
+				either INT_SIGNED?(ft) [
+					emit-shift-2 cg i I_SHLQ I_SARQ 64 - w
+				][
+					emit-movd cg i
+				]
+			]
+			w <= 64 [emit-movd cg i]
+			true [0]
+		]
+	]
+
+	emit-movd: func [
+		cg		[codegen!]
+		i		[instr!]
+	][
+		def-reg cg i
+		use-i cg input0 i
+		emit-instr cg I_MOVD or AM_REG_OP
+	]
+
+	emit-shift-2: func [
+		cg		[codegen!]
+		i		[instr!]
+		op1		[integer!]
+		op2		[integer!]
+		width	[integer!]
+		/local
+			t	[vreg!]
+			o	[instr-op!]
+			reg [integer!]
+	][
+		o: as instr-op! i
+		t: make-tmp-vreg cg o/ret-type
+		reg: any-reg cg t
+
+		overwrite-vreg cg t get-vreg cg input0 i reg
+		use-imm-int cg width
+		emit-instr cg op1 or AM_OP_IMM
+
+		overwrite-vreg cg get-vreg cg i t reg
+		use-imm-int cg width
+		emit-instr cg op2 or AM_OP_IMM
 	]
 
 	emit-float-binop: func [
@@ -1662,7 +1770,7 @@ x86: context [
 				]
 			]
 		]
-		addr/base: i
+		addr/index: i
 		addr/disp: disp
 	]
 
@@ -1694,9 +1802,9 @@ x86: context [
 				addr/disp: null
 			]
 			OP_PTR_ADD [
-				match-addr-add i null addr
-				addr/index: null
+				addr/base: null
 				addr/scale: 1
+				match-addr-add i null addr
 			]
 			default [
 				addr/base: i
@@ -1824,6 +1932,10 @@ x86: context [
 				][
 					0
 				]
+			]
+			RST_FUNC [
+				use-ptr cg as int-ptr! e	;-- fn!
+				op: I_FUNC_PTR
 			]
 			default [0]
 		]
@@ -1977,6 +2089,10 @@ x86: context [
 			OP_FLT_SUB			[emit-float-binop cg I_SUBSS i]
 			OP_FLT_MUL			[emit-float-binop cg I_MULSS i]
 			OP_FLT_DIV			[emit-float-binop cg I_DIVSS i]
+			OP_INT_CAST			[emit-int-cast cg i]
+			OP_FLOAT_CAST		[emit-float-cast cg i]
+			OP_INT_TO_F			[emit-int-to-f cg i]
+			OP_FLT_TO_I			[emit-float-to-i cg i]
 			OP_FLT_ABS			[0]
 			OP_FLT_CEIL			[0]
 			OP_FLT_FLOOR		[0]

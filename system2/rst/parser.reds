@@ -291,6 +291,7 @@ fn!: alias struct! [
 	locals		[var-decl!]
 	ir			[ir-fn!]
 	cc			[call-conv!]
+	refs		[vector!]
 ]
 
 import-fn!: alias struct! [		;-- extends fn!
@@ -1545,6 +1546,7 @@ parser: context [
 		/local
 			e	 [unary!]
 			err? [logic!]
+			pv	 [ptr-value!]
 	][
 		sizeof_accept: func [ACCEPT_FN_SPEC][
 			v/visit-size? self data
@@ -1557,7 +1559,8 @@ parser: context [
 		e: as unary! expr/value
 		SET_NODE_TYPE(e RST_SIZEOF)
 		if null? e/expr [	;-- not an expression, may be a type
-			e/expr: as rst-expr! pc
+			pc: fetch-type pc end :pv
+			e/expr: as rst-expr! pv/value
 			ADD_NODE_FLAGS(e RST_SIZE_TYPE)
 		]
 		e/accept: :sizeof_accept
@@ -2294,7 +2297,6 @@ parser: context [
 						t: ptr/type
 						m/type: t
 						m/index: idx
-						if idx < 0 [throw-error [pc "cannot use negative index value" val]]
 						sub: as rst-node! m
 					]
 					default [throw-error [pc "invalid path"]]

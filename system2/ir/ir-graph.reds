@@ -436,15 +436,14 @@ bfs-blocks: func [		;-- breadth first search for a graph
 
 #include %ir-printer.reds
 
-#define N_COMMON_CONST		9
+#define N_COMMON_CONST		10
 #define N_CACHED_CONST		13
 
 ;-- a graph of IR nodes in SSA form, machine independent
 ir-graph: context [
 	builder: declare visitor!
-	const_null: as instr-const! 0
 
-	init: func [/local c [instr-const!]] [
+	init: does [
 		builder/visit-assign:		as visit-fn! :visit-assign
 		builder/visit-literal:		as visit-fn! :visit-literal
 		builder/visit-lit-array:	as visit-fn! :visit-lit-array
@@ -471,11 +470,6 @@ ir-graph: context [
 		builder/visit-throw:		as visit-fn! :visit-throw
 		builder/visit-catch:		as visit-fn! :visit-catch
 		builder/visit-assert:		as visit-fn! :visit-assert
-
-		c: as instr-const! malloc size? instr-const!
-		c/header: INS_CONST or (F_NOT_VOID << 8)
-		c/type: type-system/null-type
-		const_null: c
 	]
 
 	visit-assign: func [
@@ -521,43 +515,10 @@ ir-graph: context [
 	]
 
 	visit-literal: func [e [literal!] ctx [ssa-ctx!] return: [instr!]
-		/local
-			cast-t t [rst-type!]
-			f64		 [red-float!]
-			f32		 [red-float32!]
-			int		 [red-integer!]
-			f32?	 [logic!]
+		/local t [rst-type!]
 	][
+		if NODE_TYPE(e) = RST_NULL [return as instr! const-null ctx/graph]
 		t: e/type
-		cast-t: e/cast-type
-		if cast-t <> null [
-			if FLOAT_TYPE?(cast-t) [
-				f32?: FLOAT_32?(cast-t)
-				switch TYPE_KIND(t) [
-					RST_TYPE_FLOAT [
-						f64: as red-float! e/token
-						if f32? [
-							f32: as red-float32! f64
-							f32/value: as float32! f64/value
-						]
-					]
-					RST_TYPE_INT [
-						int: as red-integer! e/token
-						either f32? [
-							f32: as red-float32! int
-							f32/header: TYPE_FLOAT
-							f32/value: as float32! int/value
-						][
-							f64: as red-float! int
-							f64/header: TYPE_FLOAT
-							f64/value: as float! int/value
-						]
-					]
-					default [unreachable e/token]
-				]
-			]
-			t: cast-t
-		]
 		either all [FLOAT_TYPE?(t) FLOAT_64?(t)][
 			make-global-literal e t ctx
 		][
@@ -629,7 +590,6 @@ ir-graph: context [
 		add-if cond t-ctx/block f-ctx/block ctx
 
 		t-val: gen-stmts e/t-branch t-ctx
-
 		f-val: either e/f-branch <> null [gen-stmts e/f-branch f-ctx][add-default-value e/type f-ctx]
 
 		t-closed?: t-ctx/closed?	;-- save it as merge-ctx will close the block
@@ -644,8 +604,10 @@ ir-graph: context [
 			not t-closed? [
 				either f-closed? [t-val][
 					either t-val = f-val [t-val][
-						INIT_ARRAY_2(arr2 t-val f-val)
-						make-phi e/type merge/block as ptr-array! :arr2
+						either e/type <> type-system/void-type [
+							INIT_ARRAY_2(arr2 t-val f-val)
+							make-phi e/type merge/block as ptr-array! :arr2
+						][nop ctx/graph]
 					]
 				]
 			]
@@ -1260,7 +1222,7 @@ ir-graph: context [
 			pred-v: as instr! p/value
 			v: as instr! mp/value
 			either v <> null [
-				if pred-v <> null [
+				either pred-v <> null [
 					either INSTR_PHI?(v) [
 						phi: as instr-phi! v
 						if phi/block = m/block [
@@ -1285,6 +1247,8 @@ ir-graph: context [
 							mp/value: as int-ptr! make-phi var/type m/block inputs
 						]
 					]
+				][
+					kill-var v m
 				]
 			][
 				mp/value: as int-ptr! pred-v
@@ -1568,7 +1532,7 @@ ir-graph: context [
 		op
 	]
 
-	const-null: func [
+	const-default-value: func [
 		type	[rst-type!]
 		fn		[ir-fn!]
 		return: [instr-const!]
@@ -1576,6 +1540,7 @@ ir-graph: context [
 		switch TYPE_KIND(type) [
 			RST_TYPE_LOGIC [const-false fn]
 			RST_TYPE_INT [const-int-zero fn]
+			RST_TYPE_NULL [const-null fn]
 			default [nop fn]
 		]
 	]
@@ -1694,6 +1659,13 @@ ir-graph: context [
 		get-cached-const 8 type-system/float-type common-literals/float-one fn
 	]
 
+	const-null: func [
+		fn		[ir-fn!]
+		return: [instr-const!]
+	][
+		get-cached-const 9 type-system/null-type null fn
+	]
+
 	get-cached-const: func [
 		idx		[integer!]
 		type	[rst-type!]
@@ -1752,9 +1724,9 @@ ir-graph: context [
 		return: [instr-const!]
 		/local
 			b	[red-logic!]
-			i [red-integer!]
+			i	[red-integer!]
 	][
-		either null? val [const-null type fn][
+		either null? val [const-default-value type fn][
 			switch TYPE_KIND(type) [
 				RST_TYPE_LOGIC [
 					b: as red-logic! val
@@ -1775,7 +1747,7 @@ ir-graph: context [
 						const-float32 as red-float32! val fn
 					]
 				]
-				RST_TYPE_NULL [const_null]
+				RST_TYPE_NULL [const-null fn]
 				default [get-const type val fn]
 			]
 		]
@@ -1953,7 +1925,7 @@ ir-graph: context [
 			ins		[instr!]
 			op		[instr-op!]
 	][
-		as instr! const-null type ctx/graph
+		as instr! const-default-value type ctx/graph
 		;op: make-op OP_DEFAULT_VALUE 0 null type
 		;add-op op null ctx
 	]
@@ -2047,32 +2019,27 @@ ir-graph: context [
 		obj: gen-var-read var ctx
 
 		type: var/type
-		switch TYPE_KIND(type) [
-			RST_TYPE_STRUCT [
-				m: p/subs
-				until [
-					either null? m/next [
-						ptypes: as ptr-ptr! malloc 2 * size? int-ptr!
-						op: make-op OP_SET_FIELD 2 ptypes type-system/void-type
-						ptypes/value: as int-ptr! type
-						ptypes: ptypes + 1
-						ptypes/value: as int-ptr! m/type
-						INIT_ARRAY_2(args obj val)
-						add-op op as ptr-array! :args ctx
-					][
-						ptypes: as ptr-ptr! malloc size? int-ptr!
-						ptypes/value: as int-ptr! type
-						op: make-op OP_GET_FIELD 1 ptypes m/type
-						type: m/type
-						INIT_ARRAY_VALUE(args obj)
-						obj: add-op op as ptr-array! :args ctx
-					]
-					op/target: as int-ptr! m
-					m: m/next
-					null? m
-				]
+		m: p/subs
+		until [
+			either null? m/next [
+				ptypes: as ptr-ptr! malloc 2 * size? int-ptr!
+				op: make-op OP_SET_FIELD 2 ptypes type-system/void-type
+				ptypes/value: as int-ptr! type
+				ptypes: ptypes + 1
+				ptypes/value: as int-ptr! m/type
+				INIT_ARRAY_2(args obj val)
+				add-op op as ptr-array! :args ctx
+			][
+				ptypes: as ptr-ptr! malloc size? int-ptr!
+				ptypes/value: as int-ptr! type
+				op: make-op OP_GET_FIELD 1 ptypes m/type
+				type: m/type
+				INIT_ARRAY_VALUE(args obj)
+				obj: add-op op as ptr-array! :args ctx
 			]
-			default [0]
+			op/target: as int-ptr! m
+			m: m/next
+			null? m
 		]
 		val
 	]

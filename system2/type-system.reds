@@ -198,7 +198,8 @@ make-int-type: func [
 		type/min: -1 << (width - 1)
 		type/max: -1 xor (FFFFFFFFh << (width - 1))
 	][
-		0
+		type/min: 0
+		type/max: -1 xor (FFFFFFFFh << width)
 	]
 	as rst-type! type
 ]
@@ -587,7 +588,7 @@ type-system: context [
 				if TYPE_KIND(y) >= RST_TYPE_FUNC [return conv_same]
 			]
 			default [
-				if TYPE_KIND(y) >= RST_TYPE_FUNC [return conv_ok]
+				if TYPE_KIND(y) >= RST_TYPE_FUNC [return conv_same]
 			]
 		]
 		conv_illegal

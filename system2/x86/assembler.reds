@@ -1347,7 +1347,7 @@ to-loc: func [
 			w/constraint
 		]
 		default [
-			probe ["wrong operand type: " o/header and FFh]
+			dprint ["wrong operand type: " o/header and FFh]
 			0
 		]
 	]
@@ -1367,6 +1367,7 @@ to-imm: func [
 		i	[immediate!]
 		val [cell!]
 		int [red-integer!]
+		c	[red-char!]
 		b	[red-logic!]
 		f	[red-float32!]
 		p	[int-ptr!]
@@ -1388,10 +1389,14 @@ to-imm: func [
 			p: :f/value
 			p/value
 		]
+		TYPE_CHAR [
+			c: as red-char! val
+			c/value
+		]
 		TYPE_WORD [		;-- null
 			0
 		]
-		default [probe ["to-imm: " TYPE_OF(val)] 0]
+		default [dprint ["to-imm: " TYPE_OF(val)] 0]
 	]
 ]
 
@@ -1453,7 +1458,7 @@ loc-to-addr: func [						;-- location idx to memory addr
 		loc >= r/spill-start [
 			offset: word-sz * (loc - r/frame-start + f/spill-args) - f/size
 		]
-		true [probe ["invalid stack location: " loc]]
+		true [dprint ["invalid stack location: " loc]]
 	]
 	addr/base: reg
 	addr/index: 0
@@ -1559,14 +1564,18 @@ assemble-op: func [
 					]
 					record-fn-call fn asm/pos - 4
 
-					ft: as fn-type! fn/type
-					t: ft/ret-type
-					if FLOAT_TYPE?(t) [
-						loc-to-addr CALLEE_SPILL_BASE :addr cg/frame cg/reg-set
-						either FLOAT_64?(t) [
-							asm/fstp-q :addr
-						][
-							asm/fstp-d :addr
+					p: p + 1
+					lvp: as livepoint! p/value
+					if lvp/cc/fpu? [
+						ft: as fn-type! fn/type
+						t: ft/ret-type
+						if FLOAT_TYPE?(t) [
+							loc-to-addr CALLEE_SPILL_BASE :addr cg/frame cg/reg-set
+							either FLOAT_64?(t) [
+								asm/fstp-q :addr
+							][
+								asm/fstp-d :addr
+							]
 						]
 					]
 				]
@@ -1592,6 +1601,22 @@ assemble-op: func [
 			loc: to-loc as operand! p/value
 			loc-to-addr loc :addr cg/frame cg/reg-set
 			asm/fstp-q :addr
+		]
+		I_FUNC_PTR [
+			loc: to-loc as operand! p/value
+			p: p + 1
+			imm: as immediate! p/value
+			val: as val! imm/value
+			assert val/header = TYPE_FUNCTION
+
+			either target/gpr-reg? loc [
+				asm/movd-r-i loc ABS_ADDR
+			][
+				loc-to-addr loc :addr cg/frame cg/reg-set
+				asm/movd-m-i :addr ABS_ADDR
+			]
+			fn: as fn! val/ptr
+			record-fn-ref fn asm/pos - 4
 		]
 		I_CATCH [
 			rset: cg/reg-set
@@ -1805,6 +1830,8 @@ assemble-m-i: func [
 	switch op [
 		I_MOVD [asm/movd-m-i m imm]
 		I_MOVQ [asm/movq-m-i m imm]
+		I_MOVB [asm/movb-m-i m imm]
+		I_MOVW [asm/movw-m-i m imm]
 		I_ADDD [asm/add-m-i m imm NO_REX]
 		I_ORD  [asm/or-m-i m imm NO_REX]
 		I_ADCD [asm/adc-m-i m imm NO_REX]
@@ -1828,6 +1855,8 @@ assemble-m-r: func [
 	switch op [
 		I_MOVD [asm/movd-m-r m a]
 		I_MOVQ [asm/movq-m-r m a]
+		I_MOVB [asm/movb-m-r m a]
+		I_MOVW [asm/movw-m-r m a]
 		I_ADDD [asm/add-m-r m a NO_REX]
 		I_ORD  [asm/or-m-r m a NO_REX]
 		I_ADCD [asm/adc-m-r m a NO_REX]
@@ -1970,6 +1999,7 @@ assemble: func [
 		_AM_NONE [assemble-op cg ins p]
 		_AM_REG_OP [
 			reg: to-loc as operand! p/value
+			assert reg <> 0
 			p: p + 1
 			loc: to-loc as operand! p/value
 			either target/gpr-reg? loc [

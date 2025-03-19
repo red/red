@@ -290,6 +290,8 @@ type-checker: context [
 			int		[int-literal!]
 			i		[integer!]
 			t		[int-type!]
+			f32		[red-float32!]
+			f64		[red-float!]
 	][
 		type: e/type
 		if null? type [
@@ -298,31 +300,53 @@ type-checker: context [
 		]
 		if type/header = expected/header [exit]	;-- same type
 
-		either NODE_TYPE(e) = RST_INT [		;-- int literal
-			int: as int-literal! e
-			i: int/value
-			switch TYPE_KIND(expected) [
-				RST_TYPE_INT [
-					t: as int-type! expected
-					either all [i >= t/min i <= t/max][
-						e/type: expected
-					][
-						if all [not INT_SIGNED?(t) i < 0][
-							throw-error [e/token "negative number used as unsigned"]
-						]
-						if any [i < t/min i > t/max][
-							throw-error [e/token "out of range:" t/min "-" t/max]
+		switch NODE_TYPE(e) [
+			RST_INT [		;-- int literal
+				int: as int-literal! e
+				i: int/value
+				switch TYPE_KIND(expected) [
+					RST_TYPE_INT [
+						t: as int-type! expected
+						either all [i >= t/min i <= t/max][
+							e/type: expected
+						][
+							if all [not INT_SIGNED?(t) i < 0][
+								throw-error [e/token "negative number used as unsigned"]
+							]
+							if any [i < t/min i > t/max][
+								throw-error [e/token "out of range:" t/min "-" t/max]
+							]
 						]
 					]
+					RST_TYPE_FLOAT [
+						either FLOAT_32?(expected) [
+							f32: as red-float32! e/token
+							f32/header: TYPE_FLOAT
+							f32/value: as float32! i
+						][
+							f64: as red-float! e/token
+							f64/header: TYPE_FLOAT
+							f64/value: as float! i
+						]
+						e/type: expected
+					]
+					default [0]
 				]
-				RST_TYPE_FLOAT [0]
-				default [0]
 			]
-		][
-			either type-system/promotable? type expected [
-				e/cast-type: expected
-			][
-				throw-error [e/token msg "expected" type-name expected ", got" type-name type]
+			RST_FLOAT [
+				if all [FLOAT_TYPE?(expected) FLOAT_32?(expected)][
+					f64: as red-float! e/token
+					f32: as red-float32! f64
+					f32/value: as float32! f64/value
+					e/type: expected
+				]
+			]
+			default [
+				either type-system/promotable? type expected [
+					e/cast-type: expected
+				][
+					throw-error [e/token msg "expected" type-name expected ", got" type-name type]
+				]
 			]
 		]
 	]
@@ -404,19 +428,29 @@ type-checker: context [
 		vector/remove-last ctx/loop-stack
 	]
 
+	make-local-var: func [
+		var		[var-decl!]
+		t		[rst-type!]
+		/local
+			sv	[ssa-var!]
+	][
+		sv: var/ssa
+		if null? sv [sv: make-ssa-var var]
+		if sv/index <> -2 [
+			sv/index: -2
+			sv/instr: ir-graph/make-local-var t
+		]
+	]
+
 	check-struct-value: func [
 		var		[var-decl!]
 		ctx		[context!]
 		return: [rst-type!]
-		/local t [rst-type!] sv [ssa-var!]
+		/local t [rst-type!]
 	][
 		t: var/type
 		if all [LOCAL_VAR?(var) STRUCT_VALUE?(t)][
-			sv: var/ssa
-			if sv/index <> -2 [
-				sv/index: -2
-				sv/instr: ir-graph/make-local-var t
-			]
+			make-local-var var t
 		]
 		t
 	]
@@ -662,7 +696,6 @@ type-checker: context [
 			d	[var-decl!]
 			e	[rst-expr!]
 			t	[rst-type!]
-			sv	[ssa-var!]
 			f	[fn!]
 	][
 		e: g/expr
@@ -670,13 +703,7 @@ type-checker: context [
 			RST_VAR_DECL [
 				d: as var-decl! e
 				t: infer-type d ctx
-				if LOCAL_VAR?(d) [
-					sv: d/ssa
-					if sv/index <> -2 [
-						sv/index: -2
-						sv/instr: ir-graph/make-local-var t
-					]
-				]
+				if LOCAL_VAR?(d) [make-local-var d t]
 			]
 			RST_FUNC [
 				f: as fn! e
@@ -973,7 +1000,7 @@ type-checker: context [
 			switch NODE_TYPE(var) [
 				RST_VAR_DECL [
 					infer-type var ctx
-					if LOCAL_VAR?(var) [make-ssa-var var]
+					if all [LOCAL_VAR?(var) null? var/ssa][make-ssa-var var]
 				]
 				RST_FUNC	 [
 					f: as fn! var

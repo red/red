@@ -620,6 +620,7 @@ compiler: context [
 
 	reloc-fn-calls: func [
 		funcs		[vector!]
+		symbols		[red-block!]
 		/local
 			p		[ptr-ptr!]
 			cg		[codegen!]
@@ -627,7 +628,12 @@ compiler: context [
 			fn		[fn!]
 			refs	[vector!]
 			ref		[int-ptr!]
+			w-ref	[cell!]
+			w-dash	[cell!]
+			blk blk2 [red-block!]
 	][
+		w-ref: as cell! word/load "native-ref"
+		w-dash: as cell! word/load "-"
 		p: as ptr-ptr! funcs/data
 		loop funcs/length [				;-- reloc native calls
 			cg: as codegen! p/value
@@ -640,6 +646,20 @@ compiler: context [
 					target/patch-call ref/value pos
 					ref: ref + 1
 				]
+			]
+			refs: as vector! fn/refs
+			if refs <> null [
+				red/tag/load-in "data" 4 symbols UTF-8
+				blk: red/block/make-in symbols 4
+				red/block/rs-append blk w-ref
+				red/integer/make-in blk pos
+				blk2: red/block/make-in blk refs/length
+				ref: as int-ptr! refs/data
+				loop refs/length [
+					red/integer/make-in blk2 ref/value
+					ref: ref + 1
+				]
+				red/block/rs-append blk w-dash
 			]
 			p: p + 1
 		]
@@ -825,7 +845,7 @@ compiler: context [
 		]
 		;dump-hex program/code-buf/data
 
-		reloc-fn-calls funcs
+		reloc-fn-calls funcs symbols
 
 		;-- fill the job object, we'll do the rest part in Red
 		fill-job-symbols symbols

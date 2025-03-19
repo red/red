@@ -284,6 +284,7 @@ instr-flags: [
 #define I_POP			80h
 #define I_CALL_NATIVE	81h
 #define I_FSTP			82h
+#define I_FUNC_PTR		83h
 
 #define I_W_DIFF		10h		;-- I_ADDQ - I_ADDD
 
