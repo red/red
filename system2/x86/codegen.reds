@@ -1394,13 +1394,10 @@ x86: context [
 
 		switch id [
 			N_PUSH [
-				use-imm-int cg 0
 				ii: input0 i
-				op: either try-use-imm32 cg ii [
-					I_PUSH or AM_OP_IMM
-				][
+				op: either try-use-imm32 cg ii [I_PUSH][
 					use-reg cg ii
-					I_PUSH or AM_REG_OP
+					I_PUSH or AM_OP
 				]
 				emit-instr cg op
 			]
@@ -1792,14 +1789,15 @@ x86: context [
 				addr/scale: 1
 				addr/disp: c/value
 			]
-			INS_PARAM
 			INS_VAR [
 				v: alloc-local-var cg as instr-var! i
-				v/reg: x86-regs/ebp
-				addr/base: i
+				int: xmalloc(red-integer!)
+				int/header: TYPE_SLOT
+				int/value: v/spill
+				addr/disp: as cell! int
+				addr/base: null
 				addr/index: null
 				addr/scale: 1
-				addr/disp: null
 			]
 			OP_PTR_ADD [
 				addr/base: null

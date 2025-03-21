@@ -372,20 +372,20 @@ asm: context [
 		if zero? index [
 			either zero? base [
 				either disp = REL_ADDR [
-					emit-bd x or 5 disp			;-- relative address
+					emit-bd x or 5 disp			;-- relative address, EIP-relative
 				][
-					emit-bbd x or 4 25h disp	;-- absolute address
+					emit-bbd x or 4 25h disp	;-- absolute address, ESP
 					record-abs-ref pos - 4 m/ref
 				]
 			][
-				emit-rm x base m
+				emit-rm x base m				;-- base register only
 			]
 			exit
 		]
 
 		if zero? base [
 			if scale = 1 [
-				emit-rm x index m
+				emit-rm x index m				;-- index register only
 				exit
 			]
 			if scale = 2 [	;-- convert to reg + reg
@@ -559,6 +559,10 @@ asm: context [
 
 	push-r: func [r [integer!]][
 		emit-b-r-rex 50h r NO_REX
+	]
+
+	push-m: func [m [x86-addr!]][
+		emit-b-m-x FFh m 6 NO_REX
 	]
 
 	lea: func [r [integer!] m [x86-addr!]][
@@ -1467,6 +1471,7 @@ loc-to-addr: func [						;-- location idx to memory addr
 ]
 
 rrsd-to-addr: func [
+	cg		[codegen!]
 	p		[ptr-ptr!]
 	addr	[x86-addr!]
 	/local
@@ -1477,18 +1482,12 @@ rrsd-to-addr: func [
 		b		[operand!]
 		i		[operand!]
 		imm		[immediate!]
+		pp		[ptr-ptr!]
 		val		[cell!]
 		int		[red-integer!]
 ][
-	b: as operand! p/value
-	base: either OPERAND_USE?(b) [to-loc b][0]
-	p: p + 1
-	i: as operand! p/value
-	index: either OPERAND_USE?(i) [to-loc i][0]
-	p: p + 1
-	scale: to-imm as operand! p/value
-	p: p + 1
-	imm: as immediate! p/value
+	pp: p + 3	;-- disp
+	imm: as immediate! pp/value
 	val: imm/value
 	either null? val [disp: 0][
 		switch TYPE_OF(val) [
@@ -1499,9 +1498,22 @@ rrsd-to-addr: func [
 				int: as red-integer! val
 				disp: int/value
 			]
+			TYPE_SLOT [
+				int: as red-integer! val
+				loc-to-addr int/value addr cg/frame cg/reg-set
+				exit
+			]
 			default [disp: 0]
 		]
 	]
+	b: as operand! p/value
+	base: either OPERAND_USE?(b) [to-loc b][0]
+	p: p + 1
+	i: as operand! p/value
+	index: either OPERAND_USE?(i) [to-loc i][0]
+	p: p + 1
+	scale: to-imm as operand! p/value
+
 	addr/base: base
 	addr/index: index
 	addr/scale: scale
@@ -1703,6 +1715,10 @@ assemble-op: func [
 				assemble-m-r op :addr x86-regs/edi
 			]
 		]
+		I_PUSH [
+			n: to-imm as operand! p/value
+			asm/push-i n
+		]
 		default [0]
 	]
 ]
@@ -1716,10 +1732,11 @@ assemble-r: func [
 		I_NEGD	[asm/neg-r r NO_REX]
 		I_MULD	[asm/imul-r r NO_REX]
 		I_IDIVD	[asm/idiv-r r NO_REX]
-		I_SHLD [asm/shl-r r NO_REX]
-		I_SARD [asm/sar-r r NO_REX]
-		I_SHRD [asm/shr-r r NO_REX]
+		I_SHLD	[asm/shl-r r NO_REX]
+		I_SARD	[asm/sar-r r NO_REX]
+		I_SHRD	[asm/shr-r r NO_REX]
 		I_IMODD [asm/imod-r r NO_REX]
+		I_PUSH	[asm/push-r r]
 		default [0]
 	]
 ]
@@ -1733,10 +1750,11 @@ assemble-m: func [
 		I_NEGD	[asm/neg-m m NO_REX]
 		I_MULD	[asm/imul-m m NO_REX]
 		I_IDIVD	[asm/idiv-m m NO_REX]
-		I_SHLD [asm/shl-m m NO_REX]
-		I_SARD [asm/sar-m m NO_REX]
-		I_SHRD [asm/shr-m m NO_REX]
+		I_SHLD	[asm/shl-m m NO_REX]
+		I_SARD	[asm/sar-m m NO_REX]
+		I_SHRD	[asm/shr-m m NO_REX]
 		I_IMODD [asm/imod-m m NO_REX]
+		I_PUSH	[asm/push-m m]
 		default [0]
 	]
 ]
@@ -2010,20 +2028,20 @@ assemble: func [
 			]
 		]
 		_AM_RRSD_REG [
-			rrsd-to-addr p :addr
+			rrsd-to-addr cg p :addr
 			p: p + 4
 			reg: to-loc as operand! p/value
 			assemble-m-r op :addr reg
 		]
 		_AM_RRSD_IMM [
-			rrsd-to-addr p :addr
+			rrsd-to-addr cg p :addr
 			p: p + 4
 			imm: to-imm as operand! p/value
 			assemble-m-i op :addr imm
 		]
 		_AM_REG_RRSD [
 			reg: to-loc as operand! p/value
-			rrsd-to-addr p + 1 :addr
+			rrsd-to-addr cg p + 1 :addr
 			assemble-r-m op reg :addr
 		]
 		_AM_OP [
@@ -2086,11 +2104,11 @@ assemble: func [
 		]
 		_AM_XMM_RRSD [
 			reg: to-xmmr as operand! p/value
-			rrsd-to-addr p + 1 :addr
+			rrsd-to-addr cg p + 1 :addr
 			assemble-s-m op reg :addr
 		]
 		_AM_RRSD_XMM [
-			rrsd-to-addr p :addr
+			rrsd-to-addr cg p :addr
 			p: p + 4
 			reg: to-xmmr as operand! p/value
 			assemble-m-s op :addr reg

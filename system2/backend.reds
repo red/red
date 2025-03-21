@@ -1959,7 +1959,8 @@ backend: context [
 						]
 						default [
 							prin "type:" print t
-							prin ":" prin-token as cell! val
+							prin ":"
+							if t < 100 [prin-token val]
 							0
 						]
 					]
@@ -2079,6 +2080,9 @@ backend: context [
 			I_IMODD			["imod.d"]
 			I_IMODQ			["imod.q"]
 			I_FSTP			["fstp"]
+			I_FUNC_PTR		["func-ptr"]
+			I_PUSH			["push"]
+			I_POP			["pop"]
 			default 		["unknown op"]
 		]
 	]

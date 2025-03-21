@@ -229,7 +229,7 @@ lowering: context [
 		i		[instr!]
 		env		[lowering-env!]
 	][
-		refresh-inputs i env	
+		refresh-inputs i env
 	]
 
 	make-ptr-const: func [
@@ -545,17 +545,17 @@ lowering: context [
 			OP_INT_DIV			
 			OP_INT_REM			
 			OP_INT_MOD			[gen-truncate-op as instr-op! i env]
-			OP_INT_AND			[0]
-			OP_INT_OR			[0]
-			OP_INT_XOR			[0]
-			OP_INT_SHL			[0]
-			OP_INT_SAR			[0]
-			OP_INT_SHR			[0]
+			;OP_INT_AND			
+			;OP_INT_OR			
+			;OP_INT_XOR			
+			;OP_INT_SHL			
+			;OP_INT_SAR			
+			;OP_INT_SHR			[0]
 			OP_INT_EQ			[gen-equal i env]
-			OP_INT_NE			[0]
+			;OP_INT_NE			[0]
 			OP_INT_LT			[gen-int-cmp i env]
 			OP_INT_LTEQ			[gen-int-cmp i env]
-			OP_DEFAULT_VALUE	[0]
+			;OP_DEFAULT_VALUE	[0]
 			OP_CALL_FUNC		[gen-call i env]
 			OP_GET_GLOBAL		[gen-get-global i env]
 			OP_SET_GLOBAL		[gen-set-global i env]
@@ -565,6 +565,7 @@ lowering: context [
 			OP_ARRAY_GET		[gen-array-get i env]
 			OP_ARRAY_SET		[gen-array-set i env]
 			default [
+				if i/inputs <> null [refresh-inputs i env]
 				0 ;dprint ["Internal Error: Unknown Opcode: " INSTR_OPCODE(i)]
 			]
 		]

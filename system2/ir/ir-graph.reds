@@ -27,6 +27,7 @@ Red/System [
 #define INSTR_PHI?(i) (i/header and FFh = INS_PHI)
 #define INSTR_CONST?(i) (i/header and FFh = INS_CONST)
 #define INSTR_OP?(i) (i/header and FFh >= OP_BOOL_EQ)
+#define INSTR_VAR?(i) (i/header and FFh = INS_VAR)
 
 ;; a control flow edge
 cf-edge!: alias struct! [
@@ -1734,7 +1735,7 @@ ir-graph: context [
 				]
 				RST_TYPE_INT [
 					i: as red-integer! val
-					either all [i/value >= 0 INT_WIDTH(type) <= 32] [
+					either INT_WIDTH(type) <= 32 [
 						const-int as red-integer! val fn
 					][
 						const-int64 as red-integer! val fn

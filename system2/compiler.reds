@@ -36,6 +36,7 @@ compiler: context [
 	#define TYPE_INT64		100
 	#define TYPE_ADDR		101
 	#define TYPE_REF		102
+	#define TYPE_SLOT		103
 
 	val!: alias struct! [
 		header	[integer!]
