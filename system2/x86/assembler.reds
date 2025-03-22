@@ -1342,7 +1342,7 @@ to-loc: func [
 			d: as def! o
 			d/constraint
 		]
-		OD_USE [
+		OD_USE OD_REG [
 			u: as use! o
 			u/constraint
 		]
@@ -2069,7 +2069,7 @@ assemble: func [
 			p: p + 1
 			reg: to-loc as operand! p/value
 			either target/gpr-reg? loc [
-				assemble-r-r op reg loc
+				assemble-r-r op loc reg
 			][
 				loc-to-addr loc :addr cg/frame rset
 				assemble-m-r op :addr reg

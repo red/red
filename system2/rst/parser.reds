@@ -145,6 +145,9 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	N_ATOMIC_STORE
 	N_ATOMIC_CAS
 	N_ATOMIC_BIN_OP
+	N_FPU_UPDATE
+	N_FPU_GET_CWORD
+	N_FPU_SET_CWORD
 	N_NATIVE_NUM		;-- number of natives
 ]
 
@@ -536,6 +539,7 @@ parser: context [
 	k_io:			symbol/make "io"
 	k_pc:			symbol/make "pc"
 	k_cpu:			symbol/make "cpu"
+	k_fpu:			symbol/make "fpu"
 	k_eax:			symbol/make "eax"
 	k_ecx:			symbol/make "ecx"
 	k_edx:			symbol/make "edx"
@@ -567,6 +571,8 @@ parser: context [
 	k_and:			symbol/make "and"
 	k_old:			symbol/make "old"
 	k_zero:			symbol/make "zero"
+	k_update:		symbol/make "update"
+	k_control-word: symbol/make "control-word"
 
 	keywords:  as int-ptr! 0
 	infix-Ops: as int-ptr! 0
@@ -594,6 +600,9 @@ parser: context [
 	atomic-store:		as native! 0
 	atomic-cas:			as native! 0
 	atomic-bin-op:		as native! 0
+	fpu-update:			as native! 0
+	fpu-get-cword:		as native! 0
+	fpu-set-cword:		as native! 0
 
 	init: func [/local arr [ptr-ptr!]][
 		keywords: hashmap/make 300
@@ -660,9 +669,9 @@ parser: context [
 			arr: as ptr-ptr! malloc size? int-ptr!
 			arr/value: as int-ptr! int-ptr-type
 	        get-stack-top: make-native N_GET_STACK_TOP 0 null int-ptr-type
-	        set-stack-top: make-native N_SET_STACK_TOP 1 arr void-type
+	        set-stack-top: make-native N_SET_STACK_TOP 1 arr int-ptr-type		;@@ non void-type for def-reg
 	        get-stack-frame: make-native N_GET_STACK_FRAME 0 null int-ptr-type
-	        set-stack-frame: make-native N_SET_STACK_FRAME 1 arr void-type
+	        set-stack-frame: make-native N_SET_STACK_FRAME 1 arr int-ptr-type
 
 	        arr: as ptr-ptr! malloc 2 * size? int-ptr!
 	        stack-allocate: make-native N_STACK_ALLOC 2 arr int-ptr-type
@@ -671,6 +680,12 @@ parser: context [
 			arr/value: as int-ptr! logic-type		;-- /zero
 
 			system-pc: make-native N_PC 0 null byte-ptr-type
+
+			fpu-update: make-native N_FPU_UPDATE 0 null void-type
+			fpu-get-cword: make-native N_FPU_GET_CWORD 0 null integer-type
+			arr: as ptr-ptr! malloc size? int-ptr!
+			arr/value: as int-ptr! integer-type
+			fpu-set-cword: make-native N_FPU_SET_CWORD 1 arr void-type
         ]
 	]
 
@@ -1912,13 +1927,18 @@ parser: context [
 		val		[logic!]
 		return: [rst-expr!]
 		/local
-			b	[logic-literal!]			
+			b	[logic-literal!]
+			bl	[red-logic!]
 	][
 		b: as logic-literal! malloc size? logic-literal!
 		b_accept: func [ACCEPT_FN_SPEC][
 			v/visit-literal self data
 		]
 		SET_NODE_TYPE(b RST_LOGIC)
+		bl: as red-logic! pc		;-- ensure pc is a logic!
+		bl/header: TYPE_LOGIC
+		bl/value: val
+
 		b/token: pc
 		b/value: val
 		b/accept: :b_accept
@@ -1930,10 +1950,14 @@ parser: context [
 		;pc end expr ctx
 		KEYWORD_FN_SPEC
 		/local
-			bl	[red-logic!]
+			w	[red-word!]
+			sym [integer!]
+			b	[logic!]
 	][
-		bl: as red-logic! pc
-		expr/value: as int-ptr! make-logic pc bl/value
+		w: as red-word! pc
+		sym: symbol/resolve w/symbol
+		b: either sym = k_true [true][false]
+		expr/value: as int-ptr! make-logic pc b
 		pc
 	]
 
@@ -2142,22 +2166,51 @@ parser: context [
 				]
 			]
 			sym = k_atomic [
+				pc: null
 				0
 			]
 			sym = k_words [
+				pc: null
 				0
 			]
 			sym = k_alias [
+				pc: null
 				0
 			]
 			sym = k_pc [
 				make-native-call pc system-pc null
 			]
 			sym = k_cpu [
+				pc: null
 				0
 			]
 			sym = k_io [
+				pc: null
 				0
+			]
+			sym = k_fpu [
+				check-pc
+				sym: symbol/resolve w/symbol
+				case [
+					sym = k_update [
+						make-native-call pc fpu-update null
+					]
+					sym = k_control-word [
+						either set? [
+							pc: fetch-args pc end :pv ctx 1
+							args: as rst-expr! pv/value
+							f: fpu-set-cword
+						][
+							args: null
+							f: fpu-get-cword
+						]
+						make-native-call pc f args
+					]
+					true [
+						pc: null
+						null
+					]
+				]
 			]
 			true [
 				pc: null
@@ -2344,12 +2397,15 @@ parser: context [
 			pc	[cell!]
 			end [cell!]
 			pv	[ptr-value!]
+			saved-blk [red-block!]
 	][
 		pc: block/rs-head blk
 		end: block/rs-tail blk
 		either pc < end [
+			enter-block(blk)
 			pc: parse-expr pc end :pv ctx
 			if pc + 1 < end [throw-error [blk "only one expression is allowed in paren"]]
+			exit-block
 			as rst-expr! pv/value
 		][
 			make-void-node as cell! blk
@@ -2665,8 +2721,13 @@ parser: context [
 			]
 			TYPE_SET_PATH [
 				pc: parse-path pc end out ctx
-				if pc <> pos [return pc]	;-- a system/* call
 				e: as rst-expr! out/value
+				if pc <> pos [		;-- a system/* call
+					s: as rst-stmt! e
+					ctx/last-stmt/next: s
+					ctx/last-stmt: s
+					return pc
+				]
 			]
 			default [
 				return parse-expr pc end out ctx

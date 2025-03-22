@@ -49,6 +49,7 @@ ir-printer: context [
 		/local
 			var [var-decl!]
 			fn	[fn!]
+			n	[native!]
 	][
 		switch INSTR_OPCODE(i) [
 			OP_BOOL_EQ			[prin "bool.="]
@@ -132,7 +133,11 @@ ir-printer: context [
 			OP_CATCH_END [print "catch end"]
 			OP_THROW [print "throw"]
 			OP_TYPED_VALUE [print "typed-value"]
-			OP_CALL_NATIVE [print "call native"]
+			OP_CALL_NATIVE [
+				n: as native! i/target
+				n/id
+				print ["call native " n/id]
+			]
 			default [
 				print ["unknown op " INSTR_OPCODE(i)]
 			]

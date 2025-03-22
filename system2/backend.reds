@@ -26,6 +26,7 @@ Red/System [
 	OD_USE
 	OD_DEF
 	OD_IMM
+	OD_REG			;-- for special regs: esp, ebp, eip
 	OD_SCRATCH
 	OD_KILL
 	OD_LABEL
@@ -1160,6 +1161,30 @@ backend: context [
 		vector/append-ptr cg/operands as byte-ptr! make-overwrite dst src c
 	]
 
+	use-special: func [
+		cg			[codegen!]
+		i			[instr!]
+		reg			[integer!]
+		/local
+			u		[use!]
+	][
+		u: make-use get-vreg cg i reg
+		u/header: OD_REG
+		vector/append-ptr cg/operands as byte-ptr! u
+	]
+
+	use-vreg-special: func [
+		cg			[codegen!]
+		vreg		[vreg!]
+		reg			[integer!]
+		/local
+			u		[use!]
+	][
+		u: make-use vreg reg
+		u/header: OD_REG
+		vector/append-ptr cg/operands as byte-ptr! u
+	]
+
 	def-reg-fixed: func [
 		cg			[codegen!]
 		i			[instr!]
@@ -1919,7 +1944,7 @@ backend: context [
 			var [var-decl!]
 	][
 		switch a/header and FFh [
-			OD_USE		[
+			OD_USE OD_REG [
 				prin "use#"
 				u: as use! a
 				either null? u/vreg [

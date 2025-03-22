@@ -1410,13 +1410,13 @@ x86: context [
 			N_GET_STACK_FRAME [
 				def-reg cg i
 				n: either id = N_GET_STACK_TOP [x86_ESP][x86_EBP]
-				use-reg-fixed cg i n
-				emit-instr cg I_MOVD or AM_REG_OP
+				use-special cg i n
+				emit-instr cg I_MOVD or AM_OP_REG
 			]
 			N_SET_STACK_TOP
 			N_SET_STACK_FRAME [
 				n: either id = N_GET_STACK_TOP [x86_ESP][x86_EBP]
-				def-reg-fixed cg i n
+				use-special cg i n
 				ii: input0 i
 				op: either try-use-imm32 cg ii [
 					I_MOVD or AM_OP_IMM
@@ -1429,7 +1429,7 @@ x86: context [
 			N_STACK_ALIGN [0]
 			N_STACK_ALLOC [
 				v: make-tmp-vreg cg type-system/integer-type
-				def-vreg cg v x86_EDI
+				use-vreg-special cg v x86_EDI
 				ii: input0 i
 				op: either try-use-imm32 cg ii [
 					I_MOVD or AM_OP_IMM
@@ -1439,12 +1439,12 @@ x86: context [
 				]
 				emit-instr cg op
 
-				def-vreg cg v x86_EDI
+				use-vreg-special cg v x86_EDI
 				use-imm-int cg 2
 				emit-instr cg I_SHLD or AM_OP_IMM
 
-				def-reg-fixed cg i x86_ESP
-				use-vreg cg v x86_EDI
+				use-special cg i x86_ESP
+				use-vreg-special cg v x86_EDI
 				emit-instr cg I_SUBD or AM_REG_OP
 			]
 			N_STACK_FREE

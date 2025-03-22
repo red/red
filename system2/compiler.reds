@@ -275,11 +275,10 @@ compiler: context [
 					b: as logic-literal! val
 					emit-b as integer! b/value
 				]
-				RST_INT		[
+				RST_INT RST_BYTE [
 					int: as int-literal! val
 					emit-d int/value
 				]
-				RST_BYTE [0]
 				RST_FLOAT [
 					f: as float-literal! val
 					pp: :f/value
@@ -516,9 +515,9 @@ compiler: context [
 		print ["^/*** at line: " calc-line pc lf]
 		p: block/rs-head cur-blk
 		h: cur-blk/head
-		cur-blk/head: (as-integer pc - p) >> 4 + h
-		print "*** near: " #call [prin-block cur-blk 200]
-		cur-blk/head: h
+		;cur-blk/head: (as-integer pc - p) >> 4 + h
+		;print "*** near: " #call [prin-block cur-blk 200]
+		;cur-blk/head: h
 		print "^/"
 		quit 1
 	]
