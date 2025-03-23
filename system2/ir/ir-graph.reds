@@ -652,6 +652,7 @@ ir-graph: context [
 	visit-until: func [w [while!] ctx [ssa-ctx!] return: [instr!]
 		/local
 			cond	[instr!]
+			f-ctx	[ssa-ctx! value]
 			m-start	[ssa-merge! value]
 			m-end	[ssa-merge! value]
 			body-ctx [ssa-ctx! value]
@@ -668,9 +669,11 @@ ir-graph: context [
 		cond: gen-stmts w/body :body-ctx
 		if body-ctx/closed? [return null]	;-- return or exit in condition block
 
-		add-if cond m-end/block m-start/block :body-ctx
+		split-ssa-ctx :body-ctx :f-ctx
+		add-if cond m-end/block f-ctx/block :body-ctx
+
 		merge-incoming :m-end :body-ctx		;-- merge body-ctx into m-end
-		merge-incoming :m-start :body-ctx
+		merge-ctx :m-start :f-ctx
 
 		set-ssa-ctx :m-end ctx
 		null
