@@ -34,6 +34,7 @@ rst-printer: context [
 		printer/visit-catch:		as visit-fn! :visit-catch
 		printer/visit-native-call:	as visit-fn! :visit-native-call
 		printer/visit-assert:		as visit-fn! :visit-assert
+		printer/visit-context:		as visit-fn! :visit-context
 	]
 
 	prin-block: func [blk [red-block!]][
@@ -208,6 +209,10 @@ rst-printer: context [
 		0
 	]
 
+	visit-context: func [ctx [context!] i [integer!]][
+		print-context ctx i + 1
+	]
+
 	visit-fn-call: func [fc [fn-call!] i [integer!] /local arg [rst-expr!]][
 		do-i i prin-token fc/token prin " ["
 		if fc/args <> null [
@@ -326,29 +331,19 @@ rst-printer: context [
 	print-program: func [
 		ctx		[context!]
 	][
-		until [
-			print-context ctx 0
-			ctx: ctx/next
-			null? ctx
-		]
+		probe "print-program"
+		print-context ctx 0
 	]
 
 	print-context: func [
 		ctx		[context!]
 		indent	[integer!]
-		/local
-			child [context!]
 	][
 		do-i indent prin "context "
 		if NODE_FLAGS(ctx) and RST_FN_CTX <> 0 [prin "func:"]
 		prin-token ctx/token prin " [^/"
 		print-decls ctx/decls indent + 1
 		print-stmts ctx/stmts indent + 1
-		child: ctx/child
-		while [child <> null][
-			print-context child indent + 1
-			child: child/next
-		]
 		do-i indent print-line "]"
 	]
 ]

@@ -2131,7 +2131,6 @@ x86: context [
 		f/size: target/addr-size
 		f/tmp-slot: -1
 		if ir/n-typed > 0 [
-			probe ["n-typed " ir/n-typed " " f/spill-vars]
 			f/typed-value: f/cc/reg-set/spill-start + f/spill-vars
 			f/spill-vars: f/spill-vars + (ir/n-typed * 3)
 		]

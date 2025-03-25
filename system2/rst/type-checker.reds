@@ -159,6 +159,7 @@ type-checker: context [
 		checker/visit-throw:		as visit-fn! :visit-throw
 		checker/visit-catch:		as visit-fn! :visit-catch
 		checker/visit-assert:		as visit-fn! :visit-assert
+		checker/visit-context:		as visit-fn! :visit-context
 	]
 
 	infer-type: func [
@@ -602,6 +603,11 @@ type-checker: context [
 		type-system/void-type
 	]
 
+	visit-context: func [c [context!] ctx [context!] return: [rst-type!]][
+		check c
+		type-system/void-type
+	]
+
 	visit-path: func [p [path!] ctx [context!] return: [rst-type!]
 		/local var [var-decl!] type [rst-type!] t [integer!] m [member!]
 	][
@@ -923,6 +929,7 @@ type-checker: context [
 					ft: switch TYPE_KIND(utype) [
 						RST_TYPE_INT [op-cache/get-int-op op utype]
 						RST_TYPE_FLOAT [op-cache/get-float-op op utype]
+						RST_TYPE_LOGIC [op-cache/op-bool-eq]
 						default [
 							op-cache/get-ptr-op op as ptr-type! utype
 						]
@@ -1035,8 +1042,5 @@ type-checker: context [
 		assert ctx/loop-stack <> null
 		vector/destroy ctx/loop-stack
 		ctx/loop-stack: null
-
-		check ctx/child
-		check ctx/next
 	]
 ]

@@ -596,6 +596,7 @@ compiler: context [
 			kv		[int-ptr!]
 			f-ctx	[context!]
 			fn		[fn!]
+			ty		[integer!]
 	][
 		if null? ctx [exit]
 
@@ -606,16 +607,21 @@ compiler: context [
 		loop n [
 			kv: hashmap/next decls kv
 			fn: as fn! kv/2
-			if all [NODE_TYPE(fn) = RST_FUNC NODE_FLAGS(fn) and RST_IMPORT_FN = 0][
-				cur-blk: fn/body
-				f-ctx: parser/make-ctx fn/token ctx yes
-				init-func-ctx f-ctx fn
-				comp-fn fn ctx f-ctx
-				comp-functions f-ctx		;-- compile funcs defined inside the func
+			ty: NODE_TYPE(fn)
+			case [
+				all [ty = RST_FUNC NODE_FLAGS(fn) and RST_IMPORT_FN = 0][
+					cur-blk: fn/body
+					f-ctx: parser/make-ctx fn/token ctx yes
+					init-func-ctx f-ctx fn
+					comp-fn fn ctx f-ctx
+					comp-functions f-ctx		;-- compile funcs defined inside the func
+				]
+				ty = RST_CONTEXT [
+					comp-functions as context! fn
+				]
+				true [0]
 			]
 		]
-		comp-functions ctx/child
-		comp-functions ctx/next
 	]
 
 	reloc-fn-calls: func [
@@ -819,7 +825,7 @@ compiler: context [
 
 		init-program
 
-		fn: xmalloc(fn!)
+		fn: xmalloc(fn!)	;-- entry func
 		fn/body: src
 		fn/type: as rst-type! op-cache/void-op
 

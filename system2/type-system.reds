@@ -232,9 +232,19 @@ make-logic-type: func [
 	/local
 		type [logic-type!]
 ][
-	type: as logic-type! malloc size? float-type!
+	type: as logic-type! malloc size? logic-type!
 	SET_TYPE_KIND(type RST_TYPE_LOGIC)
 	as rst-type! type
+]
+
+make-byte-type: func [
+	return: [rst-type!]
+	/local
+		type [rst-type!]
+][
+	type: make-int-type 8 no
+	type/header: type/header and FFFFFF00h or RST_TYPE_BYTE
+	type
 ]
 
 make-array-type: func [
@@ -440,7 +450,7 @@ type-system: context [
 		float-type: make-float-type 64
 		float32-type: make-float-type 32
 		logic-type: make-logic-type
-		byte-type: get-int-type 8 false
+		byte-type: make-byte-type
 		cstr-type: make-array-type 0 byte-type
 		int-ptr-type: make-ptr-type integer-type
 		byte-ptr-type: make-ptr-type byte-type
@@ -560,7 +570,7 @@ type-system: context [
 		if TYPE_KIND(y) = RST_TYPE_ANY [return conv_same]
 
 		switch TYPE_KIND(x) [
-			RST_TYPE_INT [
+			RST_TYPE_INT RST_TYPE_BYTE [
 				switch TYPE_KIND(y) [
 					RST_TYPE_INT RST_TYPE_BYTE [
 						if int-promotable? x y [return conv_promote_ii]
@@ -617,7 +627,7 @@ type-system: context [
 					default [conv_illegal]
 				]
 			]
-			RST_TYPE_INT [
+			RST_TYPE_INT RST_TYPE_BYTE [
 				conv_ok
 			]
 			RST_TYPE_ARRAY [

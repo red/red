@@ -471,6 +471,7 @@ ir-graph: context [
 		builder/visit-throw:		as visit-fn! :visit-throw
 		builder/visit-catch:		as visit-fn! :visit-catch
 		builder/visit-assert:		as visit-fn! :visit-assert
+		builder/visit-context:		as visit-fn! :visit-context
 	]
 
 	visit-assign: func [
@@ -726,6 +727,7 @@ ir-graph: context [
 			l-val	[instr!]
 			m		[ssa-merge! value]
 			f-ctx	[ssa-ctx!]
+			t-ctx	[ssa-ctx!]
 			old-ctx [ssa-ctx!]
 			n		[integer!]
 			arr		[ptr-array!]
@@ -740,7 +742,8 @@ ir-graph: context [
 		]
 		arr: ptr-array/make n
 		p: ARRAY_DATA(arr)
-		f-ctx: as ssa-ctx! system/stack/allocate (size? ssa-ctx!) * n / 4 + 1
+		f-ctx: as ssa-ctx! system/stack/allocate (size? ssa-ctx!) * n / 2 + 1
+		t-ctx: f-ctx + n
 
 		any?: NODE_TYPE(e) = RST_ANY
 		init-merge :m
@@ -759,15 +762,17 @@ ir-graph: context [
 			;if INSTR_CONST?(l-val) [return fold-left any? to logic!]
 
 			split-ssa-ctx ctx f-ctx
+			split-ssa-ctx ctx t-ctx
 			either any? [
-				add-if l-val m/block f-ctx/block ctx
+				add-if l-val t-ctx/block f-ctx/block ctx
 			][
-				add-if l-val f-ctx/block m/block ctx
+				add-if l-val f-ctx/block t-ctx/block ctx
 			]
-			merge-incoming :m ctx
+			merge-ctx :m t-ctx
 
 			ctx: f-ctx
 			f-ctx: f-ctx + 1
+			t-ctx: t-ctx + 1
 		]
 		set-ssa-ctx :m old-ctx
 		as instr! make-phi type-system/logic-type m/block arr
@@ -973,6 +978,20 @@ ir-graph: context [
 
 	visit-assert: func [r [case!] ctx [ssa-ctx!] return: [instr!]
 	][
+		null
+	]
+
+	visit-context: func [c [context!] ctx [ssa-ctx!] return: [instr!]
+		/local stmt [rst-stmt!]
+	][
+		stmt: c/stmts
+		while [
+			stmt: stmt/next
+			stmt <> null
+		][
+			;rst-printer/print-stmt stmt
+			stmt/accept as int-ptr! stmt builder as int-ptr! ctx
+		]
 		null
 	]
 

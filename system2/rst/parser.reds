@@ -38,6 +38,7 @@ visitor!: alias struct! [
 	VISITOR_FUNC(visit-throw)
 	VISITOR_FUNC(visit-catch)
 	VISITOR_FUNC(visit-assert)
+	VISITOR_FUNC(visit-context)
 ]
 
 #define ACCEPT_FN_SPEC [self [int-ptr!] v [visitor!] data [int-ptr!] return: [int-ptr!]]
@@ -268,9 +269,8 @@ variable!: alias struct! [
 ]
 
 context!: alias struct! [
-	RST_NODE_FIELDS(context!)
+	RST_STMT_FIELDS(context!)
 	parent		 [context!]
-	child		 [context!]
 	stmts		 [rst-stmt!]
 	last-stmt	 [rst-stmt!]
 	decls		 [int-ptr!]
@@ -795,23 +795,23 @@ parser: context [
 		/local
 			ctx [context!]
 	][
+		ctx_accept: func [ACCEPT_FN_SPEC][
+			v/visit-context self data
+		]
 		ctx: as context! malloc size? context!
 		ctx/token: name
 		ctx/parent: parent
 		ctx/stmts: as rst-stmt! malloc size? rst-stmt!	;-- stmt head
 		ctx/last-stmt: ctx/stmts
 		ctx/decls: hashmap/make either fn? [100][1000]
-		ctx/loop-stack: vector/make size? integer! 32
+		ctx/loop-stack: vector/make size? integer! 4
 		SET_NODE_TYPE(ctx RST_CONTEXT)
-		if all [not fn? parent <> null][
-			ctx/next: parent/child
-			parent/child: ctx
-		]
 		ctx/src-blk: cur-blk
 		ctx/script: compiler/script
 		ctx/ret-type: type-system/void-type
 		ctx/typecache: type-system/make-cache
 		ctx/throw-error?: yes
+		ctx/accept: :ctx_accept
 		ctx
 	]
 
@@ -3050,6 +3050,14 @@ parser: context [
 									unless add-decl ctx pc as int-ptr! c2 [
 										throw-error [pc "context name is already taken:" pc]
 									]
+									if all [
+										null? f-ctx
+										c2/n-typed > ctx/n-typed
+									][ctx/n-typed: c2/n-typed]
+
+									;@@ link it to stmts, so we can keep the order of stmts in contexts
+									ctx/last-stmt/next: as rst-stmt! c2
+									ctx/last-stmt: as rst-stmt! c2
 									pc2
 								]
 								true [parse-assignment pc end :ptr ctx]
