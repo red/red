@@ -1070,7 +1070,7 @@ system/view/platform: context [
 		]
 
 		foreach spec fetch-all-screens [
-			append svs make face! [							;-- default screen
+			append svs make face! [
 				type:	'screen
 				offset: spec/1
 				size:	to-pair spec/2 / spec/3
