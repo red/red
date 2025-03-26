@@ -12,11 +12,7 @@ context [
 			s-off: s/offset * s/data
 			s-size: s/size * s/data
 			repend list [s-off s-size s/data]
-			
-			if s-off/x > bound/x [bound/x: s-off/x]
-			if s-off/y > bound/y [bound/y: s-off/y]
-			if s-off/x + s-size/x > bound/x [bound/x: s-off/x + s-size/x]
-			if s-off/y + s-size/y > bound/y [bound/y: s-off/y + s-size/y]
+			bound: max bound s-off + s-size
 		]
 
 		ratio: bound/x / (parent/size/x - 20)
