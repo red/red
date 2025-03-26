@@ -174,7 +174,7 @@ unless system/console [
 				]
 			][
 				history/head: 0
-				block/insert-value history as red-value! str
+				block/insert-value history as red-value! str yes no
 			]
 		]
 

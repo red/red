@@ -832,10 +832,7 @@ system/view/VID: context [
 			if flags [panel/flags: either panel/flags [unique union to-block panel/flags to-block flgs][flgs]]
 			if all [block? panel/actors panel/type = 'window][panel/actors: context panel/actors]
 		
-			if panel/type = 'window [
-				panel/parent: system/view/screens/1
-				system/view/VID/GUI-rules/process panel
-			]
+			if panel/type = 'window [system/view/VID/GUI-rules/process panel]
 			panel
 		]
 	]

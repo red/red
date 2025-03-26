@@ -16,12 +16,13 @@ handle: context [
 	#enum handle-classes! [
 		CLASS_NULL										;-- null class (to be removed)
 		CLASS_FD										;-- file descriptor
+		CLASS_MONITOR									;-- display monitor handle
 		CLASS_WINDOW									;-- window handle
 		CLASS_FONT										;-- font handle
 		CLASS_RICHTEXT									;-- rich-text handle
 	]
 	
-	names: ["null" "fd" "window" "font" "rich-text"]
+	names: ["null" "fd" "monitor" "window" "font" "rich-text"]
 	
 	box: func [
 		value	[integer!]

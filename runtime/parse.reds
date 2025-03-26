@@ -1384,7 +1384,7 @@ parser: context [
 											TYPE_GET_WORD
 											TYPE_REFINEMENT [
 												blk: as red-block! _context/get as red-word! blk
-												block/insert-value blk value
+												block/insert-value blk value yes no
 											]
 											default [
 												assert TYPE_OF(blk) = TYPE_BLOCK

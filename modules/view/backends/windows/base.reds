@@ -781,17 +781,6 @@ transparent-base?: func [
 	][false][true]
 ]
 
-scale-graphic: func [
-	graphic		[integer!]
-	/local
-		ratio	[float32!]
-][
-	if dpi-factor <> as float32! 1.0 [
-		ratio: dpi-factor
-		GdipScaleWorldTransform graphic ratio ratio GDIPLUS_MATRIX_PREPEND
-	]
-]
-
 #either draw-engine = 'GDI+ [
 update-base: func [
 	hWnd	[handle!]

@@ -101,6 +101,17 @@ kb-state: 		allocate 256							;-- holds keyboard state for keys conversion
 dark-mode?:		no
 pShouldAppsUseDarkMode: as int-ptr! 0
 
+monitor!: alias struct! [
+	handle	 [handle!]
+	DPI		 [float32!]
+	pixels-x [integer!]
+]
+
+monitors-nb: 10
+monitors: as monitor! 0
+monitor-tail: as monitor! 0
+
+
 dpi-scale: func [
 	num		[float32!]
 	return: [integer!]
@@ -824,27 +835,19 @@ enable-visual-styles: func [
 
 get-dpi: func [
 	/local
-		dll		[handle!]
-		fun1	[GetDpiForMonitor!]
 		monitor [handle!]
 		pt		[tagPOINT value]
-		dpi?	[logic!]
 ][
-	dpi?: no
-	if win8+? [
-		dll: LoadLibraryA "shcore.dll"
-		if dll <> null [
-			pt/x: 1 pt/y: 1
+	#case [
+		any [not legacy not find legacy 'no-multi-monitor][
+			GetCursorPos pt
 			monitor: MonitorFromPoint pt 2
-			fun1: as GetDpiForMonitor! GetProcAddress dll "GetDpiForMonitor"
-			fun1 monitor 0 :log-pixels-x :log-pixels-y
-			FreeLibrary dll
-			dpi?: yes
+			GetDpiForMonitor monitor 0 :log-pixels-x :log-pixels-y
 		]
-	]
-	unless dpi? [
-		log-pixels-x: GetDeviceCaps hScreen 88			;-- LOGPIXELSX
-		log-pixels-y: GetDeviceCaps hScreen 90			;-- LOGPIXELSY
+		true [
+			log-pixels-x: GetDeviceCaps hScreen 88		;-- LOGPIXELSX
+			log-pixels-y: GetDeviceCaps hScreen 90		;-- LOGPIXELSY
+		]
 	]
 	current-dpi: log-pixels-x
 	dpi-factor: (as float32! log-pixels-x) / as float32! 96.0
@@ -944,6 +947,9 @@ init: func [
 	int/header: TYPE_INTEGER
 	int/value:  as-integer version-info/wProductType
 
+	monitors: as monitor! allocate monitors-nb * size? monitor!
+	monitor-tail: monitors
+	
 	get-metrics
 
 	if win10+? [
@@ -1013,29 +1019,6 @@ cleanup: does [
 	DX-cleanup
 ]
 
-find-last-window: func [
-	return: [handle!]
-	/local
-		obj  [red-object!]
-		pane [red-block!]
-][
-	pane: as red-block! #get system/view/screens		;-- screens list
-	if null? pane [return null]
-	
-	obj: as red-object! block/rs-head pane				;-- 1st screen
-	if null? obj [return null]	
-	
-	pane: as red-block! (object/get-values obj) + FACE_OBJ_PANE ;-- windows list
-	
-	either all [
-		TYPE_OF(pane) = TYPE_BLOCK
-		0 < (pane/head + block/rs-length? pane)
-	][
-		face-handle? as red-object! (block/rs-tail pane) - 1
-	][
-		null
-	]
-]
 
 window-border-info?: func [
 	handle	[handle!]
@@ -1453,6 +1436,72 @@ parse-common-opts: func [
 	]
 ]
 
+OS-get-current-screen: func [
+	return: [red-handle!]
+	/local
+		hMonitor [handle!]
+		pt		 [tagPOINT value]
+][
+	GetCursorPos pt
+	hMonitor: MonitorFromPoint pt 2
+	handle/make-at stack/arguments as-integer hMonitor handle/CLASS_MONITOR
+]
+
+monitor-enum-proc: func [
+	[stdcall]
+	hMonitor[integer!]
+	hDC		[handle!]
+	lpRECT	[int-ptr!]									;-- RECT_STRUCT
+	spec	[red-block!]
+	return: [logic!]
+	/local
+		blk	  [red-block!]
+		s	  [series!]
+		DPI	  [float32!]
+		rec	  [RECT_STRUCT]
+		pt	  [tagPOINT value]
+		log-x [integer!]
+		log-y [integer!]
+][
+	log-x: log-y: 0
+	#case [
+		any [not legacy not find legacy 'no-multi-monitor][
+			GetDpiForMonitor as handle! hMonitor 0 :log-x :log-y
+		]
+		true [
+			log-x: GetDeviceCaps hScreen 88				;-- LOGPIXELSX
+			log-y: GetDeviceCaps hScreen 90				;-- LOGPIXELSY
+		]
+	]
+	DPI: (as float32! log-x) / as float32! 96.0
+	
+	blk: block/make-at as red-block! ALLOC_TAIL(spec) 4
+	s: GET_BUFFER(blk)
+	rec: as RECT_STRUCT lpRECT
+	
+	pair/make-at   alloc-tail s rec/left rec/top
+	pair/make-at   alloc-tail s rec/right - rec/left rec/bottom - rec/top
+	float/make-at  alloc-tail s as-float DPI
+	handle/make-at alloc-tail s hMonitor handle/CLASS_MONITOR
+	
+	monitor-tail/handle:   as handle! hMonitor
+	monitor-tail/DPI:	   DPI
+	monitor-tail/pixels-x: log-x
+	monitor-tail: monitor-tail + 1
+	assert (as-integer monitor-tail - monitors) >> 2 < monitors-nb
+	
+	true												;-- continue enumeration
+]
+
+OS-fetch-all-screens: func [
+	return: [red-block!]
+	/local blk [red-block!]
+][
+	blk: block/push-only* 2
+	EnumDisplayMonitors null null :monitor-enum-proc blk
+	blk
+]
+
 OS-redraw: func [hWnd [integer!]][
 	InvalidateRect as handle! hWnd null 0
 	UpdateWindow as handle! hWnd
@@ -1712,6 +1761,8 @@ OS-make-view: func [
 				n: either alpha? [WS_EX_LAYERED][set-layered-option options win8+?]
 				ws-flags: ws-flags or n
 			]
+			get-dpi
+
 			if sx < as float32! 0.0 [sx: as float32! 200.0]
 			if sy < as float32! 0.0 [sy: as float32! 200.0]
 			rc/left: 0

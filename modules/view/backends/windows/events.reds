@@ -1655,6 +1655,8 @@ WndProc: func [
 			dpi-x: as float32! log-pixels-x
 			dpi-y: dpi-x
 			dpi-factor: dpi-x / as float32! 96.0
+			current-dpi: log-pixels-x
+			
 			rc: as RECT_STRUCT lParam
 			SetWindowPos 
 				hWnd
@@ -1662,10 +1664,15 @@ WndProc: func [
 				rc/left rc/top
 				rc/right - rc/left rc/bottom - rc/top
 				SWP_NOZORDER or SWP_NOACTIVATE
-			values: values + FACE_OBJ_PANE
+			
 			if type = window [
+				reattach-window-face
+					MonitorFromWindow hWnd 2			;-- MONITOR_DEFAULTTONEAREST
+					get-face-obj hWnd
+					as red-object! values + FACE_OBJ_PARENT ;-- move window face to new parent screen
+				
 				set-defaults hWnd
-				update-window as red-block! values null
+				update-window as red-block! values + FACE_OBJ_PANE null
 			]
 			if hidden-hwnd <> null [
 				;@@ FIXME this may cause issue if the face inside hidden-hwnd has been GCed
