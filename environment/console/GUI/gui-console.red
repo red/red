@@ -132,7 +132,7 @@ gui-console-ctx: context [
 		tabs: none line-spacing: 'default handles: none	;-- extra fields
 
 		init: func [/local box][
-			terminal/windows: system/view/screens/1/pane
+			terminal/windows: get in get-current-screen 'pane
 			box: terminal/box
 			box/data: make block! 200
 			scroller: get-scroller self 'horizontal
@@ -231,7 +231,7 @@ gui-console-ctx: context [
 			]
 			on-close: func [face [object!] event [event!]][
 				system/view/platform/exit-event-loop
-				clear head system/view/screens/1/pane
+				foreach screen system/view/screens [clear head screen/pane]
 				quit
 			]
 			on-resizing: function [face [object!] event [event!]][
@@ -300,7 +300,7 @@ gui-console-ctx: context [
 		win/selected: console
 		if empty? system/script/args [win/visible?: yes]
 
-		svs: system/view/screens/1
+		svs: get-current-screen
 		svs/pane: next svs/pane				;-- proctect itself from unview/all
 
 		add-gui-print

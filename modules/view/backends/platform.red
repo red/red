@@ -629,6 +629,54 @@ system/view/platform: context [
 				]
 				flags
 			]
+			
+			reattach-window-face: func [
+				hMonitor [handle!]
+				window	 [red-object!]
+				parent	 [red-object!]
+				/local
+					blk		 [red-block!]
+					screen 	 [red-object!]
+					face end [red-object!]
+					h		 [red-handle!]
+					s s2	 [series!]
+					hidden?	 [logic!]
+			][
+				assert TYPE_OF(parent) = TYPE_OBJECT
+				blk: as red-block! #get system/view/screens
+				s: GET_BUFFER(blk)
+				face: as red-object! s/offset
+				end:  as red-object! s/tail
+
+				while [face < end][
+					blk: as red-block! (object/get-values face) + FACE_OBJ_STATE
+					assert TYPE_OF(blk) = TYPE_BLOCK
+					s2: GET_BUFFER(blk)
+					h: as red-handle! s2/offset
+					if all [
+						h/value = as-integer hMonitor
+						TYPE_OF(h) = TYPE_HANDLE
+						h/type = handle/CLASS_MONITOR
+					][
+						if parent/ctx <> face/ctx [					;-- if window really moved to a different display
+							blk: as red-block! (object/get-values parent) + FACE_OBJ_PANE
+							assert TYPE_OF(blk) = TYPE_BLOCK
+							hidden?: block/rs-take blk as red-value! window yes  ;-- remove window from old screen/pane
+
+							blk: as red-block! (object/get-values face) + FACE_OBJ_PANE
+							either hidden? [
+								block/insert-value blk as red-value! window yes	yes ;-- insert window to new screen/pane at head
+							][
+								block/rs-append blk as red-value! window	;-- append window to new screen/pane
+							]
+							copy-cell as red-value! face (object/get-values window) + FACE_OBJ_PARENT	;-- window/parent: screen
+						]
+						exit
+					]
+					face: face + 1
+				]
+				assert false
+			]			
 
 			#include %keycodes.reds
 			#switch GUI-engine [
@@ -653,6 +701,14 @@ system/view/platform: context [
 
 	make-null-handle: routine [][handle/box 0 handle/CLASS_NULL]
 
+	fetch-all-screens: routine [][
+		SET_RETURN(gui/OS-fetch-all-screens)
+	]
+	
+	get-current-screen: routine [][
+		SET_RETURN(gui/OS-get-current-screen)
+	]
+	
 	get-screen-size: routine [
 		id		[integer!]
 		/local
@@ -1013,12 +1069,15 @@ system/view/platform: context [
 			]
 		]
 
-		append svs make face! [							;-- default screen
-			type:	'screen
-			offset: 0x0
-			size:	get-screen-size 0
-			pane:	make block! 4
-			state:	reduce [make-null-handle 0 none copy [1]]
+		foreach spec fetch-all-screens [
+			append svs make face! [							;-- default screen
+				type:	'screen
+				offset: spec/1
+				size:	to-pair spec/2 / spec/3
+				data:	spec/3
+				pane:	make block! 4
+				state:	reduce [spec/4 0 none copy [1]]
+			]
 		]
 		
 		set fonts:

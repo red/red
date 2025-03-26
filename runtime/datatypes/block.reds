@@ -163,6 +163,40 @@ block: context [
 		]
 		as red-value! none-value
 	]
+	
+	rs-take: func [										;-- find value in blk then remove it (collapsing the series buffer)
+		blk		[red-block!]
+		value	[red-value!]
+		abs?	[logic!]								;-- TRUE: search from head (absolute indexing)
+		return: [logic!]
+		/local
+			slot [red-value!]
+			tail [red-value!]
+			s	 [series!]
+			compare
+	][
+		s: GET_BUFFER(blk)
+		slot: either abs? [s/offset][s/offset + blk/head]
+		tail: s/tail
+		compare: DISPATCH_COMPARE(value)
+
+		while [slot < tail][
+			if zero? compare value slot COMP_FIND [
+				if slot + 1 < tail [
+					move-memory
+						as byte-ptr! slot
+						as byte-ptr! slot + 1
+						as-integer tail - slot - 1
+				
+				]
+				s/tail: s/tail - 1
+				return (as-integer slot - s/offset) >> 2 < (blk/head + 1)
+			]
+			slot: slot + 1
+		]
+		assert false
+		false
+	]
 
 	clone: func [
 		blk 	[red-block!]
@@ -246,6 +280,8 @@ block: context [
 	insert-value: func [
 		blk		[red-block!]
 		value	[red-value!]
+		inc?	[logic!]
+		head?	[logic!]
 		return: [red-block!]
 		/local
 			head   [red-value!]
@@ -257,7 +293,7 @@ block: context [
 		s: GET_BUFFER(blk)
 		size: as-integer s/tail + 1 - s/offset
 		if size > s/size [s: expand-series s size * 2]
-		head: s/offset + blk/head
+		head: either head? [s/offset][s/offset + blk/head]
 
 		if head <> s/tail [
 			move-memory										;-- make space
@@ -270,10 +306,10 @@ block: context [
 			]
 		]
 
-		s/tail: s/tail + 1	
+		s/tail: s/tail + 1
 		value: copy-cell value head
 		if TYPE_OF(hs) = TYPE_HASH [_hashtable/put hs/table value]
-		blk/head: blk/head + 1
+		if inc? [blk/head: blk/head + 1]
 		blk
 	]
 	
@@ -291,7 +327,7 @@ block: context [
 		tail:  s/tail
 		
 		while [value < tail][
-			insert-value blk value
+			insert-value blk value yes no
 			value: value + 1
 		]
 		blk
@@ -301,6 +337,7 @@ block: context [
 		insert-value
 			as red-block! stack/arguments - 1
 			stack/arguments
+			yes no
 	]
 	
 	append*: func [

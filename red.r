@@ -163,6 +163,14 @@ redc: context [
 	format-time: func [time [time!]][
 		round (time/second * 1000) + (time/minute * 60000)
 	]
+	
+	add-option: func [spec [block!] field [word!] option [word!]][
+		either spec [
+			append spec option
+		][
+			poke find/tail spec field reduce [option]
+		]
+	]
 
 	decorate-name: func [name [file!]][
 		rejoin [										;-- filename: <name>-year-month-day(ISO format)-time
@@ -256,11 +264,14 @@ redc: context [
 	]
 
 	add-legacy-flags: func [opts [object!] /local out ver][
-		if all [Windows? win-version <= 60][
-			either opts/legacy [						;-- do not compile gesture support code for XP, Vista, Windows Server 2003/2008(R1)
-				append opts/legacy 'no-touch
-			][
-				opts/legacy: copy [no-touch]
+		if Windows? [
+			case [
+				win-version <= 60 [								;-- Windows XP
+					add-option opts 'legacy 'no-touch			;-- do not compile gesture support code for XP, Vista, Windows Server 2003/2008(R1)
+				]
+				win-version <= 61 [								;-- Windows 7
+					add-option opts 'legacy 'no-multi-monitor  ;-- do not include multiple monitor API for Windows version <= 7
+				]
 			]
 		]
 		all [

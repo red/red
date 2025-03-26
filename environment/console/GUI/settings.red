@@ -99,7 +99,7 @@ display-about: function [][
 set-dark-mode: func [
 	dark?	[logic!]
 ][
-	foreach face system/view/screens/1/pane [
+	foreach face gui-console-ctx/win/parent/pane [
 		system/view/platform/set-dark-mode face dark?
 	]	
 	system/view/platform/set-dark-mode win dark?
@@ -173,8 +173,13 @@ show-cfg-dialog: function [][
 ]
 
 apply-cfg: function [][
-	win/offset:   cfg/win-pos
-	win/size:     cfg/win-size
+	screen: get-current-screen
+	win/size: cfg/win-size
+	either within? cfg/win-pos screen/offset screen/size [
+		win/offset: cfg/win-pos
+	][
+		center-face/with win screen
+	]
 	font: make font! [
 		name:  cfg/font-name
 		size:  cfg/font-size

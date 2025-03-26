@@ -733,6 +733,15 @@ tagMINMAXINFO: alias struct! [
 	ptMaxTrackSize.y [integer!]
 ]
 
+monitor-enum-cb!: alias function! [
+	[stdcall]
+	hMonitor[integer!]
+	hDC		[handle!]
+	lpRECT	[int-ptr!]
+	spec	[red-block!]								;-- user-defined argument
+	return: [logic!]
+]
+
 wndproc-cb!: alias function! [
 	[stdcall]
 	hWnd	[handle!]
@@ -795,11 +804,6 @@ ACTCTX: alias struct! [
 	lpResource	[c-string!]
 	lpAppName	[c-string!]
 	hModule		[integer!]
-]
-
-DISPLAY_DEVICE: alias struct! [
-	cbSize		[integer!]
-	DevName		[byte!]
 ]
 
 OSVERSIONINFO: alias struct! [
@@ -1129,9 +1133,20 @@ XFORM!: alias struct! [
 			flags		[integer!]
 			return:		[logic!]
 		]
+		EnumDisplayMonitors: "EnumDisplayMonitors" [
+			hdc			[handle!]
+			lprcClip	[RECT_STRUCT]
+			lpfEnum		[monitor-enum-cb!]
+			dwData		[red-block!]					;-- user-defined argument
+		]
 		MonitorFromPoint: "MonitorFromPoint" [
 			pt			[tagPOINT value]
 			flags		[integer!]
+			return:		[handle!]
+		]
+		MonitorFromWindow: "MonitorFromWindow" [
+			hWnd		[handle!]
+			dwFlags		[integer!]
 			return:		[handle!]
 		]
 		GetKeyboardLayout: "GetKeyboardLayout" [
@@ -1310,13 +1325,6 @@ XFORM!: alias struct! [
 		GetSysColorBrush: "GetSysColorBrush" [
 			index		[integer!]
 			return:		[handle!]
-		]
-		EnumDisplayDevices: "EnumDisplayDevicesW" [
-			lpDevice 	[c-string!]
-			iDevNum		[integer!]
-			lpDispDev	[DISPLAY_DEVICE]
-			dwFlags		[integer!]
-			return:		[integer!]
 		]
 		RegisterClassEx: "RegisterClassExW" [
 			lpwcx		[WNDCLASSEX]
@@ -2968,6 +2976,22 @@ XFORM!: alias struct! [
 					hIn			[GESTUREINFO]
 					hOut		[GESTUREINFO]
 					return:		[logic!]
+				]
+			]
+		]
+	]
+]
+
+#case [
+	any [not legacy not find legacy 'no-multi-monitor] [
+		#import [
+			"shcore.dll" stdcall [
+				GetDpiForMonitor: "GetDpiForMonitor" [
+					hmonitor	[handle!]
+					dpiType		[integer!]
+					dpiX		[int-ptr!]
+					dpiY		[int-ptr!]
+					return:		[integer!]
 				]
 			]
 		]

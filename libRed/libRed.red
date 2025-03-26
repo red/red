@@ -1221,7 +1221,7 @@ Red [
 			either TYPE_OF(blk) = TYPE_BLOCK [
 				block/rs-append blk as red-value! names/extern
 			][
-				block/insert-value spec as red-value! extern-blk
+				block/insert-value spec as red-value! extern-blk yes no
 			]
 			ring/store _context/set name as red-value! routine/push spec null as-integer ptr 0 true
 		]
