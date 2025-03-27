@@ -1,5 +1,5 @@
 Red [
-	Purpose: "Shows all the available monitors positions and relative sizes"
+	Purpose: "Shows all the available monitors position and relative sizes"
 	Needs: 'View
 ]
 

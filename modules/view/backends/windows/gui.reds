@@ -833,6 +833,24 @@ enable-visual-styles: func [
 	InitCommonControlsEx ctrls
 ]
 
+update-dpi-factor: func [
+	hWnd	[handle!]
+	/local
+		win	screen [red-object!]
+		fl [red-float!]
+][
+	win: as red-object! get-face-obj GetAncestor hWnd 2						;-- GA_ROOT
+	assert TYPE_OF(win) = TYPE_OBJECT
+	screen: as red-object! (object/get-values win) + FACE_OBJ_PARENT		;-- screen: win/parent
+	if TYPE_OF(screen) = TYPE_OBJECT [
+		fl: as red-float! (object/get-values screen) + FACE_OBJ_DATA		;-- fl: screen/data
+		if TYPE_OF(fl) = TYPE_FLOAT [
+			dpi-factor: as float32! fl/value
+			current-dpi: as-integer dpi-factor * as float32! 96.0
+		]
+	]
+]
+
 get-dpi: func [
 	/local
 		monitor [handle!]
