@@ -37,6 +37,7 @@ compiler: context [
 	#define TYPE_ADDR		101
 	#define TYPE_REF		102
 	#define TYPE_SLOT		103
+	#define TYPE_VOID		104
 
 	val!: alias struct! [
 		header	[integer!]
@@ -104,6 +105,7 @@ compiler: context [
 		int-four: as cell! 0
 		float-zero: as cell! 0
 		float-one: as cell! 0
+		void-cell: as cell! 0
 
 		init: func [
 			/local
@@ -150,6 +152,9 @@ compiler: context [
 			f: as red-float! float-one
 			f/header: TYPE_FLOAT
 			f/value: 1.0
+
+			void-cell: xmalloc(cell!)
+			void-cell/header: TYPE_VOID
 		]
 	]
 

@@ -1397,6 +1397,7 @@ to-imm: func [
 			c: as red-char! val
 			c/value
 		]
+		TYPE_VOID [0]
 		TYPE_WORD [		;-- null
 			0
 		]

@@ -134,12 +134,16 @@ lowering: context [
 		loop edges/length [
 			e: as df-edge! p/value
 			old: e/dst
-			new: get-new-instrs old env
-			either null? new [
-				i: either old/instr <> null [old/instr][old]
-				dyn-array/append buf as int-ptr! i
+			either null? old [
+				dyn-array/append buf null
 			][
-				dyn-array/append-n buf new
+				new: get-new-instrs old env
+				either null? new [
+					i: either old/instr <> null [old/instr][old]
+					dyn-array/append buf as int-ptr! i
+				][
+					dyn-array/append-n buf new
+				]
 			]
 			p: p + 1
 		]

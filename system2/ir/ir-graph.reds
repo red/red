@@ -794,7 +794,7 @@ ir-graph: context [
 			e		[rst-expr!]
 			t-ctx	[ssa-ctx! value]
 			f-ctx	[ssa-ctx! value]
-			cur		[ssa-ctx! value]
+			cur		[ssa-ctx!]
 			end		[ssa-merge! value]
 			args	[array-2! value]
 			ret-val [ptr-array!]
@@ -806,8 +806,7 @@ ir-graph: context [
 		if ctx/closed? [return null]	;@@ s/expr closed current block?
 
 		init-merge :end
-		init-ssa-ctx :cur ctx 0 ctx/block
-		cur/parent: ctx/parent
+		cur: ctx
 		c: s/cases
 		n: 0
 		while [c <> null][
@@ -828,8 +827,8 @@ ir-graph: context [
 				const: const-val e/type e/token ctx/graph
 				INIT_ARRAY_2(args key const)
 				op: typed-equal ty
-				cond: add-op op as ptr-array! :args :cur
-				add-if cond t-ctx/block f-ctx/block :cur
+				cond: add-op op as ptr-array! :args cur
+				add-if cond t-ctx/block f-ctx/block cur
 
 				cur/block: f-ctx/block
 				cur/parent: f-ctx/parent
@@ -844,8 +843,8 @@ ir-graph: context [
 
 		if s/defcase <> null [
 			c: s/defcase
-			p/value: as int-ptr! gen-stmts c/body :cur
-			merge-ctx :end :cur
+			p/value: as int-ptr! gen-stmts c/body cur
+			merge-ctx :end cur
 		]
 		val: either s/type = type-system/void-type [null][
 			make-phi s/type end/block ret-val
@@ -1231,6 +1230,7 @@ ir-graph: context [
 			pv		[ptr-ptr!]
 			pp		[ptr-ptr!]
 			var		[var-decl!]
+			new?	[logic!]
 	][
 		;-- merge latest added predecessor's vals
 		n-preds: m/n-preds
@@ -1244,37 +1244,30 @@ ir-graph: context [
 		loop n [
 			pred-v: as instr! p/value
 			v: as instr! mp/value
-			either v <> null [
-				either pred-v <> null [
-					either INSTR_PHI?(v) [
-						phi: as instr-phi! v
-						if phi/block = m/block [
-							e: make-df-edge v pred-v
-							phi/inputs: ptr-array/append phi/inputs as byte-ptr! e
-						]
-					][
-						;-- add a new phi
-						if v <> pred-v [
-							inputs: ptr-array/make n-preds
-							parr: ARRAY_DATA(m/pred-vals)
-							pp: ARRAY_DATA(inputs)
-							loop n-preds [
-								vals: as ptr-array! parr/value
-								pv: ARRAY_DATA(vals) + i
-								pp/value: pv/value
-								parr: parr + 1
-								pp: pp + 1
-							]
-							pp: ARRAY_DATA(ctx/ssa-vars) + i
-							var: as var-decl! pp/value
-							mp/value: as int-ptr! make-phi var/type m/block inputs
-						]
-					]
-				][
-					kill-var v m
+			new?: yes
+			if all [v <> null INSTR_PHI?(v)][
+				phi: as instr-phi! v
+				if phi/block = m/block [
+					e: make-df-edge v pred-v
+					phi/inputs: ptr-array/append phi/inputs as byte-ptr! e
+					new?: no
 				]
-			][
-				mp/value: as int-ptr! pred-v
+			]
+			;-- add a new phi
+			if all [v <> pred-v new?][
+				inputs: ptr-array/make n-preds
+				parr: ARRAY_DATA(m/pred-vals)
+				pp: ARRAY_DATA(inputs)
+				loop n-preds [
+					vals: as ptr-array! parr/value
+					pv: ARRAY_DATA(vals) + i
+					pp/value: pv/value
+					parr: parr + 1
+					pp: pp + 1
+				]
+				pp: ARRAY_DATA(ctx/ssa-vars) + i
+				var: as var-decl! pp/value
+				mp/value: as int-ptr! make-phi var/type m/block inputs
 			]
 			i: i + 1
 			p: p + 1
@@ -1491,7 +1484,7 @@ ir-graph: context [
 					ctx/parent <> null
 					ctx/parent/cur-vals = ctx/cur-vals
 				][
-					ctx/cur-vals: ptr-array/copy ctx/parent/cur-vals
+					ctx/cur-vals: ptr-array/copy ctx/cur-vals	;-- copy-on-write
 				]
 				p: ARRAY_DATA(ctx/cur-vals) + var/index
 				p/value: as int-ptr! val
@@ -1623,7 +1616,7 @@ ir-graph: context [
 		fn		[ir-fn!]
 		return: [instr-const!]
 	][
-		get-cached-const 0 type-system/void-type null fn
+		get-cached-const 0 type-system/void-type common-literals/void-cell fn
 	]
 
 	const-true: func [

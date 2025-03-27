@@ -1576,18 +1576,21 @@ backend: context [
 		edge	[cf-edge!]
 		/local
 			i	[instr!]
+			ii	[instr!]
 			idx [integer!]
 	][
 		i: edge/dst/next
+		idx: edge/dst-idx
 		while [all [i <> null INSTR_PHI?(i)]][
-			def-i cg i
+			ii: instr-input i idx
+			if ii <> null [def-i cg i]
 			i: i/next
 		]
 
-		idx: edge/dst-idx
 		i: edge/dst/next
 		while [all [i <> null INSTR_PHI?(i)]][
-			use-i cg instr-input i idx
+			ii: instr-input i idx
+			if ii <> null [use-i cg ii]
 			i: i/next
 		]
 		emit-instr cg I_PMOVE
@@ -1720,12 +1723,12 @@ backend: context [
 		n: 0
 		loop arr/length [
 			i: as instr! pp/value
-			if instr-live? cg i blk [
+			;if instr-live? cg i blk [
 				v: get-vreg cg i
 				idx: caller-param cg/frame/cc n
 				def-reg-fixed cg i idx
 				if idx >= cg/reg-set/spill-start [v/spill: idx]
-			]
+			;]
 			n: n + 1
 			pp: pp + 1
 		]
