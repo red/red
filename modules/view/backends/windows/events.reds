@@ -1425,6 +1425,7 @@ WndProc: func [
 		WM_ACTIVATE [
 			if type = window [
 				either WIN32_LOWORD(wParam) <> 0 [
+					update-dpi-factor hwnd
 					if current-msg <> null [
 						current-msg/hWnd: hWnd
 						make-event current-msg 0 EVT_FOCUS
@@ -1655,7 +1656,7 @@ WndProc: func [
 			dpi-x: as float32! log-pixels-x
 			dpi-y: dpi-x
 			dpi-factor: dpi-x / as float32! 96.0
-			current-dpi: log-pixels-x
+			current-dpi: as float32! log-pixels-x
 			
 			rc: as RECT_STRUCT lParam
 			SetWindowPos 
@@ -1674,14 +1675,14 @@ WndProc: func [
 				set-defaults hWnd
 				update-window as red-block! values + FACE_OBJ_PANE null
 			]
-			if hidden-hwnd <> null [
-				;@@ FIXME this may cause issue if the face inside hidden-hwnd has been GCed
-				values: (get-face-values hidden-hwnd) + FACE_OBJ_EXT3
-				values/header: TYPE_NONE
-				target: as render-target! GetWindowLong hidden-hwnd wc-offset - 36
-				if target <> null [d2d-release-target target]
-				SetWindowLong hidden-hwnd wc-offset - 36 0
-			]
+			;if hidden-hwnd <> null [
+			;	;@@ FIXME this may cause issue if the face inside hidden-hwnd has been GCed
+			;	values: (get-face-values hidden-hwnd) + FACE_OBJ_EXT3
+			;	values/header: TYPE_NONE
+			;	target: as render-target! GetWindowLong hidden-hwnd wc-offset - 36
+			;	if target <> null [d2d-release-target target]
+			;	SetWindowLong hidden-hwnd wc-offset - 36 0
+			;]
 			RedrawWindow hWnd null null 4 or 1			;-- RDW_ERASE | RDW_INVALIDATE
 		]
 		WM_THEMECHANGED [

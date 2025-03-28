@@ -655,7 +655,7 @@ draw-begin: func [
 	]
 
 	if any [hWnd <> null on-graphic?][
-		if current-dpi <> 96 [
+		if current-dpi <> as float32! 96.0 [
 			ratio: dpi-factor
 			GdipScaleWorldTransform graphics ratio ratio GDIPLUS_MATRIX_PREPEND
 			ctx/scale-ratio: ratio
@@ -1397,7 +1397,7 @@ OS-draw-anti-alias: func [
 		GdipSetTextRenderingHint ctx/graphics TextRenderingHintAntiAliasGridFit
 	][
 		ctx/other/GDI+?: no
-		if any [ctx/on-image? current-dpi <> 96][	;-- always use GDI+ to draw on image
+		if any [ctx/on-image? current-dpi <> as float32! 96.0][	;-- always use GDI+ to draw on image
 			ctx/other/anti-alias?: yes
 			ctx/other/GDI+?: yes
 		]

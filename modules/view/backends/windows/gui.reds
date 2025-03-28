@@ -88,7 +88,7 @@ ime-font:		as tagLOGFONT allocate 92
 base-down-hwnd: as handle! 0
 
 dpi-factor:		as float32! 1.0
-current-dpi:	96
+current-dpi:	as float32! 96.0
 log-pixels-x:	0
 log-pixels-y:	0
 screen-size-x:	0
@@ -839,14 +839,14 @@ update-dpi-factor: func [
 		win	screen [red-object!]
 		fl [red-float!]
 ][
-	win: as red-object! get-face-obj GetAncestor hWnd 2						;-- GA_ROOT
+	win: as red-object! get-face-obj hWnd
 	assert TYPE_OF(win) = TYPE_OBJECT
 	screen: as red-object! (object/get-values win) + FACE_OBJ_PARENT		;-- screen: win/parent
 	if TYPE_OF(screen) = TYPE_OBJECT [
 		fl: as red-float! (object/get-values screen) + FACE_OBJ_DATA		;-- fl: screen/data
 		if TYPE_OF(fl) = TYPE_FLOAT [
 			dpi-factor: as float32! fl/value
-			current-dpi: as-integer dpi-factor * as float32! 96.0
+			current-dpi: dpi-factor * as float32! 96.0
 		]
 	]
 ]
@@ -867,8 +867,8 @@ get-dpi: func [
 			log-pixels-y: GetDeviceCaps hScreen 90		;-- LOGPIXELSY
 		]
 	]
-	current-dpi: log-pixels-x
-	dpi-factor: (as float32! log-pixels-x) / as float32! 96.0
+	current-dpi: as float32! log-pixels-x
+	dpi-factor: current-dpi / as float32! 96.0
 ]
 
 get-metrics: func [
