@@ -216,7 +216,7 @@ draw-begin: func [
 	either all [hWnd <> null not on-image?][
 		target: get-hwnd-render-target hWnd on-graphic?
 		dc/SetTarget this target/bitmap
-		dc/setDpi this dpi-x dpi-y
+		;dc/setDpi this dpi-x dpi-y
 		if on-graphic? [t-mode: 2]	;-- gray scale for transparent target
 	][
 		t-mode: 2
@@ -1397,7 +1397,7 @@ do-draw-ellipse: func [
 	ry: height / as float32! 2.0
 	either ctx/shadow? [
 		offset: ctx/pen-width / (as float32! 2.0)
-		scale: dpi-value / as float32! 96.0
+		scale: current-dpi / as float32! 96.0
 		ellipse/x: rx + offset
 		ellipse/y: ry + offset
 		bmp: create-d2d-bitmap		;-- create an intermediate bitmap

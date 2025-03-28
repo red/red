@@ -23,7 +23,6 @@ dw-locale-name: as c-string! 0
 
 pfnDCompositionCreateDevice2: as int-ptr! 0
 
-dpi-value:		as float32! 96.0
 dpi-x:			as float32! 0.0
 dpi-y:			as float32! 0.0
 dwrite-str-cache: as node! 0
@@ -1762,7 +1761,7 @@ DX-create-dev: func [
 
 	dpi-x: as float32! log-pixels-x
 	dpi-y: as float32! log-pixels-y
-	dpi-value: dpi-y
+	current-dpi: dpi-y
 
 	;-- create D2D Device
 	hr: d2d/CreateDevice d2d-factory as int-ptr! dxgi-device :factory
@@ -1819,14 +1818,14 @@ logical-to-pixel: func [
 	num		[float32!]
 	return: [integer!]
 ][
-	as-integer (num * dpi-value / as-float32 96.0)
+	as-integer (num * current-dpi / as-float32 96.0)
 ]
 
 pixel-to-logical: func [
 	num		[integer!]
 	return: [float32!]
 ][
-	(as-float32 num * 96) / dpi-value
+	(as-float32 num * 96) / current-dpi
 ]
 
 ;-- Win8+ only
