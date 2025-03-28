@@ -71,7 +71,7 @@ system/view/VID: context [
 	debug?: 	no
 	origin:		10x10
 	spacing:	10x10
-	pos-size!: 	make typeset! [pair! point2D!]
+	pos-size!: 	:planar!
 	containers: [panel tab-panel group-box]
 	
 	default-font: [

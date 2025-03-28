@@ -74,7 +74,7 @@ caret-to-offset: function [
 offset-to-caret: function [
 	"Given a coordinate, returns the corresponding caret position"
 	face	[object!]
-	pt		[pair! point2D!]
+	pt		[planar!]
 	return:	[integer!]
 ][
 	system/view/platform/text-box-metrics face pt 1
@@ -83,7 +83,7 @@ offset-to-caret: function [
 offset-to-char: function [
 	"Given a coordinate, returns the corresponding character position"
 	face	[object!]
-	pt		[pair! point2D!]
+	pt		[planar!]
 	return:	[integer!]
 ][
 	system/view/platform/text-box-metrics face pt 5
@@ -1251,8 +1251,8 @@ insert-event-func 'dragging function [face event][
 			unless all [
 				object? :result
 				[min max] = words-of result
-				find [pair! point2D!] type?/word result/min
-				find [pair! point2D!] type?/word result/max
+				find planar! type? result/min
+				find planar! type? result/max
 			][
 				result: none
 			]
