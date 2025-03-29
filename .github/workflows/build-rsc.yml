@@ -12,6 +12,8 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
+      with:
+        ref: rsc2
     - name: setup red repo
       run: |
         $url = "http://static.red-lang.org/build/rebview.exe"
