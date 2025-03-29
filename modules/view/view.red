@@ -875,6 +875,7 @@ show: function [
 				window	  [
 					face/parent: get-current-screen
 					if find-flag? face/flags 'modal [
+						pane: face/parent/pane
 						foreach f head pane [
 							f/enabled?: no
 							unless system/view/auto-sync? [show f]

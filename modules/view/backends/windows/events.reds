@@ -1668,7 +1668,7 @@ WndProc: func [
 			
 			if type = window [
 				reattach-window-face
-					MonitorFromWindow hWnd 2			;-- MONITOR_DEFAULTTONEAREST
+					MonitorFromWindow hWnd MONITOR_DEFAULTTONEAREST
 					get-face-obj hWnd
 					as red-object! values + FACE_OBJ_PARENT ;-- move window face to new parent screen
 				
