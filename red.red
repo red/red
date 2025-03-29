@@ -10,7 +10,45 @@ Red [
 	}
 ]
 
+rs-runtime-dir: append copy system/options/cache #either config/OS = 'Windows [%rs-runtime/][%.rs-runtime/]
+
+delete-dir:	func [
+	"Deletes a directory including all files and subdirectories."
+	dir	[file! url!] 
+	/local files
+][
+	if all [
+		dir? dir 
+		dir: dirize	dir	
+		attempt	[files:	read dir]
+	] [
+		foreach	file files [delete-dir dir/:file]
+	] 
+	attempt	[delete	dir]
+]
+
+#include %system2/rs-runtime.red
 #include %system2/compiler.red
+
+check-rs-runtime: func [/local rt-dir ts-file][
+	rt-dir: rs-runtime-dir
+	ts-file: rs-runtime-dir/_timestamp.red
+
+	if all [	;-- delete the older version
+		exists? ts-file
+		system/build/git/date > load ts-file
+	][
+		delete-dir rt-dir
+	]
+	
+	unless exists? rt-dir [
+		make-dir/deep rt-dir
+		foreach [name data] rs-runtime [
+			write/binary rejoin [rt-dir name] data
+		]
+		write ts-file system/build/git/date
+	]
+]
 
 redc: context [
 	targets:		#include %system2/config.red
@@ -494,5 +532,8 @@ redc: context [
 	]
 ]
 
-redc/fail-try "Driver" [redc/main]
+redc/fail-try "Driver" [
+	check-rs-runtime
+	redc/main
+]
 quit/return 0
