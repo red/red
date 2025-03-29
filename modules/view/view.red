@@ -761,11 +761,14 @@ do-events: func [
 	return: [logic! word!] "Returned value from last event"
 	/local result screen
 ][
-	if all [screen: get-current-screen win: last head screen/pane win/state][
-		unless win/state/4 [win/state/4: not no-wait]	;-- mark the window from which the event loop starts
-		set/any 'result system/view/platform/do-event-loop no-wait
-		:result
+	foreach screen system/view/screens [
+		if all [win: last head screen/pane win/state][
+			unless win/state/4 [win/state/4: not no-wait]	;-- mark the window from which the event loop starts
+			set/any 'result system/view/platform/do-event-loop no-wait
+			break
+		]
 	]
+	:result
 ]
 
 stop-events: function [
