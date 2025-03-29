@@ -164,6 +164,12 @@ system-dialect: context [
 			compiler/clean
 		]
 
+		inject-runtime: func [src [block!] /local rt-file][
+			rt-file: rejoin [rs-runtime-dir %common.reds]
+			insert skip src 2 reduce [to-issue "include" rt-file]
+			append src [***-on-quit 0 0]
+		]
+
 		run: func [
 			obj [object!] src [block!] file [file!]
 			/no-header /runtime /no-events
@@ -181,7 +187,6 @@ system-dialect: context [
 
 			comp-dialect pc job
 		]
-
 		
 		finalize: has [tmpl words][
 			if verbose >= 2 [print "^/---^/Compiling native functions^/---"]

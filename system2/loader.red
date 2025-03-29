@@ -435,6 +435,7 @@ context [
 			src: load src
 		]
 		unless short [								;-- process block-level compiler directives
+			compiler/inject-runtime src
 			src: expand-block src
 		]
 		if pushed? [pop-system-path]
