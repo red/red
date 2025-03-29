@@ -15,10 +15,15 @@ jobs:
     - name: setup red repo
       run: |
         $url = "http://static.red-lang.org/build/rebview.exe"
+        $url2 = "https://static.red-lang.org/dl/win/red-view.exe?reload=true"
         $output = "$Env:GITHUB_WORKSPACE\rebview.exe"
+        $output2 = "$Env:GITHUB_WORKSPACE\redview.exe"
         (New-Object System.Net.WebClient).DownloadFile($url, $output)
+        (New-Object System.Net.WebClient).DownloadFile($url2, $output2)
     - name: Build Red/System compiler
-      run: rebview.exe -qws red.r -r red.red
+      run: |
+        redview.exe system2\merge-runtime.red
+        rebview.exe -qws red.r -r red.red
       shell: cmd
     - name: Compress binaries
       uses: crazy-max/ghaction-upx@v3
