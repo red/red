@@ -18,6 +18,8 @@ Red/System [
 	]
 ]
 
+#define MONITOR_DEFAULTTONEAREST 2
+
 #define MAPVK_VK_TO_CHAR		2
 
 #define NM_CUSTOMDRAW			-12
