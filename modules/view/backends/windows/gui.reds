@@ -762,34 +762,30 @@ set-defaults: func [
 	hWnd		[handle!]
 	/local
 		hFont	[handle!]
-		hTheme	[handle!]
 		font	[tagLOGFONT]
 		ft		[tagLOGFONT value]
 		name	[c-string!]
 		res		[integer!]
 		len		[integer!]
 		metrics [tagNONCLIENTMETRICS value]
-		theme?	[logic!]
 ][
 	if default-font-name <> null [free as byte-ptr! default-font-name default-font-name: null]
 	if hWnd <> null [
 		hFont: as handle! GetWindowLong hWnd wc-offset - 32
 		if hFont <> null [DeleteObject hFont]
 	]
-
-	theme?: IsThemeActive
 	res: -1
-	either theme? [
-		hTheme: OpenThemeData null #u16 "Window"
-		if hTheme <> null [
-			res: GetThemeSysFont hTheme 805 :ft		;-- TMT_MSGBOXFONT
-			font: :ft
+	metrics/cbSize: size? tagNONCLIENTMETRICS
+	#case [
+		any [not legacy not find legacy 'no-multi-monitor][	;-- DPI-aware (Win10+)
+			res: as-integer SystemParametersInfoForDPI 29h size? tagNONCLIENTMETRICS as int-ptr! :metrics 0 log-pixels-y
 		]
-	][
-		metrics/cbSize: size? tagNONCLIENTMETRICS
-		res: as-integer SystemParametersInfo 29h size? tagNONCLIENTMETRICS as int-ptr! :metrics 0
-		font: as tagLOGFONT :metrics/lfMessageFont
+		true [												;-- fixed DPI across all monitors (Win8-)
+			res: as-integer SystemParametersInfo 29h size? tagNONCLIENTMETRICS as int-ptr! :metrics 0
+		]
 	]
+	font: as tagLOGFONT :metrics/lfMessageFont
+	
 	if res >= 0 [
 		name: as-c-string :font/lfFaceName
 		len: utf16-length? name
@@ -806,8 +802,6 @@ set-defaults: func [
 			0 - (font/lfHeight * 72 / log-pixels-y)
 
 		default-font: CreateFontIndirect font
-
-		if theme? [CloseThemeData hTheme]
 	]
 
 	if null? default-font [default-font: GetStockObject DEFAULT_GUI_FONT]

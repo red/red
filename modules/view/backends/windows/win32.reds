@@ -2996,6 +2996,16 @@ XFORM!: alias struct! [
 					return:		[integer!]
 				]
 			]
+			"User32.dll" stdcall [
+				SystemParametersInfoForDpi: "SystemParametersInfoForDpi" [
+					action		[integer!]
+					iParam		[integer!]
+					vParam		[int-ptr!]
+					winini		[integer!]
+					dpi			[integer!]
+					return:		[logic!]
+				]
+			]
 		]
 	]
 ]
