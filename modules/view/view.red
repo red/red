@@ -265,14 +265,24 @@ on-face-deep-change*: function ["Internal use only" owner word target action new
 									stop-reactor/deep face
 									modal?: find-flag? face/flags 'modal
 									system/view/platform/destroy-view face face/state/4
-
-									if all [modal? not empty? head target][
-										pane: target
-										until [
-											pane: back pane
-											pane/1/enabled?: yes
-											unless system/view/auto-sync? [show pane/1]
-											any [head? pane find-flag? pane/1/flags 'modal]
+									if modal? [
+										either 1 = length? head target [ ;-- if only target window is present in the pane
+											foreach screen system/view/screens [
+												unless empty? head screen/pane [
+													face: last head screen/pane	;-- select the last opened window
+													face/enabled?: yes
+													unless system/view/auto-sync? [show face]
+													break
+												]
+											]
+										][
+											pane: target
+											until [
+												pane: back pane
+												pane/1/enabled?: yes
+												unless system/view/auto-sync? [show pane/1]
+												any [head? pane find-flag? pane/1/flags 'modal]
+											]
 										]
 									]
 								]
