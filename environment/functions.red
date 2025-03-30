@@ -132,7 +132,7 @@ last: func ["Returns the last value in a series" s [series! tuple!]] [pick s len
 	docstring: "Returns true if the value is any type of "
 	foreach name [
 		any-list! any-block! any-function! any-object! any-path! any-string! any-word!
-		series! number! immediate! scalar! all-word! any-point!
+		series! number! immediate! scalar! all-word! any-point! planar!
 	][
 		repend list [
 			load head change back tail form name "?:" 'func
