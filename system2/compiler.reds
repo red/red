@@ -14,7 +14,7 @@ compiler: context [
 	#include %utils/array.reds
 	#include %utils/bit-table.reds
 
-	verbose: 3
+	verbose: 0
 
 	#enum arch-id! [
 		arch-x86

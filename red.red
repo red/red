@@ -262,15 +262,16 @@ redc: context [
 	to-percent: func [v [float!]][copy/part mold v * 100 5]
 	
 	show-stats: func [result /local words][
-		print ["...compilation time :" format-time result/1 "ms"]
+		print ["...parsing time     :" format-time result/1 "ms"]
+		print ["...compilation time :" format-time result/2 "ms"]
 		words: length? keys-of system/words
 		
-		if result/2 [
+		if result/3 [
 			print [
 				"...global words     :" words rejoin [#"(" to-percent words / 32894 "%)^/"]
-				"...linking time     :" format-time result/2 "ms^/"
-				"...output file size :" result/3 "bytes^/"
-				"...output file      :" to-local-file result/4 lf
+				"...linking time     :" format-time result/3 "ms^/"
+				"...output file size :" result/4 "bytes^/"
+				"...output file      :" to-local-file result/5 lf
 			]
 		]
 	]
@@ -532,8 +533,7 @@ redc: context [
 	]
 ]
 
-redc/fail-try "Driver" [
-	check-rs-runtime
-	redc/main
-]
+check-rs-runtime
+
+redc/fail-try "Driver" [redc/main]
 quit/return 0

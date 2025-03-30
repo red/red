@@ -287,7 +287,7 @@ linker: context [
 		unless job/target [job/target: cpu-class]
 		job/buffer: make binary! 512 * 1024
 
-		;clean-imports job/sections/import
+		clean-imports job/sections/import
 
 		file-emitter: either job/OS = 'Windows [PE][ELF]
 		do [file-emitter/build job]

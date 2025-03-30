@@ -311,54 +311,55 @@ system-dialect: context [
 			job-data [block!]
 		/local
 			job [job!]
-			comp-time link-time err output src resources icon
+			parse-time comp-time link-time err output src resources icon
 	][
 		recycle
 		recycle/off
-		comp-time: dt [
-			unless block? files [files: reduce [files]]
-			
-			unless opts [opts: make options-class []]
-			job: make-job opts last files				;-- last input filename is retained for output name
+		unless block? files [files: reduce [files]]
+		
+		unless opts [opts: make options-class []]
+		job: make-job opts last files				;-- last input filename is retained for output name
 
-			job/need-main?: to logic! any [
-				job/need-main?							;-- pass-thru if set in config file
-				all [
-					job/type = 'exe
-					not find [Windows macOS] job/OS
-				]
+		job/need-main?: to logic! any [
+			job/need-main?							;-- pass-thru if set in config file
+			all [
+				job/type = 'exe
+				not find [Windows macOS] job/OS
 			]
+		]
 
-			set-verbose-level opts/verbosity
-			loader/init job
+		set-verbose-level opts/verbosity
+		loader/init job
 
-			if all [
-				job/need-main?
-				not opts/use-natives?
-				opts/runtime?
-			][
-				;comp-start								;-- init libC properly
-			]		
+		if all [
+			job/need-main?
+			not opts/use-natives?
+			opts/runtime?
+		][
+			;comp-start								;-- init libC properly
+		]		
 
-			if opts/runtime? [
-				;comp-runtime-prolog to logic! loaded all [loaded job-data/3]
-			]
+		if opts/runtime? [
+			;comp-runtime-prolog to logic! loaded all [loaded job-data/3]
+		]
 
-			resources: either loaded [job-data/4][make block! 8]
-			foreach file files [
+		resources: either loaded [job-data/4][make block! 8]
+		foreach file files [
+			parse-time: dt [
 				either loaded [
 					src: loader/process/with job-data/1 file
 				][
 					src: loader/process file
 					;if job/OS = 'Windows [collect-resources src/2 resources file]
 				]
-				compiler/run job src file
 			]
-			if opts/runtime? [comp-runtime-epilog]
-
-			compiler/finalize							;-- compile all functions
-			set-verbose-level 0
+			comp-time: dt [compiler/run job src file]
 		]
+		if opts/runtime? [comp-runtime-epilog]
+
+		compiler/finalize							;-- compile all functions
+		set-verbose-level 0
+
 		if verbose > 3 [
 			probe job/imports
 			probe job/symbols
@@ -384,14 +385,15 @@ system-dialect: context [
 				;]
 				output: linker/build job
 			]
-		]
 
-		recycle/on
-		reduce [
-			comp-time
-			link-time
-			any [all [job/buffer length? job/buffer] 0]
-			output
+			recycle/on
+			reduce [
+				parse-time
+				comp-time
+				link-time
+				any [all [job/buffer length? job/buffer] 0]
+				output
+			]
 		]
 	]
 ]
