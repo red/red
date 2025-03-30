@@ -1653,10 +1653,8 @@ WndProc: func [
 		WM_DPICHANGED [
 			log-pixels-x: WIN32_LOWORD(wParam)			;-- new DPI
 			log-pixels-y: log-pixels-x
-			dpi-x: as float32! log-pixels-x
-			dpi-y: dpi-x
-			dpi-factor: dpi-x / as float32! 96.0
 			current-dpi: as float32! log-pixels-x
+			dpi-factor: current-dpi / as float32! 96.0
 			
 			rc: as RECT_STRUCT lParam
 			SetWindowPos 

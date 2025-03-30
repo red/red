@@ -216,7 +216,7 @@ draw-begin: func [
 	either all [hWnd <> null not on-image?][
 		target: get-hwnd-render-target hWnd on-graphic?
 		dc/SetTarget this target/bitmap
-		;dc/setDpi this dpi-x dpi-y
+		dc/setDpi this current-dpi current-dpi
 		if on-graphic? [t-mode: 2]	;-- gray scale for transparent target
 	][
 		t-mode: 2
@@ -242,7 +242,7 @@ draw-begin: func [
 		target/dc: this
 		dc: as ID2D1DeviceContext this/vtbl
 		if hWnd <> null [		;-- to-image face
-			dc/setDpi this dpi-x dpi-y
+			dc/setDpi this current-dpi current-dpi
 		]
 	]
 	ctx/dc: as ptr-ptr! this
