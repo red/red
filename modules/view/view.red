@@ -1251,8 +1251,8 @@ insert-event-func 'dragging function [face event][
 			unless all [
 				object? :result
 				[min max] = words-of result
-				find planar! type? result/min
-				find planar! type? result/max
+				planar? result/min
+				planar? result/max
 			][
 				result: none
 			]
