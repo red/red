@@ -639,6 +639,13 @@ GPtrArray!: alias struct! [
 ]
 
 #import [
+	LIBM-file cdecl [
+		hypotf: "hypotf" [
+			x		[float32!]
+			y		[float32!]
+			return: [float32!]
+		]
+	]
 	LIBGTK-file cdecl [
 	;; LIBGOBJECT-file cdecl [
 		g_object_new: "g_object_new" [
@@ -845,6 +852,51 @@ GPtrArray!: alias struct! [
 		gdk_display_get_default_screen: "gdk_display_get_default_screen" [
 			display 	[handle!]
 			return: 	[handle!]
+		]
+		gdk_display_get_default_seat: "gdk_display_get_default_seat" [
+			display		[handle!]
+			return:		[handle!]
+		]
+		gdk_seat_get_pointer: "gdk_seat_get_pointer" [
+			seat		[handle!]
+			return:		[handle!]
+		]
+		gdk_device_get_position: "gdk_device_get_position" [
+			dev			[handle!]
+			scr			[ptr-ptr!]
+			x			[int-ptr!]
+			y			[int-ptr!]
+		]
+		gdk_display_get_n_monitors: "gdk_display_get_n_monitors" [
+			display		[handle!]
+			return:		[integer!]
+		]
+		gdk_display_get_monitor: "gdk_display_get_monitor" [
+			display		[handle!]
+			idx			[integer!]
+			return:		[handle!]
+		]
+		gdk_display_get_monitor_at_point: "gdk_display_get_monitor_at_point" [
+			display		[handle!]
+			x			[integer!]
+			y			[integer!]
+			return:		[handle!]
+		]
+		gdk_monitor_get_geometry: "gdk_monitor_get_geometry" [
+			monitor		[handle!]
+			rect		[GdkRectangle!]
+		]
+		gdk_monitor_get_scale_factor: "gdk_monitor_get_scale_factor" [
+			monitor		[handle!]
+			return:		[integer!]
+		]
+		gdk_monitor_get_width_mm: "gdk_monitor_get_width_mm" [
+			monitor		[handle!]
+			return:		[integer!]
+		]
+		gdk_monitor_get_height_mm: "gdk_monitor_get_height_mm" [
+			monitor		[handle!]
+			return:		[integer!]
 		]
 		gdk_x11_window_get_xid: "gdk_x11_window_get_xid" [
 			win			[handle!]

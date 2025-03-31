@@ -40,8 +40,6 @@ default-font-width: as float32! 7.5		;-- pixel width
 gtk-font-name:		"Sans"
 gtk-font-size:		10
 
-log-pixels-x:		0
-log-pixels-y:		0
 screen-size-x:		0
 screen-size-y:		0
 
@@ -1625,6 +1623,69 @@ parse-common-opts: func [
 			len: len - 2
 		]
 	]
+]
+
+OS-get-current-screen: func [
+	return: [red-handle!]
+	/local
+		disp seat dev m [handle!]
+		x y [integer!]
+][
+	disp: gdk_display_get_default
+	seat: gdk_display_get_default_seat disp
+	dev: gdk_seat_get_pointer seat
+	x: 0 y: 0
+	gdk_device_get_position dev null :x :y
+	m: gdk_display_get_monitor_at_point disp x y
+	handle/make-at stack/arguments as-integer m handle/CLASS_MONITOR
+]
+
+fetch-monitor-info: func [
+	hMonitor	[handle!]
+	spec		[red-block!]
+	/local
+		blk		[red-block!]
+		s		[series!]
+		w h dpi	[integer!]
+		rec		[GdkRectangle! value]
+		dp di	[float32!]
+][	
+	blk: block/make-at as red-block! ALLOC_TAIL(spec) 4
+	s: GET_BUFFER(blk)
+
+	;DPI: gdk_monitor_get_scale_factor hMonitor
+	gdk_monitor_get_geometry hMonitor :rec
+	w: gdk_monitor_get_width_mm hMonitor
+	h: gdk_monitor_get_height_mm hMonitor
+
+	dp: hypotf as float32! rec/width as float32! rec/height
+	di: hypotf as float32! w as float32! h
+	dp: dp * (as float32! 25.4) / di
+	dpi: as-integer dp + as float32! 0.5
+	pair/make-at   alloc-tail s rec/x rec/y
+	pair/make-at   alloc-tail s rec/width rec/height
+	float/make-at  alloc-tail s (as-float dpi) / 96.0
+	handle/make-at alloc-tail s as-integer hMonitor handle/CLASS_MONITOR
+]
+
+OS-fetch-all-screens: func [
+	return: [red-block!]
+	/local
+		blk [red-block!]
+		n i	[integer!]
+		display m [handle!]
+][
+	blk: block/push-only* 2
+
+	display: gdk_display_get_default
+	n: gdk_display_get_n_monitors display
+	i: 0
+	while [i < n][
+		m: gdk_display_get_monitor display i
+		fetch-monitor-info m blk
+		i: i + 1
+	]
+	blk
 ]
 
 OS-redraw: func [
