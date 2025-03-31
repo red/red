@@ -1653,15 +1653,18 @@ fetch-monitor-info: func [
 	blk: block/make-at as red-block! ALLOC_TAIL(spec) 4
 	s: GET_BUFFER(blk)
 
-	;DPI: gdk_monitor_get_scale_factor hMonitor
 	gdk_monitor_get_geometry hMonitor :rec
 	w: gdk_monitor_get_width_mm hMonitor
 	h: gdk_monitor_get_height_mm hMonitor
 
-	dp: hypotf as float32! rec/width as float32! rec/height
-	di: hypotf as float32! w as float32! h
-	dp: dp * (as float32! 25.4) / di
-	dpi: as-integer dp + as float32! 0.5
+	either all [w > 0 h > 0][
+		dp: hypotf as float32! rec/width as float32! rec/height
+		di: hypotf as float32! w as float32! h
+		dp: dp * (as float32! 25.4) / di
+		dpi: as-integer dp + as float32! 0.5
+	][dpi: 96]
+	if dpi < 96 [dpi: 96]
+
 	pair/make-at   alloc-tail s rec/x rec/y
 	pair/make-at   alloc-tail s rec/width rec/height
 	float/make-at  alloc-tail s (as-float dpi) / 96.0
