@@ -769,7 +769,7 @@ do-events: func [
 	"Launch the event loop, blocks until all windows are closed"
 	/no-wait			   "Process an event in the queue and returns at once"
 	return: [logic! word!] "Returned value from last event"
-	/local result screen
+	/local result screen win
 ][
 	foreach screen system/view/screens [
 		if all [win: last head screen/pane win/state][
