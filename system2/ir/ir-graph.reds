@@ -23,6 +23,10 @@ Red/System [
 #define ADD_INS_FLAGS(i flags) [i/header: i/header or (flags << 8)]
 #define INSTR_FLAGS(i) (i/header >>> 8)
 #define INSTR_OPCODE(i) [i/header and FFh]
+#define INSTR_ALIVE?(i) (i/header >> 8 and F_INS_KILLED = 0)
+#define INSTR_PURE?(i) (i/header >> 8 and F_INS_PURE <> 0)
+#define INSTR_NOT_PURE?(i) (i/header >> 8 and F_INS_PURE = 0)
+#define INSTR_KILLED?(i) (i/header >> 8 and F_INS_KILLED <> 0)
 #define INSTR_END?(i) (i/header >>> 8 and F_INS_END <> 0)
 #define INSTR_PHI?(i) (i/header and FFh = INS_PHI)
 #define INSTR_CONST?(i) (i/header and FFh = INS_CONST)

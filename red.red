@@ -54,8 +54,8 @@ redc: context [
 	targets:		#include %system2/config.red
 	usage:			"Usage: red [command] [options] [file]"
 	version:		0.7.0
-	crush-lib:		none								;-- points to compiled crush library
-	crush-compress: none								;-- compression function
+	crush-lib:		none							;-- points to compiled crush library
+	crush-compress: none							;-- compression function
 	win-version:	100								;-- Windows version extracted from "ver" command
 	SSE3?:			yes
 	build-date:		now
@@ -65,7 +65,7 @@ redc: context [
 	macOS?:    system/platform = 'macOS
 	load-lib?: no
 
-	;; Select a default target based on the REBOL version.
+	;; Select a default target based on the platform
 	default-target: does [
 		any [
 			switch/default system/platform [
@@ -129,7 +129,7 @@ redc: context [
 				attempt [result: load filename]
 				file? result
 			]
-			attempt [result: to-rebol-file filename]
+			attempt [result: to-red-file filename]
 		][
 			fail-cmd ["Invalid filename:" filename]
 		]
@@ -281,7 +281,7 @@ redc: context [
 			path: either args/1/1 = #"%" [
 				attempt [load args/1]
 			][
-				attempt [to-rebol-file args/1]
+				attempt [to-red-file args/1]
 			]
 			unless all [path exists? path][
 				fail-cmd "`red clear` command error: invalid path"
@@ -403,7 +403,7 @@ redc: context [
 		;; Process -o/--output (if any).
 		if output [
 			either slash = last output [
-				attempt [opts/build-prefix: to-rebol-file output]
+				attempt [opts/build-prefix: to-red-file output]
 			][
 				opts/build-basename: load-filename output
 				if slash = first opts/build-basename [

@@ -1666,8 +1666,13 @@ backend: context [
 		i: blk/prev
 		while [i <> blk][
 			if INSTR_PHI?(i) [break]	;-- PHis are in the begin of the block
-			select-instr cg blk i
-			cg/cur-i: cg/first-i
+			if any [
+				instr-live? cg i blk
+				INSTR_NOT_PURE?(i)
+			][
+				select-instr cg blk i
+				cg/cur-i: cg/first-i
+			]
 			i: i/prev
 		]
 		use-label cg blk
