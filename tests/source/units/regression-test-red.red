@@ -3785,6 +3785,11 @@ comment {
 	--test-- "#5598"
 		--assert 2560x1440 - 280x325 / 2   = (1140, 557.5)
 		--assert 2560x1440 - 280x325 / 2.0 = (1140, 557.5)
+		
+	--test-- "#5607"
+		a5607: copy []
+		forall a5607 [--assert false]
+		--assert true
 	
 ===end-group===
 

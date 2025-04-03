@@ -3672,13 +3672,14 @@ natives: context [
 	]
 	
 	forall-next?: func [									;@@ inline?
+		inc?	[logic!]
 		return: [logic!]
 		/local
 			series [red-series!]
 			img	   [red-image!]
 	][
 		series: as red-series! _context/get as red-word! stack/arguments - 1
-		series/head: series/head + 1
+		if inc? [series/head: series/head + 1]
 		either TYPE_OF(series) = TYPE_IMAGE [
 			img: as red-image! series
 			IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) <= img/head
