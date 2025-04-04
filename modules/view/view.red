@@ -886,7 +886,18 @@ show: function [
 					tab-panel [link-tabs-to-parent face]
 				]
 				window	  [
-					face/parent: get-current-screen
+					either face/offset [
+						; select screen
+						mid: face/offset +  (face/size / 2)
+						foreach s system/view/screens [
+							if within? mid s/offset s/size [
+								face/parent: s
+								break
+							]
+						]
+					][
+						face/parent: get-current-screen
+					]
 					if find-flag? face/flags 'modal [
 						pane: face/parent/pane
 						foreach f head pane [
@@ -942,6 +953,8 @@ view: function [
 		opts [block!]		"Optional features in [name: value] format"
 	/flags
 		flgs [block! word!]	"One or more window flags"
+	/on
+		face [object! integer!]
 	;/modal					"Display a modal window (pop-up)"
 	/no-wait				"Return immediately - do not wait"
 	/no-sync				"Requires `show` calls to refresh faces"
@@ -955,10 +968,17 @@ view: function [
 	if spec/type <> 'window [cause-error 'script 'not-window []]
 	if options [set/any spec make object! opts]
 	if flags [spec/flags: either spec/flags [unique union to-block spec/flags to-block flgs][flgs]]
+	if integer? face [face: pick system/view/screens face]
 	
 	unless spec/text   [spec/text: "Red: untitled"]
-	unless spec/offset [center-face/with spec get-current-screen]
+	unless spec/offset [
+		center-face/with spec any [
+			all [object? face in face 'type face/type = 'screen face]
+			get-current-screen
+		]
+	]
 	unless show spec [exit]
+	if face [spec/parent: face]
 
 	set/any 'result either no-wait [
 		do-events/no-wait

@@ -1817,10 +1817,12 @@ OS-make-view: func [
 	][
 		parent: as-integer evolve-base-face as handle! parent
 	]
-
-	off-x:	dpi-scale offset/x
-	off-y:	dpi-scale offset/y
-	if sym <> window [
+	either sym = window [
+		off-x:	as-integer offset/x
+		off-y:	as-integer offset/y
+	][
+		off-x:	dpi-scale offset/x
+		off-y:	dpi-scale offset/y
 		rc/right:	dpi-scale sx
 		rc/bottom:	dpi-scale sy
 	]
@@ -2112,8 +2114,13 @@ change-offset: func [
 
 	if TYPE_OF(pos) = TYPE_PAIR [as-point2D as red-pair! pos]
 
-	pos-x: dpi-scale pos/x
-	pos-y: dpi-scale pos/y
+	either type = window [
+		pos-x: as-integer pos/x
+		pos-y: as-integer pos/y
+	][
+		pos-x: dpi-scale pos/x
+		pos-y: dpi-scale pos/y
+	]
 	if all [					;-- caret widget
 		layer?
 		type = base

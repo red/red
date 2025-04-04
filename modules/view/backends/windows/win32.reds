@@ -277,20 +277,17 @@ Red/System [
 #define SIZE_MAXIMIZED		2
 
 #define WM_CREATE			0001h
-#define WM_NCCREATE			0081h
-#define WM_NCDESTROY		0082h
-#define WM_NCHITTEST		0084h
 #define WM_DESTROY			0002h
 #define WM_MOVE				0003h
 #define WM_SIZE				0005h
 #define WM_ACTIVATE			0006h
 #define WM_SETFOCUS			0007h
 #define WM_KILLFOCUS		0008h
-#define WM_CLOSE			0010h
 #define WM_SETTEXT			000Ch
 #define WM_GETTEXT			000Dh
 #define WM_GETTEXTLENGTH	000Eh
 #define WM_PAINT			000Fh
+#define WM_CLOSE			0010h
 #define WM_ERASEBKGND		0014h
 #define WM_CTLCOLOR			0019h
 #define WM_SETTINGCHANGE	001Ah
@@ -303,6 +300,9 @@ Red/System [
 #define WM_NOTIFY			004Eh
 #define WM_CONTEXTMENU		007Bh
 #define WM_DISPLAYCHANGE	007Eh
+#define WM_NCCREATE			0081h
+#define WM_NCDESTROY		0082h
+#define WM_NCHITTEST		0084h
 #define WM_KEYDOWN			0100h
 #define WM_KEYUP			0101h
 #define WM_CHAR				0102h

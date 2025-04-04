@@ -1310,6 +1310,10 @@ WndProc: func [
 			if type = window [
 				if null? current-msg [init-current-msg]
 				if wParam <> SIZE_MINIMIZED [
+					;if msg = WM_SIZE [
+						update-dpi-factor hWnd
+?? dpi-factor
+					;]
 					miniz?: no
 					type: either msg = WM_MOVE [
 						if all [						;@@ MINIMIZED window, @@ find a better way to detect it
@@ -1340,8 +1344,13 @@ WndProc: func [
 
 					offset: as red-point2D! values + type
 					offset/header: TYPE_POINT2D
-					offset/x: dpi-unscale as float32! xx
-					offset/y: dpi-unscale as float32! yy
+					either msg = WM_SIZE [
+						offset/x: dpi-unscale as float32! xx
+						offset/y: dpi-unscale as float32! yy
+					][
+						offset/x: as float32! xx
+						offset/y: as float32! yy
+					]
 					if all [
 						type = FACE_OBJ_SIZE
 						SIZE_FACET_PAIR?(hwnd)
