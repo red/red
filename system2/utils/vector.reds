@@ -41,6 +41,18 @@ vector: context [
 		vec
 	]
 
+	copy: func [
+		vec			[vector!]
+		return:		[vector!]
+		/local
+			v		[vector!]
+	][
+		v: make vec/obj-sz vec/capacity
+		v/length: vec/length
+		copy-memory v/data vec/data vec/length * vec/obj-sz
+		v
+	]
+
 	clear: func [
 		vec		[vector!]
 	][

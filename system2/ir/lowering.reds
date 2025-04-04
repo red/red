@@ -727,5 +727,7 @@ lowering: context [
 			gen-phi as instr! l/head env
 			l: l/tail
 		]
+
+		ssa-optimizer/run :cur-ctx
 	]
 ]
