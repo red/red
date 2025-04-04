@@ -114,6 +114,7 @@ struct-field!: alias struct! [
 struct-type!: alias struct! [
 	TYPE_HEADER
 	op-table	[fn-type!]
+	id			[integer!]
 	size		[integer!]		;-- size of the struct in bytes
 	n-fields	[integer!]		;-- number of fields
 	fields		[struct-field!]	;-- array of struct-field!
@@ -356,6 +357,27 @@ type-size?: func [
 	]
 ]
 
+type-id?: func [
+	t		[rst-type!]
+	return: [integer!]
+	/local
+		st	[struct-type!]
+][
+	switch TYPE_KIND(t) [
+		RST_TYPE_LOGIC [1]
+		RST_TYPE_INT RST_TYPE_ENUM [2]
+		RST_TYPE_BYTE [3]
+		RST_TYPE_FLOAT [either FLOAT_64?(t) [5][4]]
+		RST_TYPE_ARRAY [6]
+		RST_TYPE_PTR RST_TYPE_NULL [8]
+		RST_TYPE_STRUCT [
+			st: as struct-type! t
+			st/id
+		]
+		default [0]
+	]
+]
+
 type-name: func [
 	t		[rst-type!]
 	return: [c-string!]
@@ -414,6 +436,8 @@ k_subroutine!:	symbol/make "subroutine!"
 k_value:		symbol/make "value"
 
 type-system: context [
+	struct-uid:		1001
+
 	integer-type:	as rst-type! 0
 	byte-type:		as rst-type! 0
 	float-type:		as rst-type! 0
@@ -455,6 +479,12 @@ type-system: context [
 		int-ptr-type: make-ptr-type integer-type
 		byte-ptr-type: make-ptr-type byte-type
 		target/int-type: get-int-type target/int-width true
+	]
+
+	make-uid: func [return: [integer!] /local uid [integer!]][
+		uid: struct-uid
+		struct-uid: uid + 1
+		uid
 	]
 
 	make-cache: func [

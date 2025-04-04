@@ -39,6 +39,7 @@ visitor!: alias struct! [
 	VISITOR_FUNC(visit-catch)
 	VISITOR_FUNC(visit-assert)
 	VISITOR_FUNC(visit-context)
+	VISITOR_FUNC(visit-sys-alias)
 ]
 
 #define ACCEPT_FN_SPEC [self [int-ptr!] v [visitor!] data [int-ptr!] return: [int-ptr!]]
@@ -104,6 +105,7 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	RST_ASSIGN
 	RST_PATH
 	RST_MEMBER
+	RST_SYS_ALIAS
 	RST_EXPR_END		;-- 26 end marker of expr types
 	RST_CONTEXT			;-- 27
 	RST_FUNC			;-- 28
@@ -428,6 +430,11 @@ bin-op!: alias struct! [
 	spec		[fn-type!]
 	left		[rst-expr!]
 	right		[rst-expr!]
+]
+
+sys-alias!: alias struct! [
+	RST_EXPR_FIELDS(sys-alias!)
+	alias-type	[rst-type!]
 ]
 
 literal!: alias struct! [
@@ -906,6 +913,23 @@ parser: context [
 			throw-error [pc "undefined symbol:" pc]
 			null
 		]
+	]
+
+	make-sys-alias: func [
+		pc		[cell!]
+		return: [sys-alias!]
+		/local
+			e	[sys-alias!]
+	][
+		rst-sys-alias_accept: func [ACCEPT_FN_SPEC][
+			v/visit-sys-alias self data
+		]
+		e: xmalloc(sys-alias!)
+		SET_NODE_TYPE(e RST_SYS_ALIAS)
+		e/token: pc
+		e/accept: :rst-sys-alias_accept
+		e/type: type-system/integer-type
+		e
 	]
 
 	make-lit-array: func [
@@ -2174,8 +2198,8 @@ parser: context [
 				0
 			]
 			sym = k_alias [
-				pc: null
-				0
+				check-pc
+				make-sys-alias val
 			]
 			sym = k_pc [
 				make-native-call pc system-pc null

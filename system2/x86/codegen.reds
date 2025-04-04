@@ -1271,7 +1271,6 @@ x86: context [
 			p	[ptr-ptr!]
 			e	[df-edge!]
 			t	[rst-type!]
-			id	[integer!]
 			op	[integer!]
 			val [red-integer!]
 			slot [integer!]
@@ -1286,19 +1285,9 @@ x86: context [
 		p: ARRAY_DATA(i/inputs)
 		loop i/inputs/length [
 			t: as rst-type! types/value
-			id: switch TYPE_KIND(t) [
-				RST_TYPE_LOGIC [1]
-				RST_TYPE_INT RST_TYPE_ENUM [2]
-				RST_TYPE_BYTE [3]
-				RST_TYPE_FLOAT [either FLOAT_64?(t) [5][4]]
-				RST_TYPE_ARRAY [6]
-				RST_TYPE_PTR RST_TYPE_NULL [8]
-				RST_TYPE_STRUCT [1000]
-				default [0]
-			]
 			val: xmalloc(red-integer!)
 			val/header: TYPE_INTEGER
-			val/value: id
+			val/value: type-id? t
 			use-reg-fixed cg as instr! ir-graph/const-int val cg/fn slot
 
 			e: as df-edge! p/value

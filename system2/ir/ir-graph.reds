@@ -476,6 +476,7 @@ ir-graph: context [
 		builder/visit-catch:		as visit-fn! :visit-catch
 		builder/visit-assert:		as visit-fn! :visit-assert
 		builder/visit-context:		as visit-fn! :visit-context
+		builder/visit-sys-alias:	as visit-fn! :visit-sys-alias
 	]
 
 	visit-assign: func [
@@ -982,6 +983,16 @@ ir-graph: context [
 	visit-assert: func [r [case!] ctx [ssa-ctx!] return: [instr!]
 	][
 		null
+	]
+
+	visit-sys-alias: func [e [sys-alias!] ctx [ssa-ctx!] return: [instr!]
+		/local int [red-integer!]
+	][
+		int: as red-integer! e/token
+		int/header: TYPE_INTEGER
+		int/value: type-id? e/alias-type
+		probe ["id: " int/value]
+		as instr! const-val e/type as cell! int ctx/graph
 	]
 
 	visit-context: func [c [context!] ctx [ssa-ctx!] return: [instr!]

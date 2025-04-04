@@ -97,6 +97,7 @@ parse-struct: func [
 	p: as struct-field! malloc n * size? struct-field!
 	st: xmalloc(struct-type!)
 	SET_TYPE_KIND(st RST_TYPE_STRUCT)
+	st/id: 1000
 	st/size: -1
 	st/n-fields: n
 	st/fields: p
@@ -160,6 +161,7 @@ type-checker: context [
 		checker/visit-catch:		as visit-fn! :visit-catch
 		checker/visit-assert:		as visit-fn! :visit-assert
 		checker/visit-context:		as visit-fn! :visit-context
+		checker/visit-sys-alias:	as visit-fn! :visit-sys-alias
 	]
 
 	infer-type: func [
@@ -603,6 +605,16 @@ type-checker: context [
 		type-system/void-type
 	]
 
+	visit-sys-alias: func [e [sys-alias!] ctx [context!] return: [rst-type!]][
+		switch NODE_TYPE(e) [
+			RST_SYS_ALIAS [
+				e/alias-type: resolve-type e/token e/token ctx
+				e/type
+			]
+			default [type-system/void-type]
+		]
+	]
+
 	visit-context: func [c [context!] ctx [context!] return: [rst-type!]][
 		check c
 		type-system/void-type
@@ -966,6 +978,8 @@ type-checker: context [
 			n		[integer!]
 			kv		[int-ptr!]
 			t		[unresolved-type!]
+			ty		[rst-type!]
+			st		[struct-type!]
 	][
 		types: ctx/typecache
 		n: hashmap/size? types
@@ -975,7 +989,12 @@ type-checker: context [
 			t: as unresolved-type! kv/2
 			if TYPE_KIND(t) = RST_TYPE_UNRESOLVED [
 				SET_TYPE_KIND(t RST_TYPE_RESOLVING)
-				kv/2: as-integer resolve-typeref t/typeref ctx
+				ty: resolve-typeref t/typeref ctx
+				if TYPE_KIND(ty) = RST_TYPE_STRUCT [
+					st: as struct-type! ty
+					st/id: type-system/make-uid
+				]
+				kv/2: as-integer ty
 			]
 		]
 	]

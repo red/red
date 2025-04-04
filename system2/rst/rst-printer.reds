@@ -35,6 +35,7 @@ rst-printer: context [
 		printer/visit-native-call:	as visit-fn! :visit-native-call
 		printer/visit-assert:		as visit-fn! :visit-assert
 		printer/visit-context:		as visit-fn! :visit-context
+		printer/visit-sys-alias:	as visit-fn! :visit-sys-alias
 	]
 
 	prin-block: func [blk [red-block!]][
@@ -207,6 +208,10 @@ rst-printer: context [
 
 	visit-assert: func [r [rst-stmt!] i [integer!]][
 		0
+	]
+
+	visit-sys-alias: func [e [rst-expr!] i [integer!]][
+		do-i i prin "system/alias/" prin-token e/token
 	]
 
 	visit-context: func [ctx [context!] i [integer!]][
