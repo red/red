@@ -48,9 +48,9 @@ actions: context [
 	][
 		type:  TYPE_OF(value)
 		idx: index
-		index: type << 8 + action
-		index: action-table/index						;-- lookup action function pointer
-		if zero? index [
+		idx: type << 8 + action
+		idx: action-table/idx							;-- lookup action function pointer
+		if zero? idx [
 			either null? path [							;-- compiled path
 				fire [
 					TO_ERROR(script bad-path-type2)
@@ -59,7 +59,7 @@ actions: context [
 				]			
 			][											;-- interpreted path
 				p: block/clone as red-block! path no no
-				block/rs-clear-at p idx + 1
+				block/rs-clear-at p index + 1
 				fire [
 					TO_ERROR(script bad-path-type)
 					p
@@ -68,7 +68,7 @@ actions: context [
 				]
 			]
 		]
-		index
+		idx
 	]
 	
 	get-action-ptr-from: func [
