@@ -2268,7 +2268,6 @@ parser: context [
 			t		[rst-type!]
 			p		[path!]
 			ptr		[ptr-type!]
-			arr		[array-type!]
 			int		[red-integer!]
 			get? 	[logic!]
 			set?	[logic!]

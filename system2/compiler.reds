@@ -14,7 +14,7 @@ compiler: context [
 	#include %utils/array.reds
 	#include %utils/bit-table.reds
 
-	verbose: 0
+	verbose: 3
 
 	#enum arch-id! [
 		arch-x86
@@ -222,6 +222,8 @@ compiler: context [
 
 	data-section: context [
 		buf: as vector! 0
+		tmp-buf: as vector! 0
+
 		code-to-data: as int-ptr! 0		;-- hashmap
 		data-to-data: as int-ptr! 0		;-- hashmap
 
@@ -257,6 +259,115 @@ compiler: context [
 			record-reloc-pos data-to-data idx - 4 idx
 		]
 
+		store-c-string: func [
+			str			[red-string!]
+			buffer		[vector!]
+			return:		[integer!]
+			/local
+				len		[integer!]
+				p		[byte-ptr!]
+		][
+			len: -1
+			p: as byte-ptr! unicode/to-utf8 str :len
+			either len >= 0 [
+				len: len + 1	;-- include null-byte
+				loop len [
+					put-b buffer as integer! p/value
+					p: p + 1
+				]
+				len
+			][
+				put-b buffer as integer! null-byte
+				1
+			]
+		]
+
+		store-lit-array: func [
+			blk		[red-block!]
+			arr		[array-type!]
+			/local
+				vt	[rst-type!]
+				s	[series!]
+				v	[cell!]
+				end [cell!]
+				int [red-integer!]
+				c	[red-char!]
+				f	[red-float!]
+				w	[red-word!]
+				pp	[int-ptr!]
+				n sz offset idx sym [integer!]
+				any? wide? [logic!]
+		][
+			vt: arr/type
+			any?: either TYPE_KIND(vt) = RST_TYPE_ANY [
+				wide?: either ARRAY_FLOAT?(arr) [yes][no]
+				yes
+			][
+				wide?: no
+				no
+			]
+
+			sz: either ARRAY_STR?(arr) [
+				n: block/rs-length? blk
+				either wide? [n * size? float!][n * size? byte-ptr!]
+			][0]
+
+			offset: sz + pos
+			s: GET_BUFFER(blk)
+			v: s/offset + blk/head
+			end: s/tail
+			while [v < end][
+				switch TYPE_OF(v) [
+					TYPE_INTEGER	[
+						int: as red-integer! v
+						emit-d int/value
+						if wide? [emit-d 0]
+					]
+					TYPE_CHAR		[
+						c: as red-char! v
+						either any? [
+							emit-d c/value
+							if wide? [emit-d 0]
+						][
+							emit-b c/value
+						]
+					]
+					TYPE_STRING		[
+						record-reloc-pos data-to-data pos offset
+						emit-d 0
+						offset: offset + store-c-string as red-string! v tmp-buf
+					]
+					TYPE_FLOAT		[
+						f: as red-float! v
+						pp: :f/value
+						emit-d pp/1
+						emit-d pp/2
+					]
+					TYPE_WORD		[
+						w: as red-word! v
+						sym: symbol/resolve w/symbol
+						n: case [
+							sym = parser/k_true [1]
+							sym = parser/k_false [0]
+							true [0]
+						]
+						either any? [
+							emit-d n
+							if wide? [emit-d 0]
+						][
+							emit-b n
+						]
+					]
+					default [0]
+				]
+				v: v + 1
+			]
+			if sz > 0 [
+				vector/append-v buf tmp-buf
+				vector/clear tmp-buf
+			]
+		]
+
 		store-literal: func [
 			val		[rst-expr!]
 			return: [logic!]
@@ -267,8 +378,6 @@ compiler: context [
 				arr [array-literal!]
 				v	[cell!]
 				len	[integer!]
-				idx [integer!]
-				p	[byte-ptr!]
 				pp	[int-ptr!]
 				f	[float-literal!]
 		][
@@ -299,21 +408,11 @@ compiler: context [
 					v: arr/token
 					switch TYPE_OF(v) [
 						TYPE_STRING [
-							len: -1
-							p: as byte-ptr! unicode/to-utf8 as red-string! v :len
-							either len >= 0 [
-								len: len + 1	;-- include null-byte
-								arr/length: len
-								loop len [
-									emit-b as integer! p/value
-									p: p + 1
-								]
-							][
-								emit-b as integer! null-byte
-							]
+							len: store-c-string as red-string! v buf
+							arr/length: len - 1
 						]
 						TYPE_BLOCK [
-							0
+							store-lit-array as red-block! v as array-type! arr/type
 						]
 					]
 				]
@@ -802,6 +901,7 @@ compiler: context [
 		program/data-buf: vector/make 1 4096
 
 		data-section/buf: program/data-buf
+		data-section/tmp-buf: vector/make 1 1024
 		data-section/code-to-data: hashmap/make 200
 		data-section/data-to-data: hashmap/make 200
 	]

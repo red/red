@@ -107,6 +107,16 @@ vector: context [
 		as int-ptr! (vec/data + (length - 1 * vec/obj-sz))
 	]
 
+	append-v: func [
+		vec		[vector!]
+		v		[vector!]
+		/local
+			p	[byte-ptr!]
+	][
+		p: acquire vec v/length
+		copy-memory p v/data v/length * v/obj-sz
+	]
+
 	append-ptr: func [
 		vec		[vector!]
 		ptr		[byte-ptr!]

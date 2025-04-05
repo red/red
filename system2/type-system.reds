@@ -90,7 +90,7 @@ logic-type!: alias struct! [
 ;-- /header bits: 8 - 11: pointer size in byte
 ptr-type!: alias struct! [
 	TYPE_HEADER
-	op-table	[fn-type!]			;-- cache of ptr operators
+	op-table	[fn-type!]		;-- cache of ptr operators
 	type		[rst-type!]
 ]
 
@@ -134,6 +134,13 @@ fn-type!: alias struct! [
 	param-types [ptr-ptr!]
 	ret-type	[rst-type!]
 ]
+
+#define FLAG_ARRAY_FLOAT	0100h	;-- array contains float
+#define FLAG_ARRAY_STR		0200h	;-- array contains string
+#define SET_ARRAY_FLOAT(t)	[t/header: t/header or FLAG_ARRAY_FLOAT]
+#define SET_ARRAY_STR(t)	[t/header: t/header or FLAG_ARRAY_STR]
+#define ARRAY_FLOAT?(t) [t/header and FLAG_ARRAY_FLOAT <> 0]
+#define ARRAY_STR?(t) [t/header and FLAG_ARRAY_STR <> 0]
 
 make-type: func [
 	id		[integer!]
@@ -262,6 +269,34 @@ make-array-type: func [
 	as rst-type! a
 ]
 
+make-struct-type: func [
+	n		[integer!]
+	return: [struct-type!]
+	/local
+		st	[struct-type!]
+		p	[struct-field!]
+][
+	p: as struct-field! malloc n * size? struct-field!
+	st: xmalloc(struct-type!)
+	SET_TYPE_KIND(st RST_TYPE_STRUCT)
+	st/id: 1000
+	st/size: -1
+	st/n-fields: n
+	st/fields: p
+	st
+]
+
+copy-struct-type: func [
+	t		[struct-type!]
+	return: [struct-type!]
+	/local
+		st	[struct-type!]
+][
+	st: xmalloc(struct-type!)
+	copy-memory as byte-ptr! st as byte-ptr! t size? struct-type!
+	st
+]
+
 #define INT_TYPE?(type)		[(type/header and FFh) = RST_TYPE_INT]
 #define FLOAT_TYPE?(type)	[(type/header and FFh) = RST_TYPE_FLOAT]
 
@@ -353,7 +388,7 @@ type-size?: func [
 				target/addr-size
 			]
 		]
-		default [0]	
+		default [target/addr-size]	
 	]
 ]
 
@@ -505,9 +540,64 @@ type-system: context [
 	lit-array-type?: func [
 		val		[cell!]
 		return: [rst-type!]
+		/local
+			len	[integer!]
+			blk [red-block!]
+			s	[series!]
+			v	[cell!]
+			end [cell!]
+			w	[red-word!]
+			sym [integer!]
+			float?	[logic!]
+			str?	[logic!]
+			t vtype [rst-type!]
 	][
 		either T_BLOCK?(val) [
-			null
+			blk: as red-block! val
+			len: red/block/rs-length? blk
+			s: GET_BUFFER(blk)
+			v: s/offset + blk/head
+			end: s/tail
+			vtype: null
+			float?: no
+			str?: no
+			while [v < end][
+				t: switch TYPE_OF(v) [
+					TYPE_INTEGER	[integer-type]
+					TYPE_CHAR		[byte-type]
+					TYPE_STRING		[str?: yes cstr-type]
+					TYPE_FLOAT		[float?: yes float-type]
+					TYPE_WORD		[
+						w: as red-word! v
+						sym: symbol/resolve w/symbol
+						either any [
+							sym = parser/k_true
+							sym = parser/k_false
+						][
+							logic-type
+						][
+							throw-error [val "invalid word"]
+							void-type
+						]
+					]
+					default [
+						throw-error [val "invalid value"]
+						void-type
+					]
+				]
+				either null? vtype [vtype: t][
+					if vtype <> t [
+						vtype: any-type
+						break
+					]
+				]
+				v: v + 1
+			]
+			if null? vtype [vtype: integer-type]
+			t: make-array-type len vtype
+			if float? [SET_ARRAY_FLOAT(t)]
+			if str? [SET_ARRAY_STR(t)]
+			t
 		][
 			cstr-type
 		]

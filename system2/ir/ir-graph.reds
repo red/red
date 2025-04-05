@@ -2088,6 +2088,7 @@ ir-graph: context [
 			args	[array-2! value]
 			idx		[instr!]
 			int		[red-integer!]
+			arr		[array-type!]
 	][
 		switch TYPE_KIND(type) [
 			RST_TYPE_STRUCT [
@@ -2107,9 +2108,10 @@ ir-graph: context [
 				op/target: as int-ptr! m
 
 				idx: either m/expr <> null [gen-expr m/expr ctx][
+					arr: as array-type! type
 					int: as red-integer! m/token
 					int/header: TYPE_INTEGER
-					int/value: m/index
+					int/value: m/index * type-size? arr/type yes
 					as instr! const-int int ctx/graph
 				]
 				INIT_ARRAY_2(args obj idx)

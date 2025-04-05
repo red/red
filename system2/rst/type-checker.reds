@@ -94,13 +94,8 @@ parse-struct: func [
 	if zero? n [throw-error [spec "empty struct"]]
 
 	enter-block(spec)
-	p: as struct-field! malloc n * size? struct-field!
-	st: xmalloc(struct-type!)
-	SET_TYPE_KIND(st RST_TYPE_STRUCT)
-	st/id: 1000
-	st/size: -1
-	st/n-fields: n
-	st/fields: p
+	st: make-struct-type n
+	p: st/fields
 
 	while [val < end][
 		either T_WORD?(val) [
@@ -278,7 +273,10 @@ type-checker: context [
 		t: as rst-type! val/value
 		if all [pc < end TYPE_KIND(t) = RST_TYPE_STRUCT][
 			w: as red-word! pc
-			if k_value = symbol/resolve w/symbol [SET_STRUCT_VALUE(t)]
+			if k_value = symbol/resolve w/symbol [
+				t: as rst-type! copy-struct-type as struct-type! t
+				SET_STRUCT_VALUE(t)
+			]
 		]
 		t
 	]
@@ -706,6 +704,7 @@ type-checker: context [
 		][
 			as rst-type! u/expr/accept as int-ptr! u/expr checker as int-ptr! ctx
 		]
+		u/type: type-system/integer-type
 		type-system/integer-type
 	]
 
