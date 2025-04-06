@@ -717,6 +717,7 @@ type-system: context [
 			RST_TYPE_NULL [
 				if TYPE_KIND(y) >= RST_TYPE_FUNC [return conv_same]
 			]
+			RST_TYPE_ANY [return conv_same]
 			default [
 				if TYPE_KIND(y) >= RST_TYPE_FUNC [return conv_same]
 			]
@@ -754,6 +755,9 @@ type-system: context [
 				conv_ok
 			]
 			RST_TYPE_FLOAT [
+				conv_ok
+			]
+			RST_TYPE_ANY [
 				conv_ok
 			]
 			default [

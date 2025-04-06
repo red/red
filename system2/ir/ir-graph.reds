@@ -873,10 +873,18 @@ ir-graph: context [
 		add-op op as ptr-array! :args ctx
 	]
 
-	visit-size?: func [u [unary!] ctx [ssa-ctx!] return: [instr!] /local int [red-integer!]][
+	visit-size?: func [u [unary!] ctx [ssa-ctx!] return: [instr!]
+		/local int [red-integer!] t [rst-type!] arr [array-type!]
+	][
+		t: u/cast-type
 		int: as red-integer! u/token
 		int/header: TYPE_INTEGER
-		int/value: type-size? u/cast-type yes
+		int/value: either TYPE_KIND(t) = RST_TYPE_ARRAY [
+			arr: as array-type! t
+			arr/length
+		][
+			type-size? t yes
+		]
 		as instr! const-int int ctx/graph
 	]
 
