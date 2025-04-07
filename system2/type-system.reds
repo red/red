@@ -326,18 +326,21 @@ struct-size?: func [
 	/local
 		f	[struct-field!]
 		sz	[integer!]
-		n	[integer!]
+		n m [integer!]
 		ofs [integer!]
 ][
 	sz: 0
+	m: 1
 	f: st/fields
 	loop st/n-fields [
 		n: type-size? f/type no
-		ofs: either n > 1 [align-up sz n][sz]
+		if n > m [m: n]
+		ofs: either all [n > 1 sz > n][align-up sz n][sz]
 		sz: ofs + n
 		f/offset: ofs
 		f: f + 1
 	]
+	sz: align-up sz m
 	st/size: sz
 	sz
 ]
@@ -409,6 +412,7 @@ type-id?: func [
 			st: as struct-type! t
 			st/id
 		]
+		RST_TYPE_ANY [2]
 		default [0]
 	]
 ]

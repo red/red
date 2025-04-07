@@ -282,6 +282,22 @@ compiler: context [
 			]
 		]
 
+		store-binary: func [
+			bin			[red-binary!]
+			return:		[integer!]
+			/local
+				len		[integer!]
+				p		[byte-ptr!]
+		][
+			len: red/binary/rs-length? bin
+			p: red/binary/rs-head bin
+			loop len [
+				emit-b as integer! p/value
+				p: p + 1
+			]
+			len
+		]
+
 		store-lit-array: func [
 			blk		[red-block!]
 			arr		[array-type!]
@@ -335,6 +351,7 @@ compiler: context [
 					TYPE_STRING		[
 						record-reloc-pos data-to-data pos offset
 						emit-d 0
+						if wide? [emit-d 0]
 						offset: offset + store-c-string as red-string! v tmp-buf
 					]
 					TYPE_FLOAT		[
@@ -414,6 +431,10 @@ compiler: context [
 						TYPE_BLOCK [
 							store-lit-array as red-block! v as array-type! arr/type
 						]
+						TYPE_BINARY [
+							arr/length: store-binary as red-binary! v
+						]
+						default [dprint "invalid lit array" halt]
 					]
 				]
 				default [0]

@@ -629,7 +629,7 @@ parser: context [
 		hashmap/put infix-Ops k_dbl_slash	as int-ptr! RST_OP_MOD
 		hashmap/put infix-Ops k_percent		as int-ptr! RST_OP_REM
 		hashmap/put infix-Ops k_star		as int-ptr! RST_OP_MUL
-		hashmap/put infix-Ops k_and			as int-ptr! RST_OP_ADD
+		hashmap/put infix-Ops k_and			as int-ptr! RST_OP_AND
 		hashmap/put infix-Ops k_or			as int-ptr! RST_OP_OR
 		hashmap/put infix-Ops k_xor			as int-ptr! RST_OP_XOR
 
@@ -2492,7 +2492,7 @@ parser: context [
 			TYPE_FLOAT [
 				expr/value: as int-ptr! make-float pc
 			]
-			TYPE_STRING TYPE_BLOCK [
+			TYPE_STRING TYPE_BLOCK TYPE_BINARY [
 				expr/value: as int-ptr! make-lit-array pc
 			]
 			TYPE_GET_WORD [
