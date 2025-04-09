@@ -21,15 +21,15 @@ __cpu!: alias struct! [
 	edx     [integer!]
 ]
 
-system: declare struct! [							;-- trimmed down temporary system definition
-	stack		[__stack!]							;-- stack virtual access
-	cpu         [__cpu!]                            ;-- cpu virtual access
+system: declare struct! [								;-- trimmed down temporary system definition
+	stack		[__stack!]								;-- stack virtual access
+	cpu			[__cpu!]								;-- cpu virtual access
 ]
 
 
 #case [
-	OS = 'Windows []										;-- nothing to do, initialization occurs in DLL init entry point
-	OS = 'macOS   []										;-- nothing to do @@
+	OS = 'Windows []									;-- nothing to do, initialization occurs in DLL init entry point
+	OS = 'macOS   []									;-- nothing to do @@
 	any [OS = 'FreeBSD OS = 'NetBSD] [
 		#import [ LIBC-file cdecl [
 			***__atexit: "atexit" [fun [pointer! [byte!]]]
@@ -105,7 +105,7 @@ system: declare struct! [							;-- trimmed down temporary system definition
 
 		;; Finally, call into libc's startup routine.
 		***__stack_end: system/stack/top
-		libc-start :***_start ***__argv ***__envp null null ***__stack_end		
+		libc-start :***_start ***__argv ***__envp null null ***__stack_end
 	]
 	
 	OS = 'Android [
@@ -140,7 +140,7 @@ system: declare struct! [							;-- trimmed down temporary system definition
 		libc-init ***__argv - 1 null :***_start ***__argv - 16
 	]
 	
-	true [										;-- for SVR4 fully conforming UNIX platforms
+	true [												;-- for SVR4 fully conforming UNIX platforms
 		#either config-name = 'pico [
 			#define LIBC-START-NAME "__uClibc_main"
 		][
