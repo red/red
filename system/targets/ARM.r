@@ -3142,7 +3142,7 @@ make-profilable make target-class [
 
 	emit-epilog: func [
 		name [word! path!] locals [block!] args-size [integer!] locals-size [integer!]
-		/with slots [integer! none!]
+		/with slots [integer! none!] /closing
 		/local fspec attribs cb? flags hf? ret-ptr?
 	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
