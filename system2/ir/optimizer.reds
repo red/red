@@ -384,7 +384,7 @@ ssa-optimizer: context [
 								]
 							][
 								either preds/length = 1 [copy-block-state opt/state][
-									xmalloc(block-state!)
+									make-block-state
 								]
 							]
 							s: as state! vector/new-item queue

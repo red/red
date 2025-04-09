@@ -673,14 +673,12 @@ ir-graph: context [
 		body-ctx/loop-end: :m-end
 
 		cond: gen-stmts w/body :body-ctx
-		if body-ctx/closed? [return null]	;-- return or exit in condition block
-
-		split-ssa-ctx :body-ctx :f-ctx
-		add-if cond m-end/block f-ctx/block :body-ctx
-
-		merge-incoming :m-end :body-ctx		;-- merge body-ctx into m-end
-		merge-ctx :m-start :f-ctx
-
+		unless body-ctx/closed? [
+			split-ssa-ctx :body-ctx :f-ctx
+			add-if cond m-end/block f-ctx/block :body-ctx
+			merge-incoming :m-end :body-ctx
+			merge-ctx :m-start :f-ctx
+		]
 		set-ssa-ctx :m-end ctx
 		null
 	]
@@ -999,7 +997,6 @@ ir-graph: context [
 		int: as red-integer! e/token
 		int/header: TYPE_INTEGER
 		int/value: type-id? e/alias-type
-		probe ["id: " int/value]
 		as instr! const-val e/type as cell! int ctx/graph
 	]
 
@@ -1211,7 +1208,7 @@ ir-graph: context [
 		ctx		[ssa-ctx!]
 		return: [ssa-ctx!]
 	][
-		init-ssa-ctx ctx p-ctx p-ctx/cur-vals/length make-bb
+		init-ssa-ctx ctx p-ctx 0 make-bb
 	]
 
 	merge-incoming: func [
@@ -1441,7 +1438,7 @@ ir-graph: context [
 		/local
 			i	[instr!]
 	][
-		while [stmt <> null][
+		while [all [stmt <> null not ctx/closed?]][
 			i: as instr! stmt/accept as int-ptr! stmt builder as int-ptr! ctx
 			stmt: stmt/next
 		]
@@ -1454,16 +1451,15 @@ ir-graph: context [
 		return: [instr!]
 		/local
 			i	[instr!]
-			cast [rst-type!]
-			
+			cast [rst-type!]			
 	][
-		unless ctx/closed? [
+		either ctx/closed? [as instr! nop ctx/graph][
 			i: as instr! e/accept as int-ptr! e builder as int-ptr! ctx
 			if e/cast-type <> null [
 				do-cast e/cast-type e/type i
 			]
+			i
 		]
-		i
 	]
 
 	get-cur-val: func [
@@ -2261,7 +2257,7 @@ ir-graph: context [
 		stmt: ctx/stmts
 		while [
 			stmt: stmt/next
-			stmt <> null
+			all [stmt <> null not ssa-ctx/closed?]
 		][
 			;rst-printer/print-stmt stmt
 			stmt/accept as int-ptr! stmt builder as int-ptr! :ssa-ctx
