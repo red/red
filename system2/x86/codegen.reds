@@ -24,7 +24,7 @@ Red/System [
 #define x86_GPR			17
 #define x86_BYTE		18
 #define x86_EAX_EDX		19
-#define x86_NOT_EDX		20
+#define x86_NOT_EAX_EDX 20
 #define x86_NOT_ECX		21
 #define x86_CLS_GPR		22
 #define x86_CLS_SSE		23
@@ -617,7 +617,7 @@ x86-reg-set: context [
 	a14: [x86_EAX x86_EBX x86_ECX x86_EDX x86_ESI]
 	a15: [x86_EDX x86_ECX x86_EAX x86_EBX]
 	a16: [x86_EAX x86_EDX]
-	a17: [x86_EAX x86_EBX x86_ECX x86_ESI]
+	a17: [x86_EBX x86_ECX x86_ESI]
 	a18: [x86_EAX x86_EBX x86_EDX x86_ESI]
 	a19: [x86_EAX x86_ECX x86_EDX x86_EBX x86_ESI]
 	a20: [x86_XMM0 x86_XMM1 x86_XMM2 x86_XMM3 x86_XMM4 x86_XMM5 x86_XMM6]
@@ -650,27 +650,27 @@ x86-reg-set: context [
 	init: func [/local s [reg-set!] arr [ptr-array!] p pa [ptr-ptr!] pp [int-ptr!]][
 		arr: ptr-array/make x86_REG_ALL + 1
 		p: ARRAY_DATA(arr)
-		ADD_REG_SET(x86_EAX 	a1)	
-		ADD_REG_SET(x86_EBX     a2)
-		ADD_REG_SET(x86_ECX     a3)
-		ADD_REG_SET(x86_EDX     a4)
-		ADD_REG_SET(x86_ESI     a5)
-		ADD_REG_SET(x86_EDI     a6)
-		ADD_REG_SET(x86_XMM0    a7)
-		ADD_REG_SET(x86_XMM1    a8)
-		ADD_REG_SET(x86_XMM2    a9)
-		ADD_REG_SET(x86_XMM3    a10)
-		ADD_REG_SET(x86_XMM4    a11)
-		ADD_REG_SET(x86_XMM5    a12)
-		ADD_REG_SET(x86_XMM6    a13)
-		ADD_REG_SET(x86_GPR     a14)
-		ADD_REG_SET(x86_BYTE     a15)
-		ADD_REG_SET(x86_EAX_EDX  a16)
-		ADD_REG_SET(x86_NOT_EDX  a17)
-		ADD_REG_SET(x86_NOT_ECX  a18)
-		ADD_REG_SET(x86_CLS_GPR  a19)
-		ADD_REG_SET(x86_CLS_SSE  a20)
-		ADD_REG_SET(x86_REG_ALL  a21)
+		ADD_REG_SET(x86_EAX			a1)	
+		ADD_REG_SET(x86_EBX			a2)
+		ADD_REG_SET(x86_ECX			a3)
+		ADD_REG_SET(x86_EDX			a4)
+		ADD_REG_SET(x86_ESI			a5)
+		ADD_REG_SET(x86_EDI			a6)
+		ADD_REG_SET(x86_XMM0		a7)
+		ADD_REG_SET(x86_XMM1		a8)
+		ADD_REG_SET(x86_XMM2		a9)
+		ADD_REG_SET(x86_XMM3		a10)
+		ADD_REG_SET(x86_XMM4		a11)
+		ADD_REG_SET(x86_XMM5		a12)
+		ADD_REG_SET(x86_XMM6		a13)
+		ADD_REG_SET(x86_GPR			a14)
+		ADD_REG_SET(x86_BYTE		a15)
+		ADD_REG_SET(x86_EAX_EDX		a16)
+		ADD_REG_SET(x86_NOT_EAX_EDX	a17)
+		ADD_REG_SET(x86_NOT_ECX		a18)
+		ADD_REG_SET(x86_CLS_GPR		a19)
+		ADD_REG_SET(x86_CLS_SSE		a20)
+		ADD_REG_SET(x86_REG_ALL		a21)
 
         pa: p + x86_SCRATCH
         pa/value: as int-ptr! empty-array
@@ -1254,7 +1254,7 @@ x86: context [
 		kill cg reg
 		use-reg-fixed cg x x86_EAX
 		use-vreg cg ext x86_EDX
-		reg: either target/arch = arch-x86 [x86_NOT_EDX][x64_NOT_RAX_RDX]
+		reg: either target/arch = arch-x86 [x86_NOT_EAX_EDX][x64_NOT_RAX_RDX]
 		use-reg-fixed cg input1 i reg
 		opcode: either INT_SIGNED?(t) [
 			either kind = div_modulo [I_IMODD][I_IDIVD]
@@ -1669,7 +1669,7 @@ x86: context [
 			overwrite-reg cg i input0 i
 			emit-instr cg I_NOTD or AM_OP
 		][
-			c: x86-cond/pair-neg emit-cmp cg i
+			c: emit-cmp cg i
 			emit-setc cg c get-vreg cg i
 		]
 	]
@@ -2018,7 +2018,7 @@ x86: context [
 	][
 		;ir-printer/print-instr i print lf
 		switch INSTR_OPCODE(i) [
-			OP_BOOL_NOT [emit-not cg i]
+			OP_BOOL_NOT			[emit-not cg i]
 			OP_BOOL_EQ
 			OP_INT_EQ
 			OP_INT_NE
