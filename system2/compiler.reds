@@ -220,6 +220,9 @@ compiler: context [
 	#include %rst/op-cache.reds
 	#include %rst/type-checker.reds
 
+	w-length?:	 as cell! 0
+	func-length: as fn! 0
+
 	data-section: context [
 		buf: as vector! 0
 		tmp-buf: as vector! 0
@@ -372,7 +375,7 @@ compiler: context [
 							emit-d n
 							if wide? [emit-d 0]
 						][
-							emit-b n
+							emit-d n
 						]
 					]
 					default [0]
@@ -404,7 +407,7 @@ compiler: context [
 			switch ty [
 				RST_LOGIC	[
 					b: as logic-literal! val
-					emit-b as integer! b/value
+					emit-d as integer! b/value
 				]
 				RST_INT RST_BYTE [
 					int: as int-literal! val
@@ -425,8 +428,7 @@ compiler: context [
 					v: arr/token
 					switch TYPE_OF(v) [
 						TYPE_STRING [
-							len: store-c-string as red-string! v buf
-							arr/length: len - 1
+							arr/length: store-c-string as red-string! v buf
 						]
 						TYPE_BLOCK [
 							store-lit-array as red-block! v as array-type! arr/type
@@ -608,6 +610,10 @@ compiler: context [
 		p/x
 	]
 
+	red-type: func [id [integer!] return: [red-datatype!]][
+		red/datatype/push id
+	]
+
 	throw-error: func [
 		[typed] count [integer!] list [typed-value!]
 		/local
@@ -666,6 +672,10 @@ compiler: context [
 		src-blk: src
 		dprint "^/^/=> Parsing"
 		ctx: parser/parse-context fn/token src parent f-ctx
+		if null? parent [
+			func-length: as fn! parser/find-word as red-word! w-length? ctx RST_FUNC
+			assert func-length <> null
+		]
 
 		dprint "=> Type checking"
 		type-checker/check ctx
@@ -1068,6 +1078,7 @@ compiler: context [
 	init: func [job [red-object!]][
 		_mempool: mempool/make
 		empty-array: ptr-array/make 0
+		w-length?: as cell! word/load "length?"
 
 		init-target job
 		common-literals/init

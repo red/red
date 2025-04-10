@@ -67,10 +67,17 @@ parse-type: func [
 	return: [rst-type!]
 	/local
 		t	[rst-type!]
+		val end [cell!]
 		saved-blk [red-block!]
 ][
 	enter-block(blk)
-	t: type-checker/resolve-type block/rs-head blk block/rs-tail blk ctx
+	val: block/rs-head blk
+	end: block/rs-tail blk
+	t: either val < end [
+		type-checker/resolve-type val end ctx
+	][
+		type-system/void-type
+	]
 	exit-block
 	t
 ]
@@ -90,8 +97,8 @@ parse-struct: func [
 ][
 	val: block/rs-head spec
 	end: block/rs-tail spec
-	n: (as-integer end - val) >> 5
-	if zero? n [throw-error [spec "empty struct"]]
+	n: (as-integer end - val) >> 5	;-- (block/length? spec) / 2
+	if zero? n [return as rst-type! make-struct-type 0]
 
 	enter-block(spec)
 	st: make-struct-type n
@@ -466,6 +473,9 @@ type-checker: context [
 	][
 		var: a/target
 		ltype: check-write var ctx
+		if all [TYPE_KIND(ltype) = RST_TYPE_ARRAY ltype <> type-system/cstr-type][
+			throw-error [a/token "a literal array pointer cannot be reassigned"]
+		]
 		check-expr "Assignment:" a/expr ltype ctx
 		ltype
 	]
@@ -698,11 +708,35 @@ type-checker: context [
 		t
 	]
 
-	visit-size?: func [u [unary!] ctx [context!] return: [rst-type!]][
+	visit-size?: func [
+		u [unary!] ctx [context!] return: [rst-type!]
+		/local t [rst-type!] a b [rst-expr!] c [bin-op!] arr [array-type!] u2 [unary!] int [red-integer!]
+	][
 		u/cast-type: either NODE_FLAGS(u) and RST_SIZE_TYPE <> 0 [
 			resolve-typeref as cell! u/expr ctx
 		][
-			as rst-type! u/expr/accept as int-ptr! u/expr checker as int-ptr! ctx
+			t: as rst-type! u/expr/accept as int-ptr! u/expr checker as int-ptr! ctx
+			if TYPE_KIND(t) = RST_TYPE_ARRAY [			;-- literal array
+				u2: u/next
+				either t = type-system/cstr-type [		;-- convert `size? str` to `1 + length? str`
+					a: as rst-expr! parser/make-int common-literals/int-one
+					b: as rst-expr! parser/make-fn-call w-length? func-length parser/make-args 1 u/expr
+					c: parser/make-bin-op as int-ptr! RST_OP_ADD a b u/token
+					ADD_NODE_FLAGS(c RST_INFIX_OP)
+					visit-bin-op c ctx
+					copy-memory as byte-ptr! u as byte-ptr! c size? bin-op!	;-- replace unary! with bin-op!
+				][
+					arr: as array-type! t
+					int: as red-integer! u/token
+					int/header: TYPE_INTEGER
+					int/value: arr/length
+					a: as rst-expr! parser/make-int as cell! int
+					copy-memory as byte-ptr! u as byte-ptr! a size? int-literal!
+				]
+				u/next: u2
+				return type-system/integer-type
+			]
+			t
 		]
 		u/type: type-system/integer-type
 		type-system/integer-type

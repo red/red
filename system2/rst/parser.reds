@@ -758,7 +758,7 @@ parser: context [
 		return: [cell!]
 	][
 		if TYPE_OF(pc) <> type [
-			throw-error [pc "Expect type:" type]
+			throw-error [pc "Expect type:" red-type type]
 			halt
 		]
 		pc
@@ -773,7 +773,7 @@ parser: context [
 		pc: pc + 1
 		if pc >= end [throw-error [pc - 1 "EOF: expect more code"]]
 		if TYPE_OF(pc) <> type [
-			throw-error [pc "Expect type:" type]
+			throw-error [pc "Expect type:" red-type type]
 			halt
 		]
 		pc
@@ -1105,6 +1105,19 @@ parser: context [
 		n
 	]
 
+	make-args: func [
+		n		[integer!]
+		args	[rst-expr!]
+		return: [rst-expr!]
+		/local
+			n-args [rst-node!]
+	][
+		n-args: xmalloc(rst-node!)
+		n-args/header: n	;-- store number of args in header
+		n-args/next: as rst-node! args
+		as rst-expr! n-args
+	]
+
 	fetch-args: func [
 		pc		[cell!]
 		end		[cell!]
@@ -1119,7 +1132,6 @@ parser: context [
 			blk	[red-block!]
 			cnt [integer!]
 			i	[integer!]
-			n-args [rst-node!]
 	][
 		pc: advance-next pc end
 		if T_BLOCK?(pc) [
@@ -1156,11 +1168,28 @@ parser: context [
 			i: i + 1
 			pc: advance-next pc end
 		]
-		n-args: xmalloc(rst-node!)
-		n-args/header: n	;-- store number of args in header
-		n-args/next: beg/next
-		args/value: as int-ptr! n-args
+		args/value: as int-ptr! make-args n as rst-expr! beg/next
 		pc
+	]
+
+	make-fn-call: func [
+		name	[cell!]
+		fn		[fn!]
+		args	[rst-expr!]
+		return: [fn-call!]
+		/local
+			fc	[fn-call!]
+	][
+		fc: xmalloc(fn-call!)
+		SET_NODE_TYPE(fc RST_FN_CALL)
+		call_accept: func [ACCEPT_FN_SPEC][
+			v/visit-fn-call self data
+		]
+		fc/accept: :call_accept
+		fc/token: name
+		fc/fn: fn
+		fc/args: args
+		fc
 	]
 
 	parse-call: func [
@@ -1171,20 +1200,13 @@ parser: context [
 		ctx		[context!]
 		return: [cell!]
 		/local
-			fc	[fn-call!]
 			n	[integer!]
 			ft	[fn-type!]
 			p	[path!]
 			pp	[ptr-value!]
+			name [cell!]
 	][
-		fc: as fn-call! malloc size? fn-call!
-		SET_NODE_TYPE(fc RST_FN_CALL)
-		call_accept: func [ACCEPT_FN_SPEC][
-			v/visit-fn-call self data
-		]
-		fc/accept: :call_accept
-		fc/token: pc
-		fc/fn: fn
+		name: pc
 		either NODE_TYPE(fn) = RST_FUNC [
 			ft: as fn-type! fn/type
 		][
@@ -1193,8 +1215,7 @@ parser: context [
 		]
 		n: ft/n-params
 		either n <> 0 [pc: fetch-args pc end :pp ctx n][pp/value: null]
-		fc/args: as rst-expr! pp/value
-		out/value: as int-ptr! fc
+		out/value: as int-ptr! make-fn-call name fn as rst-expr! pp/value
 		pc
 	]
 
@@ -1447,6 +1468,7 @@ parser: context [
 		pc		[cell!]
 		end		[cell!]
 		typeref [ptr-ptr!]
+		sz?		[logic!]		;-- for parse-size?
 		return: [cell!]
 		/local
 			w	[red-word!]
@@ -1461,7 +1483,7 @@ parser: context [
 		blk: xmalloc(red-block!)
 		w: as red-word! pc
 		if TYPE_OF(w) <> TYPE_WORD [
-			throw-error [pc "invalid AS expr, expect a word!"]
+			throw-error [pc "invalid type, expect a word!"]
 		]
 		sym: symbol/resolve w/symbol
 
@@ -1472,8 +1494,18 @@ parser: context [
 		][
 			red/block/make-at blk 2
 			red/block/rs-append blk pc
-			pc: expect-next pc end TYPE_BLOCK
-			red/block/rs-append blk pc
+			either sz? [
+				pc: pc + 1
+				either any [pc = end TYPE_OF(pc) <> TYPE_BLOCK][
+					pc: pc - 1
+					red/block/make-in blk 1		;-- make an empty block for spec
+				][
+					red/block/rs-append blk pc
+				]
+			][
+				pc: expect-next pc end TYPE_BLOCK
+				red/block/rs-append blk pc
+			]
 			blk
 		][
 			pc
@@ -1497,7 +1529,7 @@ parser: context [
 		c/accept: :cast_accept
 
 		pc: advance-next pc end
-		pc: fetch-type pc end :e
+		pc: fetch-type pc end :e no
 		c/typeref: as cell! e/value
 		pc: advance-next pc end
 		w: as red-word! pc
@@ -1526,7 +1558,7 @@ parser: context [
 		d/accept: :declare_accept
 
 		pc: advance-next pc end
-		pc: fetch-type pc end :e
+		pc: fetch-type pc end :e no
 		d/typeref: as cell! e/value
 		expr/value: as int-ptr! d
 		pc
@@ -1571,7 +1603,7 @@ parser: context [
 		]
 
 		pc: advance-next pc + 1 end
-		pc: fetch-type pc end :e
+		pc: fetch-type pc end :e no
 
 		t: xmalloc(unresolved-type!)
 		SET_TYPE_KIND(t RST_TYPE_UNRESOLVED)
@@ -1592,17 +1624,23 @@ parser: context [
 		]
 		err?: ctx/throw-error?
 		ctx/throw-error?: no
-		pc: parse-unary pc end expr ctx
+
+		e: as unary! malloc size? bin-op!
+		SET_NODE_TYPE(e RST_SIZEOF)
+		e/token: pc
+		e/accept: :sizeof_accept
+		pc: advance-next pc end
+		pc: parse-expr pc end :pv ctx
+		e/expr: as rst-expr! pv/value
+		expr/value: as int-ptr! e
+
 		ctx/throw-error?: err?
 
-		e: as unary! expr/value
-		SET_NODE_TYPE(e RST_SIZEOF)
 		if null? e/expr [	;-- not an expression, may be a type
-			pc: fetch-type pc end :pv
+			pc: fetch-type pc end :pv yes
 			e/expr: as rst-expr! pv/value
 			ADD_NODE_FLAGS(e RST_SIZE_TYPE)
 		]
-		e/accept: :sizeof_accept
 		pc
 	]
 

@@ -276,7 +276,7 @@ make-struct-type: func [
 		st	[struct-type!]
 		p	[struct-field!]
 ][
-	p: as struct-field! malloc n * size? struct-field!
+	p: as struct-field! either n > 0 [malloc n * size? struct-field!][null]
 	st: xmalloc(struct-type!)
 	SET_TYPE_KIND(st RST_TYPE_STRUCT)
 	st/id: 1000
@@ -330,7 +330,7 @@ struct-size?: func [
 		ofs [integer!]
 ][
 	sz: 0
-	m: 1
+	m: target/addr-size
 	f: st/fields
 	loop st/n-fields [
 		n: type-size? f/type no
@@ -341,6 +341,7 @@ struct-size?: func [
 		f: f + 1
 	]
 	sz: align-up sz m
+	if zero? sz [sz: target/addr-size]		;-- empty struct
 	st/size: sz
 	sz
 ]
@@ -378,8 +379,8 @@ type-size?: func [
 			either FLOAT_64?(t) [8][4]
 		]
 		RST_TYPE_BYTE [1]
-		RST_TYPE_LOGIC [1]
-		RST_TYPE_VOID [0]
+		RST_TYPE_LOGIC [4]
+		RST_TYPE_VOID [4]
 		RST_TYPE_PTR [PTR_SIZE?(t)]
 		RST_TYPE_NULL
 		RST_TYPE_ARRAY [target/addr-size]

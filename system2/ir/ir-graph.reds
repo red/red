@@ -877,12 +877,7 @@ ir-graph: context [
 		t: u/cast-type
 		int: as red-integer! u/token
 		int/header: TYPE_INTEGER
-		int/value: either TYPE_KIND(t) = RST_TYPE_ARRAY [
-			arr: as array-type! t
-			arr/length
-		][
-			type-size? t yes
-		]
+		int/value: type-size? t yes
 		as instr! const-int int ctx/graph
 	]
 
