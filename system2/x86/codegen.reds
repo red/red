@@ -1577,6 +1577,9 @@ x86: context [
 			OP_BOOL_EQ	[
 				emit-int-cmp cg i I_CMPB x86-cond/zero
 			]
+			OP_BOOL_NE [
+				emit-int-cmp cg i I_CMPB x86-cond/not-zero
+			]
 			OP_BOOL_NOT	[
 				x86-cond/pair-neg emit-cmp cg input0 i
 			]
@@ -2020,6 +2023,7 @@ x86: context [
 		switch INSTR_OPCODE(i) [
 			OP_BOOL_NOT			[emit-not cg i]
 			OP_BOOL_EQ
+			OP_BOOL_NE
 			OP_INT_EQ
 			OP_INT_NE
 			OP_INT_LT
@@ -2035,8 +2039,18 @@ x86: context [
 				conds: emit-cmp cg i
 				emit-setc cg conds get-vreg cg i
 			]
-			OP_BOOL_AND			[emit-simple-binop cg I_ANDD i]
-			OP_BOOL_OR			[emit-simple-binop cg I_ORD i]
+			OP_BOOL_AND			[
+				matcher/bin-op cg/m i
+				emit-simple-binop cg I_ANDD i
+			]
+			OP_BOOL_OR			[
+				matcher/bin-op cg/m i
+				emit-simple-binop cg I_ORD i
+			]
+			OP_BOOL_XOR			[
+				matcher/bin-op cg/m i
+				emit-simple-binop cg I_XORD i
+			]
 			OP_INT_ADD			[emit-int-binop cg I_ADDD i]
 			OP_INT_SUB			[
 				m: cg/m

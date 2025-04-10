@@ -15,8 +15,10 @@ op-cache: context [
 	void-op: as op! 0
 
 	op-bool-eq: as op! 0
+	op-bool-ne: as op! 0
 	op-bool-and: as op! 0
 	op-bool-or: as op! 0
+	op-bool-xor: as op! 0
 	op-bool-not: as op! 0
 
 	init: func [/local pt [ptr-ptr!] t [rst-type!]][
@@ -33,8 +35,23 @@ op-cache: context [
 		op-bool-not: make-op OP_BOOL_NOT pt t
 
 		pt: parser/make-param-types t t
-		op-bool-eq: xmalloc(op!)
-		init-op op-bool-eq OP_BOOL_EQ pt t
+		op-bool-eq: make-op2 OP_BOOL_EQ pt t
+		op-bool-ne: make-op2 OP_BOOL_NE pt t
+		op-bool-and: make-op2 OP_BOOL_AND pt t
+		op-bool-or: make-op2 OP_BOOL_OR pt t
+		op-bool-xor: make-op2 OP_BOOL_XOR pt t
+	]
+
+	make-op2: func [
+		opcode	[integer!]
+		param-t [ptr-ptr!]
+		ret-t	[rst-type!]
+		return: [op!]
+		/local
+			f	[op!]
+	][
+		f: xmalloc(op!)
+		init-op f opcode param-t ret-t
 	]
 
 	make-op: func [
@@ -134,6 +151,21 @@ op-cache: context [
 		p: float-op-table + f64
 		if null? p/value [p/value: as int-ptr! create type OP_FLT_ADD - OP_INT_ADD]
 		(as op! p/value) + op
+	]
+
+	get-bool-op: func [
+		op		[opcode!]
+		type	[rst-type!]
+		return: [op!]
+	][
+		switch op [
+			RST_OP_EQ [op-bool-eq]
+			RST_OP_NE [op-bool-ne]
+			RST_OP_AND [op-bool-and]
+			RST_OP_OR [op-bool-or]
+			RST_OP_XOR [op-bool-xor]
+			default [void-op]
+		]
 	]
 
 	get-ptr-op: func [

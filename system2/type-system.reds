@@ -708,6 +708,7 @@ type-system: context [
 							if INT_WIDTH(x) <= (frac + 1) [return conv_promote_if]
 						]
 					]
+					RST_TYPE_LOGIC
 					RST_TYPE_ENUM [conv_same]
 					default [0]
 				]
@@ -721,6 +722,9 @@ type-system: context [
 			]
 			RST_TYPE_NULL [
 				if TYPE_KIND(y) >= RST_TYPE_FUNC [return conv_same]
+			]
+			RST_TYPE_LOGIC [
+				if TYPE_KIND(y) = RST_TYPE_INT [return conv_same]
 			]
 			RST_TYPE_ANY [return conv_same]
 			default [

@@ -943,12 +943,13 @@ type-checker: context [
 				utype: type-system/unify ltype rtype
 				if null? utype [utype: ltype]
 				ft: switch TYPE_KIND(utype) [
-					RST_TYPE_INT [op-cache/get-int-op op utype]
+					RST_TYPE_INT RST_TYPE_BYTE [op-cache/get-int-op op utype]
 					RST_TYPE_FLOAT [
 						either op <= RST_OP_REM [
 							op-cache/get-float-op op utype
 						][null]
 					]
+					RST_TYPE_LOGIC [op-cache/get-bool-op op utype]
 					default [
 						op-cache/get-ptr-op op as ptr-type! utype
 					]
@@ -972,9 +973,9 @@ type-checker: context [
 				]
 				if utype <> null [
 					ft: switch TYPE_KIND(utype) [
-						RST_TYPE_INT [op-cache/get-int-op op utype]
+						RST_TYPE_INT RST_TYPE_BYTE [op-cache/get-int-op op utype]
 						RST_TYPE_FLOAT [op-cache/get-float-op op utype]
-						RST_TYPE_LOGIC [op-cache/op-bool-eq]
+						RST_TYPE_LOGIC [op-cache/get-bool-op op utype]
 						default [
 							op-cache/get-ptr-op op as ptr-type! utype
 						]
@@ -992,7 +993,7 @@ type-checker: context [
 					utype: ltype
 				]
 				ft: switch TYPE_KIND(utype) [
-					RST_TYPE_INT [op-cache/get-int-op op utype]
+					RST_TYPE_INT RST_TYPE_BYTE [op-cache/get-int-op op utype]
 					RST_TYPE_FLOAT [op-cache/get-float-op op utype]
 					default [
 						op-cache/get-ptr-op op as ptr-type! utype

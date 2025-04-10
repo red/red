@@ -18,82 +18,84 @@ Red/System [
 	INS_THROW           ;-- 9
                         
 	OP_BOOL_EQ          ;-- 10
-	OP_BOOL_AND         ;-- 11
-	OP_BOOL_OR          ;-- 12
-	OP_BOOL_NOT         ;-- 13
+	OP_BOOL_NE          ;-- 11
+	OP_BOOL_AND         ;-- 12
+	OP_BOOL_OR          ;-- 13
+	OP_BOOL_XOR         ;-- 14
+	OP_BOOL_NOT         ;-- 15
+                            
+	OP_INT_ADD          ;-- 16
+	OP_INT_SUB          ;-- 17
+	OP_INT_MUL          ;-- 18
+	OP_INT_DIV          ;-- 19
+	OP_INT_MOD          ;-- 20
+	OP_INT_REM          ;-- 21
+	OP_INT_AND          ;-- 22
+	OP_INT_OR           ;-- 23
+	OP_INT_XOR          ;-- 24
+	OP_INT_SHL          ;-- 25
+	OP_INT_SAR          ;-- 26
+	OP_INT_SHR          ;-- 27
+	OP_INT_EQ           ;-- 28
+	OP_INT_NE           ;-- 29
+	OP_INT_LT           ;-- 30
+	OP_INT_LTEQ         ;-- 31
+                            
+	OP_FLT_ADD          ;-- 32
+	OP_FLT_SUB          ;-- 33
+	OP_FLT_MUL          ;-- 34
+	OP_FLT_DIV          ;-- 35
+	OP_FLT_MOD          ;-- 36
+	OP_FLT_REM          ;-- 37
+	OP_FLT_ABS          ;-- 38
+	OP_FLT_CEIL         ;-- 39
+	OP_FLT_FLOOR        ;-- 40
+	OP_FLT_SQRT         ;-- 41
+	OP_FLT_UNUSED       ;-- 42
+	OP_FLT_BITEQ        ;-- 43
+	OP_FLT_EQ           ;-- 44
+	OP_FLT_NE           ;-- 45
+	OP_FLT_LT           ;-- 46
+	OP_FLT_LTEQ         ;-- 47
+                            
+	OP_INT_CAST         ;-- 48
+	OP_FLOAT_CAST       ;-- 49
+	OP_INT_TO_F         ;-- 50
+	OP_FLT_TO_I			;-- 51
+                            
+	OP_PTR_ADD			;-- 52
+	OP_PTR_SUB			;-- 53
+	OP_PTR_EQ			;-- 54
+	OP_PTR_NE			;-- 55
+	OP_PTR_LT			;-- 56
+	OP_PTR_LTEQ			;-- 57
+	OP_PTR_CAS			;-- 58 compare and swap
+	OP_PTR_LOAD			;-- 59
+	OP_PTR_STORE		;-- 60
+	OP_PTR_AT			;-- 61
+	OP_GET_PTR			;-- 62
+	                        
+	OP_DEFAULT_VALUE	;-- 63
+	                        
+	OP_CALL_FUNC		;-- 64
+                            
+	OP_SET_FIELD		;-- 65
+	OP_GET_FIELD		;-- 66
+	OP_GET_GLOBAL		;-- 67
+	OP_SET_GLOBAL		;-- 68
+	OP_SET_LOCAL		;-- 69 
 
-	OP_INT_ADD          ;-- 14
-	OP_INT_SUB          ;-- 15
-	OP_INT_MUL          ;-- 16
-	OP_INT_DIV          ;-- 17
-	OP_INT_MOD          ;-- 18
-	OP_INT_REM          ;-- 19
-	OP_INT_AND          ;-- 20
-	OP_INT_OR           ;-- 21
-	OP_INT_XOR          ;-- 22
-	OP_INT_SHL          ;-- 23
-	OP_INT_SAR          ;-- 24
-	OP_INT_SHR          ;-- 25
-	OP_INT_EQ           ;-- 26
-	OP_INT_NE           ;-- 27
-	OP_INT_LT           ;-- 28
-	OP_INT_LTEQ         ;-- 29
-                        
-	OP_FLT_ADD          ;-- 30
-	OP_FLT_SUB          ;-- 31
-	OP_FLT_MUL          ;-- 32
-	OP_FLT_DIV          ;-- 33
-	OP_FLT_MOD          ;-- 34
-	OP_FLT_REM          ;-- 35
-	OP_FLT_ABS          ;-- 36
-	OP_FLT_CEIL         ;-- 37
-	OP_FLT_FLOOR        ;-- 38
-	OP_FLT_SQRT         ;-- 39
-	OP_FLT_UNUSED       ;-- 40
-	OP_FLT_BITEQ        ;-- 41
-	OP_FLT_EQ           ;-- 42
-	OP_FLT_NE           ;-- 43
-	OP_FLT_LT           ;-- 44
-	OP_FLT_LTEQ         ;-- 45
-
-	OP_INT_CAST         ;-- 46
-	OP_FLOAT_CAST       ;-- 47
-	OP_INT_TO_F         ;-- 48
-	OP_FLT_TO_I			;-- 49
-
-	OP_PTR_ADD			;-- 50
-	OP_PTR_SUB			;-- 51
-	OP_PTR_EQ			;-- 52
-	OP_PTR_NE			;-- 53
-	OP_PTR_LT			;-- 54
-	OP_PTR_LTEQ			;-- 55
-	OP_PTR_CAS			;-- 56 compare and swap
-	OP_PTR_LOAD			;-- 57
-	OP_PTR_STORE		;-- 58
-	OP_PTR_AT			;-- 59
-	OP_GET_PTR			;-- 60
-	
-	OP_DEFAULT_VALUE	;-- 61
-	
-	OP_CALL_FUNC		;-- 62
-
-	OP_SET_FIELD		;-- 63
-	OP_GET_FIELD		;-- 64
-	OP_GET_GLOBAL		;-- 65
-	OP_SET_GLOBAL		;-- 66
-	OP_SET_LOCAL		;-- 67
-
-	OP_CPU_IP			;-- 68 get instruction pointer
-	OP_CPU_SP			;-- 69 get stack pointer
-
-	OP_ARRAY_GET		;-- 70
-	OP_ARRAY_SET		;-- 71
-
-	OP_CATCH_BEG		;-- 72
-	OP_CATCH_END		;-- 73
-	OP_THROW			;-- 74
-	OP_TYPED_VALUE		;-- 75
-	OP_CALL_NATIVE		;-- 76
+	OP_CPU_IP			;-- 70 get instruction pointer
+	OP_CPU_SP			;-- 71 get stack pointer
+                            
+	OP_ARRAY_GET		;-- 72
+	OP_ARRAY_SET		;-- 73
+                            
+	OP_CATCH_BEG		;-- 74
+	OP_CATCH_END		;-- 75
+	OP_THROW			;-- 76
+	OP_TYPED_VALUE		;-- 77
+	OP_CALL_NATIVE		;-- 
 
 	OP_MIXED_EQ			;-- e.g. compare int with uint
 	OP_MIXED_NE
