@@ -129,7 +129,8 @@ file: context [
 		][
 			if full? [string/concatenate out get-current-dir -1 0 yes no]
 		]
-
+		s: GET_BUFFER(out)								;-- refresh s after string/concatenate (possible expansion)
+		
 		while [p < end][
 			c: string/get-char p unit
 			s: string/append-char s either c = as-integer #"/" [OS_DIR_SEP][c]
