@@ -39,16 +39,18 @@ actions: context [
 		action	[integer!]								;-- action ID
 		path	[red-value!]
 		element [red-value!]
+		index	[integer!]
 		return: [integer!]								;-- action pointer (datatype-dependent)
 		/local
-			type  [integer!]							;-- datatype ID
-			index [integer!]
+			p	 [red-block!]
+			type [integer!]
+			idx	 [integer!]
 	][
 		type:  TYPE_OF(value)
-		index: type << 8 + action
-		index: action-table/index						;-- lookup action function pointer
-
-		if zero? index [
+		idx: index
+		idx: type << 8 + action
+		idx: action-table/idx							;-- lookup action function pointer
+		if zero? idx [
 			either null? path [							;-- compiled path
 				fire [
 					TO_ERROR(script bad-path-type2)
@@ -56,14 +58,17 @@ actions: context [
 					datatype/push type
 				]			
 			][											;-- interpreted path
+				p: block/clone as red-block! path no no
+				block/rs-clear-at p index + 1
 				fire [
 					TO_ERROR(script bad-path-type)
-					path
+					p
 					datatype/push type
+					path
 				]
 			]
 		]
-		index
+		idx
 	]
 	
 	get-action-ptr-from: func [
@@ -433,7 +438,7 @@ actions: context [
 			tail?	[logic!]
 			evt?	[logic!]
 			return:	[red-value!]
-		] get-action-ptr-path parent ACT_EVALPATH as red-value! path element
+		] get-action-ptr-path parent ACT_EVALPATH as red-value! path element index
 		
 		action-path parent element value as red-value! path gparent p-item index case? get? tail? evt?
 	]

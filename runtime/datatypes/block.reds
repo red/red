@@ -84,13 +84,17 @@ block: context [
 		s/offset + pos
 	]
 	
-	rs-clear: func [
-		blk 	[red-block!]
+	rs-clear: func [blk [red-block!]][rs-clear-at blk blk/head]
+	
+	rs-clear-at: func [
+		blk		[red-block!]
+		idx		[integer!]
 		/local
 			s	[series!]
 	][
 		s: GET_BUFFER(blk)
-		s/tail: s/offset + blk/head
+		s/tail: s/offset + idx
+		assert (as byte-ptr! s/tail) <= ((as byte-ptr! s/offset) + s/size)
 	]
 	
 	rs-append: func [

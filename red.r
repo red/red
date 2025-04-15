@@ -31,8 +31,6 @@ redc: context [
 	if encap? [
 		temp-dir: switch/default system/version/4 [
 			2 [											;-- MacOS X
-				libc: load/library %libc.dylib
-				sys-call: make routine! [cmd [string!] return: [integer!]] libc "system"
 				join any [attempt [to-rebol-file get-env "HOME"] %/tmp] %/.red/
 			]
 			3 [											;-- Windows
@@ -40,7 +38,6 @@ redc: context [
 					sys-path: to-rebol-file get-env "SystemRoot"
 					shell32:  load/library sys-path/System32/shell32.dll
 					kernel32: load/library sys-path/System32/kernel32.dll
-					libc:  	  load/library sys-path/System32/msvcrt.dll
 
 					CSIDL_COMMON_APPDATA: to integer! #{00000023}
 
@@ -52,16 +49,6 @@ redc: context [
 						pszPath		[string!]
 						return: 	[integer!]
 					] shell32 "SHGetFolderPathA"
-
-					ShellExecuteW: make routine! [
-						hwnd 		 [integer!]
-						lpOperation  [string!]
-						lpFile		 [string!]
-						lpParameters [string!]
-						lpDirectory  [integer!]
-						nShowCmd	 [integer!]
-						return:		 [integer!]
-					] shell32 "ShellExecuteW"
 					
 					GetCommandLineW: make routine! compose/deep [
 						return: [integer!]
@@ -78,21 +65,8 @@ redc: context [
 						lpUsedDefaultChar		[integer!]
 						return:					[integer!]
 					] kernel32 "WideCharToMultiByte"
-
-					_wsystem: make routine! [cmd [string!] return: [integer!]] libc "_wsystem"
 					
 					IsProcessorFeaturePresent: make routine! [feat [integer!] return: [integer!]] kernel32 "IsProcessorFeaturePresent"
-
-					gui-sys-call: func [cmd [string!] args [string!]][
-						ShellExecuteW
-							0
-							utf8-to-utf16 "open"
-							utf8-to-utf16 cmd
-							utf8-to-utf16 args
-							0 1
-					]
-					
-					sys-call: func [cmd [string!]][_wsystem utf8-to-utf16 cmd]
 					
 					SSE3?: to logic! IsProcessorFeaturePresent 13
 					
@@ -102,7 +76,6 @@ redc: context [
 					]
 					append dirize to-rebol-file trim path %Red/
 				][
-					sys-call: func [cmd [string!]][call/wait cmd]
 					append to-rebol-file get-env "ALLUSERSPROFILE" %/Red/
 				]
 			]
@@ -113,19 +86,6 @@ redc: context [
 			][
 				fail "Can't read /proc/cpuinfo"
 			]
-			any [
-				exists? libc: %/lib/ld-musl-i386.so.1			; musl, e.g. Alpine Linux
-				exists? libc: %libc.so.6
-				exists? libc: %/lib32/libc.so.6
-				exists? libc: %/lib/i386-linux-gnu/libc.so.6	; post 11.04 Ubuntu
-				exists? libc: %/usr/lib32/libc.so.6				; e.g. 64-bit Arch Linux
-				exists? libc: %/lib/libc.so.6
-				exists? libc: %/System/Index/lib/libc.so.6  	; GoboLinux package
-				exists? libc: %/system/index/framework/libraries/libc.so.6  ; Syllable
-				exists? libc: %/lib/libc.so.5
-			]
-			libc: load/library libc
-			sys-call: make routine! [cmd [string!] return: [integer!]] libc "system"
 			join any [attempt [to-rebol-file get-env "HOME"] %/tmp] %/.red/
 		]
 	]

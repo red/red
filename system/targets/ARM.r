@@ -520,17 +520,20 @@ make-profilable make target-class [
 	]
 	
 	on-global-epilog: func [runtime? [logic!]][
-		if all [
-			not runtime?
-			compiler/job/runtime?
-			compiler/job/need-main?
-		][
-			emit-i32 #{e1a0d00b}					;-- MOV sp, fp		; unwind root frame
-			emit-pop								;-- pop arguments/locals bitarray slot
-			emit-pop								;-- pop exceptions address slot
-			emit-pop								;-- pop exceptions threshold slot
-			emit-i32 #{e8bd0800}					;-- POP {fp}
-			emit-epilog '***_start [] 7 * 4 0		;-- restore all before returning in __libc_start_main()
+		unless runtime? [
+			either all [
+				compiler/job/runtime?
+				compiler/job/need-main?
+			][
+				emit-i32 #{e1a0d00b}				;-- MOV sp, fp		; unwind root frame
+				emit-pop							;-- pop arguments/locals bitarray slot
+				emit-pop							;-- pop exceptions address slot
+				emit-pop							;-- pop exceptions threshold slot
+				emit-i32 #{e8bd0800}				;-- POP {fp}
+				emit-epilog/closing '***_start [] 7 * 4 0	;-- restore all before returning in __libc_start_main()
+			][
+				emit-load 0							;-- return 0 from the process
+			]
 		]
 		unless runtime? [
 			pools/mark-entry-point 'global			;-- add end of global code section as pool entry-point
@@ -3139,7 +3142,7 @@ make-profilable make target-class [
 
 	emit-epilog: func [
 		name [word! path!] locals [block!] args-size [integer!] locals-size [integer!]
-		/with slots [integer! none!]
+		/with slots [integer! none!] /closing
 		/local fspec attribs cb? flags hf? ret-ptr?
 	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
@@ -3202,7 +3205,7 @@ make-profilable make target-class [
 			]
 			emit-i32 #{e8bd07f0}					;-- LDMFD sp!, {r4-r10}
 		]
-		
+		if closing [emit-load 0]
 		emit-i32 #{e1a0d00b}						;-- MOV sp, fp		; catch flag is skipped
 		emit-i32 #{e8bd4800}						;-- POP {fp,lr}
 

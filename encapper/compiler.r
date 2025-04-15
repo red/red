@@ -2573,7 +2573,7 @@ red: context [
 		emit-close-frame
 	]
 	
-	comp-forall: has [word name][
+	comp-forall: has [word name mark][
 		name: pc/1
 		word: decorate-symbol name
 		emit-get-word name name							;-- save series (for resetting on end)
@@ -2585,20 +2585,26 @@ red: context [
 		emit [0 stack/arguments - 2]					;-- index of first argument
 		insert-lf -9
 		
+		emit [
+			unless natives/forall-next? no
+		]
+		mark: tail output
 		emit-open-frame 'forall
 		emit 'forever
+		insert-lf -1
 		push-call 'forall
 		comp-sub-block 'forall-body						;-- compile body
 		pop-call
 		
 		append last output [							;-- inject at tail of body block
-			if natives/forall-next? [break]			;-- move series to next position
+			if natives/forall-next? yes [break]			;-- move series to next position
 		]
 		emit [
 			stack/unwind
 			natives/forall-end							;-- reset series
 			stack/unwind
 		]
+		convert-to-block mark
 	]
 	
 	comp-remove-each: has [word blk cond ctx idx][
@@ -2673,7 +2679,7 @@ red: context [
 			throw-error "CONTINUE used with no loop"
 		]
 		if 'forall = last loops [
-			emit copy/deep [if natives/forall-next? [break]]	;-- move series to next position
+			emit copy/deep [if natives/forall-next? yes [break]] ;-- move series to next position
 			insert-lf -3
 		]
 		emit [stack/unroll-loop yes continue]

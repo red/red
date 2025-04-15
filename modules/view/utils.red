@@ -28,9 +28,9 @@ hex-to-rgb: function [
 
 within?: function [
 	"Return TRUE if the point is within the rectangle bounds"
-	point	[pair! point2D!] "XY position"
-	offset  [pair! point2D!] "Offset of area"
-	size	[pair! point2D!] "Size of area"
+	point	[planar!] "XY position"
+	offset  [planar!] "Offset of area"
+	size	[planar!] "Size of area"
 	return: [logic!]
 ][
 	to logic! all [
@@ -56,8 +56,8 @@ overlap?: function [
 
 distance?: function [
 	"Returns the distance between 2 points or face centers"
-	A		[object! pair! point2D!] "First face or point"
-	B		[object! pair! point2D!] "Second face or point"
+	A		[object! planar!] "First face or point"
+	B		[object! planar!] "Second face or point"
 	return: [float!]  "Distance between them"
 ][
 	A: either object? A [A/offset * 2 + A/size][A * 2]	;-- doubling for odd-sized faces

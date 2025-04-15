@@ -63,20 +63,22 @@ make-profilable make target-class [
 	]
 	
 	on-global-epilog: func [runtime? [logic!] type [word!]][
-		if runtime? [patch-floats-definition 'unset] ;-- restore definitions for next compilation jobs
-		if all [
-			not runtime?
-			compiler/job/need-main?
+		either runtime? [
+			patch-floats-definition 'unset			;-- restore definitions for next compilation jobs
 		][
-			emit #{89EC}							;-- MOV esp, ebp
-			emit-pop								;-- pop exceptions threshold slot
-			emit-pop								;-- pop exceptions address slot
-			emit-pop								;-- pop arguments/locals bitarray slot
-			emit #{5D}								;-- POP ebp
-			args: switch/default compiler/job/OS [
-				Syllable [6]
-			][7]
-			emit-epilog '***_start [] args * 4 0	;-- restore all before returning in __libc_start_main()
+			either compiler/job/need-main? [
+				emit #{89EC}						;-- MOV esp, ebp
+				emit-pop							;-- pop exceptions threshold slot
+				emit-pop							;-- pop exceptions address slot
+				emit-pop							;-- pop arguments/locals bitarray slot
+				emit #{5D}							;-- POP ebp
+				args: switch/default compiler/job/OS [
+					Syllable [6]
+				][7]
+				emit-epilog/closing '***_start [] args * 4 0 ;-- restore all before returning in __libc_start_main()
+			][
+				emit-load 0							;-- return 0 from the process
+			]
 		]
 	]
 	
@@ -2533,7 +2535,7 @@ make-profilable make target-class [
 	]
 
 	emit-epilog: func [
-		name [word!] locals [block!] args-size [integer!] locals-size [integer!] /with slots [integer! none!]
+		name [word!] locals [block!] args-size [integer!] locals-size [integer!] /with slots [integer! none!] /closing
 		/local fspec attribs vars offset cdecl? SysVABI? macOSABI? clean-hidden-ptr? type
 	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
@@ -2598,6 +2600,7 @@ make-profilable make target-class [
 			emit #{5E}								;-- POP esi
 			emit #{5B}								;-- POP ebx
 		]
+		if closing [emit-load 0]
 		emit #{C9}									;-- LEAVE			; catch flag is skipped
 		either any [
 			zero? args-size
