@@ -676,7 +676,7 @@ system/view/platform: context [
 					face: face + 1
 				]
 				assert false
-			]			
+			]
 
 			#include %keycodes.reds
 			#switch GUI-engine [
@@ -702,11 +702,19 @@ system/view/platform: context [
 	make-null-handle: routine [][handle/box 0 handle/CLASS_NULL]
 
 	fetch-all-screens: routine [][
-		SET_RETURN(gui/OS-fetch-all-screens)
+		#either GUI-engine = 'terminal [
+			SET_RETURN(none-value)
+		][
+			SET_RETURN(gui/OS-fetch-all-screens)
+		]
 	]
-	
-	get-current-screen: routine [][
-		SET_RETURN(gui/OS-get-current-screen)
+
+	#either config/GUI-engine = 'terminal [
+		get-current-screen: func [][system/view/screens/1/state/1]
+	][	
+		get-current-screen: routine [][
+			SET_RETURN(gui/OS-get-current-screen)
+		]
 	]
 	
 	get-screen-size: routine [
@@ -1069,14 +1077,24 @@ system/view/platform: context [
 			]
 		]
 
-		foreach spec fetch-all-screens [
-			append svs make face! [
+		#either config/GUI-engine = 'terminal [
+			append svs make face! [						;-- default screen
 				type:	'screen
-				offset: spec/1
-				size:	to-pair spec/2 / spec/3
-				data:	spec/3
+				offset: 0x0
+				size:	get-screen-size 0
 				pane:	make block! 4
-				state:	reduce [spec/4 0 none copy [1]]
+				state:	reduce [make-null-handle 0 none copy [1]]
+			]
+		][
+			foreach spec fetch-all-screens [
+				append svs make face! [
+					type:	'screen
+					offset: spec/1
+					size:	to-pair spec/2 / spec/3
+					data:	spec/3
+					pane:	make block! 4
+					state:	reduce [spec/4 0 none copy [1]]
+				]
 			]
 		]
 		
