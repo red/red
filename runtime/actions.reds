@@ -62,9 +62,9 @@ actions: context [
 				block/rs-clear-at p index + 1
 				fire [
 					TO_ERROR(script bad-path-type)
-					p
-					datatype/push type
 					path
+					datatype/push type
+					p
 				]
 			]
 		]

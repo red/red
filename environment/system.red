@@ -131,7 +131,7 @@ system: context [
 				invalid-path:		["cannot access" :arg2 "in path" :arg1]
 				invalid-path-set:	["unsupported type in" :arg1 "set-path"]
 				invalid-path-get:	["unsupported type in" :arg1 "get-path"]
-				bad-path-type:		[:arg1 "returned a" :arg2 "value, so" :arg3 "could not be accessed"]
+				bad-path-type:		[:arg3 "returned a" :arg2 "value, so" :arg1 "could not be accessed"]
 				bad-path-type2:		["path element >" :arg1 "< does not apply to" :arg2 "type"]
 				bad-path-set:		["cannot set" :arg2 "in path" :arg1]
 				bad-field-set:		["cannot set" :arg1 "field to" :arg2 "datatype"]
