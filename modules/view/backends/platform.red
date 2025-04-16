@@ -717,6 +717,34 @@ system/view/platform: context [
 		]
 	]
 	
+	refresh-screens: has [svs spec screen][
+		svs: system/view/screens
+		foreach spec fetch-all-screens [
+			either svs/1 [
+				screen: svs/1
+				screen/offset: spec/1
+				screen/size:   to-pair spec/2 / spec/3
+				screen/data:   spec/3
+				screen/state/1: spec/4
+				
+			][
+				append svs make face! [
+					type:	'screen
+					offset: spec/1
+					size:	to-pair spec/2 / spec/3
+					data:	spec/3
+					pane:	make block! 4
+					state:	reduce [spec/4 0 none copy [1]]
+				]
+			]
+			svs: next svs
+		]
+		unless empty? svs [								;-- clean up screens for removed displays
+			foreach screen svs [clear screen/pane]
+			clear svs
+		]
+	]
+	
 	get-screen-size: routine [
 		id		[integer!]
 		/local
@@ -1086,16 +1114,7 @@ system/view/platform: context [
 				state:	reduce [make-null-handle 0 none copy [1]]
 			]
 		][
-			foreach spec fetch-all-screens [
-				append svs make face! [
-					type:	'screen
-					offset: spec/1
-					size:	to-pair spec/2 / spec/3
-					data:	spec/3
-					pane:	make block! 4
-					state:	reduce [spec/4 0 none copy [1]]
-				]
-			]
+			refresh-screens
 		]
 		
 		set fonts:

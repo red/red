@@ -1509,6 +1509,7 @@ OS-fetch-all-screens: func [
 	return: [red-block!]
 	/local blk [red-block!]
 ][
+	monitor-tail: monitors								;-- reset monitor handles array
 	blk: block/push-only* 2
 	EnumDisplayMonitors null null :monitor-enum-proc blk
 	blk

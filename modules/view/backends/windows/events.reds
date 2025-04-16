@@ -1683,6 +1683,9 @@ WndProc: func [
 			;]
 			RedrawWindow hWnd null null 4 or 1			;-- RDW_ERASE | RDW_INVALIDATE
 		]
+		WM_DISPLAYCHANGE [
+			#call [system/view/platform/refresh-screens]
+		]
 		WM_THEMECHANGED [
 			values: values + FACE_OBJ_PANE
 			if type = window [
