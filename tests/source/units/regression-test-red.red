@@ -3790,7 +3790,17 @@ comment {
 		a5607: copy []
 		forall a5607 [--assert false]
 		--assert true
-	
+
+	--test-- "#5609"
+		saved-dir: what-dir
+		change-dir qt-tmp-dir
+		make-dir d5609: %123456789_123
+		change-dir d5609
+		--assert string? to-local-file/full %1
+		change-dir %../
+		delete d5609
+		change-dir saved-dir
+
 ===end-group===
 
 ~~~end-file~~~
