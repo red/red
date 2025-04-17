@@ -32,7 +32,7 @@ bit-table: context [
 		/local p [int-ptr!] mask [integer!]
 	][
 		p: b/bits + (row * b/width + (col >>> 5))
-		mask: 1 << col
+		mask: 1 << (col and 1Fh)
 		either p/value and mask = 0 [
 			p/value: p/value or mask
 			false
@@ -43,7 +43,7 @@ bit-table: context [
 		/local p [int-ptr!] mask [integer!]
 	][
 		p: b/bits + (row * b/width + (col >>> 5))
-		mask: 1 << col
+		mask: 1 << (col and 1Fh)
 		either p/value and mask <> 0 [
 			p/value: p/value and (not mask)
 			true
@@ -55,6 +55,7 @@ bit-table: context [
 	][
 		i: row * b/width + (col >>> 5)
 		p: b/bits + i
+		col: col and 1Fh
 		p/value and (1 << col) <> 0
 	]
 
@@ -66,7 +67,7 @@ bit-table: context [
 		/local p [int-ptr!] mask v [integer!]
 	][
 		p: b/bits + (row * b/width + (col >>> 5))
-		mask: 1 << col
+		mask: 1 << (col and 1Fh)
 		v: p/value
 		either val [
 			if v and mask = 0 [p/value: v or mask]
@@ -97,7 +98,6 @@ bit-table: context [
 			w	[integer!]
 			bw	[integer!]
 			i j [integer!]
-			n m [integer!]
 			bits [int-ptr!]
 			new	 [int-ptr!]
 			rows [integer!]
@@ -111,17 +111,19 @@ bit-table: context [
 		]
 		new: as int-ptr! zero-alloc b/rows * w * 4
 		bits: b/bits
-		i: 0 j: 0
 		rows: b/rows
 		bw: b/width
+		i: 0
 		while [i < rows][
-			while [j < bw][
-				n: i * w + j
-				m: i * bw + j
-				p: new + n
-				pp: bits + m
+			p: new + (i * w)
+			pp: bits + (i * bw)
+			j: 0
+			until [
 				p/value: pp/value
+				p: p + 1
+				pp: pp + 1
 				j: j + 1
+				j = bw
 			]
 			i: i + 1
 		]
