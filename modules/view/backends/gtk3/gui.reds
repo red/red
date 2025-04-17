@@ -714,7 +714,16 @@ set-dark-mode: func [
 ][
 ]
 
-init: func [][
+monitor-changed: func [
+	[cdecl]
+	display		[handle!]
+	monitor		[handle!]
+	user_data	[handle!]
+][
+	#call [system/view/platform/refresh-screens]
+]
+
+init: func [/local disp [handle!]][
 	get-os-version
 	gtk_disable_setlocale
 	gtk_init null null
@@ -728,6 +737,10 @@ init: func [][
 	set-app-theme "box, button.text-button {min-width: 1px; min-height: 1px;}" yes
 	collector/register as int-ptr! :on-gc-mark
 	font-ext-type: externals/register "font" as-integer :delete-font
+
+	disp: gdk_display_get_default
+	gobj_signal_connect(disp "monitor-added" :monitor-changed null)
+	gobj_signal_connect(disp "monitor-removed"  :monitor-changed null)
 ]
 
 get-symbol-name: function [
