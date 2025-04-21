@@ -9,6 +9,7 @@ Red/System [
 #define array-value! [array-1! value]
 #define INIT_ARRAY_VALUE(a v) [a/length: 1 a/val-1: as byte-ptr! v]
 #define INIT_ARRAY_2(a v1 v2) [a/length: 2 a/val-1: as byte-ptr! v1 a/val-2: as byte-ptr! v2]
+#define INIT_ARRAY_3(a v1 v2 v3) [a/length: 3 a/val-1: as byte-ptr! v1 a/val-2: as byte-ptr! v2 a/val-3: as byte-ptr! v3]
 
 rs-array!: alias struct! [
 	length	[integer!]
@@ -27,6 +28,13 @@ array-2!: alias struct! [		;-- ptr array with two values
 	length	[integer!]
 	val-1	[byte-ptr!]
 	val-2	[byte-ptr!]
+]
+
+array-3!: alias struct! [
+	length	[integer!]
+	val-1	[byte-ptr!]
+	val-2	[byte-ptr!]
+	val-3	[byte-ptr!]
 ]
 
 empty-array: as ptr-array! 0

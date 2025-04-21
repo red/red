@@ -300,15 +300,17 @@ type-checker: context [
 			t		[int-type!]
 			f32		[red-float32!]
 			f64		[red-float!]
+			ty		[integer!]
 	][
+		ty: NODE_TYPE(e)
 		type: e/type
-		if null? type [
+		if any [null? type ty = RST_PATH][
 			type: as rst-type! e/accept as int-ptr! e checker as int-ptr! ctx
 			e/type: type
 		]
 		if type/header = expected/header [exit]	;-- same type
 
-		switch NODE_TYPE(e) [
+		switch ty [
 			RST_INT [		;-- int literal
 				int: as int-literal! e
 				i: int/value
@@ -629,7 +631,9 @@ type-checker: context [
 	]
 
 	visit-path: func [p [path!] ctx [context!] return: [rst-type!]
-		/local var [var-decl!] type [rst-type!] t [integer!] m [member!]
+		/local
+			var [var-decl!] type [rst-type!] t [integer!] m [member!]
+			a [rst-expr!] b [bin-op!] arr [array-type!] int [red-integer!]
 	][
 		var: p/receiver
 		check-struct-value var ctx
@@ -638,7 +642,22 @@ type-checker: context [
 		if any [t = RST_TYPE_PTR t = RST_TYPE_ARRAY][
 			m: p/subs
 			until [
-				if m/expr <> null [check-expr "Path Index:" m/expr type-system/integer-type ctx]
+				if m/expr <> null [
+					check-expr "Path Index:" m/expr type-system/integer-type ctx
+					;-- convert arr/n to arr/((n - 1) * size? array-element)
+					a: as rst-expr! parser/make-int common-literals/int-one
+					b: parser/make-bin-op as int-ptr! RST_OP_SUB m/expr a m/token
+					ADD_NODE_FLAGS(b RST_INFIX_OP)
+					arr: as array-type! type
+					int: as red-integer! m/token
+					int/header: TYPE_INTEGER
+					int/value: type-size? arr/type yes
+					a: as rst-expr! parser/make-int as cell! int
+					b: parser/make-bin-op as int-ptr! RST_OP_MUL as rst-expr! b a m/token
+					ADD_NODE_FLAGS(b RST_INFIX_OP)
+					visit-bin-op b ctx
+					m/expr: as rst-expr! b
+				]
 				m: m/next
 				null? m
 			]

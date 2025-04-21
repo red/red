@@ -441,10 +441,12 @@ lowering: context [
 			o		[instr-op!]
 			m		[member!]
 			p		[ptr-ptr!]
+			p2		[ptr-ptr!]
 			ty		[struct-type!]
 			vt		[rst-type!]
 			base	[instr!]
 			offset	[integer!]
+			arg-idx [integer!]
 			inputs	[ptr-array!]
 	][
 		inputs: refresh-dests i/inputs env
@@ -456,17 +458,22 @@ lowering: context [
 		vt: as rst-type! p/value	;-- field type
 
 		m: as member! o/target
-		offset: switch TYPE_KIND(ty) [
+		switch TYPE_KIND(ty) [
 			RST_TYPE_STRUCT [
-				field-offset? ty m/index
+				base: as instr! ptr-array/pick inputs 0
+				offset: field-offset? ty m/index
+				arg-idx: 1
 			]
 			RST_TYPE_ARRAY RST_TYPE_PTR [
-				m/index * type-size? vt yes
+				offset: 0
+				arg-idx: 2
+				p: ARRAY_DATA(inputs)
+				p2: p + 1
+				base: ptr-add as instr! p/value as instr! p2/value env/cur-ctx
 			]
 			default [dprint ["unsupported set-field " TYPE_KIND(ty)] 0]
 		]
-		base: as instr! ptr-array/pick inputs 0
-		gen-stores vt base offset inputs 1 env/cur-ctx
+		gen-stores vt base offset inputs arg-idx env/cur-ctx
 		kill-instr i
 		remove-instr i
 	]
@@ -478,61 +485,40 @@ lowering: context [
 			o		[instr-op!]
 			m		[member!]
 			p		[ptr-ptr!]
+			p2		[ptr-ptr!]
 			ty		[struct-type!]
 			vt		[rst-type!]
 			base	[instr!]
 			offset	[integer!]
 			inputs	[ptr-array!]
 			new		[ptr-array!]
+			ctx		[ssa-ctx!]
 	][
 		inputs: refresh-dests i/inputs env
 		
+		ctx: env/cur-ctx
 		o: as instr-op! i
 		p: o/param-types
 		ty: as struct-type! p/value	;-- struct type
 
 		m: as member! o/target
 		vt: m/type
-		offset: field-offset? ty m/index
-		base: as instr! ptr-array/pick inputs 0
-		new: gen-loads vt base offset env/cur-ctx
+
+		switch TYPE_KIND(ty) [
+			RST_TYPE_STRUCT [
+				offset: field-offset? ty m/index
+				base: as instr! ptr-array/pick inputs 0
+			]
+			RST_TYPE_PTR RST_TYPE_ARRAY [
+				offset: 0
+				p: ARRAY_DATA(inputs)
+				p2: p + 1
+				base: ptr-add as instr! p/value as instr! p2/value ctx
+			]
+			default [0]
+		]
+		new: gen-loads vt base offset ctx
 		map-n i new env
-	]
-
-	gen-array-get: func [
-		i		[instr!]
-		env		[lowering-env!]
-		/local
-			o		[instr-op!]
-			m		[member!]
-			vt		[rst-type!]
-			base	[instr!]
-			inputs	[ptr-array!]
-			new		[ptr-array!]
-			p		[ptr-ptr!]
-			p2		[ptr-ptr!]
-			ctx		[ssa-ctx!]
-	][
-		inputs: refresh-dests i/inputs env
-
-		ctx: env/cur-ctx
-		o: as instr-op! i
-		m: as member! o/target
-		vt: m/type
-		p: ARRAY_DATA(inputs)
-		p2: p + 1
-		base: ptr-add as instr! p/value as instr! p2/value ctx
-		new: gen-loads vt base 0 ctx
-		map-n i new env
-	]
-
-	gen-array-set: func [
-		i		[instr!]
-		env		[lowering-env!]
-		/local
-			o	[instr-op!]
-	][
-		0
 	]
 
 	gen-op: func [
@@ -566,8 +552,6 @@ lowering: context [
 			OP_SET_LOCAL		[gen-set-local i env]
 			OP_SET_FIELD		[gen-set-field i env]
 			OP_GET_FIELD		[gen-get-field i env]
-			OP_ARRAY_GET		[gen-array-get i env]
-			OP_ARRAY_SET		[gen-array-set i env]
 			default [
 				if i/inputs <> null [refresh-inputs i env]
 				0 ;dprint ["Internal Error: Unknown Opcode: " INSTR_OPCODE(i)]

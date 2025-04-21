@@ -921,6 +921,8 @@ asm: context [
 
 	idiv-r: func [r [integer!] rex [integer!]][emit-b-r-x-rex F7h r 7 rex]
 	idiv-m: func [m [x86-addr!] rex [integer!]][emit-b-m-x F7h m 7 rex]
+	div-r:  func [r [integer!] rex [integer!]][emit-b-r-x-rex F7h r 6 rex]
+	div-m:  func [m [x86-addr!] rex [integer!]][emit-b-m-x F7h m 6 rex]
 
 	imul-r-i: func [r  [integer!] imm [integer!] rex [integer!]][
 		rex: rex or rex-r r REX_B or REX_R
@@ -1733,6 +1735,7 @@ assemble-r: func [
 		I_NEGD	[asm/neg-r r NO_REX]
 		I_MULD	[asm/imul-r r NO_REX]
 		I_IDIVD	[asm/idiv-r r NO_REX]
+		I_DIVD	[asm/div-r r NO_REX]
 		I_SHLD	[asm/shl-r r NO_REX]
 		I_SARD	[asm/sar-r r NO_REX]
 		I_SHRD	[asm/shr-r r NO_REX]
@@ -1751,6 +1754,7 @@ assemble-m: func [
 		I_NEGD	[asm/neg-m m NO_REX]
 		I_MULD	[asm/imul-m m NO_REX]
 		I_IDIVD	[asm/idiv-m m NO_REX]
+		I_DIVD	[asm/div-m m NO_REX]
 		I_SHLD	[asm/shl-m m NO_REX]
 		I_SARD	[asm/sar-m m NO_REX]
 		I_SHRD	[asm/shr-m m NO_REX]

@@ -88,8 +88,8 @@ Red/System [
 	OP_CPU_IP			;-- 70 get instruction pointer
 	OP_CPU_SP			;-- 71 get stack pointer
                             
-	OP_ARRAY_GET		;-- 72
-	OP_ARRAY_SET		;-- 73
+	OP_UNUSED_1			;-- 72
+	OP_UNUSED_2			;-- 73
                             
 	OP_CATCH_BEG		;-- 74
 	OP_CATCH_END		;-- 75

@@ -14,7 +14,7 @@ compiler: context [
 	#include %utils/array.reds
 	#include %utils/bit-table.reds
 
-	verbose: 0
+	verbose: 1
 
 	#enum arch-id! [
 		arch-x86
@@ -26,7 +26,7 @@ compiler: context [
 	dprint: func [
 		[typed]	count [integer!] list [typed-value!]
 	][
-		if verbose >= 3 [
+		if verbose >= 1 [
 			_print count list no
 			prin-byte lf
 		]

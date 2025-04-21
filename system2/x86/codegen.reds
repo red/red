@@ -167,8 +167,8 @@ x86-cond: context [
 	not-carry:		as x86-cond! 0
 	zero:			as x86-cond! 0
 	not-zero:		as x86-cond! 0
-	above:		as x86-cond! 0
-	not-above:	as x86-cond! 0
+	above:			as x86-cond! 0
+	not-above:		as x86-cond! 0
 	sign:			as x86-cond! 0
 	not-sign:		as x86-cond! 0
 	parity:			as x86-cond! 0
@@ -238,8 +238,8 @@ x86-cond: context [
 		not-carry:		make 3
 		zero:			make 4
 		not-zero:		make 5
-		not-above:	make 6
-		above:		make 7
+		not-above:		make 6
+		above:			make 7
 		sign:			make 8
 		not-sign:		make 9
 		parity:			make 10
@@ -253,6 +253,7 @@ x86-cond: context [
 		neg overflow not-overflow
 		neg carry not-carry
 		neg zero not-zero
+		neg above not-above
 		neg sign not-sign
 		neg parity not-parity
 		neg lesser greater-eq

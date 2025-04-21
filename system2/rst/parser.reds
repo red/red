@@ -2395,7 +2395,7 @@ parser: context [
 								][
 									sub: find-word w ctx RST_VAR_DECL
 									if null? sub [throw-error [pc "wrong index value"] val]
-									m/expr: as rst-expr! sub
+									m/expr: as rst-expr! make-variable as var-decl! sub val
 								]
 							]
 							TYPE_INTEGER [

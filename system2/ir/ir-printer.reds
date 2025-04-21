@@ -129,8 +129,6 @@ ir-printer: context [
 			OP_SET_FIELD [
 				print "set-field"
 			]
-			OP_ARRAY_GET [print "get-array-value"]
-			OP_ARRAY_SET [print "set-array-value"]
 			OP_CATCH_BEG [print "catch begin"]
 			OP_CATCH_END [print "catch end"]
 			OP_THROW [print "throw"]

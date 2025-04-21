@@ -2052,26 +2052,60 @@ ir-graph: context [
 		m: p/subs
 		until [
 			either null? m/next [
-				ptypes: as ptr-ptr! malloc 2 * size? int-ptr!
-				op: make-op OP_SET_FIELD 2 ptypes type-system/void-type
-				ptypes/value: as int-ptr! type
-				ptypes: ptypes + 1
-				ptypes/value: as int-ptr! m/type
-				INIT_ARRAY_2(args obj val)
-				add-op op as ptr-array! :args ctx
+				path-member-write val obj type m ctx
 			][
-				ptypes: as ptr-ptr! malloc size? int-ptr!
-				ptypes/value: as int-ptr! type
-				op: make-op OP_GET_FIELD 1 ptypes m/type
+				obj: path-member-read obj type m ctx
 				type: m/type
-				INIT_ARRAY_VALUE(args obj)
-				obj: add-op op as ptr-array! :args ctx
 			]
-			op/target: as int-ptr! m
 			m: m/next
 			null? m
 		]
 		val
+	]
+
+	path-member-write: func [
+		val		[instr!]
+		obj		[instr!]
+		type	[rst-type!]
+		m		[member!]
+		ctx		[ssa-ctx!]
+		return: [instr!]
+		/local
+			op		[instr-op!]
+			pp		[ptr-ptr!]
+			ptypes	[ptr-ptr!]
+			args	[array-3! value]
+			idx		[instr!]
+			int		[red-integer!]
+			arr		[array-type!]
+	][
+		ptypes: as ptr-ptr! malloc 2 * size? int-ptr!
+		ptypes/value: as int-ptr! type
+		pp: ptypes + 1
+		pp/value: as int-ptr! m/type
+		switch TYPE_KIND(type) [
+			RST_TYPE_STRUCT [
+				op: make-op OP_SET_FIELD 2 ptypes type-system/void-type
+				INIT_ARRAY_2(args obj val)
+			]
+			RST_TYPE_PTR RST_TYPE_ARRAY [
+				op: make-op OP_SET_FIELD 3 ptypes type-system/void-type
+				idx: either m/expr <> null [gen-expr m/expr ctx][
+					arr: as array-type! type
+					int: as red-integer! m/token
+					int/header: TYPE_INTEGER
+					int/value: m/index * type-size? arr/type yes
+					as instr! const-int int ctx/graph
+				]
+				INIT_ARRAY_3(args obj idx val)
+			]
+			default [
+				dprint ["path-member-read error: " type]
+				halt
+			]
+		]
+		op/target: as int-ptr! m
+		add-op op as ptr-array! :args ctx
 	]
 
 	path-member-read: func [
@@ -2103,7 +2137,7 @@ ir-graph: context [
 				pp/value: as int-ptr! type
 				pp: pp + 1
 				pp/value: as int-ptr! type-system/integer-type		;-- index type
-				op: make-op OP_ARRAY_GET 2 ptypes m/type
+				op: make-op OP_GET_FIELD 2 ptypes m/type
 				op/target: as int-ptr! m
 
 				idx: either m/expr <> null [gen-expr m/expr ctx][
