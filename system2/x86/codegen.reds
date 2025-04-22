@@ -1009,7 +1009,7 @@ x86: context [
 				return true
 			]
 			switch TYPE_OF(val) [
-				TYPE_INTEGER [use-imm cg val]
+				TYPE_INTEGER TYPE_CHAR [use-imm cg val]
 				TYPE_LOGIC [
 					b: as red-logic! val
 					use-imm-int cg either b/value [1][0]

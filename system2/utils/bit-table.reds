@@ -84,6 +84,7 @@ bit-table: context [
 			w	[integer!]
 	][
 		if b/rows < rows [
+			rows: rows * 2
 			w: b/width
 			b/bits: as int-ptr! realloc as byte-ptr! b/bits rows * w * 4
 			set-memory as byte-ptr! (b/bits + (b/rows * w)) null-byte (rows - b/rows) * w * 4
