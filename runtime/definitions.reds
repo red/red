@@ -171,36 +171,6 @@ Red/System [
 	native [
 		#switch OS [
 			Windows  [
-				#enum brush-type! [
-					BRUSH_TYPE_NORMAL
-					BRUSH_TYPE_TEXTURE
-				]
-
-				tagPAINTSTRUCT: alias struct! [
-					hdc			 [handle!]
-					fErase		 [integer!]
-					left		 [integer!]
-					top			 [integer!]
-					right		 [integer!]
-					bottom		 [integer!]
-					fRestore	 [integer!]
-					fIncUpdate	 [integer!]
-					rgbReserved1 [integer!]
-					rgbReserved2 [integer!]
-					rgbReserved3 [integer!]
-					rgbReserved4 [integer!]
-					rgbReserved5 [integer!]
-					rgbReserved6 [integer!]
-					rgbReserved7 [integer!]
-					rgbReserved8 [integer!]
-				]
-
-				PATHDATA: alias struct! [
-					count       [integer!]
-					points      [POINT_2F]
-					types       [byte-ptr!]
-				]
-
 				gradient!: alias struct! [
 					extra           [integer!]          		;-- used when pen width > 1
 					path-data       [PATHDATA]          		;-- preallocated for performance reasons
