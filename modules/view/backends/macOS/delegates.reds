@@ -486,7 +486,6 @@ scroller-change: func [
 		bar			[integer!]
 		direction	[integer!]
 		pos			[integer!]
-		view		[integer!]
 		min			[red-integer!]
 		max			[red-integer!]
 		page		[red-integer!]
@@ -495,7 +494,6 @@ scroller-change: func [
 		frac		[float!]
 		values		[red-value!]
 ][
-	view: objc_msgSend [self sel_getUid "documentView"]
 	bar: objc_msgSend [self sel_getUid "verticalScroller"]
 	direction: either bar = sender [0][1]
 	code: objc_msgSend [sender sel_getUid "hitPart"]
@@ -786,7 +784,7 @@ object-for-table: func [
 		font [red-object!]
 		face [red-object!]
 		attr [integer!]
-		ivar [integer!]
+		id	 [integer!]
 		idx  [integer!]
 		type [integer!]
 		str  [integer!]
@@ -808,8 +806,9 @@ object-for-table: func [
 	font: (as red-object! get-face-values obj) + FACE_OBJ_FONT
 	str: to-NSString as red-string! block/rs-abs-at data idx
 	if TYPE_OF(font) = TYPE_OBJECT [
-		ivar: class_getInstanceVariable object_getClass self IVAR_RED_FACE
-		face: as red-object! self + ivar_getOffset ivar
+		id: 0
+		object_getInstanceVariable self IVAR_RED_FACE :id
+		face: as red-object! references/get id
 		attr: make-font-attrs font face text-list
 		str: objc_msgSend [
 			objc_msgSend [objc_getClass "NSAttributedString" sel_getUid "alloc"]
@@ -1587,9 +1586,8 @@ draw-rect: func [
 		system/thrown: 0
 		DC: declare draw-ctx!								;@@ should declare it on stack
 		draw-begin DC ctx img no no
-		integer/make-at as red-value! draw as-integer DC
+		object_setInstanceVariable self IVAR_RED_DRAW_CTX as-integer DC
 		make-event self 0 EVT_DRAWING
-		draw/header: TYPE_NONE
 		draw-end DC ctx no no no
 	]
 ]

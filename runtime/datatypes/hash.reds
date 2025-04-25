@@ -42,6 +42,7 @@ hash: context [
 				size: block/rs-length? as red-block! spec
 				blk?: yes
 			]
+			TYPE_HASH [return copy as red-hash! spec as red-hash! proto null no null]
 			default [
 				return to proto spec type
 			]
@@ -51,8 +52,12 @@ hash: context [
 		either type = -1 [							;-- called by TO
 			blk: as red-block! spec
 		][
-			blk: block/make-at as red-block! stack/push* size
-			if blk? [block/copy as red-block! spec blk null no null]
+			blk: as red-block! stack/push*
+			either blk? [
+				block/copy as red-block! spec blk null no null
+			][
+				block/make-at blk size
+			]
 		]
 		table: _hashtable/init size blk HASH_TABLE_HASH 1
 		hash: as red-hash! blk
@@ -69,7 +74,11 @@ hash: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "hash/to"]]
 
-		make proto (as red-value! block/to proto spec TYPE_BLOCK) -1
+		either TYPE_OF(spec) = TYPE_HASH [
+			copy as red-hash! spec as red-hash! proto null no null
+		][
+			make proto (as red-value! block/to proto spec TYPE_BLOCK) -1
+		]
 	]
 
 	mold: func [
@@ -85,31 +94,28 @@ hash: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "hash/mold"]]
 
-		string/concatenate-literal buffer "make hash! "
-		block/mold as red-block! hash buffer no all? flat? arg part - 11 indent
+		unless only? [
+			string/concatenate-literal buffer "make hash! "
+			part: part - 11
+		]
+		block/mold as red-block! hash buffer only? all? flat? arg part indent
 	]
 
 	copy: func [
 		hash    	[red-hash!]
-		new			[red-block!]
+		new			[red-hash!]
 		part-arg	[red-value!]
 		deep?		[logic!]
 		types		[red-value!]
-		return:		[red-series!]
-		/local
-			size	[integer!]
-			table	[node!]
+		return:		[red-hash!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "hash/copy"]]
 
-		block/copy as red-block! hash new part-arg deep? types
-		new/header: TYPE_BLOCK							;-- _hashtable/init may trigger GC. `new` is actually a block for now.
-		size: block/rs-length? new
-		table: _hashtable/init size new HASH_TABLE_HASH 1
-		hash: as red-hash! new
-		hash/header: TYPE_HASH							;-- implicit reset of all header flags
-		hash/table: table
-		as red-series! hash
+		block/copy as red-block! hash as red-block! new part-arg deep? types
+		new/table:  hash/table	;-- set it to old table, _hashtable/copy below may trigger GC
+		new/table:  _hashtable/copy hash/table new/node
+		new/header: TYPE_HASH
+		new
 	]
 
 	sort: func [

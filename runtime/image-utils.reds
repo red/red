@@ -130,28 +130,30 @@ image-utils: context [
 		dh			[int-ptr!]		;-- dst height
 		return:		[int-ptr!]
 		/local
+			ps		[byte-ptr!]
+			pd		[byte-ptr!]
+			p		[pointer! [float32!]]
+			AB		[VECTOR2D! value]
+			BC		[VECTOR2D! value]
+			CD		[VECTOR2D! value]
+			DA		[VECTOR2D! value]
+			v		[VECTOR2D! value]
+			rgba	[int-ptr!]
 			xmin	[float32!]
 			ymin	[float32!]
 			xmax	[float32!]
 			ymax	[float32!]
-			p		[pointer! [float32!]]
 			rect.x	[integer!]
 			rect.y	[integer!]
 			rect.w	[integer!]
 			rect.h	[integer!]
 			size	[integer!]
-			AB		[VECTOR2D! value]
-			BC		[VECTOR2D! value]
-			CD		[VECTOR2D! value]
-			DA		[VECTOR2D! value]
 			src.w	[float!]
 			src.h	[float!]
-			rgba	[int-ptr!]
 			i		[integer!]
 			j		[integer!]
 			fi		[float32!]
 			fj		[float32!]
-			v		[VECTOR2D! value]
 			dab		[float!]
 			dbc		[float!]
 			dcd		[float!]
@@ -172,8 +174,6 @@ image-utils: context [
 			dx1y2	[float32!]
 			dx2y1	[float32!]
 			dx2y2	[float32!]
-			ps		[byte-ptr!]
-			pd		[byte-ptr!]
 			ti		[integer!]
 			c1		[float32!]
 			c2		[float32!]
@@ -365,5 +365,71 @@ image-utils: context [
 			return null
 		]
 		p
+	]
+
+	#define YUYV_K1	91881
+	#define YUYV_K2 46792
+	#define YUYV_K3 21889
+	#define YUYV_K4 116129
+
+	#define YUYV_saturate(value min-val max-val) [
+		case [
+			value < min-val [value: min-val]
+			value > max-val [value: max-val]
+			true [0]
+		]
+	]
+
+	YUYV-to-RGB32: func [
+		width		[integer!]
+		height		[integer!]
+		src			[byte-ptr!]
+		out			[int-ptr!]
+		/local
+			x y		[integer!]
+			p		[byte-ptr!]
+			uf vf	[integer!]
+			R G B	[integer!]
+			Y1 U Y2 V [integer!]
+	][
+		p: src
+		y: 0
+		while [y < height][
+			x: 0
+			while [x < width][
+				Y1: as-integer p/1
+				U:  as-integer p/2
+				Y2: as-integer p/3
+				V:  as-integer p/4
+
+				uf: U - 128
+				vf: V - 128
+
+				R: Y1 + (YUYV_K1 * vf >> 16)
+				G: Y1 - (YUYV_K2 * vf >> 16) - (YUYV_K3 * uf >> 16)
+				B: Y1 + (YUYV_K4 * uf >> 16)
+
+				YUYV_saturate(R 0 255)
+				YUYV_saturate(G 0 255)
+				YUYV_saturate(B 0 255)
+
+				out/value: B << 16 or (G << 8) or R or FF000000h
+				out: out + 1
+
+				R: Y2 + (YUYV_K1 * vf >> 16)
+				G: Y2 - (YUYV_K2 * vf >> 16) - (YUYV_K3 * uf >> 16)
+				B: Y2 + (YUYV_K4 * uf >> 16)
+
+				YUYV_saturate(R 0 255)
+				YUYV_saturate(G 0 255)
+				YUYV_saturate(B 0 255)
+
+				out/value: B << 16 or (G << 8) or R or FF000000h
+				out: out + 1
+				p: p + 4
+				x: x + 2
+			]
+			y: y + 1
+		]
 	]
 ]

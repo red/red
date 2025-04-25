@@ -8,14 +8,14 @@ jobs:
     name: Run Linux-x86 Tests
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Build Tests
       uses: ./CI/Linux-gtk
       with:
         command: /sbin/start-stop-daemon --start --quiet --background --exec /usr/bin/Xvfb && sleep 3 && rebol -qws tests/run-all.r --batch
 
     # upload log file if any test failed
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       if: failure()
       with:
         name: Linux-Red-Tests-log
@@ -26,14 +26,14 @@ jobs:
     name: Run Linux-RS Tests
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Build Tests
       uses: ./CI/Linux-32
       with:
         command: rebol -qws system/tests/run-all.r --batch
 
     # upload log file if any test failed
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       if: failure()
       with:
         name: Linux-RS-Tests-log

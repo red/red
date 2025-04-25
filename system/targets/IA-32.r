@@ -17,7 +17,8 @@ make-profilable make target-class [
 	stack-slot-max:		8							;-- size of biggest datatype on stack (float64!)
 	args-offset:		8							;-- stack frame offset to arguments (ebp + ret-addr)
 	branch-offset-size:	4							;-- size of JMP offset
-	locals-offset:		8							;-- offset from frame pointer to local variables (catch ID + addr)
+	locals-offset:		16							;-- offset from frame pointer to local variables (catch ID + addr + bitmap offset)
+	def-locals-offset:	16							;-- default offset from frame pointer to local variables
 	
 	fpu-cword: none									;-- x87 control word reference in emitter/symbols
 	fpu-flags: to integer! #{037A}					;-- default control word, division by zero
@@ -62,19 +63,22 @@ make-profilable make target-class [
 	]
 	
 	on-global-epilog: func [runtime? [logic!] type [word!]][
-		if runtime? [patch-floats-definition 'unset] ;-- restore definitions for next compilation jobs
-		if all [
-			not runtime?
-			compiler/job/need-main?
+		either runtime? [
+			patch-floats-definition 'unset			;-- restore definitions for next compilation jobs
 		][
-			emit #{89EC}							;-- MOV esp, ebp
-			emit-pop								;-- pop exceptions threshold slot
-			emit-pop								;-- pop exceptions address slot
-			emit #{5D}								;-- POP ebp
-			args: switch/default compiler/job/OS [
-				Syllable [6]
-			][7]
-			emit-epilog '***_start [] args * 4 0	;-- restore all before returning in __libc_start_main()
+			either compiler/job/need-main? [
+				emit #{89EC}						;-- MOV esp, ebp
+				emit-pop							;-- pop exceptions threshold slot
+				emit-pop							;-- pop exceptions address slot
+				emit-pop							;-- pop arguments/locals bitarray slot
+				emit #{5D}							;-- POP ebp
+				args: switch/default compiler/job/OS [
+					Syllable [6]
+				][7]
+				emit-epilog/closing '***_start [] args * 4 0 ;-- restore all before returning in __libc_start_main()
+			][
+				emit-load 0							;-- return 0 from the process
+			]
 		]
 	]
 	
@@ -299,7 +303,6 @@ make-profilable make target-class [
 	]
 	
 	emit-casting: func [value [object!] alt? [logic!] /push /local type old][
-		if value/keep? [exit]
 		type: compiler/get-type value/data
 		case [
 			value/type/1 = 'logic! [
@@ -328,15 +331,19 @@ make-profilable make target-class [
 			all [value/type/1 = 'integer! find [float! float64! float32!] type/1][
 				if verbose >= 3 [print [">>>converting from" type/1 "to integer!"]]
 				emit #{83EC04}						;-- SUB esp, 4
-				either compiler/job/cpu-version >= 4.0 [ ;-- Only CPUs with SSE3, >= Pentium 4
-					emit #{DB0C24}					;-- FISTTP dword [esp]	; save as 32-bit truncated
+				either all [value/keep? type/1 = 'float32!][
+					emit #{D91C24}					;-- FSTP dword [esp]	; save as 32-bit
 				][
-					emit-push to integer! #{0E7F}	;-- set FPU_X87_ROUNDING_ZERO mode
-					emit #{D92C24}					;-- FLDCW [esp]
-					emit #{83C404}					;-- ADD esp, 4			; free space
-					emit #{DB1C24}					;-- FISTP dword [esp]	; save as 32-bit
-					emit #{D92D}					;-- FLDCW [<word>]	 	; global
-					emit-reloc-addr fpu-cword/2		;-- one-based index
+					either compiler/job/cpu-version >= 4.0 [ ;-- Only CPUs with SSE3, >= Pentium 4
+						emit #{DB0C24}				;-- FISTTP dword [esp]	; save as 32-bit truncated
+					][
+						emit-push to integer! #{0E7F};-- set FPU_X87_ROUNDING_ZERO mode
+						emit #{D92C24}				;-- FLDCW [esp]
+						emit #{83C404}				;-- ADD esp, 4			; free space
+						emit #{DB1C24}				;-- FISTP dword [esp]	; save as 32-bit
+						emit #{D92D}				;-- FLDCW [<word>]	 	; global
+						emit-reloc-addr fpu-cword/2	;-- one-based index
+					]
 				]
 				unless push [
 					either alt? [
@@ -353,7 +360,11 @@ make-profilable make target-class [
 				][
 					emit #{50}						;-- PUSH eax
 				]
-				emit #{DB0424}						;-- FILD dword [esp]	; load as 32-bit
+				either value/keep? [
+					emit #{D90424}					;-- FLD dword [esp]		; load as 32-bit
+				][
+					emit #{DB0424}					;-- FILD dword [esp]	; load integer as 32-bit float
+				]
 				either push [
 					emit #{D91C24}					;-- FSTP dword [esp]	; save as 32-bit
 				][
@@ -551,12 +562,12 @@ make-profilable make target-class [
 	]
 	
 	emit-atomic-load: func [order [word!]][
-		if verbose >= 3 [print [">>>emitting ATOMIC-LOAD" mold ptr mold order]]
+		if verbose >= 3 [print [">>>emitting ATOMIC-LOAD" mold order]]
 		emit #{8B00}								;-- MOV eax, [eax]
 	]
 	
 	emit-atomic-store: func [value order [word!]][
-		if verbose >= 3 [print [">>>emitting ATOMIC-STORE" mold ptr mold value mold order]]
+		if verbose >= 3 [print [">>>emitting ATOMIC-STORE" mold value mold order]]
 		emit #{89C6} 								;-- MOV esi, eax
 		emit-load value
 		emit #{8906}								;-- MOV [esi], eax
@@ -564,7 +575,7 @@ make-profilable make target-class [
 	]
 	
 	emit-atomic-math: func [op [word!] right-op old? [logic!] ret? [logic!] order [word!]][
-		if verbose >= 3 [print [">>>emitting ATOMIC-MATH-OP" mold ptr mold op mold value mold ret? mold order]]
+		if verbose >= 3 [print [">>>emitting ATOMIC-MATH-OP" mold op mold value mold ret? mold order]]
 		emit #{89C6} 								;-- MOV esi, eax
 		emit-load right-op
 		either any [old? ret?][
@@ -610,7 +621,7 @@ make-profilable make target-class [
 	]
 	
 	emit-atomic-cas: func [check value ret? [logic!] order [word!]][
-		if verbose >= 3 [print [">>>emitting ATOMIC-CAS" mold ptr mold check mold value ret? mold order]]
+		if verbose >= 3 [print [">>>emitting ATOMIC-CAS" mold check mold value ret? mold order]]
 		emit #{89C6} 								;-- MOV esi, eax
 		emit-load value
 		emit-move-path-alt							;-- load new value in edx
@@ -711,7 +722,7 @@ make-profilable make target-class [
 	]
 	
 	emit-clear-slot: func [name [word!] /local opcode offset][
-		opcode: #{C745}								;-- MOV dword [ebp+n], value	; local
+		opcode: #{C745}								;-- MOV dword [ebp+n], 0	; local
 		offset: stack-encode emitter/local-offset? name
 		emit adjust-disp32 opcode offset
 		emit offset
@@ -790,8 +801,7 @@ make-profilable make target-class [
 		either op [
 			emit add-condition op copy #{0F90}			;--	SETcc al
 			emit #{C0}
-			emit #{30E4}								;-- XOR ah, ah
-			emit #{98}									;--	CWDE		; sign-extend ax to eax
+			emit #{0FB6C0}								;-- MOVZX eax, al ; zero-extend al to eax
 			reduce [0 0]
 		][
 			emit #{31C0}								;-- 	  XOR eax, eax	; eax = 0 (FALSE)
@@ -1042,7 +1052,11 @@ make-profilable make target-class [
 						#{8945}						;-- MOV [ebp+n], eax	; local
 				][
 					do store-dword
-					emit-reloc-addr spec/2
+					either all [binary? value 'float32! = first compiler/get-type name][ ;-- `as float32! keep` case
+						emit value
+					][
+						emit-reloc-addr spec/2
+					]
 				]
 			]
 		]
@@ -2323,6 +2337,13 @@ make-profilable make target-class [
 	]
 	
 	emit-call-import: func [args [block!] fspec [block!] spec [block!] attribs [block! none!] /local cdecl?][
+		either PIC? [
+			emit #{89AB}							;-- MOV dword [ebx+disp], ebp	; PIC
+		][
+			emit #{892D}							;-- MOV [last-red-frame], ebp	; global
+		]
+		emit-reloc-addr last-red-frame/2			;-- save frame pointer for later frames chaining
+		
 		cdecl?: fspec/3 = 'cdecl
 		if all [compiler/variadic? args/1 not cdecl?][emit-variadic-data args]
 
@@ -2348,6 +2369,13 @@ make-profilable make target-class [
 		cdecl?: fspec/3 = 'cdecl
 		
 		either routine [
+			either PIC? [
+				emit #{89AB}							;-- MOV dword [ebx+disp], ebp	; PIC
+			][
+				emit #{892D}							;-- MOV [last-red-frame], ebp	; global
+			]
+			emit-reloc-addr last-red-frame/2			;-- save frame pointer for later frames chaining
+
 			either 'local = last fspec [
 				name: pick tail fspec -2
 				either find form name slash [
@@ -2440,7 +2468,7 @@ make-profilable make target-class [
 	
 	emit-close-catch: func [offset [integer!] global [logic!] callback? [logic!]][
 		if verbose >= 3 [print ">>>emitting CATCH epilog"]
-		offset: offset + (2 * 8)					;-- account for the 2 catch slots + 2 saved slots
+		offset: offset + locals-offset + 8 			;-- account for the 2 saved slots
 		if callback? [offset: offset + 12]			;-- account for ebx,esi,edi saving slots
 		
 		either offset > 127 [
@@ -2455,11 +2483,16 @@ make-profilable make target-class [
 		emit #{8F45FC}								;-- POP [ebp-4]
 	]
 
-	emit-prolog: func [name [word!] locals [block!] /local fspec attribs offset locals-size][
+	emit-prolog: func [name [word!] locals [block!] bitmap [integer!] /local fspec attribs offset locals-size cb?][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
 
 		fspec: select compiler/functions name
 		attribs: compiler/get-attributes fspec/4
+		
+		cb?: any [
+			fspec/5 = 'callback
+			all [attribs any [find attribs 'cdecl find attribs 'stdcall]]
+		]
 			
 		emit #{55}									;-- PUSH ebp
 		emit #{89E5}								;-- MOV ebp, esp
@@ -2468,16 +2501,22 @@ make-profilable make target-class [
 			attribs find attribs 'catch
 		]
 		emit-push 0									;-- reserve slot for catch resume address
+		emit-push bitmap							;-- push the args/locals bitmap offset
+		
+		locals-offset: def-locals-offset			;@@ global state used in epilog
+		either any [PIC? none? last-red-frame][
+			emit #{6A00}						;-- PUSH 0		; placeholder
+		][
+			emit #{FF35}						;-- PUSH [last-red-frame]
+			emit-reloc-addr last-red-frame/2
+		]
 
 		locals-size: either pos: find locals /local [emitter/calc-locals-offsets pos][0]
 		
 		unless zero? locals-size [
 			emit-reserve-stack (round/to/ceiling locals-size stack-width) / stack-width
 		]
-		if any [
-			fspec/5 = 'callback
-			all [attribs any [find attribs 'cdecl find attribs 'stdcall]]
-		][
+		if cb? [
 			emit #{53}								;-- PUSH ebx
 			emit #{56}								;-- PUSH esi
 			emit #{57}								;-- PUSH edi
@@ -2486,13 +2525,17 @@ make-profilable make target-class [
 				offset: emit-get-pc/ebx
 				emit #{81EB}						;-- SUB ebx, <offset>
 				emit to-bin32 emitter/tail-ptr + 1 - offset	;-- +1 adjustment for CALL first opcode
+				
+				emit #{8D83}						;-- LEA eax, [ebx+<last-red-frame>]
+				emit-reloc-addr last-red-frame/2
+				emit #{8945F0}						;-- MOV [ebp-10h], eax
 			]
 		]
 		reduce [locals-size 0]
 	]
 
 	emit-epilog: func [
-		name [word!] locals [block!] args-size [integer!] locals-size [integer!] /with slots [integer! none!]
+		name [word!] locals [block!] args-size [integer!] locals-size [integer!] /with slots [integer! none!] /closing
 		/local fspec attribs vars offset cdecl? SysVABI? macOSABI? clean-hidden-ptr? type
 	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
@@ -2557,6 +2600,7 @@ make-profilable make target-class [
 			emit #{5E}								;-- POP esi
 			emit #{5B}								;-- POP ebx
 		]
+		if closing [emit-load 0]
 		emit #{C9}									;-- LEAVE			; catch flag is skipped
 		either any [
 			zero? args-size

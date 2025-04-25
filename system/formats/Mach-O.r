@@ -262,7 +262,7 @@ context [
 	] none
 	
 	pointer: make-struct [
-		value [integer!]			;-- 32/64-bit, watch out for endianess!!
+		value [integer!]			;-- 32/64-bit, watch out for endianness!!
 	] none
 
 	;-- Globals --
@@ -918,9 +918,9 @@ context [
 		linker/set-image-info
 			job
 			base-address
-			first  get-segment-info '__TEXT
+			(get-section-addr '__text) - either job/PIC? [0][base-address]
 			second get-segment-info '__TEXT
-			first  get-segment-info '__DATA
+			(get-section-addr '__data) - either job/PIC? [0][base-address]
 			second get-segment-info '__DATA
 		
 		if job/show-func-map? [linker/show-funcs-map job get-section-addr '__text]

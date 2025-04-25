@@ -21,6 +21,7 @@ slash: 		 #"/"
 sp: space: 	 #" "
 null: 		 #"^@"
 crlf:		 "^M^/"
+enter:		 #"^M"
 dot:		 #"."
 comma:		 #","
 dbl-quote:	 #"^""
@@ -37,6 +38,7 @@ null-handle: #system [handle/push-null]
 internal!:		make typeset! [unset!]
 external!:		make typeset! [event!]
 number!:		make typeset! [integer! float! percent!]
+planar!:		make typeset! [pair! point2D!]
 any-point!:		make typeset! [point2D! point3D!]
 scalar!:		union number! union any-point! make typeset! [money! char! pair! tuple! time! date! IPv6!]
 any-word!:		make typeset! [word! set-word! get-word! lit-word!] ;-- any bindable word

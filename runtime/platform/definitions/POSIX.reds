@@ -16,21 +16,6 @@ Red/System [
 
 #define RTLD_LAZY	1
 
-; Wordexp enums
-#define	WRDE_DOOFFS		1
-#define	WRDE_APPEND		2
-#define	WRDE_NOCMD		4
-#define	WRDE_REUSE		8
-#define	WRDE_SHOWERR	16
-#define	WRDE_UNDEF		32
-#define	__WRDE_FLAGS	63
-
-#define	WRDE_NOSPACE	1
-#define	WRDE_BADCHAR	2
-#define	WRDE_BADVAL		3
-#define	WRDE_CMDSUB		4
-#define	WRDE_SYNTAX		5
-
 #define POLLIN		0001h
 #define POLLPRI		0002h
 #define POLLOUT		0004h
@@ -82,6 +67,138 @@ Red/System [
 
 #define INET6_ADDRSTRLEN 46
 
+#define OS_POLLIN 		1
+
+#case [
+	any [OS = 'macOS OS = 'FreeBSD OS = 'NetBSD] [
+		#define TIOCGWINSZ		40087468h
+		#define TERM_TCSADRAIN	1
+		#define TERM_VTIME		18
+		#define TERM_VMIN		17
+
+		#define TERM_BRKINT		02h
+		#define TERM_INPCK		10h
+		#define TERM_ISTRIP		20h
+		#define TERM_ICRNL		0100h
+		#define TERM_IXON		0200h
+		#define TERM_OPOST		01h
+		#define TERM_CS8		0300h
+		#define TERM_ISIG		80h
+		#define TERM_ICANON		0100h
+		#define TERM_ECHO		08h	
+		#define TERM_IEXTEN		4000h
+
+		termios!: alias struct! [
+			c_iflag			[integer!]
+			c_oflag			[integer!]
+			c_cflag			[integer!]
+			c_lflag			[integer!]
+			c_cc1			[integer!]						;-- c_cc[20]
+			c_cc2			[integer!]
+			c_cc3			[integer!]
+			c_cc4			[integer!]
+			c_cc5			[integer!]
+			c_ispeed		[integer!]
+			c_ospeed		[integer!]
+		]
+	]
+	true [													;-- Linux
+		#define TIOCGWINSZ		5413h
+		#define TERM_VTIME		6
+		#define TERM_VMIN		7
+
+		#define TERM_BRKINT		2
+		#define TERM_INPCK		20
+		#define TERM_ISTRIP		40
+		#define TERM_ICRNL		400
+		#define TERM_IXON		2000
+		#define TERM_OPOST		1
+		#define TERM_CS8		60
+		#define TERM_ISIG		1
+		#define TERM_ICANON		2
+		#define TERM_ECHO		10
+		#define TERM_IEXTEN		100000
+
+		#either OS = 'Android [
+			#define TERM_TCSADRAIN	5403h
+
+			termios!: alias struct! [
+				c_iflag			[integer!]
+				c_oflag			[integer!]
+				c_cflag			[integer!]
+				c_lflag			[integer!]
+				;c_line			[byte!]
+				c_cc1			[integer!]					;-- c_cc[19]
+				c_cc2			[integer!]
+				c_cc3			[integer!]
+				c_cc4			[integer!]
+				c_cc5			[integer!]
+			]
+		][
+			#define TERM_TCSADRAIN	1
+
+			termios!: alias struct! [						;-- sizeof(termios) = 60
+				c_iflag			[integer!]
+				c_oflag			[integer!]
+				c_cflag			[integer!]
+				c_lflag			[integer!]
+				c_line			[byte!]
+				c_cc1			[byte!]						;-- c_cc[32]
+				c_cc2			[byte!]
+				c_cc3			[byte!]
+				c_cc4			[integer!]
+				c_cc5			[integer!]
+				c_cc6			[integer!]
+				c_cc7			[integer!]
+				c_cc8			[integer!]
+				c_cc9			[integer!]
+				c_cc10			[integer!]
+				pad				[integer!]					;-- for proper alignment
+				c_ispeed		[integer!]
+				c_ospeed		[integer!]
+			]
+		]
+	]
+]
+
+winsize!: alias struct! [
+	rowcol			[integer!]
+	xypixel			[integer!]
+]
+
+#either OS = 'Android [
+	tcgetattr: func [
+		fd		[integer!]
+		termios [termios!]
+		return: [integer!]
+	][
+		ioctl fd 5401h as winsize! termios
+	]
+	tcsetattr: func [
+		fd			[integer!]
+		opt_actions [integer!]
+		termios 	[termios!]
+		return: 	[integer!]
+	][
+		ioctl fd opt_actions as winsize! termios
+	]
+][
+	#import [
+	LIBC-file cdecl [
+		tcgetattr: "tcgetattr" [
+			fd		[integer!]
+			termios [termios!]
+			return: [integer!]
+		]
+		tcsetattr: "tcsetattr" [
+			fd			[integer!]
+			opt_actions [integer!]
+			termios 	[termios!]
+			return: 	[integer!]
+		]
+	]]
+]
+	
 ; Wordexp types
 wordexp-type!: alias struct! [
 	we_wordc  [integer!]
@@ -288,16 +405,6 @@ res_state!: alias struct! [	;-- size: 512 bytes
 			args-list      [str-array!]
 			return:        [integer!]
 		]
-		wordexp: "wordexp" [
-			words          [c-string!]
-			pwordexp       [wordexp-type!]
-			flags          [integer!]
-			return:        [integer!]
-		]
-		wordfree: "wordfree" [
-			pwordexp       [wordexp-type!]
-			return:        [integer!]
-		]
 		wait-child: "wait" [
 			status         [int-ptr!]
 			return:        [integer!]
@@ -316,6 +423,20 @@ res_state!: alias struct! [	;-- size: 512 bytes
 			fd             [integer!]
 			fd2            [integer!]
 			return:        [integer!]
+		]
+		libC.dup: "dup" [
+			fd		[integer!]
+			return: [integer!]
+		]
+		libC.isatty: "isatty" [
+			fd		[integer!]
+			return:	[integer!]
+		]
+		ioctl: "ioctl" [
+			fd		[integer!]
+			request	[integer!]
+			ws		[winsize!]
+			return: [integer!]
 		]
 		LibC.open:	"open" [
 			filename	[c-string!]

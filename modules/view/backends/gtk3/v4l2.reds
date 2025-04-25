@@ -260,7 +260,7 @@ v4l2: context [
 
 	filters: [
 		V4L2_PIX_FMT_MJPEG
-		;V4L2_PIX_FMT_YUYV
+		V4L2_PIX_FMT_YUYV
 	]
 
 	v4l2_capability: alias struct! [
@@ -610,6 +610,7 @@ v4l2: context [
 	][
 		config/running?: no
 		val: 0
+		signal config
 		pthread_join config/thread :val
 		pthread_cond_destroy :config/cond
 		pthread_mutex_destroy :config/mutex

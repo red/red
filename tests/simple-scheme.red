@@ -79,7 +79,7 @@ Red [
 	]
 ]
 
-actor: #system [handle/push custom-device/table]
+actor: #system [handle/push custom-device/table handle/CLASS_DEVICE]
 
 register-scheme/native make system/standard/scheme [
 	name: 'custom

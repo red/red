@@ -1071,6 +1071,11 @@ string: context [
 		/local
 			s1	  [series!]
 			s2	  [series!]
+			tail  [byte-ptr!]
+			p	  [byte-ptr!]
+			p2	  [byte-ptr!]
+			p4	  [int-ptr!]
+			limit [byte-ptr!]
 			unit1 [integer!]
 			unit2 [integer!]
 			type1 [integer!]
@@ -1078,11 +1083,6 @@ string: context [
 			size  [integer!]
 			size1 [integer!]
 			size2 [integer!]
-			tail  [byte-ptr!]
-			p	  [byte-ptr!]
-			p2	  [byte-ptr!]
-			p4	  [int-ptr!]
-			limit [byte-ptr!]
 			cp	  [integer!]
 			h1	  [integer!]
 			h2	  [integer!]
@@ -1998,21 +1998,21 @@ string: context [
 			fl		[red-float!]
 			str2	[red-string!]
 			bits	[red-bitset!]
-			unit	[encoding!]
-			unit2	[encoding!]
-			head2	[integer!]
+			sbits	[series!]
+			pbits	[byte-ptr!]
+			pos		[byte-ptr!]								;-- required by BS_TEST_BIT
 			p1 p2	[byte-ptr!]
 			p4		[int-ptr!]
 			pf		[float-ptr!]
+			unit	[encoding!]
+			unit2	[encoding!]
+			head2	[integer!]
 			c1 c2	[integer!]
 			cf1 cf2	[float!]
 			step	[integer!]
 			sz		[integer!]
 			sz2		[integer!]
 			len     [integer!]
-			sbits	[series!]
-			pbits	[byte-ptr!]
-			pos		[byte-ptr!]								;-- required by BS_TEST_BIT
 			limit	[integer!]
 			part?	[logic!]
 			bs?		[logic!]
@@ -2483,6 +2483,7 @@ string: context [
 			sp		  [red-string!]
 			form-slot [red-value!]
 			form-buf  [red-string!]
+			action	  [red-word!]
 			s		  [series!]
 			s2		  [series!]
 			dup-n	  [integer!]
@@ -2493,9 +2494,10 @@ string: context [
 			added	  [integer!]
 			type	  [integer!]
 			index	  [integer!]
+			slots	  [integer!]
+			size	  [integer!]
 			tail?	  [logic!]
 			chk?	  [logic!]
-			action	  [red-word!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/insert"]]
 
@@ -2540,6 +2542,14 @@ string: context [
 			str/head
 		]
 		chk?: ownership/check as red-value! str action value index part
+
+		slots: either part > 0 [cnt * part][cnt]
+		slots: slots * GET_UNIT(s)
+		size: slots + as-integer s/tail - s/offset
+		if size > s/size [
+			if cnt <= 4 [size: size * 2]				;-- double it if low number of inserted slots
+			s: expand-series s size
+		]
 		
 		while [not zero? cnt][							;-- /dup support
 			type: TYPE_OF(value)

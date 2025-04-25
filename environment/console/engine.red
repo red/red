@@ -213,7 +213,7 @@ system/console: context [
 		'stop <> catch [transcode/trace buffer :delimiter-lex] ;-- catches 'stop and 'break
 	]
 	
-	try-do: func [code /local result return: [any-type!]][
+	try-do: func [code return: [any-type!] /local result][
 		set/any 'result try/all/keep [
 			either 'halt-request = set/any 'result catch/name code 'console [
 				print "(halted)"						;-- return an unset value
@@ -259,7 +259,6 @@ system/console: context [
 					]
 				]
 			]
-			if all [not last-lf? not gui?][prin lf]
 		]
 		clear buffer
 	]
@@ -396,7 +395,7 @@ expand: func [
 
 ls:		func ["Display a directory listing, for the current dir if none is given" 'dir [any-type!]][list-dir :dir]
 ll:		func ["Display a single column directory listing, for the current dir if none is given" 'dir [any-type!]][list-dir/col :dir 1]
-pwd:	func ["Displays the active directory path (Print Working Dir)"][prin mold system/options/path]
+pwd:	func ["Displays the active directory path (Print Working Dir)"][print mold system/options/path]
 halt:	func ["Stops evaluation and returns to the input prompt"][throw/name 'halt-request 'console]
 
 cd:	function [

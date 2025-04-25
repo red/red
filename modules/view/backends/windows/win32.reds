@@ -18,6 +18,8 @@ Red/System [
 	]
 ]
 
+#define MONITOR_DEFAULTTONEAREST 2
+
 #define MAPVK_VK_TO_CHAR		2
 
 #define NM_CUSTOMDRAW			-12
@@ -371,7 +373,10 @@ Red/System [
 #define BST_PUSHED			4
 #define BST_FOCUS			8
 
+#define VK_BACK 			08h
 #define VK_TAB				09h
+#define VK_CLEAR 			0Ch
+#define VK_RETURN 			0Dh
 #define VK_SHIFT			10h
 #define VK_CONTROL			11h
 #define VK_MENU				12h
@@ -730,6 +735,15 @@ tagMINMAXINFO: alias struct! [
 	ptMaxTrackSize.y [integer!]
 ]
 
+monitor-enum-cb!: alias function! [
+	[stdcall]
+	hMonitor[integer!]
+	hDC		[handle!]
+	lpRECT	[int-ptr!]
+	spec	[red-block!]								;-- user-defined argument
+	return: [logic!]
+]
+
 wndproc-cb!: alias function! [
 	[stdcall]
 	hWnd	[handle!]
@@ -792,11 +806,6 @@ ACTCTX: alias struct! [
 	lpResource	[c-string!]
 	lpAppName	[c-string!]
 	hModule		[integer!]
-]
-
-DISPLAY_DEVICE: alias struct! [
-	cbSize		[integer!]
-	DevName		[byte!]
 ]
 
 OSVERSIONINFO: alias struct! [
@@ -1101,6 +1110,14 @@ XFORM!: alias struct! [
 		GetConsoleWindow: "GetConsoleWindow" [
 			return:			[int-ptr!]
 		]
+        QueryPerformanceFrequency: "QueryPerformanceFrequency" [
+            lpFrequency [LARGE_INTEGER]
+            return:     [logic!]
+        ]
+        QueryPerformanceCounter: "QueryPerformanceCounter" [
+            lpCount     [LARGE_INTEGER]
+            return:     [logic!]
+        ]
 	]
 	"User32.dll" stdcall [
 		GetCursorPos: "GetCursorPos" [
@@ -1118,9 +1135,20 @@ XFORM!: alias struct! [
 			flags		[integer!]
 			return:		[logic!]
 		]
+		EnumDisplayMonitors: "EnumDisplayMonitors" [
+			hdc			[handle!]
+			lprcClip	[RECT_STRUCT]
+			lpfEnum		[monitor-enum-cb!]
+			dwData		[red-block!]					;-- user-defined argument
+		]
 		MonitorFromPoint: "MonitorFromPoint" [
 			pt			[tagPOINT value]
 			flags		[integer!]
+			return:		[handle!]
+		]
+		MonitorFromWindow: "MonitorFromWindow" [
+			hWnd		[handle!]
+			dwFlags		[integer!]
 			return:		[handle!]
 		]
 		GetKeyboardLayout: "GetKeyboardLayout" [
@@ -1299,13 +1327,6 @@ XFORM!: alias struct! [
 		GetSysColorBrush: "GetSysColorBrush" [
 			index		[integer!]
 			return:		[handle!]
-		]
-		EnumDisplayDevices: "EnumDisplayDevicesW" [
-			lpDevice 	[c-string!]
-			iDevNum		[integer!]
-			lpDispDev	[DISPLAY_DEVICE]
-			dwFlags		[integer!]
-			return:		[integer!]
 		]
 		RegisterClassEx: "RegisterClassExW" [
 			lpwcx		[WNDCLASSEX]
@@ -1551,6 +1572,7 @@ XFORM!: alias struct! [
 		SetWindowText: "SetWindowTextW" [
 			hWnd		[handle!]
 			lpString	[c-string!]
+			return:		[integer!]
 		]
 		GetWindowText: "GetWindowTextW" [
 			hWnd		[handle!]
@@ -2933,11 +2955,6 @@ XFORM!: alias struct! [
 		]
 	]
 	LIBC-file cdecl [
-		realloc: "realloc" [						"Resize and return allocated memory."
-			memory			[byte-ptr!]
-			size			[integer!]
-			return:			[byte-ptr!]
-		]
 		wcslen: "wcslen" [
 			str				[c-string!]
 			return:			[integer!]
@@ -2960,6 +2977,32 @@ XFORM!: alias struct! [
 				GetGestureInfo: "GetGestureInfo" [
 					hIn			[GESTUREINFO]
 					hOut		[GESTUREINFO]
+					return:		[logic!]
+				]
+			]
+		]
+	]
+]
+
+#case [
+	any [not legacy not find legacy 'no-multi-monitor] [
+		#import [
+			"shcore.dll" stdcall [
+				GetDpiForMonitor: "GetDpiForMonitor" [
+					hmonitor	[handle!]
+					dpiType		[integer!]
+					dpiX		[int-ptr!]
+					dpiY		[int-ptr!]
+					return:		[integer!]
+				]
+			]
+			"User32.dll" stdcall [
+				SystemParametersInfoForDpi: "SystemParametersInfoForDpi" [
+					action		[integer!]
+					iParam		[integer!]
+					vParam		[int-ptr!]
+					winini		[integer!]
+					dpi			[integer!]
 					return:		[logic!]
 				]
 			]
@@ -3012,4 +3055,60 @@ to-gdiplus-color-fixed: func [
 	r: to-gdiplus-color color
 	if r >>> 24 = FFh [r: r xor 01000000h]
 	r
+]
+
+LARGE_INTEGER: alias struct! [
+    LowPart     [integer!]
+    HighPart    [integer!]
+]
+
+time-meter!: alias struct! [
+    base [LARGE_INTEGER value]
+]
+
+sub64: func [
+    a       [LARGE_INTEGER]
+    b       [LARGE_INTEGER]
+    return: [integer!]
+][
+    ;-- mov edx, [ebp + 8]
+    ;-- mov ecx, [ebp + 12]
+    ;-- mov eax, [edx]
+    ;-- mov edx, [edx + 4]
+    ;-- sub eax, [ecx]
+    ;-- sbb edx, [ecx + 4]
+    #inline [
+        #{8B55088B4D0C8B028B52042B011B5104}
+        return: [integer!]
+    ]
+]
+
+time-meter: context [
+    freq: 0
+
+    init: func [/local t [LARGE_INTEGER value]][
+        QueryPerformanceFrequency :t
+        freq: t/LowPart
+    ]
+
+    start: func [t [time-meter!]][
+        if zero? freq [init]
+        QueryPerformanceCounter t/base
+    ]
+
+    elapse: func [
+        t       [time-meter!]
+        return: [float32!]      ;-- millisecond
+        /local
+        	t1  [LARGE_INTEGER value]
+            d   [integer!]
+    ][
+        QueryPerformanceCounter t1
+        d: sub64 t1 t/base
+        if d < 0 [
+	        d: 7FFFFFFFh
+	        start t
+	    ]
+        (as float32! d) * (as float32! 1e3) / (as float32! freq)
+    ]
 ]

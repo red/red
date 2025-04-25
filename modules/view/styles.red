@@ -68,7 +68,7 @@ Red [
 	]
 	camera: [
 		default-actor: on-down
-		template: [type: 'camera size: 250x250]
+		template: [type: 'camera size: 250x250 ratio: 0.0]
 	]
 	calendar: [
 		default-actor: on-change

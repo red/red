@@ -48,6 +48,18 @@ Red/System [
 	#define FPU_EXCEPTION_PRECISION		 32		;-- Precision
 ]
 
+heap-frame!: alias struct! [				;-- LibC malloc frame header
+	prev	[heap-frame!]					;-- previous frame or null
+	next	[heap-frame!]					;-- next frame or null
+	size	[integer!]						;-- size of allocated buffer in bytes
+	padding [integer!]						;-- preserve eventual 128-bit alignment 
+]
+
+__heap!: alias struct! [
+	head	[heap-frame!]					;-- first element of heap-allocated frames list
+	tail	[heap-frame!]					;-- last  element of heap-allocated frames list
+]
+
 __stack!: alias struct! [
 	top		[int-ptr!]
 	frame	[int-ptr!]
@@ -55,11 +67,12 @@ __stack!: alias struct! [
 ]
 
 __image!: alias struct! [
-	base	  [int-ptr!]					;-- base image address in memory
+	base	  [byte-ptr!]					;-- base image address in memory
 	code	  [integer!]					;-- code segment offset
 	code-size [integer!]					;-- code segment size
 	data	  [integer!]					;-- data segment offset
 	data-size [integer!]					;-- data segment size
+	bitarray  [integer!]					;-- offset for function args+locals pointer! bitmaps
 ]
 
 FPU-exceptions-mask!: alias struct! [		;-- standard exception mask (true => mask exception)
@@ -156,22 +169,29 @@ system!: alias struct! [					;-- store runtime accessible system values
 	boot-data	[byte-ptr!]					;-- Redbin encoded boot data (only for Red programs)
 	debug		[__stack!]					;-- stack info for debugging (set on runtime error only, internal use)
 	image		[__image!]					;-- executable image memory layout info
+	lib-image	[__image!]					;-- executable image memory layout info
+	heap		[__heap!]					;-- dynamically allocated memory frames
+	stk-root	[int-ptr!]
 ]
 
-#either any [libRedRT? = yes dev-mode? = no red-pass? = no][
+#either any [all [libRedRT? = yes type = 'dll] dev-mode? = no red-pass? = no][
 	system: declare system!
-	#if all [libRedRT? = yes dev-mode? = yes][#export [system]]	;-- exclude it from libRed
+	#if all [libRedRT? = yes type = 'dll][#export [system]] ;-- exclude it from libRed
 ][
 	#import [LIBREDRT-file stdcall [system: "system" [system!]]]
 ]
 
-***-exec-image: declare __image!
-system/image: ***-exec-image
+***-exec-image: declare __image!			;-- reference ***-exec-image used by compiler to fill the slots
 
-***-set-image-base: func [[cdecl] /local p][	;-- deferred code generation so system/image is defined
-	p: #switch target [IA-32 [system/cpu/ebx] ARM [system/cpu/r9]]
-	system/image/base: as int-ptr! p - system/image/code
+#either type = 'dll [
+	***-init-system-image: func [][			;-- must use a wrapping function so ` copy-memory` is reachable
+		system/lib-image: declare __image!
+		copy-memory as byte-ptr! system/lib-image as byte-ptr! system/image size? __image!
+	]
+][											;-- for libraries, it's set at library loading time.
+	system/image: ***-exec-image
 ]
 
-;-- This MUST be the be first call in the runtime
-***-set-image-base 
+system/heap: declare __heap!
+system/heap/head: null
+system/heap/tail: null

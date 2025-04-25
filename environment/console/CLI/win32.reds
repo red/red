@@ -14,12 +14,11 @@ Red/System [
 	}
 ]
 
-#define VK_BACK 				 	08h
-#define VK_TAB 					 	09h
-#define VK_CLEAR 				 	0Ch
-#define VK_RETURN 				 	0Dh
-
 #either modules contains 'View [][
+	#define VK_BACK 				08h
+	#define VK_TAB 					09h
+	#define VK_CLEAR 				0Ch
+	#define VK_RETURN 				0Dh
 	#define VK_SHIFT				10h
 	#define VK_CONTROL				11h
 	#define VK_PRIOR				21h
@@ -34,18 +33,6 @@ Red/System [
 	#define VK_INSERT				2Dh
 	#define VK_DELETE				2Eh
 ]
-
-#define KEY_EVENT 				 	01h
-#define MOUSE_EVENT 			 	02h
-#define WINDOW_BUFFER_SIZE_EVENT 	04h
-#define MENU_EVENT 				 	08h
-#define FOCUS_EVENT 			 	10h
-#define ENHANCED_KEY 			 	0100h
-#define ENABLE_PROCESSED_INPUT		01h
-#define ENABLE_LINE_INPUT 			02h
-#define ENABLE_ECHO_INPUT 			04h
-#define ENABLE_WINDOW_INPUT         08h
-#define ENABLE_QUICK_EDIT_MODE		40h
 
 mouse-event!: alias struct! [
 	Position  [integer!]			;-- high 16-bit: Y	low 16-bit: X
@@ -140,7 +127,7 @@ screenbuf-info!: alias struct! [	;-- size? screenbuf-info! = 22
 		]
 		GetConsoleScreenBufferInfo: "GetConsoleScreenBufferInfo" [
 			handle 			[integer!]
-			info 			[integer!]
+			info 			[screenbuf-info!]
 			return: 		[integer!]
 		]
 		GetConsoleWindow: "GetConsoleWindow" [
@@ -154,9 +141,9 @@ screenbuf-info!: alias struct! [	;-- size? screenbuf-info! = 22
 ]
 
 input-rec: declare input-record!
-base-y:	 	 0
-saved-con:	 0
+saved-con: 0
 utf-char: allocate 10
+bottom-y: 0
 
 #define FIRST_WORD(int) (int and FFFFh)
 #define SECOND_WORD(int) (int >>> 16)
@@ -257,23 +244,21 @@ fd-read: func [
 get-window-size: func [
 	return: 	[integer!]
 	/local
-		info 	[screenbuf-info!]
+		info 	[screenbuf-info! value]
 		x-y 	[integer!]
 		size    [red-pair!]
 ][
-	info: declare screenbuf-info!
 	size: as red-pair! #get system/console/size
 	columns: size/x
 	rows: size/y
-	if zero? GetConsoleScreenBufferInfo stdout as-integer info [return -1]
+	if zero? GetConsoleScreenBufferInfo stdout :info [return -1]
 	x-y: info/Size
 	columns: FIRST_WORD(x-y)
 	rows: SECOND_WORD(x-y)
 	size/x: SECOND_WORD(info/top-right) - SECOND_WORD(info/attr-left) + 1
 	size/y: FIRST_WORD(info/bottom-maxWidth) - FIRST_WORD(info/top-right) + 1
 	if columns <= 0 [size/x: 80 columns: 80 return -1]
-	x-y: info/Position
-	base-y: SECOND_WORD(x-y)
+	cursor-pos: info/Position
 	0
 ]
 
@@ -284,23 +269,35 @@ emit-red-char: func [cp [integer!] /local n][
 ]
 
 reset-cursor-pos: does [
-	SetConsoleCursorPosition stdout base-y << 16
+	SetConsoleCursorPosition stdout cursor-pos
+]
+
+query-cursor: func [
+	pos		[int-ptr!]
+	return: [logic!]
+	/local
+		info [screenbuf-info! value]
+][
+	GetConsoleScreenBufferInfo stdout :info
+	pos/value: info/Position
+	true
 ]
 
 erase-to-bottom: func [
 	/local
 		n	 [integer!]
-		info [screenbuf-info!]
+		info [screenbuf-info! value]
 		x-y  [integer!]
+		x	 [integer!]
 ][
+	x: FIRST_WORD(cursor-pos)
 	n: 0
-	info: declare screenbuf-info!
-	GetConsoleScreenBufferInfo stdout as-integer info
+	GetConsoleScreenBufferInfo stdout :info
 	x-y: info/Position
 	FillConsoleOutputCharacter							;-- clear screen
 		stdout
 		20h												;-- #" " = 20h
-		rows - SECOND_WORD(x-y) * columns				;-- (rows - y) * columns
+		rows - SECOND_WORD(x-y) * columns - x			;-- (rows - y) * columns - x
 		x-y
 		:n
 ]
@@ -312,7 +309,13 @@ set-cursor-pos: func [
 	/local
 		x	[integer!]
 		y	[integer!]
+		y2	[integer!]
+		yy	[integer!]
+		xx	[integer!]
+		n	[integer!]
 ][
+	fflush 0
+
 	y: offset / columns
 	x: offset // columns
 	if all [
@@ -322,7 +325,28 @@ set-cursor-pos: func [
 		y: y + 1
 		x: 0
 	]
-	SetConsoleCursorPosition stdout base-y + y << 16 or x
+
+	if all [zero? x offset = size][ ;-- write a newline to force the scrolling
+		n: 0
+		WriteConsole stdout as byte-ptr! #u16 "^/" 1 :n null
+	]
+
+	xx: FIRST_WORD(cursor-pos)
+	yy: SECOND_WORD(cursor-pos)
+	SetConsoleCursorPosition stdout yy + y << 16 or x
+
+	n: size / columns + 1		;-- the lines of all outputs occupy
+	n: n - (rows - yy)
+	if n > 0 [
+		yy: yy - n
+		if yy < 0 [yy: 0]
+		cursor-pos: yy << 16 or xx
+	]
+	bottom-y: yy + (size / columns)
+]
+
+move-cursor-bottom: does [
+	SetConsoleCursorPosition stdout bottom-y << 16
 ]
 
 output-to-screen: func [/local n][

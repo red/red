@@ -698,13 +698,13 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		any-pointer?: func [type [block!]][
+		any-pointer?: func [type [block!] /with ts [block!]][
 			type: first resolve-aliased type
 			
 			either find type-sets type [
-				not empty? intersect get type any-pointer!
+				not empty? intersect get type any [ts any-pointer!]
 			][
-				to logic! find any-pointer! type
+				to logic! find any [ts any-pointer!] type
 			]
 		]
 
@@ -1127,7 +1127,11 @@ system-dialect: make-profilable context [
 				]
 				float! float32! [
 					if type/1 = 'integer! [
-						value: to decimal! value
+						value: either all [obj/keep? ctype/1 = 'float32!][
+							head reverse debase/base to-hex value 16
+						][
+							to decimal! value
+						]
 					]
 				]
 			]
@@ -1697,6 +1701,20 @@ system-dialect: make-profilable context [
 			]
 		]
 		
+		encode-pointers: func [name specs [block!] /local list offset b][
+			list: emitter/encode-ptr-bitmap specs
+			if verbose > 5 [
+				print [name ":" mold specs]
+				foreach n list [
+					if integer? n [
+						print enbase/base b: debase/base to-hex n 16 2
+						print b
+					]
+				]
+			]
+			emitter/store-ptr-bitmap list				;-- returns offset to caller
+		]
+		
 		expand-func-specs: func [spec /local pos p type][
 			unless block? spec [exit]					;-- let check-specs report it
 			parse spec [any [
@@ -1707,7 +1725,7 @@ system-dialect: make-profilable context [
 			]]
 		]
 		
-		fetch-func: func [name /local specs type cc attribs][
+		fetch-func: func [name /local specs type cc attribs offset][
 			name: to word! name
 			store-ns-symbol name
 			if ns-path [add-ns-symbol pc/-1]
@@ -1739,6 +1757,10 @@ system-dialect: make-profilable context [
 					find attribs 'stdcall [cc: 'stdcall]	;-- get ready when fastcall will be the default cc
 				]
 			]
+			offset: encode-pointers name specs
+			if all [job/libRedRT? job/type = 'dll][
+				offset: offset or to integer! #40000000		;-- set bit 30 flag on bitmap offset for libRedRT code
+			]
 			add-function type reduce [name none specs] cc
 			emitter/add-native name
 			repend natives [
@@ -1746,6 +1768,7 @@ system-dialect: make-profilable context [
 				all [ns-path copy ns-path]
 				all [ns-stack copy/deep ns-stack]		;@@ /deep doesn't work on paths
 				user-code?
+				offset
 			]
 			pc: skip pc 3
 		]
@@ -2269,7 +2292,7 @@ system-dialect: make-profilable context [
 			
 			unless find locals /local [append locals /local]
 			append locals spec
-			size: emitter/calc-locals-offsets use-locals
+			size: emitter/calc-locals-offsets/only use-locals
 			emitter/target/emit-reserve-stack slots: size / 4
 			func-locals-sz: func-locals-sz + size
 			
@@ -2448,7 +2471,7 @@ system-dialect: make-profilable context [
 			ret
 		]
 
-		comp-catch: has [offset locals-size unused chunk start end cb?][
+		comp-catch: has [offset locals-size unused chunk start end cb? attribs spec][
 			pc: next pc
 			fetch-expression/keep/final 'catch
 			if any [not last-type last-type <> [integer!]][
@@ -2468,8 +2491,17 @@ system-dialect: make-profilable context [
 			chunk: emitter/chunks/join start chunk
 			
 			locals-size: any [all [locals func-locals-sz] 0]
-			cb?: to logic! all [locals 'callback = last functions/:func-name]
-			
+			cb?: to-logic all [
+				func-name								;-- if none => global code
+				spec: functions/:func-name
+				any [
+					spec/5 = 'callback
+					all [
+						attribs: get-attributes spec/4
+						any [find attribs 'cdecl find attribs 'stdcall]
+					]
+				]
+			]
 			end: comp-chunked [emitter/target/emit-close-catch locals-size not locals cb?]
 			chunk: emitter/chunks/join chunk end
 			emitter/merge chunk
@@ -3897,14 +3929,15 @@ system-dialect: make-profilable context [
 		]
 		
 		comp-func-body: func [
-			name [word!] spec [block!] body [block!]
+			name [word!] spec [block!] body [block!] offset [integer!]
 			/local args-sz local-sz expr ret
 		][
 			inject-loop-variable spec body
 			init-struct-values spec
 			locals: spec
 			func-name: name
-			set [args-sz local-sz] emitter/enter name locals ;-- build function prolog
+
+			set [args-sz local-sz] emitter/enter name locals offset ;-- build function prolog
 			func-locals-sz: local-sz
 			clean-byte-locals spec
 			preprocess-subroutines spec body
@@ -3937,7 +3970,7 @@ system-dialect: make-profilable context [
 		]
 		
 		comp-natives: does [
-			foreach [name spec body origin ns nss user?] natives [
+			foreach [name spec body origin ns nss user? bits-offset] natives [
 				if verbose >= 2 [
 					print [
 						"---------------------------------------^/"
@@ -3949,7 +3982,7 @@ system-dialect: make-profilable context [
 				ns-path: ns
 				ns-stack: nss
 				user-code?: user?
-				comp-func-body name spec body
+				comp-func-body name spec body bits-offset
 			]
 		]
 		
@@ -3998,7 +4031,7 @@ system-dialect: make-profilable context [
 			exp:  make block! 1
 			
 			foreach fun list [
-				unless find/skip natives fun 7 [
+				unless find functions fun [
 					repend code [
 						to set-word! fun 'func get-proto fun []	;-- stdcall
 					]
@@ -4050,6 +4083,7 @@ system-dialect: make-profilable context [
 				add-dll-callbacks 						;-- make sure they are defined
 			]
 			comp-natives
+			emitter/store-bitmaps to-logic all [job/red-pass? redc/load-lib? job/redbin-compress?]
 			emitter/target/on-finalize
 			if verbose >= 2 [print ""]
 			emitter/reloc-native-calls
@@ -4106,6 +4140,7 @@ system-dialect: make-profilable context [
 		][												;-- wrap global code in a function
 			emit-func-prolog '***-boot-rs
 		]
+		emitter/target/last-red-frame: emitter/store-value none 0 [integer!]
 	]
 
 	comp-start: has [script][
@@ -4230,7 +4265,7 @@ system-dialect: make-profilable context [
 	make-job: func [opts [object!] file [file!] /local job][
 		job: construct/with third opts linker/job-class	
 		file: last split-path file					;-- remove path
-		file: to-file first parse file "."			;-- remove extension
+		file: to-file first parse/all file "."		;-- remove extension
 		case [
 			none? job/build-basename [
 				job/build-basename: file
@@ -4335,7 +4370,7 @@ system-dialect: make-profilable context [
 				opts/runtime?
 			][
 				comp-start								;-- init libC properly
-			]		
+			]
 			if opts/runtime? [
 				comp-runtime-prolog to logic! loaded all [loaded job-data/3]
 			]

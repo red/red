@@ -197,9 +197,10 @@ make-super-class: func [
 	new-class: objc_allocateClassPair objc_getClass base new 0
 	if flags and EXTRA_DATA_FLAG <> 0 [
 		class_addIvar new-class IVAR_RED_DATA 4 2 "i"
+		class_addIvar new-class IVAR_RED_DRAW_CTX 4 2 "i"
 	]
 	if flags and STORE_FACE_FLAG <> 0 [
-		class_addIvar new-class IVAR_RED_FACE 16 2 "{red-face=iiii}"
+		class_addIvar new-class IVAR_RED_FACE 4 2 "i"
 		class_addMethod new-class sel-on-timer as-integer :red-timer-action "v@:@"
 		class_addMethod new-class sel_getUid "mouseEntered:" as-integer :mouse-entered "v@:@"
 		class_addMethod new-class sel_getUid "mouseExited:" as-integer :mouse-exited "v@:@"
@@ -319,7 +320,7 @@ register-classes: does [
 	make-super-class "RedAppDelegate"	"NSObject"				as-integer :add-app-delegate	0
 	make-super-class "RedPanelDelegate"	"NSObject"				as-integer :add-panel-delegate	0
 	make-super-class "NSViewFlip"		"NSView"				as-integer :flip-coord			0
-	make-super-class "RedView"			"NSView"				as-integer :add-content-view-handler STORE_FACE_FLAG
+	make-super-class "RedView"			"NSView"				as-integer :add-content-view-handler STORE_FACE_FLAG or EXTRA_DATA_FLAG
 	make-super-class "RedBase"			"NSView"				as-integer :add-base-handler	STORE_FACE_FLAG or EXTRA_DATA_FLAG
 	make-super-class "RedWindow"		"NSWindow"				as-integer :add-window-handler	STORE_FACE_FLAG
 	make-super-class "RedButton"		"NSButton"				as-integer :add-button-handler	STORE_FACE_FLAG

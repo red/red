@@ -340,7 +340,7 @@ _function: context [
 				]
 				TYPE_SET_WORD [								 ;-- only return: is allowed as a set-word!
 					w: as red-word! value
-					if words/return* <> symbol/resolve w/symbol [do-error]
+					if any [ret? words/return* <> symbol/resolve w/symbol local?][do-error]
 					next: value + 1
 					next2: next + 1
 					unless all [
@@ -358,7 +358,7 @@ _function: context [
 				TYPE_REFINEMENT [
 					w: as red-word! value 
 					either refinements/local/symbol = symbol/resolve w/symbol [local?: yes][
-						if local? [do-error]
+						if any [local? ret?][do-error]
 					]
 					next: value + 1
 					if next < end [
@@ -450,28 +450,27 @@ _function: context [
 		return:	 [node!]								;-- return function's local context reference
 		/local
 			fun    [red-function!]
-			native [red-native!]
 			value  [red-value!]
 			int	   [red-integer!]
-			args   [red-block!]
 			more   [series!]
 			s	   [series!]
 			f-ctx  [node!]
+			node   [node!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_function/push"]]
 
-		f-ctx: either null? ctx [_context/make spec yes no CONTEXT_FUNCTION][ctx]
+		node: alloc-unset-cells 5						;-- allocate this one first
+		f-ctx: either null? ctx [_context/make spec yes no CONTEXT_FUNCTION][ctx] ;-- avoids a GC pass after this node is created
+		
 		fun: as red-function! stack/push*
-		fun/header: TYPE_UNSET
+		fun/header: TYPE_FUNCTION or flags				;-- this code layout doesn't trigger GC
 		fun/spec:	spec/node
 		fun/ctx:	f-ctx
-		fun/more:	alloc-unset-cells 5
-		fun/header: TYPE_FUNCTION or flags
+		fun/more:	node
 		
 		s: as series! f-ctx/value
 		copy-cell as red-value! fun s/offset + 1		;-- set back-reference
-		
-		more: as series! fun/more/value
+
 		either null? body [
 			value: none-value
 		][
@@ -479,6 +478,7 @@ _function: context [
 			stack/pop 1
 			value: as red-value! body
 		]
+		more: as series! fun/more/value
 		copy-cell value alloc-tail more					;-- store body block or none
 		
 		alloc-tail more									;-- skip the precompiled args slot

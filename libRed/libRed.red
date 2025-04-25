@@ -277,7 +277,7 @@ Red [
 		collector/mark-block extern-blk
 		if last-error <> null [
 			err: as red-object! last-error
-			if TYPE_OF(err) = TYPE_ERROR [collector/mark-context err/ctx]
+			if TYPE_OF(err) = TYPE_ERROR [collector/mark-context :err/ctx]
 		]
 		ring/mark
 	]
@@ -1221,7 +1221,7 @@ Red [
 			either TYPE_OF(blk) = TYPE_BLOCK [
 				block/rs-append blk as red-value! names/extern
 			][
-				block/insert-value spec as red-value! extern-blk
+				block/insert-value spec as red-value! extern-blk yes no
 			]
 			ring/store _context/set name as red-value! routine/push spec null as-integer ptr 0 true
 		]

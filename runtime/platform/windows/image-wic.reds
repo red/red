@@ -50,12 +50,12 @@ OS-image: context [
 	;-- flags bits layout
 	;	0: if set, has an editable buffer with unpremultiply data
 	;	1: if set, the editable buffer has been modified
-	;	2: if set, the image has been marked by the GC
 	img-node!: alias struct! [
 		flags	[integer!]
 		handle	[this!]
 		buffer	[this!]
 		size	[integer!]
+		extID	[integer!]								;-- external resources table ID
 	]
 
 	#import [
@@ -273,6 +273,18 @@ OS-image: context [
 		Initialize					[function! [this [this!] pISource [this!] rec [RECT!] return: [integer!]]]
 	]
 
+	IWICBitmapFlipRotator: alias struct! [
+		QueryInterface				[QueryInterface!]
+		AddRef						[AddRef!]
+		Release						[Release!]
+		GetSize						[function! [this [this!] pWidth [int-ptr!] pHeight [int-ptr!] return: [integer!]]]
+		GetPixelFormat				[function! [this [this!] pPixelFormat [int-ptr!] return: [integer!]]]
+		GetResolution				[function! [this [this!] pX [float-ptr!] pY [float-ptr!] return: [integer!]]]
+		CopyPalette					[function! [this [this!] pIPalette [int-ptr!] return: [integer!]]]
+		CopyPixels					[function! [this [this!] prc [int-ptr!] stride [integer!] size [integer!] buffer [byte-ptr!] return: [integer!]]]
+		Initialize					[function! [this [this!] pISource [this!] options [integer!] return: [integer!]]]
+	]
+
 	make-node: func [
 		handle	[this!]
 		buffer	[this!]
@@ -284,12 +296,13 @@ OS-image: context [
 			node	[node!]
 			inode	[img-node!]
 	][
-		node: alloc-cells 1			;-- 16 bytes
+		node: alloc-bytes 20
 		inode: as img-node! (as series! node/value) + 1
 		inode/flags: flags
 		inode/handle: handle
 		inode/buffer: buffer
 		inode/size: height << 16 or width
+		inode/extID: externals/store node image/ext-type
 		node
 	]
 
@@ -472,7 +485,7 @@ OS-image: context [
 		width		[integer!]
 		height		[integer!]
 		stride		[integer!]
-		format		[integer!]								;-- only support GUID_WICPixelFormat32bppBGRA for now
+		format		[integer!]							;-- only support GUID_WICPixelFormat32bppBGRA for now
 		scan0		[byte-ptr!]
 		bitmap		[int-ptr!]
 		return:		[integer!]
@@ -486,8 +499,27 @@ OS-image: context [
 		if stride = 0 [stride: width * 4]
 		size: stride * height
 		ret: IFAC/CreateBitmapFromMemory wic-factory width height as integer! GUID_WICPixelFormat32bppBGRA stride size scan0 :bmp
-		bitmap/value: as integer! make-node null bmp/value 3 width height
+		bitmap/value: as integer! make-node bmp/value null 0 width height
 		ret
+	]
+
+	flip: func [
+		handle		[node!]
+		return:		[node!]
+		/local
+			inode	[img-node!]
+			IFAC	[IWICImagingFactory]
+			iflip	[com-ptr! value]
+			sthis	[this!]
+			flipper [IWICBitmapFlipRotator]
+	][
+		inode: as img-node! (as series! handle/value) + 1
+		IFAC: as IWICImagingFactory wic-factory/vtbl
+		IFAC/CreateBitmapFlipRotator wic-factory :iflip
+		sthis: iflip/value
+		flipper: as IWICBitmapFlipRotator sthis/vtbl
+		flipper/Initialize sthis inode/handle 10h		;-- flip horizontal
+		make-node sthis null 0 IMAGE_WIDTH(inode/size) IMAGE_HEIGHT(inode/size)
 	]
 
 	create-bitmap-from-gdidib: func [
@@ -686,13 +718,18 @@ OS-image: context [
 		0
 	]
 
+	mark: func [node [node!] /local inode [img-node!]][
+		inode: as img-node! (as series! node/value) + 1
+		externals/mark inode/extID
+	]
+
 	delete: func [
-		img			[red-image!]
+		node	  [node!]
 		/local
-			unk		[IUnknown]
-			inode	[img-node!]
+			unk	  [IUnknown]
+			inode [img-node!]
 	][
-		inode: as img-node! (as series! img/node/value) + 1
+		inode: as img-node! (as series! node/value) + 1
 		COM_SAFE_RELEASE(unk inode/handle)
 		COM_SAFE_RELEASE(unk inode/buffer)
 	]
@@ -790,8 +827,11 @@ OS-image: context [
 		if null? node [return null]
 		inode: as img-node! (as series! node/value) + 1
 		h: as this! inode/handle
-		if 0 <> IFAC/CreateBitmapFromSource
-			wic-factory h WICBitmapCacheOnLoad :bitmap [return null]
+		if 0 <> IFAC/CreateBitmapFromSource	wic-factory h WICBitmapCacheOnLoad :bitmap [
+			inode/extID: externals/remove inode/extID no
+			delete node
+			return null
+		]
 		COM_SAFE_RELEASE(unk h)
 		inode/handle: null
 		inode/buffer: bitmap/value
@@ -928,11 +968,8 @@ OS-image: context [
 			clsid	[tagGUID]
 			stream	[IStream]
 			storage [IStorage]
-			stat	[tagSTATSTG value]
 			IStm	[interface! value]
 			ISto	[interface! value]
-			len		[integer!]
-			hr		[integer!]
 			IFAC	[IWICImagingFactory]
 			ienc	[com-ptr! value]
 			ethis	[this!]
@@ -940,8 +977,11 @@ OS-image: context [
 			iframe	[com-ptr! value]
 			fthis	[this!]
 			frame	[IWICBitmapFrameEncode]
+			len		[integer!]
+			hr		[integer!]
 			prop	[integer!]
 			rect	[RECT! value]
+			stat	[tagSTATSTG value]
 	][
 		switch format [
 			IMAGE_BMP  [clsid: GUID_ContainerFormatBmp]

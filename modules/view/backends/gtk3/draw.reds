@@ -105,6 +105,7 @@ draw-begin: func [
 	ctx/matrix-order:	MATRIX-PREPEND
 	ctx/pattern?:		pattern?
 	ctx/font-antialias: CAIRO_ANTIALIAS_DEFAULT
+	ctx/line-width?:	yes
 
 	cairo_get_matrix cr as cairo_matrix_t! ctx/device-matrix
 	cairo_identity_matrix cr
@@ -1172,6 +1173,86 @@ OS-draw-ellipse: func [
 	ctx-matrix-unadapt dc saved
 ]
 
+
+set-font-attrs: func [
+	cr			[handle!]
+	font		[red-object!]
+	/local
+		slant	[integer!]
+		weight	[integer!]
+		values	[red-value!]
+		str		[red-string!]
+		name	[c-string!]
+		len		[integer!]
+		int		[red-integer!]
+		size	[integer!]
+		color	[red-tuple!]
+		rgb		[integer!]
+		alpha?	[integer!]
+		r		[integer!]
+		g		[integer!]
+		b		[integer!]
+		a		[integer!]
+		style	[red-word!]
+		blk		[red-block!]
+		sym		[integer!]
+][
+	values: object/get-values font
+
+	str: as red-string! values + FONT_OBJ_NAME
+	either TYPE_OF(str) = TYPE_STRING [
+		len: -1
+		name: unicode/to-utf8 str :len
+	][
+		name: "Serif"
+	]
+
+	slant: 0
+	weight: 0
+	style: as red-word! values + FONT_OBJ_STYLE
+	len: switch TYPE_OF(style) [
+		TYPE_BLOCK [
+			blk: as red-block! style
+			style: as red-word! block/rs-head blk
+			len: block/rs-length? blk
+		]
+		TYPE_WORD  [1]
+		default	   [0]
+	]
+
+	unless zero? len [
+		loop len [
+			sym: symbol/resolve style/symbol
+			case [
+				sym = _bold [
+					weight: 1
+				]
+				sym = _italic [
+					slant: 1
+				]
+				sym = _underline [0]
+				sym = _strike	 [0]
+				true			 [0]
+			]
+			style: style + 1
+		]
+	]
+	cairo_select_font_face cr name slant weight
+
+	int: as red-integer! values + FONT_OBJ_SIZE
+	if TYPE_OF(int) = TYPE_INTEGER [
+		size: int/value
+		cairo_set_font_size cr as float! size
+	]
+
+	color: as red-tuple! values + FONT_OBJ_COLOR
+	if TYPE_OF(color) = TYPE_TUPLE [
+		alpha?: 0
+		rgb: get-color-int color :alpha?
+		set-source-color cr rgb
+	]
+]
+
 OS-draw-font: func [
 	dc			[draw-ctx!]
 	font		[red-object!]
@@ -1182,13 +1263,10 @@ OS-draw-font: func [
 		bool	[red-logic!]
 		word	[red-word!]
 ][
-	unless null? dc/font-attrs [
-		pango_attr_list_unref dc/font-attrs
-	]
-	dc/font-attrs: create-pango-attrs null font
 	if null? dc/font-opts [
 		dc/font-opts: cairo_font_options_create
 	]
+	set-font-attrs dc/cr font
 
 	values: object/get-values font
 	value: values + FONT_OBJ_ANTI-ALIAS?
@@ -1218,8 +1296,6 @@ OS-draw-font: func [
 draw-text-at: func [
 	cr			[handle!]
 	text		[red-string!]
-	attrs		[handle!]
-	opts		[handle!]
 	x			[float!]
 	y			[float!]
 	/local
@@ -1231,13 +1307,7 @@ draw-text-at: func [
 	cairo_move_to cr x y
 	len: -1
 	str: unicode/to-utf8 text :len
-	layout: pango_cairo_create_layout cr
-	pango_layout_set_text layout str -1
-	pango_layout_set_attributes layout attrs
-	pango_cairo_context_set_font_options pango_layout_get_context layout opts
-	pango_cairo_update_layout cr layout
-	pango_cairo_show_layout cr layout
-	g_object_unref layout
+	cairo_show_text cr str
 	cairo_restore cr
 ]
 
@@ -1295,7 +1365,8 @@ OS-draw-text: func [
 	ctx-matrix-adapt dc saved
 	either TYPE_OF(text) = TYPE_STRING [
 		GET_PAIR_XY_F(pos x y)
-		draw-text-at dc/cr text dc/font-attrs dc/font-opts x y
+		set-source-color dc/cr dc/font-color
+		draw-text-at dc/cr text x y
 	][
 		draw-text-box dc/cr pos as red-object! text catch?
 	]
@@ -1395,24 +1466,37 @@ OS-draw-curve: func [
 		saved	[cairo_matrix_t! value]
 		pt		[red-point2D!]
 		sx sy p2x p2y p3x p3y [float!]
+		cp1x	[float!]
+		cp1y	[float!]
+		cp2x	[float!]
+		cp2y	[float!]
 ][
 	cr: dc/cr
-
-	ctx-matrix-adapt dc saved
-	if (as-integer end - start) >> 4 = 3    ; four input points
-	[
-		GET_PAIR_XY_F(start sx sy)
-		cairo_move_to cr sx sy
-		start: start + 1
-	]
-
 	p2: start + 1
 	p3: start + 2
 	GET_PAIR_XY_F(start sx sy)
 	GET_PAIR_XY_F(p2 p2x p2y)
 	GET_PAIR_XY_F(p3 p3x p3y)
-	cairo_curve_to cr sx sy p2x p2y p3x p3y
-	check-grad-line dc/grad-pen start start + 2
+
+	ctx-matrix-adapt dc saved
+	either (as-integer end - start) >> 4 = 2 [	;-- three points
+		;-- p0, p1, p2  -->  p0, (p0 + 2p1) / 3, (2p1 + p2) / 3, p2
+		cp1x: (p2x * 2.0) + sx / 3.0
+		cp1y: (p2y * 2.0) + sy / 3.0
+		cp2x: (p2x * 2.0) + p3x / 3.0
+		cp2y: (p2y * 2.0) + p3y / 3.0
+
+	][	; four input points
+		cp1x: p2x
+		cp1y: p2y
+		cp2x: p3x
+		cp2y: p3y
+	]
+	
+	cairo_move_to cr sx sy
+	GET_PAIR_XY_F(end sx sy)
+	cairo_curve_to cr cp1x cp1y cp2x cp2y sx sy
+	check-grad-line dc/grad-pen start end
 	do-draw-pen dc
 	ctx-matrix-unadapt dc saved
 ]
@@ -1560,7 +1644,7 @@ OS-draw-image: func [
 		if dst/header = TYPE_NONE [return 0]
 		pixbuf: OS-image/to-pixbuf dst
 		GDK-draw-image dc dc/cr pixbuf x y w h
-		OS-image/delete dst
+		OS-image/delete dst/node
 	][
 		src.w: IMAGE_WIDTH(src/size)
 		src.h: IMAGE_HEIGHT(src/size)

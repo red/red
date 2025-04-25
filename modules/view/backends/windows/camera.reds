@@ -16,6 +16,7 @@ CLSID_SystemDeviceEnum:			[62BE5D10h 11D060EBh A0003BBDh 86CE11C9h]
 CLSID_VideoInputDeviceCategory: [860BB310h 11D05D01h A0003BBDh 86CE11C9h]
 CLSID_CaptureGraphBuilder2:		[BF87B6E1h 11D08C27h AA00F0B3h C5613700h]
 CLSID_FilterGraph:				[E436EBB3h 11CE524Fh 2000539Fh 70A70BAFh]
+CLSID_SampleGrabber:			[C1F400A0h 11D33F08h 60000B9Fh 379E0308h]
 
 IID_ICreateDevEnum:				[29840822h 11D05B84h A0003BBDh 86CE11C9h]
 IID_IPropertyBag: 				[55272A00h 11CE42CBh AA003581h 51B84B00h]
@@ -24,10 +25,36 @@ IID_ICaptureGraphBuilder2:		[93E5A4E0h 11D22D50h A000FAABh 8DE3C6C9h]
 IID_IGraphBuilder:				[56A868A9h 11CE0AD4h 20003AB0h 70A70BAFh]
 IID_IVideoWindow:				[56A868B4h 11CE0AD4h 20003AB0h 70A70BAFh]
 IID_IMediaControl:				[56A868B1h 11CE0AD4h 20003AB0h 70A70BAFh]
+IID_ISampleGrabber:				[6B652FFFh 4FCE11FEh 6602AD92h 8FC7D7B5h]
 
 PIN_CATEGORY_PREVIEW:			[FB6C4282h 11D10353h 00005F90h BA16CCC0h]
 MEDIATYPE_Video:				[73646976h 00100000h AA000080h 719B3800h]
 MEDIATYPE_Interleaved:			[73766169h 00100000h AA000080h 719B3800h]
+
+AM_MEDIA_TYPE: alias struct! [
+	majortype				[tagGUID value]
+	subtype					[tagGUID value]
+	bFixedSizeSamples		[integer!]
+	bTemporalCompression	[integer!]
+	lSampleSize				[integer!]
+	formattype				[tagGUID value]
+	pUnk					[int-ptr!]
+	cbFormat				[integer!]
+	pbFormat				[byte-ptr!]
+]
+
+BITMAPINFOHEADER: alias struct! [
+	biSize				[integer!]
+	biWidth				[integer!]
+	biHeight			[integer!]
+	biPlanes_BitCount	[integer!]
+	biCompression		[integer!]
+	biSizeImage			[integer!]
+	biXPelsPerMeter		[integer!]
+	biYPelsPerMeter		[integer!]
+	biClrUsed			[integer!]
+	biClrImportant		[integer!]
+]
 
 ICaptureGraphBuilder2: alias struct! [
 	QueryInterface			[QueryInterface!]
@@ -116,10 +143,43 @@ IVideoWindow: alias struct! [
 	IsCursorHidden			[integer!]
 ]
 
+ISampleGrabberCB: alias struct! [
+	QueryInterface			[int-ptr!]
+	AddRef					[int-ptr!]
+	Release					[int-ptr!]
+	SampleCB				[int-ptr!]
+	BufferCB				[int-ptr!]
+]
+
+RedGrabberCB: alias struct! [
+	vtbl					[int-ptr!]
+	width					[integer!]
+	height					[integer!]
+	hWnd					[handle!]
+]
+
+ISampleGrabber: alias struct! [
+	QueryInterface			[QueryInterface!]
+	AddRef					[AddRef!]
+	Release					[Release!]	
+	SetOneShot				[function! [this [this!] oneshot [integer!] return: [integer!]]]
+	SetMediaType			[function! [this [this!] pType [AM_MEDIA_TYPE] return: [integer!]]]
+	GetConnectedMediaType	[function! [this [this!] pType [AM_MEDIA_TYPE] return: [integer!]]]
+	SetBufferSamples		[int-ptr!]
+	GetCurrentBuffer		[int-ptr!]
+	GetCurrentSample		[int-ptr!]
+	SetCallback				[function! [this [this!] pCallBack [int-ptr!] method [integer!] return: [integer!]]]
+]
+
+#define CAM_DEV_OFFSET 7
+
 camera!: alias struct! [
 	builder		[this!]
 	graph		[this!]
 	v-filter	[this!]
+	g-filter	[this!]
+	grabber		[this!]
+	grabber-cb	[int-ptr!]
 	window		[this!]
 	dev1		[this!]
 	dev2		[this!]
@@ -132,11 +192,110 @@ camera!: alias struct! [
 	num			[integer!]
 ]
 
+
+SampleGrabberCB: declare ISampleGrabberCB
+camera-ratio:	 0.0									;-- used to pass ratio info from deep code to init-camera 
+
+grabber-cb-addref: func [
+	[stdcall]
+	this	[this!]
+	return: [integer!]
+][2]
+
+grabber-cb-release: func [
+	[stdcall]
+	this	[this!]
+	return: [integer!]
+][1]
+
+grabber-cb-query: func [
+	[stdcall]
+	this	[this!]
+	iid		[tagGUID]
+	ppv		[ptr-ptr!]
+	return: [integer!]
+][
+	ppv/value: as int-ptr! this
+	0
+]
+
+grabber-cb-sample: func [
+	[stdcall]
+	this	[this!]
+	time	[float!]
+	pSample	[int-ptr!]
+	return: [integer!]
+][
+	0
+]
+
+grabber-cb-buffer: func [
+	[stdcall]
+	this			[this!]
+	dblSampleTime	[float!]
+	pBuffer			[byte-ptr!]
+	lBufferSize		[integer!]
+	return:			[integer!]
+	/local
+		obj			[RedGrabberCB]
+		bmp			[integer!]
+		values		[red-value!]
+		img			[red-image!]
+][
+	if collector/running? [return 0]
+
+	obj: as RedGrabberCB this
+	values: get-face-values obj/hWnd
+	img: as red-image! values + FACE_OBJ_IMAGE
+	if TYPE_OF(img) = TYPE_NONE [
+		bmp: 0
+		OS-image/create-bitmap-from-scan0 obj/width obj/height 0 OS-image/fixed-format pBuffer :bmp
+		image/init-image img OS-image/flip as node! bmp
+	]
+	0
+]
+
+camera-wait-image: func [img [red-image!] /local timeout [float32!]][
+	timeout: as float32! 0.0
+	img/header: TYPE_NONE
+	until [
+		platform/wait 10
+		timeout: timeout + as float32! 0.01
+		any [TYPE_OF(img) = TYPE_IMAGE timeout > as float32! 3.0]
+	]
+]
+
+set-camera-viewport: func [
+	this	[this!]
+	video	[IVideoWindow]
+	sx		[integer!]
+	sy		[integer!]
+	/local
+		w h offx offy [integer!]
+		r hf wf [float!]
+][
+	offx: offy: 0
+	w: sx
+	h: sy
+	r: camera-ratio
+	
+	either (as-float sy) * r >= as-float sx [
+		hf: either r >= 1.0 [(as-float w) / r][(as-float w) * r]	;-- height of viewport respecting aspect ratio
+		offy: float/round-to-int (as-float sy) - hf / 2.0			;-- black bars size
+		h: float/round-to-int hf
+	][
+		wf: either r >= 1.0 [(as-float h) * r][(as-float h) / r]	;-- width of viewport respecting aspect ratio
+		offx: float/round-to-int (as-float sx) - wf / 2.0			;-- black bars size
+		w: float/round-to-int wf
+	]
+	video/SetWindowPosition this offx offy w h
+]
+
 init-camera: func [
 	hWnd	[handle!]
 	data	[red-block!]
 	sel		[red-integer!]
-	open?	[logic!]
+	ratio	[red-float!]
 	/local
 		cam [camera!]
 		val [integer!] 
@@ -152,7 +311,9 @@ init-camera: func [
 
 	SetWindowLong hWnd wc-offset - 4 val
 	if TYPE_OF(sel) = TYPE_INTEGER [
+		camera-ratio: 0.0
 		if select-camera hWnd sel/value - 1 [
+			if TYPE_OF(ratio) = TYPE_FLOAT [ratio/value: camera-ratio]
 			toggle-preview hWnd true
 		]
 	]
@@ -162,6 +323,9 @@ free-graph: func [cam [camera!] /local interface [IUnknown]][
 	COM_SAFE_RELEASE(interface cam/builder)
 	COM_SAFE_RELEASE(interface cam/graph)
 	COM_SAFE_RELEASE(interface cam/v-filter)
+	COM_SAFE_RELEASE(interface cam/grabber)
+	COM_SAFE_RELEASE(interface cam/g-filter)
+	free as byte-ptr! cam/grabber-cb
 ]
 
 teardown-graph: func [cam [camera!] /local w [IVideoWindow]][
@@ -174,11 +338,20 @@ teardown-graph: func [cam [camera!] /local w [IVideoWindow]][
 	]
 ]
 
-stop-camera: func [handle [handle!] /local cam [camera!]][
+stop-camera: func [handle [handle!] return: [camera!] /local cam [camera!] ][
 	cam: as camera! GetWindowLong handle wc-offset - 4
 	unless null? cam [
 		teardown-graph cam
 		free-graph cam
+	]
+	cam
+]
+
+destroy-camera: func [handle [handle!] /local cam [camera!]][
+	cam: stop-camera handle
+	if cam <> null [
+		SetWindowLong handle wc-offset - 4 0
+		free as byte-ptr! cam
 	]
 ]
 
@@ -186,15 +359,20 @@ init-graph: func [
 	cam		[camera!]
 	idx		[integer!]
 	/local
-		IB		[interface! value]
-		IG		[interface! value]
-		ICap	[interface! value]
-		graph	[IGraphBuilder]
-		moniker [IMoniker]
-		builder [ICaptureGraphBuilder2]
-		hr		[integer!]
-		dev-ptr [int-ptr!]
-		dev		[this!]
+		IB			[interface! value]
+		IG			[interface! value]
+		ICap		[interface! value]
+		graph		[IGraphBuilder]
+		moniker 	[IMoniker]
+		builder 	[ICaptureGraphBuilder2]
+		grabber 	[ISampleGrabber]
+		hr			[integer!]
+		dev-ptr 	[int-ptr!]
+		dev			[this!]
+		IGrabFilter	[interface! value]
+		IGrab		[interface! value]
+		filter		[IUnknown]
+		mt			[AM_MEDIA_TYPE value]
 ][
 	hr: CoCreateInstance CLSID_CaptureGraphBuilder2 0 1 IID_ICaptureGraphBuilder2 IB
 	builder: as ICaptureGraphBuilder2 IB/ptr/vtbl
@@ -207,7 +385,7 @@ init-graph: func [
 	hr: builder/SetFiltergraph IB/ptr IG/ptr
 	if hr <> 0 [probe "Cannot give graph to builder"]
 
-	dev-ptr: (as int-ptr! cam) + 4 + idx
+	dev-ptr: (as int-ptr! cam) + CAM_DEV_OFFSET + idx
 	dev: as this! dev-ptr/value
 	moniker: as IMoniker dev/vtbl
 
@@ -217,6 +395,40 @@ init-graph: func [
 		print-line ["Error " hr ": Cannot add videocap to filtergraph"]
 		null
 	]
+
+    hr: CoCreateInstance CLSID_SampleGrabber 0 CLSCTX_INPROC_SERVER IID_IBaseFilter IGrabFilter
+	filter: as IUnknown IGrabFilter/ptr/vtbl
+	hr: filter/QueryInterface IGrabFilter/ptr IID_ISampleGrabber IGrab
+	grabber: as ISampleGrabber IGrab/ptr/vtbl
+	cam/g-filter: IGrabFilter/ptr
+	cam/grabber: IGrab/ptr
+
+	zero-memory as byte-ptr! :mt size? AM_MEDIA_TYPE
+	mt/majortype/data1: MEDIATYPE_Video/1
+	mt/majortype/data2: MEDIATYPE_Video/2
+	mt/majortype/data3: MEDIATYPE_Video/3
+	mt/majortype/data4: MEDIATYPE_Video/4
+
+	;-- E436EB7D-524F-11CE-9F53-0020AF0BA770 (rgb24)
+	;mt/subtype/data1: E436EB7Dh
+	;mt/subtype/data2: 11CE524Fh
+	;mt/subtype/data3: 2000539Fh
+	;mt/subtype/data4: 70A70BAFh
+
+	;-- 773C9AC0-3274-11D0-B724-00AA006C1A01 (argb)
+	mt/subtype/data1: 773C9AC0h
+	mt/subtype/data2: 11D03274h
+	mt/subtype/data3: AA0024B7h
+	mt/subtype/data4: 011A6C00h	
+
+	;-- 05589F80-C356-11CE-BF01-00AA0055595A
+	mt/formattype/data1: 05589F80h
+	mt/formattype/data2: 11CEC356h
+	mt/formattype/data3: AA0001BFh
+	mt/formattype/data4: 5A595500h
+
+	hr: grabber/SetMediaType IGrab/ptr :mt
+	hr: graph/AddFilter IG/ptr IGrabFilter/ptr null
 ]
 
 build-preview-graph: func [
@@ -231,16 +443,21 @@ build-preview-graph: func [
 		video	[IVideoWindow]
 		hr		[integer!]
 		rect	[RECT_STRUCT value]
+		mt		[AM_MEDIA_TYPE value]
+		grabber [ISampleGrabber]
+		grabber-cb	[RedGrabberCB]
+		info	[int-ptr!]
+		bmp		[BITMAPINFOHEADER]
 ][
 	builder: as ICaptureGraphBuilder2 cam/builder/vtbl
 	graph:   as IGraphBuilder cam/graph/vtbl
 	filter:  as this! cam/v-filter
 
-	hr: builder/RenderStream cam/builder PIN_CATEGORY_PREVIEW MEDIATYPE_Interleaved filter null null
+	hr: builder/RenderStream cam/builder PIN_CATEGORY_PREVIEW MEDIATYPE_Interleaved filter cam/g-filter null
 	case [
 		hr = VFW_S_NOPREVIEWPIN [1]
 		hr <> 0 [
-			hr: builder/RenderStream cam/builder PIN_CATEGORY_PREVIEW MEDIATYPE_Video filter null null
+			hr: builder/RenderStream cam/builder PIN_CATEGORY_PREVIEW MEDIATYPE_Video filter cam/g-filter null
 			case [
 				hr = VFW_S_NOPREVIEWPIN [1]
 				hr <> 0 [probe "This device cannot preview!" return -1]
@@ -249,15 +466,32 @@ build-preview-graph: func [
 		]
 		true [1]
 	]
+
+	grabber: as ISampleGrabber cam/grabber/vtbl
+	zero-memory as byte-ptr! :mt size? AM_MEDIA_TYPE
+	hr: grabber/GetConnectedMediaType cam/grabber :mt
+	info: as int-ptr! mt/pbFormat
+	bmp: as BITMAPINFOHEADER info + 12
+
+	grabber-cb: as RedGrabberCB allocate size? RedGrabberCB
+	grabber-cb/width: bmp/biWidth
+	grabber-cb/height: bmp/biHeight
+	grabber-cb/hWnd: hWnd
+	grabber-cb/vtbl: as int-ptr! SampleGrabberCB
+	cam/grabber-cb: as int-ptr! grabber-cb
+
+	grabber/SetCallback cam/grabber as int-ptr! grabber-cb 1
+	
 	hr: graph/QueryInterface cam/graph IID_IVideoWindow IVM
 	either zero? hr [
+		cam/window: IVM/ptr
+		camera-ratio: (as-float bmp/biWidth) / as-float bmp/biHeight
 		GetClientRect hWnd rect
 		video: as IVideoWindow IVM/ptr/vtbl
 		video/put_Owner IVM/ptr hWnd
-		video/put_WindowStyle IVM/ptr WS_CHILD
-		video/SetWindowPosition IVM/ptr 0 0 rect/right rect/bottom
+		video/put_WindowStyle IVM/ptr WS_CHILD or WS_CLIPCHILDREN or WS_CLIPSIBLINGS
+		set-camera-viewport IVM/ptr video rect/right rect/bottom
 		video/put_Visible IVM/ptr -1
-		cam/window: IVM/ptr
 	][
 		cam/window: null
 		probe "This graph cannot preview"
@@ -336,6 +570,12 @@ collect-camera: func [
 		fetched [integer!]
 		cnt		[integer!]
 ][
+	SampleGrabberCB/AddRef: as int-ptr! :grabber-cb-addref
+	SampleGrabberCB/Release: as int-ptr! :grabber-cb-release
+	SampleGrabberCB/QueryInterface: as int-ptr! :grabber-cb-query
+	SampleGrabberCB/SampleCB: as int-ptr! :grabber-cb-sample
+	SampleGrabberCB/BufferCB: as int-ptr! :grabber-cb-buffer
+
 	hr: CoCreateInstance CLSID_SystemDeviceEnum 0 1 IID_ICreateDevEnum IDev
 	if hr <> 0 [probe "Error Creating Device Enumerator" return 0]
 
@@ -350,7 +590,7 @@ collect-camera: func [
 
 	em: as IEnumMoniker IEnum/ptr/vtbl
 	var/data1: 8 << 16									;-- var.vt = VT_BSTR
-	dev-ptr: (as int-ptr! cam) + 4
+	dev-ptr: (as int-ptr! cam) + CAM_DEV_OFFSET
 	fetched: 0
 	cnt: 0
 
@@ -383,6 +623,49 @@ collect-camera: func [
 	as-integer cam
 ]
 
+update-camera-size: func [
+	cam		[camera!]
+	w		[integer!]
+	h		[integer!]
+	/local
+		x y	sx sy [integer!]
+		video [IVideoWindow]
+][
+	if cam/window <> null [
+		sx: w
+		sy: h
+		either camera-ratio >= 1.0 [
+			sy: as-integer ((as-float sx) / camera-ratio)
+			if sy > h [
+				sy: h
+				sx: as-integer ((as-float sy) * camera-ratio)
+			]
+		][
+			sx: as-integer ((as-float sy) * camera-ratio)
+			if sx > w [
+				sx: w
+				sy: as-integer ((as-float sx) / camera-ratio)
+			]
+		]
+		video: as IVideoWindow cam/window/vtbl
+		;-- centering the camera view
+		x: either sx < w [w - sx / 2][0]
+		y: either sy < h [h - sy / 2][0]
+		video/SetWindowPosition cam/window x y sx sy
+	]
+]
+
+update-camera: func [
+	hWnd	[handle!]
+	sx		[integer!]
+	sy		[integer!]
+	/local
+		cam	[camera!]
+][
+	cam: as camera! GetWindowLong hWnd wc-offset - 4
+	if cam/window <> null [set-camera-viewport cam/window as IVideoWindow cam/window/vtbl sx sy]
+]
+
 CameraWndProc: func [
 	[stdcall]
 	hWnd	[handle!]
@@ -393,12 +676,7 @@ CameraWndProc: func [
 	/local
 		cam [camera!]
 ][
-	if msg = WM_DESTROY [
-		cam: as camera! GetWindowLong hWnd wc-offset - 4
-		unless null? cam [
-			teardown-graph cam
-			free-graph cam
-		]
-	]
+	if msg = WM_DESTROY [destroy-camera hWnd]
+	;if msg = WM_ERASEBKGND [return 1]
 	DefWindowProc hWnd msg wParam lParam
 ]

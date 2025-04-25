@@ -81,6 +81,7 @@ ptr-ptr!: alias struct! [value [int-ptr!]]
 #define alias?  		[1001 <=]
 
 #define CATCH_ALL_EXCEPTIONS -1
+#define STACK_BITMAP_BARRIER -1
 
 ;-- Global variables definition --
 stdout:		-1								;-- uninitialized default value
@@ -139,6 +140,7 @@ re-throw: func [/local id [integer!]][
 ][
 	#include %lib-natives.reds
 ]
+#include %heap.reds
 
 #switch OS [								;-- loading OS-specific bindings
 	Windows  [
@@ -173,8 +175,6 @@ re-throw: func [/local id [integer!]][
 #if type <> 'drv [
 
 	#include %utils.reds					;-- load additional utility functions
-
-
 	#if debug? = yes [#include %debug.reds]	;-- loads optionally debug functions
 
 	;-- Run-time error handling --
@@ -286,18 +286,24 @@ re-throw: func [/local id [integer!]][
 	]
 ]
 
+#define PUSH_FRAME_SPECIAL_SLOTS [
+	push CATCH_ALL_EXCEPTIONS				;-- exceptions root barrier
+	push :***-uncaught-exception			;-- root catch (also keeps stack aligned on 64-bit)
+	push STACK_BITMAP_BARRIER				;-- args/locals bitmap offset
+]
+
 #if type = 'exe [
 	push system/stack/frame					;-- save previous frame pointer
-	push 0									;-- exception return address slot
-	push 0									;-- exception threshold
+	#if OS <> 'Windows [PUSH_FRAME_SPECIAL_SLOTS]
 	system/stack/frame: system/stack/top	;-- reposition frame pointer just after the catch slots
 ]
-push CATCH_ALL_EXCEPTIONS					;-- exceptions root barrier
-push :***-uncaught-exception				;-- root catch (also keeps stack aligned on 64-bit)
+PUSH_FRAME_SPECIAL_SLOTS
+
+system/stk-root: system/stack/frame			;-- save root of R/S native stack (internal usage, like Red's GC)
 
 #if type = 'dll [
 	#if libRedRT? = yes [
-		#switch OS [								;-- init OS-specific handlers
+		#switch OS [						;-- init OS-specific handlers
 			Windows  [win32-startup-ctx/init]
 			Syllable []
 			#default [posix-startup-ctx/init]

@@ -73,33 +73,47 @@ __print-debug-stack: func [
 		pf			[float-ptr!]
 		next-frame	[subroutine!]
 		ret			[int-ptr!]
+		clow chigh	[int-ptr!]
 		funcs end	[byte-ptr!]
 		records next[__func-record!]
+		fun-base	[byte-ptr!]
 		nb			[integer!]
 		top frame	[int-ptr!]
+		prev slot	[int-ptr!]
 		s			[c-string!]
 		value lines	[integer!]
-		base 		[integer!]
+		base size	[integer!]
 		unused		[float!]
 ][
 	funcs:	as byte-ptr! __debug-funcs
 	frame:	system/debug/frame
-	base:	as-integer system/image/base
-	ret:	as int-ptr! #either any [type <> 'exe PIC? = yes][address - base][address]
+	ret:	as int-ptr! address
 	top:	frame + 2
+	clow:	as int-ptr! system/image/base + system/image/code
+	chigh:  as int-ptr! (as byte-ptr! clow) + system/image/code-size
 	lines:	40								;-- max number of lines displayed
 	print-line "***"
 	
 	next-frame: [
 		top: frame
-		frame: as int-ptr! top/value
-		top: top + 1
-		ret: as int-ptr! #either any [type <> 'exe PIC? = yes][top/value - base][top/value]
+		frame: as int-ptr! top/1
+		ret:   as int-ptr! top/2
 		top: frame + 2
 	]
 	if code = 98 [next-frame]				;-- 98 => assertion, jump over the injected ***-on-quit call frame.
-	
+
+	print-line "***   --Frame-- --Code--  --Call--"
 	until [
+		base: either any [
+			system/lib-image = null
+			all [clow <= ret ret < chigh]
+		][
+			size: system/image/code-size
+			as-integer system/image/base
+		][
+			size: system/lib-image/code-size
+			as-integer system/lib-image/base
+		]
 		nb: __debug-funcs-nb
 		records: __debug-funcs
 		until [
@@ -109,18 +123,26 @@ __print-debug-stack: func [
 				next: records + 1
 				end: next/entry
 			]
-			if all [
-				records/entry <= ret
-				ret < end
+			#either any [libRedRT? = yes libRed? = yes PIC? = yes][
+				fun-base: records/entry + base
+				end: end + base 
 			][
-				break
+				fun-base: records/entry
 			]
+			if all [fun-base <= ret  ret < end][break] ;-- function's body matches!
 			records: records + 1
 			nb: nb - 1
 			zero? nb
 		]
-		unless zero? nb [
-			print ["***   stack: " as-c-string funcs + records/name]
+		either zero? nb [
+			print ["***   " frame "h " ret "h "]
+			;either all [(as int-ptr! base) < ret ret < as int-ptr! base + size][
+			;	print-line "<global> "
+			;][
+				print-line "<external> "
+			;]
+		][
+			print ["***   " frame "h " ret "h " as-c-string funcs + records/name]
 			if records/args = as int-ptr! -1 [
 				print [lf lf]
 				exit						;-- exit if a "barrier" function is encountered (set by linker)
@@ -160,8 +182,14 @@ __print-debug-stack: func [
 			print lf
 			lines: lines - 1
 		]
+		prev: frame
 		next-frame
-		any [zero? nb zero? lines]
+		if frame < prev [							;-- if broken frames linked list
+			slot: prev - 4
+			frame: as int-ptr! slot/value			;-- use last known parent frame pointer
+			if frame < prev [break]
+		]
+		any [null? frame frame = as int-ptr! -1 frame = prev]
 	]
 ]
 

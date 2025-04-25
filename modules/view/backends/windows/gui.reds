@@ -13,6 +13,7 @@ Red/System [
 ;; ===== Extra slots usage in Window structs =====
 ;;
 ;;		-60  :							<- TOP
+;;		-40  : base: draw-ctx! pointer
 ;;		-36  : Direct2D render target
 ;;		-32	 : base: mouse capture count
 ;;			 : window: default font
@@ -32,11 +33,13 @@ Red/System [
 ;;		  12 : |
 ;;		  16 : FACE_OBJ_FLAGS        <- BOTTOM
 
+#define OFFSET_DRAW_CTX	[wc-offset - 40]
+
 #define IS_D2D_FACE(sym) [
 	any [sym = base sym = rich-text sym = window sym = panel]
 ]
 
-#define FACE_FREED(hwnd) [zero? GetWindowLong hwnd wc-offset]
+#define AREA_BUFFER_LIMIT 32768
 
 #include %win32.reds
 #include %direct2d.reds
@@ -85,7 +88,7 @@ ime-font:		as tagLOGFONT allocate 92
 base-down-hwnd: as handle! 0
 
 dpi-factor:		as float32! 1.0
-inital-dpi:		96
+current-dpi:	as float32! 96.0
 log-pixels-x:	0
 log-pixels-y:	0
 screen-size-x:	0
@@ -97,6 +100,17 @@ kb-state: 		allocate 256							;-- holds keyboard state for keys conversion
 
 dark-mode?:		no
 pShouldAppsUseDarkMode: as int-ptr! 0
+
+monitor!: alias struct! [
+	handle	 [handle!]
+	DPI		 [float32!]
+	pixels-x [integer!]
+]
+
+monitors-nb: 10
+monitors: as monitor! 0
+monitor-tail: as monitor! 0
+
 
 dpi-scale: func [
 	num		[float32!]
@@ -116,37 +130,32 @@ clean-up: does [
 	current-msg: null
 ]
 
-no-face?: func [
+face-set?: func [
 	hWnd	[handle!]
 	return: [logic!]
 ][
-	(GetWindowLong hWnd wc-offset) and get-type-mask <> TYPE_OBJECT
+	0 <> GetWindowLong hWnd wc-offset
 ]
 
 get-face-obj: func [
 	hWnd	[handle!]
 	return: [red-object!]
-	/local
-		face [red-object!]
 ][
 	if null? hWnd [return null]
-	face: declare red-object!
-	face/header: GetWindowLong hWnd wc-offset
-	face/ctx:	 as node! GetWindowLong hWnd wc-offset + 4
-	face/class:  GetWindowLong hWnd wc-offset + 8
-	face/on-set: as node! GetWindowLong hWnd wc-offset + 12
-	face
+	as red-object! references/get GetWindowLong hWnd wc-offset
 ]
 
 get-face-values: func [
 	hWnd	[handle!]
 	return: [red-value!]
 	/local
+		face [red-object!]
 		ctx	 [red-context!]
 		node [node!]
 		s	 [series!]
 ][
-	node: as node! GetWindowLong hWnd wc-offset + 4
+	face: as red-object! references/get GetWindowLong hWnd wc-offset
+	node: face/ctx
 	ctx: TO_CTX(node)
 	s: as series! ctx/values/value
 	s/offset
@@ -176,10 +185,11 @@ get-facet: func [
 	msg		[tagMSG]
 	facet	[integer!]
 	return: [red-value!]
+	/local
+		face [red-object!]
 ][
-	get-node-facet 
-		as node! GetWindowLong get-widget-handle msg wc-offset + 4
-		facet
+	face: as red-object! references/get GetWindowLong get-widget-handle msg wc-offset
+	get-node-facet face/ctx facet
 ]
 
 get-widget-handle: func [
@@ -192,9 +202,9 @@ get-widget-handle: func [
 ][
 	hWnd: msg/hWnd
 
-	if no-face? hWnd [
+	unless face-set? hWnd [
 		hWnd: GetParent hWnd							;-- for composed widgets (try 1)
-		if no-face? hWnd [
+		unless face-set? hWnd [
 			hWnd: WindowFromPoint msg/x msg/y			;-- try 2
 			id: 0
 			GetWindowThreadProcessId hWnd :id
@@ -202,13 +212,13 @@ get-widget-handle: func [
 				id <> process-id
 				hWnd = GetConsoleWindow					;-- see #1290
 			] [ return as handle! -1 ]
-			if no-face? hWnd [
+			unless face-set? hWnd [
 				p: as int-ptr! GetWindowLong hWnd 0		;-- try 3
 				either null? p [
 					hWnd: as handle! -1					;-- not found
 				][
 					hWnd: as handle! p/2
-					if no-face? hWnd [hWnd: as handle! -1]	;-- not found
+					unless face-set? hWnd [hWnd: as handle! -1]	;-- not found
 				]
 			]
 		]
@@ -360,39 +370,34 @@ update-scrollbars: func [
 	/local
 		values	[red-value!]
 		str		[red-string!]
-		font	[red-object!]
 		para	[red-object!]
-		hFont	[handle!]
-		saved	[handle!]
-		rect	[RECT_STRUCT]
+		dc		[handle!]
+		rect	[RECT_STRUCT value]
 		horz?	[logic!]
+		vert?	[logic!]
 		size    [integer!]
+		max-n	[integer!]
+		start	[c-string!]
 		txt-start [c-string!]
 		txt-pos   [c-string!]
 		bool      [red-logic!]
 		wrap?     [logic!]
 		chars     [integer!]
-		c1 c2 h height width right bottom
+		c1 c2 	[byte!]
+		w h height width right bottom [integer!]
 ][
-	rect: declare RECT_STRUCT
 	values: get-face-values hWnd
 	str:  as red-string! values + FACE_OBJ_TEXT
 	para: as red-object! values + FACE_OBJ_PARA
 	horz?: no
+	vert?: no
 	wrap?: no
 
 	either TYPE_OF(str) = TYPE_STRING [
-		font: as red-object! values + FACE_OBJ_FONT
-		hFont: either TYPE_OF(font) = TYPE_OBJECT [
-			get-font-handle font 0
-		][
-			GetStockObject DEFAULT_GUI_FONT
-		]
 		GetClientRect hWnd rect
 		bottom: rect/bottom
 		right:  rect/right
 
-		saved: SelectObject hScreen hFont
 		if text = null [ text: unicode/to-utf16 str ]
 
 		if TYPE_OF(para) = TYPE_OBJECT [
@@ -400,9 +405,15 @@ update-scrollbars: func [
 			wrap?: all [TYPE_OF(bool) = TYPE_LOGIC  bool/value] ;@@ no word wrap by default?
 		]
 
+		dc: GetDC hWnd
+		size: GetTabbedTextExtent dc "M^(00)" 1 0 null ;-- measure one big character
+		height: WIN32_HIWORD(size)
+		width: size and FFFFh
+
 		txt-pos:   text
 		txt-start: text
-		height: 0
+		h: 0
+		max-n: 0
 
 		forever [
 			c1: txt-pos/1
@@ -410,31 +421,45 @@ update-scrollbars: func [
 			if c2 = null-byte [
 				if any [c1 = #"^/" c1 = null-byte] [
 					chars: (as integer! (txt-pos - txt-start)) / 2
-					size: GetTabbedTextExtent hScreen txt-start chars 0 null
-					h: WIN32_HIWORD(size)
-					height: height + h
-					width: size and FFFFh
-					if width >= right [
+					chars: either c1 = #"^/" [chars - 2][chars - 1] 	;-- -2 exclude crlf, -1 exclude null-byte
+					w: width * chars
+					h: h + height
+					if w > right [
 						either wrap? [
-							DrawText hScreen txt-start chars rect DT_CALCRECT or DT_EXPANDTABS or DT_WORDBREAK 
-							height: height - h + rect/bottom
+							rect/bottom: bottom
+							rect/right: right
+							DrawText dc txt-start chars rect DT_CALCRECT or DT_EXPANDTABS or DT_WORDBREAK 
+							h: h - height + rect/bottom
 						][
+							if chars > max-n [
+								max-n: chars
+								start: txt-start
+							]
 							horz?: yes
 						]
-						if height >= bottom [ break ] ;no need to continue
 					]
-					if c1 = null-byte [ break ]
+					if h >= bottom [
+						vert?: yes
+						if wrap? [break]
+					]
+					if c1 = null-byte [break]			;-- no need to continue
 					txt-start: txt-pos + 2
 				]
 			]
 			txt-pos: txt-pos + 2
 		]
 
-		SelectObject hScreen saved
-		ShowScrollBar hWnd 1 height >= bottom	;-- SB_VERT
-		ShowScrollBar hWnd 0 horz?              ;-- SB_HORZ
+		if all [not wrap? horz?][	;-- check again in case it's not fixed-width font
+			size: GetTabbedTextExtent dc start max-n 0 null
+			w: size and FFFFh
+			horz?: w > right
+		]
+
+		ReleaseDC hWnd dc
+		ShowScrollBar hWnd 1 vert?						;-- SB_VERT
+		ShowScrollBar hWnd 0 horz?						;-- SB_HORZ
 	][
-		ShowScrollBar hWnd 3 no					;-- SB_BOTH
+		ShowScrollBar hWnd 3 no							;-- SB_BOTH
 	]
 ]
 
@@ -709,9 +734,8 @@ free-faces: func [
 			;-- destroy the extra frame window
 			DestroyWindow as handle! GetWindowLong handle wc-offset - 4 as-integer handle
 		]
-		sym = panel [
-			DestroyWindow handle
-		]
+		sym = panel [DestroyWindow handle]
+		sym = camera [stop-camera handle]
 		true [
 			0
 			;; handle user-provided classes too
@@ -726,6 +750,7 @@ free-faces: func [
 		SetWindowLong handle wc-offset - 4 -1
 	]
 
+	references/remove GetWindowLong handle wc-offset
 	SetWindowLong handle wc-offset 0
 	state: values + FACE_OBJ_STATE
 	state/header: TYPE_NONE
@@ -737,34 +762,30 @@ set-defaults: func [
 	hWnd		[handle!]
 	/local
 		hFont	[handle!]
-		hTheme	[handle!]
 		font	[tagLOGFONT]
 		ft		[tagLOGFONT value]
 		name	[c-string!]
 		res		[integer!]
 		len		[integer!]
 		metrics [tagNONCLIENTMETRICS value]
-		theme?	[logic!]
 ][
 	if default-font-name <> null [free as byte-ptr! default-font-name default-font-name: null]
 	if hWnd <> null [
 		hFont: as handle! GetWindowLong hWnd wc-offset - 32
 		if hFont <> null [DeleteObject hFont]
 	]
-
-	theme?: IsThemeActive
 	res: -1
-	either theme? [
-		hTheme: OpenThemeData null #u16 "Window"
-		if hTheme <> null [
-			res: GetThemeSysFont hTheme 805 :ft		;-- TMT_MSGBOXFONT
-			font: :ft
+	metrics/cbSize: size? tagNONCLIENTMETRICS
+	#case [
+		any [not legacy not find legacy 'no-multi-monitor][	;-- DPI-aware (Win10+)
+			res: as-integer SystemParametersInfoForDPI 29h size? tagNONCLIENTMETRICS as int-ptr! :metrics 0 log-pixels-y
 		]
-	][
-		metrics/cbSize: size? tagNONCLIENTMETRICS
-		res: as-integer SystemParametersInfo 29h size? tagNONCLIENTMETRICS as int-ptr! :metrics 0
-		font: as tagLOGFONT :metrics/lfMessageFont
+		true [												;-- fixed DPI across all monitors (Win8-)
+			res: as-integer SystemParametersInfo 29h size? tagNONCLIENTMETRICS as int-ptr! :metrics 0
+		]
 	]
+	font: as tagLOGFONT :metrics/lfMessageFont
+	
 	if res >= 0 [
 		name: as-c-string :font/lfFaceName
 		len: utf16-length? name
@@ -781,8 +802,6 @@ set-defaults: func [
 			0 - (font/lfHeight * 72 / log-pixels-y)
 
 		default-font: CreateFontIndirect font
-
-		if theme? [CloseThemeData hTheme]
 	]
 
 	if null? default-font [default-font: GetStockObject DEFAULT_GUI_FONT]
@@ -808,32 +827,42 @@ enable-visual-styles: func [
 	InitCommonControlsEx ctrls
 ]
 
-get-dpi: func [
+update-dpi-factor: func [
+	hWnd	[handle!]
 	/local
-		dll		[handle!]
-		fun1	[GetDpiForMonitor!]
-		monitor [handle!]
-		pt		[tagPOINT value]
-		dpi?	[logic!]
+		win	screen [red-object!]
+		fl [red-float!]
 ][
-	dpi?: no
-	if win8+? [
-		dll: LoadLibraryA "shcore.dll"
-		if dll <> null [
-			pt/x: 1 pt/y: 1
-			monitor: MonitorFromPoint pt 2
-			fun1: as GetDpiForMonitor! GetProcAddress dll "GetDpiForMonitor"
-			fun1 monitor 0 :log-pixels-x :log-pixels-y
-			FreeLibrary dll
-			dpi?: yes
+	win: as red-object! get-face-obj hWnd
+	assert TYPE_OF(win) = TYPE_OBJECT
+	screen: as red-object! (object/get-values win) + FACE_OBJ_PARENT		;-- screen: win/parent
+	if TYPE_OF(screen) = TYPE_OBJECT [
+		fl: as red-float! (object/get-values screen) + FACE_OBJ_DATA		;-- fl: screen/data
+		if TYPE_OF(fl) = TYPE_FLOAT [
+			dpi-factor: as float32! fl/value
+			current-dpi: dpi-factor * as float32! 96.0
 		]
 	]
-	unless dpi? [
-		log-pixels-x: GetDeviceCaps hScreen 88			;-- LOGPIXELSX
-		log-pixels-y: GetDeviceCaps hScreen 90			;-- LOGPIXELSY
+]
+
+get-dpi: func [
+	/local
+		monitor [handle!]
+		pt		[tagPOINT value]
+][
+	#case [
+		any [not legacy not find legacy 'no-multi-monitor][
+			GetCursorPos pt
+			monitor: MonitorFromPoint pt 2
+			GetDpiForMonitor monitor 0 :log-pixels-x :log-pixels-y
+		]
+		true [
+			log-pixels-x: GetDeviceCaps hScreen 88		;-- LOGPIXELSX
+			log-pixels-y: GetDeviceCaps hScreen 90		;-- LOGPIXELSY
+		]
 	]
-	inital-dpi: log-pixels-x
-	dpi-factor: (as float32! log-pixels-x) / as float32! 96.0
+	current-dpi: as float32! log-pixels-x
+	dpi-factor: current-dpi / as float32! 96.0
 ]
 
 get-metrics: func [
@@ -872,7 +901,7 @@ get-metrics: func [
 ]
 
 on-gc-mark: does [
-	collector/keep flags-blk/node
+	collector/keep :flags-blk/node
 ]
 
 init: func [
@@ -930,6 +959,9 @@ init: func [
 	int/header: TYPE_INTEGER
 	int/value:  as-integer version-info/wProductType
 
+	monitors: as monitor! allocate monitors-nb * size? monitor!
+	monitor-tail: monitors
+	
 	get-metrics
 
 	if win10+? [
@@ -941,6 +973,8 @@ init: func [
 	]
 
 	collector/register as int-ptr! :on-gc-mark
+	time-meter/start _time_meter	
+	font-ext-type: externals/register "font" as-integer :delete-font
 ]
 
 use-dark-mode?: func [
@@ -997,29 +1031,6 @@ cleanup: does [
 	DX-cleanup
 ]
 
-find-last-window: func [
-	return: [handle!]
-	/local
-		obj  [red-object!]
-		pane [red-block!]
-][
-	pane: as red-block! #get system/view/screens		;-- screens list
-	if null? pane [return null]
-	
-	obj: as red-object! block/rs-head pane				;-- 1st screen
-	if null? obj [return null]	
-	
-	pane: as red-block! (object/get-values obj) + FACE_OBJ_PANE ;-- windows list
-	
-	either all [
-		TYPE_OF(pane) = TYPE_BLOCK
-		0 < (pane/head + block/rs-length? pane)
-	][
-		face-handle? as red-object! (block/rs-tail pane) - 1
-	][
-		null
-	]
-]
 
 window-border-info?: func [
 	handle	[handle!]
@@ -1153,6 +1164,44 @@ get-selected: func [
 	int/value: idx
 ]
 
+get-text-alt: func [
+	face [red-object!]
+	idx	 [integer!]
+	/local
+		str	 [red-string!]
+		out	 [c-string!]
+		hWnd [handle!]
+		size [integer!]
+][
+	hWnd: face-handle? face
+	if null? hWnd [exit]
+	
+	size: as-integer either idx = -1 [
+		SendMessage hWnd WM_GETTEXTLENGTH idx 0
+	][
+		SendMessage hWnd CB_GETLBTEXTLEN idx 0
+	]
+	if size >= 0 [
+		str: as red-string! (object/get-values face) + FACE_OBJ_TEXT
+		if TYPE_OF(str) <> TYPE_STRING [
+			string/make-at as red-value! str size UCS-2
+		]
+		if size = 0 [
+			string/rs-reset str
+			exit
+		]
+		out: unicode/get-cache str size + 1 * 4			;-- account for surrogate pairs and terminal NUL
+
+		either idx = -1 [
+			SendMessage hWnd WM_GETTEXT size + 1 as-integer out  ;-- account for NUL
+		][
+			SendMessage hWnd CB_GETLBTEXT idx as-integer out
+		]
+		unicode/load-utf16 null size str yes
+		ownership/bind as red-value! str face _text
+	]
+]
+
 get-text: func [
 	msg	[tagMSG]
 	idx	[integer!]
@@ -1208,6 +1257,10 @@ get-position-value: func [
 		f: maximum * as float32! pos/value
 	]
 	as-integer f
+]
+
+get-ratio: func [face [red-object!] return: [red-float!]][
+	as red-float! object/rs-select face as red-value! _ratio
 ]
 
 set-scroller-metrics: func [
@@ -1287,11 +1340,8 @@ store-face-to-hWnd: func [
 	hWnd	[handle!]
 	face	[red-object!]
 ][
-	if (GetWindowLong hWnd wc-offset) and get-type-mask = TYPE_OBJECT [exit]
-	SetWindowLong hWnd wc-offset				 face/header
-	SetWindowLong hWnd wc-offset + 4  as-integer face/ctx
-	SetWindowLong hWnd wc-offset + 8			 face/class
-	SetWindowLong hWnd wc-offset + 12 as-integer face/on-set
+	if face-set? hWnd [exit]
+	SetWindowLong hWnd wc-offset references/store as red-value! face
 ]
 
 evolve-base-face: func [
@@ -1398,6 +1448,73 @@ parse-common-opts: func [
 	]
 ]
 
+OS-get-current-screen: func [
+	return: [red-handle!]
+	/local
+		hMonitor [handle!]
+		pt		 [tagPOINT value]
+][
+	GetCursorPos pt
+	hMonitor: MonitorFromPoint pt 2
+	handle/make-at stack/arguments as-integer hMonitor handle/CLASS_MONITOR
+]
+
+monitor-enum-proc: func [
+	[stdcall]
+	hMonitor[integer!]
+	hDC		[handle!]
+	lpRECT	[int-ptr!]									;-- RECT_STRUCT
+	spec	[red-block!]
+	return: [logic!]
+	/local
+		blk	  [red-block!]
+		s	  [series!]
+		DPI	  [float32!]
+		rec	  [RECT_STRUCT]
+		pt	  [tagPOINT value]
+		log-x [integer!]
+		log-y [integer!]
+][
+	log-x: log-y: 0
+	#case [
+		any [not legacy not find legacy 'no-multi-monitor][
+			GetDpiForMonitor as handle! hMonitor 0 :log-x :log-y
+		]
+		true [
+			log-x: GetDeviceCaps hScreen 88				;-- LOGPIXELSX
+			log-y: GetDeviceCaps hScreen 90				;-- LOGPIXELSY
+		]
+	]
+	DPI: (as float32! log-x) / as float32! 96.0
+	
+	blk: block/make-at as red-block! ALLOC_TAIL(spec) 4
+	s: GET_BUFFER(blk)
+	rec: as RECT_STRUCT lpRECT
+	
+	pair/make-at   alloc-tail s rec/left rec/top
+	pair/make-at   alloc-tail s rec/right - rec/left rec/bottom - rec/top
+	float/make-at  alloc-tail s as-float DPI
+	handle/make-at alloc-tail s hMonitor handle/CLASS_MONITOR
+	
+	monitor-tail/handle:   as handle! hMonitor
+	monitor-tail/DPI:	   DPI
+	monitor-tail/pixels-x: log-x
+	monitor-tail: monitor-tail + 1
+	assert (as-integer monitor-tail - monitors) >> 2 < monitors-nb
+	
+	true												;-- continue enumeration
+]
+
+OS-fetch-all-screens: func [
+	return: [red-block!]
+	/local blk [red-block!]
+][
+	monitor-tail: monitors								;-- reset monitor handles array
+	blk: block/push-only* 2
+	EnumDisplayMonitors null null :monitor-enum-proc blk
+	blk
+]
+
 OS-redraw: func [hWnd [integer!]][
 	InvalidateRect as handle! hWnd null 0
 	UpdateWindow as handle! hWnd
@@ -1441,6 +1558,12 @@ OS-make-view: func [
 		rate	  [red-value!]
 		options	  [red-block!]
 		fl		  [red-float!]
+		rc		  [RECT_STRUCT value]
+		si		  [tagSCROLLINFO]
+		pt		  [red-point2D!]
+		handle	  [handle!]
+		hWnd	  [handle!]
+		p		  [ext-class!]
 		flags n	  [integer!]
 		ws-flags  [integer!]
 		bits	  [integer!]
@@ -1449,9 +1572,6 @@ OS-make-view: func [
 		class	  [c-string!]
 		caption   [c-string!]
 		value	  [integer!]
-		handle	  [handle!]
-		hWnd	  [handle!]
-		p		  [ext-class!]
 		id		  [integer!]
 		vertical? [logic!]
 		panel?	  [logic!]
@@ -1459,11 +1579,8 @@ OS-make-view: func [
 		para?	  [logic!]
 		off-x	  [integer!]
 		off-y	  [integer!]
-		rc		  [RECT_STRUCT value]
-		si		  [tagSCROLLINFO]
 		ratio	  [float!]
 		sx sy f32 [float32!]
-		pt		  [red-point2D!]
 		ex-flags  [integer!]
 ][
 	stack/mark-native words/_body
@@ -1549,6 +1666,7 @@ OS-make-view: func [
 			][
 				init-panel values as handle! parent
 				panel?: yes
+				GET_PAIR_XY(size sx sy)		;-- size adjusted
 			]
 		]
 		sym = tab-panel [
@@ -1656,6 +1774,8 @@ OS-make-view: func [
 				n: either alpha? [WS_EX_LAYERED][set-layered-option options win8+?]
 				ws-flags: ws-flags or n
 			]
+			get-dpi
+
 			if sx < as float32! 0.0 [sx: as float32! 200.0]
 			if sy < as float32! 0.0 [sy: as float32! 200.0]
 			rc/left: 0
@@ -1733,7 +1853,7 @@ OS-make-view: func [
 
 	;-- extra initialization
 	case [
-		sym = camera	[init-camera handle data selected false]
+		sym = camera	[init-camera handle data selected get-ratio face]
 		sym = text-list [init-text-list handle data selected]
 		sym = base		[init-base-face handle parent values alpha? ex-flags]
 		sym = panel		[if alpha? [init-base-face handle parent values alpha? ex-flags]]
@@ -1777,8 +1897,8 @@ OS-make-view: func [
 			f32: either vertical? [sy][sx]
 			off-x: get-position-value as red-float! data f32
 			value: as-integer f32
-			if vertical? [off-x: (as-integer sy) - off-x]
 			either sym = slider [
+				if vertical? [off-x: (as-integer sy) - off-x]
 				SendMessage handle TBM_SETRANGE 1 value << 16
 				SendMessage handle TBM_SETPOS 1 off-x
 			][
@@ -1929,9 +2049,19 @@ change-size: func [
 			;; TBD
 			0
 		]
+		type = group-box [
+			hWnd: as handle! GetWindowLong hWnd wc-offset - 4	;-- change frame's size too
+			SetWindowPos 
+					hWnd
+					as handle! 0
+					0 0
+					sz-x + cx sz-y + cy
+					SWP_NOMOVE or SWP_NOZORDER or SWP_NOACTIVATE
+		]
 		type = area		 [update-scrollbars hWnd null]
 		type = tab-panel [update-tab-contents hWnd FACE_OBJ_SIZE]
 		type = text		 [InvalidateRect hWnd null 1]	;-- issue #4388
+		type = camera	 [update-camera hWnd sz-x + cx sz-y + cy]
 		true	  		 [0]
 	]
 ]
@@ -2049,7 +2179,7 @@ extend-area-limit: func [
 	old:   as-integer SendMessage hWnd WM_GETTEXTLENGTH 0 0
 	
 	if extra + old > limit [
-		SendMessage hWnd EM_SETLIMITTEXT old + extra + 30'000 0
+		SendMessage hWnd EM_SETLIMITTEXT old + extra + AREA_BUFFER_LIMIT 0
 	]
 ]
 
@@ -2143,6 +2273,7 @@ change-text: func [
 		text [c-string!]
 		str  [red-string!]
 		len  [integer!]
+		n	 [integer!]
 ][
 	if any [
 		type = base
@@ -2181,6 +2312,15 @@ change-text: func [
 			update-scrollbars hWnd text
 		]
 		SetWindowText hWnd text
+		if type = area [
+			;-- too many `lf` convert to `crlf` in the edit control
+			len: as-integer SendMessage hWnd EM_GETLIMITTEXT 0 0
+			n: as-integer SendMessage hWnd WM_GETTEXTLENGTH 0 0
+			if n >= len [
+				extend-area-limit hWnd 16
+				SetWindowText hWnd text
+			]
+		]
 	]
 ]
 
@@ -2230,9 +2370,20 @@ change-image: func [
 	hWnd	[handle!]
 	values	[red-value!]
 	type	[integer!]
+	/local
+		img [red-image!]
 ][
-	if type = base [update-base hWnd null null values]
-	if any [type = button type = toggle][init-button hWnd values]
+	case [
+		type = base [update-base hWnd null null values]
+		any [type = button type = toggle][init-button hWnd values]
+		type = camera [
+			img: as red-image! values + FACE_OBJ_IMAGE
+			if TYPE_OF(img) = TYPE_NONE [
+				camera-wait-image img
+			]
+		]
+		true [0]
+	]
 ]
 
 change-selection: func [
@@ -2259,7 +2410,7 @@ change-selection: func [
 		]
 		sym = camera [
 			either TYPE_OF(int) = TYPE_NONE [
-				stop-camera hWnd
+				stop-camera hWnd 
 			][
 				if select-camera hWnd int/value - 1 [
 					toggle-preview hWnd true
@@ -2317,9 +2468,10 @@ change-data: func [
 			f: as red-float! data
 			size: as red-pair! values + FACE_OBJ_SIZE
 			flt: f/value
-			range: either size/y > size/x [flt: 1.0 - flt size/y][size/x]
+			range: either size/y > size/x [size/y][size/x]
 			flt: flt * as-float range
 			either type = slider [
+				if size/y > size/x [flt: 1.0 - flt]
 				SendMessage hWnd TBM_SETPOS 1 as-integer flt
 			][
 				SendMessage hWnd PBM_SETPOS as-integer flt 0
@@ -2792,13 +2944,24 @@ OS-to-image: func [
 		img		[red-image!]
 		word	[red-word!]
 		size	[red-pair!]
+		draw	[red-block!]
 		screen? [logic!]
 		bo		[tagPOINT value] 		;-- base offset
 		sym 	[integer!]
+		ret		[red-image!]
+		dctx	[draw-ctx! value]
 ][
 	hWnd: null
 	word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
 	sym: symbol/resolve word/symbol
+	if sym = camera [
+		hWnd: face-handle? face
+		either null? hWnd [ret: as red-image! none-value][
+			ret: as red-image! (object/get-values face) + FACE_OBJ_IMAGE
+			camera-wait-image ret
+		]
+		return ret
+	]
 	screen?: screen = sym
 	either screen? [
 		size: as red-pair! get-node-facet face/ctx FACE_OBJ_SIZE
@@ -2814,6 +2977,24 @@ OS-to-image: func [
 		width: rc/right - rc/left
 		height: rc/bottom - rc/top
 		dc: GetDC hWnd
+	]
+
+	if sym = base [
+		ReleaseDC hWnd dc
+		bmp: OS-image/make-image width height null null null
+		ret: image/init-image as red-image! stack/push* bmp
+
+		draw: as red-block! (object/get-values face) + FACE_OBJ_DRAW
+		either TYPE_OF(draw) = TYPE_BLOCK [
+			do-draw hwnd ret draw no no yes yes
+		][
+			catch RED_THROWN_ERROR [
+				draw-begin :dctx hWnd ret no yes
+				draw-end :dctx hWnd no no yes
+			]
+			system/thrown: 0
+		]
+		return ret
 	]
 
 	mdc: CreateCompatibleDC dc
@@ -2856,11 +3037,15 @@ OS-do-draw: func [
 ]
 
 OS-draw-face: func [
-	ctx		[draw-ctx!]
+	hWnd	[handle!]
 	cmds	[red-block!]
+	flags	[integer!]
+	/local
+		ctx [draw-ctx!]
 ][
 	if TYPE_OF(cmds) = TYPE_BLOCK [
 		assert system/thrown = 0
+		ctx: as draw-ctx! GetWindowLong hWnd OFFSET_DRAW_CTX
 		catch RED_THROWN_ERROR [parse-draw ctx cmds yes]
 	]
 	if system/thrown = RED_THROWN_ERROR [system/thrown: 0]

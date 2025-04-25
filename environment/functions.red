@@ -26,11 +26,11 @@ attempt: func [
 	"Tries to evaluate a block and returns result or NONE on error"
 	code [block!]
 	/safer "Capture all possible errors and exceptions"
-	/local all
+	/local all result
 ][
 	set 'all safer										;-- `all:` refuses to compile
-	try/:all [return do code]
-	none
+	try/:all [set/any 'result do code]
+	:result
 ]
 
 comment: func ["Consume but don't evaluate the next value" 'value][]
@@ -132,7 +132,7 @@ last: func ["Returns the last value in a series" s [series! tuple!]] [pick s len
 	docstring: "Returns true if the value is any type of "
 	foreach name [
 		any-list! any-block! any-function! any-object! any-path! any-string! any-word!
-		series! number! immediate! scalar! all-word! any-point!
+		series! number! immediate! scalar! all-word! any-point! planar!
 	][
 		repend list [
 			load head change back tail form name "?:" 'func
@@ -313,8 +313,8 @@ context [
 			]
 			fetch [
 				print [
-					p-indent "match:" mold/flat/part rule 50 newline
-					p-indent "input:" mold/flat/part input 50 p-indent
+					p-indent "input:" mold/flat/part input 50 newline
+					p-indent "match:" mold/flat/part rule  50 p-indent
 				]
 			]
 			match [print [p-indent "==>" pick ["matched" "not matched"]  match?]]
@@ -472,10 +472,11 @@ save: function [
 			]
 		]
 		unless find-encoder? [
+			only: block? :value
 			data: either all [
-				append mold/all/only :value newline
+				append mold/all/:only :value newline
 			][
-				mold/only :value
+				mold/:only :value
 			]
 			case/all [
 				not binary? data [data: to binary! data]
@@ -874,6 +875,7 @@ do-file: function ["Internal Use Only" file [file! url!] callback [function! non
 	if file? file [
 		new-path: first split-path clean-path file
 		change-dir new-path
+		append system/state/source-files file
 	]
 	if all [header? list: select header 'currencies][
 		foreach c list [append system/locale/currencies/list c]
@@ -886,7 +888,10 @@ do-file: function ["Internal Use Only" file [file! url!] callback [function! non
 		done?: yes
 		either 'halt-request = :code [print "(halted)"][:code]
 	]
-	if file? file [change-dir saved]
+	if file? file [
+		change-dir saved
+		take/last system/state/source-files
+	]
 	if all [error? :code not done?][do :code]			;-- rethrow the error
 	:code
 ]
@@ -1055,6 +1060,43 @@ to-local-date: func [
 ][
 	date/timezone: now/zone
 	date
+]
+
+show-memory-stats: function [data [block!]][
+	repeat class 2 [
+		print [lf #"[" pad form pick [Nodes Series] class 6 "] -- Free ----- Used ----- Total --"]
+		used: total: 0
+		either empty? data/:class [
+			repeat i 3 [prin pad/left copy "-" pick [16 11 12] i]
+			prin lf
+		][
+			c: 0
+			foreach frm data/:class [
+				prin ["  " pad append form c: c + 1 #":" 4]
+				repeat i 3 [prin pad/left form frm/:i pick [11 11 12] i]
+				prin lf
+				used: used + frm/2
+				total: total + frm/3
+			]
+		]
+		unit: pick ["nodes" "bytes"] class
+		print ["  --^/  Used     : " used  unit]
+		print ["  Allocated: " total unit]
+	]
+	c: total: 0
+	print "^/[ Big    ]"
+	unless empty? data/3 [
+		foreach frm data/3 [
+			prin ["  " pad append form c: c + 1 #":" 4]
+			print pad/left frm 11
+			total: total + frm
+		]
+	]
+	print [
+		"  --^/  Allocated: " total  "bytes^/"
+		"--^/Total allocated from OS:" pad/left form data/4 9 lf
+		"Total allocated on heap:" pad/left form data/5 9 lf
+	]
 ]
 
 transcode-trace: func [

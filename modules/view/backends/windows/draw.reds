@@ -185,6 +185,7 @@ draw-begin: func [
 		text	[red-string!]
 		red-img [red-image!]
 		font	[red-object!]
+		type	[red-word!]
 		pos		[red-pair! value]
 		pos2	[red-pair!]
 		rt		[com-ptr! value]
@@ -194,12 +195,15 @@ draw-begin: func [
 		props	[D2D1_RENDER_TARGET_PROPERTIES value]
 		factory [ID2D1Factory]
 		rc		[RECT_F! value]
+		sym		[integer!]
 		font-clr? [logic!]
+		on-image? [logic!]
 ][
+	time-meter/start _time_meter
 	zero-memory as byte-ptr! ctx size? draw-ctx!
 	ctx/pen-width:	as float32! 1.0
-	ctx/pen-join: D2D1_LINE_JOIN_MITER
-	ctx/pen-cap: D2D1_CAP_STYLE_FLAT
+	ctx/pen-join:	D2D1_LINE_JOIN_MITER
+	ctx/pen-cap:	D2D1_CAP_STYLE_FLAT
 	ctx/pen-style:	null
 	ctx/hwnd:		hWnd
 	update-pen-style ctx
@@ -207,11 +211,12 @@ draw-begin: func [
 	t-mode: 1	;-- ClearType
 	this: d2d-ctx
 	dc: as ID2D1DeviceContext this/vtbl
+	on-image?: all [hWnd <> null paint? img <> null]
 
-	either hWnd <> null [
+	either all [hWnd <> null not on-image?][
 		target: get-hwnd-render-target hWnd on-graphic?
 		dc/SetTarget this target/bitmap
-		dc/setDpi this dpi-x dpi-y
+		dc/setDpi this current-dpi current-dpi
 		if on-graphic? [t-mode: 2]	;-- gray scale for transparent target
 	][
 		t-mode: 2
@@ -236,6 +241,9 @@ draw-begin: func [
 		this: rt/value
 		target/dc: this
 		dc: as ID2D1DeviceContext this/vtbl
+		if hWnd <> null [		;-- to-image face
+			dc/setDpi this current-dpi current-dpi
+		]
 	]
 	ctx/dc: as ptr-ptr! this
 	ctx/target: as int-ptr! target
@@ -280,9 +288,11 @@ draw-begin: func [
 				throw RED_THROWN_ERROR 
 			]
 		]
-
+		type: as red-word! values + FACE_OBJ_TYPE
+		sym: symbol/resolve type/symbol
+		
 		text: as red-string! values + FACE_OBJ_TEXT
-		if TYPE_OF(text) = TYPE_STRING [
+		if all [sym <> window TYPE_OF(text) = TYPE_STRING][
 			point2D/make-at as red-value! :pos F32_0 F32_0
 			font: as red-object! values + FACE_OBJ_FONT
 			font-clr?: no
@@ -329,22 +339,24 @@ draw-end: func [
 		rt		[render-target!]
 		hr		[integer!]
 		flags	[integer!]
+		hWnd?	[logic!]
 ][
 	loop ctx/clip-cnt [OS-clip-end ctx]
 	ctx/clip-cnt: 0
+	hWnd?: all [hWnd <> null ctx/image = null]
 
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
 	if ctx/image <> null [dc/PopAxisAlignedClip this]
 	dc/EndDraw this null null
-	if hWnd <> null [dc/SetTarget this null]
+	if hWnd? [dc/SetTarget this null]
 
 	release-ctx ctx		;@@ Possible improvement: cache resources for window target
 
 	if on-graphic? [exit]
 
 	rt: as render-target! ctx/target
-	either hWnd <> null [		;-- window target
+	either hWnd? [		;-- window target
 		this: rt/swapchain
 		sc: as IDXGISwapChain1 this/vtbl
 		flags: either g_standby? [DXGI_PRESENT_TEST][0]
@@ -1385,7 +1397,7 @@ do-draw-ellipse: func [
 	ry: height / as float32! 2.0
 	either ctx/shadow? [
 		offset: ctx/pen-width / (as float32! 2.0)
-		scale: dpi-value / as float32! 96.0
+		scale: current-dpi / as float32! 96.0
 		ellipse/x: rx + offset
 		ellipse/y: ry + offset
 		bmp: create-d2d-bitmap		;-- create an intermediate bitmap
@@ -1503,25 +1515,12 @@ OS-draw-arc: func [
 	center			[red-pair!]
 	end				[red-value!]
 	/local
-		cx			[float32!]
-		cy			[float32!]
-		rad			[float32!]
 		radius		[red-pair!]
-		rad-x		[float32!]
-		rad-y		[float32!]
 		begin		[red-integer!]
-		angle-begin [float32!]
 		angle		[red-integer!]
-		sweep		[integer!]
-		i			[integer!]
-		angle-end	[float32!]
 		pt-start	[POINT_2F value]
-		end-x		[float32!]
-		end-y		[float32!]
-		closed?		[logic!]
 		d2d			[ID2D1Factory]
 		path		[ptr-value!]
-		hr			[integer!]
 		pthis		[this!]
 		gpath		[ID2D1PathGeometry]
 		sink		[ptr-value!]
@@ -1531,11 +1530,24 @@ OS-draw-arc: func [
 		this		[this!]
 		dc			[ID2D1DeviceContext]
 		arc			[D2D1_ARC_SEGMENT value]
+		pt			[red-point2D!]
+		cx			[float32!]
+		cy			[float32!]
+		rad			[float32!]
 		alpha		[float!]
 		beta		[float!]
 		rx			[float!]
 		ry			[float!]
-		pt			[red-point2D!]
+		rad-x		[float32!]
+		rad-y		[float32!]
+		angle-begin [float32!]
+		sweep		[integer!]
+		i			[integer!]
+		angle-end	[float32!]
+		end-x		[float32!]
+		end-y		[float32!]
+		hr			[integer!]
+		closed?		[logic!]
 ][
 	GET_PAIR_XY(center cx cy)
 	rad: (as float32! PI) / as float32! 180.0
@@ -2125,25 +2137,13 @@ OS-draw-grad-pen-old: func [
 	count		[integer!]					;-- number of the colors
 	brush?		[logic!]
 	/local
-		x		[float32!]
-		y		[float32!]
 		int		[red-integer!]
-		start	[float32!]
-		stop	[float32!]
-		n		[integer!]
-		rotate? [logic!]
-		scale?	[logic!]
-		sx		[float32!]
-		sy		[float32!]
-		p		[float!]
 		f		[red-float!]
-		angle	[float32!]
-		delta	[float!]
 		gstops	[D2D1_GRADIENT_STOP]
 		head	[red-value!]
 		next	[red-value!]
 		clr		[red-tuple!]
-		wrap	[integer!]
+		pt		[red-point2D!]
 		dc		[ID2D1DeviceContext]
 		this	[this!]
 		sc		[com-ptr! value]
@@ -2155,7 +2155,19 @@ OS-draw-grad-pen-old: func [
 		unk		[IUnknown]
 		m		[D2D_MATRIX_3X2_F value]
 		t		[D2D_MATRIX_3X2_F value]
-		pt		[red-point2D!]
+		x		[float32!]
+		y		[float32!]
+		start	[float32!]
+		stop	[float32!]
+		n		[integer!]
+		rotate? [logic!]
+		scale?	[logic!]
+		sx		[float32!]
+		sy		[float32!]
+		p		[float!]
+		angle	[float32!]
+		delta	[float!]
+		wrap	[integer!]
 ][
 	GET_PAIR_XY(offset x y)
 

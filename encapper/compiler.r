@@ -1391,7 +1391,11 @@ red: context [
 			opt string!
 			opt [pos: block! (flags: decode-attributes pos) opt string!]
 			any [
-				pos: /local (loc?: yes append symbols 'local) [
+				pos: /local (
+					if loc? [stop: [end skip]]
+					append symbols 'local
+					loc?: yes
+				) stop [
 					any [
 						pos: word! (
 							unless find symbols word: to word! pos/1 [
@@ -1403,12 +1407,12 @@ red: context [
 					]
 				]
 				| set-word! (
-					if any [return? pos/1 <> return-def][stop: [end skip]]
+					if any [loc? return? pos/1 <> return-def][stop: [end skip]]
 					return?: yes						;-- allow only one return: statement
 				) stop pos: block! opt string!
 				| [
 					[word! | lit-word! | get-word!] opt block! opt string!
-					| refinement! opt string! (if loc? [stop: [end skip]]) stop
+					| refinement! opt string! (if any [loc? return?][stop: [end skip]]) stop
 				] (append symbols to word! pos/1)
 			]
 		][
@@ -1444,7 +1448,7 @@ red: context [
 		
 		out: copy []
 		either prolog [
-			insert find/tail locals 'saved 'prev
+			insert next find/tail locals 'saved [prev [logic!]]
 			append out [
 				prev: interpreter/tracing?
 			]
@@ -2276,7 +2280,9 @@ red: context [
 				catch RED_THROWN_ERROR
 			]
 			insert-lf -2
+			push-call call
 			body: comp-sub-block 'try
+			pop-call call
 			if body/1 = 'stack/reset [remove body]
 			mark: tail output
 			insert body mark
@@ -2287,12 +2293,17 @@ red: context [
 			unless all? [
 				emit [switch system/thrown]
 				handlers: build-exception-handler
-				insert handlers/1 [
+				insert handlers/1 compose/deep [
 					RED_THROWN_ERROR  [
-						natives/handle-thrown-error
+						natives/handle-thrown-error (pick [true false] keep?)
 					]
 				]
 				emit handlers
+			]
+			if all [keep? all?][
+				emit [
+					error/capture as red-object! stack/get-top
+				]
 			]
 			emit either all? [
 				[
@@ -2570,7 +2581,7 @@ red: context [
 		emit-close-frame
 	]
 	
-	comp-forall: has [word name][
+	comp-forall: has [word name mark][
 		name: pc/1
 		word: decorate-symbol name
 		emit-get-word name name							;-- save series (for resetting on end)
@@ -2582,20 +2593,26 @@ red: context [
 		emit [0 stack/arguments - 2]					;-- index of first argument
 		insert-lf -9
 		
+		emit [
+			unless natives/forall-next? no
+		]
+		mark: tail output
 		emit-open-frame 'forall
 		emit 'forever
+		insert-lf -1
 		push-call 'forall
 		comp-sub-block 'forall-body						;-- compile body
 		pop-call
 		
 		append last output [							;-- inject at tail of body block
-			if natives/forall-next? [break]			;-- move series to next position
+			if natives/forall-next? yes [break]			;-- move series to next position
 		]
 		emit [
 			stack/unwind
 			natives/forall-end							;-- reset series
 			stack/unwind
 		]
+		convert-to-block mark
 	]
 	
 	comp-remove-each: has [word blk cond ctx idx][
@@ -2670,7 +2687,7 @@ red: context [
 			throw-error "CONTINUE used with no loop"
 		]
 		if 'forall = last loops [
-			emit copy/deep [if natives/forall-next? [break]]	;-- move series to next position
+			emit copy/deep [if natives/forall-next? yes [break]] ;-- move series to next position
 			insert-lf -3
 		]
 		emit [stack/unroll-loop yes continue]
@@ -2684,7 +2701,7 @@ red: context [
 	][
 		push-locals copy symbols						;-- prepare compiled spec block
 		forall symbols [symbols/1: decorate-symbol/no-alias symbols/1]
-		locals: append copy [/local ctx saved] symbols
+		locals: append copy [/local ctx [red-context!] saved [node!]] symbols ;-- symbols can stay untyped as they are stored on the Red stack (GC protected)
 		set/any 'tracing make-attributs/prolog spec locals
 		blk: either container-obj? [head insert copy locals [octx [node!]]][locals]
 		emit reduce [to set-word! decorate-func/strict name 'func blk]
@@ -3017,7 +3034,7 @@ red: context [
 	comp-return: does [
 		check-invalid-exit 'return
 		comp-expression
-		emit-exit-function
+		unless find expr-stack 'try-all [emit-exit-function]
 	]
 	
 	comp-self: func [original [any-word!] /local obj ctx][

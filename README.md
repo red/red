@@ -2,7 +2,6 @@
 [![Windows build 2](https://github.com/red/red/workflows/Windows/badge.svg)](https://github.com/red/red/actions?query=workflow%3AWindows)
 [![Linux build 2](https://github.com/red/red/workflows/Linux-x86/badge.svg)](https://github.com/red/red/actions?query=workflow%3ALinux-x86)
 [![ARMhf build 2](https://github.com/red/red/workflows/RPi/badge.svg)](https://github.com/red/red/actions?query=workflow%3ARPi)
-[![macOS build 2](https://github.com/red/red/workflows/macOS-x86/badge.svg)](https://github.com/red/red/actions?query=workflow%3AmacOS-x86)
 
 # Red Programming Language
 
@@ -60,7 +59,7 @@ More information at [red-lang.org](https://www.red-lang.org).
 
 [Download](https://www.red-lang.org/p/download.html) a GUI or CLI console binary suitable for your operating system, rename it at your convenience, then run it from shell or by double-clicking on it (Windows). You should see the following output:
 
-        ---== Red 0.6.4 ==--
+        ---== Red 0.6.5 ==--
         Type HELP for starting information.
 
         >>
@@ -191,6 +190,8 @@ The Red toolchain comes as a single executable file that you can [download](http
 
     --no-view                      : Do not include VIEW module in the CLI console
                                      and the libRedRT.
+
+    --view <engine>                : Select the VIEW engine (native, terminal, GTK, test)
 
     --red-only                     : Stop just after Red-level compilation.
                                      Use higher verbose level to see compiler

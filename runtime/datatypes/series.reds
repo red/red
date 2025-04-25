@@ -113,7 +113,7 @@ _series: context [
 			size [integer!]
 			unit [integer!]
 			len	 [integer!]
-			val  [red-value! value]
+			val  [red-value! value]						;-- used for swapping values, GC-safe.
 			temp [byte-ptr!]
 			idx	 [byte-ptr!]
 			head [byte-ptr!]
@@ -122,7 +122,11 @@ _series: context [
 		#if debug? = yes [if verbose > 0 [print-line "series/random"]]
 
 		either seed? [
-			ser/header: TYPE_UNSET				;-- TODO: calc series to seed.
+			s: GET_BUFFER(ser)
+			_random/srand murmur3-x86-32
+				(as byte-ptr! s/offset) + ser/head
+				(as-integer s/tail - s/offset) - ser/head
+			ser/header: TYPE_UNSET
 		][
 			s: GET_BUFFER(ser)
 			unit: GET_UNIT(s)
@@ -159,7 +163,7 @@ _series: context [
 				]
 			][
 				len: size
-				temp: as byte-ptr! :val
+				temp: as byte-ptr! val
 				while [size > 0][
 					idx: head + ((-1 + _random/int-uniform-distr secure? size) << (log-b unit))
 					if idx <> head [
@@ -623,12 +627,12 @@ _series: context [
 			if part > size [part: size]
 		][size: size - head]
 
+		n: either part? [part][items * cnt]
+		if n > size [n: size]
+		ownership/check as red-value! ser words/_change null head n
+
 		rehash?: yes
 		either any [blk? self?][
-			n: either part? [part][items * cnt]
-			if n > size [n: size]
-			ownership/check as red-value! ser words/_change null head n
-
 			added: either part? [items - part][items - size]
 			added: added << unit
 			n: (as-integer (s/tail - s/offset)) + added
@@ -916,7 +920,7 @@ _series: context [
 			tail	[byte-ptr!]
 			tail2	[byte-ptr!]
 			temp	[byte-ptr!]
-			val     [red-value! value]
+			val     [red-value! value]					;-- used for swapping values, GC-safe.
 			int		[red-integer!]
 			ser2	[red-series!]
 			hash?	[logic!]
@@ -979,7 +983,7 @@ _series: context [
 		big?: all [skip? skip <> 1]
 		if all [positive? part head + part < tail][tail: head + part]
 		tail: tail - unit								;-- point to last value or multi-value record
-		temp: either big? [allocate unit][as byte-ptr! :val]
+		temp: either big? [allocate unit][as byte-ptr! val]
 		while [head < tail][							;-- TODO: optimise it according to unit
 			copy-memory temp head unit
 			copy-memory head tail unit
@@ -1025,6 +1029,7 @@ _series: context [
 			part	[integer!]
 			bytes	[integer!]
 			size	[integer!]
+			ty		[integer!]
 			hash	[red-hash!]
 			part2	[integer!]
 			check?	[logic!]
@@ -1042,6 +1047,7 @@ _series: context [
 		part: 1
 		part2: 1
 		part?: OPTION?(part-arg)
+		ty: TYPE_OF(ser)
 
 		if part? [
 			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
@@ -1050,7 +1056,7 @@ _series: context [
 			][
 				ser2: as red-series! part-arg
 				unless all [
-					TYPE_OF(ser2) = TYPE_OF(ser)		;-- handles ANY-STRING!
+					TYPE_OF(ser2) = ty					;-- handles ANY-STRING!
 					ser2/node = ser/node
 				][
 					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
@@ -1081,8 +1087,8 @@ _series: context [
 		]
 
 		ser2: as red-series! stack/push*
-		ser2/header: TYPE_OF(ser)
-		ser2/extra:  either TYPE_OF(ser) = TYPE_VECTOR [ser/extra][0]
+		ser2/header: ty
+		ser2/extra:  either any [ty = TYPE_VECTOR ty = TYPE_HASH][ser/extra][0]
 		ser2/node:   node
 		ser2/head:   0
 
@@ -1113,7 +1119,7 @@ _series: context [
 			s/tail: as cell! tail - bytes
 		]
 
-		if TYPE_OF(ser) = TYPE_HASH [
+		if ty = TYPE_HASH [
 			unit: either last? [size][ser/head + part]
 			hash: as red-hash! ser
 			_hashtable/refresh hash/table 0 - part unit size - unit yes

@@ -233,14 +233,6 @@ Red [
 		--assert strict-equal? -2147483647 i + j
 		--assert strict-equal? -2147483647 add i j
 
-	--test-- "1 + 2147483647"
-		i: 1
-		j: 2147483647
-		--assert error? try [1 + 2147483647]
-		--assert error? try [add 1 2147483647]
-		--assert error? try [i + j]
-		--assert error? try [add i j]
-
 	--test-- "1 + 65536"
 		i: 1
 		j: 65536
@@ -264,14 +256,6 @@ Red [
 		--assert strict-equal? 16777217 add 1 16777216
 		--assert strict-equal? 16777217 i + j
 		--assert strict-equal? 16777217 add i j
-
-	--test-- "-1 + -2147483648"
-		i: -1
-		j: -2147483648
-		--assert error? try [-1 + -2147483648]
-		--assert error? try [add -1 -2147483648]
-		--assert error? try [i + j]
-		--assert error? try [add i j]
 
 	--test-- "-1 + 2147483647"
 		i: -1
@@ -337,30 +321,6 @@ Red [
 		--assert strict-equal? -2130706432 i + j
 		--assert strict-equal? -2130706432 add i j
 
-	--test-- "2147483647 + 65536"
-		i: 2147483647
-		j: 65536
-		--assert error? try [2147483647 + 65536]
-		--assert error? try [add 2147483647 65536]
-		--assert error? try [i + j]
-		--assert error? try [add i j]
-
-	--test-- "2147483647 + 256"
-		i: 2147483647
-		j: 256
-		--assert error? try [2147483647 + 256]
-		--assert error? try [add 2147483647 256]
-		--assert error? try [i + j]
-		--assert error? try [add i j]
-
-	--test-- "2147483647 + 16777216"
-		i: 2147483647
-		j: 16777216
-		--assert error? try [2147483647 + 16777216]
-		--assert error? try [add 2147483647 16777216]
-		--assert error? try [i + j]
-		--assert error? try [add i j]
-
 	--test-- "65536 + 256"
 		i: 65536
 		j: 256
@@ -404,14 +364,6 @@ Red [
 		--assert strict-equal? 1 subtract 0 -1
 		--assert strict-equal? 1 i - j
 		--assert strict-equal? 1 subtract i j
-
-	--test-- "0 - -2147483648"
-		i: 0
-		j: -2147483648
-		--assert error? try [0 - -2147483648]
-		--assert error? try [subtract 0 -2147483648]
-		--assert error? try [i - j]
-		--assert error? try [subtract i j]
 
 	--test-- "0 - 2147483647"
 		i: 0
@@ -460,14 +412,6 @@ Red [
 		--assert strict-equal? 2 subtract 1 -1
 		--assert strict-equal? 2 i - j
 		--assert strict-equal? 2 subtract i j
-
-	--test-- "1 - -2147483648"
-		i: 1
-		j: -2147483648
-		--assert error? try [1 - -2147483648]
-		--assert error? try [subtract 1 -2147483648]
-		--assert error? try [i - j]
-		--assert error? try [subtract i j]
 
 	--test-- "1 - 2147483647"
 		i: 1
@@ -565,14 +509,6 @@ Red [
 		--assert strict-equal? -2147483648 i - j
 		--assert strict-equal? -2147483648 subtract i j
 
-	--test-- "-2147483648 - 1"
-		i: -2147483648
-		j: 1
-		--assert error? try [-2147483648 - 1]
-		--assert error? try [subtract -2147483648 1]
-		--assert error? try [i - j]
-		--assert error? try [subtract i j]
-
 	--test-- "-2147483648 - -1"
 		i: -2147483648
 		j: -1
@@ -580,38 +516,6 @@ Red [
 		--assert strict-equal? -2147483647 subtract -2147483648 -1
 		--assert strict-equal? -2147483647 i - j
 		--assert strict-equal? -2147483647 subtract i j
-
-	--test-- "-2147483648 - 2147483647"
-		i: -2147483648
-		j: 2147483647
-		--assert error? try [-2147483648 - 2147483647]
-		--assert error? try [subtract -2147483648 2147483647]
-		--assert error? try [i - j]
-		--assert error? try [subtract i j]
-
-	--test-- "-2147483648 - 65536"
-		i: -2147483648
-		j: 65536
-		--assert error? try [-2147483648 - 65536]
-		--assert error? try [subtract -2147483648 65536]
-		--assert error? try [i - j]
-		--assert error? try [subtract i j]
-
-	--test-- "-2147483648 - 256"
-		i: -2147483648
-		j: 256
-		--assert error? try [-2147483648 - 256]
-		--assert error? try [subtract -2147483648 256]
-		--assert error? try [i - j]
-		--assert error? try [subtract i j]
-
-	--test-- "-2147483648 - 16777216"
-		i: -2147483648
-		j: 16777216
-		--assert error? try [-2147483648 - 16777216]
-		--assert error? try [subtract -2147483648 16777216]
-		--assert error? try [i - j]
-		--assert error? try [subtract i j]
 
 	--test-- "2147483647 - 0"
 		i: 2147483647
@@ -628,22 +532,6 @@ Red [
 		--assert strict-equal? 2147483646 subtract 2147483647 1
 		--assert strict-equal? 2147483646 i - j
 		--assert strict-equal? 2147483646 subtract i j
-
-	--test-- "2147483647 - -1"
-		i: 2147483647
-		j: -1
-		--assert error? try [2147483647 - -1]
-		--assert error? try [subtract 2147483647 -1]
-		--assert error? try [i - j]
-		--assert error? try [subtract i j]
-
-	--test-- "2147483647 - -2147483648"
-		i: 2147483647
-		j: -2147483648
-		--assert error? try [2147483647 - -2147483648]
-		--assert error? try [subtract 2147483647 -2147483648]
-		--assert error? try [i - j]
-		--assert error? try [subtract i j]
 
 	--test-- "2147483647 - 65536"
 		i: 2147483647
@@ -693,14 +581,6 @@ Red [
 		--assert strict-equal? 65537 i - j
 		--assert strict-equal? 65537 subtract i j
 
-	--test-- "65536 - -2147483648"
-		i: 65536
-		j: -2147483648
-		--assert error? try [65536 - -2147483648]
-		--assert error? try [subtract 65536 -2147483648]
-		--assert error? try [i - j]
-		--assert error? try [subtract i j]
-
 	--test-- "65536 - 2147483647"
 		i: 65536
 		j: 2147483647
@@ -749,14 +629,6 @@ Red [
 		--assert strict-equal? 257 i - j
 		--assert strict-equal? 257 subtract i j
 
-	--test-- "256 - -2147483648"
-		i: 256
-		j: -2147483648
-		--assert error? try [256 - -2147483648]
-		--assert error? try [subtract 256 -2147483648]
-		--assert error? try [i - j]
-		--assert error? try [subtract i j]
-
 	--test-- "256 - 2147483647"
 		i: 256
 		j: 2147483647
@@ -804,14 +676,6 @@ Red [
 		--assert strict-equal? 16777217 subtract 16777216 -1
 		--assert strict-equal? 16777217 i - j
 		--assert strict-equal? 16777217 subtract i j
-
-	--test-- "16777216 - -2147483648"
-		i: 16777216
-		j: -2147483648
-		--assert error? try [16777216 - -2147483648]
-		--assert error? try [subtract 16777216 -2147483648]
-		--assert error? try [i - j]
-		--assert error? try [subtract i j]
 
 	--test-- "16777216 - 2147483647"
 		i: 16777216
@@ -947,10 +811,11 @@ Red [
 	--test-- "-1 * -2147483648"
 		i: -1
 		j: -2147483648
-		--assert error? try [-1 * -2147483648]
-		--assert error? try [multiply -1 -2147483648]
-		--assert error? try [i * j]
-		--assert error? try [multiply i j]
+		res: 2147483648.0
+		--assert -1 * -2147483648 = res
+		--assert res = multiply -1 -2147483648
+		--assert i * j = res
+		--assert res = multiply i j
 
 	--test-- "-1 * 2147483647"
 		i: -1
@@ -987,82 +852,91 @@ Red [
 	--test-- "-2147483648 * 2147483647"
 		i: -2147483648
 		j: 2147483647
-		--assert error? try [-2147483648 * 2147483647]
-		--assert error? try [multiply -2147483648 2147483647]
-		--assert error? try [i * j]
-		--assert error? try [multiply i j]
+		res: -4.611686016279904e18
+		--assert -2147483648 * 2147483647 = res
+		--assert res = multiply -2147483648 2147483647
+		--assert i * j = res
+		--assert res = multiply i j
 
 	--test-- "-2147483648 * 65536"
 		i: -2147483648
 		j: 65536
-		--assert error? try [-2147483648 * 65536]
-		--assert error? try [multiply -2147483648 65536]
-		--assert error? try [i * j]
-		--assert error? try [multiply i j]
+		res: -140737488355328.0
+		--assert -2147483648 * 65536 = res
+		--assert res = multiply -2147483648 65536
+		--assert i * j = res
+		--assert res = multiply i j
 
 	--test-- "-2147483648 * 256"
 		i: -2147483648
 		j: 256
-		--assert error? try [-2147483648 * 256]
-		--assert error? try [multiply -2147483648 256]
-		--assert error? try [i * j]
-		--assert error? try [multiply i j]
+		res: -549755813888.0
+		--assert -2147483648 * 256 = res
+		--assert res = multiply -2147483648 256
+		--assert i * j = res
+		--assert res = multiply i j
 
 	--test-- "-2147483648 * 16777216"
 		i: -2147483648
 		j: 16777216
-		--assert error? try [-2147483648 * 16777216]
-		--assert error? try [multiply -2147483648 16777216]
-		--assert error? try [i * j]
-		--assert error? try [multiply i j]
+		res: -3.602879701896397e16
+		--assert -2147483648 * 16777216 = res
+		--assert equal? res multiply -2147483648 16777216
+		--assert i * j = res
+		--assert equal? res multiply i j
 
 	--test-- "2147483647 * 65536"
 		i: 2147483647
 		j: 65536
-		--assert error? try [2147483647 * 65536]
-		--assert error? try [multiply 2147483647 65536]
-		--assert error? try [i * j]
-		--assert error? try [multiply i j]
+		res: 140737488289792.0
+		--assert 2147483647 * 65536 = res
+		--assert res = multiply 2147483647 65536
+		--assert i * j = res
+		--assert res = multiply i j
 
 	--test-- "2147483647 * 256"
 		i: 2147483647
 		j: 256
-		--assert error? try [2147483647 * 256]
-		--assert error? try [multiply 2147483647 256]
-		--assert error? try [i * j]
-		--assert error? try [multiply i j]
+		res: 549755813632.0
+		--assert 2147483647 * 256 = res
+		--assert res = multiply 2147483647 256
+		--assert i * j = res
+		--assert res = multiply i j
 
 	--test-- "2147483647 * 16777216"
 		i: 2147483647
 		j: 16777216
-		--assert error? try [2147483647 * 16777216]
-		--assert error? try [multiply 2147483647 16777216]
-		--assert error? try [i * j]
-		--assert error? try [multiply i j]
+		res: 3.602879700218675e16
+		--assert 2147483647 * 16777216 = res
+		--assert res = multiply 2147483647 16777216
+		--assert i * j = res
+		--assert res = multiply i j
 
 	--test-- "65536 * 256"
 		i: 65536
 		j: 256
-		--assert strict-equal? 16777216 65536 * 256
-		--assert strict-equal? 16777216 multiply 65536 256
-		--assert strict-equal? 16777216 i * j
-		--assert strict-equal? 16777216 multiply i j
+		--assert equal? 16777216 65536 * 256
+		--assert equal? 16777216 multiply 65536 256
+		--assert equal? 16777216 i * j
+		--assert equal? 16777216 multiply i j
 
 	--test-- "65536 * 16777216"
 		i: 65536
 		j: 16777216
-		--assert error? try [65536 * 16777216]
-		--assert error? try [multiply 65536 16777216]
-		--assert error? try [i * j]
-		--assert error? try [multiply i j]
+		res: 1099511627776.0
+		--assert 65536 * 16777216 = res
+		--assert res = multiply 65536 16777216
+		--assert i * j = res
+		--assert res = multiply i j
 
 	--test-- "256 * 16777216"
 		i: 256
 		j: 16777216
-		--assert error? try [256 * 16777216]
-		--assert error? try [multiply 256 16777216]
-		--assert error? try [i * j]
-		--assert error? try [multiply i j]
+		res: 4294967296.0
+		--assert 256 * 16777216 = res
+		--assert res = multiply 256 16777216
+		--assert i * j = res
+		--assert res = multiply i j
 
 ===end-group===
 

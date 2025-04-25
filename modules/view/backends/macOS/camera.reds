@@ -18,6 +18,8 @@ Red/System [
 	}
 ]
 
+camera-ratio:	 0.0									;-- used to pass ratio info from deep code to init-camera 
+
 init-camera: func [
 	camera	[integer!]
 	rc		[NSRect!]
@@ -46,6 +48,7 @@ init-camera: func [
 	objc_msgSend [
 		layer sel_getUid "setBackgroundColor:" objc_msgSend [n sel_getUid "CGColor"]
 	]
+	objc_msgSend [layer sel_getUid "setAutoresizingMask:" NSViewWidthSizable or NSViewHeightSizable]
 
 	;-- get all devices name
 	devices: objc_msgSend [objc_getClass "AVCaptureDevice" sel_getUid "devicesWithMediaType:" AVMediaTypeVideo]
@@ -84,6 +87,7 @@ init-camera: func [
 	objc_setAssociatedObject camera RedCameraImageKey   img-out OBJC_ASSOCIATION_ASSIGN
 
 	preview: objc_msgSend [objc_getClass "AVCaptureVideoPreviewLayer" sel_getUid "layerWithSession:" session]
+	objc_msgSend [preview sel_getUid "setAutoresizingMask:" NSViewWidthSizable or NSViewHeightSizable]
 	objc_msgSend [preview sel_getUid "setFrame:" rc/x rc/y rc/w rc/h]
 	objc_msgSend [layer sel_getUid "addSublayer:" preview]
 ]
@@ -121,10 +125,24 @@ toggle-preview: func [
 	enabled?	[logic!]
 	/local
 		session [integer!]
+		face	[red-object!]
+		ratio	[red-float!]
+		img		[red-image!]
+		w h		[integer!]
 ][
 	session: objc_getAssociatedObject camera RedCameraSessionKey
 	either enabled? [
 		objc_msgSend [session sel_getUid "startRunning"]
+		face: get-face-obj camera
+		ratio: get-ratio face
+		if TYPE_OF(ratio) = TYPE_FLOAT [
+			snap-camera camera
+			img: as red-image! get-node-facet face/ctx FACE_OBJ_IMAGE
+			w: IMAGE_WIDTH(img/size)
+			h: IMAGE_HEIGHT(img/size)
+			camera-ratio: (as-float w) / (as-float h)
+			ratio/value: camera-ratio
+		]
 	][
 		objc_msgSend [session sel_getUid "stopRunning"]
 	]
@@ -141,7 +159,7 @@ still-image-handler: func [
 ][
 	if error <> 0 [exit]		;-- error occur
 
-	values: as red-value! block/6
+	values: get-face-values block/6
 	data: objc_msgSend [
 		objc_getClass "AVCaptureStillImageOutput"
 		sel_getUid "jpegStillImageNSDataRepresentation:"
@@ -175,7 +193,7 @@ snap-camera: func [				;-- capture an image of current preview window
 	blk/reserved: 0
 	blk/invoke: as int-ptr! :still-image-handler
 	blk/descriptor: as int-ptr! objc_block_descriptor
-	blk/value: as int-ptr! get-face-values camera
+	blk/value: as int-ptr! camera
 	image: objc_getAssociatedObject camera RedCameraImageKey
 	connection: objc_msgSend [image sel_getUid "connectionWithMediaType:" AVMediaTypeVideo]
 

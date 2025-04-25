@@ -393,8 +393,8 @@ OS-image: context [
 		GdipBitmapSetPixel as-integer bitmap index % width index / width color
 	]
 
-	delete: func [img [red-image!]][
-		GdipDisposeImage as-integer img/node
+	delete: func [node [node!]][
+		GdipDisposeImage as-integer node
 	]
 
 	resize: func [

@@ -126,7 +126,7 @@ free-faces: func [
 ]
 
 on-gc-mark: does [
-	collector/keep flags-blk/node
+	collector/keep :flags-blk/node
 ]
 
 init: func [
@@ -343,12 +343,7 @@ OS-do-draw: func [
 ]
 
 OS-draw-face: func [
-	ctx		[draw-ctx!]
+	hWnd	[handle!]
 	cmds	[red-block!]
-][
-	if TYPE_OF(cmds) = TYPE_BLOCK [
-		assert system/thrown = 0
-		catch RED_THROWN_ERROR [parse-draw ctx cmds yes]
-	]
-	if system/thrown = RED_THROWN_ERROR [system/thrown: 0]
-]
+	flags	[integer!]
+][]

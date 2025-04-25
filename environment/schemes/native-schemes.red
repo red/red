@@ -10,28 +10,28 @@ Red [
 	}
 ]
 
-actor: #system [handle/push tcp-device/table]
+actor: #system [handle/push tcp-device/table handle/CLASS_DEVICE]
 
 register-scheme/native make system/standard/scheme [
 	name: 'TCP
 	title: "TCP scheme implementation"
 ] actor
 
-actor: #system [handle/push TLS-device/table]
+actor: #system [handle/push TLS-device/table handle/CLASS_DEVICE]
 
 register-scheme/native make system/standard/scheme [
 	name: 'TLS
 	title: "TLS scheme implementation"
 ] actor
 
-actor: #system [handle/push udp-device/table]
+actor: #system [handle/push udp-device/table handle/CLASS_DEVICE]
 
 register-scheme/native make system/standard/scheme [
 	name: 'UDP
 	title: "UDP scheme implementation"
 ] actor
 
-actor: #system [handle/push file-device/table]
+actor: #system [handle/push file-device/table handle/CLASS_DEVICE]
 
 register-scheme/native make system/standard/scheme [
 	name: 'FILE

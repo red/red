@@ -11,6 +11,14 @@ Red/System [
 ]
 
 painting?: no
+last-painted-base: as handle! 0
+_time_meter: declare time-meter!
+
+#define LIMIT_RENDERING_RATE [
+	if (as float32! 16.6) > time-meter/elapse _time_meter [		;-- limit to 60 FPS
+		return 0
+	]
+]
 
 init-base-face: func [
 	handle		[handle!]
@@ -464,6 +472,7 @@ BaseWndProc: func [
 		ps		[tagPAINTSTRUCT value]
 ][
 	switch msg [
+		WM_NCCREATE [last-painted-base: hWnd]
 		WM_MOUSEACTIVATE [
 			flags: GetWindowLong hWnd GWL_EXSTYLE
 			if flags and WS_EX_LAYERED > 0 [
@@ -487,7 +496,7 @@ BaseWndProc: func [
 		WM_SIZE  [
 		#either draw-engine = 'GDI+ [
 			either (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D = 0 [
-				unless zero? GetWindowLong hWnd wc-offset + 4 [
+				unless zero? GetWindowLong hWnd wc-offset [
 					update-base hWnd null null get-face-values hWnd
 				]
 			][
@@ -501,8 +510,9 @@ BaseWndProc: func [
 			]
 			either all [
 				(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) <> 0
-				0 <> GetWindowLong hWnd wc-offset + 4
+				face-set? hWnd
 			][
+				OS-Sleep 16
 				update-base hWnd null null get-face-values hWnd
 			][
 				InvalidateRect hWnd null 1
@@ -515,10 +525,14 @@ BaseWndProc: func [
 		WM_PAINT
 		WM_DISPLAYCHANGE [
 			if painting? [return 0]
+			if layered-win? last-painted-base [LIMIT_RENDERING_RATE]
+
 			if all [
 				(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) = 0	;-- not a layered window
-				0 <> GetWindowLong hWnd wc-offset		;-- linked with a face object
+				face-set? hWnd			;-- linked with a face object
 			][
+				last-painted-base: hWnd
+
 				#either draw-engine = 'GDI+ [][BeginPaint hWnd :ps]
 				painting?: yes
 				draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
@@ -536,10 +550,9 @@ BaseWndProc: func [
 					DC: declare draw-ctx!				;@@ should declare it on stack
 					catch RED_THROWN_ERROR [
 						draw-begin DC hWnd null no yes
-						integer/make-at as red-value! draw as-integer DC
+						SetWindowLong hWnd OFFSET_DRAW_CTX as-integer DC
 						current-msg/hWnd: hWnd
 						make-event current-msg 0 EVT_DRAWING
-						draw/header: TYPE_NONE
 						draw-end DC hWnd no no yes
 					]
 					system/thrown: 0
@@ -768,17 +781,6 @@ transparent-base?: func [
 	][false][true]
 ]
 
-scale-graphic: func [
-	graphic		[integer!]
-	/local
-		ratio	[float32!]
-][
-	if dpi-factor <> as float32! 1.0 [
-		ratio: dpi-factor
-		GdipScaleWorldTransform graphic ratio ratio GDIPLUS_MATRIX_PREPEND
-	]
-]
-
 #either draw-engine = 'GDI+ [
 update-base: func [
 	hWnd	[handle!]
@@ -794,14 +796,14 @@ update-base: func [
 		para	[red-object!]
 		sz		[red-pair!]
 		pt		[red-point2D!]
+		hBitmap [handle!]
+		hBackDC [handle!]
+		bf		[tagBLENDFUNCTION value]
 		x y 	[float32!]
 		height	[integer!]
 		width	[integer!]
 		size	[tagSIZE]
-		hBitmap [handle!]
-		hBackDC [handle!]
 		ptSrc	[tagPOINT value]
-		bf		[tagBLENDFUNCTION value]
 		graphic [integer!]
 		flags	[integer!]
 ][
@@ -872,25 +874,52 @@ update-base: func [
 		para	[red-object!]
 		sz		[red-pair!]
 		pt		[red-point2D!]
-		x y 	[float32!]
-		height	[integer!]
-		width	[integer!]
-		size	[tagSIZE]
 		hBitmap [handle!]
 		hBackDC [handle!]
-		ptSrc	[tagPOINT value]
-		bf		[tagBLENDFUNCTION value]
-		graphic [integer!]
-		flags	[integer!]
-		ctx		[draw-ctx! value]
 		this	[this!]
 		surf	[IDXGISurface1]
 		hdc		[ptr-value!]
+		size	[tagSIZE]
+		ctx		[draw-ctx! value]
+		bf		[tagBLENDFUNCTION value]
+		ptSrc	[tagPOINT value]
+		x y 	[float32!]
+		height	[integer!]
+		width	[integer!]
+		graphic [integer!]
+		flags	[integer!]
+		h-above	[handle!]
+		rt		[integer!]
+		handle	[red-handle!]
+		blk		[red-block!]
+		face	[red-object!]
 		rc		[RECT_STRUCT value]
 ][
 	if zero? (WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) [
-		InvalidateRect hWnd null 1
-		exit
+		either transparent-base?
+					as red-tuple! values + FACE_OBJ_COLOR
+					as red-image! values + FACE_OBJ_IMAGE [
+			h-above: GetWindow hWnd 3 ;-- GW_HWNDPREV get the window above hWnd
+			parent: GetParent hWnd
+			face: get-face-obj hWnd
+
+			;-- destroy the base face
+			free-faces face no
+			DestroyWindow hWnd
+
+			;-- recreate a layered window
+			hWnd: as handle! OS-make-view face as-integer parent
+			blk: as red-block! values + FACE_OBJ_STATE
+			blk/header: TYPE_BLOCK
+			handle: as red-handle! block/rs-head blk
+			handle/value: as-integer hWnd
+
+			;-- restore z-order
+			SetWindowPos hWnd h-above 0 0 0 0 1819 ;-- 1819: All SWP_NO* flags except SWP_NOZORDER
+		][
+			InvalidateRect hWnd null 1
+			exit
+		]
 	]
 
 	cmds: as red-block! values + FACE_OBJ_DRAW
@@ -907,6 +936,7 @@ update-base: func [
 	bf/AlphaFormat: as-byte 1
 	flags: 2
 
+	last-painted-base: hWnd
 	either TYPE_OF(cmds) = TYPE_BLOCK [
 		do-draw hWnd null cmds yes no no yes
 	][

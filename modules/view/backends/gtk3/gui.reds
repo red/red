@@ -10,7 +10,6 @@ Red/System [
 	}
 ]
 
-#include %../keycodes.reds
 #include %gtk.reds
 #include %events.reds
 
@@ -41,8 +40,6 @@ default-font-width: as float32! 7.5		;-- pixel width
 gtk-font-name:		"Sans"
 gtk-font-size:		10
 
-log-pixels-x:		0
-log-pixels-y:		0
 screen-size-x:		0
 screen-size-y:		0
 
@@ -55,15 +52,8 @@ screen-size-y:		0
 get-face-obj: func [
 	handle		[handle!]
 	return:		[red-object!]
-	/local
-		face	[red-object!]
 ][
-	face: declare red-object!
-	face/header: as integer! g_object_get_qdata handle red-face-id1
-	face/ctx:	 			 g_object_get_qdata handle red-face-id2
-	face/class:  as integer! g_object_get_qdata handle red-face-id3
-	face/on-set: 			 g_object_get_qdata handle red-face-id4
-	face
+	as red-object! references/get as integer! g_object_get_qdata handle red-face-id
 ]
 
 get-face-values: func [
@@ -473,7 +463,7 @@ free-handles: func [
 	free-color-provider widget
 	free-font-provider widget
 	rate: values + FACE_OBJ_RATE
-	if TYPE_OF(rate) <> TYPE_NONE [change-rate widget none-value]
+	if TYPE_OF(rate) <> TYPE_NONE [remove-widget-timer widget]
 
 	pane: as red-block! values + FACE_OBJ_PANE
 	if TYPE_OF(pane) = TYPE_BLOCK [
@@ -516,7 +506,7 @@ free-handles: func [
 ]
 
 on-gc-mark: does [
-	collector/keep flags-blk/node
+	collector/keep :flags-blk/node
 ]
 
 parse-font-name: func [
@@ -724,7 +714,16 @@ set-dark-mode: func [
 ][
 ]
 
-init: func [][
+monitor-changed: func [
+	[cdecl]
+	display		[handle!]
+	monitor		[handle!]
+	user_data	[handle!]
+][
+	#call [system/view/platform/refresh-screens]
+]
+
+init: func [/local disp [handle!]][
 	get-os-version
 	gtk_disable_setlocale
 	gtk_init null null
@@ -737,6 +736,11 @@ init: func [][
 	#if type = 'exe [set-env-theme]
 	set-app-theme "box, button.text-button {min-width: 1px; min-height: 1px;}" yes
 	collector/register as int-ptr! :on-gc-mark
+	font-ext-type: externals/register "font" as-integer :delete-font
+
+	disp: gdk_display_get_default
+	gobj_signal_connect(disp "monitor-added" :monitor-changed null)
+	gobj_signal_connect(disp "monitor-removed"  :monitor-changed null)
 ]
 
 get-symbol-name: function [
@@ -788,22 +792,16 @@ remove-all-timers: func [
 	/local
 		widget_	[handle!]
 		pane	[red-block!]
-		type	[red-word!]
-		sym		[integer!]
 		face	[red-object!]
 		tail	[red-object!]
 		values	[red-value!]
 		rate	[red-value!]
 ][
-	remove-widget-timer widget
 	values: get-face-values widget
-	type: 	as red-word! values + FACE_OBJ_TYPE
 	pane: 	as red-block! values + FACE_OBJ_PANE
 	rate:	 values + FACE_OBJ_RATE
 
-	change-rate widget none-value
-
-	sym: 	symbol/resolve type/symbol
+	if TYPE_OF(rate) <> TYPE_NONE [remove-widget-timer widget]
 
 	if all [TYPE_OF(pane) = TYPE_BLOCK 0 <> block/rs-length? pane] [
 		face: as red-object! block/rs-head pane
@@ -862,10 +860,9 @@ change-image: func [
 ][
 	;; DEBUG: print ["change-image " widget " type: " get-symbol-name type lf]
 	case [
-		; type = camera [
-		; 	snap-camera widget
-		; 	until [TYPE_OF(image) = TYPE_IMAGE]			;-- wait
-		; ]
+		all [type = camera TYPE_OF(image) = TYPE_NONE][
+			camera-get-image widget image
+		]
 		any [type = button type = toggle type = check type = radio][
 			if TYPE_OF(image) = TYPE_IMAGE [
 				img: gtk_image_new_from_pixbuf OS-image/to-pixbuf image
@@ -873,7 +870,6 @@ change-image: func [
 			]
 		]
 		true [0]
-
 	]
 ]
 
@@ -1250,7 +1246,11 @@ change-selection: func [
 			gtk_adjustment_set_page_size adj flt
 		]
 		type = camera [
-			select-camera widget idx
+			either idx < 0 [
+				stop-camera widget
+			][
+				select-camera widget idx
+			]
 		]
 		type = text-list [
 			g_signal_handlers_block_by_func(widget :text-list-selected-rows-changed widget)
@@ -1389,10 +1389,7 @@ store-face-to-obj: func [
 	obj			[handle!]
 	face		[red-object!]
 ][
-	g_object_set_qdata obj red-face-id1 as int-ptr! face/header
-	g_object_set_qdata obj red-face-id2				face/ctx
-	g_object_set_qdata obj red-face-id3 as int-ptr! face/class
-	g_object_set_qdata obj red-face-id4				face/on-set
+	g_object_set_qdata obj red-face-id as int-ptr! references/store as red-value! face
 ]
 
 init-combo-box: func [
@@ -1641,6 +1638,72 @@ parse-common-opts: func [
 	]
 ]
 
+OS-get-current-screen: func [
+	return: [red-handle!]
+	/local
+		disp seat dev m [handle!]
+		x y [integer!]
+][
+	disp: gdk_display_get_default
+	seat: gdk_display_get_default_seat disp
+	dev: gdk_seat_get_pointer seat
+	x: 0 y: 0
+	gdk_device_get_position dev null :x :y
+	m: gdk_display_get_monitor_at_point disp x y
+	handle/make-at stack/arguments as-integer m handle/CLASS_MONITOR
+]
+
+fetch-monitor-info: func [
+	hMonitor	[handle!]
+	spec		[red-block!]
+	/local
+		blk		[red-block!]
+		s		[series!]
+		w h dpi	[integer!]
+		rec		[GdkRectangle! value]
+		dp di	[float32!]
+][	
+	blk: block/make-at as red-block! ALLOC_TAIL(spec) 4
+	s: GET_BUFFER(blk)
+
+	gdk_monitor_get_geometry hMonitor :rec
+	w: gdk_monitor_get_width_mm hMonitor
+	h: gdk_monitor_get_height_mm hMonitor
+
+	either all [w > 0 h > 0][
+		dp: hypotf as float32! rec/width as float32! rec/height
+		di: hypotf as float32! w as float32! h
+		dp: dp * (as float32! 25.4) / di
+		dpi: as-integer dp + as float32! 0.5
+	][dpi: 96]
+	if dpi < 96 [dpi: 96]
+
+	pair/make-at   alloc-tail s rec/x rec/y
+	pair/make-at   alloc-tail s rec/width rec/height
+	float/make-at  alloc-tail s (as-float dpi) / 96.0
+	handle/make-at alloc-tail s as-integer hMonitor handle/CLASS_MONITOR
+]
+
+OS-fetch-all-screens: func [
+	return: [red-block!]
+	/local
+		blk [red-block!]
+		n i	[integer!]
+		display m [handle!]
+][
+	blk: block/push-only* 2
+
+	display: gdk_display_get_default
+	n: gdk_display_get_n_monitors display
+	i: 0
+	while [i < n][
+		m: gdk_display_get_monitor display i
+		fetch-monitor-info m blk
+		i: i + 1
+	]
+	blk
+]
+
 OS-redraw: func [
 	widget		[integer!]
 ][
@@ -1676,7 +1739,7 @@ OS-show-window: func [
 		any [window-ready? n = 10000]
 	]
 	window-ready?: no
-	set-selected-focus win
+	;set-selected-focus win
 ]
 
 set-buffer: func [
@@ -2233,9 +2296,6 @@ OS-destroy-view: func [
 	obj: as red-object! values + FACE_OBJ_PARA
 	if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj PARA_OBJ_PARENT]
 
-	;; TODO: This can be useless now!
-	remove-all-timers handle
-
 	free-handles handle no
 ]
 
@@ -2318,6 +2378,13 @@ OS-to-image: func [
 				ret: image/init-image as red-image! stack/push* OS-image/load-pixbuf pixbuf
 			]
 		]
+		type = camera [
+			widget: face-handle? face
+			either null? widget [ret: as red-image! none-value][
+				ret: as red-image! (object/get-values face) + FACE_OBJ_IMAGE
+				camera-get-image widget ret
+			]
+		]
 		true [
 			widget: face-handle? face
 			either null? widget [ret: as red-image! none-value][
@@ -2326,10 +2393,7 @@ OS-to-image: func [
 				win: gtk_widget_get_window widget
 				either not null? win [
 					GET_PAIR_XY_INT(size sx sy)
-					pixbuf: either any [
-						type = window
-						type = camera
-					][
+					pixbuf: either type = window [
 						gdk_pixbuf_get_from_window win 0 0 sx sy
 					][
 						gdk_pixbuf_get_from_window win as-integer offset/x as-integer offset/y sx sy
@@ -2374,11 +2438,15 @@ OS-do-draw: func [
 ]
 
 OS-draw-face: func [
-	ctx			[draw-ctx!]
-	cmds		[red-block!]
+	hWnd	[handle!]
+	cmds	[red-block!]
+	flags	[integer!]
+	/local
+		ctx [draw-ctx!]
 ][
 	if TYPE_OF(cmds) = TYPE_BLOCK [
 		assert system/thrown = 0
+		ctx: as draw-ctx! g_object_get_qdata hWnd draw-ctx-id
 		catch RED_THROWN_ERROR [parse-draw ctx cmds yes]
 	]
 	if system/thrown = RED_THROWN_ERROR [system/thrown: 0]

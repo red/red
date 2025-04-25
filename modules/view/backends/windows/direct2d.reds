@@ -23,9 +23,6 @@ dw-locale-name: as c-string! 0
 
 pfnDCompositionCreateDevice2: as int-ptr! 0
 
-dpi-value:		as float32! 96.0
-dpi-x:			as float32! 0.0
-dpi-y:			as float32! 0.0
 dwrite-str-cache: as node! 0
 
 #define D2D_MAX_BRUSHES 64
@@ -1614,13 +1611,13 @@ DX-create-buffer: func [
 	;-- create a bitmap from the buffer
 	props/format: 87		;-- DXGI_FORMAT_B8G8R8A8_UNORM
 	props/alphaMode: 1		;-- D2D1_ALPHA_MODE_PREMULTIPLIED
-	props/dpiX: dpi-x
-	props/dpiY: dpi-y
+	props/dpiX: current-dpi
+	props/dpiY: current-dpi
 	props/options: 3		;-- D2D1_BITMAP_OPTIONS_TARGET or D2D1_BITMAP_OPTIONS_CANNOT_DRAW
 	props/colorContext: null
 	bmp: 0
 	d2d: as ID2D1DeviceContext d2d-ctx/vtbl
-	d2d/setDpi d2d-ctx dpi-x dpi-y
+	d2d/setDpi d2d-ctx current-dpi current-dpi
 	hr: d2d/CreateBitmapFromDxgiSurface d2d-ctx buf/value props :bmp
 	assert hr = 0
 	
@@ -1760,9 +1757,7 @@ DX-create-dev: func [
 	d2d: as ID2D1Factory d2d-factory/vtbl
 	;d2d/GetDesktopDpi d2d-factory :dpi-x :dpi-y
 
-	dpi-x: as float32! log-pixels-x
-	dpi-y: as float32! log-pixels-y
-	dpi-value: dpi-y
+	current-dpi: as float32! log-pixels-x
 
 	;-- create D2D Device
 	hr: d2d/CreateDevice d2d-factory as int-ptr! dxgi-device :factory
@@ -1819,14 +1814,14 @@ logical-to-pixel: func [
 	num		[float32!]
 	return: [integer!]
 ][
-	as-integer (num * dpi-value / as-float32 96.0)
+	as-integer (num * current-dpi / as-float32 96.0)
 ]
 
 pixel-to-logical: func [
 	num		[integer!]
 	return: [float32!]
 ][
-	(as-float32 num * 96) / dpi-value
+	(as-float32 num * 96) / current-dpi
 ]
 
 ;-- Win8+ only
@@ -2182,7 +2177,7 @@ create-text-format: func [
 	format: 0
 	factory: as IDWriteFactory dwrite-factory/vtbl
 	factory/CreateTextFormat dwrite-factory name 0 weight style 5 size dw-locale-name :format
-	if save? [handle/make-at as red-value! h-font format]
+	if save? [handle/make-at as red-value! h-font format handle/CLASS_FONT]
 	format
 ]
 
@@ -2405,8 +2400,8 @@ create-d2d-bitmap: func [
 ][
 	props/format: 87
 	props/alphaMode: 1
-	props/dpiX: dpi-x
-	props/dpiY: dpi-y
+	props/dpiX: current-dpi
+	props/dpiY: current-dpi
 	props/options: options
 	props/colorContext: null
 

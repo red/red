@@ -17,8 +17,8 @@ make-profilable make target-class [
 	stack-slot-max:		8							;-- size of biggest datatype on stack (float64!)
 	args-offset:		8							;-- stack frame offset to arguments (fp + lr)
 	branch-offset-size:	4							;-- size of branch instruction
-	locals-offset:		8							;-- current offset from frame pointer to local variables (catch ID + addr)
-	def-locals-offset:	8							;-- default offset from frame pointer to local variables
+	locals-offset:		16							;-- offset from frame pointer to local variables (catch ID + addr + bitmap offset)
+	def-locals-offset:	16							;-- default offset from frame pointer to local variables
 	insn-size:			4
 	last-math-op:		none						;-- save last math op type for overflow checking
 
@@ -520,16 +520,20 @@ make-profilable make target-class [
 	]
 	
 	on-global-epilog: func [runtime? [logic!]][
-		if all [
-			not runtime?
-			compiler/job/runtime?
-			compiler/job/need-main?
-		][
-			emit-i32 #{e1a0d00b}					;-- MOV sp, fp		; unwind root frame
-			emit-pop								;-- pop exceptions threshold slot
-			emit-pop								;-- pop exceptions address slot
-			emit-i32 #{e8bd0800}					;-- POP {fp}
-			emit-epilog '***_start [] 7 * 4 0		;-- restore all before returning in __libc_start_main()
+		unless runtime? [
+			either all [
+				compiler/job/runtime?
+				compiler/job/need-main?
+			][
+				emit-i32 #{e1a0d00b}				;-- MOV sp, fp		; unwind root frame
+				emit-pop							;-- pop arguments/locals bitarray slot
+				emit-pop							;-- pop exceptions address slot
+				emit-pop							;-- pop exceptions threshold slot
+				emit-i32 #{e8bd0800}				;-- POP {fp}
+				emit-epilog/closing '***_start [] 7 * 4 0	;-- restore all before returning in __libc_start_main()
+			][
+				emit-load 0							;-- return 0 from the process
+			]
 		]
 		unless runtime? [
 			pools/mark-entry-point 'global			;-- add end of global code section as pool entry-point
@@ -677,25 +681,39 @@ make-profilable make target-class [
 		]
 		none
 	]
+	
+	layout-F0FFF: func [v [integer!]][				;-- shift left the top 4 bits of a 16-bit integer
+		(shift/left v and 61440 4) or (v and 4095)	;-- ((low and F000h) << 4) or low and FFFh
+	]
+	
+	encode-mov16: func [opcode [binary!] value [integer!] reg [integer! none!]][
+		opcode: (to integer! opcode) or layout-F0FFF value
+		if reg [opcode: opcode or shift/left reg 12]
+		emit-i32 debase/base to-hex opcode 16
+	]
 
-	emit-load-imm32: func [value [integer! char!] /reg n [integer!] /local neg? bits opcode][
+	emit-load-imm32: func [value [integer! char!] /reg n [integer!] /local neg? v bits opcode][
 		value: to integer! value
-		if neg?: negative? value [value: complement value]
+		v: either neg?: negative? value [complement value][value]
 
-		either bits: ror-position? value [	
+		either bits: ror-position? v [
 			opcode: rejoin [						;-- MOVS r0|rN, #imm8, bits	; v = imm8 (ROR bits)x2
 				#{e3} 
 				pick [#{f0} #{b0}] neg?				;-- emit MVNS instead, if required
 				to char! bits
-				to char! rotate-left value bits
+				to char! rotate-left v bits
 			]
 			if reg [opcode: opcode or debase/base to-hex shift/left n 12 16]
 			emit-i32 opcode
 		][
-			opcode: #{e59f0000}						;-- LDR r0|rN, [pc, #offset]
-			if reg [opcode: opcode or debase/base to-hex shift/left n 12 16]
-			
-			pools/collect/with either neg? [complement value][value] opcode
+			either compiler/job/cpu-version < 7.0 [
+				opcode: #{e59f0000}					;-- LDR r0|rN, [pc, #offset]
+				if reg [opcode: opcode or debase/base to-hex shift/left n 12 16]
+				pools/collect/with value opcode
+			][
+				encode-mov16 #{e3000000} value and 65535 n ;-- MOVW rN, #low16
+				encode-mov16 #{e3400000} shift value 16  n ;-- MOVT rN, #high16
+			]
 		]
 	]
 	
@@ -908,6 +926,19 @@ make-profilable make target-class [
 			emit-i32 #{e08dd004}					;-- ADD sp, sp, r4	; 32-bit displacement
 		][
 			emit-i32 join #{e28dd0}	to-bin8 size	;-- ADD sp, sp, size ; 8-bit displacement
+		]
+	]
+	
+	emit-frame-chaining: func [/store /push /local spec][
+		spec: last-red-frame/2
+		pools/collect/spec/with 0 spec #{e59fc000}	;-- MOV ip, #(last-red-frame)
+		if PIC? [emit-i32 #{e08cc009}]				;-- ADD ip, sb
+		case [
+			store [emit-i32 #{e58cb000}]			;-- STR fp, [ip]	; save frame pointer for later frames chaining	
+			push  [
+				emit-i32 #{e59cc000}				;-- LDR ip, [ip]
+				emit-i32 #{e92d1000}				;-- PUSH {ip} 		; push frame pointer on stack
+			]
 		]
 	]
 
@@ -1440,7 +1471,7 @@ make-profilable make target-class [
 						'value = last select compiler/locals value
 					][									;-- struct on stack case
 						either 255 < abs offset [
-							emit-load-imm32/reg offset 4
+							emit-load-imm32/reg abs offset 4
 							emit-i32 pick [
 								#{e04b0004}				;-- SUB r0, fp, r4	; local, 32-bit displacement
 								#{e08b0004}				;-- ADD r0, fp, r4	; arg, 32-bit displacement
@@ -1490,12 +1521,12 @@ make-profilable make target-class [
 					]
 				][
 					either offset: emitter/local-offset? value [
+						emit-load-local #{e3000000} abs offset	;-- MOV r0, offset
 						emit-i32 either negative? offset [
-							#{e24b00}					;-- SUB r0, fp, n
+							#{e04b0000}				;-- SUB r0, fp, r0
 						][
-							#{e28b00}					;-- ADD r0, fp, n
+							#{e08b0000}				;-- ADD r0, fp, r0
 						]
-						emit-i32 to-bin8 abs offset
 					][
 						pools/collect/spec 0 original
 						if PIC? [emit-i32 #{e0800009}]	;-- ADD r0, sb
@@ -1615,7 +1646,11 @@ make-profilable make target-class [
 				do store-word
 			]
 			string! paren! binary! [
-				if all [spec not PIC?][emit-load-literal-ptr spec/2]
+				either all [binary? value 'float32! = first compiler/get-type name][ ;-- `as float32! keep` case
+					emit-load-imm32 to integer! head reverse value
+				][
+					if all [spec not PIC?][emit-load-literal-ptr spec/2]
+				]
 				do store-word
 			]
 		]
@@ -2079,7 +2114,7 @@ make-profilable make target-class [
 				float?: find [float! float64! float32!] value/type/1
 				
 				conv-int-float?: any [
-					all [float? type/1 = 'integer!]
+					all [float? find [integer! float32!] type/1]
 					all [
 						find [float! float64! float32!] type/1
 						value/type/1 = 'integer!
@@ -2825,6 +2860,7 @@ make-profilable make target-class [
 	]
 	
 	emit-call-import: func [args [block!] fspec [block!] spec [block!] attribs [block! none!] /local extra type][
+		emit-frame-chaining/store
 		if all [compiler/variadic? args/1 args/1 <> #custom fspec/3 <> 'cdecl][
 			emit-variadic-data args
 		]
@@ -2844,6 +2880,7 @@ make-profilable make target-class [
 		/local extra cb?
 	][
 		either routine [							;-- test for function! pointer case
+			emit-frame-chaining/store
 			if cb?: any [
 				fspec/5 = 'callback
 				all [attribs any [find attribs 'cdecl find attribs 'stdcall]]
@@ -2985,7 +3022,7 @@ make-profilable make target-class [
 			emit-i32 #{e1a0d00b}					;-- MOV sp, fp
 			
 			if callback? [offset: offset + (9 * 4) + (8 * 8)] ;-- skip saved regs: {r4-r11, lr}, {d8-d15}
-			offset: offset + (2 * 8)				;-- account for the 2 catch slots + 2 saved slots
+			offset: offset + locals-offset + 8 		;-- account for the 2 saved slots
 			
 			either offset > 255 [
 				emit-load-imm32/reg offset 4
@@ -2997,7 +3034,7 @@ make-profilable make target-class [
 	]
 
 	emit-prolog: func [
-		name locals [block!]
+		name [word!] locals [block!] bitmap [integer!]
 		/local args-nb attribs args reg freg fargs-nb cb? locals-size pos extras
 	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
@@ -3071,9 +3108,18 @@ make-profilable make target-class [
 		
 		emit-push pick [-2 0] to logic! all [attribs find attribs 'catch]	;-- push catch flag
 		emit-push 0									;-- reserve slot for catch resume address
+		emit-push bitmap							;-- push the args/locals bitmap offset
 		
 		locals-offset: def-locals-offset			;@@ global state used in epilog
-		if cb? [
+		
+		either cb? [
+			if PIC? [
+				emit-i32 #{e1a0900f}				;-- MOV sb, pc
+				pools/collect emitter/tail-ptr + 1 + 2 ;-- +1 adjustment for CALL first opcode
+				emit-i32 #{e0499000}				;-- SUB sb, r0
+			]
+			emit-frame-chaining/push
+			
 			;-- d8-d15 do not need saving as they are not used for now
 			emit-i32 #{e92d07f0}					;-- STMFD sp!, {r4-r10}
 			locals-offset: locals-offset + 28		;-- 7 * 4
@@ -3082,24 +3128,21 @@ make-profilable make target-class [
 				locals-offset: locals-offset + 4
 				emit-i32 #{e92d0001}				;-- PUSH {r0} ; save optional return struct pointer
 			]
-			if PIC? [
-				emit-i32 #{e1a0900f}				;-- MOV sb, pc
-				pools/collect emitter/tail-ptr + 1 + 2 ;-- +1 adjustment for CALL first opcode
-				emit-i32 #{e0499000}				;-- SUB sb, r0
-			]
+		][
+			emit-push 0								;-- placeholder for fourth slot
 		]
-		
 		locals-size: either pos: find locals /local [emitter/calc-locals-offsets pos][0]
 		
 		unless zero? locals-size [
 			emit-reserve-stack (round/to/ceiling locals-size stack-width) / stack-width
 		]
+		
 		reduce [locals-size any [args-nb 0]]
 	]
 
 	emit-epilog: func [
 		name [word! path!] locals [block!] args-size [integer!] locals-size [integer!]
-		/with slots [integer! none!]
+		/with slots [integer! none!] /closing
 		/local fspec attribs cb? flags hf? ret-ptr?
 	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
@@ -3162,7 +3205,7 @@ make-profilable make target-class [
 			]
 			emit-i32 #{e8bd07f0}					;-- LDMFD sp!, {r4-r10}
 		]
-		
+		if closing [emit-load 0]
 		emit-i32 #{e1a0d00b}						;-- MOV sp, fp		; catch flag is skipped
 		emit-i32 #{e8bd4800}						;-- POP {fp,lr}
 

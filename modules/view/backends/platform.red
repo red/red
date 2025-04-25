@@ -10,6 +10,12 @@ Red [
 	}
 ]
 
+#switch config/GUI-engine [
+	native   [#if config/OS = 'Android [#include %android/gui.red]]
+	terminal [#include %terminal/make-ui.red]
+	test     [#include %test/gui.red]
+]
+
 system/view/platform: context [
 
 	#system [
@@ -83,6 +89,8 @@ system/view/platform: context [
 				FACET_FLAGS_TRISTATE:	00020000h
 				FACET_FLAGS_SCROLLABLE:	00040000h
 				FACET_FLAGS_PASSWORD:	00080000h
+				FACET_FLAGS_NO_SYNC:	00100000h
+				FACET_FLAGS_FULLSCREEN:	00200000h
 
 				FACET_FLAGS_POPUP:		01000000h
 				FACET_FLAGS_MODAL:		02000000h
@@ -288,6 +296,8 @@ system/view/platform: context [
 			tri-state:		symbol/make "tri-state"
 			scrollable:		symbol/make "scrollable"
 			password:		symbol/make "password"
+			no-sync:		symbol/make "no-sync"
+			fullscreen:		symbol/make "fullscreen"
 
 			_accelerated:	symbol/make "accelerated"
 
@@ -348,6 +358,7 @@ system/view/platform: context [
 			_time:			word/load "time"
 			_drawing:		word/load "drawing"
 			_scroll:		word/load "scroll"
+			_ratio:			word/load "ratio"
 
 			_vertical:		word/load "vertical"
 			_horizontal:	word/load "horizontal"
@@ -610,13 +621,64 @@ system/view/platform: context [
 						sym = tri-state  [flags: flags or FACET_FLAGS_TRISTATE]
 						sym = scrollable [flags: flags or FACET_FLAGS_SCROLLABLE]
 						sym = password	 [flags: flags or FACET_FLAGS_PASSWORD]
+						sym = no-sync	 [flags: flags or FACET_FLAGS_NO_SYNC]
+						sym = fullscreen [flags: flags or FACET_FLAGS_FULLSCREEN]
 						true			 [fire [TO_ERROR(script invalid-arg) word]]
 					]
 					word: word + 1
 				]
 				flags
 			]
+			
+			reattach-window-face: func [
+				hMonitor [handle!]
+				window	 [red-object!]
+				parent	 [red-object!]
+				/local
+					blk		 [red-block!]
+					screen 	 [red-object!]
+					face end [red-object!]
+					h		 [red-handle!]
+					s s2	 [series!]
+					hidden?	 [logic!]
+			][
+				assert TYPE_OF(parent) = TYPE_OBJECT
+				blk: as red-block! #get system/view/screens
+				s: GET_BUFFER(blk)
+				face: as red-object! s/offset
+				end:  as red-object! s/tail
 
+				while [face < end][
+					blk: as red-block! (object/get-values face) + FACE_OBJ_STATE
+					assert TYPE_OF(blk) = TYPE_BLOCK
+					s2: GET_BUFFER(blk)
+					h: as red-handle! s2/offset
+					if all [
+						h/value = as-integer hMonitor
+						TYPE_OF(h) = TYPE_HANDLE
+						h/type = handle/CLASS_MONITOR
+					][
+						if parent/ctx <> face/ctx [					;-- if window really moved to a different display
+							blk: as red-block! (object/get-values parent) + FACE_OBJ_PANE
+							assert TYPE_OF(blk) = TYPE_BLOCK
+							hidden?: block/rs-take blk as red-value! window yes  ;-- remove window from old screen/pane
+
+							blk: as red-block! (object/get-values face) + FACE_OBJ_PANE
+							either hidden? [
+								block/insert-value blk as red-value! window yes	yes ;-- insert window to new screen/pane at head
+							][
+								block/rs-append blk as red-value! window	;-- append window to new screen/pane
+							]
+							copy-cell as red-value! face (object/get-values window) + FACE_OBJ_PARENT	;-- window/parent: screen
+						]
+						exit
+					]
+					face: face + 1
+				]
+				assert false
+			]
+
+			#include %keycodes.reds
 			#switch GUI-engine [
 				native [
 					;#include %android/gui.reds
@@ -625,17 +687,64 @@ system/view/platform: context [
 						macOS    [#include %macOS/gui.reds]
 						; GTK backend (is it in conflict with %GTK/gui.reds)
 						Linux	 [#include %gtk3/gui.reds]
-						#default []					;-- Linux
+						#default []
 					]
 				]
-				test [#include %test/gui.reds]
-				GTK [#include %GTK/gui.reds]
+				test 	 [#include %test/gui.reds]
+				GTK 	 [#include %gtk3/gui.reds]
+				terminal [#include %terminal/gui.reds]
 			]
 		]
 	]
-	
-	make-null-handle: routine [][handle/box 0]
 
+	mouse-event?: #either config/GUI-engine = 'terminal [no][yes]
+
+	make-null-handle: routine [][handle/box 0 handle/CLASS_NULL]
+
+	fetch-all-screens: routine [][
+		#either GUI-engine = 'terminal [
+			SET_RETURN(none-value)
+		][
+			SET_RETURN(gui/OS-fetch-all-screens)
+		]
+	]
+
+	#either config/GUI-engine = 'terminal [
+		get-current-screen: func [][system/view/screens/1/state/1]
+	][	
+		get-current-screen: routine [][
+			SET_RETURN(gui/OS-get-current-screen)
+		]
+	]
+	
+	refresh-screens: has [svs spec screen][
+		svs: system/view/screens
+		foreach spec fetch-all-screens [
+			either svs/1 [
+				screen: svs/1
+				screen/offset: spec/1
+				screen/size:   to-pair spec/2 / spec/3
+				screen/data:   spec/3
+				screen/state/1: spec/4
+				
+			][
+				append svs make face! [
+					type:	'screen
+					offset: spec/1
+					size:	to-pair spec/2 / spec/3
+					data:	spec/3
+					pane:	make block! 4
+					state:	reduce [spec/4 0 none copy [1]]
+				]
+			]
+			svs: next svs
+		]
+		unless empty? svs [								;-- clean up screens for removed displays
+			foreach screen svs [clear screen/pane]
+			clear svs
+		]
+	]
+	
 	get-screen-size: routine [
 		id		[integer!]
 		/local
@@ -683,6 +792,11 @@ system/view/platform: context [
 		gui/OS-update-facet owner word value action new index part
 	]
 	
+	update-text: routine [face [object!]][
+		#if OS = 'Windows [gui/get-text-alt face -1]
+		SET_RETURN(none-value)
+	]
+	
 	update-font: routine [font [object!] flags [integer!]][
 		gui/update-font font flags
 		SET_RETURN(none-value)
@@ -695,6 +809,11 @@ system/view/platform: context [
 	
 	destroy-view: routine [face [object!] empty? [logic!]][
 		gui/OS-destroy-view face empty?
+		SET_RETURN(none-value)
+	]
+	
+	detach-image: routine [img [image!]][
+		ownership/unbind as red-value! img
 		SET_RETURN(none-value)
 	]
 	
@@ -718,7 +837,7 @@ system/view/platform: context [
 	]
 
 	make-view: routine [face [object!] parent [handle!]][
-		handle/box gui/OS-make-view face parent/value
+		handle/box gui/OS-make-view face parent/value handle/CLASS_WINDOW
 	]
 
 	draw-image: routine [image [image!] cmds [block!]][
@@ -727,9 +846,10 @@ system/view/platform: context [
 		ownership/check as red-value! image words/_poke as red-value! image -1 -1
 	]
 
-	draw-face: routine [face [object!] cmds [block!] /local int [red-integer!]][
-		int: as red-integer! (object/get-values face) + gui/FACE_OBJ_DRAW
-		gui/OS-draw-face as draw-ctx! int/value cmds
+	draw-face: routine [face [object!] cmds [block!] /local h [handle!] flags [integer!]][
+		flags: gui/get-flags as red-block! (object/get-values face) + gui/FACE_OBJ_FLAGS
+		h: gui/face-handle? face
+		if h <> null [gui/OS-draw-face h cmds flags]
 	]
 
 	do-event-loop: routine [no-wait? [logic!] /local bool [red-logic!]][
@@ -748,8 +868,9 @@ system/view/platform: context [
 					#default [0]
 				]
 			]
-			test []
-			GTK  []
+			test 	 []
+			GTK 	 []
+			terminal [gui/post-quit-msg]
 		]
 	]
 
@@ -813,13 +934,17 @@ system/view/platform: context [
 			stack/set-last none-value
 			exit
 		]
-		state: as red-block! values + gui/FACE_OBJ_EXT3
-		if TYPE_OF(state) = TYPE_BLOCK [
-			bool: as red-logic! (block/rs-tail state) - 1
-			layout?: bool/value
+		#either GUI-engine = 'terminal [
+			stack/set-last gui/OS-text-box-metrics box arg0 type
+		][
+			state: as red-block! values + gui/FACE_OBJ_EXT3
+			if TYPE_OF(state) = TYPE_BLOCK [
+				bool: as red-logic! (block/rs-tail state) - 1
+				layout?: bool/value
+			]
+			if layout? [gui/OS-text-box-layout box null 0 no]
+			stack/set-last gui/OS-text-box-metrics state arg0 type
 		]
-		if layout? [gui/OS-text-box-layout box null 0 no]
-		stack/set-last gui/OS-text-box-metrics state arg0 type
 	]
 
 	update-scroller: routine [scroller [object!] flags [integer!]][
@@ -841,111 +966,129 @@ system/view/platform: context [
 
 		#system [gui/init]
 
-		extend system/view/metrics/margins [#switch config/OS [
-			Windows [
-				button:			[1x1   1x1]				;-- LeftxRight TopxBottom
-				toggle:			[1x1   1x1]
-				tab-panel:		[0x2   0x1]
-				group-box:		[0x0   0x1]
-				calendar:		[1x0   0x0]
+		extend system/view/metrics/margins [
+			#switch config/GUI-engine [
+				native [#switch config/OS [
+					Windows [
+						button:			[1x1   1x1]				;-- LeftxRight TopxBottom
+						toggle:			[1x1   1x1]
+						tab-panel:		[0x2   0x1]
+						group-box:		[0x0   0x1]
+						calendar:		[1x0   0x0]
+					]
+					macOS [
+						button:			[2x2   2x3 regular 6x6 4x7 small 5x5 4x6 mini 1x1 0x1]
+						toggle:			[2x2   2x3 regular 6x6 4x7 small 5x5 4x6 mini 1x1 0x1]
+						regular:		[6x6   4x7]
+						small:			[5x5   4x6]
+						mini:			[1x1   0x1]
+						group-box:		[3x3   0x4]
+						tab-panel:		[7x7  6x10]
+						drop-down:		[0x3   2x3 regular 0x3 2x3 small 0x3 1x3 mini 0x2 1x3]
+						drop-list:		[0x3   2x3 regular 0x3 2x3 small 0x3 1x3 mini 0x2 1x3]
+					]
+				]]
 			]
-			macOS [
-				button:			[2x2   2x3 regular 6x6 4x7 small 5x5 4x6 mini 1x1 0x1]
-				toggle:			[2x2   2x3 regular 6x6 4x7 small 5x5 4x6 mini 1x1 0x1]
-				regular:		[6x6   4x7]
-				small:			[5x5   4x6]
-				mini:			[1x1   0x1]
-				group-box:		[3x3   0x4]
-				tab-panel:		[7x7  6x10]
-				drop-down:		[0x3   2x3 regular 0x3 2x3 small 0x3 1x3 mini 0x2 1x3]
-				drop-list:		[0x3   2x3 regular 0x3 2x3 small 0x3 1x3 mini 0x2 1x3]
+		]
+		extend system/view/metrics/paddings [
+			#switch config/GUI-engine [
+				native [#switch config/OS [
+					Windows [
+						check:			[16x0  0x0]				;-- 13 + 3 for text padding
+						radio:			[16x0  0x0]				;-- 13 + 3 for text padding
+						field:			[0x8   0x0]
+						group-box:		[3x3  10x3]
+						tab-panel:		[1x3  25x0]
+						button:			[8x8   0x0]
+						toggle:			[8x8   0x0]
+						drop-down:		[0x7   0x0]
+						drop-list:		[0x7   0x0]
+						calendar:		[21x0 1x0]
+					]
+					macOS [
+						button:			[11x11 0x0 regular 14x14 0x0 small 11x11 0x0 mini 11x11 0x0]
+						toggle:			[11x11 0x0 regular 14x14 0x0 small 11x11 0x0 mini 11x11 0x0]
+						check:			[20x0  3x1]
+						radio:			[20x0  1x1]
+						text:			[3x3   0x0]
+						field:			[3x3   0x0]
+						group-box:		[0x8  4x18]
+						drop-list:		[14x26 0x0 regular 14x26 0x0 small 11x22 0x0 mini 11x22 0x0]
+					]
+					Linux [
+						button:			[17x17 3x3]
+						toggle:			[17x17 3x3]
+						check:			[20x8  2x2]
+						radio:			[20x8  2x2]
+						text:			[3x3   0x0]
+						field:			[9x9   1x1]
+						group-box:		[0x8  4x18]
+						tab-panel:		[0x0  39x0]
+						drop-list:		[0x40 0x0]
+						drop-down:		[0x54 0x0]
+					]
+				]]
+				terminal [
+					check:			[2x0  0x0]
+					radio:			[2x0  0x0]
+				]
 			]
-		]]
-		extend system/view/metrics/paddings [#switch config/OS [
-			Windows [
-				check:			[16x0  0x0]				;-- 13 + 3 for text padding
-				radio:			[16x0  0x0]				;-- 13 + 3 for text padding
-				field:			[0x8   0x0]
-				group-box:		[3x3  10x3]
-				tab-panel:		[1x3  25x0]
-				button:			[8x8   0x0]
-				toggle:			[8x8   0x0]
-				drop-down:		[0x7   0x0]
-				drop-list:		[0x7   0x0]
-				calendar:		[21x0 1x0]
+		]
+		extend system/view/metrics/fixed-heights [
+			#switch config/GUI-engine [
+				native [#switch config/OS [
+					macOS	[
+						progress:	21
+					]
+					Linux [
+						progress:	4
+					]
+				]]
 			]
-			macOS [
-				button:			[11x11 0x0 regular 14x14 0x0 small 11x11 0x0 mini 11x11 0x0]
-				toggle:			[11x11 0x0 regular 14x14 0x0 small 11x11 0x0 mini 11x11 0x0]
-				check:			[20x0  3x1]
-				radio:			[20x0  1x1]
-				text:			[3x3   0x0]
-				field:			[3x3   0x0]
-				group-box:		[0x8  4x18]
-				drop-list:		[14x26 0x0 regular 14x26 0x0 small 11x22 0x0 mini 11x22 0x0]
-			]
-			Linux [
-				button:			[17x17 3x3]
-				toggle:			[17x17 3x3]
-				check:			[20x8  2x2]
-				radio:			[20x8  2x2]
-				text:			[3x3   0x0]
-				field:			[9x9   1x1]
-				group-box:		[0x8  4x18]
-				tab-panel:		[0x0  39x0]
-				drop-list:		[0x40 0x0]
-				drop-down:		[0x54 0x0]
-			]
-		]]
-		extend system/view/metrics/fixed-heights [#switch config/OS [
-			macOS	[
-				progress:	21
-			]
-			Linux [
-				progress:	4
-			]
-		]]
-		#switch config/OS [
-			Windows [
-				if version/1 <= 6 [						;-- for Win7 & XP
-					extend system/view/metrics/def-heights [
-						button:		23
-						toggle:		23
-						text:		24
-						field:		24
-						check:		24
-						radio:		24
-						slider:		24
-						drop-down:	23
-						drop-list:	23
+		]
+		#switch config/GUI-engine [
+			native [#switch config/OS [
+				Windows [
+					if version/1 <= 6 [						;-- for Win7 & XP
+						extend system/view/metrics/def-heights [
+							button:		23
+							toggle:		23
+							text:		24
+							field:		24
+							check:		24
+							radio:		24
+							slider:		24
+							drop-down:	23
+							drop-list:	23
+						]
 					]
 				]
-			]
-			macOS	[
-				extend system/view/metrics/def-heights [
-					check:		21
-					radio:		21
-					text:		18
-					field:		21
-					drop-down:	21
-					drop-list:	21
-					progress:	21
+				macOS	[
+					extend system/view/metrics/def-heights [
+						check:		21
+						radio:		21
+						text:		18
+						field:		21
+						drop-down:	21
+						drop-list:	21
+						progress:	21
+					]
 				]
-			]
- 			Linux	[
-				 extend system/view/metrics/def-heights [
-					button:		29
-					toggle:		29
-					check:		20
-					radio:		19
-					text:		17
-					field:		30
-					drop-down:	34
-					drop-list:	34
-					progress:	4
-					slider:		34
+	 			Linux	[
+					 extend system/view/metrics/def-heights [
+						button:		29
+						toggle:		29
+						check:		20
+						radio:		19
+						text:		17
+						field:		30
+						drop-down:	34
+						drop-list:	34
+						progress:	4
+						slider:		34
+					]
 				]
-			]
+			]]
 		]
 		
 		colors: system/view/metrics/colors
@@ -962,12 +1105,16 @@ system/view/platform: context [
 			]
 		]
 
-		append svs make face! [							;-- default screen
-			type:	'screen
-			offset: 0x0
-			size:	get-screen-size 0
-			pane:	make block! 4
-			state:	reduce [make-null-handle 0 none copy [1]]
+		#either config/GUI-engine = 'terminal [
+			append svs make face! [						;-- default screen
+				type:	'screen
+				offset: 0x0
+				size:	get-screen-size 0
+				pane:	make block! 4
+				state:	reduce [make-null-handle 0 none copy [1]]
+			]
+		][
+			refresh-screens
 		]
 		
 		set fonts:
@@ -1003,9 +1150,4 @@ system/view/platform: context [
 	product: none
 	
 	init
-]
-
-#switch config/GUI-engine [
-	native [#if config/OS = 'Android [#include %android/gui.red]]
-	test   [#include %test/gui.red]
 ]

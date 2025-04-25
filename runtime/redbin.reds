@@ -238,7 +238,7 @@ redbin: context [
 			top: top + size + 1
 		]
 
-		on-gc-mark: does [_hashtable/mark map]
+		on-gc-mark: does [_hashtable/mark as int-ptr! :map]
 		
 		reset: func [/local min-size] [
 			min-size: 16'384
@@ -252,7 +252,7 @@ redbin: context [
 			]
 			top: list
 			either null? map [
-				map: _hashtable/init 1024 null HASH_TABLE_INTEGER 1
+				map: _hashtable/init 1024 null HASH_TABLE_NODE_KEY 1
 				collector/register as int-ptr! :on-gc-mark
 			][
 				_hashtable/clear-map map
@@ -440,6 +440,7 @@ redbin: context [
 		/local
 			p			[byte-ptr!]
 			end			[byte-ptr!]
+			saved		[byte-ptr!]
 			p4			[int-ptr!]
 			compact?	[logic!]
 			compressed? [logic!]
@@ -473,8 +474,11 @@ redbin: context [
 		sym-table?:  (as-integer p/1) and REDBIN_SYMBOL_TABLE_MASK <> 0
 		p: p + 1
 		
-		if compressed? [p: crush/decompress p null]
-		
+		saved: null
+		if compressed? [
+			p: crush/decompress p null
+			saved: p
+		]
 		p4: as int-ptr! p
 		
 		count: p4/1									;-- read records number
@@ -513,6 +517,8 @@ redbin: context [
 			p: as byte-ptr! decode-value as int-ptr! p as int-ptr! end table parent
 			#if debug? = yes [if verbose > 0 [if not-set? [i: i + 1] print lf]]
 		]
+		
+		if compressed? [crush/release saved]
 		
 		input: null
 		unless codec? [root-base: (block/rs-head parent) + root-offset]
@@ -1379,17 +1385,17 @@ redbin: context [
 		strings [red-binary!]
 		/local
 			data [red-value!]
-			slot [red-value! value]
+			slot [red-block! value]
 			old  [integer!]
 	][
 		old: offset
 		
-		slot/data1: 0
-		slot/data2: spec/data2
+		slot/head: 0
+		slot/node: as node! spec/data2
 		slot/header: TYPE_BLOCK
 		
 		offset: 0									;-- form artifical paths to spec and body blocks
-		data: slot
+		data: as red-value! slot
 		encode-value data payload symbols table strings
 		
 		offset: 1
@@ -2090,6 +2096,7 @@ redbin: context [
 			argb:   binary/load pixels size
 			
 			slot: as red-image! ALLOC_TAIL(parent)
+			slot/header: TYPE_UNSET						;-- ensures GC-safety
 			slot/head: data/2
 			slot/size: data/3
 			slot/node: OS-image/make-image width height null null null

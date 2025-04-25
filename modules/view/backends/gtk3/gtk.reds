@@ -639,6 +639,13 @@ GPtrArray!: alias struct! [
 ]
 
 #import [
+	LIBM-file cdecl [
+		hypotf: "hypotf" [
+			x		[float32!]
+			y		[float32!]
+			return: [float32!]
+		]
+	]
 	LIBGTK-file cdecl [
 	;; LIBGOBJECT-file cdecl [
 		g_object_new: "g_object_new" [
@@ -845,6 +852,51 @@ GPtrArray!: alias struct! [
 		gdk_display_get_default_screen: "gdk_display_get_default_screen" [
 			display 	[handle!]
 			return: 	[handle!]
+		]
+		gdk_display_get_default_seat: "gdk_display_get_default_seat" [
+			display		[handle!]
+			return:		[handle!]
+		]
+		gdk_seat_get_pointer: "gdk_seat_get_pointer" [
+			seat		[handle!]
+			return:		[handle!]
+		]
+		gdk_device_get_position: "gdk_device_get_position" [
+			dev			[handle!]
+			scr			[ptr-ptr!]
+			x			[int-ptr!]
+			y			[int-ptr!]
+		]
+		gdk_display_get_n_monitors: "gdk_display_get_n_monitors" [
+			display		[handle!]
+			return:		[integer!]
+		]
+		gdk_display_get_monitor: "gdk_display_get_monitor" [
+			display		[handle!]
+			idx			[integer!]
+			return:		[handle!]
+		]
+		gdk_display_get_monitor_at_point: "gdk_display_get_monitor_at_point" [
+			display		[handle!]
+			x			[integer!]
+			y			[integer!]
+			return:		[handle!]
+		]
+		gdk_monitor_get_geometry: "gdk_monitor_get_geometry" [
+			monitor		[handle!]
+			rect		[GdkRectangle!]
+		]
+		gdk_monitor_get_scale_factor: "gdk_monitor_get_scale_factor" [
+			monitor		[handle!]
+			return:		[integer!]
+		]
+		gdk_monitor_get_width_mm: "gdk_monitor_get_width_mm" [
+			monitor		[handle!]
+			return:		[integer!]
+		]
+		gdk_monitor_get_height_mm: "gdk_monitor_get_height_mm" [
+			monitor		[handle!]
+			return:		[integer!]
 		]
 		gdk_x11_window_get_xid: "gdk_x11_window_get_xid" [
 			win			[handle!]
@@ -3252,19 +3304,10 @@ GPtrArray!: alias struct! [
 			slant		[integer!]
 			weight		[integer!]
 		]
-		; cairo_set_font_size: "cairo_set_font_size" [
-		; 	cr			[handle!]
-		; 	size		[integer!]
-		; ]
-		;
 		cairo_font_extents: "cairo_font_extents" [
 			cr			[handle!]
 			extents		[cairo_font_extents_t!]
 		]
-		; cairo_show_text: "cairo_show_text" [
-		; 	cr			[handle!]
-		; 	text 		[c-string!]
-		; ]
 		cairo_image_surface_create: "cairo_image_surface_create" [
 			format		[cairo_format_t!]
 			width		[integer!]
@@ -3331,6 +3374,10 @@ GPtrArray!: alias struct! [
 			cancel		[handle!]
 			error		[handle!]
 			return:		[handle!]
+		]
+		gdk_pixbuf_get_pixels: "gdk_pixbuf_get_pixels" [
+			pixbuf 		[handle!]
+			return: 	[byte-ptr!]
 		]
 		gdk_pixbuf_copy: "gdk_pixbuf_copy" [
 			pixbuf 		[handle!]
@@ -3604,10 +3651,7 @@ GPtrArray!: alias struct! [
 ]
 
 ;; Identifiers for qdata
-red-face-id1:		g_quark_from_string "red-face-id1"
-red-face-id2:		g_quark_from_string "red-face-id2"
-red-face-id3:		g_quark_from_string "red-face-id3"
-red-face-id4:		g_quark_from_string "red-face-id4"
+red-face-id:		g_quark_from_string "red-face-id"
 red-color-id:		g_quark_from_string "red-color-id"
 red-color-str:		g_quark_from_string "red-color-str"
 red-font-id:		g_quark_from_string "red-font-id"
@@ -3633,6 +3677,7 @@ camera-pixbuf:		g_quark_from_string "camera-pixbuf"
 base-buffer:		g_quark_from_string "base-buffer"
 base-enter:			g_quark_from_string "base-enter"
 pair-size-facet:	g_quark_from_string "pair-size-facet"
+draw-ctx-id:		g_quark_from_string "draw-ctx-id"
 ;im-string-id:		g_quark_from_string "im-string-id"
 ;im-start-id:		g_quark_from_string "im-start-id"
 

@@ -14,181 +14,12 @@ Red/System [
 	}
 ]
 
-#define OS_POLLIN 		1
-
-#case [
-	any [OS = 'macOS OS = 'FreeBSD OS = 'NetBSD] [
-		#define TIOCGWINSZ		40087468h
-		#define TERM_TCSADRAIN	1
-		#define TERM_VTIME		18
-		#define TERM_VMIN		17
-
-		#define TERM_BRKINT		02h
-		#define TERM_INPCK		10h
-		#define TERM_ISTRIP		20h
-		#define TERM_ICRNL		0100h
-		#define TERM_IXON		0200h
-		#define TERM_OPOST		01h
-		#define TERM_CS8		0300h
-		#define TERM_ISIG		80h
-		#define TERM_ICANON		0100h
-		#define TERM_ECHO		08h	
-		#define TERM_IEXTEN		4000h
-
-		termios!: alias struct! [
-			c_iflag			[integer!]
-			c_oflag			[integer!]
-			c_cflag			[integer!]
-			c_lflag			[integer!]
-			c_cc1			[integer!]						;-- c_cc[20]
-			c_cc2			[integer!]
-			c_cc3			[integer!]
-			c_cc4			[integer!]
-			c_cc5			[integer!]
-			c_ispeed		[integer!]
-			c_ospeed		[integer!]
-		]
-	]
-	true [													;-- Linux
-		#define TIOCGWINSZ		5413h
-		#define TERM_VTIME		6
-		#define TERM_VMIN		7
-
-		#define TERM_BRKINT		2
-		#define TERM_INPCK		20
-		#define TERM_ISTRIP		40
-		#define TERM_ICRNL		400
-		#define TERM_IXON		2000
-		#define TERM_OPOST		1
-		#define TERM_CS8		60
-		#define TERM_ISIG		1
-		#define TERM_ICANON		2
-		#define TERM_ECHO		10
-		#define TERM_IEXTEN		100000
-
-		#either OS = 'Android [
-			#define TERM_TCSADRAIN	5403h
-
-			termios!: alias struct! [
-				c_iflag			[integer!]
-				c_oflag			[integer!]
-				c_cflag			[integer!]
-				c_lflag			[integer!]
-				;c_line			[byte!]
-				c_cc1			[integer!]					;-- c_cc[19]
-				c_cc2			[integer!]
-				c_cc3			[integer!]
-				c_cc4			[integer!]
-				c_cc5			[integer!]
-			]
-		][
-			#define TERM_TCSADRAIN	1
-
-			termios!: alias struct! [						;-- sizeof(termios) = 60
-				c_iflag			[integer!]
-				c_oflag			[integer!]
-				c_cflag			[integer!]
-				c_lflag			[integer!]
-				c_line			[byte!]
-				c_cc1			[byte!]						;-- c_cc[32]
-				c_cc2			[byte!]
-				c_cc3			[byte!]
-				c_cc4			[integer!]
-				c_cc5			[integer!]
-				c_cc6			[integer!]
-				c_cc7			[integer!]
-				c_cc8			[integer!]
-				c_cc9			[integer!]
-				c_cc10			[integer!]
-				pad				[integer!]					;-- for proper alignment
-				c_ispeed		[integer!]
-				c_ospeed		[integer!]
-			]
-		]
-	]
-]
-
-pollfd!: alias struct! [
-	fd				[integer!]
-	events			[integer!]						;-- high 16-bit: events
-]													;-- low  16-bit: revents
-
-winsize!: alias struct! [
-	rowcol			[integer!]
-	xypixel			[integer!]
-]
-
-#either OS = 'Android [
-	tcgetattr: func [
-		fd		[integer!]
-		termios [termios!]
-		return: [integer!]
-	][
-		ioctl fd 5401h as winsize! termios
-	]
-	tcsetattr: func [
-		fd			[integer!]
-		opt_actions [integer!]
-		termios 	[termios!]
-		return: 	[integer!]
-	][
-		ioctl fd opt_actions as winsize! termios
-	]
-][
-	#import [
-	LIBC-file cdecl [
-		tcgetattr: "tcgetattr" [
-			fd		[integer!]
-			termios [termios!]
-			return: [integer!]
-		]
-		tcsetattr: "tcsetattr" [
-			fd			[integer!]
-			opt_actions [integer!]
-			termios 	[termios!]
-			return: 	[integer!]
-		]
-	]]
-]
-
-#import [
-	LIBC-file cdecl [
-		isatty: "isatty" [
-			fd		[integer!]
-			return:	[integer!]
-		]
-		read: "read" [
-			fd		[integer!]
-			buf		[byte-ptr!]
-			size	[integer!]
-			return: [integer!]
-		]
-		write: "write" [
-			fd		[integer!]
-			buf		[byte-ptr!]
-			size	[integer!]
-			return: [integer!]
-		]
-		poll: "poll" [
-			fds		[pollfd!]
-			nfds	[integer!]
-			timeout [integer!]
-			return: [integer!]
-		]
-		ioctl: "ioctl" [
-			fd		[integer!]
-			request	[integer!]
-			ws		[winsize!]
-			return: [integer!]
-		]
-	]
-]
-
 old-act:	declare sigaction!
 saved-term: declare termios!
 utf-char: as-c-string allocate 10
 poller: 	declare pollfd!
 relative-y:	0
+bottom-y:	0
 init?:		no
 
 fd-read-char: func [
@@ -199,8 +30,8 @@ fd-read-char: func [
 ][
 	c: as-byte -1
 	if any [
-		zero? poll poller 1 timeout
-		1 <> read stdin :c 1
+		zero? libC.poll poller 1 timeout
+		1 <> libC.read stdin :c 1
 	][
 		return as-byte -1
 	]
@@ -214,7 +45,7 @@ fd-read: func [
 		len [integer!]
 		i	[integer!]
 ][
-	if 1 <> read stdin as byte-ptr! utf-char 1 [return -1]
+	if 1 <> libC.read stdin as byte-ptr! utf-char 1 [return -1]
 	c: as-integer utf-char/1
 	case [
 		c and 80h = 0	[len: 1]
@@ -228,7 +59,7 @@ fd-read: func [
 	while [i < len][
 		if all [
 			len >= (i + 1)
-			1 <> read stdin as byte-ptr! utf-char + i 1
+			1 <> libC.read stdin as byte-ptr! utf-char + i 1
 		][
 			return -1
 		]
@@ -286,13 +117,13 @@ check-special: func [
 ]
 
 emit: func [c [byte!]][
-	write stdout :c 1
+	libC.write stdout :c 1
 ]
 
 emit-string: func [
 	s [c-string!]
 ][
-	write stdout as byte-ptr! s length? s
+	libC.write stdout as byte-ptr! s length? s
 ]
 
 emit-string-int: func [
@@ -339,28 +170,31 @@ emit-red-char: func [
 ]
 
 query-cursor: func [
-	col		[int-ptr!]
+	pos		[int-ptr!]
 	return: [logic!]								;-- FALSE: failed to retrieve it
 	/local
-		c [byte!]
-		n [integer!]
+		c	[byte!]
+		n x y [integer!]
 ][
 	emit-string "^[[6n"								;-- ask for cursor location
 	if all [
 		  esc = fd-read-char 100
 		 #"[" = fd-read-char 100
 	][
+		x: 0
+		y: 0
+		n: 0
 		while [true][
 			c: fd-read-char 100
-			n: 0
 			case [
-				c = #";" [n: 0]
+				c = #";" [y: n - 1 n: 0]
 				all [c = #"R" n <> 0 n < 1000][
-					col/value: n
+					x: n - 1
+					pos/value: y << 16 or x
 					return true
 				]
 				all [#"0" <= c c <= #"9"][
-					n: n * 10 + (c - #"0")
+					n: n * 10 + as-integer (c - #"0")
 				]
 				true [
 					return true
@@ -393,7 +227,11 @@ get-window-size: func [
 
 reset-cursor-pos: does [
 	if positive? relative-y [emit-string-int "^[[" relative-y #"A"]	;-- move to origin row
-	emit cr
+	either cursor-pos and FFFFh = 0 [
+		emit cr
+	][
+		emit-string-int "^[[" cursor-pos and FFFFh + 1 #"G"
+	]
 ]
 
 erase-to-bottom: does [
@@ -422,6 +260,7 @@ set-cursor-pos: func [
 
 	if zero? (size % columns) [emit #"^(0A)"]
 
+	bottom-y: y
 	if positive? y [				;-- set cursor position: y
 	    emit-string-int "^[[" y #"A"
 	    relative-y: relative-y - y
@@ -433,12 +272,16 @@ set-cursor-pos: func [
 	]
 ]
 
+move-cursor-bottom: does [
+	if bottom-y > 0 [emit-string-int "^[[" bottom-y #"B"]
+]
+
 output-to-screen: does [
-	write stdout buffer (as-integer pbuffer - buffer)
+	libC.write stdout buffer (as-integer pbuffer - buffer)
 ]
 
 init: func [][
-	console?: 1 = isatty stdin
+	console?: 1 = libC.isatty stdin
 	if console? [
 		get-window-size
 	]
@@ -498,11 +341,11 @@ init-console: func [
 		]
 	]
 	#if OS = 'macOS [
-		#if modules contains 'View [
+		#if modules contains 'View [#if GUI-engine <> 'terminal [
 			with gui [
 				if NSApp <> 0 [do-events yes]
 			]
-		]
+		]]
 	]
 ]
 

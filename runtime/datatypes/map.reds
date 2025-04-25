@@ -79,8 +79,10 @@ map: context [
 				blank: space
 			][
 				if mold? [
-					string/append-char GET_BUFFER(buffer) as-integer lf
-					part: part - 1
+					either only? [indent?: no][
+						string/append-char GET_BUFFER(buffer) as-integer lf
+						part: part - 1
+					]
 				]
 				blank: lf
 			]
@@ -134,13 +136,14 @@ map: context [
 			key		[red-value!]
 			val		[red-value!]
 			psize	[int-ptr!]
-			kkey	[red-value! value]
+			kkey	[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/extend"]]
 
 		src: as red-block! spec
 		size: block/rs-length? src
-
+		if size % 2 <> 0 [fire [TO_ERROR(script invalid-arg) spec]]
+		
 		s: GET_BUFFER(map)
 		size: as-integer s/tail + size - s/offset
 		if size > s/size [expand-series s size]
@@ -151,6 +154,7 @@ map: context [
 
 		op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
 		table: map/table
+		kkey: stack/push*
 		while [cell < tail][
 			key: _hashtable/get table cell 0 0 op no no
 			value: cell + 1
@@ -226,6 +230,7 @@ map: context [
 				]
 				size: get-int-from spec
 				if negative? size [fire [TO_ERROR(script out-of-range) spec]]
+				size: size * 2
 			]
 			TYPE_ANY_LIST [
 				size: block/rs-length? as red-block! spec
@@ -236,7 +241,7 @@ map: context [
 			default [fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_MAP spec]]
 		]
 
-		if zero? size [size: 1]
+		if zero? size [size: 2]
 		either blk? [
 			; use clone here to prevent extra copying of spec
 			blk: block/clone as red-block! spec no no
@@ -359,12 +364,17 @@ map: context [
 
 		if cycles/detect? as red-value! map buffer :part yes [return part]
 		
-		string/concatenate-literal buffer "#["
-		prev: part - 2
-		part: serialize map buffer no all? flat? arg prev yes indent + 1 yes
-		if all [part <> prev indent > 0][part: object/do-indent buffer indent part]
-		string/append-char GET_BUFFER(buffer) as-integer #"]"
-		part - 1
+		unless only? [
+			string/concatenate-literal buffer "#["
+			prev: part - 2
+		]
+		part: serialize map buffer only? all? flat? arg prev yes indent + 1 yes
+		
+		either only? [part][
+			if all [part <> prev indent > 0][part: object/do-indent buffer indent part]
+			string/append-char GET_BUFFER(buffer) as-integer #"]"
+			part - 1
+		]
 	]
 
 	compare-each: func [
@@ -510,7 +520,7 @@ map: context [
 			op		[integer!]
 			s		[series!]
 			size	[int-ptr!]
-			k		[red-value! value]
+			k		[red-value!]
 	][
 		op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
 		table: parent/table
@@ -518,6 +528,7 @@ map: context [
 
 		either value <> null [						;-- set value
 			either key = null [
+				k: stack/push*
 				copy-cell element k
 				preprocess-key k path
 				s: as series! parent/node/value
@@ -721,7 +732,8 @@ map: context [
 				k: k + 2
 				map/head: map/head + 2
 			][
-				_context/set w k
+				v: _context/set w k
+				if TYPE_OF(v) = TYPE_SET_WORD [v/header: TYPE_WORD]
 				w: w + 1
 				k: k + 1
 				i: i + 1
@@ -741,8 +753,6 @@ map: context [
 		deep?		[logic!]
 		types		[red-value!]
 		return:		[red-hash!]
-		/local
-			saved	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/copy"]]
 

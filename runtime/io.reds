@@ -116,6 +116,7 @@ io: context [
 		handle/make-at
 			(object/get-values red-port) + port/field-state
 			as-integer data
+			handle/CLASS_DEVICE
 		data
 	]
 
@@ -138,6 +139,7 @@ io: context [
 		handle/make-at
 			(object/get-values red-port) + port/field-state
 			as-integer data
+			handle/CLASS_DEVICE
 	]
 
 	close-port: func [

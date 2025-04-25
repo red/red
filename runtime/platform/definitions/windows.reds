@@ -55,6 +55,21 @@ Red/System [
 #define VA_PAGE_RW			04h							;-- PAGE_READWRITE
 #define VA_PAGE_RWX			40h							;-- PAGE_EXECUTE_READWRITE
 
+#define KEY_EVENT 				 			01h
+#define MOUSE_EVENT 			 			02h
+#define WINDOW_BUFFER_SIZE_EVENT 			04h
+#define MENU_EVENT 				 			08h
+#define FOCUS_EVENT 			 			10h
+#define ENHANCED_KEY 			 			0100h
+#define ENABLE_PROCESSED_INPUT				01h
+#define ENABLE_LINE_INPUT 					02h
+#define ENABLE_ECHO_INPUT 					04h
+#define ENABLE_WINDOW_INPUT         		08h
+#define ENABLE_QUICK_EDIT_MODE				40h
+#define ENABLE_VIRTUAL_TERMINAL_INPUT		0200h
+#define ENABLE_VIRTUAL_TERMINAL_PROCESSING	04h
+#define DISABLE_NEWLINE_AUTO_RETURN 		08h
+
 #define _O_TEXT        	 	4000h  						;-- file mode is text (translated)
 #define _O_BINARY       	8000h  						;-- file mode is binary (untranslated)
 #define _O_WTEXT        	00010000h 					;-- file mode is UTF16 (translated)

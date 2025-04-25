@@ -11,6 +11,7 @@ Red/System [
 ]
 
 dyn-print: context [
+	ready?: no
 
 	red-print!: alias function! [
 		str		[red-string!]
@@ -111,6 +112,7 @@ dyn-print: context [
 		red-prints: as ptr-array! allocate red-size * size? ptr-array!
 		rs-prints: as ptr-array! allocate rs-size * size? ptr-array!
 		#if sub-system = 'console [add as int-ptr! :red-print-cli null]
+		ready?: yes
 	]
 
 	remove-print: func [
@@ -150,6 +152,8 @@ dyn-print: context [
 			size	[integer!]
 			unit	[integer!]
 	][
+		BACK_TO_CONSOLE
+
 		series: GET_BUFFER(str)
 		unit: GET_UNIT(series)
 		offset: (as byte-ptr! series/offset) + (str/head << (log-b unit))
@@ -177,5 +181,6 @@ dyn-print: context [
 			]
 		]
 		fflush 0
+		ENTER_TUI
 	]]
 ]

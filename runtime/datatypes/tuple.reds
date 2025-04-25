@@ -676,7 +676,7 @@ tuple: context [
 		return:	 [red-value!]
 		/local
 			int  [red-integer!]
-			temp [red-value! value]						;-- enough to hold max tuple (payload)
+			temp [red-value! value]						;-- enough to hold max tuple (payload), used for swapping values, GC-safe.
 			part [integer!]
 			tmp  [byte!]
 			size [integer!]
@@ -729,7 +729,7 @@ tuple: context [
 		][
 			head: tp
 			tail: head + size - skip
-			tp:   as byte-ptr! :temp
+			tp:   as byte-ptr! temp
 			
 			while [head < tail][
 				copy-memory tp   head skip

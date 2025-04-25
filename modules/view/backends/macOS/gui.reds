@@ -10,7 +10,6 @@ Red/System [
 	}
 ]
 
-#include %../keycodes.reds
 #include %cocoa.reds
 #include %selectors.reds
 #include %events.reds
@@ -56,8 +55,12 @@ active-wins:	declare red-vector!			;-- last actives windows
 red-face?: func [
 	handle	[integer!]
 	return: [logic!]
+	/local
+		id  [integer!]
 ][
-	0 <> class_getInstanceVariable object_getClass handle IVAR_RED_FACE
+	id: 0
+	object_getInstanceVariable handle IVAR_RED_FACE :id
+	id <> 0
 ]
 
 get-face-values: func [
@@ -66,12 +69,12 @@ get-face-values: func [
 	/local
 		ctx	 [red-context!]
 		s	 [series!]
-		ivar [integer!]
+		id	 [integer!]
 		face [red-object!]
 ][
-	ivar: class_getInstanceVariable object_getClass handle IVAR_RED_FACE
-	assert ivar <> 0
-	face: as red-object! handle + ivar_getOffset ivar
+	id: 0
+	object_getInstanceVariable handle IVAR_RED_FACE :id
+	face: as red-object! references/get id
 	ctx: TO_CTX(face/ctx)
 	s: as series! ctx/values/value
 	s/offset
@@ -94,11 +97,12 @@ get-face-obj: func [
 	view	[integer!]
 	return: [red-object!]
 	/local
-		ivar [integer!]
+		id  [integer!]
 ][
-	ivar: class_getInstanceVariable object_getClass view IVAR_RED_FACE
-	assert ivar <> 0
-	as red-object! view + ivar_getOffset ivar
+	id: 0
+	object_getInstanceVariable view IVAR_RED_FACE :id
+	assert id <> 0
+	as red-object! references/get id
 ]
 
 get-face-flags: func [
@@ -135,6 +139,10 @@ get-face-handle: func [
 	int: as red-integer! block/rs-head state
 	assert TYPE_OF(int) = TYPE_HANDLE
 	int/value
+]
+
+get-ratio: func [face [red-object!] return: [red-float!]][
+	as red-float! object/rs-select face as red-value! _ratio
 ]
 
 get-child-from-xy: func [
@@ -309,9 +317,9 @@ get-metrics: func [][
 ]
 
 on-gc-mark: does [
-	collector/keep flags-blk/node
-	collector/keep win-array/node
-	collector/keep active-wins/node
+	collector/keep :flags-blk/node
+	collector/keep :win-array/node
+	collector/keep :active-wins/node
 ]
 
 support-dark-mode?: func [
@@ -468,16 +476,12 @@ get-screen-size: func [
 
 store-face-to-obj: func [
 	obj		[integer!]
-	class	[integer!]
 	face	[red-object!]
 	/local
-		new  [red-object!]
-		ivar [integer!]
+		id	 [integer!]
 ][
-	ivar: class_getInstanceVariable class IVAR_RED_FACE
-	assert ivar <> 0
-	new: as red-object! obj + ivar_getOffset ivar
-	copy-cell as cell! face as cell! new
+	id: references/store as red-value! face
+	object_setInstanceVariable obj IVAR_RED_FACE id
 ]
 
 make-rect: func [
@@ -962,8 +966,9 @@ change-data: func [
 			len: block/rs-length? as red-block! data
 			data: block/rs-head as red-block! data
 			font: as red-object! values + FACE_OBJ_FONT
-			ivar: class_getInstanceVariable object_getClass hWnd IVAR_RED_FACE
-			face: as red-object! hWnd + ivar_getOffset ivar
+			ivar: 0
+			object_getInstanceVariable hWnd IVAR_RED_FACE :ivar
+			face: as red-object! references/get ivar
 			either TYPE_OF(font) = TYPE_OBJECT [
 				attr: make-font-attrs font face text-list
 			][
@@ -1119,7 +1124,7 @@ set-content-view: func [
 	view: objc_msgSend [id sel_getUid "alloc"]
 	rect: make-rect 0 0 0 0
 	view: objc_msgSend [view sel_getUid "initWithFrame:" rect/x rect/y rect/w rect/h]
-	if face <> null [store-face-to-obj view id face]
+	if face <> null [store-face-to-obj view face]
 	objc_msgSend [obj sel_getUid "setContentView:" view]
 ]
 
@@ -1269,7 +1274,7 @@ init-calendar: func [
 	calendar [integer!]
 	data	 [red-value!]
 	/local
-		slot [red-value! value]
+		dt [red-date! value]
 ][
 	objc_msgSend [calendar sel_getUid "setDatePickerMode:" NSDatePickerModeSingle]
 	objc_msgSend [calendar sel_getUid "setDatePickerStyle:" NSDatePickerStyleClockAndCalendar]
@@ -1279,10 +1284,10 @@ init-calendar: func [
 	objc_msgSend [calendar sel_getUid "setAction:" sel_getUid "calendar-change"]
 	objc_msgSend [calendar sel_getUid "sendActionOn:" NSLeftMouseDown]
 	
-	date/make-at slot 1601 01 01 0.0 0 0 no no
-	objc_msgSend [calendar sel_getUid "setMinDate:" to-NSDate as red-date! slot]
-	date/make-at slot 9999 12 31 0.0 0 0 no no
-	objc_msgSend [calendar sel_getUid "setMaxDate:" to-NSDate as red-date! slot]
+	date/make-at as red-value! dt 1601 01 01 0.0 0 0 no no
+	objc_msgSend [calendar sel_getUid "setMinDate:" to-NSDate dt]
+	date/make-at as red-value! dt 9999 12 31 0.0 0 0 no no
+	objc_msgSend [calendar sel_getUid "setMaxDate:" to-NSDate dt]
 	
 	objc_msgSend [
 		calendar
@@ -1390,7 +1395,7 @@ init-base-face: func [
 			objc_msgSend [id sel_getUid "alloc"]
 			sel_getUid "initWithFrame:" rc/x rc/y rc/w rc/h
 		]
-		store-face-to-obj obj id face
+		store-face-to-obj obj face
 
 		objc_msgSend [obj sel_getUid "setAutoresizingMask:" NSViewWidthSizable or NSViewHeightSizable]
 		objc_msgSend [hwnd sel_getUid "setHasVerticalScroller:" yes]
@@ -1454,7 +1459,7 @@ make-area: func [
 	obj: objc_msgSend [
 		obj sel_getUid "initWithFrame:" rc/x rc/y rc/w rc/h
 	]
-	store-face-to-obj obj id face
+	store-face-to-obj obj face
 
 	rc/y: as float32! 1e37			;-- FLT_MAX
 	objc_msgSend [obj sel_getUid "setVerticallyResizable:" yes]
@@ -1510,7 +1515,7 @@ make-text-list: func [
 	obj: objc_msgSend [
 		obj sel_getUid "initWithFrame:" rc/x rc/y rc/w rc/h
 	]
-	store-face-to-obj obj id face
+	store-face-to-obj obj face
 
 	if TYPE_OF(menu) = TYPE_BLOCK [set-context-menu obj menu]
 
@@ -2004,7 +2009,7 @@ OS-make-view: func [
 
 	;-- store the face value in the extra space of the window struct
 	assert TYPE_OF(face) = TYPE_OBJECT					;-- detect corruptions caused by CreateWindow unwanted events
-	store-face-to-obj obj id face
+	store-face-to-obj obj face
 
 	;-- extra initialization
 	caption: either TYPE_OF(str) = TYPE_STRING [
@@ -2493,12 +2498,26 @@ OS-do-draw: func [
 ]
 
 OS-draw-face: func [
-	ctx		[draw-ctx!]
+	hWnd	[handle!]
 	cmds	[red-block!]
+	flags	[integer!]
+	/local
+		ctx [integer!]
+		obj [integer!]
+		doc [integer!]
 ][
 	if TYPE_OF(cmds) = TYPE_BLOCK [
 		assert system/thrown = 0
-		catch RED_THROWN_ERROR [parse-draw ctx cmds yes]
+
+		obj: as-integer hWnd
+		if flags and FACET_FLAGS_SCROLLABLE <> 0 [
+			doc: objc_msgSend [obj sel_getUid "documentView"]
+			if doc <> 0 [obj: doc]
+		]
+
+		ctx: 0
+		object_getInstanceVariable obj IVAR_RED_DRAW_CTX :ctx
+		catch RED_THROWN_ERROR [parse-draw as draw-ctx! ctx cmds yes]
 	]
 	if system/thrown = RED_THROWN_ERROR [system/thrown: 0]
 ]

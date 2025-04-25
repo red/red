@@ -13,7 +13,7 @@ Red [
 system/view/VID: context [
 	styles: #include %styles.red
 	extras: #switch config/GUI-engine [
-		;TUI		 []
+		terminal [#include %backends/terminal/styles.red]
 		test	 [#include %backends/test/styles.red]
 		#default [
 			#switch config/OS [
@@ -71,7 +71,7 @@ system/view/VID: context [
 	debug?: 	no
 	origin:		10x10
 	spacing:	10x10
-	pos-size!: 	make typeset! [pair! point2D!]
+	pos-size!: 	:planar!
 	containers: [panel tab-panel group-box]
 	
 	default-font: [
@@ -300,12 +300,14 @@ system/view/VID: context [
 	fetch-options: function [
 		face [object!] opts [object!] style [block!] spec [block!] css [block!] reactors [block!] styling? [logic!]
 		/no-skip
+		/tight
 		return: [block!]
 	][
 		opt?: 	 yes
 		divides: none
 		calc-y?: no
 		do-with: none
+		scaling: 1x1
 		
 		obj-spec!:	make typeset! [block! object!]
 		sel-spec!:	make typeset! [integer! float! percent!]
@@ -382,7 +384,12 @@ system/view/VID: context [
 							string!	 [unless opts/text  [opts/text:  value]]
 							logic!
 							date!
-							percent! [unless opts/data  [opts/data:  value] yes]
+							percent! [
+								either opts/image [scaling: value][
+									unless opts/data [opts/data: value]
+								]
+								yes
+							]
 							image!	 [unless opts/image [opts/image: value]]
 							tuple!	 [
 								either opts/color [
@@ -403,15 +410,15 @@ system/view/VID: context [
 							]
 							block!	 [
 								switch/default face/type [
-									panel	  [layout/parent/styles value face divides css]
-									group-box [layout/parent/styles value face divides css]
+									panel	  [layout/parent/styles/:tight value face divides css]
+									group-box [layout/parent/styles/:tight value face divides css]
 									tab-panel [
 										unless parse value [some [string! block!]][throw-error spec]
 										face/pane: make block! (length? value) / 2
 										opts/data: extract value 2
 										max-sz: 0x0
 										foreach p extract next value 2 [
-											layout/parent/styles reduce ['panel copy p] face divides css
+											layout/parent/styles/:tight reduce ['panel copy p] face divides css
 											p: last face/pane
 											max-sz: max max-sz p/offset + p/size
 										]
@@ -447,7 +454,7 @@ system/view/VID: context [
 				x: either zero? oi/size/x [1][oi/size/x]
 				as-pair opts/size/x opts/size * (oi/size/y / x)
 			][
-				oi/size
+				oi/size * scaling
 			]
 		]
 		all [											;-- preprocess RTD inputs
@@ -483,6 +490,13 @@ system/view/VID: context [
 				unless find actors name [repend actors [name f s b]]
 			]
 		]
+		if block? style/template/actors [
+			unless block? actors [actors: opts/actors: make block! 4]
+			foreach [name f s b] style/template/actors [
+				unless find actors name [repend actors [name f s b]]
+			]
+		]
+		
 		if opts/flags [opts/flags: set-flag face opts/flags]	;-- pre-merge /flags facets
 		
 		set/some face opts								;-- merge default+styles and user options
@@ -680,7 +694,7 @@ system/view/VID: context [
 						max-sz: 0
 					]
 					space	[spacing: fetch-argument pos-size! spec]
-					origin	[origin: cursor: pad + top-left: fetch-argument pos-size! spec]
+					origin	[do reset  origin: bound: current: cursor: pad + top-left: fetch-argument pos-size! spec  max-sz: 0]
 					at		[at-offset: fetch-expr 'spec spec: back spec]
 					pad		[cursor: cursor + fetch-argument pos-size! spec]
 					do		[do-safe bind fetch-argument block! spec panel]
@@ -721,7 +735,7 @@ system/view/VID: context [
 					][face/size/y: h]
 					unless styling? [face/parent: panel]
 
-					spec: fetch-options face opts style spec local-styles reactors to-logic styling?
+					spec: fetch-options/:tight face opts style spec local-styles reactors to-logic styling?
 					if all [style/init not styling?][do bind style/init face]
 
 					either styling? [
@@ -816,12 +830,9 @@ system/view/VID: context [
 
 			if options [set/some panel make object! user-opts]
 			if flags [panel/flags: either panel/flags [unique union to-block panel/flags to-block flgs][flgs]]
-			if block? panel/actors [panel/actors: context panel/actors]
+			if all [block? panel/actors panel/type = 'window][panel/actors: context panel/actors]
 		
-			if panel/type = 'window [
-				panel/parent: system/view/screens/1
-				system/view/VID/GUI-rules/process panel
-			]
+			if panel/type = 'window [system/view/VID/GUI-rules/process panel]
 			panel
 		]
 	]

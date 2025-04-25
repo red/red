@@ -156,7 +156,7 @@ point2D: context [
 			fl	 [red-float!]
 			p	 [red-pair!]
 			x	 [float32!]
-			val	 [red-value! value]
+			val	 [red-string! value]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "point2D/make"]]
 
@@ -188,7 +188,7 @@ point2D: context [
 				push as-float32 p/x as-float32 p/y
 			]
 			TYPE_STRING [
-				copy-cell spec val					;-- save spec, load-value will change it
+				copy-cell spec as red-value! val		;-- save spec, load-value will change it
 				proto: load-value as red-string! spec
 				if TYPE_OF(proto) <> TYPE_POINT2D [
 					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_POINT2D val]
@@ -360,8 +360,8 @@ point2D: context [
 		switch op [
 			COMP_EQUAL
 			COMP_NOT_EQUAL 	[
-				either float/almost-equal as-float left/x as-float right/x [
-					res: as-integer not float/almost-equal as-float left/y as-float right/y
+				either float/almost-equal32 left/x right/x [
+					res: as-integer not float/almost-equal32 left/y right/y
 				][
 					res: 1
 				]
@@ -380,7 +380,7 @@ point2D: context [
 			]
 			default [
 				delta: left/x - right/x
-				if float/almost-equal 0.0 as-float delta [delta: left/y - right/y]
+				if float/almost-equal32 0.0 delta [delta: left/y - right/y]
 				res: either delta < as float32! 0.0 [-1][either delta > as float32! 0.0 [1][0]]
 			]
 		]
@@ -411,7 +411,7 @@ point2D: context [
 		]
 		scalexy?: all [
 			OPTION?(fscale)
-			any [TYPE_OF(fscale) = TYPE_POINT2D TYPE_OF(fscale) = TYPE_PAIR]
+			any [TYPE_OF(fscale) = TYPE_POINT2D TYPE_OF(fscale) = TYPE_PAIR TYPE_OF(fscale) = TYPE_POINT3D]
 		]
 		if scalexy? [
 			either TYPE_OF(fscale) = TYPE_PAIR [

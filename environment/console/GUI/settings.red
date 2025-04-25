@@ -80,7 +80,7 @@ display-about: function [][
 		txt bold "Red Programming Language" font [size: 15 color: white]
 		ver: txt font [size: 9 color: white]
 		at 153x86 image fstk-logo
-		at 0x160 small 360x20 "Copyright 2011-2022 - Red Foundation"
+		at 0x160 small 360x20 "Copyright 2011-2024 - Red Foundation"
 		at 0x180 small 360x20 "and contributors."
 		at 0x230 link red-lang font-size 10 font-color white
 		at 0x260 link github   font-size 10 font-color white
@@ -99,7 +99,7 @@ display-about: function [][
 set-dark-mode: func [
 	dark?	[logic!]
 ][
-	foreach face system/view/screens/1/pane [
+	foreach face gui-console-ctx/win/parent/pane [
 		system/view/platform/set-dark-mode face dark?
 	]	
 	system/view/platform/set-dark-mode win dark?
@@ -173,8 +173,13 @@ show-cfg-dialog: function [][
 ]
 
 apply-cfg: function [][
-	win/offset:   cfg/win-pos
-	win/size:     cfg/win-size
+	screen: get-current-screen
+	win/size: cfg/win-size
+	either within? cfg/win-pos screen/offset screen/size [
+		win/offset: cfg/win-pos
+	][
+		center-face/with win screen
+	]
 	font: make font! [
 		name:  cfg/font-name
 		size:  cfg/font-size

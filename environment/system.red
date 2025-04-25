@@ -109,6 +109,7 @@ system: context [
 				invalid-arg:		["invalid argument:" :arg1]
 				invalid-type:		[:arg1 "type is not allowed here"]
 				invalid-type-spec:	["invalid type specifier:" :arg1]
+				invalid-key-type:	["invalid key type:" :arg1]
 				invalid-op:			["invalid operator:" :arg1]
 				no-op-arg:			[:arg1 "operator is missing an argument"]
 				bad-op-spec:		"making an op! requires a function with only 2 arguments and no lit/get-word on left argument"
@@ -122,7 +123,7 @@ system: context [
 				bad-func-extern:	["invalid /extern value:" :arg1]
 				no-refine:			[:arg1 "has no refinement called" :arg2]
 				bad-refines:		"incompatible or invalid refinements"
-				bad-refine:			["incompatible refinement:" :arg1]
+				bad-refine:			["invalid refinement value:" :arg1]
 				dup-refine:			["duplicate refinement usage in:" :arg1]
 				word-first:			["path must start with a word:" :arg1]
 				empty-path:			"cannot evaluate an empty path value"
@@ -130,7 +131,7 @@ system: context [
 				invalid-path:		["cannot access" :arg2 "in path" :arg1]
 				invalid-path-set:	["unsupported type in" :arg1 "set-path"]
 				invalid-path-get:	["unsupported type in" :arg1 "get-path"]
-				bad-path-type:		["path" :arg1 "is not valid for" :arg2 "type"]
+				bad-path-type:		[:arg3 "returned a" :arg2 "value, so" :arg1 "could not be accessed"]
 				bad-path-type2:		["path element >" :arg1 "< does not apply to" :arg2 "type"]
 				bad-path-set:		["cannot set" :arg2 "in path" :arg1]
 				bad-field-set:		["cannot set" :arg1 "field to" :arg2 "datatype"]
@@ -270,7 +271,7 @@ system: context [
 				;bad-series:		"invalid series"
 				limit-hit:			["internal limit reached:" :arg1]
 				;bad-sys-func:		["invalid or missing system function:" :arg1]
-				too-deep:			"block or paren series is too deep to display"
+				too-deep:			"block or paren series is too deep to process"
 				no-cycle:			"circular reference not allowed"
 				feature-na:			"feature not available"
 				not-done:			"reserved for future use (or not yet implemented)"
@@ -289,6 +290,7 @@ system: context [
 		]
 		last-error:  none
 		stack-trace: 1									;-- 0: disabled
+		source-files: make block! 4
 		
 		callbacks: object [
 			lexer?: 	  no							;-- called by transcode/trace
@@ -434,7 +436,7 @@ system: context [
 			spec: scheme: actor: awake: state: data: flags: extra: none
 		]
 		error: object [
-			code: type: id: arg1: arg2: arg3: near: where: stack: none
+			code: type: id: arg1: arg2: arg3: near: where: stack: files: none
 		]
 		file-info: object [
 			name: size: date: type: none

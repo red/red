@@ -324,7 +324,7 @@ type?: make native! [[
 stats: make native! [[
 		"Returns interpreter statistics"
 		/show "TBD:"
-		/info "Output formatted results"
+		/info "Return detailed info: nodes/series/big x free/used/total, total, low-level heap"
 		return: [integer! block!]
 	]
 	#get-definition NAT_STATS
