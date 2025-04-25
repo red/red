@@ -632,7 +632,7 @@ type-checker: context [
 
 	visit-path: func [p [path!] ctx [context!] return: [rst-type!]
 		/local
-			var [var-decl!] type [rst-type!] t [integer!] m [member!]
+			var [var-decl!] type [rst-type!] t sz [integer!] m [member!]
 			a [rst-expr!] b [bin-op!] arr [array-type!] int [red-integer!]
 	][
 		var: p/receiver
@@ -649,12 +649,15 @@ type-checker: context [
 					b: parser/make-bin-op as int-ptr! RST_OP_SUB m/expr a m/token
 					ADD_NODE_FLAGS(b RST_INFIX_OP)
 					arr: as array-type! type
-					int: as red-integer! m/token
-					int/header: TYPE_INTEGER
-					int/value: type-size? arr/type yes
-					a: as rst-expr! parser/make-int as cell! int
-					b: parser/make-bin-op as int-ptr! RST_OP_MUL as rst-expr! b a m/token
-					ADD_NODE_FLAGS(b RST_INFIX_OP)
+					sz: type-size? arr/type yes
+					if sz > 1 [
+						int: as red-integer! m/token
+						int/header: TYPE_INTEGER
+						int/value: sz
+						a: as rst-expr! parser/make-int as cell! int
+						b: parser/make-bin-op as int-ptr! RST_OP_MUL as rst-expr! b a m/token
+						ADD_NODE_FLAGS(b RST_INFIX_OP)
+					]
 					visit-bin-op b ctx
 					m/expr: as rst-expr! b
 				]
@@ -667,9 +670,12 @@ type-checker: context [
 
 	visit-any-all: func [e [any-all!] ctx [context!] return: [rst-type!] /local c [rst-expr!]][
 		c: e/conds
-		while [c <> null][
-			check-expr "Any/All:" c type-system/logic-type ctx
+		check-expr "Any/All:" c type-system/logic-type ctx
+		while [
 			c: c/next
+			c <> null
+		][
+			c/accept as int-ptr! c checker as int-ptr! ctx
 		]
 		type-system/logic-type
 	]
@@ -788,18 +794,22 @@ type-checker: context [
 
 	visit-cast: func [c [cast!] ctx [context!] return: [rst-type!]
 		/local
+			e	[rst-expr!]
 			t1 t2 [rst-type!]
 	][
 		;rst-printer/print-stmt as rst-stmt! c
-		if c/type <> null [return c/type]
+		assert c/type = null
 
 		t1: resolve-typeref c/typeref ctx
 		c/type: t1
-		t2: as rst-type! c/expr/accept as int-ptr! c/expr checker as int-ptr! ctx
-		if conv_illegal = type-system/cast t2 t1 [
+		e: c/expr
+		t2: as rst-type! e/accept as int-ptr! e checker as int-ptr! ctx
+		e/type: t2
+		c/cast: type-system/cast t2 t1
+		if conv_illegal = c/cast [
 			throw-error [c/token "invalid type casting"]
 		]
-		c/expr/cast-type: t1
+		e/cast-type: t1
 		t1
 	]
 

@@ -1270,6 +1270,16 @@ asm: context [
 		emit-bb-rm 0Fh 2Eh r1 m NO_REX
 	]
 
+	cvtsi2ss-s-r: func [s [integer!] r [integer!]][
+		emit-b F3h
+		emit-bb-rr 0Fh 2Ah s r NO_REX
+	]
+
+	cvtsi2sd-s-r: func [s [integer!] r [integer!]][
+		emit-b F2h
+		emit-bb-rr 0Fh 2Ah s r NO_REX
+	]
+
 	;-- micro assembler
 	imod-r: func [r [integer!] rex [integer!] /local off-1 off-2 [integer!] pb p [byte-ptr!]][
 		pb: get-buffer
@@ -1633,6 +1643,19 @@ assemble-op: func [
 			fn: as fn! val/ptr
 			record-fn-ref fn asm/pos - 4
 		]
+		I_DATA_PTR [
+			loc: to-loc as operand! p/value
+			p: p + 1
+			imm: as immediate! p/value
+			val: as val! imm/value
+			either target/gpr-reg? loc [
+				asm/movd-r-i loc ABS_ADDR
+			][
+				loc-to-addr loc :addr cg/frame cg/reg-set
+				asm/movd-m-i :addr ABS_ADDR
+			]
+			record-abs-ref asm/pos - 4 val
+		]
 		I_CATCH [
 			rset: cg/reg-set
 			addr/base: x86-regs/ebp
@@ -1960,6 +1983,8 @@ assemble-s-r: func [	;-- sse register, gpr
 	switch op [
 		I_MOVSS		[asm/movd-s-r s r]
 		I_MOVSD		[asm/movq-s-r s r]
+		I_CVTSI2SSD [asm/cvtsi2ss-s-r s r]
+		I_CVTSI2SDD [asm/cvtsi2sd-s-r s r]
 		default		[0]
 	]
 ]

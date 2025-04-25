@@ -80,10 +80,6 @@ float-type!: alias struct! [
 	TYPE_HEADER
 ]
 
-logic-type!: alias struct! [
-	TYPE_HEADER
-]
-
 #define PTR_SIZE?(ptr) (ptr/header >>> 8 and 0Fh)
 #define SET_PTR_SIZE(ptr sz) [ptr/header and FFh or (sz << 8)]
 
@@ -238,11 +234,11 @@ make-float-type: func [
 make-logic-type: func [
 	return: [rst-type!]
 	/local
-		type [logic-type!]
+		type [rst-type!]
 ][
-	type: as logic-type! malloc size? logic-type!
-	SET_TYPE_KIND(type RST_TYPE_LOGIC)
-	as rst-type! type
+	type: make-int-type 8 no
+	type/header: type/header and FFFFFF00h or RST_TYPE_LOGIC
+	type
 ]
 
 make-byte-type: func [
@@ -326,21 +322,18 @@ struct-size?: func [
 	/local
 		f	[struct-field!]
 		sz	[integer!]
-		n m [integer!]
+		n	[integer!]
 		ofs [integer!]
 ][
 	sz: 0
-	m: target/addr-size
 	f: st/fields
 	loop st/n-fields [
 		n: type-size? f/type no
-		if n > m [m: n]
 		ofs: either all [n > 1 sz > n][align-up sz n][sz]
 		sz: ofs + n
 		f/offset: ofs
 		f: f + 1
 	]
-	sz: align-up sz m
 	if zero? sz [sz: target/addr-size]		;-- empty struct
 	st/size: sz
 	sz
@@ -381,7 +374,7 @@ type-size?: func [
 		RST_TYPE_BYTE [1]
 		RST_TYPE_LOGIC [4]
 		RST_TYPE_VOID [4]
-		RST_TYPE_PTR [PTR_SIZE?(t)]
+		RST_TYPE_PTR [4]
 		RST_TYPE_NULL
 		RST_TYPE_ARRAY [target/addr-size]
 		RST_TYPE_STRUCT [
@@ -734,43 +727,70 @@ type-system: context [
 		conv_illegal
 	]
 
-	cast: func [		;-- cast x to y
-		x	[rst-type!]
-		y	[rst-type!]
+	cast: func [		;-- cast ft to tt
+		ft		[rst-type!]
+		tt		[rst-type!]
 		return: [type-conv-result!]
+		/local
+			from-ty	[integer!]
+			fw tw	[integer!]
 	][
-		switch TYPE_KIND(x) [
-			RST_TYPE_NULL [
-				switch TYPE_KIND(y) [
-					RST_TYPE_PTR [conv_ok]
-					default [conv_ok]
+		from-ty: TYPE_KIND(ft)
+		if ft/header = tt/header [return conv_same]
+		if from-ty = RST_TYPE_ANY [return conv_ok]
+
+		switch TYPE_KIND(tt) [
+			RST_TYPE_PTR [
+				switch from-ty [
+					RST_TYPE_NULL [conv_same]
+					RST_TYPE_ARRAY RST_TYPE_STRUCT RST_TYPE_INT [conv_ok]
+					default [conv_illegal]
 				]
 			]
-			RST_TYPE_PTR [
-				conv_ok
+			RST_TYPE_FLOAT [
+				switch from-ty [
+					RST_TYPE_INT [conv_cast_if]
+					RST_TYPE_FLOAT [
+						fw: FLOAT_FRAC(ft)
+						tw: FLOAT_FRAC(tt)
+						case [
+							fw > tw [conv_cast_ff]
+							fw < tw [conv_promote_ff]
+							true [conv_same]
+						]
+					]
+					default [conv_illegal]
+				]
 			]
 			RST_TYPE_STRUCT [
-				switch TYPE_KIND(y) [
-					RST_TYPE_STRUCT
-					RST_TYPE_PTR
-					RST_TYPE_INT [conv_ok]
+				switch from-ty [
+					RST_TYPE_PTR RST_TYPE_ARRAY [conv_ok]
 					default [conv_illegal]
 				]
 			]
 			RST_TYPE_INT RST_TYPE_BYTE [
-				conv_ok
+				switch from-ty [
+					RST_TYPE_INT RST_TYPE_BYTE RST_TYPE_LOGIC [
+						either int-promotable? ft tt [conv_promote_ii][conv_cast_ii]
+					]
+					RST_TYPE_FLOAT [conv_cast_fi]
+					default [conv_ok]
+				]
 			]
 			RST_TYPE_ARRAY [
 				conv_ok
 			]
-			RST_TYPE_FLOAT [
-				conv_ok
+			RST_TYPE_LOGIC [
+				switch from-ty [
+					RST_TYPE_INT RST_TYPE_BYTE [
+						either int-promotable? ft tt [conv_promote_ii][conv_cast_ii]
+					]
+					default [conv_illegal]
+				]
 			]
-			RST_TYPE_ANY [
-				conv_ok
-			]
+			RST_TYPE_ANY [conv_ok]
 			default [
-				either x/header = y/header [conv_same][conv_illegal]
+				conv_illegal
 			]
 		]
 	]

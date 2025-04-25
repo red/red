@@ -338,6 +338,7 @@ cast!: alias struct! [
 	RST_EXPR_FIELDS(cast!)
 	typeref		[cell!]
 	expr		[rst-expr!]
+	cast		[integer!]
 ]
 
 assignment!: alias struct! [

@@ -1045,18 +1045,27 @@ x86: context [
 		emit-simple-binop cg op i
 	]
 
-	emit-float-to-i: func [
+	emit-ftoi: func [
 		cg		[codegen!]
 		i		[instr!]
 	][
 		
 	]
 
-	emit-int-to-f: func [
+	emit-itof: func [
 		cg		[codegen!]
 		i		[instr!]
+		/local
+			o	[instr-op!]
+			rt	[rst-type!]
+			op	[integer!]
 	][
-		
+		o: as instr-op! i
+		rt: o/ret-type
+		op: either FLOAT_64?(rt) [I_CVTSI2SDD][I_CVTSI2SSD]
+		def-reg cg i
+		use-reg cg input0 i
+		emit-instr cg op or AM_XMM_REG
 	]
 
 	emit-float-cast: func [
@@ -1084,7 +1093,11 @@ x86: context [
 		w: INT_WIDTH(tt)
 		case [
 			w = 32 [
-				emit-movd cg i
+				either TYPE_KIND(ft) = RST_TYPE_LOGIC [
+					emit-mov cg i I_MOVBZX
+				][
+					emit-mov cg i I_MOVD
+				]
 				exit
 			]
 			w < 32 [
@@ -1108,21 +1121,22 @@ x86: context [
 				either INT_SIGNED?(ft) [
 					emit-shift-2 cg i I_SHLQ I_SARQ 64 - w
 				][
-					emit-movd cg i
+					emit-mov cg i I_MOVD
 				]
 			]
-			w <= 64 [emit-movd cg i]
+			w <= 64 [emit-mov cg i I_MOVD]
 			true [0]
 		]
 	]
 
-	emit-movd: func [
+	emit-mov: func [
 		cg		[codegen!]
 		i		[instr!]
+		opcode	[integer!]
 	][
 		def-reg cg i
 		use-i cg input0 i
-		emit-instr cg I_MOVD or AM_REG_OP
+		emit-instr cg opcode or AM_REG_OP
 	]
 
 	emit-shift-2: func [
@@ -1561,7 +1575,7 @@ x86: context [
 		use-reg cg input0 i
 		use-i cg input1 i
 		emit-instr cg op or AM_XMM_OP
-		x86-cond/make-pair cond null no
+		x86-cond/make-pair cond x86-cond/not-parity true
 	]
 
 	emit-cmp: func [
@@ -1921,7 +1935,9 @@ x86: context [
 					op: op or AM_REG_OP
 					use-vreg cg v v/spill
 				][
-					0
+					record-global var
+					use-ptr cg as int-ptr! var
+					op: I_DATA_PTR
 				]
 			]
 			RST_FUNC [
@@ -2091,8 +2107,8 @@ x86: context [
 			OP_FLT_DIV			[emit-float-binop cg I_DIVSS i]
 			OP_INT_CAST			[emit-int-cast cg i]
 			OP_FLOAT_CAST		[emit-float-cast cg i]
-			OP_INT_TO_F			[emit-int-to-f cg i]
-			OP_FLT_TO_I			[emit-float-to-i cg i]
+			OP_INT_TO_F			[emit-itof cg i]
+			OP_FLT_TO_I			[emit-ftoi cg i]
 			OP_FLT_ABS			[0]
 			OP_FLT_CEIL			[0]
 			OP_FLT_FLOOR		[0]

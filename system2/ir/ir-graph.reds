@@ -883,10 +883,26 @@ ir-graph: context [
 
 	visit-cast: func [c [cast!] ctx [ssa-ctx!] return: [instr!]
 		/local
-			val [instr!]
+			val [instr!] op [instr-op!] ptypes [ptr-ptr!] args [array-value!]
 	][
 		val: gen-expr c/expr ctx
-		val
+		switch c/cast [
+			conv_cast_if [		;-- int to float
+				ptypes: as ptr-ptr! malloc 1 * size? int-ptr!
+				ptypes/value: as int-ptr! c/expr/type
+				op: make-op OP_INT_TO_F 1 ptypes c/type
+				INIT_ARRAY_VALUE(args val)
+				add-op op as ptr-array! :args ctx
+			]
+			conv_cast_ii conv_promote_ii [
+				ptypes: as ptr-ptr! malloc 1 * size? int-ptr!
+				ptypes/value: as int-ptr! c/expr/type
+				op: make-op OP_INT_CAST 1 ptypes c/type
+				INIT_ARRAY_VALUE(args val)
+				add-op op as ptr-array! :args ctx
+			]
+			default [val]
+		]
 	]
 
 	visit-declare: func [d [declare!] ctx [ssa-ctx!] return: [instr!]
@@ -1329,15 +1345,6 @@ ir-graph: context [
 		]
 	]
 
-	do-cast: func [
-		from-ty	[rst-type!]
-		to-ty	[rst-type!]
-		value	[instr!]
-		return: [instr!]
-	][
-		value
-	]
-
 	append: func [
 		i		[instr!]
 		ctx		[ssa-ctx!]
@@ -1450,9 +1457,6 @@ ir-graph: context [
 	][
 		either ctx/closed? [as instr! nop ctx/graph][
 			i: as instr! e/accept as int-ptr! e builder as int-ptr! ctx
-			if e/cast-type <> null [
-				do-cast e/cast-type e/type i
-			]
 			i
 		]
 	]
