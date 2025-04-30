@@ -2521,3 +2521,11 @@ OS-draw-face: func [
 	]
 	if system/thrown = RED_THROWN_ERROR [system/thrown: 0]
 ]
+
+OS-fetch-all-screens: func [][
+	SET_RETURN(none-value)
+]
+
+OS-get-current-screen: func [][
+	SET_RETURN(none-value)
+]
