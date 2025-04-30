@@ -425,6 +425,12 @@ unary!: alias struct! [
 	expr		[rst-expr!]
 ]
 
+sizeof!: alias struct! [
+	RST_EXPR_FIELDS(sizeof!)
+	expr		[rst-expr!]
+	etype		[rst-type!]		;-- type of expr
+]
+
 bin-op!: alias struct! [
 	RST_EXPR_FIELDS(bin-op!)
 	op			[int-ptr!]
@@ -1616,7 +1622,7 @@ parser: context [
 	parse-size?: func [
 		KEYWORD_FN_SPEC
 		/local
-			e	 [unary!]
+			e	 [sizeof!]
 			err? [logic!]
 			pv	 [ptr-value!]
 	][
@@ -1626,7 +1632,7 @@ parser: context [
 		err?: ctx/throw-error?
 		ctx/throw-error?: no
 
-		e: as unary! malloc size? bin-op!
+		e: as sizeof! malloc size? bin-op!	;@@ may convert it to bin-op! in type-checker
 		SET_NODE_TYPE(e RST_SIZEOF)
 		e/token: pc
 		e/accept: :sizeof_accept

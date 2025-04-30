@@ -1270,6 +1270,24 @@ asm: context [
 		emit-bb-rm 0Fh 2Eh r1 m NO_REX
 	]
 
+	cvtss2sd-s-s: func [r1 [integer!] r2 [integer!]][
+		emit-b F3h
+		emit-bb-rr 0Fh 5Ah r1 r2 NO_REX
+	]
+	cvtss2sd-s-m: func [r1 [integer!] m [x86-addr!]][
+		emit-b F3h
+		emit-bb-rm 0Fh 5Ah r1 m NO_REX
+	]
+
+	cvtsd2ss-s-s: func [r1 [integer!] r2 [integer!]][
+		emit-b F2h
+		emit-bb-rr 0Fh 5Ah r1 r2 NO_REX
+	]
+	cvtsd2ss-s-m: func [r1 [integer!] m [x86-addr!]][
+		emit-b F2h
+		emit-bb-rm 0Fh 5Ah r1 m NO_REX
+	]
+
 	cvtsi2ss-s-r: func [s [integer!] r [integer!]][
 		emit-b F3h
 		emit-bb-rr 0Fh 2Ah s r NO_REX
@@ -1935,6 +1953,8 @@ assemble-s-s: func [	;-- sse registers
 		I_MOVSD		[asm/movsd-s-s a b]
 		I_UCOMISS	[asm/ucomiss-s-s a b]
 		I_UCOMISD	[asm/ucomisd-s-s a b]
+		I_CVTSS2SD	[asm/cvtss2sd-s-s a b]
+		I_CVTSD2SS	[asm/cvtsd2ss-s-s a b]
 		default		[0]
 	]
 ]
@@ -1959,6 +1979,8 @@ assemble-s-m: func [	;-- sse register, memory address
 		I_MOVSD		[asm/movsd-s-m a m]
 		I_UCOMISS	[asm/ucomiss-s-m a m]
 		I_UCOMISD	[asm/ucomisd-s-m a m]
+		I_CVTSS2SD	[asm/cvtss2sd-s-m a m]
+		I_CVTSD2SS	[asm/cvtsd2ss-s-m a m]
 		default		[0]
 	]
 ]

@@ -1072,7 +1072,9 @@ x86: context [
 		cg		[codegen!]
 		i		[instr!]
 	][
-		
+		def-reg cg i
+		use-reg cg input0 i
+		emit-instr cg I_CVTSS2SD or AM_XMM_OP
 	]
 
 	emit-int-cast: func [

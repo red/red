@@ -526,7 +526,7 @@ ir-graph: context [
 	][
 		if NODE_TYPE(e) = RST_NULL [return as instr! const-null ctx/graph]
 		t: e/type
-		either all [FLOAT_TYPE?(t) FLOAT_64?(t)][
+		either FLOAT_TYPE?(t) [
 			make-global-literal e t ctx
 		][
 			as instr! const-val t e/token ctx/graph
@@ -552,8 +552,75 @@ ir-graph: context [
 		add-op op null ctx
 	]
 
-	visit-fn-call: func [fc [fn-call!] ctx [ssa-ctx!] return: [instr!]][
-		add-fn-call fc ctx
+	visit-fn-call: func [fc [fn-call!] ctx [ssa-ctx!] return: [instr!]
+		/local
+			ft		[fn-type!]
+			fn		[fn!]
+			arg		[rst-expr!]
+			op		[instr-op!]
+			arr		[ptr-array!]
+			op2		[instr-op!]
+			int		[red-integer!]
+			p pp	[ptr-ptr!]
+			np n	[integer!]
+			val		[instr!]
+			cast	[integer!]
+	][
+		fn: fc/fn
+		ft: as fn-type! fn/type
+		np: ft/n-params
+		op: make-op OP_CALL_FUNC np ft/param-types ft/ret-type
+		op/target: as int-ptr! fn
+
+		either np < 0 [		;-- variadic/typed function
+			arg: fc/args
+			n: arg/header	;-- number of args
+			pp: as ptr-ptr! malloc n * size? int-ptr!
+			p: pp
+			arg: arg/next
+			while [arg <> null][
+				p/value: as int-ptr! arg/type
+				p: p + 1
+				arg: arg/next
+			]
+			if np = -1 [	;-- variadic func
+				op/n-params: n
+				op/param-types: pp
+			]
+		][
+			n: np
+		]
+
+		arr: ptr-array/make n
+		p: ARRAY_DATA(arr)
+		if fc/args <> null [
+			arg: fc/args/next
+			while [arg <> null][
+				val: as instr! arg/accept as int-ptr! arg builder as int-ptr! ctx
+				if arg/cast-type <> null [
+					cast: type-system/cast arg/type arg/cast-type val
+					val: do-cast cast val arg/type arg/cast-type ctx
+				]
+				p/value: as int-ptr! val
+				p: p + 1
+				arg: arg/next
+			]
+		]
+		if np = -2 [	;-- typed func
+			p: ft/param-types + 1	;-- typed-value!
+			op2: make-op OP_TYPED_VALUE n pp as rst-type! p/value
+			add-op op2 arr ctx
+
+			int: xmalloc(red-integer!)
+			int/header: TYPE_INTEGER
+			int/value: n
+			arr: ptr-array/make 2
+			p: ARRAY_DATA(arr)
+			p/value: as int-ptr! const-int int ctx/graph
+			p: p + 1
+			p/value: as int-ptr! op2
+		]
+		add-op op arr ctx
 	]
 
 	visit-bin-op: func [bin [bin-op!] ctx [ssa-ctx!] return: [instr!]
@@ -597,7 +664,7 @@ ir-graph: context [
 		add-if cond t-ctx/block f-ctx/block ctx
 
 		t-val: gen-stmts e/t-branch t-ctx
-		f-val: either e/f-branch <> null [gen-stmts e/f-branch f-ctx][add-default-value e/type f-ctx]
+		f-val: either e/f-branch <> null [gen-stmts e/f-branch f-ctx][null]
 
 		t-closed?: t-ctx/closed?	;-- save it as merge-ctx will close the block
 		f-closed?: f-ctx/closed?
@@ -610,7 +677,7 @@ ir-graph: context [
 		case [
 			not t-closed? [
 				either f-closed? [t-val][
-					either t-val = f-val [t-val][
+					either any [t-val = f-val null? f-val][t-val][
 						either e/type <> type-system/void-type [
 							INIT_ARRAY_2(arr2 t-val f-val)
 							make-phi e/type merge/block as ptr-array! :arr2
@@ -618,7 +685,7 @@ ir-graph: context [
 					]
 				]
 			]
-			not f-closed? [f-val]
+			all [not f-closed? f-val <> null][f-val]
 			true [nop ctx/graph]
 		]
 	]
@@ -871,38 +938,42 @@ ir-graph: context [
 		add-op op as ptr-array! :args ctx
 	]
 
-	visit-size?: func [u [unary!] ctx [ssa-ctx!] return: [instr!]
+	visit-size?: func [u [sizeof!] ctx [ssa-ctx!] return: [instr!]
 		/local int [red-integer!] t [rst-type!] arr [array-type!]
 	][
-		t: u/cast-type
+		t: u/etype
 		int: as red-integer! u/token
 		int/header: TYPE_INTEGER
 		int/value: type-size? t yes
 		as instr! const-int int ctx/graph
 	]
 
+	do-cast: func [
+		cast [integer!] val [instr!] ft [rst-type!] tt [rst-type!] ctx [ssa-ctx!]
+		return: [instr!]
+		/local op [instr-op!] ptypes [ptr-ptr!] args [array-value!] code [integer!]
+	][
+		code: switch cast [
+			conv_cast_if [OP_INT_TO_F]		;-- int to float
+			conv_cast_ii conv_promote_ii [OP_INT_CAST]
+			conv_promote_ff [OP_FLOAT_CAST]
+			default [0]
+		]
+		either code > 0 [
+			ptypes: as ptr-ptr! malloc 1 * size? int-ptr!
+			ptypes/value: as int-ptr! ft
+			INIT_ARRAY_VALUE(args val)
+			op: make-op code 1 ptypes tt
+			add-op op as ptr-array! :args ctx 
+		][val]
+	]
+
 	visit-cast: func [c [cast!] ctx [ssa-ctx!] return: [instr!]
 		/local
-			val [instr!] op [instr-op!] ptypes [ptr-ptr!] args [array-value!]
+			val [instr!]
 	][
 		val: gen-expr c/expr ctx
-		switch c/cast [
-			conv_cast_if [		;-- int to float
-				ptypes: as ptr-ptr! malloc 1 * size? int-ptr!
-				ptypes/value: as int-ptr! c/expr/type
-				op: make-op OP_INT_TO_F 1 ptypes c/type
-				INIT_ARRAY_VALUE(args val)
-				add-op op as ptr-array! :args ctx
-			]
-			conv_cast_ii conv_promote_ii [
-				ptypes: as ptr-ptr! malloc 1 * size? int-ptr!
-				ptypes/value: as int-ptr! c/expr/type
-				op: make-op OP_INT_CAST 1 ptypes c/type
-				INIT_ARRAY_VALUE(args val)
-				add-op op as ptr-array! :args ctx
-			]
-			default [val]
-		]
+		do-cast c/cast val c/expr/type c/type ctx
 	]
 
 	visit-declare: func [d [declare!] ctx [ssa-ctx!] return: [instr!]
@@ -1847,73 +1918,6 @@ ir-graph: context [
 
 		ctx/closed?: yes
 		append as instr! i ctx
-	]
-
-	add-fn-call: func [
-		fc		[fn-call!]
-		ctx		[ssa-ctx!]
-		return: [instr!]
-		/local
-			ft	[fn-type!]
-			fn	[fn!]
-			arg [rst-expr!]
-			op	[instr-op!]
-			arr [ptr-array!]
-			op2 [instr-op!]
-			int [red-integer!]
-			p pp [ptr-ptr!]
-			np n [integer!]
-	][
-		fn: fc/fn
-		ft: as fn-type! fn/type
-		np: ft/n-params
-		op: make-op OP_CALL_FUNC np ft/param-types ft/ret-type
-		op/target: as int-ptr! fn
-
-		either np < 0 [		;-- variadic/typed function
-			arg: fc/args
-			n: arg/header	;-- number of args
-			pp: as ptr-ptr! malloc n * size? int-ptr!
-			p: pp
-			arg: arg/next
-			while [arg <> null][
-				p/value: as int-ptr! arg/type
-				p: p + 1
-				arg: arg/next
-			]
-			if np = -1 [	;-- variadic func
-				op/n-params: n
-				op/param-types: pp
-			]
-		][
-			n: np
-		]
-
-		arr: ptr-array/make n
-		p: ARRAY_DATA(arr)
-		if fc/args <> null [
-			arg: fc/args/next
-			while [arg <> null][
-				p/value: arg/accept as int-ptr! arg builder as int-ptr! ctx
-				p: p + 1
-				arg: arg/next
-			]
-		]
-		if np = -2 [	;-- typed func
-			p: ft/param-types + 1	;-- typed-value!
-			op2: make-op OP_TYPED_VALUE n pp as rst-type! p/value
-			add-op op2 arr ctx
-
-			int: xmalloc(red-integer!)
-			int/header: TYPE_INTEGER
-			int/value: n
-			arr: ptr-array/make 2
-			p: ARRAY_DATA(arr)
-			p/value: as int-ptr! const-int int ctx/graph
-			p: p + 1
-			p/value: as int-ptr! op2
-		]
-		add-op op arr ctx
 	]
 
 	make-op: func [

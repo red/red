@@ -288,13 +288,11 @@ type-checker: context [
 		t
 	]
 
-	check-expr: func [
-		msg			[c-string!]
+	convert-literal: func [
 		e			[rst-expr!]
 		expected	[rst-type!]
-		ctx			[context!]
+		return:		[logic!]
 		/local
-			type	[rst-type!]
 			int		[int-literal!]
 			i		[integer!]
 			t		[int-type!]
@@ -303,13 +301,6 @@ type-checker: context [
 			ty		[integer!]
 	][
 		ty: NODE_TYPE(e)
-		type: e/type
-		if any [null? type ty = RST_PATH][
-			type: as rst-type! e/accept as int-ptr! e checker as int-ptr! ctx
-			e/type: type
-		]
-		if type/header = expected/header [exit]	;-- same type
-
 		switch ty [
 			RST_INT [		;-- int literal
 				int: as int-literal! e
@@ -319,6 +310,7 @@ type-checker: context [
 						t: as int-type! expected
 						either all [i >= t/min i <= t/max][
 							e/type: expected
+							return true
 						][
 							if all [not INT_SIGNED?(t) i < 0][
 								throw-error [e/token "negative number used as unsigned"]
@@ -339,6 +331,7 @@ type-checker: context [
 							f64/value: as float! i
 						]
 						e/type: expected
+						return true
 					]
 					default [0]
 				]
@@ -349,14 +342,35 @@ type-checker: context [
 					f32: as red-float32! f64
 					f32/value: as float32! f64/value
 					e/type: expected
+					return true
 				]
 			]
-			default [
-				either type-system/promotable? type expected [
-					e/cast-type: expected
-				][
-					throw-error [e/token msg "expected" type-name expected ", got" type-name type]
-				]
+			default [false]
+		]
+		false
+	]
+
+	check-expr: func [
+		msg			[c-string!]
+		e			[rst-expr!]
+		expected	[rst-type!]
+		ctx			[context!]
+		/local
+			type	[rst-type!]
+			ty		[integer!]
+	][
+		ty: NODE_TYPE(e)
+		type: e/type
+		if any [null? type ty = RST_PATH][
+			type: as rst-type! e/accept as int-ptr! e checker as int-ptr! ctx
+			e/type: type
+		]
+		if type/header = expected/header [exit]	;-- same type
+		unless convert-literal e expected [
+			either type-system/promotable? type expected [
+				e/cast-type: expected
+			][
+				throw-error [e/token msg "expected" type-name expected ", got" type-name type]
 			]
 		]
 	]
@@ -734,10 +748,10 @@ type-checker: context [
 	]
 
 	visit-size?: func [
-		u [unary!] ctx [context!] return: [rst-type!]
-		/local t [rst-type!] a b [rst-expr!] c [bin-op!] arr [array-type!] u2 [unary!] int [red-integer!]
+		u [sizeof!] ctx [context!] return: [rst-type!]
+		/local t [rst-type!] a b [rst-expr!] c [bin-op!] arr [array-type!] u2 [sizeof!] int [red-integer!]
 	][
-		u/cast-type: either NODE_FLAGS(u) and RST_SIZE_TYPE <> 0 [
+		u/etype: either NODE_FLAGS(u) and RST_SIZE_TYPE <> 0 [
 			resolve-typeref as cell! u/expr ctx
 		][
 			t: as rst-type! u/expr/accept as int-ptr! u/expr checker as int-ptr! ctx
@@ -803,13 +817,17 @@ type-checker: context [
 		t1: resolve-typeref c/typeref ctx
 		c/type: t1
 		e: c/expr
+		if convert-literal e t1 [
+			c/cast: conv_same
+			return t1
+		]
+
 		t2: as rst-type! e/accept as int-ptr! e checker as int-ptr! ctx
 		e/type: t2
 		c/cast: type-system/cast t2 t1
 		if conv_illegal = c/cast [
 			throw-error [c/token "invalid type casting"]
 		]
-		e/cast-type: t1
 		t1
 	]
 

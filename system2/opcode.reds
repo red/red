@@ -133,8 +133,10 @@ instr-flags: [
 	0	;--INS_THROW
 
 	F_PFC			;--OP_BOOL_EQ
+	F_PFC			;--OP_BOOL_NE
 	F_PFCA			;--OP_BOOL_AND
 	F_PFCA			;--OP_BOOL_OR
+	F_PFCA			;--OP_BOOL_XOR
 	F_PF			;--OP_BOOL_NOT
 
 	F_PFCA			;--OP_INT_ADD
@@ -150,7 +152,7 @@ instr-flags: [
 	F_PF			;--OP_INT_SAR
 	F_PF			;--OP_INT_SHR
 	F_PFC			;--OP_INT_EQ
-	F_PF			;--OP_INT_NE
+	F_PFC			;--OP_INT_NE
 	F_PF			;--OP_INT_LT
 	F_PF			;--OP_INT_LTEQ
 

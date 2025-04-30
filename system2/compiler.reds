@@ -14,7 +14,7 @@ compiler: context [
 	#include %utils/array.reds
 	#include %utils/bit-table.reds
 
-	verbose: 1
+	verbose: 0
 
 	#enum arch-id! [
 		arch-x86
@@ -400,6 +400,8 @@ compiler: context [
 				len	[integer!]
 				pp	[int-ptr!]
 				f	[float-literal!]
+				f32 [red-float32!]
+				type [rst-type!]
 		][
 			ty: NODE_TYPE(val)
 			if ty > RST_LIT_ARRAY [return false]
@@ -414,10 +416,17 @@ compiler: context [
 					emit-d int/value
 				]
 				RST_FLOAT [
-					f: as float-literal! val
-					pp: :f/value
-					emit-d pp/1
-					emit-d pp/2
+					type: val/type
+					either FLOAT_64?(type) [
+						f: as float-literal! val
+						pp: :f/value
+						emit-d pp/1
+						emit-d pp/2
+					][
+						f32: as red-float32! val/token
+						pp: :f32/value
+						emit-d pp/1
+					]
 				]
 				RST_NULL [emit-d 0]
 				RST_C_STR
