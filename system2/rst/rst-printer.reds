@@ -107,7 +107,7 @@ rst-printer: context [
 		c/expr/accept as int-ptr! c/expr printer null
 	]
 
-	visit-declare: func [c [cast!] i [integer!]][
+	visit-declare: func [c [declare!] i [integer!]][
 		do-i i prin "declare "
 		prin-token c/typeref prin " "
 	]

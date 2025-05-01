@@ -464,7 +464,7 @@ compiler: context [
 		sz: type-size? var/type yes
 		with [data-section][
 			var/data-idx: pos
-			unless store-literal var/init [
+			if any [NODE_TYPE(var) = RST_DECLARE not store-literal var/init][
 				record-pos
 				acquire sz
 			]

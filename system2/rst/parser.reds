@@ -246,17 +246,17 @@ var-decl!: alias struct! [	;-- variable declaration
 	ssa			[ssa-var!]
 ]
 
-enumerator!: alias struct! [
-	RST_NODE_FIELDS(enumerator!)
-	n-cases		[integer!]
-	cases		[member!]
-]
-
 declare!: alias struct! [
 	RST_EXPR_FIELDS(declare!)
 	data-idx	[integer!]	 ;-- @@ keep it the same offset as in var-decl!
 	blkref		[red-block!] ;-- @@ keep it the same offset as in var-decl!
 	typeref		[cell!]
+]
+
+enumerator!: alias struct! [
+	RST_NODE_FIELDS(enumerator!)
+	n-cases		[integer!]
+	cases		[member!]
 ]
 
 sub-fn!: alias struct! [
@@ -1563,6 +1563,8 @@ parser: context [
 		SET_NODE_TYPE(d RST_DECLARE)
 		d/token: pc
 		d/accept: :declare_accept
+		d/data-idx: -1
+		d/blkref: cur-blk
 
 		pc: advance-next pc end
 		pc: fetch-type pc end :e no
