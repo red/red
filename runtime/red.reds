@@ -20,12 +20,12 @@ red: context [
 	#include %externals.reds
 	
 	#switch OS [										;-- loading OS-specific bindings
-		Windows  [#include %platform/win32.reds]
-		Syllable [#include %platform/syllable.reds]
-		macOS	 [#include %platform/darwin.reds]
-		FreeBSD  [#include %platform/freebsd.reds]
-		NetBSD   [#include %platform/netbsd.reds]
-		#default [#include %platform/linux.reds]
+		Windows  [#include %platform/windows/win32.reds]
+		Syllable [#include %platform/syllable/syllable.reds]
+		macOS	 [#include %platform/darwin/darwin.reds]
+		FreeBSD  [#include %platform/freebsd/freebsd.reds]
+		NetBSD   [#include %platform/netbsd/netbsd.reds]
+		#default [#include %platform/linux/linux.reds]
 	]
 	
 	#include %threads.reds
@@ -55,21 +55,21 @@ red: context [
 	#switch OS [
 		Windows  [
 			#switch draw-engine [
-				GDI+	 [#include %platform/image-gdiplus.reds]
-				#default [#include %platform/image-wic.reds]
+				GDI+	 [#include %platform/windows/image-gdiplus.reds]
+				#default [#include %platform/windows/image-wic.reds]
 			]
 		]
 		Syllable []
-		macOS	 [#include %platform/image-quartz.reds]
+		macOS	 [#include %platform/darwin/image-quartz.reds]
 		Linux	 [
 			#either config-name = 'Pico [
 				#include %platform/image-stub.reds
 			][
-				#include %platform/image-gdk.reds
+				#include %platform/POSIX/image-gdk.reds
 			]
 		]
-		FreeBSD  [#include %platform/image-gdk.reds]
-		NetBSD   [#include %platform/image-gdk.reds]
+		FreeBSD  [#include %platform/POSIX/image-gdk.reds]
+		NetBSD   [#include %platform/POSIX/image-gdk.reds]
 		#default []
 	]
 	#include %image-utils.reds

@@ -170,22 +170,48 @@ write %build/bin/sources.r set-cache [
 			%word.reds
 		]
 		%platform/ [
-			%android.reds
-			%darwin.reds
-			%freebsd.reds
-			%netbsd.reds
-			%linux.reds
-			%POSIX.reds
-			%syllable.reds
-			%win32.reds
-			%COM.reds
-			%image-wic.reds
-			%image-gdiplus.reds
-			%image-gdk.reds
-			%image-quartz.reds
+			%android/ [
+				%android.reds
+			]
+			%darwin/ [
+				%darwin.reds
+				%image-quartz.reds
+			]
+			%definitions/ [
+				%COM.reds
+				%darwin.reds
+				%freebsd.reds
+				%linux.reds
+				%netbsd.reds
+				%POSIX.reds
+				%syllable.reds
+				%windows.reds
+			]
+			%freebsd/ [
+				%freebsd.reds
+			]
+			%linux/ [
+				%linux.reds
+			]
+			%netbsd/ [
+				%netbsd.reds
+			]
+			%POSIX/ [
+				%image-gdk.reds
+				%POSIX.reds
+			]
+			%syllable/ [
+				%syllable.reds
+			]
+			%windows/ [
+				%image-wic.reds
+				%image-gdiplus.reds
+				%win32.reds
+				%win32-ansi.reds
+				%win32-print.reds
+			]
+			%definitions.reds
 			%image-stub.reds
-			%win32-ansi.reds
-			%win32-print.reds
 		]
 	]
 	%modules/ [

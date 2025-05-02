@@ -2835,7 +2835,7 @@ natives: context [
 
 		#case [
 			OS = 'Windows [
-				platform/ShellExecute 0 #u16 "open" unicode/to-utf16 url 0 0 1
+				ShellExecute 0 #u16 "open" unicode/to-utf16 url 0 0 1
 			]
 			any [OS = 'Linux OS = 'macOS][
 				use [tool [c-string!] n [integer!] s [c-string!] cmd [byte-ptr!] len [integer!]][

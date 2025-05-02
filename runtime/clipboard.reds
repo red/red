@@ -87,10 +87,6 @@ clipboard: context [
 					hMem		[integer!]
 					return:		[integer!]				;-- valid for 32bit exe only
 				]
-				lstrlen: "lstrlenW" [
-					str			[byte-ptr!]
-					return:		[integer!]
-				]
 				Sleep: "Sleep" [
 					dwMilliseconds	[integer!]
 				]

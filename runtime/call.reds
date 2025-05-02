@@ -32,21 +32,6 @@ ext-process: context [
 
 	str-buffer: as red-value! 0
 
-	#import [
-		LIBC-file cdecl [
-			strstr: "strstr" [					"Search for sub-string."
-				string			[c-string!]
-				substring		[c-string!]
-				return:			[c-string!]
-			]
-			strcpy: "strcpy" [					"Copy string including tail marker, return target."
-				target			[c-string!]
-				source			[c-string!]
-				return:			[c-string!]
-			]
-		]
-	]
-
 	#either debug? = yes [
 		error-pipe:			"Error Red/System call : pipe creation failed : "
 		error-dup2:			"Error Red/System call : calling dup2 : "
@@ -75,8 +60,8 @@ ext-process: context [
 			len: len + 1
 			str/len: #"^/"
 			#switch OS [								;-- Write to stderr, no error check
-				Windows  [ platform/WriteFile platform/GetStdHandle STD_ERROR_HANDLE str len :len null ]
-				#default [ platform/io-write stderr as byte-ptr! str len ]
+				Windows  [ WriteFile GetStdHandle STD_ERROR_HANDLE as byte-ptr! str len :len null ]
+				#default [ io-write stderr as byte-ptr! str len ]
 			]
 			free as byte-ptr! str
 		]
@@ -125,10 +110,10 @@ ext-process: context [
 				count: data/count
 				either any [console? win-shell? win-error?][
 					len: 0
-					len: platform/MultiByteToWideChar 0 0 buffer count null 0	;-- CP_OEMCP
+					len: MultiByteToWideChar 0 0 buffer count null 0	;-- CP_OEMCP
 					if len <= 0 [0]										;TBD free resource and throw error
 					temp: allocate len * 2
-					platform/MultiByteToWideChar 0 0 buffer count temp len
+					MultiByteToWideChar 0 0 buffer count temp len
 					unicode/load-utf16 as-c-string temp len sout yes
 					free temp
 				][
@@ -157,7 +142,7 @@ ext-process: context [
 			total: 0
 			until [
 				len: 0
-				platform/ReadFile fd (data/buffer + total) (size - total) :len null
+				ReadFile fd (data/buffer + total) (size - total) :len null
 				if len > 0 [
 					total: total + len
 					if total = size [
@@ -165,11 +150,11 @@ ext-process: context [
 						data/buffer: realloc data/buffer size
 					]
 				]
-				platform/GetLastError = ERROR_BROKEN_PIPE		;-- Pipe done - normal exit
+				GetLastError = ERROR_BROKEN_PIPE		;-- Pipe done - normal exit
 			]
 			data/count: total
 		] ; read-from-pipe
-		
+
 		open-file-to-write: func [
 			pbuf		[p-buffer!]
 			sa			[security-attributes!]
@@ -177,7 +162,7 @@ ext-process: context [
 			/local
 				file	[integer!]
 		][
-			file: platform/CreateFileW
+			file: CreateFileW
 				as c-string! pbuf/buffer
 				GENERIC_WRITE
 				FILE_SHARE_READ or FILE_SHARE_WRITE
@@ -186,7 +171,7 @@ ext-process: context [
 				FILE_ATTRIBUTE_NORMAL
 				null
 			
-			either file = -1 [file: 0][platform/SetFilePointer file 0 null SET_FILE_END]
+			either file = -1 [file: 0][SetFilePointer file 0 null SET_FILE_END]
 			file
 		]
 		
@@ -234,15 +219,15 @@ ext-process: context [
 			set-memory as byte-ptr! :s-inf null-byte size? startup-info!
 			s-inf/cb: size? startup-info!
 			s-inf/dwFlags: 0
-			s-inf/hStdInput:  platform/GetStdHandle STD_INPUT_HANDLE
-			s-inf/hStdOutput: platform/GetStdHandle STD_OUTPUT_HANDLE
-			s-inf/hStdError:  platform/GetStdHandle STD_ERROR_HANDLE
+			s-inf/hStdInput:  GetStdHandle STD_INPUT_HANDLE
+			s-inf/hStdOutput: GetStdHandle STD_OUTPUT_HANDLE
+			s-inf/hStdError:  GetStdHandle STD_ERROR_HANDLE
 			
-			dev-null: platform/CreateFileW #u16 "nul:" GENERIC_WRITE FILE_SHARE_WRITE sa OPEN_EXISTING 0 null		;-- Pipe to nul
+			dev-null: CreateFileW #u16 "nul:" GENERIC_WRITE FILE_SHARE_WRITE sa OPEN_EXISTING 0 null		;-- Pipe to nul
 			
 			if in-buf <> null [
 				either in-buf/count = -1 [
-					in-read: platform/CreateFileW
+					in-read: CreateFileW
 						as c-string! in-buf/buffer
 						GENERIC_READ
 						0
@@ -252,11 +237,11 @@ ext-process: context [
 						null
 					if in-read = -1 [return -1]
 				][
-					unless platform/CreatePipe :in-read :in-write sa 0 [	;-- Create a pipe for child's input
+					unless CreatePipe :in-read :in-write sa 0 [	;-- Create a pipe for child's input
 						__red-call-print-error [ error-pipe "stdin" ]
 						return -1
 					]
-					unless platform/SetHandleInformation in-write HANDLE_FLAG_INHERIT 0 [
+					unless SetHandleInformation in-write HANDLE_FLAG_INHERIT 0 [
 						__red-call-print-error [ error-sethandle "stdin" ]
 						return -1
 					]
@@ -270,11 +255,11 @@ ext-process: context [
 					out-buf/count: 0
 					out-buf/buffer: allocate READ_BUFFER_SIZE
 					
-					unless platform/CreatePipe :out-read :out-write sa 0 [	;-- Create a pipe for child's output
+					unless CreatePipe :out-read :out-write sa 0 [	;-- Create a pipe for child's output
 						__red-call-print-error [ error-pipe "stdout" ]
 						return -1
 					]
-					unless platform/SetHandleInformation out-read HANDLE_FLAG_INHERIT 0 [
+					unless SetHandleInformation out-read HANDLE_FLAG_INHERIT 0 [
 						__red-call-print-error [ error-sethandle "stdout" ]
 						return -1
 					]
@@ -291,11 +276,11 @@ ext-process: context [
 				][
 					err-buf/count: 0
 					err-buf/buffer: allocate READ_BUFFER_SIZE
-					unless platform/CreatePipe :err-read :err-write sa 0 [	;-- Create a pipe for child's error
+					unless CreatePipe :err-read :err-write sa 0 [	;-- Create a pipe for child's error
 						__red-call-print-error [ error-pipe "stderr" ]
 						return -1
 					]
-					unless platform/SetHandleInformation err-read HANDLE_FLAG_INHERIT 0 [
+					unless SetHandleInformation err-read HANDLE_FLAG_INHERIT 0 [
 						__red-call-print-error [ error-sethandle "stderr" ]
 						return -1
 					]
@@ -320,7 +305,7 @@ ext-process: context [
 			sa/bInheritHandle: inherit
 			
 			either shell? [
-				len: (platform/lstrlen as byte-ptr! cmd) * 2
+				len: (lstrlen as byte-ptr! cmd) * 2
 				cmdstr: make-c-string (26 + len)
 				copy-memory as byte-ptr! cmdstr as byte-ptr! #u16 {cmd /s /c "} 22
 				copy-memory as byte-ptr! cmdstr + 22 as byte-ptr! cmd len
@@ -328,9 +313,9 @@ ext-process: context [
 			][
 				cmdstr: cmd
 			]
-			unless platform/CreateProcessW null cmdstr null null inherit 0 null null :s-inf :p-inf [
-				either 2 = platform/GetLastError [		;-- ERROR_FILE_NOT_FOUND
-					len: (platform/lstrlen as byte-ptr! cmd) * 2
+			unless CreateProcessW null cmdstr null null inherit 0 null null :s-inf :p-inf [
+				either 2 = GetLastError [		;-- ERROR_FILE_NOT_FOUND
+					len: (lstrlen as byte-ptr! cmd) * 2
 					cmdstr: make-c-string (26 + len)
 					copy-memory as byte-ptr! cmdstr as byte-ptr! #u16 {cmd /s /c "} 22
 					copy-memory as byte-ptr! cmdstr + 22 as byte-ptr! cmd len
@@ -338,13 +323,13 @@ ext-process: context [
 					shell?: yes							;-- force /shell mode and try again
 					win-shell?: yes
 					
-					unless platform/CreateProcessW null cmdstr null null inherit 0 null null :s-inf :p-inf [
-						__red-call-print-error [ "Error Red/System call : CreateProcess : ^"" cmd "^" Error : " platform/GetLastError]
+					unless CreateProcessW null cmdstr null null inherit 0 null null :s-inf :p-inf [
+						__red-call-print-error [ "Error Red/System call : CreateProcess : ^"" cmd "^" Error : " GetLastError]
 						if shell? [free as byte-ptr! cmdstr]
 						return -1
 					]
 				][
-					__red-call-print-error [ "Error Red/System call : CreateProcess : ^"" cmd "^" Error : " platform/GetLastError]
+					__red-call-print-error [ "Error Red/System call : CreateProcess : ^"" cmd "^" Error : " GetLastError]
 					if shell? [free as byte-ptr! cmdstr]
 					return -1
 				]
@@ -353,79 +338,42 @@ ext-process: context [
 
 			pid: 0
 			if in-buf <> null [
-				platform/CloseHandle in-read
+				CloseHandle in-read
 				len: in-buf/count
-				success: platform/WriteFile in-write as-c-string in-buf/buffer len :len null
+				success: WriteFile in-write in-buf/buffer len :len null
 				if zero? success [
-					__red-call-print-error [ "Error Red/System call : write into pipe failed : " platform/GetLastError]
+					__red-call-print-error [ "Error Red/System call : write into pipe failed : " GetLastError]
 				]
-				platform/CloseHandle in-write
+				CloseHandle in-write
 			]
 			if out-buf <> null [
-				platform/CloseHandle out-write
+				CloseHandle out-write
 				if out-buf/count <> -1 [read-from-pipe out-read out-buf]
-				platform/CloseHandle out-read
+				CloseHandle out-read
 			]
 			if err-buf <> null [
-				platform/CloseHandle err-write
+				CloseHandle err-write
 				if err-buf/count <> -1 [read-from-pipe err-read err-buf]
-				platform/CloseHandle err-read
+				CloseHandle err-read
 				if all [shell? err-buf/count > 0][win-error?: yes]
 			]
 			either any [console? waitend?][
-				platform/WaitForSingleObject p-inf/hProcess INFINITE
-				platform/GetExitCodeProcess p-inf/hProcess :pid
+				WaitForSingleObject p-inf/hProcess INFINITE
+				GetExitCodeProcess p-inf/hProcess :pid
 			][
 				pid: p-inf/dwProcessId
 			]
-			platform/CloseHandle p-inf/hProcess
-			platform/CloseHandle p-inf/hThread
-			platform/CloseHandle dev-null
+			CloseHandle p-inf/hProcess
+			CloseHandle p-inf/hThread
+			CloseHandle dev-null
 			return pid
 		] ; call
 	] ; Windows
 	#default  [											;-- POSIX
-		#if config-name <> 'Pico [
-			; Wordexp enums
-			#define	WRDE_DOOFFS		1
-			#define	WRDE_APPEND		2
-			#define	WRDE_NOCMD		4
-			#define	WRDE_REUSE		8
-			#define	WRDE_SHOWERR	16
-			#define	WRDE_UNDEF		32
-			#define	__WRDE_FLAGS	63
-
-			#define	WRDE_NOSPACE	1
-			#define	WRDE_BADCHAR	2
-			#define	WRDE_BADVAL		3
-			#define	WRDE_CMDSUB		4
-			#define	WRDE_SYNTAX		5
-
-			; Wordexp types
-			wordexp-type!: alias struct! [
-				we_wordc  [integer!]
-				we_wordv  [str-array!]
-				we_offs   [integer!]
-			]
-			#import [
-				LIBC-file cdecl [
-					wordexp: "wordexp" [
-						words          [c-string!]
-						pwordexp       [wordexp-type!]
-						flags          [integer!]
-						return:        [integer!]
-					]
-					wordfree: "wordfree" [
-						pwordexp       [wordexp-type!]
-						return:        [integer!]
-					]
-				]
-			]
-		]
 		shell-name: as c-string! 0
 
 		init: does [
-			shell-name: platform/getenv "SHELL"
+			shell-name: getenv "SHELL"
 			if null? shell-name [shell-name: "/bin/sh"]	;-- if $SHELL is not defined
 			init-global
 		]
@@ -435,10 +383,10 @@ ext-process: context [
 			/local
 				flags [integer!]
 		][
-			flags: platform/fcntl [fd F_GETFD 0]
-			platform/fcntl [fd F_SETFD flags or 1]		;-- FD_CLOEXEC
-			flags: platform/fcntl [fd F_GETFL 0]
-			platform/fcntl [fd F_SETFL flags or O_NONBLOCK]
+			flags: fcntl [fd F_GETFD 0]
+			fcntl [fd F_SETFD flags or 1]		;-- FD_CLOEXEC
+			flags: fcntl [fd F_GETFL 0]
+			fcntl [fd F_SETFL flags or O_NONBLOCK]
 		]
 
 		OS-call: func [                "Executes a shell command, IO redirections to buffers."
@@ -462,7 +410,7 @@ ext-process: context [
 			if in? [
 				input-len: 0
 				fd-in: declare f-desc!
-				if (platform/pipe as int-ptr! fd-in) = -1 [		;-- Create a pipe for child's input
+				if (_pipe as int-ptr! fd-in) = -1 [		;-- Create a pipe for child's input
 					__red-call-print-error [ error-pipe "stdin" ]
 					return -1
 				]
@@ -471,7 +419,7 @@ ext-process: context [
 				out-len: 0
 				out-size: READ_BUFFER_SIZE
 				fd-out: declare f-desc!
-				if (platform/pipe as int-ptr! fd-out) = -1 [		;-- Create a pipe for child's output
+				if (_pipe as int-ptr! fd-out) = -1 [		;-- Create a pipe for child's output
 					__red-call-print-error [ error-pipe "stdout" ]
 					return -1
 				]
@@ -480,74 +428,74 @@ ext-process: context [
 				err-len: 0
 				err-size: READ_BUFFER_SIZE
 				fd-err: declare f-desc!
-				if (platform/pipe as int-ptr! fd-err) = -1 [		;-- Create a pipe for child's error
+				if (_pipe as int-ptr! fd-err) = -1 [		;-- Create a pipe for child's error
 					__red-call-print-error [ error-pipe "stderr" ]
 					return -1
 				]
 			]
 
-			pid: platform/fork
+			pid: _fork
 			if pid = 0 [								;-- Child process
 				if in-buf <> null [                     ;-- redirect stdin to the pipe
 					either in-buf/count = -1 [			;-- file
-						nfds: platform/io-open as c-string! in-buf/buffer O_RDONLY
+						nfds: io-open as c-string! in-buf/buffer O_RDONLY
 						if nfds < 0 [quit -1]
-						platform/dup2 nfds stdin
-						platform/io-close nfds
+						dup2 nfds stdin
+						io-close nfds
 					][
-						platform/io-close fd-in/writing
-						err: platform/dup2 fd-in/reading stdin
+						io-close fd-in/writing
+						err: dup2 fd-in/reading stdin
 						if err = -1 [ __red-call-print-error [ error-dup2 "stdin" ]]
-						platform/io-close fd-in/reading
+						io-close fd-in/reading
 					]
 				]
 				either out-buf <> null [				;-- redirect stdout to the pipe
 					either out-buf/count = -1 [
-						nfds: platform/_open
+						nfds: io-open
 							as c-string! out-buf/buffer
 							O_BINARY or O_WRONLY or O_CREAT or O_APPEND
 							438							;-- 0666
 						if nfds < 0 [quit -1]
-						platform/dup2 nfds stdout
-						platform/io-close nfds
+						dup2 nfds stdout
+						io-close nfds
 					][
-						platform/io-close fd-out/reading
-						err: platform/dup2 fd-out/writing stdout
+						io-close fd-out/reading
+						err: dup2 fd-out/writing stdout
 						if err = -1 [ __red-call-print-error [ error-dup2 "stdout" ]]
-						platform/io-close fd-out/writing
+						io-close fd-out/writing
 					]
 				][
 					if not console? [					;-- redirect stdout to /dev/null.
-						dev-null: platform/io-open "/dev/null" O_WRONLY
-						err: platform/dup2 dev-null stdout
+						dev-null: io-open "/dev/null" O_WRONLY
+						err: dup2 dev-null stdout
 						if err = -1 [ __red-call-print-error [ error-dup2 "stdout to null" ]]
-						platform/io-close dev-null
+						io-close dev-null
 					]
 				]
 				either err-buf <> null [				;-- redirect stderr to the pipe
 					either err-buf/count = -1 [
-						nfds: platform/_open
+						nfds: _open
 							as c-string! err-buf/buffer
 							O_BINARY or O_WRONLY or O_CREAT or O_APPEND
 							438							;-- 0666
 						if nfds < 0 [quit -1]
-						platform/dup2 nfds stderr
-						platform/io-close nfds
+						dup2 nfds stderr
+						io-close nfds
 					][
-						platform/io-close fd-err/reading
-						err: platform/dup2 fd-err/writing stderr
+						io-close fd-err/reading
+						err: dup2 fd-err/writing stderr
 						if err = -1 [ __red-call-print-error [ error-dup2 "stderr" ]]
-						platform/io-close fd-err/writing
+						io-close fd-err/writing
 					]
 				][
 					if not console? [					;-- redirect stderr to /dev/null.
-						dev-null: platform/io-open "/dev/null" O_WRONLY
-						err: platform/dup2 dev-null stderr
+						dev-null: io-open "/dev/null" O_WRONLY
+						err: dup2 dev-null stderr
 						if err = -1 [ __red-call-print-error [ error-dup2 "stderr to null" ]]
-						platform/io-close dev-null
+						io-close dev-null
 					]
 				]
-				if all [(in-buf = null) (not console?)] [platform/io-close stdin]	;-- no redirection, stdin closed
+				if all [(in-buf = null) (not console?)] [io-close stdin]	;-- no redirection, stdin closed
 
 				#if config-name = 'Pico [shell?: yes]
 				either shell? [
@@ -557,13 +505,13 @@ ext-process: context [
 					args/item: cmd			args: args + 1
 					args/item: null
 					args: args - 3						;-- reset args pointer
-					platform/execvp shell-name args		;-- Process is launched here, execvp with str-array parameters
+					execvp shell-name args		;-- Process is launched here, execvp with str-array parameters
 				][
 					#either config-name = 'Pico [status: 0][
 					wexp: declare wordexp-type! ;-- Create wordexp struct
 					status: wordexp cmd wexp WRDE_SHOWERR	;-- Parse cmd into str-array
 					either status = 0 [					;-- Parsing ok
-						platform/execvp wexp/we_wordv/item wexp/we_wordv ;-- Process is launched here, execvp with str-array parameters
+						execvp wexp/we_wordv/item wexp/we_wordv ;-- Process is launched here, execvp with str-array parameters
 					][									;-- Parsing nok
 						__red-call-print-error [ "Error Red/System call, wordexp parsing command : " cmd ]
 
@@ -581,14 +529,14 @@ ext-process: context [
 			]
 			if pid > 0 [								;-- Parent process
 				nfds: 0
-				pfds: as red/platform/pollfd! allocate 3 * size? red/platform/pollfd!
+				pfds: as pollfd! allocate 3 * size? pollfd!
 				if in? [
 					waitend?: true
 					fds: pfds + nfds
 					fds/fd: fd-in/writing
 					set-flags-fd fds/fd
 					fds/events: POLLOUT
-					platform/io-close fd-in/reading
+					io-close fd-in/reading
 					nfds: nfds + 1
 				]
 				if out? [								;- Create buffer for output
@@ -599,7 +547,7 @@ ext-process: context [
 					fds/fd: fd-out/reading
 					set-flags-fd fds/fd
 					fds/events: POLLIN
-					platform/io-close fd-out/writing
+					io-close fd-out/writing
 					nfds: nfds + 1
 				]
 				if err? [								;- Create buffer for error
@@ -610,27 +558,27 @@ ext-process: context [
 					fds/fd: fd-err/reading
 					set-flags-fd fds/fd
 					fds/events: POLLIN
-					platform/io-close fd-err/writing
+					io-close fd-err/writing
 					nfds: nfds + 1
 				]
 				n: nfds
 				while [n > 0][
-					i: platform/waitpid pid :status 1			;-- WNOHANG: 1
+					i: waitpid pid :status 1			;-- WNOHANG: 1
 					if i = -1 [break]
 					if i = pid [
 						if out-buf <> null [
-							nbytes: platform/io-read fd-out/reading out-buf/buffer + out-len out-size - out-len
+							nbytes: io-read fd-out/reading out-buf/buffer + out-len out-size - out-len
 							if nbytes > 0 [out-len: out-len + nbytes]
-							platform/io-close fd-out/reading
+							io-close fd-out/reading
 						]
 						if err-buf <> null [
-							nbytes: platform/io-read fd-err/reading err-buf/buffer + err-len err-size - err-len
+							nbytes: io-read fd-err/reading err-buf/buffer + err-len err-size - err-len
 							if nbytes > 0 [err-len: err-len + nbytes]
-							platform/io-close fd-err/reading
+							io-close fd-err/reading
 						]
 						break
 					]
-					if 0 > platform/poll pfds nfds -1 [n: 0]
+					if 0 > poll pfds nfds -1 [n: 0]
 
 					i: 0
 					while [all [i < nfds n > 0]][
@@ -639,16 +587,16 @@ ext-process: context [
 						revents: fds/events >>> 16
 						case [
 							revents and POLLERR <> 0 [
-								platform/io-close fds/fd
+								io-close fds/fd
 								fds/fd: -1
 								n: n - 1
 							]
 							revents and POLLOUT <> 0 [
-								nbytes: platform/io-write fds/fd in-buf/buffer + input-len in-buf/count - input-len
+								nbytes: io-write fds/fd in-buf/buffer + input-len in-buf/count - input-len
 								if nbytes <= 0 [n: 0 nbytes: in-buf/count]
 								input-len: input-len + nbytes
 								if input-len >= in-buf/count [
-									platform/io-close fds/fd
+									io-close fds/fd
 									fds/fd: -1
 									n: n - 1
 								]
@@ -669,10 +617,10 @@ ext-process: context [
 								]
 								until [
 									to-read: size/value - offset/value
-									nbytes: platform/io-read fds/fd pbuf/buffer + offset/value to-read    ;-- read pipe, store into buffer
+									nbytes: io-read fds/fd pbuf/buffer + offset/value to-read    ;-- read pipe, store into buffer
 									if nbytes < 0 [break]
 									if nbytes = 0 [
-										platform/io-close fds/fd
+										io-close fds/fd
 										fds/fd: -1
 										n: n - 1
 									]
@@ -686,7 +634,7 @@ ext-process: context [
 								]
 								pbuf/count: offset/value
 							]
-							revents and POLLHUP <> 0 [platform/io-close fds/fd fds/fd: -1 n: n - 1]
+							revents and POLLHUP <> 0 [io-close fds/fd fds/fd: -1 n: n - 1]
 							revents and POLLNVAL <> 0 [n: -1]
 							true [0]
 						]
@@ -695,7 +643,7 @@ ext-process: context [
 
 				if console? [waitend?: yes]
 				if waitend? [
-					platform/waitpid pid :status 0		;-- Wait child process terminate
+					waitpid pid :status 0		;-- Wait child process terminate
 					either (status and 00FFh) <> 0 [	;-- a signal occured. Low byte contains stop code
 						pid: -1
 					][

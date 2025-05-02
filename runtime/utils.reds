@@ -17,8 +17,8 @@ Red/System [
 		/local
 			args [byte-ptr!]
 	][
-		args: platform/GetCommandLine
-		as red-value! string/load as-c-string args platform/lstrlen args UTF-16LE
+		args: GetCommandLine
+		as red-value! string/load as-c-string args lstrlen args UTF-16LE
 	]
 
 	list-env: func [
@@ -30,7 +30,7 @@ Red/System [
 			blk		[red-block!]
 			len		[integer!]
 	][
-		env: platform/GetEnvironmentStrings
+		env: GetEnvironmentStrings
 		blk: null
 		len: 0
 
@@ -42,7 +42,7 @@ Red/System [
 				if all [len <> 0 str/1 = #"=" str/2 = #"^@"][
 					string/load-in p len blk UTF-16LE
 					p: str + 2
-					len: platform/lstrlen as byte-ptr! p
+					len: lstrlen as byte-ptr! p
 					string/load-in p len blk UTF-16LE
 					str: p + (len * 2)
 					if all [str/3 = #"^@" str/4 = #"^@"][break]
@@ -53,7 +53,7 @@ Red/System [
 				len: len + 1
 			]
 			len: block/rs-length? blk
-			platform/FreeEnvironmentStrings env
+			FreeEnvironmentStrings env
 		]
 		as red-value! map/make-at as red-value! blk blk len
 	]
@@ -204,7 +204,7 @@ check-arg-type: func [
 
 		ver/dwOSVersionInfoSize: size? OSVERSIONINFO
 		ver/szCSDVersion: 0
-		platform/GetVersionEx :ver
+		GetVersionEx :ver
 
 		build: ver/dwBuildNumber
 		server?: ver/wProductType <> #"^(01)"
@@ -338,11 +338,11 @@ check-arg-type: func [
 		len: 0
 		mib: 1		;-- CTL_KERN
 		mib2: 65	;-- KERN_OSVERSION
-		platform/sysctl :mib 2 null :len null 0
+		sysctl :mib 2 null :len null 0
 
 		str: string/make-at val len 1
 		s: GET_BUFFER(str)
-		platform/sysctl :mib 2 as byte-ptr! s/offset :len null 0
+		sysctl :mib 2 as byte-ptr! s/offset :len null 0
 		s/tail: as red-value! (as byte-ptr! s/offset) + len - 1
 		_context/add-with ctx _context/add-global symbol/make "build" val
 		stack/pop 2
@@ -362,11 +362,6 @@ check-arg-type: func [
 			uname: "uname" [
 				buf		[utsname!]
 				return: [integer!]
-			]
-			strchr: "strchr" [
-				str			[c-string!]
-				c			[byte!]
-				return:		[c-string!]
 			]
 		]
 	]
@@ -451,11 +446,6 @@ check-arg-type: func [
 			uname: "uname" [
 				buf		[utsname!]
 				return: [integer!]
-			]
-			strchr: "strchr" [
-				str			[c-string!]
-				c			[byte!]
-				return:		[c-string!]
 			]
 		]
 	]
@@ -573,11 +563,6 @@ check-arg-type: func [
 				buf		[utsname!]
 				return: [integer!]
 			]
-			strchr: "strchr" [
-				str			[c-string!]
-				c			[byte!]
-				return:		[c-string!]
-			]
 		]
 	]
 
@@ -611,7 +596,7 @@ check-arg-type: func [
 			pbuf: allocate len
 			simple-io/read-data file pbuf len
 			simple-io/close-file file
-			str: simple-io/strstr as c-string! pbuf {PRETTY_NAME=}
+			str: strstr as c-string! pbuf {PRETTY_NAME=}
 			str: str + 12
 			either str/1 = #"^"" [
 				str: str + 1

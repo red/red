@@ -157,11 +157,6 @@ thread: context [
 		_pad9	[integer!]
 	]
 
-	timespec!: alias struct! [
-		sec    [integer!] ;Seconds
-		nsec   [integer!] ;Nanoseconds
-	]
-
 	#switch OS [
 		macOS [
 			#define LIBPTHREAD-file "libpthread.dylib"

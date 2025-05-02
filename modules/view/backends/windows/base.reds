@@ -512,7 +512,7 @@ BaseWndProc: func [
 				(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) <> 0
 				face-set? hWnd
 			][
-				platform/Sleep 16
+				Sleep 16
 				update-base hWnd null null get-face-values hWnd
 			][
 				InvalidateRect hWnd null 1

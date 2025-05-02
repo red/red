@@ -61,6 +61,12 @@ Red/System [
 
 #define max-char-codepoint	0010FFFFh		;-- upper limit for a codepoint value.
 
+;== platform-specific definitions ==
+
+#include %platform/definitions.reds
+
+;=== Unicode support definitions ===
+
 #enum encoding! [							;-- various string encodings
 	UTF-16LE:	-1
 	UTF-8:		 0
@@ -86,11 +92,15 @@ Red/System [
 	CB_PORT:		32
 ]
 
+;== Image definitions ===
+
 #enum extract-type! [						;-- image! buffer encodings
 	EXTRACT_ALPHA
 	EXTRACT_RGB
 	EXTRACT_ARGB
 ]
+
+;== Draw Context definitions ==
 
 #define F32_0	[as float32! 0.0]
 #define F32_1	[as float32! 1.0]
@@ -135,6 +145,19 @@ Red/System [
 				#enum brush-type! [
 					BRUSH_TYPE_NORMAL
 					BRUSH_TYPE_TEXTURE
+				]
+
+				this!: alias struct! [vtbl [int-ptr!]]
+				com-ptr!: alias struct! [value [this!]]
+
+				POINT_2F: alias struct! [
+					x		[float32!]
+					y		[float32!]
+				]
+
+				tagPOINT: alias struct! [
+					x		[integer!]
+					y		[integer!]	
 				]
 
 				tagPAINTSTRUCT: alias struct! [
@@ -466,292 +489,6 @@ Red/System [
 			font-color	[integer!]
 			font-color? [logic!]
 			flags		[integer!]
-		]
-	]
-]
-
-#either OS = 'Windows [
-
-	#define GENERIC_WRITE			40000000h
-	#define GENERIC_READ 			80000000h
-	#define FILE_SHARE_READ			00000001h
-	#define FILE_SHARE_WRITE		00000002h
-	#define FILE_SHARE_DELETE		00000004h
-	#define CREATE_NEW				00000001h
-	#define CREATE_ALWAYS			00000002h
-	#define OPEN_EXISTING			00000003h
-	#define OPEN_ALWAYS				00000004h
-	#define TRUNCATE_EXISTING		00000005h
-	#define FILE_ATTRIBUTE_NORMAL	00000080h
-	#define FILE_ATTRIBUTE_DIRECTORY  00000010h
-	#define FILE_FLAG_SEQUENTIAL_SCAN 08000000h
-	
-	#define STD_INPUT_HANDLE		-10
-	#define STD_OUTPUT_HANDLE		-11
-	#define STD_ERROR_HANDLE		-12
-
-	#define SET_FILE_BEGIN			0
-	#define SET_FILE_CURRENT		1
-	#define SET_FILE_END			2
-
-	#define MAX_FILE_REQ_BUF		4000h			;-- 16 KB
-	#define OFN_HIDEREADONLY		0004h
-	#define OFN_NOCHANGEDIR			0008h
-	#define OFN_EXPLORER			00080000h
-	#define OFN_ALLOWMULTISELECT	00000200h
-
-	#define WIN32_FIND_DATA_SIZE	592
-
-	#define BIF_RETURNONLYFSDIRS	1
-	#define BIF_USENEWUI			50h
-	#define BIF_SHAREABLE			8000h
-
-	#define BFFM_INITIALIZED		1
-	#define BFFM_SELCHANGED			2
-	#define BFFM_SETSELECTION		1127
-
-	#define KEY_EVENT 				 			01h
-	#define MOUSE_EVENT 			 			02h
-	#define WINDOW_BUFFER_SIZE_EVENT 			04h
-	#define MENU_EVENT 				 			08h
-	#define FOCUS_EVENT 			 			10h
-	#define ENHANCED_KEY 			 			0100h
-	#define ENABLE_PROCESSED_INPUT				01h
-	#define ENABLE_LINE_INPUT 					02h
-	#define ENABLE_ECHO_INPUT 					04h
-	#define ENABLE_WINDOW_INPUT         		08h
-	#define ENABLE_QUICK_EDIT_MODE				40h
-	#define ENABLE_VIRTUAL_TERMINAL_INPUT		0200h
-	#define ENABLE_VIRTUAL_TERMINAL_PROCESSING	04h
-	#define DISABLE_NEWLINE_AUTO_RETURN 		08h
-
-	this!: alias struct! [vtbl [int-ptr!]]
-	com-ptr!: alias struct! [value [this!]]
-
-	POINT_2F: alias struct! [
-		x		[float32!]
-		y		[float32!]
-	]
-
-	tagPOINT: alias struct! [
-		x		[integer!]
-		y		[integer!]	
-	]
-][
-	#define O_RDONLY	0
-	#define O_WRONLY	1
-	#define O_RDWR		2
-	#define O_BINARY	0
-
-	#define S_IREAD		256
-	#define S_IWRITE    128
-	#define S_IRGRP		32
-	#define S_IWGRP		16
-	#define S_IROTH		4
-
-	#define	DT_DIR		#"^(04)"
-	#define S_IFDIR		4000h
-	#define S_IFREG		8000h
-	
-	#case [
-		any [OS = 'FreeBSD OS = 'macOS OS = 'NetBSD] [
-			#define O_CREAT		0200h
-			#define O_TRUNC		0400h
-			#define O_EXCL		0800h
-			#define O_APPEND	8
-			#define	O_NONBLOCK	4
-			#define	O_CLOEXEC	01000000h
-			
-			#define DIRENT_NAME_OFFSET 8
-		]
-		true [	;-- Linux
-			#define O_CREAT		64
-			#define O_EXCL		128
-			#define O_TRUNC		512
-			#define O_APPEND	1024
-			#define	O_NONBLOCK	2048
-			#define	O_CLOEXEC	524288
-			#either target = 'ARM [
-				#define O_DIRECTORY 4000h
-			][
-				#define O_DIRECTORY 00010000h
-			]
-		]
-	]
-	
-	#define BFFM_SETEXPANDED		1130
-
-	#define OS_POLLIN 		1
-
-	#case [
-		any [OS = 'macOS OS = 'FreeBSD OS = 'NetBSD] [
-			#define TIOCGWINSZ		40087468h
-			#define TERM_TCSADRAIN	1
-			#define TERM_VTIME		18
-			#define TERM_VMIN		17
-
-			#define TERM_BRKINT		02h
-			#define TERM_INPCK		10h
-			#define TERM_ISTRIP		20h
-			#define TERM_ICRNL		0100h
-			#define TERM_IXON		0200h
-			#define TERM_OPOST		01h
-			#define TERM_CS8		0300h
-			#define TERM_ISIG		80h
-			#define TERM_ICANON		0100h
-			#define TERM_ECHO		08h	
-			#define TERM_IEXTEN		4000h
-
-			termios!: alias struct! [
-				c_iflag			[integer!]
-				c_oflag			[integer!]
-				c_cflag			[integer!]
-				c_lflag			[integer!]
-				c_cc1			[integer!]						;-- c_cc[20]
-				c_cc2			[integer!]
-				c_cc3			[integer!]
-				c_cc4			[integer!]
-				c_cc5			[integer!]
-				c_ispeed		[integer!]
-				c_ospeed		[integer!]
-			]
-		]
-		true [													;-- Linux
-			#define TIOCGWINSZ		5413h
-			#define TERM_VTIME		6
-			#define TERM_VMIN		7
-
-			#define TERM_BRKINT		2
-			#define TERM_INPCK		20
-			#define TERM_ISTRIP		40
-			#define TERM_ICRNL		400
-			#define TERM_IXON		2000
-			#define TERM_OPOST		1
-			#define TERM_CS8		60
-			#define TERM_ISIG		1
-			#define TERM_ICANON		2
-			#define TERM_ECHO		10
-			#define TERM_IEXTEN		100000
-
-			#either OS = 'Android [
-				#define TERM_TCSADRAIN	5403h
-
-				termios!: alias struct! [
-					c_iflag			[integer!]
-					c_oflag			[integer!]
-					c_cflag			[integer!]
-					c_lflag			[integer!]
-					;c_line			[byte!]
-					c_cc1			[integer!]					;-- c_cc[19]
-					c_cc2			[integer!]
-					c_cc3			[integer!]
-					c_cc4			[integer!]
-					c_cc5			[integer!]
-				]
-			][
-				#define TERM_TCSADRAIN	1
-
-				termios!: alias struct! [						;-- sizeof(termios) = 60
-					c_iflag			[integer!]
-					c_oflag			[integer!]
-					c_cflag			[integer!]
-					c_lflag			[integer!]
-					c_line			[byte!]
-					c_cc1			[byte!]						;-- c_cc[32]
-					c_cc2			[byte!]
-					c_cc3			[byte!]
-					c_cc4			[integer!]
-					c_cc5			[integer!]
-					c_cc6			[integer!]
-					c_cc7			[integer!]
-					c_cc8			[integer!]
-					c_cc9			[integer!]
-					c_cc10			[integer!]
-					pad				[integer!]					;-- for proper alignment
-					c_ispeed		[integer!]
-					c_ospeed		[integer!]
-				]
-			]
-		]
-	]
-
-	pollfd!: alias struct! [
-		fd				[integer!]
-		events			[integer!]						;-- high 16-bit: events
-	]													;-- low  16-bit: revents
-
-	winsize!: alias struct! [
-		rowcol			[integer!]
-		xypixel			[integer!]
-	]
-
-	#either OS = 'Android [
-		tcgetattr: func [
-			fd		[integer!]
-			termios [termios!]
-			return: [integer!]
-		][
-			ioctl fd 5401h as winsize! termios
-		]
-		tcsetattr: func [
-			fd			[integer!]
-			opt_actions [integer!]
-			termios 	[termios!]
-			return: 	[integer!]
-		][
-			ioctl fd opt_actions as winsize! termios
-		]
-	][
-		#import [
-		LIBC-file cdecl [
-			tcgetattr: "tcgetattr" [
-				fd		[integer!]
-				termios [termios!]
-				return: [integer!]
-			]
-			tcsetattr: "tcsetattr" [
-				fd			[integer!]
-				opt_actions [integer!]
-				termios 	[termios!]
-				return: 	[integer!]
-			]
-		]]
-	]
-
-	#import [
-		LIBC-file cdecl [
-			_dup: "dup" [
-				fd		[integer!]
-				return: [integer!]
-			]
-			isatty: "isatty" [
-				fd		[integer!]
-				return:	[integer!]
-			]
-			read: "read" [
-				fd		[integer!]
-				buf		[byte-ptr!]
-				size	[integer!]
-				return: [integer!]
-			]
-			write: "write" [
-				fd		[integer!]
-				buf		[byte-ptr!]
-				size	[integer!]
-				return: [integer!]
-			]
-			poll: "poll" [
-				fds		[pollfd!]
-				nfds	[integer!]
-				timeout [integer!]
-				return: [integer!]
-			]
-			ioctl: "ioctl" [
-				fd		[integer!]
-				request	[integer!]
-				ws		[winsize!]
-				return: [integer!]
-			]
 		]
 	]
 ]
