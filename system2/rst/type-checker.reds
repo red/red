@@ -384,6 +384,7 @@ type-checker: context [
 			saved-blk [red-block!]
 			t	[rst-type!]
 	][
+		t: type-system/void-type
 		enter-block(blk)
 		while [stmt <> null][
 			t: as rst-type! stmt/accept as int-ptr! stmt checker as int-ptr! ctx

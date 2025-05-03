@@ -385,6 +385,7 @@ type-size?: func [
 				target/addr-size
 			]
 		]
+		RST_TYPE_ENUM [4]
 		default [target/addr-size]	
 	]
 ]
@@ -447,6 +448,7 @@ type-name: func [
 		RST_TYPE_PTR ["pointer!"]
 		RST_TYPE_STRUCT ["struct!"]
 		RST_TYPE_ARRAY ["array!"]
+		RST_TYPE_ENUM ["enum"]
 		default ["void!"]
 	]
 ]
@@ -652,13 +654,16 @@ type-system: context [
 		switch TYPE_KIND(t1) [
 			RST_TYPE_INT [
 				switch TYPE_KIND(t2) [
-					RST_TYPE_INT [return t1]
+					RST_TYPE_INT RST_TYPE_BYTE RST_TYPE_ENUM [return t1]
 					RST_TYPE_FLOAT [
 						if promotable-to-float? t1 t2 [return t2]
 					]
 					default [null]
 				]
 				null
+			]
+			RST_TYPE_ENUM [
+				return type-system/integer-type
 			]
 			RST_TYPE_NULL [t2]
 			default [t1]
@@ -702,7 +707,7 @@ type-system: context [
 						]
 					]
 					RST_TYPE_LOGIC
-					RST_TYPE_ENUM [conv_same]
+					RST_TYPE_ENUM [return conv_same]
 					default [0]
 				]
 			]
@@ -716,7 +721,7 @@ type-system: context [
 			RST_TYPE_NULL [
 				if TYPE_KIND(y) >= RST_TYPE_FUNC [return conv_same]
 			]
-			RST_TYPE_LOGIC [
+			RST_TYPE_LOGIC RST_TYPE_ENUM [
 				if TYPE_KIND(y) = RST_TYPE_INT [return conv_same]
 			]
 			RST_TYPE_ANY [return conv_same]
@@ -788,6 +793,7 @@ type-system: context [
 					default [conv_illegal]
 				]
 			]
+			RST_TYPE_ENUM
 			RST_TYPE_ANY [conv_ok]
 			default [
 				conv_illegal

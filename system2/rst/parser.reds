@@ -2311,7 +2311,7 @@ parser: context [
 			pp		[ptr-ptr!]
 			ty		[integer!]
 			idx		[integer!]
-			m		[member!]
+			m m2	[member!]
 			t		[rst-type!]
 			p		[path!]
 			ptr		[ptr-type!]
@@ -2402,9 +2402,18 @@ parser: context [
 								either k_value = sym [
 									idx: 0
 								][
-									sub: find-word w ctx RST_VAR_DECL
-									if null? sub [throw-error [pc "wrong index value"] val]
-									m/expr: as rst-expr! make-variable as var-decl! sub val
+									sub: find-word w ctx -1
+									case [
+										null? sub [throw-error [pc "wrong index value" val]]
+										NODE_TYPE(sub) = RST_VAR_DECL [
+											m/expr: as rst-expr! make-variable as var-decl! sub val
+										]
+										NODE_TYPE(sub) = RST_MEMBER [
+											m2: as member! sub
+											idx: m2/index - 1
+										]
+										true [throw-error [pc "wrong index value" val]]
+									]
 								]
 							]
 							TYPE_INTEGER [
@@ -2864,9 +2873,9 @@ parser: context [
 		/local
 			n cnt	[integer!]
 			e		[enumerator!]
-			m		[member!]
-			cur		[member!]
-			beg		[rst-node! value]
+			m m2	[member!]
+			cur	c2	[member!]
+			beg	b2	[rst-node! value]
 			type	[rst-type!]
 			name	[cell!]
 			w		[red-word!]
@@ -2876,6 +2885,7 @@ parser: context [
 			sym		[integer!]
 			val		[ptr-ptr!]
 			saved-blk [red-block!]
+			enum-val  [rst-node!]
 	][
 		name: expect-next pc end TYPE_WORD 
 		blk: as red-block! expect-next name end TYPE_BLOCK
@@ -2892,24 +2902,65 @@ parser: context [
 		n: 0
 		cnt: 0
 		while [p < tail][
-			m: make-member p
-			m/type: type
-			unless add-decl ctx p as int-ptr! m [
-				throw-error [p "symbol name was already defined"]
+			c2: as member! :b2
+			b2/next: null
+			while [all [p < tail TYPE_OF(p) = TYPE_SET_WORD]][
+				m: make-member p
+				m/type: type
+				unless add-decl ctx p as int-ptr! m [
+					throw-error [p "symbol name was already defined"]
+				]
+				c2/next: m
+				c2: m
+				cnt: cnt + 1
+				p: p + 1
+			]
+
+			c2: as member! b2/next
+			either null? c2 [
+				m: make-member p
+				m/type: type
+				unless add-decl ctx p as int-ptr! m [
+					throw-error [p "symbol name was already defined"]
+				]
+			][
+				p: p - 1
 			]
 			switch TYPE_OF(p) [
 				TYPE_WORD [
 					m/index: n
 				]
 				TYPE_SET_WORD [
-					p: expect-next p tail TYPE_INTEGER
-					int: as red-integer! p
-					n: int/value
+					p: advance-next p tail
+					switch TYPE_OF(p) [
+						TYPE_INTEGER [
+							int: as red-integer! p
+							n: int/value
+						]
+						TYPE_WORD [
+							enum-val: find-word as red-word! p ctx RST_MEMBER
+							if null? enum-val [throw-error [p "invalid value in enum" p]]
+							m2: as member! enum-val
+							n: m2/index
+						]
+						default [throw-error [p "invalid value in enum" p]]
+					]
 					m/index: n
 				]
 				default [throw-error [p "invalid syntax"]]
 			]
-			cur/next: m
+
+			either c2 <> null [
+				cur/next: c2
+				until [
+					m: c2
+					m/index: n
+					c2: c2/next
+					c2 = null
+				]
+			][
+				cur/next: m
+			]
 			cur: m
 			cnt: cnt + 1
 			n: n + 1
