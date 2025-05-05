@@ -98,10 +98,10 @@ Red/System [
 ]
 
 #enum x86-rounding! [
-	x86_TO_NEAREST
-	x86_NEG_INF
-	x86_POS_INF
-	x86_TO_ZERO
+	x86_RND_TO_NEAREST
+	x86_RND_NEG_INF
+	x86_RND_POS_INF
+	x86_RND_TO_ZERO
 ]
 
 #define AM_SHIFT	10
@@ -1048,8 +1048,27 @@ x86: context [
 	emit-ftoi: func [
 		cg		[codegen!]
 		i		[instr!]
+		/local
+			o	[instr-op!]
+			ft	[rst-type!]
+			op	[integer!]
+			rnd [integer!]
+			vreg [vreg!]
 	][
-		
+		o: as instr-op! i
+		ft: as rst-type! o/param-types/value
+
+		vreg: make-tmp-vreg cg ft
+		rnd: x86_RND_TO_ZERO << ROUND_SHIFT
+		op: either FLOAT_64?(ft) [I_ROUNDSD][I_ROUNDSS]
+		def-vreg cg vreg x86_CLS_SSE
+		use-reg cg input0 i
+		emit-instr cg op or rnd or AM_XMM_OP
+
+		op: either FLOAT_64?(ft) [I_CVTSD2SID][I_CVTSS2SID]
+		def-reg cg i
+		use-vreg cg vreg 0
+		emit-instr cg op or AM_REG_XOP
 	]
 
 	emit-itof: func [
@@ -1069,6 +1088,15 @@ x86: context [
 	]
 
 	emit-float-cast: func [
+		cg		[codegen!]
+		i		[instr!]
+	][
+		def-reg cg i
+		use-reg cg input0 i
+		emit-instr cg I_CVTSD2SS or AM_XMM_OP
+	]
+
+	emit-float-promote: func [
 		cg		[codegen!]
 		i		[instr!]
 	][
@@ -2109,6 +2137,7 @@ x86: context [
 			OP_FLT_DIV			[emit-float-binop cg I_DIVSS i]
 			OP_INT_CAST			[emit-int-cast cg i]
 			OP_FLOAT_CAST		[emit-float-cast cg i]
+			OP_FLOAT_PROMOTE	[emit-float-promote cg i]
 			OP_INT_TO_F			[emit-itof cg i]
 			OP_FLT_TO_I			[emit-ftoi cg i]
 			OP_FLT_ABS			[0]

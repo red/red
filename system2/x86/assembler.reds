@@ -1292,10 +1292,36 @@ asm: context [
 		emit-b F3h
 		emit-bb-rr 0Fh 2Ah s r NO_REX
 	]
+	cvtsi2ss-s-m: func [r1 [integer!] m [x86-addr!]][
+		emit-b F3h
+		emit-bb-rm 0Fh 2Ah r1 m NO_REX
+	]
 
 	cvtsi2sd-s-r: func [s [integer!] r [integer!]][
 		emit-b F2h
 		emit-bb-rr 0Fh 2Ah s r NO_REX
+	]
+	cvtsi2sd-s-m: func [r1 [integer!] m [x86-addr!]][
+		emit-b F2h
+		emit-bb-rm 0Fh 2Ah r1 m NO_REX
+	]
+
+	cvtss2si-r-m: func [r [integer!] m [x86-addr!] rex [integer!]][
+		emit-b F3h
+		emit-bb-rm 0Fh 2Dh r m rex
+	]
+	cvtsd2si-r-m: func [r [integer!] m [x86-addr!] rex [integer!]][
+		emit-b F2h
+		emit-bb-rm 0Fh 2Dh r m rex
+	]
+
+	cvtss2si-r-s: func [r [integer!] s [integer!] rex [integer!]][
+		emit-b F3h
+		emit-bb-rr 0Fh 2Dh r s rex
+	]
+	cvtsd2si-r-s: func [r [integer!] s [integer!] rex [integer!]][
+		emit-b F2h
+		emit-bb-rr 0Fh 2Dh r s rex
 	]
 
 	;-- micro assembler
@@ -1858,6 +1884,8 @@ assemble-r-m: func [
 		I_MULD [asm/imul-r-m a m NO_REX]
 		I_LEAD [asm/lea a m]
 		I_LEAQ [asm/leaq a m]
+		I_CVTSS2SID [asm/cvtss2si-r-m a m NO_REX]
+		I_CVTSD2SID [asm/cvtsd2si-r-m a m NO_REX]
 		default [0]
 	]
 ]
@@ -1934,11 +1962,11 @@ assemble-m-r: func [
 ]
 
 assemble-s-s: func [	;-- sse registers
-	op		[integer!]
+	ins		[integer!]
 	a		[integer!]
 	b		[integer!]
 ][
-	switch op [
+	switch x86_OPCODE(ins) [
 		I_ADDSS 	[asm/addss-s-s a b]
 		I_SUBSS 	[asm/subss-s-s a b]
 		I_MULSS 	[asm/mulss-s-s a b]
@@ -1955,16 +1983,18 @@ assemble-s-s: func [	;-- sse registers
 		I_UCOMISD	[asm/ucomisd-s-s a b]
 		I_CVTSS2SD	[asm/cvtss2sd-s-s a b]
 		I_CVTSD2SS	[asm/cvtsd2ss-s-s a b]
+		I_ROUNDSS	[asm/roundss-s-s a b x86_ROUNDING(ins)]
+		I_ROUNDSD	[asm/roundsd-s-s a b x86_ROUNDING(ins)]
 		default		[0]
 	]
 ]
 
 assemble-s-m: func [	;-- sse register, memory address
-	op		[integer!]
+	ins		[integer!]
 	a		[integer!]
 	m		[x86-addr!]
 ][
-	switch op [
+	switch x86_OPCODE(ins) [
 		I_ADDSS 	[asm/addss-s-m a m]
 		I_SUBSS 	[asm/subss-s-m a m]
 		I_MULSS 	[asm/mulss-s-m a m]
@@ -1981,6 +2011,10 @@ assemble-s-m: func [	;-- sse register, memory address
 		I_UCOMISD	[asm/ucomisd-s-m a m]
 		I_CVTSS2SD	[asm/cvtss2sd-s-m a m]
 		I_CVTSD2SS	[asm/cvtsd2ss-s-m a m]
+		I_CVTSI2SSD [asm/cvtsi2ss-s-m a m]
+		I_CVTSI2SDD [asm/cvtsi2sd-s-m a m]
+		I_ROUNDSS	[asm/roundss-s-m a m x86_ROUNDING(ins)]
+		I_ROUNDSD	[asm/roundsd-s-m a m x86_ROUNDING(ins)]
 		default		[0]
 	]
 ]
@@ -2019,6 +2053,8 @@ assemble-r-s: func [
 	switch op [
 		I_MOVSS		[asm/movd-r-s r s]
 		I_MOVSD		[asm/movq-r-s r s]
+		I_CVTSD2SID [asm/cvtsd2si-r-s r s NO_REX]
+		I_CVTSS2SID [asm/cvtss2si-r-s r s NO_REX]
 		default		[0]
 	]
 ]
@@ -2137,10 +2173,10 @@ assemble: func [
 			p: p + 1
 			loc: to-loc as operand! p/value
 			either target/xmm-reg? loc [
-				assemble-s-s op reg target/to-xmm-reg loc
+				assemble-s-s ins reg target/to-xmm-reg loc
 			][
 				loc-to-addr loc :addr cg/frame rset
-				assemble-s-m op reg :addr
+				assemble-s-m ins reg :addr
 			]
 		]
 		_AM_OP_XMM [
@@ -2148,7 +2184,7 @@ assemble: func [
 			p: p + 1
 			reg: to-xmmr as operand! p/value
 			either target/xmm-reg? loc [
-				assemble-s-s op target/to-xmm-reg loc reg
+				assemble-s-s ins target/to-xmm-reg loc reg
 			][
 				loc-to-addr loc :addr cg/frame rset
 				assemble-m-s op addr reg
@@ -2157,7 +2193,7 @@ assemble: func [
 		_AM_XMM_RRSD [
 			reg: to-xmmr as operand! p/value
 			rrsd-to-addr cg p + 1 :addr
-			assemble-s-m op reg :addr
+			assemble-s-m ins reg :addr
 		]
 		_AM_RRSD_XMM [
 			rrsd-to-addr cg p :addr
@@ -2182,7 +2218,7 @@ assemble: func [
 		_AM_XMM_XMM [
 			reg: to-xmmr as operand! p/value
 			p: p + 1
-			assemble-s-s op reg to-xmmr as operand! p/value
+			assemble-s-s ins reg to-xmmr as operand! p/value
 		]
 		default [0]
 	]

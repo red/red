@@ -232,8 +232,11 @@ compiler: context [
 
 		acquire: func [
 			size	[integer!]
+			/local
+				p	[byte-ptr!]
 		][
-			vector/acquire buf size
+			p: vector/acquire buf size
+			set-memory p null-byte size
 		]
 
 		pos: func [return: [integer!]][buf/length]
@@ -399,7 +402,7 @@ compiler: context [
 				v	[cell!]
 				len	[integer!]
 				pp	[int-ptr!]
-				f	[float-literal!]
+				f	[red-float!]
 				f32 [red-float32!]
 				type [rst-type!]
 		][
@@ -418,7 +421,7 @@ compiler: context [
 				RST_FLOAT [
 					type: val/type
 					either FLOAT_64?(type) [
-						f: as float-literal! val
+						f: as red-float! val/token
 						pp: :f/value
 						emit-d pp/1
 						emit-d pp/2

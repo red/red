@@ -521,6 +521,23 @@ lowering: context [
 		map-n i new env
 	]
 
+	gen-float-to-int: func [
+		i		[instr!]
+		env		[lowering-env!]
+		/local
+			o		[instr-op!]
+			p		[ptr-ptr!]
+			ft tt	[rst-type!]
+	][
+		o: as instr-op! i
+		p: o/param-types
+		ft: as rst-type! p/value
+		tt: o/ret-type
+		
+		refresh-inputs i env
+		
+	]
+
 	gen-op: func [
 		i		[instr!]
 		env		[lowering-env!]
@@ -552,6 +569,7 @@ lowering: context [
 			OP_SET_LOCAL		[gen-set-local i env]
 			OP_SET_FIELD		[gen-set-field i env]
 			OP_GET_FIELD		[gen-get-field i env]
+			OP_FLT_TO_I			[gen-float-to-int i env]
 			default [
 				if i/inputs <> null [refresh-inputs i env]
 				0 ;dprint ["Internal Error: Unknown Opcode: " INSTR_OPCODE(i)]

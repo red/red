@@ -51,7 +51,7 @@ Red/System [
 	OP_FLT_CEIL         ;-- 39
 	OP_FLT_FLOOR        ;-- 40
 	OP_FLT_SQRT         ;-- 41
-	OP_FLT_UNUSED       ;-- 42
+	OP_FLT_ROUND        ;-- 42
 	OP_FLT_BITEQ        ;-- 43
 	OP_FLT_EQ           ;-- 44
 	OP_FLT_NE           ;-- 45
@@ -88,7 +88,7 @@ Red/System [
 	OP_CPU_IP			;-- 70 get instruction pointer
 	OP_CPU_SP			;-- 71 get stack pointer
                             
-	OP_UNUSED_1			;-- 72
+	OP_FLOAT_PROMOTE	;-- 72
 	OP_UNUSED_2			;-- 73
                             
 	OP_CATCH_BEG		;-- 74
@@ -166,17 +166,17 @@ instr-flags: [
 	F_PF			;--OP_FLT_CEIL
 	F_PF			;--OP_FLT_FLOOR
 	F_PF			;--OP_FLT_SQRT
-	0	;--OP_FLT_UNUSED
+	0	;--OP_FLT_ROUND
 	F_PFC			;--OP_FLT_BITEQ
 	F_PFC			;--OP_FLT_EQ
 	F_PF			;--OP_FLT_NE
 	F_PF			;--OP_FLT_LT
 	F_PF			;--OP_FLT_LTEQ
 
-	0	;--OP_INT_CAST
-	0	;--OP_FLOAT_CAST
-	0	;--OP_INT_TO_F
-	0	;--OP_FLT_TO_I
+	F_INS_PURE		;--OP_INT_CAST
+	F_INS_PURE		;--OP_FLOAT_CAST
+	F_INS_PURE		;--OP_INT_TO_F
+	F_INS_PURE		;--OP_FLT_TO_I
 
 	F_PF			;--OP_PTR_ADD
 	F_PF			;--OP_PTR_SUB
@@ -202,7 +202,7 @@ instr-flags: [
 	0	;-- OP_CPU_IP
 	0	;-- OP_CPU_SP
 
-	0	;-- OP_ARRAY_GET
+	0	;-- OP_FLOAT_PROMOTE
 	0	;-- OP_ARRAY_SET
 
 	0	;-- OP_CATCH_BEG

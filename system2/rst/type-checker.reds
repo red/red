@@ -298,6 +298,7 @@ type-checker: context [
 			t		[int-type!]
 			f32		[red-float32!]
 			f64		[red-float!]
+			i32		[red-integer!]
 			ty		[integer!]
 	][
 		ty: NODE_TYPE(e)
@@ -330,6 +331,7 @@ type-checker: context [
 							f64/header: TYPE_FLOAT
 							f64/value: as float! i
 						]
+						SET_NODE_TYPE(e RST_FLOAT)
 						e/type: expected
 						return true
 					]
@@ -342,6 +344,17 @@ type-checker: context [
 					f32: as red-float32! f64
 					f32/value: as float32! f64/value
 					e/type: expected
+					return true
+				]
+				if INT_TYPE?(expected) [
+					f64: as red-float! e/token
+					SET_NODE_TYPE(e RST_INT)
+					e/type: expected
+					int: as int-literal! e
+					int/value: as-integer f64/value
+					i32: as red-integer! f64
+					i32/header: TYPE_INTEGER
+					i32/value: int/value
 					return true
 				]
 			]
@@ -813,8 +826,6 @@ type-checker: context [
 			t1 t2 [rst-type!]
 	][
 		;rst-printer/print-stmt as rst-stmt! c
-		assert c/type = null
-
 		t1: resolve-typeref c/typeref ctx
 		c/type: t1
 		e: c/expr
@@ -896,6 +907,7 @@ type-checker: context [
 		right: bin/right
 		ltype: as rst-type! bin/left/accept as int-ptr! bin/left checker as int-ptr! ctx
 		rtype: as rst-type! right/accept as int-ptr! right checker as int-ptr! ctx
+		if convert-literal right ltype [rtype: ltype]
 		either NODE_FLAGS(bin) and RST_INFIX_OP <> 0 [
 			op: lookup-infix-op as-integer bin/op ltype rtype
 			if null? op [throw-error [bin/left/token "argument type mismatch for:" bin/token]]

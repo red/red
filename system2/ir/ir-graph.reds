@@ -955,8 +955,10 @@ ir-graph: context [
 	][
 		code: switch cast [
 			conv_cast_if [OP_INT_TO_F]		;-- int to float
+			conv_cast_fi [OP_FLT_TO_I]		;-- float to int
 			conv_cast_ii conv_promote_ii [OP_INT_CAST]
-			conv_promote_ff [OP_FLOAT_CAST]
+			conv_promote_ff [OP_FLOAT_PROMOTE]
+			conv_cast_ff [OP_FLOAT_CAST]
 			default [0]
 		]
 		either code > 0 [
