@@ -952,6 +952,7 @@ ir-graph: context [
 		cast [integer!] val [instr!] ft [rst-type!] tt [rst-type!] ctx [ssa-ctx!]
 		return: [instr!]
 		/local op [instr-op!] ptypes [ptr-ptr!] args [array-value!] code [integer!]
+			fn [fn-type!] arr [array-2! value] rhs [instr!]
 	][
 		code: switch cast [
 			conv_cast_if [OP_INT_TO_F]		;-- int to float
@@ -967,7 +968,21 @@ ir-graph: context [
 			INIT_ARRAY_VALUE(args val)
 			op: make-op code 1 ptypes tt
 			add-op op as ptr-array! :args ctx 
-		][val]
+		][
+			either cast = conv_cast_logic [
+				op: either INT_TYPE?(ft) [
+					rhs: as instr! const-int-zero ctx/graph
+					fn: op-cache/get-int-op RST_OP_NE ft
+					make-op OP_INT_NE 2 fn/param-types fn/ret-type
+				][
+					rhs: as instr! const-null ctx/graph
+					fn: op-cache/get-ptr-op RST_OP_NE as ptr-type! ft
+					make-op OP_PTR_NE 2 fn/param-types fn/ret-type
+				]
+				INIT_ARRAY_2(arr val rhs)
+				add-op op as ptr-array! :arr ctx
+			][val]
+		]
 	]
 
 	visit-cast: func [c [cast!] ctx [ssa-ctx!] return: [instr!]

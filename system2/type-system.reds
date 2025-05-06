@@ -16,6 +16,7 @@ Red/System [
 	conv_cast_if
 	conv_cast_fi
 	conv_cast_ff
+	conv_cast_logic		;-- cast to logic
 ]
 
 #enum rst-type-kind! [
@@ -293,6 +294,8 @@ copy-struct-type: func [
 	st
 ]
 
+#define ARRAY_TYPE?(type)	[(type/header and FFh) = RST_TYPE_ARRAY]
+#define LOGIC_TYPE?(type)	[(type/header and FFh) = RST_TYPE_LOGIC]
 #define INT_TYPE?(type)		[(type/header and FFh) = RST_TYPE_INT]
 #define FLOAT_TYPE?(type)	[(type/header and FFh) = RST_TYPE_FLOAT]
 
@@ -769,7 +772,7 @@ type-system: context [
 			]
 			RST_TYPE_STRUCT [
 				switch from-ty [
-					RST_TYPE_PTR RST_TYPE_ARRAY [conv_ok]
+					RST_TYPE_PTR RST_TYPE_ARRAY RST_TYPE_INT [conv_ok]
 					default [conv_illegal]
 				]
 			]
@@ -787,9 +790,8 @@ type-system: context [
 			]
 			RST_TYPE_LOGIC [
 				switch from-ty [
-					RST_TYPE_INT RST_TYPE_BYTE [
-						either int-promotable? ft tt [conv_promote_ii][conv_cast_ii]
-					]
+					RST_TYPE_INT RST_TYPE_BYTE
+					RST_TYPE_ARRAY RST_TYPE_PTR RST_TYPE_STRUCT [conv_cast_logic]
 					default [conv_illegal]
 				]
 			]

@@ -291,15 +291,21 @@ type-checker: context [
 	convert-literal: func [
 		e			[rst-expr!]
 		expected	[rst-type!]
+		keep?		[logic!]
 		return:		[logic!]
 		/local
 			int		[int-literal!]
+			bool	[logic-literal!]
 			i		[integer!]
 			t		[int-type!]
 			f32		[red-float32!]
 			f64		[red-float!]
 			i32		[red-integer!]
+			c		[red-char!]
+			bl		[red-logic!]
 			ty		[integer!]
+			etype	[rst-type!]
+			p		[int-ptr!]
 	][
 		ty: NODE_TYPE(e)
 		switch ty [
@@ -325,7 +331,12 @@ type-checker: context [
 						either FLOAT_32?(expected) [
 							f32: as red-float32! e/token
 							f32/header: TYPE_FLOAT
-							f32/value: as float32! i
+							either keep? [
+								p: :f32/value
+								p/value: i
+							][
+								f32/value: as float32! i
+							]
 						][
 							f64: as red-float! e/token
 							f64/header: TYPE_FLOAT
@@ -334,6 +345,25 @@ type-checker: context [
 						SET_NODE_TYPE(e RST_FLOAT)
 						e/type: expected
 						return true
+					]
+					RST_TYPE_LOGIC [
+						bool: as logic-literal! e
+						SET_NODE_TYPE(e RST_LOGIC)
+						e/type: expected
+						bool/value: either zero? i [false][true]
+						bl: as red-logic! e/token
+						bl/header: TYPE_LOGIC
+						bl/value: bool/value
+						return true
+					]
+					RST_TYPE_BYTE [
+						i: i and FFh
+						int/value: i
+						SET_NODE_TYPE(e RST_BYTE)
+						e/type: expected
+						c: as red-char! e/token
+						c/header: TYPE_CHAR
+						c/value: i
 					]
 					default [0]
 				]
@@ -358,6 +388,39 @@ type-checker: context [
 					return true
 				]
 			]
+			RST_LOGIC [
+				bool: as logic-literal! e
+				switch TYPE_KIND(expected) [
+					RST_TYPE_INT [
+						SET_NODE_TYPE(e RST_INT)
+						e/type: expected
+						int: as int-literal! e
+						int/value: as-integer bool/value
+						i32: as red-integer! e/token
+						i32/header: TYPE_INTEGER
+						i32/value: int/value
+						return true
+					]
+					default [0]
+				]
+			]
+			RST_BYTE [
+				int: as int-literal! e
+				i: int/value
+				switch TYPE_KIND(expected) [
+					RST_TYPE_LOGIC [
+						SET_NODE_TYPE(e RST_LOGIC)
+						e/type: expected
+						bool: as logic-literal! e
+						bool/value: as logic! i
+						bl: as red-logic! e/token
+						bl/header: TYPE_LOGIC
+						bl/value: bool/value
+						return true
+					]
+					default [0]
+				]
+			]
 			default [false]
 		]
 		false
@@ -379,7 +442,7 @@ type-checker: context [
 			e/type: type
 		]
 		if type/header = expected/header [exit]	;-- same type
-		unless convert-literal e expected [
+		unless convert-literal e expected no [
 			either type-system/promotable? type expected [
 				e/cast-type: expected
 			][
@@ -822,14 +885,15 @@ type-checker: context [
 
 	visit-cast: func [c [cast!] ctx [context!] return: [rst-type!]
 		/local
-			e	[rst-expr!]
-			t1 t2 [rst-type!]
+			e e1	[rst-expr!]
+			t1 t2	[rst-type!]
+			c1		[cast!]
 	][
 		;rst-printer/print-stmt as rst-stmt! c
 		t1: resolve-typeref c/typeref ctx
 		c/type: t1
 		e: c/expr
-		if convert-literal e t1 [
+		if convert-literal e t1 CAST_KEEP?(c) [
 			c/cast: conv_same
 			return t1
 		]
@@ -907,7 +971,7 @@ type-checker: context [
 		right: bin/right
 		ltype: as rst-type! bin/left/accept as int-ptr! bin/left checker as int-ptr! ctx
 		rtype: as rst-type! right/accept as int-ptr! right checker as int-ptr! ctx
-		if convert-literal right ltype [rtype: ltype]
+		if convert-literal right ltype no [rtype: ltype]
 		either NODE_FLAGS(bin) and RST_INFIX_OP <> 0 [
 			op: lookup-infix-op as-integer bin/op ltype rtype
 			if null? op [throw-error [bin/left/token "argument type mismatch for:" bin/token]]
@@ -1141,7 +1205,7 @@ type-checker: context [
 			if null? stmt/next [break]
 		]
 
-		if NODE_TYPE(stmt) <> RST_RETURN [
+		if all [stmt <> null NODE_TYPE(stmt) <> RST_RETURN][
 			either ctx/ret-type <> type-system/void-type [
 				check-expr "Return:" as rst-expr! stmt ctx/ret-type ctx
 				prev/next: as rst-stmt! parser/make-return stmt/token as rst-expr! stmt

@@ -235,6 +235,7 @@ ssa-var!: alias struct! [
 
 #define LOCAL_VAR?(var) (NODE_FLAGS(var) and RST_VAR_LOCAL <> 0)
 #define GLOBAL_VAR?(var) (NODE_FLAGS(var) and RST_VAR_LOCAL = 0)
+#define CAST_KEEP?(node) (NODE_FLAGS(node) and RST_AS_KEEP <> 0)
 
 var-decl!: alias struct! [	;-- variable declaration
 	RST_NODE_FIELDS(var-decl!)
@@ -2001,7 +2002,7 @@ parser: context [
 			b	[logic-literal!]
 			bl	[red-logic!]
 	][
-		b: as logic-literal! malloc size? logic-literal!
+		b: as logic-literal! malloc size? int-literal!
 		b_accept: func [ACCEPT_FN_SPEC][
 			v/visit-literal self data
 		]

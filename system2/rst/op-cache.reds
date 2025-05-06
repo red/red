@@ -14,12 +14,13 @@ op-cache: context [
 	float-op-table: as ptr-ptr! 0
 	void-op: as op! 0
 
-	op-bool-eq: as op! 0
-	op-bool-ne: as op! 0
-	op-bool-and: as op! 0
-	op-bool-or: as op! 0
-	op-bool-xor: as op! 0
-	op-bool-not: as op! 0
+	op-bool-eq:		as op! 0
+	op-bool-ne:		as op! 0
+	op-bool-and:	as op! 0
+	op-bool-or:		as op! 0
+	op-bool-xor:	as op! 0
+	op-bool-not:	as op! 0
+	op-ptr-null?:	as op! 0
 
 	init: func [/local pt [ptr-ptr!] t [rst-type!]][
 		int-op-table: as ptr-ptr! malloc INT_WIDTH_CNT * 2 * size? int-ptr!		;-- signed and unsigned
@@ -40,6 +41,9 @@ op-cache: context [
 		op-bool-and: make-op2 OP_BOOL_AND pt t
 		op-bool-or: make-op2 OP_BOOL_OR pt t
 		op-bool-xor: make-op2 OP_BOOL_XOR pt t
+
+		pt: parser/make-param-types type-system/byte-ptr-type type-system/null-type
+		op-ptr-null?: make-op2 OP_PTR_EQ pt t
 	]
 
 	make-op2: func [
