@@ -1045,6 +1045,37 @@ x86: context [
 		emit-simple-binop cg op i
 	]
 
+	emit-as-keep: func [
+		cg		[codegen!]
+		i		[instr!]
+		/local
+			o	[instr-op!]
+			ft	[rst-type!]
+			tt	[rst-type!]
+			op	[integer!]
+	][
+		o: as instr-op! i
+		ft: as rst-type! o/param-types/value
+		tt: o/ret-type
+
+		op: switch TYPE_KIND(tt) [
+			RST_TYPE_INT [
+				op: either FLOAT_64?(ft) [I_MOVSD][I_MOVSS]
+				AM_REG_XOP or op
+			]
+			RST_TYPE_FLOAT [
+				op: either FLOAT_64?(tt) [I_MOVSD][I_MOVSS]
+				AM_XMM_REG or op
+			]
+			default [0]
+		]
+		if op > 0 [
+			def-reg cg i
+			use-reg cg input0 i
+			emit-instr cg op
+		]
+	]
+
 	emit-ftoi: func [
 		cg		[codegen!]
 		i		[instr!]
@@ -2140,6 +2171,7 @@ x86: context [
 			OP_FLOAT_PROMOTE	[emit-float-promote cg i]
 			OP_INT_TO_F			[emit-itof cg i]
 			OP_FLT_TO_I			[emit-ftoi cg i]
+			OP_BITS_VIEW		[emit-as-keep cg i]
 			OP_FLT_ABS			[0]
 			OP_FLT_CEIL			[0]
 			OP_FLT_FLOOR		[0]

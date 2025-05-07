@@ -380,11 +380,18 @@ type-checker: context [
 					f64: as red-float! e/token
 					SET_NODE_TYPE(e RST_INT)
 					e/type: expected
+					either keep? [
+						f32: as red-float32! e/token
+						p: :f32/value
+						i: p/value
+					][
+						i: as-integer f64/value
+					]
 					int: as int-literal! e
-					int/value: as-integer f64/value
+					int/value: i
 					i32: as red-integer! f64
 					i32/header: TYPE_INTEGER
-					i32/value: int/value
+					i32/value: i
 					return true
 				]
 			]
@@ -904,6 +911,7 @@ type-checker: context [
 		if conv_illegal = c/cast [
 			throw-error [c/token "invalid type casting"]
 		]
+		if CAST_KEEP?(c) [c/cast: conv_view_bits]
 		t1
 	]
 

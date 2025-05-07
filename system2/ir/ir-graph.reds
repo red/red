@@ -960,6 +960,7 @@ ir-graph: context [
 			conv_cast_ii conv_promote_ii [OP_INT_CAST]
 			conv_promote_ff [OP_FLOAT_PROMOTE]
 			conv_cast_ff [OP_FLOAT_CAST]
+			conv_view_bits [OP_BITS_VIEW]
 			default [0]
 		]
 		either code > 0 [

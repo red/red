@@ -93,7 +93,7 @@ ir-printer: context [
 			OP_INT_CAST			[prin "int-to-int"]
 			OP_FLOAT_CAST		[prin "float-to-float32"]
 			OP_FLOAT_PROMOTE	[prin "float32-to-float"]
-			OP_CAST_LOGIC		[print "cast-to-logic"]
+			OP_BITS_VIEW		[print "bits-view"]
 			OP_INT_TO_F			[prin "int-to-float"]
 			OP_FLT_TO_I			[prin "float-to-int"]
 			OP_DEFAULT_VALUE	[prin "default value"]

@@ -1886,6 +1886,8 @@ assemble-r-m: func [
 		I_LEAQ [asm/leaq a m]
 		I_CVTSS2SID [asm/cvtss2si-r-m a m NO_REX]
 		I_CVTSD2SID [asm/cvtsd2si-r-m a m NO_REX]
+		I_MOVSS		[asm/movd-r-m a m]
+		I_MOVSD		[asm/movq-r-m a m]
 		default [0]
 	]
 ]

@@ -89,7 +89,7 @@ Red/System [
 	OP_CPU_SP			;-- 71 get stack pointer
                             
 	OP_FLOAT_PROMOTE	;-- 72
-	OP_CAST_LOGIC		;-- 73
+	OP_BITS_VIEW		;-- 73
                             
 	OP_CATCH_BEG		;-- 74
 	OP_CATCH_END		;-- 75
@@ -203,7 +203,7 @@ instr-flags: [
 	0	;-- OP_CPU_SP
 
 	F_INS_PURE		;-- OP_FLOAT_PROMOTE
-	F_INS_PURE		;-- OP_CAST_LOGIC
+	F_INS_PURE		;-- OP_BITS_VIEW
 
 	0	;-- OP_CATCH_BEG
 	0	;-- OP_CATCH_END

@@ -17,6 +17,7 @@ Red/System [
 	conv_cast_fi
 	conv_cast_ff
 	conv_cast_logic		;-- cast to logic
+	conv_view_bits		;-- as ... keep
 ]
 
 #enum rst-type-kind! [
