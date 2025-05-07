@@ -489,9 +489,11 @@ lowering: context [
 			ty		[struct-type!]
 			vt		[rst-type!]
 			base	[instr!]
+			ofs		[instr!]
 			offset	[integer!]
 			inputs	[ptr-array!]
 			new		[ptr-array!]
+			int		[red-integer!]
 			ctx		[ssa-ctx!]
 	][
 		inputs: refresh-dests i/inputs env
@@ -517,8 +519,19 @@ lowering: context [
 			]
 			default [0]
 		]
-		new: gen-loads vt base offset ctx
-		map-n i new env
+		either INSTR_GET_PTR?(i) [
+			if offset <> 0 [
+				int: xmalloc(red-integer!)
+				int/header: TYPE_INTEGER
+				int/value: offset
+				ofs: as instr! ir-graph/const-int int ctx/graph
+				base: ptr-add base ofs ctx
+			]
+			map i base env
+		][
+			new: gen-loads vt base offset ctx
+			map-n i new env
+		]
 	]
 
 	gen-float-to-int: func [

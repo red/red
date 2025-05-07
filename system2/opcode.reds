@@ -114,6 +114,7 @@ Red/System [
 	F_ASSOCIATIVE:	80h		;-- ((x, y), z) = (x, (y, z))
 	F_NO_INT_TRUNC: 0100h
 	F_ZERO:			0200h	;-- zero value
+	F_GET_PTR:		0400h
 ]
 
 #define F_PF		21h		;-- F_INS_PURE or F_FOLDABLE

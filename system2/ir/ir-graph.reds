@@ -23,6 +23,7 @@ Red/System [
 #define ADD_INS_FLAGS(i flags) [i/header: i/header or (flags << 8)]
 #define INSTR_FLAGS(i) (i/header >>> 8)
 #define INSTR_OPCODE(i) [i/header and FFh]
+#define INSTR_GET_PTR?(i) (i/header >> 8 and F_GET_PTR <> 0)
 #define INSTR_ALIVE?(i) (i/header >> 8 and F_INS_KILLED = 0)
 #define INSTR_PURE?(i) (i/header >> 8 and F_INS_PURE <> 0)
 #define INSTR_NOT_PURE?(i) (i/header >> 8 and F_INS_PURE = 0)
@@ -547,9 +548,13 @@ ir-graph: context [
 			op		[instr-op!]
 	][
 		e: g/expr
-		op: make-op OP_GET_PTR 0 null g/type
-		op/target: as int-ptr! e
-		add-op op null ctx
+		either NODE_TYPE(e) = RST_PATH [
+			gen-path-read as path! e ctx F_GET_PTR
+		][
+			op: make-op OP_GET_PTR 0 null g/type
+			op/target: as int-ptr! e
+			add-op op null ctx
+		]
 	]
 
 	visit-fn-call: func [fc [fn-call!] ctx [ssa-ctx!] return: [instr!]
@@ -787,7 +792,7 @@ ir-graph: context [
 	]
 
 	visit-path: func [p [path!] ctx [ssa-ctx!] return: [instr!]][
-		gen-path-read p ctx
+		gen-path-read p ctx 0
 	]
 
 	visit-any-all: func [e [any-all!] ctx [ssa-ctx!] return: [instr!]
@@ -2184,9 +2189,10 @@ ir-graph: context [
 	]
 
 	gen-path-read: func [
-		p		[path!]
-		ctx		[ssa-ctx!]
-		return: [instr!]
+		p			[path!]
+		ctx			[ssa-ctx!]
+		flags		[integer!]
+		return: 	[instr!]
 		/local
 			var		[var-decl!]
 			type	[rst-type!]
@@ -2204,6 +2210,7 @@ ir-graph: context [
 			m: m/next
 			null? m
 		]
+		ADD_INS_FLAGS(obj flags)
 		obj
 	]
 
