@@ -173,8 +173,6 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	RST_VAR_LOCAL:	2	;-- local variable
 	RST_VAR_PARAM:	4	;-- var-decl! is a parameter
 	RST_FN_CTX:		8
-	RST_INFIX_FN:	10h
-	RST_INFIX_OP:	20h
 	RST_IMPORT_FN:	40h
 	RST_SIZE_TYPE:	80h
 	RST_DYN_ALLOC:	0100h
@@ -2590,28 +2588,26 @@ parser: context [
 			node	[rst-expr!]
 			type	[rst-node-type!]
 			t		[rst-type!]
-			flag	[integer!]
-			bin		[bin-op!]
 			left	[rst-expr!]
 			right	[ptr-value!]
 			pos		[cell!]
 			op		[int-ptr!]
 			val		[ptr-ptr!]
 			pc2		[cell!]
+			infix-fn? [logic!]
 	][
 		left: as rst-expr! expr/value
 		while [
 			pc2: pc + 1
 			all [pc2 < end T_WORD?(pc2)]
 		][
-			flag: 0
 			infix?: no
+			infix-fn?: no
 			w: as red-word! pc2
 			sym: symbol/resolve w/symbol
 			val: hashmap/get infix-Ops sym
 			either null <> val [
 				infix?: yes
-				flag: RST_INFIX_OP
 				op: val/value
 			][
 				node: as rst-expr! find-word w ctx -1
@@ -2621,7 +2617,7 @@ parser: context [
 						t: node/type
 						if all [t <> null FN_ATTRS(t) and FN_INFIX <> 0][
 							infix?: yes
-							flag: RST_INFIX_FN
+							infix-fn?: yes
 							op: as int-ptr! t
 						]
 					]
@@ -2630,9 +2626,12 @@ parser: context [
 			either infix? [
 				pos: pc2
 				pc: parse-sub-expr advance-next pc2 end end :right ctx
-				bin: make-bin-op op left as rst-expr! right/value pos
-				ADD_NODE_FLAGS(bin flag)
-				left: as rst-expr! bin
+				either infix-fn? [
+					left/next: as rst-expr! right/value
+					left: as rst-expr! make-fn-call pos as fn! node make-args 2 left
+				][
+					left: as rst-expr! make-bin-op op left as rst-expr! right/value pos
+				]
 			][break]
 		]
 		expr/value: as int-ptr! left

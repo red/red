@@ -197,9 +197,8 @@ type-checker: context [
 			n	[integer!]
 			saved-blk [red-block!]
 	][
-		if ft/param-types <> null [exit]		;-- already resolved
+		if ft/ret-type <> null [exit]		;-- already resolved
 		enter-block(ft/spec)
-
 		n: ft/n-params
 		if any [n > 0 n = -2][
 			if n = -2 [n: 2]	;-- typed func
@@ -745,7 +744,6 @@ type-checker: context [
 					;-- convert arr/n to arr/((n - 1) * size? array-element)
 					a: as rst-expr! parser/make-int common-literals/int-one
 					b: parser/make-bin-op as int-ptr! RST_OP_SUB m/expr a m/token
-					ADD_NODE_FLAGS(b RST_INFIX_OP)
 					arr: as array-type! type
 					sz: type-size? arr/type yes
 					if sz > 1 [
@@ -754,7 +752,6 @@ type-checker: context [
 						int/value: sz
 						a: as rst-expr! parser/make-int as cell! int
 						b: parser/make-bin-op as int-ptr! RST_OP_MUL as rst-expr! b a m/token
-						ADD_NODE_FLAGS(b RST_INFIX_OP)
 					]
 					visit-bin-op b ctx
 					m/expr: as rst-expr! b
@@ -845,7 +842,6 @@ type-checker: context [
 					a: as rst-expr! parser/make-int common-literals/int-one
 					b: as rst-expr! parser/make-fn-call w-length? func-length parser/make-args 1 u/expr
 					c: parser/make-bin-op as int-ptr! RST_OP_ADD a b u/token
-					ADD_NODE_FLAGS(c RST_INFIX_OP)
 					visit-bin-op c ctx
 					copy-memory as byte-ptr! u as byte-ptr! c size? bin-op!	;-- replace unary! with bin-op!
 				][
@@ -975,33 +971,27 @@ type-checker: context [
 			b		[bin-op!]
 			ltype rtype [rst-type!]
 	][
-		;rst-printer/print-stmt as rst-stmt! bin
 		right: bin/right
 		ltype: as rst-type! bin/left/accept as int-ptr! bin/left checker as int-ptr! ctx
 		rtype: as rst-type! right/accept as int-ptr! right checker as int-ptr! ctx
 		if convert-literal right ltype no [rtype: ltype]
-		either NODE_FLAGS(bin) and RST_INFIX_OP <> 0 [
-			op: lookup-infix-op as-integer bin/op ltype rtype
-			if null? op [throw-error [bin/left/token "argument type mismatch for:" bin/token]]
 
-			code: FN_OPCODE(op)
-			if any [code = OP_PTR_ADD code = OP_PTR_SUB][
-				sz: ptr-value-size? ltype
-				if sz > 1 [
-					int: xmalloc(red-integer!)
-					int/header: TYPE_INTEGER
-					int/value: sz
+		op: lookup-infix-op as-integer bin/op ltype rtype
+		if null? op [throw-error [bin/left/token "argument type mismatch for:" bin/token]]
 
-					e: as rst-expr! parser/make-int as cell! int
-					b: parser/make-bin-op as int-ptr! RST_OP_MUL right e right/token
-					ADD_NODE_FLAGS(b RST_INFIX_OP)
-					visit-bin-op b ctx
-					bin/right: as rst-expr! b
-				]
+		code: FN_OPCODE(op)
+		if any [code = OP_PTR_ADD code = OP_PTR_SUB][
+			sz: ptr-value-size? ltype
+			if sz > 1 [
+				int: xmalloc(red-integer!)
+				int/header: TYPE_INTEGER
+				int/value: sz
+
+				e: as rst-expr! parser/make-int as cell! int
+				b: parser/make-bin-op as int-ptr! RST_OP_MUL right e right/token
+				visit-bin-op b ctx
+				bin/right: as rst-expr! b
 			]
-		][
-			assert bin/op <> null
-			op: as fn-type! bin/op
 		]
 		bin/spec: op
 		op/ret-type
