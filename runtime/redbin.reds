@@ -986,7 +986,7 @@ redbin: context [
 			proto spec body [red-block!]
 			series          [series!]
 			node values     [node!]
-			here            [int-ptr!]
+			here pos        [int-ptr!]
 			type kind skip  [integer!]
 			values? stack?  [logic!]
 			self? owner?    [logic!]
@@ -1009,7 +1009,7 @@ redbin: context [
 		if data >= end [throw-error data]
 		
 		assert data/1 and FFh = TYPE_CONTEXT
-		tail/value: as integer! data
+		pos: data
 		
 		;-- decode context slot
 		values?: data/1 and REDBIN_VALUES_MASK <> 0
@@ -1070,7 +1070,7 @@ redbin: context [
 			
 			fun/header: TYPE_FUNCTION
 		]
-		
+		tail/value: as integer! pos
 		node
 	]
 	
