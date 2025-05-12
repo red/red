@@ -233,6 +233,9 @@ type-checker: context [
 			t	[rst-type!]
 			ft	[fn-type!]
 			t1	[unresolved-type!]
+			v	[vector!]
+			n	[integer!]
+			p	[ptr-ptr!]
 	][
 		w: as red-word! pc
 		sym: symbol/resolve w/symbol
@@ -255,11 +258,28 @@ type-checker: context [
 			return as rst-type! ft
 		]
 
-		c: ctx
-		until [
-			val: hashmap/get c/typecache sym
-			c: c/parent
-			any [null? c val <> null]
+		val: null
+		v: ctx/with-ns
+		if v <> null [
+			n: VECTOR_SIZE?(v)
+			if n > 0 [
+				p: VECTOR_DATA(v)
+				p: p + n		;-- reverse order
+				loop n [
+					p: p - 1
+					c: as context! p/value
+					val: hashmap/get c/typecache sym
+					if val <> null [break]
+				]
+			]
+		]
+		if null? val [
+			c: ctx
+			until [		
+				val: hashmap/get c/typecache sym
+				c: c/parent
+				any [null? c val <> null]
+			]
 		]
 		if null? val [throw-error [pc "undefined type:" w]]
 
@@ -971,6 +991,8 @@ type-checker: context [
 			b		[bin-op!]
 			ltype rtype [rst-type!]
 	][
+		assert bin/type = null
+
 		right: bin/right
 		ltype: as rst-type! bin/left/accept as int-ptr! bin/left checker as int-ptr! ctx
 		rtype: as rst-type! right/accept as int-ptr! right checker as int-ptr! ctx
@@ -980,7 +1002,10 @@ type-checker: context [
 		if null? op [throw-error [bin/left/token "argument type mismatch for:" bin/token]]
 
 		code: FN_OPCODE(op)
-		if any [code = OP_PTR_ADD code = OP_PTR_SUB][
+		if all [
+			any [code = OP_PTR_ADD code = OP_PTR_SUB]
+			INT_TYPE?(rtype)
+		][
 			sz: ptr-value-size? ltype
 			if sz > 1 [
 				int: xmalloc(red-integer!)
@@ -994,6 +1019,7 @@ type-checker: context [
 			]
 		]
 		bin/spec: op
+		bin/type: op/ret-type
 		op/ret-type
 	]
 
@@ -1186,7 +1212,9 @@ type-checker: context [
 				]
 				RST_FUNC	 [
 					f: as fn! var
+					ctx/with-ns: f/with-ns
 					resolve-fn-type as fn-type! f/type ctx
+					ctx/with-ns: null
 				]
 				default		 [0]
 			]
@@ -1208,7 +1236,7 @@ type-checker: context [
 				check-expr "Return:" as rst-expr! stmt ctx/ret-type ctx
 				prev/next: as rst-stmt! parser/make-return stmt/token as rst-expr! stmt
 			][
-				if NODE_FLAGS(ctx) and RST_FN_CTX <> 0 [
+				if FUNC_CTX?(ctx) [
 					stmt/next: as rst-stmt! parser/make-return stmt/token null
 				]
 			]

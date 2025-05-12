@@ -183,6 +183,7 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 #define NODE_TYPE(node) (node/header and FFh)
 #define NODE_FLAGS(node) (node/header >>> 8)
 #define RST_WHILE?(node) [node/header and FFh = RST_WHILE]
+#define FUNC_CTX?(node) [node/header >>> 8 and RST_FN_CTX <> 0]
 
 ;-- fn-type! /header bits: 8 - 15 opcode, 16 - 31: attributes
 #define FN_OPCODE(f) (f/header >>> 8 and FFh)
@@ -295,6 +296,7 @@ fn!: alias struct! [
 	locals		[var-decl!]
 	ir			[ir-fn!]
 	cc			[call-conv!]
+	with-ns		[vector!]
 	refs		[vector!]
 ]
 
@@ -305,6 +307,7 @@ import-fn!: alias struct! [		;-- extends fn!
 	locals		[var-decl!]
 	ir			[ir-fn!]
 	cc			[call-conv!]
+	with-ns		[vector!]
 	import-name [cell!]
 	import-lib	[cell!]
 ]
@@ -661,8 +664,6 @@ parser: context [
         hashmap/put keywords k_exit		as int-ptr! :parse-exit
         hashmap/put keywords k_assert	as int-ptr! :parse-assert
         hashmap/put keywords k_comment	as int-ptr! :parse-comment
-        hashmap/put keywords k_with		as int-ptr! :parse-with
-        hashmap/put keywords k_use		as int-ptr! :parse-use
         hashmap/put keywords k_true		as int-ptr! :parse-logic
         hashmap/put keywords k_false	as int-ptr! :parse-logic
         hashmap/put keywords k_push		as int-ptr! :parse-push
@@ -857,6 +858,9 @@ parser: context [
 		f/parent: parent
 		f/accept: :func_accept
 		SET_NODE_TYPE(f RST_FUNC)
+		if parent/with-ns <> null [
+			f/with-ns: vector/copy parent/with-ns
+		]
 		f
 	]
 
@@ -2241,7 +2245,7 @@ parser: context [
 			]
 			sym = k_words [
 				pc: null
-				0
+				-1
 			]
 			sym = k_alias [
 				check-pc
@@ -2291,6 +2295,16 @@ parser: context [
 		pc
 	]
 
+	get-global-ctx: func [
+		ctx		[context!]
+		return: [context!]
+	][
+		while [ctx/parent <> null][
+			ctx: ctx/parent
+		]
+		ctx
+	]
+
 	parse-path: func [
 		pc		[cell!]
 		end		[cell!]
@@ -2325,6 +2339,11 @@ parser: context [
 		if k_system = symbol/resolve w/symbol [	;-- special case: system/*
 			pc2: parse-system-path pc end expr ctx
 			if pc2 <> null [return pc2]
+			if expr/value = as int-ptr! -1 [	;-- system/words/*
+				ctx: get-global-ctx ctx
+				val: val + 2
+				w: as red-word! val
+			]
 		]
 
 		ty: TYPE_OF(pc)
@@ -2670,8 +2689,32 @@ parser: context [
 		loop n [
 			p: p - 1
 			c: as context! p/value
-			d: find-word name c type
+			d: find-in-ctx name c type
 			if d <> null [return d]
+		]
+		null
+	]
+
+	find-in-ctx: func [
+		name	[red-word!]
+		ctx		[context!]
+		type	[integer!]		;-- if < 0: match any type
+		return: [rst-node!]
+		/local
+			sym [integer!]
+			val [ptr-ptr!]
+			d	[rst-node!]
+	][
+		sym: symbol/resolve name/symbol
+		if ctx/with-ns <> null [
+			d: find-with-ns name ctx type
+			if d <> null [return d]
+		]
+
+		val: hashmap/get ctx/decls sym
+		if val <> null [
+			d: as rst-node! val/value
+			if any [type < 0 NODE_TYPE(d) = type][return d]
 		]
 		null
 	]
@@ -2775,7 +2818,6 @@ parser: context [
 		return: [cell!]
 		/local
 			var		[var-decl!]
-			flags	[integer!]
 			pos		[cell!]
 			s		[rst-stmt!]
 			e		[rst-expr!]
@@ -2784,13 +2826,13 @@ parser: context [
 		pos: pc
 		switch TYPE_OF(pc) [
 			TYPE_SET_WORD [
-				var: as var-decl! find-word as red-word! pc ctx RST_VAR_DECL
-				flags: NODE_FLAGS(ctx)
-				either flags and RST_FN_CTX <> 0 [	;-- in function context
+				either FUNC_CTX?(ctx) [	;-- in function context
+					var: as var-decl! find-word as red-word! pc ctx RST_VAR_DECL
 					if null? var [
 						throw-error [pc "undefined symbol:" pc]
 					]
 				][	;-- global context
+					var: as var-decl! find-in-ctx as red-word! pc ctx RST_VAR_DECL
 					if null? var [
 						var: make-var-decl pc null
 						add-decl ctx pc as int-ptr! var
@@ -2826,16 +2868,36 @@ parser: context [
 		ctx		[context!]
 		return: [cell!]
 		/local
+			pc2 [cell!]
 			w	[red-word!]
 			sym [integer!]
 			ptr [ptr-value!]
 			s	[rst-stmt!]
+			ty	[integer!]
+			c2	[context!]
+			pp	[ptr-ptr!]
+			d	[var-decl!]
+			blk [red-block!]
+			sub [sub-fn!]
+			sub? [logic!]
 			add? [logic!]
+			saved-blk [red-block!]
 	][
-		add?: yes
+		add?: no
 		ptr/value: null
 		switch TYPE_OF(pc) [
-			TYPE_WORD [pc: parse-expr pc end :ptr ctx]
+			TYPE_WORD [
+				w: as red-word! pc
+				sym: symbol/resolve w/symbol
+				pc: case [
+					sym = k_with [parse-with pc end :ptr ctx]
+					sym = k_use [pc]
+					true [
+						add?: yes
+						parse-expr pc end :ptr ctx
+					]
+				]
+			]
 			TYPE_ISSUE [
 				w: as red-word! pc
 				sym: symbol/resolve w/symbol
@@ -2846,15 +2908,90 @@ parser: context [
 					sym = k_verbose [0]
 					sym = k_user-code [0]
 					sym = k_build-date [0]
-					true [pc: parse-expr pc end :ptr ctx]
+					sym = k_enum [pc: parse-enum pc end ctx]
+					sym = k_import [pc: parse-imports pc end ctx]
+					sym = k_export [0]
+					sym = k_syscall [0]
+					sym = k_script [
+						pc: advance-next pc end
+						if TYPE_OF(pc) = TYPE_FILE [
+							compiler/script: pc
+						]
+					]
+					true [
+						add?: yes
+						pc: parse-expr pc end :ptr ctx
+					]
 				]
 			]
-			TYPE_SET_WORD
-			TYPE_SET_PATH [
-				pc: parse-assignment pc end :ptr ctx
-				add?: no
+			TYPE_SET_WORD [
+				pc2: advance-next pc end
+				pc: switch TYPE_OF(pc2) [
+					TYPE_WORD [
+						w: as red-word! pc2
+						sym: symbol/resolve w/symbol
+						case [
+							any [sym = k_func sym = k_function][
+								fetch-func pc end ctx
+							]
+							sym = k_alias [
+								parse-alias pc end ctx
+							]
+							sym = k_context [
+								if FUNC_CTX?(ctx) [throw-error [pc "context has to be declared at root level"]]
+
+								add?: yes
+								pc2: expect-next pc2 end TYPE_BLOCK
+								saved-blk: cur-blk
+								c2: parse-context pc as red-block! pc2 ctx null
+								cur-blk: saved-blk
+								if c2/n-typed > ctx/n-typed [ctx/n-typed: c2/n-typed]
+								ptr/value: as int-ptr! c2
+								pc2
+							]
+							true [parse-assignment pc end :ptr ctx]
+						]
+					]
+					TYPE_BLOCK [	;-- subroutine?
+						sub?: no
+						if FUNC_CTX?(ctx) [
+							w: as red-word! pc
+							sym: symbol/resolve w/symbol
+							pp: hashmap/get ctx/decls sym
+							if pp <> null [
+								d: as var-decl! pp/value
+								ty: NODE_TYPE(d)
+								if ty = RST_SUBROUTINE [
+									throw-error [pc "cannot redefine subroutine!"]
+								]
+								if ty = RST_VAR_DECL [
+									blk: as red-block! d/typeref
+									if all [blk <> null 1 = block/rs-length? blk][
+										w: as red-word! block/rs-head blk
+										if k_subroutine! = symbol/resolve w/symbol [
+											sub?: yes
+											SET_NODE_TYPE(d RST_SUBROUTINE)		;-- change type in-place
+											sub: as sub-fn! d
+											sub/accept: null
+											sub/body: null
+											sub/body-blk: as red-block! pc2
+											pc: pc2
+										]
+									]
+								]
+							]
+						]
+						unless sub? [pc: parse-assignment pc end :ptr ctx]
+						pc
+					]
+					default [parse-assignment pc end :ptr ctx]
+				]
 			]
-			default [pc: parse-expr pc end :ptr ctx]
+			TYPE_SET_PATH [pc: parse-assignment pc end :ptr ctx]
+			default [
+				add?: yes
+				pc: parse-expr pc end :ptr ctx
+			]
 		]
 		if add? [
 			assert ptr/value <> null
@@ -3071,37 +3208,6 @@ parser: context [
 		pc
 	]
 
-	parse-directive: func [
-		pc		[cell!]
-		end		[cell!]
-		ctx		[context!]
-		return: [cell!]
-		/local
-			w	[red-word!]
-			sym [integer!]
-	][
-		w: as red-word! pc
-		sym: symbol/resolve w/symbol
-		case [
-			sym = k_enum [
-				pc: parse-enum pc end ctx
-			]
-			sym = k_import [
-				pc: parse-imports pc end ctx
-			]
-			sym = k_export [0]
-			sym = k_syscall [0]
-			sym = k_script [
-				pc: advance-next pc end
-				if TYPE_OF(pc) = TYPE_FILE [
-					compiler/script: pc
-				]
-			]
-			true [pc: parse-statement pc end ctx]
-		]
-		pc
-	]
-
 	add-decl: func [
 		ctx		[context!]
 		name	[cell!]
@@ -3127,101 +3233,22 @@ parser: context [
 		return: [context!]
 		/local
 			pc	[cell!]
-			pc2 [cell!]
 			end [cell!]
-			sym [integer!]
-			ty	[integer!]
-			w	[red-word!]
 			ctx [context!]
-			c2	[context!]
-			ptr [ptr-value!]
-			pp	[ptr-ptr!]
-			d	[var-decl!]
-			blk [red-block!]
-			sub [sub-fn!]
-			sub? [logic!]
-			saved-blk [red-block!]
 	][
 		cur-blk: src
-		ctx: either null? f-ctx [make-ctx name parent no][f-ctx]
+		either null? f-ctx [
+			ctx: make-ctx name parent no
+			if parent <> null [
+				unless add-decl parent name as int-ptr! ctx [
+					throw-error [name "context name is already taken:" name]
+				]
+			]
+		][ctx: f-ctx]
 		pc: block/rs-head src
 		end: block/rs-tail src
 		while [pc < end][
-			switch TYPE_OF(pc) [
-				TYPE_SET_WORD [
-					pc2: advance-next pc end
-					pc: switch TYPE_OF(pc2) [
-						TYPE_WORD [
-							w: as red-word! pc2
-							sym: symbol/resolve w/symbol
-							case [
-								any [sym = k_func sym = k_function][
-									fetch-func pc end ctx
-								]
-								sym = k_alias [
-									parse-alias pc end ctx
-								]
-								sym = k_context [
-									if f-ctx <> null [throw-error [pc "context has to be declared at root level"]]
-
-									pc2: expect-next pc2 end TYPE_BLOCK
-									saved-blk: cur-blk
-									c2: parse-context pc as red-block! pc2 ctx f-ctx
-									cur-blk: saved-blk
-									unless add-decl ctx pc as int-ptr! c2 [
-										throw-error [pc "context name is already taken:" pc]
-									]
-									if all [
-										null? f-ctx
-										c2/n-typed > ctx/n-typed
-									][ctx/n-typed: c2/n-typed]
-
-									;@@ link it to stmts, so we can keep the order of stmts in contexts
-									ctx/last-stmt/next: as rst-stmt! c2
-									ctx/last-stmt: as rst-stmt! c2
-									pc2
-								]
-								true [parse-assignment pc end :ptr ctx]
-							]
-						]
-						TYPE_BLOCK [	;-- subroutine?
-							sub?: no
-							if f-ctx <> null [
-								w: as red-word! pc
-								sym: symbol/resolve w/symbol
-								pp: hashmap/get ctx/decls sym
-								if pp <> null [
-									d: as var-decl! pp/value
-									ty: NODE_TYPE(d)
-									if ty = RST_SUBROUTINE [
-										throw-error [pc "cannot redefine subroutine!"]
-									]
-									if ty = RST_VAR_DECL [
-										blk: as red-block! d/typeref
-										if all [blk <> null 1 = block/rs-length? blk][
-											w: as red-word! block/rs-head blk
-											if k_subroutine! = symbol/resolve w/symbol [
-												sub?: yes
-												SET_NODE_TYPE(d RST_SUBROUTINE)		;-- change type in-place
-												sub: as sub-fn! d
-												sub/accept: null
-												sub/body: null
-												sub/body-blk: as red-block! pc2
-												pc: pc2
-											]
-										]
-									]
-								]
-							]
-							unless sub? [pc: parse-assignment pc end :ptr ctx]
-							pc
-						]
-						default [parse-assignment pc end :ptr ctx]
-					]
-				]
-				TYPE_ISSUE [pc: parse-directive pc end ctx]
-				default [pc: parse-statement pc end ctx]
-			]
+			pc: parse-statement pc end ctx
 			pc: pc + 1
 		]
 		ctx

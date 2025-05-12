@@ -345,7 +345,7 @@ rst-printer: context [
 		indent	[integer!]
 	][
 		do-i indent prin "context "
-		if NODE_FLAGS(ctx) and RST_FN_CTX <> 0 [prin "func:"]
+		if FUNC_CTX?(ctx) [prin "func:"]
 		prin-token ctx/token prin " [^/"
 		print-decls ctx/decls indent + 1
 		print-stmts ctx/stmts indent + 1

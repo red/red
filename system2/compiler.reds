@@ -725,6 +725,7 @@ compiler: context [
 
 		ADD_NODE_FLAGS(ctx RST_FN_CTX)
 
+		ctx/with-ns: fn/with-ns
 		ft: as fn-type! fn/type
 		ctx/ret-type: ft/ret-type
 
