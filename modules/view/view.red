@@ -906,7 +906,7 @@ show: function [
 			show/with f face
 			unless face/state [return false]			;-- unviewed in child event handler
 		]
-		system/view/platform/refresh-window face/state/1
+		if face/type <> 'screen [system/view/platform/refresh-window face/state/1]
 	]
 	if all [new? object? face/actors in face/actors 'on-created][
 		do-safe [face/actors/on-created face none]		;@@ only called once

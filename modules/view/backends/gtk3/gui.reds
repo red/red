@@ -2162,6 +2162,8 @@ OS-update-view: func [
 	word: as red-word! values + FACE_OBJ_TYPE
 	type: symbol/resolve word/symbol
 
+	if type = screen [exit]
+
 	if all [
 		type = rich-text
 		update-rich-text state as red-block! values + FACE_OBJ_EXT3
