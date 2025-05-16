@@ -11,8 +11,8 @@ Red/System [
 ]
 
 
-#define MMAP_PROT_RW		03h				;-- PROT_READ | PROT_WRITE
-#define MMAP_PROT_RWX		07h				;-- PROT_READ | PROT_WRITE | PROT_EXEC
+#define MMAP_PROT_RW		03h			;-- PROT_READ | PROT_WRITE
+#define MMAP_PROT_RWX		07h			;-- PROT_READ | PROT_WRITE | PROT_EXEC
 
 #define MMAP_MAP_PRIVATE    02h
 #define MMAP_MAP_ANONYMOUS  1000h
@@ -22,38 +22,38 @@ Red/System [
 #define SYSCALL_MMAP		197
 #define SYSCALL_MUNMAP		73
 
-#define gestaltSystemVersion		1937339254	;-- "sysv"
-#define gestaltSystemVersionMajor	1937339185	;-- "sys1"
-#define gestaltSystemVersionMinor	1937339186	;-- "sys2"
-#define gestaltSystemVersionBugFix	1937339187	;-- "sys3"
+#define gestaltSystemVersion		1937339254			;-- "sysv"
+#define gestaltSystemVersionMajor	1937339185			;-- "sys1"
+#define gestaltSystemVersionMinor	1937339186			;-- "sys2"
+#define gestaltSystemVersionBugFix	1937339187			;-- "sys3"
 
 
 stat!: alias struct! [
 	st_dev		[integer!]
 	st_ino		[integer!]
-	st_modelink	[integer!]					;-- st_mode & st_link are both 16bit fields
+	st_modelink	[integer!]				;-- st_mode & st_link are both 16bit fields
 	st_uid		[integer!]
 	st_gid		[integer!]
 	st_rdev		[integer!]
-	st_atime	[timespec! value]			;-- struct timespec inlined
-	st_mtime	[timespec! value]			;-- struct timespec inlined
-	st_ctime	[timespec! value]			;-- struct timespec inlined
+	st_atime	[timespec! value]		;-- struct timespec inlined
+	st_mtime	[timespec! value]		;-- struct timespec inlined
+	st_ctime	[timespec! value]		;-- struct timespec inlined
 	st_size		[integer!]
 	st_blocks	[integer!]
 	st_blksize	[integer!]
 	st_flags	[integer!]
 	st_gen		[integer!]
 	st_lspare	[integer!]
-	st_qspare_1 [integer!]					;-- int64
+	st_qspare_1 [integer!]				;-- int64
 	st_qspare_2 [integer!]
-	st_qspare_3 [integer!]					;-- int64
+	st_qspare_3 [integer!]				;-- int64
 	st_qspare_4 [integer!]
 ]
 ;;-- #if __DARWIN_64_BIT_INO_T
-;stat!: alias struct! [						;-- __DARWIN_STRUCT_STAT64
+;stat!: alias struct! [				;-- __DARWIN_STRUCT_STAT64
 ;	st_dev		[integer!]
-;	st_modelink	[integer!]					;-- st_mode & st_link are both 16bit fields
-;	st_ino_1	[integer!]					;-- int64
+;	st_modelink	[integer!]			;-- st_mode & st_link are both 16bit fields
+;	st_ino_1	[integer!]			;-- int64
 ;	st_ino_2	[integer!]
 ;	st_uid		[integer!]
 ;	st_gid		[integer!]
@@ -66,17 +66,17 @@ stat!: alias struct! [
 ;	ctv_msec	[integer!]
 ;	birth_sec	[integer!]
 ;	birth_msec	[integer!]
-;	st_size_1	[integer!]					;-- int64
+;	st_size_1	[integer!]			;-- int64
 ;	st_size		[integer!]
-;	st_blocks_1	[integer!]					;-- int64
+;	st_blocks_1	[integer!]			;-- int64
 ;	st_blocks_2	[integer!]
 ;	st_blksize	[integer!]
 ;	st_flags	[integer!]
 ;	st_gen		[integer!]
 ;	st_lspare	[integer!]
-;	st_qspare_1 [integer!]					;-- int64
+;	st_qspare_1 [integer!]			;-- int64
 ;	st_qspare_2 [integer!]
-;	st_qspare_3 [integer!]					;-- int64
+;	st_qspare_3 [integer!]			;-- int64
 ;	st_qspare_4 [integer!]
 ;]
 ;#define DIRENT_NAME_OFFSET	21
@@ -85,7 +85,7 @@ stat!: alias struct! [
 ;	_d_ino_		[integer!]
 ;	d_seekoff	[integer!]
 ;	_d_seekoff_	[integer!]
-;	d_reclen	[integer!]					;-- d_reclen & d_namlen
+;	d_reclen	[integer!]				;-- d_reclen & d_namlen
 ;	;d_namlen	[integer!]
 ;	d_type		[byte!]
 ;	;d_name		[byte! [1024]]
