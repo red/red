@@ -10,81 +10,57 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Build Red Tests
+    - name: Build Tests
       uses: ./CI/Linux-32
       with:
-        command: rebol -qws tests/build-arm-tests.r -t RPi
-
-    - name: Build Red/System Tests
-      uses: ./CI/Linux-32
-      with:
-        command: rebol -qws system/tests/build-arm-tests.r -t RPi
+        command: rebol -qws system/tests/build-arm-tests.r -t RPi && rebol -qws tests/build-arm-tests.r -t RPi
 
     - uses: actions/upload-artifact@v4
       with:
-        name: rpi-tests-bin
-        path: quick-test/runnable/arm-tests/red
+        name: arm-tests
+        path: quick-test/runnable/arm-tests/
         retention-days: 3
 
-    - uses: actions/upload-artifact@v4
-      with:
-        name: rpi-rs-bin
-        path: quick-test/runnable/arm-tests/system
-        retention-days: 3
-
-  Run-RS-Tests-Armbian:
-
-    runs-on: [self-hosted, Linux, ARM64]
+  Run-tests-ARM:
+    runs-on: ubuntu-24.04-arm
     needs: Build-RPi-Tests
-    
+
     steps:
-    - name: Clean working directory
+    - name: Install 32bit libs
       run: |
-        echo "Cleaning up previous run"
-        rm -rf ${{ github.workspace }}/*
+        sudo dpkg --add-architecture armhf
+        sudo apt update
+        sudo apt install libc6:armhf libgdk-pixbuf-2.0-0:armhf libssl3t64:armhf libcurl4t64:armhf
+        sudo ln -s /lib/arm-linux-gnueabihf/libcrypto.so.3 /lib/arm-linux-gnueabihf/libcrypto.so.1.1
 
     - name: Retrieve tests
       uses: actions/download-artifact@v4
       with:
-        name: rpi-rs-bin
+        name: arm-tests
 
     - name: Run tests
       run: |
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/.
         chmod +x run-all.sh
         ./run-all.sh
+      working-directory: ./system
 
     # upload log file if any test failed
     - uses: actions/upload-artifact@v4
       if: failure()
       with:
-        name: RS-Tests-Armbian-log
-        path: quick-test.log
-
-  Run-Red-Tests-Armbian:
-
-    runs-on: [self-hosted, Linux, ARM64]
-    needs: Run-RS-Tests-Armbian
-    
-    steps:
-    - name: Clean working directory
-      run: |
-        echo "Cleaning up previous run"
-        rm -rf ${{ github.workspace }}/*
-
-    - name: Retrieve tests
-      uses: actions/download-artifact@v4
-      with:
-        name: rpi-tests-bin
+        name: RS-Tests-Arm-log
+        path: ./system/quick-test.log
 
     - name: Run tests
       run: |
         chmod +x run-all.sh
         ./run-all.sh
+      working-directory: ./red
 
     # upload log file if any test failed
     - uses: actions/upload-artifact@v4
       if: failure()
       with:
-        name: Red-Tests-Armbian-log
-        path: quick-test.log
+        name: Red-Tests-Arm-log
+        path: ./red/quick-test.log
