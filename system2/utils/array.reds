@@ -236,6 +236,14 @@ dyn-array: context [
 		arr/data: ptr-array/grow arr/data new-cap
 	]
 
+	get-slot: func [
+		arr		[dyn-array!]
+		idx		[integer!]
+		return: [ptr-ptr!]
+	][
+		ARRAY_DATA(arr/data) + idx
+	]
+
 	append: func [
 		arr		[dyn-array!]
 		ptr		[int-ptr!]

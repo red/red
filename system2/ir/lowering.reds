@@ -71,7 +71,7 @@ lowering: context [
 			idx: old/mark - env/mark - 1
 			rps: env/new-instrs 
 			dyn-array/grow rps idx + 1
-			pp: (as ptr-ptr! rps/data) + idx
+			pp: dyn-array/get-slot rps idx
 			pp/value: as int-ptr! new
 			if idx >= rps/length [rps/length: idx + 1]
 			loop new/length [
@@ -110,7 +110,7 @@ lowering: context [
 	][
 		if old/mark = env/mark [return null]
 		if old/mark > env/mark [
-			p: ARRAY_DATA(env/new-instrs/data) + (old/mark - env/mark - 1)
+			p: dyn-array/get-slot env/new-instrs old/mark - env/mark - 1
 			return as ptr-array! p/value
 		]
 		null
@@ -163,15 +163,19 @@ lowering: context [
 	gen-equal: func [
 		i		[instr!]
 		env		[lowering-env!]
+		return: [instr!]
 	][
 		refresh-inputs i env
+		i
 	]
 
 	gen-int-cmp: func [
 		i		[instr!]
 		env		[lowering-env!]
+		return: [instr!]
 	][
 		refresh-inputs i env
+		i
 	]
 
 	gen-truncate: func [
@@ -328,6 +332,28 @@ lowering: context [
 		ir-graph/add-op op as ptr-array! :args ctx
 	]
 
+	norm-struct-value: func [
+		vtype	[rst-type!]		;-- value type
+		return: [ptr-array!]
+		/local
+			st	[struct-type!]
+			arr [ptr-array!]
+			p	[ptr-ptr!]
+			n	[integer!]
+	][
+		st: as struct-type! vtype
+		assert st/size % 4 = 0
+
+		n: st/size / 4
+		arr: ptr-array/make n
+		p: ARRAY_DATA(arr)
+		loop n [
+			p/value: as int-ptr! type-system/integer-type
+			p: p + 1
+		]
+		arr
+	]
+
 	gen-loads: func [
 		vtype	[rst-type!]		;-- value type
 		base	[instr!]
@@ -338,12 +364,30 @@ lowering: context [
 			arr [ptr-array!]
 			i	[instr!]
 			p	[ptr-ptr!]
+			ta	[ptr-array!]
 	][
+		ta: null
+		if STRUCT_VALUE?(vtype) [
+			ta: norm-struct-value vtype
+		]
 		;-- TBD handle 64bit integer! on 32bit target, which will generate 2 loads
-		i: ptr-load vtype base offset ctx
-		arr: ptr-array/make 1
-		p: ARRAY_DATA(arr)
-		p/value: as int-ptr! i
+		if null? ta [
+			i: ptr-load vtype base offset ctx
+			arr: ptr-array/make 1
+			p: ARRAY_DATA(arr)
+			p/value: as int-ptr! i
+			return arr
+		]
+
+		arr: ta
+		p: ARRAY_DATA(ta)
+		loop ta/length [
+			vtype: as rst-type! p/value
+			i: ptr-load vtype base offset ctx
+			p/value: as int-ptr! i
+			offset: offset + type-size? vtype no
+			p: p + 1
+		]
 		arr
 	]
 
@@ -355,12 +399,32 @@ lowering: context [
 		start	[integer!]		;-- start idx of args in inputs array
 		ctx		[ssa-ctx!]
 		/local
+			p	[ptr-ptr!]
 			pp	[ptr-ptr!]
+			ta	[ptr-array!]
 	][
+		ta: null
+		if STRUCT_VALUE?(vtype) [
+			ta: norm-struct-value vtype
+		]
 		;-- TBD handle 64bit integer! on 32bit target, which will generate 2 loads
+		if null? ta [
+			pp: ARRAY_DATA(inputs)
+			pp: pp + start
+			ptr-store vtype base offset as instr! pp/value ctx
+			exit
+		]
+
 		pp: ARRAY_DATA(inputs)
+		p: ARRAY_DATA(ta)
 		pp: pp + start
-		ptr-store vtype base offset as instr! pp/value ctx
+		loop ta/length [
+			vtype: as rst-type! p/value
+			ptr-store vtype base offset as instr! pp/value ctx
+			offset: offset + type-size? vtype no
+			pp: pp + 1
+			p: p + 1
+		]
 	]
 
 	norm-global-type: func [
@@ -434,6 +498,25 @@ lowering: context [
 		remove-instr i
 	]
 
+	get-member-offset: func [
+		st		[struct-type!]
+		m		[member!]
+		offset	[int-ptr!]
+		return: [rst-type!]
+		/local
+			n	[integer!]
+	][
+		n: 0
+		until [
+			n: n + field-offset? st m/index
+			st: as struct-type! m/type
+			m: m/next
+			any [null? m NOT_STRUCT_VALUE?(st)]
+		]
+		offset/value: n
+		as rst-type! st
+	]
+
 	gen-set-field: func [
 		i		[instr!]
 		env		[lowering-env!]
@@ -461,7 +544,8 @@ lowering: context [
 		switch TYPE_KIND(ty) [
 			RST_TYPE_STRUCT [
 				base: as instr! ptr-array/pick inputs 0
-				offset: field-offset? ty m/index
+				offset: 0
+				vt: get-member-offset ty m :offset
 				arg-idx: 1
 			]
 			RST_TYPE_ARRAY RST_TYPE_PTR [
@@ -508,7 +592,8 @@ lowering: context [
 
 		switch TYPE_KIND(ty) [
 			RST_TYPE_STRUCT [
-				offset: field-offset? ty m/index
+				offset: 0
+				vt: get-member-offset ty m :offset
 				base: as instr! ptr-array/pick inputs 0
 			]
 			RST_TYPE_PTR RST_TYPE_ARRAY [
@@ -564,24 +649,24 @@ lowering: context [
 			OP_INT_MUL			
 			OP_INT_DIV			
 			OP_INT_REM			
-			OP_INT_MOD			[gen-truncate-op as instr-op! i env]
+			OP_INT_MOD			[gen-truncate-op as instr-op! i env exit]
 			;OP_INT_AND			
 			;OP_INT_OR			
 			;OP_INT_XOR			
 			;OP_INT_SHL			
 			;OP_INT_SAR			
 			;OP_INT_SHR			[0]
-			OP_INT_EQ			[gen-equal i env]
+			OP_INT_EQ			[new: gen-equal i env]
 			;OP_INT_NE			[0]
-			OP_INT_LT			[gen-int-cmp i env]
-			OP_INT_LTEQ			[gen-int-cmp i env]
+			OP_INT_LT			[new: gen-int-cmp i env]
+			OP_INT_LTEQ			[new: gen-int-cmp i env]
 			;OP_DEFAULT_VALUE	[0]
-			OP_CALL_FUNC		[gen-call i env]
-			OP_GET_GLOBAL		[gen-get-global i env]
-			OP_SET_GLOBAL		[gen-set-global i env]
-			OP_SET_LOCAL		[gen-set-local i env]
-			OP_SET_FIELD		[gen-set-field i env]
-			OP_GET_FIELD		[gen-get-field i env]
+			OP_CALL_FUNC		[gen-call i env exit]
+			OP_GET_GLOBAL		[gen-get-global i env exit]
+			OP_SET_GLOBAL		[gen-set-global i env exit]
+			OP_SET_LOCAL		[gen-set-local i env exit]
+			OP_SET_FIELD		[gen-set-field i env exit]
+			OP_GET_FIELD		[gen-get-field i env exit]
 			OP_FLT_TO_I			[gen-float-to-int i env]
 			default [
 				if i/inputs <> null [refresh-inputs i env]

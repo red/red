@@ -2070,11 +2070,8 @@ ir-graph: context [
 		/local
 			var		[var-decl!]
 			type	[rst-type!]
-			m		[member!]
+			m m1	[member!]
 			obj		[instr!]
-			op		[instr-op!]
-			ptypes	[ptr-ptr!]
-			args	[array-2! value]
 	][
 		var: p/receiver
 		obj: gen-var-read var ctx
@@ -2082,10 +2079,15 @@ ir-graph: context [
 		type: var/type
 		m: p/subs
 		until [
-			either null? m/next [
-				path-member-write val obj type m ctx
+			m1: m
+			while [all [m <> null STRUCT_VALUE?(m/type)]][
+				m: m/next
+			]
+			either any [null? m null? m/next][
+				path-member-write val obj type m1 ctx
+				break
 			][
-				obj: path-member-read obj type m ctx
+				obj: path-member-read obj type m1 ctx
 				type: m/type
 			]
 			m: m/next
@@ -2206,8 +2208,11 @@ ir-graph: context [
 		type: var/type
 		until [
 			obj: path-member-read obj type m ctx
-			type: m/type
-			m: m/next
+			until [
+				type: m/type
+				m: m/next
+				any [null? m NOT_STRUCT_VALUE?(type)]
+			]
 			null? m
 		]
 		ADD_INS_FLAGS(obj flags)

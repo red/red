@@ -108,6 +108,7 @@ struct-field!: alias struct! [
 #define FLAG_ST_VALUE	0100h
 #define SET_STRUCT_VALUE(t) [t/header: t/header or FLAG_ST_VALUE]
 #define STRUCT_VALUE?(t) [t/header = (FLAG_ST_VALUE or RST_TYPE_STRUCT)]
+#define NOT_STRUCT_VALUE?(t) [t/header <> (FLAG_ST_VALUE or RST_TYPE_STRUCT)]
 
 struct-type!: alias struct! [
 	TYPE_HEADER
@@ -299,6 +300,7 @@ copy-struct-type: func [
 #define LOGIC_TYPE?(type)	[(type/header and FFh) = RST_TYPE_LOGIC]
 #define INT_TYPE?(type)		[(type/header and FFh) = RST_TYPE_INT]
 #define FLOAT_TYPE?(type)	[(type/header and FFh) = RST_TYPE_FLOAT]
+#define STRUCT_TYPE?(type)	[(type/header and FFh) = RST_TYPE_STRUCT]
 
 int-signed?: func [
 	t		[rst-type!]
@@ -315,7 +317,7 @@ field-offset?: func [
 		f	[struct-field!]
 ][
 	assert idx < st/n-fields
-	if st/size < 0 [struct-size? st]	;-- fill /offset
+	if st/size < 0 [struct-size? st]
 	f: st/fields + idx
 	f/offset
 ]
@@ -338,7 +340,11 @@ struct-size?: func [
 		f/offset: ofs
 		f: f + 1
 	]
-	if zero? sz [sz: target/addr-size]		;-- empty struct
+	sz: either sz <> 0 [
+		align-up sz target/addr-size
+	][
+		target/addr-size		;-- empty struct
+	]
 	st/size: sz
 	sz
 ]
