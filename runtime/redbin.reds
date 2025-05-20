@@ -44,7 +44,7 @@ redbin: context [
 	
 	;-- Top-level declarations
 	
-	origin:      declare red-block!
+	origin:      as red-block! 0
 	buffer:		 as byte-ptr! 0
 	root-base:	 as red-value! 0
 	input:		 as int-ptr! 0						;-- save decoded data beginning for error reports
@@ -916,7 +916,7 @@ redbin: context [
 	
 	fill-context: func [
 		data    [int-ptr!]
-		end    [int-ptr!]
+		end     [int-ptr!]
 		table   [int-ptr!]
 		node    [node!]
 		return: [int-ptr!]
@@ -986,8 +986,9 @@ redbin: context [
 			proto spec body [red-block!]
 			series          [series!]
 			node values     [node!]
-			here            [int-ptr!]
+			here pos        [int-ptr!]
 			type kind skip  [integer!]
+			size			[integer!]
 			values? stack?  [logic!]
 			self? owner?    [logic!]
 	][
@@ -1009,18 +1010,21 @@ redbin: context [
 		if data >= end [throw-error data]
 		
 		assert data/1 and FFh = TYPE_CONTEXT
-		tail/value: as integer! data
+		pos: data
 		
 		;-- decode context slot
 		values?: data/1 and REDBIN_VALUES_MASK <> 0
 		stack?:	 data/1 and REDBIN_STACK_MASK  <> 0
 		self?:	 data/1 and REDBIN_SELF_MASK   <> 0
 		kind:	 data/1 and REDBIN_KIND_MASK   >> 26
-		
-		node:   alloc-cells 2
+
+		values: either stack? [null][
+			size: either zero? data/2 [1][data/2]
+			alloc-unset-cells size
+		]
+		node: alloc-unset-cells 2
 		series: as series! node/value
-		values: either stack? [null][alloc-unset-cells either zero? data/2 [1][data/2]]
-		
+
 		context: as red-context! alloc-tail series
 		context/header: TYPE_UNSET
 		context/symbols: _hashtable/init data/2 null HASH_TABLE_SYMBOL HASH_SYMBOL_CONTEXT
@@ -1054,8 +1058,10 @@ redbin: context [
 			object/header: TYPE_OBJECT
 		][
 			proto: block/push-only* 2
-			spec:  block/make-in proto either zero? data/2 [1][data/2]
-			body:  block/make-in proto either zero? data/3 [1][data/3]
+			size: either zero? data/2 [1][data/2]
+			spec: block/make-in proto size
+			size: either zero? data/3 [1][data/3]
+			body: block/make-in proto size
 			
 			fun: as red-function! alloc-tail series
 			fun/header: TYPE_UNSET
@@ -1070,7 +1076,7 @@ redbin: context [
 			
 			fun/header: TYPE_FUNCTION
 		]
-		
+		tail/value: as integer! pos
 		node
 	]
 	

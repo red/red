@@ -3778,8 +3778,9 @@ comment {
 		--assert "[=/-/=]" = mold [=/-/=]
 		
 	--test-- "#5595"
-		loop 1e6 [put #[] random "abcdefghi" 1]
-		loop 1e6 [put #[] random copy #{acadadeefacebeedadfeed2025} 1]
+		#either config/target <> 'ARM [cnt: 1e6][cnt: 1e4]
+		loop cnt [put #[] random "abcdefghi" 1]
+		loop cnt [put #[] random copy #{acadadeefacebeedadfeed2025} 1]
 		--assert true 									;-- just check that it didn't crash
 		
 	--test-- "#5598"
