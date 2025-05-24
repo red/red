@@ -30,9 +30,9 @@ stat!: alias struct! [
 	st_uid		[integer!]
 	st_gid		[integer!]
 	st_rdev		[integer!]
-	st_atime	[timespec! value]			;-- struct timespec inlined
-	st_mtime	[timespec! value]			;-- struct timespec inlined
-	st_ctime	[timespec! value]			;-- struct timespec inlined
+	st_atime	[timespec! value]		;-- struct timespec inlined
+	st_mtime	[timespec! value]		;-- struct timespec inlined
+	st_ctime	[timespec! value]		;-- struct timespec inlined
 	st_size		[integer!]
 	st_size_h	[integer!]
 	st_blocks_l	[integer!]
@@ -42,11 +42,11 @@ stat!: alias struct! [
 	st_gen		[integer!]
 	st_lspare	[integer!]
 	btm_sec     [integer!]
-	btm_msec    [integer!]					;-- struct timespec inlined
+	btm_msec    [integer!]				;-- struct timespec inlined
 	pad0		[integer!]
 	pad1		[integer!]
 ]
-dirent!: alias struct! [					;@@ the same as macOS
+dirent!: alias struct! [				;@@ the same as macOS
 	d_ino		[integer!]
 	d_reclen	[byte!]
 	_d_reclen_	[byte!]

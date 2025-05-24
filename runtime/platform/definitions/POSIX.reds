@@ -16,6 +16,21 @@ Red/System [
 
 #define RTLD_LAZY	1
 
+; Wordexp enums
+#define	WRDE_DOOFFS		1
+#define	WRDE_APPEND		2
+#define	WRDE_NOCMD		4
+#define	WRDE_REUSE		8
+#define	WRDE_SHOWERR	16
+#define	WRDE_UNDEF		32
+#define	__WRDE_FLAGS	63
+
+#define	WRDE_NOSPACE	1
+#define	WRDE_BADCHAR	2
+#define	WRDE_BADVAL		3
+#define	WRDE_CMDSUB		4
+#define	WRDE_SYNTAX		5
+
 #define POLLIN		0001h
 #define POLLPRI		0002h
 #define POLLOUT		0004h
@@ -45,7 +60,24 @@ Red/System [
 #define S_IFDIR		4000h
 #define S_IFREG		8000h
 
-#define BFFM_SETEXPANDED		1130
+#define BFFM_SETEXPANDED 1130
+
+#define SIGPIPE 13
+#define SIG_IGN [as int-ptr! 1]
+
+#define INET6_ADDRSTRLEN 46
+
+; Wordexp types
+wordexp-type!: alias struct! [
+	we_wordc  [integer!]
+	we_wordv  [str-array!]
+	we_offs   [integer!]
+]
+
+pollfd!: alias struct! [
+	fd				[integer!]
+	events			[integer!]						;-- high 16-bit: events
+]													;-- low  16-bit: revents
 
 #define OS_POLLIN 		1
 
@@ -174,11 +206,6 @@ timespec!: alias struct! [
 	#default [#include %linux.reds]
 ]
 
-pollfd!: alias struct! [
-	fd				[integer!]
-	events			[integer!]						;-- high 16-bit: events
-]													;-- low  16-bit: revents
-
 winsize!: alias struct! [
 	rowcol			[integer!]
 	xypixel			[integer!]
@@ -215,28 +242,6 @@ winsize!: alias struct! [
 			return: 	[integer!]
 		]
 	]]
-]
-
-; Wordexp enums
-#define	WRDE_DOOFFS		1
-#define	WRDE_APPEND		2
-#define	WRDE_NOCMD		4
-#define	WRDE_REUSE		8
-#define	WRDE_SHOWERR	16
-#define	WRDE_UNDEF		32
-#define	__WRDE_FLAGS	63
-
-#define	WRDE_NOSPACE	1
-#define	WRDE_BADCHAR	2
-#define	WRDE_BADVAL		3
-#define	WRDE_CMDSUB		4
-#define	WRDE_SYNTAX		5
-
-; Wordexp types
-wordexp-type!: alias struct! [
-	we_wordc  [integer!]
-	we_wordv  [str-array!]
-	we_offs   [integer!]
 ]
 
 #import [

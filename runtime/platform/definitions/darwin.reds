@@ -10,6 +10,17 @@ Red/System [
 	}
 ]
 
+#define	SOL_SOCKET	0000FFFFh
+#define SO_ERROR	1007h
+
+#define	EPERM				1			;-- Operation not permitted
+#define	ENOENT				2			;-- No such file or directory
+#define	EINTR				4			;-- Interrupted system call
+#define	ENOMEM				12			;-- Cannot allocate memory
+#define	EACCES				13			;-- Permission denied
+#define	EAGAIN				35			;-- Try again
+#define	EINPROGRESS			36			;-- Operation now in progress
+#define	EALREADY			37			;-- Operation already in progress
 
 #define MMAP_PROT_RW		03h			;-- PROT_READ | PROT_WRITE
 #define MMAP_PROT_RWX		07h			;-- PROT_READ | PROT_WRITE | PROT_EXEC
@@ -27,6 +38,10 @@ Red/System [
 #define gestaltSystemVersionMinor	1937339186			;-- "sys2"
 #define gestaltSystemVersionBugFix	1937339187			;-- "sys3"
 
+#define	_SC_NPROCESSORS_CONF	57
+#define	_SC_NPROCESSORS_ONLN	58
+
+#define AF_INET6				30
 
 stat!: alias struct! [
 	st_dev		[integer!]
