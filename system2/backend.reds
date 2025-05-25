@@ -13,6 +13,7 @@ Red/System [
 	class_i64
 	class_f32
 	class_f64
+	class_struct
 ]
 
 #define M_FLAG_FIXED	80000000h	;-- cannot insert before this instr
@@ -20,6 +21,9 @@ Red/System [
 #define M_FLAG_READ		20000000h	;-- a read instr
 #define M_FLAG_WRITE	10000000h	;-- a write instr
 
+#define OD_FLAG_LEA		0100h		;-- take effective address
+
+;-- header: bits: 0 - 8 operand kind, bits: 8 - 31 flags
 #define OPERAND_HEADER	[header [integer!]]
 
 #enum operand-kind! [
@@ -87,6 +91,7 @@ overwrite!: alias struct! [
 
 #define OPERAND_TYPE(o) [o/header and FFh]
 #define OPERAND_USE?(o) [o/header and FFh = OD_USE]
+#define OPERAND_LEA?(o) [o/header and OD_FLAG_LEA <> 0]
 #define MACH_OPCODE(i)	[i/header and 03FFh]
 #define x86_OPCODE(i)	[i and 03FFh]
 
@@ -777,6 +782,19 @@ backend: context [
 		END_INSERTION
 	]
 
+	insert-lea-loc: func [		;-- lea from loc to loc
+		cg		[codegen!]
+		arg		[move-arg!]
+		next-i	[mach-instr!]
+		/local
+			saved-i		[mach-instr!]
+			compute-lv?	[logic!]
+	][
+		START_INSERTION
+		target/gen-lea-loc cg arg
+		END_INSERTION
+	]
+
 	insert-move-loc: func [		;-- move from loc to loc
 		cg		[codegen!]
 		arg		[move-arg!]
@@ -966,17 +984,19 @@ backend: context [
 		switch TYPE_KIND(type) [
 			RST_TYPE_INT		[
 				w: INT_WIDTH(type)
-				return either w > 32 [class_i64][class_i32]
+				either w > 32 [class_i64][class_i32]
 			]
 			RST_TYPE_VOID
-			RST_TYPE_LOGIC [return class_i32]
+			RST_TYPE_LOGIC [class_i32]
 			RST_TYPE_FLOAT [
-				return either FLOAT_64?(type) [class_f64][class_f32]
+				either FLOAT_64?(type) [class_f64][class_f32]
 			]
 			RST_TYPE_FUNC
-			RST_TYPE_STRUCT
 			RST_TYPE_ARRAY
-			RST_TYPE_PTR [return class_i32]
+			RST_TYPE_PTR [class_i32]
+			RST_TYPE_STRUCT [
+				either NOT_STRUCT_VALUE?(type) [class_i32][class_struct]
+			]
 			default [class_i32]
 		]
 	]
@@ -1189,24 +1209,32 @@ backend: context [
 		cg			[codegen!]
 		i			[instr!]
 		constraint	[integer!]
+		return:		[def!]
 		/local
 			v		[vreg!]
+			d		[def!]
 	][
 		v: get-vreg cg i
 		if constraint < cg/reg-set/n-regs [v/hint: constraint]
-		vector/append-ptr cg/operands as byte-ptr! make-def v constraint
+		d: make-def v constraint
+		vector/append-ptr cg/operands as byte-ptr! d
+		d
 	]
 
 	def-reg: func [
 		cg		[codegen!]
 		i		[instr!]
+		return: [def!]
 		/local
 			v	[vreg!]
 			p	[int-ptr!]
+			d	[def!]
 	][
 		v: get-vreg cg i
 		p: cg/reg-set/regs-cls + v/reg-class	;-- any regs in this class
-		vector/append-ptr cg/operands as byte-ptr! make-def v p/value
+		d: make-def v p/value
+		vector/append-ptr cg/operands as byte-ptr! d
+		d
 	]
 
 	def-i: func [
@@ -1515,6 +1543,7 @@ backend: context [
 			][
 				type: instr-type? i
 				cls: reg-class? type
+				if cls = class_struct [cls: class_i32]
 			]
 			i/mark: mark
 		]
@@ -1722,17 +1751,40 @@ backend: context [
 			n	[integer!]
 			idx [integer!]
 			v	[vreg!]
+			ft	[fn-type!]
+			ty	[rst-type!]
+			p	[ptr-ptr!]
+			d	[def!]
+			lea? [logic!]
+			p-idx [int-ptr!]
 	][
+		ft: as fn-type! cg/fn/fn/type
+		p-idx: ft/arg-idx
+		if p-idx <> null [
+			p: ft/param-types
+		]
 		arr: cg/fn/params
 		pp: ARRAY_DATA(arr)
+		lea?: no
 		n: 0
 		loop arr/length [
+			if p-idx <> null [
+				ty: as rst-type! p/value
+				lea?: STRUCT_VALUE?(ty)
+				n: p-idx/value
+				p-idx: p-idx + 1
+				p: p + 1
+			]
 			i: as instr! pp/value
 			;if instr-live? cg i blk [
-				v: get-vreg cg i
-				idx: caller-param cg/frame/cc n
-				def-reg-fixed cg i idx
+			v: get-vreg cg i
+			idx: caller-param cg/frame/cc n
+			d: def-reg-fixed cg i idx
+			either lea? [
+				d/header: d/header or OD_FLAG_LEA
+			][
 				if idx >= cg/reg-set/spill-start [v/spill: idx]
+			]
 			;]
 			n: n + 1
 			pp: pp + 1
@@ -1958,7 +2010,7 @@ backend: context [
 				either null? u/vreg [
 					prin "null"
 				][
-					print u/vreg/idx
+					print [u/vreg/idx ":" u/vreg/reg]
 				]
 				print [":" u/constraint]
 			]
@@ -1968,7 +2020,7 @@ backend: context [
 				either null? d/vreg [
 					prin "null"
 				][
-					print d/vreg/idx
+					print [d/vreg/idx ":" d/vreg/reg]
 				]
 				print [":" d/constraint]
 			]

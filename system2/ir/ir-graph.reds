@@ -1135,13 +1135,14 @@ ir-graph: context [
 
 	make-param: func [
 		param	[var-decl!]
+		idx		[integer!]
 		return: [instr-param!]
 		/local
 			p	[instr-param!]
 	][
 		p: as instr-param! malloc size? instr-param!
 		p/header: INS_PARAM or (F_NOT_VOID << 8)
-		p/index: param/ssa/index
+		p/index: idx
 		p/type: param/type
 		param/ssa/instr: as instr! p
 		p
@@ -1161,7 +1162,7 @@ ir-graph: context [
 			pp		[ptr-ptr!]
 			pv		[ptr-ptr!]
 			ins		[instr!]
-			n		[integer!]
+			n i		[integer!]
 	][
 		ir: as ir-fn! malloc size? ir-fn!
 		ir/fn: fn
@@ -1178,8 +1179,9 @@ ir-graph: context [
 				p: ARRAY_DATA(parr)
 				pp: ARRAY_DATA(ctx/ssa-vars)
 				param: ft/params
+				i: 0
 				while [param <> null][
-					ins: as instr! make-param param
+					ins: as instr! make-param param i
 					p/value: as int-ptr! ins
 					ssa: param/ssa
 					if ssa/index > -1 [
@@ -1188,6 +1190,7 @@ ir-graph: context [
 						set-cur-val ssa param/type ins ctx
 					]
 					p: p + 1
+					i: i + 1
 					param: param/next
 				]
 			]
@@ -2229,7 +2232,7 @@ ir-graph: context [
 	][
 		either LOCAL_VAR?(decl) [
 			t: decl/type
-			either STRUCT_VALUE?(t) [
+			either all [STRUCT_VALUE?(t) NOT_PARAM_VAR?(decl)][
 				op: make-op OP_GET_PTR 0 null t
 				op/target: as int-ptr! decl
 				add-op op null ctx

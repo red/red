@@ -542,6 +542,7 @@ compiler: context [
 		gen-throw:	as fn-generate! 0
 		gen-restore-var: as fn-insert-instrs! 0
 		gen-save-var: as fn-insert-instrs! 0
+		gen-lea-loc: as fn-insert-move! 0
 		gen-move-loc: as fn-insert-move! 0
 		gen-move-imm: as fn-insert-move! 0
 		assemble: as fn-assemble! 0
@@ -1048,6 +1049,7 @@ compiler: context [
 					target/gen-goto: as fn-generate! :x86/gen-goto
 					target/gen-restore-var: as fn-insert-instrs! :x86/gen-restore
 					target/gen-save-var: as fn-insert-instrs! :x86/gen-save
+					target/gen-lea-loc: as fn-insert-move! :x86/gen-lea-loc
 					target/gen-move-loc: as fn-insert-move! :x86/gen-move-loc
 					target/gen-move-imm: as fn-insert-move! :x86/gen-move-imm
 					target/assemble: as fn-assemble! :x86/assemble
@@ -1075,6 +1077,7 @@ compiler: context [
 					target/gen-goto: as fn-generate! :x86/gen-goto
 					target/gen-restore-var: as fn-insert-instrs! :x86/gen-restore
 					target/gen-save-var: as fn-insert-instrs! :x86/gen-save
+					target/gen-lea-loc: as fn-insert-move! :x86/gen-lea-loc
 					target/gen-move-loc: as fn-insert-move! :x86/gen-move-loc
 					target/gen-move-imm: as fn-insert-move! :x86/gen-move-imm
 					target/assemble: as fn-assemble! :x86/assemble

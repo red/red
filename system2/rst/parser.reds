@@ -166,6 +166,7 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	FN_CATCH:			80h
 	FN_EXTERN:			0100h
 	FN_COMMUTE:			0200h
+	FN_ST_ARG:			0400h		;-- this function has struct value argument
 ]
 
 #enum rst-node-flag! [
@@ -183,6 +184,7 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 #define NODE_TYPE(node) (node/header and FFh)
 #define NODE_FLAGS(node) (node/header >>> 8)
 #define RST_WHILE?(node) [node/header and FFh = RST_WHILE]
+#define RST_FN_CALL?(node) [node/header and FFh = RST_FN_CALL]
 #define FUNC_CTX?(node) [node/header >>> 8 and RST_FN_CTX <> 0]
 
 ;-- fn-type! /header bits: 8 - 15 opcode, 16 - 31: attributes
@@ -190,6 +192,7 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 #define FN_ATTRS(f) (f/header >>> 16)
 #define FN_VARIADIC?(f) (f/header >> 16 and FN_VARIADIC <> 0)
 #define FN_TYPED?(f) (f/header >> 16 and FN_TYPED <> 0)
+#define FN_ST_ARG?(f) (f/header >> 16 and FN_ST_ARG <> 0)
 #define FN_COMMUTE?(f) (f/header >> 16 and FN_COMMUTE <> 0)
 #define ADD_FN_ATTRS(f attrs) [f/header: f/header or (attrs << 16)]
 #define SET_FN_OPCODE(f op) [f/header: f/header and FFFF00FFh or (op << 8)]
@@ -232,6 +235,8 @@ ssa-var!: alias struct! [
 	decl		[var-decl!]
 ]
 
+#define PARAM_VAR?(var) (NODE_FLAGS(var) and RST_VAR_PARAM <> 0)
+#define NOT_PARAM_VAR?(var) (NODE_FLAGS(var) and RST_VAR_PARAM = 0)
 #define LOCAL_VAR?(var) (NODE_FLAGS(var) and RST_VAR_LOCAL <> 0)
 #define GLOBAL_VAR?(var) (NODE_FLAGS(var) and RST_VAR_LOCAL = 0)
 #define CAST_KEEP?(node) (NODE_FLAGS(node) and RST_AS_KEEP <> 0)

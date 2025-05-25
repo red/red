@@ -132,6 +132,7 @@ fn-type!: alias struct! [
 	ret-typeref [red-block!]
 	param-types [ptr-ptr!]
 	ret-type	[rst-type!]
+	arg-idx		[int-ptr!]
 ]
 
 #define FLAG_ARRAY_FLOAT	0100h	;-- array contains float

@@ -1514,7 +1514,7 @@ loc-to-addr: func [						;-- location idx to memory addr
 			offset: word-sz * (loc - r/callee-base)
 		]
 		loc >= r/caller-base [
-			offset: word-sz * (loc - r/caller-base + 1)		;-- 1 slot for return address
+			offset: word-sz * (loc - r/caller-base + 2)		;-- +2 slots for return address + push ebp
 		]
 		loc >= r/spill-start [
 			offset: word-sz * (loc - r/frame-start + f/spill-args) - f/size

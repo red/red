@@ -403,11 +403,12 @@ x64-reg-set: context [
 		s/gpr-scratch: x64_SCRATCH
 		s/sse-scratch: XMM_SCRATCH
 
-		pp: as int-ptr! malloc 4 * size? integer!
+		pp: as int-ptr! malloc 5 * size? integer!
 		pp/1: x64_GPR
 		pp/2: x64_GPR
 		pp/3: x64_XMM
 		pp/4: x64_XMM
+		pp/5: x64_GPR
 		s/regs-cls: pp
 
 		pp: as int-ptr! malloc 4 * size? integer!
@@ -688,11 +689,12 @@ x86-reg-set: context [
 		s/gpr-scratch: x86_SCRATCH
 		s/sse-scratch: SSE_SCRATCH
 
-		pp: as int-ptr! malloc 4 * size? integer!
+		pp: as int-ptr! malloc 5 * size? integer!
 		pp/1: x86_CLS_GPR
 		pp/2: x86_CLS_GPR
 		pp/3: x86_CLS_SSE
 		pp/4: x86_CLS_SSE
+		pp/5: x86_CLS_GPR
 		s/regs-cls: pp
 
 		pp: as int-ptr! malloc 4 * size? integer!
@@ -776,7 +778,7 @@ x86-cc: context [
 			pp				[int-ptr!]
 			ploc rloc		[int-ptr!]
 			cls				[reg-class!]
-			i				[integer!]
+			i n np			[integer!]
 			i-idx f-idx 	[integer!]
 			p-spill			[integer!]
 			r-spill			[integer!]
@@ -787,8 +789,10 @@ x86-cc: context [
 			ret-regs		[int-array!]
 			float-params	[int-array!]
 			float-rets		[int-array!]
+			ty				[rst-type!]
 			callee-clean?	[logic!]
 			variadic?		[logic!]
+			st-arg?			[logic!]
 			fpu?			[logic!]
 	][
 		if fn/cc <> null [return fn/cc]
@@ -798,6 +802,7 @@ x86-cc: context [
 		ft: as fn-type! fn/type
 		attr: FN_ATTRS(ft)
 		variadic?: attr and FN_VARIADIC <> 0
+		st-arg?: attr and FN_ST_ARG <> 0
 		case [
 			attr and FN_CC_STDCALL <> 0 [
 				param-regs: 	x86-stdcall/param-regs
@@ -824,9 +829,32 @@ x86-cc: context [
 		spill-start: x86-reg-set/reg-set/spill-start
 		frame-start: x86-reg-set/reg-set/frame-start
 		n-params: either variadic? [op/n-params][
-			either ft/n-params < 0 [2][ft/n-params]
+			either ft/n-params < 0 [2][
+				if st-arg? [
+					np: ft/n-params
+					pp: as int-ptr! malloc np * size? integer!
+					ft/arg-idx: pp
+					p: ft/param-types
+					i: 0
+					loop np [
+						pp/value: i
+						ty: as rst-type! p/value
+						either STRUCT_VALUE?(ty) [
+							n: type-size? as rst-type! p/value yes
+							n: n / 4
+							np: np - 1 + n
+							i: i + n
+						][
+							i: i + 1
+						]
+						pp: pp + 1
+						p: p + 1
+					]
+				]
+				ft/n-params
+			]
 		]
-		param-locs: int-array/make n-params
+		param-locs: either st-arg? [int-array/make np][int-array/make n-params]
 		ploc: as int-ptr! ARRAY_DATA(param-locs)
 
 		;-- locations of each parameter
@@ -868,6 +896,16 @@ x86-cc: context [
 				class_i64 [
 					ploc/i: frame-start + p-spill
 					p-spill: p-spill + 2
+				]
+				class_struct [
+					n: type-size? as rst-type! p/value yes
+					n: n / 4
+					loop n [
+						ploc/i: frame-start + p-spill
+						p-spill: p-spill + 1
+						i: i + 1
+					]
+					i: i - 1
 				]
 			]
 			i: i + 1
@@ -916,6 +954,10 @@ x86-cc: context [
 				class_i64 [
 					rloc/i: frame-start + r-spill
 					r-spill: r-spill + 2
+				]
+				default [
+					pp: as int-ptr! ARRAY_DATA(ret-regs)
+					rloc/1: pp/value
 				]
 			]
 		][
@@ -1923,7 +1965,9 @@ x86: context [
 				]
 				4 [op: either FLOAT_TYPE?(vt) [AM_XMM_RRSD or I_MOVSS][AM_REG_RRSD or I_MOVD]]
 				8 [op: either FLOAT_TYPE?(vt) [AM_XMM_RRSD or I_MOVSD][AM_REG_RRSD or I_MOVQ]]
-				default [probe "invalid size for ptr load"]
+				default [
+					probe "invalid size for ptr load"
+				]
 			]
 			def-reg cg i
 			do-rrsd cg :addr
@@ -2400,6 +2444,40 @@ x86: context [
 		d: make-def v v/spill
 		u: make-use null idx
 		emit-instr2 cg op d u
+	]
+
+	gen-lea-loc: func [
+		cg		[codegen!]
+		arg		[move-arg!]
+		/local
+			op cls	[integer!]
+			src dst [integer!]
+			rset	[reg-set!]
+			s-reg	[integer!]
+			d		[def!]
+			u		[use!]
+	][
+		rset: cg/reg-set
+		s-reg: x86_SCRATCH
+		src: arg/src-reg
+		dst: arg/dst-reg
+		op: either target/arch = arch-x86 [I_LEAD][I_LEAQ]
+		either on-stack? rset dst [
+			assert on-stack? rset src
+			d: make-def null s-reg
+			u: make-use arg/src-v src
+			emit-instr2 cg op or AM_REG_OP d u
+
+			cls: arg/reg-cls
+			op: either any [cls = class_i32 cls = class_f32][I_MOVD][I_MOVQ]
+			d: make-def arg/dst-v dst
+			u: make-use null s-reg
+			emit-instr2 cg op or AM_OP_REG d u
+		][
+			d: make-def arg/dst-v dst
+			u: make-use arg/src-v src
+			emit-instr2 cg op or AM_REG_OP d u
+		]
 	]
 
 	gen-move-loc: func [

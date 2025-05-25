@@ -74,6 +74,7 @@ reg-allocator: context [
 			next	[mach-instr!]
 			n len	[integer!]
 			opcode	[integer!]
+			loc		[integer!]
 			blk		[basic-block!]
 			l		[label!]
 			p pa	[ptr-ptr!]
@@ -198,7 +199,19 @@ reg-allocator: context [
 				switch o/header and FFh [
 					OD_DEF [
 						d: as def! o
-						reg: alloc-def-reg rstate d/vreg d/constraint
+						either d/header and OD_FLAG_LEA <> 0 [
+							v: d/vreg
+							alloc-slot frame v
+							reg: v/spill
+							arg/src-v: v
+							arg/src-reg: d/constraint
+							arg/dst-v: v
+							arg/dst-reg: reg
+							arg/reg-cls: v/reg-class
+							insert-lea-loc cg :arg cur/next
+						][
+							reg: alloc-def-reg rstate d/vreg d/constraint
+						]
 						d/constraint: reg
 					]
 					OD_OVERWRITE [
@@ -491,7 +504,7 @@ reg-allocator: context [
 			]
 			p: p + 1
 		]
-		if zero? new-r [probe "no free registers" halt]
+		if zero? new-r [probe "no free registers" assert 0 = 1 halt]
 		new-r
 	]
 
@@ -659,6 +672,7 @@ reg-allocator: context [
 					arg/src-reg: reg
 				][
 					alloc-slot cg/frame v
+					if v/spill = constraint [return constraint]
 					arg/src-reg: v/spill
 				]
 				insert-move-loc cg :arg prev/next
@@ -701,17 +715,19 @@ reg-allocator: context [
 		/local
 			reg		[integer!]
 			loc		[integer!]
+			spill	[integer!]
 			m		[move-state!]
 	][
 		reg: v/reg
 		v/reg: 0
 		loc: reassign-reg s v find-best-loc s v/reg-class reg constraint
 		if reg <> 0 [move-reg s v loc reg]
-		if v/spill <> 0 [
+		spill: v/spill
+		if all [spill <> 0 spill <> loc][
 			m: as move-state! vector/new-item s/saves
 			m/vreg: v
 			m/src: loc
-			m/dst: v/spill
+			m/dst: spill
 		]
 		loc
 	]

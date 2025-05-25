@@ -960,7 +960,9 @@ type-checker: context [
 			if fc/args <> null [
 				arg: fc/args/next
 				while [arg <> null][
-					check-expr "Function Call:" arg as rst-type! pt/value ctx
+					type: as rst-type! pt/value
+					check-expr "Function Call:" arg type ctx
+					if STRUCT_VALUE?(type) [ADD_FN_ATTRS(ft FN_ST_ARG)]
 					arg: arg/next
 					pt: pt + 1
 				]
