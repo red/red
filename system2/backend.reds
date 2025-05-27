@@ -1750,6 +1750,7 @@ backend: context [
 			i	[instr!]
 			n	[integer!]
 			idx [integer!]
+			cnt [integer!]
 			v	[vreg!]
 			ft	[fn-type!]
 			ty	[rst-type!]
@@ -1764,10 +1765,23 @@ backend: context [
 			p: ft/param-types
 		]
 		arr: cg/fn/params
+		cnt: arr/length
 		pp: ARRAY_DATA(arr)
-		lea?: no
+		ty: ft/ret-type
 		n: 0
-		loop arr/length [
+		if STRUCT_VALUE?(ty) [
+			i: as instr! pp/value
+			v: get-vreg cg i
+			idx: caller-param cg/frame/cc 0
+			def-reg-fixed cg i idx
+			if idx >= cg/reg-set/spill-start [v/spill: idx]
+			n: 1
+			pp: pp + 1
+			cnt: cnt - 1
+			if p-idx <> null [p-idx: p-idx + 1]
+		]
+		lea?: no
+		loop cnt [
 			if p-idx <> null [
 				ty: as rst-type! p/value
 				lea?: STRUCT_VALUE?(ty)

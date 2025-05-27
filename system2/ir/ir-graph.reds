@@ -24,6 +24,8 @@ Red/System [
 #define INSTR_FLAGS(i) (i/header >>> 8)
 #define INSTR_OPCODE(i) [i/header and FFh]
 #define INSTR_GET_PTR?(i) (i/header >> 8 and F_GET_PTR <> 0)
+#define INSTR_RET_STRUCT?(i) (i/header >> 8 and F_RET_STRUCT <> 0)
+#define INSTR_RET_NORMAL?(i) (i/header >> 8 and F_RET_STRUCT = 0)
 #define INSTR_ALIVE?(i) (i/header >> 8 and F_INS_KILLED = 0)
 #define INSTR_PURE?(i) (i/header >> 8 and F_INS_PURE <> 0)
 #define INSTR_NOT_PURE?(i) (i/header >> 8 and F_INS_PURE = 0)
@@ -63,6 +65,7 @@ instr-end!: alias struct! [
 instr-return!: alias struct! [
 	IR_INSTR_FIELDS(instr!)
 	succs	[ptr-array!]
+	type	[rst-type!]
 ]
 
 instr-goto!: alias struct! [
@@ -158,6 +161,7 @@ ssa-ctx!: alias struct! [
 	loop-end	[ssa-merge!]
 	catch-end	[ssa-merge!]
 	closed?		[logic!]			;-- block closed by exit, return, break, continue or goto
+	st-var		[var-decl!]
 ]
 
 int-unbox: func [
@@ -538,8 +542,9 @@ ir-graph: context [
 		make-global-literal e e/type ctx
 	]
 
-	visit-var: func [v [variable!] ctx [ssa-ctx!] return: [instr!]][
-		gen-var-read v/decl ctx
+	visit-var: func [v [variable!] ctx [ssa-ctx!] return: [instr!] /local val? [logic!]][
+		val?: RST_VAR_VAL?(v)
+		gen-var-read v/decl val? ctx
 	]
 
 	visit-get-ptr: func [g [get-ptr!] ctx [ssa-ctx!] return: [instr!]
@@ -568,13 +573,18 @@ ir-graph: context [
 			int		[red-integer!]
 			p pp	[ptr-ptr!]
 			np n	[integer!]
+			sz		[integer!]
 			val		[instr!]
+			ivar	[instr-var!]
+			var		[var-decl!]
 			cast	[integer!]
+			ret-ty	[rst-type!]
 	][
 		fn: fc/fn
 		ft: as fn-type! fn/type
+		ret-ty: ft/ret-type
 		np: ft/n-params
-		op: make-op OP_CALL_FUNC np ft/param-types ft/ret-type
+		op: make-op OP_CALL_FUNC np ft/param-types ret-ty
 		op/target: as int-ptr! fn
 
 		either np < 0 [		;-- variadic/typed function
@@ -596,8 +606,37 @@ ir-graph: context [
 			n: np
 		]
 
+		val: null
+		if STRUCT_VALUE?(ret-ty) [
+			n: n + 1
+			if NODE_FLAGS(fc) and RST_ST_ARG = 0 [	;-- need to allocate struct on stack
+				var: ctx/st-var
+				either null? var [
+					var: parser/make-var-decl fc/token null
+					ADD_NODE_FLAGS(var RST_VAR_LOCAL)
+					var/type: ret-ty
+					ctx/st-var: var
+					type-checker/make-local-var var ret-ty
+				][
+					sz: type-size? ret-ty yes 
+					if sz > type-size? var/type yes [
+						var/type: ret-ty
+						ivar: as instr-var! var/ssa/instr
+						ivar/type: ret-ty
+					]
+				]
+				op: make-op OP_GET_PTR 0 null var/type
+				op/target: as int-ptr! var
+				val: add-op op null ctx
+			]
+		]
 		arr: ptr-array/make n
 		p: ARRAY_DATA(arr)
+		if val <> null [
+			p/value: as int-ptr! val
+			p: p + 1
+		]
+
 		if fc/args <> null [
 			arg: fc/args/next
 			while [arg <> null][
@@ -784,15 +823,24 @@ ir-graph: context [
 	]
 
 	visit-return: func [r [return!] ctx [ssa-ctx!] return: [instr!]
-		/local val [instr!]
+		/local val [instr!] e [rst-expr!] type [rst-type!]
 	][
-		val: either r/expr <> null [gen-expr r/expr ctx][null]
-		add-return val ctx
+		e: r/expr
+		val: either e <> null [
+			type: e/type
+			ADD_NODE_FLAGS(e RST_VAR_VAL)
+			gen-expr e ctx
+		][
+			type: type-system/void-type
+			null
+		]
+		add-return val type ctx
 		null
 	]
 
-	visit-path: func [p [path!] ctx [ssa-ctx!] return: [instr!]][
-		gen-path-read p ctx 0
+	visit-path: func [p [path!] ctx [ssa-ctx!] return: [instr!] /local flag [integer!]][
+		flag: either RST_VAR_PTR?(p) [F_GET_PTR][0]
+		gen-path-read p ctx flag
 	]
 
 	visit-any-all: func [e [any-all!] ctx [ssa-ctx!] return: [instr!]
@@ -1162,6 +1210,9 @@ ir-graph: context [
 			pp		[ptr-ptr!]
 			pv		[ptr-ptr!]
 			ins		[instr!]
+			ret-ty	[rst-type!]
+			ret-st? [logic!]
+			pm		[instr-param!]
 			n i		[integer!]
 	][
 		ir: as ir-fn! malloc size? ir-fn!
@@ -1172,14 +1223,26 @@ ir-graph: context [
 		ctx/block: ir/start-bb
 		either fn <> null [
 			ft: as fn-type! fn/type
+			ret-ty: ft/ret-type
 			n: ft/n-params
 			if n < 0 [n: 2]		;-- variadic/typed func
+			ret-st?: STRUCT_VALUE?(ret-ty)
+			if ret-st? [n: n + 1]
 			parr: ptr-array/make n
 			if n > 0 [
 				p: ARRAY_DATA(parr)
+				i: 0
+				if ret-st? [
+					pm: as instr-param! malloc size? instr-param!
+					pm/header: INS_PARAM or (F_NOT_VOID << 8)
+					pm/index: 0
+					pm/type: ret-ty
+					p/value: as int-ptr! pm 
+					p: p + 1
+					i: 1
+				]
 				pp: ARRAY_DATA(ctx/ssa-vars)
 				param: ft/params
-				i: 0
 				while [param <> null][
 					ins: as instr! make-param param i
 					p/value: as int-ptr! ins
@@ -1196,7 +1259,7 @@ ir-graph: context [
 			]
 			ir/params: parr
 			ir/param-types: ft/param-types
-			ir/ret-type: ft/ret-type
+			ir/ret-type: ret-ty
 			fn/ir: ir
 		][
 			ir/ret-type: type-system/void-type
@@ -2046,13 +2109,18 @@ ir-graph: context [
 
 	add-return: func [
 		val		[instr!]
+		type	[rst-type!]
 		ctx		[ssa-ctx!]
 		/local
 			arr [array-value!]
 			r	[instr-return!]
+			f	[integer!]
+			op	[instr-op!]
+			p	[ptr-ptr!]
+			obj [instr!]
+			args [array-2! value]
 	][
 		if ctx/closed? [exit]
-		ctx/closed?: yes
 
 		either val <> null [
 			INIT_ARRAY_VALUE(arr val)
@@ -2060,7 +2128,19 @@ ir-graph: context [
 			arr/length: 0		;-- emtpy array
 		]
 		r: as instr-return! malloc size? instr-return!
-		r/header: F_INS_END << 8 or INS_RETURN
+		f: either STRUCT_VALUE?(type) [
+			op: make-op OP_SET_FIELD 2 null type
+			obj: as instr! ptr-array/pick ctx/graph/params 0
+			INIT_ARRAY_2(args obj val)
+			op/target: null
+			add-op op as ptr-array! :args ctx
+			arr/length: 0
+			F_RET_STRUCT or F_INS_END
+		][F_INS_END]
+
+		ctx/closed?: yes		
+		r/header: f << 8 or INS_RETURN
+		r/type: type
 		set-inputs as instr! r as ptr-array! :arr
 		block-append-instr ctx/block as instr! r
 	]
@@ -2077,7 +2157,7 @@ ir-graph: context [
 			obj		[instr!]
 	][
 		var: p/receiver
-		obj: gen-var-read var ctx
+		obj: gen-var-read var no ctx
 
 		type: var/type
 		m: p/subs
@@ -2205,7 +2285,7 @@ ir-graph: context [
 			obj		[instr!]
 	][
 		var: p/receiver
-		obj: gen-var-read var ctx
+		obj: gen-var-read var no ctx
 
 		m: p/subs
 		type: var/type
@@ -2224,18 +2304,28 @@ ir-graph: context [
 
 	gen-var-read: func [
 		decl	[var-decl!]
+		val?	[logic!]
 		ctx		[ssa-ctx!]
 		return: [instr!]
 		/local
 			op	[instr-op!]
 			t	[rst-type!]
+			ins [instr!]
+			args [array-value!]
 	][
 		either LOCAL_VAR?(decl) [
 			t: decl/type
 			either all [STRUCT_VALUE?(t) NOT_PARAM_VAR?(decl)][
 				op: make-op OP_GET_PTR 0 null t
 				op/target: as int-ptr! decl
-				add-op op null ctx
+				ins: add-op op null ctx
+				if val? [
+					op: make-op OP_GET_FIELD 0 null t
+					op/target: as int-ptr! decl
+					INIT_ARRAY_VALUE(args ins)
+					ins: add-op op as ptr-array! :args ctx
+				]
+				ins
 			][
 				get-cur-val decl/ssa ctx/cur-vals
 			]

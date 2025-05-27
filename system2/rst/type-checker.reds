@@ -589,6 +589,8 @@ type-checker: context [
 			ltype	[rst-type!]
 			type	[rst-type!]
 			var		[rst-expr!]
+			fc		[fn-call!]
+			args	[rst-expr!]
 	][
 		var: a/target
 		ltype: check-write var ctx
@@ -596,6 +598,16 @@ type-checker: context [
 			throw-error [a/token "a literal array pointer cannot be reassigned"]
 		]
 		check-expr "Assignment:" a/expr ltype ctx
+		if all [STRUCT_VALUE?(ltype) RST_FN_CALL?(a/expr)][		;-- special case: return struct value
+			fc: as fn-call! a/expr
+			ADD_NODE_FLAGS(fc RST_ST_ARG)
+			args: fc/args
+			var/next: args/next
+			args/next: var
+			fc/next: as fn-call! a/next
+			ADD_NODE_FLAGS(var RST_VAR_PTR)
+			copy-memory as byte-ptr! a as byte-ptr! fc size? fn-call!
+		]
 		ltype
 	]
 

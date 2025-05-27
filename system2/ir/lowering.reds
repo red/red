@@ -535,27 +535,34 @@ lowering: context [
 		inputs: refresh-dests i/inputs env
 		
 		o: as instr-op! i
-		p: o/param-types
-		ty: as struct-type! p/value	;-- struct type
-		p: p + 1
-		vt: as rst-type! p/value	;-- field type
-
 		m: as member! o/target
-		switch TYPE_KIND(ty) [
-			RST_TYPE_STRUCT [
-				base: as instr! ptr-array/pick inputs 0
-				offset: 0
-				vt: get-member-offset ty m :offset
-				arg-idx: 1
+		either m <> null [
+			p: o/param-types
+			ty: as struct-type! p/value	;-- struct type
+			p: p + 1
+			vt: as rst-type! p/value	;-- field type
+
+			switch TYPE_KIND(ty) [
+				RST_TYPE_STRUCT [
+					base: as instr! ptr-array/pick inputs 0
+					offset: 0
+					vt: get-member-offset ty m :offset
+					arg-idx: 1
+				]
+				RST_TYPE_ARRAY RST_TYPE_PTR [
+					offset: 0
+					arg-idx: 2
+					p: ARRAY_DATA(inputs)
+					p2: p + 1
+					base: ptr-add as instr! p/value as instr! p2/value env/cur-ctx
+				]
+				default [dprint ["unsupported set-field " TYPE_KIND(ty)] 0]
 			]
-			RST_TYPE_ARRAY RST_TYPE_PTR [
-				offset: 0
-				arg-idx: 2
-				p: ARRAY_DATA(inputs)
-				p2: p + 1
-				base: ptr-add as instr! p/value as instr! p2/value env/cur-ctx
-			]
-			default [dprint ["unsupported set-field " TYPE_KIND(ty)] 0]
+		][
+			vt: o/ret-type
+			base: as instr! ptr-array/pick inputs 0
+			offset: 0
+			arg-idx: 1
 		]
 		gen-stores vt base offset inputs arg-idx env/cur-ctx
 		kill-instr i
@@ -572,6 +579,7 @@ lowering: context [
 			p2		[ptr-ptr!]
 			ty		[struct-type!]
 			vt		[rst-type!]
+			decl	[var-decl!]
 			base	[instr!]
 			ofs		[instr!]
 			offset	[integer!]
@@ -584,26 +592,31 @@ lowering: context [
 		
 		ctx: env/cur-ctx
 		o: as instr-op! i
-		p: o/param-types
-		ty: as struct-type! p/value	;-- struct type
-
 		m: as member! o/target
-		vt: m/type
-
-		switch TYPE_KIND(ty) [
-			RST_TYPE_STRUCT [
-				offset: 0
-				vt: get-member-offset ty m :offset
-				base: as instr! ptr-array/pick inputs 0
+		either NODE_TYPE(m) = RST_MEMBER [
+			vt: m/type
+			p: o/param-types
+			ty: as struct-type! p/value	;-- struct type
+			switch TYPE_KIND(ty) [
+				RST_TYPE_STRUCT [
+					offset: 0
+					vt: get-member-offset ty m :offset
+					base: as instr! ptr-array/pick inputs 0
+				]
+				RST_TYPE_PTR RST_TYPE_ARRAY [
+					offset: 0
+					p: ARRAY_DATA(inputs)
+					p2: p + 1
+					base: ptr-add as instr! p/value as instr! p2/value ctx
+				]
+				default [0]
 			]
-			RST_TYPE_PTR RST_TYPE_ARRAY [
-				offset: 0
-				p: ARRAY_DATA(inputs)
-				p2: p + 1
-				base: ptr-add as instr! p/value as instr! p2/value ctx
-			]
-			default [0]
+		][
+			vt: o/ret-type
+			offset: 0
+			base: as instr! ptr-array/pick inputs 0
 		]
+
 		either INSTR_GET_PTR?(i) [
 			if offset <> 0 [
 				int: xmalloc(red-integer!)
@@ -736,6 +749,12 @@ lowering: context [
 			i		[instr!]
 			next-i	[instr!]
 			code	[integer!]
+			offset	[integer!]
+			base	[instr!]
+			r		[instr-return!]
+			arr		[ptr-array!]
+			p		[ptr-ptr!]
+			inputs	[ptr-array!]
 	][
 		ctx: env/cur-ctx
 		ctx/closed?: no

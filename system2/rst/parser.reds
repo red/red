@@ -174,9 +174,12 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	RST_VAR_LOCAL:	2	;-- local variable
 	RST_VAR_PARAM:	4	;-- var-decl! is a parameter
 	RST_FN_CTX:		8
+	RST_VAR_PTR:	10h
+	RST_VAR_VAL:	20h
 	RST_IMPORT_FN:	40h
 	RST_SIZE_TYPE:	80h
 	RST_DYN_ALLOC:	0100h
+	RST_ST_ARG:		0200h
 ]
 
 #define SET_NODE_TYPE(node type) [node/header: type]
@@ -240,6 +243,8 @@ ssa-var!: alias struct! [
 #define LOCAL_VAR?(var) (NODE_FLAGS(var) and RST_VAR_LOCAL <> 0)
 #define GLOBAL_VAR?(var) (NODE_FLAGS(var) and RST_VAR_LOCAL = 0)
 #define CAST_KEEP?(node) (NODE_FLAGS(node) and RST_AS_KEEP <> 0)
+#define RST_VAR_PTR?(node) (NODE_FLAGS(node) and RST_VAR_PTR <> 0)
+#define RST_VAR_VAL?(node) (NODE_FLAGS(node) and RST_VAR_VAL <> 0)
 
 var-decl!: alias struct! [	;-- variable declaration
 	RST_NODE_FIELDS(var-decl!)

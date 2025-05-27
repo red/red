@@ -789,10 +789,11 @@ x86-cc: context [
 			ret-regs		[int-array!]
 			float-params	[int-array!]
 			float-rets		[int-array!]
-			ty				[rst-type!]
+			ty ret-ty		[rst-type!]
 			callee-clean?	[logic!]
 			variadic?		[logic!]
 			st-arg?			[logic!]
+			st-ret?			[logic!]
 			fpu?			[logic!]
 	][
 		if fn/cc <> null [return fn/cc]
@@ -800,9 +801,11 @@ x86-cc: context [
 		callee-clean?: no
 		fpu?: yes
 		ft: as fn-type! fn/type
+		ret-ty: ft/ret-type
 		attr: FN_ATTRS(ft)
 		variadic?: attr and FN_VARIADIC <> 0
 		st-arg?: attr and FN_ST_ARG <> 0
+		st-ret?: STRUCT_VALUE?(ret-ty)
 		case [
 			attr and FN_CC_STDCALL <> 0 [
 				param-regs: 	x86-stdcall/param-regs
@@ -832,11 +835,16 @@ x86-cc: context [
 			either ft/n-params < 0 [2][
 				if st-arg? [
 					np: ft/n-params
+					if st-ret? [np: np + 1]
 					pp: as int-ptr! malloc np * size? integer!
 					ft/arg-idx: pp
 					p: ft/param-types
-					i: 0
-					loop np [
+					i: either st-ret? [
+						pp/value: 0
+						pp: pp + 1
+						1
+					][0]
+					loop ft/n-params [
 						pp/value: i
 						ty: as rst-type! p/value
 						either STRUCT_VALUE?(ty) [
@@ -854,11 +862,28 @@ x86-cc: context [
 				ft/n-params
 			]
 		]
-		param-locs: either st-arg? [int-array/make np][int-array/make n-params]
+
+		param-locs: either st-arg? [int-array/make np][
+			np: either st-ret? [n-params + 1][n-params]
+			int-array/make np
+		]
 		ploc: as int-ptr! ARRAY_DATA(param-locs)
 
 		;-- locations of each parameter
 		p-spill: 0 i-idx: 0 f-idx: 0 i: 1
+		if st-ret? [
+			either i-idx < param-regs/length [
+				pp: as int-ptr! ARRAY_DATA(param-regs)
+				i-idx: i-idx + 1
+				ploc/i: pp/i-idx
+			][
+				ploc/i: frame-start + p-spill
+				p-spill: p-spill + 1
+			]
+			i: i + 1
+			ret-ty: type-system/void-type
+		]
+
 		p: either op <> null [op/param-types][ft/param-types]
 		loop n-params [
 			cls: reg-class? as rst-type! p/value
@@ -916,9 +941,9 @@ x86-cc: context [
 		r-spill: 0
 		ret-locs: int-array/make 1
 		rloc: as int-ptr! ARRAY_DATA(ret-locs)
-		assert ft/ret-type <> null
-		either ft/ret-type <> type-system/void-type [
-			cls: reg-class? ft/ret-type
+		assert ret-ty <> null
+		either ret-ty <> type-system/void-type [
+			cls: reg-class? ret-ty
 			i: 1 i-idx: 0 f-idx: 0
 			switch cls [
 				class_i32 [
@@ -969,7 +994,7 @@ x86-cc: context [
 		cc: xmalloc(call-conv!)
 		cc/reg-set: x86-reg-set/reg-set
 		cc/param-types: ft/param-types
-		cc/ret-type: ft/ret-type
+		cc/ret-type: ret-ty
 		cc/param-locs: param-locs
 		cc/ret-locs: ret-locs
 		cc/n-spilled: r-spill

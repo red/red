@@ -115,6 +115,7 @@ Red/System [
 	F_NO_INT_TRUNC: 0100h
 	F_ZERO:			0200h	;-- zero value
 	F_GET_PTR:		0400h
+	F_RET_STRUCT:	0800h
 ]
 
 #define F_PF		21h		;-- F_INS_PURE or F_FOLDABLE
