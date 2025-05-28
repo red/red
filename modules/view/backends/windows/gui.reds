@@ -702,7 +702,7 @@ free-faces: func [
 
 	if null? handle [exit]
 
-	flush-events handle
+	;flush-events handle
 	values: object/get-values face
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
@@ -2854,10 +2854,7 @@ OS-destroy-view: func [
 	empty? [logic!]
 ][
 	free-faces face yes
-	if empty? [
-		exit-loop: exit-loop + 1
-		PostQuitMessage 0
-	]
+	if empty? [exit-loop: exit-loop + 1]
 ]
 
 OS-update-facet: func [

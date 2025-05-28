@@ -11,7 +11,7 @@ Red/System [
 ]
 
 externals: context [
-	verbose: 1
+	verbose: 0
 	
 	flag-mark:	   80000000h							;-- mark a record as alive (for GC)
 	flag-free:	   40000000h							;-- mark a record as free
