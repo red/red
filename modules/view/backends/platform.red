@@ -716,7 +716,14 @@ system/view/platform: context [
 			SET_RETURN(gui/OS-get-current-screen)
 		]
 	]
-	
+
+	all-windows-closed?: func [return: [logic!] /local closed? [logic!]][
+		foreach screen system/view/screens [
+			if not empty? screen/pane [return no]
+		]
+		yes
+	]
+
 	refresh-screens: has [svs spec screen][
 		svs: system/view/screens
 		foreach spec fetch-all-screens [

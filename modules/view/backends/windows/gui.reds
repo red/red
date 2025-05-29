@@ -64,6 +64,8 @@ Red/System [
 ]
 #include %comdlgs.reds
 
+loop-cnt:		0
+g-timer:		0
 exit-loop:		0
 process-id:		0
 border-width:	0
@@ -1538,6 +1540,10 @@ OS-show-window: func [
 
 	SetForegroundWindow as handle! hWnd
 	set-selected-focus as handle! hWnd
+	if zero? g-timer [
+		g-timer: 99
+		SetTimer null g-timer 500 :closing-timer
+	]
 ]
 
 OS-make-view: func [
@@ -2854,7 +2860,10 @@ OS-destroy-view: func [
 	empty? [logic!]
 ][
 	free-faces face yes
-	if empty? [exit-loop: exit-loop + 1]
+	if empty? [
+		exit-loop: exit-loop + 1
+		loop-cnt: loop-cnt - 1
+	]
 ]
 
 OS-update-facet: func [

@@ -513,6 +513,7 @@ make-event: func [
 		bits   [integer!]
 		saved  [handle!]
 		t?	   [logic!]
+		cnt	   [integer!]
 ][
 	gui-evt/type:  evt
 	gui-evt/msg:   as byte-ptr! msg
@@ -608,7 +609,8 @@ make-event: func [
 	saved: msg/hWnd
 	stack/mark-try-all words/_anon
 	res: as red-word! stack/arguments
-	
+
+	cnt: loop-cnt
 	t?: interpreter/tracing?
 	interpreter/tracing?: no
 	catch CATCH_ALL_EXCEPTIONS [
@@ -616,6 +618,7 @@ make-event: func [
 		stack/unwind
 	]
 	interpreter/tracing?: t?
+	if loop-cnt < cnt [PostQuitMessage 0]
 	
 	stack/adjust-post-try
 	if system/thrown <> 0 [system/thrown: 0]
@@ -1205,6 +1208,24 @@ TimerProc: func [
 	make-event current-msg 0 EVT_TIME
 ]
 
+closing-timer: func [
+	[stdcall]
+	hWnd   [handle!]
+	msg	   [integer!]
+	id	   [int-ptr!]
+	dwTime [integer!]
+	/local
+		res [red-logic!]
+][
+	res: as red-logic! stack/arguments
+	#call [system/view/platform/all-windows-closed?]
+	if res/value [		;-- all the windows are closed
+		KillTimer null g-timer
+		g-timer: 0
+		PostQuitMessage 0
+	]
+]
+
 draw-window: func [
 	hWnd		[handle!]
 	cmds		[red-block!]
@@ -1267,6 +1288,16 @@ WndProc: func [
 		y yy   [integer!]
 		ShouldAppsUseDarkMode [ShouldAppsUseDarkMode!]
 ][
+	if msg = WM_CLOSE [
+		either -1 = GetWindowLong hWnd wc-offset - 4 [
+			clean-up
+		][
+			SetFocus hWnd									;-- force focus on the closing window,
+			current-msg/hWnd: hWnd							;-- prevents late unfocus event generation.
+			res: make-event current-msg 0 EVT_CLOSE
+			return 0
+		]
+	]
 	unless face-set? hWnd [return DefWindowProc hWnd msg wParam lParam]
 
 	values: get-face-values hWnd
@@ -1634,21 +1665,6 @@ WndProc: func [
 		WM_GETMINMAXINFO [								;@@ send before WM_NCCREATE
 			if all [type = window set-window-info hWnd lParam][return 0]
 		]
-		WM_CLOSE [
-			either -1 = GetWindowLong hWnd wc-offset - 4 [
-				clean-up
-			][
-				if type = window [
-					SetFocus hWnd									;-- force focus on the closing window,
-					current-msg/hWnd: hWnd							;-- prevents late unfocus event generation.
-					res: make-event current-msg 0 EVT_CLOSE
-					if res  = EVT_DISPATCH [return 0]				;-- continue
-					;if res <= EVT_DISPATCH   [free-handles hWnd]	;-- done
-					if res  = EVT_NO_DISPATCH [clean-up PostQuitMessage 0]	;-- stop
-					return 0
-				]
-			]
-		]
 		WM_DESTROY [free-dc hWnd]
 		WM_DPICHANGED [
 			log-pixels-x: WIN32_LOWORD(wParam)			;-- new DPI
@@ -1858,14 +1874,13 @@ do-events: func [
 		saved [tagMSG]
 ][
 	msg?: no
-
-	unless no-wait? [exit-loop: 0]
+	unless no-wait? [loop-cnt: loop-cnt + 1]
 
 	while [
 		either no-wait? [
-			0 < PeekMessage :msg hWnd 0 0 1
+			0 < PeekMessage :msg null 0 0 1
 		][
-			0 < GetMessage :msg hWnd 0 0
+			0 < GetMessage :msg null 0 0
 		]
 	][
 		unless msg? [msg?: yes]
