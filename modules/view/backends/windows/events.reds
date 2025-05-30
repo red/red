@@ -1208,24 +1208,6 @@ TimerProc: func [
 	make-event current-msg 0 EVT_TIME
 ]
 
-closing-timer: func [
-	[stdcall]
-	hWnd   [handle!]
-	msg	   [integer!]
-	id	   [int-ptr!]
-	dwTime [integer!]
-	/local
-		res [red-logic!]
-][
-	res: as red-logic! stack/arguments
-	#call [system/view/platform/all-windows-closed?]
-	if res/value [		;-- all the windows are closed
-		KillTimer null g-timer
-		g-timer: 0
-		PostQuitMessage 0
-	]
-]
-
 draw-window: func [
 	hWnd		[handle!]
 	cmds		[red-block!]

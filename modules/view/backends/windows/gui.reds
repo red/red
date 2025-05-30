@@ -65,7 +65,6 @@ Red/System [
 #include %comdlgs.reds
 
 loop-cnt:		0
-g-timer:		0
 exit-loop:		0
 process-id:		0
 border-width:	0
@@ -1540,10 +1539,6 @@ OS-show-window: func [
 
 	SetForegroundWindow as handle! hWnd
 	set-selected-focus as handle! hWnd
-	if zero? g-timer [
-		g-timer: 99
-		SetTimer null g-timer 500 :closing-timer
-	]
 ]
 
 OS-make-view: func [
