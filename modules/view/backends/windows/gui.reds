@@ -117,7 +117,7 @@ dpi-scale: func [
 	num		[float32!]
 	return: [integer!]
 ][
-	as-integer num * dpi-factor
+	as-integer num * dpi-factor + 0.5
 ]
 
 dpi-unscale: func [
