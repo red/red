@@ -96,6 +96,7 @@ Red/System [
 	OP_THROW			;-- 76
 	OP_TYPED_VALUE		;-- 77
 	OP_CALL_NATIVE		;-- 
+	OP_RET_VALUE
 
 	OP_MIXED_EQ			;-- e.g. compare int with uint
 	OP_MIXED_NE
@@ -212,6 +213,7 @@ instr-flags: [
 	0	;-- OP_THROW
 	0	;-- OP_TYPED_VALUE
 	0	;-- OP_CALL_NATIVE
+	0	;-- OP_RET_VALUE
 
 	0	;-- OP_MIXED_EQ			;-- e.g. compare int with uint
 	0	;-- OP_MIXED_NE

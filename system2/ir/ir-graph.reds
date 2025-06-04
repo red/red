@@ -498,7 +498,7 @@ ir-graph: context [
 		switch NODE_TYPE(lhs) [
 			RST_VAR [
 				var: as variable! lhs
-				gen-var-write var/decl val ctx
+				gen-var-write var/decl val rhs/type ctx
 			]
 			RST_PATH [
 				gen-path-write as path! lhs val ctx
@@ -590,24 +590,27 @@ ir-graph: context [
 		either np < 0 [		;-- variadic/typed function
 			arg: fc/args
 			n: arg/header	;-- number of args
-			pp: as ptr-ptr! malloc n * size? int-ptr!
-			p: pp
-			arg: arg/next
-			while [arg <> null][
-				p/value: as int-ptr! arg/type
-				p: p + 1
+			if n > 0 [
+				pp: as ptr-ptr! malloc n * size? int-ptr!
+				p: pp
 				arg: arg/next
-			]
-			if np = -1 [	;-- variadic func
-				op/n-params: n
-				op/param-types: pp
+				if all [STRUCT_VALUE?(ret-ty) 8 < type-size? ret-ty yes][arg: arg/next]
+				while [arg <> null][
+					p/value: as int-ptr! arg/type
+					p: p + 1
+					arg: arg/next
+				]
+				if np = -1 [	;-- variadic func
+					op/n-params: n
+					op/param-types: pp
+				]
 			]
 		][
 			n: np
 		]
 
 		val: null
-		if STRUCT_VALUE?(ret-ty) [
+		if all [STRUCT_VALUE?(ret-ty) 8 < type-size? ret-ty yes][
 			n: n + 1
 			if NODE_FLAGS(fc) and RST_ST_ARG = 0 [	;-- need to allocate struct on stack
 				var: ctx/st-var
@@ -625,9 +628,9 @@ ir-graph: context [
 						ivar/type: ret-ty
 					]
 				]
-				op: make-op OP_GET_PTR 0 null var/type
-				op/target: as int-ptr! var
-				val: add-op op null ctx
+				op2: make-op OP_GET_PTR 0 null var/type
+				op2/target: as int-ptr! var
+				val: add-op op2 null ctx
 			]
 		]
 		arr: ptr-array/make n
@@ -828,7 +831,7 @@ ir-graph: context [
 		e: r/expr
 		val: either e <> null [
 			type: e/type
-			ADD_NODE_FLAGS(e RST_VAR_VAL)
+			if STRUCT_VALUE?(type) [ADD_NODE_FLAGS(e RST_VAR_VAL)]
 			gen-expr e ctx
 		][
 			type: type-system/void-type
@@ -1226,7 +1229,7 @@ ir-graph: context [
 			ret-ty: ft/ret-type
 			n: ft/n-params
 			if n < 0 [n: 2]		;-- variadic/typed func
-			ret-st?: STRUCT_VALUE?(ret-ty)
+			ret-st?: all [STRUCT_VALUE?(ret-ty) 8 < type-size? ret-ty yes]
 			if ret-st? [n: n + 1]
 			parr: ptr-array/make n
 			if n > 0 [
@@ -2028,6 +2031,21 @@ ir-graph: context [
 		op
 	]
 
+	copy-op: func [
+		i		[instr-op!]
+		return: [instr-op!]
+		/local
+			op	[instr-op!]
+	][
+		op: xmalloc(instr-op!)
+		op/header: i/header
+		op/n-params: i/n-params
+		op/param-types: i/param-types
+		op/ret-type: i/ret-type
+		op/target: i/target
+		op
+	]
+
 	add-op: func [
 		op		[instr-op!]
 		args	[ptr-array!]
@@ -2128,7 +2146,7 @@ ir-graph: context [
 			arr/length: 0		;-- emtpy array
 		]
 		r: as instr-return! malloc size? instr-return!
-		f: either STRUCT_VALUE?(type) [
+		f: either all [STRUCT_VALUE?(type) 8 < type-size? type yes][
 			op: make-op OP_SET_FIELD 2 null type
 			obj: as instr! ptr-array/pick ctx/graph/params 0
 			INIT_ARRAY_2(args obj val)
@@ -2313,50 +2331,66 @@ ir-graph: context [
 			ins [instr!]
 			args [array-value!]
 	][
-		either LOCAL_VAR?(decl) [
-			t: decl/type
+		t: decl/type
+		ins: either LOCAL_VAR?(decl) [
 			either all [STRUCT_VALUE?(t) NOT_PARAM_VAR?(decl)][
 				op: make-op OP_GET_PTR 0 null t
 				op/target: as int-ptr! decl
-				ins: add-op op null ctx
-				if val? [
-					op: make-op OP_GET_FIELD 0 null t
-					op/target: as int-ptr! decl
-					INIT_ARRAY_VALUE(args ins)
-					ins: add-op op as ptr-array! :args ctx
-				]
-				ins
+				add-op op null ctx
 			][
 				get-cur-val decl/ssa ctx/cur-vals
 			]
 		][
 			record-global decl
-			op: make-op OP_GET_GLOBAL 0 null decl/type
+			op: make-op OP_GET_GLOBAL 0 null t
 			op/target: as int-ptr! decl
 			add-op op null ctx
 		]
+		if val? [
+			if t/header and FLAG_ST_VALUE = 0 [
+				t: as rst-type! copy-struct-type as struct-type! t
+				SET_STRUCT_VALUE(t)
+			]
+			op: make-op OP_GET_FIELD 0 null t
+			op/target: as int-ptr! decl
+			INIT_ARRAY_VALUE(args ins)
+			ins: add-op op as ptr-array! :args ctx
+		]
+		ins
 	]
 
 	gen-var-write: func [
 		var		[var-decl!]
 		val		[instr!]
+		vtype	[rst-type!]
 		ctx		[ssa-ctx!]
 		return: [instr!]
 		/local
 			op	[instr-op!]
 			arr [ptr-ptr!]
-			args [array-value!]
+			ins [instr!]
+			args [array-2! value]
 	][
 		either LOCAL_VAR?(var) [
 			set-cur-val var/ssa var/type val ctx
 		][
 			record-global var
-			arr: as ptr-ptr! malloc size? int-ptr!
-			arr/value: as int-ptr! var/type
-			op: make-op OP_SET_GLOBAL 1 arr type-system/void-type
-			op/target: as int-ptr! var
-			INIT_ARRAY_VALUE(args val)
-			add-op op as ptr-array! :args ctx
+			either NOT_STRUCT_VALUE?(vtype) [
+				arr: as ptr-ptr! malloc size? int-ptr!
+				arr/value: as int-ptr! var/type
+				op: make-op OP_SET_GLOBAL 1 arr type-system/void-type
+				op/target: as int-ptr! var
+				INIT_ARRAY_VALUE(args val)
+				add-op op as ptr-array! :args ctx
+			][
+				op: make-op OP_GET_GLOBAL 0 null var/type
+				op/target: as int-ptr! var
+				ins: add-op op null ctx
+				op: make-op OP_SET_FIELD 2 null vtype
+				INIT_ARRAY_2(args ins val)
+				op/target: null
+				add-op op as ptr-array! :args ctx
+			]
 		]
 		val
 	]

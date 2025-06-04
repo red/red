@@ -236,8 +236,36 @@ lowering: context [
 	gen-call: func [
 		i		[instr!]
 		env		[lowering-env!]
+		/local
+			old [instr!]
+			op	[instr-op!]
+			arr [ptr-array!]
+			p	[ptr-ptr!]
+			args [array-value!]
+			ret-ty [rst-type!]
+			inputs [ptr-array!]
 	][
-		refresh-inputs i env
+		inputs: refresh-dests i/inputs env
+		op: as instr-op! i
+		ret-ty: op/ret-type
+		either all [STRUCT_VALUE?(ret-ty) 8 = type-size? ret-ty yes][
+			old: i
+			op: ir-graph/copy-op op
+			i: ir-graph/add-op op inputs env/cur-ctx
+			arr: ptr-array/make 2
+			p: ARRAY_DATA(arr)
+			loop 2 [
+				op: ir-graph/make-op OP_RET_VALUE 0 null type-system/integer-type
+				INIT_ARRAY_VALUE(args i)
+				ir-graph/set-inputs as instr! op as ptr-array! :args
+				insert-instr i/next as instr! op
+				p/value: as int-ptr! op
+				p: p + 1
+			]
+			map-n old arr env
+		][
+			ir-graph/set-inputs i inputs
+		]
 	]
 
 	make-ptr-const: func [
@@ -336,15 +364,15 @@ lowering: context [
 		vtype	[rst-type!]		;-- value type
 		return: [ptr-array!]
 		/local
-			st	[struct-type!]
 			arr [ptr-array!]
 			p	[ptr-ptr!]
 			n	[integer!]
+			sz	[integer!]
 	][
-		st: as struct-type! vtype
-		assert st/size % 4 = 0
+		sz: type-size? vtype yes
+		assert sz % 4 = 0
 
-		n: st/size / 4
+		n: sz / 4
 		arr: ptr-array/make n
 		p: ARRAY_DATA(arr)
 		loop n [

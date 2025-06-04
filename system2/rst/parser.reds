@@ -505,6 +505,7 @@ parser: context [
 	k_catch:	symbol/make "catch"
 	k_variadic:	symbol/make "variadic"
 	k_stdcall:	symbol/make "stdcall"
+	k_callback:	symbol/make "callback"
 	k_cdecl:	symbol/make "cdecl"
 	k_infix:	symbol/make "infix"
 	k_typed:	symbol/make "typed"
@@ -3287,6 +3288,7 @@ parser: context [
 					sym = k_variadic [FN_VARIADIC]
 					sym = k_typed	 [FN_TYPED]
 					sym = k_infix	 [FN_INFIX]
+					sym = k_callback [FN_CALLBACK]
 					sym = k_custom	 [FN_CUSTOM]
 					sym = k_catch	 [FN_CATCH]
 					true [

@@ -2073,8 +2073,10 @@ assemble: func [
 		l	[label!]
 		p	[ptr-ptr!]
 		ins [integer!]
+		ft	[fn-type!]
 		rset [reg-set!]
 		addr [x86-addr! value]
+		attr [integer!]
 ][
 	rset: cg/reg-set
 	ins: i/header
@@ -2088,12 +2090,26 @@ assemble: func [
 				asm/push-i 0	;-- init catch value
 				asm/push-i 0	;-- init catch address
 				adjust-frame cg/frame no
+				ft: as fn-type! cg/fn/fn/type
+				attr: FN_ATTRS(ft)
+				if attr and (FN_CC_STDCALL or FN_CC_CDECL or FN_CALLBACK) <> 0 [
+					asm/push-r x86-regs/ebx
+					asm/push-r x86-regs/esi
+					asm/push-r x86-regs/edi
+				]
 			]
 			I_BLK_BEG [
 				l: as label! p/value
 				l/pos: asm/pos
 			]
 			I_RET [
+				ft: as fn-type! cg/fn/fn/type
+				attr: FN_ATTRS(ft)
+				if attr and (FN_CC_STDCALL or FN_CC_CDECL or FN_CALLBACK) <> 0 [
+					asm/pop-r x86-regs/esi
+					asm/pop-r x86-regs/edi
+					asm/pop-r x86-regs/ebx
+				]
 				asm/leave
 				asm/ret
 			]

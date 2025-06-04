@@ -199,19 +199,7 @@ reg-allocator: context [
 				switch o/header and FFh [
 					OD_DEF [
 						d: as def! o
-						either d/header and OD_FLAG_LEA <> 0 [
-							v: d/vreg
-							alloc-slot frame v
-							reg: v/spill
-							arg/src-v: v
-							arg/src-reg: d/constraint
-							arg/dst-v: v
-							arg/dst-reg: reg
-							arg/reg-cls: v/reg-class
-							insert-lea-loc cg :arg cur/next
-						][
-							reg: alloc-def-reg rstate d/vreg d/constraint
-						]
+						reg: alloc-def-reg rstate d/vreg d/constraint
 						d/constraint: reg
 					]
 					OD_OVERWRITE [

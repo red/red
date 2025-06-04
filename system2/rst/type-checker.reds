@@ -598,15 +598,21 @@ type-checker: context [
 			throw-error [a/token "a literal array pointer cannot be reassigned"]
 		]
 		check-expr "Assignment:" a/expr ltype ctx
-		if all [STRUCT_VALUE?(ltype) RST_FN_CALL?(a/expr)][		;-- special case: return struct value
-			fc: as fn-call! a/expr
-			ADD_NODE_FLAGS(fc RST_ST_ARG)
-			args: fc/args
-			var/next: args/next
-			args/next: var
-			fc/next: as fn-call! a/next
-			ADD_NODE_FLAGS(var RST_VAR_PTR)
-			copy-memory as byte-ptr! a as byte-ptr! fc size? fn-call!
+		if all [RST_FN_CALL?(a/expr) STRUCT_VALUE?(a/expr/type)][		;-- special case: return struct value
+			if 8 < type-size? a/expr/type yes [
+				fc: as fn-call! a/expr
+				ADD_NODE_FLAGS(fc RST_ST_ARG)
+				args: fc/args
+				if null? args [
+					args: parser/make-args 0 null
+					fc/args: args
+				]
+				var/next: args/next
+				args/next: var
+				fc/next: as fn-call! a/next
+				if STRUCT_VALUE?(ltype) [ADD_NODE_FLAGS(var RST_VAR_PTR)]
+				copy-memory as byte-ptr! a as byte-ptr! fc size? fn-call!
+			]
 		]
 		ltype
 	]
@@ -974,7 +980,14 @@ type-checker: context [
 				while [arg <> null][
 					type: as rst-type! pt/value
 					check-expr "Function Call:" arg type ctx
-					if STRUCT_VALUE?(type) [ADD_FN_ATTRS(ft FN_ST_ARG)]
+					if STRUCT_TYPE?(type) [	;-- struct param type
+						either type/header and FLAG_ST_VALUE = 0 [	;-- not a struct value
+							if STRUCT_VALUE?(arg/type) [ADD_NODE_FLAGS(arg RST_VAR_PTR)]
+						][
+							ADD_FN_ATTRS(ft FN_ST_ARG)
+							ADD_NODE_FLAGS(arg RST_VAR_VAL)
+						]
+					]
 					arg: arg/next
 					pt: pt + 1
 				]

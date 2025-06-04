@@ -718,7 +718,7 @@ x86-cdecl: context [
 	float-params: as rs-array! 0
 	float-rets: as rs-array! 0
 
-	_ret-regs: [x86_EAX]
+	_ret-regs: [x86_EAX x86_EDX]
 
 	init: does [
 		param-regs: empty-array
@@ -734,7 +734,7 @@ x86-stdcall: context [
 	float-params: as rs-array! 0
 	float-rets: as rs-array! 0
 
-	_ret-regs: [x86_EAX]
+	_ret-regs: [x86_EAX x86_EDX]
 
 	init: does [
 		param-regs: empty-array
@@ -794,6 +794,7 @@ x86-cc: context [
 			variadic?		[logic!]
 			st-arg?			[logic!]
 			st-ret?			[logic!]
+			st8?			[logic!]
 			fpu?			[logic!]
 	][
 		if fn/cc <> null [return fn/cc]
@@ -805,7 +806,16 @@ x86-cc: context [
 		attr: FN_ATTRS(ft)
 		variadic?: attr and FN_VARIADIC <> 0
 		st-arg?: attr and FN_ST_ARG <> 0
-		st-ret?: STRUCT_VALUE?(ret-ty)
+		st-ret?: no
+		st8?: no
+		if STRUCT_VALUE?(ret-ty) [
+			n: type-size? ret-ty yes
+			case [
+				n = 8 [st8?: yes]
+				n > 8 [st-ret?: yes]
+				true  [0]
+			]
+		]
 		case [
 			attr and FN_CC_STDCALL <> 0 [
 				param-regs: 	x86-stdcall/param-regs
@@ -939,7 +949,8 @@ x86-cc: context [
 
 		;-- location of return value
 		r-spill: 0
-		ret-locs: int-array/make 1
+		n: either st8? [2][1]
+		ret-locs: int-array/make n
 		rloc: as int-ptr! ARRAY_DATA(ret-locs)
 		assert ret-ty <> null
 		either ret-ty <> type-system/void-type [
@@ -983,6 +994,10 @@ x86-cc: context [
 				default [
 					pp: as int-ptr! ARRAY_DATA(ret-regs)
 					rloc/1: pp/value
+					if st8? [
+						pp: pp + 1
+						rloc/2: pp/value
+					]
 				]
 			]
 		][
@@ -1455,6 +1470,8 @@ x86: context [
 			n	[integer!]
 			rt	[rst-type!]
 			fn	[fn!]
+			l	[df-edge!]
+			idx [integer!]
 			n-spilled	 [integer!]
 			fixed-stack? [logic!]
 	][
@@ -1478,7 +1495,18 @@ x86: context [
 
 		rt: cc/ret-type
 		if rt <> type-system/void-type [
-			def-reg-fixed cg i callee-ret cc 0
+			either all [STRUCT_VALUE?(rt) 8 = type-size? rt yes][
+				idx: 1
+				l: i/uses
+				until [
+					def-reg-fixed cg l/src callee-ret cc idx
+					idx: idx - 1
+					l: l/next
+					null? l
+				]
+			][
+				def-reg-fixed cg i callee-ret cc 0
+			]
 		]
 
 		kill cg x86_REG_ALL
@@ -1487,6 +1515,7 @@ x86: context [
 		p: ARRAY_DATA(i/inputs)
 		loop i/inputs/length [
 			e: as df-edge! p/value
+			assert e/dst <> null
 			use-reg-fixed cg e/dst callee-param cc n
 			n: n + 1
 			p: p + 1
@@ -2264,6 +2293,7 @@ x86: context [
 			OP_THROW			[emit-throw cg i]
 			OP_CALL_NATIVE		[emit-call-native cg i]
 			OP_TYPED_VALUE		[emit-typed-value cg i]
+			OP_RET_VALUE		[0]
 			default [
 				dprint ["codegen: unknown op " INSTR_OPCODE(i)]
 			]

@@ -1215,7 +1215,7 @@ backend: context [
 			d		[def!]
 	][
 		v: get-vreg cg i
-		if constraint < cg/reg-set/n-regs [v/hint: constraint]
+		either constraint < cg/reg-set/n-regs [v/hint: constraint][v/hint: 0]
 		d: make-def v constraint
 		vector/append-ptr cg/operands as byte-ptr! d
 		d
@@ -1756,20 +1756,18 @@ backend: context [
 			ty	[rst-type!]
 			p	[ptr-ptr!]
 			d	[def!]
-			lea? [logic!]
+			op	[integer!]
+			st? [logic!]
 			p-idx [int-ptr!]
 	][
 		ft: as fn-type! cg/fn/fn/type
 		p-idx: ft/arg-idx
-		if p-idx <> null [
-			p: ft/param-types
-		]
 		arr: cg/fn/params
 		cnt: arr/length
 		pp: ARRAY_DATA(arr)
 		ty: ft/ret-type
 		n: 0
-		if STRUCT_VALUE?(ty) [
+		if all [STRUCT_VALUE?(ty) 8 < type-size? ty yes][
 			i: as instr! pp/value
 			v: get-vreg cg i
 			idx: caller-param cg/frame/cc 0
@@ -1780,30 +1778,56 @@ backend: context [
 			cnt: cnt - 1
 			if p-idx <> null [p-idx: p-idx + 1]
 		]
-		lea?: no
+		st?: no
+		p: ft/param-types
 		loop cnt [
 			if p-idx <> null [
 				ty: as rst-type! p/value
-				lea?: STRUCT_VALUE?(ty)
+				st?: STRUCT_VALUE?(ty)
 				n: p-idx/value
 				p-idx: p-idx + 1
-				p: p + 1
 			]
 			i: as instr! pp/value
 			;if instr-live? cg i blk [
-			v: get-vreg cg i
 			idx: caller-param cg/frame/cc n
 			d: def-reg-fixed cg i idx
-			either lea? [
-				d/header: d/header or OD_FLAG_LEA
-			][
-				if idx >= cg/reg-set/spill-start [v/spill: idx]
+			if all [not st? idx >= cg/reg-set/spill-start][
+				v: get-vreg cg i
+				v/spill: idx
 			]
 			;]
 			n: n + 1
 			pp: pp + 1
 		]
 		emit-instr cg I_ENTRY
+
+		if p-idx <> null [
+			p-idx: ft/arg-idx
+			cnt: arr/length
+			pp: ARRAY_DATA(arr)
+			p: ft/param-types
+			ty: ft/ret-type
+			if all [STRUCT_VALUE?(ty) 8 < type-size? ty yes][
+				pp: pp + 1
+				cnt: cnt - 1
+				p-idx: p-idx + 1
+			]
+			loop cnt [
+				n: p-idx/value
+				p-idx: p-idx + 1
+				ty: as rst-type! p/value
+				if STRUCT_VALUE?(ty) [
+					i: as instr! pp/value
+					def-reg cg i
+					op: either target/arch = arch-x86 [I_LEAD][I_LEAQ]
+					op: op or AM_REG_OP
+					use-reg-fixed cg i caller-param cg/frame/cc n
+					emit-instr cg op
+				]
+				p: p + 1
+				pp: pp + 1
+			]
+		]
 	]
 
 	process-loop-liveness: func [
