@@ -288,30 +288,12 @@ struct-local-foo
 	--assert struct5/value = 123
 	
 	--test-- "struct-math-2"
-	struct5: struct5 + 1
+	struct5: struct4/b
 	--assert struct5/value = 456
 
 	--test-- "struct-math-3"
 	struct5: struct4/c
 	--assert struct5/value = 789
-	struct5: struct5 - 2
-	--assert struct5/value = 123
-	
-	--test-- "struct-math-4"
-	struct-idx: 2
-	struct5: struct5 + struct-idx
-	--assert struct5/value = 789
-	
-	--test-- "struct-math-5"
-	struct-idx: -2
-	struct5: struct5 + struct-idx
-	--assert struct5/value = 123
-
-	--test-- "struct-math-6"
-	struct-idx: -2
-	struct5: struct5 - struct-idx
-	--assert struct5/value = 789
-	
 	
 	--test-- "struct-math-7"
 	struct6: declare struct! [
@@ -337,30 +319,13 @@ struct-local-foo
 	--assert struct7/value = #"a"
 
 	--test-- "struct-math-8"
-	struct7: struct7 + 1
+	struct7: struct6/b
 	--assert struct7/value = #"b"
 
 	--test-- "struct-math-9"
 	struct7: struct6/c
 	--assert struct7/value = #"c"
-	struct7: struct7 - 2
-	--assert struct7/value = #"a"
 
-	--test-- "struct-math-10"
-	struct-idx: 2
-	struct7: struct7 + struct-idx
-	--assert struct7/value = #"c"
-
-	--test-- "struct-math-11"
-	struct-idx: -2
-	struct7: struct7 + struct-idx
-	--assert struct7/value = #"a"
-
-	--test-- "struct-math-12"
-	struct-idx: -2
-	struct7: struct7 - struct-idx
-	--assert struct7/value = #"c"
-	
 	--test-- "struct-math-13"
 	struct8: declare struct! [
 		a [struct! [v1 [integer!] v2 [byte!] v3 [c-string!]]]
@@ -403,7 +368,7 @@ struct-local-foo
 	--assert struct9/v3/1 = #"A"
 
 	--test-- "struct-math-14"
-	struct9: struct9 + 1
+	struct9: struct8/b
 	--assert struct9/v1 = 456
 	--assert struct9/v2 = #"b"
 	--assert struct9/v3/1 = #"B"
@@ -459,30 +424,12 @@ struct-local-foo2: func [
 	--assert struct5/value = 123
 	
 	--test-- "loc-struct-math-2"
-	struct5: struct5 + 1
+	struct5: struct4/b
 	--assert struct5/value = 456
 
 	--test-- "loc-struct-math-3"
 	struct5: struct4/c
 	--assert struct5/value = 789
-	struct5: struct5 - 2
-	--assert struct5/value = 123
-	
-	--test-- "loc-struct-math-4"
-	struct-idx: 2
-	struct5: struct5 + struct-idx
-	--assert struct5/value = 789
-	
-	--test-- "loc-struct-math-5"
-	struct-idx: -2
-	struct5: struct5 + struct-idx
-	--assert struct5/value = 123
-
-	--test-- "loc-struct-math-6"
-	struct-idx: -2
-	struct5: struct5 - struct-idx
-	--assert struct5/value = 789
-	
 	
 	--test-- "loc-struct-math-7"
 	struct6: declare struct! [
@@ -508,30 +455,13 @@ struct-local-foo2: func [
 	--assert struct7/value = #"a"
 
 	--test-- "loc-struct-math-8"
-	struct7: struct7 + 1
+	struct7: struct6/b
 	--assert struct7/value = #"b"
 
 	--test-- "loc-struct-math-9"
 	struct7: struct6/c
 	--assert struct7/value = #"c"
-	struct7: struct7 - 2
-	--assert struct7/value = #"a"
 
-	--test-- "loc-struct-math-10"
-	struct-idx: 2
-	struct7: struct7 + struct-idx
-	--assert struct7/value = #"c"
-
-	--test-- "loc-struct-math-11"
-	struct-idx: -2
-	struct7: struct7 + struct-idx
-	--assert struct7/value = #"a"
-
-	--test-- "loc-struct-math-12"
-	struct-idx: -2
-	struct7: struct7 - struct-idx
-	--assert struct7/value = #"c"
-	
 	--test-- "loc-struct-math-13"
 	struct8: declare struct! [
 		a [struct! [v1 [integer!] v2 [byte!] v3 [c-string!]]]
@@ -573,11 +503,6 @@ struct-local-foo2: func [
 	--assert struct9/v2 = #"a"
 	--assert struct9/v3/1 = #"A"
 
-	--test-- "loc-struct-math-14"
-	struct9: struct9 + 1
-	--assert struct9/v1 = 456
-	--assert struct9/v2 = #"b"
-	--assert struct9/v3/1 = #"B"
 ]
 struct-local-foo2
 

@@ -917,6 +917,9 @@ type-checker: context [
 				f: as fn! e
 				t: f/type
 			]
+			RST_PATH [
+				t: type-system/int-ptr-type
+			]
 			default [t: as rst-type! g/expr/accept as int-ptr! e checker as int-ptr! ctx]
 		]
 		t: make-ptr-type t

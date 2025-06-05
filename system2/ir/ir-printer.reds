@@ -140,6 +140,7 @@ ir-printer: context [
 				n/id
 				print ["call native " n/id]
 			]
+			OP_RET_VALUE [print "ret-val"]
 			default [
 				print ["unknown op " INSTR_OPCODE(i)]
 			]

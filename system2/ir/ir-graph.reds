@@ -490,7 +490,10 @@ ir-graph: context [
 			lhs	[rst-expr!]
 			rhs	[rst-expr!]
 			val [instr!]
+			ins [instr!]
+			op	[instr-op!]
 			var [variable!]
+			args [array-2! value]
 	][
 		lhs: a/target
 		rhs: a/expr
@@ -501,7 +504,15 @@ ir-graph: context [
 				gen-var-write var/decl val rhs/type ctx
 			]
 			RST_PATH [
-				gen-path-write as path! lhs val ctx
+				either all [STRUCT_VALUE?(rhs/type) NOT_STRUCT_VALUE?(lhs/type)][
+					ins: gen-path-read as path! lhs ctx 0
+					op: make-op OP_SET_FIELD 2 null rhs/type
+					INIT_ARRAY_2(args ins val)
+					op/target: null
+					add-op op as ptr-array! :args ctx
+				][
+					gen-path-write as path! lhs val ctx
+				]
 			]
 			default [0]
 		]
@@ -2371,8 +2382,19 @@ ir-graph: context [
 			ins [instr!]
 			args [array-2! value]
 	][
+		ins: null
 		either LOCAL_VAR?(var) [
-			set-cur-val var/ssa var/type val ctx
+			either STRUCT_VALUE?(vtype) [
+				ins: either NOT_PARAM_VAR?(var) [
+					op: make-op OP_GET_PTR 0 null vtype
+					op/target: as int-ptr! var
+					add-op op null ctx
+				][
+					var/ssa/instr
+				]
+			][
+				set-cur-val var/ssa var/type val ctx
+			]
 		][
 			record-global var
 			either NOT_STRUCT_VALUE?(vtype) [
@@ -2386,11 +2408,13 @@ ir-graph: context [
 				op: make-op OP_GET_GLOBAL 0 null var/type
 				op/target: as int-ptr! var
 				ins: add-op op null ctx
-				op: make-op OP_SET_FIELD 2 null vtype
-				INIT_ARRAY_2(args ins val)
-				op/target: null
-				add-op op as ptr-array! :args ctx
 			]
+		]
+		if ins <> null [
+			op: make-op OP_SET_FIELD 2 null vtype
+			INIT_ARRAY_2(args ins val)
+			op/target: null
+			add-op op as ptr-array! :args ctx
 		]
 		val
 	]
