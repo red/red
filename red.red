@@ -36,7 +36,7 @@ check-rs-runtime: func [/local rt-dir ts-file][
 
 	if all [	;-- delete the older version
 		exists? ts-file
-		system/build/git/date > load ts-file
+		system/build/date > load ts-file
 	][
 		delete-dir rt-dir
 	]
@@ -46,7 +46,7 @@ check-rs-runtime: func [/local rt-dir ts-file][
 		foreach [name data] rs-runtime [
 			write/binary rejoin [rt-dir name] data
 		]
-		write ts-file system/build/git/date
+		write ts-file system/build/date
 	]
 ]
 

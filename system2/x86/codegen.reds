@@ -1617,7 +1617,12 @@ x86: context [
 			]
 			N_GET_CPU_REG
 			N_SET_CPU_REG
-			N_CPU_OVERFLOW
+			N_CPU_OVERFLOW [
+				op: I_SETC or M_FLAG_FIXED
+				id: x86-cond/overflow/index << COND_SHIFT
+				def-reg cg i
+				emit-instr cg op or id
+			]
 			N_IO_READ
 			N_IO_WRITE
 			N_ATOMIC_FENCE

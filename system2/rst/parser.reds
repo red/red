@@ -711,6 +711,8 @@ parser: context [
 			arr: as ptr-ptr! malloc size? int-ptr!
 			arr/value: as int-ptr! integer-type
 			fpu-set-cword: make-native N_FPU_SET_CWORD 1 arr void-type
+
+			cpu-overflow?: make-native N_CPU_OVERFLOW 0 null logic-type
         ]
 	]
 
@@ -2266,8 +2268,17 @@ parser: context [
 				make-native-call pc system-pc null
 			]
 			sym = k_cpu [
-				pc: null
-				0
+				check-pc
+				sym: symbol/resolve w/symbol
+				case [
+					sym = k_overflow? [
+						make-native-call pc cpu-overflow? null
+					]
+					true [
+						pc: null
+						null
+					]
+				]
 			]
 			sym = k_io [
 				pc: null
