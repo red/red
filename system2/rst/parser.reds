@@ -617,8 +617,8 @@ parser: context [
 	stack-push-all: 	as native! 0
 	stack-pop-all:		as native! 0
 	system-pc:			as native! 0
-	get-cup-reg:		as native! 0
-	set-cup-reg:		as native! 0
+	get-cpu-reg:		as native! 0
+	set-cpu-reg:		as native! 0
 	cpu-overflow?:		as native! 0
 	io-write:			as native! 0
 	io-read:			as native! 0
@@ -712,7 +712,16 @@ parser: context [
 			arr/value: as int-ptr! integer-type
 			fpu-set-cword: make-native N_FPU_SET_CWORD 1 arr void-type
 
+			get-cpu-reg: make-native N_GET_CPU_REG 1 arr integer-type
+			arr: as ptr-ptr! malloc 2 * size? int-ptr!
+			set-cpu-reg: make-native N_SET_CPU_REG 2 arr void-type
+			arr/value: as int-ptr! integer-type
+			arr: arr + 1
+			arr/value: as int-ptr! integer-type
+
 			cpu-overflow?: make-native N_CPU_OVERFLOW 0 null logic-type
+			stack-push-all: make-native N_STACK_PUSH_ALL 0 null void-type
+			stack-pop-all: make-native N_STACK_POP_ALL 0 null void-type
         ]
 	]
 
@@ -2246,6 +2255,14 @@ parser: context [
 						args/next/next: make-logic as cell! w z?
 						make-native-call pc stack-allocate args
 					]
+					sym = k_push-all [
+						ctx/dyn-alloc?: yes
+						make-native-call pc stack-push-all null
+					]
+					sym = k_pop-all [
+						ctx/dyn-alloc?: yes
+						make-native-call pc stack-pop-all null
+					]
 					true [
 						pc: null
 						null
@@ -2273,6 +2290,20 @@ parser: context [
 				case [
 					sym = k_overflow? [
 						make-native-call pc cpu-overflow? null
+					]
+					any [
+						sym = k_eax sym = k_ecx sym = k_edx sym = k_ebx
+						sym = k_esp sym = k_ebp sym = k_esi sym = k_edi
+					][
+						either set? [
+							pc: fetch-args pc end :pv ctx 1
+							args: as rst-expr! pv/value
+							f: set-cpu-reg
+						][
+							args: null
+							f: get-cpu-reg
+						]
+						make-native-call as cell! w f args
 					]
 					true [
 						pc: null

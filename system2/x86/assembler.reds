@@ -565,6 +565,18 @@ asm: context [
 		emit-b-m-x FFh m 6 NO_REX
 	]
 
+	pusha: func [][emit-b 60h]
+	popa: func [][emit-b 61h]
+	pushf: func [][emit-b 9Ch]
+	popf: func [][emit-b 9Dh]
+
+	fxsave: func [m [x86-addr!]][
+		emit-bb-m-x 0Fh AEh m 0
+	]
+	fxrstor: func [m [x86-addr!]][
+		emit-bb-m-x 0Fh AEh m 1
+	]
+
 	lea: func [r [integer!] m [x86-addr!]][
 		emit-b-r-m 8Dh r m NO_REX
 	]
@@ -1788,6 +1800,30 @@ assemble-op: func [
 		I_PUSH [
 			n: to-imm as operand! p/value
 			asm/push-i n
+		]
+		I_PUSH_ALL [
+			asm/pusha
+			asm/pushf
+			asm/mov-r-r x86-regs/edi x86-regs/esp
+			asm/and-r-i	x86-regs/esp -16 NO_REX
+			asm/push-r x86-regs/edi
+			asm/sub-r-i x86-regs/esp 524 NO_REX
+			addr/base: x86-regs/esp
+			addr/index: 0
+			addr/scale: 1
+			addr/disp: 0
+			asm/fxsave :addr
+		]
+		I_POP_ALL [
+			addr/base: x86-regs/esp
+			addr/index: 0
+			addr/scale: 1
+			addr/disp: 0
+			asm/fxrstor :addr
+			asm/add-r-i x86-regs/esp 524 NO_REX
+			asm/pop-r x86-regs/esp
+			asm/popf
+			asm/popa
 		]
 		default [0]
 	]

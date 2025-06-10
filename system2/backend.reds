@@ -2213,6 +2213,8 @@ backend: context [
 			I_CVTSD2SID I_CVTSD2SIQ ["cvtsd2si"]
 			I_CVTSI2SSD I_CVTSI2SSQ ["cvtsi2ss"]
 			I_CVTSI2SDD I_CVTSI2SDQ ["cvtsi2sd"]
+			I_PUSH_ALL		["push all"]
+			I_POP_ALL		["pop all"]
 			default 		[probe ["mach op " MACH_OPCODE(i)] "unknown op"]
 		]
 	]

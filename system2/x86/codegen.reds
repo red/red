@@ -1537,6 +1537,23 @@ x86: context [
 		]
 	]
 
+	get-cpu-id: func [
+		sym		[integer!]
+		return: [integer!]
+	][
+		case [
+			sym = parser/k_eax [x86_EAX]
+			sym = parser/k_ecx [x86_ECX]
+			sym = parser/k_edx [x86_EDX]
+			sym = parser/k_ebx [x86_EBX]
+			sym = parser/k_esp [x86_ESP]
+			sym = parser/k_ebp [x86_EBP]
+			sym = parser/k_esi [x86_ESI]
+			sym = parser/k_edi [x86_EDI]
+			true [-1]
+		]
+	]
+
 	emit-call-native: func [
 		cg		[codegen!]
 		i		[instr!]
@@ -1547,6 +1564,8 @@ x86: context [
 			fn	[native!]
 			ii	[instr!]
 			v	[vreg!]
+			c	[instr-const!]
+			int [red-integer!]
 			n id op [integer!]
 	][
 		o: as instr-op! i
@@ -1608,15 +1627,38 @@ x86: context [
 				use-vreg-special cg v x86_EDI
 				emit-instr cg I_SUBD or AM_REG_OP
 			]
-			N_STACK_FREE
-			N_STACK_PUSH_ALL
-			N_STACK_POP_ALL
+			N_STACK_FREE [
+				0
+			]
+			N_STACK_PUSH_ALL [emit-instr cg I_PUSH_ALL or M_FLAG_FIXED]
+			N_STACK_POP_ALL [
+				kill cg x86_REG_ALL
+				emit-instr cg I_POP_ALL or M_FLAG_FIXED
+			]
 			N_PC [
 				def-reg cg i
 				emit-instr cg I_GET_PC
 			]
-			N_GET_CPU_REG
-			N_SET_CPU_REG
+			N_GET_CPU_REG [
+				def-reg cg i
+				c: as instr-const! input0 i		;-- reg
+				int: as red-integer! c/value
+				use-special cg i get-cpu-id int/value
+				emit-instr cg I_MOVD or AM_OP_REG
+			]
+			N_SET_CPU_REG [
+				c: as instr-const! input0 i		;-- reg
+				int: as red-integer! c/value
+				use-special cg i get-cpu-id int/value
+				ii: input1 i					;-- value
+				op: either try-use-imm32 cg ii [
+					I_MOVD or AM_OP_IMM
+				][
+					use-reg cg ii
+					I_MOVD or AM_REG_OP
+				]
+				emit-instr cg op
+			]
 			N_CPU_OVERFLOW [
 				op: I_SETC or M_FLAG_FIXED
 				id: x86-cond/overflow/index << COND_SHIFT

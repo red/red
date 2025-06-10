@@ -1134,14 +1134,27 @@ ir-graph: context [
 			arr [ptr-array!]
 			p	[ptr-ptr!]
 			arg [rst-expr!]
+			id	[integer!]
+			w	[red-word!]
+			int [red-integer!]
 	][
 		fn: nc/native
+		id: fn/id
 		np: fn/n-params
 		op: make-op OP_CALL_NATIVE np fn/param-types fn/ret-type
 		op/target: as int-ptr! fn
 
 		arr: ptr-array/make np
 		p: ARRAY_DATA(arr)
+		if any [id = N_GET_CPU_REG id = N_SET_CPU_REG][
+			w: as red-word! nc/token
+			id: symbol/resolve w/symbol
+			int: as red-integer! nc/token
+			int/header: TYPE_INTEGER
+			int/value: id
+			p/value: as int-ptr! const-int int ctx/graph
+			p: p + 1
+		]
 		if nc/args <> null [
 			arg: nc/args/next
 			while [arg <> null][
