@@ -1864,6 +1864,18 @@ assemble-op: func [
 				add-r-r esp edi NO_REX
 			]
 		]
+		I_STACK_ALIGN [
+			loc: to-loc as operand! p/value
+			with [asm x86-regs][
+				either target/gpr-reg? loc [
+					asm/movd-r-r loc esp
+				][
+					loc-to-addr loc :addr cg/frame cg/reg-set
+					asm/movd-m-r :addr esp
+				]
+				and-r-i esp -16 NO_REX
+			]
+		]
 		default [0]
 	]
 ]

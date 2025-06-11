@@ -698,6 +698,8 @@ parser: context [
 	        get-stack-frame: make-native N_GET_STACK_FRAME 0 null int-ptr-type
 	        set-stack-frame: make-native N_SET_STACK_FRAME 1 arr int-ptr-type
 
+			stack-align: make-native N_STACK_ALIGN 0 null int-ptr-type
+
 	        arr: as ptr-ptr! malloc 2 * size? int-ptr!
 	        stack-allocate: make-native N_STACK_ALLOC 2 arr int-ptr-type
 	        stack-free: make-native N_STACK_FREE 1 arr void-type
@@ -2263,6 +2265,10 @@ parser: context [
 						ctx/dyn-alloc?: yes
 						pc: fetch-args pc end :pv ctx 1
 						make-native-call path stack-free as rst-expr! pv/value
+					]
+					sym = k_align [
+						ctx/dyn-alloc?: yes
+						make-native-call path stack-align null
 					]
 					sym = k_push-all [
 						ctx/dyn-alloc?: yes

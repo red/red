@@ -1596,7 +1596,7 @@ x86: context [
 			]
 			N_SET_STACK_TOP
 			N_SET_STACK_FRAME [
-				n: either id = N_GET_STACK_TOP [x86_ESP][x86_EBP]
+				n: either id = N_SET_STACK_TOP [x86_ESP][x86_EBP]
 				use-special cg i n
 				ii: input0 i
 				op: either try-use-imm32 cg ii [
@@ -1607,7 +1607,6 @@ x86: context [
 				]
 				emit-instr cg op
 			]
-			N_STACK_ALIGN [0]
 			N_STACK_ALLOC [
 				def-reg cg i
 				kill cg x86_EAX
@@ -1622,6 +1621,10 @@ x86: context [
 				c: as instr-const! input0 i
 				use-imm cg c/value
 				emit-instr cg I_STACK_FREE
+			]
+			N_STACK_ALIGN [
+				def-reg cg i
+				emit-instr cg I_STACK_ALIGN
 			]
 			N_STACK_PUSH_ALL [emit-instr cg I_PUSH_ALL or M_FLAG_FIXED]
 			N_STACK_POP_ALL [
