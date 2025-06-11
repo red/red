@@ -1566,6 +1566,7 @@ x86: context [
 			v	[vreg!]
 			c	[instr-const!]
 			int [red-integer!]
+			b	[red-logic!]
 			n id op [integer!]
 	][
 		o: as instr-op! i
@@ -1608,27 +1609,19 @@ x86: context [
 			]
 			N_STACK_ALIGN [0]
 			N_STACK_ALLOC [
-				v: make-tmp-vreg cg type-system/integer-type
-				use-vreg-special cg v x86_EDI
-				ii: input0 i
-				op: either try-use-imm32 cg ii [
-					I_MOVD or AM_OP_IMM
-				][
-					use-reg cg ii
-					I_MOVD or AM_REG_OP
-				]
-				emit-instr cg op
-
-				use-vreg-special cg v x86_EDI
-				use-imm-int cg 2
-				emit-instr cg I_SHLD or AM_OP_IMM
-
-				use-special cg i x86_ESP
-				use-vreg-special cg v x86_EDI
-				emit-instr cg I_SUBD or AM_REG_OP
+				def-reg cg i
+				kill cg x86_EAX
+				kill cg x86_ECX
+				c: as instr-const! input0 i		;-- size
+				use-imm cg c/value
+				c: as instr-const! input1 i		;-- /zero
+				use-imm cg c/value
+				emit-instr cg I_STACK_ALLOC
 			]
 			N_STACK_FREE [
-				0
+				c: as instr-const! input0 i
+				use-imm cg c/value
+				emit-instr cg I_STACK_FREE
 			]
 			N_STACK_PUSH_ALL [emit-instr cg I_PUSH_ALL or M_FLAG_FIXED]
 			N_STACK_POP_ALL [

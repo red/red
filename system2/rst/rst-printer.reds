@@ -178,32 +178,7 @@ rst-printer: context [
 	]
 
 	visit-native-call: func [n [native-call!] i [integer!]][
-		do-i i switch n/native/id [
-			N_PUSH [print "push"]
-			N_POP [print "pop"]
-			N_LOG_B [0]
-			N_GET_STACK_TOP [print "get stack/top"]
-			N_GET_STACK_FRAME [print "get stack/frame"]
-			N_SET_STACK_TOP [print "set stack/top"]
-			N_SET_STACK_FRAME [print "set stack/frame"]
-			N_STACK_ALIGN [0]
-			N_STACK_ALLOC
-			N_STACK_FREE
-			N_STACK_PUSH_ALL
-			N_STACK_POP_ALL
-			N_PC
-			N_GET_CPU_REG
-			N_SET_CPU_REG
-			N_CPU_OVERFLOW
-			N_IO_READ
-			N_IO_WRITE
-			N_ATOMIC_FENCE
-			N_ATOMIC_LOAD
-			N_ATOMIC_STORE
-			N_ATOMIC_CAS
-			N_ATOMIC_BIN_OP [0]
-			default [0]
-		]
+		do-i i prin-token n/token
 	]
 
 	visit-assert: func [r [rst-stmt!] i [integer!]][

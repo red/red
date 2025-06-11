@@ -296,6 +296,8 @@ instr-flags: [
 #define I_DATA_PTR		84h
 #define I_PUSH_ALL		85h
 #define I_POP_ALL		86h
+#define I_STACK_ALLOC	87h
+#define I_STACK_FREE	88h
 
 #define I_W_DIFF		10h		;-- I_ADDQ - I_ADDD
 

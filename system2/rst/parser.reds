@@ -700,6 +700,7 @@ parser: context [
 
 	        arr: as ptr-ptr! malloc 2 * size? int-ptr!
 	        stack-allocate: make-native N_STACK_ALLOC 2 arr int-ptr-type
+	        stack-free: make-native N_STACK_FREE 1 arr void-type
 			arr/value: as int-ptr! integer-type		;-- slots
 			arr: arr + 1
 			arr/value: as int-ptr! logic-type		;-- /zero
@@ -2184,6 +2185,7 @@ parser: context [
 			ty sym	[integer!]
 			w		[red-word!]
 			set? 	[logic!]
+			path	[cell!]
 			val		[cell!]
 			s-tail	[cell!]
 			f		[native!]
@@ -2200,6 +2202,7 @@ parser: context [
 		]
 		ty: TYPE_OF(pc)
 		if ty = TYPE_GET_PATH [return null]
+		path: pc
 		set?: ty = TYPE_SET_PATH
 		val: block/rs-head as red-block! pc
 		s-tail: block/rs-tail as red-block! pc
@@ -2224,7 +2227,7 @@ parser: context [
 							args: null
 							f: get-stack-top
 						]
-						make-native-call pc f args
+						make-native-call path f args
 					]
 					sym = k_frame [
 						either set? [
@@ -2235,14 +2238,14 @@ parser: context [
 							args: null
 							f: get-stack-frame
 						]
-						make-native-call pc f args
+						make-native-call path f args
 					]
 					sym = k_allocate [
 						if set? [return null]
-						w: as red-word! val + 1
 						z?: no
-						if (as cell! w) < s-tail [
-							val: as cell! w
+						if (val + 1) < s-tail [
+							val: val + 1
+							w: as red-word! val
 							either all [T_WORD?(w) k_zero = symbol/resolve w/symbol][
 								z?: yes
 							][
@@ -2253,15 +2256,21 @@ parser: context [
 						pc: fetch-args pc end :pv ctx 1
 						args: as rst-expr! pv/value
 						args/next/next: make-logic as cell! w z?
-						make-native-call pc stack-allocate args
+						make-native-call path stack-allocate args
+					]
+					sym = k_free [
+						if set? [return null]
+						ctx/dyn-alloc?: yes
+						pc: fetch-args pc end :pv ctx 1
+						make-native-call path stack-free as rst-expr! pv/value
 					]
 					sym = k_push-all [
 						ctx/dyn-alloc?: yes
-						make-native-call pc stack-push-all null
+						make-native-call path stack-push-all null
 					]
 					sym = k_pop-all [
 						ctx/dyn-alloc?: yes
-						make-native-call pc stack-pop-all null
+						make-native-call path stack-pop-all null
 					]
 					true [
 						pc: null
@@ -2331,7 +2340,7 @@ parser: context [
 							args: null
 							f: fpu-get-cword
 						]
-						make-native-call pc f args
+						make-native-call path f args
 					]
 					true [
 						pc: null

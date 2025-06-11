@@ -570,6 +570,8 @@ asm: context [
 	pushf: func [][emit-b 9Ch]
 	popf: func [][emit-b 9Dh]
 
+	rep-stosd: func [][emit-bb F3h ABh]
+
 	fxsave: func [m [x86-addr!]][
 		emit-bb-m-x 0Fh AEh m 0
 	]
@@ -1598,6 +1600,7 @@ assemble-op: func [
 		l	[label!]
 		lvp [livepoint!]
 		c n [integer!]
+		z?	[logic!]
 		f	[operand!]
 		val [val!]
 		o	[instr-op!]
@@ -1824,6 +1827,42 @@ assemble-op: func [
 			asm/pop-r x86-regs/esp
 			asm/popf
 			asm/popa
+		]
+		I_STACK_ALLOC [
+			loc: to-loc as operand! p/value
+			p: p + 3	;-- size
+			n: to-imm as operand! p/value
+			p: p + 1	;-- /zero
+			z?: as logic! to-imm as operand! p/value
+			with [asm x86-regs][
+				mov-r-i eax n
+				if z? [mov-r-r ecx eax]
+				shl-r-i eax 2 NO_REX
+				sub-r-r esp eax NO_REX
+				and-r-i esp -4 NO_REX
+				if z? [
+					mov-r-r edi esp
+					xor-r-r eax eax NO_REX
+					rep-stosd
+				]
+				either target/gpr-reg? loc [
+					asm/movd-r-r loc esp
+				][
+					loc-to-addr loc :addr cg/frame cg/reg-set
+					asm/movd-m-r :addr esp
+				]
+			]
+		]
+		I_STACK_FREE [
+			n: to-imm as operand! p/value
+			with [asm x86-regs][
+				mov-r-i edi n
+				shl-r-i edi 2 NO_REX
+				neg-r edi NO_REX
+				and-r-i edi -4 NO_REX
+				neg-r edi NO_REX
+				add-r-r esp edi NO_REX
+			]
 		]
 		default [0]
 	]
