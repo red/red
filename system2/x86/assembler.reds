@@ -660,6 +660,14 @@ asm: context [
 		emit-offset addr 2
 	]
 
+	bsr-r-r: func [r1 [integer!] r2 [integer!]][
+		emit-bb-rr 0Fh BDh r1 r2 rex-byte
+	]
+
+	bsr-r-m: func [r [integer!] m [x86-addr!]][
+		emit-bb-rm 0Fh BDh r m rex-byte
+	]
+
 	mov-r-r: func [
 		r1		[integer!]	;-- dst
 		r2		[integer!]	;-- src
@@ -1942,6 +1950,7 @@ assemble-r-r: func [
 		I_MULD [asm/imul-r-r a b NO_REX]
 		I_CDQ  [asm/cdq]
 		I_CQO  [asm/cqo]
+		I_BSR  [asm/bsr-r-r a b]
 		default [0]
 	]
 ]
@@ -1975,6 +1984,7 @@ assemble-r-m: func [
 		I_CVTSD2SID [asm/cvtsd2si-r-m a m NO_REX]
 		I_MOVSS		[asm/movd-r-m a m]
 		I_MOVSD		[asm/movq-r-m a m]
+		I_BSR		[asm/bsr-r-m a m]
 		default [0]
 	]
 ]

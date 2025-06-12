@@ -1272,6 +1272,15 @@ x86: context [
 		]
 	]
 
+	emit-log-b: func [
+		cg		[codegen!]
+		i		[instr!]
+	][
+		def-reg cg i
+		use-reg cg input0 i
+		emit-instr cg I_BSR or AM_REG_OP
+	]
+
 	emit-mov: func [
 		cg		[codegen!]
 		i		[instr!]
@@ -1586,7 +1595,9 @@ x86: context [
 				def-reg cg i
 				emit-instr cg I_POP
 			]
-			N_LOG_B [0]
+			N_LOG_B [
+				emit-log-b cg i
+			]
 			N_GET_STACK_TOP
 			N_GET_STACK_FRAME [
 				def-reg cg i
