@@ -668,6 +668,8 @@ asm: context [
 		emit-bb-rm 0Fh BDh r m rex-byte
 	]
 
+	mfence: func [][emit-bbb 0Fh AEh F0h]
+
 	mov-r-r: func [
 		r1		[integer!]	;-- dst
 		r2		[integer!]	;-- src
@@ -1061,6 +1063,29 @@ asm: context [
 	][
 		emit-b-m-x 80h m 7 NO_REX
 		emit-b imm
+	]
+
+	cmpxchgb-r-r: func [r1 [integer!] r2 [integer!] /local rex [integer!]][
+		rex: either any [r1 > 4 r2 > 4][REX_BYTE][NO_REX]
+		emit-bb-rr 0Fh B0h r1 r2 rex
+	]
+	cmpxchgw-r-r: func [r1 [integer!] r2 [integer!]][
+		emit-b PREFIX_W
+		emit-bb-rr 0Fh B1h r1 r2 NO_REX
+	]
+	cmpxchg-r-r: func [r1 [integer!] r2 [integer!]][
+		emit-bb-rr 0Fh B1h r1 r2 REX_BYTE
+	]
+	cmpxchgb-m-r: func [m [x86-addr!] r [integer!] /local rex [integer!]][
+		rex: either r > 4 [REX_BYTE][NO_REX]
+		emit-bb-rm 0Fh B0h r m rex
+	]
+	cmpxchgw-m-r: func [m [x86-addr!] r [integer!]][
+		emit-b PREFIX_W
+		emit-bb-rm 0Fh B1h r m NO_REX
+	]
+	cmpxchg-m-r: func [m [x86-addr!] r [integer!]][
+		emit-bb-rm 0Fh B1h r m REX_BYTE
 	]
 
 	btr-r-i: func [r [integer!] i [integer!] rex [integer!]][
@@ -1884,6 +1909,7 @@ assemble-op: func [
 				and-r-i esp -16 NO_REX
 			]
 		]
+		I_MFENCE [asm/mfence]
 		default [0]
 	]
 ]
@@ -2056,6 +2082,10 @@ assemble-m-r: func [
 		I_XORD [asm/xor-m-r m a NO_REX]
 		I_CMPD [asm/cmp-m-r m a NO_REX]
 		I_CMPB [asm/cmpb-m-r m a]
+		I_CMPXCHG8  [asm/cmpxchgb-m-r m a]
+		I_CMPXCHG16 [asm/cmpxchgw-m-r m a]
+		I_CMPXCHG32 [asm/cmpxchg-m-r m a]
+		I_CMPXCHG64 [asm/cmpxchg-m-r m a]
 		default [0]
 	]
 ]

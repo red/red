@@ -147,7 +147,11 @@ keyword-fn!: alias function! [KEYWORD_FN_SPEC]
 	N_ATOMIC_LOAD
 	N_ATOMIC_STORE
 	N_ATOMIC_CAS
-	N_ATOMIC_BIN_OP
+	N_ATOMIC_ADD
+	N_ATOMIC_SUB
+	N_ATOMIC_OR
+	N_ATOMIC_XOR
+	N_ATOMIC_AND
 	N_FPU_UPDATE
 	N_FPU_GET_CWORD
 	N_FPU_SET_CWORD
@@ -626,12 +630,16 @@ parser: context [
 	atomic-load:		as native! 0
 	atomic-store:		as native! 0
 	atomic-cas:			as native! 0
-	atomic-bin-op:		as native! 0
+	atomic-add:			as native! 0
+	atomic-sub:			as native! 0
+	atomic-or:			as native! 0
+	atomic-xor:			as native! 0
+	atomic-and:			as native! 0
 	fpu-update:			as native! 0
 	fpu-get-cword:		as native! 0
 	fpu-set-cword:		as native! 0
 
-	init: func [/local arr [ptr-ptr!]][
+	init: func [/local arr p [ptr-ptr!]][
 		keywords: hashmap/make 300
 		infix-Ops: hashmap/make 100
 		hashmap/put infix-Ops k_+			as int-ptr! RST_OP_ADD
@@ -725,6 +733,22 @@ parser: context [
 			cpu-overflow?: make-native N_CPU_OVERFLOW 0 null logic-type
 			stack-push-all: make-native N_STACK_PUSH_ALL 0 null void-type
 			stack-pop-all: make-native N_STACK_POP_ALL 0 null void-type
+
+	        arr: as ptr-ptr! malloc 3 * size? int-ptr!
+			arr/value: as int-ptr! int-ptr-type
+			p: arr + 1
+			p/value: as int-ptr! integer-type
+			p: p + 1
+			p/value: as int-ptr! integer-type
+			atomic-fence: make-native N_ATOMIC_FENCE 0 null void-type
+			atomic-load: make-native N_ATOMIC_LOAD 1 arr integer-type
+			atomic-store: make-native N_ATOMIC_STORE 2 arr void-type
+			atomic-cas: make-native N_ATOMIC_CAS 3 arr logic-type
+			atomic-add: make-native N_ATOMIC_ADD 3 arr integer-type
+			atomic-sub: make-native N_ATOMIC_SUB 3 arr integer-type
+			atomic-or:  make-native N_ATOMIC_OR  3 arr integer-type
+			atomic-xor: make-native N_ATOMIC_XOR 3 arr integer-type
+			atomic-and: make-native N_ATOMIC_AND 3 arr integer-type
         ]
 	]
 
@@ -2193,7 +2217,7 @@ parser: context [
 			f		[native!]
 			pv		[ptr-value!]
 			args	[rst-expr!]
-			z?		[logic!]
+			z? old?	[logic!]
 			check-pc [subroutine!]
 	][
 		check-pc: [
@@ -2285,8 +2309,52 @@ parser: context [
 				]
 			]
 			sym = k_atomic [
-				pc: null
-				0
+				check-pc
+				sym: symbol/resolve w/symbol
+				case [
+					sym = k_load [
+						pc: fetch-args pc end :pv ctx 1
+						make-native-call path atomic-load as rst-expr! pv/value
+					]
+					sym = k_store [
+						pc: fetch-args pc end :pv ctx 2
+						make-native-call path atomic-store as rst-expr! pv/value
+					]
+					sym = k_cas [
+						pc: fetch-args pc end :pv ctx 3
+						make-native-call path atomic-cas as rst-expr! pv/value
+					]
+					sym = k_fence [make-native-call path atomic-fence null]
+					true [
+						f: case [
+							sym = k_add [atomic-add]
+							sym = k_sub [atomic-sub]
+							sym = k_or  [atomic-or]
+							sym = k_xor [atomic-xor]
+							sym = k_and [atomic-and]
+							true [null]
+						]
+						either f <> null [
+							old?: no
+							if (val + 1) < s-tail [
+								val: val + 1
+								w: as red-word! val
+								either all [T_WORD?(w) k_old = symbol/resolve w/symbol][
+									old?: yes
+								][
+									return null
+								]
+							]
+							pc: fetch-args pc end :pv ctx 2
+							args: as rst-expr! pv/value
+							args/next/next/next: make-logic as cell! w old?
+							make-native-call path f args
+						][
+							pc: null
+							null
+						]
+					]
+				]
 			]
 			sym = k_words [
 				pc: null

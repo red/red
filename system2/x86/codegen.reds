@@ -24,11 +24,12 @@ Red/System [
 #define x86_GPR			17
 #define x86_BYTE		18
 #define x86_EAX_EDX		19
-#define x86_NOT_EAX_EDX 20
-#define x86_NOT_ECX		21
-#define x86_CLS_GPR		22
-#define x86_CLS_SSE		23
-#define x86_REG_ALL		24
+#define x86_NOT_EAX		20
+#define x86_NOT_EAX_EDX 21
+#define x86_NOT_ECX		22
+#define x86_CLS_GPR		23
+#define x86_CLS_SSE		24
+#define x86_REG_ALL		25
 #define x86_SCRATCH		x86_EDI
 #define SSE_SCRATCH		x86_XMM7
 
@@ -627,6 +628,7 @@ x86-reg-set: context [
 		x86_EAX x86_EBX x86_ECX x86_EDX x86_ESI
 		x86_XMM0 x86_XMM1 x86_XMM2 x86_XMM3 x86_XMM4 x86_XMM5 x86_XMM6
 	]
+	a22: [x86_EDX x86_EBX x86_ECX x86_ESI]
 
 	_gpr-reg?: func [
 		r		[integer!]
@@ -673,6 +675,7 @@ x86-reg-set: context [
 		ADD_REG_SET(x86_CLS_GPR		a19)
 		ADD_REG_SET(x86_CLS_SSE		a20)
 		ADD_REG_SET(x86_REG_ALL		a21)
+		ADD_REG_SET(x86_NOT_EAX		a22)
 
         pa: p + x86_SCRATCH
         pa/value: as int-ptr! empty-array
@@ -1674,11 +1677,14 @@ x86: context [
 			]
 			N_IO_READ
 			N_IO_WRITE
-			N_ATOMIC_FENCE
-			N_ATOMIC_LOAD
-			N_ATOMIC_STORE
-			N_ATOMIC_CAS
-			N_ATOMIC_BIN_OP [0]
+			N_ATOMIC_FENCE [emit-instr cg I_MFENCE]
+			N_ATOMIC_LOAD [emit-ptr-load cg i]
+			N_ATOMIC_STORE [
+				emit-ptr-store cg i
+				emit-instr cg I_MFENCE
+			]
+			N_ATOMIC_CAS [emit-cmpswp cg i]
+			N_ATOMIC_ADD [0]
 			default [0]
 		]
 	]
@@ -2045,6 +2051,21 @@ x86: context [
 		use-imm cg addr/disp
 	]
 
+	do-rrsd-fixed: func [
+		cg			[codegen!]
+		addr		[rrsd!]
+		constrain	[integer!]
+	][
+		either null? addr/base [use-imm-int cg 0][
+			use-reg-fixed cg addr/base constrain
+		]
+		either null? addr/index [use-imm-int cg 0][
+			use-reg cg addr/index constrain
+		]
+		use-imm-int cg addr/scale
+		use-imm cg addr/disp
+	]
+
 	emit-ptr-load: func [
 		cg		[codegen!]
 		i		[instr!]
@@ -2122,6 +2143,23 @@ x86: context [
 			use-reg cg val
 		]
 		emit-instr cg op
+	]
+
+	emit-cmpswp: func [
+		cg		[codegen!]
+		i		[instr!]
+		/local
+			cond [integer!]
+			addr [rrsd! value]
+	][
+		match-rrsd cg input0 i :addr
+		do-rrsd-fixed cg :addr x86_NOT_EAX
+		use-reg-fixed cg instr-input i 2 x86_NOT_EAX	;-- new value
+		use-reg-fixed cg input1 i x86_EAX				;-- old value in eax
+		emit-instr cg I_CMPXCHG32 or AM_RRSD_REG
+		def-reg cg i
+		cond: x86-cond/zero/index << COND_SHIFT
+		emit-instr cg I_SETC or M_FLAG_FIXED or cond
 	]
 
 	emit-get-ptr: func [
