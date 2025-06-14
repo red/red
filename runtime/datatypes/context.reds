@@ -410,8 +410,12 @@ _context: context [
 			cell/symbols: _hashtable/init slots as red-block! proto HASH_TABLE_SYMBOL HASH_SYMBOL_CONTEXT
 			cell/header: TYPE_CONTEXT or flag-series-stk
 		][
-			vals: alloc-unset-cells slots	;@@ keep it on native stack, so it can be marked by the GC
-			cell/symbols: _hashtable/init slots as red-block! proto HASH_TABLE_SYMBOL HASH_SYMBOL_CONTEXT
+			vals: alloc-unset-cells slots				;@@ keep it on native stack, so it can be marked by the GC
+			either type = CONTEXT_CLASS [
+				type: CONTEXT_OBJECT					;@@ Redbin only knows objects, not classes for now
+			][
+				cell/symbols: _hashtable/init slots as red-block! proto HASH_TABLE_SYMBOL HASH_SYMBOL_CONTEXT
+			]
 			cell/values: vals
 			cell/header: TYPE_CONTEXT
 		]

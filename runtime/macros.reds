@@ -257,6 +257,7 @@ Red/System [
 	NAT_RECYCLE
 	NAT_TRANSCODE
 	NAT_APPLY
+	NAT_SPAWN
 ]
 
 #enum math-op! [

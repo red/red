@@ -383,6 +383,7 @@
 	red/natives/transcode*
 	red/natives/as-money*
 	red/natives/apply*
+	red/natives/spawn*
 	red/natives/as-point2D*
 	red/natives/as-point3D*
 

@@ -987,6 +987,7 @@ object: context [
 		deep?	 [logic!]
 		types	 [red-value!]
 		evt-rst? [logic!]								;-- TRUE: reset events
+		share?	 [logic!]
 		return:	 [red-object!]
 		/local
 			ctx	  [red-context!]
@@ -999,6 +1000,7 @@ object: context [
 			size  [integer!]
 			slots [integer!]
 			type  [integer!]
+			otype [integer!]
 			sym	  [red-word!]
 			w-ctx [node!]
 	][
@@ -1008,13 +1010,15 @@ object: context [
 		slots:	size >> 4
 
 		type: TYPE_OF(obj)								;-- object!, error!, port!,...
+		otype: either share? [CONTEXT_CLASS][CONTEXT_OBJECT]
 		new/header: TYPE_UNSET
-		new/ctx: _context/create slots no yes ctx CONTEXT_OBJECT
+		new/ctx: _context/create slots no yes ctx otype
 		new/class: obj/class
 		either evt-rst? [new/on-set: null][new/on-set: obj/on-set]
 		new/header: type
 
 		nctx: GET_CTX(new)
+		if share? [nctx/symbols: ctx/symbols]
 		copy-cell as red-value! new as red-value! nctx + 1	;-- set back-reference
 
 		if size <= 0 [return new]						;-- empty object!
@@ -1098,12 +1102,11 @@ object: context [
 		copy-cell as red-value! obj as red-value! ctx + 1
 	]
 	
-	;-- Actions --
-	
-	make: func [
+	do-make: func [
 		proto	[red-object!]
 		spec	[red-value!]
 		type	[integer!]
+		share?	[logic!]
 		return:	[red-object!]
 		/local
 			obj		[red-object!]
@@ -1121,7 +1124,7 @@ object: context [
 		p-obj?: TYPE_OF(proto) = TYPE_OBJECT
 		
 		either p-obj? [
-			do-copy proto obj yes null no				;-- /deep and keep events
+			do-copy proto obj yes null no share?		;-- /deep and keep events
 		][
 			make-at obj 4								;-- arbitrary value
 		]
@@ -1135,7 +1138,7 @@ object: context [
 			]
 			TYPE_BLOCK [
 				blk: as red-block! spec
-				new?: _context/collect-set-words ctx blk
+				new?: either share? [no][_context/collect-set-words ctx blk]
 				_context/bind blk ctx yes				;-- bind spec block
 				if p-obj? [clone-series proto/ctx obj/ctx no] ;-- clone and rebind proto's series
 				
@@ -1149,6 +1152,18 @@ object: context [
 			default [fire [TO_ERROR(syntax malconstruct) spec]]
 		]
 		obj
+	]
+	
+	;-- Actions --
+	
+	make: func [
+		proto	[red-object!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-object!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "object/make"]]
+		do-make proto spec type no
 	]
 	
 	reflect: func [
@@ -1360,7 +1375,7 @@ object: context [
 			tail   [red-word!]
 			value1 [red-value!]
 			value2 [red-value!]
-			s	   [series!]
+			sw1 s  [series!]
 			diff   [integer!]
 			s1	   [integer!]
 			s2	   [integer!]
@@ -1381,9 +1396,9 @@ object: context [
 		]
 
 		ctx1: GET_CTX(obj1)
-		s: _hashtable/get-ctx-words ctx1
-		sym1: as red-word! s/offset
-		tail: as red-word! s/tail
+		sw1: _hashtable/get-ctx-words ctx1
+		sym1: as red-word! sw1/offset
+		tail: as red-word! sw1/tail
 		
 		ctx2: GET_CTX(obj2)
 		s: _hashtable/get-ctx-words ctx2
@@ -1393,6 +1408,8 @@ object: context [
 			return either positive? diff [-1][1]
 		]	
 		if sym1 = tail [return 0]						;-- empty objects case
+		
+		if op = COMP_STRICT_EQUAL [either sw1 = s [return 0][return -1]]
 		
 		sym2: as red-word! s/offset
 		s: as series! ctx1/values/value
@@ -1450,7 +1467,7 @@ object: context [
 		]
 		if OPTION?(types) [--NOT_IMPLEMENTED--]
 
-		do-copy obj new deep? types yes
+		do-copy obj new deep? types yes no
 	]
 	
 	select: func [

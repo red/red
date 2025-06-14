@@ -990,3 +990,11 @@ apply: make native! [[
 	]
 	#get-definition NAT_APPLY
 ]
+
+spawn: make native! [[
+		"Instantiate a new object from prototype, sharing the same class"
+		class 	[object!]
+		spec	[block!]
+	]
+	#get-definition NAT_SPAWN
+]

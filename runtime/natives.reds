@@ -3145,6 +3145,11 @@ natives: context [
 			mode
 			no
 	]
+	
+	spawn*: func [check? [logic!]][
+		#typecheck spawn
+		stack/set-last as red-value! object/do-make as red-object! stack/arguments stack/arguments + 1 TYPE_OBJECT yes
+	]
 
 	;--- Natives helper functions ---
 	
@@ -3854,6 +3859,7 @@ natives: context [
 			:recycle*
 			:transcode*
 			:apply*
+			:spawn*
 		]
 	]
 

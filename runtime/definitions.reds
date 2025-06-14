@@ -74,6 +74,7 @@ Red/System [
 	CONTEXT_GLOBAL							;-- global context value is 0 (no need to set it then)
 	CONTEXT_FUNCTION						;-- do not change those values! (used in %utils/redbin.r)
 	CONTEXT_OBJECT
+	CONTEXT_CLASS
 ]
 
 #enum cb-class! [							;-- internal callbacks classes used by _function/call
