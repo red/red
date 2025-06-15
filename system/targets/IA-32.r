@@ -595,7 +595,7 @@ make-profilable make target-class [
 				emit #{8B06}						;-- MOV eax, [esi]
 													;-- .loop:
 				emit #{89C1}						;--   MOV ecx, eax
-				unless old? [emit #{89C2}]			;--   [MOV edx, eax]  ; only for old?
+				if old? [emit #{89C2}]				;--   [MOV edx, eax]  ; only for old?
 				switch op [
 					or  [emit #{09F9}]				;--   OR  ecx, edi
 					xor [emit #{31F9}]				;--   XOR ecx, edi
