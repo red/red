@@ -1579,6 +1579,7 @@ x86: context [
 			c	[instr-const!]
 			int [red-integer!]
 			b	[red-logic!]
+			addr	[rrsd! value]
 			n id op [integer!]
 	][
 		o: as instr-op! i
@@ -1676,7 +1677,7 @@ x86: context [
 				emit-instr cg op or id
 			]
 			N_IO_READ
-			N_IO_WRITE
+			N_IO_WRITE [0]
 			N_ATOMIC_FENCE [emit-instr cg I_MFENCE]
 			N_ATOMIC_LOAD [emit-ptr-load cg i]
 			N_ATOMIC_STORE [
@@ -1684,7 +1685,26 @@ x86: context [
 				emit-instr cg I_MFENCE
 			]
 			N_ATOMIC_CAS [emit-cmpswp cg i]
-			N_ATOMIC_ADD [0]
+			N_ATOMIC_ADD N_ATOMIC_SUB N_ATOMIC_OR N_ATOMIC_XOR N_ATOMIC_AND [
+				either INSTR_ASSIGN?(i) [
+					def-reg-fixed cg i x86_EAX
+					kill cg x86_NOT_EAX
+					use-imm-int cg id
+					c: as instr-const! instr-input i 2	;-- old?
+					use-imm cg c/value
+					n: x86_ESI
+				][
+					use-imm-int cg id
+					n: x86_CLS_GPR
+				]
+				match-rrsd cg input0 i :addr
+				do-rrsd-fixed cg :addr n
+				ii: input1 i
+				unless try-use-imm32 cg ii [
+					use-reg cg ii
+				]
+				emit-instr cg I_ATOMIC_MATH
+			]
 			default [0]
 		]
 	]

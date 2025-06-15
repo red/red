@@ -117,6 +117,7 @@ Red/System [
 	F_ZERO:			0200h	;-- zero value
 	F_GET_PTR:		0400h
 	F_RET_STRUCT:	0800h
+	F_ASSIGN?:		1000h
 ]
 
 #define F_PF		21h		;-- F_INS_PURE or F_FOLDABLE
@@ -301,6 +302,7 @@ instr-flags: [
 #define I_STACK_ALIGN	89h
 #define I_BSR			90h
 #define I_MFENCE		91h
+#define I_ATOMIC_MATH	92h
 
 #define I_W_DIFF		10h		;-- I_ADDQ - I_ADDD
 

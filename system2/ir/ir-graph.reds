@@ -31,6 +31,7 @@ Red/System [
 #define INSTR_NOT_PURE?(i) (i/header >> 8 and F_INS_PURE = 0)
 #define INSTR_KILLED?(i) (i/header >> 8 and F_INS_KILLED <> 0)
 #define INSTR_END?(i) (i/header >>> 8 and F_INS_END <> 0)
+#define INSTR_ASSIGN?(i) (i/header >> 8 and F_ASSIGN? <> 0)
 #define INSTR_PHI?(i) (i/header and FFh = INS_PHI)
 #define INSTR_CONST?(i) (i/header and FFh = INS_CONST)
 #define INSTR_OP?(i) (i/header and FFh >= OP_BOOL_EQ)
@@ -498,6 +499,7 @@ ir-graph: context [
 		lhs: a/target
 		rhs: a/expr
 		val: gen-expr rhs ctx
+		ADD_INS_FLAGS(val F_ASSIGN?)
 		switch NODE_TYPE(lhs) [
 			RST_VAR [
 				var: as variable! lhs
@@ -840,13 +842,14 @@ ir-graph: context [
 		/local val [instr!] e [rst-expr!] type [rst-type!]
 	][
 		e: r/expr
-		val: either e <> null [
+		either e <> null [
 			type: e/type
 			if STRUCT_VALUE?(type) [ADD_NODE_FLAGS(e RST_VAR_VAL)]
-			gen-expr e ctx
+			val: gen-expr e ctx
+			ADD_INS_FLAGS(val F_ASSIGN?)
 		][
 			type: type-system/void-type
-			null
+			val: null
 		]
 		add-return val type ctx
 		null

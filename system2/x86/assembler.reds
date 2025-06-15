@@ -1066,26 +1066,37 @@ asm: context [
 	]
 
 	cmpxchgb-r-r: func [r1 [integer!] r2 [integer!] /local rex [integer!]][
+		emit-b F0h		;-- lock prefix
 		rex: either any [r1 > 4 r2 > 4][REX_BYTE][NO_REX]
 		emit-bb-rr 0Fh B0h r1 r2 rex
 	]
 	cmpxchgw-r-r: func [r1 [integer!] r2 [integer!]][
+		emit-b F0h		;-- lock prefix
 		emit-b PREFIX_W
 		emit-bb-rr 0Fh B1h r1 r2 NO_REX
 	]
 	cmpxchg-r-r: func [r1 [integer!] r2 [integer!]][
-		emit-bb-rr 0Fh B1h r1 r2 REX_BYTE
+		emit-b F0h		;-- lock prefix
+		emit-bb-rr 0Fh B1h r1 r2 rex-byte
 	]
 	cmpxchgb-m-r: func [m [x86-addr!] r [integer!] /local rex [integer!]][
+		emit-b F0h		;-- lock prefix
 		rex: either r > 4 [REX_BYTE][NO_REX]
 		emit-bb-rm 0Fh B0h r m rex
 	]
 	cmpxchgw-m-r: func [m [x86-addr!] r [integer!]][
+		emit-b F0h		;-- lock prefix
 		emit-b PREFIX_W
 		emit-bb-rm 0Fh B1h r m NO_REX
 	]
 	cmpxchg-m-r: func [m [x86-addr!] r [integer!]][
-		emit-bb-rm 0Fh B1h r m REX_BYTE
+		emit-b F0h		;-- lock prefix
+		emit-bb-rm 0Fh B1h r m rex-byte
+	]
+
+	xadd-m-r: func [m [x86-addr!] r [integer!]][
+		emit-b F0h		;-- LOCK prefix
+		emit-bb-rm 0Fh C1h r m rex-byte
 	]
 
 	btr-r-i: func [r [integer!] i [integer!] rex [integer!]][
@@ -1430,6 +1441,87 @@ asm: context [
 		emit-b DDh
 		emit-m m 03h
 	]
+
+	emit-atomic-math: func [
+		cg		[codegen!]
+		p		[ptr-ptr!]
+		/local
+			f		[operand!]
+			old?	[logic!]
+			n id r	[integer!]
+			addr	[x86-addr! value]
+	][
+		f: as operand! p/value
+		either OPERAND_DEF?(f) [
+			with [x86-regs][
+				p: p + 2
+				id: to-imm as operand! p/value	;-- math op
+				p: p + 1
+				old?: as logic! to-imm as operand! p/value
+				p: p + 1
+				rrsd-to-addr cg p :addr
+				p: p + 4
+				f: as operand! p/value
+				either OPERAND_IMM?(f) [
+					mov-r-i eax to-imm f
+				][
+					mov-r-r eax to-loc f
+				]
+				either any [id = N_ATOMIC_ADD id = N_ATOMIC_SUB][
+					mov-r-r edx eax
+					if id = N_ATOMIC_SUB [neg-r eax NO_REX]
+					xadd-m-r :addr eax
+					unless old? [
+						either id = N_ATOMIC_ADD [
+							add-r-r eax edx NO_REX
+						][
+							sub-r-r eax edx NO_REX
+						]
+					]
+				][
+					mov-r-r edi eax
+					mov-r-m eax :addr
+					mov-r-r ecx eax
+					if old? [mov-r-r edx eax]
+					switch id [
+						N_ATOMIC_AND [and-r-r ecx edi NO_REX]
+						N_ATOMIC_OR  [or-r-r  ecx edi NO_REX]
+						N_ATOMIC_XOR [xor-r-r ecx edi NO_REX]
+					]
+					cmpxchg-m-r :addr ecx
+					n: either old? [r: edx -10][r: ecx -8]
+					jc-rel jc_not_zero n
+					mov-r-r eax r
+				]
+			]
+		][
+			emit-b F0h		;-- LOCK prefix
+			id: to-imm as operand! p/value
+			p: p + 1
+			rrsd-to-addr cg p :addr
+			p: p + 4
+			f: as operand! p/value
+			either OPERAND_IMM?(f) [
+				n: to-imm f
+				switch id [
+					N_ATOMIC_ADD [add-m-i :addr n NO_REX]
+					N_ATOMIC_SUB [sub-m-i :addr n NO_REX]
+					N_ATOMIC_OR  [or-m-i :addr n NO_REX]
+					N_ATOMIC_XOR [xor-m-i :addr n NO_REX]
+					N_ATOMIC_AND [and-m-i :addr n NO_REX]
+				]
+			][
+				n: to-loc f
+				switch id [
+					N_ATOMIC_ADD [add-m-r :addr n NO_REX]
+					N_ATOMIC_SUB [sub-m-r :addr n NO_REX]
+					N_ATOMIC_OR  [or-m-r :addr n NO_REX]
+					N_ATOMIC_XOR [xor-m-r :addr n NO_REX]
+					N_ATOMIC_AND [and-m-r :addr n NO_REX]
+				]
+			]
+		]
+	]
 ]
 
 to-loc: func [
@@ -1644,6 +1736,7 @@ assemble-op: func [
 		t	[rst-type!]
 		ft	[fn-type!]
 		fn	[fn!]
+		old? [logic!]
 		rset [reg-set!]
 		addr [x86-addr! value]
 ][
@@ -1910,6 +2003,7 @@ assemble-op: func [
 			]
 		]
 		I_MFENCE [asm/mfence]
+		I_ATOMIC_MATH [asm/emit-atomic-math cg p]
 		default [0]
 	]
 ]

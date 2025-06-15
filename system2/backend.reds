@@ -90,6 +90,8 @@ overwrite!: alias struct! [
 ]
 
 #define OPERAND_TYPE(o) [o/header and FFh]
+#define OPERAND_DEF?(o) [o/header and FFh = OD_DEF]
+#define OPERAND_IMM?(o) [o/header and FFh = OD_IMM]
 #define OPERAND_USE?(o) [o/header and FFh = OD_USE]
 #define OPERAND_LEA?(o) [o/header and OD_FLAG_LEA <> 0]
 #define MACH_OPCODE(i)	[i/header and 03FFh]
