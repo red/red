@@ -1355,8 +1355,7 @@ ir-graph: context [
 		pp: ARRAY_DATA(ssa-vars)
 		loop ssa-vars/length [
 			var: as var-decl! pp/value
-			assert var <> null
-			if written-in-loop? var/ssa loop-idx [
+			if all [var <> null written-in-loop? var/ssa loop-idx][
 				pv: p + var/ssa/index
 				pv/value: as int-ptr! make-phi var/type m/block null
 			]
@@ -1488,6 +1487,7 @@ ir-graph: context [
 				]
 				pp: ARRAY_DATA(ctx/ssa-vars) + i
 				var: as var-decl! pp/value
+				assert var <> null
 				mp/value: as int-ptr! make-phi var/type m/block inputs
 			]
 			i: i + 1

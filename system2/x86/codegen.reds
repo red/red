@@ -1626,15 +1626,19 @@ x86: context [
 				def-reg cg i
 				kill cg x86_EAX
 				kill cg x86_ECX
-				c: as instr-const! input0 i		;-- size
-				use-imm cg c/value
+				ii: input0 i
+				unless try-use-imm32 cg ii [
+					use-reg cg ii
+				]
 				c: as instr-const! input1 i		;-- /zero
 				use-imm cg c/value
 				emit-instr cg I_STACK_ALLOC
 			]
 			N_STACK_FREE [
-				c: as instr-const! input0 i
-				use-imm cg c/value
+				ii: input0 i
+				unless try-use-imm32 cg ii [
+					use-reg cg ii
+				]
 				emit-instr cg I_STACK_FREE
 			]
 			N_STACK_ALIGN [

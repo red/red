@@ -1957,11 +1957,15 @@ assemble-op: func [
 		I_STACK_ALLOC [
 			loc: to-loc as operand! p/value
 			p: p + 3	;-- size
-			n: to-imm as operand! p/value
+			f: as operand! p/value
 			p: p + 1	;-- /zero
 			z?: as logic! to-imm as operand! p/value
 			with [asm x86-regs][
-				mov-r-i eax n
+				either OPERAND_IMM?(f) [
+					mov-r-i eax to-imm f
+				][
+					mov-r-r eax to-loc f
+				]
 				if z? [mov-r-r ecx eax]
 				shl-r-i eax 2 NO_REX
 				sub-r-r esp eax NO_REX
@@ -1980,9 +1984,13 @@ assemble-op: func [
 			]
 		]
 		I_STACK_FREE [
-			n: to-imm as operand! p/value
+			f: as operand! p/value
 			with [asm x86-regs][
-				mov-r-i edi n
+				either OPERAND_IMM?(f) [
+					mov-r-i edi to-imm f
+				][
+					mov-r-r edi to-loc f
+				]
 				shl-r-i edi 2 NO_REX
 				neg-r edi NO_REX
 				and-r-i edi -4 NO_REX
