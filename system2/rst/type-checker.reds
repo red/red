@@ -144,6 +144,7 @@ type-checker: context [
 		checker/visit-fn-call:		as visit-fn! :visit-fn-call
 		checker/visit-native-call:	as visit-fn! :visit-native-call
 		checker/visit-if:			as visit-fn! :visit-if
+		checker/visit-loop:			as visit-fn! :visit-loop
 		checker/visit-while:		as visit-fn! :visit-while
 		checker/visit-until:		as visit-fn! :visit-until
 		checker/visit-break:		as visit-fn! :visit-break
@@ -647,6 +648,60 @@ type-checker: context [
 		if null? ut [ut: type-system/void-type]
 		e/type: ut
 		ut
+	]
+
+	visit-loop: func [w [while!] ctx [context!] return: [rst-type!]
+		/local
+			s ss		[rst-stmt!]
+			saved-blk	[red-block!]
+			counter		[rst-expr!]
+			z e			[rst-expr!]
+			b			[bin-op!]
+			var			[var-decl!]
+			token		[cell!]
+			w2			[while!]
+	][
+		w_accept: func [ACCEPT_FN_SPEC][
+			v/visit-while self data
+		]
+		counter: as rst-expr! w/cond
+		check-expr "Loop Counter:" counter type-system/integer-type ctx
+
+		;; convert loop statement to while statement
+		w2: xmalloc(while!)
+		copy-memory as byte-ptr! w2 as byte-ptr! w size? while!
+		SET_NODE_TYPE(w2 RST_WHILE)
+		w2/accept: :w_accept
+
+		z: as rst-expr! parser/make-int common-literals/int-zero
+		token: w/token
+		var: ctx/loop-counter
+		if null? var [
+			var: parser/make-var-decl token null
+			var/type: type-system/integer-type
+			either FUNC_CTX?(ctx) [
+				ADD_NODE_FLAGS(var RST_VAR_LOCAL)
+				make-ssa-var var
+			][
+				var/init: z
+			]
+			ctx/loop-counter: var
+		]
+		e: as rst-expr! parser/make-variable var token
+		s: as rst-stmt! parser/make-assignment e counter token					;-- loop-counter: counter
+		s/next: as rst-stmt! w2
+
+		b: parser/make-bin-op as int-ptr! RST_OP_GT e z token					;-- loop-counter > 0
+		w2/cond: as rst-stmt! b
+
+		z: as rst-expr! parser/make-int common-literals/int-one
+		z: as rst-expr! parser/make-bin-op as int-ptr! RST_OP_SUB e z token		;-- loop-counter - 1
+		ss: as rst-stmt! parser/make-assignment e z token
+		ss/next: w2/body
+		w2/body: ss
+
+		copy-memory as byte-ptr! w as byte-ptr! s size? assignment!
+		type-system/void-type
 	]
 
 	visit-while: func [w [while!] ctx [context!] return: [rst-type!]
@@ -1256,7 +1311,6 @@ type-checker: context [
 			stmt: stmt/next
 			stmt <> null
 		][
-			;rst-printer/print-stmt stmt
 			stmt/accept as int-ptr! stmt checker as int-ptr! ctx
 			if null? stmt/next [break]
 		]

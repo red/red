@@ -297,6 +297,7 @@ context!: alias struct! [
 	n-ssa-vars	 [integer!]	;-- number of variable that written more than once
 	n-loops		 [integer!]
 	loop-stack	 [vector!]
+	loop-counter [var-decl!]
 	src-blk		 [red-block!]
 	script		 [cell!]
 	throw-error? [logic!]

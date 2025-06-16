@@ -2486,6 +2486,7 @@ ir-graph: context [
 					gen-var var :ssa-ctx
 				]
 			]
+			if ctx/loop-counter <> null [gen-var ctx/loop-counter :ssa-ctx]
 		]
 
 		stmt: ctx/stmts
