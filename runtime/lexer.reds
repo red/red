@@ -156,9 +156,9 @@ lexer: context [
 	float-transitions: #{
 		0A00010A040A0A
 		0A0A0106050209
-		0A0A010A0A0A0A
+		0A0A010A0A0A09
 		0A0A03060A0409
-		0A0A030A0A0A0A
+		0A0A030A0A0A09
 		0A0A030A0A0A09
 		0A07080A0A0A0A
 		0A0A080A0A0A0A
@@ -1483,7 +1483,7 @@ lexer: context [
 						i: i + as-integer (p/1 - #"0")
 						o?: o? or system/cpu/overflow?
 					][
-						if any [p + 1 = e p/2 = #"'"][throw-error lex s e TYPE_INTEGER]
+						if all [p/0 = #"'" p/1 = #"'"][throw-error lex s e TYPE_INTEGER]
 					]
 					p: p + 1
 				]

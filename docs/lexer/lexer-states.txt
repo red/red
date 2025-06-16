@@ -495,13 +495,15 @@ S_FL_START->"."|","->S_FL_DEC
                    \->"e"|"E"->S_FL_EXP
                     \->"'"->S_FL_NUMQ
                                 \->digit->S_FL_NUM
-                                 \->else->S_FL_ERROR
+                                 \->EOF->T_FL_FLOAT
+                                  \->else->S_FL_ERROR
                    
 S_FL_DEC->digit->S_FL_DEC
     \->"e"|"E"->S_FL_EXP
      \->"'"->S_FL_DECQ
                  \->digit->S_FL_DEC
-                  \->else->S_FL_ERROR
+                  \->EOF->T_FL_FLOAT
+                   \->else->S_FL_ERROR
     
 S_FL_EXP->"+"|"-"->S_FL_EXPS->digit->S_FL_EXPD
 	\->digit->S_FL_EXPD
