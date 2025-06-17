@@ -2,6 +2,17 @@ version: 1.0.{build}
 branches:
   only:
   - master
+
+image: Visual Studio 2022
+
+##environment:
+##  APPVEYOR_RDP_PASSWORD: Fullstack222
+
+##init:
+##  - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+
+clone_depth: 1
+
 install:
 - ps: >-
     ## Download Rebol v276
@@ -9,11 +20,15 @@ install:
     curl -o c:\projects\red\rebview.exe https://static.red-lang.org/build/rebview.exe
 build_script:
 - cmd: >-
+    c:\projects\red\rebview.exe -qws system\tests\run-all.r --batch
+
     c:\projects\red\rebview.exe -qws tests\run-all.r --batch
 
-    c:\projects\red\rebview.exe -qws system\tests\run-all.r --batch
 test: off
 deploy: off
+##on_finish:
+##  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+  
 notifications:
 - provider: Email
   to:
