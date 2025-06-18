@@ -727,7 +727,7 @@ system/view: context [
 		]
 	]
 	
-	awake: function [event [event!] /with face /local result][	;@@ temporary until event:// is implemented
+	awake: function [event [event!] /with face /local result result2][	;@@ temporary until event:// is implemented
 		unless face [unless face: event/face [exit]]	;-- filter out unbound events
 		
 		unless with [									;-- protect following code from recursion
@@ -742,8 +742,8 @@ system/view: context [
 		set/any 'result do-actor face event event/type
 		
 		if all [face/parent not find [done continue] :result][
-			set/any 'result system/view/awake/with event face/parent ;-- event bubbling
-			if :result = 'stop [return 'stop]
+			set/any 'result2 system/view/awake/with event face/parent ;-- event bubbling
+			if :result2 = 'stop [return 'stop]
 		]
 		
 		if all [event/type = 'close :result <> 'continue][
