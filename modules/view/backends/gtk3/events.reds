@@ -836,7 +836,7 @@ make-event: func [
 	type: TYPE_OF(res)
 	if ANY_WORD?(type) [
 		sym: symbol/resolve res/symbol
-		if any [sym = _continue sym = done][
+		if any [sym = stop sym = done][
 			state: EVT_NO_DISPATCH
 		]
 	]
