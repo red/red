@@ -509,7 +509,7 @@ compiler: context [
 
 	fn-alloc-regs!: alias function! [codegen [codegen!]]
 	fn-make-frame!: alias function! [ir [ir-fn!] return: [frame!]]
-	fn-make-cc!: alias function! [fn [fn!] op [instr-op!] return: [call-conv!]]
+	fn-make-cc!: alias function! [ft [fn-type!] op [instr-op!] return: [call-conv!]]
 	fn-generate!: alias function! [cg [codegen!] blk [basic-block!] i [instr!]]
 	fn-insert-instrs!: alias function! [cg [codegen!] v [vreg!] idx [integer!]]
 	fn-insert-move!: alias function! [cg [codegen!] arg [move-arg!]]

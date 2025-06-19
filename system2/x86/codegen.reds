@@ -467,7 +467,7 @@ x64-internal-cc: context [
 
 x64-cc: context [
 	make: func [
-		fn		[fn!]
+		ft		[fn-type!]
 		op		[instr-op!]
 		return: [call-conv!]
 		/local
@@ -484,7 +484,6 @@ x64-cc: context [
 			p-spill			[integer!]
 			r-spill			[integer!]
 			cc				[call-conv!]
-			ft				[fn-type!]
 			attr			[integer!]
 			param-regs		[int-array!]
 			ret-regs		[int-array!]
@@ -493,10 +492,9 @@ x64-cc: context [
 			variadic?		[logic!]
 			shadow-space	[integer!]
 	][
-		if fn/cc <> null [return fn/cc]
+		if ft/cc <> null [return ft/cc]
 
 		shadow-space: 0
-		ft: as fn-type! fn/type
 		attr: FN_ATTRS(ft)
 		variadic?: attr and FN_VARIADIC <> 0
 		case [
@@ -596,7 +594,7 @@ x64-cc: context [
 		cc/param-locs: param-locs
 		cc/ret-locs: ret-locs
 		cc/n-spilled: r-spill
-		unless variadic? [fn/cc: cc]
+		unless variadic? [ft/cc: cc]
 		cc
 	]
 ]
@@ -768,7 +766,7 @@ x86-internal-cc: context [	;-- red/system internal call-conv!
 
 x86-cc: context [
 	make: func [
-		fn		[fn!]
+		ft		[fn-type!]
 		op		[instr-op!]
 		return: [call-conv!]
 		/local
@@ -786,7 +784,6 @@ x86-cc: context [
 			p-spill			[integer!]
 			r-spill			[integer!]
 			cc				[call-conv!]
-			ft				[fn-type!]
 			attr			[integer!]
 			param-regs		[int-array!]
 			ret-regs		[int-array!]
@@ -800,11 +797,10 @@ x86-cc: context [
 			st8?			[logic!]
 			fpu?			[logic!]
 	][
-		if fn/cc <> null [return fn/cc]
+		if ft/cc <> null [return ft/cc]
 
 		callee-clean?: no
 		fpu?: yes
-		ft: as fn-type! fn/type
 		ret-ty: ft/ret-type
 		attr: FN_ATTRS(ft)
 		variadic?: attr and FN_VARIADIC <> 0
@@ -876,10 +872,10 @@ x86-cc: context [
 			]
 		]
 
-		param-locs: either st-arg? [int-array/make np][
+		unless st-arg? [
 			np: either st-ret? [n-params + 1][n-params]
-			int-array/make np
 		]
+		param-locs: int-array/make np + 1
 		ploc: as int-ptr! ARRAY_DATA(param-locs)
 
 		;-- locations of each parameter
@@ -950,6 +946,16 @@ x86-cc: context [
 			p: p + 1
 		]
 
+		ploc/i: either i-idx < param-regs/length [
+			pp: as int-ptr! ARRAY_DATA(param-regs)
+			pp/i-idx
+		][
+			either zero? i-idx [x86_EAX][
+				frame-start + p-spill
+				p-spill: p-spill + 1
+			]
+		]
+
 		;-- location of return value
 		r-spill: 0
 		n: either st8? [2][1]
@@ -1018,7 +1024,7 @@ x86-cc: context [
 		cc/n-spilled: r-spill
 		cc/callee-clean?: callee-clean?
 		cc/fpu?: fpu?
-		unless variadic? [fn/cc: cc]
+		unless variadic? [ft/cc: cc]
 		cc
 	]
 ]
@@ -1487,11 +1493,12 @@ x86: context [
 			n-spilled	 [integer!]
 			fixed-stack? [logic!]
 	][
+		;ir-printer/print-instr i print lf
 		o: as instr-op! i
 		fn: as fn! o/target
 		fixed-stack?: cg/fixed-stack?
 
-		cc: target/make-cc fn o
+		cc: target/make-cc as fn-type! fn/type o
 		n-spilled: cc/n-spilled
 		either fixed-stack? [
 			alloc-caller-space cg/frame cc
@@ -1506,6 +1513,7 @@ x86: context [
 		live-point cg cc
 
 		rt: cc/ret-type
+		assert rt <> null
 		if rt <> type-system/void-type [
 			either all [STRUCT_VALUE?(rt) 8 = type-size? rt yes][
 				idx: 1
@@ -2423,7 +2431,7 @@ x86: context [
 			f	[frame!]
 	][
 		f: xmalloc(frame!)
-		f/cc: target/make-cc ir/fn null
+		f/cc: target/make-cc as fn-type! ir/fn/type null
 		f/align: target/addr-align
 		f/slot-size: target/addr-size
 		f/size: target/addr-size

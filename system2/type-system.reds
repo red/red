@@ -126,6 +126,7 @@ enum-type!: alias struct! [
 
 fn-type!: alias struct! [
 	TYPE_HEADER
+	cc			[call-conv!]
 	spec		[red-block!]
 	n-params	[integer!]
 	params		[var-decl!]
@@ -297,11 +298,13 @@ copy-struct-type: func [
 	st
 ]
 
-#define ARRAY_TYPE?(type)	[(type/header and FFh) = RST_TYPE_ARRAY]
-#define LOGIC_TYPE?(type)	[(type/header and FFh) = RST_TYPE_LOGIC]
-#define INT_TYPE?(type)		[(type/header and FFh) = RST_TYPE_INT]
-#define FLOAT_TYPE?(type)	[(type/header and FFh) = RST_TYPE_FLOAT]
-#define STRUCT_TYPE?(type)	[(type/header and FFh) = RST_TYPE_STRUCT]
+#define ARRAY_TYPE?(type)		[(type/header and FFh) = RST_TYPE_ARRAY]
+#define LOGIC_TYPE?(type)		[(type/header and FFh) = RST_TYPE_LOGIC]
+#define INT_TYPE?(type)			[(type/header and FFh) = RST_TYPE_INT]
+#define FLOAT_TYPE?(type)		[(type/header and FFh) = RST_TYPE_FLOAT]
+#define STRUCT_TYPE?(type)		[(type/header and FFh) = RST_TYPE_STRUCT]
+#define FUNC_TYPE?(type)		[(type/header and FFh) = RST_TYPE_FUNC]
+#define NOT_FUNC_TYPE?(type)	[(type/header and FFh) <> RST_TYPE_FUNC]
 
 int-signed?: func [
 	t		[rst-type!]
@@ -805,6 +808,12 @@ type-system: context [
 			]
 			RST_TYPE_ENUM
 			RST_TYPE_ANY [conv_ok]
+			RST_TYPE_FUNC [
+				switch from-ty [
+					RST_TYPE_FUNC RST_TYPE_PTR RST_TYPE_INT [conv_ok]
+					default [conv_illegal]
+				]
+			]
 			default [
 				conv_illegal
 			]

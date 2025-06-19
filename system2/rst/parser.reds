@@ -310,7 +310,6 @@ fn!: alias struct! [
 	body		[red-block!]
 	locals		[var-decl!]
 	ir			[ir-fn!]
-	cc			[call-conv!]
 	with-ns		[vector!]
 	refs		[vector!]
 ]
@@ -1262,17 +1261,11 @@ parser: context [
 		/local
 			n	[integer!]
 			ft	[fn-type!]
-			p	[path!]
 			pp	[ptr-value!]
 			name [cell!]
 	][
 		name: pc
-		either NODE_TYPE(fn) = RST_FUNC [
-			ft: as fn-type! fn/type
-		][
-			p: as path! fn
-			ft: as fn-type! p/type
-		]
+		ft: as fn-type! fn/type
 		n: ft/n-params
 		either n <> 0 [pc: fetch-args pc end :pp ctx n][pp/value: null]
 		out/value: as int-ptr! make-fn-call name fn as rst-expr! pp/value
@@ -2658,6 +2651,8 @@ parser: context [
 			p	[ptr-ptr!]
 			v	[rst-node!]
 			m	[member!]
+			var [variable!]
+			t	[rst-type!]
 			int [red-integer!]
 			parse-keyword [keyword-fn!]
 	][
@@ -2668,7 +2663,16 @@ parser: context [
 				either v <> null [
 					switch NODE_TYPE(v) [
 						RST_FUNC		[pc: parse-call pc end as fn! v expr ctx]
-						RST_VAR_DECL	[expr/value: as int-ptr! make-variable as var-decl! v pc]
+						RST_VAR_DECL	[
+							var: make-variable as var-decl! v pc
+							t: type-checker/infer-type as var-decl! v ctx
+							either FUNC_TYPE?(t) [
+								var/type: t
+								pc: parse-call pc end as fn! var expr ctx
+							][
+								expr/value: as int-ptr! var
+							]
+						]
 						RST_MEMBER		[	;-- enum value
 							m: as member! v
 							int: as red-integer! m/token

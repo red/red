@@ -588,6 +588,8 @@ ir-graph: context [
 			np n	[integer!]
 			sz		[integer!]
 			val		[instr!]
+			fval	[instr!]
+			extra	[integer!]
 			ivar	[instr-var!]
 			var		[var-decl!]
 			cast	[integer!]
@@ -599,6 +601,11 @@ ir-graph: context [
 		np: ft/n-params
 		op: make-op OP_CALL_FUNC np ft/param-types ret-ty
 		op/target: as int-ptr! fn
+		extra: either NODE_TYPE(fn) = RST_FUNC [0][
+			fval: as instr! fn/accept as int-ptr! fn builder as int-ptr! ctx
+			assert fval <> null
+			1
+		]
 
 		either np < 0 [		;-- variadic/typed function
 			arg: fc/args
@@ -646,7 +653,7 @@ ir-graph: context [
 				val: add-op op2 null ctx
 			]
 		]
-		arr: ptr-array/make n
+		arr: ptr-array/make n + extra
 		p: ARRAY_DATA(arr)
 		if val <> null [
 			p/value: as int-ptr! val
@@ -674,12 +681,14 @@ ir-graph: context [
 			int: xmalloc(red-integer!)
 			int/header: TYPE_INTEGER
 			int/value: n
-			arr: ptr-array/make 2
+			arr: ptr-array/make 2 + extra
 			p: ARRAY_DATA(arr)
 			p/value: as int-ptr! const-int int ctx/graph
 			p: p + 1
 			p/value: as int-ptr! op2
+			p: p + 1
 		]
+		if extra = 1 [p/value: as int-ptr! fval]
 		add-op op arr ctx
 	]
 

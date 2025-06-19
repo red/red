@@ -1018,6 +1018,7 @@ type-checker: context [
 
 	visit-fn-call: func [fc [fn-call!] ctx [context!] return: [rst-type!]
 		/local
+			fn		[fn!]
 			ft	 	[fn-type!]
 			arg		[rst-expr!]
 			pt		[ptr-ptr!]
@@ -1026,9 +1027,10 @@ type-checker: context [
 	][
 		;rst-printer/print-stmt as rst-stmt! fc
 		;dprint "[Type Checker] visit-fn-call"
-		if null? fc/type [resolve-fn-type as fn-type! fc/fn/type ctx]
+		fn: fc/fn
+		ft: as fn-type! fn/type
+		if null? fc/type [resolve-fn-type ft ctx]
 
-		ft: as fn-type! fc/fn/type
 		fc/type: ft/ret-type
 		attr: FN_ATTRS(ft)
 		either attr and (FN_VARIADIC or FN_TYPED) = 0 [

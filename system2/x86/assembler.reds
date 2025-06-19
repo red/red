@@ -660,6 +660,14 @@ asm: context [
 		emit-offset addr 2
 	]
 
+	icall-r: func [r [integer!]][
+		emit-b-r-x-rex FFh r 2 NO_REX
+	]
+
+	icall-m: func [m [x86-addr!]][
+		emit-b-m-x FFh m 2 NO_REX
+	]
+
 	bsr-r-r: func [r1 [integer!] r2 [integer!]][
 		emit-bb-rr 0Fh BDh r1 r2 rex-byte
 	]
@@ -1719,9 +1727,10 @@ rrsd-to-addr: func [
 
 assemble-op: func [
 	cg		[codegen!]
-	op		[integer!]
-	p		[ptr-ptr!]
+	i		[mach-instr!]
 	/local
+		op	[integer!]
+		p	[ptr-ptr!]
 		l	[label!]
 		lvp [livepoint!]
 		c n [integer!]
@@ -1740,6 +1749,8 @@ assemble-op: func [
 		rset [reg-set!]
 		addr [x86-addr! value]
 ][
+	op: i/header
+	p: as ptr-ptr! i + 1		;-- point to operands
 	switch x86_OPCODE(op) [
 		I_JMP [
 			l: as label! p/value
@@ -1760,36 +1771,43 @@ assemble-op: func [
 		]
 		I_CALL [
 			f: as operand! p/value
-			switch OPERAND_TYPE(f) [
-				OD_IMM [
-					imm: as immediate! f
-					val: as val! imm/value
-					assert val/header = TYPE_FUNCTION
+			imm: as immediate! f
+			val: as val! imm/value
+			assert val/header = TYPE_FUNCTION
 
-					fn: as fn! val/ptr
-					either NODE_FLAGS(fn) and RST_IMPORT_FN = 0 [
-						asm/call-rel REL_ADDR
+			fn: as fn! val/ptr
+			p: p + 1
+			lvp: as livepoint! p/value
+			either NODE_TYPE(fn) = RST_FUNC [
+				either NODE_FLAGS(fn) and RST_IMPORT_FN = 0 [
+					asm/call-rel REL_ADDR
+				][
+					asm/icall-rel REL_ADDR
+				]
+				record-fn-call fn asm/pos - 4
+			][
+				p: p - 2 + i/num
+				f: as operand! p/value
+				loc: to-loc f
+				either target/gpr-reg? loc [
+					asm/icall-r loc
+				][
+					loc-to-addr loc :addr cg/frame cg/reg-set
+					asm/icall-m :addr
+				]
+			]
+
+			if lvp/cc/fpu? [
+				ft: as fn-type! fn/type
+				t: ft/ret-type
+				if FLOAT_TYPE?(t) [
+					loc-to-addr CALLEE_SPILL_BASE :addr cg/frame cg/reg-set
+					either FLOAT_64?(t) [
+						asm/fstp-q :addr
 					][
-						asm/icall-rel REL_ADDR
-					]
-					record-fn-call fn asm/pos - 4
-
-					p: p + 1
-					lvp: as livepoint! p/value
-					if lvp/cc/fpu? [
-						ft: as fn-type! fn/type
-						t: ft/ret-type
-						if FLOAT_TYPE?(t) [
-							loc-to-addr CALLEE_SPILL_BASE :addr cg/frame cg/reg-set
-							either FLOAT_64?(t) [
-								asm/fstp-q :addr
-							][
-								asm/fstp-d :addr
-							]
-						]
+						asm/fstp-d :addr
 					]
 				]
-				default [0]
 			]
 		]
 		I_SETC [
@@ -2349,7 +2367,7 @@ assemble: func [
 
 	m: i/header >> AM_SHIFT and 1Fh
 	switch m [
-		_AM_NONE [assemble-op cg ins p]
+		_AM_NONE [assemble-op cg i]
 		_AM_REG_OP [
 			reg: to-loc as operand! p/value
 			assert reg <> 0
