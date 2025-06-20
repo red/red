@@ -104,6 +104,9 @@ Red/System [
 	OP_MIXED_LTEQ
 ]
 
+#define OP_PTR_GT		[OP_PTR_CAS]
+#define OP_PTR_GTEQ		[OP_PTR_LOAD]
+	
 #enum instr-flag! [
 	F_INS_PURE:		1		;-- no side-effects
 	F_INS_KILLED:	2		;-- instruction is dead

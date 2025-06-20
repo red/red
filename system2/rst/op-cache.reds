@@ -199,17 +199,25 @@ op-cache: context [
 			init-op f + (OP_PTR_NE - beg)   OP_PTR_NE    pt type-system/logic-type
 			init-op f + (OP_PTR_LT - beg)   OP_PTR_LT    pt type-system/logic-type
 			init-op f + (OP_PTR_LTEQ - beg) OP_PTR_LTEQ  pt type-system/logic-type
+
+			fn: init-op f + (OP_PTR_GT - beg) OP_PTR_LT pt type-system/logic-type
+			ADD_FN_ATTRS(fn FN_COMMUTE)
+			fn: init-op f + (OP_PTR_GTEQ - beg) OP_PTR_LTEQ pt type-system/logic-type
+			ADD_FN_ATTRS(fn FN_COMMUTE)
+
 			type/op-table: f
 		]
 
 		idx: switch op [
-			RST_OP_ADD [OP_PTR_ADD]
-			RST_OP_SUB [OP_PTR_SUB]
-			RST_OP_EQ [OP_PTR_EQ]
-			RST_OP_NE [OP_PTR_NE]
-			RST_OP_LT [OP_PTR_LT]
-			RST_OP_LTEQ [OP_PTR_LTEQ]
-			default [dprint ["invalid ptr op: " op] 0]
+			RST_OP_ADD	[OP_PTR_ADD]
+			RST_OP_SUB	[OP_PTR_SUB]
+			RST_OP_EQ	[OP_PTR_EQ]
+			RST_OP_NE	[OP_PTR_NE]
+			RST_OP_LT	[OP_PTR_LT]
+			RST_OP_LTEQ	[OP_PTR_LTEQ]
+			RST_OP_GT	[OP_PTR_GT]
+			RST_OP_GTEQ	[OP_PTR_GTEQ]
+			default		[dprint ["invalid ptr op: " op] halt 0]
 		]
 		f + (idx - beg)
 	]

@@ -2092,7 +2092,7 @@ x86: context [
 			use-reg-fixed cg addr/base constrain
 		]
 		either null? addr/index [use-imm-int cg 0][
-			use-reg cg addr/index constrain
+			use-reg-fixed cg addr/index constrain
 		]
 		use-imm-int cg addr/scale
 		use-imm cg addr/disp

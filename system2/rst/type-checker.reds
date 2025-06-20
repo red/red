@@ -1078,7 +1078,7 @@ type-checker: context [
 			b		[bin-op!]
 			ltype rtype [rst-type!]
 	][
-		assert bin/type = null
+		if bin/type <> null [return bin/type]
 
 		right: bin/right
 		ltype: as rst-type! bin/left/accept as int-ptr! bin/left checker as int-ptr! ctx
