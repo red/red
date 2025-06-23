@@ -142,6 +142,7 @@ type-checker: context [
 		checker/visit-bin-op:		as visit-fn! :visit-bin-op
 		checker/visit-var:			as visit-fn! :visit-var
 		checker/visit-fn-call:		as visit-fn! :visit-fn-call
+		checker/visit-subroutine:	as visit-fn! :visit-subroutine
 		checker/visit-native-call:	as visit-fn! :visit-native-call
 		checker/visit-if:			as visit-fn! :visit-if
 		checker/visit-loop:			as visit-fn! :visit-loop
@@ -1014,6 +1015,10 @@ type-checker: context [
 		t1: resolve-typeref c/typeref ctx
 		c/type: t1
 		t1
+	]
+
+	visit-subroutine: func [sub [sub-fn!] ctx [context!] return: [rst-type!]][
+		check-stmts sub/body sub/body-blk ctx
 	]
 
 	visit-fn-call: func [fc [fn-call!] ctx [context!] return: [rst-type!]

@@ -21,6 +21,7 @@ visitor!: alias struct! [
 	VISITOR_FUNC(visit-continue)
 	VISITOR_FUNC(visit-return)
 	VISITOR_FUNC(visit-fn-call)
+	VISITOR_FUNC(visit-subroutine)
 	VISITOR_FUNC(visit-native-call)
 	VISITOR_FUNC(visit-assign)
 	VISITOR_FUNC(visit-bin-op)
@@ -274,7 +275,7 @@ enumerator!: alias struct! [
 ]
 
 sub-fn!: alias struct! [
-	RST_STMT_FIELDS(sub-fn!)
+	RST_EXPR_FIELDS(sub-fn!)
 	body		[rst-stmt!]
 	body-blk	[red-block!]
 ]
@@ -878,17 +879,19 @@ parser: context [
 		ctx
 	]
 
-	make-subroutine: func [
-		name	[cell!]
+	parse-subroutine: func [
+		sub		[sub-fn!]
 		body	[red-block!]
-		/local
-			s	[sub-fn!]
+		ctx		[context!]
 	][
-		s: xmalloc(sub-fn!)
-		SET_NODE_TYPE(s RST_SUBROUTINE)
-		s/token: name
-		s/body-blk: body
-		s
+		subroutine_accept: func [ACCEPT_FN_SPEC][
+			v/visit-subroutine self data
+		]
+		SET_NODE_TYPE(sub RST_SUBROUTINE)
+		sub/accept: :subroutine_accept
+		sub/type: null
+		sub/body-blk: body
+		sub/body: parse-block body ctx
 	]
 
 	make-func: func [
@@ -2680,6 +2683,7 @@ parser: context [
 							int/value: m/index
 							expr/value: as int-ptr! make-int as cell! int
 						]
+						RST_SUBROUTINE	[expr/value: as int-ptr! v]
 						default			[unreachable pc]
 					]
 				][
@@ -3019,7 +3023,6 @@ parser: context [
 			pp	[ptr-ptr!]
 			d	[var-decl!]
 			blk [red-block!]
-			sub [sub-fn!]
 			sub? [logic!]
 			add? [logic!]
 			saved-blk [red-block!]
@@ -3111,11 +3114,7 @@ parser: context [
 										w: as red-word! block/rs-head blk
 										if k_subroutine! = symbol/resolve w/symbol [
 											sub?: yes
-											SET_NODE_TYPE(d RST_SUBROUTINE)		;-- change type in-place
-											sub: as sub-fn! d
-											sub/accept: null
-											sub/body: null
-											sub/body-blk: as red-block! pc2
+											parse-subroutine as sub-fn! d as red-block! pc2 ctx
 											pc: pc2
 										]
 									]

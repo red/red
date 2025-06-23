@@ -14,6 +14,7 @@ rst-printer: context [
 		printer/visit-bin-op:		as visit-fn! :visit-bin-op
 		printer/visit-var:			as visit-fn! :visit-var
 		printer/visit-fn-call:		as visit-fn! :visit-fn-call
+		printer/visit-subroutine:	as visit-fn! :visit-subroutine
 		printer/visit-if:			as visit-fn! :visit-if
 		printer/visit-loop:			as visit-fn! :visit-loop
 		printer/visit-while:		as visit-fn! :visit-while
@@ -211,6 +212,10 @@ rst-printer: context [
 			]
 		]
 		prin "]"
+	]
+
+	visit-subroutine: func [sub [sub-fn!] i [integer!] /local arg [rst-expr!]][
+		do-i i prin-token sub/token prin " []"
 	]
 
 	visit-bin-op: func [e [bin-op!] i [integer!]][

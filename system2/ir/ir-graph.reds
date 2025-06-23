@@ -461,6 +461,7 @@ ir-graph: context [
 		builder/visit-bin-op:		as visit-fn! :visit-bin-op
 		builder/visit-var:			as visit-fn! :visit-var
 		builder/visit-fn-call:		as visit-fn! :visit-fn-call
+		builder/visit-subroutine:	as visit-fn! :visit-subroutine
 		builder/visit-native-call:	as visit-fn! :visit-native-call
 		builder/visit-if:			as visit-fn! :visit-if
 		builder/visit-while:		as visit-fn! :visit-while
@@ -573,6 +574,10 @@ ir-graph: context [
 			op/target: as int-ptr! e
 			add-op op null ctx
 		]
+	]
+
+	visit-subroutine: func [sub [sub-fn!] ctx [ssa-ctx!] return: [instr!]][
+		gen-stmts sub/body ctx
 	]
 
 	visit-fn-call: func [fc [fn-call!] ctx [ssa-ctx!] return: [instr!]
@@ -702,6 +707,7 @@ ir-graph: context [
 	][
 		lhs: gen-expr bin/left ctx
 		rhs: gen-expr bin/right ctx
+		assert bin/spec <> null
 		ft: bin/spec
 		assert ft/n-params = 2
 		op: make-op FN_OPCODE(ft) 2 ft/param-types ft/ret-type

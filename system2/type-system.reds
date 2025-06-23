@@ -28,6 +28,7 @@ Red/System [
 	RST_TYPE_FLOAT
 	RST_TYPE_ENUM
 	RST_TYPE_FUNC
+	RST_TYPE_SUBROUTINE
 	RST_TYPE_NULL
 	RST_TYPE_STRUCT
 	RST_TYPE_ARRAY
@@ -487,25 +488,26 @@ k_value:		symbol/make "value"
 type-system: context [
 	struct-uid:		1001
 
-	integer-type:	as rst-type! 0
-	byte-type:		as rst-type! 0
-	float-type:		as rst-type! 0
-	float32-type:	as rst-type! 0
-	logic-type:		as rst-type! 0
-	int32-type:		as rst-type! 0
-	uint32-type:	as rst-type! 0
-	int16-type:		as rst-type! 0
-	uint16-type:	as rst-type! 0
-	int8-type:		as rst-type! 0
-	uint8-type:		as rst-type! 0
-	int64-type:		as rst-type! 0
-	uint64-type:	as rst-type! 0
-	void-type:		as rst-type! 0
-	null-type:		as rst-type! 0
-	cstr-type:		as rst-type! 0
-	int-ptr-type:	as rst-type! 0
-	byte-ptr-type:	as rst-type! 0
-	any-type:		as rst-type! 0
+	integer-type:		as rst-type! 0
+	byte-type:			as rst-type! 0
+	float-type:			as rst-type! 0
+	float32-type:		as rst-type! 0
+	logic-type:			as rst-type! 0
+	int32-type:			as rst-type! 0
+	uint32-type:		as rst-type! 0
+	int16-type:			as rst-type! 0
+	uint16-type:		as rst-type! 0
+	int8-type:			as rst-type! 0
+	uint8-type:			as rst-type! 0
+	int64-type:			as rst-type! 0
+	uint64-type:		as rst-type! 0
+	void-type:			as rst-type! 0
+	null-type:			as rst-type! 0
+	cstr-type:			as rst-type! 0
+	int-ptr-type:		as rst-type! 0
+	byte-ptr-type:		as rst-type! 0
+	any-type:			as rst-type! 0
+	subroutine-type:	as rst-type! 0
 
 	int-types: as ptr-array! 0
 
@@ -514,6 +516,7 @@ type-system: context [
 
 		void-type: make-type RST_TYPE_VOID
 		any-type: make-type RST_TYPE_ANY
+		subroutine-type: make-type RST_TYPE_SUBROUTINE
 		null-type: make-null-type
 		integer-type: get-int-type 32 true
 		int32-type: get-int-type 32 true
@@ -542,12 +545,13 @@ type-system: context [
 			m	[int-ptr!]
 	][
 		m: hashmap/make 100
-		hashmap/put m k_integer! as int-ptr! integer-type
-		hashmap/put m k_float!	 as int-ptr! float-type
-		hashmap/put m k_byte!	 as int-ptr! byte-type
-		hashmap/put m k_float32! as int-ptr! float32-type
-		hashmap/put m k_logic!	 as int-ptr! logic-type
-		hashmap/put m k_cstr!	 as int-ptr! cstr-type
+		hashmap/put m k_integer! 	as int-ptr! integer-type
+		hashmap/put m k_float!		as int-ptr! float-type
+		hashmap/put m k_byte!		as int-ptr! byte-type
+		hashmap/put m k_float32!	as int-ptr! float32-type
+		hashmap/put m k_logic!		as int-ptr! logic-type
+		hashmap/put m k_cstr!		as int-ptr! cstr-type
+		hashmap/put m k_subroutine! as int-ptr! subroutine-type
 		m
 	]
 
