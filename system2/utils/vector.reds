@@ -12,7 +12,7 @@ vector!: alias struct! [
 	data		[byte-ptr!]
 ]
 
-#define VECTOR_DATA(v) [as ptr-ptr! v/data]
+#define VECTOR_DATA(v) (as ptr-ptr! v/data)
 #define VECTOR_SIZE?(v) [v/length]
 
 vector: context [
@@ -204,5 +204,15 @@ ptr-vector: context [
 		vec		[vector!]
 	][
 		(as ptr-ptr! vec/data) + vec/length
+	]
+
+	pick-last: func [
+		vec		[vector!]
+		return: [int-ptr!]
+		/local
+			p	[ptr-ptr!]
+	][
+		p: (as ptr-ptr! vec/data) + vec/length - 1
+		p/value
 	]
 ]

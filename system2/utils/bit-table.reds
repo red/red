@@ -11,8 +11,11 @@ bit-table!: alias struct! [
 	width		[integer!]
 	bits		[int-ptr!]
 ]
-	
+
 bit-table: context [
+
+	fn-apply!: alias function! [idx [integer!] args [int-ptr!]]
+
 	make: func [
 		rows	[integer!]
 		cols	[integer!]
@@ -134,6 +137,45 @@ bit-table: context [
 		b/bits: new
 	]
 
+	clear-row: func [
+		b		[bit-table!]
+		row		[integer!]
+		/local
+			p	[int-ptr!]
+	][
+		p: b/bits + (row * b/width)
+		loop b/width [
+			p/value: 0
+			p: p + 1
+		]
+	]
+
+	flip-row: func [
+		b		[bit-table!]
+		row		[integer!]
+		/local
+			p	[int-ptr!]
+	][
+		p: b/bits + (row * b/width)
+		loop b/width [
+			p/value: not p/value
+			p: p + 1
+		]
+	]
+
+	set-row: func [
+		b		[bit-table!]
+		row		[integer!]
+		/local
+			p	[int-ptr!]
+	][
+		p: b/bits + (row * b/width)
+		loop b/width [
+			p/value: FFFFFFFFh
+			p: p + 1
+		]
+	]
+
 	or-rows: func [
 		"row a or row b into row a"
 		b		[bit-table!]
@@ -170,6 +212,89 @@ bit-table: context [
 			pa/value: pa/value and pb/value
 			pa: pa + 1
 			pb: pb + 1
+		]
+	]
+
+	copy-row: func [		;-- copy b into a
+		b		[bit-table!]
+		row-a	[integer!]
+		row-b	[integer!]
+		/local
+			pa	[int-ptr!]
+			pb	[int-ptr!]
+			w	[integer!]
+	][
+		w: b/width
+		pa: b/bits + (row-a * w)
+		pb: b/bits + (row-b * w)
+		loop w [
+			pa/value: pb/value
+			pa: pa + 1
+			pb: pb + 1
+		]
+	]
+
+	count: func [
+		b		[bit-table!]
+		row		[integer!]
+		return: [integer!]
+		/local
+			p	[int-ptr!]
+			n	[integer!]
+			v	[integer!]
+	][
+		n: 0
+		p: b/bits + (row * b/width)
+		loop b/width [
+			v: p/value
+			while [v <> 0][
+				if v and 1 <> 0 [n: n + 1]
+				v: v >>> 1
+			]
+			p: p + 1
+		]
+		n
+	]
+
+	zero-row?: func [
+		b		[bit-table!]
+		row		[integer!]
+		return: [logic!]
+		/local
+			p	[int-ptr!]
+	][
+		p: b/bits + (row * b/width)
+		loop b/width [
+			if p/value <> 0 [return false]
+			p: p + 1
+		]
+		true
+	]
+
+	apply: func [
+		b		[bit-table!]
+		row		[integer!]
+		fun		[int-ptr!]
+		args	[int-ptr!]
+		/local
+			p	[int-ptr!]
+			idx [integer!]
+			i v	[integer!]
+			fc	[fn-apply!]
+	][
+		fc: as fn-apply! fun
+		i: 0
+		p: b/bits + (row * b/width)
+		loop b/width [
+			idx: i * 32
+			v: p/value
+			while [v <> 0][
+				if v and 1 <> 0 [fc idx args]
+				idx: idx + 1
+				v: v >>> 1
+			]
+			i: i + 1
+			p: p + 1
 		]
 	]
 

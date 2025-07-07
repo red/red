@@ -117,11 +117,34 @@ instr-op!: alias struct! [
 	ret-type	[rst-type!]
 ]
 
+loop-info!: alias struct! [
+	index		[integer!]
+	start		[integer!]
+	end			[integer!]
+	depth		[integer!]
+	out-edges	[list!]			;-- list<cf-edge!>
+]
+
+block-info!: alias struct! [
+	block		[basic-block!]
+	rpo-num		[integer!]
+	start		[integer!]
+	end			[integer!]
+	label		[label!]
+	loop-info	[loop-info!]
+	dom-depth	[integer!]		;-- depth in dominator tree
+	dom-parent	[block-info!]
+	dom-child	[block-info!]
+	dom-sibling [block-info!]
+	dom-max		[integer!]
+]
+
 basic-block!: alias struct! [
 	;-- /next: point to the head instr
 	;-- /prev: point to the last instr
 	IR_NODE_FIELDS(instr!)
 	preds	[ptr-array!]		;-- array<cf-edge!>
+	info	[block-info!]
 	marker	[integer!]
 ]
 
