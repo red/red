@@ -93,7 +93,6 @@ case-folding: context [
 			char  [red-char!]
 			str	  [red-string!]
 			str2  [red-string!]
-			w	  [red-word!]
 			unit  [integer!]
 			unit2 [integer!]
 			s	  [series!]
@@ -146,8 +145,6 @@ case-folding: context [
 				i: i + 1
 				p: p + unit
 			]
-			w: either upper? [words/_uppercase][words/_lowercase]
-			ownership/check as red-value! str w null str/head len
 		]
 		arg
 	]
