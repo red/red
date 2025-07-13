@@ -334,8 +334,7 @@ update-tabs: func [
 			]
 		]
 		TYPE_STRING [
-			SendMessage hWnd TCM_DELETEITEM index 0
-			insert-tab hWnd as red-string! value index
+			set-tabs hWnd get-face-values hWnd
 		]
 		default [assert false]			;@@ raise a runtime error
 	]
