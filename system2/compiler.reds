@@ -670,6 +670,11 @@ compiler: context [
 		throw-error [pc "Should not reach here!!!"]
 	]
 
+	fail: func [msg [c-string!]][
+		probe msg
+		halt
+	]
+
 	comp-fn: func [
 		fn		[fn!]
 		parent	[context!]

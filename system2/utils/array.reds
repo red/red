@@ -93,6 +93,17 @@ int-array: context [
 		p: p + i
 		p/value: val
 	]
+
+	copy: func [
+		arr		[int-array!]
+		return: [int-array!]
+		/local
+			new [int-array!]
+	][
+		new: make arr/length
+		copy-memory as byte-ptr! ARRAY_DATA(new) as byte-ptr! ARRAY_DATA(arr) arr/length * size? integer!
+		new
+	]
 ]
 
 ptr-array: context [

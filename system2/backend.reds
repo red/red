@@ -134,7 +134,7 @@ vreg!: alias struct! [			;-- virtual register
 	live?		[logic!]
 	live-pos	[integer!]		;-- last live position
 	spillable?	[logic!]
-	spill-from	[vreg!]
+	reload-from	[vreg!]
 	spill		[integer!]
 	hint		[integer!]
 	reg			[integer!]
@@ -883,7 +883,7 @@ backend: context [
 			d		[def!]
 	][
 		v: get-vreg cg i
-		either constraint < cg/reg-set/n-regs [v/hint: constraint][v/hint: 0]
+		either constraint <= cg/reg-set/n-regs [v/hint: constraint][v/hint: 0]
 		d: make-def v constraint
 		vector/append-ptr cg/operands as byte-ptr! d
 		d
@@ -922,7 +922,7 @@ backend: context [
 		constraint	[integer!]
 	][
 		if vreg <> null [
-			vreg/hint: either constraint < cg/reg-set/n-regs [constraint][0]
+			vreg/hint: either constraint <= cg/reg-set/n-regs [constraint][0]
 		]
 		vector/append-ptr cg/operands as byte-ptr! make-def vreg constraint
 	]
@@ -1159,7 +1159,7 @@ backend: context [
 		cg/instrs: ptr-vector/make rpo/blocks/length
 		cg/liveness: bit-table/make rpo/blocks/length 32
 		cg/reg-set: frame/cc/reg-set
-		cg/livepoints: ptr-vector/make 6
+		cg/livepoints: vector/make 3 * size? int-ptr! 10
 		cg/compute-liveness?: yes
 		cg/m: matcher/make
 		cg/mark: fn/mark
@@ -1227,6 +1227,7 @@ backend: context [
 		v: xmalloc(vreg!)
 		v/instr: i
 		v/idx: idx
+		v/size: 1
 		v/reg-class: cls
 		v/stack-idx: -2
 		vector/poke-ptr vregs idx as int-ptr! v
@@ -1234,6 +1235,45 @@ backend: context [
 			v/spill: -2 - idx		;-- use negative spill to mark constants
 		]
 		v
+	]
+
+	dup-vreg: func [
+		cg		[codegen!]
+		v		[vreg!]
+		return: [vreg!]
+		/local
+			new		[vreg!]
+			mark	[integer!]
+			len		[integer!]
+			size	[integer!]
+			cls		[integer!]
+			type	[rst-type!]
+			idx		[integer!]
+			vregs	[vector!]
+	][
+		mark: cg/fn/mark
+		cg/fn/mark: mark + 1
+		size: v/size
+
+		idx: mark - cg/mark
+		len: idx + size + 1
+		bit-table/grow-column cg/liveness len
+
+		vregs: cg/vregs
+		vector/grow vregs len
+		vregs/length: len
+
+		new: xmalloc(vreg!)
+		new/instr: v/instr
+		new/idx: idx
+		new/size: size
+		new/reg-class: v/reg-class
+		new/stack-idx: -2
+		vector/poke-ptr vregs idx as int-ptr! v
+		if v/spill < 0 [
+			new/spill: -2 - idx		;-- use negative spill to mark constants
+		]
+		new
 	]
 
 	get-vreg: func [
@@ -1504,7 +1544,6 @@ backend: context [
 		/local
 			end	[integer!]
 			p	[ptr-ptr!]
-			len [integer!]
 			i	[integer!]
 			blk [basic-block!]
 			lv	[livepoint!]
@@ -1520,9 +1559,8 @@ backend: context [
 		end: info/loop-info/end
 		tbl: cg/liveness
 		v: cg/livepoints
-		p: as ptr-ptr! ptr-vector/tail v
-		len: v/length / 3
-		loop len [
+		p: as ptr-ptr! vector/tail v
+		loop v/length [
 			p: p - 1
 			lv: as livepoint! p/value
 			p: p - 2

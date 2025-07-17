@@ -67,6 +67,13 @@ vector: context [
 		as int-ptr! vec/data + (idx * vec/obj-sz)
 	]
 
+	tail: func [
+		vec		[vector!]
+		return: [int-ptr!]
+	][
+		as int-ptr! vec/data + (vec/length * vec/obj-sz)
+	]
+
 	grow: func [
 		vec		[vector!]
 		new-sz	[integer!]
@@ -144,6 +151,17 @@ vector: context [
 		vec/length: vec/length - 1
 	]
 
+	remove-last-int: func [
+		vec		[vector!]
+		return: [integer!]
+		/local
+			p	[int-ptr!]
+	][
+		vec/length: vec/length - 1
+		p: (as int-ptr! vec/data) + vec/length
+		p/value
+	]
+
 	pick-last-int: func [
 		vec		[vector!]
 		return: [integer!]
@@ -151,6 +169,17 @@ vector: context [
 			p	[int-ptr!]
 	][
 		p: (as int-ptr! vec/data) + vec/length - 1
+		p/value
+	]
+
+	pick-int: func [
+		vec		[vector!]
+		idx		[integer!]
+		return: [integer!]
+		/local
+			p	[int-ptr!]
+	][
+		p: (as int-ptr! vec/data) + idx
 		p/value
 	]
 
@@ -174,6 +203,14 @@ vector: context [
 	][
 		p: (as ptr-ptr! vec/data) + idx
 		p/value: val
+	]
+
+	pop-last: func [
+		vec		[vector!]
+		return: [int-ptr!]
+	][
+		vec/length: vec/length - 1
+		as int-ptr! (vec/data + (vec/length * vec/obj-sz))
 	]
 
 	pop-last-ptr: func [
@@ -202,6 +239,7 @@ ptr-vector: context [
 
 	tail: func [
 		vec		[vector!]
+		return: [ptr-ptr!]
 	][
 		(as ptr-ptr! vec/data) + vec/length
 	]

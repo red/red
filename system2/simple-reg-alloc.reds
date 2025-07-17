@@ -33,6 +33,38 @@ reg-state!: alias struct! [
 	reloads		[vector!]		;-- vector<vreg-reg!>	
 ]
 
+init-reg-state: func [
+	s		[reg-state!]
+	cg		[codegen!]
+	/local
+		p	[int-ptr!]
+		pp	[ptr-ptr!]
+		n	[integer!]
+][
+	s/cg: cg
+	s/reg-set: cg/reg-set
+	n: cg/reg-set/n-regs + 1
+	s/states: int-array/make n
+	s/allocated: ptr-array/make n * 2
+	s/cursor: 0
+	s/pos: 0
+
+	p: as int-ptr! ARRAY_DATA(s/states)
+	loop s/states/length [
+		p/value: -1
+		p: p + 1
+	]
+
+	pp: ARRAY_DATA(s/allocated)
+	n: s/allocated/length / 2
+	loop n [
+		pp/value: null				;-- vreg
+		pp: pp + 1
+		pp/value: as int-ptr! -1	;-- pos
+		pp: pp + 1
+	]
+]
+
 ;-- simple reg allocator
 ;-- spills everything to the stack between basic blocks
 simple-reg-alloc: context [
@@ -40,29 +72,6 @@ simple-reg-alloc: context [
 	#define V_ON_STACK	-1
 	#define V_IN_CYCLE	-2
 	#define V_DEAD		-3
-
-	init-reg-state: func [
-		s		[reg-state!]
-		/local
-			p	[int-ptr!]
-			pp	[ptr-ptr!]
-			n	[integer!]
-	][
-		p: as int-ptr! ARRAY_DATA(s/states)
-		loop s/states/length [
-			p/value: -1
-			p: p + 1
-		]
-
-		pp: ARRAY_DATA(s/allocated)
-		n: s/allocated/length / 2
-		loop n [
-			pp/value: null				;-- vreg
-			pp: pp + 1
-			pp/value: as int-ptr! -1	;-- pos
-			pp: pp + 1
-		]
-	]
 
 	alloc: func [
 		cg		[codegen!]
@@ -98,11 +107,8 @@ simple-reg-alloc: context [
 		frame: cg/frame
 		rset: cg/reg-set
 		rstate: xmalloc(reg-state!)
-		rstate/cg: cg
-		rstate/reg-set: rset
-		rstate/states: int-array/make rset/n-regs
-		rstate/allocated: ptr-array/make rset/n-regs * 2
-		m-idx: int-array/make rset/n-regs
+		n: rset/n-regs + 1
+		m-idx: int-array/make n
 		moves: vector/make size? move-state! 2
 		saves: vector/make size? move-state! 2
 		reloads: vector/make size? vreg-reg! 2
@@ -110,7 +116,7 @@ simple-reg-alloc: context [
 		rstate/reg-moves: moves
 		rstate/saves: saves
 		rstate/reloads: reloads
-		init-reg-state rstate
+		init-reg-state rstate cg
 
 		move-dsts: ptr-vector/make 4
 		rstate/move-dsts: move-dsts
