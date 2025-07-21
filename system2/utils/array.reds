@@ -57,6 +57,19 @@ make-int-array: func [
 	arr
 ]
 
+rs-array: context [
+	make: func [
+		obj-sz	[integer!]
+		size	[integer!]
+		return: [rs-array!]
+		/local
+			a	[rs-array!]
+	][
+		a: as rs-array! malloc size * obj-sz + size? rs-array!
+		a/length: size
+		a
+	]
+]
 
 int-array: context [
 	make: func [

@@ -5,6 +5,11 @@ Red/System [
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
+#define V_LIVE		 0
+#define V_ON_STACK	-1
+#define V_IN_CYCLE	-2
+#define V_DEAD		-3
+
 vreg-reg!: alias struct! [
 	vreg		[vreg!]
 	reg			[integer!]
@@ -65,14 +70,114 @@ init-reg-state: func [
 	]
 ]
 
+assign-reg: func [
+	s		[reg-state!]
+	v		[vreg!]
+	reg		[integer!]
+	return: [vreg!]
+	/local
+		i	[integer!]
+		idx [integer!]
+		p	[ptr-ptr!]
+		r	[vreg!]
+][
+	assert reg <> 0
+	i: int-array/pick s/states reg
+	either i < 0 [
+		idx: s/cursor
+		s/cursor: idx + 1
+		int-array/poke s/states reg idx
+		p: ARRAY_DATA(s/allocated) + (idx * 2)
+		p/value: as int-ptr! v
+		p: p + 1
+		p/value: as int-ptr! s/pos
+		null
+	][
+		p: ARRAY_DATA(s/allocated) + (i * 2)
+		r: as vreg! p/value
+		p/value: as int-ptr! v
+		p: p + 1
+		p/value: as int-ptr! s/pos
+		r
+	]
+]
+
+spill-reg: func [
+	s			[reg-state!]
+	reg			[integer!]
+	next-i		[mach-instr!]
+	/local
+		i		[integer!]
+		p		[ptr-ptr!]
+		v		[vreg!]
+		cg		[codegen!]
+][
+	i: int-array/pick s/states reg
+	if i < 0 [exit]
+	p: ARRAY_DATA(s/allocated) + (i * 2)
+	v: as vreg! p/value
+	cg: s/cg
+	alloc-slot cg/frame v
+	insert-restore-var cg v reg next-i
+]
+
+free-reg: func [
+	s			[reg-state!]
+	reg			[integer!]
+	clear?		[logic!]
+	/local
+		rset	[reg-set!]
+		i		[integer!]
+		p pa	[ptr-ptr!]
+		states	[int-ptr!]
+		ps		[int-ptr!]
+		cursor	[integer!]
+		v a		[vreg!]
+][
+	rset: s/reg-set
+	unless is-reg? rset reg [exit]	;-- not a reg location
+
+	states: as int-ptr! ARRAY_DATA(s/states)
+	ps: states + reg
+	i: ps/value
+	if i < 0 [exit]		;-- this reg loc is not used
+
+	p: ARRAY_DATA(s/allocated) + (i * 2)
+	v: as vreg! p/value
+	cursor: s/cursor - 1
+	s/cursor: cursor
+	pa: ARRAY_DATA(s/allocated) + (cursor * 2)
+	a: as vreg! pa/value
+	if cursor > 0 [
+		p/value: as int-ptr! a
+		p: p + 1
+		pa: pa + 1
+		p/value: pa/value
+		ps: states + a/reg
+		ps/value: i
+	]
+	ps: states + reg
+	ps/value: -1
+	if clear? [v/reg: 0]
+]
+
+get-pmove-reg: func [
+	s		[reg-set!]
+	cls		[reg-class!]
+	idx		[integer!]
+	return: [integer!]
+	/local
+		p	[int-ptr!]
+		rset [int-array!]
+][
+	p: s/regs-cls + cls
+	rset: as int-array! ptr-array/pick s/regs p/value
+	int-array/pick rset idx
+]
+
 ;-- simple reg allocator
 ;-- spills everything to the stack between basic blocks
 simple-reg-alloc: context [
-	#define V_LIVE		 0
-	#define V_ON_STACK	-1
-	#define V_IN_CYCLE	-2
-	#define V_DEAD		-3
-
 	alloc: func [
 		cg		[codegen!]
 		/local
@@ -403,166 +508,6 @@ simple-reg-alloc: context [
 		m/dst: 0
 	]
 
-	spill-reg: func [
-		s			[reg-state!]
-		reg			[integer!]
-		next-i		[mach-instr!]
-		/local
-			i		[integer!]
-			p		[ptr-ptr!]
-			v		[vreg!]
-			cg		[codegen!]
-	][
-		i: int-array/pick s/states reg
-		if i < 0 [exit]
-		p: ARRAY_DATA(s/allocated) + (i * 2)
-		v: as vreg! p/value
-		cg: s/cg
-		alloc-slot cg/frame v
-		insert-restore-var cg v reg next-i
-	]
-
-	free-reg: func [
-		s			[reg-state!]
-		reg			[integer!]
-		clear?		[logic!]
-		/local
-			rset	[reg-set!]
-			i		[integer!]
-			p pa	[ptr-ptr!]
-			states	[int-ptr!]
-			ps		[int-ptr!]
-			cursor	[integer!]
-			v a		[vreg!]
-	][
-		rset: s/reg-set
-		unless is-reg? rset reg [exit]	;-- not a reg location
-
-		states: as int-ptr! ARRAY_DATA(s/states)
-		ps: states + reg
-		i: ps/value
-		if i < 0 [exit]		;-- this reg loc is not used
-
-		p: ARRAY_DATA(s/allocated) + (i * 2)
-		v: as vreg! p/value
-		cursor: s/cursor - 1
-		s/cursor: cursor
-		pa: ARRAY_DATA(s/allocated) + (cursor * 2)
-		a: as vreg! pa/value
-		if cursor > 0 [
-			p/value: as int-ptr! a
-			p: p + 1
-			pa: pa + 1
-			p/value: pa/value
-			ps: states + a/reg
-			ps/value: i
-		]
-		ps: states + reg
-		ps/value: -1
-		if clear? [v/reg: 0]
-	]
-
-	choose-reg: func [
-		s			[reg-state!]
-		constraint	[integer!]
-		return:		[integer!]
-		/local
-			pos		[integer!]
-			min-pos [integer!]
-			reg		[integer!]
-			new-r	[integer!]
-			i		[integer!]
-			regs	[int-array!]
-			p pp	[int-ptr!]
-			states	[int-ptr!]
-			pa		[ptr-ptr!]
-			allocated [ptr-ptr!]
-	][
-		states: as int-ptr! ARRAY_DATA(s/states)
-		allocated: ARRAY_DATA(s/allocated)
-		min-pos: 7FFFFFFFh
-		new-r: 0
-
-		regs: as int-array! ptr-array/pick s/reg-set/regs constraint
-		p: as int-ptr! ARRAY_DATA(regs)
-		loop regs/length [
-			reg: p/value
-			pp: states + reg
-			i: pp/value
-			if i < 0 [return reg]	;-- the reg is free, return it
-			pa: allocated + (i * 2) + 1
-			pos: as-integer pa/value
-			if pos < min-pos [
-				min-pos: pos
-				new-r: reg
-			]
-			p: p + 1
-		]
-		if zero? new-r [probe "no free registers" assert 0 = 1 halt]
-		new-r
-	]
-
-	find-best-loc: func [		;-- find the best location
-		s			[reg-state!]
-		cls			[reg-class!]
-		hint		[integer!]
-		constraint	[integer!]
-		return:		[integer!]
-		/local
-			reg-set [reg-set!]
-			p		[int-ptr!]
-			i		[integer!]
-	][
-		reg-set: s/reg-set
-		if constraint >= reg-set/regs/length [return constraint]	;-- spill
-		if zero? constraint [
-			p: reg-set/regs-cls + cls
-			constraint: p/value
-		]
-		if hint <> 0 [
-			i: int-array/pick s/states hint
-			if all [
-				i < 0		;-- hint reg is free
-				in-reg-set? reg-set hint constraint
-			][
-				return hint
-			]
-		]
-		choose-reg s constraint
-	]
-
-	assign-reg: func [
-		s		[reg-state!]
-		v		[vreg!]
-		reg		[integer!]
-		return: [vreg!]
-		/local
-			i	[integer!]
-			idx [integer!]
-			p	[ptr-ptr!]
-			r	[vreg!]
-	][
-		assert reg <> 0
-		i: int-array/pick s/states reg
-		either i < 0 [
-			idx: s/cursor
-			s/cursor: idx + 1
-			int-array/poke s/states reg idx
-			p: ARRAY_DATA(s/allocated) + (idx * 2)
-			p/value: as int-ptr! v
-			p: p + 1
-			p/value: as int-ptr! s/pos
-			null
-		][
-			p: ARRAY_DATA(s/allocated) + (i * 2)
-			r: as vreg! p/value
-			p/value: as int-ptr! v
-			p: p + 1
-			p/value: as int-ptr! s/pos
-			r
-		]
-	]
-
 	reassign-reg: func [
 		s		[reg-state!]
 		v		[vreg!]
@@ -632,6 +577,75 @@ simple-reg-alloc: context [
 			p: ARRAY_DATA(s/allocated) + (idx * 2) + 1
 			s/pos = as-integer p/value
 		]
+	]
+
+	find-best-loc: func [		;-- find the best location
+		s			[reg-state!]
+		cls			[reg-class!]
+		hint		[integer!]
+		constraint	[integer!]
+		return:		[integer!]
+		/local
+			reg-set [reg-set!]
+			p		[int-ptr!]
+			i		[integer!]
+	][
+		reg-set: s/reg-set
+		if constraint >= reg-set/regs/length [return constraint]	;-- spill
+		if zero? constraint [
+			p: reg-set/regs-cls + cls
+			constraint: p/value
+		]
+		if hint <> 0 [
+			i: int-array/pick s/states hint
+			if all [
+				i < 0		;-- hint reg is free
+				in-reg-set? reg-set hint constraint
+			][
+				return hint
+			]
+		]
+		choose-reg s constraint
+	]
+
+	choose-reg: func [
+		s			[reg-state!]
+		constraint	[integer!]
+		return:		[integer!]
+		/local
+			pos		[integer!]
+			min-pos [integer!]
+			reg		[integer!]
+			new-r	[integer!]
+			i		[integer!]
+			regs	[int-array!]
+			p pp	[int-ptr!]
+			states	[int-ptr!]
+			pa		[ptr-ptr!]
+			allocated [ptr-ptr!]
+	][
+		states: as int-ptr! ARRAY_DATA(s/states)
+		allocated: ARRAY_DATA(s/allocated)
+		min-pos: 7FFFFFFFh
+		new-r: 0
+
+		regs: as int-array! ptr-array/pick s/reg-set/regs constraint
+		p: as int-ptr! ARRAY_DATA(regs)
+		loop regs/length [
+			reg: p/value
+			pp: states + reg
+			i: pp/value
+			if i < 0 [return reg]	;-- the reg is free, return it
+			pa: allocated + (i * 2) + 1
+			pos: as-integer pa/value
+			if pos < min-pos [
+				min-pos: pos
+				new-r: reg
+			]
+			p: p + 1
+		]
+		if zero? new-r [probe "no free registers" assert 0 = 1 halt]
+		new-r
 	]
 
 	alloc-use-reg: func [
@@ -724,20 +738,6 @@ simple-reg-alloc: context [
 			m/dst: spill
 		]
 		loc
-	]
-
-	get-pmove-reg: func [
-		s		[reg-set!]
-		cls		[reg-class!]
-		idx		[integer!]
-		return: [integer!]
-		/local
-			p	[int-ptr!]
-			rset [int-array!]
-	][
-		p: s/regs-cls + cls
-		rset: as int-array! ptr-array/pick s/regs p/value
-		int-array/pick rset idx
 	]
 
 	emit-pmoves: func [

@@ -230,12 +230,25 @@ global-reg-alloc: context [
 
 	move-set!: alias struct! [
 		reg-set		[reg-set!]
-		move-idx	[int-array!]
-		reg-moves	[vector!]			;-- vector<move-state!>
-		saves		[vector!]			;-- vector<move-state!>
+		reg-index	[int-array!]
+		reg-moves	[vector!]			;-- vector<reg-move!>
+		saves		[vector!]			;-- vector<reg-save!>
 		reloads		[vector!]			;-- vector<vreg-reg!>	
 	]
-	
+
+	reg-move!: alias struct! [
+		state		[integer!]
+		vreg		[vreg!]
+		src			[integer!]
+		regs		[list!]
+	]
+
+	reg-save!: alias struct! [
+		vreg		[vreg!]
+		src			[integer!]
+		dst			[integer!]
+	]
+
 	allocator!: alias struct! [
 		cg				[codegen!]
 		reg-set			[reg-set!]
@@ -244,7 +257,7 @@ global-reg-alloc: context [
 		moves-next		[move-set! value]
 		moves-prev		[move-set! value]
 		statistic		[statistic! value]
-		reg-index		[int-array!]
+		reg-index		[rs-array!]
 		pmove-dests		[vector!]
 		vregs			[vector!]
 		liveness		[bit-table!]
@@ -281,6 +294,17 @@ global-reg-alloc: context [
 
 	fn-process!: alias function! [a [allocator!] blk [basic-block!] cur-i [mach-instr!]]
 
+	init-move-set: func [
+		m			[move-set!]
+		reg-set		[reg-set!]
+	][
+		m/reg-set: reg-set
+		m/reg-moves: vector/make size? reg-move! 2
+		m/saves: vector/make size? reg-save! 2
+		m/reloads: vector/make size? vreg-reg! 2
+		m/reg-index: int-array/make reg-set/n-regs + 1
+	]
+
 	process-instrs-backward: func [
 		a			[allocator!]
 		blocks		[vector!]
@@ -316,14 +340,16 @@ global-reg-alloc: context [
 			lv	[bit-table!]
 			p	[int-ptr!]
 			arr [int-array!]
+			rset [reg-set!]
 			blks [vector!]
 	][
 		a: xmalloc(allocator!)
+		rset: cg/reg-set
 		a/cg: cg
 		a/vregs: cg/vregs
-		a/reg-set: cg/reg-set
-		p: cg/reg-set/regs-cls + class_i32
-		arr: as int-array! ptr-array/pick cg/reg-set/regs p/value
+		a/reg-set: rset
+		p: rset/regs-cls + class_i32
+		arr: as int-array! ptr-array/pick rset/regs p/value
 		a/n-colors: arr/length - 1		;-- minus one temp reg
 		lv: cg/liveness
 		a/liveness: lv
@@ -349,6 +375,11 @@ global-reg-alloc: context [
 			insert-spills a
 			build-color-graph a
 		]
+
+		init-move-set as move-set! :a/moves-next rset
+		init-move-set as move-set! :a/moves-prev rset
+		a/pmove-dests: ptr-vector/make 10
+		a/reg-index: rs-array/make size? vreg-reg! rset/n-regs + 1
 		process-instrs-backward a blks as int-ptr! :alloc-after-coloring
 	]
 
@@ -890,11 +921,11 @@ global-reg-alloc: context [
 						pint: clr + v/idx
 						if zero? pint/value [
 							if opcode = I_PMOVE [
-								p/value: as int-ptr! make-use v a/reg-set/spill-start
+								u/constraint: a/reg-set/spill-start
 								continue
 							]
 							v: process-spill a v c
-							p/value: as int-ptr! make-use v c
+							u/vreg: v
 						]
 					]
 				]
@@ -909,7 +940,7 @@ global-reg-alloc: context [
 						zero? pint/value
 					][
 						v2: process-spill a v2 c
-						p/value: as int-ptr! make-overwrite v v2 c
+						w/src: v2
 					]
 					if v <> null [
 						pint: clr + v/idx
@@ -937,7 +968,7 @@ global-reg-alloc: context [
 								exit
 							]
 							if opcode = I_PMOVE [
-								p/value: as int-ptr! make-def v v/spill
+								d/constraint: v/spill
 							]
 						]
 					]
@@ -1660,10 +1691,804 @@ global-reg-alloc: context [
 		end - 1
 	]
 
+	reset-move-set: func [
+		m		[move-set!]
+		/local
+			p	[int-ptr!]
+	][
+		p: as int-ptr! m/reg-index + 1
+		loop m/reg-index/length [
+			p/value: -1
+			p: p + 1
+		]
+		vector/clear m/saves
+		vector/clear m/reloads
+		vector/clear m/reg-moves
+	]
+
 	alloc-after-coloring: func [
 		a [allocator!] blk [basic-block!] cur-i [mach-instr!]
+		/local
+			prev-i next-i	[mach-instr!]
+			opcode i len	[integer!]
+			liveout-row		[integer!]
+			vregs			[vector!]
+			liveness		[bit-table!]
+			p pn pp			[ptr-ptr!]
+			reg-state		[reg-state!]
+			moves-next		[move-set!]
+			moves-prev		[move-set!]
+			o				[operand!]
+			d				[def!]
+			u				[use!]
+			w				[overwrite!]
+			k				[kill!]
+			reg c loc		[integer!]
+			dst src v		[vreg!]
+			vr				[vreg-reg!]
+			node			[reg-node!]
+			regs			[int-array!]
+			pint			[int-ptr!]
 	][
-		
+		prev-i: cur-i/prev
+		next-i: cur-i/next
+		vregs: a/vregs
+		liveness: a/liveness
+		liveout-row: a/liveout-row
+		reg-state: as reg-state! :a/reg-state
+		reg-state/pos: reg-state/pos + 1
+		opcode: MACH_OPCODE(cur-i)
+
+		if opcode = I_BLK_END [
+			reset-reg-state reg-state
+			compute-liveout a blk
+			i: 0
+			len: vregs/length
+			p: VECTOR_DATA(vregs)
+			while [i < len][
+				if bit-table/pick liveness liveout-row i [
+					update-reg-state a reg-state as vreg! p/value
+				]
+				p: p + 1
+			]
+			exit
+		]
+
+		moves-next: as move-set! :a/moves-next
+		moves-prev: as move-set! :a/moves-prev
+		reset-move-set moves-next
+		reset-move-set moves-prev
+		if opcode = I_PMOVE [		;-- parallel move
+			process-pmoves a cur-i next-i
+			p: INS_OPERANDS(cur-i)
+			loop cur-i/num [
+				o: as operand! p/value
+				switch o/header and FFh [
+					OD_DEF [
+						d: as def! o
+						reg: int-array/pick a/coloring d/vreg/idx
+						free-reg reg-state reg true
+					]
+					OD_USE [
+						u: as use! o
+						if not on-stack? a/reg-set u/constraint [
+							update-reg-state a reg-state u/vreg
+						]
+					]
+					default [0]		;-- do nothing
+				]
+				p: p + 1
+			]
+			remove-instr cur-i
+			exit
+		]
+
+		if opcode = I_RELOAD [
+			p: INS_OPERANDS(cur-i)
+			d: as def! p/value
+			p: p + 1
+			u: as use! p/value
+			dst: d/vreg
+			if u/vreg <> dst [
+				a/statistic/n-reloads: a/statistic/n-reloads + 1
+			]
+			reg: int-array/pick a/coloring dst/idx
+			vr: as vreg-reg! vector/new-item moves-next/reloads
+			vr/vreg: dst
+			vr/reg: reg
+			emit-moves a/cg moves-next next-i
+			free-reg reg-state reg true
+			remove-instr cur-i
+			exit
+		]
+
+		pp: ARRAY_DATA(a/graph/nodes)
+		p: INS_OPERANDS(cur-i)
+		loop cur-i/num [
+			o: as operand! p/value
+			switch o/header and FFh [
+				OD_DEF [
+					d: as def! o
+					v: d/vreg
+					c: d/constraint
+					if null? v [p: p + 1 continue]
+					pn: pp + v/idx
+					node: as reg-node! pn/value
+					if all [
+						on-caller-stack? c
+						not node/use?
+					][
+						p: p + 1
+						continue
+					]
+					loc: alloc-def-reg a v c opcode <> I_RESTORE
+					d/constraint: loc
+				]
+				OD_OVERWRITE [
+					w: as overwrite! o
+					dst: w/dst
+					src: w/src
+					c: w/constraint
+					loc: alloc-def-reg a dst c true
+					reg: int-array/pick a/coloring src/idx
+					case [
+						src/reload-from <> null [
+							a/statistic/n-reloads: a/statistic/n-reloads + 1
+							vr: as vreg-reg! vector/new-item a/moves-prev/reloads
+							vr/vreg: src/reload-from
+							vr/reg: loc
+						]
+						loc <> reg [
+							either is-reg? a/reg-set reg [
+								add-reg-move as move-set! :a/moves-prev src reg loc
+							][
+								vr: as vreg-reg! vector/new-item a/moves-prev/reloads
+								vr/vreg: src
+								vr/reg: loc
+							]
+						]
+						true [0]
+					]
+					int-array/poke a/reg-usage loc reg-state/pos
+					w/constraint: loc
+				]
+				OD_USE [
+					u: as use! o
+					v: u/vreg
+					c: u/constraint
+					if any [null? v on-stack? a/reg-set c][
+						p: p + 1
+						continue
+					]
+					loc: alloc-use-reg a v c
+					u/constraint: loc
+				]
+				OD_KILL [
+					k: as kill! o
+					c: k/constraint
+					if c < a/reg-set/regs/length [
+						regs: as int-array! ptr-array/pick a/reg-set/regs c
+						pint: as int-ptr! ARRAY_DATA(regs)
+						loop regs/length [
+							free-reg reg-state pint/value true
+							pint: pint + 1
+						]
+					]
+				]
+				default [0]		;-- do nothing
+			]
+			p: p + 1
+		]
+
+		p: INS_OPERANDS(cur-i)
+		loop cur-i/num [
+			o: as operand! p/value
+			switch o/header and FFh [
+				OD_OVERWRITE [
+					w: as overwrite! o
+					v: w/src
+					if v/reload-from <> null [p: p + 1 continue]
+					update-reg-state a reg-state v
+				]
+				OD_USE [
+					u: as use! o
+					v: u/vreg
+					c: u/constraint
+					if any [
+						null? v
+						on-stack? a/reg-set c
+						v/reload-from <> null
+					][
+						p: p + 1
+						continue
+					]
+					update-reg-state a reg-state v
+				]
+				default [0]
+			]
+			p: p + 1
+		]
+		emit-moves a/cg moves-next next-i
+		emit-moves a/cg moves-prev cur-i
+	]
+
+	alloc-def-reg: func [
+		a			[allocator!]
+		vreg		[vreg!]
+		constraint	[integer!]
+		save?		[logic!]
+		return:		[integer!]
+		/local
+			reg loc	[integer!]
+			rstate	[reg-state!]
+			s		[reg-save!]
+			prev-vreg [vreg!]
+	][
+		reg: int-array/pick a/coloring vreg/idx
+		loc: reg
+		rstate: as reg-state! :a/reg-state
+		prev-vreg: get-vreg rstate loc
+		free-reg rstate loc true
+		unless good-loc? a/reg-set loc constraint [
+			loc: find-best-loc a/reg-usage rstate vreg/reg-class loc constraint
+			if all [
+				is-reg? a/reg-set reg
+				prev-vreg = vreg
+			][
+				add-reg-move as move-set! :a/moves-next vreg loc reg
+			]
+		]
+		if all [save? vreg/spill > 0][
+			a/statistic/n-stores: a/statistic/n-stores + 1
+			s: as reg-save! vector/new-item a/moves-next/saves
+			s/vreg: vreg
+			s/src: loc
+			s/dst: vreg/spill
+		]
+		loc
+	]
+
+	alloc-use-reg: func [
+		a			[allocator!]
+		vreg		[vreg!]
+		constraint	[integer!]
+		return:		[integer!]
+		/local
+			reg loc	[integer!]
+			rstate	[reg-state!]
+			vr		[vreg-reg!]
+			prev-vreg [vreg!]
+	][
+		reg: int-array/pick a/coloring vreg/idx
+		rstate: as reg-state! :a/reg-state
+		loc: find-best-loc a/reg-usage rstate vreg/reg-class reg constraint
+
+		case [
+			vreg/reload-from <> null [
+				a/statistic/n-reloads: a/statistic/n-reloads + 1
+				vr: as vreg-reg! vector/new-item a/moves-prev/reloads
+				vr/vreg: vreg/reload-from
+				vr/reg: loc
+			]
+			loc <> reg [
+				either is-reg? a/reg-set reg [
+					add-reg-move as move-set! :a/moves-prev vreg reg loc
+				][
+					vr: as vreg-reg! vector/new-item a/moves-prev/reloads
+					vr/vreg: vreg
+					vr/reg: loc
+				]
+			]
+			true [0]
+		]
+		int-array/poke a/reg-usage loc rstate/pos
+		loc
+	]
+
+	find-best-loc: func [
+		reg-usage	[int-array!]
+		s			[reg-state!]
+		cls			[reg-class!]
+		hint		[integer!]
+		constraint	[integer!]
+		return:		[integer!]
+		/local
+			reg-set [reg-set!]
+			p pu	[int-ptr!]
+			i		[integer!]
+	][
+		reg-set: s/reg-set
+		if constraint >= reg-set/regs/length [return constraint]	;-- spill
+		if zero? constraint [
+			p: reg-set/regs-cls + cls
+			constraint: p/value
+		]
+		pu: as int-ptr! reg-usage + 1
+		p: pu + hint
+		if all [
+			hint <> 0
+			in-reg-set? reg-set hint constraint
+			p/value <> s/pos
+		][
+			return hint
+		]
+		choose-reg reg-usage s constraint
+	]
+
+	choose-reg: func [
+		reg-usage	[int-array!]
+		s			[reg-state!]
+		constraint	[integer!]
+		return:		[integer!]
+		/local
+			pos		[integer!]
+			min-pos [integer!]
+			reg		[integer!]
+			new-r	[integer!]
+			i		[integer!]
+			regs	[int-array!]
+			p pp pu [int-ptr!]
+			p2		[int-ptr!]
+			states	[int-ptr!]
+			pa		[ptr-ptr!]
+			allocated [ptr-ptr!]
+	][
+		pu: as int-ptr! reg-usage + 1
+		states: as int-ptr! ARRAY_DATA(s/states)
+		allocated: ARRAY_DATA(s/allocated)
+		min-pos: 7FFFFFFFh
+		new-r: 0
+
+		regs: as int-array! ptr-array/pick s/reg-set/regs constraint
+		p: as int-ptr! ARRAY_DATA(regs)
+		loop regs/length [
+			reg: p/value
+			pp: states + reg
+			i: pp/value
+			p2: pu + reg
+			if all [i < 0 p2/value <> s/pos][return reg]	;-- the reg is free, return it
+			if i >= 0 [
+				pa: allocated + (i * 2) + 1
+				pos: as-integer pa/value
+				if all [pos < min-pos p2/value <> s/pos][
+					min-pos: pos
+					new-r: reg
+				]
+			]
+			p: p + 1
+		]
+		if zero? new-r [probe "no free registers" assert 0 = 1 halt]
+		new-r
+	]
+
+	good-loc?: func [
+		rset		[reg-set!]
+		loc			[integer!]
+		constraint	[integer!]
+		return:		[logic!]
+	][
+		case [
+			zero? loc [false]
+			constraint >= rset/regs/length [false]
+			zero? constraint [true]
+			true [in-reg-set? rset loc constraint]
+		]
+	]
+
+	get-vreg: func [
+		s			[reg-state!]
+		loc			[integer!]
+		return:		[vreg!]
+		/local
+			i		[integer!]
+			p		[ptr-ptr!]
+	][
+		unless is-reg? s/reg-set loc [return null]
+		i: int-array/pick s/states loc
+		if i < 0 [return null]
+		p: ARRAY_DATA(s/allocated) + (i * 2)
+		as vreg! p/value
+	]
+
+	add-reg-move: func [
+		m		[move-set!]
+		vreg	[vreg!]
+		src		[integer!]
+		dst		[integer!]
+		/local
+			i	[integer!]
+			idx	[integer!]
+			r	[reg-move!]
+			l	[list!]
+	][
+		if src = dst [exit]
+		either is-reg? m/reg-set src [
+			i: int-array/pick m/reg-index src
+			either i < 0 [
+				idx: m/reg-moves/length
+				int-array/poke m/reg-index src idx
+				r: as reg-move! vector/new-item m/reg-moves
+				l: null
+			][
+				idx: i
+				r: as reg-move! vector/pick m/reg-moves idx
+				l: r/regs
+			]
+		][
+			r: as reg-move! vector/new-item m/reg-moves
+			l: null
+		]
+		r/state: V_LIVE
+		r/vreg: vreg
+		r/src: src
+		r/regs: make-list as int-ptr! dst l
+	]
+
+	emit-moves: func [
+		cg		[codegen!]
+		m		[move-set!]
+		next-i	[mach-instr!]
+		/local
+			s	[reg-save!]
+			v	[vreg!]
+			reg [integer!]
+			i	[integer!]
+			vr	[vreg-reg!]
+			arg [move-arg! value]
+	][
+		s: as reg-save! m/saves/data
+		loop m/saves/length [
+			if s/src <> s/dst [
+				v: s/vreg
+				arg/src-v: v
+				arg/src-reg: s/src
+				arg/dst-v: v
+				arg/dst-reg: s/dst
+				arg/reg-cls: v/reg-class
+				insert-move-loc cg :arg next-i
+			]
+			s: s + 1
+		]
+
+		i: 0
+		loop m/reg-moves/length [
+			emit-move cg m i next-i
+			i: i + 1
+		]
+
+		vr: as vreg-reg! m/reloads/data
+		loop m/reloads/length [
+			v: vr/vreg
+			reg: vr/reg
+			arg/src-v: v
+			arg/dst-v: v
+			arg/dst-reg: reg
+			arg/reg-cls: v/reg-class
+			either vreg-const?(v) [
+				insert-move-imm cg :arg next-i
+			][
+				arg/src-reg: v/spill
+				insert-move-loc cg :arg next-i
+			]
+			vr: vr + 1
+		]
+	]
+
+	emit-move: func [
+		cg		[codegen!]
+		mset	[move-set!]
+		idx		[integer!]
+		next-i	[mach-instr!]
+		/local
+			l dst		[list!]
+			reg d cls	[integer!]
+			scratch src [integer!]
+			p pp		[int-ptr!]
+			reg-m m m2	[reg-move!]
+			v vreg		[vreg!]
+			arg			[move-arg! value]
+	][
+		reg-m: as reg-move! mset/reg-moves/data
+		m: reg-m + idx
+		if m/state < V_LIVE [exit]
+		m/state: V_ON_STACK
+		vreg: m/vreg
+		src: m/src
+		dst: m/regs
+
+		pp: as int-ptr! mset/reg-index + 1
+		l: dst
+		while [l <> null][
+			reg: as-integer l/head
+			p: pp + reg
+			d: p/value
+			if d >= 0 [
+				m2: reg-m + d
+				case [
+					m2/state = V_ON_STACK [
+						v: m2/vreg
+						cls: v/reg-class
+						p: cg/reg-set/scratch + cls
+						scratch: p/value
+						m2/state: V_IN_CYCLE
+						m2/src: scratch
+						arg/src-v: v
+						arg/src-reg: reg
+						arg/dst-v: v
+						arg/dst-reg: scratch
+						arg/reg-cls: cls
+						insert-move-loc cg :arg next-i
+					]
+					m2/state = V_LIVE [
+						emit-move cg mset d next-i
+					]
+					true [0]
+				]
+			]
+			l: l/tail
+		]
+
+		if m/state = V_IN_CYCLE [src: m/src]
+		l: dst
+		cls: vreg/reg-class
+		while [l <> null][
+			arg/src-v: vreg
+			arg/src-reg: src
+			arg/dst-v: vreg
+			arg/dst-reg: as-integer l/head
+			arg/reg-cls: cls
+			insert-move-loc cg :arg next-i
+			l: l/tail
+		]
+		m/state: V_DEAD
+		m/vreg: null
+		m/src: 0
+		m/regs: null
+	]
+
+	process-pmoves: func [
+		a		[allocator!]
+		cur-i	[mach-instr!]
+		next-i	[mach-instr!]
+		/local
+			p	[ptr-ptr!]
+			o	[operand!]
+			u	[use!]
+			v	[vreg!]
+			r rr [vreg-reg!]
+			reg i len [integer!]
+	][
+		vector/clear a/pmove-dests
+		collect-pmove-dests cur-i a/pmove-dests
+		rr: as vreg-reg! a/reg-index + 1
+		r: rr
+		loop a/reg-index/length [
+			r/reg: V_DEAD
+			r/vreg: null
+			r: r + 1
+		]
+
+		p: INS_OPERANDS(cur-i)
+		loop cur-i/num [
+			o: as operand! p/value
+			switch o/header and FFh [
+				OD_USE [
+					u: as use! o
+					v: u/vreg
+					reg: int-array/pick a/coloring v/idx
+					if all [
+						not on-stack? a/reg-set u/constraint
+						is-reg? a/reg-set reg
+					][
+						r: rr + reg
+						r/reg: v/pmove - 1
+						r/vreg: v
+					]
+				]
+				default [0]		;-- do nothing
+			]
+			p: p + 1
+		]
+		len: a/pmove-dests/length
+		i: 0
+		while [i < len][
+			emit-pmoves a i next-i
+			i: i + 2
+		]
+	]
+
+	emit-pmoves: func [
+		a		[allocator!]
+		idx		[integer!]
+		next-i	[mach-instr!]
+		/local
+			v	[vreg!]
+			l 	[list!]
+			dst [list!]
+			d	[def!]
+			dv	[vreg!]
+			cv	[vreg!]
+			reg [integer!]
+			src [integer!]
+			cg	[codegen!]
+			rr	[vreg-reg!]
+			r	[vreg-reg!]
+			arg [move-arg! value]
+			rset  [reg-set!]
+			frame [frame!]
+			i i2 tmp loc [integer!]
+	][
+		v: as vreg! vector/pick-ptr a/pmove-dests idx
+		dst: as list! vector/pick-ptr a/pmove-dests idx + 1
+		if v/pmove <= 0 [exit]		;-- already emitted or on stack
+
+		cg: a/cg
+		frame: cg/frame
+		rset: a/reg-set
+		src: int-array/pick a/coloring v/idx
+		rr: as vreg-reg! a/reg-index + 1
+		r: rr + src
+		if all [
+			is-reg? rset src
+			r/vreg <> v
+		][
+			src: 0		;-- constraint is on stack
+		]
+
+		v/pmove: V_ON_STACK
+		if is-reg? rset src [
+			r: rr + src
+			r/reg: V_ON_STACK
+		]
+		l: dst
+		while [l <> null][
+			d: as def! l/head
+			dv: d/vreg
+			reg: int-array/pick a/coloring dv/idx
+			if reg = src [
+				l: l/tail
+				continue
+			]
+			i: dv/pmove
+			r: rr + reg
+			i2: either is-reg? rset reg [r/reg][V_DEAD]
+			case [
+				i2 = V_ON_STACK [
+					cv: r/vreg
+					cv/pmove: V_IN_CYCLE
+					tmp: get-pmove-reg rset cv/reg-class 1
+					arg/src-v: cv
+					arg/src-reg: reg
+					arg/dst-v: null
+					arg/dst-reg: tmp
+					arg/reg-cls: cv/reg-class
+					insert-move-loc cg :arg next-i
+				]
+				i = V_ON_STACK [
+					dv/pmove: V_IN_CYCLE
+					tmp: get-pmove-reg rset dv/reg-class 1
+					either not is-reg? rset reg [
+						insert-restore-var cg dv tmp next-i
+					][
+						arg/src-v: dv
+						arg/src-reg: reg
+						arg/dst-v: null
+						arg/dst-reg: tmp
+						arg/reg-cls: dv/reg-class
+						insert-move-loc cg :arg next-i
+					]
+				]
+				true [0]
+			]
+			either i > 0 [
+				emit-pmoves a i - 1 next-i	
+			][
+				if i2 >= 0 [emit-pmoves a i2 next-i]
+			]
+			l: l/tail
+		]
+
+		loc: 0
+		case [
+			v/pmove = V_IN_CYCLE [loc: get-pmove-reg rset v/reg-class 1]
+			v/spill <= 0 [loc: src]
+			true [
+				loc: get-pmove-reg rset v/reg-class 0
+				insert-restore-var cg v loc next-i
+			]
+		]
+
+		either is-reg? rset loc [
+			l: dst
+			while [l <> null][
+				d: as def! l/head
+				dv: d/vreg
+				reg: int-array/pick a/coloring dv/idx
+				if all [
+					reg <> loc
+					is-reg? rset reg
+				][
+					arg/src-v: v
+					arg/src-reg: loc
+					arg/dst-v: dv
+					arg/dst-reg: reg
+					arg/reg-cls: dv/reg-class
+					insert-move-loc cg :arg next-i
+				]
+				if dv/spill > 0 [
+					a/statistic/n-stores: a/statistic/n-stores
+					insert-save-var cg loc dv next-i
+				]
+				l: l/tail
+			]
+		][
+			l: dst
+			while [l <> null][
+				d: as def! l/head
+				dv: d/vreg
+				reg: int-array/pick a/coloring dv/idx
+				if all [
+					reg <> loc
+					is-reg? rset reg
+				][
+					arg/src-v: v
+					arg/dst-v: dv
+					arg/dst-reg: reg
+					arg/reg-cls: dv/reg-class
+					insert-move-imm cg :arg next-i
+				]
+				if dv/spill > 0 [
+					a/statistic/n-stores: a/statistic/n-stores
+					arg/src-v: v
+					arg/dst-v: dv
+					arg/dst-reg: dv/spill
+					arg/reg-cls: dv/reg-class
+					insert-move-imm cg :arg next-i
+				]
+				l: l/tail
+			]
+		]
+		v/pmove: 0
+		if is-reg? rset src [
+			r: rr + src
+			r/reg: V_DEAD
+			r/vreg: null
+		]
+	]
+
+	update-reg-state: func [
+		a [allocator!] s [reg-state!] vreg [vreg!]
+		/local
+			reg	[integer!]
+	][
+		reg: int-array/pick a/coloring vreg/idx
+		unless is-reg? a/reg-set reg [exit]
+		assign-reg s vreg reg
+		vreg/reg: reg
+	]
+
+	reset-reg-state: func [
+		s		[reg-state!]
+		/local
+			p	[int-ptr!]
+			pp	[ptr-ptr!]
+			n	[integer!]
+	][
+		p: as int-ptr! ARRAY_DATA(s/states)
+		loop s/states/length [
+			p/value: -1
+			p: p + 1
+		]
+
+		pp: ARRAY_DATA(s/allocated)
+		n: s/allocated/length / 2
+		loop n [
+			pp/value: null				;-- vreg
+			pp: pp + 1
+			pp/value: as int-ptr! -1	;-- pos
+			pp: pp + 1
+		]
+		s/pos: 0
 	]
 
 	preprocess: func [
