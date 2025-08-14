@@ -2299,11 +2299,10 @@ change-text: func [
 			text: unicode/to-utf16 str
 			len: string/rs-length? str
 		]
-		TYPE_NONE	[
+		default	[							;@@ Auto-convert?
 			text: #u16 "^@"
 			len: 1
-		]
-		default		[0]									;@@ Auto-convert?
+		]	
 	]
 	unless null? text [
 		if type = group-box [
