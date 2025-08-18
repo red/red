@@ -403,7 +403,11 @@ load: function [
 					return do [codec/decode source]
 				]
 			]
-			source: read/binary source
+			either dir? source [
+				return read source
+			][
+				source: read/binary source
+			]
 		]
 		url!	[
 			source: read/info/binary source
