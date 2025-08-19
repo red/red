@@ -130,11 +130,13 @@ insert-list-item: func [
 	pos	  [integer!]
 	drop? [logic!]
 	/local
-		str [c-string!]
-		msg	[integer!]
-		len [integer!]
+		str	 [c-string!]
+		msg	 [integer!]
+		len  [integer!]
+		type [integer!]
 ][
-	unless TYPE_OF(item) = TYPE_STRING [exit]
+	type: TYPE_OF(item)
+	unless ANY_STRING?(type)[exit]
 
 	msg: either drop? [CB_GETCOUNT][LB_GETCOUNT]
 	len: as-integer SendMessage hWnd msg 0 0
@@ -171,11 +173,12 @@ remove-list-items: func [
 	part  [integer!]
 	str	  [red-string!]
 	drop? [logic!]
+	/local
+		type [integer!]
 ][
 	loop part [
-		if TYPE_OF(str) = TYPE_STRING [
-			remove-list-item hWnd pos drop?
-		]
+		type: TYPE_OF(str)
+		if ANY_STRING?(type) [remove-list-item hWnd pos drop?]
 	]
 ]
 
@@ -196,6 +199,7 @@ update-list: func [
 		data [red-block!]
 		val  [red-value!]
 		i n	 [integer!]
+		type [integer!]
 ][
 	hWnd: get-face-handle face
 	switch TYPE_OF(value) [
@@ -206,7 +210,8 @@ update-list: func [
 			val: block/rs-head as red-block! (object/get-values face) + FACE_OBJ_DATA
 			i: 0 n: 0
 			while [n < index][
-				if TYPE_OF(val) = TYPE_STRING [i: i + 1]
+				type: TYPE_OF(val)
+				if ANY_STRING?(type) [i: i + 1]
 				val: val + 1
 				n: n + 1
 			]
@@ -263,7 +268,8 @@ update-list: func [
 					]
 					ownership/unbind-each as red-block! value index part
 					loop part [
-						if TYPE_OF(str) = TYPE_STRING [
+						type: TYPE_OF(str)
+						if ANY_STRING?(type) [
 							insert-list-item hWnd str i drop?
 							i: i + 1
 							ownership/bind as red-value! str face _data
