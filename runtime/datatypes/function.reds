@@ -459,6 +459,11 @@ _function: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_function/push"]]
 
+		if spec/head > 0 [
+			spec: block/clone spec no no
+			spec/head: 0
+		]
+
 		node: alloc-unset-cells 5						;-- allocate this one first
 		f-ctx: either null? ctx [_context/make spec yes no CONTEXT_FUNCTION][ctx] ;-- avoids a GC pass after this node is created
 		

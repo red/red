@@ -3802,6 +3802,12 @@ comment {
 		delete d5609
 		change-dir saved-dir
 
+	--test-- "#5633"
+		f5633: func [x y] [x + y]
+		spec: next spec-of :f5633
+		g5633: func spec [1 + y]
+		--assert [y] == spec-of :g5633
+
 ===end-group===
 
 ~~~end-file~~~
