@@ -25,6 +25,7 @@ max-ext-styles: 	20
 ext-classes:		as ext-class! allocate max-ext-styles * size? ext-class!
 ext-cls-tail:		ext-classes							;-- tail pointer
 ext-parent-proc?:	no
+OldComboWndProc:	0
 OldFaceWndProc:		0
 OldEditWndProc:		0
 OldCalendarWndProc: 0
@@ -127,6 +128,35 @@ make-super-class: func [
 	]
 	RegisterClassEx wcex
 	old
+]
+
+ComboWndProc: func [
+	[stdcall]
+	hWnd	[handle!]
+	msg		[integer!]
+	wParam	[integer!]
+	lParam	[integer!]
+	return: [integer!]
+][
+	switch msg [
+		WM_COMMAND [
+			if all [zero? lParam wParam < 1000][				;-- heuristic to detect a menu selection (--)'
+				unless null? menu-handle [
+					do-menu hWnd
+					return 0
+				]
+			]
+		]
+		WM_MENUSELECT [
+			if wParam <> FFFF0000h [
+				menu-selected: WIN32_LOWORD(wParam)
+				menu-handle: as handle! lParam
+			]
+			return 0
+		]
+		default [0]
+	]
+	CallWindowProc as wndproc-cb! OldComboWndProc hWnd msg wParam lParam
 ]
 
 FaceWndProc: func [
@@ -244,12 +274,17 @@ register-classes: func [
 
 	;-- superclass existing classes to add 16 extra bytes
 	make-super-class #u16 "RedButton"	#u16 "BUTTON"			 0 yes
-	make-super-class #u16 "RedCombo"	#u16 "ComboBox"			 0 yes
 	make-super-class #u16 "RedListBox"	#u16 "ListBox"			 0 yes
 	make-super-class #u16 "RedProgress" #u16 "msctls_progress32" 0 yes
 	make-super-class #u16 "RedSlider"	#u16 "msctls_trackbar32" 0 yes
 	make-super-class #u16 "RedScroller"	#u16 "SCROLLBAR"		 0 yes
 	make-super-class #u16 "RedTabpanel"	#u16 "SysTabControl32"	 0 yes
+
+	OldComboWndProc: make-super-class
+		#u16 "RedCombo"
+		#u16 "ComboBox"
+		as-integer :ComboWndProc
+		yes
 
 	OldFaceWndProc: make-super-class
 		#u16 "RedFace"
