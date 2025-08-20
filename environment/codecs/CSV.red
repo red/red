@@ -209,7 +209,7 @@ context [
 			delimiter [char! string!] "Delimiter to use (default is comma)"
 		/header		"Treat first line as header; implies /as-columns if /as-records is not used"
 		/as-columns	"Returns named columns; default names if /header is not used"
-		/as-records	"Returns records instead of rows; implies /header"
+		/as-records	"Returns records instead of rows; default names if /header is not used"
 		/flat		"Returns a flat block; you need to know the number of fields"
 		/trim		"Ignore spaces between quotes and delimiter"
 		/quote
