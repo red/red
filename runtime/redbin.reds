@@ -616,8 +616,8 @@ redbin: context [
 					TYPE_IMAGE		[encode-image data header payload]
 					TYPE_ANY_WORD
 					TYPE_REFINEMENT	[encode-word data header payload symbols table strings]
-					TYPE_ANY_BLOCK
-					TYPE_MAP		[encode-block data header payload symbols table strings]
+					TYPE_ANY_BLOCK	[encode-block data header payload symbols table strings]
+					TYPE_MAP		[encode-map data header payload symbols table strings]
 					TYPE_OBJECT		[encode-object data header payload symbols table strings]
 					TYPE_FUNCTION	[encode-function data header payload symbols table strings]
 					default			[assert false]
@@ -1766,7 +1766,7 @@ redbin: context [
 	
 	;-- SERIES!
 	
-	;-- block!, paren!, hash!, map!, path!, lit-path!, set-path!, get-path!
+	;-- block!, paren!, hash!, path!, lit-path!, set-path!, get-path!
 	
 	encode-block: func [
 		data    [red-value!]
@@ -1796,6 +1796,46 @@ redbin: context [
 			loop length [
 				encode-value value payload symbols table strings
 				value:  value + 1
+			]
+			#if debug? = yes [indent: indent - 1]
+		]
+	]
+
+	encode-map: func [
+		data    [red-value!]
+		header  [integer!]
+		payload [red-binary!]
+		symbols [red-binary!]
+		table   [red-binary!]
+		strings [red-binary!]
+		/local
+			series [red-series!]
+			value  [red-value!]
+			key	   [red-value!]
+			buffer [series!]
+			length [integer!]
+			push?  [logic!]
+	][
+		series: as red-series! data
+		store payload header
+
+		unless header and REDBIN_REFERENCE_MASK <> 0 [
+			length: map/rs-length? as red-hash! series
+			store payload length * 2
+
+			#if debug? = yes [indent: indent + 1]
+
+			buffer: GET_BUFFER(series)
+			key: buffer/offset
+			length: _series/get-length series yes
+			length: length / 2
+			loop length [
+				value: key + 1
+				if value/header <> MAP_KEY_DELETED [
+					encode-value key payload symbols table strings
+					encode-value value payload symbols table strings
+				]
+				key: value + 1
 			]
 			#if debug? = yes [indent: indent - 1]
 		]
