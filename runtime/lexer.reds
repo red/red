@@ -213,8 +213,6 @@ lexer: context [
 		180Eh											;-- MONGOLIAN VOWEL SEPARATOR
 		200Bh											;-- ZERO WIDTH SPACE
 		200Ch											;-- ZERO WIDTH NON-JOINER
-		200Dh											;-- ZERO WIDTH JOINER
-		2060h											;-- WORD JOINER
 	]
 	
 	months: [
