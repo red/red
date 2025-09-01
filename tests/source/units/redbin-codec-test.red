@@ -287,7 +287,11 @@ Red [
 				
 				--assert value == test value
 			]
-		
+
+		--test-- "map issue #5646"
+			do bind [decode encode remove/key m: #[1 2] 1 {}] system/codecs/redbin
+			--assert empty? m
+
 		--test-- "any-path"
 			paths: [a/b :c/(d) 'e/f/(g/:h)/:i]
 			forall paths [--assert paths/1 == test paths/1]
