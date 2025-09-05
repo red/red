@@ -2600,6 +2600,13 @@ make-profilable make target-class [
 			emit #{5E}								;-- POP esi
 			emit #{5B}								;-- POP ebx
 		]
+		unless any [PIC? none? last-red-frame][
+			emit #{8DA5}							;-- LEA esp, [ebp-<offset>]
+			emit to-bin32 negate locals-offset		;-- points to last-red-frame saved slot
+			emit #{8F05}							;-- POP [last-red-frame]
+			emit-reloc-addr last-red-frame/2
+		]
+		
 		if closing [emit-load 0]
 		emit #{C9}									;-- LEAVE			; catch flag is skipped
 		either any [
