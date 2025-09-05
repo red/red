@@ -929,7 +929,7 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-frame-chaining: func [/store /push /local spec][
+	emit-frame-chaining: func [/store /push /pop /local spec][
 		spec: last-red-frame/2
 		pools/collect/spec/with 0 spec #{e59fc000}	;-- MOV ip, #(last-red-frame)
 		if PIC? [emit-i32 #{e08cc009}]				;-- ADD ip, sb
@@ -938,6 +938,10 @@ make-profilable make target-class [
 			push  [
 				emit-i32 #{e59cc000}				;-- LDR ip, [ip]
 				emit-i32 #{e92d1000}				;-- PUSH {ip} 		; push frame pointer on stack
+			]
+			pop	  [
+				emit-i32 #{e49d3004}				;-- POP {r3}
+				emit-i32 #{e58c3000}				;-- STR r3, [ip]
 			]
 		]
 	]
@@ -3204,6 +3208,9 @@ make-profilable make target-class [
 				]
 			]
 			emit-i32 #{e8bd07f0}					;-- LDMFD sp!, {r4-r10}
+			
+			emit-i32 #{e24bd010}					;-- SUB sp, fp, #16 	; move to 4th slot
+			emit-frame-chaining/pop
 		]
 		if closing [emit-load 0]
 		emit-i32 #{e1a0d00b}						;-- MOV sp, fp		; catch flag is skipped
