@@ -465,6 +465,7 @@ stack: context [										;-- call stack
 			extra [red-value!]
 			str	  [red-string!]
 			title [c-string!]
+			len	  [integer!]
 			all?  [logic!]
 	][
 		if ctop > cbottom [
@@ -484,10 +485,17 @@ stack: context [										;-- call stack
 		][
 			#either sub-system = 'GUI [
 				str: as red-string! #get system/script/header/title
-				title: either TYPE_OF(str) = TYPE_STRING [unicode/to-utf16 str][#u16 "Red NoName App"]
 				set-last as red-value! err
 				actions/form* -1
-				exec/gui/OS-alert title unicode/to-utf16 as red-string! stack/arguments
+				#either OS = 'Windows [
+					title: either TYPE_OF(str) = TYPE_STRING [unicode/to-utf16 str][#u16 "Red NoName App"]
+					exec/gui/OS-alert title unicode/to-utf16 as red-string! stack/arguments
+				][
+					len: -1
+					title: either TYPE_OF(str) = TYPE_STRING [unicode/to-utf8 str :len]["Red NoName App"]
+					len: -1
+					exec/gui/OS-alert title unicode/to-utf8 (as red-string! stack/arguments) :len
+				]
 			][
 				set-last as red-value! err
 				natives/print* no
