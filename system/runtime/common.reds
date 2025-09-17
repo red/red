@@ -211,8 +211,6 @@ re-throw: func [/local id [integer!]][
 			msg s s2 [c-string!]
 	][
 		unless zero? status [
-			print [lf "*** Runtime Error " status ": "]
-
 			msg: switch status [
 				1	["access violation"]
 				2	["invalid alignment"]
@@ -260,11 +258,16 @@ re-throw: func [/local id [integer!]][
 			]
 			#either sub-system = 'GUI [
 				s: as-c-string system/stack/allocate 256
-				s2: as-c-string system/stack/allocate 128
-				red/unicode/convert-u16 msg s2
-				swprintf [s #u16 "*** Runtime Error %d: %s^/*** at: %08Xh" status s2 as byte-ptr! address]
+				#either OS = 'Windows [
+					s2: as-c-string system/stack/allocate 128
+					red/unicode/convert-u16 msg s2
+					swprintf [s #u16 "*** Runtime Error %d: %s^/*** at: %08Xh" status s2 as byte-ptr! address]
+				][
+					sprintf [s "*** Runtime Error %d: %s^/*** at: %08Xh" status msg as byte-ptr! address]
+				]
 				exec/gui/OS-alert #u16 "Red App Error" s
 			][
+				print [lf "*** Runtime Error " status ": "]
 				print msg
 
 				#either debug? = yes [

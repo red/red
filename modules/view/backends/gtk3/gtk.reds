@@ -1369,6 +1369,15 @@ GPtrArray!: alias struct! [
 			widget 		[handle!]
 			mode		[logic!]
 		]
+		gtk_message_dialog_new: "gtk_message_dialog_new" [
+			widget 		[handle!]
+			flags		[integer!]
+			type		[integer!]
+			buttons		[integer!]
+			fmt			[c-string!]
+			msg			[c-string!]
+			return:		[handle!]
+		]
 		gtk_dialog_run: "gtk_dialog_run" [
 			widget 		[handle!]
 			return:		[integer!]

@@ -2458,3 +2458,23 @@ OS-draw-face: func [
 	]
 	if system/thrown = RED_THROWN_ERROR [system/thrown: 0]
 ]
+
+OS-alert: func [
+	caption [c-string!]
+	msg		[c-string!]
+	/local
+		dialog [handle!]
+		result [integer!]
+][
+	dialog: gtk_message_dialog_new
+		null
+		3 										;-- GTK_DIALOG_MODAL || GTK_DIALOG_DESTROY_WITH_PARENT
+		3 										;-- GTK_MESSAGE_ERROR
+		1 										;-- GTK_BUTTONS_OK
+		"%s"
+		msg
+
+	result: gtk_dialog_run dialog
+	gtk_widget_destroy dialog
+	result  									;-- e.g. GTK_RESPONSE_OK, GTK_RESPONSE_YES, ...
+]
