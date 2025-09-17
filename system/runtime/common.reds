@@ -208,7 +208,7 @@ re-throw: func [/local id [integer!]][
 		status  [integer!]
 		address [integer!]
 		/local 
-			msg [c-string!]
+			msg s s2 [c-string!]
 	][
 		unless zero? status [
 			print [lf "*** Runtime Error " status ": "]
@@ -258,14 +258,22 @@ re-throw: func [/local id [integer!]][
 
 				default ["unknown error code!"]
 			]
-			print msg
-
-			#either debug? = yes [
-				if null? system/debug [__set-stack-on-crash]
-				__print-debug-line  as byte-ptr! address
-				__print-debug-stack as byte-ptr! address status
+			#either sub-system = 'GUI [
+				s: as-c-string system/stack/allocate 256
+				s2: as-c-string system/stack/allocate 128
+				red/unicode/convert-u16 msg s2
+				swprintf [s #u16 "*** Runtime Error %d: %s^/*** at: %08Xh" status s2 as byte-ptr! address]
+				exec/gui/OS-alert #u16 "Red App Error" s
 			][
-				print [lf "*** at: " as byte-ptr! address "h" lf]
+				print msg
+
+				#either debug? = yes [
+					if null? system/debug [__set-stack-on-crash]
+					__print-debug-line  as byte-ptr! address
+					__print-debug-stack as byte-ptr! address status
+				][
+					print [lf "*** at: " as byte-ptr! address "h" lf]
+				]
 			]
 		]
 

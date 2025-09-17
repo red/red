@@ -802,6 +802,26 @@ unicode: context [
 		s/tail: as cell! (as byte-ptr! s/offset) + (size * unit)
 		node
 	]
+	
+	convert-u16: func [
+		src		[c-string!]
+		dst		[c-string!]
+		return: [c-string!]
+		/local
+			buf [byte-ptr!]
+			cp	[integer!]
+	][
+		buf: as byte-ptr! dst
+		while [cp: as-integer src/1 cp <> 0][
+			buf/1: as-byte cp
+			buf/2: as-byte cp >> 8
+			src: src + 1
+			buf: buf + 2
+		]
+		buf/1: null-byte
+		buf/2: null-byte
+		dst
+	]
 
 	cp-to-utf16: func [
 		cp		[integer!]

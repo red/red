@@ -3051,3 +3051,7 @@ OS-draw-face: func [
 	]
 	if system/thrown = RED_THROWN_ERROR [system/thrown: 0]
 ]
+
+OS-alert: func [caption [c-string!] msg [c-string!]][
+	MessageBox null msg caption 2010h
+]

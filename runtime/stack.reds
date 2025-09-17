@@ -463,6 +463,8 @@ stack: context [										;-- call stack
 		err [red-object!]
 		/local
 			extra [red-value!]
+			str	  [red-string!]
+			title [c-string!]
 			all?  [logic!]
 	][
 		if ctop > cbottom [
@@ -480,8 +482,16 @@ stack: context [										;-- call stack
 			NOT_CALL_STACK_TYPE?(ctop FRAME_TRY)
 			NOT_CALL_STACK_TYPE?(ctop FRAME_TRY_ALL)
 		][
-			set-last as red-value! err
-			natives/print* no
+			#either sub-system = 'GUI [
+				str: as red-string! #get system/script/header/title
+				title: either TYPE_OF(str) = TYPE_STRING [unicode/to-utf16 str][#u16 "Red NoName App"]
+				set-last as red-value! err
+				actions/form* -1
+				exec/gui/OS-alert title unicode/to-utf16 as red-string! stack/arguments
+			][
+				set-last as red-value! err
+				natives/print* no
+			]
 			quit -2
 		]
 		assert top >= bottom

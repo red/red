@@ -1120,6 +1120,13 @@ XFORM!: alias struct! [
         ]
 	]
 	"User32.dll" stdcall [
+		MessageBox: "MessageBoxW" [
+			hWnd		[handle!]
+			lpText		[c-string!]
+			lpCaption	[c-string!]
+			uType		[integer!]
+			return:		[integer!]
+		]
 		GetCursorPos: "GetCursorPos" [
 			pt			[tagPOINT]
 			return:		[logic!]
