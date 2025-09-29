@@ -4262,10 +4262,10 @@ system-dialect: make-profilable context [
 		]
 	]
 	
-	make-job: func [opts [object!] file [file!] /local job][
+	make-job: func [opts [object!] file [file!] /local job pos][
 		job: construct/with third opts linker/job-class	
-		file: last split-path file					;-- remove path
-		file: to-file first parse/all file "."		;-- remove extension
+		file: last split-path file									;-- remove path
+		file: to-file either pos: find/reverse tail file #"." [copy/part file pos][file] ;-- remove extension
 		case [
 			none? job/build-basename [
 				job/build-basename: file
@@ -4404,7 +4404,7 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		if opts/link? [
+		if opts/link? [	
 			link-time: dt [
 				job/symbols: emitter/symbols
 				job/sections: compose/deep/only [
@@ -4430,7 +4430,7 @@ system-dialect: make-profilable context [
 				]
 				if opts/debug? [
 					job/debug-info: reduce ['lines compiler/debug-lines]
-				]
+				]				
 				output: linker/build job
 			]
 		]
