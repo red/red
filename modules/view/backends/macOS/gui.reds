@@ -2529,3 +2529,11 @@ OS-fetch-all-screens: func [][
 OS-get-current-screen: func [][
 	SET_RETURN(none-value)
 ]
+
+OS-alert: func [
+	caption [c-string!]
+	msg		[c-string!]
+][
+	;; Placeholder
+	;; TBD: implement it using NSAlert()
+]

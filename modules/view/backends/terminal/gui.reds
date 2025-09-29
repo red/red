@@ -876,3 +876,10 @@ OS-draw-face: func [
 	flags	[integer!]
 ][
 ]
+
+OS-alert: func [
+	caption [c-string!]
+	msg		[c-string!]
+][
+	;; Placeholder
+]

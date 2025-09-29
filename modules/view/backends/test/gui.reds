@@ -347,3 +347,11 @@ OS-draw-face: func [
 	cmds	[red-block!]
 	flags	[integer!]
 ][]
+
+
+OS-alert: func [
+	caption [c-string!]
+	msg		[c-string!]
+][
+	;; Placeholder
+]
