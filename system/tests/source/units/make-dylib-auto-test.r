@@ -16,7 +16,7 @@ make-dir exe-dir-out
 
 dll-target: switch/default fourth system/version [
 	2 ["Darwin"]
-	3 ["Windows"]
+	3 ["MSDOS"]
 	7 ["FreeBSD"]
 ][
 	"Linux"

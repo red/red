@@ -185,6 +185,7 @@ qt: make object! [
     exe: copy/part exe find exe "."
     either lib [
       switch/default target [
+      	"MSDOS"		[exe: join exe [".dll"]]
         "Windows"	[exe: join exe [".dll"]]
         "Darwin"   	[exe: join exe [".dylib"]]
       ][

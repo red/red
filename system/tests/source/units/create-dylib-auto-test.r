@@ -32,6 +32,7 @@ create-dylib-auto-test: func [
 	suffix: switch/default target [
 		"Darwin"	[".dylib"]
 		"Windows"	[".dll"]
+		"MSDOS"		[".dll"]
 	][
 		".so"	
 	]
@@ -47,8 +48,8 @@ create-dylib-auto-test: func [
 		dll1-name: join %libtest-dll1 suffix
 		dll2-name: join %libtest-dll2 suffix 
 		either any [
-		    target = "Windows"
-		    exe-dir-out = %./ 
+			find ["Windows" "MSDOS"] target
+			exe-dir-out = %./ 
 		][
 			replace libs "***test-dll1***" dll1-name
 			replace libs "***test-dll2***" dll2-name
