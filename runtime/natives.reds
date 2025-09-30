@@ -710,7 +710,7 @@ natives: context [
 			TYPE_ANY_PATH [
 				value: stack/push stack/arguments
 				copy-cell stack/arguments + 1 stack/arguments
-				interpreter/eval-path value null null null yes yes no case? <> -1
+				interpreter/eval-path value null null null yes any? no case? <> -1
 			]
 			TYPE_OBJECT [
 				object/set-many as red-object! w value any? only? some?

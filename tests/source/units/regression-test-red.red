@@ -3807,7 +3807,11 @@ comment {
 		spec: next spec-of :f5633
 		g5633: func spec [1 + y]
 		--assert [y] == spec-of :g5633
-
+		
+	--test-- "#5649"
+		x5649: make object! [a: 22]
+		--assert error? try [set 'x5649/aaaa 33]
+		
 ===end-group===
 
 ~~~end-file~~~
