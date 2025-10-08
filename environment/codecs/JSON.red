@@ -57,16 +57,6 @@ context [
 	]
 
 	json-esc-ch: charset {"t\/nrbf}         		    ; Backslash escaped JSON chars
-	; json-escaped: [#"\" json-esc-ch]					; Backslash escape rule
-
-	; cs8B: charset "890AaBb"								;-- surrogate pair masks
-	; csCF: charset "CDEFcdef"
-	; csD:  charset "Dd"
-	
-		; |	#"u"  _s: csD cs8B 2 hex-char "\u" _e: csD csCF 2 hex-char
-		; |	#"u"  _s: 4 hex-char keep (decode-unicode-char _s)
-		; ]
-	; ]
 
 	unescape: routine [
 		str [string!] "(modified)"
