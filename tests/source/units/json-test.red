@@ -107,7 +107,7 @@ Red [
         --assert str = to-json src
         
     --test-- "to-json-19"								;-- #5654
-		--assert #{F09F9180} = to #{} to-json "^(1f440)"
+		--assert #{22F09F918022} = to #{} to-json "^(1f440)"
     	--assert {"\uD83D\uDC40"} = to-json/ascii "^(1f440)"
 
 ===end-group===
@@ -207,7 +207,7 @@ Red [
         --assert o/location = "関西    ↓詳しいプロ↓"
 
     --test-- "load-json-25"								;-- #5654
-        --assert #{22F09F918022} = to #{} load-json {"\ud83d\udc40"}
+        --assert #{F09F9180} = to #{} load-json {"\ud83d\udc40"}
         --assert error? try [load-json {"\ud83d\u4040"}]		;-- invalid surrogate pair
 		
 ===end-group===
