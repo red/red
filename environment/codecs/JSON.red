@@ -93,6 +93,7 @@ context [
 		while [src < tail] [
 			c1: string/get-char src unit
 			src: src + unit
+			special?: false
 			if c1 = as-integer #"\" [
 				special?: true
 				c2: string/get-char src unit
