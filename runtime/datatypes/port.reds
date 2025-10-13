@@ -174,7 +174,7 @@ port: context [
 
 		string/concatenate-literal buffer "make port! ["
 		part: object/serialize port buffer only? all? flat? arg part - 12 yes indent + 1 yes
-		if indent > 0 [part: object/do-indent buffer indent part]
+		if indent > 0 [part: do-indent buffer indent part]
 		string/append-char GET_BUFFER(buffer) as-integer #"]"
 		part - 1
 	]

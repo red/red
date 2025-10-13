@@ -511,6 +511,16 @@ get-int-from: func [
 	]
 ]
 
+do-indent: func [
+	buffer	[red-string!]
+	tabs	[integer!]
+	part	[integer!]
+	return:	[integer!]
+][
+	loop tabs [string/concatenate-literal buffer "    "]
+	part - (tabs * 4)
+]
+
 cycles: context [
 	size: 1000											;-- max depth allowed (arbitrary)
 	bottom: as node! allocate size * size? node!		;-- cycles detection stack

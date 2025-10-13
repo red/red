@@ -108,7 +108,7 @@ ser-formed: {1 none true false c red Red a/b a/b a/b a/b 1 + 2 a  a c d b e f w 
 	--test-- "binary-14" --assert "#{DEADBEEF}" = form/part #{deadbeef} 100
 	--test-- "binary-15"
 		--assert equal?
-			rejoin ["#{" newline append/dup "" "DEADBEEF" 8 newline "DEADBEEF" newline "}"]
+			rejoin ["#{" newline "    " append/dup "" "DEADBEEF" 8 newline "    DEADBEEF" newline "}"]
 			mold append/dup #{} #{deadbeef} 9
 	--test-- "binary-16"
 		--assert equal?

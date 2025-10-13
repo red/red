@@ -537,22 +537,6 @@ object: context [
 		]
 	]
 	
-	do-indent: func [
-		buffer	[red-string!]
-		tabs	[integer!]
-		part	[integer!]
-		return:	[integer!]
-		/local
-			n [integer!]
-	][
-		n: tabs
-		while [n > 0][
-			string/concatenate-literal buffer "    "
-			n: n - 1
-		]
-		part - (4 * tabs)
-	]
-	
 	serialize: func [
 		obj		[red-object!]
 		buffer	[red-string!]

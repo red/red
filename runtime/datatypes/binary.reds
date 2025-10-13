@@ -817,6 +817,7 @@ binary: context [
 		arg		[red-value!]
 		part	[integer!]
 		mold?	[logic!]
+		indent	[integer!]
 		return: [integer!]
 		/local
 			s      [series!]
@@ -837,24 +838,27 @@ binary: context [
 			part: part - 2
 		]
 		bytes: 0
+		indent: indent + 1
+		
 		if all [size > 30 not flat?][
 			string/append-char GET_BUFFER(buffer) as-integer lf
-			part: part - 1
+			part: do-indent buffer indent part
 		]
 		while [head < tail][
 			string/concatenate-literal buffer string/byte-to-hex as-integer head/value
 			bytes: bytes + 1
 			if all [bytes % 32 = 0 not flat?][
 				string/append-char GET_BUFFER(buffer) as-integer lf
-				part: part - 1
+				part: do-indent buffer indent part - 1
 			]
 			part: part - 2
 			if all [OPTION?(arg) part <= 0][return part]
 			head: head + 1
 		]
+		indent: indent - 1
 		if all [size > 30 bytes % 32 <> 0 not flat?][
 			string/append-char GET_BUFFER(buffer) as-integer lf
-			part: part - 1
+			part: do-indent buffer indent part - 1
 		]
 		either only? [part][
 			string/append-char GET_BUFFER(buffer) as-integer #"}"
@@ -1025,7 +1029,7 @@ binary: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/form"]]
 		
-		serialize bin buffer no no no arg part no
+		serialize bin buffer no no no arg part no 0
 	]
 	
 	mold: func [
@@ -1041,7 +1045,7 @@ binary: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/mold"]]
 		
-		serialize bin buffer only? all? flat? arg part yes
+		serialize bin buffer only? all? flat? arg part yes indent
 	]
 
 	compare: func [

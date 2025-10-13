@@ -687,7 +687,7 @@ image: context [
 		part: part - 2
 		if all [not flat? size > 30][
 			string/append-char GET_BUFFER(buffer) as-integer lf
-			part: object/do-indent buffer indent part - 1
+			part: do-indent buffer indent part - 1
 		]
 
 		count: 0
@@ -700,7 +700,7 @@ image: context [
 				count: count + 1
 				if count % 10 = 0 [
 					string/append-char GET_BUFFER(buffer) as-integer lf
-					part: object/do-indent buffer indent part - 1
+					part: do-indent buffer indent part - 1
 				]
 			]
 			part: part - 6
@@ -713,7 +713,7 @@ image: context [
 		]
 		if all [not flat? size > 30 count % 10 <> 0] [
 			string/append-char GET_BUFFER(buffer) as-integer lf
-			part: object/do-indent buffer indent part - 1
+			part: do-indent buffer indent - 1 part - 1
 		]
 		string/append-char GET_BUFFER(buffer) as-integer #"}"
 		part: part - 1
@@ -723,6 +723,7 @@ image: context [
 			string/append-char GET_BUFFER(buffer) as-integer space
 			string/concatenate-literal buffer "#{^/"
 			part: part - 4
+			part: do-indent buffer indent part
 			count: 0
 			while [data < end][
 				pixel: data/value
@@ -732,7 +733,7 @@ image: context [
 					count: count + 1
 					if count % 10 = 0 [
 						string/append-char GET_BUFFER(buffer) as-integer lf
-						part: part - 1
+						part: do-indent buffer indent part - 1
 					]
 				]
 				if all [OPTION?(arg) part <= 0][
@@ -741,8 +742,10 @@ image: context [
 				]
 				data: data + 1
 			]
+			string/append-char GET_BUFFER(buffer) as-integer lf
+			part: do-indent buffer indent - 1 part
 			string/append-char GET_BUFFER(buffer) as-integer #"}"
-			part: part - 1
+			part: part - 2
 		]
 		OS-image/unlock-bitmap img bitmap
 		either only? [part][

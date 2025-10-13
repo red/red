@@ -464,7 +464,7 @@ error: context [
 			part: part - 13
 		]
 		part: object/serialize obj buffer only? all? flat? arg part yes indent + 1 yes
-		if indent > 0 [part: object/do-indent buffer indent part]
+		if indent > 0 [part: do-indent buffer indent part]
 		either only? [part][
 			string/append-char GET_BUFFER(buffer) as-integer #"]"
 			part - 1
