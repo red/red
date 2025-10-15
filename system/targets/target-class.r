@@ -125,7 +125,7 @@ target-class: context [
 		if all [alt object? value][emit-casting value yes]	;-- casting for right operand
 	]
 	
-	implicit-cast: func [arg /local right-width][
+	implicit-cast: func [arg alt? [logic!] /local right-width][
 		right-width: first get-width arg none
 		
 		if any [
@@ -133,7 +133,7 @@ target-class: context [
 			find [float! float32! float64!] first compiler/get-type arg
 		][
 			arg: make compiler/action-class [action: 'type-cast type: [integer!] data: arg]
-			emit-casting arg yes					;-- type cast right argument
+			emit-casting arg alt?					;-- type cast right argument
 		]
 	]
 	

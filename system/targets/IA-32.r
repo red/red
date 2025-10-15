@@ -1840,6 +1840,7 @@ make-profilable make target-class [
 				][									;-- 'b will now be stored in reg, so save 'a			
 					emit-poly [#{88C2} #{89C2}]		;-- MOV rD, rA
 					emit-load args/2
+					if object? args/2 [implicit-cast compiler/unbox args/2 no]
 				]
 				emit-math-op '* 'reg 'imm reduce [arg2 scale]
 				if name = '- [emit #{92}]			;-- XCHG eax, edx		; put operands in right order
@@ -2060,7 +2061,9 @@ make-profilable make target-class [
 				compiler/any-float? compiler/get-variable-spec args/2/data
 				emit-load/alt args/2/data
 			]
-			implicit-cast right
+			unless compiler/any-pointer? compiler/resolve-expr-type args/2 [
+				implicit-cast right yes
+			]
 		]
 		case [
 			find comparison-op name [emit-comparison-op name a b args]

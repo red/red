@@ -2494,10 +2494,10 @@ make-profilable make target-class [
 			][
 				emit-i32 #{e1a04000}				;-- MOV r4, r0	; save a
 				emit-load/alt args/2/data
-				implicit-cast right
+				implicit-cast right yes
 				emit-i32 #{e1a00004}				;-- MOV r0, r4	; restore a
 			][
-				implicit-cast right
+				implicit-cast right yes
 			]
 		]
 		case [
