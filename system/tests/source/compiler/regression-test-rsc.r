@@ -1488,6 +1488,32 @@ probe [this that]
 		}
 		--assert not compiler-error?
 		--assert compilation-error "type declaration missing"
+		
+	--test-- "#5653"
+		--compile-and-run-this {
+			Red/System []
+			
+			decode-funcs: as ptr-ptr! allocate 100
+
+			t: decode-funcs + 0
+			t/value: null
+
+			b: #"^^(00)"
+			i: as-integer b
+			t: decode-funcs + i
+			t/value: null
+
+			t1: decode-funcs + (as-integer #"^^(00)")
+			t1/value: null
+
+			t2: decode-funcs + (as-integer b)
+			t/value: null
+			
+			probe t1 = t2
+		}
+		--assert compiled?
+		--assert not crashed?
+		--assert found? find qt/output "true"	
 
 ===end-group===
 
