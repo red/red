@@ -824,6 +824,7 @@ make-profilable make target-class [
 		
 		switch type?/word value [
 			char! [
+				emit #{31C0}						;-- XOR eax, eax		; clears eax
 				emit #{B0}							;-- MOV al, value
 				emit value
 			]

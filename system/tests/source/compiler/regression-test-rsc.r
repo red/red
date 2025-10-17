@@ -1513,7 +1513,31 @@ probe [this that]
 		}
 		--assert compiled?
 		--assert not crashed?
-		--assert found? find qt/output "true"	
+		--assert found? find qt/output "true"
+		
+	--test-- "#5650"
+		--compile-and-run-this {
+			Red/System []
+			castb: func [pos [integer!] return: [logic!]] [
+				return as-logic (#"^^(01)" << pos)
+			]
+
+			castb2: func [pos [integer!] return: [logic!] /local a [byte!]] [
+				a: #"^^(01)"
+				return as-logic (a << pos)
+			]
+
+			b2: castb 3
+			probe 8 = as-integer b2
+			
+			b2: castb2 3
+			probe 8 = as-integer b2
+
+			b3: as-logic (#"^^(01)" << 3)
+			probe 1 = as-integer b3
+		}
+		--assert compiled?
+		--assert not found? find qt/output "false"
 
 ===end-group===
 
