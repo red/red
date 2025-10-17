@@ -56,31 +56,7 @@ context [
 		(_str: either _s =? _e [copy ""][unescape copy/part _s _e])
 	]
 
-	decode-unicode-char: func [
-		"Convert \uxxxx format (NOT simple JSON backslash escapes) to a Unicode char"
-		ch [string!] "4 hex digits"
-	][
-		buf: {#"^^(0000)"}								; Don't COPY buffer, reuse it
-		append append/part clear at buf 5 ch 4 {)"}		; Replace 0000 section in buf
-		attempt [transcode/one buf]
-	]
-
-	json-esc-ch: charset {"t\/nrbf}             ; Backslash escaped JSON chars
-	json-escaped: [#"\" json-esc-ch]			; Backslash escape rule
-
-	json-to-red-escape-table: [
-		#"\" [
-			keep #"^""
-		|	keep #"\"
-		|	keep #"/"
-		|	#"b"  keep (#"^H")   ; #"^(back)"
-		|	#"f"  keep (#"^L")   ; #"^(page)"
-		|	#"n"  keep (#"^/")
-		|	#"r"  keep (#"^M")
-		|	#"t"  keep (#"^-")
-		|	#"u"  _s: 4 hex-char keep (decode-unicode-char _s)
-		]
-	]
+	json-esc-ch: charset {"t\/nrbf}         		    ; Backslash escaped JSON chars
 
 	unescape: routine [
 		str [string!] "(modified)"
@@ -88,8 +64,27 @@ context [
 		/local
 			s s2 [series!]
 			src tail [byte-ptr!]
-			unit index c1 c2 dst [integer!]
+			unit index c c1 c2 hi lo dst surr [integer!]
+			special? [logic!]
+			decode-4 fail [subroutine!]
 	][
+		fail: [fire [TO_ERROR(script invalid-data) string/push str]]
+		decode-4: [
+			c2: 0
+			loop 4 [
+				if src >= tail [fail]					;@@ fail or pass as is?
+				c: string/get-char src unit
+				src: src + unit
+				case [
+					all [(as-integer #"0") <= c c <= (as-integer #"9")] [c: c - as-integer #"0"]
+					all [(as-integer #"A") <= c c <= (as-integer #"F")] [c: c - as-integer #"7"]	;-- #"7" = #"A" - 10
+					all [(as-integer #"a") <= c c <= (as-integer #"f")] [c: c - as-integer #"W"]	;-- #"W" = #"a" - 10
+					true [fail]
+				]
+				c2: c2 << 4 + c
+			]
+			;; c2 is the returned value
+		]
 		s: GET_BUFFER(str)
 		unit: GET_UNIT(s)
 		src: (as byte-ptr! s/offset) + (str/head << (log-b unit))
@@ -97,14 +92,11 @@ context [
 		tail: as byte-ptr! s/tail
 		while [src < tail] [
 			c1: string/get-char src unit
-			as-byte c1
 			src: src + unit
-			either c1 <> as-integer #"\" [
-				string/overwrite-char s dst c1
-				dst: dst + 1
-			][
+			special?: false
+			if c1 = as-integer #"\" [
+				special?: true
 				c2: string/get-char src unit
-				as-byte c2
 				src: src + unit
 				c2: switch c2 [
 					#"^"" #"\" #"/" [c2]
@@ -114,35 +106,37 @@ context [
 					#"r" [as-integer #"^M"]
 					#"t" [as-integer #"^-"]
 					#"u" [
-						c2: 0
-						loop 4 [
-							c1: string/get-char src unit
-							src: src + unit
-							case [
-								all [(as-integer #"0") <= c1 c1 <= (as-integer #"9")] [c1: c1 - as-integer #"0"]
-								all [(as-integer #"A") <= c1 c1 <= (as-integer #"F")] [c1: c1 - as-integer #"7"]	;-- #"7" = #"A" - 10
-								all [(as-integer #"a") <= c1 c1 <= (as-integer #"f")] [c1: c1 - as-integer #"W"]	;-- #"W" = #"a" - 10
-								true [fire [TO_ERROR(script invalid-char) char/push c1]]
-							]
-							c2: c2 << 4 + c1
+						decode-4
+						if all [D800h <= c2 c2 <= DBFFh] [		;-- surrogate pair detection
+							hi: c2
+							if src + (unit * 6) > tail [fail]
+							c:  string/get-char src unit
+							c2: string/get-char src + unit unit
+							src: src + (unit * 2)
+							unless all [c = as-integer #"\" c2 = as-integer #"u"] [fail]
+							decode-4
+							unless all [DC00h <= c2 c2 <= DFFFh] [fail]
+							lo: c2
+							c2: 10000h + (hi - D800h << 10) + (lo - DC00h)
 						]
 						c2
 					]
-					default [							;-- pass both chars
-						string/overwrite-char s dst c1
-						dst: dst + 1
-					]
+					default [special?: false 0]					;-- pass both chars
 				]
+			]
+			either special? [
 				s2: string/overwrite-char s dst c2
-				dst: dst + 1
-				if s <> s2 [							;-- 's' could have been expanded
+				if s <> s2 [									;-- 's' could have been expanded by a non-ascii char
 					index: (as-integer src - (as byte-ptr! s/offset)) >> (log-b unit)
 					unit: GET_UNIT(s2)
 					src: (as byte-ptr! s2/offset) + (index << (log-b unit))
 					tail: as byte-ptr! s2/tail
 					s: s2
 				]
+			][
+				string/overwrite-char s dst c1
 			]
+			dst: dst + 1
 		]
 		s/tail: as red-value! (as byte-ptr! s/offset) + (dst << (log-b unit))
 		str
@@ -311,7 +305,14 @@ context [
                             either escape: select escapes special-char [
                                 append output escape
                             ] [
-                                insert insert tail output "\u" to-hex/size to integer! special-char 4
+                            	either special-char <= #"^(FFFF)" [ 
+	                                append append output "\u" to-hex/size to integer! special-char 4
+	                            ][								;-- surrogate pair encoding required
+	                            	int: (to integer! special-char) - 10000h
+	                            	hi: to-hex/size (int >> 10 + D800h) 4
+	                            	lo: to-hex/size (int and 03FFh + DC00h) 4
+	                            	repend output ["\u" hi "\u" lo]
+	                            ]
                             ]
                         )
                     ]
