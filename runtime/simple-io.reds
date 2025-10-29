@@ -1838,9 +1838,10 @@ simple-io: context [
 		;-- use libcurl, may need to install it on some distros
 		#import [
 			LIBC-file cdecl [
-				strcpy: "strcpy" [					"Copy string including tail marker, return target."
+				strncpy: "strncpy" [					"Copy string including tail marker, return target."
 					target			[c-string!]
 					source			[c-string!]
+					size			[integer!]
 					return:			[c-string!]
 				]
 			]
@@ -1963,6 +1964,11 @@ simple-io: context [
 			]
 			len
 		]
+		
+		to-upper: func [src [c-string!] n [integer!] return: [c-string!]][
+			loop n [src/1: as-byte case-folding/change-char as-integer src/1 yes]
+			src
+		]
 
 		request-http: func [
 			method	[integer!]
@@ -2013,8 +2019,11 @@ simple-io: context [
 			either action = CURLOPT_CUSTOMREQUEST [
 				symbol/get method						;-- allocates a node for it
 				cstr: symbol/get-c-string method
-				act-str: as c-string! allocate length? cstr
-				act-str: strupr strcpy act-str cstr
+				len: length? cstr
+				act-str: as c-string! allocate len + 1
+				act-str: to-upper (strncpy act-str cstr len) len
+				len: len + 1
+				act-str/len: null-byte
 				curl_easy_setopt curl CURLOPT_CUSTOMREQUEST as-integer act-str
 				free as byte-ptr! act-str
 			][
