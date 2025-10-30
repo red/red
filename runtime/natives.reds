@@ -1941,15 +1941,18 @@ natives: context [
 	size?*: func [
 		check?  [logic!]
 		/local
-			name [red-file!]
-			fd	 [integer!]
+			name	[red-file!]
+			fd size [integer!]
 	][
 		name: as red-file! stack/arguments
+		if simple-io/dir? name [none/push-last exit]
+		
 		fd: simple-io/open-file file/to-OS-path name simple-io/RIO_READ yes
 		either fd < 0 [
 			none/push-last
 		][
-			integer/box simple-io/file-size? fd
+			size: simple-io/file-size? fd
+			either size < 0 [none/push-last][integer/box size]
 			simple-io/close-file fd
 		]
 	]
