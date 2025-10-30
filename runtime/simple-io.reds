@@ -2021,15 +2021,13 @@ simple-io: context [
 				cstr: symbol/get-c-string method
 				len: length? cstr
 				act-str: as c-string! allocate len + 1
-				act-str: to-upper (strncpy act-str cstr len) len
-				len: len + 1
-				act-str/len: null-byte
+				act-str: to-upper (strncpy act-str cstr len + 1) len	;-- copies the NUL byte too
 				curl_easy_setopt curl CURLOPT_CUSTOMREQUEST as-integer act-str
 				free as byte-ptr! act-str
 			][
 				curl_easy_setopt curl action 1
 			]
-			len: -1
+			len: string/rs-length? as red-string! url
 			curl_easy_setopt curl CURLOPT_URL as-integer unicode/to-utf8 as red-string! url :len
 			curl_easy_setopt curl CURLOPT_NOPROGRESS 1
 			curl_easy_setopt curl CURLOPT_FOLLOWLOCATION 1

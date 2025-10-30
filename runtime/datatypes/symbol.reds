@@ -89,9 +89,12 @@ symbol: context [
 		/local
 			sym	[red-symbol!]
 			s	[series!]
+			p	[byte-ptr!]
 	][
 		sym: get id
 		s: as series! sym/node/value
+		p: alloc-tail-unit s 1
+		p/value: null-byte
 		as c-string! s/offset
 	]
 
