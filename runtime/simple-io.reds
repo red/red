@@ -903,7 +903,16 @@ simple-io: context [
 			str		[red-string!]
 			len		[integer!]
 			type	[integer!]
+			ret-empty [subroutine!]
 	][
+		ret-empty: [
+			close-file file
+			val: stack/push*
+			string/rs-make-at val 1
+			type: either binary? [TYPE_BINARY][TYPE_STRING]
+			set-type val type
+			return val		
+		]
 		unless unicode? [								;-- only command line args need to be checked
 			if filename/1 = #"^"" [filename: filename + 1]	;-- FIX: issue #1234
 			len: length? filename
@@ -924,20 +933,14 @@ simple-io: context [
 				size: size + len
 			]
 			if offset < 0 [seek-file file 0]
-			if zero? size [			;-- empty file
-				close-file file
-				val: stack/push*
-				string/rs-make-at val 1
-				type: either binary? [TYPE_BINARY][TYPE_STRING]
-				set-type val type
-				return val
-			]
+			if zero? size [ret-empty]					;-- empty file
 		]
 
 		if offset >= 0 [
 			seek-file file offset
 			size: size - offset
 		]
+		if part = 0 [ret-empty]
 		if part > 0 [
 			if part < size [size: part]
 		]
