@@ -1080,19 +1080,29 @@ simple-io: context [
 		filename [red-file!]
 		return:  [red-value!]
 		/local
-			name [c-string!]
-			dt   [red-date!]
-			time [float!]
-			fd   [integer!]
-			tm   [systemtime!]
+		    str     [red-string!]
+			name    [c-string!]
+			dt      [red-date!]
+			time    [float!]
+			char fd [integer!]
+			tm      [systemtime!]
 			#if OS <> 'Windows [s [stat!]]
 	][
 		name: file/to-OS-path filename
 		;o: object/copy #get system/standard/file-info
 
 		#either OS = 'Windows [
+			str:  as red-string! filename
+			char: string/rs-abs-at str (string/rs-length? str) - 1
 			if any [
 				1 <> GetFileAttributesExW name 0 filedata
+				all [											;-- workaround for #5661
+					any [										;-- directory was specifically requested
+						char = as-integer #"/"
+						char = as-integer #"\"
+					]
+					filedata/dwFileAttributes and 10h = 0		;-- Windows found a file instead (10h = dir flag)
+				] 
 				1 <> FileTimeToSystemTime filedata/ftLastWriteTime systime
 			][
 				return none/push
