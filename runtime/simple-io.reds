@@ -1978,8 +1978,12 @@ simple-io: context [
 			len
 		]
 		
-		to-upper: func [src [c-string!] n [integer!] return: [c-string!]][
-			loop n [src/1: as-byte case-folding/change-char as-integer src/1 yes]
+		to-upper: func [src [c-string!] n [integer!] return: [c-string!] /local s][
+			s: src
+			loop n [
+				s/1: as-byte case-folding/change-char as-integer s/1 yes
+				s: s + 1
+			]
 			src
 		]
 
