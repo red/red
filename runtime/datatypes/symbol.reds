@@ -94,7 +94,7 @@ symbol: context [
 		sym: get id
 		s: as series! sym/node/value
 		p: as byte-ptr! s/tail
-		if p >= ((as byte-ptr! s + 1) + s/size) [p: alloc-tail-unit s 1]
+		if p = ((as byte-ptr! s + 1) + s/size) [p: alloc-tail-unit s 1]
 		p/value: null-byte
 		as c-string! s/offset
 	]
