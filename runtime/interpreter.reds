@@ -912,7 +912,7 @@ interpreter: context [
 				while [ref < as red-word! path-end][
 					get?: TYPE_OF(ref) = TYPE_GET_WORD
 					if all [TYPE_OF(ref) <> exp-type not get?][
-						unless ref? [break]
+						if all [not ref? apply?][break]
 						fire [TO_ERROR(script bad-refine) ref]
 					]
 					if all [some? path = null][pc: pc + 1]

@@ -1540,6 +1540,16 @@ Red [
 	
 ===end-group===
 
+===start-group=== "Refinements"
+
+	--test-- "ref-1"
+		do [
+			f: func [] [return [a b c]]
+			--assert error? try [f/1]
+		]
+
+===end-group===
+
 ===start-group=== "Dynamic refinements"
 
     dyn-ref-fun: func [i [integer!] b /ref c1 /ref2 /ref3 c3 c4][
