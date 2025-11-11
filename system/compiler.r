@@ -2323,11 +2323,12 @@ system-dialect: make-profilable context [
 			
 			if any [
 				not find [word! block!] type?/word ctype
-				not any [	
+				not any [
 					parse blockify ctype [func-pointer | type-syntax]
-					find-aliased ctype
+					all [word? ctype find-aliased ctype]
 				]
 			][
+				pc: skip pc 2
 				throw-error ["invalid target type casting:" mold ctype]
 			]
 			pc: skip pc pick [3 2] to logic! ptr?

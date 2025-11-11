@@ -1585,6 +1585,15 @@ probe [this that]
 			receive-n [a]
 		}
 		--assert compiled?
+		
+		--compile-this {
+			Red/System []
+				d!: alias struct! [i [integer!]]
+				d: declare d!
+				d: as d! as pointer! d
+		}
+		--assert not compiler-error?
+		--assert compilation-error "invalid target type casting"
 
 ===end-group===
 
