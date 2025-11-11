@@ -1223,7 +1223,8 @@ system-dialect: make-profilable context [
 						array-expr-keywords | s: word! (check-enum-symbol/strict s) | skip
 					]] :p (change p do p/1)
 					| string! | char! | integer! | decimal! | get-word!
-				] | (throw-error ["invalid literal array content:" mold list])
+					| skip (throw-error ["invalid literal array content:" mold list])
+				]
 			]
 			to paren! list
 		]
@@ -3431,6 +3432,7 @@ system-dialect: make-profilable context [
 					]
 					forall list [						;-- push function's arguments on stack
 						expr: list/1
+						if paren? expr [backtrack name throw-error "literal arrays cannot be passed as argument"]					
 						if block? unbox/deep expr [comp-expression expr yes]	;-- nested call
 						if object? expr [cast expr]
 						if type <> 'inline [

@@ -24,7 +24,7 @@ compilation-error: func [value] [found? find qt/comp-output join "*** Compilatio
 syntax-error: func [value] [found? find qt/comp-output join "*** Syntax Error: " value]
 ; -test-: :--test--
 ; --test--: func [value] [probe value -test- value]
-
+comment {
 ===start-group=== "Red/System regressions #1 - #1000"
 
 	--test-- "#28"
@@ -1538,6 +1538,53 @@ probe [this that]
 		}
 		--assert compiled?
 		--assert not found? find qt/output "false"
+		
+}
+
+===start-group=== "Red/System regressions #1001+"
+
+	--test-- "#5651"
+		--compile-this {
+			Red/System []
+			receive: func [arr [int-ptr!]] []
+			receive [1]
+		}
+		--assert not compiler-error?
+		--assert compilation-error "literal arrays cannot be passed as argument"
+				
+		--compile-this {
+			Red/System []
+			receive-n: func [[typed] count [integer!] list [typed-value!]] []
+			receive-n [[1]]
+		}
+		--assert not compiler-error?
+		--assert compilation-error "literal arrays cannot be passed as argument"
+	
+		--compile-this {
+			Red/System []
+			a2: [1 [1]]
+			receive-n: func [[typed] count [integer!] list [typed-value!]] []
+			receive-n a2
+		}
+		--assert not compiler-error?
+		--assert compilation-error "invalid literal array"
+
+		--compile-this {
+			Red/System []
+			a: [1]
+			b: [:a]
+			receive-n: func [[typed] count [integer!] list [typed-value!]] []
+			receive-n b
+		}
+		--assert compiled?
+		
+		--compile-this {
+			Red/System []
+			receive-n: func [[typed] count [integer!] list [typed-value!]] []
+			a: [1]
+			receive-n [a]
+		}
+		--assert compiled?
 
 ===end-group===
 

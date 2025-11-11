@@ -339,7 +339,10 @@ emitter: make-profilable context [
 					select symbols to word! value
 					all [compiler/ns-path select symbols compiler/ns-prefix to word! value]
 				]
-				unless spec/4 [append/only spec make block! 1]
+				case [
+					spec/4 = '- [spec/4: make block! 1]
+					not spec/4  [append/only spec make block! 1]
+				]
 				append spec/4 index? tail data-buf
 				store-global 0 'integer! none
 			]
