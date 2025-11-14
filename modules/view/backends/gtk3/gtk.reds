@@ -2419,6 +2419,11 @@ GPtrArray!: alias struct! [
 			page		[handle!]
 			return:		[c-string!]
 		]
+		gtk_notebook_set_tab_label_text: "gtk_notebook_set_tab_label_text" [
+			nb			[handle!]
+			child		[handle!]
+			text		[c-string!]
+		]
 		gtk_notebook_get_n_pages: "gtk_notebook_get_n_pages" [
 			nb			[handle!]
 			return:		[integer!]

@@ -271,9 +271,6 @@ set-widget-child: func [
 			gtk_layout_put parent clayout x y
 			true
 		]
-		sym = tab-panel [
-			append-tab parent clayout
-		]
 		true [
 			false
 		]
@@ -876,7 +873,7 @@ change-image: func [
 
 change-pane: func [
 	parent		[handle!]
-	pane		[red-block!]
+	values		[red-value!]
 	type		[integer!]
 	/local
 		layout	[handle!]
@@ -887,11 +884,15 @@ change-pane: func [
 		s		[series!]
 		face	[red-object!]
 		tail	[red-object!]
+		pane	[red-block!]
 		widget	[handle!]
-		values	[red-value!]
 		offset	[red-pair!]
-
 ][
+	if type = tab-panel [
+		set-tabs parent values
+		exit
+	]
+
 	layout: case [
 		type = window [
 			GET-CONTAINER(parent)
@@ -922,6 +923,7 @@ change-pane: func [
 			child: child/next
 		]
 
+		pane: as red-block! values + FACE_OBJ_PANE
 		s: GET_BUFFER(pane)
 		face: as red-object! s/offset + pane/head
 		tail: as red-object! s/tail
@@ -1170,9 +1172,9 @@ change-data: func [
 		type = radio [
 			set-logic-state widget as red-logic! data no
 		]
-	; 	type = tab-panel [
-	; 		set-tabs widget get-face-values widget
-	; 	]
+	 	type = tab-panel [
+	 		set-tabs widget get-face-values widget
+	 	]
 		all [
 			type = text-list
 			TYPE_OF(data) = TYPE_BLOCK
@@ -2037,6 +2039,7 @@ OS-make-view: func [
 		]
 		sym = tab-panel [
 			widget: gtk_notebook_new
+			set-tabs widget values
 		]
 		sym = text-list [
 			widget: gtk_list_box_new
@@ -2096,9 +2099,7 @@ OS-make-view: func [
 
 	if sym <> window [
 		if parent <> 0 [
-			unless set-widget-child as handle! parent widget offset [
-				fire [TO_ERROR(script face-type) type]
-			]
+			set-widget-child as handle! parent widget offset
 		]
 		set-widget-child-offset as handle! parent widget offset sym
 		change-visible widget show?/value sym
@@ -2226,8 +2227,8 @@ OS-update-view: func [
 	if flags and FACET_FLAG_COLOR <> 0 [
 		change-color widget as red-tuple! values + FACE_OBJ_COLOR type
 	]
-	if all [flags and FACET_FLAG_PANE <> 0 type <> tab-panel][
-		change-pane widget as red-block! values + FACE_OBJ_PANE type
+	if flags and FACET_FLAG_PANE <> 0 [
+		change-pane widget values type
 	]
 	if flags and FACET_FLAG_RATE <> 0 [
 		change-rate widget values + FACE_OBJ_RATE
@@ -2325,11 +2326,29 @@ OS-update-facet: func [
 	;; DEBUG: print ["update-facet " get-symbol-name sym lf]
 
 	case [
-		; sym = facets/pane [
-		; 	sym: action/symbol
-		; 	;; DEBUG: print ["update pane action " get-symbol-name sym lf]
-		; 	pane: as red-block! value
-		; ]
+		 sym = facets/pane [
+			sym: action/symbol 
+			pane: as red-block! value
+			case [
+				any [
+					sym = words/_remove/symbol
+					sym = words/_take/symbol
+					sym = words/_clear/symbol
+				][
+					OS-update-view face 
+				]
+				any [
+					sym = words/_inserted/symbol
+					sym = words/_poke/symbol			;@@ unbind old value
+					sym = words/_put/symbol				;@@ unbind old value
+					sym = words/_moved/symbol
+					sym = words/_changed/symbol
+				][
+					OS-update-view face
+				]
+				true [0]
+			]
+		]
 		sym = facets/data [
 			word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
 			type: symbol/resolve word/symbol
@@ -2341,9 +2360,6 @@ OS-update-facet: func [
 				; ][
 				; 	if zero? part [exit]
 				; 	update-combo-box face value sym new index part yes
-				; ]
-				; type = tab-panel [
-				; 	update-tabs face value sym new index part
 				; ]
 				true [OS-update-view face]
 			]
