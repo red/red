@@ -3812,6 +3812,13 @@ comment {
 		x5649: make object! [a: 22]
 		--assert error? try [set 'x5649/aaaa 33]
 		
+	--test-- "#5645"
+		csv: {5641§OPEN§LOAD-CSV returns error instead of throwing it§status.duplicate§2025-08-19T13:00:07Z}
+		data: load-csv/with csv csv/5
+		--assert 5 = length? data/1
+		--assert (charset [not "§"]) == charset [not #"§"]
+		--assert (charset [not "§"]) == make bitset! [not #{000000000000000000000000000000000000000001}]
+		
 ===end-group===
 
 ~~~end-file~~~

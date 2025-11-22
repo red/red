@@ -313,14 +313,21 @@ bitset: context [
 			set?  [logic!]								;-- required by BS_TEST_BIT
 			not?  [logic!]
 	][
+		not?: either null? bits [
+			assert op = OP_MAX
+			size: 0
+			no
+		][
+			s: GET_BUFFER(bits)
+			size: s/size << 3
+			FLAG_NOT?(s)
+		]
 		s:	  GET_BUFFER(str)
 		unit: GET_UNIT(s)
 		p:	  (as byte-ptr! s/offset) + (str/head << (log-b unit))
 		tail: as byte-ptr! s/tail
 		max:  0
-		size: s/size << 3
-		not?: FLAG_NOT?(s)
-		
+
 		unless null? bits [pbits: rs-head bits]
 		test?: op = OP_TEST
 		
