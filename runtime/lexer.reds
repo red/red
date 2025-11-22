@@ -2069,7 +2069,7 @@ lexer: context [
 				if day < 0 [dlen: dlen - 1]
 				len: day day: year year: len ylen: dlen ;-- swap day <=> year
 			]
-			if all [year < 100 year > 0 ylen <= 2][		;-- expand short yy forms
+			if all [year < 100 year >= 0 ylen <= 2][	;-- expand short yy forms
 				ylen: either year < 50 [2000][1900]
 				year: year + ylen
 			]

@@ -1674,6 +1674,17 @@ Red [
 	--test-- "#5619"
 		--assert integer? transcode/one "123'"
 		--assert float? transcode/one "123'456.7'"
+		
+	--test-- "#5666"
+		--assert 1/Jan/-0099 == transcode/one "1/1/-99"
+		--assert 1/Jan/-0001 == transcode/one "1/1/-1"
+		--assert 1/Jan/2000  == transcode/one "1/1/0"
+		--assert 1/Jan/2000  == transcode/one "1/1/-0"
+		--assert 1/Jan/2000  == transcode/one "1/1/00"
+		--assert 1/Jan/0000  == transcode/one "1/1/000"
+		--assert 1/Jan/2000  == transcode/one "1/1/-00"
+		--assert 1/Jan/0000  == transcode/one "1/1/-000"
+		--assert 1/Jan/2001  == transcode/one "1/1/1"
 
 ===end-group===
 	
