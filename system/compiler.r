@@ -2011,11 +2011,17 @@ system-dialect: make-profilable context [
 			none										;-- do not return an expression to compile
 		]
 		
+		ASCII?: func [str [string!]][foreach c str [if c > 127 [return no] yes]]
+		
 		process-u16: func [code [block!] /local str pos][
 			unless string? str: code/2 [
 				throw-error "#u16 can only be applied to literal strings"
 			]
-			parse/all str [any [skip pos: (insert pos null) skip]]
+			either ASCII? str [
+				parse/all str [any [skip pos: (insert pos null) skip]]
+			][
+				str: code/2: utf8-to-utf16 str			;-- replaces the string in source
+			]
 			append str null								;-- extra NUL for UTF-16 version
 			pc: next pc
 			fetch-expression #u16
