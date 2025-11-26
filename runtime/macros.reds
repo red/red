@@ -63,8 +63,9 @@ Red/System [
 	TYPE_MONEY											;-- 31		49
 	TYPE_REF											;-- 32		50
 	TYPE_POINT2D										;-- 33		51
-	TYPE_POINT3D										;-- 34		52	
-	TYPE_IMAGE											;-- 35		53		;-- needs to be last
+	TYPE_POINT3D										;-- 34		52
+	TYPE_IPV6											;-- 35		53
+	TYPE_IMAGE											;-- 36		54		;-- needs to be last
 	TYPE_EVENT											
 	TYPE_CLOSURE
 	TYPE_SLICE
@@ -313,7 +314,7 @@ Red/System [
 	OBJ_CLASS_FACE!
 ]
 
-#define DATATYPES_NB	52							;-- total number of built-in datatypes (including TYPE_VALUE)
+#define DATATYPES_NB	56							;-- total number of built-in datatypes (including TYPE_VALUE)
 #define NATIVES_NB		120							;-- max number of natives (arbitrarily set upper bound)
 #define ACTIONS_NB		62							;-- number of actions (exact number)
 #define INHERIT_ACTION	-1							;-- placeholder for letting parent's action pass through

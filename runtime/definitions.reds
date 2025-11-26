@@ -34,6 +34,7 @@ Red/System [
 #define flag-owner			00010000h		;-- object is an owner (carried by object's context value)
 #define flag-extern-code	00008000h		;-- routine's body is from FFI
 #define flag-word-dirty		00002000h		;-- word flag indicating if value has been modified
+#define flag-embed-v4		00001000h		;-- IPv4 address embedded in IPv6
 #define flag-force-trace	00000400h		;-- tracing mode is forced (function attribut)
 #define flag-no-trace		00000200h		;-- tracing mode is disabled (function attribut)
 

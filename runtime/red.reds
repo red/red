@@ -126,6 +126,7 @@ red: context [
 	#include %datatypes/ref.reds
 	#include %datatypes/point2D.reds
 	#include %datatypes/point3D.reds
+	#include %datatypes/ipv6.reds
 	#if OS = 'Windows [#include %datatypes/image.reds]	;-- temporary
 	#if OS = 'macOS   [#include %datatypes/image.reds]	;-- temporary
 	#if OS = 'Linux   [#include %datatypes/image.reds]
@@ -231,6 +232,7 @@ red: context [
 		ref/init
 		point2D/init
 		point3D/init
+		ipv6/init
 		#if OS = 'Windows [								;-- temporary
 			#if draw-engine <> 'GDI+ [OS-image/init]
 			image/init

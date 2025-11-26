@@ -134,6 +134,7 @@ write %build/bin/sources.r set-cache [
 			%hash.reds
 			%image.reds
 			%integer.reds
+			%ipv6.reds
 			%issue.reds
 			%lit-path.reds
 			%lit-word.reds
