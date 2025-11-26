@@ -30,7 +30,7 @@ The syntax is almost the same as the one used by REBOL language, as the lexer (<
 
 A complete syntax specification for both Red and Red/System will be provided during the implementation of the Red language layer.
 
-For now, Red/System uses 8-bit character encoding (ASCII). Once proper Unicode support will be provided by the Red language layer, Red/System will switch to UTF-8 source encoding.
+For now, Red/System uses 7-bit character encoding (ASCII). Once proper Unicode support will be provided by the Red language layer, Red/System will switch to UTF-8 source encoding.
 
 Here are a few practical aspects of the language syntax:
 
