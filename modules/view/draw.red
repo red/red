@@ -913,19 +913,19 @@ Red/System [
 								blur: 0
 								spread: 0
 								rgb: 0
-								DRAW_FETCH_OPT_VALUE(TYPE_INTEGER)	;-- blur radius
+								DRAW_FETCH_OPT_VALUE(TYPE_INTEGER)		;-- blur radius
 								if pos = cmd [
 									int: as red-integer! pos
 									blur: int/value
-									DRAW_FETCH_OPT_VALUE(TYPE_INTEGER) ;-- spread radius
+									DRAW_FETCH_OPT_VALUE(TYPE_INTEGER)	;-- spread radius
 									if pos = cmd [
 										int: as red-integer! pos
 										spread: int/value
 									]
 								]
-								DRAW_FETCH_OPT_VALUE(TYPE_TUPLE)
+								DRAW_FETCH_OPT_VALUE_2(TYPE_TUPLE TYPE_WORD)  ;-- color
 								if pos = cmd [cmd: cmd - 1 DRAW_FETCH_TUPLE]
-								DRAW_FETCH_OPT_VALUE(TYPE_WORD)
+								DRAW_FETCH_OPT_VALUE(TYPE_WORD)			;-- inset
 								if pos = cmd [
 									word: as red-word! pos
 									sym: symbol/resolve word/symbol
