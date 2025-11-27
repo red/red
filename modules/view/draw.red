@@ -405,7 +405,8 @@ Red/System [
 					return old-gradient-pen DC cmds start tail cmd sym catch?
 				]
 				loop 2 [                                ;-- at least two stops required
-					DRAW_FETCH_VALUE_2(TYPE_TUPLE TYPE_WORD)
+					DRAW_FETCH_OPT_VALUE_2(TYPE_TUPLE TYPE_WORD)  ;-- color
+					if pos = cmd [cmd: cmd - 1 DRAW_FETCH_TUPLE]
 					DRAW_FETCH_OPT_VALUE(TYPE_FLOAT)
 					count: count + 1
 				]
