@@ -74,11 +74,6 @@ Red/System [
 	P_DETACH:	4
 ]
 
-#enum brush-type! [
-	BRUSH_TYPE_NORMAL
-	BRUSH_TYPE_TEXTURE
-]
-
 timeval!: alias struct! [
 	tv_sec	[integer!]
 	tv_usec [integer!]
