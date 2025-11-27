@@ -1457,7 +1457,7 @@ Red [
 		]
 
 	--test-- "tt-24"
-		src: "hello world 4a 123"
+		src: "hello world 4z 123"
 		clear logs
 		--assert [o world 123] = transcode/trace skip src 4 :lex-logger	
 		tt-24-logs: [
@@ -1476,19 +1476,19 @@ Red [
 		--assert logs = tt-24-logs
 
 	--test-- "tt-25"
-		src: "hello world 4a 123"
+		src: "hello world 4z 123"
 		clear logs
 		--assert [o world 123] = transcode/trace copy skip src 4 :lex-logger
 		--assert logs = tt-24-logs
 
 	--test-- "tt-26"
-		src: to-binary "hello world 4a 123"
+		src: to-binary "hello world 4z 123"
 		clear logs
 		--assert [o world 123] = transcode/trace skip src 4 :lex-logger
 		--assert logs = tt-24-logs
 
 	--test-- "tt-27"
-		src: to-binary "hello world 4a 123"
+		src: to-binary "hello world 4z 123"
 		clear logs
 		--assert [o world 123] = transcode/trace copy skip src 4 :lex-logger
 		--assert logs = tt-24-logs
@@ -1507,18 +1507,18 @@ Red [
 			new-line t yes
 			any [event <> 'error all [input: next input false]]
 		]
-		src: "hello world 4a 123"
+		src: "hello world 4z 123"
 		clear logs
 		--assert [o world 123] = transcode/trace skip src 4 :lex-logger28
 		--assert logs = [
-		    prescan word! datatype! 1 1x2 " world 4a 123" 
-		    scan word! datatype! 1 1x2 " world 4a 123" 
-		    load word! datatype! 1 o " world 4a 123" 
-		    prescan word! datatype! 1 3x8 " 4a 123" 
-		    scan word! datatype! 1 3x8 " 4a 123" 
-		    load word! datatype! 1 world " 4a 123" 
-		    prescan error! datatype! 1 9x10 "a 123" 
-		    error integer! datatype! 1 9x10 "a 123" 
+		    prescan word! datatype! 1 1x2 " world 4z 123" 
+		    scan word! datatype! 1 1x2 " world 4z 123" 
+		    load word! datatype! 1 o " world 4z 123" 
+		    prescan word! datatype! 1 3x8 " 4z 123" 
+		    scan word! datatype! 1 3x8 " 4z 123" 
+		    load word! datatype! 1 world " 4z 123" 
+		    prescan error! datatype! 1 9x10 "z 123" 
+		    error integer! datatype! 1 9x10 "z 123" 
 		    prescan integer! datatype! 1 12x15 "" 
 		    scan integer! datatype! 1 12x15 "" 
 		    load integer! datatype! 1 123 ""

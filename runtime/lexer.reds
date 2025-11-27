@@ -37,7 +37,10 @@ lexer: context [
 		C_FLAG_LESSER:	00100000h
 		C_FLAG_GREATER: 00080000h
 		C_FLAG_PERCENT: 00040000h
-		C_FLAG_NEWLINE: 00020000h
+		C_FLAG_SLASH:	00020000h
+		C_FLAG_AT:		00010000h
+		C_FLAG_OP_BLK:	00008000h
+		C_FLAG_NEWLINE: 00004000h
 	]
 	
 	#define FL_UCS4		[(C_WORD or C_FLAG_UCS4)]
@@ -248,7 +251,7 @@ lexer: context [
 		(C_COMMA or C_FLAG_COMMA)						;-- 2C		,
 		(C_MINUS or C_FLAG_SIGN)						;-- 2D		-
 		(C_DOT or C_FLAG_DOT)							;-- 2E		.
-		C_SLASH											;-- 2F		/
+		(C_SLASH or C_FLAG_SLASH)						;-- 2F		/
 		C_ZERO											;-- 30		0
 		C_DIGIT C_DIGIT C_DIGIT C_DIGIT C_DIGIT			;-- 31-35	1-5
 		C_DIGIT C_DIGIT C_DIGIT C_DIGIT					;-- 36-39	6-9
@@ -258,7 +261,7 @@ lexer: context [
 		C_EQUAL											;-- 3D		=
 		(C_GREATER or C_FLAG_GREATER)					;-- 3E		>
 		C_WORD											;-- 3F		?
-		C_AT											;-- 40		@
+		(C_AT or C_FLAG_AT)								;-- 40		@
 		C_ALPHAU C_ALPHAU C_ALPHAU C_ALPHAU			 	;-- 41-44	A-D
 		(C_E_UP or C_FLAG_EXP)							;-- 45		E
 		C_ALPHAU										;-- 46		F
@@ -269,7 +272,7 @@ lexer: context [
 		C_WORD C_WORD C_WORD			 				;-- 55-57	U-W
 		C_X												;-- 58		X
 		C_WORD C_WORD							 		;-- 59-5A	Y-Z
-		C_BLOCK_OP										;-- 5B		[
+		(C_BLOCK_OP or C_FLAG_OP_BLK)					;-- 5B		[
 		C_BSLASH										;-- 5C		\
 		C_BLOCK_CL										;-- 5D		]
 		(C_CARET or C_FLAG_CARET)						;-- 5E		^
@@ -378,7 +381,8 @@ lexer: context [
 	spaces-size:	8290								;-- bitmap table size
 	all-events:		3Fh									;-- bit-mask of all events
 	
-	min-integer: as byte-ptr! "-2147483648"				;-- used in load-integer
+	min-integer:	as byte-ptr! "-2147483648"			;-- used in load-integer
+	flags-url:		C_FLAG_AT or C_FLAG_SLASH			;-- used in load-url
 	
 	smart-count: func [									;-- counts only new characters from last cached result
 		lex		[state!]
@@ -896,6 +900,53 @@ lexer: context [
 			either 1 = as-integer point-scan-table/idx [s: s + 1][return s/1 = #","]
 		]
 		yes
+	]
+
+	detect-ipv6: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!] return: [logic!]
+		/local
+			c [integer!]
+			p [byte-ptr!]
+	][
+		p: s
+		c: 0
+		while [p < e][								;-- identify IPv6 by counting `:` occurrences
+			if p/1 = #":" [
+				c: c + 1
+				if all [p + 1 < e p/2 = #":"][c: c + 8 break]
+			]
+			if c > 3 [break]
+			p: p + 1
+		]
+		either c > 3 [
+			load-ipv6 lex s e flags load?
+			yes
+		][no]
+	]
+
+	grab-tuple: func [lex [state!] s e [byte-ptr!] tp [byte-ptr!] load? [logic!] limit [integer!] type [integer!]
+		return: [integer!]
+		/local
+			i pos [integer!]
+			p	  [byte-ptr!]
+	][
+		pos: 0
+		i: 0
+		p: s
+		loop as-integer e - s [
+			either p/1 = #"." [
+				pos: pos + 1
+				if any [i < 0 i > 255 pos > limit p/2 = #"."][throw-error lex s e type]
+				if load? [tp/pos: as byte! i]
+				i: 0
+			][
+				i: i * 10 + as-integer (p/1 - #"0")
+			]
+			p: p + 1
+		]
+		pos: pos + 1									;-- last number
+		if any [i < 0 i > 255 pos > limit][throw-error lex s e type]
+		if load? [tp/pos: as byte! i]
+		pos
 	]
 	
 	grab-integer: func [s e [byte-ptr!] flags [integer!] dst err [int-ptr!]
@@ -1871,35 +1922,18 @@ lexer: context [
 	
 	load-tuple: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local
-			cell  [cell!]
-			i pos [integer!]
-			tp p  [byte-ptr!]
+			cell [cell!]
+			tp	 [byte-ptr!]
+			cnt  [integer!]
 	][
+		tp: null
 		if load? [
 			cell: alloc-slot lex
 			tp: (as byte-ptr! cell) + 4
 		]
-		pos: 0
-		i: 0
-		p: s
+		cnt: grab-tuple lex s e tp load? 12 TYPE_TUPLE
 
-		loop as-integer e - s [
-			either p/1 = #"." [
-				pos: pos + 1
-				if any [i < 0 i > 255 pos > 12 p/2 = #"."][throw-error lex s e TYPE_TUPLE]
-				if load? [tp/pos: as byte! i]
-				i: 0
-			][
-				i: i * 10 + as-integer (p/1 - #"0")
-			]
-			p: p + 1
-		]
-		pos: pos + 1									;-- last number
-		if any [i < 0 i > 255 pos > 12][throw-error lex s e TYPE_TUPLE]
-		if load? [
-			tp/pos: as byte! i
-			cell/header: cell/header and type-mask or TYPE_TUPLE or (pos << 19)
-		]
+		if load? [cell/header: cell/header and type-mask or TYPE_TUPLE or (cnt << 19)]
 		lex/in-pos: e									;-- reset the input position to delimiter byte
 	]
 
@@ -2190,6 +2224,7 @@ lexer: context [
 		if all [p = e p/0 = #":"][do-error]
 	
 		if p < e [
+			if detect-ipv6 lex s e flags load? [exit]
 			if any [
 				all [p/0 <> #"." p/0 <> #"," p/0 <> #":"]
 				flags and C_FLAG_EXP <> 0
@@ -2268,8 +2303,19 @@ lexer: context [
 	
 	load-url: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local
-			type [integer!]
+			c type [integer!]
+			p q	   [byte-ptr!]
 	][
+		if flags and flags-url = 0 [					;-- if no `/` or `@` are present, check for IPv6
+			if detect-ipv6 lex s e flags load? [exit]
+		]
+		if flags and C_FLAG_OP_BLK <> 0 [
+			p: s while [p/1 <> #"["][p: p + 1]
+			either any [p - 4 < s p/0 <> #"/" p/-1 <> #"/" p/-2 <> #":"][e: p][
+				q: p + 1 while [all [q < e q/1 <> #"]"]][q: q + 1]
+				if q < e [load-ipv6 lex p + 1 q flags no] ;-- just verify syntax, don't load it
+			]
+		]
 		if any [s/1 = #":" s/1 = #"'"][
 			type: either s/1 = #":" [TYPE_GET_WORD][TYPE_LIT_WORD]
 			throw-error lex s e type
@@ -2301,6 +2347,94 @@ lexer: context [
 			load-string lex s e flags load?
 		]
 		lex/in-pos: e 									;-- reset the input position to delimiter byte		
+	]
+
+	load-ipv6: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
+		/local
+			ip		[red-vector!]
+			ser		[series!]
+			p q end	[byte-ptr!]
+			saved	[byte-ptr!]
+			c index	[integer!]
+			cnt		[integer!]
+			offset	[integer!]
+			jump	[integer!]
+			dbl? v4?[logic!]
+			do-error decompress [subroutine!]
+	][
+		do-error: [s: saved throw-error lex s e TYPE_IPV6]
+		decompress: [
+			if all [s < e s/2 = #":"][
+				if dbl? [do-error]						;-- compressed pattern can be used once only
+				dbl?: yes
+				q: s + 2
+				offset: either q < e [1][0]
+				while [q < e][
+					switch q/1 [
+						#":"	[offset: offset + 1]
+						#"."	[offset: offset + 1 break] ;-- v4 ending
+						default [0]
+					]
+					q: q + 1
+				]
+				if cnt + offset > 8 [do-error]
+				jump: 8 - offset - cnt
+				assert jump > 0
+				cnt: cnt + jump	
+				p: p + (jump << 1)
+				s: s + 1								;-- jump over first `:`
+			]
+		]
+		dbl?:  no
+		v4?:   no
+		cnt:   0
+		saved: s
+
+		if load? [
+			ip: ipv6/make-at alloc-slot lex
+			ser: GET_BUFFER(ip)
+			p: as byte-ptr! ser/offset
+		]
+		if s/1 = #":" [									;-- detect head `::`
+			if s/2 <> #":" [do-error]
+			decompress
+			s: s + 1									;-- jump over second `:`
+		]
+		while [s < e][
+			c: 0
+			if cnt = 6 [
+				q: s while [q < e][if q/1 = #"." [v4?: yes break] q: q + 1]
+				if v4? [
+					c: grab-tuple lex s e p load? 4 TYPE_IPV6
+					if c <> 4 [do-error]
+					if load? [ser/flags: ser/flags or flag-embed-v4]
+					cnt: cnt + 2
+					break
+				]
+			]
+			end: s + 4									;-- grab up to 4 hex chars
+			if end > e [end: e]
+			while [all [s < end s/1 <> #":" s/1 <> #"."]][
+				index: 1 + as-integer s/1
+				if (as-integer bin16-classes/index) <> C_BIN_HEXA [do-error]
+				if load? [c: c << 4 or as-integer hexa-table/index]
+				s: s + 1
+			]
+			if all [s < end s/1 = #"." cnt < 5][do-error] ;-- invalid usage of `.` as separator
+			if load? [
+				assert p < as byte-ptr! ser/tail
+				assert c <= FFFFh
+				p/1: as-byte c >> 8
+				p/2: as-byte c and FFh
+				p: p + 2
+			]
+			cnt: cnt + 1
+			decompress
+			s: s + 1									;-- jump over `:` separator
+		]
+		if cnt <> 8 [do-error]
+		if load? [lex/type: TYPE_IPV6]
+		lex/in-pos: e 									;-- reset the input position to delimiter byte
 	]
 	
 	load-hex: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
@@ -2427,7 +2561,7 @@ lexer: context [
 				#if debug? = yes [if verbose > 0 [?? state]]
 			]
 			s: start + offset							;-- real token position start
-			assert state <= T_REF
+			assert state <= T_IPV6
 			assert s <= p
 			
 			lex/in-pos:  p
@@ -2757,6 +2891,7 @@ lexer: context [
 			null				:load-hex				;-- T_HEX
 			null				:load-rawstring			;-- T_RAWSTRING
 			null				:load-ref				;-- T_REF
+			null				:load-ipv6				;-- T_IPV6
 		]
 	]
 
