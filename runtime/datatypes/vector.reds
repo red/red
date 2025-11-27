@@ -541,7 +541,7 @@ vector: context [
 		left: as red-vector! stack/arguments
 		right: left + 1
 
-		if TYPE_OF(right) <> TYPE_VECTOR [
+		if all [TYPE_OF(right) <> TYPE_VECTOR TYPE_OF(right) <> TYPE_IPV6][
 			return do-math-scalar type left as red-value! right
 		]
 
@@ -885,7 +885,7 @@ vector: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "vector/compare"]]
 
-		if TYPE_OF(vec2) <> TYPE_VECTOR [RETURN_COMPARE_OTHER]
+		if all [TYPE_OF(vec2) <> TYPE_VECTOR TYPE_OF(vec2) <> TYPE_IPV6][RETURN_COMPARE_OTHER]
 		if vec1/type <> vec2/type [fire [TO_ERROR(script not-same-type)]]
 
 		same?: all [
@@ -1152,7 +1152,7 @@ vector: context [
 			INHERIT_ACTION	;change
 			INHERIT_ACTION	;clear
 			INHERIT_ACTION	;copy
-			INHERIT_ACTION
+			INHERIT_ACTION	;find
 			INHERIT_ACTION	;head
 			INHERIT_ACTION	;head?
 			INHERIT_ACTION	;index?

@@ -431,7 +431,8 @@ collector: context [
 				]
 				TYPE_BINARY
 				TYPE_VECTOR
-				TYPE_BITSET [
+				TYPE_BITSET
+				TYPE_IPV6 [
 					series: as red-series! value
 					keep :series/node
 				]

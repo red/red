@@ -93,27 +93,27 @@ absolute: make action! [[
 
 add: make action! [[
 		"Returns the sum of the two values"
-		value1	 [scalar! vector!] "The augend"
-		value2	 [scalar! vector!] "The addend"
-		return:  [scalar! vector!] "The sum"
+		value1	 [scalar! vector! ipv6!] "The augend"
+		value2	 [scalar! vector! ipv6!] "The addend"
+		return:  [scalar! vector! ipv6!] "The sum"
 	]
 	#get-definition ACT_ADD
 ]
 
 divide: make action! [[
 		"Returns the quotient of two values"
-		value1	 [number! money! char! pair! tuple! vector! time! any-point!] "The dividend (numerator)"
-		value2	 [number! money! char! pair! tuple! vector! time! any-point!] "The divisor (denominator)"
-		return:  [number! money! char! pair! tuple! vector! time! any-point!] "The quotient"
+		value1	 [number! money! char! pair! tuple! vector! time! any-point! ipv6!] "The dividend (numerator)"
+		value2	 [number! money! char! pair! tuple! vector! time! any-point! ipv6!] "The divisor (denominator)"
+		return:  [number! money! char! pair! tuple! vector! time! any-point! ipv6!] "The quotient"
 	]
 	#get-definition ACT_DIVIDE
 ]
 
 multiply: make action! [[
 		"Returns the product of two values"
-		value1	 [number! money! char! pair! tuple! vector! time! any-point!] "The multiplicand"
-		value2	 [number! money! char! pair! tuple! vector! time! any-point!] "The multiplier"
-		return:  [number! money! char! pair! tuple! vector! time! any-point!] "The product"
+		value1	 [number! money! char! pair! tuple! vector! time! any-point! ipv6!] "The multiplicand"
+		value2	 [number! money! char! pair! tuple! vector! time! any-point! ipv6!] "The multiplier"
+		return:  [number! money! char! pair! tuple! vector! time! any-point! ipv6!] "The product"
 	]
 	#get-definition ACT_MULTIPLY
 ]
@@ -161,9 +161,9 @@ round: make action! [[
 
 subtract: make action! [[
 		"Returns the difference between two values"
-		value1	 [scalar! vector!] "The minuend"
-		value2	 [scalar! vector!] "The subtrahend"
-		return:  [scalar! vector!] "The difference"
+		value1	 [scalar! vector! ipv6!] "The minuend"
+		value2	 [scalar! vector! ipv6!] "The subtrahend"
+		return:  [scalar! vector! ipv6!] "The difference"
 	]
 	#get-definition ACT_SUBTRACT
 ]
@@ -188,9 +188,9 @@ odd?: make action! [[
 
 and~: make action! [[
 		"Returns the first value ANDed with the second"
-		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point!]
-		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point!]
-		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point!]
+		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point! ipv6!]
+		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point! ipv6!]
+		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point! ipv6!]
 	]
 	#get-definition ACT_AND~
 ]
@@ -205,18 +205,18 @@ complement: make action! [[
 
 or~: make action! [[
 		"Returns the first value ORed with the second"
-		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point!]
-		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point!]
-		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point!]
+		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point! ipv6!]
+		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point! ipv6!]
+		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point! ipv6!]
 	]
 	#get-definition ACT_OR~
 ]
 
 xor~: make action! [[
 		"Returns the first value exclusive ORed with the second"
-		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point!]
-		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point!]
-		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point!]
+		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point! ipv6!]
+		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point! ipv6!]
+		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! any-point! ipv6!]
 	]
 	#get-definition ACT_XOR~
 ]
@@ -277,7 +277,7 @@ clear: make action! [[
 
 copy: make action! [[
 		"Returns a copy of a non-scalar value"
-		value	 [series! any-object! bitset! map!]
+		value	 [series! any-object! bitset! map! IPv6!]
 		/part	 "Limit the length of the result"
 			length [number! series! pair!]
 		/deep	 "Copy nested values"
@@ -377,7 +377,7 @@ next: make action! [[
 
 pick: make action! [[
 		"Returns the series value at a given index"
-		series	 [series! port! bitset! pair! any-point! tuple! money! date! time! #if find config/modules 'view [event!]]
+		series	 [series! port! bitset! pair! any-point! tuple! money! date! time! IPv6! #if find config/modules 'view [event!]]
 		index 	 [scalar! any-string! any-word! block! logic! time!]
 		return:  [any-type!]
 	]
@@ -386,7 +386,7 @@ pick: make action! [[
 
 poke: make action! [[
 		"Replaces the series value at a given index, and returns the new value"
-		series	 [series! port! bitset!]
+		series	 [series! port! bitset! IPv6!]
 		index 	 [scalar! any-string! any-word! block! logic!]
 		value 	 [any-type!]
 		return:  [series! port! bitset!]
@@ -557,6 +557,7 @@ open: make action! [[
 		/read "Open for read access"
 		/write "Open for write access"
 		/seek "Optimize for random access"
+		/async "Open for asynchronous IO"
 		/allow "Specificies right access attributes"
 			access [block!]
 	]

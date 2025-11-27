@@ -175,13 +175,6 @@ copy-rect: func [
 	dst/bottom: src/bottom
 ]
 
-zero-memory: func [
-	dest	[byte-ptr!]
-	size	[integer!]
-][
-	set-memory dest null-byte size
-]
-
 utf16-length?: func [
 	s 		[c-string!]
 	return: [integer!]

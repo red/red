@@ -34,6 +34,7 @@ redbin: context [
 	#define REDBIN_COMPLEMENT_MASK		00800000h
 	#define REDBIN_MONEY_SIGN_MASK		00400000h
 	#define REDBIN_REFERENCE_MASK		00080000h
+	#define REDBIN_V4_IN_V6_MASK		00040000h
 	
 	;-- Special record types
 	
@@ -613,6 +614,7 @@ redbin: context [
 					TYPE_VECTOR
 					TYPE_BINARY		[encode-string data header payload]
 					TYPE_BITSET		[encode-bitset data header payload]
+					TYPE_IPV6		[encode-ipv6 data header payload]
 					TYPE_IMAGE		[encode-image data header payload]
 					TYPE_ANY_WORD
 					TYPE_REFINEMENT	[encode-word data header payload symbols table strings]
@@ -747,8 +749,9 @@ redbin: context [
 			TYPE_OP			[decode-op       data end table parent nl?]
 			TYPE_TUPLE		[decode-tuple    data end parent nl?]
 			TYPE_MONEY		[decode-money    data end parent nl?]
-			TYPE_BITSET     [decode-bitset   data end parent nl?]
-			TYPE_VECTOR     [decode-vector   data end parent nl?]
+			TYPE_IPV6		[decode-ipv6     data end parent nl?]
+			TYPE_BITSET		[decode-bitset   data end parent nl?]
+			TYPE_VECTOR		[decode-vector   data end parent nl?]
 			TYPE_IMAGE		[decode-image    data end parent nl?]
 			TYPE_ERROR		[decode-error    data end table parent nl?]
 			TYPE_OBJECT		[decode-object   data end table parent nl?]
@@ -2154,6 +2157,57 @@ redbin: context [
 	]
 	
 	;-- Misc. --
+	
+	;-- IPv6!
+
+	encode-ipv6: func [
+		data    [red-value!]
+		header  [integer!]
+		payload [red-binary!]
+		/local
+			ip	   [red-vector!]
+			series [series!]
+	][
+		ip: as red-vector! data
+		series: GET_BUFFER(ip)
+		if series/flags and flag-embed-v4 <> 0 [header: header or REDBIN_V4_IN_V6_MASK]
+		store payload header
+		
+		unless header and REDBIN_REFERENCE_MASK <> 0 [
+			emit payload as byte-ptr! series/offset 16
+		]
+	]
+	
+	decode-ipv6: func [
+		data    [int-ptr!]
+		end		[int-ptr!]
+		parent  [red-block!]
+		nl?     [logic!]
+		return: [int-ptr!]
+		/local
+			slot   [red-value!]
+			ip     [red-vector!]
+			buffer [series!]
+	][
+		if data + 5 > end [throw-error data]
+		slot: ALLOC_TAIL(parent)
+		ip: as red-vector! slot
+		ip/header: TYPE_UNSET
+		ip/node:   alloc-bytes 16
+		ip/type:   TYPE_INTEGER
+		ip/header: TYPE_IPV6
+
+		buffer: GET_BUFFER(ip)
+		buffer/flags: buffer/flags and flag-unit-mask or 2
+		if data/1 and REDBIN_V4_IN_V6_MASK <> 0 [
+			buffer/flags: buffer/flags or flag-embed-v4
+		]
+		buffer/tail: buffer/offset + 1			;-- set tail at 16 bytes
+		copy-memory as byte-ptr! buffer/offset as byte-ptr! data + 1 16
+
+		if nl? [ip/header: ip/header or flag-new-line]
+		data + 5
+	]
 	
 	;-- tuple!
 	

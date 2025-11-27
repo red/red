@@ -36,11 +36,11 @@ null-handle: #system [handle/push-null]
 ;-- unless you know what you are doing!
 
 internal!:		make typeset! [unset!]
-external!:		make typeset! [#if find config/modules 'view [event!]]
+external!:		make typeset! [event!]
 number!:		make typeset! [integer! float! percent!]
 planar!:		make typeset! [pair! point2D!]
 any-point!:		make typeset! [point2D! point3D!]
-scalar!:		union number! union any-point! make typeset! [money! char! pair! tuple! time! date!]
+scalar!:		union number! union any-point! make typeset! [money! char! pair! tuple! time! date! IPv6!]
 any-word!:		make typeset! [word! set-word! get-word! lit-word!] ;-- any bindable word
 all-word!:		union any-word! make typeset! [refinement! issue!]	;-- all types of word nature
 any-list!:		make typeset! [block! paren! hash!]

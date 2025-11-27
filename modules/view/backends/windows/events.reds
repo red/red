@@ -1854,27 +1854,29 @@ do-events: func [
 		state [integer!]
 		msg?  [logic!]
 		saved [tagMSG]
+		run? [logic!]
 ][
 	msg?: no
+	run?: yes
 	unless no-wait? [loop-cnt: loop-cnt + 1]
 
-	while [
-		either no-wait? [
-			0 < PeekMessage :msg null 0 0 1
-		][
-			0 < GetMessage :msg null 0 0
+	while [run?][
+		loop 10 [
+			if 0 < PeekMessage :msg null 0 0 1 [
+				if msg/msg = 12h [run?: no]		;-- WM_QUIT
+				unless msg? [msg?: yes]
+				state: process :msg
+				if state >= EVT_DISPATCH [
+					saved: current-msg
+					current-msg: :msg
+					TranslateMessage :msg
+					DispatchMessage :msg
+					current-msg: saved
+				]
+				if no-wait? [return msg?]
+			]
 		]
-	][
-		unless msg? [msg?: yes]
-		state: process :msg
-		if state >= EVT_DISPATCH [
-			saved: current-msg
-			current-msg: :msg
-			TranslateMessage :msg
-			DispatchMessage :msg
-			current-msg: saved
-		]
-		if no-wait? [return msg?]
+		io/do-events 15 null yes
 	]
 	unless no-wait? [
 		exit-loop: exit-loop - 1

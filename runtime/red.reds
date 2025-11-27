@@ -27,8 +27,8 @@ red: context [
 		NetBSD   [#include %platform/netbsd.reds]
 		#default [#include %platform/linux.reds]
 	]
-	
-	#include %threads.reds
+
+	#include %threadpool.reds
 	#include %allocator.reds
 	#include %crush.reds
 	
@@ -41,6 +41,8 @@ red: context [
 	#include %case-folding.reds
 	#include %sort.reds
 	#include %hashtable.reds
+	#include %deque.reds
+	#include %dlink.reds
 	#include %ownership.reds
 	#include %references.reds
 	
@@ -129,6 +131,7 @@ red: context [
 	#include %datatypes/ipv6.reds
 	#if OS = 'Windows [#include %datatypes/image.reds]	;-- temporary
 	#if OS = 'macOS   [#include %datatypes/image.reds]	;-- temporary
+	#either modules contains 'View [][#include %datatypes/event.reds]
 	#if OS = 'Linux   [#include %datatypes/image.reds]
 	#if OS = 'FreeBSD [#include %datatypes/image.reds]
 	#if OS = 'NetBSD  [#include %datatypes/image.reds]
@@ -154,6 +157,7 @@ red: context [
 	#include %call.reds
 	#include %compress.reds
 	#include %collector.reds
+	#include %io.reds
 	#include %wcwidth.reds
 
 	_root:	 	declare red-block!						;-- statically alloc root cell for bootstrapping
@@ -173,6 +177,7 @@ red: context [
 		boot?: yes
 		dyn-print/init
 		platform/init
+		threadpool/init
 		_random/init
 		init-mem										;@@ needs a local context
 		externals/init
@@ -239,6 +244,7 @@ red: context [
 		]
 		#if OS = 'macOS   [image/init]					;-- temporary
 		#if OS = 'Linux   [image/init]					;-- temporary
+		#either modules contains 'View [][event/init]
 		
 		actions/init
 		
@@ -269,6 +275,8 @@ red: context [
 		stack/init
 		lexer/init
 		redbin/boot-load system/boot-data no
+
+		io/init
 		interpreter/init
 		references/init
 		collector/init

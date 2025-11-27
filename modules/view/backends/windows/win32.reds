@@ -3017,13 +3017,6 @@ XFORM!: alias struct! [
 	]
 ]
 
-zero-memory: func [
-	dest	[byte-ptr!]
-	size	[integer!]
-][
-	loop size [dest/value: #"^@" dest: dest + 1]
-]
-
 utf16-length?: func [
 	s 		[c-string!]
 	return: [integer!]

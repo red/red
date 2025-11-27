@@ -204,11 +204,7 @@ pollfd!: alias struct! [
 	]
 ]
 
-wait: func [time [float!]][								;-- seconds
-	time: time * 1000000.0								;-- microseconds
-	if time < 1.0 [time: 1.0]
-	usleep as-integer time
-]
+wait: func [time [integer!]][usleep time * 1000]
 
 ;-------------------------------------------
 ;-- Print a UCS-4 string to console

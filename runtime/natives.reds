@@ -1211,7 +1211,7 @@ natives: context [
 		
 		either TYPE_OF(value) = TYPE_BLOCK [
 			vctx: TO_CTX(ctx)
-			self?: TYPE_OF(ref) = TYPE_OBJECT
+			self?: any [TYPE_OF(ref) = TYPE_OBJECT TYPE_OF(ref) = TYPE_PORT]
 			either negative? copy [
 				_context/bind as red-block! value vctx self?
 			][
@@ -1580,10 +1580,10 @@ natives: context [
 		ret/head: 0
 
 		node: switch base [
-			64 [alloc-bytes 4 * len / 3 + (2 * (len / 32) + 5)]
-			58 [alloc-bytes len * 2]
-			16 [alloc-bytes len * 2 + (len / 32) + 32]
-			2  [alloc-bytes 8 * len + (2 * (len / 8) + 4)]
+			64 [b-allocator/alloc-bytes 4 * len / 3 + (2 * (len / 32) + 5)]
+			58 [b-allocator/alloc-bytes len * 2]
+			16 [b-allocator/alloc-bytes len * 2 + (len / 32) + 32]
+			2  [b-allocator/alloc-bytes 8 * len + (2 * (len / 8) + 4)]
 			default [fire [TO_ERROR(script invalid-arg) int] null]
 		]
 		if null? node [
@@ -2355,39 +2355,77 @@ natives: context [
 		stack/set-last as red-value! out
 	]
 
+	get-timeout: func [
+		val		[red-value!]
+		return: [integer!]			;-- -2: error
+		/local
+			int		[red-integer!]
+			flt		[red-float!]
+			time	[integer!]
+			ftime	[float!]
+	][
+		switch TYPE_OF(val) [
+			TYPE_INTEGER [
+				int: as red-integer! val
+				time: int/value
+				if time > 0 [time: time * 1000]
+			]
+			TYPE_FLOAT [
+				flt: as red-float! val
+				ftime: flt/value
+				if ftime > 0.0 [
+					ftime: ftime * 1000.0
+					if ftime < 1.0 [ftime: 1.0]
+				]
+				time: as-integer ftime
+			]
+			TYPE_TIME [
+				flt: as red-float! val
+				time: as-integer flt/value * 1E3
+			]
+			default [time: -2]
+		]
+		time
+	]
+
 	wait*: func [
 		check?	[logic!]
 		all?	[integer!]
 		;only?	[integer!]
 		/local
-			val		[red-float!]
-			int		[red-integer!]
-			seconds	[float!]
+			val		[red-value!]
+			time ty	[integer!]
+			once?	[logic!]
+			ports	[red-value!]
+			head	[red-value!]
+			tail	[red-value!]
 	][
 		#typecheck [wait all?] ;only?]
-		val: as red-float! stack/arguments
-		switch TYPE_OF(val) [
-			TYPE_INTEGER [
-				int: as red-integer! val
-				seconds: as-float int/value
+
+		val: stack/arguments
+		time: -1		;-- timeout in infinite time
+		ports: null
+		once?: yes
+		ty: TYPE_OF(val)
+		either any [ty = TYPE_PORT ty = TYPE_BLOCK][
+			ports: val
+			once?: no
+			if ty = TYPE_BLOCK [
+				head: block/rs-head as red-block! val
+				tail: block/rs-tail as red-block! val
+				while [head < tail][		;-- get timeout in block
+					time: get-timeout head
+					if time > -2 [break]
+					head: head + 1
+				]
 			]
-			TYPE_FLOAT [
-				seconds: val/value
-			]
-			TYPE_TIME [
-				seconds: val/value
-			]
-			default [fire [TO_ERROR(script invalid-arg) val]]
+		][
+			time: get-timeout val
+			if time = -2 [fire [TO_ERROR(script invalid-arg) val]]
 		]
+		
+		io/do-events time ports once?
 		val/header: TYPE_NONE
-		platform/wait seconds
-		#if modules contains 'View [
-			#either GUI-engine = 'terminal [
-				exec/gui/try-events
-			][
-				exec/gui/do-events yes null
-			]
-		]
 	]
 
 	checksum*: func [

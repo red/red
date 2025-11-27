@@ -42,9 +42,9 @@ Red/System [
 #define float-ptr!    [pointer! [float!]]
 #define float32-ptr!  [pointer! [float32!]]
 
-;#define int16!			integer!
-;#define uint16!		integer!
-#define uint!			integer!
+#define int16!		  integer!
+#define uint16!		  integer!
+#define uint!		  integer!
 #define int32!			integer!
 #define uint32!			integer!
 #define long!			integer!		;-- 32bit in 32bit OS, 64bit in 64bit OS

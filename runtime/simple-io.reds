@@ -713,6 +713,9 @@ simple-io: context [
 				][
 					access: CREATE_ALWAYS
 				]
+				if mode and RIO_APPEND <> 0 [
+					modes: FILE_APPEND_DATA
+				]
 			]
 			either unicode? [
 				file: CreateFileW

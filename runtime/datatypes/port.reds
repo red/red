@@ -20,6 +20,7 @@ port: context [
 		field-awake
 		field-state
 		field-data
+		field-flags
 		field-extra
 	]
 	
@@ -443,6 +444,7 @@ port: context [
 		read?	[logic!]
 		write?	[logic!]
 		seek?	[logic!]
+		async?	[logic!]
 		allow	[red-value!]
 		return:	[red-value!]
 		/local
@@ -457,6 +459,7 @@ port: context [
 		logic/push read?
 		logic/push write?
 		logic/push seek?
+		logic/push async?
 		stack/push allow
 		call-function actors words/_open
 	]
@@ -520,12 +523,26 @@ port: context [
 		/local
 			result [red-value!]
 			seek?  [logic!]
+			flags  [red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "port/read"]]
 		
 		seek?: OPTION?(seek)
 		result: stack/push*
-		open port no no no seek? none-value
+
+		flags: as red-block! (object/get-values port) + field-flags
+		if any [binary? lines? info? OPTION?(as-arg)][
+			block/make-at flags 2
+			if binary? [block/rs-append flags as red-value! io/_binary]
+			if lines? [block/rs-append flags as red-value! io/_lines]
+			if info? [block/rs-append flags as red-value! io/_info]
+			if OPTION?(as-arg) [
+				block/rs-append flags as red-value! io/_as
+				block/rs-append flags as-arg
+			]
+		]
+
+		open port no no no seek? no none-value
 		copy port result part no none-value
 		close port
 		result
@@ -757,12 +774,26 @@ port: context [
 		/local
 			result [red-value!]
 			seek?  [logic!]
+			flags  [red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "port/write"]]
 		
 		seek?: OPTION?(seek)
 		result: stack/push*
-		open port no no yes seek? none-value
+
+		flags: as red-block! (object/get-values port) + field-flags
+		if any [binary? lines? info? OPTION?(as-arg)][
+			block/make-at flags 2
+			if binary? [block/rs-append flags as red-value! io/_binary]
+			if lines? [block/rs-append flags as red-value! io/_lines]
+			if info? [block/rs-append flags as red-value! io/_info]
+			if OPTION?(as-arg) [
+				block/rs-append flags as red-value! io/_as
+				block/rs-append flags as-arg
+			]
+		]
+
+		open port no no yes seek? no none-value
 		insert port data part no none-value no
 		copy port result part no none-value
 		close port

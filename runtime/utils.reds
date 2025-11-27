@@ -163,27 +163,6 @@ check-arg-type: func [
 #switch OS [
 	Windows [
 
-	SYSTEM_INFO!: alias struct! [
-		dwOemId						[integer!]
-		dwPageSize					[integer!]
-		lpMinimumApplicationAddress [byte-ptr!]
-		lpMaximumApplicationAddress [byte-ptr!]
-		dwActiveProcessorMask		[int-ptr!]
-		dwNumberOfProcessors		[integer!]
-		dwProcessorType				[integer!]
-		dwAllocationGranularity		[integer!]
-		wProcessorLevel				[integer!]
-		;wProcessorRevision
-	]
-
-	#import [
-		"kernel32.dll" stdcall [
-			GetNativeSystemInfo: "GetNativeSystemInfo" [
-				lpSystemInfo [SYSTEM_INFO!]
-			]
-		]
-	]
-
 	__get-OS-info: func [
 		/local
 			obj		[red-object!]
@@ -247,7 +226,7 @@ check-arg-type: func [
 		]
 		_context/add-with ctx _context/add-global symbol/make "name" val
 
-		GetNativeSystemInfo :info
+		platform/GetNativeSystemInfo :info
 		arch: switch info/dwOemId and FFFFh [		;-- wProcessorArchitecture
 			0  ["x86-32"]
 			5  ["ARM"]

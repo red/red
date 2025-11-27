@@ -61,7 +61,8 @@ cell!: alias struct! [
 ;	19:		complement						;-- complement flag for bitsets
 ;	18:		UTF-16 cache					;-- signifies that the string cache is UTF-16 encoded (UTF-8 by default)
 ;	17:		owned							;-- series is owned by an object
-;	16-5: 	<reserved>
+;	16:		v4 address						;-- IPv4 address embedded in IPv6
+;	15-5: 	<reserved>
 ;	4-0:	unit							;-- size in bytes of atomic element stored in buffer
 											;-- 0: UTF-8, 1: Latin1/binary, 2: UCS-2, 4: UCS-4, 16: block! cell
 series-buffer!: alias struct! [
@@ -791,7 +792,11 @@ expand-series: func [
 
 	node: series/node
 	new: null								;-- avoids GC processing this slot on stack (optimization)
-	new: alloc-series-buffer new-sz / units units 0
+	either series/flags and flag-series-fixed = 0 [
+		new: alloc-series-buffer new-sz / units units 0
+	][
+		new: b-allocator/alloc-series-buffer new-sz / units units 0
+	]
 	series: as series-buffer! node/value	;-- refresh series after eventual GC pass
 	big?: new/flags and flag-series-big <> 0
 	
@@ -940,6 +945,135 @@ free-big: func [
 	]
 	
 	free-virtual as int-ptr! frame			;-- release the memory to the OS
+]
+
+b-allocator: context [
+	;; Use case for the ref-cnt:
+	;; We have 3 ports: A B C, them are sending the same data X.
+	;; We pass the address of the data X to the OS API and increase the ref-cnt.
+	;; Now the ref-cnt is 3. When the port finish sending, we decrease the ref-cnt.
+	;; While the data is sending, the GC may run. The data X is freed only if the ref-cnt is 0.
+	b-header!: alias struct! [
+		next	[b-header!]
+		ref-cnt [integer!]		;-- reference count by external code
+	]
+
+	first-series: as b-header! 0
+
+	increase-ref: func [
+		s		[series!]
+		/local
+			p	[b-header!]
+	][
+		p: (as b-header! s) - 1
+		p/ref-cnt: p/ref-cnt + 1
+	]
+
+	decrease-ref: func [
+		s		[series!]
+		/local
+			p	[b-header!]
+	][
+		p: (as b-header! s) - 1
+		p/ref-cnt: p/ref-cnt - 1
+		assert p/ref-cnt >= 0
+	]
+
+	collect-series: func [/local p prev next [b-header!] s [series!]][
+		p: first-series
+		prev: null
+		while [p <> null][
+			next: as b-header! p/next
+			s: as series! p + 1
+			either all [
+				s/flags and flag-gc-mark = 0
+				p/ref-cnt = 0
+			][
+				free as byte-ptr! p
+				either prev <> null [prev/next: next][first-series: next]
+			][
+				s/flags: s/flags and not flag-gc-mark	;-- clear mark flag
+				prev: p
+			]
+			p: next
+		]
+	]
+
+	;-------------------------------------------
+	;-- Allocate a series from the active series frame, return the series
+	;-------------------------------------------
+	alloc-series-buffer: func [
+		usize	[integer!]						;-- size in units
+		unit	[integer!]						;-- size of atomic elements stored
+		offset	[integer!]						;-- force a given offset for series buffer (in bytes)
+		return: [series-buffer!]				;-- return the new series buffer
+		/local
+			p		 [b-header!]
+			series	 [series-buffer!]
+			frame	 [series-frame!]
+			size	 [integer!]
+			sz		 [integer!]
+	][
+		assert positive? usize
+		size: round-to usize * unit size? cell!	;-- size aligned to cell! size
+		sz: size + (size? b-header!) + size? series-buffer!
+
+		p: as b-header! allocate sz
+		if null? p [
+			collector/do-cycle
+			p: as b-header! allocate sz	;-- try again
+		]
+
+		p/next: as b-header! first-series
+		p/ref-cnt: 0
+		first-series: p
+
+		series: as series! p + 1
+		series/size: size
+		series/flags: unit or series-in-use or flag-series-fixed
+
+		either offset = default-offset [
+			offset: size >> 1					;-- target middle of buffer
+			series/flags: series/flags or flag-ins-both	;-- optimize for both head & tail insertions (default)
+		][
+			series/flags: series/flags or flag-ins-tail ;-- optimize for tail insertions only
+		]
+		
+		series/offset: as cell! (as byte-ptr! series + 1) + offset
+		series/tail: series/offset
+		series
+	]
+
+	;-------------------------------------------
+	;-- Allocate a node and a series from the active series frame, return the node
+	;-------------------------------------------
+	alloc-series: func [
+		size	[integer!]						;-- number of elements to store
+		unit	[integer!]						;-- size of atomic elements stored
+		offset	[integer!]						;-- force a given offset for series buffer
+		return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
+		/local series [series!] node [int-ptr!]
+	][
+	;	#if debug? = yes [print-wide ["allocating series:" size unit offset lf]]
+		series: null
+		node: null
+		series: alloc-series-buffer size unit offset
+		node: alloc-node						;-- get a new node
+		series/node: node						;-- link back series to node
+		node/value: as-integer series ;(as byte-ptr! series) + size? series-buffer!
+		node									;-- return the node pointer
+	]
+
+	;-------------------------------------------
+	;-- Wrapper on alloc-series for byte buffer allocation
+	;-------------------------------------------
+	alloc-bytes: func [
+		size	[integer!]						;-- number of bytes to preallocate
+		return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
+	][
+		if zero? size [size: 16]
+		alloc-series size 1 0					;-- optimize by default for tail insertion
+	]
 ]
 
 #if libRed? = yes [

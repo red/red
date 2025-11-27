@@ -48,6 +48,7 @@ event: context [
 		field	[integer!]
 		return: [red-value!]
 	][
+		#either modules contains 'View [
 		switch field [
 			1  [gui/get-event-type evt]
 			2  [gui/get-event-face evt]
@@ -65,6 +66,8 @@ event: context [
 			14 [gui/get-event-flag evt/flags gui/EVT_FLAG_SHIFT_DOWN]
 			15 [gui/get-event-orientation evt]
 			default [assert false null]
+		]][
+			null
 		]
 	]
 	
@@ -160,19 +163,41 @@ event: context [
 			word  [red-word!]
 			field [integer!]
 			sym	  [integer!]
+			grp  [integer!]
 	][
 		word: as red-word! element
-		
+		grp: evt/type >>> 16
+
 		either value <> null [
 			sym: symbol/resolve word/symbol
 			if sym <> words/type [fire [TO_ERROR(script bad-path-set) path word]]
 			if TYPE_OF(value) <> TYPE_WORD [fire [TO_ERROR(script bad-path-set) path value]]
-			gui/set-event-type evt as red-word! value
+			switch grp [
+				#if modules contains 'View [
+				EVT_CATEGORY_GUI [gui/set-event-type evt as red-word! value]
+				]
+				EVT_CATEGORY_IO  [0]
+				default [assert 1 = 0]		;-- something is wrong
+			]
 			value
 		][
-			field: get-named-index word path
-			if field = -1 [fire [TO_ERROR(script invalid-path) path element]]
-			push-field evt field
+			switch grp [
+				#if modules contains 'View [
+				EVT_CATEGORY_GUI [
+					field: get-named-index word path
+					if field = -1 [fire [TO_ERROR(script invalid-path) path element]]
+					push-field evt field
+				]]
+				EVT_CATEGORY_IO [
+					sym: symbol/resolve word/symbol
+					case [
+						sym = words/type	[io/get-event-type evt]
+						sym = words/port	[io/get-event-port evt]
+						true				[fire [TO_ERROR(script invalid-path) path element] null]
+					]
+				]
+				default [fire [TO_ERROR(script not-event-type) integer/push grp] null]
+			]
 		]
 	]
 

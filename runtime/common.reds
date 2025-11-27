@@ -716,6 +716,7 @@ words: context [
 	code:			-1
 	amount:			-1
 	
+	port:			-1
 	user:			-1
 	host:			-1
 	
@@ -843,7 +844,12 @@ words: context [
 	_rename:		as red-word! 0
 	_update:		as red-word! 0
 	_write:			as red-word! 0
-	
+	_wrote:			as red-word! 0
+	_accept:		as red-word! 0
+	_connect:		as red-word! 0
+	_awake:			as red-word! 0
+	_async:			as red-word! 0
+
 	;-- lexer events
 	_prescan:		as red-word! 0
 	_scan:			as red-word! 0
@@ -1001,6 +1007,8 @@ words: context [
 		
 		code:			symbol/make "code"
 		amount:			symbol/make "amount"
+
+		port:			symbol/make "port"
 		
 		user:			symbol/make "user"
 		host:			symbol/make "host"
@@ -1127,7 +1135,12 @@ words: context [
 		_rename:		word/load "rename"
 		_update:		word/load "update"
 		_write:			word/load "write"
-		
+		_wrote:			word/load "wrote"
+		_accept:		word/load "accept"
+		_connect:		word/load "connect"
+		_awake:			word/load "awake"
+		_async:			word/load "async"
+
 		;-- lexer events
 		_prescan:		word/load "prescan"
 		_scan:			word/load "scan"

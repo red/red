@@ -375,7 +375,8 @@ _series: context [
 				TYPE_GET_PATH
 				TYPE_SET_PATH
 				TYPE_LIT_PATH [s/offset + offset]
-				TYPE_VECTOR [
+				TYPE_VECTOR
+				TYPE_IPV6 [
 					vec: as red-vector! ser
 					vector/get-value p1 unit vec/type
 				]
@@ -805,6 +806,7 @@ _series: context [
 					copy-cell data s/offset + offset
 				]
 				TYPE_BINARY [binary/set-value pos data]
+				TYPE_IPV6
 				TYPE_VECTOR [
 					if TYPE_OF(data) <> ser/extra [
 						fire [TO_ERROR(script invalid-arg) data]
@@ -1204,7 +1206,9 @@ _series: context [
 
 		if ser <> new [new/header: TYPE_UNSET]
 		part:	part << (log-b unit)
-		node:	alloc-bytes part
+		node: either type = TYPE_BINARY [b-allocator/alloc-bytes part][
+			alloc-bytes part
+		]
 		s: GET_BUFFER(ser)
 		buffer: as series! node/value
 		buffer/flags: s/flags							;@@ filter flags?
@@ -1223,7 +1227,7 @@ _series: context [
 		new/header: type or flag
 		new/node:   node
 		new/head:   0
-		new/extra:  either type = TYPE_VECTOR [ser/extra][0]
+		new/extra:  either any [type = TYPE_VECTOR type = TYPE_IPV6][ser/extra][0]
 
 		as red-series! new
 	]

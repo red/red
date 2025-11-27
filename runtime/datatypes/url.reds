@@ -46,6 +46,7 @@ url: context [
 		read?	[logic!]
 		write?	[logic!]
 		seek?	[logic!]
+		async?	[logic!]
 		allow	[red-value!]
 		open?	[logic!]
 		return:	[red-value!]
@@ -59,7 +60,7 @@ url: context [
 
 		either TYPE_OF(p) = TYPE_OBJECT [
 			p: port/make none-value as red-value! p TYPE_NONE
-			if open? [actions/open as red-value! p new? read? write? seek? allow]
+			if open? [actions/open as red-value! p new? read? write? seek? async? allow]
 		][
 			fire [TO_ERROR(script invalid-arg) v]
 		]
@@ -105,6 +106,7 @@ url: context [
 			size	[integer!]
 			p		[byte-ptr!]
 			num		[integer!]
+			v6?		[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "url/mold"]]
 
@@ -117,19 +119,22 @@ url: context [
 
 		num: 0
 		size: 0
+		v6?: no
 		while [data < end][
-			p: string/encode-url-char string/ESC_URL data :size
+			if all [data/1 = #":" data/2 = #"/" data/3 = #"/" data/4 = #"["][v6?: yes]
+			either v6? [
+				p: data
+				size: 1
+			][
+				p: string/encode-url-char string/ESC_URL data :size
+			]
 			loop size [
 				string/append-char GET_BUFFER(buffer) as-integer p/1
 				num: num + 1
-				if all [
-					limit?
-					num >= part
-				][
-					return part - num
-				]
+				if all [limit? num >= part][return part - num]
 				p: p + 1
 			]
+			if all [v6? data/1 = #"]"][v6?: no]
 			data: data + 1
 		]
 		part - num
@@ -249,11 +254,21 @@ url: context [
 		read?	[logic!]
 		write?	[logic!]
 		seek?	[logic!]
+		async?	[logic!]
 		allow	[red-value!]
 		return:	[red-value!]
+		/local
+			p	[red-object!]
+			flags [red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "url/open"]]
-		to-port url new? read? write? seek? allow yes
+		p: as red-object! to-port url new? read? write? seek? async? allow yes
+		if async? [
+			flags: as red-block! (object/get-values p) + port/field-flags
+			block/make-at flags 2
+			block/rs-append flags as red-value! words/_async
+		]
+		as red-value! p
 	]
 	
 	read: func [
@@ -268,21 +283,10 @@ url: context [
 		/local
 			p [red-object!]
 	][
-		either string/rs-match as red-string! src "http" [
-			if any [
-				OPTION?(part)
-				OPTION?(seek)
-				OPTION?(as-arg)
-			][
-				--NOT_IMPLEMENTED--
-			]
-			part: simple-io/request-http words/get as red-url! src null null binary? lines? info?
-			if TYPE_OF(part) = TYPE_NONE [fire [TO_ERROR(access no-connect) src]]
-			part
-		][
-			p: as red-object! to-port as red-url! src no no no OPTION?(seek) none-value no
-			port/read p part seek binary? lines? info? as-arg
-		]
+		p: as red-object! to-port as red-url! src no no no OPTION?(seek) no none-value no
+		part: port/read p part seek binary? lines? info? as-arg
+		if TYPE_OF(part) = TYPE_NONE [fire [TO_ERROR(access no-connect) src]]
+		part
 	]
 
 	write: func [
@@ -305,7 +309,7 @@ url: context [
 			action	[integer!]
 			sym		[integer!]
 	][
-		either string/rs-match as red-string! dest "http" [
+		if string/rs-match as red-string! dest "http" [
 			if any [
 				OPTION?(seek)
 				OPTION?(allow)
@@ -336,23 +340,22 @@ url: context [
 			][
 				action: words/post
 			]
-
-			if all [
-				data <> null
-				TYPE_OF(data) <> TYPE_BLOCK
-				TYPE_OF(data) <> TYPE_STRING
-				TYPE_OF(data) <> TYPE_BINARY
-			][
-				fire [TO_ERROR(script invalid-arg) data]
-			]
-			part: simple-io/request-http action dest header data binary? lines? info?
-			if TYPE_OF(part) = TYPE_NONE [fire [TO_ERROR(access no-connect) dest]]
-			part
-		][
-			data: stack/push data
-			p: as red-object! to-port as red-url! dest no no no OPTION?(seek) none-value no
-			port/write p data binary? lines? info? append? part seek allow as-arg
 		]
+
+		if all [
+			data <> null
+			TYPE_OF(data) <> TYPE_BLOCK
+			TYPE_OF(data) <> TYPE_STRING
+			TYPE_OF(data) <> TYPE_BINARY
+		][
+			fire [TO_ERROR(script invalid-arg) data]
+		]
+
+		data: stack/push data
+		p: as red-object! to-port as red-url! dest no no no OPTION?(seek) no none-value no
+		part: port/write p data binary? lines? info? append? part seek allow as-arg
+		if TYPE_OF(part) = TYPE_NONE [fire [TO_ERROR(access no-connect) dest]]
+		part
 	]
 
 	init: does [

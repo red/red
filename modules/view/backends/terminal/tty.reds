@@ -313,7 +313,7 @@ tty: context [
 				n	[integer!]
 		][
 			n: 0
-			platform/WriteFile stdout as c-string! data len :n 0
+			platform/WriteFile stdout data len :n 0
 		]
 
 		enter-raw-mode: func [/local mode [integer!]][

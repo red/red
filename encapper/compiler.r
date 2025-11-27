@@ -332,6 +332,8 @@ red: context [
 	
 	date-special?:  func [value][all [block? value value/1 = #!date!]]
 	map-value?:     func [value][all [block? value value/1 = #!map!]]
+	ipv6-value?:   func [value][all [block? value value/1 = #!ipv6!]]
+	map-value?:     func [value][all [block? value value/1 = #!map!]]
 	point-value?:   func [value][all [block? value value/1 = #!point!]]
 	
 	insert-lf: func [pos][
@@ -1706,7 +1708,7 @@ red: context [
 	
 	comp-literal: func [
 		/inactive /with val
-		/local value char? special? percent? map? tuple? money? ref? dt-special? point? dtype?
+		/local value char? special? percent? map? tuple? money? ref? dt-special? point? dtype? ipv6?
 			   name w make-block type idx zone
 	][
 		make-block: [
@@ -1719,6 +1721,7 @@ red: context [
 		]
 		value: either with [val][pc/1]					;-- val can be NONE
 		map?: map-value? :value
+		ipv6?: ipv6-value? :value
 		dt-special?: date-special? :value
 		point?: point-value? :value
 		
@@ -1737,6 +1740,7 @@ red: context [
 			]
 			scalar? :value
 			map?
+			ipv6?
 			dt-special?
 			point?
 		][
@@ -1764,6 +1768,10 @@ red: context [
 				decimal? :value [
 					emit 'float/push64
 					emit-float value
+					insert-lf -3
+				]
+				ipv6? [
+					emit compose [ipv6/push as red-vector! get-root (redbin/emit-ipv6/root value/2 value/3)]
 					insert-lf -3
 				]
 				tuple? [

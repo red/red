@@ -20,6 +20,7 @@ handle: context [
 		CLASS_WINDOW									;-- window handle
 		CLASS_FONT										;-- font handle
 		CLASS_RICHTEXT									;-- rich-text handle
+		CLASS_DEVICE
 	]
 	
 	names: ["null" "fd" "monitor" "window" "font" "rich-text"]
@@ -101,8 +102,11 @@ handle: context [
 		/local
 			type [integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "handle/mold"]]
-		
+		#if debug? = yes [
+			all?: yes			;-- show handle in debug mode
+			if verbose > 0 [print-line "handle/mold"]
+		]
+
 		either all? [
 			string/concatenate-literal buffer "#[handle! "
 			part: form h buffer arg part

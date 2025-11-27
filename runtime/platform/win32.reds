@@ -12,6 +12,8 @@ Red/System [
 
 #include %COM.reds
 
+#define FILE_APPEND_DATA		4
+
 #define VA_COMMIT_RESERVE	3000h						;-- MEM_COMMIT | MEM_RESERVE
 #define VA_PAGE_RW			04h							;-- PAGE_READWRITE
 #define VA_PAGE_RWX			40h							;-- PAGE_EXECUTE_READWRITE
@@ -22,6 +24,20 @@ Red/System [
 #define _O_U16TEXT      	00020000h 					;-- file mode is UTF16 no BOM (translated)
 #define _O_U8TEXT       	00040000h 					;-- file mode is UTF8  no BOM (translated)
 
+#define SCH_CRED_MANUAL_CRED_VALIDATION	08h
+#define SCH_CRED_NO_DEFAULT_CREDS		10h
+#define SCH_USE_STRONG_CRYPTO			00400000h
+
+#define ISC_REQ_REPLAY_DETECT			04h
+#define ISC_REQ_SEQUENCE_DETECT			08h
+#define ISC_REQ_CONFIDENTIALITY			10h
+#define ISC_REQ_ALLOCATE_MEMORY			0100h
+#define ISC_REQ_EXTENDED_ERROR			4000h
+#define ISC_REQ_STREAM					8000h
+#define ISC_REQ_MANUAL_CRED_VALIDATION	00080000h
+
+#define ASC_REQ_EXTENDED_ERROR			8000h
+#define ASC_REQ_STREAM					00010000h
 
 #define FORMAT_MESSAGE_ALLOCATE_BUFFER    00000100h
 #define FORMAT_MESSAGE_IGNORE_INSERTS     00000200h
@@ -36,9 +52,19 @@ Red/System [
 #define STARTF_USESTDHANDLES	00000100h
 #define STARTF_USESHOWWINDOW	00000001h
 
-#define ERROR_BROKEN_PIPE 109
+#define ERROR_BROKEN_PIPE				109
+#define ERROR_IO_INCOMPLETE				996
+#define ERROR_IO_PENDING				997
 
 #define IS_TEXT_UNICODE_UNICODE_MASK 	000Fh
+
+#define IOCP_WAIT_TIMEOUT				258
+
+#define FIONBIO							8004667Eh
+#define SOL_SOCKET						FFFFh
+#define NS_DNS							12
+
+#define INVALID_HANDLE					[as int-ptr! -1]
 
 #enum spawn-mode [
 	P_WAIT:		0
@@ -46,6 +72,106 @@ Red/System [
 	P_OVERLAY:	2
 	P_NOWAITO:	3
 	P_DETACH:	4
+]
+
+#enum brush-type! [
+	BRUSH_TYPE_NORMAL
+	BRUSH_TYPE_TEXTURE
+]
+
+timeval!: alias struct! [
+	tv_sec	[integer!]
+	tv_usec [integer!]
+]
+
+SECURITY_ATTRIBUTES: alias struct! [
+	nLength 			 [integer!]
+	lpSecurityDescriptor [int-ptr!]
+	bInheritHandle 		 [integer!]
+]
+
+OVERLAPPED!: alias struct! [
+	Internal		[int-ptr!]
+	InternalHigh	[int-ptr!]
+	Offset			[integer!]				;-- or Pointer [int-ptr!]
+	OffsetHigh		[integer!]
+	hEvent			[int-ptr!]
+]
+
+OVERLAPPED_ENTRY!: alias struct! [
+	lpCompletionKey				[int-ptr!]
+	lpOverlapped				[int-ptr!]
+	Internal					[int-ptr!]
+	dwNumberOfBytesTransferred	[integer!]
+]
+
+WSADATA!: alias struct! [					;-- varies from 32bit to 64bit, for 32bit: 400 bytes
+	wVersion		[integer!]
+	;wHighVersion
+	szDescription	[c-string!]
+	szSystemStatus	[c-string!]
+	iMaxSockets		[integer!]
+	;iMaxUdpDg
+	lpVendorInfo	[c-string!]
+]
+
+FLOWSPEC!: alias struct! [
+	TokenRate		[uint!]
+	TokenBucketSize	[uint!]
+	PeakBandwidth	[uint!]
+	Latency			[uint!]
+	DelayVariation	[uint!]
+	ServiceType		[uint!]
+	MaxSduSize		[uint!]
+	MinimumPolicedSize [uint!]
+]
+
+WSAPROTOCOL_INFOW: alias struct! [
+	dwServiceFlags1		[integer!]
+	dwServiceFlags2		[integer!]
+	dwServiceFlags3		[integer!]
+	dwServiceFlags4		[integer!]
+	dwProviderFlags		[integer!]
+	ProviderId			[integer!]
+	dwCatalogEntryId	[integer!]
+	ProtocolChain		[integer!]
+	iVersion			[integer!]
+	iAddressFamily		[integer!]
+	iMaxSockAddr		[integer!]
+	iMinSockAddr		[integer!]
+	iSocketType			[integer!]
+	iProtocol			[integer!]
+	iProtocolMaxOffset	[integer!]
+	iNetworkByteOrder	[integer!]
+	iSecurityScheme		[integer!]
+	dwMessageSize		[integer!]
+	dwProviderReserved	[integer!]
+	szProtocol			[integer!]
+]
+
+stat!: alias struct! [val [integer!]]
+
+tagFILETIME: alias struct! [
+	dwLowDateTime	[integer!]
+	dwHighDateTime	[integer!]
+]
+
+WIN32_FIND_DATA: alias struct! [
+	dwFileAttributes	[integer!]
+	ftCreationTime		[tagFILETIME value]
+	ftLastAccessTime	[tagFILETIME value]
+	ftLastWriteTime		[tagFILETIME value]
+	nFileSizeHigh		[integer!]
+	nFileSizeLow		[integer!]
+	dwReserved0			[integer!]
+	dwReserved1			[integer!]
+	;cFileName			[byte-ptr!]				;-- WCHAR  cFileName[ 260 ]
+	;cAlternateFileName	[c-string!]				;-- cAlternateFileName[ 14 ]
+]
+
+WSABUF!: alias struct! [
+	len			[integer!]
+	buf			[byte-ptr!]
 ]
 
 process-info!: alias struct! [
@@ -129,6 +255,824 @@ OSVERSIONINFO: alias struct! [
 	wReserved			[byte!]
 ]
 
+SYSTEM_INFO!: alias struct! [
+	dwOemId						[integer!]
+	dwPageSize					[integer!]
+	lpMinimumApplicationAddress [byte-ptr!]
+	lpMaximumApplicationAddress [byte-ptr!]
+	dwActiveProcessorMask		[int-ptr!]
+	dwNumberOfProcessors		[integer!]
+	dwProcessorType				[integer!]
+	dwAllocationGranularity		[integer!]
+	wProcessorLevel				[integer!]
+	;wProcessorRevision
+]
+
+CRYPT_INTEGER_BLOB: alias struct! [
+	cbData	[integer!]
+	pbData	[byte-ptr!]
+]
+
+CRYPT_ALGORITHM_IDENTIFIER: alias struct! [
+	pszObjId	[c-string!]
+	Parameters	[CRYPT_INTEGER_BLOB value]
+]
+
+CRYPT_BIT_BLOB: alias struct! [
+	cbData		[integer!]
+	pbData		[byte-ptr!]
+	cUnusedBits	[integer!]
+]
+
+CERT_PUBLIC_KEY_INFO: alias struct! [
+	Algorithm	[CRYPT_ALGORITHM_IDENTIFIER value]
+	PublicKey	[CRYPT_BIT_BLOB value]
+]
+
+CERT_INFO!: alias struct! [
+	dwVersion			[integer!]
+	SerialNumber		[CRYPT_INTEGER_BLOB value]
+	SignatureAlgorithm	[CRYPT_ALGORITHM_IDENTIFIER value]
+	Issuer				[CRYPT_INTEGER_BLOB value]
+	NotBefore			[tagFILETIME value]
+	NotAfter			[tagFILETIME value]
+	Subject				[CRYPT_INTEGER_BLOB value]
+	SubjectPublicKeyInfo [CERT_PUBLIC_KEY_INFO value]
+	IssuerUniqueId		[CRYPT_BIT_BLOB value]
+	SubjectUniqueId		[CRYPT_BIT_BLOB value]
+	cExtension			[integer!]
+	rgExtension			[int-ptr!]
+]
+
+BCRYPT_RSAKEY_BLOB: alias struct! [
+	magic		[integer!]
+	bitlen		[integer!]
+	cbPubExp	[integer!]
+	cbMod		[integer!]
+	cbPrime1	[integer!]
+	cbPrime2	[integer!]
+]
+
+BCRYPT_ECCKEY_BLOB: alias struct! [
+	dwMagic		[integer!]
+	cbKey		[integer!]
+]
+
+CRYPT_ECC_PRIVATE_KEY_INFO: alias struct! [
+	dwVersion	[integer!]				;-- ecPrivKeyVer1(1)
+	PrivateKey	[CRYPT_INTEGER_BLOB value] ;-- d
+	szCurveOid	[c-string!]				;-- Optional
+	PublicKey	[CRYPT_BIT_BLOB value]	;-- Optional (x, y)
+]
+
+CRYPT_KEY_PROV_PARAM: alias struct! [
+	dwParam		[integer!]
+	pbData		[byte-ptr!]
+	cbData		[integer!]
+	dwFlags		[integer!]
+]
+
+CRYPT_KEY_PROV_INFO: alias struct! [
+	pwszContainerName	[c-string!]
+	pwszProvName		[c-string!]
+	dwProvType			[integer!]
+	dwFlags				[integer!]
+	cProvParam			[integer!]
+	rgProvParam			[CRYPT_KEY_PROV_PARAM]
+	dwKeySpec			[integer!]
+]
+
+BCryptBuffer!: alias struct! [
+	cbBuffer	[integer!]		;-- Length of buffer, in bytes
+	BufferType	[integer!]		;-- Buffer type
+	pvBuffer	[byte-ptr!]		;-- Pointer to buffer
+]
+
+BCryptBufferDesc!: alias struct! [
+	ulVersion	[integer!]		;-- Version number
+	cBuffers	[integer!]		;-- Number of buffers
+	pBuffers	[BCryptBuffer!]	;-- Pointer to array of buffers
+]
+
+CERT_CONTEXT: alias struct! [
+	dwCertEncodingType	[integer!]
+	pbCertEncoded		[byte-ptr!]
+	cbCertEncoded		[integer!]
+	pCertInfo			[CERT_INFO!]
+	hCertStore			[int-ptr!]
+]
+
+SCHANNEL_CRED: alias struct! [
+	dwVersion				[integer!]
+	cCreds					[integer!]
+	paCred					[int-ptr!]
+	hRootStore				[int-ptr!]
+
+	cMappers				[integer!]
+	aphMappers				[int-ptr!]
+
+	cSupportedAlgs			[integer!]
+	palgSupportedAlg		[int-ptr!]
+
+	grbitEnabledProtocols	[integer!]
+	dwMinimumCipherStrength	[integer!]
+	dwMaximumCipherStrength	[integer!]
+	dwSessionLifespan		[integer!]
+	dwFlags					[integer!]
+	dwCredFormat			[integer!]
+]
+
+SecHandle!: alias struct! [
+	dwLower		[int-ptr!]
+	dwUpper		[int-ptr!]
+]
+
+SecBuffer!: alias struct! [
+	cbBuffer	[integer!]			;-- Size of the buffer, in bytes
+	BufferType	[integer!]			;-- Type of the buffer (below)
+	pvBuffer	[byte-ptr!]
+]
+
+SecBufferDesc!: alias struct! [
+	ulVersion	[integer!]
+	cBuffers	[integer!]
+	pBuffers	[SecBuffer!]
+]
+
+SecPkgContext_IssuerListInfoEx!: alias struct! [
+	aIssuers	[int-ptr!]
+	cIssuers	[integer!]
+]
+
+SecPkgContext_StreamSizes: alias struct! [
+	cbHeader			[integer!]
+	cbTrailer			[integer!]
+	cbMaximumMessage	[integer!]
+	cBuffers			[integer!]
+	cbBlockSize			[integer!]
+]
+
+CERT_ENHKEY_USAGE: alias struct! [
+	cUsageIdentifier		[integer!]
+	rgpszUsageIdentifier	[int-ptr!]
+]
+
+CERT_STRONG_SIGN_PARA: alias struct! [
+	cbSize				[integer!]
+	choice				[integer!]
+	u					[int-ptr!]
+]
+
+CERT_USAGE_MATCH: alias struct! [
+	type				[integer!]
+	usage				[CERT_ENHKEY_USAGE value]
+]
+
+CERT_CHAIN_PARA: alias struct! [
+	cbSize				[integer!]
+	usage				[CERT_USAGE_MATCH value]
+	policy				[CERT_USAGE_MATCH value]
+	timeout				[integer!]
+	check-time			[logic!]
+	time				[integer!]
+	resync				[tagFILETIME]
+	strong				[CERT_STRONG_SIGN_PARA]
+	flags				[integer!]
+]
+
+CERT_TRUST_STATUS: alias struct! [
+	dwErrorStatus		[integer!]
+	dwInfoStatus		[integer!]
+]
+
+CERT_CHAIN_ELEMENT: alias struct! [
+	cbSize				[integer!]
+	pCertContext		[CERT_CONTEXT]
+	TrustStatus			[CERT_TRUST_STATUS value]
+	pRevocationInfo		[int-ptr!]
+	pIssuanceUsage		[CERT_ENHKEY_USAGE]
+	pApplicationUsage	[CERT_ENHKEY_USAGE]
+	ErrorInfo			[byte-ptr!]
+]
+
+CERT_SIMPLE_CHAIN: alias struct! [
+	cbSize				[integer!]
+	TrustStatus			[CERT_TRUST_STATUS value]
+	cElement			[integer!]
+	rgpElement			[int-ptr!]
+	pTrustListInfo		[integer!]
+	has-time			[logic!]
+	time				[integer!]
+]
+
+CERT_CHAIN_CONTEXT: alias struct! [
+	cbSize				[integer!]
+	TrustStatus			[CERT_TRUST_STATUS value]
+	cChain				[integer!]
+	rgpChain			[int-ptr!]
+	cLower				[integer!]
+	rgpLower			[int-ptr!]
+	has-time			[logic!]
+	time				[integer!]
+	flags				[integer!]
+	ChainId				[tagGUID value]
+]
+
+CERT_CHAIN_POLICY_PARA: alias struct! [
+	cbSize				[integer!]
+	flags				[integer!]
+	extra				[byte-ptr!]
+]
+
+HTTPSPolicyCallbackData: alias struct! [
+	cbSize				[integer!]
+	dwAuthType			[integer!]
+	fdwChecks			[integer!]
+	pwszServerName		[byte-ptr!]
+]
+
+CERT_CHAIN_POLICY_STATUS: alias struct! [
+	cbSize				[integer!]
+	dwError				[integer!]
+	lChainIndex			[integer!]
+	lElementIndex		[integer!]
+	pvExtraPolicyStatus	[byte-ptr!]
+]
+
+AcquireCredentialsHandleW!: alias function! [
+	pszPrincipal		[c-string!]
+	pszPackage			[c-string!]
+	fCredentialUse		[integer!]
+	pvLogonId			[int-ptr!]
+	pAuthData			[int-ptr!]
+	pGetKeyFn			[int-ptr!]
+	pvGetKeyArgument	[int-ptr!]
+	phCredential		[SecHandle!]
+	ptsExpiry			[tagFILETIME]
+	return:				[integer!]
+]
+
+FreeCredentialsHandle!: alias function! [
+	phCredential		[SecHandle!]
+	return:				[integer!]
+]
+
+AcceptSecurityContext!: alias function! [
+	phCredential		[SecHandle!]
+	phContext			[SecHandle!]
+	pInput				[SecBufferDesc!]
+	fContextReq			[integer!]
+	TargetDataRep		[integer!]
+	phNewContext		[SecHandle!]
+	pOutput				[SecBufferDesc!]
+	pfContextAttr		[int-ptr!]
+	ptsExpiry			[tagFILETIME]
+	return:				[integer!]
+]
+
+CompleteAuthToken!: alias function! [
+	phContext			[SecHandle!]
+	pToken				[SecBufferDesc!]
+	return:				[integer!]
+]
+
+InitializeSecurityContextW!: alias function! [
+	phCredential		[SecHandle!]
+	phContext			[SecHandle!]
+	pTargetName			[c-string!]
+	fContextReq			[integer!]
+	Reserved1			[integer!]
+	TargetDataRep		[integer!]
+	pInput				[SecBufferDesc!]
+	Reserved2			[integer!]
+	phNewContext		[SecHandle!]
+	pOutput				[SecBufferDesc!]
+	pfContextAttr		[int-ptr!]
+	ptsExpiry			[tagFILETIME]
+	return:				[integer!]
+]
+
+DeleteSecurityContext!: alias function! [
+	phContext			[int-ptr!]
+	return:				[integer!]
+]
+
+FreeContextBuffer!: alias function! [
+	pvContextBuffer		[byte-ptr!]
+	return:				[integer!]
+]
+
+ApplyControlToken!: alias function! [
+	phContext			[SecHandle!]
+	pInput				[SecBufferDesc!]
+	return:				[integer!]
+]
+
+QueryContextAttributesW!: alias function! [
+	phContext			[SecHandle!]
+	ulAttribute			[integer!]
+	pBuffer				[byte-ptr!]
+	return:				[integer!]
+]
+
+QuerySecurityContextToken!: alias function! [
+	phContext			[SecHandle!]
+	Token				[ptr-ptr!]
+	return:				[integer!]
+]
+
+DecryptMessage!: alias function! [
+	phContext			[SecHandle!]
+	pMessage			[SecBufferDesc!]
+	MessageSeqNo		[integer!]
+	fQOP				[int-ptr!]
+	return:				[integer!]
+]
+
+EncryptMessage!: alias function! [
+	phContext			[SecHandle!]
+	fQOP				[integer!]
+	pMessage			[SecBufferDesc!]
+	MessageSeqNo		[integer!]
+	return:				[integer!]
+]
+
+SecurityFunctionTableW: alias struct! [
+	dwVersion					[integer!]
+	EnumerateSecurityPackagesW	[int-ptr!]
+	QueryCredentialsAttributesW	[int-ptr!]
+	AcquireCredentialsHandleW	[AcquireCredentialsHandleW!]
+	FreeCredentialsHandle		[FreeCredentialsHandle!]
+	Reserved2					[int-ptr!]
+	InitializeSecurityContextW	[InitializeSecurityContextW!]
+	AcceptSecurityContext		[AcceptSecurityContext!]
+	CompleteAuthToken			[CompleteAuthToken!]
+	DeleteSecurityContext		[DeleteSecurityContext!]
+	ApplyControlToken			[ApplyControlToken!]
+	QueryContextAttributesW		[QueryContextAttributesW!]
+	ImpersonateSecurityContext	[int-ptr!]
+	RevertSecurityContext		[int-ptr!]
+	MakeSignature				[int-ptr!]
+	VerifySignature				[int-ptr!]
+	FreeContextBuffer			[FreeContextBuffer!]
+	QuerySecurityPackageInfoW	[int-ptr!]
+	Reserved3					[int-ptr!]
+	Reserved4					[int-ptr!]
+	ExportSecurityContext		[int-ptr!]
+	ImportSecurityContextW		[int-ptr!]
+	AddCredentialsW 			[int-ptr!]
+	Reserved8					[int-ptr!]
+	QuerySecurityContextToken	[QuerySecurityContextToken!]
+	EncryptMessage				[EncryptMessage!]
+	DecryptMessage				[DecryptMessage!]
+	SetContextAttributesW		[int-ptr!]	;-- available in OSes after win2k
+	SetCredentialsAttributesW	[int-ptr!]	;-- available in OSes after W2k3SP1
+
+	ChangeAccountPasswordW		[int-ptr!]
+
+	;-- Fields below this are available in OSes after Windows 8.1
+	QueryContextAttributesExW	[int-ptr!]
+	QueryCredentialsAttributesExW [int-ptr!]
+]
+
+DNS_HEADER: alias struct! [
+	Xid				[integer!]
+	QuestionCount	[integer!]
+	;AnswerCount
+	NameServerCount	[integer!]
+	;AdditionalCount
+]
+
+DNS_MESSAGE_BUFFER: alias struct! [
+    MessageHead		[DNS_HEADER value]
+    MessageBody		[integer!]
+]
+
+DNS_RECORD!: alias struct! [
+	pNext		[DNS_RECORD!]
+	pName		[c-string!]
+	wType		[int16!]
+	;wDataLength [int16!]
+	Flags		[integer!]
+	dwTtl		[integer!]
+	dwReserved	[integer!]
+
+	;// Record Data
+	A			[integer!]
+]
+
+AcceptEx!: alias function! [
+	sListenSocket			[integer!]
+	sAcceptSocket			[integer!]
+	lpOutputBuffer			[byte-ptr!]
+	dwReceiveDataLength		[integer!]
+	dwLocalAddressLength	[integer!]
+	dwRemoteAddressLength	[integer!]
+	lpdwBytesReceived		[int-ptr!]
+	lpOverlapped			[int-ptr!]
+	return:					[logic!]
+]
+
+ConnectEx!: alias function! [
+	s						[integer!]
+	name					[int-ptr!]
+	namelen					[integer!]
+	lpSendBuffer			[byte-ptr!]
+	dwSendDataLength		[integer!]
+	lpdwBytesSent			[int-ptr!]
+	lpOverlapped			[int-ptr!]
+	return:					[integer!]
+]
+
+DisconnectEx!: alias function! [
+	hSocket					[integer!]
+	lpOverlapped			[OVERLAPPED!]
+	dwFlags					[integer!]
+	reserved				[integer!]
+	return:					[logic!]
+]
+
+TransmitFile!: alias function! [
+	hSocket					[integer!]
+	hFile					[int-ptr!]
+	nNumberOfBytesToWrite	[integer!]
+	nNumberOfBytesPerSend	[integer!]
+	lpOverlapped			[OVERLAPPED!]
+	lpTransmitBuffers		[int-ptr!]
+	dwReserved				[integer!]
+	return:					[logic!]
+]
+
+GetAcceptExSockaddrs!: alias function! [
+	lpOutputBuffer			[byte-ptr!]
+	dwReceiveDataLength		[integer!]
+	dwLocalAddressLength	[integer!]
+	dwRemoteAddressLength	[integer!]
+	LocalSockaddr			[ptr-ptr!]
+	LocalSockaddrLength		[int-ptr!]
+	RemoteSockaddr			[ptr-ptr!]
+	RemoteSockaddrLength	[int-ptr!]
+]
+
+#import [
+	"ws2_32.dll" stdcall [
+		WSAStartup: "WSAStartup" [
+			version		[integer!]
+			lpWSAData	[int-ptr!]
+			return:		[integer!]
+		]
+		WSASocketW: "WSASocketW" [
+			af				[integer!]
+			type			[integer!]
+			protocol		[integer!]
+			lpProtocolInfo	[WSAPROTOCOL_INFOW]
+			g				[integer!]
+			dwFlags			[integer!]
+			return:			[integer!]
+		]
+		WSAConnect: "WSAConnect" [
+			s				[ulong!]
+			name			[sockaddr_in!]
+			namelen			[integer!]
+			lpCallerData	[WSABUF!]
+			lpCalleeData	[WSABUF!]
+			lpSQOS			[FLOWSPEC!]
+			lpGQOS			[FLOWSPEC!]
+			return:			[integer!]
+		]
+		WSASend: "WSASend" [
+			s					[integer!]
+			lpBuffers			[WSABUF!]
+			dwBufferCount		[integer!]
+			lpNumberOfBytesSent	[int-ptr!]
+			dwFlags				[integer!]
+			lpOverlapped		[OVERLAPPED!]
+			lpCompletionRoutin	[int-ptr!]
+			return:				[integer!]
+		]
+		WSASendTo: "WSASendTo" [
+			s					[integer!]
+			lpBuffers			[WSABUF!]
+			dwBufferCount		[integer!]
+			lpNumberOfBytesSent	[int-ptr!]
+			dwFlags				[integer!]
+			lpTo				[sockaddr_in6!]
+			lpTolen				[integer!]
+			lpOverlapped		[OVERLAPPED!]
+			lpCompletionRoutin	[int-ptr!]
+			return:				[integer!]
+		]
+		WSARecv: "WSARecv" [
+			s					[integer!]
+			lpBuffers			[WSABUF!]
+			dwBufferCount		[integer!]
+			lpNumberOfBytesSent	[int-ptr!]
+			dwFlags				[int-ptr!]
+			lpOverlapped		[OVERLAPPED!]
+			lpCompletionRoutin	[int-ptr!]
+			return:				[integer!]
+		]
+		WSARecvFrom: "WSARecvFrom" [
+			s					[integer!]
+			lpBuffers			[WSABUF!]
+			dwBufferCount		[integer!]
+			lpNumberOfBytesSent	[int-ptr!]
+			dwFlags				[int-ptr!]
+			lpFrom				[sockaddr_in6!]
+			lpFromlen			[int-ptr!]
+			lpOverlapped		[OVERLAPPED!]
+			lpCompletionRoutin	[int-ptr!]
+			return:				[integer!]
+		]
+		GetAddrInfoExW: "GetAddrInfoExW" [
+			pName				[c-string!]
+			pServiceName		[c-string!]
+			dwNameSpace			[integer!]
+			lpNspId				[int-ptr!]
+			pHints				[addrinfo!]
+			ppResult			[int-ptr!]
+			timeout				[timeval!]
+			lpOverlapped		[OVERLAPPED!]
+			lpCompletionRoutine	[int-ptr!]
+			lpNameHandle		[int-ptr!]
+			return:				[integer!]
+		]
+		FreeAddrInfoEx: "FreeAddrInfoEx" [
+			pAddInfoEx			[ptr-ptr!]
+		]
+		inet_pton: "inet_pton" [
+			Family				[integer!]
+			pszAddrString		[c-string!]
+			pAddrBuf			[int-ptr!]
+			return:				[integer!]
+		]
+		WSAWaitForMultipleEvents: "WSAWaitForMultipleEvents" [
+			cEvents				[integer!]
+			lphEvents			[int-ptr!]
+			fWaitAll			[logic!]
+			dwTimeout			[integer!]
+			fAlertable			[logic!]
+			return:				[integer!]
+		]
+		WSAIoctl: "WSAIoctl" [
+			s					[integer!]
+			dwIoControlCode		[integer!]
+			lpvInBuffer			[int-ptr!]
+			cbInBuffer			[integer!]
+			lpvOutBuffer		[int-ptr!]
+			cbOutBuffer			[integer!]
+			lpcbBytesReturned	[int-ptr!]
+			lpOverlapped		[OVERLAPPED!]
+			lpCompletionRoutine	[int-ptr!]
+			return:				[integer!]
+		]
+		closesocket: "closesocket" [
+			s			[integer!]
+			return:		[integer!]
+		]
+		ioctlsocket: "ioctlsocket" [
+			s			[integer!]
+			cmd			[integer!]
+			argp		[int-ptr!]
+			return:		[integer!]
+		]
+		htons: "htons" [
+			hostshort	[integer!]
+			return:		[integer!]
+		]
+		inet_addr: "inet_addr" [
+			cp			[c-string!]
+			return:		[integer!]
+		]
+		WS2.bind: "bind" [
+			s			[integer!]
+			addr		[int-ptr!]
+			namelen		[integer!]
+			return:		[integer!]
+		]
+		WS2.listen: "listen" [
+			s			[integer!]
+			backlog		[integer!]
+			return:		[integer!]
+		]
+		setsockopt: "setsockopt" [
+			s			[integer!]
+			level		[integer!]
+			optname		[integer!]
+			optval		[c-string!]
+			optlen		[integer!]
+			return:		[integer!]
+		]
+		getsockopt: "getsockopt" [
+			s			[integer!]
+			level		[integer!]
+			optname		[integer!]
+			optval		[c-string!]
+			optlen		[int-ptr!]
+			return:		[integer!]
+		]
+		getpeername: "getpeername" [
+			s			[integer!]
+			name		[sockaddr_in6!]
+			len			[int-ptr!]
+			return:		[integer!]
+		]
+		ntohs: "ntohs" [
+			netshort	[uint16!]
+			return:		[uint16!]
+		]
+	]
+	"dnsapi.dll" stdcall [
+		DnsQueryConfig: "DnsQueryConfig" [
+			Config			[integer!]
+			Flag			[integer!]
+			pwsAdapterName	[c-string!]
+			pReserved		[byte-ptr!]
+			pBuffer			[int-ptr!]
+			pBufLen			[int-ptr!]
+			return:			[integer!]
+		]
+		DnsWriteQuestionToBuffer_UTF8: "DnsWriteQuestionToBuffer_UTF8" [
+			pDnsBuffer		[byte-ptr!]
+			pdwBufferSize	[int-ptr!]
+			pszName			[c-string!]
+			wType			[integer!]
+			Xid				[integer!]
+			fRecursionDesired [logic!]
+			return:			[logic!]
+		]
+		DnsExtractRecordsFromMessage_UTF8: "DnsExtractRecordsFromMessage_UTF8" [
+			pDnsBuffer		[DNS_MESSAGE_BUFFER]
+			wMessageLength	[integer!]
+			ppRecord		[ptr-ptr!]
+			return:			[integer!]
+		]
+		;DnsRecordListFree: "DnsRecordListFree" [
+		;	p				[DNS_RECORD!]
+		;	t				[integer!]
+		;]
+		DnsFree: "DnsFree" [
+			pData			[byte-ptr!]
+			type			[integer!]
+		]
+	]
+	"secur32.dll" stdcall [
+		InitSecurityInterfaceW: "InitSecurityInterfaceW" [
+			return: [SecurityFunctionTableW]
+		]
+	]
+	"crypt32.dll" stdcall [
+		CertOpenStore: "CertOpenStore" [
+			lpszStoreProvider	[integer!]
+			dwEncodingType		[integer!]
+			hCryptProv			[int-ptr!]
+			dwFlags				[integer!]
+			pvPara				[c-string!]
+			return:				[int-ptr!]
+		]
+		CertCloseStore: "CertCloseStore" [
+			store				[int-ptr!]
+			flags				[integer!]
+			return:				[logic!]
+		]
+		CertDuplicateStore: "CertDuplicateStore" [
+			store				[int-ptr!]
+			return:				[int-ptr!]
+		]
+		CertEnumCertificatesInStore: "CertEnumCertificatesInStore" [
+			store				[int-ptr!]
+			ctx					[CERT_CONTEXT]
+			return:				[CERT_CONTEXT]
+		]
+		CertAddCertificateContextToStore: "CertAddCertificateContextToStore" [
+			store				[int-ptr!]
+			ctx					[CERT_CONTEXT]
+			dwAddDisposition	[integer!]
+			ppStoreContext		[int-ptr!]
+			return:				[logic!]
+		]
+		CertFindCertificateInStore: "CertFindCertificateInStore" [
+			hCertStore			[int-ptr!]
+			dwCertEncodingType	[integer!]
+			dwFindFlags			[integer!]
+			dwFindType			[integer!]
+			pvFindPara			[byte-ptr!]
+			pPrevCertContext	[CERT_CONTEXT]
+			return:				[CERT_CONTEXT]
+		]
+		CertGetNameStringA: "CertGetNameStringA" [
+			ctx					[CERT_CONTEXT]
+			type				[integer!]
+			flags				[integer!]
+			para				[int-ptr!]
+			name				[c-string!]
+			len					[integer!]
+			return:				[integer!]
+		]
+		CertCreateCertificateContext: "CertCreateCertificateContext" [
+			dwCertEncodingType	[integer!]
+			pbCertEncoded		[byte-ptr!]
+			cbCertEncode		[integer!]
+			return:				[CERT_CONTEXT]
+		]
+		CertFreeCertificateContext: "CertFreeCertificateContext" [
+			ctx					[CERT_CONTEXT]
+			return:				[logic!]
+		]
+		CertAddEncodedCertificateToStore: "CertAddEncodedCertificateToStore" [
+			store				[int-ptr!]
+			type				[integer!]
+			encoded				[byte-ptr!]
+			len					[integer!]
+			disposition			[integer!]
+			ctx					[int-ptr!]
+			return:				[logic!]
+		]
+		CertSetCertificateContextProperty: "CertSetCertificateContextProperty" [
+			ctx					[CERT_CONTEXT]
+			propID				[integer!]
+			dwFlags				[integer!]
+			pvData				[byte-ptr!]
+			return:				[logic!]
+		]
+		CertGetCertificateContextProperty: "CertGetCertificateContextProperty" [
+			ctx					[CERT_CONTEXT]
+			propID				[integer!]
+			pvData				[byte-ptr!]
+			pcbData				[int-ptr!]
+			return:				[logic!]
+		]
+		CertGetCertificateChain: "CertGetCertificateChain" [
+			engine				[int-ptr!]
+			ctx					[CERT_CONTEXT]
+			time				[int-ptr!]
+			add-store			[int-ptr!]
+			para				[CERT_CHAIN_PARA]
+			flags				[integer!]
+			reserved			[integer!]
+			pChain				[int-ptr!]
+			return:				[logic!]
+		]
+		CertVerifyCertificateChainPolicy: "CertVerifyCertificateChainPolicy" [
+			iod					[int-ptr!]
+			pChainContext		[CERT_CHAIN_CONTEXT]
+			pPolicyPara			[CERT_CHAIN_POLICY_PARA]
+			pPolicyStatus		[CERT_CHAIN_POLICY_STATUS]
+			return:				[logic!]
+		]
+		CryptStringToBinaryA: "CryptStringToBinaryA" [
+			pszString			[c-string!]
+			cchString			[integer!]
+			dwFlags				[integer!]
+			pbBinary			[byte-ptr!]
+			pcbBinary			[int-ptr!]
+			pdwSkip				[int-ptr!]
+			pdwFlags			[int-ptr!]
+			return:				[logic!]
+		]
+		CryptDecodeObjectEx: "CryptDecodeObjectEx" [
+			dwCertEncodingType	[integer!]
+			lpszStructType		[integer!]
+			pbEncoded			[byte-ptr!]
+			cbEncoded			[integer!]
+			dwFlags				[integer!]
+			pDecodePara			[int-ptr!]
+			pvStructInfo		[byte-ptr!]
+			pcbStructInf		[int-ptr!]
+			return:				[logic!]
+		]
+	]
+	"ncrypt.dll" stdcall [
+		NCryptOpenStorageProvider: "NCryptOpenStorageProvider" [
+			phProvider			[int-ptr!]
+			pszProviderName		[c-string!]
+			dwFlag				[integer!]
+			return:				[integer!]
+		]
+		NCryptImportKey: "NCryptImportKey" [
+			hProvider			[int-ptr!]
+			hImportKey			[int-ptr!]
+			pszBlobType			[c-string!]
+			ParameterList		[int-ptr!]
+			phKey				[int-ptr!]
+			pbData				[byte-ptr!]
+			cbData				[integer!]
+			dwFlag				[integer!]
+			return:				[integer!]
+		]
+		NCryptFreeObject: "NCryptFreeObject" [
+			x				[int-ptr!]
+			return:			[integer!]
+		]
+	]
+]
+
+AcceptEx-func:				0
+ConnectEx-func:				0
+DisconnectEx-func:			0
+TransmitFile-func:			0
+GetAcceptExSockaddrs-func:	0
+
 platform: context [
 
 	#enum file-descriptors! [
@@ -181,6 +1125,7 @@ platform: context [
 
 	gdiplus-token: 0
 	page-size: 4096
+	SSPI: as SecurityFunctionTableW 0
 
 	#import [
 		LIBC-file cdecl [
@@ -194,14 +1139,38 @@ platform: context [
 				return:		[integer!]
 			]
 			__iob_func: "__iob_func" [return: [int-ptr!]]
+			wcsupr: "_wcsupr" [
+				str		[c-string!]
+				return:	[c-string!]
+			]
 			strnicmp: "_strnicmp" [
 				s1			[byte-ptr!]
 				s2			[byte-ptr!]
 				len			[integer!]
 				return:		[integer!]
 			]
+			_rename: "_wrename" [
+				old		[c-string!]
+				new		[c-string!]
+				return:	[integer!]
+			]
 		]
 		"kernel32.dll" stdcall [
+			CreateEventA: "CreateEventA" [
+				lpAttr		[SECURITY_ATTRIBUTES]
+				ManualReset	[logic!]
+				Initial		[logic!]
+				lpName		[c-string!]
+				return:		[handle!]
+			]
+			SetEvent: "SetEvent" [
+				hEvent		[handle!]
+				return:		[logic!]
+			]
+			ResetEvent: "ResetEvent" [
+				hEvent		[handle!]
+				return:		[logic!]
+			]
 			VirtualAlloc: "VirtualAlloc" [
 				address		[byte-ptr!]
 				size		[integer!]
@@ -227,7 +1196,7 @@ platform: context [
 			]
 			WriteFile: "WriteFile" [
 				handle			[integer!]
-				buffer			[c-string!]
+			buffer			[byte-ptr!]
 				len				[integer!]
 				written			[int-ptr!]
 				overlapped		[integer!]
@@ -347,7 +1316,7 @@ platform: context [
 				nNumberOfBytesToRead    [integer!]
 				lpNumberOfBytesRead     [int-ptr!]
 				lpOverlapped            [integer!]
-				return:                 [logic!]
+				return:                 [integer!]
 			]
 			SetHandleInformation: "SetHandleInformation" [
 				hObject					[integer!]
@@ -385,6 +1354,126 @@ platform: context [
 			]
 			GetCurrentProcess: "GetCurrentProcess" [
 				return:		[int-ptr!]
+			]
+			GetFileAttributesW: "GetFileAttributesW" [
+				path		[c-string!]
+				return:		[integer!]
+			]
+			GetFileAttributesExW: "GetFileAttributesExW" [
+				path		[c-string!]
+				info-level  [integer!]
+				info		[WIN32_FIND_DATA]
+				return:		[integer!]
+			]
+			CreateFileA: "CreateFileA" [			;-- temporary needed by Red/System
+				filename	[c-string!]
+				access		[integer!]
+				share		[integer!]
+				security	[int-ptr!]
+				disposition	[integer!]
+				flags		[integer!]
+				template	[int-ptr!]
+				return:		[integer!]
+			]
+			CreateDirectory: "CreateDirectoryW" [
+				pathname	[c-string!]
+				sa			[int-ptr!]
+				return:		[logic!]
+			]
+			DeleteFile: "DeleteFileW" [
+				filename	[c-string!]
+				return:		[integer!]
+			]
+			RemoveDirectory: "RemoveDirectoryW" [
+				filename	[c-string!]
+				return:		[integer!]
+			]
+			FindFirstFile: "FindFirstFileW" [
+				filename	[c-string!]
+				filedata	[WIN32_FIND_DATA]
+				return:		[integer!]
+			]
+			FindNextFile: "FindNextFileW" [
+				file		[integer!]
+				filedata	[WIN32_FIND_DATA]
+				return:		[integer!]
+			]
+			FindClose: "FindClose" [
+				file		[integer!]
+				return:		[integer!]
+			]
+			GetFileSize: "GetFileSize" [
+				file		[integer!]
+				high-size	[integer!]
+				return:		[integer!]
+			]
+			SetEndOfFile: "SetEndOfFile" [
+				file		[integer!]
+				return:		[integer!]
+			]
+			WideCharToMultiByte: "WideCharToMultiByte" [
+				CodePage			[integer!]
+				dwFlags				[integer!]
+				lpWideCharStr		[c-string!]
+				cchWideChar			[integer!]
+				lpMultiByteStr		[byte-ptr!]
+				cbMultiByte			[integer!]
+				lpDefaultChar		[c-string!]
+				lpUsedDefaultChar	[integer!]
+				return:				[integer!]
+			]
+			GetLogicalDriveStrings: "GetLogicalDriveStringsW" [
+				buf-len				[integer!]
+				buffer				[byte-ptr!]
+				return:				[integer!]
+			]
+			CreateThread: "CreateThread" [
+				lpThreadAttributes	[SECURITY_ATTRIBUTES]
+				dwStackSize			[integer!]
+				lpStartAddress		[int-ptr!]
+				lpParameter			[int-ptr!]
+				dwCreationFlags		[integer!]
+				lpThreadID			[int-ptr!]
+				return:				[int-ptr!]
+			]
+			CreateIoCompletionPort: "CreateIoCompletionPort" [
+				FileHandle		[int-ptr!]
+				ExistingPort	[int-ptr!]
+				CompletionKey	[int-ptr!]
+				nThreads		[integer!]
+				return:			[int-ptr!]
+			]
+			GetQueuedCompletionStatus: "GetQueuedCompletionStatus" [
+				CompletionPort		[int-ptr!]
+				lpNumberOfBytes		[int-ptr!]
+				lpCompletionKey		[int-ptr!]
+				lpOverlapped		[OVERLAPPED!]
+				dwMilliseconds		[integer!]
+				return:				[integer!]
+			]
+			GetQueuedCompletionStatusEx: "GetQueuedCompletionStatusEx" [
+				CompletionPort		[int-ptr!]
+				entries				[OVERLAPPED_ENTRY!]
+				ulCount				[integer!]
+				entriesRemoved		[int-ptr!]
+				dwMilliseconds		[integer!]
+				alertable			[logic!]
+				return:				[integer!]
+			]
+			PostQueuedCompletionStatus: "PostQueuedCompletionStatus" [
+				CompletionPort		[int-ptr!]
+				nTransferred		[integer!]
+				dwCompletionKey		[int-ptr!]
+				lpOverlapped		[OVERLAPPED!]
+				return:				[integer!]
+			]
+			SetFileCompletionNotificationModes: "SetFileCompletionNotificationModes" [
+				handle				[int-ptr!]
+				flags				[integer!]
+				return:				[logic!]
+			]
+			GetNativeSystemInfo: "GetNativeSystemInfo" [
+				lpSystemInfo [SYSTEM_INFO!]
 			]
 		]
 		"gdiplus.dll" stdcall [
@@ -467,11 +1556,7 @@ platform: context [
 		as c-string! path
 	]
 
-	wait: func [time [float!]][							;-- seconds
-		time: time * 1000.0								;-- milliseconds
-		if time < 1.0 [time: 1.0]
-		Sleep as-integer time
-	]
+	wait: func [time [integer!]][Sleep time]
 
 	set-current-dir: func [
 		path	[c-string!]
@@ -591,7 +1676,13 @@ platform: context [
 	;-------------------------------------------
 	;-- Do platform-specific initialization tasks
 	;-------------------------------------------
-	init: func [/local h [int-ptr!]] [
+	init: func [
+		/local
+			h	[int-ptr!]
+			wsa	[int-ptr!]
+			fd	[integer!]
+			n	[integer!]
+	][
 		init-gdiplus
 		#either libRed? = no [
 			CoInitializeEx 0 COINIT_APARTMENTTHREADED
@@ -607,5 +1698,31 @@ platform: context [
 			_setmode _fileno h + 8 _O_U16TEXT				;@@ stdout, throw an error on failure
 			_setmode _fileno h + 16 _O_U16TEXT				;@@ stderr, throw an error on failure
 		]
+
+		wsa: system/stack/allocate 100			;-- 400 bytes for 32bit System
+		WSAStartup 2 << 8 or 2 wsa
+
+		fd: WSASocketW 2 1 6 null 0 1
+
+		n: 0
+		h: [B5367DF1h 11CFCBACh 8000CA95h 92A1485Fh]
+		WSAIoctl fd C8000006h h 16 :AcceptEx-func size? int-ptr! :n null null
+
+		h: [B5367DF0h 11CFCBACh 8000CA95h 92A1485Fh]
+		WSAIoctl fd C8000006h h 16 :TransmitFile-func size? int-ptr! :n null null
+
+		h: [B5367DF2h 11CFCBACh 8000CA95h 92A1485Fh]
+		WSAIoctl fd C8000006h h 16 :GetAcceptExSockaddrs-func size? int-ptr! :n null null
+
+		h: [25A207B9h 4660DDF3h E576E98Eh 3E06748Ch]
+		WSAIoctl fd C8000006h h 16 :ConnectEx-func size? int-ptr! :n null null
+
+		h: [7FDA2E11h 436F8630h 36F531A0h 57C1EEA6h]
+		WSAIoctl fd C8000006h h 16 :DisconnectEx-func size? int-ptr! :n null null
+
+		closesocket fd
+
+		SSPI: InitSecurityInterfaceW
+		assert SSPI <> null
 	]
 ]

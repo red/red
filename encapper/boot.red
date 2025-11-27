@@ -35,9 +35,11 @@ Red [
 	#include %utils/preprocessor.r
 	#include %environment/tools.red
 
+	#include %environment/schemes/native-schemes.red
+
 	;-- temporary code --
 	#if not find [Windows macOS Linux] config/OS [
-		unset [event! image!]
+		unset [image!]
 		image?: func ["Returns true if the value is this type" value [any-type!]][false]
 	]
 	

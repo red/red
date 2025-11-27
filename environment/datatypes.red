@@ -64,10 +64,8 @@ money!:			make datatype! #get-definition TYPE_MONEY
 ref!:			make datatype! #get-definition TYPE_REF
 point2D!:		make datatype! #get-definition TYPE_POINT2D
 point3D!:		make datatype! #get-definition TYPE_POINT3D
-
-#if find config/modules 'view [
-	event!: make datatype! #get-definition TYPE_EVENT
-]
+IPv6!:			make datatype! #get-definition TYPE_IPV6
+event!:			make datatype! #get-definition TYPE_EVENT
 
 none:  			make none! 0
 true:  			make logic! 1
