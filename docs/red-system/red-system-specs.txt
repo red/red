@@ -3950,7 +3950,7 @@ Converts a literal string to UTF-16LE format. The string is stored in memory in 
 
  <string> : a literal c-string!
  
-Only literal strings can be statically processed by this directive.
+Only literal strings can be statically processed by this directive. UTF-8 literal strings are accepted.
 
 
 ---#inline
