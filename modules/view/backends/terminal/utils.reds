@@ -23,8 +23,8 @@ Red/System [
 		][
 			fflush 0
 			new-stdout: simple-io/open-file "./view-log.txt" simple-io/RIO_APPEND no
-			log-saved-stdout: _dup 1
-			platform/dup2 new-stdout 1
+			log-saved-stdout: LibC.dup 1
+			dup2 new-stdout 1
 			simple-io/close-file new-stdout
 		]
 	]
@@ -35,7 +35,7 @@ Red/System [
 			platform/dos-console?: yes
 		][
 			fflush 0
-			platform/dup2 log-saved-stdout 1
+			dup2 log-saved-stdout 1
 			simple-io/close-file log-saved-stdout
 		]
 	]

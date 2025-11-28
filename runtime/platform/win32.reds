@@ -710,6 +710,33 @@ GetAcceptExSockaddrs!: alias function! [
 ]
 
 #import [
+	LIBC-file cdecl [
+		_setmode: "_setmode" [
+			handle		[integer!]
+			mode		[integer!]
+			return:		[integer!]
+		]
+		_fileno: "_fileno" [
+			file		[int-ptr!]
+			return:		[integer!]
+		]
+		__iob_func: "__iob_func" [return: [int-ptr!]]
+		wcsupr: "_wcsupr" [
+			str		[c-string!]
+			return:	[c-string!]
+		]
+		strnicmp: "_strnicmp" [
+			s1			[byte-ptr!]
+			s2			[byte-ptr!]
+			len			[integer!]
+			return:		[integer!]
+		]
+		_rename: "_wrename" [
+			old		[c-string!]
+			new		[c-string!]
+			return:	[integer!]
+		]
+	]
 	"ws2_32.dll" stdcall [
 		WSAStartup: "WSAStartup" [
 			version		[integer!]
@@ -1123,33 +1150,6 @@ platform: context [
 	SSPI: as SecurityFunctionTableW 0
 
 	#import [
-		LIBC-file cdecl [
-			_setmode: "_setmode" [
-				handle		[integer!]
-				mode		[integer!]
-				return:		[integer!]
-			]
-			_fileno: "_fileno" [
-				file		[int-ptr!]
-				return:		[integer!]
-			]
-			__iob_func: "__iob_func" [return: [int-ptr!]]
-			wcsupr: "_wcsupr" [
-				str		[c-string!]
-				return:	[c-string!]
-			]
-			strnicmp: "_strnicmp" [
-				s1			[byte-ptr!]
-				s2			[byte-ptr!]
-				len			[integer!]
-				return:		[integer!]
-			]
-			_rename: "_wrename" [
-				old		[c-string!]
-				new		[c-string!]
-				return:	[integer!]
-			]
-		]
 		"kernel32.dll" stdcall [
 			CreateEventA: "CreateEventA" [
 				lpAttr		[SECURITY_ATTRIBUTES]

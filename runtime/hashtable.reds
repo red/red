@@ -2343,7 +2343,7 @@ _hashtable: context [
 		either strict? [
 			compare-memory cstr1 cstr2 len
 		][
-			platform/strnicmp cstr1 cstr2 len
+			strnicmp cstr1 cstr2 len
 		]
 	]
 

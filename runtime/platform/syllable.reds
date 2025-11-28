@@ -10,29 +10,12 @@ Red/System [
 	}
 ]
 
-#define MMAP_PROT_RW		03h				;-- PROT_READ | PROT_WRITE
-#define MMAP_PROT_RWX		07h				;-- PROT_READ | PROT_WRITE | PROT_EXEC
-
-#define MMAP_MAP_SHARED     10h
-#define MMAP_MAP_PRIVATE    20h
-#define MMAP_MAP_ANONYMOUS  80h
-
-#define SC_PAGE_SIZE		30
-
-#define SYSCALL_MMAP		222
-#define SYSCALL_MUNMAP		223
-
-
 platform: context [
 	
 	#include %POSIX.reds
 
 	#import  [
 		LIBC-file cdecl [
-			sysconf: "sysconf" [
-				property	[integer!]
-				return:		[integer!]
-			]
 			environ: "environ" [integer!]
 		]
 	]

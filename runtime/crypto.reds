@@ -588,7 +588,6 @@ crypto: context [
 		#define GRND_NONBLOCK			1
 		#define GRND_RANDOM				2
 		#define AF_ALG 					38
-		#define SOCK_SEQPACKET 			5
 
 		has_getrandom?: yes						;-- need linux kernel 3.17 or newer
 

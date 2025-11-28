@@ -30,8 +30,8 @@ fd-read-char: func [
 ][
 	c: as-byte -1
 	if any [
-		zero? poll poller 1 timeout
-		1 <> read stdin :c 1
+		zero? libC.poll poller 1 timeout
+		1 <> libC.read stdin :c 1
 	][
 		return as-byte -1
 	]
@@ -45,7 +45,7 @@ fd-read: func [
 		len [integer!]
 		i	[integer!]
 ][
-	if 1 <> read stdin as byte-ptr! utf-char 1 [return -1]
+	if 1 <> libC.read stdin as byte-ptr! utf-char 1 [return -1]
 	c: as-integer utf-char/1
 	case [
 		c and 80h = 0	[len: 1]
@@ -59,7 +59,7 @@ fd-read: func [
 	while [i < len][
 		if all [
 			len >= (i + 1)
-			1 <> read stdin as byte-ptr! utf-char + i 1
+			1 <> libC.read stdin as byte-ptr! utf-char + i 1
 		][
 			return -1
 		]
@@ -117,13 +117,13 @@ check-special: func [
 ]
 
 emit: func [c [byte!]][
-	write stdout :c 1
+	libC.write stdout :c 1
 ]
 
 emit-string: func [
 	s [c-string!]
 ][
-	write stdout as byte-ptr! s length? s
+	libC.write stdout as byte-ptr! s length? s
 ]
 
 emit-string-int: func [
@@ -277,11 +277,11 @@ move-cursor-bottom: does [
 ]
 
 output-to-screen: does [
-	write stdout buffer (as-integer pbuffer - buffer)
+	libC.write stdout buffer (as-integer pbuffer - buffer)
 ]
 
 init: func [][
-	console?: 1 = isatty stdin
+	console?: 1 = libC.isatty stdin
 	if console? [
 		get-window-size
 	]

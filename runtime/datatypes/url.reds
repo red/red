@@ -283,10 +283,21 @@ url: context [
 		/local
 			p [red-object!]
 	][
-		p: as red-object! to-port as red-url! src no no no OPTION?(seek) no none-value no
-		part: port/read p part seek binary? lines? info? as-arg
-		if TYPE_OF(part) = TYPE_NONE [fire [TO_ERROR(access no-connect) src]]
-		part
+		either string/rs-match as red-string! src "http" [
+			if any [
+				OPTION?(part)
+				OPTION?(seek)
+				OPTION?(as-arg)
+			][
+				--NOT_IMPLEMENTED--
+			]
+			part: simple-io/request-http words/get as red-url! src null null binary? lines? info?
+			if TYPE_OF(part) = TYPE_NONE [fire [TO_ERROR(access no-connect) src]]
+			part
+		][
+			p: as red-object! to-port as red-url! src no no no OPTION?(seek) no none-value no
+			port/read p part seek binary? lines? info? as-arg
+		]
 	]
 
 	write: func [
@@ -309,7 +320,7 @@ url: context [
 			action	[integer!]
 			sym		[integer!]
 	][
-		if string/rs-match as red-string! dest "http" [
+		either string/rs-match as red-string! dest "http" [
 			if any [
 				OPTION?(seek)
 				OPTION?(allow)
@@ -340,22 +351,23 @@ url: context [
 			][
 				action: words/post
 			]
-		]
 
-		if all [
-			data <> null
-			TYPE_OF(data) <> TYPE_BLOCK
-			TYPE_OF(data) <> TYPE_STRING
-			TYPE_OF(data) <> TYPE_BINARY
+			if all [
+				data <> null
+				TYPE_OF(data) <> TYPE_BLOCK
+				TYPE_OF(data) <> TYPE_STRING
+				TYPE_OF(data) <> TYPE_BINARY
+			][
+				fire [TO_ERROR(script invalid-arg) data]
+			]
+			part: simple-io/request-http action dest header data binary? lines? info?
+			if TYPE_OF(part) = TYPE_NONE [fire [TO_ERROR(access no-connect) dest]]
+			part
 		][
-			fire [TO_ERROR(script invalid-arg) data]
+			data: stack/push data
+			p: as red-object! to-port as red-url! dest no no no OPTION?(seek) no none-value no
+			port/write p data binary? lines? info? append? part seek allow as-arg
 		]
-
-		data: stack/push data
-		p: as red-object! to-port as red-url! dest no no no OPTION?(seek) no none-value no
-		part: port/write p data binary? lines? info? append? part seek allow as-arg
-		if TYPE_OF(part) = TYPE_NONE [fire [TO_ERROR(access no-connect) dest]]
-		part
 	]
 
 	init: does [

@@ -429,14 +429,14 @@ tty: context [
 		]
 
 		isatty?: func [return: [logic!]][
-			1 = isatty stdin
+			1 = LibC.isatty stdin
 		]
 
 		write: func [
 			data	[byte-ptr!]
 			len		[integer!]
 		][
-			platform/io-write stdout data len
+			LibC.write stdout data len
 		]
 
 		enter-raw-mode: func [
@@ -503,7 +503,7 @@ tty: context [
 			if 0 >= wait 0 [return 0]	;-- no input
 		
 			p: as byte-ptr! :buf
-			n: read stdin p size? tiny-str!
+			n: LibC.read stdin p size? tiny-str!
 			unless parse? [return n]
 
 			i: 0
@@ -522,7 +522,7 @@ tty: context [
 		][
 			poller/fd: stdin
 			poller/events: OS_POLLIN
-			poll poller 1 ms
+			LibC.poll poller 1 ms
 		]
 	]
 ]

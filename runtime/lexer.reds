@@ -1116,7 +1116,7 @@ lexer: context [
 					src: s + 1							;-- skip (
 					entry: escape-names
 					loop 7 [							;-- try to match an escape name
-						if zero? platform/strnicmp src as byte-ptr! entry/1 entry/2 [break]
+						if zero? strnicmp src as byte-ptr! entry/1 entry/2 [break]
 						entry: entry + 3
 					]
 					either escape-names + (size? escape-names) > entry [
@@ -1352,7 +1352,7 @@ lexer: context [
 		end: p + size? cons-syntax						;-- point to end of array
 		len: as-integer e - s
 		loop 4 [
-			if zero? platform/strnicmp s as byte-ptr! p/1 len [break]
+			if zero? strnicmp s as byte-ptr! p/1 len [break]
 			p: p + 4
 		]
 		either p < end [
@@ -1368,7 +1368,7 @@ lexer: context [
 			type: 1
 			until [
 				name: name-table + type
-				if zero? platform/strnicmp s as byte-ptr! name/buffer len [break]
+				if zero? strnicmp s as byte-ptr! name/buffer len [break]
 				type: type + 1
 				type > datatype/top-id
 			]
@@ -1896,8 +1896,8 @@ lexer: context [
 		sig?: either any [p/1 = #"-" p/1 = #"+"] [p: p + 1 yes][no]
 		if any [p/1 <> #"1" p/2 <> #"." p/3 <> #"#"][throw-error lex s e TYPE_FLOAT]
 		p: p + 3
-		either zero? platform/strnicmp p as byte-ptr! "NAN" 3 [f: 1.#NAN][
-			either zero? platform/strnicmp p as byte-ptr! "INF" 3 [
+		either zero? strnicmp p as byte-ptr! "NAN" 3 [f: 1.#NAN][
+			either zero? strnicmp p as byte-ptr! "INF" 3 [
 				f: either all [sig? s/1 = #"-"] [-1.#INF][1.#INF]
 			][
 				throw-error lex s e TYPE_FLOAT
@@ -2087,7 +2087,7 @@ lexer: context [
 				if any [len < 3 len > 9][do-error]		;-- invalid month name
 				m: months
 				loop 12 [
-					if zero? platform/strnicmp p as byte-ptr! m/1 len [break]
+					if zero? strnicmp p as byte-ptr! m/1 len [break]
 					m: m + 1
 				]
 				if months + 12 = m [do-error]			;-- invalid month name
