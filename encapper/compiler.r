@@ -332,7 +332,7 @@ red: context [
 	
 	date-special?:  func [value][all [block? value value/1 = #!date!]]
 	map-value?:     func [value][all [block? value value/1 = #!map!]]
-	ipv6-value?:   func [value][all [block? value value/1 = #!ipv6!]]
+	ipv6-value?:    func [value][all [block? value value/1 = #!ipv6!]]
 	map-value?:     func [value][all [block? value value/1 = #!map!]]
 	point-value?:   func [value][all [block? value value/1 = #!point!]]
 	
