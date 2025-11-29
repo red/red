@@ -955,6 +955,13 @@ Red [
 	--test-- "scan-107" --assert error!	 = scan "(1,2,)"
 	--test-- "scan-108" --assert error!	 = scan "(1,2 3,)"
 	--test-- "scan-109" --assert error!	 = scan "(1, 2 3)"
+	
+	--test-- "scan-110" --assert ipv6!	 =  scan "a::1"
+	--test-- "scan-111" --assert ipv6!	 =  scan "4A::"
+	--test-- "scan-112" --assert ipv6!	 =  scan "4AAB::"
+	--test-- "scan-113" --assert ipv6!	 =  scan "4aab::"
+	--test-- "scan-114" --assert error!	 =  scan "4a"
+	--test-- "scan-115" --assert error!	 =  scan "4A"
 
 ===end-group===
 ===start-group=== "scan/fast"
@@ -1018,6 +1025,13 @@ Red [
 	--test-- "scan-f77" --assert point2D! = scan/fast "(1, 2 3)"
 	--test-- "scan-f78" --assert point2D! = scan/fast "(1 2, 3, 4)"
 	--test-- "scan-f79" --assert point2D! = scan/fast "(1 2, 3, 4 5)"
+	
+	--test-- "scan-f80" --assert ipv6!	 =  scan/fast "a::1"
+	--test-- "scan-f81" --assert ipv6!	 =  scan/fast "4A::"
+	--test-- "scan-f82" --assert ipv6!	 =  scan/fast "4AAB::"
+	--test-- "scan-f83" --assert ipv6!	 =  scan/fast "4aab::"
+	--test-- "scan-f84" --assert error!	 =  scan/fast "4a"
+	--test-- "scan-f85" --assert error!	 =  scan/fast "4A"
 
 ===end-group===
 ===start-group=== "transcode/trace"
