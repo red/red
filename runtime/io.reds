@@ -366,8 +366,10 @@ io: context [
 			saved: stdout
 			stdout: file
 		]]
-		_print count list yes
-		prin-byte lf
+		if verbose > 1 [
+			_print count list yes
+			prin-byte lf
+		]
 		#if debug? = yes [if verbose > 1 [	
 			simple-io/close-file file
 			stdout: saved
