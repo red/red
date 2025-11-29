@@ -1043,6 +1043,7 @@ collector: context [
 		_hashtable/sweep ownership/table
 		collect-series-frames COLLECTOR_RELEASE
 		collect-big-frames
+		b-allocator/collect-series
 		nodes-list/flush
 		collect-node-frames
 

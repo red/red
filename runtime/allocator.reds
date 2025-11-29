@@ -989,6 +989,7 @@ b-allocator: context [
 				s/flags and flag-gc-mark = 0
 				p/ref-cnt = 0
 			][
+				collector/nodes-list/store s/node
 				free as byte-ptr! p
 				either prev <> null [prev/next: next][first-series: next]
 			][
