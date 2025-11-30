@@ -1206,7 +1206,7 @@ _series: context [
 
 		if ser <> new [new/header: TYPE_UNSET]
 		part:	part << (log-b unit)
-		node: either type = TYPE_BINARY [b-allocator/alloc-bytes part][
+		node: either type = TYPE_BINARY [alloc-bytes part][
 			alloc-bytes part
 		]
 		s: GET_BUFFER(ser)

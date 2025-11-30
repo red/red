@@ -344,13 +344,13 @@ io: context [
 	pin-memory: func [
 		node	[node!]
 	][
-		b-allocator/increase-ref as series! node/value
+		0 ;b-allocator/increase-ref as series! node/value
 	]
 
 	unpin-memory: func [
 		node	[node!]
 	][
-		b-allocator/decrease-ref as series! node/value
+		0 ;b-allocator/decrease-ref as series! node/value
 	]
 
 	verbose: 0

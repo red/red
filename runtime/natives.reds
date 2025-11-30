@@ -1580,10 +1580,10 @@ natives: context [
 		ret/head: 0
 
 		node: switch base [
-			64 [b-allocator/alloc-bytes 4 * len / 3 + (2 * (len / 32) + 5)]
-			58 [b-allocator/alloc-bytes len * 2]
-			16 [b-allocator/alloc-bytes len * 2 + (len / 32) + 32]
-			2  [b-allocator/alloc-bytes 8 * len + (2 * (len / 8) + 4)]
+			64 [alloc-bytes 4 * len / 3 + (2 * (len / 32) + 5)]
+			58 [alloc-bytes len * 2]
+			16 [alloc-bytes len * 2 + (len / 32) + 32]
+			2  [alloc-bytes 8 * len + (2 * (len / 8) + 4)]
 			default [fire [TO_ERROR(script invalid-arg) int] null]
 		]
 		if null? node [

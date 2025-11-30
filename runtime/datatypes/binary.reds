@@ -575,7 +575,7 @@ binary: context [
 			node  [node!]
 			bin   [byte-ptr!]
 	][
-		node: b-allocator/alloc-bytes len >> 3
+		node: alloc-bytes len >> 3
 		s: as series! node/value
 
 		bin: as byte-ptr! s/offset
@@ -648,7 +648,7 @@ binary: context [
 		]
 
 		len: nlen
-		node: b-allocator/alloc-bytes len
+		node: alloc-bytes len
 		s: as series! node/value
 		bin: as byte-ptr! s/offset
 
@@ -709,7 +709,7 @@ binary: context [
 			node [node!]
 			bin	 [byte-ptr!]
 	][
-		node: b-allocator/alloc-bytes len + 3 * 3 / 4
+		node: alloc-bytes len + 3 * 3 / 4
 		s: as series! node/value
 		bin: as byte-ptr! s/offset
 		accum: 0
@@ -776,9 +776,9 @@ binary: context [
 			bin   [byte-ptr!]
 			node  [node!]
 	][
-		if zero? len [return b-allocator/alloc-bytes 1]
+		if zero? len [return alloc-bytes 1]
 
-		node: b-allocator/alloc-bytes len >> 1
+		node: alloc-bytes len >> 1
 		s: as series! node/value
 
 		table: string/escape-url-chars
@@ -876,7 +876,7 @@ binary: context [
 		bin: as red-binary! slot
 		set-type slot TYPE_UNSET
 		bin/head: 0
-		bin/node: b-allocator/alloc-bytes size
+		bin/node: alloc-bytes size
 		set-type slot TYPE_BINARY
 		bin
 	]
@@ -1333,7 +1333,7 @@ binary: context [
 			p: p1 p1: p2 p2: p
 		]
 
-		node: b-allocator/alloc-bytes len
+		node: alloc-bytes len
 		buffer: as series! node/value
 		buffer/tail: as cell! (as byte-ptr! buffer/offset) + len
 
