@@ -4,15 +4,27 @@ on: push
 
 jobs:
   Linux-Red-Tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Run Linux-x86 Tests
+    env:
+      DISPLAY: :0 
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-    - name: Build Tests
-      uses: ./CI/Linux-gtk
-      with:
-        command: /sbin/start-stop-daemon --start --quiet --background --exec /usr/bin/Xvfb && sleep 3 && rebol -qws tests/run-all.r --batch
+
+    - name: Install dependencies 
+      run: |
+        sudo dpkg --add-architecture i386
+        sudo apt update
+        sudo apt install -y xvfb curl libc6:i386 libcurl4:i386 libgtk-3-0:i386
+        sudo curl -o /bin/rebol https://static.red-lang.org/tmp/rebol
+        sudo chmod +x /bin/rebol
+
+    - name: Start virtual display server
+      run: Xvfb :0 -screen 0 1024x768x24 &
+
+    - name: Run Red Tests
+      run: /bin/rebol -qws tests/run-all.r --batch
 
     # upload log file if any test failed
     - uses: actions/upload-artifact@v4
@@ -22,15 +34,19 @@ jobs:
         path: quick-test/quick-test.log
 
   Linux-RS-Tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Run Linux-RS Tests
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-    - name: Build Tests
-      uses: ./CI/Linux-32
-      with:
-        command: rebol -qws system/tests/run-all.r --batch
+    - name: Run RS Tests
+      run: |
+        sudo dpkg --add-architecture i386
+        sudo apt update
+        sudo apt install -y curl libc6:i386
+        sudo curl -o /bin/rebol https://static.red-lang.org/tmp/rebol
+        sudo chmod +x /bin/rebol
+        /bin/rebol -qws system/tests/run-all.r --batch
 
     # upload log file if any test failed
     - uses: actions/upload-artifact@v4
