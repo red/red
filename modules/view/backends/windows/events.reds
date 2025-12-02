@@ -1881,6 +1881,7 @@ do-events: func [
 				if no-wait? [return msg?]
 			]
 		]
+		if no-wait? [return msg?]
 		io/do-events 15 null yes
 	]
 	unless no-wait? [
