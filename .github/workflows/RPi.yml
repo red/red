@@ -19,7 +19,7 @@ jobs:
       with:
         name: arm-tests
         path: quick-test/runnable/arm-tests/
-        retention-days: 3
+        retention-days: 15
 
   Run-tests-ARM:
     runs-on: ubuntu-24.04-arm
