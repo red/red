@@ -1270,16 +1270,6 @@ WndProc: func [
 		y yy   [integer!]
 		ShouldAppsUseDarkMode [ShouldAppsUseDarkMode!]
 ][
-	if msg = WM_CLOSE [
-		either -1 = GetWindowLong hWnd wc-offset - 4 [
-			clean-up
-		][
-			SetFocus hWnd									;-- force focus on the closing window,
-			current-msg/hWnd: hWnd							;-- prevents late unfocus event generation.
-			res: make-event current-msg 0 EVT_CLOSE
-			return 0
-		]
-	]
 	unless face-set? hWnd [return DefWindowProc hWnd msg wParam lParam]
 
 	values: get-face-values hWnd
@@ -1646,6 +1636,21 @@ WndProc: func [
 		WM_LBUTTONUP	 [ReleaseCapture return 0]
 		WM_GETMINMAXINFO [								;@@ send before WM_NCCREATE
 			if all [type = window set-window-info hWnd lParam][return 0]
+		]
+		WM_CLOSE [
+			either -1 = GetWindowLong hWnd wc-offset - 4 [
+				clean-up
+			][
+				if type = window [
+					SetFocus hWnd									;-- force focus on the closing window,
+					current-msg/hWnd: hWnd							;-- prevents late unfocus event generation.
+					res: make-event current-msg 0 EVT_CLOSE
+					if res  = EVT_DISPATCH [return 0]				;-- continue
+					;if res <= EVT_DISPATCH   [free-handles hWnd]	;-- done
+					if res  = EVT_NO_DISPATCH [clean-up PostQuitMessage 0]	;-- stop
+					return 0
+				]
+			]
 		]
 		WM_DESTROY [free-dc hWnd]
 		WM_DPICHANGED [

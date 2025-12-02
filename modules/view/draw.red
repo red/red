@@ -404,13 +404,14 @@ Red/System [
 				if ANY_COORD?(stops) [
 					return old-gradient-pen DC cmds start tail cmd sym catch?
 				]
-				loop 2 [                                ;-- at least two stops required
-					DRAW_FETCH_VALUE_2(TYPE_TUPLE TYPE_WORD)
+				loop 2 [								;-- at least two stops required
+					DRAW_FETCH_OPT_VALUE_2(TYPE_TUPLE TYPE_WORD)  ;-- color
+					if pos = cmd [cmd: cmd - 1 DRAW_FETCH_TUPLE]
 					DRAW_FETCH_OPT_VALUE(TYPE_FLOAT)
 					count: count + 1
 				]
 				_start: cmd
-				while [ cmd < tail ][                   ;--optional more stops
+				while [ cmd < tail ][					;--optional more stops
 					DRAW_FETCH_OPT_VALUE_2(TYPE_TUPLE TYPE_WORD)
 					if cmd = _start [ break ]
 					value: cmd
@@ -425,7 +426,7 @@ Red/System [
 				positions: cmd
 				skip-pos: true
 				focal?: false
-				case [                                                  ;-- positions
+				case [									;-- positions
 					mode = linear [
 						DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 						if cmd <> positions [
@@ -434,29 +435,29 @@ Red/System [
 						] 
 					]
 					mode = radial [
-						DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)                 ;-- center
+						DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)      ;-- center
 						if cmd <> positions [
 							skip-pos: false 
-							DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT) ;-- radius
+							DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)     ;-- radius
 							_start: cmd
-							DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)             ;-- focal point
+							DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)  ;-- focal point
 							if _start <> cmd [ focal?: true ]
 						]
 					]
 					mode = diamond [
-						DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)                 ;-- upper
+						DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)      ;-- upper
 						if cmd <> positions [
 							skip-pos: false 
-							DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)                 ;-- lower
+							DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)      ;-- lower
 							_start: cmd
-							DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)             ;-- focal point
+							DRAW_FETCH_OPT_VALUE_2(TYPE_PAIR TYPE_POINT2D)  ;-- focal point
 							if _start <> cmd [ focal?: true ]
 						]
 					]
 				]
 				positions: positions + 1
 				_start: cmd
-				DRAW_FETCH_OPT_VALUE(TYPE_WORD)         ;-- spread value
+				DRAW_FETCH_OPT_VALUE(TYPE_WORD)			;-- spread value
 				either cmd <> _start [
 					word:   as red-word! cmd
 					spread: symbol/resolve word/symbol
@@ -913,19 +914,19 @@ Red/System [
 								blur: 0
 								spread: 0
 								rgb: 0
-								DRAW_FETCH_OPT_VALUE(TYPE_INTEGER)	;-- blur radius
+								DRAW_FETCH_OPT_VALUE(TYPE_INTEGER)		;-- blur radius
 								if pos = cmd [
 									int: as red-integer! pos
 									blur: int/value
-									DRAW_FETCH_OPT_VALUE(TYPE_INTEGER) ;-- spread radius
+									DRAW_FETCH_OPT_VALUE(TYPE_INTEGER)	;-- spread radius
 									if pos = cmd [
 										int: as red-integer! pos
 										spread: int/value
 									]
 								]
-								DRAW_FETCH_OPT_VALUE(TYPE_TUPLE)
+								DRAW_FETCH_OPT_VALUE_2(TYPE_TUPLE TYPE_WORD)  ;-- color
 								if pos = cmd [cmd: cmd - 1 DRAW_FETCH_TUPLE]
-								DRAW_FETCH_OPT_VALUE(TYPE_WORD)
+								DRAW_FETCH_OPT_VALUE(TYPE_WORD)			;-- inset
 								if pos = cmd [
 									word: as red-word! pos
 									sym: symbol/resolve word/symbol
