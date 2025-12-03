@@ -36,7 +36,7 @@ udp-port/awake: func [event /local port] [
 
 insert udp-port msg		;-- perform a send action
 
-if none? system/view [
+if unset? :gui-console-ctx [
 	wait udp-port
 	close udp-port
 	print "Done"

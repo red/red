@@ -51,7 +51,7 @@ client/awake: func [event /local port] [
     ]
     false
 ]
-if none? system/view [
+if unset? :gui-console-ctx [
 	wait client
 	close client
 	print "Done"

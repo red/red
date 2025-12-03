@@ -37,7 +37,7 @@ file-port/awake: func [event /local port] [
     ]
     false
 ]
-if none? system/view [
+if unset? :gui-console-ctx [
 	wait file-port
 	close file-port
 	print "Done"

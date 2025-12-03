@@ -37,6 +37,6 @@ server2/awake: func [event] [
 ]
 
 print "TCP server: waiting for client to connect"
-if none? system/view [
-	wait -1
+if unset? :gui-console-ctx [
+	wait [server1 server2]
 ]

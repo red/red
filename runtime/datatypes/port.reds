@@ -693,10 +693,10 @@ port: context [
 		#if debug? = yes [if verbose > 0 [print-line "port/swap"]]
 		
 		actors: get-actors as red-object! port
-		stack/mark-func words/_sort actors/ctx
+		stack/mark-func words/_swap actors/ctx
 		stack/push as red-value! port
 		stack/push series2
-		call-function actors words/_sort
+		call-function actors words/_swap
 	]
 	
 	take: func [

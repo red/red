@@ -26,4 +26,6 @@ client/awake: func [event /local port] [
     ]
 ]
 
-wait 3
+if unset? :gui-console-ctx [
+	wait client
+]

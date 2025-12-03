@@ -23,4 +23,6 @@ server/awake: func [event /local client] [
     ]
 ]
 
-wait 30
+if unset? :gui-console-ctx [
+	wait server
+]

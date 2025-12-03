@@ -32,7 +32,7 @@ server/awake: func [event /local port] [
 ]
 
 print "UDP server: waiting for client"
-if none? system/view [
+if unset? :gui-console-ctx [
 	wait server
 	print "done"
 	close server

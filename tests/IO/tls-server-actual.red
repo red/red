@@ -157,7 +157,7 @@ server/awake: func [event] [
 ]
 
 print "Secure TCP server: waiting for client to connect"
-if none? system/view [
+if unset? :gui-console-ctx [
 	wait server
 	print "done"
 	close server

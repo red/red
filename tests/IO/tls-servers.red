@@ -193,6 +193,6 @@ server2/awake: func [event] [
 ]
 
 print "TLS server: waiting for client to connect"
-if none? system/view [
+if unset? :gui-console-ctx [
 	wait -1
 ]
