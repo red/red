@@ -1878,7 +1878,7 @@ do-events: func [
 					DispatchMessage :msg
 					current-msg: saved
 				]
-				if no-wait? [return msg?]
+				unless run? [break]
 			]
 		]
 		if no-wait? [return msg?]

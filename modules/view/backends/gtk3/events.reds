@@ -848,6 +848,7 @@ do-events: func [
 	return:		[logic!]
 	/local
 		msg?	[logic!]
+		run?	[logic!]
 		list	[GList!]
 		win		[handle!]
 ][
@@ -855,18 +856,27 @@ do-events: func [
 	if null? win [return no]
 	SET-IN-LOOP(win win)
 
-	msg?: any [not no-wait? gtk_events_pending]
-	until [
-		gtk_main_iteration_do not no-wait?
-		unless g_type_check_instance_is_a win gtk_window_get_type [
-			break
+	run?: yes
+	while [run?] [
+		loop 10 [
+			msg?: gtk_events_pending
+			if msg? [
+				gtk_main_iteration_do no
+				if any [
+					not g_type_check_instance_is_a win gtk_window_get_type
+					null? GET-IN-LOOP(win)
+				][		
+					run?: no
+					break
+				]
+			]
 		]
-		if null? GET-IN-LOOP(win) [break]
 		if force-redraw? [
 			gdk_window_process_all_updates
 			force-redraw?: no
 		]
-		no-wait?
+		if no-wait? [return msg?]
+		io/do-events 15 null yes
 	]
 	msg?
 ]
