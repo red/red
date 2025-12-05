@@ -626,9 +626,6 @@ Red/System [
 						sym: symbol/resolve word/symbol
 
 						case [
-							any [sym = pen sym = fill-pen] [
-								cmd: check-pen DC cmds start tail cmd sym catch?
-							]
 							sym = move [
 								DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 								OS-draw-shape-moveto DC as red-pair! cmd rel?
@@ -637,9 +634,6 @@ Red/System [
 								DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_POINT2D)
 								DRAW_FETCH_SOME_2(TYPE_PAIR TYPE_POINT2D)
 								OS-draw-shape-line DC as red-pair! start as red-pair! cmd rel?
-							]
-							any [sym = line-width sym = line-join sym = line-cap sym = line-pattern][
-								cmd: check-line DC cmds start tail cmd sym catch?
 							]
 							any [ sym = hline sym = vline ][
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
