@@ -951,6 +951,7 @@ recycle: make native! [[
 		"Recycles unused memory and returns memory amount still in use"
 		/on		"Turns on garbage collector; returns nothing"
 		/off	"Turns off garbage collector; returns nothing"
+		/info	"Returns the number of GC passes since beginning"
 		return: [integer! unset!]
 	]
 	#get-definition NAT_RECYCLE

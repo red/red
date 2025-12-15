@@ -2980,13 +2980,15 @@ natives: context [
 		check? [logic!]
 		on?    [integer!]
 		off?   [integer!]
+		info?  [integer!]
 	][
 		#typecheck [recycle on? off?]
 
 		case [
-			on?  > -1 [collector/active?: yes  unset/push-last]
-			off? > -1 [collector/active?: no   unset/push-last]
-			true	  [collector/do-mark-sweep stats* no -1 -1]
+			on?   > -1 [collector/active?: yes  unset/push-last]
+			off?  > -1 [collector/active?: no   unset/push-last]
+			info? > -1 [integer/box collector/stats/cycles]
+			true	   [collector/do-mark-sweep stats* no -1 -1]
 		]
 	]
 	
