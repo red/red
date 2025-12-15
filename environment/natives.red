@@ -968,14 +968,24 @@ transcode: make native! [[
 		/into			"Optionally provides an output block"
 			dst	[block!]
 		/trace
-			callback [function! [
-				event	[word!]
-				input	[binary! string!]
-				type	[word! datatype!]
-				line	[integer!]
-				token
-				return: [logic!]
-			]]
+			callback [
+				function! [
+					event	[word!]
+					input	[binary! string!]
+					type	[word! datatype!]
+					line	[integer!]
+					token
+					return: [logic!]
+				]
+				routine! [
+					event	[word!]
+					input	[binary! string!]
+					type	[word! datatype!]
+					line	[integer!]
+					token
+					return: [logic!]
+				]
+			]
 		return: [block!]
 	]
 	#get-definition NAT_TRANSCODE

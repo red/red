@@ -3000,6 +3000,7 @@ red: context [
 		convert-types spec
 		emit reduce [to set-word! name 'func]
 		insert-lf -2
+		if block? body/1 [insert body 'comment]			;-- disables eventual metadata initial block (used by Red's callbacks)
 		append/only output spec
 		append/only output body
 		
