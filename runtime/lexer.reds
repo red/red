@@ -389,10 +389,13 @@ lexer: context [
 			len	 [integer!]
 	][
 		if lex/pos-cache > pos [						;-- invalidate cache if backtracking occured (error event)
-			lex/pos-cache: lex/input
-			lex/cnt-cache: 0
+			lex/cnt-cache: lex/cnt-cache - unicode/count-chars pos lex/pos-cache
+			lex/pos-cache: pos
+			return lex/cnt-cache
 		]
 		base: lex/pos-cache
+		assert not any [all [base <> null base < lex/input] pos < lex/input base > lex/in-end pos > lex/in-end]
+		
 		if null? base [base: lex/input]					;-- first invocation
 		len: lex/cnt-cache + unicode/count-chars base pos ;-- cached count + count from cached position to new one
 		lex/pos-cache: pos
