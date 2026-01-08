@@ -1500,7 +1500,7 @@ Red [
         --assert "123331" = sort/skip s 2
         --assert "123331" = sort/skip/compare s 2 1
         --assert "311233" = sort/skip/compare s 2 2
-        --assert "123331" = sort/skip/all s 2
+        --assert "123133" = sort/skip/all s 2
 
 	--test-- "sort-blk-1"
 		a: [bc 799 ab2 42 bb1 321.3 "Mo" "Curly" "Larry" -24 0 321.8] 
@@ -1550,8 +1550,8 @@ Red [
 
     --test-- "sort-blk-7"
         s: does [copy [3 1 3 3 1 2]]
-        --assert [1 2 3 1 3 3] = sort/skip s 2
-        --assert [1 2 3 1 3 3] = sort/skip/compare s 2 1
+        --assert [1 2 3 3 3 1] = sort/skip s 2
+        --assert [1 2 3 3 3 1] = sort/skip/compare s 2 1
         --assert [3 1 1 2 3 3] = sort/skip/compare s 2 2
         --assert [1 2 3 1 3 3] = sort/skip/all s 2
 
@@ -1573,14 +1573,14 @@ Red [
         --assert (make vector! [1 2 3 3 3 1]) = sort/skip s 2
         --assert (make vector! [1 2 3 3 3 1]) = sort/skip/compare s 2 1
         --assert (make vector! [3 1 1 2 3 3]) = sort/skip/compare s 2 2
-        --assert (make vector! [1 2 3 3 3 1]) = sort/skip/all s 2
+        --assert (make vector! [1 2 3 1 3 3]) = sort/skip/all s 2
 
     --test-- "sort-bin-1"
         s: does  [make binary! [3 1 3 3 1 2]]
         --assert (make binary! [1 2 3 3 3 1]) = sort/skip s 2
-        --assert (make binary! [1 2 3 3 3 3]) = sort/skip/compare s 2 1
-        --assert (make binary! [3 1 1 2 3 1]) = sort/skip/compare s 2 2
-        --assert (make binary! [1 2 3 3 3 1]) = sort/skip/all s 2
+        --assert (make binary! [1 2 3 3 3 1]) = sort/skip/compare s 2 1
+        --assert (make binary! [3 1 1 2 3 3]) = sort/skip/compare s 2 2
+        --assert (make binary! [1 2 3 1 3 3]) = sort/skip/all s 2
 		
 ===end-group===
 
