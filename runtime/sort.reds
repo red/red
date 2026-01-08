@@ -416,7 +416,7 @@ _sort: context [
 				]
 				pb: pb + width
 				pc: pc - width
-				pb >= pc
+				pb > pc
 			]
 
 			;-- move equal items

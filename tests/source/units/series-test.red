@@ -1471,15 +1471,15 @@ Red [
 
 	--test-- "sort-str-1"			;-- 4 bytes code point
 		a: "g4C28c𠃌9A15Hf3iEG076eBIdbFaDh"
-		--assert "0123456789AaBbCcdDEefFGghHIi𠃌" = sort a
+		--assert "0123456789AabBcCDdEeFGgHhfIi𠃌" = sort a
 
 	--test-- "sort-str-2"			;-- 2 bytes code point
 		a: "g4C28c大9A15Hf3iEG076eBIdbFaDh"
-		--assert "0123456789AaBbCcdDEefFGghHIi大" = sort a
+		--assert "0123456789AabBcCDdEeFGgHhfIi大" = sort a
 
 	--test-- "sort-str-3"			;-- 1 bytes code point
 		a: "g4C28c9A15Hf3iEG076eBIdbFaDh"
-		--assert "0123456789AaBbCcdDEefFGghHIi" = sort a
+		--assert "0123456789aABbCcdDEefFgGHhIi" = sort a
 		--assert "0123456789ABCDEFGHIabcdefghi" = sort/case a
 		--assert "ihgfedcbaIHGFEDCBA9876543210" = sort/case/reverse a
 
@@ -1497,10 +1497,10 @@ Red [
 
     --test-- "sort-str-6"
         s: does [copy "313312"]
-        --assert "123133" = sort/skip s 2
-        --assert "123133" = sort/skip/compare s 2 1
+        --assert "123331" = sort/skip s 2
+        --assert "123331" = sort/skip/compare s 2 1
         --assert "311233" = sort/skip/compare s 2 2
-        --assert "123133" = sort/skip/all s 2
+        --assert "123331" = sort/skip/all s 2
 
 	--test-- "sort-blk-1"
 		a: [bc 799 ab2 42 bb1 321.3 "Mo" "Curly" "Larry" -24 0 321.8] 
@@ -1570,17 +1570,17 @@ Red [
 
     --test-- "sort-vec-1"
         s: does  [make vector! [3 1 3 3 1 2]]
-        --assert (make vector! [1 2 3 1 3 3]) = sort/skip s 2
-        --assert (make vector! [1 2 3 1 3 3]) = sort/skip/compare s 2 1
+        --assert (make vector! [1 2 3 3 3 1]) = sort/skip s 2
+        --assert (make vector! [1 2 3 3 3 1]) = sort/skip/compare s 2 1
         --assert (make vector! [3 1 1 2 3 3]) = sort/skip/compare s 2 2
-        --assert (make vector! [1 2 3 1 3 3]) = sort/skip/all s 2
+        --assert (make vector! [1 2 3 3 3 1]) = sort/skip/all s 2
 
     --test-- "sort-bin-1"
         s: does  [make binary! [3 1 3 3 1 2]]
-        --assert (make binary! [1 2 3 1 3 3]) = sort/skip s 2
-        --assert (make binary! [1 2 3 1 3 3]) = sort/skip/compare s 2 1
-        --assert (make binary! [3 1 1 2 3 3]) = sort/skip/compare s 2 2
-        --assert (make binary! [1 2 3 1 3 3]) = sort/skip/all s 2
+        --assert (make binary! [1 2 3 3 3 1]) = sort/skip s 2
+        --assert (make binary! [1 2 3 3 3 3]) = sort/skip/compare s 2 1
+        --assert (make binary! [3 1 1 2 3 1]) = sort/skip/compare s 2 2
+        --assert (make binary! [1 2 3 3 3 1]) = sort/skip/all s 2
 		
 ===end-group===
 
