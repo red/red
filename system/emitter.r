@@ -907,10 +907,12 @@ emitter: make-profilable context [
 		target/emit-push-struct struct-slots?/direct spec/2
 	]
 	
-	init-loop-jumps: does [
-		append/only breaks	  make block! 1
-		append/only cont-next make block! 1
-		append/only cont-back make block! 1
+	push-loop-jumps: has [list][
+		foreach list [breaks cont-next cont-back][append/only get list make block! 1]
+	]
+	
+	pop-loop-jumps: has [list][
+		foreach list [breaks cont-next cont-back][remove back tail get list]
 	]
 	
 	resolve-loop-jumps: func [chunk [block!] type [word!] /local list end len buffer][
@@ -924,7 +926,6 @@ emitter: make-profilable context [
 			end: index? tail buffer
 			foreach ptr last list [target/patch-jump-point buffer ptr - len end]
 		]
-		remove back tail list
 	]
 	
 	resolve-exit-points: has [end][

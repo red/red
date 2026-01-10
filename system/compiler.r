@@ -2838,7 +2838,7 @@ system-dialect: make-profilable context [
 			check-body pc/1
 			emitter/target/emit-integer-operation '= [<last> 0]	;-- insert counter comparison to 0 (skipping)
 			
-			emitter/init-loop-jumps
+			emitter/push-loop-jumps
 			push-loop 'loop			
 			either locals [vars: name][counter: emitter/store-value none 0 [integer!]]
 			start: comp-chunked [emitter/target/emit-start-loop counter vars]
@@ -2853,6 +2853,7 @@ system-dialect: make-profilable context [
 			emitter/resolve-loop-jumps body 'breaks
 			emitter/branch/over/on body greater-than	;-- skip loop if counter <= 0
 			emitter/merge body
+			emitter/pop-loop-jumps
 			last-type: none-type
 			<last>
 		]
@@ -2860,14 +2861,15 @@ system-dialect: make-profilable context [
 		comp-until: has [expr chunk][
 			pc: next pc
 			check-body pc/1
-			emitter/init-loop-jumps
+			emitter/push-loop-jumps
 			push-loop 'until
 			set [expr chunk] comp-block-chunked/test 'until
 			pop-loop
 			emitter/resolve-loop-jumps chunk 'cont-back
 			emitter/branch/back/on/parity chunk expr/1 floats-in-condition? expr
 			emitter/resolve-loop-jumps chunk 'breaks
-			emitter/merge chunk	
+			emitter/merge chunk
+			emitter/pop-loop-jumps
 			last-type: none-type
 			<last>
 		]
@@ -2876,7 +2878,7 @@ system-dialect: make-profilable context [
 			pc: next pc
 			check-body pc/1								;-- check condition block
 			check-body pc/2								;-- check body block
-			emitter/init-loop-jumps
+			emitter/push-loop-jumps
 			
 			push-loop 'while-cond
 			set [expr cond]   comp-block-chunked/test 'while	;-- Condition block
@@ -2894,6 +2896,7 @@ system-dialect: make-profilable context [
 				bodies reduce [expr/1] offset floats-in-condition? expr
 			emitter/resolve-loop-jumps bodies 'breaks
 			emitter/merge bodies
+			emitter/pop-loop-jumps
 			last-type: none-type
 			<last>
 		]
