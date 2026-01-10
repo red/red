@@ -50,6 +50,7 @@ context [
 		pt-interp		3			;; dynamic linker ("interpreter") path name
 		pt-note			4			;; vendor-specific note segment
 		pt-phdr			6			;; program header table
+		pt-GNU-stack	1685382481	;; GNU stack flags
 
 		pf-x			1			;; executable segment
 		pf-w			2			;; writable segment
@@ -269,6 +270,10 @@ context [
 				section ".note.netbsd.pax"
 									[note 		[alloc]				word]
 			]
+			segment "GNU-stack" 	[gnu-stack	[r w]				word] [
+				section ".note.GNU-stack"
+									[progbits	[]					word]
+			]
 			section ".hash"			[hash	  	[alloc]				word]
 			section ".dynstr"		[strtab	  	[alloc]				byte]
 			section ".dynsym"		[dynsym	  	[alloc]				word]
@@ -412,6 +417,8 @@ context [
 							data (#{0700000004000000010000004E6574425344000000E9A435})	;-- https://www.netbsd.org/docs/kernel/elf-notes.html
 			".note.netbsd.pax"
 							data (#{0400000004000000030000005061580000000000})
+			".note.GNU-stack"
+							data (#{})
 			".dynstr"		data (to-elf-strtab compose [(libraries) (imports) (extract exports 2) (defs/rpath) (soname)])
 			".text"			data (job/sections/code/2)
 			".stabstr"		data (to-elf-strtab join ["%_"] extract natives 2)
