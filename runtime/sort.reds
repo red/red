@@ -48,13 +48,7 @@ _sort: context [
 
 	#define SORT_SWAP(a b) [swapfunc a b width swaptype]
 
-	#define SORT_SWAP_N(a b n) [
-		loop n [
-			SORT_SWAP(a b)
-			a: a + width
-			b: b + width
-		]
-	]
+	#define SORT_SWAP_N(a b n) [swapfunc a b n * width swaptype]
 
 	#define SORT_ARGS_EXT_DEF [
 		width	[integer!]
@@ -354,7 +348,8 @@ _sort: context [
 						left: m + 1 / 2
 						right: m / 2
 					]
-					swapfunc base base + (num - m * width) left * width swaptype
+					pb: base + (num - m * width)
+					SORT_SWAP_N(base pb left)
 					left: left - 1
 				]
 				if s > 0 [

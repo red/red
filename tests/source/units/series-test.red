@@ -1471,11 +1471,11 @@ Red [
 
 	--test-- "sort-str-1"			;-- 4 bytes code point
 		a: "g4C28c𠃌9A15Hf3iEG076eBIdbFaDh"
-		--assert "0123456789AabBcCDdEeFGgHhfIi𠃌" = sort a
+		--assert "0123456789aAbBcCDdEeFfGgHhIi𠃌" = sort a
 
 	--test-- "sort-str-2"			;-- 2 bytes code point
 		a: "g4C28c大9A15Hf3iEG076eBIdbFaDh"
-		--assert "0123456789AabBcCDdEeFGgHhfIi大" = sort a
+		--assert "0123456789aAbBcCDdEeFfGgHhIi大" = sort a
 
 	--test-- "sort-str-3"			;-- 1 bytes code point
 		a: "g4C28c9A15Hf3iEG076eBIdbFaDh"
