@@ -19,7 +19,7 @@ jobs:
       if: failure()
       with:
         name: Linux-Red-Tests-log
-        path: quick-test/quick-test.log
+        path: quick-test/
 
   Linux-RS-Tests:
     runs-on: ubuntu-latest
