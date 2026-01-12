@@ -466,6 +466,7 @@ point3D: context [
 			fscale/header: TYPE_FLOAT
 			fscale/value: as float! p/x
 		]
+		f/header: TYPE_FLOAT
 		
 		f/value: as float! pt/x
 		float/round as red-value! f fscale _even? down? half-down? floor? ceil? half-ceil?
