@@ -1010,6 +1010,7 @@ float: context [
 		if sc < ldexp abs dec -53 [return value]		;-- is scale negligible?
 
 		v: sc >= 1.0
+	?? dec
 		dec: either v [dec / sc][
 			r: frexp sc :e
 			either e <= -1022 [
