@@ -428,7 +428,6 @@ point2D: context [
 			]
 		]
 		f/header: TYPE_FLOAT
-		
 		f/value: as float! point2D/x
 		float/round as red-value! f fscale _even? down? half-down? floor? ceil? half-ceil?
 		point2D/x: as float32! f/value
@@ -440,6 +439,7 @@ point2D: context [
 				fscale/value: fy
 			]
 		]
+		f/header: TYPE_FLOAT							;-- float/round can change the header
 		f/value: as float! point2D/y
 		float/round as red-value! f fscale _even? down? half-down? floor? ceil? half-ceil?
 		point2D/y: as float32! f/value
