@@ -4929,6 +4929,8 @@ red: context [
 			find [word! lit-word! block!] type?/word list	;-- do not process other types
 		][
 			unless block? list [list: reduce [list]]
+			forall list [if error? try [list/1: to-word list/1][throw-error ["invalid module name:" list/1]]]
+			
 			job/modules: list
 			mods: make block! 2
 			
