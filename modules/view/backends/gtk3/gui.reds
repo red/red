@@ -1722,7 +1722,6 @@ OS-refresh-window: func [
 		-1 <> as-integer g_object_get_qdata as handle! widget red-face-id
 	][
 		gtk_widget_queue_draw as handle! widget
-		set-selected-focus as handle! widget
 	]
 ]
 
