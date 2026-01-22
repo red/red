@@ -804,10 +804,14 @@ set-defaults: func [
 			0 - (font/lfHeight * 72 / log-pixels-y)
 
 		default-font: CreateFontIndirect font
+		if hWnd <> null [hFont: CreateFontIndirect font]
 	]
 
-	if null? default-font [default-font: GetStockObject DEFAULT_GUI_FONT]
-	if hWnd <> null [SetWindowLong hWnd wc-offset - 32 as-integer default-font]
+	if null? default-font [
+		default-font: GetStockObject DEFAULT_GUI_FONT
+		hFont: null
+	]
+	if hWnd <> null [SetWindowLong hWnd wc-offset - 32 as-integer hFont]
 ]
 
 enable-visual-styles: func [

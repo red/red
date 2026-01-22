@@ -3008,6 +3008,7 @@ red: context [
 		convert-types spec
 		emit reduce [to set-word! name 'func]
 		insert-lf -2
+		if block? body/1 [insert body 'comment]			;-- disables eventual metadata initial block (used by Red's callbacks)
 		append/only output spec
 		append/only output body
 		
@@ -4936,6 +4937,8 @@ red: context [
 			find [word! lit-word! block!] type?/word list	;-- do not process other types
 		][
 			unless block? list [list: reduce [list]]
+			forall list [if error? try [list/1: to-word list/1][throw-error ["invalid module name:" list/1]]]
+			
 			job/modules: list
 			mods: make block! 2
 			

@@ -9,13 +9,14 @@ Red/System [
 		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 	Notes: {
-		Qsort: ported from Bentley & McIlroy's "Engineering a Sort Function".
-		Mergesort: 
+		* Mergesort: 
 		!! only implemented a classic stable in-place merge sort for now !!
 		Will improve it based on this the article, B-C. Huang and M. A. Langston, 
 		"Fast Stable Merging and Sorting in Constant Extra Space (1989-1992)"
 		(http://comjnl.oxfordjournals.org/content/35/6/643.full.pdf)
 		(https://github.com/Mrrl/GrailSort)
+
+		* Adaptive Symmetry Partition Sort: https://arxiv.org/pdf/0706.0046
 	}
 ]
 
@@ -39,18 +40,15 @@ cmpfunc!: alias function! [
 _sort: context [
 
 	#define SORT_SWAPINIT(a width) [
-		swaptype: either width % (size? integer!) = 0 [0][1]
+		swaptype: either all [
+			(as-integer a) % (size? integer!) = 0	;-- base address is aligned
+			width % (size? integer!) = 0			;-- element size is aligned
+		][0][1]
 	]
 
 	#define SORT_SWAP(a b) [swapfunc a b width swaptype]
 
-	#define SORT_SWAP_N(a b n) [
-		loop n [
-			SORT_SWAP(a b)
-			a: a + width
-			b: b + width
-		]
-	]
+	#define SORT_SWAP_N(a b n) [swapfunc a b n * width swaptype]
 
 	#define SORT_ARGS_EXT_DEF [
 		width	[integer!]
@@ -60,6 +58,8 @@ _sort: context [
 	]
 	
 	#define SORT_ARGS_EXT [width op flags cmpfunc]
+
+	#define SORT_CMP(a b) [cmp a b op flags]
 
 	swapfunc: func [
 		a		 [byte-ptr!]
@@ -93,145 +93,6 @@ _sort: context [
 				i: i + 1
 				j: j + 1
 			]
-		]
-	]
-
-	med3: func [
-		a		[byte-ptr!]
-		b		[byte-ptr!]
-		c		[byte-ptr!]
-		op		[integer!]
-		flags	[integer!]
-		cmpfunc [integer!]
-		return: [byte-ptr!]
-		/local cmp [cmpfunc!]
-	][
-		cmp: as cmpfunc! cmpfunc
-		either negative? cmp a b op flags [
-			either negative? cmp b c op flags [b][
-				either negative? cmp a c op flags [c][a]
-			]
-		][
-			either positive? cmp b c op flags [b][
-				either negative? cmp a c op flags [a][c]
-			]
-		]
-	]
-
-	qsort: func [
-		base	[byte-ptr!]
-		num		[integer!]
-		width	[integer!]
-		op		[integer!]
-		flags	[integer!]
-		cmpfunc [integer!]
-		/local
-			a b c d m n end i j [byte-ptr!] 
-			r part result swaptype [integer!]
-			swapped? [logic!]
-			cmp [cmpfunc!]
-	][
-		cmp: as cmpfunc! cmpfunc
-		SORT_SWAPINIT(base width)
-		until [
-			swapped?: false
-			end: base + (num * width)
-
-			if num < 7 [								;-- Insertion sort on smallest arrays
-				m: base + width
-				while [m < end][
-					n: m
-					while [
-						all [
-							n > base
-							positive? cmp (n - width) n op flags
-						]
-					][
-						SORT_SWAP((n - width) n)
-						n: n - width
-					]
-					m: m + width
-				]
-				exit
-			]
-			m: base + (num / 2 * width)
-			if num > 7 [
-				a: base
-				b: base + (num - 1 * width)
-				if num > 40 [
-					part: num >> 3 * width
-					a: med3 a a + part a + (2 * part) op flags cmpfunc
-					m: med3 m - part m m + part op flags cmpfunc
-					b: med3 b - (2 * part) b - part b op flags cmpfunc
-				]
-				m: med3 a m b op flags cmpfunc
-			]
-			SORT_SWAP(base m)
-			a: base + width
-			b: a
-
-			c: base + ((num - 1) * width)
-			d: c
-			forever [
-				while [b <= c][
-					result: cmp b base op flags
-					if result > 0 [break]
-					if zero? result [
-						swapped?: true
-						SORT_SWAP(a b)
-						a: a + width
-					]
-					b: b + width
-				]
-				while [b <= c][
-					result: cmp c base op flags
-					if result < 0 [break]
-					if zero? result [
-						swapped?: true
-						SORT_SWAP(c d)
-						d: d - width
-					]
-					c: c - width
-				]
-				if b > c [break]
-				SORT_SWAP(b c)
-				swapped?: true
-				b: b + width
-				c: c - width
-			]
-			unless swapped? [			;-- switch to insertion sort 
-				m: base + width
-				while [m < end][
-					n: m
-					while [
-						all [
-							n > base
-							positive? cmp (n - width) n op flags
-						]
-					][
-						SORT_SWAP((n - width) n)
-						n: n - width
-					]
-					m: m + width
-				]
-				exit
-			]
-			r: as-integer either (a - base) < (b - a) [a - base][b - a]
-			if r > 0 [swapfunc base b - r r swaptype]
-
-			r: as-integer either (d - c) < (end - d - width) [d - c][end - d - width]
-			if r > 0 [swapfunc b end - r r swaptype]
-
-			r: as-integer b - a
-			if r > width [
-				qsort base r / width width op flags cmpfunc
-			]
-			r: as-integer d - c
-			if r > width [
-				base: end - r
-				num: r / width
-			]
-			r <= width
 		]
 	]
 
@@ -427,5 +288,268 @@ _sort: context [
 			if rest > h [grail-classic-merge base + (p0 * width) h rest - h SORT_ARGS_EXT]
 			h: h * 2
 		]
+	]
+
+	#define N_SAMPLE_SKIP 97
+
+	symmetry-partition-sort: func [
+		base	[byte-ptr!]
+		s		[integer!]
+		num		[integer!]
+		width	[integer!]
+		op		[integer!]
+		flags	[integer!]
+		cmpfunc [integer!]
+		/local
+			pb pc pa pj pm [byte-ptr!]
+			cmp [cmpfunc!]
+			i v vL m left right skip eq ineq rc swaptype [integer!]
+	][
+		SORT_SWAPINIT(base width)
+		cmp: as cmpfunc! cmpfunc
+
+		left: 0 right: 0
+		forever [
+			if num < 8 [				;-- Insertion sort on smallest arrays
+				pc: base + (num * width)
+				pb: base + width
+				while [pb < pc][
+					pm: pb
+					while [positive? SORT_CMP((pm - width) pm)][
+						SORT_SWAP((pm - width) pm)
+						pm: pm - width
+						if pm <= base [break]
+					]
+					pb: pb + width
+				]
+				exit
+			]
+			m: either s < 0 [0 - s][s]
+			either m <= 2 [			;-- place 1st, 2nd and the last
+				v: either num < 512 [num][63]
+				pc: base + (v - 1 * width)
+				pm: base + width
+
+				SORT_SWAP(pm (base + (v / 2 * width)))
+				if positive? SORT_CMP(base pm) [SORT_SWAP(base pm)]
+				if positive? SORT_CMP(pm pc) [
+					SORT_SWAP(pm pc)
+					if positive? SORT_CMP(base pm) [SORT_SWAP(base pm)]
+				]
+				left: 1 right: 1
+				pc: pc - width
+			][
+				v: either m > (num / 256) [num][16 * m - 1]
+				if s < 0 [			;-- sorted items on right end, move them to left end
+					either v < num [
+						left: m
+						s: 0 - s
+					][
+						left: m + 1 / 2
+						right: m / 2
+					]
+					pb: base + (num - m * width)
+					SORT_SWAP_N(base pb left)
+					left: left - 1
+				]
+				if s > 0 [
+					pb: base + (m * width)
+					pc: base + (v * width)
+					if v < num [
+						skip: num / v * width
+						pj: pb
+						pa: pb
+						while [pa < pc][
+							SORT_SWAP(pa pj)
+							pa: pa + width
+							pj: pj + skip
+						]
+					]
+					i: m / 2
+					right: i
+					until [
+						pb: pb - width
+						pc: pc - width
+						SORT_SWAP(pb pc)
+						i: i - 1
+						zero? i
+					]
+					left: m - 1 / 2
+				]
+				pm: base + (left * width)
+				pc: pm + (v - m * width)
+			]
+
+			;-- fat partition begins
+			pb: pm + width
+			pa: pb
+			until [
+				while [
+					rc: SORT_CMP(pb pm)
+					rc < 0
+				][
+					pb: pb + width
+				]
+				if pb >= pc [break]
+				if zero? rc [
+					if pa <> pb [SORT_SWAP(pb pa)]
+					pa: pa + width
+					pb: pb + width
+					continue
+				]
+				while [
+					rc: SORT_CMP(pc pm)
+					rc > 0
+				][
+					pc: pc - width
+				]
+				if pb >= pc [break]
+				SORT_SWAP(pb pc)
+				if zero? rc [
+					if pa <> pb [SORT_SWAP(pb pa)]
+					pa: pa + width
+				]
+				pb: pb + width
+				pc: pc - width
+				pb > pc
+			]
+
+			;-- move equal items
+			eq: as-integer pa - pm
+			ineq: as-integer pb - pa
+			if ineq < eq [pa: pm + ineq]
+			pc: pb
+			while [pm < pa][
+				pc: pc - width
+				SORT_SWAP(pc pm)
+				pm: pm + width
+			]
+
+			;-- fat partition ends
+			vL: (as-integer pb - base) / width
+			if right < (v - vL) [
+				symmetry-partition-sort pb 0 - right v - vL SORT_ARGS_EXT
+			]
+			vL: vL - (eq / width)
+			either v < num [
+				if left < vL [
+					symmetry-partition-sort base left vL SORT_ARGS_EXT
+				]
+				s: v
+			][
+				if left >= vL [exit]
+				s: left
+				num: vL
+			]
+		]
+	]
+
+	adaptive-sort: func [
+		base	[byte-ptr!]
+		num		[integer!]
+		width	[integer!]
+		op		[integer!]
+		flags	[integer!]
+		cmpfunc [integer!]
+		/local
+			pb pc pa pj [byte-ptr!]
+			cmp [cmpfunc!]
+			i j ne rc D-inv d left m order swaptype [integer!]
+	][
+		SORT_SWAPINIT(base width)
+		cmp: as cmpfunc! cmpfunc
+		order: 0
+
+		;-- find 1st run
+		ne: num * width
+		i: width
+		while [i < ne][
+			rc: cmp base + i - width base + i op flags
+			if rc <> 0 [
+				either zero? order [order: either rc < 0 [1][-1]][	;-- 1: increasing, -1: decreasing
+					if rc * order > 0 [break]
+				]
+			]
+			i: i + width
+		]
+	
+		;-- calc difference of inversions and orders
+		D-inv: order * (i / width)
+		j: i + width
+		while [j < ne][
+			rc: cmp base + j - width base + j op flags
+			either rc < 0 [D-inv: D-inv + 1][
+				if rc > 0 [D-inv: D-inv - 1]
+			]
+			j: j + (N_SAMPLE_SKIP * width)
+		]
+	
+		pb: base + i - width		;-- point to last element of the 1st run
+		d: either D-inv < 0 [0 - D-inv][D-inv]
+		if d > (num / 512) [		;-- if the data is not very random, i.e partially ordered
+			if order * D-inv < 0 [	;-- 1st run is reverse, re-find it
+				pb: base
+				order: 0 - order
+			]
+
+			pc: base + (num * width)
+			pj: pb
+			forever [				;-- a simplified "natural mergesort"
+				pj: pj + (10 * width)
+				pa: pj - width
+				if pj >= pc [break]
+				while [
+					all [
+						pj < pc
+						(order * cmp pj - width pj op flags) <= 0
+					]
+				][
+					pj: pj + width
+				]
+				while [
+					all [
+						pa > pb
+						(order * cmp pa - width pa op flags) <= 0
+					]
+				][
+					pa: pa - width
+				]
+				if (as-integer pj - pa) < (4 * width) [continue]		;-- not good, try again
+				if pb <> base [				;-- find knots in 1st and 2nd run
+					j: (as-integer pj - pa) / width / 2
+					m: (as-integer pb - base) / width / 4
+					if j > m [j: m]
+					i: 0
+					while [i < j][
+						if (order * cmp pb - (i * width) pa + (i * width) op flags) <= 0 [
+							break
+						]
+						i: i + 1
+					]
+					if i >= j [continue]	;-- oops, try again
+					pb: pb + ((1 - i) * width)
+					pa: pa + (i * width)
+				]
+				;-- merge two runs
+				either pa <> pb [
+					while [pa < pj][
+						SORT_SWAP(pb pa)
+						pb: pb + width
+						pa: pa + width
+					]
+				][pb: pj]
+				pb: pb - width
+			]
+		]
+		left: (as-integer pb - base) / width + 1
+		if order = -1 [
+			pc: base
+			while [pc < pb][
+				SORT_SWAP(pc pb)
+				pc: pc + width
+				pb: pb - width
+			]
+		]
+		if (left < num) [symmetry-partition-sort base left num width op flags cmpfunc]
 	]
 ]

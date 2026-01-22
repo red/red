@@ -1438,7 +1438,7 @@ block: context [
 		either stable? [
 			_sort/mergesort as byte-ptr! head len step * (size? red-value!) op flags cmp
 		][
-			_sort/qsort as byte-ptr! head len step * (size? red-value!) op flags cmp
+			_sort/adaptive-sort as byte-ptr! head len step * (size? red-value!) op flags cmp
 		]
 		if chk? [ownership/check as red-value! blk words/_sorted null blk/head 0]
 		blk

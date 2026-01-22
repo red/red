@@ -393,10 +393,13 @@ lexer: context [
 			len	 [integer!]
 	][
 		if lex/pos-cache > pos [						;-- invalidate cache if backtracking occured (error event)
-			lex/pos-cache: lex/input
-			lex/cnt-cache: 0
+			lex/cnt-cache: lex/cnt-cache - unicode/count-chars pos lex/pos-cache
+			lex/pos-cache: pos
+			return lex/cnt-cache
 		]
 		base: lex/pos-cache
+		assert not any [all [base <> null base < lex/input] pos < lex/input base > lex/in-end pos > lex/in-end]
+		
 		if null? base [base: lex/input]					;-- first invocation
 		len: lex/cnt-cache + unicode/count-chars base pos ;-- cached count + count from cached position to new one
 		lex/pos-cache: pos
@@ -580,9 +583,12 @@ lexer: context [
 		integer/push lex/line							;-- line number
 		either null? value [pair/push x + 1 y + 1][stack/push value] ;-- token
 
-		if lex/fun-locs > 0 [_function/init-locals lex/fun-locs]
-		interpreter/call lex/fun-ptr ctx as red-value! words/_lexer-cb CB_LEXER
-
+		either TYPE_OF(lex/fun-ptr) = TYPE_ROUTINE [
+			interpreter/exec-routine as red-routine! lex/fun-ptr
+		][
+			if lex/fun-locs > 0 [_function/init-locals lex/fun-locs]
+			interpreter/call lex/fun-ptr ctx as red-value! words/_lexer-cb CB_LEXER
+		]
 		if ser/head <> ref [							;-- check if callback changed input offset
 			ref: ser/head - lex/in-series/head
 			either TYPE_OF(ser) = TYPE_BINARY [			;-- update input offset in lexer state accordingly

@@ -517,6 +517,9 @@ get-event-offset: func [
 			evt/type <= EVT_OVER
 			evt/type = EVT_MOVING
 			evt/type = EVT_MOVE
+			evt/type = EVT_KEY
+			evt/type = EVT_KEY_UP
+			evt/type = EVT_KEY_DOWN
 		][
 			pt: as red-point2d! stack/push*
 			pt/header: TYPE_POINT2D
