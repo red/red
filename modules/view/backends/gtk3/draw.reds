@@ -93,6 +93,7 @@ draw-begin: func [
 	return:		[draw-ctx!]
 	/local
 		grad	[gradient!]
+		fe		[cairo_font_extents_t! value]
 ][
 	ctx/cr:				cr
 	ctx/pen-pattern:	null
@@ -128,6 +129,8 @@ draw-begin: func [
 
 	ctx/font-attrs:		null
 	ctx/font-opts:		null
+	cairo_font_extents cr fe							;-- init fe with default font metrics
+	ctx/font-ascent:	fe/ascent
 
 	cairo_set_line_width cr 1.0
 	cairo_set_operator cr CAIRO_OPERATOR_OVER
@@ -1262,6 +1265,7 @@ OS-draw-font: func [
 		quality	[integer!]
 		bool	[red-logic!]
 		word	[red-word!]
+		fe		[cairo_font_extents_t! value]
 ][
 	if null? dc/font-opts [
 		dc/font-opts: cairo_font_options_create
@@ -1290,6 +1294,8 @@ OS-draw-font: func [
 		default [CAIRO_ANTIALIAS_DEFAULT]
 	]
 	dc/font-antialias: quality
+	cairo_font_extents dc/cr fe							;-- get new font metrics
+	dc/font-ascent: fe/ascent
 	cairo_font_options_set_antialias dc/font-opts quality
 ]
 
@@ -1366,7 +1372,7 @@ OS-draw-text: func [
 	either TYPE_OF(text) = TYPE_STRING [
 		GET_PAIR_XY_F(pos x y)
 		set-source-color dc/cr dc/font-color
-		draw-text-at dc/cr text x y
+		draw-text-at dc/cr text x y + dc/font-ascent
 	][
 		draw-text-box dc/cr pos as red-object! text catch?
 	]

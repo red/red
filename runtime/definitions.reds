@@ -435,6 +435,7 @@ Red/System [
 					cr				[handle!]
 					DRAW_STATE_DATA
 					font-opts		[handle!]
+					font-ascent		[float!]
 					control-x		[float32!]
 					control-y		[float32!]
 					shape-curve?	[logic!]
@@ -511,6 +512,7 @@ Red/System [
 			cr				[handle!]
 			DRAW_STATE_DATA
 			font-opts		[handle!]
+			font-ascent		[float!]
 			control-x		[float32!]
 			control-y		[float32!]
 			shape-curve?	[logic!]
