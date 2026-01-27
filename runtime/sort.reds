@@ -9,14 +9,10 @@ Red/System [
 		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 	Notes: {
-		* Mergesort: 
-		!! only implemented a classic stable in-place merge sort for now !!
-		Will improve it based on this the article, B-C. Huang and M. A. Langston, 
-		"Fast Stable Merging and Sorting in Constant Extra Space (1989-1992)"
-		(http://comjnl.oxfordjournals.org/content/35/6/643.full.pdf)
-		(https://github.com/Mrrl/GrailSort)
-
-		* Adaptive Symmetry Partition Sort: https://arxiv.org/pdf/0706.0046
+		* Mergesort: implement Powersort https://www.wild-inter.net/publications/munro-wild-2018
+		  stable, needs N / 2 auxiliary memory
+		* Quicksort: implement Adaptive Symmetry Partition Sort https://arxiv.org/pdf/0706.0046
+		  unstable, no extra memory needed
 	}
 ]
 
@@ -61,6 +57,35 @@ _sort: context [
 
 	#define SORT_CMP(a b) [cmp a b op flags]
 
+	#define SORT_COPY(dst src) [copyfunc dst src width swaptype]
+
+	copyfunc: func [
+		dst			[byte-ptr!]
+		src			[byte-ptr!]
+		n			[integer!]
+		swaptype	[integer!]
+		/local
+			ii jj	[int-ptr!]
+			cnt		[integer!]
+	][
+		either zero? swaptype [
+			cnt: n >> 2
+			ii: as int-ptr! dst
+			jj: as int-ptr! src
+			loop cnt [
+				ii/value: jj/value
+				ii: ii + 1
+				jj: jj + 1
+			]
+		][
+			loop n [
+				dst/value: src/value
+				dst: dst + 1
+				src: src + 1
+			]
+		]
+	]
+
 	swapfunc: func [
 		a		 [byte-ptr!]
 		b		 [byte-ptr!]
@@ -96,161 +121,137 @@ _sort: context [
 		]
 	]
 
-	grail-rotate: func [
-		base	[byte-ptr!]
-		n1		[integer!]
-		n2		[integer!]
-		width	[integer!]
+	;-- mergesort
+
+	run!: alias struct! [
+		begin	[byte-ptr!]
+		power	[integer!]
+	]
+
+	get-run-end: func [
+		begin	[byte-ptr!]
+		end		[byte-ptr!]
+		SORT_ARGS_EXT_DEF
+		return: [byte-ptr!]
 		/local
-			end b1 [byte-ptr!]
+			j	[byte-ptr!]
+			cmp [cmpfunc!]
 			swaptype [integer!]
 	][
-		SORT_SWAPINIT(base width)
-		while [all [n1 <> 0 n2 <> 0]][
-			end: base + (n1 * width)
-			b1: end
-			either n1 <= n2 [
-				SORT_SWAP_N(base end n1)
-				base: b1
-				n2: n2 - n1
+		SORT_SWAPINIT(begin width)
+		cmp: as cmpfunc! cmpfunc
+
+		j: begin
+		if j = end [return j]
+		if j + width = end [return j + width]
+		either positive? SORT_CMP(j (j + width)) [
+			until [
+				j: j + width
+				any [
+					j + width = end
+					0 >= SORT_CMP(j (j + width))
+				]
+			]
+			;-- reverse it
+			end: j
+			while [begin < end][
+				SORT_SWAP(begin end)
+				begin: begin + width
+				end: end - width
+			]
+		][
+			until [
+				j: j + width
+				any [
+					j + width = end
+					0 < SORT_CMP(j (j + width))
+				]
+			]
+		]
+		j + width
+	]
+
+	cmp-args!: alias struct! [
+		SORT_ARGS_EXT_DEF
+	]
+
+	merge-runs: func [	;-- Merges runs A[l..m-1] and A[m..r) in-place into A[l..r)
+		l		[byte-ptr!]
+		m		[byte-ptr!]
+		r		[byte-ptr!]
+		buffer	[byte-ptr!]
+		args	[cmp-args!]
+		/local
+			n1 n2	[integer!]
+			width	[integer!]
+			op		[integer!]
+			flags	[integer!]
+			cmp		[cmpfunc!]
+			c1 c2 e1 e2 p c [byte-ptr!]
+			swaptype [integer!]
+	][
+		cmp: as cmpfunc! args/cmpfunc
+		width: args/width
+		op: args/op
+		flags: args/flags
+		SORT_SWAPINIT(l width)
+
+		n1: as-integer m - l
+		n2: as-integer r - m
+		either n1 <= n2 [
+			copy-memory buffer l n1
+			c1: buffer
+			e1: buffer + n1
+			c2: m
+			e2: r
+			p: l
+			while [
+				all [c1 < e1 c2 < e2]
 			][
-				b1: base + ((n1 - n2) * width)
-				SORT_SWAP_N(b1 end n2)
-				n1: n1 - n2
+				either positive? SORT_CMP(c1 c2) [
+					c: c2
+					c2: c2 + width
+				][
+					c: c1
+					c1: c1 + width
+				]
+				SORT_COPY(p c)
+				p: p + width
 			]
-		]
-	]
-
-	grail-search-left: func [
-		base	[byte-ptr!]
-		num		[integer!]
-		key		[byte-ptr!]
-		SORT_ARGS_EXT_DEF
-		return: [integer!]
-		/local
-			cmp [cmpfunc!]
-			a b c [integer!]
-	][
-		cmp: as cmpfunc! cmpfunc
-		a: -1
-		b: num
-		while [a < (b - 1)][
-			c: a + ((b - a) >> 1)
-			either 0 <= cmp base + (c * width) key op flags [b: c][a: c]
-		]
-		b
-	]
-
-	grail-search-right: func [
-		base	[byte-ptr!]
-		num		[integer!]
-		key		[byte-ptr!]
-		SORT_ARGS_EXT_DEF
-		return: [integer!]
-		/local
-			cmp [cmpfunc!]
-			a b c [integer!]
-	][
-		cmp: as cmpfunc! cmpfunc
-		a: -1
-		b: num
-		while [a < (b - 1)][
-			c: a + (b - a >> 1)
-			either positive? cmp base + (c * width) key op flags [b: c][a: c]
-		]
-		b
-	]
-
-	grail-merge-nobuf: func [
-		base	[byte-ptr!]
-		n1		[integer!]
-		n2		[integer!]
-		SORT_ARGS_EXT_DEF
-		/local 
-			cmp [cmpfunc!]
-			h 	[integer!]
-	][
-		cmp: as cmpfunc! cmpfunc
-		either n1 < n2 [
-			while [n1 <> 0][
-				h: grail-search-left base + (n1 * width) n2 base SORT_ARGS_EXT
-				if h <> 0 [
-					grail-rotate base n1 h width
-					base: base + (h * width)
-					n2: n2 - h
+			if c1 < e1 [copy-memory p c1 (as-integer e1 - c1)]
+		][
+			copy-memory buffer m n2
+			c1: m - width
+			c2: buffer + n2 - width
+			p: r - width
+			while [
+				all [c1 >= l c2 >= buffer]
+			][
+				either positive? SORT_CMP(c1 c2) [
+					c: c1
+					c1: c1 - width
+				][
+					c: c2
+					c2: c2 - width
 				]
-				either zero? n2 [n1: 0][
-					until [
-						base: base + width
-						n1: n1 - 1
-						any [
-							zero? n1
-							positive? cmp base base + (n1 * width) op flags
-						]
-					]
-				]
+				SORT_COPY(p c)
+				p: p - width
 			]
-		][
-			while [n2 <> 0][
-				h: grail-search-right base n1 base + (n1 + n2 - 1 * width) SORT_ARGS_EXT
-				if h <> n1 [
-					grail-rotate base + (h * width) n1 - h n2 width
-					n1: h
-				]
-				either zero? n1 [n2: 0][
-					until [
-						n2: n2 - 1
-						any [
-							zero? n2
-							positive? cmp base + (n1 - 1 * width) base + (n1 + n2 - 1 * width) op flags
-						]
-					]
-				]
-			]
+			if c2 >= buffer [copy-memory l buffer (as-integer c2 - buffer) + width]
 		]
 	]
 
-	grail-classic-merge: func [
-		base	[byte-ptr!]
-		n1		[integer!]
-		n2		[integer!]
-		SORT_ARGS_EXT_DEF
-		/local
-			ak	[byte-ptr!]
-			cmp [cmpfunc!]
-			K k1 k2 m1 m2 [integer!]
-	][
-		cmp: as cmpfunc! cmpfunc
-		if any [n1 < 9 n2 < 9][
-			grail-merge-nobuf base n1 n2 SORT_ARGS_EXT
-			exit
+	#define INSERTION_SORT(begin end n-sorted) [
+		pn: begin + n-sorted
+		while [pn < end][
+			pm: pn
+			while [positive? SORT_CMP((pm - width) pm)][
+				SORT_SWAP((pm - width) pm)
+				pm: pm - width
+				if pm <= begin [break]
+			]
+			pn: pn + width
 		]
-		K: either n1 < n2 [n1 + (n2 / 2)][n1 / 2]
-		ak: base + (K * width)
-		k1: grail-search-left base n1 ak SORT_ARGS_EXT
-		k2: k1
-		if all [
-			k2 < n1
-			zero? cmp base + (k2 * width) ak op flags
-		][
-			k2: k1 + grail-search-right base + (k1 * width) n1 - k1 ak SORT_ARGS_EXT
-		]
-		m1: grail-search-left base + (n1 * width) n2 ak SORT_ARGS_EXT
-		m2: m1
-		if all [
-			m2 < n2
-			zero? cmp base + (n1 + m2 * width) ak op flags
-		][
-			m2: m1 + grail-search-right base + (n1 + m1 * width) n2 - m1 ak SORT_ARGS_EXT
-		]
-		either k1 = k2 [
-			grail-rotate base + (k2 * width) n1 - k2 m2 width
-		][
-			grail-rotate base + (k1 * width) n1 - k1 m1 width
-			if m2 <> m1 [grail-rotate base + (k2 + m1 * width) n1 - k2 m2 - m1 width]
-		]
-		grail-classic-merge base + (k2 + m2 * width) n1 - k2 n2 - m2 SORT_ARGS_EXT
-		grail-classic-merge base k1 m1 SORT_ARGS_EXT
 	]
 
 	mergesort: func [
@@ -261,34 +262,104 @@ _sort: context [
 		flags	[integer!]
 		cmpfunc [integer!]
 		/local
-			pm0	pm1 [byte-ptr!]
-			cmp [cmpfunc!]
-			m h p0 p1 rest swaptype [integer!]
+			n-stack top powerA lenA lenB [integer!]
+			beginA endA beginB endB end p pn pm [byte-ptr!]
+			min-run-len swaptype l r n-beginA n-beginB n-endB [integer!]
+			a b		[logic!]
+			args	[cmp-args! value]
+			buffer	[byte-ptr!]
+			cmp		[cmpfunc!]
+			stack top-run [run!]
 	][
+		if num < 2 [exit]
+
 		SORT_SWAPINIT(base width)
 		cmp: as cmpfunc! cmpfunc
-		h: 2
-		m: 1
-		while [m < num][
-			pm0: base + (m - 1 * width)
-			pm1: base + (m * width)
-			if positive? cmp pm0 pm1 op flags [
-				SORT_SWAP(pm0 pm1)
-			]
-			m: m + 2
+
+		buffer: allocate num / 2 * width
+		n-stack: 1 + log-b num
+		stack: as run! system/stack/allocate (size? run!) >> 2 * n-stack	;-- allocate 1 slot = 4 bytes
+		set-memory as byte-ptr! stack null-byte n-stack * size? run!
+		top: 0
+
+		min-run-len: 24 * width
+		end: base + (num * width)
+		args/width: width
+		args/op: op
+		args/flags: flags
+		args/cmpfunc: cmpfunc
+
+		beginA: base
+		endA: get-run-end base end SORT_ARGS_EXT
+	 	powerA: 0
+
+		lenA: as-integer endA - beginA
+		if lenA < min-run-len [		;-- extend to min run length
+			p: beginA + min-run-len
+			endA: either p < end [p][end]
+			;-- insertion sort begin with unsorted data
+			INSERTION_SORT(beginA endA lenA)
 		]
-		while [h < num][
-			p0: 0
-			p1: num - (2 * h)
-			while [p0 <= p1][
-				grail-classic-merge base + (p0 * width) h h SORT_ARGS_EXT
-				p0: p0 + (2 * h)
+		while [endA < end][
+			beginB: endA
+			endB: get-run-end endA end SORT_ARGS_EXT
+			lenB: as-integer endB - beginB
+			if lenB < min-run-len [
+				p: beginB + min-run-len
+				endB: either p < end [p][end]
+				;-- insertion sort begin with unsorted data
+				INSERTION_SORT(beginB endB lenB)
 			]
-			rest: num - p0
-			if rest > h [grail-classic-merge base + (p0 * width) h rest - h SORT_ARGS_EXT]
-			h: h * 2
+
+			n-beginA: (as-integer beginA - base) / width
+			n-beginB: (as-integer beginB - base) / width
+			n-endB:   (as-integer endB - base) / width
+			l: n-beginA + n-beginB
+			r: n-beginB + n-endB
+			powerA: 0
+			while [
+				a: l >= num
+				b: r >= num
+				a = b
+			][
+				powerA: powerA + 1
+				if a [
+					l: l - num
+					r: r - num
+				]
+				l: l << 1
+				r: r << 1
+			]
+			powerA: powerA + 1
+
+			while [
+				top-run: stack + top
+				top-run/power > powerA
+			][
+				top: top - 1
+				merge-runs top-run/begin beginA endA buffer :args
+				beginA: top-run/begin
+			]
+
+			top: top + 1
+			assert top < n-stack
+			top-run: stack + top
+			top-run/begin: beginA
+			top-run/power: powerA
+			beginA: beginB
+			endA: endB
 		]
+
+		while [top > 0][
+			top-run: stack + top
+			top: top - 1
+			merge-runs top-run/begin beginA end buffer :args
+			beginA: top-run/begin
+		]
+		free buffer
 	]
+
+	;-- quicksort
 
 	#define N_SAMPLE_SKIP 97
 
@@ -444,7 +515,7 @@ _sort: context [
 		]
 	]
 
-	adaptive-sort: func [
+	qsort: func [
 		base	[byte-ptr!]
 		num		[integer!]
 		width	[integer!]
