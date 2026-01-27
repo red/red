@@ -36,10 +36,7 @@ cmpfunc!: alias function! [
 _sort: context [
 
 	#define SORT_SWAPINIT(a width) [
-		swaptype: either all [
-			(as-integer a) % (size? integer!) = 0	;-- base address is aligned
-			width % (size? integer!) = 0			;-- element size is aligned
-		][0][1]
+		swaptype: either width % (size? integer!) = 0 [0][1]
 	]
 
 	#define SORT_SWAP(a b) [swapfunc a b width swaptype]
@@ -57,32 +54,13 @@ _sort: context [
 
 	#define SORT_CMP(a b) [cmp a b op flags]
 
-	#define SORT_COPY(dst src) [copyfunc dst src width swaptype]
-
-	copyfunc: func [
-		dst			[byte-ptr!]
-		src			[byte-ptr!]
-		n			[integer!]
-		swaptype	[integer!]
-		/local
-			ii jj	[int-ptr!]
-			cnt		[integer!]
-	][
-		either zero? swaptype [
-			cnt: n >> 2
-			ii: as int-ptr! dst
-			jj: as int-ptr! src
-			loop cnt [
-				ii/value: jj/value
-				ii: ii + 1
-				jj: jj + 1
-			]
-		][
-			loop n [
-				dst/value: src/value
-				dst: dst + 1
-				src: src + 1
-			]
+	#define SORT_COPY(dst src) [
+		ii: as int-ptr! dst
+		jj: as int-ptr! src
+		loop width >> 2 [
+			ii/value: jj/value
+			ii: ii + 1
+			jj: jj + 1
 		]
 	]
 
@@ -92,16 +70,15 @@ _sort: context [
 		n		 [integer!]
 		swaptype [integer!]
 		/local
-			i j		[byte-ptr!]
 			ii jj	[int-ptr!]
-			t2 cnt	[integer!]
+			t2		[integer!]
+			i j		[byte-ptr!]
 			t1		[byte!]
 	][
 		either zero? swaptype [
-			cnt: n >> 2
 			ii: as int-ptr! a
 			jj: as int-ptr! b
-			loop cnt [
+			loop n >> 2 [
 				t2: ii/1
 				ii/1: jj/1
 				jj/1: t2
@@ -186,15 +163,14 @@ _sort: context [
 			width	[integer!]
 			op		[integer!]
 			flags	[integer!]
+			ii jj	[int-ptr!]
 			cmp		[cmpfunc!]
 			c1 c2 e1 e2 p c [byte-ptr!]
-			swaptype [integer!]
 	][
 		cmp: as cmpfunc! args/cmpfunc
 		width: args/width
 		op: args/op
 		flags: args/flags
-		SORT_SWAPINIT(l width)
 
 		n1: as-integer m - l
 		n2: as-integer r - m
@@ -342,7 +318,6 @@ _sort: context [
 			]
 
 			top: top + 1
-			assert top < n-stack
 			top-run: stack + top
 			top-run/begin: beginA
 			top-run/power: powerA
