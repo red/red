@@ -432,7 +432,7 @@ _sort: context [
 			until [
 				while [
 					rc: SORT_CMP(pb pm)
-					rc < 0
+					all [rc < 0 pb <= pc]
 				][
 					pb: pb + width
 				]
@@ -445,7 +445,7 @@ _sort: context [
 				]
 				while [
 					rc: SORT_CMP(pc pm)
-					rc > 0
+					all [rc > 0 pb <= pc]
 				][
 					pc: pc - width
 				]
