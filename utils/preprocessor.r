@@ -330,6 +330,63 @@ preprocessor: context [
 		rebind-all
 	]
 
+	expand-string: func [
+		template [any-string!]
+		/local block error string keep-expr expr val end pos keep-slice btail non-paren rule
+	][ 
+		block: clear []
+		;; display errors rather than cryptic "error in macro!"
+		;; load errors are reported at expand time by design
+		either error? error: try [
+			;; uses "string" internally, because load %file/url:// does something else entirely, <tags> get appended with <>
+			string: to string! template					
+	
+			;; cleanup helpers to win some runtime performance:
+			keep-expr: [								;-- removes unnecesary parens in obvious cases
+				;; 2 or more tokens should remain parenthesized, so that only the last value is rejoin-ed
+				;;   e.g. (1 2 3) evaluates to 3 not 1
+				;; some single _loadable_ types should also remain parenthesized:
+				;;   - word/path (can be a function)
+				;;   - set-word/set-path (may eat strings otherwise)
+				;@@ TODO: list to be extended once we're able to load any-functions directly
+				expr: first set [val end]
+					either object? :Rebol [load/next pos][transcode/next pos]
+				expr: either all [								
+					1 = length? expr
+					not find [word! path! set-word! set-path!] type?/word first expr
+				] [first expr][to paren! expr]
+				append/only block :expr
+			]
+			keep-slice: [								;-- filters out empty strings
+				btail: tail block
+				append									;-- group strings when possible
+					either any [
+						string? btail/-1				;-- do not extend any-string (e.g. ["a" <b>] -> ["a" <bc>])
+						1 = length? block				;-- on 1st index any-string can be extended
+					] [btail/-1][block]
+					copy/part pos end
+			]
+			
+			non-paren: negate charset "(" 
+			rule: [
+				pos: any non-paren end: (do keep-slice)	;-- 1st string is mandatory and can be empty
+				any [
+					pos: some non-paren end: (do keep-slice)
+				|	"(\" (end: next pos  do keep-slice) 
+				|	"(" (do keep-expr) :end 
+				]
+			]
+			either object? :Rebol [do [parse/all string rule]][parse string rule]
+			change block to template first block		;-- preserve template type
+		][
+			if object? :Rebol [error: do [disarm error]] 
+			print "*** Error in #rejoin template!"
+			error
+		][
+			return either 1 = length? block [block/1][copy block]	;-- any-string result signals that it should be optimized
+		]
+	]
+	
 	reset: func [job [object! none!]][
 		exec: do [context [config: job]]
 		clear protos
@@ -410,6 +467,17 @@ preprocessor: context [
 						if all [keep? trace?][print ["preproc: ==" mold expr]]
 						either keep? [s: change/part s :expr e][remove/part s e]
 					]
+				) :s
+				| s: #rejoin [e: any-string! | (syntax-error s e)] (
+					change/only change s 'rejoin expr: expand-string s/2
+					if any-string? expr [remove s]
+					if object? expr [syntax-error s e]
+				) :s
+				| s: #print [e: any-string! | (syntax-error s e)] (
+					insert change s 'print [#rejoin]
+				) :s
+				| s: #error [e: any-string! | (syntax-error s e)] (
+					insert change s 'do [make error! #rejoin]
 				) :s
 				| s: #local [block! | (syntax-error s next s)] e: (
 					repend stack [negate length? macros tail protos]
