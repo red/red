@@ -87,7 +87,7 @@ tag: context [
 			null			;or~
 			null			;xor~
 			;-- Series actions --
-			null			;append
+			INHERIT_ACTION	;append
 			INHERIT_ACTION	;at
 			INHERIT_ACTION	;back
 			INHERIT_ACTION	;change

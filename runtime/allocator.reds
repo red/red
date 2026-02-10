@@ -762,10 +762,7 @@ set-flag: func [
 	series/flags: series/flags or flags	;-- apply flags
 ]
 
-;-------------------------------------------
-;-- Expand a series to a new size
-;-------------------------------------------
-expand-series: func [
+expand-series-strict: func [
 	series  [series-buffer!]				;-- series to expand
 	new-sz	[integer!]						;-- new size in bytes
 	return: [series-buffer!]				;-- return new series with new size
@@ -776,8 +773,6 @@ expand-series: func [
 		delta [integer!]
 		big?  [logic!]
 ][
-	;#if debug? = yes [print-wide ["series expansion triggered for:" series new-sz lf]]
-	
 	assert not null? series
 	assert any [
 		zero? new-sz
@@ -805,15 +800,31 @@ expand-series: func [
 	
 	if big? [new/flags: new/flags or flag-series-big]	;@@ to be improved
 	
+	assert not zero? (series/flags and not series-in-use) ;-- ensure that 'used bit is set
+	series/flags: series/flags xor series-in-use		  ;-- clear 'used bit (enough to free the series)
+	new	
+]
+
+;-------------------------------------------
+;-- Expand a series to a new size
+;-------------------------------------------
+expand-series: func [
+	series  [series-buffer!]				;-- series to expand
+	new-sz	[integer!]						;-- new size in bytes
+	return: [series-buffer!]				;-- return new series with new size
+	/local
+		new	  [series-buffer!]
+][
+	;#if debug? = yes [print-wide ["series expansion triggered for:" series new-sz lf]]
+	
+	new: expand-series-strict series new-sz
 	;TBD: honor flag-ins-head and flag-ins-tail when copying!	
 	copy-memory 							;-- copy old series in new buffer
 		as byte-ptr! new/offset
 		as byte-ptr! series/offset
 		series/size
 	
-	assert not zero? (series/flags and not series-in-use) ;-- ensure that 'used bit is set
-	series/flags: series/flags xor series-in-use		  ;-- clear 'used bit (enough to free the series)	
-	new	
+	new
 ]
 
 ;-------------------------------------------

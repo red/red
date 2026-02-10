@@ -58,6 +58,112 @@ Red [
 	str: "12"
 	append/part/dup str ["4" #"5" #"6" 7 a 'b x] 6 2
 	--assert str = "124567ab4567ab"
+	
+  --test-- "append-19"
+	str: "12é"
+	append/part/dup str ["4" #"5" #"6" 7 a 'b x] 6 2
+	--assert str = "12é4567ab4567ab"
+
+  --test-- "append-20"
+	str: "12"
+	append/part/dup str ["4" #"5" #"6" 7 é 'b x] 6 2
+	--assert str = "124567éb4567éb"
+	
+  --test-- "append-21"
+	str: "12"
+	append/part/dup str ["4" #"5" #"é" 7 a 'b x] 6 2
+	--assert str = "1245é7ab45é7ab"
+
+  --test-- "append-22"
+	str: "12"
+	append/part/dup str ["4" #"5" #"^(010000)" 7 a 'b x] 6 2
+	--assert str = "1245^(010000)7ab45^(010000)7ab"	
+
+  --test-- "append-23"
+	str: "12é"
+	append/part/dup str ["4" #"5" #"^(010000)" 7 a 'b x] 6 2
+	--assert str = "12é45^(010000)7ab45^(010000)7ab"
+	
+  --test-- "append-24"
+	str: "12^(010000)"
+	append/part/dup str ["4" #"5" #"6" 7 a 'b x] 6 2
+	--assert str = "12^(010000)4567ab4567ab"
+	
+  --test-- "append-25"
+    str: "12"
+    append/part str "456" 0
+    --assert str = "12"
+
+  --test-- "append-26"
+    str: "12"
+    append/dup/part str "456" 3 0
+    --assert str = "12"
+
+  --test-- "append-26.1"
+    str: "12"
+    append/dup/part str "456" 0 0
+    --assert str = "12"
+ 
+  --test-- "append-27"
+    str: "12"
+    append/part str "456" -1
+    --assert str = "12"
+
+  --test-- "append-28"
+    str: "12"
+    append/dup/part str "456" 3 -1
+    --assert str = "12"
+
+  --test-- "append-29"
+    str: "12"
+    append/dup str "456" -1
+    --assert str = "12"
+
+  --test-- "append-30"
+    str: "12"
+    append/dup/part str "456" -1 -1
+    --assert str = "12"
+
+  --test-- "append-31"
+    str: "12"
+    append/part str "456" 1
+    --assert str = "124"
+  
+  --test-- "append-32"
+    str: "12"
+    append/part str "456" 100000
+    --assert str = "12456"
+
+  --test-- "append-32"
+    str: "12"
+    append/part str <456> 0
+    --assert str = "12"
+
+  --test-- "append-33"
+    str: "12"
+    append/part str <456> 1
+    --assert str = "12<"
+
+  --test-- "append-34"
+    str: "12"
+    append/part str <456> 2
+    --assert str = "12<4"
+
+  --test-- "append-35"
+    str: "12"
+    append/part str <456> 4
+    --assert str = "12<456"
+
+  --test-- "append-36"
+    str: "12"
+    append/part str <456> 5
+    --assert str = "12<456>"
+
+  --test-- "append-37"
+    str: "12"
+    append/part str <456> 10
+    --assert str = "12<456>"
+
 ===end-group===
 
 ===start-group=== "append/dup"

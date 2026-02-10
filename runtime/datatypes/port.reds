@@ -313,6 +313,36 @@ port: context [
 		logic/push match?
 		call-function actors words/_find
 	]
+
+	append: func [
+		port	[red-object!]
+		value	[red-value!]
+		part	[red-value!]
+		only?	[logic!]
+		dup		[red-value!]
+		append? [logic!]
+		return:	[red-value!]
+		/local
+			actors [red-object!]
+			part?  [logic!]
+			dup?   [logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "port/append"]]
+
+		part?: OPTION?(part)
+		dup?: OPTION?(dup)
+		actors: get-actors as red-object! port
+		stack/mark-func words/_insert actors/ctx
+		stack/push as red-value! port
+		stack/push value
+		logic/push part?
+		either part? [stack/push part][none/push]
+		logic/push only?
+		logic/push dup?
+		either dup? [stack/push dup][none/push]
+		logic/push append?
+		call-function actors words/_append
+	]
 	
 	insert: func [
 		port	[red-object!]
@@ -802,7 +832,7 @@ port: context [
 			null			;or~
 			null			;xor~
 			;-- Series actions --
-			null			;append
+			:append
 			:at
 			:back
 			:change

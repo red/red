@@ -399,6 +399,22 @@ Red [
   --assert #{6162} = append/part #{} "abc" 2
   --assert #{C3A9} = append/part #{} "ébc" 2
   --assert #{C3A96263} = append #{} "ébc"
+  
+  --test-- "series-append-27"
+      str: "12"
+      append/dup/part str "4é6" 3 2
+      --assert str = "124é4é4é"
+  
+  --test-- "series-append-28"
+      str: "12"
+      append/dup/part str "4^(010000)6" 3 2   
+      --assert str = "124^(010000)4^(010000)4^(010000)"
+  
+  --test-- "series-append-29"
+      str: "1é"
+      append/dup/part str "4^(010000)6" 3 2  
+    --assert str = "1é4^(010000)4^(010000)4^(010000)"
+
 
 ===end-group===
 
