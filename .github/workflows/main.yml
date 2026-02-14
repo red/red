@@ -1,6 +1,12 @@
 name: Windows
 
-on: [push, pull_request]
+on:
+  push:
+    branches-ignore:
+      - debug
+  pull_request:
+    branches-ignore:
+      - debug
 
 jobs:
   Core:

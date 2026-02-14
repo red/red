@@ -1,6 +1,9 @@
 name: RPi
 
-on: push
+on:
+  push:
+    branches-ignore:
+      - debug
 
 jobs:
   Build-RPi-Tests:
