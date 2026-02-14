@@ -1,0 +1,39 @@
+name: Windows GUI Console Build (Debug Branch)
+
+on:
+  push:
+    branches:
+      - debug
+  pull_request:
+    branches:
+      - debug
+
+jobs:
+  Windows-GUI-Console-Build:
+    runs-on: windows-latest
+    name: Build Windows GUI Console
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Rebol
+      run: |
+        $url = "http://static.red-lang.org/build/rebview.exe"
+        $output = "$Env:GITHUB_WORKSPACE\rebview.exe"
+        (New-Object System.Net.WebClient).DownloadFile($url, $output)
+
+    - name: Build GUI Console
+      run: |
+        # Build the GUI console for Windows
+        rebview.exe -qws red.r -d environment\console\GUI\gui-console.red
+      shell: cmd
+
+    - name: List generated files
+      run: dir
+      shell: cmd
+
+    - name: Upload GUI Console Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: gui-console-debug
+        path: gui-console.exe
