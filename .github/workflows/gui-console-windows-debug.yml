@@ -25,7 +25,7 @@ jobs:
     - name: Build GUI Console
       run: |
         # Build the GUI console for Windows
-        rebview.exe -qws red.r -d environment\console\GUI\gui-console.red
+        rebview.exe -qws red.r -d -r environment\console\GUI\gui-console.red
       shell: cmd
 
     - name: List generated files
