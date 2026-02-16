@@ -1139,6 +1139,14 @@ average: func [
 	divide sum block length? block
 ]
 
+clip: func [
+	"Return A if it's within [B,C] range, otherwise the range boundary nearest to A"
+	a [scalar!] b [scalar!] c [scalar!]
+	return: [scalar!]
+][
+	min max a b max min a b c
+]
+
 last?: func [
 	"Returns TRUE if the series length is 1"
 	series [series!]
