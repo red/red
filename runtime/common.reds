@@ -521,6 +521,22 @@ do-indent: func [
 	part - (tabs * 4)
 ]
 
+dup-memory: func [
+	base	[byte-ptr!]									;-- start of memory region
+	len		[integer!]									;-- length in bytes to replicate
+	count	[integer!]									;-- number of replications (including the base one)
+	return: [byte-ptr!]
+	/local
+		p	[byte-ptr!]
+][
+	p: base + len
+	loop count - 1 [									;@@ To be optimized using geometric copying
+		copy-memory p base len
+		p: p + len
+	]
+	p
+]
+
 cycles: context [
 	size: 1000											;-- max depth allowed (arbitrary)
 	bottom: as node! allocate size * size? node!		;-- cycles detection stack

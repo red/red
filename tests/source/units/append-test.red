@@ -134,32 +134,32 @@ Red [
     append/part str "456" 100000
     --assert str = "12456"
 
-  --test-- "append-32"
+  --test-- "append-33"
     str: "12"
     append/part str <456> 0
     --assert str = "12"
 
-  --test-- "append-33"
+  --test-- "append-34"
     str: "12"
     append/part str <456> 1
     --assert str = "12<"
 
-  --test-- "append-34"
+  --test-- "append-35"
     str: "12"
     append/part str <456> 2
     --assert str = "12<4"
 
-  --test-- "append-35"
+  --test-- "append-36"
     str: "12"
     append/part str <456> 4
     --assert str = "12<456"
 
-  --test-- "append-36"
+  --test-- "append-37"
     str: "12"
     append/part str <456> 5
     --assert str = "12<456>"
 
-  --test-- "append-37"
+  --test-- "append-38"
     str: "12"
     append/part str <456> 10
     --assert str = "12<456>"

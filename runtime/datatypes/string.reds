@@ -843,6 +843,70 @@ string: context [
 		offset: offset - str2/head
 		if positive? offset [remove-part str1 str1/head offset]
 	]
+
+	upgrade-series-unit: func [s [series!] unit [integer!] unit2 [integer!] return: [series!]][
+		switch unit2 [
+			UCS-2 [unicode/Latin1-to-UCS2 s]
+			UCS-4 [either unit = Latin1 [unicode/Latin1-to-UCS4 s][unicode/UCS2-to-UCS4 s]]
+		]
+	]
+
+	convert: func [
+		s		[series!]								;-- source series
+		sn		[series!]								;-- destination series (or NULL for in-place)
+		size	[integer!]								;-- segment size (ignored if destination provided)
+		unit2	[integer!]								;-- target unit
+		s-off	[integer!]								;-- source offset in bytes
+		d-off	[integer!]								;-- destination offset in bytes
+		part	[integer!]								;-- source size limitation in bytes
+		strict?	[logic!]								;-- if set, don't touch new series' header
+		return: [series!]
+		/local
+			src dst end [byte-ptr!]
+			dst4 [int-ptr!]
+			new	 [series!]
+			unit [integer!]
+	][
+		unit: GET_UNIT(s)
+		assert unit < unit2
+		new: either null? sn [expand-series-strict s size][sn] ;-- content is not copied
+
+		src:  (as byte-ptr! s/offset) + s-off
+		end:  either part > 0 [(as byte-ptr! s/offset) + part][as byte-ptr! s/tail]
+		dst4: as int-ptr! (as byte-ptr! new/offset) + d-off
+
+		case [
+			unit2 = UCS-2 [								;-- upgrade from UCS-1 to UCS-2
+				dst: (as byte-ptr! new/offset) + d-off
+				while [src < end][
+					dst/1: src/1
+					dst/2: null-byte
+					src: src + 1
+					dst: dst + 2
+				]
+				dst4: as int-ptr! dst
+			]
+			unit = UCS-1 [								;-- upgrade from UCS-1 to UCS-4
+				while [src < end][
+					dst4/value: as-integer src/1
+					src: src + 1
+					dst4: dst4 + 1
+				]
+			]
+			unit = UCS-2 [								;-- upgrade from UCS-2 to UCS-4
+				while [src < end][
+					dst4/value: (as-integer src/2) << 8 + src/1
+					src: src + 2
+					dst4: dst4 + 1
+				]
+			]
+		]
+		unless strict? [
+			new/tail: as red-value! dst4
+			new/flags: new/flags and flag-unit-mask or unit2
+		]
+		new
+	]
 	
 	equal?: func [
 		str1	  [red-string!]							;-- first operand
@@ -1467,7 +1531,7 @@ string: context [
 			]
 			TYPE_ANY_LIST [
 				buffer: make-at proto 16 1
-				insert buffer spec null no null yes
+				append buffer spec null no null
 			]
 			TYPE_REFINEMENT [
 				buffer: rs-make-at proto 16
@@ -2448,59 +2512,6 @@ string: context [
 		str
 	]
 
-	upgrade-series-unit: func [s [series!] unit [integer!] unit2 [integer!] return: [series!]][
-		switch unit2 [
-			UCS-2 [unicode/Latin1-to-UCS2 s]
-			UCS-4 [either unit = Latin1 [unicode/Latin1-to-UCS4 s][unicode/UCS2-to-UCS4 s]]
-		]
-	]
-
-	expand-series-unit: func [s [series!] size [integer!] unit2 [integer!] return: [series!]
-		/local
-			src dst end [byte-ptr!]
-			dst4 [int-ptr!]
-			new	 [series!]
-			unit [integer!]	
-	][
-		unit: GET_UNIT(s)
-		assert unit < unit2
-		new: expand-series-strict s size				;-- content is not copied
-		
-		src:  as byte-ptr! s/offset
-		end:  as byte-ptr! s/tail
-		dst4: as int-ptr! new/offset
-
-		case [
-			unit2 = UCS-2 [								;-- upgrade from UCS-1 to UCS-2
-				dst:  as byte-ptr! new/offset
-				while [src < end][
-					dst/1: src/1
-					dst/2: null-byte
-					src: src + 1
-					dst: dst + 2
-				]
-				dst4: as int-ptr! dst
-			]
-			unit = UCS-1 [								;-- upgrade from UCS-1 to UCS-4
-				while [src < end][
-					dst4/value: as-integer src/1
-					src: src + 1
-					dst4: dst4 + 1
-				]
-			]
-			unit = UCS-2 [								;-- upgrade from UCS-2 to UCS-4
-				while [src < end][
-					dst4/value: (as-integer src/2) << 8 + src/1
-					src: src + 2
-					dst4: dst4 + 1
-				]
-			]
-		]
-		new/tail: as red-value! dst4
-		new/flags: new/flags and flag-unit-mask or unit2
-		new
-	]
-
 	append: func [
 		str		 [red-string!]
 		value	 [red-value!]
@@ -2531,10 +2542,10 @@ string: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/append"]]
 
-		cnt:  1
+		cnt: 1
 		part: -1
 		
-		do-form-part: [
+		do-form-part: [									;-- FORM/part value, appending to str
 			part: actions/form slot str null part
 			if part < 0 [
 				s: GET_BUFFER(str)
@@ -2563,7 +2574,7 @@ string: context [
 			int: as red-integer! dup-arg
 			cnt: int/value
 			if cnt <= 0 [return as red-value! str]
-		]	
+		]
 		s: GET_BUFFER(str)
 		len: (as-integer s/tail - s/offset) >> (log-b GET_UNIT(s))
 		chk?: ownership/check as red-value! str words/_append value len part
@@ -2572,7 +2583,7 @@ string: context [
 		str2: as red-string! value
 		done?: no
 		
-		added: switch type [
+		added: switch type [							;-- precalculate nb of added chars
 			TYPE_CHAR 		[1]
 			TYPE_TAG  		[2 + rs-length? str2]		;-- upper limit (/part not accounted)
 			TYPE_ANY_STRING [rs-length? str2]			;-- upper limit (/part not accounted)
@@ -2583,7 +2594,7 @@ string: context [
 				head: s/offset + blk/head
 				slot: head
 				while [slot < s/tail][
-					do-form-part
+					do-form-part						;-- form and append it, then measure added chars
 					if part <= 0 [break]
 					slot: slot + 1
 				]
@@ -2593,24 +2604,24 @@ string: context [
 			default			[
 				if part < 0 [part: MAX_INT]				;-- if no /part, ensures all chars are used
 				slot: value
-				do-form-part
+				do-form-part							;-- form and append it, then measure added chars
 				done?: yes
 				(rs-length? str) - len
 			]
-		]	
+		]
 		s: GET_BUFFER(str)
-		either done? [
+		either done? [									;-- expand str if needed, accounting to added and /dup
 			if cnt > 1 [
 				size: (len + (added * cnt)) * GET_UNIT(s)
 				if size > s/size [
-					if s/size * 2 > size [size: 0]
+					if s/size * 2 > size [size: 0]		;-- double existing space (0 arg) if size can fit into that
 					s: expand-series s size
 				]
 			]
 		][
-			unit2: either type = TYPE_CHAR [
+			unit2: either type = TYPE_CHAR [			;-- calculate argument's unit
 				char: as red-char! value
-				case [char/value < 128 [1] char/value < 65536 [2] true [3]]
+				case [char/value < 128 [UCS-1] char/value < 65536 [UCS-2] true [UCS-4]]
 			][
 				s2: GET_BUFFER(str2)
 				GET_UNIT(s2)
@@ -2618,14 +2629,14 @@ string: context [
 			unit: GET_UNIT(s)
 			upgrade?: unit < unit2
 			u: either upgrade? [unit2][unit]
-			size: (len + (added * cnt)) * u
-			either size > s/size [
-				if s/size * 2 > size [size: 0]
-				either upgrade? [s: expand-series-unit s size unit2][s: expand-series s size]
+			size: (len + (added * cnt)) * u				;; /part not taken into account, overshooting size!
+			either size > s/size [						;-- expand if needed
+				if s/size * 2 > size [size: 0]			;-- double existing space (0 arg) if size can fit into that
+				s: either upgrade? [convert s null size unit2 0 0 0 no][expand-series s size]
 			][
 				if upgrade? [s: upgrade-series-unit s unit unit2]
 			]
-			either type = TYPE_CHAR [append-char s char/value][
+			either type = TYPE_CHAR [append-char s char/value][ ;-- now append char / any-string argument
 				p0: as byte-ptr! s/tail
 				if TYPE_OF(value) = TYPE_TAG [append-char s as-integer #"<"]
 				str2: as red-string! value
@@ -2633,7 +2644,7 @@ string: context [
 				if TYPE_OF(value) = TYPE_TAG [append-char GET_BUFFER(str) as-integer #">"]
 				added: (as-integer (as byte-ptr! s/tail) - p0) >> log-b GET_UNIT(s) ;-- refresh it accounting for /part
 				
-				if all [part >= 0 added > part][
+				if all [part >= 0 added > part][		;-- truncate if /part is exceeded (mostly for url! args)
 					s: GET_BUFFER(str)
 					s/tail: as cell! p0 + (part << log-b GET_UNIT(s))
 					added: part
@@ -2641,17 +2652,12 @@ string: context [
 			]
 			assert s = GET_BUFFER(str)					;-- check if any unexpected expansion happened
 		]
-		if all [cnt > 1 added > 0][
+
+		if all [cnt > 1 added > 0][						;-- duplicate the one appended instance to /dup count
 			size: added * GET_UNIT(s)
-			p0: (as byte-ptr! s/tail) - size
-			p: as byte-ptr! s/tail
-			
-			loop cnt - 1 [
-				copy-memory p p0 size
-				p: p + size
-				assert (as byte-ptr! s/offset) + s/size >= p
-			]
-			s/tail: as red-value! p
+			p0: dup-memory (as byte-ptr! s/tail) - size size cnt
+			assert (as byte-ptr! s/offset) + s/size >= p0
+			s/tail: as red-value! p0
 		]
 		if part < 0 [part: 1]							;-- ownership/check needs part >= 0
 		if chk? [ownership/check as red-value! str words/_appended value len part]
@@ -2670,154 +2676,213 @@ string: context [
 		/local
 			src		  [red-block!]
 			cell	  [red-value!]
-			limit	  [red-value!]
 			int		  [red-integer!]
 			char	  [red-char!]
 			sp		  [red-string!]
+			str2	  [red-string!]
 			form-slot [red-value!]
 			form-buf  [red-string!]
-			action	  [red-word!]
-			s		  [series!]
-			s2		  [series!]
-			dup-n	  [integer!]
+			blk		  [red-block!]
+			head slot [red-value!]
+			s s2 sn   [series!]
+			p p0	  [byte-ptr!]
 			cnt		  [integer!]
 			part	  [integer!]
-			len		  [integer!]
-			rest	  [integer!]
+			len	len2  [integer!]
 			added	  [integer!]
 			type	  [integer!]
-			index	  [integer!]
-			slots	  [integer!]
+			unit unit2[integer!]
 			size	  [integer!]
-			tail?	  [logic!]
+			index	  [integer!]
+			u		  [integer!]
 			chk?	  [logic!]
+			done?	  [logic!]
+			upgrade?  [logic!]
+			do-form-part [subroutine!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/insert"]]
 
-		dup-n: 1
-		cnt:  1
+		cnt: 1
 		part: -1
 		
+		do-form-part: [									;-- FORM/part value, appending to str
+			part: actions/form slot form-buf null part
+			if part < 0 [
+				s: GET_BUFFER(str)
+				s/tail: as cell! (as byte-ptr! s/tail) + part
+			]
+		]
+		;-- Options processing
 		if OPTION?(part-arg) [
 			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
 				int: as red-integer! part-arg
 				int/value
 			][
 				sp: as red-string! part-arg
-				form-buf: as red-string! value
+				str2: as red-string! value
 				unless all [
-					TYPE_OF(sp) = TYPE_OF(form-buf)
-					sp/node = form-buf/node
+					TYPE_OF(sp) = TYPE_OF(str2)
+					sp/node = str2/node
 				][
 					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
 				]
-				sp/head - form-buf/head
+				sp/head - str2/head
 			]
+			if part <= 0 [return as red-value! str]
 		]
 		if OPTION?(dup-arg) [
 			int: as red-integer! dup-arg
 			cnt: int/value
-			if negative? cnt [return as red-value! str]
-			dup-n: cnt
+			if cnt <= 0 [return as red-value! str]
 		]
-		
-		form-slot: stack/push*							;-- reserve space for FORMing incompatible values
-		form-slot/header: TYPE_UNSET
-		
 		s: GET_BUFFER(str)
 		len: (as-integer s/tail - s/offset) >> (log-b GET_UNIT(s))
-		tail?: any [len = str/head append?]
-		index: either append? [
-			action: words/_append
-			len
-		][
-			action: words/_insert
-			str/head
-		]
-		chk?: ownership/check as red-value! str action value index part
-
-		slots: either part > 0 [cnt * part][cnt]
-		slots: slots * GET_UNIT(s)
-		size: slots + as-integer s/tail - s/offset
-		if size > s/size [
-			if cnt <= 4 [size: size * 2]				;-- double it if low number of inserted slots
-			s: expand-series s size
+		if len = str/head [
+			append str value part-arg only? dup-arg		;-- equivalent to append, so fallback on it
+			s: GET_BUFFER(str)
+			str/head: (as-integer s/tail - s/offset) >> log-b GET_UNIT(s) ;-- set head past the inserted chars (at tail)
+			return as red-value! str
 		]
 		
-		while [not zero? cnt][							;-- /dup support
-			type: TYPE_OF(value)
-			either any [								;@@ replace it with: typeset/any-list?
-				type = TYPE_BLOCK
-				type = TYPE_PAREN
-				type = TYPE_HASH
-			][
-				src: as red-block! value
-				s2: GET_BUFFER(src)
-				cell:  s2/offset + src/head
-				limit: cell + block/rs-length? src
-			][
-				cell:  value
-				limit: value + 1
-			]
-			rest: 0
-			added: 0
-			while [
-				all [cell < limit added <> part]		;-- multiple values case
-			][
-				type: TYPE_OF(cell)
-				
-				either type = TYPE_CHAR [
-					char: as red-char! cell
-					s: GET_BUFFER(str)
-					either tail? [
-						append-char s char/value
-					][
-						insert-char s str/head + added char/value
+		chk?: ownership/check as red-value! str words/_insert value str/head part
+
+		type: TYPE_OF(value)
+		str2: as red-string! value
+		done?: no
+		
+		added: switch type [							;-- precalculate nb of added chars
+			TYPE_CHAR 		[char: as red-char! value  1]
+			TYPE_TAG  		[2 + rs-length? str2]		;-- upper limit (/part not accounted)
+			TYPE_ANY_STRING [rs-length? str2]			;-- upper limit (/part not accounted)
+			default			[							;-- multiple values case
+				if part < 0 [part: MAX_INT]				;-- if no /part, ensures all chars are used
+				form-slot: stack/push*					;-- reserve space for FORMing incompatible values
+				form-slot/header: TYPE_UNSET
+				form-buf: rs-make-at form-slot 16
+				either ANY_LIST?(type) [
+					blk: as red-block! value
+					s2: GET_BUFFER(blk)
+					head: s2/offset + blk/head
+					slot: head
+					while [slot < s2/tail][
+						do-form-part					;-- form and append it, then measure added chars
+						if part <= 0 [break]
+						slot: slot + 1
 					]
-					added: added + 1
 				][
-					either all [
-						ANY_STRING?(type)
-						type <> TYPE_TAG				;-- preserve angle brackets
-					][
-						form-buf: as red-string! cell
-					][
-						;TBD: free previous form-buf node and series buffer
-						form-buf: rs-make-at form-slot 16
-						actions/form cell form-buf null 0
-					]
-					len: rs-length? form-buf
-					rest: len		 					;-- if not /part, use whole value length
-					if positive? part [					;-- /part support
-						rest: part - added
-						if rest > len [rest: len]
-					]
-					either tail? [
-						concatenate str form-buf rest 0 no no
-					][
-						concatenate str form-buf rest added no yes
-					]
-					added: added + rest
+					slot: value
+					do-form-part						;-- form and append it, then measure added chars
 				]
-				cell: cell + 1
+				done?: yes
+				rs-length? form-buf
 			]
-			cnt: cnt - 1
+		]
+		s: GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		either done? [
+			s2: GET_BUFFER(form-buf)
+			unit2: GET_UNIT(s2)
+		][
+			unit2: either type = TYPE_CHAR [			;-- calculate argument's unit
+				case [char/value < 128 [UCS-1] char/value < 65536 [UCS-2] true [UCS-4]]
+			][
+				s2: GET_BUFFER(str2)
+				GET_UNIT(s2)
+			]
+			form-slot: value
+			form-buf: as red-string! value				;-- if TYPE_CHAR, form-buf will not be used further
+		]
+		upgrade?: unit < unit2
+		u: either upgrade? [unit2][unit]
+		if all [part > 0 part < added not done?][added: part]
+		size: (len + (added * cnt)) * u
+		index: str/head
+		len: index << log-b u
+
+		either size > s/size [
+			sn: expand-series-strict s size
+			sn/tail: sn/offset
+			;; append left piece
+			if len > 0 [
+				either upgrade? [convert s sn 0 unit2 0 0 (index << log-b unit) no][	;-- copy and if needed upgrade s into sn
+					copy-memory as byte-ptr! sn/offset as byte-ptr! s/offset len
+					sn/tail: as cell! (as byte-ptr! sn/tail) + len
+				]
+			]
+			either type = TYPE_CHAR [
+				append-char sn char/value
+				if cnt > 1 [
+					p0: (as byte-ptr! s/offset) + len
+					p0: dup-memory p0 u cnt
+					assert (as byte-ptr! s/offset) + s/size >= p0
+				]
+			][
+				;; disable events
+				append str form-slot part-arg only? dup-arg
+			]
+			;; append right piece
+			p0: (as byte-ptr! s/offset) + (index << log-b unit)
+			len2: as-integer s/tail - as cell! p0
+			if len2 > 0 [
+				either upgrade? [						;-- copy and if needed upgrade s into sn
+					len2: as-integer sn/tail - sn/offset
+					convert s sn 0 unit2 (index << log-b unit) len2 0 no
+				][
+					copy-memory as byte-ptr! sn/tail p0 len2
+					sn/tail: as cell! (as byte-ptr! sn/tail) + len2
+				]
+			]
+		][
+			if upgrade? [s: upgrade-series-unit s unit unit2]
+			; move-up P2
+			p0: (as byte-ptr! s/offset) + len
+			u: GET_UNIT(s)
+			size: added * cnt * u
+			move-memory	p0 + size p0 as-integer s/tail - s/offset ;-- make space (accounting for /dup)
+			s/tail: as cell! (as byte-ptr! s/tail) + size
+			;; s/tail setting !!!??!!
+
+			; insert
+			either type = TYPE_CHAR [poke-char s p0 char/value][
+				s2: GET_BUFFER(form-buf)
+				either done? [
+					either u = unit2 [
+						copy-memory p0 (as byte-ptr! s2/offset) + (form-buf/head << log-b GET_UNIT(s2)) added * u
+					][
+						convert s2 s size u 0 len 0 yes
+					]
+				][
+					if any [part < 0 part > added][part: added]
+					if type = TYPE_TAG [poke-char s p0 as-integer #"<"  p0: p0 + 1  part: part - 1]
+					if part > 0 [
+						len2: as-integer s2/tail - s2/offset
+						if part < len2 [len2: part]
+						either u = unit2 [
+							copy-memory p0 (as byte-ptr! s2/offset) + (form-buf/head << log-b GET_UNIT(s2)) len2 * u
+						][
+							convert s2 s size u 0 len part yes
+						]
+						part: part - len2
+					]
+					if all [type = TYPE_TAG part > 0][poke-char s p0 + (len2 * u) as-integer #">"]
+				]
+			]
+			;-- replicate /dup times
+			if all [cnt > 1 added > 0][					;-- duplicate the one appended instance to /dup count
+				p0: dup-memory p0 added * u cnt
+				assert (as byte-ptr! s/offset) + s/size >= p0
+			]
 		]
 		if part < 0 [part: 1]							;-- ownership/check needs part >= 0
-		if chk? [
-			action: either append? [words/_appended][words/_inserted]
-			ownership/check as red-value! str action value index part
+		if chk? [ownership/check as red-value! str words/_inserted value index part]
+		
+		str/head: index + (added * cnt)
+		s: GET_BUFFER(str)
+		part: log-b GET_UNIT(s)
+		if (as byte-ptr! s/offset) + (str/head << part) > as byte-ptr! s/tail [ ;-- check for past-end caused by object event
+			str/head: (as-integer s/tail - s/offset) >> part  ;-- adjust offset to series' tail
 		]
-		either append? [str/head: 0][
-			added: added * dup-n
-			str/head: str/head + added
-			s: GET_BUFFER(str)
-			part: log-b GET_UNIT(s)
-			if (as byte-ptr! s/offset) + (str/head << part) > as byte-ptr! s/tail [ ;-- check for past-end caused by object event
-				str/head: (as-integer s/tail - s/offset) >> part  ;-- adjust offset to series' tail
-			]
-		]
-		stack/pop 1										;-- pop the FORM slot
+		;if done? [stack/pop 1]				;-- pop the FORM slot
 		as red-value! str
 	]
 
