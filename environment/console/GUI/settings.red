@@ -96,14 +96,15 @@ display-about: function [][
 	view/flags lay [modal no-title]
 ]
 
-set-dark-mode: func [
-	dark?	[logic!]
-][
+set-dark-mode: func [/local dark? scroller][
+	dark?: cfg/dark-mode? = 'true
 	foreach face gui-console-ctx/win/parent/pane [
 		system/view/platform/set-dark-mode face dark?
 	]	
 	system/view/platform/set-dark-mode win dark?
 	system/view/platform/set-dark-mode console dark?
+	scroller: get-scroller console 'horizontal
+	scroller/visible?: no	;-- hide horizontal bar
 ]
 
 show-cfg-dialog: function [][
@@ -141,7 +142,7 @@ show-cfg-dialog: function [][
 		pad -17x0 cfg-buffers: hex-field right return
 		check "Dark Mode" [
 			cfg/dark-mode?: to-word face/data
-			set-dark-mode face/data
+			set-dark-mode
 		] on-create [
 			unless system/view/platform/support-dark-mode? [
 				face/enabled?: no
@@ -194,7 +195,7 @@ apply-cfg: function [][
 	set-font-color cfg/font-color
 	system/console/history: cfg/history
 	terminal/history: cfg/history
-	if cfg/dark-mode? = 'true [set-dark-mode yes]
+	set-dark-mode
 ]
 
 save-cfg: function [][
