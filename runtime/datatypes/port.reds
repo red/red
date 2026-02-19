@@ -320,7 +320,7 @@ port: context [
 		part	[red-value!]
 		only?	[logic!]
 		dup		[red-value!]
-		append? [logic!]
+		events? [logic!]
 		return:	[red-value!]
 		/local
 			actors [red-object!]
@@ -340,7 +340,7 @@ port: context [
 		logic/push only?
 		logic/push dup?
 		either dup? [stack/push dup][none/push]
-		logic/push append?
+		;logic/push events?
 		call-function actors words/_append
 	]
 	
@@ -370,7 +370,7 @@ port: context [
 		logic/push only?
 		logic/push dup?
 		either dup? [stack/push dup][none/push]
-		logic/push append?
+		;logic/push append?
 		call-function actors words/_insert
 	]
 	

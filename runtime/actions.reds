@@ -851,7 +851,7 @@ actions: context [
 		part	[red-value!]
 		only?	[logic!]
 		dup		[red-value!]
-		append? [logic!]
+		events? [logic!]
 		return:	[red-value!]
 		/local
 			action-append
@@ -864,11 +864,11 @@ actions: context [
 			part	[red-value!]
 			only?	[logic!]
 			dup		[red-value!]
-			append? [logic!]
+			events? [logic!]
 			return:	[red-value!]						;-- series after insertion position
 		] get-action-ptr as red-value! series ACT_APPEND
 		
-		action-append series value part only? dup append?
+		action-append series value part only? dup events?
 	]
 	
 	at*: func [

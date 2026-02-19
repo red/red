@@ -1531,7 +1531,7 @@ string: context [
 			]
 			TYPE_ANY_LIST [
 				buffer: make-at proto 16 1
-				append buffer spec null no null
+				append buffer spec null no null no
 			]
 			TYPE_REFINEMENT [
 				buffer: rs-make-at proto 16
@@ -2518,6 +2518,7 @@ string: context [
 		part-arg [red-value!]
 		only?	 [logic!]
 		dup-arg	 [red-value!]
+		events?	 [logic!]
 		return:	 [red-value!]
 		/local
 			blk		  [red-block!]
@@ -2577,7 +2578,7 @@ string: context [
 		]
 		s: GET_BUFFER(str)
 		len: (as-integer s/tail - s/offset) >> (log-b GET_UNIT(s))
-		chk?: ownership/check as red-value! str words/_append value len part
+		if events? [chk?: ownership/check as red-value! str words/_append value len part]
 
 		type: TYPE_OF(value)
 		str2: as red-string! value
@@ -2660,7 +2661,7 @@ string: context [
 			s/tail: as red-value! p0
 		]
 		if part < 0 [part: 1]							;-- ownership/check needs part >= 0
-		if chk? [ownership/check as red-value! str words/_appended value len part]
+		if all [events? chk?][ownership/check as red-value! str words/_appended value len part]
 		str/head: 0
 		as red-value! str
 	]
@@ -2737,15 +2738,17 @@ string: context [
 		]
 		s: GET_BUFFER(str)
 		len: (as-integer s/tail - s/offset) >> (log-b GET_UNIT(s))
+		chk?: ownership/check as red-value! str words/_insert value str/head part
+		
 		if len = str/head [
-			append str value part-arg only? dup-arg		;-- equivalent to append, so fallback on it
+			append str value part-arg only? dup-arg no	;-- equivalent to append, so fallback on it
+			if part < 0 [part: 1]						;-- ownership/check needs part >= 0
+			if chk? [ownership/check as red-value! str words/_inserted value str/head part]
 			s: GET_BUFFER(str)
 			str/head: (as-integer s/tail - s/offset) >> log-b GET_UNIT(s) ;-- set head past the inserted chars (at tail)
 			return as red-value! str
 		]
 		
-		chk?: ownership/check as red-value! str words/_insert value str/head part
-
 		type: TYPE_OF(value)
 		str2: as red-string! value
 		done?: no
@@ -2812,13 +2815,11 @@ string: context [
 			either type = TYPE_CHAR [
 				append-char sn char/value
 				if cnt > 1 [
-					p0: (as byte-ptr! s/offset) + len
-					p0: dup-memory p0 u cnt
+					p0: dup-memory (as byte-ptr! s/offset) + len u cnt
 					assert (as byte-ptr! s/offset) + s/size >= p0
 				]
 			][
-				;; disable events
-				append str form-slot part-arg only? dup-arg
+				append str form-slot part-arg only? dup-arg no
 			]
 			;; append right piece
 			p0: (as byte-ptr! s/offset) + (index << log-b unit)
