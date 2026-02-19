@@ -2544,7 +2544,7 @@ string: context [
 		#if debug? = yes [if verbose > 0 [print-line "string/append"]]
 
 		cnt: 1
-		part: -1
+		part: -1										;-- -1 => no part, use full size
 		
 		do-form-part: [									;-- FORM/part value, appending to str
 			part: actions/form slot str null part
@@ -2553,7 +2553,7 @@ string: context [
 				s/tail: as cell! (as byte-ptr! s/tail) + part
 			]
 		]
-		
+		;-- Processing options --
 		if OPTION?(part-arg) [
 			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
 				int: as red-integer! part-arg
@@ -2561,7 +2561,7 @@ string: context [
 			][
 				sp: as red-string! part-arg
 				str2: as red-string! value
-				unless all [
+				unless all [							;-- not same series => error
 					TYPE_OF(sp) = TYPE_OF(str2)
 					sp/node = str2/node
 				][
@@ -2576,6 +2576,7 @@ string: context [
 			cnt: int/value
 			if cnt <= 0 [return as red-value! str]
 		]
+		;-- Precalculating extra space needed --
 		s: GET_BUFFER(str)
 		len: (as-integer s/tail - s/offset) >> (log-b GET_UNIT(s))
 		if events? [chk?: ownership/check as red-value! str words/_append value len part]
@@ -2588,7 +2589,7 @@ string: context [
 			TYPE_CHAR 		[1]
 			TYPE_TAG  		[2 + rs-length? str2]		;-- upper limit (/part not accounted)
 			TYPE_ANY_STRING [rs-length? str2]			;-- upper limit (/part not accounted)
-			TYPE_ANY_LIST   [							;-- multiple values case
+			TYPE_ANY_LIST   [							;-- multiple values case, FORM/into them into str
 				if part < 0 [part: MAX_INT]				;-- if no /part, ensures all chars are used
 				blk: as red-block! value
 				s: GET_BUFFER(blk)
@@ -2605,14 +2606,15 @@ string: context [
 			default			[
 				if part < 0 [part: MAX_INT]				;-- if no /part, ensures all chars are used
 				slot: value
-				do-form-part							;-- form and append it, then measure added chars
+				do-form-part							;-- FORM/into str, then measure added chars
 				done?: yes
 				(rs-length? str) - len
 			]
 		]
+		;-- Expand series buffer and append the value --
 		s: GET_BUFFER(str)
 		either done? [									;-- expand str if needed, accounting to added and /dup
-			if cnt > 1 [
+			if cnt > 1 [								;-- already appended FORMed value, now expand for /dup count
 				size: (len + (added * cnt)) * GET_UNIT(s)
 				if size > s/size [
 					if s/size * 2 > size [size: 0]		;-- double existing space (0 arg) if size can fit into that
@@ -2635,7 +2637,7 @@ string: context [
 				if s/size * 2 > size [size: 0]			;-- double existing space (0 arg) if size can fit into that
 				s: either upgrade? [convert s null size unit2 0 0 0 no][expand-series s size]
 			][
-				if upgrade? [s: upgrade-series-unit s unit unit2]
+				if upgrade? [s: upgrade-series-unit s unit unit2] ;-- upgrade the series to unit2 in-place
 			]
 			either type = TYPE_CHAR [append-char s char/value][ ;-- now append char / any-string argument
 				p0: as byte-ptr! s/tail
@@ -2653,7 +2655,7 @@ string: context [
 			]
 			assert s = GET_BUFFER(str)					;-- check if any unexpected expansion happened
 		]
-
+		;-- Duplicate the appended value if needed --
 		if all [cnt > 1 added > 0][						;-- duplicate the one appended instance to /dup count
 			size: added * GET_UNIT(s)
 			p0: dup-memory (as byte-ptr! s/tail) - size size cnt
