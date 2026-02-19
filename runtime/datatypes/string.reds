@@ -2640,18 +2640,17 @@ string: context [
 				if upgrade? [s: upgrade-series-unit s unit unit2] ;-- upgrade the series to unit2 in-place
 			]
 			either type = TYPE_CHAR [append-char s char/value][ ;-- now append char / any-string argument
+				if any [part < 0 part > added][part: added]
 				p0: as byte-ptr! s/tail
-				if TYPE_OF(value) = TYPE_TAG [append-char s as-integer #"<"]
-				str2: as red-string! value
-				concatenate str str2 part 0 no no
-				if TYPE_OF(value) = TYPE_TAG [append-char GET_BUFFER(str) as-integer #">"]
-				added: (as-integer (as byte-ptr! s/tail) - p0) >> log-b GET_UNIT(s) ;-- refresh it accounting for /part
-				
-				if all [part >= 0 added > part][		;-- truncate if /part is exceeded (mostly for url! args)
-					s: GET_BUFFER(str)
-					s/tail: as cell! p0 + (part << log-b GET_UNIT(s))
-					added: part
+				if all [type = TYPE_TAG part > 0][append-char s as-integer #"<" part: part - 1]
+				if part > 0 [
+					len: rs-length? str
+					str2: as red-string! value
+					concatenate str str2 part 0 no no
+					part: part - ((rs-length? str) - len)
 				]
+				if all [type = TYPE_TAG part > 0][append-char GET_BUFFER(str) as-integer #">"]
+				added: (as-integer (as byte-ptr! s/tail) - p0) >> log-b GET_UNIT(s) ;-- refresh it accounting for /part
 			]
 			assert s = GET_BUFFER(str)					;-- check if any unexpected expansion happened
 		]
