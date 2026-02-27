@@ -454,6 +454,7 @@ red: context [
 		either all [
 			rebol-gctx <> obj: bind? original
 			ctx: select shadow-funcs obj
+			name <> 'self
 		][
 			emit append to path! type 'push-local
 			emit ctx
@@ -984,8 +985,9 @@ red: context [
 		none
 	]
 	
-	to-context-spec: func [spec [block!]][
+	to-context-spec: func [spec [block!] /local pos][
 		spec: copy spec
+		if pos: find spec 'self [remove pos]			;-- avoid setting object/self to none (issue #5687)
 		forall spec [spec/1: to set-word! spec/1]
 		append spec none
 		make object! spec

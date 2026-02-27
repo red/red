@@ -438,19 +438,47 @@ test
 		--compile-this {Red [] f552: function [/ref x /local y return: [block!]][a: 1 print "OK"]}
 		--assert not compiled?
 		--assert found? find qt/comp-output "invalid function"
-	--test-- "#5552.2"	
+	--test-- "#5552.2"
 		--compile-this {Red [] f552: function [/ref x /local y return: [block!] "locals follow docstring ->"][a: 1 print "OK"]}
 		--assert not compiled?
 		--assert found? find qt/comp-output "invalid function"
-	--test-- "#5552.3"	
+	--test-- "#5552.3"
 		--compile-this {Red [] f552: func [a [block!] return: [block!] /ref /local x][]}
 		--assert not compiled?
 		--assert found? find qt/comp-output "invalid function"
-	--test-- "#5552.4"	
+	--test-- "#5552.4"
 		--compile-this {Red [] f552: func [a [block!] return: [block!] /ref y /local x][]}
 		--assert not compiled?
 		--assert found? find qt/comp-output "invalid function"
-
+		
+	--test-- "#5687.1"
+		--compile-and-run-this {
+			Red []
+			ctx: make object! [test: func [w] [if w = 'self [probe self]]] ctx/test 'self
+		}
+		--assert compiled?
+		--assert not crashed?
+		--assert found? find qt/output "probe self"
+		
+	--test-- "#5687.2"
+		--compile-and-run-this {
+			Red []
+			ctx: make object! [
+				test: func [w /local self] [
+					probe self
+					self: w
+					y: 'self
+					?? y
+					probe do y
+				]
+			]
+			ctx/test make object! [a: 2]
+		}
+		--assert compiled?
+		--assert not crashed?
+		--assert found? find qt/output "probe do y"
+		--assert found? find qt/output "a: 2"
+		
 ===end-group===
 
 ~~~end-file~~~ 
