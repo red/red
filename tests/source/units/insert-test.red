@@ -126,6 +126,37 @@ Red [
 		--assert "12^(010000)" = insert/part/dup str ["4" #"5" #"6" 7 a 'b x] 6 2
 		--assert str = "4567ab4567ab12^(010000)"
 
+	--test-- "insert-34.1"
+		str: next next "12é"
+		--assert "é" = insert/part/dup str next ["4" #"5" #"6" 7 a 'b x] 6 2
+		--assert str = "567abx567abxé"
+		--assert (head str) = "12567abx567abxé"
+
+	--test-- "insert-34.2"
+		str: "12"
+		--assert "12" = insert/part/dup str next next ["4" #"5" #"6" 7 é 'b x] 6 2
+		--assert str = "67ébx67ébx12"
+
+	--test-- "insert-34.3"
+		str: "12"
+		--assert "12" = insert/part/dup str next next ["4" #"5" #"é" 7 a 'b x] 4 2
+		--assert str = "é7abé7ab12"
+
+	--test-- "insert-34.4"
+		str: "12"
+		--assert "12" = insert/part/dup str next next ["4" #"5" #"^(010000)" 7 a 'b x] 4 2
+		--assert str = "^(010000)7ab^(010000)7ab12"
+
+	--test-- "insert-34.5"
+		str: "12é"
+		--assert "12é" = insert/part/dup str next next ["4" #"5" #"^(010000)" 7 a 'b x] 4 2
+		--assert str = "^(010000)7ab^(010000)7ab12é"
+
+	--test-- "insert-34.6"
+		str: "12^(010000)"
+		--assert "12^(010000)" = insert/part/dup str ["4" #"5" #"6" 7 a 'b x] 6 2
+		--assert str = "4567ab4567ab12^(010000)"
+
 	--test-- "insert-35"
 		str: "12"
 		--assert "12" = insert/part str "456" 0
@@ -200,6 +231,27 @@ Red [
 		str: "12"
 		--assert "12" = insert/part str <456> 10
 		--assert str = "<456>12"
+		
+	--test-- "insert-49"
+		str: "12"
+		--assert "12" = insert/part str next <456> 10
+		--assert str = "<56>12"
+
+	--test-- "insert-50"
+		str: "12"
+		--assert "12" = insert/part str next <456> 2
+		--assert str = "<512"
+
+	--test-- "insert-51"
+		str: "12"
+		--assert "12" = insert/part/dup str next <456> 10 3
+		--assert str = "<56><56><56>12"
+
+	--test-- "insert-52"
+		str: "12"
+		--assert "12" = insert/part/dup str next <456> 2 3
+		--assert str = "<5<5<512"
+		
 
 ===end-group===
 

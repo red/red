@@ -108,6 +108,8 @@ string: context [
 	}
 
 	utf8-buffer: #{00000000}
+	swap-buf: as byte-ptr! 0
+	swap-size: 64 * 1024
 
 	to-float: func [
 		s		[byte-ptr!]
@@ -342,6 +344,33 @@ string: context [
 			]
 			data: data + 1
 		]
+	]
+	
+	swap-buffers: func [								;-- swaps continguous non-overlapping buffers, p1 < p2
+		p1	   [byte-ptr!]
+		len1   [integer!]
+		p2	   [byte-ptr!]
+		len2   [integer!]
+		offset [integer!]								;-- offset for 2nd buffer destination
+		/local
+			forward? up? [logic!]
+			len [integer!]
+	][
+		forward?: len1 > len2
+		len: either forward? [len2][len1]
+		up?: len > swap-size
+		if up? [swap-buf: realloc swap-buf len]
+
+		either forward? [								 ;--         P1        P2
+			copy-memory swap-buf p2 len2				 ;-- input:  |----1----|--2--|
+			move-memory p1 + len2 + offset p1 len1		 ;--         |-----|..offset..|----1----|
+			copy-memory p1 swap-buf len2				 ;-- output: |--2--|..offset..|----1----|
+		][
+			copy-memory swap-buf p1 len1				 ;-- input:  |--1--|----2----|
+			move-memory p1 p2 len2						 ;--         |----2----|-----|
+			copy-memory p1 + len2 + offset swap-buf len1 ;-- output: |----2----|..offset..|--1--|
+		]
+		if up? [swap-buf: realloc swap-buf swap-size]
 	]
 
 	rs-load: func [
@@ -2526,8 +2555,7 @@ string: context [
 			char	  [red-char!]
 			sp str2   [red-string!]
 			head slot [red-value!]
-			s		  [series!]
-			s2		  [series!]
+			s s2	  [series!]
 			p p0	  [byte-ptr!]
 			cnt		  [integer!]
 			part	  [integer!]
@@ -2537,8 +2565,7 @@ string: context [
 			size	  [integer!]
 			unit unit2[integer!]
 			u		  [integer!]
-			chk? done?[logic!]
-			upgrade?  [logic!]
+			chk? done? upgrade? [logic!]
 			do-form-part [subroutine!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/append"]]
@@ -2601,14 +2628,14 @@ string: context [
 					slot: slot + 1
 				]
 				done?: yes
-				(rs-length? str) - len
+				(rs-abs-length? str) - len
 			]
 			default			[
 				if part < 0 [part: MAX_INT]				;-- if no /part, ensures all chars are used
 				slot: value
 				do-form-part							;-- FORM/into str, then measure added chars
 				done?: yes
-				(rs-length? str) - len
+				(rs-abs-length? str) - len
 			]
 		]
 		;-- Expand series buffer and append the value --
@@ -2682,8 +2709,6 @@ string: context [
 			char	  [red-char!]
 			sp		  [red-string!]
 			str2	  [red-string!]
-			form-slot [red-value!]
-			form-buf  [red-string!]
 			blk		  [red-block!]
 			head slot [red-value!]
 			s s2 sn   [series!]
@@ -2695,6 +2720,7 @@ string: context [
 			type	  [integer!]
 			unit unit2[integer!]
 			size	  [integer!]
+			tsize	  [integer!]
 			index	  [integer!]
 			u		  [integer!]
 			chk?	  [logic!]
@@ -2708,7 +2734,7 @@ string: context [
 		part: -1
 		
 		do-form-part: [									;-- FORM/part value, appending to str
-			part: actions/form slot form-buf null part
+			part: actions/form slot str null part
 			if part < 0 [
 				s: GET_BUFFER(str)
 				s/tail: as cell! (as byte-ptr! s/tail) + part
@@ -2760,9 +2786,7 @@ string: context [
 			TYPE_ANY_STRING [rs-length? str2]			;-- upper limit (/part not accounted)
 			default			[							;-- multiple values case
 				if part < 0 [part: MAX_INT]				;-- if no /part, ensures all chars are used
-				form-slot: stack/push*					;-- reserve space for FORMing incompatible values
-				form-slot/header: TYPE_UNSET
-				form-buf: rs-make-at form-slot 16
+				tsize: rs-length? str
 				either ANY_LIST?(type) [
 					blk: as red-block! value
 					s2: GET_BUFFER(blk)
@@ -2778,23 +2802,18 @@ string: context [
 					do-form-part						;-- form and append it, then measure added chars
 				]
 				done?: yes
-				rs-length? form-buf
+				(rs-abs-length? str) - len
 			]
 		]
 		s: GET_BUFFER(str)
 		unit: GET_UNIT(s)
-		either done? [
-			s2: GET_BUFFER(form-buf)
-			unit2: GET_UNIT(s2)
-		][
+		either done? [unit2: unit][
 			unit2: either type = TYPE_CHAR [			;-- calculate argument's unit
 				case [char/value < 128 [UCS-1] char/value < 65536 [UCS-2] true [UCS-4]]
 			][
 				s2: GET_BUFFER(str2)
 				GET_UNIT(s2)
 			]
-			form-slot: value
-			form-buf: as red-string! value				;-- if TYPE_CHAR, form-buf will not be used further
 		]
 		upgrade?: unit < unit2
 		u: either upgrade? [unit2][unit]
@@ -2813,54 +2832,65 @@ string: context [
 					sn/tail: as cell! (as byte-ptr! sn/tail) + len
 				]
 			]
+			;; append value
 			either type = TYPE_CHAR [
 				append-char sn char/value
 				if cnt > 1 [
-					p0: dup-memory (as byte-ptr! s/offset) + len u cnt
-					assert (as byte-ptr! s/offset) + s/size >= p0
+					p0: dup-memory (as byte-ptr! sn/offset) + len u cnt
+					assert (as byte-ptr! sn/offset) + sn/size >= p0
+					sn/tail: as cell! (as byte-ptr! sn/tail) + (u * cnt)
 				]
 			][
-				append str form-slot part-arg only? dup-arg no
+				either done? [
+					len2: added * u
+					copy-memory as byte-ptr! sn/tail (as byte-ptr! s/offset) + (tsize + index << log-b unit) len2
+					if cnt > 1 [
+						p0: dup-memory (as byte-ptr! sn/offset) + len len2 cnt
+						assert (as byte-ptr! sn/offset) + sn/size >= p0
+					]
+					sn/tail: as cell! (as byte-ptr! sn/tail) + (len2 * cnt)
+				][
+					append str value part-arg only? dup-arg no	;-- value = any-string!
+				]
 			]
 			;; append right piece
-			p0: (as byte-ptr! s/offset) + (index << log-b unit)
-			len2: as-integer s/tail - as cell! p0
+			len2: either done? [tsize - index][((as-integer s/tail - s/offset) >> (log-b GET_UNIT(s))) - index]
 			if len2 > 0 [
 				either upgrade? [						;-- copy and if needed upgrade s into sn
 					len2: as-integer sn/tail - sn/offset
 					convert s sn 0 unit2 (index << log-b unit) len2 0 no
 				][
+					len2: len2 << log-b u
+					p0: (as byte-ptr! s/offset) + (index << log-b unit)
 					copy-memory as byte-ptr! sn/tail p0 len2
 					sn/tail: as cell! (as byte-ptr! sn/tail) + len2
 				]
 			]
 		][
-			if upgrade? [s: upgrade-series-unit s unit unit2]
+			if upgrade? [s: upgrade-series-unit s unit unit2]	;-- in-place upgrading (TBD: add assertion)
 			; move-up P2
 			p0: (as byte-ptr! s/offset) + len
 			u: GET_UNIT(s)
-			size: added * cnt * u
-			move-memory	p0 + size p0 as-integer s/tail - s/offset ;-- make space (accounting for /dup)
-			s/tail: as cell! (as byte-ptr! s/tail) + size
-			;; s/tail setting !!!??!!
-
+			size: added * u * cnt
+			either done? [
+				if cnt > 1 [s/tail: as cell! (as byte-ptr! s/tail) + (added * u * (cnt - 1))]
+			][
+				move-memory p0 + size p0 as-integer s/tail - s/offset ;-- make space (accounting for /dup)
+				s/tail: as cell! (as byte-ptr! s/tail) + size
+			]
 			; insert
 			either type = TYPE_CHAR [poke-char s p0 char/value][
-				s2: GET_BUFFER(form-buf)
 				either done? [
-					either u = unit2 [
-						copy-memory p0 (as byte-ptr! s2/offset) + (form-buf/head << log-b GET_UNIT(s2)) added * u
-					][
-						convert s2 s size u 0 len 0 yes
-					]
+					tsize: tsize << log-b u
+					swap-buffers p0 tsize p0 + tsize added * u (added * u * (cnt - 1))
 				][
 					if any [part < 0 part > added][part: added]
 					if type = TYPE_TAG [poke-char s p0 as-integer #"<"  p0: p0 + 1  part: part - 1]
 					if part > 0 [
-						len2: as-integer s2/tail - s2/offset
+						len2: (as-integer s2/tail - s2/offset) - str2/head
 						if part < len2 [len2: part]
 						either u = unit2 [
-							copy-memory p0 (as byte-ptr! s2/offset) + (form-buf/head << log-b GET_UNIT(s2)) len2 * u
+							copy-memory p0 (as byte-ptr! s2/offset) + (str2/head << log-b GET_UNIT(s2)) len2 * u
 						][
 							convert s2 s size u 0 len part yes
 						]
@@ -2871,6 +2901,7 @@ string: context [
 			]
 			;-- replicate /dup times
 			if all [cnt > 1 added > 0][					;-- duplicate the one appended instance to /dup count
+				p0: (as byte-ptr! s/offset) + len
 				p0: dup-memory p0 added * u cnt
 				assert (as byte-ptr! s/offset) + s/size >= p0
 			]
@@ -2884,7 +2915,6 @@ string: context [
 		if (as byte-ptr! s/offset) + (str/head << part) > as byte-ptr! s/tail [ ;-- check for past-end caused by object event
 			str/head: (as-integer s/tail - s/offset) >> part  ;-- adjust offset to series' tail
 		]
-		;if done? [stack/pop 1]				;-- pop the FORM slot
 		as red-value! str
 	]
 
@@ -3341,6 +3371,8 @@ string: context [
 	]
 
 	init: does [
+		swap-buf: allocate swap-size
+	
 		datatype/register [
 			TYPE_STRING
 			TYPE_SERIES

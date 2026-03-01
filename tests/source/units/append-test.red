@@ -88,6 +88,41 @@ Red [
 	str: "12^(010000)"
 	append/part/dup str ["4" #"5" #"6" 7 a 'b x] 6 2
 	--assert str = "12^(010000)4567ab4567ab"
+
+  --test-- "append-24.1"
+	str: "12"
+	append/part/dup str next ["4" #"5" #"6" 7 a 'b x] 6 2
+	--assert str = "12567abx567abx"
+	
+  --test-- "append-24.2"
+	str: "12é"
+	append/part/dup str next next ["4" #"5" #"6" 7 a 'b x] 6 2
+	--assert str = "12é67abx67abx"
+
+  --test-- "append-24.3"
+	str: "12"
+	append/part/dup str next next ["4" #"5" #"6" 7 é 'b x] 4 2
+	--assert str = "1267éb67éb"
+	
+  --test-- "append-24.4"
+	str: "12"
+	append/part/dup str next next ["4" #"5" #"é" 7 a 'b x] 4 2
+	--assert str = "12é7abé7ab"
+
+  --test-- "append-24.5"
+	str: "12"
+	append/part/dup str next next ["4" #"5" #"^(010000)" 7 a 'b x] 4 2
+	--assert str = "12^(010000)7ab^(010000)7ab"
+
+  --test-- "append-24.6"
+	str: "12é"
+	append/part/dup str next next ["4" #"5" #"^(010000)" 7 a 'b x] 4 2
+	--assert str = "12é^(010000)7ab^(010000)7ab"
+	
+  --test-- "append-24.7"
+	str: "12^(010000)"
+	append/part/dup str next next ["4" #"5" #"6" 7 a 'b x] 5 2
+	--assert str = "12^(010000)67abx67abx"
 	
   --test-- "append-25"
     str: "12"
@@ -163,6 +198,27 @@ Red [
     str: "12"
     append/part str <456> 10
     --assert str = "12<456>"
+    
+  --test-- "append-39"
+    str: "12"
+    append/part str next <456> 10
+    --assert str = "12<56>"
+    
+  --test-- "append-40"
+    str: "12"
+    append/part str next <456> 2
+    --assert str = "12<5"
+
+  --test-- "append-41"
+    str: "12"
+    append/part/dup str next <456> 10 3
+    --assert str = "12<56><56><56>"
+    
+  --test-- "append-42"
+    str: "12"
+    append/part/dup str next <456> 2 3
+    --assert str = "12<5<5<5"
+
 
 ===end-group===
 
