@@ -2557,14 +2557,7 @@ string: context [
 			head slot [red-value!]
 			s s2	  [series!]
 			p p0	  [byte-ptr!]
-			cnt		  [integer!]
-			part	  [integer!]
-			len		  [integer!]
-			added	  [integer!]
-			type	  [integer!]
-			size	  [integer!]
-			unit unit2[integer!]
-			u		  [integer!]
+			cnt part len added type size unit unit2 u [integer!]
 			chk? done? upgrade? [logic!]
 			do-form-part [subroutine!]
 	][
@@ -2616,24 +2609,22 @@ string: context [
 			TYPE_CHAR 		[1]
 			TYPE_TAG  		[2 + rs-length? str2]		;-- upper limit (/part not accounted)
 			TYPE_ANY_STRING [rs-length? str2]			;-- upper limit (/part not accounted)
-			TYPE_ANY_LIST   [							;-- multiple values case, FORM/into them into str
+			default			[							;-- FORMing value(s) case
 				if part < 0 [part: MAX_INT]				;-- if no /part, ensures all chars are used
-				blk: as red-block! value
-				s: GET_BUFFER(blk)
-				head: s/offset + blk/head
-				slot: head
-				while [slot < s/tail][
-					do-form-part						;-- form and append it, then measure added chars
-					if part <= 0 [break]
-					slot: slot + 1
+				either ANY_LIST?(type) [
+					blk: as red-block! value
+					s: GET_BUFFER(blk)
+					head: s/offset + blk/head
+					slot: head
+					while [slot < s/tail][
+						do-form-part						;-- form and append it, then measure added chars
+						if part <= 0 [break]
+						slot: slot + 1
+					]
+				][
+					slot: value
+					do-form-part							;-- FORM/into str, then measure added chars				
 				]
-				done?: yes
-				(rs-abs-length? str) - len
-			]
-			default			[
-				if part < 0 [part: MAX_INT]				;-- if no /part, ensures all chars are used
-				slot: value
-				do-form-part							;-- FORM/into str, then measure added chars
 				done?: yes
 				(rs-abs-length? str) - len
 			]
@@ -2703,29 +2694,17 @@ string: context [
 		append?	 [logic!]
 		return:	 [red-value!]
 		/local
-			src		  [red-block!]
+			src blk	  [red-block!]
 			cell	  [red-value!]
+			head slot [red-value!]
 			int		  [red-integer!]
 			char	  [red-char!]
-			sp		  [red-string!]
-			str2	  [red-string!]
-			blk		  [red-block!]
-			head slot [red-value!]
+			sp str2	  [red-string!]
 			s s2 sn   [series!]
 			p p0	  [byte-ptr!]
-			cnt		  [integer!]
-			part	  [integer!]
-			len	len2  [integer!]
-			added	  [integer!]
-			type	  [integer!]
-			unit unit2[integer!]
-			size	  [integer!]
-			tsize	  [integer!]
-			index	  [integer!]
-			u		  [integer!]
-			chk?	  [logic!]
-			done?	  [logic!]
-			upgrade?  [logic!]
+			cnt part len len2 added type unit unit2 size tsize index u lu hpos
+			wadded madded windex wmadded wmadded-1 [integer!]
+			chk? done? upgrade?  [logic!]
 			do-form-part [subroutine!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/insert"]]
@@ -2767,8 +2746,8 @@ string: context [
 		len: (as-integer s/tail - s/offset) >> (log-b GET_UNIT(s))
 		chk?: ownership/check as red-value! str words/_insert value str/head part
 		
-		if len = str/head [
-			append str value part-arg only? dup-arg no	;-- equivalent to append, so fallback on it
+		if len = str/head [								;-- is string at tail?
+			append str value part-arg only? dup-arg no	;-- fallback to append
 			if part < 0 [part: 1]						;-- ownership/check needs part >= 0
 			if chk? [ownership/check as red-value! str words/_inserted value str/head part]
 			s: GET_BUFFER(str)
@@ -2784,7 +2763,7 @@ string: context [
 			TYPE_CHAR 		[char: as red-char! value  1]
 			TYPE_TAG  		[2 + rs-length? str2]		;-- upper limit (/part not accounted)
 			TYPE_ANY_STRING [rs-length? str2]			;-- upper limit (/part not accounted)
-			default			[							;-- multiple values case
+			default			[							;-- FORMing value(s) case
 				if part < 0 [part: MAX_INT]				;-- if no /part, ensures all chars are used
 				tsize: rs-length? str
 				either ANY_LIST?(type) [
@@ -2816,73 +2795,78 @@ string: context [
 			]
 		]
 		upgrade?: unit < unit2
-		u: either upgrade? [unit2][unit]
-		if all [part > 0 part < added not done?][added: part]
-		size: (len + (added * cnt)) * u
+		u: either upgrade? [unit2][unit]				;-- output string unit
+		if all [part > 0 part < added not done?][added: part] ;-- apply /part value
 		index: str/head
-		len: index << log-b u
-
+		lu: log-b u
+		hpos: index << lu
+		wadded: added << lu
+		madded: added * cnt
+		wmadded: madded << lu
+		windex:	index << log-b unit
+		size: (len + madded) << lu
+		
 		either size > s/size [
+			;-- Expand series to account for new characters (creates a series) --
 			sn: expand-series-strict s size
 			sn/tail: sn/offset
-			;; append left piece
-			if len > 0 [
-				either upgrade? [convert s sn 0 unit2 0 0 (index << log-b unit) no][	;-- copy and if needed upgrade s into sn
-					copy-memory as byte-ptr! sn/offset as byte-ptr! s/offset len
-					sn/tail: as cell! (as byte-ptr! sn/tail) + len
+			;-- Append left piece --
+			if hpos > 0 [
+				either upgrade? [convert s sn 0 unit2 0 0 windex no][	;-- copy and if needed upgrade s into sn
+					copy-memory as byte-ptr! sn/offset as byte-ptr! s/offset hpos
+					sn/tail: as cell! (as byte-ptr! sn/tail) + hpos
 				]
 			]
-			;; append value
+			;-- Append value in the middle --
 			either type = TYPE_CHAR [
-				append-char sn char/value
-				if cnt > 1 [
-					p0: dup-memory (as byte-ptr! sn/offset) + len u cnt
+				append-char sn char/value				;-- char! value case
+				if cnt > 1 [							;-- duplicate appended char value
+					p0: dup-memory (as byte-ptr! sn/offset) + hpos u cnt
 					assert (as byte-ptr! sn/offset) + sn/size >= p0
-					sn/tail: as cell! (as byte-ptr! sn/tail) + (u * cnt)
+					sn/tail: as cell! (as byte-ptr! sn/tail) + (cnt << lu)
 				]
 			][
-				either done? [
-					len2: added * u
-					copy-memory as byte-ptr! sn/tail (as byte-ptr! s/offset) + (tsize + index << log-b unit) len2
+				either done? [							;-- pre-appended FORMed value case (just copy it to new series)
+					copy-memory as byte-ptr! sn/tail (as byte-ptr! s/offset) + (tsize + index << lu) wadded
 					if cnt > 1 [
-						p0: dup-memory (as byte-ptr! sn/offset) + len len2 cnt
+						p0: dup-memory (as byte-ptr! sn/offset) + hpos wadded cnt
 						assert (as byte-ptr! sn/offset) + sn/size >= p0
 					]
-					sn/tail: as cell! (as byte-ptr! sn/tail) + (len2 * cnt)
-				][
-					append str value part-arg only? dup-arg no	;-- value = any-string!
+					sn/tail: as cell! (as byte-ptr! sn/tail) + wmadded
+				][										;-- any-string! value case
+					append str value part-arg only? dup-arg no ;-- let `append` handle it
 				]
 			]
-			;; append right piece
-			len2: either done? [tsize - index][((as-integer s/tail - s/offset) >> (log-b GET_UNIT(s))) - index]
+			;-- Append right piece --
+			len2: either done? [tsize - index][len - index]
 			if len2 > 0 [
 				either upgrade? [						;-- copy and if needed upgrade s into sn
 					len2: as-integer sn/tail - sn/offset
-					convert s sn 0 unit2 (index << log-b unit) len2 0 no
+					convert s sn 0 unit2 windex len2 0 no
 				][
 					len2: len2 << log-b u
-					p0: (as byte-ptr! s/offset) + (index << log-b unit)
+					p0: (as byte-ptr! s/offset) + windex
 					copy-memory as byte-ptr! sn/tail p0 len2
 					sn/tail: as cell! (as byte-ptr! sn/tail) + len2
 				]
 			]
+			s: sn
 		][
-			if upgrade? [s: upgrade-series-unit s unit unit2]	;-- in-place upgrading (TBD: add assertion)
+			if upgrade? [s: upgrade-series-unit s unit unit2] ;-- in-place upgrading (TBD: add assertion)
 			; move-up P2
-			p0: (as byte-ptr! s/offset) + len
-			u: GET_UNIT(s)
-			size: added * u * cnt
+			p0: (as byte-ptr! s/offset) + hpos
+			wmadded-1: wmadded - wadded
 			either done? [
-				if cnt > 1 [s/tail: as cell! (as byte-ptr! s/tail) + (added * u * (cnt - 1))]
+				if cnt > 1 [s/tail: as cell! (as byte-ptr! s/tail) + wmadded-1]
 			][
-				move-memory p0 + size p0 as-integer s/tail - s/offset ;-- make space (accounting for /dup)
-				s/tail: as cell! (as byte-ptr! s/tail) + size
+				move-memory p0 + wmadded p0 as-integer s/tail - s/offset ;-- make space (accounting for /dup)
+				s/tail: as cell! (as byte-ptr! s/tail) + wmadded
 			]
 			; insert
 			either type = TYPE_CHAR [poke-char s p0 char/value][
 				either done? [
 					tsize: tsize << log-b u
-					swap-buffers p0 tsize p0 + tsize added * u (added * u * (cnt - 1))
+					swap-buffers p0 tsize p0 + tsize wadded wmadded-1
 				][
 					if any [part < 0 part > added][part: added]
 					if type = TYPE_TAG [poke-char s p0 as-integer #"<"  p0: p0 + 1  part: part - 1]
@@ -2892,28 +2876,26 @@ string: context [
 						either u = unit2 [
 							copy-memory p0 (as byte-ptr! s2/offset) + (str2/head << log-b GET_UNIT(s2)) len2 * u
 						][
-							convert s2 s size u 0 len part yes
+							convert s2 s wmadded u 0 hpos part yes
 						]
 						part: part - len2
 					]
-					if all [type = TYPE_TAG part > 0][poke-char s p0 + (len2 * u) as-integer #">"]
+					if all [type = TYPE_TAG part > 0][poke-char s p0 + (len2 << log-b u) as-integer #">"]
 				]
 			]
 			;-- replicate /dup times
 			if all [cnt > 1 added > 0][					;-- duplicate the one appended instance to /dup count
-				p0: (as byte-ptr! s/offset) + len
-				p0: dup-memory p0 added * u cnt
+				p0: (as byte-ptr! s/offset) + hpos
+				p0: dup-memory p0 wadded cnt
 				assert (as byte-ptr! s/offset) + s/size >= p0
 			]
 		]
 		if part < 0 [part: 1]							;-- ownership/check needs part >= 0
 		if chk? [ownership/check as red-value! str words/_inserted value index part]
 		
-		str/head: index + (added * cnt)
-		s: GET_BUFFER(str)
-		part: log-b GET_UNIT(s)
-		if (as byte-ptr! s/offset) + (str/head << part) > as byte-ptr! s/tail [ ;-- check for past-end caused by object event
-			str/head: (as-integer s/tail - s/offset) >> part  ;-- adjust offset to series' tail
+		str/head: index + madded
+		if (as byte-ptr! s/offset) + (str/head << lu) > as byte-ptr! s/tail [ ;-- check for past-end caused by object event
+			str/head: (as-integer s/tail - s/offset) >> lu  ;-- adjust offset to series' tail
 		]
 		as red-value! str
 	]
