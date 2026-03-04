@@ -2719,7 +2719,7 @@ string: context [
 				s/tail: as cell! (as byte-ptr! s/tail) + part
 			]
 		]
-		;-- Options processing
+		;-- Processing options --
 		if OPTION?(part-arg) [
 			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
 				int: as red-integer! part-arg
@@ -2742,6 +2742,7 @@ string: context [
 			cnt: int/value
 			if cnt <= 0 [return as red-value! str]
 		]
+		;-- Precalculating extra space needed --
 		s: GET_BUFFER(str)
 		len: (as-integer s/tail - s/offset) >> (log-b GET_UNIT(s))
 		chk?: ownership/check as red-value! str words/_insert value str/head part
@@ -2806,7 +2807,8 @@ string: context [
 		windex:	index << log-b unit
 		size: (len + madded) << lu
 		
-		either size > s/size [
+		;-- Expand series buffer and append the value --
+		either size > s/size [							;-- Insert in expanded buffer case
 			;-- Expand series to account for new characters (creates a series) --
 			sn: expand-series-strict s size
 			sn/tail: sn/offset
@@ -2851,24 +2853,24 @@ string: context [
 				]
 			]
 			s: sn
-		][
-			if upgrade? [s: upgrade-series-unit s unit unit2] ;-- in-place upgrading (TBD: add assertion)
-			; move-up P2
+		][												;-- Insert in original buffer case (enough space)
+			if upgrade? [s: upgrade-series-unit s unit unit2] ;-- in-place upgrading
+			;-- Move right piece up to make space --
 			p0: (as byte-ptr! s/offset) + hpos
 			wmadded-1: wmadded - wadded
-			either done? [
+			either done? [								;-- if already appended, just set s/tail
 				if cnt > 1 [s/tail: as cell! (as byte-ptr! s/tail) + wmadded-1]
 			][
 				move-memory p0 + wmadded p0 as-integer s/tail - s/offset ;-- make space (accounting for /dup)
 				s/tail: as cell! (as byte-ptr! s/tail) + wmadded
 			]
-			; insert
-			either type = TYPE_CHAR [poke-char s p0 char/value][
-				either done? [
+			;-- Insert the value --
+			either type = TYPE_CHAR [poke-char s p0 char/value][ ;-- char! value case
+				either done? [							;-- FORMed value case (appended already, just swap buffers)
 					tsize: tsize << log-b u
-					swap-buffers p0 tsize p0 + tsize wadded wmadded-1
-				][
-					if any [part < 0 part > added][part: added]
+					swap-buffers p0 tsize p0 + tsize wadded wmadded-1 ;-- swap appended buffer with right piece buffer
+				][										;-- string! or tag! value case
+					if any [part < 0 part > added][part: added] ;-- apply /part value
 					if type = TYPE_TAG [poke-char s p0 as-integer #"<"  p0: p0 + 1  part: part - 1]
 					if part > 0 [
 						len2: (as-integer s2/tail - s2/offset) - str2/head
@@ -2876,15 +2878,15 @@ string: context [
 						either u = unit2 [
 							copy-memory p0 (as byte-ptr! s2/offset) + (str2/head << log-b GET_UNIT(s2)) len2 * u
 						][
-							convert s2 s wmadded u 0 hpos part yes
+							convert s2 s wmadded u 0 hpos part yes ;-- copy/part buffer with unit upgrade if needed
 						]
 						part: part - len2
 					]
 					if all [type = TYPE_TAG part > 0][poke-char s p0 + (len2 << log-b u) as-integer #">"]
 				]
 			]
-			;-- replicate /dup times
-			if all [cnt > 1 added > 0][					;-- duplicate the one appended instance to /dup count
+			;-- Duplicate the appended value if needed --
+			if all [cnt > 1 added > 0][					;-- duplicate the one appended instance up to /dup count
 				p0: (as byte-ptr! s/offset) + hpos
 				p0: dup-memory p0 wadded cnt
 				assert (as byte-ptr! s/offset) + s/size >= p0
