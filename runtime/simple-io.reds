@@ -1574,6 +1574,8 @@ simple-io: context [
 				u-bound [integer!]
 				array	[integer!]
 				hr 		[integer!]
+				buffer	[red-string!]
+				str		[red-string!]
 		][
 			res: as red-value! none-value
 			parr: 0
@@ -1654,10 +1656,24 @@ simple-io: context [
 					value: s/offset + header/head
 					tail:  s/tail
 
+					buffer: string/rs-make-at stack/push* 16
+
 					while [value < tail][
-						bstr-u: SysAllocString unicode/to-utf16 word/as-string as red-word! value
+						hr: TYPE_OF(value)
+						str: either ANY_WORD?(hr) [word/as-string as red-word! value][
+							actions/form value buffer null 0
+							buffer
+						]
+						bstr-u: SysAllocString unicode/to-utf16 str
+
 						value: value + 1
-						bstr-m: SysAllocString unicode/to-utf16 as red-string! value
+
+						str: either TYPE_OF(value) = TYPE_STRING [as red-string! value][
+							actions/form value buffer null 0
+							buffer
+						]
+						bstr-m: SysAllocString unicode/to-utf16 str
+
 						value: value + 1
 						http/SetRequestHeader IH/ptr bstr-u bstr-m
 						SysFreeString bstr-m
