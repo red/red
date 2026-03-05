@@ -754,11 +754,27 @@ system/view: context [
 		]
 		:result
 	]
-	
+
+	on-change*: function [word old new][
+		if all [word = 'GPU? old <> new][
+			system/view/platform/toggle-GPU
+			foreach screen system/view/screens [
+				wins: head screen/pane
+				foreach win wins [
+					win/pane: copy win/pane				;-- recreate all the faces
+				]
+			]
+			if value? 'gui-console-ctx [
+				gui-console-ctx/set-dark-mode
+			]
+		]
+	]
+
 	capturing?: no										;-- enable capturing events (on-detect)
 	auto-sync?: yes										;-- refresh faces on changes automatically
 	debug?: 	no										;-- output verbose logs
 	silent?:	no										;-- do not report errors (livecoding)
+	GPU?:		yes										;-- rendering with GPU?
 ]
 
 #include %backends/platform.red
