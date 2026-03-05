@@ -1098,8 +1098,8 @@ show-memory-stats: function [data [block!]][
 	]
 	print [
 		"  --^/  Allocated: " total  "bytes^/"
-		"--^/Total allocated from OS:" pad/left form data/4 9 lf
-		"Total allocated on heap:" pad/left form data/5 9 lf
+		"--^/Total allocated from OS (virtual):" pad/left form data/4 9 lf
+		"Total allocated on heap (malloc):" pad/left form data/5 9 lf
 	]
 ]
 

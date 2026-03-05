@@ -1078,7 +1078,7 @@ bitset: context [
 			:or~
 			:xor~
 			;-- Series actions --
-			null			;append
+			:insert			;append
 			null			;at
 			null			;back
 			null			;change

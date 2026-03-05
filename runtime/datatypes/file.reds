@@ -220,7 +220,7 @@ file: context [
 				idx: cp + 1
 				if all [
 					cp < MAX_URL_CHARS
-					string/url-encode-tbl/idx = #"^(00)"
+					url/url-encode-tbl/idx = #"^(00)"
 				][
 					break
 				]
@@ -338,7 +338,7 @@ file: context [
 			null			;or~
 			null			;xor~
 			;-- Series actions --
-			null			;append
+			INHERIT_ACTION	;append
 			INHERIT_ACTION	;at
 			INHERIT_ACTION	;back
 			INHERIT_ACTION	;change

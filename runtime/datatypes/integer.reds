@@ -130,7 +130,7 @@ integer: context [
 			do-err	[subroutine!]
 	][
 		do-err: [fire [TO_ERROR(script invalid-data) issue]]
-		table: string/escape-url-chars
+		table: url/escape-url-chars
 		str: as red-string! stack/push as red-value! symbol/get issue/symbol
 		str/head: 0										;-- /head = -1 (casted from symbol!)
 		s: GET_BUFFER(str)

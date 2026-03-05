@@ -265,6 +265,7 @@ actions: context [
 
 	form*: func [
 		part	   [integer!]
+		;into	   [integer!]
 		/local
 			arg	   [red-value!]
 			buffer [red-string!]
@@ -287,6 +288,11 @@ actions: context [
 	
 		stack/keep										;-- keep last value
 		buffer: string/rs-make-at stack/push* 16		;@@ /part argument
+;		buffer: as red-string! either into < 0 [
+;			stack/arguments + into
+;		][
+;			string/rs-make-at stack/push* 16		;@@ /part argument
+;		]
 		form stack/arguments buffer arg limit
 		
 		if expected > 0 [string/truncate GET_BUFFER(buffer) expected]
@@ -830,13 +836,39 @@ actions: context [
 		dup   [integer!]
 	][
 		; assert ANY-SERIES?(TYPE_OF(stack/arguments))
-		insert
+		append
 			as red-series! stack/arguments
 			stack/arguments + 1
 			stack/arguments + part
 			as logic! only + 1
 			stack/arguments + dup
 			yes
+	]
+	
+	append: func [
+		series  [red-series!]
+		value   [red-value!]
+		part	[red-value!]
+		only?	[logic!]
+		dup		[red-value!]
+		events? [logic!]
+		return:	[red-value!]
+		/local
+			action-append
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/append"]]
+
+		action-append: as function! [
+			series  [red-series!]
+			value   [red-value!]
+			part	[red-value!]
+			only?	[logic!]
+			dup		[red-value!]
+			events? [logic!]
+			return:	[red-value!]						;-- series after insertion position
+		] get-action-ptr as red-value! series ACT_APPEND
+		
+		action-append series value part only? dup events?
 	]
 	
 	at*: func [

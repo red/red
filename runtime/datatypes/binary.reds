@@ -781,7 +781,7 @@ binary: context [
 		node: alloc-bytes len >> 1
 		s: as series! node/value
 
-		table: string/escape-url-chars
+		table: url/escape-url-chars
 		bin: as byte-ptr! s/offset
 		accum: 0
 		count: 0
@@ -1428,7 +1428,7 @@ binary: context [
 			:or~
 			:xor~
 			;-- Series actions --
-			null			;append
+			:insert			;append
 			INHERIT_ACTION	;at
 			INHERIT_ACTION	;back
 			INHERIT_ACTION	;change

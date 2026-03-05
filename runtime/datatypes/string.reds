@@ -16,17 +16,12 @@ string: context [
 	#define BRACES_THRESHOLD	50						;-- max string length for using " delimiter
 	#define MAX_ESC_CHARS		5Fh	
 	#define MAX_URL_CHARS 		7Fh
+	#define ESC_CHAR			FDh
 
 	#enum modification-type! [
 		MODE_APPEND
 		MODE_INSERT
 		MODE_OVERWRITE
-	]
-
-	#enum escape-type! [
-		ESC_CHAR: FDh
-		ESC_URI:  FEh			;-- RFC 3986
-		ESC_URL:  FFh			;-- similar encodeURI
 	]
 
 	;-- Non-printable characters escaping table (dots are just placeholders for no-op)
@@ -45,76 +40,11 @@ string: context [
 		00 00 00 00 00 00 5E 00 ;-- 5Fh		. . . . . . ^ .
 	}
 	
-	;-- Hex values encoding table for special characters in URLs (FF => no-op)
-	escape-url-chars: #{								;-- ESC_URL: #"^(FF)"
-		FF FF FF FF FF FF FF FF ;-- 07h
-		FF FF FF FF FF FF FF FF ;-- 0Fh
-		FF FF FF FF FF FF FF FF ;-- 17h
-		FF FF FF FF FF FF FF FF ;-- 1Fh
-		FF FF FF FF FF FF FF FF ;-- 27h
-		FF FF FF FF FF FF FF FF ;-- 2Fh
-		00 01 02 03 04 05 06 07 ;-- 37h		#"0"-#"9" => 0-9
-		08 09 FF FF FF FF FF FF ;-- 3Fh
-		FF 0A 0B 0C 0D 0E 0F FF ;-- 47h		#"A"-#"F" => 10-15
-		FF FF FF FF FF FF FF FF ;-- 4Fh
-		FF FF FF FF FF FF FF FF ;-- 57h
-		FF FF FF FF FF FF FF FF ;-- 5Fh
-		FF 0A 0B 0C 0D 0E 0F FF ;-- 67h		#"a"-#"f" => 10-15
-		FF FF FF FF FF FF FF FF ;-- 6Fh
-		FF FF FF FF FF FF FF FF ;-- 77h
-		FF FF FF FF FF FF FF FF ;-- 7Fh
-	}
-
-	;-- URI special characters encoding table (RFC3986 rules)
-	;-- FF: pass-thru, 00: escape character
-	uri-encode-tbl: #{
-		00 00 00 00 00 00 00 00 ;-- 07h
-		00 00 00 00 00 00 00 00 ;-- 0Fh
-		00 00 00 00 00 00 00 00 ;-- 17h
-		00 00 00 00 00 00 00 00 ;-- 1Fh
-		00 00 00 00 00 00 00 00 ;-- 27h
-		00 00 00 00 00 FF FF 00 ;-- 2Fh
-		FF FF FF FF FF FF FF FF ;-- 37h
-		FF FF 00 00 00 00 00 00 ;-- 3Fh
-		00 FF FF FF FF FF FF FF ;-- 47h
-		FF FF FF FF FF FF FF FF ;-- 4Fh
-		FF FF FF FF FF FF FF FF ;-- 57h
-		FF FF FF 00 00 00 00 FF ;-- 5Fh
-		00 FF FF FF FF FF FF FF ;-- 67h
-		FF FF FF FF FF FF FF FF ;-- 6Fh
-		FF FF FF FF FF FF FF FF ;-- 77h
-		FF FF FF 00 00 00 FF 00 ;-- 7Fh
-	}
-
-	;-- URL special characters encoding table (encodeURI rules)
-	;-- FF: pass-thru, 00: escape character
-	url-encode-tbl: #{
-		00 00 00 00 00 00 00 00 ;-- 07h
-		00 00 00 00 00 00 00 00 ;-- 0Fh
-		00 00 00 00 00 00 00 00 ;-- 17h
-		00 00 00 00 00 00 00 00 ;-- 1Fh
-		00 FF 00 FF FF 00 FF FF ;-- 27h
-		FF FF FF FF FF FF FF FF ;-- 2Fh
-		FF FF FF FF FF FF FF FF ;-- 37h
-		FF FF FF 00 00 FF 00 FF ;-- 3Fh
-		FF FF FF FF FF FF FF FF ;-- 47h
-		FF FF FF FF FF FF FF FF ;-- 4Fh
-		FF FF FF FF FF FF FF FF ;-- 57h
-		FF FF FF 00 00 00 00 FF ;-- 5Fh
-		00 FF FF FF FF FF FF FF ;-- 67h
-		FF FF FF FF FF FF FF FF ;-- 6Fh
-		FF FF FF FF FF FF FF FF ;-- 77h
-		FF FF FF 00 00 00 FF 00 ;-- 7Fh
-	}
-
 	utf8-buffer: #{00000000}
+	swap-buf: as byte-ptr! 0
+	swap-size: 64 * 1024
 
-	to-float: func [
-		s		[byte-ptr!]
-		len		[integer!]
-		e		[int-ptr!]
-		return: [float!]
-	][
+	to-float: func [s [byte-ptr!] len [integer!] e [int-ptr!] return: [float!]][
 		dtoa/to-float s s + len e
 	]
 
@@ -179,169 +109,32 @@ string: context [
 			s
 		]
 	]
-
-	decode-url-char: func [
-		p			[byte-ptr!]
-		rp			[byte-ptr!]
-		return:		[logic!]
+	
+	swap-buffers: func [								;-- swaps continguous non-overlapping buffers, p1 < p2
+		p1	   [byte-ptr!]
+		len1   [integer!]
+		p2	   [byte-ptr!]
+		len2   [integer!]
+		offset [integer!]								;-- offset for 2nd buffer destination
 		/local
-			ch		[integer!]
-			v1		[integer!]
-			v2		[integer!]
+			forward? up? [logic!]
+			len [integer!]
 	][
-		ch: as integer! p/1
-		if ch > MAX_URL_CHARS [return false]
-		if p/1 <> #"%" [return false]
-		v1: 1 + as-integer p/2
-		v2: 1 + as-integer p/3
-		v1: as-integer escape-url-chars/v1
-		v2: as-integer escape-url-chars/v2
-		if any [
-			v1 = ESC_URL
-			v2 = ESC_URL
-		][return false]
+		forward?: len1 > len2
+		len: either forward? [len2][len1]
+		up?: len > swap-size
+		if up? [swap-buf: realloc swap-buf len]
 
-		v1: v1 << 4 + v2
-		rp/1: as byte! v1
-		return true
-	]
-
-	decode-url: func [
-		str			[red-string!]
-		url			[red-string!]
-		/local
-			slen	[integer!]
-			data	[byte-ptr!]
-			end		[byte-ptr!]
-			s		[series!]
-			ch		[byte!]
-			size	[integer!]
-			p		[byte-ptr!]
-			ch2		[byte!]
-			enc?	[logic!]
-			code	[integer!]
-			pc		[byte-ptr!]
-			u		[integer!]
-	][
-		slen: -1
-		data: as byte-ptr! unicode/to-utf8 str :slen
-		if slen = 0 [exit]
-		end: data + slen
-		s: GET_BUFFER(url)
-
-		ch: #"^@" ch2: #"^@"
-		while [data < end][
-			enc?: false
-			if decode-url-char data :ch [
-				size: unicode/utf8-char-size? as-integer ch
-				p: data + 3
-				enc?: true
-				if size <> 0 [
-					loop size - 1 [
-						unless decode-url-char p :ch2 [
-							enc?: false
-							break
-						]
-						p: p + 3
-					]
-				]
-			]
-			either enc? [
-				either size = 0 [
-					s: append-char s as integer! ch
-					data: data + 3
-				][
-					code: 0
-					p: as byte-ptr! :code
-					p/1: ch
-					p: p + 1
-					data: data + 3
-					loop size - 1 [
-						decode-url-char data :ch
-						p/1: ch
-						p: p + 1
-						data: data + 3
-					]
-					u: unicode/decode-utf8-char as c-string! :code :size
-					s: append-char s u
-				]
-			][
-				size: as integer! end - data
-				u: unicode/decode-utf8-char as c-string! data :size
-				s: append-char s u
-				data: data + size
-			]
-		]
-	]
-
-	encode-url-char: func [
-		type		[integer!]
-		pch			[byte-ptr!]
-		psize		[int-ptr!]
-		return:		[byte-ptr!]
-		/local
-			ss		[c-string!]
-			tbl		[byte-ptr!]
-			ch		[integer!]
-			index	[integer!]
-			code	[integer!]
-			pcode	[byte-ptr!]
-			str		[c-string!]
-	][
-		ss: "%00"
-		tbl: either type = ESC_URI [uri-encode-tbl][url-encode-tbl]
-		ch: as integer! pch/1
-		either ch > MAX_URL_CHARS [
-			code: 0
+		either forward? [								 ;--         P1        P2
+			copy-memory swap-buf p2 len2				 ;-- input:  |----1----|--2--|
+			move-memory p1 + len2 + offset p1 len1		 ;--         |-----|..offset..|----1----|
+			copy-memory p1 swap-buf len2				 ;-- output: |--2--|..offset..|----1----|
 		][
-			index: ch + 1
-			code: as integer! tbl/index
+			copy-memory swap-buf p1 len1				 ;-- input:  |--1--|----2----|
+			move-memory p1 p2 len2						 ;--         |----2----|-----|
+			copy-memory p1 + len2 + offset swap-buf len1 ;-- output: |----2----|..offset..|--1--|
 		]
-		either code = FFh [
-			pcode: pch
-			psize/1: 1
-		][
-			str: byte-to-hex ch
-			ss/2: str/1
-			ss/3: str/2
-			pcode: as byte-ptr! ss
-			psize/1: 3
-		]
-		pcode
-	]
-
-	encode-url: func [
-		str			[red-string!]
-		url			[red-string!]
-		type		[integer!]
-		/local
-			slen	[integer!]
-			data	[byte-ptr!]
-			end		[byte-ptr!]
-			s		[series!]
-			size	[integer!]
-			node	[node!]
-			dst		[byte-ptr!]
-			p		[byte-ptr!]
-	][
-		slen: -1
-		data: as byte-ptr! unicode/to-utf8 str :slen
-		if slen = 0 [exit]
-		end: data + slen
-		s: GET_BUFFER(url)
-
-		size: 0
-		while [data < end][
-			p: encode-url-char type data :size
-			loop size [
-				node: s/node
-				dst: alloc-tail-unit s 1
-				dst/1: p/1
-				s: as series! node/value
-				p: p + 1
-			]
-			data: data + 1
-		]
+		if up? [swap-buf: realloc swap-buf swap-size]
 	]
 
 	rs-load: func [
@@ -843,6 +636,70 @@ string: context [
 		offset: offset - str2/head
 		if positive? offset [remove-part str1 str1/head offset]
 	]
+
+	upgrade-series-unit: func [s [series!] unit [integer!] unit2 [integer!] return: [series!]][
+		switch unit2 [
+			UCS-2 [unicode/Latin1-to-UCS2 s]
+			UCS-4 [either unit = Latin1 [unicode/Latin1-to-UCS4 s][unicode/UCS2-to-UCS4 s]]
+		]
+	]
+
+	convert: func [
+		s		[series!]								;-- source series
+		sn		[series!]								;-- destination series (or NULL for in-place)
+		size	[integer!]								;-- segment size (ignored if destination provided)
+		unit2	[integer!]								;-- target unit
+		s-off	[integer!]								;-- source offset in bytes
+		d-off	[integer!]								;-- destination offset in bytes
+		part	[integer!]								;-- source size limitation in bytes
+		strict?	[logic!]								;-- if set, don't touch new series' header
+		return: [series!]
+		/local
+			src dst end [byte-ptr!]
+			dst4 [int-ptr!]
+			new	 [series!]
+			unit [integer!]
+	][
+		unit: GET_UNIT(s)
+		assert unit < unit2
+		new: either null? sn [expand-series-strict s size][sn] ;-- content is not copied
+
+		src:  (as byte-ptr! s/offset) + s-off
+		end:  either part > 0 [(as byte-ptr! s/offset) + part][as byte-ptr! s/tail]
+		dst4: as int-ptr! (as byte-ptr! new/offset) + d-off
+
+		case [
+			unit2 = UCS-2 [								;-- upgrade from UCS-1 to UCS-2
+				dst: (as byte-ptr! new/offset) + d-off
+				while [src < end][
+					dst/1: src/1
+					dst/2: null-byte
+					src: src + 1
+					dst: dst + 2
+				]
+				dst4: as int-ptr! dst
+			]
+			unit = UCS-1 [								;-- upgrade from UCS-1 to UCS-4
+				while [src < end][
+					dst4/value: as-integer src/1
+					src: src + 1
+					dst4: dst4 + 1
+				]
+			]
+			unit = UCS-2 [								;-- upgrade from UCS-2 to UCS-4
+				while [src < end][
+					dst4/value: (as-integer src/2) << 8 + src/1
+					src: src + 2
+					dst4: dst4 + 1
+				]
+			]
+		]
+		unless strict? [
+			new/tail: as red-value! dst4
+			new/flags: new/flags and flag-unit-mask or unit2
+		]
+		new
+	]
 	
 	equal?: func [
 		str1	  [red-string!]							;-- first operand
@@ -1102,29 +959,11 @@ string: context [
 
 		case [											;-- harmonize both encodings
 			unit1 < unit2 [
-				switch unit2 [
-					UCS-2 [s1: unicode/Latin1-to-UCS2 s1]
-					UCS-4 [
-						s1: either unit1 = Latin1 [
-							unicode/Latin1-to-UCS4 s1
-						][
-							unicode/UCS2-to-UCS4 s1
-						]
-					]
-				]
+				s1: upgrade-series-unit s1 unit1 unit2
 				unit1: unit2
 			]
 			all [unit1 > unit2 not keep?][
-				switch unit1 [
-					UCS-2 [s2: unicode/Latin1-to-UCS2 s2]
-					UCS-4 [
-						s2: either unit2 = Latin1 [
-							unicode/Latin1-to-UCS4 s2
-						][
-							unicode/UCS2-to-UCS4 s2
-						]
-					]
-				]
+				s2: upgrade-series-unit s2 unit2 unit1
 				unit2: unit1
 			]
 			true [true]									;@@ catch-all case to make compiler happy
@@ -1485,7 +1324,7 @@ string: context [
 			]
 			TYPE_ANY_LIST [
 				buffer: make-at proto 16 1
-				insert buffer spec null no null yes
+				append buffer spec null no null no
 			]
 			TYPE_REFINEMENT [
 				buffer: rs-make-at proto 16
@@ -2466,6 +2305,150 @@ string: context [
 		str
 	]
 
+	append: func [
+		str		 [red-string!]
+		value	 [red-value!]
+		part-arg [red-value!]
+		only?	 [logic!]
+		dup-arg	 [red-value!]
+		events?	 [logic!]
+		return:	 [red-value!]
+		/local
+			blk		  [red-block!]
+			int		  [red-integer!]
+			char	  [red-char!]
+			sp str2   [red-string!]
+			head slot [red-value!]
+			s s2	  [series!]
+			p p0	  [byte-ptr!]
+			cnt part len added type size unit unit2 u [integer!]
+			chk? done? upgrade? [logic!]
+			do-form-part [subroutine!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "string/append"]]
+
+		cnt: 1
+		part: -1										;-- -1 => no part, use full size
+		
+		do-form-part: [									;-- FORM/part value, appending to str
+			part: actions/form slot str null part
+			if part < 0 [
+				s: GET_BUFFER(str)
+				s/tail: as cell! (as byte-ptr! s/tail) + part
+			]
+		]
+		;-- Processing options --
+		if OPTION?(part-arg) [
+			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
+				int: as red-integer! part-arg
+				int/value
+			][
+				sp: as red-string! part-arg
+				str2: as red-string! value
+				unless all [							;-- not same series => error
+					TYPE_OF(sp) = TYPE_OF(str2)
+					sp/node = str2/node
+				][
+					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
+				]
+				sp/head - str2/head
+			]
+			if part <= 0 [return as red-value! str]
+		]
+		if OPTION?(dup-arg) [
+			int: as red-integer! dup-arg
+			cnt: int/value
+			if cnt <= 0 [return as red-value! str]
+		]
+		;-- Precalculating extra space needed --
+		s: GET_BUFFER(str)
+		len: (as-integer s/tail - s/offset) >> (log-b GET_UNIT(s))
+		if events? [chk?: ownership/check as red-value! str words/_append value len part]
+
+		type: TYPE_OF(value)
+		str2: as red-string! value
+		done?: no
+		
+		added: switch type [							;-- precalculate nb of added chars
+			TYPE_CHAR 		[1]
+			TYPE_TAG  		[2 + rs-length? str2]		;-- upper limit (/part not accounted)
+			TYPE_ANY_STRING [rs-length? str2]			;-- upper limit (/part not accounted)
+			default			[							;-- FORMing value(s) case
+				if part < 0 [part: MAX_INT]				;-- if no /part, ensures all chars are used
+				either ANY_LIST?(type) [
+					blk: as red-block! value
+					s: GET_BUFFER(blk)
+					head: s/offset + blk/head
+					slot: head
+					while [slot < s/tail][
+						do-form-part						;-- form and append it, then measure added chars
+						if part <= 0 [break]
+						slot: slot + 1
+					]
+				][
+					slot: value
+					do-form-part							;-- FORM/into str, then measure added chars				
+				]
+				done?: yes
+				(rs-abs-length? str) - len
+			]
+		]
+		;-- Expand series buffer and append the value --
+		s: GET_BUFFER(str)
+		either done? [									;-- expand str if needed, accounting to added and /dup
+			if cnt > 1 [								;-- already appended FORMed value, now expand for /dup count
+				size: (len + (added * cnt)) * GET_UNIT(s)
+				if size > s/size [
+					if s/size * 2 > size [size: 0]		;-- double existing space (0 arg) if size can fit into that
+					s: expand-series s size
+				]
+			]
+		][
+			unit2: either type = TYPE_CHAR [			;-- calculate argument's unit
+				char: as red-char! value
+				case [char/value < 128 [UCS-1] char/value < 65536 [UCS-2] true [UCS-4]]
+			][
+				s2: GET_BUFFER(str2)
+				GET_UNIT(s2)
+			]
+			unit: GET_UNIT(s)
+			upgrade?: unit < unit2
+			u: either upgrade? [unit2][unit]
+			size: (len + (added * cnt)) * u				;; /part not taken into account, overshooting size!
+			either size > s/size [						;-- expand if needed
+				if s/size * 2 > size [size: 0]			;-- double existing space (0 arg) if size can fit into that
+				s: either upgrade? [convert s null size unit2 0 0 0 no][expand-series s size]
+			][
+				if upgrade? [s: upgrade-series-unit s unit unit2] ;-- upgrade the series to unit2 in-place
+			]
+			either type = TYPE_CHAR [append-char s char/value][ ;-- now append char / any-string argument
+				if any [part < 0 part > added][part: added]
+				p0: as byte-ptr! s/tail
+				if all [type = TYPE_TAG part > 0][append-char s as-integer #"<" part: part - 1]
+				if part > 0 [
+					len: rs-length? str
+					str2: as red-string! value
+					concatenate str str2 part 0 no no
+					part: part - ((rs-length? str) - len)
+				]
+				if all [type = TYPE_TAG part > 0][append-char GET_BUFFER(str) as-integer #">"]
+				added: (as-integer (as byte-ptr! s/tail) - p0) >> log-b GET_UNIT(s) ;-- refresh it accounting for /part
+			]
+			assert s = GET_BUFFER(str)					;-- check if any unexpected expansion happened
+		]
+		;-- Duplicate the appended value if needed --
+		if all [cnt > 1 added > 0][						;-- duplicate the one appended instance to /dup count
+			size: added * GET_UNIT(s)
+			p0: dup-memory (as byte-ptr! s/tail) - size size cnt
+			assert (as byte-ptr! s/offset) + s/size >= p0
+			s/tail: as red-value! p0
+		]
+		if part < 0 [part: 1]							;-- ownership/check needs part >= 0
+		if all [events? chk?][ownership/check as red-value! str words/_appended value len part]
+		str/head: 0
+		as red-value! str
+	]
+
 	insert: func [
 		str		 [red-string!]
 		value	 [red-value!]
@@ -2475,159 +2458,213 @@ string: context [
 		append?	 [logic!]
 		return:	 [red-value!]
 		/local
-			src		  [red-block!]
+			src blk	  [red-block!]
 			cell	  [red-value!]
-			limit	  [red-value!]
+			head slot [red-value!]
 			int		  [red-integer!]
 			char	  [red-char!]
-			sp		  [red-string!]
-			form-slot [red-value!]
-			form-buf  [red-string!]
-			action	  [red-word!]
-			s		  [series!]
-			s2		  [series!]
-			dup-n	  [integer!]
-			cnt		  [integer!]
-			part	  [integer!]
-			len		  [integer!]
-			rest	  [integer!]
-			added	  [integer!]
-			type	  [integer!]
-			index	  [integer!]
-			slots	  [integer!]
-			size	  [integer!]
-			tail?	  [logic!]
-			chk?	  [logic!]
+			sp str2	  [red-string!]
+			s s2 sn   [series!]
+			p p0	  [byte-ptr!]
+			cnt part len len2 added type unit unit2 size tsize index u lu hpos
+			wadded madded windex wmadded wmadded-1 [integer!]
+			chk? done? upgrade?  [logic!]
+			do-form-part [subroutine!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/insert"]]
 
-		dup-n: 1
-		cnt:  1
+		cnt: 1
 		part: -1
 		
+		do-form-part: [									;-- FORM/part value, appending to str
+			part: actions/form slot str null part
+			if part < 0 [
+				s: GET_BUFFER(str)
+				s/tail: as cell! (as byte-ptr! s/tail) + part
+			]
+		]
+		;-- Processing options --
 		if OPTION?(part-arg) [
 			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
 				int: as red-integer! part-arg
 				int/value
 			][
 				sp: as red-string! part-arg
-				form-buf: as red-string! value
+				str2: as red-string! value
 				unless all [
-					TYPE_OF(sp) = TYPE_OF(form-buf)
-					sp/node = form-buf/node
+					TYPE_OF(sp) = TYPE_OF(str2)
+					sp/node = str2/node
 				][
 					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
 				]
-				sp/head - form-buf/head
+				sp/head - str2/head
 			]
+			if part <= 0 [return as red-value! str]
 		]
 		if OPTION?(dup-arg) [
 			int: as red-integer! dup-arg
 			cnt: int/value
-			if negative? cnt [return as red-value! str]
-			dup-n: cnt
+			if cnt <= 0 [return as red-value! str]
 		]
-		
-		form-slot: stack/push*							;-- reserve space for FORMing incompatible values
-		form-slot/header: TYPE_UNSET
-		
+		;-- Precalculating extra space needed --
 		s: GET_BUFFER(str)
 		len: (as-integer s/tail - s/offset) >> (log-b GET_UNIT(s))
-		tail?: any [len = str/head append?]
-		index: either append? [
-			action: words/_append
-			len
-		][
-			action: words/_insert
-			str/head
-		]
-		chk?: ownership/check as red-value! str action value index part
-
-		slots: either part > 0 [cnt * part][cnt]
-		slots: slots * GET_UNIT(s)
-		size: slots + as-integer s/tail - s/offset
-		if size > s/size [
-			if cnt <= 4 [size: size * 2]				;-- double it if low number of inserted slots
-			s: expand-series s size
+		chk?: ownership/check as red-value! str words/_insert value str/head part
+		
+		if len = str/head [								;-- is string at tail?
+			append str value part-arg only? dup-arg no	;-- fallback to append
+			if part < 0 [part: 1]						;-- ownership/check needs part >= 0
+			if chk? [ownership/check as red-value! str words/_inserted value str/head part]
+			s: GET_BUFFER(str)
+			str/head: (as-integer s/tail - s/offset) >> log-b GET_UNIT(s) ;-- set head past the inserted chars (at tail)
+			return as red-value! str
 		]
 		
-		while [not zero? cnt][							;-- /dup support
-			type: TYPE_OF(value)
-			either any [								;@@ replace it with: typeset/any-list?
-				type = TYPE_BLOCK
-				type = TYPE_PAREN
-				type = TYPE_HASH
-			][
-				src: as red-block! value
-				s2: GET_BUFFER(src)
-				cell:  s2/offset + src/head
-				limit: cell + block/rs-length? src
-			][
-				cell:  value
-				limit: value + 1
-			]
-			rest: 0
-			added: 0
-			while [
-				all [cell < limit added <> part]		;-- multiple values case
-			][
-				type: TYPE_OF(cell)
-				
-				either type = TYPE_CHAR [
-					char: as red-char! cell
-					s: GET_BUFFER(str)
-					either tail? [
-						append-char s char/value
-					][
-						insert-char s str/head + added char/value
+		type: TYPE_OF(value)
+		str2: as red-string! value
+		done?: no
+		
+		added: switch type [							;-- precalculate nb of added chars
+			TYPE_CHAR 		[char: as red-char! value  1]
+			TYPE_TAG  		[2 + rs-length? str2]		;-- upper limit (/part not accounted)
+			TYPE_ANY_STRING [rs-length? str2]			;-- upper limit (/part not accounted)
+			default			[							;-- FORMing value(s) case
+				if part < 0 [part: MAX_INT]				;-- if no /part, ensures all chars are used
+				tsize: rs-length? str
+				either ANY_LIST?(type) [
+					blk: as red-block! value
+					s2: GET_BUFFER(blk)
+					head: s2/offset + blk/head
+					slot: head
+					while [slot < s2/tail][
+						do-form-part					;-- form and append it, then measure added chars
+						if part <= 0 [break]
+						slot: slot + 1
 					]
-					added: added + 1
 				][
-					either all [
-						ANY_STRING?(type)
-						type <> TYPE_TAG				;-- preserve angle brackets
-					][
-						form-buf: as red-string! cell
-					][
-						;TBD: free previous form-buf node and series buffer
-						form-buf: rs-make-at form-slot 16
-						actions/form cell form-buf null 0
-					]
-					len: rs-length? form-buf
-					rest: len		 					;-- if not /part, use whole value length
-					if positive? part [					;-- /part support
-						rest: part - added
-						if rest > len [rest: len]
-					]
-					either tail? [
-						concatenate str form-buf rest 0 no no
-					][
-						concatenate str form-buf rest added no yes
-					]
-					added: added + rest
+					slot: value
+					do-form-part						;-- form and append it, then measure added chars
 				]
-				cell: cell + 1
+				done?: yes
+				(rs-abs-length? str) - len
 			]
-			cnt: cnt - 1
+		]
+		s: GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		either done? [unit2: unit][
+			unit2: either type = TYPE_CHAR [			;-- calculate argument's unit
+				case [char/value < 128 [UCS-1] char/value < 65536 [UCS-2] true [UCS-4]]
+			][
+				s2: GET_BUFFER(str2)
+				GET_UNIT(s2)
+			]
+		]
+		upgrade?: unit < unit2
+		u: either upgrade? [unit2][unit]				;-- output string unit
+		if all [part > 0 part < added not done?][added: part] ;-- apply /part value
+		index: str/head
+		lu: log-b u
+		hpos: index << lu
+		wadded: added << lu
+		madded: added * cnt
+		wmadded: madded << lu
+		windex:	index << log-b unit
+		size: (len + madded) << lu
+		
+		;-- Expand series buffer and append the value --
+		either size > s/size [							;-- Insert in expanded buffer case
+			;-- Expand series to account for new characters (creates a series) --
+			sn: expand-series-strict s size
+			sn/tail: sn/offset
+			;-- Append left piece --
+			if hpos > 0 [
+				either upgrade? [convert s sn 0 unit2 0 0 windex no][	;-- copy and if needed upgrade s into sn
+					copy-memory as byte-ptr! sn/offset as byte-ptr! s/offset hpos
+					sn/tail: as cell! (as byte-ptr! sn/tail) + hpos
+				]
+			]
+			;-- Append value in the middle --
+			either type = TYPE_CHAR [
+				append-char sn char/value				;-- char! value case
+				if cnt > 1 [							;-- duplicate appended char value
+					p0: dup-memory (as byte-ptr! sn/offset) + hpos u cnt
+					assert (as byte-ptr! sn/offset) + sn/size >= p0
+					sn/tail: as cell! (as byte-ptr! sn/tail) + (cnt << lu)
+				]
+			][
+				either done? [							;-- pre-appended FORMed value case (just copy it to new series)
+					copy-memory as byte-ptr! sn/tail (as byte-ptr! s/offset) + (tsize + index << lu) wadded
+					if cnt > 1 [
+						p0: dup-memory (as byte-ptr! sn/offset) + hpos wadded cnt
+						assert (as byte-ptr! sn/offset) + sn/size >= p0
+					]
+					sn/tail: as cell! (as byte-ptr! sn/tail) + wmadded
+				][										;-- any-string! value case
+					append str value part-arg only? dup-arg no ;-- let `append` handle it
+				]
+			]
+			;-- Append right piece --
+			len2: either done? [tsize - index][len - index]
+			if len2 > 0 [
+				either upgrade? [						;-- copy and if needed upgrade s into sn
+					len2: as-integer sn/tail - sn/offset
+					convert s sn 0 unit2 windex len2 0 no
+				][
+					len2: len2 << log-b u
+					p0: (as byte-ptr! s/offset) + windex
+					copy-memory as byte-ptr! sn/tail p0 len2
+					sn/tail: as cell! (as byte-ptr! sn/tail) + len2
+				]
+			]
+			s: sn
+		][												;-- Insert in original buffer case (enough space)
+			if upgrade? [s: upgrade-series-unit s unit unit2] ;-- in-place upgrading
+			;-- Move right piece up to make space --
+			p0: (as byte-ptr! s/offset) + hpos
+			wmadded-1: wmadded - wadded
+			either done? [								;-- if already appended, just set s/tail
+				if cnt > 1 [s/tail: as cell! (as byte-ptr! s/tail) + wmadded-1]
+			][
+				move-memory p0 + wmadded p0 as-integer s/tail - s/offset ;-- make space (accounting for /dup)
+				s/tail: as cell! (as byte-ptr! s/tail) + wmadded
+			]
+			;-- Insert the value --
+			either type = TYPE_CHAR [poke-char s p0 char/value][ ;-- char! value case
+				either done? [							;-- FORMed value case (appended already, just swap buffers)
+					tsize: tsize << log-b u
+					swap-buffers p0 tsize p0 + tsize wadded wmadded-1 ;-- swap appended buffer with right piece buffer
+				][										;-- string! or tag! value case
+					if any [part < 0 part > added][part: added] ;-- apply /part value
+					if type = TYPE_TAG [poke-char s p0 as-integer #"<"  p0: p0 + 1  part: part - 1]
+					if part > 0 [
+						len2: (as-integer s2/tail - s2/offset) - str2/head
+						if part < len2 [len2: part]
+						either u = unit2 [
+							copy-memory p0 (as byte-ptr! s2/offset) + (str2/head << log-b GET_UNIT(s2)) len2 * u
+						][
+							convert s2 s wmadded u 0 hpos part yes ;-- copy/part buffer with unit upgrade if needed
+						]
+						part: part - len2
+					]
+					if all [type = TYPE_TAG part > 0][poke-char s p0 + (len2 << log-b u) as-integer #">"]
+				]
+			]
+			;-- Duplicate the appended value if needed --
+			if all [cnt > 1 added > 0][					;-- duplicate the one appended instance up to /dup count
+				p0: (as byte-ptr! s/offset) + hpos
+				p0: dup-memory p0 wadded cnt
+				assert (as byte-ptr! s/offset) + s/size >= p0
+			]
 		]
 		if part < 0 [part: 1]							;-- ownership/check needs part >= 0
-		if chk? [
-			action: either append? [words/_appended][words/_inserted]
-			ownership/check as red-value! str action value index part
+		if chk? [ownership/check as red-value! str words/_inserted value index part]
+		
+		str/head: index + madded
+		if (as byte-ptr! s/offset) + (str/head << lu) > as byte-ptr! s/tail [ ;-- check for past-end caused by object event
+			str/head: (as-integer s/tail - s/offset) >> lu  ;-- adjust offset to series' tail
 		]
-		either append? [str/head: 0][
-			added: added * dup-n
-			str/head: str/head + added
-			s: GET_BUFFER(str)
-			part: log-b GET_UNIT(s)
-			if (as byte-ptr! s/offset) + (str/head << part) > as byte-ptr! s/tail [ ;-- check for past-end caused by object event
-				str/head: (as-integer s/tail - s/offset) >> part  ;-- adjust offset to series' tail
-			]
-		]
-		stack/pop 1										;-- pop the FORM slot
 		as red-value! str
 	]
-
 
 	swap: func [
 		str1	 [red-string!]
@@ -3082,6 +3119,8 @@ string: context [
 	]
 
 	init: does [
+		swap-buf: allocate swap-size
+	
 		datatype/register [
 			TYPE_STRING
 			TYPE_SERIES
@@ -3114,7 +3153,7 @@ string: context [
 			null			;or~
 			null			;xor~
 			;-- Series actions --
-			null			;append
+			:append
 			INHERIT_ACTION	;at
 			INHERIT_ACTION	;back
 			INHERIT_ACTION	;change
