@@ -2625,7 +2625,7 @@ string: context [
 			either done? [								;-- if already appended, just set s/tail
 				if cnt > 1 [s/tail: as cell! (as byte-ptr! s/tail) + wmadded-1]
 			][
-				move-memory p0 + wmadded p0 as-integer s/tail - s/offset ;-- make space (accounting for /dup)
+				move-memory p0 + wmadded p0 (as-integer s/tail - s/offset) - hpos ;-- make space (accounting for /dup)
 				s/tail: as cell! (as byte-ptr! s/tail) + wmadded
 			]
 			;-- Insert the value --

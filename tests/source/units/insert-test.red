@@ -264,32 +264,32 @@ Red [
 	--test-- "insert/dup1"
 		id1-s: copy ""
 		insert/dup id1-s #" " 10
-	--assert 10 = length? id1-s
-	--assert "          " = id1-s
+		--assert 10 = length? id1-s
+		--assert "          " = id1-s
 	
 	--test-- "insert/dup2"
 		id2-s: copy ""
 		insert/dup id2-s #"1" 9
-	--assert 9 = length? id2-s
-	--assert "111111111" = id2-s
+		--assert 9 = length? id2-s
+		--assert "111111111" = id2-s
 	
 	--test-- "insert/dup3"
 		id3-b: copy []
 		insert/dup id3-b 1 8
-	--assert 8 = length? id3-b
-	--assert [1 1 1 1 1 1 1 1] = id3-b
+		--assert 8 = length? id3-b
+		--assert [1 1 1 1 1 1 1 1] = id3-b
 	
 	--test-- "insert/dup4"
 		id4-s: copy " "
 		insert/dup id4-s #" " 10
-	--assert 11 = length? id4-s
-	--assert "           " = id4-s
+		--assert 11 = length? id4-s
+		--assert "           " = id4-s
 
 	--test-- "insert/dup5"
 		hash: make hash! [a b c 1 2 3]
 		insert/dup hash [x y] 2
-	--assert 'y = select hash 'x
-	--assert 2  = select hash 1
+		--assert 'y = select hash 'x
+		--assert 2  = select hash 1
 ===end-group===
 
 ===start-group=== "insert not at head"
@@ -297,84 +297,84 @@ Red [
 	--test-- "insert-not-at-head1"
 		inah1-b: copy [1 2 3 4]
 		insert next next inah1-b 'two&half 
-	--assert [1 2 two&half 3 4] = head inah1-b
+		--assert [1 2 two&half 3 4] = head inah1-b
 	
 	--test-- "insert-not-at-head2"
 		inah2-s: copy "1234"
 		insert next next inah2-s "2.5" 
-	--assert "122.534" = head inah2-s
+		--assert "122.534" = head inah2-s
 	
 	--test-- "insert-not-at-head3"
 		inah3-s: copy "1234"
 		insert next next inah3-s "^(2345)" 
-	--assert "12^(2345)34" = head inah3-s
+		--assert "12^(2345)34" = head inah3-s
 	
 	--test-- "insert-not-at-head4"
 		inah4-s: copy "1234^(2345)"
 		insert next next inah4-s "2.5" 
-	--assert "122.534^(2345)" = head inah4-s
+		--assert "122.534^(2345)" = head inah4-s
 	
 	--test-- "insert-not-at-head5"
 		inah5-s: copy "1234"
 		insert next next inah5-s "^(010000)" 
-	--assert "12^(010000)34" = head inah5-s
+		--assert "12^(010000)34" = head inah5-s
 	
 	--test-- "insert-not-at-head6"
 		inah6-s: copy "1234^(010000)"
 		insert next next inah6-s "2.5" 
-	--assert "122.534^(010000)" = head inah6-s
+		--assert "122.534^(010000)" = head inah6-s
 	
 	--test-- "insert-not-at-head7"
 		inah7-s: copy "1234^(010000)"
 		insert next next inah7-s "^(2345)" 
-	--assert "12^(2345)34^(010000)" = head inah7-s
+		--assert "12^(2345)34^(010000)" = head inah7-s
 	
 	--test-- "insert-not-at-head8"
 		inah8-s: copy "1234^(2345)"
 		insert next next inah8-s "^(010000)" 
-	--assert "12^(10000)34^(02345)" = head inah8-s
+		--assert "12^(10000)34^(02345)" = head inah8-s
 	
 	--test-- "insert-not-at-head9"
 		inah9-s: copy "1234"
 		insert next next inah9-s #"5" 
-	--assert "12534" = head inah9-s
+		--assert "12534" = head inah9-s
 	
 	--test-- "insert-not-at-head10"
 		inah10-s: copy "1234"
 		insert next next inah10-s #"^(2345)" 
-	--assert "12^(2345)34" = head inah10-s
+		--assert "12^(2345)34" = head inah10-s
 	
 	--test-- "insert-not-at-head11"
 		inah11-s: copy "1234^(2345)"
 		insert next next inah11-s #"5" 
-	--assert "12534^(2345)" = head inah11-s
+		--assert "12534^(2345)" = head inah11-s
 	
 	--test-- "insert-not-at-head12"
 		inah12-s: copy "1234"
 		insert next next inah12-s #"^(010000)" 
-	--assert "12^(010000)34" = head inah12-s
+		--assert "12^(010000)34" = head inah12-s
 	
 	--test-- "insert-not-at-head13"
 		inah13-s: copy "1234^(010000)"
 		insert next next inah13-s #"5" 
-	--assert "12534^(010000)" = head inah13-s
+		--assert "12534^(010000)" = head inah13-s
 	
 	--test-- "insert-not-at-head14"
 		inah14-s: copy "1234^(010000)"
 		insert next next inah14-s #"^(2345)" 
-	--assert "12^(2345)34^(010000)" = head inah14-s
+		--assert "12^(2345)34^(010000)" = head inah14-s
 	
 	--test-- "insert-not-at-head15"
 		inah15-s: copy "1234^(2345)"
 		insert next next inah15-s #"^(010000)" 
-	--assert "12^(10000)34^(02345)" = head inah15-s
+		--assert "12^(10000)34^(02345)" = head inah15-s
 
 	--test-- "insert/insert-not-at-head16"
 		hash: make hash! [a b c 1 2 3]
 		insert skip hash 3 [x y]
-	--assert 'b = select hash 'a
-	--assert 'y = select hash 'x
-	--assert 2  = select hash 1	
+		--assert 'b = select hash 'a
+		--assert 'y = select hash 'x
+		--assert 2  = select hash 1	
 ===end-group===
 
 ===start-group=== "insert at tail"
@@ -382,84 +382,85 @@ Red [
 	--test-- "insert-at-tail1"
 		inat1-b: copy [1 2 3 4]
 		insert tail inat1-b 'two&half 
-	--assert [1 2 3 4 two&half] = head inat1-b
+		--assert [1 2 3 4 two&half] = head inat1-b
 	
 	--test-- "insert-at-tail2"
 		inat2-s: copy "1234"
 		insert tail inat2-s "2.5" 
-	--assert "12342.5" = head inat2-s
+		--assert "12342.5" = head inat2-s
 	
 	--test-- "insert-at-tail3"
 		inat3-s: copy "1234"
 		insert tail inat3-s "^(2345)" 
-	--assert "1234^(2345)" = head inat3-s
+		--assert "1234^(2345)" = head inat3-s
 	
 	--test-- "insert-at-tail4"
 		inat4-s: copy "1234^(2345)"
 		insert tail inat4-s "2.5" 
-	--assert "1234^(2345)2.5" = head inat4-s
+		--assert "1234^(2345)2.5" = head inat4-s
 	
 	--test-- "insert-at-tail5"
 		inat5-s: copy "1234"
 		insert tail inat5-s "^(010000)" 
-	--assert "1234^(010000)" = head inat5-s
+		--assert "1234^(010000)" = head inat5-s
 	
 	--test-- "insert-at-tail6"
 		inat6-s: copy "1234^(010000)"
 		insert tail inat6-s "2.5" 
-	--assert "1234^(010000)2.5" = head inat6-s
+		--assert "1234^(010000)2.5" = head inat6-s
 	
 	--test-- "insert-at-tail7"
 		inat7-s: copy "1234^(010000)"
 		insert tail inat7-s "^(2345)" 
-	--assert "1234^(010000)^(2345)" = head inat7-s
+		--assert "1234^(010000)^(2345)" = head inat7-s
 	
 	--test-- "insert-at-tail8"
 		inat8-s: copy "1234^(2345)"
 		insert tail inat8-s "^(010000)" 
-	--assert "1234^(02345)^(10000)" = head inat8-s
+		--assert "1234^(02345)^(10000)" = head inat8-s
 	
 	--test-- "insert-at-tail9"
 		inat9-s: copy "1234"
 		insert tail inat9-s #"5" 
-	--assert "12345" = head inat9-s
+		--assert "12345" = head inat9-s
 	
 	--test-- "insert-at-tail10"
 		inat10-s: copy "1234"
 		insert tail inat10-s #"^(2345)" 
-	--assert "1234^(2345)" = head inat10-s
+		--assert "1234^(2345)" = head inat10-s
 	
 	--test-- "insert-at-tail11"
 		inat11-s: copy "1234^(2345)"
 		insert tail inat11-s #"5" 
-	--assert "1234^(2345)5" = head inat11-s
+		--assert "1234^(2345)5" = head inat11-s
 	
 	--test-- "insert-at-tail12"
 		inat12-s: copy "1234"
 		insert tail inat12-s #"^(010000)" 
-	--assert "1234^(010000)" = head inat12-s
+		--assert "1234^(010000)" = head inat12-s
 	
 	--test-- "insert-at-tail13"
 		inat13-s: copy "1234^(010000)"
 		insert tail inat13-s #"5" 
-	--assert "1234^(010000)5" = head inat13-s
+		--assert "1234^(010000)5" = head inat13-s
 	
 	--test-- "insert-at-tail14"
 		inat14-s: copy "1234^(010000)"
 		insert tail inat14-s #"^(2345)" 
-	--assert "1234^(010000)^(2345)" = head inat14-s
+		--assert "1234^(010000)^(2345)" = head inat14-s
 	
 	--test-- "insert-at-tail15"
 		inat15-s: copy "1234^(2345)"
 		insert tail inat15-s #"^(010000)" 
-	--assert "1234^(02345)^(10000)" = head inat15-s
+		--assert "1234^(02345)^(10000)" = head inat15-s
 
 	--test-- "insert/insert-not-at-head16"
 		hash: make hash! [a b c 1 2 3]
 		insert skip hash 3 [x y]
-	--assert 'b = select hash 'a
-	--assert 'y = select hash 'x
-	--assert 2  = select hash 1	
+		--assert 'b = select hash 'a
+		--assert 'y = select hash 'x
+		--assert 2  = select hash 1
+		
 ===end-group===
 
 ===start-group=== "insert reported issues"
@@ -480,9 +481,23 @@ Red [
 	--assert 5000 = length? head insert/dup #{} #{20} 5000
 
 	--test-- "iri6 - issue #4335"
-	t: make hash! []
-	repeat i 3 [insert/part t s: "abc" at s i]
-	forall t [--assert t/1 = "abc"]
+		t: make hash! []
+		repeat i 3 [insert/part t s: "abc" at s i]
+		forall t [--assert t/1 = "abc"]
+	
+	--test-- "iri7 - related to the fix for issue #5679"
+		test-iri7: function [s] [
+			parse s [any [3 skip insert #"'"]]
+			s
+		] 
+		out: test-iri7 "99999999999"
+		guard7: "----"									;-- guard string, for detecting eventual buffer overflow
+		--assert "999'999'999'99" = out
+		--assert guard7 == "----"
+		
+		str: "9999999999999"
+		guard8: "----"									;-- guard string, for detecting eventual buffer overflow
+		parse str [any [skip insert #"'" (--assert guard8 == "----")]]
 
 ===end-group===
 
