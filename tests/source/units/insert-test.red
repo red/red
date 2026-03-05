@@ -251,7 +251,11 @@ Red [
 		str: "12"
 		--assert "12" = insert/part/dup str next <456> 2 3
 		--assert str = "<5<5<512"
-		
+	
+	--test-- "insert-53"
+		str: copy "1234567890000"
+		--assert "1234567890000" = insert/dup str #"0" 6
+		--assert str = "0000001234567890000"
 
 ===end-group===
 

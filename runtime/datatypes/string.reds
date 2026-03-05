@@ -2589,7 +2589,7 @@ string: context [
 				if cnt > 1 [							;-- duplicate appended char value
 					p0: dup-memory (as byte-ptr! sn/offset) + hpos u cnt
 					assert (as byte-ptr! sn/offset) + sn/size >= p0
-					sn/tail: as cell! (as byte-ptr! sn/tail) + (cnt << lu)
+					sn/tail: as cell! (as byte-ptr! sn/tail) + (cnt - 1 << lu)
 				]
 			][
 				either done? [							;-- pre-appended FORMed value case (just copy it to new series)
