@@ -155,7 +155,7 @@ char: context [
 		#if debug? = yes [if verbose > 0 [print-line "char/mold"]]
 
 		string/concatenate-literal buffer {#"}
-		string/append-escaped-char buffer c/value string/ESC_CHAR all?
+		string/append-escaped-char buffer c/value ESC_CHAR all?
 		string/append-char GET_BUFFER(buffer) as-integer #"^""
 		part - 4
 	]

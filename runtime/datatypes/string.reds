@@ -16,17 +16,12 @@ string: context [
 	#define BRACES_THRESHOLD	50						;-- max string length for using " delimiter
 	#define MAX_ESC_CHARS		5Fh	
 	#define MAX_URL_CHARS 		7Fh
+	#define ESC_CHAR			FDh
 
 	#enum modification-type! [
 		MODE_APPEND
 		MODE_INSERT
 		MODE_OVERWRITE
-	]
-
-	#enum escape-type! [
-		ESC_CHAR: FDh
-		ESC_URI:  FEh			;-- RFC 3986
-		ESC_URL:  FFh			;-- similar encodeURI
 	]
 
 	;-- Non-printable characters escaping table (dots are just placeholders for no-op)
@@ -45,78 +40,11 @@ string: context [
 		00 00 00 00 00 00 5E 00 ;-- 5Fh		. . . . . . ^ .
 	}
 	
-	;-- Hex values encoding table for special characters in URLs (FF => no-op)
-	escape-url-chars: #{								;-- ESC_URL: #"^(FF)"
-		FF FF FF FF FF FF FF FF ;-- 07h
-		FF FF FF FF FF FF FF FF ;-- 0Fh
-		FF FF FF FF FF FF FF FF ;-- 17h
-		FF FF FF FF FF FF FF FF ;-- 1Fh
-		FF FF FF FF FF FF FF FF ;-- 27h
-		FF FF FF FF FF FF FF FF ;-- 2Fh
-		00 01 02 03 04 05 06 07 ;-- 37h		#"0"-#"9" => 0-9
-		08 09 FF FF FF FF FF FF ;-- 3Fh
-		FF 0A 0B 0C 0D 0E 0F FF ;-- 47h		#"A"-#"F" => 10-15
-		FF FF FF FF FF FF FF FF ;-- 4Fh
-		FF FF FF FF FF FF FF FF ;-- 57h
-		FF FF FF FF FF FF FF FF ;-- 5Fh
-		FF 0A 0B 0C 0D 0E 0F FF ;-- 67h		#"a"-#"f" => 10-15
-		FF FF FF FF FF FF FF FF ;-- 6Fh
-		FF FF FF FF FF FF FF FF ;-- 77h
-		FF FF FF FF FF FF FF FF ;-- 7Fh
-	}
-
-	;-- URI special characters encoding table (RFC3986 rules)
-	;-- FF: pass-thru, 00: escape character
-	uri-encode-tbl: #{
-		00 00 00 00 00 00 00 00 ;-- 07h
-		00 00 00 00 00 00 00 00 ;-- 0Fh
-		00 00 00 00 00 00 00 00 ;-- 17h
-		00 00 00 00 00 00 00 00 ;-- 1Fh
-		00 00 00 00 00 00 00 00 ;-- 27h
-		00 00 00 00 00 FF FF 00 ;-- 2Fh
-		FF FF FF FF FF FF FF FF ;-- 37h
-		FF FF 00 00 00 00 00 00 ;-- 3Fh
-		00 FF FF FF FF FF FF FF ;-- 47h
-		FF FF FF FF FF FF FF FF ;-- 4Fh
-		FF FF FF FF FF FF FF FF ;-- 57h
-		FF FF FF 00 00 00 00 FF ;-- 5Fh
-		00 FF FF FF FF FF FF FF ;-- 67h
-		FF FF FF FF FF FF FF FF ;-- 6Fh
-		FF FF FF FF FF FF FF FF ;-- 77h
-		FF FF FF 00 00 00 FF 00 ;-- 7Fh
-	}
-
-	;-- URL special characters encoding table (encodeURI rules)
-	;-- FF: pass-thru, 00: escape character
-	url-encode-tbl: #{
-		00 00 00 00 00 00 00 00 ;-- 07h
-		00 00 00 00 00 00 00 00 ;-- 0Fh
-		00 00 00 00 00 00 00 00 ;-- 17h
-		00 00 00 00 00 00 00 00 ;-- 1Fh
-		00 FF 00 FF FF 00 FF FF ;-- 27h
-		FF FF FF FF FF FF FF FF ;-- 2Fh
-		FF FF FF FF FF FF FF FF ;-- 37h
-		FF FF FF 00 00 FF 00 FF ;-- 3Fh
-		FF FF FF FF FF FF FF FF ;-- 47h
-		FF FF FF FF FF FF FF FF ;-- 4Fh
-		FF FF FF FF FF FF FF FF ;-- 57h
-		FF FF FF 00 00 00 00 FF ;-- 5Fh
-		00 FF FF FF FF FF FF FF ;-- 67h
-		FF FF FF FF FF FF FF FF ;-- 6Fh
-		FF FF FF FF FF FF FF FF ;-- 77h
-		FF FF FF 00 00 00 FF 00 ;-- 7Fh
-	}
-
 	utf8-buffer: #{00000000}
 	swap-buf: as byte-ptr! 0
 	swap-size: 64 * 1024
 
-	to-float: func [
-		s		[byte-ptr!]
-		len		[integer!]
-		e		[int-ptr!]
-		return: [float!]
-	][
+	to-float: func [s [byte-ptr!] len [integer!] e [int-ptr!] return: [float!]][
 		dtoa/to-float s s + len e
 	]
 
@@ -179,170 +107,6 @@ string: context [
 				i: i + 1
 			]
 			s
-		]
-	]
-
-	decode-url-char: func [
-		p			[byte-ptr!]
-		rp			[byte-ptr!]
-		return:		[logic!]
-		/local
-			ch		[integer!]
-			v1		[integer!]
-			v2		[integer!]
-	][
-		ch: as integer! p/1
-		if ch > MAX_URL_CHARS [return false]
-		if p/1 <> #"%" [return false]
-		v1: 1 + as-integer p/2
-		v2: 1 + as-integer p/3
-		v1: as-integer escape-url-chars/v1
-		v2: as-integer escape-url-chars/v2
-		if any [
-			v1 = ESC_URL
-			v2 = ESC_URL
-		][return false]
-
-		v1: v1 << 4 + v2
-		rp/1: as byte! v1
-		return true
-	]
-
-	decode-url: func [
-		str			[red-string!]
-		url			[red-string!]
-		/local
-			slen	[integer!]
-			data	[byte-ptr!]
-			end		[byte-ptr!]
-			s		[series!]
-			ch		[byte!]
-			size	[integer!]
-			p		[byte-ptr!]
-			ch2		[byte!]
-			enc?	[logic!]
-			code	[integer!]
-			pc		[byte-ptr!]
-			u		[integer!]
-	][
-		slen: -1
-		data: as byte-ptr! unicode/to-utf8 str :slen
-		if slen = 0 [exit]
-		end: data + slen
-		s: GET_BUFFER(url)
-
-		ch: #"^@" ch2: #"^@"
-		while [data < end][
-			enc?: false
-			if decode-url-char data :ch [
-				size: unicode/utf8-char-size? as-integer ch
-				p: data + 3
-				enc?: true
-				if size <> 0 [
-					loop size - 1 [
-						unless decode-url-char p :ch2 [
-							enc?: false
-							break
-						]
-						p: p + 3
-					]
-				]
-			]
-			either enc? [
-				either size = 0 [
-					s: append-char s as integer! ch
-					data: data + 3
-				][
-					code: 0
-					p: as byte-ptr! :code
-					p/1: ch
-					p: p + 1
-					data: data + 3
-					loop size - 1 [
-						decode-url-char data :ch
-						p/1: ch
-						p: p + 1
-						data: data + 3
-					]
-					u: unicode/decode-utf8-char as c-string! :code :size
-					s: append-char s u
-				]
-			][
-				size: as integer! end - data
-				u: unicode/decode-utf8-char as c-string! data :size
-				s: append-char s u
-				data: data + size
-			]
-		]
-	]
-
-	encode-url-char: func [
-		type		[integer!]
-		pch			[byte-ptr!]
-		psize		[int-ptr!]
-		return:		[byte-ptr!]
-		/local
-			ss		[c-string!]
-			tbl		[byte-ptr!]
-			ch		[integer!]
-			index	[integer!]
-			code	[integer!]
-			pcode	[byte-ptr!]
-			str		[c-string!]
-	][
-		ss: "%00"
-		tbl: either type = ESC_URI [uri-encode-tbl][url-encode-tbl]
-		ch: as integer! pch/1
-		either ch > MAX_URL_CHARS [
-			code: 0
-		][
-			index: ch + 1
-			code: as integer! tbl/index
-		]
-		either code = FFh [
-			pcode: pch
-			psize/1: 1
-		][
-			str: byte-to-hex ch
-			ss/2: str/1
-			ss/3: str/2
-			pcode: as byte-ptr! ss
-			psize/1: 3
-		]
-		pcode
-	]
-
-	encode-url: func [
-		str			[red-string!]
-		url			[red-string!]
-		type		[integer!]
-		/local
-			slen	[integer!]
-			data	[byte-ptr!]
-			end		[byte-ptr!]
-			s		[series!]
-			size	[integer!]
-			node	[node!]
-			dst		[byte-ptr!]
-			p		[byte-ptr!]
-	][
-		slen: -1
-		data: as byte-ptr! unicode/to-utf8 str :slen
-		if slen = 0 [exit]
-		end: data + slen
-		s: GET_BUFFER(url)
-
-		size: 0
-		while [data < end][
-			p: encode-url-char type data :size
-			loop size [
-				node: s/node
-				dst: alloc-tail-unit s 1
-				dst/1: p/1
-				s: as series! node/value
-				p: p + 1
-			]
-			data: data + 1
 		]
 	]
 	

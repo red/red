@@ -369,7 +369,7 @@ vector: context [
 					string/append-escaped-char
 							buffer
 							get-value-int as int-ptr! p unit
-							string/ESC_CHAR
+							ESC_CHAR
 							all?
 					string/append-char GET_BUFFER(buffer) as-integer #"^""
 					part - 4
@@ -377,7 +377,7 @@ vector: context [
 					string/append-escaped-char
 							buffer
 							get-value-int as int-ptr! p unit
-							string/ESC_CHAR
+							ESC_CHAR
 							all?
 					part - 1
 				]

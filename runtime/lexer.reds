@@ -887,7 +887,7 @@ lexer: context [
 		str: as red-string! lex/tail - 1
 		len: string/rs-length? str
 		string/make-at as red-value! :vl len Latin1
-		string/decode-url str :vl
+		url/decode str :vl
 		str/node: vl/node
 		str/cache: null
 	]

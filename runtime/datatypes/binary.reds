@@ -781,7 +781,7 @@ binary: context [
 		node: alloc-bytes len >> 1
 		s: as series! node/value
 
-		table: string/escape-url-chars
+		table: url/escape-url-chars
 		bin: as byte-ptr! s/offset
 		accum: 0
 		count: 0

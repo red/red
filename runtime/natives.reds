@@ -1480,7 +1480,7 @@ natives: context [
 		ret: as red-string! stack/push*
 		len: string/rs-length? str
 		string/make-at as red-value! ret len Latin1
-		string/decode-url str ret
+		url/decode str ret
 		stack/set-last as red-value! ret
 		ret
 	]
@@ -1499,9 +1499,9 @@ natives: context [
 		len: string/rs-length? str
 		string/make-at as red-value! ret len Latin1
 		either TYPE_OF(str) = TYPE_STRING [
-			string/encode-url str ret string/ESC_URI
+			url/encode str ret url/ESC_URI
 		][
-			string/encode-url str ret string/ESC_URL
+			url/encode str ret url/ESC_URL
 		]
 		stack/set-last as red-value! ret
 		ret
