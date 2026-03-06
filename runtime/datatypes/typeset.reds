@@ -319,7 +319,7 @@ typeset: context [
 			either zero? cnt [
 				string/append-char s as-integer #"]"
 			][
-				string/poke-char s (as byte-ptr! s/tail) - 1 as-integer #"]"
+				string/poke-char s (as byte-ptr! s/tail) - GET_UNIT(s) as-integer #"]"
 			]
 		]
 		part

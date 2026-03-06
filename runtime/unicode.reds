@@ -160,7 +160,7 @@ unicode: context [
 				4
 			]
 			true [
-				fire [TO_ERROR(script invalid-char) char/push cp]
+				fire [TO_ERROR(script invalid-char) integer/push cp]
 				0
 			]
 		]
