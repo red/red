@@ -969,10 +969,11 @@ system/view/platform: context [
 	]
 
 	toggle-GPU: routine [][
+		#if GUI-engine <> 'terminal [
 		#switch OS [
 			Windows  [gui/DX-create-dev]
 			#default [0]
-		]
+		]]
 	]
 
 	init: func [/local svs colors fonts][
