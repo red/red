@@ -3818,6 +3818,10 @@ comment {
 		--assert 5 = length? data/1
 		--assert (charset [not "§"]) == charset [not #"§"]
 		--assert (charset [not "§"]) == make bitset! [not #{000000000000000000000000000000000000000001}]
+
+	--test-- "#5692"
+		--assert 28 = body-of :<
+		
 		
 ===end-group===
 
