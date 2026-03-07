@@ -313,7 +313,6 @@ Red/System [
 	OBJ_CLASS_FACE!
 ]
 
-#define DATATYPES_NB	52							;-- total number of built-in datatypes (including TYPE_VALUE)
 #define NATIVES_NB		120							;-- max number of natives (arbitrarily set upper bound)
 #define ACTIONS_NB		62							;-- number of actions (exact number)
 #define INHERIT_ACTION	-1							;-- placeholder for letting parent's action pass through
