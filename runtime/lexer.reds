@@ -650,10 +650,8 @@ lexer: context [
 			blk/head: 0
 		][
 			s: GET_BUFFER(blk)
-			len: (as-integer s/tail - s/offset) >> size? cell!
-			if (s/size >> size? cell!) - len < size [
-				expand-series GET_BUFFER(blk) size << 4 + s/size
-			]
+			len: (as-integer s/tail - s/offset) >> 4
+			if (s/size >> 4) - len < size [expand-series s size << 4 + s/size]
 		]
 		blk/header: blk/header and type-mask or type
 
