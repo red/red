@@ -2300,7 +2300,11 @@ string: context [
 			]
 		]
 		chk?: ownership/check as red-value! str words/_sort null str/head 0
-		_sort/qsort buffer len unit * step op flags cmp
+		either all [stable? not case?][
+			_sort/mergesort buffer len unit * step op flags cmp
+		][
+			_sort/qsort buffer len unit * step op flags cmp
+		]
 		if chk? [ownership/check as red-value! str words/_sorted null str/head 0]
 		str
 	]
