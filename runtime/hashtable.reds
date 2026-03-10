@@ -337,8 +337,12 @@ hash-string: func [
 	str		[red-string!]
 	case?	[logic!]
 	return: [integer!]
-	/local s [series!] unit [integer!] p [byte-ptr!] p4 [int-ptr!] k1 [integer!]
-		h1 [integer!] tail [byte-ptr!] len [integer!] head [integer!] sc [red-slice!]
+	/local
+		sc		[red-slice!]
+		s		[series!]
+		p tail	[byte-ptr!]
+		p4		[int-ptr!]
+		unit k1	h1 len head [integer!]
 ][
 	s: GET_BUFFER(str)
 	unit: GET_UNIT(s)
@@ -388,8 +392,10 @@ murmur3-x86-32: func [
 	key		[byte-ptr!]
 	len		[integer!]
 	return: [integer!]
-	/local data [byte-ptr!] nblocks [integer!] blocks [int-ptr!] p [int-ptr!]
-		i [integer!] k1 [integer!] h1 [integer!] tail [byte-ptr!] n [integer!]
+	/local
+		data tail [byte-ptr!]
+		blocks p  [int-ptr!]
+		nblocks	i k1 h1 n [integer!]
 ][
 	assert len > 0
 
@@ -478,12 +484,10 @@ _hashtable: context [
 		/local
 			s	[series!]
 			h	[hashtable!]
-			blk [red-value!]
-			k	[red-value!]
-			val [red-value!]
-			int? [logic!]
-			n-buckets key vsize j ii sh idx [integer!]
+			blk k val [red-value!]
 			keys flags int-key [int-ptr!]
+			n-buckets key vsize j ii sh idx [integer!]
+			int? [logic!]
 	][
 		s: as series! table/value
 		h: as hashtable! s/offset
@@ -561,16 +565,12 @@ _hashtable: context [
 	mark: func [
 		ptr [int-ptr!]
 		/local
-			table [node!]
-			node [node!]
-			s	 [series!]
-			h	 [hashtable!]
-			val	 [red-value!]
-			end	 [red-value!]
-			p	 [ptr-ptr!]
-			e	 [ptr-ptr!]
-			type [integer!]
-			vsize [integer!]
+			s			[series!]
+			h			[hashtable!]
+			table node	[node!]
+			val end		[red-value!]
+			p e			[ptr-ptr!]
+			type vsize	[integer!]
 	][
 		collector/keep ptr
 		table: as node! ptr/value
@@ -611,14 +611,14 @@ _hashtable: context [
 	sweep: func [
 		table [node!]
 		/local
-			s	 [series!]
-			h	 [hashtable!]
-			val	 [red-value!]
-			end	 [red-value!]
-			obj  [red-object!]
-			type [integer!]
+			s	  [series!]
+			h	  [hashtable!]
+			val	  [red-value!]
+			end	  [red-value!]
+			obj   [red-object!]
+			node  [node!]
+			type  [integer!]
 			vsize [integer!]
-			node [node!]
 	][
 		s: as series! table/value
 		h: as hashtable! s/offset
@@ -688,9 +688,9 @@ _hashtable: context [
 		/local
 			value  [red-value!]
 			sym    [red-string!]
+			s      [series!]
 			sign   [integer!]
 			result [integer!]
-			s      [series!]
 	][
 		switch TYPE_OF(key) [
 			TYPE_INTEGER [murmur3-x86-int key/data2]
@@ -760,8 +760,11 @@ _hashtable: context [
 		node	[node!]
 		head	[integer!]
 		skip	[integer!]
-		/local s [series!] h [hashtable!] i [integer!] end [red-value!]
-			value [red-value!] key [red-value!]
+		/local
+			s	[series!]
+			h	[hashtable!]
+			end	value key [red-value!]
+			i	[integer!]
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -848,13 +851,10 @@ _hashtable: context [
 		node	[node!]
 		return: [node!]
 		/local
-			s	[series!]
-			h	[hashtable!]
-			ss	[series!]
-			hh	[hashtable!]
-			b	[node!]
-			k	[node!]
-			a	[logic!]
+			s ss [series!]
+			h hh [hashtable!]
+			b k  [node!]
+			a	 [logic!]
 	][
 		s: as series! ctx/symbols/value
 		h: as hashtable! s/offset
@@ -883,9 +883,8 @@ _hashtable: context [
 		size	[integer!]
 		return: [int-ptr!]
 		/local
-			h			[rs-hashtable!]
-			f-buckets	[float!]
-			fsize		[float!]
+			h	[rs-hashtable!]
+			f-buckets fsize	[float!]
 	][
 		h: as rs-hashtable! _alloc size? rs-hashtable! null-byte
 		if size < 4 [size: 4]
@@ -948,9 +947,9 @@ _hashtable: context [
 		value	[integer!]
 		return: [logic!]		;-- return true if key already exist
 		/local
-			h [rs-hashtable!]
-			x i site last mask step hash n-buckets ii sh new-size [integer!]
+			h	[rs-hashtable!]
 			keys flags k [int-ptr!]
+			x i site last mask step hash n-buckets ii sh new-size [integer!]
 			del? find? [logic!]
 	][
 		h: as rs-hashtable! table
@@ -1036,9 +1035,8 @@ _hashtable: context [
 		key			[integer!]
 		/local
 			h		[rs-hashtable!]
-			idx		[integer!]
-			ii sh	[integer!]
 			flags	[int-ptr!]
+			idx	ii sh [integer!]
 	][
 		idx: rs-get-idx table key
 		if idx > -1 [
@@ -1096,18 +1094,10 @@ _hashtable: context [
 		return:			[integer!]
 		/local
 			h			[rs-hashtable!]
-			i j mask	[integer!]
-			step tmp	[integer!]
-			keys k		[int-ptr!]
-			n-buckets	[integer!]
-			new-size	[integer!]
-			break?		[logic!]
-			flags		[int-ptr!]
-			new-flags	[int-ptr!]
-			new-keys	[int-ptr!]
-			ii sh idx	[integer!]
-			key val		[integer!]
+			keys k flags new-flags new-keys [int-ptr!]
+			i j mask step tmp n-buckets new-size ii sh idx key val [integer!]
 			f			[float!]
+			break?		[logic!]
 	][
 		h: as rs-hashtable! table
 
@@ -1214,18 +1204,13 @@ _hashtable: context [
 		vsize	[integer!]
 		return: [node!]
 		/local
-			node		[node!]
-			flags		[node!]
-			keys		[node!]
-			indexes		[node!]
-			chains		[node!]
-			s			[series!]
-			ss			[series!]
+			hash		[red-hash!]
 			h			[hashtable!]
+			s ss		[series!]
+			node flags keys indexes chains [node!]
 			f-buckets	[float!]
 			fsize		[float!]
 			skip		[integer!]
-			hash		[red-hash!]
 	][
 		node: _alloc-bytes-filled size? hashtable! #"^(00)"
 		if type = HASH_TABLE_SYMBOL [
@@ -1313,22 +1298,13 @@ _hashtable: context [
 		node			[node!]
 		new-buckets		[integer!]
 		/local
+			start end value key slot [red-value!]
 			s			[series!]
 			h			[hashtable!]
-			n-buckets	[integer!]
-			new-size	[integer!]
-			f			[float!]
-			flags		[node!]
-			blk			[node!]
-			new-blk		[node!]
-			i sz		[integer!]
-			start		[red-value!]
-			end			[red-value!]
-			value		[red-value!]
-			key			[red-value!]
-			len	vsize	[integer!]
 			k			[int-ptr!]
-			slot		[red-value!]
+			flags blk new-blk [node!]
+			n-buckets new-size i sz len	vsize [integer!]
+			f			[float!]
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -1376,27 +1352,12 @@ _hashtable: context [
 		/local
 			s			[series!]
 			h			[hashtable!]
-			k			[red-value!]
-			i			[integer!]
-			j			[integer!]
-			mask		[integer!]
-			step		[integer!]
-			keys		[int-ptr!]
-			hash		[integer!]
-			n-buckets	[integer!]
-			blk			[red-value!]
-			new-size	[integer!]
-			tmp			[integer!]
-			break?		[logic!]
-			flags		[int-ptr!]
-			new-flags	[int-ptr!]
-			ii			[integer!]
-			sh			[integer!]
-			f			[float!]
-			idx			[integer!]
-			int?		[logic!]
-			int-key		[int-ptr!]
+			blk k		[red-value!]
 			new-flags-node [node!]
+			keys flags new-flags int-key [int-ptr!]
+			i j mask step hash n-buckets new-size tmp ii sh idx [integer!]
+			f			[float!]
+			int? break? [logic!]
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -1479,11 +1440,13 @@ _hashtable: context [
 		key		[integer!]
 		return: [red-value!]
 		/local
-			s [series!] h [hashtable!] x [integer!] i [integer!] site [integer!]
-			last [integer!] mask [integer!] step [integer!] keys [int-ptr!]
-			hash [integer!] n-buckets [integer!] flags [int-ptr!] ii [integer!]
-			sh [integer!] blk [byte-ptr!] idx [integer!] del? [logic!] k [int-ptr!]
-			vsize [integer!] blk-node [series!] len [integer!] value [red-value!]
+			value		 [red-value!]
+			s blk-node	 [series!]
+			h			 [hashtable!]
+			blk			 [byte-ptr!]
+			keys flags k [int-ptr!]
+			x i site last mask step	hash n-buckets ii sh idx vsize len [integer!]
+			del?		 [logic!]
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -1572,9 +1535,11 @@ _hashtable: context [
 		key		[integer!]
 		return: [red-value!]
 		/local
-			s [series!] h [hashtable!] i [integer!] flags [int-ptr!] last [integer!]
-			mask [integer!] step [integer!] keys [int-ptr!] hash [integer!]
-			ii [integer!] sh [integer!] blk [byte-ptr!] k [int-ptr!]
+			s	[series!]
+			h	[hashtable!]
+			blk [byte-ptr!]
+			flags keys k [int-ptr!]
+			i last mask step hash ii sh [integer!]
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -1625,9 +1590,11 @@ _hashtable: context [
 		key		[integer!]
 		return: [red-value!]
 		/local
-			s [series!] h [hashtable!] i [integer!] flags [int-ptr!] last [integer!]
-			mask [integer!] step [integer!] keys [int-ptr!] hash [integer!]
-			ii [integer!] sh [integer!] blk [byte-ptr!] k [int-ptr!]
+			s	[series!]
+			h	[hashtable!]
+			blk [byte-ptr!]
+			flags keys k [int-ptr!]
+			i last mask step hash ii sh [integer!]
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -1686,11 +1653,12 @@ _hashtable: context [
 		errcode	[int-ptr!]
 		return: [red-value!]
 		/local
-			s [series!] h [hashtable!] x [integer!] i [integer!] site [integer!]
-			last [integer!] mask [integer!] step [integer!] keys [int-ptr!]
-			hash [integer!] n-buckets [integer!] flags [int-ptr!] ii [integer!]
-			sh [integer!] continue? [logic!] blk [red-value!] idx [integer!]
-			type [integer!] del? chain? [logic!] indexes chain [int-ptr!] k [red-value!]
+			blk k [red-value!]
+			s	  [series!]
+			h	  [hashtable!]
+			keys flags indexes chain [int-ptr!]
+			x i site last mask step hash n-buckets ii sh idx type [integer!]
+			continue? del? chain? [logic!]
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -1817,10 +1785,11 @@ _hashtable: context [
 		pace	[int-ptr!]
 		return: [red-value!]
 		/local
-			s [series!] h [hashtable!] i [integer!] flags [int-ptr!]
-			last [integer!] mask [integer!] step [integer!] keys [int-ptr!]
-			hash [integer!] ii [integer!] sh [integer!] blk [red-value!]
-			idx [integer!] k [red-value!] key-type [integer!] n [integer!]
+			blk k [red-value!]
+			s	  [series!]
+			h	  [hashtable!]
+			flags keys [int-ptr!]
+			i last mask step hash ii sh idx key-type n [integer!]
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -1877,32 +1846,13 @@ _hashtable: context [
 		reverse? [logic!]
 		return:  [red-value!]
 		/local
+			blk	k	[red-value!]
 			s		[series!]
 			h		[hashtable!]
-			i		[integer!]
-			flags	[int-ptr!]
-			last	[integer!]
-			mask	[integer!]
-			step	[integer!]
-			keys	[int-ptr!]
-			hash	[integer!]
-			ii		[integer!]
-			sh		[integer!]
-			blk		[red-value!]
-			k		[red-value!]
-			idx		[integer!]
 			chain	[node!]
-			p-idx	[int-ptr!]
-			sz		[integer!]
-			find?	[logic!]
-			hash?	[logic!]
-			chain?	[logic!]
-			align   [integer!]
-			type	[integer!]
-			key-type [integer!]
-			last-idx [integer!]
-			saved-type	[integer!]
-			set-header? [logic!]
+			flags keys p-idx [int-ptr!]
+			i last mask step hash ii sh idx sz align type key-type last-idx saved-type [integer!]
+			find? hash? chain? set-header? [logic!]
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -2017,8 +1967,11 @@ _hashtable: context [
 	delete: func [
 		node	[node!]
 		key		[red-value!]
-		/local s [series!] h [hashtable!] i ii idx c-idx [integer!]
-			sh [integer!] flags keys chain [int-ptr!] indexes [int-ptr!]
+		/local
+			s [series!]
+			h [hashtable!]
+			i ii idx c-idx sh [integer!]
+			flags keys chain indexes [int-ptr!]
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -2059,7 +2012,9 @@ _hashtable: context [
 		node	[node!]
 		blk		[node!]
 		return: [node!]
-		/local s [series!] h [hashtable!] ss [series!] hh [hashtable!]
+		/local
+			s ss [series!]
+			h hh [hashtable!]
 			new flags keys indexes chains [node!]
 	][
 		s: as series! node/value
@@ -2102,8 +2057,12 @@ _hashtable: context [
 		node	[node!]
 		head	[integer!]
 		size	[integer!]
-		/local s [series!] h [hashtable!] flags [int-ptr!] i [integer!] del? [logic!]
-			ii idx c-idx [integer!] sh n [integer!] indexes keys chain [int-ptr!]
+		/local
+			s [series!]
+			h [hashtable!]
+			indexes keys chain flags [int-ptr!]
+			i ii idx c-idx sh n [integer!]
+			del? [logic!]
 	][
 		if zero? size [exit]
 
@@ -2170,8 +2129,12 @@ _hashtable: context [
 		size	[integer!]
 		change? [logic!]					;-- deleted or inserted items
 		return: [integer!]
-		/local s [series!] h [hashtable!] indexes chain p e keys index flags [int-ptr!]
-			i c-idx idx part ii sh n [integer!] table buf [node!]
+		/local
+			s [series!]
+			h [hashtable!]
+			table buf [node!]
+			indexes chain p e keys index flags [int-ptr!]
+			i c-idx idx part ii sh n [integer!]
 	][
 		if size > 30000 [return HASH_TABLE_ERR_REHASH]
 
@@ -2271,8 +2234,12 @@ _hashtable: context [
 		dst		[integer!]
 		src		[integer!]
 		items	[integer!]
-		/local s [series!] h [hashtable!] indexes [int-ptr!]
-			index [integer!] part [integer!] head [integer!] temp [byte-ptr!]
+		/local
+			s		[series!]
+			h		[hashtable!]
+			indexes [int-ptr!]
+			temp	[byte-ptr!]
+			index part head [integer!]
 	][
 		if all [src <= dst dst < (src + items)][exit]
 
@@ -2354,12 +2321,13 @@ _hashtable: context [
 		opt?	[logic!]			;-- don't put if found
 		return: [integer!]			;-- return symbol id
 		/local
-			s [series!] h [hashtable!] x [integer!] i [integer!] site [integer!]
-			last [integer!] mask [integer!] step [integer!] keys [int-ptr!]
-			hash [integer!] n-buckets [integer!] flags [int-ptr!] ii [integer!]
-			sh [integer!] blk [red-symbol!] idx [integer!] del? [logic!] k [red-symbol!]
-			vsize [integer!] blk-node [series!] find? [logic!] xx [integer!] new? [logic!]
-			len2 [integer!] strict? [logic!] p [byte-ptr!]
+			blk k		[red-symbol!]
+			s blk-node	[series!]
+			h			[hashtable!]
+			p			[byte-ptr!]
+			keys flags	[int-ptr!]
+			x i site last mask step hash n-buckets ii sh idx vsize xx len2 [integer!]
+			strict? del? find? new? [logic!]
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -2460,21 +2428,11 @@ _hashtable: context [
 		new-id		[int-ptr!]
 		return:		[integer!]
 		/local
-			s		[series!]
-			h		[hashtable!]
-			i		[integer!]
-			flags	[int-ptr!]
-			last	[integer!]
-			mask	[integer!]
-			step	[integer!]
-			keys	[int-ptr!]
-			ii		[integer!]
-			hash	[integer!]
-			kk		[integer!]
-			sh		[integer!]
-			blk		[red-word!]
-			k		[red-word!]
-			sym		[integer!]
+			blk k		[red-word!]
+			s			[series!]
+			h			[hashtable!]
+			flags keys	[int-ptr!]
+			i last mask step ii	hash kk sh sym [integer!]
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
