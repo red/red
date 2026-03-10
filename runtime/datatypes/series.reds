@@ -68,8 +68,7 @@ _series: context [
 
 		ser: as red-series! stack/arguments
 		index: as red-integer! ser + 1
-
-		assert TYPE_OF(index) = TYPE_INTEGER
+		if TYPE_OF(index) <> TYPE_INTEGER [fire [TO_ERROR(script invalid-arg) index]]
 
 		s: GET_BUFFER(ser)
 
