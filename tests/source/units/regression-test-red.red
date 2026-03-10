@@ -3822,6 +3822,9 @@ comment {
 	--test-- "#5692"
 		--assert 28 = body-of :<
 		
+	--test-- "#5695"
+		--assert error? try [skip [1] 2x4]
+		--assert error? try [at [1] 2x4]
 		
 ===end-group===
 
