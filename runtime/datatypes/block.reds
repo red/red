@@ -214,16 +214,7 @@ block: context [
 			type   [integer!]
 			empty? [logic!]
 	][
-		assert any [
-			TYPE_OF(blk) = TYPE_HASH
-			TYPE_OF(blk) = TYPE_MAP
-			TYPE_OF(blk) = TYPE_BLOCK
-			TYPE_OF(blk) = TYPE_PAREN
-			TYPE_OF(blk) = TYPE_PATH
-			TYPE_OF(blk) = TYPE_SET_PATH
-			TYPE_OF(blk) = TYPE_GET_PATH
-			TYPE_OF(blk) = TYPE_LIT_PATH
-		]
+		#if debug? = yes [type: TYPE_OF(blk) assert any [ANY_BLOCK?(type) type = TYPE_MAP]]
 		
 		value: block/rs-head blk
 		tail:  block/rs-tail blk
@@ -1471,6 +1462,7 @@ block: context [
 			size	[integer!]
 			slots	[integer!]
 			index	[integer!]
+			type	[integer!]
 			values?	[logic!]
 			tail?	[logic!]
 			hash?	[logic!]
@@ -1487,19 +1479,8 @@ block: context [
 			hash: as red-hash! blk
 			table: hash/table
 		]
-
-		values?: all [
-			not only?									;-- /only support
-			any [
-				TYPE_OF(value) = TYPE_BLOCK				;@@ replace it with: typeset/any-block?
-				TYPE_OF(value) = TYPE_PATH				;@@ replace it with: typeset/any-block?
-				TYPE_OF(value) = TYPE_GET_PATH			;@@ replace it with: typeset/any-block?
-				TYPE_OF(value) = TYPE_SET_PATH			;@@ replace it with: typeset/any-block?
-				TYPE_OF(value) = TYPE_LIT_PATH			;@@ replace it with: typeset/any-block?
-				TYPE_OF(value) = TYPE_PAREN				;@@ replace it with: typeset/any-block?
-				TYPE_OF(value) = TYPE_HASH				;@@ replace it with: typeset/any-block?	
-			]
-		]
+		type: TYPE_OF(value)
+		values?: all [not only?	ANY_BLOCK?(type)]		;-- /only support
 
 		if all [OPTION?(part-arg) values?][
 			part: either TYPE_OF(part-arg) = TYPE_INTEGER [

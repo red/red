@@ -906,7 +906,7 @@ binary: context [
 		
 		s: GET_BUFFER(bin)
 		copy-memory as byte-ptr! s/offset src size
-		s/tail: as cell! (as byte-ptr! s/tail) + size
+		s/tail: as cell! (as byte-ptr! s/offset) + size
 		bin
 	]
 	

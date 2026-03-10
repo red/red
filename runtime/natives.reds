@@ -972,7 +972,7 @@ natives: context [
 		check? [logic!]
 		into   [integer!]
 		/local
-			blk	  [red-block!]
+			blk	  	 [red-block!]
 			value	 [red-value!]
 			tail	 [red-value!]
 			arg		 [red-value!]
