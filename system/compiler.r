@@ -3694,7 +3694,9 @@ system-dialect: make-profilable context [
 					all [not new? not boxed set-word? variable store? logic? expr]
 				][
 					either boxed [
-						emitter/target/emit-load/with expr boxed ;-- emit code for single value
+						unless all [boxed/action = 'null set-word? variable job/target = 'IA-32][
+							emitter/target/emit-load/with expr boxed ;-- emit code for single value
+						]
 					][
 						emitter/target/emit-load expr	;-- emit code for single value
 					]
