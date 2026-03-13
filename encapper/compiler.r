@@ -5047,8 +5047,8 @@ red: context [
 				make-keywords
 			]
 			print [
-				"...GUI backend      :" either find job/modules 'View [job/GUI-engine][none] nl
-				"...Modules          :" either empty? job/modules [none][mold/only job/modules]
+				"...GUI backend      :" either find job/modules 'View [job/GUI-engine][#"-"] nl
+				"...Modules          :" either empty? job/modules [#"-"][mold/only job/modules]
 			]
 			either job/type = 'dll [comp-as-lib src][comp-as-exe src]
 		]
