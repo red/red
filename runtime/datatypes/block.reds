@@ -1450,11 +1450,12 @@ block: context [
 			limit	[red-value!]
 			head	[red-value!]
 			hash	[red-hash!]
-			table	[node!]
 			int		[red-integer!]
 			b		[red-block!]
 			action	[red-word!]
+			p		[byte-ptr!]
 			s		[series!]
+			table	[node!]
 			err		[integer!]
 			h		[integer!]
 			cnt		[integer!]
@@ -1463,6 +1464,8 @@ block: context [
 			slots	[integer!]
 			index	[integer!]
 			type	[integer!]
+			added	[integer!]
+			len		[integer!]
 			values?	[logic!]
 			tail?	[logic!]
 			hash?	[logic!]
@@ -1497,26 +1500,26 @@ block: context [
 				]
 				b/head - src/head
 			]
+			if part <= 0 [return as red-value! blk]
 		]
 
 		if OPTION?(dup-arg) [
 			int: as red-integer! dup-arg
 			cnt: int/value
-			if negative? cnt [return as red-value! blk]
+			if cnt <= 0 [return as red-value! blk]
 		]
 		
-		size: either values? [
+		added: either values? [
 			src: as red-block! value
 			rs-length? src
 		][
 			1
 		]
-		if any [negative? part part > size][part: size] ;-- truncate if off-range part value
+		if any [negative? part part > added][part: added] ;-- truncate if off-range part value
 		
 		s: GET_BUFFER(blk)
-		if s/offset + blk/head > s/tail [				;-- Past-end index adjustment
-			blk/head: (as-integer s/tail - s/offset) >> 4
-		]
+		len: (as-integer s/tail - s/offset) >> 4
+		if s/offset + blk/head > s/tail [blk/head: len]	;-- Past-end index adjustment
 		h: blk/head
 		tail?: any [(s/offset + h = s/tail) append?]
 		slots: part * cnt
@@ -1547,34 +1550,32 @@ block: context [
 			]
 			s/tail: s/tail + slots
 		]
+		either values? [
+			s: GET_BUFFER(src)
+			cell: s/offset + src/head
+			limit: cell + part							;-- /part support
 
-		while [not zero? cnt][							;-- /dup support
-			either values? [
-				s: GET_BUFFER(src)
-				cell: s/offset + src/head
-				limit: cell + part						;-- /part support
-
-				either tail? [
-					while [cell < limit][				;-- multiple values case
-						copy-cell cell ALLOC_TAIL(blk)
-						cell: cell + 1
-					]
-				][
-					while [cell < limit][				;-- multiple values case
-						copy-cell cell head
-						head: head + 1
-						cell: cell + 1
-					]
+			either tail? [
+				while [cell < limit][					;-- multiple values case
+					copy-cell cell ALLOC_TAIL(blk)
+					cell: cell + 1
 				]
-			][											;-- single value case
-				either tail? [
-					copy-cell value ALLOC_TAIL(blk)
-				][
-					copy-cell value head
+			][
+				while [cell < limit][					;-- multiple values case
+					copy-cell cell head
 					head: head + 1
+					cell: cell + 1
 				]
 			]
-			cnt: cnt - 1
+		][												;-- single value case
+			if tail? [head: ALLOC_TAIL(blk)]
+			copy-cell value head
+		]
+		if cnt > 1 [									;-- /dup support
+			s: GET_BUFFER(blk)
+			unless tail? [len: h]
+			p: dup-memory as byte-ptr! s/offset + len part << 4 cnt
+			if tail? [s/tail: as cell! p]
 		]
 
 		if hash? [
