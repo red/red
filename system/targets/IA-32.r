@@ -309,24 +309,21 @@ make-profilable make target-class [
 				if verbose >= 3 [print [">>>converting from" mold/flat type/1 "to logic!"]]
 				old: width
 				set-width/type type/1
-				emit #{31FF}						;--		   XOR edi, edi
 				either alt? [
-					emit-poly [#{80FA00} #{83FA00}]	;-- 	   CMP rD, 0
-					emit #{7401}					;--        JZ _exit
-					emit #{47}						;-- 	   INC edi
-					emit #{89FA}					;-- _exit: MOV edx, edi
+					emit-poly [#{84D2} #{85D2}]		;-- TEST rD, rD
+					emit #{0F95C2}					;--	SETNZ dl			; set to 1/0
+					emit #{0FB6D2}					;-- MOVZX edx, dl		; sign-extend to 32-bit
 				][
-					emit-poly [#{3C00} #{83F800}]	;-- 	   CMP rA, 0
-					emit #{7401}					;--        JZ _exit
-					emit #{47}						;-- 	   INC edi
-					emit #{89F8}					;-- _exit: MOV eax, edi
+					emit-poly [#{84C0} #{85C0}]		;-- TEST rA, rA
+					emit #{0F95C0}					;--	SETNZ al			; set to 1/0
+					emit #{0FB6C0}					;-- MOVZX eax, al		; sign-extend to 32-bit
 				]
 				width: old
 			]
 			all [value/type/1 = 'integer! type/1 = 'byte!][
 				if verbose >= 3 [print ">>>converting from byte! to integer! "]
-				emit pick [#{81E2} #{25}] alt?    	;-- AND edx|eax, 000000FFh 
-				emit to-bin32 255
+				emit #{0FB6}						;-- MOVZX edx|eax, dl|al	; == AND edx|eax, 000000FFh 
+				emit pick [#{D2} #{C0}] alt? 
 			]
 			all [value/type/1 = 'integer! find [float! float64! float32!] type/1][
 				if verbose >= 3 [print [">>>converting from" type/1 "to integer!"]]
@@ -730,7 +727,7 @@ make-profilable make target-class [
 	]
 
 	emit-log-b: func [type][
-		if type = 'byte! [emit #{25FF000000}]		;-- AND eax, 0xFF
+		if type = 'byte! [emit #{0FB6C0}]			;-- MOVZX eax, al		; == AND eax, 0xFF
 		emit #{0FBDC0}								;-- BSR eax, eax
 	]
 
@@ -813,6 +810,16 @@ make-profilable make target-class [
 		]
 	]
 	
+	emit-load-integer: func [value [integer!]][
+		switch/default value [
+			 0 [emit-poly [#{31C0} #{31C0}]]			;-- XOR rA, rA			; == al|eax = 0
+			 1 [emit-poly [#{30C0FEC0} #{31C040}]]		;-- XOR rA, rA; INC rA	; == al|eax = 1
+			-1 [emit-poly [#{30C0FEC8} #{31C048}]]		;-- XOR rA, rA; DEC rA	; == al|eax = -1
+		][
+			emit-poly [#{B0} #{B8} value]				;-- MOV rA, value
+		]
+	]
+	
 	emit-load: func [
 		value [char! logic! integer! word! string! path! paren! get-word! object! decimal! issue!]
 		/alt
@@ -829,14 +836,12 @@ make-profilable make target-class [
 				emit value
 			]
 			logic! [
-				emit #{31C0}						;-- XOR eax, eax		; eax = 0 (FALSE)	
-				if value [
-					emit #{40}						;-- INC eax				; eax = 1 (TRUE)
-				]
+				emit #{31C0}						;-- XOR eax, eax		; eax = 0 (FALSE)
+				if value [emit #{40}]				;-- INC eax				; eax = 1 (TRUE)
 			]
 			integer! [
-				emit #{B8}							;-- MOV eax, value
-				emit to-bin32 value
+				width: 4
+				emit-load-integer value
 			]
 			issue!
 			decimal! [
@@ -1552,10 +1557,8 @@ make-profilable make target-class [
 				]
 			]
 			logic! [
-				emit #{31C0}						;--	XOR eax, eax		; eax = 0 (FALSE)	
-				if value [
-					emit #{40}						;--	INC eax				; eax = 1 (TRUE)
-				]
+				emit #{31C0}						;--	XOR eax, eax		; eax = 0 (FALSE)
+				if value [emit #{40}]				;--	INC eax				; eax = 1 (TRUE)
 				emit #{50}							;-- PUSH eax
 			]
 			char! [
@@ -1758,7 +1761,7 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-bitwise-op: func [name [word!] a [word!] b [word!] args [block!] /local code][		
+	emit-bitwise-op: func [name [word!] a [word!] b [word!] args [block!] /local code][
 		code: select [
 			and [
 				#{25}								;-- AND eax, value
@@ -1776,8 +1779,12 @@ make-profilable make target-class [
 		
 		switch b [
 			imm [
-				emit code/1							;-- <OP> eax, value
-				emit to-bin32 compiler/unbox args/2
+				either all [name = 'and 255 = compiler/unbox args/2][
+					emit #{0FB6C0}					;-- MOVZX eax, al		; == AND eax, 0xFF
+				][
+					emit code/1						;-- <OP> eax, value
+					emit to-bin32 compiler/unbox args/2
+				]
 			]
 			ref [
 				emit-load/alt args/2
@@ -1793,7 +1800,11 @@ make-profilable make target-class [
 		
 		switch b [
 			imm [
-				emit-poly [#{3C} #{3D} args/2]		;-- CMP rA, value
+				either all [width = 4 zero? compiler/unbox args/2][
+					emit #{85C0}					;-- TEST eax, eax		; == CMP eax, 0
+				][
+					emit-poly [#{3C} #{3D} args/2]	;-- CMP rA, value
+				]
 			]
 			ref [
 				emit-load/alt args/2
@@ -1994,7 +2005,7 @@ make-profilable make target-class [
 		right: compiler/unbox args/2
 		
 		switch to path! reduce [a b] [
-			imm/imm	[emit-poly [#{B0} #{B8} args/1]];-- MOV rA, a
+			imm/imm	[emit-load-integer to integer! left] ;-- MOV rA, a
 			imm/ref [emit-load args/1]				;-- eax = a
 			imm/reg [								;-- eax = b
 				if path? right [
@@ -2004,7 +2015,7 @@ make-profilable make target-class [
 					]
 				]
 				emit-poly [#{88C2} #{89C2}]			;-- MOV rD, rA
-				emit-poly [#{B0} #{B8} args/1]		;-- MOV rA, a		; eax = a, edx = b
+				emit-load-integer to integer! left	;-- MOV rA, a		; eax = a, edx = b
 			]
 			ref/imm [emit-load args/1]
 			ref/ref [emit-load args/1]
@@ -2447,13 +2458,12 @@ make-profilable make target-class [
 		emitter/access-path to set-path! 'system/thrown <last>
 		
 		emit #{8B7DF8}								;--			MOV edi, [ebp-8]
-		emit #{83FF00}								;--			CMP edi, 0
-		emit #{7402}								;--			JZ _next
-		emit #{FFE7}								;--			JMP edi		; resume in caller
-		emit #{5F}									;-- _next:	POP edi		; read return address
-		emit #{83FF00}								;--			CMP edi, 0
+		emit #{85FF}								;--			TEST edi, edi
+		emit #{7505}								;--			JNZ resume
+		emit #{5F}									;-- 		POP edi		; read return address
+		emit #{85FF}								;--			TEST edi, edi
 		emit #{7402}								;--			JZ _end
-		emit #{FFE7}								;--			JMP edi		; resume in caller
+		emit #{FFE7}								;--	resume:	JMP edi		; resume in caller
 													;-- _end:
 	]
 	
