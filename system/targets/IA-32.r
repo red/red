@@ -1795,12 +1795,16 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-comparison-op: func [name [word!] a [word!] b [word!] args [block!] /local op-poly][
+	emit-comparison-op: func [name [word!] a [word!] b [word!] args [block!] /local op-poly right][
 		op-poly: [emit-poly [#{38D0} #{39D0}]]		;-- CMP rA, rD			; not commutable op
 		
 		switch b [
 			imm [
-				either all [width = 4 zero? compiler/unbox args/2][
+				right: compiler/unbox args/2
+				either any [
+					all [width = 4 integer? right zero? right]
+					all [logic? right not right]
+				][
 					emit #{85C0}					;-- TEST eax, eax		; == CMP eax, 0
 				][
 					emit-poly [#{3C} #{3D} args/2]	;-- CMP rA, value
