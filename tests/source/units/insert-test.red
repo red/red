@@ -237,25 +237,458 @@ Red [
 		--assert "12" = insert/part str next <456> 10
 		--assert str = "<56>12"
 
-	--test-- "insert-50"
+	--test-- "insert-49.1"
 		str: "12"
 		--assert "12" = insert/part str next <456> 2
 		--assert str = "<512"
 
-	--test-- "insert-51"
+	--test-- "insert-49.2"
 		str: "12"
 		--assert "12" = insert/part/dup str next <456> 10 3
 		--assert str = "<56><56><56>12"
 
-	--test-- "insert-52"
+	--test-- "insert-49.3"
 		str: "12"
 		--assert "12" = insert/part/dup str next <456> 2 3
 		--assert str = "<5<5<512"
 	
-	--test-- "insert-53"
+	--test-- "insert-49.4"
 		str: copy "1234567890000"
 		--assert "1234567890000" = insert/dup str #"0" 6
 		--assert str = "0000001234567890000"
+
+
+	 --test-- "insert-50"
+		v: make vector! [1 2 3]
+		insert v 4
+		--assert v = make vector! [4 1 2 3]
+
+	 --test-- "insert-50.1"
+		v: next make vector! [1 2 3]
+		--assert (make vector! [2 3]) = insert v 4
+		--assert (head v) = make vector! [1 4 2 3]
+
+	 --test-- "insert-51"
+		v: next next make vector! [1 2 3]
+		--assert (make vector! [3]) = insert v [4 5]
+		--assert (head v) = make vector! [1 2 4 5 3]
+
+	 --test-- "insert-52"
+		v: next next make vector! []
+		insert v []
+		--assert v = make vector! []
+
+	 --test-- "insert-53"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert v [5 6]
+		--assert (head v) = make vector! [1 2 5 6 3 4]
+
+	 --test-- "insert-54"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/part v [5 6 7] 0
+		--assert (head v) = make vector! [1 2 3 4]
+
+	 --test-- "insert-55"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/part v [5 6 7] -1
+		--assert (head v) = make vector! [1 2 3 4]
+
+	 --test-- "insert-56"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/part v [5 6 7] 1
+		--assert (head v) = make vector! [1 2 5 3 4]
+
+	 --test-- "insert-56.1"
+		v: make vector! [1 2 3 4]
+		--assert (make vector! [1 2 3 4]) = insert/part v [5 6 7] 1
+		--assert (head v) = make vector! [5 1 2 3 4]
+
+	 --test-- "insert-57"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/part v [5 6 7] 2
+		--assert (head v) = make vector! [1 2 5 6 3 4]
+
+	 --test-- "insert-58"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/part v [5 6 7] 3
+		--assert (head v) = make vector! [1 2 5 6 7 3 4]
+
+	 --test-- "insert-59"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/part v [5 6 7] 4
+		--assert (head v) = make vector! [1 2 5 6 7 3 4]
+
+	 --test-- "insert-60"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/part v [5 6 7] 1000000
+		--assert (head v) = make vector! [1 2 5 6 7 3 4]
+
+	 --test-- "insert-61"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/dup v -1 3
+		--assert (head v) = make vector! [1 2 -1 -1 -1 3 4]
+
+	 --test-- "insert-62"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/dup v -1 0
+		--assert (head v) = make vector! [1 2 3 4]
+
+	 --test-- "insert-63"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/dup v -1 -1
+		--assert (head v) = make vector! [1 2 3 4]
+
+	 --test-- "insert-64"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/dup v [5 6] 0
+		--assert (head v) = make vector! [1 2 3 4]
+
+	 --test-- "insert-65"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/dup v [5 6] -1
+		--assert (head v) = make vector! [1 2 3 4]
+
+	 --test-- "insert-66"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/dup v [5 6] 1
+		--assert (head v) = make vector! [1 2 5 6 3 4]
+
+	 --test-- "insert-67"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/dup v [5 6] 2
+		--assert (head v) = make vector! [1 2 5 6 5 6 3 4]
+
+	 --test-- "insert-68"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/dup v [5 6] 10
+		--assert (head v) = make vector! [1 2 5 6 5 6 5 6 5 6 5 6 5 6 5 6 5 6 5 6 5 6 3 4]
+
+	 --test-- "insert-69"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/dup/part v [5 6 7 8 9] 1 1
+		--assert (head v) = make vector! [1 2 5 3 4]
+
+	 --test-- "insert-70"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/dup/part v [5 6 7 8 9] 2 2
+		--assert (head v) = make vector! [1 2 5 6 5 6 3 4]
+
+	 --test-- "insert-71"
+		v: next next make vector! [1 2 3 4]
+		insert/dup/part v [5 6 7 8 9] 2 3
+		--assert (head v) = make vector! [1 2 5 6 7 5 6 7 3 4]
+
+	 --test-- "insert-72"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/dup/part v [5 6 7 8 9] 2 4
+		--assert (head v) = make vector! [1 2 5 6 7 8 5 6 7 8 3 4]
+
+	 --test-- "insert-73"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/dup/part v [5 6 7 8 9] 2 5
+		--assert (head v) = make vector! [1 2 5 6 7 8 9 5 6 7 8 9 3 4]
+
+	 --test-- "insert-74"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/dup/part v [5 6 7 8 9] 2 6
+		--assert (head v) = make vector! [1 2 5 6 7 8 9 5 6 7 8 9 3 4]
+
+	 --test-- "insert-75"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/part/dup v [5 6 7 8 9] 1 2
+		--assert (head v) = make vector! [1 2 5 5 3 4]
+
+	  --test-- "insert-76"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/part/dup v [5 6 7 8 9] 2 2
+		--assert (head v) = make vector! [1 2 5 6 5 6 3 4]
+
+
+	 --test-- "insert-150"
+		v: next next make vector! [integer! 8 [1 2 3]]
+		--assert (make vector! [integer! 8 [3]]) = insert v 4
+		--assert (head v) = make vector! [integer! 8 [1 2 4 3]]
+
+	 --test-- "insert-151"
+		v: next next make vector! [integer! 8 [1 2 3]]
+		--assert (make vector! [integer! 8 [3]]) = insert v [4 5]
+		--assert (head v) = make vector! [integer! 8 [1 2 4 5 3]]
+
+	 --test-- "insert-152"
+		v: next next make vector! [integer! 8 []]
+		insert v []
+		--assert (head v) = make vector! [integer! 8 []]
+
+	 --test-- "insert-153"
+		v: next next make vector! [integer! 8 [1 2 3 4]]
+		--assert (make vector! [integer! 8 [3 4]]) = insert v [5 6]
+		--assert v = make vector! [integer! 8 [5 6 3 4]]
+		--assert 3 = index? v
+		--assert (head v) = make vector! [integer! 8 [1 2 5 6 3 4]]
+
+	 --test-- "insert-154"
+		v: next next make vector! [integer! 8 [1 2 3 4]]
+		--assert (make vector! [integer! 8 [3 4]]) = insert/part v [5 6 7] 0
+		--assert (head v) = make vector! [integer! 8 [1 2 3 4]]
+
+	 --test-- "insert-155"
+		v: next next make vector! [integer! 8 [1 2 3 4]]
+		--assert (make vector! [integer! 8 [3 4]]) = insert/part v [5 6 7] -1
+		--assert (head v) = make vector! [integer! 8 [1 2 3 4]]
+
+	 --test-- "insert-156"
+		v: next next make vector! [integer! 8 [1 2 3 4]]
+		--assert (make vector! [integer! 8 [3 4]]) = insert/part v [5 6 7] 1
+		--assert (head v) = make vector! [integer! 8 [1 2 5 3 4]]
+
+	 --test-- "insert-156.1"
+		v: make vector! [integer! 8 [1 2 3 4]]
+		--assert (make vector! [integer! 8 [1 2 3 4]]) = insert/part v [5 6 7] 1
+		--assert (head v) = make vector! [integer! 8 [5 1 2 3 4]]
+
+	 --test-- "insert-157"
+		v: next next make vector! [integer! 8 [1 2 3 4]]
+		--assert (make vector! [integer! 8 [3 4]]) = insert/part v [5 6 7] 2
+		--assert (head v) = make vector! [integer! 8 [1 2 5 6 3 4]]
+
+	 --test-- "insert-158"
+		v: next next make vector! [integer! 8 [1 2 3 4]]
+		--assert (make vector! [integer! 8 [3 4]]) = insert/part v [5 6 7] 3
+		--assert (head v) = make vector! [1 2 5 6 7 3 4]
+
+	 --test-- "insert-159"
+		v: next next make vector! [integer! 8 [1 2 3 4]]
+		--assert (make vector! [integer! 8 [3 4]]) = insert/part v [5 6 7] 4
+		--assert (head v) = make vector! [1 2 5 6 7 3 4]
+
+	 --test-- "insert-160"
+		v: next next make vector! [integer! 8 [1 2 3 4]]
+		--assert (make vector! [integer! 8 [3 4]]) = insert/part v [5 6 7] 1000000
+		--assert (head v) = make vector! [1 2 5 6 7 3 4]
+
+	 --test-- "insert-161"
+		v: next next make vector! [integer! 8 [1 2 3 4]]
+		--assert (make vector! [integer! 8 [3 4]]) = insert/dup v -1 3
+		--assert (head v) = make vector! [1 2 -1 -1 -1 3 4]
+
+	 --test-- "insert-162"
+		v: next next make vector! [integer! 8 [1 2 3 4]]
+		--assert (make vector! [integer! 8 [3 4]]) = insert/dup v -1 0
+		--assert (head v) = make vector! [integer! 8 [1 2 3 4]]
+
+	 --test-- "insert-163"
+		v: next next make vector! [integer! 8 [1 2 3 4]]
+		--assert (make vector! [integer! 8 [3 4]]) = insert/dup v -1 -1
+		--assert (head v) = make vector! [integer! 8 [1 2 3 4]]
+
+	 --test-- "insert-164"
+		v: next next make vector! [integer! 8 [1 2 3 4]]
+		--assert (make vector! [integer! 8 [3 4]]) = insert/dup v [5 6] 0
+		--assert (head v) = make vector! [integer! 8 [1 2 3 4]]
+
+	 --test-- "insert-165"
+		v: next next make vector! [integer! 8 [1 2 3 4]]
+		--assert (make vector! [integer! 8 [3 4]]) = insert/dup v [5 6] -1
+		--assert (head v) = make vector! [integer! 8 [1 2 3 4]]
+
+	 --test-- "insert-166"
+		v: next next make vector! [integer! 8 [1 2 3 4]]
+		--assert (make vector! [integer! 8 [3 4]]) = insert/dup v [5 6] 1
+		--assert (head v) = make vector! [integer! 8 [1 2 5 6 3 4]]
+
+	 --test-- "insert-167"
+		v: next next make vector! [integer! 8 [1 2 3 4]]
+		--assert (make vector! [integer! 8 [3 4]]) = insert/dup v [5 6] 2
+		--assert (head v) = make vector! [integer! 8 [1 2 5 6 5 6 3 4]]
+
+	 --test-- "insert-168"
+		v: next next make vector! [integer! 8 [1 2 3 4]]
+		--assert (make vector! [integer! 8 [3 4]]) = insert/dup v [5 6] 10
+		--assert (head v) = make vector! [integer! 8 [1 2 5 6 5 6 5 6 5 6 5 6 5 6 5 6 5 6 5 6 5 6 3 4]]
+
+	 --test-- "insert-169"
+		v: next next make vector! [integer! 8 [1 2 3 4]]
+		--assert (make vector! [integer! 8 [3 4]]) = insert/dup/part v [5 6 7 8 9] 1 1
+		--assert (head v) = make vector! [integer! 8 [1 2 5 3 4]]
+
+	 --test-- "insert-170"
+		v: next next make vector! [integer! 8 [1 2 3 4]]
+		--assert (make vector! [integer! 8 [3 4]]) = insert/dup/part v [5 6 7 8 9] 2 2
+		--assert (head v) = make vector! [integer! 8 [1 2 5 6 5 6 3 4]]
+
+	 --test-- "insert-171"
+		v: next next make vector! [integer! 8 [1 2 3 4]]
+		--assert (make vector! [integer! 8 [3 4]]) = insert/dup/part v [5 6 7 8 9] 2 3
+		--assert (head v) = make vector! [integer! 8 [1 2 5 6 7 5 6 7 3 4]]
+
+	 --test-- "insert-172"
+		v: next next make vector! [integer! 8 [1 2 3 4]]
+		--assert (make vector! [integer! 8 [3 4]]) = insert/dup/part v [5 6 7 8 9] 2 4
+		--assert (head v) = make vector! [integer! 8 [1 2 5 6 7 8 5 6 7 8 3 4]]
+
+	 --test-- "insert-173"
+		v: next next make vector! [integer! 8 [1 2 3 4]]
+		--assert (make vector! [integer! 8 [3 4]]) = insert/dup/part v [5 6 7 8 9] 2 5
+		--assert (head v) = make vector! [integer! 8 [1 2 5 6 7 8 9 5 6 7 8 9 3 4]]
+
+	 --test-- "insert-174"
+		v: next next make vector! [integer! 8 [1 2 3 4]]
+		--assert (make vector! [integer! 8 [3 4]]) = insert/dup/part v [5 6 7 8 9] 2 6
+		--assert (head v) = make vector! [integer! 8 [1 2 5 6 7 8 9 5 6 7 8 9 3 4]]
+
+	 --test-- "insert-175"
+		v: next next make vector! [integer! 8 [1 2 3 4]]
+		--assert (make vector! [integer! 8 [3 4]]) = insert/part/dup v [5 6 7 8 9] 1 2
+		--assert (head v) = make vector! [integer! 8 [1 2 5 5 3 4]]
+
+	  --test-- "insert-176"
+		v: next next make vector! [integer! 8 [1 2 3 4]]
+		--assert (make vector! [integer! 8 [3 4]]) = insert/part/dup v [5 6 7 8 9] 2 2
+		--assert (head v) = make vector! [integer! 8 [1 2 5 6 5 6 3 4]]
+
+
+	 --test-- "insert-250"
+		v: next next make vector! [integer! 16 [1 2 3]]
+		--assert (make vector! [integer! 16 [3]]) = insert v 4
+		--assert (head v) = make vector! [integer! 16 [1 2 4 3]]
+
+	 --test-- "insert-251"
+		v: next next make vector! [integer! 16 [1 2 3]]
+		--assert (make vector! [integer! 16 [3]]) = insert v [4 5]
+		--assert (head v) = make vector! [integer! 16 [1 2 4 5 3]]
+
+	 --test-- "insert-252"
+		v: next next make vector! [integer! 16 []]
+		insert v []
+		--assert (head v) = make vector! [integer! 16 []]
+
+	 --test-- "insert-253"
+		v: next next make vector! [integer! 16 [1 2 3 4]]
+		--assert (make vector! [integer! 16 [3 4]]) = insert v [5 6]
+		--assert v = make vector! [integer! 16 [5 6 3 4]]
+		--assert 3 = index? v
+		--assert (head v) = make vector! [integer! 16 [1 2 5 6 3 4]]
+
+	 --test-- "insert-254"
+		v: next next make vector! [integer! 16 [1 2 3 4]]
+		--assert (make vector! [integer! 16 [3 4]]) = insert/part v [5 6 7] 0
+		--assert (head v) = make vector! [integer! 16 [1 2 3 4]]
+
+	 --test-- "insert-255"
+		v: next next make vector! [integer! 16 [1 2 3 4]]
+		--assert (make vector! [integer! 16 [3 4]]) = insert/part v [5 6 7] -1
+		--assert (head v) = make vector! [integer! 16 [1 2 3 4]]
+
+	 --test-- "insert-256"
+		v: next next make vector! [integer! 16 [1 2 3 4]]
+		--assert (make vector! [integer! 16 [3 4]]) = insert/part v [5 6 7] 1
+		--assert (head v) = make vector! [integer! 16 [1 2 5 3 4]]
+
+	 --test-- "insert-256.1"
+		v: make vector! [integer! 16 [1 2 3 4]]
+		--assert (make vector! [integer! 16 [1 2 3 4]]) = insert/part v [5 6 7] 1
+		--assert (head v) = make vector! [integer! 16 [5 1 2 3 4]]
+
+	 --test-- "insert-257"
+		v: next next make vector! [integer! 16 [1 2 3 4]]
+		--assert (make vector! [integer! 16 [3 4]]) = insert/part v [5 6 7] 2
+		--assert (head v) = make vector! [integer! 16 [1 2 5 6 3 4]]
+
+	 --test-- "insert-258"
+		v: next next make vector! [integer! 16 [1 2 3 4]]
+		--assert (make vector! [integer! 16 [3 4]]) = insert/part v [5 6 7] 3
+		--assert (head v) = make vector! [1 2 5 6 7 3 4]
+
+	 --test-- "insert-259"
+		v: next next make vector! [integer! 16 [1 2 3 4]]
+		--assert (make vector! [integer! 16 [3 4]]) = insert/part v [5 6 7] 4
+		--assert (head v) = make vector! [1 2 5 6 7 3 4]
+
+	 --test-- "insert-260"
+		v: next next make vector! [integer! 16 [1 2 3 4]]
+		--assert (make vector! [integer! 16 [3 4]]) = insert/part v [5 6 7] 1000000
+		--assert (head v) = make vector! [1 2 5 6 7 3 4]
+
+	 --test-- "insert-261"
+		v: next next make vector! [integer! 16 [1 2 3 4]]
+		--assert (make vector! [integer! 16 [3 4]]) = insert/dup v -1 3
+		--assert (head v) = make vector! [1 2 -1 -1 -1 3 4]
+
+	 --test-- "insert-262"
+		v: next next make vector! [integer! 16 [1 2 3 4]]
+		--assert (make vector! [integer! 16 [3 4]]) = insert/dup v -1 0
+		--assert (head v) = make vector! [integer! 16 [1 2 3 4]]
+
+	 --test-- "insert-263"
+		v: next next make vector! [integer! 16 [1 2 3 4]]
+		--assert (make vector! [integer! 16 [3 4]]) = insert/dup v -1 -1
+		--assert (head v) = make vector! [integer! 16 [1 2 3 4]]
+
+	 --test-- "insert-264"
+		v: next next make vector! [integer! 16 [1 2 3 4]]
+		--assert (make vector! [integer! 16 [3 4]]) = insert/dup v [5 6] 0
+		--assert (head v) = make vector! [integer! 16 [1 2 3 4]]
+
+	 --test-- "insert-265"
+		v: next next make vector! [integer! 16 [1 2 3 4]]
+		--assert (make vector! [integer! 16 [3 4]]) = insert/dup v [5 6] -1
+		--assert (head v) = make vector! [integer! 16 [1 2 3 4]]
+
+	 --test-- "insert-266"
+		v: next next make vector! [integer! 16 [1 2 3 4]]
+		--assert (make vector! [integer! 16 [3 4]]) = insert/dup v [5 6] 1
+		--assert (head v) = make vector! [integer! 16 [1 2 5 6 3 4]]
+
+	 --test-- "insert-267"
+		v: next next make vector! [integer! 16 [1 2 3 4]]
+		--assert (make vector! [integer! 16 [3 4]]) = insert/dup v [5 6] 2
+		--assert (head v) = make vector! [integer! 16 [1 2 5 6 5 6 3 4]]
+
+	 --test-- "insert-268"
+		v: next next make vector! [integer! 16 [1 2 3 4]]
+		--assert (make vector! [integer! 16 [3 4]]) = insert/dup v [5 6] 10
+		--assert (head v) = make vector! [integer! 16 [1 2 5 6 5 6 5 6 5 6 5 6 5 6 5 6 5 6 5 6 5 6 3 4]]
+
+	 --test-- "insert-269"
+		v: next next make vector! [integer! 16 [1 2 3 4]]
+		--assert (make vector! [integer! 16 [3 4]]) = insert/dup/part v [5 6 7 8 9] 1 1
+		--assert (head v) = make vector! [integer! 16 [1 2 5 3 4]]
+
+	 --test-- "insert-270"
+		v: next next make vector! [integer! 16 [1 2 3 4]]
+		--assert (make vector! [integer! 16 [3 4]]) = insert/dup/part v [5 6 7 8 9] 2 2
+		--assert (head v) = make vector! [integer! 16 [1 2 5 6 5 6 3 4]]
+
+	 --test-- "insert-271"
+		v: next next make vector! [integer! 16 [1 2 3 4]]
+		--assert (make vector! [integer! 16 [3 4]]) = insert/dup/part v [5 6 7 8 9] 2 3
+		--assert (head v) = make vector! [integer! 16 [1 2 5 6 7 5 6 7 3 4]]
+
+	 --test-- "insert-272"
+		v: next next make vector! [integer! 16 [1 2 3 4]]
+		--assert (make vector! [integer! 16 [3 4]]) = insert/dup/part v [5 6 7 8 9] 2 4
+		--assert (head v) = make vector! [integer! 16 [1 2 5 6 7 8 5 6 7 8 3 4]]
+
+	 --test-- "insert-273"
+		v: next next make vector! [integer! 16 [1 2 3 4]]
+		--assert (make vector! [integer! 16 [3 4]]) = insert/dup/part v [5 6 7 8 9] 2 5
+		--assert (head v) = make vector! [integer! 16 [1 2 5 6 7 8 9 5 6 7 8 9 3 4]]
+
+	 --test-- "insert-274"
+		v: next next make vector! [integer! 16 [1 2 3 4]]
+		--assert (make vector! [integer! 16 [3 4]]) = insert/dup/part v [5 6 7 8 9] 2 6
+		--assert (head v) = make vector! [integer! 16 [1 2 5 6 7 8 9 5 6 7 8 9 3 4]]
+
+	 --test-- "insert-275"
+		v: next next make vector! [integer! 16 [1 2 3 4]]
+		--assert (make vector! [integer! 16 [3 4]]) = insert/part/dup v [5 6 7 8 9] 1 2
+		--assert (head v) = make vector! [integer! 16 [1 2 5 5 3 4]]
+
+	  --test-- "insert-276"
+		v: next next make vector! [integer! 16 [1 2 3 4]]
+		--assert (make vector! [integer! 16 [3 4]]) = insert/part/dup v [5 6 7 8 9] 2 2
+		--assert (head v) = make vector! [integer! 16 [1 2 5 6 5 6 3 4]]
+
 
 ===end-group===
 

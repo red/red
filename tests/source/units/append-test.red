@@ -219,6 +219,419 @@ Red [
     append/part/dup str next <456> 2 3
     --assert str = "12<5<5<5"
 
+  --test-- "append-50"
+  	v: make vector! [1 2 3]
+  	append v 4
+  	--assert v = make vector! [1 2 3 4]
+
+  --test-- "append-51"
+  	v: make vector! [1 2 3]
+  	append v [4 5]
+  	--assert v = make vector! [1 2 3 4 5]
+
+  --test-- "append-52"
+  	v: make vector! []
+  	append v []
+  	--assert v = make vector! []
+
+  --test-- "append-53"
+  	v: next next make vector! [1 2 3 4]
+  	append v [5 6]
+  	--assert v = make vector! [3 4 5 6]
+  	--assert 3 = index? v
+  	--assert (head v) = make vector! [1 2 3 4 5 6]
+
+  --test-- "append-54"
+  	v: make vector! [1 2 3 4]
+  	append/part v [5 6 7] 0
+  	--assert v = make vector! [1 2 3 4]
+
+  --test-- "append-55"
+  	v: make vector! [1 2 3 4]
+  	append/part v [5 6 7] -1
+  	--assert v = make vector! [1 2 3 4]
+
+  --test-- "append-56"
+  	v: make vector! [1 2 3 4]
+  	append/part v [5 6 7] 1
+  	--assert v = make vector! [1 2 3 4 5]
+
+  --test-- "append-57"
+  	v: make vector! [1 2 3 4]
+  	append/part v [5 6 7] 2
+  	--assert v = make vector! [1 2 3 4 5 6]
+
+  --test-- "append-58"
+  	v: make vector! [1 2 3 4]
+  	append/part v [5 6 7] 3
+  	--assert v = make vector! [1 2 3 4 5 6 7]
+
+  --test-- "append-59"
+  	v: make vector! [1 2 3 4]
+  	append/part v [5 6 7] 4
+  	--assert v = make vector! [1 2 3 4 5 6 7]
+
+  --test-- "append-60"
+  	v: make vector! [1 2 3 4]
+  	append/part v [5 6 7] 1000000
+  	--assert v = make vector! [1 2 3 4 5 6 7]
+
+  --test-- "append-61"
+  	v: make vector! [1 2 3 4]
+  	append/dup v -1 3
+  	--assert v = make vector! [1 2 3 4 -1 -1 -1]
+
+  --test-- "append-62"
+  	v: make vector! [1 2 3 4]
+  	append/dup v -1 0
+  	--assert v = make vector! [1 2 3 4]
+
+  --test-- "append-63"
+  	v: make vector! [1 2 3 4]
+  	append/dup v -1 -1
+  	--assert v = make vector! [1 2 3 4]
+
+  --test-- "append-64"
+  	v: make vector! [1 2 3 4]
+  	append/dup v [5 6] 0
+  	--assert v = make vector! [1 2 3 4]
+
+  --test-- "append-65"
+  	v: make vector! [1 2 3 4]
+  	append/dup v [5 6] -1
+  	--assert v = make vector! [1 2 3 4]
+
+  --test-- "append-66"
+  	v: make vector! [1 2 3 4]
+  	append/dup v [5 6] 1
+  	--assert v = make vector! [1 2 3 4 5 6]
+
+  --test-- "append-67"
+  	v: make vector! [1 2 3 4]
+  	append/dup v [5 6] 2
+  	--assert v = make vector! [1 2 3 4 5 6 5 6]
+
+  --test-- "append-68"
+  	v: make vector! [1 2 3 4]
+  	append/dup v [5 6] 10
+  	--assert v = make vector! [1 2 3 4 5 6 5 6 5 6 5 6 5 6 5 6 5 6 5 6 5 6 5 6]
+
+  --test-- "append-69"
+  	v: make vector! [1 2 3 4]
+  	append/dup/part v [5 6 7 8 9] 1 1
+  	--assert v = make vector! [1 2 3 4 5]
+
+  --test-- "append-70"
+  	v: make vector! [1 2 3 4]
+  	append/dup/part v [5 6 7 8 9] 2 2
+  	--assert v = make vector! [1 2 3 4 5 6 5 6]
+
+  --test-- "append-71"
+  	v: make vector! [1 2 3 4]
+  	append/dup/part v [5 6 7 8 9] 2 3
+  	--assert v = make vector! [1 2 3 4 5 6 7 5 6 7]
+
+  --test-- "append-72"
+  	v: make vector! [1 2 3 4]
+  	append/dup/part v [5 6 7 8 9] 2 4
+  	--assert v = make vector! [1 2 3 4 5 6 7 8 5 6 7 8]
+
+  --test-- "append-73"
+  	v: make vector! [1 2 3 4]
+  	append/dup/part v [5 6 7 8 9] 2 5
+  	--assert v = make vector! [1 2 3 4 5 6 7 8 9 5 6 7 8 9]
+
+  --test-- "append-74"
+  	v: make vector! [1 2 3 4]
+  	append/dup/part v [5 6 7 8 9] 2 6
+  	--assert v = make vector! [1 2 3 4 5 6 7 8 9 5 6 7 8 9]
+
+  --test-- "append-75"
+  	v: make vector! [1 2 3 4]
+  	append/part/dup v [5 6 7 8 9] 1 2
+  	--assert v = make vector! [1 2 3 4 5 5]
+
+   --test-- "append-76"
+   	v: make vector! [1 2 3 4]
+   	append/part/dup v [5 6 7 8 9] 2 2
+   	--assert v = make vector! [1 2 3 4 5 6 5 6]
+
+
+  --test-- "append-150"
+  	v: make vector! [integer! 8 [1 2 3]]
+  	append v 4
+  	--assert v = make vector! [integer! 8 [1 2 3 4]]
+
+  --test-- "append-151"
+  	v: make vector! [integer! 8 [1 2 3]]
+  	append v [4 5]
+  	--assert v = make vector! [integer! 8 [1 2 3 4 5]]
+
+  --test-- "append-152"
+  	v: make vector! [integer! 8 []]
+  	append v []
+  	--assert v = make vector! [integer! 8 []]
+
+  --test-- "append-153"
+  	v: next next make vector! [integer! 8 [1 2 3 4]]
+  	append v [5 6]
+  	--assert v = make vector! [integer! 8 [3 4 5 6]]
+  	--assert 3 = index? v
+  	--assert (head v) = make vector! [integer! 8 [1 2 3 4 5 6]]
+
+  --test-- "append-154"
+  	v: make vector! [integer! 8 [1 2 3 4]]
+  	append/part v [5 6 7] 0
+  	--assert v = make vector! [integer! 8 [1 2 3 4]]
+
+  --test-- "append-155"
+  	v: make vector! [integer! 8 [1 2 3 4]]
+  	append/part v [5 6 7] -1
+  	--assert v = make vector! [integer! 8 [1 2 3 4]]
+
+  --test-- "append-156"
+  	v: make vector! [integer! 8 [1 2 3 4]]
+  	append/part v [5 6 7] 1
+  	--assert v = make vector! [integer! 8 [1 2 3 4 5]]
+
+  --test-- "append-157"
+  	v: make vector! [integer! 8 [1 2 3 4]]
+  	append/part v [5 6 7] 2
+  	--assert v = make vector! [integer! 8 [1 2 3 4 5 6]]
+
+  --test-- "append-158"
+  	v: make vector! [integer! 8 [1 2 3 4]]
+  	append/part v [5 6 7] 3
+  	--assert v = make vector! [1 2 3 4 5 6 7]
+
+  --test-- "append-159"
+  	v: make vector! [integer! 8 [1 2 3 4]]
+  	append/part v [5 6 7] 4
+  	--assert v = make vector! [1 2 3 4 5 6 7]
+
+  --test-- "append-160"
+  	v: make vector! [integer! 8 [1 2 3 4]]
+  	append/part v [5 6 7] 1000000
+  	--assert v = make vector! [1 2 3 4 5 6 7]
+
+  --test-- "append-161"
+  	v: make vector! [integer! 8 [1 2 3 4]]
+  	append/dup v -1 3
+  	--assert v = make vector! [1 2 3 4 -1 -1 -1]
+
+  --test-- "append-162"
+  	v: make vector! [integer! 8 [1 2 3 4]]
+  	append/dup v -1 0
+  	--assert v = make vector! [integer! 8 [1 2 3 4]]
+
+  --test-- "append-163"
+  	v: make vector! [integer! 8 [1 2 3 4]]
+  	append/dup v -1 -1
+  	--assert v = make vector! [integer! 8 [1 2 3 4]]
+
+  --test-- "append-164"
+  	v: make vector! [integer! 8 [1 2 3 4]]
+  	append/dup v [5 6] 0
+  	--assert v = make vector! [integer! 8 [1 2 3 4]]
+
+  --test-- "append-165"
+  	v: make vector! [integer! 8 [1 2 3 4]]
+  	append/dup v [5 6] -1
+  	--assert v = make vector! [integer! 8 [1 2 3 4]]
+
+  --test-- "append-166"
+  	v: make vector! [integer! 8 [1 2 3 4]]
+  	append/dup v [5 6] 1
+  	--assert v = make vector! [integer! 8 [1 2 3 4 5 6]]
+
+  --test-- "append-167"
+  	v: make vector! [integer! 8 [1 2 3 4]]
+  	append/dup v [5 6] 2
+  	--assert v = make vector! [integer! 8 [1 2 3 4 5 6 5 6]]
+
+  --test-- "append-168"
+  	v: make vector! [integer! 8 [1 2 3 4]]
+  	append/dup v [5 6] 10
+  	--assert v = make vector! [integer! 8 [1 2 3 4 5 6 5 6 5 6 5 6 5 6 5 6 5 6 5 6 5 6 5 6]]
+
+  --test-- "append-169"
+  	v: make vector! [integer! 8 [1 2 3 4]]
+  	append/dup/part v [5 6 7 8 9] 1 1
+  	--assert v = make vector! [integer! 8 [1 2 3 4 5]]
+
+  --test-- "append-170"
+  	v: make vector! [integer! 8 [1 2 3 4]]
+  	append/dup/part v [5 6 7 8 9] 2 2
+  	--assert v = make vector! [integer! 8 [1 2 3 4 5 6 5 6]]
+
+  --test-- "append-171"
+  	v: make vector! [integer! 8 [1 2 3 4]]
+  	append/dup/part v [5 6 7 8 9] 2 3
+  	--assert v = make vector! [integer! 8 [1 2 3 4 5 6 7 5 6 7]]
+
+  --test-- "append-172"
+  	v: make vector! [integer! 8 [1 2 3 4]]
+  	append/dup/part v [5 6 7 8 9] 2 4
+  	--assert v = make vector! [integer! 8 [1 2 3 4 5 6 7 8 5 6 7 8]]
+
+  --test-- "append-173"
+  	v: make vector! [integer! 8 [1 2 3 4]]
+  	append/dup/part v [5 6 7 8 9] 2 5
+  	--assert v = make vector! [integer! 8 [1 2 3 4 5 6 7 8 9 5 6 7 8 9]]
+
+  --test-- "append-174"
+  	v: make vector! [integer! 8 [1 2 3 4]]
+  	append/dup/part v [5 6 7 8 9] 2 6
+  	--assert v = make vector! [integer! 8 [1 2 3 4 5 6 7 8 9 5 6 7 8 9]]
+
+  --test-- "append-175"
+  	v: make vector! [integer! 8 [1 2 3 4]]
+  	append/part/dup v [5 6 7 8 9] 1 2
+  	--assert v = make vector! [integer! 8 [1 2 3 4 5 5]]
+
+   --test-- "append-176"
+   	v: make vector! [integer! 8 [1 2 3 4]]
+   	append/part/dup v [5 6 7 8 9] 2 2
+   	--assert v = make vector! [integer! 8 [1 2 3 4 5 6 5 6]]
+   	
+
+  --test-- "append-250"
+  	v: make vector! [integer! 16 [1 2 3]]
+  	append v 4
+  	--assert v = make vector! [integer! 16 [1 2 3 4]]
+
+  --test-- "append-251"
+  	v: make vector! [integer! 16 [1 2 3]]
+  	append v [4 5]
+  	--assert v = make vector! [integer! 16 [1 2 3 4 5]]
+
+  --test-- "append-252"
+  	v: make vector! [integer! 16 []]
+  	append v []
+  	--assert v = make vector! [integer! 16 []]
+
+  --test-- "append-253"
+  	v: next next make vector! [integer! 16 [1 2 3 4]]
+  	append v [5 6]
+  	--assert v = make vector! [integer! 16 [3 4 5 6]]
+  	--assert 3 = index? v
+  	--assert (head v) = make vector! [integer! 16 [1 2 3 4 5 6]]
+
+  --test-- "append-254"
+  	v: make vector! [integer! 16 [1 2 3 4]]
+  	append/part v [5 6 7] 0
+  	--assert v = make vector! [integer! 16 [1 2 3 4]]
+
+  --test-- "append-255"
+  	v: make vector! [integer! 16 [1 2 3 4]]
+  	append/part v [5 6 7] -1
+  	--assert v = make vector! [integer! 16 [1 2 3 4]]
+
+  --test-- "append-256"
+  	v: make vector! [integer! 16 [1 2 3 4]]
+  	append/part v [5 6 7] 1
+  	--assert v = make vector! [integer! 16 [1 2 3 4 5]]
+
+  --test-- "append-257"
+  	v: make vector! [integer! 16 [1 2 3 4]]
+  	append/part v [5 6 7] 2
+  	--assert v = make vector! [integer! 16 [1 2 3 4 5 6]]
+
+  --test-- "append-258"
+  	v: make vector! [integer! 16 [1 2 3 4]]
+  	append/part v [5 6 7] 3
+  	--assert v = make vector! [1 2 3 4 5 6 7]
+
+  --test-- "append-259"
+  	v: make vector! [integer! 16 [1 2 3 4]]
+  	append/part v [5 6 7] 4
+  	--assert v = make vector! [1 2 3 4 5 6 7]
+
+  --test-- "append-260"
+  	v: make vector! [integer! 16 [1 2 3 4]]
+  	append/part v [5 6 7] 1000000
+  	--assert v = make vector! [1 2 3 4 5 6 7]
+
+  --test-- "append-261"
+  	v: make vector! [integer! 16 [1 2 3 4]]
+  	append/dup v -1 3
+  	--assert v = make vector! [1 2 3 4 -1 -1 -1]
+
+  --test-- "append-262"
+  	v: make vector! [integer! 16 [1 2 3 4]]
+  	append/dup v -1 0
+  	--assert v = make vector! [integer! 16 [1 2 3 4]]
+
+  --test-- "append-263"
+  	v: make vector! [integer! 16 [1 2 3 4]]
+  	append/dup v -1 -1
+  	--assert v = make vector! [integer! 16 [1 2 3 4]]
+
+  --test-- "append-264"
+  	v: make vector! [integer! 16 [1 2 3 4]]
+  	append/dup v [5 6] 0
+  	--assert v = make vector! [integer! 16 [1 2 3 4]]
+
+  --test-- "append-265"
+  	v: make vector! [integer! 16 [1 2 3 4]]
+  	append/dup v [5 6] -1
+  	--assert v = make vector! [integer! 16 [1 2 3 4]]
+
+  --test-- "append-266"
+  	v: make vector! [integer! 16 [1 2 3 4]]
+  	append/dup v [5 6] 1
+  	--assert v = make vector! [integer! 16 [1 2 3 4 5 6]]
+
+  --test-- "append-267"
+  	v: make vector! [integer! 16 [1 2 3 4]]
+  	append/dup v [5 6] 2
+  	--assert v = make vector! [integer! 16 [1 2 3 4 5 6 5 6]]
+
+  --test-- "append-268"
+  	v: make vector! [integer! 16 [1 2 3 4]]
+  	append/dup v [5 6] 10
+  	--assert v = make vector! [integer! 16 [1 2 3 4 5 6 5 6 5 6 5 6 5 6 5 6 5 6 5 6 5 6 5 6]]
+
+  --test-- "append-269"
+  	v: make vector! [integer! 16 [1 2 3 4]]
+  	append/dup/part v [5 6 7 8 9] 1 1
+  	--assert v = make vector! [integer! 16 [1 2 3 4 5]]
+
+  --test-- "append-270"
+  	v: make vector! [integer! 16 [1 2 3 4]]
+  	append/dup/part v [5 6 7 8 9] 2 2
+  	--assert v = make vector! [integer! 16 [1 2 3 4 5 6 5 6]]
+
+  --test-- "append-271"
+  	v: make vector! [integer! 16 [1 2 3 4]]
+  	append/dup/part v [5 6 7 8 9] 2 3
+  	--assert v = make vector! [integer! 16 [1 2 3 4 5 6 7 5 6 7]]
+
+  --test-- "append-272"
+  	v: make vector! [integer! 16 [1 2 3 4]]
+  	append/dup/part v [5 6 7 8 9] 2 4
+  	--assert v = make vector! [integer! 16 [1 2 3 4 5 6 7 8 5 6 7 8]]
+
+  --test-- "append-273"
+  	v: make vector! [integer! 16 [1 2 3 4]]
+  	append/dup/part v [5 6 7 8 9] 2 5
+  	--assert v = make vector! [integer! 16 [1 2 3 4 5 6 7 8 9 5 6 7 8 9]]
+
+  --test-- "append-274"
+  	v: make vector! [integer! 16 [1 2 3 4]]
+  	append/dup/part v [5 6 7 8 9] 2 6
+  	--assert v = make vector! [integer! 16 [1 2 3 4 5 6 7 8 9 5 6 7 8 9]]
+
+  --test-- "append-275"
+  	v: make vector! [integer! 16 [1 2 3 4]]
+  	append/part/dup v [5 6 7 8 9] 1 2
+  	--assert v = make vector! [integer! 16 [1 2 3 4 5 5]]
+
+   --test-- "append-276"
+   	v: make vector! [integer! 16 [1 2 3 4]]
+   	append/part/dup v [5 6 7 8 9] 2 2
+   	--assert v = make vector! [integer! 16 [1 2 3 4 5 6 5 6]]
+   	
 
 ===end-group===
 
