@@ -1521,7 +1521,7 @@ block: context [
 		len: (as-integer s/tail - s/offset) >> 4
 		if s/offset + blk/head > s/tail [blk/head: len]	;-- Past-end index adjustment
 		h: blk/head
-		tail?: any [(s/offset + h = s/tail) append?]
+		tail?: any [append? s/offset + h = s/tail]
 		slots: part * cnt
 		index: either append? [
 			action: words/_append
