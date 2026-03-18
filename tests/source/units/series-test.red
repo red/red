@@ -363,6 +363,11 @@ Red [
 	append/dup/part blk [4 5 6] 2 3
 	--assert "[1 2 4 5 6 4 5 6]" = mold blk	
 
+  --test-- "series-append-15.1"
+	blk: [1 2]
+	append/dup/part blk [] 2 3
+	--assert "[1 2]" = mold blk
+
   --test-- "series-append-16"
 	str: "12"
 	append/dup/part str "456" 3 2 

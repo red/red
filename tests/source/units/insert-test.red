@@ -278,6 +278,17 @@ Red [
 		insert v []
 		--assert v = make vector! []
 
+	 --test-- "insert-52.1"
+		v: next next make vector! [1 2 3]
+		--assert (make vector! [3]) = insert/part v []  0
+		--assert (make vector! [3]) = insert/part v []  1
+		--assert (make vector! [3]) = insert/part v [] -1
+		--assert (make vector! [3]) = insert/dup  v []  0
+		--assert (make vector! [3]) = insert/dup  v []  1
+		--assert (make vector! [3]) = insert/dup  v [] -1
+		--assert (make vector! [3]) = insert/dup/part v [] 1 1
+		--assert (head v) = make vector! [1 2 3]
+
 	 --test-- "insert-53"
 		v: next next make vector! [1 2 3 4]
 		--assert (make vector! [3 4]) = insert v [5 6]

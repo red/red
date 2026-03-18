@@ -1517,6 +1517,7 @@ block: context [
 		][
 			1
 		]
+		if zero? added [return as red-value! blk]
 		if any [negative? part part > added][part: added] ;-- truncate if off-range part value
 		
 		s: GET_BUFFER(blk)

@@ -234,6 +234,17 @@ Red [
   	append v []
   	--assert v = make vector! []
 
+  --test-- "append-52.1"
+	v: make vector! [1 2 3]
+	append/part v []  0
+	append/part v []  1
+	append/part v [] -1
+	append/dup  v []  0
+	append/dup  v []  1
+	append/dup  v [] -1
+	append/dup/part v [] 1 1
+	--assert v = make vector! [1 2 3]
+
   --test-- "append-53"
   	v: next next make vector! [1 2 3 4]
   	append v [5 6]

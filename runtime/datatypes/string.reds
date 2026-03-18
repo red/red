@@ -2397,6 +2397,8 @@ string: context [
 				(rs-abs-length? str) - len
 			]
 		]
+		if zero? added [return as red-value! str]
+		
 		;-- Expand series buffer and append the value --
 		s: GET_BUFFER(str)
 		either done? [									;-- expand str if needed, accounting to added and /dup

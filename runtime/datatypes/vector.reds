@@ -971,7 +971,7 @@ vector: context [
 			sp		  [red-vector!]
 			s s2	  [series!]
 			p p0	  [byte-ptr!]
-			cnt	part size added madded unit len lu right [integer!]
+			cnt	part type size added madded unit len lu right [integer!]
 			values?	tail? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "vector/insert"]]
@@ -1007,11 +1007,13 @@ vector: context [
 		tail?: any [append? len = vec/head]
 		
 		;-- Precalculate extra size --
-		values?: TYPE_OF(value) = TYPE_BLOCK
+		type: TYPE_OF(value)
+		values?: ANY_LIST?(type)
 		either values? [
 			src: as red-block! value
 			s2: GET_BUFFER(src)
 			added: (as-integer s2/tail - (s2/offset + src/head)) >> 4
+			if zero? added [return as red-value! vec]
 			either part > 0 [if part < added [added: part]][part: added]
 		][
 			added: 1
