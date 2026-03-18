@@ -1269,6 +1269,8 @@ block: context [
 			blk2: as red-block! copy-cell compare-arg-b v2
 			s1: GET_BUFFER(blk1)
 			s2: GET_BUFFER(blk2)
+			s1/size: num * size? cell!
+			s2/size: num * size? cell!
 			s1/offset: value1
 			s2/offset: value2
 			s1/tail: value1 + num
