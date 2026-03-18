@@ -168,7 +168,7 @@ Red [
 
 	; --test-- "#330"
 		; TODO
-		; not sure what is the buggy behaviour, there’s no example
+		; not sure what is the buggy behaviour, there's no example
 
 	--test-- "#331"
 		foo331: func [] ["ERR"]

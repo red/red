@@ -1584,6 +1584,9 @@ Red [
 		]
 		--assert data = reduce [o2 o3 o1]
 
+    --test-- "sort-blk-9 issue #5700"
+    	--assert [b 2 a 3] = sort/skip/all/compare [a 3 b 2] 2 func [a b] [append a 'x  a/2 < b/2]
+
     --test-- "sort-vec-1"
         s: does  [make vector! [3 1 3 3 1 2]]
         --assert (make vector! [1 2 3 3 3 1]) = sort/skip s 2
