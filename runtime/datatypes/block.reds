@@ -1261,20 +1261,15 @@ block: context [
 		all?: flags and sort-all-mask = sort-all-mask
 		num: flags >>> 2
 		if all [all? num > 0][
-			if null? compare-arg-a [
-				compare-arg-a: as cell! make-fixed root 1
-				compare-arg-b: as cell! make-fixed root 1
-			]
 			blk1: as red-block! copy-cell compare-arg-a v1
 			blk2: as red-block! copy-cell compare-arg-b v2
 			s1: GET_BUFFER(blk1)
 			s2: GET_BUFFER(blk2)
-			s1/size: num * size? cell!
-			s2/size: num * size? cell!
-			s1/offset: value1
-			s2/offset: value2
-			s1/tail: value1 + num
-			s2/tail: value2 + num
+			cnt: num * size? cell!
+			copy-memory as byte-ptr! s1/offset as byte-ptr! value1 cnt
+			copy-memory as byte-ptr! s2/offset as byte-ptr! value2 cnt
+			s1/tail: s1/offset + num
+			s2/tail: s2/offset + num
 		]
 
 		cnt: _function/count-locals f/spec 0 no
@@ -1282,13 +1277,6 @@ block: context [
 		interpreter/call f f/ctx as red-value! words/_compare-cb CB_SORT
 		stack/unwind
 		stack/pop 1
-
-		if all [all? num > 0][					;-- reset series!, make GC happy
-			s1/offset: as cell! (s1 + 1)
-			s1/tail: s1/offset
-			s2/offset: as cell! (s2 + 1)
-			s2/tail: s2/offset
-		]
 
 		res: stack/top
 		switch TYPE_OF(res) [
@@ -1335,8 +1323,10 @@ block: context [
 			op		[integer!]
 			flags	[integer!]
 			offset	[integer!]
+			blk-sz	[integer!]
 			saved	[logic!]
 			chk?	[logic!]
+			func?	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/sort"]]
 
@@ -1391,13 +1381,29 @@ block: context [
 		if reverse? [flags: flags or sort-reverse-mask]
 		op: either case? [COMP_CASE_SORT][COMP_SORT]
 		cmp: as-integer :compare-value
+		func?: no
 
 		either OPTION?(comparator) [
 			switch TYPE_OF(comparator) [
 				TYPE_FUNCTION [
 					if all [all? OPTION?(skip)] [
+						func?: yes
 						flags: flags or sort-all-mask
 						flags: step << 2 or flags
+						either null? compare-arg-a [
+							compare-arg-a: as cell! make-in root step
+							compare-arg-b: as cell! make-in root step
+						][
+							blk2: as red-block! compare-arg-a
+							s: GET_BUFFER(blk2)
+							blk-sz: step * size? cell!
+							if s/size < blk-sz [
+								expand-series s blk-sz
+								blk2: as red-block! compare-arg-b
+								s: GET_BUFFER(blk2)
+								expand-series s blk-sz
+							]
+						]
 					]
 					cmp: as-integer :compare-call
 					op: as-integer comparator
@@ -1431,6 +1437,10 @@ block: context [
 			_sort/mergesort as byte-ptr! head len step * (size? red-value!) op flags cmp
 		][
 			_sort/qsort as byte-ptr! head len step * (size? red-value!) op flags cmp
+		]
+		if all [func? blk-sz >= _2MB][	;-- if the cache is too big, detach it so it can be recycled
+			make-at as red-block! compare-arg-a 1
+			make-at as red-block! compare-arg-b 1 
 		]
 		if chk? [ownership/check as red-value! blk words/_sorted null blk/head 0]
 		blk
