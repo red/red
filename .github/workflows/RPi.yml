@@ -8,14 +8,14 @@ jobs:
     name: Build RPi Tests
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Build Tests
       uses: ./CI/Linux-32
       with:
         command: rebol -qws system/tests/build-arm-tests.r -t RPi && rebol -qws tests/build-arm-tests.r -t RPi
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v7
       with:
         name: arm-tests
         path: quick-test/runnable/arm-tests/
@@ -34,7 +34,7 @@ jobs:
         sudo ln -s /lib/arm-linux-gnueabihf/libcrypto.so.3 /lib/arm-linux-gnueabihf/libcrypto.so.1.1
 
     - name: Retrieve tests
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: arm-tests
 
@@ -46,7 +46,7 @@ jobs:
       working-directory: ./system
 
     # upload log file if any test failed
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v7
       if: failure()
       with:
         name: RS-Tests-Arm-log
@@ -59,7 +59,7 @@ jobs:
       working-directory: ./red
 
     # upload log file if any test failed
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v7
       if: failure()
       with:
         name: Red-Tests-Arm-log
