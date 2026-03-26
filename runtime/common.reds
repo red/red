@@ -558,6 +558,8 @@ cycles: context [
 	
 	reset: does [top: bottom]
 	
+	refresh: does [collector/refresh-array bottom top]	;-- called during GC pass
+	
 	find?: func [node [node!] return: [logic!] /local p [node!]][
 		if top = bottom [return no]
 		p: bottom
