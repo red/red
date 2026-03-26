@@ -1730,17 +1730,8 @@ process: func [
 			over?: (get-face-flags hWnd) and FACET_FLAGS_ALL_OVER <> 0
 			x: WIN32_LOWORD(lParam)
 			y: WIN32_HIWORD(lParam)
-			if all [
-				not over?
-				any [
-					x < (0 - screen-size-x) 			;@@ needs `negate` support
-					y < (0 - screen-size-y)
-					x > screen-size-x
-					y > screen-size-y
-				]
-			][
-				return EVT_DISPATCH						;-- filter out buggy mouse positions (thanks MS!)
-			]
+			;-- removed buggy mouse position filter to support multiple monitors
+			;-- virtual screen coordinates can be negative or larger than primary monitor
 
 			new: hWnd
 			if all [
