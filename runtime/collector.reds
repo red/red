@@ -799,7 +799,6 @@ collector: context [
 	]
 
 	scan-stack-refs: func [
-		table  [int-ptr!]								;-- optional table for nodes relocation
 		store? [logic!]									;-- store series pointers in a list for later eventual update
 		/local
 			frm	map	slot p sp b base base' head prev [int-ptr!]
@@ -1033,7 +1032,7 @@ collector: context [
 		
 		#if debug? = yes [if verbose > 1 [probe "scanning native stack"]]
 		frames-list/rebuild								;-- refresh nodes and series frames list
-		scan-stack-refs refs yes
+		scan-stack-refs yes
 
 		#if debug? = yes [tm1: (platform/get-time yes yes) - tm]	;-- marking time
 
