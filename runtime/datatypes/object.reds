@@ -589,10 +589,7 @@ object: context [
 		cycles/push obj/ctx
 
 		while [sym < s-tail][
-			if part <= 0 [
-				cycles/pop
-				return part
-			]
+			if part <= 0 [cycles/pop return part]
 
 			w: as red-word! sym
 			id: symbol/resolve w/symbol
