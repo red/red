@@ -110,6 +110,7 @@ stack: context [										;-- call stack
 		if ctop >= c-end [
 			top: top - 5								;-- make space within the stack for error processing
 			if top < bottom [top: bottom]
+			cycles/reset
 			fire [TO_ERROR(internal stack-overflow)]
 		]
 		ctop/header: type or (fun/symbol << 8)
@@ -136,6 +137,7 @@ stack: context [										;-- call stack
 		if ctop >= c-end [
 			top: top - 5								;-- make space within the stack for error processing
 			if top < bottom [top: bottom]
+			cycles/reset
 			fire [TO_ERROR(internal stack-overflow)]
 		]
 		values: either null? ctx-name [null][			;-- null only happens in some libRedRT cases
@@ -697,6 +699,7 @@ stack: context [										;-- call stack
 		top: top + 1
 		if top >= a-end [
 			top: top - 5								;-- make space within the stack for error processing
+			cycles/reset
 			fire [TO_ERROR(internal stack-overflow)]
 		]
 		cell
