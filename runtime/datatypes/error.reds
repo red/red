@@ -374,11 +374,6 @@ error: context [
 		string/concatenate-literal buffer ": "
 		part: part - 2
 
-		if TYPE_OF(value) = TYPE_WORD [
-			_context/bind-word GET_CTX(obj) as red-word! value
-			value: _context/get-in as red-word! value GET_CTX(obj)
-		]
-		
 		switch TYPE_OF(value) [
 			TYPE_STRING [
 				str: as red-string! value
@@ -387,6 +382,7 @@ error: context [
 			]
 			TYPE_BLOCK [
 				blk: block/clone as red-block! value no no
+				_context/bind blk GET_CTX(obj) no
 				blk: reduce blk obj
 				arg2: as red-value! integer/push 80
 				part: block/form blk buffer arg2 80

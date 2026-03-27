@@ -115,7 +115,7 @@ Red/System [
 				base   [red-value!]
 				silent [red-logic!]
 		][
-			if cycle? [cycles/reset]
+			cycles/reset
 			silent: as red-logic! #get system/view/silent?
 			if all [TYPE_OF(silent) = TYPE_LOGIC silent/value][throw 1]
 			
@@ -1075,12 +1075,10 @@ Red/System [
 								ncmds: as red-block! start
 								ncmd:  block/rs-head ncmds
 								ntail: block/rs-tail ncmds
-								if ncmd + 6 <> ntail [
-									throw-draw-error ncmds ncmd catch?
-								]
+								if ncmd + 6 <> ntail [throw-draw-error cmds cmd - 1 catch?]
 								loop 6 [
 									if any [ncmd >= ntail all [TYPE_OF(ncmd) <> TYPE_INTEGER TYPE_OF(ncmd) <> TYPE_FLOAT]][
-										throw-draw-error ncmds ncmd catch?
+										throw-draw-error cmds cmd - 1 catch?
 									]
 									ncmd: ncmd + 1
 								]
