@@ -375,7 +375,10 @@ error: context [
 			value: object/rs-select errors base + field-id
 			assert TYPE_Of(value) <> TYPE_NONE
 		]
-		
+		if TYPE_OF(value) = TYPE_WORD [
+			_context/bind-word GET_CTX(obj) as red-word! value
+			value: _context/get-in as red-word! value GET_CTX(obj) ;-- extract block/string spec from error ID
+		]
 		str: as red-string! object/rs-select errors as red-value! words/_type ;-- get the error-class banner string
 		assert TYPE_OF(str) = TYPE_STRING
 		string/concatenate buffer str -1 0 yes no
@@ -383,7 +386,7 @@ error: context [
 		string/concatenate-literal buffer ": "
 		part: part - 2
 
-		switch TYPE_OF(value) [
+		switch TYPE_OF(value) [						;-- error spec processing
 			TYPE_STRING [
 				str: as red-string! value
 				string/concatenate buffer str -1 0 yes no

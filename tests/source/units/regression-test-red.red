@@ -3826,6 +3826,10 @@ comment {
 		--assert error? try [skip [1] 2x4]
 		--assert error? try [at [1] 2x4]
 		
+	--test-- "#5711"
+		e: make error! "test message" ()
+		--assert (form e) = (form e)
+		
 ===end-group===
 
 ~~~end-file~~~
