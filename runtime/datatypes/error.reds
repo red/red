@@ -157,41 +157,50 @@ error: context [
 		err
 	]
 	
-	reduce: func [
+	reduce-with: func [
 		blk		[red-block!]
+		buffer  [red-string!]
 		obj		[red-object!]
-		return: [red-block!]
+		part	[integer!]
+		return: [integer!]
 		/local
-			value   [red-value!]
-			tail    [red-value!]
-			buffer  [red-string!]
-			type    [integer!]
-			syntax? [logic!]
+			str		[red-string!]
+			value	[red-value!]
+			tail	[red-value!]
+			arg2	[red-value! value]					;-- stores a red-integer!, so GC-safe
+			syntax?	[logic!]
 	][
+		integer/make-at arg2 80
 		value: block/rs-head blk
 		tail:  block/rs-tail blk
 		
-		syntax?: words/errors/syntax/symbol = get-type obj
 		while [value < tail][
-			type: TYPE_OF(value)
-			if any [
-				type = TYPE_WORD
-				type = TYPE_GET_WORD
-			][
-				buffer: string/rs-make-at stack/push* 16
-				stack/mark-native words/_body
-				either syntax? [
-					actions/form object/rs-select obj value buffer null 0
-				][
-					actions/mold object/rs-select obj value buffer no no yes null 0 0
+			switch TYPE_OF(value) [
+				TYPE_STRING   [
+					str: as red-string! value
+					string/concatenate buffer str -1 0 yes no
+					part: part - string/rs-length? str
 				]
-				stack/unwind
-				copy-cell as red-value! buffer value
-				stack/pop 1
+				TYPE_WORD
+				TYPE_GET_WORD [
+					syntax?: words/errors/syntax/symbol = get-type obj
+					stack/mark-native words/_body
+					part: either syntax? [
+						part - actions/form object/rs-select obj value buffer arg2 80
+					][
+						part - actions/mold object/rs-select obj value buffer no no yes arg2 80 0
+					]
+					stack/unwind
+				]
+				default [0]								;-- just ignore invalid datatypes
 			]
 			value: value + 1
+			if value < tail [
+				string/append-char GET_BUFFER(buffer) as-integer space
+				part: part - 1
+			]
 		]
-		blk
+		part
 	]
 	
 	;-- Actions -- 
@@ -381,11 +390,7 @@ error: context [
 				part: part - string/rs-length? str
 			]
 			TYPE_BLOCK [
-				blk: block/clone as red-block! value no no
-				_context/bind blk GET_CTX(obj) no
-				blk: reduce blk obj
-				arg2: as red-value! integer/push 80
-				part: block/form blk buffer arg2 80
+				part: reduce-with as red-block! value buffer obj part
 			]
 			default [
 				copy-cell base + field-type base + field-arg1

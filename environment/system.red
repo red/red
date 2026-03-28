@@ -180,7 +180,7 @@ system: context [
 				parse-into-bad:		"PARSE - COLLECT INTO/AFTER invalid series! argument"
 				parse-into-type:    "PARSE - COLLECT INTO/AFTER expects a series! of compatible datatype"
 				draw-invalid:		["DRAW - invalid input at:" :arg1]
-				draw-infinite:		["DRAW - infinite recursion at: [" :arg1 "]"]
+				draw-infinite:		["DRAW - infinite recursion at:" :arg1]
 				invalid-data-facet: ["invalid DATA facet content" :arg1]
 				face-type:			["VIEW - invalid face type:" :arg1]
 				not-window:			"VIEW - expected a window root face"
