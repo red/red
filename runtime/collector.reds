@@ -30,7 +30,8 @@ collector: context [
 	]
 	
 	stats: declare struct! [
-		cycles [integer!]
+		cycles		 [integer!]							;-- nb or GC runs
+		nodes-cycles [integer!]							;-- nb of node frames compaction runs
 	]
 	
 	ext-size: 100
@@ -47,6 +48,7 @@ collector: context [
 		/local mask [integer!]
 	][
 		stats/cycles: 			0
+		stats/nodes-cycles:		0
 		prefs/nodes-gc-trigger: 5						;-- trigger if node frame is unchanged after 5 cycles
 	]
 
@@ -283,6 +285,7 @@ collector: context [
 		]
 		assert src/used = 0
 		src/locked?: yes								;-- prevents new allocations, schedules for freeing at end of GC pass
+		stats/nodes-cycles: stats/nodes-cycles + 1
 	]
 	
 	do-node-cycle: func [
@@ -1008,6 +1011,7 @@ collector: context [
 				"root: " block/rs-length? root "/" ***-root-size
 				", runs: " stats/cycles
 				", mem: " 	memory-info null 1
+				", nodes-runs: " stats/nodes-cycles
 			]
 			if verbose > 1 [probe "^/marking..."]
 		]

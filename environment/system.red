@@ -308,6 +308,11 @@ system: context [
 				set-quiet 'bits either new [bits or idx][bits and complement idx]
 			]
 		]
+		GC: object [
+			active?: 		routine [return: [logic!]  ][collector/active?]
+			series-cycles:	routine [return: [integer!]][collector/stats/cycles]
+			nodes-cycles:	routine [return: [integer!]][collector/stats/nodes-cycles]	
+		]
 	]
 	
 	modules: make block! 8
