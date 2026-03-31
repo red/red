@@ -153,7 +153,7 @@ tokenizer: context [
 				all [(as-integer #"a") <= c c <= as-integer #"z"]
 			]
 		]
-		if len < 2 [do-error]
+		if len < 1 [do-error]
 		s: p
 		e: p + (len * unit)
 		c: string/get-char p unit						;-- +/-
@@ -201,7 +201,7 @@ tokenizer: context [
 				all [null? ds c = as-integer #"."][		;-- fraction
 					ds: p
 					if any [
-						p - 1 = s						;-- leading .
+						p = s							;-- leading .
 						p - 1 = st						;-- $.
 						p - 1 = qt						;-- '.
 						p + 1 = e						;-- ending .

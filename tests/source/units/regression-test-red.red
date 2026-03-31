@@ -3829,6 +3829,14 @@ comment {
 	--test-- "#5711"
 		e: make error! "test message" ()
 		--assert (form e) = (form e)
+	
+	--test-- "#5715"
+		--assert $0 == make money! "0"
+		--assert $1 == make money! "1"
+		--assert $9 == make money! "9"
+		--assert $10 == make money! "10"
+		--assert $0.01 == make money! "0.01"
+		--assert $0.01 == make money! "$0.01"
 		
 ===end-group===
 
