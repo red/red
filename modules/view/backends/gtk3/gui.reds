@@ -40,6 +40,7 @@ default-font-width: as float32! 7.5		;-- pixel width
 gtk-font-name:		"Sans"
 gtk-font-size:		10
 
+dpi-factor:		as float32! 1.0
 screen-size-x:		0
 screen-size-y:		0
 
@@ -47,6 +48,20 @@ screen-size-y:		0
 	if any [x > 65535 y > 65535][
 		fire [TO_ERROR(script invalid-arg) size]
 	]
+]
+
+dpi-scale: func [
+	num		[float32!]
+	return: [integer!]
+][
+	as-integer num * dpi-factor + 0.5
+]
+
+dpi-unscale: func [
+	num		[float32!]
+	return: [float32!]
+][
+	num / dpi-factor
 ]
 
 get-face-obj: func [
@@ -247,7 +262,11 @@ set-widget-child: func [
 		pt		[red-point2D!]
 ][
 	sym: get-widget-symbol parent
-	GET_PAIR_XY_INT(offset x y)
+	either TYPE_OF(offset) = TYPE_NONE [
+		x: 0 y: 0
+	][
+		GET_PAIR_XY_INT(offset x y)
+	]
 	cvalues: get-face-values widget
 	ctype: as red-word! cvalues + FACE_OBJ_TYPE
 	csym: symbol/resolve ctype/symbol
@@ -315,7 +334,11 @@ set-widget-child-offset: func [
 		pt		[red-point2D!]
 		x y		[integer!]
 ][
-	GET_PAIR_XY_INT(pos x y)
+	either TYPE_OF(pos) = TYPE_NONE [
+		x: 0 y: 0
+	][
+		GET_PAIR_XY_INT(pos x y)
+	]
 	either type = window [
 		gtk_window_move widget x y
 	][
@@ -1680,6 +1703,8 @@ fetch-monitor-info: func [
 	][dpi: 96]
 	if dpi < 96 [dpi: 96]
 
+	dpi-factor: (as float32! dpi) / as float32! 96.0
+
 	pair/make-at   alloc-tail s rec/x rec/y
 	pair/make-at   alloc-tail s rec/width rec/height
 	float/make-at  alloc-tail s (as-float dpi) / 96.0
@@ -1941,7 +1966,7 @@ OS-make-view: func [
 			if bits and FACET_FLAGS_NO_BTNS <> 0 [
 				gtk_window_set_deletable widget no					;-- hide Close button
 			]
-			
+
 			unless null? caption [gtk_window_set_title widget caption]
 
 			hMenu: null
@@ -1959,7 +1984,9 @@ OS-make-view: func [
 			gtk_layout_set_size container sx sy
 			gtk_widget_show container
 			gtk_box_pack_start winbox container yes yes 0
-			gtk_window_move widget offset/x offset/y
+			if TYPE_OF(offset) <> TYPE_NONE [
+				gtk_window_move widget offset/x offset/y
+			]
 
 			gtk_window_set_default_size widget sx sy
 			gtk_window_set_resizable widget (bits and FACET_FLAGS_RESIZE <> 0)

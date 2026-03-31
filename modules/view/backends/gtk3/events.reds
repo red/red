@@ -1093,7 +1093,7 @@ connect-widget-events: func [
 		sym = window [
 			gobj_signal_connect(widget "delete-event" :window-delete-event widget)
 			gobj_signal_connect(widget "size-allocate" :window-size-allocate widget)
-			gtk_widget_add_events widget GDK_FOCUS_CHANGE_MASK
+			gtk_widget_add_events widget GDK_FOCUS_CHANGE_MASK or GDK_STRUCTURE_MASK or GDK_PROPERTY_CHANGE_MASK
 			gobj_signal_connect(widget "focus-in-event" :focus-in-event widget)
 			gobj_signal_connect(widget "focus-out-event" :focus-out-event widget)
 			gobj_signal_connect(widget "configure-event" :window-configure-event widget)
