@@ -786,6 +786,8 @@ range-value-changed: func [
 	pos: as red-float! values + FACE_OBJ_DATA
 
 	value: gtk_range_get_value range
+	;-- ensure data is percent/float type before setting value
+	if all [TYPE_OF(pos) <> TYPE_PERCENT TYPE_OF(pos) <> TYPE_FLOAT][pos/header: TYPE_PERCENT]
 	pos/value: value / 100.0
 	make-event range 0 EVT_CHANGE
 ]

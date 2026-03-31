@@ -382,7 +382,7 @@ set-scroller-pos: func [
 	pos: as red-float! values + FACE_OBJ_DATA
 	sel: as red-float! values + FACE_OBJ_SELECTED
 
-	if TYPE_OF(pos) <> TYPE_FLOAT [pos/header: TYPE_FLOAT]
+	if all [TYPE_OF(pos) <> TYPE_PERCENT TYPE_OF(pos) <> TYPE_FLOAT][pos/header: TYPE_PERCENT]
 	adj: gtk_range_get_adjustment widget
 	pos/value: gtk_adjustment_get_value adj
 	
@@ -1175,6 +1175,13 @@ change-data: func [
 			f: as red-float! data
 			gtk_range_set_value widget f/value * 100.0
 		]
+		all [type = slider TYPE_OF(data) <> TYPE_PERCENT TYPE_OF(data) <> TYPE_FLOAT][
+			;-- initialize slider data as percent if not already
+			f: as red-float! data
+			f/header: TYPE_PERCENT
+			f/value: 0.0
+			gtk_range_set_value widget 0.0
+		]
 		all [type = scroller TYPE_OF(data) = TYPE_FLOAT][
 			f: as red-float! data
 			flt: f/value
@@ -1183,6 +1190,14 @@ change-data: func [
 			flt: flt * 100.0
 			adj: gtk_range_get_adjustment widget
 			gtk_adjustment_set_value adj flt
+		]
+		all [type = scroller TYPE_OF(data) <> TYPE_FLOAT][
+			;-- initialize scroller data as float if not already
+			f: as red-float! data
+			f/header: TYPE_FLOAT
+			f/value: 0.0
+			adj: gtk_range_get_adjustment widget
+			gtk_adjustment_set_value adj 0.0
 		]
 		any [
 			type = check
@@ -1826,7 +1841,7 @@ OS-make-view: func [
 		fvalue		[float!]
 		f32			[float32!]
 		vertical?	[logic!]
-		rfvalue		[red-float!]
+		f			[red-float!]
 		attrs		[handle!]
 		handle		[handle!]
 		fradio		[handle!]
@@ -2014,6 +2029,12 @@ OS-make-view: func [
 			gtk_range_set_value widget fvalue * 100.0
 			gtk_scale_set_has_origin widget no
 			gtk_scale_set_draw_value widget no
+			;-- ensure data is initialized as percent to avoid junk values
+			if all [TYPE_OF(data) <> TYPE_PERCENT TYPE_OF(data) <> TYPE_FLOAT][
+				f: as red-float! data
+				f/header: TYPE_PERCENT
+				f/value: fvalue
+			]
 		]
 		sym = text [
 			widget: gtk_label_new caption
@@ -2041,6 +2062,12 @@ OS-make-view: func [
 			]
 			fvalue: get-fraction-value as red-float! data
 			gtk_progress_bar_set_fraction widget fvalue
+			;-- ensure data is initialized as percent to avoid junk values
+			if all [TYPE_OF(data) <> TYPE_PERCENT TYPE_OF(data) <> TYPE_FLOAT][
+				f: as red-float! data
+				f/header: TYPE_PERCENT
+				f/value: fvalue
+			]
 		]
 		sym = area [
 			widget: gtk_text_view_new
