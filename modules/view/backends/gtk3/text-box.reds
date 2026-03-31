@@ -381,7 +381,7 @@ OS-text-box-layout: func [
 	][
 		attrs: create-pango-attrs box font
 	][
-		attrs: pango_attr_list_new		;-- or pango_attr_list_copy default-attrs
+		attrs: pango_attr_list_copy default-attrs
 	]
 	len: -1
 	str: unicode/to-utf8 text :len

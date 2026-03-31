@@ -96,9 +96,11 @@ create-css: func [
 	]
 
 	int: as red-integer! values + FONT_OBJ_SIZE
-	if TYPE_OF(int) = TYPE_INTEGER [
+	either TYPE_OF(int) = TYPE_INTEGER [
 		size: int/value
 		g_string_append_printf [css { font-size: %dpt;} size]
+	][
+		g_string_append_printf [css { font-size: %dpt;} default-font-size]
 	]
 
 	color: as red-tuple! values + FONT_OBJ_COLOR
@@ -199,9 +201,12 @@ create-pango-attrs: func [
 	]
 
 	int: as red-integer! values + FONT_OBJ_SIZE
-	if TYPE_OF(int) = TYPE_INTEGER [
+	either TYPE_OF(int) = TYPE_INTEGER [
 		size: int/value
 		attr: pango_attr_size_new PANGO_SCALE * size
+		pango_attr_list_insert list attr
+	][
+		attr: pango_attr_size_new PANGO_SCALE * default-font-size
 		pango_attr_list_insert list attr
 	]
 
