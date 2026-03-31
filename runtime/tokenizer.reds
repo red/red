@@ -143,7 +143,7 @@ tokenizer: context [
 		/local
 			c	 [integer!]
 			neg? [logic!]
-			s e cur st ds qt [byte-ptr!]
+			e cur st ds qt [byte-ptr!]
 			letter? do-error [subroutine!]
 	][
 		do-error: [error/value: -1 exit]
@@ -154,7 +154,6 @@ tokenizer: context [
 			]
 		]
 		if len < 1 [do-error]
-		s: p
 		e: p + (len * unit)
 		c: string/get-char p unit						;-- +/-
 		neg?: c = as-integer #"-"
@@ -201,7 +200,6 @@ tokenizer: context [
 				all [null? ds c = as-integer #"."][		;-- fraction
 					ds: p
 					if any [
-						p = s							;-- leading .
 						p - 1 = st						;-- $.
 						p - 1 = qt						;-- '.
 						p + 1 = e						;-- ending .
