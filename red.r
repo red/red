@@ -393,7 +393,7 @@ redc: context [
 		result: system-dialect/compile/options/loaded file opts result
 		unless encap? [change-dir %../]
 		opts/verbosity: saved
-		show-stats result
+		show-stats opts result
 	]
 	
 	needs-libRedRT?: func [opts [object!] /local file path lib lib? get-date ts date current?][
