@@ -1010,8 +1010,8 @@ collector: context [
 			print [
 				"root: " block/rs-length? root "/" ***-root-size
 				", runs: " stats/cycles
-				", mem: " 	memory-info null 1
 				", nodes-runs: " stats/nodes-cycles
+				", mem: " 	memory-info null 1
 			]
 			if verbose > 1 [probe "^/marking..."]
 		]
