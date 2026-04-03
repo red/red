@@ -1,6 +1,6 @@
 name: Linux-x86
 
-on: push
+on: [push, pull_request]
 
 jobs:
   Linux-Red-Tests:
