@@ -194,7 +194,8 @@ red: context [
 		not find "/~" first file
 	]
 	
-	process-include-paths: func [code [block!] /local rule file][
+	process-include-paths: func [code [block!] /local rule file saved-script-path][
+		saved-script-path: script-path
 		parse code rule: [
 			some [
 				#include file: (
@@ -210,6 +211,7 @@ red: context [
 				| skip
 			]
 		]
+		script-path: saved-script-path
 	]
 	
 	process-calls: func [code [block!] /global /local rule pos mark][
@@ -4286,17 +4288,18 @@ red: context [
 		]
 	]
 	
-	comp-include: func [pc [block!] /only /local file saved version mark script-file cache? saved-script-path][
+	comp-include: func [pc [block!] /only /local file saved version mark script-file cache? saved-script-path saved-include-stk][
 		unless file? file: pc/2 [
 			throw-error ["#include requires a file argument:" pc/2]
 		]
 		cache?: in-cache? file
+		if only [saved-include-stk: copy include-stk]
 		append include-stk script-path
+		saved-script-path: script-path
 
 		if all [not booting? relative-path? file][
 			file: clean-path join any [script-path main-path] file
 		]
-		saved-script-path: script-path
 		script-path: either find file slash [
 			first split-path file
 		][
@@ -4312,7 +4315,7 @@ red: context [
 			if only [script-path: saved-script-path]
 		][
 			script-file: file
-			if all [relative-path? pc/2 script-path][
+			if all [slash <> first file	script-path][
 				script-file: clean-path join script-path pc/2
 			]
 			append script-stk script-file
@@ -4320,13 +4323,16 @@ red: context [
 				#script script-file
 			]
 			saved: script-name
-			insert skip pc 2 #pop-path
+			unless only [insert skip pc 2 #pop-path]
 			src: load-source/header file
 			src: preprocessor/expand src job
 			change/part pc next src 2			;@@ Header skipped, should be processed
 			script-name: saved
 			append included-list file
-			if only [script-path: saved-script-path]
+			if only [
+				script-path: saved-script-path
+				include-stk: saved-include-stk
+			]
 			unless any [only empty? expr-stack][comp-expression]
 		]
 	]
@@ -4697,11 +4703,17 @@ red: context [
 		append output [#user-code]
 		foreach module needed [
 			saved: if script-path [copy script-path]
+			saved-main: if main-path [copy main-path]
+			saved-include-stk: copy include-stk
+			saved-script-stk: copy script-stk
 			script-path: first split-path module
 			pc: next preprocessor/expand load-source/hidden module job
 			unless job/red-help? [clear-docstrings pc]
 			comp-block
 			script-path: saved
+			main-path: saved-main
+			include-stk: saved-include-stk
+			script-stk: saved-script-stk
 		]
 
 		pc: code										;-- compile user code
