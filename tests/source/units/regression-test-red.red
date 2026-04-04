@@ -3100,6 +3100,14 @@ comment {
 		err4260: try [add none none]
 		--assert to-logic find form err4260 "add does not"
 
+	--test-- "#4281"
+		data4281: "   123   "
+		repend data4281 [trim data4281]
+		--assert data4281 = "123123"
+		data4281: "   123   "
+		insert tail data4281 reduce [trim data4281]
+		--assert data4281 = "123123"
+
 	--test-- "#4299"
 		foreach v reduce [
 			system system/words system/lexer system/build

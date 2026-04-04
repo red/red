@@ -985,6 +985,7 @@ string: context [
 		]
 
 		if mode = MODE_INSERT [
+			assert (as-integer s1/tail - s1/offset) - h1 - offset >= 0	;-- #4281
 			move-memory									;-- make space
 				(as byte-ptr! s1/offset) + h1 + offset + size
 				(as byte-ptr! s1/offset) + h1 + offset
