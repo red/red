@@ -130,6 +130,40 @@ unicode: context [
 		if byte-1st and C0h = C0h [return 2]
 		0
 	]
+	
+	predict-utf8-size: func [cp [integer!] return: [integer!]][
+		case [
+			cp <= 7Fh		[1]
+			cp <= 07FFh		[2]
+			cp <= 0000FFFFh [3]
+			cp <= max-char-codepoint [4]
+			true [fire [TO_ERROR(script invalid-char) integer/push cp] 0]
+		]
+	]
+	
+	predict-utf8-str-size: func [p [byte-ptr!] e [byte-ptr!] unit [integer!] return: [integer!]
+		/local
+			p4		[int-ptr!]
+			cp cnt	[integer!]
+	][
+		cnt: 0
+		while [p < e][
+			cp: switch unit [
+				Latin1 [as-integer p/value]
+				UCS-2  [(as-integer p/2) << 8 + p/1]
+				UCS-4  [p4: as int-ptr! p p4/value]
+			]
+			case [
+				cp <= 7Fh		[cnt: cnt + 1]
+				cp <= 07FFh		[cnt: cnt + 2]
+				cp <= 0000FFFFh [cnt: cnt + 3]
+				cp <= max-char-codepoint [cnt: cnt + 4]
+				true [fire [TO_ERROR(script invalid-char) integer/push cp] 0]
+			]
+			p: p + unit
+		]
+		cnt
+	]
 
 	cp-to-utf8: func [
 		cp		[integer!]
@@ -164,6 +198,39 @@ unicode: context [
 				0
 			]
 		]
+	]
+	
+	cp-to-utf8-alt: func [
+		cp		[integer!]
+		buf		[byte-ptr!]
+		part	[integer!]
+		return: [integer!]
+		/local
+			cnt [integer!]
+	][
+		cnt: 0
+		case [
+			cp <= 7Fh [
+				if part > 0 [buf/1: as-byte cp  cnt: cnt + 1]
+			]
+			cp <= 07FFh [
+				if part     > 0 [buf/1: as-byte cp >> 6 or C0h     cnt: cnt + 1]
+				if part - 1 > 0 [buf/2: as-byte cp and 3Fh or 80h  cnt: cnt + 1]
+			]
+			cp <= 0000FFFFh [
+				if part     > 0 [buf/1: as-byte cp >> 12 or E0h			cnt: cnt + 1]
+				if part - 1 > 0 [buf/2: as-byte cp >> 6 and 3Fh or 80h  cnt: cnt + 1]
+				if part - 2 > 0 [buf/3: as-byte cp	    and 3Fh or 80h  cnt: cnt + 1]
+			]
+			cp <= max-char-codepoint [
+				if part     > 0 [buf/1: as-byte cp >> 18 or F0h			 cnt: cnt + 1]
+				if part - 1 > 0 [buf/2: as-byte cp >> 12 and 3Fh or 80h  cnt: cnt + 1]
+				if part - 2 > 0 [buf/3: as-byte cp >> 6  and 3Fh or 80h  cnt: cnt + 1]
+				if part - 3 > 0 [buf/4: as-byte cp 		 and 3Fh or 80h  cnt: cnt + 1]
+			]
+			true [fire [TO_ERROR(script invalid-char) integer/push cp]]
+		]
+		cnt
 	]
 
 	to-utf8: func [
@@ -244,11 +311,12 @@ unicode: context [
 	to-utf8-buffer: func [
 		str		[red-string!]
 		buf		[byte-ptr!]
-		len		[integer!]								;-- len = -1 convert all chars
+		len		[integer!]								;-- len in chars, -1 => convert all chars
+		nul?	[logic!]
 		return: [integer!]
 		/local
 			beg p tail [byte-ptr!]
-			unit cp part   [integer!]
+			unit cp part [integer!]
 			p4 [int-ptr!]
 			s  [series!]
 	][
@@ -284,7 +352,62 @@ unicode: context [
 				]
 			]
 		]
-		buf/1: null-byte
+		if nul? [buf/1: null-byte]
+		as-integer buf - beg
+	]
+
+	to-utf8-buffer-alt: func [
+		str		[red-string!]
+		buf		[byte-ptr!]
+		bytes	[integer!]								;-- (destination) in bytes (can be < (part << log-b unit))
+		part	[integer!]								;-- (source) in chars, -1 => convert all chars
+		nul?	[logic!]
+		return: [integer!]
+		/local
+			beg p tail [byte-ptr!]
+			unit cp len [integer!]
+			p4 [int-ptr!]
+			s  [series!]
+	][
+		s: GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		len: string/rs-length? str
+		if all [part > 0 part < len][len: part]			;-- clip characters
+
+		p: string/rs-head str
+		tail: p + (len << log-b unit)					;-- clip bytes
+		beg: buf
+		part: bytes
+
+		switch unit [
+			Latin1 [
+				while [p < tail][
+					cp-to-utf8-alt as-integer p/value buf part
+					buf: buf + 1
+					part: part - 1
+					p: p + 1
+				]
+			]
+			UCS-2  [
+				while [p < tail][
+					cp: (as-integer p/2) << 8 + p/1
+					len: cp-to-utf8-alt cp buf part
+					buf: buf + len
+					part: part - len
+					p: p + 2
+				]
+			]
+			UCS-4  [
+				p4: as int-ptr! p
+				while [p4 < as int-ptr! tail][
+					len: cp-to-utf8-alt p4/value buf part
+					buf: buf + len
+					part: part - len
+					p4: p4 + 1
+				]
+			]
+		]
+		if nul? [buf/1: null-byte]
 		as-integer buf - beg
 	]
 	

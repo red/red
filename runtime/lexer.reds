@@ -2660,7 +2660,7 @@ lexer: context [
 			extra: allocate buf-size + 1				;-- fallback to a temporary buffer
 			utf8-buf-tail: extra
 		]
-		size: unicode/to-utf8-buffer str utf8-buf-tail size
+		size: unicode/to-utf8-buffer str utf8-buf-tail size yes
 		base: utf8-buf-tail
 		utf8-buf-tail: utf8-buf-tail + size + 1			;-- move at tail for new buffer; +1 for terminal NUL
 

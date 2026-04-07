@@ -12,6 +12,11 @@ Red/System [
 
 binary: context [
 	verbose: 0
+	
+	#enum modes! [
+		MODE_COUNT
+		MODE_ACTION
+	]
 
 	#define BINARY_SKIP_COMMENT [
 		if c = as-integer #";" [		;-- skip comment
@@ -230,25 +235,29 @@ binary: context [
 	from-issue: func [
 		issue	[red-word!]
 		bin		[red-binary!]
+		count?	[logic!]
+		return:	[integer!]
 		/local
 			str  [red-string!]
 			s	 [series!]
-			unit [integer!]
+			p	 [byte-ptr!]
+			unit len [integer!]
 	][
 		str: as red-string! stack/push as red-value! symbol/get issue/symbol
 		str/head: 0								;-- /head = -1 (casted from symbol!)
 		s: GET_BUFFER(str)
 		unit: GET_UNIT(s)
+		p: (as byte-ptr! s/offset) + (str/head << (log-b unit))
+		len: as-integer (as byte-ptr! s/tail) - p
+		if count? [return len]
 		
 		bin/head: 0
 		bin/header: TYPE_UNSET
-		bin/node: decode-16 
-			(as byte-ptr! s/offset) + (str/head << (log-b unit))
-			string/rs-length? str
-			unit
+		bin/node: decode-16 p len unit
 		bin/header: TYPE_BINARY
 		stack/pop 1
 		if null? bin/node [fire [TO_ERROR(script invalid-data) issue]]
+		len
 	]
 
 	equal?: func [
@@ -947,6 +956,99 @@ binary: context [
 		cur: cur + len
 		s/tail: as red-value! cur
 	]
+	
+	convert: func [
+		p		[byte-ptr!]
+		value	[red-value!]
+		part	[integer!]
+		only?	[logic!]								;-- TRUE: treat list of values as an aggregate, affects /part behavior
+		mode	[integer!]								;-- MODE_COUNT | MODE_INSERT
+		return: [integer!]								;-- returns count of added bytes
+		/local
+			str	[red-string!]
+			int [red-integer!]
+			blk	[red-block!]
+			slot[red-value!]
+			bin [red-binary!]
+			buf [byte-ptr!]
+			p0	[byte-ptr!]
+			p4	[int-ptr!]
+			s2	[series!]
+			added i len unit [integer!]
+	][
+		assert part <> 0
+		switch TYPE_OF(value) [
+			TYPE_CHAR [
+				int: as red-integer! value
+				len: either mode = MODE_COUNT [
+					unicode/predict-utf8-size int/value
+				][
+					buf: as byte-ptr! system/stack/allocate 1	;-- allocates 4 bytes for the UTF-8 representation
+					unicode/cp-to-utf8 int/value buf
+				]
+				if all [part > 0 part < len][len: part]
+				if mode = MODE_ACTION [copy-memory p buf len]
+				len
+			]
+			TYPE_INTEGER [
+				if mode = MODE_COUNT [return 1]
+				int: as red-integer! value
+				i: int/value
+				if any [i > 255 i < -128][fire [TO_ERROR(script invalid-arg) int]]
+				p/value: as byte! i
+				1
+			]
+			TYPE_BINARY [
+				bin: as red-binary! value
+				s2: GET_BUFFER(bin)
+				added: (as-integer s2/tail - s2/offset) - bin/head
+				if all [part > 0 part < added][added: part]
+				if mode = MODE_COUNT [return added]
+				move-memory p as byte-ptr! s2/offset added		;-- must account for same series case
+				added
+			]
+			TYPE_TUPLE [
+				added: TUPLE_SIZE?(value)
+				if all [part > 0 part < added][added: part]
+				if mode = MODE_COUNT [return added]
+				copy-memory p GET_TUPLE_ARRAY(value) added
+				added
+			]
+			TYPE_ANY_LIST [
+				blk: as red-block! value
+				s2: GET_BUFFER(blk)
+				slot: s2/offset + blk/head
+				len: as-integer s2/tail - slot
+				unless only? [len: len >> 4]
+				if any [part < 0 part > len][part: len]
+				added: 0
+				while [all [part > 0 slot < s2/tail]][
+					len: either only? [part][-1]
+					len: convert p slot len only? mode
+					if p <> null [p: p + len]
+					added: added + len
+					slot: slot + 1
+					part: either only? [part - len][part - 1]
+				]
+				added
+			]
+			TYPE_ANY_STRING [
+				str: as red-string! value
+				s2: GET_BUFFER(str)
+				unit: GET_UNIT(s2)
+				p0: (as byte-ptr! s2/offset) + (str/head << log-b unit)
+				added: unicode/predict-utf8-str-size p0 as byte-ptr! s2/tail unit
+				if all [part > 0 part < added][added: part]
+				if mode = MODE_COUNT [return added]
+				unicode/to-utf8-buffer-alt str p added part no
+				added
+			]
+			default [
+				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_BINARY value]
+				0
+			]
+		]
+	]
 
 	;--- Actions ---
 
@@ -1000,7 +1102,7 @@ binary: context [
 			TYPE_TUPLE [
 				proto: load GET_TUPLE_ARRAY(spec) TUPLE_SIZE?(spec)
 			]
-			TYPE_ISSUE [from-issue as red-word! spec proto]
+			TYPE_ISSUE [from-issue as red-word! spec proto no]
 			TYPE_ANY_LIST [
 				make-at as red-value! proto 16
 				insert proto spec null no null yes
@@ -1071,40 +1173,27 @@ binary: context [
 		append?	 [logic!]
 		return:	 [red-value!]
 		/local
-			src		  [red-block!]
-			cell	  [red-value!]
-			limit	  [red-value!]
-			beg		  [red-value!]
+			src bin2  [red-binary!]
 			int		  [red-integer!]
 			char	  [red-char!]
-			buffer	  [red-binary!]
-			bin2	  [red-binary!]
-			saved	  [red-value!]
-			data	  [byte-ptr!]
 			s		  [series!]
-			s2		  [series!]
-			type      [integer!]
-			int-value [integer!]
-			dup-n	  [integer!]
-			cnt		  [integer!]
-			part	  [integer!]
-			len		  [integer!]
-			added	  [integer!]
-			tail?	  [logic!]
+			p0		  [byte-ptr!]
+			cnt part len added madded size [integer!]
+			chk? tail? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/insert"]]
 
-		dup-n: 1
-		cnt:   1
-		part: -1
-
+		cnt: 1
+		part: -1										;-- -1 => no part, use full size
+		
+		;-- Processing options --
 		if OPTION?(part-arg) [
 			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
 				int: as red-integer! part-arg
 				int/value
 			][
 				bin2: as red-binary! part-arg
-				src: as red-block! value
+				src: as red-binary! value
 				unless all [
 					TYPE_OF(bin2) = TYPE_OF(src)
 					bin2/node = src/node
@@ -1113,90 +1202,43 @@ binary: context [
 				]
 				bin2/head - src/head
 			]
+			if part <= 0 [return as red-value! bin]
 		]
 		if OPTION?(dup-arg) [
 			int: as red-integer! dup-arg
 			cnt: int/value
-			if negative? cnt [return as red-value! bin]
-			dup-n: cnt
+			if cnt <= 0 [return as red-value! bin]
 		]
-
+		;-- Precalculating extra space needed --
 		s: GET_BUFFER(bin)
-		tail?: any [
-			(as-integer s/tail - s/offset) >> (log-b GET_UNIT(s)) = bin/head
-			append?
-		]
+		len: as-integer s/tail - s/offset
+		tail?: any [append? len = bin/head]
+		chk?: ownership/check as red-value! bin words/_append value len part
 		
-		type: TYPE_OF(value)
-		either ANY_LIST?(type) [
-			src: as red-block! value
-			s2: GET_BUFFER(src)
-			cell:  s2/offset + src/head
-			limit: cell + block/rs-length? src
-			if cell = limit [return as red-value! bin]
-		][
-			cell:  value
-			limit: value + 1
+		added: convert null value part only? MODE_COUNT
+		if zero? added [return as red-value! bin]
+		madded: added * cnt
+
+		;-- Expand series buffer --
+		size: len + madded
+		if size > s/size [
+			if s/size * 2 > size [size: 0]				;-- double existing space (0 arg) if size can fit into that
+			s: expand-series s size
 		]
-
-		len: 0
-		added: 0
-		beg: cell
-		buffer: as red-binary! stack/push*
-		buffer/header: TYPE_UNSET
-		while [cell < limit][					;-- may has multiple values
-			either TYPE_OF(cell) = TYPE_INTEGER [
-				int: as red-integer! cell
-				either int/value <= FFh [
-					int-value: int/value
-					data: as byte-ptr! :int-value
-					len: 1
-				][
-					fire [TO_ERROR(script out-of-range) cell]
-				]
-				if cell = beg [make-at as red-value! buffer cnt]
-				rs-append buffer data 1
-			][
-				saved: stack/top
-				bin2: as red-binary! stack/push*
-				bin2/header: TYPE_UNSET
-
-				bin2: to bin2 cell TYPE_BINARY	;@@ TO will push value to stack
-
-				len: rs-length? bin2
-				either cell = beg [
-					copy-cell as cell! bin2 as cell! buffer
-				][
-					data: rs-head bin2
-					rs-append buffer data len
-				]
-				stack/top: saved
-			]
-
-			if all [positive? part added + len > part][	;-- /part support
-				len: part - added
-			]
-			added: added + len
-			cell: cell + 1
+		;-- Insert the value --
+		either tail? [p0: as byte-ptr! s/tail][
+			p0: (as byte-ptr! s/offset) + bin/head		;-- move right part forward to make space for insertion
+			move-memory p0 + madded p0 as-integer (as byte-ptr! s/tail) - p0
 		]
-
-		data: rs-head buffer
-		len: added
-		added: 0
-		while [not zero? cnt][					;-- /dup support
-			either tail? [
-				rs-append bin data len
-			][
-				rs-insert bin added data len
-			]
-			added: added + len
-			cnt: cnt - 1
-		]
-		unless append? [
-			bin/head: bin/head + added
-			s: GET_BUFFER(bin)
-			assert (as byte-ptr! s/offset) + (bin/head << (log-b GET_UNIT(s))) <= as byte-ptr! s/tail
-		]
+		convert p0 value part only? MODE_ACTION
+		
+		;-- Duplicate the inserted value if needed --
+		if all [cnt > 1 added > 0][dup-memory p0 added cnt]
+		s/tail: as cell! (as byte-ptr! s/tail) + madded
+		
+		if part < 0 [part: 1]							;-- ownership/check needs part >= 0
+		if chk? [ownership/check as red-value! bin words/_appended value len part]
+		either append? [bin/head: 0][bin/head: bin/head + madded]
 		as red-value! bin
 	]
 
@@ -1428,7 +1470,7 @@ binary: context [
 			:or~
 			:xor~
 			;-- Series actions --
-			:insert			;append
+			:insert
 			INHERIT_ACTION	;at
 			INHERIT_ACTION	;back
 			INHERIT_ACTION	;change
