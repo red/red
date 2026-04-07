@@ -2326,7 +2326,7 @@ string: context [
 			head slot [red-value!]
 			s s2	  [series!]
 			p p0	  [byte-ptr!]
-			cnt part len added type size unit unit2 u [integer!]
+			cnt part len plen added type size unit unit2 u [integer!]
 			chk? done? upgrade? [logic!]
 			do-form-part [subroutine!]
 	][
@@ -2336,10 +2336,11 @@ string: context [
 		part: -1										;-- -1 => no part, use full size
 		
 		do-form-part: [									;-- FORM/part value, appending to str
-			part: actions/form slot str null part
-			if part < 0 [
+			plen: either only? [part][MAX_INT]
+			plen: actions/form slot str null plen
+			if plen < 0 [
 				s: GET_BUFFER(str)
-				s/tail: as cell! (as byte-ptr! s/tail) + part
+				s/tail: as cell! (as byte-ptr! s/tail) + plen
 			]
 		]
 		;-- Processing options --
@@ -2387,12 +2388,13 @@ string: context [
 					slot: head
 					while [slot < s/tail][
 						do-form-part						;-- form and append it, then measure added chars
+						part: either only? [plen][part - 1]
 						if part <= 0 [break]
 						slot: slot + 1
 					]
 				][
 					slot: value
-					do-form-part							;-- FORM/into str, then measure added chars				
+					do-form-part							;-- FORM/into str, then measure added chars
 				]
 				done?: yes
 				(rs-abs-length? str) - len
