@@ -701,6 +701,394 @@ Red [
 		--assert (head v) = make vector! [integer! 16 [1 2 5 6 5 6 3 4]]
 
 
+	  --test-- "insert-450"
+		b: #{010203}
+		insert b 4
+		insert b #"A"
+		insert b #{1122334455}
+		insert b "A"
+		insert b "abc"
+		insert b red
+		insert b #"é"
+		insert b "é"
+		insert b "AéB"
+		--assert b = #{41C3A942C3A9C3A9FF00006162634111223344554104010203}
+
+	  --test-- "insert-450.1"
+		b: #{010203}
+		--assert #{010203} = insert insert insert insert insert insert insert insert insert b 4 #"A" #{1122334455} "A" "abc" red #"é" "é" "AéB"
+		--assert b = #{0441112233445541616263FF0000C3A9C3A941C3A942010203}
+		
+		  --test-- "insert-450.2"
+		b: #{010203}
+		 --assert #{04010203} = insert b insert b 4
+		
+	  --test-- "insert-451"
+		b: #{010203}
+		insert b [4 5]
+		--assert b = #{0405010203}
+
+	  --test-- "insert-451.1"
+		b: next next #{010203}
+		--assert #{03} = insert b [4 5]
+		--assert (head b) = #{0102040503}
+
+	  --test-- "insert-452"
+		b: #{}
+		insert b []
+		--assert b = #{}
+
+	  --test-- "insert-452.1"
+		b: #{010203}
+		insert/part b []  0
+		insert/part b []  1
+		insert/part b [] -1
+		insert/dup  b []  0
+		insert/dup  b []  1
+		insert/dup  b [] -1
+		insert/dup/part b [] 1 1
+		--assert b = #{010203}
+
+	  --test-- "insert-453"
+		b: next next #{01020304}
+		--assert #{0304} = insert b [5 6]
+		--assert b = #{05060304}
+		--assert 3 = index? b
+		--assert (head b) = #{010205060304}
+
+	  --test-- "insert-454"
+		b: next next #{01020304}
+		--assert #{0304} = insert/part b [5 6 7] 0
+		--assert (head b) = #{01020304}
+
+	  --test-- "insert-455"
+		b: next next #{01020304}
+		--assert #{0304} = insert/part b [5 6 7] -1
+		--assert (head b) = #{01020304}
+
+	  --test-- "insert-456"
+		b: next next #{01020304}
+		--assert #{0304} = insert/part b [5 6 7] 1
+		--assert (head b) = #{0102050304}
+
+	  --test-- "insert-457"
+		b: next next #{01020304}
+		--assert #{0304} = insert/part b [5 6 7] 2
+		--assert (head b) = #{010205060304}
+
+	  --test-- "insert-458"
+		b: next next #{01020304}
+		--assert #{0304} = insert/part b [5 6 7] 3
+		--assert (head b) = #{01020506070304}
+
+	  --test-- "insert-459"
+		b: next next #{01020304}
+		--assert #{0304} = insert/part b [5 6 7] 4
+		--assert (head b) = #{01020506070304}
+
+	  --test-- "insert-460"
+		b: next next #{01020304}
+		--assert #{0304} = insert/part b [5 6 7] 1000000
+		--assert (head b) = #{01020506070304}
+
+	  --test-- "insert-461"
+		b: next next #{01020304}
+		--assert #{0304} = insert/dup b -1 3
+		--assert (head b) = #{0102FFFFFF0304}
+
+	  --test-- "insert-462"
+		b: next next #{01020304}
+		--assert #{0304} = insert/dup b -1 0
+		--assert (head b) = #{01020304}
+
+	  --test-- "insert-463"
+		b: next next #{01020304}
+		--assert #{0304} = insert/dup b -1 -1
+		--assert (head b) = #{01020304}
+
+	  --test-- "insert-464"
+		b: next next #{01020304}
+		--assert #{0304} = insert/dup b [5 6] 0
+		--assert (head b) = #{01020304}
+
+	  --test-- "insert-465"
+		b: next next #{01020304}
+		--assert #{0304} = insert/dup b [5 6] -1
+		--assert (head b) = #{01020304}
+
+	  --test-- "insert-466"
+		b: next next #{01020304}
+		--assert #{0304} = insert/dup b [5 6] 1
+		--assert (head b) = #{010205060304}
+
+	  --test-- "insert-467"
+		b: next next #{01020304}
+		--assert #{0304} = insert/dup b [5 6] 2
+		--assert (head b) = #{0102050605060304}
+
+	  --test-- "insert-468"
+		b: next next #{01020304}
+		--assert #{0304} = insert/dup b [5 6] 10
+		--assert (head b) = #{010205060506050605060506050605060506050605060304}
+
+	  --test-- "insert-469"
+		b: next next #{01020304}
+		--assert #{0304} = insert/dup/part b [5 6 7 8 9] 1 1
+		--assert (head b) = #{0102050304}
+
+	  --test-- "insert-470"
+		b: next next #{01020304}
+		--assert #{0304} = insert/dup/part b [5 6 7 8 9] 2 2
+		--assert (head b) = #{0102050605060304}
+
+	  --test-- "insert-471"
+		b: next next #{01020304}
+		--assert #{0304} = insert/dup/part b [5 6 7 8 9] 2 3
+		--assert (head b) = #{01020506070506070304}
+
+	  --test-- "insert-472"
+		b: next next #{01020304}
+		--assert #{0304} = insert/dup/part b [5 6 7 8 9] 2 4
+		--assert (head b) = #{010205060708050607080304}
+
+	  --test-- "insert-473"
+		b: next next #{01020304}
+		--assert #{0304} = insert/dup/part b [5 6 7 8 9] 2 5
+		--assert (head b) = #{0102050607080905060708090304}
+
+	  --test-- "insert-474"
+		b: next next #{01020304}
+		--assert #{0304} = insert/dup/part b [5 6 7 8 9] 2 6
+		--assert (head b) = #{0102050607080905060708090304}
+
+	  --test-- "insert-475"
+		b: next next #{01020304}
+		--assert #{0304} = insert/part/dup b [5 6 7 8 9] 1 2
+		--assert (head b) = #{010205050304}
+
+	  --test-- "insert-476"
+		b: next next #{01020304}
+		--assert #{0304} = insert/part/dup b [5 6 7 8 9] 2 2
+		--assert (head b) = #{0102050605060304}
+
+	  --test-- "insert-477"
+		values: [#"A" #{1122334455} "A" "abc" 123 255.0.0 #"é" "é" "AéB"]
+		;results: [#{41} #{1122334455} #{41} #{616263} #{7B} #{FF0000} #{C3A9} #{C3A9} #{41C3A942}]
+		results: #{411122334455416162637BFF0000C3A9C3A941C3A942}
+
+		b: next next #{01020304}
+		--assert #{0304} = insert/part b values 0
+		--assert (head b) = #{01020304}
+
+	  --test-- "insert-478"
+		b: next next #{01020304}
+		--assert #{0304} = insert/part b values 1
+		--assert (head b) = #{0102410304}
+
+	  --test-- "insert-479"
+		b: next next #{01020304}
+		--assert #{0304} = insert b values
+		--assert 3 = index? b
+		--assert (head b) = #{0102411122334455416162637BFF0000C3A9C3A941C3A9420304}
+
+	  --test-- "insert-480"
+		b: next next #{01020304}
+		--assert #{0304} = insert/part b values 0
+		--assert (head b) = #{01020304}
+
+	  --test-- "insert-481"
+		b: next next #{01020304}
+		--assert #{0304} = insert/part b values -1
+		--assert (head b) = #{01020304}
+
+	  --test-- "insert-482"
+		b: next next #{01020304}
+		--assert #{0304} = insert/part b values 1
+		--assert (head b) = #{0102410304}
+
+	  --test-- "insert-483"
+		b: next next #{01020304}
+		--assert #{0304} = insert/part b values 2
+		--assert (head b) = #{01024111223344550304}
+
+	  --test-- "insert-483.1"
+		b: next next #{01020304}
+		--assert #{0304} = insert/part/only b values 2
+		--assert (head b) = #{010241110304}
+
+	  --test-- "insert-484"
+		b: next next #{01020304}
+		--assert #{0304} = insert/part b values 3
+		--assert (head b) = #{0102411122334455410304}
+
+	  --test-- "insert-484.1"
+		b: next next #{01020304}
+		--assert #{0304} = insert/part/only b values 3
+		--assert (head b) = #{01024111220304}
+
+	  --test-- "insert-485"
+		b: next next #{01020304}
+		--assert #{0304} = insert/part b values 4
+		--assert (head b) = #{0102411122334455416162630304}
+
+	  --test-- "insert-485.1"
+		repeat i length? results [
+			b: next next copy #{01020304}
+			--assert #{0304} == insert/part/only b values i
+			--assert #{0102} == copy/part (head b) 2
+			--assert (copy/part b (length? b) - 2) == copy/part results i
+		]
+
+	  --test-- "insert-486"
+		b: next next #{01020304}
+		--assert #{0304} = insert/part b values 1000000
+		--assert (head b) = #{0102411122334455416162637BFF0000C3A9C3A941C3A9420304}
+
+	  --test-- "insert-487"
+		b: next next #{01020304}
+		--assert #{0304} = insert/dup b values 0
+		--assert (head b) = #{01020304}
+
+	  --test-- "insert-488"
+		b: next next #{01020304}
+		--assert #{0304} = insert/dup b values -1
+		--assert (head b) = #{01020304}
+
+	  --test-- "insert-489"
+		b: next next #{01020304}
+		--assert #{0304} = insert/dup b values 1
+		--assert (head b) = #{0102411122334455416162637BFF0000C3A9C3A941C3A9420304}
+
+	  --test-- "insert-490"
+		b: next next #{01020304}
+		--assert #{0304} = insert/dup b values 2
+		--assert (head b) = #{0102411122334455416162637BFF0000C3A9C3A941C3A942411122334455416162637BFF0000C3A9C3A941C3A9420304}
+
+	  --test-- "insert-491"
+		b: next next #{01020304}
+		--assert #{0304} = insert/dup b values 10
+		--assert (head b) = #{0102411122334455416162637BFF0000C3A9C3A941C3A942411122334455416162637BFF0000C3A9C3A941C3A942411122334455416162637BFF0000C3A9C3A941C3A942411122334455416162637BFF0000C3A9C3A941C3A942411122334455416162637BFF0000C3A9C3A941C3A942411122334455416162637BFF0000C3A9C3A941C3A942411122334455416162637BFF0000C3A9C3A941C3A942411122334455416162637BFF0000C3A9C3A941C3A942411122334455416162637BFF0000C3A9C3A941C3A942411122334455416162637BFF0000C3A9C3A941C3A9420304}
+
+	  --test-- "insert-492"
+		b: next next #{01020304}
+		--assert #{0304} = insert/dup/part b values 1 1
+		--assert (head b) = #{0102410304}
+
+	  --test-- "insert-493"
+		b: next next #{01020304}
+		--assert #{0304} = insert/dup/part b values 2 2
+		--assert (head b) = #{01024111223344554111223344550304}
+
+	  --test-- "insert-493.1"
+		b: next next #{01020304}
+		--assert #{0304} = insert/dup/part/only b values 2 2
+		--assert (head b) = #{0102411141110304}
+
+	  --test-- "insert-494"
+		b: next next #{01020304}
+		--assert #{0304} = insert/dup/part b values 2 3
+		--assert (head b) = #{010241112233445541411122334455410304}
+
+	  --test-- "insert-494.1"
+		b: next next #{01020304}
+		--assert #{0304} = insert/dup/part/only b values 2 3
+		--assert (head b) = #{01024111224111220304}
+
+	  --test-- "insert-495"
+		b: next next #{01020304}
+		--assert #{0304} = insert/dup/part b values 2 4
+		--assert (head b) = #{010241112233445541616263411122334455416162630304}
+
+	  --test-- "insert-495.1"
+		b: next next #{01020304}
+		--assert #{0304} = insert/dup/part/only b values 2 4
+		--assert (head b) = #{010241112233411122330304}
+
+	  --test-- "insert-496"
+		b: next next #{01020304}
+		--assert #{0304} = insert/dup/part b values 2 5
+		--assert (head b) = #{0102411122334455416162637B411122334455416162637B0304}
+
+	  --test-- "insert-496.1"
+		b: next next #{01020304}
+		--assert #{0304} = insert/dup/part/only b values 2 5
+		--assert (head b) = #{0102411122334441112233440304}
+
+	  --test-- "insert-497"
+		b: next next #{01020304}
+		--assert #{0304} = insert/dup/part b values 2 6
+		--assert (head b) = #{0102411122334455416162637BFF0000411122334455416162637BFF00000304}
+
+	  --test-- "insert-497.1"
+		b: next next #{01020304}
+		--assert #{0304} = insert/dup/part/only b values 2 6
+		--assert (head b) = #{01024111223344554111223344550304}
+
+	  --test-- "insert-498"
+		b: next next #{01020304}
+		--assert #{0304} = insert/part/dup b values 1 2
+		--assert (head b) = #{010241410304}
+
+	  --test-- "insert-498.1"
+		b: next next #{01020304}
+		--assert #{0304} = insert/part/dup/only b values 1 2
+		--assert (head b) = #{010241410304}
+
+	  --test-- "insert-499"
+		b: next next #{01020304}
+		--assert #{0304} = insert/part/dup b values 2 2
+		--assert (head b) = #{01024111223344554111223344550304}
+
+	   --test-- "insert-499.1"
+		b: next next #{01020304}
+		--assert #{0304} = insert/part/dup/only b values 2 2
+		--assert (head b) = #{0102411141110304}
+
+		--test-- "insert-500"							;@@ undefined semantics, just checks that it doesn't crash
+		b: next next #{01020304}
+		insert b b
+		;--assert b == #{0102030401020304}
+
+		--test-- "insert-501"							;@@ undefined semantics, just checks that it doesn't crash
+		b: next next #{01020304}
+		insert/part b b 1
+		;--assert b == #{0102030401}
+
+		--test-- "insert-502"							;@@ undefined semantics, just checks that it doesn't crash
+		b: next next #{01020304}
+		insert/part b b 2
+		;--assert b == #{010203040102}
+
+		--test-- "insert-503"							;@@ undefined semantics, just checks that it doesn't crash
+		b: next next #{01020304}
+		insert/part/dup b b 2 2 
+		;--assert b == #{0102030401020102}
+
+		--test-- "insert-504"							;@@ undefined semantics, just checks that it doesn't crash
+		b: next next #{01020304}
+		insert/part/dup b b 10 2
+		;--assert b == #{010203040102030401020304}
+
+		--test-- "insert-505"							;@@ undefined semantics, just checks that it doesn't crash
+		b: next next #{01020304}
+		insert/part/dup/only b b 2 2
+		;--assert b == #{0102030401020102}
+
+		--test-- "insert-506"							;@@ undefined semantics, just checks that it doesn't crash
+		b: next next #{01020304}
+		insert/part/dup/only b b 10 2
+		;--assert b == #{010203040102030401020304}
+
+		--test-- "insert-507"							;@@ undefined semantics, just checks that it doesn't crash
+		b: next next #{01020304}
+		insert/part/dup b reduce [b b b] 2 2
+		;--assert b == #{010203040102030401020304}
+
+		--test-- "insert-508"							;@@ undefined semantics, just checks that it doesn't crash
+		b: next next #{01020304}
+		insert/part/dup/only b reduce [b b b] 10 2
+		;--assert b == #{010203040102030401020304}
+
 ===end-group===
 
 ===start-group=== "insert/dup"
