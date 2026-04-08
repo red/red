@@ -1039,9 +1039,9 @@ parser: context [
 		do-keep: [
 			either into? [
 				switch TYPE_OF(blk) [
-					TYPE_BINARY 	[binary/insert as red-binary! blk value null yes null append?]
-					TYPE_ANY_STRING [string/insert as red-string! blk value null yes null append?]
-					default  		[block/insert blk value null yes null append?]
+					TYPE_BINARY 	[binary/insert as red-binary! blk value -1 yes 1 append?]
+					TYPE_ANY_STRING [string/insert as red-string! blk value -1 yes 1 append?]
+					default  		[block/insert blk value -1 yes 1 append?]
 				]
 			][
 				block/rs-append blk value
@@ -1289,7 +1289,7 @@ parser: context [
 											s-top: stack/top	;-- shields the stack from eventual object event call
 											either flags = R_PICK_FLAG [
 												append?: any [append? not into?] ;-- force appending for simple COLLECT
-												block/insert blk value null no null append?
+												block/insert blk value -1 no 1 append?
 											][
 												do-keep
 											]
@@ -1923,7 +1923,7 @@ parser: context [
 							
 							PARSE_SAVE_SERIES
 							before: input/head
-							actions/insert input value null as-logic max null no
+							actions/insert input value -1 as-logic max 1 no
 							delta: either before > saved [0][input/head - before]
 							input/head: saved + delta	;-- position might have shifted after insertion
 							if s-top <> null [stack/top: s-top]

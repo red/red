@@ -1105,7 +1105,7 @@ binary: context [
 			TYPE_ISSUE [from-issue as red-word! spec proto no]
 			TYPE_ANY_LIST [
 				make-at as red-value! proto 16
-				insert proto spec null no null yes
+				insert proto spec -1 no 1 yes
 			]
 			TYPE_BITSET [
 				bs: as red-bitset! spec
@@ -1167,9 +1167,9 @@ binary: context [
 	insert: func [
 		bin		 [red-binary!]
 		value	 [red-value!]
-		part-arg [red-value!]
+		part	 [integer!]
 		only?	 [logic!]
-		dup-arg	 [red-value!]
+		cnt		 [integer!]
 		append?	 [logic!]
 		return:	 [red-value!]
 		/local
@@ -1178,37 +1178,11 @@ binary: context [
 			char	  [red-char!]
 			s		  [series!]
 			p0		  [byte-ptr!]
-			cnt part len added madded size [integer!]
+			len added madded size [integer!]
 			chk? tail? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/insert"]]
-
-		cnt: 1
-		part: -1										;-- -1 => no part, use full size
 		
-		;-- Processing options --
-		if OPTION?(part-arg) [
-			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
-				int: as red-integer! part-arg
-				int/value
-			][
-				bin2: as red-binary! part-arg
-				src: as red-binary! value
-				unless all [
-					TYPE_OF(bin2) = TYPE_OF(src)
-					bin2/node = src/node
-				][
-					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
-				]
-				bin2/head - src/head
-			]
-			if part <= 0 [return as red-value! bin]
-		]
-		if OPTION?(dup-arg) [
-			int: as red-integer! dup-arg
-			cnt: int/value
-			if cnt <= 0 [return as red-value! bin]
-		]
 		;-- Precalculating extra space needed --
 		s: GET_BUFFER(bin)
 		len: as-integer s/tail - s/offset

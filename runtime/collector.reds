@@ -1011,6 +1011,7 @@ collector: context [
 				"root: " block/rs-length? root "/" ***-root-size
 				", runs: " stats/cycles
 				", nodes-runs: " stats/nodes-cycles
+;; run-all-comp2 has strange nodes-runs pattern: check!
 				", mem: " 	memory-info null 1
 			]
 			if verbose > 1 [probe "^/marking..."]
