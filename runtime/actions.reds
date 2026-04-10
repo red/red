@@ -34,9 +34,14 @@ actions: context [
 			]
 			if part <= 0 [
 				if any [zero? part zero? ser1/head][exit]
-				ser1/head: ser1/head + part
-				if negative? ser1/head [ser1/head: 0]
-				part: 0 - part
+				p0: ser1/head + part
+				if p0 < 0 [p0: 0]
+				if ser1/head > p0 [						;-- swap bounds case; so /part extraction is always forward-looking
+					part: ser1/head
+					ser1/head: p0
+					p0: part
+					part: p0 - ser1/head
+				]
 			]
 		]
 		if dup > -1 [
@@ -869,7 +874,7 @@ actions: context [
 			ser1 ser2 [red-series!]
 			part-arg  [red-value!]
 			int		  [red-integer!]
-			cnt		  [integer!]
+			cnt p0		  [integer!]
 	][
 		PROCESS_PART_DUP_OPTIONS
 		append
@@ -1152,7 +1157,7 @@ actions: context [
 			ser1 ser2 [red-series!]
 			part-arg  [red-value!]
 			int		  [red-integer!]
-			cnt		  [integer!]
+			cnt	p0	  [integer!]
 	][
 		PROCESS_PART_DUP_OPTIONS
 		insert

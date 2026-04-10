@@ -461,9 +461,8 @@ save: function [
 		][cause-error 'script 'invalid-refine-arg [/as format]] ;-- throw error if format is not supported
 	][
 		if length [header: true header-data: any [header-data copy []]]
-		if header [
-			if object? :header-data [header-data: body-of header-data]
-		]
+		if all [header object? :header-data][header-data: body-of header-data]
+		
 		if find [file! url!] type?/word where [
 			suffix: suffix? where
 			find-encoder?: no
@@ -562,6 +561,7 @@ modulo: func [
 	return: [number! money! char! pair! tuple! vector! time!]
 	/local r
 ][
+	;if all [find left-op-ts a find right-op-ts][throw-error...]
 	r: mod a absolute b
 	either any [a - r = a r + b = b][0][r]
 ]

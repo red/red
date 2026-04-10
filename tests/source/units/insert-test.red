@@ -257,18 +257,122 @@ Red [
 		--assert "1234567890000" = insert/dup str #"0" 6
 		--assert str = "0000001234567890000"
 
+	--test-- "insert-np1"
+		str: next next "1234"
+		--assert "34" = insert/part str next [9] -1
+		--assert (head str) = "12934"
 
-	 --test-- "insert-50"
+	--test-- "insert-np1.1"
+		str: next next "1234"
+		--assert "34" = insert/part str next s2: [9] s2
+		--assert (head str) = "12934"
+
+	--test-- "insert-np1.2"
+		str: next next "1234"
+		--assert "34" = insert/part str s2: [9] next s2
+		--assert (head str) = "12934"
+
+	--test-- "insert-np2"
+		str: next next "1234"
+		--assert "34" = insert/part str next [9] -2
+		--assert (head str) = "12934"
+
+	--test-- "insert-np2.1"
+		str: next next "1234"
+		--assert "34" = insert/part str next s2: [9] skip s2 -2
+		--assert (head str) = "12934"
+
+	--test-- "insert-np2.2"
+		str: next next "1234"
+		--assert "34" = insert/part str skip s2: [9] -2 next s2
+		--assert (head str) = "12934"
+
+	--test-- "insert-np3"
+		str: next next "1234"
+		--assert "34" = insert/part str next [9] -100000
+		--assert (head str) = "12934"
+
+	--test-- "insert-np3.1"
+		str: next next "1234"
+		--assert "34" = insert/part str next s2: [9] skip s2 -100000
+		--assert (head str) = "12934"
+
+	--test-- "insert-np3.2"
+		str: next next "1234"
+		--assert "34" = insert/part str skip s2: [9] -100000 next s2
+		--assert (head str) = "12934"
+
+	--test-- "insert-np4"
+		str: next next "1234"
+		--assert "34" = insert/part str next [9 99] -2
+		--assert (head str) = "12934"
+
+	--test-- "insert-np4.1"
+		str: next next "1234"
+		--assert "34" = insert/part str next s2: [9 99] skip s2 -2
+		--assert (head str) = "12934"
+
+	--test-- "insert-np4.2"
+		str: next next "1234"
+		--assert "34" = insert/part str skip s2: [9 99] -2 next s2
+		--assert (head str) = "12934"
+
+	--test-- "insert-np5"
+		str: next next "1234"
+		--assert "34" = insert/part str tail [0 0 0 9 99] -2
+		--assert (head str) = "129934"
+
+	--test-- "insert-np5.1"
+		str: next next "1234"
+		--assert "34" = insert/part str s2: tail [0 0 0 9 99] skip s2 -2
+		--assert (head str) = "129934"
+
+	--test-- "insert-np5.2"
+		str: next next "1234"
+		--assert "34" = insert/part str skip s2: tail [0 0 0 9 99] -2 s2
+		--assert (head str) = "129934"
+
+	--test-- "insert-np5.3"
+		str: next next "1234"
+		--assert "34" = insert/part/only str tail [0 0 0 9 99] -2
+		--assert (head str) = "129934"
+
+	--test-- "insert-np5.4"
+		str: next next "1234"
+		--assert "34" = insert/part/only str s2: tail [0 0 0 9 99] skip s2 -2
+		--assert (head str) = "129934"
+
+	--test-- "insert-np5.5"
+		str: next next "1234"
+		--assert "34" = insert/part/only str skip s2: tail [0 0 0 9 99] -2 s2
+		--assert (head str) = "129934"
+
+	--test-- "insert-np6"
+		str: next next "1234"
+		--assert "34" = insert/part/dup str next next [5 6 7 8 9] -2 2
+		--assert (head str) = "12565634"
+
+	--test-- "insert-np6.1"
+		str: next next "1234"
+		--assert "34" = insert/part/dup str next next s2: [5 6 7 8 9] skip s2 -2 2
+		--assert (head str) = "12565634"
+
+	--test-- "insert-np6.2"
+		str: next next "1234"
+		--assert "34" = insert/part/dup str skip s2: [5 6 7 8 9] -2 next next s2 2
+		--assert (head str) = "12565634"
+
+	--test-- "insert-50"
 		v: make vector! [1 2 3]
 		insert v 4
 		--assert v = make vector! [4 1 2 3]
 
-	 --test-- "insert-50.1"
+	--test-- "insert-50.1"
 		v: next make vector! [1 2 3]
 		--assert (make vector! [2 3]) = insert v 4
 		--assert (head v) = make vector! [1 4 2 3]
 
-	 --test-- "insert-51"
+	--test-- "insert-51"
 		v: next next make vector! [1 2 3]
 		--assert (make vector! [3]) = insert v [4 5]
 		--assert (head v) = make vector! [1 2 4 5 3]
@@ -414,6 +518,95 @@ Red [
 		--assert (make vector! [3 4]) = insert/part/dup v [5 6 7 8 9] 2 2
 		--assert (head v) = make vector! [1 2 5 6 5 6 3 4]
 
+	  --test-- "insert-77"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/part v next [9] -1
+		--assert (head v) = make vector! [1 2 9 3 4]
+
+	  --test-- "insert-77.1"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/part v next s2: [9] s2
+		--assert (head v) = make vector! [1 2 9 3 4]
+
+	  --test-- "insert-77.2"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/part v s2: [9] next s2
+		--assert (head v) = make vector! [1 2 9 3 4]
+
+	  --test-- "insert-78"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/part v next [9] -2
+		--assert (head v) = make vector! [1 2 9 3 4]
+
+	  --test-- "insert-78.1"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/part v next s2: [9] skip s2 -2
+		--assert (head v) = make vector! [1 2 9 3 4]
+
+	  --test-- "insert-78.2"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/part v skip s2: [9] -2 next s2
+		--assert (head v) = make vector! [1 2 9 3 4]
+
+	  --test-- "insert-79"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/part v next [9] -100000
+		--assert (head v) = make vector! [1 2 9 3 4]
+
+	  --test-- "insert-79.1"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/part v next s2: [9] skip s2 -100000
+		--assert (head v) = make vector! [1 2 9 3 4]
+
+	  --test-- "insert-79.2"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/part v skip s2: [9] -100000 next s2
+		--assert (head v) = make vector! [1 2 9 3 4]
+
+	  --test-- "insert-80"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/part v next [9 99] -2
+		--assert (head v) = make vector! [1 2 9 3 4]
+
+	  --test-- "insert-80.1"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/part v next s2: [9 99] skip s2 -2
+		--assert (head v) = make vector! [1 2 9 3 4]
+
+	  --test-- "insert-80.2"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/part v skip s2: [9 99] -2 next s2
+		--assert (head v) = make vector! [1 2 9 3 4]
+
+	  --test-- "insert-81"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/part v tail [0 0 0 9 99] -2
+		--assert (head v) = make vector! [1 2 9 99 3 4]
+
+	  --test-- "insert-81.1"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/part v s2: tail [0 0 0 9 99] skip s2 -2
+		--assert (head v) = make vector! [1 2 9 99 3 4]
+
+	  --test-- "insert-81.2"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/part v skip s2: tail [0 0 0 9 99] -2 s2
+		--assert (head v) = make vector! [1 2 9 99 3 4]
+
+	  --test-- "insert-82"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/part/dup v next next [5 6 7 8 9] -2 2
+		--assert (head v) = make vector! [1 2 5 6 5 6 3 4]
+
+	  --test-- "insert-82.1"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/part/dup v next next s2: [5 6 7 8 9] skip s2 -2 2
+		--assert (head v) = make vector! [1 2 5 6 5 6 3 4]
+
+	  --test-- "insert-82.2"
+		v: next next make vector! [1 2 3 4]
+		--assert (make vector! [3 4]) = insert/part/dup v skip s2: [5 6 7 8 9] -2 next next s2 2
+		--assert (head v) = make vector! [1 2 5 6 5 6 3 4]
 
 	 --test-- "insert-150"
 		v: next next make vector! [integer! 8 [1 2 3]]

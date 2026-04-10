@@ -263,8 +263,98 @@ Red [
     str: "12"
     append/part/dup str next <456> 2 3
     --assert str = "12<5<5<5"
+    
+  --test-- "append-43"
+  	str: "12"
+  	append/part str next [9] -1
+  	--assert str = "129"
+  	
+  --test-- "append-43.1"
+  	str: "12"
+	append/part str next s2: [9] s2
+  	--assert str = "129"
+  	
+  --test-- "append-43.2"
+  	str: "12"
+	append/part str s2: [9] next s2
+  	--assert str = "129"
 
-  --test-- "append-50"
+  --test-- "append-44"
+  	str: "12"
+  	append/part str next [9] -2
+  	--assert str = "129"
+
+  --test-- "append-44.1"
+  	str: "12"
+  	append/part str next s2: [9] skip s2 -2
+  	--assert str = "129"
+
+  --test-- "append-44.2"
+  	str: "12"
+  	append/part str skip s2: [9] -2 next s2
+  	--assert str = "129"
+
+  --test-- "append-45"
+  	str: "12"
+  	append/part str next [9] -100000
+  	--assert str = "129"
+
+  --test-- "append-45.1"
+  	str: "12"
+  	append/part str next s2: [9] skip s2 -100000
+  	--assert str = "129"
+
+  --test-- "append-45.2"
+  	str: "12"
+  	append/part str skip s2: [9] -100000 next s2
+  	--assert str = "129"
+
+  --test-- "append-46"
+  	str: "12"
+  	append/part str next [9 99] -2
+  	--assert str = "129"
+
+  --test-- "append-46.1"
+  	str: "12"
+  	append/part str next s2: [9 99] skip s2 -2
+  	--assert str = "129"
+  	
+  --test-- "append-46.2"
+   	str: "12"
+   	append/part str skip s2: [9 99] -2 next s2
+  	--assert str = "129"
+
+  --test-- "append-47"
+  	str: "12"
+  	append/part str tail [0 0 0 9 99] -2
+  	--assert str = "12999"
+  	
+  --test-- "append-47.1"
+  	str: "12"
+  	append/part str s2: tail [0 0 0 9 99] skip s2 -2
+  	--assert str = "12999"
+
+  --test-- "append-47.2"
+  	str: "12"
+  	append/part str skip s2: tail [0 0 0 9 99] -2 s2
+  	--assert str = "12999"
+
+  --test-- "append-48"
+   	str: "12"
+   	append/part/dup str next next [5 6 7 8 9] -2 2
+   	--assert str = "125656"
+
+  --test-- "append-48.1"
+   	str: "12"
+   	append/part/dup str next next s2: [5 6 7 8 9] skip s2 -2 2
+   	--assert str = "125656"
+   	
+  --test-- "append-48.2"
+   	str: "12"
+   	append/part/dup str skip s2: [5 6 7 8 9] -2 next next s2 2
+   	--assert str = "125656"
+
+  --test-- "append-49"
   	v: make vector! [1 2 3]
   	append v 4
   	--assert v = make vector! [1 2 3 4]
@@ -407,11 +497,100 @@ Red [
   	append/part/dup v [5 6 7 8 9] 1 2
   	--assert v = make vector! [1 2 3 4 5 5]
 
-   --test-- "append-76"
+  --test-- "append-76"
    	v: make vector! [1 2 3 4]
    	append/part/dup v [5 6 7 8 9] 2 2
    	--assert v = make vector! [1 2 3 4 5 6 5 6]
 
+  --test-- "append-77"
+  	v: make vector! [1 2 3 4]
+  	append/part v next [9] -1
+  	--assert v = make vector! [1 2 3 4 9]
+  	
+  --test-- "append-77.1"
+  	v: make vector! [1 2 3 4]
+	append/part v next s2: [9] s2
+  	--assert v = make vector! [1 2 3 4 9]
+  	
+  --test-- "append-77.2"
+  	v: make vector! [1 2 3 4]
+	append/part v s2: [9] next s2
+  	--assert v = make vector! [1 2 3 4 9]
+
+  --test-- "append-78"
+  	v: make vector! [1 2 3 4]
+  	append/part v next [9] -2
+  	--assert v = make vector! [1 2 3 4 9]
+
+  --test-- "append-78.1"
+  	v: make vector! [1 2 3 4]
+  	append/part v next s2: [9] skip s2 -2
+  	--assert v = make vector! [1 2 3 4 9]
+
+  --test-- "append-78.2"
+  	v: make vector! [1 2 3 4]
+  	append/part v skip s2: [9] -2 next s2
+  	--assert v = make vector! [1 2 3 4 9]
+
+  --test-- "append-79"
+  	v: make vector! [1 2 3 4]
+  	append/part v next [9] -100000
+  	--assert v = make vector! [1 2 3 4 9]
+
+  --test-- "append-79.1"
+  	v: make vector! [1 2 3 4]
+  	append/part v next s2: [9] skip s2 -100000
+  	--assert v = make vector! [1 2 3 4 9]
+
+  --test-- "append-79.2"
+  	v: make vector! [1 2 3 4]
+  	append/part v skip s2: [9] -100000 next s2
+  	--assert v = make vector! [1 2 3 4 9]
+
+  --test-- "append-80"
+  	v: make vector! [1 2 3 4]
+  	append/part v next [9 99] -2
+  	--assert v = make vector! [1 2 3 4 9]
+
+  --test-- "append-80.1"
+  	v: make vector! [1 2 3 4]
+  	append/part v next s2: [9 99] skip s2 -2
+  	--assert v = make vector! [1 2 3 4 9]
+  	
+  --test-- "append-80.2"
+   	v: make vector! [1 2 3 4]
+   	append/part v skip s2: [9 99] -2 next s2
+  	--assert v = make vector! [1 2 3 4 9]
+
+  --test-- "append-81"
+  	v: make vector! [1 2 3 4]
+  	append/part v tail [0 0 0 9 99] -2
+  	--assert v = make vector! [1 2 3 4 9 99]
+
+  --test-- "append-81.1"
+  	v: make vector! [1 2 3 4]
+  	append/part v s2: tail [0 0 0 9 99] skip s2 -2
+  	--assert v = make vector! [1 2 3 4 9 99]
+
+  --test-- "append-81.2"
+  	v: make vector! [1 2 3 4]
+  	append/part v skip s2: tail [0 0 0 9 99] -2 s2
+  	--assert v = make vector! [1 2 3 4 9 99]
+
+  --test-- "append-82"
+   	v: make vector! [1 2 3 4]
+   	append/part/dup v next next [5 6 7 8 9] -2 2
+   	--assert v = make vector! [1 2 3 4 5 6 5 6]
+
+  --test-- "append-82.1"
+   	v: make vector! [1 2 3 4]
+   	append/part/dup v next next s2: [5 6 7 8 9] skip s2 -2 2
+   	--assert v = make vector! [1 2 3 4 5 6 5 6]
+   	
+  --test-- "append-82.2"
+   	v: make vector! [1 2 3 4]
+   	append/part/dup v skip s2: [5 6 7 8 9] -2 next next s2 2
+   	--assert v = make vector! [1 2 3 4 5 6 5 6]
 
   --test-- "append-150"
   	v: make vector! [integer! 8 [1 2 3]]
@@ -1068,6 +1247,36 @@ Red [
 	b: #{01020304}
 	append/part/dup/only b reduce [b b b] 10 2
 	;--assert b == #{010203040102030401020304}
+	
+	--test-- "append-509"
+ 	b: #{01020304}
+  	append/part b next [9] -1
+  	--assert b == #{0102030409}
+
+	--test-- "append-510"
+  	b: #{01020304}
+  	append/part b next [9] -2
+  	--assert b == #{0102030409}
+
+	--test-- "append-511"
+  	b: #{01020304}
+  	append/part b next [9] -100000
+  	--assert b == #{0102030409}
+
+	--test-- "append-512"
+  	b: #{01020304}
+  	append/part b next [9 99] -2
+  	--assert b == #{0102030409}
+
+	--test-- "append-513"
+  	b: #{01020304}
+  	append/part b tail [0 0 0 9 99] -2
+  	--assert b == #{010203040963}
+
+	--test-- "append-514"
+   	b: #{01020304}
+   	append/part/dup b next next [5 6 7 8 9] -2 2
+   	--assert b == #{0102030405060506}
 
 ===end-group===
 
