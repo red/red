@@ -17,7 +17,6 @@ actions: context [
 	
 	#define PROCESS_PART_DUP_OPTIONS [
 		cnt:   1
-		;-- Processing options --
 		if part > -1 [
 			part-arg: stack/arguments + part
 			ser1: as red-series! stack/arguments + 1
@@ -47,7 +46,7 @@ actions: context [
 		if dup > -1 [
 			int: as red-integer! stack/arguments + dup
 			cnt: int/value
-			if cnt <= 0 [exit]
+			if cnt <= 0 [exit]							;@@ This will prevent action to be passed to port!
 		]
 	]
 	
