@@ -3846,6 +3846,14 @@ comment {
 		--assert $0.01 == make money! "0.01"
 		--assert $0.01 == make money! "$0.01"
 		
+	--test-- "#5724"
+		register-scheme make system/standard/scheme [name: 'debug title: "DEBUG" actor: context [
+			open: function [port] [port/state: 'open port]
+			insert: function [port value] [port/state: value port]
+		]]
+		insert open debug:// "crash"
+		--assert true									;-- just check that it didn't crash
+		
 ===end-group===
 
 ~~~end-file~~~
