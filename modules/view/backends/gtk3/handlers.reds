@@ -710,20 +710,18 @@ window-size-allocate: func [
 		SET-STARTRESIZE(widget widget)
 	]
 
-	unless null? GET-HMENU(widget) [
-		cont: GET-CONTAINER(widget)
-		w: gtk_widget_get_allocated_width cont
-		h: gtk_widget_get_allocated_height cont
-		SET-CONTAINER-W(widget w)
-		SET-CONTAINER-H(widget h)
-	]
+	cont: GET-CONTAINER(widget)
+	w: gtk_widget_get_allocated_width cont
+	h: gtk_widget_get_allocated_height cont
+	SET-CONTAINER-W(widget w)
+	SET-CONTAINER-H(widget h)
 
 	if any [
-		sz/x <> rect/width
-		sz/y <> rect/height
+		sz/x <> w
+		sz/y <> h
 	][
-		sz/x: rect/width
-		sz/y: rect/height
+		sz/x: w
+		sz/y: h
 		if null? GET-PAIR-SIZE(widget) [
 			as-point2D sz
 		]

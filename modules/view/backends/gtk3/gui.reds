@@ -1984,14 +1984,14 @@ OS-make-view: func [
 
 			unless null? caption [gtk_window_set_title widget caption]
 
+			SET-CONTAINER-W(widget sx)
+			SET-CONTAINER-H(widget sy)
 			hMenu: null
 			if menu-bar? menu window [
 				hMenu: gtk_menu_bar_new
 				gtk_widget_show hMenu
 				build-menu menu hMenu widget
 				gtk_box_pack_start winbox hMenu no yes 0
-				SET-CONTAINER-W(widget sx)
-				SET-CONTAINER-H(widget sy)
 			]
 			SET-HMENU(widget hMenu)
 

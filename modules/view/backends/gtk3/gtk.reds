@@ -1556,8 +1556,8 @@ GPtrArray!: alias struct! [
 		]
 		gtk_window_get_size: "gtk_window_get_size" [
 			window		[handle!]
-			width		[handle!]
-			height		[handle!]
+			width		[int-ptr!]
+			height		[int-ptr!]
 		]
 		gtk_window_propagate_key_event: "gtk_window_propagate_key_event" [
 			widget		[handle!]

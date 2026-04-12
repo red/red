@@ -535,15 +535,8 @@ get-event-offset: func [
 			offset/header: TYPE_PAIR
 
 			widget: as handle! evt/msg
-			either null? GET-HMENU(widget) [
-				sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE
-				GET_PAIR_XY_INT(sz sx sy)
-				offset/x: sx
-				offset/y: sy
-			][
-				offset/x: GET-CONTAINER-W(widget)
-				offset/y: GET-CONTAINER-H(widget)
-			]
+			offset/x: GET-CONTAINER-W(widget)
+			offset/y: GET-CONTAINER-H(widget)
 			if null? GET-PAIR-SIZE(widget) [
 				as-point2D offset
 			]
