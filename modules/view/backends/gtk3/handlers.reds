@@ -1486,3 +1486,28 @@ calendar-changed: func [
 	date/make-at data year month + 1 day 0.0 0 0 no no
 	make-event widget 0 EVT_CHANGE
 ]
+
+window-state-changed: func [
+	[cdecl]
+	evbox		[handle!]
+	event		[GdkEventWindowState!]
+	widget		[handle!]
+	return:		[integer!]
+	/local
+		values	[red-value!]
+		type	[red-word!]
+		sym		[integer!]
+][
+	values: get-face-values widget
+	type: as red-word! values + FACE_OBJ_TYPE
+	sym: symbol/resolve type/symbol
+	if sym = window [
+		if event/changed_mask and GDK_WINDOW_STATE_MAXIMIZED <> 0 [
+			;-- Detect maximize/restore: clean flags so next size-allocate emits EVT_SIZE
+			SET-RESIZING(widget null)
+			SET-STARTRESIZE(widget null)
+			;-- Note: EVT_SIZE will be emitted by the next size-allocate
+		]
+	]
+	EVT_DISPATCH
+]

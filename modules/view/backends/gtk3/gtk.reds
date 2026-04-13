@@ -173,6 +173,14 @@ GdkEventConfigure!: alias struct! [
 	height		[integer!]
 ]
 
+GdkEventWindowState!: alias struct! [
+	type			[integer!]
+	window			[handle!]
+	send_event		[byte!]
+	changed_mask	[integer!]
+	new_window_state [integer!]
+]
+
 GdkEventScroll!: alias struct! [
 	type		[integer!]
 	window		[handle!]
@@ -319,6 +327,15 @@ GdkGeometry!: alias struct! [
 	GDK_TABLET_PAD_MASK:           33554432
 	;;GDK_ALL_EVENTS_MASK:           fffffffeh
 ]
+
+;-- GdkWindowState flags (bitmask)
+#define GDK_WINDOW_STATE_WITHDRAWN		1
+#define GDK_WINDOW_STATE_ICONIFIED		2
+#define GDK_WINDOW_STATE_MAXIMIZED		4
+#define GDK_WINDOW_STATE_FULLSCREEN		16
+#define GDK_WINDOW_STATE_ABOVE			32
+#define GDK_WINDOW_STATE_BELOW			64
+#define GDK_WINDOW_STATE_STICKY			128
 
 GtkAllocation!: alias struct! [
 	x			[integer!]
