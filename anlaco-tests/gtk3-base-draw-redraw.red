@@ -32,5 +32,5 @@ view/flags [
 	title "Bug B2+B3: base draw redraw"
 	size 600x400
 	canvas
-	on-resize [render-canvas face]
+	on-resize [render-canvas face probe reduce ["on-resize" face/size canvas/size]]
 ] [resize]

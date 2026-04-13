@@ -1,6 +1,6 @@
 Red [
-	Title:   "GTK3 Bug B2: gtk_layout_set_size not called for base"
-	Purpose: "Verify that a base face with draw updates its layout size when resized (opaque color)"
+	Title:   "GTK3 Bug B2: gtk_layout_set_size not called for base (opaque)"
+	Purpose: "Verify that a base face with opaque color and draw updates its layout size"
 	Needs:   'View
 ]
 
@@ -33,5 +33,5 @@ view/flags [
 	title "Bug B2: layout size for base (opaque)"
 	size 600x400
 	canvas
-	on-resize [render-canvas face]
+	on-resize [render-canvas face probe reduce ["on-resize" face/size canvas/size]]
 ] [resize]

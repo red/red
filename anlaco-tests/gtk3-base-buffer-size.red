@@ -1,6 +1,6 @@
 Red [
-	Title:   "GTK3 Bug B3: base buffer size after resize"
-	Purpose: "Verify that the cairo offscreen buffer resizes with the base face (transparent base with draw)"
+	Title:   "GTK3 Bug B3: base buffer size after resize (transparent)"
+	Purpose: "Verify that the cairo offscreen buffer resizes with the base face"
 	Needs:   'View
 ]
 
@@ -33,5 +33,5 @@ view/flags [
 	title "Bug B3: base buffer size (transparent)"
 	size 600x400
 	canvas
-	on-resize [render-canvas face]
+	on-resize [render-canvas face probe reduce ["on-resize" face/size canvas/size]]
 ] [resize]
