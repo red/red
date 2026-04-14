@@ -1511,7 +1511,10 @@ window-state-changed: func [
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
 	if sym = window [
-		if event/changed_mask and GDK_WINDOW_STATE_MAXIMIZED <> 0 [
+		if any [
+			event/changed_mask and GDK_WINDOW_STATE_MAXIMIZED <> 0
+			event/changed_mask and GDK_WINDOW_STATE_FULLSCREEN <> 0
+		][
 			;-- Detect maximize/restore: clean flags so next size-allocate emits EVT_SIZE
 			SET-RESIZING(widget null)
 			SET-STARTRESIZE(widget null)

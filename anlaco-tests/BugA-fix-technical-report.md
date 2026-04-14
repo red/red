@@ -505,10 +505,11 @@ GdkEventWindowState!: alias struct! [
 #define GDK_WINDOW_STATE_WITHDRAWN      1
 #define GDK_WINDOW_STATE_ICONIFIED     2
 #define GDK_WINDOW_STATE_MAXIMIZED     4
+#define GDK_WINDOW_STATE_STICKY        8
 #define GDK_WINDOW_STATE_FULLSCREEN    16
 #define GDK_WINDOW_STATE_ABOVE         32
 #define GDK_WINDOW_STATE_BELOW         64
-#define GDK_WINDOW_STATE_STICKY        128
+#define GDK_WINDOW_STATE_FOCUSED      128
 ```
 
 #### 5.3.2 handlers.reds (líneas 1489-1513)
@@ -531,8 +532,11 @@ window-state-changed: func [
     type: as red-word! values + FACE_OBJ_TYPE
     sym: symbol/resolve type/symbol
     if sym = window [
-        if event/changed_mask and GDK_WINDOW_STATE_MAXIMIZED <> 0 [
-            ;-- Detect maximize/restore: clean flags
+        if any [
+            event/changed_mask and GDK_WINDOW_STATE_MAXIMIZED <> 0
+            event/changed_mask and GDK_WINDOW_STATE_FULLSCREEN <> 0
+        ][
+            ;-- Detect maximize/restore/fullscreen: clean flags
             SET-RESIZING(widget null)
             SET-STARTRESIZE(widget null)
             ;-- Note: EVT_SIZE will be emitted by next size-allocate
@@ -565,7 +569,10 @@ sym = window [
 
 ```reds
 ;-- Opción rechazada: emitir EVT_SIZE aquí
-if event/changed_mask and GDK_WINDOW_STATE_MAXIMIZED <> 0 [
+if any [
+    event/changed_mask and GDK_WINDOW_STATE_MAXIMIZED <> 0
+    event/changed_mask and GDK_WINDOW_STATE_FULLSCREEN <> 0
+][
     SET-RESIZING(widget null)
     SET-STARTRESIZE(widget null)
     make-event widget 0 EVT_SIZE  ;-- ¿Aquí?

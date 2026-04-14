@@ -332,10 +332,11 @@ GdkGeometry!: alias struct! [
 #define GDK_WINDOW_STATE_WITHDRAWN		1
 #define GDK_WINDOW_STATE_ICONIFIED		2
 #define GDK_WINDOW_STATE_MAXIMIZED		4
+#define GDK_WINDOW_STATE_STICKY			8
 #define GDK_WINDOW_STATE_FULLSCREEN		16
 #define GDK_WINDOW_STATE_ABOVE			32
 #define GDK_WINDOW_STATE_BELOW			64
-#define GDK_WINDOW_STATE_STICKY			128
+#define GDK_WINDOW_STATE_FOCUSED		128
 
 GtkAllocation!: alias struct! [
 	x			[integer!]

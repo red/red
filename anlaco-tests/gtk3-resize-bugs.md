@@ -67,7 +67,7 @@ size-allocate → GET-RESIZING != null → EVT_SIZING (no EVT_SIZE)
 ```
 
 **Solución**: Conectar la señal `"window-state-event"` de GTK3 con un handler
-que detecte `GDK_WINDOW_STATE_MAXIMIZED` y limpie los flags `RESIZING` y
+que detecte `GDK_WINDOW_STATE_MAXIMIZED` o `GDK_WINDOW_STATE_FULLSCREEN` y limpie los flags `RESIZING` y
 `STARTRESIZE`, permitiendo que el siguiente `size-allocate` dispare `EVT_SIZE`.
 
 **Handler propuesto** (`handlers.reds`):
@@ -79,7 +79,10 @@ window-state-changed: func [
     widget      [handle!]
     return:     [integer!]
 ][
-    if event/changed_mask and GDK_WINDOW_STATE_MAXIMIZED <> 0 [
+    if any [
+        event/changed_mask and GDK_WINDOW_STATE_MAXIMIZED <> 0
+        event/changed_mask and GDK_WINDOW_STATE_FULLSCREEN <> 0
+    ][
         SET-RESIZING(widget null)
         SET-STARTRESIZE(widget null)
     ]
@@ -103,6 +106,7 @@ GdkEventWindowState!: alias struct! [
 ]
 
 GDK_WINDOW_STATE_MAXIMIZED: 4
+GDK_WINDOW_STATE_FULLSCREEN: 16
 ```
 
 **Archivos afectados**:
