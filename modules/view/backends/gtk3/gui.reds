@@ -1033,8 +1033,16 @@ change-size: func [
 			gtk_widget_set_size_request layout sx sy
 			gtk_widget_queue_resize layout
 		]
-		if type = rich-text [
-			gtk_layout_set_size widget sx y
+		if any [type = rich-text type = base type = panel] [
+			either type = rich-text [
+				gtk_layout_set_size widget sx y
+			][
+				gtk_layout_set_size widget sx sy
+			]
+		]
+		if type = base [
+			set-buffer widget sx sy as red-tuple! values + FACE_OBJ_COLOR
+			gtk_widget_queue_draw widget
 		]
 		gtk_widget_set_size_request widget sx sy
 		gtk_widget_queue_resize widget

@@ -726,12 +726,21 @@ window-size-allocate: func [
 			as-point2D sz
 		]
 		either null? GET-RESIZING(widget) [
-			make-event widget 0 EVT_SIZE
+			g_idle_add as integer! :idle-size-allocate as int-ptr! widget
 		][
 			make-event widget 0 EVT_SIZING
 		]
 	]
 	window-ready?: yes
+]
+
+idle-size-allocate: func [
+	[cdecl]
+	widget		[int-ptr!]
+	return:		[logic!]
+][
+	make-event as handle! widget 0 EVT_SIZE
+	false								;-- G_SOURCE_REMOVE: one-shot
 ]
 
 widget-realize: func [
