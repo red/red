@@ -3005,6 +3005,11 @@ make-profilable make target-class [
 			emit-i32 #{e58b0000}					;-- STR r0, [fp, 0]
 			12
 		][
+			emit-i32 #{e51b2004}					;-- LDR r2, [fp, -4]
+			emit-i32 #{e92d0001}					;-- PUSH {r2}
+			emit-i32 #{e51b2008}					;-- LDR r2, [fp, -8]
+			emit-i32 #{e92d0001}					;-- PUSH {r2}
+			
 			emit-i32 #{e50b0004}					;-- STR r0, [fp, -4]
 			emit-op-imm32 #{e28f0000} body-size		;-- ADD r0, pc, #value
 			emit-i32 #{e50b0008}					;-- STR r0, [fp, -8]
@@ -3012,28 +3017,31 @@ make-profilable make target-class [
 		]
 	]
 
-	emit-close-catch: func [offset [integer!] global? [logic!] callback? [logic!]][
+	emit-close-catch: func [offset [integer!] level [integer!] global? [logic!] callback? [logic!]][
 		either global? [
 			emit-i32 #{e3a00000}					;-- MOV r0, 0
 			emit-i32 #{e58b0000}					;-- STR r0, [fp, 0]
 			emit-i32 #{e58b0004}					;-- STR r0, [fp, 4]
 			emit-i32 #{e24bd008}					;-- SUB sp, fp, 8
 		][
-			emit-i32 #{e3a00000}					;-- MOV r0, 0
-			emit-i32 #{e50b0004}					;-- STR r0, [fp, -4]
-			emit-i32 #{e50b0008}					;-- STR r0, [fp, -8]
-			;offset: offset + 8						;-- account for the 2 catch slots on stack 
+			;emit-i32 #{e3a00000}					;-- MOV r0, 0
+			;emit-i32 #{e50b0004}					;-- STR r0, [fp, -4]
+			;emit-i32 #{e50b0008}					;-- STR r0, [fp, -8]
 			emit-i32 #{e1a0d00b}					;-- MOV sp, fp
 			
 			if callback? [offset: offset + (9 * 4) + (8 * 8)] ;-- skip saved regs: {r4-r11, lr}, {d8-d15}
-			offset: offset + locals-offset + 8 		;-- account for the 2 saved slots
-			
+			offset: offset + locals-offset + 8 + (level * 8)  ;-- account for the 2 saved slots
+?? level
 			either offset > 255 [
 				emit-load-imm32/reg offset 4
 				emit-i32 #{e04dd004}				;-- SUB sp, sp, r4
 			][
 				emit-i32 join #{e24dd0}	to char! offset ;-- SUB sp, sp, locals-size
 			]
+			emit-i32 #{e8bd0001}					;-- POP {r0}
+			emit-i32 #{e50b0008}					;-- STR r0, [fp, -8]
+			emit-i32 #{e8bd0001}					;-- POP {r0}
+			emit-i32 #{e50b0004}					;-- STR r0, [fp, -4]
 		]
 	]
 

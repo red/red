@@ -2510,7 +2510,7 @@ system-dialect: make-profilable context [
 					]
 				]
 			]
-			end: comp-chunked [emitter/target/emit-close-catch locals-size not locals cb?]
+			end: comp-chunked [emitter/target/emit-close-catch locals-size catch-level not locals cb?]
 			chunk: emitter/chunks/join chunk end
 			emitter/merge chunk
 			
