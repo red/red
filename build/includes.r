@@ -36,6 +36,9 @@ write %build/bin/sources.r set-cache [
 		%scalars.red
 		%system.red
 		%tools.red
+		%anlaco/ [
+			%tcp.red
+		]
 		%codecs/ [
 			%BMP.red
 			%GIF.red

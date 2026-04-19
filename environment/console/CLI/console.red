@@ -3,7 +3,7 @@ Red [
 	Author: ["Nenad Rakocevic" "Kaj de Vos"]
 	File: 	%console.red
 	Tabs: 	4
-	Needs:	[JSON CSV View]
+	Needs:	[JSON CSV View TCP]
 	Config: [GUI-engine: 'terminal]
 	Rights: "Copyright (C) 2012-2018 Red Foundation. All rights reserved."
 	License: {
