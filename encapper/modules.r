@@ -17,3 +17,4 @@ REBOL [
 	View		%modules/view/view.red				all
 	JSON		%environment/codecs/JSON.red		all
 	CSV 		%environment/codecs/CSV.red			all
+	TCP		%environment/anlaco/tcp.red		all
