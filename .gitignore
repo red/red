@@ -1,0 +1,49 @@
+# Based on .github/.gitignore-sample
+# Build artifacts and generated files
+
+# Rebol bootstrap binary
+rebol
+rebol-core/
+
+# Compiled binaries (Red output)
+console
+gui-console
+*.so
+crush.dll
+crush.so
+crush.dylib
+
+# Build scripts requiring Rebol SDK
+build/
+
+# libRedRT generated files
+libRedRT-defs.r
+libRedRT-extras.r
+libRedRT-include.red
+libRedRT.so
+system/libRedRT-extras.r
+
+# Test artifacts
+quick-test/quick-test.log
+quick-test/runnable/
+system/tests/source/units/auto-tests/
+tests/source/units/auto-tests/
+
+# Logs
+*.log
+
+# ANLACO test binaries (compiled Red programs in repo root)
+01-compile
+02-launcher
+03-args
+04-tcp
+gtk3-base-*
+test-overhead-*
+test-tcp-*
+spike-*
+test_gui_poll
+test_local
+test_nonblocking
+
+# Misc generated files
+red-fork-version.txt
