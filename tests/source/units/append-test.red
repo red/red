@@ -1238,10 +1238,10 @@ Red [
     append/part/dup/only b b 10 2   
     --assert b == #{010203040102030401020304}
 
-	--test-- "append-507"							;@@ undefined semantics, just checks that it doesn't crash
+	--test-- "append-507"
 	b: #{01020304}
 	append/part/dup b reduce [b b b] 2 2
-	;--assert b == #{010203040102030401020304}
+	--assert b == #{0102030401020304010203040102030401020304}
 
 	--test-- "append-508"							;@@ undefined semantics, just checks that it doesn't crash
 	b: #{01020304}

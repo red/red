@@ -2094,4 +2094,24 @@ Red [
 
 ===end-group===
 
+comment {
+===start-group=== "past-tail series"
+
+	--test-- "pt-1"
+		clear s: tail [1 2 3 4]
+		
+		--assert zero? index? s
+		
+		
+		clear s: tail "1234"
+		--assert zero? index? s
+		clear s: tail #{1234}
+		--assert zero? index? s
+		clear s: tail make vector! [1 2 3 4]
+		--assert zero? index? s
+	
+
+===end-group===
+}
+
 ~~~end-file~~~
