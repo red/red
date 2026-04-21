@@ -3013,7 +3013,7 @@ make-profilable make target-class [
 			emit-i32 #{e50b0004}					;-- STR r0, [fp, -4]
 			emit-op-imm32 #{e28f0000} body-size		;-- ADD r0, pc, #value
 			emit-i32 #{e50b0008}					;-- STR r0, [fp, -8]
-			12
+			28
 		]
 	]
 
@@ -3031,7 +3031,7 @@ make-profilable make target-class [
 			
 			if callback? [offset: offset + (9 * 4) + (8 * 8)] ;-- skip saved regs: {r4-r11, lr}, {d8-d15}
 			offset: offset + locals-offset + 8 + (level * 8)  ;-- account for the 2 saved slots
-?? level
+;?? level
 			either offset > 255 [
 				emit-load-imm32/reg offset 4
 				emit-i32 #{e04dd004}				;-- SUB sp, sp, r4
