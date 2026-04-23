@@ -113,6 +113,7 @@ print ["This test started at" start-time]
   --run-test-file-quiet %source/units/system-test.reds
   --run-test-file-quiet %source/units/atomic-test.reds
   --run-test-file-quiet %source/units/queue-test.reds
+  --run-test-file-quiet %source/units/push-pop-test.reds
 ===end-group===
 
 ===start-group=== "Auto-tests"
