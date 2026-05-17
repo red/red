@@ -22,6 +22,7 @@ REBOL [
 
 do-cache %system/formats/COFF.r
 do-cache %system/formats/ELF-obj.r
+do-cache %system/formats/Mach-O-obj.r
 
 static-link: context [
 
@@ -173,8 +174,9 @@ static-link: context [
 
 		obj-format: job/format
 		reader: case [
-			obj-format = 'PE  [coff]
-			obj-format = 'ELF [elf-obj]
+			obj-format = 'PE     [coff]
+			obj-format = 'ELF    [elf-obj]
+			obj-format = 'Mach-o [macho-obj]
 			true [abort reduce ["static linking unsupported for format:" obj-format]]
 		]
 
@@ -294,9 +296,20 @@ static-link: context [
 							]
 							bare: whitelisted? name [
 								tramp-off: length? code
-								append code #{FF25}				;-- JMP DWORD PTR [disp32]
-								disp-ref: 1 + length? code			;-- 1-based offset of disp32
-								append code #{00000000}
+								either obj-format = 'Mach-o [
+									;-- Mach-O imports resolve to a __jump_table
+									;-- code stub: MOV eax,<stub>; JMP eax.
+									append code #{B8}				;-- MOV eax, imm32
+									disp-ref: 1 + length? code
+									append code #{00000000}
+									append code #{FFE0}			;-- JMP eax
+								][
+									;-- PE/ELF imports resolve to a pointer slot:
+									;-- JMP DWORD PTR [disp32].
+									append code #{FF25}
+									disp-ref: 1 + length? code		;-- 1-based offset of disp32
+									append code #{00000000}
+								]
 								add-libc-import job bare disp-ref
 								repend sym-addr [name reduce ['code tramp-off]]
 							]
@@ -313,9 +326,9 @@ static-link: context [
 	;-- Return the bare libc name for an accepted external, or NONE. The
 	;-- leading-underscore strip is a no-op on ELF (SysV i386 has no prefix).
 	whitelisted?: func [name [string!] /local bare][
-		;-- The leading-underscore strip removes MSVC i386 cdecl decoration;
+		;-- PE (MSVC cdecl) and Mach-O (i386 ABI) prefix C symbols with '_';
 		;-- ELF (SysV i386) symbols are undecorated, so no strip there.
-		bare: copy either all [obj-format = 'PE  #"_" = first name][next name][name]
+		bare: copy either all [obj-format <> 'ELF  #"_" = first name][next name][name]
 		either find libc-whitelist bare [bare][none]
 	]
 
@@ -340,7 +353,7 @@ static-link: context [
 	libc-name: func [job [object!]][
 		switch/default job/OS [
 			Windows ["msvcrt.dll"]
-			macOS   ["libSystem.B.dylib"]
+			macOS   ["libc.dylib"]
 		]["libc.so.6"]
 	]
 
@@ -356,9 +369,16 @@ static-link: context [
 			unless info [
 				abort reduce ["static import" id "not defined in" lib]
 			]
-			slot: length? data
-			append data #{00000000}
-			append call-slots reduce [reloc slot info]
+			either obj-format = 'Mach-o [
+				;-- Mach-O import calls are `MOV eax,<imm>; CALL eax`; the
+				;-- call target is patched directly with the function VA.
+				append call-slots reduce [reloc none info]
+			][
+				;-- PE/ELF import calls are indirect through a pointer slot.
+				slot: length? data
+				append data #{00000000}
+				append call-slots reduce [reloc slot info]
+			]
 		]
 	]
 
@@ -366,8 +386,9 @@ static-link: context [
 	;-- applies MSVC i386 decoration (cdecl => _name, stdcall => _name@N);
 	;-- ELF i386 (SysV) symbols carry no decoration.
 	find-static-symbol: func [id [string!] cc [word!] /local want k v][
-		either obj-format = 'PE [
-			either cc = 'stdcall [
+		case [
+			obj-format = 'ELF [select sym-addr id]			;-- SysV i386: undecorated
+			all [obj-format = 'PE  cc = 'stdcall][			;-- MSVC stdcall: _name@N
 				want: rejoin ["_" id "@"]
 				foreach [k v] sym-addr [
 					if all [
@@ -376,11 +397,8 @@ static-link: context [
 					][return v]
 				]
 				none
-			][
-				select sym-addr join "_" id
 			]
-		][
-			select sym-addr id
+			true [select sym-addr join "_" id]				;-- PE cdecl / Mach-O: _name
 		]
 	]
 
@@ -396,10 +414,16 @@ static-link: context [
 		code: job/sections/code/2
 		data: job/sections/data/2
 
-		;-- Fill user-import call slots and patch their call sites.
+		;-- Wire user-import call sites to their merged functions.
 		foreach [reloc slot info] call-slots [
-			change at data (slot + 1) le32 (code-base + info/2)
-			foreach r reloc [change at code r le32 (data-base + slot)]
+			either none? slot [
+				;-- Mach-O: patch the call's immediate with the function VA.
+				foreach r reloc [change at code r le32 (code-base + info/2)]
+			][
+				;-- PE/ELF: fill the pointer slot, patch sites with its VA.
+				change at data (slot + 1) le32 (code-base + info/2)
+				foreach r reloc [change at code r le32 (data-base + slot)]
+			]
 		]
 
 		;-- Apply every relocation from every merged section.
@@ -443,8 +467,16 @@ static-link: context [
 						]
 						patch-pos: sec-base + r-va			;-- 0-based offset into buf
 						addend:    reader/i32-le buf (patch-pos + 1)
+						kind:      reader/reloc-kind r-type
 
-						kind: reader/reloc-kind r-type
+						;-- Mach-O i386 stores a pcrel field's displacement
+						;-- relative to the containing section's start; fold
+						;-- r-va in so the COFF/ELF "addend at the field" model
+						;-- applies uniformly below.
+						if all [obj-format = 'Mach-o  kind = 'pc32][
+							addend: addend + r-va
+						]
+
 						case [
 							kind = 'abs32 [
 								change at buf (patch-pos + 1) le32 (target-va + addend)
