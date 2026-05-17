@@ -550,6 +550,13 @@ context [
 				relro-offset
 		]
 		
+		;; Apply external C object relocations (static linking).
+		static-link/apply-relocs
+			job
+			get-address ".text"
+			any [attempt [get-address ".data"] 0]
+			0
+
 		linker/set-image-info
 			job
 			base: any [job/base-address defs/base-address]

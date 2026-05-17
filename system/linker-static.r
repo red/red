@@ -7,24 +7,29 @@ REBOL [
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 	Purpose: {
 		Statically links external C object files and archives referenced
-		through #import "<file>.obj" / "<file>.lib". Phase 0: 32-bit PE/COFF.
+		through #import "<file>". Supports 32-bit PE/COFF (.obj/.lib) and
+		32-bit ELF (.o/.a); the per-format object reader is selected from
+		job/format and driven through one `reader` handle.
 
 		Pipeline:
 		  register     -- compiler.r/process-import : records resolved paths
 		  merge        -- linker.r/build           : merges sections, resolves
 		                                             externals, allocates slots
-		  apply-relocs -- formats/PE.r/build        : patches relocations once
+		  apply-relocs -- formats/{PE,ELF}.r/build  : patches relocations once
 		                                             section addresses are fixed
 	}
 ]
 
 do-cache %system/formats/COFF.r
+do-cache %system/formats/ELF-obj.r
 
 static-link: context [
 
-	;-- ===== Per-build state (populated by `merge`, read by `apply-relocs`) =====
+	;-- ===== Per-build state =====
 
-	objects:    make block! 10		;-- [path coff-object ...] every merged object
+	reader:     none				;-- coff | elf-obj, chosen from job/format
+	obj-format: none				;-- 'PE | 'ELF
+	objects:    make block! 10		;-- [path object ...] every merged object
 	sym-addr:   make hash!  200		;-- C-name => [kind offset]  kind: 'code|'data|'image-base
 	call-slots: make block! 40		;-- [reloc-refs slot-offset target-info ...]
 	undef-done: make block! 20		;-- undefined externals already resolved
@@ -48,6 +53,10 @@ static-link: context [
 		"printf" "sprintf" "snprintf" "fprintf" "puts" "putchar" "fputs"
 		"fopen" "fclose" "fread" "fwrite" "fseek" "ftell" "fflush"
 		"pow" "sqrt" "exp" "log" "sin" "cos" "tan" "floor" "ceil" "fabs"
+		;-- glibc fortified-source and protector helpers
+		"__memcpy_chk" "__memmove_chk" "__memset_chk" "__strcpy_chk"
+		"__strcat_chk" "__sprintf_chk" "__snprintf_chk" "__printf_chk"
+		"__fprintf_chk" "__assert_fail" "__stack_chk_fail"
 	]
 
 	abort: func [msg [block!]][
@@ -57,17 +66,13 @@ static-link: context [
 
 	;-- ===== Helpers =====
 
-	;-- TRUE when an #import target names a static object/archive.
-	library?: func [name [string!] /local s][
-		s: lowercase copy name
-		any [
-			all [(length? s) >= 4  ".obj" = skip tail s -4]
-			all [(length? s) >= 4  ".lib" = skip tail s -4]
-		]
+	;-- TRUE when an #import target names a static object or archive.
+	library?: func [name [string!]][
+		found? find [%.obj %.lib %.o %.a] suffix? to-file lowercase copy name
 	]
 
 	archive?: func [name [string!]][
-		".lib" = lowercase skip tail copy name -4
+		found? find [%.lib %.a] suffix? to-file lowercase copy name
 	]
 
 	;-- Resolve an #import filename relative to the directory of the source
@@ -82,6 +87,62 @@ static-link: context [
 			][%./]
 			clean-path join dir f
 		]
+	]
+
+	;-- Split an `ar` archive (!<arch>) into [member-name member-binary ...]
+	;-- pairs. Shared by Microsoft .lib and Unix .a (GNU variant): the symbol
+	;-- index ("/") and longname ("//") members are filtered out.
+	read-archive: func [
+		path [file!]
+		/local bin members longnames pos mem-end size-str size data
+			name-bin name off real-name i b
+	][
+		bin: read/binary path
+		if (length? bin) < 8 [abort reduce ["archive too small:" path]]
+		if (copy/part bin 8) <> to binary! "!<arch>^/" [
+			abort reduce ["missing !<arch> magic:" path]
+		]
+		members:   copy []
+		longnames: make binary! 0
+		pos:       9									;-- first member header
+		while [pos < length? bin][
+			if (pos + 59) > length? bin [break]
+			name-bin: copy/part at bin pos 16
+			name:     to string! name-bin
+			trim/tail name
+			size-str: to string! copy/part at bin (pos + 48) 10
+			size:     to integer! trim size-str
+			data:     copy/part at bin (pos + 60) size	;-- 2-byte header magic at +58
+			mem-end:  pos + 60 + size
+			if ((mem-end - 1) // 2) <> 0 [mem-end: mem-end + 1]	;-- 2-byte alignment
+			case [
+				name = "/"  []							;-- linker symbol index: skip
+				name = "//" [longnames: data]			;-- longname table
+				true [
+					either #"/" = first name [
+						off: to integer! trim next name
+						real-name: copy ""
+						i: off + 1
+						while [all [
+							i <= length? longnames
+							(b: to integer! pick longnames i) <> 0
+							b <> 47						;-- '/' also terminates
+						]][
+							append real-name to char! b
+							i: i + 1
+						]
+						name: real-name
+					][
+						if all [(length? name) > 0  (#"/" = last name)][
+							name: copy/part name ((length? name) - 1)
+						]
+					]
+					append/only members reduce [name data]
+				]
+			]
+			pos: mem-end
+		]
+		members
 	]
 
 	;-- ===== compiler.r hook : register a static #import =====
@@ -101,7 +162,7 @@ static-link: context [
 
 	merge: func [
 		job [object!]
-		/local static-libs lib list info path
+		/local static-libs lib list info
 	][
 		clear objects
 		clear sym-addr
@@ -109,6 +170,13 @@ static-link: context [
 		clear undef-done
 
 		if any [none? job/static-objs  empty? job/static-objs][exit]
+
+		obj-format: job/format
+		reader: case [
+			obj-format = 'PE  [coff]
+			obj-format = 'ELF [elf-obj]
+			true [abort reduce ["static linking unsupported for format:" obj-format]]
+		]
 
 		;-- Pull static [lib list] pairs out of the dynamic import table.
 		static-libs: extract-static-imports job
@@ -145,16 +213,16 @@ static-link: context [
 
 	load-and-merge: func [job [object!] lib [string!] path [file!] /local obj members m sub][
 		either archive? lib [
-			members: coff/parse-lib path
+			members: read-archive path
 			foreach m members [
-				sub: coff/load-from-bin m/2 (rejoin [to-local-file path "(" m/1 ")"])
+				sub: reader/load-from-bin m/2 (rejoin [to-local-file path "(" m/1 ")"])
 				if sub [
 					merge-sections job sub
 					repend objects [sub/path sub]
 				]
 			]
 		][
-			obj: coff/load path
+			obj: reader/load path
 			merge-sections job obj
 			repend objects [obj/path obj]
 		]
@@ -166,42 +234,42 @@ static-link: context [
 		code: job/sections/code/2
 		data: job/sections/data/2
 		foreach section obj/sections [
-			kind: coff/sec-kind section
+			kind: reader/sec-kind section
 			case [
 				kind = 'code [
 					base: length? code
-					append code coff/sec-data section
-					coff/set-sec-base section 'code base
+					append code reader/sec-data section
+					reader/set-sec-base section 'code base
 				]
 				any [kind = 'data  kind = 'rdata][
 					base: length? data
-					append data coff/sec-data section
-					coff/set-sec-base section 'data base
+					append data reader/sec-data section
+					reader/set-sec-base section 'data base
 				]
 				kind = 'bss [
 					base: length? data
-					append/dup data null coff/sec-size section
-					coff/set-sec-base section 'data base
+					insert/dup tail data null reader/sec-size section
+					reader/set-sec-base section 'data base
 				]
 			]
 		]
 		foreach sym obj/symbols [
-			if coff/is-defined-external? sym [register-symbol obj sym]
+			if reader/is-defined-external? sym [register-symbol obj sym]
 		]
 	]
 
 	;-- Record a defined external's final merged address. First definition
-	;-- wins (matches COMDAT NODUPLICATES).
+	;-- wins (matches COMDAT NODUPLICATES / archive member order).
 	register-symbol: func [obj [object!] sym [block!] /local sect section kind base name][
-		sect: coff/sym-sect sym
+		sect: reader/sym-sect sym
 		if sect <= 0 [exit]
 		section: pick obj/sections sect
-		kind: coff/sec-base-kind section
-		if kind = 'none [exit]						;-- symbol lives in a dropped section
-		base: coff/sec-base-offset section
-		name: coff/sym-name sym
+		kind: reader/sec-base-kind section
+		if kind = 'none [exit]							;-- symbol lives in a dropped section
+		base: reader/sec-base-offset section
+		name: reader/sym-name sym
 		unless select sym-addr name [
-			repend sym-addr [name reduce [kind base + coff/sym-value sym]]
+			repend sym-addr [name reduce [kind base + reader/sym-value sym]]
 		]
 	]
 
@@ -211,8 +279,8 @@ static-link: context [
 		code: job/sections/code/2
 		foreach [path obj] objects [
 			foreach sym obj/symbols [
-				if coff/is-undefined-external? sym [
-					name: coff/sym-name sym
+				if reader/is-undefined-external? sym [
+					name: reader/sym-name sym
 					unless any [select sym-addr name  find undef-done name][
 						append undef-done name
 						case [
@@ -242,9 +310,12 @@ static-link: context [
 		]
 	]
 
-	;-- Return the bare libc name for an accepted external, or NONE.
+	;-- Return the bare libc name for an accepted external, or NONE. The
+	;-- leading-underscore strip is a no-op on ELF (SysV i386 has no prefix).
 	whitelisted?: func [name [string!] /local bare][
-		bare: copy either #"_" = first name [next name][name]
+		;-- The leading-underscore strip removes MSVC i386 cdecl decoration;
+		;-- ELF (SysV i386) symbols are undecorated, so no strip there.
+		bare: copy either all [obj-format = 'PE  #"_" = first name][next name][name]
 		either find libc-whitelist bare [bare][none]
 	]
 
@@ -291,31 +362,34 @@ static-link: context [
 		]
 	]
 
-	;-- Resolve a user-facing C name to its merged [kind offset], applying
-	;-- MSVC i386 name decoration: cdecl => _name, stdcall => _name@N.
+	;-- Resolve a user-facing C name to its merged [kind offset]. PE/COFF
+	;-- applies MSVC i386 decoration (cdecl => _name, stdcall => _name@N);
+	;-- ELF i386 (SysV) symbols carry no decoration.
 	find-static-symbol: func [id [string!] cc [word!] /local want k v][
-		either cc = 'stdcall [
-			want: rejoin ["_" id "@"]
-			foreach [k v] sym-addr [
-				if all [
-					(length? k) > length? want
-					want = copy/part k length? want
-				][
-					return v
+		either obj-format = 'PE [
+			either cc = 'stdcall [
+				want: rejoin ["_" id "@"]
+				foreach [k v] sym-addr [
+					if all [
+						(length? k) > length? want
+						want = copy/part k length? want
+					][return v]
 				]
+				none
+			][
+				select sym-addr join "_" id
 			]
-			none
 		][
-			select sym-addr join "_" id
+			select sym-addr id
 		]
 	]
 
-	;-- ===== formats/PE.r hook : apply relocations once addresses are fixed =====
+	;-- ===== formats/{PE,ELF}.r hook : apply relocations after layout =====
 
 	apply-relocs: func [
 		job [object!] code-base [integer!] data-base [integer!] image-base [integer!]
 		/local code data reloc slot info section sec-kind sec-base buf buf-base
-			r r-va r-sym r-type sym target-info tkind toff target-va
+			r r-va r-sym r-type sym target-info tkind toff target-va kind
 			patch-pos patch-va addend path obj tsect tsection
 	][
 		if empty? objects [exit]
@@ -331,12 +405,12 @@ static-link: context [
 		;-- Apply every relocation from every merged section.
 		foreach [path obj] objects [
 			foreach section obj/sections [
-				sec-kind: coff/sec-base-kind section
+				sec-kind: reader/sec-base-kind section
 				unless sec-kind = 'none [
-					sec-base: coff/sec-base-offset section
+					sec-base: reader/sec-base-offset section
 					buf:      either sec-kind = 'code [code][data]
 					buf-base: either sec-kind = 'code [code-base][data-base]
-					foreach r coff/sec-relocs section [
+					foreach r reader/sec-relocs section [
 						r-va:   r/1
 						r-sym:  r/2
 						r-type: r/3
@@ -344,22 +418,22 @@ static-link: context [
 						unless sym [abort reduce ["bad relocation symbol index" r-sym "in" path]]
 
 						;-- Resolve the target's final merged address.
-						target-info: select sym-addr coff/sym-name sym
+						target-info: select sym-addr reader/sym-name sym
 						either target-info [
 							tkind: target-info/1
 							toff:  target-info/2
 						][
-							;-- Section-local (static, class=3) symbol fallback.
-							tsect: coff/sym-sect sym
+							;-- Section symbol / local symbol fallback.
+							tsect: reader/sym-sect sym
 							either all [tsect > 0  tsect <= length? obj/sections][
 								tsection: pick obj/sections tsect
-								tkind: coff/sec-base-kind tsection
+								tkind: reader/sec-base-kind tsection
 								if tkind = 'none [
-									abort reduce ["relocation targets a dropped section:" coff/sym-name sym "in" path]
+									abort reduce ["relocation targets a dropped section:" reader/sym-name sym "in" path]
 								]
-								toff: (coff/sec-base-offset tsection) + coff/sym-value sym
+								toff: (reader/sec-base-offset tsection) + reader/sym-value sym
 							][
-								abort reduce ["unresolved symbol" coff/sym-name sym "in" path]
+								abort reduce ["unresolved symbol" reader/sym-name sym "in" path]
 							]
 						]
 						target-va: case [
@@ -368,24 +442,25 @@ static-link: context [
 							true               [code-base + toff]
 						]
 						patch-pos: sec-base + r-va			;-- 0-based offset into buf
-						addend:    coff/i32-le buf (patch-pos + 1)
+						addend:    reader/i32-le buf (patch-pos + 1)
 
+						kind: reader/reloc-kind r-type
 						case [
-							r-type = coff/IMAGE_REL_I386_DIR32 [
+							kind = 'abs32 [
 								change at buf (patch-pos + 1) le32 (target-va + addend)
 							]
-							r-type = coff/IMAGE_REL_I386_REL32 [
+							kind = 'pc32 [
 								patch-va: buf-base + patch-pos
 								change at buf (patch-pos + 1)
-									le32 ((target-va + addend) - (patch-va + 4))
+									le32 ((target-va + addend) - patch-va - reader/pc-bias)
 							]
-							r-type = coff/IMAGE_REL_I386_DIR32NB [
+							kind = 'rva32 [
 								change at buf (patch-pos + 1)
 									le32 ((target-va - image-base) + addend)
 							]
-							r-type = coff/IMAGE_REL_I386_ABSOLUTE []	;-- no-op
+							kind = 'none []						;-- absolute/no-op relocation
 							true [
-								abort reduce ["unsupported i386 relocation type" r-type "in" path]
+								abort reduce ["unsupported relocation type" r-type "in" path]
 							]
 						]
 					]

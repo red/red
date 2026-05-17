@@ -1,14 +1,15 @@
 REBOL [
-	Title:   "Red/System COFF object & archive reader"
+	Title:   "Red/System COFF object reader"
 	Author:  "Nenad Rakocevic"
 	File: 	 %COFF.r
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2025 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 	Purpose: {
-		Parses Windows i386 COFF object files and Microsoft .lib archives
-		for static linking. Rebol2 port of the rs-compiler COFF.red reader,
-		scoped to 32-bit (IMAGE_FILE_MACHINE_I386) only.
+		Parses Windows i386 COFF object files for static linking, scoped to
+		32-bit (IMAGE_FILE_MACHINE_I386). Exposes the same context interface
+		as ELF-obj.r so the static linker can drive either format through one
+		`reader` handle. Archive (.lib) splitting lives in linker-static.r.
 	}
 ]
 
@@ -34,6 +35,11 @@ coff: context [
 
 	IMAGE_SCN_LNK_INFO:			to integer! #{00000200}
 	IMAGE_SCN_LNK_REMOVE:		to integer! #{00000800}
+
+	;-- COFF REL32 displacements are relative to the end of the 4-byte field,
+	;-- so the PC-relative result carries an extra -4 bias (see ELF-obj.r,
+	;-- whose REL relocations fold the bias into the in-place addend).
+	pc-bias: 4
 
 	;-- ===== Low-level binary access =====
 	;-- All positions are 1-based, matching Rebol series indexing.
@@ -145,14 +151,26 @@ coff: context [
 		]
 	]
 
+	;-- Abstract relocation kind, shared with the static linker's reader
+	;-- interface (see ELF-obj.r/reloc-kind).
+	reloc-kind: func [type [integer!]][
+		case [
+			type = IMAGE_REL_I386_DIR32    ['abs32]
+			type = IMAGE_REL_I386_REL32    ['pc32]
+			type = IMAGE_REL_I386_DIR32NB  ['rva32]
+			type = IMAGE_REL_I386_ABSOLUTE ['none]
+			true                           ['unsupported]
+		]
+	]
+
 	;-- ===== Main entry points =====
 
 	;-- Parse an in-memory buffer as an i386 COFF object. Returns an object!
 	;-- with [path machine sections symbols string-table], or NONE if the
 	;-- buffer is not an i386 COFF (wrong machine, short import stub, etc.).
 	;--
-	;-- sections : block of [name kind chars raw-data size relocs
-	;--                      base-kind base-offset] entries.
+	;-- sections : block of [name kind chars raw-data size relocs base-kind
+	;--            base-offset] entries.
 	;--   kind        = 'code | 'data | 'rdata | 'bss | none
 	;--   base-kind   = 'code | 'data, filled in by the linker ('none here)
 	;--   base-offset = position inside the merged bucket (0 here)
@@ -270,77 +288,7 @@ coff: context [
 		obj
 	]
 
-	;-- Parse a Microsoft .lib archive (ar-format with MSVC extensions) and
-	;-- return a block of [member-name member-binary] pairs, one per regular
-	;-- member. The two linker symbol-index members ("/") and the longname
-	;-- member ("//") are filtered out. Each binary! is raw COFF object bytes
-	;-- (or a short import stub, which load-from-bin rejects with NONE).
-	parse-lib: func [
-		path [file!]
-		/local bin members longnames pos mem-end size-str size data
-			name-bin name off real-name i b
-	][
-		bin: read/binary path
-		if (length? bin) < 8 [
-			print ["*** Linker Error: archive file too small:" path]
-			halt
-		]
-		if (copy/part bin 8) <> to binary! "!<arch>^/" [
-			print ["*** Linker Error: missing !<arch> magic:" path]
-			halt
-		]
-
-		members:   copy []
-		longnames: make binary! 0
-		pos:       9									;-- first member header
-
-		while [pos < length? bin][
-			if (pos + 59) > length? bin [break]
-
-			name-bin: copy/part at bin pos 16
-			name:     to string! name-bin
-			trim/tail name
-
-			size-str: to string! copy/part at bin (pos + 48) 10
-			size:     to integer! trim size-str
-
-			data:    copy/part at bin (pos + 60) size	;-- 2-byte header magic at +58
-			mem-end: pos + 60 + size
-			if ((mem-end - 1) // 2) <> 0 [mem-end: mem-end + 1]	;-- 2-byte alignment
-
-			case [
-				name = "/"  []							;-- linker symbol index: skip
-				name = "//" [longnames: data]			;-- longname table
-				true [
-					either #"/" = first name [
-						;-- /NNN -> offset into the longname table
-						off: to integer! trim next name
-						real-name: copy ""
-						i: off + 1
-						while [all [
-							i <= length? longnames
-							(b: byte-at longnames i) <> 0
-							b <> 47						;-- '/' also terminates
-						]][
-							append real-name to char! b
-							i: i + 1
-						]
-						name: real-name
-					][
-						;-- inline name ends with a trailing '/'
-						if all [(length? name) > 0  (#"/" = last name)][
-							name: copy/part name ((length? name) - 1)
-						]
-					]
-					append/only members reduce [name data]
-				]
-			]
-			pos: mem-end
-		]
-		members
-	]
-
-	;-- ===== Accessors =====
+	;-- ===== Accessors (mirror ELF-obj.r's interface) =====
 
 	sec-name:		func [s [block!]][s/1]
 	sec-kind:		func [s [block!]][s/2]
