@@ -17,6 +17,7 @@ do-cache %system/utils/virtual-struct.r
 do-cache %system/utils/secure-clean-path.r
 do-cache %system/utils/unicode.r
 do-cache %system/linker.r
+do-cache %system/linker-static.r
 do-cache %system/emitter.r
 do-cache %system/utils/libRedRT.r
 
@@ -1988,7 +1989,10 @@ system-dialect: make-profilable context [
 								]
 							)
 						]
-					](if new? [repend imports [lib list]])
+					](
+						if new? [repend imports [lib list]]
+						if static-link/library? lib [static-link/register job lib script cc]
+					)
 				]
 			][throw-error err]
 		]

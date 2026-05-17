@@ -1195,6 +1195,10 @@ context [
 
 		resolve-import-refs job							;-- resolve DLL imports references
 		resolve-data-refs job							;-- resolve data references
+		static-link/apply-relocs job					;-- patch external C object relocations
+			entry-point-address? job
+			(base-address + section-addr?/memory job 'data)
+			base-address
 
 		linker/set-image-info
 			job

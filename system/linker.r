@@ -37,6 +37,7 @@ linker: context [
 		output:										;-- output file name (without extension)
 		debug-info:									;-- debugging informations
 		base-address:								;-- base address
+		static-objs:								;-- external C objects for static linking
 		buffer: none								;-- output buffer
 	]
 	
@@ -284,6 +285,8 @@ linker: context [
 		unless job/target [job/target: cpu-class]
 		job/buffer: make binary! 512 * 1024
 	
+		static-link/merge job						;-- merge statically-linked external C objects
+
 		clean-imports job/sections/import
 	
 		file-emitter: either encap? [
