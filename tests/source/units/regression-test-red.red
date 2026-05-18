@@ -3857,7 +3857,16 @@ comment {
 		--assert 1 = get in object [a: 1] quote a:
 		o5724: object [a: 2]
 		--assert 2 = o5724/(quote a:)
-		
+	
+	--test-- "#5734"
+		b: #{52454442494E0200010000000C0000003500000000000000FFFFFFFF}
+		--assert error? set 'err try [load/as b 'redbin]
+		--assert err/id = 'rb-invalid-record
+
+	--test-- "#5736"
+		--assert error? set 'err try [length? b: enbase/base (s: append/dup make {} n: 1 << 28 + 100000 "x" n) 2]
+		--assert err/id = 'too-long
+	
 ===end-group===
 
 ~~~end-file~~~
