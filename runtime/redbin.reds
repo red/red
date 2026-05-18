@@ -2134,6 +2134,7 @@ redbin: context [
 			width:  IMAGE_WIDTH(data/3)
 			height: IMAGE_HEIGHT(data/3)
 			size:   width * height << 2					;-- 4 bytes per pixel
+			if negative? size [throw-error data]
 			
 			pixels: as byte-ptr! data + 3
 			argb:   binary/load pixels size
