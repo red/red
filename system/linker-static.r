@@ -23,6 +23,7 @@ REBOL [
 do-cache %system/formats/COFF.r
 do-cache %system/formats/ELF-obj.r
 do-cache %system/formats/Mach-O-obj.r
+do-cache %system/formats/libc-exports.r
 
 static-link: context [
 
@@ -34,6 +35,7 @@ static-link: context [
 	sym-addr:   make hash!  200		;-- C-name => [kind offset]  kind: 'code|'data|'image-base
 	call-slots: make block! 40		;-- [reloc-refs slot-offset target-info ...]
 	undef-done: make block! 20		;-- undefined externals already resolved
+	libc-set:   none				;-- this build's C-library export hash (libc-exports.r)
 
 	;-- 4-byte little-endian serializer (target endianness is set up by the
 	;-- time `apply-relocs` runs, during linking).
@@ -43,22 +45,6 @@ static-link: context [
 	;-- x86 __chkstk stub: receives total frame size in EAX, returns with
 	;-- ESP decremented by EAX (MSVC contract). 18 bytes.
 	chkstk-stub: #{518D4C24082BC88BC48BE18B088B400450C3}
-
-	;-- Undefined externals accepted as C-runtime imports. Anything outside
-	;-- this set raises a link error rather than silently binding to libc.
-	libc-whitelist: [
-		"memcpy" "memmove" "memset" "memcmp" "memchr"
-		"malloc" "calloc" "realloc" "free"
-		"strlen" "strcmp" "strncmp" "strcpy" "strncpy" "strcat" "strchr" "strstr"
-		"abort" "exit" "atoi" "atol" "qsort" "bsearch"
-		"printf" "sprintf" "snprintf" "fprintf" "puts" "putchar" "fputs"
-		"fopen" "fclose" "fread" "fwrite" "fseek" "ftell" "fflush"
-		"pow" "sqrt" "exp" "log" "sin" "cos" "tan" "floor" "ceil" "fabs"
-		;-- glibc fortified-source and protector helpers
-		"__memcpy_chk" "__memmove_chk" "__memset_chk" "__strcpy_chk"
-		"__strcat_chk" "__sprintf_chk" "__snprintf_chk" "__printf_chk"
-		"__fprintf_chk" "__assert_fail" "__stack_chk_fail"
-	]
 
 	abort: func [msg [block!]][
 		print rejoin ["*** Static linking error: " reform msg]
@@ -169,10 +155,19 @@ static-link: context [
 		clear sym-addr
 		clear call-slots
 		clear undef-done
+		libc-set: none
 
 		if any [none? job/static-objs  empty? job/static-objs][exit]
 
 		obj-format: job/format
+		libc-set: make hash! any [
+			switch job/OS [
+				Windows [libc-exports/windows]
+				Linux   [libc-exports/linux]
+				macOS   [libc-exports/macos]
+			]
+			[]
+		]
 		reader: case [
 			obj-format = 'PE     [coff]
 			obj-format = 'ELF    [elf-obj]
@@ -294,7 +289,7 @@ static-link: context [
 							name = "__ImageBase" [
 								repend sym-addr [name reduce ['image-base 0]]
 							]
-							bare: whitelisted? name [
+							bare: accepted-libc? name [
 								tramp-off: length? code
 								either obj-format = 'Mach-o [
 									;-- Mach-O imports resolve to a __jump_table
@@ -323,13 +318,14 @@ static-link: context [
 		]
 	]
 
-	;-- Return the bare libc name for an accepted external, or NONE. The
-	;-- leading-underscore strip is a no-op on ELF (SysV i386 has no prefix).
-	whitelisted?: func [name [string!] /local bare][
+	;-- Return the bare libc name for an accepted external, or NONE. The name
+	;-- is checked against the target C library's exported-symbol set, which
+	;-- is embedded in libc-exports.r (generated from the real libraries).
+	accepted-libc?: func [name [string!] /local bare][
 		;-- PE (MSVC cdecl) and Mach-O (i386 ABI) prefix C symbols with '_';
 		;-- ELF (SysV i386) symbols are undecorated, so no strip there.
 		bare: copy either all [obj-format <> 'ELF  #"_" = first name][next name][name]
-		either find libc-whitelist bare [bare][none]
+		either find libc-set bare [bare][none]
 	]
 
 	;-- Register a libc import on the system C library's dynamic-import entry,
