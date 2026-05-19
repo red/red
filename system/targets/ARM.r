@@ -716,6 +716,23 @@ make-profilable make target-class [
 			]
 		]
 	]
+
+	int32-from-hex8: func [hex [string!]][
+		to integer! to issue! hex
+	]
+
+	emit-load-int64-literal: func [value type [word!] /alt /local hex high low][
+		hex: compiler/int64-hex value type
+		high: copy/part hex 8
+		low: skip hex 8
+		either alt [
+			emit-load-imm32/reg int32-from-hex8 low 2
+			emit-load-imm32/reg int32-from-hex8 high 3
+		][
+			emit-load-imm32 int32-from-hex8 low
+			emit-load-imm32/reg int32-from-hex8 high 1
+		]
+	]
 	
 	emit-op-imm32: func [opcode [binary!] value [integer! char!] /local bits][
 		opcode: copy opcode
@@ -950,21 +967,58 @@ make-profilable make target-class [
 			value/type/1 = 'logic! [
 				if verbose >= 3 [print [">>>converting from" mold/flat type/1 "to logic!"]]
 				old: width
-				set-width/type type/1
-				either alt? [
-					if width = 1 [										; 16-bit not supported
-						emit-i32 #{e20110ff}		;-- AND r1, r1, #ff
+				either compiler/int64? type [
+					either alt? [
+						emit-i32 #{e1811003}		;-- ORR r1, r1, r3
+						emit-i32 #{e3510000}		;-- CMP r1, 0
+						emit-i32 #{13a01001}		;-- MOVNE r1, #1
+					][
+						emit-i32 #{e1800001}		;-- ORR r0, r0, r1
+						emit-i32 #{e3500000}		;-- CMP r0, 0
+						emit-i32 #{13a00001}		;-- MOVNE r0, #1
 					]
-					emit-i32 #{e3510000}			;-- CMP r1, 0
-					emit-i32 #{13a01001}			;-- MOVNE r1, #1
 				][
-					if width = 1 [										; 16-bit not supported
-						emit-i32 #{e20000ff}		;-- AND r0, r0, #FF
+					set-width/type type/1
+					either alt? [
+						if width = 1 [									; 16-bit not supported
+							emit-i32 #{e20110ff}	;-- AND r1, r1, #ff
+						]
+						emit-i32 #{e3510000}		;-- CMP r1, 0
+						emit-i32 #{13a01001}		;-- MOVNE r1, #1
+					][
+						if width = 1 [									; 16-bit not supported
+							emit-i32 #{e20000ff}	;-- AND r0, r0, #FF
+						]
+						emit-i32 #{e3500000}		;-- CMP r0, 0
+						emit-i32 #{13a00001}		;-- MOVNE r0, #1
 					]
-					emit-i32 #{e3500000}			;-- CMP r0, 0
-					emit-i32 #{13a00001}			;-- MOVNE r0, #1
 				]
 				width: old
+			]
+			all [compiler/int64? value/type find [byte! integer!] type/1][
+				if type/1 = 'byte! [
+					either alt? [
+						emit-i32 #{e20110ff}		;-- AND r1, r1, #ff
+					][
+						emit-i32 #{e20000ff}		;-- AND r0, r0, #ff
+					]
+				]
+				either value/type/1 = 'uint64! [
+					either alt? [
+						emit-i32 #{e3a03000}		;-- MOV r3, #0
+					][
+						emit-i32 #{e3a01000}		;-- MOV r1, #0
+					]
+				][
+					either alt? [
+						emit-i32 #{e1a03fc1}		;-- MOV r3, r1, ASR #31
+					][
+						emit-i32 #{e1a01fc0}		;-- MOV r1, r0, ASR #31
+					]
+				]
+			]
+			all [value/type/1 = 'integer! compiler/int64? type][
+				if verbose >= 3 [print [">>>converting from" type/1 "to integer!"]]
 			]
 			all [value/type/1 = 'integer! type/1 = 'byte!][
 				if verbose >= 3 [print ">>>converting from byte! to integer! "]
@@ -1443,7 +1497,24 @@ make-profilable make target-class [
 			integer! [
 				emit-load-imm32 value
 			]
-			issue!
+			issue! [
+				either type: compiler/int64-literal-info value [
+					either alt [
+						emit-load-int64-literal/alt value type/1
+					][
+						emit-load-int64-literal value type/1
+					]
+				][
+					either all [cast cast/type/1 = 'float32!][
+						emit-load-imm32 to integer! IEEE-754/to-binary32 value
+					][
+						spec: emitter/store-value none value [float!]
+						pools/collect/spec/with 0 spec/2 #{e59f3000}	;-- LDR r3, [pc, #offset]
+						if PIC? [emit-i32 #{e0833009}]					;-- ADD r3, sb
+						emit-i32 #{e8930003} 							;-- LDM r3, {r0,r1}
+					]
+				]
+			]
 			decimal! [
 				either all [cast cast/type/1 = 'float32!][
 					emit-load-imm32 to integer! IEEE-754/to-binary32 value
@@ -1457,7 +1528,7 @@ make-profilable make target-class [
 			word! [
 				type: compiler/get-variable-spec value
 				case [
-					find [float! float64!] type/1 [
+					find [float! float64! int64! uint64!] type/1 [
 						emit-variable-poly value
 							#{e8900003} 				;-- LDM r0, {r0,r1}		; global
 							none
@@ -1594,13 +1665,30 @@ make-profilable make target-class [
 				do store-byte
 			]
 			integer! [
-				do store-word
+				either compiler/int64? compiler/get-variable-spec name [
+					emit-load-int64-literal value first compiler/get-variable-spec name
+					do store-qword
+				][
+					do store-word
+				]
 			]
 			logic! [
 				emit-load-imm32 to integer! value	;-- MOV r0, #0|#1
 				do store-word
 			]
-			issue!
+			issue! [
+				either type: compiler/int64-literal-info value [
+					emit-load-int64-literal value type/1
+					do store-qword
+				][
+					type: compiler/get-variable-spec name
+					either type/1 = 'float32! [
+						do store-word
+					][
+						do store-qword
+					]
+				]
+			]
 			decimal! [
 				type: compiler/get-variable-spec name
 				either type/1 = 'float32! [
@@ -2035,7 +2123,7 @@ make-profilable make target-class [
 			tag! [									;-- == <last>
 				type: either cast [cast/type][compiler/last-type]
 				either value = <last> [
-					do either find [float! float64!] type/1 [
+					do either find [float! float64! int64! uint64!] type/1 [
 						push-last64
 					][
 						push-last
@@ -2058,10 +2146,31 @@ make-profilable make target-class [
 				do push-last
 			]
 			integer! [
-				emit-load-imm32/reg value 3
-				emit-i32 #{e92d0008}				;-- PUSH {r3}
+				either all [cast compiler/int64? cast/type][
+					emit-load-int64-literal value cast/type/1
+					do push-last64
+				][
+					emit-load-imm32/reg value 3
+					emit-i32 #{e92d0008}			;-- PUSH {r3}
+				]
 			]
-			issue!
+			issue! [
+				either type: compiler/int64-literal-info value [
+					emit-load-int64-literal value type/1
+					do push-last64
+				][
+					either all [cast cast/type/1 = 'float32! not cdecl][
+						emit-load-imm32 to integer! IEEE-754/to-binary32 value
+						do push-last
+					][
+						spec: emitter/store-value none value [float!]
+						pools/collect/spec/with 0 spec/2 #{e59f2000}	;-- LDR r2, [pc, #offset]
+						if PIC? [emit-i32 #{e0822009}]	;-- ADD r2, sb
+						emit-i32 #{e8920003} 			;-- LDM r2, {r0,r1}
+						emit-i32 #{e92d0003}			;-- PUSH {r0,r1}
+					]
+				]
+			]
 			decimal! [
 				either all [cast cast/type/1 = 'float32! not cdecl][
 					emit-load-imm32 to integer! IEEE-754/to-binary32 value
@@ -2085,8 +2194,8 @@ make-profilable make target-class [
 						do push-last				;-- PUSH &value
 					]
 					any [
-						find [float! float64!] type/1 
-						all [cast find [float! float64!] cast/type/1]
+						find [float! float64! int64! uint64!] type/1
+						all [cast find [float! float64! int64! uint64!] cast/type/1]
 					][
 						emit-load value
 						do push-last64
@@ -2419,11 +2528,75 @@ make-profilable make target-class [
 			]
 		]
 	]
+
+	emit-extend-int64: func [target [word!] source [block!] /local type][
+		type: source/1
+		if type = 'byte! [emit-i32 #{e20000ff}]		;-- AND r0, r0, #ff
+		either target = 'uint64! [
+			emit-i32 #{e3a01000}					;-- MOV r1, #0
+		][
+			emit-i32 #{e1a01fc0}					;-- MOV r1, r0, ASR #31
+		]
+	]
+
+	emit-load-int64-right: func [arg target [word!] /local value type info][
+		value: compiler/unbox arg
+		switch/default type?/word value [
+			integer! [
+				emit-load-int64-literal value target
+			]
+			issue! [
+				info: compiler/int64-literal-info value
+				emit-load-int64-literal value any [all [info info/1] target]
+			]
+			word! [
+				type: compiler/get-variable-spec value
+				emit-load value
+				unless compiler/int64? type [emit-extend-int64 target type]
+			]
+			object! [
+				emit-load value/data
+				emit-casting value no
+			]
+			tag! [
+				;-- already in r1:r0
+			]
+		][
+			emit-load arg
+		]
+		emit-i32 #{e1a02000}						;-- MOV r2, r0	; low
+		emit-i32 #{e1a03001}						;-- MOV r3, r1	; high
+	]
+
+	emit-int64-operation: func [name [word!] args [block!] /local target][
+		if find comparison-op name [
+			compiler/throw-error "64-bit integer comparisons are not implemented for ARM yet"
+		]
+		if find [* / //] name [
+			compiler/throw-error "64-bit integer multiply/divide/modulo are not implemented for ARM yet"
+		]
+		if find bitshift-op name [
+			compiler/throw-error "64-bit integer shifts are not implemented for ARM yet"
+		]
+		target: either args/1 = <last> [compiler/last-type/1][first compiler/get-type args/1]
+		unless args/1 = <last> [emit-load args/1]
+		emit-i32 #{e92d0003}						;-- PUSH {r0,r1}
+		emit-load-int64-right args/2 target
+		emit-i32 #{e8bd0003}						;-- POP {r0,r1}
+		switch name [
+			+   [emit-i32 #{e0800002} emit-i32 #{e0a11003}] ;-- ADD low / ADC high
+			-   [emit-i32 #{e0400002} emit-i32 #{e0c11003}] ;-- SUB low / SBC high
+			and [emit-i32 #{e0000002} emit-i32 #{e0011003}]
+			or  [emit-i32 #{e1800002} emit-i32 #{e1811003}]
+			xor [emit-i32 #{e0200002} emit-i32 #{e0211003}]
+		]
+	]
 	
 	emit-integer-operation: func [name [word!] args [block!] /local a b sorted? left right][
 		if verbose >= 3 [print [">>>inlining integer op:" mold name mold args]]
 
 		set-width args/1							;-- set reg/mem access width
+		if width = 8 [return emit-int64-operation name args]
 		set [a b] get-arguments-class args
 		last-saved?: no								;-- reset flag
 

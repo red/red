@@ -36,11 +36,11 @@ emitter: make-profilable context [
 		;int16!		2	signed
 		;int32!		4	signed
 		integer!	4	signed
-		;int64!		8	signed
+		int64!		8	signed
 		;uint8!		1	unsigned
 		;uint16!	2	unsigned
 		;uint32!	4	unsigned
-		;uint64!	8	unsigned
+		uint64!		8	unsigned
 		float32!	4	signed
 		float64!	8	signed
 		float!		8	signed
@@ -59,6 +59,8 @@ emitter: make-profilable context [
 		logic!		1
 		integer!	2
 		byte!	    3
+		int64!		11
+		uint64!		12
 		float32!	4
 		float!		5
 		float64!	5
@@ -242,7 +244,7 @@ emitter: make-profilable context [
 			type: 'integer!
 			if logic? value [value: to integer! value]	;-- TRUE => 1, FALSE => 0
 		]
-		if all [value = <last> not find [float! float64!] type][
+		if all [value = <last> not find [float! float64! int64! uint64!] type][
 			type: 'integer!								; @@ not accurate for float32!
 			value: 0
 		]
@@ -252,15 +254,19 @@ emitter: make-profilable context [
 		ptr: tail data-buf
 		
 		switch/default type [
-			integer! [
+			integer! int64! uint64! [
 				case [
-					find [char! decimal!] type?/word value [value: to integer! value]
+					all [type = 'integer! find [char! decimal!] type?/word value][value: to integer! value]
 					find [true false] value [value: to integer! get value]
-					not integer? value [value: 0]
+					all [type = 'integer! not integer? value][value: 0]
 				]
-				pad-data-buf target/default-align
+				pad-data-buf either find [int64! uint64!] type [8][target/default-align]
 				ptr: tail data-buf
-				value: debase/base to-hex value 16
+				value: debase/base either find [int64! uint64!] type [
+					compiler/int64-hex value type
+				][
+					to-hex value
+				] 16
 				either target/little-endian? [
 					value: tail value
 					loop size [append ptr to char! (first value: skip value -1)]
@@ -487,7 +493,7 @@ emitter: make-profilable context [
 		offset: 0
 		foreach [var type] spec [
 			all [
-				find [integer! c-string! pointer! struct! logic!] type/1
+				find [integer! int64! uint64! c-string! pointer! struct! logic!] type/1
 				not zero? over: offset // target/struct-align-size 
 				offset: offset + target/struct-align-size - over ;-- properly account for alignment
 			]
@@ -843,12 +849,12 @@ emitter: make-profilable context [
 			) :pos]
 			any [
 				set name word! set spec block! (
-					step: pick 2x1 to logic! find [float! float64!] spec/1 ;-- 64-bit types need 2 bits.
+					step: pick 2x1 to logic! find [float! float64! int64! uint64!] spec/1 ;-- 64-bit types need 2 bits.
 					
 					either compiler/any-pointer?/with spec ts [
 						either 'value = last spec [
 							foreach-field spec [
-								step: pick 2x1 to logic! find [float! float64!] type/1
+								step: pick 2x1 to logic! find [float! float64! int64! uint64!] type/1
 								if compiler/any-pointer?/with type ts [
 									bits: bits or (shift/left 1 i)
 								]

@@ -130,9 +130,14 @@ target-class: context [
 		
 		if any [
 			all [width = 4 right-width = 1]			;-- detect byte! -> integer! implicit casting
+			all [width = 8 find [1 4] right-width]	;-- detect 32-bit -> 64-bit implicit casting
 			find [float! float32! float64!] first compiler/get-type arg
 		][
-			arg: make compiler/action-class [action: 'type-cast type: [integer!] data: arg]
+			arg: make compiler/action-class [
+				action: 'type-cast
+				type: reduce [either width = 8 [compiler/last-type/1]['integer!]]
+				data: arg
+			]
 			emit-casting arg alt?					;-- type cast right argument
 		]
 	]

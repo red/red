@@ -127,8 +127,8 @@ system-dialect: make-profilable context [
 		fail:		[end skip]							;-- fail rule
 		rule: value: v: none							;-- global parsing rules helpers
 		
-		number!: 	  [byte! integer!]					;-- reserved for internal use only
-		bit-set!: 	  [byte! integer! logic!]			;-- reserved for internal use only
+		number!: 	  [byte! integer! int64! uint64!]	;-- reserved for internal use only
+		bit-set!: 	  [byte! integer! int64! uint64! logic!] ;-- reserved for internal use only
 		any-float!:	  [float! float32! float64!]		;-- reserved for internal use only
 		any-number!:  union number! any-float!			;-- reserved for internal use only
 		pointers!:	  [pointer! struct! c-string!] 		;-- reserved for internal use only
@@ -142,6 +142,7 @@ system-dialect: make-profilable context [
 		
 		comparison-op: [= <> < > <= >=]
 		float-special: [#INF #INF- #NaN #0-]
+		int64-types:   [int64! uint64!]
 		
 		functions: to-hash compose [
 		;--Name--Arity--Type----Cc--Specs--		   Cc = Calling convention
@@ -186,12 +187,13 @@ system-dialect: make-profilable context [
 			pos: some [word! into [func-pointer | type-spec]]		;-- struct's members
 		]
 		
-		pointer-syntax: ['integer! | 'byte! | 'float32! | 'float64! | 'float! | 'pointer!]
+		pointer-syntax: ['integer! | 'byte! | 'int64! | 'uint64! | 'float32! | 'float64! | 'float! | 'pointer!]
 		
 		func-pointer: ['function! set value block! (check-specs '- value)]
 		
 		type-syntax: [
 			'logic! | 'integer! | 'byte! | 'int16!		;-- int16! needed for AVR8 backend
+			| 'int64! | 'uint64!
 			| 'float! | 'float32! | 'float64!
 			| 'c-string!
 			| 'pointer! into [pointer-syntax]
@@ -687,6 +689,108 @@ system-dialect: make-profilable context [
 			to logic! find any-float! type/1
 		]
 
+		int64?: func [type [block! word!]][
+			if block? type [type: type/1]
+			to logic! find int64-types type
+		]
+
+		greater-decimal?: func [a [string!] b [string!]][
+			any [
+				greater? length? a length? b
+				all [equal? length? a length? b greater? a b]
+			]
+		]
+
+		hex4: func [n [integer!] /local h][
+			h: to-hex n
+			copy/part skip h 4 4
+		]
+
+		decimal64-to-hex: func [
+			digits [string!] neg? [logic!]
+			/local limbs carry v d i
+		][
+			limbs: copy [0 0 0 0]					;-- little-endian 16-bit limbs
+			foreach ch digits [
+				d: (to integer! ch) - (to integer! #"0")
+				carry: d
+				repeat i 4 [
+					v: limbs/:i * 10 + carry
+					limbs/:i: v and 65535
+					carry: to integer! (v / 65536)
+				]
+				if carry <> 0 [throw-error ["64-bit integer literal overflow:" digits]]
+			]
+			if neg? [
+				repeat i 4 [limbs/:i: 65535 - limbs/:i]
+				carry: 1
+				repeat i 4 [
+					v: limbs/:i + carry
+					limbs/:i: v and 65535
+					carry: to integer! (v / 65536)
+				]
+			]
+			rejoin [hex4 limbs/4 hex4 limbs/3 hex4 limbs/2 hex4 limbs/1]
+		]
+
+		int64-literal-info: func [value /local s p kind payload neg? digits type][
+			unless issue? value [return none]
+			s: form value
+			if s/1 = #"#" [remove s]
+			unless s/1 = #"." [return none]
+			remove s
+			unless p: find s #":" [return none]
+			kind: copy/part s p
+			payload: next p
+			switch/default kind [
+				"i64" [
+					neg?: payload/1 = #"n"
+					if neg? [payload: next payload]
+					digits: copy payload
+					if greater-decimal? digits either neg? ["9223372036854775808"]["9223372036854775807"] [
+						throw-error ["int64! literal out of range:" mold value]
+					]
+					reduce ['int64! decimal64-to-hex digits neg?]
+				]
+				"u64" [
+					digits: copy payload
+					if greater-decimal? digits "18446744073709551615" [
+						throw-error ["uint64! literal out of range:" mold value]
+					]
+					type: either greater-decimal? digits "9223372036854775807" ['uint64!]['int64!]
+					reduce [type decimal64-to-hex digits no]
+				]
+				"u64h" [
+					payload: uppercase copy payload
+					if 16 < length? payload [throw-error ["uint64! literal out of range:" mold value]]
+					insert/dup payload #"0" 16 - length? payload
+					type: either greater-decimal? payload "7FFFFFFFFFFFFFFF" ['uint64!]['int64!]
+					reduce [type payload]
+				]
+			][none]
+		]
+
+		int64-literal?: func [value][to logic! int64-literal-info value]
+
+		int64-hex: func [value type [word!] /local info hex neg?][
+			case [
+				info: int64-literal-info value [
+					info/2
+				]
+				integer? value [
+					neg?: negative? value
+					hex: decimal64-to-hex form abs value neg?
+					either all [type = 'uint64! neg?][
+						throw-error ["negative integer literal cannot initialize uint64!:" value]
+					][hex]
+				]
+				value = <last> ["0000000000000000"]
+				'else [
+					throw-error ["invalid 64-bit integer literal:" mold value]
+				]
+			]
+		]
+
 		floats-in-condition?: func [cond [block!]] [	;-- used by IEEE754 NaN arithmetic
 			to logic! all [
 				find comparison-op cond/1
@@ -899,7 +1003,7 @@ system-dialect: make-profilable context [
 					]
 					switch/default type/1 [
 						function! [type]
-						integer! byte! float! float32! pointer! [compose/deep [pointer! [(type/1)]]]
+						integer! byte! int64! uint64! float! float32! pointer! [compose/deep [pointer! [(type/1)]]]
 					][
 						with-alias-resolution off [
 							type: resolve-type name
@@ -934,9 +1038,11 @@ system-dialect: make-profilable context [
 					next next reduce ['array! length? value 'pointer! [byte!]]
 				]
 				issue!	 [
-					either find float-special next value [[float!]][
+					either type: int64-literal-info value [
+						reduce [type/1]
+					][either find float-special next value [[float!]][
 						throw-error ["invalid special float value:" mold value]
-					]
+					]]
 				]
 				none!	 [none-type]					;-- no type case (func with no return value)
 
@@ -1092,6 +1198,8 @@ system-dialect: make-profilable context [
 				all [find [float! float64!] ctype/1 not any [any-float? type type/1 = 'integer!]]
 				all [find [float! float64!] type/1  not any [any-float? ctype ctype/1 = 'integer!]]
 				all [type/1 = 'float32! not find [float! float64! integer!] ctype/1]
+				all [int64? ctype any-float? type]
+				all [int64? type any-float? ctype]
 				all [ctype/1 = 'byte! find [c-string! pointer! struct!] type/1]
 				all [
 					find [c-string! pointer! struct!] ctype/1
@@ -1115,8 +1223,13 @@ system-dialect: make-profilable context [
 					]
 				]
 				integer! [
-					if find [byte! logic! float! float32! float64!] type/1 [
+					if find [byte! logic! float! float32! float64! int64! uint64!] type/1 [
 						value: to integer! value
+					]
+				]
+				int64! uint64! [
+					if all [ctype/1 = 'uint64! integer? value negative? value][
+						throw-error ["negative integer literal cannot initialize uint64!:" value]
 					]
 				]
 				logic! [
@@ -1222,7 +1335,7 @@ system-dialect: make-profilable context [
 					| paren! :p into [any [
 						array-expr-keywords | s: word! (check-enum-symbol/strict s) | skip
 					]] :p (change p do p/1)
-					| string! | char! | integer! | decimal! | get-word!
+					| string! | char! | integer! | decimal! | issue! | get-word!
 					| skip (throw-error ["invalid literal array content:" mold list])
 				]
 			]
@@ -3925,7 +4038,7 @@ system-dialect: make-profilable context [
 				decimal!	[do pass]
 				binary!		[do pass]
 				block!		[also preprocess-array pc/1 pc: next pc]
-				issue!		[either pc/1/1 = #"." [do pass][comp-directive]]
+				issue!		[either any [pc/1/1 = #"." int64-literal? pc/1][do pass][comp-directive]]
 			][
 				throw-error "datatype not allowed"
 			]

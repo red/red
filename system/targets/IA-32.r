@@ -308,17 +308,49 @@ make-profilable make target-class [
 			value/type/1 = 'logic! [
 				if verbose >= 3 [print [">>>converting from" mold/flat type/1 "to logic!"]]
 				old: width
-				set-width/type type/1
-				either alt? [
-					emit-poly [#{84D2} #{85D2}]		;-- TEST rD, rD
-					emit #{0F95C2}					;--	SETNZ dl			; set to 1/0
-					emit #{0FB6D2}					;-- MOVZX edx, dl		; sign-extend to 32-bit
+				either compiler/int64? type [
+					either alt? [
+						emit #{09FA}				;-- OR edx, edi	; alt 64-bit is edi:edx in limited paths
+						emit #{0F95C2}
+						emit #{0FB6D2}
+					][
+						emit #{09D0}				;-- OR eax, edx
+						emit #{0F95C0}
+						emit #{0FB6C0}
+					]
 				][
-					emit-poly [#{84C0} #{85C0}]		;-- TEST rA, rA
-					emit #{0F95C0}					;--	SETNZ al			; set to 1/0
-					emit #{0FB6C0}					;-- MOVZX eax, al		; sign-extend to 32-bit
+					set-width/type type/1
+					either alt? [
+						emit-poly [#{84D2} #{85D2}]	;-- TEST rD, rD
+						emit #{0F95C2}				;--	SETNZ dl			; set to 1/0
+						emit #{0FB6D2}				;-- MOVZX edx, dl		; sign-extend to 32-bit
+					][
+						emit-poly [#{84C0} #{85C0}]	;-- TEST rA, rA
+						emit #{0F95C0}				;--	SETNZ al			; set to 1/0
+						emit #{0FB6C0}				;-- MOVZX eax, al		; sign-extend to 32-bit
+					]
 				]
 				width: old
+			]
+			all [compiler/int64? value/type find [byte! integer!] type/1][
+				if verbose >= 3 [print [">>>converting from" type/1 "to" value/type/1]]
+				if type/1 = 'byte! [
+					emit #{0FB6}
+					emit pick [#{D2} #{C0}] alt?
+				]
+				either value/type/1 = 'uint64! [
+					either alt? [emit #{31FF}][emit #{31D2}] ;-- XOR edi|edx, high
+				][
+					either alt? [
+						emit #{89D7}				;-- MOV edi, edx
+						emit #{C1FF1F}				;-- SAR edi, 31
+					][
+						emit #{99}					;-- CDQ
+					]
+				]
+			]
+			all [value/type/1 = 'integer! compiler/int64? type][
+				if verbose >= 3 [print [">>>converting from" type/1 "to integer!"]]
 			]
 			all [value/type/1 = 'integer! type/1 = 'byte!][
 				if verbose >= 3 [print ">>>converting from byte! to integer! "]
@@ -742,6 +774,8 @@ make-profilable make target-class [
 			logic!	 [emit #{3401}]					;-- XOR al, 1			; invert 0<=>1
 			byte!	 [emit #{F6D0}]					;-- NOT al				; @@ missing 16-bit support									
 			integer! [emit #{F7D0}]					;-- NOT eax
+			int64!	 [emit #{F7D0} emit #{F7D2}]	;-- NOT eax / NOT edx
+			uint64!	 [emit #{F7D0} emit #{F7D2}]	;-- NOT eax / NOT edx
 		]
 		switch type?/word value [
 			logic! [
@@ -819,6 +853,39 @@ make-profilable make target-class [
 			emit-poly [#{B0} #{B8} value]				;-- MOV rA, value
 		]
 	]
+
+	emit-load-int64-literal: func [value type [word!] /local hex high low][
+		hex: compiler/int64-hex value type
+		high: copy/part hex 8
+		low: skip hex 8
+		emit #{B8}									;-- MOV eax, low32
+		emit reverse debase/base low 16
+		emit #{BA}									;-- MOV edx, high32
+		emit reverse debase/base high 16
+	]
+
+	emit-load-int64-variable: func [value [word! object!] /local offset spec][
+		if object? value [value: compiler/unbox value]
+		either offset: emitter/local-offset? value [
+			offset: stack-encode offset
+			emit adjust-disp32 #{8B45} offset		;-- MOV eax, [ebp+n]
+			emit offset
+			offset: stack-encode (emitter/local-offset? value) + 4
+			emit adjust-disp32 #{8B55} offset		;-- MOV edx, [ebp+n+4]
+			emit offset
+		][
+			spec: emitter/symbols/:value
+			either PIC? [
+				emit #{8D83}						;-- LEA eax, [ebx+disp]
+			][
+				emit #{B8}							;-- MOV eax, &value
+			]
+			emit-reloc-addr spec
+			emit #{8B10}							;-- MOV edx, [eax]
+			emit #{8B4004}							;-- MOV eax, [eax+4]
+			emit #{92}								;-- XCHG eax, edx -> edx:eax
+		]
+	]
 	
 	emit-load: func [
 		value [char! logic! integer! word! string! path! paren! get-word! object! decimal! issue!]
@@ -843,7 +910,18 @@ make-profilable make target-class [
 				width: 4
 				emit-load-integer value
 			]
-			issue!
+			issue! [
+				either spec: compiler/int64-literal-info value [
+					width: 8
+					emit-load-int64-literal value spec/1
+				][
+					set-width any [cast value]
+					emit-push any [cast value]
+					emit-float #{DD0424}				;-- FLD [esp]
+					emit #{83C4} 						;-- ADD esp, 8|4
+					emit to-bin8 pick [4 8] to logic! all [cast cast/type/1 = 'float32!]
+				]
+			]
 			decimal! [
 				set-width any [cast value]
 				emit-push any [cast value]
@@ -869,7 +947,10 @@ make-profilable make target-class [
 								emit to-bin8 offset
 							]
 						]
-						'else [
+					'else [
+						either width = 8 [
+							emit-load-int64-variable value
+						][
 							either alt [
 								emit-variable-poly value
 									#{8A15} #{8B15}	;-- MOV rD, [value]		; global
@@ -884,6 +965,7 @@ make-profilable make target-class [
 						]
 					]
 				]
+			]
 			]
 			get-word! [
 				value: to word! value
@@ -982,10 +1064,22 @@ make-profilable make target-class [
 				emit value
 			]
 			integer! [
-				do store-dword
-				emit to-bin32 value
+				either compiler/int64? compiler/get-variable-spec name [
+					emit-load-int64-literal value first compiler/get-variable-spec name
+					emit-store name <last> none
+				][
+					do store-dword
+					emit to-bin32 value
+				]
 			]
-			issue!
+			issue! [
+				either type: compiler/int64-literal-info value [
+					emit-load-int64-literal value type/1
+					emit-store name <last> none
+				][
+					store-float-variable name
+				]
+			]
 			decimal! [
 				store-float-variable name
 			]
@@ -1023,10 +1117,35 @@ make-profilable make target-class [
 					]
 					'else [
 						set-width name
-						emit-variable-poly name
-							#{A2} 	#{A3}			;-- MOV [name], rA		; global
-							#{8883} #{8983}			;-- MOV [ebx+disp], rA	; PIC
-							#{8845} #{8945}			;-- MOV [ebp+n], rA		; local
+						either width = 8 [
+							either offset: emitter/local-offset? name [
+								offset: stack-encode offset
+								emit adjust-disp32 #{8945} offset	;-- MOV [ebp+n], eax
+								emit offset
+								offset: stack-encode (emitter/local-offset? name) + 4
+								emit adjust-disp32 #{8955} offset	;-- MOV [ebp+n+4], edx
+								emit offset
+							][
+								either PIC? [
+									emit #{50}						;-- PUSH eax
+									emit #{8D83}					;-- LEA eax, [ebx+disp]
+								][
+									emit #{B9}						;-- MOV ecx, &name
+								]
+								emit-reloc-addr emitter/symbols/:name
+								if PIC? [
+									emit #{89C1}					;-- MOV ecx, eax
+									emit #{58}						;-- POP eax
+								]
+								emit #{8901}						;-- MOV [ecx], eax
+								emit #{895104}						;-- MOV [ecx+4], edx
+							]
+						][
+							emit-variable-poly name
+								#{A2} 	#{A3}			;-- MOV [name], rA		; global
+								#{8883} #{8983}			;-- MOV [ebx+disp], rA	; PIC
+								#{8845} #{8945}			;-- MOV [ebp+n], rA		; local
+						]
 					]
 				]
 			]
@@ -1536,14 +1655,17 @@ make-profilable make target-class [
 		switch type?/word value [
 			tag! [									;-- == <last>
 				either value = <last> [
-					either compiler/any-float? compiler/last-type [
+					either compiler/int64? compiler/last-type [
+						emit #{52}					;-- PUSH edx
+						emit #{50}					;-- PUSH eax
+					][either compiler/any-float? compiler/last-type [
 						set-width/type any [all [cast cast/type] compiler/last-type]
 						emit #{83EC}				;-- SUB esp, 8|4
 						emit to-bin8 width
 						emit-float #{DD1C24}		;-- FSTP [esp]
 					][
 						emit #{50}					;-- PUSH eax
-					]
+					]]
 				][									;-- <ret-ptr> and <args-top> cases
 					either value = <ret-ptr> [
 						offset: stack-encode args-offset
@@ -1566,15 +1688,36 @@ make-profilable make target-class [
 				emit value
 			]
 			integer! [
-				either all [-128 <= value value <= 127][
-					emit #{6A}						;-- PUSH imm8
-					emit to-bin8 value
+				either all [cast compiler/int64? cast/type][
+					emit-load-int64-literal value cast/type/1
+					emit-push <last>
 				][
-					emit #{68}						;-- PUSH imm32
-					emit to-bin32 value	
+					either all [-128 <= value value <= 127][
+						emit #{6A}						;-- PUSH imm8
+						emit to-bin8 value
+					][
+						emit #{68}						;-- PUSH imm32
+						emit to-bin32 value
+					]
 				]
 			]
-			issue!
+			issue! [
+				either type: compiler/int64-literal-info value [
+					emit-load-int64-literal value type/1
+					emit-push <last>
+				][
+					value: either all [cast cast/type/1 = 'float32! not cdecl][
+						IEEE-754/to-binary32/rev value
+					][
+						value: IEEE-754/to-binary64/rev value
+						emit #{68}						;-- PUSH high part
+						emit at value 5
+						value
+					]
+					emit #{68}							;-- PUSH low part
+					emit copy/part value 4
+				]
+			]
 			decimal! [
 				value: either all [cast cast/type/1 = 'float32! not cdecl][
 					IEEE-754/to-binary32/rev value
@@ -1609,6 +1752,10 @@ make-profilable make target-class [
 						emit to-bin8 width
 						load-float-variable value
 						emit-float #{DD1C24}		;-- FSTP [esp]			; push double on stack
+					]
+					compiler/int64? type [
+						emit-load-int64-variable value
+						emit-push <last>
 					]
 					'else [
 						emit-variable value
@@ -1996,11 +2143,135 @@ make-profilable make target-class [
 			]
 		]
 	]
+
+	emit-load-int64-right: func [arg /local type][
+		type: compiler/get-type arg
+		switch/default type?/word compiler/unbox arg [
+			integer! issue! [
+				emit-load-int64-literal compiler/unbox arg type/1
+			]
+			word! [
+				emit-load-int64-variable compiler/unbox arg
+			]
+			object! [
+				emit-load arg/data
+				emit-casting arg no
+			]
+			tag! [
+				;-- already in edx:eax
+			]
+		][
+			emit-load arg
+		]
+		emit #{89C6}								;-- MOV esi, eax ; low
+		emit #{89D7}								;-- MOV edi, edx ; high
+	]
+
+	emit-int64-shift: func [name [word!] count [integer!] /local left? unsigned?][
+		unless all [0 <= count count <= 63][
+			compiler/throw-error "a value in 0-63 range is required for this shift operation"
+		]
+		left?: name = first [<<]
+		unsigned?: name = first [-**]
+		case [
+			zero? count []
+			left? [
+				either count < 32 [
+					emit #{0FA4C2} emit to-bin8 count	;-- SHLD edx, eax, count
+					emit #{C1E0} emit to-bin8 count		;-- SHL eax, count
+				][
+					emit #{89C2}						;-- MOV edx, eax
+					emit #{31C0}						;-- XOR eax, eax
+					if count > 32 [emit #{C1E2} emit to-bin8 (count - 32)]
+				]
+			]
+			unsigned? [
+				either count < 32 [
+					emit #{0FADD0} emit to-bin8 count	;-- SHRD eax, edx, count
+					emit #{C1EA} emit to-bin8 count		;-- SHR edx, count
+				][
+					emit #{89D0}						;-- MOV eax, edx
+					emit #{31D2}						;-- XOR edx, edx
+					if count > 32 [emit #{C1E8} emit to-bin8 (count - 32)]
+				]
+			]
+			'else [
+				either count < 32 [
+					emit #{0FADD0} emit to-bin8 count	;-- SHRD eax, edx, count
+					emit #{C1FA} emit to-bin8 count		;-- SAR edx, count
+				][
+					emit #{89D0}						;-- MOV eax, edx
+					emit #{C1FA1F}						;-- SAR edx, 31
+					if count > 32 [emit #{C1F8} emit to-bin8 (count - 32)]
+				]
+			]
+		]
+	]
+
+	emit-int64-multiply: has [][
+		emit #{53}									;-- PUSH ebx
+		emit #{89C1}								;-- MOV ecx, eax	; left low
+		emit #{0FAFD6}								;-- IMUL edx, esi	; left high * right low
+		emit #{0FAFF9}								;-- IMUL edi, ecx	; right high * left low
+		emit #{89D3}								;-- MOV ebx, edx
+		emit #{01FB}								;-- ADD ebx, edi
+		emit #{F7E6}								;-- MUL esi		; left low * right low
+		emit #{01DA}								;-- ADD edx, ebx	; low 64 bits
+		emit #{5B}									;-- POP ebx
+	]
+
+	emit-int64-comparison: func [name [word!]][
+		unless find [= <>] name [
+			compiler/throw-error "ordered 64-bit integer comparisons are not implemented for IA-32 yet"
+		]
+		emit #{39FA}								;-- CMP edx, edi	; compare high
+		emit #{7502}								;-- JNE +2
+		emit #{39F0}								;-- CMP eax, esi	; compare low when high equal
+	]
+
+	emit-int64-operation: func [name [word!] args [block!] /local right][
+		if all [find comparison-op name not find [= <>] name][
+			compiler/throw-error "ordered 64-bit integer comparisons are not implemented for IA-32 yet"
+		]
+		if all [find [/ //] name][
+			compiler/throw-error "64-bit integer divide/modulo are not implemented for IA-32 yet"
+		]
+		unless args/1 = <last> [emit-load args/1]
+		case [
+			find bitshift-op name [
+				right: compiler/unbox args/2
+				unless integer? right [
+					compiler/throw-error "64-bit integer shifts require a literal count for now"
+				]
+				emit-int64-shift name right
+			]
+			find [= <>] name [
+				emit #{52} emit #{50}					;-- save left high/low
+				emit-load-int64-right args/2
+				emit #{58} emit #{5A}					;-- restore left low/high
+				emit-int64-comparison name
+			]
+			'else [
+				emit #{52} emit #{50}					;-- save left high/low
+				emit-load-int64-right args/2
+				emit #{58} emit #{5A}					;-- restore left low/high
+				switch name [
+					+   [emit #{01F0} emit #{11FA}]		;-- ADD eax, esi / ADC edx, edi
+					-   [emit #{29F0} emit #{19FA}]		;-- SUB eax, esi / SBB edx, edi
+					*   [emit-int64-multiply]
+					and [emit #{21F0} emit #{21FA}]
+					or  [emit #{09F0} emit #{09FA}]
+					xor [emit #{31F0} emit #{31FA}]
+				]
+			]
+		]
+	]
 	
 	emit-integer-operation: func [name [word!] args [block!] /local a b sorted? left right][
 		if verbose >= 3 [print [">>>inlining integer op:" mold name mold args]]
 
 		set-width args/1							;-- set reg/mem access width
+		if width = 8 [return emit-int64-operation name args]
 		set [a b] get-arguments-class args
 		last-saved?: no								;-- reset flag
 

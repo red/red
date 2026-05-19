@@ -78,7 +78,7 @@ dtoa: context [
 	freelist: [null null null null null null null null]
 	KMax: (size? freelist) - 1
 
-	int64!: alias struct! [int1 [integer!] int2 [integer!]]
+	dtoa-int64!: alias struct! [int1 [integer!] int2 [integer!]]
 
 	big-int!: alias struct! [
 		next	[big-int!]
@@ -570,8 +570,8 @@ dtoa: context [
 		/local
 			fa	[float!]
 			fb	[float!]
-			da	[int64!]
-			db	[int64!]
+			da	[dtoa-int64!]
+			db	[dtoa-int64!]
 			k	[integer!]
 			ka	[integer!]
 			kb	[integer!]
@@ -580,8 +580,8 @@ dtoa: context [
 		kb: 0
 		fa: big-to-float a :ka
 		fb: big-to-float b :kb
-		da: as int64! :fa
-		db: as int64! :fb
+		da: as dtoa-int64! :fa
+		db: as dtoa-int64! :fb
 		k: 32 * (a/wds - b/wds) + ka - kb
 		either k > 0 [
 			da/int2: da/int2 + (k * DTOA_EXP_MSK1)
@@ -656,7 +656,7 @@ dtoa: context [
 		e		[int-ptr!]
 		return: [float!]
 		/local
-			d [int64! value] xa xa0 w y z k f
+			d [dtoa-int64! value] xa xa0 w y z k f
 	][
 		f:   as pointer! [float!] d
 		xa0: DTOA_BIG_INT_X(a)
@@ -695,7 +695,7 @@ dtoa: context [
 	][
 		b:  Balloc 1
 		x:  DTOA_BIG_INT_X(b)
-		d:  as int64! :f
+		d:  as dtoa-int64! :f
 		w0: WORD_0(d)
 		z:  w0 and FRAC_MASK
 		w0: w0 and 7FFFFFFFh			;-- clear sign bit, which we ignore
@@ -758,7 +758,7 @@ dtoa: context [
 		return: [c-string!]
 		/local
 			b b1 mlo mhi SS delta [big-int!]
-			d d2 [int64!]
+			d d2 [dtoa-int64!]
 			s s0 [c-string!]
 			DTOA_RETURN_1 DTOA_RETURN DTOA_ROUND_OFF [subroutine!]
 			fsave ds kf [float!]
@@ -775,7 +775,7 @@ dtoa: context [
 		k:     0
 		fsave: 0.0
 		kf:    0.0
-		d:     as int64! :f
+		d:     as dtoa-int64! :f
 		w0:    WORD_0(d)
 		w1:    WORD_1(d)
 
@@ -1145,14 +1145,14 @@ dtoa: context [
 		e		[int-ptr!]
 		return: [big-int!]
 		/local
-			d	[int64!]
+			d	[dtoa-int64!]
 			b	[big-int!]
 			x	[int-ptr!]
 			x0	[integer!]
 			x1	[integer!]
 			exp [integer!]
 	][
-		d:     as int64! :f
+		d:     as dtoa-int64! :f
 		b:     Balloc 1
 		x:     DTOA_BIG_INT_X(b)
 		b/wds: 2
@@ -1193,10 +1193,10 @@ dtoa: context [
 		f		[float!]
 		return: [float!]
 		/local
-			d	[int64!]
+			d	[dtoa-int64!]
 			L	[integer!]
 	][
-		d: as int64! :f
+		d: as dtoa-int64! :f
 		L: d/int2 and DTOA_EXP_MASK - (52 * DTOA_EXP_MSK1)
 		d/int2: L
 		d/int1: 0
@@ -1208,10 +1208,10 @@ dtoa: context [
 		bc		[cmp-info!]
 		return: [float!]
 		/local
-			b	[int64!]
-			u	[int64!]
+			b	[dtoa-int64!]
+			u	[dtoa-int64!]
 	][
-		b: as int64! :f
+		b: as dtoa-int64! :f
 		u: b
 		either all [
 			bc/scale <> 0
@@ -1226,7 +1226,7 @@ dtoa: context [
 	]
 
 	bigcomp: func [
-		rv		[int64!]
+		rv		[dtoa-int64!]
 		s0		[byte-ptr!]
 		bc		[cmp-info!]
 		/local
@@ -1322,7 +1322,7 @@ dtoa: context [
 		/local
 			bb bb1 bd bd0 bs delta [big-int!]
 			s s0 s1 [byte-ptr!]
-			d d0 d2 [int64!]
+			d d0 d2 [dtoa-int64!]
 			bc [cmp-info! value]
 			STRTOD_RETURN STRTOD_OVERFLOW STRTOD_BREAK STRTOD_DROP_DOWN prescan [subroutine!]
 			rv rv0 aadj2 aadj aadj1 adj [float!]
@@ -1342,9 +1342,9 @@ dtoa: context [
 		rv:        0.0
 		rv0:       0.0
 		aadj2:     0.0
-		d:         as int64! :rv
-		d0:        as int64! :rv0
-		d2:        as int64! :aadj2
+		d:         as dtoa-int64! :rv
+		d0:        as dtoa-int64! :rv0
+		d2:        as dtoa-int64! :aadj2
 		s:         start
 		c:         s/1
 		ret/value: 0
