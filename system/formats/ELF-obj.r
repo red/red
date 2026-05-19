@@ -6,9 +6,10 @@ REBOL [
 	Rights:  "Copyright (C) 2011-2025 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 	Purpose: {
-		Parses ELF32 i386 relocatable object files (ET_REL, EM_386) for
-		static linking. Exposes the same context interface as COFF.r so the
-		static linker can drive either format through one `reader` handle.
+		Parses ELF32 i386 and ARM relocatable object files (ET_REL, EM_386 /
+		EM_ARM) for static linking. Exposes the same context interface as
+		COFF.r so the static linker can drive either format through one
+		`reader` handle.
 	}
 ]
 
@@ -18,6 +19,7 @@ elf-obj: context [
 
 	ET_REL:			1				;-- relocatable object
 	EM_386:			3				;-- Intel 80386
+	EM_ARM:			40				;-- ARM (32-bit)
 
 	SHT_PROGBITS:	1				;-- program data (.text/.data/.rodata)
 	SHT_SYMTAB:		2				;-- symbol table
@@ -38,6 +40,22 @@ elf-obj: context [
 	R_386_NONE:		0
 	R_386_32:		1				;-- direct 32-bit (S + A)
 	R_386_PC32:		2				;-- PC-relative 32-bit (S + A - P)
+
+	R_ARM_NONE:			0
+	R_ARM_PC24:			1			;-- 24-bit branch immediate (legacy)
+	R_ARM_ABS32:		2			;-- direct 32-bit (S + A)
+	R_ARM_REL32:		3			;-- PC-relative 32-bit (S + A - P)
+	R_ARM_CALL:			28			;-- BL/BLX 24-bit immediate
+	R_ARM_JUMP24:		29			;-- B 24-bit immediate
+	R_ARM_TARGET1:		38			;-- treated as R_ARM_ABS32 on Linux
+	R_ARM_V4BX:			40			;-- ARMv4 BX hint — no-op here
+	R_ARM_MOVW_ABS_NC:	43			;-- MOVW: bits[15:0]  of (S + A)
+	R_ARM_MOVT_ABS:		44			;-- MOVT: bits[31:16] of (S + A)
+
+	;-- e_machine of the most recently parsed object (EM_386 | EM_ARM). The
+	;-- relocation type numbers overlap between the two architectures, so
+	;-- reloc-kind dispatches on this.
+	machine: 0
 
 	;-- ===== Low-level binary access (1-based positions) =====
 
@@ -88,18 +106,36 @@ elf-obj: context [
 	]
 
 	;-- Abstract relocation kind shared with COFF.r's reader interface.
+	;-- `arm-call` / `arm-movw` / `arm-movt` are ARM instruction-field
+	;-- relocations; the static linker re-encodes them in apply-relocs.
 	reloc-kind: func [type [integer!]][
-		case [
-			type = R_386_32   ['abs32]
-			type = R_386_PC32 ['pc32]
-			type = R_386_NONE ['none]
-			true              ['unsupported]
+		either machine = EM_ARM [
+			case [
+				type = R_ARM_ABS32        ['abs32]
+				type = R_ARM_TARGET1      ['abs32]
+				type = R_ARM_REL32        ['pc32]
+				any [
+					type = R_ARM_CALL  type = R_ARM_JUMP24  type = R_ARM_PC24
+				]                         ['arm-call]
+				type = R_ARM_MOVW_ABS_NC  ['arm-movw]
+				type = R_ARM_MOVT_ABS     ['arm-movt]
+				any [type = R_ARM_NONE  type = R_ARM_V4BX]  ['none]
+				true                      ['unsupported]
+			]
+		][
+			case [
+				type = R_386_32   ['abs32]
+				type = R_386_PC32 ['pc32]
+				type = R_386_NONE ['none]
+				true              ['unsupported]
+			]
 		]
 	]
 
-	;-- i386 ELF stores REL relocations with the addend in place; the PC-rel
-	;-- addend (typically -4 for a CALL) already carries the next-instruction
-	;-- bias, so no extra bias is applied (unlike COFF's REL32).
+	;-- ELF stores REL relocations with the addend in place; the PC-rel
+	;-- addend already carries the next-instruction bias, so no extra bias is
+	;-- applied to flat fields (unlike COFF's REL32). ARM branch immediates
+	;-- carry their own bias inside the instruction field (see apply-relocs).
 	pc-bias: 0
 
 	;-- ===== Main entry points =====
@@ -129,7 +165,8 @@ elf-obj: context [
 		e-type:    u16-le bin 17
 		e-machine: u16-le bin 19
 		if e-type <> ET_REL [return none]
-		if e-machine <> EM_386 [return none]
+		if not any [e-machine = EM_386  e-machine = EM_ARM][return none]
+		machine: e-machine
 		e-shoff:    u32-le bin 33
 		e-shnum:    u16-le bin 49
 		e-shstrndx: u16-le bin 51
@@ -231,7 +268,7 @@ elf-obj: context [
 		bin: read/binary path
 		obj: load-from-bin bin path
 		if none? obj [
-			print ["*** Linker Error: not an ELF32 i386 object:" path]
+			print ["*** Linker Error: not a supported ELF32 object (i386 or ARM):" path]
 			halt
 		]
 		obj

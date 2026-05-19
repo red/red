@@ -31,6 +31,7 @@ static-link: context [
 
 	reader:     none				;-- coff | elf-obj, chosen from job/format
 	obj-format: none				;-- 'PE | 'ELF
+	obj-arch:   none				;-- 'IA-32 | 'ARM  (job/target)
 	objects:    make block! 10		;-- [path object ...] every merged object
 	sym-addr:   make hash!  200		;-- C-name => [kind offset]  kind: 'code|'data|'image-base
 	call-slots: make block! 40		;-- [reloc-refs slot-offset target-info ...]
@@ -162,6 +163,7 @@ static-link: context [
 		if any [none? job/static-objs  empty? job/static-objs][exit]
 
 		obj-format: job/format
+		obj-arch:   job/target
 		libc-set: make hash! any [
 			switch job/OS [
 				Windows [libc-exports/windows]
@@ -313,19 +315,32 @@ static-link: context [
 							]
 							bare: accepted-libc? name [
 								tramp-off: length? code
-								either obj-format = 'Mach-o [
-									;-- Mach-O imports resolve to a __jump_table
-									;-- code stub: MOV eax,<stub>; JMP eax.
-									append code #{B8}				;-- MOV eax, imm32
-									disp-ref: 1 + length? code
-									append code #{00000000}
-									append code #{FFE0}			;-- JMP eax
-								][
-									;-- PE/ELF imports resolve to a pointer slot:
-									;-- JMP DWORD PTR [disp32].
-									append code #{FF25}
-									disp-ref: 1 + length? code		;-- 1-based offset of disp32
-									append code #{00000000}
+								case [
+									obj-format = 'Mach-o [
+										;-- Mach-O imports resolve to a __jump_table
+										;-- code stub: MOV eax,<stub>; JMP eax.
+										append code #{B8}				;-- MOV eax, imm32
+										disp-ref: 1 + length? code
+										append code #{00000000}
+										append code #{FFE0}			;-- JMP eax
+									]
+									obj-arch = 'ARM [
+										;-- ARM veneer: load the import slot's
+										;-- address, then jump through the slot.
+										;-- LDR ip,[pc,#0]; LDR pc,[ip]; .word slot
+										pad-to code 4					;-- 4-align the veneer
+										tramp-off: length? code
+										append code #{00C09FE500F09CE5}
+										disp-ref: 1 + length? code
+										append code #{00000000}			;-- -> import slot VA
+									]
+									true [
+										;-- PE/ELF i386 imports resolve to a pointer
+										;-- slot: JMP DWORD PTR [disp32].
+										append code #{FF25}
+										disp-ref: 1 + length? code		;-- 1-based offset of disp32
+										append code #{00000000}
+									]
 								]
 								add-libc-import job bare disp-ref
 								repend sym-addr [name reduce ['code tramp-off]]
@@ -420,13 +435,37 @@ static-link: context [
 		]
 	]
 
+	;-- ===== ARM instruction-field relocation encoders =====
+
+	;-- Re-encode a BL/B 24-bit branch immediate (R_ARM_CALL/JUMP24/PC24) so
+	;-- the instruction at `patch-va` reaches `target-va`. The in-place imm24
+	;-- field is the addend (sign-extended, <<2 — it already folds in ARM's
+	;-- 8-byte pipeline bias).
+	arm-encode-call: func [insn [integer!] target-va [integer!] patch-va [integer!] /local a disp][
+		a: insn and 16777215							;-- imm24
+		if a >= 8388608 [a: a - 16777216]				;-- sign-extend (24-bit)
+		disp: (target-va + (a * 4)) - patch-va			;-- a << 2 carries the bias
+		(insn and to integer! #{FF000000}) or ((disp / 4) and 16777215)
+	]
+
+	;-- Read / write the 16-bit immediate split across a MOVW/MOVT instruction
+	;-- (imm4 in bits 19:16, imm12 in bits 11:0).
+	arm-movw-get: func [insn [integer!]][
+		(shift/left ((shift/logical insn 16) and 15) 12) or (insn and 4095)
+	]
+	arm-movw-put: func [insn [integer!] imm16 [integer!]][
+		(insn and to integer! #{FFF0F000})
+			or (shift/left ((shift/logical imm16 12) and 15) 16)
+			or (imm16 and 4095)
+	]
+
 	;-- ===== formats/{PE,ELF}.r hook : apply relocations after layout =====
 
 	apply-relocs: func [
 		job [object!] code-base [integer!] data-base [integer!] image-base [integer!]
 		/local code data reloc slot info section sec-kind sec-base buf buf-base
 			r r-va r-sym r-type sym target-info tkind toff target-va kind
-			patch-pos patch-va addend path obj tsect tsection
+			patch-pos patch-va addend path obj tsect tsection insn a16
 	][
 		if empty? objects [exit]
 		code: job/sections/code/2
@@ -507,6 +546,26 @@ static-link: context [
 							kind = 'rva32 [
 								change at buf (patch-pos + 1)
 									le32 ((target-va - image-base) + addend)
+							]
+							kind = 'arm-call [
+								insn:     reader/u32-le buf (patch-pos + 1)
+								patch-va: buf-base + patch-pos
+								change at buf (patch-pos + 1)
+									le32 (arm-encode-call insn target-va patch-va)
+							]
+							kind = 'arm-movw [
+								insn: reader/u32-le buf (patch-pos + 1)
+								a16:  arm-movw-get insn
+								if a16 >= 32768 [a16: a16 - 65536]	;-- sign-extend (16-bit)
+								change at buf (patch-pos + 1)
+									le32 (arm-movw-put insn ((target-va + a16) and 65535))
+							]
+							kind = 'arm-movt [
+								insn: reader/u32-le buf (patch-pos + 1)
+								a16:  arm-movw-get insn
+								if a16 >= 32768 [a16: a16 - 65536]	;-- sign-extend (16-bit)
+								change at buf (patch-pos + 1)
+									le32 (arm-movw-put insn ((shift/logical (target-va + a16) 16) and 65535))
 							]
 							kind = 'none []						;-- absolute/no-op relocation
 							true [
