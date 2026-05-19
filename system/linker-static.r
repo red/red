@@ -36,6 +36,7 @@ static-link: context [
 	call-slots: make block! 40		;-- [reloc-refs slot-offset target-info ...]
 	undef-done: make block! 20		;-- undefined externals already resolved
 	libc-set:   none				;-- this build's C-library export hash (libc-exports.r)
+	max-align:  1					;-- peak alignment among merged static sections
 
 	;-- 4-byte little-endian serializer (target endianness is set up by the
 	;-- time `apply-relocs` runs, during linking).
@@ -156,6 +157,7 @@ static-link: context [
 		clear call-slots
 		clear undef-done
 		libc-set: none
+		max-align: 1
 
 		if any [none? job/static-objs  empty? job/static-objs][exit]
 
@@ -184,6 +186,8 @@ static-link: context [
 			unless info [abort reduce ["unregistered static import:" lib]]
 			load-and-merge job lib info/1
 		]
+		job/static-align: max-align					;-- ELF.r aligns .data to this
+
 		;-- Pass 2: satisfy undefined externals (libc trampolines, stubs).
 		resolve-externals job
 		;-- Pass 3: wire each user-imported function to a call slot.
@@ -225,25 +229,43 @@ static-link: context [
 		]
 	]
 
+	;-- Pad a buffer with zero bytes up to an `align`-byte boundary so the
+	;-- next merged section starts at its required alignment.
+	pad-to: func [buf [binary!] align [integer!] /local rem][
+		if align > 1 [
+			unless zero? rem: (length? buf) // align [
+				insert/dup tail buf null (align - rem)
+			]
+		]
+	]
+
 	;-- Append an object's kept sections into the build's code/data buffers,
-	;-- record each section's merged base, then register defined externals.
-	merge-sections: func [job [object!] obj [object!] /local code data section kind base sym][
+	;-- each aligned to its required boundary; record each section's merged
+	;-- base and the build's peak alignment, then register defined externals.
+	merge-sections: func [job [object!] obj [object!] /local code data section kind a base sym][
 		code: job/sections/code/2
 		data: job/sections/data/2
 		foreach section obj/sections [
 			kind: reader/sec-kind section
+			if kind [
+				a: reader/sec-align section
+				if a > max-align [max-align: a]
+			]
 			case [
 				kind = 'code [
+					pad-to code a
 					base: length? code
 					append code reader/sec-data section
 					reader/set-sec-base section 'code base
 				]
 				any [kind = 'data  kind = 'rdata][
+					pad-to data a
 					base: length? data
 					append data reader/sec-data section
 					reader/set-sec-base section 'data base
 				]
 				kind = 'bss [
+					pad-to data a
 					base: length? data
 					insert/dup tail data null reader/sec-size section
 					reader/set-sec-base section 'data base

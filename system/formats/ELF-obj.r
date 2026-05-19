@@ -147,6 +147,7 @@ elf-obj: context [
 				u32-le bin (p + 20)				;-- 5 sh_size
 				u32-le bin (p + 24)				;-- 6 sh_link
 				u32-le bin (p + 28)				;-- 7 sh_info
+				u32-le bin (p + 32)				;-- 8 sh_addralign
 			]
 			i: i + 1
 		]
@@ -164,7 +165,7 @@ elf-obj: context [
 				copy/part at bin (h/4 + 1) h/5
 			][make binary! 0]
 			append/only sections reduce [
-				name kind h/3 data h/5 (make block! 4) 'none 0
+				name kind (max 1 h/8) data h/5 (make block! 4) 'none 0
 			]
 		]
 
@@ -240,7 +241,7 @@ elf-obj: context [
 
 	sec-name:        func [s [block!]][s/1]
 	sec-kind:        func [s [block!]][s/2]
-	sec-flags:       func [s [block!]][s/3]
+	sec-align:       func [s [block!]][s/3]
 	sec-data:        func [s [block!]][s/4]
 	sec-size:        func [s [block!]][s/5]
 	sec-relocs:      func [s [block!]][s/6]

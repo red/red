@@ -181,7 +181,7 @@ coff: context [
 	load-from-bin: func [
 		bin [binary!] path
 		/local n-sections sym-tbl-off n-symbols sections symbols
-			i sec-pos name chars raw-size raw-ptr reloc-ptr reloc-cnt
+			i sec-pos name chars align raw-size raw-ptr reloc-ptr reloc-cnt
 			kind raw-data relocs r-pos r-i r-va r-sym r-type
 			sym-pos sym-name sym-value sym-sect sym-class sym-aux
 			str-tbl-off string-table s-idx machine
@@ -212,6 +212,10 @@ coff: context [
 
 			kind: section-kind name chars
 
+			;-- alignment: characteristics bits 20-23 hold log2(align) + 1
+			align: (shift/logical chars 20) and 15
+			align: either zero? align [4][shift/left 1 (align - 1)]
+
 			either all [kind  raw-ptr > 0  raw-size > 0][
 				raw-data: copy/part at bin (raw-ptr + 1) raw-size
 			][
@@ -238,7 +242,7 @@ coff: context [
 			append/only sections reduce [
 				name									;-- 1 name
 				kind									;-- 2 'code|'data|'rdata|'bss|none
-				chars									;-- 3 characteristics
+				align									;-- 3 section alignment (bytes)
 				raw-data								;-- 4 binary! (empty if dropped/BSS)
 				raw-size								;-- 5 size (VirtualSize for BSS)
 				relocs									;-- 6 [[va sym-idx type] ...]
@@ -292,7 +296,7 @@ coff: context [
 
 	sec-name:		func [s [block!]][s/1]
 	sec-kind:		func [s [block!]][s/2]
-	sec-chars:		func [s [block!]][s/3]
+	sec-align:		func [s [block!]][s/3]
 	sec-data:		func [s [block!]][s/4]
 	sec-size:		func [s [block!]][s/5]
 	sec-relocs:		func [s [block!]][s/6]

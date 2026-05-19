@@ -39,6 +39,7 @@ linker: context [
 		base-address:								;-- base address
 		static-objs:								;-- external C objects for static linking
 		buffer: none								;-- output buffer
+		static-align: 1								;-- peak alignment of merged static sections
 	]
 	
 	throw-error: func [err [word! string! block!] /warn][

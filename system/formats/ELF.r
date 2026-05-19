@@ -406,6 +406,7 @@ context [
 			".dynsym"		size [elf-symbol		1 + (length? imports) + ((length? exports) / 2)]
 			".rel.text"		size [elf-relocation	(length? imports) + (length? data-reloc)]
 			".data"			size (data-size)
+			".data"			align (job/static-align)
 			".data.rel.ro"	size [machine-word		length? imports]
 			".dynamic"		size [elf-dynamic		dynamic-size + length? libraries]
 			".stab"			size [stab-entry		2 + ((length? natives) / 2)]
@@ -1090,6 +1091,10 @@ context [
 		any [select commands reduce [name 'skip] 0]
 	]
 
+	find-align: func [commands [block!] name [string!]] [
+		select commands reduce [name 'align]
+	]
+
 	find-size: func [commands [block!] name [string!] /local data spec] [
 		if data: select commands reduce [name 'data] [
 			return size-of data
@@ -1188,7 +1193,7 @@ context [
 		"layout". A file layout collects the type, offset, address, size,
 		metadata and data for each element in the file's structure.}
 		structure [block!] commands [block!]
-		/local layout emit offset address elements-rule name type meta size
+		/local layout emit offset address elements-rule name type meta size a p prev
 	] [
 		layout: copy []
 
@@ -1215,6 +1220,17 @@ context [
 				opt [set meta block!]
 				(
 					address: address + find-skip commands name
+					;; Align this element: charge the gap to the preceding entry's
+					;; trailing padding (the serializer writes `pad` zero bytes) and
+					;; widen that entry so an enclosing segment's filesz/memsz still
+					;; span the inserted padding.
+					if all [a: find-align commands name  not zero? p: (a - (offset // a)) // a][
+						prev: last layout
+						prev/pad:  prev/pad + p
+						prev/size: prev/size + p
+						offset:  offset + p
+						address: address + p
+					]
 					size: find-size commands name
 					meta: merge-meta commands name meta
 					data: select commands reduce [name 'data]

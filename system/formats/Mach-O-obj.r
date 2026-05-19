@@ -166,7 +166,9 @@ macho-obj: context [
 							copy/part at bin (sec-off + 1) sec-size
 						][make binary! 0]
 						append/only sections reduce [
-							sectname kind flags data sec-size
+							sectname kind
+							(shift/left 1 (u32-le bin (sec-pos + 44)))	;-- 3 alignment (bytes)
+							data sec-size
 							(make block! 4) 'none 0
 							;-- reloff/nreloc stashed in slots 9/10 for pass 3
 							u32-le bin (sec-pos + 48)
@@ -264,7 +266,7 @@ macho-obj: context [
 
 	sec-name:        func [s [block!]][s/1]
 	sec-kind:        func [s [block!]][s/2]
-	sec-flags:       func [s [block!]][s/3]
+	sec-align:       func [s [block!]][s/3]
 	sec-data:        func [s [block!]][s/4]
 	sec-size:        func [s [block!]][s/5]
 	sec-relocs:      func [s [block!]][s/6]
