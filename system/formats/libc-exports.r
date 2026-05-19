@@ -567,5 +567,46 @@ libc-exports: context [
 		"__wuflow" "__wunderflow" "__x86_get_cpuid_feature_leaf" "__xmknod" "__xmknodat" "__xpg_basename" "__xpg_sigpause" "__xpg_strerror_r"
 		"__xstat" "__xstat64" "___adjtimex64" "___brk_addr"
 	]
+
+	linux-data: [
+		"optind" 4 "rpc_createerr" 16 "obstack_alloc_failed_handler" 4 "error_message_count" 4
+		"sys_nerr" 4 "argp_err_exit_status" 4 "_IO_2_1_stderr_" 152 "stdin" 4
+		"program_invocation_short_name" 4 "_thread_db_dtv_slotinfo_map" 12 "_thread_db_sizeof_td_thr_events_t" 4 "environ" 4
+		"_thread_db___pthread_keys" 12 "__ctype_b" 4 "h_nerr" 4 "__nptl_nthreads" 4
+		"_thread_db_sizeof_td_eventbuf_t" 4 "svc_fdset" 128 "_sys_siglist" 260 "__after_morecore_hook" 4
+		"_nl_domain_bindings" 4 "_thread_db_dtv_slotinfo_list_len" 12 "_thread_db_pthread_tid" 12 "__malloc_hook" 4
+		"_thread_db_register64_thread_area" 12 "_thread_db_register32_thread_area" 12 "_itoa_lower_digits" 36 "in6addr_loopback" 16
+		"re_syntax_options" 4 "_thread_db_dtv_t_counter" 12 "_sys_errlist" 492 "_thread_db_pthread_eventbuf_eventmask_event_bits" 12
+		"_thread_db___nptl_last_event" 12 "svc_pollfd" 4 "_thread_db_link_map_l_tls_modid" 12 "_thread_db_td_eventbuf_t_eventdata" 12
+		"__curbrk" 4 "_IO_list_all" 4 "_thread_db_pthread_specific" 12 "_thread_db_sizeof_list_t" 4
+		"_thread_db_rtld_global__dl_stack_used" 12 "__ctype32_tolower" 4 "_thread_db_rtld_global__dl_stack_user" 12 "_res_hconf" 48
+		"h_errlist" 20 "_IO_2_1_stdin_" 152 "__pthread_keys" 8192 "_thread_db_td_eventbuf_t_eventnum" 12
+		"_thread_db_link_map_l_tls_offset" 12 "_thread_db_pthread_eventbuf_eventmask" 12 "_thread_db_pthread_schedpolicy" 12 "__progname_full" 4
+		"__fpu_control" 2 "_nl_msg_cat_cntr" 4 "__libc_single_threaded" 1 "_IO_stdout_" 80
+		"_thread_db___nptl_nthreads" 12 "__nptl_rtld_global" 4 "_thread_db_pthread_key_data_seq" 12 "_thread_db_pthread_eventbuf" 12
+		"_IO_file_jumps" 84 "__ctype_tolower" 4 "argp_program_version_hook" 4 "__rcmd_errstr" 4
+		"_thread_db_sizeof_dtv_slotinfo_list" 4 "_thread_db_sizeof_pthread_key_data" 4 "__ctype32_toupper" 4 "__nptl_version" 5
+		"__check_rhosts_file" 4 "_thread_db_pthread_key_struct_seq" 12 "obstack_exit_failure" 4 "_null_auth" 12
+		"___brk_addr" 4 "sys_siglist" 260 "_thread_db_dtv_t_pointer_val" 12 "__progname" 4
+		"_IO_stdin_" 80 "_environ" 4 "_thread_db_pthread_schedparam_sched_priority" 12 "stdout" 4
+		"re_max_failures" 4 "loc1" 4 "loc2" 4 "optarg" 4
+		"__ctype32_b" 4 "_IO_2_1_stdout_" 152 "sys_errlist" 500 "__ctype_toupper" 4
+		"_thread_db_list_t_prev" 12 "_thread_db_pthread_key_struct_destr" 12 "error_one_per_line" 4 "__nptl_last_event" 4
+		"_thread_db_rtld_global__dl_tls_dtv_slotinfo_list" 12 "__malloc_initialize_hook" 4 "_thread_db_dtv_slotinfo_list_next" 12 "optopt" 4
+		"_thread_db_sizeof_pthread_key_struct" 4 "locs" 4 "__abort_msg" 4 "daylight" 4
+		"__tzname" 8 "_thread_db_sizeof_pthread" 4 "_IO_wfile_jumps" 84 "__key_decryptsession_pk_LOCAL" 4
+		"stderr" 4 "_thread_db_pthread_key_data_level2_data" 12 "in6addr_any" 16 "_thread_db_sizeof_dtv_slotinfo" 4
+		"_thread_db_td_thr_events_t_event_bits" 12 "_thread_db_dtv_slotinfo_list_slotinfo" 12 "tzname" 8 "_nl_default_dirname" 18
+		"__memalign_hook" 4 "timezone" 4 "_thread_db___nptl_rtld_global" 12 "_thread_db_pthread_start_routine" 12
+		"_thread_db_dtv_slotinfo_gen" 12 "__key_gendes_LOCAL" 4 "_thread_db_pthread_list" 12 "mallwatch" 4
+		"_thread_db_sizeof_pthread_key_data_level2" 4 "_thread_db_pthread_dtvp" 12 "__daylight" 4 "_sys_nerr" 4
+		"__morecore" 4 "svcauthdes_stats" 12 "__free_hook" 4 "opterr" 4
+		"program_invocation_name" 4 "_libc_intl_domainname" 5 "__nptl_threads_events" 8 "_res" 512
+		"_IO_stderr_" 80 "__key_encryptsession_pk_LOCAL" 4 "_thread_db_list_t_next" 12 "rexecoptions" 4
+		"_obstack" 4 "__environ" 4 "getdate_err" 4 "_thread_db_pthread_cancelhandling" 12
+		"_thread_db_dtv_dtv" 12 "argp_program_bug_address" 4 "_thread_db_pthread_report_events" 12 "__timezone" 4
+		"_thread_db_pthread_nextevent" 12 "__realloc_hook" 4 "argp_program_version" 4 "svc_max_pollfd" 4
+		"sys_sigabbrev" 128 "error_print_progname" 4 "_thread_db_pthread_key_data_data" 12
+	]
 	macos: linux		;-- libSystem approximated by the glibc set
 ]

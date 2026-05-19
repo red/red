@@ -108,6 +108,7 @@ context [
 		r-386-rel		8			;; relocation relative to image's base
 
 		r-arm-abs32		2			;; direct 32-bit relocation
+		r-arm-copy		20			;; copy symbol at runtime
 		r-arm-rel		23			;; relocation relative to image's base
 
 		stabs-n-undf	0			;; undefined stabs entry
@@ -304,7 +305,8 @@ context [
 			base-address dynamic-linker
 			libraries imports exports natives
 			structure segments sections commands layout
-			data-size data-reloc dynamic-size
+			data-size data-reloc dynamic-size data-imports di-pairs
+			di-name di-off di-size
 			get-address get-offset get-size get-meta get-data set-data
 			relro-offset pos list soname base
 	] [
@@ -326,6 +328,20 @@ context [
 		natives: collect-natives job
 		data-reloc: collect-data-reloc job
 
+		;; libc data-symbol imports (copy-relocated): prepend them to `exports`
+		;; as defined STT_OBJECT entries so build-dynsym emits them; build-
+		;; reltext additionally emits one R_*_COPY relocation per symbol.
+		data-imports: any [job/static-data  copy []]
+		unless empty? data-imports [
+			di-pairs: make block! 16
+			foreach [di-name di-off di-size] data-imports [
+				repend di-pairs [
+					di-name reduce ['type 'global 'offset di-off 'size di-size]
+				]
+			]
+			insert exports di-pairs
+		]
+
 		structure: copy default-structure
 
 		if job/target <> 'ARM [
@@ -343,7 +359,7 @@ context [
 			remove-elements structure [".interp"]
 		]
 
-		if empty? imports [
+		if all [empty? imports  empty? data-imports][
 			remove-elements structure [
 				".interp"
 			]
@@ -404,7 +420,7 @@ context [
 			"phdr"			size [program-header	length? segments]
 			".hash"			size [machine-word		2 + 2 + (length? imports) + ((length? exports) / 2)]
 			".dynsym"		size [elf-symbol		1 + (length? imports) + ((length? exports) / 2)]
-			".rel.text"		size [elf-relocation	(length? imports) + (length? data-reloc)]
+			".rel.text"		size [elf-relocation	(length? imports) + (length? data-reloc) + ((length? data-imports) / 3)]
 			".data"			size (data-size)
 			".data"			align (job/static-align)
 			".data.rel.ro"	size [machine-word		length? imports]
@@ -487,6 +503,7 @@ context [
 				data-reloc
 				any [attempt [get-address ".data"] 0]	;-- in case .data segment is absent
 				get-address ".text"
+				data-imports
 		]
 
 		set-data ".data" [
@@ -732,7 +749,8 @@ context [
 		relocs [block!]
 		data-address [integer!]
 		code-address [integer!]
-		/local rel-type result entry len
+		data-imports [block!]
+		/local rel-type result entry len copy-type di-name di-off di-size i
 	] [
 		rel-type: select reduce [
 			'IA-32	defs/r-386-32
@@ -761,6 +779,25 @@ context [
 			entry/info-type:	0
 			entry/info-addend:	0
 			append result entry
+		]
+
+		;; R_*_COPY for each libc data-symbol import: at start-up the loader
+		;; copies the symbol's value into the reserved `.data` slot. The data
+		;; imports occupy the first `exports` slots, hence dynsym indices
+		;; (1 + len) .. (1 + len + n - 1).
+		copy-type: select reduce [
+			'IA-32	defs/r-386-copy
+			'ARM	defs/r-arm-copy
+		] target-arch
+		i: 0
+		foreach [di-name di-off di-size] data-imports [
+			entry: make-struct elf-relocation none
+			entry/offset:		data-address + di-off
+			entry/info-sym:		copy-type
+			entry/info-type:	(1 + len + i) // 256
+			entry/info-addend:	shift/logical (1 + len + i) 8
+			append result entry
+			i: i + 1
 		]
 		result
 	]

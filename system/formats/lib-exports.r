@@ -102,12 +102,16 @@ lib-exports: context [
 
 	;-- ===== ELF dynamic symbol table (libc.so.6) =====
 
-	;-- Return a block of every name a defined global/weak symbol exports
-	;-- from an ELF32 shared object, or NONE.
+	;-- Parse an ELF32 shared object's .dynsym. Returns a two-item block:
+	;--   1. every name a defined global/weak symbol exports;
+	;--   2. the data symbols only, as [name size ...] pairs (STT_OBJECT) --
+	;--      used by the static linker to copy-relocate data-symbol imports.
+	;-- Returns NONE if the file is not a readable ELF32 shared object.
 	elf-exports: func [
 		path [file!]
 		/local bin e-shoff e-shnum hdrs i p dynsym-hdr strtab-hdr dynstr
 			n-syms result sp st-name st-info st-shndx sym-bind name h
+			st-size data-result
 	][
 		bin: read/binary path
 		if (length? bin) < 52 [return none]
@@ -137,11 +141,13 @@ lib-exports: context [
 		dynstr: copy/part at bin (strtab-hdr/2 + 1) strtab-hdr/3
 		n-syms: to integer! dynsym-hdr/3 / 16
 
-		result: make block! (1 + n-syms)
+		result:      make block! (1 + n-syms)
+		data-result: make block! 256
 		i: 0
 		while [i < n-syms][
 			sp:       dynsym-hdr/2 + (i * 16) + 1
 			st-name:  u32-le bin sp
+			st-size:  u32-le bin (sp + 8)
 			st-info:  byte-at bin (sp + 12)
 			st-shndx: u16-le bin (sp + 14)
 			sym-bind: shift/logical st-info 4
@@ -151,21 +157,31 @@ lib-exports: context [
 				st-shndx < 65280						;-- not a reserved index
 			][
 				name: read-cstring dynstr (st-name + 1)
-				unless empty? name [append result name]
+				unless empty? name [
+					append result name
+					if all [
+						1 = (st-info and 15)			;-- STT_OBJECT (data)
+						st-size > 0
+						not find data-result name
+					][
+						repend data-result [name st-size]
+					]
+				]
 			]
 			i: i + 1
 		]
-		result
+		reduce [result data-result]
 	]
 
 	;-- ===== Data-file generation =====
 
 	generate: func [
 		msvcrt [file!] libc [file!] out [file!]
-		/local win lin txt emit n
+		/local win lin lin-data txt emit n
 	][
 		win: sort unique to block! any [pe-exports msvcrt  []]
-		lin: sort unique to block! any [elf-exports libc   []]
+		set [lin lin-data] any [elf-exports libc  reduce [copy [] copy []]]
+		lin: sort unique lin
 
 		emit: func [label set /local i][
 			append txt reduce ["^/^-" label ": ["]
@@ -185,10 +201,11 @@ lib-exports: context [
 		append txt "libc-exports: context [^/"
 		emit "windows" win
 		emit "linux"   lin
+		emit "linux-data" lin-data
 		append txt "^-macos: linux^-^-;-- libSystem approximated by the glibc set^/"
 		append txt "]^/"
 		write out txt
-		reduce [length? win length? lin]
+		reduce [length? win length? lin (length? lin-data) / 2]
 	]
 ]
 
@@ -199,7 +216,7 @@ either 2 <= length? exp-args: parse any [system/script/args ""] none [
 		to-rebol-file exp-args/1
 		to-rebol-file exp-args/2
 		%libc-exports.r								;-- written next to this script
-	print ["libc-exports.r generated:" exp-counts/1 "Windows," exp-counts/2 "Linux names"]
+	print ["libc-exports.r generated:" exp-counts/1 "Windows," exp-counts/2 "Linux names," exp-counts/3 "Linux data"]
 ][
 	print "Usage: rebpro -qws lib-exports.r <msvcrt.dll path> <libc.so.6 path>"
 ]

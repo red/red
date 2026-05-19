@@ -38,6 +38,7 @@ static-link: context [
 	call-slots: make block! 40		;-- [reloc-refs slot-offset target-info ...]
 	undef-done: make block! 20		;-- undefined externals already resolved
 	libc-set:   none				;-- this build's C-library export hash (libc-exports.r)
+	libc-data-set: none				;-- this build's C-library DATA exports [name size ...]
 	max-align:  1					;-- peak alignment among merged static sections
 
 	;-- 4-byte little-endian serializer (target endianness is set up by the
@@ -160,6 +161,7 @@ static-link: context [
 		clear call-slots
 		clear undef-done
 		libc-set: none
+		libc-data-set: none
 		max-align: 1
 
 		if any [none? job/static-objs  empty? job/static-objs][exit]
@@ -174,6 +176,12 @@ static-link: context [
 			]
 			[]
 		]
+		;-- libc DATA exports (with sizes) — copy-relocated by ELF.r. The
+		;-- generated set covers the glibc/ELF targets only.
+		libc-data-set: either job/OS = 'Linux [
+			make hash! any [libc-exports/linux-data  []]
+		][none]
+		job/static-data: make block! 8				;-- [name data-offset size ...]
 		reader: case [
 			obj-format = 'PE     [coff]
 			obj-format = 'ELF    [elf-obj]
@@ -365,8 +373,12 @@ static-link: context [
 
 	;-- Walk every merged object's undefined externals and satisfy them by
 	;-- emitting a libc import trampoline or the __chkstk stub.
-	resolve-externals: func [job [object!] /local path obj sym name bare code tramp-off disp-ref][
+	resolve-externals: func [
+		job [object!]
+		/local path obj sym name bare code data tramp-off disp-ref sz data-off
+	][
 		code: job/sections/code/2
+		data: job/sections/data/2
 		foreach [path obj] objects [
 			foreach sym obj/symbols [
 				if reader/is-undefined-external? sym [
@@ -381,6 +393,17 @@ static-link: context [
 							]
 							name = "__ImageBase" [
 								repend sym-addr [name reduce ['image-base 0]]
+							]
+							sz: accepted-libc-data? name [
+								;-- libc DATA symbol: reserve a copy-relocation
+								;-- slot in `.data`. ELF.r emits an R_*_COPY so the
+								;-- loader fills it at start-up; every reference
+								;-- resolves statically to the slot.
+								pad-to data 4
+								data-off: length? data
+								insert/dup tail data null sz
+								repend job/static-data [name data-off sz]
+								repend sym-addr [name reduce ['data data-off]]
 							]
 							bare: accepted-libc? name [
 								tramp-off: length? code
@@ -432,6 +455,13 @@ static-link: context [
 		;-- ELF (SysV i386) symbols are undecorated, so no strip there.
 		bare: copy either all [obj-format <> 'ELF  #"_" = first name][next name][name]
 		either find libc-set bare [bare][none]
+	]
+
+	;-- Return the byte size of a libc DATA symbol that must be copy-relocated,
+	;-- or NONE. The data-symbol set is generated for ELF (glibc) targets only,
+	;-- so this never matches for PE / Mach-O builds.
+	accepted-libc-data?: func [name [string!]][
+		all [libc-data-set  select libc-data-set name]
 	]
 
 	;-- Register a libc import on the system C library's dynamic-import entry,

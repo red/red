@@ -38,6 +38,7 @@ linker: context [
 		debug-info:									;-- debugging informations
 		base-address:								;-- base address
 		static-objs:								;-- external C objects for static linking
+		static-data:								;-- libc data-symbol imports [name offset size ...]
 		buffer: none								;-- output buffer
 		static-align: 1								;-- peak alignment of merged static sections
 	]
