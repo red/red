@@ -2134,7 +2134,7 @@ redbin: context [
 			width:  IMAGE_WIDTH(data/3)
 			height: IMAGE_HEIGHT(data/3)
 			size:   width * height
-			if size and E0000000h <> 0 [throw-error data] ;-- if top 2 bits are set => overflow
+			if size and E0000000h <> 0 [throw-error data] ;-- if top 3 bits are set => overflow
 			size: size << 2								;-- 4 bytes per pixel
 			
 			pixels: as byte-ptr! data + 3
