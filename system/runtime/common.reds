@@ -247,6 +247,7 @@ re-throw: func [/local id [integer!]][
 				33	["FPU error"]			;-- generic SIGFPE message
 				34	["Bus error"]			;-- generic SIGBUS message
 
+				94	["out of memory"]
 				95	["no CATCH for THROW"]
 				98	["assertion failed"]
 				99	["unknown error"]
