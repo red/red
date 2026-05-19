@@ -33,6 +33,7 @@ static-link: context [
 	obj-format: none				;-- 'PE | 'ELF
 	obj-arch:   none				;-- 'IA-32 | 'ARM  (job/target)
 	objects:    make block! 10		;-- [path object ...] every merged object
+	needed:     make hash!  64		;-- bare C names still referenced (drives archive selection)
 	sym-addr:   make hash!  200		;-- C-name => [kind offset]  kind: 'code|'data|'image-base
 	call-slots: make block! 40		;-- [reloc-refs slot-offset target-info ...]
 	undef-done: make block! 20		;-- undefined externals already resolved
@@ -154,6 +155,7 @@ static-link: context [
 		/local static-libs lib list info
 	][
 		clear objects
+		clear needed
 		clear sym-addr
 		clear call-slots
 		clear undef-done
@@ -182,12 +184,9 @@ static-link: context [
 		;-- Pull static [lib list] pairs out of the dynamic import table.
 		static-libs: extract-static-imports job
 
-		;-- Pass 1: load every object, merge its sections, register symbols.
-		foreach [lib list] static-libs [
-			info: select job/static-objs lowercase copy lib
-			unless info [abort reduce ["unregistered static import:" lib]]
-			load-and-merge job lib info/1
-		]
+		;-- Pass 1: merge directly-named objects, then pull archive members
+		;-- on demand to satisfy referenced symbols.
+		merge-objects job static-libs
 		job/static-align: max-align					;-- ELF.r aligns .data to this
 
 		;-- Pass 2: satisfy undefined externals (libc trampolines, stubs).
@@ -214,21 +213,91 @@ static-link: context [
 		out
 	]
 
-	load-and-merge: func [job [object!] lib [string!] path [file!] /local obj members m sub][
-		either archive? lib [
-			members: read-archive path
-			foreach m members [
-				sub: reader/load-from-bin m/2 (rejoin [to-local-file path "(" m/1 ")"])
-				if sub [
-					merge-sections job sub
-					repend objects [sub/path sub]
+	;-- Merge every directly-named object file, then pull archive (.lib/.a)
+	;-- members on demand: a member is linked in only if it defines a symbol
+	;-- that something already merged — or a user #import — refers to. The
+	;-- scan repeats to a fixpoint, since pulling one member can create fresh
+	;-- references that another member satisfies.
+	merge-objects: func [
+		job [object!] static-libs [block!]
+		/local lib list info id reloc m obj arch-members progress?
+	][
+		arch-members: make block! 32
+
+		;-- user-imported names are the initial references
+		foreach [lib list] static-libs [
+			foreach [id reloc] list [
+				unless find needed id [append needed id]
+			]
+		]
+
+		;-- merge each directly-named object; queue every archive member
+		foreach [lib list] static-libs [
+			info: select job/static-objs lowercase copy lib
+			unless info [abort reduce ["unregistered static import:" lib]]
+			either archive? lib [
+				foreach m read-archive info/1 [
+					obj: reader/load-from-bin m/2 (rejoin [to-local-file info/1 "(" m/1 ")"])
+					if obj [append/only arch-members reduce [obj false]]
+				]
+			][
+				obj: reader/load info/1
+				merge-sections job obj
+				repend objects [obj/path obj]
+				note-undefined obj
+			]
+		]
+
+		;-- pull archive members until a full pass satisfies nothing new
+		until [
+			progress?: false
+			foreach m arch-members [
+				if all [not m/2  member-defines-needed? m/1][
+					merge-sections job m/1
+					repend objects [m/1/path m/1]
+					poke m 2 true
+					note-undefined m/1
+					progress?: true
 				]
 			]
-		][
-			obj: reader/load path
-			merge-sections job obj
-			repend objects [obj/path obj]
+			not progress?
 		]
+	]
+
+	;-- Bare C name used to match references across objects: a PE/Mach-O
+	;-- leading '_' and any stdcall '@N' suffix are dropped so user names and
+	;-- object symbols compare in one namespace (ELF symbols pass through).
+	arch-bare: func [name [string!] /local p][
+		name: copy name
+		if obj-format <> 'ELF [
+			if all [not empty? name  #"_" = name/1][remove name]
+			if p: find name #"@" [clear p]
+		]
+		name
+	]
+
+	;-- Add an object's undefined externals to the `needed` reference set.
+	note-undefined: func [obj [object!] /local sym nm][
+		foreach sym obj/symbols [
+			if reader/is-undefined-external? sym [
+				nm: arch-bare reader/sym-name sym
+				unless find needed nm [append needed nm]
+			]
+		]
+	]
+
+	;-- TRUE when `obj` defines a referenced symbol that is not yet defined.
+	member-defines-needed?: func [obj [object!] /local sym raw][
+		foreach sym obj/symbols [
+			if reader/is-defined-external? sym [
+				raw: reader/sym-name sym
+				if all [
+					not select sym-addr raw
+					find needed arch-bare raw
+				][return true]
+			]
+		]
+		false
 	]
 
 	;-- Pad a buffer with zero bytes up to an `align`-byte boundary so the
