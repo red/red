@@ -3859,9 +3859,14 @@ comment {
 		--assert 2 = o5724/(quote a:)
 	
 	--test-- "#5734"
-		b: #{52454442494E0200010000000C0000003500000000000000FFFFFFFF}
-		--assert error? set 'err try [load/as b 'redbin]
-		--assert err/id = 'rb-invalid-record
+		foreach b [
+			#{52454442494E0200010000000C0000003500000000000000FFFFFFFF}		;-- FFFFh x FFFFh
+			#{52454442494E0200010000000C0000003500000000000000FFDFFFDF}		;-- DFFFh x DFFFh
+			#{52454442494E0200010000000C000000350000000000000000C000C0}		;-- C000h x C000h
+		][
+			--assert error? set 'err try [load/as b 'redbin]
+			--assert err/id = 'rb-invalid-record
+		]
 
 	--test-- "#5736"
 		--assert error? set 'err try [length? b: enbase/base (s: append/dup make {} n: 1 << 28 + 100000 "x" n) 2]
