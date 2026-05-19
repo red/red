@@ -1570,10 +1570,13 @@ natives: context [
 			len  [integer!]
 			base [integer!]
 			size [integer!]
+			overflow [subroutine!]
 	][
 		#typecheck [enbase base-arg]
 		data: as red-string! stack/arguments
 		data/cache: null
+		
+		overflow: [fire [TO_ERROR(script too-long)] 0]
 
 		base: either positive? base-arg [
 			int: as red-integer! data + 1
@@ -1592,14 +1595,12 @@ natives: context [
 		ret/head: 0
 
 		size: switch base [
-			64 [4 * len / 3 + (2 * (len / 32) + 5)]
-			58 [len * 2]
-			16 [len * 2 + (len / 32) + 32]
-			2  [8 * len + (2 * (len / 8) + 4)]
+			64 [either len > 5BB39500h [overflow][4 * (len / 3) + (4 * (len // 3) / 3) + (2 * (len / 32) + 5)]]
+			58 [either len > 3FFFFFFFh [overflow][len * 2]]
+			16 [either len > 3F03F02Fh [overflow][len * 2 + (len / 32) + 32]]
+			2  [either len > 0F83E0F7h [overflow][len * 8 + (2 * (len / 8) + 4)]]
 			default [fire [TO_ERROR(script invalid-arg) int] 0]
 		]
-		if size < 0 [fire [TO_ERROR(script too-long)]]
-		
 		node: alloc-bytes size
 		if null? node [ret/header: TYPE_NONE exit]
 
