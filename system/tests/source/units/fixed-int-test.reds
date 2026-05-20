@@ -240,7 +240,7 @@ fi-cdecl-variadic-sink: func [[cdecl variadic] return: [integer!]][1]
 		fi-i8-c: fi-i8-c >> 2
 		--assert fi-i8-c = as int8! -16
 		fi-i8-c: as int8! -64
-		fi-i8-c: fi-i8-c -** 2
+		fi-i8-c: fi-i8-c >>> 2
 		--assert fi-i8-c = as int8! 48
 		fi-i8-c: not as int8! -1
 		--assert fi-i8-c = as int8! 0
@@ -277,7 +277,7 @@ fi-cdecl-variadic-sink: func [[cdecl variadic] return: [integer!]][1]
 		fi-u8-c: fi-u8-c << 2
 		--assert fi-u8-c = as uint8! 12
 		fi-u8-c: as uint8! 240
-		fi-u8-c: fi-u8-c -** 4
+		fi-u8-c: fi-u8-c >>> 4
 		--assert fi-u8-c = as uint8! 15
 		fi-u8-c: not as uint8! 240
 		--assert fi-u8-c = as uint8! 15
@@ -315,7 +315,7 @@ fi-cdecl-variadic-sink: func [[cdecl variadic] return: [integer!]][1]
 		fi-i16-c: fi-i16-c >> 3
 		--assert fi-i16-c = as int16! -128
 		fi-i16-c: as int16! -1024
-		fi-i16-c: fi-i16-c -** 4
+		fi-i16-c: fi-i16-c >>> 4
 		--assert fi-i16-c = as int16! 4032
 		fi-i16-c: not as int16! -1
 		--assert fi-i16-c = as int16! 0
@@ -350,7 +350,7 @@ fi-cdecl-variadic-sink: func [[cdecl variadic] return: [integer!]][1]
 		fi-u16-c: fi-u16-c << 4
 		--assert fi-u16-c = as uint16! 48
 		fi-u16-c: as uint16! 61440
-		fi-u16-c: fi-u16-c -** 8
+		fi-u16-c: fi-u16-c >>> 8
 		--assert fi-u16-c = as uint16! 240
 		fi-u16-c: not as uint16! 61440
 		--assert fi-u16-c = as uint16! 4095
@@ -384,7 +384,7 @@ fi-cdecl-variadic-sink: func [[cdecl variadic] return: [integer!]][1]
 		fi-i32-c: fi-i32-c >> 4
 		--assert fi-i32-c = as int32! -64
 		fi-i32-c: as int32! -1024
-		fi-i32-c: fi-i32-c -** 8
+		fi-i32-c: fi-i32-c >>> 8
 		--assert fi-i32-c = as int32! 16777212
 		fi-i32-c: not as int32! -1
 		--assert fi-i32-c = as int32! 0
@@ -419,7 +419,7 @@ fi-cdecl-variadic-sink: func [[cdecl variadic] return: [integer!]][1]
 		fi-u32-c: fi-u32-c << 8
 		--assert fi-u32-c = as uint32! 768
 		fi-u32-c: as uint32! F0000000h
-		fi-u32-c: fi-u32-c -** 24
+		fi-u32-c: fi-u32-c >>> 24
 		--assert fi-u32-c = as uint32! 240
 		fi-u32-c: not as uint32! F0000000h
 		--assert fi-u32-c = as uint32! 268435455
@@ -444,6 +444,47 @@ fi-cdecl-variadic-sink: func [[cdecl variadic] return: [integer!]][1]
 		fi-i64-parts: as fixed-int64-parts! :fi-i64-c
 		--assert fi-i64-parts/lo = 0
 		--assert fi-i64-parts/hi = 3
+		fi-i64-a: as int64! 0000000500000008h
+		fi-i64-b: as int64! 3
+		fi-i64-c: fi-i64-a / fi-i64-b
+		fi-i64-parts: as fixed-int64-parts! :fi-i64-c
+		--assert fi-i64-parts/lo = AAAAAAADh
+		--assert fi-i64-parts/hi = 1
+		fi-i64-c: fi-i64-a % fi-i64-b
+		fi-i64-parts: as fixed-int64-parts! :fi-i64-c
+		--assert fi-i64-parts/lo = 1
+		--assert fi-i64-parts/hi = 0
+		fi-i64-c: fi-i64-a // fi-i64-b
+		fi-i64-parts: as fixed-int64-parts! :fi-i64-c
+		--assert fi-i64-parts/lo = 1
+		--assert fi-i64-parts/hi = 0
+		fi-i64-a: as int64! FFFFFFFAFFFFFFF8h
+		fi-i64-c: fi-i64-a / fi-i64-b
+		fi-i64-parts: as fixed-int64-parts! :fi-i64-c
+		--assert fi-i64-parts/lo = 55555553h
+		--assert fi-i64-parts/hi = -2
+		fi-i64-c: fi-i64-a % fi-i64-b
+		fi-i64-parts: as fixed-int64-parts! :fi-i64-c
+		--assert fi-i64-parts/lo = -1
+		--assert fi-i64-parts/hi = -1
+		fi-i64-c: fi-i64-a // fi-i64-b
+		fi-i64-parts: as fixed-int64-parts! :fi-i64-c
+		--assert fi-i64-parts/lo = 2
+		--assert fi-i64-parts/hi = 0
+		fi-i64-a: as int64! 0000000500000007h
+		fi-i64-b: as int64! 0000000200000000h
+		fi-i64-c: fi-i64-a / fi-i64-b
+		fi-i64-parts: as fixed-int64-parts! :fi-i64-c
+		--assert fi-i64-parts/lo = 2
+		--assert fi-i64-parts/hi = 0
+		fi-i64-c: fi-i64-a % fi-i64-b
+		fi-i64-parts: as fixed-int64-parts! :fi-i64-c
+		--assert fi-i64-parts/lo = 7
+		--assert fi-i64-parts/hi = 1
+		fi-i64-c: fi-i64-a // fi-i64-b
+		fi-i64-parts: as fixed-int64-parts! :fi-i64-c
+		--assert fi-i64-parts/lo = 7
+		--assert fi-i64-parts/hi = 1
 		fi-i64-c: (as int64! 00FF00FF00FF00FFh) and (as int64! 0000FFFF0000FFFFh)
 		fi-i64-parts: as fixed-int64-parts! :fi-i64-c
 		--assert fi-i64-parts/lo = 000000FFh
@@ -485,6 +526,27 @@ fi-cdecl-variadic-sink: func [[cdecl variadic] return: [integer!]][1]
 		--assert fi-i64-b >= fi-i64-b
 		--assert fi-i64-b <> fi-i64-a
 
+	--test-- "fixed-int-op-int64-direct"
+		--assert 123456789000 + 98765432100 = 222222221100
+		--assert 123456789000 - 98765432100 = 24691356900
+		--assert 12345678900 * 10 = 123456789000
+		--assert -123456789000 + 98765432100 = -24691356900
+		--assert 123456789000 / 12345678900 = 10
+		--assert 123456789009 % 12345678900 = 9
+		--assert 123456789009 // 12345678900 = 9
+		--assert -123456789009 / 12345678900 = -10
+		--assert -123456789009 % 12345678900 = -9
+		--assert -123456789009 // 12345678900 = 12345678891
+		--assert (123456789000 / 10) + (9876543210 * 2) = 32098765320
+		--assert (0000000F000000F0h and 00000003000000F0h) = 00000003000000F0h
+		--assert (0000000F00000000h or 00000000000000F0h) = 0000000F000000F0h
+		--assert (0000000F000000F0h xor 00000003000000F0h) = 0000000C00000000h
+		--assert ((as int64! 1) << 40) = 0000010000000000h
+		--assert ((as int64! 8000000000000000h) >> 60) = as int64! FFFFFFFFFFFFFFF8h
+		--assert 123456789000 > 98765432100
+		--assert -123456789000 < 98765432100
+		--assert 0000000100000000h >= 4294967296
+
 	--test-- "fixed-int-op-uint64"
 		fi-u64-a: as uint64! 0000000100000000h
 		fi-u64-b: as uint64! 0000000000000003h
@@ -496,14 +558,37 @@ fi-cdecl-variadic-sink: func [[cdecl variadic] return: [integer!]][1]
 		fi-u64-parts: as fixed-int64-parts! :fi-u64-c
 		--assert fi-u64-parts/lo = 0
 		--assert fi-u64-parts/hi = 3
+		fi-u64-a: as uint64! FFFFFFFFFFFFFFFFh
+		fi-u64-b: as uint64! 0000000100000001h
+		fi-u64-c: fi-u64-a / fi-u64-b
+		fi-u64-parts: as fixed-int64-parts! :fi-u64-c
+		--assert fi-u64-parts/lo = -1
+		--assert fi-u64-parts/hi = 0
+		fi-u64-c: fi-u64-a % fi-u64-b
+		fi-u64-parts: as fixed-int64-parts! :fi-u64-c
+		--assert fi-u64-parts/lo = 0
+		--assert fi-u64-parts/hi = 0
+		fi-u64-c: fi-u64-a // fi-u64-b
+		fi-u64-parts: as fixed-int64-parts! :fi-u64-c
+		--assert fi-u64-parts/lo = 0
+		--assert fi-u64-parts/hi = 0
+		fi-u64-b: as uint64! 3
+		fi-u64-c: fi-u64-a / fi-u64-b
+		fi-u64-parts: as fixed-int64-parts! :fi-u64-c
+		--assert fi-u64-parts/lo = 55555555h
+		--assert fi-u64-parts/hi = 55555555h
+		fi-u64-c: fi-u64-a % fi-u64-b
+		fi-u64-parts: as fixed-int64-parts! :fi-u64-c
+		--assert fi-u64-parts/lo = 0
+		--assert fi-u64-parts/hi = 0
 		fi-u64-c: as uint64! F000000000000000h
-		fi-u64-c: fi-u64-c -** 60
+		fi-u64-c: fi-u64-c >>> 60
 		fi-u64-parts: as fixed-int64-parts! :fi-u64-c
 		--assert fi-u64-parts/lo = 15
 		--assert fi-u64-parts/hi = 0
 		fi-shift-count: 60
 		fi-u64-c: as uint64! F000000000000000h
-		fi-u64-c: fi-u64-c -** fi-shift-count
+		fi-u64-c: fi-u64-c >>> fi-shift-count
 		fi-u64-parts: as fixed-int64-parts! :fi-u64-c
 		--assert fi-u64-parts/lo = 15
 		--assert fi-u64-parts/hi = 0
@@ -519,6 +604,20 @@ fi-cdecl-variadic-sink: func [[cdecl variadic] return: [integer!]][1]
 		--assert fi-u64-a >= fi-u64-a
 		--assert fi-u64-b <= fi-u64-b
 		--assert fi-u64-b <> fi-u64-a
+
+	--test-- "fixed-int-op-uint64-direct"
+		--assert ((as uint64! F000000000000000h) + (as uint64! 1000000000000000h)) = as uint64! 0
+		--assert ((as uint64! FFFFFFFFFFFFFFFFh) - (as uint64! FFFFFFFFFFFFFFFEh)) = as uint64! 1
+		--assert ((as uint64! 0000000100000000h) * (as uint64! 3)) = as uint64! 0000000300000000h
+		--assert (as uint64! FFFFFFFFFFFFFFFFh) / (as uint64! 0000000100000001h) = as uint64! 00000000FFFFFFFFh
+		--assert (as uint64! FFFFFFFFFFFFFFFFh) % (as uint64! 0000000100000001h) = as uint64! 0
+		--assert (as uint64! FFFFFFFFFFFFFFFFh) // (as uint64! 0000000100000001h) = as uint64! 0
+		--assert ((as uint64! F0F0F0F000000000h) and (as uint64! 0FF00FF000000000h)) = as uint64! 00F000F000000000h
+		--assert ((as uint64! F0F0F0F000000000h) or (as uint64! 0FF00FF000000000h)) = as uint64! FFF0FFF000000000h
+		--assert ((as uint64! F0F0F0F000000000h) xor (as uint64! 0FF00FF000000000h)) = as uint64! FF00FF0000000000h
+		--assert ((as uint64! F000000000000000h) >>> 60) = as uint64! 15
+		--assert (as uint64! FFFFFFFFFFFFFFFFh) > (as uint64! 7FFFFFFFFFFFFFFFh)
+		--assert (as uint64! 0000000100000000h) <= (as uint64! FFFFFFFFFFFFFFFFh)
 
 #if target = 'IA-32 [
 

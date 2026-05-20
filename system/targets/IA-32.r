@@ -23,6 +23,8 @@ make-profilable make target-class [
 	fpu-cword: none									;-- x87 control word reference in emitter/symbols
 	fpu-flags: to integer! #{037A}					;-- default control word, division by zero
 													;-- and invalid operands raise exceptions.
+	need-i64-div?: none							;-- if TRUE, include 64-bit division routine in code
+	i64-div-sym: '_i64_div_
 	conditions: make hash! [
 	;-- name ----------- signed --- unsigned --
 		overflow?		 #{00}		-
@@ -52,6 +54,60 @@ make-profilable make target-class [
 			emit #{83EB}							;-- SUB ebx, <offset>	; adjust to beginning of CODE segment
 			emit to-bin8 offset
 		]	
+	]
+
+	make-native-sym: func [sym [word!] /local retry][
+		if select emitter/symbols sym [
+			retry: 3
+			until [
+				sym: to word! rejoin [sym random "0123456798"]
+				if zero? retry: retry - 1 [
+					compiler/throw-error "Unable to create native helper symbol!"
+				]
+				none? emitter/symbols/:sym
+			]
+		]
+		sym
+	]
+
+	emit-i64-divide: has [][
+		if verbose >= 3 [print "^/>>>emitting I64-DIV intrinsic"]
+		emit #{
+			535583EC1C894C240CC744241000000000C74424140000000089F909F1750431C9F7F1
+			F644240DFF742885D27914C7442410010000008374241401F7D883D200F7DA85FF790C
+			8374241401F7DE83D700F7DFC7042400000000C744240400000000C744240840000000
+			31DB31EDD1E0D1D2D1D3D1D5D12424D154240439FD7706720C39F3720829F319FD
+			800C2401FF4C240875D98B4C240C80F9007523F644240DFF7413837C241400740C
+			F71C248354240400F75C24048B04248B542404EB39F644240DFF742E80F9017410
+			837C2410007422F7DB83D500F7DDEB19837C241000741289D909E9740C89F189FA
+			29D919EA89CB89D589D889EA83C41C5D5BC3
+		}
+	]
+
+	call-i64-divide: func [name [word!] /local spec mode][
+		spec: either need-i64-div? [
+			emitter/symbols/:i64-div-sym
+		][
+			i64-div-sym: make-native-sym i64-div-sym
+			need-i64-div?: yes
+			emitter/add-native i64-div-sym
+		]
+		mode: either find mod-rem-op name [
+			either (select mod-rem-func name) = 'rem [2][1]
+		][
+			0
+		]
+		emit #{B1} emit to-bin8 mode					;-- MOV cl, mode
+		emit either signed? [#{B501}][#{B500}]		;-- MOV ch, signed?
+		emit #{E8}									;-- CALL NEAR disp
+		emit-reloc-addr spec
+	]
+
+	on-finalize: does [
+		if need-i64-div? [
+			emitter/symbols/:i64-div-sym/2: emitter/tail-ptr
+			emit-i64-divide
+		]
 	]
 	
 	on-global-prolog: func [runtime? [logic!] type [word!] /local offset][
@@ -291,14 +347,28 @@ make-profilable make target-class [
 	
 	emit-save-last: does [
 		last-saved?: yes
-		unless compiler/any-float? compiler/last-type [
-			emit #{50}								;-- PUSH eax
+		case [
+			compiler/int64? compiler/last-type [
+				emit #{52}							;-- PUSH edx
+				emit #{50}							;-- PUSH eax
+			]
+			not compiler/any-float? compiler/last-type [
+				emit #{50}							;-- PUSH eax
+			]
 		]
 	]
 	
 	emit-restore-last: does [
-		unless find [float! float64! float32!] compiler/last-type/1 [
-			emit #{5A}					   			;-- POP edx
+		either compiler/int64? compiler/last-type [
+			emit #{89C6}							;-- MOV esi, eax ; right low
+			emit #{89D7}							;-- MOV edi, edx ; right high
+			emit #{58}								;-- POP eax	; left low
+			emit #{5A}								;-- POP edx	; left high
+			last-saved?: yes
+		][
+			unless find [float! float64! float32!] compiler/last-type/1 [
+				emit #{5A}					   		;-- POP edx
+			]
 		]
 	]
 	
@@ -2326,6 +2396,9 @@ make-profilable make target-class [
 			tag! [
 				;-- already in edx:eax
 			]
+			block! [
+				;-- already in edx:eax
+			]
 		][
 			emit-load arg
 		]
@@ -2419,14 +2492,18 @@ make-profilable make target-class [
 		signed?: yes								;-- final flags are a signed tri-state compare
 	]
 
-	emit-int64-operation: func [name [word!] args [block!] /local right][
-		if any [find mod-rem-op name name = first [/]] [
-			compiler/throw-error "64-bit integer divide/modulo are not implemented for IA-32 yet"
+	emit-int64-operation: func [name [word!] args [block!] /local right right-ready?][
+		if block? args/1 [args/1: <last>]
+		right: compiler/unbox args/2
+		right-ready?: all [block? right last-saved?]
+		if all [block? right args/1 <> <last> not right-ready?] [
+			emit #{89C6}							;-- MOV esi, eax ; right low
+			emit #{89D7}							;-- MOV edi, edx ; right high
+			right-ready?: yes
 		]
 		unless args/1 = <last> [emit-load args/1]
 		case [
 			find bitshift-op name [
-				right: compiler/unbox args/2
 				either integer? right [
 					emit-int64-shift name right
 				][
@@ -2438,15 +2515,23 @@ make-profilable make target-class [
 				]
 			]
 			find comparison-op name [
-				emit #{52} emit #{50}					;-- save left high/low
-				emit-load-int64-right args/2
-				emit #{58} emit #{5A}					;-- restore left low/high
+				unless right-ready? [
+					emit #{52} emit #{50}				;-- save left high/low
+					emit-load-int64-right args/2
+					emit #{58} emit #{5A}				;-- restore left low/high
+				]
 				emit-int64-comparison name
 			]
 			'else [
-				emit #{52} emit #{50}					;-- save left high/low
-				emit-load-int64-right args/2
-				emit #{58} emit #{5A}					;-- restore left low/high
+				unless right-ready? [
+					emit #{52} emit #{50}				;-- save left high/low
+					emit-load-int64-right args/2
+					emit #{58} emit #{5A}				;-- restore left low/high
+				]
+				if any [name = first [/] find mod-rem-op name] [
+					call-i64-divide name
+					exit
+				]
 				switch name [
 					+   [emit #{01F0} emit #{11FA}]		;-- ADD eax, esi / ADC edx, edi
 					-   [emit #{29F0} emit #{19FA}]		;-- SUB eax, esi / SBB edx, edi
@@ -2457,6 +2542,7 @@ make-profilable make target-class [
 				]
 			]
 		]
+		last-saved?: no
 	]
 	
 	emit-integer-operation: func [name [word!] args [block!] /local a b sorted? left right saved][

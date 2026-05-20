@@ -25,8 +25,10 @@ make-profilable make target-class [
 	
 	need-divide?: 		none						;-- if TRUE, include division routine in code
 	need-udivide?: 		none						;-- if TRUE, include unsigned division routine in code
+	need-i64-div?: 		none						;-- if TRUE, include 64-bit division routine in code
 	div-sym:			'_div_
 	udiv-sym:			'_udiv_
+	i64-div-sym:		'_i64_div_
 	
 	conditions: make hash! [
 	;-- name ----------- signed --- unsigned --
@@ -466,6 +468,7 @@ make-profilable make target-class [
 		][
 			emit-i32 opcode
 		]
+	]
 
 	emit-udivide: has [][
 		if verbose >= 3 [print "^/>>>emitting UDIVIDE intrinsic"]
@@ -504,6 +507,31 @@ make-profilable make target-class [
 			emit-i32 opcode
 		]
 	]
+
+	emit-i64-divide: has [][
+		if verbose >= 3 [print "^/>>>emitting I64-DIV intrinsic"]
+		foreach opcode [
+			#{e92d4ff0} #{e1a0c002} #{e18cc003} #{e35c0000}
+			#{1a000000} #{e7f000f0} #{e1a0c005} #{e3a05000}
+			#{e35c0000} #{0a00000a} #{e3510000} #{aa000003}
+			#{e3855001} #{e2255002} #{e2700000} #{e2e11000}
+			#{e3530000} #{aa000002} #{e2255002} #{e2722000}
+			#{e2e33000} #{e3a06000} #{e3a07000} #{e3a08000}
+			#{e3a0a000} #{e3a0b040} #{e1b00080} #{e0b11001}
+			#{e0b66006} #{e0a77007} #{e1b08088} #{e0aaa00a}
+			#{e1570003} #{8a000002} #{3a000004} #{e1560002}
+			#{3a000002} #{e0566002} #{e0c77003} #{e3888001}
+			#{e25bb001} #{1affffef} #{e3540000} #{1a000006}
+			#{e3150002} #{0a000001} #{e2788000} #{e2eaa000}
+			#{e1a00008} #{e1a0100a} #{e8bd8ff0} #{e35c0000}
+			#{0a00000e} #{e3540001} #{0a000004} #{e3150001}
+			#{0a00000a} #{e2766000} #{e2e77000} #{ea000007}
+			#{e3150001} #{0a000005} #{e1a00006} #{e1800007}
+			#{e3500000} #{0a000001} #{e0526006} #{e0c37007}
+			#{e1a00006} #{e1a01007} #{e8bd8ff0}
+		][
+			emit-i32 opcode
+		]
 	]
 	
 	;-- Check if div-sym is not user-defined, else provide a unique replacement symbol
@@ -548,6 +576,25 @@ make-profilable make target-class [
 		emit-reloc-addr refs
 		emit-i32 #{eb000000}						;-- BL .divide
 	]
+
+	call-i64-divide: func [name [word!] /local refs mode][
+		refs: third either need-i64-div? [
+			emitter/symbols/:i64-div-sym
+		][
+			i64-div-sym: make-div-sym i64-div-sym
+			need-i64-div?: yes
+			emitter/add-native i64-div-sym			;-- add an entry for the 64-bit divide pseudo-function
+		]
+		mode: either find mod-rem-op name [
+			either (select mod-rem-func name) = 'rem [2][1]
+		][
+			0
+		]
+		emit-i32 join #{e3a040} to char! mode		;-- MOV r4, #mode
+		emit-i32 either signed? [#{e3a05001}][#{e3a05000}] ;-- MOV r5, #signed?
+		emit-reloc-addr refs
+		emit-i32 #{eb000000}						;-- BL .i64-divide
+	]
 	
 	on-init: does [
 		if PIC? [
@@ -564,6 +611,10 @@ make-profilable make target-class [
 		if need-udivide? [
 			emitter/symbols/:udiv-sym/2: emitter/tail-ptr
 			emit-udivide
+		]
+		if need-i64-div? [
+			emitter/symbols/:i64-div-sym/2: emitter/tail-ptr
+			emit-i64-divide
 		]
 		if pools/active? [pools/process]			;-- trigger pools processing on end of code generation
 	]
@@ -1007,16 +1058,29 @@ make-profilable make target-class [
 	
 	emit-save-last: does [
 		last-saved?: yes
-		either find [float! float64!] compiler/last-type/1 [
-			emit-i32 #{e92d0003}					;-- PUSH {r0,r1}
-		][
-			emit-i32 #{e92d0001}					;-- PUSH {r0}
+		case [
+			any [
+				compiler/int64? compiler/last-type
+				find [float! float64!] compiler/last-type/1
+			][
+				emit-i32 #{e92d0003}				;-- PUSH {r0,r1}
+			]
+			'else [
+				emit-i32 #{e92d0001}				;-- PUSH {r0}
+			]
 		]
 	]
 
 	emit-restore-last: does [
-		unless find [float! float64! float32!] compiler/last-type/1 [
-			emit-i32 #{e8bd0002}		   			;-- POP {r1}
+		either compiler/int64? compiler/last-type [
+			emit-i32 #{e1a02000}					;-- MOV r2, r0	; right low
+			emit-i32 #{e1a03001}					;-- MOV r3, r1	; right high
+			emit-i32 #{e8bd0003}					;-- POP {r0,r1}	; left
+			last-saved?: yes
+		][
+			unless find [float! float64! float32!] compiler/last-type/1 [
+				emit-i32 #{e8bd0002}		   		;-- POP {r1}
+			]
 		]
 	]
 	
@@ -2894,6 +2958,9 @@ make-profilable make target-class [
 			tag! [
 				;-- already in r1:r0
 			]
+			block! [
+				;-- already in r1:r0
+			]
 		][
 			emit-load arg
 		]
@@ -2957,14 +3024,18 @@ make-profilable make target-class [
 		emit-i32 #{e1a01005}						;-- MOV r1, r5
 	]
 
-	emit-int64-operation: func [name [word!] args [block!] /local target right][
-		if any [find mod-rem-op name name = first [/]] [
-			compiler/throw-error "64-bit integer divide/modulo are not implemented for ARM yet"
-		]
+	emit-int64-operation: func [name [word!] args [block!] /local target right right-ready?][
+		if block? args/1 [args/1: <last>]
 		target: either args/1 = <last> [compiler/last-type/1][first compiler/get-type args/1]
+		right: compiler/unbox args/2
+		right-ready?: all [block? right last-saved?]
+		if all [block? right args/1 <> <last> not right-ready?] [
+			emit-i32 #{e1a02000}					;-- MOV r2, r0	; right low
+			emit-i32 #{e1a03001}					;-- MOV r3, r1	; right high
+			right-ready?: yes
+		]
 		unless args/1 = <last> [emit-load args/1]
 		either find bitshift-op name [
-			right: compiler/unbox args/2
 			either integer? right [
 				emit-load-imm32/reg right 2
 			][
@@ -2975,12 +3046,18 @@ make-profilable make target-class [
 			]
 			emit-int64-shift name
 		][
-			emit-i32 #{e92d0003}					;-- PUSH {r0,r1}
-			emit-load-int64-right args/2 target
-			emit-i32 #{e8bd0003}					;-- POP {r0,r1}
+			unless right-ready? [
+				emit-i32 #{e92d0003}				;-- PUSH {r0,r1}
+				emit-load-int64-right args/2 target
+				emit-i32 #{e8bd0003}				;-- POP {r0,r1}
+			]
 			either find comparison-op name [
 				emit-int64-comparison name
 			][
+				if any [name = first [/] find mod-rem-op name] [
+					call-i64-divide name
+					exit
+				]
 				switch name [
 					+   [emit-i32 #{e0900002} emit-i32 #{e0a11003}] ;-- ADDS low / ADC high
 					-   [emit-i32 #{e0500002} emit-i32 #{e0c11003}] ;-- SUBS low / SBC high
@@ -2991,6 +3068,7 @@ make-profilable make target-class [
 				]
 			]
 		]
+		last-saved?: no
 	]
 	
 	emit-integer-operation: func [name [word!] args [block!] /local a b sorted? left right saved][

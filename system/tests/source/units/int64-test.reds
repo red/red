@@ -136,7 +136,7 @@ i64-zero?: func [
 
 	--test-- "u64-shift-1"
 		u64-d: 8000000000000000h
-		u64-res-3: u64-d -** 32
+		u64-res-3: u64-d >>> 32
 		--assert u64-res-3 = as uint64! 0000000080000000h
 
 ===end-group===

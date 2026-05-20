@@ -1853,6 +1853,29 @@ system-dialect: make-profilable context [
 				spec: skip spec	2
 			]
 			if all [
+				find emitter/target/comparison-op name
+				not equal-types? list/1/1 list/2/1
+			][
+				case [
+					lossless-integer-cast? list/2 list/1 [
+						args/2: make action-class [
+							action: 'type-cast
+							type: list/1
+							data: args/2
+						]
+						list/2: list/1
+					]
+					lossless-integer-cast? list/1 list/2 [
+						args/1: make action-class [
+							action: 'type-cast
+							type: list/2
+							data: args/1
+						]
+						list/1: list/2
+					]
+				]
+			]
+			if all [
 				any [
 					find emitter/target/comparison-op name
 					find emitter/target/bitwise-op name
