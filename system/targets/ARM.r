@@ -1053,7 +1053,11 @@ make-profilable make target-class [
 	]
 	
 	emit-move-path-alt: does [
-		emit-i32 #{e1a02000}						;-- MOV r2, r0
+		either compiler/int64? compiler/last-type [
+			emit-i32 #{e92d0003}					;-- PUSH {r0,r1}
+		][
+			emit-i32 #{e1a02000}					;-- MOV r2, r0
+		]
 	]
 	
 	emit-save-last: does [
@@ -1213,39 +1217,41 @@ make-profilable make target-class [
 				from: compiler/canonical-type type
 				from-width: compiler/integer-width? from
 				signed-src?: compiler/signed-integer? from
-				if from-width < 4 [
-					either signed-src? [
-						switch from-width [
-							1 [
-								emit-i32 pick [#{e1a01c01} #{e1a00c00}] alt?
-								emit-i32 pick [#{e1a01c41} #{e1a00c40}] alt?
+				unless from-width = 8 [
+					if from-width < 4 [
+						either signed-src? [
+							switch from-width [
+								1 [
+									emit-i32 pick [#{e1a01c01} #{e1a00c00}] alt?
+									emit-i32 pick [#{e1a01c41} #{e1a00c40}] alt?
+								]
+								2 [
+									emit-i32 pick [#{e1a01801} #{e1a00800}] alt?
+									emit-i32 pick [#{e1a01841} #{e1a00840}] alt?
+								]
 							]
-							2 [
-								emit-i32 pick [#{e1a01801} #{e1a00800}] alt?
-								emit-i32 pick [#{e1a01841} #{e1a00840}] alt?
-							]
-						]
-					][
-						switch from-width [
-							1 [emit-i32 pick [#{e20110ff} #{e20000ff}] alt?]
-							2 [
-								emit-i32 pick [#{e1a01801} #{e1a00800}] alt?
-								emit-i32 pick [#{e1a01821} #{e1a00820}] alt?
+						][
+							switch from-width [
+								1 [emit-i32 pick [#{e20110ff} #{e20000ff}] alt?]
+								2 [
+									emit-i32 pick [#{e1a01801} #{e1a00800}] alt?
+									emit-i32 pick [#{e1a01821} #{e1a00820}] alt?
+								]
 							]
 						]
 					]
-				]
-				either any [value/type/1 = 'uint64! not signed-src?] [
-					either alt? [
-						emit-i32 #{e3a03000}		;-- MOV r3, #0
+					either any [value/type/1 = 'uint64! not signed-src?] [
+						either alt? [
+							emit-i32 #{e3a03000}	;-- MOV r3, #0
+						][
+							emit-i32 #{e3a01000}	;-- MOV r1, #0
+						]
 					][
-						emit-i32 #{e3a01000}		;-- MOV r1, #0
-					]
-				][
-					either alt? [
-						emit-i32 #{e1a03fc1}		;-- MOV r3, r1, ASR #31
-					][
-						emit-i32 #{e1a01fc0}		;-- MOV r1, r0, ASR #31
+						either alt? [
+							emit-i32 #{e1a03fc1}	;-- MOV r3, r1, ASR #31
+						][
+							emit-i32 #{e1a01fc0}	;-- MOV r1, r0, ASR #31
+						]
 					]
 				]
 			]
@@ -1890,6 +1896,15 @@ make-profilable make target-class [
 			]
 			path! [
 				emitter/access-path value none
+				if alt [
+					type: compiler/resolve-path-type value
+					either compiler/int64? type [
+						emit-i32 #{e1a02000}		;-- MOV r2, r0
+						emit-i32 #{e1a03001}		;-- MOV r3, r1
+					][
+						emit-i32 #{e1a01000}		;-- MOV r1, r0
+					]
+				]
 			]
 			paren! [
 				emit-load-literal none value
@@ -2201,11 +2216,14 @@ make-profilable make target-class [
 	
 	emit-store-path: func [
 		path [set-path!] type [word!] value parent [block! none!]
-		/local idx offset size slots
+		/local idx offset size slots nested? value-type pair?
 	][
 		if verbose >= 3 [print [">>>storing path:" mold path mold value]]
 		
-		size: emitter/size-of? compiler/get-type value
+		nested?: to logic! parent
+		value-type: either value = <last> [compiler/last-type][compiler/get-type value]
+		size: emitter/size-of? value-type
+		pair?: all [size = 8 not compiler/any-float? value-type]
 													;-- @@ separate 64/32-bit conventions, too messy...
 		either value = <last> [
 			if 'value = last compiler/last-type [
@@ -2239,17 +2257,32 @@ make-profilable make target-class [
 				emit-poly #{e5802000}				;-- STR r2, [r0]		; r1 = 1st struct member
 			]
 		][
-			if parent [emit-i32 #{e1a02000}]		;-- MOV r2, r0		; save value/address
+			if parent [
+				either pair? [
+					emit-i32 #{e92d0001}			;-- PUSH {r0}		; save parent address
+				][
+					emit-i32 #{e1a02000}			;-- MOV r2, r0		; save value/address
+				]
+			]
 			emit-load value							; @@ generates duplicate value loading sometimes
 			all [
 				object? value
 				not all [decimal? value/data 'float32! = value/type/1]
 				emit-casting value no
 			]
-			if all [not parent size = 8][
-				emit-i32 #{e1a02000}				;-- MOV r2, r0		; save value/address
+			case [
+				pair? [
+					emit-i32 #{e92d0003}			;-- PUSH {r0,r1}	; save 64-bit value
+				]
+				size = 8 [
+					if not parent [
+						emit-i32 #{e1a02000}		;-- MOV r2, r0		; save value/address
+					]
+				]
+				'else [
+					emit-swap-regs/alt				;-- save value/restore address
+				]
 			]
-			if size <> 8 [emit-swap-regs/alt]		;-- save value/restore address
 		]
 
 		switch type [
@@ -2258,7 +2291,9 @@ make-profilable make target-class [
 			struct!   [
 				unless parent [
 					parent: emit-access-path/short path parent
-					if size = 8 [emit-swap-regs/alt] ;-- save value/restore address
+					if all [size = 8 not pair?][
+						emit-swap-regs/alt			;-- save value/restore address
+					]
 				]
 				type: compiler/resolve-type/with path/2 parent
 				set-width/type type/1				;-- adjust operations width to member value size
@@ -2266,17 +2301,43 @@ make-profilable make target-class [
 
 				either zero? offset [
 					either width = 8 [
+						if pair? [
+							emit-i32 #{e1a02000}	;-- MOV r2, r0		; address
+							emit-i32 #{e8bd0003}	;-- POP {r0,r1}		; restore 64-bit value
+							if all [value <> <last> nested?][
+								emit-i32 #{e8bd0004} ;-- POP {r2}	; restore parent address
+							]
+						]
 						emit-i32 #{e8820003}		;-- STM r2, {r0,r1}		; r2 = address
 					][
-						emit-poly #{e5002000}		;-- STR r2, [r0]		; r2 = value
+						either width = 2 [
+							emit-i32 #{e1c020b0}	;-- STRH r2, [r0]		; r2 = value
+						][
+							emit-poly #{e5002000}	;-- STR r2, [r0]		; r2 = value
+						]
 					]
 				][
 					emit-load-imm32/reg offset 3
 					either width = 8 [
-						emit-i32 #{e0822003}		;-- ADD r2, r2, r3
+						either pair? [
+							either all [value <> <last> nested?][
+								emit-i32 #{e8bd0003} ;-- POP {r0,r1}	; restore 64-bit value
+								emit-i32 #{e8bd0004} ;-- POP {r2}	; restore parent address
+							][
+								emit-i32 #{e1a02000} ;-- MOV r2, r0	; address
+								emit-i32 #{e8bd0003} ;-- POP {r0,r1}	; restore 64-bit value
+							]
+							emit-i32 #{e0822003}	;-- ADD r2, r2, r3
+						][
+							emit-i32 #{e0822003}	;-- ADD r2, r2, r3
+						]
 						emit-i32 #{e8820003}		;-- STM r2, {r0,r1}		; r2 = address
 					][
-						emit-poly #{e7802003}		;-- STR r2, [r0, r3]	; r2 = value
+						either width = 2 [
+							emit-i32 #{e18020b3}	;-- STRH r2, [r0, r3]	; r2 = value
+						][
+							emit-poly #{e7802003}	;-- STR r2, [r0, r3]	; r2 = value
+						]
 					]
 				]
 			]
@@ -3179,7 +3240,7 @@ make-profilable make target-class [
 		unless all [
 			object? args/2
 			find [imm reg] b
-			args/2/type/1 <> 'integer!				;-- skip explicit casting to integer! (implicit)
+			not compiler/integer-type? args/2/type	;-- skip explicit casting to integer! (implicit)
 		][
 			either all [
 				object? args/2

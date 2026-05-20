@@ -342,7 +342,12 @@ make-profilable make target-class [
 	]
 	
 	emit-move-path-alt: does [
-		emit #{89C2}								;-- MOV edx, eax
+		either compiler/int64? compiler/last-type [
+			emit #{52}								;-- PUSH edx
+			emit #{50}								;-- PUSH eax
+		][
+			emit #{89C2}							;-- MOV edx, eax
+		]
 	]
 	
 	emit-save-last: does [
@@ -446,23 +451,25 @@ make-profilable make target-class [
 				from: compiler/canonical-type type
 				from-width: compiler/integer-width? from
 				signed-src?: compiler/signed-integer? from
-				if from-width < 4 [
-					code: either from-width = 1 [
-						either signed-src? [#{0FBE}][#{0FB6}]
-					][
-						either signed-src? [#{0FBF}][#{0FB7}]
+				unless from-width = 8 [
+					if from-width < 4 [
+						code: either from-width = 1 [
+							either signed-src? [#{0FBE}][#{0FB6}]
+						][
+							either signed-src? [#{0FBF}][#{0FB7}]
+						]
+						emit code
+						emit pick [#{D2} #{C0}] alt?
 					]
-					emit code
-					emit pick [#{D2} #{C0}] alt?
-				]
-				either any [value/type/1 = 'uint64! not signed-src?] [
-					either alt? [emit #{31FF}][emit #{31D2}] ;-- XOR edi|edx, high
-				][
-					either alt? [
-						emit #{89D7}				;-- MOV edi, edx
-						emit #{C1FF1F}				;-- SAR edi, 31
+					either any [value/type/1 = 'uint64! not signed-src?] [
+						either alt? [emit #{31FF}][emit #{31D2}] ;-- XOR edi|edx, high
 					][
-						emit #{99}					;-- CDQ
+						either alt? [
+							emit #{89D7}			;-- MOV edi, edx
+							emit #{C1FF1F}			;-- SAR edi, 31
+						][
+							emit #{99}				;-- CDQ
+						]
 					]
 				]
 			]
@@ -1390,11 +1397,23 @@ make-profilable make target-class [
 					emit to-bin32 offset
 				]
 			][
-				either zero? offset [
-					emit-poly [#{8A00} #{8B00}]		;-- MOV rA, [eax]
+				either width = 8 [
+					either zero? offset [
+						emit #{8B5004}				;-- MOV edx, [eax+4]
+						emit #{8B00}				;-- MOV eax, [eax]
+					][
+						emit #{8B90}				;-- MOV edx, [eax+offset+4]
+						emit to-bin32 offset + 4
+						emit #{8B80}				;-- MOV eax, [eax+offset]
+						emit to-bin32 offset
+					]
 				][
-					emit-poly [#{8A80} #{8B80}]		;-- MOV rA, [eax+offset]
-					emit to-bin32 offset
+					either zero? offset [
+						emit-poly [#{8A00} #{8B00}]	;-- MOV rA, [eax]
+					][
+						emit-poly [#{8A80} #{8B80}]	;-- MOV rA, [eax+offset]
+						emit to-bin32 offset
+					]
 				]
 			]
 		]
@@ -1516,10 +1535,17 @@ make-profilable make target-class [
 
 	emit-store-path: func [
 		path [set-path!] type [word!] value parent [block! none!]
-		/local idx offset type2 spec by-val? slots
+		/local idx offset type2 spec by-val? slots size pair? nested?
 	][
 		if verbose >= 3 [print [">>>storing path:" mold path mold value]]
 		
+		nested?: to logic! parent
+		size: either value = <last> [
+			emitter/size-of? compiler/last-type
+		][
+			emitter/size-of? compiler/get-type value
+		]
+		pair?: all [size = 8 not compiler/any-float? compiler/get-type value]
 		either value = <last> [
 			if by-val?: 'value = last compiler/last-type [
 				slots: emitter/struct-slots? compiler/last-type
@@ -1528,21 +1554,32 @@ make-profilable make target-class [
 				emit #{89C2}						;-- MOV edx, eax
 			]
 		][
-			if parent [emit #{89C2}]				;-- MOV edx, eax			; save value/address
+			if parent [
+				either pair? [
+					emit #{50}						;-- PUSH eax				; save parent address
+				][
+					emit #{89C2}					;-- MOV edx, eax			; save value/address
+				]
+			]
 			emit-load value
 			all [
 				object? value
 				not all [decimal? value/data 'float32! = value/type/1]
 				emit-casting value no
 			]
-			unless all [
-				type = 'struct!
-				word? path/2
-				not object? value
-				spec: any [parent second compiler/resolve-type path/1]
-				type2: select spec path/2
-				compiler/any-float? type2
-			][emit #{92}]							;-- XCHG eax, edx			; save value/restore address
+			either pair? [
+				emit #{52}							;-- PUSH edx				; save high bits
+				emit #{50}							;-- PUSH eax				; save low bits
+			][
+				unless all [
+					type = 'struct!
+					word? path/2
+					not object? value
+					spec: any [parent second compiler/resolve-type path/1]
+					type2: select spec path/2
+					compiler/any-float? type2
+				][emit #{92}]						;-- XCHG eax, edx			; save value/restore address
+			]
 		]
 
 		switch type [
@@ -1592,6 +1629,35 @@ make-profilable make target-class [
 						][
 							emit-float #{DD98}		;-- FSTP [eax+offset]
 							emit to-bin32 offset
+						]
+					]
+					width = 8 [
+						case [
+							all [nested? value <> <last>][
+								emit #{58}			;-- POP eax					; restore low bits
+								emit #{5A}			;-- POP edx					; restore high bits
+								emit #{59}			;-- POP ecx					; restore parent address
+							]
+							nested? [
+								emit #{89C1}		;-- MOV ecx, eax			; save parent address
+								emit #{58}			;-- POP eax					; restore low bits
+								emit #{5A}			;-- POP edx					; restore high bits
+							]
+							'else [
+								emit-load path/1
+								emit #{89C1}		;-- MOV ecx, eax			; save base address
+								emit #{58}			;-- POP eax					; restore low bits
+								emit #{5A}			;-- POP edx					; restore high bits
+							]
+						]
+						either zero? offset [
+							emit #{8901}			;-- MOV [ecx], eax
+							emit #{895104}			;-- MOV [ecx+4], edx
+						][
+							emit #{8981}			;-- MOV [ecx+offset], eax
+							emit to-bin32 offset
+							emit #{8991}			;-- MOV [ecx+offset+4], edx
+							emit to-bin32 offset + 4
 						]
 					]
 					'else [
@@ -2626,7 +2692,7 @@ make-profilable make target-class [
 		either all [
 			object? args/2
 			find [imm reg] b
-			args/2/type/1 <> 'integer!				;-- skip explicit casting to integer! (implicit)
+			not compiler/integer-type? args/2/type	;-- skip explicit casting to integer! (implicit)
 		][
 			emit-casting args/2 yes					;-- do runtime conversion on edx if required
 		][

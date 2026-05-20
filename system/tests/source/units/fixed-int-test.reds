@@ -22,6 +22,29 @@ fixed-int64-parts!: alias struct! [
 	hi [integer!]
 ]
 
+fixed-int-struct!: alias struct! [
+	i8  [int8!]
+	u8  [uint8!]
+	i16 [int16!]
+	u16 [uint16!]
+	i32 [int32!]
+	u32 [uint32!]
+	i64 [int64!]
+	u64 [uint64!]
+]
+
+fixed-int-layout!: alias struct! [
+	u8  [uint8!]
+	i16 [int16!]
+	i32 [int32!]
+]
+
+fixed-int-nested!: alias struct! [
+	tag   [uint8!]
+	value [fixed-int-layout! value]
+	tail  [uint8!]
+]
+
 fi-i8-to-i32: func [value [int8!] return: [int32!] /local out [int32!]][
 	out: value
 	out
@@ -155,6 +178,13 @@ fi-cdecl-variadic-sink: func [[cdecl variadic] return: [integer!]][1]
 		--assert 4 = (size? int32!)
 		--assert 4 = (size? uint32!)
 		--assert (size? integer!) = (size? int32!)
+
+	--test-- "fixed-int-struct-size-1"
+		--assert 32 = (size? fixed-int-struct!)
+		--assert 8 = (size? fixed-int-layout!)
+		--assert 16 = (size? fixed-int-nested!)
+		fi-pad: declare struct! [u8 [uint8!] i16 [int16!]]
+		--assert 4 = (size? fi-pad)
 
 	--test-- "fixed-int-alias-1"
 		fi32-a: as int32! -123456
@@ -695,6 +725,114 @@ fi-cdecl-variadic-sink: func [[cdecl variadic] return: [integer!]][1]
 		--assert -1 = as integer! fi-pair/u32
 
 ]
+
+	--test-- "fixed-int-struct-fields-1"
+		fi-struct: declare struct! [
+			i8  [int8!]
+			u8  [uint8!]
+			i16 [int16!]
+			u16 [uint16!]
+			i32 [int32!]
+			u32 [uint32!]
+			i64 [int64!]
+			u64 [uint64!]
+		]
+		fi-struct/i8: as int8! -2
+		fi-struct/u8: as uint8! 250
+		fi-struct/i16: as int16! -300
+		fi-struct/u16: as uint16! 60000
+		fi-struct/i32: as int32! -123456
+		fi-struct/u32: as uint32! 4294967295
+		fi-struct/i64: as int64! FFFFFFFFFFFFFFFEh
+		fi-struct/u64: as uint64! FFFFFFFFFFFFFFFFh
+		--assert -2 = as int32! fi-struct/i8
+		--assert 250 = as int32! fi-struct/u8
+		--assert -300 = as int32! fi-struct/i16
+		--assert 60000 = as int32! fi-struct/u16
+		--assert fi-struct/i32 = as int32! -123456
+		--assert -1 = as integer! fi-struct/u32
+		--assert fi-struct/i64 = as int64! FFFFFFFFFFFFFFFEh
+		--assert fi-struct/u64 = as uint64! FFFFFFFFFFFFFFFFh
+		fi-i64-parts: as fixed-int64-parts! :fi-struct/i64
+		--assert fi-i64-parts/lo = -2
+		--assert fi-i64-parts/hi = -1
+		fi-u64-parts: as fixed-int64-parts! :fi-struct/u64
+		--assert fi-u64-parts/lo = -1
+		--assert fi-u64-parts/hi = -1
+
+	--test-- "fixed-int-struct-fields-2"
+		fi-direct: declare struct! [
+			i8  [int8!]
+			u8  [uint8!]
+			i16 [int16!]
+			u16 [uint16!]
+			i32 [int32!]
+			u32 [uint32!]
+			i64 [int64!]
+			u64 [uint64!]
+		]
+		fi-direct/i8: as int8! -7
+		fi-direct/u8: as uint8! 200
+		fi-direct/i16: as int16! -1234
+		fi-direct/u16: as uint16! 54321
+		fi-direct/i32: as int32! -7654321
+		fi-direct/u32: as uint32! EE6B2800h
+		fi-direct/i64: 0000000100000000h
+		fi-direct/u64: as uint64! F000000000000000h
+		--assert -7 = as int32! fi-direct/i8
+		--assert 200 = as int32! fi-direct/u8
+		--assert -1234 = as int32! fi-direct/i16
+		--assert 54321 = as int32! fi-direct/u16
+		--assert fi-direct/i32 = as int32! -7654321
+		--assert fi-direct/u32 = as uint32! EE6B2800h
+		--assert fi-direct/i64 = 0000000100000000h
+		--assert fi-direct/u64 = as uint64! F000000000000000h
+
+	--test-- "fixed-int-struct-fields-3"
+		fi-struct: declare struct! [
+			i8  [int8!]
+			u8  [uint8!]
+			i16 [int16!]
+			u16 [uint16!]
+			i32 [int32!]
+			u32 [uint32!]
+			i64 [int64!]
+			u64 [uint64!]
+		]
+		fi-i64-a: 0000000100000000h
+		fi-i64-b: 0000000000000002h
+		fi-struct/i64: fi-i64-a
+		--assert fi-struct/i64 = 0000000100000000h
+		fi-struct/i64: fi-struct/i64 + fi-i64-b
+		--assert fi-struct/i64 = 0000000100000002h
+		fi-i64-a: fi-struct/i64
+		fi-struct/i64: fi-i64-a + fi-i64-b
+		--assert fi-struct/i64 = 0000000100000004h
+		fi-u64-a: as uint64! 0000000100000000h
+		fi-u64-b: as uint64! 0000000000000002h
+		fi-struct/u64: fi-u64-a
+		fi-struct/u64: fi-struct/u64 + fi-u64-b
+		--assert fi-struct/u64 = as uint64! 0000000100000002h
+		fi-u64-a: fi-struct/u64
+		fi-struct/u64: fi-u64-a + fi-u64-b
+		--assert fi-struct/u64 = as uint64! 0000000100000004h
+
+	--test-- "fixed-int-struct-nested-1"
+		fi-nested: declare struct! [
+			tag   [uint8!]
+			value [fixed-int-layout! value]
+			tail  [uint8!]
+		]
+		fi-nested/tag: as uint8! 11
+		fi-nested/value/u8: as uint8! 250
+		fi-nested/value/i16: as int16! -300
+		fi-nested/value/i32: as int32! -123456
+		fi-nested/tail: as uint8! 22
+		--assert 11 = as int32! fi-nested/tag
+		--assert 250 = as int32! fi-nested/value/u8
+		--assert -300 = as int32! fi-nested/value/i16
+		--assert fi-nested/value/i32 = as int32! -123456
+		--assert 22 = as int32! fi-nested/tail
 
 ===end-group===
 

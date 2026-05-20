@@ -265,6 +265,7 @@ emitter: make-profilable context [
 					all [find [integer! int32! uint32!] type find [char! decimal!] type?/word value][value: to integer! value]
 					find [true false] value [value: to integer! get value]
 					all [find [integer! int32! uint32!] type not any [integer? value issue? value]][value: 0]
+					all [find [int64! uint64!] type not any [integer? value issue? value]][value: 0]
 					all [find [int8! uint8! int16! uint16!] type not any [integer? value issue? value char? value]][value: 0]
 				]
 				pad-data-buf case [
@@ -496,16 +497,28 @@ emitter: make-profilable context [
 		]
 	]
 		
-	member-offset?: func [spec [block!] name [word! none!] /local offset over][
+	member-offset?: func [spec [block!] name [word! none!] /local offset over base alias][
 		offset: 0
 		foreach [var type] spec [
+			base: type/1
+			if all [
+				'value = last type
+				alias: compiler/find-aliased type/1
+			][
+				base: alias/1
+			]
 			all [
-				find [integer! int32! uint32! int64! uint64! c-string! pointer! struct! logic!] type/1
+				find [int16! uint16!] base
+				not zero? over: offset // 2
+				offset: offset + 2 - over
+			]
+			all [
+				find [integer! int32! uint32! int64! uint64! c-string! pointer! struct! logic!] base
 				not zero? over: offset // target/struct-align-size 
 				offset: offset + target/struct-align-size - over ;-- properly account for alignment
 			]
 			all [
-				find [float! float64!] type/1
+				find [float! float64!] base
 				not zero? over: offset // target/struct-align-size ;-- align only if < 32-bit aligned (ARM/typed-float!)
 				offset: offset + 8 - over 						;-- properly account for alignment
 			]
