@@ -69,6 +69,74 @@ prin-byte: func [
 ]
 
 ;-------------------------------------------
+;-- Print a 64-bit integer stored as two 32-bit words
+;-------------------------------------------
+prin-uint64-parts: func [
+	lo		[integer!]
+	hi		[integer!]
+	/local
+		s	[c-string!]
+		c	[integer!]
+		w0	[integer!]
+		w1	[integer!]
+		w2	[integer!]
+		w3	[integer!]
+		q0	[integer!]
+		q1	[integer!]
+		q2	[integer!]
+		q3	[integer!]
+		part [integer!]
+		rem	[integer!]
+][
+	if all [zero? lo zero? hi][prin "0" exit]
+	s: "00000000000000000000"				;-- max 20 digits
+	c: 20
+	w0: lo and FFFFh
+	w1: lo >>> 16 and FFFFh
+	w2: hi and FFFFh
+	w3: hi >>> 16 and FFFFh
+	until [
+		rem: 0
+		part: (rem << 16) + w3
+		q3: part / 10
+		rem: part // 10
+		part: (rem << 16) + w2
+		q2: part / 10
+		rem: part // 10
+		part: (rem << 16) + w1
+		q1: part / 10
+		rem: part // 10
+		part: (rem << 16) + w0
+		q0: part / 10
+		rem: part // 10
+		s/c: #"0" + rem
+		c: c - 1
+		w0: q0
+		w1: q1
+		w2: q2
+		w3: q3
+		all [zero? w0 zero? w1 zero? w2 zero? w3]
+	]
+	prin s + c
+]
+
+;-------------------------------------------
+;-- Print an int64! value stored as two 32-bit words
+;-------------------------------------------
+prin-int64-parts: func [
+	lo		[integer!]
+	hi		[integer!]
+][
+	if hi < 0 [
+		prin "-"
+		lo: (not lo) + 1
+		hi: not hi
+		if zero? lo [hi: hi + 1]
+	]
+	prin-uint64-parts lo hi
+]
+
+;-------------------------------------------
 ;-- Low-level polymorphic print function 
 ;-- (not intended to be called directly)
 ;-------------------------------------------
@@ -89,6 +157,13 @@ _print: func [
 		switch list/type [
 			type-logic!	   [prin either as-logic list/value ["true"]["false"]]
 			type-integer!  [prin-int list/value]
+			type-int8!	   [prin-int list/value]
+			type-uint8!	   [prin-int list/value]
+			type-int16!	   [prin-int list/value]
+			type-uint16!   [prin-int list/value]
+			type-uint32!   [prin-uint64-parts list/value 0]
+			type-int64!	   [prin-int64-parts list/value list/_padding]
+			type-uint64!   [prin-uint64-parts list/value list/_padding]
 			type-float!    [fp: as typed-float! list unused: prin-float fp/value]
 			type-float32!  [fp32: as typed-float32! list unused32: prin-float32 fp32/value]
 			type-byte!     [prin-byte as-byte list/value]
