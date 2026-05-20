@@ -238,7 +238,7 @@ _sort: context [
 		flags	[integer!]
 		cmpfunc [integer!]
 		/local
-			n-stack top powerA lenA lenB [integer!]
+			n-stack top powerA lenA lenB buf-size [integer!]
 			beginA endA beginB endB end p pn pm [byte-ptr!]
 			min-run-len swaptype l r n-beginA n-beginB n-endB [integer!]
 			a b		[logic!]
@@ -252,7 +252,11 @@ _sort: context [
 		SORT_SWAPINIT(base width)
 		cmp: as cmpfunc! cmpfunc
 
-		buffer: allocate num / 2 * width
+		buf-size: num / 2
+		if buf-size > (MAX_INT / width) [fire [TO_ERROR(script too-long)]]
+		buf-size: buf-size * width
+		buffer: allocate buf-size
+		if null? buffer [fire [TO_ERROR(internal no-memory)]]
 		n-stack: 1 + log-b num
 		stack: as run! system/stack/allocate (size? run!) >> 2 * n-stack	;-- allocate 1 slot = 4 bytes
 		set-memory as byte-ptr! stack null-byte n-stack * size? run!

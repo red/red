@@ -3871,6 +3871,13 @@ comment {
 	--test-- "#5736"
 		--assert error? set 'err try [length? b: enbase/base (s: append/dup make {} n: 1 << 28 + 100000 "x" n) 2]
 		--assert err/id = 'too-long
+
+	--test-- "#5738"
+		blk5738: load/as #{
+52454442494E0200010000001400000005000000006CCA88010000000B00000001000000
+} 'redbin
+		--assert error? set 'err try [sort/stable blk5738]
+		--assert err/id = 'too-long
 	
 ===end-group===
 
