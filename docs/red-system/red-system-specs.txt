@@ -174,6 +174,22 @@ Allowed types for variables are:
 
 *integer!
 
+*int8!
+
+*uint8!
+
+*int16!
+
+*uint16!
+
+*int32!
+
+*uint32!
+
+*int64!
+
+*uint64!
+
 *byte!
 
 *float!
@@ -219,6 +235,39 @@ Hex letters have to be written in <b>uppercase</b> and only 2, 4 and 8 character
 The 0x prefix is often used to mark a literal hexadecimal value. It could have been used in Red/System too if the &lt;number&gt;x&lt;number&gt; literal form wasn't reserved in Red for the pair! datatype. As Red/System is a dialect of Red, it has to use the same representation for hex values, so <b>&lt;hexa&gt;h</b> was chosen instead.
 
 /note
+
+---Fixed-width integers
+
+The fixed-width integer datatypes provide explicit signed and unsigned integer storage sizes:
+
+ int8!    : signed 8-bit integer, -128 to 127
+ uint8!   : unsigned 8-bit integer, 0 to 255
+ int16!   : signed 16-bit integer, -32768 to 32767
+ uint16!  : unsigned 16-bit integer, 0 to 65535
+ int32!   : signed 32-bit integer, -2147483648 to 2147483647
+ uint32!  : unsigned 32-bit integer, 0 to 4294967295
+ int64!   : signed 64-bit integer
+ uint64!  : unsigned 64-bit integer
+
+The integer! datatype is an alias for int32! on the currently supported 32-bit targets.
+
+Fixed-width integer values can be used as variables, function arguments and return values, struct! members, and alias members. They can be mixed with byte!, c-string!, pointer!, float32!, float!, and nested struct! members in the same struct definition.
+
+Examples:
+
+ sample!: alias struct! [
+	tag  [uint8!]
+	code [int16!]
+	ptr  [pointer! [integer!]]
+	name [c-string!]
+	bits [uint64!]
+ ]
+
+ s: declare sample!
+ s/tag:  as uint8! 250
+ s/code: as int16! -1234
+ s/name: "example"
+ s/bits: as uint64! FFFFFFFFFFFFFFFFh
 
 ---Byte!
 
@@ -499,6 +548,8 @@ Struct! datatype is roughly equivalent to C struct type. It is a record of one o
 
 * Struct! values members are <u>padded</u> in memory in order to preserve optimal alignment for each target (for example, it is aligned to 4 bytes for IA32 target). <b>Size?</b> function will return the size of the struct! value in memory including the padding bytes.
 
+* Fixed-width integer struct fields follow target alignment rules: int8! and uint8! are byte-aligned, int16! and uint16! are aligned to 2 bytes, and int32!, uint32!, int64!, and uint64! are aligned like integer! fields on 32-bit targets. The final struct size is padded to the target struct alignment.
+
 * Structs declared as values do not hold any pointer as their content is inlined, so their memory location is fixed and cannot be changed by the user.
 
 +++Declaration
@@ -511,8 +562,12 @@ Declaring a struct! value is achieved by using the DECLARE STRUCT! sequence foll
  ]
  
  <member>   : a valid identifier
- <datatype> : integer! | byte! | logic! | float! | float32! | c-string! |
-              pointer! [integer! | byte! | float! | float64! | float32! | pointer!] |
+ <datatype> : integer! | byte! | int8! | uint8! | int16! | uint16! |
+              int32! | uint32! | int64! | uint64! | logic! |
+              float! | float32! | c-string! |
+              pointer! [integer! | byte! | int8! | uint8! | int16! | uint16! |
+                        int32! | uint32! | int64! | uint64! |
+                        float! | float64! | float32! | pointer!] |
               struct! [<members>] | struct! [<members>] value | function! [<spec>]
               
 The returned value of DECLARE STRUCT! is the memory address of the newly created struct! value on the heap. Struct values declared as local variables in functions have their memory slots pre-reserved.
@@ -621,7 +676,11 @@ Aliasing syntax:
  
  <name>     : the name to use as alias
  <member>   : a valid identifier
- <datatype> : integer! | byte! | pointer! [integer! | byte! | float! | float32! | pointer!] | logic! |
+ <datatype> : integer! | byte! | int8! | uint8! | int16! | uint16! |
+              int32! | uint32! | int64! | uint64! |
+              pointer! [integer! | byte! | int8! | uint8! | int16! | uint16! |
+                        int32! | uint32! | int64! | uint64! |
+                        float! | float32! | pointer!] | logic! |
               float! | float32! | c-string! | struct! [<members>] |
               struct! [<members>] value | function! [<spec>]
               
@@ -659,7 +718,7 @@ Struct usage example:
 
 ---Pointer!
 
-The purpose of the pointer datatype is to hold the memory address of another value. A pointer value is defined by the pointed value address and datatype. As c-string! and struct! are already implicit pointers, the only pointed datatypes allowed are integer!, float!, float32! and byte! (logic! pointer is not needed). 
+The purpose of the pointer datatype is to hold the memory address of another value. A pointer value is defined by the pointed value address and datatype. As c-string! and struct! are already implicit pointers, the pointed datatypes allowed are integer!, byte!, fixed-width integers, float!, float32! and pointer! (logic! pointer is not needed).
 
 Byte! pointers are equivalent to c-string! references, the difference lies only in the interpretation of the pointed values. Byte! pointer is meant to point to a stream of byte without a specified bound, while c-string! references an array of bytes terminated by a null byte.
 
@@ -671,7 +730,9 @@ New pointers value can be created using the following syntax:
 
  declare pointer! [<datatype>]
 
- <datatype>: integer! | byte! | float! | float32! | pointer!
+ <datatype>: integer! | byte! | int8! | uint8! | int16! | uint16! |
+             int32! | uint32! | int64! | uint64! |
+             float! | float32! | pointer!
 
 \note Possible syntactic sugar
 The & symbol used in previous revisions of this document has been removed due to the new limited pointer! datatype usage. It could be reintroduced again in the future if required.
@@ -696,7 +757,8 @@ Pointer declaration is only required for arguments in functions' specification b
 
  pointer! [<datatype>]
 
- <datatype>: integer! | byte! | float! | float32!
+ <datatype>: integer! | byte! | int8! | uint8! | int16! | uint16! |
+             int32! | uint32! | int64! | uint64! | float! | float32!
 
 Global variables declaration examples (with C equivalents):
 
@@ -827,7 +889,7 @@ A pointer can also point to a one-dimensional array of values literally specifie
  <variable>: [<items>]
 
  <variable> : a pointer of same type as the array items.
- <items>    : is a non-empty list of integer!, byte!, float!, logic!, c-string! literal values.
+ <items>    : is a non-empty list of integer!, byte!, fixed-width integer, float!, logic!, c-string! literal values.
  
 The array is statically allocated and can be accessed using pointer path notation or pointer arithmetic. Mixing the different allowed types in the same array is permitted (enumerations can also be used). In such case, the size of each array's slot is either 32-bit, or 64-bit if a float64! value is present.
 
@@ -1028,7 +1090,9 @@ Type casting is possible between value of compatible types. Compatible types are
  as <new-type> keep <expr>
 
  <expr>     : any valid R/S expression.
- <new-type> : integer! | byte! |  logic! | c-string! | float! | float32! |
+ <new-type> : integer! | byte! | int8! | uint8! | int16! | uint16! |
+              int32! | uint32! | int64! | uint64! |
+              logic! | c-string! | float! | float32! |
               pointer! [integer!] | struct! [<members>] |
               <alias-name>
 
@@ -1200,6 +1264,8 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 
  size? byte!				;-- will return 1
  size? integer!				;-- will return 4
+ size? uint16!				;-- will return 2
+ size? int64!				;-- will return 8
  
  s!: alias struct! [
  	a [integer!]
@@ -1324,8 +1390,11 @@ The specification block is a Red/System dialect (DSL), so the words inside such 
  <name>		  : function's name
  <attributes> : special attributes
  <argument>	  : function's argument indentifier
- <datatype>	  : integer! | byte! | logic! | 
-                pointer! [integer! | byte! | float! | float32! | pointer!] |
+ <datatype>	  : integer! | byte! | int8! | uint8! | int16! | uint16! |
+                int32! | uint32! | int64! | uint64! | logic! |
+                pointer! [integer! | byte! | int8! | uint8! | int16! | uint16! |
+                          int32! | uint32! | int64! | uint64! |
+                          float! | float32! | pointer!] |
                 float! | float32! | c-string! | struct! [<members>] |
                 struct! [<members>] value | <alias> | <alias> value |
                 function! [<spec>]		;-- only allowed for local variables!
@@ -1383,7 +1452,7 @@ Grouping of arguments or local variables by type is also possible.
 
 \note Arguments passing
 
-In the current implementation, pointer!, integer!, byte!, float!, float32! and logic! arguments are passed by value, while c-string! and struct! arguments are passed by reference. Adding the `value` keyword after a struct! type specification, allows it to be passed by value (works also for returned value).
+In the current implementation, pointer!, integer!, byte!, fixed-width integers, float!, float32! and logic! arguments are passed by value, while c-string! and struct! arguments are passed by reference. Adding the `value` keyword after a struct! type specification, allows it to be passed by value (works also for returned value).
 
 /note
 
@@ -1560,6 +1629,13 @@ Types are defined by the runtime as:
  #define type-byte-ptr!  	7
  #define type-int-ptr!		8
  #define type-function!		9
+ #define type-int64!		11
+ #define type-uint64!	12
+ #define type-int8!		13
+ #define type-uint8!		14
+ #define type-int16!		15
+ #define type-uint16!	16
+ #define type-uint32!	17
  #define type-struct!		1000
  #define any-struct?		[1000 <=]
  #define alias?  			[1001 <=]
@@ -2106,7 +2182,7 @@ The resulting value type for math operators is the type of the left argument (an
   
 where
  
- value1 : an expression returning an integer! or byte!
+ value1 : an expression returning an integer!, byte!, or fixed-width integer value
  value2 : integer! expression restricted to 0-31 range only.
 
 <u>Note</u>: There is no unsigned left shift operator as it is the same as the signed left shift one.
@@ -2131,7 +2207,7 @@ where
  
 where
  
- value1 : an expression returning an integer!, byte! or logic!
+ value1 : an expression returning an integer!, byte!, fixed-width integer, or logic! value
  value2 : expression of same datatype as <value1>
  
 <u>Note</u>: Logical NOT will return the opposite of the logic argument (TRUE<=>FALSE), while bitwise NOT will apply one's complement on the integer argument.
@@ -2166,8 +2242,8 @@ These operators can be used only where a condition is allowed. See "Control flow
  
 where
   
-  value1 : an expression returning a integer!, byte!, float!, float32!, 
-           c-string!, pointer! or struct!
+  value1 : an expression returning an integer!, byte!, fixed-width integer,
+           float!, float32!, c-string!, pointer! or struct!
 
   value2 : expression of same datatype as <value1>
 
@@ -2431,8 +2507,8 @@ Execute the block of code following the first value matched, or the default bloc
  switch <expression> [<values> [<body>] ...]
  switch <expression> [<values> [<body>] ... default [<default-body>]]
 
- <expression>   : an expression resulting in byte! or integer! value
- <values>	    : one or several integer! or byte! literal values
+ <expression>   : an expression resulting in byte!, integer!, or fixed-width integer value
+ <values>	    : one or several integer!, byte!, or fixed-width integer literal values
  <body>		    : code to execute if one of the <values> is matched
  <default-body> : code to execute if no value is matched
 
@@ -3473,7 +3549,11 @@ Red/System is able to load external shared libraries at the time a Red/System ex
  <ID>            : identifier of the function in the shared library
  <VAR>           : identifier of the variable in the shared library
  <argument>      : function's argument indentifier
- <datatype>      : integer! | byte! | pointer! [integer! | byte! | float! | float32! | logic!] |
+ <datatype>      : integer! | byte! | int8! | uint8! | int16! | uint16! |
+                   int32! | uint32! | int64! | uint64! |
+                   pointer! [integer! | byte! | int8! | uint8! | int16! | uint16! |
+                             int32! | uint32! | int64! | uint64! |
+                             float! | float32! | logic!] |
                    float! | float32! | c-string! | struct! [<members>] |
                    function! [<spec>] | <alias>
 
@@ -3551,8 +3631,11 @@ As Red/System is destined to be used mostly for low-level system programming, <a
   <function name> : name of the mapped function in global context
   <ID>			  : syscall integer ID
   <argument>	  : syscall's argument indentifier
-  <datatype>	  : integer! | byte! | pointer! [integer! | byte!] |
-             		float! | float32! | c-string! | struct! [<members>]
+  <datatype>	  : integer! | byte! | int8! | uint8! | int16! | uint16! |
+                   int32! | uint32! | int64! | uint64! |
+                   pointer! [integer! | byte! | int8! | uint8! | int16! | uint16! |
+                             int32! | uint32! | int64! | uint64!] |
+                   float! | float32! | c-string! | struct! [<members>]
 
 The <b>RETURN:</b> statement indicates that the mapped syscall has a return value.
 
@@ -4251,11 +4334,7 @@ will output:
 	p[i] = 123;					p/i: 123
 
 
-*<strike>Add a uint8! datatype</strike>
-
-*Add a uint16! (or short!) datatype
-
-*Add a uint64! (or long!) datatype
+*<strike>Add fixed-width integer datatypes (int8!, uint8!, int16!, uint16!, int32!, uint32!, int64!, uint64!)</strike>
 
 *<strike><b>Binary!</b>: this datatype was reserved early in the compiler's datatypes list, but not implemented. Its purpose was just to provide literal input/output forms in hexadecimal for c-string values. A standalone datatype for such purpose might be avoidable, hence the delayed implementation.</strike> <i><b>REJECTED</b></i>
  
