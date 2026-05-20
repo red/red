@@ -354,7 +354,7 @@ get-caret-blink-time: routine [
 		#import [
 			"user32.dll" stdcall [
 				GetCaretBlinkTime: "GetCaretBlinkTime" [
-					return:		[uint!]
+					return:		[integer!]
 				]
 			]
 		]
