@@ -717,8 +717,8 @@ make-profilable make target-class [
 		]
 	]
 
-	int32-from-hex8: func [hex [string!]][
-		to integer! to issue! hex
+	int32-from-hex8: func [hex [string! binary! issue!]][
+		to integer! to issue! to string! hex
 	]
 
 	emit-load-int64-literal: func [value type [word!] /alt /local hex high low][
@@ -2584,8 +2584,8 @@ make-profilable make target-class [
 		emit-load-int64-right args/2 target
 		emit-i32 #{e8bd0003}						;-- POP {r0,r1}
 		switch name [
-			+   [emit-i32 #{e0800002} emit-i32 #{e0a11003}] ;-- ADD low / ADC high
-			-   [emit-i32 #{e0400002} emit-i32 #{e0c11003}] ;-- SUB low / SBC high
+			+   [emit-i32 #{e0900002} emit-i32 #{e0a11003}] ;-- ADDS low / ADC high
+			-   [emit-i32 #{e0500002} emit-i32 #{e0c11003}] ;-- SUBS low / SBC high
 			and [emit-i32 #{e0000002} emit-i32 #{e0011003}]
 			or  [emit-i32 #{e1800002} emit-i32 #{e1811003}]
 			xor [emit-i32 #{e0200002} emit-i32 #{e0211003}]

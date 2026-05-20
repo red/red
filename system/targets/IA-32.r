@@ -1690,6 +1690,7 @@ make-profilable make target-class [
 			integer! [
 				either all [cast compiler/int64? cast/type][
 					emit-load-int64-literal value cast/type/1
+					compiler/last-type: cast/type
 					emit-push <last>
 				][
 					either all [-128 <= value value <= 127][
@@ -1704,6 +1705,7 @@ make-profilable make target-class [
 			issue! [
 				either type: compiler/int64-literal-info value [
 					emit-load-int64-literal value type/1
+					compiler/last-type: reduce [type/1]
 					emit-push <last>
 				][
 					value: either all [cast cast/type/1 = 'float32! not cdecl][
@@ -1755,6 +1757,7 @@ make-profilable make target-class [
 					]
 					compiler/int64? type [
 						emit-load-int64-variable value
+						compiler/last-type: type
 						emit-push <last>
 					]
 					'else [
