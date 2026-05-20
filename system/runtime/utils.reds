@@ -77,45 +77,19 @@ prin-uint64-parts: func [
 	/local
 		s	[c-string!]
 		c	[integer!]
-		w0	[integer!]
-		w1	[integer!]
-		w2	[integer!]
-		w3	[integer!]
-		q0	[integer!]
-		q1	[integer!]
-		q2	[integer!]
-		q3	[integer!]
-		part [integer!]
+		value [uint64!]
 		rem	[integer!]
 ][
-	if all [zero? lo zero? hi][prin "0" exit]
+	value: ((as uint64! as uint32! hi) << 32) or (as uint64! as uint32! lo)
+	if value = as uint64! 0 [prin "0" exit]
 	s: "00000000000000000000"				;-- max 20 digits
 	c: 20
-	w0: lo and FFFFh
-	w1: lo >>> 16 and FFFFh
-	w2: hi and FFFFh
-	w3: hi >>> 16 and FFFFh
 	until [
-		rem: 0
-		part: (rem << 16) + w3
-		q3: part / 10
-		rem: part // 10
-		part: (rem << 16) + w2
-		q2: part / 10
-		rem: part // 10
-		part: (rem << 16) + w1
-		q1: part / 10
-		rem: part // 10
-		part: (rem << 16) + w0
-		q0: part / 10
-		rem: part // 10
+		rem: as integer! value % as uint64! 10
 		s/c: #"0" + rem
 		c: c - 1
-		w0: q0
-		w1: q1
-		w2: q2
-		w3: q3
-		all [zero? w0 zero? w1 zero? w2 zero? w3]
+		value: value / as uint64! 10
+		value = as uint64! 0
 	]
 	prin s + c
 ]
