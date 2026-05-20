@@ -61,6 +61,7 @@ ptr-ptr!: alias struct! [value [int-ptr!]]
 
 #define type-logic!		1					;-- type ID list for 'typed' attribute
 #define type-integer!	2
+#define type-int32!		2					;-- integer! is an alias for int32!
 #define type-byte!	    3
 #define type-float32!	4
 #define type-float64!	5					;-- float! is just an alias for float64!
@@ -69,6 +70,13 @@ ptr-ptr!: alias struct! [value [int-ptr!]]
 #define type-byte-ptr!  7
 #define type-int-ptr!	8
 #define type-function!	9
+#define type-int64!		11
+#define type-uint64!	12
+#define type-int8!		13
+#define type-uint8!		14
+#define type-int16!		15
+#define type-uint16!	16
+#define type-uint32!	17
 #define type-struct!	1000
 #define any-struct?		[1000 <=]
 #define alias?  		[1001 <=]

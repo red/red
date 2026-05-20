@@ -700,17 +700,20 @@ system-dialect: make-profilable context [
 			type
 		]
 
-		integer-type?: func [type [block! word!]][
+		integer-type?: func [type [block! word! integer! none!]][
+			if any [none? type integer? type][return false]
 			if block? type [type: type/1]
 			to logic! find integer-types type
 		]
 
-		int32-type?: func [type [block! word!]][
+		int32-type?: func [type [block! word! integer! none!]][
+			if any [none? type integer? type][return false]
 			if block? type [type: type/1]
 			to logic! find [integer! int32!] type
 		]
 
-		integer-width?: func [type [block! word!]][
+		integer-width?: func [type [block! word! integer! none!]][
+			if any [none? type integer? type][return none]
 			if block? type [type: type/1]
 			select [
 				byte! 1 uint8! 1 int8! 1
@@ -720,12 +723,14 @@ system-dialect: make-profilable context [
 			] type
 		]
 
-		signed-integer?: func [type [block! word!]][
+		signed-integer?: func [type [block! word! integer! none!]][
+			if any [none? type integer? type][return false]
 			if block? type [type: type/1]
 			to logic! find signed-integers type
 		]
 
-		unsigned-integer?: func [type [block! word!]][
+		unsigned-integer?: func [type [block! word! integer! none!]][
+			if any [none? type integer? type][return false]
 			if block? type [type: type/1]
 			to logic! find unsigned-integers type
 		]
@@ -756,7 +761,8 @@ system-dialect: make-profilable context [
 			]
 		]
 
-		int64?: func [type [block! word!]][
+		int64?: func [type [block! word! integer! none!]][
+			if any [none? type integer? type][return false]
 			if block? type [type: type/1]
 			to logic! find int64-types type
 		]
@@ -3293,7 +3299,7 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		comp-func-args: func [name [word!] entry [hash!] /local attribute fetch expr args n pos][
+		comp-func-args: func [name [word!] entry [hash!] /local attribute fetch expr args n pos id type][
 			push-call name
 			pc: next pc							;-- it's a function
 			either attribute: check-variable-arity? entry/2/4 [
@@ -3309,9 +3315,13 @@ system-dialect: make-profilable context [
 							pc: pos
 							throw-error "expression has no defined return type"
 						]
+						type: get-type expr
 						append args id: get-type-id expr
 						append/only args expr
-						append args pick [#_ 0] id = emitter/datatype-ID/float! ;-- 32-bit padding
+						append args pick [#_ 0] to logic! any [
+							id = emitter/datatype-ID/float!
+							int64? type
+						]						;-- 32-bit padding
 					][
 						append/only args expr
 					]

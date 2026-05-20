@@ -1725,6 +1725,38 @@ make-profilable make target-class [
 			emit #{F3A5}							;-- REP MOVS
 		]
 	]
+
+	emit-extend-int32: func [type [block! word! integer! none!] /local target][
+		if any [none? type integer? type][exit]
+		if word? type [type: reduce [type]]
+		if all [
+			compiler/integer-type? type
+			not compiler/int64? type
+			(compiler/integer-width? type) < 4
+		][
+			target: reduce [either compiler/signed-integer? type ['integer!]['uint32!]]
+			emit-casting make compiler/action-class [
+				action: 'type-cast
+				type: target
+				data: <last>
+			] no
+			compiler/last-type: target
+		]
+	]
+
+	emit-normalize-return: func [fspec [block!] /local type][
+		if all [
+			type: select fspec/4 compiler/return-def
+			compiler/integer-type? type
+			not compiler/int64? type
+			(compiler/integer-width? type) < 4
+		][
+			switch compiler/integer-width? type [
+				1 [emit either compiler/signed-integer? type [#{0FBEC0}][#{0FB6C0}]]
+				2 [emit either compiler/signed-integer? type [#{0FBFC0}][#{0FB7C0}]]
+			]
+		]
+	]
 	
 	emit-push: func [
 		value [char! logic! integer! word! block! string! tag! path! get-word! object! decimal! issue!]
@@ -1739,15 +1771,22 @@ make-profilable make target-class [
 		switch type?/word value [
 			tag! [									;-- == <last>
 				either value = <last> [
-					either compiler/int64? compiler/last-type [
+					either all [
+						any [block? compiler/last-type word? compiler/last-type]
+						compiler/int64? compiler/last-type
+					][
 						emit #{52}					;-- PUSH edx
 						emit #{50}					;-- PUSH eax
-					][either compiler/any-float? compiler/last-type [
+					][either all [
+						block? compiler/last-type
+						compiler/any-float? compiler/last-type
+					][
 						set-width/type any [all [cast cast/type] compiler/last-type]
 						emit #{83EC}				;-- SUB esp, 8|4
 						emit to-bin8 width
 						emit-float #{DD1C24}		;-- FSTP [esp]
 					][
+						emit-extend-int32 compiler/last-type
 						emit #{50}					;-- PUSH eax
 					]]
 				][									;-- <ret-ptr> and <args-top> cases
@@ -1788,8 +1827,14 @@ make-profilable make target-class [
 			]
 			issue! [
 				either type: compiler/int64-literal-info value [
-					emit-load-int64-literal value type/1
-					compiler/last-type: reduce [type/1]
+					either all [cast compiler/integer-type? cast/type not compiler/int64? cast/type][
+						set-width/type cast/type/1
+						emit-load-int-literal value cast/type/1
+						compiler/last-type: cast/type
+					][
+						emit-load-int64-literal value type/1
+						compiler/last-type: reduce [type/1]
+					]
 					emit-push <last>
 				][
 					value: either all [cast cast/type/1 = 'float32! not cdecl][
@@ -1843,6 +1888,18 @@ make-profilable make target-class [
 						emit-load-int64-variable value
 						compiler/last-type: type
 						emit-push <last>
+					]
+					compiler/integer-type? type [
+						either cast [
+							emit-load/with value cast
+							emit-casting cast no
+							compiler/last-type: cast/type
+						][
+							emit-load value
+							compiler/last-type: type
+						]
+						emit-extend-int32 compiler/last-type
+						emit #{50}					;-- PUSH eax
 					]
 					'else [
 						emit-variable value
@@ -2640,7 +2697,11 @@ make-profilable make target-class [
 		
 		either all [
 			object? arg
-			any [arg/type = 'logic! 'byte! = first compiler/get-type arg/data]
+			any [
+				arg/type = 'logic!
+				compiler/integer-type? arg/type
+				compiler/integer-type? compiler/get-type arg/data
+			]
 			not path? arg/data
 		][
 			unless block? arg [emit-load arg]		;-- block! means last value is already in eax (func call)
@@ -2969,6 +3030,7 @@ make-profilable make target-class [
 				any [find attribs 'cdecl find attribs 'stdcall]
 			]
 		][
+			emit-normalize-return fspec
 			offset: locals-size + locals-offset
 			emit #{8DA5}							;-- LEA esp, [ebp-<offset>]
 			emit to-bin32 negate offset + 12		;-- account for 3 saved regs

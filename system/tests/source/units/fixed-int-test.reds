@@ -33,6 +33,98 @@ fi-u32-low: func [value [uint32!] return: [integer!]][
 	as integer! value
 ]
 
+fi-abi-mix: func [
+	a [int8!] b [uint8!] c [int16!] d [uint16!]
+	e [int32!] f [uint32!] g [int64!] h [uint64!]
+	return: [integer!]
+	/local score [integer!]
+][
+	score: 0
+	if (as int32! a) = -2 [score: score + 1]
+	if (as int32! b) = 250 [score: score + 1]
+	if (as int32! c) = -300 [score: score + 1]
+	if (as int32! d) = 60000 [score: score + 1]
+	if e = -123456 [score: score + 1]
+	if (as integer! f) = -1 [score: score + 1]
+	if (as integer! g) = -3 [score: score + 1]
+	if (as integer! h) = -1 [score: score + 1]
+	score
+]
+
+fi-cdecl-mix: func [
+	[cdecl]
+	a [int8!] b [uint8!] c [int16!] d [uint16!]
+	e [int32!] f [uint32!] g [int64!] h [uint64!]
+	return: [integer!]
+][
+	fi-abi-mix a b c d e f g h
+]
+
+fi-stdcall-mix: func [
+	[stdcall]
+	a [int8!] b [uint8!] c [int16!] d [uint16!]
+	e [int32!] f [uint32!] g [int64!] h [uint64!]
+	return: [integer!]
+][
+	fi-abi-mix a b c d e f g h
+]
+
+fi-callback-mix: func [
+	[callback]
+	a [int8!] b [uint8!] c [int16!] d [uint16!]
+	e [int32!] f [uint32!] g [int64!] h [uint64!]
+	return: [integer!]
+][
+	fi-abi-mix a b c d e f g h
+]
+
+fi-cdecl-ret-i8: func [[cdecl] return: [int8!]][as int8! -2]
+fi-stdcall-ret-u16: func [[stdcall] return: [uint16!]][as uint16! 60000]
+fi-callback-ret-i16: func [[callback] return: [int16!]][as int16! -300]
+
+fi-variadic-score: func [
+	[variadic]
+	count [integer!] list [int-ptr!]
+	return: [integer!]
+	/local score [integer!]
+][
+	score: 0
+	if 4 = count [score: score + 1]
+	if -2 = list/1 [score: score + 1]
+	if 250 = list/2 [score: score + 1]
+	if -300 = list/3 [score: score + 1]
+	if 60000 = list/4 [score: score + 1]
+	score
+]
+
+fi-typed-score: func [
+	[typed]
+	count [integer!] list [typed-value!]
+	return: [integer!]
+	/local score [integer!]
+][
+	score: 0
+	if 8 = count [score: score + 1]
+	if all [type-int8! = list/type -2 = list/value] [score: score + 1]
+	list: list + 1
+	if all [type-uint8! = list/type 250 = list/value] [score: score + 1]
+	list: list + 1
+	if all [type-int16! = list/type -300 = list/value] [score: score + 1]
+	list: list + 1
+	if all [type-uint16! = list/type 60000 = list/value] [score: score + 1]
+	list: list + 1
+	if all [type-int32! = list/type -123456 = list/value] [score: score + 1]
+	list: list + 1
+	if all [type-uint32! = list/type -1 = list/value] [score: score + 1]
+	list: list + 1
+	if all [type-int64! = list/type -3 = list/value -1 = list/_padding] [score: score + 1]
+	list: list + 1
+	if all [type-uint64! = list/type -1 = list/value 0 = list/_padding] [score: score + 1]
+	score
+]
+
+fi-cdecl-variadic-sink: func [[cdecl variadic] return: [integer!]][1]
+
 ]
 
 ~~~start-file~~~ "fixed-int"
@@ -120,6 +212,91 @@ fi-u32-low: func [value [uint32!] return: [integer!]][
 		--assert -1 = as integer! fi-pair/u32
 
 ]
+
+===end-group===
+
+===start-group=== "fixed integer ABI"
+
+	--test-- "fixed-int-abi-internal"
+		--assert 8 = fi-abi-mix
+			as int8! -2
+			as uint8! 250
+			as int16! -300
+			as uint16! 60000
+			as int32! -123456
+			as uint32! 4294967295
+			as int64! -3
+			as uint64! 4294967295
+
+	--test-- "fixed-int-abi-cdecl"
+		--assert 8 = fi-cdecl-mix
+			as int8! -2
+			as uint8! 250
+			as int16! -300
+			as uint16! 60000
+			as int32! -123456
+			as uint32! 4294967295
+			as int64! -3
+			as uint64! 4294967295
+		--assert (as int32! fi-cdecl-ret-i8) = -2
+
+#if target = 'IA-32 [
+
+	--test-- "fixed-int-abi-stdcall"
+		--assert 8 = fi-stdcall-mix
+			as int8! -2
+			as uint8! 250
+			as int16! -300
+			as uint16! 60000
+			as int32! -123456
+			as uint32! 4294967295
+			as int64! -3
+			as uint64! 4294967295
+		--assert (as int32! fi-stdcall-ret-u16) = 60000
+
+]
+
+	--test-- "fixed-int-abi-callback"
+		--assert 8 = fi-callback-mix
+			as int8! -2
+			as uint8! 250
+			as int16! -300
+			as uint16! 60000
+			as int32! -123456
+			as uint32! 4294967295
+			as int64! -3
+			as uint64! 4294967295
+		--assert (as int32! fi-callback-ret-i16) = -300
+
+	--test-- "fixed-int-abi-variadic"
+		--assert 5 = fi-variadic-score [
+			as int8! -2
+			as uint8! 250
+			as int16! -300
+			as uint16! 60000
+		]
+
+	--test-- "fixed-int-abi-typed"
+		--assert 9 = fi-typed-score [
+			as int8! -2
+			as uint8! 250
+			as int16! -300
+			as uint16! 60000
+			as int32! -123456
+			as uint32! 4294967295
+			as int64! -3
+			as uint64! 4294967295
+		]
+
+	--test-- "fixed-int-abi-cdecl-variadic"
+		--assert 1 = fi-cdecl-variadic-sink [
+			as int8! -2
+			as uint8! 250
+			as int16! -300
+			as uint16! 60000
+			as int32! -123456
+			as uint32! 4294967295
+		]
 
 ===end-group===
 

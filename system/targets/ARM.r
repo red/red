@@ -2256,6 +2256,52 @@ make-profilable make target-class [
 		emit-copy-mem slots
 	]
 
+	emit-extend-int32: func [type [block! word! integer! none!] /local target][
+		if any [none? type integer? type][exit]
+		if word? type [type: reduce [type]]
+		if all [
+			compiler/integer-type? type
+			not compiler/int64? type
+			(compiler/integer-width? type) < 4
+		][
+			target: reduce [either compiler/signed-integer? type ['integer!]['uint32!]]
+			emit-casting make compiler/action-class [
+				action: 'type-cast
+				type: target
+				data: <last>
+			] no
+			compiler/last-type: target
+		]
+	]
+
+	emit-normalize-return: func [fspec [block!] /local type][
+		if all [
+			type: select fspec/4 compiler/return-def
+			compiler/integer-type? type
+			not compiler/int64? type
+			(compiler/integer-width? type) < 4
+		][
+			switch compiler/integer-width? type [
+				1 [
+					either compiler/signed-integer? type [
+						emit-i32 #{e1a00c00}		;-- LSL r0, r0, #24
+						emit-i32 #{e1a00c40}		;-- ASR r0, r0, #24
+					][
+						emit-i32 #{e20000ff}		;-- AND r0, r0, #FF
+					]
+				]
+				2 [
+					emit-i32 #{e1a00800}			;-- LSL r0, r0, #16
+					emit-i32 either compiler/signed-integer? type [
+						#{e1a00840}					;-- ASR r0, r0, #16
+					][
+						#{e1a00820}					;-- LSR r0, r0, #16
+					]
+				]
+			]
+		]
+	]
+
 	emit-push: func [
 		value [char! logic! integer! word! block! string! tag! path! get-word! object! decimal! issue!]
 		/with cast [object!]
@@ -2272,7 +2318,7 @@ make-profilable make target-class [
 			tag! [									;-- == <last>
 				type: either cast [cast/type][compiler/last-type]
 				either value = <last> [
-					do either find [float! float64! int64! uint64!] type/1 [
+					do either all [block? type find [float! float64! int64! uint64!] type/1] [
 						push-last64
 					][
 						push-last
@@ -2305,8 +2351,14 @@ make-profilable make target-class [
 			]
 			issue! [
 				either type: compiler/int64-literal-info value [
-					emit-load-int64-literal value type/1
-					do push-last64
+					either all [cast compiler/integer-type? cast/type not compiler/int64? cast/type][
+						emit-load-int-literal value cast/type/1
+						compiler/last-type: cast/type
+						do push-last
+					][
+						emit-load-int64-literal value type/1
+						do push-last64
+					]
 				][
 					either all [cast cast/type/1 = 'float32! not cdecl][
 						emit-load-imm32 to integer! IEEE-754/to-binary32 value
@@ -2353,9 +2405,12 @@ make-profilable make target-class [
 						either cast [
 							emit-load/with value cast
 							emit-casting cast no
+							compiler/last-type: cast/type
 						][
 							emit-load value
+							compiler/last-type: type
 						]
+						emit-extend-int32 compiler/last-type
 						do push-last
 					]
 				]
@@ -3136,8 +3191,9 @@ make-profilable make target-class [
 							][
 								emitter/size-of? type
 							]
+							size: either any [none? size zero? size][4][max size 4]
 							either reg >= 4 [			;-- account for extra args on stack
-								stk: stk + any [size 4] ;-- ANY: workaround special variables from start.reds
+								stk: stk + size
 							][
 								set [bits offset] either 8 = size [
 									either reg <= 2 [
@@ -3255,9 +3311,18 @@ make-profilable make target-class [
 			]
 			if cb? [emit-hf-return fspec/4]
 		][
+			cb?: any [
+				fspec/5 = 'callback
+				all [attribs any [find attribs 'cdecl find attribs 'stdcall]]
+			]
 			if all [compiler/variadic? args/1 fspec/3 <> 'cdecl][emit-variadic-data args]
+			if cb? [extra: emit-AAPCS-header args fspec attribs]
 			emit-reloc-addr spec/3
 			emit-i32 #{eb000000}					;-- BL <disp>
+			if all [cb? extra positive? extra][
+				emit-op-imm32 #{e28dd000} extra		;-- ADD sp, sp, extra	; skip extra stack arguments
+			]
+			if cb? [emit-hf-return fspec/4]
 		]
 	]
 
@@ -3273,7 +3338,11 @@ make-profilable make target-class [
 		
 		either all [
 			object? arg
-			any [arg/type = 'logic! 'byte! = first compiler/get-type arg/data]
+			any [
+				arg/type = 'logic!
+				compiler/integer-type? arg/type
+				compiler/integer-type? compiler/get-type arg/data
+			]
 			not path? arg/data
 		][
 			unless block? arg [emit-load arg]		;-- block! means last value is already in r0 (func call)
@@ -3425,11 +3494,11 @@ make-profilable make target-class [
 			
 			args-nb: fspec/1
 			args: fspec/4
-			either all [compiler/job/ABI = 'hard-float not empty? args][
+			fargs-nb: either empty? args [0][count-floats extract-arguments args]
+			either all [compiler/job/ABI = 'hard-float positive? fargs-nb][
 				reg: freg: 1
 				extras: 0
 				args: extract-arguments args		;-- cleanup and reverse arguments order
-				fargs-nb: count-floats args
 				
 				foreach arg args [					;-- process in reverse order
 					either find [float! float64! float32!] arg/1 [
@@ -3581,6 +3650,7 @@ make-profilable make target-class [
 			]
 		]
 		either cb? [
+			emit-normalize-return fspec
 			emit-hf-return/reverse fspec/4
 			emit-i32 #{e12fff1e}					;-- BX lr
 		][
