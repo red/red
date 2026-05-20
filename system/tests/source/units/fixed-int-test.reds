@@ -17,6 +17,11 @@ fixed-int-pair!: alias struct! [
 	u32 [uint32!]
 ]
 
+fixed-int64-parts!: alias struct! [
+	lo [integer!]
+	hi [integer!]
+]
+
 fi-i8-to-i32: func [value [int8!] return: [int32!] /local out [int32!]][
 	out: value
 	out
@@ -81,6 +86,15 @@ fi-callback-mix: func [
 fi-cdecl-ret-i8: func [[cdecl] return: [int8!]][as int8! -2]
 fi-stdcall-ret-u16: func [[stdcall] return: [uint16!]][as uint16! 60000]
 fi-callback-ret-i16: func [[callback] return: [int16!]][as int16! -300]
+
+fi-ret-i64: func [return: [int64!]][0000000100000002h]
+fi-ret-u64: func [return: [uint64!]][FFFFFFFFFFFFFFFFh]
+fi-cdecl-ret-i64: func [[cdecl] return: [int64!]][0000000100000002h]
+fi-cdecl-ret-u64: func [[cdecl] return: [uint64!]][FFFFFFFFFFFFFFFFh]
+fi-stdcall-ret-i64: func [[stdcall] return: [int64!]][0000000100000002h]
+fi-stdcall-ret-u64: func [[stdcall] return: [uint64!]][FFFFFFFFFFFFFFFFh]
+fi-callback-ret-i64: func [[callback] return: [int64!]][0000000100000002h]
+fi-callback-ret-u64: func [[callback] return: [uint64!]][FFFFFFFFFFFFFFFFh]
 
 fi-variadic-score: func [
 	[variadic]
@@ -240,6 +254,24 @@ fi-cdecl-variadic-sink: func [[cdecl variadic] return: [integer!]][1]
 			as uint64! 4294967295
 		--assert (as int32! fi-cdecl-ret-i8) = -2
 
+	--test-- "fixed-int-abi-return64"
+		fi-i64-ret: fi-ret-i64
+		fi-i64-parts: as fixed-int64-parts! :fi-i64-ret
+		--assert fi-i64-parts/lo = 00000002h
+		--assert fi-i64-parts/hi = 00000001h
+		fi-u64-ret: fi-ret-u64
+		fi-u64-parts: as fixed-int64-parts! :fi-u64-ret
+		--assert fi-u64-parts/lo = -1
+		--assert fi-u64-parts/hi = -1
+		fi-cdecl-i64-ret: fi-cdecl-ret-i64
+		fi-i64-parts: as fixed-int64-parts! :fi-cdecl-i64-ret
+		--assert fi-i64-parts/lo = 00000002h
+		--assert fi-i64-parts/hi = 00000001h
+		fi-cdecl-u64-ret: fi-cdecl-ret-u64
+		fi-u64-parts: as fixed-int64-parts! :fi-cdecl-u64-ret
+		--assert fi-u64-parts/lo = -1
+		--assert fi-u64-parts/hi = -1
+
 #if target = 'IA-32 [
 
 	--test-- "fixed-int-abi-stdcall"
@@ -254,6 +286,16 @@ fi-cdecl-variadic-sink: func [[cdecl variadic] return: [integer!]][1]
 			as uint64! 4294967295
 		--assert (as int32! fi-stdcall-ret-u16) = 60000
 
+	--test-- "fixed-int-abi-stdcall-return64"
+		fi-stdcall-i64-ret: fi-stdcall-ret-i64
+		fi-i64-parts: as fixed-int64-parts! :fi-stdcall-i64-ret
+		--assert fi-i64-parts/lo = 00000002h
+		--assert fi-i64-parts/hi = 00000001h
+		fi-stdcall-u64-ret: fi-stdcall-ret-u64
+		fi-u64-parts: as fixed-int64-parts! :fi-stdcall-u64-ret
+		--assert fi-u64-parts/lo = -1
+		--assert fi-u64-parts/hi = -1
+
 ]
 
 	--test-- "fixed-int-abi-callback"
@@ -267,6 +309,16 @@ fi-cdecl-variadic-sink: func [[cdecl variadic] return: [integer!]][1]
 			as int64! -3
 			as uint64! 4294967295
 		--assert (as int32! fi-callback-ret-i16) = -300
+
+	--test-- "fixed-int-abi-callback-return64"
+		fi-callback-i64-ret: fi-callback-ret-i64
+		fi-i64-parts: as fixed-int64-parts! :fi-callback-i64-ret
+		--assert fi-i64-parts/lo = 00000002h
+		--assert fi-i64-parts/hi = 00000001h
+		fi-callback-u64-ret: fi-callback-ret-u64
+		fi-u64-parts: as fixed-int64-parts! :fi-callback-u64-ret
+		--assert fi-u64-parts/lo = -1
+		--assert fi-u64-parts/hi = -1
 
 	--test-- "fixed-int-abi-variadic"
 		--assert 5 = fi-variadic-score [
