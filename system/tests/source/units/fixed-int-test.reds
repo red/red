@@ -45,6 +45,25 @@ fixed-int-nested!: alias struct! [
 	tail  [uint8!]
 ]
 
+fixed-int-mixed!: alias struct! [
+	tag  [uint8!]
+	raw  [byte!]
+	name [c-string!]
+	ptr  [int-ptr!]
+	f32  [float32!]
+	i16  [int16!]
+	fptr [pointer! [float!]]
+	f64  [float!]
+	u64  [uint64!]
+	tail [int8!]
+]
+
+fixed-int-mixed-nested!: alias struct! [
+	head  [uint8!]
+	value [fixed-int-mixed! value]
+	done  [uint16!]
+]
+
 fi-i8-to-i32: func [value [int8!] return: [int32!] /local out [int32!]][
 	out: value
 	out
@@ -183,6 +202,8 @@ fi-cdecl-variadic-sink: func [[cdecl variadic] return: [integer!]][1]
 		--assert 32 = (size? fixed-int-struct!)
 		--assert 8 = (size? fixed-int-layout!)
 		--assert 16 = (size? fixed-int-nested!)
+		--assert 44 = (size? fixed-int-mixed!)
+		--assert 52 = (size? fixed-int-mixed-nested!)
 		fi-pad: declare struct! [u8 [uint8!] i16 [int16!]]
 		--assert 4 = (size? fi-pad)
 
@@ -833,6 +854,99 @@ fi-cdecl-variadic-sink: func [[cdecl variadic] return: [integer!]][1]
 		--assert -300 = as int32! fi-nested/value/i16
 		--assert fi-nested/value/i32 = as int32! -123456
 		--assert 22 = as int32! fi-nested/tail
+
+	--test-- "fixed-int-struct-mixed-1"
+		fi-mixed-box: declare struct! [
+			i [integer!]
+			f [float!]
+		]
+		fi-mixed: declare fixed-int-mixed!
+		fi-mixed-copy: declare fixed-int-mixed!
+		fi-mixed-box/i: 321
+		fi-mixed-box/f: 12.5
+		fi-mixed/tag: as uint8! 199
+		fi-mixed/raw: #"Q"
+		fi-mixed/name: "fixed"
+		fi-mixed/ptr: :fi-mixed-box/i
+		fi-mixed/f32: as float32! 6.25
+		fi-mixed/i16: as int16! -2048
+		fi-mixed/fptr: as pointer! [float!] :fi-mixed-box/f
+		fi-mixed/f64: 12345.678
+		fi-mixed/u64: as uint64! 8000000000000001h
+		fi-mixed/tail: as int8! -9
+		--assert 199 = as int32! fi-mixed/tag
+		--assert fi-mixed/raw = #"Q"
+		--assert fi-mixed/name/1 = #"f"
+		--assert fi-mixed/name/5 = #"d"
+		--assert fi-mixed/ptr/value = 321
+		--assert fi-mixed/f32 = as float32! 6.25
+		--assert -2048 = as int32! fi-mixed/i16
+		--assert fi-mixed/fptr/value = 12.5
+		--assert fi-mixed/f64 = 12345.678
+		--assert fi-mixed/u64 = as uint64! 8000000000000001h
+		--assert -9 = as int32! fi-mixed/tail
+		fi-u64-parts: as fixed-int64-parts! :fi-mixed/u64
+		--assert fi-u64-parts/lo = 1
+		--assert fi-u64-parts/hi = -2147483648
+		fi-mixed/ptr/value: -777
+		--assert fi-mixed-box/i = -777
+		fi-mixed/fptr/value: 77.25
+		--assert fi-mixed-box/f = 77.25
+		fi-mixed/name/1: #"F"
+		--assert fi-mixed/name/1 = #"F"
+		fi-mixed-copy/raw: fi-mixed/raw
+		fi-mixed-copy/name: fi-mixed/name
+		fi-mixed-copy/ptr: fi-mixed/ptr
+		fi-mixed-copy/fptr: fi-mixed/fptr
+		fi-mixed-copy/f64: fi-mixed/f64
+		fi-mixed-copy/u64: fi-mixed/u64 + as uint64! 0000000000000002h
+		--assert fi-mixed-copy/raw = #"Q"
+		--assert fi-mixed-copy/name/1 = #"F"
+		--assert fi-mixed-copy/name/5 = #"d"
+		--assert fi-mixed-copy/ptr/value = -777
+		--assert fi-mixed-copy/fptr/value = 77.25
+		--assert fi-mixed-copy/f64 = 12345.678
+		--assert fi-mixed-copy/u64 = as uint64! 8000000000000003h
+
+	--test-- "fixed-int-struct-mixed-nested-1"
+		fi-mixed-box: declare struct! [
+			i [integer!]
+			f [float!]
+		]
+		fi-mixed-nested: declare fixed-int-mixed-nested!
+		fi-mixed-box/i: 1234
+		fi-mixed-box/f: 9.75
+		fi-mixed-nested/head: as uint8! 7
+		fi-mixed-nested/value/tag: as uint8! 33
+		fi-mixed-nested/value/raw: #"Z"
+		fi-mixed-nested/value/name: "nested"
+		fi-mixed-nested/value/ptr: :fi-mixed-box/i
+		fi-mixed-nested/value/f32: as float32! 1.5
+		fi-mixed-nested/value/i16: as int16! -321
+		fi-mixed-nested/value/fptr: as pointer! [float!] :fi-mixed-box/f
+		fi-mixed-nested/value/f64: 44.125
+		fi-mixed-nested/value/u64: as uint64! 0000000100000004h
+		fi-mixed-nested/value/tail: as int8! -4
+		fi-mixed-nested/done: as uint16! 60000
+		--assert 7 = as int32! fi-mixed-nested/head
+		--assert 33 = as int32! fi-mixed-nested/value/tag
+		--assert fi-mixed-nested/value/raw = #"Z"
+		--assert fi-mixed-nested/value/name/1 = #"n"
+		--assert fi-mixed-nested/value/name/6 = #"d"
+		--assert fi-mixed-nested/value/ptr/value = 1234
+		--assert fi-mixed-nested/value/f32 = as float32! 1.5
+		--assert -321 = as int32! fi-mixed-nested/value/i16
+		--assert fi-mixed-nested/value/fptr/value = 9.75
+		--assert fi-mixed-nested/value/f64 = 44.125
+		--assert fi-mixed-nested/value/u64 = as uint64! 0000000100000004h
+		--assert -4 = as int32! fi-mixed-nested/value/tail
+		--assert 60000 = as int32! fi-mixed-nested/done
+		fi-mixed-nested/value/ptr/value: -1234
+		--assert fi-mixed-box/i = -1234
+		fi-mixed-nested/value/fptr/value: 19.5
+		--assert fi-mixed-box/f = 19.5
+		fi-mixed-nested/value/name/1: #"N"
+		--assert fi-mixed-nested/value/name/1 = #"N"
 
 ===end-group===
 
