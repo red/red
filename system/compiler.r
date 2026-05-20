@@ -741,6 +741,13 @@ system-dialect: make-profilable context [
 			type1 = type2
 		]
 
+		none-type?: func [type [block! none!]][
+			any [
+				none? type
+				all [block? type none? type/1]
+			]
+		]
+
 		lossless-integer-cast?: func [
 			from [block!] to [block!]
 			/local fw tw fs? ts?
@@ -1780,7 +1787,10 @@ system-dialect: make-profilable context [
 						]
 					]
 				]
-				same-type? expected type 				;-- normal single-type case
+				all [
+					not none-type? type
+					same-type? expected type 			;-- normal single-type case
+				]
 				all [
 					type
 					lossless-integer-cast? type expected
@@ -3833,7 +3843,11 @@ system-dialect: make-profilable context [
 				find [block! path! tag!] type?/word value
 				'value <> last last-type				;-- struct by value has specific handling
 			][
-				emitter/target/emit-move-path-alt		;-- save assigned value
+				either int64? last-type [
+					emitter/target/emit-move-path-alt/pair ;-- save assigned value
+				][
+					emitter/target/emit-move-path-alt	;-- save assigned value
+				]
 			]
 			if all [
 				not local-variable? set-path/1

@@ -417,6 +417,12 @@ pointer-local-foo
 		--assert head = as byte-ptr! head ; ignore compiler's warning
 		--assert head = as byte-ptr! as int-ptr! head
 
+	--test-- "byte-ptr-op-cast"
+		bp-op-buf: "^(10)^(27)"
+		bp-op-p: as byte-ptr! bp-op-buf
+		bp-op-cp: (as-integer bp-op-p/2) << 8 + bp-op-p/1
+		--assert 10000 = bp-op-cp
+
 ===end-group===
 
 ~~~end-file~~~

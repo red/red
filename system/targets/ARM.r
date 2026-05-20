@@ -1052,8 +1052,8 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-move-path-alt: does [
-		either compiler/int64? compiler/last-type [
+	emit-move-path-alt: func [/pair][
+		either pair [
 			emit-i32 #{e92d0003}					;-- PUSH {r0,r1}
 		][
 			emit-i32 #{e1a02000}					;-- MOV r2, r0
@@ -3236,6 +3236,7 @@ make-profilable make target-class [
 		]
 		if object? args/1 [emit-casting args/1 no]	;-- do runtime conversion if required
 
+		set [width signed?] saved
 		;-- Operator and second operand processing
 		unless all [
 			object? args/2
@@ -3256,7 +3257,6 @@ make-profilable make target-class [
 				implicit-cast right yes
 			]
 		]
-		set [width signed?] saved
 		case [
 			find comparison-op name [emit-comparison-op name a b args]
 			find math-op	   name	[

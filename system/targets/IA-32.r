@@ -341,8 +341,8 @@ make-profilable make target-class [
 		]		
 	]
 	
-	emit-move-path-alt: does [
-		either compiler/int64? compiler/last-type [
+	emit-move-path-alt: func [/pair][
+		either pair [
 			emit #{52}								;-- PUSH edx
 			emit #{50}								;-- PUSH eax
 		][
@@ -1535,17 +1535,14 @@ make-profilable make target-class [
 
 	emit-store-path: func [
 		path [set-path!] type [word!] value parent [block! none!]
-		/local idx offset type2 spec by-val? slots size pair? nested?
+		/local idx offset type2 spec by-val? slots size value-type pair? nested?
 	][
 		if verbose >= 3 [print [">>>storing path:" mold path mold value]]
 		
 		nested?: to logic! parent
-		size: either value = <last> [
-			emitter/size-of? compiler/last-type
-		][
-			emitter/size-of? compiler/get-type value
-		]
-		pair?: all [size = 8 not compiler/any-float? compiler/get-type value]
+		value-type: either value = <last> [compiler/last-type][compiler/get-type value]
+		size: emitter/size-of? value-type
+		pair?: all [size = 8 not compiler/any-float? value-type]
 		either value = <last> [
 			if by-val?: 'value = last compiler/last-type [
 				slots: emitter/struct-slots? compiler/last-type
@@ -2688,6 +2685,7 @@ make-profilable make target-class [
 		]
 		if object? args/1 [emit-casting args/1 no]	;-- do runtime conversion on eax if required
 
+		set [width signed?] saved
 		;-- Operator and second operand processing
 		either all [
 			object? args/2
@@ -2703,11 +2701,10 @@ make-profilable make target-class [
 				compiler/any-float? compiler/get-variable-spec args/2/data
 				emit-load/alt args/2/data
 			]
-			unless compiler/any-pointer? compiler/resolve-expr-type args/2 [
+			unless compiler/any-pointer? compiler/get-type args/2 [
 				implicit-cast right yes
 			]
 		]
-		set [width signed?] saved
 		case [
 			find comparison-op name [emit-comparison-op name a b args]
 			find math-op	   name	[emit-math-op		name a b args]
