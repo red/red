@@ -1212,6 +1212,28 @@ make-profilable make target-class [
 						]
 					]
 				]
+				if to-width < from-width [
+					either compiler/signed-integer? to [
+						switch to-width [
+							1 [
+								emit-i32 pick [#{e1a01c01} #{e1a00c00}] alt? ;-- LSL #24
+								emit-i32 pick [#{e1a01c41} #{e1a00c40}] alt? ;-- ASR #24
+							]
+							2 [
+								emit-i32 pick [#{e1a01801} #{e1a00800}] alt? ;-- LSL #16
+								emit-i32 pick [#{e1a01841} #{e1a00840}] alt? ;-- ASR #16
+							]
+						]
+					][
+						switch to-width [
+							1 [emit-i32 pick [#{e20110ff} #{e20000ff}] alt?]
+							2 [
+								emit-i32 pick [#{e1a01801} #{e1a00800}] alt? ;-- LSL #16
+								emit-i32 pick [#{e1a01821} #{e1a00820}] alt? ;-- LSR #16
+							]
+						]
+					]
+				]
 			]
 			all [compiler/int64? value/type compiler/integer-type? type][
 				from: compiler/canonical-type type

@@ -236,6 +236,20 @@ fi-cdecl-variadic-sink: func [[cdecl variadic] return: [integer!]][1]
 		fi-u32: as uint32! 4294967295
 		--assert -1 = fi-u32-low fi-u32
 
+	--test-- "fixed-int-cast-5"
+		fi-i32: as int32! 255
+		fi-i8: as int8! fi-i32
+		--assert fi-i8 = as int8! -1
+		fi-i32: as int32! 256
+		fi-u8: as uint8! fi-i32
+		--assert fi-u8 = as uint8! 0
+		fi-i32: as int32! 65535
+		fi-i16: as int16! fi-i32
+		--assert fi-i16 = as int16! -1
+		fi-i32: as int32! 65536
+		fi-u16: as uint16! fi-i32
+		--assert fi-u16 = as uint16! 0
+
 ===end-group===
 
 ===start-group=== "fixed integer storage and operations"
