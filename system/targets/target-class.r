@@ -37,6 +37,11 @@ target-class: context [
 	emit-atomic-store: emit-atomic-math: emit-atomic-fence:
 	emit-init-sub: emit-return-sub: emit-call-sub: none
 	
+	divide-sym:                to word! "/"
+	left-shift-sym:            to word! "<<"
+	right-shift-sym:           to word! ">>"
+	unsigned-right-shift-sym: to word! "-**"
+
 	comparison-op: [= <> < > <= >=]
 	math-op:	   compose [+ - * / // (to-word "%")]
 	mod-rem-op:    compose [// (to-word "%")]

@@ -277,6 +277,9 @@ fi-cdecl-variadic-sink: func [[cdecl variadic] return: [integer!]][1]
 		fi-u8-c: fi-u8-c << 2
 		--assert fi-u8-c = as uint8! 12
 		fi-u8-c: as uint8! 240
+		fi-u8-c: fi-u8-c >> 4
+		--assert fi-u8-c = as uint8! 15
+		fi-u8-c: as uint8! 240
 		fi-u8-c: fi-u8-c >>> 4
 		--assert fi-u8-c = as uint8! 15
 		fi-u8-c: not as uint8! 240
@@ -350,6 +353,9 @@ fi-cdecl-variadic-sink: func [[cdecl variadic] return: [integer!]][1]
 		fi-u16-c: fi-u16-c << 4
 		--assert fi-u16-c = as uint16! 48
 		fi-u16-c: as uint16! 61440
+		fi-u16-c: fi-u16-c >> 8
+		--assert fi-u16-c = as uint16! 240
+		fi-u16-c: as uint16! 61440
 		fi-u16-c: fi-u16-c >>> 8
 		--assert fi-u16-c = as uint16! 240
 		fi-u16-c: not as uint16! 61440
@@ -377,6 +383,10 @@ fi-cdecl-variadic-sink: func [[cdecl variadic] return: [integer!]][1]
 		--assert fi-i32-c = as int32! 44
 		fi-i32-c: (as int32! -1431655766) and (as int32! 252645135)
 		--assert fi-i32-c = as int32! 168430090
+		fi-i32-c: (as int32! -1431655766) or (as int32! 252645135)
+		--assert fi-i32-c = as int32! AFAFAFAFh
+		fi-i32-c: (as int32! -1431655766) xor (as int32! 252645135)
+		--assert fi-i32-c = as int32! A5A5A5A5h
 		fi-i32-c: as int32! 3
 		fi-i32-c: fi-i32-c << 8
 		--assert fi-i32-c = as int32! 768
@@ -418,6 +428,9 @@ fi-cdecl-variadic-sink: func [[cdecl variadic] return: [integer!]][1]
 		fi-u32-c: as uint32! 3
 		fi-u32-c: fi-u32-c << 8
 		--assert fi-u32-c = as uint32! 768
+		fi-u32-c: as uint32! F0000000h
+		fi-u32-c: fi-u32-c >> 24
+		--assert fi-u32-c = as uint32! 240
 		fi-u32-c: as uint32! F0000000h
 		fi-u32-c: fi-u32-c >>> 24
 		--assert fi-u32-c = as uint32! 240
@@ -582,6 +595,11 @@ fi-cdecl-variadic-sink: func [[cdecl variadic] return: [integer!]][1]
 		--assert fi-u64-parts/lo = 0
 		--assert fi-u64-parts/hi = 0
 		fi-u64-c: as uint64! F000000000000000h
+		fi-u64-c: fi-u64-c >> 60
+		fi-u64-parts: as fixed-int64-parts! :fi-u64-c
+		--assert fi-u64-parts/lo = 15
+		--assert fi-u64-parts/hi = 0
+		fi-u64-c: as uint64! F000000000000000h
 		fi-u64-c: fi-u64-c >>> 60
 		fi-u64-parts: as fixed-int64-parts! :fi-u64-c
 		--assert fi-u64-parts/lo = 15
@@ -618,6 +636,50 @@ fi-cdecl-variadic-sink: func [[cdecl variadic] return: [integer!]][1]
 		--assert ((as uint64! F000000000000000h) >>> 60) = as uint64! 15
 		--assert (as uint64! FFFFFFFFFFFFFFFFh) > (as uint64! 7FFFFFFFFFFFFFFFh)
 		--assert (as uint64! 0000000100000000h) <= (as uint64! FFFFFFFFFFFFFFFFh)
+
+	--test-- "fixed-int-op-direct-small"
+		--assert ((as int8! -100) + (as int8! 7)) = as int8! -93
+		--assert ((as int8! -100) * (as int8! 7)) = as int8! 68
+		--assert ((as int8! -100) % (as int8! 7)) = as int8! -2
+		--assert ((as int8! -100) // (as int8! 7)) = as int8! 5
+		--assert (((as int8! -64) >> 2) = as int8! -16)
+		--assert (((as int8! -64) >>> 2) = as int8! 48)
+		--assert (((as int8! -86) xor (as int8! 15)) = as int8! -91)
+
+		--assert ((as uint8! 250) + (as uint8! 10)) = as uint8! 4
+		--assert ((as uint8! 250) / (as uint8! 10)) = as uint8! 25
+		--assert (((as uint8! 240) >> 4) = as uint8! 15)
+		--assert (((as uint8! 240) >>> 4) = as uint8! 15)
+		--assert ((not as uint8! 240) = as uint8! 15)
+		--assert (as uint8! 250) > (as uint8! 10)
+
+		--assert ((as int16! -30000) - (as int16! 7)) = as int16! -30007
+		--assert ((as int16! -30000) / (as int16! 7)) = as int16! -4285
+		--assert (((as int16! -1024) >> 3) = as int16! -128)
+		--assert (((as int16! -1024) >>> 4) = as int16! 4032)
+		--assert (((as int16! -21846) or (as int16! 3855)) = as int16! -20561)
+		--assert (as int16! -30000) < (as int16! 7)
+
+		--assert ((as uint16! 60000) * (as uint16! 2)) = as uint16! 54464
+		--assert ((as uint16! 60000) % (as uint16! 7)) = as uint16! 3
+		--assert (((as uint16! 61440) >> 8) = as uint16! 240)
+		--assert (((as uint16! 61440) >>> 8) = as uint16! 240)
+		--assert (((as uint16! 60000) xor (as uint16! 3855)) = as uint16! 58735)
+		--assert (as uint16! 60000) > (as uint16! 7)
+
+		--assert ((as int32! -123456) + (as int32! 100)) = as int32! -123356
+		--assert ((as int32! -123456) // (as int32! 100)) = as int32! 44
+		--assert (((as int32! -1024) >> 4) = as int32! -64)
+		--assert (((as int32! -1024) >>> 8) = as int32! 16777212)
+		--assert (((as int32! -1431655766) or (as int32! 252645135)) = as int32! AFAFAFAFh)
+		--assert (as int32! -123456) <> (as int32! 100)
+
+		--assert ((as uint32! EE6B2800h) - (as uint32! 100000)) = as uint32! EE69A160h
+		--assert ((as uint32! EE6B2800h) / (as uint32! 100000)) = as uint32! 40000
+		--assert (((as uint32! F0000000h) >> 24) = as uint32! 240)
+		--assert (((as uint32! F0000000h) >>> 24) = as uint32! 240)
+		--assert (((as uint32! EE6B2800h) and (as uint32! 252645135)) = as uint32! 235603968)
+		--assert (as uint32! EE6B2800h) >= (as uint32! EE6B2800h)
 
 #if target = 'IA-32 [
 

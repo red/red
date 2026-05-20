@@ -2103,10 +2103,17 @@ make-profilable make target-class [
 				] b = 'imm
 			]
 			>>  [
-				emit-poly pick [
-					[#{C0F8} #{C1F8}]				;-- SAR rA, value
-					[#{D2F8} #{D3F8}]				;-- SAR rA, cl
-				] b = 'imm
+				emit-poly either signed? [
+					pick [
+						[#{C0F8} #{C1F8}]			;-- SAR rA, value
+						[#{D2F8} #{D3F8}]			;-- SAR rA, cl
+					] b = 'imm
+				][
+					pick [
+						[#{C0E8} #{C1E8}]			;-- SHR rA, value
+						[#{D2E8} #{D3E8}]			;-- SHR rA, cl
+					] b = 'imm
+				]
 			]
 			-** [
 				emit-poly pick [
@@ -2195,7 +2202,7 @@ make-profilable make target-class [
 		;-- eax = a, edx = b
 		if find mod-rem-op name [					;-- work around unaccepted '// and '%
 			mod?: select mod-rem-func name			;-- convert operators to words (easier to handle)
-			name: first [/]							;-- work around unaccepted '/ 
+			name: divide-sym						;-- work around unaccepted '/
 		]
 		arg2: compiler/unbox args/2
 		load?: not all [
@@ -2410,8 +2417,11 @@ make-profilable make target-class [
 		unless all [0 <= count count <= 63][
 			compiler/throw-error "a value in 0-63 range is required for this shift operation"
 		]
-		left?: name = first [<<]
-		unsigned?: name = first [-**]
+		left?: name = left-shift-sym
+		unsigned?: any [
+			name = unsigned-right-shift-sym
+			all [name = right-shift-sym not signed?]
+		]
 		case [
 			zero? count []
 			left? [
@@ -2448,8 +2458,8 @@ make-profilable make target-class [
 	]
 
 	emit-int64-shift-dynamic: func [name [word!] /local left? unsigned?][
-		left?: name = first [<<]
-		unsigned?: name = first [-**]
+		left?: name = left-shift-sym
+		unsigned?: name = unsigned-right-shift-sym
 		case [
 			left? [
 				emit #{80E13F741780F920720D89C231C080E11F7409D3E2EB050FA5C2D3E0}
@@ -2528,7 +2538,7 @@ make-profilable make target-class [
 					emit-load-int64-right args/2
 					emit #{58} emit #{5A}				;-- restore left low/high
 				]
-				if any [name = first [/] find mod-rem-op name] [
+				if any [name = divide-sym find mod-rem-op name] [
 					call-i64-divide name
 					exit
 				]

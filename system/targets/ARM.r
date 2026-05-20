@@ -1628,6 +1628,32 @@ make-profilable make target-class [
 			f-inc #{ed8d0b00} idx					;-- FSTD [sp], d<idx>		; double precision float
 			f-inc #{ed8d0a00} idx					;-- FSTS [sp], s<idx>		; single precision float
 	]
+
+	emit-normalize-fixed-int-result: func [/with type [block! word!] /local saved][
+		if with [
+			saved: reduce [width signed?]
+			set-width/type either block? type [type/1][type]
+		]
+		switch width [
+			1 [
+				either signed? [
+					emit-i32 #{e1a00c00}			;-- MOV r0, r0, LSL #24
+					emit-i32 #{e1a00c40}			;-- MOV r0, r0, ASR #24
+				][
+					emit-i32 #{e20000ff}			;-- AND r0, r0, #ff
+				]
+			]
+			2 [
+				emit-i32 #{e1a00800}				;-- MOV r0, r0, LSL #16
+				emit-i32 either signed? [
+					#{e1a00840}						;-- MOV r0, r0, ASR #16
+				][
+					#{e1a00820}						;-- MOV r0, r0, LSR #16
+				]
+			]
+		]
+		if saved [set [width signed?] saved]
+	]
 	
 	emit-not: func [value [word! char! tag! integer! logic! path! string! object!] /local opcodes type boxed][
 		if verbose >= 3 [print [">>>emitting NOT" mold value]]
@@ -1659,7 +1685,9 @@ make-profilable make target-class [
 			]
 			integer! [
 				emit-load value
-				do opcodes/integer!
+				type: any [all [boxed boxed/type/1] 'integer!]
+				switch/default type opcodes [do opcodes/integer!]
+				emit-normalize-fixed-int-result/with type
 			]
 			word! [
 				emit-load value
@@ -1673,13 +1701,16 @@ make-profilable make target-class [
 					type: 'logic!
 				]
 				switch type opcodes
+				emit-normalize-fixed-int-result/with type
 			]
 			tag! [
 				if boxed [
 					emit-casting boxed no
 					compiler/last-type: boxed/type
 				]
-				switch compiler/last-type/1 opcodes
+				type: compiler/last-type/1
+				switch type opcodes
+				emit-normalize-fixed-int-result/with type
 			]
 			string! [								;-- type casting trap
 				emit-load value
@@ -2620,6 +2651,14 @@ make-profilable make target-class [
 				#{e1a00330}							;-- LSR r0, r0, r3
 			]
 		] name
+		if all [name = right-shift-sym not signed?][
+			opcode: select [
+				-** [
+					#{e1a00020}						;-- LSR r0, r0, #b
+					#{e1a00330}						;-- LSR r0, r0, r3
+				]
+			] '-**
+		]
 
 		if all [name = '-** signed? width < 4] [
 			switch width [
@@ -2630,7 +2669,7 @@ make-profilable make target-class [
 				]
 			]
 		]
-		if all [name = first [>>] signed? width < 4] [
+		if all [name = right-shift-sym signed? width < 4] [
 			switch width [
 				1 [
 					emit-i32 #{e1a00c00}			;-- MOV r0, r0, LSL #24
@@ -2745,7 +2784,7 @@ make-profilable make target-class [
 		;-- r0 = a, r1 = b
 		if find mod-rem-op name [					;-- work around unaccepted '// and '%
 			mod?: select mod-rem-func name			;-- convert operators to words (easier to handle)
-			name: first [/]							;-- work around unaccepted '/ 
+			name: divide-sym						;-- work around unaccepted '/
 		]
 		arg2: compiler/unbox args/2
 		load?: not all [
@@ -2988,6 +3027,7 @@ make-profilable make target-class [
 	]
 
 	emit-int64-shift: func [name [word!]][
+		if all [name = right-shift-sym not signed?][name: unsigned-right-shift-sym]
 		switch name [
 			<< [
 				foreach opcode [
@@ -3054,7 +3094,7 @@ make-profilable make target-class [
 			either find comparison-op name [
 				emit-int64-comparison name
 			][
-				if any [name = first [/] find mod-rem-op name] [
+				if any [name = divide-sym find mod-rem-op name] [
 					call-i64-divide name
 					exit
 				]
@@ -3158,9 +3198,18 @@ make-profilable make target-class [
 		set [width signed?] saved
 		case [
 			find comparison-op name [emit-comparison-op name a b args]
-			find math-op	   name	[emit-math-op		name a b args]
-			find bitwise-op	   name	[emit-bitwise-op	name a b args]
-			find bitshift-op   name [emit-bitshift-op   name a b args]
+			find math-op	   name	[
+				emit-math-op name a b args
+				emit-normalize-fixed-int-result
+			]
+			find bitwise-op	   name	[
+				emit-bitwise-op name a b args
+				emit-normalize-fixed-int-result
+			]
+			find bitshift-op   name [
+				emit-bitshift-op name a b args
+				emit-normalize-fixed-int-result
+			]
 		]
 	]
 	
