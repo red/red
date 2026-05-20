@@ -257,7 +257,7 @@ re-throw: func [/local id [integer!]][
 
 				default ["unknown error code!"]
 			]
-			#either sub-system = 'GUI [
+			#either all [sub-system = 'GUI red-pass? = yes][
 				s: as-c-string system/stack/allocate 256
 				#either OS = 'Windows [
 					s2: as-c-string system/stack/allocate 128
