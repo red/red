@@ -35,6 +35,8 @@ macho-obj: context [
 	N_UNDF:			0								;-- undefined  (N_TYPE value)
 	N_SECT:			to integer! #{000E}				;-- defined in a section (N_TYPE value)
 
+	N_WEAK_DEF:		to integer! #{0080}				;-- n_desc bit: weak definition
+
 	R_SCATTERED:	to integer! #{80000000}			;-- scattered relocation flag
 	GENERIC_RELOC_VANILLA: 0
 
@@ -200,6 +202,7 @@ macho-obj: context [
 				u32-le bin (p + 8)						;-- n_value
 				ns										;-- section-idx (1-based, 0 = NO_SECT)
 				nt										;-- class (n_type)
+				u16-le bin (p + 6)						;-- n_desc (carries N_WEAK_DEF)
 			]
 			i: i + 1
 		]
@@ -209,7 +212,7 @@ macho-obj: context [
 		;-- (section-number) relocations resolve through sym-sect.
 		k: 1
 		while [k <= length? sections][
-			append/only symbols reduce ["" 0 k 0]
+			append/only symbols reduce ["" 0 k 0 0]
 			k: k + 1
 		]
 
@@ -272,6 +275,9 @@ macho-obj: context [
 	sec-relocs:      func [s [block!]][s/6]
 	sec-base-kind:   func [s [block!]][s/7]
 	sec-base-offset: func [s [block!]][s/8]
+	;-- Mach-O coalesces weak definitions at the SYMBOL level (N_WEAK_DEF),
+	;-- not via per-section group keys, so there is no section-level key.
+	sec-comdat-key:  func [s [block!]][none]
 
 	set-sec-base: func [s [block!] kind [word!] offset [integer!]][
 		poke s 7 kind
@@ -282,6 +288,9 @@ macho-obj: context [
 	sym-value: func [sym [block!]][sym/2]
 	sym-sect:  func [sym [block!]][sym/3]
 	sym-class: func [sym [block!]][sym/4]
+
+	;-- TRUE if the symbol's n_desc carries the N_WEAK_DEF bit.
+	sym-weak?: func [sym [block!]][(sym/5 and N_WEAK_DEF) <> 0]
 
 	;-- A defined external: external linkage, N_SECT type, real section.
 	is-defined-external?: func [sym [block!]][

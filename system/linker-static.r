@@ -34,7 +34,8 @@ static-link: context [
 	obj-arch:   none				;-- 'IA-32 | 'ARM  (job/target)
 	objects:    make block! 10		;-- [path object ...] every merged object
 	needed:     make hash!  64		;-- bare C names still referenced (drives archive selection)
-	sym-addr:   make hash!  200		;-- C-name => [kind offset]  kind: 'code|'data|'image-base
+	comdat-keys: make hash!  32		;-- COMDAT / SHT_GROUP keys already pulled (folds duplicates)
+	sym-addr:   make hash!  200		;-- C-name => [kind offset weak?]  kind: 'code|'data|'image-base
 	call-slots: make block! 40		;-- [reloc-refs slot-offset target-info ...]
 	undef-done: make block! 20		;-- undefined externals already resolved
 	libc-set:   none				;-- this build's C-library export hash (libc-exports.r)
@@ -157,6 +158,7 @@ static-link: context [
 	][
 		clear objects
 		clear needed
+		clear comdat-keys
 		clear sym-addr
 		clear call-slots
 		clear undef-done
@@ -294,15 +296,21 @@ static-link: context [
 		]
 	]
 
-	;-- TRUE when `obj` defines a referenced symbol that is not yet defined.
-	member-defines-needed?: func [obj [object!] /local sym raw][
+	;-- TRUE when `obj` defines a referenced symbol that is not yet defined,
+	;-- or could upgrade an existing weak definition to a strong one.
+	member-defines-needed?: func [obj [object!] /local sym raw existing][
 		foreach sym obj/symbols [
 			if reader/is-defined-external? sym [
 				raw: reader/sym-name sym
-				if all [
-					not select sym-addr raw
-					find needed arch-bare raw
-				][return true]
+				either existing: select sym-addr raw [
+					if all [
+						existing/3							;-- existing def is weak
+						not reader/sym-weak? sym			;-- this one is strong
+						find needed arch-bare raw
+					][return true]
+				][
+					if find needed arch-bare raw [return true]
+				]
 			]
 		]
 		false
@@ -321,14 +329,22 @@ static-link: context [
 	;-- Append an object's kept sections into the build's code/data buffers,
 	;-- each aligned to its required boundary; record each section's merged
 	;-- base and the build's peak alignment, then register defined externals.
-	merge-sections: func [job [object!] obj [object!] /local code data section kind a base sym][
+	merge-sections: func [job [object!] obj [object!] /local code data section kind a base sym ckey][
 		code: job/sections/code/2
 		data: job/sections/data/2
 		foreach section obj/sections [
 			kind: reader/sec-kind section
 			if kind [
-				a: reader/sec-align section
-				if a > max-align [max-align: a]
+				;; COMDAT / SHT_GROUP: drop a section whose key has already
+				;; been pulled. The section keeps base-kind='none, so its
+				;; symbols won't register either.
+				either all [ckey: reader/sec-comdat-key section  find comdat-keys ckey][
+					kind: none
+				][
+					if ckey [append comdat-keys ckey]
+					a: reader/sec-align section
+					if a > max-align [max-align: a]
+				]
 			]
 			case [
 				kind = 'code [
@@ -356,9 +372,13 @@ static-link: context [
 		]
 	]
 
-	;-- Record a defined external's final merged address. First definition
-	;-- wins (matches COMDAT NODUPLICATES / archive member order).
-	register-symbol: func [obj [object!] sym [block!] /local sect section kind base name][
+	;-- Record a defined external's final merged address. A later strong
+	;-- definition replaces an earlier weak one; otherwise first-wins
+	;-- (matches COMDAT NODUPLICATES / archive member order).
+	register-symbol: func [
+		obj [object!] sym [block!]
+		/local sect section kind base name new-weak existing
+	][
 		sect: reader/sym-sect sym
 		if sect <= 0 [exit]
 		section: pick obj/sections sect
@@ -366,8 +386,18 @@ static-link: context [
 		if kind = 'none [exit]							;-- symbol lives in a dropped section
 		base: reader/sec-base-offset section
 		name: reader/sym-name sym
-		unless select sym-addr name [
-			repend sym-addr [name reduce [kind base + reader/sym-value sym]]
+		new-weak: reader/sym-weak? sym
+		either existing: select sym-addr name [
+			;; strong def replaces an earlier weak def; same-strength = first-wins
+			if all [existing/3  not new-weak][
+				existing/1: kind
+				existing/2: base + reader/sym-value sym
+				existing/3: false
+			]
+		][
+			repend sym-addr [
+				name reduce [kind  base + reader/sym-value sym  new-weak]
+			]
 		]
 	]
 
@@ -389,10 +419,10 @@ static-link: context [
 							name = "__chkstk" [
 								tramp-off: length? code
 								append code chkstk-stub
-								repend sym-addr [name reduce ['code tramp-off]]
+								repend sym-addr [name reduce ['code tramp-off false]]
 							]
 							name = "__ImageBase" [
-								repend sym-addr [name reduce ['image-base 0]]
+								repend sym-addr [name reduce ['image-base 0 false]]
 							]
 							sz: accepted-libc-data? name [
 								;-- libc DATA symbol: reserve a copy-relocation
@@ -403,7 +433,7 @@ static-link: context [
 								data-off: length? data
 								insert/dup tail data null sz
 								repend job/static-data [name data-off sz]
-								repend sym-addr [name reduce ['data data-off]]
+								repend sym-addr [name reduce ['data data-off false]]
 							]
 							bare: accepted-libc? name [
 								tramp-off: length? code
@@ -435,7 +465,7 @@ static-link: context [
 									]
 								]
 								add-libc-import job bare disp-ref
-								repend sym-addr [name reduce ['code tramp-off]]
+								repend sym-addr [name reduce ['code tramp-off false]]
 							]
 							true [
 								abort reduce ["unresolved external symbol:" name "(in" path ")"]

@@ -32,9 +32,11 @@ coff: context [
 
 	IMAGE_SYM_CLASS_EXTERNAL:	2
 	IMAGE_SYM_CLASS_STATIC:		3
+	IMAGE_SYM_CLASS_WEAK_EXTERNAL: 105
 
 	IMAGE_SCN_LNK_INFO:			to integer! #{00000200}
 	IMAGE_SCN_LNK_REMOVE:		to integer! #{00000800}
+	IMAGE_SCN_LNK_COMDAT:		to integer! #{00001000}
 
 	;-- COFF REL32 displacements are relative to the end of the 4-byte field,
 	;-- so the PC-relative result carries an extra -4 bias (see ELF-obj.r,
@@ -184,7 +186,7 @@ coff: context [
 			i sec-pos name chars align raw-size raw-ptr reloc-ptr reloc-cnt
 			kind raw-data relocs r-pos r-i r-va r-sym r-type
 			sym-pos sym-name sym-value sym-sect sym-class sym-aux
-			str-tbl-off string-table s-idx machine
+			str-tbl-off string-table s-idx machine sec-comdat
 	][
 		;-- File header (20 bytes)
 		if (length? bin) < 20 [return none]
@@ -248,6 +250,10 @@ coff: context [
 				relocs									;-- 6 [[va sym-idx type] ...]
 				'none									;-- 7 base-kind  (linker fills)
 				0										;-- 8 base-offset (linker fills)
+				;-- 9 COMDAT key: starts as TRUE for LNK_COMDAT sections so
+				;-- the symbol pass can swap in the section's name symbol,
+				;-- ending as a string for COMDAT-tracked sections or none.
+				either zero? (chars and IMAGE_SCN_LNK_COMDAT) [none][true]
 			]
 			i: i + 1
 		]
@@ -268,6 +274,18 @@ coff: context [
 				sym-class: byte-at bin (sym-pos + 16)
 				sym-aux:   byte-at bin (sym-pos + 17)
 				append/only symbols reduce [sym-name sym-value sym-sect sym-class]
+				;-- A COMDAT section's key is its first defined external at
+				;-- offset 0 (the section's "name symbol"). Treat all selection
+				;-- types as SELECT_ANY: drop duplicate-keyed sections.
+				if all [
+					sym-value = 0
+					sym-class = IMAGE_SYM_CLASS_EXTERNAL
+					sym-sect > 0
+					sym-sect <= length? sections
+				][
+					sec-comdat: pick sections sym-sect
+					if true = sec-comdat/9 [poke sec-comdat 9 sym-name]
+				]
 			]
 			s-idx: s-idx + 1
 		]
@@ -302,6 +320,9 @@ coff: context [
 	sec-relocs:		func [s [block!]][s/6]
 	sec-base-kind:	func [s [block!]][s/7]
 	sec-base-offset: func [s [block!]][s/8]
+	;-- COMDAT key (string) or none. Sections still tagged TRUE here have the
+	;-- LNK_COMDAT flag but no matching name symbol -- treat as not folded.
+	sec-comdat-key: func [s [block!]][either string? s/9 [s/9][none]]
 
 	set-sec-base: func [s [block!] kind [word!] offset [integer!]][
 		poke s 7 kind
@@ -312,6 +333,9 @@ coff: context [
 	sym-value:	func [sym [block!]][sym/2]
 	sym-sect:	func [sym [block!]][sym/3]
 	sym-class:	func [sym [block!]][sym/4]
+
+	;-- TRUE if the symbol's storage class is IMAGE_SYM_CLASS_WEAK_EXTERNAL.
+	sym-weak?: func [sym [block!]][sym/4 = IMAGE_SYM_CLASS_WEAK_EXTERNAL]
 
 	is-defined-external?: func [sym [block!]][
 		all [

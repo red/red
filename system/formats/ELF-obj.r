@@ -26,6 +26,9 @@ elf-obj: context [
 	SHT_STRTAB:		3				;-- string table
 	SHT_NOBITS:		8				;-- uninitialized data (.bss)
 	SHT_REL:		9				;-- relocations without addends
+	SHT_GROUP:		17				;-- COMDAT / section group
+
+	GRP_COMDAT:		1				;-- group is a COMDAT (drop duplicates)
 
 	SHF_WRITE:		1
 	SHF_ALLOC:		2
@@ -156,6 +159,7 @@ elf-obj: context [
 			shstr shstrtab sections h name kind data
 			symtab-hdr strtab-hdr strtab symbols n-syms st-name st-value
 			st-info st-shndx target-sec rel-off n-rel j rp r-offset r-info
+			gflag sig-sym key n-grp sec-idx member-sec
 	][
 		;-- ELF header (52 bytes)
 		if (length? bin) < 52 [return none]
@@ -202,7 +206,7 @@ elf-obj: context [
 				copy/part at bin (h/4 + 1) h/5
 			][make binary! 0]
 			append/only sections reduce [
-				name kind (max 1 h/8) data h/5 (make block! 4) 'none 0
+				name kind (max 1 h/8) data h/5 (make block! 4) 'none 0  none
 			]
 		]
 
@@ -230,6 +234,30 @@ elf-obj: context [
 					st-info								;-- class (st_info)
 				]
 				i: i + 1
+			]
+		]
+
+		;-- COMDAT groups: an SHT_GROUP section's content is a flag word
+		;-- followed by section indices that share a key (the signature
+		;-- symbol's name, named by sh_info). The static linker drops a
+		;-- group whose key has already been merged.
+		foreach h headers [
+			if all [h/2 = SHT_GROUP  h/5 >= 4  symtab-hdr][
+				gflag: u32-le bin (h/4 + 1)
+				if (gflag and GRP_COMDAT) <> 0 [
+					sig-sym: pick symbols (h/7 + 1)
+					if sig-sym [
+						key: first sig-sym
+						n-grp: to integer! (h/5 - 4) / 4
+						j: 0
+						while [j < n-grp][
+							sec-idx: u32-le bin (h/4 + (j + 1) * 4 + 1)
+							member-sec: pick sections (sec-idx + 1)
+							if member-sec [poke member-sec 9 key]
+							j: j + 1
+						]
+					]
+				]
 			]
 		]
 
@@ -284,6 +312,7 @@ elf-obj: context [
 	sec-relocs:      func [s [block!]][s/6]
 	sec-base-kind:   func [s [block!]][s/7]
 	sec-base-offset: func [s [block!]][s/8]
+	sec-comdat-key:  func [s [block!]][s/9]		;-- group key (string) or none
 
 	set-sec-base: func [s [block!] kind [word!] offset [integer!]][
 		poke s 7 kind
@@ -297,6 +326,9 @@ elf-obj: context [
 
 	;-- st_info binding: STB_GLOBAL / STB_WEAK count as external linkage.
 	sym-bind: func [sym [block!]][shift/logical sym/4 4]
+
+	;-- TRUE if the symbol is a weak definition (STB_WEAK).
+	sym-weak?: func [sym [block!]][STB_WEAK = shift/logical sym/4 4]
 
 	;-- A defined external: global/weak binding, bound to a real section.
 	is-defined-external?: func [sym [block!] /local bind][
