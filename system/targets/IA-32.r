@@ -819,8 +819,14 @@ make-profilable make target-class [
 
 		opcodes: [
 			logic!	 [emit #{3401}]					;-- XOR al, 1			; invert 0<=>1
-			byte!	 [emit #{F6D0}]					;-- NOT al				; @@ missing 16-bit support									
+			byte!	 [emit #{F6D0}]					;-- NOT al
+			int8!	 [emit #{F6D0}]					;-- NOT al
+			uint8!	 [emit #{F6D0}]					;-- NOT al
+			int16!	 [emit #{66F7D0}]				;-- NOT ax
+			uint16!	 [emit #{66F7D0}]				;-- NOT ax
 			integer! [emit #{F7D0}]					;-- NOT eax
+			int32!	 [emit #{F7D0}]					;-- NOT eax
+			uint32!	 [emit #{F7D0}]					;-- NOT eax
 			int64!	 [emit #{F7D0} emit #{F7D2}]	;-- NOT eax / NOT edx
 			uint64!	 [emit #{F7D0} emit #{F7D2}]	;-- NOT eax / NOT edx
 		]
@@ -2231,12 +2237,16 @@ make-profilable make target-class [
 			]
 			/ [
 				op-poly: [
-					either width = 1 [				;-- 8-bit unsigned
-						emit #{B400}				;-- MOV ah, 0			; clean-up garbage in ah
-						emit #{F6F1}				;-- DIV cl
-					][
-						emit-sign-extension			;-- 16/32-bit signed
+					either signed? [
+						emit-sign-extension			;-- extend rA to high:low pair
 						emit-poly [#{F6F9} #{F7F9}]	;-- IDIV rC ; rA / rC
+					][
+						switch width [
+							1 [emit #{B400}]		;-- MOV ah, 0
+							2 [emit #{6631D2}]		;-- XOR dx, dx
+							4 [emit #{31D2}]		;-- XOR edx, edx
+						]
+						emit-poly [#{F6F1} #{F7F1}]	;-- DIV rC ; rA / rC
 					]
 				]
 				switch b [
@@ -2261,21 +2271,33 @@ make-profilable make target-class [
 				]
 				if mod? [
 					emit-poly [#{88E0} #{89D0}]		;-- MOV rA, remainder	; remainder from ah|dx|edx
-					if all [mod? <> 'rem width > 1][;-- modulo, not remainder
+					if all [signed? mod? <> 'rem][	;-- modulo, not remainder
 					;-- Adjust modulo result to be mathematically correct:
 					;-- 	if modulo < 0 [
 					;--			if divisor < 0  [divisor: negate divisor]
 					;--			modulo: modulo + divisor
 					;--		]
-						c: to-bin8 select [1 7 2 15 4 31] width		;-- support for possible int8 type
-						emit #{0FBAE0}				;--   	  BT rA, 7|15|31 ; @@ better way ?
-						emit c
-						emit #{730A}				;-- 	  JNC exit		 ; (won't work with ax)
-						emit #{0FBAE1}				;-- 	  BT rC, 7|15|31 ; @@ better way ?
-						emit c
-						emit #{7302}				;-- 	  JNC add		 ; (won't work with ax)
-						emit-poly [#{F6D9} #{F7D9}]	;--		  NEG rC
-						emit-poly [#{00C8} #{01C8}]	;-- add:  ADD rA, rC
+						switch width [
+							1 [
+								emit #{84C0}		;-- 	  TEST al, al
+								emit #{7908}		;-- 	  JNS exit
+								emit #{84C9}		;-- 	  TEST cl, cl
+								emit #{7902}		;-- 	  JNS add
+								emit #{F6D9}		;--		  NEG cl
+								emit #{00C8}		;-- add:  ADD al, cl
+							]
+							2 [
+								emit #{660FBAE00F730D660FBAE10F730366F7D96601C8}
+							]
+							4 [
+								emit #{0FBAE01F}	;--   	  BT eax, 31
+								emit #{730A}		;-- 	  JNC exit
+								emit #{0FBAE11F}	;-- 	  BT ecx, 31
+								emit #{7302}		;-- 	  JNC add
+								emit #{F7D9}		;--		  NEG ecx
+								emit #{01C8}		;-- add:  ADD eax, ecx
+							]
+						]
 					]								;-- exit:
 				]
 				if any [							;-- in case edx was saved on stack
@@ -2352,6 +2374,22 @@ make-profilable make target-class [
 		]
 	]
 
+	emit-int64-shift-dynamic: func [name [word!] /local left? unsigned?][
+		left?: name = first [<<]
+		unsigned?: name = first [-**]
+		case [
+			left? [
+				emit #{80E13F741780F920720D89C231C080E11F7409D3E2EB050FA5C2D3E0}
+			]
+			unsigned? [
+				emit #{80E13F741780F920720D89D031D280E11F7409D3E8EB050FADD0D3EA}
+			]
+			'else [
+				emit #{80E13F741880F920720E89D0C1FA1F80E11F7409D3F8EB050FADD0D3FA}
+			]
+		]
+	]
+
 	emit-int64-multiply: has [][
 		emit #{53}									;-- PUSH ebx
 		emit #{89C1}								;-- MOV ecx, eax	; left low
@@ -2364,32 +2402,42 @@ make-profilable make target-class [
 		emit #{5B}									;-- POP ebx
 	]
 
-	emit-int64-comparison: func [name [word!]][
-		unless find [= <>] name [
-			compiler/throw-error "ordered 64-bit integer comparisons are not implemented for IA-32 yet"
-		]
+	emit-int64-comparison: func [name [word!] /local signed-op?][
+		signed-op?: signed?
 		emit #{39FA}								;-- CMP edx, edi	; compare high
-		emit #{7502}								;-- JNE +2
+		emit either signed-op? [#{7C0C}][#{720C}]	;-- JL|JB less
+		emit either signed-op? [#{7F11}][#{7711}]	;-- JG|JA greater
 		emit #{39F0}								;-- CMP eax, esi	; compare low when high equal
+		emit #{7206}								;-- JB less
+		emit #{770B}								;-- JA greater
+		emit #{31C0}								;-- XOR eax, eax	; equal
+		emit #{EB0C}								;-- JMP done
+		emit #{B8FFFFFFFF}							;-- less: MOV eax, -1
+		emit #{EB05}								;-- JMP done
+		emit #{B801000000}							;-- greater: MOV eax, 1
+		emit #{85C0}								;-- done: TEST eax, eax
+		signed?: yes								;-- final flags are a signed tri-state compare
 	]
 
 	emit-int64-operation: func [name [word!] args [block!] /local right][
-		if all [find comparison-op name not find [= <>] name][
-			compiler/throw-error "ordered 64-bit integer comparisons are not implemented for IA-32 yet"
-		]
-		if all [find [/ //] name][
+		if any [find mod-rem-op name name = first [/]] [
 			compiler/throw-error "64-bit integer divide/modulo are not implemented for IA-32 yet"
 		]
 		unless args/1 = <last> [emit-load args/1]
 		case [
 			find bitshift-op name [
 				right: compiler/unbox args/2
-				unless integer? right [
-					compiler/throw-error "64-bit integer shifts require a literal count for now"
+				either integer? right [
+					emit-int64-shift name right
+				][
+					emit #{52} emit #{50}			;-- save left high/low
+					emit-load args/2
+					emit #{88C1}					;-- MOV cl, al
+					emit #{58} emit #{5A}			;-- restore left low/high
+					emit-int64-shift-dynamic name
 				]
-				emit-int64-shift name right
 			]
-			find [= <>] name [
+			find comparison-op name [
 				emit #{52} emit #{50}					;-- save left high/low
 				emit-load-int64-right args/2
 				emit #{58} emit #{5A}					;-- restore left low/high
@@ -2411,11 +2459,12 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-integer-operation: func [name [word!] args [block!] /local a b sorted? left right][
+	emit-integer-operation: func [name [word!] args [block!] /local a b sorted? left right saved][
 		if verbose >= 3 [print [">>>inlining integer op:" mold name mold args]]
 
 		set-width args/1							;-- set reg/mem access width
 		if width = 8 [return emit-int64-operation name args]
+		saved: reduce [width signed?]
 		set [a b] get-arguments-class args
 		last-saved?: no								;-- reset flag
 
@@ -2496,6 +2545,7 @@ make-profilable make target-class [
 				implicit-cast right yes
 			]
 		]
+		set [width signed?] saved
 		case [
 			find comparison-op name [emit-comparison-op name a b args]
 			find math-op	   name	[emit-math-op		name a b args]

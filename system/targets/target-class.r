@@ -118,11 +118,14 @@ target-class: context [
 	]
 	
 	with-width-of: func [value body [block!] /alt /local old][
-		old: width
+		old: reduce [width signed?]
 		set-width compiler/unbox value
 		do body
-		width: old
-		if all [alt object? value][emit-casting value yes]	;-- casting for right operand
+		set [width signed?] old
+		if all [alt object? value][					;-- casting for right operand
+			emit-casting value yes
+			set [width signed?] old
+		]
 	]
 	
 	implicit-cast: func [arg alt? [logic!] /local right-width right-type target-type][

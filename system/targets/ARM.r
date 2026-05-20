@@ -24,7 +24,9 @@ make-profilable make target-class [
 
 	
 	need-divide?: 		none						;-- if TRUE, include division routine in code
+	need-udivide?: 		none						;-- if TRUE, include unsigned division routine in code
 	div-sym:			'_div_
+	udiv-sym:			'_udiv_
 	
 	conditions: make hash! [
 	;-- name ----------- signed --- unsigned --
@@ -461,33 +463,81 @@ make-profilable make target-class [
 			#{51a0f00e}			; MOVPL pc, lr			; 	return from sub-routine
 			#{e0800005}			; ADD r0, r0, r5		; r0: r0 + r5 (abs(divisor))
 			#{e1a0f00e}			; MOV pc, lr			; return from sub-routine
- 		][
- 			emit-i32 opcode
- 		]
+		][
+			emit-i32 opcode
+		]
+
+	emit-udivide: has [][
+		if verbose >= 3 [print "^/>>>emitting UDIVIDE intrinsic"]
+		foreach opcode [
+			#{e1500001}			; CMP r0, r1
+			#{2a000002}			; BCS .divide
+			#{e1a01000}			; MOV r1, r0
+			#{e3a00000}			; MOV r0, #0
+			#{ea000010}			; B .epilog
+								; .divide
+			#{e1a02001}			; MOV r2, r1
+			#{e1a01000}			; MOV r1, r0
+			#{e3a00000}			; MOV r0, #0
+			#{e3a03001}			; MOV r3, #1
+								; .start
+			#{e1520001}			; CMP r2, r1
+			#{8a000004}			; BHI .next
+			#{e3120102}			; TST r2, #80000000h
+			#{1a000002}			; BNE .next
+			#{e1a02082}			; MOV r2, r2, LSL #1
+			#{e1a03083}			; MOV r3, r3, LSL #1
+			#{eafffff8}			; B .start
+								; .next
+			#{e1510002}			; CMP r1, r2
+			#{20411002}			; SUBCS r1, r1, r2
+			#{20800003}			; ADDCS r0, r0, r3
+			#{e1b030a3}			; MOVS r3, r3, LSR #1
+			#{31a020a2}			; MOVCC r2, r2, LSR #1
+			#{3afffff9}			; BCC .next
+								; .epilog
+			#{e3340000}			; TEQ r4, #0
+			#{01a0f00e}			; MOVEQ pc, lr
+			#{e1a00001}			; MOV r0, r1
+			#{e1a0f00e}			; MOV pc, lr
+		][
+			emit-i32 opcode
+		]
+	]
 	]
 	
 	;-- Check if div-sym is not user-defined, else provide a unique replacement symbol
-	make-div-sym: has [retry][
-		if select emitter/symbols div-sym [
+	make-div-sym: func [sym [word!] /local retry][
+		if select emitter/symbols sym [
 			retry: 3								;-- try 3 times, then spit an error to user face ;)
 			until [
-				div-sym: to word! rejoin ["_div_" random "0123456798"]
+				sym: to word! rejoin [sym random "0123456798"]
 				if zero? retry: retry - 1 [
 					compiler/throw-error "Unable to create divide symbol!"
 				]
-				none? emitter/symbols/:div-sym
+				none? emitter/symbols/:sym
 			]
 		]
-		div-sym
+		sym
 	]
 	
-	call-divide: func [mod? [word! none!] /local refs][
-		refs: third either need-divide? [
-			emitter/symbols/:div-sym
+	call-divide: func [mod? [word! none!] /unsigned /local refs][
+		refs: third either unsigned [
+			either need-udivide? [
+				emitter/symbols/:udiv-sym
+			][
+				udiv-sym: make-div-sym udiv-sym
+				need-udivide?: yes
+				emitter/add-native udiv-sym			;-- add an entry for the unsigned divide pseudo-function
+			]
 		][
-			div-sym: make-div-sym
-			need-divide?: yes
-			emitter/add-native div-sym				;-- add an entry for the divide pseudo-function
+			either need-divide? [
+				emitter/symbols/:div-sym
+			][
+				div-sym: make-div-sym div-sym
+				need-divide?: yes
+				emitter/add-native div-sym			;-- add an entry for the divide pseudo-function
+			]
 		]
 		
 		emit-i32 join #{e3a040} switch/default mod? [ ;-- MOV r4, #0|1|2
@@ -510,6 +560,10 @@ make-profilable make target-class [
 		if need-divide? [
 			emitter/symbols/:div-sym/2: emitter/tail-ptr
 			emit-divide
+		]
+		if need-udivide? [
+			emitter/symbols/:udiv-sym/2: emitter/tail-ptr
+			emit-udivide
 		]
 		if pools/active? [pools/process]			;-- trigger pools processing on end of code generation
 	]
@@ -1521,7 +1575,15 @@ make-profilable make target-class [
 		opcodes: [
 			logic!	 [emit-i32 #{e2200001}]			;-- EOR r0, #1		; invert 0<=>1
 			byte!	 [emit-i32 #{e1e00000}]			;-- MVN r0, r0
+			int8!	 [emit-i32 #{e1e00000}]			;-- MVN r0, r0
+			uint8!	 [emit-i32 #{e1e00000}]			;-- MVN r0, r0
+			int16!	 [emit-i32 #{e1e00000}]			;-- MVN r0, r0
+			uint16!	 [emit-i32 #{e1e00000}]			;-- MVN r0, r0
 			integer! [emit-i32 #{e1e00000}]			;-- MVN r0, r0
+			int32!	 [emit-i32 #{e1e00000}]			;-- MVN r0, r0
+			uint32!	 [emit-i32 #{e1e00000}]			;-- MVN r0, r0
+			int64!	 [emit-i32 #{e1e00000} emit-i32 #{e1e01001}] ;-- MVN r0, r0 / MVN r1, r1
+			uint64!	 [emit-i32 #{e1e00000} emit-i32 #{e1e01001}] ;-- MVN r0, r0 / MVN r1, r1
 		]
 		switch type?/word value [
 			logic! [
@@ -2494,6 +2556,28 @@ make-profilable make target-class [
 				#{e1a00330}							;-- LSR r0, r0, r3
 			]
 		] name
+
+		if all [name = '-** signed? width < 4] [
+			switch width [
+				1 [emit-i32 #{e20000ff}]			;-- AND r0, r0, #ff
+				2 [
+					emit-i32 #{e1a00800}			;-- MOV r0, r0, LSL #16
+					emit-i32 #{e1a00820}			;-- MOV r0, r0, LSR #16
+				]
+			]
+		]
+		if all [name = first [>>] signed? width < 4] [
+			switch width [
+				1 [
+					emit-i32 #{e1a00c00}			;-- MOV r0, r0, LSL #24
+					emit-i32 #{e1a00c40}			;-- MOV r0, r0, ASR #24
+				]
+				2 [
+					emit-i32 #{e1a00800}			;-- MOV r0, r0, LSL #16
+					emit-i32 #{e1a00840}			;-- MOV r0, r0, ASR #16
+				]
+			]
+		]
 	
 		emit-i32 either b = 'imm [
 			opcode/1 or to-shift-imm args/2
@@ -2674,7 +2758,7 @@ make-profilable make target-class [
 							emit-i32 #{e1b00000}	;-- LSLS r0, r0, #log2(b)
 								or to-shift-imm c
 						][
-							emit-load-imm32/reg args/2 1	;-- MOV r1, #value
+							emit-load-imm32/reg arg2 1	;-- MOV r1, #value
 							do op-poly
 						]
 					]
@@ -2691,7 +2775,7 @@ make-profilable make target-class [
 				switch b [
 					imm [
 						emit-i32 #{e92d0002}		 ;-- PUSH {r1}	; save r1 from corruption
-						emit-load-imm32/reg args/2 1 ;-- MOV r1, #value
+						emit-load-imm32/reg arg2 1 ;-- MOV r1, #value
 					]
 					ref [
 						emit-i32 #{e92d0002}		;-- PUSH {r1}	; save r1 from corruption
@@ -2721,13 +2805,33 @@ make-profilable make target-class [
 						either block? opcode [do opcode][emit-i32 opcode]
 					]
 				]
+				if all [signed? width < 4] [
+					switch width [
+						1 [
+							emit-i32 #{e1a00c00}	;-- MOV r0, r0, LSL #24
+							emit-i32 #{e1a00c40}	;-- MOV r0, r0, ASR #24
+							emit-i32 #{e1a01c01}	;-- MOV r1, r1, LSL #24
+							emit-i32 #{e1a01c41}	;-- MOV r1, r1, ASR #24
+						]
+						2 [
+							emit-i32 #{e1a00800}	;-- MOV r0, r0, LSL #16
+							emit-i32 #{e1a00840}	;-- MOV r0, r0, ASR #16
+							emit-i32 #{e1a01801}	;-- MOV r1, r1, LSL #16
+							emit-i32 #{e1a01841}	;-- MOV r1, r1, ASR #16
+						]
+					]
+				]
 				either compiler/job/cpu-version < 7.0 [
-					call-divide mod?
+					either signed? [call-divide mod?][call-divide/unsigned mod?]
 				][
 					either mod? [
-						emit-i32 #{e713f110}	;-- SDIV r3, r0, r1
+						emit-i32 either signed? [
+							#{e713f110}	;-- SDIV r3, r0, r1
+						][
+							#{e733f110}	;-- UDIV r3, r0, r1
+						]
 						emit-i32 #{e0640193}	;-- MLS r4, r3, r1, r0	; r4 = r0 - r3 * r1
-						if mod? <> 'rem [		;-- modulo, not remainder
+						if all [signed? mod? <> 'rem] [	;-- modulo, not remainder
 						;-- Adjust modulo result to be mathematically correct:
 						;-- 	if modulo < 0 [
 						;--			if divisor < 0  [divisor: negate divisor]
@@ -2741,7 +2845,11 @@ make-profilable make target-class [
 						]						 ;-- .exit:
 						emit-i32 #{e1a00004}	 ;-- MOV r0, r4	; r0: modulo or remainder
 					][
-						emit-i32 #{e710f110}	 ;-- SDIV r0, r0, r1
+						emit-i32 either signed? [
+							#{e710f110}	 ;-- SDIV r0, r0, r1
+						][
+							#{e730f110}	 ;-- UDIV r0, r0, r1
+						]
 					]
 				]
 				if any [						 ;-- in case r1 was saved on stack
@@ -2793,35 +2901,104 @@ make-profilable make target-class [
 		emit-i32 #{e1a03001}						;-- MOV r3, r1	; high
 	]
 
-	emit-int64-operation: func [name [word!] args [block!] /local target][
-		if find comparison-op name [
-			compiler/throw-error "64-bit integer comparisons are not implemented for ARM yet"
+	emit-int64-comparison: func [name [word!] /local signed-op?][
+		signed-op?: signed?
+		emit-i32 #{e3a04000}						;-- MOV r4, #0
+		emit-i32 #{e1500002}						;-- CMP r0, r2	; low
+		emit-i32 #{33e04000}						;-- MVNLO r4, #0
+		emit-i32 #{83a04001}						;-- MOVHI r4, #1
+		emit-i32 #{e1510003}						;-- CMP r1, r3	; high
+		either signed-op? [
+			emit-i32 #{b3e00000}					;-- MVNLT r0, #0
+			emit-i32 #{c3a00001}					;-- MOVGT r0, #1
+		][
+			emit-i32 #{33e00000}					;-- MVNLO r0, #0
+			emit-i32 #{83a00001}					;-- MOVHI r0, #1
 		]
-		if find [* / //] name [
-			compiler/throw-error "64-bit integer multiply/divide/modulo are not implemented for ARM yet"
+		emit-i32 #{01a00004}						;-- MOVEQ r0, r4
+		emit-i32 #{e3500000}						;-- CMP r0, #0
+		signed?: yes								;-- final flags are a signed tri-state compare
+	]
+
+	emit-int64-shift: func [name [word!]][
+		switch name [
+			<< [
+				foreach opcode [
+					#{e202203f} #{e3520000} #{0a00000a} #{e3520020}
+					#{3a000005} #{e1a01000} #{e3a00000} #{e202201f}
+					#{e3520000} #{11a01211} #{ea000002} #{e2623020}
+					#{e1811330} #{e1a00210}
+				][emit-i32 opcode]
+			]
+			-** [
+				foreach opcode [
+					#{e202203f} #{e3520000} #{0a00000a} #{e3520020}
+					#{3a000005} #{e1a00001} #{e3a01000} #{e202201f}
+					#{e3520000} #{11a00230} #{ea000002} #{e2623020}
+					#{e1800311} #{e1a01231}
+				][emit-i32 opcode]
+			]
+			>> [
+				foreach opcode [
+					#{e202203f} #{e3520000} #{0a00000a} #{e3520020}
+					#{3a000005} #{e1a00001} #{e1a01fc1} #{e202201f}
+					#{e3520000} #{11a00250} #{ea000002} #{e2623020}
+					#{e1800311} #{e1a01251}
+				][emit-i32 opcode]
+			]
 		]
-		if find bitshift-op name [
-			compiler/throw-error "64-bit integer shifts are not implemented for ARM yet"
+	]
+
+	emit-int64-multiply: has [][
+		emit-i32 #{e0854290}						;-- UMULL r4, r5, r0, r2
+		emit-i32 #{e0255291}						;-- MLA r5, r1, r2, r5
+		emit-i32 #{e0255390}						;-- MLA r5, r0, r3, r5
+		emit-i32 #{e1a00004}						;-- MOV r0, r4
+		emit-i32 #{e1a01005}						;-- MOV r1, r5
+	]
+
+	emit-int64-operation: func [name [word!] args [block!] /local target right][
+		if any [find mod-rem-op name name = first [/]] [
+			compiler/throw-error "64-bit integer divide/modulo are not implemented for ARM yet"
 		]
 		target: either args/1 = <last> [compiler/last-type/1][first compiler/get-type args/1]
 		unless args/1 = <last> [emit-load args/1]
-		emit-i32 #{e92d0003}						;-- PUSH {r0,r1}
-		emit-load-int64-right args/2 target
-		emit-i32 #{e8bd0003}						;-- POP {r0,r1}
-		switch name [
-			+   [emit-i32 #{e0900002} emit-i32 #{e0a11003}] ;-- ADDS low / ADC high
-			-   [emit-i32 #{e0500002} emit-i32 #{e0c11003}] ;-- SUBS low / SBC high
-			and [emit-i32 #{e0000002} emit-i32 #{e0011003}]
-			or  [emit-i32 #{e1800002} emit-i32 #{e1811003}]
-			xor [emit-i32 #{e0200002} emit-i32 #{e0211003}]
+		either find bitshift-op name [
+			right: compiler/unbox args/2
+			either integer? right [
+				emit-load-imm32/reg right 2
+			][
+				emit-i32 #{e92d0003}				;-- PUSH {r0,r1}
+				emit-load args/2
+				emit-i32 #{e1a02000}				;-- MOV r2, r0
+				emit-i32 #{e8bd0003}				;-- POP {r0,r1}
+			]
+			emit-int64-shift name
+		][
+			emit-i32 #{e92d0003}					;-- PUSH {r0,r1}
+			emit-load-int64-right args/2 target
+			emit-i32 #{e8bd0003}					;-- POP {r0,r1}
+			either find comparison-op name [
+				emit-int64-comparison name
+			][
+				switch name [
+					+   [emit-i32 #{e0900002} emit-i32 #{e0a11003}] ;-- ADDS low / ADC high
+					-   [emit-i32 #{e0500002} emit-i32 #{e0c11003}] ;-- SUBS low / SBC high
+					*   [emit-int64-multiply]
+					and [emit-i32 #{e0000002} emit-i32 #{e0011003}]
+					or  [emit-i32 #{e1800002} emit-i32 #{e1811003}]
+					xor [emit-i32 #{e0200002} emit-i32 #{e0211003}]
+				]
+			]
 		]
 	]
 	
-	emit-integer-operation: func [name [word!] args [block!] /local a b sorted? left right][
+	emit-integer-operation: func [name [word!] args [block!] /local a b sorted? left right saved][
 		if verbose >= 3 [print [">>>inlining integer op:" mold name mold args]]
 
 		set-width args/1							;-- set reg/mem access width
 		if width = 8 [return emit-int64-operation name args]
+		saved: reduce [width signed?]
 		set [a b] get-arguments-class args
 		last-saved?: no								;-- reset flag
 
@@ -2900,6 +3077,7 @@ make-profilable make target-class [
 				implicit-cast right yes
 			]
 		]
+		set [width signed?] saved
 		case [
 			find comparison-op name [emit-comparison-op name a b args]
 			find math-op	   name	[emit-math-op		name a b args]
