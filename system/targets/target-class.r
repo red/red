@@ -125,17 +125,23 @@ target-class: context [
 		if all [alt object? value][emit-casting value yes]	;-- casting for right operand
 	]
 	
-	implicit-cast: func [arg alt? [logic!] /local right-width][
+	implicit-cast: func [arg alt? [logic!] /local right-width right-type target-type][
 		right-width: first get-width arg none
+		right-type: compiler/get-type arg
+		target-type: reduce [case [
+			width = 1 [either signed? ['int8!]['uint8!]]
+			width = 2 [either signed? ['int16!]['uint16!]]
+			width = 4 [either signed? ['integer!]['uint32!]]
+			width = 8 [compiler/last-type/1]
+		]]
 		
 		if any [
-			all [width = 4 right-width = 1]			;-- detect byte! -> integer! implicit casting
-			all [width = 8 find [1 4] right-width]	;-- detect 32-bit -> 64-bit implicit casting
-			find [float! float32! float64!] first compiler/get-type arg
+			compiler/lossless-integer-cast? right-type target-type
+			find [float! float32! float64!] first right-type
 		][
 			arg: make compiler/action-class [
 				action: 'type-cast
-				type: reduce [either width = 8 [compiler/last-type/1]['integer!]]
+				type: target-type
 				data: arg
 			]
 			emit-casting arg alt?					;-- type cast right argument

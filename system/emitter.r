@@ -31,15 +31,15 @@ emitter: make-profilable context [
 	] none
 	
 	types-model: [
-		;int8!		1	signed
+		int8!		1	signed
 		byte!		1	unsigned
-		;int16!		2	signed
-		;int32!		4	signed
+		uint8!		1	unsigned
+		int16!		2	signed
+		uint16!		2	unsigned
+		int32!		4	signed
 		integer!	4	signed
+		uint32!		4	unsigned
 		int64!		8	signed
-		;uint8!		1	unsigned
-		;uint16!	2	unsigned
-		;uint32!	4	unsigned
 		uint64!		8	unsigned
 		float32!	4	signed
 		float64!	8	signed
@@ -58,7 +58,13 @@ emitter: make-profilable context [
 	datatype-ID: [
 		logic!		1
 		integer!	2
+		int32!		2
 		byte!	    3
+		int8!		13
+		uint8!		14
+		int16!		15
+		uint16!		16
+		uint32!		17
 		int64!		11
 		uint64!		12
 		float32!	4
@@ -254,19 +260,20 @@ emitter: make-profilable context [
 		ptr: tail data-buf
 		
 		switch/default type [
-			integer! int64! uint64! [
+			int8! uint8! int16! uint16! int32! integer! uint32! int64! uint64! [
 				case [
-					all [type = 'integer! find [char! decimal!] type?/word value][value: to integer! value]
+					all [find [integer! int32! uint32!] type find [char! decimal!] type?/word value][value: to integer! value]
 					find [true false] value [value: to integer! get value]
-					all [type = 'integer! not integer? value][value: 0]
+					all [find [integer! int32! uint32!] type not any [integer? value issue? value]][value: 0]
+					all [find [int8! uint8! int16! uint16!] type not any [integer? value issue? value char? value]][value: 0]
 				]
-				pad-data-buf either find [int64! uint64!] type [8][target/default-align]
+				pad-data-buf case [
+					find [int64! uint64!] type [8]
+					find [integer! int32! uint32!] type [target/default-align]
+					'else [size]
+				]
 				ptr: tail data-buf
-				value: debase/base either find [int64! uint64!] type [
-					compiler/int64-hex value type
-				][
-					to-hex value
-				] 16
+				value: debase/base compiler/int-literal-hex value type 16
 				either target/little-endian? [
 					value: tail value
 					loop size [append ptr to char! (first value: skip value -1)]
@@ -493,7 +500,7 @@ emitter: make-profilable context [
 		offset: 0
 		foreach [var type] spec [
 			all [
-				find [integer! int64! uint64! c-string! pointer! struct! logic!] type/1
+				find [integer! int32! uint32! int64! uint64! c-string! pointer! struct! logic!] type/1
 				not zero? over: offset // target/struct-align-size 
 				offset: offset + target/struct-align-size - over ;-- properly account for alignment
 			]

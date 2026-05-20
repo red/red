@@ -637,8 +637,37 @@ make-profilable make target-class [
 	
 	;-- Polymorphic code generation
 	emit-poly: func [opcode [binary!] /with offset [integer!]][
+		if width = 2 [
+			opcode: switch/default opcode [
+				#{e5900000} [either signed? [#{e1d000f0}][#{e1d000b0}]]
+				#{e7900003} [either signed? [#{e19000f3}][#{e19000b3}]]
+				#{e5800000} [#{e1c000b0}]
+				#{e7802003} [#{e18020b3}]
+				#{e5002000} [#{e1c020b0}]
+				#{e5830000} [#{e1c300b0}]
+				#{e5831004} [#{e1c310b4}]
+				#{e5801004} [#{e1c010b4}]
+				#{e5802000} [#{e1c020b0}]
+			][opcode]
+			if with [emit-half-offset opcode offset][emit-i32 opcode]
+			exit
+		]
 		if with 	 [opcode: opcode or to-12-bit offset]
-		if width = 1 [opcode: opcode or byte-flag]	;-- 16-bit access not supported
+		if width = 1 [opcode: opcode or byte-flag]
+		emit-i32 opcode
+	]
+
+	emit-half-offset: func [opcode [binary!] offset [integer!] /local hi lo][
+		opcode: copy opcode
+		if negative? offset [
+			opcode/2: #"^(7F)" and opcode/2			;-- clear bit 23 (U)
+		]
+		offset: abs offset
+		if offset > 255 [compiler/throw-error "ARM halfword offset exceeds 255 bytes"]
+		hi: shift/logical offset and 240 4
+		lo: offset and 15
+		opcode/3: to char! (to integer! opcode/3) or hi
+		opcode/4: to char! (to integer! opcode/4) or lo
 		emit-i32 opcode
 	]
 	
@@ -733,6 +762,19 @@ make-profilable make target-class [
 			emit-load-imm32/reg int32-from-hex8 high 1
 		]
 	]
+
+	emit-load-int-literal: func [value type [word!] /alt /local hex][
+		either compiler/int64? type [
+			either alt [emit-load-int64-literal/alt value type][emit-load-int64-literal value type]
+		][
+			hex: compiler/int-literal-hex value type
+			either alt [
+				emit-load-imm32/reg int32-from-hex8 hex 1
+			][
+				emit-load-imm32 int32-from-hex8 hex
+			]
+		]
+	]
 	
 	emit-op-imm32: func [opcode [binary!] value [integer! char!] /local bits][
 		opcode: copy opcode
@@ -801,7 +843,11 @@ make-profilable make target-class [
 		if object? name [name: compiler/unbox name]
 
 		either offset: emitter/local-offset? name [	;-- local variable case
-			emit-load-local lcode offset
+			either all [binary? lcode find [#{e1db00b0} #{e1db00f0} #{e1db10b0} #{e1db10f0} #{e1cb00b0}] lcode][
+				emit-half-offset lcode offset
+			][
+				emit-load-local lcode offset
+			]
 		][											;-- global variable case
 			opcode: #{e59f0000}
 			
@@ -842,6 +888,19 @@ make-profilable make target-class [
 		/alt
 	][
 		with-width-of name [
+			if width = 2 [
+				g-code: switch/default g-code [
+					#{e5900000} [either signed? [#{e1d000f0}][#{e1d000b0}]]
+					#{e5911000} [either signed? [#{e1d110f0}][#{e1d110b0}]]
+					#{e5010000} [#{e1c100b0}]
+				][g-code]
+				if p-code [p-code: none]
+				l-code: switch/default l-code [
+					#{e59b0000} [either signed? [#{e1db00f0}][#{e1db00b0}]]
+					#{e59b1000} [either signed? [#{e1db10f0}][#{e1db10b0}]]
+					#{e58b0000} [#{e1cb00b0}]
+				][l-code]
+			]
 			if width = 1 [
 				g-code: g-code or byte-flag
 				if p-code [p-code: p-code or byte-flag]
@@ -960,7 +1019,10 @@ make-profilable make target-class [
 		]
 	]
 
-	emit-casting: func [value [object!] alt? [logic!] /local old type][
+	emit-casting: func [
+		value [object!] alt? [logic!]
+		/local old type from to from-width to-width signed-src?
+	][
 		if value/keep? [exit]
 		type: compiler/get-type value/data
 		case [
@@ -995,15 +1057,67 @@ make-profilable make target-class [
 				]
 				width: old
 			]
-			all [compiler/int64? value/type find [byte! integer!] type/1][
-				if type/1 = 'byte! [
-					either alt? [
-						emit-i32 #{e20110ff}		;-- AND r1, r1, #ff
+			all [
+				compiler/integer-type? value/type
+				compiler/integer-type? type
+				not compiler/int64? value/type
+				not compiler/int64? type
+			][
+				from: compiler/canonical-type type
+				to: compiler/canonical-type value/type
+				from-width: compiler/integer-width? from
+				to-width: compiler/integer-width? to
+				signed-src?: compiler/signed-integer? from
+				if all [to-width >= 4 from-width < 4][
+					either signed-src? [
+						switch from-width [
+							1 [
+								emit-i32 pick [#{e1a01c01} #{e1a00c00}] alt? ;-- LSL #24
+								emit-i32 pick [#{e1a01c41} #{e1a00c40}] alt? ;-- ASR #24
+							]
+							2 [
+								emit-i32 pick [#{e1a01801} #{e1a00800}] alt? ;-- LSL #16
+								emit-i32 pick [#{e1a01841} #{e1a00840}] alt? ;-- ASR #16
+							]
+						]
 					][
-						emit-i32 #{e20000ff}		;-- AND r0, r0, #ff
+						switch from-width [
+							1 [emit-i32 pick [#{e20110ff} #{e20000ff}] alt?]
+							2 [
+								emit-i32 pick [#{e1a01801} #{e1a00800}] alt? ;-- LSL #16
+								emit-i32 pick [#{e1a01821} #{e1a00820}] alt? ;-- LSR #16
+							]
+						]
 					]
 				]
-				either value/type/1 = 'uint64! [
+			]
+			all [compiler/int64? value/type compiler/integer-type? type][
+				from: compiler/canonical-type type
+				from-width: compiler/integer-width? from
+				signed-src?: compiler/signed-integer? from
+				if from-width < 4 [
+					either signed-src? [
+						switch from-width [
+							1 [
+								emit-i32 pick [#{e1a01c01} #{e1a00c00}] alt?
+								emit-i32 pick [#{e1a01c41} #{e1a00c40}] alt?
+							]
+							2 [
+								emit-i32 pick [#{e1a01801} #{e1a00800}] alt?
+								emit-i32 pick [#{e1a01841} #{e1a00840}] alt?
+							]
+						]
+					][
+						switch from-width [
+							1 [emit-i32 pick [#{e20110ff} #{e20000ff}] alt?]
+							2 [
+								emit-i32 pick [#{e1a01801} #{e1a00800}] alt?
+								emit-i32 pick [#{e1a01821} #{e1a00820}] alt?
+							]
+						]
+					]
+				]
+				either any [value/type/1 = 'uint64! not signed-src?] [
 					either alt? [
 						emit-i32 #{e3a03000}		;-- MOV r3, #0
 					][
@@ -1017,8 +1131,8 @@ make-profilable make target-class [
 					]
 				]
 			]
-			all [value/type/1 = 'integer! compiler/int64? type][
-				if verbose >= 3 [print [">>>converting from" type/1 "to integer!"]]
+			all [compiler/integer-type? value/type compiler/int64? type][
+				if verbose >= 3 [print [">>>converting from" type/1 "to" value/type/1]]
 			]
 			all [value/type/1 = 'integer! type/1 = 'byte!][
 				if verbose >= 3 [print ">>>converting from byte! to integer! "]
@@ -1499,10 +1613,14 @@ make-profilable make target-class [
 			]
 			issue! [
 				either type: compiler/int64-literal-info value [
-					either alt [
-						emit-load-int64-literal/alt value type/1
+					either all [cast compiler/integer-type? cast/type not compiler/int64? cast/type][
+						emit-load-int-literal value cast/type/1
 					][
-						emit-load-int64-literal value type/1
+						either alt [
+							emit-load-int64-literal/alt value type/1
+						][
+							emit-load-int64-literal value type/1
+						]
 					]
 				][
 					either all [cast cast/type/1 = 'float32!][
@@ -1669,7 +1787,17 @@ make-profilable make target-class [
 					emit-load-int64-literal value first compiler/get-variable-spec name
 					do store-qword
 				][
-					do store-word
+					set-width name
+					switch width [
+						1 [do store-byte]
+						2 [
+							emit-variable/alt name
+								#{e1c100b0}
+								none
+								#{e1cb00b0}
+						]
+						4 [do store-word]
+					]
 				]
 			]
 			logic! [
@@ -1678,8 +1806,23 @@ make-profilable make target-class [
 			]
 			issue! [
 				either type: compiler/int64-literal-info value [
-					emit-load-int64-literal value type/1
-					do store-qword
+					either compiler/int64? compiler/get-variable-spec name [
+						emit-load-int64-literal value type/1
+						do store-qword
+					][
+						emit-load-int-literal value first compiler/get-variable-spec name
+						set-width name
+						switch width [
+							1 [do store-byte]
+							2 [
+								emit-variable/alt name
+									#{e1c100b0}
+									none
+									#{e1cb00b0}
+							]
+							4 [do store-word]
+						]
+					]
 				][
 					type: compiler/get-variable-spec name
 					either type/1 = 'float32! [
@@ -1727,6 +1870,12 @@ make-profilable make target-class [
 					set-width name
 					switch width [
 						1 [do store-byte]
+						2 [
+							emit-variable/alt name
+								#{e1c100b0}			;-- STRH r0, [r1]
+								none
+								#{e1cb00b0}			;-- STRH r0, [fp, #[-]n]
+						]
 						4 [do store-word]
 						8 [do store-qword]
 					]
@@ -2201,7 +2350,12 @@ make-profilable make target-class [
 						do push-last64
 					]
 					'else [
-						emit-load-symbol value
+						either cast [
+							emit-load/with value cast
+							emit-casting cast no
+						][
+							emit-load value
+						]
 						do push-last
 					]
 				]
@@ -2329,10 +2483,23 @@ make-profilable make target-class [
 		op-poly: [
 			switch width [
 				1 [
-					emit-i32 #{e1a03c00}			;-- MOV r3, r0, LSL #24
-					emit-i32 #{e1533c01}			;-- CMP r3, r1, LSL #24
+					if signed? [
+						emit-i32 #{e1a00c00}		;-- MOV r0, r0, LSL #24
+						emit-i32 #{e1a00c40}		;-- MOV r0, r0, ASR #24
+						emit-i32 #{e1a01c01}		;-- MOV r1, r1, LSL #24
+						emit-i32 #{e1a01c41}		;-- MOV r1, r1, ASR #24
+					]
+					emit-i32 #{e1500001}			;-- CMP r0, r1
 				]
-				;2 []								;-- 16-bit not supported
+				2 [
+					if signed? [
+						emit-i32 #{e1a00800}		;-- MOV r0, r0, LSL #16
+						emit-i32 #{e1a00840}		;-- MOV r0, r0, ASR #16
+						emit-i32 #{e1a01801}		;-- MOV r1, r1, LSL #16
+						emit-i32 #{e1a01841}		;-- MOV r1, r1, ASR #16
+					]
+					emit-i32 #{e1500001}			;-- CMP r0, r1
+				]
 				4 [emit-i32 #{e1500001}]			;-- CMP r0, r1		; not commutable op
 			]
 		]		
@@ -2342,10 +2509,13 @@ make-profilable make target-class [
 			imm [
 				switch width [
 					1 [
-						emit-i32 join #{e35000}		;-- CMP r0, #imm8
-							to char! arg2
+						emit-load-imm32/reg arg2 1	;-- r1: arg2
+						do op-poly
 					]
-					;2 []							;-- 16-bit not supported
+					2 [
+						emit-load-imm32/reg arg2 1	;-- r1: arg2
+						do op-poly
+					]
 					4 [
 						emit-load-imm32/reg arg2 1	;-- r1: arg2
 						emit-i32 #{e1500001}		;-- CMP r0, r1		; not commutable op

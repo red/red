@@ -302,7 +302,10 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-casting: func [value [object!] alt? [logic!] /push /local type old][
+	emit-casting: func [
+		value [object!] alt? [logic!] /push
+		/local type old from to from-width to-width signed-src? code
+	][
 		type: compiler/get-type value/data
 		case [
 			value/type/1 = 'logic! [
@@ -332,13 +335,57 @@ make-profilable make target-class [
 				]
 				width: old
 			]
-			all [compiler/int64? value/type find [byte! integer!] type/1][
+			all [
+				compiler/integer-type? value/type
+				compiler/integer-type? type
+				not compiler/int64? value/type
+				not compiler/int64? type
+			][
+				from: compiler/canonical-type type
+				to: compiler/canonical-type value/type
+				from-width: compiler/integer-width? from
+				to-width: compiler/integer-width? to
+				signed-src?: compiler/signed-integer? from
+				if all [to-width >= 4 from-width < 4][
+					code: either from-width = 2 [
+						either alt? [
+							either signed-src? [#{0FBFD2}][#{0FB7D2}] ;-- MOVS/Z edx, dx
+						][
+							either signed-src? [#{0FBFC0}][#{0FB7C0}] ;-- MOVS/Z eax, ax
+						]
+					][
+						either alt? [
+							either signed-src? [#{0FBED2}][#{0FB6D2}] ;-- MOVS/Z edx, dl
+						][
+							either signed-src? [#{0FBEC0}][#{0FB6C0}] ;-- MOVS/Z eax, al
+						]
+					]
+					emit code
+				]
+				if all [to-width = 2 from-width = 1][
+					code: either alt? [
+						either signed-src? [#{660FBED2}][#{660FB6D2}]
+					][
+						either signed-src? [#{660FBEC0}][#{660FB6C0}]
+					]
+					emit code
+				]
+			]
+			all [compiler/int64? value/type compiler/integer-type? type][
 				if verbose >= 3 [print [">>>converting from" type/1 "to" value/type/1]]
-				if type/1 = 'byte! [
-					emit #{0FB6}
+				from: compiler/canonical-type type
+				from-width: compiler/integer-width? from
+				signed-src?: compiler/signed-integer? from
+				if from-width < 4 [
+					code: either from-width = 1 [
+						either signed-src? [#{0FBE}][#{0FB6}]
+					][
+						either signed-src? [#{0FBF}][#{0FB7}]
+					]
+					emit code
 					emit pick [#{D2} #{C0}] alt?
 				]
-				either value/type/1 = 'uint64! [
+				either any [value/type/1 = 'uint64! not signed-src?] [
 					either alt? [emit #{31FF}][emit #{31D2}] ;-- XOR edi|edx, high
 				][
 					either alt? [
@@ -349,8 +396,8 @@ make-profilable make target-class [
 					]
 				]
 			]
-			all [value/type/1 = 'integer! compiler/int64? type][
-				if verbose >= 3 [print [">>>converting from" type/1 "to integer!"]]
+			all [compiler/integer-type? value/type compiler/int64? type][
+				if verbose >= 3 [print [">>>converting from" type/1 "to" value/type/1]]
 			]
 			all [value/type/1 = 'integer! type/1 = 'byte!][
 				if verbose >= 3 [print ">>>converting from byte! to integer! "]
@@ -864,6 +911,16 @@ make-profilable make target-class [
 		emit reverse debase/base high 16
 	]
 
+	emit-load-int-literal: func [value type [word!] /local hex w][
+		w: compiler/integer-width? type
+		hex: compiler/int-literal-hex value type
+		either w = 8 [
+			emit-load-int64-literal value type
+		][
+			emit-poly compose [#{B0} #{B8} (to integer! to issue! hex)]
+		]
+	]
+
 	emit-load-int64-variable: func [value [word! object!] /local offset spec][
 		if object? value [value: compiler/unbox value]
 		either offset: emitter/local-offset? value [
@@ -912,8 +969,13 @@ make-profilable make target-class [
 			]
 			issue! [
 				either spec: compiler/int64-literal-info value [
-					width: 8
-					emit-load-int64-literal value spec/1
+					either all [cast compiler/integer-type? cast/type not compiler/int64? cast/type][
+						set-width/type cast/type/1
+						emit-load-int-literal value cast/type/1
+					][
+						width: 8
+						emit-load-int64-literal value spec/1
+					]
 				][
 					set-width any [cast value]
 					emit-push any [cast value]
@@ -1068,14 +1130,36 @@ make-profilable make target-class [
 					emit-load-int64-literal value first compiler/get-variable-spec name
 					emit-store name <last> none
 				][
-					do store-dword
-					emit to-bin32 value
+					set-width name
+					emit-variable-poly name
+						#{C605} #{C705}				;-- MOV [name], imm
+						#{C683} #{C783}
+						#{C645} #{C745}
+					emit switch width [
+						1 [to-bin8 value]
+						2 [to-bin16 value]
+						4 [to-bin32 value]
+					]
 				]
 			]
 			issue! [
 				either type: compiler/int64-literal-info value [
-					emit-load-int64-literal value type/1
-					emit-store name <last> none
+					either compiler/int64? compiler/get-variable-spec name [
+						emit-load-int64-literal value first compiler/get-variable-spec name
+						emit-store name <last> none
+					][
+						set-width name
+						emit-variable-poly name
+							#{C605} #{C705}
+							#{C683} #{C783}
+							#{C645} #{C745}
+						value: to integer! to issue! compiler/int-literal-hex value first compiler/get-variable-spec name
+						emit switch width [
+							1 [to-bin8 value]
+							2 [to-bin16 value]
+							4 [to-bin32 value]
+						]
+					]
 				][
 					store-float-variable name
 				]

@@ -84,6 +84,7 @@ print ["This test started at" start-time]
 ===start-group=== "Native functions tests"
   --run-test-file-quiet %source/units/not-test.reds
   --run-test-file-quiet %source/units/size-test.reds
+  --run-test-file-quiet %source/units/fixed-int-test.reds
   --run-test-file-quiet %source/units/int64-test.reds
   --run-test-file-quiet %source/units/function-test.reds
   --run-test-file-quiet %source/units/case-test.reds
