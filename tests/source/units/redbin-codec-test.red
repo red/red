@@ -799,6 +799,7 @@ Red [
 		--test-- "errors-2" --assert error? try [load/as to binary! "REDBIN" 'redbin]
 		--test-- "errors-3" --assert error? try [test :>>]
 		--test-- "errors-4" --assert error? try [test :as-ipv4]
+		--test-- "errors-5" --assert error? try [load/as #{52454442494E0202840400000000000000040000} 'redbin]
 	
 	===end-group===
 	

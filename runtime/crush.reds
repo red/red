@@ -73,6 +73,7 @@ crush: context [							;-- LZ77
 		crush/bit-count: 0
 		crush/index: 0
 		crush/buf-size: size
+		crush-error?: no
 		if input <> null [crush/buf: allocate crush/buf-size]
 	]
 	
@@ -86,9 +87,13 @@ crush: context [							;-- LZ77
 			index		[integer!]
 	][
 		index: crush/index
-		if index + size >= crush/buf-size [
+		if any [
+			size < 0
+			index > crush/buf-size
+			size > (crush/buf-size - index)
+		][
 			crush-error?: yes
-			return crush/buf - size
+			return null
 		]
 
 		crush/index: index + size
@@ -111,6 +116,7 @@ crush: context [							;-- LZ77
 		bit-count: bit-count + n
 		while [bit-count >= 8][
 			buf: get-buf crush 1
+			if crush-error? [exit]
 			buf/value: as byte! bit-buf
 			bit-buf: bit-buf >> 8
 			bit-count: bit-count - 8
@@ -227,6 +233,7 @@ crush: context [							;-- LZ77
 			if length < CRUSH_BUF_SIZE [size: length]
 			copy-memory buf data size
 			output: as int-ptr! get-buf crush 4
+			if crush-error? [break]
 			output/value: size
 
 			i: 1
@@ -429,6 +436,7 @@ crush: context [							;-- LZ77
 		][
 			if any [size < 1 size > CRUSH_BUF_SIZE][
 				print-line ["Crush Decompress - File corrupted: size = " size]
+				free crush/buf
 				return null
 			]
 
@@ -436,6 +444,11 @@ crush: context [							;-- LZ77
 			crush/bit-count: 0
 
 			buf: get-buf crush size
+			if crush-error? [
+				print-line ["Crush Decompress - File corrupted: size = " size]
+				free crush/buf
+				return null
+			]
 			p: 0
 			while [p < size][
 				either 0 <> get-bits 1 crush [
@@ -471,6 +484,13 @@ crush: context [							;-- LZ77
 					s: p + not pp
 					if s < 0 [
 						print-line ["Crush Decompress - File corrupted: s = " s]
+						free crush/buf
+						return null
+					]
+
+					if p + len + CRUSH_MIN_MATCH > size [
+						print-line ["Crush Decompress - File corrupted: len = " len]
+						free crush/buf
 						return null
 					]
 

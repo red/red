@@ -476,6 +476,14 @@ redbin: context [
 		saved: null
 		if compressed? [
 			p: crush/decompress p null
+			if p = null [
+				either codec? [
+					fire [TO_ERROR(script invalid-data) stack/arguments]
+				][
+					print-line "Error: Redbin compressed data corrupted!"
+					halt
+				]
+			]
 			saved: p
 		]
 		p4: as int-ptr! p
