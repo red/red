@@ -1688,6 +1688,7 @@ make-profilable make target-class [
 			char! [
 				emit-load value
 				do opcodes/byte!
+				emit-normalize-fixed-int-result/with 'byte!
 			]
 			integer! [
 				emit-load value
