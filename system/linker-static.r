@@ -570,11 +570,28 @@ static-link: context [
 	;-- the instruction at `patch-va` reaches `target-va`. The in-place imm24
 	;-- field is the addend (sign-extended, <<2 — it already folds in ARM's
 	;-- 8-byte pipeline bias).
-	arm-encode-call: func [insn [integer!] target-va [integer!] patch-va [integer!] /local a disp][
+	arm-encode-call: func [
+		insn [integer!] target-va [integer!] patch-va [integer!]
+		/local a disp h actual
+	][
 		a: insn and 16777215							;-- imm24
 		if a >= 8388608 [a: a - 16777216]				;-- sign-extend (24-bit)
-		disp: (target-va + (a * 4)) - patch-va			;-- a << 2 carries the bias
-		(insn and to integer! #{FF000000}) or ((disp / 4) and 16777215)
+		;; ARM -> Thumb interworking: a BL whose target carries the T-bit
+		;; is rewritten as the unconditional BLX (immediate, A2) so the CPU
+		;; switches to Thumb on the jump; the H bit holds disp[1] for
+		;; 2-byte-aligned (but not 4-byte-aligned) Thumb destinations.
+		either (target-va and 1) <> 0 [
+			actual: target-va and -2
+			disp: (actual + (a * 4)) - patch-va
+			h: (shift/logical disp 1) and 1
+			(to integer! #{FA000000})
+				or (shift/left h 24)
+				or ((shift disp 2) and 16777215)
+		][
+			disp: (target-va + (a * 4)) - patch-va
+			(insn and to integer! #{FF000000})
+				or ((shift disp 2) and 16777215)
+		]
 	]
 
 	;-- Read / write the 16-bit immediate split across a MOVW/MOVT instruction
@@ -586,6 +603,102 @@ static-link: context [
 		(insn and to integer! #{FFF0F000})
 			or (shift/left ((shift/logical imm16 12) and 15) 16)
 			or (imm16 and 4095)
+	]
+
+	;-- Thumb-2 BL/B 25-bit branch immediate (R_ARM_THM_CALL / THM_JUMP24).
+	;-- The two halfwords pack S, J1, J2, imm10, imm11 into a signed byte
+	;-- displacement (LSB implicit 0). For an ARM target via THM_CALL the
+	;-- linker swaps BL -> BLX (clear hw2 bit 12, force imm11 bit 0 = 0).
+	arm-encode-thm-call: func [
+		insn [integer!] target-va [integer!] patch-va [integer!]
+		/local hw1 hw2 S J1 J2 imm10 imm11 I1 I2 addend
+			thumb-target? is-bl? disp
+			new-S new-I1 new-I2 new-J1 new-J2 new-imm10 new-imm11
+			new-hw1 new-hw2
+	][
+		hw1: insn and 65535
+		hw2: (shift/logical insn 16) and 65535
+		;; decode in-place addend (signed 25-bit byte displacement)
+		S:     (shift/logical hw1 10) and 1
+		imm10: hw1 and 1023
+		J1:    (shift/logical hw2 13) and 1
+		J2:    (shift/logical hw2 11) and 1
+		imm11: hw2 and 2047
+		I1: 1 xor (J1 xor S)
+		I2: 1 xor (J2 xor S)
+		addend: (shift/left S 24)
+			or (shift/left I1 23)
+			or (shift/left I2 22)
+			or (shift/left imm10 12)
+			or (shift/left imm11 1)
+		if S = 1 [addend: addend - 33554432]		;-- sign-extend from bit 24
+
+		thumb-target?: (target-va and 1) <> 0
+		is-bl?: ((shift/logical hw2 14) and 1) = 1
+		if all [not is-bl?  not thumb-target?][
+			abort reduce ["R_ARM_THM_JUMP24 to ARM target -- Thumb B cannot interwork"]
+		]
+
+		;; AAELF: result = (S+A)|T - P. target-va already carries the T-bit.
+		disp: target-va + addend - patch-va
+
+		new-S:     (shift/logical disp 24) and 1
+		new-I1:    (shift/logical disp 23) and 1
+		new-I2:    (shift/logical disp 22) and 1
+		new-imm10: (shift/logical disp 12) and 1023
+		new-imm11: either all [is-bl?  not thumb-target?][
+			(shift/logical disp 1) and 2046			;-- BLX: bit 0 = 0 (4-aligned target)
+		][
+			(shift/logical disp 1) and 2047
+		]
+		new-J1: 1 xor (new-I1 xor new-S)
+		new-J2: 1 xor (new-I2 xor new-S)
+
+		new-hw1: (hw1 and to integer! #{F800})
+			or (shift/left new-S 10)
+			or new-imm10
+		new-hw2: (hw2 and to integer! #{D000})
+			or (shift/left new-J1 13)
+			or (shift/left new-J2 11)
+			or new-imm11
+		if is-bl? [
+			either thumb-target? [
+				new-hw2: new-hw2 or 4096			;-- BL  (hw2 bit 12 = 1)
+			][
+				new-hw2: new-hw2 and to integer! #{EFFF}	;-- BLX (hw2 bit 12 = 0)
+			]
+		]
+		new-hw1 or (shift/left new-hw2 16)
+	]
+
+	;-- Read / write the 16-bit immediate split across a Thumb-2 MOVW/MOVT:
+	;-- imm4 in hw1 bits[3:0], i in hw1 bit[10], imm3 in hw2 bits[14:12],
+	;-- imm8 in hw2 bits[7:0]. imm16 = (imm4<<12)|(i<<11)|(imm3<<8)|imm8.
+	arm-thm-movw-get: func [insn [integer!] /local hw1 hw2 imm4 i imm3 imm8][
+		hw1: insn and 65535
+		hw2: (shift/logical insn 16) and 65535
+		imm4: hw1 and 15
+		i:    (shift/logical hw1 10) and 1
+		imm3: (shift/logical hw2 12) and 7
+		imm8: hw2 and 255
+		(shift/left imm4 12)
+			or (shift/left i 11)
+			or (shift/left imm3 8)
+			or imm8
+	]
+	arm-thm-movw-put: func [
+		insn [integer!] imm16 [integer!]
+		/local hw1 hw2 imm4 i imm3 imm8 new-hw1 new-hw2
+	][
+		hw1: insn and 65535
+		hw2: (shift/logical insn 16) and 65535
+		imm4: (shift/logical imm16 12) and 15
+		i:    (shift/logical imm16 11) and 1
+		imm3: (shift/logical imm16 8) and 7
+		imm8: imm16 and 255
+		new-hw1: (hw1 and to integer! #{FBF0}) or imm4 or (shift/left i 10)
+		new-hw2: (hw2 and to integer! #{8F00}) or (shift/left imm3 12) or imm8
+		new-hw1 or (shift/left new-hw2 16)
 	]
 
 	;-- ===== formats/{PE,ELF}.r hook : apply relocations after layout =====
@@ -695,6 +808,26 @@ static-link: context [
 								if a16 >= 32768 [a16: a16 - 65536]	;-- sign-extend (16-bit)
 								change at buf (patch-pos + 1)
 									le32 (arm-movw-put insn ((shift/logical (target-va + a16) 16) and 65535))
+							]
+							kind = 'arm-thm-call [
+								insn:     reader/u32-le buf (patch-pos + 1)
+								patch-va: buf-base + patch-pos
+								change at buf (patch-pos + 1)
+									le32 (arm-encode-thm-call insn target-va patch-va)
+							]
+							kind = 'arm-thm-movw [
+								insn: reader/u32-le buf (patch-pos + 1)
+								a16:  arm-thm-movw-get insn
+								if a16 >= 32768 [a16: a16 - 65536]	;-- sign-extend (16-bit)
+								change at buf (patch-pos + 1)
+									le32 (arm-thm-movw-put insn ((target-va + a16) and 65535))
+							]
+							kind = 'arm-thm-movt [
+								insn: reader/u32-le buf (patch-pos + 1)
+								a16:  arm-thm-movw-get insn
+								if a16 >= 32768 [a16: a16 - 65536]	;-- sign-extend (16-bit)
+								change at buf (patch-pos + 1)
+									le32 (arm-thm-movw-put insn ((shift/logical (target-va + a16) 16) and 65535))
 							]
 							kind = 'none []						;-- absolute/no-op relocation
 							true [

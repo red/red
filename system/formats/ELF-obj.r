@@ -55,6 +55,11 @@ elf-obj: context [
 	R_ARM_MOVW_ABS_NC:	43			;-- MOVW: bits[15:0]  of (S + A)
 	R_ARM_MOVT_ABS:		44			;-- MOVT: bits[31:16] of (S + A)
 
+	R_ARM_THM_CALL:			10		;-- Thumb-2 BL (BLX if target is ARM)
+	R_ARM_THM_JUMP24:		30		;-- Thumb-2 B  24-bit immediate
+	R_ARM_THM_MOVW_ABS_NC:	47		;-- Thumb-2 MOVW: bits[15:0]  of (S + A)
+	R_ARM_THM_MOVT_ABS:		48		;-- Thumb-2 MOVT: bits[31:16] of (S + A)
+
 	;-- e_machine of the most recently parsed object (EM_386 | EM_ARM). The
 	;-- relocation type numbers overlap between the two architectures, so
 	;-- reloc-kind dispatches on this.
@@ -109,8 +114,9 @@ elf-obj: context [
 	]
 
 	;-- Abstract relocation kind shared with COFF.r's reader interface.
-	;-- `arm-call` / `arm-movw` / `arm-movt` are ARM instruction-field
-	;-- relocations; the static linker re-encodes them in apply-relocs.
+	;-- `arm-call` / `arm-movw` / `arm-movt` (ARM-mode) and `arm-thm-call`
+	;-- / `arm-thm-movw` / `arm-thm-movt` (Thumb-2) are ARM instruction-
+	;-- field relocations; the static linker re-encodes them in apply-relocs.
 	reloc-kind: func [type [integer!]][
 		either machine = EM_ARM [
 			case [
@@ -122,6 +128,11 @@ elf-obj: context [
 				]                         ['arm-call]
 				type = R_ARM_MOVW_ABS_NC  ['arm-movw]
 				type = R_ARM_MOVT_ABS     ['arm-movt]
+				any [
+					type = R_ARM_THM_CALL  type = R_ARM_THM_JUMP24
+				]                         ['arm-thm-call]
+				type = R_ARM_THM_MOVW_ABS_NC ['arm-thm-movw]
+				type = R_ARM_THM_MOVT_ABS    ['arm-thm-movt]
 				any [type = R_ARM_NONE  type = R_ARM_V4BX]  ['none]
 				true                      ['unsupported]
 			]
