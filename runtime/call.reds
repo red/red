@@ -561,7 +561,7 @@ ext-process: context [
 				][
 					#either config-name = 'Pico [status: 0][
 					wexp: declare wordexp-type! ;-- Create wordexp struct
-					status: wordexp cmd wexp WRDE_SHOWERR	;-- Parse cmd into str-array
+					status: wordexp cmd wexp WRDE_SHOWERR or WRDE_NOCMD	;-- Parse cmd into str-array
 					either status = 0 [					;-- Parsing ok
 						platform/execvp wexp/we_wordv/item wexp/we_wordv ;-- Process is launched here, execvp with str-array parameters
 					][									;-- Parsing nok
