@@ -366,7 +366,7 @@ make-profilable make target-class [
 	emit-restore-last: does [
 		either compiler/int64? compiler/last-type [
 			emit #{89C6}							;-- MOV esi, eax ; right low
-			emit #{89D7}							;-- MOV edi, edx ; right high
+			emit #{89D1}							;-- MOV ecx, edx ; right high
 			emit #{58}								;-- POP eax	; left low
 			emit #{5A}								;-- POP edx	; left high
 			last-saved?: yes
@@ -388,7 +388,7 @@ make-profilable make target-class [
 				old: width
 				either compiler/int64? type [
 					either alt? [
-						emit #{09FA}				;-- OR edx, edi	; alt 64-bit is edi:edx in limited paths
+						emit #{09CA}				;-- OR edx, ecx	; alt 64-bit is ecx:edx in limited paths
 						emit #{0F95C2}
 						emit #{0FB6D2}
 					][
@@ -462,11 +462,11 @@ make-profilable make target-class [
 						emit pick [#{D2} #{C0}] alt?
 					]
 					either any [value/type/1 = 'uint64! not signed-src?] [
-						either alt? [emit #{31FF}][emit #{31D2}] ;-- XOR edi|edx, high
+						either alt? [emit #{31C9}][emit #{31D2}] ;-- XOR ecx|edx, high
 					][
 						either alt? [
-							emit #{89D7}			;-- MOV edi, edx
-							emit #{C1FF1F}			;-- SAR edi, 31
+							emit #{89D1}			;-- MOV ecx, edx
+							emit #{C1F91F}			;-- SAR ecx, 31
 						][
 							emit #{99}				;-- CDQ
 						]
@@ -744,6 +744,7 @@ make-profilable make target-class [
 					]
 				]
 			][
+				emit #{57}							;-- PUSH edi
 				emit #{89C7}						;-- MOV edi, eax	; edi: right-op
 				emit #{8B06}						;-- MOV eax, [esi]
 													;-- .loop:
@@ -761,6 +762,7 @@ make-profilable make target-class [
 				][
 					#{89D0}							;-- MOV eax, edx	; eax: last old value
 				]
+				emit #{5F}							;-- POP edi
 			]
 		][
 			emit switch op [
@@ -2473,7 +2475,7 @@ make-profilable make target-class [
 			emit-load arg
 		]
 		emit #{89C6}								;-- MOV esi, eax ; low
-		emit #{89D7}								;-- MOV edi, edx ; high
+		emit #{89D1}								;-- MOV ecx, edx ; high
 	]
 
 	emit-int64-shift: func [name [word!] count [integer!] /local left? unsigned?][
@@ -2538,19 +2540,18 @@ make-profilable make target-class [
 
 	emit-int64-multiply: has [][
 		emit #{53}									;-- PUSH ebx
-		emit #{89C1}								;-- MOV ecx, eax	; left low
+		emit #{89C3}								;-- MOV ebx, eax	; left low
 		emit #{0FAFD6}								;-- IMUL edx, esi	; left high * right low
-		emit #{0FAFF9}								;-- IMUL edi, ecx	; right high * left low
-		emit #{89D3}								;-- MOV ebx, edx
-		emit #{01FB}								;-- ADD ebx, edi
+		emit #{0FAFCB}								;-- IMUL ecx, ebx	; right high * left low
+		emit #{01D1}								;-- ADD ecx, edx
 		emit #{F7E6}								;-- MUL esi		; left low * right low
-		emit #{01DA}								;-- ADD edx, ebx	; low 64 bits
+		emit #{01CA}								;-- ADD edx, ecx	; low 64 bits
 		emit #{5B}									;-- POP ebx
 	]
 
 	emit-int64-comparison: func [name [word!] /local signed-op?][
 		signed-op?: signed?
-		emit #{39FA}								;-- CMP edx, edi	; compare high
+		emit #{39CA}								;-- CMP edx, ecx	; compare high
 		emit either signed-op? [#{7C0C}][#{720C}]	;-- JL|JB less
 		emit either signed-op? [#{7F11}][#{7711}]	;-- JG|JA greater
 		emit #{39F0}								;-- CMP eax, esi	; compare low when high equal
@@ -2571,7 +2572,7 @@ make-profilable make target-class [
 		right-ready?: all [block? right last-saved?]
 		if all [block? right args/1 <> <last> not right-ready?] [
 			emit #{89C6}							;-- MOV esi, eax ; right low
-			emit #{89D7}							;-- MOV edi, edx ; right high
+			emit #{89D1}							;-- MOV ecx, edx ; right high
 			right-ready?: yes
 		]
 		unless args/1 = <last> [emit-load args/1]
@@ -2602,16 +2603,19 @@ make-profilable make target-class [
 					emit #{58} emit #{5A}				;-- restore left low/high
 				]
 				if any [name = divide-sym find mod-rem-op name] [
+					emit #{57}						;-- PUSH edi
+					emit #{89CF}					;-- MOV edi, ecx ; helper expects right high in edi
 					call-i64-divide name
+					emit #{5F}						;-- POP edi
 					exit
 				]
 				switch name [
-					+   [emit #{01F0} emit #{11FA}]		;-- ADD eax, esi / ADC edx, edi
-					-   [emit #{29F0} emit #{19FA}]		;-- SUB eax, esi / SBB edx, edi
+					+   [emit #{01F0} emit #{11CA}]		;-- ADD eax, esi / ADC edx, ecx
+					-   [emit #{29F0} emit #{19CA}]		;-- SUB eax, esi / SBB edx, ecx
 					*   [emit-int64-multiply]
-					and [emit #{21F0} emit #{21FA}]
-					or  [emit #{09F0} emit #{09FA}]
-					xor [emit #{31F0} emit #{31FA}]
+					and [emit #{21F0} emit #{21CA}]
+					or  [emit #{09F0} emit #{09CA}]
+					xor [emit #{31F0} emit #{31CA}]
 				]
 			]
 		]
