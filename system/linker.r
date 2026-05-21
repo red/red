@@ -105,24 +105,45 @@ linker: context [
 		data-ptr [integer!]							;-- data memory address
 		pointer	 [object!]
 		/local 
-			data-offset ptr
+			data-offset ptr target-ptr
 	][
 		data-offset: either job/PIC? [data-ptr - code-ptr][data-ptr]
 		foreach [name spec] job/symbols [
 			unless empty? spec/3 [
-				all [
-					any [
-						all [
-							spec/1 = 'global		;-- code to data references
-							pointer/value: data-offset + spec/2
-						]
-						all [
-							spec/1 = 'native-ref	;-- code to code references
-							pointer/value: either job/PIC? [spec/2][code-ptr + spec/2]
+				either job/target = 'X86-64 [
+					parse spec/3 [
+						any [
+							ref: integer! (
+								target-ptr: case [
+									spec/1 = 'global [
+										(data-ptr + spec/2) - (code-ptr + ref/1 - 1 + 4)
+									]
+									spec/1 = 'native-ref [
+										(spec/2 - 1) - (ref/1 - 1 + 4)
+									]
+								]
+								if integer? target-ptr [
+									change/part at cbuf ref/1 to-bin32 target-ptr 4
+								]
+							)
+							| skip
 						]
 					]
-					ptr: form-struct pointer
-					parse spec/3 [any [ref: integer! (change at cbuf ref/1 ptr) | skip]]
+				][
+					all [
+						any [
+							all [
+								spec/1 = 'global		;-- code to data references
+								pointer/value: data-offset + spec/2
+							]
+							all [
+								spec/1 = 'native-ref	;-- code to code references
+								pointer/value: either job/PIC? [spec/2][code-ptr + spec/2]
+							]
+						]
+						ptr: form-struct pointer
+						parse spec/3 [any [ref: integer! (change at cbuf ref/1 ptr) | skip]]
+					]
 				]
 			]
 			if block? spec/4 [

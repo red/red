@@ -26,6 +26,28 @@ make-profilable make target-class [
 
 	noop: does []
 
+	emit-reloc-disp32: func [spec [block!]][
+		append spec/3 emitter/tail-ptr
+		emit to-bin32 0
+	]
+
+	emit-global-ref: func [
+		name [word! object!]
+		opcode [binary!]
+		/local spec
+	][
+		if object? name [name: compiler/unbox name]
+		spec: emitter/symbols/:name
+		if none? spec [
+			compiler/throw-error ["unknown variable:" name]
+		]
+		if spec/1 <> 'global [
+			compiler/throw-error ["x86-64 variable kind not supported yet:" mold spec/1]
+		]
+		emit opcode
+		emit-reloc-disp32 spec
+	]
+
 	on-init: :noop
 	on-global-prolog: func [runtime? [logic!] type [word!]][]
 	on-global-epilog: func [runtime? [logic!] type [word!]][]
@@ -76,13 +98,49 @@ make-profilable make target-class [
 	emit-argument: func [arg fspec [block!] /local value][
 		if arg = #_ [exit]
 		value: compiler/unbox arg
-		if logic? value [value: to integer! value]
-		unless any [integer? value char? value][
-			compiler/throw-error ["x86-64 literal argument not supported yet:" mold value]
+		either word? value [
+			emit-load value
+			emit-push <last>
+		][
+			if logic? value [value: to integer! value]
+			unless any [integer? value char? value][
+				compiler/throw-error ["x86-64 literal argument not supported yet:" mold value]
+			]
+			emit-push value
 		]
-		emit-push value
 	]
-	emit-load: :unsupported
+	emit-load: func [value /local type][
+		case [
+			value = <last> []
+			any [integer? value char? value logic? value] [
+				if logic? value [value: to integer! value]
+				either all [integer? value value >= -2147483648 value <= 2147483647][
+					emit #{B8}						;-- MOV eax, imm32
+					emit to-bin32 value
+				][
+					emit #{48B8}					;-- MOV rax, imm64
+					emit to-bin64 value
+				]
+			]
+			word? value [
+				type: compiler/get-type value
+				switch/default type/1 [
+					integer! [emit-global-ref value #{8B05}]		;-- MOV eax, [RIP+disp32]
+					int32!	 [emit-global-ref value #{8B05}]
+					uint32!	 [emit-global-ref value #{8B05}]
+					int64!	 [emit-global-ref value #{488B05}]		;-- MOV rax, [RIP+disp32]
+					uint64!	 [emit-global-ref value #{488B05}]
+					pointer! [emit-global-ref value #{488B05}]
+					c-string! [emit-global-ref value #{488B05}]
+				][
+					compiler/throw-error ["x86-64 load type not supported yet:" mold type/1]
+				]
+			]
+			true [
+				compiler/throw-error ["x86-64 load not supported yet:" mold value]
+			]
+		]
+	]
 	emit-load-literal: :unsupported
 	emit-load-literal-ptr: :unsupported
 	emit-store: :unsupported
@@ -121,13 +179,17 @@ make-profilable make target-class [
 	emit-fpu-set: :unsupported
 	emit-fpu-update: :unsupported
 	emit-push: func [value][
-		either all [integer? value value >= -128 value <= 127][
-			emit #{6A}
-			emit to-bin8 value
-		][
-			emit #{48B8}								;-- MOV rax, imm64
-			emit to-bin64 value
+		either value = <last> [
 			emit #{50}									;-- PUSH rax
+		][
+			either all [integer? value value >= -128 value <= 127][
+				emit #{6A}
+				emit to-bin8 value
+			][
+				emit #{48B8}							;-- MOV rax, imm64
+				emit to-bin64 value
+				emit #{50}								;-- PUSH rax
+			]
 		]
 	]
 	emit-push-all: :unsupported
