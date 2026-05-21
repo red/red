@@ -49,6 +49,10 @@ boxed-value!: alias struct! [
 	tail [uint16!]
 ]
 
+union-by-value-id: func [value [tagged-value! value] return: [integer!]][
+	either variant? value 'i32 [value/i32][0]
+]
+
 ~~~start-file~~~ "union!"
 
 ===start-group=== "Raw union layout and access"
@@ -137,6 +141,13 @@ boxed-value!: alias struct! [
 	]
 	--assert score = 2
 
+	--test-- "union-switch-2"
+	score: 7
+	switch e [
+		mouse [score: 1]
+	]
+	--assert score = 7
+
 ===end-group===
 
 ===start-group=== "Tagged union inside struct"
@@ -155,6 +166,14 @@ boxed-value!: alias struct! [
 	box/data/str: "boxed"
 	--assert variant? box/data 'str
 	--assert box/data/str/1 = #"b"
+
+===end-group===
+
+===start-group=== "Tagged union by value"
+
+	--test-- "union-by-value-1"
+	v/i32: 456
+	--assert 456 = union-by-value-id v
 
 ===end-group===
 

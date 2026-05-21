@@ -3257,11 +3257,11 @@ system-dialect: make-profilable context [
 				bodies: emitter/chunks/join default/2 bodies ;-- insert default action
 			][
 				either tagged-type [
-					body: emitter/chunks/empty
+					emitter/branch/over bodies
 				][
 					body: comp-chunked [raise-runtime-error 101] ;-- raise a runtime error if unmatched value
+					bodies: emitter/chunks/join body bodies
 				]
-				bodies: emitter/chunks/join body bodies
 			]
 
 			;-- construct tests + branching and insert them at head

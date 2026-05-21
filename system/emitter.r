@@ -905,8 +905,43 @@ emitter: make-profilable context [
 		take/last head insert reverse spec: copy spec '_
 		spec
 	]
+
+	type-has-pointer?: func [type [block!] /local t spec][
+		t: compiler/resolve-aliased type
+		case [
+			find [pointer! c-string! function!] t/1 [true]
+			all [t/1 = 'struct! 'value <> last t] [true]
+			all [t/1 = 'union! 'value <> last t] [true]
+			all [t/1 = 'struct! 'value = last t] [struct-has-pointer? t/2]
+			all [t/1 = 'union! 'value = last t] [union-has-pointer? t/2]
+			'else [false]
+		]
+	]
+
+	struct-has-pointer?: func [spec [block!] /local type found?][
+		found?: no
+		if block? spec/1 [spec: next spec]
+		foreach [name type] spec [
+			if type-has-pointer? type [
+				found?: yes
+				break
+			]
+		]
+		found?
+	]
+
+	union-has-pointer?: func [spec [block!] /local type found?][
+		found?: no
+		foreach [name type] compiler/union-members spec [
+			if type-has-pointer? type [
+				found?: yes
+				break
+			]
+		]
+		found?
+	]
 	
-	foreach-field: func [spec [block!] body [block!] /local type][
+	foreach-field: func [spec [block!] body [block!] /local type slots][
 		all [
 			'value = last spec
 			not find [struct! union!] spec/1
@@ -914,7 +949,11 @@ emitter: make-profilable context [
 		]
 		body: bind/copy body 'type
 		if block? spec/1 [spec: next spec]				;-- skip struct's [attributs] if present
-		if compiler/union-spec? spec [spec: reverse-fields compiler/union-members spec]
+		if compiler/union-spec? spec [
+			type: either union-has-pointer? spec [[pointer! [integer!]]][[integer!]]
+			loop struct-slots?/direct spec [do body]
+			exit
+		]
 
 		forskip spec 2 [
 			either 'value = last type: spec/2 [
