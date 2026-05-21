@@ -113,6 +113,46 @@ make-profilable make target-class [
 		emit to-bin8 offset
 	]
 
+	emit-load-ecx: func [value /local type][
+		case [
+			integer? value [
+				emit #{B9}							;-- MOV ecx, imm32
+				emit to-bin32 value
+			]
+			word? value [
+				type: compiler/get-type value
+				switch/default type/1 [
+					integer! [
+						either emitter/local-offset? value [
+							emit-local-ref value #{8B4D}	;-- MOV ecx, [rbp+disp8]
+						][
+							emit-global-ref value #{8B0D}	;-- MOV ecx, [RIP+disp32]
+						]
+					]
+					int32! [
+						either emitter/local-offset? value [
+							emit-local-ref value #{8B4D}
+						][
+							emit-global-ref value #{8B0D}
+						]
+					]
+					uint32! [
+						either emitter/local-offset? value [
+							emit-local-ref value #{8B4D}
+						][
+							emit-global-ref value #{8B0D}
+						]
+					]
+				][
+					compiler/throw-error ["x86-64 secondary operand type not supported yet:" mold type/1]
+				]
+			]
+			true [
+				compiler/throw-error ["x86-64 secondary operand not supported yet:" mold value]
+			]
+		]
+	]
+
 	on-init: :noop
 	on-global-prolog: func [runtime? [logic!] type [word!]][]
 	on-global-epilog: func [runtime? [logic!] type [word!]][]
@@ -206,24 +246,39 @@ make-profilable make target-class [
 	]
 	emit-not: :unsupported
 	emit-pop: :unsupported
-	emit-integer-operation: func [name [word!] args [block!] /local right][
+	emit-integer-operation: func [name [word!] args [block!] /local right imm?][
 		emit-load args/1
 		right: compiler/unbox args/2
-		unless integer? right [
-			compiler/throw-error ["x86-64 integer op right operand not supported yet:" mold right]
-		]
-		switch/default name [
-			+	[emit #{05} emit to-bin32 right]		;-- ADD eax, imm32
-			-	[emit #{2D} emit to-bin32 right]		;-- SUB eax, imm32
-			*	[emit #{69C0} emit to-bin32 right]		;-- IMUL eax, eax, imm32
-			and [emit #{25} emit to-bin32 right]		;-- AND eax, imm32
-			or	[emit #{0D} emit to-bin32 right]		;-- OR eax, imm32
-			xor [emit #{35} emit to-bin32 right]		;-- XOR eax, imm32
-			<<	[emit #{C1E0} emit to-bin8 right]		;-- SHL eax, imm8
-			>>	[emit #{C1F8} emit to-bin8 right]		;-- SAR eax, imm8
-			-**	[emit #{C1E8} emit to-bin8 right]		;-- SHR eax, imm8
+		imm?: integer? right
+		either imm? [
+			switch/default name [
+				+	[emit #{05} emit to-bin32 right]	;-- ADD eax, imm32
+				-	[emit #{2D} emit to-bin32 right]	;-- SUB eax, imm32
+				*	[emit #{69C0} emit to-bin32 right]	;-- IMUL eax, eax, imm32
+				and [emit #{25} emit to-bin32 right]	;-- AND eax, imm32
+				or	[emit #{0D} emit to-bin32 right]	;-- OR eax, imm32
+				xor [emit #{35} emit to-bin32 right]	;-- XOR eax, imm32
+				<<	[emit #{C1E0} emit to-bin8 right]	;-- SHL eax, imm8
+				>>	[emit #{C1F8} emit to-bin8 right]	;-- SAR eax, imm8
+				-**	[emit #{C1E8} emit to-bin8 right]	;-- SHR eax, imm8
+			][
+				compiler/throw-error ["x86-64 integer op not supported yet:" mold name]
+			]
 		][
-			compiler/throw-error ["x86-64 integer op not supported yet:" mold name]
+			emit-load-ecx right
+			switch/default name [
+				+	[emit #{01C8}]					;-- ADD eax, ecx
+				-	[emit #{29C8}]					;-- SUB eax, ecx
+				*	[emit #{0FAFC1}]				;-- IMUL eax, ecx
+				and [emit #{21C8}]					;-- AND eax, ecx
+				or	[emit #{09C8}]					;-- OR eax, ecx
+				xor [emit #{31C8}]					;-- XOR eax, ecx
+				<<	[emit #{D3E0}]					;-- SHL eax, cl
+				>>	[emit #{D3F8}]					;-- SAR eax, cl
+				-**	[emit #{D3E8}]					;-- SHR eax, cl
+			][
+				compiler/throw-error ["x86-64 integer op not supported yet:" mold name]
+			]
 		]
 	]
 	emit-float-operation: :unsupported
