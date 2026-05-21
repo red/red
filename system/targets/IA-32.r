@@ -72,16 +72,114 @@ make-profilable make target-class [
 
 	emit-i64-divide: has [][
 		if verbose >= 3 [print "^/>>>emitting I64-DIV intrinsic"]
-		emit #{
-			535583EC1C894C240CC744241000000000C74424140000000089F909F1750431C9F7F1
-			F644240DFF742885D27914C7442410010000008374241401F7D883D200F7DA85FF790C
-			8374241401F7DE83D700F7DFC7042400000000C744240400000000C744240840000000
-			31DB31EDD1E0D1D2D1D3D1D5D12424D154240439FD7706720C39F3720829F319FD
-			800C2401FF4C240875D98B4C240C80F9007523F644240DFF7413837C241400740C
-			F71C248354240400F75C24048B04248B542404EB39F644240DFF742E80F9017410
-			837C2410007422F7DB83D500F7DDEB19837C241000741289D909E9740C89F189FA
-			29D919EA89CB89D589D889EA83C41C5D5BC3
-		}
+		;-- Inputs:  dividend in edx:eax, divisor in edi:esi.
+		;--          cl = 0 quotient, 1 modulo, 2 remainder; ch = signed?.
+		;-- Output:  edx:eax.
+		;-- Locals:  [esp+00h] quotient low,  [esp+04h] quotient high,
+		;--          [esp+08h] loop counter,   [esp+0Ch] saved mode/signed?,
+		;--          [esp+10h] dividend neg?,  [esp+14h] quotient neg?.
+		;-- The helper first normalizes signed operands to unsigned values,
+		;-- runs a 64-step restoring division, then fixes quotient/remainder
+		;-- signs according to Red/System's divide, modulo, and remainder rules.
+		foreach opcode [
+			#{53}									;-- PUSH ebx
+			#{55}									;-- PUSH ebp
+			#{83EC1C}								;-- SUB esp, 1Ch
+			#{894C240C}								;-- MOV [esp+0Ch], ecx
+			#{C744241000000000}						;-- MOV [esp+10h], 0
+			#{C744241400000000}						;-- MOV [esp+14h], 0
+
+			;-- Preserve x86's divide-by-zero behavior for a zero divisor.
+			#{89F9}									;-- MOV ecx, edi
+			#{09F1}									;-- OR ecx, esi
+			#{7504}									;-- JNE .signed-normalize
+			#{31C9}									;-- XOR ecx, ecx
+			#{F7F1}									;-- DIV ecx
+
+			;-- For signed operations, convert negative operands to magnitudes.
+			#{F644240DFF}							;-- .signed-normalize: TEST byte [esp+0Dh], FFh
+			#{7428}									;-- JE .init-divide
+			#{85D2}									;-- TEST edx, edx
+			#{7914}									;-- JNS .check-divisor
+			#{C744241001000000}						;-- MOV [esp+10h], 1
+			#{8374241401}							;-- XOR [esp+14h], 1
+			#{F7D8}									;-- NEG eax
+			#{83D200}								;-- ADC edx, 0
+			#{F7DA}									;-- NEG edx
+			#{85FF}									;-- .check-divisor: TEST edi, edi
+			#{790C}									;-- JNS .init-divide
+			#{8374241401}							;-- XOR [esp+14h], 1
+			#{F7DE}									;-- NEG esi
+			#{83D700}								;-- ADC edi, 0
+			#{F7DF}									;-- NEG edi
+
+			;-- Restoring division. Remainder is ebp:ebx, quotient is on stack.
+			#{C7042400000000}						;-- .init-divide: MOV [esp], 0
+			#{C744240400000000}						;-- MOV [esp+4], 0
+			#{C744240840000000}						;-- MOV [esp+8], 40h
+			#{31DB}									;-- XOR ebx, ebx
+			#{31ED}									;-- XOR ebp, ebp
+			#{D1E0}									;-- .divide-loop: SHL eax, 1
+			#{D1D2}									;-- RCL edx, 1
+			#{D1D3}									;-- RCL ebx, 1
+			#{D1D5}									;-- RCL ebp, 1
+			#{D12424}								;-- SHL [esp], 1
+			#{D1542404}								;-- RCL [esp+4], 1
+			#{39FD}									;-- CMP ebp, edi
+			#{7706}									;-- JA .subtract-divisor
+			#{720C}									;-- JB .next-bit
+			#{39F3}									;-- CMP ebx, esi
+			#{7208}									;-- JB .next-bit
+			#{29F3}									;-- .subtract-divisor: SUB ebx, esi
+			#{19FD}									;-- SBB ebp, edi
+			#{800C2401}								;-- OR byte [esp], 1
+			#{FF4C2408}								;-- .next-bit: DEC [esp+8]
+			#{75D9}									;-- JNE .divide-loop
+
+			;-- Select and sign-fix the requested result.
+			#{8B4C240C}								;-- MOV ecx, [esp+0Ch]
+			#{80F900}								;-- CMP cl, 0
+			#{7523}									;-- JNE .select-remainder
+			#{F644240DFF}							;-- TEST byte [esp+0Dh], FFh
+			#{7413}									;-- JE .return-quotient
+			#{837C241400}							;-- CMP [esp+14h], 0
+			#{740C}									;-- JE .return-quotient
+			#{F71C24}								;-- NEG [esp]
+			#{8354240400}							;-- ADC [esp+4], 0
+			#{F75C2404}								;-- NEG [esp+4]
+			#{8B0424}								;-- .return-quotient: MOV eax, [esp]
+			#{8B542404}								;-- MOV edx, [esp+4]
+			#{EB39}									;-- JMP .done
+
+			#{F644240DFF}							;-- .select-remainder: TEST byte [esp+0Dh], FFh
+			#{742E}									;-- JE .return-remainder
+			#{80F901}								;-- CMP cl, 1
+			#{7410}									;-- JE .fix-modulo
+			#{837C241000}							;-- CMP [esp+10h], 0
+			#{7422}									;-- JE .return-remainder
+			#{F7DB}									;-- NEG ebx
+			#{83D500}								;-- ADC ebp, 0
+			#{F7DD}									;-- NEG ebp
+			#{EB19}									;-- JMP .return-remainder
+			#{837C241000}							;-- .fix-modulo: CMP [esp+10h], 0
+			#{7412}									;-- JE .return-remainder
+			#{89D9}									;-- MOV ecx, ebx
+			#{09E9}									;-- OR ecx, ebp
+			#{740C}									;-- JE .return-remainder
+			#{89F1}									;-- MOV ecx, esi
+			#{89FA}									;-- MOV edx, edi
+			#{29D9}									;-- SUB ecx, ebx
+			#{19EA}									;-- SBB edx, ebp
+			#{89CB}									;-- MOV ebx, ecx
+			#{89D5}									;-- MOV ebp, edx
+			#{89D8}									;-- .return-remainder: MOV eax, ebx
+			#{89EA}									;-- MOV edx, ebp
+
+			#{83C41C}								;-- .done: ADD esp, 1Ch
+			#{5D}									;-- POP ebp
+			#{5B}									;-- POP ebx
+			#{C3}									;-- RET
+		][emit opcode]
 	]
 
 	call-i64-divide: func [name [word!] /local spec mode][
@@ -97,10 +195,13 @@ make-profilable make target-class [
 		][
 			0
 		]
+		emit #{57}									;-- PUSH edi ; preserve thread/context register
+		emit #{89CF}								;-- MOV edi, ecx ; helper expects right high in edi
 		emit #{B1} emit to-bin8 mode					;-- MOV cl, mode
 		emit either signed? [#{B501}][#{B500}]		;-- MOV ch, signed?
 		emit #{E8}									;-- CALL NEAR disp
 		emit-reloc-addr spec
+		emit #{5F}									;-- POP edi
 	]
 
 	on-finalize: does [
@@ -2429,7 +2530,12 @@ make-profilable make target-class [
 								emit #{00C8}		;-- add:  ADD al, cl
 							]
 							2 [
-								emit #{660FBAE00F730D660FBAE10F730366F7D96601C8}
+								emit #{660FBAE00F}	;-- 	  BT ax, 15
+								emit #{730D}		;-- 	  JNC exit
+								emit #{660FBAE10F}	;-- 	  BT cx, 15
+								emit #{7303}		;-- 	  JNC add
+								emit #{66F7D9}		;--		  NEG cx
+								emit #{6601C8}		;-- add:  ADD ax, cx
 							]
 							4 [
 								emit #{0FBAE01F}	;--   	  BT eax, 31
@@ -2525,15 +2631,51 @@ make-profilable make target-class [
 	emit-int64-shift-dynamic: func [name [word!] /local left? unsigned?][
 		left?: name = left-shift-sym
 		unsigned?: name = unsigned-right-shift-sym
+		;-- Inputs: edx:eax value, cl shift count.
+		;-- Keep only the low 6 bits, then use a fast path for counts >= 32
+		;-- because x86 variable shifts mask CL to 0..31 for each instruction.
 		case [
 			left? [
-				emit #{80E13F741780F920720D89C231C080E11F7409D3E2EB050FA5C2D3E0}
+				emit #{80E13F}						;-- AND cl, 3Fh
+				emit #{7417}							;-- JE .done
+				emit #{80F920}						;-- CMP cl, 20h
+				emit #{720D}							;-- JB .less-than-32
+				emit #{89C2}							;-- MOV edx, eax
+				emit #{31C0}							;-- XOR eax, eax
+				emit #{80E11F}						;-- AND cl, 1Fh
+				emit #{7409}							;-- JE .done
+				emit #{D3E2}							;-- SHL edx, cl
+				emit #{EB05}							;-- JMP .done
+				emit #{0FA5C2}						;-- .less-than-32: SHLD edx, eax, cl
+				emit #{D3E0}							;-- SHL eax, cl
 			]
 			unsigned? [
-				emit #{80E13F741780F920720D89D031D280E11F7409D3E8EB050FADD0D3EA}
+				emit #{80E13F}						;-- AND cl, 3Fh
+				emit #{7417}							;-- JE .done
+				emit #{80F920}						;-- CMP cl, 20h
+				emit #{720D}							;-- JB .less-than-32
+				emit #{89D0}							;-- MOV eax, edx
+				emit #{31D2}							;-- XOR edx, edx
+				emit #{80E11F}						;-- AND cl, 1Fh
+				emit #{7409}							;-- JE .done
+				emit #{D3E8}							;-- SHR eax, cl
+				emit #{EB05}							;-- JMP .done
+				emit #{0FADD0}						;-- .less-than-32: SHRD eax, edx, cl
+				emit #{D3EA}							;-- SHR edx, cl
 			]
 			'else [
-				emit #{80E13F741880F920720E89D0C1FA1F80E11F7409D3F8EB050FADD0D3FA}
+				emit #{80E13F}						;-- AND cl, 3Fh
+				emit #{7418}							;-- JE .done
+				emit #{80F920}						;-- CMP cl, 20h
+				emit #{720E}							;-- JB .less-than-32
+				emit #{89D0}							;-- MOV eax, edx
+				emit #{C1FA1F}						;-- SAR edx, 1Fh
+				emit #{80E11F}						;-- AND cl, 1Fh
+				emit #{7409}							;-- JE .done
+				emit #{D3F8}							;-- SAR eax, cl
+				emit #{EB05}							;-- JMP .done
+				emit #{0FADD0}						;-- .less-than-32: SHRD eax, edx, cl
+				emit #{D3FA}							;-- SAR edx, cl
 			]
 		]
 	]
@@ -2603,10 +2745,7 @@ make-profilable make target-class [
 					emit #{58} emit #{5A}				;-- restore left low/high
 				]
 				if any [name = divide-sym find mod-rem-op name] [
-					emit #{57}						;-- PUSH edi
-					emit #{89CF}					;-- MOV edi, ecx ; helper expects right high in edi
 					call-i64-divide name
-					emit #{5F}						;-- POP edi
 					exit
 				]
 				switch name [

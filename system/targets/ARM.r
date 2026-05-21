@@ -510,25 +510,96 @@ make-profilable make target-class [
 
 	emit-i64-divide: has [][
 		if verbose >= 3 [print "^/>>>emitting I64-DIV intrinsic"]
+		;-- Inputs:  dividend in r1:r0, divisor in r3:r2.
+		;--          r4 = 0 quotient, 1 modulo, 2 remainder; r5 = signed?.
+		;-- Output:  r1:r0.
+		;-- The helper first normalizes signed operands to unsigned values,
+		;-- runs a 64-step restoring division, then fixes quotient/remainder
+		;-- signs according to Red/System's divide, modulo, and remainder rules.
+		;-- Register roles after setup:
+		;--   r7:r6 = remainder, r10:r8 = quotient, r11 = loop counter,
+		;--   r5 bit 0 = dividend was negative, bit 1 = quotient is negative.
 		foreach opcode [
-			#{e92d4ff0} #{e1a0c002} #{e18cc003} #{e35c0000}
-			#{1a000000} #{e7f000f0} #{e1a0c005} #{e3a05000}
-			#{e35c0000} #{0a00000a} #{e3510000} #{aa000003}
-			#{e3855001} #{e2255002} #{e2700000} #{e2e11000}
-			#{e3530000} #{aa000002} #{e2255002} #{e2722000}
-			#{e2e33000} #{e3a06000} #{e3a07000} #{e3a08000}
-			#{e3a0a000} #{e3a0b040} #{e1b00080} #{e0b11001}
-			#{e0b66006} #{e0a77007} #{e1b08088} #{e0aaa00a}
-			#{e1570003} #{8a000002} #{3a000004} #{e1560002}
-			#{3a000002} #{e0566002} #{e0c77003} #{e3888001}
-			#{e25bb001} #{1affffef} #{e3540000} #{1a000006}
-			#{e3150002} #{0a000001} #{e2788000} #{e2eaa000}
-			#{e1a00008} #{e1a0100a} #{e8bd8ff0} #{e35c0000}
-			#{0a00000e} #{e3540001} #{0a000004} #{e3150001}
-			#{0a00000a} #{e2766000} #{e2e77000} #{ea000007}
-			#{e3150001} #{0a000005} #{e1a00006} #{e1800007}
-			#{e3500000} #{0a000001} #{e0526006} #{e0c37007}
-			#{e1a00006} #{e1a01007} #{e8bd8ff0}
+			#{e92d4ff0}								;-- PUSH {r4-r11,lr}
+
+			;-- Preserve ARM's undefined-instruction trap for a zero divisor.
+			#{e1a0c002}								;-- MOV ip, r2
+			#{e18cc003}								;-- ORR ip, ip, r3
+			#{e35c0000}								;-- CMP ip, #0
+			#{1a000000}								;-- BNE .signed-normalize
+			#{e7f000f0}								;-- UDF #0
+
+			;-- For signed operations, convert negative operands to magnitudes.
+			#{e1a0c005}								;-- .signed-normalize: MOV ip, r5
+			#{e3a05000}								;-- MOV r5, #0
+			#{e35c0000}								;-- CMP ip, #0
+			#{0a00000a}								;-- BEQ .init-divide
+			#{e3510000}								;-- CMP r1, #0
+			#{aa000003}								;-- BGE .check-divisor
+			#{e3855001}								;-- ORR r5, r5, #1
+			#{e2255002}								;-- EOR r5, r5, #2
+			#{e2700000}								;-- RSBS r0, r0, #0
+			#{e2e11000}								;-- RSC r1, r1, #0
+			#{e3530000}								;-- .check-divisor: CMP r3, #0
+			#{aa000002}								;-- BGE .init-divide
+			#{e2255002}								;-- EOR r5, r5, #2
+			#{e2722000}								;-- RSBS r2, r2, #0
+			#{e2e33000}								;-- RSC r3, r3, #0
+
+			;-- Restoring division. Remainder is r7:r6, quotient is r10:r8.
+			#{e3a06000}								;-- .init-divide: MOV r6, #0
+			#{e3a07000}								;-- MOV r7, #0
+			#{e3a08000}								;-- MOV r8, #0
+			#{e3a0a000}								;-- MOV r10, #0
+			#{e3a0b040}								;-- MOV r11, #40h
+			#{e1b00080}								;-- .divide-loop: LSLS r0, r0, #1
+			#{e0b11001}								;-- ADCS r1, r1, r1
+			#{e0b66006}								;-- ADCS r6, r6, r6
+			#{e0a77007}								;-- ADC r7, r7, r7
+			#{e1b08088}								;-- LSLS r8, r8, #1
+			#{e0aaa00a}								;-- ADC r10, r10, r10
+			#{e1570003}								;-- CMP r7, r3
+			#{8a000002}								;-- BHI .subtract-divisor
+			#{3a000004}								;-- BLO .next-bit
+			#{e1560002}								;-- CMP r6, r2
+			#{3a000002}								;-- BLO .next-bit
+			#{e0566002}								;-- .subtract-divisor: SUBS r6, r6, r2
+			#{e0c77003}								;-- SBC r7, r7, r3
+			#{e3888001}								;-- ORR r8, r8, #1
+			#{e25bb001}								;-- .next-bit: SUBS r11, r11, #1
+			#{1affffef}								;-- BNE .divide-loop
+
+			;-- Select and sign-fix the requested result.
+			#{e3540000}								;-- CMP r4, #0
+			#{1a000006}								;-- BNE .select-remainder
+			#{e3150002}								;-- TST r5, #2
+			#{0a000001}								;-- BEQ .return-quotient
+			#{e2788000}								;-- RSBS r8, r8, #0
+			#{e2eaa000}								;-- RSC r10, r10, #0
+			#{e1a00008}								;-- .return-quotient: MOV r0, r8
+			#{e1a0100a}								;-- MOV r1, r10
+			#{e8bd8ff0}								;-- POP {r4-r11,pc}
+
+			#{e35c0000}								;-- .select-remainder: CMP ip, #0
+			#{0a00000e}								;-- BEQ .return-remainder
+			#{e3540001}								;-- CMP r4, #1
+			#{0a000004}								;-- BEQ .fix-modulo
+			#{e3150001}								;-- TST r5, #1
+			#{0a00000a}								;-- BEQ .return-remainder
+			#{e2766000}								;-- RSBS r6, r6, #0
+			#{e2e77000}								;-- RSC r7, r7, #0
+			#{ea000007}								;-- B .return-remainder
+			#{e3150001}								;-- .fix-modulo: TST r5, #1
+			#{0a000005}								;-- BEQ .return-remainder
+			#{e1a00006}								;-- MOV r0, r6
+			#{e1800007}								;-- ORR r0, r0, r7
+			#{e3500000}								;-- CMP r0, #0
+			#{0a000001}								;-- BEQ .return-remainder
+			#{e0526006}								;-- SUBS r6, r2, r6
+			#{e0c37007}								;-- SBC r7, r3, r7
+			#{e1a00006}								;-- .return-remainder: MOV r0, r6
+			#{e1a01007}								;-- MOV r1, r7
+			#{e8bd8ff0}								;-- POP {r4-r11,pc}
 		][
 			emit-i32 opcode
 		]
@@ -3112,29 +3183,61 @@ make-profilable make target-class [
 
 	emit-int64-shift: func [name [word!]][
 		if all [name = right-shift-sym not signed?][name: unsigned-right-shift-sym]
+		;-- Inputs: r1:r0 value, r2 shift count. ARM register shifts use the
+		;-- whole count, so normalize to 0..63 and branch around the >= 32 case.
 		switch name [
 			<< [
 				foreach opcode [
-					#{e202203f} #{e3520000} #{0a00000a} #{e3520020}
-					#{3a000005} #{e1a01000} #{e3a00000} #{e202201f}
-					#{e3520000} #{11a01211} #{ea000002} #{e2623020}
-					#{e1811330} #{e1a00210}
+					#{e202203f}						;-- AND r2, r2, #3Fh
+					#{e3520000}						;-- CMP r2, #0
+					#{0a00000a}						;-- BEQ .done
+					#{e3520020}						;-- CMP r2, #20h
+					#{3a000005}						;-- BLO .less-than-32
+					#{e1a01000}						;-- MOV r1, r0
+					#{e3a00000}						;-- MOV r0, #0
+					#{e202201f}						;-- AND r2, r2, #1Fh
+					#{e3520000}						;-- CMP r2, #0
+					#{11a01211}						;-- LSLNE r1, r1, r2
+					#{ea000002}						;-- B .done
+					#{e2623020}						;-- .less-than-32: RSB r3, r2, #20h
+					#{e1811330}						;-- ORR r1, r1, r0, LSR r3
+					#{e1a00210}						;-- LSL r0, r0, r2
 				][emit-i32 opcode]
 			]
 			-** [
 				foreach opcode [
-					#{e202203f} #{e3520000} #{0a00000a} #{e3520020}
-					#{3a000005} #{e1a00001} #{e3a01000} #{e202201f}
-					#{e3520000} #{11a00230} #{ea000002} #{e2623020}
-					#{e1800311} #{e1a01231}
+					#{e202203f}						;-- AND r2, r2, #3Fh
+					#{e3520000}						;-- CMP r2, #0
+					#{0a00000a}						;-- BEQ .done
+					#{e3520020}						;-- CMP r2, #20h
+					#{3a000005}						;-- BLO .less-than-32
+					#{e1a00001}						;-- MOV r0, r1
+					#{e3a01000}						;-- MOV r1, #0
+					#{e202201f}						;-- AND r2, r2, #1Fh
+					#{e3520000}						;-- CMP r2, #0
+					#{11a00230}						;-- LSRNE r0, r0, r2
+					#{ea000002}						;-- B .done
+					#{e2623020}						;-- .less-than-32: RSB r3, r2, #20h
+					#{e1800311}						;-- ORR r0, r0, r1, LSL r3
+					#{e1a01231}						;-- LSR r1, r1, r2
 				][emit-i32 opcode]
 			]
 			>> [
 				foreach opcode [
-					#{e202203f} #{e3520000} #{0a00000a} #{e3520020}
-					#{3a000005} #{e1a00001} #{e1a01fc1} #{e202201f}
-					#{e3520000} #{11a00250} #{ea000002} #{e2623020}
-					#{e1800311} #{e1a01251}
+					#{e202203f}						;-- AND r2, r2, #3Fh
+					#{e3520000}						;-- CMP r2, #0
+					#{0a00000a}						;-- BEQ .done
+					#{e3520020}						;-- CMP r2, #20h
+					#{3a000005}						;-- BLO .less-than-32
+					#{e1a00001}						;-- MOV r0, r1
+					#{e1a01fc1}						;-- MOV r1, r1, ASR #1Fh
+					#{e202201f}						;-- AND r2, r2, #1Fh
+					#{e3520000}						;-- CMP r2, #0
+					#{11a00250}						;-- ASRNE r0, r0, r2
+					#{ea000002}						;-- B .done
+					#{e2623020}						;-- .less-than-32: RSB r3, r2, #20h
+					#{e1800311}						;-- ORR r0, r0, r1, LSL r3
+					#{e1a01251}						;-- ASR r1, r1, r2
 				][emit-i32 opcode]
 			]
 		]
