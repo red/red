@@ -77,6 +77,12 @@ shape-box!: alias struct! [
 	tail  [integer!]
 ]
 
+shape-ref-box!: alias struct! [
+	head  [integer!]
+	shape [shape!]
+	tail  [integer!]
+]
+
 union-by-value-id: func [value [tagged-value! value] return: [integer!]][
 	either variant? value 'i32 [value/i32][0]
 ]
@@ -106,6 +112,11 @@ shape-by-value-sum: func [value [shape! value] return: [integer!]][
 shape-box-by-ref-set: func [value [shape-box!]][
 	value/shape/point/x: 31
 	value/shape/point/y: 32
+]
+
+shape-ref-box-by-ref-set: func [value [shape-ref-box!]][
+	value/shape/point/x: 41
+	value/shape/point/y: 42
 ]
 
 union-by-value-make: func [
@@ -303,6 +314,31 @@ union-by-value-make-large: func [
 	--assert variant? shape-box/shape 'point
 	--assert shape-box/shape/point/x = 31
 	--assert shape-box/shape/point/y = 32
+
+	--test-- "union-struct-union-ref-1"
+	shape-ref-box: declare shape-ref-box!
+	shape-ref-box/head: 2001
+	shape-ref-box/tail: 2002
+	shape-ref-box/shape: shape
+	shape-ref-box/shape/point/x: 51
+	shape-ref-box/shape/point/y: 52
+	--assert shape-ref-box/head = 2001
+	--assert shape-ref-box/tail = 2002
+	--assert variant? shape-ref-box/shape 'point
+	--assert shape-ref-box/shape/point/x = 51
+	--assert shape-ref-box/shape/point/y = 52
+	--assert shape/point/x = 51
+	--assert shape/point/y = 52
+
+	--test-- "union-struct-union-ref-2"
+	shape-ref-box-by-ref-set shape-ref-box
+	--assert shape-ref-box/head = 2001
+	--assert shape-ref-box/tail = 2002
+	--assert variant? shape-ref-box/shape 'point
+	--assert shape-ref-box/shape/point/x = 41
+	--assert shape-ref-box/shape/point/y = 42
+	--assert shape/point/x = 41
+	--assert shape/point/y = 42
 
 ===end-group===
 
