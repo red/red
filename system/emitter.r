@@ -79,6 +79,22 @@ emitter: make-profilable context [
 		struct!		1000
 		union!		1001
 	]
+
+	init-datatypes: func [/local model pos][
+		model: copy types-model
+		foreach type [
+			pointer!
+			c-string!
+			struct!
+			union!
+			function!
+			subroutine!
+			array!
+		][
+			if pos: find model type [pos/2: target/ptr-size]
+		]
+		datatypes: to-hash model
+	]
 	
 	chunks: context [
 		queue: make block! 10
@@ -522,6 +538,7 @@ emitter: make-profilable context [
 				'value = last type
 				alias: compiler/find-aliased type/1
 			][
+				if find [struct! union!] alias/1 [return aggregate-align? alias/2]
 				type: alias
 			]
 			base: type/1
@@ -530,11 +547,24 @@ emitter: make-profilable context [
 		case [
 			find [int8! uint8! byte!] base [1]
 			find [int16! uint16!] base [2]
-			find [float! float64!] base [8]
-			find [integer! int32! uint32! int64! uint64! c-string! pointer! struct! union! logic!] base [
-				target/struct-align-size
-			]
+			find [integer! int32! uint32! float32! logic!] base [4]
+			find [int64! uint64! float! float64!] base [either target/ptr-size = 4 [4][8]]
+			find [c-string! pointer! struct! union! function! subroutine! array!] base [target/ptr-size]
 			'else [target/struct-align-size]
+		]
+	]
+
+	aggregate-align?: func [spec [block!] /local align a][
+		if compiler/union-spec? spec [return union-payload-align? spec]
+		align: 1
+		foreach [name type] spec [
+			a: type-align? type
+			if a > align [align: a]
+		]
+		either target/ptr-size = 4 [
+			max align target/struct-align-size
+		][
+			align
 		]
 	]
 
@@ -581,41 +611,18 @@ emitter: make-profilable context [
 		]
 	]
 
-	member-offset?: func [spec [block!] name [word! none!] /local offset over base alias align][
+	member-offset?: func [spec [block!] name [word! none!] /local offset align][
 		if compiler/union-spec? spec [
 			return union-member-offset? spec name
 		]
 		offset: 0
 		foreach [var type] spec [
-			base: type/1
-			if all [
-				'value = last type
-				alias: compiler/find-aliased type/1
-			][
-				base: alias/1
-			]
-			all [
-				find [int16! uint16!] base
-				not zero? over: offset // 2
-				offset: offset + 2 - over
-			]
-			all [
-				find [integer! int32! uint32! int64! uint64! c-string! pointer! struct! union! logic!] base
-				not zero? over: offset // target/struct-align-size 
-				offset: offset + target/struct-align-size - over ;-- properly account for alignment
-			]
-			all [
-				find [float! float64!] base
-				not zero? over: offset // target/struct-align-size ;-- align only if < 32-bit aligned (ARM/typed-float!)
-				offset: offset + 8 - over 						;-- properly account for alignment
-			]
+			align: type-align? type
+			offset: align-offset? offset align
 			if var = name [return offset]
 			offset: offset + size-of? type
 		]
-		unless zero? over: offset // target/struct-align-size [
-			offset: offset + target/struct-align-size - over	 ;-- properly account for alignment
-		]
-		offset
+		align-offset? offset aggregate-align? spec
 	]
 	
 	system-path?: func [path [path! set-path!] value /local set?][
@@ -1217,8 +1224,9 @@ emitter: make-profilable context [
 		foreach w [width signed? last-saved?][set in target w none]
 		target/compiler: compiler: system-dialect/compiler
 		target/PIC?: job/PIC?
+		target/PIE?: job/PIE?
 		target/void-ptr: head insert/dup copy #{} null target/ptr-size
 		int-to-bin/little-endian?: target/little-endian?
-		datatypes: to-hash types-model
+		init-datatypes
 	]
 ]

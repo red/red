@@ -15,11 +15,12 @@ REBOL [
 ;;					| 'NetBSD | 'Android 		;-- operating system name
 ;;	format:			'PE  | 'ELF | 'Mach-o		;-- file format
 ;;	type:			'exe | 'dll | 'drv			;-- file type
-;;	target:			'IA-32 | 'ARM				;-- CPU or VM target
+;;	target:			'IA-32 | 'ARM | 'X86-64		;-- CPU or VM target
 ;;  cpu-version:	<decimal!>					;-- CPU version (default for IA-32: 6.0, Pentium Pro, for ARM: 5.0)
 ;;  ABI:			none | word! | block!		;-- optional ABI flags
 ;;	sub-system:		'GUI | 'console				;-- type of user interface
 ;;	PIC?:			 yes | no					;-- generate Position Independent Code
+;;	PIE?:			 yes | no					;-- generate Position Independent Executable
 ;;	base-address:	<integer!>					;-- base image memory address
 ;;	use-natives?:	 yes | no					;-- use native functions instead of C bindings (when possible)
 ;;	dynamic-linker:	none | <string!>			;-- ELF dynamic linker ("interpreter") to use
@@ -130,6 +131,38 @@ Linux-Old [
 	type:		'exe
 	dynamic-linker: "/lib/ld-linux.so.2"
 	legacy:		[stat32]
+]
+;-------------------------
+Linux-X86-64 [
+	OS:			'Linux
+	format:		'ELF
+	target:		'X86-64
+	type:		'exe
+	ABI:		'sysv
+	PIC?:		yes
+	PIE?:		yes
+	stack-align-16?: yes
+	dynamic-linker: "/lib64/ld-linux-x86-64.so.2"
+]
+;-------------------------
+Linux-X86-64-SO [
+	OS:			'Linux
+	format:		'ELF
+	target:		'X86-64
+	type:		'dll
+	ABI:		'sysv
+	PIC?:		yes
+	stack-align-16?: yes
+]
+;-------------------------
+Linux-X86-64-NoPIE [
+	OS:			'Linux
+	format:		'ELF
+	target:		'X86-64
+	type:		'exe
+	ABI:		'sysv
+	stack-align-16?: yes
+	dynamic-linker: "/lib64/ld-linux-x86-64.so.2"
 ]
 ;-------------------------
 ;LinSO [								; not supported yet

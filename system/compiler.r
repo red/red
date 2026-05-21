@@ -52,6 +52,7 @@ system-dialect: make-profilable context [
 		dev-mode?:		 	none						;-- yes => turn on developer mode (pre-build runtime, default), no => build a single binary
 		need-main?:			no							;-- yes => emit a function prolog/epilog around global code
 		PIC?:				no							;-- generate Position Independent Code
+		PIE?:				no							;-- generate Position Independent Executable
 		base-address:		none						;-- base image memory address
 		dynamic-linker: 	none						;-- ELF dynamic linker ("interpreter")
 		syscall:			'Linux						;-- syscalls convention: 'Linux | 'BSD
@@ -77,6 +78,10 @@ system-dialect: make-profilable context [
 		show:				none
 		command-line:		none
 		show-func-map?:		no							;-- yes => output the functions address/name map
+	]
+
+	normalize-code-model: func [opts [object!]][
+		if opts/PIE? [opts/PIC?: yes]
 	]
 	
 	compiler: make-profilable context [
@@ -4815,6 +4820,7 @@ system-dialect: make-profilable context [
 	process-config: func [header [block!] /local spec old-PIC?][
 		if spec: select header first [config:][
 			do bind spec job
+			system-dialect/normalize-code-model job
 			old-PIC?: emitter/target/PIC?
 			emitter/target/PIC?: job/PIC?
 			if all [job/PIC? not old-PIC?][emitter/target/on-init]
@@ -4908,6 +4914,7 @@ system-dialect: make-profilable context [
 			unless block? files [files: reduce [files]]
 			
 			unless opts [opts: make options-class []]
+			normalize-code-model opts
 			job: make-job opts last files				;-- last input filename is retained for output name
 			emitter/init opts/link? job
 			if opts/verbosity >= 10 [set-verbose-level opts/verbosity]

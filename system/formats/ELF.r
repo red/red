@@ -29,6 +29,7 @@ context [
 		;; ELF Constants
 
 		elfclass32		1			;; 32-bit object
+		elfclass64		2			;; 64-bit object
 
 		elfdata2lsb		1			;; 2's-complement, little endian
 
@@ -39,6 +40,7 @@ context [
 
 		em-386			3			;; intel 80386
 		em-arm			40			;; ARM
+		em-x86-64		62			;; AMD x86-64
 		
 		ef-arm-abi		83886080	;; ABI version: 05000000h
 		ef-arm-hard		1024		;; Hard floating point required (400h)
@@ -67,6 +69,7 @@ context [
 		sht-note		7			;; vendor note
 		sht-nobits		8			;; program-specific data (w/o file extend)
 		sht-rel			9			;; relocations (w/o addends)
+		sht-rela		4			;; relocations (with addends)
 		sht-dynsym		11			;; symbol table (dynamic linking)
 
 		;; Processor-specific section type
@@ -101,6 +104,14 @@ context [
 		dt-rel			17			;; address of the relocation table
 		dt-relsz		18			;; total size of the relocation table
 		dt-relent		19			;; size of one reloc table entry (in bytes)
+		dt-pltrelsz		2			;; total size of PLT relocations
+		dt-pltgot		3			;; address of PLT/GOT table
+		dt-rela			7			;; address of the RELA relocation table
+		dt-relasz		8			;; total size of the RELA relocation table
+		dt-relaent		9			;; size of one RELA reloc table entry
+		dt-jmprel		23			;; address of PLT relocations
+		dt-bind-now		24			;; process relocations before transfer
+		dt-pltrel		20			;; relocation type used for PLT
 		dt-runpath		29			;; library search path
 
 		r-386-32		1			;; direct 32-bit relocation
@@ -109,6 +120,16 @@ context [
 
 		r-arm-abs32		2			;; direct 32-bit relocation
 		r-arm-rel		23			;; relocation relative to image's base
+
+		r-x86-64-64			1		;; direct 64-bit relocation
+		r-x86-64-pc32		2		;; PC-relative 32-bit relocation
+		r-x86-64-got32		3		;; 32-bit GOT entry relocation
+		r-x86-64-plt32		4		;; 32-bit PLT address relocation
+		r-x86-64-copy		5		;; copy symbol at runtime
+		r-x86-64-glob-dat	6		;; set GOT entry to symbol address
+		r-x86-64-jump-slot	7		;; set PLT/GOT entry to symbol address
+		r-x86-64-relative	8		;; relocation relative to image base
+		r-x86-64-gotpcrel	9		;; 32-bit signed PC-relative GOT offset
 
 		stabs-n-undf	0			;; undefined stabs entry
 		stabs-n-fun		36			;; function name
@@ -308,6 +329,9 @@ context [
 			get-address get-offset get-size get-meta get-data set-data
 			relro-offset pos list soname base
 	] [
+		if job/target = 'X86-64 [
+			linker/throw-error "ELF64 output is not implemented yet"
+		]
 		base-address: either any [job/type = 'dll job/PIC?][0][
 			any [job/base-address defs/base-address]
 		]
@@ -624,6 +648,10 @@ context [
 				eh/machine: defs/em-arm
 				eh/flags: defs/ef-arm-abi or defs/ef-arm-ep or	;; EABI v5
 					either ABI = 'hard-float [defs/ef-arm-hard][defs/ef-arm-soft]
+			]
+			X86-64	[
+				eh/ident-class: defs/elfclass64
+				eh/machine: defs/em-x86-64
 			]
 		]
 

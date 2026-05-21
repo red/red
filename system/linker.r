@@ -37,6 +37,7 @@ linker: context [
 		output:										;-- output file name (without extension)
 		debug-info:									;-- debugging informations
 		base-address:								;-- base address
+		PIE?:										;-- position independent executable
 		buffer: none								;-- output buffer
 	]
 	
