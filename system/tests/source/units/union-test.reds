@@ -32,6 +32,11 @@ tagged-value!: alias union! [
 	ch  [byte!]
 ]
 
+small-tagged-value!: alias union! [
+	[variant]
+	i32 [integer!]
+]
+
 event!: alias union! [
 	[variant]
 	mouse [
@@ -51,6 +56,22 @@ boxed-value!: alias struct! [
 
 union-by-value-id: func [value [tagged-value! value] return: [integer!]][
 	either variant? value 'i32 [value/i32][0]
+]
+
+union-by-value-make: func [
+	return: [small-tagged-value! value]
+	/local value [small-tagged-value! value]
+][
+	value/i32: 987
+	value
+]
+
+union-by-value-make-large: func [
+	return: [tagged-value! value]
+	/local value [tagged-value! value]
+][
+	value/i32: 654
+	value
 ]
 
 ~~~start-file~~~ "union!"
@@ -174,6 +195,17 @@ union-by-value-id: func [value [tagged-value! value] return: [integer!]][
 	--test-- "union-by-value-1"
 	v/i32: 456
 	--assert 456 = union-by-value-id v
+
+	--test-- "union-by-value-2"
+	small-v: declare small-tagged-value!
+	small-v: union-by-value-make
+	--assert variant? small-v 'i32
+	--assert small-v/i32 = 987
+
+	--test-- "union-by-value-3"
+	v: union-by-value-make-large
+	--assert variant? v 'i32
+	--assert v/i32 = 654
 
 ===end-group===
 

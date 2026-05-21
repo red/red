@@ -4516,7 +4516,9 @@ system-dialect: make-profilable context [
 					'value = last ret
 					any [
 						all [ret/1 = 'struct! ret/2]
+						all [ret/1 = 'union! ret/2]
 						all [ret: resolve-aliased ret ret/1 = 'struct! ret/2]
+						all [ret: resolve-aliased ret ret/1 = 'union! ret/2]
 					]
 				]
 			]
