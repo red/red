@@ -942,10 +942,15 @@ emitter: make-profilable context [
 	]
 	
 	foreach-field: func [spec [block!] body [block!] /local type slots][
-		all [
-			'value = last spec
-			not find [struct! union!] spec/1
-			spec: reverse-fields second compiler/find-aliased spec/1
+		if 'value = last spec [
+			case [
+				spec/1 = 'struct! [spec: reverse-fields spec/2]
+				spec/1 = 'union!	[spec: spec/2]
+				not find [struct! union!] spec/1 [
+					spec: compiler/find-aliased spec/1
+					spec: either spec/1 = 'union! [spec/2][reverse-fields spec/2]
+				]
+			]
 		]
 		body: bind/copy body 'type
 		if block? spec/1 [spec: next spec]				;-- skip struct's [attributs] if present

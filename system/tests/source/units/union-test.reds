@@ -60,8 +60,52 @@ raw-boxed-value!: alias struct! [
 	tail [integer!]
 ]
 
+point!: alias struct! [
+	x [integer!]
+	y [integer!]
+]
+
+shape!: alias union! [
+	[variant]
+	point [point! value]
+	id    [integer!]
+]
+
+shape-box!: alias struct! [
+	head  [integer!]
+	shape [shape! value]
+	tail  [integer!]
+]
+
 union-by-value-id: func [value [tagged-value! value] return: [integer!]][
 	either variant? value 'i32 [value/i32][0]
+]
+
+raw-union-by-ref-set: func [value [raw-value!]][
+	value/i32: 2468
+]
+
+tagged-union-by-ref-set: func [value [tagged-value!]][
+	value/i32: 1357
+]
+
+raw-union-by-value-copy: func [value [raw-value! value] return: [integer!] /local saved [integer!]][
+	saved: value/i32
+	value/i32: 9753
+	saved
+]
+
+shape-by-value-sum: func [value [shape! value] return: [integer!]][
+	either variant? value 'point [
+		value/point/x + value/point/y
+	][
+		0
+	]
+]
+
+shape-box-by-ref-set: func [value [shape-box!]][
+	value/shape/point/x: 31
+	value/shape/point/y: 32
 ]
 
 union-by-value-make: func [
@@ -222,6 +266,46 @@ union-by-value-make-large: func [
 
 ===end-group===
 
+===start-group=== "Nested union and struct payloads"
+
+	--test-- "union-named-struct-payload-1"
+	shape: declare shape!
+	shape/point/x: 10
+	shape/point/y: 20
+	--assert variant? shape 'point
+	--assert shape/point/x = 10
+	--assert shape/point/y = 20
+	--assert 30 = shape-by-value-sum shape
+
+	--test-- "union-named-struct-payload-2"
+	shape/id: 99
+	--assert variant? shape 'id
+	--assert shape/id = 99
+	--assert 0 = shape-by-value-sum shape
+
+	--test-- "union-struct-union-struct-1"
+	shape-box: declare shape-box!
+	shape-box/head: 1001
+	shape-box/tail: 1002
+	shape-box/shape/point/x: 11
+	shape-box/shape/point/y: 22
+	--assert shape-box/head = 1001
+	--assert shape-box/tail = 1002
+	--assert variant? shape-box/shape 'point
+	--assert shape-box/shape/point/x = 11
+	--assert shape-box/shape/point/y = 22
+	--assert 33 = shape-by-value-sum shape-box/shape
+
+	--test-- "union-struct-union-struct-2"
+	shape-box-by-ref-set shape-box
+	--assert shape-box/head = 1001
+	--assert shape-box/tail = 1002
+	--assert variant? shape-box/shape 'point
+	--assert shape-box/shape/point/x = 31
+	--assert shape-box/shape/point/y = 32
+
+===end-group===
+
 ===start-group=== "Tagged union by value"
 
 	--test-- "union-by-value-1"
@@ -238,6 +322,21 @@ union-by-value-make-large: func [
 	v: union-by-value-make-large
 	--assert variant? v 'i32
 	--assert v/i32 = 654
+
+	--test-- "union-by-ref-1"
+	raw/i32: 1234
+	raw-union-by-ref-set raw
+	--assert raw/i32 = 2468
+
+	--test-- "union-by-ref-2"
+	tagged-union-by-ref-set v
+	--assert variant? v 'i32
+	--assert v/i32 = 1357
+
+	--test-- "union-raw-by-value-1"
+	raw/i32: 4321
+	--assert 4321 = raw-union-by-value-copy raw
+	--assert raw/i32 = 4321
 
 ===end-group===
 
