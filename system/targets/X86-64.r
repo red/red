@@ -161,7 +161,10 @@ make-profilable make target-class [
 		]
 	]
 	emit-load-literal: :unsupported
-	emit-load-literal-ptr: :unsupported
+	emit-load-literal-ptr: func [spec [block!]][
+		emit #{488D05}								;-- LEA rax, [RIP+disp32]
+		emit-reloc-disp32 spec
+	]
 	emit-store: func [
 		name [word!] value
 		spec [block! none!]
@@ -172,7 +175,10 @@ make-profilable make target-class [
 			compiler/throw-error "x86-64 by-value store is not implemented yet"
 		]
 		if logic? value [value: to integer! value]
-		if value <> <last> [
+		if all [
+			value <> <last>
+			not find [string! paren! binary!] type?/word value
+		][
 			emit-load value
 		]
 		type: compiler/get-variable-spec name
