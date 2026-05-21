@@ -24,6 +24,7 @@ do-cache %system/formats/COFF.r
 do-cache %system/formats/ELF-obj.r
 do-cache %system/formats/Mach-O-obj.r
 do-cache %system/formats/libc-exports.r
+do-cache %system/formats/win32-exports.r
 
 static-link: context [
 
@@ -41,6 +42,10 @@ static-link: context [
 	libc-set:   none				;-- this build's C-library export hash (libc-exports.r)
 	libc-data-set: none				;-- this build's C-library DATA exports [name size ...]
 	max-align:  1					;-- peak alignment among merged static sections
+
+	syslib-index: none				;-- symbol => DLL hash, PE __imp_ resolution
+	imp-table:  make hash! 64		;-- __imp_<decorated> => [DLL bare-name]
+	helper-libs: none				;-- auto-located MSVC static helper archives
 
 	;-- 4-byte little-endian serializer (target endianness is set up by the
 	;-- time `apply-relocs` runs, during linking).
@@ -162,6 +167,7 @@ static-link: context [
 		clear sym-addr
 		clear call-slots
 		clear undef-done
+		clear imp-table
 		libc-set: none
 		libc-data-set: none
 		max-align: 1
@@ -170,6 +176,10 @@ static-link: context [
 
 		obj-format: job/format
 		obj-arch:   job/target
+		if obj-format = 'PE [
+			build-syslib-index
+			helper-libs: find-helper-libs
+		]
 		libc-set: make hash! any [
 			switch job/OS [
 				Windows [libc-exports/windows]
@@ -201,6 +211,8 @@ static-link: context [
 
 		;-- Pass 2: satisfy undefined externals (libc trampolines, stubs).
 		resolve-externals job
+		;-- Pass 2b: route PE __imp_* import-thunk references to dynamic imports.
+		wire-imp-relocs job
 		;-- Pass 3: wire each user-imported function to a call slot.
 		foreach [lib list] static-libs [
 			info: select job/static-objs lowercase copy lib
@@ -230,7 +242,7 @@ static-link: context [
 	;-- references that another member satisfies.
 	merge-objects: func [
 		job [object!] static-libs [block!]
-		/local lib list info id reloc m obj arch-members progress?
+		/local lib list info id reloc m obj arch-members progress? hl
 	][
 		arch-members: make block! 32
 
@@ -255,6 +267,17 @@ static-link: context [
 				merge-sections job obj
 				repend objects [obj/path obj]
 				note-undefined obj
+			]
+		]
+
+		;-- queue the auto-located MSVC helper archives; selective loading
+		;-- below pulls only the per-module compiler/CRT objects used.
+		if all [obj-format = 'PE  helper-libs  not empty? helper-libs][
+			foreach hl helper-libs [
+				foreach m read-archive hl [
+					obj: reader/load-from-bin m/2 (rejoin [to-local-file hl "(" m/1 ")"])
+					if obj [append/only arch-members reduce [obj false]]
+				]
 			]
 		]
 
@@ -405,7 +428,7 @@ static-link: context [
 	;-- emitting a libc import trampoline or the __chkstk stub.
 	resolve-externals: func [
 		job [object!]
-		/local path obj sym name bare code data tramp-off disp-ref sz data-off
+		/local path obj sym name bare code data tramp-off disp-ref sz data-off imp
 	][
 		code: job/sections/code/2
 		data: job/sections/data/2
@@ -464,8 +487,14 @@ static-link: context [
 										append code #{00000000}
 									]
 								]
-								add-libc-import job bare disp-ref
+								add-import job (libc-name job) bare disp-ref
 								repend sym-addr [name reduce ['code tramp-off false]]
+							]
+							imp: imp-resolve name [
+								;-- PE __imp_<fn>: an import-table indirection
+								;-- symbol; wire-imp-relocs routes its reference
+								;-- sites to a dynamic import on the resolved DLL.
+								repend imp-table [name imp]
 							]
 							true [
 								abort reduce ["unresolved external symbol:" name "(in" path ")"]
@@ -494,10 +523,10 @@ static-link: context [
 		all [libc-data-set  select libc-data-set name]
 	]
 
-	;-- Register a libc import on the system C library's dynamic-import entry,
-	;-- reusing an existing per-function relocation block when present.
-	add-libc-import: func [job [object!] bare [string!] offset [integer!] /local imports dll entry fpos][
-		dll: libc-name job
+	;-- Register a function as a dynamic import on `dll`, recording one code
+	;-- offset where the IAT slot address is patched in; reuses an existing
+	;-- per-function relocation block when present.
+	add-import: func [job [object!] dll [string!] bare [string!] offset [integer!] /local imports entry fpos][
 		imports: job/sections/import/3
 		entry: find imports dll
 		unless entry [
@@ -517,6 +546,118 @@ static-link: context [
 			Windows ["msvcrt.dll"]
 			macOS   ["libc.dylib"]
 		]["libc.so.6"]
+	]
+
+	;-- ===== PE __imp_* import-thunk resolution =====
+
+	;-- Build the symbol => DLL hash from the embedded Win32 export snapshot;
+	;-- the first DLL listed wins a name exported by more than one.
+	build-syslib-index: does [
+		syslib-index: make hash! 24000
+		foreach [dll names] win32-exports/libs [
+			foreach nm names [
+				unless select syslib-index nm [
+					repend syslib-index reduce [nm dll]
+				]
+			]
+		]
+	]
+
+	;-- For a PE __imp_<decorated> undefined external, return [DLL bare-name]
+	;-- when the bare name is a known system export, otherwise NONE.
+	imp-resolve: func [name [string!] /local bare dll][
+		if obj-format <> 'PE [return none]
+		if (length? name) <= 6 [return none]
+		if "__imp_" <> copy/part name 6 [return none]
+		bare: arch-bare skip name 6
+		if empty? bare [return none]
+		either dll: select syslib-index bare [reduce [dll bare]][none]
+	]
+
+	;-- Scan every merged section's relocations: each one targeting an __imp_*
+	;-- symbol becomes a dynamic-import reference site (resolve-import-refs
+	;-- patches in the IAT slot VA) and is removed so apply-relocs skips it.
+	wire-imp-relocs: func [
+		job [object!]
+		/local path obj section sec-kind sec-base r sym imp
+	][
+		foreach [path obj] objects [
+			foreach section obj/sections [
+				sec-kind: reader/sec-base-kind section
+				unless sec-kind = 'none [
+					sec-base: reader/sec-base-offset section
+					remove-each r reader/sec-relocs section [
+						sym: pick obj/symbols (r/2 + 1)
+						either all [sym  imp: select imp-table reader/sym-name sym][
+							either sec-kind = 'code [
+								add-import job imp/1 imp/2 (sec-base + r/1 + 1)
+								true
+							][
+								abort reduce [
+									"__imp_ reference in non-code section:"
+									reader/sym-name sym "(in" path ")"
+								]
+							]
+						][false]
+					]
+				]
+			]
+		]
+	]
+
+	;-- ===== Auto-located MSVC static helper libraries =====
+	;-- An MSVC-built archive references per-module compiler/CRT objects
+	;-- (64-bit arithmetic, float conversion, the /GS cookie, the SSE2
+	;-- math) that live in no DLL; they are merged from the toolset's
+	;-- msvcrt.lib and the Windows SDK's libucrt.lib, located below.
+
+	;-- A read-result entry is a subdirectory iff it ends with a slash;
+	;-- `dir?` is unreliable here -- it stats relative to the working dir.
+	subdir?: func [f [file!]][all [not empty? f  #"/" = last f]]
+
+	;-- Newest (lexically greatest) immediate subdirectory of `dir`, or none.
+	newest-in: func [dir [file!] /local items subs][
+		if error? try [items: read dir][return none]
+		subs: make block! 16
+		foreach f items [if subdir? f [append subs f]]
+		either empty? subs [none][last sort subs]
+	]
+
+	;-- Locate msvcrt.lib (Visual Studio toolset) and libucrt.lib (Windows
+	;-- SDK) by globbing their standard install paths; returns a block of
+	;-- resolved paths, possibly empty.
+	find-helper-libs: func [
+		/local out pf base yrs yr eds ed mscbase ver p sdkbase sv
+	][
+		out: make block! 2
+		if pf: any [get-env "ProgramW6432"  get-env "ProgramFiles"][
+			base: to-rebol-file join pf "\Microsoft Visual Studio\"
+			unless error? try [yrs: read base][
+				foreach yr yrs [
+					if all [empty? out  subdir? yr][
+						unless error? try [eds: read rejoin [base yr]][
+							foreach ed eds [
+								if all [empty? out  subdir? ed][
+									mscbase: rejoin [base yr ed %VC/Tools/MSVC/]
+									if ver: newest-in mscbase [
+										p: rejoin [mscbase ver %lib/x86/msvcrt.lib]
+										if exists? p [append out p]
+									]
+								]
+							]
+						]
+					]
+				]
+			]
+		]
+		if pf: get-env "ProgramFiles(x86)" [
+			sdkbase: to-rebol-file join pf "\Windows Kits\10\Lib\"
+			if sv: newest-in sdkbase [
+				p: rejoin [sdkbase sv %ucrt/x86/libucrt.lib]
+				if exists? p [append out p]
+			]
+		]
+		out
 	]
 
 	;-- For each user-imported function, allocate a 4-byte call slot in the
