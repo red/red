@@ -121,6 +121,10 @@ system-dialect: make-profilable context [
 			'records make block!  1000					;-- [address line file] records
 			'files	 make hash!   20					;-- filenames table
 		]
+		line-cache-header: none							;-- cached block header for source line lookup
+		line-cache-pos:	 none							;-- cached line marker position in header
+		line-cache-idx:	 0								;-- cached source index
+		line-cache-line: 1								;-- cached source line
 		
 		pos:		none								;-- validation rules cursor for error reporting
 		return-def: to-set-word 'return					;-- return: keyword
@@ -259,22 +263,48 @@ system-dialect: make-profilable context [
 		foreach [word action] keywords [append keywords-list word]
 		foreach [name spec] functions  [append keywords-list name]
 		
-		calc-line: has [idx head-end prev p header][
+		reset-line-cache: does [
+			line-cache-header:
+			line-cache-pos: none
+			line-cache-idx:	 0
+			line-cache-line: 1
+		]
+
+		calc-line: has [idx prev p header pos mark][
 			header: head pc
 			idx: (index? pc) - header/1  				;-- calculate real pc position (not counting hidden header)
-			prev: 1
+			either all [
+				same? header line-cache-header
+				line-cache-pos
+				idx >= line-cache-idx
+			][
+				prev: line-cache-line
+				p:	  line-cache-pos
+			][
+				line-cache-header: header
+				line-cache-pos:	   none
+				line-cache-idx:	   0
+				line-cache-line:   prev: 1
+				p: next header
+			]
 
-			parse header [								;-- search for closest line marker
-				skip									;-- skip over header length
+			parse p [									;-- search for closest line marker
 				some [
-					set p pair! (
-						if p/2 = idx [return p/1]		;-- exact value position match
-						if p/2 > idx [return prev]		;-- closest value position match 
-						prev: p/1
+					pos: set mark pair! (
+						if mark/2 = idx [
+							line-cache-pos:  pos
+							line-cache-idx:  mark/2
+							line-cache-line: mark/1
+							return mark/1				;-- exact value position match
+						]
+						if mark/2 > idx [return prev]	;-- closest value position match
+						line-cache-pos:  pos
+						line-cache-idx:  mark/2
+						line-cache-line: prev: mark/1
 					)
 				]
 			]
-			return p/1									;-- return last marker
+			return prev									;-- return last marker
 		]
 		
 		store-dbg-lines: has [dbg pos][
@@ -4314,6 +4344,7 @@ system-dialect: make-profilable context [
 		clear compiler/subroutines
 		clear compiler/debug-lines/records
 		clear compiler/debug-lines/files
+		compiler/reset-line-cache
 		clear emitter/symbols
 	]
 	
