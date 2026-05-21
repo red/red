@@ -83,6 +83,19 @@ make-profilable make target-class [
 		]
 	]
 
+	argument-count?: func [locals [block!] /local count name type][
+		count: 0
+		parse locals [
+			opt block!
+			any [
+				set name word! set type block! (count: count + 1)
+				| set-word! block!
+				| /local break
+			]
+		]
+		count
+	]
+
 	emit-local-ref: func [
 		name [word! object!]
 		opcode [binary!]
@@ -115,21 +128,22 @@ make-profilable make target-class [
 	patch-jump-point: :unsupported
 	patch-sub-call: :unsupported
 	emit-prolog: func [name [word!] locals [block!] bitmap [integer!] /local locals-size][
+		locals-offset: (argument-count? locals) * stack-width
 		locals-size: either find locals /local [
 			emitter/calc-locals-offsets find locals /local
 		][0]
-		if locals-size <> 0 [
-			compiler/throw-error "x86-64 local variables are not implemented yet"
-		]
 		emit #{55}									;-- PUSH rbp
 		emit #{4889E5}								;-- MOV rbp, rsp
 		emit-arg-spills locals
+		if locals-size <> 0 [
+			emit-reserve-stack (round/to/ceiling locals-size stack-width) / stack-width
+		]
 		reduce [locals-size 0]
 	]
 	emit-epilog: func [
 		name [word!] locals [block!] args-size [integer!] locals-size [integer!] /with slots [integer! none!] /closing
 	][
-		if any [slots locals-size <> 0] [
+		if slots [
 			compiler/throw-error "x86-64 function epilog shape is not implemented yet"
 		]
 		if closing [emit-load 0]
@@ -286,7 +300,7 @@ make-profilable make target-class [
 		name [word!] value
 		spec [block! none!]
 		/by-value slots [integer!]
-		/local type opcode
+		/local type opcode local?
 	][
 		if by-value [
 			compiler/throw-error "x86-64 by-value store is not implemented yet"
@@ -299,23 +313,44 @@ make-profilable make target-class [
 			emit-load value
 		]
 		type: compiler/get-variable-spec name
-		opcode: switch/default type/1 [
-			byte!	 [#{8805}]						;-- MOV [RIP+disp32], al
-			int8!	 [#{8805}]
-			uint8!	 [#{8805}]
-			int16!	 [#{668905}]					;-- MOV [RIP+disp32], ax
-			uint16!	 [#{668905}]
-			integer! [#{8905}]						;-- MOV [RIP+disp32], eax
-			int32!	 [#{8905}]
-			uint32!	 [#{8905}]
-			int64!	 [#{488905}]					;-- MOV [RIP+disp32], rax
-			uint64!	 [#{488905}]
-			pointer! [#{488905}]
-			c-string! [#{488905}]
+		local?: emitter/local-offset? name
+		either local? [
+			opcode: switch/default type/1 [
+				byte!	 [#{8845}]					;-- MOV [rbp+disp8], al
+				int8!	 [#{8845}]
+				uint8!	 [#{8845}]
+				int16!	 [#{668945}]				;-- MOV [rbp+disp8], ax
+				uint16!	 [#{668945}]
+				integer! [#{8945}]					;-- MOV [rbp+disp8], eax
+				int32!	 [#{8945}]
+				uint32!	 [#{8945}]
+				int64!	 [#{488945}]				;-- MOV [rbp+disp8], rax
+				uint64!	 [#{488945}]
+				pointer! [#{488945}]
+				c-string! [#{488945}]
+			][
+				compiler/throw-error ["x86-64 local store type not supported yet:" mold type/1]
+			]
+			emit-local-ref name opcode
 		][
-			compiler/throw-error ["x86-64 store type not supported yet:" mold type/1]
+			opcode: switch/default type/1 [
+				byte!	 [#{8805}]					;-- MOV [RIP+disp32], al
+				int8!	 [#{8805}]
+				uint8!	 [#{8805}]
+				int16!	 [#{668905}]				;-- MOV [RIP+disp32], ax
+				uint16!	 [#{668905}]
+				integer! [#{8905}]					;-- MOV [RIP+disp32], eax
+				int32!	 [#{8905}]
+				uint32!	 [#{8905}]
+				int64!	 [#{488905}]				;-- MOV [RIP+disp32], rax
+				uint64!	 [#{488905}]
+				pointer! [#{488905}]
+				c-string! [#{488905}]
+			][
+				compiler/throw-error ["x86-64 store type not supported yet:" mold type/1]
+			]
+			emit-global-ref name opcode
 		]
-		emit-global-ref name opcode
 	]
 	emit-load-path: :unsupported
 	emit-store-path: :unsupported
@@ -337,7 +372,16 @@ make-profilable make target-class [
 	emit-set-stack: :unsupported
 	emit-get-pc: :unsupported
 	emit-get-overflow: :unsupported
-	emit-reserve-stack: :unsupported
+	emit-reserve-stack: func [slots [integer!] /local size][
+		size: slots * stack-width
+		either size > 127 [
+			emit #{4881EC}							;-- SUB rsp, imm32
+			emit to-bin32 size
+		][
+			emit #{4883EC}							;-- SUB rsp, imm8
+			emit to-bin8 size
+		]
+	]
 	emit-release-stack: func [slots [integer!] /bytes][]
 	emit-alloc-stack: :unsupported
 	emit-free-stack: :unsupported
