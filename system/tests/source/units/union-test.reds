@@ -91,8 +91,16 @@ raw-union-by-ref-set: func [value [raw-value!]][
 	value/i32: 2468
 ]
 
+raw-union-ref-id: func [value [raw-value!] return: [raw-value!]][
+	value
+]
+
 tagged-union-by-ref-set: func [value [tagged-value!]][
 	value/i32: 1357
+]
+
+tagged-union-ref-id: func [value [tagged-value!] return: [tagged-value!]][
+	value
 ]
 
 raw-union-by-value-copy: func [value [raw-value! value] return: [integer!] /local saved [integer!]][
@@ -109,14 +117,26 @@ shape-by-value-sum: func [value [shape! value] return: [integer!]][
 	]
 ]
 
+shape-ref-id: func [value [shape!] return: [shape!]][
+	value
+]
+
 shape-box-by-ref-set: func [value [shape-box!]][
 	value/shape/point/x: 31
 	value/shape/point/y: 32
 ]
 
+shape-box-inline-shape-ref: func [value [shape-box!] return: [shape!]][
+	value/shape
+]
+
 shape-ref-box-by-ref-set: func [value [shape-ref-box!]][
 	value/shape/point/x: 41
 	value/shape/point/y: 42
+]
+
+shape-ref-box-shape-ref: func [value [shape-ref-box!] return: [shape!]][
+	value/shape
 ]
 
 union-by-value-make: func [
@@ -340,6 +360,36 @@ union-by-value-make-large: func [
 	--assert shape/point/x = 41
 	--assert shape/point/y = 42
 
+	--test-- "union-return-ref-1"
+	shape-ref-box/shape: shape-ref-id shape
+	shape-ref-box/shape/point/x: 61
+	shape-ref-box/shape/point/y: 62
+	--assert variant? shape-ref-box/shape 'point
+	--assert shape-ref-box/shape/point/x = 61
+	--assert shape-ref-box/shape/point/y = 62
+	--assert shape/point/x = 61
+	--assert shape/point/y = 62
+
+	--test-- "union-return-ref-2"
+	shape-ref-box/shape: shape-box-inline-shape-ref shape-box
+	shape-ref-box/shape/point/x: 71
+	shape-ref-box/shape/point/y: 72
+	--assert variant? shape-ref-box/shape 'point
+	--assert shape-ref-box/shape/point/x = 71
+	--assert shape-ref-box/shape/point/y = 72
+	--assert shape-box/shape/point/x = 71
+	--assert shape-box/shape/point/y = 72
+
+	--test-- "union-return-ref-3"
+	shape-ref-box/shape: shape-ref-box-shape-ref shape-ref-box
+	shape-ref-box/shape/point/x: 81
+	shape-ref-box/shape/point/y: 82
+	--assert variant? shape-ref-box/shape 'point
+	--assert shape-ref-box/shape/point/x = 81
+	--assert shape-ref-box/shape/point/y = 82
+	--assert shape-box/shape/point/x = 81
+	--assert shape-box/shape/point/y = 82
+
 ===end-group===
 
 ===start-group=== "Tagged union by value"
@@ -368,6 +418,22 @@ union-by-value-make-large: func [
 	tagged-union-by-ref-set v
 	--assert variant? v 'i32
 	--assert v/i32 = 1357
+
+	--test-- "union-pass-return-ref-1"
+	raw-ref: raw-union-ref-id raw
+	raw-ref/i32: 8642
+	--assert raw/i32 = 8642
+	--assert (as integer! (raw-union-ref-id raw-ref)) = as integer! raw-ref
+	--assert (as integer! (raw-union-ref-id raw-ref)) = as integer! raw
+
+	--test-- "union-pass-return-ref-2"
+	v-ref: tagged-union-ref-id v
+	v-ref/i32: 97531
+	--assert variant? v-ref 'i32
+	--assert variant? v 'i32
+	--assert v-ref/i32 = 97531
+	--assert v/i32 = 97531
+	--assert (as integer! (tagged-union-ref-id v-ref)) = as integer! v-ref
 
 	--test-- "union-raw-by-value-1"
 	raw/i32: 4321
