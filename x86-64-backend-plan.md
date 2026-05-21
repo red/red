@@ -4,10 +4,12 @@
 
 Add a first x86-64 backend for Red/System targeting Linux SysV AMD64. This includes a new `Linux-X86-64` target config, a new `X86-64.r` backend, ELF64 output support, pointer-size-aware compiler/runtime fixes, and unit coverage for 64-bit pointers, ABI calls, structs, unions, and fixed-width integers.
 
+The first milestone is a non-PIE executable backend. Instruction emission should use RIP-relative addressing where practical so PIE/PIC can be added later without a backend rewrite, but full PIE/shared-library support is explicitly deferred.
+
 ## Key Changes
 
 - Add target config:
-  - `Linux-X86-64` with `target: 'X86-64`, `format: 'ELF`, `ABI: 'sysv`, `ptr-size: 8`, 16-byte stack alignment, and dynamic linker `/lib64/ld-linux-x86-64.so.2`.
+  - `Linux-X86-64` with `target: 'X86-64`, `format: 'ELF`, `type: 'exe`, `ABI: 'sysv`, `ptr-size: 8`, 16-byte stack alignment, non-PIE `ET_EXEC` output, and dynamic linker `/lib64/ld-linux-x86-64.so.2`.
   - Keep `integer!` as 32-bit; use 64-bit only for pointers, `int64!`, `uint64!`, and address arithmetic.
 
 - Add `system/targets/X86-64.r`:
@@ -23,7 +25,12 @@ Add a first x86-64 backend for Red/System targeting Linux SysV AMD64. This inclu
 - Add ELF64 support:
   - Add `Elf64_*` headers, program headers, section headers, symbol entries, dynamic entries, and relocation entries.
   - Add x86-64 constants: `EM_X86_64`, `ELFCLASS64`, `R_X86_64_64`, `R_X86_64_PC32`, `R_X86_64_RELATIVE`, and dynamic relocation handling using RELA where required.
+  - For the first milestone, generate non-PIE `ET_EXEC` binaries and reject or defer `PIC?`/DLL output for `X86-64` with a clear compiler error.
   - Keep ELF32 paths unchanged for IA-32 and ARM.
+
+- Leave PIE/PIC for a later milestone:
+  - Add future targets such as `Linux-X86-64-PIE` for `ET_DYN` PIE executables and `Linux-X86-64-SO` for shared libraries.
+  - Future PIE/PIC work must add GOT/PLT import handling, `R_X86_64_GLOB_DAT`, `R_X86_64_JUMP_SLOT`, `R_X86_64_RELATIVE`, base-address-independent startup, no absolute text relocations, and ASLR verification.
 
 - Update Red/System runtime pieces:
   - Add x86-64 `system/cpu` register view and `system/stack` support.
@@ -44,12 +51,14 @@ Add a first x86-64 backend for Red/System targeting Linux SysV AMD64. This inclu
 - Verify with:
   - `red.r -cqs -t Linux-X86-64 ...` for focused Red/System unit tests.
   - Run binaries directly in WSL.
+  - Confirm generated binaries are non-PIE `ET_EXEC` using `readelf -h`, and that `-dlib`/`PIC?` for `Linux-X86-64` fails with the intended diagnostic until PIE/PIC is implemented.
   - Regression compile/run on IA-32 for `size-test.reds`, `struct-test.reds`, `union-test.reds`, `fixed-int-test.reds`, `int64-test.reds`.
   - Linux-ARM/RPi smoke for fixed-int, struct, union after shared emitter/layout changes.
 
 ## Assumptions
 
 - First milestone is Linux SysV x86-64, not Windows x64/PE32+.
+- First milestone is non-PIE executable output; PIE/PIC/shared-library support is deferred.
 - Public `integer!` remains 32-bit and compatible with existing Red/System semantics.
 - Red/System runtime support is required; full Red language runtime 64-bit cell/node migration is deferred unless explicitly requested.
 - Existing IA-32 and ARM targets must remain behavior-compatible.
