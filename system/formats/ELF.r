@@ -434,7 +434,7 @@ context [
 		data-reloc: collect-data-reloc job
 
 		structure: copy default-structure
-		reloc-section: either elf64-target? job/target [".rela.text"][".rel.text"]
+		reloc-section: either elf64-target? job/target [".rela.dyn"][".rel.text"]
 		if elf64-target? job/target [
 			replace-deep structure ".rel.text" reloc-section
 			replace-deep structure 'rel 'rela
