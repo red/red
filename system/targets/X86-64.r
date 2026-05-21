@@ -143,7 +143,38 @@ make-profilable make target-class [
 	]
 	emit-load-literal: :unsupported
 	emit-load-literal-ptr: :unsupported
-	emit-store: :unsupported
+	emit-store: func [
+		name [word!] value
+		spec [block! none!]
+		/by-value slots [integer!]
+		/local type opcode
+	][
+		if by-value [
+			compiler/throw-error "x86-64 by-value store is not implemented yet"
+		]
+		if logic? value [value: to integer! value]
+		if value <> <last> [
+			emit-load value
+		]
+		type: compiler/get-variable-spec name
+		opcode: switch/default type/1 [
+			byte!	 [#{8805}]						;-- MOV [RIP+disp32], al
+			int8!	 [#{8805}]
+			uint8!	 [#{8805}]
+			int16!	 [#{668905}]					;-- MOV [RIP+disp32], ax
+			uint16!	 [#{668905}]
+			integer! [#{8905}]						;-- MOV [RIP+disp32], eax
+			int32!	 [#{8905}]
+			uint32!	 [#{8905}]
+			int64!	 [#{488905}]					;-- MOV [RIP+disp32], rax
+			uint64!	 [#{488905}]
+			pointer! [#{488905}]
+			c-string! [#{488905}]
+		][
+			compiler/throw-error ["x86-64 store type not supported yet:" mold type/1]
+		]
+		emit-global-ref name opcode
+	]
 	emit-load-path: :unsupported
 	emit-store-path: :unsupported
 	emit-init-path: :unsupported
