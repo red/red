@@ -17,6 +17,7 @@ PIE executable and PIC shared-library support are first-milestone requirements, 
 - Add `system/targets/X86-64.r`:
   - Implement x86-64 instruction emission with REX prefixes, `rax/rcx/rdx/rbx/rsp/rbp/rsi/rdi/r8-r15`, RIP-relative internal symbol access, PLT calls for imported/preemptible functions, GOT loads for externally preemptible data, rel32 calls/jumps where legal, and 8-byte pointer loads/stores.
   - Implement SysV AMD64 function ABI: integer/pointer args in `rdi/rsi/rdx/rcx/r8/r9`, float args in `xmm0-xmm7`, stack overflow args, 16-byte call alignment, scalar returns in `rax`/`xmm0`, and correct variadic call metadata.
+  - Use the larger x86-64 register set as the normal lowering strategy: keep call arguments in ABI registers where possible, use caller-saved scratch registers (`rax`, `rcx`, `rdx`, `rsi`, `rdi`, `r8-r11`) for short expression chains, reserve stack spills for live values that actually need preservation, and avoid carrying over IA-32 push/pop-heavy lowering except as a temporary bring-up fallback.
   - Support Red/System core operations first: locals/globals, path load/store, pointer arithmetic, struct/union field access, fixed-width integers, floats, comparisons, bit ops, function calls, imports, callbacks, stack helpers, and `system/cpu/overflow?`.
 
 - Enforce PIC-safe x86-64 code generation:

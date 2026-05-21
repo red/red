@@ -150,6 +150,41 @@ make-profilable make target-class [
 			word? value [
 				type: compiler/get-type value
 				switch/default type/1 [
+					byte! [
+						either emitter/local-offset? value [
+							emit-local-ref value #{0FB64D}	;-- MOVZX ecx, byte [rbp+disp8]
+						][
+							emit-global-ref value #{0FB60D}	;-- MOVZX ecx, byte [RIP+disp32]
+						]
+					]
+					int8! [
+						either emitter/local-offset? value [
+							emit-local-ref value #{0FBE4D}	;-- MOVSX ecx, byte [rbp+disp8]
+						][
+							emit-global-ref value #{0FBE0D}	;-- MOVSX ecx, byte [RIP+disp32]
+						]
+					]
+					uint8! [
+						either emitter/local-offset? value [
+							emit-local-ref value #{0FB64D}
+						][
+							emit-global-ref value #{0FB60D}
+						]
+					]
+					int16! [
+						either emitter/local-offset? value [
+							emit-local-ref value #{0FBF4D}	;-- MOVSX ecx, word [rbp+disp8]
+						][
+							emit-global-ref value #{0FBF0D}	;-- MOVSX ecx, word [RIP+disp32]
+						]
+					]
+					uint16! [
+						either emitter/local-offset? value [
+							emit-local-ref value #{0FB74D}	;-- MOVZX ecx, word [rbp+disp8]
+						][
+							emit-global-ref value #{0FB70D}	;-- MOVZX ecx, word [RIP+disp32]
+						]
+					]
 					integer! [
 						either emitter/local-offset? value [
 							emit-local-ref value #{8B4D}	;-- MOV ecx, [rbp+disp8]
@@ -226,7 +261,20 @@ make-profilable make target-class [
 	emit-stack-align-epilog: :noop
 	emit-stack-align: :noop
 	emit-float-trash-last: :unsupported
-	emit-casting: :unsupported
+	emit-casting: func [value [object!] alt? [logic!] /push /local type][
+		type: compiler/get-type value/data
+		case [
+			value/type/1 = 'logic! [
+				emit either compiler/int64? type [#{4885C0}][#{85C0}]
+				emit #{0F95C0}						;-- SETNZ al
+				emit #{0FB6C0}						;-- MOVZX eax, al
+			]
+			all [
+				compiler/integer-type? value/type
+				compiler/integer-type? type
+			][]										;-- integer loads already widen/truncate through eax/rax
+		]
+	]
 	emit-call-syscall: func [args [block!] fspec [block!] attribs [block! none!] /local pops n][
 		pops: [
 			#{5F}		;-- POP rdi
@@ -304,6 +352,8 @@ make-profilable make target-class [
 	emit-integer-operation: func [name [word!] args [block!] /local right imm?][
 		emit-load args/1
 		right: compiler/unbox args/2
+		if char? right [right: to integer! right]
+		if logic? right [right: to integer! right]
 		imm?: integer? right
 		case [
 			find comparison-op name [
@@ -379,6 +429,10 @@ make-profilable make target-class [
 	emit-load: func [value /local type][
 		case [
 			value = <last> []
+			object? value [
+				emit-load compiler/unbox value
+				emit-casting value no
+			]
 			any [integer? value char? value logic? value] [
 				if logic? value [value: to integer! value]
 				either all [integer? value value >= -2147483648 value <= 2147483647][
@@ -393,6 +447,11 @@ make-profilable make target-class [
 				type: compiler/get-type value
 				either emitter/local-offset? value [
 					switch/default type/1 [
+						byte!	 [emit-local-ref value #{0FB645}]	;-- MOVZX eax, byte [rbp+disp8]
+						int8!	 [emit-local-ref value #{0FBE45}]	;-- MOVSX eax, byte [rbp+disp8]
+						uint8!	 [emit-local-ref value #{0FB645}]
+						int16!	 [emit-local-ref value #{0FBF45}]	;-- MOVSX eax, word [rbp+disp8]
+						uint16!	 [emit-local-ref value #{0FB745}]	;-- MOVZX eax, word [rbp+disp8]
 						integer! [emit-local-ref value #{8B45}]		;-- MOV eax, [rbp+disp8]
 						int32!	 [emit-local-ref value #{8B45}]
 						uint32!	 [emit-local-ref value #{8B45}]
@@ -407,6 +466,11 @@ make-profilable make target-class [
 					]
 				][
 					switch/default type/1 [
+						byte!	 [emit-global-ref value #{0FB605}]	;-- MOVZX eax, byte [RIP+disp32]
+						int8!	 [emit-global-ref value #{0FBE05}]	;-- MOVSX eax, byte [RIP+disp32]
+						uint8!	 [emit-global-ref value #{0FB605}]
+						int16!	 [emit-global-ref value #{0FBF05}]	;-- MOVSX eax, word [RIP+disp32]
+						uint16!	 [emit-global-ref value #{0FB705}]	;-- MOVZX eax, word [RIP+disp32]
 						integer! [emit-global-ref value #{8B05}]		;-- MOV eax, [RIP+disp32]
 						int32!	 [emit-global-ref value #{8B05}]
 						uint32!	 [emit-global-ref value #{8B05}]
@@ -601,7 +665,10 @@ make-profilable make target-class [
 	emit-release-stack: func [slots [integer!] /bytes][]
 	emit-alloc-stack: :unsupported
 	emit-free-stack: :unsupported
-	emit-clear-slot: :unsupported
+	emit-clear-slot: func [name [word!]][
+		emit-local-ref name #{C645}					;-- MOV byte [rbp+disp8], 0
+		emit #{00}
+	]
 	emit-open-catch: :unsupported
 	emit-close-catch: :unsupported
 	emit-read-io: :unsupported
