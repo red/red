@@ -190,9 +190,9 @@ make-profilable make target-class [
 		emit #{C9}									;-- LEAVE
 		emit #{C3}									;-- RET
 	]
-	emit-stack-align-prolog: :unsupported
-	emit-stack-align-epilog: :unsupported
-	emit-stack-align: :unsupported
+	emit-stack-align-prolog: :noop
+	emit-stack-align-epilog: :noop
+	emit-stack-align: :noop
 	emit-float-trash-last: :unsupported
 	emit-casting: :unsupported
 	emit-call-syscall: func [args [block!] fspec [block!] attribs [block! none!] /local pops n][
@@ -216,7 +216,32 @@ make-profilable make target-class [
 		emit to-bin32 last fspec
 		emit #{0F05}								;-- SYSCALL
 	]
-	emit-call-import: :unsupported
+	emit-call-import: func [
+		args [block!]
+		fspec [block!]
+		spec [block!]
+		attribs [block! none!]
+		/local pops n
+	][
+		pops: [
+			#{5F}		;-- POP rdi
+			#{5E}		;-- POP rsi
+			#{5A}		;-- POP rdx
+			#{59}		;-- POP rcx
+			#{4158}		;-- POP r8
+			#{4159}		;-- POP r9
+		]
+		n: fspec/1
+		if n > length? pops [
+			compiler/throw-error ["x86-64 imported function with more than 6 arguments is not implemented yet:" n]
+		]
+		while [n > 0][
+			emit pick pops n
+			n: n - 1
+		]
+		emit #{FF15}								;-- CALL qword [rip+disp32]
+		emit-reloc-disp32 spec
+	]
 	emit-call-native: func [
 		args [block!] fspec [block!] spec [block!] attribs [block! none!]
 		/routine name [word!]
@@ -285,7 +310,9 @@ make-profilable make target-class [
 	emit-throw: :unsupported
 	emit-alt-last: :unsupported
 	emit-log-b: :unsupported
-	emit-variable: :unsupported
+	emit-variable: func [name [word! object!]][
+		emit-load name
+	]
 	emit-argument: func [arg fspec [block!] /local value][
 		if arg = #_ [exit]
 		value: compiler/unbox arg
@@ -324,6 +351,8 @@ make-profilable make target-class [
 						uint64!	 [emit-local-ref value #{488B45}]
 						pointer! [emit-local-ref value #{488B45}]
 						c-string! [emit-local-ref value #{488B45}]
+						function! [emit-local-ref value #{488B45}]
+						subroutine! [emit-local-ref value #{488B45}]
 					][
 						compiler/throw-error ["x86-64 local load type not supported yet:" mold type/1]
 					]
@@ -336,6 +365,8 @@ make-profilable make target-class [
 						uint64!	 [emit-global-ref value #{488B05}]
 						pointer! [emit-global-ref value #{488B05}]
 						c-string! [emit-global-ref value #{488B05}]
+						function! [emit-global-ref value #{488B05}]
+						subroutine! [emit-global-ref value #{488B05}]
 					][
 						compiler/throw-error ["x86-64 load type not supported yet:" mold type/1]
 					]

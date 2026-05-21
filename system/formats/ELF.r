@@ -1191,15 +1191,22 @@ context [
 
 	resolve-import-refs: func [
 		job [object!] symbols [block!] code [binary!] relro-offset [integer!]
-		/local rel
+		/local rel disp
 	] [
-		rel: make-struct machine-word none
 		foreach [libname libimports] job/sections/import/3 [
 			linker/check-dup-symbols job libimports
 			foreach [symbol callsites] libimports [
-				rel/value: rel-address-of/symbol relro-offset symbols symbol
-				foreach callsite callsites [
-					change/part at code callsite serialize-data rel size-of rel
+				either elf64-target? job/target [
+					disp: rel-address-of/symbol relro-offset symbols symbol
+					foreach callsite callsites [
+						change/part at code callsite to-bin32 disp - callsite - 3 4
+					]
+				][
+					rel: make-struct machine-word none
+					rel/value: rel-address-of/symbol relro-offset symbols symbol
+					foreach callsite callsites [
+						change/part at code callsite serialize-data rel size-of rel
+					]
 				]
 			]
 		]
