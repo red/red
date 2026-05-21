@@ -216,6 +216,22 @@ make-profilable make target-class [
 		]
 	]
 
+	emit-float-ref: func [
+		name [word! object! block!]
+		opcode [binary!]
+	][
+		if object? name [name: compiler/unbox name]
+		either block? name [
+			emit-global-ref name opcode
+		][
+			either emitter/local-offset? name [
+				emit-local-ref name opcode
+			][
+				emit-global-ref name opcode
+			]
+		]
+	]
+
 	on-init: :noop
 	on-global-prolog: func [runtime? [logic!] type [word!]][]
 	on-global-epilog: func [runtime? [logic!] type [word!]][]
@@ -260,7 +276,7 @@ make-profilable make target-class [
 	emit-stack-align-prolog: :noop
 	emit-stack-align-epilog: :noop
 	emit-stack-align: :noop
-	emit-float-trash-last: :unsupported
+	emit-float-trash-last: :noop
 	emit-casting: func [value [object!] alt? [logic!] /push /local type][
 		type: compiler/get-type value/data
 		case [
@@ -273,6 +289,38 @@ make-profilable make target-class [
 				compiler/integer-type? value/type
 				compiler/integer-type? type
 			][]										;-- integer loads already widen/truncate through eax/rax
+			all [
+				find [float! float32! float64!] value/type/1
+				compiler/integer-type? type
+			][
+				emit either compiler/int64? type [
+					either value/type/1 = 'float32! [#{C4E1FA2AC0}][#{C4E1FB2AC0}]
+				][
+					either value/type/1 = 'float32! [#{C5FA2AC0}][#{C5FB2AC0}]
+				]
+			]
+			all [
+				compiler/integer-type? value/type
+				find [float! float32! float64!] type/1
+			][
+				emit either compiler/int64? value/type [
+					either type/1 = 'float32! [#{C4E1FA2CC0}][#{C4E1FB2CC0}]
+				][
+					either type/1 = 'float32! [#{C5FA2CC0}][#{C5FB2CC0}]
+				]
+			]
+			all [
+				value/type/1 = 'float32!
+				find [float! float64!] type/1
+			][
+				emit #{C5FB5AC0}					;-- VCVTSD2SS xmm0, xmm0, xmm0
+			]
+			all [
+				find [float! float64!] value/type/1
+				type/1 = 'float32!
+			][
+				emit #{C5FA5AC0}					;-- VCVTSS2SD xmm0, xmm0, xmm0
+			]
 		]
 	]
 	emit-call-syscall: func [args [block!] fspec [block!] attribs [block! none!] /local pops n][
@@ -402,7 +450,52 @@ make-profilable make target-class [
 			]
 		]
 	]
-	emit-float-operation: :unsupported
+	emit-float-operation: func [
+		name [word!] args [block!]
+		/local type right-type single? store-op cmp-op
+	][
+		if verbose >= 3 [print [">>>inlining float op:" mold name mold args]]
+		type: compiler/resolve-expr-type args/1
+		right-type: compiler/resolve-expr-type args/2
+		single?: all [type/1 = 'float32! right-type/1 = 'float32!]
+		store-op: either single? [#{C5FA110424}][#{C5FB110424}]
+		cmp-op: either single? [#{C5F82E0424}][#{C5F92E0424}]
+		case [
+			find comparison-op name [
+				emit-load args/2
+				emit #{4883EC08}					;-- SUB rsp, 8
+				emit store-op						;-- MOVS[S/D] [rsp], xmm0
+				emit-load args/1
+				emit cmp-op							;-- UCOMIS[S/D] xmm0, [rsp]
+				emit #{488D642408}					;-- LEA rsp, [rsp+8] without clobbering flags
+			]
+			find [+ *] name [
+				emit-load args/1
+				emit #{4883EC08}
+				emit store-op
+				emit-load args/2
+				emit switch name [
+					+ [either single? [#{C5FA580424}][#{C5FB580424}]] ;-- VADDS[S/D] xmm0, xmm0, [rsp]
+					* [either single? [#{C5FA590424}][#{C5FB590424}]] ;-- VMULS[S/D] xmm0, xmm0, [rsp]
+				]
+				emit #{4883C408}
+			]
+			find [- /] name [
+				emit-load args/2
+				emit #{4883EC08}
+				emit store-op
+				emit-load args/1
+				emit switch name [
+					- [either single? [#{C5FA5C0424}][#{C5FB5C0424}]] ;-- VSUBS[S/D] xmm0, xmm0, [rsp]
+					/ [either single? [#{C5FA5E0424}][#{C5FB5E0424}]] ;-- VDIVS[S/D] xmm0, xmm0, [rsp]
+				]
+				emit #{4883C408}
+			]
+			true [
+				compiler/throw-error "unsupported operation on floats"
+			]
+		]
+	]
 	emit-throw: :unsupported
 	emit-alt-last: :unsupported
 	emit-log-b: :unsupported
@@ -423,7 +516,7 @@ make-profilable make target-class [
 			emit-push value
 		]
 	]
-	emit-load: func [value /local type][
+	emit-load: func [value /with cast [object!] /local type spec][
 		case [
 			value = <last> []
 			object? value [
@@ -439,6 +532,10 @@ make-profilable make target-class [
 					emit #{48B8}					;-- MOV rax, imm64
 					emit to-bin64 value
 				]
+			]
+			decimal? value [
+				spec: emitter/store-value none value [float!]
+				emit-float-ref spec/2 #{C5FB1005}
 			]
 			word? value [
 				type: compiler/get-type value
@@ -458,6 +555,9 @@ make-profilable make target-class [
 						c-string! [emit-local-ref value #{488B45}]
 						function! [emit-local-ref value #{488B45}]
 						subroutine! [emit-local-ref value #{488B45}]
+						float!	 [emit-float-ref value #{C5FB1045}]
+						float64! [emit-float-ref value #{C5FB1045}]
+						float32! [emit-float-ref value #{C5FA1045}]
 					][
 						compiler/throw-error ["x86-64 local load type not supported yet:" mold type/1]
 					]
@@ -477,6 +577,9 @@ make-profilable make target-class [
 						c-string! [emit-global-ref value #{488B05}]
 						function! [emit-global-ref value #{488B05}]
 						subroutine! [emit-global-ref value #{488B05}]
+						float!	 [emit-float-ref value #{C5FB1005}]
+						float64! [emit-float-ref value #{C5FB1005}]
+						float32! [emit-float-ref value #{C5FA1005}]
 					][
 						compiler/throw-error ["x86-64 load type not supported yet:" mold type/1]
 					]
@@ -486,8 +589,21 @@ make-profilable make target-class [
 				compiler/throw-error ["x86-64 load not supported yet:" mold value]
 			]
 		]
+		if all [
+			with
+			any [
+				decimal? compiler/unbox value
+				decimal? compiler/unbox cast/data
+			]
+		][
+			emit-casting cast no
+		]
 	]
-	emit-load-literal: :unsupported
+	emit-load-literal: func [type [block! none!] value /local spec][
+		unless type [type: compiler/get-type value]
+		spec: emitter/store-value none value type
+		emit-load-literal-ptr spec/2
+	]
 	emit-load-literal-ptr: func [spec [block!]][
 		emit #{488D05}								;-- LEA rax, [RIP+disp32]
 		emit-reloc-disp32 spec
@@ -496,19 +612,34 @@ make-profilable make target-class [
 		name [word!] value
 		spec [block! none!]
 		/by-value slots [integer!]
-		/local type opcode local?
+		/local type source-type opcode local?
 	][
 		if by-value [
 			compiler/throw-error "x86-64 by-value store is not implemented yet"
 		]
+		type: compiler/get-variable-spec name
 		if logic? value [value: to integer! value]
 		if all [
 			value <> <last>
 			not find [string! paren! binary!] type?/word value
 		][
+			source-type: compiler/get-type value
 			emit-load value
+			case [
+				all [
+					type/1 = 'float32!
+					find [float! float64!] source-type/1
+				][
+					emit #{C5FB5AC0}				;-- VCVTSD2SS xmm0, xmm0, xmm0
+				]
+				all [
+					find [float! float64!] type/1
+					source-type/1 = 'float32!
+				][
+					emit #{C5FA5AC0}				;-- VCVTSS2SD xmm0, xmm0, xmm0
+				]
+			]
 		]
-		type: compiler/get-variable-spec name
 		local?: emitter/local-offset? name
 		either local? [
 			opcode: switch/default type/1 [
@@ -524,6 +655,9 @@ make-profilable make target-class [
 				uint64!	 [#{488945}]
 				pointer! [#{488945}]
 				c-string! [#{488945}]
+				float!	 [#{C5FB1145}]			;-- VMOVSD [rbp+disp8], xmm0
+				float64! [#{C5FB1145}]
+				float32! [#{C5FA1145}]			;-- VMOVSS [rbp+disp8], xmm0
 			][
 				compiler/throw-error ["x86-64 local store type not supported yet:" mold type/1]
 			]
@@ -542,6 +676,9 @@ make-profilable make target-class [
 				uint64!	 [#{488905}]
 				pointer! [#{488905}]
 				c-string! [#{488905}]
+				float!	 [#{C5FB1105}]			;-- VMOVSD [RIP+disp32], xmm0
+				float64! [#{C5FB1105}]
+				float32! [#{C5FA1105}]			;-- VMOVSS [RIP+disp32], xmm0
 			][
 				compiler/throw-error ["x86-64 store type not supported yet:" mold type/1]
 			]
