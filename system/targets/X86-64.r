@@ -235,9 +235,8 @@ make-profilable make target-class [
 		if n > length? pops [
 			compiler/throw-error ["x86-64 imported function with more than 6 arguments is not implemented yet:" n]
 		]
-		while [n > 0][
-			emit pick pops n
-			n: n - 1
+		repeat i n [
+			emit pick pops i
 		]
 		emit #{FF15}								;-- CALL qword [rip+disp32]
 		emit-reloc-disp32 spec
@@ -262,9 +261,8 @@ make-profilable make target-class [
 		if n > length? pops [
 			compiler/throw-error "x86-64 functions with more than 6 arguments are not implemented yet"
 		]
-		while [n > 0][
-			emit pick pops n
-			n: n - 1
+		repeat i n [
+			emit pick pops i
 		]
 		emit #{E8}									;-- CALL rel32
 		emit-reloc-disp32 spec

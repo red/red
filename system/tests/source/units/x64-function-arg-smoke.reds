@@ -9,15 +9,15 @@ Red/System [
 		]
 	]
 
-	add-values: func [
+	sub-values: func [
 		left  [integer!]
 		right [integer!]
 		return: [integer!]
 	][
-		left + right
+		left - right
 	]
 
 	status: 0
-	status: add-values 3 4
+	status: sub-values 9 4
 	sys-exit status
 ]
