@@ -439,6 +439,15 @@ static-link: context [
 					unless any [select sym-addr name  find undef-done name][
 						append undef-done name
 						case [
+							;-- COFF common symbol: an UNDEF external whose value
+							;-- field is a byte size. Allocate zero-filled storage
+							;-- in .data and resolve every reference to it.
+							all [obj-format = 'PE  0 < reader/sym-value sym][
+								pad-to data 4
+								data-off: length? data
+								insert/dup tail data null reader/sym-value sym
+								repend sym-addr [name reduce ['data data-off false]]
+							]
 							name = "__chkstk" [
 								tramp-off: length? code
 								append code chkstk-stub
