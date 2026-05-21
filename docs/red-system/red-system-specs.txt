@@ -251,7 +251,7 @@ The fixed-width integer datatypes provide explicit signed and unsigned integer s
 
 The integer! datatype is an alias for int32! on the currently supported 32-bit targets.
 
-Fixed-width integer values can be used as variables, function arguments and return values, struct! members, and alias members. They can be mixed with byte!, c-string!, pointer!, float32!, float!, and nested struct! members in the same struct definition.
+Fixed-width integer values can be used as variables, function arguments and return values, struct! members, union! variants, and alias members.
 
 Examples:
 
@@ -715,6 +715,77 @@ Struct usage example:
   	first  [book! value]				;-- inlined book! struct value
   	second [book! value]				;-- inlined book! struct value
  ]
+
+---Union!
+
+Union! datatype is roughly equivalent to C union type. It is an aggregate where all variants share the same payload storage. A union variable holds the memory address of a union value.
+
+Union! has two forms:
+
+* Raw unions, where all members overlap at offset 0.
+* Tagged unions, declared by putting `[variant]` as the first item in the union spec. The compiler stores a hidden tag, updates it on variant assignment, and exposes `variant?`.
+
+Raw union syntax:
+
+ value-payload!: alias union! [
+	int   [integer!]
+	float [float!]
+	text  [c-string!]
+ ]
+
+Tagged union syntax:
+
+ value!: alias union! [
+	[variant]
+	int   [integer!]
+	float [float!]
+	text  [c-string!]
+ ]
+
+ v: declare value!
+ v/int: 123
+ if variant? v 'int [
+	print v/int
+ ]
+
+Variant payload blocks that contain field/type pairs are treated as anonymous inline struct payloads:
+
+ event!: alias union! [
+	[variant]
+	mouse [
+		x [integer!]
+		y [integer!]
+	]
+	key [
+		code [integer!]
+	]
+ ]
+
+ e: declare event!
+ e/mouse/x: 10							;-- sets the hidden tag to mouse
+ e/mouse/y: 20
+
+Tagged unions can be dispatched with `switch`:
+
+ switch e [
+	mouse [print e/mouse/x]
+	key   [print e/key/code]
+	default [print "unknown"]
+ ]
+
+<u>Implementation notes</u>:
+
+* Raw union size is the maximum variant payload size, padded to the maximum variant alignment.
+
+* Tagged union layout is hidden tag at offset 0, padding to payload alignment, then shared payload storage. The compiler chooses the hidden tag size automatically from the variant count: uint8! up to 255 variants, uint16! up to 65535 variants, and uint32! above that.
+
+* Tag value 0 means unset. Variant tags start at 1 in declaration order. `variant? v 'name` returns false when the tag is unset or selects another variant.
+
+* Assigning `v/name:` writes the payload and updates the hidden tag. Writing a nested field of a struct payload, such as `e/mouse/x:`, also updates the hidden tag.
+
+* Reading the wrong variant is unchecked by default. For example, after `v/int: 123`, reading `v/float` interprets the same payload bytes as a float value.
+
+* Union aliases follow struct alias storage rules in aggregate fields: `[value!]` is pointer-like, `[value! value]` is inline.
 
 ---Pointer!
 

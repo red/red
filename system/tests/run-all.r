@@ -64,6 +64,7 @@ print ["This test started at" start-time]
   --run-test-file-quiet %source/units/byte-test.reds
   --run-test-file-quiet %source/units/c-string-test.reds
   --run-test-file-quiet %source/units/struct-test.reds
+  --run-test-file-quiet %source/units/union-test.reds
   --run-test-file-quiet %source/units/pointer-test.reds
   --run-test-file-quiet %source/units/cast-test.reds
   --run-test-file-quiet %source/units/alias-test.reds

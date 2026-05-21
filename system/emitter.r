@@ -48,6 +48,7 @@ emitter: make-profilable context [
 		pointer!	4	-				;-- 32-bit, 8 for 64-bit
 		c-string!	4	-				;-- 32-bit, 8 for 64-bit
 		struct!		4	-				;-- 32-bit, 8 for 64-bit ; struct! passed by reference
+		union!		4	-				;-- 32-bit, 8 for 64-bit ; union! passed by reference
 		function!	4	-				;-- 32-bit, 8 for 64-bit
 		subroutine!	4	-				;-- 32-bit, 8 for 64-bit
 		array!		4	-				;-- 32-bit, 8 for 64-bit
@@ -76,6 +77,7 @@ emitter: make-profilable context [
 		function!	9
 		ptr-ptr!	10
 		struct!		1000
+		union!		1001
 	]
 	
 	chunks: context [
@@ -225,16 +227,17 @@ emitter: make-profilable context [
 	foreach-member: func [spec [block!] body [block!] /local type][
 		all [
 			'value = last spec
-			'struct! <> spec/1
+			not find [struct! union!] spec/1
 			spec: compiler/find-aliased spec/1
 		]
 		body: bind/copy body 'type
 		if block? spec/1 [spec: next spec]				;-- skip [attributs] if present
+		if compiler/union-spec? spec [spec: compiler/union-members spec]
 
 		foreach [name t] spec [
 			unless word? name [break]
 			either 'value = last type: t [
-				if 'struct! = type/1 [type: type/2]
+				if find [struct! union!] type/1 [type: type/2]
 				foreach-member type body
 			][
 				do body
@@ -348,6 +351,12 @@ emitter: make-profilable context [
 				]
 				pad-data-buf target/struct-align-size
 			]
+			union! [
+				pad-data-buf union-payload-align? spec
+				ptr: tail data-buf
+				insert/dup ptr null union-size? spec
+				pad-data-buf target/struct-align-size
+			]
 			get-word! [
 				spec: any [
 					select symbols to word! value
@@ -427,7 +436,7 @@ emitter: make-profilable context [
 			type: new
 		]
 		ptr: store-global value type/1 all [			;-- allocate value slot
-			type/1 = 'struct!
+			find [struct! union!] type/1
 			type/2
 		]
 		add-symbol/with any [name <data>] ptr ref-ptr	;-- add variable/value to globals table
@@ -486,7 +495,9 @@ emitter: make-profilable context [
 				'value = last type: compiler/last-type
 				any [
 					'struct! = type/1
+					'union! = type/1
 					'struct! = first type: compiler/resolve-aliased type
+					'union! = first type: compiler/resolve-aliased type
 				]
 			][
 				slots: struct-slots?/direct type/2
@@ -497,7 +508,83 @@ emitter: make-profilable context [
 		]
 	]
 		
-	member-offset?: func [spec [block!] name [word! none!] /local offset over base alias][
+	align-offset?: func [offset [integer!] align [integer!] /local over][
+		either zero? over: offset // align [
+			offset
+		][
+			offset + align - over
+		]
+	]
+
+	type-align?: func [type [word! block!] /local base alias][
+		if block? type [
+			if all [
+				'value = last type
+				alias: compiler/find-aliased type/1
+			][
+				type: alias
+			]
+			base: type/1
+		]
+		if word? type [base: type]
+		case [
+			find [int8! uint8! byte!] base [1]
+			find [int16! uint16!] base [2]
+			find [float! float64!] base [8]
+			find [integer! int32! uint32! int64! uint64! c-string! pointer! struct! union! logic!] base [
+				target/struct-align-size
+			]
+			'else [target/struct-align-size]
+		]
+	]
+
+	union-payload-align?: func [spec [block!] /local align a][
+		align: 1
+		foreach [name type] compiler/union-members spec [
+			a: type-align? type
+			if a > align [align: a]
+		]
+		align
+	]
+
+	union-payload-offset?: func [spec [block!] /local tag-size][
+		either compiler/tagged-union? spec [
+			tag-size: size-of? spec/2
+			align-offset? tag-size union-payload-align? spec
+		][
+			0
+		]
+	]
+
+	union-size?: func [spec [block!] /local size align member-size member-align total][
+		size: 0
+		align: 1
+		foreach [name type] compiler/union-members spec [
+			member-size: size-of? type
+			unless member-size [compiler/throw-error ["invalid union member type:" mold type]]
+			member-align: type-align? type
+			if member-size > size [size: member-size]
+			if member-align > align [align: member-align]
+		]
+		total: size + union-payload-offset? spec
+		align-offset? total align
+	]
+
+	union-member-offset?: func [spec [block!] name [word! none!] /local type][
+		either none? name [
+			union-size? spec
+		][
+			unless type: compiler/union-variant-type? spec name [
+				compiler/throw-error ["invalid union member" to lit-word! name]
+			]
+			union-payload-offset? spec
+		]
+	]
+
+	member-offset?: func [spec [block!] name [word! none!] /local offset over base alias align][
+		if compiler/union-spec? spec [
+			return union-member-offset? spec name
+		]
 		offset: 0
 		foreach [var type] spec [
 			base: type/1
@@ -513,7 +600,7 @@ emitter: make-profilable context [
 				offset: offset + 2 - over
 			]
 			all [
-				find [integer! int32! uint32! int64! uint64! c-string! pointer! struct! logic!] base
+				find [integer! int32! uint32! int64! uint64! c-string! pointer! struct! union! logic!] base
 				not zero? over: offset // target/struct-align-size 
 				offset: offset + target/struct-align-size - over ;-- properly account for alignment
 			]
@@ -652,25 +739,33 @@ emitter: make-profilable context [
 		]
 	]
 	
-	resolve-path-head: func [path [path! set-path!] parent [block! none!]][
-		second either head? path [
+	resolve-path-head: func [path [path! set-path!] parent [block! none!] /local type alias][
+		type: either head? path [
 			compiler/resolve-type path/1
 		][
 			compiler/resolve-type/with path/1 parent
 		]
+		if all [block? type 'value = last type alias: compiler/find-aliased type/1][
+			type: append copy alias 'value
+		]
+		second type
 	]
 	
-	access-path: func [path [path! set-path!] value /with parent [block!] /local type][
+	access-path: func [path [path! set-path!] value /with parent [block!] /local type full-type alias][
 		if all [not with system-path? path value][exit]
 
 		either 2 = length? path [
-			type: first either parent [
+			full-type: either parent [
 				compiler/resolve-type/with path/1 parent
 			][
 				compiler/resolve-type path/1
 			]
+			if all [block? full-type 'value = last full-type alias: compiler/find-aliased full-type/1][
+				full-type: append copy alias 'value
+			]
+			type: first full-type
 			
-			if all [type = 'struct! parent][
+			if all [find [struct! union!] type parent][
 				parent: resolve-path-head path parent
 			]
 			either set-path? path [
@@ -697,18 +792,24 @@ emitter: make-profilable context [
 	]
 
 	size-of?: func [type [word! block!] /local t][
+		if all [block? type compiler/union-spec? type][
+			return union-size? type
+		]
 		if all [
 			block? type
 			'value = last type
 			any [
 				'struct! = type/1
+				'union! = type/1
 				'struct! = first t: compiler/find-aliased type/1
+				'union! = first t: compiler/find-aliased type/1
 			]
 		][
 			if t [type: t]
-			return member-offset? type/2 none
+			return either type/1 = 'union! [union-size? type/2][member-offset? type/2 none]
 		]
 		if block? type [type: type/1]
+		unless word? type [return none]
 		
 		any [
 			select datatypes type						;-- search in base types
@@ -734,6 +835,7 @@ emitter: make-profilable context [
 			'array! = first head type	[second head type]
 			type/1 = 'c-string!			[reduce ['+ 1 reduce ['length? value]]]
 			type/1 = 'struct!			[member-offset? type/2 none]
+			type/1 = 'union!			[union-size? type/2]
 			'else						[select datatypes type/1]
 		]
 	]
@@ -748,9 +850,9 @@ emitter: make-profilable context [
 			]
 		]
 		unless direct [
-			if 'struct! <> spec/1 [
+			if not find [struct! union!] spec/1 [
 				spec: compiler/find-aliased spec/1
-				if 'struct! <> spec/1 [return none]
+				if not find [struct! union!] spec/1 [return none]
 			]
 			spec: spec/2
 		]
@@ -807,11 +909,12 @@ emitter: make-profilable context [
 	foreach-field: func [spec [block!] body [block!] /local type][
 		all [
 			'value = last spec
-			'struct! <> spec/1
+			not find [struct! union!] spec/1
 			spec: reverse-fields second compiler/find-aliased spec/1
 		]
 		body: bind/copy body 'type
 		if block? spec/1 [spec: next spec]				;-- skip struct's [attributs] if present
+		if compiler/union-spec? spec [spec: reverse-fields compiler/union-members spec]
 
 		forskip spec 2 [
 			either 'value = last type: spec/2 [
@@ -847,7 +950,7 @@ emitter: make-profilable context [
 		;; In the vast majority, the minimum format [<int> - <int>] is enough.
 		
 		if empty? locals [return [0 - 0]]				;-- no pointers at all
-		ts: [pointer! struct! c-string!]
+		ts: [pointer! struct! union! c-string!]
 		out: make block! 3
 		bits: i: 0
 		

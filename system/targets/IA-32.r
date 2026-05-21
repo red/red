@@ -1363,8 +1363,52 @@ make-profilable make target-class [
 			#{8B45}									;-- MOV eax, [ebp+n]		; local
 	]
 	
+	emit-store-union-tag: func [spec [block!] name [word!] reg [word!] /local id tag type][
+		if all [
+			compiler/tagged-union? spec
+			id: compiler/union-variant-id? spec name
+		][
+			tag: compiler/union-tag-type? spec
+			type: tag/1
+			switch type [
+				uint8! [
+					emit either reg = 'ecx [#{C601}][#{C600}] ;-- MOV byte [eax|ecx], imm8
+					emit to-bin8 id
+				]
+				uint16! [
+					emit either reg = 'ecx [#{66C701}][#{66C700}] ;-- MOV word [eax|ecx], imm16
+					emit to-bin16 id
+				]
+				uint32! [
+					emit either reg = 'ecx [#{C701}][#{C700}] ;-- MOV dword [eax|ecx], imm32
+					emit to-bin32 id
+				]
+			]
+		]
+	]
+
+	emit-load-union-tag: func [spec [block!] /local tag type][
+		tag: compiler/union-tag-type? spec
+		type: tag/1
+		switch type [
+			uint8!  [emit #{0FB600}]				;-- MOVZX eax, byte [eax]
+			uint16! [emit #{0FB700}]				;-- MOVZX eax, word [eax]
+			uint32! [emit #{8B00}]					;-- MOV eax, [eax]
+		]
+		set-width 4
+	]
+
+	emit-variant-check: func [spec [block!] id [integer!]][
+		emit-load-union-tag spec
+		emit #{3D}									;-- CMP eax, imm32
+		emit to-bin32 id
+		emit #{0F94C0}								;-- SETE al
+		emit #{0FB6C0}								;-- MOVZX eax, al
+		set-width 4
+	]
+
 	emit-access-path: func [
-		path [path! set-path!] spec [block! none!] /short /local offset type saved name
+		path [path! set-path!] spec [block! none!] /short /local offset type saved name alias
 	][
 		if verbose >= 3 [print [">>>accessing path:" mold path]]
 
@@ -1377,12 +1421,16 @@ make-profilable make target-class [
 		
 		saved: width
 		type: compiler/resolve-type/with path/2 spec
+		if all [block? type 'value = last type alias: compiler/find-aliased type/1][
+			type: append copy alias 'value
+		]
 
 		set-width/type type/1						;-- adjust operations width to member value size
 		offset: emitter/member-offset? spec path/2
+		if set-path? path [emit-store-union-tag spec path/2 'eax]
 		
 		either any [
-			all [type/1 = 'struct! 'value = last spec/(path/2)]
+			all [find [struct! union!] type/1 'value = last select spec path/2]
 			all [
 				get-word? first head path
 				tail? skip path 2
@@ -1532,6 +1580,7 @@ make-profilable make target-class [
 			c-string! [emit-c-string-path path parent]
 			pointer!  [emit-pointer-path  path parent]
 			struct!   [emit-access-path   path parent]
+			union!    [emit-access-path   path parent]
 		]
 	]
 
@@ -1584,9 +1633,12 @@ make-profilable make target-class [
 		switch type [
 			c-string! [emit-c-string-path path parent]
 			pointer!  [emit-pointer-path  path parent]
-			struct!   [
+			struct! union! [
 				unless parent [parent: emit-access-path/short path parent]
 				type: compiler/resolve-type/with path/2 parent
+				if all [block? type 'value = last type spec: compiler/find-aliased type/1][
+					type: append copy spec 'value
+				]
 				
 				set-width/type type/1				;-- adjust operations width to member value size
 				offset: emitter/member-offset? parent path/2
@@ -1623,6 +1675,7 @@ make-profilable make target-class [
 						]
 					]
 					compiler/any-float? type [
+						emit-store-union-tag parent path/2 'eax
 						either zero? offset [
 							emit-float #{DD18}		;-- FSTP [eax]
 						][
@@ -1636,15 +1689,18 @@ make-profilable make target-class [
 								emit #{58}			;-- POP eax					; restore low bits
 								emit #{5A}			;-- POP edx					; restore high bits
 								emit #{59}			;-- POP ecx					; restore parent address
+								emit-store-union-tag parent path/2 'ecx
 							]
 							nested? [
 								emit #{89C1}		;-- MOV ecx, eax			; save parent address
+								emit-store-union-tag parent path/2 'ecx
 								emit #{58}			;-- POP eax					; restore low bits
 								emit #{5A}			;-- POP edx					; restore high bits
 							]
 							'else [
 								emit-load path/1
 								emit #{89C1}		;-- MOV ecx, eax			; save base address
+								emit-store-union-tag parent path/2 'ecx
 								emit #{58}			;-- POP eax					; restore low bits
 								emit #{5A}			;-- POP edx					; restore high bits
 							]
@@ -1660,6 +1716,7 @@ make-profilable make target-class [
 						]
 					]
 					'else [
+						emit-store-union-tag parent path/2 'eax
 						either zero? offset [
 							emit-poly [#{8810} #{8910}] ;-- MOV [eax], rD
 						][
@@ -2284,6 +2341,7 @@ make-profilable make target-class [
 			scale: switch type/1 [
 				pointer! [emitter/size-of? type/2/1]		  ;-- scale factor: size of pointed value
 				struct!  [emitter/member-offset? type/2 none] ;-- scale factor: total size of the struct
+				union!   [emitter/union-size? type/2]		  ;-- scale factor: total size of the union
 			]
 			scale > 1
 		][

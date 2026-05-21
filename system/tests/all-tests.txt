@@ -3,6 +3,7 @@
 %source/units/byte-test.reds
 %source/units/c-string-test.reds
 %source/units/struct-test.reds
+%source/units/union-test.reds
 %source/units/pointer-test.reds
 %source/units/cast-test.reds
 %source/units/alias-test.reds

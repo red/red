@@ -2098,8 +2098,44 @@ make-profilable make target-class [
 		emit-load-symbol to word! name
 	]
 
+	emit-store-union-tag: func [spec [block!] name [word!] reg [integer!] /local id tag type][
+		if all [
+			compiler/tagged-union? spec
+			id: compiler/union-variant-id? spec name
+		][
+			tag: compiler/union-tag-type? spec
+			type: tag/1
+			emit-load-imm32/reg id 3
+			switch type [
+				uint8!  [emit-i32 either reg = 2 [#{e5423000}][#{e5403000}]] ;-- STRB r3, [r0|r2]
+				uint16! [emit-i32 either reg = 2 [#{e1c230b0}][#{e1c030b0}]] ;-- STRH r3, [r0|r2]
+				uint32! [emit-i32 either reg = 2 [#{e5023000}][#{e5003000}]] ;-- STR r3, [r0|r2]
+			]
+		]
+	]
+
+	emit-load-union-tag: func [spec [block!] /local tag type][
+		tag: compiler/union-tag-type? spec
+		type: tag/1
+		switch type [
+			uint8!  [emit-i32 #{e5500000}]			;-- LDRB r0, [r0]
+			uint16! [emit-i32 #{e1d000b0}]			;-- LDRH r0, [r0]
+			uint32! [emit-i32 #{e5900000}]			;-- LDR r0, [r0]
+		]
+		set-width 4
+	]
+
+	emit-variant-check: func [spec [block!] id [integer!]][
+		emit-load-union-tag spec
+		emit-load-imm32/reg id 3
+		emit-i32 #{e1500003}						;-- CMP r0, r3
+		emit-i32 #{e3a00000}						;-- MOV r0, #0
+		emit-i32 #{03a00001}						;-- MOVEQ r0, #1
+		set-width 4
+	]
+
 	emit-access-path: func [
-		path [path! set-path!] spec [block! none!] /short /local offset type saved name
+		path [path! set-path!] spec [block! none!] /short /local offset type saved name alias
 	][
 		if verbose >= 3 [print [">>>accessing path:" mold path]]
 
@@ -2112,12 +2148,16 @@ make-profilable make target-class [
 
 		saved: width
 		type: compiler/resolve-type/with path/2 spec
+		if all [block? type 'value = last type alias: compiler/find-aliased type/1][
+			type: append copy alias 'value
+		]
 		set-width/type type/1						;-- adjust operations width to member value size
 
 		offset: emitter/member-offset? spec path/2
+		if set-path? path [emit-store-union-tag spec path/2 0]
 		
 		either any [
-			all [type/1 = 'struct! 'value = last spec/(path/2)]
+			all [find [struct! union!] type/1 'value = last select spec path/2]
 			all [
 				get-word? first head path
 				tail? skip path 2
@@ -2234,12 +2274,13 @@ make-profilable make target-class [
 			c-string! [emit-c-string-path path parent]
 			pointer!  [emit-pointer-path  path parent]
 			struct!   [emit-access-path   path parent]
+			union!    [emit-access-path   path parent]
 		]
 	]
 	
 	emit-store-path: func [
 		path [set-path!] type [word!] value parent [block! none!]
-		/local idx offset size slots nested? value-type pair?
+		/local idx offset size slots nested? value-type pair? alias
 	][
 		if verbose >= 3 [print [">>>storing path:" mold path mold value]]
 		
@@ -2255,6 +2296,9 @@ make-profilable make target-class [
 				emit-i32 #{e1a02000}				;-- MOV r2, r0
 				unless parent [parent: emit-access-path/short path parent]
 				type: compiler/resolve-type/with path/2 parent
+				if all [block? type 'value = last type alias: compiler/find-aliased type/1][
+					type: append copy alias 'value
+				]
 				offset: emitter/member-offset? parent path/2
 				
 				case [
@@ -2311,7 +2355,7 @@ make-profilable make target-class [
 		switch type [
 			c-string! [emit-c-string-path path parent]
 			pointer!  [emit-pointer-path  path parent]
-			struct!   [
+			struct! union! [
 				unless parent [
 					parent: emit-access-path/short path parent
 					if all [size = 8 not pair?][
@@ -2330,9 +2374,11 @@ make-profilable make target-class [
 							if all [value <> <last> nested?][
 								emit-i32 #{e8bd0004} ;-- POP {r2}	; restore parent address
 							]
+							emit-store-union-tag parent path/2 2
 						]
 						emit-i32 #{e8820003}		;-- STM r2, {r0,r1}		; r2 = address
 					][
+						emit-store-union-tag parent path/2 0
 						either width = 2 [
 							emit-i32 #{e1c020b0}	;-- STRH r2, [r0]		; r2 = value
 						][
@@ -2350,12 +2396,18 @@ make-profilable make target-class [
 								emit-i32 #{e1a02000} ;-- MOV r2, r0	; address
 								emit-i32 #{e8bd0003} ;-- POP {r0,r1}	; restore 64-bit value
 							]
+							emit-store-union-tag parent path/2 2
+							emit-load-imm32/reg offset 3
 							emit-i32 #{e0822003}	;-- ADD r2, r2, r3
 						][
+							emit-store-union-tag parent path/2 0
+							emit-load-imm32/reg offset 3
 							emit-i32 #{e0822003}	;-- ADD r2, r2, r3
 						]
 						emit-i32 #{e8820003}		;-- STM r2, {r0,r1}		; r2 = address
 					][
+						emit-store-union-tag parent path/2 0
+						emit-load-imm32/reg offset 3
 						either width = 2 [
 							emit-i32 #{e18020b3}	;-- STRH r2, [r0, r3]	; r2 = value
 						][
@@ -2885,6 +2937,7 @@ make-profilable make target-class [
 			scale: switch type/1 [
 				pointer! [emitter/size-of? type/2/1]		  ;-- scale factor: size of pointed value
 				struct!  [emitter/member-offset? type/2 none] ;-- scale factor: total size of the struct
+				union!   [emitter/union-size? type/2]		  ;-- scale factor: total size of the union
 			]
 			scale > 1
 		][

@@ -131,7 +131,7 @@ system-dialect: make-profilable context [
 		bit-set!: 	  [byte! int8! uint8! int16! uint16! integer! int32! uint32! int64! uint64! logic!] ;-- reserved for internal use only
 		any-float!:	  [float! float32! float64!]		;-- reserved for internal use only
 		any-number!:  union number! any-float!			;-- reserved for internal use only
-		pointers!:	  [pointer! struct! c-string!] 		;-- reserved for internal use only
+		pointers!:	  [pointer! struct! union! c-string!] ;-- reserved for internal use only
 		any-pointer!: union pointers! [function!]		;-- reserved for internal use only
 		poly!:		  union any-number! pointers!		;-- reserved for internal use only
 		any-type!:	  union poly! [logic!]			  	;-- reserved for internal use only
@@ -189,6 +189,11 @@ system-dialect: make-profilable context [
 			pos: opt [into ['align integer! opt ['big | 'little]]]	;-- struct's attributes
 			pos: some [word! into [func-pointer | type-spec]]		;-- struct's members
 		]
+
+		union-syntax: [
+			pos: opt [into ['variant]]								;-- tagged union marker
+			pos: some [word! into [func-pointer | type-spec | struct-syntax]]
+		]
 		
 		pointer-syntax: [
 			'integer! | 'byte! | 'int8! | 'uint8! | 'int16! | 'uint16! | 'int32! | 'uint32!
@@ -204,6 +209,7 @@ system-dialect: make-profilable context [
 			| 'c-string!
 			| 'pointer! into [pointer-syntax]
 			| 'struct!  into [struct-syntax] opt 'value
+			| 'union!   into [union-syntax] opt 'value
 		]
 
 		type-spec: [
@@ -224,6 +230,7 @@ system-dialect: make-profilable context [
 			as			 [comp-as]
 			assert		 [comp-assert]
 			size? 		 [comp-size?]
+			variant?	 [comp-variant?]
 			if			 [comp-if]
 			either		 [comp-either]
 			case		 [comp-case]
@@ -254,7 +261,7 @@ system-dialect: make-profilable context [
 		]
 		
 		calling-keywords: [								;-- keywords accepted in expr-call-stack
-			?? as assert size? if either case switch until while any all
+			?? as assert size? variant? if either case switch until while any all
 			return catch
 		]
 		
@@ -601,6 +608,86 @@ system-dialect: make-profilable context [
 		base-type?: func [value][
 			if block? value [value: value/1]
 			to logic! find/skip emitter/datatypes value 3
+		]
+
+		union-spec?: func [spec [block!]][
+			all [not empty? spec find [union-marker variant-marker] spec/1]
+		]
+
+		tagged-union?: func [spec [block!]][
+			all [not empty? spec spec/1 = 'variant-marker]
+		]
+
+		union-members: func [spec [block!]][
+			either union-spec? spec [skip spec 2][spec]
+		]
+
+		union-tag-type?: func [spec [block!]][
+			either tagged-union? spec [spec/2][none]
+		]
+
+		union-variant-id?: func [spec [block!] name [word!] /local id members][
+			id: 1
+			members: union-members spec
+			foreach [var type] members [
+				if var = name [return id]
+				id: id + 1
+			]
+			none
+		]
+
+		union-variant-type?: func [spec [block!] name [word!] /local members][
+			members: union-members spec
+			select members name
+		]
+
+		tagged-union-type?: func [type [block!] /local t][
+			t: resolve-aliased type
+			all [t/1 = 'union! tagged-union? t/2 t]
+		]
+
+		normalize-union-spec: func [
+			spec [block!]
+			/local out tagged? members count tag-type type
+		][
+			spec: copy/deep spec
+			tagged?: all [block? spec/1 spec/1/1 = 'variant]
+			members: either tagged? [next spec][spec]
+			count: 0
+			out: make block! length? members
+			foreach [name payload] members [
+				unless word? name [
+					throw-error ["invalid union member name:" mold name]
+				]
+				unless block? payload [
+					throw-error ["invalid union member type:" mold payload]
+				]
+				type: either catch [parse copy/deep payload type-spec][payload][none]
+				unless type [
+					either catch [parse copy/deep payload struct-syntax][
+						type: reduce ['struct! payload 'value]
+					][
+						throw-error ["invalid union member type:" mold payload]
+					]
+				]
+				repend out [name type]
+				count: count + 1
+			]
+			if (length? out) <> (length? unique/skip out 2) [
+				throw-error ["duplicate member name in union:" mold members]
+			]
+			either tagged? [
+				tag-type: case [
+					count <= 255 [[uint8!]]
+					count <= 65535 [[uint16!]]
+					count <= 4294967295 [[uint32!]]
+					'else [throw-error "too many tagged union variants"]
+				]
+				insert head out reduce ['variant-marker tag-type]
+			][
+				insert head out reduce ['union-marker none]
+			]
+			out
 		]
 		
 		unbox: func [value /deep][
@@ -960,10 +1047,14 @@ system-dialect: make-profilable context [
 		
 		struct-by-value?: func [type [block!]][
 			all [
+				block? type
+				word? type/1
 				'value = last type
 				any [
 					'struct! = type/1
+					'union! = type/1
 					'struct! = first find-aliased type/1
+					'union! = first find-aliased type/1
 				]
 			]
 		]
@@ -991,6 +1082,7 @@ system-dialect: make-profilable context [
 		resolve-aliased: func [type [block!] /silent /local name][
 			type: canonical-type type
 			name: type/1
+			unless any [none? name word? name][return type]
 			all [
 				type/1								;-- ensure it is not [none]
 				not base-type? name
@@ -1030,6 +1122,9 @@ system-dialect: make-profilable context [
 			][
 				return [integer!]
 			]
+			if all [type type/1 = 'union! word? type/2][
+				type: find-aliased type/2
+			]
 			unless any [not resolve-alias? none? type base-type? type/1][
 				type: find-aliased type/1
 			]
@@ -1040,7 +1135,7 @@ system-dialect: make-profilable context [
 			unless type: select spec name [
 				while [not all [any-path? pc/1 find pc/1 name]][pc: back pc]
 				throw-error [
-					"invalid struct member" to lit-word! name "in:" mold to path! pc/1
+					"invalid aggregate member" to lit-word! name "in:" mold to path! pc/1
 				]
 			]
 			either resolve-alias? [resolve-aliased type][type]
@@ -1081,6 +1176,13 @@ system-dialect: make-profilable context [
 						]
 						resolve-struct-member-type type/2 path/2
 					]
+					union!   [
+						unless word? path/2 [
+							backtrack path
+							throw-error ["invalid union member" path/2]
+						]
+						resolve-struct-member-type type/2 path/2
+					]
 					pointer!  [
 						check-path-index path 'pointer
 						reduce [type/2/1]				;-- return pointed value type
@@ -1092,7 +1194,11 @@ system-dialect: make-profilable context [
 
 				] path-error
 			][
-				resolve-path-type/parent next path second type
+				either type/1 = 'union! [
+					resolve-path-type/parent next path type/2
+				][
+					resolve-path-type/parent next path second type
+				]
 			]
 		]
 		
@@ -1148,6 +1254,7 @@ system-dialect: make-profilable context [
 				paren!	 [
 					switch/default value/1 [
 						struct!  [reduce pick [[value/2][value/1 value/2]] word? value/2]
+						union!   [reduce pick [[value/2][value/1 normalize-union-spec value/2]] word? value/2]
 						pointer! [reduce [value/1 value/2]]
 					][
 						all [
@@ -1327,9 +1434,9 @@ system-dialect: make-profilable context [
 				all [type/1 = 'float32! not find [float! float64! integer!] ctype/1]
 				all [int64? ctype any-float? type]
 				all [int64? type any-float? ctype]
-				all [ctype/1 = 'byte! find [c-string! pointer! struct!] type/1]
+				all [ctype/1 = 'byte! find [c-string! pointer! struct! union!] type/1]
 				all [
-					find [c-string! pointer! struct!] ctype/1
+					find [c-string! pointer! struct! union!] ctype/1
 					find [byte! logic!] type/1
 				]
 			][
@@ -2608,12 +2715,16 @@ system-dialect: make-profilable context [
 			none
 		]
 		
-		comp-declare: has [rule value pos offset ns][
+		comp-declare: has [rule value pos offset ns type][
 			unless find [set-word! set-path!] type?/word pc/-1 [
 				throw-error "assignment expected before literal declaration"
 			]
-			value: to paren! reduce either find [pointer! struct!] pc/2 [
-				rule: get pick [struct-syntax pointer-syntax] pc/2 = 'struct!
+			value: to paren! reduce either find [pointer! struct! union!] pc/2 [
+				rule: case [
+					pc/2 = 'struct! [struct-syntax]
+					pc/2 = 'union!  [union-syntax]
+					'else 			[pointer-syntax]
+				]
 				unless catch [parse pos: pc/3 rule][
 					throw-error ["invalid literal syntax:" mold pos]
 				]
@@ -2623,18 +2734,21 @@ system-dialect: make-profilable context [
 				][
 					throw-error ["duplicate member name in struct:" mold pc/3]
 				]
+				if pc/2 = 'union! [
+					pc/3: normalize-union-spec pc/3
+				]
 				if pc/3/1 = 'float64! [pc/3/1: 'float!]
 				offset: 3
 				[pc/2 pc/3]
 			][
 				if path? value: pc/2 [value: to word! form value]
 				
-				unless all [word? value resolve-aliased/silent reduce [value]][
+				unless all [word? value type: resolve-aliased/silent reduce [value]][
 					throw-error ["DECLARE argument type" value "not found or not supported"]
 				]
 				if all [ns-path ns: find-aliased/prefix value][value: ns]
 				offset: 2
-				['struct! value]
+				[type/1 value]
 			]
 			pc: skip pc offset
 			value
@@ -2661,7 +2775,10 @@ system-dialect: make-profilable context [
 		
 		comp-as: has [ctype ptr? expr type k?][
 			ctype: pc/2
-			if ptr?: find [pointer! struct! function!] ctype [ctype: reduce [pc/2 pc/3]]
+			if ptr?: find [pointer! struct! union! function!] ctype [
+				if pc/2 = 'union! [pc/3: normalize-union-spec pc/3]
+				ctype: reduce [pc/2 pc/3]
+			]
 			if path? ctype [ctype: to word! form ctype]
 			
 			if any [
@@ -2730,8 +2847,8 @@ system-dialect: make-profilable context [
 			unless set-word? pc/-1 [
 				throw-error "assignment expected for ALIAS"
 			]
-			unless find [struct! function!] pc/2 [
-				throw-error "ALIAS only allowed for struct! and function!"
+			unless find [struct! union! function!] pc/2 [
+				throw-error "ALIAS only allowed for struct!, union! and function!"
 			]
 			name: to word! pc/-1
 			store-ns-symbol name
@@ -2752,6 +2869,9 @@ system-dialect: make-profilable context [
 				pc: back pc
 				throw-error "a base type name cannot be defined as an alias name"
 			]
+			if pc/2 = 'union! [
+				pc/3: normalize-union-spec pc/3
+			]
 			repend aliased-types [name reduce [pc/2 pc/3]]
 			switch pc/2 [
 				struct! [
@@ -2759,6 +2879,7 @@ system-dialect: make-profilable context [
 						throw-error ["invalid struct syntax:" mold pos]
 					]
 				]
+				union! []
 				function! [
 					expand-func-specs pc/3
 					check-specs 'pointer pc/3
@@ -2790,6 +2911,26 @@ system-dialect: make-profilable context [
 				type: resolve-expr-type expr
 			]
 			emitter/get-size type expr
+		]
+
+		comp-variant?: has [expr type variant id][
+			pc: next pc
+			expr: fetch-expression/keep/final 'variant?
+			unless type: tagged-union-type? last-type [
+				backtrack 'variant?
+				throw-error ["VARIANT? argument must be a tagged union, got" mold last-type]
+			]
+			unless lit-word? pc/1 [
+				throw-error "VARIANT? requires a literal variant name"
+			]
+			variant: to word! pc/1
+			unless id: union-variant-id? type/2 variant [
+				throw-error ["unknown tagged union variant:" variant]
+			]
+			pc: next pc
+			emitter/target/emit-variant-check type/2 id
+			last-type: [logic!]
+			<last>
 		]
 		
 		comp-exit: func [/value /local expr type ret][
@@ -3040,24 +3181,37 @@ system-dialect: make-profilable context [
 			<last>
 		]
 		
-		comp-switch: has [expr save-type spec value values body bodies list types default pos][
+		comp-switch: has [expr save-type spec value values body bodies list types default pos tagged-type tagged? id][
 			pc: next pc
 			expr: fetch-expression/keep/final 'switch	;-- compile argument
 			if any [none? expr last-type = none-type][
 				throw-error "SWITCH argument has no return value"
 			]
-			save-type: last-type			
+			save-type: last-type
+			tagged-type: tagged-union-type? save-type
+			if tagged-type [
+				emitter/target/emit-load-union-tag tagged-type/2
+				save-type: last-type: [integer!]
+			]
 			unless find [integer! char! byte!] save-type [
 				pc: back pc 							;-- show the arg in the error report
 				throw-error ["SWITCH argument must be of integer! or char! type, got" save-type]
 			]
-			check-body spec: pc/1
+			check-body spec: copy/deep pc/1
 			foreach w [values list types][set w make block! 8]
 			forall spec [								;-- resolve possible enumeration symbols
 				if all [word? spec/1 spec/1 <> 'default][
-					check-enum-symbol spec
+					either tagged-type [
+						unless id: union-variant-id? tagged-type/2 spec/1 [
+							throw-error ["unknown tagged union variant:" spec/1]
+						]
+						spec/1: id
+					][
+						check-enum-symbol spec
+					]
 				]
 			]
+			spec: head spec
 			
 			;-- check syntax and store parts in different lists
 			unless parse spec [
@@ -3102,7 +3256,11 @@ system-dialect: make-profilable context [
 				emitter/branch/over bodies          	;-- insert default exit branching
 				bodies: emitter/chunks/join default/2 bodies ;-- insert default action
 			][
-				body: comp-chunked [raise-runtime-error 101] ;-- raise a runtime error if unmatched value
+				either tagged-type [
+					body: emitter/chunks/empty
+				][
+					body: comp-chunked [raise-runtime-error 101] ;-- raise a runtime error if unmatched value
+				]
 				bodies: emitter/chunks/join body bodies
 			]
 
@@ -3787,7 +3945,7 @@ system-dialect: make-profilable context [
 						if block? unbox/deep expr [comp-expression expr yes]	;-- nested call
 						if object? expr [cast expr]
 						if type <> 'inline [
-							either all [types not tag? expr block? types/1 'value = last types/1][
+							either all [types not tag? expr block? types/1 struct-by-value? types/1][
 								emitter/push-struct expr resolve-aliased types/1
 							][
 								emitter/target/emit-argument expr fspec ;-- let target define how arguments are passed
