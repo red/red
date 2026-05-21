@@ -335,7 +335,7 @@ emitter: make-profilable context [
 				][
 					pad-data-buf target/ptr-size		;-- pointer alignment can be <> of integer
 					ptr: tail data-buf	
-					store-global value 'integer! none
+					store-global value either target/ptr-size = 8 ['uint64!]['integer!] none
 				]
 			]
 			pointer! [
@@ -345,7 +345,7 @@ emitter: make-profilable context [
 					paren? value
 					value/1 = 'pointer!
 					find [float! float64!] value/2/1 
-				]['float!]['integer!]
+				]['float!][either target/ptr-size = 8 ['uint64!]['integer!]]
 				store-global value type none
 			]
 			struct! [
