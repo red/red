@@ -19,6 +19,21 @@ make-profilable make target-class [
 	branch-offset-size:	4
 	locals-offset:		32
 	def-locals-offset:	32
+	conditions: make hash! [
+	;-- name ----------- signed --- unsigned --
+		overflow?		 #{00}		-
+		not-overflow?	 #{01}		-
+		=				 #{04}		-
+		<>				 #{05}		-
+		signed?			 #{08}		-
+		unsigned?		 #{09}		-
+		even?			 #{0A}		-
+		odd?			 #{0B}		-
+		<				 #{0C}		#{02}
+		>=				 #{0D}		#{03}
+		<=				 #{0E}		#{06}
+		>				 #{0F}		#{07}
+	]
 	
 	unsupported: does [
 		compiler/throw-error "Linux x86-64 backend code generation is not implemented yet"
@@ -29,15 +44,28 @@ make-profilable make target-class [
 	emit-reloc-disp32: func [spec [block!]][
 		append spec/3 emitter/tail-ptr
 		emit to-bin32 0
+		unless empty? emitter/chunks/queue [
+			append/only
+				second last emitter/chunks/queue
+				back tail spec/3
+		]
+	]
+
+	add-condition: func [op [word!] data [binary!]][
+		op: either '- = third op: find conditions op [op/2][
+			pick op pick [2 3] signed?
+		]
+		data/(length? data): (to char! last data) or (to char! first op)
+		data
 	]
 
 	emit-global-ref: func [
-		name [word! object!]
+		name [word! object! block!]
 		opcode [binary!]
 		/local spec
 	][
 		if object? name [name: compiler/unbox name]
-		spec: emitter/symbols/:name
+		spec: either block? name [name][emitter/symbols/:name]
 		if none? spec [
 			compiler/throw-error ["unknown variable:" name]
 		]
@@ -164,8 +192,12 @@ make-profilable make target-class [
 			to-bin32 dst-ptr - rel-ptr - branch-offset-size
 			4
 	]
-	patch-jump-back: :unsupported
-	patch-jump-point: :unsupported
+	patch-jump-back: func [buffer [binary!] offset [integer!]][
+		change at buffer offset to-bin32 negate offset + 4 - 1
+	]
+	patch-jump-point: func [buffer [binary!] ptr [integer!] exit-point [integer!]][
+		change/part at buffer ptr to-bin32 exit-point - ptr - branch-offset-size 4
+	]
 	patch-sub-call: :unsupported
 	emit-prolog: func [name [word!] locals [block!] bitmap [integer!] /local locals-size][
 		locals-offset: (argument-count? locals) * stack-width
@@ -273,34 +305,53 @@ make-profilable make target-class [
 		emit-load args/1
 		right: compiler/unbox args/2
 		imm?: integer? right
-		either imm? [
-			switch/default name [
-				+	[emit #{05} emit to-bin32 right]	;-- ADD eax, imm32
-				-	[emit #{2D} emit to-bin32 right]	;-- SUB eax, imm32
-				*	[emit #{69C0} emit to-bin32 right]	;-- IMUL eax, eax, imm32
-				and [emit #{25} emit to-bin32 right]	;-- AND eax, imm32
-				or	[emit #{0D} emit to-bin32 right]	;-- OR eax, imm32
-				xor [emit #{35} emit to-bin32 right]	;-- XOR eax, imm32
-				<<	[emit #{C1E0} emit to-bin8 right]	;-- SHL eax, imm8
-				>>	[emit #{C1F8} emit to-bin8 right]	;-- SAR eax, imm8
-				-**	[emit #{C1E8} emit to-bin8 right]	;-- SHR eax, imm8
-			][
-				compiler/throw-error ["x86-64 integer op not supported yet:" mold name]
+		case [
+			find comparison-op name [
+				either imm? [
+					either any [
+						all [integer? right zero? right]
+						all [logic? right not right]
+					][
+						emit #{85C0}				;-- TEST eax, eax
+					][
+						emit #{3D}					;-- CMP eax, imm32
+						emit to-bin32 right
+					]
+				][
+					emit-load-ecx right
+					emit #{39C8}					;-- CMP eax, ecx
+				]
 			]
-		][
-			emit-load-ecx right
-			switch/default name [
-				+	[emit #{01C8}]					;-- ADD eax, ecx
-				-	[emit #{29C8}]					;-- SUB eax, ecx
-				*	[emit #{0FAFC1}]				;-- IMUL eax, ecx
-				and [emit #{21C8}]					;-- AND eax, ecx
-				or	[emit #{09C8}]					;-- OR eax, ecx
-				xor [emit #{31C8}]					;-- XOR eax, ecx
-				<<	[emit #{D3E0}]					;-- SHL eax, cl
-				>>	[emit #{D3F8}]					;-- SAR eax, cl
-				-**	[emit #{D3E8}]					;-- SHR eax, cl
-			][
-				compiler/throw-error ["x86-64 integer op not supported yet:" mold name]
+			imm? [
+				switch/default name [
+					+	[emit #{05} emit to-bin32 right]	;-- ADD eax, imm32
+					-	[emit #{2D} emit to-bin32 right]	;-- SUB eax, imm32
+					*	[emit #{69C0} emit to-bin32 right]	;-- IMUL eax, eax, imm32
+					and [emit #{25} emit to-bin32 right]	;-- AND eax, imm32
+					or	[emit #{0D} emit to-bin32 right]	;-- OR eax, imm32
+					xor [emit #{35} emit to-bin32 right]	;-- XOR eax, imm32
+					<<	[emit #{C1E0} emit to-bin8 right]	;-- SHL eax, imm8
+					>>	[emit #{C1F8} emit to-bin8 right]	;-- SAR eax, imm8
+					-**	[emit #{C1E8} emit to-bin8 right]	;-- SHR eax, imm8
+				][
+					compiler/throw-error ["x86-64 integer op not supported yet:" mold name]
+				]
+			]
+			true [
+				emit-load-ecx right
+				switch/default name [
+					+	[emit #{01C8}]					;-- ADD eax, ecx
+					-	[emit #{29C8}]					;-- SUB eax, ecx
+					*	[emit #{0FAFC1}]				;-- IMUL eax, ecx
+					and [emit #{21C8}]					;-- AND eax, ecx
+					or	[emit #{09C8}]					;-- OR eax, ecx
+					xor [emit #{31C8}]					;-- XOR eax, ecx
+					<<	[emit #{D3E0}]					;-- SHL eax, cl
+					>>	[emit #{D3F8}]					;-- SAR eax, cl
+					-**	[emit #{D3E8}]					;-- SHR eax, cl
+				][
+					compiler/throw-error ["x86-64 integer op not supported yet:" mold name]
+				]
 			]
 		]
 	]
@@ -445,11 +496,92 @@ make-profilable make target-class [
 	emit-push-struct: :unsupported
 	emit-load-union-tag: :unsupported
 	emit-variant-check: :unsupported
-	emit-boolean-switch: :unsupported
-	emit-branch: :unsupported
-	emit-jump-point: :unsupported
-	emit-start-loop: :unsupported
-	emit-end-loop: :unsupported
+	emit-boolean-switch: func [op [word! none!]][
+		either op [
+			emit add-condition op copy #{0F90}			;-- SETcc al
+			emit #{C0}
+			emit #{0FB6C0}								;-- MOVZX eax, al
+			reduce [0 0]
+		][
+			emit #{31C0}								;-- XOR eax, eax
+			emit #{EB03}								;-- JMP _exit
+			emit #{31C0}								;-- XOR eax, eax
+			emit #{40}									;-- INC eax
+			reduce [3 7]
+		]
+	]
+
+	construct-jump: func [
+		op [word! none!]
+		size [integer!]
+		back? [logic! none!]
+		/local opcode o short? dir
+	][
+		o: size * dir: pick [-1 1] yes = back?
+		short?: to logic! all [-126 <= o o <= 127]
+		opcode: pick pick [
+			[#{EB} #{E9}]
+			[#{70} #{0F80}]
+			[#{7A} #{0F8A}]
+		] either op = 'parity [3][none? op] short?
+		if all [op op <> 'parity][
+			opcode: add-condition op copy opcode
+		]
+		if back? [
+			size: size + (length? opcode) + (pick [1 4] short?)
+			o: size * dir
+		]
+		o: either short? [to-bin8 o][to-bin32 o]
+		reduce [size rejoin [opcode o]]
+	]
+
+	emit-branch: func [
+		code [binary!]
+		op [word! block! logic! none!]
+		offset [integer! none!]
+		parity [none! logic!]
+		/back?
+		/local size jump jxx jump-code
+	][
+		size: (length? code) - any [offset 0]
+		jump: copy #{}
+		jxx: [second set [size jump-code] construct-jump op size back?]
+		either none? op [
+			append jump do jxx
+		][
+			op: case [
+				block? op [
+					op: op/1
+					either logic? op [pick [= <>] op][op]
+				]
+				logic? op [pick [= <>] op]
+				true [opposite? op]
+			]
+			append jump do jxx
+		]
+		insert any [all [back? tail code] code] jump
+		length? jump
+	]
+
+	emit-jump-point: func [type [block!]][
+		emit #{E9}									;-- JMP rel32
+		emit-reloc-disp32 compose/only [- - (type)]
+	]
+	emit-start-loop: func [spec [block! none!] name [word! none!]][
+		either spec [
+			emit-global-ref spec/2 #{8905}			;-- MOV [rip+disp32], eax
+		][
+			emit-local-ref name #{8945}				;-- MOV [rbp+disp8], eax
+		]
+	]
+	emit-end-loop: func [spec [block! none!] name [word! none!]][
+		either spec [
+			emit-global-ref spec/2 #{8B05}			;-- MOV eax, [rip+disp32]
+		][
+			emit-local-ref name #{8B45}				;-- MOV eax, [rbp+disp8]
+		]
+		emit #{83E801}								;-- SUB eax, 1
+	]
 	emit-save-last: :unsupported
 	emit-restore-last: :unsupported
 	emit-get-stack: :unsupported
