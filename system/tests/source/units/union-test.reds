@@ -54,6 +54,12 @@ boxed-value!: alias struct! [
 	tail [uint16!]
 ]
 
+raw-boxed-value!: alias struct! [
+	head [integer!]
+	data [raw-value! value]
+	tail [integer!]
+]
+
 union-by-value-id: func [value [tagged-value! value] return: [integer!]][
 	either variant? value 'i32 [value/i32][0]
 ]
@@ -96,6 +102,24 @@ union-by-value-make-large: func [
 	raw/str: "hello"
 	--assert raw/str/1 = #"h"
 
+	--test-- "union-raw-rw-3"
+	raw-int: 4321
+	raw/ptr: :raw-int
+	--assert raw/ptr/value = 4321
+	raw/ptr/value: 8765
+	--assert raw-int = 8765
+
+	--test-- "union-raw-in-struct-1"
+	raw-box: declare raw-boxed-value!
+	raw-box/head: 11
+	raw-box/tail: 22
+	raw-box/data/i32: 333
+	--assert raw-box/head = 11
+	--assert raw-box/tail = 22
+	--assert raw-box/data/i32 = 333
+	raw-box/data/str: "raw-box"
+	--assert raw-box/data/str/1 = #"r"
+
 ===end-group===
 
 ===start-group=== "Tagged union predicates and assignment"
@@ -134,6 +158,14 @@ union-by-value-make-large: func [
 	v/ch: #"Z"
 	--assert variant? v 'ch
 	--assert v/ch = #"Z"
+
+	--test-- "union-tagged-rw-5"
+	tagged-int: 1234
+	v/ptr: :tagged-int
+	--assert variant? v 'ptr
+	--assert v/ptr/value = 1234
+	v/ptr/value: 5678
+	--assert tagged-int = 5678
 
 ===end-group===
 
