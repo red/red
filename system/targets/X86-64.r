@@ -276,20 +276,19 @@ make-profilable make target-class [
 		]
 	]
 	emit-call-syscall: func [args [block!] fspec [block!] attribs [block! none!] /local pops n][
-		pops: [
-			#{5F}		;-- POP rdi
-			#{5E}		;-- POP rsi
-			#{5A}		;-- POP rdx
-			#{415A}		;-- POP r10
-			#{4158}		;-- POP r8
-			#{4159}		;-- POP r9
-		]
 		n: fspec/1
-		if n > length? pops [
+		if n > 6 [
 			compiler/throw-error ["x86-64 syscall with too many args:" n]
 		]
 		while [n > 0][
-			emit pick pops n
+			emit pick [
+				#{5F}		;-- POP rdi
+				#{5E}		;-- POP rsi
+				#{5A}		;-- POP rdx
+				#{415A}		;-- POP r10
+				#{4158}		;-- POP r8
+				#{4159}		;-- POP r9
+			] n
 			n: n - 1
 		]
 		emit #{B8}									;-- MOV eax, syscall number
@@ -301,22 +300,21 @@ make-profilable make target-class [
 		fspec [block!]
 		spec [block!]
 		attribs [block! none!]
-		/local pops n
+		/local n
 	][
-		pops: [
-			#{5F}		;-- POP rdi
-			#{5E}		;-- POP rsi
-			#{5A}		;-- POP rdx
-			#{59}		;-- POP rcx
-			#{4158}		;-- POP r8
-			#{4159}		;-- POP r9
-		]
 		n: fspec/1
-		if n > length? pops [
+		if n > 6 [
 			compiler/throw-error ["x86-64 imported function with more than 6 arguments is not implemented yet:" n]
 		]
 		repeat i n [
-			emit pick pops i
+			emit pick [
+				#{5F}		;-- POP rdi
+				#{5E}		;-- POP rsi
+				#{5A}		;-- POP rdx
+				#{59}		;-- POP rcx
+				#{4158}		;-- POP r8
+				#{4159}		;-- POP r9
+			] i
 		]
 		emit #{FF15}								;-- CALL qword [rip+disp32]
 		emit-reloc-disp32 spec
@@ -324,25 +322,24 @@ make-profilable make target-class [
 	emit-call-native: func [
 		args [block!] fspec [block!] spec [block!] attribs [block! none!]
 		/routine name [word!]
-		/local pops n
+		/local n
 	][
 		if routine [
 			compiler/throw-error "x86-64 routine calls are not implemented yet"
 		]
-		pops: [
-			#{5F}		;-- POP rdi
-			#{5E}		;-- POP rsi
-			#{5A}		;-- POP rdx
-			#{59}		;-- POP rcx
-			#{4158}		;-- POP r8
-			#{4159}		;-- POP r9
-		]
 		n: fspec/1
-		if n > length? pops [
+		if n > 6 [
 			compiler/throw-error "x86-64 functions with more than 6 arguments are not implemented yet"
 		]
 		repeat i n [
-			emit pick pops i
+			emit pick [
+				#{5F}		;-- POP rdi
+				#{5E}		;-- POP rsi
+				#{5A}		;-- POP rdx
+				#{59}		;-- POP rcx
+				#{4158}		;-- POP r8
+				#{4159}		;-- POP r9
+			] i
 		]
 		emit #{E8}									;-- CALL rel32
 		emit-reloc-disp32 spec
