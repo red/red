@@ -48,6 +48,58 @@ make-profilable make target-class [
 		emit-reloc-disp32 spec
 	]
 
+	patch-stack-offset: func [name [word!] offset [integer!] /local pos][
+		if pos: find/skip emitter/stack name 2 [
+			pos/2: offset
+		]
+	]
+
+	emit-arg-spills: func [locals [block!] /local regs offset name type count][
+		regs: [
+			#{57}		;-- PUSH rdi
+			#{56}		;-- PUSH rsi
+			#{52}		;-- PUSH rdx
+			#{51}		;-- PUSH rcx
+			#{4150}		;-- PUSH r8
+			#{4151}		;-- PUSH r9
+		]
+		offset: 0
+		count: 0
+		parse locals [
+			opt block!
+			any [
+				set name word! set type block! (
+					count: count + 1
+					if count > length? regs [
+						compiler/throw-error "x86-64 functions with more than 6 arguments are not implemented yet"
+					]
+					offset: offset - stack-width
+					emit pick regs count
+					patch-stack-offset name offset
+				)
+				| set-word! block!
+				| /local break
+			]
+		]
+	]
+
+	emit-local-ref: func [
+		name [word! object!]
+		opcode [binary!]
+		/local offset
+	][
+		if object? name [name: compiler/unbox name]
+		offset: emitter/local-offset? name
+		unless offset [
+			compiler/throw-error ["unknown local variable:" name]
+		]
+		unless all [offset >= -128 offset <= 127] [
+			compiler/throw-error "x86-64 local offset wider than disp8 is not implemented yet"
+		]
+		emit opcode
+		emit to-bin8 offset
+	]
+
 	on-init: :noop
 	on-global-prolog: func [runtime? [logic!] type [word!]][]
 	on-global-epilog: func [runtime? [logic!] type [word!]][]
@@ -71,16 +123,17 @@ make-profilable make target-class [
 		]
 		emit #{55}									;-- PUSH rbp
 		emit #{4889E5}								;-- MOV rbp, rsp
+		emit-arg-spills locals
 		reduce [locals-size 0]
 	]
 	emit-epilog: func [
 		name [word!] locals [block!] args-size [integer!] locals-size [integer!] /with slots [integer! none!] /closing
 	][
-		if any [slots args-size <> 0 locals-size <> 0] [
+		if any [slots locals-size <> 0] [
 			compiler/throw-error "x86-64 function epilog shape is not implemented yet"
 		]
 		if closing [emit-load 0]
-		emit #{5D}									;-- POP rbp
+		emit #{C9}									;-- LEAVE
 		emit #{C3}									;-- RET
 	]
 	emit-stack-align-prolog: :unsupported
@@ -113,12 +166,26 @@ make-profilable make target-class [
 	emit-call-native: func [
 		args [block!] fspec [block!] spec [block!] attribs [block! none!]
 		/routine name [word!]
+		/local pops n
 	][
 		if routine [
 			compiler/throw-error "x86-64 routine calls are not implemented yet"
 		]
-		if fspec/1 <> 0 [
-			compiler/throw-error "x86-64 function arguments are not implemented yet"
+		pops: [
+			#{5F}		;-- POP rdi
+			#{5E}		;-- POP rsi
+			#{5A}		;-- POP rdx
+			#{59}		;-- POP rcx
+			#{4158}		;-- POP r8
+			#{4159}		;-- POP r9
+		]
+		n: fspec/1
+		if n > length? pops [
+			compiler/throw-error "x86-64 functions with more than 6 arguments are not implemented yet"
+		]
+		while [n > 0][
+			emit pick pops n
+			n: n - 1
 		]
 		emit #{E8}									;-- CALL rel32
 		emit-reloc-disp32 spec
@@ -179,16 +246,30 @@ make-profilable make target-class [
 			]
 			word? value [
 				type: compiler/get-type value
-				switch/default type/1 [
-					integer! [emit-global-ref value #{8B05}]		;-- MOV eax, [RIP+disp32]
-					int32!	 [emit-global-ref value #{8B05}]
-					uint32!	 [emit-global-ref value #{8B05}]
-					int64!	 [emit-global-ref value #{488B05}]		;-- MOV rax, [RIP+disp32]
-					uint64!	 [emit-global-ref value #{488B05}]
-					pointer! [emit-global-ref value #{488B05}]
-					c-string! [emit-global-ref value #{488B05}]
+				either emitter/local-offset? value [
+					switch/default type/1 [
+						integer! [emit-local-ref value #{8B45}]		;-- MOV eax, [rbp+disp8]
+						int32!	 [emit-local-ref value #{8B45}]
+						uint32!	 [emit-local-ref value #{8B45}]
+						int64!	 [emit-local-ref value #{488B45}]	;-- MOV rax, [rbp+disp8]
+						uint64!	 [emit-local-ref value #{488B45}]
+						pointer! [emit-local-ref value #{488B45}]
+						c-string! [emit-local-ref value #{488B45}]
+					][
+						compiler/throw-error ["x86-64 local load type not supported yet:" mold type/1]
+					]
 				][
-					compiler/throw-error ["x86-64 load type not supported yet:" mold type/1]
+					switch/default type/1 [
+						integer! [emit-global-ref value #{8B05}]		;-- MOV eax, [RIP+disp32]
+						int32!	 [emit-global-ref value #{8B05}]
+						uint32!	 [emit-global-ref value #{8B05}]
+						int64!	 [emit-global-ref value #{488B05}]		;-- MOV rax, [RIP+disp32]
+						uint64!	 [emit-global-ref value #{488B05}]
+						pointer! [emit-global-ref value #{488B05}]
+						c-string! [emit-global-ref value #{488B05}]
+					][
+						compiler/throw-error ["x86-64 load type not supported yet:" mold type/1]
+					]
 				]
 			]
 			true [
