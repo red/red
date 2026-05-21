@@ -10,6 +10,6 @@ Red/System [
 	]
 
 	status: 0
-	status: 7
+	status: 3 + 4
 	sys-exit status
 ]

@@ -89,7 +89,26 @@ make-profilable make target-class [
 	emit-call-native: :unsupported
 	emit-not: :unsupported
 	emit-pop: :unsupported
-	emit-integer-operation: :unsupported
+	emit-integer-operation: func [name [word!] args [block!] /local right][
+		emit-load args/1
+		right: compiler/unbox args/2
+		unless integer? right [
+			compiler/throw-error ["x86-64 integer op right operand not supported yet:" mold right]
+		]
+		switch/default name [
+			+	[emit #{05} emit to-bin32 right]		;-- ADD eax, imm32
+			-	[emit #{2D} emit to-bin32 right]		;-- SUB eax, imm32
+			*	[emit #{69C0} emit to-bin32 right]		;-- IMUL eax, eax, imm32
+			and [emit #{25} emit to-bin32 right]		;-- AND eax, imm32
+			or	[emit #{0D} emit to-bin32 right]		;-- OR eax, imm32
+			xor [emit #{35} emit to-bin32 right]		;-- XOR eax, imm32
+			<<	[emit #{C1E0} emit to-bin8 right]		;-- SHL eax, imm8
+			>>	[emit #{C1F8} emit to-bin8 right]		;-- SAR eax, imm8
+			-**	[emit #{C1E8} emit to-bin8 right]		;-- SHR eax, imm8
+		][
+			compiler/throw-error ["x86-64 integer op not supported yet:" mold name]
+		]
+	]
 	emit-float-operation: :unsupported
 	emit-throw: :unsupported
 	emit-alt-last: :unsupported
