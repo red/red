@@ -237,9 +237,13 @@ coff: context [
 				]
 			]
 
-			;-- For BSS, stash VirtualSize so the linker can allocate a
-			;-- zero-filled slot.
-			if kind = 'bss [raw-size: u32-le bin (sec-pos + 8)]
+			;-- BSS carries no raw data; the linker must still reserve a
+			;-- zero-filled slot of the right size. clang-cl records that
+			;-- size in SizeOfRawData, other producers in VirtualSize, so
+			;-- take whichever field is set (exclusive in object files).
+			if kind = 'bss [
+				raw-size: max raw-size  u32-le bin (sec-pos + 8)
+			]
 
 			append/only sections reduce [
 				name									;-- 1 name

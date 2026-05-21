@@ -25,6 +25,7 @@ do-cache %system/formats/ELF-obj.r
 do-cache %system/formats/Mach-O-obj.r
 do-cache %system/formats/libc-exports.r
 do-cache %system/formats/win32-exports.r
+do-cache %system/formats/crt-helpers.r
 
 static-link: context [
 
@@ -45,7 +46,7 @@ static-link: context [
 
 	syslib-index: none				;-- symbol => DLL hash, PE __imp_ resolution
 	imp-table:  make hash! 64		;-- __imp_<decorated> => [DLL bare-name]
-	helper-libs: none				;-- auto-located MSVC static helper archives
+	helper-libs: none				;-- registry-located static helper archives
 
 	;-- 4-byte little-endian serializer (target endianness is set up by the
 	;-- time `apply-relocs` runs, during linking).
@@ -55,6 +56,10 @@ static-link: context [
 	;-- x86 __chkstk stub: receives total frame size in EAX, returns with
 	;-- ESP decremented by EAX (MSVC contract). 18 bytes.
 	chkstk-stub: #{518D4C24082BC88BC48BE18B088B400450C3}
+
+	;-- __security_check_cookie is __fastcall (cookie in ECX, no stack
+	;-- args); a bare RET disables the /GS check, as building with /GS-.
+	gscheck-stub: #{C3}
 
 	abort: func [msg [block!]][
 		print rejoin ["*** Static linking error: " reform msg]
@@ -122,11 +127,18 @@ static-link: context [
 						i: off + 1
 						while [all [
 							i <= length? longnames
-							(b: to integer! pick longnames i) <> 0
-							b <> 47						;-- '/' also terminates
+							(b: to integer! pick longnames i) <> 0	;-- NUL terminates (MS)
+							b <> 10									;-- LF terminates (GNU)
 						]][
 							append real-name to char! b
 							i: i + 1
+						]
+						;-- A GNU `ar` longname entry carries a trailing '/';
+						;-- a Microsoft long name does not, and may itself
+						;-- contain '/' as a path separator -- so the scan must
+						;-- not stop at '/', only strip a single trailing one.
+						if all [not empty? real-name  #"/" = last real-name][
+							remove back tail real-name
 						]
 						name: real-name
 					][
@@ -270,8 +282,8 @@ static-link: context [
 			]
 		]
 
-		;-- queue the auto-located MSVC helper archives; selective loading
-		;-- below pulls only the per-module compiler/CRT objects used.
+		;-- queue the registry-located helper archives; selective loading
+		;-- below pulls only the GUID / compiler / CRT objects actually used.
 		if all [obj-format = 'PE  helper-libs  not empty? helper-libs][
 			foreach hl helper-libs [
 				foreach m read-archive hl [
@@ -303,7 +315,7 @@ static-link: context [
 	arch-bare: func [name [string!] /local p][
 		name: copy name
 		if obj-format <> 'ELF [
-			if all [not empty? name  #"_" = name/1][remove name]
+			if all [not empty? name  any [#"_" = name/1  #"@" = name/1]][remove name]
 			if p: find name #"@" [clear p]
 		]
 		name
@@ -428,7 +440,7 @@ static-link: context [
 	;-- emitting a libc import trampoline or the __chkstk stub.
 	resolve-externals: func [
 		job [object!]
-		/local path obj sym name bare code data tramp-off disp-ref sz data-off imp
+		/local path obj sym name bare code data tramp-off disp-ref sz data-off imp res stub
 	][
 		code: job/sections/code/2
 		data: job/sections/data/2
@@ -453,8 +465,29 @@ static-link: context [
 								append code chkstk-stub
 								repend sym-addr [name reduce ['code tramp-off false]]
 							]
+							;-- MSVC/clang-cl 64-bit integer division and
+							;-- remainder helpers: drop the embedded machine
+							;-- code into the code section (see crt-helpers.r).
+							stub: select crt-helpers name [
+								tramp-off: length? code
+								append code stub
+								repend sym-addr [name reduce ['code tramp-off false]]
+							]
 							name = "__ImageBase" [
 								repend sym-addr [name reduce ['image-base 0 false]]
+							]
+							;-- MSVC /GS support: stub the cookie check (a RET),
+							;-- and give the cookie / __fltused markers data slots.
+							name = "@__security_check_cookie@4" [
+								tramp-off: length? code
+								append code gscheck-stub
+								repend sym-addr [name reduce ['code tramp-off false]]
+							]
+							any [name = "___security_cookie"  name = "__fltused"][
+								pad-to data 4
+								data-off: length? data
+								insert/dup tail data null 4
+								repend sym-addr [name reduce ['data data-off false]]
 							]
 							sz: accepted-libc-data? name [
 								;-- libc DATA symbol: reserve a copy-relocation
@@ -467,7 +500,7 @@ static-link: context [
 								repend job/static-data [name data-off sz]
 								repend sym-addr [name reduce ['data data-off false]]
 							]
-							bare: accepted-libc? name [
+							res: direct-resolve job name [
 								tramp-off: length? code
 								case [
 									obj-format = 'Mach-o [
@@ -496,7 +529,7 @@ static-link: context [
 										append code #{00000000}
 									]
 								]
-								add-import job (libc-name job) bare disp-ref
+								add-import job res/1 res/2 disp-ref
 								repend sym-addr [name reduce ['code tramp-off false]]
 							]
 							imp: imp-resolve name [
@@ -572,15 +605,32 @@ static-link: context [
 		]
 	]
 
+	;-- For a direct (non-__imp_) undefined external, return [DLL bare-name]
+	;-- when the bare name is a libc or other system-DLL export, else NONE;
+	;-- the reference is then satisfied by a JMP [IAT] trampoline.
+	direct-resolve: func [job [object!] name [string!] /local bare dll][
+		bare: arch-bare name
+		if empty? bare [return none]
+		if all [libc-set  find libc-set bare][return reduce [libc-name job  bare]]
+		if all [syslib-index  dll: select syslib-index bare][return reduce [dll bare]]
+		none
+	]
+
 	;-- For a PE __imp_<decorated> undefined external, return [DLL bare-name]
-	;-- when the bare name is a known system export, otherwise NONE.
-	imp-resolve: func [name [string!] /local bare dll][
+	;-- when the bare name is a known system export, otherwise NONE. The
+	;-- export name is tried both fully bared (Win32 stdcall: _Name@N ->
+	;-- Name) and with the leading underscore kept (CRT names like _itoa).
+	imp-resolve: func [name [string!] /local rest bare dll p][
 		if obj-format <> 'PE [return none]
 		if (length? name) <= 6 [return none]
 		if "__imp_" <> copy/part name 6 [return none]
-		bare: arch-bare skip name 6
-		if empty? bare [return none]
-		either dll: select syslib-index bare [reduce [dll bare]][none]
+		rest: skip name 6
+		bare: arch-bare rest
+		if all [not empty? bare  dll: select syslib-index bare][return reduce [dll bare]]
+		bare: copy rest
+		if p: find bare #"@" [clear p]
+		if all [not empty? bare  dll: select syslib-index bare][return reduce [dll bare]]
+		none
 	]
 
 	;-- Scan every merged section's relocations: each one targeting an __imp_*
@@ -614,56 +664,60 @@ static-link: context [
 		]
 	]
 
-	;-- ===== Auto-located MSVC static helper libraries =====
-	;-- An MSVC-built archive references per-module compiler/CRT objects
-	;-- (64-bit arithmetic, float conversion, the /GS cookie, the SSE2
-	;-- math) that live in no DLL; they are merged from the toolset's
-	;-- msvcrt.lib and the Windows SDK's libucrt.lib, located below.
+	;-- ===== Registry-located static helper archives (Windows PE) =====
+	;-- A PE archive built by MSVC or clang-cl references GUID data
+	;-- constants (uuid.lib, dxguid.lib) that no DLL exports. The Windows
+	;-- SDK records its install root in HKLM; the archives are read from
+	;-- there through reg.exe -- no hard-coded paths, no Program Files scan.
 
 	;-- A read-result entry is a subdirectory iff it ends with a slash;
 	;-- `dir?` is unreliable here -- it stats relative to the working dir.
 	subdir?: func [f [file!]][all [not empty? f  #"/" = last f]]
 
 	;-- Newest (lexically greatest) immediate subdirectory of `dir`, or none.
-	newest-in: func [dir [file!] /local items subs][
+	newest-subdir: func [dir [file!] /local items subs f][
 		if error? try [items: read dir][return none]
 		subs: make block! 16
 		foreach f items [if subdir? f [append subs f]]
 		either empty? subs [none][last sort subs]
 	]
 
-	;-- Locate msvcrt.lib (Visual Studio toolset) and libucrt.lib (Windows
-	;-- SDK) by globbing their standard install paths; returns a block of
-	;-- resolved paths, possibly empty.
-	find-helper-libs: func [
-		/local out pf base yrs yr eds ed mscbase ver p sdkbase sv
-	][
-		out: make block! 2
-		if pf: any [get-env "ProgramW6432"  get-env "ProgramFiles"][
-			base: to-rebol-file join pf "\Microsoft Visual Studio\"
-			unless error? try [yrs: read base][
-				foreach yr yrs [
-					if all [empty? out  subdir? yr][
-						unless error? try [eds: read rejoin [base yr]][
-							foreach ed eds [
-								if all [empty? out  subdir? ed][
-									mscbase: rejoin [base yr ed %VC/Tools/MSVC/]
-									if ver: newest-in mscbase [
-										p: rejoin [mscbase ver %lib/x86/msvcrt.lib]
-										if exists? p [append out p]
-									]
-								]
-							]
+	;-- Read one HKLM string value through reg.exe, trying the 32- then the
+	;-- 64-bit registry view; returns the value string, or none if absent.
+	;-- reg.exe is a Windows built-in, so this needs nothing installed.
+	reg-read: func [key [string!] value [string!] /local out view line p][
+		foreach view ["/reg:32" "/reg:64"][
+			out: copy ""
+			unless error? try [
+				call/shell/wait/output
+					rejoin [{reg query "} key {" /v "} value {" } view] out
+			][
+				foreach line parse/all out "^/" [
+					if find line value [
+						if p: find line "REG_" [		;-- REG_SZ | REG_EXPAND_SZ
+							if p: find p " " [return trim copy p]
 						]
 					]
 				]
 			]
 		]
-		if pf: get-env "ProgramFiles(x86)" [
-			sdkbase: to-rebol-file join pf "\Windows Kits\10\Lib\"
-			if sv: newest-in sdkbase [
-				p: rejoin [sdkbase sv %ucrt/x86/libucrt.lib]
-				if exists? p [append out p]
+		none
+	]
+
+	;-- Locate the static helper archives from their registered install
+	;-- roots; returns a block of resolved archive paths, possibly empty.
+	find-helper-libs: func [/local out root libdir ver p lib][
+		out: make block! 3
+		;-- Windows SDK (uuid.lib / dxguid.lib): the COM and DirectX GUID
+		;-- constants -- pure data, exported by no DLL.
+		root: reg-read "HKLM\SOFTWARE\Microsoft\Windows Kits\Installed Roots" "KitsRoot10"
+		if root [
+			libdir: rejoin [to-rebol-file root %Lib/]
+			if ver: newest-subdir libdir [
+				foreach lib [%uuid.lib %dxguid.lib][
+					p: rejoin [libdir ver %um/x86/ lib]
+					if exists? p [append out p]
+				]
 			]
 		]
 		out
