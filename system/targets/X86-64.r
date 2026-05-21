@@ -53,12 +53,36 @@ make-profilable make target-class [
 	on-global-epilog: func [runtime? [logic!] type [word!]][]
 	on-root-level-entry: :noop
 	on-finalize: :noop
-	patch-call: :unsupported
+	patch-call: func [code-buf rel-ptr dst-ptr][
+		change/part
+			at code-buf rel-ptr
+			to-bin32 dst-ptr - rel-ptr - branch-offset-size
+			4
+	]
 	patch-jump-back: :unsupported
 	patch-jump-point: :unsupported
 	patch-sub-call: :unsupported
-	emit-prolog: :unsupported
-	emit-epilog: :unsupported
+	emit-prolog: func [name [word!] locals [block!] bitmap [integer!] /local locals-size][
+		locals-size: either find locals /local [
+			emitter/calc-locals-offsets find locals /local
+		][0]
+		if locals-size <> 0 [
+			compiler/throw-error "x86-64 local variables are not implemented yet"
+		]
+		emit #{55}									;-- PUSH rbp
+		emit #{4889E5}								;-- MOV rbp, rsp
+		reduce [locals-size 0]
+	]
+	emit-epilog: func [
+		name [word!] locals [block!] args-size [integer!] locals-size [integer!] /with slots [integer! none!] /closing
+	][
+		if any [slots args-size <> 0 locals-size <> 0] [
+			compiler/throw-error "x86-64 function epilog shape is not implemented yet"
+		]
+		if closing [emit-load 0]
+		emit #{5D}									;-- POP rbp
+		emit #{C3}									;-- RET
+	]
 	emit-stack-align-prolog: :unsupported
 	emit-stack-align-epilog: :unsupported
 	emit-stack-align: :unsupported
@@ -86,7 +110,19 @@ make-profilable make target-class [
 		emit #{0F05}								;-- SYSCALL
 	]
 	emit-call-import: :unsupported
-	emit-call-native: :unsupported
+	emit-call-native: func [
+		args [block!] fspec [block!] spec [block!] attribs [block! none!]
+		/routine name [word!]
+	][
+		if routine [
+			compiler/throw-error "x86-64 routine calls are not implemented yet"
+		]
+		if fspec/1 <> 0 [
+			compiler/throw-error "x86-64 function arguments are not implemented yet"
+		]
+		emit #{E8}									;-- CALL rel32
+		emit-reloc-disp32 spec
+	]
 	emit-not: :unsupported
 	emit-pop: :unsupported
 	emit-integer-operation: func [name [word!] args [block!] /local right][
