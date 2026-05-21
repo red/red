@@ -217,6 +217,32 @@ context [
 		shstrndx		[short]		;; shdr table index of .shstrtab section
 	] none
 
+	elf-header64: make-struct [		;; (Elf64_Ehdr)
+		ident-mag0		[char!]		;; 0x7F (EI_MAG0)
+		ident-mag1		[char!]		;; "E" (EI_MAG1)
+		ident-mag2		[char!]		;; "L" (EI_MAG2)
+		ident-mag3		[char!]		;; "F" (EI_MAG3)
+		ident-class		[char!]		;; file class
+		ident-data		[char!]		;; data encoding
+		ident-version	[char!]		;; file version
+		ident-osabi		[char!]
+		ident-pad1		[integer!]
+		ident-pad2		[integer!]
+		type			[short]
+		machine			[short]
+		version			[integer!]
+		entry			[uint64]	;; virtual address of program entry point
+		phoff			[uint64]	;; file offset to phdr table
+		shoff			[uint64]	;; file offset to shdr table
+		flags			[integer!]
+		ehsize			[short]		;; size-of elf-header64
+		phentsize		[short]		;; size-of program-header64
+		phnum			[short]		;; num of "segments" (entries in phdr tab)
+		shentsize		[short]		;; size-of section-header64
+		shnum			[short]		;; num of "sections" (entries in shdr tab)
+		shstrndx		[short]		;; shdr table index of .shstrtab section
+	] none
+
 	program-header: make-struct [	;; (Elf32_Phdr)
 		type			[integer!]
 		offset			[integer!]
@@ -226,6 +252,17 @@ context [
 		memsz			[integer!]
 		flags			[integer!]
 		align			[integer!]
+	] none
+
+	program-header64: make-struct [	;; (Elf64_Phdr)
+		type			[integer!]
+		flags			[integer!]
+		offset			[uint64]
+		vaddr			[uint64]
+		paddr			[uint64]
+		filesz			[uint64]
+		memsz			[uint64]
+		align			[uint64]
 	] none
 
 	section-header: make-struct [	;; (Elf32_Shdr)
@@ -241,9 +278,27 @@ context [
 		entsize			[integer!]
 	] none
 
+	section-header64: make-struct [	;; (Elf64_Shdr)
+		name			[integer!]	;; index into .shstrtab
+		type			[integer!]
+		flags			[uint64]
+		addr			[uint64]
+		offset			[uint64]
+		size			[uint64]
+		link			[integer!]
+		info			[integer!]
+		addralign		[uint64]
+		entsize			[uint64]
+	] none
+
 	elf-dynamic: make-struct [		;; (Elf32_Dyn)
 		tag				[integer!]
 		val				[integer!]
+	] none
+
+	elf-dynamic64: make-struct [	;; (Elf64_Dyn)
+		tag				[int64]
+		val				[uint64]
 	] none
 
 	elf-symbol: make-struct [		;; (Elf32_Sym)
@@ -255,11 +310,26 @@ context [
 		shndx			[short]		;; section this symbol is associated with
 	] none
 
+	elf-symbol64: make-struct [		;; (Elf64_Sym)
+		name			[integer!]	;; symbol strtab index (zero: unnamed sym)
+		info			[char!]		;; symbol type and binding attributes
+		other			[char!]		;; symbol visibility
+		shndx			[short]		;; section this symbol is associated with
+		value			[uint64]	;; absolute value, address, ...
+		size			[uint64]	;; associated symbol size (if any)
+	] none
+
 	elf-relocation: make-struct [	;; (Elf32_Rel)
 		offset			[integer!]
 		info-sym		[char!]
 		info-type		[char!]
 		info-addend		[short]
+	] none
+
+	elf-relocation64: make-struct [	;; (Elf64_Rela)
+		offset			[uint64]
+		info			[uint64]
+		addend			[int64]
 	] none
 
 	stab-entry: make-struct [
@@ -273,6 +343,19 @@ context [
 	machine-word: make-struct [
 		value			[integer!]
 	] none
+
+	machine-word64: make-struct [
+		value			[uint64]
+	] none
+
+	elf64-target?: func [target [word!]][target = 'X86-64]
+	ehdr-struct?: func [target [word!]][either elf64-target? target [elf-header64][elf-header]]
+	phdr-struct?: func [target [word!]][either elf64-target? target [program-header64][program-header]]
+	shdr-struct?: func [target [word!]][either elf64-target? target [section-header64][section-header]]
+	dynamic-struct?: func [target [word!]][either elf64-target? target [elf-dynamic64][elf-dynamic]]
+	symbol-struct?: func [target [word!]][either elf64-target? target [elf-symbol64][elf-symbol]]
+	relocation-struct?: func [target [word!]][either elf64-target? target [elf-relocation64][elf-relocation]]
+	machine-word-struct?: func [target [word!]][either elf64-target? target [machine-word64][machine-word]]
 
 	;; ------------------------------------------------------------------------
 
@@ -328,6 +411,8 @@ context [
 			data-size data-reloc dynamic-size
 			get-address get-offset get-size get-meta get-data set-data
 			relro-offset pos list soname base
+			ehdr-struct phdr-struct shdr-struct dynamic-struct
+			symbol-struct relocation-struct relro-word-struct
 	] [
 		if job/target = 'X86-64 [
 			linker/throw-error "ELF64 output is not implemented yet"
@@ -397,6 +482,13 @@ context [
 		]
 		
 		dynamic-size: calc-dynamic-size job/type job/target job/symbols
+		ehdr-struct: ehdr-struct? job/target
+		phdr-struct: phdr-struct? job/target
+		shdr-struct: shdr-struct? job/target
+		dynamic-struct: dynamic-struct? job/target
+		symbol-struct: symbol-struct? job/target
+		relocation-struct: relocation-struct? job/target
+		relro-word-struct: machine-word-struct? job/target
 
 		segments: collect-structure-names structure 'segment
 
@@ -424,16 +516,16 @@ context [
 			".dynamic"		meta [link ".dynstr"]
 			".stab"			meta [link ".stabstr"]
 
-			"ehdr"			size elf-header
-			"phdr"			size [program-header	length? segments]
+			"ehdr"			size (size-of ehdr-struct)
+			"phdr"			size [(phdr-struct)		length? segments]
 			".hash"			size [machine-word		2 + 2 + (length? imports) + ((length? exports) / 2)]
-			".dynsym"		size [elf-symbol		1 + (length? imports) + ((length? exports) / 2)]
-			".rel.text"		size [elf-relocation	(length? imports) + (length? data-reloc)]
+			".dynsym"		size [(symbol-struct)	1 + (length? imports) + ((length? exports) / 2)]
+			".rel.text"		size [(relocation-struct) (length? imports) + (length? data-reloc)]
 			".data"			size (data-size)
-			".data.rel.ro"	size [machine-word		length? imports]
-			".dynamic"		size [elf-dynamic		dynamic-size + length? libraries]
+			".data.rel.ro"	size [(relro-word-struct) length? imports]
+			".dynamic"		size [(dynamic-struct)	dynamic-size + length? libraries]
 			".stab"			size [stab-entry		2 + ((length? natives) / 2)]
-			"shdr"			size [section-header	length? sections]
+			"shdr"			size [(shdr-struct)		length? sections]
 
 			"interp"		size (length? to-c-string dynamic-linker)					;-- NetBD has strict checks to make sure interp header and section sizes are the same
 			".interp"		data (to-c-string dynamic-linker)
@@ -486,13 +578,14 @@ context [
 		]
 
 		set-data "phdr"
-			[build-phdr map-each segment segments [layout/:segment]]
+			[build-phdr job/target map-each segment segments [layout/:segment]]
 
 		set-data ".hash"
 			[build-hash compose [(imports) (extract exports 2)]]
 
 		set-data ".dynsym" [
 			build-dynsym
+				job/target
 				imports
 				exports
 				get-data ".dynstr"
@@ -521,7 +614,7 @@ context [
 		]
 
 		set-data ".data.rel.ro"
-			[build-relro imports]
+			[build-relro job/target imports]
 		
 		set-data ".dynamic" [
 			build-dynamic
@@ -547,6 +640,7 @@ context [
 
 		set-data "shdr" [
 			build-shdr
+				job/target
 				flatten map-each name sections [reduce [name layout/:name]]
 				commands
 				get-data ".shstrtab"
@@ -606,14 +700,17 @@ context [
 		text-address [integer!]
 		segment-names [block!]
 		section-names [block!]
-		/local eh
+		/local eh ehdr phdr shdr
 	] [
-		eh: make-struct elf-header none
+		ehdr: ehdr-struct? target-arch
+		phdr: phdr-struct? target-arch
+		shdr: shdr-struct? target-arch
+		eh: make-struct ehdr none
 		eh/ident-mag0:		#"^(7F)"
 		eh/ident-mag1:		#"E"
 		eh/ident-mag2:		#"L"
 		eh/ident-mag3:		#"F"
-		eh/ident-class:		defs/elfclass32
+		eh/ident-class:		either elf64-target? target-arch [defs/elfclass64][defs/elfclass32]
 		eh/ident-data:		defs/elfdata2lsb
 		eh/ident-version:	defs/ev-current
 		eh/version:			defs/ev-current
@@ -621,10 +718,10 @@ context [
 		eh/phoff:			phdr-offset
 		eh/shoff:			shdr-offset
 		eh/flags:			0
-		eh/ehsize:			size-of elf-header
-		eh/phentsize:		size-of program-header
+		eh/ehsize:			size-of ehdr
+		eh/phentsize:		size-of phdr
 		eh/phnum:			length? segment-names
-		eh/shentsize:		size-of section-header
+		eh/shentsize:		size-of shdr
 		eh/shnum:			1 + length? section-names
 		eh/shstrndx:		index? find section-names ".shstrtab"
 
@@ -650,7 +747,6 @@ context [
 					either ABI = 'hard-float [defs/ef-arm-hard][defs/ef-arm-soft]
 			]
 			X86-64	[
-				eh/ident-class: defs/elfclass64
 				eh/machine: defs/em-x86-64
 			]
 		]
@@ -658,9 +754,10 @@ context [
 		eh
 	]
 
-	build-phdr: func [segments [block!] /local ph] [
+	build-phdr: func [target-arch [word!] segments [block!] /local ph phdr] [
+		phdr: phdr-struct? target-arch
 		map-each segment segments [
-			ph: make-struct program-header none
+			ph: make-struct phdr none
 			ph/type:		lookup-def "pt-" segment/meta/type
 			ph/offset:		segment/offset
 			ph/vaddr:		segment/address
@@ -699,6 +796,7 @@ context [
 	]
 
 	build-dynsym: func [
+		target-arch [word!]
 		imports [block!]
 		exports [block!]
 		dynstr [binary!]
@@ -706,15 +804,16 @@ context [
 		text-index [integer!]
 		data-address [integer!]
 		data-index [integer!]
-		/local result entry export-base export-type export-index
+		/local result entry export-base export-type export-index sym
 	] [
+		sym: symbol-struct? target-arch
 		result: copy []
 
 		;; Symbol #0: undefined symbol
-		append result make-struct elf-symbol none
+		append result make-struct sym none
 
 		foreach symbol imports [
-			entry: make-struct elf-symbol none
+			entry: make-struct sym none
 			entry/name: strtab-index-of dynstr symbol
 			entry/value: 0 ;; Unknown, for imported symbols.
 			entry/info: to-elf-symbol-info defs/stb-global defs/stt-func
@@ -732,7 +831,7 @@ context [
 					reduce [text-address defs/stt-func text-index]
 				]
 			]
-			entry: make-struct elf-symbol none
+			entry: make-struct sym none
 			entry/name: strtab-index-of dynstr symbol
 			entry/value: export-base + meta/offset
 			entry/info: to-elf-symbol-info defs/stb-global export-type
@@ -752,8 +851,27 @@ context [
 		relocs [block!]
 		data-address [integer!]
 		code-address [integer!]
-		/local rel-type result entry len
+		/local rel-type result entry len reloc
 	] [
+		if elf64-target? target-arch [
+			reloc: relocation-struct? target-arch
+			result: make block! (length? relocs) + len: length? symbols
+			repeat i len [
+				entry: make-struct reloc none
+				entry/offset:	relro-address + ((size-of machine-word64) * (i - 1))
+				entry/info:		reduce [defs/r-x86-64-glob-dat i]
+				entry/addend:	0
+				append result entry
+			]
+			foreach ptr relocs [
+				entry: make-struct reloc none
+				entry/offset:	data-address + ptr
+				entry/info:		reduce [defs/r-x86-64-relative 0]
+				entry/addend:	0
+				append result entry
+			]
+			return result
+		]
 		rel-type: select reduce [
 			'IA-32	defs/r-386-32
 			'ARM	defs/r-arm-abs32
@@ -804,9 +922,9 @@ context [
 		result
 	]
 
-	build-relro: func [symbols [block!]] [
+	build-relro: func [target-arch [word!] symbols [block!]] [
 		;; @@ Use NOBITS section (filesize 0, memsize n) instead?
-		array/initial length? symbols make-struct machine-word none
+		array/initial length? symbols make-struct machine-word-struct? target-arch none
 	]
 
 	build-dynamic: func [
@@ -823,8 +941,9 @@ context [
 		dynstr			[binary!]
 		libraries		[block!]
 		soname			[string!]
-		/local entries spec
+		/local entries spec dyn
 	] [
+		dyn: dynamic-struct? target
 		entries: copy []
 
 		;; One DT_NEEDED for each dynamic library:
@@ -852,15 +971,26 @@ context [
 			'strtab	dynstr-address
 			'symtab	dynsym-address
 			'strsz	dynstr-size
-			'syment	size-of elf-symbol
-			'rel	reltext-address
-			'relsz	reltext-size
-			'relent	size-of elf-relocation
-			'null	0
+			'syment	size-of symbol-struct? target
+		]
+		append entries either elf64-target? target [
+			reduce [
+				'rela	 reltext-address
+				'relasz	 reltext-size
+				'relaent size-of relocation-struct? target
+				'null	 0
+			]
+		][
+			reduce [
+				'rel	reltext-address
+				'relsz	reltext-size
+				'relent	size-of relocation-struct? target
+				'null	0
+			]
 		]
 
 		map-each [tag value] entries [
-			make-struct elf-dynamic reduce [lookup-def "dt-" tag value]
+			make-struct dyn reduce [lookup-def "dt-" tag value]
 		]
 	]
 
@@ -895,14 +1025,15 @@ context [
 	]
 
 	build-shdr: func [
-		sections [block!] commands [block!] shstrtab [binary!]
-		/local names sh name section
+		target-arch [word!] sections [block!] commands [block!] shstrtab [binary!]
+		/local names sh name section shdr
 	] [
+		shdr: shdr-struct? target-arch
 		names: extract sections 2
 		join reduce [
-			make-struct section-header none
+			make-struct shdr none
 		] map-each [name section] sections [
-			sh: make-struct section-header none
+			sh: make-struct shdr none
 			sh/name:		strtab-index-of shstrtab name
 			sh/type:		lookup-def "sht-" section/meta/type
 			sh/flags:		lookup-flags "shf-" section/meta/flags

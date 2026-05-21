@@ -22,4 +22,15 @@ int-to-bin: context [
 	set 'to-bin32 func [v [integer! char!]][			;TBD: add big-endian support
 		reverse debase/base to-hex to integer! v 16
 	]
+
+	set 'to-bin64 func [v [integer! char! block!]][	;TBD: add big-endian support
+		either block? v [
+			rejoin [to-bin32 v/1 to-bin32 v/2]
+		][
+			rejoin [
+				to-bin32 v
+				to-bin32 either negative? to integer! v [-1][0]
+			]
+		]
+	]
 ]
