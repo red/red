@@ -24,11 +24,13 @@ make-profilable make target-class [
 		compiler/throw-error "Linux x86-64 backend code generation is not implemented yet"
 	]
 
-	on-init: :unsupported
-	on-global-prolog: :unsupported
-	on-global-epilog: :unsupported
-	on-root-level-entry: :unsupported
-	on-finalize: :unsupported
+	noop: does []
+
+	on-init: :noop
+	on-global-prolog: func [runtime? [logic!] type [word!]][]
+	on-global-epilog: func [runtime? [logic!] type [word!]][]
+	on-root-level-entry: :noop
+	on-finalize: :noop
 	patch-call: :unsupported
 	patch-jump-back: :unsupported
 	patch-jump-point: :unsupported
@@ -40,12 +42,30 @@ make-profilable make target-class [
 	emit-stack-align: :unsupported
 	emit-float-trash-last: :unsupported
 	emit-casting: :unsupported
-	emit-call: :unsupported
-	emit-call-syscall: :unsupported
+	emit-call-syscall: func [args [block!] fspec [block!] attribs [block! none!] /local pops n][
+		pops: [
+			#{5F}		;-- POP rdi
+			#{5E}		;-- POP rsi
+			#{5A}		;-- POP rdx
+			#{415A}		;-- POP r10
+			#{4158}		;-- POP r8
+			#{4159}		;-- POP r9
+		]
+		n: fspec/1
+		if n > length? pops [
+			compiler/throw-error ["x86-64 syscall with too many args:" n]
+		]
+		while [n > 0][
+			emit pick pops n
+			n: n - 1
+		]
+		emit #{B8}									;-- MOV eax, syscall number
+		emit to-bin32 last fspec
+		emit #{0F05}								;-- SYSCALL
+	]
 	emit-call-import: :unsupported
 	emit-call-native: :unsupported
 	emit-not: :unsupported
-	emit-push: :unsupported
 	emit-pop: :unsupported
 	emit-integer-operation: :unsupported
 	emit-float-operation: :unsupported
@@ -53,7 +73,15 @@ make-profilable make target-class [
 	emit-alt-last: :unsupported
 	emit-log-b: :unsupported
 	emit-variable: :unsupported
-	emit-argument: :unsupported
+	emit-argument: func [arg fspec [block!] /local value][
+		if arg = #_ [exit]
+		value: compiler/unbox arg
+		if logic? value [value: to integer! value]
+		unless any [integer? value char? value][
+			compiler/throw-error ["x86-64 literal argument not supported yet:" mold value]
+		]
+		emit-push value
+	]
 	emit-load: :unsupported
 	emit-load-literal: :unsupported
 	emit-load-literal-ptr: :unsupported
@@ -79,7 +107,7 @@ make-profilable make target-class [
 	emit-get-pc: :unsupported
 	emit-get-overflow: :unsupported
 	emit-reserve-stack: :unsupported
-	emit-release-stack: :unsupported
+	emit-release-stack: func [slots [integer!] /bytes][]
 	emit-alloc-stack: :unsupported
 	emit-free-stack: :unsupported
 	emit-clear-slot: :unsupported
@@ -92,6 +120,16 @@ make-profilable make target-class [
 	emit-fpu-get: :unsupported
 	emit-fpu-set: :unsupported
 	emit-fpu-update: :unsupported
+	emit-push: func [value][
+		either all [integer? value value >= -128 value <= 127][
+			emit #{6A}
+			emit to-bin8 value
+		][
+			emit #{48B8}								;-- MOV rax, imm64
+			emit to-bin64 value
+			emit #{50}									;-- PUSH rax
+		]
+	]
 	emit-push-all: :unsupported
 	emit-pop-all: :unsupported
 	emit-atomic-cas: :unsupported

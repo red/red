@@ -413,10 +413,8 @@ context [
 			relro-offset pos list soname base
 			ehdr-struct phdr-struct shdr-struct dynamic-struct
 			symbol-struct relocation-struct relro-word-struct
+			reloc-section
 	] [
-		if job/target = 'X86-64 [
-			linker/throw-error "ELF64 output is not implemented yet"
-		]
 		base-address: either any [job/type = 'dll job/PIC?][0][
 			any [job/base-address defs/base-address]
 		]
@@ -436,6 +434,11 @@ context [
 		data-reloc: collect-data-reloc job
 
 		structure: copy default-structure
+		reloc-section: either elf64-target? job/target [".rela.text"][".rel.text"]
+		if elf64-target? job/target [
+			replace-deep structure ".rel.text" reloc-section
+			replace-deep structure 'rel 'rela
+		]
 
 		if job/target <> 'ARM [
 			remove-elements structure [".ARM.attributes"]
@@ -512,7 +515,7 @@ context [
 
 			".hash"			meta [link ".dynsym"]
 			".dynsym"		meta [link ".dynstr" info ".interp"]
-			".rel.text"		meta [link ".dynsym" info ".text"]
+			(reloc-section)	meta [link ".dynsym" info ".text"]
 			".dynamic"		meta [link ".dynstr"]
 			".stab"			meta [link ".stabstr"]
 
@@ -520,7 +523,7 @@ context [
 			"phdr"			size [(phdr-struct)		length? segments]
 			".hash"			size [machine-word		2 + 2 + (length? imports) + ((length? exports) / 2)]
 			".dynsym"		size [(symbol-struct)	1 + (length? imports) + ((length? exports) / 2)]
-			".rel.text"		size [(relocation-struct) (length? imports) + (length? data-reloc)]
+			(reloc-section)	size [(relocation-struct) (length? imports) + (length? data-reloc)]
 			".data"			size (data-size)
 			".data.rel.ro"	size [(relro-word-struct) length? imports]
 			".dynamic"		size [(dynamic-struct)	dynamic-size + length? libraries]
@@ -595,7 +598,7 @@ context [
 				section-index-of sections ".data"
 		]
 
-		set-data ".rel.text" [
+		set-data reloc-section [
 			build-reltext
 				job/target
 				imports
@@ -625,7 +628,7 @@ context [
 				get-address ".hash"
 				get-address ".dynstr" get-size ".dynstr"
 				get-address ".dynsym"
-				get-address ".rel.text" get-size ".rel.text"
+				get-address reloc-section get-size reloc-section
 				get-data ".dynstr"
 				libraries
 				soname
@@ -1220,6 +1223,18 @@ context [
 				) :mark
 			]
 		]
+	]
+
+	replace-deep: func [series [block!] old new /local item][
+		forall series [
+			item: first series
+			either block? item [
+				replace-deep item old new
+			][
+				if item = old [change/only series new]
+			]
+		]
+		head series
 	]
 
 	collect-structure-names: func [

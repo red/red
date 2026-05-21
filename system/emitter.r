@@ -26,9 +26,7 @@ emitter: make-profilable context [
 	libc-init?:	none					;-- TRUE if currently processing libc init part
 	extension-flag: -2147483648			;-- for pointers bit-array encoding
 		
-	pointer: make-struct [
-		value [integer!]				;-- 32/64-bit, watch out for endianness!!
-	] none
+	pointer: none						;-- initialized from target pointer size
 	
 	types-model: [
 		int8!		1	signed
@@ -1225,6 +1223,9 @@ emitter: make-profilable context [
 		target/compiler: compiler: system-dialect/compiler
 		target/PIC?: job/PIC?
 		target/PIE?: job/PIE?
+		pointer: make-struct compose [
+			value [(either target/ptr-size = 8 ['uint64]['integer!])]
+		] none
 		target/void-ptr: head insert/dup copy #{} null target/ptr-size
 		int-to-bin/little-endian?: target/little-endian?
 		init-datatypes
