@@ -514,7 +514,7 @@ context [
 			"rw"			skip (defs/page-size)
 
 			".hash"			meta [link ".dynsym"]
-			".dynsym"		meta [link ".dynstr" info ".interp"]
+			".dynsym"		meta [link ".dynstr" info 1]
 			(reloc-section)	meta [link ".dynsym" info ".text"]
 			".dynamic"		meta [link ".dynstr"]
 			".stab"			meta [link ".stabstr"]
@@ -1441,9 +1441,13 @@ context [
 	]
 
 	section-index-of: func [
-		sections [block!] section [string! none!] /local pos
+		sections [block!] section [string! integer! none!] /local pos
 	] [
-		either pos: find sections section [index? pos] [0]
+		case [
+			integer? section [section]
+			pos: find sections section [index? pos]
+			true [0]
+		]
 	]
 
 	rel-address-of: func [
