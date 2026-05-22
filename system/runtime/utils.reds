@@ -39,17 +39,23 @@ prin-only: func [s [c-string!] len [integer!] return: [c-string!] /local p][
 ;-------------------------------------------
 ;-- Print a byte value in source format (MOLD-ed format)
 ;-------------------------------------------
-prin-molded-byte: func [b [byte!] /local i][
+prin-molded-byte: func [b [byte!] /local i c][
 	prin {#"}
 	i: as-integer b
-	case [
-		i =  00h [prin "^^@"]
-		i =  09h [prin "^^-"]
-		i =  0Ah [prin "^^/"]
-		i =  1Bh [prin "^^]"]
-		i <= 1Fh [prin-byte #"^^" prin-byte #"A" + i - 1]
-		i <= 7Fh [prin-byte b]
-		i <= FFh [prin "^^(" prin-2hex i prin-byte #")"]
+	switch i [
+		00h [prin "^^@"]
+		09h [prin "^^-"]
+		0Ah [prin "^^/"]
+		1Bh [prin "^^]"]
+		default [
+			if i <= 1Fh [
+				c: #"A" + i - 1
+				prin-byte #"^^"
+				prin-byte c
+			]
+			if all [i > 1Fh i <= 7Fh][prin-byte b]
+			if i > 7Fh [prin "^^(" prin-2hex i prin-byte #")"]
+		]
 	]
 	prin-byte #"^""
 ]
@@ -74,24 +80,9 @@ prin-byte: func [
 prin-uint64-parts: func [
 	lo		[integer!]
 	hi		[integer!]
-	/local
-		s	[c-string!]
-		c	[integer!]
-		value [uint64!]
-		rem	[integer!]
 ][
-	value: ((as uint64! as uint32! hi) << 32) or (as uint64! as uint32! lo)
-	if value = as uint64! 0 [prin "0" exit]
-	s: "00000000000000000000"				;-- max 20 digits
-	c: 20
-	until [
-		rem: as integer! value % as uint64! 10
-		s/c: #"0" + rem
-		c: c - 1
-		value: value / as uint64! 10
-		value = as uint64! 0
-	]
-	prin s + c
+	prin-hex hi
+	prin-hex lo
 ]
 
 ;-------------------------------------------
@@ -125,35 +116,39 @@ _print: func [
 		unused32 [float32!]
 		s		 [c-string!]
 		c		 [byte!]
+		len		 [integer!]
+		_i		 [integer!]
 ][
 	BACK_TO_CONSOLE
-	until [
-		switch list/type [
-			type-logic!	   [prin either as-logic list/value ["true"]["false"]]
-			type-integer!  [prin-int list/value]
-			type-int8!	   [prin-int list/value]
-			type-uint8!	   [prin-int list/value]
-			type-int16!	   [prin-int list/value]
-			type-uint16!   [prin-int list/value]
-			type-uint32!   [prin-uint64-parts list/value 0]
-			type-int64!	   [prin-int64-parts list/value list/_padding]
-			type-uint64!   [prin-uint64-parts list/value list/_padding]
+		until [
+			switch list/type [
+			type-logic!	   [either as-logic as integer! list/value [prin "true"][prin "false"]]
+			type-integer!  [prin-int as integer! list/value]
+			type-int8!	   [prin-int as integer! list/value]
+			type-uint8!	   [prin-int as integer! list/value]
+			type-int16!	   [prin-int as integer! list/value]
+			type-uint16!   [prin-int as integer! list/value]
+			type-uint32!   [prin-uint64-parts as integer! list/value 0]
+			type-int64!	   [prin-int64-parts as integer! list/value list/_padding]
+			type-uint64!   [prin-uint64-parts as integer! list/value list/_padding]
 			type-float!    [fp: as typed-float! list unused: prin-float fp/value]
 			type-float32!  [fp32: as typed-float32! list unused32: prin-float32 fp32/value]
-			type-byte!     [prin-byte as-byte list/value]
+			type-byte!     [_i: as integer! list/value prin-byte as-byte _i]
 			type-c-string! [s: as-c-string list/value prin s]
-			default 	   [prin-hex list/value]
+			default 	   [prin-hex as integer! list/value]
 		]
 		count: count - 1
 		
 		if all [spaced? count <> 0][
 			switch list/type [
 				type-c-string! [
-					s: s + (length? s) - 1
+					len: length? s
+					s: s + len - 1
 					c: s/1
 				]
 				type-byte! [
-					c: as-byte list/value
+					_i: as integer! list/value
+					c: as-byte _i
 				]
 				default [
 					c: null-byte
@@ -242,10 +237,12 @@ equal-string?: func [
 	return: [logic!]
 	/local
 		size [integer!]
+		size2 [integer!]
 		c	 [byte!]
 ][
 	size: length? str1
-	if size <> length? str2 [return no]
+	size2: length? str2
+	if size <> size2 [return no]
 	
 	while [c: str1/1 c <> null-byte][
 		if c <> str2/1 [return no]

@@ -53,8 +53,9 @@ linker: context [
 	]
 	
 	set-ptr: func [job [object!] name [word!] value [integer!] /local spec][
-		spec: find job/symbols name
-		spec/<data>/2: value
+		if spec: find job/symbols name [
+			spec/<data>/2: value
+		]
 	]
 	
 	set-integer-at: func [job [object!] pos [integer!] value [integer!] /local spec][
@@ -62,8 +63,9 @@ linker: context [
 	]
 	
 	set-integer: func [job [object!] name [word!] value [integer!] /local spec][
-		spec: find job/symbols name
-		change/part at job/sections/data/2 spec/2/2 + 1 to-bin32 value 4
+		if spec: find job/symbols name [
+			change/part at job/sections/data/2 spec/2/2 + 1 to-bin32 value 4
+		]
 	]
 	
 	check-dup-symbols: func [job [object!] imports [block!] /local exports dup][

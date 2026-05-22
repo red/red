@@ -200,6 +200,9 @@ emitter: make-profilable context [
 	
 	get-func-ref: func [name [word!] /local entry][
 		entry: find/last symbols name
+		unless entry [
+			compiler/throw-error ["missing function symbol:" name]
+		]
 		if entry/2/1 = 'native [
 			repend symbols [							;-- copy 'native entry to a 'global entry
 				name reduce ['native-ref all [entry/2/2 entry/2/2 - 1] make block! 1]
@@ -267,7 +270,13 @@ emitter: make-profilable context [
 			type: 'integer!
 			if logic? value [value: to integer! value]	;-- TRUE => 1, FALSE => 0
 		]
-		if all [value = <last> not find [float! float64! int64! uint64!] type][
+		if all [
+			value = <last>
+			not find [
+				float! float64! int64! uint64!
+				pointer! c-string! struct! union! function! subroutine! array!
+			] type
+		][
 			type: 'integer!								; @@ not accurate for float32!
 			value: 0
 		]
@@ -1200,7 +1209,11 @@ emitter: make-profilable context [
 	]
 	
 	start-epilog: does [								;-- libc init epilog
-		poke second find/last symbols '***_start 2 tail-ptr - 1	;-- save the "main" entry point
+		poke second find/last symbols '***_start 2 either target/target = 'X86-64 [
+			tail-ptr
+		][
+			tail-ptr - 1
+		]											;-- save the "main" entry point
 		target/emit-prolog '***_start [] 0
 	]
 	

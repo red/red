@@ -194,11 +194,24 @@ win32-startup-ctx: context [
 	;-------------------------------------------
 	;-- Retrieve command-line information
 	;-------------------------------------------
-	on-start: func [/local c n argv args len src dst][
-		c: 0
-		args: CommandLineToArgvW as byte-ptr! GetCommandLine :c
-		
-		argv: as int-ptr! allocate c + 1 * size? int-ptr!
+	on-start: func [
+		/local
+		argc-ptr [int-ptr!]
+		c	[integer!]
+		n	[integer!]
+		argv	[int-ptr!]
+		args	[int-ptr!]
+		len	[integer!]
+		src	[int-ptr!]
+		dst	[int-ptr!]
+	][
+		argc-ptr: declare int-ptr!
+		argc-ptr/value: 0
+		args: CommandLineToArgvW as byte-ptr! GetCommandLine argc-ptr
+		c: argc-ptr/value
+
+		len: (c + 1) * size? int-ptr!
+		argv: as int-ptr! allocate len
 		src: args
 		dst: argv
 

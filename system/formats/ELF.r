@@ -113,6 +113,9 @@ context [
 		dt-bind-now		24			;; process relocations before transfer
 		dt-pltrel		20			;; relocation type used for PLT
 		dt-runpath		29			;; library search path
+		dt-flags-1		1879048187	;; state flags
+
+		df-1-pie		134217728	;; position-independent executable
 
 		r-386-32		1			;; direct 32-bit relocation
 		r-386-copy		5			;; copy symbol at runtime
@@ -382,11 +385,14 @@ context [
 			section ".dynstr"		[strtab	  	[alloc]				byte]
 			section ".dynsym"		[dynsym	  	[alloc]				word]
 			section ".rel.text"		[rel	  	[alloc]				word]
+			section ".rela.plt"		[rela	  	[alloc]				word]
+			section ".plt"			[progbits 	[alloc execinstr]	word]
 			section ".text"			[progbits 	[alloc execinstr]	word]
 		]
 
 		segment "rw"				[load	  	[r w]				page] [
 			section ".data"			[progbits 	[write alloc]		word]
+			section ".got.plt"		[progbits 	[write alloc]		word]
 			section ".data.rel.ro"	[progbits 	[write alloc]		word]
 			segment "dynamic"		[dynamic  	[r w]				word] [
 				section ".dynamic"	[dynamic  	[write alloc]		word]
@@ -410,7 +416,8 @@ context [
 			structure segments sections commands layout
 			data-size data-reloc dynamic-size
 			get-address get-offset get-size get-meta get-data set-data
-			relro-offset pos list soname base
+			relro-offset plt-offset pos list soname base
+			import-funcs import-vars relro-imports gotplt-count plt-size
 			ehdr-struct phdr-struct shdr-struct dynamic-struct
 			symbol-struct relocation-struct relro-word-struct
 			reloc-section
@@ -420,7 +427,9 @@ context [
 		]
 		dynamic-linker: any [job/dynamic-linker ""]
 	
-		soname: append form last split-path job/build-basename ".so"
+		base: last split-path job/build-basename
+		soname: form base
+		unless %.so = suffix? base [append soname ".so"]
 		
 		;-- (hack) Move libRedRT in first position to avoid "system" symbol
 		;-- to be bound to libC instead! (TBD: find a cleaner way)
@@ -429,9 +438,18 @@ context [
 		]
 		
 		set [libraries imports] collect-import-names job
+		import-funcs: collect-import-funcs imports
+		import-vars: collect-import-vars imports
+		relro-imports: either elf64-target? job/target [import-vars][imports]
 		exports: collect-exports job
 		natives: collect-natives job
 		data-reloc: collect-data-reloc job
+		gotplt-count: either all [elf64-target? job/target not empty? import-funcs][
+			3 + length? import-funcs
+		][0]
+		plt-size: either all [elf64-target? job/target not empty? import-funcs][
+			16 * (1 + length? import-funcs)
+		][0]
 
 		structure: copy default-structure
 		reloc-section: either elf64-target? job/target [".rela.dyn"][".rel.text"]
@@ -439,7 +457,12 @@ context [
 			replace-deep structure ".rel.text" reloc-section
 			replace-deep structure 'rel 'rela
 		]
-
+		if any [not elf64-target? job/target empty? import-funcs] [
+			remove-elements structure [".rela.plt" ".plt" ".got.plt"]
+		]
+		if all [elf64-target? job/target empty? import-vars] [
+			remove-elements structure [".data.rel.ro"]
+		]
 		if job/target <> 'ARM [
 			remove-elements structure [".ARM.attributes"]
 		]
@@ -455,13 +478,13 @@ context [
 			remove-elements structure [".interp"]
 		]
 
-		if empty? imports [
+		if all [empty? imports not job/PIE?] [
 			remove-elements structure [
 				".interp"
 			]
 		]
 
-		if all [empty? imports empty? exports] [
+		if all [empty? imports empty? exports not job/PIE?] [
 			remove-elements structure [
 				".hash"
 				".dynstr"
@@ -484,7 +507,7 @@ context [
 			remove-elements structure [".data"]
 		]
 		
-		dynamic-size: calc-dynamic-size job/type job/target job/symbols
+		dynamic-size: calc-dynamic-size job/type job/target job/PIE? length? import-funcs job/symbols
 		ehdr-struct: ehdr-struct? job/target
 		phdr-struct: phdr-struct? job/target
 		shdr-struct: shdr-struct? job/target
@@ -516,6 +539,7 @@ context [
 			".hash"			meta [link ".dynsym"]
 			".dynsym"		meta [link ".dynstr" info 1]
 			(reloc-section)	meta [link ".dynsym" info ".text"]
+			".rela.plt"	meta [link ".dynsym" info ".got.plt"]
 			".dynamic"		meta [link ".dynstr"]
 			".stab"			meta [link ".stabstr"]
 
@@ -523,9 +547,12 @@ context [
 			"phdr"			size [(phdr-struct)		length? segments]
 			".hash"			size [machine-word		2 + 2 + (length? imports) + ((length? exports) / 2)]
 			".dynsym"		size [(symbol-struct)	1 + (length? imports) + ((length? exports) / 2)]
-			(reloc-section)	size [(relocation-struct) (length? imports) + (length? data-reloc)]
+			(reloc-section)	size [(relocation-struct) (length? relro-imports) + (length? data-reloc)]
+			".rela.plt"		size [(relocation-struct) length? import-funcs]
+			".plt"			size (plt-size)
 			".data"			size (data-size)
-			".data.rel.ro"	size [(relro-word-struct) length? imports]
+			".got.plt"		size [(relro-word-struct) gotplt-count]
+			".data.rel.ro"	size [(relro-word-struct) length? relro-imports]
 			".dynamic"		size [(dynamic-struct)	dynamic-size + length? libraries]
 			".stab"			size [stab-entry		2 + ((length? natives) / 2)]
 			"shdr"			size [(shdr-struct)		length? sections]
@@ -598,14 +625,20 @@ context [
 				section-index-of sections ".data"
 		]
 
-		set-data reloc-section [
-			build-reltext
+		set-data ".rela.plt" [
+			build-relplt
 				job/target
 				imports
-				get-address ".data.rel.ro"
-				data-reloc
-				any [attempt [get-address ".data"] 0]	;-- in case .data segment is absent
-				get-address ".text"
+				import-funcs
+				get-address ".got.plt"
+		]
+
+		set-data ".plt" [
+			build-plt
+				job/target
+				import-funcs
+				get-address ".plt"
+				get-address ".got.plt"
 		]
 
 		set-data ".data" [
@@ -616,19 +649,55 @@ context [
 			job/sections/data/2
 		]
 
+		;; Resolve data references before building RELA entries; x86-64 stores
+		;; relative pointer values in r_addend rather than in the relocated slot.
+		if has-element ".data" [
+			linker/resolve-symbol-refs
+				job
+				get-data ".text"
+				get-data ".data"
+				get-address ".text"
+				get-address ".data"
+				machine-word
+		]
+
+		set-data reloc-section [
+			build-reltext
+				job/target
+				imports
+				relro-imports
+				any [attempt [get-address ".data.rel.ro"] 0]
+				data-reloc
+				any [attempt [get-address ".data"] 0]	;-- in case .data segment is absent
+				any [attempt [get-data ".data"] #{}]
+				get-address ".text"
+		]
+
+		set-data ".got.plt" [
+			build-got-plt
+				job/target
+				import-funcs
+				get-address ".dynamic"
+				get-address ".plt"
+		]
+
 		set-data ".data.rel.ro"
-			[build-relro job/target imports]
+			[build-relro job/target relro-imports]
 		
 		set-data ".dynamic" [
 			build-dynamic
 				job/type
 				job/target
+				job/PIE?
 				job/symbols
 				get-address ".text"
 				get-address ".hash"
 				get-address ".dynstr" get-size ".dynstr"
 				get-address ".dynsym"
 				get-address reloc-section get-size reloc-section
+				any [attempt [get-address ".got.plt"] none]
+				any [attempt [get-address ".rela.plt"] none]
+				any [attempt [get-size ".rela.plt"] 0]
 				get-data ".dynstr"
 				libraries
 				soname
@@ -649,26 +718,26 @@ context [
 				get-data ".shstrtab"
 		]
 
-		;; Resolve data references.
-		if has-element ".data" [
-			linker/resolve-symbol-refs
-				job
-				get-data ".text"
-				get-data ".data"
-				get-address ".text"
-				get-address ".data"
-				machine-word
-		]
-
-		;; Resolve import (library function) references.
-		if has-element ".data.rel.ro" [
+		;; Resolve import references.
+		if any [has-element ".data.rel.ro" has-element ".plt"] [
+			relro-offset: none
+			if has-element ".data.rel.ro" [
 			relro-offset: get-address ".data.rel.ro"
 			if job/PIC? [relro-offset: relro-offset - get-address ".text"]
+			]
+			plt-offset: none
+			if has-element ".plt" [
+				plt-offset: get-address ".plt"
+				if job/PIC? [plt-offset: plt-offset - get-address ".text"]
+			]
 			resolve-import-refs
 				job
 				imports
+				import-vars
+				import-funcs
 				get-data ".text"
 				relro-offset
+				plt-offset
 		]
 		
 		linker/set-image-info
@@ -819,7 +888,9 @@ context [
 			entry: make-struct sym none
 			entry/name: strtab-index-of dynstr symbol
 			entry/value: 0 ;; Unknown, for imported symbols.
-			entry/info: to-elf-symbol-info defs/stb-global defs/stt-func
+			entry/info: to-elf-symbol-info
+				defs/stb-global
+				either issue? symbol [defs/stt-object][defs/stt-func]
 			entry/other: defs/stv-default
 			entry/shndx: defs/shn-undef
 			append result entry
@@ -850,19 +921,22 @@ context [
 	build-reltext: func [
 		target-arch [word!]
 		symbols [block!]
+		vars [block!]
 		relro-address [integer!]
 		relocs [block!]
 		data-address [integer!]
+		data [binary!]
 		code-address [integer!]
-		/local rel-type result entry len reloc
+		/local rel-type result entry len reloc symbol
 	] [
 		if elf64-target? target-arch [
 			reloc: relocation-struct? target-arch
-			result: make block! (length? relocs) + len: length? symbols
+			result: make block! (length? relocs) + len: length? vars
 			repeat i len [
+				symbol: vars/:i
 				entry: make-struct reloc none
 				entry/offset:	relro-address + ((size-of machine-word64) * (i - 1))
-				entry/info:		reduce [defs/r-x86-64-glob-dat i]
+				entry/info:		reduce [defs/r-x86-64-glob-dat index? find symbols symbol]
 				entry/addend:	0
 				append result entry
 			]
@@ -870,7 +944,7 @@ context [
 				entry: make-struct reloc none
 				entry/offset:	data-address + ptr
 				entry/info:		reduce [defs/r-x86-64-relative 0]
-				entry/addend:	0
+				entry/addend:	to integer! reverse copy/part at data ptr + 1 4
 				append result entry
 			]
 			return result
@@ -905,7 +979,84 @@ context [
 		]
 		result
 	]
-	
+
+	build-relplt: func [
+		target-arch [word!]
+		imports [block!]
+		funcs [block!]
+		gotplt-address [integer!]
+		/local reloc result entry slot symbol
+	][
+		reloc: relocation-struct? target-arch
+		result: make block! length? funcs
+		slot: 0
+		foreach symbol funcs [
+			entry: make-struct reloc none
+			entry/offset:	gotplt-address + ((size-of machine-word64) * (3 + slot))
+			entry/info:		reduce [defs/r-x86-64-jump-slot index? find imports symbol]
+			entry/addend:	0
+			append result entry
+			slot: slot + 1
+		]
+		result
+	]
+
+	build-got-plt: func [
+		target-arch [word!]
+		funcs [block!]
+		dynamic-address [integer!]
+		plt-address [integer!]
+		/local result slot
+	][
+		result: make block! 3 + length? funcs
+		append result make-struct machine-word64 reduce [dynamic-address]
+		append result make-struct machine-word64 reduce [0]
+		append result make-struct machine-word64 reduce [0]
+		slot: 1
+		foreach symbol funcs [
+			append result make-struct machine-word64 reduce [plt-address + (16 * slot) + 6]
+			slot: slot + 1
+		]
+		result
+	]
+
+	build-plt: func [
+		target-arch [word!]
+		funcs [block!]
+		plt-address [integer!]
+		gotplt-address [integer!]
+		/local result slot disp target source
+	][
+		result: copy #{}
+		target: gotplt-address + 8
+		source: plt-address + 6
+		disp: target - source
+		append result #{FF35}
+		append result to-bin32 disp
+		target: gotplt-address + 16
+		source: plt-address + 12
+		disp: target - source
+		append result #{FF25}
+		append result to-bin32 disp
+		append result #{0F1F4000}
+		slot: 0
+		foreach symbol funcs [
+			target: gotplt-address + ((size-of machine-word64) * (3 + slot))
+			source: plt-address + (16 * (slot + 1)) + 6
+			disp: target - source
+			append result #{FF25}
+			append result to-bin32 disp
+			append result #{68}
+			append result to-bin32 slot
+			source: plt-address + (16 * (slot + 1)) + 16
+			disp: plt-address - source
+			append result #{E9}
+			append result to-bin32 disp
+			slot: slot + 1
+		]
+		result
+	]
+
 	build-reldata: func [
 		target-arch [word!]
 		relocs [block!]
@@ -933,6 +1084,7 @@ context [
 	build-dynamic: func [
 		job-type		[word!]
 		target			[word!]
+		PIE?			[logic! none!]
 		symbols			[hash!]
 		text-address	[integer!]
 		hash-address	[integer!]
@@ -941,6 +1093,9 @@ context [
 		dynsym-address	[integer!]
 		reltext-address [integer!]
 		reltext-size 	[integer!]
+		pltgot-address	[integer! none!]
+		relplt-address	[integer! none!]
+		relplt-size		[integer!]
 		dynstr			[binary!]
 		libraries		[block!]
 		soname			[string!]
@@ -965,6 +1120,17 @@ context [
 			]
 			if spec: select symbols 'on-unload [
 				repend entries ['fini text-address + spec/2 - 1]
+			]
+		]
+		if PIE? [
+			repend entries ['flags-1 defs/df-1-pie]
+		]
+		if relplt-size > 0 [
+			append entries reduce [
+				'pltgot		pltgot-address
+				'pltrelsz	relplt-size
+				'pltrel		defs/dt-rela
+				'jmprel		relplt-address
 			]
 		]
 		
@@ -1131,6 +1297,22 @@ context [
 		reduce [libraries symbols]
 	]
 
+	collect-import-funcs: func [imports [block!] /local funcs][
+		funcs: copy []
+		foreach symbol imports [
+			unless issue? symbol [append funcs symbol]
+		]
+		funcs
+	]
+
+	collect-import-vars: func [imports [block!] /local vars][
+		vars: copy []
+		foreach symbol imports [
+			if issue? symbol [append vars symbol]
+		]
+		vars
+	]
+
 	collect-exports: func [
 		{Collect a list of exported objects: symbol, type, offset and size. As
 		the object size is not yet stored in the symbol or exports table, we
@@ -1190,14 +1372,29 @@ context [
 	]
 
 	resolve-import-refs: func [
-		job [object!] symbols [block!] code [binary!] relro-offset [integer!]
-		/local rel disp
+		job [object!]
+		symbols [block!]
+		vars [block!]
+		funcs [block!]
+		code [binary!]
+		relro-offset [integer! none!]
+		plt-offset [integer! none!]
+		/local rel disp index
 	] [
 		foreach [libname libimports] job/sections/import/3 [
 			linker/check-dup-symbols job libimports
 			foreach [symbol callsites] libimports [
 				either elf64-target? job/target [
-					disp: rel-address-of/symbol relro-offset symbols symbol
+					index: either issue? symbol [
+						index? find vars symbol
+					][
+						index? find funcs symbol
+					]
+					disp: either issue? symbol [
+						relro-offset + ((size-of machine-word64) * (index - 1))
+					][
+						plt-offset + (16 * index)
+					]
 					foreach callsite callsites [
 						change/part at code callsite to-bin32 disp - callsite - 3 4
 					]
@@ -1305,12 +1502,16 @@ context [
 	calc-dynamic-size: func [
 		job-type	[word!]
 		target		[word!]
+		PIE?		[logic! none!]
+		plt-count	[integer!]
 		symbols		[hash!]
 		/local entries spec
 	][
 		  (any [all [job-type = 'dll select symbols '***-dll-entry-point 1] 0])
 		+ (any [all [job-type = 'dll 1] 0])
 		+ (any [all [job-type = 'dll select symbols 'on-unload 1] 0])
+		+ (any [all [PIE? 1] 0])
+		+ (any [all [plt-count > 0 4] 0])
 		+ (any [all [target <> 'ARM 1] 0])				;-- dt-rpath
 		+ length? [
 			hash

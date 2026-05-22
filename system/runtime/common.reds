@@ -105,31 +105,69 @@ str-array!: alias struct! [
 	item [c-string!]
 ]
 
-typed-value!: alias struct! [
-	type	 [integer!]	
-	value	 [integer!]
-	_padding [integer!]						;-- extra space for 64-bit values
-]
+#either target = 'X86-64 [
+	typed-value!: alias struct! [
+		type	 [integer!]
+		_align0	 [integer!]
+		value	 [int-ptr!]
+		_padding [integer!]
+		_align1	 [integer!]
+	]
 
-typed-int64!: alias struct! [
-	type	 [integer!]
-	value	 [int64!]
-]
+	typed-int64!: alias struct! [
+		type	 [integer!]
+		_align0	 [integer!]
+		value	 [int64!]
+		_padding [integer!]
+	]
 
-typed-uint64!: alias struct! [
-	type	 [integer!]
-	value	 [uint64!]
-]
+	typed-uint64!: alias struct! [
+		type	 [integer!]
+		_align0	 [integer!]
+		value	 [uint64!]
+		_padding [integer!]
+	]
 
-typed-float32!: alias struct! [
-	type	 [integer!]	
-	value	 [float32!]
-	_padding [integer!]						;-- extra space for 64-bit values	
-]
+	typed-float32!: alias struct! [
+		type	 [integer!]
+		_align0	 [integer!]
+		value	 [float32!]
+		_padding [integer!]
+	]
 
-typed-float!: alias struct! [
-	type	 [integer!]	
-	value	 [float!]
+	typed-float!: alias struct! [
+		type	 [integer!]
+		_align0	 [integer!]
+		value	 [float!]
+		_padding [integer!]
+	]
+][
+	typed-value!: alias struct! [
+		type	 [integer!]
+		value	 [integer!]
+		_padding [integer!]						;-- extra space for 64-bit values
+	]
+
+	typed-int64!: alias struct! [
+		type	 [integer!]
+		value	 [int64!]
+	]
+
+	typed-uint64!: alias struct! [
+		type	 [integer!]
+		value	 [uint64!]
+	]
+
+	typed-float32!: alias struct! [
+		type	 [integer!]
+		value	 [float32!]
+		_padding [integer!]						;-- extra space for 64-bit values
+	]
+
+	typed-float!: alias struct! [
+		type	 [integer!]
+		value	 [float!]
+	]
 ]
 
 re-throw: func [/local id [integer!]][

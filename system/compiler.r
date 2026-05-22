@@ -1145,6 +1145,45 @@ system-dialect: make-profilable context [
 			]
 			either resolve-alias? [resolve-aliased type][type]
 		]
+
+		resolve-system-path-type: func [path [path! set-path!] /local member regs][
+			if any [
+				path/1 <> 'system
+				(length? path) < 2
+			][return none]
+
+			switch/default path/2 [
+				pc [
+					if 2 = length? path [return [pointer! [byte!]]]
+				]
+				stack [
+					if 3 = length? path [
+						switch path/3 [
+							top frame align [return [pointer! [integer!]]]
+						]
+					]
+				]
+				cpu [
+					if 3 = length? path [
+						member: path/3
+						if member = 'overflow? [return [logic!]]
+						regs: switch/default job/target [
+							X86-64 [[rax rbx rcx rdx rsp rbp rsi rdi r8 r9 r10 r11 r12 r13 r14 r15]]
+							IA-32  [[eax ebx ecx edx esp ebp esi edi]]
+							ARM    [[r0 r1 r2 r3 r4 r5 r6 r7 r8 r9 r10 r11 r12 r13 r14 r15]]
+						][[]]
+						if find regs member [
+							return either job/target = 'X86-64 [
+								[pointer! [integer!]]
+							][
+								[integer!]
+							]
+						]
+					]
+				]
+			][none]
+			none
+		]
 		
 		resolve-path-type: func [path [path! set-path!] /parent prev /local type path-error p1][
 			path-error: [
@@ -1152,6 +1191,8 @@ system-dialect: make-profilable context [
 				throw-error ["invalid path value:" mold path]
 			]
 			
+			if all [not parent type: resolve-system-path-type path][return type]
+
 			p1: to word! path/1
 			either parent [
 				resolve-struct-member-type prev p1	;-- just check for correct member name
@@ -3594,6 +3635,13 @@ system-dialect: make-profilable context [
 						return <last>
 					]
 					all [
+						path/1 = 'system
+						type: resolve-system-path-type path
+					][
+						last-type: type
+						pc: next pc
+					]
+					all [
 						not get?
 						'function! = first type: resolve-path-type path 
 					][
@@ -4020,10 +4068,17 @@ system-dialect: make-profilable context [
 				throw-error ["enumeration cannot be used as path root:" set-path/1]
 			]
 			unless spec: get-variable-spec set-path/1 [
-				backtrack set-path
-				throw-error ["unknown path root variable:" set-path/1]
+				unless all [
+					set-path/1 = 'system
+					type: resolve-system-path-type set-path
+				][
+					backtrack set-path
+					throw-error ["unknown path root variable:" set-path/1]
+				]
 			]
-			type: resolve-path-type set-path			;-- check path validity
+			unless type [
+				type: resolve-path-type set-path		;-- check path validity
+			]
 			new: resolve-aliased get-type expr
 			
 			all [

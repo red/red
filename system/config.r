@@ -94,6 +94,28 @@ WinDLL [
 	sub-system: 'GUI
 	red-store-bodies?: no
 ]
+;-------------------------
+Windows-X86-64 [
+	OS:			'Windows
+	format:		'PE
+	target:		'X86-64
+	type:		'exe
+	ABI:		'win64
+	sub-system: 'console
+	stack-align-16?: yes
+]
+;-------------------------
+Windows-X86-64-DLL [
+	OS:			'Windows
+	format:		'PE
+	target:		'X86-64
+	type:		'DLL
+	ABI:		'win64
+	sub-system: 'GUI
+	stack-align-16?: yes
+	red-store-bodies?: no
+]
+;-------------------------
 WinDRV [
 	OS:			'Windows
 	format: 	'PE

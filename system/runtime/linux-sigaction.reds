@@ -97,6 +97,43 @@ siginfo!: alias struct! [
 				;sigmask	[...]				;-- 128 byte array ignored
 			]
 		]
+		X86-64 [
+			_ucontext!: alias struct! [
+				flags 		[int-ptr!]
+				link		[_ucontext!]
+				ss_sp		[byte-ptr!]			;-- stack_t struct inlined
+				ss_flags	[integer!]
+				ss_pad		[integer!]			;-- align ss_size on 64-bit
+				ss_size		[int-ptr!]
+				r8			[int-ptr!]			;-- sigcontext gregset inlined
+				r9			[int-ptr!]
+				r10			[int-ptr!]
+				r11			[int-ptr!]
+				r12			[int-ptr!]
+				r13			[int-ptr!]
+				r14			[int-ptr!]
+				r15			[int-ptr!]
+				rdi			[int-ptr!]
+				rsi			[int-ptr!]
+				rbp			[int-ptr!]
+				rbx			[int-ptr!]
+				rdx			[int-ptr!]
+				rax			[int-ptr!]
+				rcx			[int-ptr!]
+				rsp			[int-ptr!]
+				rip			[int-ptr!]
+				eflags		[int-ptr!]
+				cs			[int-ptr!]
+				gs			[int-ptr!]
+				fs			[int-ptr!]
+				err			[int-ptr!]
+				trapno		[int-ptr!]
+				oldmask		[int-ptr!]
+				cr2			[int-ptr!]
+				fpstate		[int-ptr!]
+				;sigmask	[...]				;-- 128 byte array ignored
+			]
+		]
 		ARM [
 			_ucontext!: alias struct! [
 				flags 		[integer!]
@@ -134,6 +171,7 @@ siginfo!: alias struct! [
 #define UCTX_INSTRUCTION(ctx) [
 	#switch target [
 		IA-32 [ctx/eip]
+		X86-64 [ctx/rip]
 		ARM	  [ctx/arm_pc]
 	]
 ]
@@ -141,6 +179,7 @@ siginfo!: alias struct! [
 #define UCTX_GET_STACK_TOP(ctx) [
 	#switch target [
 		IA-32 [ctx/esp]
+		X86-64 [ctx/rsp]
 		ARM	  [ctx/arm_sp]
 	]
 ]
@@ -148,6 +187,7 @@ siginfo!: alias struct! [
 #define UCTX_GET_STACK_FRAME(ctx) [
 	#switch target [
 		IA-32 [ctx/ebp]
+		X86-64 [ctx/rbp]
 		ARM	  [ctx/arm_fp]
 	]
 ]
