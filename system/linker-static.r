@@ -276,6 +276,7 @@ static-link: context [
 				]
 			][
 				obj: reader/load info/1
+				mark-live-sections obj
 				merge-sections job obj
 				repend objects [obj/path obj]
 				note-undefined obj
@@ -297,12 +298,14 @@ static-link: context [
 		until [
 			progress?: false
 			foreach m arch-members [
-				if all [not m/2  member-defines-needed? m/1][
-					merge-sections job m/1
-					repend objects [m/1/path m/1]
-					poke m 2 true
+				if member-defines-needed? m/1 [
+					mark-live-sections m/1
+					if merge-sections job m/1 [progress?: true]
+					unless m/2 [
+						repend objects [m/1/path m/1]
+						poke m 2 true
+					]
 					note-undefined m/1
-					progress?: true
 				]
 			]
 			not progress?
@@ -321,12 +324,81 @@ static-link: context [
 		name
 	]
 
-	;-- Add an object's undefined externals to the `needed` reference set.
-	note-undefined: func [obj [object!] /local sym nm][
+	;-- Slots 10/11 on each parsed section are linker-local flags:
+	;-- live? and merged?. Live marking is additive because a later archive
+	;-- pass can discover a new symbol defined by an already-pulled member.
+	ensure-live-slot: func [section [block!]][
+		if (length? section) < 10 [append section false]
+		if (length? section) < 11 [append section false]
+	]
+
+	section-live?: func [section [block!]][
+		all [(length? section) >= 10  true = section/10]
+	]
+
+	section-merged?: func [section [block!]][
+		all [(length? section) >= 11  true = section/11]
+	]
+
+	mark-section-live?: func [obj [object!] sect [integer!] /local section][
+		if any [sect <= 0  sect > length? obj/sections][return false]
+		section: pick obj/sections sect
+		unless reader/sec-kind section [return false]
+		ensure-live-slot section
+		if section/10 [return false]
+		poke section 10 true
+		true
+	]
+
+	;-- Compute the per-object live-section closure from currently needed
+	;-- symbols. Relocations from live sections keep their target sections
+	;-- in the same object; undefined targets are handled by note-undefined.
+	mark-live-sections: func [
+		obj [object!]
+		/local section sym sect changed? r target
+	][
+		foreach section obj/sections [
+			ensure-live-slot section
+		]
 		foreach sym obj/symbols [
-			if reader/is-undefined-external? sym [
-				nm: arch-bare reader/sym-name sym
-				unless find needed nm [append needed nm]
+			if all [
+				reader/is-defined-external? sym
+				find needed arch-bare reader/sym-name sym
+			][
+				mark-section-live? obj reader/sym-sect sym
+			]
+		]
+		until [
+			changed?: false
+			foreach section obj/sections [
+				if section-live? section [
+					foreach r reader/sec-relocs section [
+						target: pick obj/symbols (r/2 + 1)
+						if target [
+							sect: reader/sym-sect target
+							if sect > 0 [
+								if mark-section-live? obj sect [changed?: true]
+							]
+						]
+					]
+				]
+			]
+			not changed?
+		]
+	]
+
+	;-- Add an object's undefined externals to the `needed` reference set.
+	note-undefined: func [obj [object!] /local section sym nm sec-kind][
+		foreach section obj/sections [
+			sec-kind: reader/sec-base-kind section
+			unless sec-kind = 'none [
+				foreach r reader/sec-relocs section [
+					sym: pick obj/symbols (r/2 + 1)
+					if all [sym  reader/is-undefined-external? sym][
+						nm: arch-bare reader/sym-name sym
+						unless find needed nm [append needed nm]
+					]
+				]
 			]
 		]
 	]
@@ -364,11 +436,17 @@ static-link: context [
 	;-- Append an object's kept sections into the build's code/data buffers,
 	;-- each aligned to its required boundary; record each section's merged
 	;-- base and the build's peak alignment, then register defined externals.
-	merge-sections: func [job [object!] obj [object!] /local code data section kind a base sym ckey][
+	merge-sections: func [
+		job [object!] obj [object!]
+		/local code data section kind a base sym sect ckey merged? idx common-live? r sec-kind
+	][
 		code: job/sections/code/2
 		data: job/sections/data/2
+		merged?: false
 		foreach section obj/sections [
 			kind: reader/sec-kind section
+			unless section-live? section [kind: none]
+			if section-merged? section [kind: none]
 			if kind [
 				;; COMDAT / SHT_GROUP: drop a section whose key has already
 				;; been pulled. The section keeps base-kind='none, so its
@@ -387,24 +465,66 @@ static-link: context [
 					base: length? code
 					append code reader/sec-data section
 					reader/set-sec-base section 'code base
+					poke section 11 true
+					merged?: true
 				]
 				any [kind = 'data  kind = 'rdata][
 					pad-to data a
 					base: length? data
 					append data reader/sec-data section
 					reader/set-sec-base section 'data base
+					poke section 11 true
+					merged?: true
 				]
 				kind = 'bss [
 					pad-to data a
 					base: length? data
 					insert/dup tail data null reader/sec-size section
 					reader/set-sec-base section 'data base
+					poke section 11 true
+					merged?: true
 				]
 			]
 		]
+		idx: 0
 		foreach sym obj/symbols [
-			if reader/is-defined-external? sym [register-symbol job obj sym]
+			sect: reader/sym-sect sym
+			common-live?: false
+			if all [
+				obj-format = 'PE
+				sect = 0
+				0 < reader/sym-value sym
+			][
+				foreach section obj/sections [
+					sec-kind: reader/sec-base-kind section
+					unless sec-kind = 'none [
+						foreach r reader/sec-relocs section [
+							if r/2 = idx [common-live?: true]
+						]
+					]
+				]
+			]
+			if all [
+				reader/is-defined-external? sym
+				any [
+					all [
+						0 < sect
+						section-live? pick obj/sections sect
+					]
+					all [
+						obj-format = 'PE
+						sect = 0
+						0 < reader/sym-value sym
+						any [
+							find needed arch-bare reader/sym-name sym
+							common-live?
+						]
+					]
+				]
+			][register-symbol job obj sym]
+			idx: idx + 1
 		]
+		merged?
 	]
 
 	;-- Record a defined external's final merged address. A later strong
@@ -455,13 +575,24 @@ static-link: context [
 	;-- emitting a libc import trampoline or the __chkstk stub.
 	resolve-externals: func [
 		job [object!]
-		/local path obj sym name bare code data tramp-off disp-ref sz data-off imp res stub
+		/local path obj section sym name bare code data tramp-off disp-ref sz data-off imp res stub pending sec-kind
 	][
 		code: job/sections/code/2
 		data: job/sections/data/2
 		foreach [path obj] objects [
-			foreach sym obj/symbols [
-				if reader/is-undefined-external? sym [
+			pending: copy []
+			foreach section obj/sections [
+				sec-kind: reader/sec-base-kind section
+				unless sec-kind = 'none [
+					foreach r reader/sec-relocs section [
+						sym: pick obj/symbols (r/2 + 1)
+						if all [sym  reader/is-undefined-external? sym  not find pending sym][
+							append/only pending sym
+						]
+					]
+				]
+			]
+			foreach sym pending [
 					name: reader/sym-name sym
 					unless any [select sym-addr name  find undef-done name][
 						append undef-done name
@@ -562,7 +693,6 @@ static-link: context [
 							]
 						]
 					]
-				]
 			]
 		]
 	]
