@@ -53,14 +53,6 @@ static-link: context [
 	ptr-struct: make-struct [value [integer!]] none
 	le32: func [n [integer!]][ptr-struct/value: n  form-struct ptr-struct]
 
-	;-- x86 __chkstk stub: receives total frame size in EAX, returns with
-	;-- ESP decremented by EAX (MSVC contract). 18 bytes.
-	chkstk-stub: #{518D4C24082BC88BC48BE18B088B400450C3}
-
-	;-- __security_check_cookie is __fastcall (cookie in ECX, no stack
-	;-- args); a bare RET disables the /GS check, as building with /GS-.
-	gscheck-stub: #{C3}
-
 	abort: func [msg [block!]][
 		print rejoin ["*** Static linking error: " reform msg]
 		system-dialect/compiler/quit-on-error
@@ -606,14 +598,9 @@ static-link: context [
 								insert/dup tail data null reader/sym-value sym
 								repend sym-addr [name reduce ['data data-off false]]
 							]
-							name = "__chkstk" [
-								tramp-off: length? code
-								append code chkstk-stub
-								repend sym-addr [name reduce ['code tramp-off false]]
-							]
-							;-- MSVC/clang-cl 64-bit integer division and
-							;-- remainder helpers: drop the embedded machine
-							;-- code into the code section (see crt-helpers.r).
+							;-- Small MSVC/clang-cl compiler runtime helpers:
+							;-- drop the embedded machine code into the code
+							;-- section on demand (see crt-helpers.r).
 							stub: select crt-helpers name [
 								tramp-off: length? code
 								append code stub
@@ -622,15 +609,12 @@ static-link: context [
 							name = "__ImageBase" [
 								repend sym-addr [name reduce ['image-base 0 false]]
 							]
-							;-- MSVC /GS support: stub the cookie check (a RET),
-							;-- and give CRT marker/runtime state symbols data slots.
-							name = "@__security_check_cookie@4" [
-								tramp-off: length? code
-								append code gscheck-stub
-								repend sym-addr [name reduce ['code tramp-off false]]
-							]
+							;-- MSVC /GS support: give CRT marker/runtime state
+							;-- symbols data slots; the callable stubs are in
+							;-- crt-helpers.r.
 							any [
 								name = "___security_cookie"
+								name = "___security_cookie_complement"
 								name = "__fltused"
 								name = "___isa_available"
 							][

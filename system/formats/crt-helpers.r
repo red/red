@@ -1,14 +1,14 @@
 REBOL [
-	Title:   "Embedded x86 64-bit integer division / remainder helpers"
+	Title:   "Embedded x86 MSVC compiler runtime helpers"
 	File:	 %crt-helpers.r
 	Rights:  "Copyright (C) 2011-2025 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 	Purpose: {
-		Machine code for the MSVC / clang-cl __int64 '/' and '%' helper
+		Machine code for small MSVC / clang-cl compiler runtime helper
 		routines. The compiler emits calls to these for 64-bit integer
-		division and remainder; they are defined in no DLL, so the
-		static linker embeds them to satisfy a C archive's references
-		without needing a CRT library.
+		arithmetic, stack probing, float/integer conversion and /GS checks;
+		the static linker embeds them on demand to satisfy C archive
+		references without needing a CRT library.
 
 		Each routine is an independent shift-subtract re-implementation
 		(see system/formats/crt-helpers.s), self-contained and position-
@@ -29,12 +29,46 @@ crt-helpers: [
 	"__allshl"	#{
 80F940731580F92073060FA5C2D3E0C38BD033C080E11FD3E2C333C033D2C3
 }
+	"__allshr"	#{
+80F940731380F92073060FACD0D3FAC38BC2D3F8C1FA1FC3C1FA1F8BC2C3
+}
+	"__aullshr"	#{
+80F940731280F92073060FACD0D3EAC38BC2D3E833D2C333C033D2C3
+}
+	"__chkstk" #{
+518D4C24082BC88BC48BE18B088B400450C3
+}
+	"___chkstk" #{
+518D4C24082BC88BC48BE18B088B400450C3
+}
+	"__alloca_probe" #{
+518D4C24082BC88BC48BE18B088B400450C3
+}
+	"__alloca_probe_8" #{
+518BCC83C1082BC883E10703C11BC90BC159518BCC83C1042BC81BC0F7D023
+C88BC42500F0FFFF3BC8720A8BC159948B00890424C32D001000008500EBE9
+}
 	"__alloca_probe_16" #{
 518BCC83C1082BC883E10F03C11BC90BC159518BCC83C1042BC81BC0F7D023
 C88BC42500F0FFFF3BC8720A8BC159948B00890424C32D001000008500EBE9
 }
+	"__ftol"	#{
+83EC08DF3C248B04248B54240483C408C3
+}
+	"__ftol2"	#{
+83EC08DF3C248B04248B54240483C408C3
+}
+	"__ftol2_sse"	#{
+83EC08DF3C248B04248B54240483C408C3
+}
+	"__ftol2_sse_excpt" #{
+83EC08DF3C248B04248B54240483C408C3
+}
 	"__ltof3"	#{
 F30F2AC1C3
+}
+	"__ltod3"	#{
+F20F2AC1C3
 }
 	"__ftol3"	#{
 83EC08F30F110424D90424DF3C248B04248B54240483C408C3
@@ -42,10 +76,25 @@ F30F2AC1C3
 	"__dtol3"	#{
 83EC08F20F110424DD0424DF3C248B04248B54240483C408C3
 }
+	"__dtoul3_legacy" #{
+83EC08F20F110424DD0424DF3C248B04248B54240483C408C3
+}
 	"__ftoul3_legacy" #{
 83EC08F30F110424D90424DF3C248B04248B54240483C408C3
 }
 	"___report_rangecheckfailure" #{
+CC
+}
+	"@__security_check_cookie@4" #{
+C3
+}
+	"___report_gsfailure" #{
+CC
+}
+	"___report_securityfailure" #{
+CC
+}
+	"___report_securityfailureEx" #{
 CC
 }
 	"__alldiv"	#{
