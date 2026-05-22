@@ -341,17 +341,31 @@ coff: context [
 	;-- TRUE if the symbol's storage class is IMAGE_SYM_CLASS_WEAK_EXTERNAL.
 	sym-weak?: func [sym [block!]][sym/4 = IMAGE_SYM_CLASS_WEAK_EXTERNAL]
 
-	is-defined-external?: func [sym [block!]][
+	;-- COFF common symbol: external UNDEF with non-zero size in Value.
+	sym-common?: func [sym [block!]][
 		all [
 			sym/1 <> 'aux
-			(sym/3) > 0
+			(sym/2) > 0
+			(sym/3) = 0
 			(sym/4) = IMAGE_SYM_CLASS_EXTERNAL
+		]
+	]
+
+	is-defined-external?: func [sym [block!]][
+		any [
+			all [
+				sym/1 <> 'aux
+				(sym/3) > 0
+				(sym/4) = IMAGE_SYM_CLASS_EXTERNAL
+			]
+			sym-common? sym
 		]
 	]
 
 	is-undefined-external?: func [sym [block!]][
 		all [
 			sym/1 <> 'aux
+			zero? sym/2
 			(sym/3) = 0
 			(sym/4) = IMAGE_SYM_CLASS_EXTERNAL
 		]

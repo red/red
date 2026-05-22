@@ -403,7 +403,7 @@ static-link: context [
 			]
 		]
 		foreach sym obj/symbols [
-			if reader/is-defined-external? sym [register-symbol obj sym]
+			if reader/is-defined-external? sym [register-symbol job obj sym]
 		]
 	]
 
@@ -411,10 +411,25 @@ static-link: context [
 	;-- definition replaces an earlier weak one; otherwise first-wins
 	;-- (matches COMDAT NODUPLICATES / archive member order).
 	register-symbol: func [
-		obj [object!] sym [block!]
-		/local sect section kind base name new-weak existing
+		job [object!] obj [object!] sym [block!]
+		/local sect section kind base name new-weak existing data data-off
 	][
 		sect: reader/sym-sect sym
+		if all [
+			obj-format = 'PE
+			sect = 0
+			0 < reader/sym-value sym
+		][
+			name: reader/sym-name sym
+			unless select sym-addr name [
+				data: job/sections/data/2
+				pad-to data 4
+				data-off: length? data
+				insert/dup tail data null reader/sym-value sym
+				repend sym-addr [name reduce ['data data-off false]]
+			]
+			exit
+		]
 		if sect <= 0 [exit]
 		section: pick obj/sections sect
 		kind: reader/sec-base-kind section
@@ -477,13 +492,17 @@ static-link: context [
 								repend sym-addr [name reduce ['image-base 0 false]]
 							]
 							;-- MSVC /GS support: stub the cookie check (a RET),
-							;-- and give the cookie / __fltused markers data slots.
+							;-- and give CRT marker/runtime state symbols data slots.
 							name = "@__security_check_cookie@4" [
 								tramp-off: length? code
 								append code gscheck-stub
 								repend sym-addr [name reduce ['code tramp-off false]]
 							]
-							any [name = "___security_cookie"  name = "__fltused"][
+							any [
+								name = "___security_cookie"
+								name = "__fltused"
+								name = "___isa_available"
+							][
 								pad-to data 4
 								data-off: length? data
 								insert/dup tail data null 4
