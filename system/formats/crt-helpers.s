@@ -234,3 +234,124 @@ __allrem:
     pop     esi
     pop     ebp
     ret     16
+
+// ===================================================================
+// x86 (i386) 64-bit multiply / shift and integer <-> double helpers.
+//
+// Emitted by MSVC `cl` (clang-cl inlines most of these instead). The
+// ABIs below were verified against `cl /O2 /FAs` output:
+//
+//   __allmul  __int64 * __int64  | two __int64 on the stack -> EDX:EAX (ret 16)
+//   __ltod3   __int64          -> double  | in EDX:ECX     out XMM0
+//   __ultod3  unsigned __int64 -> double  | in EDX:ECX     out XMM0
+//   __dtoul3_legacy  double -> u__int64   | in XMM0        out EDX:EAX
+//   __allshr  __int64          >> n       | in EDX:EAX, CL out EDX:EAX
+//   __aullshr unsigned __int64 >> n       | in EDX:EAX, CL out EDX:EAX
+//
+// Self-contained and position-independent (no relocations); the x87
+// stack is left balanced; EBX, ESI, EDI, EBP are preserved.
+// ===================================================================
+
+// __int64 multiply, low 64 bits of a*b :
+//   lo = LO(a_lo*b_lo);  hi = HI(a_lo*b_lo) + LO(a_lo*b_hi) + LO(a_hi*b_lo)
+// Stack after `push ebx`: [+8]=a_lo [+12]=a_hi [+16]=b_lo [+20]=b_hi
+    .globl  __allmul
+__allmul:
+    push    ebx
+    mov     eax, dword ptr [esp+12]    // a_hi
+    mul     dword ptr [esp+16]         // EDX:EAX = a_hi * b_lo
+    mov     ebx, eax                   // ebx = LO(a_hi*b_lo)
+    mov     eax, dword ptr [esp+8]     // a_lo
+    mul     dword ptr [esp+20]         // EDX:EAX = a_lo * b_hi
+    add     ebx, eax                   // ebx += LO(a_lo*b_hi)
+    mov     eax, dword ptr [esp+8]     // a_lo
+    mul     dword ptr [esp+16]         // EDX:EAX = a_lo * b_lo
+    add     edx, ebx                   // EDX = HI(a_lo*b_lo) + cross terms
+    pop     ebx
+    ret     16
+
+// __int64 -> double : fild loads the signed 64-bit value exactly,
+// fstp rounds it to a 64-bit double (round-to-nearest, the C rule).
+    .globl  __ltod3
+__ltod3:
+    push    edx                    // [esp+4] = high dword
+    push    ecx                    // [esp]   = low dword
+    fild    qword ptr [esp]
+    fstp    qword ptr [esp]
+    movsd   xmm0, qword ptr [esp]
+    add     esp, 8
+    ret
+
+// unsigned __int64 -> double : fild reads the qword as signed; when
+// bit 63 is set the result is low by 2^64, so add it back.
+    .globl  __ultod3
+__ultod3:
+    push    edx
+    push    ecx
+    fild    qword ptr [esp]
+    test    edx, edx               // high dword negative => bit 63 set
+    jns     1f
+    push    0x43F00000             // 2^64 = 0x43F0000000000000 (double)
+    push    0
+    fadd    qword ptr [esp]
+    add     esp, 8
+1:
+    fstp    qword ptr [esp]
+    movsd   xmm0, qword ptr [esp]
+    add     esp, 8
+    ret
+
+// double -> unsigned __int64, truncating toward zero (fisttp, SSE3).
+// Exact for results in [0, 2^63); >= 2^63 is the legacy don't-care range.
+    .globl  __dtoul3_legacy
+__dtoul3_legacy:
+    sub     esp, 8
+    movsd   qword ptr [esp], xmm0
+    fld     qword ptr [esp]
+    fisttp  qword ptr [esp]
+    mov     eax, dword ptr [esp]
+    mov     edx, dword ptr [esp+4]
+    add     esp, 8
+    ret
+
+// __int64 arithmetic shift right (sign-propagating).
+    .globl  __allshr
+__allshr:
+    cmp     cl, 64
+    jae     2f
+    cmp     cl, 32
+    jae     1f
+    shrd    eax, edx, cl
+    sar     edx, cl
+    ret
+1:                                 // 32 <= n < 64
+    mov     eax, edx
+    sar     edx, 31
+    and     cl, 31
+    sar     eax, cl
+    ret
+2:                                 // n >= 64 : result is all sign bits
+    sar     edx, 31
+    mov     eax, edx
+    ret
+
+// unsigned __int64 logical shift right (zero-filling).
+    .globl  __aullshr
+__aullshr:
+    cmp     cl, 64
+    jae     2f
+    cmp     cl, 32
+    jae     1f
+    shrd    eax, edx, cl
+    shr     edx, cl
+    ret
+1:                                 // 32 <= n < 64
+    mov     eax, edx
+    xor     edx, edx
+    and     cl, 31
+    shr     eax, cl
+    ret
+2:                                 // n >= 64
+    xor     eax, eax
+    xor     edx, edx
+    ret

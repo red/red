@@ -10,21 +10,21 @@ REBOL [
 		the static linker embeds them on demand to satisfy C archive
 		references without needing a CRT library.
 
-		Each routine is an independent shift-subtract re-implementation
-		(see system/formats/crt-helpers.s), self-contained and position-
-		independent. ABI: two __int64 arguments on the stack, 64-bit
-		result in EDX:EAX, callee pops the 16 argument bytes; EBX, ESI,
-		EDI and EBP are preserved.
-
-		Generated: assemble crt-helpers.s with clang for the
-		i386-pc-windows-msvc target, then extract each routine's bytes.
+		Each routine is an independent, self-contained and position-
+		independent re-implementation. ABIs differ per routine: the
+		div / rem / mul helpers take two __int64 on the stack and
+		return EDX:EAX (callee pops 16 bytes); the shift helpers take
+		the value in EDX:EAX and the count in CL; the conversion
+		helpers pass the double in XMM0 and the __int64 in EDX:ECX (in)
+		or EDX:EAX (out). EBX, ESI, EDI and EBP are always preserved.
+		The assembly source is in system/formats/crt-helpers.s.
 	}
 ]
 
 crt-helpers: [
 	"__allmul"	#{
-538B4424088B4C2410F7E18BD88B44240C8B4C2414F7E103D88B442408F764
-241003D35BC21000
+538B44240CF764241089C38B442408F764241401C38B442408F764241001DA5B
+C21000
 }
 	"__allshl"	#{
 80F940731580F92073060FA5C2D3E0C38BD033C080E11FD3E2C333C033D2C3
@@ -123,5 +123,22 @@ F52B7C241C1B6C2420720789FB89EE83C8014975E089D889F25B5F5E5DC21000
 55565783EC048B4424148B54241833F633FFB940000000D1E0D1D2D1D6D1D78B
 DE8BEF2B5C241C1B6C242072078BF38BFD83C8014975E08BCE8BDF83C4045F
 5E5DC21000
+}
+	"__ltod3"	#{
+5251DF2C24DD1C24F20F10042483C408C3
+}
+	"__ultod3"	#{
+5251DF2C2485D2790D680000F0436A00DC042483C408DD1C24F20F10042483C4
+08C3
+}
+	"__dtoul3_legacy"	#{
+83EC08F20F110424DD0424DD0C248B04248B54240483C408C3
+}
+	"__allshr"	#{
+80F940731680F92073060FADD0D3FAC389D0C1FA1F80E11FD3F8C3C1FA1F89D0
+C3
+}
+	"__aullshr"	#{
+80F940731580F92073060FADD0D3EAC389D031D280E11FD3E8C331C031D2C3
 }
 ]
