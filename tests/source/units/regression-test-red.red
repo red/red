@@ -3878,6 +3878,11 @@ comment {
 } 'redbin
 		--assert error? set 'err try [sort/stable blk5738]
 		--assert err/id = 'too-long
+
+	--test-- "#5746"
+		parse b5746: "12345" [skip p: 2 skip change :p ('x) to end] --assert b5746 == "1x45"
+		parse b5746: "12345" [skip p: 2 skip insert :p ('x) to end]	--assert b5746 == "1x2345"
+		parse b5746: "12345" [skip p: 2 skip remove :p to end] 		--assert b5746 == "145"	
 	
 ===end-group===
 
