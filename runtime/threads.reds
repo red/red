@@ -157,6 +157,10 @@ thread: context [
 		_pad9	[integer!]
 	]
 
+	pthread_slot_t: alias struct! [
+		value	[int-ptr!]
+	]
+
 	timespec!: alias struct! [
 		sec    [integer!] ;Seconds
 		nsec   [integer!] ;Nanoseconds
@@ -202,7 +206,7 @@ thread: context [
 				return:		[integer!]
 			]
 			pthread_create: "pthread_create" [
-				thread		[int-ptr!]
+				thread		[pthread_slot_t]
 				attr		[pthread_attr_t]
 				start		[int-ptr!]
 				arglist		[int-ptr!]
@@ -221,7 +225,7 @@ thread: context [
 			]
 			pthread_join: "pthread_join" [
 				thread		[int-ptr!]
-				retval		[int-ptr!]
+				retval		[pthread_slot_t]
 				return:		[integer!]
 			]
 			pthread_exit: "pthread_exit" [
@@ -232,7 +236,7 @@ thread: context [
 				return:		[integer!]
 			]
 			pthread_self: "pthread_self" [
-				return:		[integer!]
+				return:		[int-ptr!]
 			]
 		]
 	]
@@ -245,10 +249,10 @@ thread: context [
 		/local
 			attr [pthread_attr_t value]
 			a	 [pthread_attr_t]
-			t	 [integer!]
+			t	 [pthread_slot_t value]
 			ret	 [integer!]
 	][
-		t: 0
+		t/value: as int-ptr! 0
 		either stack > 0 [
 			either zero? pthread_attr_init :attr [
 				pthread_attr_setstacksize :attr stack
@@ -261,7 +265,7 @@ thread: context [
 
 		ret: pthread_create :t a routine args
 		if stack > 0 [pthread_attr_destroy a]
-		either zero? ret [as handle! t][probe "pthread_create fail" null]
+		either zero? ret [as handle! t/value][probe "pthread_create fail" null]
 	]
 
 	detach: func [
@@ -289,13 +293,13 @@ thread: context [
 		retval	[int-ptr!]
 		return: [integer!]
 		/local
-			ret	[integer!]
+			ret	[pthread_slot_t value]
 			r	[integer!]
 	][
-		ret: 0
+		ret/value: as int-ptr! 0
 		r: pthread_join thread :ret
 		either all [r = -1 r <> ESRCH][-1][
-			if retval <> null [retval/value: ret]
+			if retval <> null [retval/value: as-integer ret/value]
 			1
 		]
 	]
@@ -304,7 +308,7 @@ thread: context [
 		"return current thread id"
 		return: [integer!]
 	][
-		pthread_self
+		as-integer pthread_self
 	]
 
 	yield: func [][
