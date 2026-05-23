@@ -819,7 +819,9 @@ context [
 			either all [find [global native] spec/1 block? spec/4][
 				foreach ref spec/4 [append data-refs ref]
 			][
-				foreach ref spec/3 [append code-refs ref]
+				unless PE64? [
+					foreach ref spec/3 [append code-refs ref]
+				]
 			]
 		]
 		code-refs: unique sort code-refs

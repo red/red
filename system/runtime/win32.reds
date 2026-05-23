@@ -166,7 +166,11 @@ win32-startup-ctx: context [
 			default	  [99]
 		]
 
-		***-on-quit error record/error/address
+		#either target = 'X86-64 [
+			***-on-quit error record/error/address
+		][
+			***-on-quit error as integer! record/error/address
+		]
 		1											;-- EXCEPTION_EXECUTE_HANDLER, forces termination
 	]
 
@@ -223,7 +227,11 @@ win32-startup-ctx: context [
 			while [n > 0][
 				len: WideCharToMultiByte CP_UTF8 0 as-c-string src/value -1 null 0 null 0
 				buf: allocate len
-				dst/value: buf
+				#either target = 'X86-64 [
+					dst/value: buf
+				][
+					dst/value: as int-ptr! buf
+				]
 				WideCharToMultiByte CP_UTF8 0 as-c-string src/value -1 buf len null 0
 
 				dst: dst + 1

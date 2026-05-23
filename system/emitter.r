@@ -271,7 +271,7 @@ emitter: make-profilable context [
 
 	store-global: func [
 		value type [word!] spec [block! word! none!]
-		/local size ptr by-val? pad-size list t f64?
+		/local size ptr by-val? pad-size list t f64? hex
 	][
 		if any [find [logic! function!] type logic? value][
 			type: 'integer!
@@ -362,6 +362,15 @@ emitter: make-profilable context [
 					value/1 = 'pointer!
 					find [float! float64!] value/2/1 
 				]['float!][either target/ptr-size = 8 ['uint64!]['integer!]]
+				if all [
+					type = 'uint64!
+					integer? value
+					negative? value
+				][
+					hex: form to-hex value
+					if hex/1 = #"#" [remove hex]
+					value: to issue! rejoin [".u64h:" skip tail hex -8]
+				]
 				store-global value type none
 			]
 			struct! [
@@ -866,7 +875,7 @@ emitter: make-profilable context [
 		]
 	]
 	
-	struct-slots?: func [spec [block!] /direct /check][
+	struct-slots?: func [spec [block!] /direct /check /local size][
 		if check [
 			unless all [
 				spec: select spec compiler/return-def
@@ -882,7 +891,12 @@ emitter: make-profilable context [
 			]
 			spec: spec/2
 		]
-		round/ceiling (member-offset? spec none) / target/stack-width
+		size: either compiler/union-spec? spec [
+			union-size? spec
+		][
+			member-offset? spec none
+		]
+		round/ceiling size / target/stack-width
 	]
 	
 	struct-ptr?: func [spec [block!] /local ret][

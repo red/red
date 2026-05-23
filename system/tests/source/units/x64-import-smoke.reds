@@ -12,13 +12,26 @@ Red/System [
 	]
 ]
 
-#import [
-	LIBC-file cdecl [
-		test-write: "write" [
-			fd		[integer!]
-			buf		[c-string!]
-			len		[integer!]
-			return: [integer!]
+#either OS = 'Windows [
+	#import [
+		LIBC-file cdecl [
+			test-write: "_write" [
+				fd		[integer!]
+				buf		[c-string!]
+				len		[integer!]
+				return: [integer!]
+			]
+		]
+	]
+][
+	#import [
+		LIBC-file cdecl [
+			test-write: "write" [
+				fd		[integer!]
+				buf		[c-string!]
+				len		[integer!]
+				return: [integer!]
+			]
 		]
 	]
 ]
@@ -26,8 +39,7 @@ Red/System [
 main: func [
 	return: [integer!]
 ][
-	test-write 1 s 6
-	7
+	either (test-write 1 s 6) = 6 [0][1]
 ]
 
 s: "hello^/"

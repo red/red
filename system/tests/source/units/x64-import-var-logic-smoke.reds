@@ -1,5 +1,5 @@
 Red/System [
-	Title: "Red/System x86-64 shared-library imported data smoke test"
+	Title: "Red/System x86-64 shared-library imported logic data smoke test"
 ]
 
 #if all [target = 'X86-64 OS <> 'Windows] [
@@ -15,20 +15,20 @@ Red/System [
 	]
 
 	#import [
-		"libx64test-dll1.so" cdecl [
-			x64-i: "i" [integer!]
+		"libx64import-extra.so" cdecl [
+			x64-flag: "x64-flag" [logic!]
 		]
 	]
 
 	msg: "OK^/"
 
-	if x64-i <> 56 [
+	if not x64-flag [
 		sys-exit 1
 	]
 
-	x64-i: 41
+	x64-flag: no
 
-	if x64-i <> 41 [
+	if x64-flag [
 		sys-exit 2
 	]
 

@@ -271,8 +271,9 @@ re-throw: func [/local id [integer!]][
 		address [quit-address-type]
 		/local 
 			msg s s2 [c-string!]
+			addr [byte-ptr!]
 	][
-		address: as byte-ptr! address
+		addr: as byte-ptr! address
 		unless zero? status [
 			msg: switch status [
 				1	["access violation"]
@@ -323,11 +324,15 @@ re-throw: func [/local id [integer!]][
 			#either sub-system = 'GUI [
 				s: as-c-string system/stack/allocate 256
 				#either OS = 'Windows [
-					s2: as-c-string system/stack/allocate 128
-					red/unicode/convert-u16 msg s2
-					swprintf [s #u16 "*** Runtime Error %d: %s^/*** at: %08Xh" status s2 address]
+					#if unicode? = yes [
+						s2: as-c-string system/stack/allocate 128
+						red/unicode/convert-u16 msg s2
+						swprintf [s #u16 "*** Runtime Error %d: %s^/*** at: %08Xh" status s2 addr]
+					][
+						sprintf [s "*** Runtime Error %d: %s^/*** at: %08Xh" status msg addr]
+					]
 				][
-					sprintf [s "*** Runtime Error %d: %s^/*** at: %08Xh" status msg address]
+					sprintf [s "*** Runtime Error %d: %s^/*** at: %08Xh" status msg addr]
 				]
 				exec/gui/OS-alert #u16 "Red App Error" s
 			][
@@ -336,10 +341,10 @@ re-throw: func [/local id [integer!]][
 
 				#either debug? = yes [
 					if null? system/debug [__set-stack-on-crash]
-					__print-debug-line  address
-					__print-debug-stack address status
+					__print-debug-line  addr
+					__print-debug-stack addr status
 				][
-					print [lf "*** at: " address "h" lf]
+					print [lf "*** at: " addr "h" lf]
 				]
 			]
 		]
@@ -366,7 +371,11 @@ re-throw: func [/local id [integer!]][
 		either system/thrown = 0BADCAFEh [	;-- RED_THROWN_ERROR exception value (label not defined if R/S used standalone)
 			***-on-quit 0 null				;-- Red error, normal exit
 		][
-			***-on-quit 95 system/pc		;-- Red/System uncaught exception, report it
+			#either target = 'X86-64 [
+				***-on-quit 95 system/pc	;-- Red/System uncaught exception, report it
+			][
+				***-on-quit 95 as integer! system/pc
+			]
 		]
 	]
 ]

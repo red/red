@@ -106,10 +106,14 @@ system: declare struct! [								;-- trimmed down temporary system definition
 		]
 
 		;; The call to `libc-start` takes 6 4-byte arguments (passed on the
-		;; stack). To keep the stack 128-bit aligned even after the call, we
-		;; push some garbage.
-		push 0
-		push 0
+		;; stack on 32-bit targets. On x64 the backend uses register
+		;; arguments, so the old padding pushes would corrupt the call setup.
+		#either target = 'X86-64 [
+			;-- no extra stack padding
+		][
+			push 0
+			push 0
+		]
 
 		;; Finally, call into libc's startup routine.
 		***__stack_end: system/stack/top
@@ -184,9 +188,13 @@ system: declare struct! [								;-- trimmed down temporary system definition
 		]
 
 		;; The call to `libc-start` takes 7 4-byte arguments (passed on the
-		;; stack). To keep the stack 128-bit aligned even after the call, we
-		;; push some garbage.
-		push 0
+		;; stack on 32-bit targets. On x64 the backend uses register
+		;; arguments, so the old padding push would corrupt the call setup.
+		#either target = 'X86-64 [
+			;-- no extra stack padding
+		][
+			push 0
+		]
 
 		;; Finally, call into libc's startup routine.
 		***__stack_end: system/stack/top

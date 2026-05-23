@@ -2,7 +2,7 @@ Red/System [
 	Title: "Red/System x86-64 shared-library import smoke test"
 ]
 
-#if target = 'X86-64 [
+#if all [target = 'X86-64 OS <> 'Windows] [
 	#syscall [
 		sys-write: 1 [
 			fd  [integer!]

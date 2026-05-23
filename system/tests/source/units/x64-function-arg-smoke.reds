@@ -19,5 +19,9 @@ Red/System [
 
 	status: 0
 	status: sub-values 9 4
-	sys-exit status
+	either status = 5 [
+		sys-exit 0
+	][
+		sys-exit status
+	]
 ]

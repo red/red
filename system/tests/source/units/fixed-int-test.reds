@@ -9,7 +9,7 @@ Red/System [
 
 #include %../../../../quick-test/quick-test.reds
 
-#if any [target = 'IA-32 target = 'ARM] [
+#if any [target = 'IA-32 target = 'ARM target = 'X86-64] [
 
 fixed-int-pair!: alias struct! [
 	s16 [int16!]
@@ -161,21 +161,21 @@ fi-typed-score: func [
 ][
 	score: 0
 	if 8 = count [score: score + 1]
-	if all [type-int8! = list/type -2 = list/value] [score: score + 1]
+	if all [type-int8! = list/type -2 = as integer! list/value] [score: score + 1]
 	list: list + 1
-	if all [type-uint8! = list/type 250 = list/value] [score: score + 1]
+	if all [type-uint8! = list/type 250 = as integer! list/value] [score: score + 1]
 	list: list + 1
-	if all [type-int16! = list/type -300 = list/value] [score: score + 1]
+	if all [type-int16! = list/type -300 = as integer! list/value] [score: score + 1]
 	list: list + 1
-	if all [type-uint16! = list/type 60000 = list/value] [score: score + 1]
+	if all [type-uint16! = list/type 60000 = as integer! list/value] [score: score + 1]
 	list: list + 1
-	if all [type-int32! = list/type -123456 = list/value] [score: score + 1]
+	if all [type-int32! = list/type -123456 = as integer! list/value] [score: score + 1]
 	list: list + 1
-	if all [type-uint32! = list/type -1 = list/value] [score: score + 1]
+	if all [type-uint32! = list/type -1 = as integer! list/value] [score: score + 1]
 	list: list + 1
-	if all [type-int64! = list/type -3 = list/value -1 = list/_padding] [score: score + 1]
+	if all [type-int64! = list/type -3 = as integer! list/value -1 = list/_padding] [score: score + 1]
 	list: list + 1
-	if all [type-uint64! = list/type -1 = list/value 0 = list/_padding] [score: score + 1]
+	if all [type-uint64! = list/type -1 = as integer! list/value 0 = list/_padding] [score: score + 1]
 	score
 ]
 
@@ -185,7 +185,7 @@ fi-cdecl-variadic-sink: func [[cdecl variadic] return: [integer!]][1]
 
 ~~~start-file~~~ "fixed-int"
 
-#if any [target = 'IA-32 target = 'ARM] [
+#if any [target = 'IA-32 target = 'ARM target = 'X86-64] [
 
 ===start-group=== "fixed integer sizes and aliases"
 
@@ -199,11 +199,20 @@ fi-cdecl-variadic-sink: func [[cdecl variadic] return: [integer!]][1]
 		--assert (size? integer!) = (size? int32!)
 
 	--test-- "fixed-int-struct-size-1"
-		--assert 32 = (size? fixed-int-struct!)
+		#either target = 'X86-64 [
+			--assert 32 = (size? fixed-int-struct!)
+		][
+			--assert 32 = (size? fixed-int-struct!)
+		]
 		--assert 8 = (size? fixed-int-layout!)
 		--assert 16 = (size? fixed-int-nested!)
-		--assert 44 = (size? fixed-int-mixed!)
-		--assert 52 = (size? fixed-int-mixed-nested!)
+		#either target = 'X86-64 [
+			--assert 64 = (size? fixed-int-mixed!)
+			--assert 80 = (size? fixed-int-mixed-nested!)
+		][
+			--assert 44 = (size? fixed-int-mixed!)
+			--assert 52 = (size? fixed-int-mixed-nested!)
+		]
 		fi-pad: declare struct! [u8 [uint8!] i16 [int16!]]
 		--assert 4 = (size? fi-pad)
 

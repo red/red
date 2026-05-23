@@ -5,22 +5,46 @@ Red/System [
 #include %../../../../system/runtime/lib-names.reds
 
 #if target = 'X86-64 [
-	#syscall [
-		sys-exit: 60 [
-			status [integer!]
-		]
-	]
-
-	#import [
-		LIBC-file cdecl [
-			test-getpid: "getpid" [
-				return: [integer!]
+	#either OS = 'Windows [
+		#import [
+			LIBC-file cdecl [
+				test-getpid: "_getpid" [
+					return: [integer!]
+				]
+				test-write: "_write" [
+					fd		[integer!]
+					buf		[c-string!]
+					len		[integer!]
+					return: [integer!]
+				]
 			]
-			test-write: "write" [
-				fd		[integer!]
-				buf		[c-string!]
-				len		[integer!]
-				return: [integer!]
+		]
+
+		#import [
+			"kernel32.dll" stdcall [
+				sys-exit: "ExitProcess" [
+					status [integer!]
+				]
+			]
+		]
+	][
+		#syscall [
+			sys-exit: 60 [
+				status [integer!]
+			]
+		]
+
+		#import [
+			LIBC-file cdecl [
+				test-getpid: "getpid" [
+					return: [integer!]
+				]
+				test-write: "write" [
+					fd		[integer!]
+					buf		[c-string!]
+					len		[integer!]
+					return: [integer!]
+				]
 			]
 		]
 	]

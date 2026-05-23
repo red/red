@@ -20,5 +20,9 @@ Red/System [
 
 	status: 0
 	status: add4-local 3
-	sys-exit status
+	either status = 7 [
+		sys-exit 0
+	][
+		sys-exit status
+	]
 ]
