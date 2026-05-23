@@ -357,7 +357,6 @@ system-dialect: make-profilable context [
 		
 		raise-runtime-error: func [error [integer!]][
 			emitter/target/emit-get-pc				;-- get current CPU program counter address
-			last-type: [integer!]					;-- emit-get-pc returns an integer! (required for next line)
 			compiler/comp-call '***-on-quit reduce [error <last>] ;-- raise a runtime error
 		]
 		
@@ -1152,6 +1151,11 @@ system-dialect: make-profilable context [
 				throw-error ["invalid path value:" mold path]
 			]
 			
+			either emitter/target/target = 'X86-64 [
+				if all [not parent path = 'system/pc][return [pointer! [byte!]]]
+			][
+			]
+
 			p1: to word! path/1
 			either parent [
 				resolve-struct-member-type prev p1	;-- just check for correct member name
@@ -2832,7 +2836,7 @@ system-dialect: make-profilable context [
 
 				insert/only pc next next compose [
 					2 (to pair! reduce [line 1])		;-- hidden line offset header
-					***-on-quit 98 as integer! system/pc
+					***-assert-fail 98
 				]
 				set [unused chunk] comp-block-chunked	;-- compile TRUE block
 				emitter/set-signed-state expr			;-- properly set signed/unsigned state
@@ -3856,6 +3860,7 @@ system-dialect: make-profilable context [
 				spec/3 = 'cdecl							 ;-- stdcall applies to R/S or Windows ABI
 				any [
 					all [1 < slots job/target = 'ARM]	 ;-- ARM requires it only for struct > 4 bytes
+					all [1 < slots job/target = 'X86-64] ;-- MS x64 ABI passes structs > 8 bytes by pointer
 					all [
 						not find [Windows macOS FreeBSD NetBSD] job/OS	 ;-- fallback on Linux ABI
 						job/target <> 'ARM
@@ -3911,7 +3916,7 @@ system-dialect: make-profilable context [
 			name [word!] args [block!]
 			/local
 				list type res align? left right dup var-arity? saved? arg expr spec fspec
-				types slots
+				types slots struct-type struct-slots temp-slots scan-types
 		][
 			name: decorate-fun name
 			list: either variadic? args/1 [args/2][		;-- bypass type-checking for variable arity calls
@@ -3944,6 +3949,23 @@ system-dialect: make-profilable context [
 						]
 						types: back types
 					]
+					temp-slots: 0
+					if all [types job/target = 'X86-64][
+						scan-types: types
+						foreach expr list [
+							if all [scan-types not tag? expr block? scan-types/1 struct-by-value? scan-types/1][
+								struct-type: resolve-aliased scan-types/1
+								struct-slots: emitter/struct-slots?/direct struct-type/2
+								if pass-struct-pointer? spec struct-slots [
+									temp-slots: temp-slots + struct-slots
+								]
+							]
+							scan-types: skip scan-types -2
+						]
+						if positive? temp-slots [
+							emitter/target/emit-reserve-call-struct-temps temp-slots
+						]
+					]
 					forall list [						;-- push function's arguments on stack
 						expr: list/1
 						if paren? expr [backtrack name throw-error "literal arrays cannot be passed as argument"]					
@@ -3951,7 +3973,16 @@ system-dialect: make-profilable context [
 						if object? expr [cast expr]
 						if type <> 'inline [
 							either all [types not tag? expr block? types/1 struct-by-value? types/1][
-								emitter/push-struct expr resolve-aliased types/1
+								struct-type: resolve-aliased types/1
+								struct-slots: emitter/struct-slots?/direct struct-type/2
+								either all [
+									job/target = 'X86-64
+									pass-struct-pointer? spec struct-slots
+								][
+									emitter/push-struct-ref expr struct-type
+								][
+									emitter/push-struct expr struct-type
+								]
 							][
 								emitter/target/emit-argument expr fspec ;-- let target define how arguments are passed
 							]
@@ -4774,7 +4805,7 @@ system-dialect: make-profilable context [
 			emitter/target/on-global-epilog no job/type	;-- emit main() epilog
 		][
 			switch job/type [
-				exe [compiler/comp-call '***-on-quit [0 0]]	;-- call runtime exit handler
+				exe [compiler/comp-call '***-normal-exit []]	;-- call runtime exit handler
 				dll [emitter/target/emit-epilog '***-main [] 0 0]
 				drv [emitter/target/emit-epilog '***-boot-rs [] 0 0]
 			]

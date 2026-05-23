@@ -924,7 +924,11 @@ struct-local-foo2
 	--test-- "svb18"
 		nest3: declare nested3!
 		
-		--assert 24 = size? nested3!
+		#either target = 'X86-64 [
+			--assert 32 = size? nested3!
+		][
+			--assert 24 = size? nested3!
+		]
 		
 		nest3/f1: 121212
 		nest3/f2: 343434
@@ -938,7 +942,11 @@ struct-local-foo2
 		--assert nest3/sub/two = 777
 		--assert nest3/sub/three = 8.88
 		
-		--assert (as int-ptr! nest3) + 1 = :nest3/sub
+		#either target = 'X86-64 [
+			--assert (as int-ptr! nest3) + 2 = :nest3/sub
+		][
+			--assert (as int-ptr! nest3) + 1 = :nest3/sub
+		]
 		--assert :nest3/sub     = :nest3/sub/one
 		--assert :nest3/sub + 1 = :nest3/sub/two
 		--assert :nest3/sub + 2 = :nest3/sub/three
@@ -971,7 +979,11 @@ struct-local-foo2
 	--test-- "svb19"
 		nest4: declare nested4!
 		
-		--assert 40 = size? nested4!
+		#either target = 'X86-64 [
+			--assert 48 = size? nested4!
+		][
+			--assert 40 = size? nested4!
+		]
 		
 		nest4/g1: 121212
 		nest4/g2: 343434
@@ -991,7 +1003,11 @@ struct-local-foo2
 		--assert nest4/sub/w5 = 500
 		--assert nest4/sub/w6 = 600.0
 
-		--assert (as int-ptr! nest4) + 1 = :nest4/sub
+		#either target = 'X86-64 [
+			--assert (as int-ptr! nest4) + 2 = :nest4/sub
+		][
+			--assert (as int-ptr! nest4) + 1 = :nest4/sub
+		]
 		--assert :nest4/sub     = :nest4/sub/w1
 		--assert :nest4/sub + 1 = :nest4/sub/w2
 		--assert :nest4/sub + 2 = :nest4/sub/w3
@@ -1021,7 +1037,11 @@ struct-local-foo2
 	--test-- "svb20"
 		nest5: declare nested5!
 		
-		--assert 56 = size? nested5!
+		#either target = 'X86-64 [
+			--assert 64 = size? nested5!
+		][
+			--assert 56 = size? nested5!
+		]
 		
 		nest5/g1: 121212
 		nest5/g2: 343434
@@ -1041,7 +1061,11 @@ struct-local-foo2
 		--assert nest5/sub/f5 = 5.0
 		--assert nest5/sub/f6 = 6.0
 
-		--assert (as int-ptr! nest5) + 1 = :nest5/sub
+		#either target = 'X86-64 [
+			--assert (as int-ptr! nest5) + 2 = :nest5/sub
+		][
+			--assert (as int-ptr! nest5) + 1 = :nest5/sub
+		]
 		--assert :nest5/sub      = :nest5/sub/f1
 		--assert :nest5/sub + 2  = :nest5/sub/f2
 		--assert :nest5/sub + 4  = :nest5/sub/f3
@@ -1385,7 +1409,11 @@ struct-local-foo2
 				--assert nest2/f2 = 343434
 
 			--test-- "loc-svb18"
-				--assert 24 = size? nested3!
+				#either target = 'X86-64 [
+					--assert 32 = size? nested3!
+				][
+					--assert 24 = size? nested3!
+				]
 
 				nest3/f1: 121212
 				nest3/f2: 343434
@@ -1399,7 +1427,11 @@ struct-local-foo2
 				--assert nest3/sub/two = 777
 				--assert nest3/sub/three = 8.88
 
-				--assert (as int-ptr! nest3) + 1 = :nest3/sub
+				#either target = 'X86-64 [
+					--assert (as int-ptr! nest3) + 2 = :nest3/sub
+				][
+					--assert (as int-ptr! nest3) + 1 = :nest3/sub
+				]
 				--assert :nest3/sub     = :nest3/sub/one
 				--assert :nest3/sub + 1 = :nest3/sub/two
 				--assert :nest3/sub + 2 = :nest3/sub/three
@@ -1430,7 +1462,11 @@ struct-local-foo2
 				--assert nest3/f2 = 343434
 
 			--test-- "loc-svb19"
-				--assert 40 = size? nested4!
+				#either target = 'X86-64 [
+					--assert 48 = size? nested4!
+				][
+					--assert 40 = size? nested4!
+				]
 
 				nest4/g1: 121212
 				nest4/g2: 343434
@@ -1450,7 +1486,11 @@ struct-local-foo2
 				--assert nest4/sub/w5 = 500
 				--assert nest4/sub/w6 = 600.0
 
-				--assert (as int-ptr! nest4) + 1 = :nest4/sub
+				#either target = 'X86-64 [
+					--assert (as int-ptr! nest4) + 2 = :nest4/sub
+				][
+					--assert (as int-ptr! nest4) + 1 = :nest4/sub
+				]
 				--assert :nest4/sub     = :nest4/sub/w1
 				--assert :nest4/sub + 1 = :nest4/sub/w2
 				--assert :nest4/sub + 2 = :nest4/sub/w3
@@ -1478,7 +1518,11 @@ struct-local-foo2
 				--assert nest4/g2 = 343434
 
 			--test-- "loc-svb20"
-				--assert 56 = size? nested5!
+				#either target = 'X86-64 [
+					--assert 64 = size? nested5!
+				][
+					--assert 56 = size? nested5!
+				]
 
 				nest5/g1: 121212
 				nest5/g2: 343434
@@ -1498,7 +1542,11 @@ struct-local-foo2
 				--assert nest5/sub/f5 = 5.0
 				--assert nest5/sub/f6 = 6.0
 
-				--assert (as int-ptr! nest5) + 1 = :nest5/sub
+				#either target = 'X86-64 [
+					--assert (as int-ptr! nest5) + 2 = :nest5/sub
+				][
+					--assert (as int-ptr! nest5) + 1 = :nest5/sub
+				]
 				--assert :nest5/sub      = :nest5/sub/f1
 				--assert :nest5/sub + 2  = :nest5/sub/f2
 				--assert :nest5/sub + 4  = :nest5/sub/f3
@@ -1560,7 +1608,11 @@ struct-local-foo2
 				--assert nest2/f2 = 343434
 
 			--test-- "svb32"
-				--assert 24 = size? nested3!
+				#either target = 'X86-64 [
+					--assert 32 = size? nested3!
+				][
+					--assert 24 = size? nested3!
+				]
 
 				nest3/f1: 121212
 				nest3/f2: 343434
@@ -1574,7 +1626,11 @@ struct-local-foo2
 				--assert nest3/sub/two = 777
 				--assert nest3/sub/three = 8.88
 
-				--assert (as int-ptr! nest3) + 1 = :nest3/sub
+				#either target = 'X86-64 [
+					--assert (as int-ptr! nest3) + 2 = :nest3/sub
+				][
+					--assert (as int-ptr! nest3) + 1 = :nest3/sub
+				]
 				--assert :nest3/sub     = :nest3/sub/one
 				--assert :nest3/sub + 1 = :nest3/sub/two
 				--assert :nest3/sub + 2 = :nest3/sub/three
@@ -1649,6 +1705,10 @@ struct-local-foo2
 			   b   [c-string!]
 			   c   [struct! [d [integer!] e [float!]] value]
 			]
-			--assert 20 = size? s4310
+			#either target = 'X86-64 [
+				--assert 32 = size? s4310
+			][
+				--assert 20 = size? s4310
+			]
 
 ~~~end-file~~~

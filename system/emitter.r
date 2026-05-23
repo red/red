@@ -205,7 +205,14 @@ emitter: make-profilable context [
 		]
 		if entry/2/1 = 'native [
 			repend symbols [							;-- copy 'native entry to a 'global entry
-				name reduce ['native-ref all [entry/2/2 entry/2/2 - 1] make block! 1]
+				name reduce [
+					'native-ref
+					all [
+						entry/2/2
+						either target/target = 'X86-64 [entry/2/2][entry/2/2 - 1]
+					]
+					make block! 1
+				]
 			]
 			entry: skip tail symbols -2 
 		]		
@@ -675,6 +682,11 @@ emitter: make-profilable context [
 						compiler/throw-error "cannot modify system/pc"
 					]
 					target/emit-get-pc
+					compiler/last-type: either target/target = 'X86-64 [
+						[pointer! [byte!]]
+					][
+						[integer!]
+					]
 				]
 				cpu [
 					switch/default path/3 [
@@ -878,6 +890,13 @@ emitter: make-profilable context [
 			ret: select spec compiler/return-def
 			'value = last ret
 			any [
+				all [
+					target/target = 'X86-64
+					compiler/job/OS = 'Windows
+					block? spec/1
+					find spec/1 'cdecl
+					1 < struct-slots? ret
+				]
 				all [
 					target/target = 'ARM
 					all [block? spec/1 find spec/1 'cdecl]
@@ -1093,6 +1112,11 @@ emitter: make-profilable context [
 		target/emit-load expr
 		target/emit-push-struct struct-slots?/direct spec/2
 	]
+
+	push-struct-ref: func [expr spec [block!]][
+		target/emit-load expr
+		target/emit-push-struct-ref struct-slots?/direct spec/2
+	]
 	
 	push-loop-jumps: has [list][
 		foreach list [breaks cont-next cont-back][append/only get list make block! 1]
@@ -1147,7 +1171,7 @@ emitter: make-profilable context [
 		all [
 			spec: find/last symbols name
 			spec/2/1 = 'native-ref						;-- function's address references
-			spec/2/2: tail-ptr - 1						;-- store zero-based entry point here too
+			spec/2/2: either target/target = 'X86-64 [tail-ptr][tail-ptr - 1] ;-- store entry point
 		]
 		clear exits										;-- reset exit-points list
 

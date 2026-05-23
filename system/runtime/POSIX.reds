@@ -114,7 +114,7 @@ posix-startup-ctx: context [
 			]
 		]
 
-		***-on-quit error UCTX_INSTRUCTION(ctx)
+		***-on-quit error as byte-ptr! UCTX_INSTRUCTION(ctx)
 	]
 
 	init: func [

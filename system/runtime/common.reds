@@ -46,6 +46,11 @@ Red/System [
 ;#define ulong!			integer!	
 
 ptr-ptr!: alias struct! [value [int-ptr!]]
+#either target = 'X86-64 [
+	ptr-slot!: alias struct! [value [byte-ptr!]]
+][
+	ptr-slot!: alias struct! [value [int-ptr!]]
+]
 #define ptr-value!	  [ptr-ptr! value]
 
 #define make-c-string [as c-string! allocate]
@@ -57,6 +62,12 @@ ptr-ptr!: alias struct! [value [int-ptr!]]
 #define write-io8	  [system/io/write as byte-ptr!]
 ;#define write-io16	  [system/io/write as int16-ptr!]
 #define write-io32	  [system/io/write as int-ptr!]
+
+#either target = 'X86-64 [
+	#define quit-address-type	byte-ptr!
+][
+	#define quit-address-type	integer!
+]
 
 
 #define type-logic!		1					;-- type ID list for 'typed' attribute
@@ -251,16 +262,17 @@ re-throw: func [/local id [integer!]][
 				address [int-ptr!]
 		][
 			address: __set-stack-on-crash
-			***-on-quit code as-integer address
+			***-on-quit code as byte-ptr! address
 		]
 	]
 
 	***-on-quit: func [						;-- global exit handler
 		status  [integer!]
-		address [integer!]
+		address [quit-address-type]
 		/local 
 			msg s s2 [c-string!]
 	][
+		address: as byte-ptr! address
 		unless zero? status [
 			msg: switch status [
 				1	["access violation"]
@@ -313,9 +325,9 @@ re-throw: func [/local id [integer!]][
 				#either OS = 'Windows [
 					s2: as-c-string system/stack/allocate 128
 					red/unicode/convert-u16 msg s2
-					swprintf [s #u16 "*** Runtime Error %d: %s^/*** at: %08Xh" status s2 as byte-ptr! address]
+					swprintf [s #u16 "*** Runtime Error %d: %s^/*** at: %08Xh" status s2 address]
 				][
-					sprintf [s "*** Runtime Error %d: %s^/*** at: %08Xh" status msg as byte-ptr! address]
+					sprintf [s "*** Runtime Error %d: %s^/*** at: %08Xh" status msg address]
 				]
 				exec/gui/OS-alert #u16 "Red App Error" s
 			][
@@ -324,10 +336,10 @@ re-throw: func [/local id [integer!]][
 
 				#either debug? = yes [
 					if null? system/debug [__set-stack-on-crash]
-					__print-debug-line  as byte-ptr! address
-					__print-debug-stack as byte-ptr! address status
+					__print-debug-line  address
+					__print-debug-stack address status
 				][
-					print [lf "*** at: " as byte-ptr! address "h" lf]
+					print [lf "*** at: " address "h" lf]
 				]
 			]
 		]
@@ -337,12 +349,24 @@ re-throw: func [/local id [integer!]][
 		]
 		quit status
 	]
+
+	***-normal-exit: does [
+		***-on-quit 0 null
+	]
+
+	***-assert-fail: func [code [integer!]][
+		#either target = 'X86-64 [
+			***-on-quit code system/pc
+		][
+			***-on-quit code as integer! system/pc
+		]
+	]
 	
 	***-uncaught-exception: does [
 		either system/thrown = 0BADCAFEh [	;-- RED_THROWN_ERROR exception value (label not defined if R/S used standalone)
-			***-on-quit 0 0					;-- Red error, normal exit
+			***-on-quit 0 null				;-- Red error, normal exit
 		][
-			***-on-quit 95 as-integer system/pc ;-- Red/System uncaught exception, report it
+			***-on-quit 95 system/pc		;-- Red/System uncaught exception, report it
 		]
 	]
 ]

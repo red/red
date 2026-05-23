@@ -20,6 +20,7 @@ make-profilable make target-class [
 	locals-offset:		32
 	def-locals-offset:	32
 	last-math-op:		none
+	fpu-cword:			none							;-- MXCSR/control word reference in emitter/symbols
 	conditions: make hash! [
 	;-- name ----------- signed --- unsigned --
 		overflow?		 #{00}		-
@@ -36,10 +37,6 @@ make-profilable make target-class [
 		>				 #{0F}		#{07}
 	]
 	
-	unsupported: does [
-		compiler/throw-error "Linux x86-64 backend code generation is not implemented yet"
-	]
-
 	noop: does []
 	call-arg-index: 0
 	call-arg-types: copy []
@@ -49,9 +46,18 @@ make-profilable make target-class [
 	call-shadow-slots: 0
 	call-variadic?: no
 	call-float-reg-count: 0
+	by-value-args: copy []
+	call-struct-temp-slots: 0
 
 	win64?: does [
 		compiler/job/OS = 'Windows
+	]
+
+	patch-floats-definition: func [mode [word!] /local value][
+		value: pick [unsigned signed] mode = 'set
+		foreach w [float! float64! float32!][
+			poke find emitter/datatypes w 3 value
+		]
 	]
 
 	emit-reloc-disp32: func [spec [block!]][
@@ -62,6 +68,24 @@ make-profilable make target-class [
 				second last emitter/chunks/queue
 				back tail spec/3
 		]
+	]
+
+	emit-index-sib: func [
+		base [word!]
+		size [integer!]
+		/local scale base-code
+	][
+		scale: select [1 0 2 64 4 128 8 192] size
+		unless scale [
+			compiler/throw-error ["x86-64 indexed element size not supported yet:" size]
+		]
+		base-code: switch/default base [
+			rax [0]
+			rdx [2]
+		][
+			compiler/throw-error ["x86-64 indexed base register not supported yet:" base]
+		]
+		emit to-bin8 scale + 8 + base-code			;-- SIB: scale, rcx index, base
 	]
 
 	add-condition: func [op [word!] data [binary!]][
@@ -192,7 +216,7 @@ make-profilable make target-class [
 		emit reverse debase/base hex 16
 	]
 
-	patch-stack-offset: func [name [word!] offset [integer!] /local pos][
+	patch-stack-offset: func [name [word! tag!] offset [integer!] /local pos][
 		if pos: find/skip emitter/stack name 2 [
 			pos/2: offset
 		]
@@ -203,8 +227,16 @@ make-profilable make target-class [
 		count: either win64? [max 0 n - 4][stack-arg-count? n]
 		either odd? count [1][0]
 	]
-	emit-call-stack-cleanup: func [n [integer!] /local slots size][
-		slots: call-stack-slots + call-pad-slots + call-extra-slots + call-shadow-slots
+	hidden-ret-ptr?: func [fspec [block!] /local ret][
+		to logic! all [
+			ret: select fspec compiler/return-def
+			'value = last ret
+			2 < emitter/struct-slots? ret
+		]
+	]
+	emit-call-stack-cleanup: func [n [integer!] /local slots size pad-slots][
+		pad-slots: either n = length? call-arg-types [call-pad-slots][0]
+		slots: call-stack-slots + pad-slots + call-extra-slots + call-shadow-slots
 		if positive? slots [
 			size: slots * stack-width
 			either size > 127 [
@@ -216,9 +248,18 @@ make-profilable make target-class [
 			]
 		]
 	]
+	emit-reserve-call-struct-temps: func [slots [integer!]][
+		emit-reserve-stack slots
+		call-extra-slots: call-extra-slots + slots
+		call-struct-temp-slots: slots
+	]
 
-	emit-call-register-loads: func [/local types int-reg float-reg stack-offset stack-write-offset type slot][
-		types: reverse copy call-arg-types
+	emit-call-register-loads: func [n [integer!] /local types int-reg float-reg stack-offset stack-write-offset type slot][
+		types: either zero? n [
+			copy []
+		][
+			reverse copy/part skip tail call-arg-types negate n n
+		]
 		int-reg: 0
 		float-reg: 0
 		stack-offset: 0
@@ -367,7 +408,8 @@ make-profilable make target-class [
 		call-float-reg-count: float-reg
 	]
 
-	emit-arg-spills: func [locals [block!] /local regs offset name type count stack-offset int-count float-count stack-count slot][
+	emit-arg-spills: func [locals [block!] /local regs offset name type count stack-offset int-count float-count stack-count slot ret-ptr? agg-slots base][
+		clear by-value-args
 		regs: [
 			#{57}		;-- PUSH rdi
 			#{56}		;-- PUSH rsi
@@ -381,26 +423,55 @@ make-profilable make target-class [
 		int-count: 0
 		float-count: 0
 		stack-count: 0
+		ret-ptr?: to logic! emitter/struct-ptr? locals
+		if ret-ptr? [
+			offset: offset - stack-width
+			either win64? [
+				emit #{51}							;-- PUSH rcx
+				patch-stack-offset <ret-ptr> offset
+				count: 1
+			][
+				emit #{57}							;-- PUSH rdi
+				patch-stack-offset <ret-ptr> offset
+				int-count: 1
+			]
+		]
 		parse locals [
 			opt block!
 			any [
 				set name word! set type block! (
-					count: count + 1
+					agg-slots: none
+					if 'value = last type [
+						append by-value-args name
+						agg-slots: emitter/struct-slots? type
+					]
 					either win64? [
-						either count <= 4 [
-							offset: offset - stack-width
-							either compiler/any-float? type [
-								emit #{4883EC08}		;-- SUB rsp, 8
-								emit either type/1 = 'float32! [#{F30F11}][#{F20F11}]
-								emit pick [#{45} #{4D} #{55} #{5D}] count
-								emit to-bin8 offset
-							][
-								emit pick [#{51} #{52} #{4150} #{4151}] count
+						either all [agg-slots agg-slots > 1] [
+							base: offset - (agg-slots * stack-width)
+							emit-reserve-stack agg-slots
+							repeat i agg-slots [
+								count: count + 1
+								emit-store-arg-slot count base + ((i - 1) * stack-width)
 							]
-							patch-stack-offset name offset
+							patch-stack-offset name base
+							offset: base
 						][
-							stack-offset: 16 + ((count - 1) * stack-width)
-							patch-stack-offset name stack-offset
+							count: count + 1
+							either count <= 4 [
+								offset: offset - stack-width
+								either compiler/any-float? type [
+									emit #{4883EC08}		;-- SUB rsp, 8
+									emit either type/1 = 'float32! [#{F30F11}][#{F20F11}]
+									emit pick [#{45} #{4D} #{55} #{5D}] count
+									emit to-bin8 offset
+								][
+									emit pick [#{51} #{52} #{4150} #{4151}] count
+								]
+								patch-stack-offset name offset
+							][
+								stack-offset: 16 + ((count - 1) * stack-width)
+								patch-stack-offset name stack-offset
+							]
 						]
 					][
 						either compiler/any-float? type [
@@ -449,10 +520,15 @@ make-profilable make target-class [
 		]
 		count
 	]
-	register-argument-count?: func [locals [block!] /local count name type int-count float-count][
+	register-argument-count?: func [locals [block!] /local count name type int-count float-count ret-ptr?][
 		count: 0
 		int-count: 0
 		float-count: 0
+		ret-ptr?: to logic! emitter/struct-ptr? locals
+		if ret-ptr? [
+			count: 1
+			int-count: 1
+		]
 		parse locals [
 			opt block!
 			any [
@@ -498,6 +574,39 @@ make-profilable make target-class [
 			append wide-op to-char (to integer! last opcode) + 64
 			emit wide-op
 			emit to-bin32 offset
+		]
+	]
+	emit-rbp-ref: func [
+		offset [integer!]
+		opcode [binary!]
+		/local wide-op
+	][
+		either all [offset >= -128 offset <= 127] [
+			emit opcode
+			emit to-bin8 offset
+		][
+			wide-op: copy/part opcode (length? opcode) - 1
+			append wide-op to-char (to integer! last opcode) + 64
+			emit wide-op
+			emit to-bin32 offset
+		]
+	]
+	emit-store-arg-slot: func [
+		index [integer!]
+		offset [integer!]
+		/local src-offset
+	][
+		either index <= 4 [
+			emit-rbp-ref offset pick [
+				#{48894D}							;-- MOV [rbp+disp], rcx
+				#{488955}							;-- MOV [rbp+disp], rdx
+				#{4C8945}							;-- MOV [rbp+disp], r8
+				#{4C894D}							;-- MOV [rbp+disp], r9
+			] index
+		][
+			src-offset: 16 + ((index - 1) * stack-width)
+			emit-rbp-ref src-offset #{488B45}		;-- MOV rax, [rbp+disp]
+			emit-rbp-ref offset #{488945}			;-- MOV [rbp+disp], rax
 		]
 	]
 
@@ -687,6 +796,10 @@ make-profilable make target-class [
 
 	on-init: :noop
 	on-global-prolog: func [runtime? [logic!] type [word!]][
+		patch-floats-definition 'set
+		if runtime? [
+			fpu-cword: emitter/store-value none 40704 [integer!]
+		]
 		if all [
 			win64?
 			runtime?
@@ -710,7 +823,9 @@ make-profilable make target-class [
 		]
 	]
 	on-root-level-entry: :noop
-	on-finalize: :noop
+	on-finalize: does [
+		patch-floats-definition 'unset
+	]
 	patch-call: func [code-buf rel-ptr dst-ptr][
 		change/part
 			at code-buf rel-ptr
@@ -723,7 +838,9 @@ make-profilable make target-class [
 	patch-jump-point: func [buffer [binary!] ptr [integer!] exit-point [integer!]][
 		change/part at buffer ptr to-bin32 exit-point - ptr - branch-offset-size 4
 	]
-	patch-sub-call: :unsupported
+	patch-sub-call: func [buffer [binary!] ptr [integer!] offset [integer!]][
+		change/part at buffer ptr to-bin32 negate offset + 5 - 1 4
+	]
 	emit-prolog: func [name [word!] locals [block!] bitmap [integer!] /local locals-size reg-count local-slots][
 		reg-count: register-argument-count? locals
 		locals-offset: 2 * stack-width + (reg-count * stack-width)
@@ -746,9 +863,56 @@ make-profilable make target-class [
 	]
 	emit-epilog: func [
 		name [word!] locals [block!] args-size [integer!] locals-size [integer!] /with slots [integer! none!] /closing
+		/local vars ret-ptr?
 	][
 		if slots [
-			compiler/throw-error "x86-64 function epilog shape is not implemented yet"
+			ret-ptr?: to logic! emitter/struct-ptr? locals
+			either ret-ptr? [
+				vars: emitter/stack
+				unless tag? vars/1 [
+					compiler/throw-error ["Function" name "has no return pointer in" mold locals]
+				]
+				either all [vars/2 >= -128 vars/2 <= 127][
+					emit #{488B7D}					;-- MOV rdi, [rbp+disp8]
+					emit to-bin8 vars/2
+				][
+					emit #{488BBD}					;-- MOV rdi, [rbp+disp32]
+					emit to-bin32 vars/2
+				]
+				emit #{4889C6}						;-- MOV rsi, rax
+				emit #{4889F8}						;-- MOV rax, rdi
+				emit #{B9}							;-- MOV ecx, <slots>
+				emit to-bin32 slots
+				emit #{F348A5}						;-- REP MOVSQ
+			][
+				case [
+					slots = 1 [
+						emit #{488B00}				;-- MOV rax, [rax]
+					]
+					slots = 2 [
+						emit #{488B5008}			;-- MOV rdx, [rax+8]
+						emit #{488B00}				;-- MOV rax, [rax]
+					]
+					true [
+						vars: emitter/stack
+						unless tag? vars/1 [
+							compiler/throw-error ["Function" name "has no return pointer in" mold locals]
+						]
+						either all [vars/2 >= -128 vars/2 <= 127][
+							emit #{488B7D}			;-- MOV rdi, [rbp+disp8]
+							emit to-bin8 vars/2
+						][
+							emit #{488BBD}			;-- MOV rdi, [rbp+disp32]
+							emit to-bin32 vars/2
+						]
+						emit #{4889C6}				;-- MOV rsi, rax
+						emit #{4889F8}				;-- MOV rax, rdi
+						emit #{B9}					;-- MOV ecx, <slots>
+						emit to-bin32 slots
+						emit #{F348A5}				;-- REP MOVSQ
+					]
+				]
+			]
 		]
 		if closing [emit-load 0]
 		emit #{C9}									;-- LEAVE
@@ -831,6 +995,7 @@ make-profilable make target-class [
 		call-shadow-slots: 0
 		call-variadic?: no
 		call-float-reg-count: 0
+		call-struct-temp-slots: 0
 	]
 	emit-variadic-data: func [args [block!] /local total data-slots][
 		if args/1 <> #typed [
@@ -854,10 +1019,10 @@ make-profilable make target-class [
 		attribs [block! none!]
 		/local n
 	][
-		n: fspec/1
 		call-variadic?: to logic! compiler/find-attribute fspec/4 'variadic
 		if args/1 = #typed [emit-variadic-data args]
-		emit-call-register-loads
+		n: length? call-arg-types
+		emit-call-register-loads n
 		if win64? [emit-reserve-stack 4]
 		if all [not win64? compiler/find-attribute fspec/4 'variadic] [
 			emit #{B0}								;-- MOV al, imm8 (SysV variadic FP register count)
@@ -866,35 +1031,37 @@ make-profilable make target-class [
 		emit either win64? [#{FF15}][#{E8}]			;-- CALL [rip+disp32] / rel32
 		emit-reloc-disp32 spec
 		emit-call-stack-cleanup n
-		call-arg-index: 0
-		clear call-arg-types
+		call-arg-index: max 0 call-arg-index - n
+		remove/part skip tail call-arg-types negate n n
 		call-stack-slots: 0
 		call-pad-slots: 0
 		call-extra-slots: 0
 		call-shadow-slots: 0
 		call-variadic?: no
 		call-float-reg-count: 0
+		call-struct-temp-slots: 0
 	]
 	emit-call-native: func [
 		args [block!] fspec [block!] spec [block!] attribs [block! none!]
 		/routine name [word!]
 		/local n
 	][
-		n: fspec/1
 		if args/1 = #typed [emit-variadic-data args]
-		emit-call-register-loads
+		n: length? call-arg-types
+		emit-call-register-loads n
 		if win64? [emit-reserve-stack 4]
 		emit #{E8}									;-- CALL rel32
 		emit-reloc-disp32 spec
 		emit-call-stack-cleanup n
-		call-arg-index: 0
-		clear call-arg-types
+		call-arg-index: max 0 call-arg-index - n
+		remove/part skip tail call-arg-types negate n n
 		call-stack-slots: 0
 		call-pad-slots: 0
 		call-extra-slots: 0
 		call-shadow-slots: 0
 		call-variadic?: no
 		call-float-reg-count: 0
+		call-struct-temp-slots: 0
 	]
 	emit-not: func [value [word! char! tag! integer! logic! path! string! object!] /local opcodes type boxed][
 		if verbose >= 3 [print [">>>emitting NOT" mold value]]
@@ -973,14 +1140,16 @@ make-profilable make target-class [
 	emit-integer-operation: func [
 		name [word!]
 		args [block!]
-		/local right imm? type wide? right-block? right-type scale right-loaded? left-type mod? signed-op?
+		/local right imm? type wide? right-block? right-type scale right-loaded? right-signed? left-type mod? signed-op?
 	][
 		type: compiler/resolve-aliased compiler/resolve-expr-type args/1
 		right: compiler/unbox args/2
 		right-block?: block? right
 		right-loaded?: no
+		right-signed?: no
 		if right-block? [
 			right-type: compiler/resolve-expr-type args/2
+			right-signed?: compiler/signed-integer? right-type
 			emit either find [pointer! c-string! function! subroutine! struct! union! int64! uint64!] right-type/1 [
 				#{4889C1}							;-- MOV rcx, rax
 			][
@@ -992,6 +1161,9 @@ make-profilable make target-class [
 		if char? right [right: to integer! right]
 		if logic? right [right: to integer! right]
 		imm?: all [not right-block? integer? right]
+		if not imm? [
+			right-signed?: compiler/signed-integer? compiler/resolve-expr-type args/2
+		]
 		wide?: find [pointer! c-string! function! subroutine! struct! union! any-pointer! int64! uint64!] type/1
 		scale: 1
 		if all [
@@ -1000,19 +1172,31 @@ make-profilable make target-class [
 		][
 			scale: switch/default type/1 [
 				pointer! [emitter/size-of? type/2/1]
-				struct!  [emitter/member-offset? type/2 none]
-				union!   [emitter/union-size? type/2]
+				struct!  [(emitter/struct-slots?/direct type/2) * stack-width]
+				union!   [(round/ceiling (emitter/union-size? type/2) / stack-width) * stack-width]
 			][1]
 			if scale > 1 [
 				either imm? [
 					right: right * scale
 				][
 					unless right-loaded? [emit-load-ecx right]
+					if right-signed? [emit #{4863C9}]	;-- MOVSXD rcx, ecx
 					emit #{4869C9}					;-- IMUL rcx, rcx, imm32
 					emit to-bin32 scale
 					right-loaded?: yes
 				]
 			]
+		]
+		if all [
+			right-signed?
+			not imm?
+			not right-block?
+			find [+ -] name
+			find [pointer! c-string! struct! union! any-pointer!] type/1
+		][
+			unless right-loaded? [emit-load-ecx right]
+			emit #{4863C9}							;-- MOVSXD rcx, ecx
+			right-loaded?: yes
 		]
 		mod?: select mod-rem-func name
 		if any [name = divide-sym mod?] [
@@ -1096,7 +1280,7 @@ make-profilable make target-class [
 		if verbose >= 3 [print [">>>inlining float op:" mold name mold args]]
 		type: compiler/resolve-expr-type args/1
 		right-type: compiler/resolve-expr-type args/2
-		single?: all [type/1 = 'float32! right-type/1 = 'float32!]
+		single?: any [type/1 = 'float32! right-type/1 = 'float32!]
 		store-op: either single? [#{C5FA110424}][#{C5FB110424}]
 		cmp-op: either single? [#{C5F82E0424}][#{C5F92E0424}]
 		case [
@@ -1151,7 +1335,7 @@ make-profilable make target-class [
 		emit #{7402}								;-- JZ end
 		emit #{FFE7}								;-- resume: JMP rdi
 	]
-	emit-alt-last: :unsupported
+	emit-alt-last: :noop
 	emit-log-b: func [type][
 		if type = 'byte! [emit #{0FB6C0}]			;-- MOVZX eax, al
 		emit #{0FBDC0}								;-- BSR eax, eax
@@ -1159,7 +1343,23 @@ make-profilable make target-class [
 	emit-variable: func [name [word! object!]][
 		emit-load name
 	]
-	emit-argument: func [arg fspec [block!] /local value arg-type][
+	emit-load-integer: func [value [integer!]][
+		switch/default value [
+			 0 [emit #{31C0}]						;-- XOR eax, eax
+			 1 [emit #{31C0FFC0}]					;-- XOR eax, eax; INC eax
+			-1 [emit #{31C0FFC8}]					;-- XOR eax, eax; DEC eax
+		][
+			either all [value >= -2147483648 value <= 2147483647][
+				emit #{B8}							;-- MOV eax, imm32
+				emit to-bin32 value
+			][
+				emit #{48B8}						;-- MOV rax, imm64
+				emit to-bin64 value
+			]
+		]
+	]
+	emit-argument: func [arg fspec [block!] /local value arg-type argc][
+		argc: fspec/1 + pick [1 0] hidden-ret-ptr? fspec/4
 		if arg = #_ [
 			if compiler/find-attribute fspec/4 'typed [
 				call-arg-index: call-arg-index + 1
@@ -1172,26 +1372,43 @@ make-profilable make target-class [
 			zero? call-arg-index
 			all [
 				not compiler/find-attribute fspec/4 'variadic
-				call-arg-index >= fspec/1
+				call-arg-index >= argc
 			]
 		][
 			call-arg-index: 0
 			clear call-arg-types
 			call-stack-slots: 0
-			call-pad-slots: stack-pad-count? fspec/1
+			call-pad-slots: stack-pad-count? argc
 			if positive? call-pad-slots [
 				emit #{6A00}						;-- PUSH 0 stack-argument alignment pad
 			]
 		]
 		call-arg-index: call-arg-index + 1
+		if tag? arg [
+			append/only call-arg-types [pointer! [byte!]]
+			emit-push arg
+			exit
+		]
 		arg-type: compiler/get-type arg
 		append/only call-arg-types arg-type
 		value: compiler/unbox arg
 		if block? value [value: <last>]
 		either get-word? value [
 			value: to word! value
-			emit #{488D05}						;-- LEA rax, [RIP+disp32]
-			emit-reloc-disp32 emitter/get-func-ref value
+			either emitter/local-offset? value [
+				either 'function! = first compiler/get-type value [
+					emit-local-ref value #{488B45}	;-- MOV rax, [rbp+disp8]
+				][
+					emit-local-ref value #{488D45}	;-- LEA rax, [rbp+disp8]
+				]
+			][
+				either import-var? value [
+					emit-import-var-address value
+				][
+					emit #{488D05}					;-- LEA rax, [RIP+disp32]
+					emit-reloc-disp32 emitter/get-symbol-ref value
+				]
+			]
 			emit-push <last>
 		][
 			if compiler/any-float? arg-type [
@@ -1212,6 +1429,10 @@ make-profilable make target-class [
 					emit-load value
 					emit-push <last>
 				][
+					if tag? value [
+						emit-push value
+						exit
+					]
 					if string? value [
 						emit-load-literal [c-string!] value
 						emit-push <last>
@@ -1231,7 +1452,7 @@ make-profilable make target-class [
 			]
 		]
 	]
-	emit-load: func [value /with cast [object!] /local type spec][
+	emit-load: func [value /with cast [object!] /local type spec local-spec resolved-type field][
 		if block? value [value: <last>]
 		case [
 			value = <last> []
@@ -1241,12 +1462,11 @@ make-profilable make target-class [
 			]
 			any [integer? value char? value logic? value] [
 				if logic? value [value: to integer! value]
-				either all [integer? value value >= -2147483648 value <= 2147483647][
+				either integer? value [
+					emit-load-integer value
+				][
 					emit #{B8}						;-- MOV eax, imm32
 					emit to-bin32 value
-				][
-					emit #{48B8}					;-- MOV rax, imm64
-					emit to-bin64 value
 				]
 			]
 			issue? value [
@@ -1261,7 +1481,20 @@ make-profilable make target-class [
 				emit-load-literal [c-string!] value
 			]
 			path? value [
-				emitter/access-path value none
+				either all [
+					2 = length? value
+					spec: compiler/resolve-aliased compiler/resolve-type to word! value/1
+					find [struct! union!] spec/1
+					spec: spec/2
+					field: select spec value/2
+					block? field
+					'value = last field
+				][
+					emit-init-path value/1
+					emit-access-path value spec
+				][
+					emitter/access-path value none
+				]
 			]
 			paren? value [
 				emit-load-literal none value
@@ -1282,6 +1515,21 @@ make-profilable make target-class [
 			word? value [
 				type: compiler/get-type value
 				either emitter/local-offset? value [
+					either all [
+						resolved-type: compiler/resolve-aliased type
+						find [struct! union!] resolved-type/1
+						any [
+							find by-value-args value
+							'value = last type
+							'value = last resolved-type
+							all [
+								local-spec: select compiler/locals value
+								'value = last local-spec
+							]
+						]
+					][
+						emit-local-ref value #{488D45}	;-- LEA rax, [rbp+disp8]
+					][
 					switch/default type/1 [
 						byte!	 [emit-local-ref value #{0FB645}]	;-- MOVZX eax, byte [rbp+disp8]
 						logic!	 [emit-local-ref value #{0FB645}]
@@ -1305,6 +1553,7 @@ make-profilable make target-class [
 						float32! [emit-float-ref value #{C5FA1045}]
 					][
 						compiler/throw-error ["x86-64 local load type not supported yet:" mold type/1]
+					]
 					]
 				][
 					if import-var? value [
@@ -1360,10 +1609,27 @@ make-profilable make target-class [
 		emit #{488D05}								;-- LEA rax, [RIP+disp32]
 		emit-reloc-disp32 spec
 	]
-	emit-init-path: func [name [word! get-word!]][
+	emit-init-path: func [name [word! get-word!] /local type resolved-type local-spec][
 		if get-word? name [name: to word! name]
 		either emitter/local-offset? name [
-			emit-local-ref name #{488B45}			;-- MOV rax, [rbp+disp8]
+			type: compiler/get-type name
+			resolved-type: compiler/resolve-aliased type
+			either all [
+				find [struct! union!] resolved-type/1
+				any [
+					find by-value-args name
+					'value = last type
+					'value = last resolved-type
+					all [
+						local-spec: select compiler/locals name
+						'value = last local-spec
+					]
+				]
+			][
+				emit-local-ref name #{488D45}		;-- LEA rax, [rbp+disp8]
+			][
+				emit-local-ref name #{488B45}		;-- MOV rax, [rbp+disp8]
+			]
 		][
 			either import-var? name [
 				emit-import-var-address name
@@ -1379,7 +1645,40 @@ make-profilable make target-class [
 		/local type agg-type source-type opcode local?
 	][
 		if by-value [
-			compiler/throw-error "x86-64 by-value store is not implemented yet"
+			if slots > 2 [exit]
+			either offset: emitter/local-offset? name [
+				either slots = 1 [
+					emit-local-ref name #{488945}		;-- MOV [rbp+disp8], rax
+				][
+					either all [offset >= -128 offset <= 127][
+						emit #{488945}				;-- MOV [rbp+disp8], rax
+						emit to-bin8 offset
+						emit #{488955}				;-- MOV [rbp+disp8], rdx
+						emit to-bin8 offset + 8
+					][
+						emit #{488985}				;-- MOV [rbp+disp32], rax
+						emit to-bin32 offset
+						emit #{488995}				;-- MOV [rbp+disp32], rdx
+						emit to-bin32 offset + 8
+					]
+				]
+			][
+				either slots = 1 [
+					emit #{50}						;-- PUSH rax
+					emit-init-path name
+					emit #{5A}						;-- POP rdx
+					emit #{488910}					;-- MOV [rax], rdx
+				][
+					emit #{50}						;-- PUSH rax
+					emit #{52}						;-- PUSH rdx
+					emit-init-path name
+					emit #{5A}						;-- POP rdx
+					emit #{59}						;-- POP rcx
+					emit #{488908}					;-- MOV [rax], rcx
+					emit #{48895008}				;-- MOV [rax+8], rdx
+				]
+			]
+			exit
 		]
 		type: compiler/get-variable-spec name
 		agg-type: compiler/resolve-aliased type
@@ -1511,80 +1810,111 @@ make-profilable make target-class [
 				size: emitter/size-of? mtype
 				signed?: compiler/signed-integer? mtype
 				idx: either path/2 = 'value [1][path/2]
-				unless integer? idx [
-					compiler/throw-error "x86-64 pointer variable indexes are not implemented yet"
-				]
-				offset: (idx - 1) * size
-				case [
-					compiler/any-float? mtype [
-						either size = 4 [
-							either zero? offset [
-								emit #{C5FA1000}	;-- VMOVSS xmm0, [rax]
+				either integer? idx [
+					offset: (idx - 1) * size
+					case [
+						compiler/any-float? mtype [
+							either size = 4 [
+								either zero? offset [
+									emit #{C5FA1000}	;-- VMOVSS xmm0, [rax]
+								][
+									emit #{C5FA1080}	;-- VMOVSS xmm0, [rax+disp32]
+									emit to-bin32 offset
+								]
 							][
-								emit #{C5FA1080}	;-- VMOVSS xmm0, [rax+disp32]
-								emit to-bin32 offset
+								either zero? offset [
+									emit #{C5FB1000}	;-- VMOVSD xmm0, [rax]
+								][
+									emit #{C5FB1080}	;-- VMOVSD xmm0, [rax+disp32]
+									emit to-bin32 offset
+								]
 							]
-						][
+						]
+						all [size = 8 not compiler/any-float? mtype] [
 							either zero? offset [
-								emit #{C5FB1000}	;-- VMOVSD xmm0, [rax]
+								emit #{488B00}		;-- MOV rax, [rax]
 							][
-								emit #{C5FB1080}	;-- VMOVSD xmm0, [rax+disp32]
+								emit #{488B80}		;-- MOV rax, [rax+disp32]
 								emit to-bin32 offset
 							]
 						]
-					]
-					all [size = 8 not compiler/any-float? mtype] [
-						either zero? offset [
-							emit #{488B00}			;-- MOV rax, [rax]
-						][
-							emit #{488B80}			;-- MOV rax, [rax+disp32]
-							emit to-bin32 offset
-						]
-					]
-					all [size = 4 not compiler/any-float? mtype] [
-						either zero? offset [
-							emit #{8B00}			;-- MOV eax, [rax]
-						][
-							emit #{8B80}			;-- MOV eax, [rax+disp32]
-							emit to-bin32 offset
-						]
-					]
-					all [size = 2 not compiler/any-float? mtype] [
-						either signed? [
+						all [size = 4 not compiler/any-float? mtype] [
 							either zero? offset [
-								emit #{0FBF00}		;-- MOVSX eax, word [rax]
+								emit #{8B00}		;-- MOV eax, [rax]
 							][
-								emit #{0FBF80}
-								emit to-bin32 offset
-							]
-						][
-							either zero? offset [
-								emit #{0FB700}		;-- MOVZX eax, word [rax]
-							][
-								emit #{0FB780}
+								emit #{8B80}		;-- MOV eax, [rax+disp32]
 								emit to-bin32 offset
 							]
 						]
-					]
-					all [size = 1 not compiler/any-float? mtype] [
-						either signed? [
-							either zero? offset [
-								emit #{0FBE00}		;-- MOVSX eax, byte [rax]
+						all [size = 2 not compiler/any-float? mtype] [
+							either signed? [
+								either zero? offset [
+									emit #{0FBF00}	;-- MOVSX eax, word [rax]
+								][
+									emit #{0FBF80}
+									emit to-bin32 offset
+								]
 							][
-								emit #{0FBE80}
-								emit to-bin32 offset
-							]
-						][
-							either zero? offset [
-								emit #{0FB600}		;-- MOVZX eax, byte [rax]
-							][
-								emit #{0FB680}
-								emit to-bin32 offset
+								either zero? offset [
+									emit #{0FB700}	;-- MOVZX eax, word [rax]
+								][
+									emit #{0FB780}
+									emit to-bin32 offset
+								]
 							]
 						]
+						all [size = 1 not compiler/any-float? mtype] [
+							either signed? [
+								either zero? offset [
+									emit #{0FBE00}	;-- MOVSX eax, byte [rax]
+								][
+									emit #{0FBE80}
+									emit to-bin32 offset
+								]
+							][
+								either zero? offset [
+									emit #{0FB600}	;-- MOVZX eax, byte [rax]
+								][
+									emit #{0FB680}
+									emit to-bin32 offset
+								]
+							]
+						]
+						true [
+							compiler/throw-error ["x86-64 pointer load type not supported yet:" mold mtype/1]
+						]
 					]
-					true [
-						compiler/throw-error ["x86-64 pointer load type not supported yet:" mold mtype/1]
+				][
+					emit-load-ecx idx
+					emit #{FFC9}					;-- DEC ecx, one-based index
+					case [
+						compiler/any-float? mtype [
+							emit either size = 4 [
+								#{C5FA1004}			;-- VMOVSS xmm0, [rax+rcx*scale]
+							][
+								#{C5FB1004}			;-- VMOVSD xmm0, [rax+rcx*scale]
+							]
+							emit-index-sib 'rax size
+						]
+						all [size = 8 not compiler/any-float? mtype] [
+							emit #{488B04}			;-- MOV rax, [rax+rcx*scale]
+							emit-index-sib 'rax size
+						]
+						all [size = 4 not compiler/any-float? mtype] [
+							emit #{8B04}			;-- MOV eax, [rax+rcx*scale]
+							emit-index-sib 'rax size
+						]
+						all [size = 2 not compiler/any-float? mtype] [
+							emit either signed? [#{0FBF04}][#{0FB704}]
+							emit-index-sib 'rax size
+						]
+						all [size = 1 not compiler/any-float? mtype] [
+							emit either signed? [#{0FBE04}][#{0FB604}]
+							emit-index-sib 'rax size
+						]
+						true [
+							compiler/throw-error ["x86-64 pointer load type not supported yet:" mold mtype/1]
+						]
 					]
 				]
 			]
@@ -1596,6 +1926,15 @@ make-profilable make target-class [
 				offset: emitter/member-offset? spec path/2
 				size: emitter/size-of? mtype
 				signed?: compiler/signed-integer? mtype
+				either all [
+					get-word? first head path
+					tail? skip path 2
+				][
+					unless zero? offset [
+						emit #{488D80}				;-- LEA rax, [rax+disp32]
+						emit to-bin32 offset
+					]
+				][
 				case [
 					compiler/any-float? mtype [
 						either size = 4 [
@@ -1668,6 +2007,7 @@ make-profilable make target-class [
 						compiler/throw-error ["x86-64 path load type not supported yet:" mold mtype/1]
 					]
 				]
+				]
 			]
 			true [
 				compiler/throw-error ["x86-64 load path type not supported yet:" mold type]
@@ -1679,7 +2019,7 @@ make-profilable make target-class [
 		type [word!]
 		value
 		parent [block! none!]
-		/local spec offset mtype size signed? source-type last? base value-reg idx
+		/local spec offset mtype field size signed? source-type last? base value-reg idx aggregate-by-value? aggregate-size
 	][
 		if verbose >= 3 [print [">>>storing path:" mold path mold value]]
 		switch type [
@@ -1721,10 +2061,6 @@ make-profilable make target-class [
 				set-width/type mtype/1
 				size: emitter/size-of? mtype
 				idx: either path/2 = 'value [1][path/2]
-				unless integer? idx [
-					compiler/throw-error "x86-64 pointer variable indexes are not implemented yet"
-				]
-				offset: (idx - 1) * size
 				source-type: either value = <last> [compiler/last-type][compiler/get-type value]
 				last?: value = <last>
 				if value <> <last> [
@@ -1758,77 +2094,222 @@ make-profilable make target-class [
 				]
 				base: either last? [#{00}][#{02}]
 				value-reg: either last? [#{10}][#{02}]
-				case [
-					compiler/any-float? mtype [
-						either size = 4 [
-							either zero? offset [
-								emit rejoin [#{C5FA11} base]	;-- VMOVSS [base], xmm0
+				either integer? idx [
+					offset: (idx - 1) * size
+					case [
+						compiler/any-float? mtype [
+							either size = 4 [
+								either zero? offset [
+									emit rejoin [#{C5FA11} base] ;-- VMOVSS [base], xmm0
+								][
+									emit rejoin [#{C5FA11} either last? [#{80}][#{82}]]
+									emit to-bin32 offset
+								]
 							][
-								emit rejoin [#{C5FA11} either last? [#{80}][#{82}]]
+								either zero? offset [
+									emit rejoin [#{C5FB11} base] ;-- VMOVSD [base], xmm0
+								][
+									emit rejoin [#{C5FB11} either last? [#{80}][#{82}]]
+									emit to-bin32 offset
+								]
+							]
+						]
+						all [size = 8 not compiler/any-float? mtype] [
+							either zero? offset [
+								emit rejoin [#{4889} value-reg] ;-- MOV [base], r64
+							][
+								emit rejoin [#{4889} either last? [#{90}][#{82}]]
 								emit to-bin32 offset
 							]
-						][
+						]
+						all [size = 4 not compiler/any-float? mtype] [
 							either zero? offset [
-								emit rejoin [#{C5FB11} base]	;-- VMOVSD [base], xmm0
+								emit rejoin [#{89} value-reg] ;-- MOV [base], r32
 							][
-								emit rejoin [#{C5FB11} either last? [#{80}][#{82}]]
+								emit rejoin [#{89} either last? [#{90}][#{82}]]
 								emit to-bin32 offset
 							]
 						]
-					]
-					all [size = 8 not compiler/any-float? mtype] [
-						either zero? offset [
-							emit rejoin [#{4889} value-reg]	;-- MOV [base], r64
-						][
-							emit rejoin [#{4889} either last? [#{90}][#{82}]]
-							emit to-bin32 offset
+						all [size = 2 not compiler/any-float? mtype] [
+							either zero? offset [
+								emit rejoin [#{6689} value-reg] ;-- MOV [base], r16
+							][
+								emit rejoin [#{6689} either last? [#{90}][#{82}]]
+								emit to-bin32 offset
+							]
+						]
+						all [size = 1 not compiler/any-float? mtype] [
+							either zero? offset [
+								emit rejoin [#{88} value-reg] ;-- MOV [base], r8
+							][
+								emit rejoin [#{88} either last? [#{90}][#{82}]]
+								emit to-bin32 offset
+							]
+						]
+						true [
+							compiler/throw-error ["x86-64 pointer store type not supported yet:" mold mtype/1]
 						]
 					]
-					all [size = 4 not compiler/any-float? mtype] [
-						either zero? offset [
-							emit rejoin [#{89} value-reg]	;-- MOV [base], r32
-						][
-							emit rejoin [#{89} either last? [#{90}][#{82}]]
-							emit to-bin32 offset
+				][
+					emit-load-ecx idx
+					emit #{FFC9}					;-- DEC ecx, one-based index
+					case [
+						compiler/any-float? mtype [
+							emit either size = 4 [
+								either last? [#{C5FA1104}][#{C5FA110C}]
+							][
+								either last? [#{C5FB1104}][#{C5FB110C}]
+							]
+							emit-index-sib either last? ['rax]['rdx] size
 						]
-					]
-					all [size = 2 not compiler/any-float? mtype] [
-						either zero? offset [
-							emit rejoin [#{6689} value-reg]	;-- MOV [base], r16
-						][
-							emit rejoin [#{6689} either last? [#{90}][#{82}]]
-							emit to-bin32 offset
+						all [size = 8 not compiler/any-float? mtype] [
+							emit either last? [#{488914}][#{488904}]
+							emit-index-sib either last? ['rax]['rdx] size
 						]
-					]
-					all [size = 1 not compiler/any-float? mtype] [
-						either zero? offset [
-							emit rejoin [#{88} value-reg]	;-- MOV [base], r8
-						][
-							emit rejoin [#{88} either last? [#{90}][#{82}]]
-							emit to-bin32 offset
+						all [size = 4 not compiler/any-float? mtype] [
+							emit either last? [#{8914}][#{8904}]
+							emit-index-sib either last? ['rax]['rdx] size
 						]
-					]
-					true [
-						compiler/throw-error ["x86-64 pointer store type not supported yet:" mold mtype/1]
+						all [size = 2 not compiler/any-float? mtype] [
+							emit either last? [#{668914}][#{668904}]
+							emit-index-sib either last? ['rax]['rdx] size
+						]
+						all [size = 1 not compiler/any-float? mtype] [
+							emit either last? [#{8814}][#{8804}]
+							emit-index-sib either last? ['rax]['rdx] size
+						]
+						true [
+							compiler/throw-error ["x86-64 pointer store type not supported yet:" mold mtype/1]
+						]
 					]
 				]
 			]
 			struct! union! [
 				spec: either parent [parent][second compiler/resolve-type to word! path/1]
-				unless parent [emit-init-path path/1]
 				mtype: compiler/resolve-type/with path/2 spec
+				field: select spec path/2
 				set-width/type mtype/1
 				offset: emitter/member-offset? spec path/2
 				size: emitter/size-of? mtype
+				aggregate-by-value?: all [
+					find [struct! union!] mtype/1
+					'value = last field
+				]
 				if all [
 					paren? value
 					find [struct! union!] mtype/1
+					aggregate-by-value?
 				][
 					exit
 				]
+				if all [find [struct! union!] mtype/1 not aggregate-by-value?][size: stack-width]
 				if set-path? path [emit-store-union-tag spec path/2 'rax]
 				source-type: either value = <last> [compiler/last-type][compiler/get-type value]
 				last?: value = <last>
+				if all [
+					last?
+					aggregate-by-value?
+					find [struct! union!] mtype/1
+				][
+					size: emitter/struct-slots? mtype
+					either size = 1 [
+						aggregate-size: either mtype/1 = 'union! [
+							emitter/union-size? mtype/2
+						][
+							emitter/member-offset? mtype/2 none
+						]
+						emit #{50}					;-- PUSH rax
+						unless parent [emit-init-path path/1]
+						emit #{5A}					;-- POP rdx
+						case [
+							1 = aggregate-size [
+								either zero? offset [
+									emit #{8810}	;-- MOV [rax], dl
+								][
+									emit #{8890}
+									emit to-bin32 offset
+								]
+							]
+							2 = aggregate-size [
+								either zero? offset [
+									emit #{668910}	;-- MOV [rax], dx
+								][
+									emit #{668990}
+									emit to-bin32 offset
+								]
+							]
+							4 = aggregate-size [
+								either zero? offset [
+									emit #{8910}	;-- MOV [rax], edx
+								][
+									emit #{8990}
+									emit to-bin32 offset
+								]
+							]
+							true [
+								either zero? offset [
+									emit #{488910}	;-- MOV [rax], rdx
+								][
+									emit #{488990}
+									emit to-bin32 offset
+								]
+							]
+						]
+					][
+						emit #{50}					;-- PUSH rax
+						emit #{52}					;-- PUSH rdx
+						unless parent [emit-init-path path/1]
+						emit #{5A}					;-- POP rdx
+						emit #{59}					;-- POP rcx
+						either zero? offset [
+							emit #{488908}			;-- MOV [rax], rcx
+							emit #{48895008}		;-- MOV [rax+8], rdx
+						][
+							emit #{488988}
+							emit to-bin32 offset
+							emit #{488990}
+							emit to-bin32 offset + stack-width
+						]
+					]
+					exit
+				]
+				if all [
+					last?
+					not aggregate-by-value?
+					find [struct! union!] mtype/1
+					block? source-type
+					'value = last source-type
+				][
+					size: emitter/struct-slots? source-type
+					either size = 1 [
+						emit #{50}					;-- PUSH rax
+						unless parent [emit-init-path path/1]
+						either zero? offset [
+							emit #{488B00}			;-- MOV rax, [rax]
+						][
+							emit #{488B80}			;-- MOV rax, [rax+disp32]
+							emit to-bin32 offset
+						]
+						emit #{5A}					;-- POP rdx
+						emit #{488910}				;-- MOV [rax], rdx
+					][
+						emit #{50}					;-- PUSH rax
+						emit #{52}					;-- PUSH rdx
+						unless parent [emit-init-path path/1]
+						either zero? offset [
+							emit #{488B00}			;-- MOV rax, [rax]
+						][
+							emit #{488B80}			;-- MOV rax, [rax+disp32]
+							emit to-bin32 offset
+						]
+						emit #{5A}					;-- POP rdx
+						emit #{59}					;-- POP rcx
+						emit #{488908}				;-- MOV [rax], rcx
+						emit #{48895008}			;-- MOV [rax+8], rdx
+					]
+					exit
+				]
+				unless parent [emit-init-path path/1]
 				if value <> <last> [
 					emit #{50}						;-- PUSH rax
 					emit-load value
@@ -1933,7 +2414,16 @@ make-profilable make target-class [
 		mtype: compiler/resolve-type/with path/2 spec
 		field: select spec path/2
 		offset: emitter/member-offset? spec path/2
-		either find [struct! union!] mtype/1 [
+		either any [
+			all [
+				find [struct! union!] mtype/1
+				'value = last field
+			]
+			all [
+				get-word? first head path
+				tail? skip path 2
+			]
+		][
 			unless zero? offset [
 				emit #{488D80}						;-- LEA rax, [rax+disp32]
 				emit to-bin32 offset
@@ -2072,8 +2562,52 @@ make-profilable make target-class [
 			]
 		]
 	]
-	emit-move-path-alt: :unsupported
-	emit-push-struct: :unsupported
+	emit-push-struct: func [slots [integer!]][		;-- number of 64-bit stack slots
+		repeat i slots [
+			append/only call-arg-types [integer!]
+		]
+		either slots <= 5 [
+			repeat i slots - 1 [
+				emit #{FF70}						;-- PUSH qword [rax+i*<stack-width>] for i > 0
+				emit to-bin8 slots - i * stack-width
+			]
+			emit #{FF30}							;-- PUSH qword [rax]
+		][
+			emit-reserve-stack slots
+			emit #{4889C6}							;-- MOV rsi, rax
+			emit #{4889E7}							;-- MOV rdi, rsp
+			emit #{B9}								;-- MOV ecx, <slots>
+			emit to-bin32 slots
+			emit #{F348A5}							;-- REP MOVSQ
+		]
+	]
+	emit-push-struct-ref: func [slots [integer!] /local offset][
+		if call-struct-temp-slots < slots [
+			compiler/throw-error "x86-64 struct argument temporary stack space was not reserved"
+		]
+		offset: ((length? call-arg-types) + call-struct-temp-slots - slots) * stack-width
+		call-struct-temp-slots: call-struct-temp-slots - slots
+		emit #{4889C6}								;-- MOV rsi, rax
+		either offset <= 127 [
+			emit #{488D7C24}						;-- LEA rdi, [rsp+disp8]
+			emit to-bin8 offset
+		][
+			emit #{488DBC24}						;-- LEA rdi, [rsp+disp32]
+			emit to-bin32 offset
+		]
+		emit #{B9}									;-- MOV ecx, <slots>
+		emit to-bin32 slots
+		emit #{F348A5}								;-- REP MOVSQ
+		either offset <= 127 [
+			emit #{488D4424}						;-- LEA rax, [rsp+disp8]
+			emit to-bin8 offset
+		][
+			emit #{488D8424}						;-- LEA rax, [rsp+disp32]
+			emit to-bin32 offset
+		]
+		append/only call-arg-types [pointer! [byte!]]
+		emit-push <last>
+	]
 	emit-store-union-tag: func [spec [block!] name [word!] reg [word!] /local id tag type][
 		if all [
 			compiler/tagged-union? spec
@@ -2123,10 +2657,10 @@ make-profilable make target-class [
 			reduce [0 0]
 		][
 			emit #{31C0}								;-- XOR eax, eax
-			emit #{EB03}								;-- JMP _exit
+			emit #{EB04}								;-- JMP _exit
 			emit #{31C0}								;-- XOR eax, eax
-			emit #{40}									;-- INC eax
-			reduce [3 7]
+			emit #{FFC0}								;-- INC eax
+			reduce [4 8]
 		]
 	]
 
@@ -2160,23 +2694,68 @@ make-profilable make target-class [
 		offset [integer! none!]
 		parity [none! logic!]
 		/back?
-		/local size jump jxx jump-code
+		/local size jump jxx jp jcc unord-jumps-to-true? flip? jump-code
 	][
 		size: (length? code) - any [offset 0]
 		jump: copy #{}
 		jxx: [second set [size jump-code] construct-jump op size back?]
+		jp:  [second set [size jump-code] construct-jump 'parity size back?]
 		either none? op [
 			append jump do jxx
 		][
+			flip?: no
 			op: case [
 				block? op [
 					op: op/1
 					either logic? op [pick [= <>] op][op]
 				]
 				logic? op [pick [= <>] op]
-				true [opposite? op]
+				true [
+					flip?: yes
+					opposite? op
+				]
 			]
-			append jump do jxx
+			unord-jumps-to-true?: either flip? [
+				op <> '=
+			][
+				op = first [<>]
+			]
+			if all [
+				parity
+				either unord-jumps-to-true? [
+					find [< = <=] op
+				][
+					find [> <> >=] op
+				]
+			][
+				parity: no
+			]
+			either not parity [
+				append jump do jxx
+			][
+				either back? [
+					either unord-jumps-to-true? [
+						append jump do jp
+						append jump do jxx
+					][
+						size: size + 2
+						jcc: do jxx
+						append jump rejoin [#{7A} to-bin8 length? jcc]
+						append jump jcc
+					]
+				][
+					either unord-jumps-to-true? [
+						jcc: do jxx
+						size: size + length? jcc
+						append jump do jp
+						append jump jcc
+					][
+						jcc: do jxx
+						append jump rejoin [#{7A} to-bin8 length? jcc]
+						append jump jcc
+					]
+				]
+			]
 		]
 		insert any [all [back? tail code] code] jump
 		length? jump
@@ -2247,6 +2826,7 @@ make-profilable make target-class [
 	emit-get-pc: func [/local][
 		emit #{E800000000}							;-- CALL next
 		emit-pop									;-- get RIP in rax
+		compiler/last-type: [pointer! [byte!]]
 		5											;-- return adjustment offset (CALL size)
 	]
 	emit-get-overflow: does [
@@ -2331,30 +2911,179 @@ make-profilable make target-class [
 			emit #{8F45F8}							;-- POP [rbp-8]
 		]
 	]
-	emit-read-io: :unsupported
-	emit-io-read: :unsupported
-	emit-io-write: :unsupported
-	emit-fpu-init: :unsupported
-	emit-fpu-get: :unsupported
-	emit-fpu-set: :unsupported
-	emit-fpu-update: :unsupported
+	emit-read-io: func [type][
+		emit-io-read type
+	]
+	emit-io-read: func [type][
+		if verbose >= 3 [print ">>>emitting SYSTEM/IO/READ"]
+
+		emit #{89C2}								;-- MOV edx, eax
+		switch type [
+			byte!	 [
+				emit #{EC}							;-- IN al, dx
+				emit #{25FF000000}					;-- AND eax, 0xFF
+			]
+			integer! [emit #{ED}]					;-- IN eax, dx
+		]
+	]
+	emit-io-write: func [type][
+		if verbose >= 3 [print ">>>emitting SYSTEM/IO/WRITE"]
+
+		switch type [
+			byte!	 [emit #{EE}]					;-- OUT dx, al
+			integer! [emit #{EF}]					;-- OUT dx, eax
+		]
+	]
+	emit-fpu-get: func [
+		/type
+		/options option [word!]
+		/masks mask [word!]
+		/cword
+		/status
+		/local bit
+	][
+		unless any [type status][
+			emit #{8B05}							;-- MOV eax, [RIP+disp32]
+			emit-reloc-disp32 fpu-cword/2
+		]
+		case [
+			type [
+				emit #{B802000000}					;-- MOV eax, FPU_TYPE_SSE
+			]
+			status [
+				emit #{4883EC08}					;-- SUB rsp, 8
+				emit #{0FAE1C24}					;-- STMXCSR [rsp]
+				emit #{8B0424}						;-- MOV eax, [rsp]
+				emit #{4883C408}					;-- ADD rsp, 8
+				emit #{83E03F}						;-- AND eax, 3Fh
+			]
+			options [
+				set [bit] switch/default option [
+					rounding  [13]
+					precision [0]					;-- SSE has no x87 precision-control field
+				][
+					compiler/throw-error ["invalid FPU option name:" option]
+				]
+				either option = 'precision [
+					emit #{31C0}					;-- XOR eax, eax
+				][
+					emit #{25}						;-- AND eax, 6000h
+					emit to-bin32 24576
+					emit #{C1E8}					;-- SHR eax, 13
+					emit to-bin8 bit
+				]
+			]
+			masks [
+				bit: switch/default mask [
+					precision	[12]
+					underflow	[11]
+					overflow	[10]
+					zero-divide [9]
+					denormal	[8]
+					invalid-op  [7]
+				][
+					compiler/throw-error ["invalid FPU mask name:" mask]
+				]
+				emit #{25}							;-- AND eax, 2^bit
+				emit to-bin32 shift/left 1 bit
+				emit #{C1E8}						;-- SHR eax, bit
+				emit to-bin8 bit
+			]
+		]
+	]
+	emit-fpu-set: func [
+		value
+		/options option [word!]
+		/masks mask [word!]
+		/cword
+		/local bit clear-mask
+	][
+		either cword [
+			emit-load value
+		][
+			emit #{8B05}							;-- MOV eax, [RIP+disp32]
+			emit-reloc-disp32 fpu-cword/2
+			case [
+				options [
+					if option = 'precision [exit]
+					bit: switch/default option [
+						rounding [13]
+					][
+						compiler/throw-error ["invalid FPU option name:" option]
+					]
+					clear-mask: complement 24576
+					emit #{25}						;-- AND eax, ~6000h
+					emit to-bin32 clear-mask
+					emit #{0D}						;-- OR eax, value << bit
+					emit to-bin32 shift/left to integer! value bit
+				]
+				masks [
+					bit: switch/default mask [
+						precision	[12]
+						underflow	[11]
+						overflow	[10]
+						zero-divide [9]
+						denormal	[8]
+						invalid-op  [7]
+					][
+						compiler/throw-error ["invalid FPU mask name:" mask]
+					]
+					clear-mask: complement shift/left 1 bit
+					emit #{25}						;-- AND eax, ~(1 << bit)
+					emit to-bin32 clear-mask
+					emit #{0D}						;-- OR eax, value << bit
+					emit to-bin32 shift/left to integer! value bit
+				]
+			]
+		]
+		emit #{8905}								;-- MOV [RIP+disp32], eax
+		emit-reloc-disp32 fpu-cword/2
+	]
+	emit-fpu-update: does [
+		emit #{0FAE15}								;-- LDMXCSR [RIP+disp32]
+		emit-reloc-disp32 fpu-cword/2
+	]
+	emit-fpu-init: does [
+		emit #{0FAE15}								;-- LDMXCSR [RIP+disp32]
+		emit-reloc-disp32 fpu-cword/2
+	]
 	emit-push: func [value][
 		if verbose >= 3 [print [">>>pushing" mold value]]
 		if logic? value [value: to integer! value]
-		either value = <last> [
-			emit #{50}									;-- PUSH rax
+		either tag? value [
+			either value = <last> [
+				either all [
+					block? compiler/last-type
+					compiler/any-float? compiler/last-type
+				][
+					emit #{4883EC08}				;-- SUB rsp, 8
+					emit either compiler/last-type/1 = 'float32! [#{F30F110424}][#{F20F110424}]
+				][
+					emit #{50}						;-- PUSH rax
+				]
+			][
+				either value = <ret-ptr> [
+					emit #{488D85}					;-- LEA rax, [rbp+args-offset]
+					emit to-bin32 args-offset
+					emit #{50}						;-- PUSH rax
+				][
+					emit #{488D8424}				;-- LEA rax, [rsp+<args-top>]
+					emit to-bin32 to integer! value
+					emit #{50}						;-- PUSH rax
+				]
+			]
 		][
 			either all [integer? value value >= -128 value <= 127][
 				emit #{6A}
 				emit to-bin8 value
 			][
 				either integer? value [
-					emit #{48B8}						;-- MOV rax, imm64
+					emit #{48B8}					;-- MOV rax, imm64
 					emit to-bin64 value
 				][
 					emit-load value
 				]
-				emit #{50}								;-- PUSH rax
+				emit #{50}							;-- PUSH rax
 			]
 		]
 	]
@@ -2402,12 +3131,93 @@ make-profilable make target-class [
 		emit #{59}								;-- POP rcx
 		emit #{58}								;-- POP rax
 	]
-	emit-atomic-cas: :unsupported
-	emit-atomic-load: :unsupported
-	emit-atomic-store: :unsupported
-	emit-atomic-math: :unsupported
-	emit-atomic-fence: :unsupported
-	emit-init-sub: :unsupported
-	emit-return-sub: :unsupported
-	emit-call-sub: :unsupported
+	emit-atomic-load: func [order [word!]][
+		if verbose >= 3 [print [">>>emitting ATOMIC-LOAD" mold order]]
+		emit #{8B00}								;-- MOV eax, [rax]
+	]
+	emit-atomic-store: func [value order [word!]][
+		if verbose >= 3 [print [">>>emitting ATOMIC-STORE" mold value mold order]]
+		emit #{4889C6}								;-- MOV rsi, rax
+		emit-load value
+		emit #{8906}								;-- MOV [rsi], eax
+		emit-atomic-fence
+	]
+	emit-atomic-math: func [op [word!] right-op old? [logic!] ret? [logic!] order [word!]][
+		if verbose >= 3 [print [">>>emitting ATOMIC-MATH-OP" mold op mold right-op mold ret? mold order]]
+		emit #{4889C6}								;-- MOV rsi, rax
+		emit-load right-op
+		either any [old? ret?][
+			either find [add sub] op [
+				emit #{89C2}						;-- MOV edx, eax
+				if op = 'sub [emit #{F7D8}]			;-- NEG eax
+				emit #{F00FC106}					;-- LOCK XADD [rsi], eax
+				if all [ret? not old?][
+					emit either op = 'add [
+						#{01D0}						;-- ADD eax, edx
+					][
+						#{29D0}						;-- SUB eax, edx
+					]
+				]
+			][
+				emit #{57}							;-- PUSH rdi
+				emit #{89C7}						;-- MOV edi, eax
+				emit #{8B06}						;-- MOV eax, [rsi]
+				emit #{89C1}						;-- loop: MOV ecx, eax
+				if old? [emit #{89C2}]				;-- MOV edx, eax
+				switch op [
+					or  [emit #{09F9}]				;-- OR  ecx, edi
+					xor [emit #{31F9}]				;-- XOR ecx, edi
+					and [emit #{21F9}]				;-- AND ecx, edi
+				]
+				emit #{F00FB10E}					;-- LOCK CMPXCHG [rsi], ecx
+				emit either old? [#{75F4}][#{75F6}]	;-- JNE loop
+				emit either all [ret? not old?][
+					#{89C8}							;-- MOV eax, ecx
+				][
+					#{89D0}							;-- MOV eax, edx
+				]
+				emit #{5F}							;-- POP rdi
+			]
+		][
+			emit switch op [
+				add  [#{F00106}]					;-- LOCK ADD [rsi], eax
+				sub  [#{F02906}]					;-- LOCK SUB [rsi], eax
+				or   [#{F00906}]					;-- LOCK OR  [rsi], eax
+				xor  [#{F03106}]					;-- LOCK XOR [rsi], eax
+				and  [#{F02106}]					;-- LOCK AND [rsi], eax
+			]
+		]
+	]
+	emit-atomic-cas: func [check value ret? [logic!] order [word!]][
+		if verbose >= 3 [print [">>>emitting ATOMIC-CAS" mold check mold value ret? mold order]]
+		emit #{4889C6}								;-- MOV rsi, rax
+		emit-load value
+		emit-move-path-alt							;-- load new value in edx
+		emit-load check								;-- load check value in eax
+		emit #{F00FB116}							;-- LOCK CMPXCHG [rsi], edx
+		if ret? [
+			emit #{0F94C0}							;-- SETE al
+			emit #{0FB6C0}							;-- MOVZX eax, al
+		]
+	]
+	emit-atomic-fence: does [
+		if verbose >= 3 [print ">>>emitting ATOMIC-FENCE"]
+		emit #{0FAEF0}								;-- MFENCE
+	]
+	emit-init-sub: :noop
+	emit-return-sub: does [
+		if verbose >= 3 [print ">>>emitting RET from subroutine"]
+		emit #{C3}									;-- RET
+	]
+	emit-call-sub: func [name [word!] spec [block!]][
+		if verbose >= 3 [print [">>>emitting CALL subroutine" name]]
+		emit #{E8}									;-- CALL NEAR disp32
+		append spec/3 emitter/tail-ptr
+		emit to-bin32 0
+		unless empty? emitter/chunks/queue [
+			append/only
+				second last emitter/chunks/queue
+				back tail spec/3
+		]
+	]
 ]
