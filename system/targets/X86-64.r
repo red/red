@@ -532,6 +532,17 @@ make-profilable make target-class [
 				emit #{4889C1}						;-- MOV rcx, rax
 				emit #{58}							;-- POP rax
 			]
+			object? value [
+				type: compiler/resolve-aliased value/type
+				emit #{50}							;-- PUSH rax
+				emit-load value
+				emit either find [pointer! c-string! function! subroutine! struct! union! int64! uint64!] type/1 [
+					#{4889C1}						;-- MOV rcx, rax
+				][
+					#{89C1}							;-- MOV ecx, eax
+				]
+				emit #{58}							;-- POP rax
+			]
 			word? value [
 				type: compiler/get-type value
 				if all [
@@ -962,7 +973,7 @@ make-profilable make target-class [
 	emit-integer-operation: func [
 		name [word!]
 		args [block!]
-		/local right imm? type wide? right-block? right-type scale right-loaded? left-type
+		/local right imm? type wide? right-block? right-type scale right-loaded? left-type mod? signed-op?
 	][
 		type: compiler/resolve-aliased compiler/resolve-expr-type args/1
 		right: compiler/unbox args/2
@@ -1003,11 +1014,28 @@ make-profilable make target-class [
 				]
 			]
 		]
-		if name = divide-sym [
+		mod?: select mod-rem-func name
+		if any [name = divide-sym mod?] [
 			unless right-block? [emit-load-ecx right]
-			emit either wide? [#{4899}][#{99}]		;-- CQO/CDQ
-			emit either wide? [#{48F7F9}][#{F7F9}]	;-- IDIV rcx/ecx
-			last-math-op: name
+			signed-op?: compiler/signed-integer? type
+			either signed-op? [
+				emit either wide? [#{4899}][#{99}]		;-- CQO/CDQ
+				emit either wide? [#{48F7F9}][#{F7F9}]	;-- IDIV rcx/ecx
+			][
+				emit either wide? [#{4831D2}][#{31D2}]	;-- XOR rdx/edx, rdx/edx
+				emit either wide? [#{48F7F1}][#{F7F1}]	;-- DIV rcx/ecx
+			]
+			if mod? [
+				emit either wide? [#{4889D0}][#{89D0}]	;-- MOV rax/eax, rdx/edx
+				if all [signed-op? mod? <> 'rem][
+					emit either wide? [
+						#{4885C0790B4885C9790348F7D94801C8}
+					][
+						#{85C0790885C97902F7D901C8}
+					]
+				]
+			]
+			last-math-op: divide-sym
 			exit
 		]
 		case [
@@ -1460,15 +1488,18 @@ make-profilable make target-class [
 			c-string! [
 				unless parent [emit-init-path path/1]
 				idx: path/2
-				unless integer? idx [
-					compiler/throw-error "x86-64 c-string variable indexes are not implemented yet"
-				]
-				offset: idx - 1
-				either zero? offset [
-					emit #{0FB600}					;-- MOVZX eax, byte [rax]
+				either integer? idx [
+					offset: idx - 1
+					either zero? offset [
+						emit #{0FB600}				;-- MOVZX eax, byte [rax]
+					][
+						emit #{0FB680}				;-- MOVZX eax, byte [rax+disp32]
+						emit to-bin32 offset
+					]
 				][
-					emit #{0FB680}					;-- MOVZX eax, byte [rax+disp32]
-					emit to-bin32 offset
+					emit-load-ecx idx
+					emit #{FFC9}					;-- DEC ecx, one-based index
+					emit #{0FB60408}				;-- MOVZX eax, byte [rax+rcx]
 				]
 				set-width 4
 			]
@@ -1655,10 +1686,6 @@ make-profilable make target-class [
 			c-string! [
 				unless parent [emit-init-path path/1]
 				idx: path/2
-				unless integer? idx [
-					compiler/throw-error "x86-64 c-string variable indexes are not implemented yet"
-				]
-				offset: idx - 1
 				if value <> <last> [
 					emit #{50}						;-- PUSH rax
 					emit-load value
@@ -1666,13 +1693,24 @@ make-profilable make target-class [
 				]
 				last?: value = <last>
 				base: either last? [#{00}][#{02}]
-				case [
-					zero? offset [
-						emit rejoin [#{88} base]	;-- MOV [base], al
+				either integer? idx [
+					offset: idx - 1
+					case [
+						zero? offset [
+							emit rejoin [#{88} base] ;-- MOV [base], al
+						]
+						true [
+							emit rejoin [#{88} either last? [#{80}][#{82}]]
+							emit to-bin32 offset
+						]
 					]
-					true [
-						emit rejoin [#{88} either last? [#{80}][#{82}]]
-						emit to-bin32 offset
+				][
+					emit-load-ecx idx
+					emit #{FFC9}					;-- DEC ecx, one-based index
+					emit either last? [
+						#{880408}					;-- MOV [rax+rcx], al
+					][
+						#{88040A}					;-- MOV [rdx+rcx], al
 					]
 				]
 			]

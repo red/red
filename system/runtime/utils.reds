@@ -80,9 +80,24 @@ prin-byte: func [
 prin-uint64-parts: func [
 	lo		[integer!]
 	hi		[integer!]
+	/local
+		s	[c-string!]
+		c	[integer!]
+		value [uint64!]
+		rem	[integer!]
 ][
-	prin-hex hi
-	prin-hex lo
+	value: ((as uint64! as uint32! hi) << 32) or (as uint64! as uint32! lo)
+	if value = as uint64! 0 [prin "0" exit]
+	s: "00000000000000000000"				;-- max 20 digits
+	c: 20
+	until [
+		rem: as integer! value % as uint64! 10
+		s/c: #"0" + rem
+		c: c - 1
+		value: value / as uint64! 10
+		value = as uint64! 0
+	]
+	prin s + c
 ]
 
 ;-------------------------------------------
