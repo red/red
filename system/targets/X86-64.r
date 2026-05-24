@@ -1284,7 +1284,6 @@ make-profilable make target-class [
 			right-signed?: compiler/signed-integer? right-type
 			right-loaded?: yes
 		]
-		emit-load args/1
 		if char? right [right: to integer! right]
 		if logic? right [right: to integer! right]
 		imm?: all [not right-block? integer? right]
@@ -1294,12 +1293,11 @@ make-profilable make target-class [
 		signed?: compiler/signed-integer? type
 		wide?: find [pointer! c-string! function! subroutine! struct! union! any-pointer! int64! uint64!] type/1
 		ptr-wide-imm?: find [pointer! c-string! function! subroutine! struct! union! any-pointer!] type/1
-		if all [
-			right-block?
-			find comparison-op name
-		][
+		if all [right-block? not last-saved?][
 			emit either wide? [#{4889C1}][#{89C1}] ;-- MOV rcx/ecx, rax/eax
 		]
+		last-saved?: no
+		emit-load args/1
 		scale: 1
 		if all [
 			find [+ -] name
@@ -1433,44 +1431,122 @@ make-profilable make target-class [
 	]
 	emit-float-operation: func [
 		name [word!] args [block!]
-		/local type right-type single? store-op cmp-op
+		/local type right-type single? store-op cmp-op right-block? left-block? left-last? left-expr left-expr-type
 	][
 		if verbose >= 3 [print [">>>inlining float op:" mold name mold args]]
 		type: compiler/resolve-expr-type args/1
 		right-type: compiler/resolve-expr-type args/2
 		single?: any [type/1 = 'float32! right-type/1 = 'float32!]
+		left-expr: compiler/unbox args/1
+		left-expr-type: either block? left-expr [compiler/get-type left-expr][none]
+		right-block?: block? compiler/unbox args/2
+		left-block?: block? left-expr
+		left-last?: any [args/1 = <last> left-block?]
 		store-op: either single? [#{C5FA110424}][#{C5FB110424}]
 		cmp-op: either single? [#{C5F82E0424}][#{C5F92E0424}]
 		case [
 			find comparison-op name [
+				if all [
+					left-last?
+					any [
+						compiler/integer-type? compiler/last-type
+						all [object? args/1 compiler/integer-type? left-expr-type]
+					]
+				][
+					emit either compiler/int64? any [left-expr-type compiler/last-type] [
+						either type/1 = 'float32! [#{C4E1FA2AC0}][#{C4E1FB2AC0}]
+					][
+						either type/1 = 'float32! [#{C5FA2AC0}][#{C5FB2AC0}]
+					]
+					compiler/last-type: type
+				]
 				emit-load args/2
-				emit #{4883EC08}					;-- SUB rsp, 8
+				emit #{4883EC10}					;-- SUB rsp, 16
 				emit store-op						;-- MOVS[S/D] [rsp], xmm0
+				last-saved?: yes
+				saved-last-wide?: yes
 				emit-load args/1
 				emit cmp-op							;-- UCOMIS[S/D] xmm0, [rsp]
-				emit #{488D642408}					;-- LEA rsp, [rsp+8] without clobbering flags
+				emit #{488D642410}					;-- LEA rsp, [rsp+16] without clobbering flags
+				last-saved?: no
 			]
 			find [+ *] name [
-				emit-load args/1
-				emit #{4883EC08}
-				emit store-op
-				emit-load args/2
+				if all [
+					left-last?
+					any [
+						compiler/integer-type? compiler/last-type
+						all [object? args/1 compiler/integer-type? left-expr-type]
+					]
+				][
+					emit either compiler/int64? any [left-expr-type compiler/last-type] [
+						either type/1 = 'float32! [#{C4E1FA2AC0}][#{C4E1FB2AC0}]
+					][
+						either type/1 = 'float32! [#{C5FA2AC0}][#{C5FB2AC0}]
+					]
+					compiler/last-type: type
+				]
+				either right-block? [
+					emit-load args/2
+					emit #{4883EC10}
+					emit store-op
+					last-saved?: yes
+					saved-last-wide?: yes
+					emit-load args/1
+				][
+					emit-load args/1
+					emit #{4883EC10}
+					emit store-op
+					last-saved?: yes
+					saved-last-wide?: yes
+					emit-load args/2
+				]
 				emit switch name [
 					+ [either single? [#{C5FA580424}][#{C5FB580424}]] ;-- VADDS[S/D] xmm0, xmm0, [rsp]
 					* [either single? [#{C5FA590424}][#{C5FB590424}]] ;-- VMULS[S/D] xmm0, xmm0, [rsp]
 				]
-				emit #{4883C408}
+				emit #{4883C410}
+				last-saved?: no
 			]
 			find [- /] name [
-				emit-load args/2
-				emit #{4883EC08}
-				emit store-op
-				emit-load args/1
-				emit switch name [
-					- [either single? [#{C5FA5C0424}][#{C5FB5C0424}]] ;-- VSUBS[S/D] xmm0, xmm0, [rsp]
-					/ [either single? [#{C5FA5E0424}][#{C5FB5E0424}]] ;-- VDIVS[S/D] xmm0, xmm0, [rsp]
+				if all [
+					left-last?
+					any [
+						compiler/integer-type? compiler/last-type
+						all [object? args/1 compiler/integer-type? left-expr-type]
+					]
+				][
+					emit either compiler/int64? any [left-expr-type compiler/last-type] [
+						either type/1 = 'float32! [#{C4E1FA2AC0}][#{C4E1FB2AC0}]
+					][
+						either type/1 = 'float32! [#{C5FA2AC0}][#{C5FB2AC0}]
+					]
+					compiler/last-type: type
 				]
-				emit #{4883C408}
+				either left-last? [
+					emit #{4883EC10}
+					emit store-op
+					last-saved?: yes
+					saved-last-wide?: yes
+					emit-load args/2
+					emit either single? [#{C5FA100C24}][#{C5FB100C24}] ;-- VMOVS[S/D] xmm1, [rsp]
+					emit switch name [
+						- [either single? [#{C5F25CC0}][#{C5F35CC0}]] ;-- VSUBS[S/D] xmm0, xmm1, xmm0
+						/ [either single? [#{C5F25EC0}][#{C5F35EC0}]] ;-- VDIVS[S/D] xmm0, xmm1, xmm0
+					]
+				][
+					emit-load args/2
+					emit #{4883EC10}
+					emit store-op
+					last-saved?: yes
+					saved-last-wide?: yes
+					emit-load args/1
+					emit switch name [
+						- [either single? [#{C5FA5C0424}][#{C5FB5C0424}]] ;-- VSUBS[S/D] xmm0, xmm0, [rsp]
+						/ [either single? [#{C5FA5E0424}][#{C5FB5E0424}]] ;-- VDIVS[S/D] xmm0, xmm0, [rsp]
+					]
+				]
+				emit #{4883C410}
+				last-saved?: no
 			]
 			true [
 				compiler/throw-error "unsupported operation on floats"
@@ -1551,7 +1627,7 @@ make-profilable make target-class [
 			call-stack-slots: 0
 			call-pad-slots: stack-pad-count? argc
 			if positive? call-pad-slots [
-				emit #{6A00}						;-- PUSH 0 stack-argument alignment pad
+				emit-reserve-stack call-pad-slots	;-- stack-argument alignment pad
 			]
 		]
 		call-arg-index: call-arg-index + 1
@@ -1779,6 +1855,7 @@ make-profilable make target-class [
 		unless type [type: compiler/get-type value]
 		spec: emitter/store-value none value type
 		emit-load-literal-ptr spec/2
+		compiler/last-type: type
 	]
 	emit-load-literal-ptr: func [spec [block!]][
 		emit #{488D05}								;-- LEA rax, [RIP+disp32]
@@ -1865,7 +1942,14 @@ make-profilable make target-class [
 		][
 			exit
 		]
-		if find [struct! union!] agg-type/1 [
+		if all [
+			find [struct! union!] agg-type/1
+			not all [
+				object? value
+				find [struct! union!] value/type/1
+				not empty? value/data
+			]
+		][
 			type: [pointer!]
 		]
 		if logic? value [value: to integer! value]
@@ -2323,33 +2407,33 @@ make-profilable make target-class [
 						]
 						all [size = 8 not compiler/any-float? mtype] [
 							either zero? offset [
-								emit rejoin [#{4889} value-reg] ;-- MOV [base], r64
+								emit rejoin [#{4889} #{02}] ;-- MOV [base], r64
 							][
-								emit rejoin [#{4889} either last? [#{90}][#{82}]]
+								emit rejoin [#{4889} #{82}]
 								emit to-bin32 offset
 							]
 						]
 						all [size = 4 not compiler/any-float? mtype] [
 							either zero? offset [
-								emit rejoin [#{89} value-reg] ;-- MOV [base], r32
+								emit rejoin [#{89} #{02}] ;-- MOV [base], r32
 							][
-								emit rejoin [#{89} either last? [#{90}][#{82}]]
+								emit rejoin [#{89} #{82}]
 								emit to-bin32 offset
 							]
 						]
 						all [size = 2 not compiler/any-float? mtype] [
 							either zero? offset [
-								emit rejoin [#{6689} value-reg] ;-- MOV [base], r16
+								emit rejoin [#{6689} #{02}] ;-- MOV [base], r16
 							][
-								emit rejoin [#{6689} either last? [#{90}][#{82}]]
+								emit rejoin [#{6689} #{82}]
 								emit to-bin32 offset
 							]
 						]
 						all [size = 1 not compiler/any-float? mtype] [
 							either zero? offset [
-								emit rejoin [#{88} value-reg] ;-- MOV [base], r8
+								emit rejoin [#{88} #{02}] ;-- MOV [base], r8
 							][
-								emit rejoin [#{88} either last? [#{90}][#{82}]]
+								emit rejoin [#{88} #{82}]
 								emit to-bin32 offset
 							]
 						]

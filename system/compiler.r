@@ -357,6 +357,11 @@ system-dialect: make-profilable context [
 		
 		raise-runtime-error: func [error [integer!]][
 			emitter/target/emit-get-pc				;-- get current CPU program counter address
+			last-type: either emitter/target/target = 'X86-64 [
+				[pointer! [byte!]]
+			][
+				[integer!]
+			]
 			compiler/comp-call '***-on-quit reduce [error <last>] ;-- raise a runtime error
 		]
 		
@@ -1151,10 +1156,7 @@ system-dialect: make-profilable context [
 				throw-error ["invalid path value:" mold path]
 			]
 			
-			either emitter/target/target = 'X86-64 [
-				if all [not parent path = 'system/pc][return [pointer! [byte!]]]
-			][
-			]
+			if all [not parent path = 'system/pc emitter/target/target = 'X86-64][return [pointer! [byte!]]]
 
 			p1: to word! path/1
 			either parent [
@@ -2609,7 +2611,7 @@ system-dialect: make-profilable context [
 						compiler/script: secure-clean-path pc/2	;-- set the origin of following code
 					]
 					pc: skip pc 2
-					none
+					0
 				]
 			][
 				throw-error ["unknown directive" pc/1]
@@ -2826,24 +2828,33 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		comp-assert: has [expr line][
+		comp-assert: has [expr line save-type][
 			either job/debug? [
+				save-type: last-type
+				last-type: none-type
 				line: calc-line
 				pc: next pc
 				expr: fetch-expression/final 'assert
 				check-conditional 'assert expr			;-- verify conditional expression
 				expr: process-logic-encoding expr yes
 
-				insert/only pc next next compose [
-					2 (to pair! reduce [line 1])		;-- hidden line offset header
-					***-assert-fail 98
+				insert/only pc next next compose either emitter/target/target = 'X86-64 [
+					[
+						2 (to pair! reduce [line 1])	;-- hidden line offset header
+						***-on-quit 98 system/pc
+					]
+				][
+					[
+						2 (to pair! reduce [line 1])	;-- hidden line offset header
+						***-on-quit 98 as integer! system/pc
+					]
 				]
 				set [unused chunk] comp-block-chunked	;-- compile TRUE block
 				emitter/set-signed-state expr			;-- properly set signed/unsigned state
 				emitter/branch/over/on/parity			;-- branch over if expr is true
 					chunk reduce [expr/1] floats-in-condition? expr
 				emitter/merge chunk
-				last-type: none-type
+				last-type: save-type
 				<last>
 			][
 				pc: next pc
@@ -3160,9 +3171,10 @@ system-dialect: make-profilable context [
 				clear find/last expr-call-stack #test
 				
 				append expr-call-stack #body			;-- marker for enabling expression post-processing
+				last-type: none-type
 				fetch-into cases [						;-- compile case body
 					append/only list body: comp-block-chunked
-					append/only types resolve-expr-type/quiet body/1
+					append/only types none-type
 				]
 				clear find/last expr-call-stack #body
 				tail? cases: next cases
@@ -3186,7 +3198,7 @@ system-dialect: make-profilable context [
 			]	
 			emitter/merge bodies						;-- commit all to main code buffer
 			pc: next pc
-			last-type: equal-types-list? types			;-- test if usage in expression allowed
+			last-type: none-type						;-- treat CASE as statement code
 			<last>
 		]
 		
@@ -3228,6 +3240,7 @@ system-dialect: make-profilable context [
 					pos: copy value some [integer! | char!] 
 					(repend values [value none])		;-- [value body-offset ...]
 					pos: block! (
+						last-type: none-type
 						fetch-into pos [				;-- compile action body
 							body: comp-block-chunked/bool
 							append/only list body/2
@@ -3237,6 +3250,7 @@ system-dialect: make-profilable context [
 				]
 				opt [
 					'default pos: block! (
+						last-type: none-type
 						fetch-into pos [				;-- compile default body
 							default: comp-block-chunked/bool
 							append/only types resolve-expr-type/quiet default/1
@@ -3915,9 +3929,62 @@ system-dialect: make-profilable context [
 		comp-call: func [
 			name [word!] args [block!]
 			/local
-				list type res align? left right dup var-arity? saved? arg expr spec fspec
+				list type res align? left right dup var-arity? saved? arg expr spec fspec comp-nested
 				types slots struct-type struct-slots temp-slots scan-types
+				saved-call-arg-index saved-call-stack-slots saved-call-pad-slots
+				saved-call-extra-slots saved-call-shadow-slots saved-call-float-reg-count
+				saved-call-struct-temp-slots saved-call-variadic? saved-call-arg-types
+				saved-by-value-args saved-call-last-saved? saved-call-saved-last-wide?
+				saved-call-last-math-op
 		][
+			comp-nested: func [expr][
+				either job/target = 'X86-64 [
+					saved-call-arg-index: emitter/target/call-arg-index
+					saved-call-arg-types: copy emitter/target/call-arg-types
+					saved-call-stack-slots: emitter/target/call-stack-slots
+					saved-call-pad-slots: emitter/target/call-pad-slots
+					saved-call-extra-slots: emitter/target/call-extra-slots
+					saved-call-shadow-slots: emitter/target/call-shadow-slots
+					saved-call-variadic?: emitter/target/call-variadic?
+					saved-call-float-reg-count: emitter/target/call-float-reg-count
+					saved-call-struct-temp-slots: emitter/target/call-struct-temp-slots
+					saved-by-value-args: copy emitter/target/by-value-args
+					saved-call-last-saved?: emitter/target/last-saved?
+					saved-call-saved-last-wide?: emitter/target/saved-last-wide?
+					saved-call-last-math-op: emitter/target/last-math-op
+
+					emitter/target/call-arg-index: 0
+					clear emitter/target/call-arg-types
+					emitter/target/call-stack-slots: 0
+					emitter/target/call-pad-slots: 0
+					emitter/target/call-extra-slots: 0
+					emitter/target/call-shadow-slots: 0
+					emitter/target/call-variadic?: no
+					emitter/target/call-float-reg-count: 0
+					emitter/target/call-struct-temp-slots: 0
+					clear emitter/target/by-value-args
+
+					comp-expression expr yes
+
+					emitter/target/call-arg-index: saved-call-arg-index
+					emitter/target/call-arg-types: saved-call-arg-types
+					emitter/target/call-stack-slots: saved-call-stack-slots
+					emitter/target/call-pad-slots: saved-call-pad-slots
+					emitter/target/call-extra-slots: saved-call-extra-slots
+					emitter/target/call-shadow-slots: saved-call-shadow-slots
+					emitter/target/call-variadic?: saved-call-variadic?
+					emitter/target/call-float-reg-count: saved-call-float-reg-count
+					emitter/target/call-struct-temp-slots: saved-call-struct-temp-slots
+					clear emitter/target/by-value-args
+					append emitter/target/by-value-args saved-by-value-args
+					emitter/target/last-saved?: saved-call-last-saved?
+					emitter/target/saved-last-wide?: saved-call-saved-last-wide?
+					emitter/target/last-math-op: saved-call-last-math-op
+				][
+					comp-expression expr yes
+				]
+			]
+
 			name: decorate-fun name
 			list: either variadic? args/1 [args/2][		;-- bypass type-checking for variable arity calls
 				check-arguments-type name args
@@ -3969,7 +4036,9 @@ system-dialect: make-profilable context [
 					forall list [						;-- push function's arguments on stack
 						expr: list/1
 						if paren? expr [backtrack name throw-error "literal arrays cannot be passed as argument"]					
-						if block? unbox/deep expr [comp-expression expr yes]	;-- nested call
+						if block? unbox/deep expr [
+							comp-nested expr
+						]	;-- nested call
 						if object? expr [cast expr]
 						if type <> 'inline [
 							either all [types not tag? expr block? types/1 struct-by-value? types/1][
@@ -3998,13 +4067,13 @@ system-dialect: make-profilable context [
 						backtrack args/1
 						throw-error "incompatible operand types in math or bitwise operation"
 					]
-					if block? unbox list/1 [comp-expression list/1 yes]	;-- nested call
+					if block? unbox list/1 [comp-nested list/1]	;-- nested call
 					left:  unbox list/1
 					right: unbox list/2
 					if saved?: all [block? left any [block? right path? right]][
 						emitter/target/emit-save-last	;-- optionally save left argument result
 					]
-					if block? unbox list/2 [comp-expression list/2 yes]	;-- nested call
+					if block? unbox list/2 [comp-nested list/2]	;-- nested call
 					if saved? [emitter/target/emit-restore-last]
 				]
 			]
@@ -4280,7 +4349,17 @@ system-dialect: make-profilable context [
 					][
 						emitter/target/emit-load expr	;-- emit code for single value
 					]
-					either all [boxed not decimal? unbox expr not decimal? boxed/data][
+					either all [
+						boxed
+						not decimal? unbox expr
+						not decimal? boxed/data
+						not all [
+							job/target = 'X86-64
+							path? boxed/data
+							any-float? boxed/type
+							any-float? get-type boxed/data
+						]
+					][
 						emitter/target/emit-casting boxed no	;-- insert runtime type casting if required
 						boxed/type
 					][

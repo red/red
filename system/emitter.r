@@ -1099,7 +1099,7 @@ emitter: make-profilable context [
 	]
 	
 	store-ptr-bitmap: func [list [block!] /local offset][
-		offset: (index? tail bits-buf) - 1 / datatypes/pointer!
+		offset: to integer! divide ((index? tail bits-buf) - 1) datatypes/pointer!
 		until [
 			if list/1 <> '- [append bits-buf reverse debase/base to-hex list/1 16]
 			tail? list: next list
