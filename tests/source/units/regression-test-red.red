@@ -3885,6 +3885,9 @@ comment {
 		--assert error? set 'err try [sort/stable blk5738]
 		--assert err/id = 'too-long
 
+	--test-- "#5739"
+		--assert error? try [make vector! 700'000'000]
+
 	--test-- "#5746"
 		parse b5746: "12345" [skip p: 2 skip change :p ('x) to end] --assert b5746 == "1x45"
 		parse b5746: "12345" [skip p: 2 skip insert :p ('x) to end]	--assert b5746 == "1x2345"
