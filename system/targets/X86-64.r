@@ -1431,7 +1431,7 @@ make-profilable make target-class [
 	]
 	emit-float-operation: func [
 		name [word!] args [block!]
-		/local type right-type single? store-op cmp-op right-block? left-block? left-last? left-expr left-expr-type
+		/local type right-type single? store-op cmp-op right-block? left-block? left-last? pre-saved? left-expr left-expr-type
 	][
 		if verbose >= 3 [print [">>>inlining float op:" mold name mold args]]
 		type: compiler/resolve-expr-type args/1
@@ -1442,33 +1442,39 @@ make-profilable make target-class [
 		right-block?: block? compiler/unbox args/2
 		left-block?: block? left-expr
 		left-last?: any [args/1 = <last> left-block?]
+		pre-saved?: last-saved?
 		store-op: either single? [#{C5FA110424}][#{C5FB110424}]
 		cmp-op: either single? [#{C5F82E0424}][#{C5F92E0424}]
 		case [
 			find comparison-op name [
-				if all [
-					left-last?
-					any [
-						compiler/integer-type? compiler/last-type
-						all [object? args/1 compiler/integer-type? left-expr-type]
-					]
+				either all [left-block? right-block? pre-saved?][
+					emit either single? [#{0F2EC1}][#{660F2EC1}] ;-- UCOMIS[S/D] xmm0, xmm1
+					last-saved?: no
 				][
-					emit either compiler/int64? any [left-expr-type compiler/last-type] [
-						either type/1 = 'float32! [#{C4E1FA2AC0}][#{C4E1FB2AC0}]
+					if all [
+						left-last?
+						any [
+							compiler/integer-type? compiler/last-type
+							all [object? args/1 compiler/integer-type? left-expr-type]
+						]
 					][
-						either type/1 = 'float32! [#{C5FA2AC0}][#{C5FB2AC0}]
+						emit either compiler/int64? any [left-expr-type compiler/last-type] [
+							either type/1 = 'float32! [#{C4E1FA2AC0}][#{C4E1FB2AC0}]
+						][
+							either type/1 = 'float32! [#{C5FA2AC0}][#{C5FB2AC0}]
+						]
+						compiler/last-type: type
 					]
-					compiler/last-type: type
+					emit-load args/2
+					emit #{4883EC10}					;-- SUB rsp, 16
+					emit store-op						;-- MOVS[S/D] [rsp], xmm0
+					last-saved?: yes
+					saved-last-wide?: yes
+					emit-load args/1
+					emit cmp-op							;-- UCOMIS[S/D] xmm0, [rsp]
+					emit #{488D642410}					;-- LEA rsp, [rsp+16] without clobbering flags
+					last-saved?: no
 				]
-				emit-load args/2
-				emit #{4883EC10}					;-- SUB rsp, 16
-				emit store-op						;-- MOVS[S/D] [rsp], xmm0
-				last-saved?: yes
-				saved-last-wide?: yes
-				emit-load args/1
-				emit cmp-op							;-- UCOMIS[S/D] xmm0, [rsp]
-				emit #{488D642410}					;-- LEA rsp, [rsp+16] without clobbering flags
-				last-saved?: no
 			]
 			find [+ *] name [
 				if all [
@@ -1485,27 +1491,39 @@ make-profilable make target-class [
 					]
 					compiler/last-type: type
 				]
-				either right-block? [
+				case [
+					all [left-block? right-block? pre-saved?][
+						emit switch name [
+							+ [either single? [#{F30F58C1}][#{F20F58C1}]] ;-- ADD[S/D] xmm0, xmm1
+							* [either single? [#{F30F59C1}][#{F20F59C1}]] ;-- MUL[S/D] xmm0, xmm1
+						]
+						last-saved?: no
+					]
+					right-block? [
 					emit-load args/2
 					emit #{4883EC10}
 					emit store-op
 					last-saved?: yes
 					saved-last-wide?: yes
 					emit-load args/1
-				][
+					]
+					true [
 					emit-load args/1
 					emit #{4883EC10}
 					emit store-op
 					last-saved?: yes
 					saved-last-wide?: yes
 					emit-load args/2
+					]
 				]
-				emit switch name [
-					+ [either single? [#{C5FA580424}][#{C5FB580424}]] ;-- VADDS[S/D] xmm0, xmm0, [rsp]
-					* [either single? [#{C5FA590424}][#{C5FB590424}]] ;-- VMULS[S/D] xmm0, xmm0, [rsp]
+				unless all [left-block? right-block? pre-saved?][
+					emit switch name [
+						+ [either single? [#{C5FA580424}][#{C5FB580424}]] ;-- VADDS[S/D] xmm0, xmm0, [rsp]
+						* [either single? [#{C5FA590424}][#{C5FB590424}]] ;-- VMULS[S/D] xmm0, xmm0, [rsp]
+					]
+					emit #{4883C410}
+					last-saved?: no
 				]
-				emit #{4883C410}
-				last-saved?: no
 			]
 			find [- /] name [
 				if all [
@@ -1522,7 +1540,15 @@ make-profilable make target-class [
 					]
 					compiler/last-type: type
 				]
-				either left-last? [
+				case [
+					all [left-block? right-block? pre-saved?][
+						emit switch name [
+							- [either single? [#{F30F5CC1}][#{F20F5CC1}]] ;-- SUB[S/D] xmm0, xmm1
+							/ [either single? [#{F30F5EC1}][#{F20F5EC1}]] ;-- DIV[S/D] xmm0, xmm1
+						]
+						last-saved?: no
+					]
+					left-last? [
 					emit #{4883EC10}
 					emit store-op
 					last-saved?: yes
@@ -1531,9 +1557,10 @@ make-profilable make target-class [
 					emit either single? [#{C5FA100C24}][#{C5FB100C24}] ;-- VMOVS[S/D] xmm1, [rsp]
 					emit switch name [
 						- [either single? [#{C5F25CC0}][#{C5F35CC0}]] ;-- VSUBS[S/D] xmm0, xmm1, xmm0
-						/ [either single? [#{C5F25EC0}][#{C5F35EC0}]] ;-- VDIVS[S/D] xmm0, xmm1, xmm0
+							/ [either single? [#{C5F25EC0}][#{C5F35EC0}]] ;-- VDIVS[S/D] xmm0, xmm1, xmm0
+						]
 					]
-				][
+					true [
 					emit-load args/2
 					emit #{4883EC10}
 					emit store-op
@@ -1542,11 +1569,14 @@ make-profilable make target-class [
 					emit-load args/1
 					emit switch name [
 						- [either single? [#{C5FA5C0424}][#{C5FB5C0424}]] ;-- VSUBS[S/D] xmm0, xmm0, [rsp]
-						/ [either single? [#{C5FA5E0424}][#{C5FB5E0424}]] ;-- VDIVS[S/D] xmm0, xmm0, [rsp]
+							/ [either single? [#{C5FA5E0424}][#{C5FB5E0424}]] ;-- VDIVS[S/D] xmm0, xmm0, [rsp]
+						]
 					]
 				]
-				emit #{4883C410}
-				last-saved?: no
+				unless all [left-block? right-block? pre-saved?][
+					emit #{4883C410}
+					last-saved?: no
+				]
 			]
 			true [
 				compiler/throw-error "unsupported operation on floats"
@@ -3107,6 +3137,7 @@ make-profilable make target-class [
 	]
 	emit-restore-last: does [
 		either compiler/any-float? compiler/last-type [
+			emit either compiler/last-type/1 = 'float32! [#{F30F10C8}][#{F20F10C8}] ;-- MOVS[S/D] xmm1, xmm0 ; right operand
 			emit either compiler/last-type/1 = 'float32! [#{C5FA100424}][#{C5FB100424}]
 			emit #{4883C410}						;-- ADD rsp, 16
 		][
