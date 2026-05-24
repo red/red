@@ -938,10 +938,10 @@ context [
 			oh/reloc-addr:		named-sect-addr? job 'reloc
 			oh/reloc-size:		length? job/sections/reloc/2
 		]
-		;if find job/sections 'rsrc [
-		;	oh/rsrc-addr: 		named-sect-addr? job 'rsrc
-		;	oh/rsrc-size:		length? job/sections/rsrc/2
-		;]
+		if find job/sections 'rsrc [
+			oh/rsrc-addr: 		named-sect-addr? job 'rsrc
+			oh/rsrc-size:		length? job/sections/rsrc/2
+		]
 		append job/buffer form-struct oh
 	]
 
