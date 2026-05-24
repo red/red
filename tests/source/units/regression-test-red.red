@@ -3858,6 +3858,12 @@ comment {
 		o5724: object [a: 2]
 		--assert 2 = o5724/(quote a:)
 	
+#if config/OS <> 'Windows [
+	--test-- "#5732"
+		 call/output "echo $(id)" s5732: ""
+		 --assert empty? s5732
+]
+
 	--test-- "#5734"
 		foreach b [
 			#{52454442494E0200010000000C0000003500000000000000FFFFFFFF}		;-- FFFFh x FFFFh
