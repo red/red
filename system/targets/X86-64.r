@@ -658,6 +658,14 @@ make-profilable make target-class [
 
 	emit-load-ecx: func [value /local type][
 		case [
+			value = <last> [
+				type: compiler/resolve-aliased compiler/last-type
+				emit either find [pointer! c-string! function! subroutine! struct! union! int64! uint64!] type/1 [
+					#{4889C1}						;-- MOV rcx, rax
+				][
+					#{89C1}							;-- MOV ecx, eax
+				]
+			]
 			block? value [
 				if empty? value [exit]
 				if word? value/1 [
@@ -685,6 +693,12 @@ make-profilable make target-class [
 				emit #{50}							;-- PUSH rax
 				emit-load-int64-literal value type/1
 				emit #{4889C1}						;-- MOV rcx, rax
+				emit #{58}							;-- POP rax
+			]
+			decimal? value [
+				emit #{50}							;-- PUSH rax
+				emit-load value
+				emit #{F20F2CC8}					;-- CVTTSD2SI ecx, xmm0
 				emit #{58}							;-- POP rax
 			]
 			object? value [
@@ -826,6 +840,24 @@ make-profilable make target-class [
 						][
 							emit-global-ref value #{8B0D}
 						]
+					]
+					float! [
+						emit #{50}					;-- PUSH rax
+						emit-load value
+						emit #{F20F2CC8}			;-- CVTTSD2SI ecx, xmm0
+						emit #{58}					;-- POP rax
+					]
+					float64! [
+						emit #{50}					;-- PUSH rax
+						emit-load value
+						emit #{F20F2CC8}			;-- CVTTSD2SI ecx, xmm0
+						emit #{58}					;-- POP rax
+					]
+					float32! [
+						emit #{50}					;-- PUSH rax
+						emit-load value
+						emit #{F30F2CC8}			;-- CVTTSS2SI ecx, xmm0
+						emit #{58}					;-- POP rax
 					]
 				][
 					compiler/throw-error ["x86-64 secondary operand type not supported yet:" mold type/1]
@@ -992,8 +1024,19 @@ make-profilable make target-class [
 		emit #{C9}									;-- LEAVE
 		emit #{C3}									;-- RET
 	]
-	emit-stack-align-prolog: :noop
-	emit-stack-align-epilog: :noop
+	emit-stack-align-prolog: func [args [block!] fspec [block!]][
+		if compiler/job/stack-align-16? [
+			emit #{4889E0}							;-- MOV rax, rsp
+			emit #{4883E4F0}						;-- AND rsp, -16
+			emit #{4883EC10}						;-- SUB rsp, 16
+			emit #{4889442408}						;-- MOV [rsp+8], rax
+		]
+	]
+	emit-stack-align-epilog: func [args [block!]][
+		if compiler/job/stack-align-16? [
+			emit #{488B642408}						;-- MOV rsp, [rsp+8]
+		]
+	]
 	emit-stack-align: :noop
 	emit-float-trash-last: :noop
 	emit-casting: func [value [object!] alt? [logic!] /push /local type][
@@ -1093,7 +1136,7 @@ make-profilable make target-class [
 			total: (length? args/2) / 3
 			data-slots: total * 3
 			emit #{4889E0}							;-- MOV rax, rsp
-			emit-push <last>							;-- typed-value list pointer
+			emit #{50}								;-- PUSH rax, typed-value list pointer
 			emit-push total							;-- typed-value count
 			call-extra-slots: data-slots
 			call-arg-index: 2
@@ -1106,7 +1149,7 @@ make-profilable make target-class [
 			compact-variadic-list total
 			emit-push byte-size						;-- arguments total size in bytes
 			emit #{488D442408}						;-- LEA rax, [rsp+8], skip byte-size slot
-			emit-push <last>							;-- argument list pointer
+			emit #{50}								;-- PUSH rax, argument list pointer
 			emit-push total							;-- argument count
 			call-extra-slots: (call-arguments-size? args/2) / stack-width
 			call-arg-index: 3
@@ -1271,15 +1314,16 @@ make-profilable make target-class [
 	emit-integer-operation: func [
 		name [word!]
 		args [block!]
-		/local right imm? type wide? right-block? right-type scale right-loaded? right-signed? left-type mod? signed-op? ptr-wide-imm?
+		/local right imm? type wide? right-block? right-last? right-type scale right-loaded? right-signed? left-type mod? signed-op? ptr-wide-imm?
 	][
 		type: compiler/resolve-aliased compiler/resolve-expr-type args/1
 		set-width/type type/1
 		right: compiler/unbox args/2
 		right-block?: block? right
+		right-last?: right = <last>
 		right-loaded?: no
 		right-signed?: no
-		if right-block? [
+		if any [right-block? right-last?] [
 			right-type: compiler/resolve-expr-type args/2
 			right-signed?: compiler/signed-integer? right-type
 			right-loaded?: yes
@@ -1293,7 +1337,7 @@ make-profilable make target-class [
 		signed?: compiler/signed-integer? type
 		wide?: find [pointer! c-string! function! subroutine! struct! union! any-pointer! int64! uint64!] type/1
 		ptr-wide-imm?: find [pointer! c-string! function! subroutine! struct! union! any-pointer!] type/1
-		if all [right-block? not last-saved?][
+		if all [any [right-block? right-last?] not last-saved?][
 			emit either wide? [#{4889C1}][#{89C1}] ;-- MOV rcx/ecx, rax/eax
 		]
 		last-saved?: no
@@ -1431,7 +1475,7 @@ make-profilable make target-class [
 	]
 	emit-float-operation: func [
 		name [word!] args [block!]
-		/local type right-type single? store-op cmp-op right-block? left-block? left-last? pre-saved? left-expr left-expr-type
+		/local type right-type single? store-op cmp-op right-block? left-block? left-last? pre-saved? left-expr left-expr-type load-float-op
 	][
 		if verbose >= 3 [print [">>>inlining float op:" mold name mold args]]
 		type: compiler/resolve-expr-type args/1
@@ -1445,6 +1489,16 @@ make-profilable make target-class [
 		pre-saved?: last-saved?
 		store-op: either single? [#{C5FA110424}][#{C5FB110424}]
 		cmp-op: either single? [#{C5F82E0424}][#{C5F92E0424}]
+		load-float-op: func [arg /local value spec][
+			value: compiler/unbox arg
+			either all [single? decimal? value][
+				spec: emitter/store-value none value [float32!]
+				emit-float-ref spec/2 #{C5FA1005}
+				compiler/last-type: [float32!]
+			][
+				emit-load arg
+			]
+		]
 		case [
 			find comparison-op name [
 				either all [left-block? right-block? pre-saved?][
@@ -1465,14 +1519,26 @@ make-profilable make target-class [
 						]
 						compiler/last-type: type
 					]
-					emit-load args/2
-					emit #{4883EC10}					;-- SUB rsp, 16
-					emit store-op						;-- MOVS[S/D] [rsp], xmm0
-					last-saved?: yes
-					saved-last-wide?: yes
-					emit-load args/1
-					emit cmp-op							;-- UCOMIS[S/D] xmm0, [rsp]
-					emit #{488D642410}					;-- LEA rsp, [rsp+16] without clobbering flags
+					either left-last? [
+						emit #{4883EC10}				;-- SUB rsp, 16
+						emit store-op					;-- MOVS[S/D] [rsp], xmm0
+						last-saved?: yes
+						saved-last-wide?: yes
+						load-float-op args/2
+						emit either single? [#{F30F10C8}][#{F20F10C8}] ;-- MOVS[S/D] xmm1, xmm0
+						emit either single? [#{C5FA100424}][#{C5FB100424}]
+						emit #{488D642410}				;-- LEA rsp, [rsp+16] without clobbering flags
+						emit either single? [#{0F2EC1}][#{660F2EC1}] ;-- UCOMIS[S/D] xmm0, xmm1
+					][
+						load-float-op args/2
+						emit #{4883EC10}				;-- SUB rsp, 16
+						emit store-op					;-- MOVS[S/D] [rsp], xmm0
+						last-saved?: yes
+						saved-last-wide?: yes
+						load-float-op args/1
+						emit cmp-op						;-- UCOMIS[S/D] xmm0, [rsp]
+						emit #{488D642410}				;-- LEA rsp, [rsp+16] without clobbering flags
+					]
 					last-saved?: no
 				]
 			]
@@ -1500,20 +1566,20 @@ make-profilable make target-class [
 						last-saved?: no
 					]
 					right-block? [
-					emit-load args/2
+					load-float-op args/2
 					emit #{4883EC10}
 					emit store-op
 					last-saved?: yes
 					saved-last-wide?: yes
-					emit-load args/1
+					load-float-op args/1
 					]
 					true [
-					emit-load args/1
+					load-float-op args/1
 					emit #{4883EC10}
 					emit store-op
 					last-saved?: yes
 					saved-last-wide?: yes
-					emit-load args/2
+					load-float-op args/2
 					]
 				]
 				unless all [left-block? right-block? pre-saved?][
@@ -1553,7 +1619,7 @@ make-profilable make target-class [
 					emit store-op
 					last-saved?: yes
 					saved-last-wide?: yes
-					emit-load args/2
+					load-float-op args/2
 					emit either single? [#{C5FA100C24}][#{C5FB100C24}] ;-- VMOVS[S/D] xmm1, [rsp]
 					emit switch name [
 						- [either single? [#{C5F25CC0}][#{C5F35CC0}]] ;-- VSUBS[S/D] xmm0, xmm1, xmm0
@@ -1561,12 +1627,12 @@ make-profilable make target-class [
 						]
 					]
 					true [
-					emit-load args/2
+					load-float-op args/2
 					emit #{4883EC10}
 					emit store-op
 					last-saved?: yes
 					saved-last-wide?: yes
-					emit-load args/1
+					load-float-op args/1
 					emit switch name [
 						- [either single? [#{C5FA5C0424}][#{C5FB5C0424}]] ;-- VSUBS[S/D] xmm0, xmm0, [rsp]
 							/ [either single? [#{C5FA5E0424}][#{C5FB5E0424}]] ;-- VDIVS[S/D] xmm0, xmm0, [rsp]
@@ -1587,7 +1653,7 @@ make-profilable make target-class [
 		emit-load value
 		if thru [emit #{EB01}]						;-- jump over initial LEAVE
 		emit #{C9}									;-- LEAVE
-		emit #{483B45F8}							;-- CMP [rbp-8], rax
+		emit #{483945F8}							;-- CMP [rbp-8], rax
 		emit #{72F9}								;-- JB back to LEAVE
 		emit #{4889C2}								;-- MOV rdx, rax
 		emitter/access-path to set-path! 'system/thrown <last>
@@ -1751,8 +1817,14 @@ make-profilable make target-class [
 				]
 			]
 			issue? value [
-				spec: compiler/int64-literal-info value
-				emit-load-int64-literal value spec/1
+				either spec: compiler/int64-literal-info value [
+					emit-load-int64-literal value spec/1
+				][
+					type: either all [with cast/type/1 = 'float32!][[float32!]][[float!]]
+					spec: emitter/store-value none value type
+					emit-float-ref spec/2 either type/1 = 'float32! [#{C5FA1005}][#{C5FB1005}]
+					compiler/last-type: type
+				]
 			]
 			decimal? value [
 				spec: emitter/store-value none value [float!]
@@ -3259,7 +3331,7 @@ make-profilable make target-class [
 			emit #{58}								;-- POP rax
 			emit #{C9}								;-- LEAVE
 		][
-			offset: offset + locals-offset + ((level + 1) * stack-width)
+			offset: offset + locals-offset + ((level + 1) * 2 * stack-width)
 			either offset > 127 [
 				emit #{4889EC}						;-- MOV rsp, rbp
 				emit #{4881EC}						;-- SUB rsp, imm32
