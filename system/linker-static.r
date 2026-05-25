@@ -41,6 +41,7 @@ static-link: context [
 	call-slots: make block! 40		;-- [reloc-refs slot-offset target-info ...]
 	undef-done: make block! 20		;-- undefined externals already resolved
 	libc-set:   none				;-- this build's C-library export hash (libc-exports.r)
+	libm-set:   none				;-- Linux libm export names accepted for static objects
 	libc-data-set: none				;-- this build's C-library DATA exports [name size ...]
 	max-align:  1					;-- peak alignment among merged static sections
 
@@ -173,6 +174,7 @@ static-link: context [
 		clear undef-done
 		clear imp-table
 		libc-set: none
+		libm-set: none
 		libc-data-set: none
 		max-align: 1
 
@@ -184,6 +186,9 @@ static-link: context [
 			build-syslib-index
 			helper-libs: find-helper-libs
 		]
+		if all [obj-format = 'ELF  job/OS = 'Linux][
+			helper-libs: find-linux-helper-libs
+		]
 		libc-set: make hash! any [
 			switch job/OS [
 				Windows [libc-exports/windows]
@@ -192,6 +197,9 @@ static-link: context [
 			]
 			[]
 		]
+		libm-set: either job/OS = 'Linux [
+			make hash! libc-exports/linux-libm
+		][none]
 		;-- libc DATA exports (with sizes) — copy-relocated by ELF.r. The
 		;-- generated set covers the glibc/ELF targets only.
 		libc-data-set: either job/OS = 'Linux [
@@ -275,9 +283,9 @@ static-link: context [
 			]
 		]
 
-		;-- queue the registry-located helper archives; selective loading
-		;-- below pulls only the GUID / compiler / CRT objects actually used.
-		if all [obj-format = 'PE  helper-libs  not empty? helper-libs][
+		;-- queue helper archives; selective loading below pulls only the
+		;-- compiler / CRT objects actually used.
+		if all [helper-libs  not empty? helper-libs][
 			foreach hl helper-libs [
 				foreach m read-archive hl [
 					obj: reader/load-from-bin m/2 (rejoin [to-local-file hl "(" m/1 ")"])
@@ -723,6 +731,24 @@ static-link: context [
 		]["libc.so.6"]
 	]
 
+	libm-name: func [job [object!]][
+		switch/default job/OS [
+			macOS ["libc.dylib"]
+		]["libm.so.6"]
+	]
+
+	find-linux-helper-libs: func [/local path out][
+		out: make block! 1
+		path: copy ""
+		call/output "gcc -m32 -print-libgcc-file-name" path
+		trim/tail path
+		if all [
+			not empty? path
+			exists? to-rebol-file path
+		][append out to-rebol-file path]
+		out
+	]
+
 	;-- ===== PE __imp_* import-thunk resolution =====
 
 	;-- Build the symbol => DLL hash from the embedded Win32 export snapshot;
@@ -745,6 +771,7 @@ static-link: context [
 		bare: arch-bare name
 		if empty? bare [return none]
 		if all [libc-set  find libc-set bare][return reduce [libc-name job  bare]]
+		if all [libm-set  find libm-set bare][return reduce [libm-name job  bare]]
 		if all [syslib-index  dll: select syslib-index bare][return reduce [dll bare]]
 		none
 	]

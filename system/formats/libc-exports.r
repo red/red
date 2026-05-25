@@ -568,6 +568,18 @@ libc-exports: context [
 		"__xstat" "__xstat64" "___adjtimex64" "___brk_addr"
 	]
 
+	linux-libm: [
+		"acos" "acosf" "acosl" "asin" "asinf" "asinl" "atan" "atan2"
+		"atan2f" "atan2l" "atanf" "atanl" "ceil" "ceilf" "ceill" "copysign"
+		"copysignf" "copysignl" "cos" "cosf" "cosl" "exp" "expf" "expl"
+		"fabs" "fabsf" "fabsl" "floor" "floorf" "floorl" "fmod" "fmodf"
+		"fmodl" "frexp" "frexpf" "frexpl" "ldexp" "ldexpf" "ldexpl" "log"
+		"log10" "log10f" "log10l" "logf" "logl" "lround" "lroundf" "lroundl"
+		"modf" "modff" "modfl" "pow" "powf" "powl" "round" "roundf"
+		"roundl" "scalbn" "scalbnf" "scalbnl" "sin" "sinf" "sinl" "sqrt"
+		"sqrtf" "sqrtl" "tan" "tanf" "tanl" "trunc" "truncf" "truncl"
+	]
+
 	linux-data: [
 		"optind" 4 "rpc_createerr" 16 "obstack_alloc_failed_handler" 4 "error_message_count" 4
 		"sys_nerr" 4 "argp_err_exit_status" 4 "_IO_2_1_stderr_" 152 "stdin" 4
