@@ -42,13 +42,8 @@ Red/System [
 #define float-ptr!    [pointer! [float!]]
 #define float32-ptr!  [pointer! [float32!]]
 
-;#define int16!			integer!
-;#define uint16!		integer!
-#define uint!			integer!
-#define int32!			integer!
-#define uint32!			integer!
-#define long!			integer!		;-- 32bit in 32bit OS, 64bit in 64bit OS
-#define ulong!			integer!	
+;#define long!			integer!		;-- 32bit in 32bit OS, 64bit in 64bit OS
+;#define ulong!			integer!	
 
 ptr-ptr!: alias struct! [value [int-ptr!]]
 #define ptr-value!	  [ptr-ptr! value]
@@ -66,6 +61,7 @@ ptr-ptr!: alias struct! [value [int-ptr!]]
 
 #define type-logic!		1					;-- type ID list for 'typed' attribute
 #define type-integer!	2
+#define type-int32!		2					;-- integer! is an alias for int32!
 #define type-byte!	    3
 #define type-float32!	4
 #define type-float64!	5					;-- float! is just an alias for float64!
@@ -74,6 +70,13 @@ ptr-ptr!: alias struct! [value [int-ptr!]]
 #define type-byte-ptr!  7
 #define type-int-ptr!	8
 #define type-function!	9
+#define type-int64!		11
+#define type-uint64!	12
+#define type-int8!		13
+#define type-uint8!		14
+#define type-int16!		15
+#define type-uint16!	16
+#define type-uint32!	17
 #define type-struct!	1000
 #define any-struct?		[1000 <=]
 #define alias?  		[1001 <=]
@@ -106,6 +109,16 @@ typed-value!: alias struct! [
 	type	 [integer!]	
 	value	 [integer!]
 	_padding [integer!]						;-- extra space for 64-bit values
+]
+
+typed-int64!: alias struct! [
+	type	 [integer!]
+	value	 [int64!]
+]
+
+typed-uint64!: alias struct! [
+	type	 [integer!]
+	value	 [uint64!]
 ]
 
 typed-float32!: alias struct! [

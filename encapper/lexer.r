@@ -288,7 +288,7 @@ lexer: context [
 		s: some slash e: opt [#":" (if find ":'" s/-1 [throw-error]	type: set-word!)]
 	]
 	
-	hexa-rule: [2 8 hexa e: #"h" pos: [integer-end | ws-no-count | end ] :pos (type: integer!)]
+	hexa-rule: [2 16 hexa e: #"h" pos: [integer-end | ws-no-count | end ] :pos (type: integer!)]
 
 	sticky-word-rule: [								;-- protect from sticky words typos
 		mark: [integer-end | ws-no-count | end | (pos: s throw-error)] :mark
@@ -847,7 +847,11 @@ lexer: context [
 	]
 	
 	decode-hexa: func [s [string!]][
-		to integer! to issue! s
+		either 8 < length? s [
+			to issue! rejoin [".u64h:" s]
+		][
+			to integer! to issue! s
+		]
 	]
 	
 	as-time: func [h [integer!] m [integer!] s [integer! decimal!] neg? [logic!] /local t][
@@ -898,6 +902,30 @@ lexer: context [
 		new
 	]
 
+	greater-decimal?: func [a [string!] b [string!]][
+		any [
+			greater? length? a length? b
+			all [equal? length? a length? b greater? a b]
+		]
+	]
+
+	load-big-integer: func [s [string!] /local digits neg? kind][
+		unless rs? [throw-error]
+		digits: replace/all copy s "'" ""
+		neg?: digits/1 = #"-"
+		if find "+-" digits/1 [remove digits]
+		while [all [1 < length? digits digits/1 = #"0"]][remove digits]
+		if empty? digits [digits: "0"]
+		if greater-decimal? digits either neg? ["9223372036854775808"]["18446744073709551615"] [
+			throw-error
+		]
+		kind: either any [
+			neg?
+			not greater-decimal? digits "9223372036854775807"
+		]["i64"]["u64"]
+		to issue! rejoin ["." kind ":" either neg? ["n"][""] digits]
+	]
+
 	load-number: func [s [string!]][
 		switch/default type [
 			#[datatype! decimal!][s: load-decimal s]
@@ -909,12 +937,11 @@ lexer: context [
 				]
 			]
 		][
+			unless attempt [s: to integer! s][s: load-big-integer s]
 			if any [
-				not find [integer! decimal!] type?/word s: to integer! s
-				all [rs? type <> type? s]
-			][
-				throw-error
-			]
+				not find [integer! decimal! issue!] type?/word s
+				all [rs? all [not issue? s type <> type? s]]
+			][throw-error]
 		]
 		s
 	]

@@ -16,6 +16,7 @@ loader: make-profilable context [
 	defs:		  make block! 100
 
 	hex-chars: 	  charset "0123456789ABCDEF"
+	dec-chars: 	  charset "0123456789'"
 	ws-chars: 	  charset " ^M^-"
 	ws-all:		  union ws-chars charset "^/"
 	hex-delim: 	  charset "[]()/"
@@ -180,6 +181,38 @@ loader: make-profilable context [
 		]
 	]
 
+	greater-decimal?: func [a [string!] b [string!]][
+		any [
+			greater? length? a length? b
+			all [equal? length? a length? b greater? a b]
+		]
+	]
+
+	encode-decimal64: func [value [string! binary!] /local digits neg? kind][
+		value: to string! value
+		digits: replace/all copy value "'" ""
+		neg?: digits/1 = #"-"
+		if find "+-" digits/1 [remove digits]
+		while [all [1 < length? digits digits/1 = #"0"]][remove digits]
+		if empty? digits [digits: "0"]
+		if greater-decimal? digits either neg? ["9223372036854775808"]["18446744073709551615"] [
+			throw-error ["invalid 64-bit integer literal:" value]
+		]
+		kind: either any [
+			neg?
+			not greater-decimal? digits "9223372036854775807"
+		]["i64"]["u64"]
+		rejoin ["#." kind ":" either neg? ["n"][""] digits]
+	]
+
+	large-decimal?: func [value [string! binary!] /local digits neg?][
+		digits: replace/all copy to string! value "'" ""
+		neg?: digits/1 = #"-"
+		if find "+-" digits/1 [remove digits]
+		while [all [1 < length? digits digits/1 = #"0"]][remove digits]
+		greater-decimal? digits either neg? ["2147483648"]["2147483647"]
+	]
+
 	expand-string: func [src [string! binary!] /local value s e c lf-count ws i prev ins?][
 		if verbose > 0 [print "running string preprocessor..."]
 
@@ -205,12 +238,24 @@ loader: make-profilable context [
 					e: change/part s "-**" e		;-- convert >>> to -**
 				) :e
 				| [hex-delim | ws]
+				s: opt ["+" | "-"] some dec-chars
+				e: [hex-delim | ws-all | #";" to lf | end] (
+					value: copy/part s e
+					if large-decimal? value [
+						e: change/part s encode-decimal64 value e
+					]
+				) :e
+				| [hex-delim | ws]
 				s: copy value some [hex-chars (c: c + 1)] #"h"	;-- literal hexadecimal support	
 				e: [hex-delim | ws-all | #";" to lf | end] (
-					either any [c < 2 c > 8][
+					either any [c < 2 c > 16][
 						throw-error ["invalid hex literal:" copy/part s 40]
 					][
-						e: change/part s to integer! to issue! value e
+						e: change/part s either c > 8 [
+							rejoin ["#.u64h:" value]
+						][
+							to integer! to issue! value
+						] e
 					]
 				) :e
 				| (ins?: yes) lf-count

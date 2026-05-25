@@ -131,8 +131,8 @@ system-dialect: make-profilable context [
 		fail:		[end skip]							;-- fail rule
 		rule: value: v: none							;-- global parsing rules helpers
 		
-		number!: 	  [byte! integer!]					;-- reserved for internal use only
-		bit-set!: 	  [byte! integer! logic!]			;-- reserved for internal use only
+		number!: 	  [byte! int8! uint8! int16! uint16! integer! int32! uint32! int64! uint64!]	;-- reserved for internal use only
+		bit-set!: 	  [byte! int8! uint8! int16! uint16! integer! int32! uint32! int64! uint64! logic!] ;-- reserved for internal use only
 		any-float!:	  [float! float32! float64!]		;-- reserved for internal use only
 		any-number!:  union number! any-float!			;-- reserved for internal use only
 		pointers!:	  [pointer! struct! c-string!] 		;-- reserved for internal use only
@@ -146,6 +146,10 @@ system-dialect: make-profilable context [
 		
 		comparison-op: [= <> < > <= >=]
 		float-special: [#INF #INF- #NaN #0-]
+		int64-types:   [int64! uint64!]
+		integer-types: [byte! int8! uint8! int16! uint16! integer! int32! uint32! int64! uint64!]
+		signed-integers: [int8! int16! integer! int32! int64!]
+		unsigned-integers: [byte! uint8! uint16! uint32! uint64!]
 		
 		functions: to-hash compose [
 		;--Name--Arity--Type----Cc--Specs--		   Cc = Calling convention
@@ -190,12 +194,16 @@ system-dialect: make-profilable context [
 			pos: some [word! into [func-pointer | type-spec]]		;-- struct's members
 		]
 		
-		pointer-syntax: ['integer! | 'byte! | 'float32! | 'float64! | 'float! | 'pointer!]
+		pointer-syntax: [
+			'integer! | 'byte! | 'int8! | 'uint8! | 'int16! | 'uint16! | 'int32! | 'uint32!
+			| 'int64! | 'uint64! | 'float32! | 'float64! | 'float! | 'pointer!
+		]
 		
 		func-pointer: ['function! set value block! (check-specs '- value)]
 		
 		type-syntax: [
-			'logic! | 'integer! | 'byte! | 'int16!		;-- int16! needed for AVR8 backend
+			'logic! | 'integer! | 'byte! | 'int8! | 'uint8! | 'int16! | 'uint16! | 'int32! | 'uint32!
+			| 'int64! | 'uint64!
 			| 'float! | 'float32! | 'float64!
 			| 'c-string!
 			| 'pointer! into [pointer-syntax]
@@ -434,7 +442,7 @@ system-dialect: make-profilable context [
 				type: switch/default type/1 [
 					any-pointer! ['int-ptr!]
 					pointer! [
-						either type/2 [pick [int-ptr! byte-ptr!] type/2/1 = 'integer!]['ptr-ptr!]
+						either type/2 [pick [int-ptr! byte-ptr!] int32-type? type/2]['ptr-ptr!]
 					]
 				][type/1]
 				select emitter/datatype-ID type
@@ -481,7 +489,7 @@ system-dialect: make-profilable context [
 							allocate [
 								pc: next pc
 								fetch-expression/final/keep 'stack-alloc
-								if any [none? last-type last-type/1 <> 'integer!][
+								if any [none? last-type not int32-type? last-type][
 									throw-error "system/stack/allocate expects an integer! argument"
 								]
 								emitter/target/emit-alloc-stack z?: path/4 = 'zero
@@ -492,7 +500,7 @@ system-dialect: make-profilable context [
 							free [
 								pc: next pc
 								fetch-expression/final/keep 'stack-free
-								if any [none? last-type last-type/1 <> 'integer!][
+								if any [none? last-type not int32-type? last-type][
 									throw-error "system/stack/free expects an integer! argument"
 								]
 								emitter/target/emit-free-stack
@@ -589,7 +597,7 @@ system-dialect: make-profilable context [
 								if 'pointer! <> first get-type pc/1 [
 									throw-error join err "a pointer! as argument"
 								]
-								if 'integer! <> first last-type: get-type pc/2 [
+								if not int32-type? last-type: get-type pc/2 [
 									throw-error join err "an integer! as value argument"
 								]
 								fetch-expression/final/keep 'atomic
@@ -603,7 +611,7 @@ system-dialect: make-profilable context [
 								if 'pointer! <> first get-type pc/1 [
 									throw-error rejoin ["system/atomic/" op " expects a pointer! as argument"]
 								]
-								if 'integer! <> first last-type: get-type pc/2 [
+								if not int32-type? last-type: get-type pc/2 [
 									throw-error rejoin ["system/atomic/" op " expects an integer! as value argument"]
 								]
 								ret?: not empty? expr-call-stack
@@ -717,6 +725,226 @@ system-dialect: make-profilable context [
 			to logic! find any-float! type/1
 		]
 
+		canonical-type: func [type [block!]][
+			if type/1 = 'int32! [return copy [integer!]]
+			type
+		]
+
+		integer-type?: func [type [block! word! integer! none!]][
+			if any [none? type integer? type][return false]
+			if block? type [type: type/1]
+			to logic! find integer-types type
+		]
+
+		int32-type?: func [type [block! word! integer! none!]][
+			if any [none? type integer? type][return false]
+			if block? type [type: type/1]
+			to logic! find [integer! int32!] type
+		]
+
+		integer-width?: func [type [block! word! integer! none!]][
+			if any [none? type integer? type][return none]
+			if block? type [type: type/1]
+			select [
+				byte! 1 uint8! 1 int8! 1
+				uint16! 2 int16! 2
+				integer! 4 int32! 4 uint32! 4
+				int64! 8 uint64! 8
+			] type
+		]
+
+		signed-integer?: func [type [block! word! integer! none!]][
+			if any [none? type integer? type][return false]
+			if block? type [type: type/1]
+			to logic! find signed-integers type
+		]
+
+		unsigned-integer?: func [type [block! word! integer! none!]][
+			if any [none? type integer? type][return false]
+			if block? type [type: type/1]
+			to logic! find unsigned-integers type
+		]
+
+		same-type?: func [type1 [block!] type2 [block!]][
+			type1: canonical-type type1
+			type2: canonical-type type2
+			type1 = type2
+		]
+
+		none-type?: func [type [block! none!]][
+			any [
+				none? type
+				all [block? type none? type/1]
+			]
+		]
+
+		lossless-integer-cast?: func [
+			from [block!] to [block!]
+			/local fw tw fs? ts?
+		][
+			from: canonical-type from
+			to: canonical-type to
+			if same-type? from to [return true]
+			unless all [integer-type? from integer-type? to][return false]
+			fw: integer-width? from
+			tw: integer-width? to
+			fs?: signed-integer? from
+			ts?: signed-integer? to
+			any [
+				all [fs? ts? fw < tw]
+				all [not fs? not ts? fw < tw]
+				all [not fs? ts? fw < tw]
+				all [from/1 = 'byte! to/1 = 'integer!]	;-- historical implicit byte! -> integer!
+			]
+		]
+
+		int64?: func [type [block! word! integer! none!]][
+			if any [none? type integer? type][return false]
+			if block? type [type: type/1]
+			to logic! find int64-types type
+		]
+
+		greater-decimal?: func [a [string!] b [string!]][
+			any [
+				greater? length? a length? b
+				all [equal? length? a length? b greater? a b]
+			]
+		]
+
+		hex4: func [n [integer!] /local h][
+			h: to-hex n
+			copy/part skip h 4 4
+		]
+
+		decimal64-to-hex: func [
+			digits [string!] neg? [logic!]
+			/local limbs carry v d i
+		][
+			limbs: copy [0 0 0 0]					;-- little-endian 16-bit limbs
+			foreach ch digits [
+				d: (to integer! ch) - (to integer! #"0")
+				carry: d
+				repeat i 4 [
+					v: limbs/:i * 10 + carry
+					limbs/:i: v and 65535
+					carry: to integer! (v / 65536)
+				]
+				if carry <> 0 [throw-error ["64-bit integer literal overflow:" digits]]
+			]
+			if neg? [
+				repeat i 4 [limbs/:i: 65535 - limbs/:i]
+				carry: 1
+				repeat i 4 [
+					v: limbs/:i + carry
+					limbs/:i: v and 65535
+					carry: to integer! (v / 65536)
+				]
+			]
+			rejoin [hex4 limbs/4 hex4 limbs/3 hex4 limbs/2 hex4 limbs/1]
+		]
+
+		int64-literal-info: func [value /local s p kind payload neg? digits type][
+			unless issue? value [return none]
+			s: form value
+			if s/1 = #"#" [remove s]
+			unless s/1 = #"." [return none]
+			remove s
+			unless p: find s #":" [return none]
+			kind: copy/part s p
+			payload: next p
+			switch/default kind [
+				"i64" [
+					neg?: payload/1 = #"n"
+					if neg? [payload: next payload]
+					digits: copy payload
+					if greater-decimal? digits either neg? ["9223372036854775808"]["9223372036854775807"] [
+						throw-error ["int64! literal out of range:" mold value]
+					]
+					reduce ['int64! decimal64-to-hex digits neg?]
+				]
+				"u64" [
+					digits: copy payload
+					if greater-decimal? digits "18446744073709551615" [
+						throw-error ["uint64! literal out of range:" mold value]
+					]
+					type: either greater-decimal? digits "9223372036854775807" ['uint64!]['int64!]
+					reduce [type decimal64-to-hex digits no]
+				]
+				"u64h" [
+					payload: uppercase copy payload
+					if 16 < length? payload [throw-error ["uint64! literal out of range:" mold value]]
+					insert/dup payload #"0" 16 - length? payload
+					type: either greater-decimal? payload "7FFFFFFFFFFFFFFF" ['uint64!]['int64!]
+					reduce [type payload]
+				]
+			][none]
+		]
+
+		int64-literal?: func [value][to logic! int64-literal-info value]
+
+		int64-hex: func [value type [word!] /local info hex neg?][
+			case [
+				info: int64-literal-info value [
+					info/2
+				]
+				integer? value [
+					neg?: negative? value
+					hex: decimal64-to-hex form abs value neg?
+					either all [type = 'uint64! neg?][
+						throw-error ["negative integer literal cannot initialize uint64!:" value]
+					][hex]
+				]
+				value = <last> ["0000000000000000"]
+				'else [
+					throw-error ["invalid 64-bit integer literal:" mold value]
+				]
+			]
+		]
+
+		int-literal-hex: func [
+			value type [word!]
+			/local width hex info min max
+		][
+			type: canonical-type reduce [type]
+			type: type/1
+			width: integer-width? type
+			either width = 8 [
+				int64-hex value type
+			][
+				case [
+					info: int64-literal-info value [
+						hex: info/2
+						if all [type <> 'uint32! greater-decimal? copy/part hex 8 "00000000"] [
+							throw-error ["integer literal out of range for" type ":" mold value]
+						]
+						hex: skip hex 16 - (width * 2)
+						hex
+					]
+					integer? value [
+						unless find [integer! uint32!] type [
+							set [min max] select [
+								int8!	[-128 127]
+								byte!	[0 255]
+								uint8!	[0 255]
+								int16!	[-32768 32767]
+								uint16!	[0 65535]
+							] type
+							if any [value < min value > max][
+								throw-error ["integer literal out of range for" type ":" value]
+							]
+						]
+						skip to-hex value 8 - (width * 2)
+					]
+					value = <last> [
+						copy/part "00000000" width * 2
+					]
+					'else [
+						throw-error ["invalid integer literal:" mold value]
+					]
+				]
+			]
+		]
+
 		floats-in-condition?: func [cond [block!]] [	;-- used by IEEE754 NaN arithmetic
 			to logic! all [
 				find comparison-op cond/1
@@ -739,6 +967,8 @@ system-dialect: make-profilable context [
 		]
 
 		equal-types?: func [type1 [word!] type2 [word!]][
+			if type1 = 'int32! [type1: 'integer!]
+			if type2 = 'int32! [type2: 'integer!]
 			type1: either find type-sets type1 [get type1][reduce [type1]]
 			type2: either find type-sets type2 [get type2][reduce [type2]]
 			not empty? intersect type1 type2
@@ -789,6 +1019,7 @@ system-dialect: make-profilable context [
 		]
 		
 		resolve-aliased: func [type [block!] /silent /local name][
+			type: canonical-type type
 			name: type/1
 			all [
 				type/1								;-- ensure it is not [none]
@@ -929,7 +1160,7 @@ system-dialect: make-profilable context [
 					]
 					switch/default type/1 [
 						function! [type]
-						integer! byte! float! float32! pointer! [compose/deep [pointer! [(type/1)]]]
+						integer! byte! int8! uint8! int16! uint16! int32! uint32! int64! uint64! float! float32! pointer! [compose/deep [pointer! [(type/1)]]]
 					][
 						with-alias-resolution off [
 							type: resolve-type name
@@ -964,9 +1195,11 @@ system-dialect: make-profilable context [
 					next next reduce ['array! length? value 'pointer! [byte!]]
 				]
 				issue!	 [
-					either find float-special next value [[float!]][
+					either type: int64-literal-info value [
+						reduce [type/1]
+					][either find float-special next value [[float!]][
 						throw-error ["invalid special float value:" mold value]
-					]
+					]]
 				]
 				none!	 [none-type]					;-- no type case (func with no return value)
 
@@ -1109,7 +1342,7 @@ system-dialect: make-profilable context [
 		cast: func [obj [object!] /quiet /local value ctype type][
 			value: obj/data
 			ctype: resolve-aliased obj/type
-			type: get-type value
+			type: canonical-type get-type value
 
 			if all [not quiet type = obj/type type/1 <> 'function!][
 				throw-warning/near [
@@ -1122,6 +1355,8 @@ system-dialect: make-profilable context [
 				all [find [float! float64!] ctype/1 not any [any-float? type type/1 = 'integer!]]
 				all [find [float! float64!] type/1  not any [any-float? ctype ctype/1 = 'integer!]]
 				all [type/1 = 'float32! not find [float! float64! integer!] ctype/1]
+				all [int64? ctype any-float? type]
+				all [int64? type any-float? ctype]
 				all [ctype/1 = 'byte! find [c-string! pointer! struct!] type/1]
 				all [
 					find [c-string! pointer! struct!] ctype/1
@@ -1144,9 +1379,17 @@ system-dialect: make-profilable context [
 						logic! 	 [value: pick [#"^(01)" #"^(00)"] value]
 					]
 				]
+				int8! uint8! int16! uint16! int32! uint32! [
+					if find [byte! logic!] type/1 [value: to integer! value]
+				]
 				integer! [
-					if find [byte! logic! float! float32! float64!] type/1 [
+					if find [byte! logic! float! float32! float64! int64! uint64!] type/1 [
 						value: to integer! value
+					]
+				]
+				int64! uint64! [
+					if all [ctype/1 = 'uint64! integer? value negative? value][
+						throw-error ["negative integer literal cannot initialize uint64!:" value]
 					]
 				]
 				logic! [
@@ -1252,7 +1495,7 @@ system-dialect: make-profilable context [
 					| paren! :p into [any [
 						array-expr-keywords | s: word! (check-enum-symbol/strict s) | skip
 					]] :p (change p do p/1)
-					| string! | char! | integer! | decimal! | get-word!
+					| string! | char! | integer! | decimal! | issue! | get-word!
 					| skip (throw-error ["invalid literal array content:" mold list])
 				]
 			]
@@ -1425,7 +1668,7 @@ system-dialect: make-profilable context [
 							backtrack path
 							throw-error ["undefined" type "index variable"]
 						]
-						if 'integer! <> first resolve-type ending [
+						if not int32-type? resolve-type ending [
 							backtrack path
 							throw-error [
 								"attempt to use" type
@@ -1574,7 +1817,14 @@ system-dialect: make-profilable context [
 						]
 					]
 				]
-				expected = type 						;-- normal single-type case
+				all [
+					not none-type? type
+					same-type? expected type 			;-- normal single-type case
+				]
+				all [
+					type
+					lossless-integer-cast? type expected
+				]
 				all [
 					type
 					type/1 = 'integer!
@@ -1599,7 +1849,7 @@ system-dialect: make-profilable context [
 					"found:" mold new-line/all any [type [none]] no
 				]
 			]
-			type
+			any [all [type lossless-integer-cast? type expected expected] type]
 		]
 		
 		check-arguments-type: func [name args /local entry spec list type][
@@ -1614,7 +1864,7 @@ system-dialect: make-profilable context [
 			]
 			list: clear []
 			forall args [
-				append/only list either all [
+				type: either all [
 					find [decimal! issue!] type?/word args/1
 					spec/2/1 = 'float32!
 				][
@@ -1627,7 +1877,43 @@ system-dialect: make-profilable context [
 				][
 					check-expected-type name args/1 spec/2
 				]
+				if all [
+					type
+					not object? args/1
+					not same-type? type spec/2
+					lossless-integer-cast? type spec/2
+				][
+					args/1: make action-class [
+						action: 'type-cast
+						type: spec/2
+						data: args/1
+					]
+				]
+				append/only list type
 				spec: skip spec	2
+			]
+			if all [
+				find emitter/target/comparison-op name
+				not equal-types? list/1/1 list/2/1
+			][
+				case [
+					lossless-integer-cast? list/2 list/1 [
+						args/2: make action-class [
+							action: 'type-cast
+							type: list/1
+							data: args/2
+						]
+						list/2: list/1
+					]
+					lossless-integer-cast? list/1 list/2 [
+						args/1: make action-class [
+							action: 'type-cast
+							type: list/2
+							data: args/1
+						]
+						list/1: list/2
+					]
+				]
 			]
 			if all [
 				any [
@@ -2563,7 +2849,7 @@ system-dialect: make-profilable context [
 		comp-catch: has [offset locals-size unused chunk start end cb? attribs spec][
 			pc: next pc
 			fetch-expression/keep/final 'catch
-			if any [not last-type last-type <> [integer!]][
+			if any [not last-type not int32-type? last-type][
 				backtrack 'catch
 				throw-error "CATCH expects a threshold value of type integer!"
 			]
@@ -2913,7 +3199,7 @@ system-dialect: make-profilable context [
 			if tag? pc/1 [name: to-word form pc/1 remove pc] ;-- process loop's hidden counter variable
 			
 			fetch-expression/keep/final 'loop			;-- compile expression
-			if any [none? last-type last-type/1 <> 'integer!][
+			if any [none? last-type not int32-type? last-type][
 				throw-error "LOOP requires an integer as argument"
 			]
 			check-body pc/1
@@ -3076,7 +3362,7 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		comp-func-args: func [name [word!] entry [hash!] /local attribute fetch expr args n pos][
+		comp-func-args: func [name [word!] entry [hash!] /local attribute fetch expr args n pos id type][
 			push-call name
 			pc: next pc							;-- it's a function
 			either attribute: check-variable-arity? entry/2/4 [
@@ -3092,9 +3378,13 @@ system-dialect: make-profilable context [
 							pc: pos
 							throw-error "expression has no defined return type"
 						]
+						type: get-type expr
 						append args id: get-type-id expr
 						append/only args expr
-						append args pick [#_ 0] id = emitter/datatype-ID/float! ;-- 32-bit padding
+						append args pick [#_ 0] to logic! any [
+							id = emitter/datatype-ID/float!
+							int64? type
+						]						;-- 32-bit padding
 					][
 						append/only args expr
 					]
@@ -3583,7 +3873,11 @@ system-dialect: make-profilable context [
 				find [block! path! tag!] type?/word value
 				'value <> last last-type				;-- struct by value has specific handling
 			][
-				emitter/target/emit-move-path-alt		;-- save assigned value
+				either int64? last-type [
+					emitter/target/emit-move-path-alt/pair ;-- save assigned value
+				][
+					emitter/target/emit-move-path-alt	;-- save assigned value
+				]
 			]
 			if all [
 				not local-variable? set-path/1
@@ -3606,7 +3900,15 @@ system-dialect: make-profilable context [
 				init-local set-path/1 expr casted		;-- mark as initialized and infer type if required
 			]
 
-			if type <> any [casted new][
+			if all [
+				not casted
+				not same-type? type new
+				lossless-integer-cast? new type
+			][
+				casted: type
+			]
+
+			if not same-type? type any [casted new][
 				backtrack set-path
 				throw-error [
 					"type mismatch on setting path:" to path! set-path
@@ -3615,6 +3917,18 @@ system-dialect: make-profilable context [
 				]
 			]
 			if store? [
+				if all [
+					casted
+					not same-type? casted new
+					lossless-integer-cast? new casted
+				][
+					emitter/target/emit-casting make action-class [
+						action: 'type-cast
+						type: casted
+						data: <last>
+					] no
+					last-type: casted
+				]
 				emitter/access-path set-path either any [block? value path? value][
 					 <last>
 				][
@@ -3677,7 +3991,15 @@ system-dialect: make-profilable context [
 				if 'value = last new [new: head remove back tail copy new]
 				
 
-				if type <> any [casted new][
+				if all [
+					not casted
+					not same-type? type new
+					lossless-integer-cast? new type
+				][
+					casted: type
+				]
+
+				if not same-type? type any [casted new][
 					backtrack set-word
 					throw-error [
 						"attempt to change type of variable:" name
@@ -3706,6 +4028,19 @@ system-dialect: make-profilable context [
 			if any [block? value path? value][value: <last>]
 			if store? [
 				unless all [paren? value 'value = last value][ ;-- struct by value excluded from heap allocation
+					if all [
+						new
+						casted
+						not same-type? casted new
+						lossless-integer-cast? new casted
+					][
+						emitter/target/emit-casting make action-class [
+							action: 'type-cast
+							type: casted
+							data: <last>
+						] no
+						last-type: casted
+					]
 					emitter/store name value type
 				]
 			]
@@ -3827,8 +4162,8 @@ system-dialect: make-profilable context [
 				]
 				if all [
 					any [variable set-thru?] boxed		;-- process casting if result assigned to variable
-					find [logic! byte! integer! float! float32! float64!] last-type/1
-					find [logic! byte! integer! float! float32! float64!] boxed/type	;-- fixes #967
+					find [logic! byte! int8! uint8! int16! uint16! integer! int32! uint32! float! float32! float64!] last-type/1
+					find [logic! byte! int8! uint8! int16! uint16! integer! int32! uint32! float! float32! float64!] boxed/type	;-- fixes #967
 					last-type/1 <> boxed/type
 				][
 					emitter/target/emit-casting boxed no ;-- insert runtime type casting if required
@@ -3955,7 +4290,7 @@ system-dialect: make-profilable context [
 				decimal!	[do pass]
 				binary!		[do pass]
 				block!		[also preprocess-array pc/1 pc: next pc]
-				issue!		[either pc/1/1 = #"." [do pass][comp-directive]]
+				issue!		[either any [pc/1/1 = #"." int64-literal? pc/1][do pass][comp-directive]]
 			][
 				throw-error "datatype not allowed"
 			]

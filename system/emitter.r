@@ -31,16 +31,16 @@ emitter: make-profilable context [
 	] none
 	
 	types-model: [
-		;int8!		1	signed
+		int8!		1	signed
 		byte!		1	unsigned
-		;int16!		2	signed
-		;int32!		4	signed
+		uint8!		1	unsigned
+		int16!		2	signed
+		uint16!		2	unsigned
+		int32!		4	signed
 		integer!	4	signed
-		;int64!		8	signed
-		;uint8!		1	unsigned
-		;uint16!	2	unsigned
-		;uint32!	4	unsigned
-		;uint64!	8	unsigned
+		uint32!		4	unsigned
+		int64!		8	signed
+		uint64!		8	unsigned
 		float32!	4	signed
 		float64!	8	signed
 		float!		8	signed
@@ -58,7 +58,15 @@ emitter: make-profilable context [
 	datatype-ID: [
 		logic!		1
 		integer!	2
+		int32!		2
 		byte!	    3
+		int8!		13
+		uint8!		14
+		int16!		15
+		uint16!		16
+		uint32!		17
+		int64!		11
+		uint64!		12
 		float32!	4
 		float!		5
 		float64!	5
@@ -242,7 +250,7 @@ emitter: make-profilable context [
 			type: 'integer!
 			if logic? value [value: to integer! value]	;-- TRUE => 1, FALSE => 0
 		]
-		if all [value = <last> not find [float! float64!] type][
+		if all [value = <last> not find [float! float64! int64! uint64!] type][
 			type: 'integer!								; @@ not accurate for float32!
 			value: 0
 		]
@@ -252,15 +260,21 @@ emitter: make-profilable context [
 		ptr: tail data-buf
 		
 		switch/default type [
-			integer! [
+			int8! uint8! int16! uint16! int32! integer! uint32! int64! uint64! [
 				case [
-					find [char! decimal!] type?/word value [value: to integer! value]
+					all [find [integer! int32! uint32!] type find [char! decimal!] type?/word value][value: to integer! value]
 					find [true false] value [value: to integer! get value]
-					not integer? value [value: 0]
+					all [find [integer! int32! uint32!] type not any [integer? value issue? value]][value: 0]
+					all [find [int64! uint64!] type not any [integer? value issue? value]][value: 0]
+					all [find [int8! uint8! int16! uint16!] type not any [integer? value issue? value char? value]][value: 0]
 				]
-				pad-data-buf target/default-align
+				pad-data-buf case [
+					find [int64! uint64!] type [8]
+					find [integer! int32! uint32!] type [target/default-align]
+					'else [size]
+				]
 				ptr: tail data-buf
-				value: debase/base to-hex value 16
+				value: debase/base compiler/int-literal-hex value type 16
 				either target/little-endian? [
 					value: tail value
 					loop size [append ptr to char! (first value: skip value -1)]
@@ -483,16 +497,28 @@ emitter: make-profilable context [
 		]
 	]
 		
-	member-offset?: func [spec [block!] name [word! none!] /local offset over][
+	member-offset?: func [spec [block!] name [word! none!] /local offset over base alias][
 		offset: 0
 		foreach [var type] spec [
+			base: type/1
+			if all [
+				'value = last type
+				alias: compiler/find-aliased type/1
+			][
+				base: alias/1
+			]
 			all [
-				find [integer! c-string! pointer! struct! logic!] type/1
+				find [int16! uint16!] base
+				not zero? over: offset // 2
+				offset: offset + 2 - over
+			]
+			all [
+				find [integer! int32! uint32! int64! uint64! c-string! pointer! struct! logic!] base
 				not zero? over: offset // target/struct-align-size 
 				offset: offset + target/struct-align-size - over ;-- properly account for alignment
 			]
 			all [
-				find [float! float64!] type/1
+				find [float! float64!] base
 				not zero? over: offset // target/struct-align-size ;-- align only if < 32-bit aligned (ARM/typed-float!)
 				offset: offset + 8 - over 						;-- properly account for alignment
 			]
@@ -843,12 +869,12 @@ emitter: make-profilable context [
 			) :pos]
 			any [
 				set name word! set spec block! (
-					step: pick 2x1 to logic! find [float! float64!] spec/1 ;-- 64-bit types need 2 bits.
+					step: pick 2x1 to logic! find [float! float64! int64! uint64!] spec/1 ;-- 64-bit types need 2 bits.
 					
 					either compiler/any-pointer?/with spec ts [
 						either 'value = last spec [
 							foreach-field spec [
-								step: pick 2x1 to logic! find [float! float64!] type/1
+								step: pick 2x1 to logic! find [float! float64! int64! uint64!] type/1
 								if compiler/any-pointer?/with type ts [
 									bits: bits or (shift/left 1 i)
 								]

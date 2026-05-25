@@ -187,7 +187,7 @@ linker: context [
 	]
 	
 	is-native?: func [name [word! tag!] spec [block!]][
-		all [spec/1 = 'native name <> '_div_]
+		all [spec/1 = 'native not find [_div_ _udiv_ _i64_div_] name]
 	]
 	
 	get-debug-funcs-size: func [job [object!] /local size sc][

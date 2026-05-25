@@ -91,8 +91,8 @@ ROUNDED_RECT_F!: alias struct! [
 ]
 
 SIZE_U!: alias struct! [
-	width		[uint32!]
-	height		[uint32!]
+	width		[integer!]
+	height		[integer!]
 ]
 
 SIZE_F!: alias struct! [
@@ -507,7 +507,7 @@ ID2D1Properties: alias struct! [
 	GetType							[int-ptr!]
 	GetPropertyIndex				[int-ptr!]
 	SetValueByName					[int-ptr!]
-	SetValue						[function! [this [this!] idx [uint32!] type [integer!] data [byte-ptr!] datasize [uint32!] return: [integer!]]]
+	SetValue						[function! [this [this!] idx [integer!] type [integer!] data [byte-ptr!] datasize [integer!] return: [integer!]]]
 	GetValueByName					[int-ptr!]
 	GetValue						[int-ptr!]
 	GetValueSize					[int-ptr!]
@@ -516,9 +516,9 @@ ID2D1Properties: alias struct! [
 
 ID2D1Effect: alias struct! [
 	Base							[ID2D1Properties value]
-	SetInput						[function! [this [this!] idx [uint32!] input [this!] invalidate [logic!]]]
-	SetInputCount					[function! [this [this!] count [uint32!] return: [integer!]]]
-	GetInput						[function! [this [this!] idx [uint32!] input [com-ptr!]]]
+	SetInput						[function! [this [this!] idx [integer!] input [this!] invalidate [logic!]]]
+	SetInputCount					[function! [this [this!] count [integer!] return: [integer!]]]
+	GetInput						[function! [this [this!] idx [integer!] input [com-ptr!]]]
 	GetInputCount					[function! [this [this!] return: [integer!]]]
 	GetOutput						[function! [this [this!] output [com-ptr!]]]
 ]
@@ -576,7 +576,7 @@ IDXGISwapChain1: alias struct! [
 	SetFullscreenState				[int-ptr!]
 	GetFullscreenState				[int-ptr!]
 	GetDesc							[int-ptr!]
-	ResizeBuffers					[function! [this [this!] count [uint!] width [uint!] height [uint!] format [integer!] flags [uint!] return: [integer!]]]
+	ResizeBuffers					[function! [this [this!] count [integer!] width [integer!] height [integer!] format [integer!] flags [integer!] return: [integer!]]]
 	ResizeTarget					[int-ptr!]
 	GetContainingOutput				[int-ptr!]
 	GetFrameStatistics				[int-ptr!]
@@ -795,7 +795,7 @@ CreateBitmap*: alias function! [
 	this		[this!]
 	size		[SIZE_U! value]
 	sourceData	[int-ptr!]
-	pitch		[uint32!]
+	pitch		[integer!]
 	properties	[D2D1_BITMAP_PROPERTIES1]
 	bitmap		[ptr-ptr!]
 	return:		[integer!]
@@ -1476,7 +1476,7 @@ GetUserDefaultLocaleName!: alias function! [
 render-target!: alias struct! [
 	dc				[this!]
 	brushes			[int-ptr!]
-	brushes-cnt		[uint!]
+	brushes-cnt		[integer!]
 	styles			[red-vector!]
 	bitmap			[this!]
 	swapchain		[this!]
@@ -1620,7 +1620,7 @@ DX-create-buffer: func [
 	d2d/setDpi d2d-ctx current-dpi current-dpi
 	hr: d2d/CreateBitmapFromDxgiSurface d2d-ctx buf/value props :bmp
 	assert hr = 0
-	
+
 	rt/dc: d2d-ctx
 	rt/swapchain: swapchain
 	rt/bitmap: as this! bmp
@@ -1664,8 +1664,8 @@ DX-resize-rt: func [
 
 DX-resize-buffer: func [
 	rt				[render-target!]
-	width			[uint!]
-	height			[uint!]
+	width			[integer!]
+	height			[integer!]
 	/local
 		unk			[IUnknown]
 		this		[this!]
@@ -1754,7 +1754,7 @@ DX-create-dev: func [
 
 	d3d: as ID3D11Device d3d-device/vtbl
 	;-- create DXGI device
-	hr: d3d/QueryInterface d3d-device IID_IDXGIDevice1 as interface! :factory	
+	hr: d3d/QueryInterface d3d-device IID_IDXGIDevice1 as interface! :factory
 	assert zero? hr
 	dxgi-device: as this! factory/value
 
@@ -1931,7 +1931,7 @@ create-bitmap-target: func [
 ][
 	GetClientRect hWnd :rc
 
-	d2d: as ID2D1DeviceContext d2d-ctx/vtbl	
+	d2d: as ID2D1DeviceContext d2d-ctx/vtbl
 	rt/dc: d2d-ctx
 	rt/bitmap: create-d2d-bitmap d2d-ctx rc/right - rc/left rc/bottom - rc/top 9
 ]
@@ -2262,7 +2262,7 @@ set-line-spacing: func [
 		if all [type <> TYPE_INTEGER type <> TYPE_FLOAT][exit]
 		h: get-float32 int
 	]
-	left: 73 lineCount: 0 lay: 0 
+	left: 73 lineCount: 0 lay: 0
 	dw: as IDWriteFactory dwrite-factory/vtbl
 	dw/CreateTextLayout dwrite-factory as c-string! :left 1 fmt FLT_MAX FLT_MAX :lay
 	layout: as this! lay
@@ -2393,8 +2393,8 @@ render-target-lost?: func [
 
 create-d2d-bitmap: func [
 	this	[this!]
-	width	[uint32!]
-	height	[uint32!]
+	width	[integer!]
+	height	[integer!]
 	options	[integer!]
 	return: [this!]
 	/local

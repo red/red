@@ -23,6 +23,8 @@ make-profilable make target-class [
 	fpu-cword: none									;-- x87 control word reference in emitter/symbols
 	fpu-flags: to integer! #{037A}					;-- default control word, division by zero
 													;-- and invalid operands raise exceptions.
+	need-i64-div?: none							;-- if TRUE, include 64-bit division routine in code
+	i64-div-sym: '_i64_div_
 	conditions: make hash! [
 	;-- name ----------- signed --- unsigned --
 		overflow?		 #{00}		-
@@ -52,6 +54,161 @@ make-profilable make target-class [
 			emit #{83EB}							;-- SUB ebx, <offset>	; adjust to beginning of CODE segment
 			emit to-bin8 offset
 		]	
+	]
+
+	make-native-sym: func [sym [word!] /local retry][
+		if select emitter/symbols sym [
+			retry: 3
+			until [
+				sym: to word! rejoin [sym random "0123456798"]
+				if zero? retry: retry - 1 [
+					compiler/throw-error "Unable to create native helper symbol!"
+				]
+				none? emitter/symbols/:sym
+			]
+		]
+		sym
+	]
+
+	emit-i64-divide: has [][
+		if verbose >= 3 [print "^/>>>emitting I64-DIV intrinsic"]
+		;-- Inputs:  dividend in edx:eax, divisor in edi:esi.
+		;--          cl = 0 quotient, 1 modulo, 2 remainder; ch = signed?.
+		;-- Output:  edx:eax.
+		;-- Locals:  [esp+00h] quotient low,  [esp+04h] quotient high,
+		;--          [esp+08h] loop counter,   [esp+0Ch] saved mode/signed?,
+		;--          [esp+10h] dividend neg?,  [esp+14h] quotient neg?.
+		;-- The helper first normalizes signed operands to unsigned values,
+		;-- runs a 64-step restoring division, then fixes quotient/remainder
+		;-- signs according to Red/System's divide, modulo, and remainder rules.
+		foreach opcode [
+			#{53}									;-- PUSH ebx
+			#{55}									;-- PUSH ebp
+			#{83EC1C}								;-- SUB esp, 1Ch
+			#{894C240C}								;-- MOV [esp+0Ch], ecx
+			#{C744241000000000}						;-- MOV [esp+10h], 0
+			#{C744241400000000}						;-- MOV [esp+14h], 0
+
+			;-- Preserve x86's divide-by-zero behavior for a zero divisor.
+			#{89F9}									;-- MOV ecx, edi
+			#{09F1}									;-- OR ecx, esi
+			#{7504}									;-- JNE .signed-normalize
+			#{31C9}									;-- XOR ecx, ecx
+			#{F7F1}									;-- DIV ecx
+
+			;-- For signed operations, convert negative operands to magnitudes.
+			#{F644240DFF}							;-- .signed-normalize: TEST byte [esp+0Dh], FFh
+			#{7428}									;-- JE .init-divide
+			#{85D2}									;-- TEST edx, edx
+			#{7914}									;-- JNS .check-divisor
+			#{C744241001000000}						;-- MOV [esp+10h], 1
+			#{8374241401}							;-- XOR [esp+14h], 1
+			#{F7D8}									;-- NEG eax
+			#{83D200}								;-- ADC edx, 0
+			#{F7DA}									;-- NEG edx
+			#{85FF}									;-- .check-divisor: TEST edi, edi
+			#{790C}									;-- JNS .init-divide
+			#{8374241401}							;-- XOR [esp+14h], 1
+			#{F7DE}									;-- NEG esi
+			#{83D700}								;-- ADC edi, 0
+			#{F7DF}									;-- NEG edi
+
+			;-- Restoring division. Remainder is ebp:ebx, quotient is on stack.
+			#{C7042400000000}						;-- .init-divide: MOV [esp], 0
+			#{C744240400000000}						;-- MOV [esp+4], 0
+			#{C744240840000000}						;-- MOV [esp+8], 40h
+			#{31DB}									;-- XOR ebx, ebx
+			#{31ED}									;-- XOR ebp, ebp
+			#{D1E0}									;-- .divide-loop: SHL eax, 1
+			#{D1D2}									;-- RCL edx, 1
+			#{D1D3}									;-- RCL ebx, 1
+			#{D1D5}									;-- RCL ebp, 1
+			#{D12424}								;-- SHL [esp], 1
+			#{D1542404}								;-- RCL [esp+4], 1
+			#{39FD}									;-- CMP ebp, edi
+			#{7706}									;-- JA .subtract-divisor
+			#{720C}									;-- JB .next-bit
+			#{39F3}									;-- CMP ebx, esi
+			#{7208}									;-- JB .next-bit
+			#{29F3}									;-- .subtract-divisor: SUB ebx, esi
+			#{19FD}									;-- SBB ebp, edi
+			#{800C2401}								;-- OR byte [esp], 1
+			#{FF4C2408}								;-- .next-bit: DEC [esp+8]
+			#{75D9}									;-- JNE .divide-loop
+
+			;-- Select and sign-fix the requested result.
+			#{8B4C240C}								;-- MOV ecx, [esp+0Ch]
+			#{80F900}								;-- CMP cl, 0
+			#{7523}									;-- JNE .select-remainder
+			#{F644240DFF}							;-- TEST byte [esp+0Dh], FFh
+			#{7413}									;-- JE .return-quotient
+			#{837C241400}							;-- CMP [esp+14h], 0
+			#{740C}									;-- JE .return-quotient
+			#{F71C24}								;-- NEG [esp]
+			#{8354240400}							;-- ADC [esp+4], 0
+			#{F75C2404}								;-- NEG [esp+4]
+			#{8B0424}								;-- .return-quotient: MOV eax, [esp]
+			#{8B542404}								;-- MOV edx, [esp+4]
+			#{EB39}									;-- JMP .done
+
+			#{F644240DFF}							;-- .select-remainder: TEST byte [esp+0Dh], FFh
+			#{742E}									;-- JE .return-remainder
+			#{80F901}								;-- CMP cl, 1
+			#{7410}									;-- JE .fix-modulo
+			#{837C241000}							;-- CMP [esp+10h], 0
+			#{7422}									;-- JE .return-remainder
+			#{F7DB}									;-- NEG ebx
+			#{83D500}								;-- ADC ebp, 0
+			#{F7DD}									;-- NEG ebp
+			#{EB19}									;-- JMP .return-remainder
+			#{837C241000}							;-- .fix-modulo: CMP [esp+10h], 0
+			#{7412}									;-- JE .return-remainder
+			#{89D9}									;-- MOV ecx, ebx
+			#{09E9}									;-- OR ecx, ebp
+			#{740C}									;-- JE .return-remainder
+			#{89F1}									;-- MOV ecx, esi
+			#{89FA}									;-- MOV edx, edi
+			#{29D9}									;-- SUB ecx, ebx
+			#{19EA}									;-- SBB edx, ebp
+			#{89CB}									;-- MOV ebx, ecx
+			#{89D5}									;-- MOV ebp, edx
+			#{89D8}									;-- .return-remainder: MOV eax, ebx
+			#{89EA}									;-- MOV edx, ebp
+
+			#{83C41C}								;-- .done: ADD esp, 1Ch
+			#{5D}									;-- POP ebp
+			#{5B}									;-- POP ebx
+			#{C3}									;-- RET
+		][emit opcode]
+	]
+
+	call-i64-divide: func [name [word!] /local spec mode][
+		spec: either need-i64-div? [
+			emitter/symbols/:i64-div-sym
+		][
+			i64-div-sym: make-native-sym i64-div-sym
+			need-i64-div?: yes
+			emitter/add-native i64-div-sym
+		]
+		mode: either find mod-rem-op name [
+			either (select mod-rem-func name) = 'rem [2][1]
+		][
+			0
+		]
+		emit #{57}									;-- PUSH edi ; preserve thread/context register
+		emit #{89CF}								;-- MOV edi, ecx ; helper expects right high in edi
+		emit #{B1} emit to-bin8 mode					;-- MOV cl, mode
+		emit either signed? [#{B501}][#{B500}]		;-- MOV ch, signed?
+		emit #{E8}									;-- CALL NEAR disp
+		emit-reloc-addr spec
+		emit #{5F}									;-- POP edi
+	]
+
+	on-finalize: does [
+		if need-i64-div? [
+			emitter/symbols/:i64-div-sym/2: emitter/tail-ptr
+			emit-i64-divide
+		]
 	]
 	
 	on-global-prolog: func [runtime? [logic!] type [word!] /local offset][
@@ -285,40 +442,140 @@ make-profilable make target-class [
 		]		
 	]
 	
-	emit-move-path-alt: does [
-		emit #{89C2}								;-- MOV edx, eax
+	emit-move-path-alt: func [/pair][
+		either pair [
+			emit #{52}								;-- PUSH edx
+			emit #{50}								;-- PUSH eax
+		][
+			emit #{89C2}							;-- MOV edx, eax
+		]
 	]
 	
 	emit-save-last: does [
 		last-saved?: yes
-		unless compiler/any-float? compiler/last-type [
-			emit #{50}								;-- PUSH eax
+		case [
+			compiler/int64? compiler/last-type [
+				emit #{52}							;-- PUSH edx
+				emit #{50}							;-- PUSH eax
+			]
+			not compiler/any-float? compiler/last-type [
+				emit #{50}							;-- PUSH eax
+			]
 		]
 	]
 	
 	emit-restore-last: does [
-		unless find [float! float64! float32!] compiler/last-type/1 [
-			emit #{5A}					   			;-- POP edx
+		either compiler/int64? compiler/last-type [
+			emit #{89C6}							;-- MOV esi, eax ; right low
+			emit #{89D1}							;-- MOV ecx, edx ; right high
+			emit #{58}								;-- POP eax	; left low
+			emit #{5A}								;-- POP edx	; left high
+			last-saved?: yes
+		][
+			unless find [float! float64! float32!] compiler/last-type/1 [
+				emit #{5A}					   		;-- POP edx
+			]
 		]
 	]
 	
-	emit-casting: func [value [object!] alt? [logic!] /push /local type old][
+	emit-casting: func [
+		value [object!] alt? [logic!] /push
+		/local type old from to from-width to-width signed-src? code
+	][
 		type: compiler/get-type value/data
 		case [
 			value/type/1 = 'logic! [
 				if verbose >= 3 [print [">>>converting from" mold/flat type/1 "to logic!"]]
 				old: width
-				set-width/type type/1
-				either alt? [
-					emit-poly [#{84D2} #{85D2}]		;-- TEST rD, rD
-					emit #{0F95C2}					;--	SETNZ dl			; set to 1/0
-					emit #{0FB6D2}					;-- MOVZX edx, dl		; sign-extend to 32-bit
+				either compiler/int64? type [
+					either alt? [
+						emit #{09CA}				;-- OR edx, ecx	; alt 64-bit is ecx:edx in limited paths
+						emit #{0F95C2}
+						emit #{0FB6D2}
+					][
+						emit #{09D0}				;-- OR eax, edx
+						emit #{0F95C0}
+						emit #{0FB6C0}
+					]
 				][
-					emit-poly [#{84C0} #{85C0}]		;-- TEST rA, rA
-					emit #{0F95C0}					;--	SETNZ al			; set to 1/0
-					emit #{0FB6C0}					;-- MOVZX eax, al		; sign-extend to 32-bit
+					set-width/type type/1
+					either alt? [
+						emit-poly [#{84D2} #{85D2}]	;-- TEST rD, rD
+						emit #{0F95C2}				;--	SETNZ dl			; set to 1/0
+						emit #{0FB6D2}				;-- MOVZX edx, dl		; sign-extend to 32-bit
+					][
+						emit-poly [#{84C0} #{85C0}]	;-- TEST rA, rA
+						emit #{0F95C0}				;--	SETNZ al			; set to 1/0
+						emit #{0FB6C0}				;-- MOVZX eax, al		; sign-extend to 32-bit
+					]
 				]
 				width: old
+			]
+			all [
+				compiler/integer-type? value/type
+				compiler/integer-type? type
+				not compiler/int64? value/type
+				not compiler/int64? type
+			][
+				from: compiler/canonical-type type
+				to: compiler/canonical-type value/type
+				from-width: compiler/integer-width? from
+				to-width: compiler/integer-width? to
+				signed-src?: compiler/signed-integer? from
+				if all [to-width >= 4 from-width < 4][
+					code: either from-width = 2 [
+						either alt? [
+							either signed-src? [#{0FBFD2}][#{0FB7D2}] ;-- MOVS/Z edx, dx
+						][
+							either signed-src? [#{0FBFC0}][#{0FB7C0}] ;-- MOVS/Z eax, ax
+						]
+					][
+						either alt? [
+							either signed-src? [#{0FBED2}][#{0FB6D2}] ;-- MOVS/Z edx, dl
+						][
+							either signed-src? [#{0FBEC0}][#{0FB6C0}] ;-- MOVS/Z eax, al
+						]
+					]
+					emit code
+				]
+				if all [to-width = 2 from-width = 1][
+					code: either alt? [
+						either signed-src? [#{660FBED2}][#{660FB6D2}]
+					][
+						either signed-src? [#{660FBEC0}][#{660FB6C0}]
+					]
+					emit code
+				]
+			]
+			all [compiler/int64? value/type compiler/integer-type? type][
+				if verbose >= 3 [print [">>>converting from" type/1 "to" value/type/1]]
+				from: compiler/canonical-type type
+				from-width: compiler/integer-width? from
+				signed-src?: compiler/signed-integer? from
+				unless from-width = 8 [
+					if from-width < 4 [
+						code: either from-width = 1 [
+							either signed-src? [#{0FBE}][#{0FB6}]
+						][
+							either signed-src? [#{0FBF}][#{0FB7}]
+						]
+						emit code
+						emit pick [#{D2} #{C0}] alt?
+					]
+					either any [value/type/1 = 'uint64! not signed-src?] [
+						either alt? [emit #{31C9}][emit #{31D2}] ;-- XOR ecx|edx, high
+					][
+						either alt? [
+							emit #{89D1}			;-- MOV ecx, edx
+							emit #{C1F91F}			;-- SAR ecx, 31
+						][
+							emit #{99}				;-- CDQ
+						]
+					]
+				]
+			]
+			all [compiler/integer-type? value/type compiler/int64? type][
+				if verbose >= 3 [print [">>>converting from" type/1 "to" value/type/1]]
 			]
 			all [value/type/1 = 'integer! type/1 = 'byte!][
 				if verbose >= 3 [print ">>>converting from byte! to integer! "]
@@ -588,6 +845,7 @@ make-profilable make target-class [
 					]
 				]
 			][
+				emit #{57}							;-- PUSH edi
 				emit #{89C7}						;-- MOV edi, eax	; edi: right-op
 				emit #{8B06}						;-- MOV eax, [esi]
 													;-- .loop:
@@ -605,6 +863,7 @@ make-profilable make target-class [
 				][
 					#{89D0}							;-- MOV eax, edx	; eax: last old value
 				]
+				emit #{5F}							;-- POP edi
 			]
 		][
 			emit switch op [
@@ -740,8 +999,16 @@ make-profilable make target-class [
 
 		opcodes: [
 			logic!	 [emit #{3401}]					;-- XOR al, 1			; invert 0<=>1
-			byte!	 [emit #{F6D0}]					;-- NOT al				; @@ missing 16-bit support									
+			byte!	 [emit #{F6D0}]					;-- NOT al
+			int8!	 [emit #{F6D0}]					;-- NOT al
+			uint8!	 [emit #{F6D0}]					;-- NOT al
+			int16!	 [emit #{66F7D0}]				;-- NOT ax
+			uint16!	 [emit #{66F7D0}]				;-- NOT ax
 			integer! [emit #{F7D0}]					;-- NOT eax
+			int32!	 [emit #{F7D0}]					;-- NOT eax
+			uint32!	 [emit #{F7D0}]					;-- NOT eax
+			int64!	 [emit #{F7D0} emit #{F7D2}]	;-- NOT eax / NOT edx
+			uint64!	 [emit #{F7D0} emit #{F7D2}]	;-- NOT eax / NOT edx
 		]
 		switch type?/word value [
 			logic! [
@@ -819,6 +1086,49 @@ make-profilable make target-class [
 			emit-poly [#{B0} #{B8} value]				;-- MOV rA, value
 		]
 	]
+
+	emit-load-int64-literal: func [value type [word!] /local hex high low][
+		hex: compiler/int64-hex value type
+		high: copy/part hex 8
+		low: skip hex 8
+		emit #{B8}									;-- MOV eax, low32
+		emit reverse debase/base low 16
+		emit #{BA}									;-- MOV edx, high32
+		emit reverse debase/base high 16
+	]
+
+	emit-load-int-literal: func [value type [word!] /local hex w][
+		w: compiler/integer-width? type
+		hex: compiler/int-literal-hex value type
+		either w = 8 [
+			emit-load-int64-literal value type
+		][
+			emit-poly compose [#{B0} #{B8} (to integer! to issue! hex)]
+		]
+	]
+
+	emit-load-int64-variable: func [value [word! object!] /local offset spec][
+		if object? value [value: compiler/unbox value]
+		either offset: emitter/local-offset? value [
+			offset: stack-encode offset
+			emit adjust-disp32 #{8B45} offset		;-- MOV eax, [ebp+n]
+			emit offset
+			offset: stack-encode (emitter/local-offset? value) + 4
+			emit adjust-disp32 #{8B55} offset		;-- MOV edx, [ebp+n+4]
+			emit offset
+		][
+			spec: emitter/symbols/:value
+			either PIC? [
+				emit #{8D83}						;-- LEA eax, [ebx+disp]
+			][
+				emit #{B8}							;-- MOV eax, &value
+			]
+			emit-reloc-addr spec
+			emit #{8B10}							;-- MOV edx, [eax]
+			emit #{8B4004}							;-- MOV eax, [eax+4]
+			emit #{92}								;-- XCHG eax, edx -> edx:eax
+		]
+	]
 	
 	emit-load: func [
 		value [char! logic! integer! word! string! path! paren! get-word! object! decimal! issue!]
@@ -843,7 +1153,23 @@ make-profilable make target-class [
 				width: 4
 				emit-load-integer value
 			]
-			issue!
+			issue! [
+				either spec: compiler/int64-literal-info value [
+					either all [cast compiler/integer-type? cast/type not compiler/int64? cast/type][
+						set-width/type cast/type/1
+						emit-load-int-literal value cast/type/1
+					][
+						width: 8
+						emit-load-int64-literal value spec/1
+					]
+				][
+					set-width any [cast value]
+					emit-push any [cast value]
+					emit-float #{DD0424}				;-- FLD [esp]
+					emit #{83C4} 						;-- ADD esp, 8|4
+					emit to-bin8 pick [4 8] to logic! all [cast cast/type/1 = 'float32!]
+				]
+			]
 			decimal! [
 				set-width any [cast value]
 				emit-push any [cast value]
@@ -869,7 +1195,10 @@ make-profilable make target-class [
 								emit to-bin8 offset
 							]
 						]
-						'else [
+					'else [
+						either width = 8 [
+							emit-load-int64-variable value
+						][
 							either alt [
 								emit-variable-poly value
 									#{8A15} #{8B15}	;-- MOV rD, [value]		; global
@@ -884,6 +1213,7 @@ make-profilable make target-class [
 						]
 					]
 				]
+			]
 			]
 			get-word! [
 				value: to word! value
@@ -982,10 +1312,44 @@ make-profilable make target-class [
 				emit value
 			]
 			integer! [
-				do store-dword
-				emit to-bin32 value
+				either compiler/int64? compiler/get-variable-spec name [
+					emit-load-int64-literal value first compiler/get-variable-spec name
+					emit-store name <last> none
+				][
+					set-width name
+					emit-variable-poly name
+						#{C605} #{C705}				;-- MOV [name], imm
+						#{C683} #{C783}
+						#{C645} #{C745}
+					emit switch width [
+						1 [to-bin8 value]
+						2 [to-bin16 value]
+						4 [to-bin32 value]
+					]
+				]
 			]
-			issue!
+			issue! [
+				either type: compiler/int64-literal-info value [
+					either compiler/int64? compiler/get-variable-spec name [
+						emit-load-int64-literal value first compiler/get-variable-spec name
+						emit-store name <last> none
+					][
+						set-width name
+						emit-variable-poly name
+							#{C605} #{C705}
+							#{C683} #{C783}
+							#{C645} #{C745}
+						value: to integer! to issue! compiler/int-literal-hex value first compiler/get-variable-spec name
+						emit switch width [
+							1 [to-bin8 value]
+							2 [to-bin16 value]
+							4 [to-bin32 value]
+						]
+					]
+				][
+					store-float-variable name
+				]
+			]
 			decimal! [
 				store-float-variable name
 			]
@@ -1023,10 +1387,35 @@ make-profilable make target-class [
 					]
 					'else [
 						set-width name
-						emit-variable-poly name
-							#{A2} 	#{A3}			;-- MOV [name], rA		; global
-							#{8883} #{8983}			;-- MOV [ebx+disp], rA	; PIC
-							#{8845} #{8945}			;-- MOV [ebp+n], rA		; local
+						either width = 8 [
+							either offset: emitter/local-offset? name [
+								offset: stack-encode offset
+								emit adjust-disp32 #{8945} offset	;-- MOV [ebp+n], eax
+								emit offset
+								offset: stack-encode (emitter/local-offset? name) + 4
+								emit adjust-disp32 #{8955} offset	;-- MOV [ebp+n+4], edx
+								emit offset
+							][
+								either PIC? [
+									emit #{50}						;-- PUSH eax
+									emit #{8D83}					;-- LEA eax, [ebx+disp]
+								][
+									emit #{B9}						;-- MOV ecx, &name
+								]
+								emit-reloc-addr emitter/symbols/:name
+								if PIC? [
+									emit #{89C1}					;-- MOV ecx, eax
+									emit #{58}						;-- POP eax
+								]
+								emit #{8901}						;-- MOV [ecx], eax
+								emit #{895104}						;-- MOV [ecx+4], edx
+							]
+						][
+							emit-variable-poly name
+								#{A2} 	#{A3}			;-- MOV [name], rA		; global
+								#{8883} #{8983}			;-- MOV [ebx+disp], rA	; PIC
+								#{8845} #{8945}			;-- MOV [ebp+n], rA		; local
+						]
 					]
 				]
 			]
@@ -1111,11 +1500,23 @@ make-profilable make target-class [
 					emit to-bin32 offset
 				]
 			][
-				either zero? offset [
-					emit-poly [#{8A00} #{8B00}]		;-- MOV rA, [eax]
+				either width = 8 [
+					either zero? offset [
+						emit #{8B5004}				;-- MOV edx, [eax+4]
+						emit #{8B00}				;-- MOV eax, [eax]
+					][
+						emit #{8B90}				;-- MOV edx, [eax+offset+4]
+						emit to-bin32 offset + 4
+						emit #{8B80}				;-- MOV eax, [eax+offset]
+						emit to-bin32 offset
+					]
 				][
-					emit-poly [#{8A80} #{8B80}]		;-- MOV rA, [eax+offset]
-					emit to-bin32 offset
+					either zero? offset [
+						emit-poly [#{8A00} #{8B00}]	;-- MOV rA, [eax]
+					][
+						emit-poly [#{8A80} #{8B80}]	;-- MOV rA, [eax+offset]
+						emit to-bin32 offset
+					]
 				]
 			]
 		]
@@ -1237,10 +1638,14 @@ make-profilable make target-class [
 
 	emit-store-path: func [
 		path [set-path!] type [word!] value parent [block! none!]
-		/local idx offset type2 spec by-val? slots
+		/local idx offset type2 spec by-val? slots size value-type pair? nested?
 	][
 		if verbose >= 3 [print [">>>storing path:" mold path mold value]]
 		
+		nested?: to logic! parent
+		value-type: either value = <last> [compiler/last-type][compiler/get-type value]
+		size: emitter/size-of? value-type
+		pair?: all [size = 8 not compiler/any-float? value-type]
 		either value = <last> [
 			if by-val?: 'value = last compiler/last-type [
 				slots: emitter/struct-slots? compiler/last-type
@@ -1249,21 +1654,32 @@ make-profilable make target-class [
 				emit #{89C2}						;-- MOV edx, eax
 			]
 		][
-			if parent [emit #{89C2}]				;-- MOV edx, eax			; save value/address
+			if parent [
+				either pair? [
+					emit #{50}						;-- PUSH eax				; save parent address
+				][
+					emit #{89C2}					;-- MOV edx, eax			; save value/address
+				]
+			]
 			emit-load value
 			all [
 				object? value
 				not all [decimal? value/data 'float32! = value/type/1]
 				emit-casting value no
 			]
-			unless all [
-				type = 'struct!
-				word? path/2
-				not object? value
-				spec: any [parent second compiler/resolve-type path/1]
-				type2: select spec path/2
-				compiler/any-float? type2
-			][emit #{92}]							;-- XCHG eax, edx			; save value/restore address
+			either pair? [
+				emit #{52}							;-- PUSH edx				; save high bits
+				emit #{50}							;-- PUSH eax				; save low bits
+			][
+				unless all [
+					type = 'struct!
+					word? path/2
+					not object? value
+					spec: any [parent second compiler/resolve-type path/1]
+					type2: select spec path/2
+					compiler/any-float? type2
+				][emit #{92}]						;-- XCHG eax, edx			; save value/restore address
+			]
 		]
 
 		switch type [
@@ -1313,6 +1729,35 @@ make-profilable make target-class [
 						][
 							emit-float #{DD98}		;-- FSTP [eax+offset]
 							emit to-bin32 offset
+						]
+					]
+					width = 8 [
+						case [
+							all [nested? value <> <last>][
+								emit #{58}			;-- POP eax					; restore low bits
+								emit #{5A}			;-- POP edx					; restore high bits
+								emit #{59}			;-- POP ecx					; restore parent address
+							]
+							nested? [
+								emit #{89C1}		;-- MOV ecx, eax			; save parent address
+								emit #{58}			;-- POP eax					; restore low bits
+								emit #{5A}			;-- POP edx					; restore high bits
+							]
+							'else [
+								emit-load path/1
+								emit #{89C1}		;-- MOV ecx, eax			; save base address
+								emit #{58}			;-- POP eax					; restore low bits
+								emit #{5A}			;-- POP edx					; restore high bits
+							]
+						]
+						either zero? offset [
+							emit #{8901}			;-- MOV [ecx], eax
+							emit #{895104}			;-- MOV [ecx+4], edx
+						][
+							emit #{8981}			;-- MOV [ecx+offset], eax
+							emit to-bin32 offset
+							emit #{8991}			;-- MOV [ecx+offset+4], edx
+							emit to-bin32 offset + 4
 						]
 					]
 					'else [
@@ -1522,6 +1967,38 @@ make-profilable make target-class [
 			emit #{F3A5}							;-- REP MOVS
 		]
 	]
+
+	emit-extend-int32: func [type [block! word! integer! none!] /local target][
+		if any [none? type integer? type][exit]
+		if word? type [type: reduce [type]]
+		if all [
+			compiler/integer-type? type
+			not compiler/int64? type
+			(compiler/integer-width? type) < 4
+		][
+			target: reduce [either compiler/signed-integer? type ['integer!]['uint32!]]
+			emit-casting make compiler/action-class [
+				action: 'type-cast
+				type: target
+				data: <last>
+			] no
+			compiler/last-type: target
+		]
+	]
+
+	emit-normalize-return: func [fspec [block!] /local type][
+		if all [
+			type: select fspec/4 compiler/return-def
+			compiler/integer-type? type
+			not compiler/int64? type
+			(compiler/integer-width? type) < 4
+		][
+			switch compiler/integer-width? type [
+				1 [emit either compiler/signed-integer? type [#{0FBEC0}][#{0FB6C0}]]
+				2 [emit either compiler/signed-integer? type [#{0FBFC0}][#{0FB7C0}]]
+			]
+		]
+	]
 	
 	emit-push: func [
 		value [char! logic! integer! word! block! string! tag! path! get-word! object! decimal! issue!]
@@ -1536,14 +2013,24 @@ make-profilable make target-class [
 		switch type?/word value [
 			tag! [									;-- == <last>
 				either value = <last> [
-					either compiler/any-float? compiler/last-type [
+					either all [
+						any [block? compiler/last-type word? compiler/last-type]
+						compiler/int64? compiler/last-type
+					][
+						emit #{52}					;-- PUSH edx
+						emit #{50}					;-- PUSH eax
+					][either all [
+						block? compiler/last-type
+						compiler/any-float? compiler/last-type
+					][
 						set-width/type any [all [cast cast/type] compiler/last-type]
 						emit #{83EC}				;-- SUB esp, 8|4
 						emit to-bin8 width
 						emit-float #{DD1C24}		;-- FSTP [esp]
 					][
+						emit-extend-int32 compiler/last-type
 						emit #{50}					;-- PUSH eax
-					]
+					]]
 				][									;-- <ret-ptr> and <args-top> cases
 					either value = <ret-ptr> [
 						offset: stack-encode args-offset
@@ -1566,15 +2053,44 @@ make-profilable make target-class [
 				emit value
 			]
 			integer! [
-				either all [-128 <= value value <= 127][
-					emit #{6A}						;-- PUSH imm8
-					emit to-bin8 value
+				either all [cast compiler/int64? cast/type][
+					emit-load-int64-literal value cast/type/1
+					compiler/last-type: cast/type
+					emit-push <last>
 				][
-					emit #{68}						;-- PUSH imm32
-					emit to-bin32 value	
+					either all [-128 <= value value <= 127][
+						emit #{6A}						;-- PUSH imm8
+						emit to-bin8 value
+					][
+						emit #{68}						;-- PUSH imm32
+						emit to-bin32 value
+					]
 				]
 			]
-			issue!
+			issue! [
+				either type: compiler/int64-literal-info value [
+					either all [cast compiler/integer-type? cast/type not compiler/int64? cast/type][
+						set-width/type cast/type/1
+						emit-load-int-literal value cast/type/1
+						compiler/last-type: cast/type
+					][
+						emit-load-int64-literal value type/1
+						compiler/last-type: reduce [type/1]
+					]
+					emit-push <last>
+				][
+					value: either all [cast cast/type/1 = 'float32! not cdecl][
+						IEEE-754/to-binary32/rev value
+					][
+						value: IEEE-754/to-binary64/rev value
+						emit #{68}						;-- PUSH high part
+						emit at value 5
+						value
+					]
+					emit #{68}							;-- PUSH low part
+					emit copy/part value 4
+				]
+			]
 			decimal! [
 				value: either all [cast cast/type/1 = 'float32! not cdecl][
 					IEEE-754/to-binary32/rev value
@@ -1609,6 +2125,23 @@ make-profilable make target-class [
 						emit to-bin8 width
 						load-float-variable value
 						emit-float #{DD1C24}		;-- FSTP [esp]			; push double on stack
+					]
+					compiler/int64? type [
+						emit-load-int64-variable value
+						compiler/last-type: type
+						emit-push <last>
+					]
+					compiler/integer-type? type [
+						either cast [
+							emit-load/with value cast
+							emit-casting cast no
+							compiler/last-type: cast/type
+						][
+							emit-load value
+							compiler/last-type: type
+						]
+						emit-extend-int32 compiler/last-type
+						emit #{50}					;-- PUSH eax
 					]
 					'else [
 						emit-variable value
@@ -1736,10 +2269,17 @@ make-profilable make target-class [
 				] b = 'imm
 			]
 			>>  [
-				emit-poly pick [
-					[#{C0F8} #{C1F8}]				;-- SAR rA, value
-					[#{D2F8} #{D3F8}]				;-- SAR rA, cl
-				] b = 'imm
+				emit-poly either signed? [
+					pick [
+						[#{C0F8} #{C1F8}]			;-- SAR rA, value
+						[#{D2F8} #{D3F8}]			;-- SAR rA, cl
+					] b = 'imm
+				][
+					pick [
+						[#{C0E8} #{C1E8}]			;-- SHR rA, value
+						[#{D2E8} #{D3E8}]			;-- SHR rA, cl
+					] b = 'imm
+				]
 			]
 			-** [
 				emit-poly pick [
@@ -1828,7 +2368,7 @@ make-profilable make target-class [
 		;-- eax = a, edx = b
 		if find mod-rem-op name [					;-- work around unaccepted '// and '%
 			mod?: select mod-rem-func name			;-- convert operators to words (easier to handle)
-			name: first [/]							;-- work around unaccepted '/ 
+			name: divide-sym						;-- work around unaccepted '/
 		]
 		arg2: compiler/unbox args/2
 		load?: not all [
@@ -1940,12 +2480,16 @@ make-profilable make target-class [
 			]
 			/ [
 				op-poly: [
-					either width = 1 [				;-- 8-bit unsigned
-						emit #{B400}				;-- MOV ah, 0			; clean-up garbage in ah
-						emit #{F6F1}				;-- DIV cl
-					][
-						emit-sign-extension			;-- 16/32-bit signed
+					either signed? [
+						emit-sign-extension			;-- extend rA to high:low pair
 						emit-poly [#{F6F9} #{F7F9}]	;-- IDIV rC ; rA / rC
+					][
+						switch width [
+							1 [emit #{B400}]		;-- MOV ah, 0
+							2 [emit #{6631D2}]		;-- XOR dx, dx
+							4 [emit #{31D2}]		;-- XOR edx, edx
+						]
+						emit-poly [#{F6F1} #{F7F1}]	;-- DIV rC ; rA / rC
 					]
 				]
 				switch b [
@@ -1970,21 +2514,38 @@ make-profilable make target-class [
 				]
 				if mod? [
 					emit-poly [#{88E0} #{89D0}]		;-- MOV rA, remainder	; remainder from ah|dx|edx
-					if all [mod? <> 'rem width > 1][;-- modulo, not remainder
+					if all [signed? mod? <> 'rem][	;-- modulo, not remainder
 					;-- Adjust modulo result to be mathematically correct:
 					;-- 	if modulo < 0 [
 					;--			if divisor < 0  [divisor: negate divisor]
 					;--			modulo: modulo + divisor
 					;--		]
-						c: to-bin8 select [1 7 2 15 4 31] width		;-- support for possible int8 type
-						emit #{0FBAE0}				;--   	  BT rA, 7|15|31 ; @@ better way ?
-						emit c
-						emit #{730A}				;-- 	  JNC exit		 ; (won't work with ax)
-						emit #{0FBAE1}				;-- 	  BT rC, 7|15|31 ; @@ better way ?
-						emit c
-						emit #{7302}				;-- 	  JNC add		 ; (won't work with ax)
-						emit-poly [#{F6D9} #{F7D9}]	;--		  NEG rC
-						emit-poly [#{00C8} #{01C8}]	;-- add:  ADD rA, rC
+						switch width [
+							1 [
+								emit #{84C0}		;-- 	  TEST al, al
+								emit #{7908}		;-- 	  JNS exit
+								emit #{84C9}		;-- 	  TEST cl, cl
+								emit #{7902}		;-- 	  JNS add
+								emit #{F6D9}		;--		  NEG cl
+								emit #{00C8}		;-- add:  ADD al, cl
+							]
+							2 [
+								emit #{660FBAE00F}	;-- 	  BT ax, 15
+								emit #{730D}		;-- 	  JNC exit
+								emit #{660FBAE10F}	;-- 	  BT cx, 15
+								emit #{7303}		;-- 	  JNC add
+								emit #{66F7D9}		;--		  NEG cx
+								emit #{6601C8}		;-- add:  ADD ax, cx
+							]
+							4 [
+								emit #{0FBAE01F}	;--   	  BT eax, 31
+								emit #{730A}		;-- 	  JNC exit
+								emit #{0FBAE11F}	;-- 	  BT ecx, 31
+								emit #{7302}		;-- 	  JNC add
+								emit #{F7D9}		;--		  NEG ecx
+								emit #{01C8}		;-- add:  ADD eax, ecx
+							]
+						]
 					]								;-- exit:
 				]
 				if any [							;-- in case edx was saved on stack
@@ -1996,11 +2557,216 @@ make-profilable make target-class [
 			]
 		]
 	]
+
+	emit-load-int64-right: func [arg /local type][
+		type: compiler/get-type arg
+		switch/default type?/word compiler/unbox arg [
+			integer! issue! [
+				emit-load-int64-literal compiler/unbox arg type/1
+			]
+			word! [
+				emit-load-int64-variable compiler/unbox arg
+			]
+			object! [
+				emit-load arg/data
+				emit-casting arg no
+			]
+			tag! [
+				;-- already in edx:eax
+			]
+			block! [
+				;-- already in edx:eax
+			]
+		][
+			emit-load arg
+		]
+		emit #{89C6}								;-- MOV esi, eax ; low
+		emit #{89D1}								;-- MOV ecx, edx ; high
+	]
+
+	emit-int64-shift: func [name [word!] count [integer!] /local left? unsigned?][
+		unless all [0 <= count count <= 63][
+			compiler/throw-error "a value in 0-63 range is required for this shift operation"
+		]
+		left?: name = left-shift-sym
+		unsigned?: any [
+			name = unsigned-right-shift-sym
+			all [name = right-shift-sym not signed?]
+		]
+		case [
+			zero? count []
+			left? [
+				either count < 32 [
+					emit #{0FA4C2} emit to-bin8 count	;-- SHLD edx, eax, count
+					emit #{C1E0} emit to-bin8 count		;-- SHL eax, count
+				][
+					emit #{89C2}						;-- MOV edx, eax
+					emit #{31C0}						;-- XOR eax, eax
+					if count > 32 [emit #{C1E2} emit to-bin8 (count - 32)]
+				]
+			]
+			unsigned? [
+				either count < 32 [
+					emit #{0FADD0} emit to-bin8 count	;-- SHRD eax, edx, count
+					emit #{C1EA} emit to-bin8 count		;-- SHR edx, count
+				][
+					emit #{89D0}						;-- MOV eax, edx
+					emit #{31D2}						;-- XOR edx, edx
+					if count > 32 [emit #{C1E8} emit to-bin8 (count - 32)]
+				]
+			]
+			'else [
+				either count < 32 [
+					emit #{0FADD0} emit to-bin8 count	;-- SHRD eax, edx, count
+					emit #{C1FA} emit to-bin8 count		;-- SAR edx, count
+				][
+					emit #{89D0}						;-- MOV eax, edx
+					emit #{C1FA1F}						;-- SAR edx, 31
+					if count > 32 [emit #{C1F8} emit to-bin8 (count - 32)]
+				]
+			]
+		]
+	]
+
+	emit-int64-shift-dynamic: func [name [word!] /local left? unsigned?][
+		left?: name = left-shift-sym
+		unsigned?: name = unsigned-right-shift-sym
+		;-- Inputs: edx:eax value, cl shift count.
+		;-- Keep only the low 6 bits, then use a fast path for counts >= 32
+		;-- because x86 variable shifts mask CL to 0..31 for each instruction.
+		case [
+			left? [
+				emit #{80E13F}						;-- AND cl, 3Fh
+				emit #{7417}							;-- JE .done
+				emit #{80F920}						;-- CMP cl, 20h
+				emit #{720D}							;-- JB .less-than-32
+				emit #{89C2}							;-- MOV edx, eax
+				emit #{31C0}							;-- XOR eax, eax
+				emit #{80E11F}						;-- AND cl, 1Fh
+				emit #{7409}							;-- JE .done
+				emit #{D3E2}							;-- SHL edx, cl
+				emit #{EB05}							;-- JMP .done
+				emit #{0FA5C2}						;-- .less-than-32: SHLD edx, eax, cl
+				emit #{D3E0}							;-- SHL eax, cl
+			]
+			unsigned? [
+				emit #{80E13F}						;-- AND cl, 3Fh
+				emit #{7417}							;-- JE .done
+				emit #{80F920}						;-- CMP cl, 20h
+				emit #{720D}							;-- JB .less-than-32
+				emit #{89D0}							;-- MOV eax, edx
+				emit #{31D2}							;-- XOR edx, edx
+				emit #{80E11F}						;-- AND cl, 1Fh
+				emit #{7409}							;-- JE .done
+				emit #{D3E8}							;-- SHR eax, cl
+				emit #{EB05}							;-- JMP .done
+				emit #{0FADD0}						;-- .less-than-32: SHRD eax, edx, cl
+				emit #{D3EA}							;-- SHR edx, cl
+			]
+			'else [
+				emit #{80E13F}						;-- AND cl, 3Fh
+				emit #{7418}							;-- JE .done
+				emit #{80F920}						;-- CMP cl, 20h
+				emit #{720E}							;-- JB .less-than-32
+				emit #{89D0}							;-- MOV eax, edx
+				emit #{C1FA1F}						;-- SAR edx, 1Fh
+				emit #{80E11F}						;-- AND cl, 1Fh
+				emit #{7409}							;-- JE .done
+				emit #{D3F8}							;-- SAR eax, cl
+				emit #{EB05}							;-- JMP .done
+				emit #{0FADD0}						;-- .less-than-32: SHRD eax, edx, cl
+				emit #{D3FA}							;-- SAR edx, cl
+			]
+		]
+	]
+
+	emit-int64-multiply: has [][
+		emit #{53}									;-- PUSH ebx
+		emit #{89C3}								;-- MOV ebx, eax	; left low
+		emit #{0FAFD6}								;-- IMUL edx, esi	; left high * right low
+		emit #{0FAFCB}								;-- IMUL ecx, ebx	; right high * left low
+		emit #{01D1}								;-- ADD ecx, edx
+		emit #{F7E6}								;-- MUL esi		; left low * right low
+		emit #{01CA}								;-- ADD edx, ecx	; low 64 bits
+		emit #{5B}									;-- POP ebx
+	]
+
+	emit-int64-comparison: func [name [word!] /local signed-op?][
+		signed-op?: signed?
+		emit #{39CA}								;-- CMP edx, ecx	; compare high
+		emit either signed-op? [#{7C0C}][#{720C}]	;-- JL|JB less
+		emit either signed-op? [#{7F11}][#{7711}]	;-- JG|JA greater
+		emit #{39F0}								;-- CMP eax, esi	; compare low when high equal
+		emit #{7206}								;-- JB less
+		emit #{770B}								;-- JA greater
+		emit #{31C0}								;-- XOR eax, eax	; equal
+		emit #{EB0C}								;-- JMP done
+		emit #{B8FFFFFFFF}							;-- less: MOV eax, -1
+		emit #{EB05}								;-- JMP done
+		emit #{B801000000}							;-- greater: MOV eax, 1
+		emit #{85C0}								;-- done: TEST eax, eax
+		signed?: yes								;-- final flags are a signed tri-state compare
+	]
+
+	emit-int64-operation: func [name [word!] args [block!] /local right right-ready?][
+		if block? args/1 [args/1: <last>]
+		right: compiler/unbox args/2
+		right-ready?: all [block? right last-saved?]
+		if all [block? right args/1 <> <last> not right-ready?] [
+			emit #{89C6}							;-- MOV esi, eax ; right low
+			emit #{89D1}							;-- MOV ecx, edx ; right high
+			right-ready?: yes
+		]
+		unless args/1 = <last> [emit-load args/1]
+		case [
+			find bitshift-op name [
+				either integer? right [
+					emit-int64-shift name right
+				][
+					emit #{52} emit #{50}			;-- save left high/low
+					emit-load args/2
+					emit #{88C1}					;-- MOV cl, al
+					emit #{58} emit #{5A}			;-- restore left low/high
+					emit-int64-shift-dynamic name
+				]
+			]
+			find comparison-op name [
+				unless right-ready? [
+					emit #{52} emit #{50}				;-- save left high/low
+					emit-load-int64-right args/2
+					emit #{58} emit #{5A}				;-- restore left low/high
+				]
+				emit-int64-comparison name
+			]
+			'else [
+				unless right-ready? [
+					emit #{52} emit #{50}				;-- save left high/low
+					emit-load-int64-right args/2
+					emit #{58} emit #{5A}				;-- restore left low/high
+				]
+				if any [name = divide-sym find mod-rem-op name] [
+					call-i64-divide name
+					exit
+				]
+				switch name [
+					+   [emit #{01F0} emit #{11CA}]		;-- ADD eax, esi / ADC edx, ecx
+					-   [emit #{29F0} emit #{19CA}]		;-- SUB eax, esi / SBB edx, ecx
+					*   [emit-int64-multiply]
+					and [emit #{21F0} emit #{21CA}]
+					or  [emit #{09F0} emit #{09CA}]
+					xor [emit #{31F0} emit #{31CA}]
+				]
+			]
+		]
+		last-saved?: no
+	]
 	
-	emit-integer-operation: func [name [word!] args [block!] /local a b sorted? left right][
+	emit-integer-operation: func [name [word!] args [block!] /local a b sorted? left right saved][
 		if verbose >= 3 [print [">>>inlining integer op:" mold name mold args]]
 
 		set-width args/1							;-- set reg/mem access width
+		if width = 8 [return emit-int64-operation name args]
+		saved: reduce [width signed?]
 		set [a b] get-arguments-class args
 		last-saved?: no								;-- reset flag
 
@@ -2062,11 +2828,12 @@ make-profilable make target-class [
 		]
 		if object? args/1 [emit-casting args/1 no]	;-- do runtime conversion on eax if required
 
+		set [width signed?] saved
 		;-- Operator and second operand processing
 		either all [
 			object? args/2
 			find [imm reg] b
-			args/2/type/1 <> 'integer!				;-- skip explicit casting to integer! (implicit)
+			not compiler/integer-type? args/2/type	;-- skip explicit casting to integer! (implicit)
 		][
 			emit-casting args/2 yes					;-- do runtime conversion on edx if required
 		][
@@ -2077,7 +2844,7 @@ make-profilable make target-class [
 				compiler/any-float? compiler/get-variable-spec args/2/data
 				emit-load/alt args/2/data
 			]
-			unless compiler/any-pointer? compiler/resolve-expr-type args/2 [
+			unless compiler/any-pointer? compiler/get-type args/2 [
 				implicit-cast right yes
 			]
 		]
@@ -2282,7 +3049,11 @@ make-profilable make target-class [
 		
 		either all [
 			object? arg
-			any [arg/type = 'logic! 'byte! = first compiler/get-type arg/data]
+			any [
+				arg/type = 'logic!
+				compiler/integer-type? arg/type
+				compiler/integer-type? compiler/get-type arg/data
+			]
 			not path? arg/data
 		][
 			unless block? arg [emit-load arg]		;-- block! means last value is already in eax (func call)
@@ -2611,6 +3382,7 @@ make-profilable make target-class [
 				any [find attribs 'cdecl find attribs 'stdcall]
 			]
 		][
+			emit-normalize-return fspec
 			offset: locals-size + locals-offset
 			emit #{8DA5}							;-- LEA esp, [ebp-<offset>]
 			emit to-bin32 negate offset + 12		;-- account for 3 saved regs
