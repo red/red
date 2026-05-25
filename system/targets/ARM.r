@@ -1286,15 +1286,20 @@ make-profilable make target-class [
 		emit-overflow-branch #{00}					;-- BEQ ovf      (cond EQ = #{00}, back-patched)
 	]												;-- .skip:
 
-	;-- Pre-shift AND-mask check for << (literal count n, 32-bit operand).
-	;-- Unsigned: top n bits must be 0     => TST r0, #mask ; BNE ovf
-	;-- Signed:   top n+1 bits must match  => ADD ip, r0, #bias ; TST ip, #mask ; BNE ovf
+	;-- Pre-shift AND-mask check for << (literal count n, width-bit operand).
+	;-- Unsigned: top n bits (within width-bit value) must be 0     => TST r0, #mask ; BNE ovf
+	;-- Signed:   top n+1 bits must all match (width=4 only here)   => ADD ip, r0, #bias ; TST ip, #mask ; BNE ovf
 	;-- Uses emit-op-imm32 which auto-falls-back to LDR-from-pool when the immediate doesn't
 	;-- fit ARM's rotated 8-bit encoding (clobbers r3 in that path; ip preserves the bias).
-	emit-overflow-check-shift: func [n [integer!] /local mask bias][
+	emit-overflow-check-shift: func [n [integer!] /local mask bias bits][
 		if n = 0 [exit]								;-- no-op shift, never overflows
-		mask: shift/left -1 32 - n					;-- top n bits set; -1 << k avoids REBOL2 integer overflow
-		either signed? [
+		bits: 8 * width								;-- 8 (byte!), 16 (int16!), or 32 (integer!)
+		mask: either width = 4 [
+			shift/left -1 32 - n					;-- 32-bit: -1 << k avoids REBOL2 integer overflow
+		][
+			(shift/left -1 bits - n) and (shift/left 1 bits) - 1	;-- narrower: mask off bits above width
+		]
+		either all [signed? width = 4][				;-- signed bias trick only meaningful for integer! (width=4)
 			bias: shift/left 1 31 - n
 			emit-op-imm32 #{e280c000} bias			;-- ADD ip, r0, #bias
 			emit-op-imm32 #{e31c0000} mask			;-- TST ip, #mask
@@ -2212,7 +2217,7 @@ make-profilable make target-class [
 	emit-bitshift-op: func [name [word!] a [word!] b [word!] args [block!] /local c value][
 		;-- OVERFLOW? instrumentation for << : AND-mask check on the high bits of r0 (or ADD + TST for signed).
 		;-- Only applied for literal shift counts (b = 'imm) per design; variable-count shifts are not instrumented.
-		if all [compiler/overflow-check? name = first [<<] b = 'imm width = 4][
+		if all [compiler/overflow-check? name = first [<<] b = 'imm find [1 2 4] width][
 			emit-overflow-check-shift compiler/unbox args/2
 		]
 		switch b [
@@ -2575,20 +2580,27 @@ make-profilable make target-class [
 			find bitwise-op	   name	[emit-bitwise-op	name a b args]
 			find bitshift-op   name [emit-bitshift-op   name a b args]
 		]
-		;-- OVERFLOW? instrumentation: post-op flag check for +, -, * (32-bit only on ARM).
-		;-- ARM math ops are always 32-bit even for byte!/int16! operands, so the V/C flags
-		;-- reflect 32-bit overflow, not narrower-width overflow. width != 4 is left uninstrumented.
+		;-- OVERFLOW? instrumentation: post-op check for +, -, *.
 		;-- (<<, /, //, % are instrumented at their emission sites since they need pre-op checks)
-		if all [compiler/overflow-check? width = 4 find [+ - *] name][
-			either name = '* [						;-- SMULLS overflow: high half (r5) must equal sign-extension of low half (r0)
-				emit-i32 #{e1550fc0}				;-- CMP r5, r0, ASR #31
-				emit-overflow-branch #{10}			;-- BNE ovf  (NE = #{10})
-			][
-				emit-overflow-branch case [
-					signed?    [#{60}]				;-- BVS  (signed overflow)
-					name = '+  [#{20}]				;-- BCS  (unsigned + carry-out)
-					'else      [#{30}]				;-- BCC  (unsigned - borrow: C=0 on ARM)
+		;-- width = 4 : use V/C flags directly (ADDS/SUBS/SMULLS set them on 32-bit overflow).
+		;-- width = 1 or 2 : ARM math is always 32-bit, so flags don't reflect narrower overflow.
+		;-- Operands are zero-extended on load (LDRB, LDRH), so a valid result must fit in
+		;-- 0..(2^(8*width) - 1); over-/under-flow makes r0 unsigned-higher than max.
+		if all [compiler/overflow-check? find [+ - *] name][
+			either width = 4 [
+				either name = '* [						;-- SMULLS overflow: high half (r5) must equal sign-extension of low half (r0)
+					emit-i32 #{e1550fc0}				;-- CMP r5, r0, ASR #31
+					emit-overflow-branch #{10}			;-- BNE ovf  (NE = #{10})
+				][
+					emit-overflow-branch case [
+						signed?    [#{60}]				;-- BVS  (signed overflow)
+						name = '+  [#{20}]				;-- BCS  (unsigned + carry-out)
+						'else      [#{30}]				;-- BCC  (unsigned - borrow: C=0 on ARM)
+					]
 				]
+			][											;-- width = 1 (byte!) or 2 (int16!)
+				emit-op-imm32 #{e3500000} (shift/left 1 8 * width) - 1	;-- CMP r0, #(2^bits - 1)
+				emit-overflow-branch #{80}				;-- BHI ovf  (unsigned higher: r0 > max)
 			]
 		]
 	]
