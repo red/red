@@ -3174,7 +3174,7 @@ system-dialect: make-profilable context [
 				last-type: none-type
 				fetch-into cases [						;-- compile case body
 					append/only list body: comp-block-chunked
-					append/only types none-type
+					append/only types resolve-expr-type/quiet body/1
 				]
 				clear find/last expr-call-stack #body
 				tail? cases: next cases
@@ -3198,7 +3198,7 @@ system-dialect: make-profilable context [
 			]	
 			emitter/merge bodies						;-- commit all to main code buffer
 			pc: next pc
-			last-type: none-type						;-- treat CASE as statement code
+			last-type: equal-types-list? types			;-- test if usage in expression allowed
 			<last>
 		]
 		

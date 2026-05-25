@@ -2341,23 +2341,31 @@ make-profilable make target-class [
 		if verbose >= 3 [print [">>>storing path:" mold path mold value]]
 		switch type [
 			c-string! [
-				unless parent [emit-init-path path/1]
 				idx: path/2
+				last?: value = <last>
+				unless parent [
+					either last? [
+						emit #{50}					;-- PUSH rax, save value
+						emit-init-path path/1
+						emit #{5A}					;-- POP rdx
+					][
+						emit-init-path path/1
+					]
+				]
 				if value <> <last> [
 					emit #{50}						;-- PUSH rax
 					emit-load value
 					emit #{5A}						;-- POP rdx
 				]
-				last?: value = <last>
 				base: either last? [#{00}][#{02}]
 				either integer? idx [
 					offset: idx - 1
 					case [
 						zero? offset [
-							emit rejoin [#{88} base] ;-- MOV [base], al
+							emit rejoin [#{88} either last? [#{10}][base]] ;-- MOV [base], r8
 						]
 						true [
-							emit rejoin [#{88} either last? [#{80}][#{82}]]
+							emit rejoin [#{88} either last? [#{90}][#{82}]]
 							emit to-bin32 offset
 						]
 					]
@@ -2375,7 +2383,6 @@ make-profilable make target-class [
 				spec: either parent [
 					compiler/resolve-type/with path/1 parent
 				][
-					emit-init-path path/1
 					compiler/resolve-type to word! path/1
 				]
 				mtype: spec/2
@@ -2384,6 +2391,15 @@ make-profilable make target-class [
 				idx: either path/2 = 'value [1][path/2]
 				source-type: either value = <last> [compiler/last-type][compiler/get-type value]
 				last?: value = <last>
+				unless parent [
+					either last? [
+						emit #{50}					;-- PUSH rax, save value
+						emit-init-path path/1
+						emit #{5A}					;-- POP rdx
+					][
+						emit-init-path path/1
+					]
+				]
 				if value <> <last> [
 					emit #{50}						;-- PUSH rax
 					emit-load value
@@ -2437,33 +2453,33 @@ make-profilable make target-class [
 						]
 						all [size = 8 not compiler/any-float? mtype] [
 							either zero? offset [
-								emit rejoin [#{4889} #{02}] ;-- MOV [base], r64
+								emit rejoin [#{4889} value-reg] ;-- MOV [base], r64
 							][
-								emit rejoin [#{4889} #{82}]
+								emit rejoin [#{4889} either last? [#{90}][#{82}]]
 								emit to-bin32 offset
 							]
 						]
 						all [size = 4 not compiler/any-float? mtype] [
 							either zero? offset [
-								emit rejoin [#{89} #{02}] ;-- MOV [base], r32
+								emit rejoin [#{89} value-reg] ;-- MOV [base], r32
 							][
-								emit rejoin [#{89} #{82}]
+								emit rejoin [#{89} either last? [#{90}][#{82}]]
 								emit to-bin32 offset
 							]
 						]
 						all [size = 2 not compiler/any-float? mtype] [
 							either zero? offset [
-								emit rejoin [#{6689} #{02}] ;-- MOV [base], r16
+								emit rejoin [#{6689} value-reg] ;-- MOV [base], r16
 							][
-								emit rejoin [#{6689} #{82}]
+								emit rejoin [#{6689} either last? [#{90}][#{82}]]
 								emit to-bin32 offset
 							]
 						]
 						all [size = 1 not compiler/any-float? mtype] [
 							either zero? offset [
-								emit rejoin [#{88} #{02}] ;-- MOV [base], r8
+								emit rejoin [#{88} value-reg] ;-- MOV [base], r8
 							][
-								emit rejoin [#{88} #{82}]
+								emit rejoin [#{88} either last? [#{90}][#{82}]]
 								emit to-bin32 offset
 							]
 						]
