@@ -692,6 +692,7 @@ system/view/platform: context [
 				]
 				test 	 [#include %test/gui.reds]
 				GTK 	 [#include %gtk3/gui.reds]
+				SDL3	 [#include %sdl3/gui.reds]
 				terminal [#include %terminal/gui.reds]
 			]
 		]
@@ -877,6 +878,7 @@ system/view/platform: context [
 			]
 			test 	 []
 			GTK 	 []
+			SDL3	 [gui/post-quit-msg]
 			terminal [gui/post-quit-msg]
 		]
 	]
@@ -969,11 +971,15 @@ system/view/platform: context [
 	]
 
 	toggle-GPU: routine [][
-		#if GUI-engine <> 'terminal [
-		#switch OS [
-			Windows  [gui/DX-create-dev]
+		#switch GUI-engine [
+			native [
+				#switch OS [
+					Windows  [gui/DX-create-dev]
+					#default [0]
+				]
+			]
 			#default [0]
-		]]
+		]
 	]
 
 	init: func [/local svs colors fonts][

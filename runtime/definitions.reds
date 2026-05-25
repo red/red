@@ -524,6 +524,29 @@ Red/System [
 			attrs			[handle!]
 		]
 	]
+	SDL3 [
+		draw-state!: alias struct! [
+			pen-type	[integer!]
+			pen-color	[integer!]
+			brush-color	[integer!]
+			brush-type	[integer!]
+			line-width	[integer!]
+		]
+		draw-ctx!: alias struct! [
+			dc			[handle!]
+			x			[integer!]
+			y			[integer!]
+			left		[integer!]
+			top			[integer!]
+			right		[integer!]
+			bottom		[integer!]
+			pen-type	[integer!]
+			pen-color	[integer!]
+			brush-color	[integer!]
+			brush-type	[integer!]
+			line-width	[integer!]
+		]
+	]
 	terminal [
 		draw-state!: alias struct! [unused [integer!]]
 		draw-ctx!: alias struct! [

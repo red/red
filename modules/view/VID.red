@@ -15,6 +15,7 @@ system/view/VID: context [
 	extras: #switch config/GUI-engine [
 		terminal [#include %backends/terminal/styles.red]
 		test	 [#include %backends/test/styles.red]
+		SDL3	 [#include %backends/sdl3/styles.red]
 		#default [
 			#switch config/OS [
 				Windows [#include %backends/windows/styles.red]
@@ -31,10 +32,15 @@ system/view/VID: context [
 		
 		processors: context [
 			#include %rules.red
-			#switch config/OS [
-				Windows [#include %backends/windows/rules.red]
-				macOS	[#include %backends/macOS/rules.red]
-				Linux	[#include %backends/gtk3/rules.red]
+			#switch config/GUI-engine [
+				SDL3 [#include %backends/sdl3/rules.red]
+				#default [
+					#switch config/OS [
+						Windows [#include %backends/windows/rules.red]
+						macOS	[#include %backends/macOS/rules.red]
+						Linux	[#include %backends/gtk3/rules.red]
+					]
+				]
 			]
 		]
 		
