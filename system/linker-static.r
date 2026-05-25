@@ -176,6 +176,7 @@ static-link: context [
 		libc-set: none
 		libm-set: none
 		libc-data-set: none
+		helper-libs: none
 		max-align: 1
 
 		if any [none? job/static-objs  empty? job/static-objs][exit]
