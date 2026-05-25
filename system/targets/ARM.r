@@ -1276,15 +1276,15 @@ make-profilable make target-class [
 	]
 
 	;-- Pre-IDIV signed INT_MIN / -1 check. Assumes r0 = dividend, r1 = divisor.
-	;-- Same shape as the existing debug-mode check (lines 2367+) but branches to ovf instead of a runtime error.
+	;-- Uses ARM conditional execution: only run the INT_MIN comparison if r1 == -1,
+	;-- otherwise the predicated MOVEQ/LSLEQ/CMPEQ all NOP and the final BEQ falls through.
 	emit-overflow-check-division: does [
-		emit-i32 #{e3710001}						;-- CMN r1, #1  ; Z=1 iff r1 == -1
-		emit-i32 #{1a000004}						;-- BNE .skip   ; skip next 4 insts
-		emit-i32 #{e3a06001}						;-- MOV r6, #1
-		emit-i32 #{e1a06f86}						;-- LSL r6, #31  ; r6 = 0x80000000
-		emit-i32 #{e1560000}						;-- CMP r6, r0   ; Z=1 iff r0 == INT_MIN
-		emit-overflow-branch #{00}					;-- BEQ ovf      (cond EQ = #{00}, back-patched)
-	]												;-- .skip:
+		emit-i32 #{e3710001}						;-- CMN   r1, #1     ; Z=1 iff r1 == -1
+		emit-i32 #{03a06001}						;-- MOVEQ r6, #1
+		emit-i32 #{01a06f86}						;-- LSLEQ r6, r6, #31 ; r6 = 0x80000000 (INT_MIN)
+		emit-i32 #{01560000}						;-- CMPEQ r6, r0    ; if r1==-1, Z=1 iff r0 == INT_MIN
+		emit-overflow-branch #{00}					;-- BEQ   ovf       (cond EQ = #{00}, back-patched)
+	]
 
 	;-- Pre-shift AND-mask check for << (literal count n, width-bit operand).
 	;-- Unsigned: top n bits (within width-bit value) must be 0     => TST r0, #mask ; BNE ovf
