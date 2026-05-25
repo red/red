@@ -679,21 +679,37 @@ make-profilable make target-class [
 		emit-overflow-jcc #{04}						;-- JE  ovf	(0F 84, 6 bytes via back-patch)
 	]												;-- k:
 
-	;-- Pre-check for << (literal count n, 32-bit operand): AND-mask on the high bits of EAX.
-	;-- Unsigned: top n bits must be 0       => TEST eax, mask ; JNZ ovf
-	;-- Signed:   top n+1 bits must all match => LEA edx, [eax + bias] ; TEST edx, mask ; JNZ ovf
-	emit-overflow-check-shift: func [n [integer!] /local mask bias][
+	;-- Pre-check for << (literal count n, width-bit operand): AND-mask on the high bits of EAX.
+	;-- Unsigned: top n bits (within width-bit value) must be 0     => TEST rA, #mask ; JNZ ovf
+	;-- Signed:   top n+1 bits must all match (integer! only here)  => LEA edx, [eax + bias] ; TEST edx, #mask ; JNZ ovf
+	emit-overflow-check-shift: func [n [integer!] /local mask bias bits][
 		if n = 0 [exit]								;-- no-op shift, never overflows
-		mask: to-bin32 shift/left -1 32 - n			;-- top n bits set; -1 << k avoids REBOL2 integer overflow
-		either signed? [
+		bits: 8 * width								;-- 8 (byte!), 16 (int16!), or 32 (integer!)
+		either all [signed? width = 4][				;-- signed bias trick: only meaningful for 32-bit integer!
+			mask: to-bin32 shift/left -1 32 - n
 			bias: to-bin32 shift/left 1 31 - n
 			emit #{8D90}							;-- LEA edx, [eax + imm32]
 			emit bias
 			emit #{F7C2}							;-- TEST edx, imm32
 			emit mask
 		][
-			emit #{F7C0}							;-- TEST eax, imm32
-			emit mask
+			;-- unsigned (or narrower-than-32): emit width-specific TEST + width-specific mask.
+			;-- to-bin8 / to-bin16 / to-bin32 truncate their input to the matching low N bytes,
+			;-- so passing the raw `shift/left -1 (bits - n)` value works directly (no extra mask).
+			switch width [
+				1 [
+					emit #{F6C0}					;-- TEST al, imm8
+					emit to-bin8 shift/left -1 8 - n
+				]
+				2 [
+					emit #{66F7C0}					;-- TEST ax, imm16 (with operand-size prefix)
+					emit to-bin16 shift/left -1 16 - n
+				]
+				4 [
+					emit #{F7C0}					;-- TEST eax, imm32
+					emit to-bin32 shift/left -1 32 - n
+				]
+			]
 		]
 		emit-overflow-jcc #{05}						;-- JNZ ovf	(0F 85, 6 bytes via back-patch)
 	]
@@ -1779,7 +1795,7 @@ make-profilable make target-class [
 	emit-bitshift-op: func [name [word!] a [word!] b [word!] args [block!] /local c value][
 		;-- OVERFLOW? instrumentation for << : AND-mask check on the high bits of EAX (or LEA + bias for signed).
 		;-- Only applied for literal shift counts (b = 'imm) per design; variable-count shifts are not instrumented.
-		if all [compiler/overflow-check? name = first [<<] b = 'imm width = 4][
+		if all [compiler/overflow-check? name = first [<<] b = 'imm find [1 2 4] width][
 			emit-overflow-check-shift compiler/unbox args/2
 		]
 		switch b [

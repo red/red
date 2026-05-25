@@ -1297,7 +1297,7 @@ make-profilable make target-class [
 		mask: either width = 4 [
 			shift/left -1 32 - n					;-- 32-bit: -1 << k avoids REBOL2 integer overflow
 		][
-			(shift/left -1 bits - n) and (shift/left 1 bits) - 1	;-- narrower: mask off bits above width
+			(shift/left -1 bits - n) and ((shift/left 1 bits) - 1)	;-- narrower: mask off bits above width
 		]
 		either all [signed? width = 4][				;-- signed bias trick only meaningful for integer! (width=4)
 			bias: shift/left 1 31 - n
