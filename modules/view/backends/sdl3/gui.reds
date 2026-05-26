@@ -8,6 +8,7 @@ Red/System [
 #define EVT_DISPATCH	1
 
 #include %sdl3.reds
+#include %font.reds
 #include %text-box.reds
 #include %draw.reds
 #include %events.reds
@@ -23,7 +24,6 @@ Red/System [
 sdl-widget!: alias struct! [
 	window		[handle!]
 	renderer	[handle!]
-	text-engine	[handle!]
 	window-id	[integer!]
 	face		[red-object! value]
 	parent		[sdl-widget!]
@@ -45,10 +45,11 @@ focused-widget: declare sdl-widget!
 focused-widget: null
 hover-widget: declare sdl-widget!
 hover-widget: null
+pressed-widget: declare sdl-widget!
+pressed-widget: null
 initialized?: no
 quit?: no
-ttf-ready?: no
-default-font: as handle! 0
+exit-loop?: no
 
 get-node-facet: func [
 	node	[node!]
@@ -68,12 +69,16 @@ face-handle?: func [
 	return: [handle!]
 	/local
 		state  [red-block!]
-		handle [red-handle!]
+		hnd	   [red-handle!]
 ][
 	state: as red-block! get-node-facet face/ctx FACE_OBJ_STATE
 	if TYPE_OF(state) = TYPE_BLOCK [
-		handle: as red-handle! block/rs-head state
-		if TYPE_OF(handle) = TYPE_HANDLE [return as handle! handle/value]
+		hnd: as red-handle! block/rs-head state
+		if all [
+			TYPE_OF(hnd) = TYPE_HANDLE
+			hnd/type = handle/CLASS_WINDOW
+			hnd/value > 1
+		][return as handle! hnd/value]
 	]
 	null
 ]
@@ -183,86 +188,6 @@ rect-border: func [
 	sdl-line renderer x y + h - 1 x + w - 1 y + h - 1 color
 ]
 
-string-length: func [
-	str		[red-string!]
-	return: [integer!]
-][
-	string/rs-length? str
-]
-
-get-default-font: func [
-	return: [handle!]
-][
-	if any [not ttf-ready? default-font <> null][return default-font]
-	default-font: TTF_OpenFont "C:/Windows/Fonts/segoeui.ttf" as float32! 14.0
-	if default-font = null [
-		default-font: TTF_OpenFont "C:/Windows/Fonts/arial.ttf" as float32! 14.0
-	]
-	if default-font = null [
-		default-font: TTF_OpenFont "C:/Windows/Fonts/tahoma.ttf" as float32! 14.0
-	]
-	default-font
-]
-
-draw-text-placeholder: func [
-	renderer [handle!]
-	x		 [integer!]
-	y		 [integer!]
-	text	 [red-string!]
-	color	 [integer!]
-	/local
-		len i xx yy
-][
-	if TYPE_OF(text) <> TYPE_STRING [exit]
-	len: string-length text
-	i: 0
-	while [i < len][
-		xx: x + (i * 7)
-		yy: y
-		rect-fill renderer xx yy 5 8 color
-		rect-fill renderer xx + 1 yy + 1 3 6 00FFFFFFh
-		i: i + 1
-	]
-]
-
-draw-text: func [
-	renderer [handle!]
-	engine	 [handle!]
-	x		 [integer!]
-	y		 [integer!]
-	str		 [red-string!]
-	color	 [integer!]
-	/local
-		font   [handle!]
-		obj	   [handle!]
-		ctext  [c-string!]
-		len	   [integer!]
-][
-	if TYPE_OF(str) <> TYPE_STRING [exit]
-	font: get-default-font
-	if any [font = null engine = null] [
-		draw-text-placeholder renderer x y str color
-		exit
-	]
-
-	len: -1
-	ctext: unicode/to-utf8 str :len
-
-	obj: TTF_CreateText engine font ctext 0
-	either obj = null [
-		draw-text-placeholder renderer x y str color
-	][
-		TTF_SetTextColor
-			obj
-			as byte! (color and FFh)
-			as byte! ((color >>> 8) and FFh)
-			as byte! ((color >>> 16) and FFh)
-			as byte! either color and FF000000h = 0 [255][(color >>> 24) and FFh]
-		TTF_DrawRendererText obj as float32! x as float32! y
-		TTF_DestroyText obj
-	]
-]
-
 get-color-facet: func [
 	values	[red-value!]
 	default [integer!]
@@ -353,6 +278,15 @@ mark-window-dirty: func [
 	if widget <> null [widget/dirty?: yes]
 ]
 
+set-pressed-widget: func [
+	widget [sdl-widget!]
+][
+	if pressed-widget = widget [exit]
+	if pressed-widget <> null [mark-window-dirty pressed-widget]
+	pressed-widget: widget
+	if pressed-widget <> null [mark-window-dirty pressed-widget]
+]
+
 update-widget-geometry: func [
 	widget	[sdl-widget!]
 	face	[red-object!]
@@ -373,8 +307,10 @@ update-widget-geometry: func [
 		widget/y: pair/y
 	][
 		pt: as red-point2D! offset
-		widget/x: as-integer pt/x
-		widget/y: as-integer pt/y
+		if TYPE_OF(pt) = TYPE_POINT2D [
+			widget/x: as-integer pt/x
+			widget/y: as-integer pt/y
+		]
 	]
 
 	either TYPE_OF(size) = TYPE_PAIR [
@@ -383,8 +319,10 @@ update-widget-geometry: func [
 		widget/h: pair/y
 	][
 		pt: as red-point2D! size
-		widget/w: as-integer pt/x
-		widget/h: as-integer pt/y
+		if TYPE_OF(pt) = TYPE_POINT2D [
+			widget/w: as-integer pt/x
+			widget/h: as-integer pt/y
+		]
 	]
 ]
 
@@ -407,13 +345,12 @@ update-widget-flags: func [
 	if all [TYPE_OF(enable?) = TYPE_LOGIC not enable?/value][widget/flags: widget/flags or WIDGET_FLAG_DISABLE]
 	bits: get-flags as red-block! values + FACE_OBJ_FLAGS
 	if bits and FACET_FLAGS_FOCUSABLE <> 0 [widget/flags: widget/flags or WIDGET_FLAG_FOCUSABLE]
-	if any [type = field type = area type = text-list][widget/flags: widget/flags or WIDGET_FLAG_FOCUSABLE]
+	if any [type = field type = area type = text-list type = rich-text][widget/flags: widget/flags or WIDGET_FLAG_FOCUSABLE]
 	if bits and FACET_FLAGS_FULLSCREEN <> 0 [widget/flags: widget/flags or WIDGET_FLAG_FULLSCREEN]
 ]
 
 render-face: func [
 	renderer [handle!]
-	engine	 [handle!]
 	face	 [red-object!]
 	ox		 [integer!]
 	oy		 [integer!]
@@ -424,7 +361,7 @@ render-face: func [
 		child  [red-object!]
 		tail   [red-object!]
 		type   [integer!]
-		x y w h color data-int row [integer!]
+		x y w h color data-int row tx ty child-x child-y [integer!]
 		txt    [red-string!]
 		img	   [red-image!]
 		datum  [red-value!]
@@ -433,6 +370,7 @@ render-face: func [
 		scale  [float!]
 		blk	   [red-block!]
 		cmds   [red-block!]
+		root   [sdl-widget!]
 		dc	   [draw-ctx! value]
 		series [series!]
 		selected [red-integer!]
@@ -459,7 +397,6 @@ render-face: func [
 			rect-border renderer x y w h 00808080h
 			cmds: as red-block! values + FACE_OBJ_DRAW
 			unless any [TYPE_OF(cmds) <> TYPE_BLOCK zero? block/rs-length? cmds][
-				sdl3-draw-text-engine: engine
 				draw-begin :dc renderer null no yes
 				dc/x: x
 				dc/y: y
@@ -471,14 +408,39 @@ render-face: func [
 				parse-draw :dc cmds yes
 				draw-end :dc renderer no no yes
 				draw-clear-clip :dc
-				sdl3-draw-text-engine: as handle! 0
 			]
 		]
 		any [type = button type = toggle][
-			rect-fill renderer x y w h 00E8E8E8h
-			rect-border renderer x y w h 00707070h
+			data-int: either widget = pressed-widget [1][0]
+			either data-int = 1 [
+				rect-fill renderer x y w h 00C8C8C8h
+				rect-border renderer x y w h 00383838h
+				sdl-line renderer x + 1 y + 1 x + w - 2 y + 1 00606060h
+				sdl-line renderer x + 1 y + 1 x + 1 y + h - 2 00606060h
+				sdl-line renderer x + 2 y + h - 2 x + w - 2 y + h - 2 00F8F8F8h
+				sdl-line renderer x + w - 2 y + 2 x + w - 2 y + h - 2 00F8F8F8h
+			][
+				rect-fill renderer x y w h 00F0F0F0h
+				rect-border renderer x y w h 00686868h
+				sdl-line renderer x + 1 y + 1 x + w - 3 y + 1 00FFFFFFh
+				sdl-line renderer x + 1 y + 1 x + 1 y + h - 3 00FFFFFFh
+				sdl-line renderer x + 1 y + h - 2 x + w - 2 y + h - 2 00A0A0A0h
+				sdl-line renderer x + w - 2 y + 1 x + w - 2 y + h - 2 00A0A0A0h
+			]
 			txt: get-text-facet values
-			if txt <> null [draw-text renderer engine x + 8 y + 7 txt 00000000h]
+			data-int: 0
+			row: 0
+			if all [txt <> null get-text-size-px txt as red-object! values + FACE_OBJ_FONT :data-int :row][
+				tx: x + ((w - data-int) / 2)
+				ty: y + ((h - row) / 2)
+				if widget = pressed-widget [tx: tx + 2 ty: ty + 1]
+				draw-text renderer
+					tx
+					ty
+					txt
+					00000000h
+					as red-object! values + FACE_OBJ_FONT
+			]
 		]
 		any [type = check type = radio][
 			rect-fill renderer x y 13 13 00FFFFFFh
@@ -489,17 +451,26 @@ render-face: func [
 				if logic/value [rect-fill renderer x + 3 y + 3 7 7 00202020h]
 			]
 			txt: get-text-facet values
-			if txt <> null [draw-text renderer engine x + 18 y + 3 txt 00000000h]
+			if txt <> null [draw-text renderer x + 18 y + 3 txt 00000000h as red-object! values + FACE_OBJ_FONT]
 		]
 		type = text [
 			txt: get-text-facet values
-			if txt <> null [draw-text renderer engine x y + 4 txt 00000000h]
+			if txt <> null [draw-text renderer x y + 4 txt 00000000h as red-object! values + FACE_OBJ_FONT]
+		]
+		type = rich-text [
+			rect-fill renderer x y w h color
+			root: widget
+			while [all [root <> null root/parent <> null]][root: root/parent]
+			if root <> null [
+				dispatch-event as red-object! :root/face face EVT_DRAWING 0 0 0 0 0
+			]
+			draw-text-box renderer x y face 00000000h no
 		]
 		any [type = field type = area][
 			rect-fill renderer x y w h 00FFFFFFh
 			rect-border renderer x y w h 00606060h
 			txt: get-text-facet values
-			if txt <> null [draw-text renderer engine x + 4 y + 5 txt 00000000h]
+			if txt <> null [draw-text renderer x + 4 y + 5 txt 00000000h as red-object! values + FACE_OBJ_FONT]
 			if all [widget = focused-widget txt <> null][
 				clamp-edit-cursor widget txt
 				rect-fill renderer x + 4 + (widget/cursor * 7) y + 4 1 h - 8 00000000h
@@ -545,9 +516,9 @@ render-face: func [
 						row: data-int + 1
 						either all [TYPE_OF(selected) = TYPE_INTEGER selected/value = row][
 							rect-fill renderer x + 1 y + 1 + (data-int * 14) w - 2 14 0070A8E8h
-							draw-text renderer engine x + 4 y + 3 + (data-int * 14) as red-string! child 00FFFFFFh
+							draw-text renderer x + 4 y + 3 + (data-int * 14) as red-string! child 00FFFFFFh as red-object! values + FACE_OBJ_FONT
 						][
-							draw-text renderer engine x + 4 y + 3 + (data-int * 14) as red-string! child 00000000h
+							draw-text renderer x + 4 y + 3 + (data-int * 14) as red-string! child 00000000h as red-object! values + FACE_OBJ_FONT
 						]
 					]
 					child: child + 1
@@ -562,10 +533,17 @@ render-face: func [
 
 	pane: as red-block! values + FACE_OBJ_PANE
 	if TYPE_OF(pane) = TYPE_BLOCK [
+		either type = window [
+			child-x: 0
+			child-y: 0
+		][
+			child-x: x
+			child-y: y
+		]
 		child: as red-object! block/rs-head pane
 		tail: as red-object! block/rs-tail pane
 		while [child < tail][
-			if TYPE_OF(child) = TYPE_OBJECT [render-face renderer engine child x y]
+			if TYPE_OF(child) = TYPE_OBJECT [render-face renderer child child-x child-y]
 			child: child + 1
 		]
 	]
@@ -575,7 +553,7 @@ render-window: func [
 	widget [sdl-widget!]
 ][
 	if any [widget = null widget/window = null widget/renderer = null][exit]
-	render-face widget/renderer widget/text-engine as red-object! :widget/face 0 0
+	render-face widget/renderer as red-object! :widget/face 0 0
 	SDL_RenderPresent widget/renderer
 	widget/dirty?: no
 ]
@@ -826,8 +804,13 @@ hit-test: func [
 ][
 	widget: get-face-widget face
 	if any [widget = null widget/flags and WIDGET_FLAG_HIDDEN <> 0 widget/flags and WIDGET_FLAG_DISABLE <> 0][return null]
-	x: ox + widget/x
-	y: oy + widget/y
+	either widget/parent = null [
+		x: 0
+		y: 0
+	][
+		x: ox + widget/x
+		y: oy + widget/y
+	]
 	right: x + widget/w
 	bottom: y + widget/h
 	if any [px < x py < y px >= right py >= bottom][return null]
@@ -966,6 +949,23 @@ set-focused-widget: func [
 	]
 ]
 
+focus-selected-widget: func [
+	win		[sdl-widget!]
+	face	[red-object!]
+	/local
+		values	 [red-value!]
+		selected [red-value!]
+		target	 [sdl-widget!]
+][
+	if win = null [exit]
+	values: get-face-values face
+	selected: values + FACE_OBJ_SELECTED
+	if TYPE_OF(selected) = TYPE_OBJECT [
+		target: get-face-widget as red-object! selected
+		if target <> null [set-focused-widget win target]
+	]
+]
+
 activate-widget: func [
 	win	   [sdl-widget!]
 	widget [sdl-widget!]
@@ -1025,16 +1025,42 @@ activate-widget: func [
 	]
 ]
 
-free-widget: func [
-	widget [sdl-widget!]
+free-face-tree: func [
+	face	[red-object!]
+	/local
+		widget [sdl-widget!]
+		values [red-value!]
+		pane   [red-block!]
+		child  [red-object!]
+		tail   [red-object!]
+		state  [red-value!]
 ][
+	widget: get-face-widget face
 	if widget = null [exit]
+
+	values: get-face-values face
+	pane: as red-block! values + FACE_OBJ_PANE
+	if TYPE_OF(pane) = TYPE_BLOCK [
+		child: as red-object! block/rs-head pane
+		tail: as red-object! block/rs-tail pane
+		while [child < tail][
+			if TYPE_OF(child) = TYPE_OBJECT [free-face-tree child]
+			child: child + 1
+		]
+	]
+
+	if widget = focused-widget [focused-widget: null]
+	if widget = hover-widget [hover-widget: null]
+	if widget = pressed-widget [pressed-widget: null]
+	if widget = last-window [last-window: null]
 	if widget/parent = null [
-		if widget/text-engine <> null [TTF_DestroyRendererTextEngine widget/text-engine]
+		if widget/window <> null [SDL_StopTextInput widget/window]
 		if widget/renderer <> null [SDL_DestroyRenderer widget/renderer]
 		if widget/window <> null [SDL_DestroyWindow widget/window]
 	]
 	free as byte-ptr! widget
+	state: values + FACE_OBJ_STATE
+	state/header: TYPE_NONE
 ]
 
 support-dark-mode?: func [return: [logic!]][false]
@@ -1052,7 +1078,7 @@ init: func [
 	if initialized? [exit]
 	initialized?: yes
 	SDL_Init SDL_INIT_VIDEO or SDL_INIT_EVENTS or SDL_INIT_TIMER
-	ttf-ready?: TTF_Init
+	init-fonts
 
 	ver: as red-tuple! #get system/view/platform/version
 	ver/header: TYPE_TUPLE or (3 << 19)
@@ -1070,14 +1096,7 @@ init: func [
 ]
 
 clean-up: does [
-	if default-font <> null [
-		TTF_CloseFont default-font
-		default-font: null
-	]
-	if ttf-ready? [
-		TTF_Quit
-		ttf-ready?: no
-	]
+	shutdown-fonts
 	SDL_Quit
 ]
 
@@ -1101,32 +1120,8 @@ get-text-size: func [
 	face 	[red-object!]
 	text	[red-string!]
 	p		[red-point2D!]
-	/local
-		font [handle!]
-		ctext [c-string!]
-		len [integer!]
-		w [integer!]
-		h [integer!]
 ][
-	font: get-default-font
-	either font = null [
-		len: string-length text
-		len: len * 7
-		p/x: as float32! len
-		p/y: as float32! 14
-	][
-		len: -1
-		ctext: unicode/to-utf8 text :len
-		w: 0
-		h: 0
-		either TTF_GetStringSize font ctext 0 :w :h [
-			p/x: as float32! w
-			p/y: as float32! h
-		][
-			p/x: as float32! 0
-			p/y: as float32! 14
-		]
-	]
+	get-bitmap-text-size text p as red-object! (get-face-values face) + FACE_OBJ_FONT
 ]
 
 make-font: func [face [red-object!] font [red-object!] return: [handle!]][as handle! 1]
@@ -1186,6 +1181,7 @@ OS-show-window: func [
 	widget: as sdl-widget! hWnd
 	if all [widget <> null widget/window <> null][
 		SDL_ShowWindow widget/window
+		focus-selected-widget widget as red-object! :widget/face
 		render-window widget
 	]
 ]
@@ -1254,6 +1250,8 @@ OS-make-view: func [
 		title: get-text-facet values
 		flags: SDL_WINDOW_RESIZABLE
 		if widget/flags and WIDGET_FLAG_HIDDEN <> 0 [flags: flags or SDL_WINDOW_HIDDEN]
+		quit?: no
+		SDL_FlushEvent SDL_EVENT_QUIT
 		either title = null [
 			ctitle: "Red SDL3"
 		][
@@ -1262,9 +1260,6 @@ OS-make-view: func [
 		]
 		widget/window: SDL_CreateWindow ctitle widget/w widget/h flags 0
 		widget/renderer: SDL_CreateRenderer widget/window null
-		if all [ttf-ready? widget/renderer <> null][
-			widget/text-engine: TTF_CreateRendererTextEngine widget/renderer
-		]
 		widget/window-id: SDL_GetWindowID widget/window
 		widget/dirty?: yes
 		last-window: widget
@@ -1273,7 +1268,6 @@ OS-make-view: func [
 		if par <> null [
 			widget/window: par/window
 			widget/renderer: par/renderer
-			widget/text-engine: par/text-engine
 			widget/window-id: par/window-id
 		]
 	]
@@ -1311,8 +1305,10 @@ OS-update-view: func [
 			ctitle: unicode/to-utf8 title :len
 			SDL_SetWindowTitle widget/window ctitle
 		]
+		SDL_SetWindowPosition widget/window widget/x widget/y
 		SDL_SetWindowSize widget/window widget/w widget/h
 		SDL_SetWindowFullscreen widget/window widget/flags and WIDGET_FLAG_FULLSCREEN <> 0
+		focus-selected-widget widget face
 	]
 	change-rate widget values + FACE_OBJ_RATE
 	mark-window-dirty widget
@@ -1327,19 +1323,8 @@ OS-update-view: func [
 OS-destroy-view: func [
 	face   [red-object!]
 	empty? [logic!]
-	/local
-		widget [sdl-widget!]
-		values [red-value!]
-		state  [red-value!]
 ][
-	widget: get-face-widget face
-	if widget <> null [
-		if widget = last-window [last-window: null]
-		free-widget widget
-	]
-	values: get-face-values face
-	state: values + FACE_OBJ_STATE
-	state/header: TYPE_NONE
+	free-face-tree face
 ]
 
 OS-update-facet: func [
@@ -1365,7 +1350,7 @@ OS-to-image: func [
 	if any [widget = null widget/renderer = null][return as red-image! none-value]
 	while [all [widget/parent <> null]][widget: widget/parent]
 	if any [widget = null widget/renderer = null][return as red-image! none-value]
-	render-face widget/renderer widget/text-engine as red-object! :widget/face 0 0
+	render-face widget/renderer as red-object! :widget/face 0 0
 	surf: SDL_RenderReadPixels widget/renderer null
 	SDL_RenderPresent widget/renderer
 	widget/dirty?: no
@@ -1383,8 +1368,35 @@ OS-draw-face: func [
 	hWnd	[handle!]
 	cmds	[red-block!]
 	flags	[integer!]
+	/local
+		widget [sdl-widget!]
+		parent [sdl-widget!]
+		dc	   [draw-ctx! value]
+		x y	   [integer!]
 ][
-	mark-window-dirty as sdl-widget! hWnd
+	widget: as sdl-widget! hWnd
+	if any [widget = null widget/renderer = null TYPE_OF(cmds) <> TYPE_BLOCK][exit]
+	x: widget/x
+	y: widget/y
+	parent: widget/parent
+	while [parent <> null][
+		if parent/parent <> null [
+			x: x + parent/x
+			y: y + parent/y
+		]
+		parent: parent/parent
+	]
+	draw-begin :dc widget/renderer null no yes
+	dc/x: x
+	dc/y: y
+	dc/left: x
+	dc/top: y
+	dc/right: x + widget/w
+	dc/bottom: y + widget/h
+	draw-set-clip-rect :dc 0 0 widget/w widget/h
+	parse-draw :dc cmds yes
+	draw-end :dc widget/renderer no no yes
+	draw-clear-clip :dc
 ]
 
 OS-alert: func [
@@ -1396,12 +1408,112 @@ OS-alert: func [
 
 post-quit-msg: func [
 	/local
-		ev [sdl-event!]
+	ev [sdl-event!]
 ][
-	quit?: yes
+	exit-loop?: yes
 	ev: declare sdl-event!
-	ev/data: SDL_EVENT_QUIT
+	ev/data: SDL_EVENT_USER
 	SDL_PushEvent ev
+]
+
+test-push-event: func [
+	win-face [red-object!]
+	type	 [integer!]
+	x		 [integer!]
+	y		 [integer!]
+	key		 [integer!]
+	extra	 [integer!]
+	/local
+		win	   [sdl-widget!]
+		target [sdl-widget!]
+		values [red-value!]
+		facet  [red-value!]
+		pair   [red-pair!]
+		pt	   [red-point2D!]
+		rtype  [integer!]
+][
+	win: get-face-widget win-face
+	if win = null [exit]
+	case [
+		type = SDL_EVENT_WINDOW_RESIZED [
+			win/w: x
+			win/h: y
+			values: get-face-values as red-object! :win/face
+			facet: values + FACE_OBJ_SIZE
+			either TYPE_OF(facet) = TYPE_PAIR [
+				pair: as red-pair! facet
+				pair/x: x
+				pair/y: y
+			][
+				pt: as red-point2D! facet
+				pt/x: as float32! x
+				pt/y: as float32! y
+			]
+			dispatch-event as red-object! :win/face as red-object! :win/face EVT_SIZE 0 x y 0 0
+			win/dirty?: yes
+		]
+		type = SDL_EVENT_MOUSE_MOTION [
+			target: hit-test as red-object! :win/face x y 0 0
+			if target <> hover-widget [
+				if hover-widget <> null [
+					dispatch-event as red-object! :win/face as red-object! :hover-widget/face EVT_OVER EVT_FLAG_AWAY x y 0 0
+				]
+				hover-widget: target
+			]
+			if hover-widget <> null [
+				dispatch-event as red-object! :win/face as red-object! :hover-widget/face EVT_OVER 0 x y 0 0
+			]
+		]
+		any [type = SDL_EVENT_MOUSE_BUTTON_DOWN type = SDL_EVENT_MOUSE_BUTTON_UP][
+			target: hit-test as red-object! :win/face x y 0 0
+			if target <> null [
+				rtype: switch extra [
+					SDL_BUTTON_LEFT [either type = SDL_EVENT_MOUSE_BUTTON_DOWN [EVT_LEFT_DOWN][EVT_LEFT_UP]]
+					SDL_BUTTON_MIDDLE [either type = SDL_EVENT_MOUSE_BUTTON_DOWN [EVT_MIDDLE_DOWN][EVT_MIDDLE_UP]]
+					SDL_BUTTON_RIGHT [either type = SDL_EVENT_MOUSE_BUTTON_DOWN [EVT_RIGHT_DOWN][EVT_RIGHT_UP]]
+					default [either type = SDL_EVENT_MOUSE_BUTTON_DOWN [EVT_AUX_DOWN][EVT_AUX_UP]]
+				]
+				if extra = SDL_BUTTON_LEFT [
+					either type = SDL_EVENT_MOUSE_BUTTON_DOWN [
+						set-pressed-widget target
+						render-window win
+					][
+						set-pressed-widget null
+					]
+				]
+				dispatch-event as red-object! :win/face as red-object! :target/face rtype either type = SDL_EVENT_MOUSE_BUTTON_DOWN [EVT_FLAG_DOWN][0] x y 0 0
+				if all [type = SDL_EVENT_MOUSE_BUTTON_UP extra = SDL_BUTTON_LEFT][
+					dispatch-event as red-object! :win/face as red-object! :target/face EVT_CLICK 0 x y 0 0
+					if last-window = null [exit]
+					activate-widget win target x y
+					if last-window = null [exit]
+					if target/flags and WIDGET_FLAG_FOCUSABLE <> 0 [
+						set-focused-widget win target
+						set-edit-cursor-from-x target x
+					]
+				]
+			]
+		]
+		type = SDL_EVENT_MOUSE_WHEEL [
+			target: either hover-widget <> null [hover-widget][win]
+			dispatch-event as red-object! :win/face as red-object! :target/face EVT_WHEEL 0 x y 0 extra
+		]
+		any [type = SDL_EVENT_KEY_DOWN type = SDL_EVENT_KEY_UP][
+			target: either focused-widget <> null [focused-widget][win]
+			dispatch-event as red-object! :win/face as red-object! :target/face either type = SDL_EVENT_KEY_DOWN [EVT_KEY_DOWN][EVT_KEY_UP] 0 0 0 key 0
+			if type = SDL_EVENT_KEY_DOWN [
+				dispatch-event as red-object! :win/face as red-object! :target/face EVT_KEY 0 0 0 key 0
+				if (edit-widget-key win target key extra) = no [
+					text-list-key win target extra
+				]
+			]
+		]
+		type = SDL_EVENT_WINDOW_CLOSE_REQUESTED [
+			rtype: dispatch-event as red-object! :win/face as red-object! :win/face EVT_CLOSE 0 0 0 0 0
+			if rtype = EVT_NO_DISPATCH [quit?: yes]
+		]
+		true [0]
+	]
 ]
 
 handle-sdl-event: func [
@@ -1477,7 +1589,12 @@ handle-sdl-event: func [
 				SDL_EVENT_WINDOW_FOCUS_LOST [EVT_UNFOCUS]
 				default [EVT_DRAWING]
 			]
-			dispatch-event as red-object! :win/face as red-object! :win/face rtype 0 wev/data1 wev/data2 0 0
+			rtype: dispatch-event as red-object! :win/face as red-object! :win/face rtype 0 wev/data1 wev/data2 0 0
+			if all [type = SDL_EVENT_WINDOW_CLOSE_REQUESTED rtype = EVT_NO_DISPATCH][
+				quit?: yes
+				return no
+			]
+			if last-window = null [return no]
 			if type = SDL_EVENT_WINDOW_FOCUS_LOST [
 				set-focused-widget win null
 			]
@@ -1525,10 +1642,20 @@ handle-sdl-event: func [
 					SDL_BUTTON_RIGHT [either type = SDL_EVENT_MOUSE_BUTTON_DOWN [EVT_RIGHT_DOWN][EVT_RIGHT_UP]]
 					default [either type = SDL_EVENT_MOUSE_BUTTON_DOWN [EVT_AUX_DOWN][EVT_AUX_UP]]
 				]
+				if button = SDL_BUTTON_LEFT [
+					either type = SDL_EVENT_MOUSE_BUTTON_DOWN [
+						set-pressed-widget target
+						render-window win
+					][
+						set-pressed-widget null
+					]
+				]
 				dispatch-event as red-object! :win/face as red-object! :target/face rtype flags x y 0 0
 				if all [type = SDL_EVENT_MOUSE_BUTTON_UP button = SDL_BUTTON_LEFT][
 					dispatch-event as red-object! :win/face as red-object! :target/face EVT_CLICK 0 x y 0 0
+					if last-window = null [return no]
 					activate-widget win target x y
+					if last-window = null [return no]
 					if target/flags and WIDGET_FLAG_FOCUSABLE <> 0 [
 						set-focused-widget win target
 						set-edit-cursor-from-x target x
@@ -1585,6 +1712,7 @@ process-widget-timers: func [
 	if all [widget/timer-ms > 0 now >= widget/timer-next][
 		widget/timer-next: now + widget/timer-ms
 		dispatch-event as red-object! :win/face as red-object! :widget/face EVT_TIME 0 0 0 0 0
+		if last-window = null [exit]
 	]
 
 	values: get-face-values as red-object! :widget/face
@@ -1595,7 +1723,10 @@ process-widget-timers: func [
 		while [child < tail][
 			if TYPE_OF(child) = TYPE_OBJECT [
 				cw: get-face-widget child
-				if cw <> null [process-widget-timers win cw now]
+				if cw <> null [
+					process-widget-timers win cw now
+					if last-window = null [exit]
+				]
 			]
 			child: child + 1
 		]
@@ -1613,13 +1744,31 @@ do-events: func [
 ][
 	ev: declare sdl-event!
 	seen?: no
-	ok?: either no-wait? [SDL_PollEvent ev][SDL_WaitEventTimeout ev 16]
-	while [ok?][
-		seen?: yes
-		handle-sdl-event ev
-		ok?: SDL_PollEvent ev
+	if all [last-window <> null focused-widget = null][
+		focus-selected-widget last-window as red-object! :last-window/face
 	]
-	if last-window <> null [process-widget-timers last-window last-window SDL_GetTicks]
-	if all [last-window <> null last-window/dirty?][render-window last-window]
+	either no-wait? [
+		ok?: SDL_PollEvent ev
+		while [ok?][
+			seen?: yes
+			if not handle-sdl-event ev [ok?: no]
+			if ok? [ok?: SDL_PollEvent ev]
+		]
+		if last-window <> null [process-widget-timers last-window last-window SDL_GetTicks]
+		if all [last-window <> null last-window/dirty?][render-window last-window]
+	][
+		quit?: no
+		exit-loop?: no
+		while [all [not quit? not exit-loop? last-window <> null]][
+			ok?: SDL_WaitEventTimeout ev 16
+			while [ok?][
+				seen?: yes
+				if not handle-sdl-event ev [ok?: no quit?: yes]
+				if all [ok? not quit? not exit-loop? last-window <> null][ok?: SDL_PollEvent ev]
+			]
+			if last-window <> null [process-widget-timers last-window last-window SDL_GetTicks]
+			if all [last-window <> null last-window/dirty?][render-window last-window]
+		]
+	]
 	seen?
 ]

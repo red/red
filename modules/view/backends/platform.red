@@ -883,6 +883,21 @@ system/view/platform: context [
 		]
 	]
 
+	test-push-event: routine [
+		win		[object!]
+		type	[integer!]
+		x		[integer!]
+		y		[integer!]
+		key		[integer!]
+		extra	[integer!]
+	][
+		#switch GUI-engine [
+			SDL3	 [gui/test-push-event win type x y key extra]
+			#default []
+		]
+		SET_RETURN(none-value)
+	]
+
 	request-font: routine [font [object!] selected [any-type!] mono? [logic!]][
 		gui/OS-request-font font as red-object! selected mono?
 	]

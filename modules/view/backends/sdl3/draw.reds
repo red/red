@@ -17,7 +17,6 @@ draw-state!: alias struct! [
 	line-width	[integer!]
 ]
 
-sdl3-draw-text-engine: as handle! 0
 sdl3-poly-xs: declare int-ptr!
 sdl3-poly-xs: null
 sdl3-clip-stack: declare int-ptr!
@@ -708,7 +707,11 @@ OS-draw-text: func [
 ][
 	GET_PAIR_XY_INT(pos x y)
 	color: either ctx/pen-type <> DRAW_BRUSH_NONE [ctx/pen-color][0]
-	draw-text ctx/dc sdl3-draw-text-engine ctx/x + x ctx/y + y text color
+	either TYPE_OF(text) = TYPE_OBJECT [
+		draw-text-box ctx/dc ctx/x + x ctx/y + y as red-object! text color catch?
+	][
+		draw-text ctx/dc ctx/x + x ctx/y + y text color null
+	]
 	true
 ]
 draw-arc-raster: func [

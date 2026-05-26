@@ -39,6 +39,7 @@ Red/System [
 #define SDL_EVENT_WINDOW_FOCUS_GAINED			20Eh
 #define SDL_EVENT_WINDOW_FOCUS_LOST				20Fh
 #define SDL_EVENT_WINDOW_CLOSE_REQUESTED		210h
+#define SDL_EVENT_USER							8000h
 
 #define SDL_EVENT_KEY_DOWN		300h
 #define SDL_EVENT_KEY_UP		301h
@@ -80,6 +81,12 @@ Red/System [
 #define SDL_TEXTUREACCESS_STATIC	0
 #define SDL_BLENDMODE_BLEND			00000001h
 
+#define TTF_STYLE_NORMAL			00h
+#define TTF_STYLE_BOLD				01h
+#define TTF_STYLE_ITALIC			02h
+#define TTF_STYLE_UNDERLINE			04h
+#define TTF_STYLE_STRIKETHROUGH		08h
+
 SDL_Rect!: alias struct! [
 	x [integer!]
 	y [integer!]
@@ -118,9 +125,12 @@ SDL_KeyboardEvent!: alias struct! [
 	scancode	[integer!]
 	key			[integer!]
 	mod			[integer!]
-	raw			[integer!]
-	down		[logic!]
-	repeat		[logic!]
+	raw1		[byte!]
+	raw2		[byte!]
+	down		[byte!]
+	repeat		[byte!]
+	padding1	[byte!]
+	padding2	[byte!]
 ]
 
 SDL_TextInputEvent!: alias struct! [
@@ -151,7 +161,7 @@ SDL_MouseButtonEvent!: alias struct! [
 	windowID	[integer!]
 	which		[integer!]
 	button		[byte!]
-	down		[logic!]
+	down		[byte!]
 	clicks		[byte!]
 	padding		[byte!]
 	x			[float32!]
@@ -169,6 +179,8 @@ SDL_MouseWheelEvent!: alias struct! [
 	direction	[integer!]
 	mouse_x		[float32!]
 	mouse_y		[float32!]
+	integer_x	[integer!]
+	integer_y	[integer!]
 ]
 
 SDL_DisplayMode!: alias struct! [
@@ -194,6 +206,13 @@ SDL_Surface!: alias struct! [
 	reserved	[handle!]
 ]
 
+SDL_Color!: alias struct! [
+	r [byte!]
+	g [byte!]
+	b [byte!]
+	a [byte!]
+]
+
 sdl-event!: alias struct! [
 	data [integer!]
 	pad1 [integer!]
@@ -209,6 +228,24 @@ sdl-event!: alias struct! [
 	pad11 [integer!]
 	pad12 [integer!]
 	pad13 [integer!]
+	pad14 [integer!]
+	pad15 [integer!]
+	pad16 [integer!]
+	pad17 [integer!]
+	pad18 [integer!]
+	pad19 [integer!]
+	pad20 [integer!]
+	pad21 [integer!]
+	pad22 [integer!]
+	pad23 [integer!]
+	pad24 [integer!]
+	pad25 [integer!]
+	pad26 [integer!]
+	pad27 [integer!]
+	pad28 [integer!]
+	pad29 [integer!]
+	pad30 [integer!]
+	pad31 [integer!]
 ]
 
 #import [
@@ -345,6 +382,11 @@ sdl-event!: alias struct! [
 			h		 [integer!]
 			return:	 [handle!]
 		]
+		SDL_CreateTextureFromSurface: "SDL_CreateTextureFromSurface" [
+			renderer [handle!]
+			surface	 [handle!]
+			return:	 [handle!]
+		]
 		SDL_UpdateTexture: "SDL_UpdateTexture" [
 			texture [handle!]
 			rect	[int-ptr!]
@@ -385,6 +427,9 @@ sdl-event!: alias struct! [
 			event	[sdl-event!]
 			return: [logic!]
 		]
+		SDL_FlushEvent: "SDL_FlushEvent" [
+			type	[integer!]
+		]
 		SDL_WaitEventTimeout: "SDL_WaitEventTimeout" [
 			event	[sdl-event!]
 			timeout	[integer!]
@@ -402,14 +447,10 @@ sdl-event!: alias struct! [
 			return: [logic!]
 		]
 	]
-]
-
-#import [
-	"SDL3_ttf.lib" cdecl [
+	"../../../../build/sdl_ttf-msvc-x86-min/SDL_ttf/Release/SDL3_ttf-static.lib" cdecl [
 		TTF_Init: "TTF_Init" [
 			return: [logic!]
 		]
-		TTF_Quit: "TTF_Quit" []
 		TTF_OpenFont: "TTF_OpenFont" [
 			file	[c-string!]
 			ptsize	[float32!]
@@ -417,6 +458,15 @@ sdl-event!: alias struct! [
 		]
 		TTF_CloseFont: "TTF_CloseFont" [
 			font	[handle!]
+		]
+		TTF_SetFontSize: "TTF_SetFontSize" [
+			font	[handle!]
+			ptsize	[float32!]
+			return: [logic!]
+		]
+		TTF_SetFontStyle: "TTF_SetFontStyle" [
+			font	[handle!]
+			style	[integer!]
 		]
 		TTF_GetStringSize: "TTF_GetStringSize" [
 			font	[handle!]
@@ -426,45 +476,36 @@ sdl-event!: alias struct! [
 			h		[int-ptr!]
 			return: [logic!]
 		]
-		TTF_CreateRendererTextEngine: "TTF_CreateRendererTextEngine" [
-			renderer [handle!]
-			return:  [handle!]
+		TTF_GetStringSizeWrapped: "TTF_GetStringSizeWrapped" [
+			font		[handle!]
+			text		[c-string!]
+			length		[integer!]
+			wrap-width	[integer!]
+			w			[int-ptr!]
+			h			[int-ptr!]
+			return: 	[logic!]
 		]
-		TTF_DestroyRendererTextEngine: "TTF_DestroyRendererTextEngine" [
-			engine [handle!]
-		]
-		TTF_CreateText: "TTF_CreateText" [
-			engine [handle!]
-			font   [handle!]
-			text   [c-string!]
-			length [integer!]
+		TTF_RenderText_Blended: "TTF_RenderText_Blended" [
+			font	[handle!]
+			text	[c-string!]
+			length	[integer!]
+			fg		[SDL_Color! value]
 			return: [handle!]
 		]
-		TTF_SetTextColor: "TTF_SetTextColor" [
-			text [handle!]
-			r	 [byte!]
-			g	 [byte!]
-			b	 [byte!]
-			a	 [byte!]
-			return: [logic!]
+		TTF_RenderText_Blended_Wrapped: "TTF_RenderText_Blended_Wrapped" [
+			font		[handle!]
+			text		[c-string!]
+			length		[integer!]
+			fg			[SDL_Color! value]
+			wrap-width	[integer!]
+			return: 	[handle!]
 		]
-		TTF_DrawRendererText: "TTF_DrawRendererText" [
-			text [handle!]
-			x	 [float32!]
-			y	 [float32!]
-			return: [logic!]
-		]
-		TTF_DestroyText: "TTF_DestroyText" [
-			text [handle!]
-		]
+		TTF_Quit: "TTF_Quit" []
 	]
-]
-
-#import [
-	"freetype.lib" cdecl [
+	"../../../../build/sdl_ttf-msvc-x86-min/SDL_ttf/external/freetype-build/Release/freetype.lib" cdecl [
 		FT_Init_FreeType: "FT_Init_FreeType" [
-			library [int-ptr!]
-			return: [integer!]
+			library	[int-ptr!]
+			return:	[integer!]
 		]
 	]
 ]
