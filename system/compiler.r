@@ -1936,7 +1936,10 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		process-import: func [defs [block!] /local lib list cc name specs spec id reloc pos new? funcs err][
+		process-import: func [
+			defs [block!]
+			/local lib list cc name specs spec id reloc pos new? funcs err empty-import?
+		][
 			unless block? defs [throw-error "#import expects a block! as argument"]
 			
 			err: ["invalid import specification at:" pos]
@@ -1950,10 +1953,12 @@ system-dialect: make-profilable context [
 						]
 					)
 					pos: set cc ['cdecl | 'stdcall]		;-- calling convention
+					(empty-import?: yes)
 					pos: into [
-						some [
+						any [
 							specs:						;-- new function mapping marker
 							pos: set name set-word! (
+								empty-import?: no
 								name: to word! name
 								store-ns-symbol name
 								if ns-path [
@@ -1990,6 +1995,7 @@ system-dialect: make-profilable context [
 							)
 						]
 					](
+						if all [empty-import?  not static-link/library? lib][throw-error err]
 						if new? [repend imports [lib list]]
 						if static-link/library? lib [static-link/register job lib script cc]
 					)
