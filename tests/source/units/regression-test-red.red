@@ -3894,6 +3894,11 @@ comment {
 	--test-- "#5739"
 		--assert error? try [make vector! 700'000'000]
 
+	--test-- "#5741"
+		s5741: "1234567890"
+		--assert error? try [append/dup s5741 "x" 2147483647]
+		--assert error? try [insert/dup s5741 "x" 2147483647]
+
 	--test-- "#5746"
 		parse b5746: "12345" [skip p: 2 skip change :p ('x) to end] --assert b5746 == "1x45"
 		parse b5746: "12345" [skip p: 2 skip insert :p ('x) to end]	--assert b5746 == "1x2345"
