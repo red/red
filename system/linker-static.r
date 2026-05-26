@@ -39,6 +39,8 @@ static-link: context [
 	comdat-keys: make hash!  32		;-- COMDAT / SHT_GROUP keys already pulled (folds duplicates)
 	sym-addr:   make hash!  200		;-- C-name => [kind offset weak?]  kind: 'code|'data|'tls|'image-base|'absolute
 	call-slots: make block! 40		;-- [reloc-refs slot-offset target-info ...]
+	got-slots:  make block! 40		;-- [key [slot kind offset] ...], ELF i386 PIC GOT entries
+	got-start:  none				;-- data offset of synthetic ELF i386 GOT base
 	undef-done: make block! 20		;-- undefined externals already resolved
 	libc-set:   none				;-- this build's C-library export hash (libc-exports.r)
 	libm-set:   none				;-- Linux libm export names accepted for static objects
@@ -175,6 +177,8 @@ static-link: context [
 		clear comdat-keys
 		clear sym-addr
 		clear call-slots
+		clear got-slots
+		got-start: none
 		clear undef-done
 		clear imp-table
 		libc-set: none
@@ -232,6 +236,8 @@ static-link: context [
 
 		;-- Pass 2: satisfy undefined externals (libc trampolines, stubs).
 		resolve-externals job
+		;-- Pass 2a: allocate synthetic ELF i386 GOT slots before final layout.
+		allocate-got-slots job
 		;-- Pass 2b: route PE __imp_* import-thunk references to dynamic imports.
 		wire-imp-relocs job
 		;-- Pass 3: wire each user-imported function to a call slot.
@@ -709,6 +715,11 @@ static-link: context [
 								;-- sites to a dynamic import on the resolved DLL.
 								repend imp-table [name imp]
 							]
+							all [obj-format = 'ELF  name = "_GLOBAL_OFFSET_TABLE_"] [
+								;-- Defined by allocate-got-slots once all
+								;-- undefined externals have been resolved.
+								0
+							]
 							true [
 								abort reduce ["unresolved external symbol:" name "(in" path ")"]
 							]
@@ -766,15 +777,39 @@ static-link: context [
 		]["libm.so.6"]
 	]
 
-	find-linux-helper-libs: func [/local path out][
-		out: make block! 1
-		path: copy ""
-		call/output "gcc -m32 -print-libgcc-file-name" path
-		trim/tail path
+	elf-archive?: func [path [file!] /local members][
+		members: attempt [read-archive path]
+		if none? members [return false]
+		foreach member members [
+			if (copy/part member/2 4) = #{7F454C46} [return true]
+		]
+		false
+	]
+
+	append-linux-helper-lib: func [out [block!] path [string!]][
 		if all [
 			not empty? path
 			exists? to-rebol-file path
+			elf-archive? to-rebol-file path
 		][append out to-rebol-file path]
+	]
+
+	find-linux-helper-libs: func [/local path out file][
+		out: make block! 3
+		if system/version/4 <> 4 [return out]			;-- never probe host GCC while cross-compiling from Windows/macOS
+		path: copy ""
+		call/output "gcc -m32 -print-libgcc-file-name" path
+		trim/tail path
+		append-linux-helper-lib out path
+		foreach file ["libssp_nonshared.a"] [
+			path: copy ""
+			call/output rejoin ["gcc -m32 -print-file-name=" file] path
+			trim/tail path
+			if all [
+				not empty? path
+				file <> path
+			][append-linux-helper-lib out path]
+		]
 		out
 	]
 
@@ -1145,17 +1180,155 @@ static-link: context [
 		new-hw1 or (shift/left new-hw2 16)
 	]
 
+	;-- ===== ELF i386 synthetic GOT support =====
+
+	resolve-reloc-target: func [
+		obj		[object!]
+		sym		[block!]
+		path
+		/local target-info tsect tsection tkind toff
+	][
+		target-info: either any [
+			reader/is-defined-external? sym
+			reader/is-undefined-external? sym
+		][
+			select sym-addr reader/sym-name sym
+		][none]
+		either target-info [
+			target-info
+		][
+			tsect: reader/sym-sect sym
+			either all [tsect > 0  tsect <= length? obj/sections][
+				tsection: pick obj/sections tsect
+				tkind: reader/sec-base-kind tsection
+				if tkind = 'none [
+					abort reduce ["relocation targets a dropped section:" reader/sym-name sym "in" path]
+				]
+				toff: (reader/sec-base-offset tsection) + reader/sym-value sym
+				reduce [tkind toff false]
+			][
+				abort reduce ["unresolved symbol" reader/sym-name sym "in" path]
+			]
+		]
+	]
+
+	target-va?: func [
+		tkind		[word!]
+		toff		[integer!]
+		code-base	[integer!]
+		data-base	[integer!]
+		image-base	[integer!]
+	][
+		case [
+			tkind = 'image-base [image-base]
+			tkind = 'absolute	[toff]
+			tkind = 'tls		[data-base + toff]
+			tkind = 'data		[data-base + toff]
+			true				[code-base + toff]
+		]
+	]
+
+	got-key: func [
+		path
+		sym		[block!]
+		index	[integer!]
+		/local name
+	][
+		name: reader/sym-name sym
+		either any [
+			empty? name
+			not any [
+				reader/is-defined-external? sym
+				reader/is-undefined-external? sym
+			]
+		][
+			rejoin [form path "#" index]
+		][
+			copy name
+		]
+	]
+
+	ensure-got-base: func [job [object!] /local data][
+		if got-start <> none [exit]
+		data: job/sections/data/2
+		pad-to data 4
+		got-start: length? data
+		unless select sym-addr "_GLOBAL_OFFSET_TABLE_" [
+			repend sym-addr ["_GLOBAL_OFFSET_TABLE_" reduce ['data got-start false]]
+		]
+	]
+
+	ensure-got-slot: func [
+		job		[object!]
+		key		[string!]
+		info	[block!]
+		/local data entry slot
+	][
+		if entry: select got-slots key [return entry/1]
+		ensure-got-base job
+		data: job/sections/data/2
+		pad-to data 4
+		slot: length? data
+		append data #{00000000}
+		repend got-slots [copy key reduce [slot info/1 info/2]]
+		slot
+	]
+
+	allocate-got-slots: func [
+		job [object!]
+		/local path obj section sec-kind r sym kind info key
+	][
+		if obj-format <> 'ELF [exit]
+		foreach [path obj] objects [
+			foreach section obj/sections [
+				sec-kind: reader/sec-base-kind section
+				unless sec-kind = 'none [
+					foreach r reader/sec-relocs section [
+						kind: reader/reloc-kind r/3
+						if any [kind = 'got32 kind = 'gotoff kind = 'gotpc][
+							ensure-got-base job
+						]
+						if kind = 'got32 [
+							sym: pick obj/symbols (r/2 + 1)
+							unless sym [abort reduce ["bad relocation symbol index" r/2 "in" path]]
+							info: resolve-reloc-target obj sym path
+							key: got-key path sym r/2
+							ensure-got-slot job key info
+						]
+					]
+				]
+			]
+		]
+	]
+
+	write-got-slots: func [
+		job			[object!]
+		code-base	[integer!]
+		data-base	[integer!]
+		image-base	[integer!]
+		/local data key entry target-va
+	][
+		if any [got-start = none  empty? got-slots][exit]
+		data: job/sections/data/2
+		foreach [key entry] got-slots [
+			target-va: target-va? entry/2 entry/3 code-base data-base image-base
+			change at data (entry/1 + 1) le32 target-va
+		]
+	]
+
 	;-- ===== formats/{PE,ELF}.r hook : apply relocations after layout =====
 
 	apply-relocs: func [
 		job [object!] code-base [integer!] data-base [integer!] image-base [integer!]
 		/local code data reloc slot info section sec-kind sec-base buf buf-base
 			r r-va r-sym r-type sym target-info tkind toff target-va kind
-			patch-pos patch-va addend path obj tsect tsection insn a16
+			patch-pos patch-va addend path obj insn a16 got-slot got-base
+			sym-name key entry
 	][
 		if empty? objects [exit]
 		code: job/sections/code/2
 		data: job/sections/data/2
+		write-got-slots job code-base data-base image-base
 
 		;-- Wire user-import call sites to their merged functions.
 		foreach [reloc slot info] call-slots [
@@ -1185,34 +1358,15 @@ static-link: context [
 						unless sym [abort reduce ["bad relocation symbol index" r-sym "in" path]]
 
 						;-- Resolve the target's final merged address.
-						target-info: select sym-addr reader/sym-name sym
-						either target-info [
-							tkind: target-info/1
-							toff:  target-info/2
-						][
-							;-- Section symbol / local symbol fallback.
-							tsect: reader/sym-sect sym
-							either all [tsect > 0  tsect <= length? obj/sections][
-								tsection: pick obj/sections tsect
-								tkind: reader/sec-base-kind tsection
-								if tkind = 'none [
-									abort reduce ["relocation targets a dropped section:" reader/sym-name sym "in" path]
-								]
-								toff: (reader/sec-base-offset tsection) + reader/sym-value sym
-							][
-								abort reduce ["unresolved symbol" reader/sym-name sym "in" path]
-							]
-						]
-						target-va: case [
-							tkind = 'image-base [image-base]
-							tkind = 'absolute  [toff]
-							tkind = 'tls       [data-base + toff]
-							tkind = 'data      [data-base + toff]
-							true               [code-base + toff]
-						]
+						target-info: resolve-reloc-target obj sym path
+						tkind: target-info/1
+						toff:  target-info/2
+						target-va: target-va? tkind toff code-base data-base image-base
 						patch-pos: sec-base + r-va			;-- 0-based offset into buf
 						addend:    reader/i32-le buf (patch-pos + 1)
 						kind:      reader/reloc-kind r-type
+						got-base:  either got-start = none [0][data-base + got-start]
+						sym-name:  reader/sym-name sym
 
 						;-- Mach-O i386 stores a pcrel field's displacement
 						;-- relative to the containing section's start; fold
@@ -1230,6 +1384,28 @@ static-link: context [
 								patch-va: buf-base + patch-pos
 								change at buf (patch-pos + 1)
 									le32 ((target-va + addend) - patch-va - reader/pc-bias)
+							]
+							kind = 'plt32 [
+								patch-va: buf-base + patch-pos
+								change at buf (patch-pos + 1)
+									le32 ((target-va + addend) - patch-va - reader/pc-bias)
+							]
+							kind = 'gotpc [
+								patch-va: buf-base + patch-pos
+								change at buf (patch-pos + 1)
+									le32 ((got-base + addend) - patch-va - reader/pc-bias)
+							]
+							kind = 'gotoff [
+								change at buf (patch-pos + 1)
+									le32 ((target-va + addend) - got-base)
+							]
+							kind = 'got32 [
+								key: got-key path sym r-sym
+								entry: select got-slots key
+								unless entry [abort reduce ["missing GOT slot:" sym-name "(in" path ")"]]
+								got-slot: entry/1
+								change at buf (patch-pos + 1)
+									le32 (((data-base + got-slot) + addend) - got-base)
 							]
 							kind = 'rva32 [
 								change at buf (patch-pos + 1)
