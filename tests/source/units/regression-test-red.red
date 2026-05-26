@@ -3878,6 +3878,12 @@ comment {
 		--assert error? set 'err try [length? b: enbase/base (s: append/dup make {} n: 1 << 28 + 100000 "x" n) 2]
 		--assert err/id = 'too-long
 
+	--test-- "#5737"
+		v5737: make vector! [integer! 32 16]
+		append v5737 1
+		--assert v5737 = make vector! [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1]
+		--assert error? try [make vector! [integer! 32 1'600'000'000]]
+
 	--test-- "#5738"
 		blk5738: load/as #{
 52454442494E0200010000001400000005000000006CCA88010000000B00000001000000
