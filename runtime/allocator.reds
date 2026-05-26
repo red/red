@@ -304,6 +304,7 @@ free-node-frame: func [
 ][
 	either null? frame/prev [				;-- if frame = head
 		memory/n-head: frame/next			;-- head now points to next one
+		if memory/n-head <> null [memory/n-head/prev: null]
 	][
 		either null? frame/next [			;-- if frame = tail
 			memory/n-tail: frame/prev		;-- tail is now at one position back
@@ -446,6 +447,7 @@ free-series-frame: func [
 ][
 	either null? frame/prev [				;-- if frame = head
 		memory/s-head: frame/next			;-- head now points to next one
+		if memory/s-head <> null [memory/s-head/prev: null]
 	][
 		either null? frame/next [			;-- if frame = tail
 			memory/s-tail: frame/prev		;-- tail is now at one position back
@@ -602,6 +604,7 @@ alloc-series-buffer: func [
 		
 	series/size: size
 	series/flags: unit or series-in-use or flag-big
+	if collector/running? [series/flags: series/flags or flag-gc-mark]
 
 	either offset = default-offset [
 		offset: size >> 1					;-- target middle of buffer
@@ -657,6 +660,7 @@ alloc-fixed-series: func [
 	series: as series-buffer! allocate sz
 	series/size: size
 	series/flags: unit or series-in-use or flag-series-fixed or flag-ins-tail
+	if collector/running? [series/flags: series/flags or flag-gc-mark]
 	series/offset: as cell! (as byte-ptr! series + 1) + offset
 	series/tail: series/offset
 
