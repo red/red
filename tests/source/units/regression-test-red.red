@@ -3893,6 +3893,22 @@ comment {
 
 	--test-- "#5739"
 		--assert error? try [make vector! 700'000'000]
+		
+	--test-- "#5740"
+		o5740: make object! [
+		    mutated?: false
+		    on-deep-change*: func [owner word target action new index part][
+		        if all [word = 'b not mutated?][
+		            mutated?: true
+		            clear b
+		            append/dup b 0 250000
+		        ]
+		    ]
+		    b: copy [1 2 3 4 5 6 7 8]
+		]
+		take/part o5740/b 2
+		--assert true
+		o5740/b: none
 
 	--test-- "#5741"
 		s5741: "1234567890"
