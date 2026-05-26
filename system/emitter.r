@@ -18,6 +18,7 @@ emitter: make-profilable context [
 	breaks:	   make block! 1			;-- [[offset ...] [...] ...] (break jump points)
 	cont-next: make block! 1			;-- [[offset ...] [...] ...] (continue skip jump points)
 	cont-back: make block! 1			;-- [[offset ...] [...] ...] (continue back jump points)
+	overflow-jumps: make block! 1		;-- [[offset ...] [...] ...] (overflow? early-out jump points)
 	bits-buf:  make binary! 10'000
 	verbose:   0						;-- logs verbosity level
 	

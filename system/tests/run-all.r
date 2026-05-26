@@ -100,6 +100,7 @@ print ["This test started at" start-time]
 ===start-group=== "Math operators tests"
   --run-test-file-quiet %source/units/modulo-test.reds
   --run-test-file-quiet %source/units/math-mixed-test.reds
+  --run-test-file-quiet %source/units/overflow-test.reds
 ===end-group===
 
 ===start-group=== "Infix syntax for functions"

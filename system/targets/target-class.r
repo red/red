@@ -35,7 +35,8 @@ target-class: context [
 	emit-variable: emit-read-io: emit-io-write: 
 	emit-push-all: emit-pop-all: emit-atomic-load: 
 	emit-atomic-store: emit-atomic-math: emit-atomic-fence:
-	emit-init-sub: emit-return-sub: emit-call-sub: none
+	emit-init-sub: emit-return-sub: emit-call-sub:
+	emit-overflow-epilog-no-ovf: emit-overflow-epilog-ovf: none
 	
 	comparison-op: [= <> < > <= >=]
 	math-op:	   compose [+ - * / // (to-word "%")]

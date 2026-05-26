@@ -98,6 +98,7 @@ system-dialect: make-profilable context [
 		user-code?:		 no
 		block-level: 	 0								;-- nesting level of input source block
 		catch-level:	 0								;-- nesting level of CATCH body block
+		overflow-check?: no								;-- yes => inside an OVERFLOW? block; backend hooks instrument math/shift/div ops
 		verbose:  	 	 0								;-- logs verbosity level
 	
 		imports: 	   	 make block! 10					;-- list of imported functions
@@ -220,6 +221,7 @@ system-dialect: make-profilable context [
 			as			 [comp-as]
 			assert		 [comp-assert]
 			size? 		 [comp-size?]
+			overflow?	 [comp-overflow?]
 			if			 [comp-if]
 			either		 [comp-either]
 			case		 [comp-case]
@@ -250,7 +252,7 @@ system-dialect: make-profilable context [
 		]
 		
 		calling-keywords: [								;-- keywords accepted in expr-call-stack
-			?? as assert size? if either case switch until while any all
+			?? as assert size? overflow? if either case switch until while any all
 			return catch
 		]
 		
@@ -2597,6 +2599,37 @@ system-dialect: make-profilable context [
 			
 			last-type: none-type
 			none
+		]
+
+		comp-overflow?: has [unused body-chunk no-ovf-chunk ovf-arm combined saved][
+			pc: next pc
+			unless block? pc/1 [
+				backtrack 'overflow?
+				throw-error "OVERFLOW? requires a block as argument"
+			]
+
+			saved: overflow-check?
+			overflow-check?: yes
+			append/only emitter/overflow-jumps make block! 1	;-- push fresh jump list (parallel to push-loop-jumps' idiom)
+
+			set [unused body-chunk] comp-block-chunked	;-- compile body; backend hooks emit JCC into list
+
+			overflow-check?: saved
+
+			;-- "no-overflow" tail: XOR eax,eax + JMP over MOV eax,1 (ovf label lands here)
+			no-ovf-chunk: comp-chunked [emitter/target/emit-overflow-epilog-no-ovf]
+			combined: emitter/chunks/join body-chunk no-ovf-chunk
+
+			emitter/resolve-loop-jumps combined 'overflow-jumps	;-- patch all early-out jumps to combined's tail (= ovf:)
+			remove back tail emitter/overflow-jumps		;-- pop
+
+			;-- "overflow" arm: MOV eax,1
+			ovf-arm: comp-chunked [emitter/target/emit-overflow-epilog-ovf]
+			combined: emitter/chunks/join combined ovf-arm
+
+			emitter/merge combined
+			last-type: [logic!]
+			<last>
 		]
 
 		comp-block-chunked: func [/only /test name [word!] /bool /local expr][
