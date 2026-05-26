@@ -104,7 +104,8 @@ make-profilable make target-class [
 		/local spec
 	][
 		if object? name [name: compiler/unbox name]
-		spec: either block? name [name][emitter/symbols/:name]
+		if word? name [name: compiler/resolve-ns name]
+		spec: either block? name [name][all [word? name select emitter/symbols name]]
 		if none? spec [
 			compiler/throw-error ["unknown variable:" name]
 		]
@@ -117,9 +118,10 @@ make-profilable make target-class [
 
 	import-var?: func [name [word! object! path!] /local spec][
 		if object? name [name: compiler/unbox name]
+		unless word? name [return false]
+		spec: select emitter/symbols name
 		all [
-			word? name
-			spec: emitter/symbols/:name
+			spec
 			spec/1 = 'import-var
 		]
 	]
@@ -129,7 +131,7 @@ make-profilable make target-class [
 		/local spec
 	][
 		if object? name [name: compiler/unbox name]
-		spec: emitter/symbols/:name
+		spec: all [word? name select emitter/symbols name]
 		unless all [spec spec/1 = 'import-var][
 			compiler/throw-error ["x86-64 import variable expected:" name]
 		]
@@ -712,8 +714,18 @@ make-profilable make target-class [
 				]
 				emit #{58}							;-- POP rax
 			]
+			get-word? value [
+				emit #{50}							;-- PUSH rax
+				emit-load value
+				emit #{4889C1}						;-- MOV rcx, rax
+				emit #{58}							;-- POP rax
+			]
 			word? value [
 				type: compiler/get-type value
+				unless block? type [
+					compiler/throw-error ["x86-64 secondary operand has no type:" mold value]
+				]
+				type: compiler/resolve-aliased type
 				if all [
 					not emitter/local-offset? value
 					import-var? value
@@ -1754,6 +1766,12 @@ make-profilable make target-class [
 			]
 			emit-push <last>
 		][
+			if object? value [
+				emit-load arg
+				emit-push <last>
+				emit-typed-int64-padding fspec arg-type
+				exit
+			]
 			if compiler/any-float? arg-type [
 				emit-load arg
 				emit #{4883EC08}				;-- SUB rsp, 8
@@ -1799,7 +1817,7 @@ make-profilable make target-class [
 			]
 		]
 	]
-	emit-load: func [value /with cast [object!] /local type spec local-spec resolved-type field][
+	emit-load: func [value /with cast [object!] /local type spec local-spec resolved-type load-type field][
 		if block? value [value: <last>]
 		case [
 			value = <last> []
@@ -1867,9 +1885,10 @@ make-profilable make target-class [
 			]
 			word? value [
 				type: compiler/get-type value
+				load-type: compiler/resolve-aliased type
 				either emitter/local-offset? value [
 					either all [
-						resolved-type: compiler/resolve-aliased type
+						resolved-type: load-type
 						find [struct! union!] resolved-type/1
 						any [
 							find by-value-args value
@@ -1883,7 +1902,7 @@ make-profilable make target-class [
 					][
 						emit-local-ref value #{488D45}	;-- LEA rax, [rbp+disp8]
 					][
-					switch/default type/1 [
+					switch/default load-type/1 [
 						byte!	 [emit-local-ref value #{0FB645}]	;-- MOVZX eax, byte [rbp+disp8]
 						logic!	 [emit-local-ref value #{0FB645}]
 						int8!	 [emit-local-ref value #{0FBE45}]	;-- MOVSX eax, byte [rbp+disp8]
@@ -1910,10 +1929,10 @@ make-profilable make target-class [
 					]
 				][
 					if import-var? value [
-						emit-load-import-var value type
+						emit-load-import-var value load-type
 						exit
 					]
-					switch/default type/1 [
+					switch/default load-type/1 [
 						byte!	 [emit-global-ref value #{0FB605}]	;-- MOVZX eax, byte [RIP+disp32]
 						logic!	 [emit-global-ref value #{0FB605}]
 						int8!	 [emit-global-ref value #{0FBE05}]	;-- MOVSX eax, byte [RIP+disp32]
@@ -1988,7 +2007,19 @@ make-profilable make target-class [
 			either import-var? name [
 				emit-import-var-address name
 			][
-				emit-global-ref name #{488B05}		;-- MOV rax, [RIP+disp32]
+				type: compiler/get-type name
+				resolved-type: compiler/resolve-aliased type
+				either all [
+					find [struct! union!] resolved-type/1
+					any [
+						'value = last type
+						'value = last resolved-type
+					]
+				][
+					emit-global-ref name #{488D05}	;-- LEA rax, [RIP+disp32]
+				][
+					emit-global-ref name #{488B05}	;-- MOV rax, [RIP+disp32]
+				]
 			]
 		]
 	]
@@ -2053,6 +2084,7 @@ make-profilable make target-class [
 			]
 		][
 			type: [pointer!]
+			store-type: type
 		]
 		if logic? value [value: to integer! value]
 		if all [
@@ -2098,7 +2130,7 @@ make-profilable make target-class [
 		]
 		local?: emitter/local-offset? name
 		either local? [
-			opcode: switch/default type/1 [
+			opcode: switch/default store-type/1 [
 				byte!	 [#{8845}]					;-- MOV [rbp+disp8], al
 				int8!	 [#{8845}]
 				uint8!	 [#{8845}]
@@ -2118,7 +2150,7 @@ make-profilable make target-class [
 				float64! [#{C5FB1145}]
 				float32! [#{C5FA1145}]			;-- VMOVSS [rbp+disp8], xmm0
 			][
-				switch/default store-type/1 [
+				switch/default type/1 [
 					function! [#{488945}]
 					subroutine! [#{488945}]
 				][
@@ -2128,10 +2160,10 @@ make-profilable make target-class [
 			emit-local-ref name opcode
 		][
 			if import-var? name [
-				emit-store-import-var name type
+				emit-store-import-var name store-type
 				exit
 			]
-			opcode: switch/default type/1 [
+			opcode: switch/default store-type/1 [
 				byte!	 [#{8805}]					;-- MOV [RIP+disp32], al
 				int8!	 [#{8805}]
 				uint8!	 [#{8805}]
@@ -2151,7 +2183,7 @@ make-profilable make target-class [
 				float64! [#{C5FB1105}]
 				float32! [#{C5FA1105}]			;-- VMOVSS [RIP+disp32], xmm0
 			][
-				switch/default store-type/1 [
+				switch/default type/1 [
 					function! [#{488905}]
 					subroutine! [#{488905}]
 				][

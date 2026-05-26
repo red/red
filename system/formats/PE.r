@@ -780,7 +780,11 @@ context [
 		_4K: 4096
 		buffer: make binary! _4K
 		base: section-addr?/memory job name
-		type: to integer! #{3000}						;-- IMAGE_REL_BASED_HIGHLOW		
+		type: to integer! either PE64? [
+			#{A000}										;-- IMAGE_REL_BASED_DIR64
+		][
+			#{3000}										;-- IMAGE_REL_BASED_HIGHLOW
+		]
 		block: 0
 		
 		open-block: [
@@ -1223,13 +1227,17 @@ context [
 		buf		[binary!]
 		info	[string! none!]
 		base	[integer!]
-		/local entry data-buf
+		/local entry data-buf data
 	][
 		entry: make-struct resource-data-entry none
 		entry/offset: base + length? buf
 		data-buf: tail buf
 
-		append buf trim/with either info [info][manifest-template] "^M^/^-"
+		data: trim/with copy either info [info][manifest-template] "^M^/^-"
+		unless info [
+			replace data {processorArchitecture="x86"} {processorArchitecture="*"}
+		]
+		append buf data
 
 		entry/size: length? data-buf
 		append out form-struct entry
