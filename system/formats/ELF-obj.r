@@ -43,6 +43,11 @@ elf-obj: context [
 	R_386_NONE:		0
 	R_386_32:		1				;-- direct 32-bit (S + A)
 	R_386_PC32:		2				;-- PC-relative 32-bit (S + A - P)
+	R_386_GOT32:	3				;-- GOT entry offset for symbol
+	R_386_PLT32:	4				;-- PLT-relative call
+	R_386_GOTOFF:	9				;-- symbol offset from GOT base
+	R_386_GOTPC:	10				;-- GOT base relative to PC
+	R_386_GOT32X:	43				;-- relaxed GOT entry offset
 
 	R_ARM_NONE:			0
 	R_ARM_PC24:			1			;-- 24-bit branch immediate (legacy)
@@ -138,10 +143,15 @@ elf-obj: context [
 			]
 		][
 			case [
-				type = R_386_32   ['abs32]
-				type = R_386_PC32 ['pc32]
-				type = R_386_NONE ['none]
-				true              ['unsupported]
+				type = R_386_32     ['abs32]
+				type = R_386_PC32   ['pc32]
+				type = R_386_PLT32  ['plt32]
+				type = R_386_GOT32  ['got32]
+				type = R_386_GOT32X ['got32]
+				type = R_386_GOTOFF ['gotoff]
+				type = R_386_GOTPC  ['gotpc]
+				type = R_386_NONE   ['none]
+				true                ['unsupported]
 			]
 		]
 	]
