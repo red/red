@@ -617,8 +617,7 @@ vector: context [
 			vec [red-vector!]
 			s	[series!]
 	][
-		size: size * unit
-		if system/cpu/overflow? [fire [TO_ERROR(internal no-memory)]]
+		if overflow? [size: size * unit][fire [TO_ERROR(internal no-memory)]]
 		
 		vec: as red-vector! slot
 		vec/header: TYPE_UNSET

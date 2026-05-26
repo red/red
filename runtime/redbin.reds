@@ -2138,16 +2138,15 @@ redbin: context [
 			tail
 		][
 			if data + 3 > end [throw-error data]
-			
-			width:  IMAGE_WIDTH(data/3)
-			height: IMAGE_HEIGHT(data/3)
-			size:   width * height
-			if size and E0000000h <> 0 [throw-error data] ;-- if top 3 bits are set => overflow
-			size: size << 2								;-- 4 bytes per pixel
-			
-			pixels: as byte-ptr! data + 3
-			if pixels + size > as byte-ptr! end [throw-error data]
-			argb: binary/load pixels size
+
+			if overflow? [
+				width:  IMAGE_WIDTH(data/3)
+				height: IMAGE_HEIGHT(data/3)
+				size:   width * height << 2								;-- 4 bytes per pixel
+
+				pixels: as byte-ptr! data + 3
+				argb: binary/load pixels size
+			][throw-error data]
 			
 			slot: as red-image! ALLOC_TAIL(parent)
 			slot/header: TYPE_UNSET						;-- ensures GC-safety
