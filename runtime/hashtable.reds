@@ -598,10 +598,12 @@ _hashtable: context [
 			val: s/offset
 			end: s/tail
 			while [val < end][
-				collector/keep :val/data1	;-- mark node key
-				node: as node! val/data1
-				s: as series! node/value
-				if GET_UNIT(s) = 16 [collector/mark-values s/offset s/tail]		
+				if val/header = TYPE_UNSET [
+					collector/keep :val/data1	;-- mark node key
+					node: as node! val/data1
+					s: as series! node/value
+					if GET_UNIT(s) = 16 [collector/mark-values s/offset s/tail]
+				]
 				val: val + vsize
 			]
 		]
