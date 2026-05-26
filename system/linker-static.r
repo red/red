@@ -37,13 +37,17 @@ static-link: context [
 	objects:    make block! 10		;-- [path object ...] every merged object
 	needed:     make hash!  64		;-- bare C names still referenced (drives archive selection)
 	comdat-keys: make hash!  32		;-- COMDAT / SHT_GROUP keys already pulled (folds duplicates)
-	sym-addr:   make hash!  200		;-- C-name => [kind offset weak?]  kind: 'code|'data|'image-base
+	sym-addr:   make hash!  200		;-- C-name => [kind offset weak?]  kind: 'code|'data|'tls|'image-base|'absolute
 	call-slots: make block! 40		;-- [reloc-refs slot-offset target-info ...]
 	undef-done: make block! 20		;-- undefined externals already resolved
 	libc-set:   none				;-- this build's C-library export hash (libc-exports.r)
 	libm-set:   none				;-- Linux libm export names accepted for static objects
 	libc-data-set: none				;-- this build's C-library DATA exports [name size ...]
 	max-align:  1					;-- peak alignment among merged static sections
+	tls-start:  none				;-- merged .tls RVA-relative offset in data section
+	tls-end:    none
+	tls-index:  none				;-- data offsets for synthesized PE TLS runtime symbols
+	tls-dir:    none
 
 	syslib-index: none				;-- symbol => DLL hash, PE __imp_ resolution
 	imp-table:  make hash! 64		;-- __imp_<decorated> => [DLL bare-name]
@@ -178,6 +182,10 @@ static-link: context [
 		libc-data-set: none
 		helper-libs: none
 		max-align: 1
+		tls-start: none
+		tls-end: none
+		tls-index: none
+		tls-dir: none
 
 		if any [none? job/static-objs  empty? job/static-objs][exit]
 
@@ -477,6 +485,16 @@ static-link: context [
 					poke section 11 true
 					merged?: true
 				]
+				kind = 'tls [
+					pad-to data a
+					base: length? data
+					if none? tls-start [tls-start: base]
+					append data reader/sec-data section
+					tls-end: length? data
+					reader/set-sec-base section 'data base
+					poke section 11 true
+					merged?: true
+				]
 				kind = 'bss [
 					pad-to data a
 					base: length? data
@@ -553,7 +571,7 @@ static-link: context [
 		]
 		if sect <= 0 [exit]
 		section: pick obj/sections sect
-		kind: reader/sec-base-kind section
+		kind: either (reader/sec-kind section) = 'tls ['tls][reader/sec-base-kind section]
 		if kind = 'none [exit]							;-- symbol lives in a dropped section
 		base: reader/sec-base-offset section
 		name: reader/sym-name sym
@@ -631,6 +649,16 @@ static-link: context [
 								data-off: length? data
 								insert/dup tail data null 4
 								repend sym-addr [name reduce ['data data-off false]]
+							]
+							any [
+								name = "__tls_index"
+								name = "__tls_array"
+								name = "__tls_used"
+								name = "___tls_used"
+							][
+								unless tls-start [
+									abort reduce ["TLS runtime symbol without .tls section:" name "(in" path ")"]
+								]
 							]
 							sz: accepted-libc-data? name [
 								;-- libc DATA symbol: reserve a copy-relocation
@@ -929,6 +957,57 @@ static-link: context [
 		]
 	]
 
+	;-- ===== PE TLS directory support =====
+
+	ensure-symbol: func [name [string!] kind [word!] offset [integer!]][
+		unless select sym-addr name [
+			repend sym-addr [name reduce [kind offset false]]
+		]
+	]
+
+	prepare-pe-tls: func [
+		job [object!] data-rva [integer!] image-base [integer!]
+		/local data data-base start-va end-va index-va callbacks-va
+	][
+		if any [obj-format <> 'PE  none? tls-start][exit]
+		data: job/sections/data/2
+		data-base: image-base + data-rva
+
+		unless tls-index [
+			pad-to data 4
+			tls-index: length? data
+			append data #{00000000}
+		]
+		ensure-symbol "__tls_index" 'data tls-index
+		ensure-symbol "__tls_array" 'absolute 44
+		unless tls-dir [
+			pad-to data 4
+			tls-dir: length? data
+			start-va: data-base + tls-start
+			end-va: data-base + tls-end
+			index-va: data-base + tls-index
+			callbacks-va: 0
+			append data reduce [
+				le32 start-va
+				le32 end-va
+				le32 index-va
+				le32 callbacks-va
+				le32 0
+				le32 0
+			]
+		]
+		ensure-symbol "__tls_used" 'data tls-dir
+		ensure-symbol "___tls_used" 'data tls-dir
+	]
+
+	pe-tls-rva?: func [data-rva [integer!]][
+		either tls-dir [data-rva + tls-dir][0]
+	]
+
+	pe-tls-size?: func [][
+		either tls-dir [24][0]
+	]
+
 	;-- ===== ARM instruction-field relocation encoders =====
 
 	;-- Re-encode a BL/B 24-bit branch immediate (R_ARM_CALL/JUMP24/PC24) so
@@ -1126,6 +1205,8 @@ static-link: context [
 						]
 						target-va: case [
 							tkind = 'image-base [image-base]
+							tkind = 'absolute  [toff]
+							tkind = 'tls       [data-base + toff]
 							tkind = 'data      [data-base + toff]
 							true               [code-base + toff]
 						]
@@ -1153,6 +1234,10 @@ static-link: context [
 							kind = 'rva32 [
 								change at buf (patch-pos + 1)
 									le32 ((target-va - image-base) + addend)
+							]
+							kind = 'secrel32 [
+								change at buf (patch-pos + 1)
+									le32 (addend + either tkind = 'tls [toff - tls-start][toff])
 							]
 							kind = 'arm-call [
 								insn:     reader/u32-le buf (patch-pos + 1)
