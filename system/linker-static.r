@@ -67,6 +67,23 @@ static-link: context [
 
 	;-- ===== Helpers =====
 
+	;-- Append the per-format library extension to an extension-less #import
+	;-- name. With static? false (the default) the name resolves to a shared
+	;-- library (.dll/.so/.dylib); with static? true (--static), to a static
+	;-- archive (.lib/.a). Called from compiler.r/process-import before any
+	;-- of the dispatch checks below.
+	resolve-libname: func [name [string!] format [word!] static? [logic!]][
+		rejoin [
+			name
+			case [
+				static? [either format = 'PE [".lib"][".a"]]
+				format = 'PE     [".dll"]
+				format = 'Mach-o [".dylib"]
+				true             [".so"]	;-- ELF / default Unix
+			]
+		]
+	]
+
 	;-- TRUE when an #import target names a static object or archive.
 	library?: func [name [string!]][
 		found? find [%.obj %.lib %.o %.a] suffix? to-file lowercase copy name

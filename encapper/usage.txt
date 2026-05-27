@@ -28,8 +28,9 @@ Usage: red [command] [options] [file]
     -r, --release                  : Compile in release mode, linking everything
                                      together (default: development mode).
 
-    -s, --show-expanded            : Output result of Red source code expansion by
-                                     the preprocessor.
+    -s, --static                   : Resolve extension-less #import names to
+                                     static libs (.lib/.a) instead of dynamic
+                                     (.dll/.so/.dylib).
 
     -t <ID>, --target <ID>         : Cross-compile to a different platform
                                      target than the current one (see targets
@@ -60,6 +61,9 @@ Usage: red [command] [options] [file]
     --red-only                     : Stop just after Red-level compilation.
                                      Use higher verbose level to see compiler
                                      output. (internal debugging purpose)
+
+    --show-expanded                : Output result of Red source code expansion by
+                                     the preprocessor.
 
     --show-func-map                : Output an address/name map of Red/System
                                      functions, for debugging purposes.

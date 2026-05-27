@@ -51,6 +51,7 @@ system-dialect: make-profilable context [
 		debug?:				no							;-- emit debug information into binary
 		debug-safe?:		yes							;-- try to avoid over-crashing on runtime debug reports
 		dev-mode?:		 	none						;-- yes => turn on developer mode (pre-build runtime, default), no => build a single binary
+		static-link?:		no							;-- yes => extension-less #import names resolve to static libs (.lib/.a) instead of dynamic (.dll/.so/.dylib)
 		need-main?:			no							;-- yes => emit a function prolog/epilog around global code
 		PIC?:				no							;-- generate Position Independent Code
 		base-address:		none						;-- base image memory address
@@ -1946,6 +1947,11 @@ system-dialect: make-profilable context [
 			unless parse defs [
 				some [
 					pos: set lib string! (
+						;-- An extension-less name resolves to a per-format library
+						;-- (.dll/.so/.dylib by default, .lib/.a with --static).
+						unless suffix? to-file lib [
+							lib: static-link/resolve-libname lib job/format job/static-link?
+						]
 						new?: no
 						unless list: select imports lib [
 						 	list: make block! 10
