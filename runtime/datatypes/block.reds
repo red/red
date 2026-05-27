@@ -1497,7 +1497,8 @@ block: context [
 		if s/offset + blk/head > s/tail [blk/head: len]	;-- Past-end index adjustment
 		h: blk/head
 		tail?: any [append? s/offset + h = s/tail]
-		slots: part * cnt
+		if overflow? [slots: part * cnt][fire [TO_ERROR(internal no-memory)]]
+		
 		index: either append? [
 			action: words/_append
 			(as-integer s/tail - s/offset) >> 4
@@ -1507,7 +1508,7 @@ block: context [
 		]
 		chk?: ownership/check as red-value! blk action value index slots
 
-		size: as-integer s/tail + slots - s/offset
+		if overflow? [size: (as-integer s/tail - s/offset) + (slots << size? int-ptr!)][fire [TO_ERROR(internal no-memory)]]
 		if size > s/size [
 			if cnt <= 4 [size: size * 2]				;-- double it if low number of inserted slots
 			s: expand-series s size
