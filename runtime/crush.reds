@@ -52,6 +52,7 @@ crush: context [							;-- LZ77
 	#define CRUSH_HASH1_SHIFT	7           ;-- (CRUSH_HASH1_BITS + (CRUSH_HASH1_LEN - 1)) / CRUSH_HASH1_LEN
 	#define CRUSH_HASH2_SHIFT	5           ;-- (CRUSH_HASH2_BITS + (CRUSH_HASH2_LEN - 1)) / CRUSH_HASH2_LEN
 
+	verbose: 0
 	crush-error?: no
 
 	crush!: alias struct! [
@@ -435,7 +436,7 @@ crush: context [							;-- LZ77
 			(as-integer p4 - head) < length
 		][
 			if any [size < 1 size > CRUSH_BUF_SIZE][
-				print-line ["Crush Decompress - File corrupted: size = " size]
+				#if debug? = yes [if verbose > 0 [print-line ["Crush Decompress - File corrupted: size = " size]]]
 				free crush/buf
 				return null
 			]
@@ -445,7 +446,7 @@ crush: context [							;-- LZ77
 
 			buf: get-buf crush size
 			if crush-error? [
-				print-line ["Crush Decompress - File corrupted: size = " size]
+				#if debug? = yes [if verbose > 0 [print-line ["Crush Decompress - File corrupted: size = " size]]]
 				free crush/buf
 				return null
 			]
@@ -483,13 +484,13 @@ crush: context [							;-- LZ77
 					]
 					s: p + not pp
 					if s < 0 [
-						print-line ["Crush Decompress - File corrupted: s = " s]
+						#if debug? = yes [if verbose > 0 [print-line ["Crush Decompress - File corrupted: s = " s]]]
 						free crush/buf
 						return null
 					]
 
 					if p + len + CRUSH_MIN_MATCH > size [
-						print-line ["Crush Decompress - File corrupted: len = " len]
+						#if debug? = yes [if verbose > 0 [print-line ["Crush Decompress - File corrupted: len = " len]]]
 						free crush/buf
 						return null
 					]
