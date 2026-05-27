@@ -252,7 +252,8 @@ _sort: context [
 		SORT_SWAPINIT(base width)
 		cmp: as cmpfunc! cmpfunc
 
-		buffer: allocate num / 2 * width
+		if overflow? [buffer: allocate num / 2 * width][fire [TO_ERROR(script too-long)]]
+		if null? buffer [fire [TO_ERROR(internal no-memory)]]
 		n-stack: 1 + log-b num
 		stack: as run! system/stack/allocate (size? run!) >> 2 * n-stack	;-- allocate 1 slot = 4 bytes
 		set-memory as byte-ptr! stack null-byte n-stack * size? run!

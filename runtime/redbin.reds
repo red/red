@@ -476,6 +476,14 @@ redbin: context [
 		saved: null
 		if compressed? [
 			p: crush/decompress p null
+			if p = null [
+				either codec? [
+					fire [TO_ERROR(script invalid-data) stack/arguments]
+				][
+					print-line "Error: Redbin compressed data corrupted!"
+					halt
+				]
+			]
 			saved: p
 		]
 		p4: as int-ptr! p
@@ -2130,13 +2138,15 @@ redbin: context [
 			tail
 		][
 			if data + 3 > end [throw-error data]
-			
-			width:  IMAGE_WIDTH(data/3)
-			height: IMAGE_HEIGHT(data/3)
-			size:   width * height << 2					;-- 4 bytes per pixel
-			
-			pixels: as byte-ptr! data + 3
-			argb:   binary/load pixels size
+
+			if overflow? [
+				width:  IMAGE_WIDTH(data/3)
+				height: IMAGE_HEIGHT(data/3)
+				size:   width * height << 2								;-- 4 bytes per pixel
+
+				pixels: as byte-ptr! data + 3
+				argb: binary/load pixels size
+			][throw-error data]
 			
 			slot: as red-image! ALLOC_TAIL(parent)
 			slot/header: TYPE_UNSET						;-- ensures GC-safety

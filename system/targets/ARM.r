@@ -1246,6 +1246,68 @@ make-profilable make target-class [
 			emit-i32 #{73a00000}					;-- MOVVC r0, #0
 		]
 	]
+
+	;-- OVERFLOW? construct support ---------------------------------------------
+	;-- Layout produced by an OVERFLOW? block:
+	;--     <body>            with hooks emitting B<cond> to ovf for each math/shift/div op
+	;--     MOV r0, #0        ; result = false
+	;--     B  +4             ; skip over the MOV r0, #1
+	;-- ovf:
+	;--     MOV r0, #1        ; result = true
+	;-- done:
+
+	emit-overflow-epilog-no-ovf: does [				;-- emitted just before the ovf: label
+		emit-i32 #{e3a00000}						;-- MOV r0, #0
+		emit-i32 #{ea000000}						;-- B +4 (PC-relative disp=0 skips next instruction)
+	]
+
+	emit-overflow-epilog-ovf: does [					;-- emitted right after the ovf: label
+		emit-i32 #{e3a00001}						;-- MOV r0, #1
+	]
+
+	;-- Emit a conditional B<cond> to the current OVERFLOW? block's ovf: label, using
+	;-- the back-patching machinery (same model as emit-jump-point uses for breaks).
+	;-- `cond-byte` is the condition value from the conditions table (cond nibble in upper 4 bits).
+	emit-overflow-branch: func [cond-byte [binary!] /local opcode][
+		opcode: copy #{0a000000}					;-- B<always>  (cond=0; OR'd with cond-byte below)
+		opcode/1: (to char! cond-byte/1) or to char! 10		;-- byte 1 = (cond << 4) | 0xA  (B opcode bits)
+		emit-reloc-addr last emitter/overflow-jumps
+		emit-i32 opcode
+	]
+
+	;-- Pre-IDIV signed INT_MIN / -1 check. Assumes r0 = dividend, r1 = divisor.
+	;-- Uses ARM conditional execution: only run the INT_MIN comparison if r1 == -1,
+	;-- otherwise the predicated MOVEQ/LSLEQ/CMPEQ all NOP and the final BEQ falls through.
+	emit-overflow-check-division: does [
+		emit-i32 #{e3710001}						;-- CMN   r1, #1     ; Z=1 iff r1 == -1
+		emit-i32 #{03a06001}						;-- MOVEQ r6, #1
+		emit-i32 #{01a06f86}						;-- LSLEQ r6, r6, #31 ; r6 = 0x80000000 (INT_MIN)
+		emit-i32 #{01560000}						;-- CMPEQ r6, r0    ; if r1==-1, Z=1 iff r0 == INT_MIN
+		emit-overflow-branch #{00}					;-- BEQ   ovf       (cond EQ = #{00}, back-patched)
+	]
+
+	;-- Pre-shift AND-mask check for << (literal count n, width-bit operand).
+	;-- Unsigned: top n bits (within width-bit value) must be 0     => TST r0, #mask ; BNE ovf
+	;-- Signed:   top n+1 bits must all match (width=4 only here)   => ADD ip, r0, #bias ; TST ip, #mask ; BNE ovf
+	;-- Uses emit-op-imm32 which auto-falls-back to LDR-from-pool when the immediate doesn't
+	;-- fit ARM's rotated 8-bit encoding (clobbers r3 in that path; ip preserves the bias).
+	emit-overflow-check-shift: func [n [integer!] /local mask bias bits][
+		if n = 0 [exit]								;-- no-op shift, never overflows
+		bits: 8 * width								;-- 8 (byte!), 16 (int16!), or 32 (integer!)
+		mask: either width = 4 [
+			shift/left -1 32 - n					;-- 32-bit: -1 << k avoids REBOL2 integer overflow
+		][
+			(shift/left -1 bits - n) and ((shift/left 1 bits) - 1)	;-- narrower: mask off bits above width
+		]
+		either all [signed? width = 4][				;-- signed bias trick only meaningful for integer! (width=4)
+			bias: shift/left 1 31 - n
+			emit-op-imm32 #{e280c000} bias			;-- ADD ip, r0, #bias
+			emit-op-imm32 #{e31c0000} mask			;-- TST ip, #mask
+		][
+			emit-op-imm32 #{e3100000} mask			;-- TST r0, #mask
+		]
+		emit-overflow-branch #{10}					;-- BNE ovf  (cond NE = #{10})
+	]
 	
 	emit-get-pc: does [
 		emit-i32 #{e1a0000f}						;-- MOV r0, pc
@@ -2153,6 +2215,11 @@ make-profilable make target-class [
 	]
 	
 	emit-bitshift-op: func [name [word!] a [word!] b [word!] args [block!] /local c value][
+		;-- OVERFLOW? instrumentation for << : AND-mask check on the high bits of r0 (or ADD + TST for signed).
+		;-- Only applied for literal shift counts (b = 'imm) per design; variable-count shifts are not instrumented.
+		if all [compiler/overflow-check? name = first [<<] b = 'imm find [1 2 4] width][
+			emit-overflow-check-shift compiler/unbox args/2
+		]
 		switch b [
 			ref [
 				emit-variable args/2
@@ -2333,6 +2400,7 @@ make-profilable make target-class [
 				switch b [
 					imm [
 						either all [
+							not compiler/overflow-check?	;-- skip LSLS trick under tracking (synthetic check needs r5 from SMULLS)
 							not zero? arg2
 							c: power-of-2? arg2		;-- trivial optimization for b=2^n
 						][
@@ -2386,6 +2454,10 @@ make-profilable make target-class [
 					][
 						either block? opcode [do opcode][emit-i32 opcode]
 					]
+				]
+				;-- OVERFLOW? instrumentation: pre-IDIV signed INT_MIN/-1 trap guard.
+				if all [compiler/overflow-check? width = 4][
+					emit-overflow-check-division
 				]
 				either compiler/job/cpu-version < 7.0 [
 					call-divide mod?
@@ -2507,6 +2579,29 @@ make-profilable make target-class [
 			find math-op	   name	[emit-math-op		name a b args]
 			find bitwise-op	   name	[emit-bitwise-op	name a b args]
 			find bitshift-op   name [emit-bitshift-op   name a b args]
+		]
+		;-- OVERFLOW? instrumentation: post-op check for +, -, *.
+		;-- (<<, /, //, % are instrumented at their emission sites since they need pre-op checks)
+		;-- width = 4 : use V/C flags directly (ADDS/SUBS/SMULLS set them on 32-bit overflow).
+		;-- width = 1 or 2 : ARM math is always 32-bit, so flags don't reflect narrower overflow.
+		;-- Operands are zero-extended on load (LDRB, LDRH), so a valid result must fit in
+		;-- 0..(2^(8*width) - 1); over-/under-flow makes r0 unsigned-higher than max.
+		if all [compiler/overflow-check? find [+ - *] name][
+			either width = 4 [
+				either name = '* [						;-- SMULLS overflow: high half (r5) must equal sign-extension of low half (r0)
+					emit-i32 #{e1550fc0}				;-- CMP r5, r0, ASR #31
+					emit-overflow-branch #{10}			;-- BNE ovf  (NE = #{10})
+				][
+					emit-overflow-branch case [
+						signed?    [#{60}]				;-- BVS  (signed overflow)
+						name = '+  [#{20}]				;-- BCS  (unsigned + carry-out)
+						'else      [#{30}]				;-- BCC  (unsigned - borrow: C=0 on ARM)
+					]
+				]
+			][											;-- width = 1 (byte!) or 2 (int16!)
+				emit-op-imm32 #{e3500000} (shift/left 1 8 * width) - 1	;-- CMP r0, #(2^bits - 1)
+				emit-overflow-branch #{80}				;-- BHI ovf  (unsigned higher: r0 > max)
+			]
 		]
 	]
 	

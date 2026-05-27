@@ -3802,7 +3802,7 @@ comment {
 	--test-- "#5609"
 		saved-dir: what-dir
 		change-dir qt-tmp-dir
-		make-dir d5609: %123456789_123
+		make-dir d5609: %123456789_123/
 		change-dir d5609
 		--assert string? to-local-file/full %1
 		change-dir %../
@@ -3857,7 +3857,69 @@ comment {
 		--assert 1 = get in object [a: 1] quote a:
 		o5724: object [a: 2]
 		--assert 2 = o5724/(quote a:)
+	
+#if config/OS <> 'Windows [
+	--test-- "#5732"
+		 call/output "echo $(id)" s5732: ""
+		 --assert empty? s5732
+]
+
+	--test-- "#5734"
+		foreach b [
+			#{52454442494E0200010000000C0000003500000000000000FFFFFFFF}		;-- FFFFh x FFFFh
+			#{52454442494E0200010000000C0000003500000000000000FFDFFFDF}		;-- DFFFh x DFFFh
+			#{52454442494E0200010000000C000000350000000000000000C000C0}		;-- C000h x C000h
+		][
+			--assert error? set 'err try [load/as b 'redbin]
+			--assert err/id = 'rb-invalid-record
+		]
+
+	--test-- "#5736"
+		--assert error? set 'err try [length? b: enbase/base (s: append/dup make {} n: 1 << 28 + 100000 "x" n) 2]
+		--assert err/id = 'too-long
+
+	--test-- "#5737"
+		v5737: make vector! [integer! 32 16]
+		append v5737 1
+		--assert v5737 = make vector! [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1]
+		--assert error? try [make vector! [integer! 32 1'600'000'000]]
+
+	--test-- "#5738"
+		blk5738: load/as #{
+52454442494E0200010000001400000005000000006CCA88010000000B00000001000000
+} 'redbin
+		--assert error? set 'err try [sort/stable blk5738]
+		--assert err/id = 'too-long
+
+	--test-- "#5739"
+		--assert error? try [make vector! 700'000'000]
 		
+	--test-- "#5740"
+		o5740: make object! [
+		    mutated?: false
+		    on-deep-change*: func [owner word target action new index part][
+		        if all [word = 'b not mutated?][
+		            mutated?: true
+		            clear b
+		            append/dup b 0 250000
+		        ]
+		    ]
+		    b: copy [1 2 3 4 5 6 7 8]
+		]
+		take/part o5740/b 2
+		--assert true
+		o5740/b: none
+
+	--test-- "#5741"
+		s5741: "1234567890"
+		--assert error? try [append/dup s5741 "x" 2147483647]
+		--assert error? try [insert/dup s5741 "x" 2147483647]
+
+	--test-- "#5746"
+		parse b5746: "12345" [skip p: 2 skip change :p ('x) to end] --assert b5746 == "1x45"
+		parse b5746: "12345" [skip p: 2 skip insert :p ('x) to end]	--assert b5746 == "1x2345"
+		parse b5746: "12345" [skip p: 2 skip remove :p to end] 		--assert b5746 == "145"	
+	
 ===end-group===
 
 ~~~end-file~~~

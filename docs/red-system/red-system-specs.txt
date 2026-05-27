@@ -2635,8 +2635,82 @@ A dispatching use case would look like this:
  dispatch 2
 will output:
 	bar
-	
-	
+
+
+===Overflow detection
+
+---overflow?
+
+Compiles the given body block with extra runtime checks injected after (or before, for shift and division) each literal math operation. As soon as any of those checks detects an overflow, execution of the body block is aborted and <b>overflow?</b> yields <b>true</b>. If the body block runs through to completion without any check firing, <b>overflow?</b> yields <b>false</b>.
+
+<b>Syntax</b>
+
+ overflow? [<body>]
+
+ <body>  : arbitrary body of code.
+ return: : a value of type logic!.
+
+The body block can contain any code (assignments, control flow, calls, etc.); only the following <b>literal</b> operations are instrumented:
+
+*Addition (<b>+</b>): post-op check — signed via OF, unsigned via CF/C-flag.
+
+*Subtraction (<b>-</b>): post-op check — signed via OF, unsigned underflow via CF/C-flag.
+
+*Multiplication (<b>*</b>): post-op check — signed via OF (x86) or high-half synthetic check (ARM); same code path covers unsigned 32-bit multiplications.
+
+*Left shift (<b>&lt;&lt;</b>) with a literal shift count: pre-op AND-mask check on the high bits of the first operand. Shifts by a variable (runtime) count are <u>not</u> instrumented.
+
+*Signed integer division (<b>/</b>, <b>//</b>, <b>%</b>) at 32-bit width: pre-op guard that branches to the overflow result when <b>INT_MIN / -1</b> would be evaluated (which would otherwise raise a CPU trap).
+
+Operations performed inside functions called from the body are <u>not</u> instrumented — only literal operations appearing in the body block itself contribute to the result. The check is therefore purely lexical.
+
+<b>Scope</b>
+
+The result of <b>overflow?</b> is a logic! value usable in any expression context — typically in <b>if</b>/<b>either</b>/<b>while</b> conditions, but it can also be stored in a variable for later use. Nested <b>overflow?</b> blocks are supported and each block's check is independent of the others.
+
+<b>Examples</b>
+
+ if overflow? [c: a * b] [
+     print "multiplication overflowed"
+ ]
+
+ either overflow? [r: a + b] [r: 0][use r]
+
+ safe?: not overflow? [
+     a: a + 1
+     b: b * 2
+     c: c - 1
+ ]
+
+Early-out semantics — the offending operation is detected before its successors run:
+
+ counter: 0
+ flag: overflow? [
+     counter: counter + 1            ;-- runs (no overflow)
+     n: 2147483647 + 1               ;-- overflows here
+     counter: counter + 100          ;-- never executes
+ ]
+ ;-- flag is true, counter is 1
+
+\note Limitations
+
+*Floating-point operations are not instrumented.
+
+*Division-by-zero raises a CPU trap and is not caught by <b>overflow?</b>.
+
+*Shifts by a runtime (non-literal) count are not instrumented.
+
+*Under tracking, a few trivial optimizations are disabled inside the body to keep the flag checks reliable: <b>x + 1</b> compiles as ADD instead of INC, <b>x - 1</b> as SUB instead of DEC, and <b>x * 2^n</b> as a real multiply instead of a shift (x86 INC/DEC don't update CF; shifts don't reliably update OF for counts &gt; 1).
+
+/note
+
+\note Difference from <b>system/cpu/overflow?</b>
+
+<b>system/cpu/overflow?</b> (see Cpu section) reads the CPU's overflow flag set by the <u>last</u> integer math operation only, with no instrumentation. <b>overflow? [<body>]</b> is a different construct: it compiles its body with per-operation instrumentation and gives a block-scoped, early-exit answer covering every literal math/shift/div operation in the body.
+
+/note
+
+
 ===Stack functions
 
 ---push
@@ -2964,6 +3038,11 @@ As many CPU operations can change this state, it is only reliable if used immedi
 
 \note Overflow cpu flag
 This is not a direct check of the overflow flag, as some math operations on some CPUs are not setting that flag.
+
+/note
+
+\note Block-scoped overflow detection
+For block-scoped, per-operation overflow detection that auto-instruments all math operations in a body, use the <b>overflow?</b> construct instead (see the <u>Overflow detection</u> section).
 
 /note
 
@@ -4290,6 +4369,11 @@ will output:
 
 
 ===Document History
+
+*<b>25/05/2026 - revision 61</b>
+
+*>Adds <b>overflow?</b> block-scoped overflow detection construct.
+
 
 *<b>08/09/2022 - revision 60</b>
 

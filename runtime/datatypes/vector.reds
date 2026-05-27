@@ -617,10 +617,12 @@ vector: context [
 			vec [red-vector!]
 			s	[series!]
 	][
+		if overflow? [size: size * unit][fire [TO_ERROR(internal no-memory)]]
+		
 		vec: as red-vector! slot
 		vec/header: TYPE_UNSET
 		vec/head: 	0
-		vec/node: 	alloc-bytes size * unit
+		vec/node: 	alloc-bytes size
 		vec/type:	type
 		vec/header: TYPE_VECTOR							;-- implicit reset of all header flags
 		

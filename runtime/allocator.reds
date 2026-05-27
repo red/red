@@ -304,6 +304,7 @@ free-node-frame: func [
 ][
 	either null? frame/prev [				;-- if frame = head
 		memory/n-head: frame/next			;-- head now points to next one
+		if memory/n-head <> null [memory/n-head/prev: null]
 	][
 		either null? frame/next [			;-- if frame = tail
 			memory/n-tail: frame/prev		;-- tail is now at one position back
@@ -446,6 +447,7 @@ free-series-frame: func [
 ][
 	either null? frame/prev [				;-- if frame = head
 		memory/s-head: frame/next			;-- head now points to next one
+		if memory/s-head <> null [memory/s-head/prev: null]
 	][
 		either null? frame/next [			;-- if frame = tail
 			memory/s-tail: frame/prev		;-- tail is now at one position back

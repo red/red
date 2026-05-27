@@ -744,13 +744,46 @@ set-dark-mode: func [
 ][
 ]
 
+monitor-refresh-pending?:	no
+monitor-refresh-running?:	no
+
+monitor-refresh-cb: func [
+	[cdecl]
+	data	[int-ptr!]
+	return:	[logic!]
+][
+	monitor-refresh-pending?: no
+	if monitor-refresh-running? [
+		;-- Someone pumped the main loop (free-handles does this while
+		;-- destroying a window) while we were already refreshing.
+		;-- Re-arm so we run again after the in-flight call unwinds,
+		;-- with the latest monitor list.
+		monitor-refresh-pending?: yes
+		g_idle_add as-integer :monitor-refresh-cb null
+		return false								;-- G_SOURCE_REMOVE
+	]
+	monitor-refresh-running?: yes
+	#call [system/view/platform/refresh-screens]
+	monitor-refresh-running?: no
+	false											;-- G_SOURCE_REMOVE
+]
+
 monitor-changed: func [
 	[cdecl]
 	display		[handle!]
 	monitor		[handle!]
 	user_data	[handle!]
 ][
-	#call [system/view/platform/refresh-screens]
+	;-- #5721: hibernate-resume emits a burst of monitor-added/-removed
+	;-- signals. refresh-screens destroys faces on vanished displays,
+	;-- and the gtk_main_iteration_do pump inside free-handles would
+	;-- otherwise dispatch the next queued monitor signal and re-enter
+	;-- this callback recursively, corrupting series state mid-iteration.
+	;-- Coalesce + defer onto the main-loop idle so refresh-screens
+	;-- always runs from a clean stack.
+	if monitor-refresh-pending? [exit]
+	monitor-refresh-pending?: yes
+	g_idle_add as-integer :monitor-refresh-cb null
 ]
 
 init: func [/local disp [handle!]][

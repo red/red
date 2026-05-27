@@ -2381,7 +2381,7 @@ string: context [
 		s: GET_BUFFER(str)
 		either done? [									;-- expand str if needed, accounting to added and /dup
 			if cnt > 1 [								;-- already appended FORMed value, now expand for /dup count
-				size: (len + (added * cnt)) * GET_UNIT(s)
+				if overflow? [size: (len + (added * cnt)) * GET_UNIT(s)][fire [TO_ERROR(internal no-memory)]]
 				if size > s/size [
 					if s/size * 2 > size [size: 0]		;-- double existing space (0 arg) if size can fit into that
 					s: expand-series s size
@@ -2398,7 +2398,7 @@ string: context [
 			unit: GET_UNIT(s)
 			upgrade?: unit < unit2
 			u: either upgrade? [unit2][unit]
-			size: (len + (added * cnt)) * u				;; /part not taken into account, overshooting size!
+			if overflow? [size: (len + (added * cnt)) * u][fire [TO_ERROR(internal no-memory)]]	;; /part not taken into account, overshooting size!
 			either size > s/size [						;-- expand if needed
 				if s/size * 2 > size [size: 0]			;-- double existing space (0 arg) if size can fit into that
 				s: either upgrade? [convert s null size unit2 0 0 0 no][expand-series s size]
@@ -2520,14 +2520,16 @@ string: context [
 		upgrade?: unit < unit2
 		u: either upgrade? [unit2][unit]				;-- output string unit
 		if all [part > 0 part < added not done?][added: part] ;-- apply /part value
-		index: str/head
-		lu: log-b u
-		hpos: index << lu
-		wadded: added << lu
-		madded: added * cnt
-		wmadded: madded << lu
-		windex:	index << log-b unit
-		size: (len + madded) << lu
+		if overflow? [
+			index: str/head
+			lu: log-b u
+			hpos: index << lu
+			wadded: added << lu
+			madded: added * cnt
+			wmadded: madded << lu
+			windex:	index << log-b unit
+			size: (len + madded) << lu
+		][fire [TO_ERROR(internal no-memory)]]
 		
 		;-- Expand series buffer and append the value --
 		either size > s/size [							;-- Insert in expanded buffer case

@@ -1563,13 +1563,13 @@ natives: context [
 		/local
 			data [red-string!]
 			int  [red-integer!]
-			p	 [byte-ptr!]
 			ret  [red-binary!]
 			node [node!]
 			s	 [series!]
-			out	 [byte-ptr!]
+			p out[byte-ptr!]
 			len  [integer!]
 			base [integer!]
+			size [integer!]
 	][
 		#typecheck [enbase base-arg]
 		data: as red-string! stack/arguments
@@ -1590,18 +1590,18 @@ natives: context [
 
 		ret: as red-binary! data
 		ret/head: 0
-
-		node: switch base [
-			64 [alloc-bytes 4 * len / 3 + (2 * (len / 32) + 5)]
-			58 [alloc-bytes len * 2]
-			16 [alloc-bytes len * 2 + (len / 32) + 32]
-			2  [alloc-bytes 8 * len + (2 * (len / 8) + 4)]
-			default [fire [TO_ERROR(script invalid-arg) int] null]
-		]
-		if null? node [
-			ret/header: TYPE_NONE
-			exit
-		]
+		if overflow? [
+			size: switch base [
+				64 [4 * (len / 3) + (4 * (len // 3) / 3) + (2 * (len / 32) + 5)]
+				58 [len * 2]
+				16 [len * 2 + (len / 32) + 32]
+				2  [len * 8 + (2 * (len / 8) + 4)]
+				default [fire [TO_ERROR(script invalid-arg) int] 0]
+			]
+		][fire [TO_ERROR(script too-long)]]
+		
+		node: alloc-bytes size
+		if null? node [ret/header: TYPE_NONE exit]
 
 		s: as series! node/value
 		out: as byte-ptr! s/offset

@@ -100,6 +100,7 @@ system-dialect: make-profilable context [
 		user-code?:		 no
 		block-level: 	 0								;-- nesting level of input source block
 		catch-level:	 0								;-- nesting level of CATCH body block
+		overflow-check?: no								;-- yes => inside an OVERFLOW? block; backend hooks instrument math/shift/div ops
 		verbose:  	 	 0								;-- logs verbosity level
 	
 		imports: 	   	 make block! 10					;-- list of imported functions
@@ -123,6 +124,10 @@ system-dialect: make-profilable context [
 			'records make block!  1000					;-- [address line file] records
 			'files	 make hash!   20					;-- filenames table
 		]
+		line-cache-header: none							;-- cached block header for source line lookup
+		line-cache-pos:	 none							;-- cached line marker position in header
+		line-cache-idx:	 0								;-- cached source index
+		line-cache-line: 1								;-- cached source line
 		
 		pos:		none								;-- validation rules cursor for error reporting
 		return-def: to-set-word 'return					;-- return: keyword
@@ -218,6 +223,7 @@ system-dialect: make-profilable context [
 			as			 [comp-as]
 			assert		 [comp-assert]
 			size? 		 [comp-size?]
+			overflow?	 [comp-overflow?]
 			if			 [comp-if]
 			either		 [comp-either]
 			case		 [comp-case]
@@ -248,7 +254,7 @@ system-dialect: make-profilable context [
 		]
 		
 		calling-keywords: [								;-- keywords accepted in expr-call-stack
-			?? as assert size? if either case switch until while any all
+			?? as assert size? overflow? if either case switch until while any all
 			return catch
 		]
 		
@@ -261,22 +267,48 @@ system-dialect: make-profilable context [
 		foreach [word action] keywords [append keywords-list word]
 		foreach [name spec] functions  [append keywords-list name]
 		
-		calc-line: has [idx head-end prev p header][
+		reset-line-cache: does [
+			line-cache-header:
+			line-cache-pos: none
+			line-cache-idx:	 0
+			line-cache-line: 1
+		]
+
+		calc-line: has [idx prev p header pos mark][
 			header: head pc
 			idx: (index? pc) - header/1  				;-- calculate real pc position (not counting hidden header)
-			prev: 1
+			either all [
+				same? header line-cache-header
+				line-cache-pos
+				idx >= line-cache-idx
+			][
+				prev: line-cache-line
+				p:	  line-cache-pos
+			][
+				line-cache-header: header
+				line-cache-pos:	   none
+				line-cache-idx:	   0
+				line-cache-line:   prev: 1
+				p: next header
+			]
 
-			parse header [								;-- search for closest line marker
-				skip									;-- skip over header length
+			parse p [									;-- search for closest line marker
 				some [
-					set p pair! (
-						if p/2 = idx [return p/1]		;-- exact value position match
-						if p/2 > idx [return prev]		;-- closest value position match 
-						prev: p/1
+					pos: set mark pair! (
+						if mark/2 = idx [
+							line-cache-pos:  pos
+							line-cache-idx:  mark/2
+							line-cache-line: mark/1
+							return mark/1				;-- exact value position match
+						]
+						if mark/2 > idx [return prev]	;-- closest value position match
+						line-cache-pos:  pos
+						line-cache-idx:  mark/2
+						line-cache-line: prev: mark/1
 					)
 				]
 			]
-			return p/1									;-- return last marker
+			return prev									;-- return last marker
 		]
 		
 		store-dbg-lines: has [dbg pos][
@@ -2585,6 +2617,37 @@ system-dialect: make-profilable context [
 			none
 		]
 
+		comp-overflow?: has [unused body-chunk no-ovf-chunk ovf-arm combined saved][
+			pc: next pc
+			unless block? pc/1 [
+				backtrack 'overflow?
+				throw-error "OVERFLOW? requires a block as argument"
+			]
+
+			saved: overflow-check?
+			overflow-check?: yes
+			append/only emitter/overflow-jumps make block! 1	;-- push fresh jump list (parallel to push-loop-jumps' idiom)
+
+			set [unused body-chunk] comp-block-chunked	;-- compile body; backend hooks emit JCC into list
+
+			overflow-check?: saved
+
+			;-- "no-overflow" tail: XOR eax,eax + JMP over MOV eax,1 (ovf label lands here)
+			no-ovf-chunk: comp-chunked [emitter/target/emit-overflow-epilog-no-ovf]
+			combined: emitter/chunks/join body-chunk no-ovf-chunk
+
+			emitter/resolve-loop-jumps combined 'overflow-jumps	;-- patch all early-out jumps to combined's tail (= ovf:)
+			remove back tail emitter/overflow-jumps		;-- pop
+
+			;-- "overflow" arm: MOV eax,1
+			ovf-arm: comp-chunked [emitter/target/emit-overflow-epilog-ovf]
+			combined: emitter/chunks/join combined ovf-arm
+
+			emitter/merge combined
+			last-type: [logic!]
+			<last>
+		]
+
 		comp-block-chunked: func [/only /test name [word!] /bool /local expr][
 			emitter/chunks/start
 			expr: either only [
@@ -4330,6 +4393,7 @@ system-dialect: make-profilable context [
 		clear compiler/subroutines
 		clear compiler/debug-lines/records
 		clear compiler/debug-lines/files
+		compiler/reset-line-cache
 		clear emitter/symbols
 	]
 	

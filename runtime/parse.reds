@@ -1495,7 +1495,8 @@ parser: context [
 							][
 								input/head: new/head
 								PARSE_CHECK_INPUT_EMPTY?
-								state: ST_NEXT_ACTION
+								state: ST_CHECK_PENDING
+								match?: yes
 							][
 								PARSE_ERROR [TO_ERROR(script parse-invalid-ref) value]
 							]
@@ -1775,7 +1776,7 @@ parser: context [
 							done?: no
 							value: cmd + 1
 							if TYPE_OF(value) = TYPE_PATH [PARSE_ERROR [TO_ERROR(script parse-rule) cmd]]
-							if all [value < tail TYPE_OF(value) = TYPE_WORD][
+							if all [value < tail any [TYPE_OF(value) = TYPE_WORD TYPE_OF(value) = TYPE_GET_WORD]][
 								new: as red-series! _context/get as red-word! value
 								if all [TYPE_OF(new) = TYPE_OF(input) new/node = input/node][
 									copy-cell as red-value! input base
@@ -1894,7 +1895,7 @@ parser: context [
 							s-top: null
 							saved: input/head
 							
-							if TYPE_OF(cmd) = TYPE_WORD [
+							if any [TYPE_OF(cmd) = TYPE_WORD TYPE_OF(cmd) = TYPE_GET_WORD][
 								new: as red-series! _context/get as red-word! cmd
 								if all [TYPE_OF(new) = TYPE_OF(input) new/node = input/node][
 									cmd: cmd + 1		;-- INSERT position
@@ -1942,7 +1943,7 @@ parser: context [
 							
 							done?: no
 							value: cmd + 1
-							if all [value < tail TYPE_OF(value) = TYPE_WORD][
+							if all [value < tail any [TYPE_OF(value) = TYPE_WORD TYPE_OF(value) = TYPE_GET_WORD]][
 								new: as red-series! _context/get as red-word! value
 								if all [TYPE_OF(new) = TYPE_OF(input) new/node = input/node][
 									cmd: value + 1		;-- CHANGE position

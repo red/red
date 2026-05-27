@@ -996,7 +996,7 @@ collector: context [
 		]
 			cb		[function! []]
 	][
-		system/atomic/store :state GC_RUNNING
+		system/atomic/store :state GC_RUNNING			;-- camera widget rely on threads and reads this value.
 
 		#if debug? = yes [if verbose > 1 [
 			#if OS = 'Windows [platform/dos-console?: no]
