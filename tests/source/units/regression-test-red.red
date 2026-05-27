@@ -3919,6 +3919,25 @@ comment {
 		parse b5746: "12345" [skip p: 2 skip change :p ('x) to end] --assert b5746 == "1x45"
 		parse b5746: "12345" [skip p: 2 skip insert :p ('x) to end]	--assert b5746 == "1x2345"
 		parse b5746: "12345" [skip p: 2 skip remove :p to end] 		--assert b5746 == "145"	
+
+	--test-- "#5747"
+		v5747: make vector! [0 1 2 3 4 5 6 7 8 9]
+		--assert error? try [append/dup v5747 1 2147483647]
+		
+		v5747: make vector! [0 1 2 3 4 5 6 7 8 9]
+		--assert error? try [insert/dup v5747 1 2147483647]
+		
+		bin5747: #{00010203040506070809}
+		--assert error? try [append/dup bin5747 1 2147483647]
+		
+		bin5747: #{00010203040506070809}
+		--assert error? try [insert/dup bin5747 1 2147483647]
+		
+		blk5747: [0 1 2 3 4 5 6 7 8 9]
+		--assert error? try [append/dup blk5747 1 2147483647]
+		
+		blk5747: [0 1 2 3 4 5 6 7 8 9]
+		--assert error? try [insert/dup blk5747 1 2147483647]
 	
 ===end-group===
 

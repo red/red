@@ -996,13 +996,16 @@ vector: context [
 		][
 			added: 1
 		]
-		lu: log-b unit
-		madded: added * cnt
-		size: (madded + len) << lu
+		if overflow? [
+			madded: added * cnt
+			size: (madded + len) * unit
+		][fire [TO_ERROR(internal no-memory)]]
+		
 		if size > s/size [
 			if s/size * 2 > size [size: 0]				;-- double existing space (0 arg) if size can fit into that
 			s: expand-series s size
 		]
+		lu: log-b unit
 		;-- If needed, move right part forward --
 		either tail? [p0: as byte-ptr! s/tail][
 			p0: (as byte-ptr! s/offset) + (vec/head << lu)
