@@ -2570,7 +2570,7 @@ string: context [
 					len2: as-integer sn/tail - sn/offset
 					convert s sn 0 unit2 windex len2 0 no
 				][
-					len2: len2 << log-b u
+					len2: len2 << lu
 					p0: (as byte-ptr! s/offset) + windex
 					copy-memory as byte-ptr! sn/tail p0 len2
 					sn/tail: as cell! (as byte-ptr! sn/tail) + len2
@@ -2591,7 +2591,7 @@ string: context [
 			;-- Insert the value --
 			either type = TYPE_CHAR [poke-char s p0 char/value][ ;-- char! value case
 				either done? [							;-- FORMed value case (appended already, just swap buffers)
-					tsize: tsize << log-b u
+					tsize: tsize << lu
 					swap-buffers p0 tsize p0 + tsize wadded wmadded-1 ;-- swap appended buffer with right piece buffer
 				][										;-- string! or tag! value case
 					if any [part < 0 part > added][part: added] ;-- apply /part value
@@ -2600,13 +2600,13 @@ string: context [
 						len2: (as-integer s2/tail - s2/offset) - str2/head
 						if part < len2 [len2: part]
 						either u = unit2 [
-							copy-memory p0 (as byte-ptr! s2/offset) + (str2/head << log-b GET_UNIT(s2)) len2 * u
+							copy-memory p0 (as byte-ptr! s2/offset) + (str2/head << log-b GET_UNIT(s2)) len2 << lu
 						][
 							convert s2 s wmadded u 0 hpos part yes ;-- copy/part buffer with unit upgrade if needed
 						]
 						part: part - len2
 					]
-					if all [type = TYPE_TAG part > 0][poke-char s p0 + (len2 << log-b u) as-integer #">"]
+					if all [type = TYPE_TAG part > 0][poke-char s p0 + (len2 << lu) as-integer #">"]
 				]
 			]
 			;-- Duplicate the appended value if needed --
