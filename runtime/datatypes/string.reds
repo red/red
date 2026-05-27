@@ -2522,14 +2522,14 @@ string: context [
 		if all [part > 0 part < added not done?][added: part] ;-- apply /part value
 		if overflow? [
 			index: str/head
-			lu: log-b u
-			hpos: index << lu
-			wadded: added << lu
+			hpos: index * u
+			wadded: added * u
 			madded: added * cnt
-			wmadded: madded << lu
-			windex:	index << log-b unit
-			size: (len + madded) << lu
+			wmadded: madded * u
+			windex:	index * unit
+			size: (len + madded) * u
 		][fire [TO_ERROR(internal no-memory)]]
+		lu: log-b u										;-- safe to use `<< lu` only once `size` is passing the overflow test
 		
 		;-- Expand series buffer and append the value --
 		either size > s/size [							;-- Insert in expanded buffer case
