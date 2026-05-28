@@ -172,7 +172,9 @@ macho-obj: context [
 							(shift/left 1 (u32-le bin (sec-pos + 44)))	;-- 3 alignment (bytes)
 							data sec-size
 							(make block! 4) 'none 0
-							;-- reloff/nreloc stashed in slots 9/10 for pass 3
+							;-- 9 comdat-key (Mach-O coalesces at the symbol level)
+							none
+							;-- 10/11 reloff/nreloc scratch, dropped after Pass 3
 							u32-le bin (sec-pos + 48)
 							u32-le bin (sec-pos + 52)
 						]
@@ -220,8 +222,8 @@ macho-obj: context [
 		foreach sec sections [
 			relocs: sec/6
 			r-i: 0
-			while [r-i < sec/10][						;-- nreloc
-				r-pos: sec/9 + (r-i * 8) + 1			;-- reloff
+			while [r-i < sec/11][						;-- nreloc
+				r-pos: sec/10 + (r-i * 8) + 1			;-- reloff
 				w0: u32-le bin r-pos
 				either (w0 and R_SCATTERED) <> 0 [
 					append/only relocs reduce [(w0 and 16777215) 0 -1]	;-- scattered: unsupported
@@ -245,6 +247,10 @@ macho-obj: context [
 				]
 				r-i: r-i + 1
 			]
+			;-- Drop the reloff/nreloc scratch so the section block ends at
+			;-- slot 9 (comdat-key), matching the COFF/ELF shape. The static
+			;-- linker then claims slots 10/11 for its live?/merged? flags.
+			clear at sec 10
 		]
 
 		make object! compose/only [
