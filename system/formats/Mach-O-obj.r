@@ -58,6 +58,13 @@ macho-obj: context [
 		u32-le bin pos
 	]
 
+	;-- Serialize a 32-bit value as 4 little-endian bytes.
+	le32-struct: make-struct [value [integer!]] none
+	to-le32: func [n [integer!]][
+		le32-struct/value: n
+		form-struct le32-struct
+	]
+
 	read-cstring: func [bin [binary!] pos [integer!] /local out b i][
 		out: copy ""
 		i: pos
@@ -133,6 +140,7 @@ macho-obj: context [
 			seg-nsects sec-pos j segname sectname flags kind sec-off sec-size
 			data symtab-off symtab-cnt str-off n-real k p
 			sn nt ns sec relocs r-pos r-i w0 w1 r-extern r-sym
+			sec-bases v
 	][
 		;-- Mach header (28 bytes)
 		if (length? bin) < 28 [return none]
@@ -144,6 +152,11 @@ macho-obj: context [
 
 		;-- Pass 1: walk load commands, collecting sections and the symtab.
 		sections:   copy []
+		;-- Parallel to `sections`: each section's vmaddr from its Mach-O
+		;-- header. nlist n_value fields are absolute addresses within the
+		;-- object's section layout, so we subtract the section base to
+		;-- recover the section-relative offset COFF/ELF readers report.
+		sec-bases:  copy []
 		symtab-off: 0
 		symtab-cnt: 0
 		str-off:    0
@@ -160,6 +173,7 @@ macho-obj: context [
 						sec-pos:  lc-pos + 56 + (j * 68)
 						sectname: read-fixed-name bin sec-pos 16
 						segname:  read-fixed-name bin (sec-pos + 16) 16
+						append sec-bases (u32-le bin (sec-pos + 32))	;-- vmaddr
 						sec-size: u32-le bin (sec-pos + 36)
 						sec-off:  u32-le bin (sec-pos + 40)
 						flags:    u32-le bin (sec-pos + 56)
@@ -199,9 +213,14 @@ macho-obj: context [
 			sn: u32-le bin p							;-- n_strx
 			nt: byte-at bin (p + 4)						;-- n_type
 			ns: byte-at bin (p + 5)						;-- n_sect
+			v:  u32-le bin (p + 8)						;-- n_value (absolute)
+			;-- Recover section-relative offset for defined symbols.
+			if all [ns > 0  ns <= length? sec-bases][
+				v: v - pick sec-bases ns
+			]
 			append/only symbols reduce [
 				read-cstring bin (str-off + sn + 1)		;-- name
-				u32-le bin (p + 8)						;-- n_value
+				v										;-- value (section-relative)
 				ns										;-- section-idx (1-based, 0 = NO_SECT)
 				nt										;-- class (n_type)
 				u16-le bin (p + 6)						;-- n_desc (carries N_WEAK_DEF)
@@ -243,6 +262,21 @@ macho-obj: context [
 						(shift/left (shift/logical w1 28) 4)
 							or (shift/left ((shift/logical w1 25) and 3) 2)
 							or (shift/left ((shift/logical w1 24) and 1) 1)
+					]
+					;-- Mach-O non-extern abs32 relocations store the target's
+					;-- absolute address (target_section_vmaddr + offset) in the
+					;-- section data. Normalize to a section-relative offset so
+					;-- the linker's generic `target-va + addend` works the same
+					;-- way it does for COFF/ELF.
+					if all [
+						r-extern = 0
+						(shift/logical w1 28) = GENERIC_RELOC_VANILLA
+						((shift/logical w1 25) and 3) = 2		;-- 4-byte field
+						((shift/logical w1 24) and 1) = 0		;-- non-pcrel
+					][
+						v: i32-le sec/4 ((w0 and 16777215) + 1)
+						change at sec/4 ((w0 and 16777215) + 1)
+							to-le32 (v - pick sec-bases (w1 and 16777215))
 					]
 				]
 				r-i: r-i + 1
