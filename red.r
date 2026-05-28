@@ -549,6 +549,7 @@ redc: context [
 			any [
 				  ["-c" | "--compile"]			(type: 'exe append modes '-c)
 				| ["-r" | "--release"]			(type: 'exe opts/dev-mode?: no append modes '-r)
+				| ["-s" | "--static"]			(opts/static-link?: yes)
 				| ["-e" | "--encap"]			(opts/encap?: yes)
 				| ["-d" | "--debug-stabs" | "--debug"]	(opts/debug?: yes)
 				| ["-o" | "--output"]			[set output  skip | (fail-cmd "Missing output filename")]
@@ -557,7 +558,7 @@ redc: context [
 				| ["-h" | "--help"]				(mode: 'help)
 				| ["-V" | "--version"]			(mode: 'version)
 				| ["-u"	| "--update-libRedRT"]	(type: 'exe opts/dev-mode?: no opts/libRedRT-update?: yes append modes '-u)
-				| ["-s" | "--show-expanded"]	(opts/show: 'expanded)
+				| "--show-expanded"				(opts/show: 'expanded)
 				| ["-dlib" | "--dynamic-lib"]	(type: 'dll)
 				;| ["-slib" | "--static-lib"]	(type 'lib)
 				| "--config" set spec skip		(attempt [spec: load spec])

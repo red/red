@@ -915,6 +915,13 @@ context [
 		if dylink? [resolve-import-refs job]
 		resolve-data-refs job
 		
+		;; Apply external C object relocations (static linking).
+		static-link/apply-relocs
+			job
+			get-section-addr '__text
+			get-section-addr '__data
+			0
+
 		linker/set-image-info
 			job
 			base-address

@@ -17,6 +17,7 @@ do-cache %system/utils/virtual-struct.r
 do-cache %system/utils/secure-clean-path.r
 do-cache %system/utils/unicode.r
 do-cache %system/linker.r
+do-cache %system/linker-static.r
 do-cache %system/emitter.r
 do-cache %system/utils/libRedRT.r
 
@@ -50,6 +51,7 @@ system-dialect: make-profilable context [
 		debug?:				no							;-- emit debug information into binary
 		debug-safe?:		yes							;-- try to avoid over-crashing on runtime debug reports
 		dev-mode?:		 	none						;-- yes => turn on developer mode (pre-build runtime, default), no => build a single binary
+		static-link?:		no							;-- yes => extension-less #import names resolve to static libs (.lib/.a) instead of dynamic (.dll/.so/.dylib)
 		need-main?:			no							;-- yes => emit a function prolog/epilog around global code
 		PIC?:				no							;-- generate Position Independent Code
 		base-address:		none						;-- base image memory address
@@ -1967,13 +1969,21 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		process-import: func [defs [block!] /local lib list cc name specs spec id reloc pos new? funcs err][
+		process-import: func [
+			defs [block!]
+			/local lib list cc name specs spec id reloc pos new? funcs err empty-import?
+		][
 			unless block? defs [throw-error "#import expects a block! as argument"]
 			
 			err: ["invalid import specification at:" pos]
 			unless parse defs [
 				some [
 					pos: set lib string! (
+						;-- An extension-less name resolves to a per-format library
+						;-- (.dll/.so/.dylib by default, .lib/.a with --static).
+						unless suffix? to-file lib [
+							lib: static-link/resolve-libname lib job/format job/static-link?
+						]
 						new?: no
 						unless list: select imports lib [
 						 	list: make block! 10
@@ -1981,10 +1991,12 @@ system-dialect: make-profilable context [
 						]
 					)
 					pos: set cc ['cdecl | 'stdcall]		;-- calling convention
+					(empty-import?: yes)
 					pos: into [
-						some [
+						any [
 							specs:						;-- new function mapping marker
 							pos: set name set-word! (
+								empty-import?: no
 								name: to word! name
 								store-ns-symbol name
 								if ns-path [
@@ -2020,7 +2032,11 @@ system-dialect: make-profilable context [
 								]
 							)
 						]
-					](if new? [repend imports [lib list]])
+					](
+						if all [empty-import?  not static-link/library? lib][throw-error err]
+						if new? [repend imports [lib list]]
+						if static-link/library? lib [static-link/register job lib script cc]
+					)
 				]
 			][throw-error err]
 		]
