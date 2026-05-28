@@ -38,7 +38,10 @@ macho-obj: context [
 	N_WEAK_DEF:		to integer! #{0080}				;-- n_desc bit: weak definition
 
 	R_SCATTERED:	to integer! #{80000000}			;-- scattered relocation flag
-	GENERIC_RELOC_VANILLA: 0
+	GENERIC_RELOC_VANILLA:        0
+	GENERIC_RELOC_PAIR:           1
+	GENERIC_RELOC_SECTDIFF:       2
+	GENERIC_RELOC_LOCAL_SECTDIFF: 4
 
 	;-- ===== Low-level binary access (1-based positions) =====
 
@@ -56,6 +59,13 @@ macho-obj: context [
 
 	i32-le: func [bin [binary!] pos [integer!]][
 		u32-le bin pos
+	]
+
+	;-- Serialize a 32-bit value as 4 little-endian bytes.
+	le32-struct: make-struct [value [integer!]] none
+	to-le32: func [n [integer!]][
+		le32-struct/value: n
+		form-struct le32-struct
 	]
 
 	read-cstring: func [bin [binary!] pos [integer!] /local out b i][
@@ -97,7 +107,10 @@ macho-obj: context [
 
 	;-- Abstract relocation kind. The type slot packs the Mach-O fields as
 	;-- (r_type << 4) | (r_length << 2) | (r_pcrel << 1); -1 marks a
-	;-- scattered / otherwise-unsupported relocation.
+	;-- scattered / otherwise-unsupported relocation. SECTDIFF and
+	;-- LOCAL_SECTDIFF (always scattered, always followed by a PAIR entry
+	;-- carrying the subtrahend) collapse to one `sectdiff` reloc that the
+	;-- linker patches as a target-relative difference.
 	reloc-kind: func [t [integer!] /local gtype len pcrel][
 		if t < 0 [return 'unsupported]
 		pcrel: (shift/logical t 1) and 1
@@ -106,8 +119,25 @@ macho-obj: context [
 		case [
 			len <> 2                       ['unsupported]	;-- only 4-byte fields
 			gtype = GENERIC_RELOC_VANILLA  [either pcrel = 1 ['pc32]['abs32]]
-			true                           ['unsupported]	;-- SECTDIFF / PAIR / TLV
+			any [
+				gtype = GENERIC_RELOC_SECTDIFF
+				gtype = GENERIC_RELOC_LOCAL_SECTDIFF
+			]                              ['sectdiff]
+			true                           ['unsupported]	;-- PAIR / TLV
 		]
+	]
+
+	;-- Return the 1-based index of the section whose vmaddr range covers
+	;-- `addr` (the absolute address from the .o's scratch layout), or NONE.
+	sec-of-addr: func [obj [object!] addr [integer!] /local i va sz][
+		i: 1
+		foreach sec obj/sections [
+			va: sec/9									;-- vmaddr
+			sz: sec/5									;-- size
+			if all [addr >= va  addr < (va + sz)][return i]
+			i: i + 1
+		]
+		none
 	]
 
 	;-- Mach-O i386 stores a pcrel field's displacement relative to the
@@ -133,6 +163,9 @@ macho-obj: context [
 			seg-nsects sec-pos j segname sectname flags kind sec-off sec-size
 			data symtab-off symtab-cnt str-off n-real k p
 			sn nt ns sec relocs r-pos r-i w0 w1 r-extern r-sym
+			sec-bases v
+			s-type s-length s-pcrel r-va w0-p w1-p min-sect sub-sect sec-x
+			min-off sub-off
 	][
 		;-- Mach header (28 bytes)
 		if (length? bin) < 28 [return none]
@@ -144,6 +177,11 @@ macho-obj: context [
 
 		;-- Pass 1: walk load commands, collecting sections and the symtab.
 		sections:   copy []
+		;-- Parallel to `sections`: each section's vmaddr from its Mach-O
+		;-- header. nlist n_value fields are absolute addresses within the
+		;-- object's section layout, so we subtract the section base to
+		;-- recover the section-relative offset COFF/ELF readers report.
+		sec-bases:  copy []
 		symtab-off: 0
 		symtab-cnt: 0
 		str-off:    0
@@ -160,6 +198,7 @@ macho-obj: context [
 						sec-pos:  lc-pos + 56 + (j * 68)
 						sectname: read-fixed-name bin sec-pos 16
 						segname:  read-fixed-name bin (sec-pos + 16) 16
+						append sec-bases (u32-le bin (sec-pos + 32))	;-- vmaddr
 						sec-size: u32-le bin (sec-pos + 36)
 						sec-off:  u32-le bin (sec-pos + 40)
 						flags:    u32-le bin (sec-pos + 56)
@@ -172,7 +211,15 @@ macho-obj: context [
 							(shift/left 1 (u32-le bin (sec-pos + 44)))	;-- 3 alignment (bytes)
 							data sec-size
 							(make block! 4) 'none 0
-							;-- reloff/nreloc stashed in slots 9/10 for pass 3
+							;-- 9 vmaddr -- the section's address in the .o's
+							;-- scratch layout. Used to translate scattered-
+							;-- relocation r_value fields and to recover the
+							;-- section-relative offset of any defined symbol.
+							;-- Mach-O coalesces weak defs at the symbol level
+							;-- (no group key), so sec-comdat-key returns NONE
+							;-- regardless of what lives here.
+							u32-le bin (sec-pos + 32)
+							;-- 10/11 reloff/nreloc scratch, dropped after Pass 3
 							u32-le bin (sec-pos + 48)
 							u32-le bin (sec-pos + 52)
 						]
@@ -197,9 +244,14 @@ macho-obj: context [
 			sn: u32-le bin p							;-- n_strx
 			nt: byte-at bin (p + 4)						;-- n_type
 			ns: byte-at bin (p + 5)						;-- n_sect
+			v:  u32-le bin (p + 8)						;-- n_value (absolute)
+			;-- Recover section-relative offset for defined symbols.
+			if all [ns > 0  ns <= length? sec-bases][
+				v: v - pick sec-bases ns
+			]
 			append/only symbols reduce [
 				read-cstring bin (str-off + sn + 1)		;-- name
-				u32-le bin (p + 8)						;-- n_value
+				v										;-- value (section-relative)
 				ns										;-- section-idx (1-based, 0 = NO_SECT)
 				nt										;-- class (n_type)
 				u16-le bin (p + 6)						;-- n_desc (carries N_WEAK_DEF)
@@ -220,11 +272,75 @@ macho-obj: context [
 		foreach sec sections [
 			relocs: sec/6
 			r-i: 0
-			while [r-i < sec/10][						;-- nreloc
-				r-pos: sec/9 + (r-i * 8) + 1			;-- reloff
+			while [r-i < sec/11][						;-- nreloc
+				r-pos: sec/10 + (r-i * 8) + 1			;-- reloff
 				w0: u32-le bin r-pos
 				either (w0 and R_SCATTERED) <> 0 [
-					append/only relocs reduce [(w0 and 16777215) 0 -1]	;-- scattered: unsupported
+					;-- Scattered: layout is r_address(24) | r_type(4) |
+					;-- r_length(2) | r_pcrel(1) | r_scattered(1) in w0,
+					;-- with w1 = r_value.
+					w1:       u32-le bin (r-pos + 4)
+					s-type:   (shift/logical w0 24) and 15
+					s-length: (shift/logical w0 28) and 3
+					s-pcrel:  (shift/logical w0 30) and 1
+					r-va:     w0 and 16777215
+					either all [
+						any [
+							s-type = GENERIC_RELOC_SECTDIFF
+							s-type = GENERIC_RELOC_LOCAL_SECTDIFF
+						]
+						s-length = 2
+						s-pcrel = 0
+					][
+						;-- SECTDIFF: the next entry must be PAIR carrying
+						;-- the subtrahend address. Encode the difference
+						;-- as one 6-field reloc and let the linker patch
+						;-- it once both sections have final VAs.
+						r-i: r-i + 1
+						r-pos: sec/10 + (r-i * 8) + 1
+						w0-p: u32-le bin r-pos
+						w1-p: u32-le bin (r-pos + 4)
+						either all [
+							(w0-p and R_SCATTERED) <> 0
+							((shift/logical w0-p 24) and 15) = GENERIC_RELOC_PAIR
+						][
+							;-- Map both endpoints to (section, offset).
+							min-sect: none
+							sub-sect: none
+							k: 1
+							foreach sec-x sections [
+								if all [w1   >= sec-x/9  w1   < (sec-x/9 + sec-x/5)][min-sect: k]
+								if all [w1-p >= sec-x/9  w1-p < (sec-x/9 + sec-x/5)][sub-sect: k]
+								k: k + 1
+							]
+							either all [min-sect  sub-sect][
+								sec-x: pick sections min-sect
+								min-off: w1   - sec-x/9
+								sec-x: pick sections sub-sect
+								sub-off: w1-p - sec-x/9
+								append/only relocs reduce [
+									r-va
+									n-real + min-sect - 1			;-- min synth sym
+									;-- pack (r_type << 4) | (r_length << 2) | (r_pcrel << 1)
+									(shift/left s-type 4)
+										or (shift/left s-length 2)
+										or (shift/left s-pcrel 1)
+									n-real + sub-sect - 1			;-- sub synth sym
+									min-off
+									sub-off
+								]
+							][
+								append/only relocs reduce [r-va 0 -1]
+							]
+						][
+							;-- SECTDIFF without a following PAIR is malformed.
+							append/only relocs reduce [r-va 0 -1]
+						]
+					][
+						;-- Other scattered kinds (VANILLA, TLV, etc.) are
+						;-- rare in our world and left unsupported for now.
+						append/only relocs reduce [r-va 0 -1]
+					]
 				][
 					w1: u32-le bin (r-pos + 4)
 					r-extern: (shift/logical w1 27) and 1
@@ -242,9 +358,28 @@ macho-obj: context [
 							or (shift/left ((shift/logical w1 25) and 3) 2)
 							or (shift/left ((shift/logical w1 24) and 1) 1)
 					]
+					;-- Mach-O non-extern abs32 relocations store the target's
+					;-- absolute address (target_section_vmaddr + offset) in the
+					;-- section data. Normalize to a section-relative offset so
+					;-- the linker's generic `target-va + addend` works the same
+					;-- way it does for COFF/ELF.
+					if all [
+						r-extern = 0
+						(shift/logical w1 28) = GENERIC_RELOC_VANILLA
+						((shift/logical w1 25) and 3) = 2		;-- 4-byte field
+						((shift/logical w1 24) and 1) = 0		;-- non-pcrel
+					][
+						v: i32-le sec/4 ((w0 and 16777215) + 1)
+						change at sec/4 ((w0 and 16777215) + 1)
+							to-le32 (v - pick sec-bases (w1 and 16777215))
+					]
 				]
 				r-i: r-i + 1
 			]
+			;-- Drop the reloff/nreloc scratch so the section block ends at
+			;-- slot 9 (vmaddr). The static linker claims slots 10/11 for its
+			;-- live?/merged? flags.
+			clear at sec 10
 		]
 
 		make object! compose/only [
@@ -278,6 +413,11 @@ macho-obj: context [
 	;-- Mach-O coalesces weak definitions at the SYMBOL level (N_WEAK_DEF),
 	;-- not via per-section group keys, so there is no section-level key.
 	sec-comdat-key:  func [s [block!]][none]
+
+	;-- Mach-O i386 keeps each section's scratch-layout vmaddr in slot 9,
+	;-- so the linker can recover the original difference between two
+	;-- sections for SECTDIFF / LOCAL_SECTDIFF relocations.
+	sec-vmaddr:      func [s [block!]][s/9]
 
 	set-sec-base: func [s [block!] kind [word!] offset [integer!]][
 		poke s 7 kind

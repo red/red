@@ -108,8 +108,15 @@ static-link: context [
 	]
 
 	;-- Split an `ar` archive (!<arch>) into [member-name member-binary ...]
-	;-- pairs. Shared by Microsoft .lib and Unix .a (GNU variant): the symbol
-	;-- index ("/") and longname ("//") members are filtered out.
+	;-- pairs. Three on-disk dialects coexist:
+	;--   GNU (.a / Linux):   long names live in a "//" table and are
+	;--                       referenced as "/<offset>"; symbol index is "/".
+	;--   Microsoft (.lib):   same shape as GNU; long names in "//".
+	;--   BSD (.a / macOS):   long names use "#1/<len>" in the name field,
+	;--                       with the actual name as the first <len> bytes of
+	;--                       the file data (size includes them); symbol
+	;--                       table is named "__.SYMDEF" / "__.SYMDEF SORTED".
+	;-- The shared symbol-index / longname members are filtered out.
 	read-archive: func [
 		path [file!]
 		/local bin members longnames pos mem-end size-str size data
@@ -128,6 +135,12 @@ static-link: context [
 			name-bin: copy/part at bin pos 16
 			name:     to string! name-bin
 			trim/tail name
+			;-- BSD ar leaves trailing NULs in the name field, which trim/tail
+			;-- does not strip. Peel them off so short names like "miniz.o" land
+			;-- cleanly and the long-name "#1/" prefix check works on the BSD path.
+			while [all [(length? name) > 0  #"^@" = last name]][
+				remove back tail name
+			]
 			size-str: to string! copy/part at bin (pos + 48) 10
 			size:     to integer! trim size-str
 			data:     copy/part at bin (pos + 60) size	;-- 2-byte header magic at +58
@@ -136,6 +149,24 @@ static-link: context [
 			case [
 				name = "/"  []							;-- linker symbol index: skip
 				name = "//" [longnames: data]			;-- longname table
+				;-- BSD `ar` (macOS) long name: the first <len> bytes of the
+				;-- file data are the actual name, NUL-padded; the size field
+				;-- includes them. Strip them from data and re-route through
+				;-- the symbol-table / regular-member checks on the real name.
+				all [(length? name) > 3  "#1/" = copy/part name 3][
+					off: to integer! trim copy at name 4
+					real-name: to string! copy/part data off
+					while [all [(length? real-name) > 0  #"^@" = last real-name]][
+						remove back tail real-name
+					]
+					data: copy at data (off + 1)
+					unless any [
+						real-name = "__.SYMDEF"
+						real-name = "__.SYMDEF SORTED"
+					][
+						append/only members reduce [real-name data]
+					]
+				]
 				true [
 					either #"/" = first name [
 						off: to integer! trim next name
@@ -387,7 +418,7 @@ static-link: context [
 	;-- in the same object; undefined targets are handled by note-undefined.
 	mark-live-sections: func [
 		obj [object!]
-		/local section sym sect changed? r target
+		/local section sym sect changed? r target target2
 	][
 		foreach section obj/sections [
 			ensure-live-slot section
@@ -410,6 +441,20 @@ static-link: context [
 							sect: reader/sym-sect target
 							if sect > 0 [
 								if mark-section-live? obj sect [changed?: true]
+							]
+						]
+						;-- Mach-O SECTDIFF carries the subtrahend's synth-sym
+						;-- index in r/4 -- keep that section alive too.
+						if all [
+							(length? r) >= 4
+							'sectdiff = reader/reloc-kind r/3
+						][
+							target2: pick obj/symbols (r/4 + 1)
+							if target2 [
+								sect: reader/sym-sect target2
+								if sect > 0 [
+									if mark-section-live? obj sect [changed?: true]
+								]
 							]
 						]
 					]
@@ -1341,6 +1386,8 @@ static-link: context [
 			r r-va r-sym r-type sym target-info tkind toff target-va kind
 			patch-pos patch-va addend path obj insn a16 got-slot got-base
 			sym-name key entry
+			sub-sym sub-tinfo sub-tkind sub-toff sub-va
+			min-offset sub-offset min-section sub-section orig-diff
 	][
 		if empty? objects [exit]
 		code: job/sections/code/2
@@ -1431,6 +1478,31 @@ static-link: context [
 							kind = 'secrel32 [
 								change at buf (patch-pos + 1)
 									le32 (addend + either tkind = 'tls [toff - tls-start][toff])
+							]
+							kind = 'sectdiff [
+								;-- Mach-O scattered SECTDIFF: the in-section
+								;-- bytes encode `min_orig_addr - sub_orig_addr
+								;-- + offset`. Re-derive `offset`, then rewrite
+								;-- with the new merged-VA difference.
+								sub-sym:    pick obj/symbols (r/4 + 1)
+								min-offset: r/5
+								sub-offset: r/6
+								unless sub-sym [
+									abort reduce [
+										"bad SECTDIFF subtrahend in" path
+									]
+								]
+								sub-tinfo: resolve-reloc-target obj sub-sym path
+								sub-tkind: sub-tinfo/1
+								sub-toff:  sub-tinfo/2
+								sub-va:    target-va? sub-tkind (sub-toff + sub-offset)
+									code-base data-base image-base
+								min-section: pick obj/sections (reader/sym-sect sym)
+								sub-section: pick obj/sections (reader/sym-sect sub-sym)
+								orig-diff: ((reader/sec-vmaddr min-section) + min-offset)
+									- ((reader/sec-vmaddr sub-section) + sub-offset)
+								change at buf (patch-pos + 1)
+									le32 (((target-va + min-offset) - sub-va) + (addend - orig-diff))
 							]
 							kind = 'arm-call [
 								insn:     reader/u32-le buf (patch-pos + 1)
