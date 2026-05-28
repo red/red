@@ -108,8 +108,15 @@ static-link: context [
 	]
 
 	;-- Split an `ar` archive (!<arch>) into [member-name member-binary ...]
-	;-- pairs. Shared by Microsoft .lib and Unix .a (GNU variant): the symbol
-	;-- index ("/") and longname ("//") members are filtered out.
+	;-- pairs. Three on-disk dialects coexist:
+	;--   GNU (.a / Linux):   long names live in a "//" table and are
+	;--                       referenced as "/<offset>"; symbol index is "/".
+	;--   Microsoft (.lib):   same shape as GNU; long names in "//".
+	;--   BSD (.a / macOS):   long names use "#1/<len>" in the name field,
+	;--                       with the actual name as the first <len> bytes of
+	;--                       the file data (size includes them); symbol
+	;--                       table is named "__.SYMDEF" / "__.SYMDEF SORTED".
+	;-- The shared symbol-index / longname members are filtered out.
 	read-archive: func [
 		path [file!]
 		/local bin members longnames pos mem-end size-str size data
@@ -128,6 +135,12 @@ static-link: context [
 			name-bin: copy/part at bin pos 16
 			name:     to string! name-bin
 			trim/tail name
+			;-- BSD ar leaves trailing NULs in the name field, which trim/tail
+			;-- does not strip. Peel them off so short names like "miniz.o" land
+			;-- cleanly and the long-name "#1/" prefix check works on the BSD path.
+			while [all [(length? name) > 0  #"^@" = last name]][
+				remove back tail name
+			]
 			size-str: to string! copy/part at bin (pos + 48) 10
 			size:     to integer! trim size-str
 			data:     copy/part at bin (pos + 60) size	;-- 2-byte header magic at +58
@@ -136,6 +149,24 @@ static-link: context [
 			case [
 				name = "/"  []							;-- linker symbol index: skip
 				name = "//" [longnames: data]			;-- longname table
+				;-- BSD `ar` (macOS) long name: the first <len> bytes of the
+				;-- file data are the actual name, NUL-padded; the size field
+				;-- includes them. Strip them from data and re-route through
+				;-- the symbol-table / regular-member checks on the real name.
+				all [(length? name) > 3  "#1/" = copy/part name 3][
+					off: to integer! trim copy at name 4
+					real-name: to string! copy/part data off
+					while [all [(length? real-name) > 0  #"^@" = last real-name]][
+						remove back tail real-name
+					]
+					data: copy at data (off + 1)
+					unless any [
+						real-name = "__.SYMDEF"
+						real-name = "__.SYMDEF SORTED"
+					][
+						append/only members reduce [real-name data]
+					]
+				]
 				true [
 					either #"/" = first name [
 						off: to integer! trim next name
