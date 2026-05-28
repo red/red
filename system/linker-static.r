@@ -418,7 +418,7 @@ static-link: context [
 	;-- in the same object; undefined targets are handled by note-undefined.
 	mark-live-sections: func [
 		obj [object!]
-		/local section sym sect changed? r target
+		/local section sym sect changed? r target target2
 	][
 		foreach section obj/sections [
 			ensure-live-slot section
@@ -441,6 +441,20 @@ static-link: context [
 							sect: reader/sym-sect target
 							if sect > 0 [
 								if mark-section-live? obj sect [changed?: true]
+							]
+						]
+						;-- Mach-O SECTDIFF carries the subtrahend's synth-sym
+						;-- index in r/4 -- keep that section alive too.
+						if all [
+							(length? r) >= 4
+							'sectdiff = reader/reloc-kind r/3
+						][
+							target2: pick obj/symbols (r/4 + 1)
+							if target2 [
+								sect: reader/sym-sect target2
+								if sect > 0 [
+									if mark-section-live? obj sect [changed?: true]
+								]
 							]
 						]
 					]
@@ -1372,6 +1386,8 @@ static-link: context [
 			r r-va r-sym r-type sym target-info tkind toff target-va kind
 			patch-pos patch-va addend path obj insn a16 got-slot got-base
 			sym-name key entry
+			sub-sym sub-tinfo sub-tkind sub-toff sub-va
+			min-offset sub-offset min-section sub-section orig-diff
 	][
 		if empty? objects [exit]
 		code: job/sections/code/2
@@ -1462,6 +1478,31 @@ static-link: context [
 							kind = 'secrel32 [
 								change at buf (patch-pos + 1)
 									le32 (addend + either tkind = 'tls [toff - tls-start][toff])
+							]
+							kind = 'sectdiff [
+								;-- Mach-O scattered SECTDIFF: the in-section
+								;-- bytes encode `min_orig_addr - sub_orig_addr
+								;-- + offset`. Re-derive `offset`, then rewrite
+								;-- with the new merged-VA difference.
+								sub-sym:    pick obj/symbols (r/4 + 1)
+								min-offset: r/5
+								sub-offset: r/6
+								unless sub-sym [
+									abort reduce [
+										"bad SECTDIFF subtrahend in" path
+									]
+								]
+								sub-tinfo: resolve-reloc-target obj sub-sym path
+								sub-tkind: sub-tinfo/1
+								sub-toff:  sub-tinfo/2
+								sub-va:    target-va? sub-tkind (sub-toff + sub-offset)
+									code-base data-base image-base
+								min-section: pick obj/sections (reader/sym-sect sym)
+								sub-section: pick obj/sections (reader/sym-sect sub-sym)
+								orig-diff: ((reader/sec-vmaddr min-section) + min-offset)
+									- ((reader/sec-vmaddr sub-section) + sub-offset)
+								change at buf (patch-pos + 1)
+									le32 (((target-va + min-offset) - sub-va) + (addend - orig-diff))
 							]
 							kind = 'arm-call [
 								insn:     reader/u32-le buf (patch-pos + 1)
