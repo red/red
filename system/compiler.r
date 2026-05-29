@@ -1969,9 +1969,46 @@ system-dialect: make-profilable context [
 			]
 		]
 		
+		import-version-name: func [value [issue!] /local version][
+			version: form value
+			unless all [1 < length? version  #"@" = first version][
+				throw-error ["invalid import symbol version:" mold value]
+			]
+			copy next version
+		]
+
+		check-import-version: func [lib [string!] version [string! none!]][
+			if all [
+				version
+				any [
+					job/OS <> 'Linux
+					job/format <> 'ELF
+					static-link/library? lib
+				]
+			][
+				throw-error [
+					"symbol versions are only supported for dynamic Linux ELF imports:"
+					version
+				]
+			]
+		]
+
+		make-import-key: func [id [string! issue!] version [string! none!]][
+			either version [reduce [id version]][id]
+		]
+
+		select-import: func [list [block!] key [string! issue! block!]][
+			either block? key [select/only list key][select list key]
+		]
+
+		append-import: func [list [block!] key [string! issue! block!] reloc [block!]][
+			either block? key [append/only list key][append list key]
+			append/only list reloc
+		]
+
 		process-import: func [
 			defs [block!]
-			/local lib list cc name specs spec id reloc pos new? funcs err empty-import?
+			/local lib list cc name specs spec id version key reloc pos new? funcs err empty-import?
 		][
 			unless block? defs [throw-error "#import expects a block! as argument"]
 			
@@ -2006,6 +2043,13 @@ system-dialect: make-profilable context [
 								check-func-name name
 							)
 							pos: set id   string!
+							(version: none)
+							opt [
+								pos: set version issue! (
+									version: import-version-name version
+									check-import-version lib version
+								)
+							]
 							pos: set spec block!    (
 								clear-docstrings spec
 								either any [
@@ -2019,15 +2063,18 @@ system-dialect: make-profilable context [
 									][
 										add-symbol to word! specs/1 none spec
 									]
-									repend list [to issue! id reloc: make block! 1]
+									key: make-import-key to issue! id version
+									append-import list key reloc: make block! 1
 									emitter/import/var name reloc
 								][
 									check-specs/extend name spec
 									specs: copy specs
+									if version [remove at specs 3]
 									specs/1: name
 									add-function 'import specs cc
-									reloc: all [funcs: select imports lib select funcs id]
-									unless reloc [repend list [id reloc: make block! 1]]
+									key: make-import-key id version
+									reloc: all [funcs: select imports lib select-import funcs key]
+									unless reloc [append-import list key reloc: make block! 1]
 									emitter/import name reloc
 								]
 							)

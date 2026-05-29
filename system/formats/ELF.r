@@ -68,6 +68,8 @@ context [
 		sht-nobits		8			;; program-specific data (w/o file extend)
 		sht-rel			9			;; relocations (w/o addends)
 		sht-dynsym		11			;; symbol table (dynamic linking)
+		sht-gnu-verneed	1879048190	;; GNU version needs
+		sht-gnu-versym	1879048191	;; GNU symbol version table
 
 		;; Processor-specific section type
 		sht-arm-exidx			1879048193		;; ARM unwind section
@@ -102,6 +104,9 @@ context [
 		dt-relsz		18			;; total size of the relocation table
 		dt-relent		19			;; size of one reloc table entry (in bytes)
 		dt-runpath		29			;; library search path
+		dt-versym		1879048176	;; address of the version symbol table
+		dt-verneed		1879048190	;; address of the version needs table
+		dt-verneednum	1879048191	;; number of version needed entries
 
 		r-386-32		1			;; direct 32-bit relocation
 		r-386-copy		5			;; copy symbol at runtime
@@ -114,6 +119,10 @@ context [
 		stabs-n-undf	0			;; undefined stabs entry
 		stabs-n-fun		36			;; function name
 		stabs-n-so		100			;; source file name
+
+		ver-need-current 1			;; current Elf32_Verneed version
+		ver-ndx-local	0			;; local symbol version index
+		ver-ndx-global	1			;; global/default symbol version index
 
 		arm [
 			attributes [
@@ -242,6 +251,26 @@ context [
 		info-addend		[short]
 	] none
 
+	elf-versym: make-struct [		;; (Elf32_Half)
+		value			[short]
+	] none
+
+	elf-verneed: make-struct [		;; (Elf32_Verneed)
+		version			[short]
+		cnt				[short]
+		file			[integer!]
+		aux				[integer!]
+		next			[integer!]
+	] none
+
+	elf-vernaux: make-struct [		;; (Elf32_Vernaux)
+		hash			[integer!]
+		flags			[short]
+		other			[short]
+		name			[integer!]
+		next			[integer!]
+	] none
+
 	stab-entry: make-struct [
 		strx			[integer!]
 		type			[char!]
@@ -278,6 +307,8 @@ context [
 			section ".hash"			[hash	  	[alloc]				word]
 			section ".dynstr"		[strtab	  	[alloc]				byte]
 			section ".dynsym"		[dynsym	  	[alloc]				word]
+			section ".gnu.version"	[gnu-versym	[alloc]				word]
+			section ".gnu.version_r" [gnu-verneed [alloc]			word]
 			section ".rel.text"		[rel	  	[alloc]				word]
 			section ".text"			[progbits 	[alloc execinstr]	word]
 		]
@@ -303,7 +334,8 @@ context [
 		job [object!]
 		/local
 			base-address dynamic-linker
-			libraries imports exports natives
+			libraries imports import-names import-versyms exports natives
+			version-names verneed verneed-count verneed-size versym-count
 			structure segments sections commands layout
 			data-size data-reloc dynamic-size data-imports di-pairs
 			di-name di-off di-size
@@ -323,10 +355,13 @@ context [
 			insert list take/part pos 2
 		]
 		
-		set [libraries imports] collect-import-names job
+		set [
+			libraries imports import-names version-names verneed import-versyms
+		] collect-import-names job
 		exports: collect-exports job
 		natives: collect-natives job
 		data-reloc: collect-data-reloc job
+		verneed-count: (length? verneed) / 2
 
 		;; libc data-symbol imports (copy-relocated): prepend them to `exports`
 		;; as defined STT_OBJECT entries so build-dynsym emits them; build-
@@ -343,6 +378,10 @@ context [
 		]
 
 		structure: copy default-structure
+
+		if empty? verneed [
+			remove-elements structure [".gnu.version" ".gnu.version_r"]
+		]
 
 		if job/target <> 'ARM [
 			remove-elements structure [".ARM.attributes"]
@@ -388,7 +427,9 @@ context [
 			remove-elements structure [".data"]
 		]
 		
-		dynamic-size: calc-dynamic-size job/type job/target job/symbols
+		versym-count: 1 + (length? imports) + ((length? exports) / 2)
+		verneed-size: calc-verneed-size verneed
+		dynamic-size: calc-dynamic-size job/type job/target job/symbols verneed-count
 
 		segments: collect-structure-names structure 'segment
 
@@ -412,6 +453,8 @@ context [
 
 			".hash"			meta [link ".dynsym"]
 			".dynsym"		meta [link ".dynstr" info ".interp"]
+			".gnu.version"	meta [link ".dynsym" info ".gnu.version_r"]
+			".gnu.version_r" meta [link ".dynstr" info (verneed-count)]
 			".rel.text"		meta [link ".dynsym" info ".text"]
 			".dynamic"		meta [link ".dynstr"]
 			".stab"			meta [link ".stabstr"]
@@ -420,6 +463,8 @@ context [
 			"phdr"			size [program-header	length? segments]
 			".hash"			size [machine-word		2 + 2 + (length? imports) + ((length? exports) / 2)]
 			".dynsym"		size [elf-symbol		1 + (length? imports) + ((length? exports) / 2)]
+			".gnu.version"	size [elf-versym		versym-count]
+			".gnu.version_r" size (verneed-size)
 			".rel.text"		size [elf-relocation	(length? imports) + (length? data-reloc) + ((length? data-imports) / 3)]
 			".data"			size (data-size)
 			".data"			align (job/static-align)
@@ -436,7 +481,7 @@ context [
 							data (#{0400000004000000030000005061580000000000})
 			".note.GNU-stack"
 							data (#{})
-			".dynstr"		data (to-elf-strtab compose [(libraries) (imports) (extract exports 2) (defs/rpath) (soname)])
+			".dynstr"		data (to-elf-strtab compose [(libraries) (import-names) (extract exports 2) (version-names) (defs/rpath) (soname)])
 			".text"			data (job/sections/code/2)
 			".stabstr"		data (to-elf-strtab join ["%_"] extract natives 2)
 			".shstrtab"		data (to-elf-strtab sections)
@@ -482,7 +527,7 @@ context [
 			[build-phdr map-each segment segments [layout/:segment]]
 
 		set-data ".hash"
-			[build-hash compose [(imports) (extract exports 2)]]
+			[build-hash compose [(import-names) (extract exports 2)]]
 
 		set-data ".dynsym" [
 			build-dynsym
@@ -493,6 +538,18 @@ context [
 				section-index-of sections ".text"
 				get-address ".data"
 				section-index-of sections ".data"
+		]
+
+		set-data ".gnu.version" [
+			build-versym
+				import-versyms
+				(length? exports) / 2
+		]
+
+		set-data ".gnu.version_r" [
+			build-verneed
+				verneed
+				get-data ".dynstr"
 		]
 
 		set-data ".rel.text" [
@@ -527,6 +584,9 @@ context [
 				get-address ".dynstr" get-size ".dynstr"
 				get-address ".dynsym"
 				get-address ".rel.text" get-size ".rel.text"
+				any [attempt [get-address ".gnu.version"] 0]
+				any [attempt [get-address ".gnu.version_r"] 0]
+				verneed-count
 				get-data ".dynstr"
 				libraries
 				soname
@@ -712,7 +772,7 @@ context [
 
 		foreach symbol imports [
 			entry: make-struct elf-symbol none
-			entry/name: strtab-index-of dynstr symbol
+			entry/name: strtab-index-of dynstr import-key-name symbol
 			entry/value: 0 ;; Unknown, for imported symbols.
 			entry/info: to-elf-symbol-info defs/stb-global defs/stt-func
 			entry/other: defs/stv-default
@@ -739,6 +799,62 @@ context [
 			append result entry
 		]
 
+		result
+	]
+
+	build-versym: func [
+		import-versyms [block!]
+		export-count [integer!]
+		/local result value
+	] [
+		result: copy []
+		append result make-struct elf-versym reduce [defs/ver-ndx-local]
+		foreach value import-versyms [
+			append result make-struct elf-versym reduce [value]
+		]
+		loop export-count [
+			append result make-struct elf-versym reduce [defs/ver-ndx-global]
+		]
+		result
+	]
+
+	build-verneed: func [
+		verneed [block!]
+		dynstr [binary!]
+		/local result entry aux versions cnt next-offset aux-next
+			pos vpos library version index
+	] [
+		result: copy []
+		pos: verneed
+		while [not tail? pos] [
+			library: pos/1
+			versions: pos/2
+			cnt: (length? versions) / 2
+			next-offset: (size-of elf-verneed) + (cnt * size-of elf-vernaux)
+			entry: make-struct elf-verneed none
+			entry/version: defs/ver-need-current
+			entry/cnt: cnt
+			entry/file: strtab-index-of dynstr library
+			entry/aux: size-of elf-verneed
+			entry/next: either tail? skip pos 2 [0][next-offset]
+			append result entry
+
+			vpos: versions
+			while [not tail? vpos] [
+				version: vpos/1
+				index: vpos/2
+				aux-next: either tail? skip vpos 2 [0][size-of elf-vernaux]
+				aux: make-struct elf-vernaux none
+				aux/hash: elf-hash version
+				aux/flags: 0
+				aux/other: index
+				aux/name: strtab-index-of dynstr version
+				aux/next: aux-next
+				append result aux
+				vpos: skip vpos 2
+			]
+			pos: skip pos 2
+		]
 		result
 	]
 
@@ -837,6 +953,9 @@ context [
 		dynsym-address	[integer!]
 		reltext-address [integer!]
 		reltext-size 	[integer!]
+		versym-address	[integer!]
+		verneed-address [integer!]
+		verneed-count	[integer!]
 		dynstr			[binary!]
 		libraries		[block!]
 		soname			[string!]
@@ -860,6 +979,14 @@ context [
 			]
 			if spec: select symbols 'on-unload [
 				repend entries ['fini text-address + spec/2 - 1]
+			]
+		]
+
+		if verneed-count > 0 [
+			repend entries [
+				'versym		versym-address
+				'verneed	verneed-address
+				'verneednum	verneed-count
 			]
 		]
 		
@@ -926,8 +1053,8 @@ context [
 			sh/addr:		section/address
 			sh/offset:		section/offset
 			sh/size:		section/size
-			sh/link:		section-index-of names select section/meta 'link
-			sh/info:		section-index-of names select section/meta 'info
+			sh/link:		section-meta-value names select section/meta 'link
+			sh/info:		section-meta-value names select section/meta 'info
 			sh/addralign:	lookup-align section/meta/align
 			sh/entsize:		find-entry-size commands name
 			sh
@@ -1002,16 +1129,49 @@ context [
 		list
 	]
 
-	collect-import-names: func [job [object!] /local libraries symbols] [
+	import-key-name: func [key [string! issue! block!]][
+		either block? key [key/1][key]
+	]
+
+	import-key-version: func [key [string! issue! block!]][
+		all [block? key key/2]
+	]
+
+	collect-import-names: func [
+		job [object!]
+		/local libraries symbols names version-names verneed versyms lib-versions
+			version index next-index
+	] [
 		libraries: copy []
 		symbols: copy []
+		names: copy []
+		version-names: copy []
+		verneed: copy []
+		versyms: copy []
+		next-index: 2
 		foreach [libname libuses] job/sections/import/3 [
 			append libraries libname
+			lib-versions: copy []
 			foreach [symbol callsites] libuses [
-				append symbols symbol
+				append/only symbols symbol
+				append names import-key-name symbol
+				either version: import-key-version symbol [
+					unless index: select lib-versions version [
+						index: next-index
+						next-index: next-index + 1
+						repend lib-versions [version index]
+						unless find version-names version [append version-names version]
+					]
+					append versyms index
+				][
+					append versyms defs/ver-ndx-global
+				]
+			]
+			unless empty? lib-versions [
+				repend verneed [libname lib-versions]
 			]
 		]
-		reduce [libraries symbols]
+		reduce [libraries symbols names version-names verneed versyms]
 	]
 
 	collect-exports: func [
@@ -1074,16 +1234,23 @@ context [
 
 	resolve-import-refs: func [
 		job [object!] symbols [block!] code [binary!] relro-offset [integer!]
-		/local rel
+		/local rel index import-list
 	] [
 		rel: make-struct machine-word none
+		index: 0
 		foreach [libname libimports] job/sections/import/3 [
-			linker/check-dup-symbols job libimports
+			import-list: copy []
 			foreach [symbol callsites] libimports [
-				rel/value: rel-address-of/symbol relro-offset symbols symbol
+				append import-list import-key-name symbol
+				append/only import-list callsites
+			]
+			linker/check-dup-symbols job import-list
+			foreach [symbol callsites] libimports [
+				rel/value: rel-address-of/index relro-offset index
 				foreach callsite callsites [
 					change/part at code callsite serialize-data rel size-of rel
 				]
+				index: index + 1
 			]
 		]
 	]
@@ -1170,16 +1337,31 @@ context [
 			any [select commands reduce [name 'meta] []]
 	]
 	
+	section-meta-value: func [names [block!] value][
+		either integer? value [value][section-index-of names value]
+	]
+
+	calc-verneed-size: func [verneed [block!] /local size][
+		size: 0
+		foreach [library versions] verneed [
+			size: size + (size-of elf-verneed)
+				+ (((length? versions) / 2) * size-of elf-vernaux)
+		]
+		size
+	]
+
 	calc-dynamic-size: func [
 		job-type	[word!]
 		target		[word!]
 		symbols		[hash!]
+		verneed-count [integer!]
 		/local entries spec
 	][
 		  (any [all [job-type = 'dll select symbols '***-dll-entry-point 1] 0])
 		+ (any [all [job-type = 'dll 1] 0])
 		+ (any [all [job-type = 'dll select symbols 'on-unload 1] 0])
 		+ (any [all [target <> 'ARM 1] 0])				;-- dt-rpath
+		+ (any [all [verneed-count > 0 3] 0])
 		+ length? [
 			hash
 			strtab
@@ -1341,6 +1523,19 @@ context [
 
 	to-elf-symbol-info: func [binding [integer!] type [integer!]] [
 		(shift/left binding 4) + (type and 15)
+	]
+
+	elf-hash: func [name [string!] /local h g c][
+		h: 0
+		foreach c name [
+			h: (shift/left h 4) + to integer! c
+			g: h and to integer! #{F0000000}
+			if g <> 0 [
+				h: h xor (shift/logical g 24)
+				h: h and complement g
+			]
+		]
+		h
 	]
 
 	;; -- Helpers for working with various binary data intermediaries --

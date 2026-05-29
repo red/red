@@ -1595,6 +1595,34 @@ probe [this that]
 		--assert not compiler-error?
 		--assert compilation-error "invalid target type casting"
 
+	--test-- "linux-elf-import-symbol-version"
+		--compile-this {
+			Red/System []
+			#if OS = 'Linux [
+				#import [
+					LIBC-file cdecl [
+						memcpy-default: "memcpy" [
+							target [c-string!]
+							source [c-string!]
+							size   [integer!]
+							return: [c-string!]
+						]
+						memcpy-214: "memcpy" @GLIBC_2.14 [
+							target [c-string!]
+							source [c-string!]
+							size   [integer!]
+							return: [c-string!]
+						]
+					]
+				]
+				buf: "abcd"
+				src: "xy"
+				memcpy-default buf src 2
+				memcpy-214 buf src 2
+			]
+		}
+		--assert compiled?
+
 ===end-group===
 
 
