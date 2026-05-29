@@ -265,16 +265,9 @@ linker: context [
 		print "--- end ---^/"
 	]
 	
-	clean-imports: func [imports [block!] /local pos][	;-- remove unused imports
+	clean-imports: func [imports [block!]][			;-- remove unused imports
 		foreach [lib list] imports/3 [
-			pos: list
-			while [not tail? pos] [
-				either empty? pos/2 [
-					remove/part pos 2
-				][
-					pos: skip pos 2
-				]
-			]
+			remove-each [name refs] list [empty? refs]
 		]
 	]
 

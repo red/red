@@ -453,7 +453,7 @@ context [
 
 			".hash"			meta [link ".dynsym"]
 			".dynsym"		meta [link ".dynstr" info ".interp"]
-			".gnu.version"	meta [link ".dynsym" info ".gnu.version_r"]
+			".gnu.version"	meta [link ".dynsym"]
 			".gnu.version_r" meta [link ".dynstr" info (verneed-count)]
 			".rel.text"		meta [link ".dynsym" info ".text"]
 			".dynamic"		meta [link ".dynstr"]
@@ -623,7 +623,6 @@ context [
 			if job/PIC? [relro-offset: relro-offset - get-address ".text"]
 			resolve-import-refs
 				job
-				imports
 				get-data ".text"
 				relro-offset
 		]
@@ -876,7 +875,7 @@ context [
 		
 		repeat i len [ 									;-- 1..n, 0 is undef
 			entry: make-struct elf-relocation none
-			entry/offset:		rel-address-of/index relro-address (i - 1)
+			entry/offset:		rel-address-of relro-address (i - 1)
 			entry/info-sym:		rel-type
 			entry/info-type:	i // 256
 			entry/info-addend:	shift/logical i 8
@@ -1233,7 +1232,7 @@ context [
 	]
 
 	resolve-import-refs: func [
-		job [object!] symbols [block!] code [binary!] relro-offset [integer!]
+		job [object!] code [binary!] relro-offset [integer!]
 		/local rel index import-list
 	] [
 		rel: make-struct machine-word none
@@ -1246,7 +1245,7 @@ context [
 			]
 			linker/check-dup-symbols job import-list
 			foreach [symbol callsites] libimports [
-				rel/value: rel-address-of/index relro-offset index
+				rel/value: rel-address-of relro-offset index
 				foreach callsite callsites [
 					change/part at code callsite serialize-data rel size-of rel
 				]
@@ -1507,12 +1506,8 @@ context [
 		either pos: find sections section [index? pos] [0]
 	]
 
-	rel-address-of: func [
-		base [integer!]
-		/symbol syms [block!] sym [string! issue!]
-		/index ind [integer!]
-	] [
-		base + ((size-of machine-word) * any [ind (-1 + index? find syms sym)])
+	rel-address-of: func [base [integer!] ind [integer!]][
+		base + ((size-of machine-word) * ind)
 	]
 
 	to-c-string: func [data [string! binary! issue!]] [join as-binary data #{00}]

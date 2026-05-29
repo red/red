@@ -1977,14 +1977,11 @@ system-dialect: make-profilable context [
 			copy next version
 		]
 
-		check-import-version: func [lib [string!] version [string! none!]][
-			if all [
-				version
-				any [
-					job/OS <> 'Linux
-					job/format <> 'ELF
-					static-link/library? lib
-				]
+		check-import-version: func [lib [string!] version [string!]][
+			if any [
+				job/OS <> 'Linux
+				job/format <> 'ELF
+				static-link/library? lib
 			][
 				throw-error [
 					"symbol versions are only supported for dynamic Linux ELF imports:"
@@ -1997,12 +1994,8 @@ system-dialect: make-profilable context [
 			either version [reduce [id version]][id]
 		]
 
-		select-import: func [list [block!] key [string! issue! block!]][
-			either block? key [select/only list key][select list key]
-		]
-
 		append-import: func [list [block!] key [string! issue! block!] reloc [block!]][
-			either block? key [append/only list key][append list key]
+			append/only list key
 			append/only list reloc
 		]
 
@@ -2073,7 +2066,7 @@ system-dialect: make-profilable context [
 									specs/1: name
 									add-function 'import specs cc
 									key: make-import-key id version
-									reloc: all [funcs: select imports lib select-import funcs key]
+									reloc: all [funcs: select imports lib select/only funcs key]
 									unless reloc [append-import list key reloc: make block! 1]
 									emitter/import name reloc
 								]
