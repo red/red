@@ -1981,7 +1981,7 @@ system-dialect: make-profilable context [
 					pos: set lib string! (
 						;-- An extension-less name resolves to a per-format library
 						;-- (.dll/.so/.dylib by default, .lib/.a with --static).
-						unless suffix? to-file lib [
+						unless any [suffix? to-file lib  find lib #"/"  find lib #"\"][
 							lib: static-link/resolve-libname lib job/format job/static-link?
 						]
 						new?: no
