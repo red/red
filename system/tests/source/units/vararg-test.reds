@@ -25,6 +25,8 @@ streq?: func [a [c-string!] b [c-string!] return: [logic!] /local i [integer!]][
 	a/i = b/i								;-- equal only if both ended together
 ]
 
+va-twice: func [n [integer!] return: [integer!]][n + n]	;-- used as a nested-call argument
+
 ~~~start-file~~~ "variadic"
 
 ===start-group=== "variadic integer arguments (registers + stack spill)"
@@ -91,6 +93,17 @@ streq?: func [a [c-string!] b [c-string!] return: [logic!] /local i [integer!]][
 	--test-- "va-spill-doubles"					;-- several spilled doubles, all naturally aligned (no pad)
 		sprintf [vararg-buf "%.2f %.2f %.2f %.2f" 1.5 2.5 3.5 4.5]
 		--assert streq? vararg-buf "1.50 2.50 3.50 4.50"
+===end-group===
+
+===start-group=== "variadic argument that is a nested call (block expression)"
+	;-- a nested call is gathered as a block; the stack-padding pass must keep it as a single
+	;-- argument (append/only), not splice its words into the argument list.
+	--test-- "va-nested-call"
+		sprintf [vararg-buf "%d %.2f %d" va-twice 21 1.5 9]
+		--assert streq? vararg-buf "42 1.50 9"
+	--test-- "va-nested-call-spill"				;-- nested-call result plus a spilled double
+		sprintf [vararg-buf "%d %d %d %.2f" va-twice 50 2 3 4.5]
+		--assert streq? vararg-buf "100 2 3 4.50"
 ===end-group===
 
 ~~~end-file~~~
