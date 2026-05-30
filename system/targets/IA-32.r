@@ -2291,14 +2291,7 @@ make-profilable make target-class [
 			emit-push <last>
 		][
 			if block? arg [arg: <last>]
-			either all [
-				fspec/3 = 'cdecl 
-				compiler/find-attribute fspec/4 'variadic	;-- only for vararg C functions
-			][
-				emit-push/cdecl arg					;-- promote float32! to float!
-			][
-				emit-push arg
-			]
+			emit-push arg							;-- C default promotions injected by compiler/promote-variadic
 		]
 	]
 		
