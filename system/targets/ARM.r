@@ -2963,8 +2963,8 @@ make-profilable make target-class [
 		emit-i32 #{e1a0c00d}						;-- MOV ip, sp
 		emit-i32 #{e3cdd007}						;-- BIC sp, sp, #7		; align sp to 8 bytes
 		if compiler/variadic? tag: args/1 [args: args/2]
-		size: max 16 emit-AAPCS-header/calc args fspec all [block? blk: fspec/4/1 blk]
-		unless zero? size // 8 [emit-i32 #{e24dd004}] ;-- SUB sp, sp, #4	; ensure call will be 8-bytes aligned
+		size: emit-AAPCS-header/calc args fspec all [block? blk: fspec/4/1 blk] ;-- bytes left on the stack at the call
+		unless zero? size // 8 [emit-i32 #{e24dd004}] ;-- SUB sp, sp, #4	; pad so SP is 8-byte aligned at the call (AAPCS)
 		emit-i32 #{e92d5000}						;-- PUSH {ip,lr}		; save previous sp and lr value
 	]
 
