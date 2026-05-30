@@ -3051,6 +3051,36 @@ make-profilable make target-class [
 		emit-i32 #{e1a0000c}						;-- MOV r0, ip
 	]
 	
+	align-variadic-stack-args: func [
+		;-- AAPCS rule C.7: a double-word argument passed on the stack must be 8-byte aligned.
+		;-- Variadic args are pushed contiguously, so an 8-byte value that spills to the stack
+		;-- after an odd number of 4-byte stacked slots needs a 4-byte pad inserted before it.
+		;-- Mirrors emit-AAPCS-header's core-register/stack allocation for scalar arguments.
+		args [block!] fspec [block!] /local ordered out reg stk size
+	][
+		ordered: reverse copy args					;-- args is in reversed push order; restore call order
+		out: make block! 2 + length? ordered
+		reg: stk: 0
+		if hidden-ptr? fspec [append out ordered/1  ordered: next ordered  reg: 1] ;-- struct-return ptr -> r0
+		foreach arg ordered [
+			either arg = #_ [append out arg][		;-- bypass place-holder marker
+				size: emitter/size-of? compiler/get-type arg
+				either reg >= 4 [					;-- argument spills onto the stack
+					if all [size = 8  (stk // 8) = 4][append out 0  stk: stk + 4] ;-- C.7 alignment pad
+					append out arg
+					stk: stk + any [size 4]
+				][									;-- argument still fits in core registers
+					append out arg
+					either size = 8 [
+						either reg <= 2 [if odd? reg [reg: reg + 1]  reg: reg + 2][stk: stk + 8  reg: reg + 2]
+					][reg: reg + 1]
+				]
+			]
+		]
+		clear args
+		insert args reverse out						;-- write the padded list back in push order
+	]
+
 	emit-stack-align-prolog: func [args [block!] fspec [block!] /local size tag blk][
 		;-- EABI stack 8 bytes alignment: http://infocenter.arm.com/help/topic/com.arm.doc.ihi0046b/IHI0046B_ABI_Advisory_1.pdf
 		; @@ to be optimized: infer stack alignment if possible, to avoid this overhead.
@@ -3058,8 +3088,9 @@ make-profilable make target-class [
 		emit-i32 #{e1a0c00d}						;-- MOV ip, sp
 		emit-i32 #{e3cdd007}						;-- BIC sp, sp, #7		; align sp to 8 bytes
 		if compiler/variadic? tag: args/1 [args: args/2]
-		size: max 16 emit-AAPCS-header/calc args fspec all [block? blk: fspec/4/1 blk]
-		unless zero? size // 8 [emit-i32 #{e24dd004}] ;-- SUB sp, sp, #4	; ensure call will be 8-bytes aligned
+		if all [tag = #variadic  fspec/3 = 'cdecl][align-variadic-stack-args args fspec] ;-- AAPCS C.7 stack padding
+		size: emit-AAPCS-header/calc args fspec all [block? blk: fspec/4/1 blk] ;-- bytes left on the stack at the call
+		unless zero? size // 8 [emit-i32 #{e24dd004}] ;-- SUB sp, sp, #4	; pad so SP is 8-byte aligned at the call (AAPCS)
 		emit-i32 #{e92d5000}						;-- PUSH {ip,lr}		; save previous sp and lr value
 	]
 

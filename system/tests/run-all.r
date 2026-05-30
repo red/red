@@ -103,6 +103,10 @@ print ["This test started at" start-time]
   --run-test-file-quiet %source/units/overflow-test.reds
 ===end-group===
 
+===start-group=== "Variadic argument tests"
+  --run-test-file-quiet %source/units/vararg-test.reds
+===end-group===
+
 ===start-group=== "Infix syntax for functions"
   --run-test-file-quiet %source/units/infix-test.reds
 ===end-group===
