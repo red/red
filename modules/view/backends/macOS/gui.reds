@@ -2522,12 +2522,57 @@ OS-draw-face: func [
 	if system/thrown = RED_THROWN_ERROR [system/thrown: 0]
 ]
 
-OS-fetch-all-screens: func [][
-	SET_RETURN(none-value)
+OS-fetch-all-screens: func [
+	return: [red-block!]
+	/local
+		blk		[red-block!]
+		sub		[red-block!]
+		s		[series!]
+		screens	[integer!]
+		screen	[integer!]
+		n i		[integer!]
+		frame	[NSRect! value]
+		scale	[float32!]
+		sc		[float!]
+		px py	[integer!]
+		pw ph	[integer!]
+][
+	blk: block/push-only* 2
+
+	screens: objc_msgSend [objc_getClass "NSScreen" sel_getUid "screens"]
+	n: objc_msgSend [screens sel_getUid "count"]
+	i: 0
+	while [i < n][
+		screen: objc_msgSend [screens sel_getUid "objectAtIndex:" i]
+		frame:  objc_msgSend_rect [screen sel_getUid "frame"]
+		scale:  as float32! 1.0
+		if mac-version >= 1070 [
+			scale: objc_msgSend_f32 [screen sel_getUid "backingScaleFactor"]
+		]
+		px: as-integer frame/x
+		py: as-integer frame/y
+		pw: as-integer frame/w * scale				;-- size in device pixels (refresh-screens divides by scale)
+		ph: as-integer frame/h * scale
+		sc: as-float scale
+
+		sub: block/make-at as red-block! ALLOC_TAIL(blk) 4
+		s: GET_BUFFER(sub)
+		pair/make-at   alloc-tail s px py
+		pair/make-at   alloc-tail s pw ph
+		float/make-at  alloc-tail s sc
+		handle/make-at alloc-tail s screen handle/CLASS_MONITOR
+		i: i + 1
+	]
+	blk
 ]
 
-OS-get-current-screen: func [][
-	SET_RETURN(none-value)
+OS-get-current-screen: func [
+	return: [red-handle!]
+	/local
+		screen	[integer!]
+][
+	screen: objc_msgSend [objc_getClass "NSScreen" sel_getUid "mainScreen"]
+	handle/make-at stack/arguments screen handle/CLASS_MONITOR
 ]
 
 OS-alert: func [
