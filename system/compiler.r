@@ -1666,6 +1666,44 @@ system-dialect: make-profilable context [
 			]
 		]
 		
+		promote-variadic: func [
+			;-- For a C variadic import (cdecl + [variadic]) called as `name [a b ...]`:
+			;--   * type-check the leading named/fixed args against their declared types
+			;--     ("the ellipsis stops argument conversion after the last declared parameter")
+			;--   * apply C default argument promotions to the trailing (variadic) args:
+			;--     float32! -> float! (i.e. float -> double). char/byte are already word-sized.
+			name [word!] tag [issue!] args [block!]
+			/local entry spec fixed n i arg atype
+		][
+			entry: functions/:name
+			unless all [tag = #variadic  entry/3 = 'cdecl][exit] ;-- only C-ABI vararg imports
+			spec: entry/4
+			if block? spec/1 [spec: next spec]			;-- skip attributes block
+			fixed: entry/1								;-- number of named (fixed) C parameters
+			n: length? args
+
+			repeat i fixed [							;-- named args: convert to declared type, type-check
+				if i > n [break]
+				arg:   args/:i
+				atype: spec/2
+				either all [find [decimal! issue!] type?/word arg  atype/1 = 'float32!][
+					args/:i: make action-class [action: 'type-cast type: [float32!] data: arg]
+				][
+					check-expected-type name arg atype
+				]
+				spec: skip spec 2
+			]
+			repeat i n [								;-- variadic tail: default argument promotions
+				if all [
+					i > fixed
+					not block? arg: args/:i				;-- skip nested calls (no float32! promotion there yet)
+					'float32! = first get-type arg
+				][
+					args/:i: make action-class [action: 'type-cast type: [float!] data: arg]
+				]
+			]
+		]
+
 		check-variable-arity?: func [spec [block!] /local attribs][
 			all [
 				attribs: get-attributes spec
@@ -3540,7 +3578,10 @@ system-dialect: make-profilable context [
 				types slots
 		][
 			name: decorate-fun name
-			list: either variadic? args/1 [args/2][		;-- bypass type-checking for variable arity calls
+			list: either variadic? args/1 [
+				promote-variadic name args/1 args/2		;-- check named args + promote variadic tail (C ABI)
+				args/2
+			][
 				check-arguments-type name args
 				args
 			]
