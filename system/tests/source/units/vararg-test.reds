@@ -76,4 +76,21 @@ streq?: func [a [c-string!] b [c-string!] return: [logic!] /local i [integer!]][
 		--assert streq? vararg-buf "7 1.50 2.50"
 ===end-group===
 
+===start-group=== "double spilled to the stack stays 8-byte aligned (AAPCS C.7)"
+	;-- A double that spills to the stack after an odd number of 4-byte stacked slots must be
+	;-- 8-byte aligned there. On ARM these printed garbage before the stack-padding fix.
+	--test-- "va-3int-dbl"
+		sprintf [vararg-buf "%d %d %d %.2f" 1 2 3 4.5]
+		--assert streq? vararg-buf "1 2 3 4.50"
+	--test-- "va-3int-dbl-int"
+		sprintf [vararg-buf "%d %d %d %.2f %d" 1 2 3 4.5 5]
+		--assert streq? vararg-buf "1 2 3 4.50 5"
+	--test-- "va-4int-dbl"
+		sprintf [vararg-buf "%d %d %d %d %.2f" 1 2 3 4 5.5]
+		--assert streq? vararg-buf "1 2 3 4 5.50"
+	--test-- "va-spill-doubles"					;-- several spilled doubles, all naturally aligned (no pad)
+		sprintf [vararg-buf "%.2f %.2f %.2f %.2f" 1.5 2.5 3.5 4.5]
+		--assert streq? vararg-buf "1.50 2.50 3.50 4.50"
+===end-group===
+
 ~~~end-file~~~
