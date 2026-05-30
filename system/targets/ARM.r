@@ -2966,16 +2966,16 @@ make-profilable make target-class [
 		ordered: reverse copy args					;-- args is in reversed push order; restore call order
 		out: make block! 2 + length? ordered
 		reg: stk: 0
-		if hidden-ptr? fspec [append out ordered/1  ordered: next ordered  reg: 1] ;-- struct-return ptr -> r0
+		if hidden-ptr? fspec [append/only out ordered/1  ordered: next ordered  reg: 1] ;-- struct-return ptr -> r0
 		foreach arg ordered [
-			either arg = #_ [append out arg][		;-- bypass place-holder marker
+			either arg = #_ [append/only out arg][		;-- bypass place-holder marker
 				size: emitter/size-of? compiler/get-type arg
 				either reg >= 4 [					;-- argument spills onto the stack
 					if all [size = 8  (stk // 8) = 4][append out 0  stk: stk + 4] ;-- C.7 alignment pad
-					append out arg
+					append/only out arg
 					stk: stk + any [size 4]
 				][									;-- argument still fits in core registers
-					append out arg
+					append/only out arg
 					either size = 8 [
 						either reg <= 2 [if odd? reg [reg: reg + 1]  reg: reg + 2][stk: stk + 8  reg: reg + 2]
 					][reg: reg + 1]
