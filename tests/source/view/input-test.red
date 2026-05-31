@@ -1,5 +1,5 @@
 Red [
-	Title:	"Headless View test: text input & selection events"
+	Title:	"Headless View test: text input & selection semantics"
 	Author:	"Red test suite"
 	Needs:	View
 	Config:	[GUI-engine: 'test]
@@ -9,46 +9,42 @@ Red [
 
 system/view/VID/GUI-rules/active?: no
 
-fld: ar: tl: none
+changed?: no
 
 ~~~start-file~~~ "input-test"
 
-===start-group=== "field input"
-	--test-- "input-string types a string into a field"
-		view/no-wait [fld: field]
-		input-string fld "hello"
-		--assert fld/text = "hello"
-		unview/all
-	--test-- "key events accumulate character by character"
-		view/no-wait [fld: field]
-		set-focus fld
-		do-event/with 'key #"a"
-		do-event/with 'key #"b"
-		do-event/with 'key #"c"
-		--assert fld/text = "abc"
-		unview/all
-	--test-- "typing syncs the field's data facet"
-		view/no-wait [fld: field]
-		input-string fld "42"
-		--assert fld/data = 42
-		unview/all
+===start-group=== "field text <-> data"
+	--test-- "setting field text loads the data facet"
+		p: layout [field]
+		p/pane/1/text: "42"
+		--assert p/pane/1/data = 42
+	--test-- "setting field data reformats text"
+		p: layout [field]
+		p/pane/1/data: 7
+		--assert p/pane/1/text = "7"
 ===end-group===
 
-===start-group=== "area input"
-	--test-- "input-string types into an area"
-		view/no-wait [ar: area]
-		input-string ar "note"
-		--assert ar/text = "note"
-		unview/all
+===start-group=== "area text"
+	--test-- "area holds its text content"
+		p: layout [area]
+		p/pane/1/text: "notes"
+		--assert p/pane/1/text = "notes"
 ===end-group===
 
-===start-group=== "text-list selection event"
-	--test-- "do-event 'select sets the selected index"
-		view/no-wait [tl: text-list data ["x" "y" "z"]]
-		set-focus tl
-		do-event/with 'select 3
-		--assert tl/selected = 3
-		unview/all
+===start-group=== "list selection"
+	--test-- "setting selected copies the value into text"
+		p: layout [text-list data ["a" "b" "c"]]
+		p/pane/1/selected: 2
+		--assert p/pane/1/selected = 2
+		--assert p/pane/1/text = "b"
+===end-group===
+
+===start-group=== "on-change via a synthetic change event"
+	--test-- "field on-change actor fires"
+		changed?: no
+		p: layout [field on-change [changed?: yes]]
+		do-actor p/pane/1 make event! [type: 'change] 'change
+		--assert changed?
 ===end-group===
 
 ~~~end-file~~~

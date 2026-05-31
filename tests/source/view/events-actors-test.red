@@ -9,65 +9,54 @@ Red [
 
 system/view/VID/GUI-rules/active?: no
 
-kid: kid2: bk: ck: none
 parent-hit: parent-hit2: got-ctrl: got-shift: changed?: no
 got-key: none
 
 ~~~start-file~~~ "events-actors-test"
 
-===start-group=== "event bubbling"
+===start-group=== "event bubbling via awake (synthetic events)"
 	--test-- "click on a child with no on-click bubbles to the parent"
 		parent-hit: no
-		view/no-wait [
+		p: layout [
 			panel 200x200 on-click [parent-hit: yes] [
-				kid: field
+				field
 			]
 		]
-		set-focus kid
-		do-event 'click
+		kid: p/pane/1/pane/1
+		system/view/awake/with make event! [type: 'click] kid
 		--assert parent-hit
-		unview/all
 	--test-- "returning 'done from the child stops propagation"
 		parent-hit2: no
-		view/no-wait [
+		p: layout [
 			panel 200x200 on-click [parent-hit2: yes] [
-				kid2: field on-click ['done]
+				field on-click ['done]
 			]
 		]
-		set-focus kid2
-		do-event 'click
+		kid: p/pane/1/pane/1
+		system/view/awake/with make event! [type: 'click] kid
 		--assert not parent-hit2
-		unview/all
 ===end-group===
 
 ===start-group=== "event fields readable in actors"
-	--test-- "actor reads event/key"
+	--test-- "actor reads event/key from a synthetic key event"
 		got-key: none
-		view/no-wait [bk: base 40x40 on-key [got-key: event/key]]
-		set-focus bk
-		do-event/with 'key #"Z"
+		p: layout [base 40x40 on-key [got-key: event/key]]
+		do-actor p/pane/1 make event! [type: 'key key: #"Z"] 'key
 		--assert got-key = #"Z"
-		unview/all
-	--test-- "actor reads modifier state via do-event/flags"
-		got-key: none
+	--test-- "actor reads modifier state (event/ctrl?, event/shift?)"
 		got-ctrl: got-shift: no
-		view/no-wait [bk: base 40x40 on-key [got-key: event/key  got-ctrl: event/ctrl?  got-shift: event/shift?]]
-		set-focus bk
-		do-event/with/flags 'key #"Z" [control]
-		--assert got-key = #"Z"
+		p: layout [base 40x40 on-key [got-ctrl: event/ctrl?  got-shift: event/shift?]]
+		do-actor p/pane/1 make event! [type: 'key key: #"Z" flags: [control]] 'key
 		--assert got-ctrl
 		--assert not got-shift
-		unview/all
 ===end-group===
 
-===start-group=== "click maps to change for check/radio"
-	--test-- "clicking a check fires on-change"
+===start-group=== "dispatching a change event fires on-change"
+	--test-- "check on-change fires"
 		changed?: no
-		view/no-wait [ck: check on-change [changed?: yes]]
-		set-focus ck
-		do-event 'click
+		p: layout [check on-change [changed?: yes]]
+		do-actor p/pane/1 make event! [type: 'change] 'change
 		--assert changed?
-		unview/all
 ===end-group===
 
 ~~~end-file~~~

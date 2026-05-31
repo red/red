@@ -48,6 +48,17 @@ event: context [
 		field	[integer!]
 		return: [red-value!]
 	][
+		if null? evt/msg [							;-- synthetic event (built via `make event!`): no OS msg
+			switch field [
+				2  [return as red-value! none-value]		;-- face
+				3  [return as red-value! none-value]		;-- window
+				4  [return as red-value! pair/push 0 0]		;-- offset
+				5  [return as red-value! char/push (evt/flags and FFFFh)]	;-- key (cell, not OS msg)
+				6  [return as red-value! integer/push 0]	;-- picked
+				15 [return as red-value! none-value]		;-- orientation
+				default [0]									;-- type/key/flags/modifiers live in the cell
+			]
+		]
 		switch field [
 			1  [gui/get-event-type evt]
 			2  [gui/get-event-face evt]
@@ -74,6 +85,25 @@ event: context [
 		stack/push as red-value! evt
 	]
 
+	flag-word-bit: func [
+		w		[red-word!]
+		return: [integer!]
+		/local s [integer!]
+	][
+		s: symbol/resolve w/symbol
+		case [
+			s = symbol/resolve gui/_control/symbol	[gui/EVT_FLAG_CTRL_DOWN]
+			s = symbol/resolve gui/_shift/symbol	[gui/EVT_FLAG_SHIFT_DOWN]
+			s = symbol/resolve gui/_alt/symbol		[gui/EVT_FLAG_MENU_DOWN]
+			s = symbol/resolve gui/_away/symbol		[gui/EVT_FLAG_AWAY]
+			s = symbol/resolve gui/_down/symbol		[gui/EVT_FLAG_DOWN]
+			s = symbol/resolve gui/_mid-down/symbol	[gui/EVT_FLAG_MID_DOWN]
+			s = symbol/resolve gui/_alt-down/symbol	[gui/EVT_FLAG_ALT_DOWN]
+			s = symbol/resolve gui/_aux-down/symbol	[gui/EVT_FLAG_AUX_DOWN]
+			true [0]
+		]
+	]
+
 	;-- Actions --
 	
 	make: func [
@@ -81,10 +111,69 @@ event: context [
 		spec	[red-value!]
 		type	[integer!]
 		return:	[red-event!]
+		/local
+			evt		[red-event!]
+			blk		[red-block!]
+			value	[red-value!]
+			tail	[red-value!]
+			w		[red-word!]
+			sym		[integer!]
+			ch		[red-char!]
+			fblk	[red-block!]
+			fval	[red-value!]
+			ftail	[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "event/make"]]
 
-		as red-event! 0
+		evt: as red-event! stack/push*
+		evt/header: TYPE_EVENT
+		evt/type:   0
+		evt/msg:    null
+		evt/flags:  0
+
+		if TYPE_OF(spec) = TYPE_BLOCK [
+			blk:   as red-block! spec
+			value: block/rs-head blk
+			tail:  block/rs-tail blk
+			while [value < tail][
+				if TYPE_OF(value) = TYPE_SET_WORD [
+					if (value + 1) < tail [
+						w:   as red-word! value
+						sym: symbol/resolve w/symbol
+						value: value + 1
+						case [
+							sym = words/type [
+								if (TYPE_OF(value) = TYPE_WORD) or (TYPE_OF(value) = TYPE_LIT_WORD) [
+									gui/set-event-type evt as red-word! value
+								]
+							]
+							sym = words/key [
+								if TYPE_OF(value) = TYPE_CHAR [
+									ch: as red-char! value
+									evt/flags: evt/flags or (ch/value and FFFFh)
+								]
+							]
+							sym = words/flags [
+								if TYPE_OF(value) = TYPE_BLOCK [
+									fblk:  as red-block! value
+									fval:  block/rs-head fblk
+									ftail: block/rs-tail fblk
+									while [fval < ftail][
+										if TYPE_OF(fval) = TYPE_WORD [
+											evt/flags: evt/flags or (flag-word-bit as red-word! fval)
+										]
+										fval: fval + 1
+									]
+								]
+							]
+							true [0]
+						]
+					]
+				]
+				value: value + 1
+			]
+		]
+		evt
 	]
 	
 	form: func [
@@ -195,7 +284,7 @@ event: context [
 			TYPE_VALUE
 			"event!"
 			;-- General actions --
-			null			;make
+			:make			;make
 			null			;random
 			null			;reflect
 			null			;to
