@@ -86,6 +86,7 @@ rsc: context [
 				  "--no-runtime"		    (opts/runtime?: no)		;@@ overridable by config!
 				| ["-g" | "--debug-stabs"]  (opts/debug?: yes)		;@@ overridable by config!
 				| ["-l" | "--literal-pool"] (opts/literal-pool?: yes)
+				| "--emit-ida-script"		(opts/emit-ida-script?: yes)
 				| ["-o" | "--output"]  		set output skip
 				| ["-t" | "--target"]  		set target skip
 				| ["-v" | "--verbose"] 		set verbose skip

@@ -79,6 +79,7 @@ system-dialect: make-profilable context [
 		show:				none
 		command-line:		none
 		show-func-map?:		no							;-- yes => output the functions address/name map
+		emit-ida-script?:	no							;-- yes => output an IDAPython names sidecar
 	]
 	
 	compiler: make-profilable context [

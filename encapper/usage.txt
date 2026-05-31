@@ -68,6 +68,10 @@ Usage: red [command] [options] [file]
     --show-func-map                : Output an address/name map of Red/System
                                      functions, for debugging purposes.
 
+    --emit-ida-script              : Output an IDAPython sidecar that names
+                                     Red/System functions in IDA. Implies
+                                     --show-func-map.
+
 [command]:
 
     build libRed [stdcall]         : Builds libRed library and unpacks the
