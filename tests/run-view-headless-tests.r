@@ -68,6 +68,10 @@ print ["This test started at" start-time]
 	--run-test-file-quiet %source/view/reactivity-test.red
 ===end-group===
 
+===start-group=== "Draw dialect"
+	--run-test-file-quiet %source/view/draw-parse-test.red
+===end-group===
+
 ***end-run-quiet***
 
 end-time: now/precise

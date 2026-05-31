@@ -10,7 +10,7 @@ Red [
 system/view/VID/GUI-rules/active?: no
 
 kid: kid2: bk: ck: none
-parent-hit: parent-hit2: got-ctrl: changed?: no
+parent-hit: parent-hit2: got-ctrl: got-shift: changed?: no
 got-key: none
 
 ~~~start-file~~~ "events-actors-test"
@@ -48,8 +48,16 @@ got-key: none
 		do-event/with 'key #"Z"
 		--assert got-key = #"Z"
 		unview/all
-	;; NOTE: do-event declares /flags but does not apply it, so synthesized
-	;; modifier state (event/ctrl?, event/shift?, ...) is not testable yet.
+	--test-- "actor reads modifier state via do-event/flags"
+		got-key: none
+		got-ctrl: got-shift: no
+		view/no-wait [bk: base 40x40 on-key [got-key: event/key  got-ctrl: event/ctrl?  got-shift: event/shift?]]
+		set-focus bk
+		do-event/with/flags 'key #"Z" [control]
+		--assert got-key = #"Z"
+		--assert got-ctrl
+		--assert not got-shift
+		unview/all
 ===end-group===
 
 ===start-group=== "click maps to change for check/radio"
