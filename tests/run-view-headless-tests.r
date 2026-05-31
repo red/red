@@ -54,6 +54,20 @@ print ["This test started at" start-time]
 	--run-test-file-quiet %source/view/vid-window-test.red
 ===end-group===
 
+===start-group=== "View engine"
+	--run-test-file-quiet %source/view/face-facets-test.red
+	--run-test-file-quiet %source/view/face-types-test.red
+	--run-test-file-quiet %source/view/show-sync-test.red
+	--run-test-file-quiet %source/view/make-face-test.red
+	--run-test-file-quiet %source/view/face-tree-test.red
+===end-group===
+
+===start-group=== "Events & reactivity"
+	--run-test-file-quiet %source/view/events-actors-test.red
+	--run-test-file-quiet %source/view/input-test.red
+	--run-test-file-quiet %source/view/reactivity-test.red
+===end-group===
+
 ***end-run-quiet***
 
 end-time: now/precise
