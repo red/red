@@ -2123,6 +2123,14 @@ GPtrArray!: alias struct! [
 			widget		[handle!]
 			wrap		[logic!]
 		]
+		gtk_label_set_ellipsize: "gtk_label_set_ellipsize" [
+			widget		[handle!]
+			mode		[PangoEllipsizeMode!]
+		]
+		gtk_label_set_lines: "gtk_label_set_lines" [
+			widget		[handle!]
+			lines		[integer!]
+		]
 		gtk_label_set_angle: "gtk_label_set_angle" [
 			widget		[handle!]
 			angle		[float!]

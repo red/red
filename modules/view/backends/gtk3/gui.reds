@@ -1073,6 +1073,9 @@ change-size: func [
 			gtk_widget_set_size_request layout sx sy
 			gtk_widget_queue_resize layout
 		]
+		if type = text [
+			set-label-size-limits widget values sx sy
+		]
 		if type = rich-text [
 			gtk_layout_set_size widget sx y
 		]
@@ -1567,6 +1570,55 @@ font-width?: func [
 	sz: pango-size? txt attrs
 	if free? [pango_attr_list_unref attrs]
 	(as float32! sz/width) / as float32! 10.0
+]
+
+font-height?: func [
+	font		[red-object!]
+	return:		[integer!]
+	/local
+		attrs	[handle!]
+		free?	[logic!]
+		sz		[tagSIZE]
+][
+	free?: no
+	either all [
+		font <> null
+		TYPE_OF(font) = TYPE_OBJECT
+	][
+		attrs: create-pango-attrs null font
+		free?: yes
+	][
+		attrs: default-attrs
+	]
+	sz: pango-size? "Mg" attrs
+	if free? [pango_attr_list_unref attrs]
+	sz/height
+]
+
+set-label-size-limits: func [
+	label		[handle!]
+	values		[red-value!]
+	sx			[integer!]
+	sy			[integer!]
+	/local
+		font	[red-object!]
+		chars	[integer!]
+		height	[integer!]
+		lines	[integer!]
+		f32		[float32!]
+][
+	font: as red-object! values + FACE_OBJ_FONT
+	f32: (as float32! sx) / font-width? null font
+	chars: as-integer f32
+	if chars < 1 [chars: 1]
+	gtk_label_set_max_width_chars label chars
+
+	height: font-height? font
+	if height < 1 [height: 1]
+	lines: sy / height
+	if lines < 1 [lines: 1]
+	gtk_label_set_lines label lines
+	gtk_label_set_ellipsize label PANGO_ELLIPSIZE_END
 ]
 
 update-scroller: func [
@@ -2137,6 +2189,7 @@ OS-make-view: func [
 		sym = text [
 			widget: gtk_label_new caption
 			gtk_label_set_line_wrap widget yes
+			set-label-size-limits widget values sx sy
 			container: gtk_event_box_new
 			gtk_container_add container widget
 		]
