@@ -1178,9 +1178,10 @@ OS-draw-ellipse: func [
 
 
 set-font-attrs: func [
-	cr			[handle!]
+	dc			[draw-ctx!]
 	font		[red-object!]
 	/local
+		cr		[handle!]
 		slant	[integer!]
 		weight	[integer!]
 		values	[red-value!]
@@ -1200,6 +1201,7 @@ set-font-attrs: func [
 		blk		[red-block!]
 		sym		[integer!]
 ][
+	cr: dc/cr
 	values: object/get-values font
 
 	str: as red-string! values + FONT_OBJ_NAME
@@ -1254,6 +1256,9 @@ set-font-attrs: func [
 		rgb: get-color-int color :alpha?
 		set-source-color cr rgb
 	]
+
+	if dc/font-attrs <> null [pango_attr_list_unref dc/font-attrs]
+	dc/font-attrs: create-pango-attrs null font
 ]
 
 OS-draw-font: func [
@@ -1270,7 +1275,7 @@ OS-draw-font: func [
 	if null? dc/font-opts [
 		dc/font-opts: cairo_font_options_create
 	]
-	set-font-attrs dc/cr font
+	set-font-attrs dc font
 
 	values: object/get-values font
 	value: values + FONT_OBJ_ANTI-ALIAS?
@@ -1300,20 +1305,31 @@ OS-draw-font: func [
 ]
 
 draw-text-at: func [
-	cr			[handle!]
+	dc			[draw-ctx!]
 	text		[red-string!]
 	x			[float!]
 	y			[float!]
 	/local
+		cr		[handle!]
 		len		[integer!]
 		str		[c-string!]
 		layout	[handle!]
 ][
+	cr: dc/cr
 	cairo_save cr
 	cairo_move_to cr x y
 	len: -1
 	str: unicode/to-utf8 text :len
-	cairo_show_text cr str
+	layout: pango_cairo_create_layout cr
+	pango_layout_set_text layout str -1
+	either dc/font-attrs <> null [
+		pango_layout_set_attributes layout dc/font-attrs
+	][
+		pango_layout_set_attributes layout default-attrs
+	]
+	pango_cairo_update_layout cr layout
+	pango_cairo_show_layout cr layout
+	g_object_unref layout
 	cairo_restore cr
 ]
 
@@ -1372,7 +1388,7 @@ OS-draw-text: func [
 	either TYPE_OF(text) = TYPE_STRING [
 		GET_PAIR_XY_F(pos x y)
 		set-source-color dc/cr dc/font-color
-		draw-text-at dc/cr text x y + dc/font-ascent
+		draw-text-at dc text x y
 	][
 		draw-text-box dc/cr pos as red-object! text catch?
 	]
