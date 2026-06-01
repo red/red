@@ -730,7 +730,10 @@ draw-text-box: func [
 		x		[integer!]
 		cg-pt	[CGPoint!]
 		clr		[integer!]
+		size	[red-pair!]
+		color	[red-tuple!]
 		pt		[red-point2D!]
+		w h		[float32!]
 ][
 	values: object/get-values tbox
 	str: as red-string! values + FACE_OBJ_TEXT
@@ -759,6 +762,16 @@ draw-text-box: func [
 	x: 0
 	cg-pt: as CGPoint! :x
 	GET_PAIR_XY(pos cg-pt/x cg-pt/y)
+	size: as red-pair! values + FACE_OBJ_SIZE
+	color: as red-tuple! values + FACE_OBJ_COLOR
+	if all [
+		TYPE_OF(color) = TYPE_TUPLE
+		ANY_COORD?(size)
+	][
+		GET_PAIR_XY(size w h)
+		CG-set-color dc/raw get-tuple-color color yes
+		CGContextFillRect dc/raw cg-pt/x cg-pt/y w h
+	]
 	objc_msgSend [layout sel_getUid "drawBackgroundForGlyphRange:atPoint:" idx len cg-pt/x cg-pt/y]
 	objc_msgSend [layout sel_getUid "drawGlyphsForGlyphRange:atPoint:" idx len cg-pt/x cg-pt/y]
 ]

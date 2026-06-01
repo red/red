@@ -470,10 +470,19 @@ OS-draw-text: func [
 		brush	[ID2D1SolidColorBrush]
 		color?	[logic!]
 		pen		[this!]
+		obj		[red-object!]
+		values	[red-value!]
+		size	[red-pair!]
+		color	[red-tuple!]
+		bg		[ptr-value!]
+		bg-brush [this!]
+		d3d-clr [D3DCOLORVALUE]
+		rc		[RECT_F! value]
 		release? [logic!]
 		unk		[IUnknown]
 		flags	[integer!]
 		x y		[float32!]
+		w h		[float32!]
 		pt		[red-point2D!]
 ][
 	this: as this! ctx/dc
@@ -497,9 +506,30 @@ OS-draw-text: func [
 		brush/SetColor pen to-dx-color ctx/font-color null
 		color?: yes
 	]
+	GET_PAIR_XY(pos x y)
+	if TYPE_OF(text) = TYPE_OBJECT [
+		obj: as red-object! text
+		values: object/get-values obj
+		size: as red-pair! values + FACE_OBJ_SIZE
+		color: as red-tuple! values + FACE_OBJ_COLOR
+		if all [
+			TYPE_OF(color) = TYPE_TUPLE
+			ANY_COORD?(size)
+		][
+			GET_PAIR_XY(size w h)
+			rc/left: x
+			rc/top: y
+			rc/right: x + w
+			rc/bottom: y + h
+			d3d-clr: to-dx-color get-tuple-color color null
+			dc/CreateSolidColorBrush this d3d-clr null :bg
+			bg-brush: as this! bg/value
+			dc/FillRectangle this as RECT_F! :rc bg-brush
+			COM_SAFE_RELEASE(unk bg-brush)
+		]
+	]
 	txt-box-draw-background ctx/target pos layout
 	flags: either win8+? [4][0]	;-- 4: D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT
-	GET_PAIR_XY(pos x y)
 	dc/DrawTextLayout this x y layout ctx/pen flags
 	if color? [
 		brush/SetColor pen to-dx-color ctx/pen-color null

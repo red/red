@@ -1347,8 +1347,11 @@ draw-text-box: func [
 		clr		[integer!]
 		int		[red-integer!]
 		layout	[handle!]
+		size	[red-pair!]
+		color	[red-tuple!]
 		pt		[red-point2D!]
 		x y		[float!]
+		w h		[float!]
 ][
 	values: object/get-values tbox
 	text: as red-string! values + FACE_OBJ_TEXT
@@ -1368,6 +1371,18 @@ draw-text-box: func [
 	int: as red-integer! block/rs-head state
 	layout: as handle! int/value
 	GET_PAIR_XY_F(pos x y)
+	size: as red-pair! values + FACE_OBJ_SIZE
+	color: as red-tuple! values + FACE_OBJ_COLOR
+	if all [
+		TYPE_OF(color) = TYPE_TUPLE
+		ANY_COORD?(size)
+	][
+		GET_PAIR_XY_F(size w h)
+		set-source-color cr get-tuple-color color
+		cairo_rectangle cr x y w h
+		cairo_fill cr
+		set-source-color cr 0
+	]
 	cairo_move_to cr x y
 	pango_cairo_show_layout cr layout
 ]
