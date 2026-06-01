@@ -1320,14 +1320,14 @@ draw-text-at: func [
 	cairo_move_to cr x y
 	len: -1
 	str: unicode/to-utf8 text :len
-	layout: pango_cairo_create_layout cr
+	if null? pango-context [pango-context: gdk_pango_context_get]
+	layout: pango_layout_new pango-context
 	pango_layout_set_text layout str -1
 	either dc/font-attrs <> null [
 		pango_layout_set_attributes layout dc/font-attrs
 	][
 		pango_layout_set_attributes layout default-attrs
 	]
-	pango_cairo_update_layout cr layout
 	pango_cairo_show_layout cr layout
 	g_object_unref layout
 	cairo_restore cr
@@ -1369,7 +1369,6 @@ draw-text-box: func [
 	layout: as handle! int/value
 	GET_PAIR_XY_F(pos x y)
 	cairo_move_to cr x y
-	pango_cairo_update_layout cr layout
 	pango_cairo_show_layout cr layout
 ]
 
