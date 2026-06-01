@@ -277,6 +277,7 @@ OS-text-box-layout: func [
 		int		[red-integer!]
 		styles	[red-block!]
 		size	[red-pair!]
+		color	[red-tuple!]
 		bool	[red-logic!]
 		layout	[integer!]
 		ts		[integer!]
@@ -298,6 +299,7 @@ OS-text-box-layout: func [
 	str: to-NSString as red-string! values + FACE_OBJ_TEXT
 	state: as red-block! values + FACE_OBJ_EXT3
 	size: as red-pair! values + FACE_OBJ_SIZE
+	color: as red-tuple! values + FACE_OBJ_COLOR
 	nsfont: as-integer get-font null as red-object! values + FACE_OBJ_FONT
 	cached?: TYPE_OF(state) = TYPE_BLOCK
 
@@ -378,6 +380,10 @@ OS-text-box-layout: func [
 	w: objc_msgSend [str sel_length]
 	objc_msgSend [ts sel_getUid "setAttributes:range:" attrs 0 w]
 	objc_msgSend [attrs sel_release]
+	;-- precedence: font color < face color < data ranges
+	if TYPE_OF(color) = TYPE_TUPLE [
+		OS-text-box-color null as handle! ts 0 w get-tuple-color color
+	]
 
 	styles: as red-block! values + FACE_OBJ_DATA
 	if all [

@@ -99,6 +99,32 @@ OS-text-box-background: func [
 	pango_attr_list_change lc/attrs attr
 ]
 
+set-pango-text-color: func [
+	attrs		[handle!]
+	color		[red-tuple!]
+	/local
+		r		[integer!]
+		g		[integer!]
+		b		[integer!]
+		a		[integer!]
+		rgb		[integer!]
+		alpha?	[integer!]
+		attr	[PangoAttribute!]
+][
+	if TYPE_OF(color) <> TYPE_TUPLE [exit]
+
+	alpha?: 0
+	rgb: get-color-int color :alpha?
+	r: 0 g: 0 b: 0 a: 0
+	color-u8-to-u16 rgb :r :g :b :a
+
+	attr: pango_attr_foreground_new r g b
+	pango_attr_list_change attrs attr
+
+	attr: pango_attr_foreground_alpha_new a
+	pango_attr_list_change attrs attr
+]
+
 OS-text-box-weight: func [
 	layout		[handle!]
 	pos			[integer!]
@@ -327,6 +353,7 @@ OS-text-box-layout: func [
 		size	[red-pair!]
 		font	[red-object!]
 		parent	[red-object!]
+		color	[red-tuple!]
 		cached?	[logic!]
 		attrs	[handle!]
 		int		[red-integer!]
@@ -347,6 +374,7 @@ OS-text-box-layout: func [
 	size: as red-pair! values + FACE_OBJ_SIZE
 	font: as red-object! values + FACE_OBJ_FONT
 	parent: as red-object! values + FACE_OBJ_PARENT
+	color: as red-tuple! values + FACE_OBJ_COLOR
 	styles: as red-block! values + FACE_OBJ_DATA
 	cached?: TYPE_OF(state) = TYPE_BLOCK
 
@@ -379,10 +407,12 @@ OS-text-box-layout: func [
 		font <> null
 		TYPE_OF(font) = TYPE_OBJECT
 	][
-		attrs: create-pango-attrs box font
+		attrs: create-pango-attrs null font
 	][
 		attrs: pango_attr_list_copy default-attrs
 	]
+	;-- precedence: font color < face color < data ranges
+	set-pango-text-color attrs color
 	len: -1
 	str: unicode/to-utf8 text :len
 	either ANY_COORD?(size) [
