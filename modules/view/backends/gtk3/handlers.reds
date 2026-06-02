@@ -1334,7 +1334,7 @@ mouse-button-press-event: func [
 		hMenu	[handle!]
 		buf		[handle!]
 		pixels	[int-ptr!]
-		ev x y w [integer!]
+		ev x y w h [integer!]
 ][
 	either null? GET-RESEND-EVENT(evbox) [
 		if evbox <> gtk_get_event_widget as handle! event [return EVT_NO_DISPATCH]
@@ -1352,6 +1352,13 @@ mouse-button-press-event: func [
 	buf: GET-BASE-BUFFER(widget)
 	if buf <> null [
 		w: cairo_image_surface_get_width buf
+		h: cairo_image_surface_get_height buf
+		if any [
+			x < 0
+			y < 0
+			x >= w
+			y >= h
+		][return EVT_DISPATCH]
 		pixels: as int-ptr! cairo_image_surface_get_data buf
 		pixels: pixels + (y * w) + x
 		if pixels/1 and FF000000h = 0 [		;-- transparent pixel
@@ -1395,6 +1402,7 @@ mouse-motion-notify-event: func [
 		flags	[integer!]
 		buf		[handle!]
 		w		[integer!]
+		h		[integer!]
 		pixels	[int-ptr!]
 		enter	[handle!]
 ][
@@ -1415,9 +1423,22 @@ mouse-motion-notify-event: func [
 	buf: GET-BASE-BUFFER(widget)
 	if buf <> null [
 		w: cairo_image_surface_get_width buf
+		h: cairo_image_surface_get_height buf
+		enter: GET-BASE-ENTER(widget)
+		if any [
+			x < 0
+			y < 0
+			x >= w
+			y >= h
+		][
+			if enter <> null  [
+				SET-BASE-ENTER(widget null)
+				make-event widget flags or EVT_FLAG_AWAY EVT_OVER
+			]
+			return EVT_DISPATCH
+		]
 		pixels: as int-ptr! cairo_image_surface_get_data buf
 		pixels: pixels + (y * w) + x
-		enter: GET-BASE-ENTER(widget)
 		either pixels/1 and FF000000h = 0 [		;-- transparent pixel
 			if enter <> null  [
 				SET-BASE-ENTER(widget null)

@@ -1774,6 +1774,9 @@ GPtrArray!: alias struct! [
 			widget		[handle!]
 			return:		[logic!]
 		]
+		gtk_widget_get_type: "gtk_widget_get_type" [
+			return:		[integer!]
+		]
 		gtk_widget_get_parent: "gtk_widget_get_parent" [
 			widget		[handle!]
 			return:		[handle!]
@@ -2430,6 +2433,11 @@ GPtrArray!: alias struct! [
 			nb			[handle!]
 			page		[handle!]
 			return:		[c-string!]
+		]
+		gtk_notebook_set_tab_label_text: "gtk_notebook_set_tab_label_text" [
+			nb			[handle!]
+			child		[handle!]
+			text		[c-string!]
 		]
 		gtk_notebook_get_n_pages: "gtk_notebook_get_n_pages" [
 			nb			[handle!]
@@ -3366,6 +3374,10 @@ GPtrArray!: alias struct! [
 			return:		[byte-ptr!]
 		]
 		cairo_image_surface_get_width: "cairo_image_surface_get_width" [
+			surf		[handle!]
+			return:		[integer!]
+		]
+		cairo_image_surface_get_height: "cairo_image_surface_get_height" [
 			surf		[handle!]
 			return:		[integer!]
 		]

@@ -954,6 +954,11 @@ change-pane: func [
 		offset	[red-pair!]
 
 ][
+	if type = tab-panel [
+		set-tabs parent get-face-values parent
+		exit
+	]
+
 	layout: case [
 		type = window [
 			GET-CONTAINER(parent)
@@ -1257,9 +1262,9 @@ change-data: func [
 		type = radio [
 			set-logic-state widget as red-logic! data no
 		]
-	; 	type = tab-panel [
-	; 		set-tabs widget get-face-values widget
-	; 	]
+		type = tab-panel [
+			set-tabs widget values
+		]
 		all [
 			type = text-list
 			TYPE_OF(data) = TYPE_BLOCK
@@ -2305,7 +2310,11 @@ OS-make-view: func [
 			]
 		]
 		set-widget-child-offset as handle! parent widget offset sym
-		change-visible widget show?/value sym
+		either all [parent <> 0 tab-panel = get-widget-symbol as handle! parent][
+			change-visible widget yes sym
+		][
+			change-visible widget show?/value sym
+		]
 		change-size widget size sym
 	]
 
@@ -2431,7 +2440,7 @@ OS-update-view: func [
 	if flags and FACET_FLAG_COLOR <> 0 [
 		change-color widget as red-tuple! values + FACE_OBJ_COLOR type
 	]
-	if all [flags and FACET_FLAG_PANE <> 0 type <> tab-panel][
+	if flags and FACET_FLAG_PANE <> 0 [
 		change-pane widget as red-block! values + FACE_OBJ_PANE type
 	]
 	if flags and FACET_FLAG_RATE <> 0 [
@@ -2507,6 +2516,7 @@ OS-destroy-view: func [
 	if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj PARA_OBJ_PARENT]
 
 	free-handles handle no
+	remove-tab-page handle
 ]
 
 OS-update-facet: func [
@@ -2528,11 +2538,24 @@ OS-update-facet: func [
 	;; DEBUG: print ["update-facet " get-symbol-name sym lf]
 
 	case [
-		; sym = facets/pane [
-		; 	sym: action/symbol
-		; 	;; DEBUG: print ["update pane action " get-symbol-name sym lf]
-		; 	pane: as red-block! value
-		; ]
+		sym = facets/pane [
+			word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
+			type: symbol/resolve word/symbol
+			if type = tab-panel [
+				sym: action/symbol
+				widget: get-face-handle face
+				if any [
+					sym = words/_remove/symbol
+					sym = words/_take/symbol
+					sym = words/_clear/symbol
+				][
+					loop part [
+						gtk_notebook_remove_page widget index
+					]
+				]
+				set-tabs widget get-face-values widget
+			]
+		]
 		sym = facets/data [
 			word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
 			type: symbol/resolve word/symbol
@@ -2545,9 +2568,10 @@ OS-update-facet: func [
 				; 	if zero? part [exit]
 				; 	update-combo-box face value sym new index part yes
 				; ]
-				; type = tab-panel [
-				; 	update-tabs face value sym new index part
-				; ]
+				type = tab-panel [
+					widget: get-face-handle face
+					set-tabs widget get-face-values widget
+				]
 				true [OS-update-view face]
 			]
 		]
