@@ -62,6 +62,10 @@ Red [
 		--assert [["a" "b,b" "c"]] = load-csv {a,"b,b",c}
 	--test-- "load-csv-6-newline"
 		--assert [["a" "b^/b" "c"]] = load-csv {a,"b^/b",c}
+	--test-- "load-csv-7-invalid-syntax-5644"
+		--assert none? attempt [load-csv {1,2^/"a"x,b^/3,4}]
+	--test-- "load-csv-8-non-aligned-throws"
+		--assert none? attempt [load-csv {1,2^/3}]
 ===end-group===
 
 ===start-group=== "load-csv-with"
