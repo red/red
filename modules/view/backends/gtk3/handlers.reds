@@ -656,6 +656,85 @@ window-delete-event: func [
 	make-event widget 0 EVT_CLOSE
 ]
 
+wayland-display?: func [
+	return:		[logic!]
+	/local
+		display	[handle!]
+		name	[c-string!]
+][
+	display: gdk_display_get_default
+	if null? display [return no]
+	name: gdk_display_get_name display
+	all [
+		name <> null
+		name/1 = #"w"
+		name/2 = #"a"
+		name/3 = #"y"
+		name/4 = #"l"
+		name/5 = #"a"
+		name/6 = #"n"
+		name/7 = #"d"
+	]
+]
+
+valid-window-offset?: func [
+	x		[integer!]
+	y		[integer!]
+	return:	[logic!]
+][
+	;-- GDK can report the X11 "unknown position" sentinel after frame offsets
+	;-- have been applied, so it is not always exactly -32768x-32768.
+	not any [x <= -32000 y <= -32000]
+]
+
+get-window-frame-offset: func [
+	widget	[handle!]
+	x		[int-ptr!]
+	y		[int-ptr!]
+	return:	[logic!]
+	/local
+		win	 [handle!]
+		rect [GdkRectangle! value]
+		ok	 [integer!]
+][
+	if wayland-display? [return no]
+
+	win: gtk_widget_get_window widget
+	if null? win [return no]
+
+	gdk_window_get_frame_extents win :rect
+	if all [
+		rect/width > 0
+		rect/height > 0
+		valid-window-offset? rect/x rect/y
+	][
+		x/value: rect/x
+		y/value: rect/y
+		return yes
+	]
+	ok: gdk_window_get_origin win x y
+	all [
+		ok <> 0
+		valid-window-offset? x/value y/value
+	]
+]
+
+arm-window-move: func [
+	[cdecl]
+	widget	[handle!]
+	return:	[logic!]
+	/local
+		move [window-move!]
+][
+	move: as window-move! g_object_get_qdata widget move-offset-id
+	if move <> null [
+		move/ready: 1
+		move/source: 0
+	]
+	g_object_unref widget
+	false
+]
+
 window-configure-event: func [
 	[cdecl]
 	evbox		[handle!]
@@ -669,6 +748,10 @@ window-configure-event: func [
 		offset	[red-pair!]
 		values	[red-value!]
 		pos		[red-point2D!]
+		move	[window-move!]
+		first?	[logic!]
+		old-x	[float!]
+		old-y	[float!]
 		ox oy	[integer!]
 ][
 	unless null? GET-STARTRESIZE(widget) [
@@ -677,10 +760,30 @@ window-configure-event: func [
 	values: get-face-values widget
 	if values <> null [
 		x: 0 y: 0
-		gtk_window_get_position widget :x :y
+		if wayland-display? [return EVT_DISPATCH]
+		unless get-window-frame-offset widget :x :y [
+			x: event/x
+			y: event/y
+		]
+		unless valid-window-offset? x y [return EVT_DISPATCH]
 		offset: as red-pair! values + FACE_OBJ_OFFSET
 		fx: dpi-unscale as float32! x
 		fy: dpi-unscale as float32! y
+		move: as window-move! g_object_get_qdata widget move-offset-id
+		first?: null? move
+		old-x: 0.0
+		old-y: 0.0
+		either first? [
+			move: as window-move! allocate size? window-move!
+			move/ready: 0
+			move/source: 0
+			g_object_set_qdata widget move-offset-id as int-ptr! move
+		][
+			old-x: move/x
+			old-y: move/y
+		]
+		move/x: as float! fx
+		move/y: as float! fy
 		either TYPE_OF(offset) = TYPE_POINT2D [
 			pos: as red-point2D! offset
 			pos/x: fx
@@ -689,6 +792,22 @@ window-configure-event: func [
 			offset/x: as-integer fx
 			offset/y: as-integer fy
 		]
+		if any [
+			not gtk_widget_get_mapped widget
+			move/ready = 0
+		][
+			if all [
+				gtk_widget_get_mapped widget
+				move/source = 0
+			][
+				g_object_ref widget
+				move/source: g_idle_add as-integer :arm-window-move widget
+			]
+			return EVT_DISPATCH
+		]
+		if any [
+			all [old-x = move/x old-y = move/y]
+		][return EVT_DISPATCH]
 		make-event widget 0 EVT_MOVING
 	]
 	EVT_DISPATCH

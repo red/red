@@ -204,6 +204,13 @@ GdkGeometry!: alias struct! [
 	win_gravity	[integer!]
 ]
 
+window-move!: alias struct! [
+	x		[float!]
+	y		[float!]
+	ready	[integer!]
+	source	[integer!]
+]
+
 #enum GdkScrollDirection! [
 	GDK_SCROLL_UP
 	GDK_SCROLL_DOWN
@@ -849,6 +856,10 @@ GPtrArray!: alias struct! [
 		gdk_display_get_default: "gdk_display_get_default" [
 			return: 	[handle!]
 		]
+		gdk_display_get_name: "gdk_display_get_name" [
+			display		[handle!]
+			return:		[c-string!]
+		]
 		gdk_display_get_default_screen: "gdk_display_get_default_screen" [
 			display 	[handle!]
 			return: 	[handle!]
@@ -896,6 +907,16 @@ GPtrArray!: alias struct! [
 		]
 		gdk_monitor_get_height_mm: "gdk_monitor_get_height_mm" [
 			monitor		[handle!]
+			return:		[integer!]
+		]
+		gdk_window_get_frame_extents: "gdk_window_get_frame_extents" [
+			window		[handle!]
+			rect		[GdkRectangle!]
+		]
+		gdk_window_get_origin: "gdk_window_get_origin" [
+			window		[handle!]
+			x			[int-ptr!]
+			y			[int-ptr!]
 			return:		[integer!]
 		]
 		gdk_x11_window_get_xid: "gdk_x11_window_get_xid" [
@@ -1687,6 +1708,10 @@ GPtrArray!: alias struct! [
 			state 		[logic!]
 		]
 		gtk_widget_get_visible: "gtk_widget_get_visible" [
+			widget		[handle!]
+			return: 	[logic!]
+		]
+		gtk_widget_get_mapped: "gtk_widget_get_mapped" [
 			widget		[handle!]
 			return: 	[logic!]
 		]
@@ -3723,6 +3748,7 @@ base-buffer:		g_quark_from_string "base-buffer"
 base-enter:			g_quark_from_string "base-enter"
 pair-size-facet:	g_quark_from_string "pair-size-facet"
 draw-ctx-id:		g_quark_from_string "draw-ctx-id"
+move-offset-id:		g_quark_from_string "move-offset-id"
 ;im-string-id:		g_quark_from_string "im-string-id"
 ;im-start-id:		g_quark_from_string "im-start-id"
 

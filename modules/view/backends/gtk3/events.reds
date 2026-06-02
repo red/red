@@ -508,6 +508,7 @@ get-event-offset: func [
 		widget	[handle!]
 		sz 		[red-pair!]
 		pt		[red-point2d!]
+		move	[window-move!]
 		offset	[red-pair!]
 		value	[integer!]
 		sx sy	[integer!]
@@ -516,8 +517,6 @@ get-event-offset: func [
 	case [
 		any [
 			evt/type <= EVT_OVER
-			evt/type = EVT_MOVING
-			evt/type = EVT_MOVE
 			evt/type = EVT_KEY
 			evt/type = EVT_KEY_UP
 			evt/type = EVT_KEY_DOWN
@@ -526,6 +525,22 @@ get-event-offset: func [
 			pt/header: TYPE_POINT2D
 			pt/x: as float32! evt-motion/x_new
 			pt/y: as float32! evt-motion/y_new
+			as red-value! pt
+		]
+		any [
+			evt/type = EVT_MOVING
+			evt/type = EVT_MOVE
+		][
+			pt: as red-point2d! stack/push*
+			pt/header: TYPE_POINT2D
+			pt/x: as float32! 0.0
+			pt/y: as float32! 0.0
+			widget: gtk_widget_get_toplevel as handle! evt/msg
+			move: as window-move! g_object_get_qdata widget move-offset-id
+			if all [move <> null move/ready <> 0][
+				pt/x: as float32! move/x
+				pt/y: as float32! move/y
+			]
 			as red-value! pt
 		]
 		any [

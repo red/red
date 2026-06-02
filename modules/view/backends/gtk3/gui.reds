@@ -477,6 +477,7 @@ free-handles: func [
 		sec		[float!]
 		cfg		[integer!]
 		last	[handle!]
+		move	[window-move!]
 ][
 	if null? widget [exit]
 
@@ -501,6 +502,15 @@ free-handles: func [
 	]
 
 	if sym = window [
+		move: as window-move! g_object_get_qdata widget move-offset-id
+		unless null? move [
+			if move/source <> 0 [
+				g_source_remove move/source
+				g_object_unref widget
+			]
+			free as byte-ptr! move
+			g_object_set_qdata widget move-offset-id null
+		]
 		;-- #5696: explicitly clear our markers BEFORE destroy. GObject only
 		;-- runs g_datalist_clear in finalize, not in dispose, so if anyone
 		;-- holds an extra ref (do-events / OS-show-window pin) the qdata
