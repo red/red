@@ -754,7 +754,8 @@ set-dark-mode: func [
 ][
 ]
 
-monitor-refresh-pending?:	no
+monitor-refresh-scheduled?:	no
+monitor-refresh-dirty?:		no
 monitor-refresh-running?:	no
 
 monitor-refresh-cb: func [
@@ -762,19 +763,20 @@ monitor-refresh-cb: func [
 	data	[int-ptr!]
 	return:	[logic!]
 ][
-	monitor-refresh-pending?: no
+	monitor-refresh-scheduled?: no
 	if monitor-refresh-running? [
-		;-- Someone pumped the main loop (free-handles does this while
-		;-- destroying a window) while we were already refreshing.
-		;-- Re-arm so we run again after the in-flight call unwinds,
-		;-- with the latest monitor list.
-		monitor-refresh-pending?: yes
-		g_idle_add as-integer :monitor-refresh-cb null
+		monitor-refresh-dirty?: yes
 		return false								;-- G_SOURCE_REMOVE
 	]
 	monitor-refresh-running?: yes
+	monitor-refresh-dirty?: no
 	#call [system/view/platform/refresh-screens]
 	monitor-refresh-running?: no
+	if monitor-refresh-dirty? [
+		monitor-refresh-dirty?: no
+		monitor-refresh-scheduled?: yes
+		g_idle_add as-integer :monitor-refresh-cb null
+	]
 	false											;-- G_SOURCE_REMOVE
 ]
 
@@ -790,9 +792,15 @@ monitor-changed: func [
 	;-- otherwise dispatch the next queued monitor signal and re-enter
 	;-- this callback recursively, corrupting series state mid-iteration.
 	;-- Coalesce + defer onto the main-loop idle so refresh-screens
-	;-- always runs from a clean stack.
-	if monitor-refresh-pending? [exit]
-	monitor-refresh-pending?: yes
+	;-- always runs from a clean stack. If a signal is delivered while
+	;-- refresh-screens is already running, mark it dirty and let the
+	;-- in-flight refresh schedule the next idle after it unwinds.
+	if monitor-refresh-running? [
+		monitor-refresh-dirty?: yes
+		exit
+	]
+	if monitor-refresh-scheduled? [exit]
+	monitor-refresh-scheduled?: yes
 	g_idle_add as-integer :monitor-refresh-cb null
 ]
 
