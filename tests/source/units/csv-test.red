@@ -77,6 +77,48 @@ Red [
 		--assert [["1" "2" "3"]["4" "5" "6"]] = load-csv/with {1;2;3^/4;5;6} #";"
 ===end-group===
 
+===start-group=== "load-csv-recover"
+	--test-- "load-csv-recover-1-skip-bad-row"
+		errors: copy []
+		--assert [["1" "2"]["3" "4"]] = load-csv/recover {1,2^/"a"x,b^/3,4} errors
+		--assert 1 = length? errors
+		--assert 'unexpected-after-quote = errors/1/type
+		--assert 'skipped = errors/1/action
+		--assert 2 = errors/1/line
+	--test-- "load-csv-recover-2-pad-short-row"
+		errors: copy []
+		--assert [["a" "b" "c"]["1" "2" ""]] = load-csv/recover {a,b,c^/1,2} errors
+		--assert 1 = length? errors
+		--assert 'short-row = errors/1/type
+		--assert 'padded = errors/1/action
+	--test-- "load-csv-recover-3-quoted-newline"
+		errors: copy []
+		--assert [["a" "b^/b" "c"]["1" "2" "3"]] = load-csv/recover {a,"b^/b",c^/1,2,3} errors
+		--assert empty? errors
+	--test-- "load-csv-recover-4-multiple-errors"
+		errors: copy []
+		--assert [["a" "b"]["1" ""]["2" "3"]] = load-csv/recover {a,b^/"x"y,z^/1^/2,3} errors
+		--assert 2 = length? errors
+		--assert 'unexpected-after-quote = errors/1/type
+		--assert 'short-row = errors/2/type
+	--test-- "load-csv-recover-5-repair-whitespace-after-quote"
+		errors: copy []
+		--assert [["a" "b"]["1" "2"]] = load-csv/recover {"a" ,"b" ^/1,2} errors
+		--assert 2 = length? errors
+		--assert 'whitespace-after-quote = errors/1/type
+		--assert 'repaired = errors/1/action
+		--assert 'whitespace-after-quote = errors/2/type
+		--assert 'repaired = errors/2/action
+		--assert {"a" ,"b" } = errors/1/source
+		--assert {"a" ,"b" } = errors/2/source
+	--test-- "load-csv-recover-6-header-width"
+		errors: copy []
+		--assert #["a" ["1" "3"] "b" ["2" ""]] = load-csv/header/recover {a,b^/1,2^/3} errors
+		--assert 1 = length? errors
+		--assert 'short-row = errors/1/type
+		--assert 'padded = errors/1/action
+===end-group===
+
 ===start-group=== "load-csv-header"
 	--test-- "load-csv-header-1"
 		--assert #["a" ["1"] "b" ["2"] "c" ["3"]] = load-csv/header {a,b,c^/1,2,3}

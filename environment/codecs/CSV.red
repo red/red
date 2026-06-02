@@ -201,6 +201,274 @@ context [
 		] make string! 1000
 	]
 
+	csv-add-issue: func [
+		errors	[block!]
+		type	[word!]
+		line	[integer!]
+		column	[integer!]
+		action	[word!]
+		source	[string!]
+		/local issue
+	][
+		issue: make object! [
+			type:	none
+			line:	none
+			column: none
+			action: none
+			source: none
+		]
+		issue/type: type
+		issue/line: line
+		issue/column: column
+		issue/action: action
+		issue/source: copy source
+		append/only errors issue
+	]
+
+	csv-newline-size?: func [pos [string!]][
+		case [
+			zero? length? pos [0]
+			pos/1 = #"^/" [1]
+			pos/1 = #"^M" [
+				either all [1 < length? pos pos/2 = #"^/"][2][1]
+			]
+			true [0]
+		]
+	]
+
+	csv-advance-char: func [
+		pos		[string!]
+		state	[block!]
+		/local n
+	][
+		n: csv-newline-size? pos
+		either zero? n [
+			state/2: state/2 + 1
+			next pos
+		][
+			state/1: state/1 + 1
+			state/2: 1
+			skip pos n
+		]
+	]
+
+	csv-consume-newline: func [
+		pos		[string!]
+		state	[block!]
+		/local n
+	][
+		n: csv-newline-size? pos
+		state/1: state/1 + 1
+		state/2: 1
+		skip pos n
+	]
+
+	csv-at-delimiter?: func [
+		pos		 [string!]
+		delimiter [char! string!]
+	][
+		not not find/match pos delimiter
+	]
+
+	csv-consume-delimiter: func [
+		pos			 [string!]
+		delimiter-size [integer!]
+		state		 [block!]
+	][
+		state/2: state/2 + delimiter-size
+		skip pos delimiter-size
+	]
+
+	csv-space?: func [ch [char!]][
+		any [ch = space ch = tab]
+	]
+
+	csv-line-end: func [pos [string!] /local lf-pos cr-pos][
+		lf-pos: find pos #"^/"
+		cr-pos: find pos #"^M"
+		case [
+			all [lf-pos cr-pos][either lf-pos < cr-pos [lf-pos][cr-pos]]
+			lf-pos [lf-pos]
+			cr-pos [cr-pos]
+			true [skip pos length? pos]
+		]
+	]
+
+	csv-finish-value: func [
+		row		 [block!]
+		value	 [string!]
+		do-trim? [logic!]
+		quote	 [char!]
+	][
+		if do-trim? [
+			value: system/words/trim value
+			all [
+				not empty? value
+				quote = first value
+				quote = last value
+				take value
+				take/last value
+			]
+		]
+		append row copy value
+		clear value
+	]
+
+	csv-parse-row: func [
+		pos			 [string!]
+		delimiter	 [char! string!]
+		delimiter-size [integer!]
+		quote		 [char!]
+		do-trim?	 [logic!]
+		recover?	 [logic!]
+		scan-state	 [block!]
+		return:		 [block!]
+		/local result row val start src-end state n probe line column ch next-pos
+	][
+		result: reduce [no none none none none none none make block! 2]
+		row: make block! 20
+		val: make string! 200
+		start: pos
+		line: scan-state/1
+		column: scan-state/2
+		state: 'start-field
+
+		forever [
+			if zero? length? pos [
+				if state = 'quoted-field [
+					result/5: 'unterminated-quote
+					result/6: line
+					result/7: column
+					result/4: copy/part start pos
+					break
+				]
+				csv-finish-value row val do-trim? quote
+				result/1: yes
+				result/2: row
+				result/3: pos
+				result/4: copy/part start pos
+				break
+			]
+
+			n: csv-newline-size? pos
+			ch: pos/1
+
+			if state = 'start-field [
+				either csv-at-delimiter? pos delimiter [
+					csv-finish-value row val do-trim? quote
+					pos: csv-consume-delimiter pos delimiter-size scan-state
+				][either n <> 0 [
+					csv-finish-value row val do-trim? quote
+					src-end: pos
+					pos: csv-consume-newline pos scan-state
+					result/1: yes
+					result/2: row
+					result/3: pos
+					result/4: copy/part start src-end
+					break
+				][either ch = quote [
+					state: 'quoted-field
+					pos: csv-advance-char pos scan-state
+				][
+					append val ch
+					state: 'unquoted-field
+					pos: csv-advance-char pos scan-state
+				]]]
+				continue
+			]
+
+			if state = 'unquoted-field [
+				either csv-at-delimiter? pos delimiter [
+					csv-finish-value row val do-trim? quote
+					state: 'start-field
+					pos: csv-consume-delimiter pos delimiter-size scan-state
+				][either n <> 0 [
+					csv-finish-value row val do-trim? quote
+					src-end: pos
+					pos: csv-consume-newline pos scan-state
+					result/1: yes
+					result/2: row
+					result/3: pos
+					result/4: copy/part start src-end
+					break
+				][
+					append val ch
+					pos: csv-advance-char pos scan-state
+				]]
+				continue
+			]
+
+			if state = 'quoted-field [
+				either ch = quote [
+					either all [1 < length? pos pos/2 = quote][
+						append val quote
+						next-pos: csv-advance-char pos scan-state
+						pos: csv-advance-char next-pos scan-state
+					][
+						state: 'quote-closed
+						pos: csv-advance-char pos scan-state
+					]
+				][
+					append val ch
+					pos: csv-advance-char pos scan-state
+				]
+				continue
+			]
+
+			if state = 'quote-closed [
+				either csv-at-delimiter? pos delimiter [
+					csv-finish-value row val do-trim? quote
+					state: 'start-field
+					pos: csv-consume-delimiter pos delimiter-size scan-state
+				][either n <> 0 [
+					csv-finish-value row val do-trim? quote
+					src-end: pos
+					pos: csv-consume-newline pos scan-state
+					result/1: yes
+					result/2: row
+					result/3: pos
+					result/4: copy/part start src-end
+					break
+				][either csv-space? ch [
+					probe: pos
+					while [all [not zero? length? probe csv-space? probe/1]][probe: next probe]
+					either any [
+						zero? length? probe
+						csv-at-delimiter? probe delimiter
+						(csv-newline-size? probe) <> 0
+					][
+						either recover? [
+							append/only result/8 reduce [
+								'whitespace-after-quote scan-state/1 scan-state/2 'repaired
+							]
+							while [pos <> probe][pos: csv-advance-char pos scan-state]
+						][
+							result/5: 'unexpected-after-quote
+							result/6: scan-state/1
+							result/7: scan-state/2
+							result/4: copy/part start (csv-line-end pos)
+							break
+						]
+					][
+						result/5: 'unexpected-after-quote
+						result/6: scan-state/1
+						result/7: scan-state/2
+						result/4: copy/part start (csv-line-end pos)
+						break
+					]
+				][
+					result/5: 'unexpected-after-quote
+					result/6: scan-state/1
+					result/7: scan-state/2
+					result/4: copy/part start (csv-line-end pos)
+					break
+				]]]
+				continue
+			]
+		]
+		result
+	]
+
 	; -- main functions
 	set 'load-csv function [
 		"Converts CSV text to a block of rows, where each row is a block of fields."
@@ -214,6 +482,12 @@ context [
 		/trim		"Ignore spaces between quotes and delimiter"
 		/quote
 			qt-char [char!] "Use different character for quotes than double quote (^")"
+		/recover
+			errors [block!] "Collect recoverable CSV issues and continue loading"
+			/local
+				disallowed refs output out-map longest record delimiter-size
+				cursor parsed-row row-line scan-state row source length
+				missing issue? repair key-index key
 		/extern
 			quote-char
 	] [
@@ -236,114 +510,94 @@ context [
 		output: make block! (length? data) / 80
 		out-map: make map! []
 		longest: 0
-		line: make block! 20
-		value: make string! 200
 		record: none
-		line-no: 1
-
-		; -- parse rules
-		newline: [crlf | lf | cr]
-		quotchars: charset reduce ['not quote-char]
-		valchars: charset reduce ['not append copy "^/^M" delimiter]
-		quoted-value: [
-			(clear value) [
-				quote-char
-				any [
-					[
-						set char quotchars
-					|	quote-char quote-char (char: quote-char)
-					]
-					(append value char)
-				]
-				quote-char
-			]
-		]
-		normal-value: [s: any valchars e: (value: copy/part s e)]
-		single-value: [quoted-value | normal-value]
-		values: [any [single-value delimiter add-value] single-value add-value]
-		add-value: [(
-			if trim [
-				value: system/words/trim value
-				all [
-					quote-char = first value
-					quote-char = last value
-					take value
-					take/last value
-				]
-			]
-			append line copy value
-		)]
-		add-line: [
-			(
-				; remove last empty element, when required
-				all [
-					ignore-empty?
-					empty? last line
-					take/last line
-				]
-				; check for longest line
-				length: length? line
-				if zero? longest [longest: length]		; first line
-				if all [strict? longest <> length][
-					do make error! non-aligned
-				]
-				if longest < length [longest: length]
-				either as-records [
-					; extend header when needed
-					if longest > length? header [
-						loop longest - (length? header) [
-							append header next-column-name last header
-						]
-					]
-					; append line to output
-					record: make map! length
-					repeat index length [
-						record/(header/:index): line/:index
-					]
-					append output record
-				][
-					either flat [
-						append output copy line
-					][
-						append/only output copy line
-					]
-				]
-			)
-			(line-no: line-no + 1)
-			init
-		]
-		line-rule: [end | values [newline | end] add-line]
-		init: [(clear line)]
+		scan-state: reduce [1 1]
+		delimiter-size: either char? delimiter [1][length? delimiter]
 
 		; -- main code
-		parsed?: parse data [
-			opt [
-				if (header) 
-				values newline
-				(header: copy line)
-				(line-no: line-no + 1)
-				init
+		cursor: data
+		if header [
+			if zero? length? cursor [
+				do make error! "CSV data are too small to use /HEADER refinement"
 			]
-			mark: (
-				if all [
-					header 
-					any [
-						equal? mark head mark
-						empty? mark
-					]
-				][do make error! "CSV data are too small to use /HEADER refinement"]
-			)
-			; -- Prepare default header (will be expanded when necessary)
-			(unless header [header: make-header 1])
-			[
-				init some line-rule
-			|	init values add-line
+			parsed-row: csv-parse-row cursor delimiter delimiter-size quote-char trim recover scan-state
+			either parsed-row/1 [
+				header: parsed-row/2
+				longest: length? header
+				foreach repair parsed-row/8 [
+					csv-add-issue errors repair/1 repair/2 repair/3 repair/4 parsed-row/4
+				]
+				cursor: parsed-row/3
+				if zero? length? cursor [
+					do make error! "CSV data are too small to use /HEADER refinement"
+				]
+			][
+				either recover [
+					csv-add-issue errors parsed-row/5 parsed-row/6 parsed-row/7 'skipped parsed-row/4
+					cursor: csv-consume-newline csv-line-end cursor scan-state
+				][
+					do make error! rejoin ["Invalid CSV data near line " parsed-row/6]
+				]
 			]
-			any newline
 		]
-
-		unless parsed? [
-			do make error! rejoin ["Invalid CSV data near line " line-no]
+		unless header [header: make-header 1]
+		while [not zero? length? cursor][
+			row-line: scan-state/1
+			parsed-row: csv-parse-row cursor delimiter delimiter-size quote-char trim recover scan-state
+			either parsed-row/1 [
+				row: parsed-row/2
+				source: parsed-row/4
+				issue?: no
+				foreach repair parsed-row/8 [
+					csv-add-issue errors repair/1 repair/2 repair/3 repair/4 source
+				]
+				length: length? row
+				if zero? longest [longest: length]
+				if longest <> length [
+					either recover [
+						either length < longest [
+							missing: longest - length
+							loop missing [append row ""]
+							csv-add-issue errors 'short-row row-line 1 'padded source
+							length: longest
+						][
+							csv-add-issue errors 'long-row row-line 1 'skipped source
+							issue?: yes
+						]
+					][
+						do make error! non-aligned
+					]
+				]
+				unless issue? [
+					if longest < length [longest: length]
+					either as-records [
+						if longest > length? header [
+							loop longest - (length? header) [
+								append header next-column-name last header
+							]
+						]
+						record: make map! length
+						repeat index length [
+							record/(header/:index): row/:index
+						]
+						append output record
+					][
+						either flat [
+							append output copy row
+						][
+							append/only output copy row
+						]
+					]
+				]
+				cursor: parsed-row/3
+			][
+				either recover [
+					csv-add-issue errors parsed-row/5 parsed-row/6 parsed-row/7 'skipped parsed-row/4
+					cursor: csv-consume-newline csv-line-end cursor scan-state
+				][
+					do make error! rejoin ["Invalid CSV data near line " parsed-row/6]
+				]
+			]
 		]
 
 		; -- adjust output when needed
