@@ -435,6 +435,8 @@ Red/System [
 					cr				[handle!]
 					DRAW_STATE_DATA
 					font-opts		[handle!]
+					utf8-buffer		[byte-ptr!]
+					utf8-buffer-size	[integer!]
 					font-ascent		[float!]
 					control-x		[float32!]
 					control-y		[float32!]
@@ -512,6 +514,8 @@ Red/System [
 			cr				[handle!]
 			DRAW_STATE_DATA
 			font-opts		[handle!]
+			utf8-buffer		[byte-ptr!]
+			utf8-buffer-size	[integer!]
 			font-ascent		[float!]
 			control-x		[float32!]
 			control-y		[float32!]

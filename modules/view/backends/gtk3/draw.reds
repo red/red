@@ -129,6 +129,8 @@ draw-begin: func [
 
 	ctx/font-attrs:		null
 	ctx/font-opts:		null
+	ctx/utf8-buffer:	null
+	ctx/utf8-buffer-size: 0
 	cairo_font_extents cr fe							;-- init fe with default font metrics
 	ctx/font-ascent:	fe/ascent
 
@@ -147,6 +149,11 @@ draw-end: func [
 ][
 	cairo_identity_matrix dc/cr
 	free-pango-cairo-font dc
+	unless null? dc/utf8-buffer [
+		free dc/utf8-buffer
+		dc/utf8-buffer: null
+		dc/utf8-buffer-size: 0
+	]
 	if dc/grad-pen/on? [
 		free-gradient dc/grad-pen
 		dc/grad-pen/on?: off
@@ -1318,8 +1325,17 @@ draw-text-at: func [
 	cr: dc/cr
 	cairo_save cr
 	cairo_move_to cr x y
-	len: -1
-	str: unicode/to-utf8 text :len
+	len: (string/rs-length? text) * 4 + 1
+	if dc/utf8-buffer-size < len [
+		dc/utf8-buffer: either null? dc/utf8-buffer [
+			allocate len
+		][
+			realloc dc/utf8-buffer len
+		]
+		dc/utf8-buffer-size: len
+	]
+	unicode/to-utf8-buffer text dc/utf8-buffer -1 yes
+	str: as c-string! dc/utf8-buffer
 	if null? pango-context [pango-context: gdk_pango_context_get]
 	layout: pango_layout_new pango-context
 	pango_layout_set_text layout str -1
