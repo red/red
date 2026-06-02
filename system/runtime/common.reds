@@ -266,7 +266,11 @@ re-throw: func [/local id [integer!]][
 				][
 					sprintf [s "*** Runtime Error %d: %s^/*** at: %08Xh" status msg as byte-ptr! address]
 				]
-				exec/gui/OS-alert #u16 "Red App Error" s
+				#either all [dev-mode? = yes libRedRT? = no][
+					red/gui/OS-alert #u16 "Red App Error" s		;-- in main exe 
+				][
+					exec/gui/OS-alert #u16 "Red App Error" s	;-- in libRedRT
+				]
 			][
 				print [lf "*** Runtime Error " status ": "]
 				print msg
