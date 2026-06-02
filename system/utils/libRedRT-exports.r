@@ -201,6 +201,7 @@
 
 	red/unicode/load-utf8
 	red/unicode/decode-utf8-char
+	red/unicode/convert-u16
 
 	red/object/unchanged?
 	red/object/unchanged2?
