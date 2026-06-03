@@ -2060,7 +2060,6 @@ _OS-draw-brush-bitmap: func [
 
 	bprops/opacity: as float32! 1.0
 	matrix2d/identity as D2D_MATRIX_3X2_F :bprops/transform
-	matrix2d/set-translation as D2D_MATRIX_3X2_F :bprops/transform F32_0 props/bottom / as float32! 2.0
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
 	dc/CreateImageBrush this bmp :props :bprops :brush
