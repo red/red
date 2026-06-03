@@ -3102,12 +3102,26 @@ GPtrArray!: alias struct! [
 			x			[float-ptr!]
 			y			[float-ptr!]
 		]
+		cairo_path_extents: "cairo_path_extents" [
+			cr			[handle!]
+			x1			[float-ptr!]
+			y1			[float-ptr!]
+			x2			[float-ptr!]
+			y2			[float-ptr!]
+		]
 		cairo_has_current_point: "cairo_has_current_point" [
 			cr			[handle!]
 			return:		[integer!]
 		]
 		cairo_stroke: "cairo_stroke" [
 			cr			[handle!]
+		]
+		cairo_stroke_extents: "cairo_stroke_extents" [
+			cr			[handle!]
+			x1			[float-ptr!]
+			y1			[float-ptr!]
+			x2			[float-ptr!]
+			y2			[float-ptr!]
 		]
 		cairo_fill: "cairo_fill" [
 			cr			[handle!]

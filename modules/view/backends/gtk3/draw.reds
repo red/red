@@ -276,18 +276,33 @@ do-draw-path: func [
 	dc			[draw-ctx!]
 	/local
 		cr		[handle!]
+		pattern	[handle!]
+		saved	[cairo_matrix_t! value]
+		restore? [logic!]
+		x1		[float!]
+		y1		[float!]
+		x2		[float!]
+		y2		[float!]
 ][
 	cr: dc/cr
 	if dc/brush? [
+		restore?: no
 		either all [
 			dc/grad-brush/on?
 			dc/grad-brush/pattern-on?
 		][
-			cairo_set_source cr dc/grad-brush/pattern
+			pattern: dc/grad-brush/pattern
+			if dc/grad-brush/type = bitmap [
+				x1: 0.0 y1: 0.0 x2: 0.0 y2: 0.0
+				cairo_path_extents cr :x1 :y1 :x2 :y2
+				restore?: set-surface-brush-origin pattern x1 y1 saved
+			]
+			cairo_set_source cr pattern
 		][
 			set-source-color cr dc/brush-color
 		]
 		cairo_fill_preserve cr
+		if restore? [cairo_pattern_set_matrix pattern saved]
 	]
 	do-draw-pen dc
 ]
@@ -296,18 +311,33 @@ do-draw-pen: func [
 	dc			[draw-ctx!]
 	/local
 		cr		[handle!]
+		pattern	[handle!]
+		saved	[cairo_matrix_t! value]
+		restore? [logic!]
+		x1		[float!]
+		y1		[float!]
+		x2		[float!]
+		y2		[float!]
 ][
 	cr: dc/cr
 	either all [dc/pen? dc/line-width?][
+		restore?: no
 		either all [
 			dc/grad-pen/on?
 			dc/grad-pen/pattern-on?
 		][
-			cairo_set_source cr dc/grad-pen/pattern
+			pattern: dc/grad-pen/pattern
+			if dc/grad-pen/type = bitmap [
+				x1: 0.0 y1: 0.0 x2: 0.0 y2: 0.0
+				cairo_stroke_extents cr :x1 :y1 :x2 :y2
+				restore?: set-surface-brush-origin pattern x1 y1 saved
+			]
+			cairo_set_source cr pattern
 		][
 			set-source-color cr dc/pen-color
 		]
 		cairo_stroke cr
+		if restore? [cairo_pattern_set_matrix pattern saved]
 	][
 		cairo_new_path cr
 	]
@@ -2733,6 +2763,165 @@ OS-draw-shape-close: func [
 	cairo_close_path dc/cr
 ]
 
+get-brush-mode: func [
+	mode	[red-word!]
+	return: [integer!]
+][
+	either mode = null [tile][symbol/resolve mode/symbol]
+]
+
+crop-brush-surface: func [
+	src		[handle!]
+	x		[integer!]
+	y		[integer!]
+	width	[integer!]
+	height	[integer!]
+	return: [handle!]
+	/local
+		surf	[handle!]
+		cr		[handle!]
+][
+	surf: cairo_image_surface_create CAIRO_FORMAT_ARGB32 width height
+	cr: cairo_create surf
+	cairo_set_source_surface cr src as-float 0 - x as-float 0 - y
+	cairo_paint cr
+	cairo_destroy cr
+	surf
+]
+
+prepare-brush-surface: func [
+	src		[handle!]
+	width	[integer!]
+	height	[integer!]
+	mode	[integer!]
+	return: [handle!]
+	/local
+		surf	[handle!]
+		cr		[handle!]
+		w2		[integer!]
+		h2		[integer!]
+][
+	surf: src
+	case [
+		mode = flip-x [
+			w2: width * 2
+			surf: cairo_image_surface_create CAIRO_FORMAT_ARGB32 w2 height
+			cr: cairo_create surf
+			cairo_set_source_surface cr src 0.0 0.0
+			cairo_paint cr
+			cairo_save cr
+			cairo_translate cr as-float w2 0.0
+			cairo_scale cr -1.0 1.0
+			cairo_set_source_surface cr src 0.0 0.0
+			cairo_paint cr
+			cairo_restore cr
+			cairo_destroy cr
+		]
+		mode = flip-y [
+			h2: height * 2
+			surf: cairo_image_surface_create CAIRO_FORMAT_ARGB32 width h2
+			cr: cairo_create surf
+			cairo_set_source_surface cr src 0.0 0.0
+			cairo_paint cr
+			cairo_save cr
+			cairo_translate cr 0.0 as-float h2
+			cairo_scale cr 1.0 -1.0
+			cairo_set_source_surface cr src 0.0 0.0
+			cairo_paint cr
+			cairo_restore cr
+			cairo_destroy cr
+		]
+		mode = flip-xy [
+			w2: width * 2
+			h2: height * 2
+			surf: cairo_image_surface_create CAIRO_FORMAT_ARGB32 w2 h2
+			cr: cairo_create surf
+			cairo_set_source_surface cr src 0.0 0.0
+			cairo_paint cr
+			cairo_save cr
+			cairo_translate cr as-float w2 0.0
+			cairo_scale cr -1.0 1.0
+			cairo_set_source_surface cr src 0.0 0.0
+			cairo_paint cr
+			cairo_restore cr
+			cairo_save cr
+			cairo_translate cr 0.0 as-float h2
+			cairo_scale cr 1.0 -1.0
+			cairo_set_source_surface cr src 0.0 0.0
+			cairo_paint cr
+			cairo_restore cr
+			cairo_save cr
+			cairo_translate cr as-float w2 as-float h2
+			cairo_scale cr -1.0 -1.0
+			cairo_set_source_surface cr src 0.0 0.0
+			cairo_paint cr
+			cairo_restore cr
+			cairo_destroy cr
+		]
+		true [0]
+	]
+	surf
+]
+
+make-brush-pattern: func [
+	src		[handle!]
+	width	[integer!]
+	height	[integer!]
+	mode	[integer!]
+	return: [handle!]
+	/local
+		pattern		[handle!]
+		prepared	[handle!]
+		extend		[integer!]
+][
+	prepared: prepare-brush-surface src width height mode
+	extend: either mode = clamp [CAIRO_EXTEND_PAD][CAIRO_EXTEND_REPEAT]
+	pattern: cairo_pattern_create_for_surface prepared
+	cairo_pattern_set_extend pattern extend
+	if prepared <> src [cairo_surface_destroy prepared]
+	pattern
+]
+
+set-surface-brush-origin: func [
+	pattern	[handle!]
+	x		[float!]
+	y		[float!]
+	saved	[cairo_matrix_t!]
+	return: [logic!]
+	/local
+		shift	[cairo_matrix_t! value]
+		matrix	[cairo_matrix_t! value]
+][
+	cairo_pattern_get_matrix pattern saved
+	cairo_matrix_init_translate shift 0.0 - x 0.0 - y
+	cairo_matrix_multiply matrix saved shift
+	cairo_pattern_set_matrix pattern matrix
+	yes
+]
+
+set-brush-pattern: func [
+	dc		[draw-ctx!]
+	pattern	[handle!]
+	brush?	[logic!]
+	/local
+		grad	[gradient!]
+][
+	grad: either brush? [
+		dc/brush?: yes
+		dc/grad-brush
+	][
+		dc/pen?: yes
+		dc/grad-pen
+	]
+	if all [grad/on? grad/pattern-on?][
+		cairo_pattern_destroy grad/pattern
+	]
+	grad/on?: on
+	grad/type: bitmap
+	grad/pattern: pattern
+	grad/pattern-on?: on
+]
+
 OS-draw-brush-bitmap: func [
 	dc			[draw-ctx!]
 	img			[red-image!]
@@ -2746,11 +2935,10 @@ OS-draw-brush-bitmap: func [
 		pixbuf	[handle!]
 		x xx	[integer!]
 		y yy	[integer!]
-		wrap	[integer!]
 		surf	[handle!]
 		cr		[handle!]
 		pattern	[handle!]
-		grad	[gradient!]
+		mode-id [integer!]
 		pt		[red-point2D!]
 ][
 	width:  OS-image/width? img/node
@@ -2770,93 +2958,71 @@ OS-draw-brush-bitmap: func [
 		width:  either ( x + xx ) > width [ width - x ][ xx ]
 		height: either ( y + yy ) > height [ height - y ][ yy ]
 	]
-	wrap: CAIRO_EXTEND_REPEAT
-	unless mode = null [
-		wrap: symbol/resolve mode/symbol
-		case [
-			wrap = flip-x [ wrap: CAIRO_EXTEND_REFLECT ]
-			wrap = flip-y [ wrap: CAIRO_EXTEND_REFLECT ]
-			wrap = flip-xy [ wrap: CAIRO_EXTEND_REFLECT ]
-			wrap = clamp [ wrap: CAIRO_EXTEND_PAD ]
-			true [ wrap: CAIRO_EXTEND_NONE ]
-		]
-	]
+	mode-id: get-brush-mode mode
 	surf: cairo_image_surface_create CAIRO_FORMAT_ARGB32 width height
 	cr: cairo_create surf
 	cairo_translate cr as-float 0 - x as-float 0 - y
 	gdk_cairo_set_source_pixbuf cr pixbuf 0.0 0.0
 	cairo_paint cr
 	cairo_destroy cr
-	pattern: cairo_pattern_create_for_surface surf
+	pattern: make-brush-pattern surf width height mode-id
 	cairo_surface_destroy surf
-
-	grad: either brush? [
-		dc/brush?: yes
-		dc/grad-brush
-	][
-		dc/pen?: yes
-		dc/grad-pen
-	]
-	cairo_pattern_set_extend pattern wrap
-	grad/on?: on
-	grad/type: bitmap
-	grad/pattern: pattern
-	grad/pattern-on?: on
+	set-brush-pattern dc pattern brush?
 ]
 
 OS-draw-brush-pattern: func [
 	dc			[draw-ctx!]
 	size		[red-pair!]
-	crop-1		[red-pair!]	;TODO
-	crop-2		[red-pair!] ;TODO
+	crop-1		[red-pair!]
+	crop-2		[red-pair!]
 	mode		[red-word!]
 	block		[red-block!]
 	brush?		[logic!]
 	/local
 		surf	[handle!]
+		crop	[handle!]
 		cr		[handle!]
 		x		[integer!]
 		y		[integer!]
+		xx		[integer!]
+		yy		[integer!]
 		width	[integer!]
 		height	[integer!]
-		wrap	[integer!]
 		pattern	[handle!]
-		grad	[gradient!]
+		mode-id [integer!]
 		pt		[red-point2D!]
 ][
 	GET_PAIR_XY_INT(size x y)
+	width: x
+	height: y
 	surf: cairo_image_surface_create CAIRO_FORMAT_ARGB32 x y
 	cr: cairo_create surf
 	do-draw cr null block no no yes yes
 	cairo_destroy cr
 
-	wrap: CAIRO_EXTEND_REPEAT
-	unless mode = null [
-		wrap: symbol/resolve mode/symbol
-		case [
-			wrap = flip-x [ wrap: CAIRO_EXTEND_REFLECT ]
-			wrap = flip-y [ wrap: CAIRO_EXTEND_REFLECT ]
-			wrap = flip-xy [ wrap: CAIRO_EXTEND_REFLECT ]
-			wrap = clamp [ wrap: CAIRO_EXTEND_PAD ]
-			true [ wrap: CAIRO_EXTEND_NONE ]
-		]
-	]
-	pattern: cairo_pattern_create_for_surface surf
-
-	grad: either brush? [
-		dc/brush?: yes
-		dc/grad-brush
+	either crop-1 = null [
+		x: 0
+		y: 0
 	][
-		dc/pen?: yes
-		dc/grad-pen
+		GET_PAIR_XY_INT(crop-1 x y)
 	]
-	cairo_pattern_set_extend pattern wrap
-	grad/on?: on
-	grad/type: bitmap
-	grad/pattern: pattern
-	grad/pattern-on?: on
-
+	either crop-2 = null [
+		width:  width - x
+		height: height - y
+	][
+		GET_PAIR_XY_INT(crop-2 xx yy)
+		width:  either (x + xx) > width [width - x][xx]
+		height: either (y + yy) > height [height - y][yy]
+	]
+	crop: surf
+	if any [x <> 0 y <> 0 width <> size/x height <> size/y][
+		crop: crop-brush-surface surf x y width height
+	]
+	mode-id: get-brush-mode mode
+	pattern: make-brush-pattern crop width height mode-id
+	if crop <> surf [cairo_surface_destroy crop]
 	cairo_surface_destroy surf
+	set-brush-pattern dc pattern brush?
 ]
 
 OS-draw-shadow: func [
