@@ -193,10 +193,13 @@ create-pango-attrs: func [
 	values: object/get-values font
 
 	str: as red-string! values + FONT_OBJ_NAME
-	if TYPE_OF(str) = TYPE_STRING [
+	either TYPE_OF(str) = TYPE_STRING [
 		len: -1
 		name: unicode/to-utf8 str :len
 		attr: pango_attr_family_new name
+		pango_attr_list_insert list attr
+	][
+		attr: pango_attr_family_new default-font-name
 		pango_attr_list_insert list attr
 	]
 

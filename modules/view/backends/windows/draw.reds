@@ -1534,9 +1534,12 @@ OS-draw-font: func [
 	ctx/text-format: as this! create-text-format font null
 	;-- set font color
 	clr: as red-tuple! (object/get-values font) + FONT_OBJ_COLOR
-	if TYPE_OF(clr) = TYPE_TUPLE [
+	either TYPE_OF(clr) = TYPE_TUPLE [
 		ctx/font-color: get-tuple-color clr
 		ctx/font-color?: yes
+	][
+		ctx/font-color: ctx/pen-color
+		ctx/font-color?: no
 	]
 ]
 

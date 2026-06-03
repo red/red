@@ -332,7 +332,7 @@ base-draw: func [
 		sym = rich-text [
 			pos/header: TYPE_PAIR
 			pos/x: 0 pos/y: 0
-			draw-text-box cr :pos get-face-obj widget yes
+			draw-text-box cr :pos get-face-obj widget 0 no yes
 		]
 		true []
 	]

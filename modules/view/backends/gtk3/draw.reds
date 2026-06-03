@@ -101,6 +101,7 @@ draw-begin: func [
 	ctx/pen-color:		0						;-- default: black
 	ctx/brush-color:	0
 	ctx/font-color:		0
+	ctx/font-color?:	no
 	ctx/pen?:			yes
 	ctx/brush?:			no
 	ctx/matrix-order:	MATRIX-PREPEND
@@ -828,7 +829,7 @@ OS-draw-pen: func [
 	]
 	unless off? [
 		dc/pen-color: color
-		dc/font-color: color
+		unless dc/font-color? [dc/font-color: color]
 	]
 ]
 
@@ -1258,10 +1259,15 @@ set-font-attrs: func [
 	]
 
 	color: as red-tuple! values + FONT_OBJ_COLOR
-	if TYPE_OF(color) = TYPE_TUPLE [
+	either TYPE_OF(color) = TYPE_TUPLE [
 		alpha?: 0
 		rgb: get-color-int color :alpha?
+		dc/font-color: rgb
+		dc/font-color?: yes
 		set-source-color cr rgb
+	][
+		dc/font-color: dc/pen-color
+		dc/font-color?: no
 	]
 
 	if dc/font-attrs <> null [pango_attr_list_unref dc/font-attrs]
@@ -1321,6 +1327,8 @@ draw-text-at: func [
 		len		[integer!]
 		str		[c-string!]
 		layout	[handle!]
+		attrs	[handle!]
+		lc		[layout-ctx!]
 ][
 	cr: dc/cr
 	cairo_save cr
@@ -1342,7 +1350,14 @@ draw-text-at: func [
 	either dc/font-attrs <> null [
 		pango_layout_set_attributes layout dc/font-attrs
 	][
-		pango_layout_set_attributes layout default-attrs
+		attrs: create-pango-attrs-no-color null
+		lc: declare layout-ctx!
+		lc/layout: layout
+		lc/text: str
+		lc/attrs: attrs
+		OS-text-box-color null as handle! lc 0 string/rs-length? text dc/pen-color
+		pango_layout_set_attributes layout attrs
+		pango_attr_list_unref attrs
 	]
 	pango_cairo_show_layout cr layout
 	g_object_unref layout
@@ -1353,6 +1368,8 @@ draw-text-box: func [
 	cr			[handle!]
 	pos			[red-pair!]
 	tbox		[red-object!]
+	clr			[integer!]
+	force?		[logic!]
 	catch?		[logic!]
 	/local
 		values	[red-value!]
@@ -1360,7 +1377,6 @@ draw-text-box: func [
 		state	[red-block!]
 		layout?	[logic!]
 		bool	[red-logic!]
-		clr		[integer!]
 		int		[red-integer!]
 		layout	[handle!]
 		size	[red-pair!]
@@ -1379,8 +1395,7 @@ draw-text-box: func [
 		bool: as red-logic! (block/rs-tail state) - 1
 		layout?: bool/value
 	]
-	if layout? [
-		clr: 0										;-- TBD
+	if any [force? layout?] [
 		OS-text-box-layout tbox null clr catch?
 	]
 
@@ -1397,9 +1412,9 @@ draw-text-box: func [
 		set-source-color cr get-tuple-color color
 		cairo_rectangle cr x y w h
 		cairo_fill cr
-		set-source-color cr 0
 	]
 	cairo_move_to cr x y
+	if force? [set-source-color cr clr]
 	pango_cairo_show_layout cr layout
 ]
 
@@ -1412,15 +1427,17 @@ OS-draw-text: func [
 	/local
 		saved	[cairo_matrix_t! value]
 		pt		[red-point2D!]
+		clr		[integer!]
 		x y		[float!]
 ][
 	ctx-matrix-adapt dc saved
+	clr: either dc/font-color? [dc/font-color][dc/pen-color]
 	either TYPE_OF(text) = TYPE_STRING [
 		GET_PAIR_XY_F(pos x y)
-		set-source-color dc/cr dc/font-color
+		set-source-color dc/cr clr
 		draw-text-at dc text x y
 	][
-		draw-text-box dc/cr pos as red-object! text catch?
+		draw-text-box dc/cr pos as red-object! text clr yes catch?
 	]
 	ctx-matrix-unadapt dc saved
 	true

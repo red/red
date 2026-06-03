@@ -236,6 +236,93 @@ OS-text-box-font-size: func [
 	pango_attr_list_change lc/attrs attr
 ]
 
+create-pango-attrs-no-color: func [
+	font		[red-object!]
+	return:		[handle!]
+	/local
+		list	[handle!]
+		attr	[PangoAttribute!]
+		values	[red-value!]
+		str		[red-string!]
+		name	[c-string!]
+		len		[integer!]
+		int		[red-integer!]
+		size	[integer!]
+		style	[red-word!]
+		blk		[red-block!]
+		sym		[integer!]
+][
+	list: pango_attr_list_new
+
+	either all [
+		font <> null
+		TYPE_OF(font) = TYPE_OBJECT
+	][
+		values: object/get-values font
+
+		str: as red-string! values + FONT_OBJ_NAME
+		if TYPE_OF(str) = TYPE_STRING [
+			len: -1
+			name: unicode/to-utf8 str :len
+			attr: pango_attr_family_new name
+			pango_attr_list_insert list attr
+		]
+
+		int: as red-integer! values + FONT_OBJ_SIZE
+		either TYPE_OF(int) = TYPE_INTEGER [
+			size: int/value
+			attr: pango_attr_size_new PANGO_SCALE * size
+			pango_attr_list_insert list attr
+		][
+			attr: pango_attr_size_new PANGO_SCALE * default-font-size
+			pango_attr_list_insert list attr
+		]
+
+		style: as red-word! values + FONT_OBJ_STYLE
+		len: switch TYPE_OF(style) [
+			TYPE_BLOCK [
+				blk: as red-block! style
+				style: as red-word! block/rs-head blk
+				block/rs-length? blk
+			]
+			TYPE_WORD  [1]
+			default	   [0]
+		]
+
+		unless zero? len [
+			loop len [
+				sym: symbol/resolve style/symbol
+				case [
+					sym = _bold [
+						attr: pango_attr_weight_new PANGO_WEIGHT_BOLD
+						pango_attr_list_insert list attr
+					]
+					sym = _italic [
+						attr: pango_attr_style_new PANGO_STYLE_ITALIC
+						pango_attr_list_insert list attr
+					]
+					sym = _underline [
+						attr: pango_attr_underline_new PANGO_UNDERLINE_SINGLE
+						pango_attr_list_insert list attr
+					]
+					sym = _strike [
+						attr: pango_attr_strikethrough_new true
+						pango_attr_list_insert list attr
+					]
+					true [0]
+				]
+				style: style + 1
+			]
+		]
+	][
+		attr: pango_attr_family_new default-font-name
+		pango_attr_list_insert list attr
+		attr: pango_attr_size_new PANGO_SCALE * default-font-size
+		pango_attr_list_insert list attr
+	]
+	list
+]
+
 OS-text-box-metrics: func [
 	state		[red-block!]
 	arg0		[red-value!]
@@ -330,6 +417,7 @@ OS-text-box-layout: func [
 		state	[red-block!]
 		size	[red-pair!]
 		font	[red-object!]
+		fcolor	[red-tuple!]
 		parent	[red-object!]
 		cached?	[logic!]
 		attrs	[handle!]
@@ -343,6 +431,7 @@ OS-text-box-layout: func [
 		styles	[red-block!]
 		pt		[red-point2D!]
 		sx sy	[integer!]
+		font-color? [logic!]
 ][
 	values: object/get-values box
 
@@ -383,9 +472,16 @@ OS-text-box-layout: func [
 		font <> null
 		TYPE_OF(font) = TYPE_OBJECT
 	][
-		attrs: create-pango-attrs null font
+		fcolor: as red-tuple! (object/get-values font) + FONT_OBJ_COLOR
+		font-color?: TYPE_OF(fcolor) = TYPE_TUPLE
+		attrs: either font-color? [
+			create-pango-attrs null font
+		][
+			create-pango-attrs-no-color font
+		]
 	][
-		attrs: pango_attr_list_copy default-attrs
+		font-color?: no
+		attrs: create-pango-attrs-no-color null
 	]
 	len: -1
 	str: unicode/to-utf8 text :len
@@ -404,15 +500,17 @@ OS-text-box-layout: func [
 	pango_layout_set_wrap layout PANGO_WRAP_WORD_CHAR			;-- TBD: apply para
 	pango_layout_set_text layout str -1
 
+	lc: declare layout-ctx!
+	lc/layout: layout
+	lc/text: str
+	lc/attrs: attrs
+	unless font-color? [
+		OS-text-box-color target as handle! lc 0 string/rs-length? text ft-clr
+	]
 	if all [
 		TYPE_OF(styles) = TYPE_BLOCK
 		1 < block/rs-length? styles
 	][
-		;-- this is not dynamic but lc/layout would change dynamically for each rich-text
-		lc: declare layout-ctx!
-		lc/layout: layout
-		lc/text: str
-		lc/attrs: attrs
 		parse-text-styles target as handle! lc styles text catch?
 	]
 	pango_layout_set_attributes layout attrs
