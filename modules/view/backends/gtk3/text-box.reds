@@ -290,13 +290,17 @@ OS-text-box-metrics: func [
 			integer/push idx + 1
 		]
 		TBOX_METRICS_SIZE [
-			pline: pango_layout_get_line layout 0
-			pango_layout_line_get_pixel_extents pline rect lrect
-			width: -1 height: -1
-			;pango_layout_get_pixel_size layout :width :height
-			; width: (pango_layout_get_width layout) / PANGO_SCALE
-			height: (pango_layout_get_line_count layout) * lrect/height
-			width: lrect/width
+			width: 0 height: 0
+			pango_layout_get_pixel_size layout :width :height
+			idx: pango_layout_get_line_count layout
+			width: 0
+			x: 0
+			while [x < idx][
+				pline: pango_layout_get_line layout x
+				pango_layout_line_get_pixel_extents pline rect lrect
+				if width < lrect/width [width: lrect/width]
+				x: x + 1
+			]
 			point2D/push as float32! width as float32! height
 		]
 		TBOX_METRICS_LINE_COUNT [
