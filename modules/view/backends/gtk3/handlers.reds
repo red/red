@@ -70,6 +70,7 @@ vbar-value-changed: func [
 		sc		[node!]
 		pos		[integer!]
 		values	[red-value!]
+		pos-val	[red-integer!]
 		min		[red-integer!]
 		max		[red-integer!]
 		page	[red-integer!]
@@ -85,20 +86,30 @@ vbar-value-changed: func [
 	if sc <> null [
 		values: get-node-values sc
 
+		pos-val: as red-integer! values + SCROLLER_OBJ_POS
 		min:	as red-integer! values + SCROLLER_OBJ_MIN
 		max:	as red-integer! values + SCROLLER_OBJ_MAX
 		page:	as red-integer! values + SCROLLER_OBJ_PAGE
 		range:	max/value - page/value - min/value + 1
+		if range <= 0 [
+			pos-val/value: min/value
+			exit
+		]
 
 		v: gtk_adjustment_get_value adj
 		lower: gtk_adjustment_get_lower adj
 		upper: gtk_adjustment_get_upper adj
 		pg: gtk_adjustment_get_page_size adj
 		pg: upper - lower - pg
+		if pg <= 0.0 [
+			pos-val/value: min/value
+			exit
+		]
 
 		v: v / pg * (as float! range)
 		v: v + as float! min/value
-		pos: as-integer v		
+		pos: as-integer v
+		pos-val/value: pos
 		pos: pos << 4
 
 		bar: gtk_scrollable_get_hadjustment widget
@@ -920,8 +931,8 @@ combo-selection-changed: func [
 		face	[red-object!]
 ][
 	idx: gtk_combo_box_get_active widget
-	if idx >= 0 [
-		face: get-face-obj widget
+	face: get-face-obj widget
+	either idx >= 0 [
 		res: make-event widget idx + 1 EVT_SELECT
 		set-selected widget face/ctx idx + 1
 		text: gtk_combo_box_text_get_active_text widget
@@ -929,6 +940,8 @@ combo-selection-changed: func [
 		if res = EVT_DISPATCH [
 			make-event widget idx + 1 EVT_CHANGE
 		]
+	][
+		set-selected widget face/ctx -1
 	]
 ]
 
@@ -946,13 +959,15 @@ text-list-selected-rows-changed: func [
 	; From now, only single-selection mode
 	sel: gtk_list_box_get_selected_row widget
 	idx: either null? sel [-1][gtk_list_box_row_get_index sel]
-	if idx >= 0 [
-		face: get-face-obj widget
+	face: get-face-obj widget
+	either idx >= 0 [
 		set-selected widget face/ctx idx + 1
 		res: make-event widget idx + 1 EVT_SELECT
 		if res = EVT_DISPATCH [
 			make-event widget idx + 1 EVT_CHANGE
 		]
+	][
+		set-selected widget face/ctx -1
 	]
 ]
 

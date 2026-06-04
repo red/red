@@ -503,6 +503,10 @@ PangoAttribute!: alias struct! [
 	PANGO_ALIGN_RIGHT
 ]
 
+#enum PangoTabAlign! [
+	PANGO_TAB_LEFT
+]
+
 #define PANGO_SCALE 1024
 #define PANGO_SCALE_XX_SMALL 0.5787037037037
 #define PANGO_SCALE_X_SMALL  0.6444444444444
@@ -1948,6 +1952,11 @@ GPtrArray!: alias struct! [
 			fill		[logic!]
 			padding		[integer!]
 		]
+		gtk_box_reorder_child: "gtk_box_reorder_child" [
+			box			[handle!]
+			widget		[handle!]
+			position	[integer!]
+		]
 		gtk_fixed_new: "gtk_fixed_new" [
 			return:		[handle!]
 		]
@@ -1974,6 +1983,14 @@ GPtrArray!: alias struct! [
 		gtk_scrolled_window_set_vadjustment: "gtk_scrolled_window_set_vadjustment" [
 			win			[handle!]
 			adj			[handle!]
+		]
+		gtk_scrolled_window_get_vadjustment: "gtk_scrolled_window_get_vadjustment" [
+			win			[handle!]
+			return:		[handle!]
+		]
+		gtk_scrolled_window_get_hadjustment: "gtk_scrolled_window_get_hadjustment" [
+			win			[handle!]
+			return:		[handle!]
 		]
 		gtk_layout_put: "gtk_layout_put" [
 			layout		[handle!]
@@ -2652,6 +2669,24 @@ GPtrArray!: alias struct! [
 			layout		[handle!]
 			spacing		[integer!]
 		]
+		pango_layout_set_tabs: "pango_layout_set_tabs" [
+			layout		[handle!]
+			tabs		[handle!]
+		]
+		pango_tab_array_new: "pango_tab_array_new" [
+			initial_size		[integer!]
+			positions_in_pixels [logic!]
+			return:			[handle!]
+		]
+		pango_tab_array_set_tab: "pango_tab_array_set_tab" [
+			tab_array	[handle!]
+			tab_index	[integer!]
+			alignment	[PangoTabAlign!]
+			location	[integer!]
+		]
+		pango_tab_array_free: "pango_tab_array_free" [
+			tab_array	[handle!]
+		]
 		pango_layout_get_justify: "pango_layout_get_justify" [
 			layout		[handle!]
 			return:		[logic!]
@@ -3009,6 +3044,16 @@ GPtrArray!: alias struct! [
 		cairo_clip: "cairo_clip" [
 			cr			[handle!]
 		]
+		cairo_copy_clip_rectangle_list: "cairo_copy_clip_rectangle_list" [
+			cr			[handle!]
+			return:		[handle!]
+		]
+		cairo_rectangle_list_destroy: "cairo_rectangle_list_destroy" [
+			list		[handle!]
+		]
+		cairo_reset_clip: "cairo_reset_clip" [
+			cr			[handle!]
+		]
 
 		cairo_line_to: "cairo_line_to" [
 			cr			[handle!]
@@ -3196,6 +3241,10 @@ GPtrArray!: alias struct! [
 			cr			[handle!]
 			mode		[integer!]
 		]
+		cairo_set_fill_rule: "cairo_set_fill_rule" [
+			cr			[handle!]
+			fill_rule	[integer!]
+		]
 		cairo_set_font_face: "cairo_set_font_face" [
 			cr			[handle!]
 			font_face	[handle!]
@@ -3282,6 +3331,30 @@ GPtrArray!: alias struct! [
 		]
 		cairo_pattern_create_mesh: "cairo_pattern_create_mesh" [
 			return:		[handle!]
+		]
+		cairo_mesh_pattern_begin_patch: "cairo_mesh_pattern_begin_patch" [
+			pattern		[handle!]
+		]
+		cairo_mesh_pattern_end_patch: "cairo_mesh_pattern_end_patch" [
+			pattern		[handle!]
+		]
+		cairo_mesh_pattern_move_to: "cairo_mesh_pattern_move_to" [
+			pattern		[handle!]
+			x			[float!]
+			y			[float!]
+		]
+		cairo_mesh_pattern_line_to: "cairo_mesh_pattern_line_to" [
+			pattern		[handle!]
+			x			[float!]
+			y			[float!]
+		]
+		cairo_mesh_pattern_set_corner_color_rgba: "cairo_mesh_pattern_set_corner_color_rgba" [
+			pattern		[handle!]
+			corner		[integer!]
+			red			[float!]
+			green		[float!]
+			blue		[float!]
+			alpha		[float!]
 		]
 		cairo_pattern_destroy: "cairo_pattern_destroy" [
 			pattern		[handle!]

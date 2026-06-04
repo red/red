@@ -41,16 +41,17 @@ append-tab: func [
 		index: 0
 		while [face < tail][
 			if face/ctx = child/ctx [
+				title: ""
 				if index < block/rs-length? data [
 					str: as red-string! block/rs-abs-at data index
 					if TYPE_OF(str) = TYPE_STRING [
 						len: -1
 						title: unicode/to-utf8 str :len
-						label: gtk_label_new title
-						gtk_notebook_insert_page parent widget label index
-						return true
 					]
 				]
+				label: gtk_label_new title
+				gtk_notebook_insert_page parent widget label index
+				return true
 			]
 			index: index + 1
 			face: face + 1
@@ -65,12 +66,38 @@ select-tab: func [
 	/local
 		nb		[integer!]
 		idx		[integer!]
+		page	[handle!]
+		text	[c-string!]
+		face	[red-object!]
 ][
 	nb: gtk_notebook_get_n_pages widget
-	idx: int/value
-	if any [idx < 1 idx > nb][exit]
+	if nb = 0 [
+		int/header: TYPE_INTEGER
+		int/value: 0
+		exit
+	]
+	either TYPE_OF(int) <> TYPE_INTEGER [
+		int/header: TYPE_INTEGER
+		idx: 1
+	][
+		idx: int/value
+	]
+	case [
+		idx < 1	 [idx: 1]
+		idx > nb [idx: nb]
+		true	 [0]
+	]
+	int/value: idx
 
+	g_signal_handlers_block_by_func(widget :tab-panel-switch-page widget)
 	gtk_notebook_set_current_page widget idx - 1
+	g_signal_handlers_unblock_by_func(widget :tab-panel-switch-page widget)
+	page: gtk_notebook_get_nth_page widget idx - 1
+	unless null? page [
+		text: gtk_notebook_get_tab_label_text widget page
+		face: get-face-obj widget
+		set-text widget face/ctx text
+	]
 ]
 
 insert-tab: func [
@@ -110,7 +137,9 @@ remove-tab-page: func [
 		while [index < nb][
 			page: gtk_notebook_get_nth_page parent index
 			if page = widget [
+				g_signal_handlers_block_by_func(parent :tab-panel-switch-page parent)
 				gtk_notebook_remove_page parent index
+				g_signal_handlers_unblock_by_func(parent :tab-panel-switch-page parent)
 				exit
 			]
 			index: index + 1
@@ -122,36 +151,19 @@ set-tabs: func [
 	widget		[handle!]
 	facets		[red-value!]
 	/local
-		data	[red-block!]
-		str		[red-string!]
-		tail	[red-string!]
-		int		[red-integer!]
-		nb		[integer!]
-		index	[integer!]
-		len		[integer!]
-		title	[c-string!]
-		page	[handle!]
+			data	[red-block!]
+			str		[red-string!]
+			tail	[red-string!]
+			int		[red-integer!]
+			nb		[integer!]
+			index	[integer!]
+			len		[integer!]
+			title	[c-string!]
+			page	[handle!]
+			face	[red-object!]
 ][
 	nb: gtk_notebook_get_n_pages widget
 	data: as red-block! facets + FACE_OBJ_DATA
-
-	if TYPE_OF(data) = TYPE_BLOCK [
-		str:  as red-string! block/rs-head data
-		tail: as red-string! block/rs-tail data
-		index: 0
-		while [all [str < tail index < nb]][
-			if TYPE_OF(str) = TYPE_STRING [
-				page: gtk_notebook_get_nth_page widget index
-				unless null? page [
-					len: -1
-					title: unicode/to-utf8 str :len
-					gtk_notebook_set_tab_label_text widget page title
-				]
-				index: index + 1
-			]
-			str: str + 1
-		]
-	]
 
 	int: as red-integer! facets + FACE_OBJ_SELECTED
 	either TYPE_OF(int) <> TYPE_INTEGER [
@@ -164,8 +176,31 @@ set-tabs: func [
 			int/value > nb	[int/value: nb]
 			true			[0]
 		]
-		select-tab widget int
 	]
+
+	if TYPE_OF(data) = TYPE_BLOCK [
+		str:  as red-string! block/rs-head data
+		tail: as red-string! block/rs-tail data
+		index: 0
+		while [all [str < tail index < nb]][
+			if TYPE_OF(str) = TYPE_STRING [
+				page: gtk_notebook_get_nth_page widget index
+				unless null? page [
+					len: -1
+					title: unicode/to-utf8 str :len
+					gtk_notebook_set_tab_label_text widget page title
+					if index + 1 = int/value [
+						face: get-face-obj widget
+						set-text widget face/ctx title
+					]
+				]
+				index: index + 1
+			]
+			str: str + 1
+		]
+	]
+
+	select-tab widget int
 ]
 
 update-tabs: func [

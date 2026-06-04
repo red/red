@@ -417,6 +417,8 @@ OS-text-box-layout: func [
 		state	[red-block!]
 		size	[red-pair!]
 		font	[red-object!]
+		pobj	[red-object!]
+		pvalues	[red-value!]
 		fcolor	[red-tuple!]
 		parent	[red-object!]
 		cached?	[logic!]
@@ -432,6 +434,19 @@ OS-text-box-layout: func [
 		pt		[red-point2D!]
 		sx sy	[integer!]
 		font-color? [logic!]
+		wrap?	[logic!]
+		hsym	[integer!]
+		spacing	[red-integer!]
+		stype	[integer!]
+		requested [integer!]
+		natural	[integer!]
+		rect	[tagRECT value]
+		tabs	[red-integer!]
+		ttype	[integer!]
+		tab-size [integer!]
+		tab-count [integer!]
+		tab-array [handle!]
+		i		[integer!]
 ][
 	values: object/get-values box
 
@@ -439,6 +454,7 @@ OS-text-box-layout: func [
 	state: as red-block! values + FACE_OBJ_EXT3
 	size: as red-pair! values + FACE_OBJ_SIZE
 	font: as red-object! values + FACE_OBJ_FONT
+	pobj: as red-object! values + FACE_OBJ_PARA
 	parent: as red-object! values + FACE_OBJ_PARENT
 	styles: as red-block! values + FACE_OBJ_DATA
 	cached?: TYPE_OF(state) = TYPE_BLOCK
@@ -495,9 +511,23 @@ OS-text-box-layout: func [
 		sx: -1
 		sy: -1
 	]
-	pango_layout_set_width layout sx
+	either TYPE_OF(pobj) = TYPE_OBJECT [
+		pvalues: object/get-values pobj
+		wrap?: get-para-wrap pvalues
+		hsym: get-para-hsym pvalues
+	][
+		wrap?: yes
+		hsym: _para/left
+	]
+	pango_layout_set_width layout either wrap? [sx][-1]
 	pango_layout_set_height layout sy
-	pango_layout_set_wrap layout PANGO_WRAP_WORD_CHAR			;-- TBD: apply para
+	if wrap? [pango_layout_set_wrap layout PANGO_WRAP_WORD_CHAR]
+	pango_layout_set_alignment layout
+		case [
+			hsym = _para/right [PANGO_ALIGN_RIGHT]
+			any [hsym = _para/center hsym = _para/middle] [PANGO_ALIGN_CENTER]
+			true [PANGO_ALIGN_LEFT]
+		]
 	pango_layout_set_text layout str -1
 
 	lc: declare layout-ctx!
@@ -515,5 +545,42 @@ OS-text-box-layout: func [
 	]
 	pango_layout_set_attributes layout attrs
 	pango_attr_list_unref attrs
+	tabs: as red-integer! values + FACE_OBJ_EXT1
+	ttype: TYPE_OF(tabs)
+	either any [ttype = TYPE_INTEGER ttype = TYPE_FLOAT][
+		tab-size: as-integer get-float tabs
+		either tab-size > 0 [
+			tab-count: either sx > 0 [
+				(sx / PANGO_SCALE / tab-size) + 2
+			][
+				64
+			]
+			if tab-count < 1 [tab-count: 1]
+			if tab-count > 128 [tab-count: 128]
+			tab-array: pango_tab_array_new tab-count yes
+			i: 0
+			while [i < tab-count][
+				pango_tab_array_set_tab tab-array i PANGO_TAB_LEFT tab-size * (i + 1)
+				i: i + 1
+			]
+			pango_layout_set_tabs layout tab-array
+			pango_tab_array_free tab-array
+		][
+			pango_layout_set_tabs layout null
+		]
+	][
+		pango_layout_set_tabs layout null
+	]
+	spacing: as red-integer! values + FACE_OBJ_EXT2
+	stype: TYPE_OF(spacing)
+	either any [stype = TYPE_INTEGER stype = TYPE_FLOAT][
+		pango_layout_index_to_pos layout 0 :rect
+		natural: rect/height
+		requested: as-integer ((get-float spacing) * (as float! PANGO_SCALE))
+		if requested < natural [requested: natural]
+		pango_layout_set_spacing layout requested - natural
+	][
+		pango_layout_set_spacing layout 0
+	]
 	layout
 ]

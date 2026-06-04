@@ -36,6 +36,7 @@ build-menu: func [
 	tail:  block/rs-tail menu
 
 	while [value < tail][
+		item: null
 		switch TYPE_OF(value) [
 			TYPE_STRING [
 				str: as red-string! value
@@ -71,11 +72,14 @@ build-menu: func [
 				w: as red-word! value
 				if w/symbol = --- [
 					item: gtk_separator_menu_item_new
+					gtk_widget_show item
 				]
 			]
 			default [0]
 		]
-		gtk_menu_shell_append hMenu item
+		unless null? item [
+			gtk_menu_shell_append hMenu item
+		]
 		value: value + 1
 	]
 	hMenu
