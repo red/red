@@ -57,6 +57,7 @@ select-camera*: func [
 	sel			[integer!]
 	width		[integer!]
 	height		[integer!]
+	return:		[logic!]
 	/local
 		cfg		[integer!]
 		cnt		[integer!]
@@ -79,12 +80,12 @@ select-camera*: func [
 		cnt > 0
 		sel >= 0
 		sel < cnt
-	][exit]
+	][return false]
 	str: as red-string! block/rs-abs-at data sel
-	if TYPE_OF(str) <> TYPE_STRING [exit]
+	if TYPE_OF(str) <> TYPE_STRING [return false]
 	s:    GET_BUFFER(str)
 	unit: GET_UNIT(s)
-	if unit <> Latin1 [exit]
+	if unit <> Latin1 [return false]
 	head: as byte-ptr! s/offset
 	tail: as byte-ptr! s/tail
 	p: head
@@ -103,8 +104,11 @@ select-camera*: func [
 		SET-CAMERA-CFG(widget cfg)
 		camera-dev/attach cfg widget as int-ptr! :camera-cb
 		camera-dev/start cfg
+		free node
+		return true
 	]
 	free node
+	false
 ]
 
 camera-get-image: func [
@@ -149,14 +153,20 @@ init-camera: func [
 		cnt		[integer!]
 ][
 	cnt: collect-camera data
-	if TYPE_OF(sel) = TYPE_INTEGER [
-		select-camera* widget data sel/value - 1 size/x size/y
+	either TYPE_OF(sel) = TYPE_INTEGER [
+		unless select-camera* widget data sel/value - 1 size/x size/y [
+			sel/value: -1
+		]
+	][
+		sel/header: TYPE_INTEGER
+		sel/value: -1
 	]
 ]
 
 select-camera: func [
 	widget		[handle!]
 	sel			[integer!]
+	return:		[logic!]
 	/local
 		values	[red-value!]
 		data	[red-block!]
