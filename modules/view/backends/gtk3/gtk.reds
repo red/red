@@ -36,6 +36,8 @@ Red/System [
 #define G_TYPE_MAKE_FUNDAMENTAL(x) [x << 2]
 #define G_TYPE_INT		24 ;[G_TYPE_MAKE_FUNDAMENTAL(6)]
 
+#define func-ptr! int-ptr!
+
 RECT_STRUCT: alias struct! [
 	left		[integer!]
 	top			[integer!]
@@ -774,7 +776,7 @@ GPtrArray!: alias struct! [
 			timer		[handle!]
 		]
 		g_idle_add: "g_idle_add" [
-			handler		[integer!]
+			handler		[func-ptr!]
 			data		[int-ptr!]
 			return:		[integer!]
 		]
@@ -1519,6 +1521,10 @@ GPtrArray!: alias struct! [
 			width		[integer!]
 			height		[integer!]
 		]
+		gtk_window_set_position: "gtk_window_set_position" [
+			window		[handle!]
+			position	[integer!]
+		]
 		gtk_window_set_resizable: "gtk_window_set_resizable" [
 			window		[handle!]
 			mode		[logic!]
@@ -1743,8 +1749,18 @@ GPtrArray!: alias struct! [
 			widget		[handle!]
 			return: 	[logic!]
 		]
+		gtk_widget_is_ancestor: "gtk_widget_is_ancestor" [
+			widget		[handle!]
+			ancestor	[handle!]
+			return: 	[logic!]
+		]
 		gtk_widget_grab_focus: "gtk_widget_grab_focus" [
 			widget		[handle!]
+		]
+		gtk_widget_child_focus: "gtk_widget_child_focus" [
+			widget		[handle!]
+			direction	[integer!]
+			return: 	[logic!]
 		]
 		gtk_widget_grab_default: "gtk_widget_grab_default" [
 			widget		[handle!]
@@ -1809,6 +1825,15 @@ GPtrArray!: alias struct! [
 		gtk_widget_get_parent: "gtk_widget_get_parent" [
 			widget		[handle!]
 			return:		[handle!]
+		]
+		gtk_widget_translate_coordinates: "gtk_widget_translate_coordinates" [
+			src			[handle!]
+			dest		[handle!]
+			src_x		[integer!]
+			src_y		[integer!]
+			dest_x		[int-ptr!]
+			dest_y		[int-ptr!]
+			return:		[logic!]
 		]
 		gtk_widget_get_toplevel: "gtk_widget_get_toplevel" [
 			widget		[handle!]
@@ -3177,6 +3202,12 @@ GPtrArray!: alias struct! [
 		cairo_paint: "cairo_paint" [
 			cr			[handle!]
 		]
+		cairo_mask_surface: "cairo_mask_surface" [
+			cr			[handle!]
+			surface		[handle!]
+			x			[float!]
+			y			[float!]
+		]
 		cairo_save: "cairo_save" [
 			cr			[handle!]
 		]
@@ -3836,6 +3867,9 @@ base-enter:			g_quark_from_string "base-enter"
 pair-size-facet:	g_quark_from_string "pair-size-facet"
 draw-ctx-id:		g_quark_from_string "draw-ctx-id"
 move-offset-id:		g_quark_from_string "move-offset-id"
+focus-event-id:		g_quark_from_string "focus-event-id"
+scroll-x-id:		g_quark_from_string "scroll-x-id"
+scroll-y-id:		g_quark_from_string "scroll-y-id"
 ;im-string-id:		g_quark_from_string "im-string-id"
 ;im-start-id:		g_quark_from_string "im-start-id"
 
@@ -3882,6 +3916,12 @@ move-offset-id:		g_quark_from_string "move-offset-id"
 #define SET-BASE-BUFFER(s d)	[g_object_set_qdata s base-buffer d]
 #define GET-BASE-BUFFER(s)		[g_object_get_qdata s base-buffer]
 #define SET-BASE-ENTER(s d)		[g_object_set_qdata s base-enter d]
+#define SET-FOCUS-EVENT(s d)	[g_object_set_qdata s focus-event-id as int-ptr! d]
+#define GET-FOCUS-EVENT(s)		[as integer! g_object_get_qdata s focus-event-id]
+#define SET-SCROLL-X(s d)		[g_object_set_qdata s scroll-x-id as int-ptr! d]
+#define GET-SCROLL-X(s)			[as integer! g_object_get_qdata s scroll-x-id]
+#define SET-SCROLL-Y(s d)		[g_object_set_qdata s scroll-y-id as int-ptr! d]
+#define GET-SCROLL-Y(s)			[as integer! g_object_get_qdata s scroll-y-id]
 #define GET-BASE-ENTER(s)		[g_object_get_qdata s base-enter]
 #define SET-PAIR-SIZE(s d)		[g_object_set_qdata s pair-size-facet d]
 #define GET-PAIR-SIZE(s)		[g_object_get_qdata s pair-size-facet]

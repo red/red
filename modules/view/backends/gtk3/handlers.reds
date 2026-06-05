@@ -78,9 +78,13 @@ vbar-value-changed: func [
 		lower	[float!]
 		upper	[float!]
 		v		[float!]
+		native	[float!]
 		pg		[float!]
 		bar		[handle!]
 		dir		[integer!]
+		native-int [integer!]
+		type	[integer!]
+		container [handle!]
 ][
 	sc: GET-CONTAINER(adj)
 	if sc <> null [
@@ -97,6 +101,7 @@ vbar-value-changed: func [
 		]
 
 		v: gtk_adjustment_get_value adj
+		native: v
 		lower: gtk_adjustment_get_lower adj
 		upper: gtk_adjustment_get_upper adj
 		pg: gtk_adjustment_get_page_size adj
@@ -112,8 +117,22 @@ vbar-value-changed: func [
 		pos-val/value: pos
 		pos: pos << 4
 
-		bar: gtk_scrollable_get_hadjustment widget
+		type: get-widget-symbol widget
+		container: get-face-layout widget type
+		either all [container <> widget not null? container][
+			bar: gtk_scrolled_window_get_hadjustment container
+		][
+			bar: gtk_scrollable_get_hadjustment widget
+		]
 		dir: as-integer bar = adj
+		if type = rich-text [
+			native-int: as-integer native
+			either zero? dir [
+				SET-SCROLL-Y(widget native-int)
+			][
+				SET-SCROLL-X(widget native-int)
+			]
+		]
 		SET-IN-LOOP(widget sc)
 		make-event widget dir << 3 or 2 or pos EVT_SCROLL
 		SET-IN-LOOP(widget null)
@@ -812,7 +831,7 @@ window-configure-event: func [
 				move/source = 0
 			][
 				g_object_ref widget
-				move/source: g_idle_add as-integer :arm-window-move widget
+				move/source: g_idle_add as func-ptr! :arm-window-move widget
 			]
 			return EVT_DISPATCH
 		]
@@ -862,6 +881,20 @@ window-size-allocate: func [
 		]
 	]
 	window-ready?: yes
+]
+
+window-map-event: func [
+	[cdecl]
+	widget		[handle!]
+	event		[GdkEventAny!]
+	data		[handle!]
+	return:		[integer!]
+	/local
+		pos		[integer!]
+][
+	pos: as-integer data
+	gtk_window_move widget pos >> 16 (pos and FFFFh << 16 >> 16)
+	EVT_DISPATCH
 ]
 
 widget-realize: func [
@@ -1193,6 +1226,106 @@ field-changed: func [
 	]
 ]
 
+sync-field-selection: func [
+	widget		[handle!]
+	emit?		[logic!]
+	/local
+		x		[integer!]
+		y		[integer!]
+		sel		[red-pair!]
+		old		[integer!]
+		has?	[logic!]
+][
+	x: -1 y: -1
+	sel: as red-pair! (get-face-values widget) + FACE_OBJ_SELECTED
+	old: TYPE_OF(sel)
+	has?: gtk_editable_get_selection_bounds widget :x :y
+	either all [has? x <> y][
+		sel/header: TYPE_PAIR
+		sel/x: x + 1
+		sel/y: y
+	][
+		sel/header: TYPE_NONE
+	]
+	if all [emit? any [has? old <> TYPE_NONE]][
+		make-event widget 0 EVT_SELECT
+	]
+]
+
+field-selection-changed: func [
+	[cdecl]
+	obj			[handle!]
+	pspec		[handle!]
+	widget		[handle!]
+][
+	sync-field-selection widget yes
+]
+
+drop-down-entry-changed: func [
+	[cdecl]
+	entry		[handle!]
+	widget		[handle!]
+	/local
+		text	[c-string!]
+		face	[red-object!]
+		idx		[integer!]
+][
+	idx: gtk_combo_box_get_active widget
+	if idx >= 0 [exit]
+	text: gtk_entry_get_text entry
+	face: get-face-obj widget
+	unless null? face [
+		set-selected widget face/ctx -1
+		set-text widget face/ctx text
+		make-event widget 0 EVT_CHANGE
+	]
+]
+
+sync-area-selection: func [
+	widget		[handle!]
+	emit?		[logic!]
+	/local
+		x		[integer!]
+		y		[integer!]
+		sel		[red-pair!]
+		old		[integer!]
+		buffer	[handle!]
+		start	[GtkTextIter! value]
+		end		[GtkTextIter! value]
+		has?	[logic!]
+][
+	sel: as red-pair! (get-face-values widget) + FACE_OBJ_SELECTED
+	old: TYPE_OF(sel)
+	buffer: gtk_text_view_get_buffer widget
+	has?: gtk_text_buffer_get_selection_bounds buffer as handle! start as handle! end
+	either has? [
+		x: gtk_text_iter_get_offset as handle! start
+		y: gtk_text_iter_get_offset as handle! end
+		either x = y [
+			sel/header: TYPE_NONE
+		][
+			sel/header: TYPE_PAIR
+			sel/x: x + 1
+			sel/y: y
+		]
+	][
+		sel/header: TYPE_NONE
+	]
+	if all [emit? any [has? old <> TYPE_NONE]][
+		make-event widget 0 EVT_SELECT
+	]
+]
+
+area-selection-changed: func [
+	[cdecl]
+	buffer		[handle!]
+	location	[handle!]
+	mark		[handle!]
+	widget		[handle!]
+][
+	sync-area-selection widget yes
+]
+
 focus-in-event: func [
 	[cdecl]
 	evbox		[handle!]
@@ -1207,6 +1340,7 @@ focus-in-event: func [
 		size	[red-pair!]
 		sym		[integer!]
 		im		[handle!]
+		pending [integer!]
 ][
 	face: get-face-obj widget
 	values: object/get-values face
@@ -1228,6 +1362,10 @@ focus-in-event: func [
 		;probe ["set-focus: " im]
 		gtk_im_context_focus_in im
 	]
+	pending: as integer! g_object_get_qdata widget focus-event-id
+	if pending = 1 [
+		SET-FOCUS-EVENT(widget 2)
+	]
 	change-selection widget int sym
 	make-event widget 0 EVT_FOCUS
 	EVT_DISPATCH
@@ -1246,6 +1384,7 @@ focus-out-event: func [
 		type	[red-word!]
 		sym		[integer!]
 		im		[handle!]
+		pending [integer!]
 ][
 	face: get-face-obj widget
 	values: object/get-values face
@@ -1258,6 +1397,10 @@ focus-out-event: func [
 		im: GET-IM-CONTEXT(widget)
 		;probe ["unfocus: " im]
 		gtk_im_context_focus_out im
+	]
+	pending: as integer! g_object_get_qdata widget focus-event-id
+	if pending = 3 [
+		SET-FOCUS-EVENT(widget 4)
 	]
 	state: values + FACE_OBJ_STATE
 	if TYPE_OF(state) = TYPE_NONE [
@@ -1378,11 +1521,7 @@ mouse-button-release-event: func [
 		sym		[integer!]
 		x		[integer!]
 		y		[integer!]
-		sel		[red-pair!]
-		buffer	[handle!]
 		buf		[handle!]
-		start	[GtkTextIter! value]
-		end		[GtkTextIter! value]
 		flags	[integer!]
 		pixels	[int-ptr!]
 		ev w	[integer!]
@@ -1411,33 +1550,10 @@ mouse-button-release-event: func [
 	if event/button = GDK_BUTTON_PRIMARY [
 		case [
 			sym = field [
-				x: -1 y: -1
-				if gtk_editable_get_selection_bounds widget :x :y [
-					;; DEBUG: print ["from " x " to " y lf ]
-					sel: as red-pair! (get-face-values widget) + FACE_OBJ_SELECTED
-					either x = y [sel/header: TYPE_NONE][
-						sel/header: TYPE_PAIR
-						sel/x: x + 1
-						sel/y: y
-					]
-					make-event widget 0 EVT_SELECT
-				]
+				sync-field-selection widget yes
 			]
 			sym = area [
-				buffer: gtk_text_view_get_buffer widget
-				if gtk_text_buffer_get_selection_bounds buffer as handle! start as handle! end [
-					x: -1 y: -1
-					x: gtk_text_iter_get_offset as handle! start
-					y: gtk_text_iter_get_offset as handle! end
-					;; DEBUG: print ["from " x " to " y lf ]
-					sel: as red-pair! (get-face-values widget) + FACE_OBJ_SELECTED
-					either x = y [sel/header: TYPE_NONE][
-						sel/header: TYPE_PAIR
-						sel/x: x + 1
-						sel/y: y
-					]
-					make-event widget 0 EVT_SELECT
-				]
+				sync-area-selection widget yes
 			]
 			true [0]
 		]

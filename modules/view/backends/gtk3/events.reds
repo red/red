@@ -1013,6 +1013,9 @@ connect-focus-events: func [
 		sym = field
 		sym = area
 		sym = base
+		sym = text-list
+		sym = drop-list
+		sym = drop-down
 	][
 		gtk_widget_set_can_focus widget yes
 		gtk_widget_set_focus_on_click widget yes
@@ -1076,6 +1079,7 @@ connect-widget-events: func [
 		evbox	[handle!]
 		cont	[handle!]
 		buffer	[handle!]
+		entry	[handle!]
 ][
 	evbox: get-face-evbox widget values sym
 	cont: GET-CONTAINER(widget)
@@ -1131,6 +1135,7 @@ connect-widget-events: func [
 		]
 		sym = field [
 			gobj_signal_connect(widget "changed" :field-changed widget)
+			gobj_signal_connect(widget "notify::selection-bound" :field-selection-changed widget)
 		]
 		sym = progress [
 			0
@@ -1144,6 +1149,7 @@ connect-widget-events: func [
 		sym = area [
 			buffer: gtk_text_view_get_buffer widget
 			gobj_signal_connect(buffer "changed" :area-changed widget)
+			gobj_signal_connect(buffer "mark-set" :area-selection-changed widget)
 			g_object_set [widget "populate-all" yes null]
 			gobj_signal_connect(widget "populate-popup" :area-populate-popup widget)
 		]
@@ -1166,6 +1172,10 @@ connect-widget-events: func [
 		][
 			;;; Mandatory! and can respond to (ON_SELECT or ON_CHANGE)
 			gobj_signal_connect(widget "changed" :combo-selection-changed widget)
+			if sym = drop-down [
+				entry: gtk_bin_get_child widget
+				gobj_signal_connect(entry "changed" :drop-down-entry-changed widget)
+			]
 		]
 		true [0]
 	]

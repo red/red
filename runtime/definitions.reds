@@ -409,6 +409,16 @@ Red/System [
 					pattern			[int-ptr!]
 				]
 
+				shadow!: alias struct! [
+					offset-x		[float!]
+					offset-y		[float!]
+					blur			[float!]
+					spread			[float!]
+					color			[integer!]
+					inset?			[logic!]
+					next			[shadow!]
+				]
+
 				#define DRAW_STATE_DATA [
 					matrix-order	[integer!]
 					device-matrix	[tagMATRIX value]
@@ -426,6 +436,20 @@ Red/System [
 					grad-brush		[gradient! value]
 					pen?			[logic!]
 					brush?			[logic!]
+					shadow?			[logic!]
+					shadow-offset-x	[float!]
+					shadow-offset-y	[float!]
+					shadow-blur		[float!]
+					shadow-spread	[float!]
+					shadow-color	[integer!]
+					shadow-inset?	[logic!]
+					shadows			[shadow! value]
+					clip-path		[handle!]
+					clip-rule		[integer!]
+					clip-x1			[float!]
+					clip-y1			[float!]
+					clip-x2			[float!]
+					clip-y2			[float!]
 					on-image?		[logic!]
 				]
 
@@ -489,6 +513,16 @@ Red/System [
 			pattern			[int-ptr!]
 		]
 
+		shadow!: alias struct! [
+			offset-x		[float!]
+			offset-y		[float!]
+			blur			[float!]
+			spread			[float!]
+			color			[integer!]
+			inset?			[logic!]
+			next			[shadow!]
+		]
+
 		#define DRAW_STATE_DATA [
 			matrix-order	[integer!]
 			device-matrix	[tagMATRIX value]
@@ -506,6 +540,14 @@ Red/System [
 			grad-brush		[gradient! value]
 			pen?			[logic!]
 			brush?			[logic!]
+			shadow?			[logic!]
+			shadow-offset-x	[float!]
+			shadow-offset-y	[float!]
+			shadow-blur		[float!]
+			shadow-spread	[float!]
+			shadow-color	[integer!]
+			shadow-inset?	[logic!]
+			shadows			[shadow! value]
 			on-image?		[logic!]
 		]
 		

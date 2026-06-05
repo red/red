@@ -21,6 +21,7 @@ append-tab: func [
 		data	[red-block!]
 		pane	[red-block!]
 		str		[red-string!]
+		int		[red-integer!]
 		face	[red-object!]
 		tail	[red-object!]
 		child	[red-object!]
@@ -50,7 +51,18 @@ append-tab: func [
 					]
 				]
 				label: gtk_label_new title
+				g_signal_handlers_block_by_func(parent :tab-panel-switch-page parent)
 				gtk_notebook_insert_page parent widget label index
+				g_signal_handlers_unblock_by_func(parent :tab-panel-switch-page parent)
+				int: as red-integer! values + FACE_OBJ_SELECTED
+				if any [TYPE_OF(int) <> TYPE_INTEGER int/value = 0][
+					int/header: TYPE_INTEGER
+					int/value: 1
+					face: get-face-obj parent
+					unless null? face [
+						set-text parent face/ctx title
+					]
+				]
 				return true
 			]
 			index: index + 1
@@ -74,6 +86,10 @@ select-tab: func [
 	if nb = 0 [
 		int/header: TYPE_INTEGER
 		int/value: 0
+		face: get-face-obj widget
+		unless null? face [
+			set-text widget face/ctx ""
+		]
 		exit
 	]
 	either TYPE_OF(int) <> TYPE_INTEGER [
@@ -114,7 +130,9 @@ insert-tab: func [
 	len: -1
 	title: unicode/to-utf8 str :len
 	label: gtk_label_new title
+	g_signal_handlers_block_by_func(parent :tab-panel-switch-page parent)
 	gtk_notebook_insert_page parent widget label index
+	g_signal_handlers_unblock_by_func(parent :tab-panel-switch-page parent)
 ]
 
 remove-tab-page: func [
@@ -153,10 +171,11 @@ set-tabs: func [
 	/local
 			data	[red-block!]
 			str		[red-string!]
-			tail	[red-string!]
+			item	[red-value!]
 			int		[red-integer!]
 			nb		[integer!]
 			index	[integer!]
+			count	[integer!]
 			len		[integer!]
 			title	[c-string!]
 			page	[handle!]
@@ -179,24 +198,27 @@ set-tabs: func [
 	]
 
 	if TYPE_OF(data) = TYPE_BLOCK [
-		str:  as red-string! block/rs-head data
-		tail: as red-string! block/rs-tail data
+		count: block/rs-length? data
 		index: 0
-		while [all [str < tail index < nb]][
-			if TYPE_OF(str) = TYPE_STRING [
-				page: gtk_notebook_get_nth_page widget index
-				unless null? page [
+		while [index < nb][
+			title: ""
+			if index < count [
+				item: block/rs-abs-at data index
+				if TYPE_OF(item) = TYPE_STRING [
+					str: as red-string! item
 					len: -1
 					title: unicode/to-utf8 str :len
-					gtk_notebook_set_tab_label_text widget page title
-					if index + 1 = int/value [
-						face: get-face-obj widget
-						set-text widget face/ctx title
-					]
 				]
-				index: index + 1
 			]
-			str: str + 1
+			page: gtk_notebook_get_nth_page widget index
+			unless null? page [
+				gtk_notebook_set_tab_label_text widget page title
+				if index + 1 = int/value [
+					face: get-face-obj widget
+					set-text widget face/ctx title
+				]
+			]
+			index: index + 1
 		]
 	]
 

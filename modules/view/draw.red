@@ -907,34 +907,38 @@ Red/System [
 							]
 							sym = _shadow [
 								DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_WORD)
+								off?: no
 								if TYPE_OF(start) = TYPE_WORD [
 									word: as red-word! start
 									sym: symbol/resolve word/symbol
 									if sym <> _off [
 										throw-draw-error cmds start catch?
 									]
+									off?: yes
 								]
 								inset?: no
 								blur: 0
 								spread: 0
 								rgb: 0
-								DRAW_FETCH_OPT_VALUE(TYPE_INTEGER)		;-- blur radius
-								if pos = cmd [
-									int: as red-integer! pos
-									blur: int/value
-									DRAW_FETCH_OPT_VALUE(TYPE_INTEGER)	;-- spread radius
+								unless off? [
+									DRAW_FETCH_OPT_VALUE(TYPE_INTEGER)		;-- blur radius
 									if pos = cmd [
 										int: as red-integer! pos
-										spread: int/value
+										blur: int/value
+										DRAW_FETCH_OPT_VALUE(TYPE_INTEGER)	;-- spread radius
+										if pos = cmd [
+											int: as red-integer! pos
+											spread: int/value
+										]
 									]
-								]
-								DRAW_FETCH_OPT_VALUE_2(TYPE_TUPLE TYPE_WORD)  ;-- color
-								if pos = cmd [cmd: cmd - 1 DRAW_FETCH_TUPLE]
-								DRAW_FETCH_OPT_VALUE(TYPE_WORD)			;-- inset
-								if pos = cmd [
-									word: as red-word! pos
-									sym: symbol/resolve word/symbol
-									either sym = _inset [inset?: yes][cmd: cmd - 1]
+									DRAW_FETCH_OPT_VALUE_2(TYPE_TUPLE TYPE_WORD)  ;-- color
+									if pos = cmd [cmd: cmd - 1 DRAW_FETCH_TUPLE]
+									DRAW_FETCH_OPT_VALUE(TYPE_WORD)			;-- inset
+									if pos = cmd [
+										word: as red-word! pos
+										sym: symbol/resolve word/symbol
+										either sym = _inset [inset?: yes][cmd: cmd - 1]
+									]
 								]
 								OS-draw-shadow DC as red-pair! start blur spread rgb inset?
 							]
