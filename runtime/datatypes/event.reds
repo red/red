@@ -10,6 +10,8 @@ Red/System [
 	}
 ]
 
+#define EVT_FLAG_SYNTHETIC	00010000h		;-- synthetic (`make event!`-built) marker: msg points to a Red cell-node, not an OS struct (read in push-field; marked by the GC, see runtime/collector.reds)
+
 event: context [
 	verbose: 0
 	
@@ -47,36 +49,46 @@ event: context [
 		evt		[red-event!]
 		field	[integer!]
 		return: [red-value!]
+		/local
+			s	[series!]
+			n	[node!]
+			v	[red-value!]
 	][
-		if null? evt/msg [							;-- synthetic event (built via `make event!`): no OS msg
-			switch field [
-				2  [return as red-value! none-value]		;-- face
-				3  [return as red-value! none-value]		;-- window
-				4  [return as red-value! pair/push 0 0]		;-- offset
-				5  [return as red-value! char/push (evt/flags and FFFFh)]	;-- key (cell, not OS msg)
-				6  [return as red-value! integer/push 0]	;-- picked
-				15 [return as red-value! none-value]		;-- orientation
-				default [0]									;-- type/key/flags/modifiers live in the cell
+		v: null
+		if (evt/flags and EVT_FLAG_SYNTHETIC) <> 0 [	;-- synthetic event (built via `make event!`)
+			s: null										;-- extras node [face window offset picked], null if none were given
+			if evt/msg <> null [n: as node! evt/msg  s: as series! n/value]
+			v: switch field [
+				2  [either null? s [as red-value! none-value][copy-cell s/offset as cell! stack/push*]]				;-- face
+				3  [either null? s [as red-value! none-value][copy-cell (s/offset + 1) as cell! stack/push*]]		;-- window
+				4  [either null? s [as red-value! pair/push 0 0][copy-cell (s/offset + 2) as cell! stack/push*]]	;-- offset
+				5  [as red-value! char/push (evt/flags and FFFFh)]													;-- key (cell, not OS msg)
+				6  [either null? s [as red-value! integer/push 0][copy-cell (s/offset + 3) as cell! stack/push*]]	;-- picked
+				15 [as red-value! none-value]			;-- orientation
+				default [null]							;-- type/key/flags/modifiers live in the cell
 			]
 		]
-		switch field [
-			1  [gui/get-event-type evt]
-			2  [gui/get-event-face evt]
-			3  [gui/get-event-window evt]
-			4  [gui/get-event-offset evt]
-			5  [gui/get-event-key evt]
-			6  [gui/get-event-picked evt]
-			7  [gui/get-event-flags evt]
-			8  [gui/get-event-flag evt/flags gui/EVT_FLAG_AWAY]
-			9  [gui/get-event-flag evt/flags gui/EVT_FLAG_DOWN]
-			10 [gui/get-event-flag evt/flags gui/EVT_FLAG_MID_DOWN]
-			11 [gui/get-event-flag evt/flags gui/EVT_FLAG_ALT_DOWN]
-			12 [gui/get-event-flag evt/flags gui/EVT_FLAG_AUX_DOWN]
-			13 [gui/get-event-flag evt/flags gui/EVT_FLAG_CTRL_DOWN]
-			14 [gui/get-event-flag evt/flags gui/EVT_FLAG_SHIFT_DOWN]
-			15 [gui/get-event-orientation evt]
-			default [assert false null]
+		if null? v [
+			v: switch field [
+				1  [gui/get-event-type evt]
+				2  [gui/get-event-face evt]
+				3  [gui/get-event-window evt]
+				4  [gui/get-event-offset evt]
+				5  [gui/get-event-key evt]
+				6  [gui/get-event-picked evt]
+				7  [gui/get-event-flags evt]
+				8  [gui/get-event-flag evt/flags gui/EVT_FLAG_AWAY]
+				9  [gui/get-event-flag evt/flags gui/EVT_FLAG_DOWN]
+				10 [gui/get-event-flag evt/flags gui/EVT_FLAG_MID_DOWN]
+				11 [gui/get-event-flag evt/flags gui/EVT_FLAG_ALT_DOWN]
+				12 [gui/get-event-flag evt/flags gui/EVT_FLAG_AUX_DOWN]
+				13 [gui/get-event-flag evt/flags gui/EVT_FLAG_CTRL_DOWN]
+				14 [gui/get-event-flag evt/flags gui/EVT_FLAG_SHIFT_DOWN]
+				15 [gui/get-event-orientation evt]
+				default [assert false null]
+			]
 		]
+		v
 	]
 	
 	push: func [
@@ -117,11 +129,22 @@ event: context [
 			value	[red-value!]
 			tail	[red-value!]
 			w		[red-word!]
-			sym		[integer!]
+			w2		[red-word!]
+			saved	[red-value!]
 			ch		[red-char!]
 			fblk	[red-block!]
 			fval	[red-value!]
 			ftail	[red-value!]
+			face	[red-value!]
+			pr		[red-pair!]
+			iv		[red-integer!]
+			node	[node!]
+			s		[series!]			
+			sym		[integer!]
+			off-x	[integer!]
+			off-y	[integer!]
+			pkd		[integer!]
+			extras? [logic!]			
 	][
 		#if debug? = yes [if verbose > 0 [print-line "event/make"]]
 
@@ -129,7 +152,12 @@ event: context [
 		evt/header: TYPE_EVENT
 		evt/type:   0
 		evt/msg:    null
-		evt/flags:  0
+		evt/flags:  EVT_FLAG_SYNTHETIC					;-- every make-event value is synthetic
+		face:	    null
+		off-x:      0
+		off-y:      0
+		pkd:        0
+		extras?:	no
 
 		if TYPE_OF(spec) = TYPE_BLOCK [
 			blk:   as red-block! spec
@@ -141,6 +169,11 @@ event: context [
 						w:   as red-word! value
 						sym: symbol/resolve w/symbol
 						value: value + 1
+						saved: value					;-- keep the spec cursor: resolution below may repoint `value` into a binding context
+						if any [TYPE_OF(value) = TYPE_WORD  TYPE_OF(value) = TYPE_GET_WORD][	;-- object-init style: evaluate a word/get-word value to its bound value
+							w2: as red-word! value
+							if w2/ctx <> null [value: _context/get w2]
+						]
 						case [
 							sym = words/type [
 								if (TYPE_OF(value) = TYPE_WORD) or (TYPE_OF(value) = TYPE_LIT_WORD) [
@@ -166,12 +199,50 @@ event: context [
 									]
 								]
 							]
+							sym = words/face [
+								if TYPE_OF(value) = TYPE_OBJECT [
+									face: value
+									extras?: yes
+								]
+							]
+							sym = words/offset [
+								if TYPE_OF(value) = TYPE_PAIR [
+									pr: as red-pair! value
+									off-x: pr/x
+									off-y: pr/y
+									extras?: yes
+								]
+							]
+							sym = words/picked [
+								if TYPE_OF(value) = TYPE_INTEGER [
+									iv: as red-integer! value
+									pkd: iv/value
+									extras?: yes
+								]
+							]
 							true [0]
 						]
+						value: saved					;-- restore the spec cursor for the loop's advance
 					]
 				]
 				value: value + 1
 			]
+		]
+
+		if extras? [									;-- per-event GC-managed extras node, hung off msg
+			node: alloc-cells 4
+			s: as series! node/value
+			either null? face [copy-cell as cell! none-value s/offset][copy-cell as cell! face s/offset]
+			copy-cell as cell! none-value (s/offset + 1) ;-- window (none for now)
+			pr: as red-pair! (s/offset + 2)				;-- offset
+			pr/header: TYPE_PAIR
+			pr/x: off-x
+			pr/y: off-y
+			iv: as red-integer! (s/offset + 3)			;-- picked
+			iv/header: TYPE_INTEGER
+			iv/value: pkd
+			s/tail: s/offset + 4
+			evt/msg: as byte-ptr! node
 		]
 		evt
 	]

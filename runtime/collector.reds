@@ -398,6 +398,7 @@ collector: context [
 			h		[red-handle!]
 			len		[integer!]
 			type	[integer!]
+			evt		[red-event!]
 	][
 		#if debug? = yes [if verbose > 1 [len: -1 indent: indent + 1]]
 		
@@ -508,6 +509,12 @@ collector: context [
 					#if debug? = yes [if verbose > 1 [print "handler"]]
 					h: as red-handle! value
 					if h/extID >= 0 [externals/mark h/extID]
+				]
+				TYPE_EVENT [									;-- synthetic `make event!` value: msg is a Red cell-node
+					evt: as red-event! value				;-- 00010000h = EVT_FLAG_SYNTHETIC (defined in datatypes/event.reds, included after this file)
+					if all [(evt/flags and 00010000h) <> 0  evt/msg <> null][
+						mark-block-node :evt/msg
+					]
 				]
 				default [0]
 			]
