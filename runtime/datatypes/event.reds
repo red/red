@@ -136,6 +136,7 @@ event: context [
 			fval	[red-value!]
 			ftail	[red-value!]
 			face	[red-value!]
+			window	[red-value!]
 			pr		[red-pair!]
 			iv		[red-integer!]
 			node	[node!]
@@ -154,6 +155,7 @@ event: context [
 		evt/msg:    null
 		evt/flags:  EVT_FLAG_SYNTHETIC					;-- every make-event value is synthetic
 		face:	    null
+		window:     null
 		off-x:      0
 		off-y:      0
 		pkd:        0
@@ -205,6 +207,12 @@ event: context [
 									extras?: yes
 								]
 							]
+							sym = words/window [
+								if TYPE_OF(value) = TYPE_OBJECT [
+									window: value
+									extras?: yes
+								]
+							]
 							sym = words/offset [
 								if TYPE_OF(value) = TYPE_PAIR [
 									pr: as red-pair! value
@@ -233,7 +241,7 @@ event: context [
 			node: alloc-cells 4
 			s: as series! node/value
 			either null? face [copy-cell as cell! none-value s/offset][copy-cell as cell! face s/offset]
-			copy-cell as cell! none-value (s/offset + 1) ;-- window (none for now)
+			either null? window [copy-cell as cell! none-value (s/offset + 1)][copy-cell as cell! window (s/offset + 1)] ;-- window
 			pr: as red-pair! (s/offset + 2)				;-- offset
 			pr/header: TYPE_PAIR
 			pr/x: off-x

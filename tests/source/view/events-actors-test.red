@@ -11,7 +11,7 @@ system/view/VID/GUI-rules/active?: no
 
 parent-hit: parent-hit2: got-ctrl: got-shift: changed?: no
 got-key: none
-got-face: got-offset: got-picked: bx: e: none
+got-face: got-window: got-offset: got-picked: bx: e: none
 
 ~~~start-file~~~ "events-actors-test"
 
@@ -52,22 +52,24 @@ got-face: got-offset: got-picked: bx: e: none
 		--assert not got-shift
 ===end-group===
 
-===start-group=== "fully-specified synthetic event (face/offset/picked, evaluated)"
-	--test-- "actor reads event/face, event/offset, event/picked (survives GC)"
-		got-face: got-offset: got-picked: none
-		p: layout [base 40x40 on-down [got-face: event/face  got-offset: event/offset  got-picked: event/picked]]
+===start-group=== "fully-specified synthetic event (face/window/offset/picked, evaluated)"
+	--test-- "actor reads event/face, event/window, event/offset, event/picked (survives GC)"
+		got-face: got-window: got-offset: got-picked: none
+		p: layout [base 40x40 on-down [got-face: event/face  got-window: event/window  got-offset: event/offset  got-picked: event/picked]]
 		bx: p/pane/1
-		e: make event! [type: 'down face: bx offset: 25x30 picked: 3]	;-- `face: bx` is evaluated -- no compose
+		e: make event! [type: 'down face: bx window: p offset: 25x30 picked: 3]	;-- `face: bx` / `window: p` evaluated -- no compose
 		recycle															;-- the extras node must survive GC (collector marks it)
 		do-actor bx e 'down
 		--assert same? bx got-face
+		--assert same? p got-window
 		--assert got-offset = 25x30
 		--assert got-picked = 3
 	--test-- "an event with no extras falls back to defaults"
-		got-face: got-offset: got-picked: none
-		p: layout [base 40x40 on-down [got-face: event/face  got-offset: event/offset  got-picked: event/picked]]
+		got-face: got-window: got-offset: got-picked: none
+		p: layout [base 40x40 on-down [got-face: event/face  got-window: event/window  got-offset: event/offset  got-picked: event/picked]]
 		do-actor p/pane/1 make event! [type: 'down] 'down
 		--assert none? got-face
+		--assert none? got-window
 		--assert got-offset = 0x0
 		--assert got-picked = 0
 ===end-group===
