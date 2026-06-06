@@ -354,7 +354,7 @@ OS-text-box-metrics: func [
 		TBOX_METRICS_OFFSET_LOWER [					;-- caret-to-offset
 			int: as red-integer! arg0
 			text: pango_layout_get_text layout
-			text2: g_utf8_offset_to_pointer text int/value - 1
+			text2: either int/value <= 0 [text][g_utf8_offset_to_pointer text int/value - 1]
 			idx: as integer! text2 - text
 			pango_layout_index_to_pos layout idx :rect
 			if type = TBOX_METRICS_OFFSET_LOWER [
