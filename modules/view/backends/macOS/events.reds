@@ -466,6 +466,8 @@ get-event-picked: func [
 	]
 ]
 
+OS-send-event: func [evt [red-event!] queued? [logic!] return: [logic!]][false]	;-- backend stub: OS injection not implemented yet
+
 get-event-flags: func [
 	evt		[red-event!]
 	return: [red-value!]

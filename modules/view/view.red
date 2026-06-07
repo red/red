@@ -21,6 +21,19 @@ Red [
 
 event?: routine ["Returns true if the value is this type" value [any-type!] return: [logic!]][TYPE_OF(value) = TYPE_EVENT]
 
+send-event-os: routine [event [event!] queued? [logic!] return: [logic!]][
+	gui/OS-send-event event queued?
+]
+
+send-event: function [
+	"Sends a synthetic event! (from `make event!`) into the active GUI backend's loop, for user-level automation"
+	event	[event!]
+	/no-wait "Post asynchronously to the OS queue (return without waiting) instead of dispatching synchronously"
+	return:	[logic!]						;-- TRUE if injected, FALSE if the target has no live handle or the type isn't OS-injectable
+][
+	send-event-os event to logic! no-wait
+]
+
 face?: function [
 	"Returns TRUE if the value is a face! object"
 	value	"Value to test"

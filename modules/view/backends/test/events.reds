@@ -98,6 +98,14 @@ get-event-flag: func [
 	as red-value! logic/push flags and flag <> 0
 ]
 
+OS-send-event: func [									;-- headless regression backend: OS injection is a no-op
+	evt		[red-event!]
+	queued?	[logic!]
+	return:	[logic!]
+][
+	false
+]
+
 OS-make-event: func [
 	name	[red-word!]
 	face	[red-object!]
