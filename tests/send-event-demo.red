@@ -9,6 +9,8 @@ AUTOPLAY: no			;-- no = click Start to run; set to  yes  to run automatically
 hit: fld: echo: status: go: reset-btn: items: btn: chk: base-status: btn-status: chk-status: none
 clicks: 0
 btn-clicks: 0
+wheel-pos: 0
+got-keydown: none
 over-fired?: dbl-fired?: chk-changed?: no
 started?: no
 n: 0
@@ -20,7 +22,9 @@ actions: collect [
 	keep/only reduce [[type: 'down      face: hit offset: 90x22] 'sync]
 	keep/only reduce [[type: 'down      face: hit offset: 90x22] 'sync]
 	keep/only reduce [[type: 'over      face: hit offset: 90x22] 'sync]
-	keep/only reduce [[type: 'dbl-click face: hit offset: 90x22] 'sync]
+	keep/only reduce [[type: 'dbl-click  face: hit offset: 90x22] 'sync]
+	keep/only reduce [[type: 'key-down   key: #"r" face: hit] 'sync]		;-- char->VK: lowercase r must arrive as 'R, not VK_F3 (0x72)
+	keep/only reduce [[type: 'wheel      picked: 3 face: hit] 'sync]		;-- wheel delta: 3 notches
 	foreach ch "Red" [keep/only reduce [compose [type: 'key key: (ch) face: fld] 'nowait]]
 	keep/only reduce [[type: 'down face: btn offset: 40x14] 'nowait]
 	keep/only reduce [[type: 'up   face: btn offset: 40x14] 'nowait]
@@ -42,13 +46,15 @@ win: layout compose/deep [
 	title "Red - self-driving UI via send-event"
 	backdrop 245.245.250
 	across
-	panel 250x360 [
+	panel 250x370 [
 		below  space 0x6
 		text "Live widgets (internal name in parens)" font [style: 'bold]
 		hit: base 200x40 200.220.255 "click target  (hit)" center middle
 			on-down      [clicks: clicks + 1  hit/color: random 200.230.255  base-status/text: rejoin ["on-down x" clicks]]
 			on-over      [over-fired?: yes  hit/color: 255.255.140  base-status/text: "on-over (highlight)"]
 			on-dbl-click [dbl-fired?: yes  hit/color: 255.180.180  base-status/text: "on-dbl-click!"]
+			on-key-down  [got-keydown: event/key  base-status/text: rejoin ["on-key-down: event/key = " mold event/key]]
+			on-wheel     [wheel-pos: wheel-pos + event/picked  base-status/text: rejoin ["on-wheel: picked=" mold event/picked "  scroll=" wheel-pos]]
 		base-status: text 200 "(base idle)" font [color: 90.90.90]
 		btn: button "a button  (btn)" 200 on-click [btn-clicks: btn-clicks + 1  btn-status/text: rejoin ["on-click x" btn-clicks]]
 		btn-status: text 200 "(button idle)" font [color: 90.90.90]
@@ -59,10 +65,10 @@ win: layout compose/deep [
 		text "echo  (what on-key received):"
 		echo: text 200 "" font [color: 0.120.0]
 	]
-	panel 440x360 [
+	panel 440x370 [
 		below
 		text "Event queue  (the make event! sent per action)" font [style: 'bold]
-		items: panel 420x300 [below space 0x2 (rows)]
+		items: panel 420x330 [below space 0x2 (rows)]
 	]
 	return
 	across
@@ -86,8 +92,9 @@ start-run: does [
 reset-demo: does [
 	started?: no
 	n: 0
-	clicks: 0  btn-clicks: 0
+	clicks: 0  btn-clicks: 0  wheel-pos: 0
 	over-fired?: dbl-fired?: chk-changed?: no
+	got-keydown: none
 	hit/color: 200.220.255
 	base-status/text: "(base idle)"
 	btn-status/text:  "(button idle)"
@@ -111,9 +118,9 @@ step-once: does [
 		status/text: "Done -- all actions sent, no human input."
 		if AUTOPLAY [
 			print ["clicks=" clicks " over?=" over-fired? " dbl?=" dbl-fired? " btn=" btn-clicks " check=" chk/data]
+			print ["key-down event/key=" mold got-keydown " wheel scroll=" wheel-pos]
 			print ["field=" mold fld/text " row1=" mold items/pane/1/text]
 			reset-demo
-			print ["after reset -> clicks=" clicks " field=" mold fld/text " row1=" mold items/pane/1/text]
 		]
 	][
 		n: n + 1
