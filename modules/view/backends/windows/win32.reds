@@ -1318,6 +1318,10 @@ XFORM!: alias struct! [
 			uMapType	[integer!]
 			return:		[integer!]
 		]
+		VkKeyScan: "VkKeyScanW" [
+			ch			[integer!]
+			return:		[integer!]
+		]
 		ToUnicode: "ToUnicode" [
 			wVirtKey	[integer!]
 			wScanCode	[integer!]

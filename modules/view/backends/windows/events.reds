@@ -661,6 +661,7 @@ OS-send-event: func [
 		x	   [integer!]
 		y	   [integer!]
 		m	   [tagMSG]
+		pk	   [red-integer!]
 ][
 	if null? evt/msg [return false]						;-- needs a target face (synthetic extras node)
 	node: as node!   evt/msg
@@ -685,10 +686,10 @@ OS-send-event: func [
 		EVT_RIGHT_DOWN	[wmsg: WM_RBUTTONDOWN	wParam: 0002h]		;-- MK_RBUTTON
 		EVT_RIGHT_UP	[wmsg: WM_RBUTTONUP]
 		EVT_DBL_CLICK	[wmsg: WM_LBUTTONDBLCLK	wParam: 0001h]
-		EVT_WHEEL		[wmsg: 020Ah]								;-- WM_MOUSEWHEEL (v1: delta not yet packed)
+		EVT_WHEEL		[wmsg: 020Ah]								;-- WM_MOUSEWHEEL
 		EVT_OVER		[wmsg: WM_MOUSEMOVE]
-		EVT_KEY_DOWN	[wmsg: WM_KEYDOWN	wParam: flags and FFFFh	 mouse?: no]	;-- v1: char-as-VK
-		EVT_KEY_UP		[wmsg: WM_KEYUP		wParam: flags and FFFFh	 mouse?: no]
+		EVT_KEY_DOWN	[wmsg: WM_KEYDOWN	wParam: (VkKeyScan (flags and FFFFh)) and 00FFh	 mouse?: no]	;-- char -> virtual-key code
+		EVT_KEY_UP		[wmsg: WM_KEYUP		wParam: (VkKeyScan (flags and FFFFh)) and 00FFh	 mouse?: no]
 		EVT_KEY			[wmsg: WM_CHAR		wParam: flags and FFFFh	 mouse?: no]
 		default			[return false]								;-- not OS-injectable
 	]
@@ -701,6 +702,10 @@ OS-send-event: func [
 			x: dpi-scale as float32! pr/x
 			y: dpi-scale as float32! pr/y
 			lParam: (y << 16) or (x and FFFFh)			;-- MAKELPARAM(x, y)
+		]
+		if evt/type = EVT_WHEEL [						;-- wheel delta: notches * 120 -> wParam hi-word
+			pk: as red-integer! (s/offset + 3)			;-- cell 3 = picked (notches)
+			if TYPE_OF(pk) = TYPE_INTEGER [wParam: wParam or ((pk/value * 120) << 16)]
 		]
 	]
 	either queued? [
