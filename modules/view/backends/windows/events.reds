@@ -685,6 +685,8 @@ OS-send-event: func [
 		EVT_MIDDLE_UP	[wmsg: WM_MBUTTONUP]
 		EVT_RIGHT_DOWN	[wmsg: WM_RBUTTONDOWN	wParam: 0002h]		;-- MK_RBUTTON
 		EVT_RIGHT_UP	[wmsg: WM_RBUTTONUP]
+		EVT_AUX_DOWN	[wmsg: WM_XBUTTONDOWN	wParam: 00010020h]	;-- XBUTTON1 (hi) + MK_XBUTTON1 (lo)
+		EVT_AUX_UP		[wmsg: WM_XBUTTONUP		wParam: 00010000h]	;-- XBUTTON1 (hi)
 		EVT_DBL_CLICK	[wmsg: WM_LBUTTONDBLCLK	wParam: 0001h]
 		EVT_WHEEL		[wmsg: 020Ah]								;-- WM_MOUSEWHEEL
 		EVT_OVER		[wmsg: WM_MOUSEMOVE]
@@ -1891,6 +1893,8 @@ process: func [
 		WM_RBUTTONUP	[make-event msg flags EVT_RIGHT_UP]
 		WM_MBUTTONDOWN	[make-event msg flags EVT_MIDDLE_DOWN]
 		WM_MBUTTONUP	[make-event msg flags EVT_MIDDLE_UP]
+		WM_XBUTTONDOWN	[make-event msg flags EVT_AUX_DOWN]
+		WM_XBUTTONUP	[make-event msg flags EVT_AUX_UP]
 		WM_KEYDOWN		[
 			res: make-event msg 0 EVT_KEY_DOWN
 			if res <> EVT_NO_DISPATCH [
