@@ -701,6 +701,9 @@ OS-send-event: func [
 		if flags and EVT_FLAG_SHIFT_DOWN <> 0 [wParam: wParam or 0004h]	;-- MK_SHIFT
 		pr: as red-pair! (s/offset + 2)					;-- cell 2 = offset
 		if TYPE_OF(pr) = TYPE_PAIR [
+			;-- offset (logical) -> physical px. event/offset re-derives it via dpi-unscale, so it
+			;-- round-trips within +/-0.5 physical px -- pixel quantization, identical to a real
+			;-- mouse (exact at integer DPI scaling); not improvable without diverging from real events.
 			x: dpi-scale as float32! pr/x
 			y: dpi-scale as float32! pr/y
 			lParam: (y << 16) or (x and FFFFh)			;-- MAKELPARAM(x, y)
