@@ -2423,7 +2423,7 @@ change-selection: func [
 			]
 		]
 		sym = text-list [
-			SendMessage hWnd LB_SETCURSEL int/value - 1 0
+			SendMessage hWnd LB_SETCURSEL (either int/value < 1 [-1][int/value - 1]) 0	;-- selected < 1 (e.g. -1) deselects via LB_SETCURSEL -1
 		]
 		any [sym = drop-list sym = drop-down][
 			SendMessage hWnd CB_SETCURSEL int/value - 1 0

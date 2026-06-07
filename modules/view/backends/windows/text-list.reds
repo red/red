@@ -58,7 +58,7 @@ init-text-list: func [
 		selected/header: TYPE_INTEGER
 		selected/value: -1
 	][
-		SendMessage hWnd LB_SETCURSEL selected/value - 1 0
+		SendMessage hWnd LB_SETCURSEL (either selected/value < 1 [-1][selected/value - 1]) 0	;-- selected < 1 (e.g. the -1 no-selection value) deselects via LB_SETCURSEL -1
 	]
 ]
 
