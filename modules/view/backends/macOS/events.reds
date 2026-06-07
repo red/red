@@ -241,6 +241,15 @@ translate-key: func [
 	keycode-table/keycode
 ]
 
+#define RED_SYNTH_MARKER 52454421h			;-- unaligned sentinel: can never equal a real (4-aligned) NSEvent isa pointer
+
+synth-event!: alias struct! [				;-- buffer associated to a view for an *injected* event (send-event)
+	marker	[integer!]						;-- = RED_SYNTH_MARKER for synthetic events
+	pad		[integer!]
+	fx		[float32!]						;-- offset in the target view's own coordinates
+	fy		[float32!]
+]
+
 get-event-offset: func [
 	evt		[red-event!]
 	return: [red-value!]
@@ -254,6 +263,7 @@ get-event-offset: func [
 		y		[integer!]
 		x		[integer!]
 		v		[integer!]
+		synth	[synth-event!]
 ][
 	type: evt/type
 	offset: as red-point2D! stack/push*
@@ -262,12 +272,18 @@ get-event-offset: func [
 		type <= EVT_OVER [
 			event: objc_getAssociatedObject as-integer evt/msg RedNSEventKey
 			either zero? event [offset/x: as float32! 0.0 offset/y: as float32! 0.0][
-				rc: as NSRect! (as int-ptr! event) + 2
-				x: objc_msgSend [evt/msg sel_getUid "convertPoint:fromView:" rc/x rc/y 0]
-				y: system/cpu/edx
-				rc: as NSRect! :x
-				offset/x: rc/x
-				offset/y: rc/y
+				synth: as synth-event! event
+				either synth/marker = RED_SYNTH_MARKER [
+					offset/x: synth/fx						;-- injected event: offset stored directly in view coords (no convertPoint)
+					offset/y: synth/fy
+				][
+					rc: as NSRect! (as int-ptr! event) + 2
+					x: objc_msgSend [evt/msg sel_getUid "convertPoint:fromView:" rc/x rc/y 0]
+					y: system/cpu/edx
+					rc: as NSRect! :x
+					offset/x: rc/x
+					offset/y: rc/y
+				]
 			]
 			as red-value! offset
 		]
@@ -466,7 +482,60 @@ get-event-picked: func [
 	]
 ]
 
-OS-send-event: func [evt [red-event!] queued? [logic!] return: [logic!]][false]	;-- backend stub: OS injection not implemented yet
+OS-send-event: func [
+	evt		[red-event!]
+	queued?	[logic!]									;-- macOS: synchronous dispatch (no separate native-pump path yet)
+	return:	[logic!]
+	/local
+		node	[node!]
+		s		[series!]
+		cell	[red-value!]
+		obj		[red-object!]
+		view	[integer!]
+		pr		[red-pair!]
+		flags	[integer!]
+		mods	[integer!]
+		synth	[synth-event!]
+][
+	if null? evt/msg [return false]						;-- needs a target face (synthetic extras node)
+	node: as node!   evt/msg
+	s:	  as series! node/value
+	cell: s/offset										;-- cell 0 = face
+	if TYPE_OF(cell) <> TYPE_OBJECT [return false]
+	obj:  as red-object! cell
+	view: as-integer get-face-handle obj				;-- the NSView (face must be realized)
+	if zero? view [return false]
+
+	flags: evt/flags									;-- synthetic flags: low word = key codepoint, high bits = View EVT_FLAG_*
+	mods:  flags and (EVT_FLAG_CTRL_DOWN or EVT_FLAG_SHIFT_DOWN or EVT_FLAG_ALT_DOWN or EVT_FLAG_MENU_DOWN or EVT_FLAG_CMD_DOWN)
+
+	pr: as red-pair! (s/offset + 2)						;-- cell 2 = offset (target view coords)
+	if TYPE_OF(pr) = TYPE_PAIR [							;-- associate a marked buffer carrying the offset in the view's own
+		synth: declare synth-event!						;-- coords; get-event-offset returns it as-is. We must NOT convert via
+		synth/marker: RED_SYNTH_MARKER					;-- convertPoint:toView: here -- that struct-returning objc_msgSend
+		synth/fx: as float32! pr/x						;-- corrupts esp, which then crashes the following make-event call.
+		synth/fy: as float32! pr/y
+		objc_setAssociatedObject view RedNSEventKey (as integer! synth) OBJC_ASSOCIATION_ASSIGN
+	]
+
+	switch evt/type [
+		EVT_LEFT_DOWN	[make-event view mods EVT_LEFT_DOWN]
+		EVT_LEFT_UP		[make-event view mods EVT_LEFT_UP]
+		EVT_MIDDLE_DOWN	[make-event view mods EVT_MIDDLE_DOWN]
+		EVT_MIDDLE_UP	[make-event view mods EVT_MIDDLE_UP]
+		EVT_RIGHT_DOWN	[make-event view mods EVT_RIGHT_DOWN]
+		EVT_RIGHT_UP	[make-event view mods EVT_RIGHT_UP]
+		EVT_AUX_DOWN	[make-event view mods EVT_AUX_DOWN]
+		EVT_AUX_UP		[make-event view mods EVT_AUX_UP]
+		EVT_OVER		[make-event view mods EVT_OVER]
+		EVT_DBL_CLICK	[make-event view mods EVT_DBL_CLICK]
+		EVT_KEY_DOWN	[special-key: 0  make-event view ((flags and FFFFh) or mods) EVT_KEY_DOWN]	;-- low word = key codepoint
+		EVT_KEY_UP		[special-key: 0  make-event view ((flags and FFFFh) or mods) EVT_KEY_UP]
+		EVT_KEY			[special-key: 0  make-event view ((flags and FFFFh) or mods) EVT_KEY]
+		default			[return false]					;-- EVT_WHEEL needs a real NSEvent (scrollingDeltaY); not injectable via the struct shim
+	]
+	true
+]
 
 get-event-flags: func [
 	evt		[red-event!]
