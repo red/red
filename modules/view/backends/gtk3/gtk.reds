@@ -1717,6 +1717,15 @@ GPtrArray!: alias struct! [
 		gtk_widget_grab_focus: "gtk_widget_grab_focus" [
 			widget		[handle!]
 		]
+		gtk_widget_set_state_flags: "gtk_widget_set_state_flags" [
+			widget		[handle!]
+			flags		[integer!]
+			clear		[logic!]
+		]
+		gtk_widget_unset_state_flags: "gtk_widget_unset_state_flags" [
+			widget		[handle!]
+			flags		[integer!]
+		]
 		gtk_widget_grab_default: "gtk_widget_grab_default" [
 			widget		[handle!]
 		]

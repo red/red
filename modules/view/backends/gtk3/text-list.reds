@@ -22,6 +22,7 @@ select-text-list: func [
 		item: gtk_list_box_get_row_at_index widget int
 		unless null? item [
 			gtk_list_box_select_row widget item
+			gtk_widget_grab_focus item					;-- scroll the row into view (GtkScrolledWindow scroll-to-focus)
 		]
 	]
 ]
