@@ -1060,16 +1060,17 @@ change-selection: func [
 		]
 		type = text-list [
 			hWnd: objc_msgSend [hWnd sel_getUid "documentView"]
-			if idx = -1 [
-				objc_msgSend [hWnd sel_getUid "deselectAll:" hWnd]
+			if idx < 0 [									;-- selected < 1 -> deselect; idx = selected - 1, so 0 -> -1, -1 -> -2, ...
+				objc_msgSend [hWnd sel_getUid "deselectAll:" hWnd]	;-- guarding only idx = -1 let -2 reach indexSetWithIndex: (NSRangeException)
 				exit
 			]
 			sz: -1 + objc_msgSend [hWnd sel_getUid "numberOfRows"]
 			if any [sz < 0 sz < idx][exit]
-			idx: objc_msgSend [objc_getClass "NSIndexSet" sel_getUid "indexSetWithIndex:" idx]
+			wnd: objc_msgSend [objc_getClass "NSIndexSet" sel_getUid "indexSetWithIndex:" idx]
 			objc_msgSend [
-				hWnd sel_getUid "selectRowIndexes:byExtendingSelection:" idx no
+				hWnd sel_getUid "selectRowIndexes:byExtendingSelection:" wnd no
 			]
+			objc_msgSend [hWnd sel_getUid "scrollRowToVisible:" idx]	;-- bring the selected row into view (auto-scroll, matching Windows LB_SETCURSEL)
 		]
 		any [type = drop-list type = drop-down][
 			sz: -1 + objc_msgSend [hWnd sel_getUid "numberOfItems"]
