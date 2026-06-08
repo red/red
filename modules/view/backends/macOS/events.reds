@@ -245,7 +245,7 @@ translate-key: func [
 
 synth-event!: alias struct! [				;-- buffer associated to a view for an *injected* event (send-event)
 	marker	[integer!]						;-- = RED_SYNTH_MARKER for synthetic events
-	pad		[integer!]
+	picked	[integer!]						;-- wheel delta (notches) for injected EVT_WHEEL
 	fx		[float32!]						;-- offset in the target view's own coordinates
 	fy		[float32!]
 ]
@@ -439,6 +439,7 @@ get-event-picked: func [
 		d	[float32!]
 		event [integer!]
 		idx	[integer!]
+		synth [synth-event!]
 ][
 	as red-value! switch evt/type [
 		EVT_ZOOM
@@ -463,9 +464,14 @@ get-event-picked: func [
 			event: objc_getAssociatedObject as-integer evt/msg RedNSEventKey
 			d: as float32! 0
 			if event <> 0 [
-				d: objc_msgSend_f32 [event sel_getUid "scrollingDeltaY"]
-				if 1 = objc_msgSend [event sel_getUid "hasPreciseScrollingDeltas"] [
-					d: d / (as float32! 10.0)
+				synth: as synth-event! event
+				either synth/marker = RED_SYNTH_MARKER [
+					d: as float32! synth/picked			;-- injected wheel: delta stored directly (no NSEvent)
+				][
+					d: objc_msgSend_f32 [event sel_getUid "scrollingDeltaY"]
+					if 1 = objc_msgSend [event sel_getUid "hasPreciseScrollingDeltas"] [
+						d: d / (as float32! 10.0)
+					]
 				]
 			]
 			float/push as float! d
@@ -482,9 +488,34 @@ get-event-picked: func [
 	]
 ]
 
+ns-kind?: func [										;-- is `view` an instance of (a subclass of) the named Cocoa class?
+	view	[integer!]
+	cls		[c-string!]
+	return:	[logic!]
+][
+	1 = objc_msgSend [view sel_getUid "isKindOfClass:" objc_getClass cls]
+]
+
+field-append-char: func [								;-- append one BMP codepoint to a native field's text (display + Red facet)
+	view	[integer!]
+	ch		[integer!]
+	/local
+		uch		[integer!]
+		nsstr	[integer!]
+		cur		[integer!]
+		new		[integer!]
+][
+	uch:   ch and FFFFh									;-- one UTF-16 code unit (BMP); :uch is its address
+	nsstr: objc_msgSend [objc_getClass "NSString" sel_getUid "stringWithCharacters:length:" (as integer! :uch) 1]
+	cur:   objc_msgSend [view sel_getUid "stringValue"]
+	new:   objc_msgSend [cur sel_getUid "stringByAppendingString:" nsstr]
+	objc_msgSend [view sel_getUid "setStringValue:" new]	;-- update the visible text...
+	set-text view new									;-- ...and keep the Red `text` facet in sync
+]
+
 OS-send-event: func [
 	evt		[red-event!]
-	queued?	[logic!]									;-- macOS: synchronous dispatch (no separate native-pump path yet)
+	queued?	[logic!]									;-- /no-wait: also actuate native NSControls (button/check/field)
 	return:	[logic!]
 	/local
 		node	[node!]
@@ -495,6 +526,7 @@ OS-send-event: func [
 		pr		[red-pair!]
 		flags	[integer!]
 		mods	[integer!]
+		pk		[red-integer!]
 		synth	[synth-event!]
 ][
 	if null? evt/msg [return false]						;-- needs a target face (synthetic extras node)
@@ -509,18 +541,33 @@ OS-send-event: func [
 	flags: evt/flags									;-- synthetic flags: low word = key codepoint, high bits = View EVT_FLAG_*
 	mods:  flags and (EVT_FLAG_CTRL_DOWN or EVT_FLAG_SHIFT_DOWN or EVT_FLAG_ALT_DOWN or EVT_FLAG_MENU_DOWN or EVT_FLAG_CMD_DOWN)
 
+	;-- Associate a marked buffer carrying the injected offset (view coords) and wheel delta.
+	;-- get-event-offset / get-event-picked return these directly for synthetic events. We must
+	;-- NOT use convertPoint:toView: here: that struct-returning objc_msgSend corrupts esp, which
+	;-- then crashes the following make-event call (see get-event-offset).
+	synth: declare synth-event!
+	synth/marker: RED_SYNTH_MARKER
+	synth/fx: as float32! 0.0
+	synth/fy: as float32! 0.0
+	synth/picked: 0
 	pr: as red-pair! (s/offset + 2)						;-- cell 2 = offset (target view coords)
-	if TYPE_OF(pr) = TYPE_PAIR [							;-- associate a marked buffer carrying the offset in the view's own
-		synth: declare synth-event!						;-- coords; get-event-offset returns it as-is. We must NOT convert via
-		synth/marker: RED_SYNTH_MARKER					;-- convertPoint:toView: here -- that struct-returning objc_msgSend
-		synth/fx: as float32! pr/x						;-- corrupts esp, which then crashes the following make-event call.
-		synth/fy: as float32! pr/y
-		objc_setAssociatedObject view RedNSEventKey (as integer! synth) OBJC_ASSOCIATION_ASSIGN
-	]
+	if TYPE_OF(pr) = TYPE_PAIR [synth/fx: as float32! pr/x  synth/fy: as float32! pr/y]
+	pk: as red-integer! (s/offset + 3)					;-- cell 3 = picked (wheel notches)
+	if TYPE_OF(pk) = TYPE_INTEGER [synth/picked: pk/value]
+	objc_setAssociatedObject view RedNSEventKey (as integer! synth) OBJC_ASSOCIATION_ASSIGN
 
 	switch evt/type [
-		EVT_LEFT_DOWN	[make-event view mods EVT_LEFT_DOWN]
-		EVT_LEFT_UP		[make-event view mods EVT_LEFT_UP]
+		EVT_LEFT_DOWN	[
+			make-event view mods EVT_LEFT_DOWN
+			if ns-kind? view "NSButton" [objc_msgSend [view sel_getUid "highlight:" 1]]	;-- depress the button
+		]
+		EVT_LEFT_UP		[
+			make-event view mods EVT_LEFT_UP
+			if ns-kind? view "NSButton" [					;-- native button/checkbox/toggle/radio: fire the click and release
+				button-click view							;-- the highlight. (RedButton routes clicks via its mouseDown: override,
+				objc_msgSend [view sel_getUid "highlight:" 0]	;-- whose modal tracking loop would deadlock on a separate up.)
+			]
+		]
 		EVT_MIDDLE_DOWN	[make-event view mods EVT_MIDDLE_DOWN]
 		EVT_MIDDLE_UP	[make-event view mods EVT_MIDDLE_UP]
 		EVT_RIGHT_DOWN	[make-event view mods EVT_RIGHT_DOWN]
@@ -531,8 +578,13 @@ OS-send-event: func [
 		EVT_DBL_CLICK	[make-event view mods EVT_DBL_CLICK]
 		EVT_KEY_DOWN	[special-key: 0  make-event view ((flags and FFFFh) or mods) EVT_KEY_DOWN]	;-- low word = key codepoint
 		EVT_KEY_UP		[special-key: 0  make-event view ((flags and FFFFh) or mods) EVT_KEY_UP]
-		EVT_KEY			[special-key: 0  make-event view ((flags and FFFFh) or mods) EVT_KEY]
-		default			[return false]					;-- EVT_WHEEL needs a real NSEvent (scrollingDeltaY); not injectable via the struct shim
+		EVT_KEY			[
+			special-key: 0
+			make-event view ((flags and FFFFh) or mods) EVT_KEY
+			if ns-kind? view "NSTextField" [field-append-char view flags and FFFFh]	;-- native field: also fill the text
+		]
+		EVT_WHEEL		[make-event view 0 EVT_WHEEL]	;-- flags 0: no NSEvent for check-extra-keys (nil-safe); delta via synth/picked
+		default			[return false]
 	]
 	true
 ]
