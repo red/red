@@ -47,7 +47,7 @@ row-label: function [mark [string!] idx [integer!] caption [string!]][
 ]
 
 ;-- one queue row per action, showing the make event! spec
-rows: collect [repeat i length? actions [keep compose [text 410x22 (row-label " " i me-text i)]]]
+rows: collect [repeat i length? actions [keep compose [text 440x22 (row-label " " i me-text i)]]]
 
 win: layout compose/deep [
 	title "Red - self-driving UI via send-event"
@@ -55,7 +55,7 @@ win: layout compose/deep [
 	across
 	panel 250x470 [
 		below  space 0x5
-		text "Live widgets (internal name in parens)" font [style: 'bold]
+		text "Live widgets (internal name in parens)" font [style: 'bold size: 9]
 		hit: base 200x40 200.220.255 "click target  (hit)" center middle
 			on-down      [clicks: clicks + 1  hit/color: random 200.230.255  base-status/text: rejoin ["on-down x" clicks]]
 			on-over      [over-fired?: yes  hit/color: 255.255.140  base-status/text: "on-over (highlight)"]
@@ -63,13 +63,13 @@ win: layout compose/deep [
 			on-key-down  [got-keydown: event/key  base-status/text: rejoin ["on-key-down: event/key = " mold event/key]]
 			on-aux-down  [got-aux: 'down  base-status/text: "on-aux-down (X1)"]
 			on-aux-up    [got-aux: 'up    base-status/text: "on-aux-up (X1)"]
-		base-status: text 200 "(base idle)" font [color: 90.90.90]
+		base-status: text 200 "(base idle)" font [color: 90.90.90 size: 9]
 		btn: button "a button  (btn)" 200 on-click [btn-clicks: btn-clicks + 1  btn-status/text: rejoin ["on-click x" btn-clicks]]
-		btn-status: text 200 "(button idle)" font [color: 90.90.90]
+		btn-status: text 200 "(button idle)" font [color: 90.90.90 size: 9]
 		chk: check "a checkbox  (chk)" on-change [chk-changed?: yes  chk-status/text: either chk/data ["on-change: checked"]["on-change: unchecked"]]
-		chk-status: text 200 "(checkbox idle)" font [color: 90.90.90]
+		chk-status: text 200 "(checkbox idle)" font [color: 90.90.90 size: 9]
 		text "field  (fld):"  fld: field 200 on-key [echo/text: append echo/text event/key]
-		echo: text 200 "(on-key echo)" font [color: 0.120.0]
+		echo: text 200 "(on-key echo)" font [color: 0.120.0 size: 9]
 		text "list  (lst) -- on-wheel scrolls selection:"
 		lst: text-list 200x72
 			on-wheel [
@@ -83,10 +83,10 @@ win: layout compose/deep [
 				got-wheel-sel: pos
 			]
 	]
-	panel 440x470 [
+	panel 470x470 [
 		below
-		text "Event queue  (the make event! sent per action)" font [style: 'bold]
-		items: panel 420x430 [below space 0x2 (rows)]
+		text "Event queue  (the make event! sent per action)" font [style: 'bold size: 9]
+		items: panel 450x430 [below space 0x2 (rows)]
 	]
 	return
 	across
@@ -94,7 +94,7 @@ win: layout compose/deep [
 	reset-btn: button "Reset" 90 [reset-demo]
 	text "rate:"
 	rate-dd:   drop-list 110 on-change [status/rate: pick rate-values face/selected]	;-- pick the timer rate from the list
-	status:    text "Click Start to run." 320
+	status:    text "Click Start to run." 320 font [size: 9]
 	rate 0:0:0.66 on-time [if started? [step-once]]		;-- default ~1.5/sec; overridden by the drop-list
 ]
 
