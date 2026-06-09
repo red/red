@@ -3051,6 +3051,10 @@ OS-to-image: func [
 		scroll-x-int scroll-y-int [integer!]
 		rx ry	[integer!]
 		pos		[red-pair! value]
+		values	[red-value!]
+		draw	[red-block!]
+		img		[red-image!]
+		color	[red-tuple!]
 ][
 	word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
 	type: symbol/resolve word/symbol
@@ -3084,7 +3088,39 @@ OS-to-image: func [
 					ret: as red-image! none-value
 				][
 					loop 3 [do-events yes]
+					gdk_window_process_all_updates
+					face: get-face-obj widget
 					pixbuf: null
+					if type = base [
+						values: object/get-values face
+						draw: as red-block! values + FACE_OBJ_DRAW
+						if TYPE_OF(draw) = TYPE_BLOCK [
+							img: as red-image! values + FACE_OBJ_IMAGE
+							color: as red-tuple! values + FACE_OBJ_COLOR
+							surf: cairo_image_surface_create CAIRO_FORMAT_ARGB32 sx sy
+							cr: cairo_create surf
+							if all [
+								TYPE_OF(color) = TYPE_TUPLE
+								not all [
+									TUPLE_SIZE?(color) = 4
+									color/array1 and FF000000h = FF000000h
+								]
+							][
+								set-source-color cr get-tuple-color color
+								cairo_rectangle cr 0.0 0.0 as float! sx as float! sy
+								cairo_fill cr
+							]
+							if TYPE_OF(img) = TYPE_IMAGE [
+								GDK-draw-image null cr OS-image/to-pixbuf img 0 0 sx sy
+							]
+							render-text cr face size values
+							do-draw cr null draw no yes no yes
+							cairo_destroy cr
+							cairo_surface_flush surf
+							pixbuf: gdk_pixbuf_get_from_surface surf 0 0 sx sy
+							cairo_surface_destroy surf
+						]
+					]
 					if type = rich-text [
 						surf: cairo_image_surface_create CAIRO_FORMAT_ARGB32 sx sy
 						cr: cairo_create surf
