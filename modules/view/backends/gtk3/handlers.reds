@@ -970,6 +970,7 @@ combo-selection-changed: func [
 		set-selected widget face/ctx idx + 1
 		text: gtk_combo_box_text_get_active_text widget
 		set-text widget face/ctx text
+		g_free as handle! text
 		if res = EVT_DISPATCH [
 			make-event widget idx + 1 EVT_CHANGE
 		]
@@ -1210,6 +1211,63 @@ key-release-event: func [
 	make-event widget key or flags EVT_KEY_UP
 ]
 
+drop-down-entry-key-press-event: func [
+	[cdecl]
+	entry		[handle!]
+	event-key	[GdkEventKey!]
+	widget		[handle!]
+	return:		[integer!]
+	/local
+		key		[integer!]
+		flags	[integer!]
+		key2	[integer!]
+		res		[integer!]
+][
+	key: translate-key event-key/keyval
+	flags: check-extra-keys event-key/state
+	special-key: either char-key? as-byte key [0][-1]
+	if all [key >= 80h special-key = -1][
+		flags: flags or special-key-to-flags key
+	]
+	key: convert-numpad-key key
+
+	res: make-event widget key or flags EVT_KEY_DOWN
+	if res <> EVT_NO_DISPATCH [
+		key2: gdk_keyval_to_unicode event-key/keyval
+		if all [
+			key2 > 0
+			key2 <= FFFFh
+		][
+			special-key: 0
+			return make-event widget key2 or flags EVT_KEY
+		]
+		if key <> 0 [
+			res: make-event widget key or flags EVT_KEY
+		]
+	]
+	res
+]
+
+drop-down-entry-key-release-event: func [
+	[cdecl]
+	entry		[handle!]
+	event-key	[GdkEventKey!]
+	widget		[handle!]
+	return:		[integer!]
+	/local
+		key		[integer!]
+		flags	[integer!]
+][
+	key: translate-key event-key/keyval
+	flags: check-extra-keys event-key/state
+	special-key: either char-key? as-byte key [0][-1]
+	if all [key >= 80h special-key = -1][
+		flags: flags or special-key-to-flags key
+	]
+	key: convert-numpad-key key
+	make-event widget key or flags EVT_KEY_UP
+]
+
 field-changed: func [
 	[cdecl]
 	buffer		[handle!]
@@ -1267,12 +1325,21 @@ drop-down-entry-changed: func [
 	widget		[handle!]
 	/local
 		text	[c-string!]
+		active	[c-string!]
 		face	[red-object!]
 		idx		[integer!]
+		same?	[logic!]
 ][
 	idx: gtk_combo_box_get_active widget
-	if idx >= 0 [exit]
 	text: gtk_entry_get_text entry
+	if idx >= 0 [
+		active: gtk_combo_box_text_get_active_text widget
+		unless null? active [
+			same?: 0 = g_strcmp0 text active
+			g_free as handle! active
+			if same? [exit]
+		]
+	]
 	face: get-face-obj widget
 	unless null? face [
 		set-selected widget face/ctx -1

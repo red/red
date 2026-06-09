@@ -1175,6 +1175,8 @@ connect-widget-events: func [
 			if sym = drop-down [
 				entry: gtk_bin_get_child widget
 				gobj_signal_connect(entry "changed" :drop-down-entry-changed widget)
+				gobj_signal_connect(entry "key-press-event" :drop-down-entry-key-press-event widget)
+				gobj_signal_connect(entry "key-release-event" :drop-down-entry-key-release-event widget)
 			]
 		]
 		true [0]
