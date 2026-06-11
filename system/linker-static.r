@@ -229,7 +229,7 @@ static-link: context [
 
 	merge: func [
 		job [object!]
-		/local static-libs lib list info
+		/local static-libs lib list info t0 t
 	][
 		clear objects
 		clear needed
@@ -288,6 +288,12 @@ static-link: context [
 		;-- Pull static [lib list] pairs out of the dynamic import table.
 		static-libs: extract-static-imports job
 
+		print "Static linking..."
+		foreach [lib list] static-libs [
+			print ["...linking          :" lib]
+		]
+		t0: now/time/precise
+
 		;-- Pass 1: merge directly-named objects, then pull archive members
 		;-- on demand to satisfy referenced symbols.
 		merge-objects job static-libs
@@ -304,6 +310,9 @@ static-link: context [
 			info: select job/static-objs lowercase copy lib
 			wire-imports job lib list info/2
 		]
+
+		t: now/time/precise - t0
+		print ["...static-link time :" round t/second * 1000 "ms"]
 	]
 
 	extract-static-imports: func [job [object!] /local imports out pos][
