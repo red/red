@@ -311,6 +311,63 @@ get-ptr*: func [										;-- get word's value slot pointer (no stack push)
 	value
 ]
 
+set-top-flush*: func [									;-- fused set-word at statement end: set then drop the value
+	word	[red-word!]
+	/local
+		value [red-value!]
+][
+	value: stack/get-top
+	if TYPE_OF(value) = TYPE_UNSET [
+		fire [TO_ERROR(script need-value) word]
+	]
+	_context/set word value
+	stack/top: stack/arguments					;-- statement end: restore a clean stack state
+]
+
+set-top-in-flush*: func [								;-- fused local set-word at statement end
+	node	[node!]
+	index	[integer!]
+	/local
+		ctx	   [red-context!]
+		value  [red-value!]
+		values [series!]
+		slot   [red-value!]
+][
+	value: stack/get-top
+	ctx: TO_CTX(node)
+	if TYPE_OF(value) = TYPE_UNSET [
+		fire [TO_ERROR(script need-value) _hashtable/get-ctx-word ctx index]
+	]
+	slot: either ON_STACK?(ctx) [
+		(as red-value! ctx/values) + index
+	][
+		values: as series! ctx/values/value
+		values/offset + index
+	]
+	copy-cell value slot
+	stack/top: stack/arguments					;-- statement end: restore a clean stack state
+]
+
+set-in-ctx-flush*: func [								;-- fused object field set-word at statement end
+	node	[node!]
+	index	[integer!]
+	/local
+		ctx	   [red-context!]
+		value  [red-value!]
+		w	   [red-word!]
+		values [series!]
+][
+	value: stack/get-top
+	ctx: TO_CTX(node)
+	if GET_CTX_TYPE(ctx) = CONTEXT_OBJECT [
+		w: _hashtable/get-ctx-word ctx index
+		w/header: w/header or flag-word-dirty
+	]
+	values: as series! ctx/values/value
+	copy-cell value values/offset + index
+	stack/top: stack/arguments					;-- statement end: restore a clean stack state
+]
+
 get-local-ptr*: func [									;-- get local value slot pointer (no stack push)
 	node	[node!]
 	index	[integer!]

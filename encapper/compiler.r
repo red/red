@@ -609,8 +609,31 @@ red: context [
 	]
 	
 	emit-stack-reset: does [
-		emit 'stack/reset
-		insert-lf -1
+		unless find/only [stack/reset stack/unwind-flush] last output [ ;-- already clean: avoid doubled resets
+			emit 'stack/reset
+			insert-lf -1
+		]
+	]
+
+	flush-statement-tail: does [					;-- statement value is discarded: fuse the trailing cleanup
+		case [
+			'stack/unwind = last output [
+				change/only back tail output 'stack/unwind-flush
+			]
+			'stack/unwind-last = last output [		;-- statement-level loops: propagated value is dead
+				change/only back tail output 'stack/unwind-flush
+			]
+			'set-top* = pick tail output -2 [
+				change skip tail output -2 'set-top-flush*
+			]
+			'set-top-in* = pick tail output -3 [
+				change skip tail output -3 'set-top-in-flush*
+			]
+			'word/set-in-ctx = pick tail output -3 [
+				change skip tail output -3 'set-in-ctx-flush*
+			]
+			'else [emit-stack-reset]
+		]
 	]
 	
 	emit-dyn-check: does [
@@ -2415,35 +2438,53 @@ red: context [
 		]
 	]
 		
-	comp-if: does [
+	comp-if: has [cond][
 		emit-open-frame 'if
 		comp-expression/close-path
-		emit compose/deep [
-			either logic/false? [(set-last-none)]
+		either cond: take-fused-cond [
+			emit-fused-cond cond yes					;-- either <not test> [none][body]
+			append/only output copy [none/push-last]
+			comp-sub-block/bare 'if-body				;-- compile TRUE block
+		][
+			emit compose/deep [
+				either logic/false? [(set-last-none)]
+			]
+			comp-sub-block 'if-body						;-- compile TRUE block
 		]
-		comp-sub-block 'if-body							;-- compile TRUE block
-		emit-close-frame
-	]
-	
-	comp-unless: does [
-		emit-open-frame 'unless
-		comp-expression/close-path
-		emit [
-			either logic/false?
-		]
-		comp-sub-block 'unless-body						;-- compile FALSE block
-		append/only output set-last-none
 		emit-close-frame
 	]
 
-	comp-either: does [
+	comp-unless: has [cond][
+		emit-open-frame 'unless
+		comp-expression/close-path
+		either cond: take-fused-cond [
+			emit-fused-cond cond yes					;-- either <not test> [body][none]
+			comp-sub-block/bare 'unless-body			;-- compile FALSE block
+			append/only output copy [none/push-last]
+		][
+			emit [
+				either logic/false?
+			]
+			comp-sub-block 'unless-body					;-- compile FALSE block
+			append/only output set-last-none
+		]
+		emit-close-frame
+	]
+
+	comp-either: has [cond][
 		emit-open-frame 'either
 		comp-expression/close-path
-		emit [
-			either logic/true?
+		either cond: take-fused-cond [
+			emit-fused-cond cond no
+			comp-sub-block/bare 'either-true			;-- compile TRUE block
+			comp-sub-block/bare 'either-false			;-- compile FALSE block
+		][
+			emit [
+				either logic/true?
+			]
+			comp-sub-block 'either-true					;-- compile TRUE block
+			comp-sub-block 'either-false				;-- compile FALSE block
 		]
-		comp-sub-block 'either-true						;-- compile TRUE block
-		comp-sub-block 'either-false					;-- compile FALSE block
 		emit-close-frame
 	]
 	
@@ -2491,11 +2532,13 @@ red: context [
 		push-call 'until
 		comp-sub-block 'until-body						;-- compile body
 		pop-call
-		append/only last output 'logic/true?
-		new-line back tail last output on
+		unless fuse-cond-block last output [
+			append/only last output 'logic/true?
+			new-line back tail last output on
+		]
 		emit-close-frame
 	]
-	
+
 	comp-while: does [
 		emit-open-frame 'while
 		emit [
@@ -2503,8 +2546,10 @@ red: context [
 		]
 		push-call 'while-cond
 		comp-sub-block 'while-condition					;-- compile condition
-		append/only last output 'logic/true?
-		new-line back tail last output on
+		unless fuse-cond-block last output [
+			append/only last output 'logic/true?
+			new-line back tail last output on
+		]
 		pop-call
 		push-call 'while
 		comp-sub-block 'while-body						;-- compile body
@@ -4075,6 +4120,9 @@ red: context [
 		]
 	]
 
+	fused-cmp-mark: none								;-- region of the last emitted fused comparison
+	fused-cmp-end:  none
+
 	comp-fused-binop: func [/local end op name entry spec left right fname cnt][
 		;-- single binary op with simple operands: emit a fused runtime call, no frame
 		end: search-expr-end pc							;-- points at the last operand
@@ -4091,6 +4139,7 @@ red: context [
 		if any [none? left none? right not block? left][return false] ;-- left literal int: not supported
 
 		add-symbol op: to word! op
+		fused-cmp-mark: if entry/3 = 'cmp [tail output] ;-- track comparisons for conditional fusing
 		fname: either entry/3 = 'math [
 			either integer? right ['actions/op2i*]['actions/op2*]
 		][
@@ -4103,9 +4152,85 @@ red: context [
 		emit right
 		cnt: 3 + (length? left) + either block? right [length? right][1]
 		insert-lf negate cnt
+		fused-cmp-end: if fused-cmp-mark [tail output]
 
 		pc: next end									;-- skip last operand
 		true
+	]
+
+	fused-cond-call?: func [pos [block!]][			;-- does pos hold a complete trailing fused comparison?
+		unless find/only reduce ['actions/cmp2* 'actions/cmp2i*] pos/1 [return no]
+		pos: next pos
+		while [not tail? pos][
+			unless cond-arg? pos/1 [return no]
+			pos: next pos
+		]
+		yes
+	]
+
+	take-fused-cond: func [/local tokens][			;-- extract a just-emitted fused comparison, if any
+		unless all [
+			fused-cmp-mark
+			fused-cmp-end
+			same? fused-cmp-end tail output
+			not same? fused-cmp-mark fused-cmp-end
+			fused-cond-call? fused-cmp-mark			;-- content check: output regions may get copied/cleared
+		][return none]
+		tokens: copy fused-cmp-mark
+		clear fused-cmp-mark
+		fused-cmp-mark: none
+		fused-cmp-end: none
+		tokens
+	]
+
+	emit-fused-cond: func [tokens [block!] not? [logic!]][	;-- emit a direct conditional test from a fused comparison
+		change/only tokens select/only reduce [
+			'actions/cmp2*  'actions/cmp2b*
+			'actions/cmp2i* 'actions/cmp2ib*
+		] tokens/1
+		append tokens pick [yes no] not?				;-- negation flag
+		new-line/all tokens off
+		emit 'either
+		emit tokens
+		insert-lf negate 1 + length? tokens
+	]
+
+	cond-arg?: func [t][							;-- is the token a valid fused-comparison argument?
+		any [
+			integer? :t
+			all [path? :t 'exec = first :t]
+			:t = 'octx
+			:t = 'get-ptr*
+			:t = 'get-local-ptr*
+			all [word? :t #"~" = first mold :t]
+			all [word? :t find/match mold :t "ctx||"]
+			all [word? :t find/match mold :t "COMP_"]
+		]
+	]
+
+	fuse-cond-block: func [blk [block!] /local pos p t][	;-- rewrite a trailing fused comparison as direct test
+		pos: back tail blk
+		while [									;-- skip trailing source comments (-v >= 1)
+			all [not head? pos any [string? pos/1 comment-marker = pos/1]]
+		][
+			pos: back pos
+		]
+		unless 'stack/reset = pos/1 [return no]			;-- statement boundary reset after the test value push
+		p: pos
+		t: none
+		until [
+			if any [head? p 9 < offset? p pos][return no]
+			p: back p
+			t: p/1
+			any [
+				find/only reduce ['actions/cmp2* 'actions/cmp2i*] t ;-- found the call head: stop
+				either cond-arg? t [no][return no]				;-- skip over argument tokens only
+			]
+		]
+		change/only p either t = 'actions/cmp2* ['actions/cmp2b*]['actions/cmp2ib*]
+		change pos 'no									;-- not? flag replaces the trailing reset
+		if all ['stack/reset = blk/1 2 = index? p][remove blk]	;-- head reset is dead if test is alone
+		yes
 	]
 
 	check-infix-operators: func [
@@ -4581,7 +4706,7 @@ red: context [
 				]
 			][
 				if 'stack/reset <> last output [
-					emit-stack-reset					;-- clear stack from last root expression result
+					flush-statement-tail				;-- clear stack from last root expression result
 				]
 			]
 		]
@@ -4635,22 +4760,22 @@ red: context [
 		list
 	]
 	
-	comp-sub-block: func [origin [word!] /with body /local mark saved][
+	comp-sub-block: func [origin [word!] /bare /with body /local mark saved][
 		unless any [with block? pc/1][
 			throw-error [
 				"expected a block for" uppercase form origin
 				"instead of" mold type? pc/1 "value"
 			]
 		]
-		
+
 		mark: tail output
 		saved: pc
 		pc: any [body pc/1]								;-- dive in nested code
 		comp-block
-		pc: next saved									;-- step over block in source code				
+		pc: next saved									;-- step over block in source code
 
 		convert-to-block mark
-		either origin = 'func-body [					;-- no-op right after stack/mark-func-body
+		either any [bare origin = 'func-body][			;-- no-op: nothing pushed before block entry
 			head last output
 		][
 			head insert last output [
