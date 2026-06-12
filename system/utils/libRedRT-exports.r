@@ -12,6 +12,10 @@
 	red/alloc-cells
 	red/get-cmdline-args
 	red/set-opt-refinement*
+	red/set-top*
+	red/set-top-in*
+	red/get-ptr*
+	red/get-local-ptr*
 	red/call-with-array*
 	red/get-libRedRT-bitarray
 
@@ -224,6 +228,10 @@
 	red/actions/mold*
 	red/actions/eval-path*
 	red/actions/compare
+	red/actions/op2*
+	red/actions/op2i*
+	red/actions/cmp2*
+	red/actions/cmp2i*
 	red/actions/absolute*
 	red/actions/add*
 	red/actions/divide*

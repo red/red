@@ -498,7 +498,244 @@ actions: context [
 		result/value: compare stack/arguments stack/arguments + 1 op
 		result/header: TYPE_LOGIC
 		result
-	]	
+	]
+
+	op2*: func [										;-- fused binary math op, int/int fast path
+		op		[integer!]								;-- math-op!
+		sym		[red-word!]								;-- op's symbol for the generic path frame
+		left	[red-value!]
+		right	[red-value!]
+		return: [red-value!]
+		/local
+			l	 [red-integer!]
+			r	 [red-integer!]
+			cell [red-integer!]
+			fl	 [red-float!]
+			i1	 [integer!]
+			i2	 [integer!]
+			res	 [integer!]
+	][
+		either all [
+			TYPE_OF(left)  = TYPE_INTEGER
+			TYPE_OF(right) = TYPE_INTEGER
+		][
+			l: as red-integer! left
+			r: as red-integer! right
+			i1: l/value
+			i2: r/value
+			cell: as red-integer! stack/push*
+			res: 0
+			switch op [
+				OP_ADD [
+					res: i1 + i2
+					if system/cpu/overflow? [
+						fl: as red-float! cell			;-- promote to float
+						fl/header: TYPE_FLOAT
+						fl/value: (as-float i1) + as-float i2
+						return as red-value! fl
+					]
+				]
+				OP_SUB [
+					res: i1 - i2
+					if system/cpu/overflow? [
+						fl: as red-float! cell			;-- promote to float
+						fl/header: TYPE_FLOAT
+						fl/value: (as-float i1) - as-float i2
+						return as red-value! fl
+					]
+				]
+				OP_MUL [
+					res: i1 * i2
+					if system/cpu/overflow? [
+						fl: as red-float! cell			;-- promote to float
+						fl/header: TYPE_FLOAT
+						fl/value: (as-float i1) * as-float i2
+						return as red-value! fl
+					]
+				]
+				OP_AND [res: i1 and i2]
+				OP_OR  [res: i1 or i2]
+				OP_XOR [res: i1 xor i2]
+			]
+			cell/header: TYPE_INTEGER
+			cell/value: res
+			as red-value! cell
+		][
+			stack/mark-native sym						;-- generic path, same as non-fused code
+			stack/push left
+			stack/push right
+			switch op [
+				OP_ADD [add*]
+				OP_SUB [subtract*]
+				OP_MUL [multiply*]
+				OP_AND [and~*]
+				OP_OR  [or~*]
+				OP_XOR [xor~*]
+			]
+			stack/unwind
+			stack/get-top
+		]
+	]
+
+	op2i*: func [										;-- fused binary math op, right operand is an integer literal
+		op		[integer!]								;-- math-op!
+		sym		[red-word!]
+		left	[red-value!]
+		i2		[integer!]
+		return: [red-value!]
+		/local
+			l	 [red-integer!]
+			cell [red-integer!]
+			fl	 [red-float!]
+			i1	 [integer!]
+			res	 [integer!]
+	][
+		either TYPE_OF(left) = TYPE_INTEGER [
+			l: as red-integer! left
+			i1: l/value
+			cell: as red-integer! stack/push*
+			res: 0
+			switch op [
+				OP_ADD [
+					res: i1 + i2
+					if system/cpu/overflow? [
+						fl: as red-float! cell			;-- promote to float
+						fl/header: TYPE_FLOAT
+						fl/value: (as-float i1) + as-float i2
+						return as red-value! fl
+					]
+				]
+				OP_SUB [
+					res: i1 - i2
+					if system/cpu/overflow? [
+						fl: as red-float! cell			;-- promote to float
+						fl/header: TYPE_FLOAT
+						fl/value: (as-float i1) - as-float i2
+						return as red-value! fl
+					]
+				]
+				OP_MUL [
+					res: i1 * i2
+					if system/cpu/overflow? [
+						fl: as red-float! cell			;-- promote to float
+						fl/header: TYPE_FLOAT
+						fl/value: (as-float i1) * as-float i2
+						return as red-value! fl
+					]
+				]
+				OP_AND [res: i1 and i2]
+				OP_OR  [res: i1 or i2]
+				OP_XOR [res: i1 xor i2]
+			]
+			cell/header: TYPE_INTEGER
+			cell/value: res
+			as red-value! cell
+		][
+			stack/mark-native sym						;-- generic path, same as non-fused code
+			stack/push left
+			cell: as red-integer! stack/push*
+			cell/header: TYPE_INTEGER
+			cell/value: i2
+			switch op [
+				OP_ADD [add*]
+				OP_SUB [subtract*]
+				OP_MUL [multiply*]
+				OP_AND [and~*]
+				OP_OR  [or~*]
+				OP_XOR [xor~*]
+			]
+			stack/unwind
+			stack/get-top
+		]
+	]
+
+	cmp2*: func [										;-- fused comparison op, int/int fast path
+		op		[integer!]								;-- comparison-op!
+		sym		[red-word!]
+		left	[red-value!]
+		right	[red-value!]
+		return: [red-logic!]
+		/local
+			l	 [red-integer!]
+			r	 [red-integer!]
+			cell [red-logic!]
+			i1	 [integer!]
+			i2	 [integer!]
+			res	 [logic!]
+	][
+		either all [
+			TYPE_OF(left)  = TYPE_INTEGER
+			TYPE_OF(right) = TYPE_INTEGER
+		][
+			l: as red-integer! left
+			r: as red-integer! right
+			i1: l/value
+			i2: r/value
+			res: false
+			switch op [
+				COMP_EQUAL			[res: i1 = i2]
+				COMP_NOT_EQUAL		[res: i1 <> i2]
+				COMP_STRICT_EQUAL	[res: i1 = i2]
+				COMP_LESSER			[res: i1 < i2]
+				COMP_LESSER_EQUAL	[res: i1 <= i2]
+				COMP_GREATER		[res: i1 > i2]
+				COMP_GREATER_EQUAL	[res: i1 >= i2]
+			]
+			cell: as red-logic! stack/push*
+			cell/header: TYPE_LOGIC
+			cell/value: res
+			cell
+		][
+			stack/mark-native sym						;-- generic path, same as non-fused code
+			stack/push left
+			stack/push right
+			compare* op
+			stack/unwind
+			as red-logic! stack/get-top
+		]
+	]
+
+	cmp2i*: func [										;-- fused comparison op, right operand is an integer literal
+		op		[integer!]								;-- comparison-op!
+		sym		[red-word!]
+		left	[red-value!]
+		i2		[integer!]
+		return: [red-logic!]
+		/local
+			l	 [red-integer!]
+			cell [red-logic!]
+			val	 [red-integer!]
+			i1	 [integer!]
+			res	 [logic!]
+	][
+		either TYPE_OF(left) = TYPE_INTEGER [
+			l: as red-integer! left
+			i1: l/value
+			res: false
+			switch op [
+				COMP_EQUAL			[res: i1 = i2]
+				COMP_NOT_EQUAL		[res: i1 <> i2]
+				COMP_STRICT_EQUAL	[res: i1 = i2]
+				COMP_LESSER			[res: i1 < i2]
+				COMP_LESSER_EQUAL	[res: i1 <= i2]
+				COMP_GREATER		[res: i1 > i2]
+				COMP_GREATER_EQUAL	[res: i1 >= i2]
+			]
+			cell: as red-logic! stack/push*
+			cell/header: TYPE_LOGIC
+			cell/value: res
+			cell
+		][
+			stack/mark-native sym						;-- generic path, same as non-fused code
+			stack/push left
+			val: as red-integer! stack/push*
+			val/header: TYPE_INTEGER
+			val/value: i2
+			compare* op
+			stack/unwind
+			as red-logic! stack/get-top
+		]
+	]
 	
 	compare: func [
 		value1  [red-value!]
