@@ -14,6 +14,9 @@
 	red/set-opt-refinement*
 	red/set-top*
 	red/set-top-in*
+	red/set-top-flush*
+	red/set-top-in-flush*
+	red/set-in-ctx-flush*
 	red/get-ptr*
 	red/get-local-ptr*
 	red/call-with-array*
@@ -38,6 +41,7 @@
 	red/stack/mark-func-body
 	red/stack/unwind
 	red/stack/unwind-last
+	red/stack/unwind-flush
 	red/stack/reset
 	red/stack/keep
 	red/stack/push
@@ -232,6 +236,8 @@
 	red/actions/op2i*
 	red/actions/cmp2*
 	red/actions/cmp2i*
+	red/actions/cmp2b*
+	red/actions/cmp2ib*
 	red/actions/absolute*
 	red/actions/add*
 	red/actions/divide*
