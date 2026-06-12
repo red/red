@@ -1795,6 +1795,11 @@ GPtrArray!: alias struct! [
 			widget		[handle!]
 			return: 	[integer!]
 		]
+		gtk_widget_get_preferred_height: "gtk_widget_get_preferred_height" [
+			widget			[handle!]
+			minimum_height	[int-ptr!]
+			natural_height	[int-ptr!]
+		]
 		gtk_widget_get_can_focus: "gtk_widget_get_can_focus" [
 			widget		[handle!]
 			return:		[logic!]
@@ -3867,6 +3872,7 @@ base-enter:			g_quark_from_string "base-enter"
 pair-size-facet:	g_quark_from_string "pair-size-facet"
 draw-ctx-id:		g_quark_from_string "draw-ctx-id"
 move-offset-id:		g_quark_from_string "move-offset-id"
+size-suspend-id:	g_quark_from_string "size-suspend-id"
 focus-event-id:		g_quark_from_string "focus-event-id"
 scroll-x-id:		g_quark_from_string "scroll-x-id"
 scroll-y-id:		g_quark_from_string "scroll-y-id"
@@ -3893,6 +3899,8 @@ scroll-y-id:		g_quark_from_string "scroll-y-id"
 #define GET-CAPTION(s)			[g_object_get_qdata s caption-id]
 #define SET-IN-LOOP(s d)		[g_object_set_qdata s in-loop-id d]
 #define GET-IN-LOOP(s)			[g_object_get_qdata s in-loop-id]
+#define SET-SIZE-SUSPEND(s d)	[g_object_set_qdata s size-suspend-id d]
+#define GET-SIZE-SUSPEND(s)		[g_object_get_qdata s size-suspend-id]
 #define SET-MENU-KEY(s d)		[g_object_set_qdata s menu-key-id d]
 #define GET-MENU-KEY(s)			[g_object_get_qdata s menu-key-id]
 #define SET-FIRST-RADIO(s d)	[g_object_set_qdata s first-radio-id d]

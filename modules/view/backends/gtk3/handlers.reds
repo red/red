@@ -663,7 +663,7 @@ im-retrieve-surrounding: func [
 	ctx			[handle!]
 	widget		[handle!]
 ][
-	print-line "retrieve"
+	;print-line "retrieve"
 	true
 ]
 
@@ -674,7 +674,7 @@ im-delete-surrounding: func [
 	chars		[integer!]
 	widget		[handle!]
 ][
-	print-line ["delet: " offset "x" chars]
+	;print-line ["delet: " offset "x" chars]
 	true
 ]
 
@@ -717,38 +717,6 @@ valid-window-offset?: func [
 	not any [x <= -32000 y <= -32000]
 ]
 
-get-window-frame-offset: func [
-	widget	[handle!]
-	x		[int-ptr!]
-	y		[int-ptr!]
-	return:	[logic!]
-	/local
-		win	 [handle!]
-		rect [GdkRectangle! value]
-		ok	 [integer!]
-][
-	if wayland-display? [return no]
-
-	win: gtk_widget_get_window widget
-	if null? win [return no]
-
-	gdk_window_get_frame_extents win :rect
-	if all [
-		rect/width > 0
-		rect/height > 0
-		valid-window-offset? rect/x rect/y
-	][
-		x/value: rect/x
-		y/value: rect/y
-		return yes
-	]
-	ok: gdk_window_get_origin win x y
-	all [
-		ok <> 0
-		valid-window-offset? x/value y/value
-	]
-]
-
 arm-window-move: func [
 	[cdecl]
 	widget	[handle!]
@@ -763,6 +731,13 @@ arm-window-move: func [
 	]
 	g_object_unref widget
 	false
+]
+
+
+suspend-window-size-events: func [
+	widget	[handle!]
+][
+	SET-SIZE-SUSPEND(widget widget)
 ]
 
 window-configure-event: func [
@@ -791,10 +766,8 @@ window-configure-event: func [
 	if values <> null [
 		x: 0 y: 0
 		if wayland-display? [return EVT_DISPATCH]
-		unless get-window-frame-offset widget :x :y [
-			x: event/x
-			y: event/y
-		]
+		x: event/x
+		y: event/y
 		unless valid-window-offset? x y [return EVT_DISPATCH]
 		offset: as red-pair! values + FACE_OBJ_OFFSET
 		fx: dpi-unscale as float32! x
@@ -814,14 +787,6 @@ window-configure-event: func [
 		]
 		move/x: as float! fx
 		move/y: as float! fy
-		either TYPE_OF(offset) = TYPE_POINT2D [
-			pos: as red-point2D! offset
-			pos/x: fx
-			pos/y: fy
-		][
-			offset/x: as-integer fx
-			offset/y: as-integer fy
-		]
 		if any [
 			not gtk_widget_get_mapped widget
 			move/ready = 0
@@ -835,9 +800,15 @@ window-configure-event: func [
 			]
 			return EVT_DISPATCH
 		]
-		if any [
-			all [old-x = move/x old-y = move/y]
-		][return EVT_DISPATCH]
+		if all [old-x = move/x old-y = move/y][return EVT_DISPATCH]
+		either TYPE_OF(offset) = TYPE_POINT2D [
+			pos: as red-point2D! offset
+			pos/x: fx
+			pos/y: fy
+		][
+			offset/x: as-integer fx
+			offset/y: as-integer fy
+		]
 		make-event widget 0 EVT_MOVING
 	]
 	EVT_DISPATCH
@@ -853,6 +824,9 @@ window-size-allocate: func [
 		cont	[handle!]
 		w		[integer!]
 		h		[integer!]
+		extra	[integer!]
+		mh		[integer!]
+		hMenu	[handle!]
 ][
 	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE
 	if null? GET-STARTRESIZE(widget) [
@@ -864,11 +838,26 @@ window-size-allocate: func [
 	h: gtk_widget_get_allocated_height cont
 	SET-CONTAINER-W(widget w)
 	SET-CONTAINER-H(widget h)
+	extra: 0
+	hMenu: GET-HMENU(widget)
+	unless null? hMenu [
+		extra: gtk_widget_get_allocated_height hMenu
+		if extra = 0 [
+			mh: 0
+			gtk_widget_get_preferred_height hMenu :mh :extra
+		]
+	]
+	h: h + extra
 
 	if any [
 		sz/x <> w
 		sz/y <> h
 	][
+		unless null? GET-SIZE-SUSPEND(widget) [
+			SET-SIZE-SUSPEND(widget null)
+			window-ready?: yes
+			exit
+		]
 		sz/x: w
 		sz/y: h
 		if null? GET-PAIR-SIZE(widget) [

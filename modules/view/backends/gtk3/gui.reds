@@ -1075,7 +1075,12 @@ change-size: func [
 	SET_PAIR_SIZE_FLAG(widget size)
 	CHECK_FACE_SIZE(size sx sy)
 	either type = window [
-		gtk_window_resize widget sx sy
+		suspend-window-size-events widget
+		either gtk_widget_get_mapped widget [
+			gtk_window_resize widget sx sy
+		][
+			gtk_window_set_default_size widget sx sy
+		]
 		gtk_widget_queue_draw widget
 	][
 		values: get-face-values widget
@@ -2592,8 +2597,6 @@ OS-make-view: func [
 			gtk_layout_set_size container sx sy
 			gtk_widget_show container
 			gtk_box_pack_start winbox container yes yes 0
-
-			gtk_window_set_position widget 1					;-- GTK_WIN_POS_CENTER
 			gtk_window_set_default_size widget sx sy
 			gtk_window_set_resizable widget (bits and FACET_FLAGS_RESIZE <> 0)
 			gm/min_width: 1
