@@ -2590,13 +2590,30 @@ OS-draw-text: func [
 		saved	[cairo_matrix_t! value]
 		pt		[red-point2D!]
 		clr		[integer!]
+		pattern	[handle!]
 		x y		[float!]
 ][
 	ctx-matrix-adapt dc saved
 	clr: either dc/font-color? [dc/font-color][dc/pen-color]
 	either TYPE_OF(text) = TYPE_STRING [
 		GET_PAIR_XY_F(pos x y)
-		set-source-color dc/cr clr
+		either all [
+			dc/grad-pen/on?
+			dc/grad-pen/pattern-on?
+		][
+			pattern: dc/grad-pen/pattern
+			cairo_set_source dc/cr pattern
+		][
+			either dc/grad-pen/on? [
+				check-grad-points dc/grad-pen x y x y
+				if dc/grad-pen/pattern-on? [
+					pattern: dc/grad-pen/pattern
+					cairo_set_source dc/cr pattern
+				]
+			][
+				set-source-color dc/cr clr
+			]
+		]
 		draw-text-at dc text x y
 	][
 		draw-text-box dc/cr pos as red-object! text clr yes catch?
@@ -2985,6 +3002,7 @@ OS-draw-grad-pen-old: func [
 	grad/spread: _pad
 	grad/type: type
 	grad/count: 0
+	grad/pattern-on?: off
 
 	grad/focal-on?: off
 	GET_PAIR_XY_F(offset off-x off-y)
@@ -3130,6 +3148,7 @@ OS-draw-grad-pen: func [
 	grad/spread: spread
 	grad/type: type
 	grad/count: 0
+	grad/pattern-on?: off
 
 	grad/focal-on?: off
 	case [
