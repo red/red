@@ -467,6 +467,37 @@ red: context [
 		]
 	]
 	
+	emit-set-top: func [name [any-word!] original [any-word!] /local obj ctx idx][
+		name: to word! name
+		either all [
+			rebol-gctx <> obj: bind? original
+			ctx: select shadow-funcs obj
+			name <> 'self
+		][
+			emit 'set-top-in*							;-- fused set-word for function locals
+			emit ctx
+			emit get-word-index name
+			insert-lf -3
+		][
+			either all [
+				ctx: all [
+					rebol-gctx <> obj: bind? original
+					select objects obj
+				]
+				attempt [idx: get-word-index/with name ctx]
+			][
+				emit 'word/set-in-ctx					;-- fused set-word for object fields
+				emit either parent-object? obj ['octx][ctx]
+				emit idx
+				insert-lf -3
+			][
+				emit 'set-top*							;-- fused set-word, global word
+				emit prefix-exec name
+				insert-lf -2
+			]
+		]
+	]
+
 	emit-get-word: func [name [word!] original [any-word!] /any? /literal /local new obj ctx][
 		either all [
 			rebol-gctx <> obj: bind? original
@@ -2496,13 +2527,11 @@ red: context [
 		insert-lf -1
 		emit-argument-type-check 1 'repeat 'stack/arguments
 
-		emit-open-frame 'set
-		emit-push-word name name						;-- push the word
 		emit [
-			integer/push 0
-			word/set									;-- initialize the counter word to 0
+			integer/push 0								;-- initialize the counter word to 0
 		]
-		emit-close-frame
+		insert-lf -2
+		emit-set-top name name
 
 		emit [loop integer/get stack/arguments]
 		insert-lf -3
@@ -3829,15 +3858,10 @@ red: context [
 			no-check?: yes
 		]
 		;-- General case: emit stack-oriented construction code --
-		emit-open-frame 'set
-		
-		either native [									;-- 1st argument
+		if native [										;-- fused set-word needs no frame nor word push
+			emit-open-frame 'set
 			pc: back pc
-			comp-expression								;-- fetch a value
-		][
-			unless obj-bound? [
-				emit-push-word name	original 			;-- push set-word
-			]
+			comp-expression								;-- fetch a value (1st argument)
 		]
 		
 		push-call 'set
@@ -3878,18 +3902,10 @@ red: context [
 		
 		either native [
 			emit-native/with 'set [-1 -1 -1 -1]			;@@ refinement not handled yet
+			emit-close-frame
 		][
-			either all [obj-bound? ctx: select objects obj][
-				emit 'word/set-in
-				emit either parent-object? obj ['octx][ctx] ;-- optional parametrized context reference (octx)
-				emit get-word-index/with name ctx
-				insert-lf -3
-			][
-				emit 'word/set
-				insert-lf -1
-			]
+			emit-set-top name original					;-- fused set-word: no frame, value on stack top
 		]
-		emit-close-frame
 	]
 
 	comp-word: func [/literal /final /thru /local name local? alter emit-word original new ctx defer][
@@ -3997,6 +4013,101 @@ red: context [
 		]
 	]
 	
+	fused-op-id: [
+	;--	prefix name			R/S op code			kind
+		add					OP_ADD				math
+		subtract			OP_SUB				math
+		multiply			OP_MUL				math
+		and~				OP_AND				math
+		or~					OP_OR				math
+		xor~				OP_XOR				math
+		equal?				COMP_EQUAL			cmp
+		not-equal?			COMP_NOT_EQUAL		cmp
+		strict-equal?		COMP_STRICT_EQUAL	cmp
+		lesser?				COMP_LESSER			cmp
+		lesser-or-equal?	COMP_LESSER_EQUAL	cmp
+		greater?			COMP_GREATER		cmp
+		greater-or-equal?	COMP_GREATER_EQUAL	cmp
+	]
+
+	fused-operand: func [token /local obj ctx idx name new][
+		;-- returns an emission block (red-value! pointer), an integer (literal) or none (not fusable)
+		case [
+			integer? :token [token]
+			all [
+				word? :token
+				not find functions get-prefix-func to word! token ;-- a function or an object method: would be a call
+				not find intrinsics token
+				not find [true false yes no on off none] token
+			][
+				either all [
+					rebol-gctx <> obj: bind? token
+					ctx: select shadow-funcs obj
+				][
+					either all [not empty? ctx-stack ctx <> last ctx-stack][
+						none							;-- outer function context: not fusable
+					][
+						reduce [decorate-symbol/no-alias token] ;-- local slot pointer
+					]
+				][
+					either all [
+						rebol-gctx <> obj
+						ctx: select objects obj
+						attempt [idx: get-word-index/with to word! token ctx]
+					][
+						reduce [						;-- object field slot pointer
+							'get-local-ptr*
+							either parent-object? obj ['octx][ctx]
+							idx
+						]
+					][
+						name: to word! token
+						either all [new: select-ssa name not find-function new new][
+							none						;-- SSA-renamed: not fusable
+						][
+							add-symbol name
+							reduce ['get-ptr* prefix-exec name] ;-- global slot pointer
+						]
+					]
+				]
+			]
+			'else [none]
+		]
+	]
+
+	comp-fused-binop: func [/local end op name entry spec left right fname cnt][
+		;-- single binary op with simple operands: emit a fused runtime call, no frame
+		end: search-expr-end pc							;-- points at the last operand
+		if 2 <> offset? pc end [return false]			;-- a single <operand> <op> <operand> expression
+		op: pc/2
+		name: any [select op-actions op op]
+		unless entry: find/skip fused-op-id name 3 [return false]
+		spec: select functions name
+		unless spec [return false]
+		unless spec/1 = either entry/3 = 'math ['action!]['native!][return false]
+
+		left:  fused-operand pc/1
+		right: fused-operand pc/3
+		if any [none? left none? right not block? left][return false] ;-- left literal int: not supported
+
+		add-symbol op: to word! op
+		fname: either entry/3 = 'math [
+			either integer? right ['actions/op2i*]['actions/op2*]
+		][
+			either integer? right ['actions/cmp2i*]['actions/cmp2*]
+		]
+		emit fname
+		emit entry/2									;-- math-op!/comparison-op! code
+		emit prefix-exec op								;-- op's symbol for the generic path frame
+		emit left
+		emit right
+		cnt: 3 + (length? left) + either block? right [length? right][1]
+		insert-lf negate cnt
+
+		pc: next end									;-- skip last operand
+		true
+	]
+
 	check-infix-operators: func [
 		root? [logic!]
 		/local name op pos end ops spec substitute cnt paths single?
@@ -4004,6 +4115,7 @@ red: context [
 		if infix? pc [return false]						;-- infix op already processed,
 														;-- or used in prefix mode.
 		if infix? next pc [
+			if comp-fused-binop [return true]
 			substitute: [
 				if paths < length? paths-stack [
 					emit [stack/push pos +]
@@ -4538,8 +4650,12 @@ red: context [
 		pc: next saved									;-- step over block in source code				
 
 		convert-to-block mark
-		head insert last output [
-			stack/reset
+		either origin = 'func-body [					;-- no-op right after stack/mark-func-body
+			head last output
+		][
+			head insert last output [
+				stack/reset
+			]
 		]
 	]
 	

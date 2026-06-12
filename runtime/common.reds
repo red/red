@@ -261,6 +261,77 @@ type-check: func [
 	arg													;-- pass-thru argument
 ]
 
+set-top*: func [										;-- fused set-word: value taken from stack top
+	word	[red-word!]
+	return: [red-value!]
+	/local
+		value [red-value!]
+][
+	value: stack/get-top
+	if TYPE_OF(value) = TYPE_UNSET [
+		fire [TO_ERROR(script need-value) word]
+	]
+	_context/set word value
+]
+
+set-top-in*: func [										;-- fused set-word for function locals
+	node	[node!]
+	index	[integer!]
+	return: [red-value!]
+	/local
+		ctx	   [red-context!]
+		value  [red-value!]
+		values [series!]
+		slot   [red-value!]
+][
+	value: stack/get-top
+	ctx: TO_CTX(node)
+	if TYPE_OF(value) = TYPE_UNSET [
+		fire [TO_ERROR(script need-value) _hashtable/get-ctx-word ctx index]
+	]
+	slot: either ON_STACK?(ctx) [
+		(as red-value! ctx/values) + index
+	][
+		values: as series! ctx/values/value
+		values/offset + index
+	]
+	copy-cell value slot
+]
+
+get-ptr*: func [										;-- get word's value slot pointer (no stack push)
+	word	 [red-word!]
+	return:  [red-value!]
+	/local
+		value [red-value!]
+][
+	value: _context/get word
+	if TYPE_OF(value) = TYPE_UNSET [
+		fire [TO_ERROR(script no-value) word]
+	]
+	value
+]
+
+get-local-ptr*: func [									;-- get local value slot pointer (no stack push)
+	node	[node!]
+	index	[integer!]
+	return: [red-value!]
+	/local
+		ctx	[red-context!]
+		s	[series!]
+][
+	ctx: TO_CTX(node)
+	if null? ctx/values [
+		s: _hashtable/get-ctx-words ctx
+		fire [TO_ERROR(script not-defined) s/offset + index]
+	]
+	either ON_STACK?(ctx) [
+		(as red-value! ctx/values) + index
+	][
+		s: as series! ctx/values/value
+		s/offset + index
+	]
+]
+
 set-opt-refinement*: func [
 	value [red-value!]
 	idx	  [integer!]
