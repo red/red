@@ -808,6 +808,17 @@ red: context [
 		]
 	]
 	
+	sealed-objects: [system]							;-- shape-frozen objects: compiled code may assume their
+														;-- layout never changes (Red language policy), so path
+														;-- reads skip the object/unchanged? guard + eval-path fallback
+	sealed-path?: func [path [series! path!] /local w][
+		all [
+			word? w: path/1
+			find sealed-objects w
+			rebol-gctx = bind? w
+		]
+	]
+
 	get-native-ID: func [name [word!] native? [logic!] /local id][
 		name: join pick ["NAT_" "ACT_"] native? replace/all uppercase form name #"-" #"_"
 		id: select extracts/definitions to-word name
@@ -3501,7 +3512,7 @@ red: context [
 		/set?
 		/local 
 			path value emit? get? entry alter saved after dynamic? ctx mark obj? new t? p
-			fpath symbol obj self? true-blk defer obj-field? parent fire index breaks call marks cnt
+			fpath symbol obj self? true-blk defer obj-field? parent fire index breaks sealed? call marks cnt
 			start frame framed?
 	][
 		path:  copy pc/1
@@ -3695,16 +3706,24 @@ red: context [
 			] set?
 			
 			mark: none
-			either self? [
+			sealed?: all [not set? not self? sealed-path? path] ;-- sealed object read: no guard, no fallback
+			case [
+				self? [
 				if all [not empty? locals-stack	container-obj?][
 					true-blk/1/2: 'octx
 				]
 				mark: tail output
 				emit first true-blk
-			][
+				]
+				sealed? [
+					mark: tail output
+					emit first true-blk
+				]
+				'else [
 				emit compose [
 					either (emit-deep-check path fpath) (true-blk)
 				]
+			]
 			]
 			if all [set? obj/5 obj/5/1 <> -1][			;-- detect on-set callback 
 				insert clear any [mark last output] compose [
@@ -3754,7 +3773,7 @@ red: context [
 		mark: tail output
 		
 		;either any [obj? set? get? dynamic? not parse path [some word!]][
-			unless self? [
+			unless any [self? sealed?] [				;-- sealed reads need no eval-path fallback
 				emit-path path set? to logic! any [obj? defer]
 				unless obj-field? [obj?: no]			;-- static path emitted, not special anymore
 			]
@@ -3762,7 +3781,7 @@ red: context [
 		;	append/only paths-stack path				;-- defer path generation
 		;]
 		
-		if all [obj? not self?][change/only/part mark copy mark tail output]
+		if all [obj? not self? not sealed?][change/only/part mark copy mark tail output]
 		if framed? [emit-close-frame]					;-- new value passed to the enclosing frame
 		unless set? [pc: next pc]
 	]
