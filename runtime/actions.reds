@@ -826,6 +826,252 @@ actions: context [
 		res <> not?
 	]
 
+	op2-top*: func [									;-- chained math op: left operand is the accumulator (stack top)
+		op		[integer!]								;-- math-op!
+		sym		[red-word!]
+		right	[red-value!]
+		return: [red-value!]
+		/local
+			l	 [red-integer!]
+			r	 [red-integer!]
+			left [red-value!]
+			fl	 [red-float!]
+			i1	 [integer!]
+			i2	 [integer!]
+			res	 [integer!]
+	][
+		left: stack/top - 1								;-- accumulator from the previous op
+		either all [
+			TYPE_OF(left)  = TYPE_INTEGER
+			TYPE_OF(right) = TYPE_INTEGER
+		][
+			l: as red-integer! left
+			r: as red-integer! right
+			i1: l/value
+			i2: r/value
+			res: 0
+			switch op [
+				OP_ADD [
+					res: i1 + i2
+					if system/cpu/overflow? [
+						fl: as red-float! left			;-- promote in place
+						fl/header: TYPE_FLOAT
+						fl/value: (as-float i1) + as-float i2
+						return left
+					]
+				]
+				OP_SUB [
+					res: i1 - i2
+					if system/cpu/overflow? [
+						fl: as red-float! left
+						fl/header: TYPE_FLOAT
+						fl/value: (as-float i1) - as-float i2
+						return left
+					]
+				]
+				OP_MUL [
+					res: i1 * i2
+					if system/cpu/overflow? [
+						fl: as red-float! left
+						fl/header: TYPE_FLOAT
+						fl/value: (as-float i1) * as-float i2
+						return left
+					]
+				]
+				OP_AND [res: i1 and i2]
+				OP_OR  [res: i1 or i2]
+				OP_XOR [res: i1 xor i2]
+			]
+			l/header: TYPE_INTEGER
+			l/value: res
+			left
+		][
+			stack/mark-native sym						;-- generic path: rebuild [acc right] frame
+			stack/push left								;-- copy accumulator into arguments[0]
+			stack/push right
+			switch op [
+				OP_ADD [add*]
+				OP_SUB [subtract*]
+				OP_MUL [multiply*]
+				OP_AND [and~*]
+				OP_OR  [or~*]
+				OP_XOR [xor~*]
+			]
+			stack/unwind
+			copy-cell stack/top - 1 left				;-- move result down onto the accumulator slot
+			stack/top: stack/top - 1
+			left
+		]
+	]
+
+	op2-topi*: func [									;-- chained math op, right operand is an integer literal
+		op		[integer!]								;-- math-op!
+		sym		[red-word!]
+		i2		[integer!]
+		return: [red-value!]
+		/local
+			l	 [red-integer!]
+			left [red-value!]
+			cell [red-integer!]
+			fl	 [red-float!]
+			i1	 [integer!]
+			res	 [integer!]
+	][
+		left: stack/top - 1
+		either TYPE_OF(left) = TYPE_INTEGER [
+			l: as red-integer! left
+			i1: l/value
+			res: 0
+			switch op [
+				OP_ADD [
+					res: i1 + i2
+					if system/cpu/overflow? [
+						fl: as red-float! left
+						fl/header: TYPE_FLOAT
+						fl/value: (as-float i1) + as-float i2
+						return left
+					]
+				]
+				OP_SUB [
+					res: i1 - i2
+					if system/cpu/overflow? [
+						fl: as red-float! left
+						fl/header: TYPE_FLOAT
+						fl/value: (as-float i1) - as-float i2
+						return left
+					]
+				]
+				OP_MUL [
+					res: i1 * i2
+					if system/cpu/overflow? [
+						fl: as red-float! left
+						fl/header: TYPE_FLOAT
+						fl/value: (as-float i1) * as-float i2
+						return left
+					]
+				]
+				OP_AND [res: i1 and i2]
+				OP_OR  [res: i1 or i2]
+				OP_XOR [res: i1 xor i2]
+			]
+			l/header: TYPE_INTEGER
+			l/value: res
+			left
+		][
+			stack/mark-native sym						;-- generic path
+			stack/push left
+			cell: as red-integer! stack/push*
+			cell/header: TYPE_INTEGER
+			cell/value: i2
+			switch op [
+				OP_ADD [add*]
+				OP_SUB [subtract*]
+				OP_MUL [multiply*]
+				OP_AND [and~*]
+				OP_OR  [or~*]
+				OP_XOR [xor~*]
+			]
+			stack/unwind
+			copy-cell stack/top - 1 left
+			stack/top: stack/top - 1
+			left
+		]
+	]
+
+	cmp2-top*: func [									;-- chained comparison, left operand is the accumulator
+		op		[integer!]								;-- comparison-op!
+		sym		[red-word!]
+		right	[red-value!]
+		return: [red-value!]
+		/local
+			l	 [red-integer!]
+			r	 [red-integer!]
+			left [red-value!]
+			lg	 [red-logic!]
+			i1	 [integer!]
+			i2	 [integer!]
+			res	 [logic!]
+	][
+		left: stack/top - 1
+		either all [
+			TYPE_OF(left)  = TYPE_INTEGER
+			TYPE_OF(right) = TYPE_INTEGER
+		][
+			l: as red-integer! left
+			r: as red-integer! right
+			i1: l/value
+			i2: r/value
+			res: false
+			switch op [
+				COMP_EQUAL			[res: i1 = i2]
+				COMP_NOT_EQUAL		[res: i1 <> i2]
+				COMP_STRICT_EQUAL	[res: i1 = i2]
+				COMP_LESSER			[res: i1 < i2]
+				COMP_LESSER_EQUAL	[res: i1 <= i2]
+				COMP_GREATER		[res: i1 > i2]
+				COMP_GREATER_EQUAL	[res: i1 >= i2]
+			]
+			lg: as red-logic! left						;-- overwrite accumulator in place
+			lg/header: TYPE_LOGIC
+			lg/value: res
+			left
+		][
+			stack/mark-native sym						;-- generic path
+			stack/push left
+			stack/push right
+			compare* op
+			stack/unwind
+			copy-cell stack/top - 1 left
+			stack/top: stack/top - 1
+			left
+		]
+	]
+
+	cmp2-topi*: func [									;-- chained comparison, right operand is an integer literal
+		op		[integer!]								;-- comparison-op!
+		sym		[red-word!]
+		i2		[integer!]
+		return: [red-value!]
+		/local
+			l	 [red-integer!]
+			left [red-value!]
+			lg	 [red-logic!]
+			cell [red-integer!]
+			i1	 [integer!]
+			res	 [logic!]
+	][
+		left: stack/top - 1
+		either TYPE_OF(left) = TYPE_INTEGER [
+			l: as red-integer! left
+			i1: l/value
+			res: false
+			switch op [
+				COMP_EQUAL			[res: i1 = i2]
+				COMP_NOT_EQUAL		[res: i1 <> i2]
+				COMP_STRICT_EQUAL	[res: i1 = i2]
+				COMP_LESSER			[res: i1 < i2]
+				COMP_LESSER_EQUAL	[res: i1 <= i2]
+				COMP_GREATER		[res: i1 > i2]
+				COMP_GREATER_EQUAL	[res: i1 >= i2]
+			]
+			lg: as red-logic! left
+			lg/header: TYPE_LOGIC
+			lg/value: res
+			left
+		][
+			stack/mark-native sym						;-- generic path
+			stack/push left
+			cell: as red-integer! stack/push*
+			cell/header: TYPE_INTEGER
+			cell/value: i2
+			compare* op
+			stack/unwind
+			copy-cell stack/top - 1 left
+			stack/top: stack/top - 1
+			left
+		]
+	]
+
 	compare: func [
 		value1  [red-value!]
 		value2  [red-value!]

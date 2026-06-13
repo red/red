@@ -4289,38 +4289,77 @@ red: context [
 	fused-cmp-mark: none								;-- region of the last emitted fused comparison
 	fused-cmp-end:  none
 
-	comp-fused-binop: func [/local end op name entry spec left right fname cnt][
-		;-- single binary op with simple operands: emit a fused runtime call, no frame
-		end: search-expr-end pc							;-- points at the last operand
-		if 2 <> offset? pc end [return false]			;-- a single <operand> <op> <operand> expression
-		op: pc/2
-		name: any [select op-actions op op]
-		unless entry: find/skip fused-op-id name 3 [return false]
-		spec: select functions name
-		unless spec [return false]
-		unless spec/1 = either entry/3 = 'math ['action!]['native!][return false]
-
-		left:  fused-operand pc/1
-		right: fused-operand pc/3
-		if any [none? left none? right not block? left][return false] ;-- left literal int: not supported
-
-		add-symbol op: to word! op
-		fused-cmp-mark: if entry/3 = 'cmp [tail output] ;-- track comparisons for conditional fusing
-		fname: either entry/3 = 'math [
-			either integer? right ['actions/op2i*]['actions/op2*]
+	fused-fname: func [kind [word!] first? [logic!] int? [logic!]][ ;-- pick the fused runtime entry
+		either kind = 'math [
+			either first? [
+				either int? ['actions/op2i*]['actions/op2*]
+			][
+				either int? ['actions/op2-topi*]['actions/op2-top*]
+			]
 		][
-			either integer? right ['actions/cmp2i*]['actions/cmp2*]
+			either first? [
+				either int? ['actions/cmp2i*]['actions/cmp2*]
+			][
+				either int? ['actions/cmp2-topi*]['actions/cmp2-top*]
+			]
 		]
-		emit fname
-		emit entry/2									;-- math-op!/comparison-op! code
-		emit prefix-exec op								;-- op's symbol for the generic path frame
-		emit left
-		emit right
-		cnt: 3 + (length? left) + either block? right [length? right][1]
-		insert-lf negate cnt
+	]
+
+	comp-fused-binop: func [
+		;-- a left-associative chain of binary ops with simple operands: emit fused runtime
+		;-- calls with no frames. First op takes a pointer left operand; the rest take the
+		;-- running accumulator from the stack top (-top* variants).
+		/local end n i op name entry spec operands ops codes kinds right left k single? int? fname cnt
+	][
+		end: search-expr-end pc							;-- points at the last operand
+		n: offset? pc end								;-- number of ops × 2 (even)
+		if any [n < 2 odd? n][return false]
+
+		left: fused-operand pc/1
+		unless block? left [return false]				;-- first left operand must be a pointer
+
+		operands: reduce [left]
+		ops:   make block! 4
+		codes: make block! 4
+		kinds: make block! 4
+		i: 2
+		forever [
+			op: pick pc i
+			unless word? op [return false]
+			name: any [select op-actions op op]
+			unless entry: find/skip fused-op-id name 3 [return false]
+			spec: select functions name
+			unless spec [return false]
+			unless spec/1 = either entry/3 = 'math ['action!]['native!][return false]
+			right: fused-operand pick pc i + 1
+			if none? right [return false]
+			append ops op
+			append codes entry/2
+			append kinds entry/3
+			append/only operands right
+			if i >= n [break]
+			i: i + 2
+		]
+
+		single?: n = 2
+		fused-cmp-mark: none
+		repeat k length? ops [
+			add-symbol op: to word! ops/:k
+			right: operands/(k + 1)
+			int?:  integer? right
+			if all [single? kinds/1 = 'cmp][fused-cmp-mark: tail output] ;-- track single cmp for cond fusing
+			fname: fused-fname kinds/:k k = 1 int?
+			emit fname
+			emit codes/:k								;-- math-op!/comparison-op! code
+			emit prefix-exec op							;-- op's symbol for the generic-path frame
+			cnt: 3										;-- fname + code + sym
+			if k = 1 [emit operands/1 cnt: cnt + length? operands/1] ;-- pointer left operand (first op only)
+			either int? [emit right cnt: cnt + 1][emit right cnt: cnt + length? right]
+			insert-lf negate cnt
+		]
 		fused-cmp-end: if fused-cmp-mark [tail output]
 
-		pc: next end									;-- skip last operand
+		pc: next end									;-- step past the last operand
 		true
 	]
 

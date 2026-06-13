@@ -243,6 +243,10 @@
 	red/actions/cmp2i*
 	red/actions/cmp2b*
 	red/actions/cmp2ib*
+	red/actions/op2-top*
+	red/actions/op2-topi*
+	red/actions/cmp2-top*
+	red/actions/cmp2-topi*
 	red/actions/absolute*
 	red/actions/add*
 	red/actions/divide*
