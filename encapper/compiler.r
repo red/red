@@ -883,6 +883,24 @@ red: context [
 		spec
 	]
 	
+	const-typeset-bits: func [						;-- typeset bits for a pure base-datatype spec, else none
+		spec [block!] /local ts type word bit idx
+	][
+		ts: copy [0 0 0]
+		foreach type spec [
+			if block? type [return none]			;-- not a flat datatype list
+			type: either word: in extracts/scalars type [get word][reduce [type]]
+			foreach word type [
+				bit: get-RS-type-ID word
+				unless bit [return none]				;-- not a base datatype (e.g. a typeset word): don't fold
+				idx: (bit / 32) + 1
+				poke ts idx ts/:idx or shift/logical -2147483648 bit and 255
+			]
+		]
+		forall ts [ts/1: to integer! to-bin32 ts/1]
+		ts
+	]
+
 	emit-type-checking: func [name [word!] spec [block!] /native /local pos type blk][
 		unless native [name: to word! next form name]	;-- remove prefix decoration
 		
@@ -4023,7 +4041,7 @@ red: context [
 		emit-close-frame
 	]
 	
-	comp-set-make: has [entry name][
+	comp-set-make: has [entry name ts][
 		name: pc/-1
 		switch/default pc/2 [
 			datatype! [
@@ -4031,6 +4049,16 @@ red: context [
 					redbin/emit-word/root/set? name none none
 					redbin/emit-datatype pc/4
 					pc: skip pc 4
+					yes
+				][
+					no
+				]
+			]
+			typeset! [									;-- fold constant `make typeset! [base-datatypes]`
+				either all [block? pc/3 ts: const-typeset-bits pc/3][
+					redbin/emit-word/root/set? name none none
+					redbin/emit-typeset ts/1 ts/2 ts/3
+					pc: skip pc 3
 					yes
 				][
 					no
