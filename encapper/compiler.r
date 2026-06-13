@@ -506,11 +506,29 @@ red: context [
 		]
 	]
 
+	logic-literals: [true yes on false no off]			;-- never rebound (sealed by language policy)
+
 	emit-get-word: func [name [word!] original [any-word!] /any? /literal /local new obj ctx][
+		if all [									;-- fold true/false/none/... into a direct literal push
+			not literal
+			not any?
+			rebol-gctx = bind? original
+			any [name = 'none find logic-literals name]
+		][
+			either name = 'none [
+				emit 'none/push
+				insert-lf -1
+			][
+				emit 'logic/push
+				emit either find [true yes on] name ['true]['false] ;-- the R/S logic! literal word
+				insert-lf -2
+			]
+			exit
+		]
 		either all [
 			rebol-gctx <> obj: bind? original
 			ctx: select shadow-funcs obj
-		][	
+		][
 			either all [not empty? ctx-stack ctx <> last ctx-stack][
 				emit 'word/get-local
 				emit ctx
