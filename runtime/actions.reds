@@ -514,6 +514,9 @@ actions: context [
 			r	 [red-integer!]
 			cell [red-integer!]
 			fl	 [red-float!]
+			fl1	 [red-float!]
+			fl2	 [red-float!]
+			fc	 [red-float!]
 			i1	 [integer!]
 			i2	 [integer!]
 			res	 [integer!]
@@ -563,6 +566,21 @@ actions: context [
 			cell/header: TYPE_INTEGER
 			cell/value: res
 			as red-value! cell
+		][either all [
+			TYPE_OF(left)  = TYPE_FLOAT					;-- float/float fast path (plain IEEE, no overflow)
+			TYPE_OF(right) = TYPE_FLOAT
+			any [op = OP_ADD op = OP_SUB op = OP_MUL]
+		][
+			fl1: as red-float! left
+			fl2: as red-float! right
+			fc:  as red-float! stack/push*
+			fc/header: TYPE_FLOAT
+			switch op [
+				OP_ADD [fc/value: fl1/value + fl2/value]
+				OP_SUB [fc/value: fl1/value - fl2/value]
+				OP_MUL [fc/value: fl1/value * fl2/value]
+			]
+			as red-value! fc
 		][
 			stack/mark-native sym						;-- generic path, same as non-fused code
 			stack/push left
@@ -577,7 +595,7 @@ actions: context [
 			]
 			stack/unwind
 			stack/get-top
-		]
+		]]
 	]
 
 	op2i*: func [										;-- fused binary math op, right operand is an integer literal
@@ -836,6 +854,8 @@ actions: context [
 			r	 [red-integer!]
 			left [red-value!]
 			fl	 [red-float!]
+			fl1	 [red-float!]
+			fl2	 [red-float!]
 			i1	 [integer!]
 			i2	 [integer!]
 			res	 [integer!]
@@ -885,6 +905,19 @@ actions: context [
 			l/header: TYPE_INTEGER
 			l/value: res
 			left
+		][either all [
+			TYPE_OF(left)  = TYPE_FLOAT					;-- float/float fast path, updated in place
+			TYPE_OF(right) = TYPE_FLOAT
+			any [op = OP_ADD op = OP_SUB op = OP_MUL]
+		][
+			fl1: as red-float! left
+			fl2: as red-float! right
+			switch op [
+				OP_ADD [fl1/value: fl1/value + fl2/value]
+				OP_SUB [fl1/value: fl1/value - fl2/value]
+				OP_MUL [fl1/value: fl1/value * fl2/value]
+			]
+			left
 		][
 			stack/mark-native sym						;-- generic path: rebuild [acc right] frame
 			stack/push left								;-- copy accumulator into arguments[0]
@@ -901,7 +934,7 @@ actions: context [
 			copy-cell stack/top - 1 left				;-- move result down onto the accumulator slot
 			stack/top: stack/top - 1
 			left
-		]
+		]]
 	]
 
 	op2-topi*: func [									;-- chained math op, right operand is an integer literal
