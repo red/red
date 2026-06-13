@@ -3708,7 +3708,11 @@ natives: context [
 		
 		result: loop? series
 		if result [
-			_context/set word actions/pick series 1 null
+			either type = TYPE_BLOCK [					;-- fast path: skip the action-table pick dispatch
+				_context/set word block/rs-head as red-block! series
+			][
+				_context/set word actions/pick series 1 null
+			]
 			series/head: series/head + 1
 		]
 		result
@@ -3780,10 +3784,9 @@ natives: context [
 	
 	inc-counter: func [w [red-word!] /local int [red-integer!]][
 		assert TYPE_OF(w) = TYPE_WORD
-		int: as red-integer! _context/get w
+		int: as red-integer! _context/get w				;-- returns the live value slot
 		assert TYPE_INTEGER = TYPE_OF(int)
-		int/value: int/value + 1
-		_context/set w as red-value! int
+		int/value: int/value + 1						;-- mutate the slot in place (no write-back needed)
 	]
 	
 	init: does [
