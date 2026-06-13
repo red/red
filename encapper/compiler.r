@@ -583,6 +583,8 @@ red: context [
 		blk
 	]
 
+	frame-kinds: make block! 8							;-- tracks open frame kinds for matching closers
+
 	emit-open-frame: func [name [word!] /with type ctx-name /local symbol][
 		symbol: either name = 'try-all ['try][name]
 		unless find symbols symbol [add-symbol symbol]
@@ -598,6 +600,7 @@ red: context [
 			emit prefix-exec symbol
 			emit get-func-ctx name ctx-name
 			insert-lf -3
+			append frame-kinds 'func
 		][
 			emit case [
 				find iterators name ['stack/mark-loop]
@@ -608,11 +611,17 @@ red: context [
 			]
 			emit prefix-exec symbol
 			insert-lf -2
+			append frame-kinds 'other
 		]
 	]
-	
-	emit-close-frame: func [/last][
-		emit pick [stack/unwind-last stack/unwind] to logic! last
+
+	emit-close-frame: func [/last /local kind][
+		kind: any [take/last frame-kinds 'other]
+		emit either kind = 'func [					;-- function! frames restore ctx/values on close
+			pick [stack/unwind-func-last stack/unwind-func] to logic! last
+		][
+			pick [stack/unwind-last stack/unwind] to logic! last
+		]
 		insert-lf -1
 	]
 	
@@ -630,6 +639,9 @@ red: context [
 			]
 			'stack/unwind-last = last output [		;-- statement-level loops: propagated value is dead
 				change/only back tail output 'stack/unwind-flush
+			]
+			'stack/unwind-func = last output [		;-- function! frames keep their restoring closer
+				change/only back tail output 'stack/unwind-func-flush
 			]
 			'set-top* = pick tail output -2 [
 				change skip tail output -2 'set-top-flush*
@@ -672,7 +684,7 @@ red: context [
 		]
 		append/only body pick [
 			[re-throw]
-			[stack/unroll stack/FRAME_FUNCTION ctx/values: saved system/thrown: 0 exit]
+			[stack/unroll stack/FRAME_FUNCTION system/thrown: 0 exit]
 		] empty? locals-stack
 		
 		append body [
@@ -680,7 +692,7 @@ red: context [
 		]
 		append/only body pick [
 			[re-throw]
-			[ctx/values: saved system/thrown: 0 exit]
+			[system/thrown: 0 exit]
 		] empty? locals-stack
 
 		append body [
@@ -740,10 +752,9 @@ red: context [
 	emit-exit-function: does [
 		emit [
 			stack/unroll stack/FRAME_FUNCTION
-			ctx/values: saved
 			exit
 		]
-		insert-lf -5
+		insert-lf -3
 	]
 	
 	emit-deep-check: func [path [series!] fpath [path!] /local obj-stk list check check2 obj top? parent-ctx][
@@ -843,7 +854,7 @@ red: context [
 		spec
 	]
 	
-	emit-type-checking: func [name [word!] spec [block!] /native /local pos type][
+	emit-type-checking: func [name [word!] spec [block!] /native /local pos type blk][
 		unless native [name: to word! next form name]	;-- remove prefix decoration
 		
 		either pos: any [
@@ -855,7 +866,11 @@ red: context [
 				all [string? pos/3 block? pos/3]	[pos/3]
 				'else 								[[default!]]
 			]
-			make-typeset type find/reverse pos refinement! spec to logic! native
+			blk: make-typeset type find/reverse pos refinement! spec to logic! native
+			if all [type = [default!] blk/1 = 'type-check][ ;-- only unset! can fail: cheaper check
+				blk: copy [unset-check*]
+			]
+			blk
 		][
 			none
 		]
@@ -1498,7 +1513,7 @@ red: context [
 		reduce [symbols locals flags]
 	]
 	
-	make-attributs: func [spec [block!] /prolog locals /epilog /local flags trace? no-trace? out][
+	make-attributs: func [spec [block!] /prolog locals /epilog /local flags trace? no-trace? out pos][
 		unless all [
 			any [
 				block? flags: spec/1
@@ -1512,7 +1527,11 @@ red: context [
 		
 		out: copy []
 		either prolog [
-			insert next find/tail locals 'saved [prev [logic!]]
+			either pos: find/tail locals /local [
+				insert pos [prev [logic!]]
+			][
+				append locals [/local prev [logic!]]
+			]
 			append out [
 				prev: interpreter/tracing?
 			]
@@ -2446,57 +2465,116 @@ red: context [
 		]
 	]
 		
-	comp-if: has [cond][
-		emit-open-frame 'if
-		comp-expression/close-path
-		either cond: take-fused-cond [
-			emit-fused-cond cond yes					;-- either <not test> [none][body]
-			append/only output copy [none/push-last]
-			comp-sub-block/bare 'if-body				;-- compile TRUE block
-		][
-			emit compose/deep [
-				either logic/false? [(set-last-none)]
-			]
-			comp-sub-block 'if-body						;-- compile TRUE block
+	comp-if: has [cond frameless?][
+		frameless?: all [							;-- statement position, value unused: no frame needed
+			stmt-root?
+			block? pc/4									;-- if <v> <op> <v> [body]
+			any [tail-dead? not tail? skip pc 4]		;-- a live tail feeds the enclosing block's value
+			fusable-cond?
 		]
-		emit-close-frame
+		either frameless? [
+			comp-expression/close-path
+			either cond: take-fused-cond [
+				emit-fused-cond/keyword cond no 'if		;-- if <test> [body]
+				comp-sub-block/bare/dead 'if-body
+			][
+				emit [if logic/true?]					;-- safety net if the fusion did not happen
+				insert-lf -2
+				comp-sub-block/dead 'if-body
+			]
+		][
+			emit-open-frame 'if
+			comp-expression/close-path
+			either cond: take-fused-cond [
+				emit-fused-cond cond yes				;-- either <not test> [none][body]
+				append/only output copy [none/push-last]
+				comp-sub-block/bare 'if-body			;-- compile TRUE block
+			][
+				emit compose/deep [
+					either logic/false? [(set-last-none)]
+				]
+				comp-sub-block 'if-body					;-- compile TRUE block
+			]
+			emit-close-frame
+		]
 	]
 
-	comp-unless: has [cond][
-		emit-open-frame 'unless
-		comp-expression/close-path
-		either cond: take-fused-cond [
-			emit-fused-cond cond yes					;-- either <not test> [body][none]
-			comp-sub-block/bare 'unless-body			;-- compile FALSE block
-			append/only output copy [none/push-last]
-		][
-			emit [
-				either logic/false?
-			]
-			comp-sub-block 'unless-body					;-- compile FALSE block
-			append/only output set-last-none
+	comp-unless: has [cond frameless?][
+		frameless?: all [							;-- statement position, value unused: no frame needed
+			stmt-root?
+			block? pc/4
+			any [tail-dead? not tail? skip pc 4]
+			fusable-cond?
 		]
-		emit-close-frame
+		either frameless? [
+			comp-expression/close-path
+			either cond: take-fused-cond [
+				emit-fused-cond/keyword cond yes 'if	;-- if <not test> [body]
+				comp-sub-block/bare/dead 'unless-body
+			][
+				emit [if logic/false?]					;-- safety net if the fusion did not happen
+				insert-lf -2
+				comp-sub-block/dead 'unless-body
+			]
+		][
+			emit-open-frame 'unless
+			comp-expression/close-path
+			either cond: take-fused-cond [
+				emit-fused-cond cond yes				;-- either <not test> [body][none]
+				comp-sub-block/bare 'unless-body		;-- compile FALSE block
+				append/only output copy [none/push-last]
+			][
+				emit [
+					either logic/false?
+				]
+				comp-sub-block 'unless-body				;-- compile FALSE block
+				append/only output set-last-none
+			]
+			emit-close-frame
+		]
 	]
 
-	comp-either: has [cond][
-		emit-open-frame 'either
-		comp-expression/close-path
-		either cond: take-fused-cond [
-			emit-fused-cond cond no
-			comp-sub-block/bare 'either-true			;-- compile TRUE block
-			comp-sub-block/bare 'either-false			;-- compile FALSE block
-		][
-			emit [
-				either logic/true?
-			]
-			comp-sub-block 'either-true					;-- compile TRUE block
-			comp-sub-block 'either-false				;-- compile FALSE block
+	comp-either: has [cond frameless?][
+		frameless?: all [							;-- statement position, value unused: no frame needed
+			stmt-root?
+			block? pc/4									;-- either <v> <op> <v> [b1][b2]
+			block? pc/5
+			any [tail-dead? not tail? skip pc 5]
+			fusable-cond?
 		]
-		emit-close-frame
+		either frameless? [
+			comp-expression/close-path
+			either cond: take-fused-cond [
+				emit-fused-cond cond no
+				comp-sub-block/bare/dead 'either-true
+				comp-sub-block/bare/dead 'either-false
+			][
+				emit [either logic/true?]				;-- safety net if the fusion did not happen
+				insert-lf -2
+				comp-sub-block/dead 'either-true
+				comp-sub-block/dead 'either-false
+			]
+		][
+			emit-open-frame 'either
+			comp-expression/close-path
+			either cond: take-fused-cond [
+				emit-fused-cond cond no
+				comp-sub-block/bare 'either-true		;-- compile TRUE block
+				comp-sub-block/bare 'either-false		;-- compile FALSE block
+			][
+				emit [
+					either logic/true?
+				]
+				comp-sub-block 'either-true				;-- compile TRUE block
+				comp-sub-block 'either-false			;-- compile FALSE block
+			]
+			emit-close-frame
+		]
 	]
 	
-	comp-loop: has [name set-name mark][
+	comp-loop: has [name set-name mark stmt-root-saved? tail-dead-saved?][
+		stmt-root-saved?: stmt-root?
+		tail-dead-saved?: tail-dead?
 		depth: depth + 1
 		if depth > max-depth [max-depth: depth]
 
@@ -2521,7 +2599,11 @@ red: context [
 		new-line skip tail output -3 off
 		
 		push-call 'loop
-		comp-sub-block 'loop-body						;-- compile body
+		either all [stmt-root-saved? tail-dead-saved?] [
+			comp-sub-block/dead 'loop-body				;-- compile body
+		][
+			comp-sub-block 'loop-body					;-- compile body
+		]
 		pop-call
 
 		new-line skip tail last output -3 on
@@ -2547,7 +2629,11 @@ red: context [
 		emit-close-frame
 	]
 
-	comp-while: does [
+	comp-while: has [dead?][
+		dead?: all [									;-- body's tail value is dead if the while's value is
+			stmt-root?
+			any [tail-dead? all [block? pc/1 block? pc/2 not tail? skip pc 2]]
+		]
 		emit-open-frame 'while
 		emit [
 			while
@@ -2560,12 +2646,18 @@ red: context [
 		]
 		pop-call
 		push-call 'while
-		comp-sub-block 'while-body						;-- compile body
+		either dead? [
+			comp-sub-block/dead 'while-body				;-- compile body
+		][
+			comp-sub-block 'while-body					;-- compile body
+		]
 		pop-call
 		emit-close-frame
 	]
 	
-	comp-repeat: has [name][
+	comp-repeat: has [name stmt-root-saved? tail-dead-saved?][
+		stmt-root-saved?: stmt-root?
+		tail-dead-saved?: tail-dead?
 		unless any-word? name: pc/1 [
 			pc: back pc
 			throw-error "REPEAT expects a word as first argument"
@@ -2589,7 +2681,11 @@ red: context [
 		emit [loop integer/get stack/arguments]
 		insert-lf -3
 		push-call 'repeat
-		comp-sub-block 'repeat-body
+		either all [stmt-root-saved? tail-dead-saved?] [
+			comp-sub-block/dead 'repeat-body
+		][
+			comp-sub-block 'repeat-body
+		]
 		pop-call
 		insert-head-last [								;-- inject code at loop's head to pre-increment counter
 			emit [										;-- forces a newline marker
@@ -2779,7 +2875,9 @@ red: context [
 	][
 		push-locals copy symbols						;-- prepare compiled spec block
 		forall symbols [symbols/1: decorate-symbol/no-alias symbols/1]
-		locals: append copy [/local ctx [red-context!] saved [node!]] symbols ;-- symbols can stay untyped as they are stored on the Red stack (GC protected)
+		locals: either empty? symbols [copy []][		;-- symbols can stay untyped as they are stored on the Red stack (GC protected)
+			append copy [/local] symbols
+		]
 		set/any 'tracing make-attributs/prolog spec locals
 		blk: either container-obj? [head insert copy locals [octx [node!]]][locals]
 		emit reduce [to set-word! decorate-func/strict name 'func blk]
@@ -2791,13 +2889,9 @@ red: context [
 		pop-locals
 		init: make block! 4 * length? symbols
 		
-		append init compose [							;-- point context values series to stack
-			ctx: TO_CTX(to paren! last ctx-stack)
-			saved: ctx/values
-			ctx/values: as node! stack/arguments
+		append init compose [							;-- values series already points to stack (caller-side swap)
 			(get/any 'tracing)
 		]
-		new-line skip tail init -4 on
 		args?: yes
 		
 		forall symbols [								;-- assign local variable to Red arguments
@@ -2833,10 +2927,9 @@ red: context [
 		;-- Function's epilog --
 		append last output compose [
 			stack/unwind-last							;-- closing body stack frame, and propagating last value
-			ctx/values: saved							;-- restore context values pointer
-			(make-attributs/epilog spec)
+			(make-attributs/epilog spec)				;-- context values restored by the caller-side unwind
 		]
-		new-line skip tail last output -4 yes
+		new-line back tail last output yes
 		
 		insert last output init
 	]
@@ -3704,7 +3797,7 @@ red: context [
 				word!     [comp-expression]
 			]
 			if paths < length? paths-stack [
-				if 'stack/unwind = last output [i: i + 1] ;-- count nested argument with path
+				if find/only [stack/unwind stack/unwind-func] last output [i: i + 1] ;-- count nested argument with path
 				repeat n nb - i + 1 [
 					emit [stack/push pos +]
 					emit n - 1
@@ -3741,11 +3834,12 @@ red: context [
 			name: to word! clean-lf-flag name
 			either all [with not empty? locals-stack not compact?][	;-- only if in a function's body
 				emit reduce [							;-- special case for path-generated wrapper functions
-					'stack/mark-func 
+					'stack/mark-func
 					decorate-exec-ctx decorate-symbol name
-					ctx-name
+					get-func-ctx name ctx-name			;-- function's own context (for the caller-side swap)
 				]
 				insert-lf -3
+				append frame-kinds 'func
 			][
 				emit-open-frame/with name spec/1 ctx-name
 			]
@@ -4255,16 +4349,32 @@ red: context [
 		tokens
 	]
 
-	emit-fused-cond: func [tokens [block!] not? [logic!]][	;-- emit a direct conditional test from a fused comparison
+	emit-fused-cond: func [tokens [block!] not? [logic!] /keyword kw [word!]][ ;-- emit a direct conditional test
 		change/only tokens select/only reduce [
 			'actions/cmp2*  'actions/cmp2b*
 			'actions/cmp2i* 'actions/cmp2ib*
 		] tokens/1
 		append tokens pick [yes no] not?				;-- negation flag
 		new-line/all tokens off
-		emit 'either
+		emit any [kw 'either]
 		emit tokens
 		insert-lf negate 1 + length? tokens
+	]
+
+	stmt-root?: no										;-- yes: current expression is in statement position
+	tail-dead?: no										;-- yes: enclosing block's tail value is discarded
+
+	fusable-cond?: func [/local op name entry spec][	;-- pure lookahead: pc starts a fusable comparison?
+		all [
+			word? op: pc/2
+			entry: find/skip fused-op-id name: any [select op-actions op op] 3
+			entry/3 = 'cmp
+			spec: select functions name
+			spec/1 = 'native!
+			2 = offset? pc search-expr-end pc
+			block? fused-operand pc/1					;-- pointer operand required on the left
+			not none? fused-operand pc/3				;-- pointer or integer literal on the right
+		]
 	]
 
 	cond-arg?: func [t][							;-- is the token a valid fused-comparison argument?
@@ -4328,10 +4438,22 @@ red: context [
 			ops: make block! 1
 			pos: end									;-- start from end of expression
 			until [
-				op: pos/-1			
+				op: pos/-1
 				name: any [select op-actions op op]
 				insert ops name							;-- remember ops in left-to-right order
-				emit-open-frame op
+				either 'function! = all [				;-- op backed by a function!: open a function frame
+					spec: select functions name			;-- (required by the caller-side context swap)
+					spec/1
+				][
+					unless find symbols op [add-symbol op]
+					emit 'stack/mark-func
+					emit prefix-exec op
+					emit get-func-ctx name none
+					insert-lf -3
+					append frame-kinds 'func
+				][
+					emit-open-frame op
+				]
 				pos: skip pos -2						;-- process next previous op
 				pos = pc								;-- until we reach the beginning of expression
 			]
@@ -4571,7 +4693,7 @@ red: context [
 		insert-lf either ctx [emit decorate-exec-ctx ctx -2][-1]
 		
 		either global? [
-			emit 'red/stack/unwind-last
+			emit 'red/stack/unwind-func-last
 			insert-lf -1
 			emit 'red/stack/reset
 		][
@@ -4728,7 +4850,8 @@ red: context [
 	]
 	
 	comp-expression: func [/no-infix /root /close-path /local out paths][
-		root: to logic! root 
+		root: to logic! root
+		stmt-root?: root								;-- statement position info for keyword compilers
 		if any [root close-path][out: tail output]
 		paths: length? paths-stack
 		
@@ -4772,7 +4895,7 @@ red: context [
 			comp-literal
 		]
 		if root [
-			either tail? pc	[
+			either all [tail? pc not tail-dead?][
 				unless find/only [stack/reset stack/unwind] last output [
 					emit-dyn-check
 				]
@@ -4796,11 +4919,13 @@ red: context [
 		emit-close-frame
 	]
 	
-	comp-next-block: func [root? [logic!] /with blk /local saved pos][
+	comp-next-block: func [root? [logic!] /with blk /local saved pos saved-dead][
 		saved: pc
 		pc: any [blk pc/1]
-		
+		saved-dead: tail-dead?
+		tail-dead?: no
 		comp-block
+		tail-dead?: saved-dead
 		
 		unless root? [
 			case [
@@ -4816,23 +4941,25 @@ red: context [
 		pc: next saved
 	]
 	
-	comp-chunked-block: has [list mark saved][
+	comp-chunked-block: has [list mark saved saved-dead][
 		list: make block! 10
 		saved: pc
 		pc: pc/1										;-- dive in nested code
 		mark: tail output
-		
+		saved-dead: tail-dead?
+		tail-dead?: no
 		comp-block/with [
 			mold mark									;-- black magic, fixes #509, R2 internal memory corruption
 			append/only list copy mark
 			clear mark
 		]
 		
+		tail-dead?: saved-dead
 		pc: next saved
 		list
 	]
 	
-	comp-sub-block: func [origin [word!] /bare /with body /local mark saved][
+	comp-sub-block: func [origin [word!] /bare /dead /with body /local mark saved saved-dead][
 		unless any [with block? pc/1][
 			throw-error [
 				"expected a block for" uppercase form origin
@@ -4842,8 +4969,11 @@ red: context [
 
 		mark: tail output
 		saved: pc
+		saved-dead: tail-dead?
+		tail-dead?: to logic! dead						;-- propagate dead tail value info
 		pc: any [body pc/1]								;-- dive in nested code
 		comp-block
+		tail-dead?: saved-dead
 		pc: next saved									;-- step over block in source code
 
 		convert-to-block mark
@@ -5327,6 +5457,7 @@ red: context [
 		clear bodies
 		clear actions
 		clear op-actions
+		clear frame-kinds
 		clear keywords
 		clear skip functions 2							;-- keep MAKE definition
 		clear lit-vars/block

@@ -140,9 +140,10 @@ stack: context [										;-- call stack
 			cycles/reset
 			fire [TO_ERROR(internal stack-overflow)]
 		]
-		values: either null? ctx-name [null][			;-- null only happens in some libRedRT cases
+		either null? ctx-name [values: null][			;-- null only happens in some libRedRT cases
 			ctx: TO_CTX(ctx-name)
-			ctx/values
+			values: ctx/values
+			ctx/values: as node! top					;-- caller-side swap: arguments base = top
 		]
 
 		ctop/header: FRAME_FUNCTION or (fun/symbol << 8)
@@ -299,11 +300,22 @@ stack: context [										;-- call stack
 		]
 	]
 	
-	revert: does [
+	revert: func [
+		/local
+			node [node!]
+			ctx	 [red-context!]
+	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/revert"]]
 
 		assert cbottom < ctop
 		ctop: ctop - 1
+		if FRAME_FUNCTION = (CALL_STACK_MASK and ctop/header) [
+			node: ctop/fctx								;-- caller-side restore of the context values
+			if node <> null [
+				ctx: TO_CTX(node)
+				ctx/values: ctop/saved
+			]
+		]
 		either ctop = cbottom [
 			arguments: bottom
 			top: bottom
@@ -317,11 +329,22 @@ stack: context [										;-- call stack
 		#if debug? = yes [if verbose > 1 [dump]]
 	]
 	
-	unwind-part: does [
+	unwind-part: func [
+		/local
+			node [node!]
+			ctx	 [red-context!]
+	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/unwind-part"]]
 
 		assert cbottom < ctop
 		ctop: ctop - 1
+		if FRAME_FUNCTION = (CALL_STACK_MASK and ctop/header) [
+			node: ctop/fctx								;-- caller-side restore of the context values
+			if node <> null [
+				ctx: TO_CTX(node)
+				ctx/values: ctop/saved
+			]
+		]
 		either ctop = cbottom [
 			arguments: bottom
 		][
@@ -342,8 +365,59 @@ stack: context [										;-- call stack
 		top: arguments + 1
 		arguments: ctop/prev
 		assert arguments >= bottom
-		
+
 		#if debug? = yes [if verbose > 1 [dump]]
+	]
+
+	unwind-func: func [									;-- closes a function! call frame
+		/local
+			node [node!]
+			ctx	 [red-context!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "stack/unwind-func"]]
+
+		assert cbottom < ctop
+		ctop: ctop - 1
+		node: ctop/fctx
+		if node <> null [								;-- caller-side restore of the context values
+			ctx: TO_CTX(node)
+			ctx/values: ctop/saved
+		]
+		top: arguments + 1
+		arguments: ctop/prev
+		assert arguments >= bottom
+	]
+
+	unwind-func-flush: func [							;-- closes a function! call frame, drops the value
+		/local
+			node [node!]
+			ctx	 [red-context!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "stack/unwind-func-flush"]]
+
+		assert cbottom < ctop
+		ctop: ctop - 1
+		node: ctop/fctx
+		if node <> null [								;-- caller-side restore of the context values
+			ctx: TO_CTX(node)
+			ctx/values: ctop/saved
+		]
+		arguments: ctop/prev
+		top: arguments
+		assert arguments >= bottom
+	]
+
+	unwind-func-last: func [							;-- closes a function! call frame, keeps the value
+		return:  [red-value!]
+		/local
+			last [red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "stack/unwind-func-last"]]
+
+		last: arguments
+		unwind-func
+		assert arguments >= bottom
+		copy-cell last arguments
 	]
 	
 	unwind-last: func [

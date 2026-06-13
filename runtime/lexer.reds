@@ -595,7 +595,7 @@ lexer: context [
 			]
 		]
 		cont?: logic/top-true?
-		stack/unwind
+		stack/unwind-func
 		stack/pop 1
 		cont?
 	]

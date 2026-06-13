@@ -448,7 +448,7 @@ object: context [
 		stack/push new
 		if positive? count [_function/init-locals count]
 		interpreter/call fun obj/ctx as red-value! words/_on-change* CB_OBJ_CHANGE
-		stack/unwind
+		stack/unwind-func
 	]
 	
 	fire-on-deep: func [
@@ -500,7 +500,7 @@ object: context [
 			integer/push nb
 			if positive? count [_function/init-locals count]
 			interpreter/call fun owner/ctx as red-value! words/_on-deep-change* CB_OBJ_DEEP
-			stack/unwind
+			stack/unwind-func
 		]
 	]
 	

@@ -261,6 +261,15 @@ type-check: func [
 	arg													;-- pass-thru argument
 ]
 
+unset-check*: func [									;-- default! argument checking (only unset! rejected)
+	index	[integer!]
+	arg		[red-value!]
+	return: [red-value!]
+][
+	if TYPE_OF(arg) = TYPE_UNSET [ERR_EXPECT_ARGUMENT(TYPE_UNSET index)]
+	arg													;-- pass-thru argument
+]
+
 set-top*: func [										;-- fused set-word: value taken from stack top
 	word	[red-word!]
 	return: [red-value!]

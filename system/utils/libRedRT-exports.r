@@ -6,6 +6,7 @@
 	red/get-root-node2
 	red/type-check-alt
 	red/type-check
+	red/unset-check*
 	red/eval-path*
 	red/select-key*
 	red/alloc-bytes
@@ -42,6 +43,9 @@
 	red/stack/unwind
 	red/stack/unwind-last
 	red/stack/unwind-flush
+	red/stack/unwind-func
+	red/stack/unwind-func-flush
+	red/stack/unwind-func-last
 	red/stack/reset
 	red/stack/keep
 	red/stack/push

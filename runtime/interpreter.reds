@@ -187,7 +187,7 @@ interpreter: context [
 		if system/thrown <> 0 [re-throw]
 		tracing?: yes
 		
-		stack/unwind
+		stack/unwind-func
 		stack/top: saved
 		stack/set-ctop csaved
 	]
@@ -359,6 +359,7 @@ interpreter: context [
 		][
 			fctx: GET_CTX(fun)
 			saved: fctx/values
+			fctx/values: as node! stack/arguments		;-- swap: compiled functions no longer do it themselves
 			assert system/thrown = 0
 			catch RED_THROWN_ERROR [
 				either ctx = global-ctx [

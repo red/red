@@ -915,7 +915,7 @@ parser: context [
 		if system/thrown <> 0 [reset saved? re-throw]
 
 		loop?: logic/top-true?
-		stack/unwind
+		stack/unwind-func
 		stack/top: saved
 		loop?
 	]
