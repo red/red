@@ -70,8 +70,10 @@ static-link: context [
 	;-- Append the per-format library extension to an extension-less #import
 	;-- name. With static? false (the default) the name resolves to a shared
 	;-- library (.dll/.so/.dylib); with static? true (--static), to a static
-	;-- archive (.lib/.a). Called from compiler.r/process-import before any
-	;-- of the dispatch checks below.
+	;-- archive (.lib/.a). A directory prefix (relative or absolute) is kept
+	;-- intact, the extension landing on the trailing filename, so a name such
+	;-- as "libs/foo" or "/opt/lib/foo" resolves to "libs/foo.lib", etc.
+	;-- Called from compiler.r/process-import before the dispatch checks below.
 	resolve-libname: func [name [string!] format [word!] static? [logic!]][
 		rejoin [
 			name
@@ -91,6 +93,15 @@ static-link: context [
 
 	archive?: func [name [string!]][
 		found? find [%.lib %.a] suffix? to-file lowercase copy name
+	]
+
+	;-- TRUE when an #import target is a macOS framework binary, referenced by
+	;-- its extension-less bundle path (".../X.framework/X"). Such a path is a
+	;-- complete, dynamic-only reference and must pass through verbatim: append
+	;-- a library extension and the framework install name is corrupted, so
+	;-- dyld aborts at load. Recognized by the ".framework/" path component.
+	framework?: func [name [string!]][
+		found? any [find name ".framework/"  find name ".framework\"]
 	]
 
 	;-- Resolve an #import filename relative to the directory of the source

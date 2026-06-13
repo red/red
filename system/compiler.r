@@ -2018,8 +2018,11 @@ system-dialect: make-profilable context [
 				some [
 					pos: set lib string! (
 						;-- An extension-less name resolves to a per-format library
-						;-- (.dll/.so/.dylib by default, .lib/.a with --static).
-						unless any [suffix? to-file lib  find lib #"/"  find lib #"\"][
+						;-- (.dll/.so/.dylib by default, .lib/.a with --static). A
+						;-- directory prefix (relative or absolute) is preserved,
+						;-- so #import "<path>/<lib>" resolves the trailing name;
+						;-- macOS framework paths are complete and pass untouched.
+						unless any [suffix? to-file lib  static-link/framework? lib][
 							lib: static-link/resolve-libname lib job/format job/static-link?
 						]
 						new?: no
