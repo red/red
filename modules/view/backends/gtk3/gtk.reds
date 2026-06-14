@@ -3215,15 +3215,19 @@ GPtrArray!: alias struct! [
 		cairo_paint: "cairo_paint" [
 			cr			[handle!]
 		]
-		cairo_mask_surface: "cairo_mask_surface" [
-			cr			[handle!]
-			surface		[handle!]
-			x			[float!]
-			y			[float!]
-		]
-		cairo_save: "cairo_save" [
-			cr			[handle!]
-		]
+			cairo_mask_surface: "cairo_mask_surface" [
+				cr			[handle!]
+				surface		[handle!]
+				x			[float!]
+				y			[float!]
+			]
+			cairo_mask: "cairo_mask" [
+				cr			[handle!]
+				pattern		[handle!]
+			]
+			cairo_save: "cairo_save" [
+				cr			[handle!]
+			]
 		cairo_scale: "cairo_scale" [
 			cr			[handle!]
 			x			[float!]

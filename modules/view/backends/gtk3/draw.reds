@@ -2428,35 +2428,87 @@ OS-draw-font: func [
 	cairo_font_options_set_antialias dc/font-opts quality
 ]
 
-draw-text-at: func [
-	dc			[draw-ctx!]
-	text		[red-string!]
+	gtk-emoji-presentation-char?: func [
+		cp			[integer!]
+		return:		[logic!]
+	][
+		any [
+			all [cp >= 1F300h cp <= 1FAFFh]
+			all [cp >= 2600h cp <= 27BFh]
+		]
+	]
+
+	gtk-text-has-emoji?: func [
+		str			[red-string!]
+		return:		[logic!]
+		/local
+			p tail	[byte-ptr!]
+			unit cp	[integer!]
+			p4		[int-ptr!]
+			s		[series!]
+	][
+		s: GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		p: string/rs-head str
+		tail: p + ((string/rs-length? str) << (unit >> 1))
+		switch unit [
+			Latin1 [
+				while [p < tail][
+					cp: as-integer p/value
+					if gtk-emoji-presentation-char? cp [return yes]
+					p: p + 1
+				]
+			]
+			UCS-2 [
+				while [p < tail][
+					cp: (as-integer p/2) << 8 + p/1
+					if gtk-emoji-presentation-char? cp [return yes]
+					p: p + 2
+				]
+			]
+			UCS-4 [
+				p4: as int-ptr! p
+				while [p4 < as int-ptr! tail][
+					cp: p4/value
+					if gtk-emoji-presentation-char? cp [return yes]
+					p4: p4 + 1
+				]
+			]
+		]
+		no
+	]
+
+	draw-text-at: func [
+		dc			[draw-ctx!]
+		text		[red-string!]
 	x			[float!]
 	y			[float!]
 	/local
 		cr		[handle!]
 		len		[integer!]
 		str		[c-string!]
-		layout	[handle!]
-		attrs	[handle!]
-		lc		[layout-ctx!]
-][
-	cr: dc/cr
-	cairo_save cr
-	cairo_move_to cr x y
-	len: (string/rs-length? text) * 4 + 1
-	if dc/utf8-buffer-size < len [
-		dc/utf8-buffer: either null? dc/utf8-buffer [
-			allocate len
+			layout	[handle!]
+			attrs	[handle!]
+			lc		[layout-ctx!]
+			mask?	[logic!]
+			pat		[handle!]
+	][
+		cr: dc/cr
+		cairo_save cr
+		cairo_move_to cr x y
+		len: (string/rs-length? text) * 4 + 1
+		if dc/utf8-buffer-size < len [
+			dc/utf8-buffer: either null? dc/utf8-buffer [
+				allocate len
 		][
 			realloc dc/utf8-buffer len
+			]
+			dc/utf8-buffer-size: len
 		]
-		dc/utf8-buffer-size: len
-	]
-	unicode/to-utf8-buffer text dc/utf8-buffer -1 yes
-	str: as c-string! dc/utf8-buffer
-	if null? pango-context [pango-context: gdk_pango_context_get]
-	layout: pango_layout_new pango-context
+		unicode/to-utf8-buffer text dc/utf8-buffer -1 yes
+		str: as c-string! dc/utf8-buffer
+		if null? pango-context [pango-context: gdk_pango_context_get]
+		layout: pango_layout_new pango-context
 	pango_layout_set_text layout str -1
 	either dc/font-attrs <> null [
 		pango_layout_set_attributes layout dc/font-attrs
@@ -2467,13 +2519,22 @@ draw-text-at: func [
 		lc/text: str
 		lc/attrs: attrs
 		OS-text-box-color null as handle! lc 0 string/rs-length? text dc/pen-color
-		pango_layout_set_attributes layout attrs
-		pango_attr_list_unref attrs
+			pango_layout_set_attributes layout attrs
+			pango_attr_list_unref attrs
+		]
+		mask?: gtk-text-has-emoji? text
+		either mask? [
+			cairo_push_group cr
+			pango_cairo_show_layout cr layout
+			pat: cairo_pop_group cr
+			cairo_mask cr pat
+			cairo_pattern_destroy pat
+		][
+			pango_cairo_show_layout cr layout
+		]
+		g_object_unref layout
+		cairo_restore cr
 	]
-	pango_cairo_show_layout cr layout
-	g_object_unref layout
-	cairo_restore cr
-]
 
 draw-text-box: func [
 	cr			[handle!]
