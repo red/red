@@ -755,6 +755,14 @@ GPtrArray!: alias struct! [
 			data		[int-ptr!]
 			return:		[integer!]
 		]
+		g_timeout_add_full: "g_timeout_add_full" [
+			priority	[integer!]
+			ts 			[integer!]
+			handler		[integer!]
+			data		[int-ptr!]
+			notify		[int-ptr!]
+			return:		[integer!]
+		]
 		g_timer_new: "g_timer_new" [
 			return:		[handle!]
 		]

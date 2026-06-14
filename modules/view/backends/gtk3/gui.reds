@@ -857,7 +857,11 @@ add-widget-timer: func [
 		data	[handle!]
 ][
 	;;g_object_ref_sink main-window
-	timer: g_timeout_add ts as integer! :red-timer-action widget
+	;-- Install the rate timer at idle priority (200), BELOW GDK_PRIORITY_REDRAW
+	;-- (G_PRIORITY_HIGH_IDLE + 20 = 120), so a high `rate` can never starve the
+	;-- widget's repaints: under load the timer ticks are dropped instead of the
+	;-- UI freezing while the synchronous on-time handler hogs the main loop.
+	timer: g_timeout_add_full 200 ts as integer! :red-timer-action widget null
 	g_object_set_qdata widget red-timer-id as int-ptr! timer
 ]
 
