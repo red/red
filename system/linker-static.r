@@ -916,6 +916,12 @@ static-link: context [
 	direct-resolve: func [job [object!] name [string!] /local bare dll][
 		bare: arch-bare name
 		if empty? bare [return none]
+		;-- i386 -fstack-protector emits a hidden, PIC-local wrapper
+		;-- __stack_chk_fail_local (normally provided by libc_nonshared.a) that
+		;-- merely forwards to __stack_chk_fail. Alias it to the real libc entry
+		;-- so stack-protected objects link on any host without that static
+		;-- helper archive present -- notably when cross-compiling to Linux.
+		if bare = "__stack_chk_fail_local" [bare: "__stack_chk_fail"]
 		if all [libc-set  find libc-set bare][return reduce [libc-name job  bare]]
 		if all [libm-set  find libm-set bare][return reduce [libm-name job  bare]]
 		if all [syslib-index  dll: select syslib-index bare][return reduce [dll bare]]
