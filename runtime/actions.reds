@@ -1964,8 +1964,39 @@ actions: context [
 			get-index-argument
 			stack/arguments + 2
 			stack/arguments + 1
-		
+
 		stack/set-last stack/arguments + 2				;@@ inline that above
+	]
+
+	pick-int*: func [									;-- fused `base/<int-literal>` GET path: frameless block fast path + pick fallback
+		base	[red-value!]						;-- resolved path base (a value-slot pointer)
+		idx		[integer!]							;-- 1-based integer selector
+		sym		[red-word!]							;-- head symbol for the fallback frame's traceback
+		return:	[red-value!]
+		/local
+			blk	 [red-block!]
+			s	 [series!]
+			pos	 [integer!]
+			cell [red-value!]
+	][
+		either TYPE_OF(base) = TYPE_BLOCK [			;-- fast path: block + integer index (no frame, no dispatch, no alloc)
+			blk:  as red-block! base
+			s:    GET_BUFFER(blk)
+			pos:  blk/head + idx - 1
+			cell: s/offset + pos
+			either all [idx >= 1 cell < s/tail][	;-- 1 <= idx <= remaining length (pick semantics)
+				stack/push cell						;-- in range: copy element cell to stack top
+			][
+				none/push							;-- out of range -> none
+			]
+		][											;-- fallback: exact eval-path semantics (strings/vectors index, maps key-lookup, objects, errors)
+			stack/mark-native sym
+			stack/push base
+			integer/push idx
+			eval-path* no
+			stack/unwind
+			stack/get-top
+		]
 	]
 
 

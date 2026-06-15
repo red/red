@@ -3530,7 +3530,7 @@ red: context [
 		/set?
 		/local 
 			path value emit? get? entry alter saved after dynamic? ctx mark obj? new t? p
-			fpath symbol obj self? true-blk defer obj-field? parent fire index breaks sealed? call marks cnt
+			fpath symbol obj self? true-blk defer obj-field? parent fire index breaks sealed? base call marks cnt
 			start frame framed?
 	][
 		path:  copy pc/1
@@ -3659,6 +3659,25 @@ red: context [
 			][
 				throw-error ["cannot use" mold type? value "value in path:" pc/1]
 			]
+		]
+		if all [										;-- (path superinstruction) fuse `word/<int-literal>` GET path
+			not set?
+			not get?
+			2 = length? path
+			word? path/1
+			integer? path/2
+			positive? path/2							;-- only idx >= 1 has simple in-place semantics; 0/negative -> eval-path
+			base: fused-operand path/1					;-- base word resolvable to a value-slot pointer (excludes funcs/intrinsics)
+			block? base
+		][
+			add-symbol 'pick							;-- fallback frame symbol
+			emit 'actions/pick-int*
+			emit base									;-- splice the base pointer feeder
+			emit path/2									;-- integer selector
+			emit prefix-exec 'pick						;-- sym for the fallback mark-native frame
+			insert-lf negate (3 + length? base)
+			pc: next pc
+			exit
 		]
 		self?: path/1 = 'self
 		if all [
