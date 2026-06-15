@@ -326,6 +326,23 @@ release-ctx: func [
 	free-shadow ctx
 ]
 
+d3d12-fence-wait: func [
+	/local
+		fence	[ID3D12Fence]
+		vtbl	[int-ptr!]
+][
+	if d3d12-fence = null [exit]
+	vtbl: d3d12-fence/vtbl
+	if vtbl = null [probe "fence vtbl is null!" exit]
+	fence-val: fence-val + 1
+	fence: as ID3D12Fence vtbl
+	fence/Signal d3d12-fence fence-val
+	if (fence/GetCompletedValue d3d12-fence) < fence-val [
+		fence/SetEventOnCompletion d3d12-fence fence-val fence-event
+		WaitForSingleObject fence-event FFFFFFFFh	;-- INFINITE
+	]
+]
+
 draw-end: func [
 	ctx			[draw-ctx!]
 	hWnd		[handle!]

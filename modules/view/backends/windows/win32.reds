@@ -1118,6 +1118,22 @@ XFORM!: alias struct! [
             lpCount     [LARGE_INTEGER]
             return:     [logic!]
         ]
+		CreateEventA: "CreateEventA" [
+			lpEventAttributes	[int-ptr!]
+			bManualReset		[logic!]
+			bInitialState		[logic!]
+			lpName				[int-ptr!]
+			return:				[integer!]
+		]
+		WaitForSingleObject: "WaitForSingleObject" [
+			hHandle				[integer!]
+			dwMilliseconds		[integer!]
+			return:				[integer!]
+		]
+		CloseHandle: "CloseHandle" [
+			hObject				[integer!]
+			return:				[logic!]
+		]
 	]
 	"User32.dll" stdcall [
 		MessageBox: "MessageBoxW" [
@@ -2894,6 +2910,28 @@ XFORM!: alias struct! [
 			pFeatLevel	[int-ptr!]
 			ppContext	[ptr-ptr!]
 			return:		[integer!]
+		]
+		D3D11On12CreateDevice: "D3D11On12CreateDevice" [
+			pDevice				[int-ptr!]
+			Flags				[integer!]
+			pFeatureLevels		[int-ptr!]
+			FeatureLevels		[integer!]
+			ppCommandQueues		[byte-ptr!]
+			NumQueues			[integer!]
+			NodeMask			[integer!]
+			ppDevice			[ptr-ptr!]
+			ppImmediateContext	[ptr-ptr!]
+			pFeatureLevel		[int-ptr!]
+			return:				[integer!]
+		]
+	]
+	"d3d12.dll" stdcall [
+		D3D12CreateDevice: "D3D12CreateDevice" [
+			pAdapter			[int-ptr!]
+			MinimumFeatureLevel	[integer!]
+			riid				[int-ptr!]
+			ppDevice			[ptr-ptr!]
+			return:				[integer!]
 		]
 	]
 	"ole32.dll" stdcall [

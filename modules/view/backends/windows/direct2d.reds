@@ -23,6 +23,13 @@ dw-locale-name: as c-string! 0
 
 pfnDCompositionCreateDevice2: as int-ptr! 0
 
+d3d12-device:	as this! 0
+d3d12-cmd-queue: as this! 0
+d3d12-fence:	as this! 0
+d3d11on12-dev:	as this! 0
+fence-val:		0
+fence-event:	0
+
 dwrite-str-cache: as node! 0
 
 #define D2D_MAX_BRUSHES 64
@@ -51,6 +58,10 @@ IID_IDXGIFactory2:		 [50C83A1Ch 4C48E072h 3036B087h D0A636FAh]
 IID_IDCompositionDevice: [C37EA93Ah 450DE7AAh 46976FB1h F30704CBh]
 IID_IDGdiInterop: 		 [E0DB51C3h 4BAE6F77h 75E4D5B3h 3858B309h]
 IID_ID2D1DeviceContext:	 [E8F7FE7Ah 466D191Ch 569795ADh 98A9BD78h]
+IID_ID3D12Device:		 [189819F1h 4B571DB6h 211854BEh F7859B33h]
+IID_ID3D12CommandQueue:	 [0EC870A6h 4C225D7Eh AA5BFC8Ch ED1676E0h]
+IID_ID3D12Fence:		 [0A753DCFh 4B91C4D8h 5ABEF6ADh 765AD960h]
+IID_ID3D11On12Device:	 [85611E73h 490E70A9h E3A91496h 04797702h]
 CLSID_D2D1UnPremultiply: [FB9AC489h 41EDAD8Dh 63BB9999h F710D147h]
 CLSID_D2D1Scale:		 [9DAF9369h 4D0E3846h 600C4EA4h D7A53479h]
 CLSID_D2D1Shadow:		 [C67EA361h 4E691863h 5D69DB89h 6B5B9A3Eh]
@@ -58,6 +69,13 @@ DXGI_DEBUG_ALL:			 [E48AE283h 490BDA80h E943E687h 08DACFA9h]
 
 D2D1_FACTORY_OPTIONS: alias struct! [
 	debugLevel	[integer!]
+]
+
+D3D12_COMMAND_QUEUE_DESC: alias struct! [
+	Type		[integer!]
+	Priority	[integer!]
+	Flags		[integer!]
+	NodeMask	[integer!]
 ]
 
 IDXGIDebug: alias struct! [
@@ -979,6 +997,92 @@ ID3D11DeviceContext: alias struct! [
 	FinishCommandList							[function! [this [this!] Restore [integer!] cmdlist [ptr-ptr!] return: [integer!]]]
 ]
 
+ID3D12Device: alias struct! [
+	QueryInterface				[QueryInterface!]
+	AddRef						[AddRef!]
+	Release						[Release!]
+	GetPrivateData				[int-ptr!]
+	SetPrivateData				[int-ptr!]
+	SetPrivateDataInterface		[int-ptr!]
+	SetName						[int-ptr!]
+	GetNodeCount				[int-ptr!]
+	CreateCommandQueue			[function! [this [this!] desc [int-ptr!] riid [int-ptr!] ppQueue [ptr-ptr!] return: [integer!]]]
+	CreateCommandAllocator		[int-ptr!]
+	CreateGraphicsPipelineState [int-ptr!]
+	CreateComputePipelineState	[int-ptr!]
+	CreateCommandList			[int-ptr!]
+	CheckFeatureSupport			[int-ptr!]
+	CreateDescriptorHeap		[int-ptr!]
+	GetDescriptorHandle			[int-ptr!]
+	CreateRootSignature			[int-ptr!]
+	CreateConstantBufferView	[int-ptr!]
+	CreateShaderResourceView	[int-ptr!]
+	CreateUnorderedAccessView	[int-ptr!]
+	CreateRenderTargetView		[int-ptr!]
+	CreateDepthStencilView		[int-ptr!]
+	CreateSamplerState			[int-ptr!]
+	CopyDescriptors				[int-ptr!]
+	CopyDescriptorsSimple		[int-ptr!]
+	GetResourceAllocationInfo	[int-ptr!]
+	GetCustomHeapProperties		[int-ptr!]
+	CreateCommittedResource		[int-ptr!]
+	CreateHeap					[int-ptr!]
+	CreatePlacedResource		[int-ptr!]
+	CreateReservedResource		[int-ptr!]
+	CreateSharedHandle			[int-ptr!]
+	OpenSharedHandle			[int-ptr!]
+	OpenSharedHandleByName		[int-ptr!]
+	MakeResident				[int-ptr!]
+	Evict						[int-ptr!]
+	CreateFence					[function! [this [this!] InitialValue [float!] Flags [integer!] riid [int-ptr!] ppFence [ptr-ptr!] return: [integer!]]]
+	GetNodeMask					[int-ptr!]
+]
+
+ID3D12CommandQueue: alias struct! [
+	QueryInterface				[QueryInterface!]
+	AddRef						[AddRef!]
+	Release						[Release!]
+	GetPrivateData				[int-ptr!]
+	SetPrivateData				[int-ptr!]
+	SetPrivateDataInterface		[int-ptr!]
+	SetName						[int-ptr!]
+	GetDevice					[int-ptr!]
+	UpdateTileMappings			[int-ptr!]
+	CopyTileMappings			[int-ptr!]
+	ExecuteCommandLists			[int-ptr!]
+	SetMarker					[int-ptr!]
+	BeginEvent					[int-ptr!]
+	EndEvent					[int-ptr!]
+	Signal						[int-ptr!]
+	Wait						[int-ptr!]
+	GetTimestampFrequency		[int-ptr!]
+	GetClockCalibration			[int-ptr!]
+	GetDesc						[int-ptr!]
+]
+
+ID3D12Fence: alias struct! [
+	QueryInterface				[QueryInterface!]
+	AddRef						[AddRef!]
+	Release						[Release!]
+	GetPrivateData				[int-ptr!]
+	SetPrivateData				[int-ptr!]
+	SetPrivateDataInterface		[int-ptr!]
+	SetName						[int-ptr!]
+	GetDevice					[int-ptr!]
+	GetCompletedValue			[function! [this [this!] return: [integer!]]]
+	SetEventOnCompletion		[function! [this [this!] Value [integer!] hEvent [integer!] return: [integer!]]]
+	Signal						[function! [this [this!] Value [integer!] return: [integer!]]]
+]
+
+ID3D11On12Device: alias struct! [
+	QueryInterface				[QueryInterface!]
+	AddRef						[AddRef!]
+	Release						[Release!]
+	CreateWrappedResource		[int-ptr!]
+	ReleaseWrappedResources		[int-ptr!]
+	AcquireWrappedResources		[int-ptr!]
+]
+
 #define ID2D1RenderTarget [
 	QueryInterface					[function! [this [this!] riid [int-ptr!] ppvObject [com-ptr!] return: [integer!]]]
 	AddRef							[AddRef!]
@@ -1698,6 +1802,91 @@ DX-report: func [
 	]]
 ]
 
+DX-release-d3d12: func [/local unk [IUnknown]][
+	if d3d11on12-dev <> null [
+		COM_SAFE_RELEASE(unk d3d11on12-dev)
+		d3d11on12-dev: as this! 0
+	]
+	if d3d12-fence <> null [
+		COM_SAFE_RELEASE(unk d3d12-fence)
+		d3d12-fence: as this! 0
+	]
+	if d3d12-cmd-queue <> null [
+		COM_SAFE_RELEASE(unk d3d12-cmd-queue)
+		d3d12-cmd-queue: as this! 0
+	]
+	if d3d12-device <> null [
+		COM_SAFE_RELEASE(unk d3d12-device)
+		d3d12-device: as this! 0
+	]
+	if fence-event <> 0 [
+		CloseHandle fence-event
+		fence-event: 0
+	]
+	fence-val: 0
+]
+
+DX-create-dev-d3d12: func [
+	flags		[integer!]
+	return:		[logic!]
+	/local
+		factory 			[ptr-value!]
+		d12					[ID3D12Device]
+		d3d					[ID3D11Device]
+		ctx					[ptr-value!]
+		hr					[integer!]
+		cq-desc				[D3D12_COMMAND_QUEUE_DESC value]
+		feat-levels			[integer!]
+		queue-ptr			[int-ptr!]
+][
+	factory/value: as int-ptr! 0
+
+	;-- Step 1: Create D3D12 device
+	hr: D3D12CreateDevice null 0B000h IID_ID3D12Device :factory	;-- D3D_FEATURE_LEVEL_11_0
+	if hr <> 0 [return false]
+	d3d12-device: as this! factory/value
+
+	;-- Step 2: Create command queue
+	d12: as ID3D12Device d3d12-device/vtbl
+	zero-memory as byte-ptr! :cq-desc size? D3D12_COMMAND_QUEUE_DESC
+	hr: d12/CreateCommandQueue d3d12-device as int-ptr! :cq-desc IID_ID3D12CommandQueue :factory
+	if hr <> 0 [DX-release-d3d12 return false]
+	d3d12-cmd-queue: as this! factory/value
+
+	;-- Step 3: Create fence
+	hr: d12/CreateFence d3d12-device 0.0 0 IID_ID3D12Fence :factory
+	if hr <> 0 [DX-release-d3d12 return false]
+	d3d12-fence: as this! factory/value
+	fence-val: 0
+
+	;-- Step 4: Create fence event
+	fence-event: CreateEventA null true false null
+
+	;-- Step 5: Create D3D11On12 device
+	feat-levels: 0B000h	;-- D3D_FEATURE_LEVEL_11_0
+	queue-ptr: as int-ptr! d3d12-cmd-queue
+	hr: D3D11On12CreateDevice
+		as int-ptr! d3d12-device
+		flags
+		:feat-levels
+		1
+		as byte-ptr! :queue-ptr
+		1
+		0
+		:factory
+		:ctx
+		null
+	if hr <> 0 [DX-release-d3d12 return false]
+	d3d-device: as this! factory/value
+	d3d-ctx: as this! ctx/value
+
+	;-- QI for ID3D11On12Device
+	d3d: as ID3D11Device d3d-device/vtbl
+	hr: d3d/QueryInterface d3d-device IID_ID3D11On12Device as interface! :factory
+	if hr = 0 [d3d11on12-dev: as this! factory/value]
+	true
+]
+
 DX-create-dev: func [
 	/local
 		factory 			[ptr-value!]
@@ -1713,6 +1902,7 @@ DX-create-dev: func [
 		dll					[handle!]
 		GetDebugInterface	[DXGIGetDebugInterface!]
 		GPU?				[red-logic!]
+		d12-ok?				[logic!]
 ][
 	if d3d-device <> null [DX-release-dev]
 
@@ -1731,26 +1921,33 @@ DX-create-dev: func [
 	#if debug? = yes [if view-log-level > 2 [flags: flags or 2]]
 
 	GPU?: as red-logic! #get system/view/GPU?
-	dev-type: either GPU?/value [1][5]	;-- D3D_DRIVER_TYPE_HARDWARE: 1, D3D_DRIVER_TYPE_WRAP: 5
-	loop 2 [
-		hr: D3D11CreateDevice
-			null
-			dev-type
-			null
-			flags
-			null
-			0
-			7		;-- D3D11_SDK_VERSION
-			:factory
-			null
-			:ctx
-		if zero? hr [break]
-		dev-type: 5 ;-- D3D_DRIVER_TYPE_WARP
-	]
-	assert zero? hr
 
-	d3d-device: as this! factory/value
-	d3d-ctx: as this! ctx/value
+	;-- Try D3D12 path first
+	d12-ok?: all [win8+? GPU?/value DX-create-dev-d3d12 flags]
+
+	;-- Fallback: plain D3D11 if D3D12 path didn't succeed
+	unless d12-ok? [
+		dev-type: either GPU?/value [1][5]	;-- D3D_DRIVER_TYPE_HARDWARE: 1, D3D_DRIVER_TYPE_WRAP: 5
+		loop 2 [
+			hr: D3D11CreateDevice
+				null
+				dev-type
+				null
+				flags
+				null
+				0
+				7		;-- D3D11_SDK_VERSION
+				:factory
+				null
+				:ctx
+			if zero? hr [break]
+			dev-type: 5 ;-- D3D_DRIVER_TYPE_WARP
+		]
+		assert zero? hr
+
+		d3d-device: as this! factory/value
+		d3d-ctx: as this! ctx/value
+	]
 
 	d3d: as ID3D11Device d3d-device/vtbl
 	;-- create DXGI device
@@ -1760,7 +1957,6 @@ DX-create-dev: func [
 
 	;-- get system DPI
 	d2d: as ID2D1Factory d2d-factory/vtbl
-	;d2d/GetDesktopDpi d2d-factory :dpi-x :dpi-y
 
 	current-dpi: as float32! log-pixels-x
 
@@ -1807,6 +2003,7 @@ DX-release-dev: func [
 	COM_SAFE_RELEASE(unk d3d-ctx)
 	COM_SAFE_RELEASE(unk d3d-device)
 	COM_SAFE_RELEASE(unk dxgi-factory)
+	DX-release-d3d12
 ]
 
 DX-cleanup: func [/local unk [IUnknown]][
