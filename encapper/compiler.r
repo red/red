@@ -4197,7 +4197,7 @@ red: context [
 		]
 	]
 
-	comp-word: func [/literal /final /thru /local name local? alter emit-word original new ctx defer][
+	comp-word: func [/literal /final /thru /local name local? alter emit-word original new ctx defer rd-op op][
 		name: to word! original: pc/1
 		local?: local-bound? original
 		
@@ -4269,6 +4269,23 @@ red: context [
 					if new: find functions alter [entry: new]
 				]
 			
+				if all [									;-- (frameless read1*) read-only action with a simple operand
+					rd-op: select readonly-actions name
+					entry/2/1 = 'action!				;-- a real action (not user-redefined to a function)
+					not tail? pc
+					not infix? next pc					;-- operand is the complete arg (no trailing infix: length? a + b)
+					op: fused-operand pc/1				;-- single simple operand -> value-slot pointer
+					block? op
+				][
+					add-symbol name
+					emit 'actions/read1*
+					emit op								;-- splice operand pointer feeder
+					emit rd-op							;-- op-id
+					emit prefix-exec name				;-- sym for the fallback frame
+					insert-lf negate (2 + length? op)
+					pc: next pc							;-- consume the operand
+					exit
+				]
 				either ctx: any [
 					obj-func-call? original
 					pick entry/2 5
@@ -4308,6 +4325,13 @@ red: context [
 		]
 	]
 	
+	readonly-actions: [									;-- (frameless read1*) single-arg read-only series actions -> op-id (must match runtime read1*)
+		length?	1
+		index?	2
+		head?	3
+		tail?	4
+	]
+
 	fused-op-id: [
 	;--	prefix name			R/S op code			kind
 		add					OP_ADD				math

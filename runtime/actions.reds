@@ -1999,6 +1999,37 @@ actions: context [
 		]
 	]
 
+	read1*: func [										;-- fused single-arg read-only action: frameless block fast path + framed fallback
+		val		[red-value!]						;-- resolved operand (series candidate)
+		op		[integer!]							;-- 1=length? 2=index? 3=head? 4=tail? (matches compiler's readonly-actions table)
+		sym		[red-word!]							;-- action symbol, for the fallback frame's traceback
+		return:	[red-value!]
+		/local
+			blk	[red-block!]
+			n	[integer!]
+	][
+		either TYPE_OF(val) = TYPE_BLOCK [			;-- frameless block fast path (no frame, no action-table dispatch)
+			blk: as red-block! val
+			switch op [
+				1 [n: block/rs-length? blk  if n < 0 [n: 0]  integer/push n]	;-- length? (clamp past-end head, matches action)
+				2 [integer/push blk/head + 1]			;-- index?
+				3 [logic/push blk/head = 0]				;-- head?
+				4 [n: block/rs-length? blk  logic/push n <= 0]	;-- tail? (true at or past end; clamped)
+			]
+		][											;-- fallback: exact framed action (strings/other series/non-series errors)
+			stack/mark-native sym
+			stack/push val
+			switch op [
+				1 [length?*]
+				2 [index?*]
+				3 [head?*]
+				4 [tail?*]
+			]
+			stack/unwind
+		]
+		stack/get-top								;-- result on stack top in both paths
+	]
+
 
 	poke: func [
 		series	[red-series!]

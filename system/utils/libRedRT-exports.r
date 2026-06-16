@@ -278,6 +278,7 @@
 	red/actions/next*
 	red/actions/pick*
 	red/actions/pick-int*
+	red/actions/read1*
 	red/actions/poke*
 	red/actions/put*
 	red/actions/remove*
