@@ -2001,20 +2001,28 @@ actions: context [
 
 	read1*: func [										;-- fused single-arg read-only action: frameless block fast path + framed fallback
 		val		[red-value!]						;-- resolved operand (series candidate)
-		op		[integer!]							;-- 1=length? 2=index? 3=head? 4=tail? (matches compiler's readonly-actions table)
+		op		[integer!]							;-- 1=length? 2=index? 3=head? 4=tail? 5=next 6=back 7=head 8=tail (matches compiler's readonly-actions)
 		sym		[red-word!]							;-- action symbol, for the fallback frame's traceback
 		return:	[red-value!]
 		/local
-			blk	[red-block!]
-			n	[integer!]
+			blk	 [red-block!]
+			b	 [red-block!]
+			n	 [integer!]
+			h	 [integer!]
+			cell [red-value!]
 	][
 		either TYPE_OF(val) = TYPE_BLOCK [			;-- frameless block fast path (no frame, no action-table dispatch)
 			blk: as red-block! val
+			n: block/rs-length? blk					;-- remaining from head (can be negative for past-end indexes)
 			switch op [
-				1 [n: block/rs-length? blk  if n < 0 [n: 0]  integer/push n]	;-- length? (clamp past-end head, matches action)
+				1 [if n < 0 [n: 0]  integer/push n]		;-- length? (clamp past-end head, matches action)
 				2 [integer/push blk/head + 1]			;-- index?
 				3 [logic/push blk/head = 0]				;-- head?
-				4 [n: block/rs-length? blk  logic/push n <= 0]	;-- tail? (true at or past end; clamped)
+				4 [logic/push n <= 0]					;-- tail? (true at or past end; clamped)
+				5 [cell: stack/push val  if n > 0 [b: as red-block! cell  b/head: blk/head + 1]]	;-- next (advance only if remaining > 0)
+				6 [cell: stack/push val  b: as red-block! cell  h: blk/head - 1  if h < 0 [h: 0]  b/head: h]	;-- back (head-1, clamp 0)
+				7 [cell: stack/push val  b: as red-block! cell  b/head: 0]		;-- head
+				8 [cell: stack/push val  b: as red-block! cell  b/head: n + blk/head]	;-- tail (head := total length)
 			]
 		][											;-- fallback: exact framed action (strings/other series/non-series errors)
 			stack/mark-native sym
@@ -2024,6 +2032,10 @@ actions: context [
 				2 [index?*]
 				3 [head?*]
 				4 [tail?*]
+				5 [next*]
+				6 [back*]
+				7 [head*]
+				8 [tail*]
 			]
 			stack/unwind
 		]

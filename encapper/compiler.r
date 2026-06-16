@@ -4330,6 +4330,10 @@ red: context [
 		index?	2
 		head?	3
 		tail?	4
+		next	5
+		back	6
+		head	7
+		tail	8
 	]
 
 	fused-op-id: [
