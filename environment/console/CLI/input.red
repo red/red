@@ -352,7 +352,7 @@ unless system/console [
 					reset-cursor-pos
 					erase-to-bottom
 				][
-					#if OS <> 'Windows [reset-cursor-pos][0]
+					reset-cursor-pos
 				]
 			]
 
