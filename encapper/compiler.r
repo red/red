@@ -4564,6 +4564,15 @@ red: context [
 		]
 	]
 	
+	store-header: func [spec [block!] /local saved][
+		unless empty? spec [
+			saved: pc
+			pc: compose/only [system/script/header: make system/standard/header (spec)]
+			comp-block
+			pc: saved
+		]
+	]
+	
 	register-object: func [obj [word! path!] name /store /local pos prev entry o][
 		if pos: any [
 			all [path? obj object? o: do head insert copy obj 'objects find-object o]
@@ -4716,6 +4725,7 @@ red: context [
 			script-stk: saved-script-stk
 		]
 
+		store-header code/1
 		pc: code										;-- compile user code
 		user: tail output
 		comp-block
@@ -5040,12 +5050,11 @@ red: context [
 			job/red-pass?: yes
 			process-config src/1
 			preprocessor/expand/clean src job
-			if job/show = 'expanded [probe next src]
+			if job/show = 'expanded [probe next src]	;-- show postprocessed source file
 			process-fields src/1 next src
 			extracts/init job
 			if job/libRedRT? [libRedRT/init]
 			if file? file [system-dialect/collect-resources src/1 resources file]
-			src: next src
 			
 			if all [job/dev-mode? not job/libRedRT?][
 				defs: libRedRT/get-definitions
