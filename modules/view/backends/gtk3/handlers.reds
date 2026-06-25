@@ -96,7 +96,7 @@ vbar-value-changed: func [
 		page:	as red-integer! values + SCROLLER_OBJ_PAGE
 		range:	max/value - page/value - min/value + 1
 		if range <= 0 [
-			pos-val/value: min/value
+			;pos-val/value: min/value
 			exit
 		]
 
@@ -107,14 +107,14 @@ vbar-value-changed: func [
 		pg: gtk_adjustment_get_page_size adj
 		pg: upper - lower - pg
 		if pg <= 0.0 [
-			pos-val/value: min/value
+			;pos-val/value: min/value
 			exit
 		]
 
 		v: v / pg * (as float! range)
 		v: v + as float! min/value
 		pos: as-integer v
-		pos-val/value: pos
+		;pos-val/value: pos
 		pos: pos << 4
 
 		type: get-widget-symbol widget

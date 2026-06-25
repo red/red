@@ -2037,7 +2037,7 @@ update-scroller: func [
 		exit
 	]
 
-	either all [container <> widget not null? container][
+	either all [container <> widget not null? container type <> rich-text][
 		either vertical?/value [
 			bar: gtk_scrolled_window_get_vadjustment container
 		][
@@ -2102,7 +2102,7 @@ update-scroller: func [
 			range: max - min - page + 1.0
 			if pos > range [pos: range]
 			if pos < 0.0 [pos: 0.0]
-			pos-int/value: as-integer pos + min
+			;pos-int/value: as-integer pos + min
 			either range <= 0.0 [new-pos: 1.0][
 				new-pos: pos / range
 			]
