@@ -10,7 +10,7 @@ Red [
 	}
 ]
 
-;-- #load temporary directive is used to workaround REBOL LOAD limitations on some words
+;-- #do keep directive is used to workaround REBOL LOAD limitations on some words
 
 #do keep [to-set-word "+"]		make op! :add
 #do keep [to-set-word "-"]		make op! :subtract
@@ -33,3 +33,4 @@ Red [
 and:							make op! :and~
 or:								make op! :or~
 xor:							make op! :xor~
+do [by:							make op! :as-pair]
