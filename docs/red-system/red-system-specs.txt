@@ -3531,13 +3531,13 @@ Red/System is able to load external shared libraries at the time a Red/System ex
 
  #import [
  	"<library>" <convention> [
- 		<function name>: "<ID>" [
+		<function name>: "<ID>" [@<version>] [
  			<argument> [<datatype>]
  			...
  			return: [<datatype>]		;-- optional part
  		]
  		...								;-- more functions mappings
- 		<variable name>: "<VAR>" [
+		<variable name>: "<VAR>" [@<version>] [
  			<datatype>
  		]
  		...								;-- more variables mappings
@@ -3551,6 +3551,7 @@ Red/System is able to load external shared libraries at the time a Red/System ex
  <variable name> : name of the mapped variable in current context
  <ID>            : identifier of the function in the shared library
  <VAR>           : identifier of the variable in the shared library
+ <version>       : optional Linux ELF symbol version, e.g. GLIBC_2.14
  <argument>      : function's argument indentifier
  <datatype>      : integer! | byte! | pointer! [integer! | byte! | float! | float32! | logic!] |
                    float! | float32! | c-string! | struct! [<members>] |
@@ -3559,6 +3560,10 @@ Red/System is able to load external shared libraries at the time a Red/System ex
 <u>Notes</u>:
 
 *An absolute path to the library can be provided in OS-specific format.
+
+*The optional symbol version ref is only supported by dynamic Linux ELF
+imports. If it is omitted, the platform dynamic linker resolves the default
+symbol version exported by the shared library.
 
 *The <b>RETURN:</b> statement indicates that the mapped function has a return value.
 
