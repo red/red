@@ -63,6 +63,7 @@ qt: make object! [
   comp-r: runnable-dir/comp.r
   test-src-file: runnable-dir/qt-test-comp.red
   set 'qt-temp-file set 'qt-tmp-file: runnable-dir/testfile.txt
+  set 'qt-temp-dir runnable-dir
   
   ;; set log file 
   log-file: join system/script/path "quick-test.log"
