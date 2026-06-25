@@ -4567,7 +4567,7 @@ red: context [
 	store-header: func [spec [block!] /local saved][
 		unless empty? spec [
 			saved: pc
-			pc: compose/only [system/script/header: make system/standard/header (spec)]
+			pc: compose/only [system/script/header: construct/with (spec) system/standard/header]
 			comp-block
 			pc: saved
 		]
