@@ -570,9 +570,7 @@ natives: context [
 		do-arg: stack/arguments + args
 		fun: 	as red-function! stack/arguments + trace
 		
-		if OPTION?(do-arg) [
-			copy-cell do-arg #get system/script/args
-		]
+		unless OPTION?(do-arg) [do-arg: as red-value! none-value]
 		fun?: OPTION?(fun)
 		if fun? [
 			stack/set-parent-func-flag					;-- (#5403, #5401) allows do/trace to fully catch exit/return exceptions
@@ -621,7 +619,7 @@ natives: context [
 					do-block
 				]
 				TYPE_URL 
-				TYPE_FILE  [#call [do-file as red-file! arg none-value]]
+				TYPE_FILE  [#call [do-file as red-file! arg none-value do-arg]]
 				TYPE_ERROR [defer?: yes]
 				default	   [interpreter/eval-expression arg arg + 1 null no no yes]
 			]

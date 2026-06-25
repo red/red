@@ -122,7 +122,7 @@ test
 ===start-group=== "Red regressions #3501 - #4000"
 
 	--test-- "#3670"
-		write qt-tmp-file "1 + 2"
+		write qt-temp-file "1 + 2"
 		qt/source-file?: yes
 		qt/compile qt-temp-file
 		--assert probe not compiler-error?
@@ -363,6 +363,36 @@ test
 		--assert not crashed?
 		--assert not find qt/output "Error"
 
+	--test-- "#4992.1"
+		write qt-temp-dir/s2.red {Red [title: "Included module"]}
+		write qt-temp-dir/s3.red {Red [title: "Another included module"]}
+		
+		--compile-and-run-this rejoin [{
+			Red [title: "Main script"]
+			probe system/script/header/title
+			#include } mold qt-temp-dir/s2.red {
+			#include } mold qt-temp-dir/s3.red {
+			probe system/script/header/title
+		}]
+		--assert compiled?
+		--assert not crashed?
+		--assert to-logic find qt/output {"Main script"^/"Main script"}
+		
+		delete qt-temp-dir/s2.red
+		delete qt-temp-dir/s3.red
+		
+	--test-- "#4992.2"
+		write qt-temp-dir/s2.red {Red [title: "included"] probe h/title probe system/script/header/title}
+		
+		--compile-and-run-this rejoin [
+			{Red [title: "main"] h: system/script/header do } mold qt-temp-dir/s2.red 
+		]
+		--assert compiled?
+		--assert not crashed?
+		--assert to-logic find qt/output {"main"^/"included"}
+		
+		delete qt-temp-dir/s2.red
+		
 	--test-- "#5065"
 		--compile-and-run-this {
 			Red []

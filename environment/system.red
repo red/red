@@ -436,7 +436,8 @@ system: context [
 	
 	standard: context [									;-- do not change object fields number/order
 		header: object [
-			Title: Name: Type: Version: Date: File: Home: Author: Tabs: Needs: License: Note: History: none
+			Title: Name: Type: Version: Date: File: Home: Author: Tabs: Needs: License: Note: History:
+			Rights: Usage: Purpose: Comment: Language: Content: Owner: none
 		]
 		port: object [
 			spec: scheme: actor: awake: state: data: extra: none

@@ -616,9 +616,9 @@ system/tools: context [
 	
 	do-handler: func [code [any-type!] handler [function!]][
 		either find [file! url!] type?/word :code [
-			do-file code :handler						;-- delay handler triggering once resource is acquired
+			do-file code :handler none					;-- delay handler triggering once resource is acquired
 		][
-			do/trace :code :handler
+			do/trace :code :handler none
 		]
 	]
 	
