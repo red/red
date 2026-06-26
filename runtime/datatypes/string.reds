@@ -45,7 +45,7 @@ string: context [
 	swap-size: 64 * 1024
 
 	to-float: func [s [byte-ptr!] len [integer!] e [int-ptr!] return: [float!]][
-		dtoa/to-float s s + len e
+		dtoa/to-float s s + len 0 e
 	]
 
 	byte-to-hex: func [

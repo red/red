@@ -3946,6 +3946,9 @@ comment {
 		--assert not error? try [$100 * (1.0 / 3.0)]		;-- any computed float operand is clipped to money precision
 		--assert ($100 * 0.33333) == ($100 * (1.0 / 3.0))
 		--assert ($100 / (1.0 / 3.0)) == $300.00300
+		--assert (mold to float! 15.99%) = "0.1599"			;-- percent! literal is bit-exact, no /100 double-rounding (#5753)
+		--assert (mold to float! 99.999%) = "0.99999"
+		--assert ($124.23 * 99.999%) == ($124.23 * 0.99999)
 	
 ===end-group===
 

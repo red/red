@@ -1317,6 +1317,7 @@ dtoa: context [
 	to-float: func [
 		start	[byte-ptr!]
 		end		[byte-ptr!]
+		exp10	[integer!]		;-- extra power of 10 to apply (-2 for percent!); 0 = none
 		ret		[int-ptr!]		;-- mandatory
 		return: [float!]
 		/local
@@ -1483,7 +1484,7 @@ dtoa: context [
 			e: either e-neg? [0 - n][n]
 		]
 
-		e: e - (nd - nd0)
+		e: e - (nd - nd0) + exp10
 		if nd0 <= 0 [nd0: nd]
 
 		;-- finish parsing

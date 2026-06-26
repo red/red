@@ -1751,9 +1751,9 @@ red: context [
 					insert-lf -2
 				]
 				percent? [
-					value: to decimal! to string! copy/part value back tail value
+					value: to string! copy/part value back tail value
 					emit 'percent/push64
-					emit-float value / 100.0
+					emit-float to decimal! append value "e-2"	;-- scale by 1/100 in a single rounding step (#5753)
 					insert-lf -3
 				]
 				special? [
