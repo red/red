@@ -2237,7 +2237,7 @@ natives: context [
 			]
 			TYPE_FLOAT [
 				flt: as red-float! amount
-				mny: money/from-float flt/value
+				mny: money/from-float flt/value yes
 			]
 			default [assert false]
 		]

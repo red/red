@@ -3938,6 +3938,14 @@ comment {
 		
 		blk5747: [0 1 2 3 4 5 6 7 8 9]
 		--assert error? try [insert/dup blk5747 1 2147483647]
+
+	--test-- "#5753"										;-- money * float/percent rejected non-5-fractional-digit operands
+		--assert not error? try [$124.23 * 15.99%]			;-- was: *** Script Error: cannot MAKE money! from: 0.15990000000000001
+		--assert ($124.23 * 15.99%) == $19.86437
+		--assert ($124.23 * 0.1599) == ($124.23 * 15.99%)	;-- percent! scales money like its decimal value
+		--assert not error? try [$100 * (1.0 / 3.0)]		;-- any computed float operand is clipped to money precision
+		--assert ($100 * 0.33333) == ($100 * (1.0 / 3.0))
+		--assert ($100 / (1.0 / 3.0)) == $300.00300
 	
 ===end-group===
 

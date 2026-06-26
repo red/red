@@ -836,7 +836,7 @@ float: context [
 			TYPE_MONEY [
 				if money/float-underflow? left [return -1]
 				if money/float-overflow?  left [return 1]
-				return money/compare money/from-float left as red-money! value2 op
+				return money/compare money/from-float left yes as red-money! value2 op
 			]
 			TYPE_INTEGER [
 				int: as red-integer! value2
