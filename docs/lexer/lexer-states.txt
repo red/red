@@ -50,6 +50,7 @@ S_TAG
 S_TAG_STR
 S_TAG_STR2
 S_SIGN
+S_SIGN_W
 S_DOTWORD
 S_DOTDEC
 S_WORD_1ST
@@ -394,7 +395,11 @@ S_START->"'"|":"->S_WORD_1ST->"%"->S_PERCENT
                       \->"/"->S_SLASH_1ST
                        \->"="->S_EQUAL
                         \->word1st!=->S_WORD
-                         \->else->T_ERROR
+                         \->"+"|"-"->S_SIGN_W->digit->S_WORD
+                                          \->"'"|"<"|"%"|"^"|"$"->T_ERROR
+                                           \->delimit12->T_WORD
+                                            \->else->S_WORD
+                              \->else->T_ERROR
 
 S_START->s-word->S_WORD->delimit16->T_WORD
                   \->":"->S_WORDSET->else->S_URL->delimit22->T_URL
