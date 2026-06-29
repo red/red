@@ -315,6 +315,11 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "arithmetic-13" --assert $4 % 4.0 == $0
 	--test-- "arithmetic-14" --assert error? try [8 % $8]
 	--test-- "arithmetic-15" --assert error? try [3.0 % $2]
+	--test-- "arithmetic-16" --assert ($100 * (1.0 / 3.0)) == $33.33300	;-- float operand clipped to money precision (#5753)
+	--test-- "arithmetic-17" --assert ($100 / (1.0 / 3.0)) == $300.00300
+	--test-- "arithmetic-18" --assert not error? try [$1 * 0.123456789]
+	--test-- "arithmetic-19" --assert ($8 * 0.25252) == ($8 * 0.252521)	;-- surplus fractional digits are truncated
+	--test-- "arithmetic-20" --assert error? try [to money! 0.123456]	;-- TO/MAKE stay strict (unchanged)
 ===end-group===
 
 ===start-group=== "add"

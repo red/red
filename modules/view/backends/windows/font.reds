@@ -49,10 +49,11 @@ OS-make-font: func [
 	values: object/get-values font
 	
 	int: as red-integer! values + FONT_OBJ_SIZE
-	height: either TYPE_OF(int) <> TYPE_INTEGER [0][
-		len: either scaling? [log-pixels-y][96]
-		0 - (int/value * len / 72)
+	if any [TYPE_OF(int) <> TYPE_INTEGER  int/value <= 0][
+		int: as red-integer! #get system/view/fonts/size
 	]
+	len: either scaling? [log-pixels-y][96]
+	height: 0 - (int/value * len / 72)
 
 	int: as red-integer! values + FONT_OBJ_ANGLE
 	angle: either TYPE_OF(int) = TYPE_INTEGER [int/value * 10][0]	;-- in tenth of degrees

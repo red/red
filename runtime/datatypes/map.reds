@@ -108,10 +108,7 @@ map: context [
 						part: part - 1
 					]
 				]
-				if all [OPTION?(arg) part <= 0][
-					cycles/pop
-					return part
-				]
+				if all [OPTION?(arg) part <= 0][cycles/pop return part]
 				value: value + 2
 			]
 			cycles/pop

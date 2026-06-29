@@ -87,6 +87,8 @@ print ["This test started at" start-time]
   --run-test-file-quiet %source/units/function-test.reds
   --run-test-file-quiet %source/units/case-test.reds
   --run-test-file-quiet %source/units/switch-test.reds
+  --run-test-file-quiet %source/units/subroutine-test.reds
+  --run-test-file-quiet %source/units/use-test.reds
 ===end-group===
 
 ===start-group=== "Exceptions tests"
@@ -98,6 +100,11 @@ print ["This test started at" start-time]
 ===start-group=== "Math operators tests"
   --run-test-file-quiet %source/units/modulo-test.reds
   --run-test-file-quiet %source/units/math-mixed-test.reds
+  --run-test-file-quiet %source/units/overflow-test.reds
+===end-group===
+
+===start-group=== "Variadic argument tests"
+  --run-test-file-quiet %source/units/vararg-test.reds
 ===end-group===
 
 ===start-group=== "Infix syntax for functions"
@@ -112,6 +119,7 @@ print ["This test started at" start-time]
   --run-test-file-quiet %source/units/system-test.reds
   --run-test-file-quiet %source/units/atomic-test.reds
   --run-test-file-quiet %source/units/queue-test.reds
+  --run-test-file-quiet %source/units/push-pop-test.reds
 ===end-group===
 
 ===start-group=== "Auto-tests"

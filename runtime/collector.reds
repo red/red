@@ -30,7 +30,8 @@ collector: context [
 	]
 	
 	stats: declare struct! [
-		cycles [integer!]
+		cycles		 [integer!]							;-- nb or GC runs
+		nodes-cycles [integer!]							;-- nb of node frames compaction runs
 	]
 	
 	ext-size: 100
@@ -47,6 +48,7 @@ collector: context [
 		/local mask [integer!]
 	][
 		stats/cycles: 			0
+		stats/nodes-cycles:		0
 		prefs/nodes-gc-trigger: 5						;-- trigger if node frame is unchanged after 5 cycles
 	]
 
@@ -289,6 +291,7 @@ collector: context [
 		/local
 			frame [node-frame!]
 			mask !mask avail [integer!]
+			done? [logic!]
 	][
 		assert nodes-list/count = 0
 		!mask: 1 << (prefs/nodes-gc-trigger + 1) - 1	;-- create mask for checking frame usage across last 32 GC passes
@@ -298,6 +301,7 @@ collector: context [
 		if null? frame [exit]							;-- all the frames are full
 		memory/n-active: frame							;-- initialize dst
 
+		done?: no
 		avail: calc-free-slots							;-- nb of potential free destination slots (including the ones from frames to be compacted)
 		frame: memory/n-tail
 		until [
@@ -311,9 +315,20 @@ collector: context [
 				if refs = null [refs: _hashtable/rs-init refs-size]
 				avail: avail - nodes-per-frame
 				compact-node frame refs
+				done?: yes
 			]
 			frame: frame/prev
 			frame = null
+		]
+		if done? [stats/nodes-cycles: stats/nodes-cycles + 1] ;-- increment count if at least one frame was compacted.
+	]
+	
+	refresh-array: func [p [node!] end [node!] /local new [node!]][
+		while [p < end][
+			;probe ["p: " p ", node: " as int-ptr! p/value]
+			new: _hashtable/rs-get refs p/value
+			if new <> null [prin "." p/value: new/value]
+			p: p + 1
 		]
 	]
 	
@@ -800,7 +815,6 @@ collector: context [
 	]
 
 	scan-stack-refs: func [
-		table  [int-ptr!]								;-- optional table for nodes relocation
 		store? [logic!]									;-- store series pointers in a list for later eventual update
 		/local
 			frm	map	slot p sp b base base' head prev [int-ptr!]
@@ -983,7 +997,7 @@ collector: context [
 		]
 			cb		[function! []]
 	][
-		system/atomic/store :state GC_RUNNING
+		system/atomic/store :state GC_RUNNING			;-- camera widget rely on threads and reads this value.
 
 		#if debug? = yes [if verbose > 1 [
 			#if OS = 'Windows [platform/dos-console?: no]
@@ -1000,6 +1014,8 @@ collector: context [
 			print [
 				"root: " block/rs-length? root "/" ***-root-size
 				", runs: " stats/cycles
+				", nodes-runs: " stats/nodes-cycles
+;; run-all-comp2 has strange nodes-runs pattern: check!
 				", mem: " 	memory-info null 1
 			]
 			if verbose > 1 [probe "^/marking..."]
@@ -1034,8 +1050,8 @@ collector: context [
 		
 		#if debug? = yes [if verbose > 1 [probe "scanning native stack"]]
 		frames-list/rebuild								;-- refresh nodes and series frames list
-		scan-stack-refs refs yes
-
+		scan-stack-refs yes
+		if refs <> null [cycles/refresh]
 		#if debug? = yes [tm1: (platform/get-time yes yes) - tm]	;-- marking time
 
 		#if debug? = yes [if verbose > 1 [probe "sweeping..."]]

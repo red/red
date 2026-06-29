@@ -541,6 +541,7 @@ _context: context [
 			s	 [series!]
 	][
 		s: GET_BUFFER(spec)
+		NORMALIZE_ANY_BLOCK_HEAD(spec s)
 		cell: s/offset + spec/head
 		tail: s/tail
 		assert cell <= tail
@@ -549,9 +550,7 @@ _context: context [
 		base: s/tail - s/offset
 
 		while [cell < tail][
-			if TYPE_OF(cell) = TYPE_SET_WORD [
-				add ctx as red-word! cell
-			]
+			if TYPE_OF(cell) = TYPE_SET_WORD [add ctx as red-word! cell]
 			cell: cell + 1
 		]
 		s: _hashtable/get-ctx-words ctx					;-- refresh s after possible expansion

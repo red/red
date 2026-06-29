@@ -36,9 +36,10 @@ zoom-distance:	 	0
 special-key: 		-1									;-- <> -1 if a non-displayable key is pressed
 
 flags-blk: declare red-block!							;-- static block value for event/flags
-flags-blk/header:	TYPE_BLOCK
+flags-blk/header:	TYPE_UNSET
 flags-blk/head:		0
 flags-blk/node:		alloc-cells 4
+flags-blk/header:	TYPE_BLOCK
 
 ; used to save old position of pointer in widget-motion-notify-event handler
 evt-motion: context [
@@ -507,6 +508,7 @@ get-event-offset: func [
 		widget	[handle!]
 		sz 		[red-pair!]
 		pt		[red-point2d!]
+		move	[window-move!]
 		offset	[red-pair!]
 		value	[integer!]
 		sx sy	[integer!]
@@ -515,8 +517,6 @@ get-event-offset: func [
 	case [
 		any [
 			evt/type <= EVT_OVER
-			evt/type = EVT_MOVING
-			evt/type = EVT_MOVE
 			evt/type = EVT_KEY
 			evt/type = EVT_KEY_UP
 			evt/type = EVT_KEY_DOWN
@@ -528,6 +528,22 @@ get-event-offset: func [
 			as red-value! pt
 		]
 		any [
+			evt/type = EVT_MOVING
+			evt/type = EVT_MOVE
+		][
+			pt: as red-point2d! stack/push*
+			pt/header: TYPE_POINT2D
+			pt/x: as float32! 0.0
+			pt/y: as float32! 0.0
+			widget: gtk_widget_get_toplevel as handle! evt/msg
+			move: as window-move! g_object_get_qdata widget move-offset-id
+			if all [move <> null move/ready <> 0][
+				pt/x: as float32! move/x
+				pt/y: as float32! move/y
+			]
+			as red-value! pt
+		]
+		any [
 			evt/type = EVT_SIZING
 			evt/type = EVT_SIZE
 		][
@@ -535,15 +551,8 @@ get-event-offset: func [
 			offset/header: TYPE_PAIR
 
 			widget: as handle! evt/msg
-			either null? GET-HMENU(widget) [
-				sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE
-				GET_PAIR_XY_INT(sz sx sy)
-				offset/x: sx
-				offset/y: sy
-			][
-				offset/x: GET-CONTAINER-W(widget)
-				offset/y: GET-CONTAINER-H(widget)
-			]
+			offset/x: GET-CONTAINER-W(widget)
+			offset/y: GET-CONTAINER-H(widget)
 			if null? GET-PAIR-SIZE(widget) [
 				as-point2D offset
 			]
@@ -858,7 +867,12 @@ do-events: func [
 	win: find-last-window
 	if null? win [return no]
 	SET-IN-LOOP(win win)
-
+	g_object_ref win									;-- #5696: pin win so a destroy triggered from
+														;-- within the loop (e.g. unview from on-time)
+														;-- cannot finalize the memory we probe below.
+														;-- IN-LOOP qdata is cleared during dispose, so the
+														;-- check after the iteration still detects "logically
+														;-- destroyed" correctly.
 	run?: yes
 	while [run?] [
 		loop 10 [
@@ -878,9 +892,13 @@ do-events: func [
 			gdk_window_process_all_updates
 			force-redraw?: no
 		]
-		if no-wait? [return msg?]
+		if no-wait? [
+			g_object_unref win
+			return msg?
+		]
 		io/do-events 15 null yes
 	]
+	g_object_unref win									;-- release the pin; win may finalize now
 	msg?
 ]
 
@@ -1007,11 +1025,22 @@ connect-focus-events: func [
 		sym = rich-text
 		sym = field
 		sym = area
-		sym = base	
+		sym = base
+		sym = text-list
+		sym = drop-list
+		sym = drop-down
 	][
 		gtk_widget_set_can_focus widget yes
 		gtk_widget_set_focus_on_click widget yes
-		gtk_widget_grab_focus widget
+		;-- Note: we deliberately do NOT call gtk_widget_grab_focus here.
+		;-- Doing so makes every newly-created focusable widget steal focus
+		;-- from whichever widget currently has it, which mismatches the
+		;-- Windows backend's semantics and causes issue #5672: when a
+		;-- new face is appended dynamically, the previously-focused face
+		;-- gets an unfocus event, and any handler that touches
+		;-- window/selected re-enters GTK's focus state machine from
+		;-- inside the focus-out signal — corrupting it. Initial focus is
+		;-- now applied via set-selected-focus in OS-show-window.
 		gtk_widget_add_events widget GDK_FOCUS_CHANGE_MASK
 		gobj_signal_connect(evbox "focus-in-event" :focus-in-event widget)
 		gobj_signal_connect(evbox "focus-out-event" :focus-out-event widget)
@@ -1063,6 +1092,7 @@ connect-widget-events: func [
 		evbox	[handle!]
 		cont	[handle!]
 		buffer	[handle!]
+		entry	[handle!]
 ][
 	evbox: get-face-evbox widget values sym
 	cont: GET-CONTAINER(widget)
@@ -1103,7 +1133,7 @@ connect-widget-events: func [
 		sym = window [
 			gobj_signal_connect(widget "delete-event" :window-delete-event widget)
 			gobj_signal_connect(widget "size-allocate" :window-size-allocate widget)
-			gtk_widget_add_events widget GDK_FOCUS_CHANGE_MASK
+			gtk_widget_add_events widget GDK_FOCUS_CHANGE_MASK or GDK_STRUCTURE_MASK or GDK_PROPERTY_CHANGE_MASK
 			gobj_signal_connect(widget "focus-in-event" :focus-in-event widget)
 			gobj_signal_connect(widget "focus-out-event" :focus-out-event widget)
 			gobj_signal_connect(widget "configure-event" :window-configure-event widget)
@@ -1118,6 +1148,7 @@ connect-widget-events: func [
 		]
 		sym = field [
 			gobj_signal_connect(widget "changed" :field-changed widget)
+			gobj_signal_connect(widget "notify::selection-bound" :field-selection-changed widget)
 		]
 		sym = progress [
 			0
@@ -1131,6 +1162,7 @@ connect-widget-events: func [
 		sym = area [
 			buffer: gtk_text_view_get_buffer widget
 			gobj_signal_connect(buffer "changed" :area-changed widget)
+			gobj_signal_connect(buffer "mark-set" :area-selection-changed widget)
 			g_object_set [widget "populate-all" yes null]
 			gobj_signal_connect(widget "populate-popup" :area-populate-popup widget)
 		]
@@ -1153,6 +1185,12 @@ connect-widget-events: func [
 		][
 			;;; Mandatory! and can respond to (ON_SELECT or ON_CHANGE)
 			gobj_signal_connect(widget "changed" :combo-selection-changed widget)
+			if sym = drop-down [
+				entry: gtk_bin_get_child widget
+				gobj_signal_connect(entry "changed" :drop-down-entry-changed widget)
+				gobj_signal_connect(entry "key-press-event" :drop-down-entry-key-press-event widget)
+				gobj_signal_connect(entry "key-release-event" :drop-down-entry-key-release-event widget)
+			]
 		]
 		true [0]
 	]

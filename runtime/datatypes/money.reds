@@ -69,7 +69,7 @@ money: context [
 		S_END
 	]
 	
-	#define SWAP_ARGUMENTS [use [hold][hold: value1 value1: value2 value2: hold]]
+	#define SWAP_ARGUMENTS [use [hold [red-money!]][hold: value1 value1: value2 value2: hold]]
 	#define DISPATCH_SIGNS [switch collate-signs sign1 sign2]
 	#define MONEY_OVERFLOW [fire [TO_ERROR(script type-limit) datatype/push TYPE_MONEY]]
 	
@@ -758,6 +758,7 @@ money: context [
 	
 	from-float: func [
 		flt     [float!]
+		strict? [logic!]							;-- YES: reject >SIZE_SCALE fractional digits; NO: clip to money's precision (#5753)
 		return: [red-money!]
 		/local
 			formed    [c-string!]
@@ -778,7 +779,7 @@ money: context [
 			point/2 = #"#"							;-- 1.#NaN
 			float-underflow? flt
 			float-overflow?  flt
-			SIZE_SCALE < as integer! end - point - 1
+			all [strict? SIZE_SCALE < as integer! end - point - 1]	;-- make-at truncates surplus digits when not strict
 		][
 			fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY float/box flt]
 		]
@@ -838,7 +839,7 @@ money: context [
 						]
 						TYPE_FLOAT [
 							flt: as red-float! here
-							money: from-float flt/value
+							money: from-float flt/value yes
 						]
 						default [bail]
 					]
@@ -1325,7 +1326,7 @@ money: context [
 			TYPE_PERCENT
 			TYPE_FLOAT [
 				flt: as red-float! value1
-				value1: from-float flt/value
+				value1: from-float flt/value no				;-- clip operand to money precision (#5753)
 			]
 			default [
 				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(value1)]
@@ -1341,7 +1342,7 @@ money: context [
 			TYPE_PERCENT
 			TYPE_FLOAT [
 				flt: as red-float! value2
-				value2: from-float flt/value
+				value2: from-float flt/value no				;-- clip operand to money precision (#5753)
 			]
 			default [
 				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(value2)]
@@ -1403,7 +1404,7 @@ money: context [
 			]
 			TYPE_FLOAT [
 				float: as red-float! spec
-				from-float float/value
+				from-float float/value yes
 			]
 			TYPE_ANY_STRING [
 				str: as red-string! spec
@@ -1543,7 +1544,7 @@ money: context [
 				float: as red-float! value
 				if float-underflow? float/value [return 1]
 				if float-overflow?  float/value [return -1]
-				value: from-float float/value
+				value: from-float float/value yes
 			]
 			default [RETURN_COMPARE_OTHER]
 		]
@@ -1614,7 +1615,7 @@ money: context [
 			switch type [
 				TYPE_MONEY   [as red-money! _scale]
 				TYPE_INTEGER [int: as red-integer! _scale from-integer int/value]
-				TYPE_FLOAT   [from-float _scale/value]
+				TYPE_FLOAT   [from-float _scale/value yes]
 				default [
 					fire [TO_ERROR(script not-related) stack/get-call datatype/push type]
 					value							;-- pass compiler's type checking

@@ -393,7 +393,7 @@ redc: context [
 		result: system-dialect/compile/options/loaded file opts result
 		unless encap? [change-dir %../]
 		opts/verbosity: saved
-		show-stats result
+		show-stats opts result
 	]
 	
 	needs-libRedRT?: func [opts [object!] /local file path lib lib? get-date ts date current?][
@@ -432,13 +432,13 @@ redc: context [
 	
 	to-percent: func [v [decimal!]][copy/part mold v * 100 5]
 	
-	show-stats: func [result /local words][
+	show-stats: func [opts [object!] result /local words][
 		print ["...compilation time :" format-time result/1 "ms"]
 		words: length? first system/words
 		
 		if result/2 [
+			if opts/red-pass? [print ["...global words     :" words rejoin [#"(" to-percent words / 32894 "%)"]]]
 			print [
-				"...global words     :" words rejoin [#"(" to-percent words / 32894 "%)^/"]
 				"...linking time     :" format-time result/2 "ms^/"
 				"...output file size :" result/3 "bytes^/"
 				"...output file      :" to-local-file result/4 lf
@@ -549,6 +549,7 @@ redc: context [
 			any [
 				  ["-c" | "--compile"]			(type: 'exe append modes '-c)
 				| ["-r" | "--release"]			(type: 'exe opts/dev-mode?: no append modes '-r)
+				| ["-s" | "--static"]			(opts/static-link?: yes)
 				| ["-e" | "--encap"]			(opts/encap?: yes)
 				| ["-d" | "--debug-stabs" | "--debug"]	(opts/debug?: yes)
 				| ["-o" | "--output"]			[set output  skip | (fail-cmd "Missing output filename")]
@@ -557,7 +558,7 @@ redc: context [
 				| ["-h" | "--help"]				(mode: 'help)
 				| ["-V" | "--version"]			(mode: 'version)
 				| ["-u"	| "--update-libRedRT"]	(type: 'exe opts/dev-mode?: no opts/libRedRT-update?: yes append modes '-u)
-				| ["-s" | "--show-expanded"]	(opts/show: 'expanded)
+				| "--show-expanded"				(opts/show: 'expanded)
 				| ["-dlib" | "--dynamic-lib"]	(type: 'dll)
 				;| ["-slib" | "--static-lib"]	(type 'lib)
 				| "--config" set spec skip		(attempt [spec: load spec])
@@ -734,7 +735,7 @@ redc: context [
 		]
 		
 		if result: compile src opts [
-			show-stats result
+			show-stats opts result
 			if all [word: in opts 'packager get word][
 				file: join %system/formats/ [opts/packager %.r]
 				unless exists?-cache file [fail-cmd ["Packager:" opts/packager "not found!"]]

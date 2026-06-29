@@ -363,6 +363,11 @@ Red [
 	append/dup/part blk [4 5 6] 2 3
 	--assert "[1 2 4 5 6 4 5 6]" = mold blk	
 
+  --test-- "series-append-15.1"
+	blk: [1 2]
+	append/dup/part blk [] 2 3
+	--assert "[1 2]" = mold blk
+
   --test-- "series-append-16"
 	str: "12"
 	append/dup/part str "456" 3 2 
@@ -399,6 +404,22 @@ Red [
   --assert #{6162} = append/part #{} "abc" 2
   --assert #{C3A9} = append/part #{} "ébc" 2
   --assert #{C3A96263} = append #{} "ébc"
+  
+  --test-- "series-append-27"
+      str: "12"
+      append/dup/part str "4é6" 3 2
+      --assert str = "124é4é4é"
+  
+  --test-- "series-append-28"
+      str: "12"
+      append/dup/part str "4^(010000)6" 3 2   
+      --assert str = "124^(010000)4^(010000)4^(010000)"
+  
+  --test-- "series-append-29"
+      str: "1é"
+      append/dup/part str "4^(010000)6" 3 2  
+    --assert str = "1é4^(010000)4^(010000)4^(010000)"
+
 
 ===end-group===
 
@@ -1568,6 +1589,9 @@ Red [
 		]
 		--assert data = reduce [o2 o3 o1]
 
+    --test-- "sort-blk-9 issue #5700"
+    	--assert [b 2 a 3] = sort/skip/all/compare [a 3 b 2] 2 func [a b] [append a 'x  a/2 < b/2]
+
     --test-- "sort-vec-1"
         s: does  [make vector! [3 1 3 3 1 2]]
         --assert (make vector! [1 2 3 3 3 1]) = sort/skip s 2
@@ -2067,6 +2091,1092 @@ Red [
 	--assert h = find h 10
 	poke h 2 20
 	--assert (next h) = find h 20
+
+===end-group===
+
+
+===start-group=== "past-tail block series"
+
+    code: [clear head s: tail copy [1 2 3 4]]
+    idx: 5
+
+    --test-- "pt-1" 
+        do code
+        --assert idx = index? s
+    
+    --test-- "pt-2"
+        do code
+        --assert 1 = length? append s 5
+        --assert idx = index? s
+    
+    --test-- "pt-3"
+        do code
+        --assert 1 = length? head insert s 5
+        --assert idx = index? s
+
+    --test-- "pt-4"
+       do code
+       --assert 1 = length? head change s 5
+       --assert idx = index? s
+        
+    --test-- "pt-5"
+        do code
+        --assert empty? to paren! s
+        --assert idx = index? s
+
+    --test-- "pt-6"
+        do code
+        --assert empty? copy s
+        --assert idx = index? s
+        
+    --test-- "pt-7"
+        do code
+        --assert tail? at s 1
+        --assert idx = index? s
+        
+    --test-- "pt-8"
+        do code
+        --assert tail? back s
+        --assert idx = index? s
+
+    --test-- "pt-9"
+        do code
+        --assert none? find s none
+        --assert idx = index? s
+
+    --test-- "pt-10"
+        do code
+        --assert tail? head s
+        --assert idx = index? s
+
+;    --test-- "pt-11"
+;        do code
+;        --assert tail? s
+;        --assert idx = index? s
+
+    --test-- "pt-12"
+        do code
+        --assert zero? length? s
+        --assert idx = index? s
+
+    --test-- "pt-13"
+        do code
+        next s
+        --assert idx = index? s
+
+    --test-- "pt-14"
+        do code
+        --assert none? pick s 1
+        --assert idx = index? s
+
+    --test-- "pt-15"
+        do code
+        --assert tail? skip s 1
+        --assert idx = index? s
+
+    --test-- "pt-16"
+        do code
+        --assert none? select s none
+        --assert idx = index? s
+
+    --test-- "pt-17"
+        do code
+        --assert tail? tail s
+        --assert idx = index? s
+
+    --test-- "pt-18"
+        do code
+        --assert tail? s
+        --assert idx = index? s
+
+    --test-- "pt-19"
+        do code
+        clear s
+        --assert idx = index? s
+
+    --test-- "pt-20"
+        do code
+        move s s
+        --assert idx = index? s
+
+    --test-- "pt-21"
+        do code
+        try [poke s 1 1]
+        --assert idx = index? s
+
+    --test-- "pt-22"
+        do code
+        put s 'a 1
+        --assert 2 = length? head s
+        --assert idx = index? s
+
+    --test-- "pt-23"
+        do code
+        random s
+        --assert idx = index? s
+
+    --test-- "pt-24"
+        do code
+        --assert empty? reverse s
+        --assert idx = index? s
+
+    --test-- "pt-25"
+        do code
+        --assert empty? sort s
+        --assert idx = index? s
+
+    --test-- "pt-26"
+        do code
+        --assert empty? swap s s
+        --assert idx = index? s
+
+    --test-- "pt-27"
+        do code
+        --assert none? take s
+        --assert idx = index? s
+        
+    --test-- "pt-28"
+        do code
+        --assert empty? remove s
+        --assert idx = index? s
+
+    --test-- "pt-29"
+        do code
+        --assert empty? trim s
+        --assert idx = index? s
+
+    --test-- "pt-30"
+        do code
+        --assert empty? make s s
+        --assert idx = index? s
+
+    --test-- "pt-31"
+        do code
+        --assert "" == form s
+        --assert idx = index? s
+
+    --test-- "pt-32"
+        do code
+        --assert "[]" == mold s
+        --assert idx = index? s
+
+    --test-- "pt-33"
+        do code
+        --assert empty? unique s
+        --assert idx = index? s
+
+    --test-- "pt-34"
+        do code
+        --assert parse s s
+        --assert idx = index? s
+
+   --test-- "pt-34.1"
+        do code
+        --assert parse s reduce [s 'any reduce [s]]
+        --assert idx = index? s
+
+    --test-- "pt-35"
+        do code
+        try reduce ['while s s]
+        --assert idx = index? s
+    
+    --test-- "pt-36"
+        do code
+        any s
+        --assert idx = index? s
+
+    --test-- "pt-37"
+        do code
+        all s
+        --assert idx = index? s
+
+    --test-- "pt-38"
+        do code
+        do reduce ['if true s]
+        --assert idx = index? s
+
+    --test-- "pt-38.1"
+        do code
+        do reduce ['unless false s]
+        --assert idx = index? s
+
+    --test-- "pt-39"
+        do code
+        do reduce ['either true s s]
+        --assert idx = index? s
+
+    --test-- "pt-40"
+        do code
+        set [a b] s
+        --assert none? :a
+        --assert none? :b
+        --assert idx = index? s
+
+    --test-- "pt-41"
+        do code
+        do reduce ['case s]
+        --assert idx = index? s
+
+    --test-- "pt-42"
+        do code
+        try s
+        --assert idx = index? s
+
+    --test-- "pt-43"
+        do code
+        do s
+        --assert idx = index? s
+
+    --test-- "pt-44"
+        do code
+        try s
+        --assert idx = index? s
+
+    --test-- "pt-45"
+        do code
+        catch s
+        --assert idx = index? s
+
+    --test-- "pt-46"
+        do code
+        do reduce ['loop 1 s]
+        --assert idx = index? s
+
+    --test-- "pt-47"
+        do code
+        do reduce ['repeat 'w 1 s]
+        --assert idx = index? s
+
+    --test-- "pt-48"
+        do code
+        do reduce ['foreach 'w [1] s]
+        --assert idx = index? s
+
+    --test-- "pt-49"
+        do code
+        do reduce ['remove-each 'w [1] s]
+        --assert idx = index? s
+
+    --test-- "pt-50"
+        do code
+        f-pt50: func s s
+        do [--assert unset? f-pt50]                 ;-- not compilation compatible pattern
+        --assert idx = index? s
+
+    --test-- "pt-51"
+        do code
+        f-pt51: function s s
+        do [--assert unset? f-pt51]                 ;-- not compilation compatible pattern
+        --assert idx = index? s
+
+    --test-- "pt-52"
+        do code
+        f-pt52: has s s
+        do [--assert unset? f-pt52]                 ;-- not compilation compatible pattern
+        --assert idx = index? s
+
+    --test-- "pt-53"
+        do code
+        f-pt53: does s
+        do [--assert unset? f-pt53]                 ;-- not compilation compatible pattern
+        --assert idx = index? s
+
+    --test-- "pt-54"
+        do code
+        switch 1 s
+        --assert idx = index? s
+
+    --test-- "pt-55"
+        do code
+        --assert unset? do s
+        --assert idx = index? s
+
+    --test-- "pt-56"
+        do code
+        --assert [] == reduce s
+        --assert idx = index? s
+
+    --test-- "pt-57"
+        do code
+        --assert [] == compose s
+        --assert idx = index? s
+
+    --test-- "pt-58"
+        do code
+        print s
+        --assert idx = index? s
+
+    --test-- "pt-59"
+        do code
+        --assert same? s s
+        --assert idx = index? s
+
+    --test-- "pt-59.1"
+        do code
+        --assert s = s
+        --assert idx = index? s
+
+    --test-- "pt-59.2"
+        do code
+        --assert s == s
+        --assert idx = index? s
+
+    --test-- "pt-60"
+        do code
+        --assert [] == bind s 's
+        --assert idx = index? s
+        
+    --test-- "pt-61"
+        do code
+        --assert [] == union s s
+        --assert idx = index? s
+
+    --test-- "pt-62"
+        do code
+        --assert [] == intersect s s
+        --assert idx = index? s
+
+    --test-- "pt-63"
+        do code
+        --assert [] == difference s s
+        --assert idx = index? s
+
+    --test-- "pt-64"
+        do code
+        --assert [] == exclude s s
+        --assert idx = index? s
+
+;    --test-- "pt-65"
+;        do code
+;        --assert [] == max s s
+;        --assert idx = index? s
+
+;    --test-- "pt-66"
+;        do code
+;        --assert [] == min s s
+;        --assert idx = index? s
+
+    --test-- "pt-67"
+        do code
+        --assert (object []) == construct s
+        --assert idx = index? s
+
+    --test-- "pt-68"
+        do code
+        new-line s yes
+        --assert idx = index? s
+
+    --test-- "pt-69"
+        do code
+        new-line/all s yes
+        --assert idx = index? s
+
+    --test-- "pt-70"
+        do code
+        --assert none? apply 'reduce s
+        --assert idx = index? s
+
+    --test-- "pt-71"
+        do code
+        --assert object? make object! s
+        --assert idx = index? s
+
+    --test-- "pt-72"
+        do code
+        --assert block? make block! s
+        --assert idx = index? s
+
+    --test-- "pt-73"
+        do code
+        --assert hash? make hash! s
+        --assert idx = index? s
+
+    --test-- "pt-74"
+        do code
+        --assert paren? make paren! s
+        --assert idx = index? s
+
+    --test-- "pt-75"
+        do code
+        --assert path? make path! s
+        --assert idx = index? s
+
+    --test-- "pt-76"
+        do code
+        --assert typeset? make typeset! s
+        --assert idx = index? s
+
+    --test-- "pt-77"
+        do code
+        --assert vector? make vector! s
+        --assert idx = index? s
+
+    --test-- "pt-78"
+        do code
+        --assert map? make map! s
+        --assert idx = index? s
+
+===end-group===
+
+===start-group=== "past-tail string series"
+
+    code: [clear head s: tail copy "1234"]
+
+    --test-- "pt-101"   
+        do code
+        --assert idx = index? s
+    
+    --test-- "pt-102"
+        do code
+        --assert 1 = length? append s 5
+        --assert idx = index? s
+    
+    --test-- "pt-103"
+        do code
+        --assert 1 = length? head insert s 5
+        --assert idx = index? s
+
+    --test-- "pt-104"
+        do code
+        --assert 1 = length? head change s 5
+        --assert idx = index? s
+        
+    --test-- "pt-105"
+        do code
+        --assert empty? to binary! s
+        --assert idx = index? s
+
+    --test-- "pt-106"
+        do code
+        --assert empty? copy s
+        --assert idx = index? s
+        
+    --test-- "pt-107"
+        do code
+        --assert tail? at s 1
+        --assert idx = index? s
+        
+    --test-- "pt-108"
+        do code
+        --assert tail? back s
+        --assert idx = index? s
+
+    --test-- "pt-109"
+        do code
+        --assert none? find s #"A"
+        --assert idx = index? s
+
+    --test-- "pt-110"
+        do code
+        --assert tail? head s
+        --assert idx = index? s
+
+;    --test-- "pt-111"
+;        do code
+;        --assert head? s
+;        --assert idx = index? s
+
+    --test-- "pt-112"
+        do code
+        --assert zero? length? s
+        --assert idx = index? s
+
+    --test-- "pt-113"
+        do code
+        --assert tail? next s
+        --assert idx = index? s
+
+    --test-- "pt-114"
+        do code
+        --assert none? pick s 1
+        --assert idx = index? s
+
+    --test-- "pt-115"
+        do code
+        --assert tail? skip s 1
+        --assert idx = index? s
+
+    --test-- "pt-116"
+        do code
+        --assert none? select s none
+        --assert idx = index? s
+
+    --test-- "pt-117"
+        do code
+        --assert tail? tail s
+        --assert idx = index? s
+
+    --test-- "pt-118"
+        do code
+        --assert tail? s
+        --assert idx = index? s
+
+    --test-- "pt-119"
+        do code
+        --assert tail? clear s
+        --assert idx = index? s
+
+    --test-- "pt-120"
+        do code
+        --assert tail? move s s
+        --assert idx = index? s
+
+    --test-- "pt-121"
+        do code
+        try [poke s 1 1]
+        --assert idx = index? s
+
+;    --test-- "pt-122"
+;        do code
+;        put s #"a" 1
+;        --assert 2 = length? head s
+;        --assert idx = index? s
+
+    --test-- "pt-123"
+        do code
+        --assert tail? random s
+        --assert idx = index? s
+
+    --test-- "pt-124"
+        do code
+        --assert tail? reverse s
+        --assert idx = index? s
+
+    --test-- "pt-125"
+        do code
+        --assert tail? sort s
+        --assert idx = index? s
+
+    --test-- "pt-126"
+        do code
+        --assert tail? swap s s
+        --assert idx = index? s
+
+    --test-- "pt-127"
+        do code
+        --assert none? take s                           ;-- just test that's not crashing
+        --assert idx = index? s
+        
+    --test-- "pt-128"
+        do code
+        --assert tail? remove s
+        --assert idx = index? s
+
+    --test-- "pt-129"
+        do code
+        --assert tail? trim s
+        --assert idx = index? s
+
+    --test-- "pt-130"
+        do code
+        --assert tail? make s s
+        --assert idx = index? s
+
+    --test-- "pt-131"
+        do code
+        --assert "" == form s
+        --assert idx = index? s
+        
+    --test-- "pt-132"
+        do code
+        --assert {""} == mold s
+        --assert idx = index? s
+        
+    --test-- "pt-133"
+        do code
+        --assert tail? unique s
+        --assert idx = index? s
+
+    --test-- "pt-134"
+        do code
+        --assert parse s [any skip]
+        --assert idx = index? s
+        
+    --test-- "pt-158"
+        do code
+        print s
+        --assert idx = index? s
+        
+    --test-- "pt-159"
+        do code
+        --assert same? s s
+        --assert idx = index? s
+        
+    --test-- "pt-159.1"
+        do code
+        --assert s = s
+        --assert idx = index? s
+        
+    --test-- "pt-159.2"
+        do code
+        --assert s == s
+        --assert idx = index? s
+        
+    --test-- "pt-161"
+        do code
+        --assert "" == union s s
+        --assert idx = index? s
+        
+    --test-- "pt-162"
+        do code
+        --assert "" == intersect s s
+        --assert idx = index? s
+        
+    --test-- "pt-163"
+        do code
+        --assert "" == difference s s
+        --assert idx = index? s
+        
+    --test-- "pt-164"
+        do code
+        --assert "" == exclude s s
+        --assert idx = index? s
+        
+;    --test-- "pt-165"
+;        do code
+;        --assert "" == max s s
+;        --assert idx = index? s
+        
+;    --test-- "pt-166"
+;        do code
+;        --assert "" == min s s
+;        --assert idx = index? s
+        
+    --test-- "pt-167"
+        do code
+        --assert [] == load s
+        --assert idx = index? s
+        
+    --test-- "pt-168"
+        do code
+        --assert "" == uppercase s
+        --assert idx = index? s
+        
+    --test-- "pt-169"
+        do code
+        --assert "" == lowercase s
+        --assert idx = index? s
+        
+    --test-- "pt-170"
+        do code
+        --assert binary? checksum s 'MD5
+        --assert idx = index? s
+        
+===end-group===
+
+===start-group=== "past-tail binary series"
+
+    code: [clear head s: tail copy #{01020304}]
+
+    --test-- "pt-201"   
+        do code
+        --assert idx = index? s
+    
+    --test-- "pt-202"
+        do code
+        --assert 1 = length? append s 5
+        --assert idx = index? s
+    
+    --test-- "pt-203"
+        do code
+        --assert 1 = length? head insert s 5
+        --assert idx = index? s
+
+
+    --test-- "pt-204"
+        do code
+        --assert 1 = length? head change s 5
+        --assert idx = index? s
+        
+    --test-- "pt-205"
+        do code
+        --assert empty? to string! s
+        --assert idx = index? s
+
+    --test-- "pt-206"
+        do code
+        --assert empty? copy s
+        --assert idx = index? s
+        
+    --test-- "pt-207"
+        do code
+        --assert tail? at s 1
+        --assert idx = index? s
+        
+    --test-- "pt-208"
+        do code
+        --assert tail? back s
+        --assert idx = index? s
+
+    --test-- "pt-209"
+        do code
+        --assert none? find s 1
+        --assert idx = index? s
+
+    --test-- "pt-210"
+        do code
+        --assert tail? head s
+        --assert idx = index? s
+
+;    --test-- "pt-211"
+;        do code
+;        --assert head? s
+;        --assert idx = index? s
+
+    --test-- "pt-212"
+        do code
+        --assert zero? length? s
+        --assert idx = index? s
+
+    --test-- "pt-213"
+        do code
+        --assert tail? next s
+        --assert idx = index? s
+
+    --test-- "pt-214"
+        do code
+        --assert none? pick s 1
+        --assert idx = index? s
+
+    --test-- "pt-215"
+        do code
+        --assert tail? skip s 1
+        --assert idx = index? s
+
+    --test-- "pt-216"
+        do code
+        --assert none? select s none
+        --assert idx = index? s
+
+    --test-- "pt-217"
+        do code
+        --assert tail? tail s
+        --assert idx = index? s
+
+    --test-- "pt-218"
+        do code
+        --assert tail? s
+        --assert idx = index? s
+
+    --test-- "pt-219"
+        do code
+        --assert tail? clear s
+        --assert idx = index? s
+
+    --test-- "pt-220"
+        do code
+        --assert tail? move s s
+        --assert idx = index? s
+
+    --test-- "pt-221"
+        do code
+        try [poke s 1 1]                                ;-- just test that's not crashing
+
+;    --test-- "pt-222"
+;        do code
+;        put s 2 1                                       ;-- just test that's not crashing
+
+    --test-- "pt-223"
+        do code
+        --assert tail? random s
+        --assert idx = index? s
+
+    --test-- "pt-224"
+        do code
+        --assert tail? reverse s
+        --assert idx = index? s
+
+    --test-- "pt-225"
+        do code
+        --assert tail? sort s
+        --assert idx = index? s
+
+    --test-- "pt-226"
+        do code
+        --assert tail? swap s s
+        --assert idx = index? s
+
+    --test-- "pt-227"
+        do code
+        --assert none? take s                           ;-- just test that's not crashing
+        --assert idx = index? s
+        
+    --test-- "pt-228"
+        do code
+        --assert tail? remove s
+        --assert idx = index? s
+
+    --test-- "pt-229"
+        do code
+        --assert tail? trim s
+        --assert idx = index? s
+
+    --test-- "pt-230"
+        do code
+        --assert tail? make s s
+        --assert idx = index? s
+
+    --test-- "pt-231"
+        do code
+        --assert "#{}" == form s
+        --assert idx = index? s
+        
+    --test-- "pt-232"
+        do code
+        --assert "#{}" == mold s
+        --assert idx = index? s
+        
+    --test-- "pt-234"
+        do code
+        --assert parse s [any skip]
+        --assert idx = index? s
+        
+    --test-- "pt-258"
+        do code
+        print s
+        --assert idx = index? s
+
+    --test-- "pt-259"
+        do code
+        --assert same? s s
+        --assert idx = index? s
+
+    --test-- "pt-259.1"
+        do code
+        --assert s = s
+        --assert idx = index? s
+
+    --test-- "pt-259.2"
+        do code
+        --assert s == s
+        --assert idx = index? s
+        
+;    --test-- "pt-265"
+;        do code
+;        --assert "" == max s s
+;        --assert idx = index? s
+
+;    --test-- "pt-266"
+;        do code
+;        --assert "" == min s s
+;        --assert idx = index? s
+
+===end-group===
+
+===start-group=== "past-tail vector series"
+
+    code: [clear head s: tail copy make vector! [1 2 3 4]]
+    idx: 5
+
+    --test-- "pt-301"   
+        do code
+        --assert idx = index? s
+    
+    --test-- "pt-302"
+        do code
+        --assert 1 = length? append s 5
+        --assert idx = index? s
+    
+    --test-- "pt-303"
+        do code
+        --assert 1 = length? head insert s 5
+        --assert idx = index? s
+
+    --test-- "pt-304"
+        do code
+        --assert 1 = length? head change s 5
+        --assert idx = index? s
+        
+    --test-- "pt-305"
+        do code
+        --assert empty? to string! s
+        --assert idx = index? s
+
+    --test-- "pt-306"
+        do code
+        --assert empty? copy s
+        --assert idx = index? s
+        
+    --test-- "pt-307"
+        do code
+        --assert tail? at s 1
+        --assert idx = index? s
+        
+    --test-- "pt-308"
+        do code
+        --assert tail? back s
+        --assert idx = index? s
+
+    --test-- "pt-309"
+        do code
+        --assert none? find s 1
+        --assert idx = index? s
+
+    --test-- "pt-310"
+        do code
+        --assert tail? head s
+        --assert idx = index? s
+
+;    --test-- "pt-311"
+;        do code
+;        --assert head? s
+;        --assert idx = index? s
+
+    --test-- "pt-312"
+        do code
+        --assert zero? length? s
+        --assert idx = index? s
+
+    --test-- "pt-313"
+        do code
+        --assert tail? next s
+        --assert idx = index? s
+
+    --test-- "pt-314"
+        do code
+        --assert none? pick s 1
+        --assert idx = index? s
+
+    --test-- "pt-315"
+        do code
+        --assert tail? skip s 1
+        --assert idx = index? s
+
+    --test-- "pt-316"
+        do code
+        --assert none? select s none
+        --assert idx = index? s
+
+    --test-- "pt-317"
+        do code
+        --assert tail? tail s
+        --assert idx = index? s
+
+    --test-- "pt-318"
+        do code
+        --assert tail? s
+        --assert idx = index? s
+
+    --test-- "pt-319"
+        do code
+        --assert tail? clear s
+        --assert idx = index? s
+
+    --test-- "pt-320"
+        do code
+        --assert tail? move s s
+        --assert idx = index? s
+
+    --test-- "pt-321"
+        do code
+        try [poke s 1 1]
+        --assert idx = index? s
+
+;   --test-- "pt-322"
+;        do code
+;        put s 2 1
+;		--assert idx = index? s
+
+    --test-- "pt-323"
+        do code
+        --assert tail? random s
+        --assert idx = index? s
+
+    --test-- "pt-324"
+        do code
+        --assert tail? reverse s
+        --assert idx = index? s
+
+    --test-- "pt-325"
+        do code
+        --assert tail? sort s
+        --assert idx = index? s
+
+;    --test-- "pt-326"
+;        do code
+;        s: swap s s
+;        --assert idx = index? s
+
+    --test-- "pt-327"
+        do code
+        --assert none? take s
+        --assert idx = index? s
+        
+    --test-- "pt-328"
+        do code
+        --assert tail? remove s
+        --assert idx = index? s
+
+;    --test-- "pt-329"
+;        do code
+;        s: trim s
+;        --assert idx = index? s
+
+;    --test-- "pt-330"
+;        do code
+;        s: make s s
+;        --assert idx = index? s
+
+    --test-- "pt-331"
+        do code
+        --assert "" == form s
+        --assert idx = index? s
+
+    --test-- "pt-332"
+        do code
+        --assert "make vector! [integer! 32 []]" == mold s
+        --assert idx = index? s
+
+;    --test-- "pt-333"
+;        do code
+;        s: unique s
+;        --assert idx = index? s
+
+    --test-- "pt-358"
+        do code
+        print s
+        --assert idx = index? s
+
+    --test-- "pt-359"
+        do code
+        --assert same? s s
+        --assert idx = index? s
+
+    --test-- "pt-359.1"
+        do code
+        --assert s = s
+        --assert idx = index? s
+
+    --test-- "pt-359.2"
+        do code
+        --assert s == s
+        --assert idx = index? s
+        
+;    --test-- "pt-361"
+;        do code
+;        --assert "" == union s s
+
+;    --test-- "pt-362"
+;        do code
+;        --assert "" == intersect s s
+
+;    --test-- "pt-363"
+;        do code
+;        --assert "" == difference s s
+
+;    --test-- "pt-364"
+;        do code
+;        --assert "" == exclude s s
+
+;    --test-- "pt-365"
+;        do code
+;        --assert "" == max s s
+;        --assert idx = index? s
+
+;    --test-- "pt-366"
+;        do code
+;        --assert "" == min s s
+;        --assert idx = index? s
 
 ===end-group===
 

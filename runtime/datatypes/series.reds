@@ -68,8 +68,7 @@ _series: context [
 
 		ser: as red-series! stack/arguments
 		index: as red-integer! ser + 1
-
-		assert TYPE_OF(index) = TYPE_INTEGER
+		if TYPE_OF(index) <> TYPE_INTEGER [fire [TO_ERROR(script invalid-arg) index]]
 
 		s: GET_BUFFER(ser)
 
@@ -567,6 +566,7 @@ _series: context [
 			cnt		[integer!]
 			rehash?	[logic!]
 	][
+		NORMALIZE_SERIES_HEAD_ALT(ser)
 		cnt: 1
 		if OPTION?(dup-arg) [
 			int: as red-integer! dup-arg
@@ -1042,7 +1042,7 @@ _series: context [
 			set-type as cell! ser TYPE_NONE
 			return as red-value! ser
 		]
-		s:    GET_BUFFER(ser)
+		s: GET_BUFFER(ser)
 		unit: GET_UNIT(s)
 		part: 1
 		part2: 1
@@ -1073,13 +1073,15 @@ _series: context [
 			if part > size [part: size]
 			if zero? part [part: 1]	
 		]
+		check?: ownership/check as red-value! ser words/_take null ser/head part2
+		s: GET_BUFFER(ser)
 
-		bytes:	part << (log-b unit)
+		bytes: part << (log-b unit)
 		either part? [
 			node:	alloc-bytes bytes
 			buffer: as series! node/value
 			buffer/flags: s/flags						;@@ filter flags?
-		][	;-- take 1 element
+		][												;-- take 1 element
 			if null? take-buffer [take-buffer: alloc-fixed-series 1 16 0]
 			node:	take-buffer
 			buffer: as series! node/value
@@ -1092,9 +1094,7 @@ _series: context [
 		ser2/node:   node
 		ser2/head:   0
 
-		check?: ownership/check as red-value! ser words/_take null ser/head part2
-
-		offset: (as byte-ptr! s/offset) + (ser/head << (log-b unit))
+		offset: (as byte-ptr! s/offset) + (ser/head << log-b unit)
 		tail: as byte-ptr! s/tail
 		either positive? part2 [
 			if last? [
@@ -1105,10 +1105,7 @@ _series: context [
 			if any [last? part > ser/head][return as red-value! ser2]
 			offset: offset - bytes
 		]
-		copy-memory
-			as byte-ptr! buffer/offset
-			offset
-			bytes
+		copy-memory as byte-ptr! buffer/offset offset bytes
 		buffer/tail: as cell! (as byte-ptr! buffer/offset) + bytes
 
 		unless last? [
@@ -1124,7 +1121,7 @@ _series: context [
 			hash: as red-hash! ser
 			_hashtable/refresh hash/table 0 - part unit size - unit yes
 			hash: as red-hash! ser2
-			hash/header: TYPE_BLOCK		;-- set to TYPE_BLOCK so we don't mark hash/table
+			hash/header: TYPE_BLOCK						;-- set to TYPE_BLOCK so we don't mark hash/table
 			hash/table: _hashtable/init part as red-block! ser2 HASH_TABLE_HASH 1
 			hash/header: TYPE_HASH
 		]

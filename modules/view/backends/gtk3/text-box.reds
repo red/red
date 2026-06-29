@@ -236,6 +236,93 @@ OS-text-box-font-size: func [
 	pango_attr_list_change lc/attrs attr
 ]
 
+create-pango-attrs-no-color: func [
+	font		[red-object!]
+	return:		[handle!]
+	/local
+		list	[handle!]
+		attr	[PangoAttribute!]
+		values	[red-value!]
+		str		[red-string!]
+		name	[c-string!]
+		len		[integer!]
+		int		[red-integer!]
+		size	[integer!]
+		style	[red-word!]
+		blk		[red-block!]
+		sym		[integer!]
+][
+	list: pango_attr_list_new
+
+	either all [
+		font <> null
+		TYPE_OF(font) = TYPE_OBJECT
+	][
+		values: object/get-values font
+
+		str: as red-string! values + FONT_OBJ_NAME
+		if TYPE_OF(str) = TYPE_STRING [
+			len: -1
+			name: unicode/to-utf8 str :len
+			attr: pango_attr_family_new name
+			pango_attr_list_insert list attr
+		]
+
+		int: as red-integer! values + FONT_OBJ_SIZE
+		either TYPE_OF(int) = TYPE_INTEGER [
+			size: int/value
+			attr: pango_attr_size_new PANGO_SCALE * size
+			pango_attr_list_insert list attr
+		][
+			attr: pango_attr_size_new PANGO_SCALE * default-font-size
+			pango_attr_list_insert list attr
+		]
+
+		style: as red-word! values + FONT_OBJ_STYLE
+		len: switch TYPE_OF(style) [
+			TYPE_BLOCK [
+				blk: as red-block! style
+				style: as red-word! block/rs-head blk
+				block/rs-length? blk
+			]
+			TYPE_WORD  [1]
+			default	   [0]
+		]
+
+		unless zero? len [
+			loop len [
+				sym: symbol/resolve style/symbol
+				case [
+					sym = _bold [
+						attr: pango_attr_weight_new PANGO_WEIGHT_BOLD
+						pango_attr_list_insert list attr
+					]
+					sym = _italic [
+						attr: pango_attr_style_new PANGO_STYLE_ITALIC
+						pango_attr_list_insert list attr
+					]
+					sym = _underline [
+						attr: pango_attr_underline_new PANGO_UNDERLINE_SINGLE
+						pango_attr_list_insert list attr
+					]
+					sym = _strike [
+						attr: pango_attr_strikethrough_new true
+						pango_attr_list_insert list attr
+					]
+					true [0]
+				]
+				style: style + 1
+			]
+		]
+	][
+		attr: pango_attr_family_new default-font-name
+		pango_attr_list_insert list attr
+		attr: pango_attr_size_new PANGO_SCALE * default-font-size
+		pango_attr_list_insert list attr
+	]
+	list
+]
+
 OS-text-box-metrics: func [
 	state		[red-block!]
 	arg0		[red-value!]
@@ -267,7 +354,7 @@ OS-text-box-metrics: func [
 		TBOX_METRICS_OFFSET_LOWER [					;-- caret-to-offset
 			int: as red-integer! arg0
 			text: pango_layout_get_text layout
-			text2: g_utf8_offset_to_pointer text int/value - 1
+			text2: either int/value <= 0 [text][g_utf8_offset_to_pointer text int/value - 1]
 			idx: as integer! text2 - text
 			pango_layout_index_to_pos layout idx :rect
 			if type = TBOX_METRICS_OFFSET_LOWER [
@@ -290,13 +377,17 @@ OS-text-box-metrics: func [
 			integer/push idx + 1
 		]
 		TBOX_METRICS_SIZE [
-			pline: pango_layout_get_line layout 0
-			pango_layout_line_get_pixel_extents pline rect lrect
-			width: -1 height: -1
-			;pango_layout_get_pixel_size layout :width :height
-			; width: (pango_layout_get_width layout) / PANGO_SCALE
-			height: (pango_layout_get_line_count layout) * lrect/height
-			width: lrect/width
+			width: 0 height: 0
+			pango_layout_get_pixel_size layout :width :height
+			idx: pango_layout_get_line_count layout
+			width: 0
+			x: 0
+			while [x < idx][
+				pline: pango_layout_get_line layout x
+				pango_layout_line_get_pixel_extents pline rect lrect
+				if width < lrect/width [width: lrect/width]
+				x: x + 1
+			]
 			point2D/push as float32! width as float32! height
 		]
 		TBOX_METRICS_LINE_COUNT [
@@ -326,6 +417,9 @@ OS-text-box-layout: func [
 		state	[red-block!]
 		size	[red-pair!]
 		font	[red-object!]
+		pobj	[red-object!]
+		pvalues	[red-value!]
+		fcolor	[red-tuple!]
 		parent	[red-object!]
 		cached?	[logic!]
 		attrs	[handle!]
@@ -339,6 +433,20 @@ OS-text-box-layout: func [
 		styles	[red-block!]
 		pt		[red-point2D!]
 		sx sy	[integer!]
+		font-color? [logic!]
+		wrap?	[logic!]
+		hsym	[integer!]
+		spacing	[red-integer!]
+		stype	[integer!]
+		requested [integer!]
+		natural	[integer!]
+		rect	[tagRECT value]
+		tabs	[red-integer!]
+		ttype	[integer!]
+		tab-size [integer!]
+		tab-count [integer!]
+		tab-array [handle!]
+		i		[integer!]
 ][
 	values: object/get-values box
 
@@ -346,6 +454,7 @@ OS-text-box-layout: func [
 	state: as red-block! values + FACE_OBJ_EXT3
 	size: as red-pair! values + FACE_OBJ_SIZE
 	font: as red-object! values + FACE_OBJ_FONT
+	pobj: as red-object! values + FACE_OBJ_PARA
 	parent: as red-object! values + FACE_OBJ_PARENT
 	styles: as red-block! values + FACE_OBJ_DATA
 	cached?: TYPE_OF(state) = TYPE_BLOCK
@@ -379,9 +488,16 @@ OS-text-box-layout: func [
 		font <> null
 		TYPE_OF(font) = TYPE_OBJECT
 	][
-		attrs: create-pango-attrs box font
+		fcolor: as red-tuple! (object/get-values font) + FONT_OBJ_COLOR
+		font-color?: TYPE_OF(fcolor) = TYPE_TUPLE
+		attrs: either font-color? [
+			create-pango-attrs null font
+		][
+			create-pango-attrs-no-color font
+		]
 	][
-		attrs: pango_attr_list_new		;-- or pango_attr_list_copy default-attrs
+		font-color?: no
+		attrs: create-pango-attrs-no-color null
 	]
 	len: -1
 	str: unicode/to-utf8 text :len
@@ -395,23 +511,76 @@ OS-text-box-layout: func [
 		sx: -1
 		sy: -1
 	]
-	pango_layout_set_width layout sx
+	either TYPE_OF(pobj) = TYPE_OBJECT [
+		pvalues: object/get-values pobj
+		wrap?: get-para-wrap pvalues
+		hsym: get-para-hsym pvalues
+	][
+		wrap?: yes
+		hsym: _para/left
+	]
+	pango_layout_set_width layout either wrap? [sx][-1]
 	pango_layout_set_height layout sy
-	pango_layout_set_wrap layout PANGO_WRAP_WORD_CHAR			;-- TBD: apply para
+	if wrap? [pango_layout_set_wrap layout PANGO_WRAP_WORD_CHAR]
+	pango_layout_set_alignment layout
+		case [
+			hsym = _para/right [PANGO_ALIGN_RIGHT]
+			any [hsym = _para/center hsym = _para/middle] [PANGO_ALIGN_CENTER]
+			true [PANGO_ALIGN_LEFT]
+		]
 	pango_layout_set_text layout str -1
 
+	lc: declare layout-ctx!
+	lc/layout: layout
+	lc/text: str
+	lc/attrs: attrs
+	unless font-color? [
+		OS-text-box-color target as handle! lc 0 string/rs-length? text ft-clr
+	]
 	if all [
 		TYPE_OF(styles) = TYPE_BLOCK
 		1 < block/rs-length? styles
 	][
-		;-- this is not dynamic but lc/layout would change dynamically for each rich-text
-		lc: declare layout-ctx!
-		lc/layout: layout
-		lc/text: str
-		lc/attrs: attrs
 		parse-text-styles target as handle! lc styles text catch?
 	]
 	pango_layout_set_attributes layout attrs
 	pango_attr_list_unref attrs
+	tabs: as red-integer! values + FACE_OBJ_EXT1
+	ttype: TYPE_OF(tabs)
+	either any [ttype = TYPE_INTEGER ttype = TYPE_FLOAT][
+		tab-size: as-integer get-float tabs
+		either tab-size > 0 [
+			tab-count: either sx > 0 [
+				(sx / PANGO_SCALE / tab-size) + 2
+			][
+				64
+			]
+			if tab-count < 1 [tab-count: 1]
+			if tab-count > 128 [tab-count: 128]
+			tab-array: pango_tab_array_new tab-count yes
+			i: 0
+			while [i < tab-count][
+				pango_tab_array_set_tab tab-array i PANGO_TAB_LEFT tab-size * (i + 1)
+				i: i + 1
+			]
+			pango_layout_set_tabs layout tab-array
+			pango_tab_array_free tab-array
+		][
+			pango_layout_set_tabs layout null
+		]
+	][
+		pango_layout_set_tabs layout null
+	]
+	spacing: as red-integer! values + FACE_OBJ_EXT2
+	stype: TYPE_OF(spacing)
+	either any [stype = TYPE_INTEGER stype = TYPE_FLOAT][
+		pango_layout_index_to_pos layout 0 :rect
+		natural: rect/height
+		requested: as-integer ((get-float spacing) * (as float! PANGO_SCALE))
+		if requested < natural [requested: natural]
+		pango_layout_set_spacing layout requested - natural
+	][
+		pango_layout_set_spacing layout 0
+	]
 	layout
 ]

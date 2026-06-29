@@ -354,11 +354,15 @@ get-text-size: func [
 
 		SelectObject dc hFont
 		c-str: unicode/to-utf16 str
-		GetTextExtentPoint32 dc c-str wcslen c-str :size
+		rc/left: 0
+		rc/top: 0
+		rc/right: 7FFFFFFFh			;-- no width limit for measuring
+		rc/bottom: 0
+		DrawText dc c-str -1 rc DT_CALCRECT or DT_WORDBREAK or DT_EXPANDTABS
 
 		if pt <> null [
-			pt/x: (as float32! size/width) / dpi-factor
-			pt/y: (as float32! size/height) / dpi-factor
+			pt/x: (as float32! rc/right) / dpi-factor
+			pt/y: (as float32! rc/bottom) / dpi-factor
 		]
 	]
 

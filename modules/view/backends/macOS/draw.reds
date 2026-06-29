@@ -23,12 +23,14 @@ colors-pos: colors + (4 * max-colors)
 draw-state!: alias struct! [
 	pen-clr		[integer!]
 	brush-clr	[integer!]
+	font-attrs	[integer!]
 	pen-join	[integer!]
 	pen-cap		[integer!]
 	pen?		[logic!]
 	brush?		[logic!]
 	a-pen?		[logic!]
 	a-brush?	[logic!]
+	font-clr?	[logic!]
 ]
 
 draw-begin: func [
@@ -74,6 +76,7 @@ draw-begin: func [
 	ctx/grad-pen:		-1
 	ctx/pen?:			yes
 	ctx/brush?:			no
+	ctx/font-color?:	no
 	ctx/grad-pos?:		no
 	ctx/colorspace:		CGColorSpaceCreateDeviceRGB
 	ctx/last-pt-x:		as float32! 0.0
@@ -167,19 +170,17 @@ _set-font-color: func [
 	dc		[draw-ctx!]
 	color	[integer!]
 	/local
-		clr [integer!]
+		clr		[integer!]
+		attrs	[integer!]
 ][
-	if 2 >= objc_msgSend [dc/font-attrs sel_getUid "count"][
-		clr: rs-to-NSColor color
-		objc_msgSend [dc/font-attrs sel_release]
-		dc/font-attrs: objc_msgSend [				;-- default font attributes
-			objc_msgSend [objc_getClass "NSDictionary" sel_getUid "alloc"]
-			sel_getUid "initWithObjectsAndKeys:"
-			default-font NSFontAttributeName
-			clr NSForegroundColorAttributeName
-			0
-		]
+	clr: rs-to-NSColor color
+	attrs: objc_msgSend [dc/font-attrs sel_getUid "mutableCopy"]
+	if zero? objc_msgSend [attrs sel_getUid "objectForKey:" NSFontAttributeName][
+		objc_msgSend [attrs sel_getUid "setObject:forKey:" default-font NSFontAttributeName]
 	]
+	objc_msgSend [attrs sel_getUid "setObject:forKey:" clr NSForegroundColorAttributeName]
+	objc_msgSend [dc/font-attrs sel_release]
+	dc/font-attrs: attrs
 ]
 
 OS-draw-pen: func [
@@ -192,7 +193,7 @@ OS-draw-pen: func [
 	if all [not off? dc/pen-color <> color][
 		dc/pen-color: color
 		CG-set-color dc/raw color no
-		_set-font-color dc color
+		unless dc/font-color? [_set-font-color dc color]
 	]
 ]
 
@@ -672,9 +673,19 @@ OS-draw-ellipse: func [
 OS-draw-font: func [
 	dc		[draw-ctx!]
 	font	[red-object!]
+	/local
+		clr [red-tuple!]
 ][
 	objc_msgSend [dc/font-attrs sel_release]
 	dc/font-attrs: make-font-attrs font as red-object! none-value -1
+	clr: as red-tuple! (object/get-values font) + FONT_OBJ_COLOR
+	either TYPE_OF(clr) = TYPE_TUPLE [
+		dc/font-color?: yes
+		_set-font-color dc get-tuple-color clr
+	][
+		dc/font-color?: no
+		_set-font-color dc dc/pen-color
+	]
 ]
 
 draw-text-at: func [
@@ -730,7 +741,10 @@ draw-text-box: func [
 		x		[integer!]
 		cg-pt	[CGPoint!]
 		clr		[integer!]
+		size	[red-pair!]
+		color	[red-tuple!]
 		pt		[red-point2D!]
+		w h		[float32!]
 ][
 	values: object/get-values tbox
 	str: as red-string! values + FACE_OBJ_TEXT
@@ -759,6 +773,16 @@ draw-text-box: func [
 	x: 0
 	cg-pt: as CGPoint! :x
 	GET_PAIR_XY(pos cg-pt/x cg-pt/y)
+	size: as red-pair! values + FACE_OBJ_SIZE
+	color: as red-tuple! values + FACE_OBJ_COLOR
+	if all [
+		TYPE_OF(color) = TYPE_TUPLE
+		ANY_COORD?(size)
+	][
+		GET_PAIR_XY(size w h)
+		CG-set-color dc/raw get-tuple-color color yes
+		CGContextFillRect dc/raw cg-pt/x cg-pt/y w h
+	]
 	objc_msgSend [layout sel_getUid "drawBackgroundForGlyphRange:atPoint:" idx len cg-pt/x cg-pt/y]
 	objc_msgSend [layout sel_getUid "drawGlyphsForGlyphRange:atPoint:" idx len cg-pt/x cg-pt/y]
 ]
@@ -1524,24 +1548,30 @@ OS-draw-state-push: func [dc [draw-ctx!] state [draw-state!]][
 	CGContextSaveGState dc/raw
 	state/pen-clr: dc/pen-color
 	state/brush-clr: dc/brush-color
+	state/font-attrs: dc/font-attrs
 	state/pen-join: dc/pen-join
 	state/pen-cap: dc/pen-cap
 	state/pen?: dc/pen?
 	state/brush?: dc/brush?
 	state/a-pen?: dc/grad-pen?
 	state/a-brush?: dc/grad-brush?
+	state/font-clr?: dc/font-color?
+	objc_msgSend [state/font-attrs sel_getUid "retain"]
 ]
 
 OS-draw-state-pop: func [dc [draw-ctx!] state [draw-state!]][
 	CGContextRestoreGState dc/raw
 	dc/pen-color: state/pen-clr
 	dc/brush-color: state/brush-clr
+	objc_msgSend [dc/font-attrs sel_release]
+	dc/font-attrs: state/font-attrs
 	dc/pen-join: state/pen-join
 	dc/pen-cap: state/pen-cap
 	dc/pen?: state/pen?
 	dc/brush?: state/brush?
 	dc/grad-pen?: state/a-pen?
 	dc/grad-brush?: state/a-brush?
+	dc/font-color?: state/font-clr?
 ]
 
 OS-matrix-reset: func [

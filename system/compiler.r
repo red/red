@@ -17,6 +17,7 @@ do-cache %system/utils/virtual-struct.r
 do-cache %system/utils/secure-clean-path.r
 do-cache %system/utils/unicode.r
 do-cache %system/linker.r
+do-cache %system/linker-static.r
 do-cache %system/emitter.r
 do-cache %system/utils/libRedRT.r
 
@@ -50,6 +51,7 @@ system-dialect: make-profilable context [
 		debug?:				no							;-- emit debug information into binary
 		debug-safe?:		yes							;-- try to avoid over-crashing on runtime debug reports
 		dev-mode?:		 	none						;-- yes => turn on developer mode (pre-build runtime, default), no => build a single binary
+		static-link?:		no							;-- yes => extension-less #import names resolve to static libs (.lib/.a) instead of dynamic (.dll/.so/.dylib)
 		need-main?:			no							;-- yes => emit a function prolog/epilog around global code
 		PIC?:				no							;-- generate Position Independent Code
 		base-address:		none						;-- base image memory address
@@ -98,6 +100,7 @@ system-dialect: make-profilable context [
 		user-code?:		 no
 		block-level: 	 0								;-- nesting level of input source block
 		catch-level:	 0								;-- nesting level of CATCH body block
+		overflow-check?: no								;-- yes => inside an OVERFLOW? block; backend hooks instrument math/shift/div ops
 		verbose:  	 	 0								;-- logs verbosity level
 	
 		imports: 	   	 make block! 10					;-- list of imported functions
@@ -121,6 +124,10 @@ system-dialect: make-profilable context [
 			'records make block!  1000					;-- [address line file] records
 			'files	 make hash!   20					;-- filenames table
 		]
+		line-cache-header: none							;-- cached block header for source line lookup
+		line-cache-pos:	 none							;-- cached line marker position in header
+		line-cache-idx:	 0								;-- cached source index
+		line-cache-line: 1								;-- cached source line
 		
 		pos:		none								;-- validation rules cursor for error reporting
 		return-def: to-set-word 'return					;-- return: keyword
@@ -216,6 +223,7 @@ system-dialect: make-profilable context [
 			as			 [comp-as]
 			assert		 [comp-assert]
 			size? 		 [comp-size?]
+			overflow?	 [comp-overflow?]
 			if			 [comp-if]
 			either		 [comp-either]
 			case		 [comp-case]
@@ -246,7 +254,7 @@ system-dialect: make-profilable context [
 		]
 		
 		calling-keywords: [								;-- keywords accepted in expr-call-stack
-			?? as assert size? if either case switch until while any all
+			?? as assert size? overflow? if either case switch until while any all
 			return catch
 		]
 		
@@ -259,22 +267,48 @@ system-dialect: make-profilable context [
 		foreach [word action] keywords [append keywords-list word]
 		foreach [name spec] functions  [append keywords-list name]
 		
-		calc-line: has [idx head-end prev p header][
+		reset-line-cache: does [
+			line-cache-header:
+			line-cache-pos: none
+			line-cache-idx:	 0
+			line-cache-line: 1
+		]
+
+		calc-line: has [idx prev p header pos mark][
 			header: head pc
 			idx: (index? pc) - header/1  				;-- calculate real pc position (not counting hidden header)
-			prev: 1
+			either all [
+				same? header line-cache-header
+				line-cache-pos
+				idx >= line-cache-idx
+			][
+				prev: line-cache-line
+				p:	  line-cache-pos
+			][
+				line-cache-header: header
+				line-cache-pos:	   none
+				line-cache-idx:	   0
+				line-cache-line:   prev: 1
+				p: next header
+			]
 
-			parse header [								;-- search for closest line marker
-				skip									;-- skip over header length
+			parse p [									;-- search for closest line marker
 				some [
-					set p pair! (
-						if p/2 = idx [return p/1]		;-- exact value position match
-						if p/2 > idx [return prev]		;-- closest value position match 
-						prev: p/1
+					pos: set mark pair! (
+						if mark/2 = idx [
+							line-cache-pos:  pos
+							line-cache-idx:  mark/2
+							line-cache-line: mark/1
+							return mark/1				;-- exact value position match
+						]
+						if mark/2 > idx [return prev]	;-- closest value position match
+						line-cache-pos:  pos
+						line-cache-idx:  mark/2
+						line-cache-line: prev: mark/1
 					)
 				]
 			]
-			return p/1									;-- return last marker
+			return prev									;-- return last marker
 		]
 		
 		store-dbg-lines: has [dbg pos][
@@ -1632,6 +1666,44 @@ system-dialect: make-profilable context [
 			]
 		]
 		
+		promote-variadic: func [
+			;-- For a C variadic import (cdecl + [variadic]) called as `name [a b ...]`:
+			;--   * type-check the leading named/fixed args against their declared types
+			;--     ("the ellipsis stops argument conversion after the last declared parameter")
+			;--   * apply C default argument promotions to the trailing (variadic) args:
+			;--     float32! -> float! (i.e. float -> double). char/byte are already word-sized.
+			name [word!] tag [issue!] args [block!]
+			/local entry spec fixed n i arg atype
+		][
+			entry: functions/:name
+			unless all [tag = #variadic  entry/3 = 'cdecl][exit] ;-- only C-ABI vararg imports
+			spec: entry/4
+			if block? spec/1 [spec: next spec]			;-- skip attributes block
+			fixed: entry/1								;-- number of named (fixed) C parameters
+			n: length? args
+
+			repeat i fixed [							;-- named args: convert to declared type, type-check
+				if i > n [break]
+				arg:   args/:i
+				atype: spec/2
+				either all [find [decimal! issue!] type?/word arg  atype/1 = 'float32!][
+					args/:i: make action-class [action: 'type-cast type: [float32!] data: arg]
+				][
+					check-expected-type name arg atype
+				]
+				spec: skip spec 2
+			]
+			repeat i n [								;-- variadic tail: default argument promotions
+				if all [
+					i > fixed
+					not block? arg: args/:i				;-- skip nested calls (no float32! promotion there yet)
+					'float32! = first get-type arg
+				][
+					args/:i: make action-class [action: 'type-cast type: [float!] data: arg]
+				]
+			]
+		]
+
 		check-variable-arity?: func [spec [block!] /local attribs][
 			all [
 				attribs: get-attributes spec
@@ -1702,6 +1774,75 @@ system-dialect: make-profilable context [
 			]
 		]
 		
+		preprocess-types: func [spec [block!] /local p type t][
+			parse spec [
+				some [
+					p: word! type: block! (
+						t: type/1
+						case [
+							enum-type? t/1   [type/1/1: 'integer!]
+							not base-type? t [type/1: copy find-aliased t/1]
+						]
+					)
+				]
+			]
+			unless tail? p [
+				backtrack 'use
+				throw-error ["Invalid USE spec block:" p]
+			]
+		]
+		
+		preprocess-use: func [fname spec [block!] body [block!] /local rule p pos locs value][
+			clear locs: []
+			parse body rule: [
+				any [
+					p: 'use (
+						unless all [block? p/2 not empty? p/2][
+							pc: p
+							throw-error "USE requires a spec block as first argument"
+						]
+						unless block? p/3 [
+							pc: p
+							throw-error "USE requires a body block as second argument"
+						]
+						foreach [name type] p/2 [
+							if find spec name [
+								throw-error ["duplicate variable" mold name "definition in function" fname]
+							]
+							if any [
+								not block? type 
+								not parse type ['subroutine! | 'function! fun-rule | type-spec]
+							][
+								throw-error ["invalid type for variable" mold name "in USE spec" mold p/2 ", function" fname]
+							]
+							either all [
+								value: select locs name
+								value <> type
+							][
+								throw-error ["conflicting variable" mold name "in USE spec block"]
+							][
+								unless value [repend locs [name type]]
+							]
+						]
+					) skip								;-- skip variables block
+					| block! :p into rule
+					| skip
+				]
+			]
+			unless empty? locs [
+				either pos: find spec /local [
+					either pos: find/tail/last pos block! [
+						insert pos locs
+					][
+						append spec locs
+					]
+				][
+					append spec /local
+					append spec locs
+				]
+			]
+		]
+		
 		encode-pointers: func [name specs [block!] /local list offset b][
 			list: emitter/encode-ptr-bitmap specs
 			if verbose > 5 [
@@ -1732,7 +1873,10 @@ system-dialect: make-profilable context [
 			if ns-path [add-ns-symbol pc/-1]
 			if ns-path [name: ns-prefix name]
 			check-func-name name
-			expand-func-specs specs: pc/2
+			
+			unless block? pc/3 [throw-error ["function" name "requires a body block!"]]
+			preprocess-use name specs: pc/2 pc/3
+			expand-func-specs specs
 			check-specs name specs
 			specs: copy specs
 			clear-docstrings specs
@@ -1863,13 +2007,24 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		process-import: func [defs [block!] /local lib list cc name specs spec id reloc pos new? funcs err][
+		process-import: func [
+			defs [block!]
+			/local lib list cc name specs spec id reloc pos new? funcs err empty-import?
+		][
 			unless block? defs [throw-error "#import expects a block! as argument"]
 			
 			err: ["invalid import specification at:" pos]
 			unless parse defs [
 				some [
 					pos: set lib string! (
+						;-- An extension-less name resolves to a per-format library
+						;-- (.dll/.so/.dylib by default, .lib/.a with --static). A
+						;-- directory prefix (relative or absolute) is preserved,
+						;-- so #import "<path>/<lib>" resolves the trailing name;
+						;-- macOS framework paths are complete and pass untouched.
+						unless any [suffix? to-file lib  static-link/framework? lib][
+							lib: static-link/resolve-libname lib job/format job/static-link?
+						]
 						new?: no
 						unless list: select imports lib [
 						 	list: make block! 10
@@ -1877,10 +2032,12 @@ system-dialect: make-profilable context [
 						]
 					)
 					pos: set cc ['cdecl | 'stdcall]		;-- calling convention
+					(empty-import?: yes)
 					pos: into [
-						some [
+						any [
 							specs:						;-- new function mapping marker
 							pos: set name set-word! (
+								empty-import?: no
 								name: to word! name
 								store-ns-symbol name
 								if ns-path [
@@ -1916,7 +2073,11 @@ system-dialect: make-profilable context [
 								]
 							)
 						]
-					](if new? [repend imports [lib list]])
+					](
+						if all [empty-import?  not static-link/library? lib][throw-error err]
+						if new? [repend imports [lib list]]
+						if static-link/library? lib [static-link/register job lib script cc]
+					)
 				]
 			][throw-error err]
 		]
@@ -2051,6 +2212,10 @@ system-dialect: make-profilable context [
 							all [
 								block? type: select spec to-word p/1
 								'subroutine! = type/1
+								any [
+									not find subroutines to-word p/1
+									all [pc: p throw-error ["duplicate subroutine name:" p/1]]
+								]
 								repend subroutines [to-word p/1 p/2]
 								remove/part p 2
 							]
@@ -2278,41 +2443,16 @@ system-dialect: make-profilable context [
 			value
 		]
 		
-		comp-use: has [spec use-init use-locals use-stack size slots][
+		
+		comp-use: does [
 			pc: next pc
-			unless all [block? spec: pc/1 not empty? spec][
-				backtrack 'use
-				throw-error "USE requires a spec block as first argument"
-			]
-			unless block? pc/2 [
-				backtrack 'use
-				throw-error "USE requires a body block as second argument"
-			]
 			unless locals [
 				backtrack 'use
 				throw-error "USE can only be used from inside a function's body"
 			]
-			
-			use-init:   tail locals-init
-			use-locals: tail locals
-			use-stack:  tail emitter/stack
-			
-			unless find locals /local [append locals /local]
-			append locals spec
-			size: emitter/calc-locals-offsets/only use-locals
-			emitter/target/emit-reserve-stack slots: size / 4
-			func-locals-sz: func-locals-sz + size
-			
 			pc: next pc
 			fetch-into/root pc/1 [comp-dialect]
 			pc: next pc
-			
-			func-locals-sz: func-locals-sz - size
-			emitter/target/emit-release-stack slots
-			
-			clear use-init
-			clear use-locals
-			clear use-stack
 			last-type: none-type
 			none
 		]
@@ -2510,12 +2650,43 @@ system-dialect: make-profilable context [
 					]
 				]
 			]
-			end: comp-chunked [emitter/target/emit-close-catch locals-size not locals cb?]
+			end: comp-chunked [emitter/target/emit-close-catch locals-size catch-level not locals cb?]
 			chunk: emitter/chunks/join chunk end
 			emitter/merge chunk
 			
 			last-type: none-type
 			none
+		]
+
+		comp-overflow?: has [unused body-chunk no-ovf-chunk ovf-arm combined saved][
+			pc: next pc
+			unless block? pc/1 [
+				backtrack 'overflow?
+				throw-error "OVERFLOW? requires a block as argument"
+			]
+
+			saved: overflow-check?
+			overflow-check?: yes
+			append/only emitter/overflow-jumps make block! 1	;-- push fresh jump list (parallel to push-loop-jumps' idiom)
+
+			set [unused body-chunk] comp-block-chunked	;-- compile body; backend hooks emit JCC into list
+
+			overflow-check?: saved
+
+			;-- "no-overflow" tail: XOR eax,eax + JMP over MOV eax,1 (ovf label lands here)
+			no-ovf-chunk: comp-chunked [emitter/target/emit-overflow-epilog-no-ovf]
+			combined: emitter/chunks/join body-chunk no-ovf-chunk
+
+			emitter/resolve-loop-jumps combined 'overflow-jumps	;-- patch all early-out jumps to combined's tail (= ovf:)
+			remove back tail emitter/overflow-jumps		;-- pop
+
+			;-- "overflow" arm: MOV eax,1
+			ovf-arm: comp-chunked [emitter/target/emit-overflow-epilog-ovf]
+			combined: emitter/chunks/join combined ovf-arm
+
+			emitter/merge combined
+			last-type: [logic!]
+			<last>
 		]
 
 		comp-block-chunked: func [/only /test name [word!] /bool /local expr][
@@ -3410,7 +3581,10 @@ system-dialect: make-profilable context [
 				types slots
 		][
 			name: decorate-fun name
-			list: either variadic? args/1 [args/2][		;-- bypass type-checking for variable arity calls
+			list: either variadic? args/1 [
+				promote-variadic name args/1 args/2		;-- check named args + promote variadic tail (C ABI)
+				args/2
+			][
 				check-arguments-type name args
 				args
 			]
@@ -3694,7 +3868,9 @@ system-dialect: make-profilable context [
 					all [not new? not boxed set-word? variable store? logic? expr]
 				][
 					either boxed [
-						emitter/target/emit-load/with expr boxed ;-- emit code for single value
+						unless all [boxed/action = 'null set-word? variable job/target = 'IA-32][
+							emitter/target/emit-load/with expr boxed ;-- emit code for single value
+						]
 					][
 						emitter/target/emit-load expr	;-- emit code for single value
 					]
@@ -4261,6 +4437,7 @@ system-dialect: make-profilable context [
 		clear compiler/subroutines
 		clear compiler/debug-lines/records
 		clear compiler/debug-lines/files
+		compiler/reset-line-cache
 		clear emitter/symbols
 	]
 	

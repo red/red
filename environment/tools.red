@@ -616,9 +616,9 @@ system/tools: context [
 	
 	do-handler: func [code [any-type!] handler [function!]][
 		either find [file! url!] type?/word :code [
-			do-file code :handler						;-- delay handler triggering once resource is acquired
+			do-file code :handler none					;-- delay handler triggering once resource is acquired
 		][
-			do/trace :code :handler
+			do/trace :code :handler none
 		]
 	]
 	
@@ -650,7 +650,7 @@ system/tools: context [
 		()
 	]
 	
-	set 'trace function [
+	set 'trace func [
 		"Runs argument code and prints an evaluation trace; also turns on/off tracing"
 		code [any-type!] "Code to trace or tracing mode (logic!)"
 		/raw   "Switch to raw interpreter events tracing (incompatible with other modes)"

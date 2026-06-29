@@ -122,7 +122,7 @@ test
 ===start-group=== "Red regressions #3501 - #4000"
 
 	--test-- "#3670"
-		write qt-tmp-file "1 + 2"
+		write qt-temp-file "1 + 2"
 		qt/source-file?: yes
 		qt/compile qt-temp-file
 		--assert probe not compiler-error?
@@ -363,6 +363,36 @@ test
 		--assert not crashed?
 		--assert not find qt/output "Error"
 
+	--test-- "#4992.1"
+		write qt-temp-dir/s2.red {Red [title: "Included module"]}
+		write qt-temp-dir/s3.red {Red [title: "Another included module"]}
+		
+		--compile-and-run-this rejoin [{
+			Red [title: "Main script"]
+			probe system/script/header/title
+			#include } mold qt-temp-dir/s2.red {
+			#include } mold qt-temp-dir/s3.red {
+			probe system/script/header/title
+		}]
+		--assert compiled?
+		--assert not crashed?
+		--assert to-logic find qt/output {"Main script"^/"Main script"}
+		
+		delete qt-temp-dir/s2.red
+		delete qt-temp-dir/s3.red
+		
+	--test-- "#4992.2"
+		write qt-temp-dir/s2.red {Red [title: "included"] probe h/title probe system/script/header/title}
+		
+		--compile-and-run-this rejoin [
+			{Red [title: "main"] h: system/script/header do } mold qt-temp-dir/s2.red 
+		]
+		--assert compiled?
+		--assert not crashed?
+		--assert to-logic find qt/output {"main"^/"included"}
+		
+		delete qt-temp-dir/s2.red
+		
 	--test-- "#5065"
 		--compile-and-run-this {
 			Red []
@@ -438,19 +468,47 @@ test
 		--compile-this {Red [] f552: function [/ref x /local y return: [block!]][a: 1 print "OK"]}
 		--assert not compiled?
 		--assert found? find qt/comp-output "invalid function"
-	--test-- "#5552.2"	
+	--test-- "#5552.2"
 		--compile-this {Red [] f552: function [/ref x /local y return: [block!] "locals follow docstring ->"][a: 1 print "OK"]}
 		--assert not compiled?
 		--assert found? find qt/comp-output "invalid function"
-	--test-- "#5552.3"	
+	--test-- "#5552.3"
 		--compile-this {Red [] f552: func [a [block!] return: [block!] /ref /local x][]}
 		--assert not compiled?
 		--assert found? find qt/comp-output "invalid function"
-	--test-- "#5552.4"	
+	--test-- "#5552.4"
 		--compile-this {Red [] f552: func [a [block!] return: [block!] /ref y /local x][]}
 		--assert not compiled?
 		--assert found? find qt/comp-output "invalid function"
-
+		
+	--test-- "#5687.1"
+		--compile-and-run-this {
+			Red []
+			ctx: make object! [test: func [w] [if w = 'self [probe self]]] ctx/test 'self
+		}
+		--assert compiled?
+		--assert not crashed?
+		--assert found? find qt/output "probe self"
+		
+	--test-- "#5687.2"
+		--compile-and-run-this {
+			Red []
+			ctx: make object! [
+				test: func [w /local self] [
+					probe self
+					self: w
+					y: 'self
+					?? y
+					probe do y
+				]
+			]
+			ctx/test make object! [a: 2]
+		}
+		--assert compiled?
+		--assert not crashed?
+		--assert found? find qt/output "probe do y"
+		--assert found? find qt/output "a: 2"
+		
 ===end-group===
 
 ~~~end-file~~~ 

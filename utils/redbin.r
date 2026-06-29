@@ -141,8 +141,8 @@ context [
 	emit-percent: func [value [issue!] /local bin][
 		pad buffer 8
 		emit-type 'TYPE_PERCENT
-		value: to decimal! to string! copy/part value back tail value
-		emit-float-bin value / 100.0
+		value: to string! copy/part value back tail value
+		emit-float-bin to decimal! append value "e-2"	;-- scale by 1/100 in a single rounding step (#5753)
 	]
 	
 	emit-time: func [value [time!]][

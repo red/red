@@ -654,10 +654,8 @@ lexer: context [
 			blk/head: 0
 		][
 			s: GET_BUFFER(blk)
-			len: (as-integer s/tail - s/offset) >> size? cell!
-			if (s/size >> size? cell!) - len < size [
-				expand-series GET_BUFFER(blk) size << 4 + s/size
-			]
+			len: (as-integer s/tail - s/offset) >> 4
+			if (s/size >> 4) - len < size [expand-series s size << 4 + s/size]
 		]
 		blk/header: blk/header and type-mask or type
 
@@ -891,7 +889,7 @@ lexer: context [
 		str: as red-string! lex/tail - 1
 		len: string/rs-length? str
 		string/make-at as red-value! :vl len Latin1
-		string/decode-url str :vl
+		url/decode str :vl
 		str/node: vl/node
 		str/cache: null
 	]
@@ -1025,7 +1023,7 @@ lexer: context [
 	][
 		p: s
 		while [all [p < e any [all [p/1 >= #"0" p/1 <= #"9"] p/1 = #"."]]][p: p + 1]
-		dst/value: dtoa/to-float s p err
+		dst/value: dtoa/to-float s p 0 err
 		p
 	]
 	
@@ -1861,14 +1859,17 @@ lexer: context [
 	
 	load-percent: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local
-			fl [red-float!]
+			fl  [red-float!]
+			err [integer!]
 	][
 		assert e/1 = #"%"
-		load-float lex s e flags load?
+		unless scan-float s e [throw-error lex s e TYPE_FLOAT]
 		if load? [
-			fl: as red-float! lex/tail - 1
+			err: 0
+			fl: as red-float! alloc-slot lex
 			set-type as cell! fl TYPE_PERCENT
-			fl/value: fl/value / 100.0
+			fl/value: dtoa/to-float s e -2 :err			;-- fold the /100 into one correctly-rounded conversion (#5753)
+			if err <> 0 [throw-error lex s e TYPE_FLOAT]
 		]
 		lex/in-pos: e + 1								;-- skip ending delimiter
 	]
@@ -1883,7 +1884,7 @@ lexer: context [
 		
 		if load? [
 			err: 0
-			f: dtoa/to-float s e :err
+			f: dtoa/to-float s e 0 :err
 			if err <> 0 [throw-error lex s e TYPE_FLOAT]
 			fl: as red-float! alloc-slot lex
 			set-type as cell! fl TYPE_FLOAT
@@ -2172,7 +2173,7 @@ lexer: context [
 			][
 				either load? [
 					err: 0
-					f: dtoa/to-float s p :err
+					f: dtoa/to-float s p 0 :err
 					if err <> 0 [throw-error lex s p TYPE_FLOAT]
 				][
 					unless scan-float s p [throw-error lex s e TYPE_FLOAT]
@@ -2240,7 +2241,7 @@ lexer: context [
 				hour: 0
 				p: mark
 			]
-			tm: dtoa/to-float p e :err
+			tm: dtoa/to-float p e 0 :err
 			if any [err <> 0 tm < 0.0][do-error]
 		]
 		if load? [
@@ -2796,7 +2797,7 @@ lexer: context [
 			extra: allocate buf-size + 1				;-- fallback to a temporary buffer
 			utf8-buf-tail: extra
 		]
-		size: unicode/to-utf8-buffer str utf8-buf-tail size
+		size: unicode/to-utf8-buffer str utf8-buf-tail size yes
 		base: utf8-buf-tail
 		utf8-buf-tail: utf8-buf-tail + size + 1			;-- move at tail for new buffer; +1 for terminal NUL
 

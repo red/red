@@ -1,18 +1,18 @@
 name: Linux-x86
 
-on: push
+on: [push, pull_request]
 
 jobs:
   Linux-Red-Tests:
     runs-on: ubuntu-24.04
     name: Run Linux-x86 Tests
     env:
-      DISPLAY: :0 
+      DISPLAY: :0
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
-    - name: Install dependencies 
+    - name: Install dependencies
       run: |
         sudo dpkg --add-architecture i386
         sudo apt update
@@ -27,7 +27,7 @@ jobs:
       run: /bin/rebol -qws tests/run-all.r --batch
 
     # upload log file if any test failed
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v7
       if: failure()
       with:
         name: Linux-Red-Tests-log
@@ -38,7 +38,7 @@ jobs:
     name: Run Linux-RS Tests
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
     - name: Run RS Tests
       run: |
         sudo dpkg --add-architecture i386
@@ -49,7 +49,7 @@ jobs:
         /bin/rebol -qws system/tests/run-all.r --batch
 
     # upload log file if any test failed
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v7
       if: failure()
       with:
         name: Linux-RS-Tests-log

@@ -80,7 +80,7 @@ native: context [
 					s: as series! native/more/value
 					stack/set-last s/offset
 				][
-					table: either TYPE_OF(native) = TYPE_NATIVE [natives/table][actions/table]
+					table: either any [type = TYPE_NATIVE TYPE_OF(native) = TYPE_NATIVE][natives/table][actions/table]
 					index: 0
 					until [index: index + 1 native/code = table/index]
 					return as red-block! integer/box index

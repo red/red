@@ -314,13 +314,43 @@ port: context [
 		logic/push match?
 		call-function actors words/_find
 	]
+
+	append: func [
+		port	[red-object!]
+		value	[red-value!]
+		part	[integer!]
+		only?	[logic!]
+		dup		[integer!]
+		events? [logic!]
+		return:	[red-value!]
+		/local
+			actors [red-object!]
+			part?  [logic!]
+			dup?   [logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "port/append"]]
+
+		part?: part > -1
+		dup?: dup > 1
+		actors: get-actors as red-object! port
+		stack/mark-func words/_insert actors/ctx
+		stack/push as red-value! port
+		stack/push value
+		logic/push part?
+		either part? [integer/push part][none/push]
+		logic/push only?
+		logic/push dup?
+		either dup? [integer/push dup][none/push]
+		;logic/push events?
+		call-function actors words/_append
+	]
 	
 	insert: func [
 		port	[red-object!]
 		value	[red-value!]
-		part	[red-value!]
+		part	[integer!]
 		only?	[logic!]
-		dup		[red-value!]
+		dup		[integer!]
 		append? [logic!]
 		return:	[red-value!]
 		/local
@@ -330,18 +360,18 @@ port: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "port/insert"]]
 
-		part?: OPTION?(part)
-		dup?: OPTION?(dup)
+		part?: part > -1
+		dup?: dup > 1
 		actors: get-actors as red-object! port
 		stack/mark-func words/_insert actors/ctx
 		stack/push as red-value! port
 		stack/push value
 		logic/push part?
-		either part? [stack/push part][none/push]
+		either part? [integer/push part][none/push]
 		logic/push only?
 		logic/push dup?
-		either dup? [stack/push dup][none/push]
-		logic/push append?
+		either dup? [integer/push dup][none/push]
+		;logic/push append?
 		call-function actors words/_insert
 	]
 	
@@ -766,18 +796,24 @@ port: context [
 		lines?	[logic!]
 		info?	[logic!]
 		append? [logic!]
-		part	[red-value!]
+		part-arg[red-value!]
 		seek	[red-value!]
 		allow	[red-value!]
 		as-arg	[red-value!]
 		return:	[red-value!]
 		/local
 			result [red-value!]
+			int	   [red-integer!]
+			part   [integer!]
 			seek?  [logic!]
 			flags  [red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "port/write"]]
-		
+
+		part: either TYPE_OF(part-arg) <> TYPE_INTEGER [-1][
+			int: as red-integer! part-arg
+			int/value
+		]	
 		seek?: OPTION?(seek)
 		result: stack/push*
 
@@ -794,8 +830,8 @@ port: context [
 		]
 
 		open port no no yes seek? no none-value
-		insert port data part no none-value no
-		copy port result part no none-value
+		insert port data part no 1 no
+		copy port result part-arg no none-value
 		close port
 		result
 	]
@@ -833,7 +869,7 @@ port: context [
 			null			;or~
 			null			;xor~
 			;-- Series actions --
-			null			;append
+			:append
 			:at
 			:back
 			:change

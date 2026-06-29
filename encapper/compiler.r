@@ -194,7 +194,8 @@ red: context [
 		not find "/~" first file
 	]
 	
-	process-include-paths: func [code [block!] /local rule file][
+	process-include-paths: func [code [block!] /local rule file saved-script-path][
+		saved-script-path: script-path
 		parse code rule: [
 			some [
 				#include file: (
@@ -210,6 +211,7 @@ red: context [
 				| skip
 			]
 		]
+		script-path: saved-script-path
 	]
 	
 	process-calls: func [code [block!] /global /local rule pos mark][
@@ -456,6 +458,7 @@ red: context [
 		either all [
 			rebol-gctx <> obj: bind? original
 			ctx: select shadow-funcs obj
+			name <> 'self
 		][
 			emit append to path! type 'push-local
 			emit ctx
@@ -986,8 +989,9 @@ red: context [
 		none
 	]
 	
-	to-context-spec: func [spec [block!]][
+	to-context-spec: func [spec [block!] /local pos][
 		spec: copy spec
+		if pos: find spec 'self [remove pos]			;-- avoid setting object/self to none (issue #5687)
 		forall spec [spec/1: to set-word! spec/1]
 		append spec none
 		make object! spec
@@ -1751,9 +1755,9 @@ red: context [
 					insert-lf -2
 				]
 				percent? [
-					value: to decimal! to string! copy/part value back tail value
+					value: to string! copy/part value back tail value
 					emit 'percent/push64
-					emit-float value / 100.0
+					emit-float to decimal! append value "e-2"	;-- scale by 1/100 in a single rounding step (#5753)
 					insert-lf -3
 				]
 				special? [
@@ -2014,7 +2018,7 @@ red: context [
 								append words either func? [function!][none]
 							]
 						]
-					) 
+					)
 					| #include (comp-include/only pos) :pos
 					| skip
 				]
@@ -4292,15 +4296,19 @@ red: context [
 		]
 	]
 	
-	comp-include: func [pc [block!] /only /local file saved version mark script-file cache?][
+	comp-include: func [pc [block!] /only /local file saved version mark script-file cache? saved-script-path saved-include-stk][
 		unless file? file: pc/2 [
 			throw-error ["#include requires a file argument:" pc/2]
 		]
 		cache?: in-cache? file
+		if only [saved-include-stk: copy include-stk]
 		append include-stk script-path
+		saved-script-path: script-path
 
-		script-path: either all [not booting? relative-path? file][
+		if all [not booting? relative-path? file][
 			file: clean-path join any [script-path main-path] file
+		]
+		script-path: either find file slash [
 			first split-path file
 		][
 			none
@@ -4312,22 +4320,27 @@ red: context [
 		either find included-list file [
 			script-path: take/last include-stk
 			remove/part pc 2
+			if only [script-path: saved-script-path]
 		][
 			script-file: file
 			if all [slash <> first file	script-path][
-				script-file: clean-path join script-path file
+				script-file: clean-path join script-path pc/2
 			]
 			append script-stk script-file
 			emit reduce [						;-- force a newline at head
 				#script script-file
 			]
 			saved: script-name
-			insert skip pc 2 #pop-path
+			unless only [insert skip pc 2 #pop-path]
 			src: load-source/header file
 			src: preprocessor/expand src job
 			change/part pc next src 2			;@@ Header skipped, should be processed
 			script-name: saved
 			append included-list file
+			if only [
+				script-path: saved-script-path
+				include-stk: saved-include-stk
+			]
 			unless any [only empty? expr-stack][comp-expression]
 		]
 	]
@@ -4559,6 +4572,15 @@ red: context [
 		]
 	]
 	
+	store-header: func [spec [block!] /local saved][
+		unless empty? spec [
+			saved: pc
+			pc: compose/only [system/script/header: construct/with (spec) system/standard/header]
+			comp-block
+			pc: saved
+		]
+	]
+	
 	register-object: func [obj [word! path!] name /store /local pos prev entry o][
 		if pos: any [
 			all [path? obj object? o: do head insert copy obj 'objects find-object o]
@@ -4698,13 +4720,20 @@ red: context [
 		append output [#user-code]
 		foreach module needed [
 			saved: if script-path [copy script-path]
+			saved-main: if main-path [copy main-path]
+			saved-include-stk: copy include-stk
+			saved-script-stk: copy script-stk
 			script-path: first split-path module
 			pc: next preprocessor/expand load-source/hidden module job
 			unless job/red-help? [clear-docstrings pc]
 			comp-block
 			script-path: saved
+			main-path: saved-main
+			include-stk: saved-include-stk
+			script-stk: saved-script-stk
 		]
 
+		store-header code/1
 		pc: code										;-- compile user code
 		user: tail output
 		comp-block
@@ -5029,12 +5058,11 @@ red: context [
 			job/red-pass?: yes
 			process-config src/1
 			preprocessor/expand/clean src job
-			if job/show = 'expanded [probe next src]
+			if job/show = 'expanded [probe next src]	;-- show postprocessed source file
 			process-fields src/1 next src
 			extracts/init job
 			if job/libRedRT? [libRedRT/init]
 			if file? file [system-dialect/collect-resources src/1 resources file]
-			src: next src
 			
 			if all [job/dev-mode? not job/libRedRT?][
 				defs: libRedRT/get-definitions
@@ -5051,6 +5079,10 @@ red: context [
 				needed: 		exclude needed defs/11	;-- exclude already compiled modules
 				shadow-funcs:	defs/12
 				make-keywords
+			]
+			print [
+				"...GUI backend      :" either find job/modules 'View [job/GUI-engine][#"-"] nl
+				"...Modules          :" either empty? job/modules [#"-"][mold/only job/modules]
 			]
 			either job/type = 'dll [comp-as-lib src][comp-as-exe src]
 		]

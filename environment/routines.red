@@ -61,11 +61,11 @@ last-lf?: routine ["Internal Use Only" /local bool [red-logic!]][
 	bool/value:	 natives/last-lf?
 ]
 
-get-current-dir: routine ["Returns the platform’s current directory for the process"][
+get-current-dir: routine ["Returns the platform's current directory for the process"][
 	stack/set-last as red-value! file/get-current-dir
 ]
 
-set-current-dir: routine ["Sets the platform’s current process directory" path [file!] /local dir [red-file!]][
+set-current-dir: routine ["Sets the platform's current process directory" path [file!] /local dir [red-file!]][
 	dir: as red-file! stack/arguments
 	unless platform/set-current-dir file/to-OS-path dir [
 		fire [TO_ERROR(access cannot-open) dir]

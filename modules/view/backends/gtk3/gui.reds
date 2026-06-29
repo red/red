@@ -40,6 +40,7 @@ default-font-width: as float32! 7.5		;-- pixel width
 gtk-font-name:		"Sans"
 gtk-font-size:		10
 
+dpi-factor:		as float32! 1.0
 screen-size-x:		0
 screen-size-y:		0
 
@@ -47,6 +48,20 @@ screen-size-y:		0
 	if any [x > 65535 y > 65535][
 		fire [TO_ERROR(script invalid-arg) size]
 	]
+]
+
+dpi-scale: func [
+	num		[float32!]
+	return: [integer!]
+][
+	as-integer num * dpi-factor + 0.5
+]
+
+dpi-unscale: func [
+	num		[float32!]
+	return: [float32!]
+][
+	num / dpi-factor
 ]
 
 get-face-obj: func [
@@ -247,7 +262,11 @@ set-widget-child: func [
 		pt		[red-point2D!]
 ][
 	sym: get-widget-symbol parent
-	GET_PAIR_XY_INT(offset x y)
+	either TYPE_OF(offset) = TYPE_NONE [
+		x: 0 y: 0
+	][
+		GET_PAIR_XY_INT(offset x y)
+	]
 	cvalues: get-face-values widget
 	ctype: as red-word! cvalues + FACE_OBJ_TYPE
 	csym: symbol/resolve ctype/symbol
@@ -315,7 +334,11 @@ set-widget-child-offset: func [
 		pt		[red-point2D!]
 		x y		[integer!]
 ][
-	GET_PAIR_XY_INT(pos x y)
+	either TYPE_OF(pos) = TYPE_NONE [
+		x: 0 y: 0
+	][
+		GET_PAIR_XY_INT(pos x y)
+	]
 	either type = window [
 		gtk_window_move widget x y
 	][
@@ -359,7 +382,7 @@ set-scroller-pos: func [
 	pos: as red-float! values + FACE_OBJ_DATA
 	sel: as red-float! values + FACE_OBJ_SELECTED
 
-	if TYPE_OF(pos) <> TYPE_FLOAT [pos/header: TYPE_FLOAT]
+	if all [TYPE_OF(pos) <> TYPE_PERCENT TYPE_OF(pos) <> TYPE_FLOAT][pos/header: TYPE_PERCENT]
 	adj: gtk_range_get_adjustment widget
 	pos/value: gtk_adjustment_get_value adj
 	
@@ -454,6 +477,7 @@ free-handles: func [
 		sec		[float!]
 		cfg		[integer!]
 		last	[handle!]
+		move	[window-move!]
 ][
 	if null? widget [exit]
 
@@ -478,6 +502,21 @@ free-handles: func [
 	]
 
 	if sym = window [
+		move: as window-move! g_object_get_qdata widget move-offset-id
+		unless null? move [
+			if move/source <> 0 [
+				g_source_remove move/source
+				g_object_unref widget
+			]
+			free as byte-ptr! move
+			g_object_set_qdata widget move-offset-id null
+		]
+		;-- #5696: explicitly clear our markers BEFORE destroy. GObject only
+		;-- runs g_datalist_clear in finalize, not in dispose, so if anyone
+		;-- holds an extra ref (do-events / OS-show-window pin) the qdata
+		;-- would otherwise survive the destroy and confuse the alive checks.
+		g_object_set_qdata widget red-face-id null
+		g_object_set_qdata widget in-loop-id null
 		gtk_widget_destroy widget
 		;-- TBD: don't know why widget has been destroyed, but still need do event loop
 		;-- otherwise the window can't be closed
@@ -595,7 +634,8 @@ set-defaults: func [
 	default-font-width: font-width? null null
 ]
 
-find-active-window: func [
+find-active-window-excluding: func [
+	skip		[handle!]
 	return:		[handle!]
 	/local
 		pane	[red-block!]
@@ -618,11 +658,12 @@ find-active-window: func [
 		TYPE_OF(pane) = TYPE_BLOCK
 		0 < num
 	][
-		ret: face-handle? as red-object! (block/rs-tail pane) - 1
+		ret: null
 		count: num - 1
 		loop num [
 			win: face-handle? as red-object! block/rs-abs-at pane count
-			unless null? win [
+			unless any [null? win win = skip][
+				if null? ret [ret: win]
 				if gtk_window_is_active win [
 					return win
 				]
@@ -633,6 +674,12 @@ find-active-window: func [
 	][
 		null
 	]
+]
+
+find-active-window: func [
+	return:		[handle!]
+][
+	find-active-window-excluding null
 ]
 
 find-last-window: func [
@@ -715,13 +762,46 @@ set-dark-mode: func [
 ][
 ]
 
+monitor-refresh-pending?:	no
+monitor-refresh-running?:	no
+
+monitor-refresh-cb: func [
+	[cdecl]
+	data	[int-ptr!]
+	return:	[logic!]
+][
+	monitor-refresh-pending?: no
+	if monitor-refresh-running? [
+		;-- Someone pumped the main loop (free-handles does this while
+		;-- destroying a window) while we were already refreshing.
+		;-- Re-arm so we run again after the in-flight call unwinds,
+		;-- with the latest monitor list.
+		monitor-refresh-pending?: yes
+		g_idle_add as func-ptr! :monitor-refresh-cb null
+		return false								;-- G_SOURCE_REMOVE
+	]
+	monitor-refresh-running?: yes
+	#call [system/view/platform/refresh-screens]
+	monitor-refresh-running?: no
+	false											;-- G_SOURCE_REMOVE
+]
+
 monitor-changed: func [
 	[cdecl]
 	display		[handle!]
 	monitor		[handle!]
 	user_data	[handle!]
 ][
-	#call [system/view/platform/refresh-screens]
+	;-- #5721: hibernate-resume emits a burst of monitor-added/-removed
+	;-- signals. refresh-screens destroys faces on vanished displays,
+	;-- and the gtk_main_iteration_do pump inside free-handles would
+	;-- otherwise dispatch the next queued monitor signal and re-enter
+	;-- this callback recursively, corrupting series state mid-iteration.
+	;-- Coalesce + defer onto the main-loop idle so refresh-screens
+	;-- always runs from a clean stack.
+	if monitor-refresh-pending? [exit]
+	monitor-refresh-pending?: yes
+	g_idle_add as func-ptr! :monitor-refresh-cb null
 ]
 
 init: func [/local disp [handle!]][
@@ -777,7 +857,11 @@ add-widget-timer: func [
 		data	[handle!]
 ][
 	;;g_object_ref_sink main-window
-	timer: g_timeout_add ts as integer! :red-timer-action widget
+	;-- Install the rate timer at idle priority (200), BELOW GDK_PRIORITY_REDRAW
+	;-- (G_PRIORITY_HIGH_IDLE + 20 = 120), so a high `rate` can never starve the
+	;-- widget's repaints: under load the timer ticks are dropped instead of the
+	;-- UI freezing while the synchronous on-time handler hogs the main loop.
+	timer: g_timeout_add_full 200 ts as integer! :red-timer-action widget null
 	g_object_set_qdata widget red-timer-id as int-ptr! timer
 ]
 
@@ -892,6 +976,11 @@ change-pane: func [
 		offset	[red-pair!]
 
 ][
+	if type = tab-panel [
+		set-tabs parent get-face-values parent
+		exit
+	]
+
 	layout: case [
 		type = window [
 			GET-CONTAINER(parent)
@@ -984,12 +1073,18 @@ change-size: func [
 		adj		[handle!]
 		pt		[red-point2D!]
 		sx sy	[integer!]
+		color	[red-tuple!]
 ][
 	GET_PAIR_XY_INT(size sx sy)
 	SET_PAIR_SIZE_FLAG(widget size)
 	CHECK_FACE_SIZE(size sx sy)
 	either type = window [
-		gtk_window_resize widget sx sy
+		suspend-window-size-events widget
+		either gtk_widget_get_mapped widget [
+			gtk_window_resize widget sx sy
+		][
+			gtk_window_set_default_size widget sx sy
+		]
 		gtk_widget_queue_draw widget
 	][
 		values: get-face-values widget
@@ -1003,18 +1098,37 @@ change-size: func [
 				min: gtk_adjustment_get_lower adj
 				max: gtk_adjustment_get_upper adj
 				page: gtk_adjustment_get_page_size adj
-				fy: as float! y
-				fy: max - min / page * fy
-				y: as-integer fy
+				if all [page > 0.0 max > min][
+					fy: as float! y
+					fy: (max - min) / page * fy
+					y: as-integer fy
+				]
 			]
 			gtk_widget_set_size_request layout sx sy
 			gtk_widget_queue_resize layout
 		]
+		if type = text [
+			set-label-size-limits widget values sx sy
+		]
 		if type = rich-text [
 			gtk_layout_set_size widget sx y
 		]
+		if type = group-box [
+			layout: gtk_bin_get_child widget
+			unless null? layout [
+				gtk_layout_set_size layout sx sy
+				gtk_widget_set_size_request layout sx sy
+				gtk_widget_queue_resize layout
+			]
+		]
 		gtk_widget_set_size_request widget sx sy
 		gtk_widget_queue_resize widget
+		;-- A transparent base draws into an offscreen surface sized at widget
+		;-- creation time. Resize the surface so the drawing isn't clipped.
+		if type = base [
+			color: as red-tuple! values + FACE_OBJ_COLOR
+			set-buffer widget sx sy color
+		]
 
 		if type = panel [
 			label: GET-CAPTION(widget)
@@ -1066,6 +1180,7 @@ change-text: func [
 		cstr	[c-string!]
 		str		[red-string!]
 		buffer	[handle!]
+		entry	[handle!]
 		start	[GtkTextIter! value]
 		end		[GtkTextIter! value]
 ][
@@ -1090,7 +1205,9 @@ change-text: func [
 			type = area [
 				buffer: gtk_text_view_get_buffer widget
 				g_signal_handlers_block_by_func(buffer :area-changed widget)
+				g_signal_handlers_block_by_func(buffer :area-selection-changed widget)
 				gtk_text_buffer_set_text buffer cstr -1
+				g_signal_handlers_unblock_by_func(buffer :area-selection-changed widget)
 				g_signal_handlers_unblock_by_func(buffer :area-changed widget)
 				gtk_text_buffer_get_bounds buffer as handle! start as handle! end
 				update-textview-tag buffer as handle! start as handle! end
@@ -1100,7 +1217,19 @@ change-text: func [
 			]
 			type = field [
 				buffer: gtk_entry_get_buffer widget
+				g_signal_handlers_block_by_func(widget :field-changed widget)
+				g_signal_handlers_block_by_func(widget :field-selection-changed widget)
 				gtk_entry_buffer_set_text buffer cstr -1
+				g_signal_handlers_unblock_by_func(widget :field-selection-changed widget)
+				g_signal_handlers_unblock_by_func(widget :field-changed widget)
+			]
+			type = drop-down [
+				entry: gtk_bin_get_child widget
+				g_signal_handlers_block_by_func(widget :combo-selection-changed widget)
+				g_signal_handlers_block_by_func(entry :drop-down-entry-changed widget)
+				gtk_entry_set_text entry cstr
+				g_signal_handlers_unblock_by_func(entry :drop-down-entry-changed widget)
+				g_signal_handlers_unblock_by_func(widget :combo-selection-changed widget)
 			]
 			any [type = button type = toggle type = radio type = check][
 				gtk_button_set_label widget cstr
@@ -1152,6 +1281,13 @@ change-data: func [
 			f: as red-float! data
 			gtk_range_set_value widget f/value * 100.0
 		]
+		all [type = slider TYPE_OF(data) <> TYPE_PERCENT TYPE_OF(data) <> TYPE_FLOAT][
+			;-- initialize slider data as percent if not already
+			f: as red-float! data
+			f/header: TYPE_PERCENT
+			f/value: 0.0
+			gtk_range_set_value widget 0.0
+		]
 		all [type = scroller TYPE_OF(data) = TYPE_FLOAT][
 			f: as red-float! data
 			flt: f/value
@@ -1161,18 +1297,26 @@ change-data: func [
 			adj: gtk_range_get_adjustment widget
 			gtk_adjustment_set_value adj flt
 		]
+		all [type = scroller TYPE_OF(data) <> TYPE_FLOAT][
+			;-- initialize scroller data as float if not already
+			f: as red-float! data
+			f/header: TYPE_FLOAT
+			f/value: 0.0
+			adj: gtk_range_get_adjustment widget
+			gtk_adjustment_set_value adj 0.0
+		]
 		any [
 			type = check
 			type = toggle
-		][
-			set-logic-state widget as red-logic! data yes
-		]
-		type = radio [
-			set-logic-state widget as red-logic! data no
-		]
-	; 	type = tab-panel [
-	; 		set-tabs widget get-face-values widget
-	; 	]
+			][
+				set-logic-state widget as red-logic! data yes
+			]
+			type = radio [
+				set-radio-state widget as red-logic! data
+			]
+			type = tab-panel [
+				set-tabs widget values
+			]
 		all [
 			type = text-list
 			TYPE_OF(data) = TYPE_BLOCK
@@ -1184,7 +1328,18 @@ change-data: func [
 			g_signal_handlers_unblock_by_func(widget :text-list-selected-rows-changed widget)
 		]
 		any [type = drop-list type = drop-down][
-			init-combo-box widget as red-block! data null type = drop-list
+			caption: null
+			if type = drop-down [
+				str: as red-string! values + FACE_OBJ_TEXT
+				if TYPE_OF(str) = TYPE_STRING [
+					len: -1
+					caption: unicode/to-utf8 str :len
+				]
+			]
+			init-combo-box widget as red-block! data caption type = drop-list selected
+		]
+		type = calendar [
+			change-calendar widget data
 		]
 		true [0]										;-- default, do nothing
 	]
@@ -1226,15 +1381,19 @@ change-selection: func [
 				default [0]
 			]
 			either type = field [
+				g_signal_handlers_block_by_func(widget :field-selection-changed widget)
 				gtk_editable_select_region widget idx idx + sz
+				g_signal_handlers_unblock_by_func(widget :field-selection-changed widget)
 			][
 				buffer: gtk_text_view_get_buffer widget
+				g_signal_handlers_block_by_func(buffer :area-selection-changed widget)
 				;; Careful! GtkTextIter! needs to be initialized first (so this weird call first!)
 				gtk_text_buffer_get_selection_bounds buffer as handle! ins as handle! bound
 				;; DEBUG: print [" pos : " idx "x" idx + sz lf]
 				gtk_text_iter_set_offset as handle! ins idx
 				gtk_text_iter_set_offset as handle! bound idx + sz
 				gtk_text_buffer_select_range buffer as handle! ins as handle! bound
+				g_signal_handlers_unblock_by_func(buffer :area-selection-changed widget)
 			]
 		]
 		type = scroller [
@@ -1249,17 +1408,25 @@ change-selection: func [
 		type = camera [
 			either idx < 0 [
 				stop-camera widget
+				int/header: TYPE_INTEGER
+				int/value: -1
 			][
-				select-camera widget idx
+				unless select-camera widget idx [
+					int/header: TYPE_INTEGER
+					int/value: -1
+				]
 			]
 		]
 		type = text-list [
 			g_signal_handlers_block_by_func(widget :text-list-selected-rows-changed widget)
-			select-text-list widget idx
+			unless select-text-list widget idx [
+				int/header: TYPE_INTEGER
+				int/value: -1
+			]
 			g_signal_handlers_unblock_by_func(widget :text-list-selected-rows-changed widget)
 		]
 		any [type = drop-list type = drop-down][
-			gtk_combo_box_set_active widget idx
+			apply-combo-selection widget int null type = drop-list
 		]
 	 	type = tab-panel [
 			select-tab widget int
@@ -1293,6 +1460,115 @@ set-hint-text: func [
 	]
 ]
 
+selected-focus-face?: func [
+	face	[red-object!]
+	return:	[logic!]
+	/local
+		values		[red-value!]
+		parent		[red-object!]
+		selected	[red-object!]
+		type		[red-word!]
+		sym			[integer!]
+][
+	values: object/get-values face
+	parent: as red-object! values + FACE_OBJ_PARENT
+	while [TYPE_OF(parent) = TYPE_OBJECT][
+		values: object/get-values parent
+		type: as red-word! values + FACE_OBJ_TYPE
+		sym: symbol/resolve type/symbol
+		if sym = window [
+			selected: as red-object! values + FACE_OBJ_SELECTED
+			return all [
+				TYPE_OF(selected) = TYPE_OBJECT
+				selected/ctx = face/ctx
+			]
+		]
+		parent: as red-object! values + FACE_OBJ_PARENT
+	]
+	false
+]
+
+deferred-grab-focus: func [
+	[cdecl]
+	self	[handle!]
+	return:	[logic!]
+	/local
+		pending	[integer!]
+		old-pending [integer!]
+		win		[handle!]
+		focus	[handle!]
+		old-focus [handle!]
+		focused? [logic!]
+		face	[red-object!]
+][
+	;-- g_object_ref pinned the widget at scheduling time; if it has since
+	;-- been unmapped or destroyed, skip the grab and just drop our ref.
+	if all [
+		not null? self
+		gtk_widget_is_visible self
+	][
+		old-focus: null
+		win: gtk_widget_get_toplevel self
+		unless null? win [
+			old-focus: gtk_window_get_focus win
+			if any [
+				old-focus = self
+				all [
+					not null? old-focus
+					gtk_widget_is_ancestor old-focus self
+				]
+			][
+				old-focus: null
+			]
+			unless null? old-focus [
+				SET-FOCUS-EVENT(old-focus 3)
+			]
+		]
+		SET-FOCUS-EVENT(self 1)
+		gtk_widget_grab_focus self
+		pending: as integer! g_object_get_qdata self focus-event-id
+		face: get-face-obj self
+		focused?: gtk_widget_is_focus self
+		unless focused? [
+			gtk_widget_child_focus self 0					;-- GTK_DIR_TAB_FORWARD
+			focused?: gtk_widget_is_focus self
+		]
+		unless focused? [
+			win: gtk_widget_get_toplevel self
+			unless null? win [
+				focus: gtk_window_get_focus win
+				unless null? focus [
+					focused?: any [
+						focus = self
+						gtk_widget_is_ancestor focus self
+					]
+				]
+			]
+		]
+		if all [
+			pending = 1
+			selected-focus-face? face
+		][
+			make-event self 0 EVT_FOCUS
+		]
+		SET-FOCUS-EVENT(self 0)
+		unless null? old-focus [
+			old-pending: as integer! g_object_get_qdata old-focus focus-event-id
+			if old-pending = 3 [
+				make-event old-focus 0 EVT_UNFOCUS
+			]
+			if any [
+				old-pending = 3
+				old-pending = 4
+			][
+				SET-FOCUS-EVENT(old-focus 0)
+			]
+		]
+	]
+	g_object_unref self
+	false											;-- G_SOURCE_REMOVE
+]
+
 set-selected-focus: func [
 	widget		[handle!]
 	/local
@@ -1305,7 +1581,14 @@ set-selected-focus: func [
 		face: as red-object! values + FACE_OBJ_SELECTED
 		if TYPE_OF(face) = TYPE_OBJECT [
 			handle: face-handle? face
-			unless null? handle [gtk_widget_grab_focus handle]
+			unless null? handle [
+				;-- Defer the grab to an idle callback. Calling
+				;-- gtk_widget_grab_focus synchronously from inside a
+				;-- focus-in/out signal handler re-enters GTK's focus
+				;-- state machine and crashes (issue #5672).
+				g_object_ref handle
+				g_idle_add as func-ptr! :deferred-grab-focus handle
+			]
 		]
 	]
 ]
@@ -1344,6 +1627,81 @@ set-logic-state: func [
 	if check? [
 		g_signal_handlers_unblock_by_func(widget :button-toggled widget)
 	]
+]
+
+block-radio-group-toggled: func [
+	widget	[handle!]
+	block?	[logic!]
+	/local
+		values	[red-value!]
+		parent	[red-object!]
+		pane	[red-block!]
+		head	[red-object!]
+		tail	[red-object!]
+		handle	[handle!]
+][
+	values: get-face-values widget
+	parent: as red-object! values + FACE_OBJ_PARENT
+	if TYPE_OF(parent) <> TYPE_OBJECT [exit]
+	pane: as red-block! (object/get-values parent) + FACE_OBJ_PANE
+	if TYPE_OF(pane) <> TYPE_BLOCK [exit]
+	head: as red-object! block/rs-head pane
+	tail: as red-object! block/rs-tail pane
+	while [head < tail][
+		handle: face-handle? head
+		unless null? handle [
+			if radio = get-widget-symbol handle [
+				either block? [
+					g_signal_handlers_block_by_func(handle :button-toggled handle)
+				][
+					g_signal_handlers_unblock_by_func(handle :button-toggled handle)
+				]
+			]
+		]
+		head: head + 1
+	]
+]
+
+sync-radio-group-data: func [
+	widget	[handle!]
+	/local
+		values	[red-value!]
+		parent	[red-object!]
+		pane	[red-block!]
+		head	[red-object!]
+		tail	[red-object!]
+		handle	[handle!]
+		bool	[red-logic!]
+][
+	values: get-face-values widget
+	parent: as red-object! values + FACE_OBJ_PARENT
+	if TYPE_OF(parent) <> TYPE_OBJECT [exit]
+	pane: as red-block! (object/get-values parent) + FACE_OBJ_PANE
+	if TYPE_OF(pane) <> TYPE_BLOCK [exit]
+	head: as red-object! block/rs-head pane
+	tail: as red-object! block/rs-tail pane
+	while [head < tail][
+		handle: face-handle? head
+		unless null? handle [
+			if radio = get-widget-symbol handle [
+				values: object/get-values head
+				bool: as red-logic! values + FACE_OBJ_DATA
+				bool/header: TYPE_LOGIC
+				bool/value: gtk_toggle_button_get_active handle
+			]
+		]
+		head: head + 1
+	]
+]
+
+set-radio-state: func [
+	widget	[handle!]
+	state	[red-logic!]
+][
+	block-radio-group-toggled widget yes
+	set-logic-state widget state no
+	sync-radio-group-data widget
+	block-radio-group-toggled widget no
 ]
 
 get-position-value: func [
@@ -1386,6 +1744,42 @@ get-screen-size: func [
 	pair/push screen-size-x screen-size-y
 ]
 
+sync-calendar: func [
+	widget		[handle!]
+	data		[red-value!]
+	/local
+		year	[integer!]
+		month	[integer!]
+		day		[integer!]
+][
+	year: 0 month: 0 day: 0
+	gtk_calendar_get_date widget :year :month :day
+	date/make-at data year month + 1 day 0.0 0 0 no no
+]
+
+change-calendar: func [
+	widget		[handle!]
+	data		[red-value!]
+	/local
+		dt		[red-date!]
+		year	[integer!]
+		month	[integer!]
+		day		[integer!]
+][
+	either TYPE_OF(data) = TYPE_DATE [
+		dt: as red-date! data
+		year: DATE_GET_YEAR(dt/date)
+		month: DATE_GET_MONTH(dt/date)
+		day: DATE_GET_DAY(dt/date)
+		g_signal_handlers_block_by_func(widget :calendar-changed widget)
+		gtk_calendar_select_month widget month - 1 year
+		gtk_calendar_select_day widget day
+		g_signal_handlers_unblock_by_func(widget :calendar-changed widget)
+	][
+		sync-calendar widget data
+	]
+]
+
 store-face-to-obj: func [
 	obj			[handle!]
 	face		[red-object!]
@@ -1393,16 +1787,64 @@ store-face-to-obj: func [
 	g_object_set_qdata obj red-face-id as int-ptr! references/store as red-value! face
 ]
 
+apply-combo-selection: func [
+	combo		[handle!]
+	selected	[red-integer!]
+	caption		[c-string!]
+	drop-list?	[logic!]
+	/local
+		idx		[integer!]
+		active	[integer!]
+		text	[c-string!]
+		face	[red-object!]
+		entry	[handle!]
+][
+	either TYPE_OF(selected) = TYPE_INTEGER [
+		idx: selected/value - 1
+	][
+		selected/header: TYPE_INTEGER
+		idx: -1
+	]
+	if idx < -1 [idx: -1]
+	entry: null
+	if not drop-list? [
+		entry: gtk_bin_get_child combo
+		g_signal_handlers_block_by_func(entry :drop-down-entry-changed combo)
+	]
+	g_signal_handlers_block_by_func(combo :combo-selection-changed combo)
+	gtk_combo_box_set_active combo idx
+	active: gtk_combo_box_get_active combo
+	either active >= 0 [
+		selected/value: active + 1
+		if null <> g_object_get_qdata combo red-face-id [
+			text: gtk_combo_box_text_get_active_text combo
+			face: get-face-obj combo
+			set-text combo face/ctx text
+		]
+	][
+		selected/value: -1
+		if all [not drop-list? caption <> null][
+			gtk_entry_set_text gtk_bin_get_child combo caption
+		]
+	]
+	g_signal_handlers_unblock_by_func(combo :combo-selection-changed combo)
+	unless null? entry [
+		g_signal_handlers_unblock_by_func(entry :drop-down-entry-changed combo)
+	]
+]
+
 init-combo-box: func [
 	combo		[handle!]
 	data		[red-block!]
 	caption		[c-string!]
 	drop-list?	[logic!]
+	selected	[red-integer!]
 	/local
 		str		[red-string!]
 		tail	[red-string!]
 		len		[integer!]
 		val		[c-string!]
+		entry	[handle!]
 ][
 	if any [
 		TYPE_OF(data) = TYPE_BLOCK
@@ -1412,19 +1854,58 @@ init-combo-box: func [
 		str:  as red-string! block/rs-head data
 		tail: as red-string! block/rs-tail data
 
+		g_signal_handlers_block_by_func(combo :combo-selection-changed combo)
+		entry: null
+		if not drop-list? [
+			entry: gtk_bin_get_child combo
+			g_signal_handlers_block_by_func(entry :drop-down-entry-changed combo)
+		]
 		;remove all items
 		gtk_combo_box_text_remove_all combo
 
-		if str = tail [exit]
-		while [str < tail][
-			if TYPE_OF(str) = TYPE_STRING [
-				len: -1
-				val: unicode/to-utf8 str :len
-				gtk_combo_box_text_append_text combo val
+		unless str = tail [
+			while [str < tail][
+				if TYPE_OF(str) = TYPE_STRING [
+					len: -1
+					val: unicode/to-utf8 str :len
+					gtk_combo_box_text_append_text combo val
+				]
+				str: str + 1
 			]
-			str: str + 1
+		]
+		unless null? entry [
+			g_signal_handlers_unblock_by_func(entry :drop-down-entry-changed combo)
+		]
+		g_signal_handlers_unblock_by_func(combo :combo-selection-changed combo)
+	]
+	apply-combo-selection combo selected caption drop-list?
+]
+
+change-menu-bar: func [
+	widget		[handle!]
+	menu		[red-block!]
+	/local
+		hMenu	[handle!]
+		winbox	[handle!]
+][
+	hMenu: GET-HMENU(widget)
+	unless null? hMenu [gtk_widget_destroy hMenu]
+	hMenu: null
+	if menu-bar? menu window [
+		hMenu: gtk_menu_bar_new
+		gtk_widget_show hMenu
+		build-menu menu hMenu widget
+		winbox: either gtk_window_get_modal widget [
+			gtk_dialog_get_content_area widget
+		][
+			gtk_bin_get_child widget
+		]
+		unless null? winbox [
+			gtk_box_pack_start winbox hMenu no yes 0
+			gtk_box_reorder_child winbox hMenu 0
 		]
 	]
+	SET-HMENU(widget hMenu)
 ]
 
 remove-entry: func [
@@ -1461,6 +1942,55 @@ font-width?: func [
 	(as float32! sz/width) / as float32! 10.0
 ]
 
+font-height?: func [
+	font		[red-object!]
+	return:		[integer!]
+	/local
+		attrs	[handle!]
+		free?	[logic!]
+		sz		[tagSIZE]
+][
+	free?: no
+	either all [
+		font <> null
+		TYPE_OF(font) = TYPE_OBJECT
+	][
+		attrs: create-pango-attrs null font
+		free?: yes
+	][
+		attrs: default-attrs
+	]
+	sz: pango-size? "Mg" attrs
+	if free? [pango_attr_list_unref attrs]
+	sz/height
+]
+
+set-label-size-limits: func [
+	label		[handle!]
+	values		[red-value!]
+	sx			[integer!]
+	sy			[integer!]
+	/local
+		font	[red-object!]
+		chars	[integer!]
+		height	[integer!]
+		lines	[integer!]
+		f32		[float32!]
+][
+	font: as red-object! values + FACE_OBJ_FONT
+	f32: (as float32! sx) / font-width? null font
+	chars: as-integer f32
+	if chars < 1 [chars: 1]
+	gtk_label_set_max_width_chars label chars
+
+	height: font-height? font
+	if height < 1 [height: 1]
+	lines: sy / height
+	if lines < 1 [lines: 1]
+	gtk_label_set_lines label lines
+	gtk_label_set_ellipsize label PANGO_ELLIPSIZE_END
+]
+
 update-scroller: func [
 	scroller	[red-object!]
 	flag		[integer!]
@@ -1477,20 +2007,25 @@ update-scroller: func [
 		max			[float!]
 		min			[float!]
 		n			[float!]
+		view-size	[float!]
 		range		[float!]
 		new-pos		[float!]
+		new-pos-int	[integer!]
+		pos-int		[red-integer!]
 		vs			[integer!]
 		hs			[integer!]
 		w			[integer!]
 		h			[integer!]
 		flags		[integer!]
+		type		[integer!]
 ][
 	values: object/get-values scroller
 	parent: as red-object! values + SCROLLER_OBJ_PARENT
 	vertical?: as red-logic! values + SCROLLER_OBJ_VERTICAL?
 	int: as red-integer! block/rs-head as red-block! (object/get-values parent) + FACE_OBJ_STATE
 	widget: as handle! int/value
-	container: get-face-layout widget rich-text
+	type: get-widget-symbol widget
+	container: get-face-layout widget type
 
 	int: as red-integer! values + flag
 	if flag = SCROLLER_OBJ_VISIBLE? [
@@ -1502,19 +2037,32 @@ update-scroller: func [
 		exit
 	]
 
-	either vertical?/value [
-		bar: gtk_scrollable_get_vadjustment widget
+	either all [container <> widget not null? container type <> rich-text][
+		either vertical?/value [
+			bar: gtk_scrolled_window_get_vadjustment container
+		][
+			bar: gtk_scrolled_window_get_hadjustment container
+		]
 	][
-		bar: gtk_scrollable_get_hadjustment widget
+		either vertical?/value [
+			bar: gtk_scrollable_get_vadjustment widget
+		][
+			bar: gtk_scrollable_get_hadjustment widget
+		]
 	]
-
-	SET-CONTAINER(bar scroller/ctx)
 
 	w: 0 h: 0
 	gtk_widget_get_size_request container :w :h
+	if type = rich-text [
+		gtk_layout_get_size widget :w :h
+		if w <= 0 [w: gtk_widget_get_allocated_width container]
+		if h <= 0 [h: gtk_widget_get_allocated_height container]
+		if w <= 0 [w: 1]
+		if h <= 0 [h: 1]
+	]
 
-	int: as red-integer! values + SCROLLER_OBJ_POS
-	pos: as float! int/value
+	pos-int: as red-integer! values + SCROLLER_OBJ_POS
+	pos: as float! pos-int/value
 	int: as red-integer! values + SCROLLER_OBJ_PAGE
 	page: as float! int/value
 	int: as red-integer! values + SCROLLER_OBJ_MIN
@@ -1522,7 +2070,30 @@ update-scroller: func [
 	int: as red-integer! values + SCROLLER_OBJ_MAX
 	max: as float! int/value
 
-	if max - min <= page [exit]
+	if max - min <= page [
+		pos-int/value: as-integer min
+		if type = rich-text [
+			either vertical?/value [
+				SET-SCROLL-Y(widget 0)
+			][
+				SET-SCROLL-X(widget 0)
+			]
+		]
+		exit
+	]
+
+	if null? bar [
+		pos-int/value: as-integer min
+		if type = rich-text [
+			either vertical?/value [
+				SET-SCROLL-Y(widget 0)
+			][
+				SET-SCROLL-X(widget 0)
+			]
+		]
+		exit
+	]
+	SET-CONTAINER(bar scroller/ctx)
 
 	switch flag [
 		SCROLLER_OBJ_POS [
@@ -1531,6 +2102,7 @@ update-scroller: func [
 			range: max - min - page + 1.0
 			if pos > range [pos: range]
 			if pos < 0.0 [pos: 0.0]
+			;pos-int/value: as-integer pos + min
 			either range <= 0.0 [new-pos: 1.0][
 				new-pos: pos / range
 			]
@@ -1540,14 +2112,48 @@ update-scroller: func [
 			range: max - min - page
 			new-pos: new-pos * range + min
 			gtk_adjustment_set_value bar new-pos
+			if type = rich-text [
+				new-pos-int: as-integer new-pos
+				either vertical?/value [
+					SET-SCROLL-Y(widget new-pos-int)
+				][
+					SET-SCROLL-X(widget new-pos-int)
+				]
+			]
 		]
 		SCROLLER_OBJ_PAGE
 		SCROLLER_OBJ_MAX [
-			n: as float! h
-			if all [page > 0.0 max - min > page][
-				n: max - min + 1.0 / page * n
-				h: as-integer n + 0.5
-				gtk_layout_set_size widget w h
+			if type = rich-text [
+				either vertical?/value [
+					n: as-float h
+				][
+					n: as-float w
+				]
+				view-size: n
+				if all [page > 0.0 max - min > page][
+					range: max - min
+					range: range + 1.0
+					range: range / page
+					n: range * n
+					either vertical?/value [
+						h: as-integer n + 0.5
+						if h < 1 [h: 1]
+					][
+						w: as-integer n + 0.5
+						if w < 1 [w: 1]
+					]
+					gtk_layout_set_size widget w h
+					gtk_widget_queue_resize widget
+					gtk_widget_queue_resize container
+					gtk_adjustment_configure
+						bar
+						gtk_adjustment_get_value bar
+						0.0
+						n
+						1.0
+						view-size
+						view-size
+				]
 			]
 		]
 		default [0]
@@ -1595,7 +2201,10 @@ parse-common-opts: func [
 		len: block/rs-length? options
 		if len % 2 <> 0 [exit]
 		while [len > 0][
-			if TYPE_OF(word) = TYPE_SET_WORD [
+			if any [
+				TYPE_OF(word) = TYPE_SET_WORD
+				TYPE_OF(word) = TYPE_WORD
+			][
 				sym: symbol/resolve word/symbol
 				case [
 					sym = _cursor [
@@ -1625,7 +2234,7 @@ parse-common-opts: func [
 					]
 					sym = caret [
 						obj: as red-object! word + 1
-						if TYPE_OF(word) = TYPE_OBJECT [
+						if TYPE_OF(obj) = TYPE_OBJECT [
 							owner: get-face-handle obj
 							SET-CARET-OWNER(widget owner)
 						]
@@ -1680,6 +2289,8 @@ fetch-monitor-info: func [
 	][dpi: 96]
 	if dpi < 96 [dpi: 96]
 
+	dpi-factor: (as float32! dpi) / as float32! 96.0
+
 	pair/make-at   alloc-tail s rec/x rec/y
 	pair/make-at   alloc-tail s rec/width rec/height
 	float/make-at  alloc-tail s (as-float dpi) / 96.0
@@ -1730,20 +2341,42 @@ OS-show-window: func [
 	/local
 		n		[integer!]
 		win		[handle!]
+		parent	[handle!]
 ][
 	win: as handle! widget
-	if gtk_window_get_modal win [gtk_window_set_transient_for win find-active-window]
+	if gtk_window_get_modal win [
+		parent: find-active-window-excluding win
+		unless null? parent [gtk_window_set_transient_for win parent]
+	]
 
 	gtk_widget_show win
 	n: 0
 	window-ready?: no
+	g_object_ref win								;-- #5696: pin win across the wait-for-ready
+													;-- loop. A timer with on-time can fire during
+													;-- this poll, run unview, and finalize the
+													;-- window memory. Without this ref, every probe
+													;-- of `win` after that point is a use-after-free.
 	until [		;-- process some events to make the window ready
 		do-events yes
 		n: n + 1
-		any [window-ready? n = 10000]
+		any [
+			window-ready?
+			n = 10000
+			null? g_object_get_qdata win red-face-id	;-- bail if window was destroyed during the poll
+		]
 	]
 	window-ready?: no
-	;set-selected-focus win
+	;-- Apply the window's `selected` facet now that all children have
+	;-- been realized. Previously this was done implicitly by
+	;-- connect-focus-events grabbing focus on every new focusable
+	;-- widget, but that caused issue #5672. Going through
+	;-- set-selected-focus is also the path that obeys the deferred
+	;-- g_idle_add guard, so it's safe even if invoked during an event.
+	if null <> g_object_get_qdata win red-face-id [		;-- skip if window was destroyed during the poll
+		set-selected-focus win
+	]
+	g_object_unref win								;-- release pin; win may finalize now
 ]
 
 set-buffer: func [
@@ -1752,14 +2385,24 @@ set-buffer: func [
 	y		[integer!]
 	color	[red-tuple!]
 	/local
-		buf [handle!]
+		buf		[handle!]
+		scale	[integer!]
+		fs		[float!]
 ][
 	unless transparent-base? color [exit]
 
 	buf: GET-BASE-BUFFER(widget)
 	if buf <> null [cairo_surface_destroy buf]
 
-	buf: cairo_image_surface_create CAIRO_FORMAT_ARGB32 x y
+	;-- Match the widget's device scale so HiDPI displays don't end up
+	;-- upscaling a logical-pixel buffer (which looks blurry).
+	scale: gtk_widget_get_scale_factor widget
+	if scale < 1 [scale: 1]
+	buf: cairo_image_surface_create CAIRO_FORMAT_ARGB32 x * scale y * scale
+	if scale > 1 [
+		fs: as-float scale
+		cairo_surface_set_device_scale buf fs fs
+	]
 	SET-BASE-BUFFER(widget buf)
 ]
 
@@ -1801,7 +2444,7 @@ OS-make-view: func [
 		fvalue		[float!]
 		f32			[float32!]
 		vertical?	[logic!]
-		rfvalue		[red-float!]
+		f			[red-float!]
 		attrs		[handle!]
 		handle		[handle!]
 		fradio		[handle!]
@@ -1810,6 +2453,7 @@ OS-make-view: func [
 		gm			[GdkGeometry! value]
 		sx sy		[integer!]
 		pt			[red-point2D!]
+		user-data	[int-ptr!]
 ][
 	stack/mark-native words/_body
 
@@ -1914,8 +2558,6 @@ OS-make-view: func [
 			set-scroller-pos widget values
 		]
 		sym = window [
-			;; FIXME TBD parent should not always be zero, view engine should set it.
-			;either all [parent <> 0 bits and FACET_FLAGS_MODAL <> 0] [
 			either bits and FACET_FLAGS_MODAL <> 0 [
 				widget: gtk_dialog_new
 				gtk_window_set_modal widget yes
@@ -1941,17 +2583,17 @@ OS-make-view: func [
 			if bits and FACET_FLAGS_NO_BTNS <> 0 [
 				gtk_window_set_deletable widget no					;-- hide Close button
 			]
-			
+
 			unless null? caption [gtk_window_set_title widget caption]
 
+			SET-CONTAINER-W(widget sx)
+			SET-CONTAINER-H(widget sy)
 			hMenu: null
 			if menu-bar? menu window [
 				hMenu: gtk_menu_bar_new
 				gtk_widget_show hMenu
 				build-menu menu hMenu widget
 				gtk_box_pack_start winbox hMenu no yes 0
-				SET-CONTAINER-W(widget sx)
-				SET-CONTAINER-H(widget sy)
 			]
 			SET-HMENU(widget hMenu)
 
@@ -1959,8 +2601,6 @@ OS-make-view: func [
 			gtk_layout_set_size container sx sy
 			gtk_widget_show container
 			gtk_box_pack_start winbox container yes yes 0
-			gtk_window_move widget offset/x offset/y
-
 			gtk_window_set_default_size widget sx sy
 			gtk_window_set_resizable widget (bits and FACET_FLAGS_RESIZE <> 0)
 			gm/min_width: 1
@@ -1976,6 +2616,7 @@ OS-make-view: func [
 		]
 		sym = calendar [
 			widget: gtk_calendar_new
+			change-calendar widget as red-value! data
 		]
 		sym = slider [
 			vertical?: sy > sx
@@ -1987,10 +2628,17 @@ OS-make-view: func [
 			gtk_range_set_value widget fvalue * 100.0
 			gtk_scale_set_has_origin widget no
 			gtk_scale_set_draw_value widget no
+			;-- ensure data is initialized as percent to avoid junk values
+			if all [TYPE_OF(data) <> TYPE_PERCENT TYPE_OF(data) <> TYPE_FLOAT][
+				f: as red-float! data
+				f/header: TYPE_PERCENT
+				f/value: fvalue
+			]
 		]
 		sym = text [
 			widget: gtk_label_new caption
 			gtk_label_set_line_wrap widget yes
+			set-label-size-limits widget values sx sy
 			container: gtk_event_box_new
 			gtk_container_add container widget
 		]
@@ -2014,6 +2662,12 @@ OS-make-view: func [
 			]
 			fvalue: get-fraction-value as red-float! data
 			gtk_progress_bar_set_fraction widget fvalue
+			;-- ensure data is initialized as percent to avoid junk values
+			if all [TYPE_OF(data) <> TYPE_PERCENT TYPE_OF(data) <> TYPE_FLOAT][
+				f: as red-float! data
+				f/header: TYPE_PERCENT
+				f/value: fvalue
+			]
 		]
 		sym = area [
 			widget: gtk_text_view_new
@@ -2023,10 +2677,15 @@ OS-make-view: func [
 			]
 			container: gtk_scrolled_window_new null null
 			gtk_container_add container widget
+			vadjust: gtk_scrolled_window_get_vadjustment container
+			gobj_signal_connect(vadjust "value_changed" :vbar-value-changed widget)
+			vadjust: gtk_scrolled_window_get_hadjustment container
+			gobj_signal_connect(vadjust "value_changed" :vbar-value-changed widget)
 		]
 		sym = group-box [
 			widget: gtk_frame_new caption
 			buffer: gtk_layout_new null null
+			gtk_layout_set_size buffer sx sy
 			gtk_widget_show buffer
 			gtk_container_add widget buffer
 		]
@@ -2046,20 +2705,23 @@ OS-make-view: func [
 				gtk_scrolled_window_set_shadow_type container 3
 			]
 			gtk_container_add container widget
+			vadjust: gtk_scrolled_window_get_vadjustment container
+			gobj_signal_connect(vadjust "value_changed" :vbar-value-changed widget)
+			vadjust: gtk_scrolled_window_get_hadjustment container
+			gobj_signal_connect(vadjust "value_changed" :vbar-value-changed widget)
 		]
 		any [
 			sym = drop-list
 			sym = drop-down
 		][
 			widget: either sym = drop-list [gtk_combo_box_text_new][gtk_combo_box_text_new_with_entry]
-			init-combo-box widget data caption sym = drop-list
+			init-combo-box widget data caption sym = drop-list selected
 			if sym = drop-down [
 				if sx > 64 [value: sx - 64]
 				if value < 24 [value: 24]
 				f32: (as float32! value) / (font-width? face font)	;-- width / char width
 				gtk_entry_set_width_chars gtk_bin_get_child widget as-integer f32
 			]
-			gtk_combo_box_set_active widget 0
 		]
 		true [
 			;-- search in user-defined classes
@@ -2100,7 +2762,14 @@ OS-make-view: func [
 			]
 		]
 		set-widget-child-offset as handle! parent widget offset sym
-		change-visible widget show?/value sym
+		either all [parent <> 0 tab-panel = get-widget-symbol as handle! parent][
+			handle: as handle! parent
+			g_signal_handlers_block_by_func(handle :tab-panel-switch-page handle)
+			change-visible widget yes sym
+			g_signal_handlers_unblock_by_func(handle :tab-panel-switch-page handle)
+		][
+			change-visible widget show?/value sym
+		]
 		change-size widget size sym
 	]
 
@@ -2177,6 +2846,7 @@ OS-update-view: func [
 
 	int: int + 1
 	flags: int/value
+	int/value: 0										;-- clear flags first, so a re-entrant update-view (eg. triggered by on-unfocus inside change-pane) doesn't re-process the same flags
 
 	if flags and FACET_FLAG_OFFSET <> 0 [
 		change-offset widget values as red-pair! values + FACE_OBJ_OFFSET type
@@ -2225,7 +2895,7 @@ OS-update-view: func [
 	if flags and FACET_FLAG_COLOR <> 0 [
 		change-color widget as red-tuple! values + FACE_OBJ_COLOR type
 	]
-	if all [flags and FACET_FLAG_PANE <> 0 type <> tab-panel][
+	if flags and FACET_FLAG_PANE <> 0 [
 		change-pane widget as red-block! values + FACE_OBJ_PANE type
 	]
 	if flags and FACET_FLAG_RATE <> 0 [
@@ -2237,13 +2907,10 @@ OS-update-view: func [
 	if flags and FACET_FLAG_PARA <> 0 [
 		change-para widget face values type
 	]
-	;if flags and FACET_FLAG_MENU <> 0 [
-	;	menu: as red-block! values + FACE_OBJ_MENU
-	;	if menu-bar? menu window [
-	;		DestroyMenu GetMenu widget
-	;		SetMenu widget build-menu menu CreateMenu
-	;	]
-	;]
+	if all [type = window flags and FACET_FLAG_MENU <> 0][
+		menu: as red-block! values + FACE_OBJ_MENU
+		change-menu-bar widget menu
+	]
 	if flags and FACET_FLAG_IMAGE <> 0 [
 		change-image widget as red-image! values + FACE_OBJ_IMAGE type
 	]
@@ -2253,8 +2920,6 @@ OS-update-view: func [
 
 	gtk_widget_queue_draw widget
 	;]
-
-	int/value: 0										;-- reset flags
 ]
 
 unlink-sub-obj: func [
@@ -2303,6 +2968,7 @@ OS-destroy-view: func [
 	if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj PARA_OBJ_PARENT]
 
 	free-handles handle no
+	remove-tab-page handle
 ]
 
 OS-update-facet: func [
@@ -2324,11 +2990,26 @@ OS-update-facet: func [
 	;; DEBUG: print ["update-facet " get-symbol-name sym lf]
 
 	case [
-		; sym = facets/pane [
-		; 	sym: action/symbol
-		; 	;; DEBUG: print ["update pane action " get-symbol-name sym lf]
-		; 	pane: as red-block! value
-		; ]
+		sym = facets/pane [
+			word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
+			type: symbol/resolve word/symbol
+			if type = tab-panel [
+				sym: action/symbol
+				widget: get-face-handle face
+				if any [
+					sym = words/_remove/symbol
+					sym = words/_take/symbol
+					sym = words/_clear/symbol
+				][
+					g_signal_handlers_block_by_func(widget :tab-panel-switch-page widget)
+					loop part [
+						gtk_notebook_remove_page widget index
+					]
+					g_signal_handlers_unblock_by_func(widget :tab-panel-switch-page widget)
+				]
+				set-tabs widget get-face-values widget
+			]
+		]
 		sym = facets/data [
 			word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
 			type: symbol/resolve word/symbol
@@ -2341,9 +3022,10 @@ OS-update-facet: func [
 				; 	if zero? part [exit]
 				; 	update-combo-box face value sym new index part yes
 				; ]
-				; type = tab-panel [
-				; 	update-tabs face value sym new index part
-				; ]
+					type = tab-panel [
+						widget: get-face-handle face
+						set-tabs widget get-face-values widget
+					]
 				true [OS-update-view face]
 			]
 		]
@@ -2368,6 +3050,18 @@ OS-to-image: func [
 		ret		[red-image!]
 		pt		[red-point2D!]
 		sx sy	[integer!]
+		surf	[handle!]
+		cr		[handle!]
+		render	[handle!]
+		bar		[handle!]
+		scroll-x scroll-y [float!]
+		scroll-x-int scroll-y-int [integer!]
+		rx ry	[integer!]
+		pos		[red-pair! value]
+		values	[red-value!]
+		draw	[red-block!]
+		img		[red-image!]
+		color	[red-tuple!]
 ][
 	word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
 	type: symbol/resolve word/symbol
@@ -2396,17 +3090,124 @@ OS-to-image: func [
 			either null? widget [ret: as red-image! none-value][
 				size: as red-pair! (object/get-values face) + FACE_OBJ_SIZE
 				offset: as red-point2D! (object/get-values face) + FACE_OBJ_OFFSET
-				win: gtk_widget_get_window widget
-				either not null? win [
-					GET_PAIR_XY_INT(size sx sy)
-					pixbuf: either type = window [
-						gdk_pixbuf_get_from_window win 0 0 sx sy
-					][
-						gdk_pixbuf_get_from_window win as-integer offset/x as-integer offset/y sx sy
+				GET_PAIR_XY_INT(size sx sy)
+				either any [sx <= 0 sy <= 0][
+					ret: as red-image! none-value
+				][
+					loop 3 [do-events yes]
+					gdk_window_process_all_updates
+					face: get-face-obj widget
+					pixbuf: null
+					if type = base [
+						values: object/get-values face
+						draw: as red-block! values + FACE_OBJ_DRAW
+						if TYPE_OF(draw) = TYPE_BLOCK [
+							img: as red-image! values + FACE_OBJ_IMAGE
+							color: as red-tuple! values + FACE_OBJ_COLOR
+							surf: cairo_image_surface_create CAIRO_FORMAT_ARGB32 sx sy
+							cr: cairo_create surf
+							if all [
+								TYPE_OF(color) = TYPE_TUPLE
+								not all [
+									TUPLE_SIZE?(color) = 4
+									color/array1 and FF000000h = FF000000h
+								]
+							][
+								set-source-color cr get-tuple-color color
+								cairo_rectangle cr 0.0 0.0 as float! sx as float! sy
+								cairo_fill cr
+							]
+							if TYPE_OF(img) = TYPE_IMAGE [
+								GDK-draw-image null cr OS-image/to-pixbuf img 0 0 sx sy
+							]
+							render-text cr face size values
+							do-draw cr null draw no yes no yes
+							cairo_destroy cr
+							cairo_surface_flush surf
+							pixbuf: gdk_pixbuf_get_from_surface surf 0 0 sx sy
+							cairo_surface_destroy surf
+						]
 					]
-					ret: image/init-image as red-image! stack/push* OS-image/load-pixbuf pixbuf
-					;g_object_unref pixbuf
-				][ret: as red-image! none-value]
+					if type = rich-text [
+						surf: cairo_image_surface_create CAIRO_FORMAT_ARGB32 sx sy
+						cr: cairo_create surf
+						scroll-x-int: GET-SCROLL-X(widget)
+						scroll-y-int: GET-SCROLL-Y(widget)
+						scroll-x: as-float scroll-x-int
+						scroll-y: as-float scroll-y-int
+						render: get-face-layout widget type
+						gtk_render_background
+							gtk_widget_get_style_context widget
+							cr
+							0.0 0.0
+							as float! sx as float! sy
+						if all [render <> widget not null? render][
+							cairo_translate cr 0.0 - scroll-x 0.0 - scroll-y
+						]
+						pos/header: TYPE_PAIR
+						pos/x: 0
+						pos/y: 0
+						draw-text-box cr :pos face 0 no yes
+						cairo_destroy cr
+						cairo_surface_flush surf
+						pixbuf: gdk_pixbuf_get_from_surface surf 0 0 sx sy
+						cairo_surface_destroy surf
+					]
+					if type = window [
+						win: gtk_widget_get_window widget
+						unless null? win [
+							rx: 0
+							ry: 0
+							if 0 <> gdk_window_get_origin win :rx :ry [
+								render: gdk_get_default_root_window
+								unless null? render [
+									pixbuf: gdk_pixbuf_get_from_window render rx ry sx sy
+								]
+							]
+						]
+					]
+					rx: 0
+					ry: 0
+					if null? pixbuf [
+						win: gtk_widget_get_window widget
+						unless null? win [
+							if type <> window [
+								render: gtk_widget_get_parent_window widget
+								if win = render [
+									render: gtk_widget_get_toplevel widget
+									either all [
+										not null? render
+										gtk_widget_translate_coordinates widget render 0 0 :rx :ry
+									][
+										win: gtk_widget_get_window render
+									][
+										rx: as-integer offset/x
+										ry: as-integer offset/y
+									]
+								]
+							]
+							unless null? win [
+								pixbuf: gdk_pixbuf_get_from_window win rx ry sx sy
+							]
+						]
+					]
+					if null? pixbuf [
+						win: gtk_widget_get_window widget
+						if not null? win [
+							pixbuf: either type = window [
+								gdk_pixbuf_get_from_window win 0 0 sx sy
+							][
+								gdk_pixbuf_get_from_window win as-integer offset/x as-integer offset/y sx sy
+							]
+						]
+					]
+					either null? pixbuf [
+						ret: as red-image! none-value
+					][
+						ret: image/init-image as red-image! stack/push* OS-image/load-pixbuf pixbuf
+						;g_object_unref pixbuf
+					]
+				]
 			]
 		]
 	]

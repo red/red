@@ -168,7 +168,7 @@ Red [
 
 	; --test-- "#330"
 		; TODO
-		; not sure what is the buggy behaviour, there’s no example
+		; not sure what is the buggy behaviour, there's no example
 
 	--test-- "#331"
 		foo331: func [] ["ERR"]
@@ -590,8 +590,7 @@ Red [
 			]
 		]
 
-		fx560 [a [b c d]]
-		s560: ""
+		fx560 [a [b c d]] s560: ""
 		--assert equal? "01:a,01:b,1:c,1:d,]]" s560
 		unset [fx560 s560]
 
@@ -3100,6 +3099,14 @@ comment {
 		err4260: try [add none none]
 		--assert to-logic find form err4260 "add does not"
 
+	--test-- "#4281"
+		data4281: "   123   "
+		repend data4281 [trim data4281]
+		--assert data4281 = "123123"
+		data4281: "   123   "
+		insert tail data4281 reduce [trim data4281]
+		--assert data4281 = "123123"
+
 	--test-- "#4299"
 		foreach v reduce [
 			system system/words system/lexer system/build
@@ -3795,7 +3802,7 @@ comment {
 	--test-- "#5609"
 		saved-dir: what-dir
 		change-dir qt-tmp-dir
-		make-dir d5609: %123456789_123
+		make-dir d5609: %123456789_123/
 		change-dir d5609
 		--assert string? to-local-file/full %1
 		change-dir %../
@@ -3818,7 +3825,131 @@ comment {
 		--assert 5 = length? data/1
 		--assert (charset [not "§"]) == charset [not #"§"]
 		--assert (charset [not "§"]) == make bitset! [not #{000000000000000000000000000000000000000001}]
+
+	--test-- "#5692"
+		--assert 28 = body-of :<
 		
+	--test-- "#5695"
+		--assert error? try [skip [1] 2x4]
+		--assert error? try [at [1] 2x4]
+		
+	--test-- "#5711"
+		e: make error! "test message" ()
+		--assert (form e) = (form e)
+	
+	--test-- "#5715"
+		--assert $0 == make money! "0"
+		--assert $1 == make money! "1"
+		--assert $9 == make money! "9"
+		--assert $10 == make money! "10"
+		--assert $0.01 == make money! "0.01"
+		--assert $0.01 == make money! "$0.01"
+		
+	--test-- "#5724"
+		register-scheme make system/standard/scheme [name: 'debug title: "DEBUG" actor: context [
+			open: function [port] [port/state: 'open port]
+			insert: function [port value] [port/state: value port]
+		]]
+		insert open debug:// "crash"
+		--assert true									;-- just check that it didn't crash
+		
+	--test-- "#5726"
+		--assert 1 = get in object [a: 1] quote a:
+		o5724: object [a: 2]
+		--assert 2 = o5724/(quote a:)
+	
+#if config/OS <> 'Windows [
+	--test-- "#5732"
+		 call/output "echo $(id)" s5732: ""
+		 --assert empty? s5732
+]
+
+	--test-- "#5734"
+		foreach b [
+			#{52454442494E0200010000000C0000003500000000000000FFFFFFFF}		;-- FFFFh x FFFFh
+			#{52454442494E0200010000000C0000003500000000000000FFDFFFDF}		;-- DFFFh x DFFFh
+			#{52454442494E0200010000000C000000350000000000000000C000C0}		;-- C000h x C000h
+		][
+			--assert error? set 'err try [load/as b 'redbin]
+			--assert err/id = 'rb-invalid-record
+		]
+
+	--test-- "#5736"
+		--assert error? set 'err try [length? b: enbase/base (s: append/dup make {} n: 1 << 28 + 100000 "x" n) 2]
+		--assert err/id = 'too-long
+
+	--test-- "#5737"
+		v5737: make vector! [integer! 32 16]
+		append v5737 1
+		--assert v5737 = make vector! [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1]
+		--assert error? try [make vector! [integer! 32 1'600'000'000]]
+
+	--test-- "#5738"
+		blk5738: load/as #{
+52454442494E0200010000001400000005000000006CCA88010000000B00000001000000
+} 'redbin
+		--assert error? set 'err try [sort/stable blk5738]
+		--assert err/id = 'too-long
+
+	--test-- "#5739"
+		--assert error? try [make vector! 700'000'000]
+		
+	--test-- "#5740"
+		o5740: make object! [
+		    mutated?: false
+		    on-deep-change*: func [owner word target action new index part][
+		        if all [word = 'b not mutated?][
+		            mutated?: true
+		            clear b
+		            append/dup b 0 250000
+		        ]
+		    ]
+		    b: copy [1 2 3 4 5 6 7 8]
+		]
+		take/part o5740/b 2
+		--assert true
+		o5740/b: none
+
+	--test-- "#5741"
+		s5741: "1234567890"
+		--assert error? try [append/dup s5741 "x" 2147483647]
+		--assert error? try [insert/dup s5741 "x" 2147483647]
+
+	--test-- "#5746"
+		parse b5746: "12345" [skip p: 2 skip change :p ('x) to end] --assert b5746 == "1x45"
+		parse b5746: "12345" [skip p: 2 skip insert :p ('x) to end]	--assert b5746 == "1x2345"
+		parse b5746: "12345" [skip p: 2 skip remove :p to end] 		--assert b5746 == "145"	
+
+	--test-- "#5747"
+		v5747: make vector! [0 1 2 3 4 5 6 7 8 9]
+		--assert error? try [append/dup v5747 1 2147483647]
+		
+		v5747: make vector! [0 1 2 3 4 5 6 7 8 9]
+		--assert error? try [insert/dup v5747 1 2147483647]
+		
+		bin5747: #{00010203040506070809}
+		--assert error? try [append/dup bin5747 1 2147483647]
+		
+		bin5747: #{00010203040506070809}
+		--assert error? try [insert/dup bin5747 1 2147483647]
+		
+		blk5747: [0 1 2 3 4 5 6 7 8 9]
+		--assert error? try [append/dup blk5747 1 2147483647]
+		
+		blk5747: [0 1 2 3 4 5 6 7 8 9]
+		--assert error? try [insert/dup blk5747 1 2147483647]
+
+	--test-- "#5753"										;-- money * float/percent rejected non-5-fractional-digit operands
+		--assert not error? try [$124.23 * 15.99%]			;-- was: *** Script Error: cannot MAKE money! from: 0.15990000000000001
+		--assert ($124.23 * 15.99%) == $19.86437
+		--assert ($124.23 * 0.1599) == ($124.23 * 15.99%)	;-- percent! scales money like its decimal value
+		--assert not error? try [$100 * (1.0 / 3.0)]		;-- any computed float operand is clipped to money precision
+		--assert ($100 * 0.33333) == ($100 * (1.0 / 3.0))
+		--assert ($100 / (1.0 / 3.0)) == $300.00300
+		--assert (mold to float! 15.99%) = "0.1599"			;-- percent! literal is bit-exact, no /100 double-rounding (#5753)
+		--assert (mold to float! 99.999%) = "0.99999"
+		--assert ($124.23 * 99.999%) == ($124.23 * 0.99999)
+	
 ===end-group===
 
 ~~~end-file~~~

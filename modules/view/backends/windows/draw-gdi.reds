@@ -1917,6 +1917,8 @@ OS-draw-font: func [
 		update-gdiplus-font-color ctx get-tuple-color color
 		yes
 	][
+		unless ctx/on-image? [SetTextColor ctx/dc ctx/pen-color]
+		update-gdiplus-font-color ctx ctx/pen-color
 		no
 	]
 ]

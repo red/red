@@ -410,6 +410,7 @@ addrinfo!: alias struct! [
 					pen-style		[integer!]
 					pen-color		[integer!]					;-- 00bbggrr format
 					brush-color		[integer!]					;-- 00bbggrr format
+					font-color?		[logic!]
 					font-attrs		[integer!]
 					colorspace		[integer!]
 					grad-pen		[integer!]
@@ -478,6 +479,16 @@ addrinfo!: alias struct! [
 					pattern			[int-ptr!]
 				]
 
+				shadow!: alias struct! [
+					offset-x		[float!]
+					offset-y		[float!]
+					blur			[float!]
+					spread			[float!]
+					color			[integer!]
+					inset?			[logic!]
+					next			[shadow!]
+				]
+
 				#define DRAW_STATE_DATA [
 					matrix-order	[integer!]
 					device-matrix	[tagMATRIX value]
@@ -488,12 +499,27 @@ addrinfo!: alias struct! [
 					pen-color		[integer!]					;-- 00bbggrr format
 					brush-color		[integer!]					;-- 00bbggrr format
 					font-color		[integer!]
+					font-color?		[logic!]
 					font-attrs		[handle!]					;-- pango attrs for fonts
 					font-antialias  [integer!]					;-- cairo fonts antialias
 					grad-pen		[gradient! value]
 					grad-brush		[gradient! value]
 					pen?			[logic!]
 					brush?			[logic!]
+					shadow?			[logic!]
+					shadow-offset-x	[float!]
+					shadow-offset-y	[float!]
+					shadow-blur		[float!]
+					shadow-spread	[float!]
+					shadow-color	[integer!]
+					shadow-inset?	[logic!]
+					shadows			[shadow! value]
+					clip-path		[handle!]
+					clip-rule		[integer!]
+					clip-x1			[float!]
+					clip-y1			[float!]
+					clip-x2			[float!]
+					clip-y2			[float!]
 					on-image?		[logic!]
 				]
 
@@ -505,6 +531,9 @@ addrinfo!: alias struct! [
 					cr				[handle!]
 					DRAW_STATE_DATA
 					font-opts		[handle!]
+					utf8-buffer		[byte-ptr!]
+					utf8-buffer-size	[integer!]
+					font-ascent		[float!]
 					control-x		[float32!]
 					control-y		[float32!]
 					shape-curve?	[logic!]
@@ -554,6 +583,16 @@ addrinfo!: alias struct! [
 			pattern			[int-ptr!]
 		]
 
+		shadow!: alias struct! [
+			offset-x		[float!]
+			offset-y		[float!]
+			blur			[float!]
+			spread			[float!]
+			color			[integer!]
+			inset?			[logic!]
+			next			[shadow!]
+		]
+
 		#define DRAW_STATE_DATA [
 			matrix-order	[integer!]
 			device-matrix	[tagMATRIX value]
@@ -564,12 +603,21 @@ addrinfo!: alias struct! [
 			pen-color		[integer!]					;-- 00bbggrr format
 			brush-color		[integer!]					;-- 00bbggrr format
 			font-color		[integer!]
+			font-color?		[logic!]
 			font-attrs		[handle!]					;-- pango attrs for fonts
 			font-antialias  [integer!]					;-- cairo fonts antialias
 			grad-pen		[gradient! value]
 			grad-brush		[gradient! value]
 			pen?			[logic!]
 			brush?			[logic!]
+			shadow?			[logic!]
+			shadow-offset-x	[float!]
+			shadow-offset-y	[float!]
+			shadow-blur		[float!]
+			shadow-spread	[float!]
+			shadow-color	[integer!]
+			shadow-inset?	[logic!]
+			shadows			[shadow! value]
 			on-image?		[logic!]
 		]
 		
@@ -581,6 +629,9 @@ addrinfo!: alias struct! [
 			cr				[handle!]
 			DRAW_STATE_DATA
 			font-opts		[handle!]
+			utf8-buffer		[byte-ptr!]
+			utf8-buffer-size	[integer!]
+			font-ascent		[float!]
 			control-x		[float32!]
 			control-y		[float32!]
 			shape-curve?	[logic!]

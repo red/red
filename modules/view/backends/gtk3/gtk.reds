@@ -36,6 +36,8 @@ Red/System [
 #define G_TYPE_MAKE_FUNDAMENTAL(x) [x << 2]
 #define G_TYPE_INT		24 ;[G_TYPE_MAKE_FUNDAMENTAL(6)]
 
+#define func-ptr! int-ptr!
+
 RECT_STRUCT: alias struct! [
 	left		[integer!]
 	top			[integer!]
@@ -202,6 +204,13 @@ GdkGeometry!: alias struct! [
 	min_aspect	[float!]
 	max_aspect	[float!]
 	win_gravity	[integer!]
+]
+
+window-move!: alias struct! [
+	x		[float!]
+	y		[float!]
+	ready	[integer!]
+	source	[integer!]
 ]
 
 #enum GdkScrollDirection! [
@@ -496,6 +505,10 @@ PangoAttribute!: alias struct! [
 	PANGO_ALIGN_RIGHT
 ]
 
+#enum PangoTabAlign! [
+	PANGO_TAB_LEFT
+]
+
 #define PANGO_SCALE 1024
 #define PANGO_SCALE_XX_SMALL 0.5787037037037
 #define PANGO_SCALE_X_SMALL  0.6444444444444
@@ -742,6 +755,14 @@ GPtrArray!: alias struct! [
 			data		[int-ptr!]
 			return:		[integer!]
 		]
+		g_timeout_add_full: "g_timeout_add_full" [
+			priority	[integer!]
+			ts 			[integer!]
+			handler		[integer!]
+			data		[int-ptr!]
+			notify		[int-ptr!]
+			return:		[integer!]
+		]
 		g_timer_new: "g_timer_new" [
 			return:		[handle!]
 		]
@@ -763,7 +784,7 @@ GPtrArray!: alias struct! [
 			timer		[handle!]
 		]
 		g_idle_add: "g_idle_add" [
-			handler		[integer!]
+			handler		[func-ptr!]
 			data		[int-ptr!]
 			return:		[integer!]
 		]
@@ -849,6 +870,10 @@ GPtrArray!: alias struct! [
 		gdk_display_get_default: "gdk_display_get_default" [
 			return: 	[handle!]
 		]
+		gdk_display_get_name: "gdk_display_get_name" [
+			display		[handle!]
+			return:		[c-string!]
+		]
 		gdk_display_get_default_screen: "gdk_display_get_default_screen" [
 			display 	[handle!]
 			return: 	[handle!]
@@ -896,6 +921,16 @@ GPtrArray!: alias struct! [
 		]
 		gdk_monitor_get_height_mm: "gdk_monitor_get_height_mm" [
 			monitor		[handle!]
+			return:		[integer!]
+		]
+		gdk_window_get_frame_extents: "gdk_window_get_frame_extents" [
+			window		[handle!]
+			rect		[GdkRectangle!]
+		]
+		gdk_window_get_origin: "gdk_window_get_origin" [
+			window		[handle!]
+			x			[int-ptr!]
+			y			[int-ptr!]
 			return:		[integer!]
 		]
 		gdk_x11_window_get_xid: "gdk_x11_window_get_xid" [
@@ -1494,6 +1529,10 @@ GPtrArray!: alias struct! [
 			width		[integer!]
 			height		[integer!]
 		]
+		gtk_window_set_position: "gtk_window_set_position" [
+			window		[handle!]
+			position	[integer!]
+		]
 		gtk_window_set_resizable: "gtk_window_set_resizable" [
 			window		[handle!]
 			mode		[logic!]
@@ -1556,8 +1595,8 @@ GPtrArray!: alias struct! [
 		]
 		gtk_window_get_size: "gtk_window_get_size" [
 			window		[handle!]
-			width		[handle!]
-			height		[handle!]
+			width		[int-ptr!]
+			height		[int-ptr!]
 		]
 		gtk_window_propagate_key_event: "gtk_window_propagate_key_event" [
 			widget		[handle!]
@@ -1626,6 +1665,10 @@ GPtrArray!: alias struct! [
 		gtk_widget_queue_draw: "gtk_widget_queue_draw" [
 			widget		[handle!]
 		]
+		gtk_widget_get_scale_factor: "gtk_widget_get_scale_factor" [
+			widget		[handle!]
+			return:		[integer!]
+		]
 		gtk_widget_queue_draw_area: "gtk_widget_queue_draw_area" [
 			widget		[handle!]
 			x			[integer!]
@@ -1686,6 +1729,10 @@ GPtrArray!: alias struct! [
 			widget		[handle!]
 			return: 	[logic!]
 		]
+		gtk_widget_get_mapped: "gtk_widget_get_mapped" [
+			widget		[handle!]
+			return: 	[logic!]
+		]
 		gtk_widget_is_visible: "gtk_widget_is_visible" [
 			widget		[handle!]
 			return: 	[logic!]
@@ -1710,8 +1757,18 @@ GPtrArray!: alias struct! [
 			widget		[handle!]
 			return: 	[logic!]
 		]
+		gtk_widget_is_ancestor: "gtk_widget_is_ancestor" [
+			widget		[handle!]
+			ancestor	[handle!]
+			return: 	[logic!]
+		]
 		gtk_widget_grab_focus: "gtk_widget_grab_focus" [
 			widget		[handle!]
+		]
+		gtk_widget_child_focus: "gtk_widget_child_focus" [
+			widget		[handle!]
+			direction	[integer!]
+			return: 	[logic!]
 		]
 		gtk_widget_grab_default: "gtk_widget_grab_default" [
 			widget		[handle!]
@@ -1746,6 +1803,11 @@ GPtrArray!: alias struct! [
 			widget		[handle!]
 			return: 	[integer!]
 		]
+		gtk_widget_get_preferred_height: "gtk_widget_get_preferred_height" [
+			widget			[handle!]
+			minimum_height	[int-ptr!]
+			natural_height	[int-ptr!]
+		]
 		gtk_widget_get_can_focus: "gtk_widget_get_can_focus" [
 			widget		[handle!]
 			return:		[logic!]
@@ -1770,9 +1832,21 @@ GPtrArray!: alias struct! [
 			widget		[handle!]
 			return:		[logic!]
 		]
+		gtk_widget_get_type: "gtk_widget_get_type" [
+			return:		[integer!]
+		]
 		gtk_widget_get_parent: "gtk_widget_get_parent" [
 			widget		[handle!]
 			return:		[handle!]
+		]
+		gtk_widget_translate_coordinates: "gtk_widget_translate_coordinates" [
+			src			[handle!]
+			dest		[handle!]
+			src_x		[integer!]
+			src_y		[integer!]
+			dest_x		[int-ptr!]
+			dest_y		[int-ptr!]
+			return:		[logic!]
 		]
 		gtk_widget_get_toplevel: "gtk_widget_get_toplevel" [
 			widget		[handle!]
@@ -1916,6 +1990,11 @@ GPtrArray!: alias struct! [
 			fill		[logic!]
 			padding		[integer!]
 		]
+		gtk_box_reorder_child: "gtk_box_reorder_child" [
+			box			[handle!]
+			widget		[handle!]
+			position	[integer!]
+		]
 		gtk_fixed_new: "gtk_fixed_new" [
 			return:		[handle!]
 		]
@@ -1942,6 +2021,14 @@ GPtrArray!: alias struct! [
 		gtk_scrolled_window_set_vadjustment: "gtk_scrolled_window_set_vadjustment" [
 			win			[handle!]
 			adj			[handle!]
+		]
+		gtk_scrolled_window_get_vadjustment: "gtk_scrolled_window_get_vadjustment" [
+			win			[handle!]
+			return:		[handle!]
+		]
+		gtk_scrolled_window_get_hadjustment: "gtk_scrolled_window_get_hadjustment" [
+			win			[handle!]
+			return:		[handle!]
 		]
 		gtk_layout_put: "gtk_layout_put" [
 			layout		[handle!]
@@ -2118,6 +2205,14 @@ GPtrArray!: alias struct! [
 		gtk_label_set_line_wrap: "gtk_label_set_line_wrap" [
 			widget		[handle!]
 			wrap		[logic!]
+		]
+		gtk_label_set_ellipsize: "gtk_label_set_ellipsize" [
+			widget		[handle!]
+			mode		[PangoEllipsizeMode!]
+		]
+		gtk_label_set_lines: "gtk_label_set_lines" [
+			widget		[handle!]
+			lines		[integer!]
 		]
 		gtk_label_set_angle: "gtk_label_set_angle" [
 			widget		[handle!]
@@ -2419,6 +2514,11 @@ GPtrArray!: alias struct! [
 			page		[handle!]
 			return:		[c-string!]
 		]
+		gtk_notebook_set_tab_label_text: "gtk_notebook_set_tab_label_text" [
+			nb			[handle!]
+			child		[handle!]
+			text		[c-string!]
+		]
 		gtk_notebook_get_n_pages: "gtk_notebook_get_n_pages" [
 			nb			[handle!]
 			return:		[integer!]
@@ -2606,6 +2706,24 @@ GPtrArray!: alias struct! [
 		pango_layout_set_spacing: "pango_layout_set_spacing" [
 			layout		[handle!]
 			spacing		[integer!]
+		]
+		pango_layout_set_tabs: "pango_layout_set_tabs" [
+			layout		[handle!]
+			tabs		[handle!]
+		]
+		pango_tab_array_new: "pango_tab_array_new" [
+			initial_size		[integer!]
+			positions_in_pixels [logic!]
+			return:			[handle!]
+		]
+		pango_tab_array_set_tab: "pango_tab_array_set_tab" [
+			tab_array	[handle!]
+			tab_index	[integer!]
+			alignment	[PangoTabAlign!]
+			location	[integer!]
+		]
+		pango_tab_array_free: "pango_tab_array_free" [
+			tab_array	[handle!]
 		]
 		pango_layout_get_justify: "pango_layout_get_justify" [
 			layout		[handle!]
@@ -2964,6 +3082,16 @@ GPtrArray!: alias struct! [
 		cairo_clip: "cairo_clip" [
 			cr			[handle!]
 		]
+		cairo_copy_clip_rectangle_list: "cairo_copy_clip_rectangle_list" [
+			cr			[handle!]
+			return:		[handle!]
+		]
+		cairo_rectangle_list_destroy: "cairo_rectangle_list_destroy" [
+			list		[handle!]
+		]
+		cairo_reset_clip: "cairo_reset_clip" [
+			cr			[handle!]
+		]
 
 		cairo_line_to: "cairo_line_to" [
 			cr			[handle!]
@@ -3036,6 +3164,9 @@ GPtrArray!: alias struct! [
 			cr			[handle!]
 			return:		[handle!]
 		]
+		cairo_path_destroy: "cairo_path_destroy" [
+			path		[handle!]
+		]
 		cairo_append_path: "cairo_append_path" [
 			cr			[handle!]
 			path		[handle!]
@@ -3054,12 +3185,26 @@ GPtrArray!: alias struct! [
 			x			[float-ptr!]
 			y			[float-ptr!]
 		]
+		cairo_path_extents: "cairo_path_extents" [
+			cr			[handle!]
+			x1			[float-ptr!]
+			y1			[float-ptr!]
+			x2			[float-ptr!]
+			y2			[float-ptr!]
+		]
 		cairo_has_current_point: "cairo_has_current_point" [
 			cr			[handle!]
 			return:		[integer!]
 		]
 		cairo_stroke: "cairo_stroke" [
 			cr			[handle!]
+		]
+		cairo_stroke_extents: "cairo_stroke_extents" [
+			cr			[handle!]
+			x1			[float-ptr!]
+			y1			[float-ptr!]
+			x2			[float-ptr!]
+			y2			[float-ptr!]
 		]
 		cairo_fill: "cairo_fill" [
 			cr			[handle!]
@@ -3070,9 +3215,19 @@ GPtrArray!: alias struct! [
 		cairo_paint: "cairo_paint" [
 			cr			[handle!]
 		]
-		cairo_save: "cairo_save" [
-			cr			[handle!]
-		]
+			cairo_mask_surface: "cairo_mask_surface" [
+				cr			[handle!]
+				surface		[handle!]
+				x			[float!]
+				y			[float!]
+			]
+			cairo_mask: "cairo_mask" [
+				cr			[handle!]
+				pattern		[handle!]
+			]
+			cairo_save: "cairo_save" [
+				cr			[handle!]
+			]
 		cairo_scale: "cairo_scale" [
 			cr			[handle!]
 			x			[float!]
@@ -3133,6 +3288,10 @@ GPtrArray!: alias struct! [
 		cairo_set_operator: "cairo_set_operator" [
 			cr			[handle!]
 			mode		[integer!]
+		]
+		cairo_set_fill_rule: "cairo_set_fill_rule" [
+			cr			[handle!]
+			fill_rule	[integer!]
 		]
 		cairo_set_font_face: "cairo_set_font_face" [
 			cr			[handle!]
@@ -3221,8 +3380,36 @@ GPtrArray!: alias struct! [
 		cairo_pattern_create_mesh: "cairo_pattern_create_mesh" [
 			return:		[handle!]
 		]
+		cairo_mesh_pattern_begin_patch: "cairo_mesh_pattern_begin_patch" [
+			pattern		[handle!]
+		]
+		cairo_mesh_pattern_end_patch: "cairo_mesh_pattern_end_patch" [
+			pattern		[handle!]
+		]
+		cairo_mesh_pattern_move_to: "cairo_mesh_pattern_move_to" [
+			pattern		[handle!]
+			x			[float!]
+			y			[float!]
+		]
+		cairo_mesh_pattern_line_to: "cairo_mesh_pattern_line_to" [
+			pattern		[handle!]
+			x			[float!]
+			y			[float!]
+		]
+		cairo_mesh_pattern_set_corner_color_rgba: "cairo_mesh_pattern_set_corner_color_rgba" [
+			pattern		[handle!]
+			corner		[integer!]
+			red			[float!]
+			green		[float!]
+			blue		[float!]
+			alpha		[float!]
+		]
 		cairo_pattern_destroy: "cairo_pattern_destroy" [
 			pattern		[handle!]
+		]
+		cairo_pattern_reference: "cairo_pattern_reference" [
+			pattern		[handle!]
+			return:		[handle!]
 		]
 		cairo_pattern_create_for_surface: "cairo_pattern_create_for_surface" [
 			surface		[handle!]
@@ -3337,11 +3524,20 @@ GPtrArray!: alias struct! [
 		cairo_surface_destroy: "cairo_surface_destroy" [
 			surf		[handle!]
 		]
+		cairo_surface_set_device_scale: "cairo_surface_set_device_scale" [
+			surf		[handle!]
+			x_scale		[float!]
+			y_scale		[float!]
+		]
 		cairo_image_surface_get_data: "cairo_image_surface_get_data" [
 			surf		[handle!]
 			return:		[byte-ptr!]
 		]
 		cairo_image_surface_get_width: "cairo_image_surface_get_width" [
+			surf		[handle!]
+			return:		[integer!]
+		]
+		cairo_image_surface_get_height: "cairo_image_surface_get_height" [
 			surf		[handle!]
 			return:		[integer!]
 		]
@@ -3687,6 +3883,11 @@ base-buffer:		g_quark_from_string "base-buffer"
 base-enter:			g_quark_from_string "base-enter"
 pair-size-facet:	g_quark_from_string "pair-size-facet"
 draw-ctx-id:		g_quark_from_string "draw-ctx-id"
+move-offset-id:		g_quark_from_string "move-offset-id"
+size-suspend-id:	g_quark_from_string "size-suspend-id"
+focus-event-id:		g_quark_from_string "focus-event-id"
+scroll-x-id:		g_quark_from_string "scroll-x-id"
+scroll-y-id:		g_quark_from_string "scroll-y-id"
 ;im-string-id:		g_quark_from_string "im-string-id"
 ;im-start-id:		g_quark_from_string "im-start-id"
 
@@ -3710,6 +3911,8 @@ draw-ctx-id:		g_quark_from_string "draw-ctx-id"
 #define GET-CAPTION(s)			[g_object_get_qdata s caption-id]
 #define SET-IN-LOOP(s d)		[g_object_set_qdata s in-loop-id d]
 #define GET-IN-LOOP(s)			[g_object_get_qdata s in-loop-id]
+#define SET-SIZE-SUSPEND(s d)	[g_object_set_qdata s size-suspend-id d]
+#define GET-SIZE-SUSPEND(s)		[g_object_get_qdata s size-suspend-id]
 #define SET-MENU-KEY(s d)		[g_object_set_qdata s menu-key-id d]
 #define GET-MENU-KEY(s)			[g_object_get_qdata s menu-key-id]
 #define SET-FIRST-RADIO(s d)	[g_object_set_qdata s first-radio-id d]
@@ -3733,6 +3936,12 @@ draw-ctx-id:		g_quark_from_string "draw-ctx-id"
 #define SET-BASE-BUFFER(s d)	[g_object_set_qdata s base-buffer d]
 #define GET-BASE-BUFFER(s)		[g_object_get_qdata s base-buffer]
 #define SET-BASE-ENTER(s d)		[g_object_set_qdata s base-enter d]
+#define SET-FOCUS-EVENT(s d)	[g_object_set_qdata s focus-event-id as int-ptr! d]
+#define GET-FOCUS-EVENT(s)		[as integer! g_object_get_qdata s focus-event-id]
+#define SET-SCROLL-X(s d)		[g_object_set_qdata s scroll-x-id as int-ptr! d]
+#define GET-SCROLL-X(s)			[as integer! g_object_get_qdata s scroll-x-id]
+#define SET-SCROLL-Y(s d)		[g_object_set_qdata s scroll-y-id as int-ptr! d]
+#define GET-SCROLL-Y(s)			[as integer! g_object_get_qdata s scroll-y-id]
 #define GET-BASE-ENTER(s)		[g_object_get_qdata s base-enter]
 #define SET-PAIR-SIZE(s d)		[g_object_set_qdata s pair-size-facet d]
 #define GET-PAIR-SIZE(s)		[g_object_get_qdata s pair-size-facet]

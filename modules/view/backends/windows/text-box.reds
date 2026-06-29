@@ -297,6 +297,8 @@ OS-text-box-layout: func [
 		values	[red-value!]
 		str		[red-string!]
 		size	[red-pair!]
+		font	[red-object!]
+		fcolor	[red-tuple!]
 		int		[red-integer!]
 		bool	[red-logic!]
 		state	[red-block!]
@@ -318,7 +320,8 @@ OS-text-box-layout: func [
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
 
-	fmt: as this! create-text-format as red-object! values + FACE_OBJ_FONT box
+	font: as red-object! values + FACE_OBJ_FONT
+	fmt: as this! create-text-format font box
 
 	if null? target [
 		hWnd: face-handle? box
@@ -375,6 +378,13 @@ OS-text-box-layout: func [
 	if pval <> null [copy-cell as red-value! str pval + 2]		;-- save text
 	layout: create-text-layout str fmt w h
 	if pval <> null [handle/make-at pval as-integer layout handle/CLASS_RICHTEXT]
+	;-- base font foreground; data ranges layer above
+	if TYPE_OF(font) = TYPE_OBJECT [
+		fcolor: as red-tuple! (object/get-values font) + FONT_OBJ_COLOR
+		if TYPE_OF(fcolor) = TYPE_TUPLE [
+			OS-text-box-color as handle! target as handle! layout 0 string/rs-length? str get-tuple-color fcolor
+		]
+	]
 
 	styles: as red-block! values + FACE_OBJ_DATA
 	if all [

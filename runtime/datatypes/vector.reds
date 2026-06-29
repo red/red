@@ -124,7 +124,6 @@ vector: context [
 		if vec/type <> TYPE_OF(value) [
 			fire [TO_ERROR(script invalid-arg) value]
 		]
-
 		s: GET_BUFFER(vec)
 		unit: GET_UNIT(s)
 
@@ -149,26 +148,21 @@ vector: context [
 			s	  [series!]
 			p	  [byte-ptr!]
 			unit  [integer!]
+			len	  [integer!]
 	][
 		if vec/type <> TYPE_OF(value) [
 			fire [TO_ERROR(script invalid-arg) value]
 		]
-
 		s: GET_BUFFER(vec)
 		unit: GET_UNIT(s)
 
 		if ((as byte-ptr! s/tail) + unit) > ((as byte-ptr! s + 1) + s/size) [
 			s: expand-series s 0
 		]
-		p: (as byte-ptr! s/offset) + (offset << (log-b unit))
-
-		move-memory										;-- make space
-			p + unit
-			p
-			as-integer (as byte-ptr! s/tail) - p
-
+		p: (as byte-ptr! s/offset) + (offset << log-b unit)
+		len: as-integer (as byte-ptr! s/tail) - p
+		if len > 0 [move-memory	p + unit p len]			;-- make space
 		s/tail: as cell! (as byte-ptr! s/tail) + unit
-
 		set-value p value unit
 		s
 	]
@@ -369,7 +363,7 @@ vector: context [
 					string/append-escaped-char
 							buffer
 							get-value-int as int-ptr! p unit
-							string/ESC_CHAR
+							ESC_CHAR
 							all?
 					string/append-char GET_BUFFER(buffer) as-integer #"^""
 					part - 4
@@ -377,7 +371,7 @@ vector: context [
 					string/append-escaped-char
 							buffer
 							get-value-int as int-ptr! p unit
-							string/ESC_CHAR
+							ESC_CHAR
 							all?
 					part - 1
 				]
@@ -623,10 +617,12 @@ vector: context [
 			vec [red-vector!]
 			s	[series!]
 	][
+		if overflow? [size: size * unit][fire [TO_ERROR(internal no-memory)]]
+		
 		vec: as red-vector! slot
 		vec/header: TYPE_UNSET
 		vec/head: 	0
-		vec/node: 	alloc-bytes size * unit
+		vec/node: 	alloc-bytes size
 		vec/type:	type
 		vec/header: TYPE_VECTOR							;-- implicit reset of all header flags
 		
@@ -965,89 +961,75 @@ vector: context [
 	insert: func [
 		vec		 [red-vector!]
 		value	 [red-value!]
-		part-arg [red-value!]
+		part	 [integer!]
 		only?	 [logic!]
-		dup-arg	 [red-value!]
+		cnt		 [integer!]
 		append?	 [logic!]
 		return:	 [red-value!]
 		/local
 			src		  [red-block!]
-			cell	  [red-value!]
-			limit	  [red-value!]
+			slot	  [red-value!]
 			int		  [red-integer!]
 			sp		  [red-vector!]
-			s		  [series!]
-			s2		  [series!]
-			dup-n	  [integer!]
-			cnt		  [integer!]
-			part	  [integer!]
-			added	  [integer!]
-			tail?	  [logic!]
+			s s2	  [series!]
+			p p0	  [byte-ptr!]
+			type size added madded unit len lu right [integer!]
+			values?	tail? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "vector/insert"]]
 
-		dup-n: 1
-		cnt:   1
-		part: -1
-
-		if OPTION?(part-arg) [
-			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
-				int: as red-integer! part-arg
-				int/value
-			][
-				sp: as red-vector! part-arg
-				src: as red-block! value
-				unless all [
-					TYPE_OF(sp) = TYPE_OF(src)
-					sp/node = src/node
-				][
-					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
-				]
-				sp/head - src/head
-			]
-		]
-		if OPTION?(dup-arg) [
-			int: as red-integer! dup-arg
-			cnt: int/value
-			if negative? cnt [return as red-value! vec]
-			dup-n: cnt
-		]
-
 		s: GET_BUFFER(vec)
-		tail?: any [
-			(as-integer s/tail - s/offset) >> (log-b GET_UNIT(s)) = vec/head
-			append?
+		NORMALIZE_ANY_STRING_HEAD(vec)
+		unit: GET_UNIT(s)
+		len: (as-integer s/tail - s/offset) >> (log-b GET_UNIT(s))
+		tail?: any [append? len = vec/head]
+		
+		;-- Precalculate extra size --
+		type: TYPE_OF(value)
+		values?: ANY_LIST?(type)
+		either values? [
+			src: as red-block! value
+			s2: GET_BUFFER(src)
+			added: (as-integer s2/tail - (s2/offset + src/head)) >> 4
+			if zero? added [return as red-value! vec]
+			either part > 0 [if part < added [added: part]][part: added]
+		][
+			added: 1
 		]
-
-		while [not zero? cnt][							;-- /dup support
-			either TYPE_OF(value) = TYPE_BLOCK [		;@@ replace it with: typeset/any-block?
-				src: as red-block! value
-				s2: GET_BUFFER(src)
-				cell:  s2/offset + src/head
-				limit: cell + block/rs-length? src
-			][
-				cell:  value
-				limit: value + 1
+		if overflow? [
+			madded: added * cnt
+			size: (madded + len) * unit
+		][fire [TO_ERROR(internal no-memory)]]
+		
+		if size > s/size [
+			if s/size * 2 > size [size: 0]				;-- double existing space (0 arg) if size can fit into that
+			s: expand-series s size
+		]
+		lu: log-b unit
+		;-- If needed, move right part forward --
+		either tail? [p0: as byte-ptr! s/tail][
+			p0: (as byte-ptr! s/offset) + (vec/head << lu)
+			right: as-integer (as byte-ptr! s/tail) - p0
+			if right > 0 [move-memory p0 + (madded << lu) p0 right]	;-- move right segment to the right, making space
+		]
+		;-- Copy value(s) at insert point --
+		either values? [
+			src: as red-block! value
+			s2: GET_BUFFER(src)
+			slot:  s2/offset + src/head
+			p: p0
+			while [all [slot < s2/tail part > 0]][	;-- multiple values case
+				set-value p slot unit
+				p: p + unit
+				part: part - 1
+				slot: slot + 1
 			]
-			added: 0
-			
-			while [all [cell < limit added <> part]][	;-- multiple values case
-				either tail? [
-					rs-append vec cell
-				][
-					rs-insert vec vec/head + added cell
-				]
-				added: added + 1
-				cell: cell + 1
-			]
-			cnt: cnt - 1
+		][
+			set-value p0 value unit
 		]
-		unless append? [
-			added: added * dup-n
-			vec/head: vec/head + added
-			s: GET_BUFFER(vec)
-			assert (as byte-ptr! s/offset) + (vec/head << (log-b GET_UNIT(s))) <= as byte-ptr! s/tail
-		]
+		s/tail: as cell! (as byte-ptr! s/tail) + (madded << lu)
+		if cnt > 1 [dup-memory p0 added << lu cnt]		;-- /dup support
+		unless append? [vec/head: vec/head + madded]
 		as red-value! vec
 	]
 
@@ -1146,7 +1128,7 @@ vector: context [
 			:or~
 			:xor~
 			;-- Series actions --
-			null			;append
+			:insert			;append
 			INHERIT_ACTION	;at
 			INHERIT_ACTION	;back
 			INHERIT_ACTION	;change

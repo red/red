@@ -589,10 +589,7 @@ object: context [
 		cycles/push obj/ctx
 
 		while [sym < s-tail][
-			if part <= 0 [
-				cycles/pop
-				return part
-			]
+			if part <= 0 [cycles/pop return part]
 
 			w: as red-word! sym
 			id: symbol/resolve w/symbol
@@ -1292,6 +1289,7 @@ object: context [
 			ctx		 [red-context!]
 			old		 [red-value!]
 			res		 [red-value!]
+			type	 [integer!]
 			on-set?  [logic!]
 			do-error [subroutine!]
 	][
@@ -1305,7 +1303,8 @@ object: context [
 			]
 		]
 		word: as red-word! element
-		if TYPE_OF(word) <> TYPE_WORD [fire [TO_ERROR(script invalid-path) path element]]
+		type: TYPE_OF(word)
+		unless ANY_WORD?(type) [fire [TO_ERROR(script invalid-path) path element]]
 
 		res: null
 		ctx: GET_CTX(parent)

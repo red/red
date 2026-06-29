@@ -461,9 +461,8 @@ save: function [
 		][cause-error 'script 'invalid-refine-arg [/as format]] ;-- throw error if format is not supported
 	][
 		if length [header: true header-data: any [header-data copy []]]
-		if header [
-			if object? :header-data [header-data: body-of header-data]
-		]
+		if all [header object? :header-data][header-data: body-of header-data]
+		
 		if find [file! url!] type?/word where [
 			suffix: suffix? where
 			find-encoder?: no
@@ -493,8 +492,9 @@ save: function [
 				]
 				header-data [
 					header-str: copy "Red [^/"			;@@ mold header, use new-line instead
+					if object? header-data [header-data: body-of header-data]
 					foreach [k v] header-data [
-						append header-str reduce [#"^-" mold k #" " mold v newline]
+						if v [append header-str reduce [#"^-" mold k #" " mold v newline]]
 					]
 					append header-str "]^/^/"
 					insert data header-str
@@ -562,6 +562,7 @@ modulo: func [
 	return: [number! money! char! pair! tuple! vector! time!]
 	/local r
 ][
+	;if all [find left-op-ts a find right-op-ts][throw-error...]
 	r: mod a absolute b
 	either any [a - r = a r + b = b][0][r]
 ]
@@ -865,39 +866,52 @@ split-path: func [
 	reduce [dir pos]
 ]
 
-do-file: function ["Internal Use Only" file [file! url!] callback [function! none!]][
-	ws: charset " ^-^M^/"
-	saved: system/options/path
-	parse/case read file [some [src: "Red" opt "/System" any ws #"[" (found?: yes) break | skip]]
-	unless found? [cause-error 'syntax 'no-header reduce [file]]
-	
-	code: load/all src									;-- don't expand before we check the header
-	if code/1 = 'Red/System [cause-error 'internal 'red-system []]
-	header?: all [code/1 = 'Red block? header: code/2]
-	code: expand-directives next code					;-- skip the Red[/System] value
-	system/script/header: construct/with code/1 system/standard/header	;-- load header metadata
-	if file? file [
-		new-path: first split-path clean-path file
-		change-dir new-path
-		append system/state/source-files file
+do-file: function [
+	"Internal Use Only" file [file! url!] callback [function! none!] do-args
+	/local ws saved src code header? header list c done? found? obj
+][
+	do [
+		ws: charset " ^-^M^/"
+		saved: system/options/path
+		parse/case read file [some [src: "Red" opt "/System" any ws #"[" (found?: yes) break | skip]]
+		unless found? [cause-error 'syntax 'no-header reduce [file]]
+
+		code: load/all src									;-- don't expand before we check the header
+		if code/1 = 'Red/System [cause-error 'internal 'red-system []]
+		header?: all [code/1 = 'Red block? header: code/2]
+		code: expand-directives next code					;-- skip the Red[/System] value
+
+		obj: make system/script [
+			header: construct/with code/1 system/standard/header	;-- load header metadata
+			parent: system/script
+			path:	none
+			args:	do-args
+		]
+		if file? file [
+			obj/path: first split-path clean-path file
+			change-dir copy obj/path
+			append system/state/source-files file
+		]
+		if all [header? list: select header 'currencies][
+			foreach c list [append system/locale/currencies/list c]
+		]
+		if header? [code: next code]
+		if :callback [code: compose/only [do/trace (code) :callback]]
+		system/script: obj
+
+		set/any 'code try/all/keep [
+			set/any 'code catch/name code 'console
+			done?: yes
+			either 'halt-request = :code [print "(halted)"][:code]
+		]
+		if file? file [
+			change-dir saved
+			take/last system/state/source-files
+		]
+		system/script: obj/parent
+		if all [error? :code not done?][do :code]			;-- rethrow the error
+		:code
 	]
-	if all [header? list: select header 'currencies][
-		foreach c list [append system/locale/currencies/list c]
-	]
-	if header? [code: next code]
-	if :callback [code: compose/only [do/trace (code) :callback]]
-	
-	set/any 'code try/all/keep [
-		set/any 'code catch/name code 'console
-		done?: yes
-		either 'halt-request = :code [print "(halted)"][:code]
-	]
-	if file? file [
-		change-dir saved
-		take/last system/state/source-files
-	]
-	if all [error? :code not done?][do :code]			;-- rethrow the error
-	:code
 ]
 
 ;clear-cache: function [/only url][
@@ -1098,8 +1112,8 @@ show-memory-stats: function [data [block!]][
 	]
 	print [
 		"  --^/  Allocated: " total  "bytes^/"
-		"--^/Total allocated from OS:" pad/left form data/4 9 lf
-		"Total allocated on heap:" pad/left form data/5 9 lf
+		"--^/Total allocated from OS (virtual):" pad/left form data/4 9 lf
+		"Total allocated on heap (malloc):" pad/left form data/5 9 lf
 	]
 ]
 

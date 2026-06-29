@@ -766,7 +766,7 @@ context [
 		n
 	]
 
-	build-opt-header: func [job [object!] /local oh code-page code-base ep entry flags][
+	build-opt-header: func [job [object!] /local oh code-page code-base ep entry flags data-rva][
 		code-page: ep-mem-page
 		code-base: code-page * memory-align
 		
@@ -825,6 +825,9 @@ context [
 		oh/import-size:			length? job/sections/import/2
 		oh/IAT-addr:			named-sect-addr? job 'idata
 		oh/IAT-size:			length? job/sections/idata/2
+		data-rva:				section-addr?/memory job 'data
+		oh/TLS-addr:			static-link/pe-tls-rva? data-rva
+		oh/TLS-size:			static-link/pe-tls-size?
 		
 		if job/type = 'dll [
 			oh/export-addr:		named-sect-addr? job 'export
@@ -1182,6 +1185,10 @@ context [
 		
 		if find [dll drv] job/type [build-reloc job]
 
+		static-link/prepare-pe-tls job
+			section-addr?/memory job 'data
+			base-address
+
 		out: job/buffer
 		append out defs/image/MSDOS-header
 		build-header job	
@@ -1195,6 +1202,10 @@ context [
 
 		resolve-import-refs job							;-- resolve DLL imports references
 		resolve-data-refs job							;-- resolve data references
+		static-link/apply-relocs job					;-- patch external C object relocations
+			entry-point-address? job
+			(base-address + section-addr?/memory job 'data)
+			base-address
 
 		linker/set-image-info
 			job

@@ -53,6 +53,8 @@ form: make action! [[
 		value	  [any-type!]
 		/part "Limit the length of the result"
 			limit [integer!]
+;		/into "Provides an existing buffer to append the result to"
+;			out	  [string!]	"Output buffer"
 		return:	  [string!]
 	]
 	#get-definition ACT_FORM
@@ -66,6 +68,8 @@ mold: make action! [[
 		/flat "Exclude all indentation"
 		/part "Limit the length of the result"
 			limit [integer!]
+;		/into "Provides an existing buffer to append the result to"
+;			out	  [string!]	"Output buffer"
 		return:	  [string!]
 	]
 	#get-definition ACT_MOLD

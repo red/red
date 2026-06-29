@@ -747,14 +747,14 @@ make-profilable make target-class [
 		emit-i32 to-bin8 idx
 	]
 	
-	emit-load-local: func [opcode [binary!] offset [integer!] /float][
+	emit-load-local: func [opcode [binary!] offset [integer!] /float /alt][
 		if negative? offset [
 			opcode: copy opcode
 			opcode/2: #"^(7F)" and opcode/2			;-- clear bit 23 (U)
 		]
 		if float [offset: offset / 4]
 		offset: to-12-bit abs offset
-		;if alt [opcode: opcode or #{00001000}]		;-- use r1 instead of r0 
+		if alt [opcode: opcode or #{00001000}]		;-- use r1 instead of r0 
 		emit-i32 opcode or offset
 	]
 	
@@ -859,6 +859,7 @@ make-profilable make target-class [
 	emit-move-alt: does [emit-i32 #{e1a01000}]		;-- MOV r1, r0
 
 	emit-swap-regs: func [/alt][
+		if verbose >= 3 [print ">>>emitting SWAP"]
 		either alt [
 			emit-i32 #{e1a0c002}					;-- MOV r12, r2
 			emit-i32 #{e1a02000}					;-- MOV r2, r0
@@ -891,7 +892,6 @@ make-profilable make target-class [
 	
 	emit-alloc-stack: func [zeroed? [logic!]][
 		emit-i32 #{e04dd100}						;-- SUB sp, r0, LSL #2
-		;emit-i32 #{e3cdd003}						;-- BIC sp, sp #3 ; align to lower 32-bit bound
 		if zeroed? [
 			emit-i32 #{e1a03000}					;-- MOV r3, r0		; count
 			emit-i32 #{e1a02000}					;-- MOV r2, sp		; dst
@@ -903,10 +903,7 @@ make-profilable make target-class [
 	]
 
 	emit-free-stack: does [
-		emit-i32 #{e1e00100}						;-- NEG r0, LSL #2	; MVN r0, r0, LSL #2
-		emit-i32 #{e3c00003}						;-- AND r0, #-4
-		emit-i32 #{e1e00000}						;-- NEG r0			; align to upper bound
-		emit-i32 #{e08dd000}						;-- ADD sp, sp, r0
+		emit-i32 #{e08dd100}						;-- ADD sp, r0, LSL #2
 	]
 
 	emit-reserve-stack: func [slots [integer!] /local size][
@@ -1249,6 +1246,68 @@ make-profilable make target-class [
 			emit-i32 #{73a00000}					;-- MOVVC r0, #0
 		]
 	]
+
+	;-- OVERFLOW? construct support ---------------------------------------------
+	;-- Layout produced by an OVERFLOW? block:
+	;--     <body>            with hooks emitting B<cond> to ovf for each math/shift/div op
+	;--     MOV r0, #0        ; result = false
+	;--     B  +4             ; skip over the MOV r0, #1
+	;-- ovf:
+	;--     MOV r0, #1        ; result = true
+	;-- done:
+
+	emit-overflow-epilog-no-ovf: does [				;-- emitted just before the ovf: label
+		emit-i32 #{e3a00000}						;-- MOV r0, #0
+		emit-i32 #{ea000000}						;-- B +4 (PC-relative disp=0 skips next instruction)
+	]
+
+	emit-overflow-epilog-ovf: does [					;-- emitted right after the ovf: label
+		emit-i32 #{e3a00001}						;-- MOV r0, #1
+	]
+
+	;-- Emit a conditional B<cond> to the current OVERFLOW? block's ovf: label, using
+	;-- the back-patching machinery (same model as emit-jump-point uses for breaks).
+	;-- `cond-byte` is the condition value from the conditions table (cond nibble in upper 4 bits).
+	emit-overflow-branch: func [cond-byte [binary!] /local opcode][
+		opcode: copy #{0a000000}					;-- B<always>  (cond=0; OR'd with cond-byte below)
+		opcode/1: (to char! cond-byte/1) or to char! 10		;-- byte 1 = (cond << 4) | 0xA  (B opcode bits)
+		emit-reloc-addr last emitter/overflow-jumps
+		emit-i32 opcode
+	]
+
+	;-- Pre-IDIV signed INT_MIN / -1 check. Assumes r0 = dividend, r1 = divisor.
+	;-- Uses ARM conditional execution: only run the INT_MIN comparison if r1 == -1,
+	;-- otherwise the predicated MOVEQ/LSLEQ/CMPEQ all NOP and the final BEQ falls through.
+	emit-overflow-check-division: does [
+		emit-i32 #{e3710001}						;-- CMN   r1, #1     ; Z=1 iff r1 == -1
+		emit-i32 #{03a06001}						;-- MOVEQ r6, #1
+		emit-i32 #{01a06f86}						;-- LSLEQ r6, r6, #31 ; r6 = 0x80000000 (INT_MIN)
+		emit-i32 #{01560000}						;-- CMPEQ r6, r0    ; if r1==-1, Z=1 iff r0 == INT_MIN
+		emit-overflow-branch #{00}					;-- BEQ   ovf       (cond EQ = #{00}, back-patched)
+	]
+
+	;-- Pre-shift AND-mask check for << (literal count n, width-bit operand).
+	;-- Unsigned: top n bits (within width-bit value) must be 0     => TST r0, #mask ; BNE ovf
+	;-- Signed:   top n+1 bits must all match (width=4 only here)   => ADD ip, r0, #bias ; TST ip, #mask ; BNE ovf
+	;-- Uses emit-op-imm32 which auto-falls-back to LDR-from-pool when the immediate doesn't
+	;-- fit ARM's rotated 8-bit encoding (clobbers r3 in that path; ip preserves the bias).
+	emit-overflow-check-shift: func [n [integer!] /local mask bias bits][
+		if n = 0 [exit]								;-- no-op shift, never overflows
+		bits: 8 * width								;-- 8 (byte!), 16 (int16!), or 32 (integer!)
+		mask: either width = 4 [
+			shift/left -1 32 - n					;-- 32-bit: -1 << k avoids REBOL2 integer overflow
+		][
+			(shift/left -1 bits - n) and ((shift/left 1 bits) - 1)	;-- narrower: mask off bits above width
+		]
+		either all [signed? width = 4][				;-- signed bias trick only meaningful for integer! (width=4)
+			bias: shift/left 1 31 - n
+			emit-op-imm32 #{e280c000} bias			;-- ADD ip, r0, #bias
+			emit-op-imm32 #{e31c0000} mask			;-- TST ip, #mask
+		][
+			emit-op-imm32 #{e3100000} mask			;-- TST r0, #mask
+		]
+		emit-overflow-branch #{10}					;-- BNE ovf  (cond NE = #{10})
+	]
 	
 	emit-get-pc: does [
 		emit-i32 #{e1a0000f}						;-- MOV r0, pc
@@ -1525,15 +1584,20 @@ make-profilable make target-class [
 					]
 				][
 					either offset: emitter/local-offset? value [
-						emit-load-local #{e3000000} abs offset	;-- MOV r0, offset
-						emit-i32 either negative? offset [
-							#{e04b0000}				;-- SUB r0, fp, r0
+						either alt [
+							emit-load-local/alt #{e3000000} abs offset	;-- MOV r1, offset
 						][
-							#{e08b0000}				;-- ADD r0, fp, r0
+							emit-load-local #{e3000000} abs offset		;-- MOV r0, offset
+						]
+						alt: to-logic alt
+						emit-i32 either negative? offset [
+							pick [#{e04b1001} #{e04b0000}] alt ;-- SUB r0|r1, fp, r0|r1
+						][
+							pick [#{e08b1001} #{e08b0000}] alt ;-- ADD r0|r1, fp, r0|r1
 						]
 					][
 						pools/collect/spec 0 original
-						if PIC? [emit-i32 #{e0800009}]	;-- ADD r0, sb
+						if PIC? [emit-i32 either alt [#{e0811009}][#{e0800009}]] ;-- ADD r0|r1, sb
 					]
 				]
 			]
@@ -2151,6 +2215,11 @@ make-profilable make target-class [
 	]
 	
 	emit-bitshift-op: func [name [word!] a [word!] b [word!] args [block!] /local c value][
+		;-- OVERFLOW? instrumentation for << : AND-mask check on the high bits of r0 (or ADD + TST for signed).
+		;-- Only applied for literal shift counts (b = 'imm) per design; variable-count shifts are not instrumented.
+		if all [compiler/overflow-check? name = first [<<] b = 'imm find [1 2 4] width][
+			emit-overflow-check-shift compiler/unbox args/2
+		]
 		switch b [
 			ref [
 				emit-variable args/2
@@ -2331,6 +2400,7 @@ make-profilable make target-class [
 				switch b [
 					imm [
 						either all [
+							not compiler/overflow-check?	;-- skip LSLS trick under tracking (synthetic check needs r5 from SMULLS)
 							not zero? arg2
 							c: power-of-2? arg2		;-- trivial optimization for b=2^n
 						][
@@ -2384,6 +2454,10 @@ make-profilable make target-class [
 					][
 						either block? opcode [do opcode][emit-i32 opcode]
 					]
+				]
+				;-- OVERFLOW? instrumentation: pre-IDIV signed INT_MIN/-1 trap guard.
+				if all [compiler/overflow-check? width = 4][
+					emit-overflow-check-division
 				]
 				either compiler/job/cpu-version < 7.0 [
 					call-divide mod?
@@ -2505,6 +2579,29 @@ make-profilable make target-class [
 			find math-op	   name	[emit-math-op		name a b args]
 			find bitwise-op	   name	[emit-bitwise-op	name a b args]
 			find bitshift-op   name [emit-bitshift-op   name a b args]
+		]
+		;-- OVERFLOW? instrumentation: post-op check for +, -, *.
+		;-- (<<, /, //, % are instrumented at their emission sites since they need pre-op checks)
+		;-- width = 4 : use V/C flags directly (ADDS/SUBS/SMULLS set them on 32-bit overflow).
+		;-- width = 1 or 2 : ARM math is always 32-bit, so flags don't reflect narrower overflow.
+		;-- Operands are zero-extended on load (LDRB, LDRH), so a valid result must fit in
+		;-- 0..(2^(8*width) - 1); over-/under-flow makes r0 unsigned-higher than max.
+		if all [compiler/overflow-check? find [+ - *] name][
+			either width = 4 [
+				either name = '* [						;-- SMULLS overflow: high half (r5) must equal sign-extension of low half (r0)
+					emit-i32 #{e1550fc0}				;-- CMP r5, r0, ASR #31
+					emit-overflow-branch #{10}			;-- BNE ovf  (NE = #{10})
+				][
+					emit-overflow-branch case [
+						signed?    [#{60}]				;-- BVS  (signed overflow)
+						name = '+  [#{20}]				;-- BCS  (unsigned + carry-out)
+						'else      [#{30}]				;-- BCC  (unsigned - borrow: C=0 on ARM)
+					]
+				]
+			][											;-- width = 1 (byte!) or 2 (int16!)
+				emit-op-imm32 #{e3500000} (shift/left 1 8 * width) - 1	;-- CMP r0, #(2^bits - 1)
+				emit-overflow-branch #{80}				;-- BHI ovf  (unsigned higher: r0 > max)
+			]
 		]
 	]
 	
@@ -2937,14 +3034,7 @@ make-profilable make target-class [
 			emit-push <last>
 		][
 			if block? arg [arg: <last>]
-			either all [
-				fspec/3 = 'cdecl 
-				compiler/find-attribute fspec/4 'variadic	;-- only for vararg C functions
-			][
-				emit-push/cdecl arg					;-- promote float32! to float!
-			][
-				emit-push arg
-			]
+			emit-push arg							;-- C default promotions injected by compiler/promote-variadic
 		]
 	]
 	
@@ -2954,6 +3044,36 @@ make-profilable make target-class [
 		emit-i32 #{e1a0000c}						;-- MOV r0, ip
 	]
 	
+	align-variadic-stack-args: func [
+		;-- AAPCS rule C.7: a double-word argument passed on the stack must be 8-byte aligned.
+		;-- Variadic args are pushed contiguously, so an 8-byte value that spills to the stack
+		;-- after an odd number of 4-byte stacked slots needs a 4-byte pad inserted before it.
+		;-- Mirrors emit-AAPCS-header's core-register/stack allocation for scalar arguments.
+		args [block!] fspec [block!] /local ordered out reg stk size
+	][
+		ordered: reverse copy args					;-- args is in reversed push order; restore call order
+		out: make block! 2 + length? ordered
+		reg: stk: 0
+		if hidden-ptr? fspec [append/only out ordered/1  ordered: next ordered  reg: 1] ;-- struct-return ptr -> r0
+		foreach arg ordered [
+			either arg = #_ [append/only out arg][		;-- bypass place-holder marker
+				size: emitter/size-of? compiler/get-type arg
+				either reg >= 4 [					;-- argument spills onto the stack
+					if all [size = 8  (stk // 8) = 4][append out 0  stk: stk + 4] ;-- C.7 alignment pad
+					append/only out arg
+					stk: stk + any [size 4]
+				][									;-- argument still fits in core registers
+					append/only out arg
+					either size = 8 [
+						either reg <= 2 [if odd? reg [reg: reg + 1]  reg: reg + 2][stk: stk + 8  reg: reg + 2]
+					][reg: reg + 1]
+				]
+			]
+		]
+		clear args
+		insert args reverse out						;-- write the padded list back in push order
+	]
+
 	emit-stack-align-prolog: func [args [block!] fspec [block!] /local size tag blk][
 		;-- EABI stack 8 bytes alignment: http://infocenter.arm.com/help/topic/com.arm.doc.ihi0046b/IHI0046B_ABI_Advisory_1.pdf
 		; @@ to be optimized: infer stack alignment if possible, to avoid this overhead.
@@ -2961,8 +3081,9 @@ make-profilable make target-class [
 		emit-i32 #{e1a0c00d}						;-- MOV ip, sp
 		emit-i32 #{e3cdd007}						;-- BIC sp, sp, #7		; align sp to 8 bytes
 		if compiler/variadic? tag: args/1 [args: args/2]
-		size: max 16 emit-AAPCS-header/calc args fspec all [block? blk: fspec/4/1 blk]
-		unless zero? size // 8 [emit-i32 #{e24dd004}] ;-- SUB sp, sp, #4	; ensure call will be 8-bytes aligned
+		if all [tag = #variadic  fspec/3 = 'cdecl][align-variadic-stack-args args fspec] ;-- AAPCS C.7 stack padding
+		size: emit-AAPCS-header/calc args fspec all [block? blk: fspec/4/1 blk] ;-- bytes left on the stack at the call
+		unless zero? size // 8 [emit-i32 #{e24dd004}] ;-- SUB sp, sp, #4	; pad so SP is 8-byte aligned at the call (AAPCS)
 		emit-i32 #{e92d5000}						;-- PUSH {ip,lr}		; save previous sp and lr value
 	]
 
@@ -3005,35 +3126,40 @@ make-profilable make target-class [
 			emit-i32 #{e58b0000}					;-- STR r0, [fp, 0]
 			12
 		][
+			emit-i32 #{e51b2004}					;-- LDR r2, [fp, -4]
+			emit-i32 #{e92d0004}					;-- PUSH {r2}
+			emit-i32 #{e51b2008}					;-- LDR r2, [fp, -8]
+			emit-i32 #{e92d0004}					;-- PUSH {r2}
+			
 			emit-i32 #{e50b0004}					;-- STR r0, [fp, -4]
 			emit-op-imm32 #{e28f0000} body-size		;-- ADD r0, pc, #value
 			emit-i32 #{e50b0008}					;-- STR r0, [fp, -8]
-			12
+			28
 		]
 	]
 
-	emit-close-catch: func [offset [integer!] global? [logic!] callback? [logic!]][
+	emit-close-catch: func [offset [integer!] level [integer!] global? [logic!] callback? [logic!]][
 		either global? [
 			emit-i32 #{e3a00000}					;-- MOV r0, 0
 			emit-i32 #{e58b0000}					;-- STR r0, [fp, 0]
 			emit-i32 #{e58b0004}					;-- STR r0, [fp, 4]
 			emit-i32 #{e24bd008}					;-- SUB sp, fp, 8
 		][
-			emit-i32 #{e3a00000}					;-- MOV r0, 0
-			emit-i32 #{e50b0004}					;-- STR r0, [fp, -4]
-			emit-i32 #{e50b0008}					;-- STR r0, [fp, -8]
-			;offset: offset + 8						;-- account for the 2 catch slots on stack 
 			emit-i32 #{e1a0d00b}					;-- MOV sp, fp
 			
 			if callback? [offset: offset + (9 * 4) + (8 * 8)] ;-- skip saved regs: {r4-r11, lr}, {d8-d15}
-			offset: offset + locals-offset + 8 		;-- account for the 2 saved slots
-			
+			offset: offset + locals-offset + ((level + 1) * 8)  ;-- account for the 2 saved slots
+
 			either offset > 255 [
 				emit-load-imm32/reg offset 4
 				emit-i32 #{e04dd004}				;-- SUB sp, sp, r4
 			][
-				emit-i32 join #{e24dd0}	to char! offset ;-- SUB sp, sp, locals-size
+				emit-i32 join #{e24dd0}	to char! offset ;-- SUB sp, sp, offset
 			]
+			emit-i32 #{e8bd0001}					;-- POP {r0}
+			emit-i32 #{e50b0008}					;-- STR r0, [fp, -8]
+			emit-i32 #{e8bd0001}					;-- POP {r0}
+			emit-i32 #{e50b0004}					;-- STR r0, [fp, -4]
 		]
 	]
 

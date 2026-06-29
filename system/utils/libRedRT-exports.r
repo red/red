@@ -201,6 +201,7 @@
 
 	red/unicode/load-utf8
 	red/unicode/decode-utf8-char
+	red/unicode/convert-u16
 
 	red/object/unchanged?
 	red/object/unchanged2?
@@ -421,6 +422,7 @@
 	red/report
 	red/_context/set
 	red/string/load-at
+	exec/gui/OS-alert
 ][
 	red/root				red-block!
 	red/stk-bottom			int-ptr!

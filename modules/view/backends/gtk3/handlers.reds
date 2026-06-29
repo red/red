@@ -70,6 +70,7 @@ vbar-value-changed: func [
 		sc		[node!]
 		pos		[integer!]
 		values	[red-value!]
+		pos-val	[red-integer!]
 		min		[red-integer!]
 		max		[red-integer!]
 		page	[red-integer!]
@@ -77,32 +78,61 @@ vbar-value-changed: func [
 		lower	[float!]
 		upper	[float!]
 		v		[float!]
+		native	[float!]
 		pg		[float!]
 		bar		[handle!]
 		dir		[integer!]
+		native-int [integer!]
+		type	[integer!]
+		container [handle!]
 ][
 	sc: GET-CONTAINER(adj)
 	if sc <> null [
 		values: get-node-values sc
 
+		pos-val: as red-integer! values + SCROLLER_OBJ_POS
 		min:	as red-integer! values + SCROLLER_OBJ_MIN
 		max:	as red-integer! values + SCROLLER_OBJ_MAX
 		page:	as red-integer! values + SCROLLER_OBJ_PAGE
 		range:	max/value - page/value - min/value + 1
+		if range <= 0 [
+			;pos-val/value: min/value
+			exit
+		]
 
 		v: gtk_adjustment_get_value adj
+		native: v
 		lower: gtk_adjustment_get_lower adj
 		upper: gtk_adjustment_get_upper adj
 		pg: gtk_adjustment_get_page_size adj
 		pg: upper - lower - pg
+		if pg <= 0.0 [
+			;pos-val/value: min/value
+			exit
+		]
 
 		v: v / pg * (as float! range)
 		v: v + as float! min/value
-		pos: as-integer v		
+		pos: as-integer v
+		;pos-val/value: pos
 		pos: pos << 4
 
-		bar: gtk_scrollable_get_hadjustment widget
+		type: get-widget-symbol widget
+		container: get-face-layout widget type
+		either all [container <> widget not null? container][
+			bar: gtk_scrolled_window_get_hadjustment container
+		][
+			bar: gtk_scrollable_get_hadjustment widget
+		]
 		dir: as-integer bar = adj
+		if type = rich-text [
+			native-int: as-integer native
+			either zero? dir [
+				SET-SCROLL-Y(widget native-int)
+			][
+				SET-SCROLL-X(widget native-int)
+			]
+		]
 		SET-IN-LOOP(widget sc)
 		make-event widget dir << 3 or 2 or pos EVT_SCROLL
 		SET-IN-LOOP(widget null)
@@ -332,7 +362,7 @@ base-draw: func [
 		sym = rich-text [
 			pos/header: TYPE_PAIR
 			pos/x: 0 pos/y: 0
-			draw-text-box cr :pos get-face-obj widget yes
+			draw-text-box cr :pos get-face-obj widget 0 no yes
 		]
 		true []
 	]
@@ -633,7 +663,7 @@ im-retrieve-surrounding: func [
 	ctx			[handle!]
 	widget		[handle!]
 ][
-	print-line "retrieve"
+	;print-line "retrieve"
 	true
 ]
 
@@ -644,7 +674,7 @@ im-delete-surrounding: func [
 	chars		[integer!]
 	widget		[handle!]
 ][
-	print-line ["delet: " offset "x" chars]
+	;print-line ["delet: " offset "x" chars]
 	true
 ]
 
@@ -656,6 +686,60 @@ window-delete-event: func [
 	make-event widget 0 EVT_CLOSE
 ]
 
+wayland-display?: func [
+	return:		[logic!]
+	/local
+		display	[handle!]
+		name	[c-string!]
+][
+	display: gdk_display_get_default
+	if null? display [return no]
+	name: gdk_display_get_name display
+	all [
+		name <> null
+		name/1 = #"w"
+		name/2 = #"a"
+		name/3 = #"y"
+		name/4 = #"l"
+		name/5 = #"a"
+		name/6 = #"n"
+		name/7 = #"d"
+	]
+]
+
+valid-window-offset?: func [
+	x		[integer!]
+	y		[integer!]
+	return:	[logic!]
+][
+	;-- GDK can report the X11 "unknown position" sentinel after frame offsets
+	;-- have been applied, so it is not always exactly -32768x-32768.
+	not any [x <= -32000 y <= -32000]
+]
+
+arm-window-move: func [
+	[cdecl]
+	widget	[handle!]
+	return:	[logic!]
+	/local
+		move [window-move!]
+][
+	move: as window-move! g_object_get_qdata widget move-offset-id
+	if move <> null [
+		move/ready: 1
+		move/source: 0
+	]
+	g_object_unref widget
+	false
+]
+
+
+suspend-window-size-events: func [
+	widget	[handle!]
+][
+	SET-SIZE-SUSPEND(widget widget)
+]
+
 window-configure-event: func [
 	[cdecl]
 	evbox		[handle!]
@@ -665,15 +749,67 @@ window-configure-event: func [
 	/local
 		x		[integer!]
 		y		[integer!]
+		fx fy	[float32!]
 		offset	[red-pair!]
+		values	[red-value!]
+		pos		[red-point2D!]
+		move	[window-move!]
+		first?	[logic!]
+		old-x	[float!]
+		old-y	[float!]
+		ox oy	[integer!]
 ][
-	x: 0 y: 0
-	gtk_window_get_position widget :x :y
-	offset: (as red-pair! get-face-values widget) + FACE_OBJ_OFFSET
-	offset/x: x
-	offset/y: y
 	unless null? GET-STARTRESIZE(widget) [
 		SET-RESIZING(widget widget)
+	]
+	values: get-face-values widget
+	if values <> null [
+		x: 0 y: 0
+		if wayland-display? [return EVT_DISPATCH]
+		x: event/x
+		y: event/y
+		unless valid-window-offset? x y [return EVT_DISPATCH]
+		offset: as red-pair! values + FACE_OBJ_OFFSET
+		fx: dpi-unscale as float32! x
+		fy: dpi-unscale as float32! y
+		move: as window-move! g_object_get_qdata widget move-offset-id
+		first?: null? move
+		old-x: 0.0
+		old-y: 0.0
+		either first? [
+			move: as window-move! allocate size? window-move!
+			move/ready: 0
+			move/source: 0
+			g_object_set_qdata widget move-offset-id as int-ptr! move
+		][
+			old-x: move/x
+			old-y: move/y
+		]
+		move/x: as float! fx
+		move/y: as float! fy
+		if any [
+			not gtk_widget_get_mapped widget
+			move/ready = 0
+		][
+			if all [
+				gtk_widget_get_mapped widget
+				move/source = 0
+			][
+				g_object_ref widget
+				move/source: g_idle_add as func-ptr! :arm-window-move widget
+			]
+			return EVT_DISPATCH
+		]
+		if all [old-x = move/x old-y = move/y][return EVT_DISPATCH]
+		either TYPE_OF(offset) = TYPE_POINT2D [
+			pos: as red-point2D! offset
+			pos/x: fx
+			pos/y: fy
+		][
+			offset/x: as-integer fx
+			offset/y: as-integer fy
+		]
+		make-event widget 0 EVT_MOVING
 	]
 	EVT_DISPATCH
 ]
@@ -688,26 +824,42 @@ window-size-allocate: func [
 		cont	[handle!]
 		w		[integer!]
 		h		[integer!]
+		extra	[integer!]
+		mh		[integer!]
+		hMenu	[handle!]
 ][
 	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE
 	if null? GET-STARTRESIZE(widget) [
 		SET-STARTRESIZE(widget widget)
 	]
 
-	unless null? GET-HMENU(widget) [
-		cont: GET-CONTAINER(widget)
-		w: gtk_widget_get_allocated_width cont
-		h: gtk_widget_get_allocated_height cont
-		SET-CONTAINER-W(widget w)
-		SET-CONTAINER-H(widget h)
+	cont: GET-CONTAINER(widget)
+	w: gtk_widget_get_allocated_width cont
+	h: gtk_widget_get_allocated_height cont
+	SET-CONTAINER-W(widget w)
+	SET-CONTAINER-H(widget h)
+	extra: 0
+	hMenu: GET-HMENU(widget)
+	unless null? hMenu [
+		extra: gtk_widget_get_allocated_height hMenu
+		if extra = 0 [
+			mh: 0
+			gtk_widget_get_preferred_height hMenu :mh :extra
+		]
 	]
+	h: h + extra
 
 	if any [
-		sz/x <> rect/width
-		sz/y <> rect/height
+		sz/x <> w
+		sz/y <> h
 	][
-		sz/x: rect/width
-		sz/y: rect/height
+		unless null? GET-SIZE-SUSPEND(widget) [
+			SET-SIZE-SUSPEND(widget null)
+			window-ready?: yes
+			exit
+		]
+		sz/x: w
+		sz/y: h
 		if null? GET-PAIR-SIZE(widget) [
 			as-point2D sz
 		]
@@ -718,6 +870,20 @@ window-size-allocate: func [
 		]
 	]
 	window-ready?: yes
+]
+
+window-map-event: func [
+	[cdecl]
+	widget		[handle!]
+	event		[GdkEventAny!]
+	data		[handle!]
+	return:		[integer!]
+	/local
+		pos		[integer!]
+][
+	pos: as-integer data
+	gtk_window_move widget pos >> 16 (pos and FFFFh << 16 >> 16)
+	EVT_DISPATCH
 ]
 
 widget-realize: func [
@@ -770,6 +936,8 @@ range-value-changed: func [
 	pos: as red-float! values + FACE_OBJ_DATA
 
 	value: gtk_range_get_value range
+	;-- ensure data is percent/float type before setting value
+	if all [TYPE_OF(pos) <> TYPE_PERCENT TYPE_OF(pos) <> TYPE_FLOAT][pos/header: TYPE_PERCENT]
 	pos/value: value / 100.0
 	make-event range 0 EVT_CHANGE
 ]
@@ -785,15 +953,18 @@ combo-selection-changed: func [
 		face	[red-object!]
 ][
 	idx: gtk_combo_box_get_active widget
-	if idx >= 0 [
-		face: get-face-obj widget
+	face: get-face-obj widget
+	either idx >= 0 [
 		res: make-event widget idx + 1 EVT_SELECT
 		set-selected widget face/ctx idx + 1
 		text: gtk_combo_box_text_get_active_text widget
 		set-text widget face/ctx text
+		g_free as handle! text
 		if res = EVT_DISPATCH [
 			make-event widget idx + 1 EVT_CHANGE
 		]
+	][
+		set-selected widget face/ctx -1
 	]
 ]
 
@@ -811,13 +982,15 @@ text-list-selected-rows-changed: func [
 	; From now, only single-selection mode
 	sel: gtk_list_box_get_selected_row widget
 	idx: either null? sel [-1][gtk_list_box_row_get_index sel]
-	if idx >= 0 [
-		face: get-face-obj widget
+	face: get-face-obj widget
+	either idx >= 0 [
 		set-selected widget face/ctx idx + 1
 		res: make-event widget idx + 1 EVT_SELECT
 		if res = EVT_DISPATCH [
 			make-event widget idx + 1 EVT_CHANGE
 		]
+	][
+		set-selected widget face/ctx -1
 	]
 ]
 
@@ -1027,6 +1200,63 @@ key-release-event: func [
 	make-event widget key or flags EVT_KEY_UP
 ]
 
+drop-down-entry-key-press-event: func [
+	[cdecl]
+	entry		[handle!]
+	event-key	[GdkEventKey!]
+	widget		[handle!]
+	return:		[integer!]
+	/local
+		key		[integer!]
+		flags	[integer!]
+		key2	[integer!]
+		res		[integer!]
+][
+	key: translate-key event-key/keyval
+	flags: check-extra-keys event-key/state
+	special-key: either char-key? as-byte key [0][-1]
+	if all [key >= 80h special-key = -1][
+		flags: flags or special-key-to-flags key
+	]
+	key: convert-numpad-key key
+
+	res: make-event widget key or flags EVT_KEY_DOWN
+	if res <> EVT_NO_DISPATCH [
+		key2: gdk_keyval_to_unicode event-key/keyval
+		if all [
+			key2 > 0
+			key2 <= FFFFh
+		][
+			special-key: 0
+			return make-event widget key2 or flags EVT_KEY
+		]
+		if key <> 0 [
+			res: make-event widget key or flags EVT_KEY
+		]
+	]
+	res
+]
+
+drop-down-entry-key-release-event: func [
+	[cdecl]
+	entry		[handle!]
+	event-key	[GdkEventKey!]
+	widget		[handle!]
+	return:		[integer!]
+	/local
+		key		[integer!]
+		flags	[integer!]
+][
+	key: translate-key event-key/keyval
+	flags: check-extra-keys event-key/state
+	special-key: either char-key? as-byte key [0][-1]
+	if all [key >= 80h special-key = -1][
+		flags: flags or special-key-to-flags key
+	]
+	key: convert-numpad-key key
+	make-event widget key or flags EVT_KEY_UP
+]
+
 field-changed: func [
 	[cdecl]
 	buffer		[handle!]
@@ -1043,6 +1273,115 @@ field-changed: func [
 	]
 ]
 
+sync-field-selection: func [
+	widget		[handle!]
+	emit?		[logic!]
+	/local
+		x		[integer!]
+		y		[integer!]
+		sel		[red-pair!]
+		old		[integer!]
+		has?	[logic!]
+][
+	x: -1 y: -1
+	sel: as red-pair! (get-face-values widget) + FACE_OBJ_SELECTED
+	old: TYPE_OF(sel)
+	has?: gtk_editable_get_selection_bounds widget :x :y
+	either all [has? x <> y][
+		sel/header: TYPE_PAIR
+		sel/x: x + 1
+		sel/y: y
+	][
+		sel/header: TYPE_NONE
+	]
+	if all [emit? any [has? old <> TYPE_NONE]][
+		make-event widget 0 EVT_SELECT
+	]
+]
+
+field-selection-changed: func [
+	[cdecl]
+	obj			[handle!]
+	pspec		[handle!]
+	widget		[handle!]
+][
+	sync-field-selection widget yes
+]
+
+drop-down-entry-changed: func [
+	[cdecl]
+	entry		[handle!]
+	widget		[handle!]
+	/local
+		text	[c-string!]
+		active	[c-string!]
+		face	[red-object!]
+		idx		[integer!]
+		same?	[logic!]
+][
+	idx: gtk_combo_box_get_active widget
+	text: gtk_entry_get_text entry
+	if idx >= 0 [
+		active: gtk_combo_box_text_get_active_text widget
+		unless null? active [
+			same?: 0 = g_strcmp0 text active
+			g_free as handle! active
+			if same? [exit]
+		]
+	]
+	face: get-face-obj widget
+	unless null? face [
+		set-selected widget face/ctx -1
+		set-text widget face/ctx text
+		make-event widget 0 EVT_CHANGE
+	]
+]
+
+sync-area-selection: func [
+	widget		[handle!]
+	emit?		[logic!]
+	/local
+		x		[integer!]
+		y		[integer!]
+		sel		[red-pair!]
+		old		[integer!]
+		buffer	[handle!]
+		start	[GtkTextIter! value]
+		end		[GtkTextIter! value]
+		has?	[logic!]
+][
+	sel: as red-pair! (get-face-values widget) + FACE_OBJ_SELECTED
+	old: TYPE_OF(sel)
+	buffer: gtk_text_view_get_buffer widget
+	has?: gtk_text_buffer_get_selection_bounds buffer as handle! start as handle! end
+	either has? [
+		x: gtk_text_iter_get_offset as handle! start
+		y: gtk_text_iter_get_offset as handle! end
+		either x = y [
+			sel/header: TYPE_NONE
+		][
+			sel/header: TYPE_PAIR
+			sel/x: x + 1
+			sel/y: y
+		]
+	][
+		sel/header: TYPE_NONE
+	]
+	if all [emit? any [has? old <> TYPE_NONE]][
+		make-event widget 0 EVT_SELECT
+	]
+]
+
+area-selection-changed: func [
+	[cdecl]
+	buffer		[handle!]
+	location	[handle!]
+	mark		[handle!]
+	widget		[handle!]
+][
+	sync-area-selection widget yes
+]
+
 focus-in-event: func [
 	[cdecl]
 	evbox		[handle!]
@@ -1057,6 +1396,7 @@ focus-in-event: func [
 		size	[red-pair!]
 		sym		[integer!]
 		im		[handle!]
+		pending [integer!]
 ][
 	face: get-face-obj widget
 	values: object/get-values face
@@ -1078,6 +1418,10 @@ focus-in-event: func [
 		;probe ["set-focus: " im]
 		gtk_im_context_focus_in im
 	]
+	pending: as integer! g_object_get_qdata widget focus-event-id
+	if pending = 1 [
+		SET-FOCUS-EVENT(widget 2)
+	]
 	change-selection widget int sym
 	make-event widget 0 EVT_FOCUS
 	EVT_DISPATCH
@@ -1096,6 +1440,7 @@ focus-out-event: func [
 		type	[red-word!]
 		sym		[integer!]
 		im		[handle!]
+		pending [integer!]
 ][
 	face: get-face-obj widget
 	values: object/get-values face
@@ -1108,6 +1453,10 @@ focus-out-event: func [
 		im: GET-IM-CONTEXT(widget)
 		;probe ["unfocus: " im]
 		gtk_im_context_focus_out im
+	]
+	pending: as integer! g_object_get_qdata widget focus-event-id
+	if pending = 3 [
+		SET-FOCUS-EVENT(widget 4)
 	]
 	state: values + FACE_OBJ_STATE
 	if TYPE_OF(state) = TYPE_NONE [
@@ -1228,11 +1577,7 @@ mouse-button-release-event: func [
 		sym		[integer!]
 		x		[integer!]
 		y		[integer!]
-		sel		[red-pair!]
-		buffer	[handle!]
 		buf		[handle!]
-		start	[GtkTextIter! value]
-		end		[GtkTextIter! value]
 		flags	[integer!]
 		pixels	[int-ptr!]
 		ev w	[integer!]
@@ -1261,33 +1606,10 @@ mouse-button-release-event: func [
 	if event/button = GDK_BUTTON_PRIMARY [
 		case [
 			sym = field [
-				x: -1 y: -1
-				if gtk_editable_get_selection_bounds widget :x :y [
-					;; DEBUG: print ["from " x " to " y lf ]
-					sel: as red-pair! (get-face-values widget) + FACE_OBJ_SELECTED
-					either x = y [sel/header: TYPE_NONE][
-						sel/header: TYPE_PAIR
-						sel/x: x + 1
-						sel/y: y
-					]
-					make-event widget 0 EVT_SELECT
-				]
+				sync-field-selection widget yes
 			]
 			sym = area [
-				buffer: gtk_text_view_get_buffer widget
-				if gtk_text_buffer_get_selection_bounds buffer as handle! start as handle! end [
-					x: -1 y: -1
-					x: gtk_text_iter_get_offset as handle! start
-					y: gtk_text_iter_get_offset as handle! end
-					;; DEBUG: print ["from " x " to " y lf ]
-					sel: as red-pair! (get-face-values widget) + FACE_OBJ_SELECTED
-					either x = y [sel/header: TYPE_NONE][
-						sel/header: TYPE_PAIR
-						sel/x: x + 1
-						sel/y: y
-					]
-					make-event widget 0 EVT_SELECT
-				]
+				sync-area-selection widget yes
 			]
 			true [0]
 		]
@@ -1318,7 +1640,7 @@ mouse-button-press-event: func [
 		hMenu	[handle!]
 		buf		[handle!]
 		pixels	[int-ptr!]
-		ev x y w [integer!]
+		ev x y w h [integer!]
 ][
 	either null? GET-RESEND-EVENT(evbox) [
 		if evbox <> gtk_get_event_widget as handle! event [return EVT_NO_DISPATCH]
@@ -1336,6 +1658,13 @@ mouse-button-press-event: func [
 	buf: GET-BASE-BUFFER(widget)
 	if buf <> null [
 		w: cairo_image_surface_get_width buf
+		h: cairo_image_surface_get_height buf
+		if any [
+			x < 0
+			y < 0
+			x >= w
+			y >= h
+		][return EVT_DISPATCH]
 		pixels: as int-ptr! cairo_image_surface_get_data buf
 		pixels: pixels + (y * w) + x
 		if pixels/1 and FF000000h = 0 [		;-- transparent pixel
@@ -1379,6 +1708,7 @@ mouse-motion-notify-event: func [
 		flags	[integer!]
 		buf		[handle!]
 		w		[integer!]
+		h		[integer!]
 		pixels	[int-ptr!]
 		enter	[handle!]
 ][
@@ -1399,9 +1729,22 @@ mouse-motion-notify-event: func [
 	buf: GET-BASE-BUFFER(widget)
 	if buf <> null [
 		w: cairo_image_surface_get_width buf
+		h: cairo_image_surface_get_height buf
+		enter: GET-BASE-ENTER(widget)
+		if any [
+			x < 0
+			y < 0
+			x >= w
+			y >= h
+		][
+			if enter <> null  [
+				SET-BASE-ENTER(widget null)
+				make-event widget flags or EVT_FLAG_AWAY EVT_OVER
+			]
+			return EVT_DISPATCH
+		]
 		pixels: as int-ptr! cairo_image_surface_get_data buf
 		pixels: pixels + (y * w) + x
-		enter: GET-BASE-ENTER(widget)
 		either pixels/1 and FF000000h = 0 [		;-- transparent pixel
 			if enter <> null  [
 				SET-BASE-ENTER(widget null)

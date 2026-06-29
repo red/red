@@ -309,24 +309,21 @@ make-profilable make target-class [
 				if verbose >= 3 [print [">>>converting from" mold/flat type/1 "to logic!"]]
 				old: width
 				set-width/type type/1
-				emit #{31FF}						;--		   XOR edi, edi
 				either alt? [
-					emit-poly [#{80FA00} #{83FA00}]	;-- 	   CMP rD, 0
-					emit #{7401}					;--        JZ _exit
-					emit #{47}						;-- 	   INC edi
-					emit #{89FA}					;-- _exit: MOV edx, edi
+					emit-poly [#{84D2} #{85D2}]		;-- TEST rD, rD
+					emit #{0F95C2}					;--	SETNZ dl			; set to 1/0
+					emit #{0FB6D2}					;-- MOVZX edx, dl		; sign-extend to 32-bit
 				][
-					emit-poly [#{3C00} #{83F800}]	;-- 	   CMP rA, 0
-					emit #{7401}					;--        JZ _exit
-					emit #{47}						;-- 	   INC edi
-					emit #{89F8}					;-- _exit: MOV eax, edi
+					emit-poly [#{84C0} #{85C0}]		;-- TEST rA, rA
+					emit #{0F95C0}					;--	SETNZ al			; set to 1/0
+					emit #{0FB6C0}					;-- MOVZX eax, al		; sign-extend to 32-bit
 				]
 				width: old
 			]
 			all [value/type/1 = 'integer! type/1 = 'byte!][
 				if verbose >= 3 [print ">>>converting from byte! to integer! "]
-				emit pick [#{81E2} #{25}] alt?    	;-- AND edx|eax, 000000FFh 
-				emit to-bin32 255
+				emit #{0FB6}						;-- MOVZX edx|eax, dl|al	; == AND edx|eax, 000000FFh 
+				emit pick [#{D2} #{C0}] alt? 
 			]
 			all [value/type/1 = 'integer! find [float! float64! float32!] type/1][
 				if verbose >= 3 [print [">>>converting from" type/1 "to integer!"]]
@@ -642,7 +639,81 @@ make-profilable make target-class [
 		emit #{0F90C0}								;-- SETO al
 		emit #{83E001}								;-- AND eax, 1
 	]
-	
+
+	;-- OVERFLOW? construct support ---------------------------------------------
+	;-- Layout produced by an OVERFLOW? block:
+	;--     <body>            with hooks emitting Jcc to ovf for each math/shift/div op
+	;--     XOR eax, eax      ; result = false
+	;--     JMP +5             ; skip over the MOV
+	;-- ovf:
+	;--     MOV eax, 1        ; result = true
+	;-- done:
+
+	emit-overflow-epilog-no-ovf: does [				;-- emitted just before the ovf: label
+		emit #{31C0}								;-- XOR eax, eax
+		emit #{EB05}								;-- JMP +5 (over the 5-byte MOV eax,1)
+	]
+
+	emit-overflow-epilog-ovf: does [					;-- emitted right after the ovf: label
+		emit #{B8}									;-- MOV eax, imm32
+		emit to-bin32 1
+	]
+
+	;-- Emit a near-conditional jump to the current OVERFLOW? block's ovf: label,
+	;-- using the back-patching machinery (same model as emit-jump-point uses for breaks).
+	;-- `cc-byte` is the low nibble of the Jcc opcode (e.g. #{00} for JO, #{02} for JC).
+	emit-overflow-jcc: func [cc-byte [binary!] /local opcode][
+		opcode: copy #{0F80}
+		opcode/2: (to char! opcode/2) or (to char! cc-byte/1)	;-- 0F 8x
+		emit opcode
+		emit-reloc-addr compose/only [- - (last emitter/overflow-jumps)]
+	]
+
+	;-- Pre-check for IDIV (signed 32-bit): branch to ovf if INT_MIN / -1 (CPU would otherwise trap).
+	;-- Assumes EAX = dividend, ECX = divisor (the layout right before IDIV in op-poly).
+	emit-overflow-check-division: does [
+		emit #{3D}									;-- CMP eax, imm32
+		emit #{00000080}							;-- 0x80000000  (INT_MIN, little-endian)
+		emit #{7509}								;-- JNE k		(short, skip 9 bytes: CMP+JE rel32)
+		emit #{83F9FF}								;-- CMP ecx, -1 (imm8 sign-extended)
+		emit-overflow-jcc #{04}						;-- JE  ovf	(0F 84, 6 bytes via back-patch)
+	]												;-- k:
+
+	;-- Pre-check for << (literal count n, width-bit operand): AND-mask on the high bits of EAX.
+	;-- Unsigned: top n bits (within width-bit value) must be 0     => TEST rA, #mask ; JNZ ovf
+	;-- Signed:   top n+1 bits must all match (integer! only here)  => LEA edx, [eax + bias] ; TEST edx, #mask ; JNZ ovf
+	emit-overflow-check-shift: func [n [integer!] /local mask bias bits][
+		if n = 0 [exit]								;-- no-op shift, never overflows
+		bits: 8 * width								;-- 8 (byte!), 16 (int16!), or 32 (integer!)
+		either all [signed? width = 4][				;-- signed bias trick: only meaningful for 32-bit integer!
+			mask: to-bin32 shift/left -1 32 - n
+			bias: to-bin32 shift/left 1 31 - n
+			emit #{8D90}							;-- LEA edx, [eax + imm32]
+			emit bias
+			emit #{F7C2}							;-- TEST edx, imm32
+			emit mask
+		][
+			;-- unsigned (or narrower-than-32): emit width-specific TEST + width-specific mask.
+			;-- to-bin8 / to-bin16 / to-bin32 truncate their input to the matching low N bytes,
+			;-- so passing the raw `shift/left -1 (bits - n)` value works directly (no extra mask).
+			switch width [
+				1 [
+					emit #{F6C0}					;-- TEST al, imm8
+					emit to-bin8 shift/left -1 8 - n
+				]
+				2 [
+					emit #{66F7C0}					;-- TEST ax, imm16 (with operand-size prefix)
+					emit to-bin16 shift/left -1 16 - n
+				]
+				4 [
+					emit #{F7C0}					;-- TEST eax, imm32
+					emit to-bin32 shift/left -1 32 - n
+				]
+			]
+		]
+		emit-overflow-jcc #{05}						;-- JNZ ovf	(0F 85, 6 bytes via back-patch)
+	]
+
 	emit-get-pc: func [/ebx][
 		emit #{E800000000}							;-- CALL next		; call the next instruction
 		either ebx [
@@ -730,7 +801,7 @@ make-profilable make target-class [
 	]
 
 	emit-log-b: func [type][
-		if type = 'byte! [emit #{25FF000000}]		;-- AND eax, 0xFF
+		if type = 'byte! [emit #{0FB6C0}]			;-- MOVZX eax, al		; == AND eax, 0xFF
 		emit #{0FBDC0}								;-- BSR eax, eax
 	]
 
@@ -813,6 +884,16 @@ make-profilable make target-class [
 		]
 	]
 	
+	emit-load-integer: func [value [integer!]][
+		switch/default value [
+			 0 [emit-poly [#{31C0} #{31C0}]]			;-- XOR rA, rA			; == al|eax = 0
+			 1 [emit-poly [#{30C0FEC0} #{31C040}]]		;-- XOR rA, rA; INC rA	; == al|eax = 1
+			-1 [emit-poly [#{30C0FEC8} #{31C048}]]		;-- XOR rA, rA; DEC rA	; == al|eax = -1
+		][
+			emit-poly [#{B0} #{B8} value]				;-- MOV rA, value
+		]
+	]
+	
 	emit-load: func [
 		value [char! logic! integer! word! string! path! paren! get-word! object! decimal! issue!]
 		/alt
@@ -829,14 +910,12 @@ make-profilable make target-class [
 				emit value
 			]
 			logic! [
-				emit #{31C0}						;-- XOR eax, eax		; eax = 0 (FALSE)	
-				if value [
-					emit #{40}						;-- INC eax				; eax = 1 (TRUE)
-				]
+				emit #{31C0}						;-- XOR eax, eax		; eax = 0 (FALSE)
+				if value [emit #{40}]				;-- INC eax				; eax = 1 (TRUE)
 			]
 			integer! [
-				emit #{B8}							;-- MOV eax, value
-				emit to-bin32 value
+				width: 4
+				emit-load-integer value
 			]
 			issue!
 			decimal! [
@@ -1552,10 +1631,8 @@ make-profilable make target-class [
 				]
 			]
 			logic! [
-				emit #{31C0}						;--	XOR eax, eax		; eax = 0 (FALSE)	
-				if value [
-					emit #{40}						;--	INC eax				; eax = 1 (TRUE)
-				]
+				emit #{31C0}						;--	XOR eax, eax		; eax = 0 (FALSE)
+				if value [emit #{40}]				;--	INC eax				; eax = 1 (TRUE)
 				emit #{50}							;-- PUSH eax
 			]
 			char! [
@@ -1716,6 +1793,11 @@ make-profilable make target-class [
 	]
 	
 	emit-bitshift-op: func [name [word!] a [word!] b [word!] args [block!] /local c value][
+		;-- OVERFLOW? instrumentation for << : AND-mask check on the high bits of EAX (or LEA + bias for signed).
+		;-- Only applied for literal shift counts (b = 'imm) per design; variable-count shifts are not instrumented.
+		if all [compiler/overflow-check? name = first [<<] b = 'imm find [1 2 4] width][
+			emit-overflow-check-shift compiler/unbox args/2
+		]
 		switch b [
 			ref [
 				emit-variable args/2
@@ -1758,7 +1840,7 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-bitwise-op: func [name [word!] a [word!] b [word!] args [block!] /local code][		
+	emit-bitwise-op: func [name [word!] a [word!] b [word!] args [block!] /local code][
 		code: select [
 			and [
 				#{25}								;-- AND eax, value
@@ -1776,8 +1858,12 @@ make-profilable make target-class [
 		
 		switch b [
 			imm [
-				emit code/1							;-- <OP> eax, value
-				emit to-bin32 compiler/unbox args/2
+				either all [name = 'and 255 = compiler/unbox args/2][
+					emit #{0FB6C0}					;-- MOVZX eax, al		; == AND eax, 0xFF
+				][
+					emit code/1						;-- <OP> eax, value
+					emit to-bin32 compiler/unbox args/2
+				]
 			]
 			ref [
 				emit-load/alt args/2
@@ -1788,12 +1874,20 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-comparison-op: func [name [word!] a [word!] b [word!] args [block!] /local op-poly][
+	emit-comparison-op: func [name [word!] a [word!] b [word!] args [block!] /local op-poly right][
 		op-poly: [emit-poly [#{38D0} #{39D0}]]		;-- CMP rA, rD			; not commutable op
 		
 		switch b [
 			imm [
-				emit-poly [#{3C} #{3D} args/2]		;-- CMP rA, value
+				right: compiler/unbox args/2
+				either any [
+					all [width = 4 integer? right zero? right]
+					all [logic? right not right]
+				][
+					emit #{85C0}					;-- TEST eax, eax		; == CMP eax, 0
+				][
+					emit-poly [#{3C} #{3D} args/2]	;-- CMP rA, value
+				]
 			]
 			ref [
 				emit-load/alt args/2
@@ -1856,7 +1950,7 @@ make-profilable make target-class [
 				]
 				switch b [
 					imm [
-						emit-poly either arg2 = 1 [	;-- trivial optimization
+						emit-poly either all [arg2 = 1 not compiler/overflow-check?][	;-- INC doesn't set CF; skip under tracking
 							[#{FEC0} #{40}]			;-- INC rA
 						][
 							[#{04} #{05} arg2] 		;-- ADD rA, value
@@ -1875,7 +1969,7 @@ make-profilable make target-class [
 				]
 				switch b [
 					imm [
-						emit-poly either arg2 = 1 [ ;-- trivial optimization
+						emit-poly either all [arg2 = 1 not compiler/overflow-check?][	;-- DEC doesn't set CF; skip under tracking
 							[#{FEC8} #{48}]			;-- DEC rA
 						][
 							[#{2C} #{2D} arg2] 		;-- SUB rA, value
@@ -1895,6 +1989,7 @@ make-profilable make target-class [
 				switch b [
 					imm [
 						either all [
+							not compiler/overflow-check?	;-- skip SAL trick under tracking (OF undefined for n>1)
 							not zero? arg2
 							c: power-of-2? arg2		;-- trivial optimization for b=2^n
 						][
@@ -1929,6 +2024,11 @@ make-profilable make target-class [
 						emit #{B400}				;-- MOV ah, 0			; clean-up garbage in ah
 						emit #{F6F1}				;-- DIV cl
 					][
+						;-- OVERFLOW? instrumentation: signed INT_MIN / -1 traps (CPU exception),
+						;-- so we pre-check before IDIV and branch to ovf if it would trap.
+						if all [compiler/overflow-check? width = 4][
+							emit-overflow-check-division
+						]
 						emit-sign-extension			;-- 16/32-bit signed
 						emit-poly [#{F6F9} #{F7F9}]	;-- IDIV rC ; rA / rC
 					]
@@ -1994,7 +2094,7 @@ make-profilable make target-class [
 		right: compiler/unbox args/2
 		
 		switch to path! reduce [a b] [
-			imm/imm	[emit-poly [#{B0} #{B8} args/1]];-- MOV rA, a
+			imm/imm	[emit-load-integer to integer! left] ;-- MOV rA, a
 			imm/ref [emit-load args/1]				;-- eax = a
 			imm/reg [								;-- eax = b
 				if path? right [
@@ -2004,7 +2104,7 @@ make-profilable make target-class [
 					]
 				]
 				emit-poly [#{88C2} #{89C2}]			;-- MOV rD, rA
-				emit-poly [#{B0} #{B8} args/1]		;-- MOV rA, a		; eax = a, edx = b
+				emit-load-integer to integer! left	;-- MOV rA, a		; eax = a, edx = b
 			]
 			ref/imm [emit-load args/1]
 			ref/ref [emit-load args/1]
@@ -2072,6 +2172,11 @@ make-profilable make target-class [
 			find bitwise-op	   name	[emit-bitwise-op	name a b args]
 			find bitshift-op   name [emit-bitshift-op   name a b args]
 		]
+		;-- OVERFLOW? instrumentation: post-op flag check for +, -, *
+		;-- (<<, /, //, % are instrumented at their emission sites since they need pre-op checks)
+		if all [compiler/overflow-check? find [+ - *] name][
+			emit-overflow-jcc either any [signed? name = '*][#{00}][#{02}]
+		]										;-- JO (signed +/-, * always) or JC (unsigned +/-)
 	]
 	
 	emit-float-trash-last: does [
@@ -2276,14 +2381,7 @@ make-profilable make target-class [
 			emit-push <last>
 		][
 			if block? arg [arg: <last>]
-			either all [
-				fspec/3 = 'cdecl 
-				compiler/find-attribute fspec/4 'variadic	;-- only for vararg C functions
-			][
-				emit-push/cdecl arg					;-- promote float32! to float!
-			][
-				emit-push arg
-			]
+			emit-push arg							;-- C default promotions injected by compiler/promote-variadic
 		]
 	]
 		
@@ -2447,13 +2545,12 @@ make-profilable make target-class [
 		emitter/access-path to set-path! 'system/thrown <last>
 		
 		emit #{8B7DF8}								;--			MOV edi, [ebp-8]
-		emit #{83FF00}								;--			CMP edi, 0
-		emit #{7402}								;--			JZ _next
-		emit #{FFE7}								;--			JMP edi		; resume in caller
-		emit #{5F}									;-- _next:	POP edi		; read return address
-		emit #{83FF00}								;--			CMP edi, 0
+		emit #{85FF}								;--			TEST edi, edi
+		emit #{7505}								;--			JNZ resume
+		emit #{5F}									;-- 		POP edi		; read return address
+		emit #{85FF}								;--			TEST edi, edi
 		emit #{7402}								;--			JZ _end
-		emit #{FFE7}								;--			JMP edi		; resume in caller
+		emit #{FFE7}								;--	resume:	JMP edi		; resume in caller
 													;-- _end:
 	]
 	
@@ -2470,9 +2567,9 @@ make-profilable make target-class [
 		23											;-- return size of (catch-frame + extra) opcodes
 	]
 	
-	emit-close-catch: func [offset [integer!] global [logic!] callback? [logic!]][
+	emit-close-catch: func [offset [integer!] level [integer!] global [logic!] callback? [logic!]][
 		if verbose >= 3 [print ">>>emitting CATCH epilog"]
-		offset: offset + locals-offset + 8 			;-- account for the 2 saved slots
+		offset: offset + locals-offset + ((level + 1) * 8) ;-- account for the 2 saved slots
 		if callback? [offset: offset + 12]			;-- account for ebx,esi,edi saving slots
 		
 		either offset > 127 [

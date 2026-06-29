@@ -419,8 +419,13 @@ natives: context [
 		stack/unwind-last
 	]
 	
-	func*: func [check? [logic!] /local flags [integer!]][
+	func*: func [check? [logic!] /local flags [integer!] spec body [red-block!]][
 		#typecheck func
+		spec: as red-block! stack/arguments
+		body: as red-block! stack/arguments + 1
+		NORMALIZE_SERIES_HEAD_ALT(spec)
+		NORMALIZE_SERIES_HEAD_ALT(body)
+		
 		flags: _function/validate as red-block! stack/arguments
 		_function/push 
 			as red-block! stack/arguments
@@ -437,7 +442,9 @@ natives: context [
 		/local spec [red-block!]
 	][
 		#typecheck function
-		spec: block/clone as red-block! stack/arguments no no	;-- copy it before modifying it
+		spec: as red-block! stack/arguments
+		NORMALIZE_SERIES_HEAD_ALT(spec)
+		spec: block/clone spec no no					;-- copy it before modifying it
 		copy-cell as red-value! spec stack/arguments
 		_function/collect-words	spec as red-block! stack/arguments + 1
 		func* check?
@@ -452,10 +459,12 @@ natives: context [
 	
 	has*: func [
 		check? [logic!]
-		/local blk [red-block!]
+		/local spec blk [red-block!]
 	][
 		#typecheck has
-		blk: block/clone as red-block! stack/arguments no no
+		spec: as red-block! stack/arguments
+		NORMALIZE_SERIES_HEAD_ALT(spec)
+		blk: block/clone spec no no
 		blk: as red-block! copy-cell as red-value! blk stack/arguments
 		block/insert-value blk as red-value! refinements/local no no
 		func* check?
@@ -561,9 +570,7 @@ natives: context [
 		do-arg: stack/arguments + args
 		fun: 	as red-function! stack/arguments + trace
 		
-		if OPTION?(do-arg) [
-			copy-cell do-arg #get system/script/args
-		]
+		unless OPTION?(do-arg) [do-arg: as red-value! none-value]
 		fun?: OPTION?(fun)
 		if fun? [
 			stack/set-parent-func-flag					;-- (#5403, #5401) allows do/trace to fully catch exit/return exceptions
@@ -580,14 +587,16 @@ natives: context [
 		if next > 0 [slot: _context/get as red-word! stack/arguments + next]
 		
 		do-block: [
+			blk: as red-block! arg
+			NORMALIZE_SERIES_HEAD_ALT(blk)
 			if expand? > 0 [
 				job: #get system/build/config
 				stack/mark-native words/_anon
-				#call [preprocessor/expand as red-block! arg job]
+				#call [preprocessor/expand blk job]
 				stack/unwind
 			]
 			either negative? next [
-				interpreter/eval as red-block! arg yes
+				interpreter/eval blk yes
 			][
 				stack/keep
 				blk: as red-block! stack/push arg
@@ -610,7 +619,7 @@ natives: context [
 					do-block
 				]
 				TYPE_URL 
-				TYPE_FILE  [#call [do-file as red-file! arg none-value]]
+				TYPE_FILE  [#call [do-file as red-file! arg none-value do-arg]]
 				TYPE_ERROR [defer?: yes]
 				default	   [interpreter/eval-expression arg arg + 1 null no no yes]
 			]
@@ -767,15 +776,16 @@ natives: context [
 			blk/head: 0										;-- head changed by reduce/into
 			stack/set-last as red-value! buffer-blk 		;-- provide the modified-head buffer to form*
 		]
-
-		if TYPE_OF(arg) <> TYPE_STRING [actions/form* -1]
 		
 		str: as red-string! stack/arguments
+		either TYPE_OF(str) = TYPE_STRING [NORMALIZE_SERIES_HEAD_ALT(str)][actions/form* -1]
 		assert any [
 			TYPE_OF(str) = TYPE_STRING
 			TYPE_OF(str) = TYPE_SYMBOL						;-- symbol! and string! structs are overlapping
 		]
+		
 		dyn-print/red-print str lf?
+		
 		if block? [											;-- restore the buffer head & clean up what was printed
 			block/rs-clear buffer-blk 
 			buffer-blk/head: oldhd			
@@ -972,7 +982,7 @@ natives: context [
 		check? [logic!]
 		into   [integer!]
 		/local
-			blk	  [red-block!]
+			blk	  	 [red-block!]
 			value	 [red-value!]
 			tail	 [red-value!]
 			arg		 [red-value!]
@@ -1480,7 +1490,7 @@ natives: context [
 		ret: as red-string! stack/push*
 		len: string/rs-length? str
 		string/make-at as red-value! ret len Latin1
-		string/decode-url str ret
+		url/decode str ret
 		stack/set-last as red-value! ret
 		ret
 	]
@@ -1499,9 +1509,9 @@ natives: context [
 		len: string/rs-length? str
 		string/make-at as red-value! ret len Latin1
 		either TYPE_OF(str) = TYPE_STRING [
-			string/encode-url str ret string/ESC_URI
+			url/encode str ret url/ESC_URI
 		][
-			string/encode-url str ret string/ESC_URL
+			url/encode str ret url/ESC_URL
 		]
 		stack/set-last as red-value! ret
 		ret
@@ -1551,13 +1561,13 @@ natives: context [
 		/local
 			data [red-string!]
 			int  [red-integer!]
-			p	 [byte-ptr!]
 			ret  [red-binary!]
 			node [node!]
 			s	 [series!]
-			out	 [byte-ptr!]
+			p out[byte-ptr!]
 			len  [integer!]
 			base [integer!]
+			size [integer!]
 	][
 		#typecheck [enbase base-arg]
 		data: as red-string! stack/arguments
@@ -1578,18 +1588,18 @@ natives: context [
 
 		ret: as red-binary! data
 		ret/head: 0
-
-		node: switch base [
-			64 [alloc-bytes 4 * len / 3 + (2 * (len / 32) + 5)]
-			58 [alloc-bytes len * 2]
-			16 [alloc-bytes len * 2 + (len / 32) + 32]
-			2  [alloc-bytes 8 * len + (2 * (len / 8) + 4)]
-			default [fire [TO_ERROR(script invalid-arg) int] null]
-		]
-		if null? node [
-			ret/header: TYPE_NONE
-			exit
-		]
+		if overflow? [
+			size: switch base [
+				64 [4 * (len / 3) + (4 * (len // 3) / 3) + (2 * (len / 32) + 5)]
+				58 [len * 2]
+				16 [len * 2 + (len / 32) + 32]
+				2  [len * 8 + (2 * (len / 8) + 4)]
+				default [fire [TO_ERROR(script invalid-arg) int] 0]
+			]
+		][fire [TO_ERROR(script too-long)]]
+		
+		node: alloc-bytes size
+		if null? node [ret/header: TYPE_NONE exit]
 
 		s: as series! node/value
 		out: as byte-ptr! s/offset
@@ -2227,7 +2237,7 @@ natives: context [
 			]
 			TYPE_FLOAT [
 				flt: as red-float! amount
-				mny: money/from-float flt/value
+				mny: money/from-float flt/value yes
 			]
 			default [assert false]
 		]
@@ -3018,14 +3028,12 @@ natives: context [
 		check? [logic!]
 		on?    [integer!]
 		off?   [integer!]
-		info?  [integer!]
 	][
 		#typecheck [recycle on? off?]
 
 		case [
 			on?   > -1 [collector/active?: yes  unset/push-last]
 			off?  > -1 [collector/active?: no   unset/push-last]
-			info? > -1 [integer/box collector/stats/cycles]
 			true	   [collector/do-mark-sweep stats* no -1 -1]
 		]
 	]
@@ -3069,6 +3077,7 @@ natives: context [
 		offset: 0
 		len: -1
 		bin: as red-binary! stack/arguments
+		NORMALIZE_SERIES_HEAD_ALT(bin)
 		type: TYPE_OF(bin)
 		arg: stack/arguments + part
 		fun: either trace < 0 [null][stack/arguments + trace]
@@ -3082,11 +3091,13 @@ natives: context [
 				TYPE_BINARY [
 					if type <> TYPE_BINARY [fire [TO_ERROR(script not-same-type)]]
 					bin2: as red-binary! arg
+					NORMALIZE_SERIES_HEAD_ALT(bin2)
 					len: bin2/head - bin/head
 				]
 				TYPE_STRING [
 					if type <> TYPE_STRING [fire [TO_ERROR(script not-same-type)]]
 					str: as red-string! arg
+					NORMALIZE_SERIES_HEAD_ALT(str)
 					len: str/head - bin/head
 				]
 				default [0]

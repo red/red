@@ -110,8 +110,9 @@ case-folding: context [
 			str: as red-string! arg
 			s: GET_BUFFER(str)
 			unit: GET_UNIT(s)
-			p: (as byte-ptr! s/offset) + (str/head << (log-b unit))
-			len: (as-integer s/tail - (as red-value! p)) >> (log-b unit)
+			NORMALIZE_ANY_STRING_HEAD(str)
+			p: (as byte-ptr! s/offset) + (str/head << log-b unit)
+			len: (as-integer s/tail - (as red-value! p)) >> log-b unit
 			if positive? part [ 
 				limit: arg + part
 				len: either TYPE_OF(limit) = TYPE_INTEGER [

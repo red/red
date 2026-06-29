@@ -75,6 +75,8 @@ create-css: func [
 		style	[red-word!]
 		blk		[red-block!]
 		sym		[integer!]
+		underline? [logic!]
+		strike?	[logic!]
 ][
 	node: case [
 		type = area [
@@ -96,9 +98,11 @@ create-css: func [
 	]
 
 	int: as red-integer! values + FONT_OBJ_SIZE
-	if TYPE_OF(int) = TYPE_INTEGER [
+	either TYPE_OF(int) = TYPE_INTEGER [
 		size: int/value
 		g_string_append_printf [css { font-size: %dpt;} size]
+	][
+		g_string_append_printf [css { font-size: %dpt;} default-font-size]
 	]
 
 	color: as red-tuple! values + FONT_OBJ_COLOR
@@ -122,6 +126,8 @@ create-css: func [
 	;]
 
 	style: as red-word! values + FONT_OBJ_STYLE
+	underline?: no
+	strike?: no
 	len: switch TYPE_OF(style) [
 		TYPE_BLOCK [
 			blk: as red-block! style
@@ -143,16 +149,21 @@ create-css: func [
 					g_string_append css " font-style: italic;"
 				]
 				sym = _underline [
-					;-- TBD: only one text-decoration style can be used
-					;g_string_append css " text-decoration: underline;"
-					0
+					underline?: yes
 				]
 				sym = _strike [
-					g_string_append css " text-decoration: line-through;"
+					strike?: yes
 				]
 				true			 [0]
 			]
 			style: style + 1
+		]
+	]
+	if any [underline? strike?][
+		g_string_append css either strike? [
+			" text-decoration-line: line-through;"
+		][
+			" text-decoration-line: underline;"
 		]
 	]
 
@@ -191,17 +202,23 @@ create-pango-attrs: func [
 	values: object/get-values font
 
 	str: as red-string! values + FONT_OBJ_NAME
-	if TYPE_OF(str) = TYPE_STRING [
+	either TYPE_OF(str) = TYPE_STRING [
 		len: -1
 		name: unicode/to-utf8 str :len
 		attr: pango_attr_family_new name
 		pango_attr_list_insert list attr
+	][
+		attr: pango_attr_family_new default-font-name
+		pango_attr_list_insert list attr
 	]
 
 	int: as red-integer! values + FONT_OBJ_SIZE
-	if TYPE_OF(int) = TYPE_INTEGER [
+	either TYPE_OF(int) = TYPE_INTEGER [
 		size: int/value
 		attr: pango_attr_size_new PANGO_SCALE * size
+		pango_attr_list_insert list attr
+	][
+		attr: pango_attr_size_new PANGO_SCALE * default-font-size
 		pango_attr_list_insert list attr
 	]
 
@@ -659,6 +676,10 @@ update-textview-tag: func [
 	unless null? tag [
 		gtk_text_buffer_apply_tag buffer tag start end
 	]
+	tag: gtk_text_tag_table_lookup table "strike"
+	unless null? tag [
+		gtk_text_buffer_apply_tag buffer tag start end
+	]
 ]
 
 set-textview-tag: func [
@@ -701,11 +722,18 @@ set-textview-tag: func [
 					0
 				]
 				sym = _underline [
-					tag: gtk_text_buffer_create_tag [buffer "underline" "underline" PANGO_UNDERLINE_SINGLE null]
+					tag: gtk_text_tag_table_lookup gtk_text_buffer_get_tag_table buffer "underline"
+					if null? tag [
+						tag: gtk_text_buffer_create_tag [buffer "underline" "underline" PANGO_UNDERLINE_SINGLE null]
+					]
 					gtk_text_buffer_apply_tag buffer tag as handle! start as handle! end
 				]
 				sym = _strike [
-					0
+					tag: gtk_text_tag_table_lookup gtk_text_buffer_get_tag_table buffer "strike"
+					if null? tag [
+						tag: gtk_text_buffer_create_tag [buffer "strike" "strikethrough" true null]
+					]
+					gtk_text_buffer_apply_tag buffer tag as handle! start as handle! end
 				]
 				true			 [0]
 			]

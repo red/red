@@ -179,7 +179,8 @@ system: context [
 				parse-keep:			"PARSE - KEEP is used without a wrapping COLLECT"
 				parse-into-bad:		"PARSE - COLLECT INTO/AFTER invalid series! argument"
 				parse-into-type:    "PARSE - COLLECT INTO/AFTER expects a series! of compatible datatype"
-				invalid-draw:		["invalid Draw dialect input at:" :arg1]
+				draw-invalid:		["DRAW - invalid input at:" :arg1]
+				draw-infinite:		["DRAW - infinite recursion at:" :arg1]
 				invalid-data-facet: ["invalid DATA facet content" :arg1]
 				face-type:			["VIEW - invalid face type:" :arg1]
 				not-window:			"VIEW - expected a window root face"
@@ -307,6 +308,11 @@ system: context [
 				set-quiet 'bits either new [bits or idx][bits and complement idx]
 			]
 		]
+		GC: object [
+			active?: 		routine [return: [logic!]  ][collector/active?]
+			series-cycles:	routine [return: [integer!]][collector/stats/cycles]
+			nodes-cycles:	routine [return: [integer!]][collector/stats/nodes-cycles]	
+		]
 	]
 	
 	modules: make block! 8
@@ -430,7 +436,8 @@ system: context [
 	
 	standard: context [									;-- do not change object fields number/order
 		header: object [
-			Title: Name: Type: Version: Date: File: Home: Author: Tabs: Needs: License: Note: History: none
+			Title: Name: Type: Version: Date: File: Home: Author: Tabs: Needs: License: Note: History:
+			Rights: Usage: Purpose: Comment: Language: Content: Owner: none
 		]
 		port: object [
 			spec: scheme: actor: awake: state: data: flags: extra: none

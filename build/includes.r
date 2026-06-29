@@ -321,6 +321,7 @@ write %build/bin/sources.r set-cache [
 		%config.r
 		%emitter.r
 		%linker.r
+		%linker-static.r
 		%loader.r
 		%assets/ [
 			%red.ico
@@ -356,10 +357,16 @@ write %build/bin/sources.r set-cache [
 			%win32-driver.reds
 		]
 		%formats/ [
+			%COFF.r
 			%ELF.r
+			%ELF-obj.r
 			%Mach-APP.r
 			%Mach-O.r
+			%Mach-O-obj.r
 			%PE.r
+			%crt-helpers.r
+			%libc-exports.r
+			%win32-exports.r
 		]
 		%targets/ [
 			%ARM.r

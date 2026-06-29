@@ -754,11 +754,27 @@ system/view: context [
 		]
 		:result
 	]
-	
+
+	on-change*: function [word old new][
+		if all [word = 'GPU? old <> new][
+			system/view/platform/toggle-GPU
+			foreach screen system/view/screens [
+				wins: head screen/pane
+				foreach win wins [
+					win/pane: copy win/pane				;-- recreate all the faces
+				]
+			]
+			if value? 'gui-console-ctx [
+				gui-console-ctx/set-dark-mode
+			]
+		]
+	]
+
 	capturing?: no										;-- enable capturing events (on-detect)
 	auto-sync?: yes										;-- refresh faces on changes automatically
 	debug?: 	no										;-- output verbose logs
 	silent?:	no										;-- do not report errors (livecoding)
+	GPU?:		yes										;-- rendering with GPU?
 ]
 
 #include %backends/platform.red
@@ -1365,16 +1381,9 @@ insert-event-func 'reactors [
 	if find [change enter unfocus] event/type [
 		face: event/face
 		facet: switch/default face/type [
-			scroller	['data]
-			slider		['data]
-			check		['data]
-			radio		['data]
-			tab-panel	['data]
-			field		['text]
-			area		['text]
-			drop-down	['text]
-			text-list	['selected]
-			drop-list	['selected]
+			scroller slider check radio	tab-panel toggle ['data]
+			field area drop-down ['text]
+			text-list drop-list	 ['selected]
 		][none]
 		
 		if facet [system/reactivity/check/only face facet]
