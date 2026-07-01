@@ -185,6 +185,7 @@ TUI-helpers: context [
 						append clear files/data get-files root filter
 						files/selected: 1
 					]
+					if event/key = 'right [set-focus/after face]
 				]
 			]
 			frame " Files " [
@@ -192,6 +193,7 @@ TUI-helpers: context [
 					if all [event/key = enter files/selected][
 						sfile/text: to-string pick files/data files/selected
 					]
+					if event/key = 'left [set-focus/before face]
 				]
 			] return pad 0x-1
 
