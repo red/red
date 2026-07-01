@@ -981,6 +981,7 @@ binary: context [
 	][
 		assert part <> 0
 		count?: any [mode = MODE_COUNT all [mode = MODE_CHANGE p = null]]	;-- COUNT pass writes nothing (p = null)
+		
 		switch TYPE_OF(value) [
 			TYPE_CHAR [
 				int: as red-integer! value
@@ -1250,7 +1251,7 @@ binary: context [
 			s		[series!]
 			p0		[byte-ptr!]
 			part removed cnt n added index avail len size voff [integer!]
-			part? chk? self?  [logic!]
+			part? chk? self? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/change"]]
 
@@ -1261,7 +1262,7 @@ binary: context [
 			cnt: int/value
 			if cnt < 1 [return as red-series! bin]		;-- /dup count < 1 => no-op
 		]
-
+		
 		s:	   GET_BUFFER(bin)
 		len:   as-integer s/tail - s/offset				;-- length in bytes (unit = 1)
 		index: bin/head
@@ -1271,9 +1272,8 @@ binary: context [
 			bin2:  as red-binary! value
 			self?: bin2/node = bin/node
 		]
-
 		;-- Resolve /part: number of target bytes to replace (applies to FIRST argument) --
-		part:  0
+		part: 0
 		part?: OPTION?(part-arg)
 		if part? [
 			either TYPE_OF(part-arg) = TYPE_INTEGER [
@@ -1297,7 +1297,7 @@ binary: context [
 			]
 			if part > avail [part: avail]
 		]
-
+		
 		added: convert null value -1 no MODE_CHANGE		;-- byte count of the WHOLE value (FORMs non-coercibles)
 
 		;-- Ownership pre-check --
@@ -1306,18 +1306,16 @@ binary: context [
 		chk?: ownership/check as red-value! bin words/_change null index n
 
 		if overflow? [									;-- precompute byte counts, overflow-guarded
-			n:		 added * cnt
+			n: added * cnt
 			removed: either part? [part][either n < avail [n][avail]]
-			size:	 len + n - removed
+			size: len + n - removed
 		][fire [TO_ERROR(internal no-memory)]]
 
 		s: GET_BUFFER(bin)
 		if size > s/size [s: expand-series s size]
 		p0: (as byte-ptr! s/offset) + index
-
-		if n <> removed [								;-- shift right piece to its final position
-			move-memory p0 + n p0 + removed (len - index - removed)
-		]
+		if n <> removed [move-memory p0 + n p0 + removed (len - index - removed)] ;-- shift right piece to its final position
+		
 		if added > 0 [									;-- write one instance, then replicate for /dup
 			either self? [								;-- value shares bin's buffer: raw-copy from its post-shift position (convert would mis-measure)
 				bin2: as red-binary! value

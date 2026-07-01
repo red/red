@@ -1070,7 +1070,7 @@ vector: context [
 
 		type:	 TYPE_OF(value)
 		values?: ANY_BLOCK?(type)
-		vec?:	 type = TYPE_VECTOR					;-- a vector value spreads its (raw) elements
+		vec?:	 type = TYPE_VECTOR						;-- a vector value spreads its (raw) elements
 		added:	 either values? [						;-- nb of items in ONE value instance
 			src: as red-block! value
 			s2:	 GET_BUFFER(src)
@@ -1078,7 +1078,6 @@ vector: context [
 		][
 			either vec? [_series/get-length as red-series! value no][1]
 		]
-
 		;-- Resolve /part: number of target items to replace (applies to FIRST argument) --
 		part:  0
 		part?: OPTION?(part-arg)
@@ -1104,7 +1103,6 @@ vector: context [
 			]
 			if part > avail [part: avail]
 		]
-
 		;-- Ownership pre-check --
 		either part? [n: part][n: added * cnt]
 		if n > avail [n: avail]

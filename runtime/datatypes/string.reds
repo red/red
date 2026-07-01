@@ -2691,7 +2691,6 @@ string: context [
 			]
 			if part > avail [part: avail]
 		]
-
 		type: TYPE_OF(value)
 
 		;-- Ownership pre-check (reactive event bounds for change) --
@@ -2710,11 +2709,9 @@ string: context [
 			str/head: n
 			return as red-series! str
 		]
-
 		str2:  as red-string! value
 		self?: all [ANY_STRING?(type) str2/node = str/node] ;-- value shares str's buffer
 		done?: no
-
 		added: switch type [							;-- nb of codepoints in ONE value instance
 			TYPE_CHAR		[char: as red-char! value  1]
 			TYPE_TAG		[2 + rs-length? str2]
@@ -2734,7 +2731,7 @@ string: context [
 				(rs-abs-length? str) - len
 			]
 		]
-
+		
 		s:	  GET_BUFFER(str)
 		unit: GET_UNIT(s)								;-- refresh: FORMing may have upgraded the unit
 		lus:  log-b unit

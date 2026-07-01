@@ -1612,17 +1612,17 @@ block: context [
 			if cnt < 1 [return as red-series! blk]		;-- /dup count < 1 => no-op
 		]
 
-		s:	   GET_BUFFER(blk)
-		len:   (as-integer s/tail - s/offset) >> 4
+		s: GET_BUFFER(blk)
+		len: (as-integer s/tail - s/offset) >> 4
 		if s/offset + blk/head > s/tail [blk/head: len]	;-- past-end index adjustment
 		index: blk/head
 		avail: len - index								;-- nb of slots available from head
 
-		type:	 TYPE_OF(value)
+		type: TYPE_OF(value)
 		values?: all [not only? ANY_BLOCK?(type)]		;-- /only support
-		items:	 either values? [						;-- nb of slots in ONE value instance
-			b:	  as red-block! value
-			s2:	  GET_BUFFER(b)
+		items: either values? [							;-- nb of slots in ONE value instance
+			b: as red-block! value
+			s2:	GET_BUFFER(b)
 			cell: s2/offset + b/head
 			rs-length? b
 		][
@@ -1659,14 +1659,14 @@ block: context [
 		]
 
 		;-- Ownership pre-check (reactive event bounds for change) --
-		either part? [n: part][n: items * cnt]
+		n: either part? [part][items * cnt]
 		if n > avail [n: avail]
 		chk?: ownership/check as red-value! blk words/_change null index n
 
 		if overflow? [									;-- precompute slot counts, overflow-guarded
-			n:		 items * cnt						;-- total nb of slots written
+			n: items * cnt								;-- total nb of slots written
 			removed: either part? [part][either n < avail [n][avail]] ;-- nb of target slots replaced
-			size:	 (len + n - removed) << 4
+			size: (len + n - removed) << 4
 		][fire [TO_ERROR(internal no-memory)]]
 
 		s: GET_BUFFER(blk)
@@ -1691,7 +1691,6 @@ block: context [
 			copy-memory as byte-ptr! src as byte-ptr! cell items << 4
 			if cnt > 1 [dup-memory as byte-ptr! src items << 4 cnt]
 		]
-
 		if hash? [_hashtable/rehash table _series/get-length as red-series! blk yes]
 
 		if chk? [ownership/check as red-value! blk words/_changed null index n]
