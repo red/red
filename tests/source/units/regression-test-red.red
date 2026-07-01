@@ -3854,6 +3854,14 @@ comment {
 		--assert $10 == make money! "10"
 		--assert $0.01 == make money! "0.01"
 		--assert $0.01 == make money! "$0.01"
+
+	--test-- "#5748"
+		v: make vector! [0 1 2 3 4 5 6 7 8 9]
+		--assert error? try [change/dup v 1 2147483647]
+		bin: #{00010203040506070809}
+		--assert error? try [change/dup bin 1 2147483647]
+		blk: [0 1 2 3 4 5 6 7 8 9]
+		--assert error? try [change/dup blk 1 2147483647]
 		
 	--test-- "#5724"
 		register-scheme make system/standard/scheme [name: 'debug title: "DEBUG" actor: context [
