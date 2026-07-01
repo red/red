@@ -583,7 +583,9 @@ context [
 			(get-address ".data") - either job/PIC? [0][base]
 			get-size ".data"
 
-		if job/show-func-map? [linker/show-funcs-map job get-address ".text"]
+		if any [job/show-func-map? job/emit-ida-script?][
+			linker/emit-funcs-map job get-address ".text" base-address
+		]
 
 		;; Concatenate the layout data into the output binary.
 		job/buffer: copy #{}

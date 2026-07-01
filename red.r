@@ -568,6 +568,7 @@ redc: context [
 				| "--no-view"					(opts/GUI-engine: none)
 				| "--no-compress"				(opts/redbin-compress?: no)
 				| "--show-func-map"				(opts/show-func-map?: yes)
+				| "--emit-ida-script"			(opts/emit-ida-script?: yes)
 				| "--view" set engine skip		(append any [spec spec: copy []] compose [GUI-engine: (to-lit-word load engine)])
 				| "--" break							;-- stop options processing
 			]

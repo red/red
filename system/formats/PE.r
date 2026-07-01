@@ -1215,7 +1215,9 @@ context [
 			(section-addr?/memory job 'data)
 			length? job/sections/data/2
 
-		if job/show-func-map? [linker/show-funcs-map job entry-point-address? job]
+		if any [job/show-func-map? job/emit-ida-script?][
+			linker/emit-funcs-map job entry-point-address? job base-address
+		]
 
 		foreach [name spec] job/sections [
 			pad: pad-size? spec/2
