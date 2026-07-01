@@ -1217,10 +1217,18 @@ request-dir: function [
 set-focus: function [
 	"Sets the focus on the argument face"
 	face [object!]
+	/after	"Focus the next focusable face"
+	/before "Focus the previous focusable face"
 ][
-	p: face/parent
-	while [p/type <> 'window][p: p/parent]
-	p/selected: face
+	either any [after before][
+		from: find/same face/parent/pane face
+		if after [from: next from]
+		set-focus apply 'get-focusable [from /back before]
+	][
+		p: face/parent
+		while [p/type <> 'window][p: p/parent]
+		p/selected: face
+	]
 ]
 
 foreach-face: function [
