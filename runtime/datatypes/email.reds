@@ -88,7 +88,7 @@ email: context [
 			]
 		]
 		either value <> null [
-			_series/change as red-series! parent value part no null
+			string/change parent value part no null
 		][
 			value: stack/push*
 			_series/copy as red-series! parent as red-series! value part no	null 

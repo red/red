@@ -427,6 +427,8 @@ comment {
 
 	--test-- "infix-3"
 		--assert 5 *+* 6 *** 7 = 1067
+
+	unset '*+*								;-- hide the routine-backed op! from the redbin-scanner
 ]
 
 ===end-group===

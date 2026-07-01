@@ -22,6 +22,7 @@ comparison-test.red
 routine-test.red
 append-test.red
 insert-test.red
+change-test.red
 move-test.red
 make-test.red
 mold-test.red

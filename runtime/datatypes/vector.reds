@@ -1033,26 +1033,129 @@ vector: context [
 		as red-value! vec
 	]
 
-	change-range: func [
-		vec		[red-vector!]
-		cell	[red-value!]
-		limit	[red-value!]
-		part?	[logic!]
-		return: [integer!]
+	change: func [
+		vec		 [red-vector!]
+		value	 [red-value!]
+		part-arg [red-value!]
+		only?	 [logic!]
+		dup-arg	 [red-value!]
+		return:	 [red-series!]
 		/local
-			added [integer!]
+			src		[red-block!]
+			slot	[red-value!]
+			int		[red-integer!]
+			ser2	[red-series!]
+			vec2	[red-vector!]
+			s s2	[series!]
+			p p0	[byte-ptr!]
+			part removed cnt n added index avail len unit lu size type voff [integer!]
+			part? values? vec? chk?  [logic!]
 	][
-		added: 0
-		while [cell < limit][
-			either part? [
-				rs-insert vec vec/head + added cell
-			][
-				rs-overwrite vec vec/head + added cell
-			]
-			added: added + 1
-			cell: cell + 1
+		#if debug? = yes [if verbose > 0 [print-line "vector/change"]]
+
+		NORMALIZE_SERIES_HEAD_ALT(vec)
+		cnt: 1
+		if OPTION?(dup-arg) [							;-- /dup count
+			int: as red-integer! dup-arg
+			cnt: int/value
+			if cnt < 1 [return as red-series! vec]		;-- /dup count < 1 => no-op
 		]
-		added
+
+		s:	   GET_BUFFER(vec)
+		unit:  GET_UNIT(s)
+		lu:	   log-b unit
+		len:   (as-integer s/tail - s/offset) >> lu
+		index: vec/head
+		avail: len - index
+
+		type:	 TYPE_OF(value)
+		values?: ANY_BLOCK?(type)
+		vec?:	 type = TYPE_VECTOR					;-- a vector value spreads its (raw) elements
+		added:	 either values? [						;-- nb of items in ONE value instance
+			src: as red-block! value
+			s2:	 GET_BUFFER(src)
+			(as-integer s2/tail - (s2/offset + src/head)) >> 4
+		][
+			either vec? [_series/get-length as red-series! value no][1]
+		]
+
+		;-- Resolve /part: number of target items to replace (applies to FIRST argument) --
+		part:  0
+		part?: OPTION?(part-arg)
+		if part? [
+			either TYPE_OF(part-arg) = TYPE_INTEGER [
+				int: as red-integer! part-arg
+				part: int/value
+			][
+				ser2: as red-series! part-arg
+				unless all [
+					TYPE_OF(ser2) = TYPE_OF(vec)
+					ser2/node = vec/node
+				][
+					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
+				]
+				part: ser2/head - index
+			]
+			if negative? part [							;-- /part counts backwards from head
+				part: 0 - part
+				either part > index [part: index index: 0][index: index - part]
+				vec/head: index
+				avail: len - index
+			]
+			if part > avail [part: avail]
+		]
+
+		;-- Ownership pre-check --
+		either part? [n: part][n: added * cnt]
+		if n > avail [n: avail]
+		chk?: ownership/check as red-value! vec words/_change null index n
+
+		if overflow? [									;-- precompute item counts, overflow-guarded
+			n:		 added * cnt
+			removed: either part? [part][either n < avail [n][avail]]
+			size:	 (len + n - removed) << lu
+		][fire [TO_ERROR(internal no-memory)]]
+
+		s: GET_BUFFER(vec)
+		if size > s/size [s: expand-series s size]
+		p0: (as byte-ptr! s/offset) + (index << lu)
+
+		if n <> removed [								;-- shift right piece to its final position
+			move-memory p0 + (n << lu) p0 + (removed << lu) (len - index - removed) << lu
+		]
+		s/tail: as cell! (as byte-ptr! s/offset) + ((len + n - removed) << lu)
+
+		either values? [								;-- block value: write each item, coerced to the vector's unit
+			src:  as red-block! value
+			s2:	  GET_BUFFER(src)
+			slot: s2/offset + src/head
+			p:	  p0
+			loop added [
+				set-value p slot unit
+				p: p + unit
+				slot: slot + 1
+			]
+		][
+			either vec? [								;-- vector value: raw element copy (move-memory handles self-overlap)
+				vec2: as red-vector! value
+				s2:	  GET_BUFFER(vec2)
+				voff: vec2/head
+				if all [vec2/node = vec/node voff >= (index + removed)][voff: voff + n - removed] ;-- self: value shifted with the right piece
+				move-memory p0 ((as byte-ptr! s2/offset) + (voff << lu)) (added << lu)
+			][
+				set-value p0 value unit					;-- scalar value: coerce a single element
+			]
+		]
+		if cnt > 1 [dup-memory p0 added << lu cnt]		;-- replicate the one instance for /dup
+
+		if chk? [ownership/check as red-value! vec words/_changed null index n]
+
+		vec/head: index + n
+		s: GET_BUFFER(vec)
+		if (as byte-ptr! s/offset) + (vec/head << lu) > as byte-ptr! s/tail [ ;-- guard against object event past-end
+			vec/head: (as-integer s/tail - s/offset) >> lu
+		]
+		as red-series! vec
 	]
 
 	add: func [return: [red-value!]][
@@ -1131,7 +1234,7 @@ vector: context [
 			:insert			;append
 			INHERIT_ACTION	;at
 			INHERIT_ACTION	;back
-			INHERIT_ACTION	;change
+			:change
 			INHERIT_ACTION	;clear
 			INHERIT_ACTION	;copy
 			INHERIT_ACTION

@@ -3055,6 +3055,13 @@ comment {
 		--assert tail? next next next next i4056
 		--assert tail? next back next tail i4056
 
+	--test-- "#4088"
+		a: "[......]" change/part (skip a 2) a 2		  --assert a = "[.[......]...]"
+		a: "[......]" change/part a a 2			 		  --assert a = "[......].....]"
+		a: "[......]" change/part (skip a 2) as file! a 2 --assert a = "[.[......]...]"
+		a: "[......]" change/part a as file! a 2		  --assert a = "[......].....]"
+		change/part a: "123" next a a					  --assert a = "23123"
+
 	--test-- "#4126"
 		--assert unset? load "#(unset)"
 
@@ -3361,11 +3368,14 @@ comment {
 		--assert 1.2.3 = (1.2.3 % 1.#inf)
 		--assert (make vector! [1.0 2.0]) = ((make vector! [1.0 2.0]) % 1.#inf)
 
+	--test-- "#4913"
+		--assert "" = change "" next [1 2]
+
 	--test-- "#4980"
 		--assert 1 == do/next x4980: quote (1 2 3) 'x4980
 		--assert x4980 == quote (2 3)
 		--assert 1 == do/next x4980: make hash! [1 2 3] 'x4980
-		--assert x4980 == make hash! [2 3]		
+		--assert x4980 == make hash! [2 3]
 
 	--test-- "#4985"
 		--assert path? p: to path! make vector! [1 2]

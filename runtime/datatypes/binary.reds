@@ -16,6 +16,7 @@ binary: context [
 	#enum modes! [
 		MODE_COUNT
 		MODE_ACTION
+		MODE_CHANGE										;-- like MODE_ACTION/COUNT but FORMs non-coercible values
 	]
 
 	#define BINARY_SKIP_COMMENT [
@@ -962,7 +963,7 @@ binary: context [
 		value	[red-value!]
 		part	[integer!]
 		only?	[logic!]								;-- TRUE: treat list of values as an aggregate, affects /part behavior
-		mode	[integer!]								;-- MODE_COUNT | MODE_INSERT
+		mode	[integer!]								;-- MODE_COUNT | MODE_ACTION | MODE_CHANGE (FORMs non-coercible values)
 		return: [integer!]								;-- returns count of added bytes
 		/local
 			str	[red-string!]
@@ -974,24 +975,27 @@ binary: context [
 			p0	[byte-ptr!]
 			p4	[int-ptr!]
 			s2	[series!]
+			fbuf [red-string!]
 			added i len unit [integer!]
+			count? [logic!]
 	][
 		assert part <> 0
+		count?: any [mode = MODE_COUNT all [mode = MODE_CHANGE p = null]]	;-- COUNT pass writes nothing (p = null)
 		switch TYPE_OF(value) [
 			TYPE_CHAR [
 				int: as red-integer! value
-				len: either mode = MODE_COUNT [
+				len: either count? [
 					unicode/predict-utf8-size int/value
 				][
 					buf: as byte-ptr! system/stack/allocate 1	;-- allocates 4 bytes for the UTF-8 representation
 					unicode/cp-to-utf8 int/value buf
 				]
 				if all [part > 0 part < len][len: part]
-				if mode = MODE_ACTION [copy-memory p buf len]
+				unless count? [copy-memory p buf len]
 				len
 			]
 			TYPE_INTEGER [
-				if mode = MODE_COUNT [return 1]
+				if count? [return 1]
 				int: as red-integer! value
 				i: int/value
 				if any [i > 255 i < -128][fire [TO_ERROR(script invalid-arg) int]]
@@ -1003,14 +1007,14 @@ binary: context [
 				s2: GET_BUFFER(bin)
 				added: (as-integer s2/tail - s2/offset) - bin/head
 				if all [part > 0 part < added][added: part]
-				if mode = MODE_COUNT [return added]
-				move-memory p as byte-ptr! s2/offset added		;-- must account for same series case
+				if count? [return added]
+				move-memory p (as byte-ptr! s2/offset) + bin/head added ;-- from head; move-memory handles same-series overlap
 				added
 			]
 			TYPE_TUPLE [
 				added: TUPLE_SIZE?(value)
 				if all [part > 0 part < added][added: part]
-				if mode = MODE_COUNT [return added]
+				if count? [return added]
 				copy-memory p GET_TUPLE_ARRAY(value) added
 				added
 			]
@@ -1039,13 +1043,27 @@ binary: context [
 				p0: (as byte-ptr! s2/offset) + (str/head << log-b unit)
 				added: unicode/predict-utf8-str-size p0 as byte-ptr! s2/tail unit
 				if all [part > 0 part < added][added: part]
-				if mode = MODE_COUNT [return added]
+				if count? [return added]
 				unicode/to-utf8-buffer-alt str p added part no
 				added
 			]
 			default [
-				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_BINARY value]
-				0
+				either mode = MODE_CHANGE [				;-- CHANGE FORMs the value, then emits its UTF-8 (INSERT errors)
+					slot: stack/push*
+					slot/header: TYPE_UNSET
+					fbuf: string/rs-make-at slot 16
+					actions/form value fbuf null 0
+					s2: GET_BUFFER(fbuf)
+					unit: GET_UNIT(s2)
+					added: unicode/predict-utf8-str-size as byte-ptr! s2/offset as byte-ptr! s2/tail unit
+					if all [part > 0 part < added][added: part]
+					unless count? [unicode/to-utf8-buffer-alt fbuf p added part no]
+					stack/pop 1
+					added
+				][
+					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_BINARY value]
+					0
+				]
 			]
 		]
 	]
@@ -1219,6 +1237,110 @@ binary: context [
 		as red-value! bin
 	]
 
+	change: func [
+		bin		 [red-binary!]
+		value	 [red-value!]
+		part-arg [red-value!]
+		only?	 [logic!]						;-- /only is a no-op on binary! (a block value always spreads)
+		dup-arg	 [red-value!]
+		return:	 [red-series!]
+		/local
+			int		[red-integer!]
+			bin2	[red-binary!]
+			s		[series!]
+			p0		[byte-ptr!]
+			part removed cnt n added index avail len size voff [integer!]
+			part? chk? self?  [logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "binary/change"]]
+
+		NORMALIZE_SERIES_HEAD_ALT(bin)
+		cnt: 1
+		if OPTION?(dup-arg) [							;-- /dup count
+			int: as red-integer! dup-arg
+			cnt: int/value
+			if cnt < 1 [return as red-series! bin]		;-- /dup count < 1 => no-op
+		]
+
+		s:	   GET_BUFFER(bin)
+		len:   as-integer s/tail - s/offset				;-- length in bytes (unit = 1)
+		index: bin/head
+		avail: len - index
+		self?: no
+		if TYPE_OF(value) = TYPE_BINARY [				;-- value shares bin's buffer
+			bin2:  as red-binary! value
+			self?: bin2/node = bin/node
+		]
+
+		;-- Resolve /part: number of target bytes to replace (applies to FIRST argument) --
+		part:  0
+		part?: OPTION?(part-arg)
+		if part? [
+			either TYPE_OF(part-arg) = TYPE_INTEGER [
+				int: as red-integer! part-arg
+				part: int/value
+			][
+				bin2: as red-binary! part-arg
+				unless all [
+					TYPE_OF(bin2) = TYPE_OF(bin)
+					bin2/node = bin/node
+				][
+					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
+				]
+				part: bin2/head - index
+			]
+			if negative? part [							;-- /part counts backwards from head
+				part: 0 - part
+				either part > index [part: index index: 0][index: index - part]
+				bin/head: index
+				avail: len - index
+			]
+			if part > avail [part: avail]
+		]
+
+		added: convert null value -1 no MODE_CHANGE		;-- byte count of the WHOLE value (FORMs non-coercibles)
+
+		;-- Ownership pre-check --
+		n: either part? [part][added * cnt]
+		if n > avail [n: avail]
+		chk?: ownership/check as red-value! bin words/_change null index n
+
+		if overflow? [									;-- precompute byte counts, overflow-guarded
+			n:		 added * cnt
+			removed: either part? [part][either n < avail [n][avail]]
+			size:	 len + n - removed
+		][fire [TO_ERROR(internal no-memory)]]
+
+		s: GET_BUFFER(bin)
+		if size > s/size [s: expand-series s size]
+		p0: (as byte-ptr! s/offset) + index
+
+		if n <> removed [								;-- shift right piece to its final position
+			move-memory p0 + n p0 + removed (len - index - removed)
+		]
+		if added > 0 [									;-- write one instance, then replicate for /dup
+			either self? [								;-- value shares bin's buffer: raw-copy from its post-shift position (convert would mis-measure)
+				bin2: as red-binary! value
+				voff: bin2/head
+				if voff >= (index + removed) [voff: voff + n - removed]
+				move-memory p0 ((as byte-ptr! s/offset) + voff) added
+			][
+				convert p0 value -1 no MODE_CHANGE
+			]
+			if cnt > 1 [dup-memory p0 added cnt]
+		]
+		s/tail: as cell! (as byte-ptr! s/offset) + (len + n - removed)
+
+		if chk? [ownership/check as red-value! bin words/_changed null index n]
+
+		bin/head: index + n
+		s: GET_BUFFER(bin)
+		if (as byte-ptr! s/offset) + bin/head > as byte-ptr! s/tail [ ;-- guard against object event past-end
+			bin/head: as-integer (as byte-ptr! s/tail) - as byte-ptr! s/offset
+		]
+		as red-series! bin
+	]
+
 	trim: func [
 		bin			[red-binary!]
 		head?		[logic!]
@@ -1242,78 +1364,6 @@ binary: context [
 		]
 		ownership/check as red-value! bin words/_trim null bin/head 0
 		as red-series! bin
-	]
-
-	change-range: func [
-		bin		[red-binary!]
-		cell	[red-value!]
-		limit	[red-value!]
-		part?	[logic!]
-		return: [integer!]
-		/local
-			added		[integer!]
-			bytes		[integer!]
-			int-value	[integer!]
-			src			[byte-ptr!]
-			type		[integer!]
-			char		[red-char!]
-			int			[red-integer!]
-			form-buf	[red-string!]
-			form-slot	[red-value!]
-	][
-		form-slot: stack/push*				;-- reserve space for FORMing incompatible values
-		form-slot/header: TYPE_UNSET
-		added: 0
-		bytes: 0
-
-		while [cell < limit][
-			type: TYPE_OF(cell)
-			switch type [
-				TYPE_BINARY [
-					src: rs-head as red-binary! cell
-					bytes: rs-length? as red-binary! cell
-				]
-				TYPE_CHAR [
-					char: as red-char! cell
-					src: as byte-ptr! "0000"
-					bytes: unicode/cp-to-utf8 char/value src
-				]
-				TYPE_INTEGER [
-					int: as red-integer! cell		
-						either int/value <= FFh [
-							int-value: int/value
-							src: as byte-ptr! :int-value
-							bytes: 1
-						][
-							fire [TO_ERROR(script out-of-range) cell]
-						]
-				]
-				TYPE_TUPLE [
-					bytes: TUPLE_SIZE?(cell)
-					src: GET_TUPLE_ARRAY(cell)
-				]
-				default [
-					either ANY_STRING?(type) [
-						form-buf: as red-string! cell
-					][
-						;TBD: free previous form-buf node and series buffer
-						form-buf: string/rs-make-at form-slot 16
-						actions/form cell form-buf null 0
-					]
-					bytes: -1
-					src: as byte-ptr! unicode/to-utf8 form-buf :bytes
-				]
-			]
-			either part? [
-				rs-insert bin added src bytes
-			][
-				rs-overwrite bin added src bytes
-			]
-			added: added + bytes
-			cell: cell + 1
-		]
-		stack/pop 1							;-- pop the FORM slot
-		added
 	]
 
 	do-math: func [
@@ -1450,7 +1500,7 @@ binary: context [
 			:insert
 			INHERIT_ACTION	;at
 			INHERIT_ACTION	;back
-			INHERIT_ACTION	;change
+			:change
 			INHERIT_ACTION	;clear
 			INHERIT_ACTION	;copy
 			INHERIT_ACTION	;find

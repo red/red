@@ -1582,6 +1582,128 @@ block: context [
 		as red-value! blk
 	]
 
+	change: func [
+		blk		 [red-block!]
+		value	 [red-value!]
+		part-arg [red-value!]
+		only?	 [logic!]
+		dup-arg	 [red-value!]
+		return:	 [red-series!]
+		/local
+			src cell [red-value!]
+			hash	 [red-hash!]
+			int		 [red-integer!]
+			b		 [red-block!]
+			s s2	 [series!]
+			table	 [node!]
+			part removed cnt n items index avail len size type voff [integer!]
+			values? part? hash? chk? self?  [logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "block/change"]]
+
+		hash?: TYPE_OF(blk) = TYPE_HASH
+		table: null
+		if hash? [hash: as red-hash! blk  table: hash/table]
+
+		cnt: 1
+		if OPTION?(dup-arg) [							;-- /dup count
+			int: as red-integer! dup-arg
+			cnt: int/value
+			if cnt < 1 [return as red-series! blk]		;-- /dup count < 1 => no-op
+		]
+
+		s:	   GET_BUFFER(blk)
+		len:   (as-integer s/tail - s/offset) >> 4
+		if s/offset + blk/head > s/tail [blk/head: len]	;-- past-end index adjustment
+		index: blk/head
+		avail: len - index								;-- nb of slots available from head
+
+		type:	 TYPE_OF(value)
+		values?: all [not only? ANY_BLOCK?(type)]		;-- /only support
+		items:	 either values? [						;-- nb of slots in ONE value instance
+			b:	  as red-block! value
+			s2:	  GET_BUFFER(b)
+			cell: s2/offset + b/head
+			rs-length? b
+		][
+			cell: value
+			1
+		]
+		self?: no
+		if values? [self?: b/node = blk/node]			;-- spread value shares blk's buffer (b = value here)
+
+		;-- Resolve /part: number of target slots to replace (applies to FIRST argument) --
+		part:  0
+		part?: OPTION?(part-arg)
+		if part? [
+			either TYPE_OF(part-arg) = TYPE_INTEGER [
+				int: as red-integer! part-arg
+				part: int/value
+			][
+				b: as red-block! part-arg
+				unless all [
+					TYPE_OF(b) = TYPE_OF(blk)
+					b/node = blk/node
+				][
+					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
+				]
+				part: b/head - index
+			]
+			if negative? part [							;-- /part counts backwards from head
+				part: 0 - part
+				either part > index [part: index index: 0][index: index - part]
+				blk/head: index
+				avail: len - index
+			]
+			if part > avail [part: avail]
+		]
+
+		;-- Ownership pre-check (reactive event bounds for change) --
+		either part? [n: part][n: items * cnt]
+		if n > avail [n: avail]
+		chk?: ownership/check as red-value! blk words/_change null index n
+
+		if overflow? [									;-- precompute slot counts, overflow-guarded
+			n:		 items * cnt						;-- total nb of slots written
+			removed: either part? [part][either n < avail [n][avail]] ;-- nb of target slots replaced
+			size:	 (len + n - removed) << 4
+		][fire [TO_ERROR(internal no-memory)]]
+
+		s: GET_BUFFER(blk)
+		if size > s/size [s: expand-series s size]
+		src: s/offset + index							;-- target slot
+
+		if n <> removed [								;-- shift right piece to its final position
+			move-memory
+				as byte-ptr! (src + n)
+				as byte-ptr! (src + removed)
+				(len - index - removed) << 4
+		]
+		s/tail: s/offset + len + n - removed
+
+		if self? [										;-- value shares blk's buffer: re-fetch from `s` (expand relocated it) and follow the shift
+			b: as red-block! value
+			voff: b/head
+			if voff >= (index + removed) [voff: voff + n - removed]
+			cell: s/offset + voff
+		]
+		if items > 0 [									;-- write one instance, then replicate for /dup
+			copy-memory as byte-ptr! src as byte-ptr! cell items << 4
+			if cnt > 1 [dup-memory as byte-ptr! src items << 4 cnt]
+		]
+
+		if hash? [_hashtable/rehash table _series/get-length as red-series! blk yes]
+
+		if chk? [ownership/check as red-value! blk words/_changed null index n]
+
+		blk/head: index + n
+		s: GET_BUFFER(blk)
+		if s/offset + blk/head > s/tail [				;-- guard against object event past-end
+			blk/head: (as-integer s/tail - s/offset) >> 4
+		]
+		as red-series! blk
+	]
+
 	take: func [
 		blk	    	[red-block!]
 		part-arg	[red-value!]
@@ -1947,7 +2069,7 @@ block: context [
 			:insert			;append
 			INHERIT_ACTION	;at
 			INHERIT_ACTION	;back
-			INHERIT_ACTION	;change
+			:change
 			INHERIT_ACTION	;clear
 			:copy
 			:find

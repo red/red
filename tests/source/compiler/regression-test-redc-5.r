@@ -392,7 +392,47 @@ test
 		--assert to-logic find qt/output {"main"^/"included"}
 		
 		delete qt-temp-dir/s2.red
+
+	--test-- "#5013"
+		write qt-temp-dir/s1.red {
+Red []
+
+#do [recycle/off]
+recycle/off
+[
+	#macro [#abcd] func [s e] [e]
+	comment [
+		#abcd
+		#abcd
+		#abcd
+		#abcd
+	
+		[a b c d a b c d a b c d a b c d a b c d a b c d a b c d a b c d a b c d ]
+		[a b c d a b c d a b c d a b c d a b c d a b c d a b c d a b c d a b c d ]
+		[a b c d a b c d a b c d a b c d a b c d a b c d a b c d a b c d a b c d ]
+		[a b c d a b c d a b c d a b c d a b c d a b c d a b c d a b c d a b c d ]
+		[a b c d a b c d a b c d a b c d a b c d a b c d a b c d a b c d a b c d ]
+		[a b c d a b c d a b c d a b c d a b c d a b c d a b c d a b c d a b c d ]
+		[a b c d a b c d a b c d a b c d a b c d a b c d a b c d a b c d a b c d ]
+		[a b c d a b c d a b c d a b c d a b c d a b c d a b c d a b c d a b c d ]
+		[a b c d a b c d a b c d a b c d a b c d a b c d a b c d a b c d a b c d ]
+		[a b c d a b c d a b c d a b c d a b c d a b c d a b c d a b c d a b c d ]
+		[a b c d a b c d a b c d a b c d a b c d a b c d a b c d a b c d a b c d ]
+		[a b c d a b c d a b c d a b c d a b c d a b c d a b c d a b c d a b c d ]
+		[a b c d a b c d a b c d a b c d a b c d a b c d a b c d a b c d a b c d ]
+		[a b c d a b c d a b c d a b c d a b c d a b c d a b c d a b c d a b c d ]
+	]
+]
+}
+		saved: qt/compile-flag
+		qt/compile-flag: " -d "							;-- force debug mode (to trigger assertions)
+		--compile-and-run-this rejoin [{Red [] do } mold qt-temp-dir/s1.red]
+		qt/compile-flag: saved
 		
+		--assert compiled?
+		--assert not crashed?
+		delete qt-temp-dir/s1.red
+	
 	--test-- "#5065"
 		--compile-and-run-this {
 			Red []

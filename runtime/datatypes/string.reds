@@ -2626,6 +2626,231 @@ string: context [
 		as red-value! str
 	]
 
+	change: func [
+		str		 [red-string!]
+		value	 [red-value!]
+		part-arg [red-value!]
+		only?	 [logic!]						;-- /only is a no-op on any-string! (kept for action ABI)
+		dup-arg	 [red-value!]
+		return:	 [red-series!]
+		/local
+			blk			 [red-block!]
+			head slot	 [red-value!]
+			int			 [red-integer!]
+			char		 [red-char!]
+			str2		 [red-string!]
+			s s2 sn		 [series!]
+			p0 src dst	 [byte-ptr!]
+			len len2 added type unit unit2 size index u lu lus hpos
+			part removed cnt n rlen wadded wn bodycp avail voff [integer!]
+			part? chk? done? upgrade? self?  [logic!]
+			do-form-part [subroutine!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "string/change"]]
+
+		do-form-part: [actions/form slot str null MAX_INT] ;-- FORM value fully (change's /part targets dest, not value)
+
+		NORMALIZE_SERIES_HEAD_ALT(str)
+
+		cnt: 1
+		if OPTION?(dup-arg) [							;-- /dup count
+			int: as red-integer! dup-arg
+			cnt: int/value
+			if cnt < 1 [return as red-series! str]		;-- /dup count < 1 => no-op
+		]
+
+		s:	   GET_BUFFER(str)
+		unit:  GET_UNIT(s)
+		lus:   log-b unit
+		len:   (as-integer s/tail - s/offset) >> lus
+		index: str/head
+		avail: len - index								;-- nb of codepoints available from head
+
+		;-- Resolve /part: number of dest codepoints to replace (applies to FIRST argument) --
+		part:  0
+		part?: OPTION?(part-arg)
+		if part? [
+			either TYPE_OF(part-arg) = TYPE_INTEGER [
+				int: as red-integer! part-arg
+				part: int/value
+			][
+				str2: as red-string! part-arg
+				unless all [
+					TYPE_OF(str2) = TYPE_OF(str)		;-- handles any-string!
+					str2/node = str/node
+				][
+					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
+				]
+				part: str2/head - index
+			]
+			if negative? part [							;-- /part counts backwards from head
+				part: 0 - part
+				either part > index [part: index index: 0][index: index - part]
+				str/head: index
+				avail: len - index
+			]
+			if part > avail [part: avail]
+		]
+
+		type: TYPE_OF(value)
+
+		;-- Ownership pre-check (reactive event bounds for change) --
+		either part? [n: part][
+			n: either ANY_BLOCK?(type) [_series/get-length as red-series! value no][1]
+			n: n * cnt
+		]
+		if n > avail [n: avail]
+		chk?: ownership/check as red-value! str words/_change null index n
+
+		if index = len [								;-- change at tail behaves like append
+			append str value -1 only? cnt no
+			s: GET_BUFFER(str)
+			n: (as-integer s/tail - s/offset) >> log-b GET_UNIT(s) ;-- new tail position
+			if chk? [ownership/check as red-value! str words/_changed null index n - index]
+			str/head: n
+			return as red-series! str
+		]
+
+		str2:  as red-string! value
+		self?: all [ANY_STRING?(type) str2/node = str/node] ;-- value shares str's buffer
+		done?: no
+
+		added: switch type [							;-- nb of codepoints in ONE value instance
+			TYPE_CHAR		[char: as red-char! value  1]
+			TYPE_TAG		[2 + rs-length? str2]
+			TYPE_ANY_STRING	[rs-length? str2]
+			default			[							;-- FORM value(s), appending to str's tail
+				either ANY_LIST?(type) [
+					blk:  as red-block! value
+					s2:	  GET_BUFFER(blk)
+					head: s2/offset + blk/head
+					slot: head
+					while [slot < s2/tail][do-form-part  slot: slot + 1]
+				][
+					slot: value
+					do-form-part
+				]
+				done?: yes
+				(rs-abs-length? str) - len
+			]
+		]
+
+		s:	  GET_BUFFER(str)
+		unit: GET_UNIT(s)								;-- refresh: FORMing may have upgraded the unit
+		lus:  log-b unit
+		either done? [unit2: unit][						;-- determine the argument's unit
+			unit2: either type = TYPE_CHAR [
+				case [char/value < 128 [UCS-1] char/value < 65536 [UCS-2] true [UCS-4]]
+			][
+				s2: GET_BUFFER(str2)
+				GET_UNIT(s2)
+			]
+		]
+		upgrade?: unit < unit2
+		u:	either upgrade? [unit2][unit]				;-- output string unit
+		lu: log-b u
+
+		if overflow? [									;-- precompute byte sizes, guarded against overflow
+			n:		 added * cnt						;-- total nb of codepoints added
+			removed: either part? [part][either n < avail [n][avail]] ;-- nb of dest codepoints replaced
+			rlen:	 len - index - removed				;-- right piece length in codepoints
+			hpos:	 index * u
+			wadded:	 added * u
+			wn:		 n * u
+			size:	 (len + n - removed) * u
+		][fire [TO_ERROR(internal no-memory)]]
+
+		either size > s/size [							;-- Change in expanded buffer case
+			sn: expand-series-strict s size
+			sn/tail: sn/offset
+			either done? [								;-- FORMed value already sits at s[len .. len+added)
+				if hpos > 0 [							;-- left piece (no upgrade in FORM case)
+					copy-memory as byte-ptr! sn/offset as byte-ptr! s/offset hpos
+					sn/tail: as cell! (as byte-ptr! sn/tail) + hpos
+				]
+				src: (as byte-ptr! s/offset) + (len << lu) ;-- value piece (one instance, then /dup)
+				copy-memory as byte-ptr! sn/tail src wadded
+				if cnt > 1 [dup-memory as byte-ptr! sn/tail wadded cnt]
+				sn/tail: as cell! (as byte-ptr! sn/tail) + wn
+			][											;-- char!/any-string!/tag! value
+				if hpos > 0 [							;-- left piece (upgrade if needed)
+					either upgrade? [convert s sn 0 unit2 0 0 (index << lus) no][
+						copy-memory as byte-ptr! sn/offset as byte-ptr! s/offset hpos
+						sn/tail: as cell! (as byte-ptr! sn/tail) + hpos
+					]
+				]
+				either self? [							;-- self: str2 shares str's relinked node → read original bytes from OLD s (intact, unshifted; no upgrade possible)
+					src: (as byte-ptr! s/offset) + (str2/head << lus)
+					copy-memory as byte-ptr! sn/tail src wadded
+					if cnt > 1 [dup-memory as byte-ptr! sn/tail wadded cnt]
+					sn/tail: as cell! (as byte-ptr! sn/tail) + wn
+				][
+					append str value -1 only? cnt no	;-- value piece: let `append` handle char/string/tag + /dup + upgrade
+					sn: GET_BUFFER(str)					;-- refresh in case `append` reallocated
+				]
+			]
+			if rlen > 0 [								;-- right piece s[index + removed .. len)
+				either all [upgrade? not done?][
+					len2: as-integer sn/tail - sn/offset
+					convert s sn 0 unit2 (index + removed << lus) len2 0 no
+				][
+					src: (as byte-ptr! s/offset) + (index + removed << lu)
+					copy-memory as byte-ptr! sn/tail src rlen << lu
+					sn/tail: as cell! (as byte-ptr! sn/tail) + (rlen << lu)
+				]
+			]
+			s: sn
+		][												;-- Change in original buffer case (enough space)
+			if upgrade? [s: upgrade-series-unit s unit unit2]
+			p0: (as byte-ptr! s/offset) + hpos
+			either done? [								;-- FORMed value sits at the tail: drop replaced region, then swap into place
+				if removed > 0 [
+					src: (as byte-ptr! s/offset) + (index + removed << lu)
+					move-memory p0 src (as-integer s/tail - src)
+					s/tail: as cell! (as byte-ptr! s/tail) - (removed << lu)
+				]
+				if cnt > 1 [s/tail: as cell! (as byte-ptr! s/tail) + (wn - wadded)]
+				len2: rlen << lu						;-- right piece bytes
+				swap-buffers p0 len2 (p0 + len2) wadded (wn - wadded) ;-- swap right & FORMed pieces (gap left for /dup)
+				if cnt > 1 [dup-memory p0 wadded cnt]
+			][											;-- char!/any-string!/tag! value
+				if rlen > 0 [							;-- shift right piece to its final position
+					src: (as byte-ptr! s/offset) + (index + removed << lu)
+					move-memory p0 + wn src rlen << lu
+				]
+				s/tail: as cell! (as byte-ptr! s/offset) + (len + n - removed << lu)
+				either type = TYPE_CHAR [poke-char s p0 char/value][
+					s2:		GET_BUFFER(str2)
+					bodycp:	either type = TYPE_TAG [added - 2][added] ;-- value body codepoints; use `added` (self: str2 shares the buffer whose tail we just extended)
+					voff:	str2/head
+					if all [self? voff >= (index + removed)][voff: voff + n - removed] ;-- value was in the right piece → the shift relocated it by n - removed
+					dst:	p0
+					if type = TYPE_TAG [poke-char s dst as-integer #"<"  dst: dst + u]
+					if bodycp > 0 [
+						either u = unit2 [
+							src: (as byte-ptr! s2/offset) + (voff << log-b unit2)
+							copy-memory dst src bodycp << lu
+						][									;-- upgrade value's unit on the fly (non-self only)
+							convert s2 s 0 u (voff << log-b unit2) (as-integer dst - as byte-ptr! s/offset) (voff + bodycp << log-b unit2) yes
+						]
+					]
+					if type = TYPE_TAG [poke-char s dst + (bodycp << lu) as-integer #">"]
+				]
+				if cnt > 1 [dup-memory p0 wadded cnt]	;-- replicate the one instance for /dup
+			]
+		]
+
+		if chk? [ownership/check as red-value! str words/_changed null index n]
+
+		str/head: index + n
+		s:	GET_BUFFER(str)
+		lu: log-b GET_UNIT(s)
+		if (as byte-ptr! s/offset) + (str/head << lu) > as byte-ptr! s/tail [ ;-- guard against object event past-end
+			str/head: (as-integer s/tail - s/offset) >> lu
+		]
+		as red-series! str
+	]
+
 	swap: func [
 		str1	 [red-string!]
 		str2	 [red-string!]
@@ -2930,61 +3155,6 @@ string: context [
 		as red-series! str
 	]
 
-	change-range: func [
-		str		[red-string!]
-		cell	[red-value!]
-		limit	[red-value!]
-		part?	[logic!]
-		return: [integer!]
-		/local
-			s			[series!]
-			added		[integer!]
-			len			[integer!]
-			type		[integer!]
-			char		[red-char!]
-			form-buf	[red-string!]
-			form-slot	[red-value!]
-	][
-		form-slot: stack/push*				;-- reserve space for FORMing incompatible values
-		form-slot/header: TYPE_UNSET
-		added: 0
-
-		while [cell < limit][
-			type: TYPE_OF(cell)
-			either type = TYPE_CHAR [
-				char: as red-char! cell
-				s: GET_BUFFER(str)
-				either part? [				;-- /part will insert extra elements
-					insert-char s str/head + added char/value
-				][
-					overwrite-char s str/head + added char/value
-				]
-				added: added + 1
-			][
-				either all [
-					ANY_STRING?(type)
-					type <> TYPE_TAG				;-- preserve angle brackets
-				][
-					form-buf: as red-string! cell
-				][
-					;TBD: free previous form-buf node and series buffer
-					form-buf: rs-make-at form-slot 16
-					actions/form cell form-buf null 0
-				]
-				len: rs-length? form-buf			;-- form-buf can be changed by overwrite/concatenate
-				either part? [
-					concatenate str form-buf -1 added yes yes
-				][
-					overwrite str form-buf -1 added yes
-				]
-				added: added + len
-			]
-			cell: cell + 1
-		]
-		stack/pop 1							;-- pop the FORM slot
-		added
-	]
-
 	do-set-op: func [
 		case?	 [logic!]
 		skip-arg [red-integer!]
@@ -3118,7 +3288,7 @@ string: context [
 			:append
 			INHERIT_ACTION	;at
 			INHERIT_ACTION	;back
-			INHERIT_ACTION	;change
+			:change
 			INHERIT_ACTION	;clear
 			INHERIT_ACTION	;copy
 			:find
