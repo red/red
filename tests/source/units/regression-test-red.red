@@ -3515,6 +3515,11 @@ comment {
 		h: make hash! [1 2 3 4 5 6 7 8 9 10 11 12 13]
 		loop 10000 [copy h]
 		--assert hash? h
+
+	--test-- "#5320"
+		--assert #{12} = append/part #{} s: #{1234} next s
+		--assert   #{} = append/part #{} s: #{1234} 0
+		--assert   #{} = append/part #{} s: #{1234} s
 		
 	--test-- "#5345"
 		--assert 12-Nov-2013 == load "12-nov-13"
