@@ -3516,6 +3516,12 @@ comment {
 		loop 10000 [copy h]
 		--assert hash? h
 
+	--test-- "#5303"
+		src: %../
+		dir: tail src
+		clear src
+		--assert {%""} = mold dir
+	
 	--test-- "#5320"
 		--assert #{12} = append/part #{} s: #{1234} next s
 		--assert   #{} = append/part #{} s: #{1234} 0
