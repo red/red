@@ -243,9 +243,9 @@ port: context [
 	change: func [
 		port	[red-object!]
 		value	[red-value!]
-		part	[red-value!]
+		part	[integer!]
 		only?	[logic!]
-		dup		[red-value!]
+		dup		[integer!]
 		/local
 			actors [red-object!]
 			part?  [logic!]
@@ -253,17 +253,17 @@ port: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "port/change"]]
 		
-		part?: OPTION?(part)
-		dup?:  OPTION?(dup)
+		part?: part > -1
+		dup?:  dup > 1
 		actors: get-actors as red-object! port
 		stack/mark-func words/_change actors/ctx
 		stack/push as red-value! port
 		stack/push value
 		logic/push part?
-		either part? [stack/push part][none/push]
+		either part? [integer/push part][none/push]
 		logic/push only?
 		logic/push dup?
-		either dup? [stack/push dup][none/push]
+		either dup? [integer/push dup][none/push]
 		call-function actors words/_change
 	]
 	

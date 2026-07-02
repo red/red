@@ -1346,13 +1346,11 @@ parser: context [
 										default	  [value: cmd]
 									]
 									only?: rtype = R_CHANGE_ONLY
-									int: as red-integer! base		;@@ remove once OPTION? fixed
-									int/header: TYPE_INTEGER
-									int/value: input/head - p/input
+									offset: input/head - p/input
 									input/head: p/input
-									assert int/value >= 0
+									assert offset >= 0
 									PARSE_SAVE_SERIES
-									new: actions/change input value base only? null
+									new: actions/change input value offset only? 1
 									if s-top <> null [stack/top: s-top]
 									PARSE_RESTORE_SERIES
 									input/head: new/head
@@ -1964,10 +1962,14 @@ parser: context [
 										]
 										default	  [value: cmd]
 									]
-									copy-cell as red-value! input base 	;@@ remove once OPTION? fixed
-									input/head: new/head
+									either input/head < new/head [	;-- positions can be in either order
+										offset: new/head - input/head
+									][
+										offset: input/head - new/head
+										input/head: new/head
+									]
 									PARSE_SAVE_SERIES
-									actions/change input value base as-logic max null
+									actions/change input value offset as-logic max 1
 									if s-top <> null [stack/top: s-top]
 									PARSE_RESTORE_SERIES
 									done?: yes

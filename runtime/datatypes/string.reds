@@ -2629,20 +2629,19 @@ string: context [
 	change: func [
 		str		 [red-string!]
 		value	 [red-value!]
-		part-arg [red-value!]
+		part	 [integer!]
 		only?	 [logic!]						;-- /only is a no-op on any-string! (kept for action ABI)
-		dup-arg	 [red-value!]
+		cnt		 [integer!]
 		return:	 [red-series!]
 		/local
 			blk			 [red-block!]
 			head slot	 [red-value!]
-			int			 [red-integer!]
 			char		 [red-char!]
 			str2		 [red-string!]
 			s s2 sn		 [series!]
 			p0 src dst	 [byte-ptr!]
 			len len2 added type unit unit2 size index u lu lus hpos
-			part removed cnt n rlen wadded wn bodycp avail voff [integer!]
+			removed n rlen wadded wn bodycp avail voff [integer!]
 			part? chk? done? upgrade? self?  [logic!]
 			do-form-part [subroutine!]
 	][
@@ -2652,13 +2651,6 @@ string: context [
 
 		NORMALIZE_SERIES_HEAD_ALT(str)
 
-		cnt: 1
-		if OPTION?(dup-arg) [							;-- /dup count
-			int: as red-integer! dup-arg
-			cnt: int/value
-			if cnt < 1 [return as red-series! str]		;-- /dup count < 1 => no-op
-		]
-
 		s:	   GET_BUFFER(str)
 		unit:  GET_UNIT(s)
 		lus:   log-b unit
@@ -2666,31 +2658,8 @@ string: context [
 		index: str/head
 		avail: len - index								;-- nb of codepoints available from head
 
-		;-- Resolve /part: number of dest codepoints to replace (applies to FIRST argument) --
-		part:  0
-		part?: OPTION?(part-arg)
-		if part? [
-			either TYPE_OF(part-arg) = TYPE_INTEGER [
-				int: as red-integer! part-arg
-				part: int/value
-			][
-				str2: as red-string! part-arg
-				unless all [
-					TYPE_OF(str2) = TYPE_OF(str)		;-- handles any-string!
-					str2/node = str/node
-				][
-					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
-				]
-				part: str2/head - index
-			]
-			if negative? part [							;-- /part counts backwards from head
-				part: 0 - part
-				either part > index [part: index index: 0][index: index - part]
-				str/head: index
-				avail: len - index
-			]
-			if part > avail [part: avail]
-		]
+		part?: part > -1								;-- /part: nb of dest codepoints to replace (decoded by the action wrapper)
+		if part > avail [part: avail]
 		type: TYPE_OF(value)
 
 		;-- Ownership pre-check (reactive event bounds for change) --

@@ -1585,18 +1585,17 @@ block: context [
 	change: func [
 		blk		 [red-block!]
 		value	 [red-value!]
-		part-arg [red-value!]
+		part	 [integer!]
 		only?	 [logic!]
-		dup-arg	 [red-value!]
+		cnt		 [integer!]
 		return:	 [red-series!]
 		/local
 			src cell [red-value!]
 			hash	 [red-hash!]
-			int		 [red-integer!]
 			b		 [red-block!]
 			s s2	 [series!]
 			table	 [node!]
-			part removed cnt n items index avail len size type voff [integer!]
+			removed n items index avail len size type voff [integer!]
 			values? part? hash? chk? self?  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/change"]]
@@ -1604,13 +1603,6 @@ block: context [
 		hash?: TYPE_OF(blk) = TYPE_HASH
 		table: null
 		if hash? [hash: as red-hash! blk  table: hash/table]
-
-		cnt: 1
-		if OPTION?(dup-arg) [							;-- /dup count
-			int: as red-integer! dup-arg
-			cnt: int/value
-			if cnt < 1 [return as red-series! blk]		;-- /dup count < 1 => no-op
-		]
 
 		s: GET_BUFFER(blk)
 		len: (as-integer s/tail - s/offset) >> 4
@@ -1632,31 +1624,8 @@ block: context [
 		self?: no
 		if values? [self?: b/node = blk/node]			;-- spread value shares blk's buffer (b = value here)
 
-		;-- Resolve /part: number of target slots to replace (applies to FIRST argument) --
-		part:  0
-		part?: OPTION?(part-arg)
-		if part? [
-			either TYPE_OF(part-arg) = TYPE_INTEGER [
-				int: as red-integer! part-arg
-				part: int/value
-			][
-				b: as red-block! part-arg
-				unless all [
-					TYPE_OF(b) = TYPE_OF(blk)
-					b/node = blk/node
-				][
-					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
-				]
-				part: b/head - index
-			]
-			if negative? part [							;-- /part counts backwards from head
-				part: 0 - part
-				either part > index [part: index index: 0][index: index - part]
-				blk/head: index
-				avail: len - index
-			]
-			if part > avail [part: avail]
-		]
+		part?: part > -1								;-- /part: nb of target slots to replace (decoded by the action wrapper)
+		if part > avail [part: avail]
 
 		;-- Ownership pre-check (reactive event bounds for change) --
 		n: either part? [part][items * cnt]

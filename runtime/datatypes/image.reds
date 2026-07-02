@@ -1053,9 +1053,9 @@ image: context [
 	change: func [
 		img		 [red-image!]
 		value	 [red-value!]
-		part-arg [red-value!]
+		part	 [integer!]
 		only?	 [logic!]
-		dup-arg  [red-value!]
+		cnt		 [integer!]
 		return:	 [red-image!]
 		/local
 			bin1 [int-ptr!]
@@ -1070,8 +1070,8 @@ image: context [
 			x x1 y1 x2 y2
 			stride1 stride2 [integer!]
 	][
-		if OPTION?(dup-arg) [--NOT_IMPLEMENTED--]
-		if OPTION?(part-arg) [--NOT_IMPLEMENTED--]
+		if cnt > 1 [--NOT_IMPLEMENTED--]
+		if part > -1 [--NOT_IMPLEMENTED--]
 
 		head: img/head
 		type: TYPE_OF(value)

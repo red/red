@@ -1036,30 +1036,22 @@ vector: context [
 	change: func [
 		vec		 [red-vector!]
 		value	 [red-value!]
-		part-arg [red-value!]
+		part	 [integer!]
 		only?	 [logic!]
-		dup-arg	 [red-value!]
+		cnt		 [integer!]
 		return:	 [red-series!]
 		/local
 			src		[red-block!]
 			slot	[red-value!]
-			int		[red-integer!]
-			ser2	[red-series!]
 			vec2	[red-vector!]
 			s s2	[series!]
 			p p0	[byte-ptr!]
-			part removed cnt n added index avail len unit lu size type voff [integer!]
+			removed n added index avail len unit lu size type voff [integer!]
 			part? values? vec? chk?  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "vector/change"]]
 
 		NORMALIZE_SERIES_HEAD_ALT(vec)
-		cnt: 1
-		if OPTION?(dup-arg) [							;-- /dup count
-			int: as red-integer! dup-arg
-			cnt: int/value
-			if cnt < 1 [return as red-series! vec]		;-- /dup count < 1 => no-op
-		]
 
 		s:	   GET_BUFFER(vec)
 		unit:  GET_UNIT(s)
@@ -1078,31 +1070,8 @@ vector: context [
 		][
 			either vec? [_series/get-length as red-series! value no][1]
 		]
-		;-- Resolve /part: number of target items to replace (applies to FIRST argument) --
-		part:  0
-		part?: OPTION?(part-arg)
-		if part? [
-			either TYPE_OF(part-arg) = TYPE_INTEGER [
-				int: as red-integer! part-arg
-				part: int/value
-			][
-				ser2: as red-series! part-arg
-				unless all [
-					TYPE_OF(ser2) = TYPE_OF(vec)
-					ser2/node = vec/node
-				][
-					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
-				]
-				part: ser2/head - index
-			]
-			if negative? part [							;-- /part counts backwards from head
-				part: 0 - part
-				either part > index [part: index index: 0][index: index - part]
-				vec/head: index
-				avail: len - index
-			]
-			if part > avail [part: avail]
-		]
+		part?: part > -1								;-- /part: nb of target items to replace (decoded by the action wrapper)
+		if part > avail [part: avail]
 		;-- Ownership pre-check --
 		either part? [n: part][n: added * cnt]
 		if n > avail [n: avail]

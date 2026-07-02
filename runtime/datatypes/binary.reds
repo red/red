@@ -1241,27 +1241,20 @@ binary: context [
 	change: func [
 		bin		 [red-binary!]
 		value	 [red-value!]
-		part-arg [red-value!]
+		part	 [integer!]
 		only?	 [logic!]						;-- /only is a no-op on binary! (a block value always spreads)
-		dup-arg	 [red-value!]
+		cnt		 [integer!]
 		return:	 [red-series!]
 		/local
-			int		[red-integer!]
 			bin2	[red-binary!]
 			s		[series!]
 			p0		[byte-ptr!]
-			part removed cnt n added index avail len size voff [integer!]
+			removed n added index avail len size voff [integer!]
 			part? chk? self? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/change"]]
 
 		NORMALIZE_SERIES_HEAD_ALT(bin)
-		cnt: 1
-		if OPTION?(dup-arg) [							;-- /dup count
-			int: as red-integer! dup-arg
-			cnt: int/value
-			if cnt < 1 [return as red-series! bin]		;-- /dup count < 1 => no-op
-		]
 		
 		s:	   GET_BUFFER(bin)
 		len:   as-integer s/tail - s/offset				;-- length in bytes (unit = 1)
@@ -1272,31 +1265,8 @@ binary: context [
 			bin2:  as red-binary! value
 			self?: bin2/node = bin/node
 		]
-		;-- Resolve /part: number of target bytes to replace (applies to FIRST argument) --
-		part: 0
-		part?: OPTION?(part-arg)
-		if part? [
-			either TYPE_OF(part-arg) = TYPE_INTEGER [
-				int: as red-integer! part-arg
-				part: int/value
-			][
-				bin2: as red-binary! part-arg
-				unless all [
-					TYPE_OF(bin2) = TYPE_OF(bin)
-					bin2/node = bin/node
-				][
-					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
-				]
-				part: bin2/head - index
-			]
-			if negative? part [							;-- /part counts backwards from head
-				part: 0 - part
-				either part > index [part: index index: 0][index: index - part]
-				bin/head: index
-				avail: len - index
-			]
-			if part > avail [part: avail]
-		]
+		part?: part > -1								;-- /part: nb of target bytes to replace (decoded by the action wrapper)
+		if part > avail [part: avail]
 		
 		added: convert null value -1 no MODE_CHANGE		;-- byte count of the WHOLE value (FORMs non-coercibles)
 

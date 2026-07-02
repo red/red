@@ -944,21 +944,62 @@ actions: context [
 		only	[integer!]
 		dup		[integer!]
 		return: [red-series!]
+		/local
+			ser1 ser2 [red-series!]
+			part-arg  [red-value!]
+			int		  [red-integer!]
+			cnt p0	  [integer!]
+			series?   [logic!]
 	][
+		cnt: 1
+		if part > -1 [
+			part-arg: stack/arguments + part
+			ser1: as red-series! stack/arguments		;-- /part offset is relative to the target series
+			series?: all [TYPE_OF(ser1) <> TYPE_PORT TYPE_OF(ser1) <> TYPE_IMAGE]
+			if series? [NORMALIZE_SERIES_HEAD_ALT(ser1)]
+
+			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
+				int: as red-integer! part-arg
+				int/value
+			][
+				ser2: as red-series! stack/arguments + part
+				unless all [TYPE_OF(ser2) = TYPE_OF(ser1) ser2/node = ser1/node series?][
+					ERR_INVALID_REFINEMENT_ARG(refinements/_part ser2)
+				]
+				NORMALIZE_SERIES_HEAD_ALT(ser2)
+				ser2/head - ser1/head
+			]
+			if part < 0 [
+				either series? [						;-- negative part counts backwards from the target's head
+					p0: ser1/head + part
+					if p0 < 0 [p0: 0]
+					part: ser1/head - p0
+					ser1/head: p0
+				][
+					part: 0								;-- no target head to count back from (port!/image!)
+				]
+			]
+		]
+		if dup > -1 [
+			int: as red-integer! stack/arguments + dup
+			cnt: int/value
+			if cnt <= 0 [return as red-series! stack/arguments]	;@@ This will prevent action to be passed to port!
+		]
+
 		change
 			as red-series! stack/arguments
 			stack/arguments + 1
-			stack/arguments + part
+			part
 			as logic! only + 1
-			stack/arguments + dup
+			cnt
 	]
 
 	change: func [
 		series	[red-series!]
 		value	[red-value!]
-		part	[red-value!]
+		part	[integer!]
 		only?	[logic!]
-		dup		[red-value!]
+		cnt		[integer!]
 		return: [red-series!]
 		/local
 			action-change
@@ -968,13 +1009,13 @@ actions: context [
 		action-change: as function! [
 			series	[red-series!]
 			value	[red-value!]
-			part	[red-value!]
+			part	[integer!]
 			only?	[logic!]
-			dup		[red-value!]
+			cnt		[integer!]
 			return: [red-series!]
 		] get-action-ptr as red-value! series ACT_CHANGE
 
-		action-change series value part only? dup
+		action-change series value part only? cnt
 	]
 
 	clear*: func [

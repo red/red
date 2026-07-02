@@ -84,11 +84,12 @@ email: context [
 		][
 			parent/head: pos + 1
 			either value = null [null][
-				as red-value! integer/push string/rs-length? parent
+				pos: string/rs-length? parent
+				as red-value! integer/push pos
 			]
 		]
 		either value <> null [
-			string/change parent value part no null
+			string/change parent value pos no 1
 		][
 			value: stack/push*
 			_series/copy as red-series! parent as red-series! value part no	null 
