@@ -121,10 +121,32 @@ function Get-CodexFinalReview {
     param([string]$Output)
 
     $normalized = $Output -replace "`r`n", "`n"
-    $matches = [regex]::Matches($normalized, "(?m)^codex\s*$")
+    $codexMarkers = [regex]::Matches($normalized, "(?m)^codex\s*$")
 
-    if ($matches.Count -gt 0) {
-        $start = $matches[$matches.Count - 1].Index + $matches[$matches.Count - 1].Length
+    if ($codexMarkers.Count -eq 0) {
+        return $normalized.Trim()
+    }
+
+    $execMarkers = [regex]::Matches($normalized, "(?m)^exec\s*$")
+    $lastExecEnd = -1
+
+    if ($execMarkers.Count -gt 0) {
+        $lastExec = $execMarkers[$execMarkers.Count - 1]
+        $lastExecEnd = $lastExec.Index + $lastExec.Length
+    }
+
+    foreach ($marker in $codexMarkers) {
+        if ($marker.Index -gt $lastExecEnd) {
+            $start = $marker.Index + $marker.Length
+            $final = $normalized.Substring($start).Trim()
+            if (-not [string]::IsNullOrWhiteSpace($final)) {
+                return $final
+            }
+        }
+    }
+
+    if ($execMarkers.Count -eq 0) {
+        $start = $codexMarkers[0].Index + $codexMarkers[0].Length
         $final = $normalized.Substring($start).Trim()
         if (-not [string]::IsNullOrWhiteSpace($final)) {
             return $final
@@ -193,9 +215,10 @@ $singleCommitMode = [string]::IsNullOrWhiteSpace($baseSha)
 $outputRoot = if ([string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) { (Get-Location).Path } else { $env:RUNNER_TEMP }
 $reviewOutputPath = Join-Path $outputRoot "codex-review-output.md"
 $transcriptOutputPath = Join-Path $outputRoot "codex-review-transcript.txt"
+$lastMessageOutputPath = Join-Path $outputRoot "codex-review-last-message.md"
 
 try {
-    $reviewArgs = @("review")
+    $reviewArgs = @("exec", "review", "--output-last-message", $lastMessageOutputPath)
     $rangeLabel = $null
 
     if ($singleCommitMode) {
@@ -224,14 +247,26 @@ try {
     Write-Info "Running Codex review for $rangeLabel."
     $reviewLines = & codex @reviewArgs 2>&1
     $codexExitCode = $LASTEXITCODE
-    $reviewText = ($reviewLines | Out-String).TrimEnd()
+    $rawReviewText = ($reviewLines | Out-String).TrimEnd()
+
+    if ([string]::IsNullOrWhiteSpace($rawReviewText)) {
+        $rawReviewText = "Codex produced no transcript output."
+    }
+
+    Set-Content -Path $transcriptOutputPath -Value $rawReviewText -Encoding utf8
+
+    if (Test-Path $lastMessageOutputPath) {
+        $reviewText = (Get-Content -Path $lastMessageOutputPath -Raw).Trim()
+    }
+    else {
+        $reviewText = Get-CodexFinalReview $rawReviewText
+    }
 
     if ([string]::IsNullOrWhiteSpace($reviewText)) {
         $reviewText = "Codex produced no review output."
     }
 
-    Set-Content -Path $transcriptOutputPath -Value $reviewText -Encoding utf8
-    $reviewText = Limit-ReviewLength (Remove-DuplicateReviewBlock (Get-CodexFinalReview $reviewText))
+    $reviewText = Limit-ReviewLength (Remove-DuplicateReviewBlock $reviewText)
 
 $summary = @"
 # Local AI Code Review
@@ -247,7 +282,7 @@ $reviewText
 
     Write-ReviewSummary -Markdown $summary -OutputPath $reviewOutputPath
 
-    if (Test-CodexUsageError $reviewText) {
+    if (Test-CodexUsageError $rawReviewText) {
         throw "Codex review command failed due to invalid CLI usage. See $reviewOutputPath for captured output."
     }
     elseif ($codexExitCode -eq 2) {
