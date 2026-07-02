@@ -117,6 +117,68 @@ function Test-CodexUsageError {
     return $Output -match "(?m)^error: " -and $Output -match "(?m)^Usage: codex "
 }
 
+function Get-CodexFinalReview {
+    param([string]$Output)
+
+    $normalized = $Output -replace "`r`n", "`n"
+    $matches = [regex]::Matches($normalized, "(?m)^codex\s*$")
+
+    if ($matches.Count -gt 0) {
+        $start = $matches[$matches.Count - 1].Index + $matches[$matches.Count - 1].Length
+        $final = $normalized.Substring($start).Trim()
+        if (-not [string]::IsNullOrWhiteSpace($final)) {
+            return $final
+        }
+    }
+
+    return $normalized.Trim()
+}
+
+function Limit-ReviewLength {
+    param(
+        [string]$Text,
+        [int]$MaxCharacters = 12000
+    )
+
+    if ($Text.Length -le $MaxCharacters) {
+        return $Text
+    }
+
+    $tailLength = [Math]::Min(4000, $MaxCharacters)
+    $headLength = $MaxCharacters - $tailLength
+    $head = $Text.Substring(0, $headLength).TrimEnd()
+    $tail = $Text.Substring($Text.Length - $tailLength).TrimStart()
+
+    return @"
+$head
+
+... review output truncated; see codex-review-transcript.txt for the full raw transcript ...
+
+$tail
+"@.Trim()
+}
+
+function Remove-DuplicateReviewBlock {
+    param([string]$Text)
+
+    $normalized = $Text -replace "`r`n", "`n"
+    $lines = $normalized -split "`n", 0, "SimpleMatch"
+
+    if ($lines.Count % 2 -ne 0) {
+        return $Text
+    }
+
+    $half = [int]($lines.Count / 2)
+    $first = ($lines[0..($half - 1)] -join "`n").Trim()
+    $second = ($lines[$half..($lines.Count - 1)] -join "`n").Trim()
+
+    if ($first -eq $second) {
+        return $first
+    }
+
+    return $Text
+}
+
 if (Test-ZeroSha $HeadSha) {
     Write-Info "Push deleted a ref; skipping review."
     exit 0
@@ -130,6 +192,7 @@ $baseBranch = $null
 $singleCommitMode = [string]::IsNullOrWhiteSpace($baseSha)
 $outputRoot = if ([string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) { (Get-Location).Path } else { $env:RUNNER_TEMP }
 $reviewOutputPath = Join-Path $outputRoot "codex-review-output.md"
+$transcriptOutputPath = Join-Path $outputRoot "codex-review-transcript.txt"
 
 try {
     $reviewArgs = @("review")
@@ -166,6 +229,9 @@ try {
     if ([string]::IsNullOrWhiteSpace($reviewText)) {
         $reviewText = "Codex produced no review output."
     }
+
+    Set-Content -Path $transcriptOutputPath -Value $reviewText -Encoding utf8
+    $reviewText = Limit-ReviewLength (Remove-DuplicateReviewBlock (Get-CodexFinalReview $reviewText))
 
 $summary = @"
 # Local AI Code Review

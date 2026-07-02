@@ -38,5 +38,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: local-ai-review
-          path: ${{ runner.temp }}/codex-review-output.md
+          path: |
+            ${{ runner.temp }}/codex-review-output.md
+            ${{ runner.temp }}/codex-review-transcript.txt
           if-no-files-found: ignore
