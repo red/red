@@ -117,45 +117,6 @@ function Test-CodexUsageError {
     return $Output -match "(?m)^error: " -and $Output -match "(?m)^Usage: codex "
 }
 
-function Get-CodexFinalReview {
-    param([string]$Output)
-
-    $normalized = $Output -replace "`r`n", "`n"
-    $codexMarkers = [regex]::Matches($normalized, "(?m)^codex\s*$")
-
-    if ($codexMarkers.Count -eq 0) {
-        return $normalized.Trim()
-    }
-
-    $execMarkers = [regex]::Matches($normalized, "(?m)^exec\s*$")
-    $lastExecEnd = -1
-
-    if ($execMarkers.Count -gt 0) {
-        $lastExec = $execMarkers[$execMarkers.Count - 1]
-        $lastExecEnd = $lastExec.Index + $lastExec.Length
-    }
-
-    foreach ($marker in $codexMarkers) {
-        if ($marker.Index -gt $lastExecEnd) {
-            $start = $marker.Index + $marker.Length
-            $final = $normalized.Substring($start).Trim()
-            if (-not [string]::IsNullOrWhiteSpace($final)) {
-                return $final
-            }
-        }
-    }
-
-    if ($execMarkers.Count -eq 0) {
-        $start = $codexMarkers[0].Index + $codexMarkers[0].Length
-        $final = $normalized.Substring($start).Trim()
-        if (-not [string]::IsNullOrWhiteSpace($final)) {
-            return $final
-        }
-    }
-
-    return $normalized.Trim()
-}
-
 function Limit-ReviewLength {
     param(
         [string]$Text,
@@ -178,27 +139,6 @@ $head
 
 $tail
 "@.Trim()
-}
-
-function Remove-DuplicateReviewBlock {
-    param([string]$Text)
-
-    $normalized = $Text -replace "`r`n", "`n"
-    $lines = $normalized -split "`n", 0, "SimpleMatch"
-
-    if ($lines.Count % 2 -ne 0) {
-        return $Text
-    }
-
-    $half = [int]($lines.Count / 2)
-    $first = ($lines[0..($half - 1)] -join "`n").Trim()
-    $second = ($lines[$half..($lines.Count - 1)] -join "`n").Trim()
-
-    if ($first -eq $second) {
-        return $first
-    }
-
-    return $Text
 }
 
 if (Test-ZeroSha $HeadSha) {
@@ -259,14 +199,14 @@ try {
         $reviewText = (Get-Content -Path $lastMessageOutputPath -Raw).Trim()
     }
     else {
-        $reviewText = Get-CodexFinalReview $rawReviewText
+        throw "Codex did not write $lastMessageOutputPath. See $transcriptOutputPath for captured output."
     }
 
     if ([string]::IsNullOrWhiteSpace($reviewText)) {
         $reviewText = "Codex produced no review output."
     }
 
-    $reviewText = Limit-ReviewLength (Remove-DuplicateReviewBlock $reviewText)
+    $reviewText = Limit-ReviewLength $reviewText
 
 $summary = @"
 # Local AI Code Review

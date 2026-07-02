@@ -13,7 +13,7 @@ jobs:
   review:
     name: Review pushed diff
     runs-on: [self-hosted, windows, x64, codex-review]
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     steps:
       - name: Checkout
