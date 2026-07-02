@@ -527,14 +527,19 @@ dup-memory: func [
 	count	[integer!]									;-- number of replications (including the base one)
 	return: [byte-ptr!]
 	/local
-		p	[byte-ptr!]
+		total  [integer!]
+		filled [integer!]
 ][
-	p: base + len
-	loop count - 1 [									;@@ To be optimized using geometric copying
-		copy-memory p base len
-		p: p + len
+	total:  len * count
+	filled: len
+	if filled > 0 [
+		while [total - filled >= filled][				;-- geometric progression: double the copied region
+			copy-memory base + filled base filled
+			filled: filled << 1
+		]
+		if total > filled [copy-memory base + filled base total - filled]
 	]
-	p
+	base + total
 ]
 
 cycles: context [
