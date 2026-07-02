@@ -1484,6 +1484,11 @@ Red [
 		a: copy "[......]"
 		change/part (skip a 2) a 2
 		--assert "[.[......]...]" = head a
+	--test-- "change-self-str-5b"
+		a: make string! 20
+		append a "12345678"
+		change/part (skip a 2) a 2
+		--assert "12123456785678" = head a
 	--test-- "change-self-blk-5"
 		b: copy [1 2 3 4 5 6 7 8]
 		change/part (skip b 2) b 2

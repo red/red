@@ -2826,7 +2826,11 @@ string: context [
 					if bodycp > 0 [
 						either u = unit2 [
 							src: (as byte-ptr! s2/offset) + (voff << log-b unit2)
-							copy-memory dst src bodycp << lu
+							either self? [
+								move-memory dst src bodycp << lu
+							][
+								copy-memory dst src bodycp << lu
+							]
 						][									;-- upgrade value's unit on the fly (non-self only)
 							convert s2 s 0 u (voff << log-b unit2) (as-integer dst - as byte-ptr! s/offset) (voff + bodycp << log-b unit2) yes
 						]

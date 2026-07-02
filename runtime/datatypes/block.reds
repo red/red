@@ -1688,7 +1688,11 @@ block: context [
 			cell: s/offset + voff
 		]
 		if items > 0 [									;-- write one instance, then replicate for /dup
-			copy-memory as byte-ptr! src as byte-ptr! cell items << 4
+			either self? [								;-- self-overlap can happen after the right-piece shift
+				move-memory as byte-ptr! src as byte-ptr! cell items << 4
+			][
+				copy-memory as byte-ptr! src as byte-ptr! cell items << 4
+			]
 			if cnt > 1 [dup-memory as byte-ptr! src items << 4 cnt]
 		]
 		if hash? [_hashtable/rehash table _series/get-length as red-series! blk yes]
