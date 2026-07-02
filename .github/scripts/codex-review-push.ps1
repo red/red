@@ -181,6 +181,7 @@ $summary = @"
 
 - Range: ``$rangeLabel``
 - Mode: advisory
+- Codex exit code: `$codexExitCode`
 
 ## Review
 
@@ -189,7 +190,10 @@ $reviewText
 
     Write-ReviewSummary -Markdown $summary -OutputPath $reviewOutputPath
 
-    if ($codexExitCode -ne 0) {
+    if ($codexExitCode -eq 2) {
+        Write-Warning "Codex review exited with code 2; preserving advisory output and passing the workflow."
+    }
+    elseif ($codexExitCode -ne 0) {
         throw "Codex review failed with exit code $codexExitCode. See $reviewOutputPath for captured output."
     }
 
