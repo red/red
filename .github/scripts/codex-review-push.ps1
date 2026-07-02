@@ -93,18 +93,6 @@ function Resolve-BaseSha {
     return $null
 }
 
-function New-ReviewInstructions {
-    @"
-Review the pushed diff for potential bugs only.
-
-Focus on correctness regressions, runtime failures, unsafe behavior, broken edge cases, data loss or corruption, security issues, resource leaks, race or lifecycle problems, and missing tests only when the missing coverage hides a realistic bug risk in changed behavior.
-
-Do not comment on style, formatting, naming, broad refactors, or general language guidance unless it directly causes a likely bug.
-
-For each finding, include severity, file path, nearest changed line or hunk, why it is a bug risk, and a minimal fix direction. If there are no credible bugs, say that clearly.
-"@
-}
-
 function Write-ReviewSummary {
     param(
         [string]$Markdown,
@@ -121,6 +109,12 @@ function Write-ReviewSummary {
     if (-not [string]::IsNullOrWhiteSpace($env:GITHUB_STEP_SUMMARY)) {
         Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $Markdown -Encoding utf8
     }
+}
+
+function Test-CodexUsageError {
+    param([string]$Output)
+
+    return $Output -match "(?m)^error: " -and $Output -match "(?m)^Usage: codex "
 }
 
 if (Test-ZeroSha $HeadSha) {
@@ -158,9 +152,6 @@ try {
         $rangeLabel = "$baseSha..$HeadSha"
     }
 
-    $reviewArgs += "-"
-    $instructions = New-ReviewInstructions
-
     if ($DryRun) {
         Write-Info "Dry run: codex $($reviewArgs -join ' ')"
         Write-Info "Dry run range: $rangeLabel"
@@ -168,7 +159,7 @@ try {
     }
 
     Write-Info "Running Codex review for $rangeLabel."
-    $reviewLines = $instructions | & codex @reviewArgs 2>&1
+    $reviewLines = & codex @reviewArgs 2>&1
     $codexExitCode = $LASTEXITCODE
     $reviewText = ($reviewLines | Out-String).TrimEnd()
 
@@ -181,7 +172,7 @@ $summary = @"
 
 - Range: ``$rangeLabel``
 - Mode: advisory
-- Codex exit code: `$codexExitCode`
+- Codex exit code: ``$codexExitCode``
 
 ## Review
 
@@ -190,7 +181,10 @@ $reviewText
 
     Write-ReviewSummary -Markdown $summary -OutputPath $reviewOutputPath
 
-    if ($codexExitCode -eq 2) {
+    if (Test-CodexUsageError $reviewText) {
+        throw "Codex review command failed due to invalid CLI usage. See $reviewOutputPath for captured output."
+    }
+    elseif ($codexExitCode -eq 2) {
         Write-Warning "Codex review exited with code 2; preserving advisory output and passing the workflow."
     }
     elseif ($codexExitCode -ne 0) {
