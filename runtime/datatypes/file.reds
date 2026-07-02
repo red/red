@@ -196,6 +196,7 @@ file: context [
 
 		s: GET_BUFFER(file)
 		unit: GET_UNIT(s)
+		NORMALIZE_ANY_STRING_HEAD(file)
 		p: (as byte-ptr! s/offset) + (file/head << (log-b unit))
 		head: p
 		empty?: p = as byte-ptr! s/tail
