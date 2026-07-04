@@ -111,6 +111,9 @@ system-dialect: make-profilable context [
 		ns-list:		 make hash!  8					;-- namespaces definition list [name [word type...]...]
 		sym-ctx-table:	 make hash!  100				;-- reverse lookup table for contexts
 		globals:  	   	 make hash!  40					;-- list of globally defined symbols from scripts
+		protected:		 make hash!  40					;-- list of protected symbols (read-only data)
+		protected-values: make hash! 40					;-- protected scalar constants: [name value ...]
+		protect-mode:	 none							;-- name of the variable being declared as protected
 		aliased-types: 	 make hash!  10					;-- list of aliased type definitions
 		keywords-list:	 make block! 20
 		
@@ -239,6 +242,7 @@ system-dialect: make-profilable context [
 			continue	 [comp-continue]
 			catch		 [comp-catch]
 			declare		 [comp-declare]
+			protect		 [comp-protect]
 			use			 [comp-use]
 			null		 [comp-null]
 			context		 [comp-context]
@@ -1001,6 +1005,13 @@ system-dialect: make-profilable context [
 		get-enumerator: func [name [word!] /local pos][
 			all [
 				pos: find/skip next enumerations name 3		;-- SELECT/SKIP on hash! unreliable!
+				pos/2
+			]
+		]
+
+		get-protected-value: func [name [word!] /local pos][
+			all [
+				pos: find/skip protected-values name 2		;-- SELECT/SKIP on hash! unreliable!
 				pos/2
 			]
 		]
@@ -2442,8 +2453,38 @@ system-dialect: make-profilable context [
 			pc: skip pc offset
 			value
 		]
-		
-		
+
+		comp-protect: has [name value][
+			unless set-word? pc/-1 [
+				throw-error "protect must immediately follow a variable declaration"
+			]
+			if any [locals block-level > 0][
+				throw-error "protect is only allowed at global scope"
+			]
+			name: any [resolve-ns to word! pc/-1 to word! pc/-1]
+			if any [find globals name find protected name][
+				backtrack pc/-1
+				throw-error ["protect requires a new variable:" name "is already declared"]
+			]
+			pc: next pc
+			value: fetch-expression 'protect
+			unless literal? unbox value [
+				throw-error "protect expects a literal value"
+			]
+			either all [
+				not object? value						;-- casted literals keep their storage (not foldable)
+				find [integer! decimal! char!] type?/word value
+			][
+				append protected name					;-- scalar: compile-time constant, substituted at each use
+				repend protected-values [name value]
+				none									;-- no storage, no expression to compile
+			][
+				append protected name
+				protect-mode: name						;-- consumed by comp-variable-assign for rodata storage
+				value
+			]
+		]
+
 		comp-use: does [
 			pc: next pc
 			unless locals [
@@ -3137,6 +3178,13 @@ system-dialect: make-profilable context [
 					throw-error ["redeclaration of enumerator" name "from" enum]
 				]
 				if all [
+					not local?
+					find protected any [resolve-ns n n]
+				][
+					backtrack name
+					throw-error ["cannot modify a protected variable:" n]
+				]
+				if all [
 					get-word? pc/1
 					find functions to word! pc/1
 				][
@@ -3153,8 +3201,16 @@ system-dialect: make-profilable context [
 				]
 			]
 			if set-path? name [
-				unless any [name/1 = 'system local-variable? name/1][
-					name: resolve-ns-path name
+				local?: local-variable? name/1			;-- path root shadowing a protected global?
+				unless any [name/1 = 'system local?][
+					name: resolve-ns-path name			;-- may collapse the path to a set-word
+				]
+				if all [
+					not local?							;-- writes through a local shadow are allowed
+					find protected either set-path? name [name/1][to word! name]
+				][
+					backtrack name
+					throw-error ["cannot write to protected data:" mold name]
 				]
 				if all [series? name value: system-reflexion? name][name: value]
 			]
@@ -3799,7 +3855,12 @@ system-dialect: make-profilable context [
 			if any [block? value path? value][value: <last>]
 			if store? [
 				unless all [paren? value 'value = last value][ ;-- struct by value excluded from heap allocation
-					emitter/store name value type
+					either all [protect-mode protect-mode = name][
+						protect-mode: none
+						emitter/store/protected name value type
+					][
+						emitter/store name value type
+					]
 				]
 			]
 		]
@@ -3961,11 +4022,14 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		check-enum-symbol: func [code [any-block!] /strict /local value][
-			either all [								;-- if enum, replace it with its integer value
+		check-enum-symbol: func [code [any-block!] /strict /local value name][
+			either all [								;-- if enum or protected constant, replace it with its value
 				word? code/1
 				not local-variable? code/1
-				value: get-enumerator resolve-ns code/1
+				value: any [
+					get-enumerator name: resolve-ns code/1
+					get-protected-value name
+				]
 			][
 				change code value
 			][
@@ -4371,9 +4435,11 @@ system-dialect: make-profilable context [
 				compiler/comp-call '__red-boot []
 			]
 			if payload [								;-- Redbin boot data handling
+				emitter/rodata?: not job/PIC?			;-- decode never patches the payload (PIC: keep it relocatable)
 				emitter/target/emit-load-literal [binary!] payload
+				emitter/rodata?: no
 				emitter/target/emit-move-path-alt
-				emitter/access-path first [system/boot-data:] <last> 
+				emitter/access-path first [system/boot-data:] <last>
 			]
  			unless empty? red/sys-global [
 				set-cache-base %./
@@ -4421,6 +4487,9 @@ system-dialect: make-profilable context [
 		compiler/catch-level:
 		compiler/verbose: 0
 		
+		compiler/protect-mode: none
+		clear compiler/protected
+		clear compiler/protected-values
 		clear compiler/imports
 		clear compiler/exports
 		clear compiler/natives
@@ -4600,6 +4669,9 @@ system-dialect: make-profilable context [
 					code   [- 	(emitter/code-buf)]
 					data   [- 	(emitter/data-buf)]
 					import [- - (compiler/imports)]
+				]
+				unless empty? emitter/rodata-buf [		;-- read-only data section, laid out between code and data
+					insert at job/sections 3 compose/deep/only [rodata [- (emitter/rodata-buf)]]
 				]
 				unless empty? compiler/exports [
 					append job/sections compose/deep/only [

@@ -21,8 +21,8 @@ change-dir %../
 	      count           [integer!]
 	      list            [typed-value!]
 	    ][
-	      pi: declare pointer! [integer!]
-	      pi: as pointer! [integer!] list/value
+	      ip: declare pointer! [integer!]
+	      ip: as pointer! [integer!] list/value
 	    ]
 	    f [:i]
 	  }

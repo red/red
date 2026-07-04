@@ -419,6 +419,7 @@ context [
 					size:  size + sz + hd-sz
 					addr:  addr + sz
 					fpos:  fpos + sz
+					hd-sz: 0							;-- headers precede the first section only
 					sec: skip sec 9
 				]
 				size: round/ceiling/to size defs/page-size
@@ -469,7 +470,12 @@ context [
 				__DATA [data: segments/3]
 			]
 		]
-		linker/resolve-symbol-refs job cbuf dbuf code data pointer
+		either find job/sections 'rodata [
+			linker/resolve-symbol-refs job cbuf dbuf job/sections/rodata/2
+				code data get-section-addr '__const pointer
+		][
+			linker/resolve-symbol-refs job cbuf dbuf #{} code data 0 pointer
+		]
 	]
 	
 	collect-data-reloc: func [job [object!] /local list syms][
@@ -870,7 +876,15 @@ context [
 		/local
 			base-address dynamic-linker out sections data buffer
 	][
+		if all [find job/sections 'rodata job/type = 'dll][
+			linker/throw-error "protected data in dylibs requires local relocations (not supported yet)"
+		]
 		segments: copy/deep segments-layout
+		if find job/sections 'rodata [					;-- insert read-only data section in __TEXT segment
+			append pick find segments '__TEXT 9 [
+				section	__const	 	 ?	 ?	 ?	 ?	 -		  rodata   word
+			]
+		]
 		
 		base-address: 	any [job/base-address defs/base-address]
 		dynamic-linker: any [job/dynamic-linker ""]
@@ -926,13 +940,24 @@ context [
 			job
 			base-address
 			(get-section-addr '__text) - either job/PIC? [0][base-address]
-			second get-segment-info '__TEXT
+			either find job/sections 'rodata [			;-- exclude __const from the code range
+				(get-section-addr '__const) - get-section-addr '__text
+			][
+				second get-segment-info '__TEXT
+			]
 			(get-section-addr '__data) - either job/PIC? [0][base-address]
 			second get-segment-info '__DATA
 		
 		if job/show-func-map? [linker/show-funcs-map job get-section-addr '__text]
-		
-		emit-page-aligned out job/sections/code/2
+
+		either find job/sections 'rodata [				;-- __TEXT file image: code, word-aligned rodata, page pad
+			append out job/sections/code/2
+			pad4 out
+			append out job/sections/rodata/2
+			emit-page-aligned out #{}
+		][
+			emit-page-aligned out job/sections/code/2
+		]
 		
 		data: job/sections/data/2
 		if find job/sections 'initfuncs [

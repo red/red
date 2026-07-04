@@ -55,7 +55,7 @@ redbin: context [
 	
 	#if debug? = yes [indent: 0]
 	
-	header: #{
+	header: protect #{
 		52454442494E								;-- REDBIN magic
 		02											;-- version
 		00											;-- placeholder for flags
@@ -65,21 +65,28 @@ redbin: context [
 		
 	;-- Support --
 	
-	preprocess-symbols: func [
-		base 	[int-ptr!]
+	build-symbol-table: func [						;-- intern all symbols into a transient table,
+		base 	[int-ptr!]							;-- leaving the input payload untouched
+		return: [int-ptr!]
 		/local
 			syms	[int-ptr!]
 			end		[int-ptr!]
 			strings [c-string!]
+			table	[int-ptr!]
+			slot	[int-ptr!]
 	][
 		syms:	 base + 2
 		end:	 syms + base/value
 		strings: as-c-string end
-		
+		table:	 as int-ptr! allocate base/value << 2
+		slot:	 table
+
 		while [syms < end][
-			syms/1: symbol/make strings + syms/1
+			slot/1: symbol/make strings + syms/1
 			syms: syms + 1
+			slot: slot + 1
 		]
+		table
 	]
 	
 	pad: func [
@@ -498,8 +505,7 @@ redbin: context [
 		;----------------
 		table: null
 		if sym-table? [
-			unless codec? [preprocess-symbols p4]
-			table: p4 + 2
+			table: either codec? [p4 + 2][build-symbol-table p4]	;-- payload is never modified
 			p: p + 8 + (p4/1 * 4 + p4/2)
 		]
 		
@@ -526,7 +532,8 @@ redbin: context [
 		]
 		
 		if compressed? [crush/release saved]
-		
+		if all [not codec? table <> null][free as byte-ptr! table]
+
 		input: null
 		unless codec? [root-base: (block/rs-head parent) + root-offset]
 		root-base

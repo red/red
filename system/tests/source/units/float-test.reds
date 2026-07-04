@@ -69,14 +69,14 @@ Red/System [
 		local-float: func [n [float!] return: [float!] /local p][p: n p]
 	
 	--test-- "float-loc-1"
-		pi: local-float 3.141592653589793
-		--assert pi = 3.141592653589793
-		--assert -1.0 = cos pi
-		--assert -1.0 = local-float cos pi
+		fpi: local-float 3.141592653589793
+		--assert fpi = 3.141592653589793
+		--assert -1.0 = cos fpi
+		--assert -1.0 = local-float cos fpi
 	
 	--test-- "float-loc-2"
-		f: local-float pi
-		--assert pi = local-float f
+		f: local-float fpi
+		--assert fpi = local-float f
 	
 	--test-- "float-loc-3"
 		local-float2: func [
@@ -85,10 +85,10 @@ Red/System [
 			p: n local-float p
 		]
 	
-		pi: local-float2 3.141592653589793
-		--assert -1.0 = local-float2 cos pi
-		f: local-float2 pi
-		--assert pi = local-float2 f
+		fpi: local-float2 3.141592653589793
+		--assert -1.0 = local-float2 cos fpi
+		f: local-float2 fpi
+		--assert fpi = local-float2 f
 	
 	--test-- "float-loc-4"
 		local-float3: func [
@@ -97,22 +97,22 @@ Red/System [
 			p: n local-float p
 		]
 	
-		pi: local-float3 3.141592653589793
-		--assert -1.0 = local-float3 cos pi
-		f: local-float3 pi
-		--assert pi = local-float3 f
+		fpi: local-float3 3.141592653589793
+		--assert -1.0 = local-float3 cos fpi
+		f: local-float3 fpi
+		--assert fpi = local-float3 f
 	
 	--test-- "float-loc-5"
 		local-float4: func [n [float!] return: [float!] /local r p][p: n p]
-		--assert -1.0 = local-float4 cos pi
-		f: local-float4 pi
-		--assert pi = local-float4 f
+		--assert -1.0 = local-float4 cos fpi
+		f: local-float4 fpi
+		--assert fpi = local-float4 f
 	
 	--test-- "float-loc-6"
 		local-float5: func [n [float!] return: [float!] /local r p][p: n local-float p]
-		--assert -1.0 = local-float5 cos pi
-		f: local-float5 pi
-		--assert pi = local-float5 f
+		--assert -1.0 = local-float5 cos fpi
+		f: local-float5 fpi
+		--assert fpi = local-float5 f
 
 ===end-group===
 
@@ -197,10 +197,10 @@ Red/System [
 ===start-group=== "float pointers"
 
 	--test-- "float-point-1"
-		pi: 3.141592653589793
+		fpi: 3.141592653589793
 		p: declare pointer! [float!]
 		p/value: 3.141592653589793
-		--assert pi = p/value
+		--assert fpi = p/value
 
 ===end-group===
 

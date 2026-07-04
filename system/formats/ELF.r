@@ -282,6 +282,10 @@ context [
 			section ".text"			[progbits 	[alloc execinstr]	word]
 		]
 
+		segment "ro"				[load	  	[r]					page] [
+			section ".rodata"		[progbits 	[alloc]				word]
+		]
+
 		segment "rw"				[load	  	[r w]				page] [
 			section ".data"			[progbits 	[write alloc]		word]
 			section ".data.rel.ro"	[progbits 	[write alloc]		word]
@@ -310,6 +314,12 @@ context [
 			get-address get-offset get-size get-meta get-data set-data
 			relro-offset pos list soname base
 	] [
+		if all [
+			find job/sections 'rodata
+			any [job/type = 'dll job/PIC?]
+		][
+			linker/throw-error "protected data in ELF shared objects requires load-time relocations (not supported yet)"
+		]
 		base-address: either any [job/type = 'dll job/PIC?][0][
 			any [job/base-address defs/base-address]
 		]
@@ -387,6 +397,9 @@ context [
 		if zero? data-size [
 			remove-elements structure [".data"]
 		]
+		unless find job/sections 'rodata [
+			remove-elements structure [".rodata"]
+		]
 		
 		dynamic-size: calc-dynamic-size job/type job/target job/symbols
 
@@ -408,6 +421,7 @@ context [
 
 		commands: compose/deep [
 			"rx"			skip (base-address)
+			"ro"			skip (defs/page-size)
 			"rw"			skip (defs/page-size)
 
 			".hash"			meta [link ".dynsym"]
@@ -438,6 +452,7 @@ context [
 							data (#{})
 			".dynstr"		data (to-elf-strtab compose [(libraries) (imports) (extract exports 2) (defs/rpath) (soname)])
 			".text"			data (job/sections/code/2)
+			".rodata"		data (any [attempt [job/sections/rodata/2] #{}])
 			".stabstr"		data (to-elf-strtab join ["%_"] extract natives 2)
 			".shstrtab"		data (to-elf-strtab sections)
 			".ARM.attributes" data (build-arm-attributes job/ABI job/cpu-version)
@@ -493,6 +508,8 @@ context [
 				section-index-of sections ".text"
 				get-address ".data"
 				section-index-of sections ".data"
+				any [attempt [get-address ".rodata"] 0]
+				section-index-of sections ".rodata"
 		]
 
 		set-data ".rel.text" [
@@ -547,13 +564,15 @@ context [
 		]
 
 		;; Resolve data references.
-		if has-element ".data" [
+		if any [has-element ".data" has-element ".rodata"][
 			linker/resolve-symbol-refs
 				job
 				get-data ".text"
-				get-data ".data"
+				any [attempt [get-data ".data"] #{}]
+				any [attempt [get-data ".rodata"] #{}]
 				get-address ".text"
-				get-address ".data"
+				any [attempt [get-address ".data"] 0]
+				any [attempt [get-address ".rodata"] 0]
 				machine-word
 		]
 
@@ -703,6 +722,8 @@ context [
 		text-index [integer!]
 		data-address [integer!]
 		data-index [integer!]
+		rodata-address [integer!]
+		rodata-index [integer!]
 		/local result entry export-base export-type export-index
 	] [
 		result: copy []
@@ -724,6 +745,9 @@ context [
 			set [export-base export-type export-index] case [
 				meta/type = 'global [
 					reduce [data-address defs/stt-object data-index]
+				]
+				meta/type = 'rodata [
+					reduce [rodata-address defs/stt-object rodata-index]
 				]
 				true [
 					reduce [text-address defs/stt-func text-index]
@@ -989,8 +1013,9 @@ context [
 			syms: skip syms 2
 			if all [
 				not tail? syms
-				syms/1 = <data>	
+				syms/1 = <data>
 				block? syms/2/4
+				positive? syms/2/4/1					;-- negative: read-only data ref, resolved at link time
 			][
 				append list either syms/2/4/1 - 1 = syms/-1/2 [
 					syms/-1/2							;-- pointer slot to value slot
@@ -1019,12 +1044,13 @@ context [
 		the object size is not yet stored in the symbol or exports table, we
 		have to compute it here.}
 		job [object!]
-		/local current-tail code-tail data-tail symbol-offset symbol-size ext-name
+		/local current-tail code-tail data-tail rodata-tail symbol-offset symbol-size ext-name
 	] [
 		unless find job/sections 'export [return make block! 0]
 
 		code-tail: length? job/sections/code/2
 		data-tail: length? job/sections/data/2
+		rodata-tail: length? any [attempt [job/sections/rodata/2] #{}]
 		collect [
 			foreach [meta symbol] reverse copy job/symbols [
 				catch [
@@ -1036,6 +1062,11 @@ context [
 							symbol-offset: meta/2
 							symbol-size: data-tail - symbol-offset
 							data-tail: symbol-offset
+						]
+						'rodata = meta/1 [
+							symbol-offset: meta/2
+							symbol-size: rodata-tail - symbol-offset
+							rodata-tail: symbol-offset
 						]
 						'native = meta/1 [
 							;; Code symbols have 1-based offsets, data symbols

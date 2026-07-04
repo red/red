@@ -189,6 +189,7 @@ context [
 		s-type [
 			BSS					#{C0000080}	;-- [read write uninitialized]
 			data				#{C0000040}	;-- [read write initialized]
+			rodata				#{40000040}	;-- [read initialized]
 			export				#{40000040}	;-- [read initialized]
 			import				#{40000040}	;-- [read initialized]
 			idata				#{40000040}	;-- [read initialized]
@@ -499,13 +500,19 @@ context [
 		make error! reform [mold s-name "section not found!"]
 	]
 
-	resolve-data-refs: func [job [object!] /local cbuf dbuf data code][
+	resolve-data-refs: func [job [object!] /local cbuf dbuf robuf data code rodata][
 		cbuf: job/sections/code/2
 		dbuf: job/sections/data/2
 		data: (section-addr?/memory job 'data) + base-address
 		code: entry-point-address? job
-
-		linker/resolve-symbol-refs job cbuf dbuf code data pointer
+		either find job/sections 'rodata [
+			robuf:  job/sections/rodata/2
+			rodata: (section-addr?/memory job 'rodata) + base-address
+		][
+			robuf: #{}
+			rodata: 0
+		]
+		linker/resolve-symbol-refs job cbuf dbuf robuf code data rodata pointer
 	]
 
 	resolve-import-refs: func [job [object!] /local code code-base][
@@ -607,7 +614,7 @@ context [
 		job [object!]
 		/local
 			spec NPT out names ptr EAT-len sym-nb dll-name-offset ordinal ed
-			code-base data-base	buffer names-ptr
+			code-base data-base	ro-base buffer names-ptr
 	][
 		spec: 		job/sections/export
 		NPT: 		make block! 32
@@ -648,13 +655,18 @@ context [
 		
 		code-base: section-addr?/memory job 'code
 		data-base: section-addr?/memory job 'data
-	
+		ro-base: either find job/sections 'rodata [section-addr?/memory job 'rodata][0]
+
 		buffer: make binary! 1024
 		names-ptr: ed/ordinals-rva + (2 * sym-nb)
 			
 		foreach [name offset] NPT [						;-- Export Address Table
 			entry: select job/symbols name
-			pointer/value: entry/2 + either entry/1 = 'global [data-base][code-base - 1]
+			pointer/value: entry/2 + case [
+				entry/1 = 'global [data-base]
+				entry/1 = 'rodata [ro-base]
+				'else			  [code-base - 1]
+			]
 			append out form-struct pointer				;-- Export RVA
 			
 			pointer/value: names-ptr + offset
@@ -710,24 +722,29 @@ context [
 		buffer
 	]
 	
-	build-reloc: func [job [object!] /local out code-refs data-refs][
+	build-reloc: func [job [object!] /local out code-refs data-refs ro-refs][
 		out: make binary! 4096
 			
 		code-refs: make block! 1000
 		data-refs: make block! 100
+		ro-refs:   make block! 100
 		foreach [name spec] job/symbols [
-			either all [find [global native] spec/1 block? spec/4][
-				foreach ref spec/4 [append data-refs ref]
+			either all [find [global native rodata] spec/1 block? spec/4][
+				foreach ref spec/4 [					;-- negative refs live in the rodata section
+					either negative? ref [append ro-refs negate ref][append data-refs ref]
+				]
 			][
 				foreach ref spec/3 [append code-refs ref]
 			]
 		]
 		code-refs: unique sort code-refs
 		data-refs: unique sort data-refs
-			
+		ro-refs:   unique sort ro-refs
+
 		unless empty? code-refs [append out build-section-reloc job 'code code-refs]
 		unless empty? data-refs [append out build-section-reloc job 'data data-refs]
-		
+		unless empty? ro-refs	[append out build-section-reloc job 'rodata ro-refs]
+
 		job/sections/reloc/2: out
 	]
 
@@ -860,6 +877,7 @@ context [
 		name: select [
 			code	".text"
 			data  	".data"
+			rodata	".rdata"
 			import	".rdata"
 			export	".edata"
 			rsrc	".rsrc"

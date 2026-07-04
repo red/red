@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 08/09/2022
-	Revision: 60
+	Date: 03/07/2026
+	Revision: 62
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -187,6 +187,55 @@ Allowed types for variables are:
 *struct!
 
 *pointer!
+
+
+---Constant data
+
+A value can be made constant by prefixing it with the <b>protect</b> keyword at declaration time. A protected value is immutable: the compiler rejects any attempt to reassign the variable or to write to it through a path. Its data is placed in a read-only memory segment (<b>.rdata</b> on Windows, <b>.rodata</b> on Linux, <b>__const</b> on macOS). Any write attempt through a derived pointer then triggers a hardware access violation at runtime.
+
+<b>Syntax</b>
+
+ <name>: protect <literal>
+
+ where
+ 	<name>    : a new global identifier
+ 	<literal> : a literal value or literal array, optionally type-casted
+
+Protection can be applied to literal scalars, strings, binaries and literal arrays:
+
+ MAX:    protect 1000					;-- integer! constant
+ PI:     protect 3.141592653589793		;-- float! constant
+ tag:    protect #"@"					;-- byte! constant
+ name:   protect "Red/System"			;-- c-string! constant
+ magic:  protect #{DEADBEEF}			;-- byte array constant
+ primes: protect [2 3 5 7 11 13]		;-- integer! array constant
+ rows:   protect ["north" "south"]		;-- array of c-string! constant
+ mask:   protect as byte-ptr! "AB"		;-- type-casted literal
+
+Other protected values (strings, binaries, arrays, type-casted or logic! literals) keep the reference semantics of their type; only the pointed-to data is made immutable. Reading is unrestricted, and deriving a pointer is allowed:
+
+ primes: protect [2 3 5 7 11 13]
+ print primes/4							;-- reads 7
+ p: primes								;-- deriving a pointer is allowed
+ print p/1								;-- reads 2
+
+Writing is forbidden. Direct reassignments and path assignments are caught at compile time:
+
+ MAX: protect 1000
+ MAX: 2000								;-- error: cannot modify a protected variable
+
+ primes: protect [2 3 5 7]
+ primes/1: 0							;-- error: cannot write to protected data
+
+A write through a derived pointer cannot be detected at compile time, as the pointer has an ordinary type; it faults at runtime when the read-only page is written:
+
+ p: primes
+ p/1: 0									;-- runtime access violation
+
+\note Restrictions
+The <b>protect</b> keyword can only be used at the global scope of code (not inside a function's body), and only with a literal right-hand side. It cannot be applied to a local variable, nor to a value produced by an expression.
+
+/note
 
 
 ===Datatypes
@@ -4250,10 +4299,11 @@ The list of following symbols and keywords are reserved, they cannot be used as 
     exit		false		func
     function	if			loop
     not			null		or
-    pop			push		return
-    size?		switch		throw
-    true		until		use
-    while		with		xor
+    pop			protect		push
+    return		size?		switch
+    throw		true		until
+    use			while		with
+    xor
     
 \note Bootstrap constraints
 Both -** (internal representation for >>>) and /// (internal representation for %) are required to workaround REBOL's lexical scanner limitations. Those symbols will be removed from the reserved keywords list once the bootstrap phase will end.
@@ -4369,6 +4419,11 @@ will output:
 
 
 ===Document History
+
+*<b>03/07/2026 - revision 62</b>
+
+*>Adds <b>protect</b> constant data construct.
+
 
 *<b>25/05/2026 - revision 61</b>
 
