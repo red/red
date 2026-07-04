@@ -27,6 +27,7 @@ jobs:
           REVIEW_BEFORE: ${{ github.event.before }}
           REVIEW_SHA: ${{ github.sha }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          GIT_EXE: ${{ vars.GIT_EXE || secrets.GIT_EXE }}
         run: |
           .\.github\scripts\codex-review-push.ps1 `
             -BeforeSha "$env:REVIEW_BEFORE" `

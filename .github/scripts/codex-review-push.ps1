@@ -39,6 +39,22 @@ function Find-ExecutableOnPath {
     return $null
 }
 
+function Find-ExecutableAtPath {
+    param([string]$PathPattern)
+
+    if ([string]::IsNullOrWhiteSpace($PathPattern)) {
+        return $null
+    }
+
+    $expandedPath = [Environment]::ExpandEnvironmentVariables($PathPattern)
+    $matches = @(Resolve-Path -Path $expandedPath -ErrorAction SilentlyContinue)
+    if ($matches.Count -eq 0) {
+        return $null
+    }
+
+    return ($matches | Sort-Object -Property Path -Descending | Select-Object -First 1).Path
+}
+
 function Resolve-GitCommand {
     if ((-not [string]::IsNullOrWhiteSpace($env:GIT_EXE)) -and (Test-Path -LiteralPath $env:GIT_EXE)) {
         return $env:GIT_EXE
@@ -69,16 +85,25 @@ function Resolve-GitCommand {
         "${env:ProgramFiles}\Git\cmd\git.exe",
         "${env:ProgramFiles}\Git\bin\git.exe",
         "${env:ProgramFiles(x86)}\Git\cmd\git.exe",
-        "${env:ProgramFiles(x86)}\Git\bin\git.exe"
+        "${env:ProgramFiles(x86)}\Git\bin\git.exe",
+        "${env:ProgramData}\chocolatey\bin\git.exe",
+        "${env:SystemDrive}\tools\git\cmd\git.exe",
+        "${env:SystemDrive}\tools\git\bin\git.exe",
+        "${env:SystemDrive}\ProgramData\chocolatey\bin\git.exe",
+        "${env:SystemDrive}\Users\*\AppData\Local\Fork\gitInstance\*\cmd\git.exe",
+        "${env:SystemDrive}\Users\*\AppData\Local\Fork\gitInstance\*\bin\git.exe",
+        "${env:SystemDrive}\Users\*\scoop\apps\git\current\cmd\git.exe",
+        "${env:SystemDrive}\Users\*\scoop\apps\git\current\bin\git.exe"
     )
 
     foreach ($candidate in $candidatePaths) {
-        if ((-not [string]::IsNullOrWhiteSpace($candidate)) -and (Test-Path -LiteralPath $candidate)) {
-            return $candidate
+        $gitPath = Find-ExecutableAtPath $candidate
+        if (-not [string]::IsNullOrWhiteSpace($gitPath)) {
+            return $gitPath
         }
     }
 
-    throw "Unable to locate git.exe. Install Git for Windows or add Git to the service account PATH."
+    throw "Unable to locate git.exe. Install Git for Windows, add Git to the service account PATH, or set GIT_EXE to the absolute git.exe path."
 }
 
 function Test-ZeroSha {
