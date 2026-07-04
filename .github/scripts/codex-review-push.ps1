@@ -55,6 +55,33 @@ function Find-ExecutableAtPath {
     return ($matches | Sort-Object -Property Path -Descending | Select-Object -First 1).Path
 }
 
+function Get-ExistingParentPath {
+    param(
+        [string]$Path,
+        [int]$Levels
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        return $null
+    }
+
+    $current = $Path
+    for ($i = 0; $i -lt $Levels; $i++) {
+        $parent = Split-Path -Parent $current
+        if ([string]::IsNullOrWhiteSpace($parent) -or ($parent -eq $current)) {
+            return $null
+        }
+
+        $current = $parent
+    }
+
+    if (Test-Path -LiteralPath $current) {
+        return $current
+    }
+
+    return $null
+}
+
 function Resolve-GitCommand {
     if ((-not [string]::IsNullOrWhiteSpace($env:GIT_EXE)) -and (Test-Path -LiteralPath $env:GIT_EXE)) {
         return $env:GIT_EXE
@@ -81,6 +108,10 @@ function Resolve-GitCommand {
         }
     }
 
+    $runnerRootFromTemp = Get-ExistingParentPath -Path $env:RUNNER_TEMP -Levels 2
+    $runnerRootFromWorkspace = Get-ExistingParentPath -Path $env:GITHUB_WORKSPACE -Levels 3
+    $runnerWorkRoot = Get-ExistingParentPath -Path $env:GITHUB_WORKSPACE -Levels 2
+
     $candidatePaths = @(
         "${env:ProgramFiles}\Git\cmd\git.exe",
         "${env:ProgramFiles}\Git\bin\git.exe",
@@ -93,7 +124,19 @@ function Resolve-GitCommand {
         "${env:SystemDrive}\Users\*\AppData\Local\Fork\gitInstance\*\cmd\git.exe",
         "${env:SystemDrive}\Users\*\AppData\Local\Fork\gitInstance\*\bin\git.exe",
         "${env:SystemDrive}\Users\*\scoop\apps\git\current\cmd\git.exe",
-        "${env:SystemDrive}\Users\*\scoop\apps\git\current\bin\git.exe"
+        "${env:SystemDrive}\Users\*\scoop\apps\git\current\bin\git.exe",
+        "$runnerRootFromTemp\externals\git\cmd\git.exe",
+        "$runnerRootFromTemp\externals\git\bin\git.exe",
+        "$runnerRootFromTemp\_tool\Git\*\x64\bin\git.exe",
+        "$runnerRootFromTemp\_tool\Git\*\x64\cmd\git.exe",
+        "$runnerRootFromWorkspace\externals\git\cmd\git.exe",
+        "$runnerRootFromWorkspace\externals\git\bin\git.exe",
+        "$runnerRootFromWorkspace\_tool\Git\*\x64\bin\git.exe",
+        "$runnerRootFromWorkspace\_tool\Git\*\x64\cmd\git.exe",
+        "$runnerWorkRoot\_tool\Git\*\x64\bin\git.exe",
+        "$runnerWorkRoot\_tool\Git\*\x64\cmd\git.exe",
+        "${env:RUNNER_TOOL_CACHE}\Git\*\x64\bin\git.exe",
+        "${env:RUNNER_TOOL_CACHE}\Git\*\x64\cmd\git.exe"
     )
 
     foreach ($candidate in $candidatePaths) {

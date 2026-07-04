@@ -21,6 +21,32 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Diagnose Git
+        shell: pwsh
+        env:
+          GIT_EXE: ${{ vars.GIT_EXE || secrets.GIT_EXE }}
+        run: |
+          Write-Host "GITHUB_SHA=$env:GITHUB_SHA"
+          Write-Host "GITHUB_WORKSPACE=$env:GITHUB_WORKSPACE"
+          Write-Host "RUNNER_TEMP=$env:RUNNER_TEMP"
+          Write-Host "RUNNER_TOOL_CACHE=$env:RUNNER_TOOL_CACHE"
+          Write-Host "GIT_EXE=$env:GIT_EXE"
+          Get-Command git -ErrorAction SilentlyContinue | Format-List Source,CommandType
+          @(
+            "$env:GIT_EXE",
+            "$env:ProgramFiles\Git\cmd\git.exe",
+            "$env:ProgramFiles\Git\bin\git.exe",
+            "${env:ProgramFiles(x86)}\Git\cmd\git.exe",
+            "${env:ProgramFiles(x86)}\Git\bin\git.exe",
+            "$env:ProgramData\chocolatey\bin\git.exe",
+            "$env:SystemDrive\Users\*\AppData\Local\Fork\gitInstance\*\bin\git.exe",
+            "$env:RUNNER_TOOL_CACHE\Git\*\x64\bin\git.exe"
+          ) | ForEach-Object {
+            if (-not [string]::IsNullOrWhiteSpace($_)) {
+              Resolve-Path -Path $_ -ErrorAction SilentlyContinue
+            }
+          }
+
       - name: Run Codex review
         shell: pwsh
         env:
