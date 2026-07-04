@@ -31,7 +31,7 @@ binary: context [
 		]
 	]
 
-	debase64: #{
+	debase64: protect #{
 		80 80 80 80 80 80 80 80	;-- 07h
 		40 40 40 80 40 40 80 80 ;-- 0Fh
 		80 80 80 80 80 80 80 80 ;-- 17h
@@ -50,9 +50,9 @@ binary: context [
 		31 32 33 80 80 80 80 80 ;-- 7Fh
 	}
 
-	enbase64: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+	enbase64: protect "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
-	debase58: #{
+	debase58: protect #{
 		80 80 80 80 80 80 80 80 ;-- 07h
 		40 40 40 80 40 40 80 80 ;-- 0Fh
 		80 80 80 80 80 80 80 80 ;-- 17h
@@ -71,7 +71,7 @@ binary: context [
 		37 38 39 80 80 80 80 80 ;-- 7Fh
 	}
 
-	enbase58: "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+	enbase58: protect "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 
 	rs-length?: func [
 		bin 	[red-binary!]

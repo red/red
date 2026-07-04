@@ -20,7 +20,7 @@ url: context [
 	]
 
 	;-- Hex values encoding table for special characters in URLs (FF => no-op)
-	escape-url-chars: #{								;-- ESC_URL: #"^(FF)"
+	escape-url-chars: protect #{								;-- ESC_URL: #"^(FF)"
 		FF FF FF FF FF FF FF FF ;-- 07h
 		FF FF FF FF FF FF FF FF ;-- 0Fh
 		FF FF FF FF FF FF FF FF ;-- 17h
@@ -41,7 +41,7 @@ url: context [
 
 	;-- URI special characters encoding table (RFC3986 rules)
 	;-- FF: pass-thru, 00: escape character
-	uri-encode-tbl: #{
+	uri-encode-tbl: protect #{
 		00 00 00 00 00 00 00 00 ;-- 07h
 		00 00 00 00 00 00 00 00 ;-- 0Fh
 		00 00 00 00 00 00 00 00 ;-- 17h
@@ -62,7 +62,7 @@ url: context [
 
 	;-- URL special characters encoding table (encodeURI rules)
 	;-- FF: pass-thru, 00: escape character
-	url-encode-tbl: #{
+	url-encode-tbl: protect #{
 		00 00 00 00 00 00 00 00 ;-- 07h
 		00 00 00 00 00 00 00 00 ;-- 0Fh
 		00 00 00 00 00 00 00 00 ;-- 17h
@@ -442,7 +442,7 @@ url: context [
 		/local
 			s s2 [series!] 
 			str new  [red-string!]
-			unit unit2 len len2 slash [integer!]
+			unit unit2 len len2 islash [integer!]
 			left right [logic!]
 	][
 		either value <> null [							;-- set-path
@@ -459,9 +459,9 @@ url: context [
 			unit2: GET_UNIT(s2)
 			len2: string/rs-length? new
 
-			slash: as-integer #"/"
-			left:  all [len > 0   slash = string/get-char (as byte-ptr! s/tail) - unit unit]
-			right: all [len2 > 0  slash = string/get-char (as byte-ptr! s2/offset) unit2]
+			islash: as-integer #"/"
+			left:  all [len > 0   islash = string/get-char (as byte-ptr! s/tail) - unit unit]
+			right: all [len2 > 0  islash = string/get-char (as byte-ptr! s2/offset) unit2]
 			case [
 				all [not left not right][new/node/value: as-integer string/insert-char s2 0 as-integer #"/"]
 				all [left right][s/tail: as red-value! (as byte-ptr! s/tail) - unit]

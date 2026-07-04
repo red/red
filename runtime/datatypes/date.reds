@@ -50,7 +50,7 @@ date: context [
 		S_ERR:			FFh
 	]
 
-	spec-FSM: #{
+	spec-FSM: protect #{
 		0100FF00FF00	;-- S_START
 		0201FF00FF00	;-- S_D
 		0302FF00FF00	;-- S_M

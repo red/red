@@ -166,11 +166,16 @@ context [
 		(extract states 2)
 	]
 	
-	skip-table: (skip-table)
-	
-	type-table: (type-table)
-		
-	transitions: (table)
+	skip-table-buf: protect (skip-table)
+
+	type-table-buf: protect (type-table)
+
+	transitions-buf: protect (table)
+
+	comment {-- 1-based aliases (rebased to 0-based indexing by lexer/init)}
+	transitions: transitions-buf
+	skip-table:  skip-table-buf
+	type-table:  type-table-buf
 	]
 
 	write %../runtime/lexer-transitions.reds mold/only template

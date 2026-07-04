@@ -22,7 +22,8 @@ handle: context [
 		CLASS_RICHTEXT									;-- rich-text handle
 	]
 	
-	names: ["null" "fd" "monitor" "window" "font" "rich-text"]
+	names-buf: protect ["null" "fd" "monitor" "window" "font" "rich-text"]
+	names: names-buf									;-- switched to 0-based indexing by init
 	
 	box: func [
 		value	[integer!]

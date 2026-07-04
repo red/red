@@ -25,7 +25,7 @@ unicode: context [
 	;	DC00h + b1		; U+DCxx where xx = b1 (never a Unicode codepoint)
 	
 	;; DFA algorithm: http://bjoern.hoehrmann.de/utf-8/decoder/dfa/#variations
-	utf8d: #{
+	utf8d-buf: protect #{
 		0000000000000000000000000000000000000000000000000000000000000000
 		0000000000000000000000000000000000000000000000000000000000000000
 		0000000000000000000000000000000000000000000000000000000000000000
@@ -39,7 +39,7 @@ unicode: context [
 		0C0C0C0C0C180C0C0C0C0C0C0C0C0C240C240C0C0C240C0C0C0C0C240C240C0C
 		0C240C0C0C0C0C0C0C0C0C0C 
 	}
-	utf8d: utf8d + 1									;-- switch it to 0-base indexing
+	utf8d: utf8d-buf + 1								;-- switch it to 0-base indexing
 
 	fast-decode-utf8-char: func [
 		p		[byte-ptr!]
@@ -98,7 +98,7 @@ unicode: context [
 		s
 	]
 
-	latin1-idx: [
+	latin1-idx: protect [
 		0402h 0403h 201Ah 0453h 201Eh 2026h 2020h 2021h
 		20ACh 2030h 0409h 2039h 040Ah 040Ch 040Bh 040Fh
 		0452h 2018h 2019h 201Ch 201Dh 2022h 2013h 2014h

@@ -25,7 +25,7 @@ string: context [
 	]
 
 	;-- Non-printable characters escaping table (dots are just placeholders for no-op)
-	escape-chars: #{
+	escape-chars: protect #{
 		40 41 42 43 44 45 46 47 ;-- 07h		@ A B C D E F G
 		48 2D 2F 4B 4C 4D 4E 4F ;-- 0Fh		H - / K L M N O
 		50 51 52 53 54 55 56 57 ;-- 17h		P Q R S T U V W

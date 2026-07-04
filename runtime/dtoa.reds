@@ -65,13 +65,13 @@ Red/System [
 #define DTOA_BIG_1			FFFFFFFFh
 
 dtoa: context [
-	P05:  [5 25 125]
-	DTOA_TENS: [
+	P05:  protect [5 25 125]
+	DTOA_TENS: protect [
 		1e0 1e1 1e2 1e3 1e4 1e5 1e6 1e7 1e8 1e9
 		1e10 1e11 1e12 1e13 1e14 1e15 1e16 1e17 1e18 1e19
 		1e20 1e21 1e22
 	]
-	BIGTENS:  [1e16 1e32 1e64 1e128 1e256]
+	BIGTENS:  protect [1e16 1e32 1e64 1e128 1e256]
 	TINYTENS: [1e-16 1e-32 1e-64 1e-128 0.0]
 	TINYTENS/5: 9007199254740992.0 * 9007199254740992e-256
 

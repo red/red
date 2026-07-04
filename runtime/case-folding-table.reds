@@ -14,7 +14,7 @@ Red/System [
 
 ;-- Unicode version: 11.0.0
 
-uppercase-table-low: [
+uppercase-table-low: protect [
 	0061h 0041h
 	0062h 0042h
 	0063h 0043h
@@ -1267,7 +1267,7 @@ uppercase-table-low: [
 	FF5Ah FF3Ah
 ]
 
-uppercase-table-high: [
+uppercase-table-high: protect [
 	00010428h 00010400h
 	00010429h 00010401h
 	0001042Ah 00010402h
@@ -1495,7 +1495,7 @@ uppercase-table-high: [
 	0001E943h 0001E921h
 ]
 
-lowercase-table-low: [
+lowercase-table-low: protect [
 	0041h 0061h
 	0042h 0062h
 	0043h 0063h
@@ -2656,7 +2656,7 @@ lowercase-table-low: [
 	FF3Ah FF5Ah
 ]
 
-lowercase-table-high: [
+lowercase-table-high: protect [
 	00010400h 00010428h
 	00010401h 00010429h
 	00010402h 0001042Ah
