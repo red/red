@@ -1,4 +1,4 @@
-name: Local AI Review
+name: AI Review
 
 on:
   push:
