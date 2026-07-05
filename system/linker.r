@@ -122,7 +122,7 @@ linker: context [
 							pointer/value: data-offset + spec/2
 						]
 						all [
-							spec/1 = 'rodata		;-- code to read-only data references
+							spec/1 = 'constant		;-- code to read-only data references
 							pointer/value: ro-offset + spec/2
 						]
 						all [
@@ -137,7 +137,7 @@ linker: context [
 			if block? spec/4 [
 				pointer/value: case [
 					spec/1 = 'global [data-ptr + spec/2]	;-- data to data references
-					spec/1 = 'rodata [rodata-ptr + spec/2]
+					spec/1 = 'constant [rodata-ptr + spec/2]
 					'else [either job/PIC? [spec/2 - 1][code-ptr + spec/2 - 1]] ;-- data to code references
 				]
 				ptr: form-struct pointer

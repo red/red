@@ -219,7 +219,7 @@ emitter: make-profilable context [
 	add-symbol: func [
 		name [word! tag!] ptr [integer!] /with refs [block! word! none!] /local spec
 	][
-		spec: reduce [name reduce [pick [rodata global] rodata? ptr make block! 1 any [refs '-]]]
+		spec: reduce [name reduce [pick [constant global] rodata? ptr make block! 1 any [refs '-]]]
 		append symbols new-line spec yes
 		spec
 	]

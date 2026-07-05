@@ -664,7 +664,7 @@ context [
 			entry: select job/symbols name
 			pointer/value: entry/2 + case [
 				entry/1 = 'global [data-base]
-				entry/1 = 'rodata [ro-base]
+				entry/1 = 'constant [ro-base]
 				'else			  [code-base - 1]
 			]
 			append out form-struct pointer				;-- Export RVA
@@ -729,7 +729,7 @@ context [
 		data-refs: make block! 100
 		ro-refs:   make block! 100
 		foreach [name spec] job/symbols [
-			either all [find [global native rodata] spec/1 block? spec/4][
+			either all [find [global native constant] spec/1 block? spec/4][
 				foreach ref spec/4 [					;-- negative refs live in the rodata section
 					either negative? ref [append ro-refs negate ref][append data-refs ref]
 				]

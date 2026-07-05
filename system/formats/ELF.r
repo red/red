@@ -746,7 +746,7 @@ context [
 				meta/type = 'global [
 					reduce [data-address defs/stt-object data-index]
 				]
-				meta/type = 'rodata [
+				meta/type = 'constant [
 					reduce [rodata-address defs/stt-object rodata-index]
 				]
 				true [
@@ -1063,7 +1063,7 @@ context [
 							symbol-size: data-tail - symbol-offset
 							data-tail: symbol-offset
 						]
-						'rodata = meta/1 [
+						'constant = meta/1 [
 							symbol-offset: meta/2
 							symbol-size: rodata-tail - symbol-offset
 							rodata-tail: symbol-offset
