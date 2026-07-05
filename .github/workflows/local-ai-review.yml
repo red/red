@@ -20,9 +20,11 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          set-safe-directory: true
 
       - name: Run Codex review
         shell: pwsh
+        working-directory: ${{ github.workspace }}
         env:
           REVIEW_BEFORE: ${{ github.event.before }}
           REVIEW_SHA: ${{ github.sha }}

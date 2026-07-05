@@ -42,12 +42,30 @@ function Test-GitCommit {
 function Invoke-GitOutput {
     param([string[]]$Arguments)
 
-    $output = & $script:GitCommand @Arguments 2>$null
+    $output = & $script:GitCommand @Arguments 2>&1
     if ($LASTEXITCODE -ne 0) {
+        $script:LastGitError = ($output | Out-String).Trim()
         return $null
     }
 
+    $script:LastGitError = $null
     return ($output | Out-String).Trim()
+}
+
+function Assert-GitCheckout {
+    $workTree = Invoke-GitOutput @("rev-parse", "--show-toplevel")
+    if ([string]::IsNullOrWhiteSpace($workTree)) {
+        $errorText = if ([string]::IsNullOrWhiteSpace($script:LastGitError)) {
+            "git rev-parse --show-toplevel failed."
+        }
+        else {
+            $script:LastGitError
+        }
+
+        throw "Workspace is not a usable Git checkout at '$((Get-Location).Path)'. Git error: $errorText"
+    }
+
+    Write-Info "Git worktree: $workTree"
 }
 
 function Resolve-HeadSha {
@@ -59,7 +77,14 @@ function Resolve-HeadSha {
 
     $head = Invoke-GitOutput @("rev-parse", "HEAD")
     if ([string]::IsNullOrWhiteSpace($head)) {
-        throw "Unable to resolve HEAD for review."
+        $errorText = if ([string]::IsNullOrWhiteSpace($script:LastGitError)) {
+            "git rev-parse HEAD returned no output."
+        }
+        else {
+            $script:LastGitError
+        }
+
+        throw "Unable to resolve HEAD for review. Git error: $errorText"
     }
 
     return $head
@@ -157,6 +182,7 @@ if (Test-ZeroSha $HeadSha) {
 
 $script:GitCommand = Resolve-GitCommand
 Write-Info "Using git: $script:GitCommand"
+Assert-GitCheckout
 
 $HeadSha = Resolve-HeadSha $HeadSha
 
