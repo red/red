@@ -52,6 +52,35 @@ function Invoke-GitOutput {
     return ($output | Out-String).Trim()
 }
 
+function Add-GitConfigEnvironmentEntry {
+    param(
+        [string]$Key,
+        [string]$Value
+    )
+
+    $count = 0
+    if (-not [int]::TryParse($env:GIT_CONFIG_COUNT, [ref]$count)) {
+        $count = 0
+    }
+
+    Set-Item -Path "env:GIT_CONFIG_KEY_$count" -Value $Key
+    Set-Item -Path "env:GIT_CONFIG_VALUE_$count" -Value $Value
+    $env:GIT_CONFIG_COUNT = [string]($count + 1)
+}
+
+function Trust-CurrentWorkspace {
+    $workspace = if ([string]::IsNullOrWhiteSpace($env:GITHUB_WORKSPACE)) {
+        (Get-Location).Path
+    }
+    else {
+        $env:GITHUB_WORKSPACE
+    }
+
+    $safeDirectory = $workspace.Replace("\", "/")
+    Add-GitConfigEnvironmentEntry -Key "safe.directory" -Value $safeDirectory
+    Write-Info "Trusted Git checkout directory for this process: $safeDirectory"
+}
+
 function Assert-GitCheckout {
     $workTree = Invoke-GitOutput @("rev-parse", "--show-toplevel")
     if ([string]::IsNullOrWhiteSpace($workTree)) {
@@ -182,6 +211,7 @@ if (Test-ZeroSha $HeadSha) {
 
 $script:GitCommand = Resolve-GitCommand
 Write-Info "Using git: $script:GitCommand"
+Trust-CurrentWorkspace
 Assert-GitCheckout
 
 $HeadSha = Resolve-HeadSha $HeadSha
