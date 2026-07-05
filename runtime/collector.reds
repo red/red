@@ -1122,7 +1122,7 @@ collector: context [
 			NODE_FRM_USED_CTRL
 		]
 		
-		messages: [
+		messages: protect [
 			"node frame's /prev is not Null at linked-list head"
 			"locked node frame not freed"
 			"node frame slots size invalid"

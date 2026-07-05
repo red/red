@@ -290,6 +290,7 @@ context [
 	stub-size:			5								;-- imported functions slot size
 	segments:			none
 	data-reloc: 		none							;-- temporary info for data segment local relocation
+	rodata-reloc:		none							;-- protected data (__DATA,__const) local relocation offsets
 
 	;-- Mach-O structure builders --
 	
@@ -419,9 +420,10 @@ context [
 					size:  size + sz + hd-sz
 					addr:  addr + sz
 					fpos:  fpos + sz
+					hd-sz: 0							;-- headers precede the first section only
 					sec: skip sec 9
 				]
-				size: round/ceiling/to size defs/page-size
+				size: round/ceiling/to (addr - seg/3) defs/page-size ;-- span incl. inter-section alignment (page-aligned __const)
 				seg/4: get-value 4 size 				;-- size in memory (segment)
 				seg/6: get-value 6 size					;-- size in file (segment)
 				if zero? size [
@@ -469,19 +471,25 @@ context [
 				__DATA [data: segments/3]
 			]
 		]
-		linker/resolve-symbol-refs job cbuf dbuf code data pointer
+		either find job/sections 'rodata [
+			linker/resolve-symbol-refs job cbuf dbuf job/sections/rodata/2
+				code data get-section-addr '__const pointer
+		][
+			linker/resolve-symbol-refs job cbuf dbuf #{} code data 0 pointer
+		]
 	]
 	
 	collect-data-reloc: func [job [object!] /local list syms][
 		list: make block! 100
 		syms: job/symbols
-		
+
 		while [not tail? syms][
 			syms: skip syms 2
 			if all [
 				not tail? syms
-				syms/1 = <data>	
+				syms/1 = <data>
 				block? syms/2/4
+				positive? syms/2/4/1					;-- negative: read-only (protected) data ref
 			][
 				append list either syms/2/4/1 - 1 = syms/-1/2 [
 					syms/-1/2							;-- pointer slot to value slot
@@ -492,23 +500,51 @@ context [
 		]
 		list
 	]
+
+	;; Protected data positions holding an address (slot + string-array pointers).
+	;; In a dylib these get a dyld local relocation so the slide is added at load.
+	collect-rodata-reloc: func [job [object!] /local list syms][
+		list: make block! 100
+		syms: job/symbols
+
+		while [not tail? syms][
+			syms: skip syms 2
+			if all [
+				not tail? syms
+				syms/1 = <data>
+				block? syms/2/4
+			][
+				foreach ref syms/2/4 [
+					if negative? ref [append list (negate ref) - 1]	;-- 0-based rodata offset
+				]
+			]
+		]
+		list
+	]
 	
 	build-data-reloc: func [
 		job [object!]
-		/local relocs buffer base
+		/local buffer base cnt
 	][
-		data-reloc: either empty? relocs: data-reloc [
-			[0 #{}]
-		][
-			buffer: make binary! 8 * length? relocs
-			base: get-section-addr '__data
-			foreach ptr relocs [
+		buffer: make binary! 256
+		cnt: 0
+		base: get-section-addr '__data
+		foreach ptr data-reloc [						;-- __data local relocations
+			pointer/value: ptr + base
+			append buffer form-struct pointer
+			append buffer defs/reloc-bits
+			cnt: cnt + 1
+		]
+		if all [rodata-reloc find job/sections 'rodata][ ;-- __DATA,__const local relocations
+			base: get-section-addr '__const
+			foreach ptr rodata-reloc [
 				pointer/value: ptr + base
 				append buffer form-struct pointer
 				append buffer defs/reloc-bits
+				cnt: cnt + 1
 			]
-			reduce [length? relocs buffer]
 		]
+		data-reloc: reduce [cnt buffer]
 	]
 	
 	resolve-import-refs: func [job [object!] /local code base][
@@ -815,7 +851,7 @@ context [
 		sh/addr:		spec/3
 		sh/size:		spec/6
 		sh/offset:		spec/5
-		sh/align:		to integer! log-2 select [byte 1 word 4 dword 8] spec/9	;-- 32/64-bit @@
+		sh/align:		to integer! log-2 select [byte 1 word 4 dword 8 page 4096] spec/9	;-- 32/64-bit @@
 		sh/reloff:		0
 		sh/nreloc:		0
 		sh/flags:		get-flags spec/8
@@ -871,6 +907,11 @@ context [
 			base-address dynamic-linker out sections data buffer
 	][
 		segments: copy/deep segments-layout
+		if all [find job/sections 'rodata job/type <> 'dll][ ;-- exe: read-only __TEXT,__const (absolute addrs)
+			append pick find segments '__TEXT 9 [
+				section	__const	 	 ?	 ?	 ?	 ?	 -		  rodata   word
+			]
+		]
 		
 		base-address: 	any [job/base-address defs/base-address]
 		dynamic-linker: any [job/dynamic-linker ""]
@@ -883,8 +924,14 @@ context [
 		if job/type = 'dll [
 			build-exports job
 			data-reloc: collect-data-reloc job
+			rodata-reloc: collect-rodata-reloc job
+			if find job/sections 'rodata [				;-- dylib: __DATA,__const, page-isolated, after init/term funcs
+				append pick find segments '__DATA 9 [
+					section	__const	 	 ?	 ?	 ?	 ?	 -		  rodata   page
+				]
+			]
 		]
-	
+
 		prepare-headers job
 		
 		if job/type = 'dll [
@@ -926,20 +973,40 @@ context [
 			job
 			base-address
 			(get-section-addr '__text) - either job/PIC? [0][base-address]
-			second get-segment-info '__TEXT
+			either all [find job/sections 'rodata job/type <> 'dll][ ;-- exe: exclude __TEXT,__const from code range
+				(get-section-addr '__const) - get-section-addr '__text
+			][
+				second get-segment-info '__TEXT
+			]
 			(get-section-addr '__data) - either job/PIC? [0][base-address]
 			second get-segment-info '__DATA
-		
+			either all [find job/sections 'rodata job/type = 'dll][ ;-- dylib: mprotect'd RO on load
+				(get-section-addr '__const) - either job/PIC? [0][base-address]
+			][0]
+			either all [find job/sections 'rodata job/type = 'dll][
+				defs/page-size * round/ceiling (length? job/sections/rodata/2) / defs/page-size
+			][0]
+
 		if job/show-func-map? [linker/show-funcs-map job get-section-addr '__text]
-		
-		emit-page-aligned out job/sections/code/2
-		
+
+		either all [find job/sections 'rodata job/type <> 'dll][ ;-- exe: code + rodata in __TEXT
+			append out job/sections/code/2
+			pad4 out
+			append out job/sections/rodata/2
+			emit-page-aligned out #{}
+		][
+			emit-page-aligned out job/sections/code/2
+		]
+
 		data: job/sections/data/2
 		if find job/sections 'initfuncs [
 			append pad4 data job/sections/initfuncs/2
 			append data job/sections/termfuncs/2
 		]
 		emit-page-aligned out data
+		if all [find job/sections 'rodata job/type = 'dll][ ;-- dylib: page-isolated __DATA,__const
+			emit-page-aligned out job/sections/rodata/2
+		]
 		
 		if dylink? [
 			if find job/sections 'pointers [

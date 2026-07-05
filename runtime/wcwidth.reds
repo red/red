@@ -16,7 +16,7 @@ Red/System [
 		+ Update to Unicode 15.0
 	}
 ]
-combining-table: [
+combining-table: protect [
 	0300h 036Fh 0483h 0489h 0591h 05BDh
 	05BFh 05BFh 05C1h 05C2h 05C4h 05C5h
 	05C7h 05C7h 0600h 0605h 0610h 061Ah
@@ -132,7 +132,7 @@ combining-table: [
 	0001E8D0h 0001E8D6h 0001E944h 0001E94Ah 000E0100h 000E01EFh
 ]
 
-double-width-table: [
+double-width-table: protect [
 	1100h 115Fh 231Ah 231Bh 2329h 232Ah
 	23E9h 23ECh 23F0h 23F0h 23F3h 23F3h
 	25FDh 25FEh 2614h 2615h 2648h 2653h
@@ -213,7 +213,7 @@ wcwidth?: func [
 ]
 
 #if OS = 'Windows [
-	ambiguous-table: [
+	ambiguous-table: protect [
 		00A1h 00A1h 00A4h 00A4h 00A7h 00A8h
 		00AAh 00AAh 00AEh 00AEh 00B0h 00B4h
 		00B6h 00BAh 00BCh 00BFh 00C6h 00C6h

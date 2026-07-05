@@ -48,9 +48,9 @@ ext-process: context [
 	]
 
 	#either debug? = yes [
-		error-pipe:			"Error Red/System call : pipe creation failed : "
-		error-dup2:			"Error Red/System call : calling dup2 : "
-		error-sethandle:	"Error Red/System call : SetHandleInformation failed : "
+		error-pipe:			protect "Error Red/System call : pipe creation failed : "
+		error-dup2:			protect "Error Red/System call : calling dup2 : "
+		error-sethandle:	protect "Error Red/System call : SetHandleInformation failed : "
 		__red-call-print-error: func [ "Format and print on stderr"
 			[typed]
 			count [integer!] list [typed-value!]

@@ -103,24 +103,24 @@ lexer: context [
 		C_FL_EOF										;-- 6
 	]
 
-	line-table: #{
+	line-table-buf: protect #{
 		0001000000000000000000000000000000000000000000000000000000000000
 		0000000000000000
 	}
 	
-	path-ending: #{
+	path-ending: protect #{
 		0101000001010101010001000001000000000000000000010000000001000000
 		0000000000010101
 	}
 	
-	float-classes: #{
+	float-classes-buf: protect #{
 		0000000000000000000000000000000000000000000000000000000000000000
 		0000000000000005000000010001040002020202020202020202000000000000
 		0000000000030000000000000000000000000000000000000000000000000000
 		00000000000300
 	}
 	
-	bin16-classes: #{
+	bin16-classes: protect #{
 		0000000000000000000101000001000000000000000000000000000000000000
 		0100000000000000000000000000000002020202020202020202000300000000
 		0002020202020200000000000000000000000000000000000000000000000000
@@ -131,7 +131,7 @@ lexer: context [
 		0000000000000000000000000000000000000000000000000000000000000000
 	}
 	
-	hexa-table: #{
+	hexa-table: protect #{
 		FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 		FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00010203040506070809FFFFFFFFFFFF
 		FF0A0B0C0D0E0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
@@ -142,7 +142,7 @@ lexer: context [
 		FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 	}
 	
-	point-scan-table: #{
+	point-scan-table-buf: protect #{
 		0000000000000000000100000000000000000000000000000000000000000000
 		0100000100000000000000010001010001010101010101010101000000000000
 		0001000000010100000100000000010000000000000000000000000000000000
@@ -153,7 +153,7 @@ lexer: context [
 		0000000000000000000000000000000000000000000000000000000000000000
 	}
 	
-	float-transitions: #{
+	float-transitions-buf: protect #{
 		0A00010A040A0A
 		0A0A0106050209
 		0A0A010A0A0A09
@@ -168,9 +168,9 @@ lexer: context [
 	}
 	
 	;-- Bit-array for /-~^{}"
-	char-special: #{0000000004A00000010000400000006800000000000000000000000000000000}
+	char-special: protect #{0000000004A00000010000400000006800000000000000000000000000000000}
 	
-	escape-names: [
+	escape-names: protect [
 		"null"	4	00h
 		"back"	4	08h
 		"tab" 	3	09h
@@ -180,7 +180,7 @@ lexer: context [
 		"del" 	3	7Fh
 	]
 	
-	cons-syntax: [
+	cons-syntax: protect [
 	;--- word - type ----- value -- length --
 		"true"	TYPE_LOGIC true		4
 		"false"	TYPE_LOGIC false	5
@@ -188,7 +188,7 @@ lexer: context [
 		"unset" TYPE_UNSET 0		5
 	]
 	
-	whitespaces: [
+	whitespaces: protect [
 		; https://en.wikipedia.org/wiki/Whitespace_character
 		; (ASCII whitespaces are already taken care of in the lexer state machine)
 		0085h											;-- NEXT LINE
@@ -215,14 +215,14 @@ lexer: context [
 		200Ch											;-- ZERO WIDTH NON-JOINER
 	]
 	
-	months: [
+	months: protect [
 		"January" "February" "March" "April" "May" "June" "July"
 		"August" "September" "October" "November" "December"
 	]
 	
-	days-max: #{1F1D1F1E1F1E1F1F1E1F1E1F}
+	days-max: protect #{1F1D1F1E1F1E1F1F1E1F1E1F}
 
-	lex-classes: [
+	lex-classes-buf: protect [
 		(C_EOF or C_FLAG_EOF)							;-- 00		NUL
 		C_C0 C_C0 C_C0 C_C0 C_C0 C_C0 C_C0 C_C0			;-- 01-08
 		C_BLANK											;-- 09		TAB
@@ -2708,6 +2708,13 @@ lexer: context [
 			i = size? whitespaces
 		]
 	]
+
+	;-- 1-based table aliases (rebased to 0-based indexing by init)
+	lex-classes:	   lex-classes-buf
+	line-table:		   line-table-buf
+	float-classes:	   float-classes-buf
+	float-transitions: float-transitions-buf
+	point-scan-table:  point-scan-table-buf
 
 	init: does [
 		stash: as cell! allocate stash-size * size? cell!

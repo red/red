@@ -12,6 +12,7 @@ do-cache %system/targets/target-class.r
 emitter: make-profilable context [
 	code-buf:  make binary! 100'000
 	data-buf:  make binary! 100'000
+	rodata-buf: make binary! 100'000	;-- protected data, emitted to a read-only segment
 	symbols:   make hash! 1000			;-- [name [type address [relocs]] ...]
 	stack: 	   make block! 40			;-- [name offset ...]
 	exits:	   make block! 1			;-- [offset ...]	(funcs exits points)
@@ -25,6 +26,7 @@ emitter: make-profilable context [
 	target:	    none					;-- target code emitter object placeholder
 	compiler:   none					;-- just a short-cut
 	libc-init?:	none					;-- TRUE if currently processing libc init part
+	rodata?:	no						;-- TRUE: store* routines write to rodata-buf (protected data)
 	extension-flag: -2147483648			;-- for pointers bit-array encoding
 		
 	pointer: make-struct [
@@ -147,9 +149,16 @@ emitter: make-profilable context [
 	
 	tail-ptr: does [index? tail code-buf] 				;-- one-based addressing
 	 
-	pad-data-buf: func [sz [integer!] /local over][
-		unless zero? over: (length? data-buf) // sz [
-			insert/dup tail data-buf null sz - over
+	active-buf: does [either rodata? [rodata-buf][data-buf]]
+
+	tag-ref: func [pos [integer!]][		;-- negative refs denote positions in rodata-buf
+		either rodata? [negate pos][pos]
+	]
+
+	pad-data-buf: func [sz [integer!] /local buf over][
+		buf: active-buf
+		unless zero? over: (length? buf) // sz [
+			insert/dup tail buf null sz - over
 		]
 	]
 	
@@ -210,7 +219,7 @@ emitter: make-profilable context [
 	add-symbol: func [
 		name [word! tag!] ptr [integer!] /with refs [block! word! none!] /local spec
 	][
-		spec: reduce [name reduce ['global ptr make block! 1 any [refs '-]]]
+		spec: reduce [name reduce [pick [constant global] rodata? ptr make block! 1 any [refs '-]]]
 		append symbols new-line spec yes
 		spec
 	]
@@ -237,8 +246,9 @@ emitter: make-profilable context [
 
 	store-global: func [
 		value type [word!] spec [block! word! none!]
-		/local size ptr by-val? pad-size list t f64?
+		/local size ptr by-val? pad-size list t f64? data-buf
 	][
+		data-buf: active-buf							;-- shadows context word, keeps body target-agnostic
 		if any [find [logic! function!] type logic? value][
 			type: 'integer!
 			if logic? value [value: to integer! value]	;-- TRUE => 1, FALSE => 0
@@ -344,7 +354,7 @@ emitter: make-profilable context [
 					spec/4 = '- [spec/4: make block! 1]
 					not spec/4  [append/only spec make block! 1]
 				]
-				append spec/4 index? tail data-buf
+				append spec/4 tag-ref index? tail data-buf
 				store-global 0 'integer! none
 			]
 			array! [
@@ -382,7 +392,7 @@ emitter: make-profilable context [
 							]
 						]
 						foreach [str ref] list [			;-- store strings
-							store-value/ref none str [c-string!] reduce [ref + 1]
+							store-value/ref none str [c-string!] reduce [tag-ref ref + 1]
 						]
 					][
 						foreach item value [
@@ -422,6 +432,7 @@ emitter: make-profilable context [
 	
 	store: func [
 		name [word!] value type [block!]
+		/protected										;-- route value to the read-only data segment
 		/local new new-global? ptr refs n-spec spec literal? saved slots local?
 	][
 		if new: compiler/find-aliased type/1 [
@@ -436,9 +447,11 @@ emitter: make-profilable context [
 			compiler/any-pointer? type					;-- complex types only
 		][
 			if new-global? [
+				rodata?: to logic! protected			;-- PIC: slot filled by a load-time relative reloc (RELRO)
 				ptr: store-global value 'pointer! none	;-- allocate separate variable slot
 				n-spec: add-symbol name ptr				;-- add variable to globals table
-				refs: reduce [ptr + 1]					;-- reference value from variable slot
+				refs: reduce [tag-ref ptr + 1]			;-- reference value from variable slot
+				rodata?: no
 				saved: name
 				name: none								;-- anonymous data storing
 			]
@@ -450,14 +463,16 @@ emitter: make-profilable context [
 				find [string! paren! binary!] type?/word value
 			][
 				if string? value [type: [c-string!]]	;-- force c-string! in case of type casting
+				rodata?: to logic! protected			;-- payload goes to the read-only segment
 				spec: store-value/ref name value type refs  ;-- store it with hardcoded pointer address
+				rodata?: no
 			]
-			if all [spec compiler/job/PIC? not libc-init?][
+			if all [spec compiler/job/PIC? not libc-init? not protected][
 				unless any [							;-- do not add PIC offset to literal values
 					integer? value
 					all [object? value integer? value/data]
 				][
-					target/emit-load-literal-ptr spec/2 
+					target/emit-load-literal-ptr spec/2
 				]
 				if new-global? [
 					target/emit-store saved value n-spec ;-- store it in pointer variable
@@ -465,7 +480,11 @@ emitter: make-profilable context [
 			]
 			if n-spec [spec: n-spec]
 		][
-			if new-global? [spec: store-value name value type] ;-- store new variable with value
+			if new-global? [
+				rodata?: to logic! protected			;-- literal scalar slot never rewritten when protected
+				spec: store-value name value type 		;-- store new variable with value
+				rodata?: no
+			]
 		]
 		if all [name not all [new-global? literal?]][	;-- emit dynamic loading code when required
 			either all [
@@ -1031,6 +1050,7 @@ emitter: make-profilable context [
 		if link? [
 			clear code-buf
 			clear data-buf
+			clear rodata-buf
 			clear symbols
 			clear stack
 			clear exits
@@ -1040,6 +1060,7 @@ emitter: make-profilable context [
 			clear bits-buf
 		]
 		clear stack
+		rodata?: no
 		path: pick [%system/targets/ %targets/] encap?
 		target: do-cache rejoin [path job/target %.r]
 		foreach w [width signed? last-saved?][set in target w none]

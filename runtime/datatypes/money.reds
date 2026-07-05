@@ -40,8 +40,8 @@ money: context [
 	MAX_FRACTIONAL:  as integer! (pow 10.0 as float! SIZE_SCALE) - 1.0
 	
 	INT32_MAX_DIGITS: 10
-	INT32_MIN_AMOUNT: #{00000002147483648FFFFF}		;-- 0xF > 0x9, used to subvert comparison
-	INT32_MAX_AMOUNT: #{00000002147483647FFFFF}
+	INT32_MIN_AMOUNT: protect #{00000002147483648FFFFF}		;-- 0xF > 0x9, used to subvert comparison
+	INT32_MAX_AMOUNT: protect #{00000002147483647FFFFF}
 	
 	#enum signs! [
 	;--    sign	 -0+

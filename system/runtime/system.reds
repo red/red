@@ -67,12 +67,14 @@ __stack!: alias struct! [
 ]
 
 __image!: alias struct! [
-	base	  [byte-ptr!]					;-- base image address in memory
-	code	  [integer!]					;-- code segment offset
-	code-size [integer!]					;-- code segment size
-	data	  [integer!]					;-- data segment offset
-	data-size [integer!]					;-- data segment size
-	bitarray  [integer!]					;-- offset for function args+locals pointer! bitmaps
+	base	    [byte-ptr!]					;-- base image address in memory
+	code	    [integer!]					;-- code segment offset
+	code-size   [integer!]					;-- code segment size
+	data	    [integer!]					;-- data segment offset
+	data-size   [integer!]					;-- data segment size
+	bitarray    [integer!]					;-- offset for function args+locals pointer! bitmaps
+	rodata	    [integer!]					;-- protected data offset (dylib: mprotect'd RO on load)
+	rodata-size [integer!]					;-- protected data size (0 if none / already RO)
 ]
 
 FPU-exceptions-mask!: alias struct! [		;-- standard exception mask (true => mask exception)

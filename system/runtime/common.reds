@@ -86,17 +86,17 @@ stdout:		-1								;-- uninitialized default value
 stdin:		-1								;-- uninitialized default value
 stderr:		-1								;-- uninitialized default value
 
-newline: "^/"
+newline: protect "^/"
 
-lf:  	 #"^/"								;-- Line-feed
-cr:  	 #"^M"
-tab: 	 #"^-"
-space:	 #" "
-slash:	 #"/"
-esc:	 #"^["
+LF:  	protect #"^/"								;-- Line-feed
+CR:  	protect #"^M"
+TAB: 	protect #"^-"
+SPACE:	protect #" "
+SLASH:	protect #"/"
+ESC:	protect #"^["
 
-pi: 3.141592653589793
-MAX_INT: 2147483647
+pi: protect 3.141592653589793
+MAX_INT: protect 2147483647
 
 str-array!: alias struct! [
 	item [c-string!]

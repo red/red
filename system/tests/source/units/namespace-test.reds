@@ -17,7 +17,7 @@ Red/System [
 		f32: as float32! 2.46
 		l: true
 		s: "my string"
-		fn: func [pi [pointer! [integer!]] return: [integer!]] [pi/value: 789 789]
+		fn: func [ip [pointer! [integer!]] return: [integer!]] [ip/value: 789 789]
 		fn2: func [
 			i [integer!] 
 			return: [integer!]
@@ -91,7 +91,7 @@ Red/System [
 	f32: as float32! 6.42
 	l: false
 	s: "not my string"
-	fn: func [pi [pointer! [integer!]]] [pi/value: 987]
+	fn: func [ip [pointer! [integer!]]] [ip/value: 987]
 	fn2: func[
 		i [integer!] 
 		return: [integer!]
@@ -267,10 +267,10 @@ Red/System [
 	--test-- "nmp1"
 		i: 12345
 		nmsp5: context [
-			pi: declare pointer! [integer!]
+			ip: declare pointer! [integer!]
 		]
-		nmsp5/pi: :i
-		--assert nmsp5/pi/value = 12345
+		nmsp5/ip: :i
+		--assert nmsp5/ip/value = 12345
 	--test-- "nmp3"
 		nmsp6a: context [
 			i: 67890
@@ -446,9 +446,9 @@ Red/System [
 		nssw2-i: 1
 		nssw2-nmsp: context [
 			nssw2-i: 2
-			pi: declare pointer! [integer!]
-			pi: :nssw2-i
-			--assert pi/value = 2
+			ip: declare pointer! [integer!]
+			ip: :nssw2-i
+			--assert ip/value = 2
 		]
 		--assert nssw2-i = 1
 

@@ -9,6 +9,7 @@
 %source/units/length-test.reds
 %source/units/null-test.reds
 %source/units/enum-test.reds
+%source/units/protect-test.reds
 %source/units/float-test.reds
 %source/units/float32-test.reds
 %source/units/lib-test.reds

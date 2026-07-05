@@ -85,6 +85,8 @@ linker: context [
 		code-size	 [integer!]
 		data-offset	 [integer!]
 		data-size	 [integer!]
+		rodata-offset [integer!]					;-- protected data (0 if none / already RO by segment)
+		rodata-size	 [integer!]
 		/local
 			spec bits-offset
 	][
@@ -97,19 +99,24 @@ linker: context [
 		set-integer-at job spec/2/2 + 16 data-offset
 		set-integer-at job spec/2/2 + 20 data-size
 		set-integer-at job spec/2/2 + 24 data-offset + bits-offset
+		set-integer-at job spec/2/2 + 28 rodata-offset
+		set-integer-at job spec/2/2 + 32 rodata-size
 	]
 	
 	resolve-symbol-refs: func [
-		job 	 [object!] 
-		cbuf 	 [binary!]							;-- code buffer
-		dbuf 	 [binary!]							;-- data buffer
-		code-ptr [integer!]							;-- code memory address
-		data-ptr [integer!]							;-- data memory address
-		pointer	 [object!]
-		/local 
-			data-offset ptr
+		job 	   [object!]
+		cbuf 	   [binary!]						;-- code buffer
+		dbuf 	   [binary!]						;-- data buffer
+		robuf	   [binary!]						;-- read-only data buffer
+		code-ptr   [integer!]						;-- code memory address
+		data-ptr   [integer!]						;-- data memory address
+		rodata-ptr [integer!]						;-- read-only data memory address
+		pointer	   [object!]
+		/local
+			data-offset ro-offset ptr
 	][
 		data-offset: either job/PIC? [data-ptr - code-ptr][data-ptr]
+		ro-offset:	 either job/PIC? [rodata-ptr - code-ptr][rodata-ptr]
 		foreach [name spec] job/symbols [
 			unless empty? spec/3 [
 				all [
@@ -117,6 +124,10 @@ linker: context [
 						all [
 							spec/1 = 'global		;-- code to data references
 							pointer/value: data-offset + spec/2
+						]
+						all [
+							spec/1 = 'constant		;-- code to read-only data references
+							pointer/value: ro-offset + spec/2
 						]
 						all [
 							spec/1 = 'native-ref	;-- code to code references
@@ -128,13 +139,19 @@ linker: context [
 				]
 			]
 			if block? spec/4 [
-				pointer/value: either spec/1 = 'global [
-					data-ptr + spec/2				;-- data to data references
-				][
-					either job/PIC? [spec/2 - 1][code-ptr + spec/2 - 1]	;-- data to code references
+				pointer/value: case [
+					spec/1 = 'global [data-ptr + spec/2]	;-- data to data references
+					spec/1 = 'constant [rodata-ptr + spec/2]
+					'else [either job/PIC? [spec/2 - 1][code-ptr + spec/2 - 1]] ;-- data to code references
 				]
 				ptr: form-struct pointer
-				foreach ref spec/4 [change at dbuf ref ptr]
+				foreach ref spec/4 [					;-- negative refs live in the read-only buffer
+					either negative? ref [
+						change at robuf negate ref ptr
+					][
+						change at dbuf ref ptr
+					]
+				]
 			]
 		]
 	]
@@ -286,7 +303,11 @@ linker: context [
 	build: func [job [object!] /local file fun][
 		unless job/target [job/target: cpu-class]
 		job/buffer: make binary! 512 * 1024
-	
+
+		if all [find job/sections 'rodata job/type = 'obj][
+			throw-error "protected data is not supported for object file output"
+		]
+
 		static-link/merge job						;-- merge statically-linked external C objects
 
 		clean-imports job/sections/import

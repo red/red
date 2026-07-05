@@ -70,6 +70,7 @@ print ["This test started at" start-time]
   --run-test-file-quiet %source/units/length-test.reds
   --run-test-file-quiet %source/units/null-test.reds
   --run-test-file-quiet %source/units/enum-test.reds
+  --run-test-file-quiet %source/units/protect-test.reds
   --run-test-file-quiet %source/units/float-test.reds
   --run-test-file-quiet %source/units/float32-test.reds
   --run-test-file-quiet %source/units/lib-test.reds

@@ -1424,8 +1424,8 @@ simple-io: context [
 	]
 
 	#either OS = 'Windows [
-		IID_IWinHttpRequest:			[06F29373h 4B545C5Ah F16E25B0h 0EBF8ABFh]
-		IID_IStream:					[0000000Ch 00000000h 0000000Ch 46000000h]
+		IID_IWinHttpRequest:			protect [06F29373h 4B545C5Ah F16E25B0h 0EBF8ABFh]
+		IID_IStream:					protect [0000000Ch 00000000h 0000000Ch 46000000h]
 
 		IWinHttpRequest: alias struct! [
 			QueryInterface			[QueryInterface!]
