@@ -16,6 +16,32 @@ jobs:
     timeout-minutes: 60
 
     steps:
+      - name: Add Git to PATH
+        shell: pwsh
+        env:
+          GIT_EXE: ${{ vars.GIT_EXE || secrets.GIT_EXE }}
+        run: |
+          $gitCandidates = @(
+            "$env:GIT_EXE",
+            "$env:ProgramFiles\Git\cmd\git.exe",
+            "$env:ProgramFiles\Git\bin\git.exe",
+            "${env:ProgramFiles(x86)}\Git\cmd\git.exe",
+            "${env:ProgramFiles(x86)}\Git\bin\git.exe"
+          )
+
+          $git = $gitCandidates |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+            Where-Object { Test-Path -LiteralPath $_ } |
+            Select-Object -First 1
+
+          if ([string]::IsNullOrWhiteSpace($git)) {
+            throw "Unable to locate git.exe before checkout. Install Git for Windows or set GIT_EXE."
+          }
+
+          $gitDir = Split-Path -Parent $git
+          Add-Content -Path $env:GITHUB_PATH -Value $gitDir -Encoding utf8
+          Write-Host "Added Git to PATH: $gitDir"
+
       - name: Checkout
         uses: actions/checkout@v6
         with:
