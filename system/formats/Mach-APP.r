@@ -81,7 +81,7 @@ packager: context [
 		opts [object!] src [file!] file [file!]
 		/local 
 			paths src-dir name app-dir contents-dir bin-dir raw-dir res-dir
-			plist
+			plist sidecar sidecar-name pos
 	][		
 		paths: 	 split-path file
 		src-dir: paths/1
@@ -101,6 +101,14 @@ packager: context [
 
 		copy-file/keep file bin-dir/:name
 		delete file
+		sidecar: copy file
+		if pos: find/reverse tail sidecar #"." [clear pos]
+		append sidecar %.ida.py
+		if exists? sidecar [
+			sidecar-name: join name %.ida.py
+			copy-file/keep sidecar bin-dir/:sidecar-name
+			delete sidecar
+		]
 		copy-icon src res-dir
 
 		plist: read-cache %system/assets/macOS/Info.plist

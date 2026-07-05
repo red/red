@@ -930,7 +930,9 @@ context [
 			(get-section-addr '__data) - either job/PIC? [0][base-address]
 			second get-segment-info '__DATA
 		
-		if job/show-func-map? [linker/show-funcs-map job get-section-addr '__text]
+		if any [job/show-func-map? job/emit-ida-script?][
+			linker/emit-funcs-map job get-section-addr '__text base-address
+		]
 		
 		emit-page-aligned out job/sections/code/2
 		
