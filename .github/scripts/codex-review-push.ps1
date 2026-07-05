@@ -14,139 +14,13 @@ function Write-Info {
     Write-Host "[codex-review] $Message"
 }
 
-function Find-ExecutableOnPath {
-    param(
-        [string]$ExecutableName,
-        [string]$PathValue
-    )
-
-    if ([string]::IsNullOrWhiteSpace($PathValue)) {
-        return $null
-    }
-
-    foreach ($pathEntry in ($PathValue -split ";")) {
-        if ([string]::IsNullOrWhiteSpace($pathEntry)) {
-            continue
-        }
-
-        $expandedPath = [Environment]::ExpandEnvironmentVariables($pathEntry.Trim())
-        $candidate = Join-Path $expandedPath $ExecutableName
-        if (Test-Path -LiteralPath $candidate) {
-            return $candidate
-        }
-    }
-
-    return $null
-}
-
-function Find-ExecutableAtPath {
-    param([string]$PathPattern)
-
-    if ([string]::IsNullOrWhiteSpace($PathPattern)) {
-        return $null
-    }
-
-    $expandedPath = [Environment]::ExpandEnvironmentVariables($PathPattern)
-    $matches = @(Resolve-Path -Path $expandedPath -ErrorAction SilentlyContinue)
-    if ($matches.Count -eq 0) {
-        return $null
-    }
-
-    return ($matches | Sort-Object -Property Path -Descending | Select-Object -First 1).Path
-}
-
-function Get-ExistingParentPath {
-    param(
-        [string]$Path,
-        [int]$Levels
-    )
-
-    if ([string]::IsNullOrWhiteSpace($Path)) {
-        return $null
-    }
-
-    $current = $Path
-    for ($i = 0; $i -lt $Levels; $i++) {
-        $parent = Split-Path -Parent $current
-        if ([string]::IsNullOrWhiteSpace($parent) -or ($parent -eq $current)) {
-            return $null
-        }
-
-        $current = $parent
-    }
-
-    if (Test-Path -LiteralPath $current) {
-        return $current
-    }
-
-    return $null
-}
-
 function Resolve-GitCommand {
-    if ((-not [string]::IsNullOrWhiteSpace($env:GIT_EXE)) -and (Test-Path -LiteralPath $env:GIT_EXE)) {
-        return $env:GIT_EXE
-    }
-
     $command = Get-Command git -ErrorAction SilentlyContinue
     if ($null -ne $command) {
         return $command.Source
     }
 
-    $machinePath = Get-ItemPropertyValue `
-        -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" `
-        -Name Path `
-        -ErrorAction SilentlyContinue
-    $userPath = Get-ItemPropertyValue `
-        -Path "HKCU:\Environment" `
-        -Name Path `
-        -ErrorAction SilentlyContinue
-
-    foreach ($pathValue in @($machinePath, $userPath)) {
-        $gitOnPath = Find-ExecutableOnPath -ExecutableName "git.exe" -PathValue $pathValue
-        if (-not [string]::IsNullOrWhiteSpace($gitOnPath)) {
-            return $gitOnPath
-        }
-    }
-
-    $runnerRootFromTemp = Get-ExistingParentPath -Path $env:RUNNER_TEMP -Levels 2
-    $runnerRootFromWorkspace = Get-ExistingParentPath -Path $env:GITHUB_WORKSPACE -Levels 3
-    $runnerWorkRoot = Get-ExistingParentPath -Path $env:GITHUB_WORKSPACE -Levels 2
-
-    $candidatePaths = @(
-        "${env:ProgramFiles}\Git\cmd\git.exe",
-        "${env:ProgramFiles}\Git\bin\git.exe",
-        "${env:ProgramFiles(x86)}\Git\cmd\git.exe",
-        "${env:ProgramFiles(x86)}\Git\bin\git.exe",
-        "${env:ProgramData}\chocolatey\bin\git.exe",
-        "${env:SystemDrive}\tools\git\cmd\git.exe",
-        "${env:SystemDrive}\tools\git\bin\git.exe",
-        "${env:SystemDrive}\ProgramData\chocolatey\bin\git.exe",
-        "${env:SystemDrive}\Users\*\AppData\Local\Fork\gitInstance\*\cmd\git.exe",
-        "${env:SystemDrive}\Users\*\AppData\Local\Fork\gitInstance\*\bin\git.exe",
-        "${env:SystemDrive}\Users\*\scoop\apps\git\current\cmd\git.exe",
-        "${env:SystemDrive}\Users\*\scoop\apps\git\current\bin\git.exe",
-        "$runnerRootFromTemp\externals\git\cmd\git.exe",
-        "$runnerRootFromTemp\externals\git\bin\git.exe",
-        "$runnerRootFromTemp\_tool\Git\*\x64\bin\git.exe",
-        "$runnerRootFromTemp\_tool\Git\*\x64\cmd\git.exe",
-        "$runnerRootFromWorkspace\externals\git\cmd\git.exe",
-        "$runnerRootFromWorkspace\externals\git\bin\git.exe",
-        "$runnerRootFromWorkspace\_tool\Git\*\x64\bin\git.exe",
-        "$runnerRootFromWorkspace\_tool\Git\*\x64\cmd\git.exe",
-        "$runnerWorkRoot\_tool\Git\*\x64\bin\git.exe",
-        "$runnerWorkRoot\_tool\Git\*\x64\cmd\git.exe",
-        "${env:RUNNER_TOOL_CACHE}\Git\*\x64\bin\git.exe",
-        "${env:RUNNER_TOOL_CACHE}\Git\*\x64\cmd\git.exe"
-    )
-
-    foreach ($candidate in $candidatePaths) {
-        $gitPath = Find-ExecutableAtPath $candidate
-        if (-not [string]::IsNullOrWhiteSpace($gitPath)) {
-            return $gitPath
-        }
-    }
-
-    throw "Unable to locate git.exe. Install Git for Windows, add Git to the service account PATH, or set GIT_EXE to the absolute git.exe path."
+    throw "Unable to locate git.exe on PATH. Start the runner from a shell where 'git --version' works."
 }
 
 function Test-ZeroSha {
@@ -174,54 +48,6 @@ function Invoke-GitOutput {
     }
 
     return ($output | Out-String).Trim()
-}
-
-function Add-GitConfigEnvironmentEntry {
-    param(
-        [string]$Key,
-        [string]$Value
-    )
-
-    $count = 0
-    if (-not [int]::TryParse($env:GIT_CONFIG_COUNT, [ref]$count)) {
-        $count = 0
-    }
-
-    Set-Item -Path "env:GIT_CONFIG_KEY_$count" -Value $Key
-    Set-Item -Path "env:GIT_CONFIG_VALUE_$count" -Value $Value
-    $env:GIT_CONFIG_COUNT = [string]($count + 1)
-}
-
-function Add-GitSafeDirectory {
-    $workspace = if ([string]::IsNullOrWhiteSpace($env:GITHUB_WORKSPACE)) {
-        (Get-Location).Path
-    }
-    else {
-        $env:GITHUB_WORKSPACE
-    }
-
-    if ([string]::IsNullOrWhiteSpace($workspace)) {
-        return
-    }
-
-    $safeDirectory = $workspace.Replace("\", "/")
-    Add-GitConfigEnvironmentEntry -Key "safe.directory" -Value $safeDirectory
-    Write-Info "Marked Git safe.directory for this process: $safeDirectory"
-}
-
-function Assert-GitWorkTree {
-    $workTree = & $script:GitCommand rev-parse --show-toplevel 2>&1
-    if ($LASTEXITCODE -eq 0) {
-        Write-Info "Git worktree: $(($workTree | Out-String).Trim())"
-        return
-    }
-
-    $gitError = ($workTree | Out-String).Trim()
-    if ([string]::IsNullOrWhiteSpace($gitError)) {
-        $gitError = "git rev-parse --show-toplevel failed with exit code $LASTEXITCODE."
-    }
-
-    throw "Git is available, but the workspace is not a usable Git checkout at '$((Get-Location).Path)'. Ensure Git is on PATH before actions/checkout runs. Git error: $gitError"
 }
 
 function Resolve-HeadSha {
@@ -331,8 +157,6 @@ if (Test-ZeroSha $HeadSha) {
 
 $script:GitCommand = Resolve-GitCommand
 Write-Info "Using git: $script:GitCommand"
-Add-GitSafeDirectory
-Assert-GitWorkTree
 
 $HeadSha = Resolve-HeadSha $HeadSha
 
