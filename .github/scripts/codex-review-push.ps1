@@ -176,6 +176,21 @@ function Invoke-GitOutput {
     return ($output | Out-String).Trim()
 }
 
+function Assert-GitWorkTree {
+    $workTree = & $script:GitCommand rev-parse --show-toplevel 2>&1
+    if ($LASTEXITCODE -eq 0) {
+        Write-Info "Git worktree: $(($workTree | Out-String).Trim())"
+        return
+    }
+
+    $gitError = ($workTree | Out-String).Trim()
+    if ([string]::IsNullOrWhiteSpace($gitError)) {
+        $gitError = "git rev-parse --show-toplevel failed with exit code $LASTEXITCODE."
+    }
+
+    throw "Git is available, but the workspace is not a usable Git checkout at '$((Get-Location).Path)'. Ensure Git is on PATH before actions/checkout runs. Git error: $gitError"
+}
+
 function Resolve-HeadSha {
     param([string]$Candidate)
 
@@ -283,6 +298,7 @@ if (Test-ZeroSha $HeadSha) {
 
 $script:GitCommand = Resolve-GitCommand
 Write-Info "Using git: $script:GitCommand"
+Assert-GitWorkTree
 
 $HeadSha = Resolve-HeadSha $HeadSha
 
