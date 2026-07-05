@@ -9,6 +9,11 @@ Red [
 	Resources: [
 		https://tools.ietf.org/html/rfc4180
 		https://www.python.org/dev/peps/pep-0305/
+		; Future R&D links
+		https://duckdb.org/2025/04/16/duckdb-csv-pollock-benchmark
+		https://duckdb.org/docs/stable/data/csv/overview
+		https://duckdb.org/2023/10/27/csv-sniffer
+		https://hannes.muehleisen.org/publications/ssdbm2017-muehleisen-csvs.pdf
 	]
 	Documentation: https://github.com/red/red/wiki/CSV-codec 
 ]

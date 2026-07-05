@@ -276,7 +276,7 @@ help-ctx: context [
 				set =val block! (emit 'type =val) (
 					if not any [
 						parse reduce =val [some [datatype! | typeset!]]
-						parse =val ['function! block!]
+						parse =val [some [['function! | 'routine!] block!]]
 					][
 						_print ["Looks like we have a bad type spec:" mold =val]
 					]
