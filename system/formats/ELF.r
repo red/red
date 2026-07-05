@@ -51,6 +51,7 @@ context [
 		pt-note			4			;; vendor-specific note segment
 		pt-phdr			6			;; program header table
 		pt-GNU-stack	1685382481	;; GNU stack flags
+		pt-gnu-relro	1685382482	;; read-only after relocation (6474e552h)
 
 		pf-x			1			;; executable segment
 		pf-w			2			;; writable segment
@@ -294,6 +295,8 @@ context [
 			]
 		]
 
+		segment "relro"				[gnu-relro	[r]					byte] ;-- covers .rodata (patched post-layout)
+
 		section ".stab"				[progbits	[]					word]
 		section ".stabstr"			[strtab		[]					byte]
 
@@ -309,17 +312,11 @@ context [
 			base-address dynamic-linker
 			libraries imports exports natives
 			structure segments sections commands layout
-			data-size data-reloc dynamic-size data-imports di-pairs
+			data-size data-reloc rodata-reloc dynamic-size data-imports di-pairs
 			di-name di-off di-size
 			get-address get-offset get-size get-meta get-data set-data
-			relro-offset pos list soname base
+			relro-offset relro-entry pos list soname base
 	] [
-		if all [
-			find job/sections 'rodata
-			any [job/type = 'dll job/PIC?]
-		][
-			linker/throw-error "protected data in ELF shared objects requires load-time relocations (not supported yet)"
-		]
 		base-address: either any [job/type = 'dll job/PIC?][0][
 			any [job/base-address defs/base-address]
 		]
@@ -337,6 +334,7 @@ context [
 		exports: collect-exports job
 		natives: collect-natives job
 		data-reloc: collect-data-reloc job
+		rodata-reloc: either job/PIC? [collect-rodata-reloc job][make block! 0] ;-- non-PIC bakes absolute addrs
 
 		;; libc data-symbol imports (copy-relocated): prepend them to `exports`
 		;; as defined STT_OBJECT entries so build-dynsym emits them; build-
@@ -352,7 +350,14 @@ context [
 			insert exports di-pairs
 		]
 
-		structure: copy default-structure
+		structure: copy/deep default-structure
+
+		either all [job/PIC? find job/sections 'rodata][ ;-- protected data under PIC: load-time relocs need it
+			pos: find structure "ro"					;-- writable during load, made read-only after (RELRO)
+			change/only at pos/2 2 [r w]
+		][
+			remove-elements structure ["relro"]			;-- no PT_GNU_RELRO otherwise
+		]
 
 		if job/target <> 'ARM [
 			remove-elements structure [".ARM.attributes"]
@@ -432,9 +437,10 @@ context [
 
 			"ehdr"			size elf-header
 			"phdr"			size [program-header	length? segments]
+			"relro"			size 0					;-- overlaps .rodata; address/size patched post-layout
 			".hash"			size [machine-word		2 + 2 + (length? imports) + ((length? exports) / 2)]
 			".dynsym"		size [elf-symbol		1 + (length? imports) + ((length? exports) / 2)]
-			".rel.text"		size [elf-relocation	(length? imports) + (length? data-reloc) + ((length? data-imports) / 3)]
+			".rel.text"		size [elf-relocation	(length? imports) + (length? data-reloc) + (length? rodata-reloc) + ((length? data-imports) / 3)]
 			".data"			size (data-size)
 			".data"			align (job/static-align)
 			".data.rel.ro"	size [machine-word		length? imports]
@@ -479,6 +485,13 @@ context [
 			]
 		]
 
+		if has-element "relro" [						;-- PT_GNU_RELRO covers the .rodata page(s)
+			relro-entry: select layout "relro"
+			relro-entry/address: get-address ".rodata"
+			relro-entry/offset:  get-offset ".rodata"
+			relro-entry/size:    defs/page-size * round/ceiling (get-size ".rodata") / defs/page-size
+		]
+
 		set-data "ehdr" [
 			build-ehdr
 				job/os
@@ -521,6 +534,8 @@ context [
 				any [attempt [get-address ".data"] 0]	;-- in case .data segment is absent
 				get-address ".text"
 				data-imports
+				rodata-reloc
+				any [attempt [get-address ".rodata"] 0]
 		]
 
 		set-data ".data" [
@@ -601,6 +616,7 @@ context [
 			get-size ".text"
 			(get-address ".data") - either job/PIC? [0][base]
 			get-size ".data"
+			0 0										;-- .rodata already read-only by segment/RELRO
 
 		if job/show-func-map? [linker/show-funcs-map job get-address ".text"]
 
@@ -774,13 +790,15 @@ context [
 		data-address [integer!]
 		code-address [integer!]
 		data-imports [block!]
+		rodata-relocs [block!]
+		rodata-address [integer!]
 		/local rel-type result entry len copy-type di-name di-off di-size i
 	] [
 		rel-type: select reduce [
 			'IA-32	defs/r-386-32
 			'ARM	defs/r-arm-abs32
 		] target-arch
-		result: make block! (length? relocs) + len: length? symbols
+		result: make block! (length? relocs) + (length? rodata-relocs) + len: length? symbols
 		
 		repeat i len [ 									;-- 1..n, 0 is undef
 			entry: make-struct elf-relocation none
@@ -799,6 +817,15 @@ context [
 		foreach ptr relocs [
 			entry: make-struct elf-relocation none
 			entry/offset:		data-address + ptr
+			entry/info-sym:		rel-type
+			entry/info-type:	0
+			entry/info-addend:	0
+			append result entry
+		]
+
+		foreach ptr rodata-relocs [						;-- protected data: base-relative fixups (RELRO)
+			entry: make-struct elf-relocation none
+			entry/offset:		rodata-address + ptr
 			entry/info-sym:		rel-type
 			entry/info-type:	0
 			entry/info-addend:	0
@@ -1021,6 +1048,30 @@ context [
 					syms/-1/2							;-- pointer slot to value slot
 				][
 					syms/2/4/1 - 1						;-- literal pointer in array to c-string buffer
+				]
+			]
+		]
+		list
+	]
+
+	;; Read-only (protected) data positions holding an address: the pointer slot
+	;; and any data-to-data pointers embedded in protected arrays (e.g. string
+	;; arrays). Under PIC these need an R_*_RELATIVE relocation so the loader adds
+	;; the image base at load time (the addend written by resolve-symbol-refs is
+	;; the target's base-relative offset).
+	collect-rodata-reloc: func [job [object!] /local list syms][
+		list: make block! 100
+		syms: job/symbols
+
+		while [not tail? syms][
+			syms: skip syms 2
+			if all [
+				not tail? syms
+				syms/1 = <data>
+				block? syms/2/4
+			][
+				foreach ref syms/2/4 [
+					if negative? ref [append list (negate ref) - 1]	;-- 0-based rodata offset
 				]
 			]
 		]

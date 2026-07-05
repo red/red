@@ -19,6 +19,12 @@ Red/System [
 		count	[integer!]
 		return: [integer!]
 	]
+	mprotect: 74 [							;-- protect protected-data page(s) in dylibs
+		address	[byte-ptr!]
+		size	[integer!]
+		prot	[integer!]
+		return: [integer!]
+	]
 ]
 
 #if use-natives? = yes [
@@ -125,7 +131,14 @@ siginfo!: alias struct! [
 				- system/image/code
 
 			***-init-system-image
-			
+
+			if system/image/rodata-size > 0 [		;-- lock protected data read-only after dyld relocations
+				mprotect
+					system/image/base + system/image/rodata
+					system/image/rodata-size
+					1							;-- PROT_READ
+			]
+
 			#either red-pass? = no [					;-- only for pure R/S DLLs
 				***-boot-rs
 				on-load argc argv envp apple pvars

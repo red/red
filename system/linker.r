@@ -85,6 +85,8 @@ linker: context [
 		code-size	 [integer!]
 		data-offset	 [integer!]
 		data-size	 [integer!]
+		rodata-offset [integer!]					;-- protected data (0 if none / already RO by segment)
+		rodata-size	 [integer!]
 		/local
 			spec bits-offset
 	][
@@ -97,6 +99,8 @@ linker: context [
 		set-integer-at job spec/2/2 + 16 data-offset
 		set-integer-at job spec/2/2 + 20 data-size
 		set-integer-at job spec/2/2 + 24 data-offset + bits-offset
+		set-integer-at job spec/2/2 + 28 rodata-offset
+		set-integer-at job spec/2/2 + 32 rodata-size
 	]
 	
 	resolve-symbol-refs: func [

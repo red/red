@@ -447,7 +447,7 @@ emitter: make-profilable context [
 			compiler/any-pointer? type					;-- complex types only
 		][
 			if new-global? [
-				rodata?: to logic! all [protected not compiler/job/PIC?] ;-- PIC: slot written at startup, keep it writable
+				rodata?: to logic! protected			;-- PIC: slot filled by a load-time relative reloc (RELRO)
 				ptr: store-global value 'pointer! none	;-- allocate separate variable slot
 				n-spec: add-symbol name ptr				;-- add variable to globals table
 				refs: reduce [tag-ref ptr + 1]			;-- reference value from variable slot
@@ -467,12 +467,12 @@ emitter: make-profilable context [
 				spec: store-value/ref name value type refs  ;-- store it with hardcoded pointer address
 				rodata?: no
 			]
-			if all [spec compiler/job/PIC? not libc-init?][
+			if all [spec compiler/job/PIC? not libc-init? not protected][
 				unless any [							;-- do not add PIC offset to literal values
 					integer? value
 					all [object? value integer? value/data]
 				][
-					target/emit-load-literal-ptr spec/2 
+					target/emit-load-literal-ptr spec/2
 				]
 				if new-global? [
 					target/emit-store saved value n-spec ;-- store it in pointer variable
