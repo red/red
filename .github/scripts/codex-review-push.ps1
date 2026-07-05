@@ -176,6 +176,39 @@ function Invoke-GitOutput {
     return ($output | Out-String).Trim()
 }
 
+function Add-GitConfigEnvironmentEntry {
+    param(
+        [string]$Key,
+        [string]$Value
+    )
+
+    $count = 0
+    if (-not [int]::TryParse($env:GIT_CONFIG_COUNT, [ref]$count)) {
+        $count = 0
+    }
+
+    Set-Item -Path "env:GIT_CONFIG_KEY_$count" -Value $Key
+    Set-Item -Path "env:GIT_CONFIG_VALUE_$count" -Value $Value
+    $env:GIT_CONFIG_COUNT = [string]($count + 1)
+}
+
+function Add-GitSafeDirectory {
+    $workspace = if ([string]::IsNullOrWhiteSpace($env:GITHUB_WORKSPACE)) {
+        (Get-Location).Path
+    }
+    else {
+        $env:GITHUB_WORKSPACE
+    }
+
+    if ([string]::IsNullOrWhiteSpace($workspace)) {
+        return
+    }
+
+    $safeDirectory = $workspace.Replace("\", "/")
+    Add-GitConfigEnvironmentEntry -Key "safe.directory" -Value $safeDirectory
+    Write-Info "Marked Git safe.directory for this process: $safeDirectory"
+}
+
 function Assert-GitWorkTree {
     $workTree = & $script:GitCommand rev-parse --show-toplevel 2>&1
     if ($LASTEXITCODE -eq 0) {
@@ -298,6 +331,7 @@ if (Test-ZeroSha $HeadSha) {
 
 $script:GitCommand = Resolve-GitCommand
 Write-Info "Using git: $script:GitCommand"
+Add-GitSafeDirectory
 Assert-GitWorkTree
 
 $HeadSha = Resolve-HeadSha $HeadSha
