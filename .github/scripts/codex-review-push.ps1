@@ -14,141 +14,6 @@ function Write-Info {
     Write-Host "[codex-review] $Message"
 }
 
-function Find-ExecutableOnPath {
-    param(
-        [string]$ExecutableName,
-        [string]$PathValue
-    )
-
-    if ([string]::IsNullOrWhiteSpace($PathValue)) {
-        return $null
-    }
-
-    foreach ($pathEntry in ($PathValue -split ";")) {
-        if ([string]::IsNullOrWhiteSpace($pathEntry)) {
-            continue
-        }
-
-        $expandedPath = [Environment]::ExpandEnvironmentVariables($pathEntry.Trim())
-        $candidate = Join-Path $expandedPath $ExecutableName
-        if (Test-Path -LiteralPath $candidate) {
-            return $candidate
-        }
-    }
-
-    return $null
-}
-
-function Find-ExecutableAtPath {
-    param([string]$PathPattern)
-
-    if ([string]::IsNullOrWhiteSpace($PathPattern)) {
-        return $null
-    }
-
-    $expandedPath = [Environment]::ExpandEnvironmentVariables($PathPattern)
-    $matches = @(Resolve-Path -Path $expandedPath -ErrorAction SilentlyContinue)
-    if ($matches.Count -eq 0) {
-        return $null
-    }
-
-    return ($matches | Sort-Object -Property Path -Descending | Select-Object -First 1).Path
-}
-
-function Get-ExistingParentPath {
-    param(
-        [string]$Path,
-        [int]$Levels
-    )
-
-    if ([string]::IsNullOrWhiteSpace($Path)) {
-        return $null
-    }
-
-    $current = $Path
-    for ($i = 0; $i -lt $Levels; $i++) {
-        $parent = Split-Path -Parent $current
-        if ([string]::IsNullOrWhiteSpace($parent) -or ($parent -eq $current)) {
-            return $null
-        }
-
-        $current = $parent
-    }
-
-    if (Test-Path -LiteralPath $current) {
-        return $current
-    }
-
-    return $null
-}
-
-function Resolve-GitCommand {
-    if ((-not [string]::IsNullOrWhiteSpace($env:GIT_EXE)) -and (Test-Path -LiteralPath $env:GIT_EXE)) {
-        return $env:GIT_EXE
-    }
-
-    $command = Get-Command git -ErrorAction SilentlyContinue
-    if ($null -ne $command) {
-        return $command.Source
-    }
-
-    $machinePath = Get-ItemPropertyValue `
-        -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" `
-        -Name Path `
-        -ErrorAction SilentlyContinue
-    $userPath = Get-ItemPropertyValue `
-        -Path "HKCU:\Environment" `
-        -Name Path `
-        -ErrorAction SilentlyContinue
-
-    foreach ($pathValue in @($machinePath, $userPath)) {
-        $gitOnPath = Find-ExecutableOnPath -ExecutableName "git.exe" -PathValue $pathValue
-        if (-not [string]::IsNullOrWhiteSpace($gitOnPath)) {
-            return $gitOnPath
-        }
-    }
-
-    $runnerRootFromTemp = Get-ExistingParentPath -Path $env:RUNNER_TEMP -Levels 2
-    $runnerRootFromWorkspace = Get-ExistingParentPath -Path $env:GITHUB_WORKSPACE -Levels 3
-    $runnerWorkRoot = Get-ExistingParentPath -Path $env:GITHUB_WORKSPACE -Levels 2
-
-    $candidatePaths = @(
-        "${env:ProgramFiles}\Git\cmd\git.exe",
-        "${env:ProgramFiles}\Git\bin\git.exe",
-        "${env:ProgramFiles(x86)}\Git\cmd\git.exe",
-        "${env:ProgramFiles(x86)}\Git\bin\git.exe",
-        "${env:ProgramData}\chocolatey\bin\git.exe",
-        "${env:SystemDrive}\tools\git\cmd\git.exe",
-        "${env:SystemDrive}\tools\git\bin\git.exe",
-        "${env:SystemDrive}\ProgramData\chocolatey\bin\git.exe",
-        "${env:SystemDrive}\Users\*\AppData\Local\Fork\gitInstance\*\cmd\git.exe",
-        "${env:SystemDrive}\Users\*\AppData\Local\Fork\gitInstance\*\bin\git.exe",
-        "${env:SystemDrive}\Users\*\scoop\apps\git\current\cmd\git.exe",
-        "${env:SystemDrive}\Users\*\scoop\apps\git\current\bin\git.exe",
-        "$runnerRootFromTemp\externals\git\cmd\git.exe",
-        "$runnerRootFromTemp\externals\git\bin\git.exe",
-        "$runnerRootFromTemp\_tool\Git\*\x64\bin\git.exe",
-        "$runnerRootFromTemp\_tool\Git\*\x64\cmd\git.exe",
-        "$runnerRootFromWorkspace\externals\git\cmd\git.exe",
-        "$runnerRootFromWorkspace\externals\git\bin\git.exe",
-        "$runnerRootFromWorkspace\_tool\Git\*\x64\bin\git.exe",
-        "$runnerRootFromWorkspace\_tool\Git\*\x64\cmd\git.exe",
-        "$runnerWorkRoot\_tool\Git\*\x64\bin\git.exe",
-        "$runnerWorkRoot\_tool\Git\*\x64\cmd\git.exe",
-        "${env:RUNNER_TOOL_CACHE}\Git\*\x64\bin\git.exe",
-        "${env:RUNNER_TOOL_CACHE}\Git\*\x64\cmd\git.exe"
-    )
-
-    foreach ($candidate in $candidatePaths) {
-        $gitPath = Find-ExecutableAtPath $candidate
-        if (-not [string]::IsNullOrWhiteSpace($gitPath)) {
-            return $gitPath
-        }
-    }
-
-    throw "Unable to locate git.exe. Install Git for Windows, add Git to the service account PATH, or set GIT_EXE to the absolute git.exe path."
-}
-
 function Test-ZeroSha {
     param([string]$Sha)
     return -not [string]::IsNullOrWhiteSpace($Sha) -and $Sha -match "^0+$"
@@ -161,14 +26,14 @@ function Test-GitCommit {
         return $false
     }
 
-    & $script:GitCommand cat-file -e "$Ref^{commit}" 2>$null
+    & git cat-file -e "$Ref^{commit}" 2>$null
     return $LASTEXITCODE -eq 0
 }
 
 function Invoke-GitOutput {
     param([string[]]$Arguments)
 
-    $output = & $script:GitCommand @Arguments 2>$null
+    $output = & git @Arguments 2>$null
     if ($LASTEXITCODE -ne 0) {
         return $null
     }
@@ -208,7 +73,7 @@ function Resolve-BaseSha {
     $remoteDefault = "origin/$DefaultBranchName"
     if (-not (Test-GitCommit $remoteDefault)) {
         Write-Info "Fetching origin/$DefaultBranchName to resolve a base commit."
-        & $script:GitCommand fetch --no-tags origin "+refs/heads/$DefaultBranchName`:refs/remotes/origin/$DefaultBranchName"
+        & git fetch --no-tags origin "+refs/heads/$DefaultBranchName`:refs/remotes/origin/$DefaultBranchName"
         if ($LASTEXITCODE -ne 0) {
             Write-Info "Unable to fetch origin/$DefaultBranchName; falling back to local history."
         }
@@ -281,15 +146,11 @@ if (Test-ZeroSha $HeadSha) {
     exit 0
 }
 
-$script:GitCommand = Resolve-GitCommand
-Write-Info "Using git: $script:GitCommand"
-
 $HeadSha = Resolve-HeadSha $HeadSha
 
 $shortHead = $HeadSha.Substring(0, [Math]::Min(12, $HeadSha.Length))
 $baseSha = Resolve-BaseSha -Before $BeforeSha -DefaultBranchName $DefaultBranch
 $baseBranch = $null
-$createdBaseBranch = $false
 $singleCommitMode = [string]::IsNullOrWhiteSpace($baseSha)
 $outputRoot = if ([string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) { (Get-Location).Path } else { $env:RUNNER_TEMP }
 $reviewOutputPath = Join-Path $outputRoot "codex-review-output.md"
@@ -308,6 +169,11 @@ try {
     else {
         $baseBranch = "codex-review-base-$shortHead"
         Write-Info "Using $baseSha as review base."
+        & git branch --force $baseBranch $baseSha
+        if ($LASTEXITCODE -ne 0) {
+            throw "Unable to create temporary review base branch '$baseBranch'."
+        }
+
         $reviewArgs += @("--base", $baseBranch)
         $rangeLabel = "$baseSha..$HeadSha"
     }
@@ -316,15 +182,6 @@ try {
         Write-Info "Dry run: codex $($reviewArgs -join ' ')"
         Write-Info "Dry run range: $rangeLabel"
         exit 0
-    }
-
-    if (-not [string]::IsNullOrWhiteSpace($baseBranch)) {
-        & $script:GitCommand branch --force $baseBranch $baseSha
-        if ($LASTEXITCODE -ne 0) {
-            throw "Unable to create temporary review base branch '$baseBranch'."
-        }
-
-        $createdBaseBranch = $true
     }
 
     Write-Info "Running Codex review for $rangeLabel."
@@ -378,7 +235,7 @@ $reviewText
     Write-Info "Review written to $reviewOutputPath."
 }
 finally {
-    if ($createdBaseBranch) {
-        & $script:GitCommand branch --delete --force $baseBranch 2>$null | Out-Null
+    if (-not [string]::IsNullOrWhiteSpace($baseBranch)) {
+        & git branch --delete --force $baseBranch 2>$null | Out-Null
     }
 }
