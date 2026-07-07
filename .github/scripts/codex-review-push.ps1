@@ -170,7 +170,7 @@ function Test-ReviewHasIssues {
         "(?is)^\s*there are no (findings|issues|actionable issues|actionable findings)\.?\s*$",
         "(?is)^\s*i found no (findings|issues|actionable issues|actionable findings)\.?\s*$",
         "(?is)^\s*(the patch|this patch|the change|this change|the changes|this update).*\b(no|not any|without)\s+((evident|obvious|functional|actionable)\s+)*(regressions?|issues?|findings?|bugs?)\b.*$",
-        "(?is)^\s*(the patch|this patch|the change|this change|the changes|this update).*\bdoes not introduce any ((evident|obvious|functional|actionable)\s+)*(regressions?|issues?|bugs?)\b.*$"
+        "(?is)^\s*(the patch|this patch|the change|this change|the changes|this update|the updated iteration).*\bdoes not introduce (any|an|a) ((evident|obvious|functional|actionable|correctness)\s+)*(regressions?|issues?|bugs?)\b.*$"
     )
 
     foreach ($pattern in $cleanPatterns) {
@@ -182,7 +182,7 @@ function Test-ReviewHasIssues {
     if (
         $normalized -match "(?i)\b(now\s+matches|matches)\b" -and
         $normalized -match "(?i)\bno downstream references\b" -and
-        $normalized -match "(?i)\bdoes not introduce any ((evident|obvious|functional|actionable)\s+)*(regressions?|issues?|bugs?)\b"
+        $normalized -match "(?i)\bdoes not introduce (any|an|a) ((evident|obvious|functional|actionable|correctness)\s+)*(regressions?|issues?|bugs?)\b"
     ) {
         return $false
     }
