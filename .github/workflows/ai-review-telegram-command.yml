@@ -169,6 +169,7 @@ jobs:
       - name: Run Codex fix
         id: fix
         if: steps.command.outputs.has_command == 'true'
+        continue-on-error: true
         shell: pwsh
         working-directory: target-source
         env:
@@ -194,7 +195,7 @@ jobs:
 
       - name: Create or update pull request
         id: pull_request
-        if: steps.fix.outputs.fix_created == 'true'
+        if: steps.fix.outcome == 'success' && steps.fix.outputs.fix_created == 'true'
         shell: pwsh
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -265,10 +266,19 @@ jobs:
           $reviewRunUrl = "${{ steps.review_run.outputs.run_url }}"
           $prUrl = "${{ steps.pull_request.outputs.pr_url }}"
           $fixCreated = "${{ steps.fix.outputs.fix_created }}"
+          $fixStatus = "${{ steps.fix.outputs.fix_status }}"
+          $fixError = "${{ steps.fix.outputs.fix_error }}"
+          $fixOutcome = "${{ steps.fix.outcome }}"
           $reviewHasIssues = "${{ steps.verify_review.outputs.review_has_issues }}"
 
           if ($reviewHasIssues -ne "true") {
             $message = "No fix PR was created for $shortSha because the selected AI Review run did not report issues. Review run: $reviewRunUrl"
+          }
+          elseif ($fixOutcome -eq "failure" -or $fixStatus -eq "failed") {
+            if ([string]::IsNullOrWhiteSpace($fixError)) {
+              $fixError = "Codex fix step failed. See the ai-review-fix artifact for the transcript."
+            }
+            $message = "AI review fix failed for $shortSha.`n`n$fixError`nReview run: $reviewRunUrl`nCommand run: $workflowUrl"
           }
           elseif ($fixCreated -eq "true" -and -not [string]::IsNullOrWhiteSpace($prUrl)) {
             $message = "Created AI review fix PR for $shortSha.`n`nPR: $prUrl`nReview run: $reviewRunUrl`nCommand run: $workflowUrl"
@@ -281,3 +291,9 @@ jobs:
           }
 
           .\trusted-source\.github\scripts\send-telegram-review.ps1 -MessageText $message
+
+      - name: Fail if Codex fix failed
+        if: steps.fix.outcome == 'failure'
+        shell: pwsh
+        run: |
+          throw "Codex fix failed; see the ai-review-fix artifact for transcript and summary."

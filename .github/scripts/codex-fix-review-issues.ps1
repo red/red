@@ -88,6 +88,12 @@ function Limit-Text {
     return "$($Text.Substring(0, $MaxCharacters).TrimEnd())`n`n... truncated ..."
 }
 
+function Test-CodexUsageError {
+    param([string]$Output)
+
+    return $Output -match "(?m)^error: " -and $Output -match "(?m)^Usage: codex "
+}
+
 if (-not (Test-Path $ReviewPath)) {
     throw "Review report not found: $ReviewPath"
 }
@@ -114,6 +120,8 @@ $reviewText = (Get-Content -Path $ReviewPath -Raw).Trim()
 $repoRoot = (Get-Location).Path
 
 Write-GitHubOutput -Name "fix_created" -Value "false"
+Write-GitHubOutput -Name "fix_status" -Value "started"
+Write-GitHubOutput -Name "fix_error" -Value ""
 Write-GitHubOutput -Name "fix_branch" -Value $fixBranch
 Write-GitHubOutput -Name "pr_body_path" -Value $prBodyPath
 Write-GitHubOutput -Name "fix_summary_path" -Value $fixSummaryPath
@@ -138,7 +146,7 @@ $reviewText
 "@
 
 Write-Info "Running Codex fix pass."
-$fixLines = $prompt | & codex exec -C $repoRoot -s danger-full-access -a never --output-last-message $fixLastMessagePath - 2>&1
+$fixLines = $prompt | & codex exec -C $repoRoot -s danger-full-access --output-last-message $fixLastMessagePath - 2>&1
 $codexExitCode = $LASTEXITCODE
 $fixTranscript = ($fixLines | Out-String).TrimEnd()
 
@@ -148,12 +156,34 @@ if ([string]::IsNullOrWhiteSpace($fixTranscript)) {
 
 Set-Content -Path $fixTranscriptPath -Value $fixTranscript -Encoding utf8
 
-if ($codexExitCode -ne 0) {
-    throw "Codex fix pass failed with exit code $codexExitCode. See $fixTranscriptPath."
-}
-
 $currentHead = Invoke-GitOutput @("rev-parse", "HEAD")
 $status = (& git status --porcelain | Out-String).Trim()
+
+if ((Test-CodexUsageError $fixTranscript) -or ($codexExitCode -ne 0 -and [string]::IsNullOrWhiteSpace($status) -and $currentHead -eq $initialHead)) {
+    $transcriptTail = Limit-Text -Text $fixTranscript -MaxCharacters 4000
+    $errorMessage = "Codex fix pass failed with exit code $codexExitCode. See $fixTranscriptPath."
+    $summary = @"
+# AI Review Fix Failed
+
+$errorMessage
+
+## Transcript Tail
+
+````text
+$transcriptTail
+````
+"@
+
+    Set-Content -Path $fixSummaryPath -Value $summary -Encoding utf8
+    Set-Content -Path $prBodyPath -Value $summary -Encoding utf8
+    Write-GitHubOutput -Name "fix_status" -Value "failed"
+    Write-GitHubOutput -Name "fix_error" -Value $errorMessage
+    throw $errorMessage
+}
+
+if ($codexExitCode -ne 0) {
+    Write-Warning "Codex fix pass exited with code $codexExitCode, but produced changes; continuing with commit."
+}
 
 if ([string]::IsNullOrWhiteSpace($status) -and $currentHead -eq $initialHead) {
     $summary = @"
@@ -164,6 +194,7 @@ Codex did not produce any changes for the reported issues.
 
     Set-Content -Path $fixSummaryPath -Value $summary -Encoding utf8
     Set-Content -Path $prBodyPath -Value $summary -Encoding utf8
+    Write-GitHubOutput -Name "fix_status" -Value "no_changes"
     Write-Info "No fix changes produced."
     exit 0
 }
@@ -251,6 +282,8 @@ Set-Content -Path $fixSummaryPath -Value $limitedFixSummary -Encoding utf8
 Set-Content -Path $prBodyPath -Value $prBody -Encoding utf8
 
 Write-GitHubOutput -Name "fix_created" -Value "true"
+Write-GitHubOutput -Name "fix_status" -Value "created"
+Write-GitHubOutput -Name "fix_error" -Value ""
 Write-GitHubOutput -Name "fix_branch" -Value $fixBranch
 Write-GitHubOutput -Name "pr_body_path" -Value $prBodyPath
 Write-GitHubOutput -Name "fix_summary_path" -Value $fixSummaryPath
