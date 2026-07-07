@@ -1,0 +1,7 @@
+name = "red-review-telegram-webhook"
+main = "cloudflare-worker.js"
+compatibility_date = "2024-10-01"
+
+[vars]
+TELEGRAM_BOT_USERNAME = "Red_Code_Review_bot"
+GITHUB_REPOSITORY = "red/red"

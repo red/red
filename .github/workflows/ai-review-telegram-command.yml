@@ -1,0 +1,283 @@
+name: AI Review Telegram Command
+
+on:
+  repository_dispatch:
+    types:
+      - telegram-review-fix
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: GitHub Actions AI Review run ID to fix
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: ai-review-telegram-command
+  cancel-in-progress: false
+
+jobs:
+  command:
+    name: Handle Telegram fix command
+    runs-on: [self-hosted, windows, x64, codex-review]
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout command scripts
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.repository.default_branch }}
+          path: trusted-source
+
+      - name: Resolve command payload
+        id: command
+        shell: pwsh
+        env:
+          DISPATCH_RUN_ID: ${{ github.event.client_payload.run_id }}
+          DISPATCH_RUN_URL: ${{ github.event.client_payload.run_url }}
+          DISPATCH_COMMAND_TEXT: ${{ github.event.client_payload.command_text }}
+          MANUAL_RUN_ID: ${{ inputs.run_id }}
+        run: |
+          function Write-StepOutput {
+            param(
+              [string]$Name,
+              [AllowNull()][string]$Value
+            )
+
+            if ($null -eq $Value) {
+              $Value = ""
+            }
+
+            $delimiter = "EOF_$([Guid]::NewGuid().ToString("N"))"
+            Add-Content -Path $env:GITHUB_OUTPUT -Value "$Name<<$delimiter" -Encoding utf8
+            Add-Content -Path $env:GITHUB_OUTPUT -Value $Value -Encoding utf8
+            Add-Content -Path $env:GITHUB_OUTPUT -Value $delimiter -Encoding utf8
+          }
+
+          $runId = $env:DISPATCH_RUN_ID
+          $runUrl = $env:DISPATCH_RUN_URL
+          $commandText = $env:DISPATCH_COMMAND_TEXT
+
+          if ([string]::IsNullOrWhiteSpace($runId)) {
+            $runId = $env:MANUAL_RUN_ID
+          }
+
+          if ([string]::IsNullOrWhiteSpace($runId)) {
+            throw "No AI Review run ID was supplied."
+          }
+
+          Write-StepOutput -Name "has_command" -Value "true"
+          Write-StepOutput -Name "run_id" -Value $runId
+          Write-StepOutput -Name "run_url" -Value $runUrl
+          Write-StepOutput -Name "command_text" -Value $commandText
+
+      - name: Resolve review run
+        id: review_run
+        if: steps.command.outputs.has_command == 'true'
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $runId = "${{ steps.command.outputs.run_id }}"
+          $headers = @{
+            Authorization = "Bearer $env:GITHUB_TOKEN"
+            Accept = "application/vnd.github+json"
+            "X-GitHub-Api-Version" = "2022-11-28"
+          }
+
+          $run = Invoke-RestMethod `
+            -Uri "$env:GITHUB_API_URL/repos/$env:GITHUB_REPOSITORY/actions/runs/$runId" `
+            -Headers $headers
+
+          if ($run.name -ne "AI Review") {
+            throw "Run $runId belongs to workflow '$($run.name)', not 'AI Review'."
+          }
+
+          if ([string]::IsNullOrWhiteSpace($run.head_sha)) {
+            throw "Run $runId did not report a head SHA."
+          }
+
+          if ([string]::IsNullOrWhiteSpace($run.head_branch)) {
+            throw "Run $runId did not report a head branch."
+          }
+
+          "head_sha=$($run.head_sha)" | Add-Content -Path $env:GITHUB_OUTPUT -Encoding utf8
+          "head_branch=$($run.head_branch)" | Add-Content -Path $env:GITHUB_OUTPUT -Encoding utf8
+          "run_url=$($run.html_url)" | Add-Content -Path $env:GITHUB_OUTPUT -Encoding utf8
+
+      - name: Download review report
+        if: steps.command.outputs.has_command == 'true'
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $artifactDir = "${{ runner.temp }}/ai-review"
+          New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
+          $runId = "${{ steps.command.outputs.run_id }}"
+          $headers = @{
+            Authorization = "Bearer $env:GITHUB_TOKEN"
+            Accept = "application/vnd.github+json"
+            "X-GitHub-Api-Version" = "2022-11-28"
+          }
+
+          $artifacts = Invoke-RestMethod `
+            -Uri "$env:GITHUB_API_URL/repos/$env:GITHUB_REPOSITORY/actions/runs/$runId/artifacts" `
+            -Headers $headers
+          $artifact = @($artifacts.artifacts) | Where-Object { $_.name -eq "local-ai-review" } | Select-Object -First 1
+
+          if ($null -eq $artifact) {
+            throw "Unable to find local-ai-review artifact for run $runId."
+          }
+
+          $zipPath = Join-Path "${{ runner.temp }}" "local-ai-review.zip"
+          Invoke-WebRequest `
+            -Uri "$env:GITHUB_API_URL/repos/$env:GITHUB_REPOSITORY/actions/artifacts/$($artifact.id)/zip" `
+            -Headers $headers `
+            -OutFile $zipPath
+          Expand-Archive -Path $zipPath -DestinationPath $artifactDir -Force
+
+      - name: Verify review has issues
+        id: verify_review
+        if: steps.command.outputs.has_command == 'true'
+        shell: pwsh
+        run: |
+          $reviewPath = "${{ runner.temp }}/ai-review/codex-review-output.md"
+          if (-not (Test-Path $reviewPath)) {
+            throw "Review report not found at $reviewPath."
+          }
+
+          $reviewText = Get-Content -Path $reviewPath -Raw
+          if ($reviewText -notmatch "(?im)^\s*-\s*Issues found:\s*``true``\s*$") {
+            throw "Selected AI Review run did not report issues; refusing to create a fix PR."
+          }
+
+          "review_has_issues=true" | Add-Content -Path $env:GITHUB_OUTPUT -Encoding utf8
+
+      - name: Checkout reviewed commit
+        if: steps.command.outputs.has_command == 'true'
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ steps.review_run.outputs.head_sha }}
+          path: target-source
+
+      - name: Run Codex fix
+        id: fix
+        if: steps.command.outputs.has_command == 'true'
+        shell: pwsh
+        working-directory: target-source
+        env:
+          AI_REVIEW_TEST_COMMAND: ${{ vars.AI_REVIEW_TEST_COMMAND }}
+        run: |
+          ..\trusted-source\.github\scripts\codex-fix-review-issues.ps1 `
+            -ReviewPath "${{ runner.temp }}/ai-review/codex-review-output.md" `
+            -HeadSha "${{ steps.review_run.outputs.head_sha }}" `
+            -BaseBranch "${{ steps.review_run.outputs.head_branch }}"
+
+      - name: Upload fix log
+        if: always() && steps.command.outputs.has_command == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: local-ai-review-fix
+          path: |
+            ${{ runner.temp }}/codex-fix-last-message.md
+            ${{ runner.temp }}/codex-fix-transcript.txt
+            ${{ runner.temp }}/codex-fix-summary.md
+            ${{ runner.temp }}/codex-fix-pr-body.md
+            ${{ runner.temp }}/codex-fix-test-output.txt
+          if-no-files-found: ignore
+
+      - name: Create or update pull request
+        id: pull_request
+        if: steps.fix.outputs.fix_created == 'true'
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $fixBranch = "${{ steps.fix.outputs.fix_branch }}"
+          $baseBranch = "${{ steps.review_run.outputs.head_branch }}"
+          $bodyFile = "${{ steps.fix.outputs.pr_body_path }}"
+          $headSha = "${{ steps.review_run.outputs.head_sha }}"
+          $shortSha = $headSha.Substring(0, [Math]::Min(12, $headSha.Length))
+          $title = "Fix AI review findings for $shortSha"
+          $body = Get-Content -Path $bodyFile -Raw
+          $owner = $env:GITHUB_REPOSITORY.Split("/")[0]
+          $headers = @{
+            Authorization = "Bearer $env:GITHUB_TOKEN"
+            Accept = "application/vnd.github+json"
+            "X-GitHub-Api-Version" = "2022-11-28"
+          }
+
+          $headQuery = [Uri]::EscapeDataString("${owner}:$fixBranch")
+          $baseQuery = [Uri]::EscapeDataString($baseBranch)
+          $pulls = Invoke-RestMethod `
+            -Uri "$env:GITHUB_API_URL/repos/$env:GITHUB_REPOSITORY/pulls?state=open&head=$headQuery&base=$baseQuery" `
+            -Headers $headers
+          $existingPr = @($pulls) | Select-Object -First 1
+
+          if ($null -eq $existingPr) {
+            $payload = @{
+              title = $title
+              head = $fixBranch
+              base = $baseBranch
+              body = $body
+            } | ConvertTo-Json
+
+            $pr = Invoke-RestMethod `
+              -Uri "$env:GITHUB_API_URL/repos/$env:GITHUB_REPOSITORY/pulls" `
+              -Method Post `
+              -Headers $headers `
+              -Body $payload `
+              -ContentType "application/json"
+          }
+          else {
+            $payload = @{
+              title = $title
+              body = $body
+            } | ConvertTo-Json
+
+            $pr = Invoke-RestMethod `
+              -Uri "$env:GITHUB_API_URL/repos/$env:GITHUB_REPOSITORY/pulls/$($existingPr.number)" `
+              -Method Patch `
+              -Headers $headers `
+              -Body $payload `
+              -ContentType "application/json"
+          }
+
+          "pr_url=$($pr.html_url)" | Add-Content -Path $env:GITHUB_OUTPUT -Encoding utf8
+
+      - name: Send Telegram command result
+        if: always() && steps.command.outputs.has_command == 'true'
+        continue-on-error: true
+        shell: pwsh
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          $headSha = "${{ steps.review_run.outputs.head_sha }}"
+          $shortSha = if ([string]::IsNullOrWhiteSpace($headSha)) { "${{ steps.command.outputs.run_id }}" } else { $headSha.Substring(0, [Math]::Min(12, $headSha.Length)) }
+          $workflowUrl = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
+          $reviewRunUrl = "${{ steps.review_run.outputs.run_url }}"
+          $prUrl = "${{ steps.pull_request.outputs.pr_url }}"
+          $fixCreated = "${{ steps.fix.outputs.fix_created }}"
+          $reviewHasIssues = "${{ steps.verify_review.outputs.review_has_issues }}"
+
+          if ($reviewHasIssues -ne "true") {
+            $message = "No fix PR was created for $shortSha because the selected AI Review run did not report issues. Review run: $reviewRunUrl"
+          }
+          elseif ($fixCreated -eq "true" -and -not [string]::IsNullOrWhiteSpace($prUrl)) {
+            $message = "Created AI review fix PR for $shortSha.`n`nPR: $prUrl`nReview run: $reviewRunUrl`nCommand run: $workflowUrl"
+          }
+          elseif ($fixCreated -eq "true") {
+            $message = "Pushed an AI review fix branch for $shortSha, but PR creation did not finish. Command run: $workflowUrl"
+          }
+          else {
+            $message = "Accepted the AI review fix command for $shortSha, but Codex did not produce an automatic fix. Command run: $workflowUrl"
+          }
+
+          .\trusted-source\.github\scripts\send-telegram-review.ps1 -MessageText $message

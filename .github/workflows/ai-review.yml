@@ -1,0 +1,80 @@
+name: AI Review
+
+on:
+  push:
+    branches:
+      - "**"
+      - "!ai-review/fix/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    name: Review pushed diff
+    runs-on: [self-hosted, windows, x64, codex-review]
+    timeout-minutes: 60
+    outputs:
+      has_issues: ${{ steps.run_review.outputs.has_issues }}
+      review_output_path: ${{ steps.run_review.outputs.review_output_path }}
+      transcript_path: ${{ steps.run_review.outputs.transcript_path }}
+      last_message_path: ${{ steps.run_review.outputs.last_message_path }}
+      range_label: ${{ steps.run_review.outputs.range_label }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Run Codex review
+        id: run_review
+        shell: pwsh
+        env:
+          REVIEW_BEFORE: ${{ github.event.before }}
+          REVIEW_SHA: ${{ github.sha }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          .\.github\scripts\codex-review-push.ps1 `
+            -BeforeSha "$env:REVIEW_BEFORE" `
+            -HeadSha "$env:REVIEW_SHA" `
+            -DefaultBranch "$env:DEFAULT_BRANCH"
+
+      - name: Upload review log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ai-review
+          path: |
+            ${{ runner.temp }}/codex-review-output.md
+            ${{ runner.temp }}/codex-review-last-message.md
+            ${{ runner.temp }}/codex-review-transcript.txt
+          if-no-files-found: ignore
+
+      - name: Send Telegram review report
+        if: steps.run_review.outputs.has_issues == 'true'
+        continue-on-error: true
+        shell: pwsh
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          $shortSha = $env:GITHUB_SHA.Substring(0, [Math]::Min(12, $env:GITHUB_SHA.Length))
+          $runUrl = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
+          $message = @"
+          AI review found issues.
+
+          Repository: $env:GITHUB_REPOSITORY
+          Branch: $env:GITHUB_REF_NAME
+          Commit: $shortSha
+          Range: ${{ steps.run_review.outputs.range_label }}
+          Run: $runUrl
+
+          Reply to this message with:
+          @red_review_bot fix it
+          "@
+
+          .\.github\scripts\send-telegram-review.ps1 `
+            -ReviewPath "${{ steps.run_review.outputs.review_output_path }}" `
+            -MessageText $message

@@ -14,13 +14,24 @@ function Write-Info {
     Write-Host "[codex-review] $Message"
 }
 
-function Resolve-GitCommand {
-    $command = Get-Command git -ErrorAction SilentlyContinue
-    if ($null -ne $command) {
-        return $command.Source
+function Write-GitHubOutput {
+    param(
+        [string]$Name,
+        [AllowNull()][string]$Value
+    )
+
+    if ([string]::IsNullOrWhiteSpace($env:GITHUB_OUTPUT)) {
+        return
     }
 
-    throw "Unable to locate git.exe on PATH. Start the runner from a shell where 'git --version' works."
+    if ($null -eq $Value) {
+        $Value = ""
+    }
+
+    $delimiter = "EOF_$([Guid]::NewGuid().ToString("N"))"
+    Add-Content -Path $env:GITHUB_OUTPUT -Value "$Name<<$delimiter" -Encoding utf8
+    Add-Content -Path $env:GITHUB_OUTPUT -Value $Value -Encoding utf8
+    Add-Content -Path $env:GITHUB_OUTPUT -Value $delimiter -Encoding utf8
 }
 
 function Test-ZeroSha {
@@ -35,66 +46,19 @@ function Test-GitCommit {
         return $false
     }
 
-    & $script:GitCommand cat-file -e "$Ref^{commit}" 2>$null
+    & git cat-file -e "$Ref^{commit}" 2>$null
     return $LASTEXITCODE -eq 0
 }
 
 function Invoke-GitOutput {
     param([string[]]$Arguments)
 
-    $output = & $script:GitCommand @Arguments 2>&1
+    $output = & git @Arguments 2>$null
     if ($LASTEXITCODE -ne 0) {
-        $script:LastGitError = ($output | Out-String).Trim()
         return $null
     }
 
-    $script:LastGitError = $null
     return ($output | Out-String).Trim()
-}
-
-function Add-GitConfigEnvironmentEntry {
-    param(
-        [string]$Key,
-        [string]$Value
-    )
-
-    $count = 0
-    if (-not [int]::TryParse($env:GIT_CONFIG_COUNT, [ref]$count)) {
-        $count = 0
-    }
-
-    Set-Item -Path "env:GIT_CONFIG_KEY_$count" -Value $Key
-    Set-Item -Path "env:GIT_CONFIG_VALUE_$count" -Value $Value
-    $env:GIT_CONFIG_COUNT = [string]($count + 1)
-}
-
-function Trust-CurrentWorkspace {
-    $workspace = if ([string]::IsNullOrWhiteSpace($env:GITHUB_WORKSPACE)) {
-        (Get-Location).Path
-    }
-    else {
-        $env:GITHUB_WORKSPACE
-    }
-
-    $safeDirectory = $workspace.Replace("\", "/")
-    Add-GitConfigEnvironmentEntry -Key "safe.directory" -Value $safeDirectory
-    Write-Info "Trusted Git checkout directory for this process: $safeDirectory"
-}
-
-function Assert-GitCheckout {
-    $workTree = Invoke-GitOutput @("rev-parse", "--show-toplevel")
-    if ([string]::IsNullOrWhiteSpace($workTree)) {
-        $errorText = if ([string]::IsNullOrWhiteSpace($script:LastGitError)) {
-            "git rev-parse --show-toplevel failed."
-        }
-        else {
-            $script:LastGitError
-        }
-
-        throw "Workspace is not a usable Git checkout at '$((Get-Location).Path)'. Git error: $errorText"
-    }
-
-    Write-Info "Git worktree: $workTree"
 }
 
 function Resolve-HeadSha {
@@ -106,14 +70,7 @@ function Resolve-HeadSha {
 
     $head = Invoke-GitOutput @("rev-parse", "HEAD")
     if ([string]::IsNullOrWhiteSpace($head)) {
-        $errorText = if ([string]::IsNullOrWhiteSpace($script:LastGitError)) {
-            "git rev-parse HEAD returned no output."
-        }
-        else {
-            $script:LastGitError
-        }
-
-        throw "Unable to resolve HEAD for review. Git error: $errorText"
+        throw "Unable to resolve HEAD for review."
     }
 
     return $head
@@ -136,7 +93,7 @@ function Resolve-BaseSha {
     $remoteDefault = "origin/$DefaultBranchName"
     if (-not (Test-GitCommit $remoteDefault)) {
         Write-Info "Fetching origin/$DefaultBranchName to resolve a base commit."
-        & $script:GitCommand fetch --no-tags origin "+refs/heads/$DefaultBranchName`:refs/remotes/origin/$DefaultBranchName"
+        & git fetch --no-tags origin "+refs/heads/$DefaultBranchName`:refs/remotes/origin/$DefaultBranchName"
         if ($LASTEXITCODE -ne 0) {
             Write-Info "Unable to fetch origin/$DefaultBranchName; falling back to local history."
         }
@@ -180,6 +137,47 @@ function Test-CodexUsageError {
     return $Output -match "(?m)^error: " -and $Output -match "(?m)^Usage: codex "
 }
 
+function Test-ReviewHasIssues {
+    param([string]$ReviewText)
+
+    if ([string]::IsNullOrWhiteSpace($ReviewText)) {
+        return $false
+    }
+
+    $normalized = $ReviewText.Trim()
+    if ($normalized -eq "Codex produced no review output.") {
+        return $false
+    }
+
+    $cleanPatterns = @(
+        "(?im)^\s*(no findings|no issues found|no issues detected|no actionable issues|no actionable findings|nothing to report|looks good to me|lgtm)\.?\s*$",
+        "(?im)^\s*findings\s*:\s*(none|no(ne)? issues)\.?\s*$",
+        "(?im)^\s*there are no (findings|issues|actionable issues|actionable findings)\.?\s*$",
+        "(?im)^\s*i found no (findings|issues|actionable issues|actionable findings)\.?\s*$"
+    )
+
+    foreach ($pattern in $cleanPatterns) {
+        if ($normalized -match $pattern) {
+            return $false
+        }
+    }
+
+    $issuePatterns = @(
+        "(?im)^\s*-\s*\[(P[0-9]|S[0-9]|critical|high|medium|low|bug|security|performance|correctness)\]",
+        "(?im)^\s*(critical|high|medium|low|warning|error|bug|security|correctness|performance)\s*:",
+        "(?im)^\s*(finding|issue)\s+\d+\s*:",
+        "(?im)^\s*#+\s*(findings|issues)\b"
+    )
+
+    foreach ($pattern in $issuePatterns) {
+        if ($normalized -match $pattern) {
+            return $true
+        }
+    }
+
+    return $true
+}
+
 function Limit-ReviewLength {
     param(
         [string]$Text,
@@ -204,27 +202,27 @@ $tail
 "@.Trim()
 }
 
+$outputRoot = if ([string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) { (Get-Location).Path } else { $env:RUNNER_TEMP }
+$reviewOutputPath = Join-Path $outputRoot "codex-review-output.md"
+$transcriptOutputPath = Join-Path $outputRoot "codex-review-transcript.txt"
+$lastMessageOutputPath = Join-Path $outputRoot "codex-review-last-message.md"
+
 if (Test-ZeroSha $HeadSha) {
     Write-Info "Push deleted a ref; skipping review."
+    Write-GitHubOutput -Name "has_issues" -Value "false"
+    Write-GitHubOutput -Name "review_output_path" -Value $reviewOutputPath
+    Write-GitHubOutput -Name "transcript_path" -Value $transcriptOutputPath
+    Write-GitHubOutput -Name "last_message_path" -Value $lastMessageOutputPath
+    Write-GitHubOutput -Name "range_label" -Value ""
     exit 0
 }
-
-$script:GitCommand = Resolve-GitCommand
-Write-Info "Using git: $script:GitCommand"
-Trust-CurrentWorkspace
-Assert-GitCheckout
 
 $HeadSha = Resolve-HeadSha $HeadSha
 
 $shortHead = $HeadSha.Substring(0, [Math]::Min(12, $HeadSha.Length))
 $baseSha = Resolve-BaseSha -Before $BeforeSha -DefaultBranchName $DefaultBranch
 $baseBranch = $null
-$createdBaseBranch = $false
 $singleCommitMode = [string]::IsNullOrWhiteSpace($baseSha)
-$outputRoot = if ([string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) { (Get-Location).Path } else { $env:RUNNER_TEMP }
-$reviewOutputPath = Join-Path $outputRoot "codex-review-output.md"
-$transcriptOutputPath = Join-Path $outputRoot "codex-review-transcript.txt"
-$lastMessageOutputPath = Join-Path $outputRoot "codex-review-last-message.md"
 
 try {
     $reviewArgs = @("exec", "review", "--output-last-message", $lastMessageOutputPath)
@@ -238,6 +236,11 @@ try {
     else {
         $baseBranch = "codex-review-base-$shortHead"
         Write-Info "Using $baseSha as review base."
+        & git branch --force $baseBranch $baseSha
+        if ($LASTEXITCODE -ne 0) {
+            throw "Unable to create temporary review base branch '$baseBranch'."
+        }
+
         $reviewArgs += @("--base", $baseBranch)
         $rangeLabel = "$baseSha..$HeadSha"
     }
@@ -245,16 +248,12 @@ try {
     if ($DryRun) {
         Write-Info "Dry run: codex $($reviewArgs -join ' ')"
         Write-Info "Dry run range: $rangeLabel"
+        Write-GitHubOutput -Name "has_issues" -Value "false"
+        Write-GitHubOutput -Name "review_output_path" -Value $reviewOutputPath
+        Write-GitHubOutput -Name "transcript_path" -Value $transcriptOutputPath
+        Write-GitHubOutput -Name "last_message_path" -Value $lastMessageOutputPath
+        Write-GitHubOutput -Name "range_label" -Value $rangeLabel
         exit 0
-    }
-
-    if (-not [string]::IsNullOrWhiteSpace($baseBranch)) {
-        & $script:GitCommand branch --force $baseBranch $baseSha
-        if ($LASTEXITCODE -ne 0) {
-            throw "Unable to create temporary review base branch '$baseBranch'."
-        }
-
-        $createdBaseBranch = $true
     }
 
     Write-Info "Running Codex review for $rangeLabel."
@@ -279,7 +278,9 @@ try {
         $reviewText = "Codex produced no review output."
     }
 
+    $hasIssues = Test-ReviewHasIssues $reviewText
     $reviewText = Limit-ReviewLength $reviewText
+    $hasIssuesText = if ($hasIssues) { "true" } else { "false" }
 
 $summary = @"
 # Local AI Code Review
@@ -287,6 +288,7 @@ $summary = @"
 - Range: ``$rangeLabel``
 - Mode: advisory
 - Codex exit code: ``$codexExitCode``
+- Issues found: ``$hasIssuesText``
 
 ## Review
 
@@ -294,6 +296,11 @@ $reviewText
 "@
 
     Write-ReviewSummary -Markdown $summary -OutputPath $reviewOutputPath
+    Write-GitHubOutput -Name "has_issues" -Value $hasIssuesText
+    Write-GitHubOutput -Name "review_output_path" -Value $reviewOutputPath
+    Write-GitHubOutput -Name "transcript_path" -Value $transcriptOutputPath
+    Write-GitHubOutput -Name "last_message_path" -Value $lastMessageOutputPath
+    Write-GitHubOutput -Name "range_label" -Value $rangeLabel
 
     if (Test-CodexUsageError $rawReviewText) {
         throw "Codex review command failed due to invalid CLI usage. See $reviewOutputPath for captured output."
@@ -308,7 +315,7 @@ $reviewText
     Write-Info "Review written to $reviewOutputPath."
 }
 finally {
-    if ($createdBaseBranch) {
-        & $script:GitCommand branch --delete --force $baseBranch 2>$null | Out-Null
+    if (-not [string]::IsNullOrWhiteSpace($baseBranch)) {
+        & git branch --delete --force $baseBranch 2>$null | Out-Null
     }
 }
