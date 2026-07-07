@@ -335,11 +335,11 @@ Red [
 		--assert error? res: try [load "())b"]
 		--assert to logic! find/match form res {*** Syntax Error: (line 1) missing ( at )b^/*** Where}
 
-	;--test-- "load ) 5"
-	;	res: load/trap "())b"
-	;	--assert [()] = res/1
-	;	--assert "b" = res/2
-	;	--assert to logic! find/match form res/3 {*** Syntax Error: (line 1) missing ( at )b^/*** Where}
+	--test-- "load ) 5"
+		res: load/trap "())b"
+		--assert [()] = res/1
+		--assert ")b" = res/2
+		--assert to logic! find/match form res/3 {*** Syntax Error: (line 1) missing ( at )b^/*** Where}
 
 	--test-- "load ) 6"
 		s: "())b"
@@ -366,11 +366,11 @@ Red [
 		--assert error? res: try [load "[]]b"]
 		--assert to logic! find/match form res {*** Syntax Error: (line 1) missing [ at ]b^/*** Where}
 
-	;--test-- "load ] 5"
-	;	res: load/trap "[]]b"
-	;	--assert [[]] = res/1
-	;	--assert "b" = res/2
-	;	--assert to logic! find/match form res/3 {*** Syntax Error: (line 1) missing [ at ]b^/*** Where}
+	--test-- "load ] 5"
+		res: load/trap "[]]b"
+		--assert [[]] = res/1
+		--assert "]b" = res/2
+		--assert to logic! find/match form res/3 {*** Syntax Error: (line 1) missing [ at ]b^/*** Where}
 
 	--test-- "load ] 6"
 		s: "[]]b"
@@ -397,11 +397,11 @@ Red [
 		--assert error? res: try [load "{}}b"]
 		--assert to logic! find/match form res {*** Syntax Error: (line 1) invalid character at ^}b^/*** Where}
 
-	;--test-- "load } 5"
-	;	res: load/trap "{}}b"
-	;	--assert [""] = res/1
-	;	--assert "b" = res/2
-	;	--assert to logic! find/match form res/3 {*** Syntax Error: (line 1) invalid character at ^}b^/*** Where}
+	--test-- "load } 5"
+		res: load/trap "{}}b"
+		--assert [""] = res/1
+		--assert "}b" = res/2
+		--assert to logic! find/match form res/3 {*** Syntax Error: (line 1) invalid character at ^}b^/*** Where}
 
 	--test-- "load } 6"
 		s: "{}}b"

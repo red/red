@@ -489,7 +489,6 @@ lexer: context [
 		
 		closing: lex/closing
 		lex/closing: 0
-		lex/tail: lex/buffer							;-- clear accumulated values
 
 		if ANY_PATH?(closing) [type: ERR_BAD_CHAR]		;-- forces a better error report
 
@@ -2544,6 +2543,7 @@ lexer: context [
 			s	  	 [series!]
 			prev	 [state!]
 			lex	  	 [state! value]
+			err?	 [logic!]
 			clean-up [subroutine!]
 	][
 		assert any [fun = null ser <> null]				;-- ser needs to be set if fun is set
@@ -2597,10 +2597,10 @@ lexer: context [
 		assert system/thrown = 0
 		
 		catch RED_THROWN_ERROR [scan-tokens lex one? not scan?]
-		if system/thrown > LEX_ERR [clean-up re-throw]
+		err?: system/thrown > LEX_ERR
 		
 		slots: (as-integer lex/tail - lex/buffer) >> 4
-		if slots > 0 [
+		if all [slots > 0 not err?][
 			p: as red-triple! either lex/buffer < lex/head [lex/head - 1][lex/buffer]
 			either all [not scan? lex/entry = S_PATH lex/scanned <> TYPE_ERROR][
 				lex/scanned: GET_BLOCK_TYPE(p)			;-- any-path prescanning case
@@ -2630,6 +2630,10 @@ lexer: context [
 			]
 		]
 		clean-up
+		if err? [
+			lex/tail: lex/buffer						;-- clear accumulated values
+			re-throw
+		]
 		lex/scanned
 	]
 
