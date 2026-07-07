@@ -142,7 +142,7 @@ linker: context [
 				pointer/value: case [
 					spec/1 = 'global [data-ptr + spec/2]	;-- data to data references
 					spec/1 = 'constant [rodata-ptr + spec/2]
-					'else [either job/PIC? [spec/2 - 1][code-ptr + spec/2 - 1]] ;-- data to code references
+					'else [code-ptr + spec/2 - 1]			;-- data to code references (base-relative addend; rebased via reloc under PIC)
 				]
 				ptr: form-struct pointer
 				foreach ref spec/4 [					;-- negative refs live in the read-only buffer

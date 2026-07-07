@@ -1067,8 +1067,7 @@ context [
 			syms: skip syms 2
 			if all [
 				not tail? syms
-				syms/1 = <data>
-				block? syms/2/4
+				block? syms/2/4						;-- any symbol: <data> payloads + native fn-ptr targets
 			][
 				foreach ref syms/2/4 [
 					if negative? ref [append list (negate ref) - 1]	;-- 0-based rodata offset
