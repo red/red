@@ -137,6 +137,39 @@ function Test-CodexUsageError {
     return $Output -match "(?m)^error: " -and $Output -match "(?m)^Usage: codex "
 }
 
+function Invoke-CodexReview {
+    param(
+        [string[]]$Arguments,
+        [string]$Prompt
+    )
+
+    $output = $Prompt | & codex @Arguments 2>&1
+    $exitCode = $LASTEXITCODE
+    $text = ($output | Out-String).TrimEnd()
+
+    if ((Test-CodexUsageError $text) -and $Arguments -contains "--output-last-message") {
+        Write-Info "Codex rejected --output-last-message; retrying with -o."
+        $retryArguments = @()
+        for ($index = 0; $index -lt $Arguments.Count; $index += 1) {
+            if ($Arguments[$index] -eq "--output-last-message") {
+                $retryArguments += "-o"
+            }
+            else {
+                $retryArguments += $Arguments[$index]
+            }
+        }
+
+        $output = $Prompt | & codex @retryArguments 2>&1
+        $exitCode = $LASTEXITCODE
+        $text = ($output | Out-String).TrimEnd()
+    }
+
+    return [pscustomobject]@{
+        ExitCode = $exitCode
+        Text = $text
+    }
+}
+
 function Test-ReviewHasIssues {
     param([string]$ReviewText)
 
@@ -239,6 +272,11 @@ $singleCommitMode = [string]::IsNullOrWhiteSpace($baseSha)
 try {
     $reviewArgs = @("exec", "review", "--output-last-message", $lastMessageOutputPath)
     $rangeLabel = $null
+    $reviewPrompt = @"
+Review the selected diff for correctness, security, and regression risk.
+
+Do not run nested AI or Codex commands during the review. In particular, do not run codex, codex exec, codex review, or commands that invoke another model/API client. Use ordinary read-only repository inspection commands such as git diff, git show, rg, and Get-Content when needed.
+"@
 
     if ($singleCommitMode) {
         Write-Info "No base commit found; reviewing HEAD commit only."
@@ -269,9 +307,10 @@ try {
     }
 
     Write-Info "Running Codex review for $rangeLabel."
-    $reviewLines = & codex @reviewArgs 2>&1
-    $codexExitCode = $LASTEXITCODE
-    $rawReviewText = ($reviewLines | Out-String).TrimEnd()
+    $reviewArgs += "-"
+    $reviewResult = Invoke-CodexReview -Arguments $reviewArgs -Prompt $reviewPrompt
+    $codexExitCode = $reviewResult.ExitCode
+    $rawReviewText = $reviewResult.Text
 
     if ([string]::IsNullOrWhiteSpace($rawReviewText)) {
         $rawReviewText = "Codex produced no transcript output."
