@@ -153,7 +153,10 @@ function Test-ReviewHasIssues {
         "(?im)^\s*(no findings|no issues found|no issues detected|no actionable issues|no actionable findings|nothing to report|looks good to me|lgtm)\.?\s*$",
         "(?im)^\s*findings\s*:\s*(none|no(ne)? issues)\.?\s*$",
         "(?im)^\s*there are no (findings|issues|actionable issues|actionable findings)\.?\s*$",
-        "(?im)^\s*i found no (findings|issues|actionable issues|actionable findings)\.?\s*$"
+        "(?im)^\s*i found no (findings|issues|actionable issues|actionable findings)\.?\s*$",
+        "(?im)\b(no|not any|without)\s+(evident\s+|obvious\s+|functional\s+|actionable\s+)?(regressions?|issues?|findings?|bugs?)\b",
+        "(?im)\bdoes not introduce any (evident\s+|obvious\s+|functional\s+)?(regressions?|issues?|bugs?)\b",
+        "(?im)\b(no downstream references|matches .+ artifact name)\b"
     )
 
     foreach ($pattern in $cleanPatterns) {
@@ -164,9 +167,11 @@ function Test-ReviewHasIssues {
 
     $issuePatterns = @(
         "(?im)^\s*-\s*\[(P[0-9]|S[0-9]|critical|high|medium|low|bug|security|performance|correctness)\]",
+        "(?im)^\s*\[(P[0-9]|S[0-9]|critical|high|medium|low|bug|security|performance|correctness)\]",
         "(?im)^\s*(critical|high|medium|low|warning|error|bug|security|correctness|performance)\s*:",
         "(?im)^\s*(finding|issue)\s+\d+\s*:",
-        "(?im)^\s*#+\s*(findings|issues)\b"
+        "(?im)^\s*#+\s*(findings|issues)\b",
+        "(?im)\b(can|could|may|will)\s+(produce|cause|lead to|result in)\s+.+\b(crash|failure|malformed|invalid|wrong|missing|regression|bug)\b"
     )
 
     foreach ($pattern in $issuePatterns) {
@@ -175,7 +180,7 @@ function Test-ReviewHasIssues {
         }
     }
 
-    return $true
+    return $false
 }
 
 function Limit-ReviewLength {

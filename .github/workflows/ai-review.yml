@@ -72,7 +72,7 @@ jobs:
           Run: $runUrl
 
           Reply to this message with:
-          @red_review_bot fix it
+          @Red_Code_Review_bot fix it
           "@
 
           .\.github\scripts\send-telegram-review.ps1 `

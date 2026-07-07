@@ -5,7 +5,7 @@ This Cloudflare Worker receives Telegram bot webhooks for AI review fix commands
 The normal flow is:
 
 1. `.github/workflows/ai-review.yml` sends an AI review report to Telegram.
-2. A reviewer replies to that report with `@red_review_bot fix it`.
+2. A reviewer replies to that report with `@Red_Code_Review_bot fix it`.
 3. Telegram sends the update to this Worker.
 4. The Worker validates the webhook secret, chat ID, bot command, and GitHub Actions run URL.
 5. The Worker sends a `repository_dispatch` event to GitHub.
@@ -22,7 +22,7 @@ Configure these as Cloudflare Worker secrets:
 
 Configure these Worker vars in `wrangler.toml`:
 
-- `TELEGRAM_BOT_USERNAME`: bot username without `@`; default is `red_review_bot`.
+- `TELEGRAM_BOT_USERNAME`: bot username without `@`; default is `Red_Code_Review_bot`.
 - `GITHUB_REPOSITORY`: repository in `owner/name` form; this repo uses `red/red`.
 
 Also configure these in the GitHub repository:
@@ -113,7 +113,7 @@ Store that token as the Cloudflare Worker secret `GITHUB_TOKEN`. Do not store it
 2. In Telegram, reply to the exact report to fix with:
 
    ```text
-   @red_review_bot fix it
+   @Red_Code_Review_bot fix it
    ```
 
 3. The Worker should reply that it accepted the command.
