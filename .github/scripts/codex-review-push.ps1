@@ -138,12 +138,9 @@ function Test-CodexUsageError {
 }
 
 function Invoke-CodexReview {
-    param(
-        [string[]]$Arguments,
-        [string]$Prompt
-    )
+    param([string[]]$Arguments)
 
-    $output = $Prompt | & codex @Arguments 2>&1
+    $output = & codex @Arguments 2>&1
     $exitCode = $LASTEXITCODE
     $text = ($output | Out-String).TrimEnd()
 
@@ -159,7 +156,7 @@ function Invoke-CodexReview {
             }
         }
 
-        $output = $Prompt | & codex @retryArguments 2>&1
+        $output = & codex @retryArguments 2>&1
         $exitCode = $LASTEXITCODE
         $text = ($output | Out-String).TrimEnd()
     }
@@ -167,6 +164,67 @@ function Invoke-CodexReview {
     return [pscustomobject]@{
         ExitCode = $exitCode
         Text = $text
+    }
+}
+
+function Add-ReviewAgentInstructions {
+    param([string]$Path)
+
+    $isTracked = $false
+    $gitPath = Split-Path -Leaf $Path
+    & git ls-files --error-unmatch $gitPath 2>$null | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+        $isTracked = $true
+    }
+
+    if ($isTracked) {
+        Write-Info "AGENTS.md is tracked; not modifying it for temporary review guidance."
+        return [pscustomobject]@{
+            Path = $Path
+            Changed = $false
+            Existed = $true
+            Original = $null
+        }
+    }
+
+    $existed = Test-Path $Path
+    $original = if ($existed) { Get-Content -Path $Path -Raw } else { $null }
+    $guidance = @"
+
+# Automated AI Review Guidance
+
+- Do not run nested AI or Codex commands during automated review.
+- In particular, do not run `codex`, `codex exec`, `codex review`, or commands that invoke another model/API client.
+- Use ordinary read-only repository inspection commands such as `git diff`, `git show`, `rg`, and `Get-Content` when needed.
+"@
+
+    if ($existed) {
+        Add-Content -Path $Path -Value $guidance -Encoding utf8
+    }
+    else {
+        Set-Content -Path $Path -Value $guidance.TrimStart() -Encoding utf8
+    }
+
+    return [pscustomobject]@{
+        Path = $Path
+        Changed = $true
+        Existed = $existed
+        Original = $original
+    }
+}
+
+function Restore-ReviewAgentInstructions {
+    param([AllowNull()]$State)
+
+    if ($null -eq $State -or -not $State.Changed) {
+        return
+    }
+
+    if ($State.Existed) {
+        Set-Content -Path $State.Path -Value $State.Original -Encoding utf8
+    }
+    elseif (Test-Path $State.Path) {
+        Remove-Item -LiteralPath $State.Path -Force
     }
 }
 
@@ -268,15 +326,11 @@ $shortHead = $HeadSha.Substring(0, [Math]::Min(12, $HeadSha.Length))
 $baseSha = Resolve-BaseSha -Before $BeforeSha -DefaultBranchName $DefaultBranch
 $baseBranch = $null
 $singleCommitMode = [string]::IsNullOrWhiteSpace($baseSha)
+$reviewInstructionState = $null
 
 try {
     $reviewArgs = @("exec", "review", "--output-last-message", $lastMessageOutputPath)
     $rangeLabel = $null
-    $reviewPrompt = @"
-Review the selected diff for correctness, security, and regression risk.
-
-Do not run nested AI or Codex commands during the review. In particular, do not run codex, codex exec, codex review, or commands that invoke another model/API client. Use ordinary read-only repository inspection commands such as git diff, git show, rg, and Get-Content when needed.
-"@
 
     if ($singleCommitMode) {
         Write-Info "No base commit found; reviewing HEAD commit only."
@@ -307,8 +361,8 @@ Do not run nested AI or Codex commands during the review. In particular, do not 
     }
 
     Write-Info "Running Codex review for $rangeLabel."
-    $reviewArgs += "-"
-    $reviewResult = Invoke-CodexReview -Arguments $reviewArgs -Prompt $reviewPrompt
+    $reviewInstructionState = Add-ReviewAgentInstructions -Path (Join-Path (Get-Location).Path "AGENTS.md")
+    $reviewResult = Invoke-CodexReview -Arguments $reviewArgs
     $codexExitCode = $reviewResult.ExitCode
     $rawReviewText = $reviewResult.Text
 
@@ -366,6 +420,8 @@ $reviewText
     Write-Info "Review written to $reviewOutputPath."
 }
 finally {
+    Restore-ReviewAgentInstructions -State $reviewInstructionState
+
     if (-not [string]::IsNullOrWhiteSpace($baseBranch)) {
         & git branch --delete --force $baseBranch 2>$null | Out-Null
     }
