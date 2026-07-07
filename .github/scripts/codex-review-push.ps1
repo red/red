@@ -149,22 +149,6 @@ function Test-ReviewHasIssues {
         return $false
     }
 
-    $cleanPatterns = @(
-        "(?im)^\s*(no findings|no issues found|no issues detected|no actionable issues|no actionable findings|nothing to report|looks good to me|lgtm)\.?\s*$",
-        "(?im)^\s*findings\s*:\s*(none|no(ne)? issues)\.?\s*$",
-        "(?im)^\s*there are no (findings|issues|actionable issues|actionable findings)\.?\s*$",
-        "(?im)^\s*i found no (findings|issues|actionable issues|actionable findings)\.?\s*$",
-        "(?im)\b(no|not any|without)\s+(evident\s+|obvious\s+|functional\s+|actionable\s+)?(regressions?|issues?|findings?|bugs?)\b",
-        "(?im)\bdoes not introduce any (evident\s+|obvious\s+|functional\s+)?(regressions?|issues?|bugs?)\b",
-        "(?im)\b(no downstream references|matches .+ artifact name)\b"
-    )
-
-    foreach ($pattern in $cleanPatterns) {
-        if ($normalized -match $pattern) {
-            return $false
-        }
-    }
-
     $issuePatterns = @(
         "(?im)^\s*-\s*\[(P[0-9]|S[0-9]|critical|high|medium|low|bug|security|performance|correctness)\]",
         "(?im)^\s*\[(P[0-9]|S[0-9]|critical|high|medium|low|bug|security|performance|correctness)\]",
@@ -180,7 +164,30 @@ function Test-ReviewHasIssues {
         }
     }
 
-    return $false
+    $cleanPatterns = @(
+        "(?is)^\s*(no findings|no issues found|no issues detected|no actionable issues|no actionable findings|nothing to report|looks good to me|lgtm)\.?\s*$",
+        "(?is)^\s*findings\s*:\s*(none|no(ne)? issues)\.?\s*$",
+        "(?is)^\s*there are no (findings|issues|actionable issues|actionable findings)\.?\s*$",
+        "(?is)^\s*i found no (findings|issues|actionable issues|actionable findings)\.?\s*$",
+        "(?is)^\s*(the patch|this patch|the change|this change|the changes|this update).*\b(no|not any|without)\s+((evident|obvious|functional|actionable)\s+)*(regressions?|issues?|findings?|bugs?)\b.*$",
+        "(?is)^\s*(the patch|this patch|the change|this change|the changes|this update).*\bdoes not introduce any ((evident|obvious|functional|actionable)\s+)*(regressions?|issues?|bugs?)\b.*$"
+    )
+
+    foreach ($pattern in $cleanPatterns) {
+        if ($normalized -match $pattern) {
+            return $false
+        }
+    }
+
+    if (
+        $normalized -match "(?i)\b(now\s+matches|matches)\b" -and
+        $normalized -match "(?i)\bno downstream references\b" -and
+        $normalized -match "(?i)\bdoes not introduce any ((evident|obvious|functional|actionable)\s+)*(regressions?|issues?|bugs?)\b"
+    ) {
+        return $false
+    }
+
+    return $true
 }
 
 function Limit-ReviewLength {
