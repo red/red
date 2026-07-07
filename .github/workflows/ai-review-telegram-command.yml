@@ -128,13 +128,13 @@ jobs:
           $artifacts = Invoke-RestMethod `
             -Uri "$env:GITHUB_API_URL/repos/$env:GITHUB_REPOSITORY/actions/runs/$runId/artifacts" `
             -Headers $headers
-          $artifact = @($artifacts.artifacts) | Where-Object { $_.name -eq "local-ai-review" } | Select-Object -First 1
+          $artifact = @($artifacts.artifacts) | Where-Object { $_.name -eq "ai-review" } | Select-Object -First 1
 
           if ($null -eq $artifact) {
-            throw "Unable to find local-ai-review artifact for run $runId."
+            throw "Unable to find ai-review artifact for run $runId."
           }
 
-          $zipPath = Join-Path "${{ runner.temp }}" "local-ai-review.zip"
+          $zipPath = Join-Path "${{ runner.temp }}" "ai-review.zip"
           Invoke-WebRequest `
             -Uri "$env:GITHUB_API_URL/repos/$env:GITHUB_REPOSITORY/actions/artifacts/$($artifact.id)/zip" `
             -Headers $headers `
@@ -183,7 +183,7 @@ jobs:
         if: always() && steps.command.outputs.has_command == 'true'
         uses: actions/upload-artifact@v7
         with:
-          name: local-ai-review-fix
+          name: ai-review-fix
           path: |
             ${{ runner.temp }}/codex-fix-last-message.md
             ${{ runner.temp }}/codex-fix-transcript.txt
