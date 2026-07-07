@@ -1059,17 +1059,11 @@ context [
 	;; arrays). Under PIC these need an R_*_RELATIVE relocation so the loader adds
 	;; the image base at load time (the addend written by resolve-symbol-refs is
 	;; the target's base-relative offset).
-	collect-rodata-reloc: func [job [object!] /local list syms][
+	collect-rodata-reloc: func [job [object!] /local list name spec ref][
 		list: make block! 100
-		syms: job/symbols
-
-		while [not tail? syms][
-			syms: skip syms 2
-			if all [
-				not tail? syms
-				block? syms/2/4						;-- any symbol: <data> payloads + native fn-ptr targets
-			][
-				foreach ref syms/2/4 [
+		foreach [name spec] job/symbols [			;-- every symbol: <data> payloads + native fn-ptr targets
+			if block? spec/4 [
+				foreach ref spec/4 [
 					if negative? ref [append list (negate ref) - 1]	;-- 0-based rodata offset
 				]
 			]
