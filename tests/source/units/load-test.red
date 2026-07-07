@@ -318,6 +318,44 @@ Red [
 ;
 ;===end-group===
 
+===start-group=== "load/trap"
+
+	--test-- "load-trap-1"
+		--assert [[1] #(none) #(none)] = load/trap "1"
+		--assert [[abc] #(none) #(none)] = load/trap "abc"
+		res: load/trap "1/b"
+		--assert [] = res/1
+		--assert "" = res/2
+		--assert error? res/3
+		--assert res/3/type = 'syntax
+		--assert res/3/id = 'invalid
+
+	--test-- "load-trap-2"							;-- on error, open any-block series are closed and returned
+		res: load/trap "()[1 )"						;-- [ still open when ) mismatches: recovered as [1]
+		--assert [() [1]] = res/1
+		--assert ")" = res/2
+		--assert error? res/3
+		--assert res/3/id = 'missing
+		res: load/trap "1 2 [3 )"					;-- completed values kept, partial block closed
+		--assert [1 2 [3]] = res/1
+		--assert error? res/3
+		res: load/trap "([1 )"						;-- nested partials all closed
+		--assert [([1])] = res/1
+		--assert error? res/3
+
+	--test-- "load-trap-3"							;-- partial map/point2D can't be finalized => dropped
+		res: load/trap "() #[a 1 )"					;-- completed () kept, partial map dropped
+		--assert [()] = res/1
+		--assert error? res/3
+		res: load/trap "[1 #[a )"					;-- block [1] kept, inner partial map dropped
+		--assert [[1]] = res/1
+		--assert error? res/3
+		res: load/trap "9 (1,2 ]"					;-- completed 9 kept, partial point2D dropped
+		--assert [9] = res/1
+		--assert error? res/3
+
+===end-group===
+
 ===start-group=== "load issue #3717"
 	--test-- "load ) 1"
 		--assert error? res: try [load ")"]

@@ -371,7 +371,6 @@ load: function [
 		out [block!] "Target block for results"
 	/as   "Specify the type of data; use NONE to load as code"
 		type [word! none!] "E.g. bmp, gif, jpeg, png, redbin, json, csv"
-	/local err
 ][
 	if as [
 		if word? type [
@@ -430,9 +429,10 @@ load: function [
 		part  [transcode/part source length]
 		into  [transcode/into source out]
 		trap  [
-			system/lexer/err-pos: none
-			err: try [transcode/into/trace source out :system/lexer/trapper]
-			reduce [out at source system/lexer/err-pos err]
+			err: system/lexer/err-pos: none
+			set 'err try [transcode/into/trace source out :system/lexer/trapper]
+			unless error? :err [err: none]
+			return reduce [out system/words/all [system/lexer/err-pos at source system/lexer/err-pos] err]
 		]
 		next  [
 			set position second set/any 'out transcode/next source
@@ -440,10 +440,8 @@ load: function [
 		]
 		'else [transcode source]
 	]
-	either trap [:out][
-		unless :all [if 1 = length? :out [set/any 'out out/1]]
-		:out
-	]
+	unless :all [if 1 = length? :out [set/any 'out out/1]]
+	:out
 ]
 
 save: function [

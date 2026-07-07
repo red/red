@@ -2539,10 +2539,11 @@ lexer: context [
 			blk	  	 [red-block!]
 			p	  	 [red-triple!]
 			base	 [red-value!]
-			slots 	 [integer!]
+			hd		 [red-value!]
 			s	  	 [series!]
 			prev	 [state!]
 			lex	  	 [state! value]
+			slots n ty [integer!]
 			err?	 [logic!]
 			clean-up [subroutine!]
 	][
@@ -2620,6 +2621,22 @@ lexer: context [
 					]
 				]
 			]
+		]
+		if err? [									;-- trapped error with any-blocks still opened, record
+			while [lex/buffer < lex/head][			;-- was loaded by closing each partial series (innermost first)
+				p: as red-triple! lex/head - 1		;-- and keeping it.
+				ty: GET_BLOCK_TYPE(p)
+				hd: lex/head
+				lex/head: as cell! p - p/x
+				either any [ty = TYPE_MAP ty = TYPE_POINT2D][
+					lex/tail: as cell! p			;-- drop partial map/point2D (triple + partial contents)
+				][
+					n: (as-integer lex/tail - hd) >> 4
+					store-any-block as cell! p hd n ty null ;-- close partial block/paren/path, keep it
+					lex/tail: hd
+				]
+			]
+			slots: (as-integer lex/tail - lex/buffer) >> 4
 		]
 		if load? [
 			either all [one? not wrap? slots > 0][
