@@ -178,13 +178,7 @@ function Add-ReviewAgentInstructions {
     }
 
     if ($isTracked) {
-        Write-Info "AGENTS.md is tracked; not modifying it for temporary review guidance."
-        return [pscustomobject]@{
-            Path = $Path
-            Changed = $false
-            Existed = $true
-            Original = $null
-        }
+        Write-Info "AGENTS.md is tracked; appending temporary review guidance and restoring it after review."
     }
 
     $existed = Test-Path $Path
