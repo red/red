@@ -58,6 +58,11 @@ jobs:
         ./run-all.sh
       working-directory: ./red
 
+    - name: Setup SSH Debug Session
+      if: failure() # Only runs if the previous step fails
+      uses: mxschmitt/action-tmate@v3
+      timeout-minutes: 120
+
     # upload log file if any test failed
     - uses: actions/upload-artifact@v7
       if: failure()
