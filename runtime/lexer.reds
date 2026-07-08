@@ -492,6 +492,8 @@ lexer: context [
 
 		if ANY_PATH?(closing) [type: ERR_BAD_CHAR]		;-- forces a better error report
 
+		recover-open-frames lex							;-- keep any partially-loaded series before raising the error
+
 		switch type [
 			ERR_BAD_CHAR 	 [fire [TO_ERROR(syntax bad-char) line pos]]
 			ERR_MALCONSTRUCT [fire [TO_ERROR(syntax malconstruct) line pos]]
@@ -746,6 +748,25 @@ lexer: context [
 			lex/entry: S_START
 		]
 		stype
+	]
+	
+	recover-open-frames: func [							;-- called from throw-error, before the error is raised, while
+		lex [state!]									;-- the lexer state is still consistent: close each still-open
+		/local											;-- block/paren series (innermost first) so LOAD/TRAP returns
+			p  [red-triple!]							;-- the values loaded up to the error, partial series included;
+			ty [integer!]								;-- a partial map/point2D/path can't be finalized, so drop those
+	][
+		p: as red-triple! lex/head - 1
+		while [all [lex/buffer < lex/head TYPE_OF(p) = TYPE_TRIPLE]][
+			ty: GET_BLOCK_TYPE(p)
+			either any [ty = TYPE_BLOCK ty = TYPE_PAREN][
+				close-block lex lex/in-pos lex/in-pos -1 yes ;-- quiet close using the frame's saved type
+			][
+				lex/tail: as cell! p					;-- drop the partial map/point2D/path + its contents
+				lex/head: as cell! p - p/x
+			]
+			p: as red-triple! lex/head - 1
+		]
 	]
 	
 	decode-2: func [s e [byte-ptr!] ser [series!] load? [logic!]
@@ -2539,11 +2560,10 @@ lexer: context [
 			blk	  	 [red-block!]
 			p	  	 [red-triple!]
 			base	 [red-value!]
-			hd		 [red-value!]
+			slots 	 [integer!]
 			s	  	 [series!]
 			prev	 [state!]
 			lex	  	 [state! value]
-			slots n ty [integer!]
 			err?	 [logic!]
 			clean-up [subroutine!]
 	][
@@ -2621,22 +2641,6 @@ lexer: context [
 					]
 				]
 			]
-		]
-		if err? [									;-- trapped error with any-blocks still opened, record
-			while [lex/buffer < lex/head][			;-- was loaded by closing each partial series (innermost first)
-				p: as red-triple! lex/head - 1		;-- and keeping it.
-				ty: GET_BLOCK_TYPE(p)
-				hd: lex/head
-				lex/head: as cell! p - p/x
-				either any [ty = TYPE_MAP ty = TYPE_POINT2D][
-					lex/tail: as cell! p			;-- drop partial map/point2D (triple + partial contents)
-				][
-					n: (as-integer lex/tail - hd) >> 4
-					store-any-block as cell! p hd n ty null ;-- close partial block/paren/path, keep it
-					lex/tail: hd
-				]
-			]
-			slots: (as-integer lex/tail - lex/buffer) >> 4
 		]
 		if load? [
 			either all [one? not wrap? slots > 0][
