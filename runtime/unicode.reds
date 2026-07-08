@@ -382,9 +382,9 @@ unicode: context [
 		switch unit [
 			Latin1 [
 				while [p < tail][
-					cp-to-utf8-alt as-integer p/value buf part
-					buf: buf + 1
-					part: part - 1
+					len: cp-to-utf8-alt as-integer p/value buf part	;-- codepoints 80h-FFh encode as 2 bytes
+					buf: buf + len
+					part: part - len
 					p: p + 1
 				]
 			]

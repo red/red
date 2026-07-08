@@ -886,6 +886,15 @@ Red [
 	append append append append append append append append append b 4 #"A" #{1122334455} "A" "abc" red #"é" "é" "AéB"
 	--assert b = #{0102030441112233445541616263FF0000C3A9C3A941C3A942}
 
+  --test-- "append-450.2"							;-- Latin1 string (from `to string!`) re-encoded to UTF-8 by binary! append
+	;-- a Latin1-width string holding two+ consecutive codepoints in 80h-FFh (each 2 UTF-8 bytes)
+	--assert #{C3A9C3BC}             = append copy #{} to string! #{C3A9C3BC}				;-- "éü"
+	--assert #{43616CC3A7C3A36F}     = append copy #{} to string! #{43616CC3A7C3A36F}		;-- "Calção"
+	--assert #{C3A9C3A9C3A9}         = append copy #{} to string! #{C3A9C3A9C3A9}			;-- "ééé"
+	--assert #{C380C3A9C3AEC3B6C3BC} = append copy #{} to string! #{C380C3A9C3AEC3B6C3BC}	;-- "Àéîöü"
+	--assert #{C3BFC3BF}             = append copy #{} to string! #{C3BFC3BF}				;-- "ÿÿ"
+	--assert #{41C3A9C3BC42}         = append copy #{} to string! #{41C3A9C3BC42}			;-- "AéüB"
+
   --test-- "append-451"
   	b: #{010203}
   	append b [4 5]

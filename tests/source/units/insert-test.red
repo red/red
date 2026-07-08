@@ -949,6 +949,11 @@ Red [
 		--assert 3 = index? b
 		--assert (head b) = #{010205060304}
 
+	  --test-- "insert-453.1"							;-- Latin1 string (from `to string!`) re-encoded to UTF-8 by binary! insert
+		--assert #{C3A9C3BC}         = head insert copy #{} to string! #{C3A9C3BC}			;-- "éü"
+		--assert #{C3A9C3BC4242}     = head insert #{4242}  to string! #{C3A9C3BC}			;-- "éü" ahead of existing bytes
+		--assert #{43616CC3A7C3A36F} = head insert copy #{} to string! #{43616CC3A7C3A36F}	;-- "Calção"
+
 	  --test-- "insert-454"
 		b: next next #{01020304}
 		--assert #{0304} = insert/part b [5 6 7] 0
