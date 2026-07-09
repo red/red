@@ -60,8 +60,31 @@ jobs:
 
     - name: Setup SSH Debug Session
       if: failure() # Only runs if the previous step fails
-      uses: mxschmitt/action-tmate@v3
-      timeout-minutes: 120
+      run: |
+        # 1. Start the native Linux OpenSSH server
+        sudo apt-get update && sudo apt-get install -y openssh-server
+        sudo service ssh start
+
+        # 2. Inject your public key so Codex can authenticate cleanly 
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PUBLIC_KEY }}" >> ~/.ssh/authorized_keys
+        chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys
+
+        # 3. Create a raw, anonymous TCP reverse tunnel via Pinggy
+        # This maps the runner's port 22 to a public address
+        ssh -p 443 -R 0:localhost:22 -o StrictHostKeyChecking=no -o ServerAliveInterval=30 a.pinggy.io > pinggy.log 2>&1 &
+
+        # 4. Wait for the tunnel to establish and print the connection target
+        sleep 30
+        echo "=== CODEX CONNECTION TARGET ==="
+        grep -oE 'tcp://[a-zA-Z0-9.-]+:[0-9]+' pinggy.log || cat pinggy.log
+        echo "================================="
+
+        # 5. Keep runner alive non-interactively while Codex debugs
+        # Codex can run 'touch /tmp/keepalive' over SSH to terminate the job
+        while [ ! -f /tmp/keepalive ]; do
+          sleep 10
+        done
 
     # upload log file if any test failed
     - uses: actions/upload-artifact@v7
