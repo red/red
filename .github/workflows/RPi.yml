@@ -72,7 +72,7 @@ jobs:
 
         # 3. Create a raw, anonymous TCP reverse tunnel via Pinggy
         # This maps the runner's port 22 to a public address
-        ssh -p 443 -R 0:localhost:22 -o StrictHostKeyChecking=no -o ServerAliveInterval=30 a.pinggy.io > pinggy.log 2>&1 &
+        ssh -p 443 -R 0:localhost:22 -o StrictHostKeyChecking=no -o ServerAliveInterval=30 tcp@free.pinggy.io > pinggy.log 2>&1 &
 
         # 4. Wait for the tunnel to establish and print the connection target
         sleep 30
