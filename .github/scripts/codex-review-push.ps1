@@ -190,6 +190,8 @@ function Add-ReviewAgentInstructions {
 - Do not run nested AI or Codex commands during automated review.
 - In particular, do not run `codex`, `codex exec`, `codex review`, or commands that invoke another model/API client.
 - Use ordinary read-only repository inspection commands such as `git diff`, `git show`, `rg`, and `Get-Content` when needed.
+- End your final response with exactly one machine-readable verdict line: `AI_REVIEW_HAS_ISSUES: true` or `AI_REVIEW_HAS_ISSUES: false`.
+- Use `AI_REVIEW_HAS_ISSUES: true` only when the review contains concrete, actionable findings with file/line evidence. Use `false` for clean reviews, uncertainty, summaries, and non-actionable observations.
 "@
 
     if ($existed) {
@@ -234,13 +236,16 @@ function Test-ReviewHasIssues {
         return $false
     }
 
+    $verdictMatch = [regex]::Match($normalized, "(?im)^\s*AI_REVIEW_HAS_ISSUES\s*:\s*(true|false)\s*$")
+    if ($verdictMatch.Success) {
+        return $verdictMatch.Groups[1].Value -ieq "true"
+    }
+
     $issuePatterns = @(
         "(?im)^\s*-\s*\[(P[0-9]|S[0-9]|critical|high|medium|low|bug|security|performance|correctness)\]",
         "(?im)^\s*\[(P[0-9]|S[0-9]|critical|high|medium|low|bug|security|performance|correctness)\]",
         "(?im)^\s*(critical|high|medium|low|warning|error|bug|security|correctness|performance)\s*:",
-        "(?im)^\s*(finding|issue)\s+\d+\s*:",
-        "(?im)^\s*#+\s*(findings|issues)\b",
-        "(?im)\b(can|could|may|will)\s+(produce|cause|lead to|result in)\s+.+\b(crash|failure|malformed|invalid|wrong|missing|regression|bug)\b"
+        "(?im)^\s*(finding|issue)\s+\d+\s*:"
     )
 
     foreach ($pattern in $issuePatterns) {
@@ -254,6 +259,8 @@ function Test-ReviewHasIssues {
         "(?is)^\s*findings\s*:\s*(none|no(ne)? issues)\.?\s*$",
         "(?is)^\s*there are no (findings|issues|actionable issues|actionable findings)\.?\s*$",
         "(?is)^\s*i found no (findings|issues|actionable issues|actionable findings)\.?\s*$",
+        "(?is)^.*\bi did not identify (a|an|any)?\s*(discrete|concrete|actionable|introduced|new|clear)?\s*(bug|issue|regression|finding|findings|bugs|issues|regressions)\b.*$",
+        "(?is)^.*\bi did not find (a|an|any)?\s*(discrete|concrete|actionable|introduced|new|clear)?\s*(bug|issue|regression|finding|findings|bugs|issues|regressions)\b.*$",
         "(?is)^\s*(the patch|this patch|the change|this change|the changes|this update).*\b(no|not any|without)\s+((evident|obvious|functional|actionable)\s+)*(regressions?|issues?|findings?|bugs?)\b.*$",
         "(?is)^\s*(the patch|this patch|the change|this change|the changes|this update|the updated iteration).*\bdoes not introduce (any|an|a) ((evident|obvious|functional|actionable|correctness)\s+)*(regressions?|issues?|bugs?)\b.*$"
     )
@@ -272,7 +279,7 @@ function Test-ReviewHasIssues {
         return $false
     }
 
-    return $true
+    return $false
 }
 
 function Limit-ReviewLength {
