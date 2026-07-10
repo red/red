@@ -3001,6 +3001,79 @@ Red [
 		--assert true
 
 ===end-group===
-    
+
+===start-group=== "iterated char! rules across string encodings"
+
+	pu4-mk2: func [s [string!] return: [string!]][		;-- promote to UCS-2
+		append s #"^(2014)"
+		take/last s
+		s
+	]
+	pu4-mk4: func [s [string!] return: [string!]][		;-- promote to UCS-4
+		append s #"^(1F680)"
+		take/last s
+		s
+	]
+	pu4-s1: "aaab"
+	pu4-s2: pu4-mk2 copy "aaab"
+	pu4-s4: pu4-mk4 copy "aaab"
+	pu4-bs: charset "a"
+
+	--test-- "iter-char-ucs1"
+		--assert parse pu4-s1 [some #"a" #"b"]
+		--assert parse pu4-s1 [any #"a" #"b"]
+		--assert parse pu4-s1 [3 #"a" #"b"]
+		--assert parse pu4-s1 [1 3 #"a" #"b"]
+		--assert parse pu4-s1 [0 3 #"a" #"b"]
+		--assert parse pu4-s1 [2 #"a" 1 #"a" #"b"]
+		--assert not parse pu4-s1 [4 #"a" #"b"]
+		--assert not parse pu4-s1 [some #"b"]
+
+	--test-- "iter-char-ucs2"
+		--assert parse pu4-s2 [some #"a" #"b"]
+		--assert parse pu4-s2 [any #"a" #"b"]
+		--assert parse pu4-s2 [3 #"a" #"b"]
+		--assert parse pu4-s2 [1 3 #"a" #"b"]
+		--assert parse pu4-s2 [0 3 #"a" #"b"]
+		--assert parse pu4-s2 [2 #"a" 1 #"a" #"b"]
+		--assert not parse pu4-s2 [4 #"a" #"b"]
+		--assert not parse pu4-s2 [some #"b"]
+
+	--test-- "iter-char-ucs4"
+		--assert parse pu4-s4 [some #"a" #"b"]
+		--assert parse pu4-s4 [any #"a" #"b"]
+		--assert parse pu4-s4 [3 #"a" #"b"]
+		--assert parse pu4-s4 [1 3 #"a" #"b"]
+		--assert parse pu4-s4 [0 3 #"a" #"b"]
+		--assert parse pu4-s4 [2 #"a" 1 #"a" #"b"]
+		--assert parse pu4-s4 [some pu4-bs #"b"]
+		--assert not parse pu4-s4 [4 #"a" #"b"]
+		--assert not parse pu4-s4 [some #"b"]
+
+	--test-- "iter-char-ucs4-case"
+		pu4-up: pu4-mk4 copy "AAAb"
+		--assert parse pu4-up [some #"a" #"b"]
+		--assert not parse/case pu4-up [some #"a" #"b"]
+		--assert parse/case pu4-s4 [some #"a" #"b"]
+		--assert parse/case pu4-s4 [1 3 #"a" #"b"]
+
+	--test-- "iter-char-non-bmp"
+		pu4-r: "^(1F680)^(1F680)^(1F680)!"
+		--assert parse pu4-r [some #"^(1F680)" #"!"]
+		--assert parse pu4-r [3 #"^(1F680)" #"!"]
+		--assert parse/case pu4-r [some #"^(1F680)" #"!"]
+		--assert not parse pu4-r [some #"^(1F681)"]
+
+	--test-- "iter-char-ucs4-advance"
+		pu4-m: none
+		--assert parse pu4-s4 [some #"a" pu4-m: to end]
+		--assert 4 = index? pu4-m
+
+	--test-- "iter-char-ucs4-part"
+		--assert parse/part pu4-s4 [some #"a"] 3
+		--assert not parse/part pu4-s4 [3 #"a"] 2
+
+===end-group===
+
 ~~~end-file~~~
 
