@@ -52,12 +52,12 @@ object: context [
 		id: _context/find-word ctx word/symbol yes	
 		if id = -1 [return as red-value! none-value]
 		
-		values: as series! ctx/values/value
+		values: resolve-series ctx/values
 		values/offset + id
 	]
 	
 	get-word: func [
-		obj		[node!]
+		obj		[node-handle!]
 		index	[integer!]
 		return: [red-value!]
 	][
@@ -79,7 +79,7 @@ object: context [
 			s   [series!]
 	][
 		ctx: GET_CTX(obj)
-		s: as series! ctx/values/value
+		s: resolve-series ctx/values
 		s/offset
 	]
 	
@@ -155,18 +155,18 @@ object: context [
 		smudge: [word/header: word/header or flag-word-dirty]
 	
 		ctx:	 GET_CTX(obj)
-		s:		 as series! ctx/values/value				;-- object values
+		s:		 resolve-series ctx/values				;-- object values
 		values:  s/offset
 		tail:	 s/tail
 		type:	 TYPE_OF(value)
-		on-set?: obj/on-set <> null
+		on-set?: HANDLE?(obj/on-set)
 		
 		s:       _hashtable/get-ctx-words ctx				;-- object symbols
 		word:    as red-word! s/offset
 		tail2:   s/tail
 		
 		if on-set? [
-			s: as series! obj/on-set/value
+			s: resolve-series obj/on-set
 			p: as red-pair! s/offset
 			idx-s: p/x >> 16
 			p: p + 1
@@ -180,7 +180,7 @@ object: context [
 			][
 				obj2:    as red-object! value
 				ctx:     GET_CTX(obj2)
-				s:       as series! ctx/values/value 
+				s:       resolve-series ctx/values
 				end:     s/tail
 				values2: s/offset
 			]
@@ -266,13 +266,13 @@ object: context [
 	]
 
 	make-callback-node: func [
-		spec-s	[node!]
-		spec-d	[node!]
+		spec-s	[node-handle!]
+		spec-d	[node-handle!]
 		idx-s	[integer!]								;-- for on-change* event
 		loc-s	[integer!]
 		idx-d	[integer!]								;-- for on-deep-change* event
 		loc-d	[integer!]
-		return: [node!]
+		return: [node-handle!]
 		/local
 			node [node!]
 			p	 [red-pair!]
@@ -283,13 +283,13 @@ object: context [
 		p: as red-pair! s/offset
 		p/header: TYPE_PAIR
 		p/x: (idx-s << 16) or loc-s				;-- cache info for on-change* position and locals count
-		p/y: as-integer spec-s					;-- cache fun/spec node (change detection purpose)
+		p/y: spec-s									;-- cache fun/spec handle (change detection purpose)
 
 		p: as red-pair! s/offset + 1
 		p/header: TYPE_PAIR
 		p/x: (idx-d << 16) or loc-d				;-- cache info for on-deep-change* position and locals count
-		p/y: as-integer spec-d					;-- cache fun/spec node (change detection purpose)
-		node
+		p/y: spec-d									;-- cache fun/spec handle (change detection purpose)
+		node-handle-of node
 	]
 	
 	on-deep?: func [
@@ -299,8 +299,8 @@ object: context [
 			p	[red-pair!]
 			s	[series!]
 	][
-		if obj/on-set <> null [
-			s: as series! obj/on-set/value
+		if HANDLE?(obj/on-set) [
+			s: resolve-series obj/on-set
 			p: as red-pair! s/offset + 1
 			if p/x >> 16 <> -1 [return true]
 		]
@@ -309,7 +309,7 @@ object: context [
 	
 	on-set-defined?: func [
 		ctx		[red-context!]
-		return: [node!]
+		return: [node-handle!]
 		/local
 			head	[red-word!]
 			tail	[red-word!]
@@ -318,8 +318,8 @@ object: context [
 			s		[series!]
 			on-set	[integer!]
 			on-deep	[integer!]
-			spec-s	[node!]
-			spec-d	[node!]
+			spec-s	[node-handle!]
+			spec-d	[node-handle!]
 			idx-s	[integer!]
 			idx-d	[integer!]
 			loc-s	[integer!]
@@ -337,6 +337,8 @@ object: context [
 		idx-d:	 -1
 		loc-s:	 0
 		loc-d:	 0
+		spec-s:	 0
+		spec-d:	 0
 		
 		while [word < tail][
 			sym: symbol/resolve word/symbol
@@ -344,9 +346,9 @@ object: context [
 			if on-deep = sym [idx-d: (as-integer word - head) >> 4]
 			word: word + 1
 		]
-		if all [idx-s < 0 idx-d < 0][return null]		;-- callback is not found
+		if all [idx-s < 0 idx-d < 0][return 0]			;-- callback is not found
 		
-		s: as series! ctx/values/value
+		s: resolve-series ctx/values
 		if idx-s >= 0 [
 			fun: as red-function! s/offset + idx-s
 			type: TYPE_OF(fun)
@@ -354,7 +356,7 @@ object: context [
 				fire [TO_ERROR(script bad-field-set) words/_on-change* datatype/push type]
 			]
 			spec-s: fun/spec
-			loc-s: _function/count-locals spec-s 0 no
+			loc-s: _function/count-locals resolve-node spec-s 0 no
 		]
 		if idx-d >= 0 [
 			fun: as red-function! s/offset + idx-d
@@ -363,7 +365,7 @@ object: context [
 				fire [TO_ERROR(script bad-field-set) words/_on-deep-change* datatype/push type]
 			]
 			spec-d: fun/spec
-			loc-d: _function/count-locals spec-d 0 no
+			loc-d: _function/count-locals resolve-node spec-d 0 no
 		]
 		make-callback-node spec-s spec-d idx-s loc-s idx-d loc-d
 	]
@@ -380,13 +382,13 @@ object: context [
 	]
 	
 	loc-ctx-fire-on-set*: func [						;-- compiled code entry point
-		parent-ctx [node!]
+		parent-ctx [node-handle!]
 		field      [red-word!]
 		/local
 			s	[series!]
 			obj	[red-value!]
 	][
-		s: as series! parent-ctx/value
+		s: resolve-series parent-ctx
 		obj: as red-value! s/offset + 1
 		loc-fire-on-set* obj field
 	]
@@ -418,9 +420,9 @@ object: context [
 		#if debug? = yes [if verbose > 0 [print-line "object/fire-on-set"]]
 		
 		assert TYPE_OF(obj) = TYPE_OBJECT
-		assert obj/on-set <> null
+		assert HANDLE?(obj/on-set)
 		
-		s: as series! obj/on-set/value
+		s: resolve-series obj/on-set
 		p: as red-pair! s/offset
 		assert TYPE_OF(p) = TYPE_PAIR
 		index: p/x >> 16
@@ -428,13 +430,13 @@ object: context [
 		if index = -1 [exit]							;-- abort if no on-change* handler
 		
 		ctx: GET_CTX(obj) 
-		s: as series! ctx/values/value
+		s: resolve-series ctx/values
 		fun: as red-function! s/offset + index
 		if TYPE_OF(fun) <> TYPE_FUNCTION [fire [TO_ERROR(script invalid-obj-evt) fun]]
-		if fun/spec <> as node! p/y [					;-- check cache validity
-			count: _function/count-locals fun/spec 0 no ;-- refresh cached locals count
+		if fun/spec <> p/y [							;-- check cache validity
+			count: _function/count-locals resolve-node fun/spec 0 no ;-- refresh cached locals count
 			p/x: index << 16 or count
-			p/y: as-integer fun/spec					;-- refresh cached spec node
+			p/y: fun/spec									;-- refresh cached spec handle
 		]
 		
 		if word/ctx <> obj/ctx [						;-- bind word when invoked from compiler (~exec/<word>)
@@ -470,9 +472,9 @@ object: context [
 		#if debug? = yes [if verbose > 0 [print-line "object/fire-on-deep"]]
 
 		assert TYPE_OF(owner) = TYPE_OBJECT
-		if null? owner/on-set [fire [TO_ERROR(script invalid-obj-evt) owner]]
+		if NULL_HANDLE?(owner/on-set) [fire [TO_ERROR(script invalid-obj-evt) owner]]
 		
-		s: as series! owner/on-set/value
+		s: resolve-series owner/on-set
 		p: as red-pair! s/offset + 1
 		assert TYPE_OF(p) = TYPE_PAIR
 		index: p/x >> 16
@@ -481,13 +483,13 @@ object: context [
 		if null? new [new: as red-value! none-value]
 
 		ctx: GET_CTX(owner) 
-		s: as series! ctx/values/value
+		s: resolve-series ctx/values
 		fun: as red-function! s/offset + index
 		if TYPE_OF(fun) = TYPE_FUNCTION [
-			if fun/spec <> as node! p/y [					;-- check cache validity
-				count: _function/count-locals fun/spec 0 no ;-- refresh cached locals count
+			if fun/spec <> p/y [							;-- check cache validity
+				count: _function/count-locals resolve-node fun/spec 0 no ;-- refresh cached locals count
 				p/x: index << 16 or count
-				p/y: as-integer fun/spec					;-- refresh cached spec node
+				p/y: fun/spec								;-- refresh cached spec handle
 			]
 			
 			stack/mark-func words/_on-deep-change* fun/ctx
@@ -519,7 +521,7 @@ object: context [
 	]
 	
 	unchanged2?: func [
-		node	[node!]
+		node	[node-handle!]
 		index	[integer!]
 		id		[integer!]
 		return: [logic!]
@@ -529,7 +531,7 @@ object: context [
 			values [series!]
 	][
 		ctx: TO_CTX(node)
-		values: as series! ctx/values/value
+		values: resolve-series ctx/values
 		obj: as red-object! values/offset + index
 		all [
 			TYPE_OF(obj) = TYPE_OBJECT
@@ -564,7 +566,7 @@ object: context [
 	][
 		ctx: 	GET_CTX(obj)
 		syms:   _hashtable/get-ctx-words ctx
-		values: as series! ctx/values/value
+		values: resolve-series ctx/values
 		
 		sym:	syms/offset
 		s-tail: syms/tail
@@ -621,8 +623,8 @@ object: context [
 	]
 	
 	transfer: func [
-		src    [node!]									;-- src context
-		dst	   [node!]									;-- dst context (extension of src)
+		src    [node-handle!]							;-- src context
+		dst	   [node-handle!]							;-- dst context (extension of src)
 		/local
 			from   [red-context!]
 			to	   [red-context!]
@@ -642,10 +644,10 @@ object: context [
 		symbol: s/offset
 		tail: s/tail
 		
-		s: as series! from/values/value
+		s: resolve-series from/values
 		value: s/offset
 
-		s: as series! to/values/value
+		s: resolve-series to/values
 		target: s/offset
 
 		while [symbol < tail][
@@ -669,8 +671,8 @@ object: context [
 	]
 	
 	clone-series: func [
-		src    [node!]									;-- src context
-		dst	   [node!]									;-- dst context (extension of src)
+		src    [node-handle!]							;-- src context
+		dst	   [node-handle!]							;-- dst context (extension of src)
 		copy?  [logic!]									;-- TRUE for compiler, FALSE otherwise
 		/local
 			from   [red-context!]
@@ -684,11 +686,11 @@ object: context [
 		from: TO_CTX(src)
 		to:	  TO_CTX(dst)
 		
-		s: as series! from/values/value
+		s: resolve-series from/values
 		value: s/offset
 		tail:  s/tail
 		
-		s: as series! to/values/value
+		s: resolve-series to/values
 		target: s/offset
 		
 		while [value < tail][
@@ -708,44 +710,52 @@ object: context [
 	]
 	
 	extend: func [
-		ctx		[red-context!]							;-- new context
-		spec	[red-context!]							;-- spec object context
+		ctx-handle	[node-handle!]						;-- new context
+		spec-handle [node-handle!]						;-- spec object context
 		obj		[red-object!]							;-- new object
 		return: [logic!]								;-- TRUE if words added to new context
 		/local
+			ctx	  [red-context!]
+			spec  [red-context!]
 			syms  [red-value!]
 			tail  [red-value!]
 			vals  [red-value!]
 			value [red-value!]
-			base  [red-value!]
+			base  [integer!]
 			word  [red-word!]
-			type  [integer!]
+			type i count [integer!]
 			s	  [series!]
 	][
-		s: _hashtable/get-ctx-words spec
-		syms: s/offset
-		tail: s/tail
+		spec: TO_CTX(spec-handle)
+		s: resolve-series spec/values
+		count: (as-integer s/tail - s/offset) >> 4
 
-		s: as series! spec/values/value
-		vals: s/offset
-		
+		ctx: TO_CTX(ctx-handle)
 		s: _hashtable/get-ctx-words ctx
-		base: s/tail - s/offset
-		
-		s: as series! ctx/values/value
+		base: as-integer s/tail - s/offset
 
 		;-- 1st pass: fill and eventually extend the context
-		while [syms < tail][
+		i: 0
+		while [i < count][
+			spec: TO_CTX(spec-handle)
+			s: _hashtable/get-ctx-words spec
+			syms: s/offset + i
+			s: resolve-series spec/values
+			vals: s/offset + i
+			ctx: TO_CTX(ctx-handle)
 			value: _context/add-and-set ctx as red-word! syms vals
-			syms: syms + 1
-			vals: vals + 1
+			i: i + 1
 		]
 		
 		;-- 2nd pass: deep copy series and rebind functions
-		value: s/offset
-		tail:  s/tail
-		
-		while [value < tail][
+		ctx: TO_CTX(ctx-handle)
+		s: resolve-series ctx/values
+		count: (as-integer s/tail - s/offset) >> 4
+		i: 0
+		while [i < count][
+			ctx: TO_CTX(ctx-handle)
+			s: resolve-series ctx/values
+			value: s/offset + i
 			type: TYPE_OF(value)
 			case [
 				ANY_SERIES?(type) [
@@ -757,55 +767,72 @@ object: context [
 						null
 				]
 				type = TYPE_FUNCTION [
-					rebind as red-function! value ctx
+					rebind as red-function! value ctx-handle i
 				]
 				true [0]
 			]
-			value: value + 1
+			i: i + 1
 		]
+		ctx: TO_CTX(ctx-handle)
 		s: _hashtable/get-ctx-words ctx					;-- refreshing pointer
-		s/tail - s/offset > base						;-- TRUE: new words added
+		(as-integer s/tail - s/offset) > base			;-- TRUE: new words added
 	]
 	
 	rebind: func [
 		fun	 [red-function!]
-		octx [red-context!]
+		octx [node-handle!]
+		index [integer!]
 		/local
 			s	 [series!]
 			more [red-value!]
-			blk  [red-block!]
-			spec [red-block!]
-			ctx	 [red-context!]
-			fctx [node!]
+			blk body spec fctx-root [red-block!]
+			ctx [red-context!]
+			fctx fun-ctx fun-spec fun-more [node-handle!]
+			header [integer!]
 	][
-		s: as series! fun/more/value
+		fun-ctx: fun/ctx
+		fun-spec: fun/spec
+		fun-more: fun/more
+		header: fun/header
+		s: resolve-series fun-more
 		more: s/offset
 		
 		if TYPE_OF(more) = TYPE_NONE [
 			fire [TO_ERROR(script bad-func-def) fun]
 		]
+		body: as red-block! stack/push more
 		spec: as red-block! stack/push*
 		spec/header: TYPE_BLOCK
 		spec/head:	 0
-		spec/node:	 fun/spec
+		spec/node:	 fun-spec
 		
-		fctx: copy-series as series! fun/ctx/value		;-- clone the ctx 2-cell block
-		ctx: TO_CTX(fctx)
+		fctx: node-handle-of copy-series resolve-series fun-ctx	;-- clone the ctx 2-cell block
+		fctx-root: as red-block! stack/push*
+		fctx-root/header: TYPE_UNSET
+		fctx-root/head: 0
+		fctx-root/node: fctx
+		fctx-root/header: TYPE_BLOCK
 		
-		blk: block/clone as red-block! more yes yes
-		_context/bind blk octx yes						;-- rebind new body to object's context
-		_context/bind blk ctx  no						;-- rebind new body to function's context
-		_function/push spec blk	fctx null null fun/header ;-- recreate function
-		copy-cell stack/top - 1	as red-value! fun		;-- overwrite function slot in object
-		stack/pop 2										;-- remove extra stack slots (block/clone and _function/push)
+		blk: block/clone body yes yes
+		_context/bind blk TO_CTX(octx) yes				;-- rebind new body to object's context
+		_context/bind blk TO_CTX(fctx) no				;-- rebind new body to function's context
+		_function/push spec blk	fctx 0 0 header			;-- recreate function
+		ctx: TO_CTX(octx)
+		s: resolve-series ctx/values
+		fun: as red-function! s/offset + index
+		copy-cell stack/top - 1 as red-value! fun			;-- overwrite function slot in object
+		stack/pop 5										;-- remove body, spec, context root, cloned block and function
 		
-		s: as series! fun/more/value
+		ctx: TO_CTX(octx)
+		s: resolve-series ctx/values
+		fun: as red-function! s/offset + index
+		s: resolve-series fun/more
 		more: s/offset + 2
 		more/header: TYPE_UNSET							;-- invalidate compiled body
 	]
 	
 	init-push: func [
-		node	[node!]
+		node	[node-handle!]
 		class	[integer!]
 		return: [red-object!]
 		/local
@@ -816,7 +843,7 @@ object: context [
 			sz	[integer!]
 	][
 		ctx: TO_CTX(node)
-		s: as series! ctx/values/value
+		s: resolve-series ctx/values
 		if s/offset = s/tail [
 			ss: _hashtable/get-ctx-words ctx
 			sz: (as-integer (ss/tail - ss/offset)) >> 4
@@ -827,37 +854,37 @@ object: context [
 		obj/header: TYPE_OBJECT
 		obj/ctx:	node
 		obj/class:	class
-		obj/on-set: null								;-- deferred setting, once object's body is evaluated
+		obj/on-set: 0									;-- deferred setting, once object's body is evaluated
 		
-		s: as series! node/value
+		s: resolve-series node
 		copy-cell as red-value! obj s/offset + 1		;-- set back-reference
 		obj
 	]
 	
 	init-events: func [
-		ctx	  [node!]
+		ctx	  [node-handle!]
 		idx-s [integer!]								;-- for on-change* event
 		loc-s [integer!]
 		idx-d [integer!]								;-- for on-deep-change* event
 		loc-d [integer!]
-		return: [node!]
+		return: [node-handle!]
 		/local
 			obj [red-object!]
 			s	[series!]
 	][
 		obj: as red-object! stack/get-top
 		assert TYPE_OF(obj) = TYPE_OBJECT
-		obj/on-set: make-callback-node null null idx-s loc-s idx-d loc-d
+		obj/on-set: make-callback-node 0 0 idx-s loc-s idx-d loc-d
 		if idx-d <> -1 [ownership/set-owner as red-value! obj obj null]
 		
-		s: as series! ctx/value
+		s: resolve-series ctx
 		copy-cell as red-value! obj s/offset + 1		;-- refresh back-reference
 		obj/on-set
 	]
 	
 	push: func [
-		ctx		[node!]
-		evt		[node!]
+		ctx		[node-handle!]
+		evt		[node-handle!]
 		class	[integer!]
 		idx-s	[integer!]								;-- for on-change* event
 		loc-s	[integer!]
@@ -874,7 +901,7 @@ object: context [
 		obj/class:	class
 		obj/on-set: evt
 		
-		s: as series! ctx/value
+		s: resolve-series ctx
 		copy-cell as red-value! obj s/offset + 1		;-- set back-reference
 		obj
 	]
@@ -887,12 +914,12 @@ object: context [
 			s [series!]
 	][
 		obj/header: TYPE_UNSET
-		obj/ctx:	_context/create slots no yes null CONTEXT_OBJECT
+		obj/ctx:	_context/create slots no yes 0 CONTEXT_OBJECT
 		obj/class:	0
-		obj/on-set: null
+		obj/on-set: 0
 		obj/header: TYPE_OBJECT
 		
-		s: as series! obj/ctx/value
+		s: resolve-series obj/ctx
 		copy-cell as red-value! obj s/offset + 1		;-- set back-reference
 		obj
 	]
@@ -923,7 +950,7 @@ object: context [
 		while [cell < tail][
 			if TYPE_OF(cell) = TYPE_SET_WORD [
 				id: _context/add ctx as red-word! cell
-				s: as series! ctx/values/value
+				s: resolve-series ctx/values
 				values: s/offset
 
 				value: cell + 1							;-- fetch next value to assign
@@ -979,9 +1006,9 @@ object: context [
 			node  [node!]
 			size  [integer!]
 			slots [integer!]
-			type  [integer!]
+			type i [integer!]
 			sym	  [red-word!]
-			w-ctx [node!]
+			w-ctx [node-handle!]
 	][
 		ctx:	GET_CTX(obj)
 		src:	_hashtable/get-ctx-words ctx
@@ -990,15 +1017,18 @@ object: context [
 
 		type: TYPE_OF(obj)								;-- object!, error!, port!,...
 		new/header: TYPE_UNSET
-		new/ctx: _context/create slots no yes ctx CONTEXT_OBJECT
+		new/ctx: _context/create slots no yes obj/ctx CONTEXT_OBJECT
 		new/class: obj/class
-		either evt-rst? [new/on-set: null][new/on-set: obj/on-set]
+		either evt-rst? [new/on-set: 0][new/on-set: obj/on-set]
 		new/header: type
 
 		nctx: GET_CTX(new)
 		copy-cell as red-value! new as red-value! nctx + 1	;-- set back-reference
 
 		if size <= 0 [return new]						;-- empty object!
+
+		ctx: GET_CTX(obj)
+		nctx: GET_CTX(new)
 
 		;-- process SYMBOLS
 		sym: _hashtable/get-ctx-word nctx 0
@@ -1009,16 +1039,17 @@ object: context [
 		]
 
 		;-- process VALUES
-		src: as series! ctx/values/value
-		dst: as series! nctx/values/value
+		src: resolve-series ctx/values
+		dst: resolve-series nctx/values
 		copy-memory as byte-ptr! dst/offset as byte-ptr! src/offset size
 		dst/tail: dst/offset + slots
 
-		value: dst/offset
-		tail:  dst/tail
-
+		i: 0
 		either deep? [
-			while [value < tail][
+			while [i < slots][
+				nctx: GET_CTX(new)
+				dst: resolve-series nctx/values
+				value: dst/offset + i
 				switch TYPE_OF(value) [
 					TYPE_BLOCK
 					TYPE_PAREN
@@ -1032,21 +1063,24 @@ object: context [
 							null
 					]
 					TYPE_FUNCTION [
-						rebind as red-function! value nctx
+						rebind as red-function! value new/ctx i
 					]
 					default [0]
 				]
-				value: value + 1
+				i: i + 1
 			]
 		][
-			while [value < tail][
+			while [i < slots][
+				nctx: GET_CTX(new)
+				dst: resolve-series nctx/values
+				value: dst/offset + i
 				if TYPE_OF(value) = TYPE_FUNCTION [
-					rebind as red-function! value nctx
+					rebind as red-function! value new/ctx i
 				]
-				value: value + 1
+				i: i + 1
 			]
 		]
-		if evt-rst? [register-events new nctx]
+		if evt-rst? [register-events new GET_CTX(new)]
 		new
 	]
 	
@@ -1062,7 +1096,7 @@ object: context [
 		either null? proto [
 			make-at obj 4									;-- arbitrary value
 			obj/class: get-new-id
-			obj/on-set: null
+			obj/on-set: 0
 		][
 			copy proto obj null yes null
 		]
@@ -1111,7 +1145,7 @@ object: context [
 		switch TYPE_OF(spec) [
 			TYPE_OBJECT [
 				obj2: as red-object! spec
-				obj/class: either extend ctx GET_CTX(obj2) obj [get-new-id][proto/class] ;@@ class-id is not transmitted for 'self!
+				obj/class: either extend obj/ctx obj2/ctx obj [get-new-id][proto/class] ;@@ class-id is not transmitted for 'self!
 				register-events obj ctx
 			]
 			TYPE_BLOCK [
@@ -1123,7 +1157,7 @@ object: context [
 				interpreter/eval blk no
 				
 				clear-words-flags ctx
-				clear-nl-flags as series! ctx/values/value
+				clear-nl-flags resolve-series ctx/values
 				obj/class: either any [new? not p-obj?][get-new-id][proto/class]
 				register-events obj ctx
 			]
@@ -1156,7 +1190,7 @@ object: context [
 		case [
 			field = words/changed [
 				blk/header: TYPE_UNSET
-				blk/node: alloc-cells 2
+				blk/node: node-handle-of alloc-cells 2
 				blk/header: TYPE_BLOCK
 				s: _hashtable/get-ctx-words ctx
 				syms: s/offset
@@ -1192,14 +1226,14 @@ object: context [
 				len: block/rs-length? blk
 				if len = 0 [len: 1]
 				blk/header: TYPE_UNSET
-				blk/node: alloc-cells len
+				blk/node: node-handle-of alloc-cells len
 				blk/header: TYPE_BLOCK
 				
 				s: _hashtable/get-ctx-words ctx
 				syms: s/offset
 				tail: s/tail
 				
-				s: as series! ctx/values/value
+				s: resolve-series ctx/values
 				vals: s/offset
 				
 				while [syms < tail][
@@ -1221,13 +1255,13 @@ object: context [
 				return as red-block! logic/box ctx/header and flag-owner <> 0
 			]
 			field = words/events? [
-				return as red-block! logic/box obj/on-set <> null
+				return as red-block! logic/box HANDLE?(obj/on-set)
 			]
 			true [
 				--NOT_IMPLEMENTED--						;@@ raise error
 			]
 		]
-		assert all [blk/header and get-type-mask = TYPE_BLOCK blk/node <> null]
+		assert all [blk/header and get-type-mask = TYPE_BLOCK HANDLE?(blk/node)]
 		as red-block! stack/set-last as red-value! blk
 	]
 	
@@ -1313,7 +1347,7 @@ object: context [
 			if word/index = -1 [do-error return res]
 			word/ctx: parent/ctx
 		]
-		on-set?: parent/on-set <> null
+		on-set?: HANDLE?(parent/on-set)
 		
 		either value <> null [
 			if all [word/index = -1	word/symbol = words/self][
@@ -1378,9 +1412,9 @@ object: context [
 		if sym1 = tail [return 0]						;-- empty objects case
 		
 		sym2: as red-word! s/offset
-		s: as series! ctx1/values/value
+		s: resolve-series ctx1/values
 		value1: s/offset
-		s: as series! ctx2/values/value
+		s: resolve-series ctx2/values
 		value2: s/offset
 		
 		cycles/push obj1/ctx

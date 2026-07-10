@@ -403,10 +403,10 @@ get-caret-blink-time: routine [
 			unicode/load-utf8-buffer cstr size GET_BUFFER(str) null yes
 		][
 			str/header: TYPE_UNSET
-			str/node: unicode/load-utf8-buffer cstr size null null yes
+			str/node: node-handle-of unicode/load-utf8-buffer cstr size null null yes
 			str/header: TYPE_STRING
 			str/head: 0
-			str/cache: null
+			str/cache: 0
 		]
 		red-print-gui str lf?
 	]

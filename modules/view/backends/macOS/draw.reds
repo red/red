@@ -1102,7 +1102,7 @@ OS-draw-image: func [
 		if dst/header = TYPE_NONE [return 0]
 		handle: OS-image/to-cgimage dst
 		CG-draw-image dc/raw handle x y w h
-		OS-image/delete dst/node
+		OS-image/delete resolve-node dst/node
 	][
 		src.w: IMAGE_WIDTH(src/size)
 		src.h: IMAGE_HEIGHT(src/size)

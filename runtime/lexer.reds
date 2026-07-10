@@ -410,7 +410,7 @@ lexer: context [
 			blk		   [red-block!]
 			s		   [series!]
 	][
-		s: as series! fun/more/value
+		s: resolve-series fun/more
 		blk: as red-block! s/offset
 		if any [TYPE_OF(blk) <> TYPE_BLOCK block/rs-tail? blk][return all-events]
 		blk: as red-block! block/rs-head blk
@@ -525,7 +525,7 @@ lexer: context [
 			int	  [red-integer!]
 			name  [names!]
 			more  [series!]
-			ctx	  [node!]
+			ctx	  [node-handle!]
 			cont? [logic!]
 			ref	  [integer!]
 	][
@@ -541,9 +541,9 @@ lexer: context [
 			if type = TYPE_POINT2D [s: s - 1  e: e + 1]
 		]
 
-		more: as series! lex/fun-ptr/more/value
+		more: resolve-series lex/fun-ptr/more
 		int: as red-integer! more/offset + 4
-		ctx: either TYPE_OF(int) = TYPE_INTEGER [as node! int/value][global-ctx]
+		ctx: either TYPE_OF(int) = TYPE_INTEGER [as node-handle! int/value][global-ctx]
 		
 		stack/mark-func words/_lexer-cb	lex/fun-ptr/ctx
 		evt: switch event [
@@ -907,7 +907,7 @@ lexer: context [
 		string/make-at as red-value! :vl len Latin1
 		url/decode str :vl
 		str/node: vl/node
-		str/cache: null
+		str/cache: 0
 	]
 	
 	prescan-point: func [s [byte-ptr!] e [byte-ptr!] return: [logic!]
@@ -2610,7 +2610,7 @@ lexer: context [
 		lex/load?:		all [scan? load?]
 		
 		if fun <> null [
-			lex/fun-locs: _function/count-locals fun/spec 0 no
+			lex/fun-locs: _function/count-locals resolve-node fun/spec 0 no
 			lex/fun-evts: decode-filter fun
 			lex/pos-cache: null
 			lex/cnt-cache: 0

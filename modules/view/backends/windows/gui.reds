@@ -152,18 +152,18 @@ get-face-values: func [
 	/local
 		face [red-object!]
 		ctx	 [red-context!]
-		node [node!]
+		node [node-handle!]
 		s	 [series!]
 ][
 	face: as red-object! references/get GetWindowLong hWnd wc-offset
 	node: face/ctx
 	ctx: TO_CTX(node)
-	s: as series! ctx/values/value
+	s: resolve-series ctx/values
 	s/offset
 ]
 
 get-node-facet: func [
-	node	[node!]
+	node	[node-handle!]
 	facet	[integer!]
 	return: [red-value!]
 	/local
@@ -171,7 +171,7 @@ get-node-facet: func [
 		s	 [series!]
 ][
 	ctx: TO_CTX(node)
-	s: as series! ctx/values/value
+	s: resolve-series ctx/values
 	s/offset + facet
 ]
 
@@ -644,7 +644,7 @@ update-rich-text: func [
 ]
 
 to-bgr: func [
-	node	[node!]
+	node	[node-handle!]
 	pos		[integer!]
 	return: [integer!]									;-- 00bbggrr format or -1 if not found
 	/local
@@ -1426,9 +1426,13 @@ parse-common-opts: func [
 						w: word + 1
 						either TYPE_OF(w) = TYPE_IMAGE [
 							img: as red-image! w
-							bitmap: OS-image/to-gpbitmap img :lock
+							#either draw-engine = 'GDI+ [
+								bitmap: OS-image/to-gpbitmap img
+							][
+								bitmap: OS-image/to-gpbitmap img :lock
+							]
 							GdipCreateHICONFromBitmap bitmap :sym
-							OS-image/release-gpbitmap bitmap :lock
+							#if draw-engine <> 'GDI+ [OS-image/release-gpbitmap bitmap :lock]
 							SetWindowLong hWnd wc-offset - 28 sym
 						][
 							if TYPE_OF(w) = TYPE_WORD [
@@ -2747,7 +2751,7 @@ OS-update-view: func [
 		type	[integer!]
 ][
 	ctx: GET_CTX(face)
-	s: as series! ctx/values/value
+	s: resolve-series ctx/values
 	values: s/offset
 
 	state: as red-block! values + FACE_OBJ_STATE

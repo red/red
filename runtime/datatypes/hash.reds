@@ -62,7 +62,7 @@ hash: context [
 		table: _hashtable/init size blk HASH_TABLE_HASH 1
 		hash: as red-hash! blk
 		hash/header: TYPE_HASH						;-- implicit reset of all header flags
-		hash/table: table
+		hash/table: node-handle-of table
 		hash
 	]
 
@@ -113,7 +113,7 @@ hash: context [
 
 		block/copy as red-block! hash as red-block! new part-arg deep? types
 		new/table:  hash/table	;-- set it to old table, _hashtable/copy below may trigger GC
-		new/table:  _hashtable/copy hash/table new/node
+		new/table:  node-handle-of _hashtable/copy resolve-node hash/table resolve-node new/node
 		new/header: TYPE_HASH
 		new
 	]
@@ -135,8 +135,8 @@ hash: context [
 
 		blk: as red-block! hash
 		block/sort blk case? skip comparator part all? reverse? stable?
-		_hashtable/clear hash/table blk/head block/rs-length? blk
-		_hashtable/put-all hash/table blk/head 1
+		_hashtable/clear resolve-node hash/table blk/head block/rs-length? blk
+		_hashtable/put-all resolve-node hash/table blk/head 1
 		hash
 	]
 
@@ -156,8 +156,8 @@ hash: context [
 
 		blk: as red-block! hash
 		block/trim blk head? tail? auto? lines? all? with-arg
-		_hashtable/clear hash/table blk/head block/rs-length? blk
-		_hashtable/put-all hash/table blk/head 1
+		_hashtable/clear resolve-node hash/table blk/head block/rs-length? blk
+		_hashtable/put-all resolve-node hash/table blk/head 1
 		hash
 	]
 

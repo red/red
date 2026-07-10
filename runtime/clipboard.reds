@@ -204,8 +204,8 @@ clipboard: context [
 						str: as red-string! stack/push*
 						str/header: TYPE_UNSET
 						str/head: 0
-						str/cache: null
-						str/node: unicode/load-utf16 as-c-string p lstrlen p null yes
+						str/cache: 0
+						str/node: node-handle-of unicode/load-utf16 as-c-string p lstrlen p null yes
 						str/header: TYPE_STRING
 						val: as red-value! str
 						GlobalUnlock hMem
@@ -305,7 +305,15 @@ clipboard: context [
 						]
 						if hMem <> 0 [
 							if zero? bmp [return as red-value! none-value]
-							val: as red-value! image/init-image as red-image! stack/push* as int-ptr! bmp
+							#either draw-engine = 'GDI+ [
+								val: as red-value! image/init-image
+									as red-image! stack/push*
+									OS-image/make-node as int-ptr! bmp
+							][
+								val: as red-value! image/init-image
+									as red-image! stack/push*
+									resolve-node as node-handle! bmp
+							]
 							GlobalUnlock hMem
 						]
 					]
@@ -441,8 +449,8 @@ clipboard: context [
 							fmts/2: CF_DIBV5
 							bmdata: OS-image/lock-bitmap img no
 							assert 0 <> bmdata
-							w: OS-image/width? img/node
-							h: OS-image/height? img/node
+							w: OS-image/width? resolve-node img/node
+							h: OS-image/height? resolve-node img/node
 							s: 0
 							scan0: as byte-ptr! OS-image/get-data bmdata :s
 							len: w * h * 4

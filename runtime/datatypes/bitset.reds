@@ -229,7 +229,7 @@ bitset: context [
 
 		set1: as red-bitset! stack/push*
 		set1/header: TYPE_BITSET
-		set1/node:	 node
+		set1/node:	 node-handle-of node
 		stack/set-last as red-value! set1
 		set1
 	]
@@ -568,7 +568,7 @@ bitset: context [
 		switch TYPE_OF(spec) [
 			TYPE_BITSET [
 				b2: as red-bitset! spec
-				bits/node: copy-series GET_BUFFER(b2)
+				bits/node: node-handle-of copy-series GET_BUFFER(b2)
 			]
 			TYPE_FLOAT
 			TYPE_INTEGER [
@@ -584,7 +584,7 @@ bitset: context [
 				]
 				size: either zero? (size and 7) [size][size + 8 and -8]	;-- round to byte multiple
 				size: size >> 3							;-- convert to bytes
-				bits/node: alloc-bytes-filled size null-byte
+				bits/node: node-handle-of alloc-bytes-filled size null-byte
 				
 				s: GET_BUFFER(bits)
 				s/tail: as cell! ((as byte-ptr! s/offset) + size)
@@ -592,7 +592,7 @@ bitset: context [
 			TYPE_BINARY [
 				bin: as red-binary! spec
 				size: binary/rs-length? bin
-				bits/node: alloc-bytes size
+				bits/node: node-handle-of alloc-bytes size
 				s: GET_BUFFER(bits)
 				s/tail: as cell! ((as byte-ptr! s/offset) + size)
 				either not? [
@@ -615,7 +615,7 @@ bitset: context [
 				op: either not? [OP_CLEAR][OP_SET]
 				
 				size: process spec null OP_MAX no cmd	;-- 1st pass: determine size
-				bits/node: alloc-bytes-filled size byte
+				bits/node: node-handle-of alloc-bytes-filled size byte
 				bits/header: TYPE_BITSET
 				if not? [
 					s: GET_BUFFER(bits)
@@ -880,7 +880,7 @@ bitset: context [
 		
 		s: GET_BUFFER(bits)
 		new/header: TYPE_UNSET
-		new/node:	copy-series s
+		new/node:	node-handle-of copy-series s
 		new/header: TYPE_BITSET
 		new
 	]

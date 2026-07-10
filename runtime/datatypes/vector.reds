@@ -594,7 +594,7 @@ vector: context [
 				p2: p2 + unit2
 			]
 		]
-		left/node: node
+		left/node: node-handle-of node
 		left/head: 0
 		as red-value! left
 	]
@@ -622,7 +622,7 @@ vector: context [
 		vec: as red-vector! slot
 		vec/header: TYPE_UNSET
 		vec/head: 	0
-		vec/node: 	alloc-bytes size
+		vec/node: 	node-handle-of alloc-bytes size
 		vec/type:	type
 		vec/header: TYPE_VECTOR							;-- implicit reset of all header flags
 		

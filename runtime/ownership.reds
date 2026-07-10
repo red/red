@@ -23,7 +23,7 @@ ownership: context [
 			tail   [red-value!]
 			ctx	   [red-context!]
 			bits   [red-bitset!]
-			node   [node!]
+			node   [node-handle!]
 			type   [integer!]
 			s	   [series!]
 	][
@@ -35,7 +35,7 @@ ownership: context [
 				ctx: GET_CTX(obj)
 
 				if ctx/header and flag-owner = 0 [		;-- stop if another owner is met
-					s: as series! ctx/values/value
+					s: resolve-series ctx/values
 					value: s/offset
 					tail:  s/tail
 					cycles/push obj/ctx
@@ -175,7 +175,7 @@ ownership: context [
 				
 				if ctx/header and flag-owner = 0 [		;-- stop if another owner is met
 					if cycles/find? ctx/values [exit]
-					s: as series! ctx/values/value
+					s: resolve-series ctx/values
 					
 					value: s/offset
 					tail:  s/tail
@@ -216,7 +216,7 @@ ownership: context [
 	]
 	
 	owned?: func [
-		node	[node!]
+		node	[node-handle!]
 		return: [red-object!]							;-- returns null if not found
 		/local
 			slot [red-value!]
@@ -234,7 +234,7 @@ ownership: context [
 		part    [integer!]								;-- nb of values affected
 		return: [logic!]								;-- TRUE: value is owned
 		/local
-			node   [node!]
+			node   [node-handle!]
 			slot   [red-value!]
 			owner  [red-object!]
 			series [red-series!]
@@ -265,7 +265,7 @@ ownership: context [
 		either null? slot [false][
 			owner:  as red-object! slot + 1
 			word:	as red-word! slot + 2
-			if null? owner/on-set [return false]
+			if NULL_HANDLE?(owner/on-set) [return false]
 			object/fire-on-deep owner word value action new index part
 			true
 		]

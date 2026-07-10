@@ -76,12 +76,12 @@ get-face-values: func [
 	object_getInstanceVariable handle IVAR_RED_FACE :id
 	face: as red-object! references/get id
 	ctx: TO_CTX(face/ctx)
-	s: as series! ctx/values/value
+	s: resolve-series ctx/values
 	s/offset
 ]
 
 get-node-facet: func [
-	node	[node!]
+	node	[node-handle!]
 	facet	[integer!]
 	return: [red-value!]
 	/local
@@ -89,7 +89,7 @@ get-node-facet: func [
 		s	 [series!]
 ][
 	ctx: TO_CTX(node)
-	s: as series! ctx/values/value
+	s: resolve-series ctx/values
 	s/offset + facet
 ]
 
@@ -2204,7 +2204,7 @@ OS-update-view: func [
 		nsstr	[integer!]
 ][
 	ctx: GET_CTX(face)
-	s: as series! ctx/values/value
+	s: resolve-series ctx/values
 	values: s/offset
 
 	state: as red-block! values + FACE_OBJ_STATE

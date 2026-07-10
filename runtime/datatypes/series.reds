@@ -466,7 +466,7 @@ _series: context [
 
 			if type1 = TYPE_HASH [
 				hash: as red-hash! origin
-				_hashtable/move hash/table target/head origin/head items
+				_hashtable/move resolve-node hash/table target/head origin/head items
 			]
 
 			index: target/head - items
@@ -513,15 +513,15 @@ _series: context [
 			if type1 = TYPE_HASH [
 				hash: as red-hash! origin
 				part: (as-integer s/tail - s/offset) >> 4 - hash/head
-				_hashtable/refresh hash/table 0 - items hash/head + items part yes
+				_hashtable/refresh resolve-node hash/table 0 - items hash/head + items part yes
 			]
 			if type2 = TYPE_HASH [
 				hash: as red-hash! target
 				part: (as-integer s2/tail - dst) >> 4 - items - hash/head
-				_hashtable/refresh hash/table items hash/head part yes
+				_hashtable/refresh resolve-node hash/table items hash/head part yes
 				cell: as red-value! dst
 				loop items [
-					_hashtable/put hash/table cell
+					_hashtable/put resolve-node hash/table cell
 					cell: cell + 1
 				]
 			]
@@ -549,7 +549,7 @@ _series: context [
 		ownership/check as red-value! ser words/_clear null ser/head size
 		if TYPE_OF(ser) = TYPE_HASH [
 			hash: as red-hash! ser
-			_hashtable/clear hash/table ser/head size
+			_hashtable/clear resolve-node hash/table ser/head size
 		]
 		s/tail: as cell! (as byte-ptr! s/offset) + (ser/head << (log-b GET_UNIT(s)))
 		ownership/check as red-value! ser words/_cleared null ser/head 0
@@ -595,7 +595,7 @@ _series: context [
 				TYPE_HASH [
 					copy-cell data s/offset + offset
 					hash: as red-hash! ser
-					_hashtable/put hash/table s/offset + offset
+					_hashtable/put resolve-node hash/table s/offset + offset
 				]
 				TYPE_BLOCK								;@@ any-block?
 				TYPE_PAREN
@@ -694,8 +694,8 @@ _series: context [
 			items: as-integer tail - (head + part)
 			part: part >> 4
 			hash: as red-hash! ser
-			if HASH_TABLE_ERR_REHASH = _hashtable/refresh hash/table 0 - part ser/head + part items >> 4 yes [
-				_hashtable/rehash hash/table get-length ser yes
+			if HASH_TABLE_ERR_REHASH = _hashtable/refresh resolve-node hash/table 0 - part ser/head + part items >> 4 yes [
+				_hashtable/rehash resolve-node hash/table get-length ser yes
 			]
 		]
 		ownership/check as red-value! ser words/_removed null ser/head 0
@@ -776,7 +776,7 @@ _series: context [
 		hash?: TYPE_OF(ser) = TYPE_HASH
 		if hash? [
 			hash: as red-hash! ser
-			table: hash/table
+			table: resolve-node hash/table
 		]
 		chk?: ownership/check as red-value! ser words/_reverse null ser/head items
 		big?: all [skip? skip <> 1]
@@ -890,7 +890,7 @@ _series: context [
 		ser2: as red-series! stack/push*
 		ser2/header: ty
 		ser2/extra:  either any [ty = TYPE_VECTOR ty = TYPE_HASH][ser/extra][0]
-		ser2/node:   node
+		ser2/node:   node-handle-of node
 		ser2/head:   0
 
 		offset: (as byte-ptr! s/offset) + (ser/head << log-b unit)
@@ -918,10 +918,10 @@ _series: context [
 		if ty = TYPE_HASH [
 			unit: either last? [size][ser/head + part]
 			hash: as red-hash! ser
-			_hashtable/refresh hash/table 0 - part unit size - unit yes
+			_hashtable/refresh resolve-node hash/table 0 - part unit size - unit yes
 			hash: as red-hash! ser2
 			hash/header: TYPE_BLOCK						;-- set to TYPE_BLOCK so we don't mark hash/table
-			hash/table: _hashtable/init part as red-block! ser2 HASH_TABLE_HASH 1
+			hash/table: node-handle-of _hashtable/init part as red-block! ser2 HASH_TABLE_HASH 1
 			hash/header: TYPE_HASH
 		]
 		
@@ -1019,7 +1019,7 @@ _series: context [
 		]
 
 		new/header: type or flag
-		new/node:   node
+		new/node:   node-handle-of node
 		new/head:   0
 		new/extra:  either type = TYPE_VECTOR [ser/extra][0]
 

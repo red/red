@@ -81,7 +81,7 @@ error: context [
 		][
 			return words/_anon
 		]
-		s:	   as series! fun/spec/value
+		s:	   resolve-series fun/spec
 		value: s/offset
 		end:   s/tail
 
@@ -235,7 +235,7 @@ error: context [
 		
 		new/header: TYPE_ERROR							;-- implicit reset of all header flags
 		new/class:  OBJ_CLASS_ERROR!
-		new/on-set: null
+		new/on-set: 0
 		
 		base:	object/get-values new
 		errors: as red-object! #get system/catalog/errors

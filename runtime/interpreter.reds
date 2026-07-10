@@ -65,7 +65,7 @@ interpreter: context [
 			blk		   [red-block!]
 			s		   [series!]
 	][
-		s: as series! fun/more/value
+		s: resolve-series fun/more
 		blk: as red-block! s/offset
 		if any [TYPE_OF(blk) <> TYPE_BLOCK block/rs-tail? blk][return all-events]
 		blk: as red-block! block/rs-head blk
@@ -115,7 +115,7 @@ interpreter: context [
 			evt   [red-word!]
 			int	  [red-integer!]
 			more  [series!]
-			ctx	  [node!]
+			ctx	  [node-handle!]
 			len	base top i [integer!]
 			csaved [int-ptr!]
 	][
@@ -127,9 +127,9 @@ interpreter: context [
 		saved: stack/top
 		csaved: as int-ptr! stack/ctop
 		stack/top: stack/top + 1						;-- keep last value
-		more: as series! trace-fun/more/value
+		more: resolve-series trace-fun/more
 		int: as red-integer! more/offset + 4
-		ctx: either TYPE_OF(int) = TYPE_INTEGER [as node! int/value][global-ctx]
+		ctx: either TYPE_OF(int) = TYPE_INTEGER [as node-handle! int/value][global-ctx]
 		
 		stack/mark-func words/_interp-cb trace-fun/ctx
 		evt: switch event [
@@ -198,7 +198,7 @@ interpreter: context [
 	
 	preprocess-spec: func [
 		native 	[red-native!]
-		return: [node!]
+		return: [node-handle!]
 		/local
 			fun		  [red-function!]
 			list	  [red-block!]
@@ -235,11 +235,11 @@ interpreter: context [
 		saved: stack/top
 		function?: any [TYPE_OF(native) = TYPE_ROUTINE TYPE_OF(native) = TYPE_FUNCTION]
 
-		s: as series! either function? [
+		s: resolve-series either function? [
 			fun:  as red-function! native
-			fun/spec/value
+			fun/spec
 		][
-			native/spec/value
+			native/spec
 		]
 		locals: 0
 		refs:	1										;-- 1-based array index
@@ -294,7 +294,7 @@ interpreter: context [
 			s	  [series!]
 			set?  [logic!]
 	][
-		s: as series! fun/spec/value
+		s: resolve-series fun/spec
 		value: s/offset
 		tail:  s/tail
 		set?:  no
@@ -318,19 +318,19 @@ interpreter: context [
 	
 	call: func [
 		fun	  [red-function!]
-		ctx	  [node!]
+		ctx	  [node-handle!]
 		ref	  [red-value!]
 		class [cb-class!]
 		/local
 			s	   [series!]
 			code   [red-integer!]
-			saved  [node!]
+			saved  [integer!]
 			fctx   [red-context!]
 			int	   [red-integer!]
 			prev?  [logic!]
 			allow? [logic!]
 			call   [function! []]
-			ocall  [function! [octx [node!]]]
+			ocall  [function! [octx [node-handle!]]]
 	][
 		prev?: tracing?
 		allow?: all [prev? class <> CB_INTERPRETER]
@@ -339,7 +339,7 @@ interpreter: context [
 			assert TYPE_OF(int) = TYPE_INTEGER
 			if class and int/value = 0 [tracing?: no]	;-- disable tracing for unwanted internal callbacks
 		]
-		s: as series! fun/more/value
+		s: resolve-series fun/more
 		code: as red-integer! s/offset + 2
 		either any [TYPE_OF(code) <> TYPE_INTEGER zero? code/value][
 			if allow? [fire-call ref fun]
@@ -358,7 +358,7 @@ interpreter: context [
 					call
 					0									;FIXME: required to pass compilation
 				][
-					ocall: as function! [octx [node!]] code/value
+					ocall: as function! [octx [node-handle!]] code/value
 					ocall ctx
 					0
 				]
@@ -385,7 +385,7 @@ interpreter: context [
 		ref  [red-value!]								;-- referent word! or path!
 		/local
 			ctx		 [red-context!]
-			saved	 [node!]
+			saved	 [integer!]
 			thrown	 [integer!]
 			prev	 [logic!]
 			force?	 [logic!]
@@ -393,7 +393,7 @@ interpreter: context [
 	][
 		ctx: GET_CTX(fun)
 		saved: ctx/values
-		ctx/values: as node! stack/arguments
+		ctx/values: stack/store-values stack/arguments
 		stack/set-in-func-flag yes
 		prev: tracing?
 		force?:   fun/header and flag-force-trace <> 0
@@ -465,7 +465,7 @@ interpreter: context [
 			callex	[function! [[cdecl custom] return: [integer!]]]
 	][
 		extern?: rt/header and flag-extern-code <> 0
-		s:		as series! rt/more/value
+		s:		resolve-series rt/more
 		code:	as red-integer! s/offset + 2
 		rtype:  as red-integer! s/offset + 4
 		args:	routine/get-arity rt
@@ -505,7 +505,7 @@ interpreter: context [
 		][
 			call: as function! [return: [integer!]] code/value
 
-			s: as series! rt/spec/value
+			s: resolve-series rt/spec
 			value: s/offset
 			tail:  s/tail
 			
@@ -666,7 +666,7 @@ interpreter: context [
 				evt?: either ser = null [no][
 					obj: as red-object! ser
 					switch TYPE_OF(ser) [
-						TYPE_OBJECT 	 [all [obj/on-set <> null TYPE_OF(p-item) = TYPE_WORD]]
+						TYPE_OBJECT 	 [all [HANDLE?(obj/on-set) TYPE_OF(p-item) = TYPE_WORD]]
 						TYPE_ANY_BLOCK   [gparent <> null]
 						default			 [no]
 					]
@@ -720,7 +720,7 @@ interpreter: context [
 			ctx					[red-context!]
 			bool b2				[red-logic!]
 			s					[series!]
-			args nctx			[node!]
+			args nctx			[node-handle!]
 			p ref-array	offset	[int-ptr!]
 			pos	bits			[byte-ptr!]
 			index arg-cnt ref-cnt loc-cnt sym-cnt type xcode idx exp-type [integer!]
@@ -793,7 +793,7 @@ interpreter: context [
 		if infix? [stack/top: stack/top + 1]
 		
 		fun: as red-function! native
-		s: as series! fun/more/value
+		s: resolve-series fun/more
 		blk: as red-block! s/offset + 1
 		either TYPE_OF(blk) = TYPE_BLOCK [args: blk/node][
 			args: preprocess-spec native
@@ -801,7 +801,7 @@ interpreter: context [
 			blk/head:	0
 			blk/node:	args
 		]
-		s: as series! args/value
+		s: resolve-series args
 		head:	   s/offset
 		tail:	   s/tail
 		value:	   head
@@ -1028,7 +1028,7 @@ interpreter: context [
 			fun	  [red-function!]
 			int	  [red-integer!]
 			s	  [series!]
-			ctx	  [node!]
+			ctx	  [node-handle!]
 	][
 		pos: either mode >= MODE_APPLY [slot][pc - 1]
 		name: as red-word! either null? slot [pos][slot]
@@ -1079,10 +1079,10 @@ interpreter: context [
 					obj/ctx
 				][
 					fun: as red-function! value
-					s: as series! fun/more/value
+					s: resolve-series fun/more
 					int: as red-integer! s/offset + 4
 					either TYPE_OF(int) = TYPE_INTEGER [
-						as node! int/value
+						as node-handle! int/value
 					][
 						name/ctx						;-- get a context from calling name
 					]
@@ -1335,7 +1335,7 @@ interpreter: context [
 			next: as red-word! pc
 			if all [next < end TYPE_OF(next) = TYPE_WORD][
 				ctx: TO_CTX(next/ctx)
-				if ctx/values <> null [
+				if HANDLE?(ctx/values) [
 					op: as red-op! _context/get next
 					if TYPE_OF(op) = TYPE_OP [
 						#if debug? = yes [if verbose > 0 [print "eval: '" print-symbol as red-word! pc print-line " (infix)"]]
@@ -1362,7 +1362,7 @@ interpreter: context [
 		/local
 			blk	 [red-block!]
 			s	 [series!]
-			node [node!]
+			node [node-handle!]
 	][
 		blk: as red-block! value
 		s: GET_BUFFER(blk)
@@ -1373,7 +1373,7 @@ interpreter: context [
 		node: blk/node									;-- save node pointer as slot will be overwritten
 		value: eval-next blk s/offset + blk/head s/tail no
 		
-		s: as series! node/value						;-- refresh buffer pointer
+		s: resolve-series node							;-- refresh buffer pointer
 		assert all [s/offset <= value value <= s/tail]
 		(as-integer value - s/offset) >> 4
 	]

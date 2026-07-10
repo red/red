@@ -20,7 +20,7 @@ map: context [
 			s	 [series!]
 			size [int-ptr!]
 	][
-		s: as series! map/table/value
+		s: resolve-series map/table
 		size: as int-ptr! s/offset
 		size/value
 	]
@@ -150,7 +150,7 @@ map: context [
 		tail: s/tail
 
 		op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
-		table: map/table
+		table: resolve-node map/table
 		kkey: stack/push*
 		while [cell < tail][
 			key: _hashtable/get table cell 0 0 op no no
@@ -158,7 +158,7 @@ map: context [
 			either key = null [
 				copy-cell cell kkey
 				preprocess-key kkey null
-				s: as series! map/node/value
+				s: resolve-series map/node
 				key: copy-cell kkey as cell! alloc-tail-unit s (size? cell!) << 1
 				val: key + 1
 				val/header: TYPE_UNSET
@@ -198,7 +198,7 @@ map: context [
 		table: _hashtable/init size blk HASH_TABLE_MAP 1
 		map: as red-hash! slot
 		set-type slot TYPE_MAP
-		map/table: table
+		map/table: node-handle-of table
 		map
 	]
 
@@ -286,7 +286,7 @@ map: context [
 		cnt: 0
 		case [
 			field = words/words [
-				blk/node: alloc-cells size
+				blk/node: node-handle-of alloc-cells size
 				while [all [value < s-tail cnt < total]][
 					next: value + 1
 					unless next/header = MAP_KEY_DELETED [
@@ -300,7 +300,7 @@ map: context [
 				]
 			]
 			field = words/values [
-				blk/node: alloc-cells size
+				blk/node: node-handle-of alloc-cells size
 				while [all [value < s-tail cnt < total]][
 					next: value + 1
 					unless next/header = MAP_KEY_DELETED [
@@ -311,7 +311,7 @@ map: context [
 				]
 			]
 			field = words/body [
-				blk/node: alloc-cells size * 2
+				blk/node: node-handle-of alloc-cells size * 2
 				while [all [value < s-tail cnt < total]][
 					next: value + 1
 					unless next/header = MAP_KEY_DELETED [
@@ -416,7 +416,7 @@ map: context [
 
 		if zero? size1 [return 0]								;-- shortcut exit for empty map!
 
-		table2: blk2/table
+		table2: resolve-node blk2/table
 		key1: block/rs-head as red-block! blk1
 		key1: key1 - 2
 		n: 0
@@ -520,7 +520,7 @@ map: context [
 			k		[red-value!]
 	][
 		op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
-		table: parent/table
+		table: resolve-node parent/table
 		key: _hashtable/get table element 0 0 op no no
 
 		either value <> null [						;-- set value
@@ -528,7 +528,7 @@ map: context [
 				k: stack/push*
 				copy-cell element k
 				preprocess-key k path
-				s: as series! parent/node/value
+				s: resolve-series parent/node
 				key: copy-cell k as cell! alloc-tail-unit s (size? cell!) << 1
 				val: key + 1
 				val/header: TYPE_UNSET
@@ -585,7 +585,7 @@ map: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/clear"]]
 
-		_hashtable/clear-map map/table
+		_hashtable/clear-map resolve-node map/table
 		as red-value! map
 	]
 
@@ -636,7 +636,7 @@ map: context [
 		either same? [op: COMP_SAME][
 			op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
 		]
-		table: map/table
+		table: resolve-node map/table
 		key: _hashtable/get table value 0 0 op no no
 		val: key + 1
 		either any [
@@ -676,7 +676,7 @@ map: context [
 		either same? [op: COMP_SAME][
 			op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
 		]
-		table: map/table
+		table: resolve-node map/table
 		key: _hashtable/get table value 0 0 op no no
 		val: key + 1
 		either any [key = null val/header = MAP_KEY_DELETED][none-value][val]
@@ -694,10 +694,10 @@ map: context [
 		unless OPTION?(key) [
 			fire [TO_ERROR(script missing-arg)]
 		]
-		k: _hashtable/get map/table key 0 0 COMP_STRICT_EQUAL no no
+		k: _hashtable/get resolve-node map/table key 0 0 COMP_STRICT_EQUAL no no
 		val: k + 1
 		if all [k <> null val/header <> MAP_KEY_DELETED][
-			_hashtable/delete map/table k
+			_hashtable/delete resolve-node map/table k
 		]
 		map
 	]
@@ -755,7 +755,7 @@ map: context [
 
 		new: as red-hash! block/clone as red-block! map deep? yes
 		new/table:  map/table	;-- set it to old table, _hashtable/copy below may trigger GC
-		new/table:  _hashtable/copy map/table new/node
+		new/table:  node-handle-of _hashtable/copy resolve-node map/table resolve-node new/node
 		new/header: TYPE_MAP
 		new
 	]

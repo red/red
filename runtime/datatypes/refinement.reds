@@ -37,7 +37,7 @@ refinement: context [
 		ref: as red-refinement! ALLOC_TAIL(root) 
 		ref/header: TYPE_REFINEMENT					;-- implicit reset of all header flags
 		ref/symbol: symbol/make str
-		ref/ctx: null
+		ref/ctx: 0
 		as red-word! ref
 	]
 	
@@ -51,7 +51,7 @@ refinement: context [
 	]
 	
 	push-local: func [
-		node	[node!]
+		node	[node-handle!]
 		index	[integer!]
 		return: [red-refinement!]
 		/local

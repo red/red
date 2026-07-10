@@ -10,6 +10,9 @@
 	red/select-key*
 	red/alloc-bytes
 	red/alloc-cells
+	red/resolve-node
+	red/resolve-series
+	red/node-handle-of
 	red/get-cmdline-args
 	red/set-opt-refinement*
 	red/call-with-array*
@@ -43,6 +46,8 @@
 	red/stack/adjust-post-try
 	red/stack/pop
 	red/stack/set-last
+	red/stack/store-values
+	red/stack/get-values
 
 	red/interpreter/eval-path
 	red/lexer/scan

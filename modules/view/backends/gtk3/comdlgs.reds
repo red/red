@@ -13,7 +13,7 @@ Red/System [
 request-file-double-clicked: func [
 	[cdecl]
 	widget	[handle!]
-	ctx		[node!]
+	ctx		[int-ptr!]
 ][
 	gtk_dialog_response widget GTK_RESPONSE_ACCEPT
 ]

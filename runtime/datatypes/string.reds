@@ -349,9 +349,9 @@ string: context [
 		if zero? size [size: 1]
 		str: as red-string! slot
 		str/header: TYPE_UNSET
-		str/node:  alloc-series size 1 0
+		str/node:  node-handle-of alloc-series size 1 0
 		str/head:  0
-		str/cache: null
+		str/cache: 0
 		str/header: TYPE_STRING
 		str
 	]
@@ -414,7 +414,7 @@ string: context [
 		/local
 			p	 [byte-ptr!]
 			p4	 [int-ptr!]
-			node [node!]
+			node [node-handle!]
 	][
 		switch GET_UNIT(s) [
 			Latin1 [
@@ -423,7 +423,7 @@ string: context [
 						node: s/node
 						p: alloc-tail-unit s 1
 						p/1: as-byte cp
-						s: as series! node/value
+						s: resolve-series node
 					]
 					cp <= FFFFh [
 						p: as byte-ptr! s/offset
@@ -442,7 +442,7 @@ string: context [
 					p: alloc-tail-unit s 2
 					p/1: as-byte (cp and FFh)
 					p/2: as-byte (cp >> 8)
-					s: as series! node/value
+					s: resolve-series node
 				][
 					s: unicode/UCS2-to-UCS4 s
 					s: append-char s cp
@@ -452,7 +452,7 @@ string: context [
 				node: s/node
 				p4: as int-ptr! alloc-tail-unit s 4
 				p4/1: cp
-				s: as series! node/value
+				s: resolve-series node
 			]
 		]
 		s										;-- refresh s address
@@ -1100,10 +1100,10 @@ string: context [
 		str: as red-string! either slot = null [stack/push*][slot]
 		str/header: TYPE_UNSET
 		str/head:	0
-		str/cache:	null
+		str/cache:	0
 		switch encoding [
-			UTF-8	 [str/node: unicode/load-utf8 src size]
-			UTF-16LE [str/node: unicode/load-utf16 src size null no]
+			UTF-8	 [str/node: node-handle-of unicode/load-utf8 src size]
+			UTF-16LE [str/node: node-handle-of unicode/load-utf16 src size null no]
 			default	 [
 				print "*** Loading Error: input encoding unsupported"
 				halt
@@ -1143,8 +1143,8 @@ string: context [
 		str: as red-string! slot
 		set-type slot TYPE_UNSET
 		str/head:	0
-		str/node:	alloc-codepoints size unit
-		str/cache:	null
+		str/node:	node-handle-of alloc-codepoints size unit
+		str/cache:	0
 		set-type slot TYPE_STRING
 		str
 	]
@@ -1213,7 +1213,7 @@ string: context [
 			s2/tail: as red-value! (value2 + (num << (log-b unit)))
 		]
 
-		cnt: _function/count-locals f/spec 0 no
+		cnt: _function/count-locals resolve-node f/spec 0 no
 		if positive? cnt [_function/init-locals cnt]
 		interpreter/call f f/ctx as red-value! words/_compare-cb CB_SORT
 		stack/unwind
@@ -1284,8 +1284,8 @@ string: context [
 			if size < 0 [fire [TO_ERROR(script out-of-range) spec]]
 			proto/header: TYPE_UNSET						;-- implicit reset of all header flags
 			proto/head: 0
-			proto/node: alloc-bytes size					;-- alloc enough space for at least a Latin1 string
-			proto/cache: null
+			proto/node: node-handle-of alloc-bytes size		;-- alloc enough space for at least a Latin1 string
+			proto/cache: 0
 			proto/header: type								;-- implicit reset of all header flags
 			proto
 		][

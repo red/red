@@ -252,7 +252,7 @@ draw-begin: func [
 	dc/SetTextAntialiasMode this t-mode
 	dc/SetAntialiasMode this 0					;-- D2D1_ANTIALIAS_MODE_PER_PRIMITIVE
 
-	if ctx/image <> null [						;-- draw on image!
+	if HANDLE?(ctx/image) [						;-- draw on image!
 		rc/left: F32_0
 		rc/top: F32_0
 		rc/right: as float32! IMAGE_WIDTH(img/size)
@@ -343,11 +343,11 @@ draw-end: func [
 ][
 	loop ctx/clip-cnt [OS-clip-end ctx]
 	ctx/clip-cnt: 0
-	hWnd?: all [hWnd <> null ctx/image = null]
+	hWnd?: all [hWnd <> null NULL_HANDLE?(ctx/image)]
 
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
-	if ctx/image <> null [dc/PopAxisAlignedClip this]
+	if HANDLE?(ctx/image) [dc/PopAxisAlignedClip this]
 	dc/EndDraw this null null
 	if hWnd? [dc/SetTarget this null]
 
@@ -2092,8 +2092,8 @@ OS-draw-brush-bitmap: func [
 		bmp		[ptr-value!]
 		unk		[IUnknown]
 ][
-	width: as float32! OS-image/width? img/node
-	height: as float32! OS-image/height? img/node
+	width: as float32! OS-image/width? resolve-node img/node
+	height: as float32! OS-image/height? resolve-node img/node
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
 	ithis: OS-image/get-handle img yes

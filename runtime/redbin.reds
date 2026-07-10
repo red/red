@@ -286,6 +286,7 @@ redbin: context [
 			ctx     [red-context!]
 			blk     [red-block! value]
 			node    [node!]
+			handle  [node-handle!]
 			series  [series!]
 			offset  [int-ptr!]
 			count   [integer!]
@@ -302,7 +303,7 @@ redbin: context [
 			either as logic! offset/value [			;-- body
 				assert type = TYPE_FUNCTION
 				
-				node:   as node! value/data3
+				node:   resolve-node as node-handle! value/data3
 				series: as series! node/value
 				value:  series/offset
 				
@@ -313,10 +314,10 @@ redbin: context [
 				
 				offset: offset + 1
 				count:  count  - 1
-				node:   as node! value/data2
+				node:   resolve-node as node-handle! value/data2
 				
 				either zero? count [
-					blk/node: node
+					blk/node: node-handle-of node
 					blk/head: 0
 					blk/header: TYPE_BLOCK
 					as red-value! blk
@@ -338,7 +339,7 @@ redbin: context [
 				TYPE_OBJECT [
 					object: as red-object! value
 					ctx: GET_CTX(object)
-					series: as series! ctx/values/value
+					series: resolve-series ctx/values
 					either type = TYPE_ERROR [
 						series/offset + error/field-arg1
 					][
@@ -347,15 +348,16 @@ redbin: context [
 				]
 				TYPE_ANY_WORD
 				TYPE_REFINEMENT [
-					node: as node! value/data1
-					ctx: TO_CTX(node)
+					handle: as node-handle! value/data1
+					node: resolve-node handle
+					ctx: TO_CTX(handle)
 					either ON_STACK?(ctx) [
 						value: as red-value! ctx + 1
 						type:  TYPE_OF(value)
 						assert type = TYPE_FUNCTION
 						resolve
 					][
-						series: as series! ctx/values/value
+						series: resolve-series ctx/values
 						series/offset
 					]
 				]
@@ -560,6 +562,7 @@ redbin: context [
 		strings [red-binary!]
 		/local
 			node    [node!]
+			handle  [node-handle!]
 			ref     [int-ptr!]
 			type    [integer!]
 			header  [integer!]
@@ -610,9 +613,10 @@ redbin: context [
 			]
 			default			[
 				first?:  any [ALL_WORD?(type) type = TYPE_OBJECT type = TYPE_FUNCTION]
-				node:    as node! either first? [data/data1][data/data2]
+				handle:  as node-handle! either first? [data/data1][data/data2]
+				node:    resolve-node handle
 				ref:     reference/fetch node
-				global?: all [first? node = global-ctx]
+				global?: all [first? handle = global-ctx]
 				
 				unless global? [
 					either null? ref [
@@ -825,7 +829,7 @@ redbin: context [
 		length: (as integer! words/tail - words/offset) >> log-b size? cell!
 		
 		unless stack? [
-			values: as series! ctx/values/value
+			values: resolve-series ctx/values
 			value:  values/offset
 			loop length [							;-- pre-scan for presence of values
 				values?: TYPE_OF(value) <> TYPE_UNSET
@@ -871,7 +875,7 @@ redbin: context [
 			stack?	[logic!]
 			self?	[logic!]
 			slots	[integer!]
-			new		[node!]
+			new		[node-handle!]
 			s		[series!]
 			i		[integer!]
 			id      [integer!]
@@ -886,20 +890,20 @@ redbin: context [
 		self?:	 header and REDBIN_SELF_MASK   <> 0
 		type:	 header and REDBIN_KIND_MASK >> 26
 		
-		new: _context/create slots stack? self? null type
+		new: _context/create slots stack? self? 0 type
 		
 		obj: as red-object! ALLOC_TAIL(parent)		;-- use an object to store the ctx node
 		obj/header: TYPE_OBJECT
 		obj/ctx:	new
 		obj/class:	-1
-		obj/on-set: null
+		obj/on-set: 0
 		
-		s: as series! new/value
+		s: resolve-series new
 		copy-cell as red-value! obj s/offset + 1	;-- set back-reference
 			
 		ctx: TO_CTX(new)
 		unless stack? [
-			s: as series! ctx/values/value
+			s: resolve-series ctx/values
 			either values? [
 				values: block/push-only* slots
 				values/node: ctx/values
@@ -959,7 +963,7 @@ redbin: context [
 			values: block/push-only* data/2
 			values/node: context/values
 			
-			series: as series! context/values/value
+			series: resolve-series context/values
 			series/tail: series/offset
 		]
 		
@@ -1042,8 +1046,8 @@ redbin: context [
 
 		context: as red-context! alloc-tail series
 		context/header: TYPE_UNSET
-		context/symbols: _hashtable/init data/2 null HASH_TABLE_SYMBOL HASH_SYMBOL_CONTEXT
-		context/values: values
+		context/symbols: node-handle-of _hashtable/init data/2 null HASH_TABLE_SYMBOL HASH_SYMBOL_CONTEXT
+			context/values: node-handle-of values
 		
 		context/header: TYPE_CONTEXT
 		SET_CTX_TYPE(context kind)
@@ -1056,14 +1060,14 @@ redbin: context [
 		either type = TYPE_OBJECT [
 			object: as red-object! alloc-tail series
 			object/header: TYPE_UNSET
-			object/ctx:    node
+			object/ctx:    node-handle-of node
 			object/class:  data/2					;@@ TBD: potential conflict of concurrent class IDs
-			object/on-set: either owner? [alloc-cells 2][null]
+			object/on-set: either owner? [node-handle-of alloc-cells 2][0]
 			
 			if owner? [
 				data: data + 2
 				
-				series: as series! object/on-set/value
+				series: resolve-series object/on-set
 				series/tail: series/offset + 2
 				
 				pair/make-at series/offset data/1 0
@@ -1080,11 +1084,11 @@ redbin: context [
 			
 			fun: as red-function! alloc-tail series
 			fun/header: TYPE_UNSET
-			fun/ctx:    node
+			fun/ctx:    node-handle-of node
 			fun/spec:   spec/node
-			fun/more:   alloc-unset-cells 5
+			fun/more:   node-handle-of alloc-unset-cells 5
 			
-			series: as series! fun/more/value
+			series: resolve-series fun/more
 			series/tail: series/offset + 5
 			copy-cell as red-value! body series/offset
 			stack/pop 1
@@ -1115,7 +1119,7 @@ redbin: context [
 			owner? [logic!]
 	][
 		object: as red-object! data
-		owner?: not null? object/on-set
+		owner?: HANDLE?(object/on-set)
 		
 		if owner? [header: header or REDBIN_OWNER_MASK]
 		
@@ -1125,7 +1129,7 @@ redbin: context [
 			#if debug? = yes [indent: indent + 1]
 			store payload object/class
 			if owner? [
-				buffer: as series! object/on-set/value
+				buffer: resolve-series object/on-set
 				change: as red-pair! buffer/offset
 				deep:   as red-pair! buffer/offset + 1
 				
@@ -1160,7 +1164,7 @@ redbin: context [
 			type: TYPE_OF(last)
 			assert any [type = TYPE_OBJECT ANY_WORD?(type)]
 			
-			series: as series! last/ctx/value
+			series: resolve-series last/ctx
 			object: copy-cell series/offset + 1 as red-value! last
 			if nl? [object/header: object/header or flag-new-line]
 			
@@ -1197,7 +1201,7 @@ redbin: context [
 		code: as red-integer! base + error/field-code
 		
 		path/push
-		reference/store err/ctx
+		reference/store resolve-node err/ctx
 		record [payload header code/value]
 		
 		index: error/field-arg1
@@ -1227,7 +1231,7 @@ redbin: context [
 		if nl? [err/header: err/header or flag-new-line]
 		
 		ctx: GET_CTX(err)
-		series: as series! ctx/values/value
+		series: resolve-series ctx/values
 		series/tail: series/offset + 3
 		
 		parent: block/push-only* 6
@@ -1263,7 +1267,7 @@ redbin: context [
 		record [payload header index]
 		
 		slot/head: 0
-		slot/node: as node! data/data2
+		slot/node: as node-handle! data/data2
 		slot/header: TYPE_BLOCK
 		
 		encode-value as red-value! slot payload symbols table strings
@@ -1298,11 +1302,11 @@ redbin: context [
 		cell/header: TYPE_UNSET
 		cell/spec:	 spec/node
 		cell/code:   either type = TYPE_ACTION [actions/table/index][natives/table/index]
-		cell/more:	 alloc-unset-cells 2
+		cell/more:	 node-handle-of alloc-unset-cells 2
 		cell/header: type						;-- implicit reset of all header flags
 		
-		more: as series! cell/more/value
-		node: _context/make spec yes no CONTEXT_FUNCTION
+		more: resolve-series cell/more
+		node: resolve-node _context/make spec yes no CONTEXT_FUNCTION
 		copy-cell as red-value! (as series! node/value) + 1 alloc-tail more	;-- ctx slot
 		value: alloc-tail more							;-- args cache slot
 		value/header: TYPE_UNSET
@@ -1376,12 +1380,12 @@ redbin: context [
 		unless header and REDBIN_REFERENCE_MASK <> 0 [
 			fun: as red-function! data
 			ctx: as red-value! GET_CTX(fun)
-			series: as series! fun/more/value
+			series: resolve-series fun/more
 			body: series/offset
 			assert TYPE_OF(body) = TYPE_BLOCK
 			
 			size: block/rs-length? as red-block! body
-			series: as series! fun/spec/value
+			series: resolve-series fun/spec
 			
 			record [
 				payload
@@ -1409,7 +1413,7 @@ redbin: context [
 		old: offset
 		
 		slot/head: 0
-		slot/node: as node! spec/data2
+		slot/node: as node-handle! spec/data2
 		slot/header: TYPE_BLOCK
 		
 		offset: 0									;-- form artifical paths to spec and body blocks
@@ -1449,7 +1453,7 @@ redbin: context [
 			either type = TYPE_OP [
 				fun/header: TYPE_FUNCTION
 			][
-				series: as series! fun/ctx/value
+				series: resolve-series fun/ctx
 				source: series/offset + 1
 				copy-cell source as red-value! fun
 			]
@@ -1512,7 +1516,7 @@ redbin: context [
 		process
 		if ref? [fun/spec: cell/node]				;-- refresh node pointer to a referenced buffer
 		
-		slot: as red-block! (as series! fun/more/value) + 1
+		slot: as red-block! (resolve-series fun/more) + 1
 		process
 		if ref? [slot/node: cell/node]
 		
@@ -1535,14 +1539,14 @@ redbin: context [
 			value  [red-value!]
 			ref	   [red-value!]
 			ctx	   [red-context!]
-			node   [node!]
+			node   [node-handle!]
 			series [series!]
 			type   [integer!]
 	][
-		node: as node! data/data1
+		node: as node-handle! data/data1
 		
 		;@@ TBD: #4537
-		if null? node [node: global-ctx]
+		if zero? node [node: global-ctx]
 		
 		ctx: TO_CTX(node)
 		ref: as red-value! ctx + 1
@@ -1567,7 +1571,7 @@ redbin: context [
 				;@@ TBD: encode-value value payload symbols table strings
 				0
 			][
-				series: as series! node/value
+				series: resolve-series node
 				value:  series/offset + 1
 				type:   TYPE_OF(value)
 				
@@ -1611,7 +1615,7 @@ redbin: context [
 		
 		if id = end [
 			_symbol: symbol/get data/data2
-			string:  as c-string! (as series! _symbol/cache/value) + 1
+			string:  as c-string! (resolve-series _symbol/cache) + 1
 			length:  binary/rs-length? strings
 			
 			store table length
@@ -1657,7 +1661,7 @@ redbin: context [
 			obj	   [red-object!]
 			sym	   [int-ptr!]
 			offset [integer!]
-			ctx	   [node!]
+			ctx	   [node-handle!]
 			set?   [logic!]
 			s	   [series!]
 	][
@@ -1711,7 +1715,7 @@ redbin: context [
 			op        [red-op!]
 			backref   [red-value!]
 			series    [series!]
-			node      [node!]
+			node      [node-handle!]
 			sym tail  [int-ptr!]
 			type next [integer!]
 			type2     [integer!]
@@ -1742,8 +1746,8 @@ redbin: context [
 			if type2 = TYPE_OP [					;-- locate function! slot
 				op: as red-op! word
 				assert GET_OP_SUBTYPE(op) = TYPE_FUNCTION
-				node: as node! op/code
-				series: as series! node/value
+				node: as node-handle! op/code
+				series: resolve-series node
 				copy-cell as red-value! series/offset + 3 as red-value! word
 				assert TYPE_OF(word) = TYPE_FUNCTION
 			]
@@ -1764,13 +1768,13 @@ redbin: context [
 			word/ctx: global-ctx
 		][
 			next: 0
-			word/ctx: preprocess-binding tail end table :next
+			word/ctx: node-handle-of preprocess-binding tail end table :next
 		]
 		
 		tag
-		data: either set? [tail][fill-context as int-ptr! next end table word/ctx]
+		data: either set? [tail][fill-context as int-ptr! next end table resolve-node word/ctx]
 		
-		series:  as series! word/ctx/value
+		series:  resolve-series word/ctx
 		backref: series/offset + 1
 		
 		type: backref/header and FFh
@@ -1929,7 +1933,7 @@ redbin: context [
 			
 			data: data + 2
 			loop size [data: decode-value data end table blk]
-			_hashtable/put-all m/table m/head 2
+			_hashtable/put-all resolve-node m/table m/head 2
 			
 			data
 		]
@@ -1963,14 +1967,14 @@ redbin: context [
 			
 			hash: as red-hash! block/make-at as red-block! ALLOC_TAIL(parent) sz
 			hash/head: data/2
-			hash/table: _hashtable/init sz as red-block! hash HASH_TABLE_HASH 1
+			hash/table: node-handle-of _hashtable/init sz as red-block! hash HASH_TABLE_HASH 1
 			
 			hash/header: TYPE_HASH
 			if nl? [hash/header: hash/header or flag-new-line]
 			
 			data: data + 3
 			loop size [data: decode-value data end table as red-block! hash]
-			_hashtable/put-all hash/table hash/head 1
+			_hashtable/put-all resolve-node hash/table hash/head 1
 			
 			data
 		]
@@ -2037,7 +2041,7 @@ redbin: context [
 			vec: as red-vector! slot
 			vec/header: TYPE_UNSET
 			vec/head: 	data/2
-			vec/node: 	alloc-bytes size
+			vec/node: 	node-handle-of alloc-bytes size
 			vec/type:	data/4
 			
 			buffer: GET_BUFFER(vec)
@@ -2086,8 +2090,8 @@ redbin: context [
 			str: as red-string! ALLOC_TAIL(parent)
 			str/header: TYPE_UNSET
 			str/head: 	data/2
-			str/node: 	alloc-bytes size
-			str/cache:	null
+			str/node: 	node-handle-of alloc-bytes size
+			str/cache:	0
 			str/header: header and FFh				;-- implicit reset of all header flags
 			if nl? [str/header: str/header or flag-new-line]
 			
@@ -2159,7 +2163,7 @@ redbin: context [
 			slot/header: TYPE_UNSET						;-- ensures GC-safety
 			slot/head: data/2
 			slot/size: data/3
-			slot/node: OS-image/make-image width height null null null
+			slot/node: node-handle-of OS-image/make-image width height null null null
 			
 			slot/header: TYPE_IMAGE
 			if nl? [slot/header: slot/header or flag-new-line]
@@ -2268,7 +2272,7 @@ redbin: context [
 			slot: as red-bitset! binary/load-in bits size parent
 			if nl? [slot/header: slot/header or flag-new-line]
 			set-type as red-value! slot TYPE_BITSET
-			if not? [set-flag slot/node flag-bitset-not]
+			if not? [set-flag resolve-node slot/node flag-bitset-not]
 			
 			as int-ptr! align bits + size 32		;-- align at upper 32-bit boundary
 		]

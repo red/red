@@ -12,6 +12,7 @@ Red [
 
 #system-global [
 	#define node! int-ptr!								;-- required for Red datatypes definitions
+	#define node-handle! integer!						;-- 32-bit node references stored in Red cells
 	
 	#include %../../system/bridges/java/JNI.reds
 	#include %../../runtime/structures.reds
@@ -768,4 +769,3 @@ java-do: function [spec [block!]][
 		result
 	]
 ]
-

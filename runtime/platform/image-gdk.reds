@@ -175,7 +175,7 @@ OS-image: context [
 		/local
 			inode	[img-node!]
 	][
-		inode: as img-node! (as series! img/node/value) + 1
+		inode: as img-node! (resolve-series img/node) + 1
 		if zero? inode/flags [
 			inode/flags: IMG_NODE_HAS_BUFFER
 			inode/buffer: pixbuf-to-buf inode/handle
@@ -253,14 +253,14 @@ OS-image: context [
 		img		[red-image!]
 		width	[integer!]
 		height	[integer!]
-		return: [integer!]
+		return: [node!]
 		/local
 			pixbuf	[handle!]
 			np		[handle!]
 	][
 		pixbuf: to-pixbuf img
 		np: gdk_pixbuf_scale_simple pixbuf width height 2
-		as integer! make-node np null 0 width height
+		make-node np null 0 width height
 	]
 
 	make-node: func [
@@ -273,14 +273,16 @@ OS-image: context [
 		/local
 			node	[node!]
 			inode	[img-node!]
+			stable	[node-handle!]
 	][
-		node: alloc-bytes 20
+		node: alloc-bytes size? img-node!
 		inode: as img-node! (as series! node/value) + 1
 		inode/flags: flags
 		inode/handle: handle
 		inode/buffer: buffer
 		inode/size: height << 16 or width
-		inode/extID: externals/store node image/ext-type
+		stable: node-handle-of node
+		inode/extID: externals/store as int-ptr! stable image/ext-type
 		node
 	]
 
@@ -449,7 +451,7 @@ OS-image: context [
 			buf		[byte-ptr!]
 			node	[img-node!]
 	][
-		node: as img-node! (as series! image/node/value) + 1
+		node: as img-node! (resolve-series image/node) + 1
 		w: IMAGE_WIDTH(image/size)
 		h: IMAGE_HEIGHT(image/size)
 		pixbuf: gdk_pixbuf_new 0 yes 8 w h
@@ -467,7 +469,7 @@ OS-image: context [
 			width 	[integer!]
 			height 	[integer!]
 	][
-		inode: as img-node! (as series! img/node/value) + 1
+		inode: as img-node! (resolve-series img/node) + 1
 		if inode/flags and IMG_NODE_MODIFIED <> 0 [
 			pixbuf: make-pixbuf img
 			unless null? inode/handle [g_object_unref inode/handle]
@@ -550,7 +552,7 @@ OS-image: context [
 			handle	[int-ptr!]
 			scan0	[int-ptr!]
 	][
-		inode0: as img-node! (as series! src/node/value) + 1
+		inode0: as img-node! (resolve-series src/node) + 1
 		handle0: inode0/handle
 		width: IMAGE_WIDTH(inode0/size)
 		height: IMAGE_HEIGHT(inode0/size)
@@ -558,11 +560,11 @@ OS-image: context [
 
 		either null? handle0 [
 			scan0: as int-ptr! allocate pixels
-			dst/node: make-node null scan0 IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED width height
+			dst/node: node-handle-of make-node null scan0 IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED width height
 			copy-memory as byte-ptr! scan0 as byte-ptr! inode0/buffer pixels
 		][
 			handle: gdk_pixbuf_copy handle0
-			dst/node: make-node handle null 0 width height
+			dst/node: node-handle-of make-node handle null 0 width height
 		]
 		dst/size: src/size
 		dst/header: TYPE_IMAGE
@@ -588,19 +590,19 @@ OS-image: context [
 			handle	[int-ptr!]
 			scan0	[int-ptr!]
 	][
-		inode0: as img-node! (as series! src/node/value) + 1
+		inode0: as img-node! (resolve-series src/node) + 1
 		handle0: inode0/handle
 		width: IMAGE_WIDTH(inode0/size)
 		height: IMAGE_HEIGHT(inode0/size)
 
 		either null? handle0 [
 			dst-buf: allocate w * h * 4
-			dst/node: make-node null as int-ptr! dst-buf IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED w h
+			dst/node: node-handle-of make-node null as int-ptr! dst-buf IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED w h
 			src-buf: as byte-ptr! inode0/buffer
 			copy-rect dst-buf w * 4 src-buf width * 4 x y h
 		][
 			handle: gdk_pixbuf_new_subpixbuf gdk_pixbuf_copy handle0 x y w h
-			dst/node: make-node handle null 0 w h
+			dst/node: node-handle-of make-node handle null 0 w h
 		]
 		dst/size: h << 16 or w
 		dst/header: TYPE_IMAGE
@@ -608,5 +610,3 @@ OS-image: context [
 		dst
 	]
 ]
-
-

@@ -2211,7 +2211,7 @@ red: context [
 			evt-var: to-word join 'evt form id
 			redirect-to literals [
 				emit compose [
-					(to set-word! evt-var) as node! 0
+					(to set-word! evt-var) as node-handle! 0
 				]
 				insert-lf -4
 			]
@@ -2697,9 +2697,9 @@ red: context [
 	][
 		push-locals copy symbols						;-- prepare compiled spec block
 		forall symbols [symbols/1: decorate-symbol/no-alias symbols/1]
-		locals: append copy [/local ctx [red-context!] saved [node!]] symbols ;-- symbols can stay untyped as they are stored on the Red stack (GC protected)
+		locals: append copy [/local ctx [red-context!] saved [node-handle!]] symbols ;-- symbols can stay untyped as they are stored on the Red stack (GC protected)
 		set/any 'tracing make-attributs/prolog spec locals
-		blk: either container-obj? [head insert copy locals [octx [node!]]][locals]
+		blk: either container-obj? [head insert copy locals [octx [node-handle!]]][locals]
 		emit reduce [to set-word! decorate-func/strict name 'func blk]
 		insert-lf -3
 
@@ -2712,7 +2712,7 @@ red: context [
 		append init compose [							;-- point context values series to stack
 			ctx: TO_CTX(to paren! last ctx-stack)
 			saved: ctx/values
-			ctx/values: as node! stack/arguments
+			ctx/values: stack/store-values stack/arguments
 			(get/any 'tracing)
 		]
 		new-line skip tail init -4 on
@@ -2944,8 +2944,8 @@ red: context [
 			[null]
 		]
 		
-		octx: either 1 < length? obj-stack [select objects do obj-stack]['null]
-		if all [global? octx <> 'null][append last functions octx]	;-- add origin obj ctx to function's entry
+		octx: either 1 < length? obj-stack [select objects do obj-stack][0]
+		if all [global? octx octx <> 0][append last functions octx]	;-- add origin obj ctx to function's entry
 		
 		defer: compose [
 			_function/push get-root (spec-idx) (body-code) (ctx)
@@ -4763,7 +4763,7 @@ red: context [
 		foreach [type cast][
 			block	red-block!
 			string	red-string!
-			context node!
+			context node-handle!
 			typeset	red-typeset!
 		][
 			foreach name lit-vars/:type [

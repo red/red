@@ -25,7 +25,7 @@ action: context [
 			action [red-action!]
 			value  [red-value!]
 			more s [series!]
-			node   [node!]
+			node   [node-handle!]
 			index  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "action/make"]]
@@ -38,12 +38,12 @@ action: context [
 		action: as red-action! stack/push*
 		action/header: TYPE_UNSET						;-- implicit reset of all header flags
 		action/spec:   list/node						; @@ copy spec block if not at head
-		action/more:   alloc-unset-cells 2
+		action/more:   node-handle-of alloc-unset-cells 2
 		action/header: TYPE_ACTION
 
-		more: as series! action/more/value
+		more: resolve-series action/more
 		node: _context/make spec yes no CONTEXT_FUNCTION
-		copy-cell as red-value! (as series! node/value) + 1 alloc-tail more	;-- ctx slot
+		copy-cell as red-value! (resolve-series node) + 1 alloc-tail more	;-- ctx slot
 		value: alloc-tail more							;-- args cache slot
 		value/header: TYPE_NONE
 		

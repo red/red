@@ -51,8 +51,8 @@ simple-io: context [
 		str: as red-string! stack/push*
 		str/header: TYPE_UNSET
 		str/head: 0
-		str/node: unicode/load-utf8-buffer as-c-string data size null null yes
-		str/cache: null
+		str/node: node-handle-of unicode/load-utf8-buffer as-c-string data size null null yes
+		str/cache: 0
 		str/header: TYPE_STRING					;-- implicit reset of all header flags
 		str
 	]
@@ -1604,7 +1604,7 @@ simple-io: context [
 						copy-cell sym as cell! str1
 						str1/header: TYPE_STRING
 						str1/head: 0
-						str1/cache: null
+						str1/cache: 0
 						action: wcsupr unicode/to-utf16 str1
 					]
 					either null? data [

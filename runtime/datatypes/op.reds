@@ -82,12 +82,12 @@ op: context [
 		][fire [TO_ERROR(script invalid-type) datatype/push type]]
 		
 		fun: as red-function! spec						;-- /spec field access overlaps in any-function! cells
-		unless binary? fun/spec [fire [TO_ERROR(script bad-op-spec)]]
+		unless binary? resolve-node fun/spec [fire [TO_ERROR(script bad-op-spec)]]
 		
 		op: as red-op! copy-cell as red-value! spec stack/arguments
 		if any [type = TYPE_FUNCTION type = TYPE_ROUTINE][
 			fun: as red-function! spec
-			s: as series! fun/more/value
+			s: resolve-series fun/more
 			;@@ check if slot #4 is already set!
 			copy-cell as red-value! fun s/offset + 3 ;-- save a copy of the function value
 		]
@@ -148,7 +148,7 @@ op: context [
 		stack/unwind
 		
 		either body? [										;-- mold body if available
-			s: as series! op/more/value
+			s: resolve-series op/more
 			blk: as red-block! s/offset
 			if TYPE_OF(blk) = TYPE_BLOCK [
 				part: block/mold blk buffer no all? flat? arg part indent

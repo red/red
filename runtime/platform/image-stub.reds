@@ -79,9 +79,9 @@ OS-image: context [
 		img		[red-image!]
 		width	[integer!]
 		height	[integer!]
-		return: [integer!]
+		return: [node!]
 	][
-		0
+		null
 	]
 
 	make-node: func [
@@ -238,5 +238,4 @@ OS-image: context [
 		dst
 	]
 ]
-
 

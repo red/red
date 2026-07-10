@@ -33,7 +33,7 @@ utf16-char:		 0
 flags-blk: declare red-block!							;-- static block value for event/flags
 flags-blk/header:	TYPE_UNSET
 flags-blk/head:		0
-flags-blk/node:		alloc-cells 4
+flags-blk/node:		node-handle-of alloc-cells 4
 flags-blk/header:	TYPE_BLOCK
 
 last-mouse-pt: -1

@@ -35,9 +35,9 @@ system: context [
 			obj/header: TYPE_OBJECT
 			obj/ctx:	global-ctx
 			obj/class:	-1
-			obj/on-set:	null
+			obj/on-set:	0
 			
-			s: as series! global-ctx/value
+			s: resolve-series global-ctx
 			copy-cell as red-value! obj s/offset + 1		;-- set back-reference
 		]
 		__make-sys-object

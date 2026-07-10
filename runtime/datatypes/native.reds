@@ -25,7 +25,7 @@ native: context [
 			native [red-native!]
 			value  [red-value!]
 			more s [series!]
-			node   [node!]
+			node   [node-handle!]
 			index  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/make"]]
@@ -38,12 +38,12 @@ native: context [
 		native: as red-native! stack/push*
 		native/header:  TYPE_UNSET
 		native/spec:	list/node						; @@ copy spec block if not at head
-		native/more:	alloc-unset-cells 2
+		native/more:	node-handle-of alloc-unset-cells 2
 		native/header:  TYPE_NATIVE						;-- implicit reset of all header flags
 		
-		more: as series! native/more/value
+		more: resolve-series native/more
 		node: _context/make spec yes no CONTEXT_FUNCTION
-		copy-cell as red-value! (as series! node/value) + 1 alloc-tail more	;-- ctx slot
+		copy-cell as red-value! (resolve-series node) + 1 alloc-tail more	;-- ctx slot
 		value: alloc-tail more							;-- args cache slot
 		value/header: TYPE_NONE
 		
@@ -77,7 +77,7 @@ native: context [
 			field = words/body [
 				type: GET_OP_SUBTYPE(native)
 				either all [TYPE_OF(native) = TYPE_OP any [type = TYPE_FUNCTION type = TYPE_ROUTINE]][
-					s: as series! native/more/value
+					s: resolve-series native/more
 					stack/set-last s/offset
 				][
 					table: either any [type = TYPE_NATIVE TYPE_OF(native) = TYPE_NATIVE][natives/table][actions/table]

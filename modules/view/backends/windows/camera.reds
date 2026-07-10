@@ -250,7 +250,11 @@ grabber-cb-buffer: func [
 	if TYPE_OF(img) = TYPE_NONE [
 		bmp: 0
 		OS-image/create-bitmap-from-scan0 obj/width obj/height 0 OS-image/fixed-format pBuffer :bmp
-		image/init-image img OS-image/flip as node! bmp
+		#either draw-engine = 'GDI+ [
+			image/init-image img OS-image/flip as int-ptr! bmp
+		][
+			image/init-image img OS-image/flip resolve-node as node-handle! bmp
+		]
 	]
 	0
 ]

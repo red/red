@@ -182,7 +182,7 @@ _function: context [
 		collect-deep list ignore body
 		
 		if 0 < block/rs-length? list [
-			if -1 = count-locals spec/node spec/head yes [
+			if -1 = count-locals resolve-node spec/node spec/head yes [
 				block/rs-append spec as red-value! refinements/local
 			]
 			value: as red-value! words/_local
@@ -443,18 +443,18 @@ _function: context [
 	push: func [
 		spec	 [red-block!]
 		body	 [red-block!]
-		ctx		 [node!]								;-- if not null, context is predefined by compiler
+		ctx		 [node-handle!]						;-- if non-zero, context is predefined by compiler
 		code	 [integer!]
-		obj-ctx	 [node!]
+		obj-ctx	 [node-handle!]
 		flags	 [integer!]
-		return:	 [node!]								;-- return function's local context reference
+		return:	 [node-handle!]						;-- return function's local context reference
 		/local
 			fun    [red-function!]
 			value  [red-value!]
 			int	   [red-integer!]
 			more   [series!]
 			s	   [series!]
-			f-ctx  [node!]
+			f-ctx  [node-handle!]
 			node   [node!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_function/push"]]
@@ -467,15 +467,15 @@ _function: context [
 		NORMALIZE_SERIES_HEAD_ALT(body)
 
 		node: alloc-unset-cells 5						;-- allocate this one first
-		f-ctx: either null? ctx [_context/make spec yes no CONTEXT_FUNCTION][ctx] ;-- avoids a GC pass after this node is created
+		f-ctx: either zero? ctx [_context/make spec yes no CONTEXT_FUNCTION][ctx] ;-- avoids a GC pass after this node is created
 		
 		fun: as red-function! stack/push*
 		fun/header: TYPE_FUNCTION or flags				;-- this code layout doesn't trigger GC
 		fun/spec:	spec/node
 		fun/ctx:	f-ctx
-		fun/more:	node
+		fun/more:	node-handle-of node
 		
-		s: as series! f-ctx/value
+		s: resolve-series f-ctx
 		copy-cell as red-value! fun s/offset + 1		;-- set back-reference
 
 		either null? body [
@@ -485,7 +485,7 @@ _function: context [
 			stack/pop 1
 			value: as red-value! body
 		]
-		more: as series! fun/more/value
+		more: resolve-series fun/more
 		copy-cell value alloc-tail more					;-- store body block or none
 		
 		alloc-tail more									;-- skip the precompiled args slot
@@ -500,14 +500,14 @@ _function: context [
 		value/header: TYPE_UNSET
 		
 		int: as red-integer! alloc-tail more
-		either null? obj-ctx [
+		either zero? obj-ctx [
 			int/header: TYPE_UNSET
 		][
 			int/header: TYPE_INTEGER
-			int/value: as-integer obj-ctx				;-- store the pointer as 32-bit integer
+			int/value: obj-ctx							;-- store the stable context handle
 		]
 		
-		if all [null? ctx not null? body][
+		if all [zero? ctx not null? body][
 			_context/bind body GET_CTX(fun) no			;-- do not bind if predefined context (already done)
 		]
 		f-ctx
@@ -544,7 +544,7 @@ _function: context [
 		if TYPE_OF(body) <> TYPE_BLOCK [
 			fire [TO_ERROR(script bad-func-def)	list]
 		]
-		push spec body null 0 null flags
+		push spec body 0 0 0 flags
 		as red-function! stack/get-top
 	]
 	
@@ -566,7 +566,7 @@ _function: context [
 				blk/head: 0
 			]
 			field = words/body [
-				s: as series! fun/more/value
+				s: resolve-series fun/more
 				stack/set-last s/offset
 			]
 			field = words/words [
@@ -627,7 +627,7 @@ _function: context [
 		blk/node: fun/spec
 		part: block/mold blk buffer no all? flat? arg part - 5 indent	;-- spec
 		
-		s: as series! fun/more/value
+		s: resolve-series fun/more
 		value: s/offset
 		either TYPE_OF(value) = TYPE_NONE [
 			string/concatenate-literal buffer " none"

@@ -49,7 +49,7 @@ image: context [
 		if IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) = offset [
 			return as red-tuple! none-value
 		]
-		pixel: OS-image/get-pixel img/node offset
+		pixel: OS-image/get-pixel resolve-node img/node offset
 		tuple/rs-make [
 			pixel and 00FF0000h >> 16
 			pixel and FF00h >> 8
@@ -104,7 +104,7 @@ image: context [
 	][
 		img/head: 0
 		img/size: (OS-image/height? handle) << 16 or OS-image/width? handle
-		img/node: handle
+		img/node: node-handle-of handle
 		img/header: TYPE_IMAGE							;-- implicit reset of all header flags
 		img
 	]
@@ -115,7 +115,7 @@ image: context [
 		height	[integer!]
 		return: [red-image!]
 	][
-		init-image as red-image! stack/push* as node! OS-image/resize img width height
+		init-image as red-image! stack/push* OS-image/resize img width height
 	]
 
 	any-resize: func [
@@ -299,7 +299,15 @@ image: context [
 	
 	mark: func [node [node!]][OS-image/mark node]
 
-	delete: func [img [red-image!]][OS-image/delete img/node]
+	delete: func [img [red-image!]][OS-image/delete resolve-node img/node]
+
+	delete-external: func [
+		handle [int-ptr!]
+		/local stable [node-handle!]
+	][
+		stable: as node-handle! as-integer handle
+		OS-image/delete resolve-node stable
+	]
 
 	encode: func [
 		image	[red-image!]
@@ -598,7 +606,7 @@ image: context [
 		y: pair/y
 		if negative? y [y: 0]
 		img/size: y << 16 or x
-		img/node: OS-image/make-image x y rgb alpha color
+		img/node: node-handle-of OS-image/make-image x y rgb alpha color
 		img
 	]
 
@@ -670,7 +678,7 @@ image: context [
 		string/concatenate-literal buffer formed
 		part: part - system/words/length? formed
 
-		if null? img/node [							;-- empty image
+		if NULL_HANDLE?(img/node) [					;-- empty image
 			string/concatenate-literal buffer " #{}]"
 			return part - 5
 		]
@@ -839,7 +847,7 @@ image: context [
 			g: as-integer p/2
 			b: as-integer p/3
 			a: either TUPLE_SIZE?(color) > 3 [255 - as-integer p/4][255]
-			OS-image/set-pixel img/node offset a << 24 or (r << 16) or (g << 8) or b
+			OS-image/set-pixel resolve-node img/node offset a << 24 or (r << 16) or (g << 8) or b
 		]
 		ownership/check as red-value! img words/_poke data offset 1
 		as red-value! data
@@ -1161,7 +1169,7 @@ image: context [
 			new/size: 0
 			new/header: TYPE_IMAGE
 			new/head: 0
-			new/node: null
+			new/node: 0
 			return new
 		]
 
@@ -1339,6 +1347,6 @@ image: context [
 			null			;write
 		]
 		
-		ext-type: externals/register "image" as-integer :OS-image/delete
+		ext-type: externals/register "image" as-integer :delete-external
 	]
 ]

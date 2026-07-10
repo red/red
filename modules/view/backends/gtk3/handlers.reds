@@ -12,7 +12,7 @@ Red/System [
 
 set-selected: func [
 	obj			[handle!]
-	ctx			[node!]
+	ctx			[node-handle!]
 	idx			[integer!]
 	/local
 		int		[red-integer!]
@@ -24,7 +24,7 @@ set-selected: func [
 
 set-text: func [
 	obj			[handle!]
-	ctx			[node!]
+	ctx			[node-handle!]
 	text		[c-string!]
 	/local
 		size	[integer!]
@@ -67,7 +67,7 @@ vbar-value-changed: func [
 	adj			[handle!]
 	widget		[handle!]
 	/local
-		sc		[node!]
+		sc		[node-handle!]
 		pos		[integer!]
 		values	[red-value!]
 		pos-val	[red-integer!]
@@ -86,8 +86,8 @@ vbar-value-changed: func [
 		type	[integer!]
 		container [handle!]
 ][
-	sc: GET-CONTAINER(adj)
-	if sc <> null [
+	sc: as node-handle! GET-CONTAINER(adj)
+	if HANDLE?(sc) [
 		values: get-node-values sc
 
 		pos-val: as red-integer! values + SCROLLER_OBJ_POS
@@ -133,7 +133,7 @@ vbar-value-changed: func [
 				SET-SCROLL-X(widget native-int)
 			]
 		]
-		SET-IN-LOOP(widget sc)
+		SET-IN-LOOP(widget (as int-ptr! sc))
 		make-event widget dir << 3 or 2 or pos EVT_SCROLL
 		SET-IN-LOOP(widget null)
 	]

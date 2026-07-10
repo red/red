@@ -34,7 +34,7 @@ port: context [
 		actor: as red-function! object/rs-select actors as red-value! action
 		if TYPE_OF(actor) <> TYPE_FUNCTION [fire [TO_ERROR(access no-port-action) action]]
 		
-		count: _function/count-locals actor/spec 0 no
+		count: _function/count-locals resolve-node actor/spec 0 no
 		if positive? count [_function/init-locals count]
 		interpreter/call actor actors/ctx as red-value! action CB_PORT
 		stack/unwind-last
@@ -111,7 +111,7 @@ port: context [
 				null
 
 			new/class:  0
-			new/on-set: null
+			new/on-set: 0
 			parts: object/make new spec type
 		]
 		scheme: as red-word! object/get-values parts	;-- `scheme` field

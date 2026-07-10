@@ -27,9 +27,9 @@ symbol: context [
 		/local
 			s	[series!]
 	][
-		if sym/node = null [
-			s: as series! sym/cache/value
-			sym/node: unicode/load-utf8 as c-string! s/offset as-integer s/tail - s/offset
+		if NULL_HANDLE?(sym/node) [
+			s: resolve-series sym/cache
+			sym/node: node-handle-of unicode/load-utf8 as c-string! s/offset as-integer s/tail - s/offset
 		]
 	]
 
@@ -92,7 +92,7 @@ symbol: context [
 			p	[byte-ptr!]
 	][
 		sym: get id
-		s: as series! sym/node/value
+		s: resolve-series sym/node
 		p: as byte-ptr! s/tail
 		if p = ((as byte-ptr! s + 1) + s/size) [p: alloc-tail-unit s 1]
 		p/value: null-byte

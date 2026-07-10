@@ -51,7 +51,7 @@ alloc-at-tail: func [
 	return: [cell!]
 ][
 	assert any [blk <> root ***-root-size > block/rs-length? root]
-	alloc-tail as series! blk/node/value
+	alloc-tail resolve-series blk/node
 ]
 
 alloc-tail: func [
@@ -147,7 +147,7 @@ get-root: func [
 
 get-root-node: func [
 	idx		[integer!]
-	return: [node!]
+	return: [node-handle!]
 	/local
 		obj [red-object!]
 ][
@@ -158,7 +158,7 @@ get-root-node: func [
 
 get-root-node2: func [									;-- alias used by libRedRT
 	idx		[integer!]
-	return: [node!]
+	return: [node-handle!]
 ][
 	get-root-node idx
 ]
@@ -380,7 +380,7 @@ eval-path*: func [
 			evt?: either ser = null [no][
 				obj: as red-object! ser
 				switch TYPE_OF(ser) [
-					TYPE_OBJECT [all [obj/on-set <> null TYPE_OF(p-item) = TYPE_WORD]]
+					TYPE_OBJECT [all [HANDLE?(obj/on-set) TYPE_OF(p-item) = TYPE_WORD]]
 					TYPE_ANY_BLOCK	 [gparent <> null]
 					default			 [no]
 				]
@@ -544,12 +544,12 @@ dup-memory: func [
 
 cycles: context [
 	size: 1000											;-- max depth allowed (arbitrary)
-	bottom: as node! allocate size * size? node!		;-- cycles detection stack
+	bottom: as int-ptr! allocate size * size? integer!	;-- stable handle detection stack
 	top: bottom
 	end: bottom + size
 
-	push: func [node [node!]][
-		top/value: as-integer node
+	push: func [node [node-handle!]][
+		top/value: node
 		top: top + 1
 		if top = end [reset fire [TO_ERROR(internal too-deep)]]
 	]
@@ -563,13 +563,13 @@ cycles: context [
 	
 	reset: does [top: bottom]
 	
-	refresh: does [collector/refresh-array bottom top]	;-- called during GC pass
+	refresh: does []										;-- stable handles do not move
 	
-	find?: func [node [node!] return: [logic!] /local p [node!]][
+	find?: func [node [node-handle!] return: [logic!] /local p [int-ptr!]][
 		if top = bottom [return no]
 		p: bottom
 		until [
-			if node = as node! p/value [return yes]
+			if node = p/value [return yes]
 			p: p + 1
 			p = top
 		]
@@ -586,7 +586,7 @@ cycles: context [
 			obj	 [red-object!]
 			blk	 [red-block!]
 			s	 [c-string!]
-			node [node!]
+			node [node-handle!]
 			size [integer!]
 	][
 		node: either TYPE_OF(value) = TYPE_OBJECT [

@@ -158,7 +158,7 @@ red: context [
 	_root:	 	declare red-block!						;-- statically alloc root cell for bootstrapping
 	root:	 	as red-block! 0							;-- root block
 	symbols: 	as red-block! 0 						;-- symbols table
-	global-ctx: as node! 0								;-- global context
+	global-ctx: as node-handle! 0						;-- global context handle
 	arg-stk:	as red-block!	0						;-- argument stack (should never be relocated)
 	call-stk:	as red-block!	0						;-- call stack (should never be relocated)
 	stk-bottom: system/stack/top
@@ -248,7 +248,7 @@ red: context [
 		arg-stk:	block/make-fixed root 20000
 		call-stk:	block/make-fixed root 15000			;-- 8000 call slots (20b/slot)
 		symbols: 	block/make-in root 4000
-		global-ctx: _context/create 4000 no no null CONTEXT_GLOBAL
+		global-ctx: _context/create 4000 no no 0 CONTEXT_GLOBAL
 
 		case-folding/init
 		symbol/table: _hashtable/init 4000 symbols HASH_TABLE_SYMBOL HASH_SYMBOL_BLOCK

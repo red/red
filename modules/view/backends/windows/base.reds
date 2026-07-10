@@ -119,6 +119,8 @@ render-base: func [
 		w		[red-word!]
 		rc		[RECT_STRUCT value]
 		graphic	[integer!]
+		bitmap	[integer!]
+		lock	[com-ptr! value]
 		type	[integer!]
 		res		[logic!]
 ][
@@ -131,13 +133,19 @@ render-base: func [
 
 	GetClientRect hWnd :rc
 	if TYPE_OF(img) = TYPE_IMAGE [
+		#either draw-engine = 'GDI+ [
+			bitmap: OS-image/to-gpbitmap img
+		][
+			bitmap: OS-image/to-gpbitmap img :lock
+		]
 		GdipCreateFromHDC hDC :graphic
 		if zero? GdipDrawImageRectI
 			graphic
-			as-integer img/node
+			bitmap
 			0 0
 			rc/right - rc/left rc/bottom - rc/top [res: true]
 		GdipDeleteGraphics graphic
+		#if draw-engine <> 'GDI+ [OS-image/release-gpbitmap bitmap :lock]
 	]
 
 	type: symbol/resolve w/symbol
@@ -648,9 +656,13 @@ update-base-image: func [
 		lock	[com-ptr! value]
 ][
 	if TYPE_OF(img) = TYPE_IMAGE [
-		bitmap: OS-image/to-gpbitmap img :lock
+		#either draw-engine = 'GDI+ [
+			bitmap: OS-image/to-gpbitmap img
+		][
+			bitmap: OS-image/to-gpbitmap img :lock
+		]
 		GdipDrawImageRectI graphic bitmap 0 0 width height
-		OS-image/release-gpbitmap bitmap :lock
+		#if draw-engine <> 'GDI+ [OS-image/release-gpbitmap bitmap :lock]
 	]
 ]
 

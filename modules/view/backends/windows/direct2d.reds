@@ -23,7 +23,7 @@ dw-locale-name: as c-string! 0
 
 pfnDCompositionCreateDevice2: as int-ptr! 0
 
-dwrite-str-cache: as node! 0
+dwrite-str-cache: as node-handle! 0
 
 #define D2D_MAX_BRUSHES 64
 
@@ -2292,7 +2292,7 @@ create-text-layout: func [
 ][
 	len: -1
 	either TYPE_OF(text) = TYPE_STRING [
-		if null? text/cache [text/cache: dwrite-str-cache]
+		if NULL_HANDLE?(text/cache) [text/cache: dwrite-str-cache]
 		str: unicode/to-utf16-len text :len no
 		if null? str [str: "" len: 0]
 	][

@@ -90,19 +90,19 @@ get-face-values: func [
 ]
 
 get-node-values: func [
-	node		[node!]
+	node		[node-handle!]
 	return:		[red-value!]
 	/local
 		ctx		[red-context!]
 		s		[series!]
 ][
 	ctx: TO_CTX(node)
-	s: as series! ctx/values/value
+	s: resolve-series ctx/values
 	s/offset
 ]
 
 get-node-facet: func [
-	node		[node!]
+	node		[node-handle!]
 	facet		[integer!]
 	return:		[red-value!]
 	/local
@@ -110,7 +110,7 @@ get-node-facet: func [
 		s		[series!]
 ][
 	ctx: TO_CTX(node)
-	s: as series! ctx/values/value
+	s: resolve-series ctx/values
 	s/offset + facet
 ]
 
@@ -2093,7 +2093,7 @@ update-scroller: func [
 		]
 		exit
 	]
-	SET-CONTAINER(bar scroller/ctx)
+	SET-CONTAINER(bar (as int-ptr! scroller/ctx))
 
 	switch flag [
 		SCROLLER_OBJ_POS [
@@ -2823,7 +2823,7 @@ OS-update-view: func [
 		par		[red-object!]
 ][
 	ctx: GET_CTX(face)
-	s: as series! ctx/values/value
+	s: resolve-series ctx/values
 	values: s/offset
 
 	state: as red-block! values + FACE_OBJ_STATE

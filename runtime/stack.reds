@@ -21,9 +21,9 @@ stack: context [										;-- call stack
 	call-frame!: alias struct! [
 		header [integer!]								;-- symbol ID of the calling function
 		prev   [red-value!]								;-- previous frame base
-		ctx	   [node!]									;-- context for function's name
-		fctx   [node!]
-		saved  [node!]
+		ctx	   [node-handle!]							;-- context for function's name
+		fctx   [node-handle!]
+		saved  [integer!]								;-- encoded stack index for function values
 	]
 	
 	args-series:	as series!		0
@@ -100,6 +100,21 @@ stack: context [										;-- call stack
 	]
 	
 	set-ctop: func [ptr [int-ptr!]][ctop: as call-frame! ptr]
+
+	store-values: func [
+		ptr [red-value!]
+		return: [integer!]
+	][
+		((as-integer ptr - bottom) >> 4) + 1
+	]
+
+	get-values: func [
+		offset [integer!]
+		return: [red-value!]
+	][
+		if zero? offset [return null]
+		bottom + (offset - 1)
+	]
 	
 	mark: func [
 		fun  [red-word!]
@@ -116,8 +131,8 @@ stack: context [										;-- call stack
 		ctop/header: type or (fun/symbol << 8)
 		ctop/prev:	 arguments
 		ctop/ctx:	 fun/ctx
-		ctop/fctx:	 null
-		ctop/saved:  null
+		ctop/fctx:	 0
+		ctop/saved:  0
 		ctop: ctop + 1
 		arguments: top								;-- top of stack becomes frame base
 		assert top >= bottom
@@ -127,10 +142,10 @@ stack: context [										;-- call stack
 	
 	mark-func: func [
 		fun		 [red-word!]
-		ctx-name [node!]
+		ctx-name [node-handle!]
 		/local
 			ctx	   [red-context!]
-			values [node!]
+			values [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/mark-func"]]
 
@@ -140,7 +155,7 @@ stack: context [										;-- call stack
 			cycles/reset
 			fire [TO_ERROR(internal stack-overflow)]
 		]
-		values: either null? ctx-name [null][			;-- null only happens in some libRedRT cases
+		values: either zero? ctx-name [0][				;-- zero only happens in some libRedRT cases
 			ctx: TO_CTX(ctx-name)
 			ctx/values
 		]
@@ -214,14 +229,14 @@ stack: context [										;-- call stack
 		dst [red-block!]
 		/local
 			p	  [call-frame!]
-			ctx	  [node!]
+			ctx	  [node-handle!]
 			sym	  [integer!]
 	][
 		p: ctop - 1
 		until [
 			sym: p/header >> 8 and FFFFh
 			if all [sym <> body-symbol	sym <> anon-symbol][
-				ctx: either null? p/fctx [global-ctx][p/fctx]
+				ctx: either zero? p/fctx [global-ctx][p/fctx]
 				block/rs-append dst as red-value! word/at ctx sym
 				integer/make-at ALLOC_TAIL(dst) (as-integer p/prev - stack/bottom) >> 4
 			]
@@ -329,7 +344,7 @@ stack: context [										;-- call stack
 		inner? [logic!]									;-- YES: stay in inner frame
 		/local
 			type [integer!]
-			node [node!]
+			node [node-handle!]
 			ctx	 [red-context!]
 	][
 		assert cbottom < ctop
@@ -338,7 +353,7 @@ stack: context [										;-- call stack
 			type: CALL_STACK_MASK and ctop/header
 			if type = FRAME_FUNCTION [
 				node: ctop/fctx
-				if node <> null [
+				if node <> 0 [
 					ctx: TO_CTX(node)
 					ctx/values: ctop/saved
 				]
@@ -786,7 +801,7 @@ stack: context [										;-- call stack
 				sym: symbol/get p/header >> 8 and FFFFh
 				flags: p/header and FF000000h
 			
-				print ["^/-FRAME- : " as-c-string (as series! sym/cache/value) + 1 ", "]
+				print ["^/-FRAME- : " as-c-string (resolve-series sym/cache) + 1 ", "]
 				
 				if flags and F0000000h = FLAG_INTERPRET [print "INTERPRET,"]
 				if flags and F0000000h = FLAG_THROW_ATR [print "THROW_ATR,"]

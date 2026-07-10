@@ -52,6 +52,11 @@ Red/System [
 
 OS-image: context [
 
+	img-node!: alias struct! [
+		handle	[int-ptr!]
+		extID	[integer!]								;-- external resources table ID
+	]
+
 	RECT!: alias struct! [
 		left	[integer!]
 		top		[integer!]
@@ -208,6 +213,11 @@ OS-image: context [
 				image		[integer!]
 				return:		[integer!]
 			]
+			GdipImageRotateFlip: "GdipImageRotateFlip" [
+				image		[integer!]
+				rotateFlip	[integer!]
+				return:		[integer!]
+			]
 			GdipGetImagePaletteSize: "GdipGetImagePaletteSize" [
 				image		[integer!]
 				size		[int-ptr!]
@@ -281,25 +291,42 @@ OS-image: context [
 		GdipCreateBitmapFromGdiDib bmi data bitmap
 	]
 
+	native-handle: func [
+		node		[node!]
+		return:		[integer!]
+		/local
+			inode	[img-node!]
+	][
+		inode: as img-node! (as series! node/value) + 1
+		as-integer inode/handle
+	]
+
+	get-native: func [
+		image		[red-image!]
+		return:		[integer!]
+	][
+		native-handle resolve-node image/node
+	]
+
 	width?: func [
-		handle		[int-ptr!]
+		node		[node!]
 		return:		[integer!]
 		/local
 			width	[integer!]
 	][
 		width: 0
-		GdipGetImageWidth as-integer handle :width
+		GdipGetImageWidth (native-handle node) :width
 		width
 	]
 
 	height?: func [
-		handle		[int-ptr!]
+		node		[node!]
 		return:		[integer!]
 		/local
 			height	[integer!]
 	][
 		height: 0
-		GdipGetImageHeight as-integer handle :height
+		GdipGetImageHeight (native-handle node) :height
 		height
 	]
 
@@ -332,14 +359,14 @@ OS-image: context [
 		write?		[logic!]
 		return:		[integer!]
 	][
-		lock-bitmap-fmt as-integer img/node PixelFormat32bppARGB write?
+		lock-bitmap-fmt (get-native img) PixelFormat32bppARGB write?
 	]	
 
 	unlock-bitmap: func [
 		img			[red-image!]
 		data		[integer!]
 	][
-		GdipBitmapUnlockBits as-integer img/node as BitmapData! data
+		GdipBitmapUnlockBits (get-native img) as BitmapData! data
 		free as byte-ptr! data
 	]
 
@@ -377,7 +404,7 @@ OS-image: context [
 	][
 		width: width? bitmap
 		arbg: 0
-		GdipBitmapGetPixel as-integer bitmap index % width index / width :arbg
+		GdipBitmapGetPixel (native-handle bitmap) index % width index / width :arbg
 		arbg
 	]
 
@@ -390,18 +417,35 @@ OS-image: context [
 			width	[integer!]
 	][
 		width: width? bitmap
-		GdipBitmapSetPixel as-integer bitmap index % width index / width color
+		GdipBitmapSetPixel (native-handle bitmap) index % width index / width color
 	]
 
-	delete: func [node [node!]][
-		GdipDisposeImage as-integer node
+	mark: func [node [node!] /local inode [img-node!]][
+		inode: as img-node! (as series! node/value) + 1
+		externals/mark inode/extID
+	]
+
+	delete: func [node [node!] /local inode [img-node!]][
+		inode: as img-node! (as series! node/value) + 1
+		if inode/handle <> null [
+			GdipDisposeImage as-integer inode/handle
+			inode/handle: null
+		]
+	]
+
+	flip: func [
+		handle	[int-ptr!]
+		return: [node!]
+	][
+		GdipImageRotateFlip as-integer handle 4		;-- RotateNoneFlipX
+		make-node handle
 	]
 
 	resize: func [
 		img		[red-image!]
 		width	[integer!]
 		height	[integer!]
-		return: [integer!]
+		return: [node!]
 		/local
 			graphic [integer!]
 			old-w	[integer!]
@@ -415,18 +459,18 @@ OS-image: context [
 		graphic: 0
 		format: 0
 		bitmap: 0
-		GdipGetImagePixelFormat as-integer img/node :format
+		GdipGetImagePixelFormat (get-native img) :format
 		GdipCreateBitmapFromScan0 width height 0 format null :bitmap
 		GdipGetImageGraphicsContext bitmap :graphic
 		GdipDrawImageRectRectI
 			graphic
-			as-integer img/node
+			(get-native img)
 			0 0 width height
 			0 0 old-w old-h
 			2
 			0 0 0
 		GdipDeleteGraphics graphic
-		bitmap
+		make-node as int-ptr! bitmap
 	]
 
 	copy-rect: func [
@@ -498,7 +542,7 @@ OS-image: context [
 
 	load-image: func [
 		src			[red-string!]
-		return:		[int-ptr!]
+		return:		[node!]
 		/local
 			handle	[integer!]
 			res		[integer!]
@@ -513,14 +557,32 @@ OS-image: context [
 
 		format: 0
 		bitmap: 0
+		w: 0
+		h: 0
 		GdipGetImagePixelFormat handle :format
-		w: width? as int-ptr! handle
-		h: height? as int-ptr! handle
+		GdipGetImageWidth handle :w
+		GdipGetImageHeight handle :h
 		GdipCreateBitmapFromScan0 w h 0 format null :bitmap
 		copy-lines bitmap handle h 0 0 format
 
 		GdipDisposeImage handle
-		as int-ptr! bitmap
+		make-node as int-ptr! bitmap
+	]
+
+	make-node: func [
+		handle	[int-ptr!]
+		return: [node!]
+		/local
+			node	[node!]
+			inode	[img-node!]
+			stable	[node-handle!]
+	][
+		node: alloc-bytes size? img-node!
+		inode: as img-node! (as series! node/value) + 1
+		inode/handle: handle
+		stable: node-handle-of node
+		inode/extID: externals/store as int-ptr! stable image/ext-type
+		node
 	]
 
 	make-image: func [
@@ -529,7 +591,7 @@ OS-image: context [
 		rgb-bin	[red-binary!]
 		alpha-bin [red-binary!]
 		color	[red-tuple!]
-		return: [int-ptr!]
+		return: [node!]
 		/local
 			a		[integer!]
 			r		[integer!]
@@ -591,7 +653,7 @@ OS-image: context [
 		]
 
 		unlock-bitmap-fmt bitmap as-integer data
-		as int-ptr! bitmap
+		make-node as int-ptr! bitmap
 	]
 
 	load-binary: func [
@@ -618,7 +680,7 @@ OS-image: context [
 		sthis: as this! s
 		stream: as IStream sthis/vtbl
 		stream/Release sthis				;-- the hMem will also be released
-		as node! bmp
+		make-node as int-ptr! bmp
 	]
 
 	encode: func [
@@ -663,7 +725,7 @@ OS-image: context [
 			0
 			0
 			IStm
-		hr: GdipSaveImageToStream as-integer image/node IStm/ptr clsid 0
+		hr: GdipSaveImageToStream (get-native image) IStm/ptr clsid 0
 
 		stream: as IStream IStm/ptr/vtbl
 		stream/Stat IStm/ptr stat 1
@@ -672,7 +734,7 @@ OS-image: context [
 		bin: as red-binary! slot
 		bin/header: TYPE_UNSET
 		bin/head: 0
-		bin/node: alloc-bytes len
+		bin/node: node-handle-of alloc-bytes len
 		bin/header: TYPE_BINARY
 		
 		s: GET_BUFFER(bin)
@@ -694,12 +756,12 @@ OS-image: context [
 			bmp		[integer!]
 	][
 		bmp: 0
-		handle: as-integer src/node
+		handle: get-native src
 		GdipCloneImage handle :bmp
 		dst/size: src/size
 		dst/header: TYPE_IMAGE
 		dst/head: 0
-		dst/node: as node! bmp
+		dst/node: node-handle-of (make-node as int-ptr! bmp)
 		return dst
 	]
 
@@ -718,14 +780,14 @@ OS-image: context [
 	][
 		bmp: 0
 		format: 0
-		handle: as-integer src/node
+		handle: get-native src
 		GdipGetImagePixelFormat handle :format
 		GdipCloneBitmapAreaI x y w h format handle :bmp
 
 		dst/size: h << 16 or w
 		dst/header: TYPE_IMAGE
 		dst/head: 0
-		dst/node: as node! bmp
+		dst/node: node-handle-of (make-node as int-ptr! bmp)
 		dst
 	]
 
@@ -736,7 +798,7 @@ OS-image: context [
 			bitmap	[integer!]
 	][
 		bitmap: 0
-		GdipCreateHBITMAPFromBitmap as-integer image/node :bitmap 0
+		GdipCreateHBITMAPFromBitmap (get-native image) :bitmap 0
 		bitmap
 	]
 
@@ -750,14 +812,14 @@ OS-image: context [
 		GdipCreateBitmapFromHBITMAP as handle! hBitmap 0 :bitmap
 		if zero? bitmap [return as red-image! none-value]
 
-		image/init-image as red-image! stack/push* as int-ptr! bitmap
+		image/init-image as red-image! stack/push* (make-node as int-ptr! bitmap)
 	]
 
 	to-gpbitmap: func [
 		image		[red-image!]
 		return:		[integer!]
 	][
-		as integer! image/node
+		get-native image
 	]
 
 	release-gpbitmap: func [

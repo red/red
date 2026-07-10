@@ -97,7 +97,7 @@ word: context [
 	]
 	
 	push-local: func [
-		node	[node!]
+		node	[node-handle!]
 		index	[integer!]
 		return: [red-word!]
 	][
@@ -107,7 +107,7 @@ word: context [
 	]
 	
 	from: func [
-		node	[node!]
+		node	[node-handle!]
 		index	[integer!]
 		return: [red-word!]
 		/local
@@ -120,7 +120,7 @@ word: context [
 	]
 	
 	at: func [
-		node	[node!]
+		node	[node-handle!]
 		sym		[integer!]
 		return: [red-word!]
 		/local
@@ -139,7 +139,7 @@ word: context [
 	]
 	
 	get-in: func [
-		node	[node!]
+		node	[node-handle!]
 		index	[integer!]
 		return: [red-value!]
 		/local
@@ -149,12 +149,12 @@ word: context [
 		#if debug? = yes [if verbose > 0 [print-line "word/get-in"]]
 
 		ctx: TO_CTX(node)
-		s: as series! ctx/values/value
+		s: resolve-series ctx/values
 		s/offset + index
 	]
 	
 	get-local: func [
-		node	[node!]
+		node	[node-handle!]
 		index	[integer!]
 		return: [red-value!]
 		/local
@@ -165,15 +165,15 @@ word: context [
 		#if debug? = yes [if verbose > 0 [print-line "word/get-local"]]
 
 		ctx: TO_CTX(node)
-		if null? ctx/values [
+		if NULL_HANDLE?(ctx/values) [
 			s: _hashtable/get-ctx-words ctx
 			fire [TO_ERROR(script not-defined) s/offset + index]
 		]
 		
 		value: either ON_STACK?(ctx) [
-			(as red-value! ctx/values) + index
+			(stack/get-values ctx/values) + index
 		][
-			s: as series! ctx/values/value
+			s: resolve-series ctx/values
 			s/offset + index
 		]
 		stack/push value
@@ -199,7 +199,7 @@ word: context [
 	]
 
 	replace: func [
-		node	[node!]
+		node	[node-handle!]
 		index	[integer!]
 		/local
 			ctx	   [red-context!]
@@ -213,13 +213,13 @@ word: context [
 			w: _hashtable/get-ctx-word ctx index
 			w/header: w/header or flag-word-dirty
 		]
-		values: as series! ctx/values/value
+		values: resolve-series ctx/values
 		stack/push values/offset + index
 		copy-cell value values/offset + index
 	]
 	
 	set-in-ctx: func [
-		node	[node!]
+		node	[node-handle!]
 		index	[integer!]
 		/local
 			ctx	   [red-context!]
@@ -233,12 +233,12 @@ word: context [
 			w: _hashtable/get-ctx-word ctx index
 			w/header: w/header or flag-word-dirty
 		]
-		values: as series! ctx/values/value
+		values: resolve-series ctx/values
 		copy-cell value values/offset + index
 	]
 	
 	set-in: func [
-		node	[node!]
+		node	[node-handle!]
 		index	[integer!]
 		return: [red-value!]
 		/local
@@ -255,7 +255,7 @@ word: context [
 			w: _hashtable/get-ctx-word ctx index
 			w/header: w/header or flag-word-dirty
 		]		
-		values: as series! ctx/values/value
+		values: resolve-series ctx/values
 		copy-cell value values/offset + index
 		value
 	]
@@ -311,7 +311,7 @@ word: context [
 		str: as red-string! stack/push sym
 		str/header: TYPE_STRING
 		str/head: 0
-		str/cache: null
+		str/cache: 0
 		str
 	]
 	
@@ -324,7 +324,7 @@ word: context [
 			len size [integer!]
 	][
 		sym: symbol/get issue/symbol
-		s: as series! sym/cache/value
+		s: resolve-series sym/cache
 		size: as-integer (s/tail - s/offset)
 		len: 0
 		lexer/scan null as byte-ptr! s/offset size yes yes no no :len null null null

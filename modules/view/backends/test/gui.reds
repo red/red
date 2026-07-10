@@ -41,18 +41,18 @@ get-face-values: func [
 	return: [red-value!]
 	/local
 		ctx	 [red-context!]
-		node [node!]
+		node [node-handle!]
 		s	 [series!]
 ][
 	;node: as node! GetWindowLong hWnd wc-offset + 4
 	;ctx: TO_CTX(node)
-	;s: as series! ctx/values/value
+	;s: resolve-series ctx/values
 	;s/offset
 	null
 ]
 
 get-node-facet: func [
-	node	[node!]
+	node	[node-handle!]
 	facet	[integer!]
 	return: [red-value!]
 	/local
@@ -60,7 +60,7 @@ get-node-facet: func [
 		s	 [series!]
 ][
 	ctx: TO_CTX(node)
-	s: as series! ctx/values/value
+	s: resolve-series ctx/values
 	s/offset + facet
 ]
 
@@ -301,7 +301,7 @@ OS-update-view: func [
 		s		[series!]
 ][
 	ctx: GET_CTX(face)
-	s: as series! ctx/values/value
+	s: resolve-series ctx/values
 	state: as red-block! s/offset + FACE_OBJ_STATE
 	s: GET_BUFFER(state)
 	int: as red-integer! s/offset

@@ -238,10 +238,10 @@ unicode: context [
 		len		 [int-ptr!]			;-- len/value = -1 convert all chars
 		return:  [c-string!]
 		/local
-			node [node!]
+			node [node-handle!]
 	][
 		node: str-to-utf8 str len no
-		as-c-string (as series! node/value) + 1
+		as-c-string (resolve-series node) + 1
 	]
 	
 	io-to-utf8: func [
@@ -250,17 +250,17 @@ unicode: context [
 		convert? [logic!]			;-- convert line terminators to OS specific
 		return:  [c-string!]
 		/local
-			node [node!]		
+			node [node-handle!]
 	][
 		node: str-to-utf8 str len convert?
-		as-c-string (as series! node/value) + 1
+		as-c-string (resolve-series node) + 1
 	]
 
 	str-to-utf8: func [
 		str		 [red-string!]
 		len		 [int-ptr!]			;-- len/value = -1 convert all chars
 		convert? [logic!]			;-- convert line terminators to OS specific
-		return:  [node!]
+		return:  [node-handle!]
 		/local
 			s	 [series!]
 			beg  [byte-ptr!]
@@ -632,7 +632,7 @@ unicode: context [
 			s: as series! node/value
 			unit:  Latin1								;-- start with 1 byte/codepoint
 		][
-			node: dst/node
+			node: resolve-node dst/node
 			s: dst
 			unit: GET_UNIT(s)
 			if s/size / unit < used [
@@ -837,7 +837,7 @@ unicode: context [
 	][
 		if null? src [
 			assert not null? str
-			src: as-c-string (as series! str/cache/value) + 1 ;-- import UTF-16 string from cache
+			src: as-c-string (resolve-series str/cache) + 1 ;-- import UTF-16 string from cache
 		]
 		unit: scan-utf16 src size
 		
@@ -849,7 +849,7 @@ unicode: context [
 			]
 			s: as series! node/value
 		][
-			node: str/node
+			node: resolve-node str/node
 			s: GET_BUFFER(str)
 			len: size << (unit >> 1)
 			if len > s/size [s: expand-series s len]
@@ -1090,7 +1090,7 @@ unicode: context [
 		len/value: part
 		
 		#if debug? = yes [
-			s: as series! str/cache/value
+			s: resolve-series str/cache
 			assert head + s/size > dst					;-- detect buffer overflow
 		]
 		as-c-string head
@@ -1104,11 +1104,11 @@ unicode: context [
 			node [node!]
 			s	 [series!]
 	][
-		either null? str/cache [
-			str/cache: alloc-bytes size
-			s: as series! str/cache/value
+		either NULL_HANDLE?(str/cache) [
+			str/cache: node-handle-of alloc-bytes size
+			s: resolve-series str/cache
 		][
-			s: as series! str/cache/value
+			s: resolve-series str/cache
 			if s/size < size [s: expand-series s size]
 		]
 		as-c-string s + 1
@@ -1132,7 +1132,7 @@ unicode: context [
 	][
 		if null? src [
 			assert not null? str
-			src: as-c-string (as series! str/cache/value) + 1 ;-- import latin1 string from cache
+			src: as-c-string (resolve-series str/cache) + 1 ;-- import latin1 string from cache
 		]
 
 		either null? str [
@@ -1141,7 +1141,7 @@ unicode: context [
 			node: alloc-bytes cnt + 1
 			s: as series! node/value
 		][
-			node: str/node
+			node: resolve-node str/node
 			s: GET_BUFFER(str)
 			unit: GET_UNIT(s)
 			if size > s/size [s: expand-series s size]
@@ -1177,7 +1177,7 @@ unicode: context [
 						s: expand-series s s/size + (size >> 2)	;-- increase size by 50% 
 						buf1: as byte-ptr! s/tail
 						end: (as byte-ptr! s/offset) + s/size
-						src: as-c-string (as series! str/cache/value) + 1
+						src: as-c-string (resolve-series str/cache) + 1
 					]
 					buf1/1: as-byte cp
 					buf1/2: null-byte
@@ -1189,7 +1189,7 @@ unicode: context [
 						s: expand-series s s/size + size ;-- increase size by 100% 
 						buf4: as int-ptr! s/tail
 						end: (as byte-ptr! s/offset) + s/size
-						src: as-c-string (as series! str/cache/value) + 1
+						src: as-c-string (resolve-series str/cache) + 1
 					]
 					buf4/value: cp
 					buf4: buf4 + 1

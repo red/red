@@ -29,7 +29,7 @@ routine: context [
 			s	  [series!]
 			count [integer!]
 	][
-		s: as series! value/spec/value
+		s: resolve-series value/spec
 		
 		slot:  s/offset
 		tail:  s/tail
@@ -59,7 +59,7 @@ routine: context [
 			int	   [red-integer!]
 			more   [series!]
 			flag   [integer!]
-			ctx	   [node!]
+			ctx	   [node-handle!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "routine/push"]]
 
@@ -70,9 +70,9 @@ routine: context [
 		cell/ctx:	 ctx
 		cell/spec:	 spec/node
 		cell/more:	 spec/node							;@@ make GC happy
-		cell/more:	 alloc-cells 5
+		cell/more:	 node-handle-of alloc-cells 5
 		
-		more: as series! cell/more/value
+		more: resolve-series cell/more
 		value: either null? body [none-value][as red-value! body]
 		copy-cell value alloc-tail more					;-- store body block or none
 		
@@ -132,7 +132,7 @@ routine: context [
 		blk/node: fun/spec
 		part: block/mold blk buffer only? all? flat? arg part - 8 indent	;-- spec
 		
-		s: as series! fun/more/value
+		s: resolve-series fun/more
 		body: s/offset
 		either TYPE_OF(body) = TYPE_BLOCK [
 			block/mold as red-block! body buffer only? all? flat? arg part indent ;-- body

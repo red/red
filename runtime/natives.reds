@@ -430,9 +430,9 @@ natives: context [
 		_function/push 
 			as red-block! stack/arguments
 			as red-block! stack/arguments + 1
-			null
 			0
-			null
+			0
+			0
 			flags
 		stack/set-last stack/get-top
 	]
@@ -576,7 +576,7 @@ natives: context [
 			stack/set-parent-func-flag					;-- (#5403, #5401) allows do/trace to fully catch exit/return exceptions
 			with [interpreter][
 				either trace? [fun?: no][				;-- pass-thru, ignore handler if one is in use already
-					fun-locs: _function/count-locals fun/spec 0 no
+					fun-locs: _function/count-locals resolve-node fun/spec 0 no
 					fun-evts: decode-filter fun
 					copy-cell as red-value! fun as red-value! trace-fun
 					trace?: tracing?: yes
@@ -1200,7 +1200,7 @@ natives: context [
 			fun	  [red-function!]
 			word  [red-word!]
 			vctx  [red-context!]
-			ctx	  [node!]
+			ctx	  [node-handle!]
 			self? [logic!]
 			idx	  [integer!]
 	][
@@ -1545,14 +1545,14 @@ natives: context [
 		ret: as red-binary! data
 		ret/head: 0
 		ret/header: TYPE_NONE
-		ret/node: switch base [
+		ret/node: node-handle-of switch base [
 			16 [binary/decode-16 p len unit]
 			2  [binary/decode-2  p len unit]
 			58 [binary/decode-58 p len unit]
 			64 [binary/decode-64 p len unit]
 			default [fire [TO_ERROR(script invalid-arg) int] null]
 		]
-		if ret/node <> null [ret/header: TYPE_BINARY]			;- if null, RETURN_NONE
+		if HANDLE?(ret/node) [ret/header: TYPE_BINARY]			;- if null, RETURN_NONE
 	]
 
 	enbase*: func [
@@ -1571,7 +1571,7 @@ natives: context [
 	][
 		#typecheck [enbase base-arg]
 		data: as red-string! stack/arguments
-		data/cache: null
+		data/cache: 0
 
 		base: either positive? base-arg [
 			int: as red-integer! data + 1
@@ -1609,7 +1609,7 @@ natives: context [
 			16 [binary/encode-16 out p len]
 			2  [binary/encode-2  out p len]
 		]
-		ret/node: node
+		ret/node: node-handle-of node
 		ret/header: TYPE_STRING
 	]
 
@@ -2622,7 +2622,7 @@ natives: context [
 	][
 		#typecheck context?
 		word: as red-word! stack/arguments
-		s: as series! word/ctx/value
+		s: resolve-series word/ctx
 		stack/set-last s/offset + 1						;-- return back-reference
 	]
 

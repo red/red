@@ -327,7 +327,11 @@ Red/System [
 #define TUPLE_SIZE?(value)		(value/header >> 19 and 15)
 #define GET_TUPLE_ARRAY(tp) 	[(as byte-ptr! tp) + 4]
 #define SET_TUPLE_SIZE(t n) 	[t/header: t/header and 1F87FFFFh or (n << 19)]
-#define GET_BUFFER(series)  	(as series! series/node/value)
+#define GET_NODE(handle)		(resolve-node handle)
+#define NODE_HANDLE(node)		(node-handle-of node)
+#define NULL_HANDLE?(handle)	(zero? handle)
+#define HANDLE?(handle)			(handle <> 0)
+#define GET_BUFFER(series)  	(resolve-series series/node)
 #define GET_UNIT(series)		(series/flags and get-unit-mask)
 #define ALLOC_TAIL(series)		[alloc-at-tail series]
 #define FLAG_SET?(flag)			(flags and flag <> 0)
@@ -335,8 +339,8 @@ Red/System [
 #define ON_STACK?(ctx)			(ctx/header and flag-series-stk <> 0)
 #define EQUAL_SYMBOLS?(a b) 	((symbol/resolve a) = (symbol/resolve b))
 #define EQUAL_WORDS?(a b) 		((symbol/resolve a/symbol) = (symbol/resolve b/symbol))
-#define TO_CTX(node)			(as red-context! ((as series! node/value) + 1))
-#define GET_CTX(obj)			(as red-context! ((as series! obj/ctx/value) + 1))
+#define TO_CTX(handle)			(as red-context! (resolve-series handle) + 1)
+#define GET_CTX(obj)			(as red-context! (resolve-series obj/ctx) + 1)
 #define GET_CTX_SERIES(obj)		((as series! obj) - 1)
 #define GET_CTX_TYPE(cell)		(cell/header >> 11 and 03h)
 #define GET_CTX_TYPE_ALT(header)(header >> 11 and 03h)

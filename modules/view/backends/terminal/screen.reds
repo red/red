@@ -178,7 +178,7 @@ screen: context [
 			end [red-object!]
 			h	[handle!]
 	][
-		if w/ui <> null [collector/keep :w/ui]
+		if HANDLE?(w/ui) [collector/keep :w/ui]
 		p: CHILD_WIDGET(w)
 		if TYPE_OF(p) = TYPE_BLOCK [
 			obj: as red-object! block/rs-head p
@@ -209,9 +209,9 @@ screen: context [
 	]
 
 	on-gc-mark: func [][
-		collector/keep as int-ptr! :win-list
-		collector/keep as int-ptr! :captured
-		collector/keep as int-ptr! :esc-sequences
+		collector/keep-raw as int-ptr! :win-list
+		collector/keep-raw as int-ptr! :captured
+		collector/keep-raw as int-ptr! :esc-sequences
 		mark-widgets
 	]
 

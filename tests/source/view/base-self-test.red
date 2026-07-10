@@ -800,7 +800,7 @@ maybe-display-shortly: func [
 	"when user-mode is on, display an image(s) with a message for review, dump it otherwise"
 	im [image! block!] msg [string!]
 ] [
-	im: compose [(im)]
+	im: either image? im [reduce [im]][reduce im]
 	if bst-user-mode [
 		view compose [
 			across

@@ -1494,7 +1494,7 @@ hit-test: func [
 			x: as-integer pt/x * ratio
 			ratio: (as float32! h) / (as float32! sz/y)
 			y: as-integer pt/y * ratio
-			pixel: OS-image/get-pixel img/node y * w + x
+			pixel: OS-image/get-pixel resolve-node img/node y * w + x
 			if pixel >>> 24 = 0 [return 0]
 		]
 

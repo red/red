@@ -18,7 +18,7 @@ print-symbol: func [
 ][
 	s: GET_BUFFER(symbols)
 	sym: as red-symbol! s/offset + word/symbol - 1
-	print as-c-string (as series! sym/cache/value) + 1
+	print as-c-string (resolve-series sym/cache) + 1
 ]
 
 ;-------------------------------------------
@@ -149,7 +149,7 @@ memory-info: func [
 		len: (as-integer s/tail - s/offset) >> 4 + 1
 		symbol: s/offset
 		
-		s: as series! val-table/value
+		s: resolve-series val-table
 		value: s/offset
 		
 		s: GET_BUFFER(symbols)

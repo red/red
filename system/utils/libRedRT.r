@@ -155,7 +155,7 @@ libRedRT: context [
 			]
 			series-buffer!: alias struct! [
 				flags	[integer!]						;-- series flags
-				node	[int-ptr!]						;-- point back to referring node
+				node	[node-handle!]					;-- stable handle of the referring node
 				size	[integer!]						;-- usable buffer size (series-buffer! struct excluded)
 				offset	[cell!]							;-- series buffer offset pointer (insert at head optimization)
 				tail	[cell!]							;-- series buffer tail pointer 
@@ -172,7 +172,7 @@ libRedRT: context [
 			
 			get-root-node: func [
 				idx		[integer!]
-				return: [node!]
+				return: [node-handle!]
 				/local
 					obj [red-object!]
 			][

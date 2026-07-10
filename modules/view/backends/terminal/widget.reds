@@ -825,11 +825,11 @@ _widget: context [
 		]
 
 		;-- draw ui
-		if widget/ui <> null [
+		if HANDLE?(widget/ui) [
 			ui/header: TYPE_STRING
 			ui/head: 0
 			ui/node: widget/ui
-			ui/cache: null
+			ui/cache: 0
 			config/flags: flags
 			render-text ui xx yy :box :config			
 		]

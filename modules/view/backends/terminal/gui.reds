@@ -47,12 +47,12 @@ get-face-values: func [
 	return:  [red-value!]
 	/local
 		ctx	 [red-context!]
-		node [node!]
+		node [node-handle!]
 		s	 [series!]
 ][
 	node: g/obj-ctx
 	ctx: TO_CTX(node)
-	s: as series! ctx/values/value
+	s: resolve-series ctx/values
 	s/offset
 ]
 
@@ -92,7 +92,7 @@ widget-data: func [
 
 set-widget-ui: func [
 	h		[int-ptr!]
-	ui		[node!]
+	ui		[node-handle!]
 	/local
 		w	[widget!]
 ][
@@ -225,7 +225,7 @@ get-text-size: func [
 ]
 
 get-node-facet: func [
-	node	[node!]
+	node	[node-handle!]
 	facet	[integer!]
 	return: [red-value!]
 	/local
@@ -233,7 +233,7 @@ get-node-facet: func [
 		s	 [series!]
 ][
 	ctx: TO_CTX(node)
-	s: as series! ctx/values/value
+	s: resolve-series ctx/values
 	s/offset + facet
 ]
 
@@ -519,7 +519,7 @@ change-image: func [
 	w: 0 h: 0
 	_widget/get-size widget :w :h
 	sz: w * h
-	if any [null? img/node sz <= 0][exit]
+	if any [NULL_HANDLE?(img/node) sz <= 0][exit]
 
 	data: as int-ptr! allocate sz + 1 * size? pixel!
 	data/value: sz
@@ -715,7 +715,7 @@ OS-update-view: func [
 		bits	[integer!]
 ][
 	ctx: GET_CTX(face)
-	s: as series! ctx/values/value
+	s: resolve-series ctx/values
 	values: s/offset
 
 	state: as red-block! values + FACE_OBJ_STATE

@@ -206,19 +206,21 @@ block: context [
 		/local
 			new	   [red-block!]
 			node   [node!]
-			target [series!]
+			target source-series [series!]
 			value  [red-value!]
-			tail   [red-value!]
 			result [red-block!]
-			size   [integer!]
-			type   [integer!]
+			source [node-handle!]
+			size i head type source-type header [integer!]
 			empty? [logic!]
 	][
 		#if debug? = yes [type: TYPE_OF(blk) assert any [ANY_BLOCK?(type) type = TYPE_MAP]]
 		
+		source: blk/node
+		source-type: TYPE_OF(blk)
 		value: block/rs-head blk
-		tail:  block/rs-tail blk
-		size:  (as-integer tail - value) >> 4
+		head: blk/head
+		target: resolve-series source
+		size: (as-integer target/tail - value) >> 4
 		
 		empty?: zero? size
 		if empty? [size: 1]
@@ -226,11 +228,13 @@ block: context [
 		new: as red-block! stack/push*					;-- slot allocated on stack!
 		new/header: TYPE_UNSET
 		new/head:   0
-		new/node:	alloc-cells size
+		new/node:	node-handle-of alloc-cells size
 		new/header:	TYPE_BLOCK
 
 		unless empty? [
 			target: GET_BUFFER(new)
+			source-series: resolve-series source
+			value: source-series/offset + head
 			copy-memory
 				as byte-ptr! target/offset
 				as byte-ptr! value
@@ -239,9 +243,10 @@ block: context [
 		]
 		
 		if all [deep? not empty?][
-			value: target/offset
-			tail: value + size
-			while [value < tail][
+			i: 0
+			while [i < size][
+				target: GET_BUFFER(new)
+				value: target/offset + i
 				type: TYPE_OF(value)
 				if any [
 					type = TYPE_BLOCK
@@ -256,15 +261,18 @@ block: context [
 						]
 					]
 				][
+					header: value/header
 					result: clone as red-block! value yes any?
-					result/header: value/header
+					result/header: header
+					target: GET_BUFFER(new)
+					value: target/offset + i
 					copy-cell as red-value! result value
 					stack/pop 1
 				]
-				value: value + 1
+				i: i + 1
 			]
 		]
-		new/header: TYPE_OF(blk)
+		new/header: source-type
 		new
 	]
 	
@@ -293,13 +301,13 @@ block: context [
 				as-integer s/tail - head
 
 			if TYPE_OF(hs) = TYPE_HASH [
-				_hashtable/refresh hs/table 1 blk/head (as-integer s/tail - head) >> 4 yes
+				_hashtable/refresh resolve-node hs/table 1 blk/head (as-integer s/tail - head) >> 4 yes
 			]
 		]
 
 		s/tail: s/tail + 1
 		value: copy-cell value head
-		if TYPE_OF(hs) = TYPE_HASH [_hashtable/put hs/table value]
+		if TYPE_OF(hs) = TYPE_HASH [_hashtable/put resolve-node hs/table value]
 		if inc? [blk/head: blk/head + 1]
 		blk
 	]
@@ -349,7 +357,7 @@ block: context [
 
 		if TYPE_OF(arg) = TYPE_HASH [
 			hs: as red-hash! arg
-			_hashtable/put hs/table val
+			_hashtable/put resolve-node hs/table val
 		]
 		arg
 	]
@@ -371,7 +379,7 @@ block: context [
 
 		if TYPE_OF(arg) = TYPE_HASH [
 			hs: as red-hash! arg
-			_hashtable/put hs/table val
+			_hashtable/put resolve-node hs/table val
 		]
 	]
 	
@@ -419,7 +427,7 @@ block: context [
 		
 		set-type as cell! blk TYPE_UNSET				;-- preserve eventual newline flag
 		blk/head: 	0
-		blk/node: 	alloc-cells size
+		blk/node: 	node-handle-of alloc-cells size
 		set-type as cell! blk TYPE_BLOCK
 		blk
 	]
@@ -434,9 +442,9 @@ block: context [
 		blk/header: TYPE_UNSET
 		blk/head: 	0
 		either fixed? [
-			blk/node: alloc-fixed-series size 16 0
+			blk/node: node-handle-of alloc-fixed-series size 16 0
 		][
-			blk/node: alloc-unset-cells size
+			blk/node: node-handle-of alloc-unset-cells size
 		]
 		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
 		blk	
@@ -897,7 +905,7 @@ block: context [
 		hash?: TYPE_OF(blk) = TYPE_HASH
 		if hash? [
 			hash: as red-hash! blk
-			table: hash/table
+			table: resolve-node hash/table
 		]
 
 		s: GET_BUFFER(blk)
@@ -1152,8 +1160,8 @@ block: context [
 			copy-cell field ALLOC_TAIL(blk)
 			value: copy-cell value ALLOC_TAIL(blk)
 			if hash? [
-				_hashtable/put hash/table value - 1
-				_hashtable/put hash/table value
+				_hashtable/put resolve-node hash/table value - 1
+				_hashtable/put resolve-node hash/table value
 			]
 		][
 			s: GET_BUFFER(blk)
@@ -1168,7 +1176,7 @@ block: context [
 			]
 			if put? [
 				copy-cell value slot
-				if hash? [_hashtable/put hash/table slot]
+				if hash? [_hashtable/put resolve-node hash/table slot]
 			]
 			ownership/check as red-value! blk words/_put-ed value blk/head + 1 1
 		]
@@ -1262,7 +1270,7 @@ block: context [
 			s2/tail: s2/offset + num
 		]
 
-		cnt: _function/count-locals f/spec 0 no
+		cnt: _function/count-locals resolve-node f/spec 0 no
 		if positive? cnt [_function/init-locals cnt]
 		interpreter/call f f/ctx as red-value! words/_compare-cb CB_SORT
 		stack/unwind
@@ -1478,7 +1486,7 @@ block: context [
 		rehash?: no
 		if hash? [
 			hash: as red-hash! blk
-			table: hash/table
+			table: resolve-node hash/table
 		]
 		type: TYPE_OF(value)
 		values?: all [not only?	ANY_BLOCK?(type)]		;-- /only support
@@ -1602,7 +1610,7 @@ block: context [
 
 		hash?: TYPE_OF(blk) = TYPE_HASH
 		table: null
-		if hash? [hash: as red-hash! blk  table: hash/table]
+		if hash? [hash: as red-hash! blk  table: resolve-node hash/table]
 
 		s: GET_BUFFER(blk)
 		len: (as-integer s/tail - s/offset) >> 4
@@ -1764,14 +1772,14 @@ block: context [
 		if type1 = TYPE_HASH [
 			hash: as red-hash! blk1
 			h1: h1 - 4
-			_hashtable/delete hash/table as red-value! h1
-			_hashtable/put hash/table as red-value! h1
+			_hashtable/delete resolve-node hash/table as red-value! h1
+			_hashtable/put resolve-node hash/table as red-value! h1
 		]
 		if type2 = TYPE_HASH [
 			hash: as red-hash! blk2
 			h2: h2 - 4
-			_hashtable/delete hash/table as red-value! h2
-			_hashtable/put hash/table as red-value! h2
+			_hashtable/delete resolve-node hash/table as red-value! h2
+			_hashtable/put resolve-node hash/table as red-value! h2
 		]
 		if chk?  [ownership/check as red-value! blk1 words/_swaped null blk1/head 1]
 		if chk2? [ownership/check as red-value! blk2 words/_swaped null blk2/head 1]
@@ -1824,7 +1832,7 @@ block: context [
 		/local
 			s		[series!]
 			end		[red-value!]
-			node	[node!]
+			node	[node-handle!]
 			type	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/copy"]]
@@ -1914,7 +1922,7 @@ block: context [
 		table: _hashtable/init len new HASH_TABLE_HASH 1
 		hs: as red-hash! new
 		hs/header: TYPE_HASH
-		hs/table: table
+		hs/table: node-handle-of table
 		n: 2
 		hash: null
 		blk?: yes
@@ -1932,7 +1940,7 @@ block: context [
 					blk?: no
 					hs: as red-hash! blk2
 					head: hs/head
-					hs/table
+					resolve-node hs/table
 				][
 					if all [blk? hash <> null][_hashtable/destroy hash]
 					blk?: yes
@@ -1990,7 +1998,7 @@ block: context [
 		either hash? [
 			hs: as red-hash! blk2
 			hs/header: TYPE_HASH
-			hs/table: table
+			hs/table: node-handle-of table
 		][
 			_hashtable/destroy table
 		]

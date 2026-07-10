@@ -151,7 +151,7 @@ parser: context [
 	input!: alias struct! [
 		header [integer!]
 		head   [integer!]
-		node   [node!]
+		node   [node-handle!]
 		pos	   [integer!]
 	]
 	
@@ -798,7 +798,7 @@ parser: context [
 			blk		[red-block!]
 			p		[positions!]
 			in		[input!]
-			node	[node!]
+			node	[node-handle!]
 			s		[series!]
 	][
 		s: GET_BUFFER(rules)
@@ -859,15 +859,15 @@ parser: context [
 			res	  [red-value!]
 			int	  [red-integer!]
 			more  [series!]
-			ctx	  [node!]
+			ctx	  [node-handle!]
 	][
 		PARSE_SAVE_SERIES
 		saved: stack/top
 		stack/top: stack/top + 1						;-- keep last value from paren expression
 
-		more: as series! fun/more/value
+		more: resolve-series fun/more
 		int: as red-integer! more/offset + 4
-		ctx: either TYPE_OF(int) = TYPE_INTEGER [as node! int/value][global-ctx]
+		ctx: either TYPE_OF(int) = TYPE_INTEGER [as node-handle! int/value][global-ctx]
 
 		stack/mark-func words/_parse-cb	fun/ctx
 		stack/push as red-value! event
@@ -1048,7 +1048,7 @@ parser: context [
 			]
 		]
 
-		if OPTION?(fun) [fun-locs: _function/count-locals fun/spec 0 no]
+		if OPTION?(fun) [fun-locs: _function/count-locals resolve-node fun/spec 0 no]
 		
 		saved?: save-stack
 		base: stack/push*								;-- slot on stack for COPY/SET operations (until OPTION?() is fixed)

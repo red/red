@@ -295,14 +295,16 @@ OS-image: context [
 		/local
 			node	[node!]
 			inode	[img-node!]
+			stable	[node-handle!]
 	][
-		node: alloc-bytes 20
+		node: alloc-bytes size? img-node!
 		inode: as img-node! (as series! node/value) + 1
 		inode/flags: flags
 		inode/handle: handle
 		inode/buffer: buffer
 		inode/size: height << 16 or width
-		inode/extID: externals/store node image/ext-type
+		stable: node-handle-of node
+		inode/extID: externals/store as int-ptr! stable image/ext-type
 		node
 	]
 
@@ -341,9 +343,9 @@ OS-image: context [
 			new-h	[this!]
 			pre?	[logic!]
 	][
-		if null? img/node [return null]
+		if NULL_HANDLE?(img/node) [return null]
 
-		inode: as img-node! (as series! img/node/value) + 1
+		inode: as img-node! (resolve-series img/node) + 1
 		h: inode/handle
 		pre?: inode/flags and IMG_NODE_PREMULTIPLIED <> 0
 		if any [
@@ -379,7 +381,7 @@ OS-image: context [
 			IFAC	[IWICImagingFactory]
 			bitmap	[com-ptr! value]
 	][
-		inode: as img-node! (as series! img/node/value) + 1
+		inode: as img-node! (resolve-series img/node) + 1
 		h: get-handle img yes
 		either inode/flags and IMG_NODE_WICBITMAP <> 0 [h][
 			IFAC: as IWICImagingFactory wic-factory/vtbl
@@ -499,7 +501,7 @@ OS-image: context [
 		if stride = 0 [stride: width * 4]
 		size: stride * height
 		ret: IFAC/CreateBitmapFromMemory wic-factory width height as integer! GUID_WICPixelFormat32bppBGRA stride size scan0 :bmp
-		bitmap/value: as integer! make-node bmp/value null 0 width height
+		bitmap/value: node-handle-of make-node bmp/value null 0 width height
 		ret
 	]
 
@@ -564,10 +566,10 @@ OS-image: context [
 			inode	[img-node!]
 			hr		[integer!]
 	][
-		this: get-buffer img/node
+		this: get-buffer resolve-node img/node
 		IB: as IWICBitmap this/vtbl
 		flag: either write? [
-			inode: as img-node! (as series! img/node/value) + 1
+			inode: as img-node! (resolve-series img/node) + 1
 			inode/flags: inode/flags or IMG_NODE_MODIFIED
 			WICBitmapLockWrite
 		][WICBitmapLockRead]
@@ -601,7 +603,7 @@ OS-image: context [
 		/local
 			inode	[img-node!]
 	][
-		inode: as img-node! (as series! img/node/value) + 1
+		inode: as img-node! (resolve-series img/node) + 1
 		inode/flags: inode/flags or IMG_NODE_UPDATE_BUFFER
 	]
 
@@ -738,7 +740,7 @@ OS-image: context [
 		img			[red-image!]
 		width		[integer!]
 		height		[integer!]
-		return:		[integer!]
+		return:		[node!]
 		/local
 			this	[this!]
 			IFAC	[IWICImagingFactory]
@@ -753,7 +755,7 @@ OS-image: context [
 		sthis: iscale/value
 		scale: as IWICBitmapScaler sthis/vtbl
 		scale/Initialize sthis this width height 0		;-- NearestNeighbor
-		as-integer make-node sthis null 0 width height
+		make-node sthis null 0 width height
 	]
 
 	get-frame: func [
@@ -1035,7 +1037,7 @@ OS-image: context [
 		bin: as red-binary! slot
 		bin/header: TYPE_UNSET
 		bin/head: 0
-		bin/node: alloc-bytes len
+		bin/node: node-handle-of alloc-bytes len
 		bin/header: TYPE_BINARY
 		
 		s: GET_BUFFER(bin)
@@ -1064,7 +1066,7 @@ OS-image: context [
 		dst/size: src/size
 		dst/header: TYPE_IMAGE
 		dst/head: 0
-		dst/node: make-node null bitmap/value IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED IMAGE_WIDTH(src/size) IMAGE_HEIGHT(src/size)
+		dst/node: node-handle-of make-node null bitmap/value IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED IMAGE_WIDTH(src/size) IMAGE_HEIGHT(src/size)
 		return dst
 	]
 
@@ -1097,7 +1099,7 @@ OS-image: context [
 		IFAC/CreateBitmapFromSource wic-factory cthis WICBitmapCacheOnLoad :bitmap
 		clip/Release cthis
 
-		dst/node: make-node null bitmap/value IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED w h
+		dst/node: node-handle-of make-node null bitmap/value IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED w h
 		dst/size: h << 16 or w
 		dst/header: TYPE_IMAGE
 		dst/head: 0
@@ -1120,7 +1122,7 @@ OS-image: context [
 			data	[integer!]
 			bitmap	[integer!]
 	][
-		this: get-buffer image/node
+		this: get-buffer resolve-node image/node
 		IB: as IWICBitmap this/vtbl
 		w: IMAGE_WIDTH(image/size)
 		h: IMAGE_HEIGHT(image/size)
@@ -1183,12 +1185,12 @@ OS-image: context [
 			bitmap	[integer!]
 			inode	[img-node!]
 	][
-		inode: as img-node! (as series! image/node/value) + 1
+		inode: as img-node! (resolve-series image/node) + 1
 		;-- alpha channel is 0 when image is copied from mspaint
 		;-- so we need to regenerate buffer
 		get-handle image no
 		inode/flags: inode/flags or IMG_NODE_UPDATE_BUFFER
-		this: get-buffer image/node
+		this: get-buffer resolve-node image/node
 		IB: as IWICBitmap this/vtbl
 		w: IMAGE_WIDTH(image/size)
 		h: IMAGE_HEIGHT(image/size)

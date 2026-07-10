@@ -25,7 +25,7 @@ set-quiet: routine [
 	/local
 		w	 [red-word!]
 		type [integer!]
-		node [node!]
+		node [node-handle!]
 ][
 	type: TYPE_OF(word)
 	unless ANY_WORD?(type) [ERR_EXPECT_ARGUMENT(type 0)]

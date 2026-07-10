@@ -38,7 +38,7 @@ special-key: 		-1									;-- <> -1 if a non-displayable key is pressed
 flags-blk: declare red-block!							;-- static block value for event/flags
 flags-blk/header:	TYPE_UNSET
 flags-blk/head:		0
-flags-blk/node:		alloc-cells 4
+flags-blk/node:		node-handle-of alloc-cells 4
 flags-blk/header:	TYPE_BLOCK
 
 ; used to save old position of pointer in widget-motion-notify-event handler

@@ -53,7 +53,8 @@ Red/System [
 
 #define type-mask			FFFFFF00h		;-- mask for clearing type ID in cell header
 #define get-type-mask		000000FFh		;-- mask for reading type ID in cell header
-#define node!				int-ptr!
+#define node!				int-ptr!			;-- physical, pointer-width GC node
+#define node-handle!		integer!			;-- stable 32-bit node reference stored in cells
 #define default-offset		-1				;-- for offset value in alloc-series calls
 
 #define series!				series-buffer! 
@@ -276,7 +277,7 @@ Red/System [
 						DRAW_STATE_DATA
 						target			[int-ptr!]
 						hwnd			[int-ptr!]			;-- Window's handle
-						image			[int-ptr!]			;-- original image handle
+						image			[node-handle!]		;-- original image handle
 						pre-order?		[logic!]			;-- matrix order, default pre-order for row-major vector
 						draw-shape?		[logic!]
 						sub				[sub-path! value]

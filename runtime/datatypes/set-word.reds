@@ -50,7 +50,7 @@ set-word: context [
 	]
 	
 	push-local: func [
-		node	[node!]
+		node	[node-handle!]
 		index	[integer!]
 		return: [red-word!]
 	][

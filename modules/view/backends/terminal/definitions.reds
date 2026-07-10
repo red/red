@@ -160,16 +160,16 @@ widget!: alias struct! [
 	box			[RECT_F! value]
 	parent		[widget!]			;-- parent widget
 	image		[pixel!]
-	ui			[node!]
+	ui			[node-handle!]
 	data		[int-ptr!]			;-- extra data for each type
 	update		[update-func!]
 	render		[render-func!]
 	on-event	[event-handler!]
 	;-- face object
 	face		[integer!]
-	obj-ctx		[node!]
+	obj-ctx		[node-handle!]
 	obj-class	[integer!]
-	obj-cb		[node!]
+	obj-cb		[node-handle!]
 ]
 
 widget-event!: alias struct! [

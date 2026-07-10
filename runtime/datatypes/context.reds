@@ -19,7 +19,7 @@ _context: context [
 		case?	[logic!]
 		return:	[integer!]		;-- value > 0: success, value = -1: failure
 	][
-		_hashtable/get-ctx-symbol ctx/symbols sym case? null null
+		_hashtable/get-ctx-symbol ctx/symbols sym case? 0 null
 	]
 
 	find-or-store: func [		;-- find a symbol, if not found, store it.
@@ -37,7 +37,7 @@ _context: context [
 	
 	get-any: func [
 		symbol  [integer!]
-		node	[node!]
+		node	[node-handle!]
 		return:	[red-value!]
 		/local
 			ctx	   [red-context!]
@@ -48,7 +48,7 @@ _context: context [
 
 		ctx: TO_CTX(node)
 		if ON_STACK?(ctx) [ctx: TO_CTX(global-ctx)]
-		values: as series! ctx/values/value
+		values: resolve-series ctx/values
 		index: find-word ctx symbol yes
 		assert index <> -1
 		values/offset + index
@@ -72,7 +72,7 @@ _context: context [
 			word: add-global symbol
 			idx: word/index
 		]
-		values: as series! ctx/values/value
+		values: resolve-series ctx/values
 		copy-cell value values/offset + idx
 	]
 	
@@ -87,7 +87,7 @@ _context: context [
 		#if debug? = yes [if verbose > 0 [print-line "_context/get-global"]]
 
 		ctx: TO_CTX(global-ctx)
-		values: as series! ctx/values/value
+		values: resolve-series ctx/values
 		index: find-word ctx symbol yes
 		assert index <> -1
 		values/offset + index
@@ -140,7 +140,7 @@ _context: context [
 			word/index: find-word ctx sym yes
 		]
 
-		value: alloc-tail as series! ctx/values/value
+		value: alloc-tail resolve-series ctx/values
 		value/header: TYPE_UNSET
 		word
 	]
@@ -160,9 +160,9 @@ _context: context [
 		new-id: 0
 		id: find-or-store ctx word/symbol yes :new-id
 		either id = -1 [
-			copy-cell value alloc-tail as series! ctx/values/value
+			copy-cell value alloc-tail resolve-series ctx/values
 		][
-			s: as series! ctx/values/value
+			s: resolve-series ctx/values
 			copy-cell value s/offset + id
 		]
 	]
@@ -181,7 +181,7 @@ _context: context [
 		new-id: 0
 		id: find-or-store ctx word/symbol yes :new-id
 		if id <> -1 [return null]
-		copy-cell value alloc-tail as series! ctx/values/value
+		copy-cell value alloc-tail resolve-series ctx/values
 	]
 
 	add: func [
@@ -200,7 +200,7 @@ _context: context [
 		if id <> -1 [return id]
 
 		unless ON_STACK?(ctx) [
-			value: alloc-tail as series! ctx/values/value
+			value: alloc-tail resolve-series ctx/values
 			value/header: TYPE_UNSET
 		]
 		new-id
@@ -211,7 +211,7 @@ _context: context [
 		value	[integer!]
 		return:	[integer!]
 		/local
-			node	[node!]
+			node	[node-handle!]
 			int 	[red-integer!]
 			values	[series!]
 			ctx		[red-context!]
@@ -225,9 +225,9 @@ _context: context [
 			word/index: find-word ctx word/symbol no
 		]
 		int: as red-integer! either ON_STACK?(ctx) [
-			(as red-value! ctx/values) + word/index
+			(stack/get-values ctx/values) + word/index
 		][
-			values: as series! ctx/values/value
+			values: resolve-series ctx/values
 			values/offset + word/index
 		]
 		int/header: TYPE_INTEGER
@@ -255,13 +255,13 @@ _context: context [
 			word/index: find-word ctx word/symbol no
 			if word/index = -1 [add ctx word]
 		]
-		if null? ctx/values [
+		if NULL_HANDLE?(ctx/values) [
 			fire [TO_ERROR(script not-defined) word]
 		]
 		either ON_STACK?(ctx) [
-			copy-cell value (as red-value! ctx/values) + word/index
+			copy-cell value (stack/get-values ctx/values) + word/index
 		][
-			values: as series! ctx/values/value
+			values: resolve-series ctx/values
 			slot: values/offset + word/index
 			
 			if GET_CTX_TYPE(ctx) = CONTEXT_OBJECT [
@@ -272,7 +272,7 @@ _context: context [
 					obj: as red-object! ctx + 1
 					assert TYPE_OF(obj) = TYPE_OBJECT
 					
-					if obj/on-set <> null [
+					if HANDLE?(obj/on-set) [
 						saved: stack/top
 						old: stack/push slot
 						word: as red-word! word
@@ -292,7 +292,7 @@ _context: context [
 		value	[red-value!]
 		return:	[red-value!]
 		/local
-			node [node!]
+			node [node-handle!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/set"]]
 
@@ -316,18 +316,18 @@ _context: context [
 				word/index = -1
 				word/symbol = words/self
 			][
-				s: as series! word/ctx/value
+				s: resolve-series word/ctx
 				return s/offset	+ 1						;-- return original object value
 			]
 			fire [TO_ERROR(script no-value) word]
 		]
-		if null? ctx/values [
+		if NULL_HANDLE?(ctx/values) [
 			fire [TO_ERROR(script not-in-context) word]
 		]
 		either ON_STACK?(ctx) [
-			(as red-value! ctx/values) + word/index
+			(stack/get-values ctx/values) + word/index
 		][
-			values: as series! ctx/values/value
+			values: resolve-series ctx/values
 			values/offset + word/index
 		]
 	]
@@ -336,7 +336,7 @@ _context: context [
 		word	[red-word!]
 		return:	[red-value!]
 		/local
-			node [node!]
+			node [node-handle!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/get"]]
 		
@@ -347,13 +347,13 @@ _context: context [
 	clone-words: func [									;-- (called by compiler) clone a context. only copy words, without values
 		slot	[red-block!]							;-- returned type by `get-root`
 		type	[context-type!]
-		return: [node!]
+		return: [node-handle!]
 		/local
 			obj		[red-object!]
-			node	[node!]
+			node	[node-handle!]
 			sym		[red-word!]
 			ctx		[red-context!]
-			new		[node!]
+			new		[node-handle!]
 			src		[series!]
 			dst		[series!]
 			slots	[integer!]
@@ -369,7 +369,7 @@ _context: context [
 			slots
 			ctx/header and flag-series-stk <> 0
 			ctx/header and flag-self-mask  <> 0
-			ctx
+			node
 			type
 
 		sym: as red-word! _hashtable/get-ctx-word TO_CTX(new) 0
@@ -386,38 +386,49 @@ _context: context [
 		slots	[integer!]								;-- max number of words in the context
 		stack?	[logic!]								;-- TRUE: alloc values on stack, FALSE: alloc them from heap
 		self?	[logic!]
-		proto	[red-context!]							;-- if proto <> null, copy all the words in the proto context
+		proto	[node-handle!]							;-- source context handle, or 0
 		type	[context-type!]
-		return:	[node!]
+		return:	[node-handle!]
 		/local
 			cell [red-context!]
 			slot [red-value!]
 			sym	 [red-word!]
 			new  [node!]
 			vals [node!]
+			handle symbols values [node-handle!]
+			source [red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/create"]]
 		
 		if zero? slots [slots: 1]
 		new: alloc-cells 2
+		handle: node-handle-of new
 		cell: as red-context! alloc-tail as series! new/value
 		cell/header: TYPE_UNSET							;-- properly set cell's type before possible GC pass
 		slot: alloc-tail as series! new/value			;-- allocate a slot for obj/func back-reference
 		slot/header: TYPE_UNSET	
 
 		either stack? [
-			cell/values: null							;-- will be set to stack frame dynamically
-			cell/symbols: _hashtable/init slots as red-block! proto HASH_TABLE_SYMBOL HASH_SYMBOL_CONTEXT
+			source: either HANDLE?(proto) [as red-block! TO_CTX(proto)][null]
+			symbols: node-handle-of _hashtable/init slots source HASH_TABLE_SYMBOL HASH_SYMBOL_CONTEXT
+			cell: TO_CTX(handle)
+			cell/values: 0								;-- will be set to stack frame dynamically
+			cell/symbols: symbols
 			cell/header: TYPE_CONTEXT or flag-series-stk
 		][
 			vals: alloc-unset-cells slots	;@@ keep it on native stack, so it can be marked by the GC
-			cell/symbols: _hashtable/init slots as red-block! proto HASH_TABLE_SYMBOL HASH_SYMBOL_CONTEXT
-			cell/values: vals
+			values: node-handle-of vals
+			source: either HANDLE?(proto) [as red-block! TO_CTX(proto)][null]
+			symbols: node-handle-of _hashtable/init slots source HASH_TABLE_SYMBOL HASH_SYMBOL_CONTEXT
+			cell: TO_CTX(handle)
+			cell/symbols: symbols
+			cell/values: values
 			cell/header: TYPE_CONTEXT
 		]
+		cell: TO_CTX(handle)
 		SET_CTX_TYPE(cell type)
 		if self? [cell/header: cell/header or flag-self-mask]
-		new
+		handle
 	]
 	
 	make: func [
@@ -425,9 +436,9 @@ _context: context [
 		stack?	[logic!]
 		self?	[logic!]
 		kind	[context-type!]
-		return:	[node!]
+		return:	[node-handle!]
 		/local
-			new		[node!]
+			new		[node-handle!]
 			ctx		[red-context!]
 			cell	[red-value!]
 			end		[red-value!]
@@ -436,7 +447,7 @@ _context: context [
 			type	[integer!]
 			i		[integer!]
 	][
-		new: create block/rs-length? spec stack? self? null kind
+		new: create block/rs-length? spec stack? self? 0 kind
 		ctx: TO_CTX(new)
 		s: GET_BUFFER(spec)
 		cell: s/offset
@@ -459,7 +470,7 @@ _context: context [
 		]
 
 		unless stack? [
-			s: as series! ctx/values/value
+			s: resolve-series ctx/values
 			s/tail: s/offset + i
 		]
 

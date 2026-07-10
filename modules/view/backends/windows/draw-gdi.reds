@@ -600,9 +600,9 @@ draw-begin: func [
 	ctx/other/connect-subpath:				0
 	ctx/other/anti-alias?:					no
 	ptrn:									as red-image! ctx/other/pattern-image-fill
-	ptrn/node:								null
+	ptrn/node:								0
 	ptrn:									as red-image! ctx/other/pattern-image-pen
-	ptrn/node:								null
+	ptrn/node:								0
 
 	either null? hWnd [
 		ctx/on-image?: yes
@@ -610,7 +610,7 @@ draw-begin: func [
 			graphics: as-integer img
 		][
 			graphics: 0
-			OS-image/GdipGetImageGraphicsContext as-integer img/node :graphics
+			OS-image/GdipGetImageGraphicsContext (OS-image/to-gpbitmap img) :graphics
 		]
 		dc: CreateCompatibleDC hScreen
 		SelectObject dc default-font
@@ -722,12 +722,12 @@ draw-end: func [
 	unless zero? ctx/other/gradient-pen/matrix		[ GdipDeleteMatrix ctx/other/gradient-pen/matrix ]
 	unless zero? ctx/other/gradient-fill/matrix		[ GdipDeleteMatrix ctx/other/gradient-fill/matrix ]
 	ptrn: as red-image! ctx/other/pattern-image-fill
-	unless null? ptrn/node [
-		OS-image/delete as red-image! ctx/other/pattern-image-fill
+	if HANDLE?(ptrn/node) [
+		OS-image/delete resolve-node ptrn/node
 	]
 	ptrn: as red-image! ctx/other/pattern-image-pen
-	unless null? ptrn/node [
-		OS-image/delete as red-image! ctx/other/pattern-image-pen
+	if HANDLE?(ptrn/node) [
+		OS-image/delete resolve-node ptrn/node
 	]
 
 	if ctx/bitmap <> null [DeleteObject ctx/bitmap]
@@ -2238,8 +2238,8 @@ OS-draw-image: func [
 		x: 0 y: 0 w: 0 h: 0
 		image/any-resize src dst crop1 start end :x :y :w :h
 		if dst/header = TYPE_NONE [return 0]
-		GdipDrawImageRectI ctx/graphics as-integer dst/node x y w h
-		OS-image/delete dst
+		GdipDrawImageRectI ctx/graphics (OS-image/to-gpbitmap dst) x y w h
+		OS-image/delete resolve-node dst/node
 	][
 		src.w: IMAGE_WIDTH(src/size)
 		src.h: IMAGE_HEIGHT(src/size)
@@ -2273,10 +2273,10 @@ OS-draw-image: func [
 			true [return 0]
 		]
 		either null? crop1 [
-			GdipDrawImageRectI ctx/graphics as-integer src/node x y w h
+			GdipDrawImageRectI ctx/graphics (OS-image/to-gpbitmap src) x y w h
 		][
 			GdipDrawImageRectRectI
-				ctx/graphics as-integer src/node
+				ctx/graphics (OS-image/to-gpbitmap src)
 				x y w h
 				crop.x crop.y crop.w crop.h
 				GDIPLUS_UNIT_PIXEL 0 0 0
@@ -2483,8 +2483,8 @@ OS-draw-brush-bitmap: func [
 		wrap	[integer!]
 		result	[integer!]
 ][
-	width:  OS-image/width? img/node
-	height: OS-image/height? img/node
+	width:  OS-image/width? resolve-node img/node
+	height: OS-image/height? resolve-node img/node
 	either crop-1 = null [
 		x: 0
 		y: 0
@@ -2511,7 +2511,7 @@ OS-draw-brush-bitmap: func [
 		]
 	]
 	texture: 0
-	result: GdipCreateTexture2I as-integer img/node wrap x y width height :texture
+	result: GdipCreateTexture2I (OS-image/to-gpbitmap img) wrap x y width height :texture
 	either brush? [
 		ctx/brush?:         yes
 		ctx/gp-brush:       texture
@@ -2542,21 +2542,21 @@ OS-draw-brush-pattern: func [
 	pat-image: either brush?
 		[ as red-image! ctx/other/pattern-image-fill ]
 		[ as red-image! ctx/other/pattern-image-pen ]
-	unless null? pat-image/node [
-		OS-image/delete pat-image
+	if HANDLE?(pat-image/node) [
+		OS-image/delete resolve-node pat-image/node
 	]
 	pat-image/header: TYPE_IMAGE
 	pat-image/head:   0
 	pat-image/size:   size/y << 16 or size/x
 	bkg-alpha:        as byte! 0
 	len:              size/x * size/y
-	p-alpha/node:	  null								;-- avoid garbage during GC stack pointers scanning
-	bin: binary/make-at :p-alpha len
+	p-alpha/node:	  0									;-- avoid garbage during GC stack pointers scanning
+	bin: binary/make-at as red-value! :p-alpha len
 	s: GET_BUFFER(bin)
 	p: as byte-ptr! s/offset
 	s/tail: as cell! (p + len)
 	set-memory p #"^(FF)" len
-	pat-image/node: OS-image/make-image size/x size/y null bin null
+	pat-image/node: node-handle-of OS-image/make-image size/x size/y null bin null
 	do-draw null pat-image block no no no no
 	OS-draw-brush-bitmap ctx pat-image crop-1 crop-2 mode brush?
 ]

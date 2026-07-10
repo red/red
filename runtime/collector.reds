@@ -55,6 +55,25 @@ collector: context [
 	compare-cb: func [[cdecl] a [int-ptr!] b [int-ptr!] return: [integer!]][
 		SIGN_COMPARE_RESULT((as int-ptr! a/value) (as int-ptr! b/value))
 	]
+
+	node-record!: alias struct! [
+		node	[node!]
+		handle	[node-handle!]
+	]
+
+	compare-node-record-cb: func [
+		[cdecl]
+		a [int-ptr!]
+		b [int-ptr!]
+		return: [integer!]
+		/local
+			ra [node-record!]
+			rb [node-record!]
+	][
+		ra: as node-record! a
+		rb: as node-record! b
+		SIGN_COMPARE_RESULT(ra/node rb/node)
+	]
 	
 	frames-list: context [
 		min-size:  1000
@@ -183,34 +202,44 @@ collector: context [
 	]
 	
 	nodes-list: context [								;-- nodes freeing batch handling
-		list:	  as int-ptr! 0
+		list:	  as node-record! 0
 		min-size: 20000
 		buf-size: min-size								;-- initial number of supported nodes
 		count:	  0										;-- current number of stored nodes
 		
-		init: does [list: as int-ptr! allocate buf-size * size? node!]
+		init: does [list: as node-record! allocate buf-size * size? node-record!]
 		
-		store: func [node [node!]][
-			if null? node [exit]						;-- expanded series sets null node in old series
+		store: func [
+			handle [node-handle!]
+			/local
+				node [node!]
+				slot [node-record!]
+		][
+			if zero? handle [exit]					;-- expanded series clears the old back-reference
+			node: resolve-node handle
 			if count = buf-size [flush]					;-- buffer full, flush it first
+			slot: list + count
+			slot/node: node
+			slot/handle: handle
 			count: count + 1
-			list/count: as-integer node
 		]
 		
 		flush: func [									;-- assumes frames-list buffer is built and sorted
 			/local
-				frm p e n node new [int-ptr!]
-				frm-nb w [integer!]
+				frm p e node new [int-ptr!]
+				n [node-record!]
+				frm-nb w handle [integer!]
 		][
 			if zero? count [exit]
-			qsort as byte-ptr! list count 4 :compare-cb
+			qsort as byte-ptr! list count size? node-record! :compare-node-record-cb
 			p: frames-list/nodes/list
 			e: p + frames-list/nodes/count
 			w: nodes-per-frame * size? node!			;-- node frame width
 			n: list
 			
 			loop count [
-				node: as node! n/value
+				node: n/node
+				handle: n/handle
 				while [
 					frm: as int-ptr! ((as node-frame! p/value) + 1)
 					not all [frm <= node  node < as node! ((as byte-ptr! frm) + w)]
@@ -218,8 +247,10 @@ collector: context [
 					p: p + 1
 					assert p <= e						;-- parent frame should always be found
 				]
+				free-node-handle handle
 				free-node as node-frame! p/value node
-				n/value: 0								;-- not strictly needed, but cleaner that way.
+				n/node: null							;-- not strictly needed, but cleaner that way.
+				n/handle: 0
 				n: n + 1
 			]
 			count: 0									;-- resets the list to its head (clears the list content)
@@ -277,7 +308,7 @@ collector: context [
 				_hashtable/rs-put refs as-integer slot as-integer new	;-- store old (key), new (value) pair
 				;print-line ["relocating node: " slot " from frame " src " to " dst " (new: " new ")"]
 				s: as series! ptr
-				s/node: new								;-- update back-reference
+				set-node-handle s/node new				;-- retarget the stable handle
 				src/used: src/used - 1					;-- not strictly needed, just for sake of internal consistency
 				dst/used: dst/used + 1
 			]
@@ -332,7 +363,7 @@ collector: context [
 		]
 	]
 	
-	keep: func [
+	keep-raw: func [
 		ptr		[int-ptr!]
 		return: [logic!]								;-- TRUE if newly marked, FALSE if already done
 		/local
@@ -356,11 +387,29 @@ collector: context [
 		new?
 	]
 
+	keep: func [
+		ptr		[int-ptr!]
+		return: [logic!]								;-- TRUE if newly marked, FALSE if already done
+		/local
+			node  [node!]
+			s     [series!]
+			new?  [logic!]
+			flags [integer!]
+	][
+		if zero? ptr/value [return no]
+		node: resolve-node ptr/value
+		s: as series! node/value
+		flags: s/flags
+		new?: flags and flag-gc-mark = 0
+		if new? [s/flags: flags or flag-gc-mark]
+		new?
+	]
+
 	unmark: func [
-		node	 [node!]
+		handle	[node-handle!]
 		/local s [series!]
 	][
-		s: as series! node/value
+		s: resolve-series handle
 		s/flags: s/flags and not flag-gc-mark
 	]
 	
@@ -372,10 +421,10 @@ collector: context [
 			slot [red-value!]
 	][
 		if keep ptr [
-			node: as node! ptr/value
-			ctx: TO_CTX(node)							;-- [context! function!|object!]
+			ctx: TO_CTX(ptr/value)							;-- [context! function!|object!]
 			slot: as red-value! ctx
-			_hashtable/mark :ctx/symbols
+			node: resolve-node ctx/symbols
+			_hashtable/mark as int-ptr! :node
 			unless ON_STACK?(ctx) [mark-block-node :ctx/values]
 			mark-values slot + 1 slot + 2				;-- mark the back-reference value (2nd value)
 		]
@@ -396,6 +445,7 @@ collector: context [
 			ctx		[red-context!]
 			img		[red-image!]
 			h		[red-handle!]
+			node	[ node!]
 			len		[integer!]
 			type	[integer!]
 	][
@@ -415,7 +465,7 @@ collector: context [
 				TYPE_LIT_WORD
 				TYPE_REFINEMENT [
 					word: as red-word! value
-					if word/ctx <> null [
+					if HANDLE?(word/ctx) [
 						#if debug? = yes [if verbose > 1 [print-symbol word]]
 						either word/symbol = words/self [
 							mark-block-node :word/ctx
@@ -428,7 +478,7 @@ collector: context [
 				TYPE_PAREN
 				TYPE_ANY_PATH [
 					series: as red-series! value
-					if series/node <> null [			;-- can happen in routine
+					if HANDLE?(series/node) [			;-- can happen in routine
 						#if debug? = yes [if verbose > 1 [print ["len: " block/rs-length? as red-block! series]]]
 						mark-block as red-block! value
 					]
@@ -436,7 +486,7 @@ collector: context [
 				TYPE_SYMBOL [
 					series: as red-series! value
 					keep :series/extra
-					if series/node <> null [keep :series/node]
+					if HANDLE?(series/node) [keep :series/node]
 				]
 				TYPE_ANY_STRING [
 					#if debug? = yes [if verbose > 1 [print as-c-string string/rs-head as red-string! value]]
@@ -456,13 +506,14 @@ collector: context [
 					#if debug? = yes [if verbose > 1 [print "object"]]
 					obj: as red-object! value
 					mark-context :obj/ctx
-					if obj/on-set <> null [keep :obj/on-set]
+					if HANDLE?(obj/on-set) [keep :obj/on-set]
 				]
 				TYPE_CONTEXT [
 					#if debug? = yes [if verbose > 1 [print "context"]]
 					ctx: as red-context! value
 					;keep :ctx/self
-					_hashtable/mark :ctx/symbols
+					node: resolve-node ctx/symbols
+					_hashtable/mark as int-ptr! :node
 					unless ON_STACK?(ctx) [mark-block-node :ctx/values]
 				]
 				TYPE_HASH
@@ -470,7 +521,8 @@ collector: context [
 					#if debug? = yes [if verbose > 1 [print "hash/map"]]
 					hash: as red-hash! value
 					mark-block-node :hash/node
-					_hashtable/mark :hash/table			;@@ check if previously marked
+					node: resolve-node hash/table
+					_hashtable/mark as int-ptr! :node		;@@ check if previously marked
 				]
 				TYPE_FUNCTION
 				TYPE_ROUTINE [
@@ -497,11 +549,9 @@ collector: context [
 				TYPE_IMAGE [
 					#if debug? = yes [if verbose > 1 [print "image"]]
 					img: as red-image! value
-					#if draw-engine <> 'GDI+ [
-						if img/node <> null [
-							keep :img/node
-							image/mark img/node
-						]
+					if HANDLE?(img/node) [
+						keep :img/node
+						image/mark resolve-node img/node
 					]
 				]]
 				TYPE_HANDLE [
@@ -523,6 +573,18 @@ collector: context [
 			s	 [series!]
 	][
 		if keep ptr [
+			s: resolve-series ptr/value
+			mark-values s/offset s/tail
+		]
+	]
+
+	mark-block-raw: func [
+		ptr	[int-ptr!]
+		/local
+			node [node!]
+			s	 [series!]
+	][
+		if keep-raw ptr [
 			node: as node! ptr/value
 			s: as series! node/value
 			mark-values s/offset s/tail
@@ -549,7 +611,7 @@ collector: context [
 	][
 		tail: (as byte-ptr! s) + size
 		until [
-			s/node/value: as-integer s					;-- update the node pointer to the new series address
+			set-node-value s/node as-integer s			;-- update the node pointer to the new series address
 			s/offset: as cell! (as byte-ptr! s/offset) - offset	;-- update offset and tail pointers
 			s/tail:   as cell! (as byte-ptr! s/tail) - offset
 			s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
@@ -884,7 +946,7 @@ collector: context [
 											frames-list/find p FRAME_NODES
 											p/value <> 0
 											not frames-list/find as int-ptr! p/value FRAME_NODES ;-- freed nodes can still be on the stack!
-											keep sp
+											keep-raw sp
 										][
 											;probe ["(scan) node pointer on stack: " p " : " as byte-ptr! p/value]
 											p: as int-ptr! sp/value		;-- refresh it after `keep sp` call
@@ -1033,7 +1095,7 @@ collector: context [
 		mark-values stack/bottom stack/top
 		
 		#if debug? = yes [if verbose > 1 [probe "marking globals"]]
-		if interpreter/near/node <> null [keep :interpreter/near/node]
+		if HANDLE?(interpreter/near/node) [keep :interpreter/near/node]
 		lexer/mark-buffers
 		mark-block-node :references/list/node
 		

@@ -29,7 +29,7 @@ path: context [
 	][
 		path/header: TYPE_UNSET
 		path/head: 0
-		path/node: alloc-cells size
+		path/node: node-handle-of alloc-cells size
 		path/header: TYPE_PATH							;-- implicit reset of all header flags
 		path
 	]

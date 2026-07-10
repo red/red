@@ -2953,7 +2953,7 @@ OS-draw-image: func [
 		if dst/header = TYPE_NONE [return 0]
 		pixbuf: OS-image/to-pixbuf dst
 		GDK-draw-image dc dc/cr pixbuf x y w h
-		OS-image/delete dst/node
+		OS-image/delete resolve-node dst/node
 	][
 		src.w: IMAGE_WIDTH(src/size)
 		src.h: IMAGE_HEIGHT(src/size)
@@ -4413,8 +4413,8 @@ OS-draw-brush-bitmap: func [
 		mode-id [integer!]
 		pt		[red-point2D!]
 ][
-	width:  OS-image/width? img/node
-	height: OS-image/height? img/node
+	width:  OS-image/width? resolve-node img/node
+	height: OS-image/height? resolve-node img/node
 	pixbuf: OS-image/to-pixbuf img
 	either crop-1 = null [
 		x: 0

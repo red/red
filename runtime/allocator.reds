@@ -66,7 +66,7 @@ cell!: alias struct! [
 											;-- 0: UTF-8, 1: Latin1/binary, 2: UCS-2, 4: UCS-4, 16: block! cell
 series-buffer!: alias struct! [
 	flags	[integer!]						;-- series flags
-	node	[int-ptr!]						;-- point back to referring node
+	node	[node-handle!]					;-- stable handle of the referring node
 	size	[integer!]						;-- usable buffer size (series-buffer! struct excluded)
 	offset	[cell!]							;-- series buffer offset pointer (insert at head optimization)
 	tail	[cell!]							;-- series buffer tail pointer 
@@ -115,6 +115,14 @@ memory: declare struct! [					; TBD: instanciate this structure per OS thread
 	stk-sz	 [integer!]						;-- size of stack references buffer in 64-bits slots
 ]
 
+node-registry: declare struct! [
+	entries		[ptr-ptr!]					;-- handle-indexed physical node pointers
+	free-next	[int-ptr!]					;-- handle-indexed free-list links
+	capacity	[integer!]
+	next		[integer!]					;-- next never-used positive handle
+	free		[integer!]					;-- reusable handle free-list head
+]
+
 bitarrays-base: declare int-ptr!			;-- points to bit-arrays table
 lib-bitarrays-base: declare int-ptr! 		;-- points to bit-arrays table (libRedRT image)
 
@@ -127,6 +135,16 @@ init-mem: func [/local p [int-ptr!]][
 	memory/stk-sz:	 1000
 	memory/b-head:	 null
 	memory/stk-refs: as int-ptr! allocate memory/stk-sz * 2 * size? int-ptr!
+	node-registry/capacity: nodes-per-frame
+	node-registry/entries: as ptr-ptr! allocate node-registry/capacity * size? int-ptr!
+	node-registry/free-next: as int-ptr! allocate node-registry/capacity * size? integer!
+	set-memory
+		as byte-ptr! node-registry/entries
+		null-byte
+		node-registry/capacity * size? int-ptr!
+	zerofill node-registry/free-next node-registry/free-next + node-registry/capacity
+	node-registry/next: 1
+	node-registry/free: 0
 	
 	collector/nodes-list/init
 	
@@ -139,6 +157,118 @@ init-mem: func [/local p [int-ptr!]][
 		if p/0 = 1 [p: as int-ptr! crush/decompress as byte-ptr! p null]
 		lib-bitarrays-base: p
 	]
+]
+
+resolve-node: func [
+	handle	[node-handle!]
+	return:	[node!]
+	/local entry [ptr-ptr!]
+][
+	if zero? handle [return null]
+	assert all [handle > 0 handle < node-registry/next]
+	entry: node-registry/entries + (handle - 1)
+	assert entry/value <> null
+	as node! entry/value
+]
+
+resolve-series: func [
+	handle	[node-handle!]
+	return:	[series!]
+	/local node [node!]
+][
+	node: resolve-node handle
+	as series! node/value
+]
+
+node-handle-of: func [
+	node	[node!]
+	return:	[node-handle!]
+	/local s [series!]
+][
+	if null? node [return 0]
+	s: as series! node/value
+	s/node
+]
+
+alloc-node-handle: func [
+	node	[node!]
+	return:	[node-handle!]
+	/local
+		handle new-capacity [integer!]
+		entry [ptr-ptr!]
+		free-entry free-end [int-ptr!]
+		clear [byte-ptr!]
+][
+	either node-registry/free <> 0 [
+		handle: node-registry/free
+		entry: node-registry/entries + (handle - 1)
+		free-entry: node-registry/free-next + (handle - 1)
+		node-registry/free: free-entry/value
+		free-entry/value: 0
+	][
+		handle: node-registry/next
+		if handle > node-registry/capacity [
+			new-capacity: node-registry/capacity * 2
+			if any [new-capacity <= node-registry/capacity new-capacity <= 0][
+				fire [TO_ERROR(internal no-memory)]
+			]
+			node-registry/entries: as ptr-ptr! realloc
+				as byte-ptr! node-registry/entries
+				new-capacity * size? int-ptr!
+			clear: as byte-ptr! (node-registry/entries + node-registry/capacity)
+			set-memory
+				clear
+				null-byte
+				(new-capacity - node-registry/capacity) * size? int-ptr!
+			node-registry/free-next: as int-ptr! realloc
+				as byte-ptr! node-registry/free-next
+				new-capacity * size? integer!
+			free-entry: node-registry/free-next + node-registry/capacity
+			free-end: node-registry/free-next + new-capacity
+			zerofill free-entry free-end
+			node-registry/capacity: new-capacity
+		]
+		node-registry/next: handle + 1
+		entry: node-registry/entries + (handle - 1)
+	]
+	entry/value: node
+	handle
+]
+
+free-node-handle: func [
+	handle [node-handle!]
+	/local
+		entry [ptr-ptr!]
+		free-entry [int-ptr!]
+][
+	assert handle > 0
+	entry: node-registry/entries + (handle - 1)
+	assert entry/value <> null
+	entry/value: null
+	free-entry: node-registry/free-next + (handle - 1)
+	assert zero? free-entry/value
+	free-entry/value: node-registry/free
+	node-registry/free: handle
+]
+
+set-node-handle: func [
+	handle [node-handle!]
+	node   [node!]
+	/local entry [ptr-ptr!]
+][
+	assert handle > 0
+	entry: node-registry/entries + (handle - 1)
+	assert entry/value <> null
+	entry/value: node
+]
+
+set-node-value: func [
+	handle [node-handle!]
+	value  [integer!]
+	/local node [node!]
+][
+	node: resolve-node handle
+	node/value: value
 ]
 
 ;; (1) Series frames size will grow from 1MB up to 2MB (arbitrary selected). This
@@ -238,6 +368,18 @@ free-all: func [
 		free-virtual as int-ptr! b-frame
 		b-frame: b-next
 	]
+
+	if node-registry/entries <> null [
+		free as byte-ptr! node-registry/entries
+		node-registry/entries: null
+	]
+	if node-registry/free-next <> null [
+		free as byte-ptr! node-registry/free-next
+		node-registry/free-next: null
+	]
+	node-registry/capacity: 0
+	node-registry/next: 1
+	node-registry/free: 0
 ]
 
 ;-------------------------------------------
@@ -632,7 +774,7 @@ alloc-series: func [
 	node: null
 	series: alloc-series-buffer size unit offset
 	node: alloc-node						;-- get a new node
-	series/node: node						;-- link back series to node
+	series/node: alloc-node-handle node		;-- link series and stable handle
 	node/value: as-integer series ;(as byte-ptr! series) + size? series-buffer!
 	node									;-- return the node pointer
 ]
@@ -663,7 +805,7 @@ alloc-fixed-series: func [
 	series/tail: series/offset
 
 	node: alloc-node						;-- get a new node
-	series/node: node						;-- link back series to node
+	series/node: alloc-node-handle node		;-- link series and stable handle
 	node/value: as-integer series
 	node									;-- return the node pointer
 ]
@@ -786,7 +928,7 @@ expand-series-strict: func [
 
 	if new-sz <= 0 [fire [TO_ERROR(internal no-memory)]]
 
-	node: series/node
+	node: resolve-node series/node
 	new: null								;-- avoids GC processing this slot on stack (optimization)
 	new: alloc-series-buffer new-sz / units units 0
 	series: as series-buffer! node/value	;-- refresh series after eventual GC pass
@@ -796,9 +938,9 @@ expand-series-strict: func [
 	delta: as-integer series/tail - series/offset
 	
 	new/flags:	series/flags
-	new/node:	node
+	new/node:	series/node
 	new/tail:	as cell! (as byte-ptr! new/offset) + delta
-	series/node: null						;-- needs to be set after potential GC pass from new allocation
+	series/node: 0							;-- needs to be set after potential GC pass from new allocation
 	
 	if big? [new/flags: new/flags or flag-series-big]	;@@ to be improved
 	
@@ -864,18 +1006,23 @@ copy-series: func [
 	/local
 		node   [node!]
 		new	   [series!]
+		source [node-handle!]
+		size   [integer!]
 ][
-	node: alloc-bytes s/size
+	source: s/node
+	size: s/size
+	node: alloc-bytes size
+	s: resolve-series source
 	
 	new: as series! node/value
 	new/flags: s/flags
 	new/tail: as cell! (as byte-ptr! new/offset) + (as-integer s/tail - s/offset)
 	
-	unless zero? s/size [
+	unless zero? size [
 		copy-memory 
 			as byte-ptr! new/offset
 			as byte-ptr! s/offset
-			s/size
+			size
 	]
 	node
 ]

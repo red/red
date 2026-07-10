@@ -254,10 +254,10 @@ binary: context [
 		
 		bin/head: 0
 		bin/header: TYPE_UNSET
-		bin/node: decode-16 p len unit
+		bin/node: node-handle-of decode-16 p len unit
 		bin/header: TYPE_BINARY
 		stack/pop 1
-		if null? bin/node [fire [TO_ERROR(script invalid-data) issue]]
+		if NULL_HANDLE?(bin/node) [fire [TO_ERROR(script invalid-data) issue]]
 		len
 	]
 
@@ -886,7 +886,7 @@ binary: context [
 		bin: as red-binary! slot
 		set-type slot TYPE_UNSET
 		bin/head: 0
-		bin/node: alloc-bytes size
+		bin/node: node-handle-of alloc-bytes size
 		set-type slot TYPE_BINARY
 		bin
 	]
@@ -1391,7 +1391,7 @@ binary: context [
 				OP_XOR [copy-memory p + i p2 + i len - i]
 			]
 		]
-		left/node: node
+		left/node: node-handle-of node
 		left/head: 0
 		left
 	]
