@@ -27,8 +27,8 @@ float: context [
 	pretty-print?: true
 	full-support?: false
 
-	uint64!: alias struct! [int1 [byte-ptr!] int2 [byte-ptr!]]
-	int64!:  alias struct! [int1 [integer!] int2 [integer!]]
+	float-uint64!: alias struct! [int1 [byte-ptr!] int2 [byte-ptr!]]
+	float-int64!:  alias struct! [int1 [integer!] int2 [integer!]]
 
 	DOUBLE_MAX: 0.0
 	+INF: 0.0											;-- rebol can't load INF, NaN
@@ -36,20 +36,20 @@ float: context [
 	QNaN: 0.0
 	HALF: 0.0
 
-	double-int-union: as int64! :DOUBLE_MAX				;-- set to largest number
+	double-int-union: as float-int64! :DOUBLE_MAX				;-- set to largest number
 	double-int-union/int2: 7FEFFFFFh
 	double-int-union/int1: FFFFFFFFh
 
-	double-int-union: as int64! :+INF
+	double-int-union: as float-int64! :+INF
 	double-int-union/int2: 7FF00000h
 	
-	double-int-union: as int64! :-INF
+	double-int-union: as float-int64! :-INF
 	double-int-union/int2: FFF00000h
 
-	double-int-union: as int64! :QNaN					;-- smallest quiet NaN
+	double-int-union: as float-int64! :QNaN					;-- smallest quiet NaN
 	double-int-union/int2: 7FF80000h
 	
-	double-int-union: as int64! :HALF
+	double-int-union: as float-int64! :HALF
 	double-int-union/int2: 3FDFFFFFh
 	double-int-union/int1: FFFFFFFFh
 	
@@ -102,14 +102,14 @@ float: context [
 			p		[c-string!]
 			p1		[c-string!]
 			dot?	[logic!]
-			d		[int64!]
+			d		[float-int64!]
 			w0		[integer!]
 			temp	[float!]
 			tried?	[logic!]
 			pretty? [logic!]
 			percent? [logic!]
 	][
-		d: as int64! :f
+		d: as float-int64! :f
 		w0: d/int2												;@@ Use little endian. Watch out big endian !
 
 		if w0 and 7FF00000h = 7FF00000h [
@@ -752,8 +752,8 @@ float: context [
 		right	[float!]
 		return: [logic!]
 		/local
-			a	 [uint64!]
-			b	 [uint64!]
+			a	 [float-uint64!]
+			b	 [float-uint64!]
 			lo1  [byte-ptr!]
 			lo2  [byte-ptr!]
 			hi1  [byte-ptr!]
@@ -765,8 +765,8 @@ float: context [
 
 		if DBL_EPSILON > abs left - right [return true] ;-- check if the numbers are really close, use an absolute epsilon
 
-		a: as uint64! :left
-		b: as uint64! :right
+		a: as float-uint64! :left
+		b: as float-uint64! :right
 		lo1: a/int1
 		lo2: b/int1
 		hi1: a/int2

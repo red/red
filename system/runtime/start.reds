@@ -50,7 +50,11 @@ system: declare struct! [								;-- trimmed down temporary system definition
 		***__argv: system/stack/top
 
 		;; Align the stack to a 128-bit boundary, to prevent misaligned access penalities.
-		system/stack/top: as pointer! [integer!] (FFFFFFF0h and as integer! ***__argv)
+		#either target = 'X86-64 [
+			system/stack/top: as pointer! [integer!] (FFFFFFFFFFFFFFF0h and as uint64! ***__argv)
+		][
+			system/stack/top: as pointer! [integer!] (FFFFFFF0h and as integer! ***__argv)
+		]
 
 		;; Register the clean up routine.
 		***__atexit ***__rtld_cleanup
@@ -95,13 +99,21 @@ system: declare struct! [								;-- trimmed down temporary system definition
 
 		;; Before pushing arguments for `libc-start`, align the stack to a
 		;; 128-bit boundary, to prevent misaligned access penalities.
-		system/stack/top: as pointer! [integer!] (FFFFFFF0h and as integer! ***__argv)
+		#either target = 'X86-64 [
+			system/stack/top: as pointer! [integer!] (FFFFFFFFFFFFFFF0h and as uint64! ***__argv)
+		][
+			system/stack/top: as pointer! [integer!] (FFFFFFF0h and as integer! ***__argv)
+		]
 
 		;; The call to `libc-start` takes 6 4-byte arguments (passed on the
-		;; stack). To keep the stack 128-bit aligned even after the call, we
-		;; push some garbage.
-		push 0
-		push 0
+		;; stack on 32-bit targets. On x64 the backend uses register
+		;; arguments, so the old padding pushes would corrupt the call setup.
+		#either target = 'X86-64 [
+			;-- no extra stack padding
+		][
+			push 0
+			push 0
+		]
 
 		;; Finally, call into libc's startup routine.
 		***__stack_end: system/stack/top
@@ -169,12 +181,20 @@ system: declare struct! [								;-- trimmed down temporary system definition
 
 		;; Before pushing arguments for `libc-start`, align the stack to a
 		;; 128-bit boundary, to prevent misaligned access penalities.
-		system/stack/top: as pointer! [integer!] (FFFFFFF0h and as integer! ***__argv)
+		#either target = 'X86-64 [
+			system/stack/top: as pointer! [integer!] (FFFFFFFFFFFFFFF0h and as uint64! ***__argv)
+		][
+			system/stack/top: as pointer! [integer!] (FFFFFFF0h and as integer! ***__argv)
+		]
 
 		;; The call to `libc-start` takes 7 4-byte arguments (passed on the
-		;; stack). To keep the stack 128-bit aligned even after the call, we
-		;; push some garbage.
-		push 0
+		;; stack on 32-bit targets. On x64 the backend uses register
+		;; arguments, so the old padding push would corrupt the call setup.
+		#either target = 'X86-64 [
+			;-- no extra stack padding
+		][
+			push 0
+		]
 
 		;; Finally, call into libc's startup routine.
 		***__stack_end: system/stack/top

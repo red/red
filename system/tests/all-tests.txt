@@ -3,6 +3,7 @@
 %source/units/byte-test.reds
 %source/units/c-string-test.reds
 %source/units/struct-test.reds
+%source/units/union-test.reds
 %source/units/pointer-test.reds
 %source/units/cast-test.reds
 %source/units/alias-test.reds
@@ -18,6 +19,8 @@
 %source/units/namespace-test.reds
 %source/units/not-test.reds
 %source/units/size-test.reds
+%source/units/fixed-int-test.reds
+%source/units/int64-test.reds
 %source/units/function-test.reds
 %source/units/case-test.reds
 %source/units/switch-test.reds

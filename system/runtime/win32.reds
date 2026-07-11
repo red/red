@@ -52,7 +52,7 @@ win32-startup-ctx: context [
 				code		[integer!]
 				flags		[integer!]
 				records		[integer!]
-				address		[integer!]
+				address		[byte-ptr!]
 				nb-params	[integer!]
 				info		[integer!]
 			]
@@ -96,8 +96,8 @@ win32-startup-ctx: context [
 				return:		[integer!]
 			]
 			LocalFree: "LocalFree" [
-				hMem		[int-ptr!]
-				return:		[int-ptr!]
+				hMem		[byte-ptr!]
+				return:		[byte-ptr!]
 			]
 			WideCharToMultiByte: "WideCharToMultiByte" [
 				CodePage			[integer!]
@@ -115,7 +115,7 @@ win32-startup-ctx: context [
 			CommandLineToArgvW: "CommandLineToArgvW" [
 				lpCmdLine	[byte-ptr!]
 				pNumArgs	[int-ptr!]
-				return:		[int-ptr!]
+				return:		[ptr-slot!]
 			]
 		]
 	]
@@ -166,7 +166,11 @@ win32-startup-ctx: context [
 			default	  [99]
 		]
 
-		***-on-quit error record/error/address
+		#either target = 'X86-64 [
+			***-on-quit error record/error/address
+		][
+			***-on-quit error as integer! record/error/address
+		]
 		1											;-- EXCEPTION_EXECUTE_HANDLER, forces termination
 	]
 
@@ -194,11 +198,25 @@ win32-startup-ctx: context [
 	;-------------------------------------------
 	;-- Retrieve command-line information
 	;-------------------------------------------
-	on-start: func [/local c n argv args len src dst][
-		c: 0
-		args: CommandLineToArgvW as byte-ptr! GetCommandLine :c
-		
-		argv: as int-ptr! allocate c + 1 * size? int-ptr!
+	on-start: func [
+		/local
+		argc-ptr [int-ptr!]
+		c	[integer!]
+		n	[integer!]
+		argv	[ptr-slot!]
+		args	[ptr-slot!]
+		len	[integer!]
+		src	[ptr-slot!]
+		dst	[ptr-slot!]
+		buf	[byte-ptr!]
+	][
+		argc-ptr: declare int-ptr!
+		argc-ptr/value: 0
+		args: CommandLineToArgvW as byte-ptr! GetCommandLine argc-ptr
+		c: argc-ptr/value
+
+		len: (c + 1) * size? int-ptr!
+		argv: as ptr-slot! allocate len
 		src: args
 		dst: argv
 
@@ -208,16 +226,21 @@ win32-startup-ctx: context [
 			n: c
 			while [n > 0][
 				len: WideCharToMultiByte CP_UTF8 0 as-c-string src/value -1 null 0 null 0
-				dst/value: as-integer allocate len
-				WideCharToMultiByte CP_UTF8 0 as-c-string src/value -1 as byte-ptr! dst/value len null 0
+				buf: allocate len
+				#either target = 'X86-64 [
+					dst/value: buf
+				][
+					dst/value: as int-ptr! buf
+				]
+				WideCharToMultiByte CP_UTF8 0 as-c-string src/value -1 buf len null 0
 
 				dst: dst + 1
 				src: src + 1
 				n: n - 1
 			]
-			LocalFree args
+			LocalFree as byte-ptr! args
 		]
-		dst/value: 0
+		dst/value: null
 		
 		system/args-list: as str-array! argv
 		system/args-count: c

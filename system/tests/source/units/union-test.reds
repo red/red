@@ -1,0 +1,455 @@
+Red/System [
+	Title:   "Red/System union! datatype test script"
+	Author:  "Red Foundation"
+	File: 	 %union-test.reds
+	Tabs:	 4
+	Rights:  "Copyright (C) 2026 Red Foundation. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
+]
+
+#include %../../../../quick-test/quick-test.reds
+
+#if any [target = 'IA-32 target = 'ARM target = 'X86-64] [
+
+raw-value!: alias union! [
+	i32 [integer!]
+	u8  [uint8!]
+	f32 [float32!]
+	ptr [int-ptr!]
+	str [c-string!]
+	ch  [byte!]
+]
+
+tagged-value!: alias union! [
+	[variant]
+	i8  [int8!]
+	u16 [uint16!]
+	i32 [int32!]
+	u64 [uint64!]
+	f32 [float32!]
+	ptr [int-ptr!]
+	str [c-string!]
+	ch  [byte!]
+]
+
+small-tagged-value!: alias union! [
+	[variant]
+	i32 [integer!]
+]
+
+event!: alias union! [
+	[variant]
+	mouse [
+		x [integer!]
+		y [integer!]
+	]
+	key [
+		code [integer!]
+	]
+]
+
+boxed-value!: alias struct! [
+	head [uint8!]
+	data [tagged-value! value]
+	tail [uint16!]
+]
+
+raw-boxed-value!: alias struct! [
+	head [integer!]
+	data [raw-value! value]
+	tail [integer!]
+]
+
+point!: alias struct! [
+	x [integer!]
+	y [integer!]
+]
+
+shape!: alias union! [
+	[variant]
+	point [point! value]
+	id    [integer!]
+]
+
+shape-box!: alias struct! [
+	head  [integer!]
+	shape [shape! value]
+	tail  [integer!]
+]
+
+shape-ref-box!: alias struct! [
+	head  [integer!]
+	shape [shape!]
+	tail  [integer!]
+]
+
+union-by-value-id: func [value [tagged-value! value] return: [integer!]][
+	either variant? value 'i32 [value/i32][0]
+]
+
+raw-union-by-ref-set: func [value [raw-value!]][
+	value/i32: 2468
+]
+
+raw-union-ref-id: func [value [raw-value!] return: [raw-value!]][
+	value
+]
+
+tagged-union-by-ref-set: func [value [tagged-value!]][
+	value/i32: 1357
+]
+
+tagged-union-ref-id: func [value [tagged-value!] return: [tagged-value!]][
+	value
+]
+
+raw-union-by-value-copy: func [value [raw-value! value] return: [integer!] /local saved [integer!]][
+	saved: value/i32
+	value/i32: 9753
+	saved
+]
+
+shape-by-value-sum: func [value [shape! value] return: [integer!]][
+	either variant? value 'point [
+		value/point/x + value/point/y
+	][
+		0
+	]
+]
+
+shape-ref-id: func [value [shape!] return: [shape!]][
+	value
+]
+
+shape-box-by-ref-set: func [value [shape-box!]][
+	value/shape/point/x: 31
+	value/shape/point/y: 32
+]
+
+shape-box-inline-shape-ref: func [value [shape-box!] return: [shape!]][
+	value/shape
+]
+
+shape-ref-box-by-ref-set: func [value [shape-ref-box!]][
+	value/shape/point/x: 41
+	value/shape/point/y: 42
+]
+
+shape-ref-box-shape-ref: func [value [shape-ref-box!] return: [shape!]][
+	value/shape
+]
+
+union-by-value-make: func [
+	return: [small-tagged-value! value]
+	/local value [small-tagged-value! value]
+][
+	value/i32: 987
+	value
+]
+
+union-by-value-make-large: func [
+	return: [tagged-value! value]
+	/local value [tagged-value! value]
+][
+	value/i32: 654
+	value
+]
+
+~~~start-file~~~ "union!"
+
+===start-group=== "Raw union layout and access"
+
+	--test-- "union-raw-size-1"
+	#either target = 'X86-64 [
+		--assert 8 = size? raw-value!
+	][
+		--assert 4 = size? raw-value!
+	]
+
+	--test-- "union-raw-rw-1"
+	raw: declare raw-value!
+	raw/i32: 123456
+	--assert raw/i32 = 123456
+	raw/u8: as uint8! 255
+	--assert raw/u8 = as uint8! 255
+	raw/ch: #"A"
+	--assert raw/ch = #"A"
+
+	--test-- "union-raw-rw-2"
+	raw/f32: as float32! 6.25
+	--assert raw/f32 = as float32! 6.25
+	raw/str: "hello"
+	--assert raw/str/1 = #"h"
+
+	--test-- "union-raw-rw-3"
+	raw-int: 4321
+	raw/ptr: :raw-int
+	--assert raw/ptr/value = 4321
+	raw/ptr/value: 8765
+	--assert raw-int = 8765
+
+	--test-- "union-raw-in-struct-1"
+	raw-box: declare raw-boxed-value!
+	raw-box/head: 11
+	raw-box/tail: 22
+	raw-box/data/i32: 333
+	--assert raw-box/head = 11
+	--assert raw-box/tail = 22
+	--assert raw-box/data/i32 = 333
+	raw-box/data/str: "raw-box"
+	--assert raw-box/data/str/1 = #"r"
+
+===end-group===
+
+===start-group=== "Tagged union predicates and assignment"
+
+	--test-- "union-tagged-size-1"
+	#either target = 'X86-64 [
+		--assert 16 = size? tagged-value!
+	][
+		--assert 12 = size? tagged-value!
+	]
+
+	--test-- "union-tagged-rw-1"
+	v: declare tagged-value!
+	--assert not variant? v 'i8
+	v/i8: as int8! -12
+	--assert variant? v 'i8
+	--assert not variant? v 'u16
+	--assert v/i8 = as int8! -12
+
+	--test-- "union-tagged-rw-2"
+	v/u16: as uint16! 65535
+	--assert variant? v 'u16
+	--assert v/u16 = as uint16! 65535
+	v/i32: -123456
+	--assert variant? v 'i32
+	--assert v/i32 = -123456
+
+	--test-- "union-tagged-rw-3"
+	v/u64: FFFFFFFFFFFFFFFFh
+	--assert variant? v 'u64
+	--assert v/u64 = FFFFFFFFFFFFFFFFh
+
+	--test-- "union-tagged-rw-4"
+	v/f32: as float32! 1.5
+	--assert variant? v 'f32
+	--assert v/f32 = as float32! 1.5
+	v/str: "hello"
+	--assert variant? v 'str
+	--assert v/str/1 = #"h"
+	v/ch: #"Z"
+	--assert variant? v 'ch
+	--assert v/ch = #"Z"
+
+	--test-- "union-tagged-rw-5"
+	tagged-int: 1234
+	v/ptr: :tagged-int
+	--assert variant? v 'ptr
+	--assert v/ptr/value = 1234
+	v/ptr/value: 5678
+	--assert tagged-int = 5678
+
+===end-group===
+
+===start-group=== "Tagged union struct payloads"
+
+	--test-- "union-struct-payload-1"
+	e: declare event!
+	--assert not variant? e 'mouse
+	e/mouse/x: 10
+	e/mouse/y: 20
+	--assert variant? e 'mouse
+	--assert e/mouse/x = 10
+	--assert e/mouse/y = 20
+
+	--test-- "union-struct-payload-2"
+	e/key/code: 42
+	--assert variant? e 'key
+	--assert e/key/code = 42
+
+	--test-- "union-switch-1"
+	score: 0
+	switch e [
+		mouse [score: 1]
+		key   [score: 2]
+		default [score: 3]
+	]
+	--assert score = 2
+
+	--test-- "union-switch-2"
+	score: 7
+	switch e [
+		mouse [score: 1]
+	]
+	--assert score = 7
+
+===end-group===
+
+===start-group=== "Tagged union inside struct"
+
+	--test-- "union-in-struct-1"
+	box: declare boxed-value!
+	box/head: as uint8! 12
+	box/tail: as uint16! 3456
+	box/data/i32: 77
+	--assert box/head = as uint8! 12
+	--assert box/tail = as uint16! 3456
+	--assert variant? box/data 'i32
+	--assert box/data/i32 = 77
+
+	--test-- "union-in-struct-2"
+	box/data/str: "boxed"
+	--assert variant? box/data 'str
+	--assert box/data/str/1 = #"b"
+
+===end-group===
+
+===start-group=== "Nested union and struct payloads"
+
+	--test-- "union-named-struct-payload-1"
+	shape: declare shape!
+	shape/point/x: 10
+	shape/point/y: 20
+	--assert variant? shape 'point
+	--assert shape/point/x = 10
+	--assert shape/point/y = 20
+	--assert 30 = shape-by-value-sum shape
+
+	--test-- "union-named-struct-payload-2"
+	shape/id: 99
+	--assert variant? shape 'id
+	--assert shape/id = 99
+	--assert 0 = shape-by-value-sum shape
+
+	--test-- "union-struct-union-struct-1"
+	shape-box: declare shape-box!
+	shape-box/head: 1001
+	shape-box/tail: 1002
+	shape-box/shape/point/x: 11
+	shape-box/shape/point/y: 22
+	--assert shape-box/head = 1001
+	--assert shape-box/tail = 1002
+	--assert variant? shape-box/shape 'point
+	--assert shape-box/shape/point/x = 11
+	--assert shape-box/shape/point/y = 22
+	--assert 33 = shape-by-value-sum shape-box/shape
+
+	--test-- "union-struct-union-struct-2"
+	shape-box-by-ref-set shape-box
+	--assert shape-box/head = 1001
+	--assert shape-box/tail = 1002
+	--assert variant? shape-box/shape 'point
+	--assert shape-box/shape/point/x = 31
+	--assert shape-box/shape/point/y = 32
+
+	--test-- "union-struct-union-ref-1"
+	shape-ref-box: declare shape-ref-box!
+	shape-ref-box/head: 2001
+	shape-ref-box/tail: 2002
+	shape-ref-box/shape: shape
+	shape-ref-box/shape/point/x: 51
+	shape-ref-box/shape/point/y: 52
+	--assert shape-ref-box/head = 2001
+	--assert shape-ref-box/tail = 2002
+	--assert variant? shape-ref-box/shape 'point
+	--assert shape-ref-box/shape/point/x = 51
+	--assert shape-ref-box/shape/point/y = 52
+	--assert shape/point/x = 51
+	--assert shape/point/y = 52
+
+	--test-- "union-struct-union-ref-2"
+	shape-ref-box-by-ref-set shape-ref-box
+	--assert shape-ref-box/head = 2001
+	--assert shape-ref-box/tail = 2002
+	--assert variant? shape-ref-box/shape 'point
+	--assert shape-ref-box/shape/point/x = 41
+	--assert shape-ref-box/shape/point/y = 42
+	--assert shape/point/x = 41
+	--assert shape/point/y = 42
+
+	--test-- "union-return-ref-1"
+	shape-ref-box/shape: shape-ref-id shape
+	shape-ref-box/shape/point/x: 61
+	shape-ref-box/shape/point/y: 62
+	--assert variant? shape-ref-box/shape 'point
+	--assert shape-ref-box/shape/point/x = 61
+	--assert shape-ref-box/shape/point/y = 62
+	--assert shape/point/x = 61
+	--assert shape/point/y = 62
+
+	--test-- "union-return-ref-2"
+	shape-ref-box/shape: shape-box-inline-shape-ref shape-box
+	shape-ref-box/shape/point/x: 71
+	shape-ref-box/shape/point/y: 72
+	--assert variant? shape-ref-box/shape 'point
+	--assert shape-ref-box/shape/point/x = 71
+	--assert shape-ref-box/shape/point/y = 72
+	--assert shape-box/shape/point/x = 71
+	--assert shape-box/shape/point/y = 72
+
+	--test-- "union-return-ref-3"
+	shape-ref-box/shape: shape-ref-box-shape-ref shape-ref-box
+	shape-ref-box/shape/point/x: 81
+	shape-ref-box/shape/point/y: 82
+	--assert variant? shape-ref-box/shape 'point
+	--assert shape-ref-box/shape/point/x = 81
+	--assert shape-ref-box/shape/point/y = 82
+	--assert shape-box/shape/point/x = 81
+	--assert shape-box/shape/point/y = 82
+
+===end-group===
+
+===start-group=== "Tagged union by value"
+
+	--test-- "union-by-value-1"
+	v/i32: 456
+	--assert 456 = union-by-value-id v
+
+	--test-- "union-by-value-2"
+	small-v: declare small-tagged-value!
+	small-v: union-by-value-make
+	--assert variant? small-v 'i32
+	--assert small-v/i32 = 987
+
+	--test-- "union-by-value-3"
+	v: union-by-value-make-large
+	--assert variant? v 'i32
+	--assert v/i32 = 654
+
+	--test-- "union-by-ref-1"
+	raw/i32: 1234
+	raw-union-by-ref-set raw
+	--assert raw/i32 = 2468
+
+	--test-- "union-by-ref-2"
+	tagged-union-by-ref-set v
+	--assert variant? v 'i32
+	--assert v/i32 = 1357
+
+	--test-- "union-pass-return-ref-1"
+	raw-ref: raw-union-ref-id raw
+	raw-ref/i32: 8642
+	--assert raw/i32 = 8642
+	--assert (as integer! (raw-union-ref-id raw-ref)) = as integer! raw-ref
+	--assert (as integer! (raw-union-ref-id raw-ref)) = as integer! raw
+
+	--test-- "union-pass-return-ref-2"
+	v-ref: tagged-union-ref-id v
+	v-ref/i32: 97531
+	--assert variant? v-ref 'i32
+	--assert variant? v 'i32
+	--assert v-ref/i32 = 97531
+	--assert v/i32 = 97531
+	--assert (as integer! (tagged-union-ref-id v-ref)) = as integer! v-ref
+
+	--test-- "union-raw-by-value-1"
+	raw/i32: 4321
+	--assert 4321 = raw-union-by-value-copy raw
+	--assert raw/i32 = 4321
+
+===end-group===
+
+~~~end-file~~~
+
+]

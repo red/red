@@ -1058,7 +1058,8 @@ collector: context [
 		]
 			cb		[function! []]
 	][
-		system/atomic/store :state GC_RUNNING			;-- camera widget rely on threads and reads this value.
+		if GC_RUNNING = system/atomic/load :state [exit]
+		system/atomic/store :state GC_RUNNING			;-- camera widget relies on threads and reads this value.
 
 		#if debug? = yes [if verbose > 1 [
 			#if OS = 'Windows [platform/dos-console?: no]
@@ -1154,12 +1155,25 @@ collector: context [
 	]
 
 	do-cycle: does [
-		unless active? [exit]
+		if any [not active? running?][exit]
 		do-mark-sweep
 	]
 	
-	register: func [cb [int-ptr!]][
-		assert (as-integer ext-top - ext-markers) >> 2 < ext-size
+	register: func [
+		cb [int-ptr!]
+		/local p [int-ptr!]
+	][
+		p: ext-markers
+		while [p < ext-top][
+			if p/value = 0 [
+				p/value: as-integer cb
+				exit
+			]
+			p: p + 1
+		]
+		if (as-integer ext-top - ext-markers) >> 2 >= ext-size [
+			fire [TO_ERROR(internal no-memory)]
+		]
 		ext-top/value: as-integer cb
 		ext-top: ext-top + 1
 	]

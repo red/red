@@ -82,7 +82,8 @@ __print-debug-stack: func [
 		prev slot	[int-ptr!]
 		s			[c-string!]
 		value lines	[integer!]
-		base size	[integer!]
+		base		[byte-ptr!]
+		size		[integer!]
 		unused		[float!]
 ][
 	funcs:	as byte-ptr! __debug-funcs
@@ -109,10 +110,10 @@ __print-debug-stack: func [
 			all [clow <= ret ret < chigh]
 		][
 			size: system/image/code-size
-			as-integer system/image/base
+			system/image/base
 		][
 			size: system/lib-image/code-size
-			as-integer system/lib-image/base
+			system/lib-image/base
 		]
 		nb: __debug-funcs-nb
 		records: __debug-funcs

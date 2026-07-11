@@ -92,7 +92,7 @@ FPU-exceptions-mask!: alias struct! [		;-- standard exception mask (true => mask
 			rounding	[integer!]
 			precision	[integer!]
 		]
-		
+
 		__fpu-struct!: alias struct! [
 			type		 [integer!]
 			option		 [x87-option!]
@@ -103,7 +103,7 @@ FPU-exceptions-mask!: alias struct! [		;-- standard exception mask (true => mask
 			update		 [integer!]			;-- action simulated using a read-only member
 			init		 [integer!]			;-- action simulated using a read-only member
 		]
-		
+
 		__cpu-struct!: alias struct! [
 			eax			[integer!]
 			ebx			[integer!]
@@ -113,6 +113,43 @@ FPU-exceptions-mask!: alias struct! [		;-- standard exception mask (true => mask
 			ebp			[integer!]
 			esi			[integer!]
 			edi			[integer!]
+			overflow?	[logic!]
+		]
+	]
+	X86-64 [
+		SSE-option!: alias struct! [
+			rounding	[integer!]
+			precision	[integer!]
+		]
+
+		__fpu-struct!: alias struct! [
+			type		 [integer!]
+			option		 [SSE-option!]
+			mask		 [FPU-exceptions-mask!]
+			status		 [integer!]
+			control-word [integer!]			;-- MXCSR/control word shadow
+			epsilon		 [integer!]			;-- Ulp threshold for almost-equal op (not used yet)
+			update		 [integer!]			;-- action simulated using a read-only member
+			init		 [integer!]			;-- action simulated using a read-only member
+		]
+
+		__cpu-struct!: alias struct! [
+			rax			[int-ptr!]
+			rbx			[int-ptr!]
+			rcx			[int-ptr!]
+			rdx			[int-ptr!]
+			rsp			[int-ptr!]
+			rbp			[int-ptr!]
+			rsi			[int-ptr!]
+			rdi			[int-ptr!]
+			r8			[int-ptr!]
+			r9			[int-ptr!]
+			r10			[int-ptr!]
+			r11			[int-ptr!]
+			r12			[int-ptr!]
+			r13			[int-ptr!]
+			r14			[int-ptr!]
+			r15			[int-ptr!]
 			overflow?	[logic!]
 		]
 	]
@@ -186,8 +223,10 @@ system!: alias struct! [					;-- store runtime accessible system values
 ***-exec-image: declare __image!			;-- reference ***-exec-image used by compiler to fill the slots
 
 #either type = 'dll [
+	***-lib-image: declare __image!
+
 	***-init-system-image: func [][			;-- must use a wrapping function so ` copy-memory` is reachable
-		system/lib-image: declare __image!
+		system/lib-image: ***-lib-image
 		copy-memory as byte-ptr! system/lib-image as byte-ptr! system/image size? __image!
 	]
 ][											;-- for libraries, it's set at library loading time.

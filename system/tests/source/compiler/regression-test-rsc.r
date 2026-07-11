@@ -1217,25 +1217,25 @@ print ["k: " as integer! k]
 	--test-- "#861"
 		--compile-and-run-this {
 Red/System []
-int64!: alias struct! [int1 [integer!] int2 [integer!]]
+int64-struct!: alias struct! [int1 [integer!] int2 [integer!]]
 print-float-hex: func [
 	number  [float!]
 	tmp     [integer!]
 	/local
-		f   [int64!]
+		f   [int64-struct!]
 ][
-	f: as int64! :number
+	f: as int64-struct! :number
 	print [as byte-ptr! f/int2 as byte-ptr! f/int1]
 ]
 foo-test: func [
 	/local
 		f   [float!]
 		p   [pointer! [float!]]
-		a   [int64!]
+		a   [int64-struct!]
 		tmp [integer!]
 ][
 	f: 0.0
-	a: as int64! :f
+	a: as int64-struct! :f
 	p: as pointer! [float!] a
 	tmp: 20
 	print [as byte-ptr! a/int2 as byte-ptr! a/int1]

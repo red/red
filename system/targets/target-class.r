@@ -20,6 +20,7 @@ target-class: context [
 	emit-stack-align-epilog: none					;-- unwind aligned stack
 	emit-float-trash-last:	 none					;-- FPU clean-up code after use in expression
 	PIC?:					 none					;-- PIC flag set from compilation job options
+	PIE?:					 none					;-- PIE flag set from compilation job options
 	
 	compiler: 	none								;-- just a short-cut
 	width: 		none								;-- current operand width in bytes
@@ -38,6 +39,11 @@ target-class: context [
 	emit-init-sub: emit-return-sub: emit-call-sub:
 	emit-overflow-epilog-no-ovf: emit-overflow-epilog-ovf: none
 	
+	divide-sym:                to word! "/"
+	left-shift-sym:            to word! "<<"
+	right-shift-sym:           to word! ">>"
+	unsigned-right-shift-sym: to word! "-**"
+
 	comparison-op: [= <> < > <= >=]
 	math-op:	   compose [+ - * / // (to-word "%")]
 	mod-rem-op:    compose [// (to-word "%")]
@@ -119,21 +125,35 @@ target-class: context [
 	]
 	
 	with-width-of: func [value body [block!] /alt /local old][
-		old: width
+		old: reduce [width signed?]
 		set-width compiler/unbox value
 		do body
-		width: old
-		if all [alt object? value][emit-casting value yes]	;-- casting for right operand
+		set [width signed?] old
+		if all [alt object? value][					;-- casting for right operand
+			emit-casting value yes
+			set [width signed?] old
+		]
 	]
 	
-	implicit-cast: func [arg alt? [logic!] /local right-width][
+	implicit-cast: func [arg alt? [logic!] /local right-width right-type target-type][
 		right-width: first get-width arg none
+		right-type: compiler/get-type arg
+		target-type: reduce [case [
+			width = 1 [either signed? ['int8!]['uint8!]]
+			width = 2 [either signed? ['int16!]['uint16!]]
+			width = 4 [either signed? ['integer!]['uint32!]]
+			width = 8 [compiler/last-type/1]
+		]]
 		
 		if any [
-			all [width = 4 right-width = 1]			;-- detect byte! -> integer! implicit casting
-			find [float! float32! float64!] first compiler/get-type arg
+			compiler/lossless-integer-cast? right-type target-type
+			find [float! float32! float64!] first right-type
 		][
-			arg: make compiler/action-class [action: 'type-cast type: [integer!] data: arg]
+			arg: make compiler/action-class [
+				action: 'type-cast
+				type: target-type
+				data: arg
+			]
 			emit-casting arg alt?					;-- type cast right argument
 		]
 	]

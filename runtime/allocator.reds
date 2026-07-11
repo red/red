@@ -746,6 +746,7 @@ alloc-series-buffer: func [
 		
 	series/size: size
 	series/flags: unit or series-in-use or flag-big
+	if collector/running? [series/flags: series/flags or flag-gc-mark]
 
 	either offset = default-offset [
 		offset: size >> 1					;-- target middle of buffer
@@ -801,6 +802,7 @@ alloc-fixed-series: func [
 	series: as series-buffer! allocate sz
 	series/size: size
 	series/flags: unit or series-in-use or flag-series-fixed or flag-ins-tail
+	if collector/running? [series/flags: series/flags or flag-gc-mark]
 	series/offset: as cell! (as byte-ptr! series + 1) + offset
 	series/tail: series/offset
 

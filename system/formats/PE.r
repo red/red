@@ -108,7 +108,7 @@ context [
 		;--  CPU -------- ID ------ Endianness
 			unknown		#{0000}			?
 			AM33		#{01D3}			?
-			AMD64		#{8664}			little
+			X86-64		#{8664}			little
 			ARM			#{01C0}			little
 			ARMV7		#{01C4}			?		
 			EBC			#{0EBC}			?
@@ -262,7 +262,7 @@ context [
 		flags				[short]			
 	] none
 
-	optional-header: make-struct [			;-- optional header for image only
+	optional-header-32: make-struct [		;-- PE32 optional header for image only
 		magic				[short]			;-- different for 32/64-bit
 		major-link-version	[char]
 		minor-link-version	[char]
@@ -328,6 +328,76 @@ context [
 		reserved2			[integer!]		;-- reserved, must be zero
 	] none
 
+	optional-header-64: make-struct [		;-- PE32+ optional header for image only
+		magic				[short]
+		major-link-version	[char]
+		minor-link-version	[char]
+		code-size			[integer!]
+		initdata-size		[integer!]
+		uninitdata-size		[integer!]
+		entry-point-addr	[integer!]
+		code-base			[integer!]
+		image-base			[integer!]		;-- 8 bytes for 64-bit
+		_image-base			[integer!]
+		memory-align		[integer!]
+		file-align			[integer!]
+		major-OS-version	[short]
+		minor-OS-version	[short]
+		major-img-version	[short]
+		minor-img-version	[short]
+		major-sub-version	[short]
+		minor-sub-version	[short]
+		win32-ver-value		[integer!]
+		image-size			[integer!]
+		headers-size		[integer!]
+		checksum			[integer!]
+		sub-system			[short]
+		dll-flags			[short]			;-- DLL only
+		stack-res-size		[integer!]		;-- 8 bytes for 64-bit
+		_stack-res-size		[integer!]
+		stack-com-size		[integer!]		;-- 8 bytes for 64-bit
+		_stack-com-size		[integer!]
+		heap-res-size		[integer!]		;-- 8 bytes for 64-bit
+		_heap-res-size		[integer!]
+		heap-com-size		[integer!]		;-- 8 bytes for 64-bit
+		_heap-com-size		[integer!]
+		loader-flags		[integer!]		;-- reserved, must be zero
+		data-dir-nb			[integer!]
+		;-- Data Directory
+		export-addr			[integer!]
+		export-size			[integer!]
+		import-addr			[integer!]
+		import-size			[integer!]
+		rsrc-addr			[integer!]
+		rsrc-size			[integer!]
+		except-addr			[integer!]
+		except-size			[integer!]
+		cert-addr			[integer!]
+		cert-size			[integer!]
+		reloc-addr			[integer!]
+		reloc-size			[integer!]
+		debug-addr			[integer!]
+		debug-size			[integer!]
+		arch-addr			[integer!]		;-- reserved, must be zero
+		arch-size			[integer!]		;-- reserved, must be zero
+		gptr-addr			[integer!]
+		gptr-size			[integer!]
+		TLS-addr			[integer!]
+		TLS-size			[integer!]
+		config-addr			[integer!]
+		config-size			[integer!]
+		b-import-addr		[integer!]
+		b-import-size		[integer!]
+		IAT-addr			[integer!]
+		IAT-size			[integer!]
+		d-import-addr		[integer!]
+		d-import-size		[integer!]
+		CLR-addr			[integer!]
+		CLR-size			[integer!]
+		reserved			[integer!]		;-- reserved, must be zero
+		reserved2			[integer!]		;-- reserved, must be zero
+	] none
+
 	section-header: make-struct [
 		name				[decimal!]		;-- placeholder for an 8 bytes string
 		virtual-size		[integer!]
@@ -349,8 +419,12 @@ context [
 		IAT-rva				[integer!]		;-- address table RVA
 	] none
 
-	ILT-struct: make-struct [
+	ILT-struct-32: make-struct [
 		rva	[integer!]						;-- 32/64-bit
+	] none
+
+	ILT-struct-64: make-struct [
+		rva	[uint64]
 	] none
 	
 	export-directory: make-struct [
@@ -416,20 +490,33 @@ context [
 		date-ls				[integer!]
 	] none
 
-	pointer: make-struct [
+	pointer-32: make-struct [
 		value [integer!]					;-- 32/64-bit, watch out for endianness!!
+	] none
+
+	pointer-64: make-struct [
+		value [uint64]
+	] none
+
+	rva-pointer: make-struct [
+		value [integer!]
 	] none
 
 	base-address:		none
 	memory-align:		4096				;-- system page size
 	file-align: 		512					;-- better keep it < memory-align
 	sect-header-size: 	40
+	ILT-struct:			ILT-struct-32
+	optional-header:	optional-header-32
+	pointer:			pointer-32
 	ILT-size:			4					;-- Import Lookup Table size (8 for 64-bit)
 	pointer-size:		4					;-- Pointer size (8 for 64-bit)
 	imports-refs:		make block! 10		;-- [ptr [DLL imports] ...]
-	opt-header-size:	length? form-struct optional-header
+	opt-header-size:	224
 	ep-mem-page: 		none
 	ep-file-page:		none
+
+	PE64?: false
 
 	get-timestamp: has [n t][
 		n: now
@@ -521,11 +608,23 @@ context [
 		
 		foreach [ptr list] imports-refs [
 			ptr: either job/PIC? [ptr - code-base][base-address + ptr]
-			
-			foreach [def reloc] list [
-				pointer/value: ptr 
-				foreach ref reloc [change at code ref form-struct pointer]	;TBD: check endianness + x-compilation
-				ptr: ptr + pointer-size
+
+			either PE64? [
+				foreach [def reloc] list [
+					foreach ref reloc [
+						change/part
+							at code ref
+							to-bin32 (ptr - (base-address + code-base + ref - 1 + 4))
+							4
+					]
+					ptr: ptr + pointer-size
+				]
+			][
+				foreach [def reloc] list [
+					pointer/value: ptr
+					foreach ref reloc [change at code ref form-struct pointer]	;TBD: check endianness + x-compilation
+					ptr: ptr + pointer-size
+				]
 			]
 		]
 	]
@@ -614,7 +713,7 @@ context [
 		job [object!]
 		/local
 			spec NPT out names ptr EAT-len sym-nb dll-name-offset ordinal ed
-			code-base data-base	ro-base buffer names-ptr
+			code-base data-base ro-base buffer names-ptr rva-ptr
 	][
 		spec: 		job/sections/export
 		NPT: 		make block! 32
@@ -659,18 +758,19 @@ context [
 
 		buffer: make binary! 1024
 		names-ptr: ed/ordinals-rva + (2 * sym-nb)
+		rva-ptr: rva-pointer
 			
 		foreach [name offset] NPT [						;-- Export Address Table
 			entry: select job/symbols name
-			pointer/value: entry/2 + case [
+			rva-ptr/value: entry/2 + case [
 				entry/1 = 'global [data-base]
 				entry/1 = 'constant [ro-base]
 				'else			  [code-base - 1]
 			]
-			append out form-struct pointer				;-- Export RVA
+			append out form-struct rva-ptr			;-- Export RVA
 			
-			pointer/value: names-ptr + offset
-			append buffer form-struct pointer			;-- Export Name Pointer Table entry
+			rva-ptr/value: names-ptr + offset
+			append buffer form-struct rva-ptr			;-- Export Name Pointer Table entry
 		]
 		append out buffer								;-- Export Name Pointer Table
 		
@@ -692,7 +792,11 @@ context [
 		_4K: 4096
 		buffer: make binary! _4K
 		base: section-addr?/memory job name
-		type: to integer! #{3000}						;-- IMAGE_REL_BASED_HIGHLOW		
+		type: to integer! either PE64? [
+			#{A000}										;-- IMAGE_REL_BASED_DIR64
+		][
+			#{3000}										;-- IMAGE_REL_BASED_HIGHLOW
+		]
 		block: 0
 		
 		open-block: [
@@ -734,7 +838,9 @@ context [
 					either negative? ref [append ro-refs negate ref][append data-refs ref]
 				]
 			][
-				foreach ref spec/3 [append code-refs ref]
+				unless PE64? [
+					foreach ref spec/3 [append code-refs ref]
+				]
 			]
 		]
 		code-refs: unique sort code-refs
@@ -758,8 +864,8 @@ context [
 		fh/symbols-ptr: 	 0
 		fh/opt-headers-size: opt-header-size
 		fh/flags:			 to integer! defs/c-flags/executable-image
-									  or defs/c-flags/machine-32bit
 									  or defs/c-flags/large-address-aware
+		unless PE64? [fh/flags: fh/flags or to integer! defs/c-flags/machine-32bit]
 		
 		unless find job/sections 'reloc	[
 			fh/flags: fh/flags or to integer! defs/c-flags/relocs-stripped
@@ -805,9 +911,9 @@ context [
 		][
 			code-base									;-- exe: entry point
 		]
-		oh: make-struct optional-header none
 
-		oh/magic:				to integer! #{010B}		;-- PE32 magic number
+		oh: make-struct optional-header none
+		oh/magic:				to integer! either PE64? [#{020B}][#{010B}]
 		oh/major-link-version:  14						;-- required to be > 3.5 by Windows to load the PE file!
 		oh/minor-link-version:	0						;-- API from WinTrust and DbgHlp libraries won't work otherwise!
 		oh/code-size:			round/to/ceiling (length? job/sections/code/2) file-align
@@ -815,15 +921,17 @@ context [
 		oh/uninitdata-size:		0			
 		oh/entry-point-addr:	ep						;-- entry point is set to beginning of CODE
 		oh/code-base:			code-base
-		oh/data-base:			(code-page + round/ceiling (length? job/sections/code/2) / memory-align) * memory-align
+		unless PE64? [
+			oh/data-base:		to-integer (code-page + round/ceiling (length? job/sections/code/2) / memory-align) * memory-align
+		]
 		oh/image-base:			base-address
 		oh/memory-align:		memory-align
 		oh/file-align:			file-align
-		oh/major-OS-version:	4
+		oh/major-OS-version:	either PE64? [6][4]
 		oh/minor-OS-version:	0
 		oh/major-img-version:	0
 		oh/minor-img-version:	0
-		oh/major-sub-version:	4
+		oh/major-sub-version:	either PE64? [6][4]
 		oh/minor-sub-version:	0
 		oh/win32-ver-value:		0						;-- reserved, must be zero
 		oh/image-size:			image-size? job
@@ -839,7 +947,7 @@ context [
 		oh/data-dir-nb:			16
 		;-- data directory
 		oh/import-addr:			named-sect-addr? job 'import
-		oh/import-size:			length? job/sections/import/2
+		oh/import-size:			10 * (2 + length? job/sections/import/3)
 		oh/IAT-addr:			named-sect-addr? job 'idata
 		oh/IAT-size:			length? job/sections/idata/2
 		data-rva:				section-addr?/memory job 'data
@@ -1140,13 +1248,17 @@ context [
 		buf		[binary!]
 		info	[string! none!]
 		base	[integer!]
-		/local entry data-buf
+		/local entry data-buf data
 	][
 		entry: make-struct resource-data-entry none
 		entry/offset: base + length? buf
 		data-buf: tail buf
 
-		append buf trim/with either info [info][manifest-template] "^M^/^-"
+		data: trim/with copy either info [info][manifest-template] "^M^/^-"
+		unless info [
+			replace data {processorArchitecture="x86"} {processorArchitecture="*"}
+		]
+		append buf data
 
 		entry/size: length? data-buf
 		append out form-struct entry
@@ -1172,7 +1284,19 @@ context [
 
 	build: func [job [object!] /local page out pad code-ptr][
 		clear imports-refs
-		
+
+		PE64?: job/target = 'X86-64
+		if PE64? [
+			optional-header: optional-header-64
+			opt-header-size: length? form-struct optional-header-64
+			ILT-struct: make-struct [
+				rva  [integer!]
+				_rva [integer!]
+			] none
+			ILT-size: 8
+			pointer-size: 8
+		]
+
 		if find [dll drv] job/type [
 			append job/sections [reloc [- - -]]			;-- inject reloc section
 		]

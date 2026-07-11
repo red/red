@@ -42,15 +42,15 @@ Red/System [
 #define float-ptr!    [pointer! [float!]]
 #define float32-ptr!  [pointer! [float32!]]
 
-;#define int16!			integer!
-;#define uint16!		integer!
-#define uint!			integer!
-#define int32!			integer!
-#define uint32!			integer!
-#define long!			integer!		;-- 32bit in 32bit OS, 64bit in 64bit OS
-#define ulong!			integer!	
+;#define long!			integer!		;-- 32bit in 32bit OS, 64bit in 64bit OS
+;#define ulong!			integer!
 
 ptr-ptr!: alias struct! [value [int-ptr!]]
+#either target = 'X86-64 [
+	ptr-slot!: alias struct! [value [byte-ptr!]]
+][
+	ptr-slot!: alias struct! [value [int-ptr!]]
+]
 #define ptr-value!	  [ptr-ptr! value]
 
 #define make-c-string [as c-string! allocate]
@@ -63,9 +63,16 @@ ptr-ptr!: alias struct! [value [int-ptr!]]
 ;#define write-io16	  [system/io/write as int16-ptr!]
 #define write-io32	  [system/io/write as int-ptr!]
 
+#either target = 'X86-64 [
+	#define quit-address-type	byte-ptr!
+][
+	#define quit-address-type	integer!
+]
+
 
 #define type-logic!		1					;-- type ID list for 'typed' attribute
 #define type-integer!	2
+#define type-int32!		2					;-- integer! is an alias for int32!
 #define type-byte!	    3
 #define type-float32!	4
 #define type-float64!	5					;-- float! is just an alias for float64!
@@ -74,6 +81,13 @@ ptr-ptr!: alias struct! [value [int-ptr!]]
 #define type-byte-ptr!  7
 #define type-int-ptr!	8
 #define type-function!	9
+#define type-int64!		11
+#define type-uint64!	12
+#define type-int8!		13
+#define type-uint8!		14
+#define type-int16!		15
+#define type-uint16!	16
+#define type-uint32!	17
 #define type-struct!	1000
 #define any-struct?		[1000 <=]
 #define alias?  		[1001 <=]
@@ -102,21 +116,69 @@ str-array!: alias struct! [
 	item [c-string!]
 ]
 
-typed-value!: alias struct! [
-	type	 [integer!]	
-	value	 [integer!]
-	_padding [integer!]						;-- extra space for 64-bit values
-]
+#either target = 'X86-64 [
+	typed-value!: alias struct! [
+		type	 [integer!]
+		_align0	 [integer!]
+		value	 [int-ptr!]
+		_padding [integer!]
+		_align1	 [integer!]
+	]
 
-typed-float32!: alias struct! [
-	type	 [integer!]	
-	value	 [float32!]
-	_padding [integer!]						;-- extra space for 64-bit values	
-]
+	typed-int64!: alias struct! [
+		type	 [integer!]
+		_align0	 [integer!]
+		value	 [int64!]
+		_padding [integer!]
+	]
 
-typed-float!: alias struct! [
-	type	 [integer!]	
-	value	 [float!]
+	typed-uint64!: alias struct! [
+		type	 [integer!]
+		_align0	 [integer!]
+		value	 [uint64!]
+		_padding [integer!]
+	]
+
+	typed-float32!: alias struct! [
+		type	 [integer!]
+		_align0	 [integer!]
+		value	 [float32!]
+		_padding [integer!]
+	]
+
+	typed-float!: alias struct! [
+		type	 [integer!]
+		_align0	 [integer!]
+		value	 [float!]
+		_padding [integer!]
+	]
+][
+	typed-value!: alias struct! [
+		type	 [integer!]
+		value	 [integer!]
+		_padding [integer!]						;-- extra space for 64-bit values
+	]
+
+	typed-int64!: alias struct! [
+		type	 [integer!]
+		value	 [int64!]
+	]
+
+	typed-uint64!: alias struct! [
+		type	 [integer!]
+		value	 [uint64!]
+	]
+
+	typed-float32!: alias struct! [
+		type	 [integer!]
+		value	 [float32!]
+		_padding [integer!]						;-- extra space for 64-bit values
+	]
+
+	typed-float!: alias struct! [
+		type	 [integer!]
+		value	 [float!]
+	]
 ]
 
 re-throw: func [/local id [integer!]][
@@ -200,16 +262,18 @@ re-throw: func [/local id [integer!]][
 				address [int-ptr!]
 		][
 			address: __set-stack-on-crash
-			***-on-quit code as-integer address
+			***-on-quit code as byte-ptr! address
 		]
 	]
 
 	***-on-quit: func [						;-- global exit handler
 		status  [integer!]
-		address [integer!]
+		address [quit-address-type]
 		/local 
 			msg s s2 [c-string!]
+			addr [byte-ptr!]
 	][
+		addr: as byte-ptr! address
 		unless zero? status [
 			msg: switch status [
 				1	["access violation"]
@@ -260,11 +324,15 @@ re-throw: func [/local id [integer!]][
 			#either all [sub-system = 'GUI red-pass? = yes][
 				s: as-c-string system/stack/allocate 256
 				#either OS = 'Windows [
-					s2: as-c-string system/stack/allocate 128
-					red/unicode/convert-u16 msg s2
-					swprintf [s #u16 "*** Runtime Error %d: %s^/*** at: %08Xh" status s2 as byte-ptr! address]
+					#if unicode? = yes [
+						s2: as-c-string system/stack/allocate 128
+						red/unicode/convert-u16 msg s2
+						swprintf [s #u16 "*** Runtime Error %d: %s^/*** at: %08Xh" status s2 addr]
+					][
+						sprintf [s "*** Runtime Error %d: %s^/*** at: %08Xh" status msg addr]
+					]
 				][
-					sprintf [s "*** Runtime Error %d: %s^/*** at: %08Xh" status msg as byte-ptr! address]
+					sprintf [s "*** Runtime Error %d: %s^/*** at: %08Xh" status msg addr]
 				]
 				#either all [dev-mode? = yes libRedRT? = no][
 					red/gui/OS-alert #u16 "Red App Error" s		;-- in main exe 
@@ -277,10 +345,10 @@ re-throw: func [/local id [integer!]][
 
 				#either debug? = yes [
 					if null? system/debug [__set-stack-on-crash]
-					__print-debug-line  as byte-ptr! address
-					__print-debug-stack as byte-ptr! address status
+					__print-debug-line  addr
+					__print-debug-stack addr status
 				][
-					print [lf "*** at: " as byte-ptr! address "h" lf]
+					print [lf "*** at: " addr "h" lf]
 				]
 			]
 		]
@@ -290,12 +358,28 @@ re-throw: func [/local id [integer!]][
 		]
 		quit status
 	]
+
+	***-normal-exit: does [
+		***-on-quit 0 null
+	]
+
+	***-assert-fail: func [code [integer!]][
+		#either target = 'X86-64 [
+			***-on-quit code system/pc
+		][
+			***-on-quit code as integer! system/pc
+		]
+	]
 	
 	***-uncaught-exception: does [
 		either system/thrown = 0BADCAFEh [	;-- RED_THROWN_ERROR exception value (label not defined if R/S used standalone)
-			***-on-quit 0 0					;-- Red error, normal exit
+			***-on-quit 0 null				;-- Red error, normal exit
 		][
-			***-on-quit 95 as-integer system/pc ;-- Red/System uncaught exception, report it
+			#either target = 'X86-64 [
+				***-on-quit 95 system/pc	;-- Red/System uncaught exception, report it
+			][
+				***-on-quit 95 as integer! system/pc
+			]
 		]
 	]
 ]

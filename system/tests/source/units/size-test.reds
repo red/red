@@ -20,6 +20,8 @@ Red/System [
 	--test-- "type-sz-5" --assert 4 = size? c-string!
 	--test-- "type-sz-6" --assert 4 = size? struct!
 	--test-- "type-sz-7" --assert 4 = size? function!
+	--test-- "type-sz-8" --assert 8 = size? int64!
+	--test-- "type-sz-9" --assert 8 = size? uint64!
 
 ===end-group===
 
@@ -98,6 +100,14 @@ Red/System [
 		f		[float!]
 	]
 	--assert 12 = size? sz18-struct!
+
+	--test-- "sz-19"
+	sz-i64: 4294967296
+	--assert 8 = size? sz-i64
+
+	--test-- "sz-20"
+	sz-u64: FFFFFFFFFFFFFFFFh
+	--assert 8 = size? sz-u64
 	
 ===end-group===
 
@@ -115,6 +125,8 @@ sz-foo: func [
 	sz-struct3 [struct! [a [byte!] b [integer!]]]
 	sz-struct4 [struct! [a [integer!] b [byte!]]]
 	sz-struct5 [struct! [a [integer!] b [c-string!]]]
+	sz-i64	[int64!]
+	sz-u64	[uint64!]
 ][
 	--test-- "loc-sz-1"
 	sz-a: 123
@@ -156,10 +168,17 @@ sz-foo: func [
 	--test-- "loc-sz-10"
 	sz-struct5: declare struct! [a [integer!] b [c-string!]]
 	--assert 8 = size? sz-struct5
+
+	--test-- "loc-sz-11"
+	sz-i64: 4294967296
+	--assert 8 = size? sz-i64
+
+	--test-- "loc-sz-12"
+	sz-u64: FFFFFFFFFFFFFFFFh
+	--assert 8 = size? sz-u64
 ]
 sz-foo
 
 ===end-group===
 
 ~~~end-file~~~
-

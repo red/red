@@ -39,6 +39,7 @@ linker: context [
 		base-address:								;-- base address
 		static-objs:								;-- external C objects for static linking
 		static-data:								;-- libc data-symbol imports [name offset size ...]
+		PIE?:										;-- position independent executable
 		buffer: none								;-- output buffer
 		static-align: 1								;-- peak alignment of merged static sections
 	]
@@ -55,8 +56,9 @@ linker: context [
 	]
 	
 	set-ptr: func [job [object!] name [word!] value [integer!] /local spec][
-		spec: find job/symbols name
-		spec/<data>/2: value
+		if spec: find job/symbols name [
+			spec/<data>/2: value
+		]
 	]
 	
 	set-integer-at: func [job [object!] pos [integer!] value [integer!] /local spec][
@@ -64,8 +66,9 @@ linker: context [
 	]
 	
 	set-integer: func [job [object!] name [word!] value [integer!] /local spec][
-		spec: find job/symbols name
-		change/part at job/sections/data/2 spec/2/2 + 1 to-bin32 value 4
+		if spec: find job/symbols name [
+			change/part at job/sections/data/2 spec/2/2 + 1 to-bin32 value 4
+		]
 	]
 	
 	check-dup-symbols: func [job [object!] imports [block!] /local exports dup][
@@ -113,29 +116,53 @@ linker: context [
 		rodata-ptr [integer!]						;-- read-only data memory address
 		pointer	   [object!]
 		/local
-			data-offset ro-offset ptr
+			data-offset ro-offset ptr target-ptr
 	][
 		data-offset: either job/PIC? [data-ptr - code-ptr][data-ptr]
 		ro-offset:	 either job/PIC? [rodata-ptr - code-ptr][rodata-ptr]
 		foreach [name spec] job/symbols [
 			unless empty? spec/3 [
-				all [
-					any [
-						all [
-							spec/1 = 'global		;-- code to data references
-							pointer/value: data-offset + spec/2
-						]
-						all [
-							spec/1 = 'constant		;-- code to read-only data references
-							pointer/value: ro-offset + spec/2
-						]
-						all [
-							spec/1 = 'native-ref	;-- code to code references
-							pointer/value: either job/PIC? [spec/2][code-ptr + spec/2]
+				either job/target = 'X86-64 [
+					parse spec/3 [
+						any [
+							ref: integer! (
+								target-ptr: case [
+									spec/1 = 'global [
+										(data-ptr + spec/2) - (code-ptr + ref/1 - 1 + 4)
+									]
+									spec/1 = 'constant [
+										(rodata-ptr + spec/2) - (code-ptr + ref/1 - 1 + 4)
+									]
+									spec/1 = 'native-ref [
+										(spec/2 - 1) - (ref/1 - 1 + 4)
+									]
+								]
+								if integer? target-ptr [
+									change/part at cbuf ref/1 to-bin32 target-ptr 4
+								]
+							)
+							| skip
 						]
 					]
-					ptr: form-struct pointer
-					parse spec/3 [any [ref: integer! (change at cbuf ref/1 ptr) | skip]]
+				][
+					all [
+						any [
+							all [
+								spec/1 = 'global		;-- code to data references
+								pointer/value: data-offset + spec/2
+							]
+							all [
+								spec/1 = 'constant		;-- code to read-only data references
+								pointer/value: ro-offset + spec/2
+							]
+							all [
+								spec/1 = 'native-ref	;-- code to code references
+								pointer/value: either job/PIC? [spec/2][code-ptr + spec/2]
+							]
+						]
+						ptr: form-struct pointer
+						parse spec/3 [any [ref: integer! (change at cbuf ref/1 ptr) | skip]]
+					]
 				]
 			]
 			if block? spec/4 [
@@ -207,7 +234,7 @@ linker: context [
 	]
 	
 	is-native?: func [name [word! tag!] spec [block!]][
-		all [spec/1 = 'native name <> '_div_]
+		all [spec/1 = 'native not find [_div_ _udiv_ _i64_div_] name]
 	]
 	
 	get-debug-funcs-size: func [job [object!] /local size sc][

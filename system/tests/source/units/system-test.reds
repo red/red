@@ -45,11 +45,11 @@ Red/System [
 			system/stack/pop-all
 			bb: system/cpu/eax
 		][
-			aa: system/cpu/r0
+			aa: system/cpu/rax
 			system/stack/push-all
-			system/cpu/r0: 123
+			system/cpu/rax: as int-ptr! 123
 			system/stack/pop-all
-			bb: system/cpu/r0
+			bb: system/cpu/rax
 		]
 		--assert aa = bb
 
@@ -116,9 +116,9 @@ Red/System [
 			rcx-val: system/cpu/ecx
 			--assert rcx-val = 42
 		][
-			system/cpu/r2: 42
-			rcx-val: system/cpu/r2
-			--assert rcx-val = 42
+			system/cpu/rcx: as int-ptr! 42
+			rcx-val: system/cpu/rcx
+			--assert rcx-val = as int-ptr! 42
 		]
 
 ===end-group===
