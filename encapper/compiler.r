@@ -3358,7 +3358,7 @@ red: context [
 						if head? path [
 							if all [alter: select-ssa name name: alter][
 								path/1: alter
-								entry: find functions alter
+								if new: find functions alter [entry: new]	;-- keep entry if alias target was redefined away
 							]
 							pc: next pc
 							either ctx: any [
@@ -3956,7 +3956,13 @@ red: context [
 					]
 				]
 			][
-				if all [alter: select-ssa name name: alter][entry: find functions alter]
+				;-- select-ssa may remap `name` to an alias target (e.g. `time-it: :dt`
+				;-- => `time-it` -> `dt`) whose `functions` entry was removed by a later
+				;-- redefinition (`dt:` set-word). Keep the existing entry in that case,
+				;-- since the alias retained an equivalent spec.
+				if all [alter: select-ssa name name: alter][
+					if new: find functions alter [entry: new]
+				]
 			
 				either ctx: any [
 					obj-func-call? original

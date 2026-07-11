@@ -549,6 +549,22 @@ recycle/off
 		--assert found? find qt/output "probe do y"
 		--assert found? find qt/output "a: 2"
 		
+	--test-- "redefine-aliased-function"
+		;-- Compiler used to crash in comp-word ("Cannot use path on none! value")
+		;-- when a word aliasing a function (`myalias: :myfn`) was compiled after the
+		;-- aliased function got redefined to a non-function (`myfn: 99`)
+
+		--compile-and-run-this {
+			Red []
+			myfn: does [1]
+			myalias: :myfn
+			myfn: 99
+			print myalias
+		}
+		--assert compiled?
+		--assert not crashed?
+		--assert found? find qt/output "1"
+
 ===end-group===
 
 ~~~end-file~~~ 
