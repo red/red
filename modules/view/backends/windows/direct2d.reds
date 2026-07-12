@@ -24,6 +24,7 @@ dw-locale-name: as c-string! 0
 pfnDCompositionCreateDevice2: as int-ptr! 0
 
 dwrite-str-cache: as node-handle! 0
+dwrite-font-ext-type: -1
 
 #define D2D_MAX_BRUSHES 64
 
@@ -1206,7 +1207,7 @@ CreateTextFormat*: alias function! [
 	fontStretch	[integer!]
 	fontSize	[float32!]
 	localeName	[c-string!]
-	textFormat	[int-ptr!]
+	textFormat	[ptr-ptr!]
 	return:		[integer!]
 ]
 
@@ -1217,7 +1218,7 @@ CreateTextLayout*: alias function! [
 	format		[this!]
 	maxWidth	[float32!]
 	maxHeight	[float32!]
-	layout		[int-ptr!]
+	layout		[ptr-ptr!]
 	return:		[integer!]
 ]
 
@@ -1815,6 +1816,16 @@ DX-cleanup: func [/local unk [IUnknown]][
 	free as byte-ptr! dw-locale-name
 ]
 
+delete-text-format: func [
+	handle [int-ptr!]
+	/local
+		this [this!]
+		obj  [IUnknown]
+][
+	this: as this! handle
+	COM_SAFE_RELEASE(obj this)
+]
+
 logical-to-pixel: func [
 	num		[float32!]
 	return: [integer!]
@@ -2090,7 +2101,7 @@ create-dc-render-target: func [
 create-text-format: func [
 	font	[red-object!]
 	face	[red-object!]
-	return: [integer!]
+	return: [int-ptr!]
 	/local
 		values	[red-value!]
 		h-font	[red-handle!]
@@ -2106,10 +2117,12 @@ create-text-format: func [
 		len		[integer!]
 		sym		[integer!]
 		name	[c-string!]
-		format	[integer!]
+		format	[ptr-value!]
 		factory [IDWriteFactory]
 		save?	[logic!]
 ][
+	if null? dwrite-factory [return null]
+
 	weight:	400
 	style:  0
 	either TYPE_OF(font) = TYPE_OBJECT [
@@ -2124,7 +2137,11 @@ create-text-format: func [
 		value: block/rs-head blk
 		h-font: (as red-handle! value) + 1
 		if TYPE_OF(h-font) = TYPE_HANDLE [
-			return h-font/value
+			return either h-font/extID >= 0 [
+				externals/get h-font/extID
+			][
+				as int-ptr! h-font/value
+			]
 		]
 
 		if TYPE_OF(value) = TYPE_NONE [make-font face font]	;-- make a GDI font
@@ -2179,11 +2196,16 @@ create-text-format: func [
 		name: unicode/to-utf16 str
 	]
 
-	format: 0
+	format/value: null
 	factory: as IDWriteFactory dwrite-factory/vtbl
 	factory/CreateTextFormat dwrite-factory name 0 weight style 5 size dw-locale-name :format
-	if save? [handle/make-at as red-value! h-font format handle/CLASS_FONT]
-	format
+	if save? [
+		h-font: handle/make-at as red-value! h-font as-integer format/value handle/CLASS_FONT
+		if not null? format/value [
+			h-font/extID: externals/store format/value dwrite-font-ext-type
+		]
+	]
+	format/value
 ]
 
 set-text-format: func [
@@ -2242,7 +2264,7 @@ set-line-spacing: func [
 	/local
 		IUnk			[IUnknown]
 		dw				[IDWriteFactory]
-		lay				[integer!]
+		lay				[ptr-value!]
 		layout			[this!]
 		lineCount		[integer!]
 		maxBidiDepth	[integer!]
@@ -2262,10 +2284,10 @@ set-line-spacing: func [
 		if all [type <> TYPE_INTEGER type <> TYPE_FLOAT][exit]
 		h: get-float32 int
 	]
-	left: 73 lineCount: 0 lay: 0
+	left: 73 lineCount: 0 lay/value: null
 	dw: as IDWriteFactory dwrite-factory/vtbl
 	dw/CreateTextLayout dwrite-factory as c-string! :left 1 fmt FLT_MAX FLT_MAX :lay
-	layout: as this! lay
+	layout: as this! lay/value
 	dl: as IDWriteTextLayout layout/vtbl
 	lm: as DWRITE_LINE_METRICS :left
 	dl/GetLineMetrics layout lm 1 :lineCount
@@ -2288,7 +2310,7 @@ create-text-layout: func [
 		dw	[IDWriteFactory]
 		w	[float32!]
 		h	[float32!]
-		lay	[integer!]
+		lay	[ptr-value!]
 ][
 	len: -1
 	either TYPE_OF(text) = TYPE_STRING [
@@ -2299,13 +2321,13 @@ create-text-layout: func [
 		str: ""
 		len: 0
 	]
-	lay: 0
+	lay/value: null
 	w: either width <= 0 [FLT_MAX][(as float32! width) + (as float32! 0.5)]
 	h: either height <= 0 [FLT_MAX][(as float32! height) + (as float32! 0.5)]
 
 	dw: as IDWriteFactory dwrite-factory/vtbl
 	dw/CreateTextLayout dwrite-factory str len fmt w h :lay
-	as this! lay
+	as this! lay/value
 ]
 
 draw-text-d2d: func [

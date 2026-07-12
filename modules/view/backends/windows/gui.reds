@@ -985,6 +985,7 @@ init: func [
 	collector/register as int-ptr! :on-gc-mark
 	time-meter/start _time_meter	
 	font-ext-type: externals/register "font" as int-ptr! :delete-font
+	dwrite-font-ext-type: externals/register "dwrite-font" as int-ptr! :delete-text-format
 ]
 
 use-dark-mode?: func [
@@ -3035,7 +3036,7 @@ OS-to-image: func [
 		]
 	]
 
-	img: OS-image/from-HBITMAP as integer! bmp 0
+	img: OS-image/from-HBITMAP as int-ptr! bmp 0
 
     DeleteDC mdc
     DeleteObject bmp

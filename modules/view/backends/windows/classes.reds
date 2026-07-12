@@ -16,19 +16,19 @@ ext-class!: alias struct! [
 	ex-styles	[integer!]								;-- extended windows styles
 	styles		[integer!]								;-- windows styles
 	base-ID		[integer!]								;-- base ID for instances (0: no ID)
-	new-proc	[integer!]								;-- optional custom event handler
-	old-proc	[integer!]								;-- saved old event handler
-	parent-proc [integer!]								;-- optional parent event handler
+	new-proc	[int-ptr!]								;-- optional custom event handler
+	old-proc	[int-ptr!]								;-- saved old event handler
+	parent-proc [int-ptr!]								;-- optional parent event handler
 ]
 
 max-ext-styles: 	20
 ext-classes:		as ext-class! allocate max-ext-styles * size? ext-class!
 ext-cls-tail:		ext-classes							;-- tail pointer
 ext-parent-proc?:	no
-OldComboWndProc:	0
-OldFaceWndProc:		0
-OldEditWndProc:		0
-OldCalendarWndProc: 0
+OldComboWndProc:	as int-ptr! 0
+OldFaceWndProc:		as int-ptr! 0
+OldEditWndProc:		as int-ptr! 0
+OldCalendarWndProc: as int-ptr! 0
 
 find-class: func [
 	name	[red-word!]
@@ -50,11 +50,12 @@ register-class: func [
 	[typed]
 	count	[integer!]
 	list	[typed-value!]
-	return: [integer!]
+	return: [int-ptr!]
 	/local
 		p		 [ext-class!]
-		old-proc [integer!]
-		arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8
+		old-proc [int-ptr!]
+		arg1 arg2 arg7 arg8 [int-ptr!]
+		arg3 arg4 arg5 arg6 [integer!]
 ][
 	if count <> 8 [print-line "gui/register-class error: invalid spec block"]
 
@@ -62,19 +63,19 @@ register-class: func [
 	list: list + 1
 	arg2: list/value
 	list: list + 1
-	arg3: list/value
+	arg3: as-integer list/value
 	list: list + 1
-	arg4: list/value
+	arg4: as-integer list/value
 	list: list + 1
-	arg5: list/value
+	arg5: as-integer list/value
 	list: list + 1
-	arg6: list/value
+	arg6: as-integer list/value
 	list: list + 1
 	arg7: list/value
 	list: list + 1
 	arg8: list/value
 
-	either zero? arg2 [
+	either null? arg2 [
 		arg2: arg1
 	][
 		old-proc: make-super-class
@@ -97,7 +98,7 @@ register-class: func [
 	p/old-proc:		old-proc
 	p/parent-proc:	arg8
 
-	if arg8 <> 0 [ext-parent-proc?: yes]				;-- signal custom parent event handler
+	if not null? arg8 [ext-parent-proc?: yes]			;-- signal custom parent event handler
 
 	old-proc
 ]
@@ -105,12 +106,12 @@ register-class: func [
 make-super-class: func [
 	new		[c-string!]
 	base	[c-string!]
-	proc	[integer!]
+	proc	[int-ptr!]
 	system?	[logic!]
-	return: [integer!]
+	return: [int-ptr!]
 	/local
 		wcex [WNDCLASSEX value]
-		old	 [integer!]
+		old	 [int-ptr!]
 		inst [handle!]
 ][
 	inst: either system? [null][hInstance]
@@ -122,8 +123,8 @@ make-super-class: func [
 	wcex/cbWndExtra:	wc-extra						;-- reserve extra memory for face! slot
 	wcex/hInstance:		hInstance
 	wcex/lpszClassName: new
-	if proc <> 0 [
-		old: as-integer :wcex/lpfnWndProc
+	if not null? proc [
+		old: as int-ptr! :wcex/lpfnWndProc
 		wcex/lpfnWndProc: as wndproc-cb! proc
 	]
 	RegisterClassEx wcex
@@ -249,10 +250,10 @@ register-classes: func [
 	wcex/hInstance:		hInstance
 	wcex/hIcon:			LoadIcon hInstance as c-string! 1
 	wcex/hCursor:		cur
-	wcex/hbrBackground:	COLOR_3DFACE + 1
+	wcex/hbrBackground:	as handle! (COLOR_3DFACE + 1)
 	wcex/lpszMenuName:	null
 	wcex/lpszClassName: #u16 "RedWindow"
-	wcex/hIconSm:		0
+	wcex/hIconSm:		null
 	RegisterClassEx		wcex
 
 	;wcex/hbrBackground: COLOR_WINDOW + 1
@@ -268,42 +269,42 @@ register-classes: func [
 	RegisterClassEx		wcex
 
 	wcex/lpfnWndProc:	:CameraWndProc
-	wcex/hbrBackground:	COLOR_BACKGROUND + 1
+	wcex/hbrBackground:	as handle! (COLOR_BACKGROUND + 1)
 	wcex/lpszClassName: #u16 "RedCamera"
 	RegisterClassEx		wcex
 
 	;-- superclass existing classes to add 16 extra bytes
-	make-super-class #u16 "RedButton"	#u16 "BUTTON"			 0 yes
-	make-super-class #u16 "RedListBox"	#u16 "ListBox"			 0 yes
-	make-super-class #u16 "RedProgress" #u16 "msctls_progress32" 0 yes
-	make-super-class #u16 "RedSlider"	#u16 "msctls_trackbar32" 0 yes
-	make-super-class #u16 "RedScroller"	#u16 "SCROLLBAR"		 0 yes
-	make-super-class #u16 "RedTabpanel"	#u16 "SysTabControl32"	 0 yes
+	make-super-class #u16 "RedButton"	#u16 "BUTTON"			 null yes
+	make-super-class #u16 "RedListBox"	#u16 "ListBox"			 null yes
+	make-super-class #u16 "RedProgress" #u16 "msctls_progress32" null yes
+	make-super-class #u16 "RedSlider"	#u16 "msctls_trackbar32" null yes
+	make-super-class #u16 "RedScroller"	#u16 "SCROLLBAR"		 null yes
+	make-super-class #u16 "RedTabpanel"	#u16 "SysTabControl32"	 null yes
 
 	OldComboWndProc: make-super-class
 		#u16 "RedCombo"
 		#u16 "ComboBox"
-		as-integer :ComboWndProc
+		as int-ptr! :ComboWndProc
 		yes
 
 	OldFaceWndProc: make-super-class
 		#u16 "RedFace"
 		#u16 "STATIC"
-		as-integer :FaceWndProc
+		as int-ptr! :FaceWndProc
 		yes
 
 	OldCalendarWndProc: make-super-class
 		#u16 "RedCalendar"
 		#u16 "SysMonthCal32"
-		as-integer :CalendarWndProc
+		as int-ptr! :CalendarWndProc
 		yes
 
 	OldEditWndProc: make-super-class
 		#u16 "RedArea"
 		#u16 "EDIT"
-		as-integer :AreaWndProc
+		as int-ptr! :AreaWndProc
 		yes
-	make-super-class #u16 "RedField" #u16 "RedArea" 0 no
+	make-super-class #u16 "RedField" #u16 "RedArea" null no
 ]
 
 unregister-classes: func [

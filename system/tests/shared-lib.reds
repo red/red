@@ -17,22 +17,22 @@ Red/System [
 #switch OS [
 	Windows [
 		;-- Raised when the DLL is loaded ('load/library from REBOL)
-		on-load: func [handle [integer!]][
+		on-load: func [handle [int-ptr!]][
 			print-line "on-load executed"
 		]
 
 		;-- Raised when the DLL is unloaded ('free from REBOL)
-		on-unload: func [handle [integer!]][
+		on-unload: func [handle [int-ptr!]][
 			print-line "on-unload executed"
 		]
 
 		;-- Raised when a new thread is launched
-		on-new-thread: func [handle [integer!]][
+		on-new-thread: func [handle [int-ptr!]][
 			print-line "on-new-thread executed"
 		]
 
 		;-- Raised when a thread is exiting
-		on-exit-thread: func [handle [integer!]][
+		on-exit-thread: func [handle [int-ptr!]][
 			print-line "on-exit-thread executed"
 		]
 	]

@@ -257,9 +257,9 @@ win32-startup-ctx: context [
 	
 	***-dll-entry-point: func [
 		[callback]
-		hinstDLL   [integer!]						;-- handle to DLL module
+		hinstDLL   [int-ptr!]						;-- handle to DLL module
 		fdwReason  [integer!]						;-- reason for calling function
-		lpReserved [integer!]						;-- reserved
+		lpReserved [int-ptr!]						;-- reserved
 		return:    [logic!]
 	][
 		switch fdwReason [

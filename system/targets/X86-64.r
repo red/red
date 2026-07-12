@@ -2054,6 +2054,11 @@ make-profilable make target-class [
 		][
 			either import-var? name [
 				emit-import-var-address name
+				type: compiler/get-type name
+				resolved-type: compiler/resolve-aliased type
+				if find [struct! union!] resolved-type/1 [
+					emit #{488B00}						;-- MOV rax, [rax]
+				]
 			][
 				type: compiler/get-type name
 				resolved-type: compiler/resolve-aliased type

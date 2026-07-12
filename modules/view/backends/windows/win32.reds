@@ -770,10 +770,10 @@ WNDCLASSEX: alias struct! [
 	hInstance	  [handle!]
 	hIcon	  	  [handle!]
 	hCursor		  [handle!]
-	hbrBackground [integer!]
+	hbrBackground [handle!]
 	lpszMenuName  [c-string!]
 	lpszClassName [c-string!]
-	hIconSm	  	  [integer!]
+	hIconSm	  	  [handle!]
 ]
 
 GESTUREINFO: alias struct! [

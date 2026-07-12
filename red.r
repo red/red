@@ -412,7 +412,11 @@ redc: context [
 			date: modified? lib
 			current?: any [not encap? date > build-date]
 			
-			either all [load-lib? opts/OS = get-OS-name][
+			either all [
+				load-lib?
+				opts/OS = get-OS-name
+				opts/target <> 'X86-64					;-- the current REBOL host cannot load 64-bit libraries
+			][
 				lib: load/library lib
 				get-date: make routine! [return: [string!]] lib "red/get-build-date"
 				ts: get-date

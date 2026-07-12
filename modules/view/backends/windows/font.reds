@@ -211,7 +211,11 @@ get-font-handle: func [
 		h [red-handle!]
 ][
 	h: get-font-handle-slot font idx
-	either null? h [null][as handle! h/value]
+	either null? h [
+		null
+	][
+		as handle! either h/extID >= 0 [externals/get h/extID][as int-ptr! h/value]
+	]
 ]
 
 get-hfont: func [				;-- get or create a HFONT handle from font! object
@@ -238,14 +242,14 @@ free-font: func [
 		h	  [red-handle!]
 		hFont [handle!]
 		h2	  [handle!]
-		this  [this!]
-		obj   [IUnknown]
 		n	  [integer!]
 		free? [logic!]
 ][
 	unless winxp? [
-		this: as this! get-font-handle font 1
-		COM_SAFE_RELEASE(obj this)
+		h: get-font-handle-slot font 1
+		if all [not null? h h/extID >= 0][
+			h/extID: externals/remove h/extID yes
+		]
 	]
 	n: 0
 	free?: no

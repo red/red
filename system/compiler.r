@@ -4883,7 +4883,7 @@ system-dialect: make-profilable context [
 		get-proto: func [name [word!]][
 			switch/default job/OS [
 				Windows [
-					[handle [integer!]]
+					[handle [pointer! [integer!]]]
 				]
 				macOS [
 					pick [

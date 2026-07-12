@@ -68,8 +68,7 @@ context [
 
 				offset: (length? defs/image/MSDOS-header) + ((5 + 17) * 4) + 1
 				buffer: read/binary file
-				pointer/value: chk-sum/n
-				change/part at buffer offset form-struct pointer 4
+				change/part at buffer offset to-bin32 chk-sum/n 4
 				write/binary file buffer
 			][
 				if job/type = 'drv [
@@ -212,6 +211,7 @@ context [
 			XBOX				14			;-- XBOX (great! :-))
 		]
 		dll-flags [
+			high-entropy-VA		#{0020}		;-- image can use a high-entropy 64-bit address space
 			dynamic-base		#{0040}		;-- dll can be relocated at load time
 			force-integrity		#{0080}		;-- code integrity checks are enforced
 			nx-compat			#{0100}		;-- image is nx compatible
@@ -495,7 +495,8 @@ context [
 	] none
 
 	pointer-64: make-struct [
-		value [uint64]
+		value  [integer!]
+		_value [integer!]
 	] none
 
 	rva-pointer: make-struct [
@@ -503,6 +504,7 @@ context [
 	] none
 
 	base-address:		none
+	base-address-high:	0
 	memory-align:		4096				;-- system page size
 	file-align: 		512					;-- better keep it < memory-align
 	sect-header-size: 	40
@@ -895,6 +897,7 @@ context [
 		
 		flags: (to integer! defs/dll-flags/nx-compat)
 			 or to integer! defs/dll-flags/dynamic-base
+		if PE64? [flags: flags or to integer! defs/dll-flags/high-entropy-VA]
 		
 		if job/type = 'drv [flags: flags or to integer! defs/dll-flags/wdm-driver]
 		
@@ -925,6 +928,7 @@ context [
 			oh/data-base:		to-integer (code-page + round/ceiling (length? job/sections/code/2) / memory-align) * memory-align
 		]
 		oh/image-base:			base-address
+		if PE64? [oh/_image-base: base-address-high]
 		oh/memory-align:		memory-align
 		oh/file-align:			file-align
 		oh/major-OS-version:	either PE64? [6][4]
@@ -1295,6 +1299,7 @@ context [
 			] none
 			ILT-size: 8
 			pointer-size: 8
+			pointer: pointer-64
 		]
 
 		if any [PE64? find [dll drv] job/type] [
@@ -1310,6 +1315,12 @@ context [
 				defs/image/dll-base-address
 			]
 		]
+		base-address-high: either all [
+			PE64?
+			job/type = 'dll
+			none? job/base-address
+		][1][0]
+		if PE64? [pointer/_value: base-address-high]
 		precalc-entry-point job
 
 		if job/debug? [
@@ -1349,7 +1360,7 @@ context [
 			(base-address + section-addr?/memory job 'data)
 			base-address
 
-		linker/set-image-info
+		linker/set-image-info/high
 			job
 			base-address
 			(section-addr?/memory job 'code)
@@ -1357,6 +1368,7 @@ context [
 			(section-addr?/memory job 'data)
 			length? job/sections/data/2
 			0 0										;-- .rdata already read-only by section flags
+			base-address-high
 
 		if job/show-func-map? [linker/show-funcs-map job entry-point-address? job]
 

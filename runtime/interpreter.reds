@@ -326,9 +326,20 @@ interpreter: context [
 	resolve-compiled-code: func [
 		value [integer!]
 		return: [int-ptr!]
-		/local base [byte-ptr!]
+		/local
+			base [byte-ptr!]
+			offset [integer!]
 	][
 		base: as byte-ptr! system/image/base
+		#if libRedRT? = yes [
+			offset: value - as-integer system/lib-image/base
+			if all [
+				offset >= system/lib-image/code
+				offset < (system/lib-image/code + system/lib-image/code-size)
+			][
+				base: as byte-ptr! system/lib-image/base
+			]
+		]
 		as int-ptr! base + (value - as-integer base)
 	]
 

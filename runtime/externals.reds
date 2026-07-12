@@ -102,6 +102,18 @@ externals: context [
 		#if debug? = yes [if verbose > 0 [print-line ["stored at: " new]]]
 		new
 	]
+
+	get: func [											;-- retrieve a native-width external handle
+		idx		[integer!]
+		return:	[int-ptr!]
+		/local
+			rec [record!]
+	][
+		assert idx < size
+		rec: list + idx
+		assert rec/header and flag-free = 0
+		rec/handle
+	]
 	
 	release: func [										;-- release an external resource by calling its destructor
 		rec [record!]

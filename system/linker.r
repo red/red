@@ -90,6 +90,8 @@ linker: context [
 		data-size	 [integer!]
 		rodata-offset [integer!]					;-- protected data (0 if none / already RO by segment)
 		rodata-size	 [integer!]
+		/high
+			base-address-high [integer!]
 		/local
 			spec bits-offset struct-offset field-offset
 	][
@@ -101,7 +103,10 @@ linker: context [
 		either job/target = 'X86-64 [
 			change/part
 				at job/sections/data/2 spec/2/2 + field-offset + 1
-				to-bin64 base-address
+				rejoin [
+					to-bin32 base-address
+					to-bin32 any [base-address-high 0]
+				]
 				8
 			field-offset: field-offset + 8
 		][

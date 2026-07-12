@@ -83,7 +83,7 @@ libRedRT: context [
 		any [find/match sym: form sym "exec/" sym]
 	]
 	
-	make-exports: func [functions exports /local name file][
+	make-exports: func [functions exports job /local name file][
 		foreach [name spec] functions [
 			if all [
 				pos: find/match form name "exec/"
@@ -96,13 +96,15 @@ libRedRT: context [
 			funcs: unique append funcs load/all file
 		]
 		foreach def funcs [
-			name: to word! form def
-			repend exports [name undecorate def]
-			unless select/only functions name [
-				print ["*** libRedRT Error: definition not found for" def]
-				halt
+			unless all [none? job/GUI-engine def = 'exec/gui/OS-alert] [
+				name: to word! form def
+				repend exports [name undecorate def]
+				unless select/only functions name [
+					print ["*** libRedRT Error: definition not found for" def]
+					halt
+				]
+				system-dialect/compiler/flag-callback name none
 			]
-			system-dialect/compiler/flag-callback name none
 		]
 		foreach [def type] vars [
 			repend exports [to word! form def undecorate def]
@@ -146,7 +148,7 @@ libRedRT: context [
 			#include %$ROOT-PATH$runtime/definitions.reds
 			#include %$ROOT-PATH$runtime/macros.reds
 			#include %$ROOT-PATH$runtime/structures.reds
-				
+
 			cell!: alias struct! [
 				header	[integer!]						;-- cell's header flags
 				data1	[integer!]						;-- placeholders to make a 128-bit cell
@@ -182,36 +184,38 @@ libRedRT: context [
 
 		]
 		foreach def funcs [								;-- functions
-			ctx: next def
-			list: imports
-			
-			while [not tail? next ctx][
-				unless pos: find list name: to set-word! ctx/1 [
-					pos: tail list
-					repend list [
-						name 'context
-						make block! 10
+			unless all [none? job/GUI-engine def = 'exec/gui/OS-alert] [
+				ctx: next def
+				list: imports
+
+				while [not tail? next ctx][
+					unless pos: find list name: to set-word! ctx/1 [
+						pos: tail list
+						repend list [
+							name 'context
+							make block! 10
+						]
+						new-line skip tail list -3 yes
 					]
-					new-line skip tail list -3 yes
+					list: pos/3
+					ctx: next ctx
 				]
-				list: pos/3
-				ctx: next ctx
-			]
-			either pos: find list #import [pos: pos/2/3][
-				append list copy/deep [
-					#import [libRedRT-file stdcall]
+				either pos: find list #import [pos: pos/2/3][
+					append list copy/deep [
+						#import [libRedRT-file stdcall]
+					]
+					append/only last list pos: make block! 20
 				]
-				append/only last list pos: make block! 20
+				name: last ctx
+				append pos to set-word! name
+				new-line back tail pos yes
+				name: to word! form def
+				append pos undecorate def
+
+				spec: copy/deep functions/:name/4
+				clear find spec /local
+				append/only pos spec
 			]
-			name: last ctx
-			append pos to set-word! name
-			new-line back tail pos yes
-			name: to word! form def
-			append pos undecorate def
-			
-			spec: copy/deep functions/:name/4
-			clear find spec /local
-			append/only pos spec
 		]
 		
 		list: third second find imports #import			;-- aliased functions
