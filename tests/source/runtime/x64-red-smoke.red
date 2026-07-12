@@ -49,6 +49,13 @@ unless #"b" = dynamic-case-result [fail rejoin ["dynamic select/case: " mold dyn
 dynamic-do: func [trace [logic!]][do/:trace [] does []]
 dynamic-do true
 
+image: make image! [2x2 10.20.30]
+check 2x2 = image/size "WIC image allocation"
+check 10.20.30 = image/1 "WIC image pixel"
+
+catch-recycle-result: try [try [recycle none]]
+check none? catch-recycle-result "GC inside a catch frame"
+
 sum-routine: routine [
 	a [integer!]
 	b [integer!]

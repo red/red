@@ -3439,13 +3439,15 @@ make-profilable make target-class [
 			emit #{4889E5}							;-- MOV rbp, rsp
 			emit #{6A00}							;-- PUSH 0		; catch ID
 			emit #{6A00}							;-- PUSH 0		; catch resume address
+			emit-push -1							;-- args/locals bitmap barrier
+			emit #{6A00}							;-- last known parent Red frame
 			emit #{488945F8}						;-- MOV [rbp-8], rax
 			emit #{E800000000}						;-- CALL next
 			emit #{58}								;-- POP rax
 			emit #{4805}							;-- ADD rax, body-size + catch prolog tail
 			emit to-bin32 body-size + 11
 			emit #{488945F0}						;-- MOV [rbp-16], rax
-			28
+			32
 		][
 			emit #{FF75F8}							;-- PUSH [rbp-8]		; save old catch value
 			emit #{FF75F0}							;-- PUSH [rbp-16]		; save old resume address

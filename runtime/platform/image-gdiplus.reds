@@ -78,18 +78,18 @@ OS-image: context [
 			GlobalAlloc: "GlobalAlloc" [
 				flags		[integer!]
 				size		[integer!]
-				return:		[integer!]
+				return:		[int-ptr!]
 			]
 			GlobalFree: "GlobalFree" [
-				hMem		[integer!]
-				return:		[integer!]
+				hMem		[int-ptr!]
+				return:		[int-ptr!]
 			]
 			GlobalLock: "GlobalLock" [
-				hMem		[integer!]
+				hMem		[int-ptr!]
 				return:		[byte-ptr!]
 			]
 			GlobalUnlock: "GlobalUnlock" [
-				hMem		[integer!]
+				hMem		[int-ptr!]
 				return:		[integer!]
 			]
 		]
@@ -167,8 +167,8 @@ OS-image: context [
 				return:		[integer!]
 			]
 			GdipCreateBitmapFromStream: "GdipCreateBitmapFromStream" [
-				stream		[integer!]
-				bitmap		[int-ptr!]
+				stream		[this!]
+				bitmap		[interface!]
 				return:		[integer!]
 			]
 			GdipGetImagePixelFormat: "GdipGetImagePixelFormat" [
@@ -661,10 +661,10 @@ OS-image: context [
 		len		[integer!]
 		return: [node!]
 		/local
-			hMem	[integer!]
+			hMem	[int-ptr!]
 			p		[byte-ptr!]
-			s		[integer!]
-			bmp		[integer!]
+			stm		[interface! value]
+			bmp		[interface! value]
 			sthis	[this!]
 			stream	[IStream]
 	][
@@ -673,14 +673,14 @@ OS-image: context [
 		copy-memory p data len
 		GlobalUnlock hMem
 
-		s: 0
-		bmp: 0
-		CreateStreamOnHGlobal hMem true :s
-		GdipCreateBitmapFromStream s :bmp
-		sthis: as this! s
+		stm/ptr: null
+		bmp/ptr: null
+		CreateStreamOnHGlobal hMem true :stm
+		GdipCreateBitmapFromStream stm/ptr :bmp
+		sthis: stm/ptr
 		stream: as IStream sthis/vtbl
 		stream/Release sthis				;-- the hMem will also be released
-		make-node as int-ptr! bmp
+		make-node as int-ptr! bmp/ptr
 	]
 
 	encode: func [
@@ -728,7 +728,7 @@ OS-image: context [
 		hr: GdipSaveImageToStream (get-native image) IStm/ptr clsid 0
 
 		stream: as IStream IStm/ptr/vtbl
-		stream/Stat IStm/ptr stat 1
+		stream/Stat IStm/ptr as int-ptr! :stat 1
 		len: stat/cbSize_low
 
 		bin: as red-binary! slot

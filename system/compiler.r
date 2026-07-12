@@ -4036,6 +4036,7 @@ system-dialect: make-profilable context [
 		external-call?: func [spec [block!] /local attribs][
 			to logic! any [
 				spec/5 = 'callback
+				find [cdecl stdcall] spec/3
 				all [
 					attribs: get-attributes spec/4
 					any [find attribs 'cdecl find attribs 'stdcall]

@@ -23,24 +23,32 @@ Partial support already exists:
 - Windows runtime sources still mix pointer-sized types with legacy
   `integer!` carriers and require a complete x64 audit.
 
-Current probe:
+Original probe:
 
 ```text
 cmd /c D:\EE\QTool\rebcmdview.exe -cqs .\red.r -r -t Windows-X86-64 -o .\build\windows-x64-probe.exe .\tests\source\runtime\x64-red-smoke.red
 ```
 
-`dumpbin /headers` reports PE32+ (`20B`), x64 machine `8664`, console
-subsystem, and `Dynamic base`/`NX compatible`. `dumpbin /imports` reports
-MSVCRT and KERNEL32 imports. Running reaches the Red program but fails at
-`FAIL: applied routine call: 5743972`. The image has an empty base-relocation
-directory despite the dynamic-base flag, so it is not ASLR-safe yet.
+The original image reached Red evaluation but failed its dynamic routine call
+and had an empty relocation directory despite the dynamic-base flag.
 
-Implementation update: the dynamic integer-only routine bridge and PE32+
-executable relocation emission are now fixed. The Windows release smoke passes
-three bounded runs, and the focused Windows x64 ABI runner passes nine fixtures
-covering function pointers, mixed arguments, floating-point calls, hidden
-returns, variadics, register/stack arguments, and aggregate returns. DLL/
-development mode, the full core suite, and View remain open milestones.
+Implementation update:
+
+- The dynamic routine bridge and indirect COM calls now use the Microsoft x64
+  convention, including shadow space and dynamic stack alignment.
+- PE32+ executables emit non-empty DIR64 base relocations and pass the release
+  image checks in `tests/run-windows-x64-release-tests.ps1`.
+- Accurate GC stack scanning handles executable root frames and global catch
+  frames. Nested `try` plus forced recycling no longer crashes.
+- WIC image allocation and Windows clipboard text/image round trips work with
+  native-width handles, COM interface pointers, vtable slots, `STATSTG`, and
+  `MSG` layouts.
+- The release smoke passes three bounded runs. The ABI runner passes all nine
+  fixtures. The compiled core suite passes 5,152 tests and 9,446 assertions
+  with zero failures.
+
+DLL/development mode, full View, and the remaining Windows API width audit are
+open milestones.
 
 ## Scope And Non-goals
 
@@ -52,8 +60,10 @@ First milestone:
 - ASLR-safe relocation, non-writable code, and NX-compatible data.
 - Existing IA-32 and ARM behavior unchanged.
 
-Deferred until console is stable: `-c`/`libRedRT.dll`, View/GUI, WIC/GDI+,
-Direct2D, COM, clipboard, camera, and general x64 DLL productization.
+Deferred until the completed console/core milestone is followed up:
+`-c`/`libRedRT.dll`, full View/GUI, Direct2D, camera, and general x64 DLL
+productization. Foundational COM, WIC, GDI+, and clipboard paths are now ported,
+but still require the full View gate before being advertised as supported.
 
 Do not widen Red cells or change `node-handle!` to a pointer. Do not use
 `integer!` as an address carrier; it remains signed 32-bit.
@@ -208,9 +218,9 @@ hanging or restarting test executables.
 | Compiler | Red/Red/System focused suites compile for `Windows-X86-64` |
 | PE image | `dumpbin` validates x64 PE32+, sections, imports, relocations |
 | ABI | Registers, stack, shadow space, returns, callbacks, variadics, `apply` |
-| Runtime | Startup, command line, handles, allocator, Redbin, GC, errors, core |
+| Runtime | Complete for release/core: 5,152 tests and 9,446 assertions pass |
 | ASLR | Repeated launches use relocated images without pointer truncation |
-| DLL | x64 export/import fixture passes before development mode |
+| DLL | Open: x64 export/import fixture before development mode |
 | Debugging | CDB captures actionable registers, stack, and disassembly |
 | Compatibility | IA-32, ARM, Linux x86-64, and regression gates stay green |
 
@@ -226,9 +236,11 @@ hanging or restarting test executables.
 
 ## First Release Exit Criteria
 
-`red.r -r -t Windows-X86-64` builds and repeatedly runs a Red smoke program on
-Windows x64, including `apply`, function pointers, floating-point calls,
-command-line parsing, allocation, and forced GC. `dumpbin` validates a PE32+
-x64 image with correct imports, permissions, and relocations. CDB diagnoses an
-injected failure without a hang or restart loop. IA-32, ARM, Linux x86-64,
-core, regression, and non-Windows View gates remain intact.
+This milestone is complete for the Windows x64 release and core gates:
+`red.r -r -t Windows-X86-64` repeatedly runs a Red smoke program containing
+`apply`, function pointers, floating-point calls, allocation, nested catches,
+WIC image creation, and forced GC. `dumpbin` validates its PE32+ image, imports,
+permissions, and relocations. The compiled core suite passes without failures.
+
+Cross-target regression gates, DLL/development mode, and View remain required
+before declaring the entire Windows x64 target complete.

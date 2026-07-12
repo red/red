@@ -958,7 +958,8 @@ collector: context [
 			[
 				slot: frm - 3							;-- position on bitmap slot
 				slot-bits: as-integer slot/value
-				assert slot-bits >= 0					;-- should never hit STACK_BITMAP_BARRIER
+				if slot-bits = STACK_BITMAP_BARRIER [break]
+				assert slot-bits >= 0
 				b: either slot-bits and 40000000h <> 0 [base'][base] ;-- select exe or dll's bitmap array
 				map: b + (slot-bits and 0FFFFFFFh)		;-- first corresponding bitmap slot (removing bit flags)
 				#either target = 'X86-64 [

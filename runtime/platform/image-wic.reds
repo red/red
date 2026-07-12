@@ -63,18 +63,18 @@ OS-image: context [
 			GlobalAlloc: "GlobalAlloc" [
 				flags		[integer!]
 				size		[integer!]
-				return:		[integer!]
+				return:		[int-ptr!]
 			]
 			GlobalFree: "GlobalFree" [
-				hMem		[integer!]
-				return:		[integer!]
+				hMem		[int-ptr!]
+				return:		[int-ptr!]
 			]
 			GlobalLock: "GlobalLock" [
-				hMem		[integer!]
+				hMem		[int-ptr!]
 				return:		[byte-ptr!]
 			]
 			GlobalUnlock: "GlobalUnlock" [
-				hMem		[integer!]
+				hMem		[int-ptr!]
 				return:		[integer!]
 			]
 		]
@@ -110,7 +110,7 @@ OS-image: context [
 		AddRef						[AddRef!]
 		Release						[Release!]
 		CreateDecoderFromFilename	[function! [this [this!] file [c-string!] vendor [int-ptr!] access [integer!] opts [integer!] dec [com-ptr!] return: [integer!]]]
-		CreateDecoderFromStream		[function! [this [this!] pIStread [int-ptr!] vendor [int-ptr!] opts [integer!] dec [com-ptr!] return: [integer!]]]
+		CreateDecoderFromStream		[function! [this [this!] pIStread [this!] vendor [int-ptr!] opts [integer!] dec [com-ptr!] return: [integer!]]]
 		CreateDecoderFromFileHandle	[function! [this [this!] hFile [int-ptr!] vendor [int-ptr!] opts [integer!] dec [com-ptr!] return: [integer!]]]
 		CreateComponentInfo			[function! [this [this!] clsid [int-ptr!] ppIInfo [com-ptr!] return: [integer!]]]
 		CreateDecoder				[function! [this [this!] format [int-ptr!] vendor [int-ptr!] ppIDec [com-ptr!] return: [integer!]]]
@@ -130,8 +130,8 @@ OS-image: context [
 		CreateBitmapFromHBITMAP		[function! [this [this!] hBitmap [int-ptr!] hPalette [int-ptr!] opts [integer!] ppIBitmap [com-ptr!] return: [integer!]]]
 		CreateBitmapFromHICON		[function! [this [this!] hIcon [int-ptr!] ppIBitmap [com-ptr!] return: [integer!]]]
 		CreateComponentEnumerator	[function! [this [this!] types [integer!] opts [integer!] ppIEnum [com-ptr!] return: [integer!]]]
-		CreateFastMetadataEncoderFromDecoder		[integer!]
-		CreateFastMetadataEncoderFromFrameDecode	[integer!]
+		CreateFastMetadataEncoderFromDecoder		[int-ptr!]
+		CreateFastMetadataEncoderFromFrameDecode	[int-ptr!]
 		CreateQueryWriter			[function! [this [this!] format [int-ptr!] vendor [int-ptr!] ppIQueryWriter [com-ptr!] return: [integer!]]]
 		CreateQueryWriterFromReader	[function! [this [this!] pIQueryReader [int-ptr!] vendor [int-ptr!] ppIQueryWriter [com-ptr!] return: [integer!]]]
 	]
@@ -938,9 +938,9 @@ OS-image: context [
 		len			[integer!]
 		return:		[node!]
 		/local
-			hMem	[integer!]
+			hMem	[int-ptr!]
 			p		[byte-ptr!]
-			s		[integer!]
+			stm		[interface! value]
 			idec	[com-ptr! value]
 			IFAC	[IWICImagingFactory]
 	][
@@ -949,11 +949,11 @@ OS-image: context [
 		copy-memory p data len
 		GlobalUnlock hMem
 
-		s: 0
-		CreateStreamOnHGlobal hMem true :s
+		stm/ptr: null
+		CreateStreamOnHGlobal hMem true :stm
 
 		IFAC: as IWICImagingFactory wic-factory/vtbl
-		if 0 <> IFAC/CreateDecoderFromStream wic-factory as int-ptr! s null 0 :idec [
+		if 0 <> IFAC/CreateDecoderFromStream wic-factory stm/ptr null 0 :idec [
 			return null
 		]
 		get-frame IFAC as com-ptr! :idec 0 no
@@ -1031,7 +1031,7 @@ OS-image: context [
 		frame/Release fthis
 		enc/Release ethis
 		stream: as IStream IStm/ptr/vtbl
-		stream/Stat IStm/ptr stat 1
+		stream/Stat IStm/ptr as int-ptr! :stat 1
 		len: stat/cbSize_low
 
 		bin: as red-binary! slot
@@ -1141,7 +1141,7 @@ OS-image: context [
 	]
 
 	from-HBITMAP: func [
-		hBitmap		[integer!]
+		hBitmap		[int-ptr!]
 		alpha		[integer!]
 		return:		[red-image!]
 		/local
@@ -1155,7 +1155,7 @@ OS-image: context [
 			h		[integer!]
 	][
 		IFAC: as IWICImagingFactory wic-factory/vtbl
-		either zero? IFAC/CreateBitmapFromHBITMAP wic-factory as int-ptr! hBitmap null alpha :bitmap [
+		either zero? IFAC/CreateBitmapFromHBITMAP wic-factory hBitmap null alpha :bitmap [
 			this: bitmap/value
 		][return as red-image! none-value]
 		IB: as IWICBitmap this/vtbl

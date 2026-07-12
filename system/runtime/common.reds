@@ -397,7 +397,7 @@ re-throw: func [/local id [integer!]][
 
 #if type = 'exe [
 	push system/stack/frame					;-- save previous frame pointer
-	#if OS <> 'Windows [PUSH_FRAME_SPECIAL_SLOTS]
+	#if any [OS <> 'Windows target = 'X86-64] [PUSH_FRAME_SPECIAL_SLOTS]
 	system/stack/frame: system/stack/top	;-- reposition frame pointer just after the catch slots
 ]
 PUSH_FRAME_SPECIAL_SLOTS
