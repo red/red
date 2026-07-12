@@ -4827,7 +4827,7 @@ red: context [
 		if verbose > 2 [?? output]
 	]
 	
-	comp-as-exe: func [code [block!] /local out user mods main defs][
+	comp-as-exe: func [code [block!] /local out user mods main defs header][
 		out: copy/deep either job/dev-mode? [[
 			Red/System [origin: 'Red]
 
@@ -4853,12 +4853,13 @@ red: context [
 		if all [job/dev-mode? not job/libRedRT?][
 			replace out <imports> libRedRT/get-include-file job
 		]
-		
 		if job/encap? [
+			header: reduce [code/1]
 			code: encap-preprocess code
 			code: compose/deep [
+				(header)
 				(code/1)
-				do [(code/2)]
+				do [(next code/2)]
 			]
 		]
 		
