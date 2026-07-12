@@ -10,8 +10,8 @@ REBOL [
 context [
 	header:		make binary! 10'000
 	buffer:		make binary! 200'000
-	sym-table:	make binary! 10'000
 	sym-string:	make binary! 10'000
+	sym-offsets: make block!  1'000						;-- byte offset of each symbol in sym-string
 	symbols:	make hash! 	 1'000						;-- [word1 word2 ...]
 	contexts:	make hash!	 1'000						;-- [name [symbols] index ...]
 	index:		0
@@ -23,9 +23,15 @@ context [
 	UTF8-char:	lexer/UTF8-char
 	chars: 		make block!  10'000
 	decoded: 	make binary! 10'000
-	nl-flag:	to-integer #{80000000}					;-- header's new-line flag
 	nl?:		no
-
+	
+	CP_MODIFIER: 64										;-- compact tag space (see runtime/redbin.reds)
+	CP_INT0:	 128									;-- 80h-BFh integer! immediates 0-63
+	CP_NL:		 192									;-- C0h new-line marker
+	CP_TRUE:	 194									;-- C2h
+	CP_FALSE:	 195									;-- C3h
+	CP_GSET:	 196									;-- C4h global-set word marker
+	
 	profile: func [blk /local pos][
 		foreach item blk [
 			unless pos: find/skip stats type? :item 2 [
@@ -38,12 +44,6 @@ context [
 	]
 	
 	get-index: does [index - 1]
-	
-	pad: func [buf [any-string!] n [integer!] /local bytes][
-		unless zero? bytes: (length? buf) // n [
-			insert/dup tail buf null n - bytes
-		]
-	]
 	
 	preprocess-directives: func [blk][
 		forall blk [
@@ -83,130 +83,185 @@ context [
 		reduce [new unit]
 	]
 	
-	emit: func [n [integer!]][insert tail buffer to-bin32 n]
-	
-	emit-type: func [type [word!] /unit n [integer!]][
-		emit extracts/definitions/:type or either nl? [nl-flag][0]
-	]
-	
-	emit-float-bin: func [f [decimal!] /local bin][
-		bin: IEEE-754/to-binary64 f
-		emit to integer! copy/part bin 4
-		emit to integer! skip bin 4
-	]
-	
-	emit-float32-bin: func [f [decimal! issue!]][
-		insert tail buffer IEEE-754/to-binary32/rev f
-	]
-	
-	emit-ctx-info: func [word [any-word!] ctx [word! none!] /local entry pos][
-		if any [not ctx	none? entry: find contexts ctx][emit -1 return -1]	;-- -1 for global context
-		either pos: find entry/2 to word! word [
-			emit entry/3
-			(index? pos) - 1
-		][
-			emit -1
-			-1
+	to-varint: func [n [number!] /local out g done?][	;-- LEB128, 32-bit unsigned in decimal domain
+		if n < 0 [n: 4294967296.0 + n]
+		out: make binary! 5
+		until [
+			g: to integer! n // 128
+			n: (n - (n // 128)) / 128
+			done?: zero? n
+			append out to char! g + pick [0 128] done?
+			done?
 		]
+		out
 	]
 	
-	emit-unset: does [emit-type 'TYPE_UNSET]
-
-	emit-none: does [emit-type 'TYPE_NONE]
+	emit-byte: func [b [integer!]][append buffer to char! b]
+	
+	emit-varint: func [n [number!]][append buffer to-varint n]
+	
+	emit-svarint: func [n [number!]][					;-- zigzag-mapped signed varint
+		emit-varint either n < 0 [-2.0 * n - 1][2.0 * n]
+	]
+	
+	emit-tag: func [type [word!] /mod /local b][
+		if nl? [emit-byte CP_NL nl?: no]
+		b: extracts/definitions/:type
+		if mod [b: b or CP_MODIFIER]
+		emit-byte b
+	]
+	
+	emit-u32-le: func [n [integer!]][append buffer to-bin32 n]	;-- to-bin32 is little-endian
+	
+	emit-float64-le: func [f [decimal! issue!]][
+		append buffer head reverse IEEE-754/to-binary64 f
+	]
+	
+	same-float?: func [a [decimal!] b [decimal!]][		;-- bit-exact: R2's `=` is fuzzy for decimals
+		(IEEE-754/to-binary64 a) = (IEEE-754/to-binary64 b)
+	]
+	
+	emit-float32-le: func [f [decimal! issue!]][
+		append buffer IEEE-754/to-binary32/rev f
+	]
+	
+	emit-unset: does [emit-tag 'TYPE_UNSET]
+	
+	emit-none: does [emit-tag 'TYPE_NONE]
 	
 	emit-datatype: func [type [datatype! word!]][
 		unless word? type [type: to word! mold type]
-		emit-type 'TYPE_DATATYPE
-		emit extracts/definitions/:type
+		emit-tag 'TYPE_DATATYPE
+		emit-varint extracts/definitions/:type
 	]
 	
 	emit-logic: func [value [logic!]][
-		emit-type 'TYPE_LOGIC
-		emit to integer! value
+		if nl? [emit-byte CP_NL nl?: no]
+		emit-byte either value [CP_TRUE][CP_FALSE]
 	]
 	
-	emit-float: func [value [decimal!] /with type /local bin][
-		pad buffer 8
-		emit-type any [type 'TYPE_FLOAT]
-		emit-float-bin value
-	]
-	
-	emit-fp-special: func [value [issue!] /local p][
-		pad buffer 8
-		emit-type 'TYPE_FLOAT
-		insert tail buffer IEEE-754/to-binary64/rev4 value
-	]
-
-	emit-percent: func [value [issue!] /local bin][
-		pad buffer 8
-		emit-type 'TYPE_PERCENT
-		value: to string! copy/part value back tail value
-		emit-float-bin to decimal! append value "e-2"	;-- scale by 1/100 in a single rounding step (#5753)
-	]
-	
-	emit-time: func [value [time!]][
-		emit-float/with to decimal! value 'TYPE_TIME
-	]
-	
-	emit-date: func [value [date!] /with zone][
-		emit-type 'TYPE_DATE
-		emit red/encode-date/with value zone
-		emit-float-bin encode-UTC-time value/time any [zone value/zone]
-	]
-
-	emit-char: func [value [integer!]][
-		emit-type 'TYPE_CHAR
-		emit value
-	]
-	
-	emit-integer: func [value [integer!]][
-		emit-type 'TYPE_INTEGER
-		emit value
-	]
-
-	emit-pair: func [value [pair!]][
-		emit-type 'TYPE_PAIR
-		emit value/x
-		emit value/y
-	]
-	
-	emit-point: func [list [block!]][
-		emit-type select [2 TYPE_POINT2D 3 TYPE_POINT3D] length? list
-		forall list [emit-float32-bin either integer? list/1 [to decimal! list/1][list/1]]
-	]
-
-	emit-tuple: func [value [issue!] /local bin header][
-		bin: tail reverse debase/base next value 16
-		header: extracts/definitions/TYPE_TUPLE or shift/left length? head bin 8
-		if nl? [header: header or nl-flag]
-		emit header
-		emit to integer! skip bin -4
-		emit to integer! copy/part skip bin -4 -4
-		emit to integer! copy/part skip bin -8 -4
-	]
-	
-	emit-money: func [value [issue!] /local bin header][
-		value: to string! next value
-		header: extracts/definitions/TYPE_MONEY or shift/left to-integer value/4 = #"-" 22
-		if nl? [header: header or nl-flag]
-		emit header
-		repend buffer [
-			either value/1 = #"." [null][to-char to-currency-code copy/part value 3]
-			to binary! to-nibbles copy/part skip value 4 22	;-- nibbles array
+	emit-float: func [value [decimal!] /with type /local i][
+		either all [
+			value >= -2147483000.0
+			value <= 2147483000.0
+			same-float? value to decimal! i: to integer! value	;-- exact whole number (also rejects -0.0)
+		][
+			emit-tag/mod any [type 'TYPE_FLOAT]			;-- whole-number short form
+			emit-svarint i
+		][
+			emit-tag any [type 'TYPE_FLOAT]
+			emit-float64-le value
 		]
 	]
 	
+	emit-fp-special: func [value [issue!]][
+		emit-tag 'TYPE_FLOAT
+		emit-float64-le value
+	]
+	
+	emit-percent: func [value [issue!] /local d k][
+		d: to decimal! append to string! copy/part value back tail value "e-2"	;-- (#5753)
+		k: 0
+		either all [
+			d >= -21474836.0
+			d <= 21474836.0
+			same-float? d ((to decimal! k: to integer! d * 100.0) / 100.0)	;-- exact round-trip only
+		][
+			emit-tag/mod 'TYPE_PERCENT					;-- hundredths short form
+			emit-svarint k
+		][
+			emit-tag 'TYPE_PERCENT
+			emit-float64-le d
+		]
+	]
+	
+	emit-time: func [value [time!] /local f i][
+		f: to decimal! value
+		either all [
+			f >= -2147483000.0
+			f <= 2147483000.0
+			same-float? f to decimal! i: to integer! f	;-- exact whole seconds only
+		][
+			emit-tag/mod 'TYPE_TIME
+			emit-svarint i
+		][
+			emit-tag 'TYPE_TIME
+			emit-float64-le f
+		]
+	]
+	
+	emit-date: func [value [date!] /with zone][
+		either value/time [
+			emit-tag/mod 'TYPE_DATE
+			emit-u32-le red/encode-date/with value zone
+			emit-float64-le encode-UTC-time value/time any [zone value/zone]
+		][
+			emit-tag 'TYPE_DATE
+			emit-u32-le red/encode-date/with value zone
+		]
+	]
+
+	emit-char: func [value [integer!]][
+		emit-tag 'TYPE_CHAR
+		emit-varint value
+	]
+	
+	emit-integer: func [value [integer!]][
+		either all [value >= 0 value <= 63][
+			if nl? [emit-byte CP_NL nl?: no]
+			emit-byte CP_INT0 + value					;-- integer! immediate
+		][
+			emit-tag 'TYPE_INTEGER
+			emit-svarint value
+		]
+	]
+
+	emit-pair: func [value [pair!]][
+		emit-tag 'TYPE_PAIR
+		emit-svarint value/x
+		emit-svarint value/y
+	]
+	
+	emit-point: func [list [block!]][
+		emit-tag select [2 TYPE_POINT2D 3 TYPE_POINT3D] length? list
+		forall list [emit-float32-le either integer? list/1 [to decimal! list/1][list/1]]
+	]
+	
+	emit-tuple: func [value [issue!] /local bin size][
+		bin: debase/base next value 16
+		size: length? bin
+		either size = 3 [
+			emit-tag 'TYPE_TUPLE
+		][
+			emit-tag/mod 'TYPE_TUPLE
+			emit-byte size
+		]
+		append buffer bin
+	]
+	
+	emit-money: func [value [issue!]][
+		value: to string! next value
+		either value/4 = #"-" [
+			emit-tag/mod 'TYPE_MONEY					;-- negative amount
+		][
+			emit-tag 'TYPE_MONEY
+		]
+		append buffer either value/1 = #"." [null][to-char to-currency-code copy/part value 3]
+		append buffer to binary! to-nibbles copy/part skip value 4 22		;-- nibbles array
+	]
+	
 	emit-native: func [id [word!] spec [block!] /action][
-		emit-type pick [TYPE_ACTION TYPE_NATIVE] to logic! action
-		emit extracts/definitions/:id
+		emit-tag pick [TYPE_ACTION TYPE_NATIVE] to logic! action
+		emit-varint extracts/definitions/:id
 		emit-block/sub spec
 	]
 	
-	emit-typeset: func [v1 [integer!] v2 [integer!] v3 [integer!] /root][
-		emit-type 'TYPE_TYPESET
-		emit v1
-		emit v2
-		emit v3
+	emit-typeset: func [v1 [integer!] v2 [integer!] v3 [integer!] /root /local bin][
+		bin: rejoin [to-bin32 v1 to-bin32 v2 to-bin32 v3]
+		while [all [not empty? bin zero? last bin]][clear back tail bin]		;-- trim trailing zero bytes
+		emit-tag 'TYPE_TYPESET
+		emit-byte length? bin
+		append buffer bin
 		
 		if root [
 			if debug? [print [index ": typeset"]]
@@ -215,7 +270,7 @@ context [
 		index - 1
 	]
 	
-	emit-string: func [str [any-string!] /root /local type unit header][
+	emit-string: func [str [any-string!] /root /local type unit][
 		type: either issue? str ['TYPE_REF][				;-- internal encoding of ref! datatype
 			select [
 				string! TYPE_STRING
@@ -227,16 +282,15 @@ context [
 			] type?/word str
 		]
 		
-		str: to string! str
-		either type = 'TYPE_BINARY [unit: 1][set [str unit] decode-UTF8 str]
-		header: extracts/definitions/:type or shift/left unit 8
-		if nl? [header: header or nl-flag]
-
-		emit header
-		emit (index? str) - 1								 ;-- head
-		emit (length? str) / unit
+		str: to string! str									;-- head is always zero (v1 boot payload)
+		emit-tag type
+		either type = 'TYPE_BINARY [						;-- binary! is an any-string! in R2, but decodes
+			emit-varint length? str							;-- via decode-binary-cp: plain byte length
+		][													;-- any-string!: raw UCS-1/2/4, unit packed into length
+			set [str unit] decode-UTF8 str
+			emit-varint (length? str) / unit * 4 + select [1 0 2 1 4 2] unit
+		]
 		append buffer str
-		pad buffer 4
 
 		if root [
 			if debug? [print [index ": string :" copy/part str 40]]
@@ -246,7 +300,7 @@ context [
 	]
 	
 	emit-issue: func [value [issue!]][
-		emit-type 'TYPE_ISSUE
+		emit-tag 'TYPE_ISSUE
 		emit-symbol to word! form value
 	]
 	
@@ -255,17 +309,17 @@ context [
 		
 		unless pos: find/case symbols word [
 			s: tail sym-string
+			append sym-offsets -1 + index? s			;-- byte offset of this symbol in sym-string
 			repend sym-string [word null]
-			append sym-table to-bin32 (index? s) - 1
 			append symbols word
 			pos: back tail symbols
 		]
-		emit (index? pos) - 1							;-- emit index of symbol
+		emit-varint (index? pos) - 1					;-- emit index of symbol
 	]
 	
 	emit-word: func [
 		word ctx [word! none!] ctx-idx [integer! none!] /root /set?
-		/local type idx header
+		/local type entry pos ctx-field idx
 	][
 		type: select [
 			word!		TYPE_WORD
@@ -275,13 +329,26 @@ context [
 			lit-word!	TYPE_LIT_WORD
 		] type?/word :word
 		
-		header: extracts/definitions/:type
-		if set? [header: header or shift/left 1 25]
-		if nl? [header: header or nl-flag]
-		emit header
-		emit-symbol word
-		idx: emit-ctx-info word ctx
-		emit any [ctx-idx idx]
+		ctx-field: -1
+		idx: -1
+		if all [ctx entry: find contexts ctx][
+			if pos: find entry/2 to word! word [
+				ctx-field: entry/3
+				idx: (index? pos) - 1
+			]
+		]
+		idx: any [ctx-idx idx]
+
+		if set? [emit-byte CP_GSET]						;-- global-set: value record follows
+		either ctx-field = -1 [
+			emit-tag type								;-- canonical form: global binding
+			emit-symbol word
+		][
+			emit-tag/mod type
+			emit-symbol word
+			emit-varint ctx-field						;-- context record index among roots
+			emit-svarint idx
+		]
 		if root [
 			if debug? [print [index ": word :" mold word]]
 			unless set? [index: index + 1]
@@ -291,7 +358,7 @@ context [
 	
 	emit-block: func [
 		blk [any-block! path! lit-path! set-path!] /with main-ctx [word!] /sub
-		/local type item binding ctx idx emit? multi-line?
+		/local type item binding ctx idx emit? multi-line? ofs
 	][
 		if profile? [profile blk]
 		
@@ -315,7 +382,7 @@ context [
 			]
 			'else [type?/word :blk]
 		]
-		emit-type select [
+		type: select [
 			block!		TYPE_BLOCK
 			paren!		TYPE_PAREN
 			path!		TYPE_PATH
@@ -326,8 +393,12 @@ context [
 		] type
 		
 		preprocess-directives blk
-		unless type = 'map [emit (index? blk) - 1]		;-- head field
-		emit length? blk
+		ofs: (index? blk) - 1
+		either any [type = 'TYPE_MAP zero? ofs][emit-tag type][
+			emit-tag/mod type							;-- non-zero head
+			emit-varint ofs
+		]
+		emit-varint length? blk
 		if all [not sub debug?][
 			print [index ": block" length? blk #":" trim/lines copy/part mold/flat blk 60]
 		]
@@ -339,7 +410,7 @@ context [
 			item: blk/1
 			either any-block? :item [
 				either with [
-					emit-block/sub/with :item main-ctx 
+					emit-block/sub/with :item main-ctx
 				][
 					emit-block/sub :item
 				]
@@ -424,23 +495,23 @@ context [
 			]
 		]
 		nl?: no
-		if type = 'map [insert blk #!map!]
+		if type = 'TYPE_MAP [insert blk #!map!]
 		unless sub [index: index + 1]
 		index - 1										;-- return the block index
 	]
 	
 	emit-context: func [
 		name [word!] spec [block!] stack? [logic!] self? [logic!] type [word!] /root
-		/local header
+		/local flags
 	][
 		repend contexts [name copy spec index]			;-- COPY to avoid late word decorations
-		type: shift/left (select [function 1 object 2] type) 26
-		header: extracts/definitions/TYPE_CONTEXT or type
-		if stack? [header: header or shift/left 1 29]
-		if self?  [header: header or shift/left 1 28]
+		flags: select [function 1 object 2] type
+		if stack? [flags: flags or 4]
+		if self?  [flags: flags or 8]
 		
-		emit header
-		emit length? spec
+		emit-tag 'TYPE_CONTEXT
+		emit-byte flags
+		emit-varint length? spec
 		foreach word spec [emit-symbol word]
 		if root [
 			if debug? [print [index ": context :" trim/lines copy/part mold/flat spec 50 "," stack? "," self?]]
@@ -452,24 +523,23 @@ context [
 	init: does [
 		clear header
 		clear buffer
-		clear sym-table
 		clear sym-string
+		clear sym-offsets
 		clear symbols
 		clear contexts
 	]
 	
-	finish: func [spec [block!] /local flags compress? data out len][
-		pad sym-string 8
-		flags: #{04}
+	finish: func [spec [block!] /local flags compress? out len][
+		flags: #{05}									;-- compact + symbol table
 		
 		repend header [
-			to-bin32 index - 1							;-- number of root records
-			to-bin32 length? buffer						;-- size of records in bytes
-			to-bin32 length? symbols
-			to-bin32 length? sym-string
-			sym-table
-			sym-string
+			to-varint index - 1							;-- number of root records
+			to-varint length? buffer					;-- size of records in bytes
+			to-varint length? symbols
+			to-varint length? sym-string
 		]
+		foreach ofs sym-offsets [append header to-bin32 ofs]	;-- per-symbol offsets (4-byte LE), read in place
+		append header sym-string
 		insert buffer header
 		
 		if all [
@@ -490,7 +560,7 @@ context [
 		repend header [
 			"REDBIN"
 			#{01}										;-- version: 1
-			flags										;-- flags: symbols [+ options]
+			flags										;-- flags: compact + symbols [+ options]
 		]
 		insert buffer header
 	]
