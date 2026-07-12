@@ -958,7 +958,7 @@ context [
 			oh/export-addr:		named-sect-addr? job 'export
 			oh/export-size:		length? job/sections/export/2
 		]
-		if find [dll drv] job/type [
+		if any [PE64? find [dll drv] job/type] [
 			oh/reloc-addr:		named-sect-addr? job 'reloc
 			oh/reloc-size:		length? job/sections/reloc/2
 		]
@@ -1297,7 +1297,7 @@ context [
 			pointer-size: 8
 		]
 
-		if find [dll drv] job/type [
+		if any [PE64? find [dll drv] job/type] [
 			append job/sections [reloc [- - -]]			;-- inject reloc section
 		]
 		
@@ -1325,7 +1325,7 @@ context [
 
 		if find job/sections 'rsrc	[build-resource job]
 		
-		if find [dll drv] job/type [build-reloc job]
+		if any [PE64? find [dll drv] job/type] [build-reloc job]
 
 		static-link/prepare-pe-tls job
 			section-addr?/memory job 'data

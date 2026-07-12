@@ -380,6 +380,22 @@ interpreter: context [
 			args/i5 args/f5 args/i6 args/f6 args/f7 args/f8
 	]
 
+	invoke-routine-int-win64: func [
+		entry [int-ptr!]
+		args  [routine-call-args!]
+		return: [integer!]
+		/local call [function! [
+			i1 [int-ptr!] i2 [int-ptr!] i3 [int-ptr!] i4 [int-ptr!]
+			return: [integer!]
+		]]
+	][
+		call: as function! [
+			i1 [int-ptr!] i2 [int-ptr!] i3 [int-ptr!] i4 [int-ptr!]
+			return: [integer!]
+		] entry
+		call args/i1 args/i2 args/i3 args/i4
+	]
+
 	call: func [
 		fun	  [red-function!]
 		ctx	  [node-handle!]
@@ -520,7 +536,7 @@ interpreter: context [
 			count	[integer!]
 			cnt 	[integer!]
 			args	[integer!]
-			int-count float-count [integer!]
+			int-count float-count float-total [integer!]
 			type	[integer!]
 			saved	[int-ptr!]
 			pos		[byte-ptr!]
@@ -610,6 +626,7 @@ interpreter: context [
 			#either target = 'X86-64 [
 				assert int-count <= 6
 				assert float-count <= 8
+				float-total: float-count
 			][0]
 
 			while [count >= 0][							;-- push arguments in reverse order
@@ -673,13 +690,21 @@ interpreter: context [
 			either positive? rtype/value [
 				switch rtype/value [
 					TYPE_LOGIC	[
-						#either target = 'X86-64 [ret: invoke-routine-int-x64 entry rargs][ret: call]
+						#either target = 'X86-64 [
+							#either OS = 'Windows [
+								ret: either zero? float-total [invoke-routine-int-win64 entry rargs][invoke-routine-int-x64 entry rargs]
+							][ret: invoke-routine-int-x64 entry rargs]
+						][ret: call]
 						bool: as red-logic! stack/arguments
 						bool/header: TYPE_LOGIC
 						bool/value: ret <> 0
 					]
 					TYPE_INTEGER [
-						#either target = 'X86-64 [ret: invoke-routine-int-x64 entry rargs][ret: call]
+						#either target = 'X86-64 [
+							#either OS = 'Windows [
+								ret: either zero? float-total [invoke-routine-int-win64 entry rargs][invoke-routine-int-x64 entry rargs]
+							][ret: invoke-routine-int-x64 entry rargs]
+						][ret: call]
 						int: as red-integer! stack/arguments
 						int/header: TYPE_INTEGER
 						int/value: ret
@@ -697,7 +722,11 @@ interpreter: context [
 					]
 					default [assert false]				;-- should never happen
 				]
-			][#either target = 'X86-64 [invoke-routine-int-x64 entry rargs][call]]
+			][#either target = 'X86-64 [
+				#either OS = 'Windows [
+					either zero? float-total [invoke-routine-int-win64 entry rargs][invoke-routine-int-x64 entry rargs]
+				][invoke-routine-int-x64 entry rargs]
+			][call]]
 		]
 	]
 	

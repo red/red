@@ -1,5 +1,5 @@
 Red [
-	Title: "Linux x86-64 Red release runtime smoke test"
+	Title: "x86-64 Red release runtime smoke test"
 ]
 
 fail: func [message [string!]][

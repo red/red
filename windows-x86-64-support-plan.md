@@ -35,6 +35,13 @@ MSVCRT and KERNEL32 imports. Running reaches the Red program but fails at
 `FAIL: applied routine call: 5743972`. The image has an empty base-relocation
 directory despite the dynamic-base flag, so it is not ASLR-safe yet.
 
+Implementation update: the dynamic integer-only routine bridge and PE32+
+executable relocation emission are now fixed. The Windows release smoke passes
+three bounded runs, and the focused Windows x64 ABI runner passes nine fixtures
+covering function pointers, mixed arguments, floating-point calls, hidden
+returns, variadics, register/stack arguments, and aggregate returns. DLL/
+development mode, the full core suite, and View remain open milestones.
+
 ## Scope And Non-goals
 
 First milestone:
