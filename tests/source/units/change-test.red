@@ -816,6 +816,10 @@ Red [
 		--assert (3) = index? b
 		--assert (head b) = (#{01020506})
 
+	  --test-- "change-453.1"							;-- Latin1 string (from `to string!`) re-encoded to UTF-8 by binary! change
+		--assert #{C3A9C3BC}         = head change copy #{00} to string! #{C3A9C3BC}				;-- "éü"
+		--assert #{43616CC3A7C3A36F} = head change copy #{00} to string! #{43616CC3A7C3A36F}		;-- "Calção"
+
 	  --test-- "change-454"
 		b: next next #{01020304}
 		--assert (#{0304}) = change/part b [5 6 7] 0
