@@ -78,17 +78,22 @@ money: context [
 	get-sign: func [
 		money   [red-money!]
 		return: [integer!]
+		/local sign [integer!]
 	][
-		money/header and SIGN_MASK >>> SIGN_OFFSET
+		sign: money/header and SIGN_MASK
+		sign >>> SIGN_OFFSET
 	]
 	
 	set-sign: func [
 		money   [red-money!]
 		sign    [integer!]
 		return: [red-money!]
+		/local header [integer!]
 	][
 		assert any [sign = 0 sign = 1]
-		money/header: money/header and (not SIGN_MASK) or (sign << SIGN_OFFSET)
+		header: money/header and (not SIGN_MASK)
+		sign: sign << SIGN_OFFSET
+		money/header: header or sign
 		money
 	]
 	
@@ -103,9 +108,13 @@ money: context [
 		sign1   [integer!]
 		sign2   [integer!]
 		return: [integer!]
+		/local left right [integer!]
 	][
 		assert all [1 >= integer/abs sign1 1 >= integer/abs sign2]
-		sign1 + 1 << 4 or (sign2 + 1)
+		left: sign1 + 1
+		left: left << 4
+		right: sign2 + 1
+		left or right
 	]
 	
 	;-- Currency --
@@ -272,13 +281,23 @@ money: context [
 			index1 [integer!]
 			index2 [integer!]
 			half   [byte!]
+			value  [integer!]
 	][
 		loop offset [
 			index1: 1
 			index2: index1 + 1
 			loop size [
-				half: either index2 > size [null-byte][amount/index2 >>> 4]
-				amount/index1: amount/index1 << 4 or half
+				either index2 > size [
+					half: null-byte
+				][
+					value: as integer! amount/index2
+					value: value >>> 4
+					half: as byte! value
+				]
+				value: as integer! amount/index1
+				value: value << 4
+				value: value or as integer! half
+				amount/index1: as byte! value
 				
 				index1: index1 + 1
 				index2: index2 + 1
@@ -297,13 +316,23 @@ money: context [
 			index1 [integer!]
 			index2 [integer!]
 			half   [byte!]
+			value  [integer!]
 	][
 		loop offset [
 			index1: size
 			index2: index1 - 1
 			loop size [
-				half: either index2 < 1 [null-byte][amount/index2 << 4]
-				amount/index1: amount/index1 >>> 4 or half
+				either index2 < 1 [
+					half: null-byte
+				][
+					value: as integer! amount/index2
+					value: value << 4
+					half: as byte! value
+				]
+				value: as integer! amount/index1
+				value: value >>> 4
+				value: value or as integer! half
+				amount/index1: as byte! value
 				
 				index1: index1 - 1
 				index2: index2 - 1
@@ -320,7 +349,7 @@ money: context [
 		index   [integer!]
 		return: [integer!]
 		/local
-			bit byte offset [integer!]
+			bit byte offset mask value [integer!]
 	][
 		assert positive? index
 		
@@ -328,7 +357,11 @@ money: context [
 		byte:   index >> 1 + bit
 		offset: either as logic! bit [4][0]
 		
-		as integer! amount/byte and (HIGH_NIBBLE << offset) >>> offset
+		mask: as integer! HIGH_NIBBLE
+		mask: mask << offset
+		value: as integer! amount/byte
+		value: value and mask
+		value >>> offset
 	]
 	
 	set-digit: func [
@@ -336,7 +369,7 @@ money: context [
 		index  [integer!]
 		value  [integer!]
 		/local
-			bit byte offset reverse [integer!]
+			bit byte offset reverse mask digit current [integer!]
 	][
 		assert positive? index
 		assert all [value >= 0 value <= 9]
@@ -346,7 +379,13 @@ money: context [
 		offset:  either as logic! bit [4][0]
 		reverse: either zero? offset  [4][0]
 		
-		amount/byte: amount/byte and (HIGH_NIBBLE << reverse) or as byte! (value << offset)
+		mask: as integer! HIGH_NIBBLE
+		mask: mask << reverse
+		current: as integer! amount/byte
+		current: current and mask
+		digit: value << offset
+		current: current or digit
+		amount/byte: as byte! current
 	]
 	
 	count-digits: func [
@@ -1122,7 +1161,8 @@ money: context [
 		count1: count-digits amount1
 		count2: count-digits amount2
 		
-		if (count1 + count2) > (SIZE_UNNORM + 1) [MONEY_OVERFLOW]	;-- if after normalization it won't fit into payload
+		result: count1 + count2
+		if result > (SIZE_UNNORM + 1) [MONEY_OVERFLOW]			;-- if after normalization it won't fit into payload
 		
 		product: as byte-ptr! system/stack/allocate SIZE_SSLOTS
 		set-memory product null-byte SIZE_SBYTES
@@ -1140,7 +1180,9 @@ money: context [
 				digit2: get-digit amount2 index1
 				digit3: get-digit product index3
 				
-				result: digit1 * digit2 + digit3 + carry
+				result: digit1 * digit2
+				result: result + digit3
+				result: result + carry
 				carry:  result /  10
 				result: result // 10
 				
@@ -1149,11 +1191,11 @@ money: context [
 				index2: index2 - 1
 			]
 			
-			set-digit product index3 - 1 carry
+			index3: index3 - 1
+			set-digit product index3 carry
 			
 			index1: index1 - 1
 		]
-		
 		unless zero? get-digit product 1 [MONEY_OVERFLOW]	;-- overflowed into most-significant digit
 		
 		shift-right product SIZE_SBYTES SIZE_SCALE

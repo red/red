@@ -817,7 +817,7 @@ init: func [/local disp [handle!]][
 	#if type = 'exe [set-env-theme]
 	set-app-theme "box, button.text-button {min-width: 1px; min-height: 1px;}" yes
 	collector/register as int-ptr! :on-gc-mark
-	font-ext-type: externals/register "font" as-integer :delete-font
+	font-ext-type: externals/register "font" as int-ptr! :delete-font
 
 	disp: gdk_display_get_default
 	gobj_signal_connect(disp "monitor-added" :monitor-changed null)

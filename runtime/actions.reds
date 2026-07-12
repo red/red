@@ -13,7 +13,7 @@ Red/System [
 actions: context [
 	verbose: 0
 	
-	table: as int-ptr! 0
+	table: as func-table! 0
 	
 	#define PROCESS_PART_DUP_OPTIONS [
 		cnt:   1
@@ -55,7 +55,7 @@ actions: context [
 	register: func [
 		[variadic]
 		count	[integer!]
-		list	[int-ptr!]
+		list	[vararg-ptr!]
 		/local
 			index  [integer!]
 	][
@@ -77,17 +77,17 @@ actions: context [
 		path	[red-value!]
 		element [red-value!]
 		index	[integer!]
-		return: [integer!]								;-- action pointer (datatype-dependent)
+		return: [int-ptr!]								;-- action pointer (datatype-dependent)
 		/local
 			p	 [red-block!]
 			type [integer!]
-			idx	 [integer!]
+			idx	 [int-ptr!]
+			table-index [integer!]
 	][
 		type:  TYPE_OF(value)
-		idx: index
-		idx: type << 8 + action
-		idx: action-table/idx							;-- lookup action function pointer
-		if zero? idx [
+		table-index: type << 8 + action
+		idx: as int-ptr! action-table/table-index		;-- lookup action function pointer
+		if null? idx [
 			either null? path [							;-- compiled path
 				fire [
 					TO_ERROR(script bad-path-type2)
@@ -112,34 +112,35 @@ actions: context [
 		type	[integer!]								;-- datatype ID
 		value	[red-value!]							;-- Red value to dispatch from
 		action	[integer!]								;-- action ID
-		return: [integer!]								;-- action pointer (datatype-dependent)
+		return: [int-ptr!]								;-- action pointer (datatype-dependent)
 		/local
 			index [integer!]
+			ptr [int-ptr!]
 			actor [red-handle!]
-			table [int-ptr!]
+			table [func-table!]
 	][
 		if TYPE_OF(value) = TYPE_PORT [
 			actor: as red-handle! (object/get-values as red-object! value) + port/field-actor
 			
 			if all [action >= ACT_APPEND TYPE_OF(actor) = TYPE_HANDLE][
-				table: as int-ptr! actor/value
+				table: as func-table! actor/value
 				action: action - ACT_APPEND + 1			;-- index is 1-based
-				index: table/action
-				if zero? index [fire [TO_ERROR(access no-port-action)]]
-				return index
+				ptr: as int-ptr! table/action
+				if null? ptr [fire [TO_ERROR(access no-port-action)]]
+				return ptr
 			]
 		]
 		index: type << 8 + action
-		index: action-table/index						;-- lookup action function pointer
+		ptr: as int-ptr! action-table/index			;-- lookup action function pointer
 
-		if zero? index [ERR_EXPECT_ARGUMENT(type 0)]
-		index
+		if null? ptr [ERR_EXPECT_ARGUMENT(type 0)]
+		ptr
 	]
 	
 	;@@ temporary stack-oriented version kept until internal API fully changed
 	get-action-ptr*: func [
 		action	[integer!]								;-- action ID
-		return: [integer!]								;-- action pointer (datatype-dependent)
+		return: [int-ptr!]								;-- action pointer (datatype-dependent)
 		/local
 			arg  [red-value!]
 	][
@@ -150,7 +151,7 @@ actions: context [
 	get-action-ptr: func [
 		value	[red-value!]							;-- any-type! value
 		action	[integer!]								;-- action ID
-		return: [integer!]								;-- action pointer (datatype-dependent)
+		return: [int-ptr!]								;-- action pointer (datatype-dependent)
 	][
 		get-action-ptr-from TYPE_OF(value) value action
 	]
@@ -217,9 +218,9 @@ actions: context [
 	][
 		random
 			as red-value! stack/arguments
-			as logic! seed + 1
-			as logic! secure + 1
-			as logic! only + 1
+			seed >= 0
+			secure >= 0
+			only >= 0
 	]
 
 	random: func [
@@ -388,9 +389,9 @@ actions: context [
 		mold
 			stack/arguments
 			buffer
-			as logic! only + 1
-			as logic! _all + 1
-			as logic! flat + 1
+			only >= 0
+			_all >= 0
+			flat >= 0
 			arg
 			limit
 			0
@@ -715,12 +716,12 @@ actions: context [
 		round
 			stack/arguments
 			scale
-			as logic! even	+ 1
-			as logic! down	+ 1
-			as logic! half-down + 1
-			as logic! floor + 1
-			as logic! ceil  + 1
-			as logic! half-ceil + 1
+			even >= 0
+			down >= 0
+			half-down >= 0
+			floor >= 0
+			ceil >= 0
+			half-ceil >= 0
 	]
 
 	round: func [
@@ -882,7 +883,7 @@ actions: context [
 			as red-series! stack/arguments
 			stack/arguments + 1
 			part
-			as logic! only + 1
+			only >= 0
 			cnt
 			yes
 	]
@@ -990,7 +991,7 @@ actions: context [
 			as red-series! stack/arguments
 			stack/arguments + 1
 			part
-			as logic! only + 1
+			only >= 0
 			cnt
 	]
 
@@ -1054,7 +1055,7 @@ actions: context [
 			as red-series! stack/arguments
 			new
 			stack/arguments + part
-			as logic! deep + 1
+			deep >= 0
 			stack/arguments + types
 	]
 	
@@ -1100,16 +1101,16 @@ actions: context [
 			as red-series! stack/arguments
 			stack/arguments + 1
 			stack/arguments + part
-			as logic! only + 1
-			as logic! case-arg + 1
-			as logic! same-arg + 1
-			as logic! any-arg + 1
+			only >= 0
+			case-arg >= 0
+			same-arg >= 0
+			any-arg >= 0
 			as red-string!  stack/arguments + with-arg
 			as red-integer! stack/arguments + skip
-			as logic! last + 1
-			as logic! reverse + 1
-			as logic! tail + 1
-			as logic! match + 1
+			last >= 0
+			reverse >= 0
+			tail >= 0
+			match >= 0
 	]
 		
 	find: func [
@@ -1208,7 +1209,7 @@ actions: context [
 			ser
 			stack/arguments + 1
 			part
-			as logic! only + 1
+			only >= 0
 			cnt
 			no
 	]
@@ -1486,14 +1487,14 @@ actions: context [
 			as red-series! stack/arguments
 			stack/arguments + 1
 			stack/arguments + part
-			as logic! only + 1
-			as logic! case-arg + 1
-			as logic! same-arg + 1
-			as logic! any-arg + 1
+			only >= 0
+			case-arg >= 0
+			same-arg >= 0
+			any-arg >= 0
 			as red-string!  stack/arguments + with-arg
 			as red-integer! stack/arguments + skip
-			as logic! last + 1
-			as logic! reverse + 1
+			last >= 0
+			reverse >= 0
 	]
 
 	select: func [
@@ -1544,13 +1545,13 @@ actions: context [
 		; assert ANY-SERIES?(TYPE_OF(stack/arguments))
 		stack/set-last sort
 			as red-series!   stack/arguments
-			as logic!		 case-arg + 1
+			case-arg >= 0
 			as red-integer!  stack/arguments + skip-arg
 			as red-function! stack/arguments + compare
 			stack/arguments + part
-			as logic! all-arg + 1
-			as logic! reverse + 1
-			as logic! stable + 1
+			all-arg >= 0
+			reverse >= 0
+			stable >= 0
 	]
 
 	sort: func [
@@ -1657,8 +1658,8 @@ actions: context [
 		stack/set-last take
 			as red-series! stack/arguments
 			stack/arguments + part
-			as logic! deep + 1
-			as logic! last + 1
+			deep >= 0
+			last >= 0
 	]
 
 	take: func [
@@ -1694,11 +1695,11 @@ actions: context [
 	][
 		trim
 			as red-series! stack/arguments
-			as logic! head  + 1
-			as logic! tail  + 1
-			as logic! auto  + 1
-			as logic! lines + 1
-			as logic! _all  + 1
+			head >= 0
+			tail >= 0
+			auto >= 0
+			lines >= 0
+			_all >= 0
 			stack/arguments + with-arg
 	]
 
@@ -2031,7 +2032,7 @@ actions: context [
 	
 	
 	init: does [
-		table: as int-ptr! allocate ACTIONS_NB * size? integer!
+		table: as func-table! allocate ACTIONS_NB * size? pointer!
 		
 		register [
 			;-- General actions --

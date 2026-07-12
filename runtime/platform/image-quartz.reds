@@ -232,7 +232,7 @@ OS-image: context [
 	lock-bitmap: func [
 		img			[red-image!]
 		write?		[logic!]
-		return:		[integer!]
+		return:		[int-ptr!]
 		/local
 			inode	[img-node!]
 	][
@@ -242,16 +242,16 @@ OS-image: context [
 			inode/buffer: data-to-image inode/handle yes yes
 		]
 		if write? [inode/flags: inode/flags or IMG_NODE_MODIFIED]
-		as integer! inode
+		as int-ptr! inode
 	]
 
 	unlock-bitmap: func [					;-- do nothing on Quartz backend
 		img			[red-image!]
-		data		[integer!]
+		data		[int-ptr!]
 	][]
 
 	get-data: func [
-		handle		[integer!]
+		handle		[int-ptr!]
 		stride		[int-ptr!]
 		return:		[int-ptr!]
 		/local

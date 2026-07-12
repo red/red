@@ -123,7 +123,7 @@ posix-startup-ctx: context [
 	][
 		__sigaction-options: declare sigaction!
 
-		__sigaction-options/sigaction: 	as-integer :***-on-signal
+		__sigaction-options/sigaction: 	as byte-ptr! :***-on-signal
 		__sigaction-options/flags: 		SA_SIGINFO ;or SA_RESTART
 
 		sigaction SIGILL  __sigaction-options as sigaction! 0

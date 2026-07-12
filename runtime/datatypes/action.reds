@@ -51,7 +51,7 @@ action: context [
 		if TYPE_OF(list) <> TYPE_INTEGER [throw-make proto spec]
 		index: integer/get as red-value! list			;-- action IDs are one-based
 		if any [index < 1 index > ACTIONS_NB][throw-make proto spec]
-		action/code: actions/table/index
+		action/code: index
 		action
 	]
 	

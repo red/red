@@ -19,5 +19,27 @@ change-dir %../                        ;; revert to tests/ directory from runnab
     }
     
 ===end-group===
+
+===start-group=== "pointer types"
+
+  --test-- "pointer to c-string"
+  --assert --compiled? {
+      Red/System []
+      names: protect ["first" "second"]
+      table: declare pointer! [c-string!]
+      table: names
+      value: table/2
+    }
+
+  --test-- "mixed pointer table uses pointer-width slots"
+  --assert --compiled? {
+      Red/System []
+      table: protect ["first" 5 10]
+      cursor: declare pointer! [uint64!]
+      cursor: table
+      length: as integer! cursor/2
+    }
+
+===end-group===
   
 ~~~end-file~~~

@@ -51,7 +51,7 @@ native: context [
 		if TYPE_OF(list) <> TYPE_INTEGER [throw-make proto spec]
 		index: integer/get as red-value! list
 		if any [index < 1 index > NATIVES_NB][throw-make proto spec]
-		native/code: natives/table/index
+		native/code: index
 		native
 	]
 	
@@ -61,7 +61,7 @@ native: context [
 		return:	[red-block!]
 		/local
 			blk   [red-block!]
-			table [int-ptr!]
+			table [func-table!]
 			index [integer!]
 			node  [node!]
 			s	  [series!]
@@ -81,9 +81,7 @@ native: context [
 					stack/set-last s/offset
 				][
 					table: either any [type = TYPE_NATIVE TYPE_OF(native) = TYPE_NATIVE][natives/table][actions/table]
-					index: 0
-					until [index: index + 1 native/code = table/index]
-					return as red-block! integer/box index
+					return as red-block! integer/box native/code
 				]
 			]
 			field = words/words [

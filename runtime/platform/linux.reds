@@ -23,15 +23,25 @@ Red/System [
 	#define SC_PAGE_SIZE	1Eh
 ]
 
-#either target = 'ARM [
-	#define SYSCALL_GETDENTS64	217
-][
-	#define SYSCALL_GETDENTS64	220
+#switch target [
+	ARM [
+		#define SYSCALL_GETDENTS64	217
+		#define SYSCALL_MMAP2		192
+		#define SYSCALL_MUNMAP		91
+		#define SYSCALL_MMAP		SYSCALL_MMAP2
+	]
+	X86-64 [
+		#define SYSCALL_GETDENTS64	217
+		#define SYSCALL_MMAP		9
+		#define SYSCALL_MUNMAP		11
+	]
+	#default [
+		#define SYSCALL_GETDENTS64	220
+		#define SYSCALL_MMAP2		192
+		#define SYSCALL_MUNMAP		91
+		#define SYSCALL_MMAP		SYSCALL_MMAP2
+	]
 ]
-
-#define SYSCALL_MMAP2		192
-#define SYSCALL_MUNMAP		91
-#define SYSCALL_MMAP		SYSCALL_MMAP2
 
 #define	EPERM				1			;-- Operation not permitted
 #define	ENOENT				2			;-- No such file or directory

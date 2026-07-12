@@ -463,7 +463,7 @@ url: context [
 			left:  all [len > 0   islash = string/get-char (as byte-ptr! s/tail) - unit unit]
 			right: all [len2 > 0  islash = string/get-char (as byte-ptr! s2/offset) unit2]
 			case [
-				all [not left not right][set-node-value new/node (as-integer string/insert-char s2 0 as-integer #"/")]
+				all [not left not right][set-node-value new/node as int-ptr! string/insert-char s2 0 as-integer #"/"]
 				all [left right][s/tail: as red-value! (as byte-ptr! s/tail) - unit]
 				true [0]
 			]

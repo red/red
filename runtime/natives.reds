@@ -21,7 +21,7 @@ natives: context [
 	lf?: 	  no										;-- used to print or not an ending newline
 	last-lf?: no
 	
-	table: as int-ptr! 0
+	table: as func-table! 0
 	top: 1
 	
 	buffer-blk: as red-block! 0
@@ -29,7 +29,7 @@ natives: context [
 	register: func [
 		[variadic]
 		count	   [integer!]
-		list	   [int-ptr!]
+		list	   [vararg-ptr!]
 	][
 		until [
 			table/top: list/value
@@ -1151,8 +1151,8 @@ natives: context [
 			stack/set-last
 				as red-value! compose-block
 					as red-block! arg
-					as logic! deep + 1
-					as logic! only + 1
+					deep >= 0
+					only >= 0
 					as red-block! stack/arguments + into
 					yes
 		]
@@ -1305,7 +1305,7 @@ natives: context [
 			len	   [integer!]
 	][
 		#typecheck [parse case? part trace]
-		op: either as logic! case? + 1 [COMP_STRICT_EQUAL][COMP_EQUAL]
+		op: either case? >= 0 [COMP_STRICT_EQUAL][COMP_EQUAL]
 		
 		input: as red-series! stack/arguments
 		limit: as red-series! stack/arguments + part
@@ -1393,7 +1393,7 @@ natives: context [
 		]
 
 		skip-arg: set1 + skip
-		case?:	  as logic! cased + 1
+		case?:	  cased >= 0
 
 		switch type [
 			TYPE_BLOCK   
@@ -3759,7 +3759,7 @@ natives: context [
 	]
 	
 	init: does [
-		table: as int-ptr! allocate NATIVES_NB * size? integer!
+		table: as func-table! allocate NATIVES_NB * size? pointer!
 		buffer-blk: block/make-in red/root 32			;-- block buffer for PRIN's reduce/into
 
 		register [

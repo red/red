@@ -91,19 +91,30 @@ linker: context [
 		rodata-offset [integer!]					;-- protected data (0 if none / already RO by segment)
 		rodata-size	 [integer!]
 		/local
-			spec bits-offset
+			spec bits-offset struct-offset field-offset
 	][
 		unless job/runtime? [exit]
 		bits-offset: second second find job/symbols '***-ptr-bitmaps
 		spec: find job/symbols '***-exec-image
-		set-integer-at job spec/2/2 + 4  base-address	;-- + 4 => skip the struct pointer slot
-		set-integer-at job spec/2/2 + 8  code-offset
-		set-integer-at job spec/2/2 + 12 code-size
-		set-integer-at job spec/2/2 + 16 data-offset
-		set-integer-at job spec/2/2 + 20 data-size
-		set-integer-at job spec/2/2 + 24 data-offset + bits-offset
-		set-integer-at job spec/2/2 + 28 rodata-offset
-		set-integer-at job spec/2/2 + 32 rodata-size
+		struct-offset: either job/target = 'X86-64 [8][4]
+		field-offset: struct-offset
+		either job/target = 'X86-64 [
+			change/part
+				at job/sections/data/2 spec/2/2 + field-offset + 1
+				to-bin64 base-address
+				8
+			field-offset: field-offset + 8
+		][
+			set-integer-at job spec/2/2 + field-offset base-address
+			field-offset: field-offset + 4
+		]
+		set-integer-at job spec/2/2 + field-offset      code-offset
+		set-integer-at job spec/2/2 + field-offset + 4  code-size
+		set-integer-at job spec/2/2 + field-offset + 8  data-offset
+		set-integer-at job spec/2/2 + field-offset + 12 data-size
+		set-integer-at job spec/2/2 + field-offset + 16 data-offset + bits-offset
+		set-integer-at job spec/2/2 + field-offset + 20 rodata-offset
+		set-integer-at job spec/2/2 + field-offset + 24 rodata-size
 	]
 	
 	resolve-symbol-refs: func [

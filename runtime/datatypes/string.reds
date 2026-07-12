@@ -1161,7 +1161,7 @@ string: context [
 	compare-call: func [								;-- Wrap red function!
 		value1   [byte-ptr!]
 		value2   [byte-ptr!]
-		fun		 [integer!]
+		fun		 [int-ptr!]
 		flags	 [integer!]
 		return:  [integer!]
 		/local
@@ -1630,7 +1630,7 @@ string: context [
 	compare-Latin1: func [
 		p1		[byte-ptr!]
 		p2		[byte-ptr!]
-		op		[integer!]
+		op		[int-ptr!]
 		flags	[integer!]
 		return: [integer!]
 		/local
@@ -1652,7 +1652,7 @@ string: context [
 		loop count [
 			c1: as-integer p1/1
 			c2: as-integer p2/1
-			if op = COMP_EQUAL [
+			if op = as int-ptr! COMP_EQUAL [
 				if all [65 <= c1 c1 <= 90][c1: c1 + 32]
 				if all [65 <= c2 c2 <= 90][c2: c2 + 32]
 			]
@@ -1666,7 +1666,7 @@ string: context [
 	compare-UCS2: func [
 		p1		[byte-ptr!]
 		p2		[byte-ptr!]
-		op		[integer!]
+		op		[int-ptr!]
 		flags	[integer!]
 		return: [integer!]
 		/local
@@ -1688,7 +1688,7 @@ string: context [
 		loop count [
 			c1: (as-integer p1/2) << 8 + p1/1
 			c2: (as-integer p2/2) << 8 + p2/1
-			if op = COMP_EQUAL [
+			if op = as int-ptr! COMP_EQUAL [
 				c1: case-folding/change-char c1 yes	;-- uppercase c1
 				c2: case-folding/change-char c2 yes	;-- uppercase c2
 			]
@@ -1702,7 +1702,7 @@ string: context [
 	compare-UCS4: func [
 		p1		[byte-ptr!]
 		p2		[byte-ptr!]
-		op		[integer!]
+		op		[int-ptr!]
 		flags	[integer!]
 		return: [integer!]
 		/local
@@ -1727,7 +1727,7 @@ string: context [
 			c1: p4/1
 			p4: as int-ptr! p2
 			c2: p4/1
-			if op = COMP_EQUAL [
+			if op = as int-ptr! COMP_EQUAL [
 				c1: case-folding/change-char c1 yes	;-- uppercase c1
 				c2: case-folding/change-char c2 yes	;-- uppercase c2
 			]
@@ -1741,7 +1741,7 @@ string: context [
 	compare-float32: func [
 		p1		[byte-ptr!]
 		p2		[byte-ptr!]
-		op		[integer!]
+		op		[int-ptr!]
 		flags	[integer!]
 		return: [integer!]
 		/local
@@ -1777,7 +1777,7 @@ string: context [
 	compare-float: func [
 		p1		[byte-ptr!]
 		p2		[byte-ptr!]
-		op		[integer!]
+		op		[int-ptr!]
 		flags	[integer!]
 		return: [integer!]
 		/local
@@ -2183,13 +2183,13 @@ string: context [
 			end		[byte-ptr!]
 			buffer	[byte-ptr!]
 			unit	[integer!]
-			cmp		[integer!]
+			cmp		[int-ptr!]
 			len		[integer!]
 			len2	[integer!]
 			step	[integer!]
 			int		[red-integer!]
 			str2	[red-string!]
-			op		[integer!]
+			op		[int-ptr!]
 			flags	[integer!]
 			mult	[integer!]
 			offset	[integer!]
@@ -2249,17 +2249,17 @@ string: context [
 			(as-integer str/cache) = TYPE_FLOAT					;-- vec/type
 		][
 			switch unit [
-				4 [as-integer :compare-float32]
-				8 [as-integer :compare-float]
+				4 [as int-ptr! :compare-float32]
+				8 [as int-ptr! :compare-float]
 			]
 		][
 			switch unit [
-				Latin1  [as-integer :compare-Latin1]
-				UCS-2   [as-integer :compare-UCS2]
-				UCS-4   [as-integer :compare-UCS4]
+				Latin1  [as int-ptr! :compare-Latin1]
+				UCS-2   [as int-ptr! :compare-UCS2]
+				UCS-4   [as int-ptr! :compare-UCS4]
 			]
 		]
-		op: either TYPE_OF(str) = TYPE_VECTOR [
+		op: as int-ptr! either TYPE_OF(str) = TYPE_VECTOR [
 			COMP_STRICT_EQUAL
 		][
 			either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
@@ -2274,8 +2274,8 @@ string: context [
 						flags: flags or sort-all-mask
 						flags: step << 5 or flags
 					]
-					cmp: as-integer :compare-call
-					op: as-integer comparator
+					cmp: as int-ptr! :compare-call
+					op: as int-ptr! comparator
 				]
 				TYPE_INTEGER [
 					if any [all? not OPTION?(skip)] [

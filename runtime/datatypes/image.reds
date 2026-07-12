@@ -17,7 +17,7 @@ image: context [
 
 	acquire-buffer: func [
 		img		[red-image!]
-		bitmap	[int-ptr!]
+		bitmap	[ptr-ptr!]
 		return: [int-ptr!]
 		/local
 			stride	[integer!]
@@ -30,7 +30,7 @@ image: context [
 
 	release-buffer: func [
 		img		  [red-image!]
-		bitmap	  [integer!]
+		bitmap	  [int-ptr!]
 		modified? [logic!]
 	][
 		OS-image/unlock-bitmap img bitmap
@@ -148,8 +148,8 @@ image: context [
 			crop.y	[integer!]
 			crop.w	[integer!]
 			crop.h	[integer!]
-			handle	[integer!]
-			handle2	[integer!]
+			handle	[int-ptr!]
+			handle2	[int-ptr!]
 			neg-x?	[logic!]
 			neg-y?	[logic!]
 			fx fy	[float32!]
@@ -235,8 +235,8 @@ image: context [
 			image-utils/flip-y vertex vertex/v1y
 		]
 
-		handle: 0
-		buf: acquire-buffer src :handle
+		handle: null
+		buf: acquire-buffer src as ptr-ptr! :handle
 		either crop1 <> null [
 			pb: allocate crop.w * crop.h * 4
 			image-utils/crop as byte-ptr! buf w h crop.x crop.y crop.w crop.h pb
@@ -248,8 +248,8 @@ image: context [
 		release-buffer src handle no
 		if null? nbuf [dst/header: TYPE_NONE exit]
 		init-image dst OS-image/make-image rect.w/1 rect.h/1 null null null
-		handle2: 0
-		buf2: acquire-buffer dst :handle2
+		handle2: null
+		buf2: acquire-buffer dst as ptr-ptr! :handle2
 		copy-memory as byte-ptr! buf2 as byte-ptr! nbuf rect.w/1 * rect.h/1 * 4
 		release-buffer dst handle2 yes
 		free as byte-ptr! nbuf
@@ -265,7 +265,7 @@ image: context [
 		data	[red-binary!]
 		return: [red-image!]
 		/local
-			h	[int-ptr!]
+			h	[node!]
 	][
 		either known-image? data [
 			h: OS-image/load-binary binary/rs-head data binary/rs-length? data
@@ -288,7 +288,7 @@ image: context [
 		return:	[red-image!]
 		/local
 			img   [red-image!]
-			hr    [int-ptr!]
+			hr    [node!]
 	][
 		hr: OS-image/load-image src
 		if null? hr [fire [TO_ERROR(access cannot-open) src]]
@@ -342,7 +342,7 @@ image: context [
 			s		[series!]
 			p		[byte-ptr!]
 			stride	[integer!]
-			bitmap	[integer!]
+			bitmap	[int-ptr!]
 			i		[integer!]
 			pixel	[integer!]
 			data	[int-ptr!]
@@ -398,7 +398,7 @@ image: context [
 			s		[series!]
 			p		[byte-ptr!]
 			stride	[integer!]
-			bitmap	[integer!]
+			bitmap	[int-ptr!]
 			pixel	[integer!]
 			tp		[red-tuple!]
 			int		[red-integer!]
@@ -653,7 +653,7 @@ image: context [
 			formed	[c-string!]
 			pixel	[integer!]
 			count	[integer!]
-			bitmap	[integer!]
+			bitmap	[int-ptr!]
 			data	[int-ptr!]
 			stride	[integer!]
 			size	[integer!]
@@ -933,8 +933,10 @@ image: context [
 		/local
 			type  [integer!]
 			res   [integer!]
-			bmp1  [integer!]
-			bmp2  [integer!]
+			size1 [integer!]
+			size2 [integer!]
+			bmp1  [int-ptr!]
+			bmp2  [int-ptr!]
 			same? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "image/compare"]]
@@ -961,10 +963,10 @@ image: context [
 			COMP_CASE_SORT [
 				;-- 1. compare size first
 				;-- 2. if the same size, compare contents
-				bmp1: IMAGE_WIDTH(arg1/size) * IMAGE_HEIGHT(arg1/size)
-				bmp2: IMAGE_WIDTH(arg2/size) * IMAGE_HEIGHT(arg2/size)
-				either bmp1 <> bmp2 [
-					res: SIGN_COMPARE_RESULT(bmp1 bmp2)
+				size1: IMAGE_WIDTH(arg1/size) * IMAGE_HEIGHT(arg1/size)
+				size2: IMAGE_WIDTH(arg2/size) * IMAGE_HEIGHT(arg2/size)
+				either size1 <> size2 [
+					res: SIGN_COMPARE_RESULT(size1 size2)
 				][
 					either zero? arg1/size [res: 0][
 						type: 0
@@ -1070,8 +1072,8 @@ image: context [
 			bin2 [int-ptr!]
 			img2 [red-image!]
 			type [integer!]
-			bmp1 [integer!]
-			bmp2 [integer!]
+			bmp1 [int-ptr!]
+			bmp2 [int-ptr!]
 			idx  [red-integer! value]
 			head n i1 i2
 			w1 h1 w2 h2
@@ -1347,6 +1349,6 @@ image: context [
 			null			;write
 		]
 		
-		ext-type: externals/register "image" as-integer :delete-external
+		ext-type: externals/register "image" as int-ptr! :delete-external
 	]
 ]

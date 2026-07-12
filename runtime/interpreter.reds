@@ -10,6 +10,13 @@ Red/System [
 	}
 ]
 
+routine-call-args!: alias struct! [
+	i1 [int-ptr!] i2 [int-ptr!] i3 [int-ptr!]
+	i4 [int-ptr!] i5 [int-ptr!] i6 [int-ptr!]
+	f1 [float!] f2 [float!] f3 [float!] f4 [float!]
+	f5 [float!] f6 [float!] f7 [float!] f8 [float!]
+]
+
 interpreter: context [
 	verbose: 0
 	
@@ -316,6 +323,63 @@ interpreter: context [
 		]
 	]
 	
+	resolve-compiled-code: func [
+		value [integer!]
+		return: [int-ptr!]
+		/local base [byte-ptr!]
+	][
+		base: as byte-ptr! system/image/base
+		as int-ptr! base + (value - as-integer base)
+	]
+
+	invoke-routine-int-x64: func [
+		entry [int-ptr!]
+		args  [routine-call-args!]
+		return: [integer!]
+		/local call [function! [
+			i1 [int-ptr!] f1 [float!] i2 [int-ptr!] f2 [float!]
+			i3 [int-ptr!] f3 [float!] i4 [int-ptr!] f4 [float!]
+			i5 [int-ptr!] f5 [float!] i6 [int-ptr!] f6 [float!]
+			f7 [float!] f8 [float!]
+			return: [integer!]
+		]]
+	][
+		call: as function! [
+			i1 [int-ptr!] f1 [float!] i2 [int-ptr!] f2 [float!]
+			i3 [int-ptr!] f3 [float!] i4 [int-ptr!] f4 [float!]
+			i5 [int-ptr!] f5 [float!] i6 [int-ptr!] f6 [float!]
+			f7 [float!] f8 [float!]
+			return: [integer!]
+		] entry
+		call
+			args/i1 args/f1 args/i2 args/f2 args/i3 args/f3 args/i4 args/f4
+			args/i5 args/f5 args/i6 args/f6 args/f7 args/f8
+	]
+
+	invoke-routine-float-x64: func [
+		entry [int-ptr!]
+		args  [routine-call-args!]
+		return: [float!]
+		/local call [function! [
+			i1 [int-ptr!] f1 [float!] i2 [int-ptr!] f2 [float!]
+			i3 [int-ptr!] f3 [float!] i4 [int-ptr!] f4 [float!]
+			i5 [int-ptr!] f5 [float!] i6 [int-ptr!] f6 [float!]
+			f7 [float!] f8 [float!]
+			return: [float!]
+		]]
+	][
+		call: as function! [
+			i1 [int-ptr!] f1 [float!] i2 [int-ptr!] f2 [float!]
+			i3 [int-ptr!] f3 [float!] i4 [int-ptr!] f4 [float!]
+			i5 [int-ptr!] f5 [float!] i6 [int-ptr!] f6 [float!]
+			f7 [float!] f8 [float!]
+			return: [float!]
+		] entry
+		call
+			args/i1 args/f1 args/i2 args/f2 args/i3 args/f3 args/i4 args/f4
+			args/i5 args/f5 args/i6 args/f6 args/f7 args/f8
+	]
+
 	call: func [
 		fun	  [red-function!]
 		ctx	  [node-handle!]
@@ -329,6 +393,7 @@ interpreter: context [
 			int	   [red-integer!]
 			prev?  [logic!]
 			allow? [logic!]
+			entry  [int-ptr!]
 			call   [function! []]
 			ocall  [function! [octx [node-handle!]]]
 	][
@@ -351,14 +416,15 @@ interpreter: context [
 		][
 			fctx: GET_CTX(fun)
 			saved: fctx/values
+			entry: resolve-compiled-code code/value
 			assert system/thrown = 0
 			catch RED_THROWN_ERROR [
 				either ctx = global-ctx [
-					call: as function! [] code/value
+					call: as function! [] entry
 					call
 					0									;FIXME: required to pass compilation
 				][
-					ocall: as function! [octx [node-handle!]] code/value
+					ocall: as function! [octx [node-handle!]] entry
 					ocall ctx
 					0
 				]
@@ -454,27 +520,32 @@ interpreter: context [
 			count	[integer!]
 			cnt 	[integer!]
 			args	[integer!]
+			int-count float-count [integer!]
 			type	[integer!]
 			saved	[int-ptr!]
 			pos		[byte-ptr!]
 			bits 	[byte-ptr!]
+			raw		[int-ptr!]
 			set? 	[logic!]
 			extern?	[logic!]
+			entry	[int-ptr!]
+			rargs	[routine-call-args!]
 			call	[function! [return: [integer!]]]
 			callf	[function! [return: [float!]]]
 			callex	[function! [[cdecl custom] return: [integer!]]]
 	][
 		extern?: rt/header and flag-extern-code <> 0
-		s:		resolve-series rt/more
-		code:	as red-integer! s/offset + 2
-		rtype:  as red-integer! s/offset + 4
+			s:		resolve-series rt/more
+			code:	as red-integer! s/offset + 2
+			entry:	either extern? [as int-ptr! code/value][resolve-compiled-code code/value]
+			rtype:  as red-integer! s/offset + 4
 		args:	routine/get-arity rt
 		count:	args - 1				;-- zero-based stack access
 		
 		either extern? [
 			base: stack/arguments
 			;@@ cdecl is hardcoded in the caller, needs to be dynamic!
-			callex: as function! [[cdecl custom] return: [integer!]] code/value
+				callex: as function! [[cdecl custom] return: [integer!]] entry
 			stack/mark-native words/_body
 			
 			#if stack-align-16? = yes [
@@ -503,21 +574,43 @@ interpreter: context [
 			stack/unwind
 			stack/set-last arg
 		][
-			call: as function! [return: [integer!]] code/value
+			#either target = 'X86-64 [
+				rargs: declare routine-call-args!
+				rargs/i1: null rargs/i2: null rargs/i3: null
+				rargs/i4: null rargs/i5: null rargs/i6: null
+				rargs/f1: 0.0 rargs/f2: 0.0 rargs/f3: 0.0 rargs/f4: 0.0
+				rargs/f5: 0.0 rargs/f6: 0.0 rargs/f7: 0.0 rargs/f8: 0.0
+			][
+				call: as function! [return: [integer!]] entry
+			]
 
 			s: resolve-series rt/spec
 			value: s/offset
 			tail:  s/tail
+			int-count: 0
+			float-count: 0
 			
 			until [										;-- scan forward for end of arguments
 				switch TYPE_OF(value) [
 					TYPE_SET_WORD
 					TYPE_REFINEMENT [break]
+					TYPE_BLOCK [
+						w: as red-word! block/rs-head as red-block! value
+						either w/symbol = words/float! [
+							float-count: float-count + 1
+						][
+							int-count: int-count + 1
+						]
+					]
 					default			[0]
 				]
 				value: value + 1
 				value >= tail
 			]
+			#either target = 'X86-64 [
+				assert int-count <= 6
+				assert float-count <= 8
+			][0]
 
 			while [count >= 0][							;-- push arguments in reverse order
 				value: value - 1
@@ -540,11 +633,39 @@ interpreter: context [
 							true [ERR_EXPECT_ARGUMENT(dt/value count)]
 						]
 					]
-					case [
-						sym = words/logic!	 [push logic/get arg]
-						sym = words/integer! [push integer/get arg]
-						sym = words/float!	 [push float/get arg]
-						true		 		 [push arg]
+					#either target = 'X86-64 [
+						either sym = words/float! [
+							switch float-count [
+								1 [rargs/f1: float/get arg]
+								2 [rargs/f2: float/get arg]
+								3 [rargs/f3: float/get arg]
+								4 [rargs/f4: float/get arg]
+								5 [rargs/f5: float/get arg]
+								6 [rargs/f6: float/get arg]
+								7 [rargs/f7: float/get arg]
+								8 [rargs/f8: float/get arg]
+							]
+							float-count: float-count - 1
+						][
+							raw: case [
+								sym = words/logic!   [either logic/get arg [as int-ptr! 1][null]]
+								sym = words/integer! [as int-ptr! integer/get arg]
+								true                  [as int-ptr! arg]
+							]
+							switch int-count [
+								1 [rargs/i1: raw] 2 [rargs/i2: raw]
+								3 [rargs/i3: raw] 4 [rargs/i4: raw]
+								5 [rargs/i5: raw] 6 [rargs/i6: raw]
+							]
+							int-count: int-count - 1
+						]
+					][
+						case [
+							sym = words/logic!	 [push logic/get arg]
+							sym = words/integer! [push integer/get arg]
+							sym = words/float!	 [push float/get arg]
+							true		 		 [push arg]
+						]
 					]
 					count: count - 1
 				]
@@ -552,27 +673,31 @@ interpreter: context [
 			either positive? rtype/value [
 				switch rtype/value [
 					TYPE_LOGIC	[
-						ret: call
+						#either target = 'X86-64 [ret: invoke-routine-int-x64 entry rargs][ret: call]
 						bool: as red-logic! stack/arguments
 						bool/header: TYPE_LOGIC
 						bool/value: ret <> 0
 					]
 					TYPE_INTEGER [
-						ret: call
+						#either target = 'X86-64 [ret: invoke-routine-int-x64 entry rargs][ret: call]
 						int: as red-integer! stack/arguments
 						int/header: TYPE_INTEGER
 						int/value: ret
 					]
 					TYPE_FLOAT [
-						callf: as function! [return: [float!]] code/value
-						retf: callf
+						#either target = 'X86-64 [
+							retf: invoke-routine-float-x64 entry rargs
+						][
+							callf: as function! [return: [float!]] entry
+							retf: callf
+						]
 						fl: as red-float! stack/arguments
 						fl/header: TYPE_FLOAT
 						fl/value: retf
 					]
 					default [assert false]				;-- should never happen
 				]
-			][call]
+			][#either target = 'X86-64 [invoke-routine-int-x64 entry rargs][call]]
 		]
 	]
 	
@@ -721,12 +846,19 @@ interpreter: context [
 			bool b2				[red-logic!]
 			s					[series!]
 			args nctx			[node-handle!]
-			p ref-array	offset	[int-ptr!]
+			p offset xcode			[int-ptr!]
+			ref-array				[vararg-ptr!]
 			pos	bits			[byte-ptr!]
-			index arg-cnt ref-cnt loc-cnt sym-cnt type xcode idx exp-type [integer!]
+			index arg-cnt ref-cnt loc-cnt sym-cnt type idx exp-type [integer!]
 			required? function? routine? set? get? apply? native? ifx? some? t? safer? ref? [logic!]
 			fetch-arg get-spec-word	[subroutine!]
 			calln				[function! []]
+			callx64				[function! [
+				a1  [integer!] a2  [integer!] a3  [integer!] a4  [integer!]
+				a5  [integer!] a6  [integer!] a7  [integer!] a8  [integer!]
+				a9  [integer!] a10 [integer!] a11 [integer!] a12 [integer!]
+				a13 [integer!] a14 [integer!] a15 [integer!] a16 [integer!]
+			]]
 	][
 		get-spec-word: [
 			ref: _hashtable/get-ctx-word ctx sym-cnt
@@ -812,13 +944,21 @@ interpreter: context [
 		ref-cnt:   1
 		loc-cnt:   0
 		sym-cnt:   0
-		xcode:	   0									;;@@ should not be needed!
+		xcode:	   as int-ptr! 0						;;@@ should not be needed!
 		
 		either function? [
 			ctx: GET_CTX(fun)
 			nctx: fun/ctx
 		][
-			xcode: native/code
+			idx: native/code
+			either any [
+				TYPE_OF(native) = TYPE_NATIVE
+				all [TYPE_OF(native) = TYPE_OP GET_OP_SUBTYPE(native) = TYPE_NATIVE]
+			][
+				xcode: as int-ptr! natives/table/idx
+			][
+				xcode: as int-ptr! actions/table/idx
+			]
 			ctx: as red-context! blk - 1
 			assert TYPE_OF(ctx) = TYPE_CONTEXT
 			s: GET_CTX_SERIES(ctx)
@@ -826,8 +966,13 @@ interpreter: context [
 			if value < tail [
 				int: as red-integer! tail - 1
 				if TYPE_OF(int) = TYPE_INTEGER [
-					loop int/value [push -1]			;-- fill space on native stack for refs array
-					ref-array: system/stack/top
+					#either target = 'X86-64 [
+						assert int/value <= 16
+						loop 16 [push -1]
+					][
+						loop int/value [push -1]
+					]
+					ref-array: as vararg-ptr! system/stack/top
 				]
 			]
 		]
@@ -875,7 +1020,7 @@ interpreter: context [
 							if type <> TYPE_LOGIC [fire [TO_ERROR(script expect-arg) fname datatype/push type get-spec-word]]
 							bool: as red-logic! arg
 							unless function? [
-								if bool/value [ref-array/ref-cnt: arg-cnt]
+								if bool/value [ref-array/ref-cnt: AS_NATIVE_SLOT(arg-cnt)]
 								stack/pop 1
 								ref-cnt: ref-cnt + 1
 							]
@@ -954,8 +1099,8 @@ interpreter: context [
 						if t? [
 							ref-slot: as red-refinement! value - 1
 							idx: ref-slot/index
-							if ref-array/idx <> -1 [fire [TO_ERROR(script dup-refine) path]]
-							ref-array/idx: arg-cnt
+							if ref-array/idx <> AS_NATIVE_SLOT(-1) [fire [TO_ERROR(script dup-refine) path]]
+							ref-array/idx: AS_NATIVE_SLOT(arg-cnt)
 						]
 					]
 					while [
@@ -1000,10 +1145,47 @@ interpreter: context [
 		either function? [
 			if loc-cnt > 0 [assert not routine?	_function/init-locals loc-cnt]
 		][
-			if ref-array <> null [system/stack/top: ref-array] ;-- reset native stack to our custom arguments frame
-			if native? [push no]						;-- avoid 2nd type-checking for natives.
-			calln: as function! [] xcode				;-- direct call for actions/natives
-			calln
+			if ref-array <> null [system/stack/top: as int-ptr! ref-array] ;-- reset native stack to our custom arguments frame
+			#if target <> 'X86-64 [
+				if native? [push no]					;-- avoid 2nd type-checking for natives.
+			]
+			#either target = 'X86-64 [
+				either ref-array = null [
+					calln: as function! [] xcode
+					calln
+				][
+					callx64: as function! [
+						a1  [integer!] a2  [integer!] a3  [integer!] a4  [integer!]
+						a5  [integer!] a6  [integer!] a7  [integer!] a8  [integer!]
+						a9  [integer!] a10 [integer!] a11 [integer!] a12 [integer!]
+						a13 [integer!] a14 [integer!] a15 [integer!] a16 [integer!]
+					] xcode
+					either native? [
+						callx64
+							0 as-integer ref-array/1
+							as-integer ref-array/2  as-integer ref-array/3
+							as-integer ref-array/4  as-integer ref-array/5
+							as-integer ref-array/6  as-integer ref-array/7
+							as-integer ref-array/8  as-integer ref-array/9
+							as-integer ref-array/10 as-integer ref-array/11
+							as-integer ref-array/12 as-integer ref-array/13
+							as-integer ref-array/14 as-integer ref-array/15
+					][
+						callx64
+							as-integer ref-array/1  as-integer ref-array/2
+							as-integer ref-array/3  as-integer ref-array/4
+							as-integer ref-array/5  as-integer ref-array/6
+							as-integer ref-array/7  as-integer ref-array/8
+							as-integer ref-array/9  as-integer ref-array/10
+							as-integer ref-array/11 as-integer ref-array/12
+							as-integer ref-array/13 as-integer ref-array/14
+							as-integer ref-array/15 as-integer ref-array/16
+					]
+				]
+			][
+				calln: as function! [] xcode			;-- IA-32 arguments are already on the native stack
+				calln
+			]
 		]
 		pc
 	]

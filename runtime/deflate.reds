@@ -382,7 +382,7 @@ deflate: context [
 	]
 
 	read: func [
-		src			[int-ptr!]
+		src			[ptr-ptr!]
 		end			[byte-ptr!]
 		s			[INFLATE!]
 		n			[integer!]
@@ -392,7 +392,7 @@ deflate: context [
 			v		[integer!]
 			t		[integer!]
 	][
-		in: as byte-ptr! src/1
+		in: as byte-ptr! src/value
 		v: (1 << n) - 1 and s/bits
 		s/bits: s/bits >> n
 		s/bitcnt: s/bitcnt - n
@@ -408,7 +408,7 @@ deflate: context [
 			s/bits: t << s/bitcnt or s/bits
 			s/bitcnt: s/bitcnt + 8
 		]
-		src/1: as integer! in
+		src/value: as int-ptr! in
 		v
 	]
 
@@ -476,7 +476,7 @@ deflate: context [
 	]
 
 	decode: func [
-		src			[int-ptr!]
+		src			[ptr-ptr!]
 		end			[byte-ptr!]
 		s			[INFLATE!]
 		tree		[int-ptr!]
@@ -519,7 +519,7 @@ deflate: context [
 			iend	[byte-ptr!]
 			oend	[byte-ptr!]
 			o		[byte-ptr!]
-			in		[integer!]
+			in		[byte-ptr!]
 			state	[STATES!]
 			s		[INFLATE! value]
 			last	[integer!]
@@ -536,6 +536,7 @@ deflate: context [
 			dsym	[integer!]
 			offs	[integer!]
 			p		[byte-ptr!]
+			cursor	[ptr-ptr!]
 			pos		[integer!]
 	][
 		*lits: system/stack/allocate 288
@@ -549,24 +550,25 @@ deflate: context [
 		lens: as byte-ptr! system/stack/allocate 80		;(288 + 32) / 4
 		nlens: as byte-ptr! system/stack/allocate 5
 
-		o: out in: as integer! *in
+		o: out in: *in
+		cursor: as ptr-ptr! :in
 		iend: *in + in-size
 		oend: out + out-size/1
 		state: STATE-HDR
 		last: 0
-		read :in iend s 0
+		read cursor iend s 0
 
 		while [
 			any [
-				(as byte-ptr! in) < iend
+				in < iend
 				s/bitcnt <> 0
 			]
 		][
 			switch state [
 				STATE-HDR [
 					type: 0
-					last: read :in iend s 1
-					type: read :in iend s 2
+					last: read cursor iend s 1
+					type: read cursor iend s 2
 					switch type [
 						0 [
 							state: STATE-STORED
@@ -584,18 +586,17 @@ deflate: context [
 					]
 				]
 				STATE-STORED [
-					read :in iend s s/bitcnt and 7
-					len: read :in iend s 16
-					nlen: read :in iend s 16
+					read cursor iend s s/bitcnt and 7
+					len: read cursor iend s 16
+					nlen: read cursor iend s 16
 
 					if len > 0 [
 						in: in - 2
-						probe ["store " len " " nlen]
-						if in + len > as integer! iend [
+						if in + len > iend [
 							out-size/value: as integer! out - o
 							return INFLATE_LEN
 						]
-						p: as byte-ptr! in
+						p: in
 						loop len [
 							if oend > out [
 								out/1: p/1
@@ -607,7 +608,7 @@ deflate: context [
 
 						s/bitcnt: 0
 						s/bits: 0
-						read :in iend :s 0
+						read cursor iend :s 0
 					]
 					state: STATE-HDR
 				]
@@ -639,23 +640,23 @@ deflate: context [
 				]
 				STATE-DYN [
 					set-memory nlens null-byte 19
-					nlit: 257 + read :in iend s 5
-					ndist: 1 + read :in iend s 5
-					nlen: 4 + read :in iend s 4
+					nlit: 257 + read cursor iend s 5
+					ndist: 1 + read cursor iend s 5
+					nlen: 4 + read cursor iend s 4
 					n: 1
 					while [n <= nlen][
 						pos: 1 + as integer! ORDER/n
-						nlens/pos: as byte! read :in iend s 3
+						nlens/pos: as byte! read cursor iend s 3
 						n: n + 1
 					]
 					s/tlen: build s/lens nlens 19
 
 					n: 0
 					while [n < (nlit + ndist)][
-						sym: decode :in iend s s/lens s/tlen
+						sym: decode cursor iend s s/lens s/tlen
 						switch sym [
 							16 [
-								len: read :in iend s 2
+								len: read cursor iend s 2
 								i: 3 + len
 								while [i > 0] [
 									pos: n + 1
@@ -665,7 +666,7 @@ deflate: context [
 								]
 							]
 							17 [
-								len: read :in iend s 3
+								len: read cursor iend s 3
 								i: 3 + len
 								while [i > 0] [
 									pos: n + 1
@@ -675,7 +676,7 @@ deflate: context [
 								]
 							]
 							18 [
-								len: read :in iend s 7
+								len: read cursor iend s 7
 								i: 11 + len
 								while [i > 0] [
 									pos: n + 1
@@ -695,16 +696,16 @@ deflate: context [
 					state: STATE-BLK
 				]
 				STATE-BLK [
-					sym: decode :in iend s s/lits s/tlit
+					sym: decode cursor iend s s/lits s/tlit
 					case [
 						sym > 256 [
 							sym: sym - 257
 							pos: sym + 1
-							len: read :in iend s as integer! LBITS/pos
+							len: read cursor iend s as integer! LBITS/pos
 							len: len + LBASE/pos
-							dsym: decode :in iend s s/dsts s/tdist
+							dsym: decode cursor iend s s/dsts s/tdist
 							pos: dsym + 1
-							offs: read :in iend s as integer! DBITS/pos
+							offs: read cursor iend s as integer! DBITS/pos
 							offs: offs + DBASE/pos
 							n: as integer! out - o
 							if offs > n [
@@ -740,10 +741,9 @@ deflate: context [
 			]
 		]
 		out-size/value: as integer! out - o
-		if (as byte-ptr! in) = iend [
+		if in = iend [
 			return INFLATE-OK
 		]
 		INFLATE_END
 	]
 ]
-

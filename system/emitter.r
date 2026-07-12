@@ -1058,17 +1058,23 @@ emitter: make-profilable context [
 		]
 	]
 
-	encode-ptr-bitmap: func [locals [block!] /local ts out bits i name spec step store pos][
+	encode-ptr-bitmap: func [locals [block!] /local ts out bits i name spec step store pos arg-slots local-slots slots n args-done?][
 		;; Encode pointer type stack slots in arguments and locals using 31-bit bitarrays
 		;; Bit 31 (highest bit) if set, is used to denote more slots.
 		;; First bitarrays are for arguments, '- is used to separate args from locals.
-		;; General format: [<args1> ... <argsN> - <locs1> ... <locsN>]
+		;; General format: [<args1> ... <argsN> - <locs1> ... <locsN>].
+		;; On x86-64 it starts with argument and local slot counts, so the
+		;; collector can visit 32-bit node handles in otherwise non-pointer slots.
 		;; In the vast majority, the minimum format [<int> - <int>] is enough.
 		
-		if empty? locals [return [0 - 0]]				;-- no pointers at all
+		if empty? locals [
+			return either target/target = 'X86-64 [[0 0 0 - 0]][[0 - 0]]
+		]
 		ts: [pointer! struct! union! c-string!]
 		out: make block! 3
 		bits: i: 0
+		args-done?: no
+		if all [target/target = 'X86-64 struct-ptr? locals] [i: 1]
 		
 		store: [
 			bits: bits or extension-flag				;-- set bit 31 to 1 to denote extension
@@ -1088,12 +1094,25 @@ emitter: make-profilable context [
 			) :pos]
 			any [
 				set name word! set spec block! (
-					step: pick 2x1 to logic! find [float! float64! int64! uint64!] spec/1 ;-- 64-bit types need 2 bits.
+					step: either target/ptr-size = 8 [1][
+						pick 2x1 to logic! find [float! float64! int64! uint64!] spec/1 ;-- 64-bit types need 2 bits on 32-bit targets.
+					]
 					
-					either compiler/any-pointer?/with spec ts [
+					either all [target/ptr-size = 8 'value = last spec] [
+						slots: struct-slots? spec
+						either type-has-pointer? spec [
+							repeat n slots [
+								bits: bits or (shift/left 1 i)
+								if (i: i + 1) > 30 store
+							]
+						][
+							i: i + slots
+							if i > 30 store
+						]
+				][either compiler/any-pointer?/with spec ts [
 						either 'value = last spec [
 							foreach-field spec [
-								step: pick 2x1 to logic! find [float! float64! int64! uint64!] type/1
+								step: either target/ptr-size = 8 [1][pick 2x1 to logic! find [float! float64! int64! uint64!] type/1]
 								if compiler/any-pointer?/with type ts [
 									bits: bits or (shift/left 1 i)
 								]
@@ -1107,10 +1126,14 @@ emitter: make-profilable context [
 						i: i + step
 					]
 					if i > 30 store
-				)
+				])
 				|  /local (
+					arg-slots: i
+					args-done?: yes
 					append out bits
-					compact-extension out				;-- remove tail empty arrays (arguments)
+					if target/target <> 'X86-64 [
+						compact-extension out			;-- remove tail empty arrays (arguments)
+					]
 					append out '-						;-- inserts separator between args and locals bitmaps
 					bits: i: 0
 				)
@@ -1118,13 +1141,18 @@ emitter: make-profilable context [
 			]
 		]
 		append out bits
+		unless args-done? [arg-slots: i]
+		local-slots: either args-done? [i][0]
 		unless find out '- [append out [- 0]]
-		compact-extension find/tail out '-				;-- remove tail empty arrays (locals)
+		if target/target <> 'X86-64 [
+			compact-extension find/tail out '-			;-- remove tail empty arrays (locals)
+		]
+		if target/target = 'X86-64 [insert out reduce [arg-slots local-slots]]
 		out
 	]
 	
 	store-ptr-bitmap: func [list [block!] /local offset][
-		offset: to integer! divide ((index? tail bits-buf) - 1) datatypes/pointer!
+		offset: to integer! divide ((index? tail bits-buf) - 1) datatypes/integer!
 		until [
 			if list/1 <> '- [append bits-buf reverse debase/base to-hex list/1 16]
 			tail? list: next list

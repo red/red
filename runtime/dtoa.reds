@@ -25,7 +25,8 @@ Red/System [
 #define WORD_0(x) [x/int2]						;-- for little endian
 #define WORD_1(x) [x/int1]
 
-#define DTOA_BIG_INT_X(x) (as int-ptr! (as byte-ptr! x) + 20)
+#define DTOA_BIG_INT_X(x) (as int-ptr! (as byte-ptr! x) + (size? pointer!) + 16)
+#define DTOA_BIG_INT_SIGN(x) ((as byte-ptr! x) + (size? pointer!) + 8)
 
 #define STORE_AND_INC(a b c) [
 	a/value: b << 16 or (c and FFFFh)
@@ -75,9 +76,6 @@ dtoa: context [
 	TINYTENS: [1e-16 1e-32 1e-64 1e-128 0.0]
 	TINYTENS/5: 9007199254740992.0 * 9007199254740992e-256
 
-	freelist: [null null null null null null null null]
-	KMax: (size? freelist) - 1
-
 	dtoa-int64!: alias struct! [int1 [integer!] int2 [integer!]]
 
 	big-int!: alias struct! [
@@ -87,6 +85,31 @@ dtoa: context [
 		sign	[integer!]
 		wds		[integer!]
 		x		[integer!]
+	]
+
+	big-int-freelist!: alias struct! [
+		p1 [big-int!] p2 [big-int!] p3 [big-int!] p4 [big-int!]
+		p5 [big-int!] p6 [big-int!] p7 [big-int!] p8 [big-int!]
+	]
+	freelist: declare big-int-freelist!
+	KMax: 7
+
+	freelist-get: func [idx [integer!] return: [big-int!]][
+		switch idx [
+			1 [freelist/p1] 2 [freelist/p2] 3 [freelist/p3] 4 [freelist/p4]
+			5 [freelist/p5] 6 [freelist/p6] 7 [freelist/p7] 8 [freelist/p8]
+			default [null]
+		]
+	]
+
+	freelist-set: func [idx [integer!] value [big-int!]][
+		switch idx [
+			1 [freelist/p1: value] 2 [freelist/p2: value]
+			3 [freelist/p3: value] 4 [freelist/p4: value]
+			5 [freelist/p5: value] 6 [freelist/p6: value]
+			7 [freelist/p7: value] 8 [freelist/p8: value]
+			default [0]
+		]
 	]
 
 	cmp-info!: alias struct! [
@@ -106,13 +129,13 @@ dtoa: context [
 			big [big-int!]
 	][
 		idx: k + 1
-		big: as big-int! freelist/idx
+		big: freelist-get idx
 
 		either all [
 			k <= KMax
 			big <> null
 		][
-			freelist/idx: as-integer big/next
+			freelist-set idx big/next
 		][
 			x: 1 << k
 			len: x - 1 * 4 + 8 + (size? big-int!) - 1 / 8
@@ -136,14 +159,14 @@ dtoa: context [
 				free as byte-ptr! p
 			][
 				idx: p/k + 1
-				p/next: as big-int! freelist/idx
-				freelist/idx: as-integer p
+				p/next: freelist-get idx
+				freelist-set idx p
 			]
 		]
 	]
 
 	#define Bcopy(x y) [
-		copy-memory (as byte-ptr! x) + 12 (as byte-ptr! y) + 12 (y/wds * 4 + 8)
+		copy-memory DTOA_BIG_INT_SIGN(x) DTOA_BIG_INT_SIGN(y) (y/wds * 4 + 8)
 	]
 
 	Bmultiply: func [							;-- multiply two Bigints. Ignores the signs of a and b.

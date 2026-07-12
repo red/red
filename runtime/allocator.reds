@@ -110,9 +110,9 @@ memory: declare struct! [					; TBD: instanciate this structure per OS thread
 	s-size	 [integer!]						;-- current size for new series frame	(1)
 	s-max	 [integer!]						;-- max size for new series frames		(1)
 	b-head	 [big-frame!]					;-- head of big frames list
-	stk-refs [int-ptr!]						;-- buffer to stack references to update during GC
-	stk-tail [int-ptr!]						;-- tail pointer on stack references buffer
-	stk-sz	 [integer!]						;-- size of stack references buffer in 64-bits slots
+	stk-refs [ptr-ptr!]						;-- buffer of native-width stack references to update during GC
+	stk-tail [ptr-ptr!]						;-- tail pointer on stack references buffer
+	stk-sz	 [integer!]						;-- number of reference pairs in the buffer
 ]
 
 node-registry: declare struct! [
@@ -134,7 +134,7 @@ init-mem: func [/local p [int-ptr!]][
 	memory/s-size:	 memory/s-start
 	memory/stk-sz:	 1000
 	memory/b-head:	 null
-	memory/stk-refs: as int-ptr! allocate memory/stk-sz * 2 * size? int-ptr!
+	memory/stk-refs: as ptr-ptr! allocate memory/stk-sz * 2 * size? int-ptr!
 	node-registry/capacity: nodes-per-frame
 	node-registry/entries: as ptr-ptr! allocate node-registry/capacity * size? int-ptr!
 	node-registry/free-next: as int-ptr! allocate node-registry/capacity * size? integer!
@@ -231,7 +231,7 @@ alloc-node-handle: func [
 		node-registry/next: handle + 1
 		entry: node-registry/entries + (handle - 1)
 	]
-	entry/value: node
+	entry/value: as int-ptr! node
 	handle
 ]
 
@@ -259,12 +259,12 @@ set-node-handle: func [
 	assert handle > 0
 	entry: node-registry/entries + (handle - 1)
 	assert entry/value <> null
-	entry/value: node
+	entry/value: as int-ptr! node
 ]
 
 set-node-value: func [
 	handle [node-handle!]
-	value  [integer!]
+	value  [int-ptr!]
 	/local node [node!]
 ][
 	node: resolve-node handle
@@ -395,10 +395,10 @@ format-nodes: func [
 	frame/head: head
 	node: head
 	while [node < tail][
-		node/value: as-integer node + 1
+		node/value: as int-ptr! node + 1
 		node: node + 1
 	]
-	node/value: 0 							;-- set last node to null to mark the list end
+	node/value: null 						;-- set last node to null to mark the list end
 ]
 
 ;-------------------------------------------
@@ -486,7 +486,7 @@ alloc-node: func [
 	assert not frame/locked?
 	node: frame/head
 	frame/head: as node! node/value
-	node/value: 0
+	node/value: null
 	frame/used: frame/used + 1
 	node
 ]
@@ -496,10 +496,10 @@ alloc-node: func [
 ;-------------------------------------------
 free-node: func [
 	frame [node-frame!]
-	node  [int-ptr!]						;-- node to release
+	node  [node!]							;-- node to release
 ][
 	assert node <> null
-	node/value: as-integer frame/head
+	node/value: as int-ptr! frame/head
 	frame/head: node
 	frame/used: frame/used - 1
 ]
@@ -767,8 +767,8 @@ alloc-series: func [
 	size	[integer!]						;-- number of elements to store
 	unit	[integer!]						;-- size of atomic elements stored
 	offset	[integer!]						;-- force a given offset for series buffer
-	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
-	/local series [series!] node [int-ptr!]
+	return: [node!]							;-- return a new node pointer (pointing to the newly allocated series buffer)
+	/local series [series!] node [node!]
 ][
 ;	#if debug? = yes [print-wide ["allocating series:" size unit offset lf]]
 	series: null
@@ -776,7 +776,7 @@ alloc-series: func [
 	series: alloc-series-buffer size unit offset
 	node: alloc-node						;-- get a new node
 	series/node: alloc-node-handle node		;-- link series and stable handle
-	node/value: as-integer series ;(as byte-ptr! series) + size? series-buffer!
+	node/value: as int-ptr! series ;(as byte-ptr! series) + size? series-buffer!
 	node									;-- return the node pointer
 ]
 
@@ -787,12 +787,12 @@ alloc-fixed-series: func [
 	usize	[integer!]						;-- number of elements to store
 	unit	[integer!]						;-- size of atomic elements stored
 	offset	[integer!]						;-- force a given offset for series buffer
-	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
+	return: [node!]							;-- return a new node pointer (pointing to the newly allocated series buffer)
 	/local
 		series	 [series-buffer!]
 		size	 [integer!]
 		sz		 [integer!]
-		node	 [int-ptr!]
+		node	 [node!]
 ][
 ;	#if debug? = yes [print-wide ["allocating series:" size unit offset lf]]
 	assert positive? usize
@@ -808,7 +808,7 @@ alloc-fixed-series: func [
 
 	node: alloc-node						;-- get a new node
 	series/node: alloc-node-handle node		;-- link series and stable handle
-	node/value: as-integer series
+	node/value: as int-ptr! series
 	node									;-- return the node pointer
 ]
 
@@ -817,7 +817,7 @@ alloc-fixed-series: func [
 ;-------------------------------------------
 alloc-cells: func [
 	size	[integer!]						;-- number of 16 bytes cells to preallocate
-	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)	
+	return: [node!]							;-- return a new node pointer (pointing to the newly allocated series buffer)
 ][
 	alloc-series size 16 0					;-- optimize by default for tail insertion
 ]
@@ -827,7 +827,7 @@ alloc-cells: func [
 ;-------------------------------------------
 alloc-unset-cells: func [
 	size	[integer!]						;-- number of 16 bytes cells to preallocate
-	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
+	return: [node!]							;-- return a new node pointer (pointing to the newly allocated series buffer)
 	/local
 		node [node!]
 		s	 [series!]
@@ -857,7 +857,7 @@ alloc-unset-cells: func [
 ;-------------------------------------------
 alloc-bytes: func [
 	size	[integer!]						;-- number of 16 bytes cells to preallocate
-	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
+	return: [node!]							;-- return a new node pointer (pointing to the newly allocated series buffer)
 ][
 	if zero? size [size: 16]
 	alloc-series size 1 0					;-- optimize by default for tail insertion
@@ -869,7 +869,7 @@ alloc-bytes: func [
 alloc-codepoints: func [
 	size	[integer!]						;-- number of codepoints slots to preallocate
 	unit	[integer!]
-	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
+	return: [node!]							;-- return a new node pointer (pointing to the newly allocated series buffer)
 ][
 	assert unit <= 4
 	if zero? size [size: 16 >> (unit >> 1)]
@@ -882,7 +882,7 @@ alloc-codepoints: func [
 alloc-bytes-filled: func [
 	size	[integer!]						;-- number of 16 bytes cells to preallocate
 	byte	[byte!]
-	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
+	return: [node!]							;-- return a new node pointer (pointing to the newly allocated series buffer)
 	/local
 		node [node!]
 		s	 [series!]
@@ -936,7 +936,7 @@ expand-series-strict: func [
 	series: as series-buffer! node/value	;-- refresh series after eventual GC pass
 	big?: new/flags and flag-series-big <> 0
 	
-	node/value: as-integer new				;-- link node to new series buffer
+	node/value: as int-ptr! new				;-- link node to new series buffer
 	delta: as-integer series/tail - series/offset
 	
 	new/flags:	series/flags

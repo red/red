@@ -12,14 +12,14 @@ Red/System [
 
 #either OS = 'Android [						;-- Damn FrankenSystem!
 	sigaction!: alias struct! [
-		sigaction	[integer!]				;-- Warning: compiled as C union on most UNIX
+		sigaction	[byte-ptr!]				;-- Warning: compiled as C union on most UNIX
 		mask		[integer!]				;-- bit array
 		flags		[integer!]
 		;... remaining fields skipped
 	]
 ][
 	sigaction!: alias struct! [
-		sigaction	[integer!]				;-- Warning: compiled as union on most UNIX
+		sigaction	[byte-ptr!]				;-- Warning: compiled as union on most UNIX
 		mask		[integer!]				;-- glibc/Hurd insane inheritage...
 		mask1		[integer!]
 		mask2		[integer!]
@@ -53,6 +53,7 @@ Red/System [
 		mask30		[integer!]
 		mask31		[integer!]
 		flags		[integer!]
+		restorer	[byte-ptr!]
 	]
 ]
 
@@ -60,7 +61,7 @@ siginfo!: alias struct! [
 	signal		[integer!]
 	error		[integer!]
 	code		[integer!]
-	address		[integer!]					;-- this field is a C union, dependent on signal
+	address		[byte-ptr!]					;-- this field is a C union, dependent on signal
 ]
 
 #define UCTX_DEFINITION [

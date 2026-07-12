@@ -125,13 +125,13 @@ time: context [
 			time: float/abs time
 		]
 
-		formed: integer/form-signed as-integer GET_HOURS(time)
+		formed: integer/form-signed get-hours time
 		string/concatenate-literal buffer formed
 		part: part - length? formed						;@@ optimize by removing length?
 
 		string/append-char GET_BUFFER(buffer) as-integer #":"
 
-		formed: integer/form-signed as-integer GET_MINUTES(time)
+		formed: integer/form-signed get-minutes time
 		len: length? formed								;@@ optimize by removing length?
 		if len = 1 [
 			string/append-char GET_BUFFER(buffer) as-integer #"0"

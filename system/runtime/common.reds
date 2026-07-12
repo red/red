@@ -48,9 +48,14 @@ Red/System [
 ptr-ptr!: alias struct! [value [int-ptr!]]
 #either target = 'X86-64 [
 	ptr-slot!: alias struct! [value [byte-ptr!]]
+	#define vararg-ptr! [pointer! [uint64!]]
+	#define AS_NATIVE_SLOT(value) [as uint64! value]
 ][
 	ptr-slot!: alias struct! [value [int-ptr!]]
+	#define vararg-ptr! int-ptr!
+	#define AS_NATIVE_SLOT(value) [value]
 ]
+#define func-table! vararg-ptr!
 #define ptr-value!	  [ptr-ptr! value]
 
 #define make-c-string [as c-string! allocate]

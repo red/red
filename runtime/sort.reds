@@ -28,7 +28,7 @@ Red/System [
 cmpfunc!: alias function! [
 	a		[byte-ptr!]
 	b		[byte-ptr!]
-	op		[integer!]
+	op		[int-ptr!]
 	flags	[integer!]
 	return: [integer!]
 ]
@@ -45,9 +45,9 @@ _sort: context [
 
 	#define SORT_ARGS_EXT_DEF [
 		width	[integer!]
-		op		[integer!]
+		op		[int-ptr!]
 		flags	[integer!]
-		cmpfunc [integer!]
+		cmpfunc [int-ptr!]
 	]
 	
 	#define SORT_ARGS_EXT [width op flags cmpfunc]
@@ -161,7 +161,7 @@ _sort: context [
 		/local
 			n1 n2	[integer!]
 			width	[integer!]
-			op		[integer!]
+			op		[int-ptr!]
 			flags	[integer!]
 			ii jj	[int-ptr!]
 			cmp		[cmpfunc!]
@@ -234,9 +234,9 @@ _sort: context [
 		base	[byte-ptr!]
 		num		[integer!]
 		width	[integer!]
-		op		[integer!]
+		op		[int-ptr!]
 		flags	[integer!]
-		cmpfunc [integer!]
+		cmpfunc [int-ptr!]
 		/local
 			n-stack top powerA lenA lenB [integer!]
 			beginA endA beginB endB end p pn pm [byte-ptr!]
@@ -344,9 +344,9 @@ _sort: context [
 		s		[integer!]
 		num		[integer!]
 		width	[integer!]
-		op		[integer!]
+		op		[int-ptr!]
 		flags	[integer!]
-		cmpfunc [integer!]
+		cmpfunc [int-ptr!]
 		/local
 			pb pc pa pj pm [byte-ptr!]
 			cmp [cmpfunc!]
@@ -495,9 +495,9 @@ _sort: context [
 		base	[byte-ptr!]
 		num		[integer!]
 		width	[integer!]
-		op		[integer!]
+		op		[int-ptr!]
 		flags	[integer!]
-		cmpfunc [integer!]
+		cmpfunc [int-ptr!]
 		/local
 			pb pc pa pj [byte-ptr!]
 			cmp [cmpfunc!]

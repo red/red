@@ -1383,9 +1383,17 @@ context [
 
 	;; -- Job helpers --
 	
-	collect-data-reloc: func [job [object!] /local list syms][
+	collect-data-reloc: func [job [object!] /local list syms spec][
 		list: make block! 100
 		syms: job/symbols
+		if all [
+			job/runtime?
+			job/PIC?
+			job/target = 'X86-64
+			spec: find syms '***-exec-image
+		][
+			append list spec/2/2 + 8					;-- __image!/base after hidden struct slot
+		]
 		
 		while [not tail? syms][
 			syms: skip syms 2

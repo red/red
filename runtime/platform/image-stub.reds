@@ -38,18 +38,18 @@ OS-image: context [
 	lock-bitmap: func [
 		img			[red-image!]
 		write?		[logic!]
-		return:		[integer!]
+		return:		[int-ptr!]
 	][
-		0
+		null
 	]
 
 	unlock-bitmap: func [					;-- do nothing on Quartz backend
 		img			[red-image!]
-		data		[integer!]
+		data		[int-ptr!]
 	][]
 
 	get-data: func [
-		handle		[integer!]
+		handle		[int-ptr!]
 		stride		[int-ptr!]
 		return:		[int-ptr!]
 	][
@@ -238,4 +238,3 @@ OS-image: context [
 		dst
 	]
 ]
-

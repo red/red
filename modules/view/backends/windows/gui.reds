@@ -984,7 +984,7 @@ init: func [
 
 	collector/register as int-ptr! :on-gc-mark
 	time-meter/start _time_meter	
-	font-ext-type: externals/register "font" as-integer :delete-font
+	font-ext-type: externals/register "font" as int-ptr! :delete-font
 ]
 
 use-dark-mode?: func [
@@ -2954,6 +2954,7 @@ OS-to-image: func [
 		width	[integer!]
 		height	[integer!]
 		bmp		[handle!]
+		node	[node!]
 		img		[red-image!]
 		word	[red-word!]
 		size	[red-pair!]
@@ -2994,8 +2995,8 @@ OS-to-image: func [
 
 	if sym = base [
 		ReleaseDC hWnd dc
-		bmp: OS-image/make-image width height null null null
-		ret: image/init-image as red-image! stack/push* bmp
+		node: OS-image/make-image width height null null null
+		ret: image/init-image as red-image! stack/push* node
 
 		draw: as red-block! (object/get-values face) + FACE_OBJ_DRAW
 		either TYPE_OF(draw) = TYPE_BLOCK [

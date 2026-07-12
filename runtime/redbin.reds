@@ -119,7 +119,8 @@ redbin: context [
 		assert any [bits = 32 bits = 64]
 		
 		delta: bits >> 3 - 1
-		as byte-ptr! (as integer! address) + delta and not delta
+		address: address + delta
+		address - ((as-integer address) and delta)
 	]
 	
 	emit: func [
@@ -140,7 +141,7 @@ redbin: context [
 	record: func [
 		[variadic]
 		count [integer!]
-		list  [int-ptr!]
+		list  [vararg-ptr!]
 		/local
 			payload [red-binary!]
 	][
@@ -148,7 +149,7 @@ redbin: context [
 		list: list + 1
 		
 		loop count - 1 [
-			store payload list/1
+			store payload as-integer list/1
 			list: list + 1
 		]
 	]
@@ -198,7 +199,7 @@ redbin: context [
 	
 	reference: context [
 		;-- a map of node! -> offset in 'list'
-		map:  as node! 0								;-- initialized in 'reset'
+		map:  as int-ptr! 0							;-- physical node pointer, registered by address
 		list: as int-ptr! 0								;-- as well
 		top:  list
 		end:  list
@@ -210,7 +211,7 @@ redbin: context [
 				here [int-ptr!]
 				slot [red-integer!]
 		][
-			slot: as red-integer! _hashtable/get-value map as-integer node
+			slot: as red-integer! _hashtable/get-value as node! map node-handle-of node
 			if null? slot [return null]
 			list + slot/value
 		]
@@ -236,7 +237,7 @@ redbin: context [
 				list: new
 			]
 			assert not null? map
-			slot: as red-integer! _hashtable/put-key map as-integer node
+			slot: as red-integer! _hashtable/put-key as node! map node-handle-of node
 			assert not null? slot
 			integer/make-at as cell! slot (as-integer top - list) / size? integer!
 			top/1: size
@@ -244,7 +245,7 @@ redbin: context [
 			top: top + size + 1
 		]
 
-		on-gc-mark: does [_hashtable/mark as int-ptr! :map]
+		on-gc-mark: does [_hashtable/mark as ptr-ptr! :map]
 		
 		reset: func [/local min-size] [
 			min-size: 16'384
@@ -258,10 +259,10 @@ redbin: context [
 			]
 			top: list
 			either null? map [
-				map: _hashtable/init 1024 null HASH_TABLE_NODE_KEY 1
+				map: as int-ptr! _hashtable/init 1024 null HASH_TABLE_NODE_KEY 1
 				collector/register as int-ptr! :on-gc-mark
 			][
-				_hashtable/clear-map map
+				_hashtable/clear-map as node! map
 			]
 		]
 	]
@@ -996,7 +997,7 @@ redbin: context [
 		data    [int-ptr!]
 		end     [int-ptr!]
 		table   [int-ptr!]
-		tail    [int-ptr!]
+		tail    [ptr-ptr!]
 		return: [node!]
 		/local
 			context         [red-context!]
@@ -1095,7 +1096,7 @@ redbin: context [
 			
 			fun/header: TYPE_FUNCTION
 		]
-		tail/value: as integer! pos
+		tail/value: pos
 		node
 	]
 	
@@ -1154,7 +1155,7 @@ redbin: context [
 			object [red-value!]
 			series [series!]
 			node   [node!]
-			next   [integer!]
+			next   [int-ptr!]
 			type   [integer!]
 	][
 		either data/1 and REDBIN_REFERENCE_MASK <> 0 [
@@ -1170,14 +1171,14 @@ redbin: context [
 			
 			data
 		][
-			next: 0
-			node: preprocess-binding data end table :next
+			next: null
+			node: preprocess-binding data end table as ptr-ptr! :next
 			series: as series! node/value
 			
 			object: copy-cell series/offset + 1 ALLOC_TAIL(parent)
 			if nl? [object/header: object/header or flag-new-line]
 			
-			fill-context as int-ptr! next end table node
+			fill-context next end table node
 		]
 	]
 	
@@ -1258,12 +1259,9 @@ redbin: context [
 		strings [red-binary!]
 		/local
 			slot  [red-block! value]
-			here  [int-ptr!]
 			index [integer!]
 	][
-		here: either TYPE_OF(data) = TYPE_NATIVE [natives/table][actions/table]
-		index: 0
-		until [index: index + 1 data/data1 = here/index]
+		index: data/data1
 		record [payload header index]
 		
 		slot/head: 0
@@ -1301,7 +1299,7 @@ redbin: context [
 		
 		cell/header: TYPE_UNSET
 		cell/spec:	 spec/node
-		cell/code:   either type = TYPE_ACTION [actions/table/index][natives/table/index]
+		cell/code:   index
 		cell/more:	 node-handle-of alloc-unset-cells 2
 		cell/header: type						;-- implicit reset of all header flags
 		
@@ -1441,7 +1439,7 @@ redbin: context [
 			series [series!]
 			node   [node!]
 			size   [int-ptr!]
-			next   [integer!]
+			next   [int-ptr!]
 			type   [integer!]
 	][
 		either data/1 and REDBIN_REFERENCE_MASK <> 0 [
@@ -1461,9 +1459,9 @@ redbin: context [
 			if nl? [fun/header: fun/header or flag-new-line]
 			data
 		][
-			next: 0
-			node: preprocess-binding data end table :next
-			data: fill-context as int-ptr! next end table node
+			next: null
+			node: preprocess-binding data end table as ptr-ptr! :next
+			data: fill-context next end table node
 			
 			series: as series! node/value
 			fun: as red-function! copy-cell series/offset + 1 ALLOC_TAIL(parent)
@@ -1717,8 +1715,8 @@ redbin: context [
 			series    [series!]
 			node      [node-handle!]
 			sym tail  [int-ptr!]
-			type next [integer!]
-			type2     [integer!]
+			type type2 [integer!]
+			next      [int-ptr!]
 			set? ref? [logic!]
 	][
 		tag: [
@@ -1767,12 +1765,12 @@ redbin: context [
 			word/index: new/index
 			word/ctx: global-ctx
 		][
-			next: 0
-			word/ctx: node-handle-of preprocess-binding tail end table :next
+			next: null
+			word/ctx: node-handle-of preprocess-binding tail end table as ptr-ptr! :next
 		]
 		
 		tag
-		data: either set? [tail][fill-context as int-ptr! next end table resolve-node word/ctx]
+		data: either set? [tail][fill-context next end table resolve-node word/ctx]
 		
 		series:  resolve-series word/ctx
 		backref: series/offset + 1
@@ -1987,24 +1985,38 @@ redbin: context [
 		header  [integer!]
 		payload [red-binary!]
 		/local
-			series [red-series!]
-			buffer [series!]
-			value  [byte-ptr!]
-			length [integer!]
-			unit   [integer!]
+			series  [red-series!]
+			buffer  [series!]
+			value   [byte-ptr!]
+			node    [node-handle!]
+			length  [integer!]
+			bytes   [integer!]
+			head    [integer!]
+			kind    [integer!]
+			extra   [integer!]
+			unit    [integer!]
 	][
 		series: as red-series! data
 		buffer: GET_BUFFER(series)
+		node:   series/node
 		unit:   GET_UNIT(buffer)
 		length: _series/get-length series yes
-		value:  as byte-ptr! buffer/offset
+		bytes:  length << log-b unit
+		head:   data/data1
+		kind:   TYPE_OF(data)
+		extra:  data/data3
 		header: header or (unit << 8)
 		
-		record [payload header data/data1]
+		record [payload header head]
 		unless header and REDBIN_REFERENCE_MASK <> 0 [
 			store payload length
-			if TYPE_OF(data) = TYPE_VECTOR [store payload data/data3]
-			unless zero? length [emit payload value length << log-b unit]
+			if kind = TYPE_VECTOR [store payload extra]
+			unless zero? bytes [
+				buffer: GET_BUFFER(payload)
+				value: alloc-tail-unit buffer bytes
+				buffer: resolve-series node
+				copy-memory value as byte-ptr! buffer/offset bytes
+			]
 			pad payload 32
 		]
 	]
@@ -2019,6 +2031,7 @@ redbin: context [
 			slot   [red-value!]
 			vec    [red-vector!]
 			buffer [series!]
+			node   [node!]
 			tail   [int-ptr!]
 			values [byte-ptr!]
 			unit   [integer!]
@@ -2041,7 +2054,9 @@ redbin: context [
 			vec: as red-vector! slot
 			vec/header: TYPE_UNSET
 			vec/head: 	data/2
-			vec/node: 	node-handle-of alloc-bytes size
+			node: alloc-bytes size
+			vec: (as red-vector! block/rs-tail parent) - 1
+			vec/node: 	node-handle-of node
 			vec/type:	data/4
 			
 			buffer: GET_BUFFER(vec)
@@ -2066,6 +2081,7 @@ redbin: context [
 		return: [int-ptr!]
 		/local
 			str    [red-string!]
+			node   [node!]
 			tail   [int-ptr!]
 			header [integer!]
 			unit   [integer!]
@@ -2090,7 +2106,9 @@ redbin: context [
 			str: as red-string! ALLOC_TAIL(parent)
 			str/header: TYPE_UNSET
 			str/head: 	data/2
-			str/node: 	node-handle-of alloc-bytes size
+			node: alloc-bytes size
+			str: (as red-string! block/rs-tail parent) - 1
+			str/node: 	node-handle-of node
 			str/cache:	0
 			str/header: header and FFh				;-- implicit reset of all header flags
 			if nl? [str/header: str/header or flag-new-line]

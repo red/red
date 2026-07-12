@@ -16,9 +16,18 @@ Red/System [
 
 #define RTLD_LAZY	1
 
-timeval!: alias struct! [
-	tv_sec	[integer!]
-	tv_usec [integer!]
+#either target = 'X86-64 [
+	timeval!: alias struct! [
+		tv_sec		 [integer!]	;-- low 32 bits of time_t
+		tv_sec-high [integer!]
+		tv_usec		 [integer!]	;-- low 32 bits of suseconds_t
+		tv_usec-high[integer!]
+	]
+][
+	timeval!: alias struct! [
+		tv_sec	[integer!]
+		tv_usec [integer!]
+	]
 ]
 
 tm!: alias struct! [
@@ -32,7 +41,9 @@ tm!: alias struct! [
 	yday	[integer!]		;-- Days in year[0-365]
 	isdst	[integer!]		;-- DST			[-1/0/1]
 
-	gmtoff	[integer!]		;-- Seconds east of UTC
+	#if target = 'X86-64 [gmtoff-pad [integer!]]
+	gmtoff	[integer!]		;-- Seconds east of UTC, low 32 bits of long
+	#if target = 'X86-64 [gmtoff-high [integer!]]
 	zone	[c-string!]		;-- Timezone abbreviation
 ]
 
@@ -181,6 +192,9 @@ pollfd!: alias struct! [
 			buf            [byte-ptr!]
 			nbytes         [integer!]
 			return:        [integer!]  "Number of bytes written or error"
+		]
+		process-exit: "_exit" [
+			status         [integer!]
 		]
 		fcntl: "fcntl" [
 			[variadic]

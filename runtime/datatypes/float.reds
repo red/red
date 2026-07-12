@@ -453,7 +453,8 @@ float: context [
 			part	[integer!]
 			int2	[integer!]
 			int1	[integer!]
-			pf		[pointer! [float!]]
+			parts	[int-ptr!]
+			value	[float!]
 			factor	[integer!]
 			f64?	[logic!]
 	][
@@ -481,8 +482,11 @@ float: context [
 				p: p - 1
 			]
 		]
-		pf: as pointer! [float!] :int1
-		pf/value
+		value: 0.0
+		parts: as int-ptr! :value
+		parts/1: int1
+		parts/2: int2
+		value
 	]
 
 	get-rs-float: func [
@@ -759,11 +763,28 @@ float: context [
 			hi1  [byte-ptr!]
 			hi2  [byte-ptr!]
 			diff [byte-ptr!]
+			diff-f scale-f scale2-f [float!]
 	][
 		if any [NaN? left NaN? right] [return false]
 		if left = right [return true]					;-- for NaN, also raise error in default mode
 
 		if DBL_EPSILON > abs left - right [return true] ;-- check if the numbers are really close, use an absolute epsilon
+
+		#if target = 'X86-64 [
+			if any [special? left special? right][
+				return any [
+					all [left = 1.#INF right = 1.7976931348623157e308]
+					all [right = 1.#INF left = 1.7976931348623157e308]
+					all [left = -1.#INF right = -1.7976931348623157e308]
+					all [right = -1.#INF left = -1.7976931348623157e308]
+				]
+			]
+			diff-f: abs left - right
+			scale-f: abs left
+			scale2-f: abs right
+			if scale2-f > scale-f [scale-f: scale2-f]
+			return diff-f <= (DBL_EPSILON * scale-f * 10.0)
+		]
 
 		a: as float-uint64! :left
 		b: as float-uint64! :right

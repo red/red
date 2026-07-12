@@ -27,7 +27,7 @@ externals: context [
 	
 	record!: alias struct! [
 		header [integer!]
-		handle [integer!]								;-- stored external handle
+		handle [int-ptr!]								;-- stored native-width external handle
 		next   [integer!]
 	]
 	
@@ -42,7 +42,7 @@ externals: context [
 	
 	register: func [									;-- register a new external class
 		name	[c-string!]								;-- internal class name
-		fun		[integer!]								;-- pointer to a destructor function
+		fun		[int-ptr!]								;-- pointer to a destructor function
 		return: [integer!]								;-- return assigned type ID
 		/local
 			id  [integer!]
@@ -64,7 +64,7 @@ externals: context [
 		i: ((as-integer p - list) / size? record!) + 1	;-- first subsequent index
 		loop nb [										;-- build free slots list
 			p/header: flag-free							;-- no type when not in use (disables destructor)
-			p/handle: 0
+			p/handle: null
 			p/next:   i									;-- store index of next slot
 			i: i + 1
 			p: p + 1
@@ -96,7 +96,7 @@ externals: context [
 		new: free
 		free: rec/next
 		rec/header: type								;-- implicit reset of flag-free
-		rec/handle: as-integer handle
+		rec/handle: handle
 		rec/next: used
 		used: new
 		#if debug? = yes [if verbose > 0 [print-line ["stored at: " new]]]
@@ -113,8 +113,8 @@ externals: context [
 		assert type < (as-integer top - types)
 		if type > 0 [									;-- if type id defined, call destructor
 			ext: types + (type - 1)						;-- 1-based value
-			#if debug? = yes [if verbose > 0 [print-line ["destructor: " as int-ptr! :ext/destructor ", on: " as int-ptr! rec/handle]]]
-			if null <> :ext/destructor [ext/destructor as int-ptr! rec/handle]
+			#if debug? = yes [if verbose > 0 [print-line ["destructor: " as int-ptr! :ext/destructor ", on: " rec/handle]]]
+			if null <> :ext/destructor [ext/destructor rec/handle]
 		]
 	]
 	
@@ -140,7 +140,7 @@ externals: context [
 		]
 		
 		rec/header: flag-free
-		rec/handle: 0
+		rec/handle: null
 		rec/next:   free
 		free: (as-integer rec - list) / size? record!	;-- insert rec at head of free list
 		-1
@@ -208,7 +208,7 @@ externals: context [
 				either head? [used: next][prev/next: rec/next]	;-- connect previous/head record to next one (skipping current)
 				
 				rec/header: flag-free					;-- no type when not in use
-				rec/handle: 0
+				rec/handle: null
 				rec/next:   free
 				free: (as-integer rec - list) / size? record!
 			][

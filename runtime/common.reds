@@ -21,7 +21,7 @@ names!: alias struct! [
 ]
 
 name-table:	  as names! 0	 						;-- datatype names table
-action-table: as int-ptr! 0							;-- actions jump table
+action-table: as func-table! 0						;-- actions jump table
 
 #if all [libRedRT? = yes type = 'dll][
 	get-libRedRT-bitarray: func [return: [int-ptr!]][
@@ -180,7 +180,7 @@ report: func [
 fire: func [
 	[variadic]
 	count	[integer!]
-	list	[int-ptr!]
+	list	[vararg-ptr!]
 	/local
 		arg1 [red-value!]
 		arg2 [red-value!]
@@ -283,34 +283,49 @@ set-opt-refinement*: func [
 call-with-array*: func [
 	[variadic]
 	count	[integer!]
-	list	[int-ptr!]
+	list	[vararg-ptr!]
 	return: [integer!]
 	/local
 		arg			[red-value!]
-		ref-array p	[int-ptr!]
+		ref-array	[vararg-ptr!]
+		p			[func-table!]
+		xcode		[int-ptr!]
 		size ref-pos arg-pos nb id	[integer!]
 		native? t?	[logic!]
 		call		[function! [return: [integer!]]]	;-- compiler expects an integer returned when invoked on do*, parse*
+		callx64		[function! [
+			a1  [integer!] a2  [integer!] a3  [integer!] a4  [integer!]
+			a5  [integer!] a6  [integer!] a7  [integer!] a8  [integer!]
+			a9  [integer!] a10 [integer!] a11 [integer!] a12 [integer!]
+			a13 [integer!] a14 [integer!] a15 [integer!] a16 [integer!]
+			return: [integer!]
+		]]
 ][
-	id: list/1
+	id: as-integer list/1
 	native?: as-logic list/2
-	size: list/3
+	size: as-integer list/3
 	list: list + 3
 	count: count - 3
 	
 	p: either native? [natives/table][actions/table]
 	call: as function! [return: [integer!]] p/id
+	xcode: as int-ptr! p/id
 
-	loop size [push -1]
-	ref-array: system/stack/top
+	#either target = 'X86-64 [
+		assert size <= 16
+		loop 16 [push -1]
+	][
+		loop size [push -1]
+	]
+	ref-array: as vararg-ptr! system/stack/top
 	
 	until [
 		t?: logic/rs-true? as red-value! list/1 off null
-		ref-pos: list/2
-		arg-pos: list/3
-		nb: list/4
+		ref-pos: as-integer list/2
+		arg-pos: as-integer list/3
+		nb: as-integer list/4
 		either t? [
-			ref-array/ref-pos: arg-pos
+			ref-array/ref-pos: AS_NATIVE_SLOT(arg-pos)
 		][	
 			arg: stack/arguments + arg-pos
 			loop nb [arg/header: TYPE_NONE arg: arg + 1]
@@ -319,15 +334,47 @@ call-with-array*: func [
 		count: count - 4
 		zero? count
 	]
-	system/stack/top: ref-array
-	if native? [push yes]
-	call
+	#either target = 'X86-64 [
+		system/stack/top: as int-ptr! ref-array
+		callx64: as function! [
+			a1  [integer!] a2  [integer!] a3  [integer!] a4  [integer!]
+			a5  [integer!] a6  [integer!] a7  [integer!] a8  [integer!]
+			a9  [integer!] a10 [integer!] a11 [integer!] a12 [integer!]
+			a13 [integer!] a14 [integer!] a15 [integer!] a16 [integer!]
+			return: [integer!]
+		] xcode
+		either native? [
+			callx64
+				1 as-integer ref-array/1
+				as-integer ref-array/2  as-integer ref-array/3
+				as-integer ref-array/4  as-integer ref-array/5
+				as-integer ref-array/6  as-integer ref-array/7
+				as-integer ref-array/8  as-integer ref-array/9
+				as-integer ref-array/10 as-integer ref-array/11
+				as-integer ref-array/12 as-integer ref-array/13
+				as-integer ref-array/14 as-integer ref-array/15
+		][
+			callx64
+				as-integer ref-array/1  as-integer ref-array/2
+				as-integer ref-array/3  as-integer ref-array/4
+				as-integer ref-array/5  as-integer ref-array/6
+				as-integer ref-array/7  as-integer ref-array/8
+				as-integer ref-array/9  as-integer ref-array/10
+				as-integer ref-array/11 as-integer ref-array/12
+				as-integer ref-array/13 as-integer ref-array/14
+				as-integer ref-array/15 as-integer ref-array/16
+		]
+	][
+		system/stack/top: as int-ptr! ref-array
+		if native? [push yes]
+		call
+	]
 ]
 
 eval-path*: func [
 	[variadic]
 	count [integer!]
-	list  [int-ptr!]
+	list  [vararg-ptr!]
 	/local
 		arg value gparent prev item parent p-item [red-value!]
 		path [red-path!]

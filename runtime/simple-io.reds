@@ -246,9 +246,18 @@ simple-io: context [
 			yday   [integer!] ;day in the year
 			isdst  [integer!] ;daylight saving time
 		]
-		timespec!: alias struct! [
-			sec    [integer!] ;Seconds
-			nsec   [integer!] ;Nanoseconds
+		#either target = 'X86-64 [
+			timespec!: alias struct! [
+				sec      [integer!] ;Seconds, low 32 bits of time_t
+				sec-high [integer!]
+				nsec     [integer!] ;Nanoseconds, low 32 bits of long
+				nsec-high[integer!]
+			]
+		][
+			timespec!: alias struct! [
+				sec    [integer!] ;Seconds
+				nsec   [integer!] ;Nanoseconds
+			]
 		]
 
 		#case [
@@ -477,41 +486,79 @@ simple-io: context [
 						st_ino_l	  [integer!]
 					]
 				][
-					;-- https://elixir.bootlin.com/linux/latest/source/arch/arm/include/uapi/asm/stat.h#L57
-					;-- https://elixir.bootlin.com/linux/v5.9.10/source/arch/x86/include/uapi/asm/stat.h
-					stat!: alias struct! [					;-- stat64 struct, 96 bytes
-						st_dev_l	  [integer!]
-						st_dev_h	  [integer!]
-						pad0		  [integer!]
-						__st_ino	  [integer!]
-						st_mode		  [integer!]
-						st_nlink	  [integer!]
-						st_uid		  [integer!]
-						st_gid		  [integer!]
-						st_rdev_l	  [integer!]
-						st_rdev_h	  [integer!]
-						pad1		  [integer!]
-						st_size		  [integer!]
-						st_size_h	  [integer!]
-						st_blksize	  [integer!]
-						st_blocks	  [integer!]
-						st_blocks_h	  [integer!]
-						st_atime	  [timespec! value]
-						st_mtime	  [timespec! value]
-						st_ctime	  [timespec! value]
-						st_ino_h	  [integer!]
-						st_ino_l	  [integer!]
+					#either target = 'X86-64 [
+						;-- glibc x86_64 struct stat, 144 bytes
+						stat!: alias struct! [
+							st_dev_l	  [integer!]
+							st_dev_h	  [integer!]
+							st_ino_l	  [integer!]
+							st_ino_h	  [integer!]
+							st_nlink_l	  [integer!]
+							st_nlink_h	  [integer!]
+							st_mode		  [integer!]
+							st_uid		  [integer!]
+							st_gid		  [integer!]
+							pad0		  [integer!]
+							st_rdev_l	  [integer!]
+							st_rdev_h	  [integer!]
+							st_size		  [integer!]
+							st_size_h	  [integer!]
+							st_blksize_l [integer!]
+							st_blksize_h [integer!]
+							st_blocks_l  [integer!]
+							st_blocks_h  [integer!]
+							st_atime	  [timespec! value]
+							st_mtime	  [timespec! value]
+							st_ctime	  [timespec! value]
+							reserved1_l  [integer!]
+							reserved1_h  [integer!]
+							reserved2_l  [integer!]
+							reserved2_h  [integer!]
+							reserved3_l  [integer!]
+							reserved3_h  [integer!]
+						]
+					][
+						;-- https://elixir.bootlin.com/linux/v5.9.10/source/arch/x86/include/uapi/asm/stat.h
+						stat!: alias struct! [					;-- stat64 struct, 96 bytes
+							st_dev_l	  [integer!]
+							st_dev_h	  [integer!]
+							pad0		  [integer!]
+							__st_ino	  [integer!]
+							st_mode		  [integer!]
+							st_nlink	  [integer!]
+							st_uid		  [integer!]
+							st_gid		  [integer!]
+							st_rdev_l	  [integer!]
+							st_rdev_h	  [integer!]
+							pad1		  [integer!]
+							st_size		  [integer!]
+							st_size_h	  [integer!]
+							st_blksize	  [integer!]
+							st_blocks	  [integer!]
+							st_blocks_h	  [integer!]
+							st_atime	  [timespec! value]
+							st_mtime	  [timespec! value]
+							st_ctime	  [timespec! value]
+							st_ino_h	  [integer!]
+							st_ino_l	  [integer!]
+						]
 					]
 				]
 
-				#either dynamic-linker = "/lib/ld-musl-i386.so.1" [
+				#either target = 'X86-64 [
 					#define DIRENT_NAME_OFFSET 19
 				][
-					#define DIRENT_NAME_OFFSET 11
+					#either dynamic-linker = "/lib/ld-musl-i386.so.1" [
+						#define DIRENT_NAME_OFFSET 19
+					][
+						#define DIRENT_NAME_OFFSET 11
+					]
 				]
 				dirent!: alias struct! [
 					d_ino			[integer!]
+					#if target = 'X86-64 [d_ino_h [integer!]]
 					d_off			[integer!]
+					#if target = 'X86-64 [d_off_h [integer!]]
 					d_reclen		[byte!]
 					d_reclen_pad	[byte!]
 					d_type			[byte!]
@@ -540,6 +587,17 @@ simple-io: context [
 					LIBC-file cdecl [
 						;-- https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/10.6/man2/stat.2.html?useVersion=10.6
 						_stat:	"fstat" [
+							file		[integer!]
+							restrict	[stat!]
+							return:		[integer!]
+						]
+					]
+				]
+			]
+			target = 'X86-64 [
+				#import [
+					LIBC-file cdecl [
+						_stat: "fstat" [
 							file		[integer!]
 							restrict	[stat!]
 							return:		[integer!]
@@ -760,6 +818,14 @@ simple-io: context [
 		#case [
 			OS = 'Windows [
 				GetFileSize file null
+			]
+			target = 'X86-64 [
+				s: as stat! system/stack/allocate 36	;-- x86-64 struct stat is 144 bytes
+				either zero? _stat file s [
+					either s/st_mode and S_IFREG <> 0 [
+						s/st_size
+					][-1]
+				][-1]
 			]
 			any [config-name = 'Pico OS = 'macOS OS = 'FreeBSD OS = 'NetBSD OS = 'Android] [
 				s: as stat! system/stack/allocate 36	;-- ensures stat! fits using a max value of 144 bytes
@@ -1120,7 +1186,7 @@ simple-io: context [
 			s: as stat! system/stack/allocate 36		;-- ensures stat! fits using a max value of 144 bytes
 			fd: open-file file/to-OS-path filename RIO_READ yes
 			if fd < 0 [	return none/push ]
-			#either any [config-name = 'Pico OS = 'macOS OS = 'FreeBSD OS = 'NetBSD OS = 'Android] [
+			#either any [target = 'X86-64 config-name = 'Pico OS = 'macOS OS = 'FreeBSD OS = 'NetBSD OS = 'Android] [
 				_stat   fd s
 			][	_stat 3 fd s]
 			close-file fd

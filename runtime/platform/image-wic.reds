@@ -534,7 +534,7 @@ OS-image: context [
 	]
 
 	width?: func [
-		handle		[int-ptr!]
+		handle		[node!]
 		return:		[integer!]
 		/local
 			inode	[img-node!]
@@ -544,7 +544,7 @@ OS-image: context [
 	]
 
 	height?: func [
-		handle		[int-ptr!]
+		handle		[node!]
 		return:		[integer!]
 		/local
 			inode	[img-node!]
@@ -556,7 +556,7 @@ OS-image: context [
 	lock-bitmap: func [
 		img			[red-image!]
 		write?		[logic!]
-		return:		[integer!]
+		return:		[int-ptr!]
 		/local
 			this	[this!]
 			IB		[IWICBitmap]
@@ -581,14 +581,14 @@ OS-image: context [
 		if hr <> 0 [
 			#if debug? = yes [print-line ["WICBitmap Lock Error: " hr]]
 			fire [TO_ERROR(access bad-media)]
-			return 0
+			return null
 		]
-		as integer! ilock/value
+		as int-ptr! ilock/value
 	]
 
 	unlock-bitmap: func [
 		img			[red-image!]
-		data		[integer!]
+		data		[int-ptr!]
 		/local
 			this	[this!]
 			lock	[IWICBitmapLock]
@@ -608,7 +608,7 @@ OS-image: context [
 	]
 
 	get-data: func [
-		handle		[integer!]
+		handle		[int-ptr!]
 		stride		[int-ptr!]
 		return:		[int-ptr!]
 		/local
@@ -626,7 +626,7 @@ OS-image: context [
 	]
 
 	get-data-pixel-format: func [
-		handle		[integer!]
+		handle		[int-ptr!]
 		format		[int-ptr!]
 		return:		[integer!]
 		/local
@@ -807,7 +807,7 @@ OS-image: context [
 
 	load-image: func [
 		src			[red-string!]
-		return:		[int-ptr!]
+		return:		[node!]
 		/local
 			IFAC	[IWICImagingFactory]
 			II		[com-ptr! value]
@@ -847,7 +847,7 @@ OS-image: context [
 		rgb-bin		[red-binary!]
 		alpha-bin	[red-binary!]
 		color		[red-tuple!]
-		return:		[int-ptr!]
+		return:		[node!]
 		/local
 			IFAC	[IWICImagingFactory]
 			bitmap	[com-ptr! value]

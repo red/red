@@ -244,7 +244,7 @@ array: context [
 		p: as ptr-ptr! s/offset
 		p: p + idx - 1
 		assert p < as ptr-ptr! s/tail
-		p/value
+		as node! p/value
 	]
 
 	poke-ptr: func [
@@ -300,7 +300,7 @@ array: context [
 #define HASH_TABLE_HASH			0
 #define HASH_TABLE_MAP			1
 #define HASH_TABLE_SYMBOL		2
-#define HASH_TABLE_NODE_KEY		3		;-- key must be a node, GC will mark it
+#define HASH_TABLE_NODE_KEY		3		;-- key must be a stable node handle, GC will mark it
 #define HASH_TABLE_OWNERSHIP	4
 
 #define HASH_SYMBOL_BLOCK	1
@@ -327,10 +327,6 @@ array: context [
 #define MURMUR_HASH_3_X86_32_C1		CC9E2D51h
 #define MURMUR_HASH_3_X86_32_C2		1B873593h
 
-#define MURMUR_HASH_ROTL_32(x r) [
-	x << r or (x >>> (32 - r))
-]
-
 hash-secret: 0
 
 hash-string: func [
@@ -342,7 +338,7 @@ hash-string: func [
 		s		[series!]
 		p tail	[byte-ptr!]
 		p4		[int-ptr!]
-		unit k1	h1 len head [integer!]
+		unit k1	h1 len head rot [integer!]
 ][
 	s: GET_BUFFER(str)
 	unit: GET_UNIT(s)
@@ -369,22 +365,29 @@ hash-string: func [
 		]
 		unless case? [k1: case-folding/change-char k1 yes]
 		k1: k1 * MURMUR_HASH_3_X86_32_C1
-		k1: MURMUR_HASH_ROTL_32(k1 15)
+		rot: k1 >>> 17
+		k1: k1 << 15
+		k1: k1 or rot
 		k1: k1 * MURMUR_HASH_3_X86_32_C2
 
 		h1: h1 xor k1
-		h1: MURMUR_HASH_ROTL_32(h1 13)
+		rot: h1 >>> 19
+		h1: h1 << 13
+		h1: h1 or rot
 		h1: h1 * 5 + E6546B64h
 		p: p + unit
 	]
 
 	;-- finalization
 	h1: h1 xor len
-	h1: h1 >>> 16 xor h1
+	rot: h1 >>> 16
+	h1: rot xor h1
 	h1: h1 * 85EBCA6Bh
-	h1: h1 >>> 13 xor h1
+	rot: h1 >>> 13
+	h1: rot xor h1
 	h1: h1 * C2B2AE35h
-	h1: h1 >>> 16 xor h1
+	rot: h1 >>> 16
+	h1: rot xor h1
 	h1
 ]
 
@@ -395,7 +398,7 @@ murmur3-x86-32: func [
 	/local
 		data tail [byte-ptr!]
 		blocks p  [int-ptr!]
-		nblocks	i k1 h1 n [integer!]
+		nblocks	i k1 h1 n rot [integer!]
 ][
 	assert len > 0
 
@@ -410,11 +413,15 @@ murmur3-x86-32: func [
 		p: blocks + i
 		k1: p/value						;@@ do endian-swapping if needed
 		k1: k1 * MURMUR_HASH_3_X86_32_C1
-		k1: MURMUR_HASH_ROTL_32(k1 15)
+		rot: k1 >>> 17
+		k1: k1 << 15
+		k1: k1 or rot
 		k1: k1 * MURMUR_HASH_3_X86_32_C2
 
 		h1: h1 xor k1
-		h1: MURMUR_HASH_ROTL_32(h1 13)
+		rot: h1 >>> 19
+		h1: h1 << 13
+		h1: h1 or rot
 		h1: h1 * 5 + E6546B64h
 		i: i + 1
 	]
@@ -424,31 +431,51 @@ murmur3-x86-32: func [
 	if positive? n [
 		k1: 0
 		tail: data + (nblocks * 4)
-		if n = 3 [k1: (as-integer tail/3) << 16 xor k1]
-		if n > 1 [k1: (as-integer tail/2) << 8  xor k1]
+		if n = 3 [
+			rot: as-integer tail/3
+			rot: rot << 16
+			k1: rot xor k1
+		]
+		if n > 1 [
+			rot: as-integer tail/2
+			rot: rot << 8
+			k1: rot xor k1
+		]
 		k1: (as-integer tail/1) xor k1
 		k1: k1 * MURMUR_HASH_3_X86_32_C1
-		k1: MURMUR_HASH_ROTL_32(k1 15)
+		rot: k1 >>> 17
+		k1: k1 << 15
+		k1: k1 or rot
 		k1: k1 * MURMUR_HASH_3_X86_32_C2
 		h1: h1 xor k1
 	]
 
 	;-- finalization
 	h1: h1 xor len
-	h1: h1 >>> 16 xor h1
+	rot: h1 >>> 16
+	h1: rot xor h1
 	h1: h1 * 85EBCA6Bh
-	h1: h1 >>> 13 xor h1
+	rot: h1 >>> 13
+	h1: rot xor h1
 	h1: h1 * C2B2AE35h
-	h1: h1 >>> 16 xor h1
+	rot: h1 >>> 16
+	h1: rot xor h1
 	h1
 ]
 
-murmur3-x86-int: func [h1 [integer!] return: [integer!]][
-	h1: h1 >>> 16 xor h1
+murmur3-x86-int: func [
+	h1 [integer!]
+	return: [integer!]
+	/local rot [integer!]
+][
+	rot: h1 >>> 16
+	h1: rot xor h1
 	h1: h1 * 85EBCA6Bh
-	h1: h1 >>> 13 xor h1
+	rot: h1 >>> 13
+	h1: rot xor h1
 	h1: h1 * C2B2AE35h
-	h1: h1 >>> 16 xor h1
+	rot: h1 >>> 16
+	h1: rot xor h1
 	h1
 ]
 
@@ -563,13 +590,14 @@ _hashtable: context [
 	]
 
 	mark: func [
-		ptr [int-ptr!]
+		ptr [ptr-ptr!]
 		/local
 			s			[series!]
 			h			[hashtable!]
 			table node	[node!]
 			val end		[red-value!]
 			p e			[ptr-ptr!]
+			raw			[int-ptr!]
 			type vsize	[integer!]
 	][
 		collector/keep-raw ptr
@@ -578,18 +606,34 @@ _hashtable: context [
 		h: as hashtable! s/offset
 		type: h/type
 		if type = HASH_TABLE_HASH [
-			collector/keep-raw :h/indexes
-			collector/keep-raw :h/chains
-			s: as series! h/chains/value
-			p: as ptr-ptr! s/offset
-			e: as ptr-ptr! s/tail
-			while [p < e][
-				if p/value <> null [collector/keep-raw as int-ptr! p]
-				p: p + 1
+			if h/indexes <> null [
+				raw: as int-ptr! h/indexes
+				collector/keep-raw as ptr-ptr! :raw
+				h/indexes: as node! raw
+			]
+			if h/chains <> null [
+				raw: as int-ptr! h/chains
+				collector/keep-raw as ptr-ptr! :raw
+				h/chains: as node! raw
+				s: as series! h/chains/value
+				p: as ptr-ptr! s/offset
+				e: as ptr-ptr! s/tail
+				while [p < e][
+					if p/value <> null [collector/keep-raw p]
+					p: p + 1
+				]
 			]
 		]
-		collector/keep-raw :h/flags
-		collector/keep-raw :h/keys
+		if h/flags <> null [
+			raw: as int-ptr! h/flags
+			collector/keep-raw as ptr-ptr! :raw
+			h/flags: as node! raw
+		]
+		if h/keys <> null [
+			raw: as int-ptr! h/keys
+			collector/keep-raw as ptr-ptr! :raw
+			h/keys: as node! raw
+		]
 
 		if type >= HASH_TABLE_NODE_KEY [ 
 			vsize: as integer! h/indexes
@@ -599,20 +643,38 @@ _hashtable: context [
 			end: s/tail
 			while [val < end][
 				if val/header = TYPE_UNSET [
-					either type = HASH_TABLE_OWNERSHIP [
-						collector/keep :val/data1		;-- stable handle key
-						node: resolve-node val/data1
-					][
-						collector/keep-raw :val/data1	;-- physical node key
-						node: as node! val/data1
-					]
+					collector/keep :val/data1			;-- stable node handle key
+					node: resolve-node val/data1
 					s: as series! node/value
 					if GET_UNIT(s) = 16 [collector/mark-values s/offset s/tail]
 				]
 				val: val + vsize
 			]
 		]
-		if type > 0 [collector/mark-block-raw :h/blk]
+		if all [type > 0 h/blk <> null][
+			raw: as int-ptr! h/blk
+			collector/mark-block-raw as ptr-ptr! :raw
+			h/blk: as node! raw
+		]
+	]
+
+	push-table-root: func [
+		table [node!]
+		return: [logic!]
+		/local
+			hash [red-hash!]
+			s [series!]
+			h [hashtable!]
+	][
+		if stack/top = null [return no]
+		s: as series! table/value
+		h: as hashtable! s/offset
+		hash: as red-hash! stack/push*
+		hash/header: TYPE_HASH
+		hash/head: 0
+		hash/node: either h/blk = null [0][node-handle-of h/blk]
+		hash/table: node-handle-of table
+		yes
 	]
 
 	sweep: func [
@@ -641,13 +703,8 @@ _hashtable: context [
 		while [val < end][
 			if val/header = TYPE_UNSET [			;-- only sweep alive key. key was deleted if val/header = TYPE_VALUE
 				key: val/data1
-				either type = HASH_TABLE_OWNERSHIP [
-					assert HANDLE?(key)
-					node: resolve-node key
-				][
-					node: as node! key
-					assert node <> null
-				]
+				assert HANDLE?(key)
+				node: resolve-node key
 				s: as series! node/value
 				either s/flags and flag-gc-mark = 0 [
 					delete-key table key
@@ -813,9 +870,9 @@ _hashtable: context [
 
 	_alloc-bytes: func [
 		size	[integer!]						;-- number of 16 bytes cells to preallocate
-		return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
+		return: [node!]							;-- return a new node pointer (pointing to the newly allocated series buffer)
 		/local
-			node [int-ptr!]
+			node [node!]
 			s	 [series!]
 	][
 		node: alloc-bytes size
@@ -831,7 +888,7 @@ _hashtable: context [
 	_alloc-bytes-filled: func [
 		size	[integer!]						;-- number of 16 bytes cells to preallocate
 		byte	[byte!]
-		return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
+		return: [node!]							;-- return a new node pointer (pointing to the newly allocated series buffer)
 		/local
 			node [node!]
 			s	 [series!]
@@ -916,7 +973,8 @@ _hashtable: context [
 		if size < 4 [size: 4]
 		fsize: as-float size
 		f-buckets: fsize / _HT_HASH_UPPER
-		h/n-buckets: round-up as-integer f-buckets
+		h/n-buckets: as-integer f-buckets
+		h/n-buckets: round-up h/n-buckets
 		f-buckets: as-float h/n-buckets
 		h/upper-bound: as-integer f-buckets * _HT_HASH_UPPER
 		h/flags: as int-ptr! _alloc h/n-buckets >> 2 #"^(AA)"
@@ -1235,8 +1293,10 @@ _hashtable: context [
 			source-context [red-context!]
 			s ss		[series!]
 			node flags keys indexes chains data [node!]
-			destination context-symbols block-handle [node-handle!]
-			f-buckets	[float!]
+		context-symbols block-handle [node-handle!]
+		destination [node!]
+		root? [logic!]
+		f-buckets	[float!]
 			fsize		[float!]
 			skip n-buckets upper-bound block-head [integer!]
 	][
@@ -1255,11 +1315,25 @@ _hashtable: context [
 			context-symbols: source-context/symbols
 		]
 		node: _alloc-bytes-filled size? hashtable! #"^(00)"
-		destination: node-handle-of node
+		destination: node
+		root?: stack/top <> null
+		if root? [
+			;-- Keep the table visible to the GC while the remaining allocations run.
+			hash: as red-hash! stack/push*
+			hash/header: TYPE_HASH
+			hash/head: 0
+			hash/node: 0
+			hash/table: node-handle-of destination
+		]
+		s: as series! destination/value
+		h: as hashtable! s/offset
+		h/type: type
 		if type = HASH_TABLE_SYMBOL [
 			if null? str-buffer [str-buffer: allocate str-buffer-sz]
 			if HANDLE?(context-symbols) [
-				return copy-context context-symbols resolve-node destination
+				destination: copy-context context-symbols destination
+				if root? [stack/pop 1]
+				return destination
 			]
 			if size >= 4000 [size: size << 1]		;-- global context
 		]
@@ -1268,31 +1342,30 @@ _hashtable: context [
 		fsize: as-float size
 		f-buckets: fsize / _HT_HASH_UPPER
 		skip: either type = HASH_TABLE_MAP [2][1]
-		n-buckets: round-up as-integer f-buckets
+		n-buckets: as-integer f-buckets
+		n-buckets: round-up n-buckets
 		f-buckets: as-float n-buckets
 		upper-bound: as-integer f-buckets * _HT_HASH_UPPER
 		flags: _alloc-bytes-filled n-buckets >> 2 #"^(AA)"
+		h/n-buckets: n-buckets
+		h/upper-bound: upper-bound
+		h/flags: flags
 		keys: _alloc-bytes n-buckets * size? int-ptr!
+		h/keys: keys
 
 		indexes: null
 		chains: null
 		if type = HASH_TABLE_HASH [
 			indexes: _alloc-bytes-filled size * size? integer! #"^(FF)"
+			h/indexes: indexes
 			chains: alloc-bytes 4 * size? node!
+			h/chains: chains
 		]
 		either any [type >= HASH_TABLE_NODE_KEY blk = null][
 			data: alloc-cells size
 		][
 			data: resolve-node block-handle
 		]
-
-		s: resolve-series destination
-		h: as hashtable! s/offset
-		h/type: type
-		h/n-buckets: n-buckets
-		h/upper-bound: upper-bound
-		h/flags: flags
-		h/keys: keys
 		h/blk: data
 		either type = HASH_TABLE_HASH [
 			h/indexes: indexes
@@ -1302,17 +1375,13 @@ _hashtable: context [
 		]
 
 		if all [type < HASH_TABLE_NODE_KEY HANDLE?(block-handle)][
-			if type = HASH_TABLE_HASH [
-				hash: as red-hash! stack/push* ;@@ push on stack to mark it properly, especially `h/chains`
-				hash/header: TYPE_HASH
-				hash/head: 0
+			if all [root? type = HASH_TABLE_HASH][
 				hash/node: block-handle
-				hash/table: destination
 			]
-			put-all resolve-node destination block-head skip
-			if type = HASH_TABLE_HASH [stack/pop 1]
+			put-all destination block-head skip
 		]
-		resolve-node destination
+		if root? [stack/pop 1]
+		destination
 	]
 
 	rehash: func [
@@ -1325,12 +1394,16 @@ _hashtable: context [
 			n-buckets	[integer!]
 			new-size	[integer!]
 			f			[float!]
+			root?		[logic!]
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
+		root?: push-table-root node
 
 		f: as-float new-buckets
-		new-buckets: round-up as-integer f * 1.5
+		f: f * 1.5
+		new-buckets: as-integer f
+		new-buckets: round-up new-buckets
 		f: as-float new-buckets
 		new-size: as-integer f * _HT_HASH_UPPER
 		if new-buckets < 4 [new-buckets: 4]
@@ -1345,6 +1418,7 @@ _hashtable: context [
 		h/keys: _alloc-bytes new-buckets * size? int-ptr!
 
 		put-all node 0 1
+		if root? [stack/pop 1]
 	]
 
 	resize-map: func [
@@ -1358,9 +1432,11 @@ _hashtable: context [
 			flags blk new-blk [node!]
 			n-buckets new-size i sz len	vsize [integer!]
 			f			[float!]
+			root?		[logic!]
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
+		root?: push-table-root node
 
 		new-buckets: round-up new-buckets
 		f: as-float new-buckets
@@ -1397,6 +1473,7 @@ _hashtable: context [
 			]
 			i: i + len
 		]
+		if root? [stack/pop 1]
 	]
 
 	resize: func [
@@ -1411,9 +1488,11 @@ _hashtable: context [
 			i j mask step hash n-buckets new-size tmp ii sh idx [integer!]
 			f			[float!]
 			int? break? [logic!]
+			root?		[logic!]
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
+		root?: push-table-root node
 
 		int?: h/type >= HASH_TABLE_NODE_KEY
 		s: as series! h/blk/value
@@ -1486,6 +1565,7 @@ _hashtable: context [
 			if h/type <> HASH_TABLE_MAP [h/n-occupied: h/size]
 			h/upper-bound: new-size
 		]
+		if root? [stack/pop 1]
 	]
 
 	put-key: func [
@@ -1709,7 +1789,8 @@ _hashtable: context [
 			blk k [red-value!]
 			s	  [series!]
 			h	  [hashtable!]
-			keys flags indexes chain [int-ptr!]
+			keys flags indexes [int-ptr!]
+			chain [node!]
 			x i site last mask step hash n-buckets ii sh idx type [integer!]
 			continue? del? chain? [logic!]
 	][
@@ -1780,7 +1861,7 @@ _hashtable: context [
 						][
 							unless chain? [
 								chain: alloc-bytes 4 * size? integer!
-								array/append-ptr h/chains chain
+								array/append-ptr h/chains as int-ptr! chain
 								array/append-int chain keys/i
 								keys/i: 0 - ((array/length? h/chains) >> log-b size? int-ptr!)
 							]
@@ -2024,7 +2105,8 @@ _hashtable: context [
 			s [series!]
 			h [hashtable!]
 			i ii idx c-idx sh [integer!]
-			flags keys chain indexes [int-ptr!]
+			flags keys indexes [int-ptr!]
+			chain [node!]
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -2113,7 +2195,8 @@ _hashtable: context [
 		/local
 			s [series!]
 			h [hashtable!]
-			indexes keys chain flags [int-ptr!]
+			indexes keys flags [int-ptr!]
+			chain [node!]
 			i ii idx c-idx sh n [integer!]
 			del? [logic!]
 	][
@@ -2186,7 +2269,8 @@ _hashtable: context [
 			s [series!]
 			h [hashtable!]
 			table buf [node!]
-			indexes chain p e keys index flags [int-ptr!]
+			indexes p e keys index flags [int-ptr!]
+			chain [node!]
 			i c-idx idx part ii sh n [integer!]
 	][
 		if size > 30000 [return HASH_TABLE_ERR_REHASH]
@@ -2219,8 +2303,8 @@ _hashtable: context [
 			i: index/value
 			either keys/i < 0 [				;-- chain mode
 				chain: array/pick-ptr h/chains 0 - keys/i
-				if null? get-value table as-integer chain [
-					put-key table as-integer chain
+				if null? get-value table node-handle-of chain [
+					put-key table node-handle-of chain
 					s: as series! chain/value
 					p: as int-ptr! s/offset
 					e: as int-ptr! s/tail

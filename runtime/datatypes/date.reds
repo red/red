@@ -668,9 +668,7 @@ date: context [
 			int	  [red-integer!]
 			fl	  [red-float!]
 			dt	  [red-date!]
-			vars  [int-ptr!]
 			table [byte-ptr!]
-			fp	  [float-ptr!]
 			cnt   [integer!]
 			state [integer!]
 			prev  [integer!]							;!! do not change following variables !!
@@ -700,7 +698,6 @@ date: context [
 		sec-t: zone-t: ftime: 0.0
 		
 		table: spec-FSM
-		vars: :day
 		state: S_START
 
 		switch TYPE_OF(spec) [
@@ -725,12 +722,25 @@ date: context [
 					
 					either type = TYPE_INTEGER [
 						int: as red-integer! value
-						offset: offset + 1				;-- 1-based array access
-						vars/offset: int/value
+						switch offset [
+							0 [day:    int/value]
+							1 [month:  int/value]
+							2 [year:   int/value]
+							3 [hour:   int/value]
+							4 [min:    int/value]
+							5 [sec:    int/value]
+							6 [zone-h: int/value]
+							7 [zone-m: int/value]
+							default [0]
+						]
 					][				
 						fl: as red-float! value
-						fp: as float-ptr! vars + offset
-						fp/value: fl/value
+						switch offset [
+							8  [sec-t:  fl/value]
+							10 [ftime:  fl/value]
+							12 [zone-t: fl/value]
+							default [0]
+						]
 					]
 					if idx = S_END [break]
 					table: spec-FSM + (state * 6)		;-- jump to next state

@@ -41,6 +41,18 @@ Red/System [
 		fn value
 	]
 
+	nullable-local: func [
+		return: [integer!]
+		/local fn [unary-int!]
+	][
+		fn: as unary-int! 0
+		if :fn <> null [return 1]
+		fn: as unary-int! :inc
+		if :fn = null [return 2]
+		if 10 <> fn 9 [return 3]
+		0
+	]
+
 	holder: declare box!
 	holder/apply: as unary-int! :inc
 
@@ -49,6 +61,9 @@ Red/System [
 	]
 	if 8 <> holder/apply 7 [
 		sys-exit 2
+	]
+	if nullable-local <> 0 [
+		sys-exit 3
 	]
 	sys-exit 0
 ]

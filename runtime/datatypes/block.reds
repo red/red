@@ -1186,7 +1186,7 @@ block: context [
 	compare-value: func [								;-- Compare function return integer!
 		value1   [red-value!]
 		value2   [red-value!]
-		op		 [integer!]
+		op		 [int-ptr!]
 		flags	 [integer!]
 		return:  [integer!]
 		/local
@@ -1211,7 +1211,7 @@ block: context [
 		]
 		loop count [
 			action-compare: DISPATCH_COMPARE(value1)
-			res: action-compare value1 value2 op
+			res: action-compare value1 value2 as-integer op
 			if res = -2 [res: TYPE_OF(value1) - TYPE_OF(value2)]
 
 			unless zero? res [break]
@@ -1224,7 +1224,7 @@ block: context [
 	compare-call: func [								;-- Wrap red function!
 		value1   [red-value!]
 		value2   [red-value!]
-		fun		 [integer!]
+		fun		 [int-ptr!]
 		flags	 [integer!]
 		return:  [integer!]
 		/local
@@ -1314,11 +1314,11 @@ block: context [
 			head	[red-value!]
 			int		[red-integer!]
 			blk2	[red-block!]
-			cmp		[integer!]
+			cmp		[int-ptr!]
 			len		[integer!]
 			len2	[integer!]
 			step	[integer!]
-			op		[integer!]
+			op		[int-ptr!]
 			flags	[integer!]
 			offset	[integer!]
 			blk-sz	[integer!]
@@ -1377,8 +1377,8 @@ block: context [
 		]
 
 		if reverse? [flags: flags or sort-reverse-mask]
-		op: either case? [COMP_CASE_SORT][COMP_SORT]
-		cmp: as-integer :compare-value
+		op: as int-ptr! either case? [COMP_CASE_SORT][COMP_SORT]
+		cmp: as int-ptr! :compare-value
 		func?: no
 
 		either OPTION?(comparator) [
@@ -1403,8 +1403,8 @@ block: context [
 							]
 						]
 					]
-					cmp: as-integer :compare-call
-					op: as-integer comparator
+					cmp: as int-ptr! :compare-call
+					op: as int-ptr! comparator
 				]
 				TYPE_INTEGER [
 					if any [all? not OPTION?(skip)] [
@@ -1516,7 +1516,7 @@ block: context [
 		]
 		chk?: ownership/check as red-value! blk action value index slots
 
-		if overflow? [size: (as-integer s/tail - s/offset) + (slots << size? int-ptr!)][fire [TO_ERROR(internal no-memory)]]
+		if overflow? [size: (as-integer s/tail - s/offset) + (slots << 4)][fire [TO_ERROR(internal no-memory)]]
 		if size > s/size [
 			if cnt <= 4 [size: size * 2]				;-- double it if low number of inserted slots
 			s: expand-series s size

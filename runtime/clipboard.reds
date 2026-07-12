@@ -348,7 +348,7 @@ clipboard: context [
 				blk		[red-block!]
 				img		[red-image!]
 				df		[DROPFILES!]
-				bmdata	[integer!]
+				bmdata	[int-ptr!]
 				w		[integer!]
 				h		[integer!]
 				s		[integer!]
@@ -448,7 +448,7 @@ clipboard: context [
 							;-- also put the image in DIB format for compatibility
 							fmts/2: CF_DIBV5
 							bmdata: OS-image/lock-bitmap img no
-							assert 0 <> bmdata
+							assert bmdata <> null
 							w: OS-image/width? resolve-node img/node
 							h: OS-image/height? resolve-node img/node
 							s: 0

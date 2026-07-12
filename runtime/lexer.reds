@@ -369,8 +369,8 @@ lexer: context [
 	utf8-buf-size:	100'000
 	utf8-buffer:	as byte-ptr! 0
 	utf8-buf-tail:	as byte-ptr! 0
-	scanners:		as int-ptr! 0						;-- scan functions jump table (dynamically filled)
-	loaders:		as int-ptr! 0						;-- load functions jump table (dynamically filled)
+	scanners:		as func-table! 0					;-- scan functions jump table (dynamically filled)
+	loaders:		as func-table! 0					;-- load functions jump table (dynamically filled)
 	stash:			as cell! 0							;-- special buffer for hatching any-blocks series
 	stash-size:		1000								;-- pre-allocated cells	number
 	root-state:		as state! 0							;-- global entry point to state struct list
@@ -1062,7 +1062,7 @@ lexer: context [
 		/local
 			p src  [byte-ptr!]
 			len	c pos index [integer!]
-			entry  [int-ptr!]
+			entry  [vararg-ptr!]
 			cb bit [byte!]
 	][
 		either s/1 = #"(" [								;-- note: #"^(" not allowed
@@ -1089,13 +1089,13 @@ lexer: context [
 					src: s + 1							;-- skip (
 					entry: escape-names
 					loop 7 [							;-- try to match an escape name
-						if zero? platform/strnicmp src as byte-ptr! entry/1 entry/2 [break]
+						if zero? platform/strnicmp src as byte-ptr! entry/1 as integer! entry/2 [break]
 						entry: entry + 3
 					]
 					either escape-names + (size? escape-names) > entry [
-						len: entry/2 + 1
+						len: as integer! entry/2 + 1
 						if src/len <> #")" [cp/value: -1 return src]
-						c: entry/3
+						c: as integer! entry/3
 						p: src + len
 					][									;-- not a name, fall back on hex value decoding
 						p: s + 1						;-- skip (
@@ -1317,7 +1317,7 @@ lexer: context [
 		/local
 			dt		 [red-datatype!]
 			len type [integer!]
-			p end	 [int-ptr!]
+			p end	 [vararg-ptr!]
 			name	 [names!]
 	][
 		s: s + 2										;-- skip #[
@@ -1329,13 +1329,13 @@ lexer: context [
 			p: p + 4
 		]
 		either p < end [
-			len: p/4 + 1
+			len: as integer! p/4 + 1
 			if s/len <> #")" [throw-error lex s e ERR_MALCONSTRUCT]
-			lex/scanned: p/2
+			lex/scanned: as integer! p/2
 			if load? [
 				dt: as red-datatype! alloc-slot lex
-				set-type as cell! dt p/2
-				if p/2 = TYPE_LOGIC [dt/value: p/3]
+				set-type as cell! dt as integer! p/2
+				if (as integer! p/2) = TYPE_LOGIC [dt/value: as integer! p/3]
 			]
 		][
 			type: 1
@@ -1935,7 +1935,7 @@ lexer: context [
 		/local
 			dt			   [red-date!]
 			p me		   [byte-ptr!]
-			m 	 		   [int-ptr!]
+			m 	 		   [pointer! [c-string!]]
 			err year month day hour min tz-h tz-m len ylen dlen value
 			week wday yday [integer!]
 			do-error check-err check-all grab2 grab2r grab2-max grab-time-TZ
@@ -2079,12 +2079,13 @@ lexer: context [
 				len: as-integer me - p
 				if any [len < 3 len > 9][do-error]		;-- invalid month name
 				m: months
+				month: 1
 				loop 12 [
 					if zero? platform/strnicmp p as byte-ptr! m/1 len [break]
 					m: m + 1
+					month: month + 1
 				]
 				if months + 12 = m [do-error]			;-- invalid month name
-				month: (as-integer m - months) >> 2 + 1
 				err: 0									;-- reset eventual error from int month grabing
 				p: me
 			]
@@ -2701,10 +2702,10 @@ lexer: context [
 		type
 	]
 	
-	set-jump-tables: func [[variadic] count [integer!] list [int-ptr!] /local i [integer!] s l [int-ptr!]][
+	set-jump-tables: func [[variadic] count [integer!] list [vararg-ptr!] /local i [integer!] s l [func-table!]][
 		count: count / 2
-		scanners: as int-ptr! allocate count * size? int-ptr!
-		loaders:  as int-ptr! allocate count * size? int-ptr!
+		scanners: as func-table! allocate count * size? pointer!
+		loaders:  as func-table! allocate count * size? pointer!
 		s: scanners
 		l: loaders
 		until [

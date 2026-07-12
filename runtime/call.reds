@@ -491,7 +491,7 @@ ext-process: context [
 				if in-buf <> null [                     ;-- redirect stdin to the pipe
 					either in-buf/count = -1 [			;-- file
 						nfds: platform/io-open as c-string! in-buf/buffer O_RDONLY
-						if nfds < 0 [quit -1]
+						if nfds < 0 [platform/process-exit -1]
 						platform/dup2 nfds stdin
 						platform/io-close nfds
 					][
@@ -507,7 +507,7 @@ ext-process: context [
 							as c-string! out-buf/buffer
 							O_BINARY or O_WRONLY or O_CREAT or O_APPEND
 							438							;-- 0666
-						if nfds < 0 [quit -1]
+						if nfds < 0 [platform/process-exit -1]
 						platform/dup2 nfds stdout
 						platform/io-close nfds
 					][
@@ -530,7 +530,7 @@ ext-process: context [
 							as c-string! err-buf/buffer
 							O_BINARY or O_WRONLY or O_CREAT or O_APPEND
 							438							;-- 0666
-						if nfds < 0 [quit -1]
+						if nfds < 0 [platform/process-exit -1]
 						platform/dup2 nfds stderr
 						platform/io-close nfds
 					][
@@ -577,7 +577,7 @@ ext-process: context [
 					]]
 				]
 				;-- get here only when exec fails
-				quit -1
+				platform/process-exit -1
 			]
 			if pid > 0 [								;-- Parent process
 				nfds: 0
@@ -724,18 +724,15 @@ ext-process: context [
 			inp		[p-buffer!]
 			out		[p-buffer!]
 			err		[p-buffer!]
-			pad1	[float!]
-			pad2	[float!]
-			pad3	[float!]
+			inp-value [p-buffer! value]
+			out-value [p-buffer! value]
+			err-value [p-buffer! value]
 			len		[integer!]
 			cstr	[c-string!]
 			type	[integer!]
 	][
 		#if gui-console? = yes [if console? [--NOT_IMPLEMENTED--]]
 
-		pad1: 0.0
-		pad2: pad1
-		pad3: pad1
 		inp: null
 		out: null
 		err: null
@@ -744,24 +741,24 @@ ext-process: context [
 			switch TYPE_OF(in-str) [
 				TYPE_STRING [
 					PLATFORM_TO_CSTR(cstr in-str len)
-					inp: as p-buffer! :pad1					;@@ a trick as we cannot declare struct on stack
+					inp: inp-value
 					inp/buffer: as byte-ptr! cstr
 					inp/count: len
 				]
 				TYPE_BINARY [
-					inp: as p-buffer! :pad1
+					inp: inp-value
 					inp/buffer: binary/rs-head as red-binary! in-str
 					inp/count: binary/rs-length? as red-binary! in-str
 				]
 				TYPE_FILE [
-					inp: as p-buffer! :pad1
+					inp: inp-value
 					inp/buffer: as byte-ptr! file/to-OS-path as red-file! in-str
 					inp/count: -1
 				]
 			]
 		]
 		if redirout <> null [
-			out: as p-buffer! :pad2
+			out: out-value
 			either TYPE_OF(redirout) = TYPE_FILE [
 				out/buffer: as byte-ptr! file/to-OS-path as red-file! redirout
 				out/count: -1
@@ -771,7 +768,7 @@ ext-process: context [
 			]
 		]
 		if redirerr <> null [
-			err: as p-buffer! :pad3
+			err: err-value
 			either TYPE_OF(redirerr) = TYPE_FILE [
 				err/buffer: as byte-ptr! file/to-OS-path as red-file! redirerr
 				err/count: -1
@@ -795,4 +792,3 @@ ext-process: context [
 		integer/box pid
 	]
 ] ; context
-

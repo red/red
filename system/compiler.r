@@ -212,7 +212,7 @@ system-dialect: make-profilable context [
 		
 		pointer-syntax: [
 			'integer! | 'byte! | 'int8! | 'uint8! | 'int16! | 'uint16! | 'int32! | 'uint32!
-			| 'int64! | 'uint64! | 'float32! | 'float64! | 'float! | 'pointer!
+			| 'int64! | 'uint64! | 'float32! | 'float64! | 'float! | 'c-string! | 'pointer!
 		]
 		
 		func-pointer: ['function! set value block! (check-specs '- value)]
@@ -1321,7 +1321,7 @@ system-dialect: make-profilable context [
 							find value string!
 						]
 						type: either emitter/target/ptr-size = 8 [
-							either find value string! [[c-string!]][[uint64!]]
+							either parse value [some string!] [[c-string!]][[uint64!]]
 						][[integer!]]
 					]
 						next next reduce ['array! length? value 'pointer! type]	;-- hide array size
@@ -4351,7 +4351,7 @@ system-dialect: make-profilable context [
 					] no
 					last-type: casted
 				]
-				emitter/access-path set-path either any [block? value path? value][
+				emitter/access-path set-path either any [block? value path? value tag? value][
 					 <last>
 				][
 					expr
@@ -4391,7 +4391,14 @@ system-dialect: make-profilable context [
 				value: get-type expr
 				val?: struct-by-value? value
 
-				if block? expr [parse value [type-spec]] ;-- prefix return type if required	
+				if block? expr [
+					unless catch [parse value [type-spec]][
+						throw-error [
+							"invalid expression type:" mold value
+							"for variable:" name
+						]
+					]
+				] ;-- prefix return type if required
 				new: resolve-aliased value
 				if all [
 					new/1 = 'any-pointer!

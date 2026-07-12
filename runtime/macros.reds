@@ -646,7 +646,7 @@ Red/System [
 #define NORMALIZE_ANY_BLOCK_HEAD(_ser _s) [
 	#if debug? = yes [use [_type [integer!]][_type: TYPE_OF(_ser)  assert ANY_SERIES_CLASS?(_type)]]
 	if _s/tail < (_s/offset + _ser/head) [
-		_ser/head: (as-integer _s/tail - _s/offset) >> size? int-ptr!
+		_ser/head: (as-integer _s/tail - _s/offset) >> 4
 	]
 ]
 
@@ -655,7 +655,7 @@ Red/System [
 	use [_s [series!]][
 		_s: GET_BUFFER(_ser)
 		if _s/tail < (_s/offset + _ser/head) [
-			_ser/head: (as-integer _s/tail - _s/offset) >> size? int-ptr!
+			_ser/head: (as-integer _s/tail - _s/offset) >> 4
 		]
 	]
 ]

@@ -35,7 +35,7 @@ collector: context [
 	]
 	
 	ext-size: 100
-	ext-markers: as int-ptr! allocate ext-size * size? int-ptr!
+	ext-markers: as ptr-ptr! allocate ext-size * size? int-ptr!
 	ext-top: ext-markers
 	
 	refs: as int-ptr! 0
@@ -52,8 +52,16 @@ collector: context [
 		prefs/nodes-gc-trigger: 5						;-- trigger if node frame is unchanged after 5 cycles
 	]
 
-	compare-cb: func [[cdecl] a [int-ptr!] b [int-ptr!] return: [integer!]][
-		SIGN_COMPARE_RESULT((as int-ptr! a/value) (as int-ptr! b/value))
+	compare-cb: func [
+		[cdecl]
+		a [int-ptr!]
+		b [int-ptr!]
+		return: [integer!]
+		/local pa pb [ptr-ptr!]
+	][
+		pa: as ptr-ptr! a
+		pb: as ptr-ptr! b
+		SIGN_COMPARE_RESULT(pa/value pb/value)
 	]
 
 	node-record!: alias struct! [
@@ -80,7 +88,7 @@ collector: context [
 		fit-cache: 16									;-- nb of pointers fitting into a typical 64 bytes L1 cache
 
 		list!: alias struct! [
-			list  [int-ptr!] 							;-- array of frame pointers
+			list  [ptr-ptr!] 							;-- array of native-width frame pointers
 			size  [integer!]							;-- size of list (in pointers)
 			count [integer!]							;-- current number of stored frames
 		]
@@ -92,23 +100,23 @@ collector: context [
 		rebuild: func [									;-- build an array of node frames pointers
 			/local
 				frm	[node-frame!]
-				pos [int-ptr!]
+				pos [ptr-ptr!]
 				s	[list!]
 				cnt [integer!]
 				process [subroutine!]
 		][
 			;-- allocation alignement not guaranteed, so L1 cache optmization is only eventual.
-			if null? nodes/list  [nodes/list:  as node! allocate min-size * size? int-ptr!]
-			if null? series/list [series/list: as node! allocate min-size * size? int-ptr!]
+			if null? nodes/list  [nodes/list:  as ptr-ptr! allocate min-size * size? int-ptr!]
+			if null? series/list [series/list: as ptr-ptr! allocate min-size * size? int-ptr!]
 			
 			process: [
 				until [
-					pos/value: as-integer frm
+					pos/value: as int-ptr! frm
 					pos: pos + 1
 					cnt: cnt + 1
 					if cnt >= s/size [
 						s/size: s/size * 2
-						s/list: as int-ptr! realloc as byte-ptr! s/list s/size * size? int-ptr!
+						s/list: as ptr-ptr! realloc as byte-ptr! s/list s/size * size? int-ptr!
 						pos: s/list + cnt
 					]
 					frm: frm/next
@@ -116,9 +124,9 @@ collector: context [
 				]
 				if all [cnt > min-size cnt * 3 < s/size][	;-- shrink buffer if 2/3 or more are not used
 					s/size: cnt
-					s/list: as int-ptr! realloc as byte-ptr! s/list s/size * size? int-ptr!
+					s/list: as ptr-ptr! realloc as byte-ptr! s/list s/size * size? int-ptr!
 				]
-				qsort as byte-ptr! s/list cnt 4 :compare-cb	;-- sort the array
+				qsort as byte-ptr! s/list cnt size? int-ptr! :compare-cb	;-- sort the array
 				s/count: cnt
 			]
 			
@@ -147,7 +155,8 @@ collector: context [
 			return: [logic!]
 			/local
 				sfrm		 [series-frame!]
-				frm p b e	 [int-ptr!]
+				frm			 [int-ptr!]
+				p b e		 [ptr-ptr!]
 				tail		 [byte-ptr!]
 				s			 [list!]
 				w h			 [integer!]
@@ -169,7 +178,11 @@ collector: context [
 				][
 					loop s/count [
 						frm: as int-ptr! p/value + h
-						if all [frm <= ptr ptr < as int-ptr! ((as byte-ptr! frm) + w)][return yes]
+						if all [
+							frm <= ptr
+							ptr < as int-ptr! ((as byte-ptr! frm) + w)
+							zero? (((as-integer ptr) - (as-integer frm)) and ((size? node!) - 1))
+						][return yes]
 						p: p + 1
 					]
 				]
@@ -178,7 +191,7 @@ collector: context [
 				e: s/list + (s/count - 1)				;-- high pointer
 				either series? [
 					until [
-						p: b + ((as-integer e - b) >> 2 + 1 / 2) ;-- points to the middle of [b,e] segment
+						p: b + ((((as-integer e - b) / size? int-ptr!) + 1) / 2) ;-- points to the middle of [b,e] segment
 						sfrm: as series-frame! p/value
 						tail: (as byte-ptr! sfrm) + sfrm/size
 						if all [(as int-ptr! (as byte-ptr! sfrm) + h) <= ptr ptr < as int-ptr! tail][return yes]
@@ -188,11 +201,15 @@ collector: context [
 					]
 				][
 					until [
-						p: b + ((as-integer e - b) >> 2 + 1 / 2) ;-- points to the middle of [b,e] segment
+						p: b + ((((as-integer e - b) / size? int-ptr!) + 1) / 2) ;-- points to the middle of [b,e] segment
 						frm: as int-ptr! p/value + h
-						if all [frm <= ptr ptr < as int-ptr! ((as byte-ptr! frm) + w)][return yes]
+						if all [
+							frm <= ptr
+							ptr < as int-ptr! ((as byte-ptr! frm) + w)
+							zero? (((as-integer ptr) - (as-integer frm)) and ((size? node!) - 1))
+						][return yes]
 						end?: b = e						;-- gives a chance to probe the b = e segment
-						either (as node! p/value) < ptr [b: p][e: p - 1] ;-- chooses lower or upper segment
+						either (as int-ptr! p/value) < ptr [b: p][e: p - 1] ;-- chooses lower or upper segment
 						end?
 					]
 				]
@@ -226,7 +243,9 @@ collector: context [
 		
 		flush: func [									;-- assumes frames-list buffer is built and sorted
 			/local
-				frm p e node new [int-ptr!]
+				frm new [int-ptr!]
+				p e [ptr-ptr!]
+				node [node!]
 				n [node-record!]
 				frm-nb w handle [integer!]
 		][
@@ -242,7 +261,7 @@ collector: context [
 				handle: n/handle
 				while [
 					frm: as int-ptr! ((as node-frame! p/value) + 1)
-					not all [frm <= node  node < as node! ((as byte-ptr! frm) + w)]
+					not all [frm <= as int-ptr! node  (as int-ptr! node) < as int-ptr! ((as byte-ptr! frm) + w)]
 				][
 					p: p + 1
 					assert p <= e						;-- parent frame should always be found
@@ -300,11 +319,14 @@ collector: context [
 
 		loop src/nodes [								;-- loop over each node's value in frame
 			ptr: as int-ptr! slot/value
-			if all [ptr <> null any [ptr < head  tail < ptr]][	;-- move node's value to dst frame if node is not part of the internal free list
+			if all [
+				ptr <> null
+				any [ptr < as int-ptr! head  (as int-ptr! tail) < ptr]
+			][										;-- move node's value if it is not an internal free-list link
 				if null? dst/head [dst: select-dst]		;-- if dst frame is full, find a new one
 				new: dst/head							;-- alloc node slot in dst frame
 				dst/head: as node! new/value			;-- set free list head to next free slot
-				new/value: as-integer ptr				;-- transfer the node's value
+				new/value: ptr							;-- transfer the node's full-width value
 				_hashtable/rs-put refs as-integer slot as-integer new	;-- store old (key), new (value) pair
 				;print-line ["relocating node: " slot " from frame " src " to " dst " (new: " new ")"]
 				s: as series! ptr
@@ -354,29 +376,30 @@ collector: context [
 		if done? [stats/nodes-cycles: stats/nodes-cycles + 1] ;-- increment count if at least one frame was compacted.
 	]
 	
-	refresh-array: func [p [node!] end [node!] /local new [node!]][
+	refresh-array: func [p [node!] end [node!] /local new [int-ptr!]][
 		while [p < end][
 			;probe ["p: " p ", node: " as int-ptr! p/value]
-			new: _hashtable/rs-get refs p/value
-			if new <> null [prin "." p/value: new/value]
+			new: _hashtable/rs-get refs as-integer p/value
+			if new <> null [prin "." p/value: as int-ptr! new/value]
 			p: p + 1
 		]
 	]
 	
 	keep-raw: func [
-		ptr		[int-ptr!]
+		ptr		[ptr-ptr!]
 		return: [logic!]								;-- TRUE if newly marked, FALSE if already done
 		/local
-			node new [node!]
+			node [node!]
+			new  [int-ptr!]
 			s	  [series!]
 			new?  [logic!]
 			flags [integer!]
 	][
 		if refs <> null [
-			new: _hashtable/rs-get refs ptr/value
+			new: _hashtable/rs-get refs as-integer ptr/value
 			if new <> null [
 				;probe ["(keep) ptr: " ptr ", node: " as node! ptr/value ", new: " as node! new/value]
-				ptr/value: new/value
+				ptr/value: as int-ptr! new/value
 			]
 		]	
 		node: as node! ptr/value
@@ -416,15 +439,15 @@ collector: context [
 	mark-context: func [
 		ptr		[int-ptr!]
 		/local
-			node [node!]
+			node [int-ptr!]
 			ctx  [red-context!]
 			slot [red-value!]
 	][
 		if keep ptr [
 			ctx: TO_CTX(ptr/value)							;-- [context! function!|object!]
 			slot: as red-value! ctx
-			node: resolve-node ctx/symbols
-			_hashtable/mark as int-ptr! :node
+			node: as int-ptr! resolve-node ctx/symbols
+			_hashtable/mark as ptr-ptr! :node
 			unless ON_STACK?(ctx) [mark-block-node :ctx/values]
 			mark-values slot + 1 slot + 2				;-- mark the back-reference value (2nd value)
 		]
@@ -445,7 +468,7 @@ collector: context [
 			ctx		[red-context!]
 			img		[red-image!]
 			h		[red-handle!]
-			node	[ node!]
+			node	[int-ptr!]
 			len		[integer!]
 			type	[integer!]
 	][
@@ -512,8 +535,8 @@ collector: context [
 					#if debug? = yes [if verbose > 1 [print "context"]]
 					ctx: as red-context! value
 					;keep :ctx/self
-					node: resolve-node ctx/symbols
-					_hashtable/mark as int-ptr! :node
+					node: as int-ptr! resolve-node ctx/symbols
+					_hashtable/mark as ptr-ptr! :node
 					unless ON_STACK?(ctx) [mark-block-node :ctx/values]
 				]
 				TYPE_HASH
@@ -521,8 +544,8 @@ collector: context [
 					#if debug? = yes [if verbose > 1 [print "hash/map"]]
 					hash: as red-hash! value
 					mark-block-node :hash/node
-					node: resolve-node hash/table
-					_hashtable/mark as int-ptr! :node		;@@ check if previously marked
+					node: as int-ptr! resolve-node hash/table
+					_hashtable/mark as ptr-ptr! :node		;@@ check if previously marked
 				]
 				TYPE_FUNCTION
 				TYPE_ROUTINE [
@@ -579,7 +602,7 @@ collector: context [
 	]
 
 	mark-block-raw: func [
-		ptr	[int-ptr!]
+		ptr	[ptr-ptr!]
 		/local
 			node [node!]
 			s	 [series!]
@@ -602,18 +625,24 @@ collector: context [
 		]
 	]
 	
-	update-series: func [								;-- Update moved series internal pointers
-		s		[series!]								;-- start of series region with nodes to re-sync
-		offset	[integer!]
+	prepare-series-move: func [						;-- Rewrite headers for a pending series move
+		src dst	[byte-ptr!]							;-- source and destination regions
 		size	[integer!]
 		/local
+			s destination [series!]
 			tail [byte-ptr!]
+			offset [integer!]
 	][
-		tail: (as byte-ptr! s) + size
+		s: as series! src
+		destination: as series! dst
+		tail: src + size
 		until [
-			set-node-value s/node as-integer s			;-- update the node pointer to the new series address
-			s/offset: as cell! (as byte-ptr! s/offset) - offset	;-- update offset and tail pointers
-			s/tail:   as cell! (as byte-ptr! s/tail) - offset
+			set-node-value s/node as int-ptr! destination	;-- update the node pointer before moving the bytes
+			offset: as-integer (as byte-ptr! s/offset) - (as byte-ptr! s)
+			s/offset: as cell! (as byte-ptr! destination) + offset
+			offset: as-integer (as byte-ptr! s/tail) - (as byte-ptr! s)
+			s/tail: as cell! (as byte-ptr! destination) + offset
+			destination: as series! (as byte-ptr! destination + 1) + s/size + SERIES_BUFFER_PADDING
 			s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
 			tail <= as byte-ptr! s
 		]
@@ -621,16 +650,15 @@ collector: context [
 
 	compact-series-frame: func [						;-- Compact a series frame by moving down in-use series buffer regions
 		frame	[series-frame!]							;-- series frame to compact
-		refs	[int-ptr!]
-		return: [int-ptr!]								;-- returns the next stack pointer to process
+		refs	[ptr-ptr!]
+		return: [ptr-ptr!]								;-- returns the next stack pointer to process
 		/local
-			tail  [int-ptr!]
-			ptr	  [int-ptr!]
+			tail  [ptr-ptr!]
+			ptr	  [ptr-ptr!]
 			s	  [series!]
 			heap  [series!]
 			src	  [byte-ptr!]
 			dst	  [byte-ptr!]
-			delta [integer!]
 			size  [integer!]
 			tail? [logic!]
 	][
@@ -674,16 +702,16 @@ collector: context [
 					assert src < as byte-ptr! s 		;-- src should point at least at series - series/size
 
 					size: as-integer (as byte-ptr! s) - src
-					delta: as-integer src - dst
 					;probe ["move src=" src ", dst=" dst ", size=" size]
-					move-memory dst	src size
-					update-series as series! dst delta size
+					prepare-series-move src dst size
+					move-memory dst src size
 
 					if refs < tail [					;-- update pointers on native stack
-						while [all [refs < tail (as byte-ptr! refs/1) < src]][refs: refs + 2]
-						while [all [refs < tail (as byte-ptr! refs/1) < (src + size)]][
-							ptr: as int-ptr! refs/2
-							ptr/value: ptr/value - delta
+						while [all [refs < tail (as byte-ptr! refs/value) < src]][refs: refs + 2]
+						while [all [refs < tail (as byte-ptr! refs/value) < (src + size)]][
+							ptr: refs + 1
+							ptr: as ptr-ptr! ptr/value
+							ptr/value: as int-ptr! (dst + (as-integer (as byte-ptr! ptr/value) - src))
 							refs: refs + 2
 						]
 					]
@@ -701,13 +729,13 @@ collector: context [
 
 	cross-compact-frame: func [
 		frame	[series-frame!]
-		refs	[int-ptr!]
-		return: [int-ptr!]
+		refs	[ptr-ptr!]
+		return: [ptr-ptr!]
 		/local
 			prev	[series-frame!]
 			free-sz [integer!]
-			tail	[int-ptr!]
-			ptr		[int-ptr!]
+			tail	[ptr-ptr!]
+			ptr		[ptr-ptr!]
 			s		[series!]
 			ss		[series!]
 			heap	[series!]
@@ -716,7 +744,6 @@ collector: context [
 			prev-dst [byte-ptr!]
 			dst2	[byte-ptr!]
 			set-cross [subroutine!]
-			delta	[integer!]
 			size	[integer!]
 			size2	[integer!]
 			tail?	[logic!]
@@ -791,7 +818,6 @@ collector: context [
 						]
 						free-sz: free-sz - size
 						set-cross
-						delta: as-integer src - prev-dst
 						dst2: prev-dst
 						prev-dst: prev-dst + size
 					]
@@ -800,7 +826,6 @@ collector: context [
 						assert src < as byte-ptr! s 	;-- src should point at least at series - series/size
 
 						size: as-integer (as byte-ptr! s) - src
-						delta: as-integer src - dst
 						dst2: dst
 						dst: dst + size
 					]
@@ -812,13 +837,14 @@ collector: context [
 
 				if update? [
 					;probe ["(x-compact) move src=" src ", dst=" dst2 ", size=" size]
+					prepare-series-move src dst2 size
 					move-memory dst2 src size
-					update-series as series! dst2 delta size
 					if refs < tail [			;-- update pointers on native stack
-						while [all [refs < tail (as byte-ptr! refs/1) < src]][refs: refs + 2]
-						while [all [refs < tail (as byte-ptr! refs/1) < (src + size)]][
-							ptr: as int-ptr! refs/2
-							ptr/value: ptr/value - delta
+						while [all [refs < tail (as byte-ptr! refs/value) < src]][refs: refs + 2]
+						while [all [refs < tail (as byte-ptr! refs/value) < (src + size)]][
+							ptr: refs + 1
+							ptr: as ptr-ptr! ptr/value
+							ptr/value: as int-ptr! (dst2 + (as-integer (as byte-ptr! ptr/value) - src))
 							;probe ["(x-compact) update pointer " as int-ptr! refs/1 " on stack at: " ptr]
 							refs: refs + 2
 						]
@@ -840,28 +866,37 @@ collector: context [
 	]
 
 	encode-dyn-ptr: func [
-		stk	    [int-ptr!]								;-- stack frame pointer
+		stk	    [ptr-ptr!]								;-- native-width stack frame pointer
 		typed?  [logic!]								;-- typed or generic variadic function
 		return: [integer!]								;-- return a bitmap of pointer slots
 		/local
 			count i bits [integer!]
 			ptr? [logic!]
 	][
-		stk: stk + 2
-		count: stk/value								;-- args count
-		stk: stk + 1
-		stk: as int-ptr! stk/value						;-- args pointer
-		i: 3											;-- skip variadic slots header
+		#either target = 'X86-64 [
+			stk: stk - 5
+			count: as-integer stk/value				;-- args count
+			stk: stk - 1
+			stk: as ptr-ptr! stk/value					;-- args pointer
+			i: either typed? [2][3]
+		][
+			stk: stk + 2
+			count: as-integer stk/value				;-- args count
+			stk: stk + 1
+			stk: as ptr-ptr! stk/value					;-- args pointer
+			i: 3										;-- skip variadic slots header
+		]
 		bits: 0
+		#if target = 'X86-64 [bits: 2]					;-- list is the second formal argument
 		either typed? [									;-- typed call (RTTI available)
 			assert count <= 9							;-- 32 - 3, divided by 3 slots per argument
 			loop count [
-				switch stk/value [						;-- argument type ID
+				switch as-integer stk/value [			;-- argument type ID
 					type-c-string!
 					type-byte-ptr!
 					type-int-ptr!
 					type-struct! [ptr?: yes]
-					default		 [ptr?: stk/value >= 1000]
+					default		 [ptr?: (as-integer stk/value) >= 1000]
 				]
 				i: i + 1
 				if ptr? [bits: bits or (1 << i)]		;-- mark pointer
@@ -870,21 +905,27 @@ collector: context [
 			bits
 		][												;-- variadic call (no RTTI)
 			assert count <= 14							;-- 32 - 3 divided by 2 slots per argument
-			bits: (1 << (count * 2)) - 1				;-- set bits for all required positions
-			bits and 55555555h << i						;-- mask to keep only even positions, offset by i bits
+			#either target = 'X86-64 [
+				bits or (((1 << count) - 1) << i)
+			][
+				bits: (1 << (count * 2)) - 1			;-- set bits for all required positions
+				bits and 55555555h << i					;-- mask to keep only even positions, offset by i bits
+			]
 		]
 	]
 
 	scan-stack-refs: func [
 		store? [logic!]									;-- store series pointers in a list for later eventual update
 		/local
-			frm	map	slot p sp b base base' head prev [int-ptr!]
-			refs tail new [int-ptr!]
+			frm slot sp prev [ptr-ptr!]
+			sp-address [byte-ptr!]
+			map p b base base' head [int-ptr!]
+			refs tail new entry [ptr-ptr!]
 			node [node!]
 			c-low c-high lib-low lib-high caller [byte-ptr!]
 			s [series!]
-			bits idx disp nb [integer!]
-			ext? [logic!]
+			bits slot-bits idx disp nb arg-slots local-slots slots handle [integer!]
+			ext? dyn? [logic!]
 	][
 		c-low: system/image/base + system/image/code
 		c-high: c-low + system/image/code-size
@@ -892,17 +933,19 @@ collector: context [
 			lib-low: system/lib-image/base + system/lib-image/code
 			lib-high: lib-low + system/lib-image/code-size
 		]
-		frm: system/stack/frame
+		frm: as ptr-ptr! system/stack/frame
 		refs: memory/stk-refs
+		nb: 0
 		tail: refs + (memory/stk-sz * 2)
 		base: bitarrays-base
 		base': lib-bitarrays-base						;-- points to libRedRT's bitmap array
 		prev: frm
-		frm: as int-ptr! frm/value						;-- skip extract-stack-refs own frame
+		frm: as ptr-ptr! frm/value						;-- skip extract-stack-refs own frame
 
 		until [
-			caller: either any [null? prev  prev = as int-ptr! -1  prev >= stk-bottom][null][
-				as byte-ptr! prev/2
+			caller: either any [null? prev  prev = as ptr-ptr! -1  prev >= as ptr-ptr! stk-bottom][null][
+				slot: prev + 1
+				as byte-ptr! slot/value
 			]
 		#either libRedRT? = yes [
 			if any [									;-- only process Red frames (skip externals)
@@ -914,63 +957,109 @@ collector: context [
 		]
 			[
 				slot: frm - 3							;-- position on bitmap slot
-				assert slot/value >= 0					;-- should never hit STACK_BITMAP_BARRIER
-				b: either slot/value and 40000000h <> 0 [base'][base] ;-- select exe or dll's bitmap array
-				map: b + (slot/value and 0FFFFFFFh)		;-- first corresponding bitmap slot (removing bit flags)
+				slot-bits: as-integer slot/value
+				assert slot-bits >= 0					;-- should never hit STACK_BITMAP_BARRIER
+				b: either slot-bits and 40000000h <> 0 [base'][base] ;-- select exe or dll's bitmap array
+				map: b + (slot-bits and 0FFFFFFFh)		;-- first corresponding bitmap slot (removing bit flags)
+				#either target = 'X86-64 [
+					arg-slots: map/value
+					map: map + 1
+					local-slots: map/value
+					map: map + 1
+				][
+					arg-slots: 0
+					local-slots: 0
+				]
 				head: map								;-- saved head reference for later args bitmap detection
-				idx: 2									;-- arguments index (1-based)
+				#either target = 'X86-64 [idx: -1][idx: 2] ;-- arguments index
 				disp: 1									;-- scanning direction
 				loop 2 [								;-- 1st loop: args, 2nd loop: locals
+					#either target = 'X86-64 [
+						slots: either disp = 1 [arg-slots][local-slots]
+					][slots: 0]
 					until [
 						bits: map/value					;-- read 31 slots bitmap
 						ext?: bits and 80000000h <> 0	;-- read extension bit
 						bits: bits and 7FFFFFFFh		;-- clear extension bit
+						dyn?: no
 						if all [
 							map = head					;-- only for args bitmaps
 							any [bits = 40000000h bits = 20000000h] ;-- variadic/typed function call
 						][
+							dyn?: yes
 							bits: encode-dyn-ptr frm bits = 20000000h ;-- replace bitmap by a dynamic one (32 stack slots only)
+							#if target = 'X86-64 [slots: 31]
 						]
-						while [bits <> 0][
-							idx: idx + disp
+						while [#either target = 'X86-64 [
+							any [bits <> 0 (idx + 1) < slots]
+						][
+							bits <> 0
+						]][
+							#either target = 'X86-64 [idx: idx + 1][idx: idx + disp]
+							#if target = 'X86-64 [
+								sp-address: either disp = -1 [
+									(as byte-ptr! frm) - ((5 + arg-slots + idx) * size? pointer!)
+								][either all [dyn? idx >= arg-slots] [
+									(as byte-ptr! frm) + ((2 + idx - arg-slots) * size? pointer!)
+								][
+									(as byte-ptr! frm) - ((5 + idx) * size? pointer!)
+								]]
+								sp: as ptr-ptr! sp-address
+								if all [idx < slots][
+									handle: as integer! sp/value
+									if all [handle > 0 handle < node-registry/next][
+										entry: node-registry/entries + (handle - 1)
+										if entry/value <> null [keep as int-ptr! sp]
+									]
+								]
+							]
 							if bits and 1 <> 0 [		;-- check if the slot is a pointer
-								p: as int-ptr! frm/idx
-								if all [
+								#either target = 'X86-64 [
+								][sp: frm + idx - 1]
+								p: sp/value
+								if #either target = 'X86-64 [
+									p > as int-ptr! FFFFh
+								][all [
 									p > as int-ptr! FFFFh	  ;-- filter out too low values
 									p < as int-ptr! FFFFF000h ;-- filter out too high values
-								][
-									sp: frm + idx - 1
+								]][
+									node: as node! p
 									case [
 										all [			;=== Mark node! references ===
-											(as-integer p) and 3 = 0	;-- check if it's a valid int-ptr!
 											frames-list/find p FRAME_NODES
-											p/value <> 0
-											not frames-list/find as int-ptr! p/value FRAME_NODES ;-- freed nodes can still be on the stack!
-											keep-raw sp
+											node/value <> null
+											not frames-list/find node/value FRAME_NODES ;-- freed nodes can still be on the stack!
+											frames-list/find node/value FRAME_SERIES
+											keep-raw as ptr-ptr! sp
 										][
-											;probe ["(scan) node pointer on stack: " p " : " as byte-ptr! p/value]
-											p: as int-ptr! sp/value		;-- refresh it after `keep sp` call
-											s: as series! p/value
+											;probe ["(scan) node pointer on stack: " p " : " as byte-ptr! node/value]
+											p: sp/value				;-- refresh it after `keep sp` call
+											node: as node! p
+											s: as series! node/value
 											if GET_UNIT(s) = 16 [mark-values s/offset s/tail]
 										]
-										all [
-											not all [(as byte-ptr! stack/bottom) <= p p <= (as byte-ptr! stack/top)] ;-- stack region is fixed
-											frames-list/find p FRAME_SERIES
-										][
-											;probe ["stack pointer: " p " : " as byte-ptr! p/value " (" frm + idx - 1 ")"]
+						all [
+							not all [(as byte-ptr! stack/bottom) <= p p <= (as byte-ptr! stack/top)] ;-- stack region is fixed
+							frames-list/find p FRAME_SERIES
+						][
+							;probe ["stack pointer: " p " : " as byte-ptr! p/value " (" frm + idx - 1 ")"]
 											if store? [	;=== Extract series references ===
 												if refs = tail [
 													;@@ for cases like issue #3628, should find a better way to handle it
 													refs: memory/stk-refs
 													memory/stk-sz: memory/stk-sz + 1000
-													refs: as int-ptr! realloc as byte-ptr! refs memory/stk-sz * 2 * size? int-ptr!
+													refs: as ptr-ptr! realloc as byte-ptr! refs memory/stk-sz * 2 * size? int-ptr!
 													memory/stk-refs: refs
 													tail: refs + (memory/stk-sz * 2)
 													refs: tail - 2000
 												]
-												refs/1: as-integer p	;-- pointer inside a frame
-												refs/2: as-integer sp	;-- pointer address on stack
+												refs/value: p			;-- pointer inside a frame
+												new: refs + 1
+												#either target = 'X86-64 [
+													new/value: as int-ptr! sp-address
+												][new/value: as int-ptr! sp]
 												refs: refs + 2
+												nb: nb + 1
 											]
 										]
 										true [0]
@@ -982,24 +1071,23 @@ collector: context [
 						map: map + 1					;-- next 31 slots bitmap
 						not ext?						;-- loop until no more extended slots
 					]
-					idx:  -3							;-- locals index (1-based)
+					#either target = 'X86-64 [idx: -1][idx: -3] ;-- locals index
 					disp: -1							;-- scanning direction
 				]
 			]
 			prev: frm
-			frm: as int-ptr! frm/value					;-- jump to next stack frame
+			frm: as ptr-ptr! frm/value					;-- jump to next stack frame
 			if frm < prev [								;-- if broken frames chain
 				slot: prev - 4
-				frm: as int-ptr! slot/value				;-- use last known parent frame pointer
+				frm: as ptr-ptr! slot/value				;-- use last known parent frame pointer
 				if frm < prev [break]
 			]
-			any [null? frm  frm = as int-ptr! -1  frm >= stk-bottom]
+			any [null? frm  frm = as ptr-ptr! -1  frm >= as ptr-ptr! stk-bottom]
 		]
 		memory/stk-tail: refs
-		nb: (as-integer refs - memory/stk-refs) >> 2 / 2
 
 		if all [store? nb > 0][
-			qsort as byte-ptr! memory/stk-refs nb 8 :compare-cb
+			qsort as byte-ptr! memory/stk-refs nb (2 * size? int-ptr!) :compare-cb
 
 			;tail: refs
 			;refs: memory/stk-refs
@@ -1015,7 +1103,7 @@ collector: context [
 		type	  [integer!]
 		/local
 			frame [series-frame!]
-			refs  [int-ptr!]
+			refs  [ptr-ptr!]
 			next  [series-frame!]
 	][
 		next: null
@@ -1050,6 +1138,7 @@ collector: context [
 	do-mark-sweep: func [
 		/local
 			p		[int-ptr!]
+			marker	[ptr-ptr!]
 		#if debug? = yes [
 			file	[c-string!]
 			saved	[integer!]
@@ -1083,12 +1172,20 @@ collector: context [
 			if verbose > 1 [probe "^/marking..."]
 		]
 
-		do-node-cycle
+		#either target = 'X86-64 [
+			0										;-- rs-* relocation map still uses 32-bit pointer keys
+		][
+			do-node-cycle
+		]
 		mark-block root
 		#if debug? = yes [if verbose > 1 [probe "marking symbol table"]]
-		_hashtable/mark as int-ptr! :symbol/table		;-- will mark symbols
+		p: as int-ptr! symbol/table
+		_hashtable/mark as ptr-ptr! :p			;-- will mark symbols
+		symbol/table: as node! p
 		#if debug? = yes [if verbose > 1 [probe "marking ownership table"]]
-		_hashtable/mark as int-ptr! :ownership/table
+		p: as int-ptr! ownership/table
+		_hashtable/mark as ptr-ptr! :p
+		ownership/table: as node! p
 
 		#if debug? = yes [if verbose > 1 [probe "marking stack"]]
 		keep :arg-stk/node
@@ -1096,18 +1193,19 @@ collector: context [
 		mark-values stack/bottom stack/top
 		
 		#if debug? = yes [if verbose > 1 [probe "marking globals"]]
-		if HANDLE?(interpreter/near/node) [keep :interpreter/near/node]
+		mark-context as int-ptr! :global-ctx
+		if HANDLE?(interpreter/near/node) [mark-block interpreter/near]
 		lexer/mark-buffers
 		mark-block-node :references/list/node
 		
 		#if debug? = yes [if verbose > 1 [probe "marking globals from optional modules"]]
-		p: ext-markers
-		while [p < ext-top][
-			if p/value <> 0 [							;-- check if not unregistered
-				cb: as function! [] p/value
+		marker: ext-markers
+		while [marker < ext-top][
+			if marker/value <> null [					;-- check if not unregistered
+				cb: as function! [] marker/value
 				cb
 			]
-			p: p + 1
+			marker: marker + 1
 		]
 		
 		#if debug? = yes [if verbose > 1 [probe "scanning native stack"]]
@@ -1161,27 +1259,27 @@ collector: context [
 	
 	register: func [
 		cb [int-ptr!]
-		/local p [int-ptr!]
+		/local p [ptr-ptr!]
 	][
 		p: ext-markers
 		while [p < ext-top][
-			if p/value = 0 [
-				p/value: as-integer cb
+			if p/value = null [
+				p/value: cb
 				exit
 			]
 			p: p + 1
 		]
-		if (as-integer ext-top - ext-markers) >> 2 >= ext-size [
+		if ext-top >= (ext-markers + ext-size) [
 			fire [TO_ERROR(internal no-memory)]
 		]
-		ext-top/value: as-integer cb
+		ext-top/value: cb
 		ext-top: ext-top + 1
 	]
 	
-	unregister: func [cb [int-ptr!] /local p [int-ptr!]][
+	unregister: func [cb [int-ptr!] /local p [ptr-ptr!]][
 		p: ext-markers
 		while [p < ext-top][
-			if p/value = as-integer cb [p/value: 0 exit]
+			if p/value = cb [p/value: null exit]
 			p: p + 1
 		]
 	]
@@ -1222,8 +1320,8 @@ collector: context [
 			verbose [integer!]
 			/local
 				frame	[node-frame!]
-				p v [int-ptr!]
-				head tail slot [node!]
+				v [int-ptr!]
+				p head tail slot [node!]
 				free used w [integer!]
 		][
 			if verbose > 0 [print lf]
@@ -1243,7 +1341,7 @@ collector: context [
 				
 				while [p <> null][
 					free: free + 1
-					p: as int-ptr! p/value				;-- next free slot
+					p: as node! p/value					;-- next free slot
 				]
 				if verbose > 0 [probe ["Frame: " frame ", /used: " frame/used ", free: " free]]
 				--assert NODE_FRM_FREE nodes-per-frame - frame/used = free
@@ -1257,7 +1355,10 @@ collector: context [
 				
 				loop frame/nodes [
 					v: as int-ptr! slot/value
-					unless any [null? v all [head <= v v < tail]][
+					unless any [
+						null? v
+						all [(as int-ptr! head) <= v v < as int-ptr! tail]
+					][
 						used: used + 1
 						;also check if part of series frame
 					]

@@ -31,7 +31,7 @@ datatype: context [
 	register: func [									;-- Load actions table with a new datatype set of function pointers
 		[variadic]										;-- Input: block of values with type ID in first place followed by actions pointers.
 		count		[integer!]
-		list		[int-ptr!]
+		list		[vararg-ptr!]
 		/local
 			type	[integer!]
 			index	[integer!]
@@ -39,12 +39,12 @@ datatype: context [
 			idx		[integer!]
 			name	[names!]
 	][
-		type: list/value
+		type: as-integer list/value
 		assert type < TYPE_TOTAL_COUNT					;-- hard limit of action table
 		if type > top-id [top-id: type]					;@@ unreliable, needs automatic type IDs
 		list: list + 1
 		
-		parent: list/value
+		parent: as-integer list/value
 		list: list + 1
 		
 		name: name-table + type
@@ -69,7 +69,7 @@ datatype: context [
 		until [
 			action-table/index: either all [
 				parent <> TYPE_VALUE
-				list/value = INHERIT_ACTION
+				(as-integer list/value) = INHERIT_ACTION
 			][
 				idx: parent << 8 + 1 + (ACTIONS_NB - count)
 				action-table/idx						;-- inherit action from parent
@@ -255,4 +255,3 @@ datatype: context [
 		]
 	]
 ]
-
