@@ -380,20 +380,13 @@ redbin: context [
 		return: [red-value!]
 		/local
 			p			[byte-ptr!]
-			end			[byte-ptr!]
 			iend		[byte-ptr!]					;-- real input end (null = unbounded/trusted); bounds validation
 			written		[integer!]
 			saved		[byte-ptr!]
-			p4			[int-ptr!]
 			compact?	[logic!]
 			compressed? [logic!]
 			sym-table?	[logic!]
-			table		[int-ptr!]
-			len			[integer!]
-			count		[integer!]
-			i			[integer!]
 			s			[series!]
-			not-set?	[logic!]
 	][
 		;----------------
 		;-- decode header
@@ -433,62 +426,18 @@ redbin: context [
 			saved: p
 			iend: p + written						;-- real end = decompressed buffer end
 		]
-		
-		if compact? [
-			unless codec? [
-				s: GET_BUFFER(parent)
-				root-offset: (as-integer s/tail - s/offset) >> log-b size? cell!
-			]
-			decode-compact p iend parent sym-table?
-			if compressed? [crush/release saved]
-			input: null
-			unless codec? [root-base: (block/rs-head parent) + root-offset]
-			return root-base
-		]
-		if all [iend <> null (as-integer iend - p) < 8][	;-- fat count+len occupy two 4-byte fields
-			fire [TO_ERROR(script invalid-data) stack/arguments]
-		]
-		p4: as int-ptr! p
-		
-		count: p4/1									;-- read records number
-		len: p4/2									;-- read records size in bytes
-		p4: p4 + 2									;-- skip both fields
-		p: as byte-ptr! p4
-		
-		;----------------
-		;-- get symbol table if we have it.
-		;----------------
-		table: null
-		if sym-table? [
-			table: either codec? [p4 + 2][build-symbol-table p4]	;-- payload is never modified
-			p: p + 8 + (p4/1 * 4 + p4/2)
-		]
-		
-		;----------------
-		;-- decode values
-		;----------------
 		unless codec? [
 			s: GET_BUFFER(parent)
 			root-offset: (as-integer s/tail - s/offset) >> log-b size? cell!
 		]
 		
-		end: p + len
-		#if debug? = yes [if verbose > 0 [i: 0]]
-		
-		origin: parent								;-- track root block for references
-		while [p < end][
-			#if debug? = yes [
-				p4: as int-ptr! p
-				not-set?: p4/1 and REDBIN_SET_MASK = 0
-				if verbose > 0 [print [i #":"]]
-			]
-			p: as byte-ptr! decode-value as int-ptr! p as int-ptr! end table parent
-			#if debug? = yes [if verbose > 0 [if not-set? [i: i + 1] print lf]]
+		either compact? [
+			decode-compact p iend parent sym-table?
+		][
+			decode-fat p iend parent sym-table?
 		]
 		
 		if compressed? [crush/release saved]
-		if all [not codec? table <> null][free as byte-ptr! table]
-
 		input: null
 		unless codec? [root-base: (block/rs-head parent) + root-offset]
 		root-base
@@ -2228,6 +2177,57 @@ redbin: context [
 			as int-ptr! align bits + size 32		;-- align at upper 32-bit boundary
 		]
 	]
+	
+	decode-fat: func [
+		p       [byte-ptr!]
+		iend    [byte-ptr!]								;-- real input end (null = trusted boot payload, unbounded)
+		parent  [red-block!]
+		table?  [logic!]
+		/local
+			p4			[int-ptr!]
+			table		[int-ptr!]
+			end			[byte-ptr!]
+			count len i	[integer!]
+			not-set?	[logic!]
+	][
+		if all [iend <> null (as-integer iend - p) < 8][	;-- fat count+len occupy two 4-byte fields
+			fire [TO_ERROR(script invalid-data) stack/arguments]
+		]
+		p4: as int-ptr! p
+		
+		count: p4/1									;-- read records number
+		len: p4/2									;-- read records size in bytes
+		p4: p4 + 2									;-- skip both fields
+		p: as byte-ptr! p4
+		
+		;----------------
+		;-- get symbol table if we have it.
+		;----------------
+		table: null
+		if table? [
+			table: either codec? [p4 + 2][build-symbol-table p4]	;-- payload is never modified
+			p: p + 8 + (p4/1 * 4 + p4/2)
+		]
+		
+		;----------------
+		;-- decode values
+		;----------------
+		end: p + len
+		#if debug? = yes [if verbose > 0 [i: 0]]
+		
+		origin: parent								;-- track root block for references
+		while [p < end][
+			#if debug? = yes [
+				p4: as int-ptr! p
+				not-set?: p4/1 and REDBIN_SET_MASK = 0
+				if verbose > 0 [print [i #":"]]
+			]
+			p: as byte-ptr! decode-value as int-ptr! p as int-ptr! end table parent
+			#if debug? = yes [if verbose > 0 [if not-set? [i: i + 1] print lf]]
+		]
+		if all [not codec? table <> null][free as byte-ptr! table]
+	]
+	
 	;-- Compact format --
 
 	throw-error-cp: func [p [byte-ptr!]][
