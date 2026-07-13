@@ -2344,18 +2344,17 @@ redbin: context [
 		p
 	]
 
-	referral-immediate?: func [						;-- TRUE if a resolved referral target carries no node
-		value   [red-value!]							;-- references only ever point at node-bearing values, so an
-		return: [logic!]								;-- immediate (scalar) target signals a crafted/corrupt payload
-		/local t [integer!]
+	referral-node?: func [							;-- TRUE only if the target holds a series node in data2 — the slot
+		value   [red-value!]						;-- every series decoder re-heads as its node. WHITELIST, not blacklist:
+		return: [logic!]							;-- a reference only ever targets such a value; anything else (object=class,
+		/local t [integer!]							;-- word=symbol, point=coord, scalar=data in data2) is a crafted/corrupt payload.
 	][
 		t: TYPE_OF(value)
 		any [
-			t = TYPE_UNSET    t = TYPE_NONE     t = TYPE_LOGIC
-			t = TYPE_DATATYPE t = TYPE_INTEGER  t = TYPE_CHAR
-			t = TYPE_FLOAT    t = TYPE_PERCENT  t = TYPE_MONEY
-			t = TYPE_PAIR     t = TYPE_TIME     t = TYPE_DATE
-			t = TYPE_TUPLE    t = TYPE_TYPESET
+			ANY_SERIES?(t)								;-- block/paren/paths/hash/strings/binary/vector/image: data2 = series node
+			t = TYPE_MAP								;-- data2 = block node
+			t = TYPE_BITSET								;-- data2 = bitset series node
+			ALL_FUNCTION?(t)							;-- function/action/native/routine/op: data2 = spec block node
 		]
 	]
 
@@ -3820,7 +3819,7 @@ redbin: context [
 		
 		either ref? [
 			p: read-reference-cp p end value: cp-ref
-			if referral-immediate? value [throw-error-cp p]	;-- reject a scalar referral target (no node)
+			unless referral-node? value [throw-error-cp p]	;-- referral target must hold a series node (data2)
 			blk: as red-block! copy-cell value ALLOC_TAIL(parent)
 			blk/header: type
 			if nl? [blk/header: blk/header or flag-new-line]
@@ -3862,7 +3861,7 @@ redbin: context [
 		
 		either ref? [
 			p: read-reference-cp p end value: cp-ref
-			if referral-immediate? value [throw-error-cp p]	;-- reject a scalar referral target (no node)
+			unless referral-node? value [throw-error-cp p]	;-- referral target must hold a series node (data2)
 			hash: as red-hash! copy-cell value ALLOC_TAIL(parent)
 			if nl? [hash/header: hash/header or flag-new-line]
 			hash/head: head
@@ -3902,7 +3901,7 @@ redbin: context [
 	][
 		either ref? [
 			p: read-reference-cp p end value: cp-ref
-			if referral-immediate? value [throw-error-cp p]	;-- reject a scalar referral target (no node)
+			unless referral-node? value [throw-error-cp p]	;-- referral target must hold a series node (data2)
 			blk: as red-block! copy-cell value ALLOC_TAIL(parent)
 			if nl? [blk/header: blk/header or flag-new-line]
 		][
@@ -3944,7 +3943,7 @@ redbin: context [
 
 		either ref? [
 			p: read-reference-cp p end value: cp-ref
-			if referral-immediate? value [throw-error-cp p]	;-- reject a scalar referral target (no node)
+			unless referral-node? value [throw-error-cp p]	;-- referral target must hold a series node (data2)
 			str: as red-string! copy-cell value ALLOC_TAIL(parent)
 			str/header: type
 			if nl? [str/header: str/header or flag-new-line]
@@ -3996,7 +3995,7 @@ redbin: context [
 		
 		either ref? [
 			p: read-reference-cp p end value: cp-ref
-			if referral-immediate? value [throw-error-cp p]	;-- reject a scalar referral target (no node)
+			unless referral-node? value [throw-error-cp p]	;-- referral target must hold a series node (data2)
 			bin: as red-binary! copy-cell value ALLOC_TAIL(parent)
 			bin/header: TYPE_BINARY
 			if nl? [bin/header: bin/header or flag-new-line]
@@ -4045,7 +4044,7 @@ redbin: context [
 		
 		either ref? [
 			p: read-reference-cp p end value: cp-ref
-			if referral-immediate? value [throw-error-cp p]	;-- reject a scalar referral target (no node)
+			unless referral-node? value [throw-error-cp p]	;-- referral target must hold a series node (data2)
 			vec: as red-vector! copy-cell value ALLOC_TAIL(parent)
 			if nl? [vec/header: vec/header or flag-new-line]
 			vec/head: head
@@ -4092,7 +4091,7 @@ redbin: context [
 	][
 		either ref? [
 			p: read-reference-cp p end value: cp-ref
-			if referral-immediate? value [throw-error-cp p]	;-- reject a scalar referral target (no node)
+			unless referral-node? value [throw-error-cp p]	;-- referral target must hold a series node (data2)
 			slot: as red-bitset! copy-cell value ALLOC_TAIL(parent)
 			if nl? [slot/header: slot/header or flag-new-line]
 		][
@@ -4131,7 +4130,7 @@ redbin: context [
 		
 		either ref? [
 			p: read-reference-cp p end value: cp-ref
-			if referral-immediate? value [throw-error-cp p]	;-- reject a scalar referral target (no node)
+			unless referral-node? value [throw-error-cp p]	;-- referral target must hold a series node (data2)
 			slot: as red-image! copy-cell value ALLOC_TAIL(parent)
 			if nl? [slot/header: slot/header or flag-new-line]
 			slot/head: head

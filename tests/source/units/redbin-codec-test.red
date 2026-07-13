@@ -830,7 +830,8 @@ Red [
 		--test-- "errors-17" --assert error? try [load/as #{52454442494E0205010180808080010080} 'redbin]		;-- symbol table nsyms<<2 / region overruns
 		--test-- "errors-18" --assert error? try [load/as #{52454442494E0200000000} 'redbin]				;-- fat header short-input over-read
 		--test-- "errors-19" --assert error? try [load/as #{52454442494E0201018080808008} 'redbin]		;-- sign-overflowed (bit-31) records length
-		--test-- "errors-20" --assert error? try [load/as #{52454442494E0201020581C1050100} 'redbin]		;-- series referral resolves to a scalar (no node)
+		--test-- "errors-20" --assert error? try [load/as #{52454442494E0201020581C1050100} 'redbin]		;-- hdr: 02=count,05=len; recs 81(int)+C1 05 01 00(block-ref→root[0]): scalar target, no series node
+		--test-- "errors-21" --assert error? try [load/as #{52454442494E0201020D330000000000000000C1050100} 'redbin]	;-- recs 33(point2D!)+8 coord bytes, then block-ref→root[0]: data2 is a coord, not a series node
 
 	===end-group===
 	
