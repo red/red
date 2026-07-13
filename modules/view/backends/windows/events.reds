@@ -11,7 +11,7 @@ Red/System [
 ]
 
 #define SIZE_FACET_PAIR?(hwnd) [
-	(GetWindowLong hWnd wc-offset - 12) and PAIR_SIZE_FACET <> 0
+	(as integer! GetWindowLongPtr hWnd SLOT_FACE_STATE) and PAIR_SIZE_FACET <> 0
 ]
 
 #enum event-action! [
@@ -48,7 +48,7 @@ make-at: func [
 	return: [red-object!]
 ][
 	as red-object! copy-cell
-		references/get GetWindowLong handle wc-offset
+		references/get as integer! GetWindowLongPtr handle SLOT_FACE_REFERENCE
 		as red-value! face
 ]
 
@@ -876,7 +876,7 @@ paint-background: func [
 		either TYPE_OF(color) = TYPE_TUPLE [
 			hBrush: CreateSolidBrush color/array1 and 00FFFFFFh
 		][
-			if (GetWindowLong hWnd GWL_STYLE) and WS_CHILD <> 0 [return false]
+			if (as integer! GetWindowLongPtr hWnd GWL_STYLE) and WS_CHILD <> 0 [return false]
 			hBrush: GetSysColorBrush COLOR_3DFACE
 		]
 		GetClientRect hWnd rect
@@ -887,7 +887,7 @@ paint-background: func [
 		either TYPE_OF(color) = TYPE_TUPLE [
 			gdiclr: get-tuple-color color
 		][
-			if (GetWindowLong hWnd GWL_STYLE) and WS_CHILD <> 0 [return false]
+			if (as integer! GetWindowLongPtr hWnd GWL_STYLE) and WS_CHILD <> 0 [return false]
 			gdiclr: GetSysColor COLOR_3DFACE
 		]
 		gdiclr: to-gdiplus-color-fixed gdiclr
@@ -992,7 +992,7 @@ bitblt-memory-dc: func [
 ][
 	if dc = null [dc: BeginPaint hWnd paint paint?: yes]
 	hBackDC: either null? src-dc [
-		as handle! GetWindowLong hWnd wc-offset - 4
+		as handle! GetWindowLongPtr hWnd SLOT_AUX
 	][
 		src-dc
 	]
@@ -1151,10 +1151,10 @@ update-window: func [
 			word: as red-word! values + FACE_OBJ_TYPE
 			type: symbol/resolve word/symbol
 			if type = rich-text [
-				target: get-window-long-ptr hWnd OFFSET_RENDER_TARGET
+				target: as int-ptr! GetWindowLongPtr hWnd SLOT_RENDER_TARGET
 				if not null? target [
 					d2d-release-target as render-target! target
-					set-window-long-ptr hWnd OFFSET_RENDER_TARGET null
+					SetWindowLongPtr hWnd SLOT_RENDER_TARGET WIN_LONG_PTR(0)
 				]
 			]
 			GET_PAIR_XY(sz x y)
@@ -1182,7 +1182,7 @@ update-window: func [
 			]
 			set-font hWnd null values
 			if type = group-box [
-				hWnd: as handle! GetWindowLong hWnd wc-offset - 4	;-- frame of the group box
+				hWnd: as handle! GetWindowLongPtr hWnd SLOT_AUX	;-- frame of the group box
 				set-font hWnd null values
 				SetWindowPos
 					hWnd
@@ -1285,7 +1285,7 @@ WndProc: func [
 			winpos: as tagWINDOWPOS lParam
 			if all [not win8+? type = window winpos/x > -9999 winpos/y > -9999][
 				pt: screen-to-client hWnd winpos/x winpos/y
-				pos: GetWindowLong hWnd wc-offset - 8
+				pos: as integer! GetWindowLongPtr hWnd SLOT_POSITION
 				pt/x: winpos/x - pt/x - WIN32_LOWORD(pos)
 				pt/y: winpos/y - pt/y - WIN32_HIWORD(pos)
 				update-layered-window hWnd null pt winpos -1
@@ -1297,11 +1297,11 @@ WndProc: func [
 			#either draw-engine = 'GDI+ [
 				DX-resize-rt hWnd WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
 			][
-				target: as render-target! get-window-long-ptr hWnd OFFSET_RENDER_TARGET
+				target: as render-target! GetWindowLongPtr hWnd SLOT_RENDER_TARGET
 				if target <> null [
 					DX-resize-buffer target WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
 					either all [
-						(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) <> 0
+						(WS_EX_LAYERED and as integer! GetWindowLongPtr hWnd GWL_EXSTYLE) <> 0
 						face-set? hWnd
 					][
 						update-base hWnd null null values
@@ -1327,15 +1327,15 @@ WndProc: func [
 					yy: WIN32_HIWORD(lParam)
 					x: 0 y: 0
 					res: either msg = WM_MOVE [
-						pos: GetWindowLong hWnd wc-offset - 16	;-- get border size
+						pos: as integer! GetWindowLongPtr hWnd SLOT_OWNER_OR_BORDER	;-- get border size
 						either zero? pos [
 							window-border-info? hWnd :x :y null null
-							SetWindowLong hWnd wc-offset - 16 x << 16 or (y and FFFFh)
+							SetWindowLongPtr hWnd SLOT_OWNER_OR_BORDER WIN_LONG_PTR(((x << 16) or (y and FFFFh)))
 						][
 							x: WIN32_HIWORD(pos)
 							y: WIN32_LOWORD(pos)
 						]
-					SetWindowLong hWnd wc-offset - 8 win-lparam-low32 lParam
+					SetWindowLongPtr hWnd SLOT_POSITION WIN_LONG_PTR((win-lparam-low32 lParam))
 						xx: xx + x
 						yy: yy + y
 						EVT_MOVE
@@ -1373,17 +1373,17 @@ WndProc: func [
 				current-msg/hWnd: hWnd
 
 				x: 0 y: 0
-				pos: GetWindowLong hWnd wc-offset - 16	;-- get border size
+				pos: as integer! GetWindowLongPtr hWnd SLOT_OWNER_OR_BORDER	;-- get border size
 				either zero? pos [
 					window-border-info? hWnd :x :y null null
-					SetWindowLong hWnd wc-offset - 16 x << 16 or (y and FFFFh)
+					SetWindowLongPtr hWnd SLOT_OWNER_OR_BORDER WIN_LONG_PTR(((x << 16) or (y and FFFFh)))
 				][
 					x: WIN32_HIWORD(pos)
 					y: WIN32_LOWORD(pos)
 				]
 				rc: as RECT_STRUCT lParam
 				type: either msg = WM_MOVING [
-					SetWindowLong hWnd wc-offset - 8 rc/top - y << 16 or (rc/left - x and FFFFh)
+					SetWindowLongPtr hWnd SLOT_POSITION WIN_LONG_PTR((((rc/top - y) << 16) or ((rc/left - x) and FFFFh)))
 					x: rc/left
 					y: rc/top
 					modal-loop-type: EVT_MOVING
@@ -1395,7 +1395,7 @@ WndProc: func [
 					FACE_OBJ_SIZE
 				]
 
-				SetWindowLong hWnd wc-offset - 24 modal-loop-type
+				SetWindowLongPtr hWnd SLOT_CARET_OR_MODAL WIN_LONG_PTR(modal-loop-type)
 				offset: as red-point2D! values + type
 				offset/header: TYPE_POINT2D
 				offset/x: dpi-unscale as float32! x
@@ -1418,7 +1418,7 @@ WndProc: func [
 		WM_EXITSIZEMOVE [
 			if type = window [
 				win-state: 0
-				res: GetWindowLong hWnd wc-offset - 24
+				res: as integer! GetWindowLongPtr hWnd SLOT_CARET_OR_MODAL
 				type: either res = EVT_MOVING [EVT_MOVE][EVT_SIZE]
 				current-msg/hWnd: hWnd
 				make-event current-msg 0 type
@@ -1560,7 +1560,7 @@ WndProc: func [
 			draw: (as red-block! values) + FACE_OBJ_DRAW
 			if TYPE_OF(draw) = TYPE_BLOCK [
 			#either draw-engine = 'GDI+ [
-				either zero? GetWindowLong hWnd wc-offset - 4 [
+				either zero? as integer! GetWindowLongPtr hWnd SLOT_AUX [
 					do-draw hWnd null draw no yes yes yes
 				][
 					bitblt-memory-dc hWnd no null 0 0 null
@@ -1588,7 +1588,7 @@ WndProc: func [
 						SetTextColor as handle! wParam color
 					]
 				]
-				face: as red-object! references/get GetWindowLong handle wc-offset
+				face: as red-object! references/get as integer! GetWindowLongPtr handle SLOT_FACE_REFERENCE
 				color: to-bgr face/ctx FACE_OBJ_COLOR
 				either color = -1 [
 					if font? [
@@ -1605,11 +1605,11 @@ WndProc: func [
 					SetDCBrushColor as handle! wParam color
 					brush: GetStockObject DC_BRUSH
 				]
-				if brush <> null [return as-integer brush]
+				if brush <> null [return as win-lresult! brush]
 			]
 		]
 		WM_SETCURSOR [
-			res: GetWindowLong as handle! wParam wc-offset - 28
+			res: as integer! GetWindowLongPtr as handle! wParam SLOT_CURSOR
 			if res <> 0 [
 				values: get-face-values as handle! wParam
 				w-type: as red-word! values + FACE_OBJ_TYPE
@@ -1638,7 +1638,7 @@ WndProc: func [
 			if all [type = window set-window-info hWnd lParam][return 0]
 		]
 		WM_CLOSE [
-			either -1 = GetWindowLong hWnd wc-offset - 4 [
+			either -1 = as integer! GetWindowLongPtr hWnd SLOT_AUX [
 				clean-up
 			][
 				if type = window [
@@ -1680,9 +1680,9 @@ WndProc: func [
 			;	;@@ FIXME this may cause issue if the face inside hidden-hwnd has been GCed
 			;	values: (get-face-values hidden-hwnd) + FACE_OBJ_EXT3
 			;	values/header: TYPE_NONE
-			;	target: as render-target! GetWindowLong hidden-hwnd wc-offset - 36
+			;	target: as render-target! GetWindowLongPtr hidden-hwnd SLOT_RENDER_TARGET
 			;	if target <> null [d2d-release-target target]
-			;	SetWindowLong hidden-hwnd wc-offset - 36 0
+			;	SetWindowLongPtr hidden-hwnd SLOT_RENDER_TARGET 0
 			;]
 			RedrawWindow hWnd null null 4 or 1			;-- RDW_ERASE | RDW_INVALIDATE
 		]

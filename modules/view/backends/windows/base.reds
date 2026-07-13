@@ -41,13 +41,13 @@ init-base-face: func [
 	show?:	as red-logic! values + FACE_OBJ_VISIBLE?
 	opts:	as red-block! values + FACE_OBJ_OPTIONS
 
-	SetWindowLong handle wc-offset - 4 0
-	SetWindowLong handle wc-offset - 12 flags
-	SetWindowLong handle wc-offset - 16 parent
-	SetWindowLong handle wc-offset - 20 0
-	SetWindowLong handle wc-offset - 24 0
-	SetWindowLong handle wc-offset - 32 0
-	set-window-long-ptr handle OFFSET_RENDER_TARGET null
+	SetWindowLongPtr handle SLOT_AUX WIN_LONG_PTR(0)
+	SetWindowLongPtr handle SLOT_FACE_STATE WIN_LONG_PTR(flags)
+	SetWindowLongPtr handle SLOT_OWNER_OR_BORDER WIN_LONG_PTR(parent)
+	SetWindowLongPtr handle SLOT_CHILD WIN_LONG_PTR(0)
+	SetWindowLongPtr handle SLOT_CARET_OR_MODAL WIN_LONG_PTR(0)
+	SetWindowLongPtr handle SLOT_CAPTURE_OR_FONT WIN_LONG_PTR(0)
+	SetWindowLongPtr handle SLOT_RENDER_TARGET WIN_LONG_PTR(0)
 	pt/x: dpi-scale offset/x
 	pt/y: dpi-scale offset/y
 	either alpha? [
@@ -62,20 +62,20 @@ init-base-face: func [
 			process-layered-region handle size offset null offset null yes
 		]
 	][
-		SetWindowLong handle wc-offset - 8 WIN32_MAKE_LPARAM(pt/x pt/y)
+		SetWindowLongPtr handle SLOT_POSITION WIN_LONG_PTR((WIN32_MAKE_LPARAM(pt/x pt/y)))
 	]
 
 	if TYPE_OF(opts) = TYPE_BLOCK [
 		word: as red-word! block/rs-head opts
 		len: block/rs-length? opts
 		if len % 2 <> 0 [exit]
-		flags: GetWindowLong handle wc-offset - 12
+		flags: as integer! GetWindowLongPtr handle SLOT_FACE_STATE
 		while [len > 0][
 			sym: symbol/resolve word/symbol
 			case [
 				sym = caret [
-					SetWindowLong handle wc-offset - 12 flags or BASE_FACE_CARET
-					SetWindowLong handle wc-offset - 24 as-integer get-face-handle as red-object! word + 1
+					SetWindowLongPtr handle SLOT_FACE_STATE WIN_LONG_PTR((flags or BASE_FACE_CARET))
+					SetWindowLongPtr handle SLOT_CARET_OR_MODAL WIN_LONG_PTR((as-integer get-face-handle as red-object! word + 1))
 					update-caret handle values
 				]
 				true [0]
@@ -92,21 +92,21 @@ position-base: func [
 	pt		[tagPOINT]
 ][
 	ClientToScreen parent pt		;-- convert client offset to screen offset
-	SetWindowLong base wc-offset - 8 WIN32_MAKE_LPARAM(pt/x pt/y)
+	SetWindowLongPtr base SLOT_POSITION WIN_LONG_PTR((WIN32_MAKE_LPARAM(pt/x pt/y)))
 ]
 
 layered-win?: func [
 	hWnd	[handle!]
 	return: [logic!]
 ][
-	(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) <> 0
+	(WS_EX_LAYERED and as integer! GetWindowLongPtr hWnd GWL_EXSTYLE) <> 0
 ]
 
 detached?: func [
 	hWnd	[handle!]
 	return: [logic!]
 ][
-	(GetWindowLong hWnd GWL_STYLE) and WS_CHILD = 0
+	(as integer! GetWindowLongPtr hWnd GWL_STYLE) and WS_CHILD = 0
 ]
 
 render-base: func [
@@ -201,7 +201,7 @@ clip-layered-window: func [
 		child	[handle!]
 		flags	[integer!]
 ][
-	flags: GetWindowLong hWnd wc-offset - 12
+	flags: as integer! GetWindowLongPtr hWnd SLOT_FACE_STATE
 	if all [						;-- delete window clip region
 		BASE_FACE_CLIPPED and flags <> 0
 		zero? x
@@ -210,9 +210,9 @@ clip-layered-window: func [
 		size/height = new-height
 	][
 		SetWindowRgn hWnd null false
-		child: as handle! GetWindowLong hWnd wc-offset - 20
+		child: as handle! GetWindowLongPtr hWnd SLOT_CHILD
 		if child <> null [SetWindowRgn child null false]
-		SetWindowLong hWnd wc-offset - 12 flags and FFFFFFFEh
+		SetWindowLongPtr hWnd SLOT_FACE_STATE WIN_LONG_PTR((flags and FFFFFFFEh))
 		exit
 	]
 	if any [
@@ -222,10 +222,10 @@ clip-layered-window: func [
 		size/height <> new-height
 		BASE_FACE_CLIPPED and flags <> 0
 	][
-		SetWindowLong hWnd wc-offset - 12 flags or BASE_FACE_CLIPPED
+		SetWindowLongPtr hWnd SLOT_FACE_STATE WIN_LONG_PTR((flags or BASE_FACE_CLIPPED))
 		rgn: CreateRectRgn x y new-width new-height
 		SetWindowRgn hWnd rgn false
-		child: as handle! GetWindowLong hWnd wc-offset - 20
+		child: as handle! GetWindowLongPtr hWnd SLOT_CHILD
 		if child <> null [
 			rgn: CreateRectRgn x y new-width new-height
 			SetWindowRgn child rgn false
@@ -260,7 +260,7 @@ process-layered-region: func [
 	y: dpi-scale origin/y
 	either null? rect [
 		rect: :rc
-		owner: as handle! GetWindowLong hWnd wc-offset - 16
+		owner: as handle! GetWindowLongPtr hWnd SLOT_OWNER_OR_BORDER
 		assert owner <> null
 		GetClientRect owner rect
 	][
@@ -305,7 +305,7 @@ process-layered-region: func [
 			type: as red-word! value + FACE_OBJ_TYPE
 			layer?: all [
 				base = symbol/resolve type/symbol
-				(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) > 0
+				(WS_EX_LAYERED and as integer! GetWindowLongPtr hWnd GWL_EXSTYLE) > 0
 			]
 			process-layered-region hWnd size pos pane origin rect layer?
 			face: face + 1
@@ -366,10 +366,10 @@ update-layered-window: func [
 	if all [
 		sub?
 		base = symbol/resolve type/symbol
-		(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) > 0
+		(WS_EX_LAYERED and as integer! GetWindowLongPtr hWnd GWL_EXSTYLE) > 0
 	][
 		either offset <> null [
-			border: GetWindowLong hWnd wc-offset - 8
+			border: as integer! GetWindowLongPtr hWnd SLOT_POSITION
 			x: offset/x + WIN32_LOWORD(border)
 			y: offset/y + WIN32_HIWORD(border)
 			unless all [zero? offset/x zero? offset/y][
@@ -380,8 +380,8 @@ update-layered-window: func [
 					x y
 					0 0
 					SWP_NOSIZE or SWP_NOZORDER or SWP_NOACTIVATE
-				SetWindowLong hWnd wc-offset - 8 WIN32_MAKE_LPARAM(x y)
-				hWnd: as handle! GetWindowLong hWnd wc-offset - 20
+				SetWindowLongPtr hWnd SLOT_POSITION WIN_LONG_PTR((WIN32_MAKE_LPARAM(x y)))
+				hWnd: as handle! GetWindowLongPtr hWnd SLOT_CHILD
 				if hWnd <> null [
 					hdwp: DeferWindowPos
 						hdwp
@@ -425,7 +425,7 @@ update-layered-window: func [
 				]
 			][showflag: SW_HIDE]
 			ShowWindow hWnd showflag
-			hWnd: as handle! GetWindowLong hWnd wc-offset - 20
+			hWnd: as handle! GetWindowLongPtr hWnd SLOT_CHILD
 			if hWnd <> null [ShowWindow hWnd showflag]
 		]
 	]
@@ -483,29 +483,29 @@ BaseWndProc: func [
 	switch msg [
 		WM_NCCREATE [last-painted-base: hWnd]
 		WM_MOUSEACTIVATE [
-			flags: GetWindowLong hWnd GWL_EXSTYLE
+			flags: as integer! GetWindowLongPtr hWnd GWL_EXSTYLE
 			if flags and WS_EX_LAYERED > 0 [
 				SetForegroundWindow GetParent hWnd
 				return 3							;-- do not make it activated when click it
 			]
 		]
 		WM_LBUTTONDOWN	 [
-			w: GetWindowLong hWnd wc-offset - 32
-			SetWindowLong hWnd wc-offset - 32 w + 1
+			w: as integer! GetWindowLongPtr hWnd SLOT_CAPTURE_OR_FONT
+			SetWindowLongPtr hWnd SLOT_CAPTURE_OR_FONT WIN_LONG_PTR((w + 1))
 			if zero? w [SetCapture hWnd return 0]
 		]
 		WM_LBUTTONUP	 [
-			w: GetWindowLong hWnd wc-offset - 32
+			w: as integer! GetWindowLongPtr hWnd SLOT_CAPTURE_OR_FONT
 			if w > 0 [
-				SetWindowLong hWnd wc-offset - 32 w - 1
+				SetWindowLongPtr hWnd SLOT_CAPTURE_OR_FONT WIN_LONG_PTR((w - 1))
 				ReleaseCapture return 0
 			]
 		]
 		WM_ERASEBKGND	 [return 1]					;-- drawing in WM_PAINT to avoid flicker
 		WM_SIZE  [
 		#either draw-engine = 'GDI+ [
-			either (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D = 0 [
-				unless zero? GetWindowLong hWnd wc-offset [
+			either (as integer! GetWindowLongPtr hWnd SLOT_FACE_STATE) and BASE_FACE_D2D = 0 [
+				unless zero? as integer! GetWindowLongPtr hWnd SLOT_FACE_REFERENCE [
 					update-base hWnd null null get-face-values hWnd
 				]
 			][
@@ -513,12 +513,12 @@ BaseWndProc: func [
 			]
 		][
 			;-- Direct2D backend
-			target: as render-target! get-window-long-ptr hWnd OFFSET_RENDER_TARGET
+			target: as render-target! GetWindowLongPtr hWnd SLOT_RENDER_TARGET
 			if target <> null [
 				DX-resize-buffer target WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
 			]
 			either all [
-				(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) <> 0
+				(WS_EX_LAYERED and as integer! GetWindowLongPtr hWnd GWL_EXSTYLE) <> 0
 				face-set? hWnd
 			][
 				platform/Sleep 16
@@ -537,7 +537,7 @@ BaseWndProc: func [
 			if layered-win? last-painted-base [LIMIT_RENDERING_RATE]
 
 			if all [
-				(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) = 0	;-- not a layered window
+				(WS_EX_LAYERED and as integer! GetWindowLongPtr hWnd GWL_EXSTYLE) = 0	;-- not a layered window
 				face-set? hWnd			;-- linked with a face object
 			][
 				last-painted-base: hWnd
@@ -547,7 +547,7 @@ BaseWndProc: func [
 				draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
 				either TYPE_OF(draw) = TYPE_BLOCK [
 					#if draw-engine = 'GDI+ [
-		if 0 <> GetWindowLong hWnd wc-offset - 4 [
+		if 0 <> as integer! GetWindowLongPtr hWnd SLOT_AUX [
 						bitblt-memory-dc hWnd no null 0 0 null
 						return 0
 					]]
@@ -559,7 +559,7 @@ BaseWndProc: func [
 					DC: declare draw-ctx!				;@@ should declare it on stack
 					catch RED_THROWN_ERROR [
 						draw-begin DC hWnd null no yes
-						set-window-long-ptr hWnd OFFSET_DRAW_CTX as int-ptr! DC
+						SetWindowLongPtr hWnd SLOT_DRAW_CTX WIN_LONG_PTR(DC)
 						current-msg/hWnd: hWnd
 						make-event current-msg 0 EVT_DRAWING
 						draw-end DC hWnd no no yes
@@ -583,19 +583,19 @@ BaseWndProc: func [
 		]
 		WM_NCHITTEST [
 			result: DefWindowProc hWnd msg wParam lParam
-			flags: GetWindowLong hWnd wc-offset - 28
+			flags: as integer! GetWindowLongPtr hWnd SLOT_CURSOR
 			if flags <> 0 [							;-- has custom cursor
 				either result = 1 [					;-- client area
 					flags: flags or 80000000h
 				][
 					flags: flags and 7FFFFFFFh
 				]
-				SetWindowLong hWnd wc-offset - 28 flags
+				SetWindowLongPtr hWnd SLOT_CURSOR WIN_LONG_PTR(flags)
 			]
 			return result
 		]
 		WM_SETCURSOR [
-			w: GetWindowLong as handle! wParam wc-offset - 28
+			w: as integer! GetWindowLongPtr as handle! wParam SLOT_CURSOR
 			if all [
 				w <> 0
 				w and 80000000h <> 0					;-- inside client area
@@ -618,7 +618,7 @@ BaseWndProc: func [
 		WM_DESTROY [free-dc hWnd]
 		default [0]
 	]
-	if (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_IME <> 0 [
+	if (as integer! GetWindowLongPtr hWnd SLOT_FACE_STATE) and BASE_FACE_IME <> 0 [
 		switch msg [
 			WM_IME_SETCONTEXT [
 				either wParam = WIN_WPARAM(0) [
@@ -820,16 +820,16 @@ update-base: func [
 		graphic [integer!]
 		flags	[integer!]
 ][
-	if (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D <> 0 [
+	if (as integer! GetWindowLongPtr hWnd SLOT_FACE_STATE) and BASE_FACE_D2D <> 0 [
 		InvalidateRect hWnd null 0
 		exit
 	]
 
-	flags: GetWindowLong hWnd GWL_EXSTYLE
+	flags: as integer! GetWindowLongPtr hWnd GWL_EXSTYLE
 	if zero? (flags and WS_EX_LAYERED) [
-		graphic: GetWindowLong hWnd wc-offset - 4
+		graphic: as integer! GetWindowLongPtr hWnd SLOT_AUX
 		DeleteDC as handle! graphic
-		SetWindowLong hWnd wc-offset - 4 0
+		SetWindowLongPtr hWnd SLOT_AUX WIN_LONG_PTR(0)
 		InvalidateRect hWnd null 0
 		exit
 	]
@@ -909,7 +909,7 @@ update-base: func [
 		face	[red-object!]
 		rc		[RECT_STRUCT value]
 ][
-	if zero? (WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) [
+	if zero? (WS_EX_LAYERED and as integer! GetWindowLongPtr hWnd GWL_EXSTYLE) [
 		either transparent-base?
 					as red-tuple! values + FACE_OBJ_COLOR
 					as red-image! values + FACE_OBJ_IMAGE [

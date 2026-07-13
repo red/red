@@ -73,9 +73,28 @@ function Invoke-BoundedGuiProcess {
 	$process.ExitCode
 }
 
+function Assert-WindowLongPtrSource {
+	$backend = Join-Path $root 'modules\view\backends\windows'
+	$files = Get-ChildItem -LiteralPath $backend -Filter '*.reds' -File
+	$legacyPattern = '\b(?:GetWindowLong|SetWindowLong|get-window-long-ptr|set-window-long-ptr)\b|\bwc-offset\b|WindowLongPtrPtr'
+	$violations = foreach ($file in $files) {
+		Select-String -LiteralPath $file.FullName -Pattern $legacyPattern -AllMatches
+	}
+	if ($violations) {
+		throw "Legacy window-long access remains:`n$($violations -join "`n")"
+	}
+
+	$win32 = Get-Content -LiteralPath (Join-Path $backend 'win32.reds') -Raw
+	if ($win32 -notmatch 'GetWindowLongPtr:\s+GET_WINDOW_LONG_PTR_SYMBOL' -or
+		$win32 -notmatch 'SetWindowLongPtr:\s+SET_WINDOW_LONG_PTR_SYMBOL') {
+		throw 'The logical GetWindowLongPtr/SetWindowLongPtr imports are missing'
+	}
+}
+
 try {
 	if (-not (Test-Path -LiteralPath $Compiler -PathType Leaf)) { throw "Compiler not found: $Compiler" }
 	if (-not (Test-Path -LiteralPath $Dumpbin -PathType Leaf)) { throw "dumpbin not found: $Dumpbin" }
+	Assert-WindowLongPtrSource
 	New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
 	Remove-Item -LiteralPath $executable,$marker -Force -ErrorAction SilentlyContinue
 
@@ -99,6 +118,9 @@ try {
 
 	$imports = Invoke-CheckedProcess $Dumpbin @('/imports', $executable) $RunTimeoutSeconds `
 		(Join-Path $artifactDir 'imports.log')
+	if ($imports -notmatch 'GetWindowLongPtrW' -or $imports -notmatch 'SetWindowLongPtrW') {
+		throw 'View executable does not import the x64 WindowLongPtr exports'
+	}
 	foreach ($name in @('USER32.dll', 'CreateWindowExW', 'DispatchMessageW')) {
 		if ($imports -notmatch [regex]::Escape($name)) { throw "View import is missing: $name" }
 	}

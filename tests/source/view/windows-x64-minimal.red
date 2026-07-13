@@ -3,9 +3,11 @@ Red [
 	Needs: View
 ]
 
+default-text: none
+
 window: view/no-wait [
 	title "Windows x64 View smoke"
-	text "ready"
+	default-text: text "This window is a workaround for R2 call bug which hides first one (or more??) windows"
 	panel 200x200 [
 		backdrop black
 		origin 0x0
@@ -18,6 +20,11 @@ window: view/no-wait [
 repeat count 20 [
 	do-events/no-wait
 	wait 0.01
+]
+
+unless default-text/size/x > 200 [
+	print rejoin ["DEFAULT-TEXT-SIZE-ERROR: " mold default-text/size]
+	quit/return 1
 ]
 
 unview/all

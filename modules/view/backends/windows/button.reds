@@ -90,7 +90,7 @@ init-button: func [
 		BIL/handle: hlist
 	]
 	BIL/align: 4
-	SendMessage hWnd BM_SETSTYLE BS_BITMAP or GetWindowLong hWnd GWL_STYLE 0
+	SendMessage hWnd BM_SETSTYLE BS_BITMAP or as integer! GetWindowLongPtr hWnd GWL_STYLE 0
 	SendMessage hWnd BCM_SETIMAGELIST 0 0
 	SendMessageNative hWnd BCM_SETIMAGELIST WIN_WPARAM(0) as win-lparam! BIL
 ]

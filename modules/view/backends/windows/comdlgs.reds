@@ -95,8 +95,8 @@ check-base-capture: func [/local word [red-word!] hwnd [handle!] n [integer!]][
 	if all [hwnd <> null face-set? hwnd][
 		word: (as red-word! get-face-values hwnd) + FACE_OBJ_TYPE
 		if base = symbol/resolve word/symbol [
-			n: GetWindowLong hwnd wc-offset - 32
-			SetWindowLong hwnd wc-offset - 32 n - 1
+			n: as integer! GetWindowLongPtr hwnd SLOT_CAPTURE_OR_FONT
+			SetWindowLongPtr hwnd SLOT_CAPTURE_OR_FONT WIN_LONG_PTR((n - 1))
 			exit
 		]
 	]

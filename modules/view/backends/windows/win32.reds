@@ -22,9 +22,15 @@ Red/System [
 #either target = 'X86-64 [
 	#define win-long-ptr!	int64!
 	#define win-ulong-ptr!	uint64!
+	#define WIN_LONG_PTR_BYTES 8
+	#define SET_WINDOW_LONG_PTR_SYMBOL "SetWindowLongPtrW"
+	#define GET_WINDOW_LONG_PTR_SYMBOL "GetWindowLongPtrW"
 ][
 	#define win-long-ptr!	integer!
 	#define win-ulong-ptr!	uint32!
+	#define WIN_LONG_PTR_BYTES 4
+	#define SET_WINDOW_LONG_PTR_SYMBOL "SetWindowLongW"
+	#define GET_WINDOW_LONG_PTR_SYMBOL "GetWindowLongW"
 ]
 
 #define win-wparam!	win-ulong-ptr!
@@ -33,6 +39,7 @@ Red/System [
 
 #define WIN_WPARAM(value) [as win-wparam! value]
 #define WIN_LPARAM(value) [as win-lparam! value]
+#define WIN_LONG_PTR(value) [as win-long-ptr! value]
 #define WIN_WPARAM_FFFF0000 [((as win-wparam! FFFFh) << 16)]
 #define WIN_ULONG_PTR_FFFFFFFF [(((as win-ulong-ptr! FFFFh) << 16) or (as win-ulong-ptr! FFFFh))]
 
@@ -1000,14 +1007,22 @@ tagLOGFONT: alias struct! [								;-- 92 bytes
 	lfClipPrecision	[byte!]
 	lfQuality		[byte!]
 	lfPitchAndFamily[byte!]
-	lfFaceName		[float!]							;@@ 64 bytes offset: 28
-	lfFaceName2		[float!]
-	lfFaceName3		[float!]
-	lfFaceName4		[float!]
-	lfFaceName5		[float!]
-	lfFaceName6		[float!]
-	lfFaceName7		[float!]
-	lfFaceName8		[float!]
+	lfFaceName		[integer!]						;-- WCHAR[32], 64 bytes at offset 28
+	lfFaceName2		[integer!]
+	lfFaceName3		[integer!]
+	lfFaceName4		[integer!]
+	lfFaceName5		[integer!]
+	lfFaceName6		[integer!]
+	lfFaceName7		[integer!]
+	lfFaceName8		[integer!]
+	lfFaceName9		[integer!]
+	lfFaceName10	[integer!]
+	lfFaceName11	[integer!]
+	lfFaceName12	[integer!]
+	lfFaceName13	[integer!]
+	lfFaceName14	[integer!]
+	lfFaceName15	[integer!]
+	lfFaceName16	[integer!]
 ]
 
 tagNONCLIENTMETRICS: alias struct! [
@@ -1578,16 +1593,16 @@ XFORM!: alias struct! [
 		GetMessagePos: "GetMessagePos" [
 			return:		[integer!]
 		]
-		SetWindowLong: "SetWindowLongW" [
+		SetWindowLongPtr: SET_WINDOW_LONG_PTR_SYMBOL [
 			hWnd		[handle!]
 			nIndex		[integer!]
-			dwNewLong	[integer!]
-			return: 	[integer!]
+			dwNewLong	[win-long-ptr!]
+			return:		[win-long-ptr!]
 		]
-		GetWindowLong: "GetWindowLongW" [
+		GetWindowLongPtr: GET_WINDOW_LONG_PTR_SYMBOL [
 			hWnd		[handle!]
 			nIndex		[integer!]
-			return: 	[integer!]
+			return:		[win-long-ptr!]
 		]
 		GetClassInfoEx: "GetClassInfoExW" [
 			hInst		[handle!]
@@ -3043,30 +3058,6 @@ XFORM!: alias struct! [
 		wcslen: "wcslen" [
 			str				[c-string!]
 			return:			[integer!]
-		]
-	]
-]
-
-#either target = 'X86-64 [
-	#define SET_WINDOW_LONG_PTR "SetWindowLongPtrW"
-	#define GET_WINDOW_LONG_PTR "GetWindowLongPtrW"
-][
-	#define SET_WINDOW_LONG_PTR "SetWindowLongW"
-	#define GET_WINDOW_LONG_PTR "GetWindowLongW"
-]
-
-#import [
-	"User32.dll" stdcall [
-		SetWindowLongPtr: SET_WINDOW_LONG_PTR [
-			hWnd		[handle!]
-			nIndex		[integer!]
-			dwNewLong	[win-long-ptr!]
-			return:		[win-long-ptr!]
-		]
-		GetWindowLongPtr: GET_WINDOW_LONG_PTR [
-			hWnd		[handle!]
-			nIndex		[integer!]
-			return:		[win-long-ptr!]
 		]
 	]
 ]

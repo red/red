@@ -1653,8 +1653,8 @@ DX-resize-rt: func [
 		rt		[ID2D1HwndRenderTarget]
 		size	[tagSIZE value]
 ][
-	if (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D <> 0 [
-		target: get-window-long-ptr hWnd OFFSET_RENDER_TARGET
+	if (as integer! GetWindowLongPtr hWnd SLOT_FACE_STATE) and BASE_FACE_D2D <> 0 [
+		target: as int-ptr! GetWindowLongPtr hWnd SLOT_RENDER_TARGET
 		if target <> null [
 			this: as this! target/value
 			rt: as ID2D1HwndRenderTarget this/vtbl
@@ -2044,12 +2044,12 @@ get-hwnd-render-target: func [
 	/local
 		target	[render-target!]
 ][
-	target: as render-target! get-window-long-ptr hWnd OFFSET_RENDER_TARGET
+	target: as render-target! GetWindowLongPtr hWnd SLOT_RENDER_TARGET
 	if null? target [
 		target: as render-target! zero-alloc size? render-target!
 		create-render-target hWnd target gdi?
 		target/brushes: as brush-entry! allocate D2D_MAX_BRUSHES * size? brush-entry!
-		set-window-long-ptr hWnd OFFSET_RENDER_TARGET as int-ptr! target
+		SetWindowLongPtr hWnd SLOT_RENDER_TARGET WIN_LONG_PTR(target)
 	]
 	target
 ]
@@ -2064,7 +2064,7 @@ get-surface: func [
 		buf		[ptr-value!]
 		hr		[integer!]
 ][
-	target: as render-target! get-window-long-ptr hWnd OFFSET_RENDER_TARGET
+	target: as render-target! GetWindowLongPtr hWnd SLOT_RENDER_TARGET
 	if target <> null [
 		this: target/swapchain
 		sc: as IDXGISwapChain1 this/vtbl

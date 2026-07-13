@@ -74,9 +74,9 @@ update-para: func [
 		update-area-para hWnd face
 		values: object/get-values face
 	][
-		style: GetWindowLong hWnd GWL_STYLE
+		style: as integer! GetWindowLongPtr hWnd GWL_STYLE
 		style: style and mask or get-para-flags sym para
-		SetWindowLong hWnd GWL_STYLE style
+		SetWindowLongPtr hWnd GWL_STYLE WIN_LONG_PTR(style)
 	]
 	
 	int: as red-integer! (block/rs-head state) + 1

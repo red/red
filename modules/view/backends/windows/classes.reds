@@ -196,7 +196,7 @@ AreaWndProc: func [
 			]
 		]
 		WM_CHAR [
-			either zero? (ES_MULTILINE and GetWindowLong hWnd GWL_STYLE) [ ;field
+			either zero? (ES_MULTILINE and as integer! GetWindowLongPtr hWnd GWL_STYLE) [ ;field
 				;-- stop beep when pressing enter in field
 				if any [wParam = WIN_WPARAM(0Dh) wParam = WIN_WPARAM(9)][return 0] ;-- VK_RETURN or VK_TAB
 			][

@@ -52,7 +52,7 @@ init-text-list: func [
 			update-list-hbar hWnd str-saved len
 		]
 	]
-	SetWindowLong hWnd wc-offset - 4 len
+	SetWindowLongPtr hWnd SLOT_AUX WIN_LONG_PTR(len)
 
 	either TYPE_OF(selected) <> TYPE_INTEGER [
 		selected/header: TYPE_INTEGER
@@ -147,8 +147,8 @@ insert-list-item: func [
 	SendMessageNative hWnd msg WIN_WPARAM(pos) as win-lparam! str
 	unless drop? [
 		len: string/rs-length? item
-		if len > GetWindowLong hWnd wc-offset - 4 [
-			SetWindowLong hWnd wc-offset - 4 len
+		if len > as integer! GetWindowLongPtr hWnd SLOT_AUX [
+			SetWindowLongPtr hWnd SLOT_AUX WIN_LONG_PTR(len)
 			update-list-hbar hWnd str len
 		]
 	]

@@ -370,7 +370,7 @@ draw-end: func [
 			DXGI_ERROR_DEVICE_RESET [
 				d2d-release-target rt
 				ctx/dc: null
-				set-window-long-ptr hWnd OFFSET_RENDER_TARGET null
+				SetWindowLongPtr hWnd SLOT_RENDER_TARGET WIN_LONG_PTR(0)
 				DX-create-dev
 				InvalidateRect hWnd null 0
 			]

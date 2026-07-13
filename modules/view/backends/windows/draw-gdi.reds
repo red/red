@@ -16,12 +16,12 @@ get-hwnd-render-target-d2d: func [
 	/local
 		target	[render-target!]
 ][
-	target: as render-target! get-window-long-ptr hWnd OFFSET_RENDER_TARGET
+	target: as render-target! GetWindowLongPtr hWnd SLOT_RENDER_TARGET
 	if null? target [
 		target: as render-target! zero-alloc size? render-target!
 		target/dc: create-hwnd-render-target hWnd
 		target/brushes: as brush-entry! allocate D2D_MAX_BRUSHES * size? brush-entry!
-		set-window-long-ptr hWnd OFFSET_RENDER_TARGET as int-ptr! target
+		SetWindowLongPtr hWnd SLOT_RENDER_TARGET WIN_LONG_PTR(target)
 	]
 	target
 ]
@@ -118,7 +118,7 @@ draw-end-d2d: func [
 		D2DERR_RECREATE_TARGET [
 			d2d-release-target as render-target! ctx/brushes
 			ctx/dc: null
-			set-window-long-ptr hWnd OFFSET_RENDER_TARGET null
+			SetWindowLongPtr hWnd SLOT_RENDER_TARGET WIN_LONG_PTR(0)
 			InvalidateRect hWnd null 0
 		]
 		default [
@@ -592,7 +592,7 @@ draw-begin: func [
 	ctx/other/gradient-fill/transformed?:	false
 	ctx/other/gradient-pen?:				false
 	ctx/other/gradient-fill?:				false
-	ctx/other/D2D?:							(GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D <> 0
+	ctx/other/D2D?:							(as integer! GetWindowLongPtr hWnd SLOT_FACE_STATE) and BASE_FACE_D2D <> 0
 	ctx/other/GDI+?:						no
 	ctx/other/last-point?:					no
 	ctx/other/prev-shape/type:				SHAPE_OTHER
@@ -734,9 +734,9 @@ draw-end: func [
 
 	if ctx/bitmap <> null [DeleteObject ctx/bitmap]
 	either cache? [
-		old-dc: GetWindowLong hWnd wc-offset - 4
+		old-dc: as integer! GetWindowLongPtr hWnd SLOT_AUX
 		unless zero? old-dc [DeleteDC as handle! old-dc]
-		SetWindowLong hWnd wc-offset - 4 as-integer dc
+		SetWindowLongPtr hWnd SLOT_AUX WIN_LONG_PTR(dc)
 	][
 		DeleteDC dc
 	]

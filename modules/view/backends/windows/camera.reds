@@ -309,11 +309,11 @@ init-camera: func [
 	val: collect-camera cam data
 	if zero? val [
 		free as byte-ptr! cam
-		SetWindowLong hWnd wc-offset - 4 0
+		SetWindowLongPtr hWnd SLOT_AUX WIN_LONG_PTR(0)
 		exit
 	]
 
-	SetWindowLong hWnd wc-offset - 4 val
+	SetWindowLongPtr hWnd SLOT_AUX WIN_LONG_PTR(val)
 	if TYPE_OF(sel) = TYPE_INTEGER [
 		camera-ratio: 0.0
 		if select-camera hWnd sel/value - 1 [
@@ -343,7 +343,7 @@ teardown-graph: func [cam [camera!] /local w [IVideoWindow]][
 ]
 
 stop-camera: func [handle [handle!] return: [camera!] /local cam [camera!] ][
-	cam: as camera! GetWindowLong handle wc-offset - 4
+	cam: as camera! GetWindowLongPtr handle SLOT_AUX
 	unless null? cam [
 		teardown-graph cam
 		free-graph cam
@@ -354,7 +354,7 @@ stop-camera: func [handle [handle!] return: [camera!] /local cam [camera!] ][
 destroy-camera: func [handle [handle!] /local cam [camera!]][
 	cam: stop-camera handle
 	if cam <> null [
-		SetWindowLong handle wc-offset - 4 0
+		SetWindowLongPtr handle SLOT_AUX WIN_LONG_PTR(0)
 		free as byte-ptr! cam
 	]
 ]
@@ -514,7 +514,7 @@ toggle-preview: func [
 		mc		[IMediaControl]
 		hr		[integer!]
 ][
-	cam: as camera! GetWindowLong handle wc-offset - 4
+	cam: as camera! GetWindowLongPtr handle SLOT_AUX
 	if cam = null [exit]
 	graph: as IGraphBuilder cam/graph/vtbl
 
@@ -538,7 +538,7 @@ select-camera: func [
 	/local
 		cam [camera!]
 ][
-	cam: as camera! GetWindowLong handle wc-offset - 4
+	cam: as camera! GetWindowLongPtr handle SLOT_AUX
 	if any [idx < 0 idx >= cam/num][
 		fire [TO_ERROR(access cannot-open) integer/push idx + 1]
 	]
@@ -666,7 +666,7 @@ update-camera: func [
 	/local
 		cam	[camera!]
 ][
-	cam: as camera! GetWindowLong hWnd wc-offset - 4
+	cam: as camera! GetWindowLongPtr hWnd SLOT_AUX
 	if cam/window <> null [set-camera-viewport cam/window as IVideoWindow cam/window/vtbl sx sy]
 ]
 

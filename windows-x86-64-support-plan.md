@@ -54,6 +54,16 @@ Implementation update:
 - Window procedures, messages, `WPARAM`/`LPARAM`/`LRESULT`, window-long slots,
   common dialogs, common-control notifications, image lists, and the active
   Direct2D/DXGI/COM paths use native-width declarations.
+- The View backend calls the logical imports `GetWindowLongPtr` and
+  `SetWindowLongPtr` directly on both targets. They resolve to the exported
+  `GetWindowLongPtrW`/`SetWindowLongPtrW` names on x86-64 and to Windows'
+  `GetWindowLongW`/`SetWindowLongW` aliases on IA-32.
+- Extra window data uses 20 named, pointer-stride slots (160 bytes on x86-64,
+  80 bytes on IA-32). Debug builds exercise adjacent slots with nonzero high
+  x64 bits, while the View runners reject legacy calls and incorrect imports.
+- `LOGFONTW` and `NONCLIENTMETRICS` retain their Windows-defined 92-byte and
+  504-byte layouts on both targets. The View smoke exercises a default-font
+  native text face so x64 alignment regressions cannot silently hide labels.
 
 Optional View backends and modules not covered by these gates, including the
 legacy GDI+ draw backend and camera-specific hardware paths, remain follow-up
