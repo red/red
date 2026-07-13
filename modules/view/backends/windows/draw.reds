@@ -10,8 +10,6 @@ Red/System [
 	}
 ]
 
-g_standby?: no
-
 #define GAUSSIAN_SCALE_FACTOR 1.87997120597325
 
 #include %text-box.reds
@@ -224,7 +222,7 @@ draw-begin: func [
 		OS-image/mark-updated img
 		;-- create a bitmap target
 		target: as render-target! zero-alloc size? render-target!
-		target/brushes: as int-ptr! allocate D2D_MAX_BRUSHES * 2 * size? int-ptr!
+		target/brushes: as brush-entry! allocate D2D_MAX_BRUSHES * size? brush-entry!
 
 		zero-memory as byte-ptr! :props size? D2D1_RENDER_TARGET_PROPERTIES
 		factory: as ID2D1Factory d2d-factory/vtbl
@@ -359,20 +357,24 @@ draw-end: func [
 	either hWnd? [		;-- window target
 		this: rt/swapchain
 		sc: as IDXGISwapChain1 this/vtbl
-		flags: either g_standby? [DXGI_PRESENT_TEST][0]
+		flags: either rt/standby? [DXGI_PRESENT_TEST][0]
 		hr: sc/Present this 0 flags
+		if all [flags = DXGI_PRESENT_TEST hr = COM_S_OK] [
+			rt/standby?: no
+			hr: sc/Present this 0 0
+		]
 
 		switch hr [
-			COM_S_OK [g_standby?: no]
+			COM_S_OK [rt/standby?: no]
 			DXGI_ERROR_DEVICE_REMOVED
 			DXGI_ERROR_DEVICE_RESET [
 				d2d-release-target rt
 				ctx/dc: null
-				SetWindowLong hWnd wc-offset - 36 0
+				set-window-long-ptr hWnd OFFSET_RENDER_TARGET null
 				DX-create-dev
 				InvalidateRect hWnd null 0
 			]
-			DXGI_STATUS_OCCLUDED [g_standby?: yes]
+			DXGI_STATUS_OCCLUDED [rt/standby?: yes]
 			default [
 				probe ["draw-end error: " hr]
 				0			;@@ TBD log error!!!
@@ -484,6 +486,7 @@ OS-draw-text: func [
 		x y		[float32!]
 		w h		[float32!]
 		pt		[red-point2D!]
+		origin	[POINT_2F value]
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
@@ -528,9 +531,11 @@ OS-draw-text: func [
 			COM_SAFE_RELEASE(unk bg-brush)
 		]
 	]
-	txt-box-draw-background ctx/target pos layout
+	txt-box-draw-background as render-target! ctx/target pos layout
 	flags: either win8+? [4][0]	;-- 4: D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT
-	dc/DrawTextLayout this x y layout ctx/pen flags
+	origin/x: x
+	origin/y: y
+	dc/DrawTextLayout this origin layout ctx/pen flags
 	if color? [
 		brush/SetColor pen to-dx-color ctx/pen-color null
 	]
@@ -971,6 +976,7 @@ OS-draw-line: func [
 		pt1		[red-pair!]
 		this	[this!]
 		dc		[ID2D1DeviceContext]
+		p0 p1		[POINT_2F value]
 		pt		[red-point2D!]
 		x0 y0 x1 y1 [float32!]
 ][
@@ -992,10 +998,14 @@ OS-draw-line: func [
 		if ctx/pen-type <> DRAW_BRUSH_NONE [
 			GET_PAIR_XY(pt0 x0 y0)
 			GET_PAIR_XY(pt1 x1 y1)
+			p0/x: x0
+			p0/y: y0
+			p1/x: x1
+			p1/y: y1
 			dc/DrawLine 
 				this
-				x0 y0
-				x1 y1
+				p0
+				p1
 				ctx/pen
 				ctx/pen-width
 				ctx/pen-style

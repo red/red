@@ -59,13 +59,13 @@ build-menu: func [
 						]
 						TYPE_WORD [
 							w: as red-word! next
-							item/dwItemData: w/symbol
+							item/dwItemData: as win-ulong-ptr! w/symbol
 							value: value + 1
 						]
-						default [item/dwItemData: -1]
+						default [item/dwItemData: WIN_ULONG_PTR_FFFFFFFF]
 					]
 				][
-					item/dwItemData: -1
+					item/dwItemData: WIN_ULONG_PTR_FFFFFFFF
 				]
 				item/cch: string/rs-length? str
 				item/dwTypeData: unicode/to-utf16 str
@@ -156,7 +156,7 @@ get-menu-id: func [
 	item/cbSize:  size? MENUITEMINFO
 	item/fMask:	  MIIM_DATA
 	GetMenuItemInfo hMenu pos true item
-	return item/dwItemData
+	return as integer! item/dwItemData
 ]
 
 do-menu: func [

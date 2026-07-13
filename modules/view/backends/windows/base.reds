@@ -47,7 +47,7 @@ init-base-face: func [
 	SetWindowLong handle wc-offset - 20 0
 	SetWindowLong handle wc-offset - 24 0
 	SetWindowLong handle wc-offset - 32 0
-	SetWindowLong handle wc-offset - 36 0
+	set-window-long-ptr handle OFFSET_RENDER_TARGET null
 	pt/x: dpi-scale offset/x
 	pt/y: dpi-scale offset/y
 	either alpha? [
@@ -436,9 +436,9 @@ BaseInternalWndProc: func [
 	[stdcall]
 	hWnd	[handle!]
 	msg		[integer!]
-	wParam	[integer!]
-	lParam	[integer!]
-	return: [integer!]
+	wParam	[win-wparam!]
+	lParam	[win-lparam!]
+	return: [win-lresult!]
 	/local
 		rect	[RECT_STRUCT]
 		hBrush	[handle!]
@@ -463,15 +463,16 @@ BaseWndProc: func [
 	[stdcall]
 	hWnd	[handle!]
 	msg		[integer!]
-	wParam	[integer!]
-	lParam	[integer!]
-	return: [integer!]
+	wParam	[win-wparam!]
+	lParam	[win-lparam!]
+	return: [win-lresult!]
 	/local
 		target	[render-target!]
 		this	[this!]
 		rt		[ID2D1HwndRenderTarget]
 		flags	[integer!]
 		w		[integer!]
+		result	[win-lresult!]
 		len		[integer!]
 		hfont	[handle!]
 		draw	[red-block!]
@@ -512,7 +513,7 @@ BaseWndProc: func [
 			]
 		][
 			;-- Direct2D backend
-			target: as render-target! GetWindowLong hWnd wc-offset - 36
+			target: as render-target! get-window-long-ptr hWnd OFFSET_RENDER_TARGET
 			if target <> null [
 				DX-resize-buffer target WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
 			]
@@ -546,7 +547,7 @@ BaseWndProc: func [
 				draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
 				either TYPE_OF(draw) = TYPE_BLOCK [
 					#if draw-engine = 'GDI+ [
-					if 0 <> GetWindowLong hWnd wc-offset - 4 [
+		if 0 <> GetWindowLong hWnd wc-offset - 4 [
 						bitblt-memory-dc hWnd no null 0 0 null
 						return 0
 					]]
@@ -558,7 +559,7 @@ BaseWndProc: func [
 					DC: declare draw-ctx!				;@@ should declare it on stack
 					catch RED_THROWN_ERROR [
 						draw-begin DC hWnd null no yes
-						SetWindowLong hWnd OFFSET_DRAW_CTX as-integer DC
+						set-window-long-ptr hWnd OFFSET_DRAW_CTX as int-ptr! DC
 						current-msg/hWnd: hWnd
 						make-event current-msg 0 EVT_DRAWING
 						draw-end DC hWnd no no yes
@@ -581,17 +582,17 @@ BaseWndProc: func [
 			]
 		]
 		WM_NCHITTEST [
-			w: DefWindowProc hWnd msg wParam lParam
+			result: DefWindowProc hWnd msg wParam lParam
 			flags: GetWindowLong hWnd wc-offset - 28
 			if flags <> 0 [							;-- has custom cursor
-				either w = 1 [						;-- client area
+				either result = 1 [					;-- client area
 					flags: flags or 80000000h
 				][
 					flags: flags and 7FFFFFFFh
 				]
 				SetWindowLong hWnd wc-offset - 28 flags
 			]
-			return w
+			return result
 		]
 		WM_SETCURSOR [
 			w: GetWindowLong as handle! wParam wc-offset - 28
@@ -604,7 +605,7 @@ BaseWndProc: func [
 			]
 		]
 		WM_MENUSELECT [
-			if wParam <> FFFF0000h [
+			if wParam <> WIN_WPARAM_FFFF0000 [
 				menu-selected: WIN32_LOWORD(wParam)
 				menu-handle: as handle! lParam
 			]
@@ -620,7 +621,7 @@ BaseWndProc: func [
 	if (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_IME <> 0 [
 		switch msg [
 			WM_IME_SETCONTEXT [
-				either zero? wParam [
+				either wParam = WIN_WPARAM(0) [
 					ImmReleaseContext hWnd hIMCtx
 				][
 					hIMCtx: ImmGetContext hWnd
@@ -814,7 +815,7 @@ update-base: func [
 		x y 	[float32!]
 		height	[integer!]
 		width	[integer!]
-		size	[tagSIZE]
+		size	[tagSIZE value]
 		ptSrc	[tagPOINT value]
 		graphic [integer!]
 		flags	[integer!]
@@ -859,7 +860,8 @@ update-base: func [
 
 	ptSrc/x: 0
 	ptSrc/y: 0
-	size: as tagSIZE :width
+	size/width: width
+	size/height: height
 	bf/BlendOp: as-byte 0
 	bf/BlendFlags: as-byte 0
 	bf/SourceConstantAlpha: as-byte 255
@@ -891,7 +893,7 @@ update-base: func [
 		this	[this!]
 		surf	[IDXGISurface1]
 		hdc		[ptr-value!]
-		size	[tagSIZE]
+		size	[tagSIZE value]
 		ctx		[draw-ctx! value]
 		bf		[tagBLENDFUNCTION value]
 		ptSrc	[tagPOINT value]
@@ -941,7 +943,8 @@ update-base: func [
 	height: dpi-scale y
 	ptSrc/x: 0
 	ptSrc/y: 0
-	size: as tagSIZE :width
+	size/width: width
+	size/height: height
 	bf/BlendOp: as-byte 0
 	bf/BlendFlags: as-byte 0
 	bf/SourceConstantAlpha: as-byte 255

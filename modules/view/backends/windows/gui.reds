@@ -12,9 +12,10 @@ Red/System [
 
 ;; ===== Extra slots usage in Window structs =====
 ;;
-;;		-60  :							<- TOP
-;;		-40  : base: draw-ctx! pointer
-;;		-36  : Direct2D render target
+;;		-60  : Direct2D render target		<- TOP
+;;		-52  : base: draw-ctx! pointer (x64)
+;;		-40  : base: draw-ctx! pointer (IA-32)
+;;		-36  : Direct2D render target (IA-32)
 ;;		-32	 : base: mouse capture count
 ;;			 : window: default font
 ;;		-28  : Cursor handle
@@ -33,7 +34,31 @@ Red/System [
 ;;		  12 : |
 ;;		  16 : FACE_OBJ_FLAGS        <- BOTTOM
 
-#define OFFSET_DRAW_CTX	[wc-offset - 40]
+#either target = 'X86-64 [
+	#define OFFSET_RENDER_TARGET	[wc-offset - 60]
+	#define OFFSET_DRAW_CTX		[wc-offset - 52]
+][
+	#define OFFSET_RENDER_TARGET	[wc-offset - 36]
+	#define OFFSET_DRAW_CTX		[wc-offset - 40]
+]
+
+#include %win32.reds
+
+get-window-long-ptr: func [
+	hWnd	[handle!]
+	offset	[integer!]
+	return:	[int-ptr!]
+][
+	as int-ptr! GetWindowLongPtr hWnd offset
+]
+
+set-window-long-ptr: func [
+	hWnd	[handle!]
+	offset	[integer!]
+	value	[int-ptr!]
+][
+	SetWindowLongPtr hWnd offset as win-long-ptr! value
+]
 
 #define IS_D2D_FACE(sym) [
 	any [sym = base sym = rich-text sym = window sym = panel]
@@ -41,7 +66,6 @@ Red/System [
 
 #define AREA_BUFFER_LIMIT 32768
 
-#include %win32.reds
 #include %direct2d.reds
 #include %matrix2d.reds
 #include %classes.reds
@@ -289,7 +313,7 @@ get-child-from-xy: func [
 ]
 
 get-gesture-info: func [
-	handle  [integer!]
+	handle  [win-lparam!]
 	return: [GESTUREINFO]
 	/local
 		gi [GESTUREINFO]
@@ -477,7 +501,7 @@ set-hint-text: func [
 	if TYPE_OF(options) <> TYPE_BLOCK [exit]
 	text: as red-string! block/select-word options word/load "hint" no
 	if TYPE_OF(text) = TYPE_STRING [
-		SendMessage hWnd 1501h 0 as-integer unicode/to-utf16 text		;-- EM_SETCUEBANNER
+		SendMessageNative hWnd 1501h WIN_WPARAM(0) as win-lparam! unicode/to-utf16 text	;-- EM_SETCUEBANNER
 	]
 ]
 
@@ -503,13 +527,13 @@ set-area-options: func [
 		size	[integer!]
 ][
 	size: 16	;-- according to MSDN, 16 dialog units equals to 4 character average width, and this value is device independent.
-	SendMessage hWnd CBh 1 as-integer :size
+	SendMessageNative hWnd CBh WIN_WPARAM(1) as win-lparam! :size
 
 	if TYPE_OF(options) <> TYPE_BLOCK [exit]
 	tabsize: as red-integer! block/select-word options word/load "tabs" no
 	if TYPE_OF(tabsize) = TYPE_INTEGER [
 		size: tabsize/value * 4
-		SendMessage hWnd CBh 1 as-integer :size
+		SendMessageNative hWnd CBh WIN_WPARAM(1) as win-lparam! :size
 	]
 ]
 
@@ -616,7 +640,7 @@ update-selection: func [
 ][
 	begin: 0
 	end:   0
-	SendMessage hWnd EM_GETSEL as-integer :begin as-integer :end
+	SendMessageNative hWnd EM_GETSEL as win-wparam! :begin as win-lparam! :end
 	sel: as red-pair! values + FACE_OBJ_SELECTED
 	either begin = end [
 		sel/header: TYPE_NONE
@@ -661,15 +685,15 @@ to-bgr: func [
 free-dc: func [
 	handle	[int-ptr!]
 	/local
-		dc	[integer!]
+		dc	[int-ptr!]
 ][
 	#either draw-engine = 'GDI+ [
 	if zero? (WS_EX_LAYERED and GetWindowLong handle GWL_EXSTYLE) [
-		dc: GetWindowLong handle wc-offset - 4
-		if dc <> 0 [DeleteDC as handle! dc]			;-- delete cached dc
+		dc: as int-ptr! GetWindowLong handle wc-offset - 4
+		if not null? dc [DeleteDC as handle! dc]		;-- delete cached dc
 	]
-	dc: GetWindowLong handle wc-offset - 36
-	if dc <> 0 [
+	dc: get-window-long-ptr handle OFFSET_RENDER_TARGET
+	if not null? dc [
 		either (GetWindowLong handle wc-offset - 12) and BASE_FACE_IME <> 0 [
 			d2d-release-target as render-target! dc
 		][											;-- caret
@@ -677,8 +701,8 @@ free-dc: func [
 		]
 	]][
 	;-- Direct2D backend
-	dc: GetWindowLong handle wc-offset - 36
-	if dc <> 0 [d2d-release-target as render-target! dc]
+	dc: get-window-long-ptr handle OFFSET_RENDER_TARGET
+	if not null? dc [d2d-release-target as render-target! dc]
 	if (GetWindowLong handle wc-offset - 12) and BASE_FACE_IME <> 0 [
 		DestroyCaret
 	]]
@@ -1089,7 +1113,7 @@ init-window: func [										;-- post-creation settings
 	SetWindowLong handle wc-offset - 16 0
 	SetWindowLong handle wc-offset - 24 0
 	SetWindowLong handle wc-offset - 32 0
-	SetWindowLong handle wc-offset - 36 0
+	set-window-long-ptr handle OFFSET_RENDER_TARGET null
 ]
 
 get-selected-handle: func [
@@ -1204,9 +1228,9 @@ get-text-alt: func [
 		out: unicode/get-cache str size + 1 * 4			;-- account for surrogate pairs and terminal NUL
 
 		either idx = -1 [
-			SendMessage hWnd WM_GETTEXT size + 1 as-integer out  ;-- account for NUL
+			SendMessageNative hWnd WM_GETTEXT as win-wparam! (size + 1) as win-lparam! out ;-- account for NUL
 		][
-			SendMessage hWnd CB_GETLBTEXT idx as-integer out
+			SendMessageNative hWnd CB_GETLBTEXT WIN_WPARAM(idx) as win-lparam! out
 		]
 		unicode/load-utf16 null size str yes
 		ownership/bind as red-value! str face _text
@@ -1239,9 +1263,9 @@ get-text: func [
 		out: unicode/get-cache str size + 1 * 4			;-- account for surrogate pairs and terminal NUL
 
 		either idx = -1 [
-			SendMessage msg/hWnd WM_GETTEXT size + 1 as-integer out  ;-- account for NUL
+			SendMessageNative msg/hWnd WM_GETTEXT as win-wparam! (size + 1) as win-lparam! out ;-- account for NUL
 		][
-			SendMessage msg/hWnd CB_GETLBTEXT idx as-integer out
+			SendMessageNative msg/hWnd CB_GETLBTEXT WIN_WPARAM(idx) as win-lparam! out
 		]
 		unicode/load-utf16 null size str yes
 		
@@ -1476,7 +1500,7 @@ OS-get-current-screen: func [
 
 monitor-enum-proc: func [
 	[stdcall]
-	hMonitor[integer!]
+	hMonitor[handle!]
 	hDC		[handle!]
 	lpRECT	[int-ptr!]									;-- RECT_STRUCT
 	spec	[red-block!]
@@ -1509,7 +1533,7 @@ monitor-enum-proc: func [
 	pair/make-at   alloc-tail s rec/left rec/top
 	pair/make-at   alloc-tail s rec/right - rec/left rec/bottom - rec/top
 	float/make-at  alloc-tail s as-float DPI
-	handle/make-at alloc-tail s hMonitor handle/CLASS_MONITOR
+	handle/make-at alloc-tail s as-integer hMonitor handle/CLASS_MONITOR
 	
 	monitor-tail/handle:   as handle! hMonitor
 	monitor-tail/DPI:	   DPI
@@ -1896,13 +1920,13 @@ OS-make-view: func [
 				hInstance
 				null
 
-			SendMessage hWnd WM_SETFONT as-integer default-font 1
+			SendMessageNative hWnd WM_SETFONT as win-wparam! default-font WIN_LPARAM(1)
 			SetWindowLong handle wc-offset - 4 as-integer hWnd
 		]
 		panel? [
 			adjust-parent handle as handle! parent offset/x offset/y
 			SetWindowLong handle wc-offset - 4 0
-			SetWindowLong handle wc-offset - 36 0
+			set-window-long-ptr handle OFFSET_RENDER_TARGET null
 		]
 		any [
 			sym = slider
@@ -2374,7 +2398,7 @@ change-visible: func [
 	unless win8+? [update-layered-window hWnd null null null -1]
 
 	if type = group-box [
-		hWnd: as handle! GetWindowLong hWnd wc-offset - 4
+			hWnd: as handle! GetWindowLong hWnd wc-offset - 4
 		ShowWindow hWnd value
 	]
 	if type = tab-panel [update-tab-contents hWnd FACE_OBJ_VISIBLE?]
@@ -3019,22 +3043,22 @@ OS-to-image: func [
 	either screen? [
 		BitBlt mdc 0 0 width height hScreen rc/left rc/top SRCCOPY or CAPTUREBLT
 	][
-		either win8+? [
-			PrintWindow hWnd mdc 2
-		][
-			bo/x: 0  bo/y: 0
-			;-- when printing whole windows, account for nonclient area size:
-			if window = sym [
-				ClientToScreen hWnd bo
-				bo/x: bo/x - rc/left
-				bo/y: bo/y - rc/top
-			]
+			either win8+? [
+				PrintWindow hWnd mdc 2
+			][
+				bo/x: 0  bo/y: 0
+				;-- when printing whole windows, account for nonclient area size:
+				if window = sym [
+					ClientToScreen hWnd bo
+					bo/x: bo/x - rc/left
+					bo/y: bo/y - rc/top
+				]
 
-			; see https://stackoverflow.com/a/44062144 and #3465 as to why PrintWindow shouldn't be used alone
-			PrintWindow hWnd mdc 0 		;-- print everything that's printable
-			imprint-layers-deep mdc hWnd bo/x bo/y null
+				; see https://stackoverflow.com/a/44062144 and #3465 as to why PrintWindow shouldn't be used alone
+				PrintWindow hWnd mdc 0 		;-- print everything that's printable
+				imprint-layers-deep mdc hWnd bo/x bo/y null
+			]
 		]
-	]
 
 	img: OS-image/from-HBITMAP as int-ptr! bmp 0
 
@@ -3060,7 +3084,7 @@ OS-draw-face: func [
 ][
 	if TYPE_OF(cmds) = TYPE_BLOCK [
 		assert system/thrown = 0
-		ctx: as draw-ctx! GetWindowLong hWnd OFFSET_DRAW_CTX
+		ctx: as draw-ctx! get-window-long-ptr hWnd OFFSET_DRAW_CTX
 		catch RED_THROWN_ERROR [parse-draw ctx cmds yes]
 	]
 	if system/thrown = RED_THROWN_ERROR [system/thrown: 0]

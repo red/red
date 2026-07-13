@@ -12,18 +12,16 @@ Red/System [
 
 get-hwnd-render-target-d2d: func [
 	hWnd	[handle!]
-	return:	[int-ptr!]
+	return:	[render-target!]
 	/local
-		target	[int-ptr!]
+		target	[render-target!]
 ][
-	target: as int-ptr! GetWindowLong hWnd wc-offset - 36
+	target: as render-target! get-window-long-ptr hWnd OFFSET_RENDER_TARGET
 	if null? target [
-		target: as int-ptr! zero-alloc size? render-target!
-		target/1: as-integer create-hwnd-render-target hWnd
-		target/2: as-integer allocate D2D_MAX_BRUSHES * 2 * size? int-ptr!
-		target/3: 0
-		target/4: 0			;-- for text-box! background color
-		SetWindowLong hWnd wc-offset - 36 as-integer target
+		target: as render-target! zero-alloc size? render-target!
+		target/dc: create-hwnd-render-target hWnd
+		target/brushes: as brush-entry! allocate D2D_MAX_BRUSHES * size? brush-entry!
+		set-window-long-ptr hWnd OFFSET_RENDER_TARGET as int-ptr! target
 	]
 	target
 ]
@@ -45,7 +43,7 @@ draw-begin-d2d: func [
 		m		[D2D_MATRIX_3X2_F]
 		bg-clr	[integer!]
 		brush	[ptr-value!]
-		target	[int-ptr!]
+		target	[render-target!]
 		brushes [int-ptr!]
 		pbrush	[ID2D1SolidColorBrush]
 		d3d-clr [D3DCOLORVALUE]
@@ -56,7 +54,7 @@ draw-begin-d2d: func [
 ][
 	target: get-hwnd-render-target-d2d hWnd
 
-	this: as this! target/value
+	this: target/dc
 	ctx/dc: as handle! this
 	ctx/brushes: target
 
@@ -120,7 +118,7 @@ draw-end-d2d: func [
 		D2DERR_RECREATE_TARGET [
 			d2d-release-target as render-target! ctx/brushes
 			ctx/dc: null
-			SetWindowLong hWnd wc-offset - 36 0
+			set-window-long-ptr hWnd OFFSET_RENDER_TARGET null
 			InvalidateRect hWnd null 0
 		]
 		default [
@@ -270,6 +268,7 @@ OS-draw-text-d2d: func [
 		flags	[integer!]
 		x y		[float32!]
 		pt		[red-point2D!]
+		origin	[POINT_2F value]
 ][
 	this: as this! ctx/dc
 	rt: as ID2D1HwndRenderTarget this/vtbl
@@ -280,10 +279,12 @@ OS-draw-text-d2d: func [
 		fmt: as this! create-text-format as red-object! text null
 		create-text-layout text fmt 0 0
 	]
-	txt-box-draw-background ctx/brushes pos layout
+	txt-box-draw-background as render-target! ctx/brushes pos layout
 	flags: either win8+? [4][0]		;-- 4: D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT
 	GET_PAIR_XY(pos x y)
-	rt/DrawTextLayout this x y layout as this! ctx/pen flags 
+	origin/x: x
+	origin/y: y
+	rt/DrawTextLayout this origin layout as this! ctx/pen flags
 ]
 
 xform: declare XFORM!
@@ -517,6 +518,7 @@ update-pen: func [
 			brush: declare tagLOGBRUSH
 			brush/lbStyle: BS_SOLID
 			brush/lbColor: ctx/pen-color
+			brush/lbHatch: WIN_WPARAM(0)
 			ExtCreatePen
 				PS_GEOMETRIC or ctx/pen-style or mode
 				as integer! ctx/pen-width

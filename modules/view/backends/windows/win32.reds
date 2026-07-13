@@ -18,6 +18,24 @@ Red/System [
 	]
 ]
 
+;-- Windows pointer-sized integer ABI types. These are scalars, not pointers.
+#either target = 'X86-64 [
+	#define win-long-ptr!	int64!
+	#define win-ulong-ptr!	uint64!
+][
+	#define win-long-ptr!	integer!
+	#define win-ulong-ptr!	uint32!
+]
+
+#define win-wparam!	win-ulong-ptr!
+#define win-lparam!	win-long-ptr!
+#define win-lresult!	win-long-ptr!
+
+#define WIN_WPARAM(value) [as win-wparam! value]
+#define WIN_LPARAM(value) [as win-lparam! value]
+#define WIN_WPARAM_FFFF0000 [((as win-wparam! FFFFh) << 16)]
+#define WIN_ULONG_PTR_FFFFFFFF [(((as win-ulong-ptr! FFFFh) << 16) or (as win-ulong-ptr! FFFFh))]
+
 #define MONITOR_DEFAULTTONEAREST 2
 
 #define MAPVK_VK_TO_CHAR		2
@@ -558,10 +576,30 @@ Red/System [
 #define ICC_STANDARD_CLASSES	00004000h
 #define ICC_LINK_CLASS			00008000h
 
-#define WIN32_LOWORD(param) (param and FFFFh << 16 >> 16)	;-- trick to force sign extension
-#define WIN32_HIWORD(param) (param >> 16)
+#define WIN32_U16(param) [
+	(as integer! param) and FFFFh
+]
+#define WIN32_LOWORD(param) [
+	(WIN32_U16(param) << 16 >> 16)
+]
+#define WIN32_HIWORD(param) [
+	((as integer! param) >> 16)
+]
 
 #define WIN32_MAKE_LPARAM(low high) [high << 16 or (low and FFFFh)]
+
+;-- WM_MOVE and mouse messages pack two signed 16-bit fields into LPARAM.
+;-- This is the only place their full-width carrier is intentionally narrowed.
+win-lparam-low32: func [
+	value	[win-lparam!]
+	return:	[integer!]
+	/local
+		low high [integer!]
+][
+	low: WIN32_LOWORD(value)
+	high: WIN32_HIWORD(value)
+	high << 16 or (low and FFFFh)
+]
 
 #define IS_EXTENDED_KEY		01000000h
 
@@ -602,7 +640,7 @@ Red/System [
 #define PAIR_SIZE_FACET		10h
 
 BUTTON_IMAGELIST: alias struct! [
-	handle		[integer!]
+	handle		[handle!]
 	left		[integer!]
 	top			[integer!]
 	right		[integer!]
@@ -628,8 +666,8 @@ tagSIZE: alias struct! [
 tagMSG: alias struct! [
 	hWnd	[handle!]
 	msg		[integer!]
-	wParam	[integer!]
-	lParam	[integer!]
+	wParam	[win-wparam!]
+	lParam	[win-lparam!]
 	time	[integer!]
 	x		[integer!]									;@@ POINT struct
 	y		[integer!]	
@@ -638,7 +676,7 @@ tagMSG: alias struct! [
 tagLOGBRUSH: alias struct! [
 	lbStyle [integer!]
 	lbColor [integer!]
-	lbHatch [integer!]
+	lbHatch [win-ulong-ptr!]
 ]
 
 tagTEXTMETRIC: alias struct! [
@@ -671,7 +709,7 @@ tagTRACKMOUSEEVENT: alias struct! [
 
 tagNMHDR: alias struct! [
 	hWndFrom	 [handle!]
-	idFrom		 [integer!]
+	idFrom		 [win-ulong-ptr!]
 	code		 [integer!]
 ]
 
@@ -684,7 +722,7 @@ tagBLENDFUNCTION: alias struct! [
 
 tagNMCUSTOMDRAWINFO: alias struct! [
 	hWndFrom	[handle!]
-	idFrom		[integer!]
+	idFrom		[win-ulong-ptr!]
 	code		[integer!]
 	dwDrawStage [integer!]
 	hdc			[handle!]
@@ -694,7 +732,7 @@ tagNMCUSTOMDRAWINFO: alias struct! [
 	bottom		[integer!]
 	dwItemSpec	[int-ptr!];this is control specific, but it's how to specify an item.  valid only with CDDS_ITEM bit set
 	uItemState	[integer!]
-	lItemlParam [integer!]
+	lItemlParam [win-lparam!]
 ]
 
 tagSCROLLINFO: alias struct! [
@@ -711,7 +749,7 @@ tagCREATESTRUCT: alias struct! [
 	lpParams 	[int-ptr!]
 	hInstance	[handle!]
 	hMenu		[handle!]
-	hwndParent	[integer!]
+	hwndParent	[handle!]
 	cy			[integer!]
 	cx			[integer!]
 	y			[integer!]
@@ -737,7 +775,7 @@ tagMINMAXINFO: alias struct! [
 
 monitor-enum-cb!: alias function! [
 	[stdcall]
-	hMonitor[integer!]
+	hMonitor[handle!]
 	hDC		[handle!]
 	lpRECT	[int-ptr!]
 	spec	[red-block!]								;-- user-defined argument
@@ -748,9 +786,9 @@ wndproc-cb!: alias function! [
 	[stdcall]
 	hWnd	[handle!]
 	msg		[integer!]
-	wParam	[integer!]
-	lParam	[integer!]
-	return: [integer!]
+	wParam	[win-wparam!]
+	lParam	[win-lparam!]
+	return: [win-lresult!]
 ]
 
 timer-cb!: alias function! [
@@ -759,6 +797,15 @@ timer-cb!: alias function! [
 	msg		[integer!]
 	idEvent	[int-ptr!]
 	dwTime	[integer!]
+]
+
+browse-cb!: alias function! [
+	[stdcall]
+	hWnd	[handle!]
+	msg		[integer!]
+	lParam	[win-lparam!]
+	lpData	[win-lparam!]
+	return: [integer!]
 ]
 
 WNDCLASSEX: alias struct! [
@@ -805,7 +852,7 @@ ACTCTX: alias struct! [
 	lpAssDir	[c-string!]
 	lpResource	[c-string!]
 	lpAppName	[c-string!]
-	hModule		[integer!]
+	hModule		[handle!]
 ]
 
 OSVERSIONINFO: alias struct! [
@@ -814,39 +861,70 @@ OSVERSIONINFO: alias struct! [
 	dwMinorVersion		[integer!]
 	dwBuildNumber		[integer!]	
 	dwPlatformId		[integer!]
-	szCSDVersion		[byte-ptr!]						;-- array of 128 bytes
-	szCSDVersion0		[integer!]
-	szCSDVersion1		[float!]
-	szCSDVersion2		[float!]
-	szCSDVersion3		[float!]
-	szCSDVersion4		[float!]
-	szCSDVersion5		[float!]
-	szCSDVersion6		[float!]
-	szCSDVersion7		[float!]
-	szCSDVersion8		[float!]
-	szCSDVersion9		[float!]
-	szCSDVersion10		[float!]
-	szCSDVersion11		[float!]
-	szCSDVersion12		[float!]
-	szCSDVersion13		[float!]
-	szCSDVersion14		[float!]
-	szCSDVersion15		[float!]
-	szCSDVersion16		[float!]
-	szCSDVersion17		[float!]
-	szCSDVersion18		[float!]
-	szCSDVersion19		[float!]
-	szCSDVersion20		[float!]
-	szCSDVersion21		[float!]
-	szCSDVersion22		[float!]
-	szCSDVersion23		[float!]
-	szCSDVersion24		[float!]
-	szCSDVersion25		[float!]
-	szCSDVersion26		[float!]
-	szCSDVersion27		[float!]
-	szCSDVersion28		[float!]
-	szCSDVersion29		[float!]
-	szCSDVersion30		[float!]
-	szCSDVersion31		[float!]
+	szCSDVersion0		[integer!]					;-- WCHAR[128], 256 bytes
+	szCSDVersion1		[integer!]
+	szCSDVersion2		[integer!]
+	szCSDVersion3		[integer!]
+	szCSDVersion4		[integer!]
+	szCSDVersion5		[integer!]
+	szCSDVersion6		[integer!]
+	szCSDVersion7		[integer!]
+	szCSDVersion8		[integer!]
+	szCSDVersion9		[integer!]
+	szCSDVersion10		[integer!]
+	szCSDVersion11		[integer!]
+	szCSDVersion12		[integer!]
+	szCSDVersion13		[integer!]
+	szCSDVersion14		[integer!]
+	szCSDVersion15		[integer!]
+	szCSDVersion16		[integer!]
+	szCSDVersion17		[integer!]
+	szCSDVersion18		[integer!]
+	szCSDVersion19		[integer!]
+	szCSDVersion20		[integer!]
+	szCSDVersion21		[integer!]
+	szCSDVersion22		[integer!]
+	szCSDVersion23		[integer!]
+	szCSDVersion24		[integer!]
+	szCSDVersion25		[integer!]
+	szCSDVersion26		[integer!]
+	szCSDVersion27		[integer!]
+	szCSDVersion28		[integer!]
+	szCSDVersion29		[integer!]
+	szCSDVersion30		[integer!]
+	szCSDVersion31		[integer!]
+	szCSDVersion32		[integer!]
+	szCSDVersion33		[integer!]
+	szCSDVersion34		[integer!]
+	szCSDVersion35		[integer!]
+	szCSDVersion36		[integer!]
+	szCSDVersion37		[integer!]
+	szCSDVersion38		[integer!]
+	szCSDVersion39		[integer!]
+	szCSDVersion40		[integer!]
+	szCSDVersion41		[integer!]
+	szCSDVersion42		[integer!]
+	szCSDVersion43		[integer!]
+	szCSDVersion44		[integer!]
+	szCSDVersion45		[integer!]
+	szCSDVersion46		[integer!]
+	szCSDVersion47		[integer!]
+	szCSDVersion48		[integer!]
+	szCSDVersion49		[integer!]
+	szCSDVersion50		[integer!]
+	szCSDVersion51		[integer!]
+	szCSDVersion52		[integer!]
+	szCSDVersion53		[integer!]
+	szCSDVersion54		[integer!]
+	szCSDVersion55		[integer!]
+	szCSDVersion56		[integer!]
+	szCSDVersion57		[integer!]
+	szCSDVersion58		[integer!]
+	szCSDVersion59		[integer!]
+	szCSDVersion60		[integer!]
+	szCSDVersion61		[integer!]
+	szCSDVersion62		[integer!]
+	szCSDVersion63		[integer!]
 	wServicePack		[integer!]						;-- Major: 16, Minor: 16
 	wSuiteMask0			[byte!]
 	wSuiteMask1			[byte!]
@@ -866,7 +944,7 @@ TCITEM: alias struct! [
 	pszText		[c-string!]
 	cchTextMax	[integer!]
 	iImage		[integer!]
-	lParam		[integer!]
+	lParam		[win-lparam!]
 ]
 
 MENUITEMINFO: alias struct! [
@@ -878,7 +956,7 @@ MENUITEMINFO: alias struct! [
 	hSubMenu	[handle!]
 	hbmpChecked	[handle!]
 	hbmpUnchecked [handle!]
-	dwItemData	[integer!]
+	dwItemData	[win-ulong-ptr!]
 	dwTypeData	[c-string!]
 	cch			[integer!]
 	hbmpItem	[handle!]
@@ -959,16 +1037,16 @@ tagHIGHCONTRASTW: alias struct! [
 
 tagCHOOSEFONT: alias struct! [
 	lStructSize		[integer!]
-	hwndOwner		[int-ptr!]
-	hDC				[integer!]
+	hwndOwner		[handle!]
+	hDC				[handle!]
 	lpLogFont		[tagLOGFONT]
 	iPointSize		[integer!]
 	Flags			[integer!]
 	rgbColors		[integer!]
-	lCustData		[integer!]
-	lpfnHook		[integer!]
+	lCustData		[win-lparam!]
+	lpfnHook		[int-ptr!]
 	lpTemplateName	[c-string!]
-	hInstance		[integer!]
+	hInstance		[handle!]
 	lpszStyle		[c-string!]
 	nFontType		[integer!]							;-- WORD
 	nSizeMin		[integer!]
@@ -978,7 +1056,7 @@ tagCHOOSEFONT: alias struct! [
 tagOFNW: alias struct! [
 	lStructSize			[integer!]
 	hwndOwner			[handle!]
-	hInstance			[integer!]
+	hInstance			[handle!]
 	lpstrFilter			[c-string!]
 	lpstrCustomFilter	[c-string!]
 	nMaxCustFilter		[integer!]
@@ -993,11 +1071,11 @@ tagOFNW: alias struct! [
 	nFileOffset			[integer!]
 	;nFileExtension		[integer!]
 	lpstrDefExt			[c-string!]
-	lCustData			[integer!]
-	lpfnHook			[integer!]
-	lpTemplateName		[integer!]
+	lCustData			[win-lparam!]
+	lpfnHook			[int-ptr!]
+	lpTemplateName		[int-ptr!]
 	;-- if (_WIN32_WINNT >= 0x0500)
-	pvReserved			[integer!]
+	pvReserved			[int-ptr!]
 	dwReserved			[integer!]
 	FlagsEx				[integer!]
 ]
@@ -1008,8 +1086,8 @@ tagBROWSEINFO: alias struct! [
 	pszDisplayName	[c-string!]
 	lpszTitle		[c-string!]
 	ulFlags			[integer!]
-	lpfn			[integer!]
-	lParam			[integer!]
+	lpfn			[browse-cb!]
+	lParam			[win-lparam!]
 	iImage			[integer!]
 ]
 
@@ -1445,17 +1523,17 @@ XFORM!: alias struct! [
 		DefWindowProc: "DefWindowProcW" [
 			hWnd		[handle!]
 			msg			[integer!]
-			wParam		[integer!]
-			lParam		[integer!]
-			return: 	[integer!]
+			wParam		[win-wparam!]
+			lParam		[win-lparam!]
+			return: 	[win-lresult!]
 		]
 		CallWindowProc: "CallWindowProcW" [
 			lpfnWndProc	[wndproc-cb!]
 			hWnd		[handle!]
 			msg			[integer!]
-			wParam		[integer!]
-			lParam		[integer!]
-			return: 	[integer!]
+			wParam		[win-wparam!]
+			lParam		[win-lparam!]
+			return: 	[win-lresult!]
 		]
 		GetMessage: "GetMessageW" [
 			msg			[tagMSG]
@@ -1478,24 +1556,24 @@ XFORM!: alias struct! [
 		]
 		DispatchMessage: "DispatchMessageW" [
 			msg			[tagMSG]
-			return: 	[integer!]
+			return: 	[win-lresult!]
 		]
 		PostQuitMessage: "PostQuitMessage" [
 			nExitCode	[integer!]
 		]
-		SendMessage: "SendMessageW" [
+		SendMessageNative: "SendMessageW" [
 			hWnd		[handle!]
 			msg			[integer!]
-			wParam		[integer!]
-			lParam		[integer!]
-			return: 	[handle!]
+			wParam		[win-wparam!]
+			lParam		[win-lparam!]
+			return: 	[win-lresult!]
 		]
-		PostMessage: "PostMessageW" [
+		PostMessageNative: "PostMessageW" [
 			hWnd		[handle!]
 			msg			[integer!]
-			wParam		[integer!]
-			lParam		[integer!]
-			return: 	[handle!]
+			wParam		[win-wparam!]
+			lParam		[win-lparam!]
+			return: 	[logic!]
 		]
 		GetMessagePos: "GetMessagePos" [
 			return:		[integer!]
@@ -2850,16 +2928,16 @@ XFORM!: alias struct! [
 			flags		[integer!]
 			cInitial	[integer!]
 			cGrow		[integer!]
-			return:		[integer!]
+			return:		[handle!]
 		]
 		ImageList_Destroy: "ImageList_Destroy" [
-			himl		[integer!]
+			himl		[handle!]
 			return:		[integer!]
 		]
 		ImageList_Add: "ImageList_Add" [
-			himl		[integer!]
-			hbmImage	[integer!]
-			hbmMask		[integer!]
+			himl		[handle!]
+			hbmImage	[handle!]
+			hbmMask		[handle!]
 			return:		[integer!]
 		]
 		LBItemFromPt: "LBItemFromPt" [
@@ -2873,10 +2951,10 @@ XFORM!: alias struct! [
 	"shell32.dll" stdcall [
 		SHBrowseForFolder: "SHBrowseForFolderW" [
 			lpbi		[tagBROWSEINFO]
-			return: 	[integer!]
+			return: 	[int-ptr!]
 		]
 		SHGetPathFromIDList: "SHGetPathFromIDListW" [
-			pidl		[integer!]
+			pidl		[int-ptr!]
 			pszPath		[byte-ptr!]
 			return:		[logic!]
 		]
@@ -2898,7 +2976,7 @@ XFORM!: alias struct! [
 	]
 	"ole32.dll" stdcall [
 		CoTaskMemFree: "CoTaskMemFree" [
-			pv		[integer!]
+			pv		[int-ptr!]
 		]
 	]
 	"imm32.dll" stdcall [
@@ -2967,6 +3045,53 @@ XFORM!: alias struct! [
 			return:			[integer!]
 		]
 	]
+]
+
+#either target = 'X86-64 [
+	#define SET_WINDOW_LONG_PTR "SetWindowLongPtrW"
+	#define GET_WINDOW_LONG_PTR "GetWindowLongPtrW"
+][
+	#define SET_WINDOW_LONG_PTR "SetWindowLongW"
+	#define GET_WINDOW_LONG_PTR "GetWindowLongW"
+]
+
+#import [
+	"User32.dll" stdcall [
+		SetWindowLongPtr: SET_WINDOW_LONG_PTR [
+			hWnd		[handle!]
+			nIndex		[integer!]
+			dwNewLong	[win-long-ptr!]
+			return:		[win-long-ptr!]
+		]
+		GetWindowLongPtr: GET_WINDOW_LONG_PTR [
+			hWnd		[handle!]
+			nIndex		[integer!]
+			return:		[win-long-ptr!]
+		]
+	]
+]
+
+;-- Most control messages only carry 32-bit IDs, flags, counts, or sentinels.
+;-- Keep those call sites source-compatible, and use the Native variants above
+;-- whenever a parameter is a pointer or a full-width value.
+SendMessage: func [
+	hWnd	[handle!]
+	msg		[integer!]
+	wParam	[integer!]
+	lParam	[integer!]
+	return:	[integer!]
+][
+	as integer! SendMessageNative hWnd msg WIN_WPARAM(wParam) WIN_LPARAM(lParam)
+]
+
+PostMessage: func [
+	hWnd	[handle!]
+	msg		[integer!]
+	wParam	[integer!]
+	lParam	[integer!]
+	return:	[logic!]
+][
+	PostMessageNative hWnd msg WIN_WPARAM(wParam) WIN_LPARAM(lParam)
 ]
 
 #case [
@@ -3073,20 +3198,34 @@ time-meter!: alias struct! [
     base [LARGE_INTEGER value]
 ]
 
-sub64: func [
-    a       [LARGE_INTEGER]
-    b       [LARGE_INTEGER]
-    return: [integer!]
-][
-    ;-- mov edx, [ebp + 8]
-    ;-- mov ecx, [ebp + 12]
-    ;-- mov eax, [edx]
-    ;-- mov edx, [edx + 4]
-    ;-- sub eax, [ecx]
-    ;-- sbb edx, [ecx + 4]
-    #inline [
-        #{8B55088B4D0C8B028B52042B011B5104}
+#either target = 'X86-64 [
+    sub64: func [
+        a       [LARGE_INTEGER]
+        b       [LARGE_INTEGER]
         return: [integer!]
+        /local
+            pa pb [pointer! [int64!]]
+    ][
+        pa: as pointer! [int64!] a
+        pb: as pointer! [int64!] b
+        as integer! (pa/value - pb/value)
+    ]
+][
+    sub64: func [
+        a       [LARGE_INTEGER]
+        b       [LARGE_INTEGER]
+        return: [integer!]
+    ][
+        ;-- mov edx, [ebp + 8]
+        ;-- mov ecx, [ebp + 12]
+        ;-- mov eax, [edx]
+        ;-- mov edx, [edx + 4]
+        ;-- sub eax, [ecx]
+        ;-- sbb edx, [ecx + 4]
+        #inline [
+            #{8B55088B4D0C8B028B52042B011B5104}
+            return: [integer!]
+        ]
     ]
 ]
 

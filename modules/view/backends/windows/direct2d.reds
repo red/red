@@ -301,10 +301,8 @@ CreateGradientStopCollection*: alias function! [
 
 DrawLine*: alias function! [
 	this		[this!]
-	pt0.x		[float32!]
-	pt0.y		[float32!]
-	pt1.x		[float32!]
-	pt1.y		[float32!]
+	pt0		[POINT_2F value]
+	pt1		[POINT_2F value]
 	brush		[this!]
 	width		[float32!]
 	style		[this!]
@@ -354,8 +352,7 @@ FillEllipse*: alias function! [
 
 DrawTextLayout*: alias function! [
 	this		[this!]
-	x			[float32!]
-	y			[float32!]
+	origin		[POINT_2F value]
 	layout		[this!]
 	brush		[this!]
 	options		[integer!]
@@ -424,7 +421,7 @@ CreateSwapChainForHwnd*: alias function! [
 	desc				[DXGI_SWAP_CHAIN_DESC1]
 	pFullscreenDesc		[int-ptr!]
 	pRestrictToOutput	[int-ptr!]
-	ppSwapChain			[int-ptr!]
+	ppSwapChain			[ptr-ptr!]
 	return:				[integer!]
 ]
 
@@ -433,7 +430,7 @@ CreateSwapChainForComposition*: alias function! [
 	pDevice				[this!]
 	desc				[DXGI_SWAP_CHAIN_DESC1]
 	pRestrictToOutput	[int-ptr!]
-	ppSwapChain			[int-ptr!]
+	ppSwapChain			[ptr-ptr!]
 	return:				[integer!]
 ]
 
@@ -441,17 +438,17 @@ CreateSwapChainForComposition*: alias function! [
 	QueryInterface		[QueryInterface!]
 	AddRef				[AddRef!]
 	Release				[Release!]
-	GetFactory			[integer!]
+	GetFactory			[int-ptr!]
 ]
 
 #define ID2D1Brush* [
 	QueryInterface		[QueryInterface!]
 	AddRef				[AddRef!]
 	Release				[Release!]
-	GetFactory			[integer!]
-	SetOpacity			[integer!]
+	GetFactory			[int-ptr!]
+	SetOpacity			[int-ptr!]
 	SetTransform		[SetTransform*]
-	GetOpacity			[integer!]
+	GetOpacity			[int-ptr!]
 	GetTransform		[GetTransform*]
 ]
 
@@ -471,7 +468,7 @@ ID2D1LinearGradientBrush: alias struct! [
 ID2D1SolidColorBrush: alias struct! [
 	ID2D1Brush*
 	SetColor			[function! [this [this!] color [D3DCOLORVALUE]]]
-	GetColor			[integer!]
+	GetColor			[int-ptr!]
 ]
 
 ID2D1RadialGradientBrush: alias struct! [
@@ -484,18 +481,18 @@ ID2D1RadialGradientBrush: alias struct! [
 	GetGradientOriginOffset		[GetGradientOriginOffset*]
 	GetRadiusX					[GetRadiusX*]
 	GetRadiusY					[GetRadiusY*]
-	GetGradientStopCollection	[integer!]
+	GetGradientStopCollection	[int-ptr!]
 ]
 
 ID2D1GradientStopCollection: alias struct! [
 	QueryInterface					[QueryInterface!]
 	AddRef							[AddRef!]
 	Release							[Release!]
-	GetFactory						[integer!]
-	GetGradientStopCount			[integer!]
-	GetGradientStops				[integer!]
-	GetColorInterpolationGamma		[integer!]
-	GetExtendMode					[integer!]
+	GetFactory						[int-ptr!]
+	GetGradientStopCount			[int-ptr!]
+	GetGradientStops				[int-ptr!]
+	GetColorInterpolationGamma		[int-ptr!]
+	GetExtendMode					[int-ptr!]
 ]
 
 ID2D1Properties: alias struct! [
@@ -528,7 +525,7 @@ ID2D1CommandList: alias struct! [
 	QueryInterface					[QueryInterface!]
 	AddRef							[AddRef!]
 	Release							[Release!]
-	GetFactory						[integer!]
+	GetFactory						[int-ptr!]
 	Stream							[int-ptr!]
 	Close							[function! [this [this!] return: [integer!]]]
 ]
@@ -537,30 +534,30 @@ IDXGIDevice1: alias struct! [
 	QueryInterface					[QueryInterface!]
 	AddRef							[AddRef!]
 	Release							[Release!]
-	SetPrivateData					[integer!]
-	SetPrivateDataInterface			[integer!]
-	GetPrivateData					[integer!]
-	GetParent						[function! [this [this!] riid [int-ptr!] parent [int-ptr!] return: [integer!]]]
+	SetPrivateData					[int-ptr!]
+	SetPrivateDataInterface			[int-ptr!]
+	GetPrivateData					[int-ptr!]
+	GetParent						[function! [this [this!] riid [int-ptr!] parent [ptr-ptr!] return: [integer!]]]
 	GetAdapter						[function! [this [this!] adapter [ptr-ptr!] return: [integer!]]]
-	CreateSurface					[integer!]
-	QueryResourceResidency			[integer!]
-	SetGPUThreadPriority			[integer!]
-	GetGPUThreadPriority			[integer!]
-	SetMaximumFrameLatency			[integer!]
-	GetMaximumFrameLatency			[integer!]
+	CreateSurface					[int-ptr!]
+	QueryResourceResidency			[int-ptr!]
+	SetGPUThreadPriority			[int-ptr!]
+	GetGPUThreadPriority			[int-ptr!]
+	SetMaximumFrameLatency			[int-ptr!]
+	GetMaximumFrameLatency			[int-ptr!]
 ]
 
 IDXGIAdapter: alias struct! [
 	QueryInterface					[QueryInterface!]
 	AddRef							[AddRef!]
 	Release							[Release!]
-	SetPrivateData					[integer!]
-	SetPrivateDataInterface			[integer!]
-	GetPrivateData					[integer!]
+	SetPrivateData					[int-ptr!]
+	SetPrivateDataInterface			[int-ptr!]
+	GetPrivateData					[int-ptr!]
 	GetParent						[function! [this [this!] riid [int-ptr!] parent [ptr-ptr!] return: [integer!]]]
-	EnumOutputs						[integer!]
-	GetDesc							[integer!]
-	CheckInterfaceSupport			[integer!]
+	EnumOutputs						[int-ptr!]
+	GetDesc							[int-ptr!]
+	CheckInterfaceSupport			[int-ptr!]
 ]
 
 IDXGISwapChain1: alias struct! [
@@ -570,8 +567,8 @@ IDXGISwapChain1: alias struct! [
 	SetPrivateData					[int-ptr!]
 	SetPrivateDataInterface			[int-ptr!]
 	GetPrivateData					[int-ptr!]
-	GetParent						[function! [this [this!] riid [int-ptr!] parent [int-ptr!] return: [integer!]]]
-	GetDevice						[function! [this [this!] riid [int-ptr!] device [int-ptr!] return: [integer!]]]
+	GetParent						[function! [this [this!] riid [int-ptr!] parent [ptr-ptr!] return: [integer!]]]
+	GetDevice						[function! [this [this!] riid [int-ptr!] device [ptr-ptr!] return: [integer!]]]
 	Present							[function! [this [this!] SyncInterval [integer!] PresentFlags [integer!] return: [integer!]]]
 	GetBuffer						[function! [this [this!] idx [integer!] riid [int-ptr!] buffer [ptr-ptr!] return: [integer!]]]
 	SetFullscreenState				[int-ptr!]
@@ -600,30 +597,30 @@ IDCompositionDevice: alias struct! [
 	AddRef							[AddRef!]
 	Release							[Release!]
 	Commit							[function! [this [this!] return: [integer!]]]
-	WaitForCommitCompletion			[integer!]
-	GetFrameStatistics				[integer!]
+	WaitForCommitCompletion			[int-ptr!]
+	GetFrameStatistics				[int-ptr!]
 	CreateTargetForHwnd				[function! [this [this!] hwnd [handle!] topmost [logic!] target [int-ptr!] return: [integer!]]]
 	CreateVisual					[function! [this [this!] visual [int-ptr!] return: [integer!]]]
-	CreateSurface					[integer!]
-	CreateVirtualSurface			[integer!]
-	CreateSurfaceFromHandle			[integer!]
-	CreateSurfaceFromHwnd			[integer!]
-	CreateTranslateTransform		[integer!]
-	CreateScaleTransform			[integer!]
-	CreateRotateTransform			[integer!]
-	CreateSkewTransform				[integer!]
-	CreateMatrixTransform			[integer!]
-	CreateTransformGroup			[integer!]
-	CreateTranslateTransform3D		[integer!]
-	CreateScaleTransform3D			[integer!]
-	CreateRotateTransform3D			[integer!]
-	CreateMatrixTransform3D			[integer!]
-	CreateTransform3DGroup			[integer!]
-	CreateEffectGroup				[integer!]
-	CreateRectangleClip				[integer!]
-	CreateAnimation					[integer!]
-	CreateTransformGroup			[integer!]
-	CheckDeviceState				[integer!]
+	CreateSurface					[int-ptr!]
+	CreateVirtualSurface			[int-ptr!]
+	CreateSurfaceFromHandle			[int-ptr!]
+	CreateSurfaceFromHwnd			[int-ptr!]
+	CreateTranslateTransform		[int-ptr!]
+	CreateScaleTransform			[int-ptr!]
+	CreateRotateTransform			[int-ptr!]
+	CreateSkewTransform				[int-ptr!]
+	CreateMatrixTransform			[int-ptr!]
+	CreateTransformGroup			[int-ptr!]
+	CreateTranslateTransform3D		[int-ptr!]
+	CreateScaleTransform3D			[int-ptr!]
+	CreateRotateTransform3D			[int-ptr!]
+	CreateMatrixTransform3D			[int-ptr!]
+	CreateTransform3DGroup			[int-ptr!]
+	CreateEffectGroup				[int-ptr!]
+	CreateRectangleClip				[int-ptr!]
+	CreateAnimation					[int-ptr!]
+	CreateTransformGroup			[int-ptr!]
+	CheckDeviceState				[int-ptr!]
 ]
 
 IDCompositionVisual: alias struct! [
@@ -631,22 +628,22 @@ IDCompositionVisual: alias struct! [
 	AddRef							[AddRef!]
 	Release							[Release!]
 	SetOffsetX						[function! [this [this!] x [float32!] return: [integer!]]]
-	SetOffsetX1						[integer!]
+	SetOffsetX1						[int-ptr!]
 	SetOffsetY						[function! [this [this!] y [float32!] return: [integer!]]]
-	SetOffsetY1						[integer!]
-	SetTransform					[integer!]
-	SetTransform1					[integer!]
-	SetTransformParent				[integer!]
-	SetEffect						[integer!]
-	SetBitmapInterpolationMode		[integer!]
-	SetBorderMode					[integer!]
-	SetClip							[integer!]
-	SetClip1						[integer!]
+	SetOffsetY1						[int-ptr!]
+	SetTransform					[int-ptr!]
+	SetTransform1					[int-ptr!]
+	SetTransformParent				[int-ptr!]
+	SetEffect						[int-ptr!]
+	SetBitmapInterpolationMode		[int-ptr!]
+	SetBorderMode					[int-ptr!]
+	SetClip							[int-ptr!]
+	SetClip1						[int-ptr!]
 	SetContent						[function! [this [this!] p [this!] return: [integer!]]]
 	AddVisual						[function! [this [this!] v [this!] above [logic!] vv [this!] return: [integer!]]]
-	RemoveVisual					[integer!]
-	RemoveAllVisuals				[integer!]
-	SetCompositeMode				[integer!]
+	RemoveVisual					[int-ptr!]
+	RemoveAllVisuals				[int-ptr!]
+	SetCompositeMode				[int-ptr!]
 
 ]
 
@@ -663,18 +660,18 @@ ID2D1Factory: alias struct! [
 	Release							[Release!]
 	ReloadSystemMetrics				[Release!]
 	GetDesktopDpi					[function! [this [this!] dpiX [float32-ptr!] dpiY [float32-ptr!]]]
-	CreateRectangleGeometry			[integer!]
-	CreateRoundedRectangleGeometry	[integer!]
-	CreateEllipseGeometry			[integer!]
-	CreateGeometryGroup				[integer!]
-	CreateTransformedGeometry		[integer!]
+	CreateRectangleGeometry			[int-ptr!]
+	CreateRoundedRectangleGeometry	[int-ptr!]
+	CreateEllipseGeometry			[int-ptr!]
+	CreateGeometryGroup				[int-ptr!]
+	CreateTransformedGeometry		[int-ptr!]
 	CreatePathGeometry				[function! [this [this!] pathGeometry [ptr-ptr!] return: [integer!]]]
 	CreateStrokeStyle				[function! [this [this!] props [D2D1_STROKE_STYLE_PROPERTIES] dashes [float32-ptr!] count [integer!] style [ptr-ptr!] return: [integer!]]]
 	CreateDrawingStateBlock			[function! [this [this!] desc [this!] param [this!] block [ptr-ptr!] return: [integer!]]]
 	CreateWicBitmapRenderTarget		[function! [this [this!] target [this!] properties [D2D1_RENDER_TARGET_PROPERTIES] bmp [com-ptr!] return: [integer!]]]
 	CreateHwndRenderTarget			[function! [this [this!] properties [D2D1_RENDER_TARGET_PROPERTIES] hwndProperties [D2D1_HWND_RENDER_TARGET_PROPERTIES] target [ptr-ptr!] return: [integer!]]]
-	CreateDxgiSurfaceRenderTarget	[integer!]
-	CreateDCRenderTarget			[function! [this [this!] properties [D2D1_RENDER_TARGET_PROPERTIES] target [int-ptr!] return: [integer!]]]
+	CreateDxgiSurfaceRenderTarget	[int-ptr!]
+	CreateDCRenderTarget			[function! [this [this!] properties [D2D1_RENDER_TARGET_PROPERTIES] target [ptr-ptr!] return: [integer!]]]
 	CreateDevice					[function! [this [this!] dxgiDevice [int-ptr!] d2dDevice [ptr-ptr!] return: [integer!]]]
 ]
 
@@ -682,27 +679,27 @@ IDXGIFactory2: alias struct! [
 	QueryInterface					[QueryInterface!]
 	AddRef							[AddRef!]
 	Release							[Release!]
-	SetPrivateData					[integer!]
-	SetPrivateDataInterface			[integer!]
-	GetPrivateData					[integer!]
-	GetParent						[function! [this [this!] riid [int-ptr!] parent [int-ptr!] return: [integer!]]]
-	EnumAdapters					[function! [this [this!] n [integer!] adapter [int-ptr!] return: [integer!]]]
-	MakeWindowAssociation			[integer!]
-	GetWindowAssociation			[integer!]
-	CreateSwapChain					[integer!]
-	CreateSoftwareAdapter			[integer!]
-	EnumAdapters1					[integer!]
-	IsCurrent						[integer!]
-	IsWindowedStereoEnabled			[integer!]
+	SetPrivateData					[int-ptr!]
+	SetPrivateDataInterface			[int-ptr!]
+	GetPrivateData					[int-ptr!]
+	GetParent						[function! [this [this!] riid [int-ptr!] parent [ptr-ptr!] return: [integer!]]]
+	EnumAdapters					[function! [this [this!] n [integer!] adapter [ptr-ptr!] return: [integer!]]]
+	MakeWindowAssociation			[int-ptr!]
+	GetWindowAssociation			[int-ptr!]
+	CreateSwapChain					[int-ptr!]
+	CreateSoftwareAdapter			[int-ptr!]
+	EnumAdapters1					[int-ptr!]
+	IsCurrent						[int-ptr!]
+	IsWindowedStereoEnabled			[int-ptr!]
 	CreateSwapChainForHwnd			[CreateSwapChainForHwnd*]
-	CreateSwapChainForCoreWindow	[integer!]
-	GetSharedResourceAdapterLuid	[integer!]
-	RegisterStereoStatusWindow		[integer!]
-	RegisterStereoStatusEvent		[integer!]
-	UnregisterStereoStatus			[integer!]
-	RegisterOcclusionStatusWindow	[integer!]
-	RegisterOcclusionStatusEvent	[integer!]
-	UnregisterOcclusionStatus		[integer!]
+	CreateSwapChainForCoreWindow	[int-ptr!]
+	GetSharedResourceAdapterLuid	[int-ptr!]
+	RegisterStereoStatusWindow		[int-ptr!]
+	RegisterStereoStatusEvent		[int-ptr!]
+	UnregisterStereoStatus			[int-ptr!]
+	RegisterOcclusionStatusWindow	[int-ptr!]
+	RegisterOcclusionStatusEvent	[int-ptr!]
+	UnregisterOcclusionStatus		[int-ptr!]
 	CreateSwapChainForComposition	[CreateSwapChainForComposition*]
 ]
 
@@ -710,59 +707,59 @@ ID2D1Device: alias struct! [
 	QueryInterface					[QueryInterface!]
 	AddRef							[AddRef!]
 	Release							[Release!]
-	GetFactory						[integer!]
+	GetFactory						[int-ptr!]
 	CreateDeviceContext				[function! [this [this!] options [integer!] ctx [ptr-ptr!] return: [integer!]]]
-	CreatePrintControl				[integer!]
-	SetMaximumTextureMemory			[integer!]
-	GetMaximumTextureMemory			[integer!]
-	ClearResources					[integer!]
-	CreatePrintControl2				[integer!]
+	CreatePrintControl				[int-ptr!]
+	SetMaximumTextureMemory			[int-ptr!]
+	GetMaximumTextureMemory			[int-ptr!]
+	ClearResources					[int-ptr!]
+	CreatePrintControl2				[int-ptr!]
 ]
 
 ID3D11Device: alias struct! [
 	QueryInterface					[QueryInterface!]
 	AddRef							[AddRef!]
 	Release							[Release!]
-	CreateBuffer					[integer!]
-	CreateTexture1D					[integer!]
-	CreateTexture2D					[integer!]
-	CreateTexture3D					[integer!]
-	CreateShaderResourceView		[integer!]
-	CreateUnorderedAccessView		[integer!]
-	CreateRenderTargetView			[integer!]
-	CreateDepthStencilView			[integer!]
-	CreateInputLayout				[integer!]
-	CreateVertexShader				[integer!]
-	CreateGeometryShader			[integer!]
-	CreateGeometryShaderWithStreamOutput [integer!]
-	CreatePixelShader				[integer!]
-	CreateHullShader				[integer!]
-	CreateDomainShader				[integer!]
-	CreateComputeShader				[integer!]
-	CreateClassLinkage				[integer!]
-	CreateBlendState				[integer!]
-	CreateDepthStencilState			[integer!]
-	CreateRasterizerState			[integer!]
-	CreateSamplerState				[integer!]
-	CreateQuery						[integer!]
-	CreatePredicate					[integer!]
-	CreateCounter					[integer!]
-	CreateDeferredContext			[integer!]
-	OpenSharedResource				[integer!]
-	CheckFormatSupport				[integer!]
-	CheckMultisampleQualityLevels	[integer!]
-	CheckCounterInfo				[integer!]
-	CheckCounter					[integer!]
-	CheckFeatureSupport				[integer!]
-	GetPrivateData					[integer!]
-	SetPrivateData					[integer!]
-	SetPrivateDataInterface			[integer!]
-	GetFeatureLevel					[integer!]
-	GetCreationFlags				[integer!]
-	GetDeviceRemovedReason			[integer!]
-	GetImmediateContext				[integer!]
-	SetExceptionMode				[integer!]
-	GetExceptionMode				[integer!]
+	CreateBuffer					[int-ptr!]
+	CreateTexture1D					[int-ptr!]
+	CreateTexture2D					[int-ptr!]
+	CreateTexture3D					[int-ptr!]
+	CreateShaderResourceView		[int-ptr!]
+	CreateUnorderedAccessView		[int-ptr!]
+	CreateRenderTargetView			[int-ptr!]
+	CreateDepthStencilView			[int-ptr!]
+	CreateInputLayout				[int-ptr!]
+	CreateVertexShader				[int-ptr!]
+	CreateGeometryShader			[int-ptr!]
+	CreateGeometryShaderWithStreamOutput [int-ptr!]
+	CreatePixelShader				[int-ptr!]
+	CreateHullShader				[int-ptr!]
+	CreateDomainShader				[int-ptr!]
+	CreateComputeShader				[int-ptr!]
+	CreateClassLinkage				[int-ptr!]
+	CreateBlendState				[int-ptr!]
+	CreateDepthStencilState			[int-ptr!]
+	CreateRasterizerState			[int-ptr!]
+	CreateSamplerState				[int-ptr!]
+	CreateQuery						[int-ptr!]
+	CreatePredicate					[int-ptr!]
+	CreateCounter					[int-ptr!]
+	CreateDeferredContext			[int-ptr!]
+	OpenSharedResource				[int-ptr!]
+	CheckFormatSupport				[int-ptr!]
+	CheckMultisampleQualityLevels	[int-ptr!]
+	CheckCounterInfo				[int-ptr!]
+	CheckCounter					[int-ptr!]
+	CheckFeatureSupport				[int-ptr!]
+	GetPrivateData					[int-ptr!]
+	SetPrivateData					[int-ptr!]
+	SetPrivateDataInterface			[int-ptr!]
+	GetFeatureLevel					[int-ptr!]
+	GetCreationFlags				[int-ptr!]
+	GetDeviceRemovedReason			[int-ptr!]
+	GetImmediateContext				[int-ptr!]
+	SetExceptionMode				[int-ptr!]
+	GetExceptionMode				[int-ptr!]
 ]
 
 CreateSharedBitmap*: alias function! [
@@ -984,9 +981,9 @@ ID3D11DeviceContext: alias struct! [
 	QueryInterface					[function! [this [this!] riid [int-ptr!] ppvObject [com-ptr!] return: [integer!]]]
 	AddRef							[AddRef!]
 	Release							[Release!]
-	GetFactory						[integer!]
-	CreateBitmap					[integer!]
-	CreateBitmapFromWicBitmap		[integer!]
+	GetFactory						[int-ptr!]
+	CreateBitmap					[int-ptr!]
+	CreateBitmapFromWicBitmap		[int-ptr!]
 	CreateSharedBitmap				[CreateSharedBitmap*]
 	CreateBitmapBrush				[CreateBitmapBrush*]
 	CreateSolidColorBrush			[CreateSolidColorBrush*]
@@ -995,7 +992,7 @@ ID3D11DeviceContext: alias struct! [
 	CreateRadialGradientBrush		[CreateRadialGradientBrush*]
 	CreateCompatibleRenderTarget	[function! [this [this!] size [SIZE_F! value] target [ptr-ptr!] return: [integer!]]]
 	CreateLayer						[function! [this [this!] size [SIZE_F!] layer [ptr-ptr!] return: [integer!]]]
-	CreateMesh						[integer!]
+	CreateMesh						[int-ptr!]
 	DrawLine						[DrawLine*]
 	DrawRectangle					[DrawRectangle*]
 	FillRectangle					[FillRectangle*]
@@ -1005,23 +1002,23 @@ ID3D11DeviceContext: alias struct! [
 	FillEllipse						[FillEllipse*]
 	DrawGeometry					[function! [this [this!] geometry [this!] brush [this!] strokeWidth [float32!] style [this!] return: [integer!]]]
 	FillGeometry					[function! [this [this!] geometry [this!] brush [this!] opacityBrush [this!] return: [integer!]]]
-	FillMesh						[integer!]
-	FillOpacityMask					[integer!]
-	DrawBitmap						[integer!]
-	DrawText						[integer!]
+	FillMesh						[int-ptr!]
+	FillOpacityMask					[int-ptr!]
+	DrawBitmap						[int-ptr!]
+	DrawText						[int-ptr!]
 	DrawTextLayout					[DrawTextLayout*]
-	DrawGlyphRun					[integer!]
+	DrawGlyphRun					[int-ptr!]
 	SetTransform					[SetTransform*]
 	GetTransform					[GetTransform*]
 	SetAntialiasMode				[function! [this [this!] mode [integer!]]]
-	GetAntialiasMode				[integer!]
+	GetAntialiasMode				[int-ptr!]
 	SetTextAntialiasMode			[function! [this [this!] mode [integer!]]]
-	GetTextAntialiasMode			[integer!]
-	SetTextRenderingParams			[integer!]
-	GetTextRenderingParams			[integer!]
-	SetTags							[integer!]
-	GetTags							[integer!]
-	PushLayer						[integer!]
+	GetTextAntialiasMode			[int-ptr!]
+	SetTextRenderingParams			[int-ptr!]
+	GetTextRenderingParams			[int-ptr!]
+	SetTags							[int-ptr!]
+	GetTags							[int-ptr!]
+	PushLayer						[int-ptr!]
 	PopLayer						[function! [this [this!]]]
 	Flush							[function! [this [this!] tag1 [int-ptr!] tag2 [int-ptr!]]]
 	SaveDrawingState				[function! [this [this!] block [this!]]]
@@ -1031,52 +1028,52 @@ ID3D11DeviceContext: alias struct! [
 	Clear							[function! [this [this!] color [D3DCOLORVALUE]]]
 	BeginDraw						[function! [this [this!]]]
 	EndDraw							[function! [this [this!] tag1 [int-ptr!] tag2 [int-ptr!] return: [integer!]]]
-	GetPixelFormat					[integer!]
+	GetPixelFormat					[int-ptr!]
 	SetDpi							[function! [this [this!] x [float32!] y [float32!]]]
-	GetDpi							[integer!]
-	GetSize							[integer!]
-	GetPixelSize					[integer!]
-	GetMaximumBitmapSize			[integer!]
-	IsSupported						[integer!]
+	GetDpi							[int-ptr!]
+	GetSize							[int-ptr!]
+	GetPixelSize					[int-ptr!]
+	GetMaximumBitmapSize			[int-ptr!]
+	IsSupported						[int-ptr!]
 ]
 
 ID2D1DeviceContext: alias struct! [
 	ID2D1RenderTarget
     CreateBitmap2					[CreateBitmap*]
     CreateBitmapFromWicBitmap2		[CreateBitmapFromWicBitmap*]
-    CreateColorContext						[integer!]
-    CreateColorContextFromFilename			[integer!]
-    CreateColorContextFromWicColorContext	[integer!]
-    CreateBitmapFromDxgiSurface		[function! [this [this!] surface [int-ptr!] props [D2D1_BITMAP_PROPERTIES1] bitmap [int-ptr!] return: [integer!]]]
+    CreateColorContext						[int-ptr!]
+    CreateColorContextFromFilename			[int-ptr!]
+    CreateColorContextFromWicColorContext	[int-ptr!]
+    CreateBitmapFromDxgiSurface		[function! [this [this!] surface [int-ptr!] props [D2D1_BITMAP_PROPERTIES1] bitmap [ptr-ptr!] return: [integer!]]]
     CreateEffect					[CreateEffect*]
-    CreateGradientStopCollection2	[integer!]
+    CreateGradientStopCollection2	[int-ptr!]
     CreateImageBrush				[CreateImageBrush*]
     CreateBitmapBrush2				[CreateBitmapBrush*]
     CreateCommandList				[function! [this [this!] cmd [com-ptr!] return: [integer!]]]
-    IsDxgiFormatSupported			[integer!]
-    IsBufferPrecisionSupported		[integer!]
-    GetImageLocalBounds				[integer!]
-    GetImageWorldBounds				[integer!]
-    GetGlyphRunWorldBounds			[integer!]
-    GetDevice						[function! [this [this!] dev [int-ptr!]]]
+    IsDxgiFormatSupported			[int-ptr!]
+    IsBufferPrecisionSupported		[int-ptr!]
+    GetImageLocalBounds				[int-ptr!]
+    GetImageWorldBounds				[int-ptr!]
+    GetGlyphRunWorldBounds			[int-ptr!]
+    GetDevice						[function! [this [this!] dev [ptr-ptr!]]]
     SetTarget						[function! [this [this!] bmp [this!]]]
     GetTarget						[function! [this [this!] bmp [com-ptr!]]]
-    SetRenderingControls			[integer!]
-    GetRenderingControls			[integer!]
-    SetPrimitiveBlend				[integer!]
-    GetPrimitiveBlend				[integer!]
-    SetUnitMode						[integer!]
-    GetUnitMode						[integer!]
-    DrawGlyphRun2					[integer!]
+    SetRenderingControls			[int-ptr!]
+    GetRenderingControls			[int-ptr!]
+    SetPrimitiveBlend				[int-ptr!]
+    GetPrimitiveBlend				[int-ptr!]
+    SetUnitMode						[int-ptr!]
+    GetUnitMode						[int-ptr!]
+    DrawGlyphRun2					[int-ptr!]
     DrawImage						[DrawImage*]
-    DrawGdiMetafile					[integer!]
+    DrawGdiMetafile					[int-ptr!]
     DrawBitmap2						[DrawBitmap*]
     PushLayer2						[PushLayer*]
-    InvalidateEffectInputRectangle	[integer!]
-    GetEffectInvalidRectangleCount	[integer!]
-    GetEffectInvalidRectangles		[integer!]
-    GetEffectRequiredInputRectangles [integer!]
-    FillOpacityMask2				[integer!]
+    InvalidateEffectInputRectangle	[int-ptr!]
+    GetEffectInvalidRectangleCount	[int-ptr!]
+    GetEffectInvalidRectangles		[int-ptr!]
+    GetEffectRequiredInputRectangles [int-ptr!]
+    FillOpacityMask2				[int-ptr!]
 ]
 
 IDXGISurface1: alias struct! [
@@ -1107,7 +1104,7 @@ ID2D1HwndRenderTarget: alias struct! [
 	ID2D1RenderTarget
 	CheckWindowState				[function! [this [this!] return: [integer!]]]
 	Resize							[Resize*]
-	GetHwnd							[integer!]
+	GetHwnd							[int-ptr!]
 ]
 
 ID2D1DCRenderTarget: alias struct! [
@@ -1119,20 +1116,20 @@ ID2D1PathGeometry: alias struct! [
 	QueryInterface					[QueryInterface!]
 	AddRef							[AddRef!]
 	Release							[Release!]
-	GetFactory						[integer!]
+	GetFactory						[int-ptr!]
 	GetBounds						[function! [this [this!] trans [D2D_MATRIX_3X2_F] bounds [RECT_F!] return: [integer!]]]
 	GetWidenedBounds				[function! [this [this!] strokewidth [float32!] s-style [this!] trans [D2D_MATRIX_3X2_F] Tolerance [float32!] bounds [RECT_F!] return: [integer!]]]
-	StrokeContainsPoint				[integer!]
-	FillContainsPoint				[integer!]
-	CompareWithGeometry				[integer!]
-	Simplify						[integer!]
-	Tessellate						[integer!]
+	StrokeContainsPoint				[int-ptr!]
+	FillContainsPoint				[int-ptr!]
+	CompareWithGeometry				[int-ptr!]
+	Simplify						[int-ptr!]
+	Tessellate						[int-ptr!]
 	CombineWithGeometry				[CombineWithGeometry*]
-	Outline							[integer!]
-	ComputeArea						[integer!]
-	ComputeLength					[integer!]
-	ComputePointAtLength			[integer!]
-	Widen							[integer!]
+	Outline							[int-ptr!]
+	ComputeArea						[int-ptr!]
+	ComputeLength					[int-ptr!]
+	ComputePointAtLength			[int-ptr!]
+	Widen							[int-ptr!]
 	Open							[function! [this [this!] sink [ptr-ptr!] return: [integer!]]]
 	Stream							[function! [this [this!] sink [ptr-ptr!] return: [integer!]]]
 	GetSegmentCount					[function! [this [this!] count [int-ptr!] return: [integer!]]]
@@ -1280,38 +1277,38 @@ IDWriteFactory: alias struct! [
 	QueryInterface					[QueryInterface!]
 	AddRef							[AddRef!]
 	Release							[Release!]
-	GetSystemFontCollection			[integer!]
-	CreateCustomFontCollection		[integer!]
-	RegisterFontCollectionLoader	[integer!]
-	UnregisterFontCollectionLoader	[integer!]
-	CreateFontFileReference			[integer!]
-	CreateCustomFontFileReference	[integer!]
-	CreateFontFace					[integer!]
-	CreateRenderingParams			[integer!]
-	CreateMonitorRenderingParams	[integer!]
-	CreateCustomRenderingParams		[integer!]
-	RegisterFontFileLoader			[integer!]
-	UnregisterFontFileLoader		[integer!]
+	GetSystemFontCollection			[int-ptr!]
+	CreateCustomFontCollection		[int-ptr!]
+	RegisterFontCollectionLoader	[int-ptr!]
+	UnregisterFontCollectionLoader	[int-ptr!]
+	CreateFontFileReference			[int-ptr!]
+	CreateCustomFontFileReference	[int-ptr!]
+	CreateFontFace					[int-ptr!]
+	CreateRenderingParams			[int-ptr!]
+	CreateMonitorRenderingParams	[int-ptr!]
+	CreateCustomRenderingParams		[int-ptr!]
+	RegisterFontFileLoader			[int-ptr!]
+	UnregisterFontFileLoader		[int-ptr!]
 	CreateTextFormat				[CreateTextFormat*]
-	CreateTypography				[integer!]
-	GetGdiInterop					[integer!]
+	CreateTypography				[int-ptr!]
+	GetGdiInterop					[int-ptr!]
 	CreateTextLayout				[CreateTextLayout*]
-	CreateGdiCompatibleTextLayout	[integer!]
-	CreateEllipsisTrimmingSign		[integer!]
-	CreateTextAnalyzer				[integer!]
-	CreateNumberSubstitution		[integer!]
-	CreateGlyphRunAnalysis			[integer!]
+	CreateGdiCompatibleTextLayout	[int-ptr!]
+	CreateEllipsisTrimmingSign		[int-ptr!]
+	CreateTextAnalyzer				[int-ptr!]
+	CreateNumberSubstitution		[int-ptr!]
+	CreateGlyphRunAnalysis			[int-ptr!]
 ]
 
 IDWriteRenderingParams: alias struct! [
 	QueryInterface					[QueryInterface!]
 	AddRef							[AddRef!]
 	Release							[Release!]
-	GetGamma						[integer!]
-	GetEnhancedContrast				[integer!]
-	GetClearTypeLevel				[integer!]
-	GetPixelGeometry				[integer!]
-	GetRenderingMode				[integer!]
+	GetGamma						[int-ptr!]
+	GetEnhancedContrast				[int-ptr!]
+	GetClearTypeLevel				[int-ptr!]
+	GetPixelGeometry				[int-ptr!]
+	GetRenderingMode				[int-ptr!]
 ]
 
 IDWriteTextFormat: alias struct! [
@@ -1321,28 +1318,28 @@ IDWriteTextFormat: alias struct! [
 	SetTextAlignment				[function! [this [this!] align [integer!] return: [integer!]]]
 	SetParagraphAlignment			[function! [this [this!] align [integer!] return: [integer!]]]
 	SetWordWrapping					[function! [this [this!] mode [integer!] return: [integer!]]]
-	SetReadingDirection				[integer!]
-	SetFlowDirection				[integer!]
+	SetReadingDirection				[int-ptr!]
+	SetFlowDirection				[int-ptr!]
 	SetIncrementalTabStop			[SetIncrementalTabStop*]
-	SetTrimming						[integer!]
+	SetTrimming						[int-ptr!]
 	SetLineSpacing					[SetLineSpacing*]
-	GetTextAlignment				[integer!]
-	GetParagraphAlignment			[integer!]
-	GetWordWrapping					[integer!]
-	GetReadingDirection				[integer!]
-	GetFlowDirection				[integer!]
-	GetIncrementalTabStop			[integer!]
-	GetTrimming						[integer!]
+	GetTextAlignment				[int-ptr!]
+	GetParagraphAlignment			[int-ptr!]
+	GetWordWrapping					[int-ptr!]
+	GetReadingDirection				[int-ptr!]
+	GetFlowDirection				[int-ptr!]
+	GetIncrementalTabStop			[int-ptr!]
+	GetTrimming						[int-ptr!]
 	GetLineSpacing					[GetLineSpacing*]
-	GetFontCollection				[integer!]
-	GetFontFamilyNameLength			[integer!]
-	GetFontFamilyName				[integer!]
-	GetFontWeight					[integer!]
-	GetFontStyle					[integer!]
-	GetFontStretch					[integer!]
-	GetFontSize						[integer!]
-	GetLocaleNameLength				[integer!]
-	GetLocaleName					[integer!]
+	GetFontCollection				[int-ptr!]
+	GetFontFamilyNameLength			[int-ptr!]
+	GetFontFamilyName				[int-ptr!]
+	GetFontWeight					[int-ptr!]
+	GetFontStyle					[int-ptr!]
+	GetFontStretch					[int-ptr!]
+	GetFontSize						[int-ptr!]
+	GetLocaleNameLength				[int-ptr!]
+	GetLocaleName					[int-ptr!]
 ]
 
 IDWriteTextLayout: alias struct! [
@@ -1352,64 +1349,64 @@ IDWriteTextLayout: alias struct! [
 	SetTextAlignment				[function! [this [this!] align [integer!] return: [integer!]]]
 	SetParagraphAlignment			[function! [this [this!] align [integer!] return: [integer!]]]
 	SetWordWrapping					[function! [this [this!] mode [integer!] return: [integer!]]]
-	SetReadingDirection				[integer!]
-	SetFlowDirection				[integer!]
+	SetReadingDirection				[int-ptr!]
+	SetFlowDirection				[int-ptr!]
 	SetIncrementalTabStop			[SetIncrementalTabStop*]
-	SetTrimming						[integer!]
+	SetTrimming						[int-ptr!]
 	SetLineSpacing					[SetLineSpacing*]
-	GetTextAlignment				[integer!]
-	GetParagraphAlignment			[integer!]
-	GetWordWrapping					[integer!]
-	GetReadingDirection				[integer!]
-	GetFlowDirection				[integer!]
-	GetIncrementalTabStop			[integer!]
-	GetTrimming						[integer!]
+	GetTextAlignment				[int-ptr!]
+	GetParagraphAlignment			[int-ptr!]
+	GetWordWrapping					[int-ptr!]
+	GetReadingDirection				[int-ptr!]
+	GetFlowDirection				[int-ptr!]
+	GetIncrementalTabStop			[int-ptr!]
+	GetTrimming						[int-ptr!]
 	GetLineSpacing					[GetLineSpacing*]
-	GetFontCollection				[integer!]
-	GetFontFamilyNameLength			[integer!]
-	GetFontFamilyName				[integer!]
-	GetFontWeight					[integer!]
-	GetFontStyle					[integer!]
-	GetFontStretch					[integer!]
-	GetFontSize						[integer!]
-	GetLocaleNameLength				[integer!]
-	GetLocaleName					[integer!]
-	SetMaxWidth						[integer!]
-	SetMaxHeight					[integer!]
-	SetFontCollection				[integer!]
+	GetFontCollection				[int-ptr!]
+	GetFontFamilyNameLength			[int-ptr!]
+	GetFontFamilyName				[int-ptr!]
+	GetFontWeight					[int-ptr!]
+	GetFontStyle					[int-ptr!]
+	GetFontStretch					[int-ptr!]
+	GetFontSize						[int-ptr!]
+	GetLocaleNameLength				[int-ptr!]
+	GetLocaleName					[int-ptr!]
+	SetMaxWidth						[int-ptr!]
+	SetMaxHeight					[int-ptr!]
+	SetFontCollection				[int-ptr!]
 	SetFontFamilyName				[function! [this [this!] name [c-string!] pos [integer!] len [integer!] return: [integer!]]]
 	SetFontWeight					[function! [this [this!] weight [integer!] pos [integer!] len [integer!] return: [integer!]]]
 	SetFontStyle					[function! [this [this!] style [integer!] pos [integer!] len [integer!] return: [integer!]]]
-	SetFontStretch					[integer!]
+	SetFontStretch					[int-ptr!]
 	SetFontSize						[function! [this [this!] size [float32!] pos [integer!] len [integer!] return: [integer!]]]
 	SetUnderline					[function! [this [this!] underline? [logic!] pos [integer!] len [integer!] return: [integer!]]]
 	SetStrikethrough				[function! [this [this!] strike? [logic!] pos [integer!] len [integer!] return: [integer!]]]
 	SetDrawingEffect				[function! [this [this!] effect [this!] pos [integer!] len [integer!] return: [integer!]]]
 	SetInlineObject					[function! [this [this!] obj [this!] pos [integer!] len [integer!] return: [integer!]]]
-	SetTypography					[integer!]
-	SetLocaleName					[integer!]
-	GetMaxWidth						[integer!]
-	GetMaxHeight					[integer!]
-	GetFontCollection				[integer!]
-	GetFontFamilyNameLength			[integer!]
-	GetFontFamilyName				[integer!]
-	GetFontWeight					[integer!]
-	GetFontStyle					[integer!]
-	GetFontStretch					[integer!]
-	GetFontSize						[integer!]
-	GetUnderline					[integer!]
-	GetStrikethrough				[integer!]
-	GetDrawingEffect				[integer!]
-	GetInlineObject					[integer!]
-	GetTypography					[integer!]
-	GetLocaleNameLength				[integer!]
-	GetLocaleName					[integer!]
-	Draw							[integer!]
+	SetTypography					[int-ptr!]
+	SetLocaleName					[int-ptr!]
+	GetMaxWidth						[int-ptr!]
+	GetMaxHeight					[int-ptr!]
+	GetFontCollection				[int-ptr!]
+	GetFontFamilyNameLength			[int-ptr!]
+	GetFontFamilyName				[int-ptr!]
+	GetFontWeight					[int-ptr!]
+	GetFontStyle					[int-ptr!]
+	GetFontStretch					[int-ptr!]
+	GetFontSize						[int-ptr!]
+	GetUnderline					[int-ptr!]
+	GetStrikethrough				[int-ptr!]
+	GetDrawingEffect				[int-ptr!]
+	GetInlineObject					[int-ptr!]
+	GetTypography					[int-ptr!]
+	GetLocaleNameLength				[int-ptr!]
+	GetLocaleName					[int-ptr!]
+	Draw							[int-ptr!]
 	GetLineMetrics					[function! [this [this!] metrics [DWRITE_LINE_METRICS] count [integer!] actual-count [int-ptr!] return: [integer!]]]
 	GetMetrics						[function! [this [this!] metrics [DWRITE_TEXT_METRICS] return: [integer!]]]
-	GetOverhangMetrics				[integer!]
-	GetClusterMetrics				[integer!]
-	DetermineMinWidth				[integer!]
+	GetOverhangMetrics				[int-ptr!]
+	GetClusterMetrics				[int-ptr!]
+	DetermineMinWidth				[int-ptr!]
 	HitTestPoint					[HitTestPoint*]
 	HitTestTextPosition				[HitTestTextPosition*]
 	HitTestTextRange				[HitTestTextRange*]
@@ -1423,27 +1420,27 @@ IDWriteFontFace: alias struct! [
 	QueryInterface					[QueryInterface!]
 	AddRef							[AddRef!]
 	Release							[Release!]
-	GetType							[integer!]
-	GetFiles						[integer!]
-	GetIndex						[integer!]
-	GetSimulations					[integer!]
-	IsSymbolFont					[integer!]
-	GetMetrics						[integer!]
-	GetGlyphCount					[integer!]
-	GetDesignGlyphMetrics			[integer!]
-	GetGlyphIndices					[integer!]
-	TryGetFontTable					[integer!]
-	ReleaseFontTable				[integer!]
-	GetGlyphRunOutline				[integer!]
-	GetRecommendedRenderingMode		[integer!]
-	GetGdiCompatibleMetrics			[integer!]
-	GetGdiCompatibleGlyphMetrics	[integer!]
+	GetType							[int-ptr!]
+	GetFiles						[int-ptr!]
+	GetIndex						[int-ptr!]
+	GetSimulations					[int-ptr!]
+	IsSymbolFont					[int-ptr!]
+	GetMetrics						[int-ptr!]
+	GetGlyphCount					[int-ptr!]
+	GetDesignGlyphMetrics			[int-ptr!]
+	GetGlyphIndices					[int-ptr!]
+	TryGetFontTable					[int-ptr!]
+	ReleaseFontTable				[int-ptr!]
+	GetGlyphRunOutline				[int-ptr!]
+	GetRecommendedRenderingMode		[int-ptr!]
+	GetGdiCompatibleMetrics			[int-ptr!]
+	GetGdiCompatibleGlyphMetrics	[int-ptr!]
 ]
 
 DCompositionCreateDevice2!: alias function! [
   	render-dev	[this!]
   	iid			[int-ptr!]
-	device		[int-ptr!]
+	device		[ptr-ptr!]
 	return:		[integer!]
 ]
 
@@ -1474,14 +1471,20 @@ GetUserDefaultLocaleName!: alias function! [
 	return:			[integer!]
 ]
 
+brush-entry!: alias struct! [
+	color	[integer!]
+	brush	[this!]
+]
+
 render-target!: alias struct! [
 	dc				[this!]
-	brushes			[int-ptr!]
+	brushes			[brush-entry!]
 	brushes-cnt		[integer!]
 	styles			[red-vector!]
 	bitmap			[this!]
 	swapchain		[this!]
 	flags			[integer!]
+	standby?		[logic!]
 	;dcomp-device	[this!]
 	;dcomp-target	[this!]
 	;dcomp-visual	[this!]
@@ -1519,39 +1522,39 @@ render-target!: alias struct! [
 #define ConvertPointSizeToDIP(size)		(as float32! 96.0 * size / 72.0)
 
 select-brush: func [
-	target		[int-ptr!]
+	target		[render-target!]
 	color		[integer!]
-	return: 	[integer!]
+	return: 	[this!]
 	/local
-		brushes [int-ptr!]
+		brushes [brush-entry!]
 		cnt		[integer!]
 ][
-	brushes: as int-ptr! target/1
-	cnt: target/2
+	brushes: target/brushes
+	cnt: target/brushes-cnt
 	loop cnt [
-		either brushes/value = color [
-			return brushes/2
+		either brushes/color = color [
+			return brushes/brush
 		][
-			brushes: brushes + 2
+			brushes: brushes + 1
 		]
 	]
-	0
+	null
 ]
 
 put-brush: func [
-	target		[int-ptr!]
+	target		[render-target!]
 	color		[integer!]
-	brush		[integer!]
+	brush		[this!]
 	/local
-		brushes [int-ptr!]
+		brushes [brush-entry!]
 		cnt		[integer!]
 ][
-	cnt: target/2
+	cnt: target/brushes-cnt
 	if cnt < D2D_MAX_BRUSHES [
-		brushes: (as int-ptr! target/1) + (cnt * 2)
-		brushes/1: color
-		brushes/2: brush
-		target/2: cnt + 1
+		brushes: target/brushes + cnt
+		brushes/color: color
+		brushes/brush: brush
+		target/brushes-cnt: cnt + 1
 	]
 ]
 
@@ -1599,7 +1602,7 @@ DX-create-buffer: func [
 		hr		[integer!]
 		buf		[ptr-value!]
 		props	[D2D1_BITMAP_PROPERTIES1 value]
-		bmp		[integer!]
+		bmp		[ptr-value!]
 		d2d		[ID2D1DeviceContext]
 		unk		[IUnknown]
 ][
@@ -1616,7 +1619,7 @@ DX-create-buffer: func [
 	props/dpiY: current-dpi
 	props/options: 3		;-- D2D1_BITMAP_OPTIONS_TARGET or D2D1_BITMAP_OPTIONS_CANNOT_DRAW
 	props/colorContext: null
-	bmp: 0
+	bmp/value: null
 	d2d: as ID2D1DeviceContext d2d-ctx/vtbl
 	d2d/setDpi d2d-ctx current-dpi current-dpi
 	hr: d2d/CreateBitmapFromDxgiSurface d2d-ctx buf/value props :bmp
@@ -1624,7 +1627,7 @@ DX-create-buffer: func [
 
 	rt/dc: d2d-ctx
 	rt/swapchain: swapchain
-	rt/bitmap: as this! bmp
+	rt/bitmap: as this! bmp/value
 
 	this: as this! buf/value
 	COM_SAFE_RELEASE(unk this)
@@ -1648,16 +1651,16 @@ DX-resize-rt: func [
 		target	[int-ptr!]
 		this	[this!]
 		rt		[ID2D1HwndRenderTarget]
-		y x		[integer!]
+		size	[tagSIZE value]
 ][
 	if (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D <> 0 [
-		target: as int-ptr! GetWindowLong hWnd wc-offset - 36
+		target: get-window-long-ptr hWnd OFFSET_RENDER_TARGET
 		if target <> null [
 			this: as this! target/value
 			rt: as ID2D1HwndRenderTarget this/vtbl
-			x: WIN32_LOWORD(lParam)
-			y: WIN32_HIWORD(lParam)
-			rt/Resize this as tagSIZE :x
+			size/width: WIN32_LOWORD(lParam)
+			size/height: WIN32_HIWORD(lParam)
+			rt/Resize this size
 			InvalidateRect hWnd null 1
 		]
 	]
@@ -1898,7 +1901,7 @@ create-render-target: func [
 		rc		[RECT_STRUCT value]
 		desc	[DXGI_SWAP_CHAIN_DESC1 value]
 		dxgi	[IDXGIFactory2]
-		int		[integer!]
+		swapchain	[ptr-value!]
 		sc		[IDXGISwapChain1]
 		this	[this!]
 		hr		[integer!]
@@ -1919,15 +1922,15 @@ create-render-target: func [
 	if gdi? [desc/Flags: 4]	;-- DXGI_SWAP_CHAIN_FLAG_GDI_COMPATIBLE: 4
 	rt/flags: desc/Flags
 
-	int: 0
+	swapchain/value: null
 	dxgi: as IDXGIFactory2 dxgi-factory/vtbl
-	hr: dxgi/CreateSwapChainForHwnd dxgi-factory d3d-device hWnd desc null null :int
+	hr: dxgi/CreateSwapChainForHwnd dxgi-factory d3d-device hWnd desc null null :swapchain
 	if hr <> 0 [
 		report TO_ERROR(access no-create) as red-value! get-face-obj hwnd null null
 		throw RED_THROWN_ERROR
 	]
 
-	DX-create-buffer rt as this! int
+	DX-create-buffer rt as this! swapchain/value
 	rt
 ]
 
@@ -1969,7 +1972,7 @@ to-dx-color: func [
 d2d-release-target: func [
 	target	[render-target!]
 	/local
-		brushes [int-ptr!]
+		brushes [brush-entry!]
 		cnt		[integer!]
 		this	[this!]
 		obj		[IUnknown]
@@ -1978,8 +1981,13 @@ d2d-release-target: func [
 	cnt: target/brushes-cnt
 	target/brushes-cnt: 0
 	loop cnt [
-		COM_SAFE_RELEASE_OBJ(obj brushes/2)
-		brushes: brushes + 2
+		this: brushes/brush
+		if not null? this [
+			obj: as IUnknown this/vtbl
+			obj/Release this
+			brushes/brush: null
+		]
+		brushes: brushes + 1
 	]
 	COM_SAFE_RELEASE(obj target/bitmap)
 	COM_SAFE_RELEASE(obj target/swapchain)
@@ -2036,12 +2044,12 @@ get-hwnd-render-target: func [
 	/local
 		target	[render-target!]
 ][
-	target: as render-target! GetWindowLong hWnd wc-offset - 36
+	target: as render-target! get-window-long-ptr hWnd OFFSET_RENDER_TARGET
 	if null? target [
 		target: as render-target! zero-alloc size? render-target!
 		create-render-target hWnd target gdi?
-		target/brushes: as int-ptr! allocate D2D_MAX_BRUSHES * 2 * size? int-ptr!
-		SetWindowLong hWnd wc-offset - 36 as-integer target
+		target/brushes: as brush-entry! allocate D2D_MAX_BRUSHES * size? brush-entry!
+		set-window-long-ptr hWnd OFFSET_RENDER_TARGET as int-ptr! target
 	]
 	target
 ]
@@ -2056,7 +2064,7 @@ get-surface: func [
 		buf		[ptr-value!]
 		hr		[integer!]
 ][
-	target: as render-target! GetWindowLong hWnd wc-offset - 36
+	target: as render-target! get-window-long-ptr hWnd OFFSET_RENDER_TARGET
 	if target <> null [
 		this: target/swapchain
 		sc: as IDXGISwapChain1 this/vtbl
@@ -2075,7 +2083,7 @@ create-dc-render-target: func [
 		factory		[ID2D1Factory]
 		rt			[ID2D1DCRenderTarget]
 		IRT			[this!]
-		target		[integer!]
+		target		[ptr-value!]
 		hr			[integer!]
 ][
 	props/type: 0									;-- D2D1_RENDER_TARGET_TYPE_DEFAULT
@@ -2086,12 +2094,12 @@ create-dc-render-target: func [
 	props/usage: 2									;-- D2D1_RENDER_TARGET_USAGE_GDI_COMPATIBLE
 	props/minLevel: 0								;-- D2D1_FEATURE_LEVEL_DEFAULT
 
-	target: 0
+	target/value: null
 	factory: as ID2D1Factory d2d-factory/vtbl
 	hr: factory/CreateDCRenderTarget d2d-factory :props :target
 	if hr <> 0 [return null]
 
-	IRT: as this! target
+	IRT: as this! target/value
 	rt: as ID2D1DCRenderTarget IRT/vtbl
 	hr: rt/BindDC IRT dc rc
 	if hr <> 0 [rt/Release IRT return null]
@@ -2348,6 +2356,7 @@ draw-text-d2d: func [
 		color	[red-tuple!]
 		clr		[integer!]
 		m		[D2D_MATRIX_3X2_F value]
+		origin	[POINT_2F value]
 ][
 	fmt: as this! create-text-format font null
 	set-text-format fmt para 5 base
@@ -2369,7 +2378,9 @@ draw-text-d2d: func [
 		0											;-- black
 	]
 	rt/CreateSolidColorBrush this to-dx-color clr null null :brush
-	rt/DrawTextLayout this as float32! 0.0 as float32! 0.0 layout as this! brush/value 0
+	origin/x: as float32! 0.0
+	origin/y: as float32! 0.0
+	rt/DrawTextLayout this origin layout as this! brush/value 0
 	rt/EndDraw this null null
 
 	this2: as this! brush/value

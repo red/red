@@ -674,9 +674,9 @@ CameraWndProc: func [
 	[stdcall]
 	hWnd	[handle!]
 	msg		[integer!]
-	wParam	[integer!]
-	lParam	[integer!]
-	return: [integer!]
+	wParam	[win-wparam!]
+	lParam	[win-lparam!]
+	return: [win-lresult!]
 	/local
 		cam [camera!]
 ][

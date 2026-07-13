@@ -10,7 +10,7 @@ Red/System [
 	}
 ]
 
-dir-keep: 0
+dir-keep: as int-ptr! 0
 dir-inited: false
 
 file-filter-to-str: func [
@@ -62,26 +62,27 @@ file-list-to-block: func [
 ]
 
 req-dir-callback: func [
+	[stdcall]
 	hwnd	[handle!]
 	msg		[integer!]
-	lParam	[integer!]
-	lpData	[integer!]
+	lParam	[win-lparam!]
+	lpData	[win-lparam!]
 	return:	[integer!]
 	/local
 		method [integer!]
 ][
-	method: either lpData = dir-keep [0][1]
+	method: either (as int-ptr! lpData) = dir-keep [0][1]
 	switch msg [
 		BFFM_INITIALIZED [
-			unless zero? lpData [
+			unless lpData = WIN_LPARAM(0) [
 				dir-inited: yes
-				SendMessage hwnd BFFM_SETSELECTION method lpData
+				SendMessageNative hwnd BFFM_SETSELECTION WIN_WPARAM(method) lpData
 			]
 		]
 		BFFM_SELCHANGED [			;-- located to folder
-			if all [dir-inited not zero? lpData][
+			if all [dir-inited lpData <> WIN_LPARAM(0)][
 				dir-inited: no
-				SendMessage hwnd BFFM_SETSELECTION method lpData
+				SendMessageNative hwnd BFFM_SETSELECTION WIN_WPARAM(method) lpData
 			]
 		]
 		default [0]
@@ -111,7 +112,7 @@ OS-request-dir: func [
 	return: [red-value!]
 	/local
 		buffer	[byte-ptr!]
-		ret		[integer!]
+		ret		[int-ptr!]
 		len		[integer!]
 		path	[red-value!]
 		str		[red-string!]
@@ -135,13 +136,14 @@ OS-request-dir: func [
 	bInfo/hwndOwner: GetForegroundWindow
 	bInfo/lpszTitle: either TYPE_OF(title) = TYPE_STRING [unicode/to-utf16 title][null]
 	bInfo/ulFlags: BIF_RETURNONLYFSDIRS or BIF_USENEWUI
-	bInfo/lpfn: as-integer :req-dir-callback
-	bInfo/lParam: either keep? [dir-keep][as-integer pbuf]
+	bInfo/lpfn: :req-dir-callback
+	bInfo/lParam: as win-lparam! pbuf
+	if keep? [bInfo/lParam: as win-lparam! dir-keep]
 
 	ret: SHBrowseForFolder bInfo
-	path: as red-value! either zero? ret [none-value][
+	path: as red-value! either null? ret [none-value][
 		if keep? [
-			unless zero? dir-keep [CoTaskMemFree dir-keep]
+			unless null? dir-keep [CoTaskMemFree dir-keep]
 			dir-keep: ret
 		]
 		SHGetPathFromIDList ret buffer

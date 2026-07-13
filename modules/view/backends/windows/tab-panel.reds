@@ -31,19 +31,19 @@ select-tab: func [
 ][
 	nmhdr: declare tagNMHDR
 	nmhdr/hwndFrom: hWnd
-	nmhdr/idFrom:	0
+	nmhdr/idFrom:	WIN_WPARAM(0)
 	nmhdr/code:		TCN_SELCHANGING
 	
 	parent: GetParent hWnd
-	SendMessage parent WM_NOTIFY 0 as-integer nmhdr
+	SendMessageNative parent WM_NOTIFY WIN_WPARAM(0) as win-lparam! nmhdr
 
 	;SendMessage hWnd TCM_SETCURSEL   idx 0
 	SendMessage hWnd TCM_SETCURFOCUS idx 0
 	
 	nmhdr/hwndFrom: hWnd
-	nmhdr/idFrom:	0
+	nmhdr/idFrom:	WIN_WPARAM(0)
 	nmhdr/code: TCN_SELCHANGE
-	SendMessage parent WM_NOTIFY 0 as-integer nmhdr
+	SendMessageNative parent WM_NOTIFY WIN_WPARAM(0) as win-lparam! nmhdr
 ]
 
 process-tab-select: func [
@@ -106,13 +106,13 @@ insert-tab: func [
 	item/pszText: unicode/to-utf16 str
 	item/cchTextMax: string/rs-length? str
 	item/iImage: -1
-	item/lParam: 0
+	item/lParam: WIN_LPARAM(0)
 
-	SendMessage
+	SendMessageNative
 		hWnd
 		TCM_INSERTITEMW
-		index
-		as-integer item
+		WIN_WPARAM(index)
+		as win-lparam! item
 
 	refresh-tab-panel hWnd
 ]

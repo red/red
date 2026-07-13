@@ -35,7 +35,7 @@ init-panel: func [
 				as byte-ptr! calc-rect
 				as byte-ptr! win-rect
 				size? win-rect
-			SendMessage phWnd TCM_ADJUSTRECT 0 as-integer calc-rect
+			SendMessageNative phWnd TCM_ADJUSTRECT WIN_WPARAM(0) as win-lparam! calc-rect
 
 			pt: as red-point2D! values + FACE_OBJ_OFFSET
 			pt/header: TYPE_POINT2D

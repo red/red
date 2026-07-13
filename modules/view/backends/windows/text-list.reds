@@ -40,11 +40,11 @@ init-text-list: func [
 				value: string/rs-length? str
 				if len < value [len: value str-saved: c-str]
 				
-				SendMessage 
+				SendMessageNative
 					hWnd
 					LB_ADDSTRING
-					0
-					as-integer c-str
+					WIN_WPARAM(0)
+					as win-lparam! c-str
 			]
 			str: str + 1
 		]
@@ -86,11 +86,11 @@ init-drop-list: func [
 		while [str < tail][
 			type: TYPE_OF(str)
 			if ANY_STRING?(type) [
-				SendMessage 
+				SendMessageNative
 					hWnd
 					CB_ADDSTRING
-					0
-					as-integer unicode/to-utf16 str
+					WIN_WPARAM(0)
+					as win-lparam! unicode/to-utf16 str
 			]
 			str: str + 1
 		]
@@ -116,11 +116,11 @@ update-list-hbar: func [
 ][
 	csize: declare tagSIZE
 	dc: GetDC hWnd
-	hFont: SendMessage hWnd WM_GETFONT 0 0
+	hFont: as handle! SendMessageNative hWnd WM_GETFONT WIN_WPARAM(0) WIN_LPARAM(0)
 	if hFont <> null [saved: SelectObject dc hFont]
 	GetTextExtentPoint32 dc str len csize
 	if hFont <> null [SelectObject dc saved]
-	ReleaseDC dc
+	ReleaseDC hWnd dc
 	SendMessage hWnd LB_SETHORIZONTALEXTENT csize/width + 4 0
 ]
 
@@ -144,7 +144,7 @@ insert-list-item: func [
 
 	str: unicode/to-utf16 item
 	msg: either drop? [CB_INSERTSTRING][LB_INSERTSTRING]
-	SendMessage hWnd msg pos as-integer str
+	SendMessageNative hWnd msg WIN_WPARAM(pos) as win-lparam! str
 	unless drop? [
 		len: string/rs-length? item
 		if len > GetWindowLong hWnd wc-offset - 4 [

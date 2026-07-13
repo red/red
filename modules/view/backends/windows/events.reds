@@ -109,9 +109,8 @@ get-event-offset: func [
 		evt/type = EVT_WHEEL [
 			offset: as red-point2D! stack/push*
 			offset/header: TYPE_POINT2D
-			value: msg/lParam
-			x: WIN32_LOWORD(value)
-			y: WIN32_HIWORD(value)
+			x: WIN32_LOWORD(msg/lParam)
+			y: WIN32_HIWORD(msg/lParam)
 			;-- if need to support `multiple monitors`, change the sign of offset/x and offset/y
 			if x and 8000h <> 0 [
 				x: 0 - (x or FFFF0000h)
@@ -133,8 +132,6 @@ get-event-offset: func [
 		][
 			offset: as red-point2D! stack/push*
 			offset/header: TYPE_POINT2D
-			value: msg/lParam
-
 			either evt/flags and EVT_FLAG_AWAY <> 0 [
 				pt-val/x: 0
 				pt-val/y: 0
@@ -142,8 +139,8 @@ get-event-offset: func [
 				offset/x: dpi-unscale as float32! msg/x - pt-val/x
 				offset/y: dpi-unscale as float32! msg/y - pt-val/y
 			][
-				offset/x: dpi-unscale as float32! WIN32_LOWORD(value)
-				offset/y: dpi-unscale as float32! WIN32_HIWORD(value)
+				offset/x: dpi-unscale as float32! WIN32_LOWORD(msg/lParam)
+				offset/y: dpi-unscale as float32! WIN32_HIWORD(msg/lParam)
 			]
 			if all [
 				any [evt/type = EVT_SIZE evt/type = EVT_SIZING]
@@ -265,7 +262,7 @@ get-event-key: func [
 		EVT_SCROLL [
 			msg: as tagMSG evt/msg
 			either msg/msg = WM_VSCROLL [
-				switch msg/wParam and FFFFh [
+				switch WIN32_U16(msg/wParam) [
 					SB_LINEUP	[_up]
 					SB_LINEDOWN [_down]
 					SB_PAGEUP	[_page-up]
@@ -274,7 +271,7 @@ get-event-key: func [
 					default		[_end]
 				]
 			][
-				switch msg/wParam and FFFFh [
+				switch WIN32_U16(msg/wParam) [
 					SB_LINEUP	[_left]
 					SB_LINEDOWN [_right]
 					SB_PAGEUP	[_page-left]
@@ -401,25 +398,25 @@ get-event-flag: func [
 ]
 
 decode-down-flags: func [
-	wParam  [integer!]
+	wParam  [win-wparam!]
 	return: [integer!]
 	/local
 		flags [integer!]
 ][
 	flags: 0
-	if wParam and 0001h <> 0 [flags: flags or EVT_FLAG_DOWN]
-	if wParam and 0002h <> 0 [flags: flags or EVT_FLAG_ALT_DOWN]
-	if wParam and 0004h <> 0 [flags: flags or EVT_FLAG_SHIFT_DOWN]
-	if wParam and 0008h <> 0 [flags: flags or EVT_FLAG_CTRL_DOWN]
-	if wParam and 0010h <> 0 [flags: flags or EVT_FLAG_MID_DOWN]
-	if wParam and 0020h <> 0 [flags: flags or EVT_FLAG_AUX_DOWN]
-	if wParam and 0040h <> 0 [flags: flags or EVT_FLAG_AUX_DOWN]	;-- needs an AUX2 flag
+	if (wParam and WIN_WPARAM(0001h)) <> WIN_WPARAM(0) [flags: flags or EVT_FLAG_DOWN]
+	if (wParam and WIN_WPARAM(0002h)) <> WIN_WPARAM(0) [flags: flags or EVT_FLAG_ALT_DOWN]
+	if (wParam and WIN_WPARAM(0004h)) <> WIN_WPARAM(0) [flags: flags or EVT_FLAG_SHIFT_DOWN]
+	if (wParam and WIN_WPARAM(0008h)) <> WIN_WPARAM(0) [flags: flags or EVT_FLAG_CTRL_DOWN]
+	if (wParam and WIN_WPARAM(0010h)) <> WIN_WPARAM(0) [flags: flags or EVT_FLAG_MID_DOWN]
+	if (wParam and WIN_WPARAM(0020h)) <> WIN_WPARAM(0) [flags: flags or EVT_FLAG_AUX_DOWN]
+	if (wParam and WIN_WPARAM(0040h)) <> WIN_WPARAM(0) [flags: flags or EVT_FLAG_AUX_DOWN]	;-- needs an AUX2 flag
 	flags
 ]
 
 map-left-right: func [
 	wParam  [integer!]
-	lParam  [integer!]
+	lParam  [win-lparam!]
 	return: [integer!]
 	/local
 		scancode [integer!]
@@ -427,8 +424,8 @@ map-left-right: func [
 		extend?	 [logic!]
 ][
 	key: wParam and FFFFh
-	scancode: lParam and 00FF0000h >>> 16
-	extend?: lParam and 01000000h <> 0
+	scancode: WIN32_HIWORD(lParam) and 00FFh
+	extend?: WIN32_HIWORD(lParam) and 0100h <> 0
 	
 	switch key [
 		VK_SHIFT   [key: MapVirtualKey scancode 3]		;-- MAPVK_VSC_TO_VK_EX
@@ -526,7 +523,7 @@ make-event: func [
 			gui-evt/flags: flags
 		]
 		EVT_KEY_DOWN [
-			key: msg/wParam and FFFFh
+			key: WIN32_U16(msg/wParam)
 			if key = VK_PROCESSKEY [					;-- IME-friendly exit
 				special-key: -1
 				return EVT_DISPATCH
@@ -540,14 +537,14 @@ make-event: func [
 			gui-evt/flags: key or check-extra-keys no
 		]
 		EVT_KEY_UP [
-			key: msg/wParam and FFFFh
+			key: WIN32_U16(msg/wParam)
 			special-key: either char-key? as-byte key [-1][map-left-right key msg/lParam]
 			VKEY_TO_CHAR(key)
 			gui-evt/flags: key or check-extra-keys no
 		]
 		EVT_KEY [
 			key: check-extra-keys no
-			char: msg/wParam
+			char: WIN32_U16(msg/wParam)
 			case [
 				all [char >= D800h char <= DBFFh][		;-- surrogate pair
 					utf16-char: char
@@ -638,8 +635,8 @@ make-event: func [
 call-custom-proc: func [
 	hWnd	[handle!]
 	msg		[integer!]
-	wParam	[integer!]
-	lParam	[integer!]
+	wParam	[win-wparam!]
+	lParam	[win-lparam!]
 	/local
 		p	 [ext-class!]
 		proc [wndproc-cb!]
@@ -680,8 +677,8 @@ init-current-msg: func [
 process-command-event: func [
 	hWnd	[handle!]
 	msg		[integer!]
-	wParam	[integer!]
-	lParam	[integer!]
+	wParam	[win-wparam!]
+	lParam	[win-lparam!]
 	/local
 		type   [red-word!]
 		values [red-value!]
@@ -696,7 +693,7 @@ process-command-event: func [
 		evt	   [integer!]
 		widget [integer!]
 ][
-	if all [zero? lParam wParam < 1000][				;-- heuristic to detect a menu selection (--)'
+	if all [lParam = WIN_LPARAM(0) wParam < WIN_WPARAM(1000)][	;-- heuristic to detect a menu selection (--)'
 		unless null? menu-handle [
 			do-menu hWnd
 			exit
@@ -907,8 +904,8 @@ paint-background: func [
 ]
 
 process-custom-draw: func [
-	wParam	[integer!]
-	lParam	[integer!]
+	wParam	[win-wparam!]
+	lParam	[win-lparam!]
 	return: [integer!]
 	/local
 		item	[tagNMCUSTOMDRAWINFO]
@@ -991,11 +988,14 @@ bitblt-memory-dc: func [
 		hBackDC [handle!]
 		ftn		[integer!]
 		bf		[tagBLENDFUNCTION]
-		paint? 	[logic!]
+	paint? 	[logic!]
 ][
 	if dc = null [dc: BeginPaint hWnd paint paint?: yes]
-	hBackDC: as handle! GetWindowLong hWnd wc-offset - 4
-	if null? hBackDC [hBackDC: src-dc]
+	hBackDC: either null? src-dc [
+		as handle! GetWindowLong hWnd wc-offset - 4
+	][
+		src-dc
+	]
 	GetClientRect hWnd rect
 	width: rect/right - rect/left
 	height: rect/bottom - rect/top
@@ -1050,7 +1050,7 @@ delta-size: func [
 
 set-window-info: func [
 	hWnd	[handle!]
-	lParam	[integer!]
+	lParam	[win-lparam!]
 	return: [logic!]
 	/local
 		x	   [integer!]
@@ -1128,7 +1128,7 @@ update-window: func [
 		type	[integer!]
 		hWnd	[handle!]
 		hdwp	[handle!]
-		target	[integer!]
+		target	[int-ptr!]
 		hfont	[handle!]
 		x y		[float32!]
 ][
@@ -1151,10 +1151,10 @@ update-window: func [
 			word: as red-word! values + FACE_OBJ_TYPE
 			type: symbol/resolve word/symbol
 			if type = rich-text [
-				target: GetWindowLong hWnd wc-offset - 36
-				if target <> 0 [
+				target: get-window-long-ptr hWnd OFFSET_RENDER_TARGET
+				if not null? target [
 					d2d-release-target as render-target! target
-					SetWindowLong hWnd wc-offset - 36 0
+					set-window-long-ptr hWnd OFFSET_RENDER_TARGET null
 				]
 			]
 			GET_PAIR_XY(sz x y)
@@ -1231,9 +1231,9 @@ WndProc: func [
 	[stdcall]
 	hWnd	[handle!]
 	msg		[integer!]
-	wParam	[integer!]
-	lParam	[integer!]
-	return: [integer!]
+	wParam	[win-wparam!]
+	lParam	[win-lparam!]
+	return: [win-lresult!]
 	/local
 		target [render-target!]
 		this   [this!]
@@ -1297,7 +1297,7 @@ WndProc: func [
 			#either draw-engine = 'GDI+ [
 				DX-resize-rt hWnd WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
 			][
-				target: as render-target! GetWindowLong hWnd wc-offset - 36
+				target: as render-target! get-window-long-ptr hWnd OFFSET_RENDER_TARGET
 				if target <> null [
 					DX-resize-buffer target WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
 					either all [
@@ -1312,7 +1312,7 @@ WndProc: func [
 			]]
 			if type = window [
 				if null? current-msg [init-current-msg]
-				if wParam <> SIZE_MINIMIZED [
+				if wParam <> WIN_WPARAM(SIZE_MINIMIZED) [
 					miniz?: no
 					type: either msg = WM_MOVE [
 						if all [						;@@ MINIMIZED window, @@ find a better way to detect it
@@ -1335,7 +1335,7 @@ WndProc: func [
 							x: WIN32_HIWORD(pos)
 							y: WIN32_LOWORD(pos)
 						]
-						SetWindowLong hWnd wc-offset - 8 lParam
+					SetWindowLong hWnd wc-offset - 8 win-lparam-low32 lParam
 						xx: xx + x
 						yy: yy + y
 						EVT_MOVE
@@ -1358,7 +1358,7 @@ WndProc: func [
 					if all [
 						msg = WM_SIZE
 						TYPE_OF(values) = TYPE_BLOCK
-						any [zero? win-state wParam = SIZE_MAXIMIZED]
+						any [zero? win-state wParam = WIN_WPARAM(SIZE_MAXIMIZED)]
 					][
 						make-event current-msg 0 EVT_SIZE
 					]
@@ -1445,15 +1445,15 @@ WndProc: func [
 		]
 		WM_GESTURE [
 			handle: hWnd
-			type: switch wParam [
-				1		[zoom-distance: -1 0]
-				2		[zoom-distance: -1 0]
-				3		[EVT_ZOOM]
-				4		[EVT_PAN]
-				5		[EVT_ROTATE]
-				6		[EVT_TWO_TAP]
-				7		[EVT_PRESS_TAP]
-				default [0]
+			type: case [
+				wParam = WIN_WPARAM(1)	[zoom-distance: -1 0]
+				wParam = WIN_WPARAM(2)	[zoom-distance: -1 0]
+				wParam = WIN_WPARAM(3)	[EVT_ZOOM]
+				wParam = WIN_WPARAM(4)	[EVT_PAN]
+				wParam = WIN_WPARAM(5)	[EVT_ROTATE]
+				wParam = WIN_WPARAM(6)	[EVT_TWO_TAP]
+				wParam = WIN_WPARAM(7)	[EVT_PRESS_TAP]
+				true					[0]
 			]
 			if type <> 0 [
 				gi: get-gesture-info lParam
@@ -1509,7 +1509,7 @@ WndProc: func [
 					sel: as red-float! values + FACE_OBJ_SELECTED
 					st: as red-float! values + FACE_OBJ_EXT1
 					range: as-float si/nMax - si/nMin
-					flags: wParam and FFFFh
+					flags: WIN32_LOWORD(wParam)
 					switch flags [
 						SB_LINEUP
 						SB_LINEDOWN   [
@@ -1556,7 +1556,7 @@ WndProc: func [
 				]
 			]
 		]
-		WM_PAINT [
+			WM_PAINT [
 			draw: (as red-block! values) + FACE_OBJ_DRAW
 			if TYPE_OF(draw) = TYPE_BLOCK [
 			#either draw-engine = 'GDI+ [
@@ -1620,13 +1620,13 @@ WndProc: func [
 			]
 		]
 		WM_ENTERMENULOOP [
-			if zero? wParam [							;-- reset if entering menu bar
+			if wParam = WIN_WPARAM(0) [							;-- reset if entering menu bar
 				menu-origin: null
 				menu-ctx: null
 			]
 		]
 		WM_MENUSELECT [
-			if wParam <> FFFF0000h [
+			if wParam <> WIN_WPARAM_FFFF0000 [
 				menu-selected: WIN32_LOWORD(wParam)
 				menu-handle: as handle! lParam
 			]
@@ -1723,7 +1723,7 @@ process: func [
 	hWnd: msg/hWnd
 	switch msg/msg [
 		WM_MOUSEMOVE [
-			lParam: msg/lParam
+			lParam: win-lparam-low32 msg/lParam
 			if last-mouse-pt = lParam [return EVT_NO_DISPATCH]
 			last-mouse-pt: lParam
 
@@ -1761,8 +1761,8 @@ process: func [
 		]
 		WM_MOUSEWHEEL [
 			flags: 0
-			if msg/wParam and 08h <> 0 [flags: flags or EVT_FLAG_CTRL_DOWN]		;-- MK_CONTROL
-			if msg/wParam and 04h <> 0 [flags: flags or EVT_FLAG_SHIFT_DOWN]	;-- MK_SHIFT
+			if (msg/wParam and WIN_WPARAM(08h)) <> WIN_WPARAM(0) [flags: flags or EVT_FLAG_CTRL_DOWN]		;-- MK_CONTROL
+			if (msg/wParam and WIN_WPARAM(04h)) <> WIN_WPARAM(0) [flags: flags or EVT_FLAG_SHIFT_DOWN]	;-- MK_SHIFT
 			make-event msg flags EVT_WHEEL
 		]
 		WM_LBUTTONDOWN	[
@@ -1786,7 +1786,7 @@ process: func [
 		]
 		WM_RBUTTONDOWN	[
 			if GetCapture <> null [return EVT_DISPATCH]
-			lParam: msg/lParam
+			lParam: win-lparam-low32 msg/lParam
 			menu-x: WIN32_LOWORD(lParam)
 			menu-y: WIN32_HIWORD(lParam)
 			pt: declare tagPOINT

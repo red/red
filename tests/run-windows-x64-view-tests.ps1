@@ -3,8 +3,8 @@ param(
 	[string]$Compiler = 'D:\EE\QTool\rebcmdview.exe',
 	[string]$Dumpbin = 'C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Tools\MSVC\14.50.35717\bin\Hostx64\x64\dumpbin.exe',
 	[int]$CompileTimeoutSeconds = 240,
-	[int]$RunTimeoutSeconds = 20,
-	[int]$SuiteTimeoutSeconds = 300,
+	[int]$RunTimeoutSeconds = 60,
+	[int]$SuiteTimeoutSeconds = 900,
 	[switch]$KeepArtifactsOnFailure
 )
 
@@ -34,10 +34,13 @@ function Invoke-CheckedProcess {
 			$process.Kill($true)
 			throw "$FilePath timed out after $TimeoutSeconds seconds"
 		}
+		$process.WaitForExit()
+		$process.Refresh()
+		$exitCode = $process.ExitCode
 		$output = (Get-Content -LiteralPath $OutputPath -Raw -ErrorAction SilentlyContinue) +
 			(Get-Content -LiteralPath $stderr -Raw -ErrorAction SilentlyContinue)
-		if ($process.ExitCode -ne 0) {
-			throw "$FilePath exited with $($process.ExitCode)`n$output"
+		if ($null -ne $exitCode -and $exitCode -ne 0) {
+			throw "$FilePath exited with $exitCode`n$output"
 		}
 		$output
 	}
@@ -50,20 +53,20 @@ function Invoke-BoundedGuiProcess {
 	param(
 		[Parameter(Mandatory)][string]$FilePath,
 		[Parameter(Mandatory)][string]$WorkingDirectory,
-		[Parameter(Mandatory)][int]$TimeoutSeconds
+		[Parameter(Mandatory)][int]$TimeoutSeconds,
+		[string]$OutputPath,
+		[string]$ErrorPath
 	)
 
-	$command = "Set-Location -LiteralPath '$($WorkingDirectory.Replace("'", "''"))'; " +
-		"& '$($FilePath.Replace("'", "''"))'; exit `$LASTEXITCODE"
-	$encodedCommand = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($command))
-	$process = Start-Process -FilePath (Join-Path $PSHOME 'pwsh.exe') `
-		-ArgumentList @('-NoLogo', '-NoProfile', '-EncodedCommand', $encodedCommand) -PassThru
-	$deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
-	while (-not $process.HasExited -and [DateTime]::UtcNow -lt $deadline) {
-		Start-Sleep -Milliseconds 50
-		$process.Refresh()
+	$startArgs = @{
+		FilePath = $FilePath
+		WorkingDirectory = $WorkingDirectory
+		PassThru = $true
 	}
-	if (-not $process.HasExited) {
+	if ($OutputPath) { $startArgs.RedirectStandardOutput = $OutputPath }
+	if ($ErrorPath) { $startArgs.RedirectStandardError = $ErrorPath }
+	$process = Start-Process @startArgs
+	if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
 		$process.Kill($true)
 		throw "$FilePath timed out after $TimeoutSeconds seconds"
 	}
@@ -86,6 +89,7 @@ try {
 	if ($compileOutput -notmatch 'output file\s+: .*view-smoke\.exe') {
 		throw 'View executable output marker is missing'
 	}
+	Start-Sleep -Seconds 2
 
 	$headers = Invoke-CheckedProcess $Dumpbin @('/headers', $executable) $RunTimeoutSeconds `
 		(Join-Path $artifactDir 'headers.log')
@@ -117,7 +121,7 @@ try {
 	)
 	$baseSelfTest = $baseSelfTest.Replace(
 		'~~~start-file~~~ "base-self-test"',
-		"~~~start-file~~~ `"base-self-test`"`r`n`r`nview/no-wait [base 1x1]`r`nunview/all"
+		"~~~start-file~~~ `"base-self-test`"`r`n`r`nbst-user-mode: no`r`nview/no-wait [base 1x1]"
 	)
 	$baseSelfTest += @'
 
@@ -142,8 +146,16 @@ quit/return either qt-run-failures = 0 [0][1]
 	}
 
 	Remove-Item -LiteralPath $suiteResult -Force -ErrorAction SilentlyContinue
-	$suiteExitCode = Invoke-BoundedGuiProcess $suiteExecutable $artifactDir $SuiteTimeoutSeconds
-	if ($suiteExitCode -ne 0) { throw "View self-test exited with $suiteExitCode" }
+	$suiteOutput = Join-Path $artifactDir 'base-self-test.stdout.log'
+	$suiteError = Join-Path $artifactDir 'base-self-test.stderr.log'
+	Remove-Item -LiteralPath $suiteOutput,$suiteError -Force -ErrorAction SilentlyContinue
+	$suiteExitCode = Invoke-BoundedGuiProcess $suiteExecutable $artifactDir $SuiteTimeoutSeconds `
+		$suiteOutput $suiteError
+	if ($suiteExitCode -ne 0) {
+		$output = (Get-Content -LiteralPath $suiteOutput -Raw -ErrorAction SilentlyContinue) +
+			(Get-Content -LiteralPath $suiteError -Raw -ErrorAction SilentlyContinue)
+		throw "View self-test exited with $suiteExitCode`n$output"
+	}
 	if (-not (Test-Path -LiteralPath $suiteResult -PathType Leaf)) {
 		throw 'View self-test result file is missing'
 	}

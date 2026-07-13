@@ -26,8 +26,8 @@ init-button: func [
 		num		[integer!]
 		i		[integer!]
 		sz		[integer!]
-		bitmap	[integer!]
-		hlist	[integer!]
+		bitmap	[handle!]
+		hlist	[handle!]
 ][
 	BIL:  declare BUTTON_IMAGELIST
 	imgs: as red-block! facets + FACE_OBJ_IMAGE
@@ -58,15 +58,15 @@ init-button: func [
 			imgs: null
 		]
 	]
-	SendMessage hWnd BCM_GETIMAGELIST 0 as integer! BIL
+	SendMessageNative hWnd BCM_GETIMAGELIST WIN_WPARAM(0) as win-lparam! BIL
 	if all [
-		BIL/handle <> 0
-		BIL/handle <> -1
+		BIL/handle <> null
+		BIL/handle <> as handle! -1
 	][
 		ImageList_Destroy BIL/handle
 	]
 	either null? imgs [
-		BIL/handle: -1
+		BIL/handle: as handle! -1
 	][
 		sz: either 1 < num [6][1]
 		hlist: ImageList_Create width height ILC_COLOR32 sz 0
@@ -80,9 +80,9 @@ init-button: func [
 			][
 				img: img-1
 			]
-			bitmap: OS-image/to-HBITMAP img
-			ImageList_Add hlist bitmap 0
-			DeleteObject as handle! bitmap
+			bitmap: as handle! OS-image/to-HBITMAP img
+			ImageList_Add hlist bitmap null
+			DeleteObject bitmap
 			if all [i > 0 i < num][image/delete img]
 			i: i + 1
 		]
@@ -92,7 +92,7 @@ init-button: func [
 	BIL/align: 4
 	SendMessage hWnd BM_SETSTYLE BS_BITMAP or GetWindowLong hWnd GWL_STYLE 0
 	SendMessage hWnd BCM_SETIMAGELIST 0 0
-	SendMessage hWnd BCM_SETIMAGELIST 0 as-integer BIL
+	SendMessageNative hWnd BCM_SETIMAGELIST WIN_WPARAM(0) as win-lparam! BIL
 ]
 
 ;update-button: func [				;-- TBD implement it

@@ -59,9 +59,9 @@ register-class: func [
 ][
 	if count <> 8 [print-line "gui/register-class error: invalid spec block"]
 
-	arg1: list/value									;@@ TBD: allow struct indexing in R/S
+	arg1: as int-ptr! list/value						;@@ TBD: allow struct indexing in R/S
 	list: list + 1
-	arg2: list/value
+	arg2: as int-ptr! list/value
 	list: list + 1
 	arg3: as-integer list/value
 	list: list + 1
@@ -71,9 +71,9 @@ register-class: func [
 	list: list + 1
 	arg6: as-integer list/value
 	list: list + 1
-	arg7: list/value
+	arg7: as int-ptr! list/value
 	list: list + 1
-	arg8: list/value
+	arg8: as int-ptr! list/value
 
 	either null? arg2 [
 		arg2: arg1
@@ -135,13 +135,13 @@ ComboWndProc: func [
 	[stdcall]
 	hWnd	[handle!]
 	msg		[integer!]
-	wParam	[integer!]
-	lParam	[integer!]
-	return: [integer!]
+	wParam	[win-wparam!]
+	lParam	[win-lparam!]
+	return: [win-lresult!]
 ][
 	switch msg [
 		WM_COMMAND [
-			if all [zero? lParam wParam < 1000][				;-- heuristic to detect a menu selection (--)'
+			if all [lParam = WIN_LPARAM(0) wParam < WIN_WPARAM(1000)][	;-- heuristic to detect a menu selection (--)'
 				unless null? menu-handle [
 					do-menu hWnd
 					return 0
@@ -149,7 +149,7 @@ ComboWndProc: func [
 			]
 		]
 		WM_MENUSELECT [
-			if wParam <> FFFF0000h [
+			if wParam <> WIN_WPARAM_FFFF0000 [
 				menu-selected: WIN32_LOWORD(wParam)
 				menu-handle: as handle! lParam
 			]
@@ -164,9 +164,9 @@ FaceWndProc: func [
 	[stdcall]
 	hWnd	[handle!]
 	msg		[integer!]
-	wParam	[integer!]
-	lParam	[integer!]
-	return: [integer!]
+	wParam	[win-wparam!]
+	lParam	[win-lparam!]
+	return: [win-lresult!]
 ][
 	switch msg [
 		WM_LBUTTONDOWN	 [SetCapture hWnd return 0]
@@ -181,9 +181,9 @@ AreaWndProc: func [
 	[stdcall]
 	hWnd	[handle!]
 	msg		[integer!]
-	wParam	[integer!]
-	lParam	[integer!]
-	return: [integer!]
+	wParam	[win-wparam!]
+	lParam	[win-lparam!]
+	return: [win-lresult!]
 	/local
 		s	[byte-ptr!]
 ][
@@ -198,12 +198,12 @@ AreaWndProc: func [
 		WM_CHAR [
 			either zero? (ES_MULTILINE and GetWindowLong hWnd GWL_STYLE) [ ;field
 				;-- stop beep when pressing enter in field
-				if any [wParam = 0Dh wParam = 9][ return 0 ];-- VK_RETURN or VK_TAB
+				if any [wParam = WIN_WPARAM(0Dh) wParam = WIN_WPARAM(9)][return 0] ;-- VK_RETURN or VK_TAB
 			][
 				;-- stop beep when pressing CTRL+A in area and select all
 				;based on: https://stackoverflow.com/a/25355868/494472
-				if wParam = 1 [
-					SendMessage hwnd EM_SETSEL 0 -1 ;-- select all
+				if wParam = WIN_WPARAM(1) [
+					SendMessageNative hwnd EM_SETSEL WIN_WPARAM(0) WIN_LPARAM(-1) ;-- select all
 					return 1
 				]
 			]
@@ -223,9 +223,9 @@ CalendarWndProc: func [
 	[stdcall]
 	hWnd	[handle!]
 	msg		[integer!]
-	wParam	[integer!]
-	lParam	[integer!]
-	return: [integer!]
+	wParam	[win-wparam!]
+	lParam	[win-lparam!]
+	return: [win-lresult!]
 ][
 	switch msg [
 		WM_LBUTTONDOWN	 [SetFocus hWnd]

@@ -173,7 +173,7 @@ set-font: func [
 ][
 	font: as red-object! values + FACE_OBJ_FONT
 	if TYPE_OF(font) <> TYPE_OBJECT [
-		SendMessage hWnd WM_SETFONT as-integer default-font 0
+		SendMessageNative hWnd WM_SETFONT as win-wparam! default-font WIN_LPARAM(0)
 		exit
 	]
 	state: as red-block! (object/get-values font) + FONT_OBJ_STATE
@@ -184,7 +184,7 @@ set-font: func [
 	][
 		make-font face font
 	]
-	SendMessage hWnd WM_SETFONT as-integer hFont 0
+	SendMessageNative hWnd WM_SETFONT as win-wparam! hFont WIN_LPARAM(0)
 ]
 
 get-font-handle-slot: func [

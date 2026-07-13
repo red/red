@@ -76,20 +76,34 @@ Red/System [
         widget [LARGE_INTEGER value]
     ]
 
-    sub64: func [
-        a       [LARGE_INTEGER]
-        b       [LARGE_INTEGER]
-        return: [integer!]
-    ][
-        ;-- mov edx, [ebp + 8]
-        ;-- mov ecx, [ebp + 12]
-        ;-- mov eax, [edx]
-        ;-- mov edx, [edx + 4]
-        ;-- sub eax, [ecx]
-        ;-- sbb edx, [ecx + 4]
-        #inline [
-            #{8B55088B4D0C8B028B52042B011B5104}
+    #either target = 'X86-64 [
+        sub64: func [
+            a       [LARGE_INTEGER]
+            b       [LARGE_INTEGER]
             return: [integer!]
+            /local
+                pa pb [pointer! [int64!]]
+        ][
+            pa: as pointer! [int64!] a
+            pb: as pointer! [int64!] b
+            as integer! (pa/value - pb/value)
+        ]
+    ][
+        sub64: func [
+            a       [LARGE_INTEGER]
+            b       [LARGE_INTEGER]
+            return: [integer!]
+        ][
+            ;-- mov edx, [ebp + 8]
+            ;-- mov ecx, [ebp + 12]
+            ;-- mov eax, [edx]
+            ;-- mov edx, [edx + 4]
+            ;-- sub eax, [ecx]
+            ;-- sbb edx, [ecx + 4]
+            #inline [
+                #{8B55088B4D0C8B028B52042B011B5104}
+                return: [integer!]
+            ]
         ]
     ]
 

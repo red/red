@@ -21,7 +21,7 @@ with [platform][
 		time/year-month: get-year-month date
 		time/week-day: get-day date
 
-		SendMessage handle MCM_SETCURSEL 0 as integer! time
+		SendMessageNative handle MCM_SETCURSEL WIN_WPARAM(0) as win-lparam! time
 	]
 	
 	sync-calendar: func [
@@ -34,7 +34,7 @@ with [platform][
 			day   [integer!]
 	][
 		time: declare tagSYSTEMTIME
-		SendMessage handle MCM_GETCURSEL 0 as integer! time
+		SendMessageNative handle MCM_GETCURSEL WIN_WPARAM(0) as win-lparam! time
 		
 		year:  cap WIN32_LOWORD(time/year-month)
 		month: WIN32_HIWORD(time/year-month)

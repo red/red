@@ -46,9 +46,18 @@ Implementation update:
 - The release smoke passes three bounded runs. The ABI runner passes all nine
   fixtures. The compiled core suite passes 5,152 tests and 9,446 assertions
   with zero failures.
+- The DLL gate passes two libraries and development mode passes three bounded
+  runs with a 64-bit `libRedRT.dll`.
+- The default Direct2D View backend passes three bounded x64 smoke runs and the
+  full 107-test, 507-assertion View suite. The same suite passes 507/507 on
+  IA-32 after rebuilding its development runtime from the shared sources.
+- Window procedures, messages, `WPARAM`/`LPARAM`/`LRESULT`, window-long slots,
+  common dialogs, common-control notifications, image lists, and the active
+  Direct2D/DXGI/COM paths use native-width declarations.
 
-DLL/development mode, full View, and the remaining Windows API width audit are
-open milestones.
+Optional View backends and modules not covered by these gates, including the
+legacy GDI+ draw backend and camera-specific hardware paths, remain follow-up
+work rather than blockers for the default Windows x86-64 target.
 
 ## Scope And Non-goals
 
@@ -60,10 +69,9 @@ First milestone:
 - ASLR-safe relocation, non-writable code, and NX-compatible data.
 - Existing IA-32 and ARM behavior unchanged.
 
-Deferred until the completed console/core milestone is followed up:
-`-c`/`libRedRT.dll`, full View/GUI, Direct2D, camera, and general x64 DLL
-productization. Foundational COM, WIC, GDI+, and clipboard paths are now ported,
-but still require the full View gate before being advertised as supported.
+The console/core milestone is followed by completed `-c`/`libRedRT.dll`,
+default View/GUI, and Direct2D gates. Camera hardware integration, the legacy
+GDI+ draw backend, and general DLL productization remain follow-up work.
 
 Do not widen Red cells or change `node-handle!` to a pointer. Do not use
 `integer!` as an address carrier; it remains signed 32-bit.
@@ -194,8 +202,8 @@ line parsing, Redbin loading, calls, and error handling.
 4. Start with a minimal View window and bounded teardown, then enable the full
    View suite, camera, Direct3D, shell, and optional FFI modules.
 
-Exit criterion: core, development DLL, and minimal View gates pass without
-hanging or restarting test executables.
+Exit criterion: complete. Core, development DLL, minimal View, and the full
+default View suite pass without hanging or restarting test executables.
 
 ### 7. Diagnostics, CI, And Documentation
 
@@ -220,7 +228,8 @@ hanging or restarting test executables.
 | ABI | Registers, stack, shadow space, returns, callbacks, variadics, `apply` |
 | Runtime | Complete for release/core: 5,152 tests and 9,446 assertions pass |
 | ASLR | Repeated launches use relocated images without pointer truncation |
-| DLL | Open: x64 export/import fixture before development mode |
+| DLL | Two x64 libraries pass; development mode passes three bounded runs |
+| View | Three x64 smoke runs and 107 tests / 507 assertions pass; IA-32 is 507/507 |
 | Debugging | CDB captures actionable registers, stack, and disassembly |
 | Compatibility | IA-32, ARM, Linux x86-64, and regression gates stay green |
 
@@ -242,5 +251,6 @@ This milestone is complete for the Windows x64 release and core gates:
 WIC image creation, and forced GC. `dumpbin` validates its PE32+ image, imports,
 permissions, and relocations. The compiled core suite passes without failures.
 
-Cross-target regression gates, DLL/development mode, and View remain required
-before declaring the entire Windows x64 target complete.
+The release, ABI, DLL/development, and default View milestones are complete.
+Optional backends and hardware-specific modules remain explicitly outside the
+supported default-target gate.

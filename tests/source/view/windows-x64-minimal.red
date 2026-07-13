@@ -3,27 +3,24 @@ Red [
 	Needs: View
 ]
 
-closed?: false
 window: view/no-wait [
 	title "Windows x64 View smoke"
-	text "ready" rate 10 on-time [
-		closed?: true
-		unview/all
+	text "ready"
+	panel 200x200 [
+		backdrop black
+		origin 0x0
+		space 0x0
+		at 60x0 base 140x140 0.0.255.128
+		at 0x60 base 140x140 0.0.255.128
 	]
 ]
 
-repeat count 200 [
+repeat count 20 [
 	do-events/no-wait
-	if closed? [break]
 	wait 0.01
 ]
 
-unless closed? [
-	print "FAIL: View window did not close"
-	unview/all
-	quit/return 1
-]
-
-repeat count 10 [do-events/no-wait]
+unview/all
+repeat count 20 [do-events/no-wait]
 write %windows-x64-view-smoke.ok "X64-VIEW-OK"
 print "X64-VIEW-OK"

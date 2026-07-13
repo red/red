@@ -34,15 +34,17 @@ OS-text-box-color: func [
 		rt		[render-target!]
 		dc		[ID2D1DeviceContext]
 		dl		[IDWriteTextLayout]
-		brush	[integer!]
+		brush	[this!]
+		created [ptr-value!]
 ][
-	brush: select-brush target + 1 color
-	if zero? brush [
-		rt: as render-target! target
+	rt: as render-target! target
+	brush: select-brush rt color
+	if null? brush [
 		this: rt/dc
 		dc: as ID2D1DeviceContext this/vtbl
-		dc/CreateSolidColorBrush this to-dx-color color null null as ptr-ptr! :brush
-		put-brush target + 1 color brush
+		dc/CreateSolidColorBrush this to-dx-color color null null :created
+		brush: as this! created/value
+		put-brush rt color brush
 	]
 
 	this: as this! layout
@@ -61,7 +63,8 @@ OS-text-box-background: func [
 		rt		[render-target!]
 		dc		[ID2D1DeviceContext]
 		cache	[red-vector!]
-		brush	[integer!]
+		brush	[this!]
+		created [ptr-value!]
 ][
 	rt: as render-target! target
 	cache: rt/styles
@@ -69,17 +72,18 @@ OS-text-box-background: func [
 		cache: vector/make-at ALLOC_TAIL(root) 128 TYPE_INTEGER 4
 		rt/styles: cache
 	]
-	brush: select-brush target + 1 color
-	if zero? brush [
+	brush: select-brush rt color
+	if null? brush [
 		this: rt/dc
 		dc: as ID2D1DeviceContext this/vtbl
-		dc/CreateSolidColorBrush this to-dx-color color null null as ptr-ptr! :brush
-		put-brush target + 1 color brush
+		dc/CreateSolidColorBrush this to-dx-color color null null :created
+		brush: as this! created/value
+		put-brush rt color brush
 	]
 	
 	vector/rs-append-int cache pos
 	vector/rs-append-int cache len
-	vector/rs-append-int cache brush
+	vector/rs-append-int cache color
 ]
 
 OS-text-box-weight: func [
@@ -397,7 +401,7 @@ OS-text-box-layout: func [
 ]
 
 txt-box-draw-background: func [
-	target	[int-ptr!]
+	target	[render-target!]
 	pos		[red-pair!]
 	layout	[this!]
 	/local
@@ -419,14 +423,15 @@ txt-box-draw-background: func [
 		left		[integer!]
 		rc			[RECT_F!]
 		pt			[red-point2d!]
+		brush		[this!]
 ][
-	styles: as red-vector! target/4
+	styles: target/styles
 	if any [
 		null? styles
 		zero? vector/rs-length? styles
 	][exit]
 
-	this: as this! target/1
+	this: target/dc
 	dc: as ID2D1DeviceContext this/vtbl
 	dl: as IDWriteTextLayout layout/vtbl
 
@@ -458,7 +463,8 @@ txt-box-draw-background: func [
 			rc/bottom: as float32! top + height
 			rc/top: as float32! top
 			rc/left: as float32! left
-			dc/FillRectangle this rc as this! p/3
+			brush: select-brush target p/3
+			if not null? brush [dc/FillRectangle this rc brush]
 			hit: hit + 1
 		]
 		p: p + 3
