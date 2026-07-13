@@ -2469,7 +2469,7 @@ redbin: context [
 					series: GET_BUFFER(rblk)
 					s-head: series/offset
 					s-tail: series/tail
-					block/rs-abs-at rblk 0
+					s-head									;-- head element; an empty origin is rejected by the bounds check below (never assert in rs-abs-at)
 				]
 				TYPE_ERROR
 				TYPE_OBJECT [
@@ -2506,7 +2506,7 @@ redbin: context [
 					series: GET_BUFFER(rblk)
 					s-head: series/offset
 					s-tail: series/tail
-					block/rs-abs-at rblk 0
+					s-head
 				]
 				TYPE_FUNCTION
 				TYPE_OP [
