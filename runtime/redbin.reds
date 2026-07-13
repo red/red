@@ -2639,6 +2639,7 @@ redbin: context [
 			sym-str-size: sz
 		]
 		
+		if len < 0 [throw-error-cp cpos]						;-- reject a sign-overflowed (bit-31) records length
 		if all [iend <> null len > (as-integer iend - cpos)][throw-error-cp cpos]	;-- records section must fit the input
 		cend: cpos + len
 		origin: parent									;-- track root block for references
@@ -3358,13 +3359,14 @@ redbin: context [
 		][
 			p: read-varint p end spec-sz: cp-val
 			p: read-varint p end body-sz: cp-val
+			if any [spec-sz < 0 body-sz < 0 spec-sz > (as-integer end - p) body-sz > (as-integer end - p)][throw-error-cp p]
 		]
 		
 		p: read-byte p end tag: cp-val					;-- context! record header
 		if tag and 3Fh <> TYPE_CONTEXT [throw-error-cp p]
 		p: read-byte p end flags: cp-val
 		p: read-varint p end slots: cp-val
-		if slots < 0 [throw-error-cp p]
+		if any [slots < 0 slots > (as-integer end - p)][throw-error-cp p]	;-- each symbol record needs >= 1 byte
 		
 		kind:	 flags and REDBIN_CP_CTX_KIND_MASK
 		stack?:	 flags and REDBIN_CP_CTX_STACK  <> 0
@@ -3670,7 +3672,7 @@ redbin: context [
 	][
 		p: read-byte p end flags: cp-val
 		p: read-varint p end slots: cp-val
-		if slots < 0 [throw-error-cp p]
+		if any [slots < 0 slots > (as-integer end - p)][throw-error-cp p]	;-- each symbol record needs >= 1 byte
 		
 		kind:	 flags and REDBIN_CP_CTX_KIND_MASK
 		stack?:	 flags and REDBIN_CP_CTX_STACK  <> 0
@@ -4154,6 +4156,11 @@ redbin: context [
 	][
 		p: read-varint p end index: cp-val
 		if index < 1 [throw-error-cp p]
+		either type = TYPE_ACTION [
+			if index > ACTIONS_NB [throw-error-cp p]	;-- 62 actions, all registered
+		][
+			if index >= natives/top [throw-error-cp p]	;-- valid natives are 1..natives/top-1
+		]
 		cell: as red-native! ALLOC_TAIL(parent)
 		
 		if codec? [parent: block/push-only* 1]			;-- redirect slot allocation

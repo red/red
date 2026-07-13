@@ -829,6 +829,7 @@ Red [
 		--test-- "errors-16" --assert error? try [load/as #{52454442494E0201016480} 'redbin]				;-- records len overruns the buffer
 		--test-- "errors-17" --assert error? try [load/as #{52454442494E0205010180808080010080} 'redbin]		;-- symbol table nsyms<<2 / region overruns
 		--test-- "errors-18" --assert error? try [load/as #{52454442494E0200000000} 'redbin]				;-- fat header short-input over-read
+		--test-- "errors-19" --assert error? try [load/as #{52454442494E0201018080808008} 'redbin]		;-- sign-overflowed (bit-31) records length
 
 	===end-group===
 	
