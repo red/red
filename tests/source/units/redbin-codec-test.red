@@ -830,6 +830,7 @@ Red [
 		--test-- "errors-17" --assert error? try [load/as #{52454442494E0205010180808080010080} 'redbin]		;-- symbol table nsyms<<2 / region overruns
 		--test-- "errors-18" --assert error? try [load/as #{52454442494E0200000000} 'redbin]				;-- fat header short-input over-read
 		--test-- "errors-19" --assert error? try [load/as #{52454442494E0201018080808008} 'redbin]		;-- sign-overflowed (bit-31) records length
+		--test-- "errors-20" --assert error? try [load/as #{52454442494E0201020581C1050100} 'redbin]		;-- series referral resolves to a scalar (no node)
 
 	===end-group===
 	
