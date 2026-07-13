@@ -2344,6 +2344,21 @@ redbin: context [
 		p
 	]
 
+	referral-immediate?: func [						;-- TRUE if a resolved referral target carries no node
+		value   [red-value!]							;-- references only ever point at node-bearing values, so an
+		return: [logic!]								;-- immediate (scalar) target signals a crafted/corrupt payload
+		/local t [integer!]
+	][
+		t: TYPE_OF(value)
+		any [
+			t = TYPE_UNSET    t = TYPE_NONE     t = TYPE_LOGIC
+			t = TYPE_DATATYPE t = TYPE_INTEGER  t = TYPE_CHAR
+			t = TYPE_FLOAT    t = TYPE_PERCENT  t = TYPE_MONEY
+			t = TYPE_PAIR     t = TYPE_TIME     t = TYPE_DATE
+			t = TYPE_TUPLE    t = TYPE_TYPESET
+		]
+	]
+
 	emit-byte: func [
 		buffer [red-binary!]
 		value  [integer!]
@@ -2469,7 +2484,7 @@ redbin: context [
 					series: GET_BUFFER(rblk)
 					s-head: series/offset
 					s-tail: series/tail
-					block/rs-abs-at rblk 0
+					s-head									;-- head element; an empty origin is rejected by the bounds check below (never assert in rs-abs-at)
 				]
 				TYPE_ERROR
 				TYPE_OBJECT [
@@ -2506,7 +2521,7 @@ redbin: context [
 					series: GET_BUFFER(rblk)
 					s-head: series/offset
 					s-tail: series/tail
-					block/rs-abs-at rblk 0
+					s-head
 				]
 				TYPE_FUNCTION
 				TYPE_OP [
@@ -2639,6 +2654,7 @@ redbin: context [
 			sym-str-size: sz
 		]
 		
+		if len < 0 [throw-error-cp cpos]						;-- reject a sign-overflowed (bit-31) records length
 		if all [iend <> null len > (as-integer iend - cpos)][throw-error-cp cpos]	;-- records section must fit the input
 		cend: cpos + len
 		origin: parent									;-- track root block for references
@@ -3358,13 +3374,14 @@ redbin: context [
 		][
 			p: read-varint p end spec-sz: cp-val
 			p: read-varint p end body-sz: cp-val
+			if any [spec-sz < 0 body-sz < 0 spec-sz > (as-integer end - p) body-sz > (as-integer end - p)][throw-error-cp p]
 		]
 		
 		p: read-byte p end tag: cp-val					;-- context! record header
 		if tag and 3Fh <> TYPE_CONTEXT [throw-error-cp p]
 		p: read-byte p end flags: cp-val
 		p: read-varint p end slots: cp-val
-		if slots < 0 [throw-error-cp p]
+		if any [slots < 0 slots > (as-integer end - p)][throw-error-cp p]	;-- each symbol record needs >= 1 byte
 		
 		kind:	 flags and REDBIN_CP_CTX_KIND_MASK
 		stack?:	 flags and REDBIN_CP_CTX_STACK  <> 0
@@ -3670,7 +3687,7 @@ redbin: context [
 	][
 		p: read-byte p end flags: cp-val
 		p: read-varint p end slots: cp-val
-		if slots < 0 [throw-error-cp p]
+		if any [slots < 0 slots > (as-integer end - p)][throw-error-cp p]	;-- each symbol record needs >= 1 byte
 		
 		kind:	 flags and REDBIN_CP_CTX_KIND_MASK
 		stack?:	 flags and REDBIN_CP_CTX_STACK  <> 0
@@ -3803,6 +3820,7 @@ redbin: context [
 		
 		either ref? [
 			p: read-reference-cp p end value: cp-ref
+			if referral-immediate? value [throw-error-cp p]	;-- reject a scalar referral target (no node)
 			blk: as red-block! copy-cell value ALLOC_TAIL(parent)
 			blk/header: type
 			if nl? [blk/header: blk/header or flag-new-line]
@@ -3844,6 +3862,7 @@ redbin: context [
 		
 		either ref? [
 			p: read-reference-cp p end value: cp-ref
+			if referral-immediate? value [throw-error-cp p]	;-- reject a scalar referral target (no node)
 			hash: as red-hash! copy-cell value ALLOC_TAIL(parent)
 			if nl? [hash/header: hash/header or flag-new-line]
 			hash/head: head
@@ -3883,6 +3902,7 @@ redbin: context [
 	][
 		either ref? [
 			p: read-reference-cp p end value: cp-ref
+			if referral-immediate? value [throw-error-cp p]	;-- reject a scalar referral target (no node)
 			blk: as red-block! copy-cell value ALLOC_TAIL(parent)
 			if nl? [blk/header: blk/header or flag-new-line]
 		][
@@ -3924,6 +3944,7 @@ redbin: context [
 
 		either ref? [
 			p: read-reference-cp p end value: cp-ref
+			if referral-immediate? value [throw-error-cp p]	;-- reject a scalar referral target (no node)
 			str: as red-string! copy-cell value ALLOC_TAIL(parent)
 			str/header: type
 			if nl? [str/header: str/header or flag-new-line]
@@ -3975,6 +3996,7 @@ redbin: context [
 		
 		either ref? [
 			p: read-reference-cp p end value: cp-ref
+			if referral-immediate? value [throw-error-cp p]	;-- reject a scalar referral target (no node)
 			bin: as red-binary! copy-cell value ALLOC_TAIL(parent)
 			bin/header: TYPE_BINARY
 			if nl? [bin/header: bin/header or flag-new-line]
@@ -4023,6 +4045,7 @@ redbin: context [
 		
 		either ref? [
 			p: read-reference-cp p end value: cp-ref
+			if referral-immediate? value [throw-error-cp p]	;-- reject a scalar referral target (no node)
 			vec: as red-vector! copy-cell value ALLOC_TAIL(parent)
 			if nl? [vec/header: vec/header or flag-new-line]
 			vec/head: head
@@ -4069,6 +4092,7 @@ redbin: context [
 	][
 		either ref? [
 			p: read-reference-cp p end value: cp-ref
+			if referral-immediate? value [throw-error-cp p]	;-- reject a scalar referral target (no node)
 			slot: as red-bitset! copy-cell value ALLOC_TAIL(parent)
 			if nl? [slot/header: slot/header or flag-new-line]
 		][
@@ -4107,6 +4131,7 @@ redbin: context [
 		
 		either ref? [
 			p: read-reference-cp p end value: cp-ref
+			if referral-immediate? value [throw-error-cp p]	;-- reject a scalar referral target (no node)
 			slot: as red-image! copy-cell value ALLOC_TAIL(parent)
 			if nl? [slot/header: slot/header or flag-new-line]
 			slot/head: head
@@ -4154,6 +4179,11 @@ redbin: context [
 	][
 		p: read-varint p end index: cp-val
 		if index < 1 [throw-error-cp p]
+		either type = TYPE_ACTION [
+			if index > ACTIONS_NB [throw-error-cp p]	;-- 62 actions, all registered
+		][
+			if index >= natives/top [throw-error-cp p]	;-- valid natives are 1..natives/top-1
+		]
 		cell: as red-native! ALLOC_TAIL(parent)
 		
 		if codec? [parent: block/push-only* 1]			;-- redirect slot allocation
