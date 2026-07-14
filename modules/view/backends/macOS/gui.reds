@@ -354,6 +354,7 @@ init: func [
 	vector/make-at as red-value! active-wins 8 TYPE_INTEGER 4
 	init-selectors
 	register-classes
+	tb-ext-type: externals/register "text-layout" as-integer :release-text-obj
 	nsview-id: objc_getClass "NSView"
 
 	NSApp: objc_msgSend [objc_getClass "RedApplication" sel_getUid "sharedApplication"]
