@@ -62,10 +62,10 @@ build-menu: func [
 							item/dwItemData: as win-ulong-ptr! w/symbol
 							value: value + 1
 						]
-						default [item/dwItemData: WIN_ULONG_PTR_FFFFFFFF]
+						default [item/dwItemData: win-ulong-ptr-from-low32 FFFFFFFFh]
 					]
 				][
-					item/dwItemData: WIN_ULONG_PTR_FFFFFFFF
+					item/dwItemData: win-ulong-ptr-from-low32 FFFFFFFFh
 				]
 				item/cch: string/rs-length? str
 				item/dwTypeData: unicode/to-utf16 str

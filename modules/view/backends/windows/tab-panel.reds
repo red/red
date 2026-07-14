@@ -31,19 +31,19 @@ select-tab: func [
 ][
 	nmhdr: declare tagNMHDR
 	nmhdr/hwndFrom: hWnd
-	nmhdr/idFrom:	WIN_WPARAM(0)
+	nmhdr/idFrom:	win-wparam-from-low32 0
 	nmhdr/code:		TCN_SELCHANGING
 	
 	parent: GetParent hWnd
-	SendMessageNative parent WM_NOTIFY WIN_WPARAM(0) as win-lparam! nmhdr
+	SendMessageNative parent WM_NOTIFY win-wparam-from-low32 0 win-lparam-from-pointer as int-ptr! nmhdr
 
 	;SendMessage hWnd TCM_SETCURSEL   idx 0
 	SendMessage hWnd TCM_SETCURFOCUS idx 0
 	
 	nmhdr/hwndFrom: hWnd
-	nmhdr/idFrom:	WIN_WPARAM(0)
+	nmhdr/idFrom:	win-wparam-from-low32 0
 	nmhdr/code: TCN_SELCHANGE
-	SendMessageNative parent WM_NOTIFY WIN_WPARAM(0) as win-lparam! nmhdr
+	SendMessageNative parent WM_NOTIFY win-wparam-from-low32 0 win-lparam-from-pointer as int-ptr! nmhdr
 ]
 
 process-tab-select: func [
@@ -52,7 +52,7 @@ process-tab-select: func [
 ][
 	as-integer EVT_NO_DISPATCH = make-event 
 		current-msg
-		1 + as-integer SendMessage hWnd TCM_GETCURSEL 0 0
+		1 + (win-lresult-index SendMessage hWnd TCM_GETCURSEL 0 0)
 		EVT_SELECT
 ]
 
@@ -61,7 +61,7 @@ process-tab-change: func [
 	/local
 		idx [integer!]
 ][
-	idx: as-integer SendMessage hWnd TCM_GETCURSEL 0 0
+	idx: win-lresult-index SendMessage hWnd TCM_GETCURSEL 0 0
 	current-msg/hWnd: hWnd
 	set-tab get-facets current-msg idx
 	make-event current-msg idx + 1 EVT_CHANGE
@@ -106,13 +106,13 @@ insert-tab: func [
 	item/pszText: unicode/to-utf16 str
 	item/cchTextMax: string/rs-length? str
 	item/iImage: -1
-	item/lParam: WIN_LPARAM(0)
+	item/lParam: 0
 
 	SendMessageNative
 		hWnd
 		TCM_INSERTITEMW
-		WIN_WPARAM(index)
-		as win-lparam! item
+		win-wparam-from-low32 index
+		win-lparam-from-pointer as int-ptr! item
 
 	refresh-tab-panel hWnd
 ]

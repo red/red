@@ -395,11 +395,7 @@ system-dialect: make-profilable context [
 		
 		raise-runtime-error: func [error [integer!]][
 			emitter/target/emit-get-pc				;-- get current CPU program counter address
-			last-type: either emitter/target/target = 'X86-64 [
-				[pointer! [byte!]]
-			][
-				[integer!]
-			]
+			last-type: [pointer! [byte!]]
 			compiler/comp-call '***-on-quit reduce [error <last>] ;-- raise a runtime error
 		]
 		
@@ -1194,8 +1190,6 @@ system-dialect: make-profilable context [
 				throw-error ["invalid path value:" mold path]
 			]
 			
-			if all [not parent path = 'system/pc emitter/target/target = 'X86-64][return [pointer! [byte!]]]
-
 			p1: to word! path/1
 			either parent [
 				resolve-struct-member-type prev p1	;-- just check for correct member name
@@ -1489,7 +1483,7 @@ system-dialect: make-profilable context [
 
 			if all [not quiet type = obj/type type/1 <> 'function!][
 				throw-warning/near [
-					"type casting from" type/1 
+					"type casting from" type/1
 					"to" obj/type/1 "is not necessary"
 				] 'as
 			]
@@ -2978,15 +2972,10 @@ system-dialect: make-profilable context [
 				check-conditional 'assert expr			;-- verify conditional expression
 				expr: process-logic-encoding expr yes
 
-				insert/only pc next next compose either emitter/target/target = 'X86-64 [
+				insert/only pc next next compose [
 					[
 						2 (to pair! reduce [line 1])	;-- hidden line offset header
 						***-on-quit 98 system/pc
-					]
-				][
-					[
-						2 (to pair! reduce [line 1])	;-- hidden line offset header
-						***-on-quit 98 as integer! system/pc
 					]
 				]
 				set [unused chunk] comp-block-chunked	;-- compile TRUE block

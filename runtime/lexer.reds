@@ -543,7 +543,7 @@ lexer: context [
 
 		more: resolve-series lex/fun-ptr/more
 		int: as red-integer! more/offset + 4
-		ctx: either TYPE_OF(int) = TYPE_INTEGER [as node-handle! int/value][global-ctx]
+		ctx: either TYPE_OF(int) = TYPE_INTEGER [node-handle-from-cell int/value][global-ctx]
 		
 		stack/mark-func words/_lexer-cb	lex/fun-ptr/ctx
 		evt: switch event [
@@ -1089,13 +1089,13 @@ lexer: context [
 					src: s + 1							;-- skip (
 					entry: escape-names
 					loop 7 [							;-- try to match an escape name
-						if zero? platform/strnicmp src as byte-ptr! entry/1 as integer! entry/2 [break]
+						if zero? platform/strnicmp src as byte-ptr! entry/1 vararg-to-integer entry/2 [break]
 						entry: entry + 3
 					]
 					either escape-names + (size? escape-names) > entry [
-						len: as integer! entry/2 + 1
+						len: (vararg-to-integer entry/2) + 1
 						if src/len <> #")" [cp/value: -1 return src]
-						c: as integer! entry/3
+						c: vararg-to-integer entry/3
 						p: src + len
 					][									;-- not a name, fall back on hex value decoding
 						p: s + 1						;-- skip (
@@ -1329,13 +1329,13 @@ lexer: context [
 			p: p + 4
 		]
 		either p < end [
-			len: as integer! p/4 + 1
+			len: (vararg-to-integer p/4) + 1
 			if s/len <> #")" [throw-error lex s e ERR_MALCONSTRUCT]
-			lex/scanned: as integer! p/2
+			lex/scanned: vararg-to-integer p/2
 			if load? [
 				dt: as red-datatype! alloc-slot lex
-				set-type as cell! dt as integer! p/2
-				if (as integer! p/2) = TYPE_LOGIC [dt/value: as integer! p/3]
+				set-type as cell! dt vararg-to-integer p/2
+				if (vararg-to-integer p/2) = TYPE_LOGIC [dt/value: vararg-to-integer p/3]
 			]
 		][
 			type: 1
@@ -2078,14 +2078,14 @@ lexer: context [
 				while [all [me < e me/1 <> sep]][me: me + 1]
 				len: as-integer me - p
 				if any [len < 3 len > 9][do-error]		;-- invalid month name
-				m: as pointer! [c-string!] months
+				m: literal-c-string-array months
 				month: 1
 				loop 12 [
 					if zero? platform/strnicmp p as byte-ptr! m/1 len [break]
 					m: m + 1
 					month: month + 1
 				]
-				if (as pointer! [c-string!] months) + 12 = m [do-error]	;-- invalid month name
+				if (literal-c-string-array months) + 12 = m [do-error]	;-- invalid month name
 				err: 0									;-- reset eventual error from int month grabing
 				p: me
 			]

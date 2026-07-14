@@ -177,6 +177,20 @@ report: func [
 	stack/unwind
 ]
 
+#either target = 'X86-64 [
+	literal-c-string: func [value [c-string!] return: [c-string!]][value]
+	literal-c-string-array: func [
+		value	[pointer! [c-string!]]
+		return: [pointer! [c-string!]]
+	][value]
+][
+	literal-c-string: func [value [integer!] return: [c-string!]][as c-string! value]
+	literal-c-string-array: func [
+		value	[int-ptr!]
+		return: [pointer! [c-string!]]
+	][as pointer! [c-string!] value]
+]
+
 fire: func [
 	[variadic]
 	count	[integer!]
@@ -301,9 +315,9 @@ call-with-array*: func [
 			return: [integer!]
 		]]
 ][
-	id: as-integer list/1
+	id: vararg-to-integer list/1
 	native?: as-logic list/2
-	size: as-integer list/3
+	size: vararg-to-integer list/3
 	list: list + 3
 	count: count - 3
 	
@@ -317,13 +331,13 @@ call-with-array*: func [
 	][
 		loop size [push -1]
 	]
-	ref-array: as vararg-ptr! system/stack/top
+	ref-array: vararg-from-pointer system/stack/top
 	
 	until [
 		t?: logic/rs-true? as red-value! list/1 off null
-		ref-pos: as-integer list/2
-		arg-pos: as-integer list/3
-		nb: as-integer list/4
+		ref-pos: vararg-to-integer list/2
+		arg-pos: vararg-to-integer list/3
+		nb: vararg-to-integer list/4
 		either t? [
 			ref-array/ref-pos: AS_NATIVE_SLOT(arg-pos)
 		][	
@@ -365,7 +379,7 @@ call-with-array*: func [
 				as-integer ref-array/15 as-integer ref-array/16
 		]
 	][
-		system/stack/top: as int-ptr! ref-array
+		system/stack/top: ref-array
 		if native? [push yes]
 		call
 	]

@@ -190,6 +190,13 @@ node-handle-of: func [
 	s/node
 ]
 
+node-handle-from-cell: func [
+	value [integer!]
+	return: [node-handle!]
+][
+	value
+]
+
 alloc-node-handle: func [
 	node	[node!]
 	return:	[node-handle!]

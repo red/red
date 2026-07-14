@@ -87,6 +87,21 @@ collector: context [
 		min-size:  1000
 		fit-cache: 16									;-- nb of pointers fitting into a typical 64 bytes L1 cache
 
+		#either target = 'X86-64 [
+			series-frame-from-slot: func [slot [ptr-ptr!] return: [series-frame!]][
+				as series-frame! (as byte-ptr! slot/value)
+			]
+		][
+			series-frame-from-slot: func [
+				slot	[ptr-ptr!]
+				return: [series-frame!]
+				/local frame [series-frame!]
+			][
+				frame: as series-frame! (as byte-ptr! slot/value)
+				frame
+			]
+		]
+
 		list!: alias struct! [
 			list  [ptr-ptr!] 							;-- array of native-width frame pointers
 			size  [integer!]							;-- size of list (in pointers)
@@ -170,14 +185,14 @@ collector: context [
 				p: s/list
 				either series? [
 					loop s/count [
-						sfrm: as series-frame! p/value
+						sfrm: series-frame-from-slot p
 						tail: (as byte-ptr! sfrm) + sfrm/size
 						if all [(as int-ptr! (as byte-ptr! sfrm) + h) <= ptr ptr < as int-ptr! tail][return yes]
 						p: p + 1
 					]
 				][
 					loop s/count [
-						frm: as int-ptr! p/value + h
+						frm: p/value + h
 						if all [
 							frm <= ptr
 							ptr < as int-ptr! ((as byte-ptr! frm) + w)
@@ -192,24 +207,24 @@ collector: context [
 				either series? [
 					until [
 						p: b + ((((as-integer e - b) / size? int-ptr!) + 1) / 2) ;-- points to the middle of [b,e] segment
-						sfrm: as series-frame! p/value
+						sfrm: series-frame-from-slot p
 						tail: (as byte-ptr! sfrm) + sfrm/size
 						if all [(as int-ptr! (as byte-ptr! sfrm) + h) <= ptr ptr < as int-ptr! tail][return yes]
 						end?: b = e						;-- gives a chance to probe the b = e segment
-						either (as int-ptr! p/value) < ptr [b: p][e: p - 1] ;-- chooses lower or upper segment
+						either p/value < ptr [b: p][e: p - 1] ;-- chooses lower or upper segment
 						end?
 					]
 				][
 					until [
 						p: b + ((((as-integer e - b) / size? int-ptr!) + 1) / 2) ;-- points to the middle of [b,e] segment
-						frm: as int-ptr! p/value + h
+						frm: p/value + h
 						if all [
 							frm <= ptr
 							ptr < as int-ptr! ((as byte-ptr! frm) + w)
 							zero? (((as-integer ptr) - (as-integer frm)) and ((size? node!) - 1))
 						][return yes]
 						end?: b = e						;-- gives a chance to probe the b = e segment
-						either (as int-ptr! p/value) < ptr [b: p][e: p - 1] ;-- chooses lower or upper segment
+						either p/value < ptr [b: p][e: p - 1] ;-- chooses lower or upper segment
 						end?
 					]
 				]
@@ -318,7 +333,7 @@ collector: context [
 		tail: slot + src/nodes
 
 		loop src/nodes [								;-- loop over each node's value in frame
-			ptr: as int-ptr! slot/value
+			ptr: slot/value
 			if all [
 				ptr <> null
 				any [ptr < as int-ptr! head  (as int-ptr! tail) < ptr]
@@ -1137,9 +1152,10 @@ collector: context [
 	]
 	
 	do-mark-sweep: func [
-		/local
-			p		[int-ptr!]
-			marker	[ptr-ptr!]
+			/local
+				p		[int-ptr!]
+				global-node [node-handle!]
+				marker	[ptr-ptr!]
 		#if debug? = yes [
 			file	[c-string!]
 			saved	[integer!]
@@ -1194,7 +1210,8 @@ collector: context [
 		mark-values stack/bottom stack/top
 		
 		#if debug? = yes [if verbose > 1 [probe "marking globals"]]
-		mark-context as int-ptr! :global-ctx
+			global-node: global-ctx
+			mark-context :global-node
 		if HANDLE?(interpreter/near/node) [mark-block interpreter/near]
 		lexer/mark-buffers
 		mark-block-node :references/list/node
@@ -1310,7 +1327,7 @@ collector: context [
 			unless b [
 				print-line [
 					"^/** Error: "
-					as-c-string messages/id 
+				messages/id
 					"! (" id ")^/stopping..."
 				]
 				quit -1
@@ -1355,7 +1372,7 @@ collector: context [
 				used: 0
 				
 				loop frame/nodes [
-					v: as int-ptr! slot/value
+					v: slot/value
 					unless any [
 						null? v
 						all [(as int-ptr! head) <= v v < as int-ptr! tail]

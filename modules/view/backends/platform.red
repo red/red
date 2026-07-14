@@ -654,9 +654,13 @@ system/view/platform: context [
 					s2: GET_BUFFER(blk)
 					h: as red-handle! s2/offset
 					if all [
-						h/value = as-integer hMonitor
 						TYPE_OF(h) = TYPE_HANDLE
 						h/type = handle/CLASS_MONITOR
+						#either OS = 'Windows [
+							(get-win-handle h) = hMonitor
+						][
+							h/value = as-integer hMonitor
+						]
 					][
 						if parent/ctx <> face/ctx [					;-- if window really moved to a different display
 							blk: as red-block! (object/get-values parent) + FACE_OBJ_PANE
@@ -829,22 +833,45 @@ system/view/platform: context [
 		SET_RETURN(none-value)
 	]
 
-	refresh-window: routine [h [handle!]][
-		gui/OS-refresh-window h/value
-	]
+	#either config/OS = 'Windows [
+		refresh-window: routine [h [handle!]][
+			gui/OS-refresh-window gui/get-win-handle h
+		]
 
-	redraw: routine [face [object!] /local h [integer!]][
-		h: as-integer gui/face-handle? face
-		if h <> 0 [gui/OS-redraw h]
-	]
+		redraw: routine [face [object!] /local h [handle!]][
+			h: gui/face-handle? face
+			if h <> null [gui/OS-redraw h]
+		]
 
-	show-window: routine [id [handle!]][
-		gui/OS-show-window id/value
-		SET_RETURN(none-value)
-	]
+		show-window: routine [id [handle!]][
+			gui/OS-show-window gui/get-win-handle id
+			SET_RETURN(none-value)
+		]
 
-	make-view: routine [face [object!] parent [handle!]][
-		handle/box gui/OS-make-view face parent/value handle/CLASS_WINDOW
+		make-view: routine [face [object!] parent [handle!]][
+			gui/make-win-handle-at
+				stack/arguments
+				gui/OS-make-view face gui/get-win-handle parent
+				handle/CLASS_WINDOW
+		]
+	][
+		refresh-window: routine [h [handle!]][
+			gui/OS-refresh-window h/value
+		]
+
+		redraw: routine [face [object!] /local h [integer!]][
+			h: as-integer gui/face-handle? face
+			if h <> 0 [gui/OS-redraw h]
+		]
+
+		show-window: routine [id [handle!]][
+			gui/OS-show-window id/value
+			SET_RETURN(none-value)
+		]
+
+		make-view: routine [face [object!] parent [handle!]][
+			handle/box gui/OS-make-view face parent/value handle/CLASS_WINDOW
+		]
 	]
 
 	draw-image: routine [image [image!] cmds [block!]][

@@ -303,7 +303,7 @@ OS-text-box-layout: func [
 		size	[red-pair!]
 		font	[red-object!]
 		fcolor	[red-tuple!]
-		int		[red-integer!]
+		native	[red-handle!]
 		bool	[red-logic!]
 		state	[red-block!]
 		styles	[red-block!]
@@ -344,10 +344,10 @@ OS-text-box-layout: func [
 		state: as red-block! values + FACE_OBJ_EXT3
 		either TYPE_OF(state) = TYPE_BLOCK [
 			pval: block/rs-head state
-			int: as red-integer! pval
-			layout: as this! int/value
+			native: as red-handle! pval
+			layout: as this! get-win-handle native
 			COM_SAFE_RELEASE(IUnk layout)		;-- release previous text layout
-			bool: as red-logic! int + 3
+			bool: as red-logic! pval + 3
 			bool/value: false
 		][
 			block/make-at state 4
@@ -357,7 +357,7 @@ OS-text-box-layout: func [
 			logic/make-in state false			;-- 4: layout?
 			pval: block/rs-head state
 		]
-		handle/make-at pval + 1 as-integer target handle/CLASS_RICHTEXT
+		make-win-handle-at pval + 1 as handle! target handle/CLASS_RICHTEXT
 		DT_WORDBREAK	;-- wrap by default
 	][5]	;-- base face
 	vec: target/styles
@@ -381,7 +381,7 @@ OS-text-box-layout: func [
 
 	if pval <> null [copy-cell as red-value! str pval + 2]		;-- save text
 	layout: create-text-layout str fmt w h
-	if pval <> null [handle/make-at pval as-integer layout handle/CLASS_RICHTEXT]
+	if pval <> null [make-win-handle-at pval as handle! layout handle/CLASS_RICHTEXT]
 	;-- base font foreground; data ranges layer above
 	if TYPE_OF(font) = TYPE_OBJECT [
 		fcolor: as red-tuple! (object/get-values font) + FONT_OBJ_COLOR

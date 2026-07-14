@@ -16,12 +16,12 @@ get-hwnd-render-target-d2d: func [
 	/local
 		target	[render-target!]
 ][
-	target: as render-target! GetWindowLongPtr hWnd SLOT_RENDER_TARGET
+	target: as render-target! win-long-ptr-to-pointer GetWindowLongPtr hWnd SLOT_RENDER_TARGET
 	if null? target [
 		target: as render-target! zero-alloc size? render-target!
 		target/dc: create-hwnd-render-target hWnd
 		target/brushes: as brush-entry! allocate D2D_MAX_BRUSHES * size? brush-entry!
-		SetWindowLongPtr hWnd SLOT_RENDER_TARGET WIN_LONG_PTR(target)
+		SetWindowLongPtr hWnd SLOT_RENDER_TARGET win-long-ptr-from-pointer as int-ptr! target
 	]
 	target
 ]
@@ -118,7 +118,7 @@ draw-end-d2d: func [
 		D2DERR_RECREATE_TARGET [
 			d2d-release-target as render-target! ctx/brushes
 			ctx/dc: null
-			SetWindowLongPtr hWnd SLOT_RENDER_TARGET WIN_LONG_PTR(0)
+			SetWindowLongPtr hWnd SLOT_RENDER_TARGET 0
 			InvalidateRect hWnd null 0
 		]
 		default [
@@ -518,7 +518,7 @@ update-pen: func [
 			brush: declare tagLOGBRUSH
 			brush/lbStyle: BS_SOLID
 			brush/lbColor: ctx/pen-color
-			brush/lbHatch: WIN_WPARAM(0)
+			brush/lbHatch: win-wparam-from-low32 0
 			ExtCreatePen
 				PS_GEOMETRIC or ctx/pen-style or mode
 				as integer! ctx/pen-width
@@ -592,7 +592,7 @@ draw-begin: func [
 	ctx/other/gradient-fill/transformed?:	false
 	ctx/other/gradient-pen?:				false
 	ctx/other/gradient-fill?:				false
-	ctx/other/D2D?:							(as integer! GetWindowLongPtr hWnd SLOT_FACE_STATE) and BASE_FACE_D2D <> 0
+	ctx/other/D2D?:							(win-slot-flags GetWindowLongPtr hWnd SLOT_FACE_STATE) and BASE_FACE_D2D <> 0
 	ctx/other/GDI+?:						no
 	ctx/other/last-point?:					no
 	ctx/other/prev-shape/type:				SHAPE_OTHER
@@ -691,7 +691,7 @@ draw-end: func [
 		width	[integer!]
 		height	[integer!]
 		bitmap	[integer!]
-		old-dc	[integer!]
+		old-dc	[handle!]
 		dc		[handle!]
 		ptrn	[red-image!]
 ][
@@ -734,9 +734,9 @@ draw-end: func [
 
 	if ctx/bitmap <> null [DeleteObject ctx/bitmap]
 	either cache? [
-		old-dc: as integer! GetWindowLongPtr hWnd SLOT_AUX
-		unless zero? old-dc [DeleteDC as handle! old-dc]
-		SetWindowLongPtr hWnd SLOT_AUX WIN_LONG_PTR(dc)
+		old-dc: win-long-ptr-to-handle GetWindowLongPtr hWnd SLOT_AUX
+		unless null? old-dc [DeleteDC old-dc]
+		SetWindowLongPtr hWnd SLOT_AUX win-long-ptr-from-pointer dc
 	][
 		DeleteDC dc
 	]
@@ -1905,7 +1905,13 @@ OS-draw-font: func [
 	hFont: null
 	if TYPE_OF(state) = TYPE_BLOCK [
 		handle: as red-handle! (block/rs-head state) + 2
-		if TYPE_OF(handle) = TYPE_HANDLE [hFont: as handle! handle/value]
+		if TYPE_OF(handle) = TYPE_HANDLE [
+			hFont: either handle/extID >= 0 [
+				externals/get handle/extID
+			][
+				as handle! handle/value
+			]
+		]
 	]
 
 	if null? hFont [

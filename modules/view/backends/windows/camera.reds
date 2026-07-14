@@ -253,7 +253,7 @@ grabber-cb-buffer: func [
 		#either draw-engine = 'GDI+ [
 			image/init-image img OS-image/flip as int-ptr! bmp
 		][
-			image/init-image img OS-image/flip resolve-node as node-handle! bmp
+			image/init-image img OS-image/flip resolve-node bmp
 		]
 	]
 	0
@@ -302,18 +302,18 @@ init-camera: func [
 	ratio	[red-float!]
 	/local
 		cam [camera!]
-		val [integer!] 
+		val [camera!]
 ][
 	cam: as camera! allocate size? camera!				;@@ need to be freed
 	zero-memory as byte-ptr! cam size? camera!
 	val: collect-camera cam data
-	if zero? val [
+	if null? val [
 		free as byte-ptr! cam
-		SetWindowLongPtr hWnd SLOT_AUX WIN_LONG_PTR(0)
+		SetWindowLongPtr hWnd SLOT_AUX 0
 		exit
 	]
 
-	SetWindowLongPtr hWnd SLOT_AUX WIN_LONG_PTR(val)
+	SetWindowLongPtr hWnd SLOT_AUX win-long-ptr-from-pointer as int-ptr! val
 	if TYPE_OF(sel) = TYPE_INTEGER [
 		camera-ratio: 0.0
 		if select-camera hWnd sel/value - 1 [
@@ -343,7 +343,7 @@ teardown-graph: func [cam [camera!] /local w [IVideoWindow]][
 ]
 
 stop-camera: func [handle [handle!] return: [camera!] /local cam [camera!] ][
-	cam: as camera! GetWindowLongPtr handle SLOT_AUX
+	cam: as camera! win-long-ptr-to-pointer GetWindowLongPtr handle SLOT_AUX
 	unless null? cam [
 		teardown-graph cam
 		free-graph cam
@@ -354,7 +354,7 @@ stop-camera: func [handle [handle!] return: [camera!] /local cam [camera!] ][
 destroy-camera: func [handle [handle!] /local cam [camera!]][
 	cam: stop-camera handle
 	if cam <> null [
-		SetWindowLongPtr handle SLOT_AUX WIN_LONG_PTR(0)
+		SetWindowLongPtr handle SLOT_AUX 0
 		free as byte-ptr! cam
 	]
 ]
@@ -371,7 +371,7 @@ init-graph: func [
 		builder 	[ICaptureGraphBuilder2]
 		grabber 	[ISampleGrabber]
 		hr			[integer!]
-		dev-ptr 	[int-ptr!]
+		dev-ptr 	[ptr-ptr!]
 		dev			[this!]
 		IGrabFilter	[interface! value]
 		IGrab		[interface! value]
@@ -389,7 +389,7 @@ init-graph: func [
 	hr: builder/SetFiltergraph IB/ptr IG/ptr
 	if hr <> 0 [probe "Cannot give graph to builder"]
 
-	dev-ptr: (as int-ptr! cam) + CAM_DEV_OFFSET + idx
+	dev-ptr: (as ptr-ptr! cam) + CAM_DEV_OFFSET + idx
 	dev: as this! dev-ptr/value
 	moniker: as IMoniker dev/vtbl
 
@@ -514,7 +514,7 @@ toggle-preview: func [
 		mc		[IMediaControl]
 		hr		[integer!]
 ][
-	cam: as camera! GetWindowLongPtr handle SLOT_AUX
+	cam: as camera! win-long-ptr-to-pointer GetWindowLongPtr handle SLOT_AUX
 	if cam = null [exit]
 	graph: as IGraphBuilder cam/graph/vtbl
 
@@ -538,7 +538,7 @@ select-camera: func [
 	/local
 		cam [camera!]
 ][
-	cam: as camera! GetWindowLongPtr handle SLOT_AUX
+	cam: as camera! win-long-ptr-to-pointer GetWindowLongPtr handle SLOT_AUX
 	if any [idx < 0 idx >= cam/num][
 		fire [TO_ERROR(access cannot-open) integer/push idx + 1]
 	]
@@ -555,7 +555,7 @@ select-camera: func [
 collect-camera: func [
 	cam			[camera!]
 	data		[red-block!]
-	return:		[integer!]
+	return:		[camera!]
 	/local
 		hr		[integer!]
 		var		[tagVARIANT value]
@@ -570,7 +570,7 @@ collect-camera: func [
 		str		[red-string!]
 		len		[int-ptr!]
 		size	[integer!]
-		dev-ptr [int-ptr!]
+		dev-ptr [ptr-ptr!]
 		fetched [integer!]
 		cnt		[integer!]
 ][
@@ -581,25 +581,25 @@ collect-camera: func [
 	SampleGrabberCB/BufferCB: as int-ptr! :grabber-cb-buffer
 
 	hr: CoCreateInstance CLSID_SystemDeviceEnum 0 1 IID_ICreateDevEnum IDev
-	if hr <> 0 [probe "Error Creating Device Enumerator" return 0]
+	if hr <> 0 [probe "Error Creating Device Enumerator" return null]
 
 	dev: as ICreateDevEnum IDev/ptr/vtbl
 	hr: dev/CreateClassEnumerator IDev/ptr CLSID_VideoInputDeviceCategory IEnum 0
 	if hr <> 0 [
 		probe "No video capture hardware"
 		dev/Release IDev/ptr
-		return 0
+		return null
 	]
 	dev/Release IDev/ptr
 
 	em: as IEnumMoniker IEnum/ptr/vtbl
 	var/data1: 8 << 16									;-- var.vt = VT_BSTR
-	dev-ptr: (as int-ptr! cam) + CAM_DEV_OFFSET
+	dev-ptr: (as ptr-ptr! cam) + CAM_DEV_OFFSET
 	fetched: 0
 	cnt: 0
 
 	hr: em/Next IEnum/ptr 1 IM :fetched
-	either zero? hr [block/make-at data 2][return 0]
+	either zero? hr [block/make-at data 2][return null]
 	until [
 		moniker: as IMoniker IM/ptr/vtbl
 		hr: moniker/BindToStorage IM/ptr 0 0 IID_IPropertyBag IBag
@@ -611,7 +611,7 @@ collect-camera: func [
 				size: len/value >> 1
 				str: string/make-at ALLOC_TAIL(data) size 2
 				unicode/load-utf16 as c-string! var/data3 size str no
-				dev-ptr/value: as-integer IM/ptr
+				dev-ptr/value: as int-ptr! IM/ptr
 				dev-ptr: dev-ptr + 1
 				cnt: cnt + 1
 				moniker/AddRef IM/ptr
@@ -624,7 +624,7 @@ collect-camera: func [
 	]
 	cam/num: cnt
 	em/Release IEnum/ptr
-	as-integer cam
+	cam
 ]
 
 update-camera-size: func [
@@ -666,7 +666,7 @@ update-camera: func [
 	/local
 		cam	[camera!]
 ][
-	cam: as camera! GetWindowLongPtr hWnd SLOT_AUX
+	cam: as camera! win-long-ptr-to-pointer GetWindowLongPtr hWnd SLOT_AUX
 	if cam/window <> null [set-camera-viewport cam/window as IVideoWindow cam/window/vtbl sx sy]
 ]
 

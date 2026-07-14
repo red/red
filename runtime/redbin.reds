@@ -149,7 +149,7 @@ redbin: context [
 		list: list + 1
 		
 		loop count - 1 [
-			store payload as-integer list/1
+			store payload vararg-to-integer list/1
 			list: list + 1
 		]
 	]
@@ -304,7 +304,7 @@ redbin: context [
 			either as logic! offset/value [			;-- body
 				assert type = TYPE_FUNCTION
 				
-				node:   resolve-node as node-handle! value/data3
+				node:   resolve-node node-handle-from-cell value/data3
 				series: as series! node/value
 				value:  series/offset
 				
@@ -315,7 +315,7 @@ redbin: context [
 				
 				offset: offset + 1
 				count:  count  - 1
-				node:   resolve-node as node-handle! value/data2
+				node:   resolve-node node-handle-from-cell value/data2
 				
 				either zero? count [
 					blk/node: node-handle-of node
@@ -349,7 +349,7 @@ redbin: context [
 				]
 				TYPE_ANY_WORD
 				TYPE_REFINEMENT [
-					handle: as node-handle! value/data1
+					handle: node-handle-from-cell value/data1
 					node: resolve-node handle
 					ctx: TO_CTX(handle)
 					either ON_STACK?(ctx) [
@@ -614,7 +614,7 @@ redbin: context [
 			]
 			default			[
 				first?:  any [ALL_WORD?(type) type = TYPE_OBJECT type = TYPE_FUNCTION]
-				handle:  as node-handle! either first? [data/data1][data/data2]
+				handle:  node-handle-from-cell either first? [data/data1][data/data2]
 				node:    resolve-node handle
 				ref:     reference/fetch node
 				global?: all [first? handle = global-ctx]
@@ -1265,7 +1265,7 @@ redbin: context [
 		record [payload header index]
 		
 		slot/head: 0
-		slot/node: as node-handle! data/data2
+		slot/node: node-handle-from-cell data/data2
 		slot/header: TYPE_BLOCK
 		
 		encode-value as red-value! slot payload symbols table strings
@@ -1411,7 +1411,7 @@ redbin: context [
 		old: offset
 		
 		slot/head: 0
-		slot/node: as node-handle! spec/data2
+		slot/node: node-handle-from-cell spec/data2
 		slot/header: TYPE_BLOCK
 		
 		offset: 0									;-- form artifical paths to spec and body blocks
@@ -1541,7 +1541,7 @@ redbin: context [
 			series [series!]
 			type   [integer!]
 	][
-		node: as node-handle! data/data1
+		node: node-handle-from-cell data/data1
 		
 		;@@ TBD: #4537
 		if zero? node [node: global-ctx]
@@ -1744,7 +1744,7 @@ redbin: context [
 			if type2 = TYPE_OP [					;-- locate function! slot
 				op: as red-op! word
 				assert GET_OP_SUBTYPE(op) = TYPE_FUNCTION
-				node: as node-handle! op/code
+				node: node-handle-from-cell op/code
 				series: resolve-series node
 				copy-cell as red-value! series/offset + 3 as red-value! word
 				assert TYPE_OF(word) = TYPE_FUNCTION

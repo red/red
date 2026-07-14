@@ -302,11 +302,9 @@ image: context [
 	delete: func [img [red-image!]][OS-image/delete resolve-node img/node]
 
 	delete-external: func [
-		handle [int-ptr!]
-		/local stable [node-handle!]
+		handle [node-handle!]
 	][
-		stable: as node-handle! as-integer handle
-		OS-image/delete resolve-node stable
+		OS-image/delete resolve-node handle
 	]
 
 	encode: func [
@@ -1349,6 +1347,6 @@ image: context [
 			null			;write
 		]
 		
-		ext-type: externals/register "image" as int-ptr! :delete-external
+		ext-type: externals/register-node "image" as int-ptr! :delete-external
 	]
 ]

@@ -19,11 +19,11 @@ update-area-para: func [
 ][
 	parent: GetParent hWnd
 	DestroyWindow hWnd
-	hWnd: as handle! OS-make-view face as-integer parent
+	hWnd: OS-make-view face parent
 
 	h: as red-handle! block/rs-head as red-block! (get-face-values hWnd) + FACE_OBJ_STATE
 	h/header: TYPE_HANDLE
-	h/value:  as-integer hWnd
+	set-win-handle h hWnd
 ]
 
 update-para: func [
@@ -37,7 +37,7 @@ update-para: func [
 		values [red-value!]
 		hWnd   [handle!]
 		sym	   [integer!]
-		style  [integer!]
+		style  [win-long-ptr!]
 		mask   [integer!]
 ][
 	values: object/get-values face
@@ -74,9 +74,9 @@ update-para: func [
 		update-area-para hWnd face
 		values: object/get-values face
 	][
-		style: as integer! GetWindowLongPtr hWnd GWL_STYLE
-		style: style and mask or get-para-flags sym para
-		SetWindowLongPtr hWnd GWL_STYLE WIN_LONG_PTR(style)
+		style: GetWindowLongPtr hWnd GWL_STYLE
+		style: style and (win-style-mask mask) or (win-style-mask get-para-flags sym para)
+		SetWindowLongPtr hWnd GWL_STYLE style
 	]
 	
 	int: as red-integer! (block/rs-head state) + 1

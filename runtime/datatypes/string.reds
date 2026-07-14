@@ -2155,7 +2155,7 @@ string: context [
 			either p < as byte-ptr! s/tail [
 				type: switch TYPE_OF(str) [
 					TYPE_BINARY	[TYPE_INTEGER]
-					TYPE_VECTOR [as-integer str/cache]
+					TYPE_VECTOR [str/cache]					;-- vector/type shares the fourth series field
 					default 	[TYPE_CHAR]
 				]
 				char: as red-char! result
@@ -2246,7 +2246,7 @@ string: context [
 
 		cmp: either all [
 			TYPE_OF(str) = TYPE_VECTOR
-			(as-integer str/cache) = TYPE_FLOAT					;-- vec/type
+			str/cache = TYPE_FLOAT								;-- vector/type shares the fourth series field
 		][
 			switch unit [
 				4 [as int-ptr! :compare-float32]

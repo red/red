@@ -37,11 +37,230 @@ Red/System [
 #define win-lparam!	win-long-ptr!
 #define win-lresult!	win-long-ptr!
 
-#define WIN_WPARAM(value) [as win-wparam! value]
-#define WIN_LPARAM(value) [as win-lparam! value]
-#define WIN_LONG_PTR(value) [as win-long-ptr! value]
-#define WIN_WPARAM_FFFF0000 [((as win-wparam! FFFFh) << 16)]
-#define WIN_ULONG_PTR_FFFFFFFF [(((as win-ulong-ptr! FFFFh) << 16) or (as win-ulong-ptr! FFFFh))]
+win-native-value!: alias union! [
+	signed	 [win-long-ptr!]
+	unsigned [win-ulong-ptr!]
+	handle	 [handle!]
+	pointer	 [int-ptr!]
+	low32	 [integer!]
+	reference [node-handle!]
+]
+
+win-long-ptr-from-handle: func [
+	value	[handle!]
+	return: [win-long-ptr!]
+	/local carrier [win-native-value!]
+][
+	carrier: declare win-native-value!
+	carrier/handle: value
+	carrier/signed
+]
+
+win-long-ptr-to-handle: func [
+	value	[win-long-ptr!]
+	return: [handle!]
+	/local carrier [win-native-value!]
+][
+	carrier: declare win-native-value!
+	carrier/signed: value
+	carrier/handle
+]
+
+win-handle-low32: func [
+	value	[handle!]
+	return: [integer!]
+	/local carrier [win-native-value!]
+][
+	carrier: declare win-native-value!
+	carrier/handle: value
+	carrier/low32
+]
+
+win-long-ptr-from-pointer: func [
+	value	[int-ptr!]
+	return: [win-long-ptr!]
+	/local carrier [win-native-value!]
+][
+	carrier: declare win-native-value!
+	carrier/pointer: value
+	carrier/signed
+]
+
+win-long-ptr-to-pointer: func [
+	value	[win-long-ptr!]
+	return: [int-ptr!]
+	/local carrier [win-native-value!]
+][
+	carrier: declare win-native-value!
+	carrier/signed: value
+	carrier/pointer
+]
+
+win-wparam-from-handle: func [
+	value	[handle!]
+	return: [win-wparam!]
+	/local carrier [win-native-value!]
+][
+	carrier: declare win-native-value!
+	carrier/handle: value
+	carrier/unsigned
+]
+
+win-wparam-from-pointer: func [
+	value	[int-ptr!]
+	return: [win-wparam!]
+	/local carrier [win-native-value!]
+][
+	carrier: declare win-native-value!
+	carrier/pointer: value
+	carrier/unsigned
+]
+
+win-wparam-from-long-ptr: func [
+	value	[win-long-ptr!]
+	return: [win-wparam!]
+	/local carrier [win-native-value!]
+][
+	carrier: declare win-native-value!
+	carrier/signed: value
+	carrier/unsigned
+]
+
+win-lparam-from-pointer: func [
+	value	[int-ptr!]
+	return: [win-lparam!]
+][
+	win-long-ptr-from-pointer value
+]
+
+win-lparam-from-handle: func [
+	value	[handle!]
+	return: [win-lparam!]
+][
+	win-long-ptr-from-handle value
+]
+
+win-lparam-from-integer: func [
+	value	[integer!]
+	return: [win-lparam!]
+	/local carrier [win-native-value!]
+][
+	carrier: declare win-native-value!
+	either value < 0 [
+		carrier/pointer: null
+		carrier/unsigned: not carrier/unsigned
+	][
+		carrier/pointer: null
+	]
+	carrier/low32: value
+	carrier/signed
+]
+
+win-lresult-from-handle: func [
+	value	[handle!]
+	return: [win-lresult!]
+][
+	win-long-ptr-from-handle value
+]
+
+win-wparam-from-low32: func [
+	value	[integer!]
+	return: [win-wparam!]
+	/local carrier [win-native-value!]
+][
+	carrier: declare win-native-value!
+	carrier/pointer: null
+	carrier/low32: value
+	carrier/unsigned
+]
+
+win-ulong-ptr-from-low32: func [
+	value	[integer!]
+	return: [win-ulong-ptr!]
+	/local carrier [win-native-value!]
+][
+	carrier: declare win-native-value!
+	carrier/pointer: null
+	carrier/low32: value
+	carrier/unsigned
+]
+
+win-slot-reference: func [
+	value [win-long-ptr!]
+	return: [node-handle!]
+	/local carrier [win-native-value!]
+][
+	carrier: declare win-native-value!
+	carrier/signed: value
+	carrier/reference
+]
+
+win-slot-flags: func [
+	value [win-long-ptr!]
+	return: [integer!]
+	/local carrier [win-native-value!]
+][
+	carrier: declare win-native-value!
+	carrier/signed: value
+	carrier/low32
+]
+
+win-slot-count: func [
+	value [win-long-ptr!]
+	return: [integer!]
+	/local carrier [win-native-value!]
+][
+	carrier: declare win-native-value!
+	carrier/signed: value
+	carrier/low32
+]
+
+win-style-mask: func [
+	value [integer!]
+	return: [win-long-ptr!]
+][
+	value
+]
+
+win-lresult-flags: func [
+	value [win-lresult!]
+	return: [integer!]
+	/local carrier [win-native-value!]
+][
+	carrier: declare win-native-value!
+	carrier/signed: value
+	carrier/low32
+]
+
+win-lresult-index: func [
+	value [win-lresult!]
+	return: [integer!]
+	/local carrier [win-native-value!]
+][
+	carrier: declare win-native-value!
+	carrier/signed: value
+	carrier/low32
+]
+
+win-lresult-count: func [
+	value [win-lresult!]
+	return: [integer!]
+	/local carrier [win-native-value!]
+][
+	carrier: declare win-native-value!
+	carrier/signed: value
+	carrier/low32
+]
+
+win-lresult-position: func [
+	value [win-lresult!]
+	return: [integer!]
+	/local carrier [win-native-value!]
+][
+	carrier: declare win-native-value!
+	carrier/signed: value
+	carrier/low32
+]
 
 #define MONITOR_DEFAULTTONEAREST 2
 
@@ -583,30 +802,20 @@ Red/System [
 #define ICC_STANDARD_CLASSES	00004000h
 #define ICC_LINK_CLASS			00008000h
 
-#define WIN32_U16(param) [
-	(as integer! param) and FFFFh
+#define WIN32_U16(value) [(as integer! as uint16! (value))]
+#define WIN32_LOWORD(value) [(as integer! as uint16! (value))]
+#define WIN32_HIWORD(value) [
+	(as integer! as uint16! ((value) >>> 16))
 ]
-#define WIN32_LOWORD(param) [
-	(WIN32_U16(param) << 16 >> 16)
+#define WIN32_GET_X_LPARAM(value) [(as integer! as int16! (value))]
+#define WIN32_GET_Y_LPARAM(value) [
+	(as integer! as int16! ((value) >>> 16))
 ]
-#define WIN32_HIWORD(param) [
-	((as integer! param) >> 16)
+#define WIN32_GET_WHEEL_DELTA_WPARAM(value) [
+	(as integer! as int16! ((value) >>> 16))
 ]
 
 #define WIN32_MAKE_LPARAM(low high) [high << 16 or (low and FFFFh)]
-
-;-- WM_MOVE and mouse messages pack two signed 16-bit fields into LPARAM.
-;-- This is the only place their full-width carrier is intentionally narrowed.
-win-lparam-low32: func [
-	value	[win-lparam!]
-	return:	[integer!]
-	/local
-		low high [integer!]
-][
-	low: WIN32_LOWORD(value)
-	high: WIN32_HIWORD(value)
-	high << 16 or (low and FFFFh)
-]
 
 #define IS_EXTENDED_KEY		01000000h
 
@@ -3070,9 +3279,9 @@ SendMessage: func [
 	msg		[integer!]
 	wParam	[integer!]
 	lParam	[integer!]
-	return:	[integer!]
+	return:	[win-lresult!]
 ][
-	as integer! SendMessageNative hWnd msg WIN_WPARAM(wParam) WIN_LPARAM(lParam)
+	SendMessageNative hWnd msg win-wparam-from-low32 wParam win-lparam-from-integer lParam
 ]
 
 PostMessage: func [
@@ -3082,7 +3291,7 @@ PostMessage: func [
 	lParam	[integer!]
 	return:	[logic!]
 ][
-	PostMessageNative hWnd msg WIN_WPARAM(wParam) WIN_LPARAM(lParam)
+	PostMessageNative hWnd msg win-wparam-from-low32 wParam win-lparam-from-integer lParam
 ]
 
 #case [

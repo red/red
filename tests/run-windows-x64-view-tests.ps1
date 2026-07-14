@@ -73,15 +73,28 @@ function Invoke-BoundedGuiProcess {
 	$process.ExitCode
 }
 
+function Assert-NoCompilerWarnings {
+	param(
+		[Parameter(Mandatory)][string]$Output,
+		[Parameter(Mandatory)][string]$Target
+	)
+
+	if ($Output -match '(?m)^\*\*\* Warning:') {
+		throw "$Target compilation emitted warnings`n$Output"
+	}
+}
+
 function Assert-WindowLongPtrSource {
 	$backend = Join-Path $root 'modules\view\backends\windows'
 	$files = Get-ChildItem -LiteralPath $backend -Filter '*.reds' -File
 	$legacyPattern = '\b(?:GetWindowLong|SetWindowLong|get-window-long-ptr|set-window-long-ptr)\b|\bwc-offset\b|WindowLongPtrPtr'
+	$unsafeNarrowingPattern = '\bas(?:-integer)?\s+(?:\(\s*)?(?:GetWindowLongPtr|SetWindowLongPtr|SendMessage)\b|\bwin-(?:long|ulong)-ptr-low32\b|\bWIN_WPARAM\b|\bas\s+win-(?:wparam|lparam|long-ptr|lresult)!\b'
+	$unsafeHandleStoragePattern = '\bas-integer\s+(?:hWnd|hwnd|get-face-handle)\b|\b(?:handle|h)/value:\s+as-integer\s+hWnd\b|\bOS-make-view\s+face\s+as-integer\b'
 	$violations = foreach ($file in $files) {
-		Select-String -LiteralPath $file.FullName -Pattern $legacyPattern -AllMatches
+		Select-String -LiteralPath $file.FullName -Pattern @($legacyPattern, $unsafeNarrowingPattern, $unsafeHandleStoragePattern) -AllMatches
 	}
 	if ($violations) {
-		throw "Legacy window-long access remains:`n$($violations -join "`n")"
+		throw "Legacy or narrowing window-long access remains:`n$($violations -join "`n")"
 	}
 
 	$win32 = Get-Content -LiteralPath (Join-Path $backend 'win32.reds') -Raw
@@ -105,6 +118,7 @@ try {
 	)
 	$compileOutput = Invoke-CheckedProcess 'cmd.exe' $compileArgs $CompileTimeoutSeconds `
 		(Join-Path $artifactDir 'compile.log')
+	Assert-NoCompilerWarnings $compileOutput 'Windows x86-64 View smoke'
 	if ($compileOutput -notmatch 'output file\s+: .*view-smoke\.exe') {
 		throw 'View executable output marker is missing'
 	}
@@ -163,6 +177,7 @@ quit/return either qt-run-failures = 0 [0][1]
 	)
 	$suiteCompileOutput = Invoke-CheckedProcess 'cmd.exe' $suiteCompileArgs $CompileTimeoutSeconds `
 		(Join-Path $artifactDir 'base-self-test-compile.log')
+	Assert-NoCompilerWarnings $suiteCompileOutput 'Windows x86-64 View self-test'
 	if ($suiteCompileOutput -notmatch 'output file\s+: .*base-self-test-x64\.exe') {
 		throw 'View self-test executable output marker is missing'
 	}

@@ -168,23 +168,21 @@ set-font: func [
 	/local
 		font   [red-object!]
 		state  [red-block!]
-		handle [red-handle!]
 		hFont  [handle!]
 ][
 	font: as red-object! values + FACE_OBJ_FONT
 	if TYPE_OF(font) <> TYPE_OBJECT [
-		SendMessageNative hWnd WM_SETFONT as win-wparam! default-font WIN_LPARAM(0)
+		SendMessageNative hWnd WM_SETFONT win-wparam-from-handle default-font win-lparam-from-integer 0
 		exit
 	]
 	state: as red-block! (object/get-values font) + FONT_OBJ_STATE
 	
-	hFont: as handle! either TYPE_OF(state) = TYPE_BLOCK [
-		handle: as red-handle! block/rs-head state
-		handle/value
+	hFont: either TYPE_OF(state) = TYPE_BLOCK [
+		get-font-handle font 0
 	][
 		make-font face font
 	]
-	SendMessageNative hWnd WM_SETFONT as win-wparam! hFont WIN_LPARAM(0)
+	SendMessageNative hWnd WM_SETFONT win-wparam-from-handle hFont win-lparam-from-integer 0
 ]
 
 get-font-handle-slot: func [
@@ -214,7 +212,7 @@ get-font-handle: func [
 	either null? h [
 		null
 	][
-		as handle! either h/extID >= 0 [externals/get h/extID][as int-ptr! h/value]
+		either h/extID >= 0 [externals/get h/extID][as int-ptr! h/value]
 	]
 ]
 

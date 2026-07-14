@@ -488,7 +488,7 @@ map: context [
 			]
 			COMP_SORT
 			COMP_CASE_SORT [
-				res: as-integer map1/node - map2/node
+				res: map1/node - map2/node
 			]
 			default [
 				res: -2

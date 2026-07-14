@@ -158,7 +158,7 @@ red: context [
 	_root:	 	declare red-block!						;-- statically alloc root cell for bootstrapping
 	root:	 	as red-block! 0							;-- root block
 	symbols: 	as red-block! 0 						;-- symbols table
-	global-ctx: as node-handle! 0						;-- global context handle
+	global-ctx: 0									;-- global context handle
 	arg-stk:	as red-block!	0						;-- argument stack (should never be relocated)
 	call-stk:	as red-block!	0						;-- call stack (should never be relocated)
 	stk-bottom: system/stack/top

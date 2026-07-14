@@ -43,8 +43,8 @@ init-text-list: func [
 				SendMessageNative
 					hWnd
 					LB_ADDSTRING
-					WIN_WPARAM(0)
-					as win-lparam! c-str
+					win-wparam-from-low32 0
+					win-lparam-from-pointer as int-ptr! c-str
 			]
 			str: str + 1
 		]
@@ -52,7 +52,7 @@ init-text-list: func [
 			update-list-hbar hWnd str-saved len
 		]
 	]
-	SetWindowLongPtr hWnd SLOT_AUX WIN_LONG_PTR(len)
+	SetWindowLongPtr hWnd SLOT_AUX len
 
 	either TYPE_OF(selected) <> TYPE_INTEGER [
 		selected/header: TYPE_INTEGER
@@ -89,8 +89,8 @@ init-drop-list: func [
 				SendMessageNative
 					hWnd
 					CB_ADDSTRING
-					WIN_WPARAM(0)
-					as win-lparam! unicode/to-utf16 str
+					win-wparam-from-low32 0
+					win-lparam-from-pointer as int-ptr! unicode/to-utf16 str
 			]
 			str: str + 1
 		]
@@ -116,7 +116,7 @@ update-list-hbar: func [
 ][
 	csize: declare tagSIZE
 	dc: GetDC hWnd
-	hFont: as handle! SendMessageNative hWnd WM_GETFONT WIN_WPARAM(0) WIN_LPARAM(0)
+	hFont: win-long-ptr-to-handle SendMessageNative hWnd WM_GETFONT win-wparam-from-low32 0 win-lparam-from-integer 0
 	if hFont <> null [saved: SelectObject dc hFont]
 	GetTextExtentPoint32 dc str len csize
 	if hFont <> null [SelectObject dc saved]
@@ -139,16 +139,16 @@ insert-list-item: func [
 	unless ANY_STRING?(type)[exit]
 
 	msg: either drop? [CB_GETCOUNT][LB_GETCOUNT]
-	len: as-integer SendMessage hWnd msg 0 0
+	len: win-lresult-count SendMessage hWnd msg 0 0
 	if pos > len [pos: len]
 
 	str: unicode/to-utf16 item
 	msg: either drop? [CB_INSERTSTRING][LB_INSERTSTRING]
-	SendMessageNative hWnd msg WIN_WPARAM(pos) as win-lparam! str
+	SendMessageNative hWnd msg win-wparam-from-low32 pos win-lparam-from-pointer as int-ptr! str
 	unless drop? [
 		len: string/rs-length? item
-		if len > as integer! GetWindowLongPtr hWnd SLOT_AUX [
-			SetWindowLongPtr hWnd SLOT_AUX WIN_LONG_PTR(len)
+		if len > win-slot-count GetWindowLongPtr hWnd SLOT_AUX [
+			SetWindowLongPtr hWnd SLOT_AUX len
 			update-list-hbar hWnd str len
 		]
 	]

@@ -39,12 +39,12 @@ datatype: context [
 			idx		[integer!]
 			name	[names!]
 	][
-		type: as-integer list/value
+		type: vararg-to-integer list/value
 		assert type < TYPE_TOTAL_COUNT					;-- hard limit of action table
 		if type > top-id [top-id: type]					;@@ unreliable, needs automatic type IDs
 		list: list + 1
 		
-		parent: as-integer list/value
+		parent: vararg-to-integer list/value
 		list: list + 1
 		
 		name: name-table + type
@@ -69,7 +69,7 @@ datatype: context [
 		until [
 			action-table/index: either all [
 				parent <> TYPE_VALUE
-				(as-integer list/value) = INHERIT_ACTION
+				(vararg-to-integer list/value) = INHERIT_ACTION
 			][
 				idx: parent << 8 + 1 + (ACTIONS_NB - count)
 				action-table/idx						;-- inherit action from parent

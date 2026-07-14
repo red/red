@@ -58,6 +58,16 @@ ptr-ptr!: alias struct! [value [int-ptr!]]
 #define func-table! vararg-ptr!
 #define ptr-value!	  [ptr-ptr! value]
 
+#either target = 'X86-64 [
+	vararg-to-integer: func [value [uint64!] return: [integer!]][as integer! value]
+	vararg-from-pointer: func [value [int-ptr!] return: [vararg-ptr!]][as vararg-ptr! value]
+	vararg-to-int-pointer: func [value [vararg-ptr!] return: [int-ptr!]][as int-ptr! value]
+][
+	vararg-to-integer: func [value [integer!] return: [integer!]][value]
+	vararg-from-pointer: func [value [int-ptr!] return: [vararg-ptr!]][value]
+	vararg-to-int-pointer: func [value [vararg-ptr!] return: [int-ptr!]][value]
+]
+
 #define make-c-string [as c-string! allocate]
 
 #define read-io8	  [system/io/read as byte-ptr!]
@@ -67,13 +77,6 @@ ptr-ptr!: alias struct! [value [int-ptr!]]
 #define write-io8	  [system/io/write as byte-ptr!]
 ;#define write-io16	  [system/io/write as int16-ptr!]
 #define write-io32	  [system/io/write as int-ptr!]
-
-#either target = 'X86-64 [
-	#define quit-address-type	byte-ptr!
-][
-	#define quit-address-type	integer!
-]
-
 
 #define type-logic!		1					;-- type ID list for 'typed' attribute
 #define type-integer!	2
@@ -186,6 +189,28 @@ str-array!: alias struct! [
 	]
 ]
 
+typed-value-as-integer: func [
+	item [typed-value!]
+	return: [integer!]
+][
+	#either target = 'X86-64 [
+		as integer! item/value
+	][
+		item/value
+	]
+]
+
+typed-value-as-pointer: func [
+	item [typed-value!]
+	return: [int-ptr!]
+][
+	#either target = 'X86-64 [
+		item/value
+	][
+		as int-ptr! item/value
+	]
+]
+
 re-throw: func [/local id [integer!]][
 	id: system/thrown						;-- system/* cannot be passed as argument for now
 	throw id								;-- let the exception pass through
@@ -244,14 +269,14 @@ re-throw: func [/local id [integer!]][
 
 	;-- Run-time error handling --
 	
-	__set-stack-on-crash: func [
-		return: [int-ptr!]
-		/local address frame top
+		__set-stack-on-crash: func [
+			return: [byte-ptr!]
+			/local address frame top
 	][
 		top: system/stack/frame				;-- skip the set-stack-on-crash stack frame 
 		frame: as int-ptr! top/value
 		top: top + 1
-		address: as int-ptr! top/value
+			address: as byte-ptr! top/value
 		top: frame + 2
 
 		system/debug: declare __stack!		;-- allocate a __stack! struct
@@ -264,21 +289,21 @@ re-throw: func [/local id [integer!]][
 		***-on-div-error: func [			;-- special error handler wrapper for _div_ intrinsic
 			code [integer!]
 			/local
-				address [int-ptr!]
-		][
-			address: __set-stack-on-crash
-			***-on-quit code as byte-ptr! address
+				address [byte-ptr!]
+			][
+				address: __set-stack-on-crash
+				***-on-quit code address
 		]
 	]
 
 	***-on-quit: func [						;-- global exit handler
 		status  [integer!]
-		address [quit-address-type]
+		address [byte-ptr!]
 		/local 
 			msg s s2 [c-string!]
 			addr [byte-ptr!]
 	][
-		addr: as byte-ptr! address
+		addr: address
 		unless zero? status [
 			msg: switch status [
 				1	["access violation"]
@@ -369,22 +394,14 @@ re-throw: func [/local id [integer!]][
 	]
 
 	***-assert-fail: func [code [integer!]][
-		#either target = 'X86-64 [
-			***-on-quit code system/pc
-		][
-			***-on-quit code as integer! system/pc
-		]
+		***-on-quit code system/pc
 	]
 	
 	***-uncaught-exception: does [
 		either system/thrown = 0BADCAFEh [	;-- RED_THROWN_ERROR exception value (label not defined if R/S used standalone)
 			***-on-quit 0 null				;-- Red error, normal exit
 		][
-			#either target = 'X86-64 [
-				***-on-quit 95 system/pc	;-- Red/System uncaught exception, report it
-			][
-				***-on-quit 95 as integer! system/pc
-			]
+			***-on-quit 95 system/pc	;-- Red/System uncaught exception, report it
 		]
 	]
 ]

@@ -43,11 +43,7 @@ allocate: func [
 	#if debug? = yes [len: len + size? alloc-guard!] ;-- account for guard tail
 	p: as heap-frame! libC.malloc len
 	if null? p [
-		#either target = 'X86-64 [
-			***-on-quit 94 as byte-ptr! __set-stack-on-crash
-		][
-			***-on-quit 94 as integer! __set-stack-on-crash
-		]
+		***-on-quit 94 __set-stack-on-crash
 	]
 	
 	p/prev: null
@@ -135,11 +131,7 @@ realloc: func [
 	
 	p: as heap-frame! libC.realloc as byte-ptr! p len
 	if null? p [
-		#either target = 'X86-64 [
-			***-on-quit 94 as byte-ptr! __set-stack-on-crash
-		][
-			***-on-quit 94 as integer! __set-stack-on-crash
-		]
+		***-on-quit 94 __set-stack-on-crash
 	]
 	p/size: size
 	#if debug? = yes [RED_WRITE_GUARD_ZONE]

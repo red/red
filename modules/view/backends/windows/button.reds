@@ -58,7 +58,7 @@ init-button: func [
 			imgs: null
 		]
 	]
-	SendMessageNative hWnd BCM_GETIMAGELIST WIN_WPARAM(0) as win-lparam! BIL
+	SendMessageNative hWnd BCM_GETIMAGELIST win-wparam-from-low32 0 win-lparam-from-pointer as int-ptr! BIL
 	if all [
 		BIL/handle <> null
 		BIL/handle <> as handle! -1
@@ -90,9 +90,11 @@ init-button: func [
 		BIL/handle: hlist
 	]
 	BIL/align: 4
-	SendMessage hWnd BM_SETSTYLE BS_BITMAP or as integer! GetWindowLongPtr hWnd GWL_STYLE 0
+	SendMessageNative hWnd BM_SETSTYLE
+		win-wparam-from-long-ptr ((win-style-mask BS_BITMAP) or GetWindowLongPtr hWnd GWL_STYLE)
+		win-lparam-from-integer 0
 	SendMessage hWnd BCM_SETIMAGELIST 0 0
-	SendMessageNative hWnd BCM_SETIMAGELIST WIN_WPARAM(0) as win-lparam! BIL
+	SendMessageNative hWnd BCM_SETIMAGELIST win-wparam-from-low32 0 win-lparam-from-pointer as int-ptr! BIL
 ]
 
 ;update-button: func [				;-- TBD implement it

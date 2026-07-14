@@ -30,21 +30,21 @@ Red/System [
 	][
 		score: 0
 		if count = 8 [score: score + 1]
-		if all [list/type = type-int8! (as integer! list/value) = -2] [score: score + 1]
+		if all [list/type = type-int8! (typed-value-as-integer list) = -2] [score: score + 1]
 		list: list + 1
-		if all [list/type = type-uint8! (as integer! list/value) = 250] [score: score + 1]
+		if all [list/type = type-uint8! (typed-value-as-integer list) = 250] [score: score + 1]
 		list: list + 1
-		if all [list/type = type-int16! (as integer! list/value) = -300] [score: score + 1]
+		if all [list/type = type-int16! (typed-value-as-integer list) = -300] [score: score + 1]
 		list: list + 1
-		if all [list/type = type-uint16! (as integer! list/value) = 60000] [score: score + 1]
+		if all [list/type = type-uint16! (typed-value-as-integer list) = 60000] [score: score + 1]
 		list: list + 1
-		if all [list/type = type-int32! (as integer! list/value) = -123456] [score: score + 1]
+		if all [list/type = type-int32! (typed-value-as-integer list) = -123456] [score: score + 1]
 		list: list + 1
-		if all [list/type = type-uint32! (as integer! list/value) = -1] [score: score + 1]
+		if all [list/type = type-uint32! (typed-value-as-integer list) = -1] [score: score + 1]
 		list: list + 1
-		if all [list/type = type-int64! (as integer! list/value) = -3 list/_padding = -1] [score: score + 1]
+		if all [list/type = type-int64! (typed-value-as-integer list) = -3 list/_padding = -1] [score: score + 1]
 		list: list + 1
-		if all [list/type = type-uint64! (as integer! list/value) = -1 list/_padding = 0] [score: score + 1]
+		if all [list/type = type-uint64! (typed-value-as-integer list) = -1 list/_padding = 0] [score: score + 1]
 		score
 	]
 

@@ -658,7 +658,7 @@ _function: context [
 			COMP_NOT_EQUAL
 			COMP_SORT
 			COMP_CASE_SORT [
-				res: SIGN_COMPARE_RESULT((as-integer arg1/more) (as-integer arg2/more))
+				res: SIGN_COMPARE_RESULT(arg1/more arg2/more)
 			]
 			default [
 				res: -2

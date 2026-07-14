@@ -166,11 +166,7 @@ win32-startup-ctx: context [
 			default	  [99]
 		]
 
-		#either target = 'X86-64 [
-			***-on-quit error record/error/address
-		][
-			***-on-quit error as integer! record/error/address
-		]
+		***-on-quit error record/error/address
 		1											;-- EXCEPTION_EXECUTE_HANDLER, forces termination
 	]
 

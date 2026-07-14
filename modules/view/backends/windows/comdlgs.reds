@@ -74,15 +74,15 @@ req-dir-callback: func [
 	method: either (as int-ptr! lpData) = dir-keep [0][1]
 	switch msg [
 		BFFM_INITIALIZED [
-			unless lpData = WIN_LPARAM(0) [
+			unless lpData = 0 [
 				dir-inited: yes
-				SendMessageNative hwnd BFFM_SETSELECTION WIN_WPARAM(method) lpData
+				SendMessageNative hwnd BFFM_SETSELECTION win-wparam-from-low32 method lpData
 			]
 		]
 		BFFM_SELCHANGED [			;-- located to folder
-			if all [dir-inited lpData <> WIN_LPARAM(0)][
+			if all [dir-inited lpData <> 0][
 				dir-inited: no
-				SendMessageNative hwnd BFFM_SETSELECTION WIN_WPARAM(method) lpData
+				SendMessageNative hwnd BFFM_SETSELECTION win-wparam-from-low32 method lpData
 			]
 		]
 		default [0]
@@ -95,8 +95,8 @@ check-base-capture: func [/local word [red-word!] hwnd [handle!] n [integer!]][
 	if all [hwnd <> null face-set? hwnd][
 		word: (as red-word! get-face-values hwnd) + FACE_OBJ_TYPE
 		if base = symbol/resolve word/symbol [
-			n: as integer! GetWindowLongPtr hwnd SLOT_CAPTURE_OR_FONT
-			SetWindowLongPtr hwnd SLOT_CAPTURE_OR_FONT WIN_LONG_PTR((n - 1))
+			n: win-slot-count GetWindowLongPtr hwnd SLOT_CAPTURE_OR_FONT
+			SetWindowLongPtr hwnd SLOT_CAPTURE_OR_FONT (n - 1)
 			exit
 		]
 	]
@@ -137,8 +137,8 @@ OS-request-dir: func [
 	bInfo/lpszTitle: either TYPE_OF(title) = TYPE_STRING [unicode/to-utf16 title][null]
 	bInfo/ulFlags: BIF_RETURNONLYFSDIRS or BIF_USENEWUI
 	bInfo/lpfn: :req-dir-callback
-	bInfo/lParam: as win-lparam! pbuf
-	if keep? [bInfo/lParam: as win-lparam! dir-keep]
+	bInfo/lParam: win-lparam-from-pointer as int-ptr! pbuf
+	if keep? [bInfo/lParam: win-lparam-from-pointer dir-keep]
 
 	ret: SHBrowseForFolder bInfo
 	path: as red-value! either null? ret [none-value][

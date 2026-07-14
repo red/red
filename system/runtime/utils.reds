@@ -137,20 +137,20 @@ _print: func [
 	BACK_TO_CONSOLE
 		until [
 			switch list/type [
-			type-logic!	   [either as-logic as integer! list/value [prin "true"][prin "false"]]
-			type-integer!  [prin-int as integer! list/value]
-			type-int8!	   [prin-int as integer! list/value]
-			type-uint8!	   [prin-int as integer! list/value]
-			type-int16!	   [prin-int as integer! list/value]
-			type-uint16!   [prin-int as integer! list/value]
-			type-uint32!   [prin-uint64-parts as integer! list/value 0]
-			type-int64!	   [prin-int64-parts as integer! list/value list/_padding]
-			type-uint64!   [prin-uint64-parts as integer! list/value list/_padding]
+				type-logic!	   [either as-logic typed-value-as-integer list [prin "true"][prin "false"]]
+				type-integer!  [prin-int typed-value-as-integer list]
+				type-int8!	   [prin-int typed-value-as-integer list]
+				type-uint8!	   [prin-int typed-value-as-integer list]
+				type-int16!	   [prin-int typed-value-as-integer list]
+				type-uint16!   [prin-int typed-value-as-integer list]
+				type-uint32!   [prin-uint64-parts typed-value-as-integer list 0]
+				type-int64!	   [prin-int64-parts typed-value-as-integer list list/_padding]
+				type-uint64!   [prin-uint64-parts typed-value-as-integer list list/_padding]
 			type-float!    [fp: as typed-float! list unused: prin-float fp/value]
 			type-float32!  [fp32: as typed-float32! list unused32: prin-float32 fp32/value]
-			type-byte!     [_i: as integer! list/value prin-byte as-byte _i]
+				type-byte!     [_i: typed-value-as-integer list prin-byte as-byte _i]
 			type-c-string! [s: as-c-string list/value prin s]
-			default 	   [prin-hex as integer! list/value]
+				default 	   [prin-hex typed-value-as-integer list]
 		]
 		count: count - 1
 		
@@ -162,7 +162,7 @@ _print: func [
 					c: s/1
 				]
 				type-byte! [
-					_i: as integer! list/value
+					_i: typed-value-as-integer list
 					c: as-byte _i
 				]
 				default [

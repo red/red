@@ -82,13 +82,13 @@ compiled?: func [
       type [string!]
       src [string!]
     ][
-      --test-- reform ["cast" type  "warning"]
+      --test-- reform ["cast" type "warning"]
       result: false
       result: compiled? src
       msg: "*** Warning: type casting from #type# to #type# is not necessary"
       warning: replace/all copy msg "#type#" type
        either result [
-         --assert none <> find qt/comp-output warning 
+         --assert found? find qt/comp-output warning
        ][
           --assert result                       ;; signify failing test
           print qt/comp-output
@@ -132,7 +132,7 @@ compiled?: func [
     } 
     warning: "*** Warning: type casting"
     either result [
-  --assert found? find qt/comp-output warning 
+      --assert found? find qt/comp-output warning
     ][
       --assert result                       ;; signify failing test
       print qt/comp-output
@@ -261,4 +261,3 @@ compiled?: func [
 	--assert-msg? "type casting from float! to logic! is not allowed"
 	      
 ~~~end-file~~~
-

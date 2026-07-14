@@ -2209,9 +2209,9 @@ red: context [
 			unless pos  [pos:  -1]
 			unless pos2 [pos2: -1]
 			evt-var: to-word join 'evt form id
-			redirect-to literals [
-				emit compose [
-					(to set-word! evt-var) as node-handle! 0
+				redirect-to literals [
+					emit compose [
+						(to set-word! evt-var) 0
 				]
 				insert-lf -4
 			]
@@ -4765,11 +4765,16 @@ red: context [
 			string	red-string!
 			context node-handle!
 			typeset	red-typeset!
-		][
-			foreach name lit-vars/:type [
-				repend defs [to set-word! name 'as cast 0]
-				new-line skip tail defs -4 on
-			]
+			][
+				foreach name lit-vars/:type [
+					either type = 'context [
+						repend defs [to set-word! name 'declare cast to set-word! name 0]
+						new-line skip tail defs -5 on
+					][
+						repend defs [to set-word! name 'as cast 0]
+						new-line skip tail defs -4 on
+					]
+				]
 		]
 		foreach [name spec] symbols [
 			repend defs [to set-word! spec/1 'as 'red-word! 0]

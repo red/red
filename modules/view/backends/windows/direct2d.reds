@@ -23,7 +23,7 @@ dw-locale-name: as c-string! 0
 
 pfnDCompositionCreateDevice2: as int-ptr! 0
 
-dwrite-str-cache: as node-handle! 0
+dwrite-str-cache: 0
 dwrite-font-ext-type: -1
 
 #define D2D_MAX_BRUSHES 64
@@ -1653,8 +1653,8 @@ DX-resize-rt: func [
 		rt		[ID2D1HwndRenderTarget]
 		size	[tagSIZE value]
 ][
-	if (as integer! GetWindowLongPtr hWnd SLOT_FACE_STATE) and BASE_FACE_D2D <> 0 [
-		target: as int-ptr! GetWindowLongPtr hWnd SLOT_RENDER_TARGET
+	if (win-slot-flags GetWindowLongPtr hWnd SLOT_FACE_STATE) and BASE_FACE_D2D <> 0 [
+		target: win-long-ptr-to-pointer GetWindowLongPtr hWnd SLOT_RENDER_TARGET
 		if target <> null [
 			this: as this! target/value
 			rt: as ID2D1HwndRenderTarget this/vtbl
@@ -2008,8 +2008,7 @@ create-hwnd-render-target: func [
 		options		[integer!]
 		height		[integer!]
 		width		[integer!]
-		wnd			[integer!]
-		hprops		[D2D1_HWND_RENDER_TARGET_PROPERTIES]
+		hprops		[D2D1_HWND_RENDER_TARGET_PROPERTIES value]
 		bottom		[integer!]
 		right		[integer!]
 		top			[integer!]
@@ -2021,11 +2020,13 @@ create-hwnd-render-target: func [
 ][
 	left: 0 top: 0 right: 0 bottom: 0
 	GetClientRect hwnd as RECT_STRUCT :left
-	wnd: as-integer hwnd
 	width: right - left
 	height: bottom - top
 	options: 1						;-- D2D1_PRESENT_OPTIONS_RETAIN_CONTENTS: 1
-	hprops: as D2D1_HWND_RENDER_TARGET_PROPERTIES :wnd
+	hprops/hwnd: hwnd
+	hprops/pixelSize.width: width
+	hprops/pixelSize.height: height
+	hprops/presentOptions: options
 
 	zero-memory as byte-ptr! :props size? D2D1_RENDER_TARGET_PROPERTIES
 	props/dpiX: as float32! log-pixels-x
@@ -2044,12 +2045,12 @@ get-hwnd-render-target: func [
 	/local
 		target	[render-target!]
 ][
-	target: as render-target! GetWindowLongPtr hWnd SLOT_RENDER_TARGET
+	target: as render-target! win-long-ptr-to-pointer GetWindowLongPtr hWnd SLOT_RENDER_TARGET
 	if null? target [
 		target: as render-target! zero-alloc size? render-target!
 		create-render-target hWnd target gdi?
 		target/brushes: as brush-entry! allocate D2D_MAX_BRUSHES * size? brush-entry!
-		SetWindowLongPtr hWnd SLOT_RENDER_TARGET WIN_LONG_PTR(target)
+		SetWindowLongPtr hWnd SLOT_RENDER_TARGET win-long-ptr-from-pointer as int-ptr! target
 	]
 	target
 ]
@@ -2064,7 +2065,7 @@ get-surface: func [
 		buf		[ptr-value!]
 		hr		[integer!]
 ][
-	target: as render-target! GetWindowLongPtr hWnd SLOT_RENDER_TARGET
+	target: as render-target! win-long-ptr-to-pointer GetWindowLongPtr hWnd SLOT_RENDER_TARGET
 	if target <> null [
 		this: target/swapchain
 		sc: as IDXGISwapChain1 this/vtbl

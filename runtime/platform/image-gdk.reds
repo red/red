@@ -282,7 +282,7 @@ OS-image: context [
 		inode/buffer: buffer
 		inode/size: height << 16 or width
 		stable: node-handle-of node
-		inode/extID: externals/store as int-ptr! stable image/ext-type
+		inode/extID: externals/store-node stable image/ext-type
 		node
 	]
 

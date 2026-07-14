@@ -317,7 +317,7 @@ clipboard: context [
 							][
 								val: as red-value! image/init-image
 									as red-image! stack/push*
-									resolve-node as node-handle! bmp
+									resolve-node node-handle-from-cell bmp
 							]
 							GlobalUnlock hMem
 						]

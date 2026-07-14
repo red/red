@@ -635,7 +635,7 @@ _hashtable: context [
 			h/keys: as node! raw
 		]
 
-		if type >= HASH_TABLE_NODE_KEY [ 
+		if all [type >= HASH_TABLE_NODE_KEY h/blk <> null][
 			vsize: as integer! h/indexes
 			vsize: vsize >> 4
 			s: as series! h/blk/value

@@ -867,7 +867,7 @@ parser: context [
 
 		more: resolve-series fun/more
 		int: as red-integer! more/offset + 4
-		ctx: either TYPE_OF(int) = TYPE_INTEGER [as node-handle! int/value][global-ctx]
+		ctx: either TYPE_OF(int) = TYPE_INTEGER [node-handle-from-cell int/value][global-ctx]
 
 		stack/mark-func words/_parse-cb	fun/ctx
 		stack/push as red-value! event

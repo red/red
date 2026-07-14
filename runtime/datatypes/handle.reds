@@ -110,8 +110,8 @@ handle: context [
 			type: h/type
 			if type > 0 [
 				string/append-char GET_BUFFER(buffer) as-integer space
-				string/concatenate-literal buffer as-c-string names/type
-				part: part + 1 + length? as-c-string names/type
+				string/concatenate-literal buffer literal-c-string names/type
+				part: part + 1 + length? literal-c-string names/type
 			]
 			string/append-char GET_BUFFER(buffer) as-integer #"]"
 			part + 11
@@ -128,11 +128,29 @@ handle: context [
 		return:	[integer!]
 		/local
 			left  [integer!]
-			right [integer!] 
+			right [integer!]
+			left-native right-native [int-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "handle/compare"]]
 
 		if TYPE_OF(value2) <> TYPE_HANDLE [return 1]
+		if any [value1/extID >= 0 value2/extID >= 0][
+			left-native: either value1/extID >= 0 [
+				externals/get value1/extID
+			][
+				as int-ptr! value1/value
+			]
+			right-native: either value2/extID >= 0 [
+				externals/get value2/extID
+			][
+				as int-ptr! value2/value
+			]
+			return case [
+				left-native = right-native [0]
+				left-native < right-native [-1]
+				true [1]
+			]
+		]
 		SIGN_COMPARE_RESULT(value1/value value2/value)
 	]
 	

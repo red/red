@@ -136,7 +136,7 @@ interpreter: context [
 		stack/top: stack/top + 1						;-- keep last value
 		more: resolve-series trace-fun/more
 		int: as red-integer! more/offset + 4
-		ctx: either TYPE_OF(int) = TYPE_INTEGER [as node-handle! int/value][global-ctx]
+		ctx: either TYPE_OF(int) = TYPE_INTEGER [node-handle-from-cell int/value][global-ctx]
 		
 		stack/mark-func words/_interp-cb trace-fun/ctx
 		evt: switch event [
@@ -330,14 +330,14 @@ interpreter: context [
 			base [byte-ptr!]
 			offset [integer!]
 	][
-		base: as byte-ptr! system/image/base
+		base: system/image/base
 		#if libRedRT? = yes [
 			offset: value - as-integer system/lib-image/base
 			if all [
 				offset >= system/lib-image/code
 				offset < (system/lib-image/code + system/lib-image/code-size)
 			][
-				base: as byte-ptr! system/lib-image/base
+				base: system/lib-image/base
 			]
 		]
 		as int-ptr! base + (value - as-integer base)
@@ -1012,7 +1012,7 @@ interpreter: context [
 					][
 						loop int/value [push -1]
 					]
-					ref-array: as vararg-ptr! system/stack/top
+					ref-array: vararg-from-pointer system/stack/top
 				]
 			]
 		]
@@ -1185,7 +1185,7 @@ interpreter: context [
 		either function? [
 			if loc-cnt > 0 [assert not routine?	_function/init-locals loc-cnt]
 		][
-			if ref-array <> null [system/stack/top: as int-ptr! ref-array] ;-- reset native stack to our custom arguments frame
+			if ref-array <> null [system/stack/top: vararg-to-int-pointer ref-array] ;-- reset native stack to our custom arguments frame
 			#if target <> 'X86-64 [
 				if native? [push no]					;-- avoid 2nd type-checking for natives.
 			]
@@ -1304,7 +1304,7 @@ interpreter: context [
 					s: resolve-series fun/more
 					int: as red-integer! s/offset + 4
 					either TYPE_OF(int) = TYPE_INTEGER [
-						as node-handle! int/value
+						node-handle-from-cell int/value
 					][
 						name/ctx						;-- get a context from calling name
 					]

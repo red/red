@@ -161,21 +161,21 @@ fi-typed-score: func [
 ][
 	score: 0
 	if 8 = count [score: score + 1]
-	if all [type-int8! = list/type -2 = as integer! list/value] [score: score + 1]
+	if all [type-int8! = list/type -2 = typed-value-as-integer list] [score: score + 1]
 	list: list + 1
-	if all [type-uint8! = list/type 250 = as integer! list/value] [score: score + 1]
+	if all [type-uint8! = list/type 250 = typed-value-as-integer list] [score: score + 1]
 	list: list + 1
-	if all [type-int16! = list/type -300 = as integer! list/value] [score: score + 1]
+	if all [type-int16! = list/type -300 = typed-value-as-integer list] [score: score + 1]
 	list: list + 1
-	if all [type-uint16! = list/type 60000 = as integer! list/value] [score: score + 1]
+	if all [type-uint16! = list/type 60000 = typed-value-as-integer list] [score: score + 1]
 	list: list + 1
-	if all [type-int32! = list/type -123456 = as integer! list/value] [score: score + 1]
+	if all [type-int32! = list/type -123456 = typed-value-as-integer list] [score: score + 1]
 	list: list + 1
-	if all [type-uint32! = list/type -1 = as integer! list/value] [score: score + 1]
+	if all [type-uint32! = list/type -1 = typed-value-as-integer list] [score: score + 1]
 	list: list + 1
-	if all [type-int64! = list/type -3 = as integer! list/value -1 = list/_padding] [score: score + 1]
+	if all [type-int64! = list/type -3 = typed-value-as-integer list -1 = list/_padding] [score: score + 1]
 	list: list + 1
-	if all [type-uint64! = list/type -1 = as integer! list/value 0 = list/_padding] [score: score + 1]
+	if all [type-uint64! = list/type -1 = typed-value-as-integer list 0 = list/_padding] [score: score + 1]
 	score
 ]
 

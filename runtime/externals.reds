@@ -19,15 +19,18 @@ externals: context [
 	tail-record:   FFFFFFFFh							;-- marker for records list tail
 	
 	destructor!: alias function! [handle [int-ptr!]]
+	node-destructor!: alias function! [handle [node-handle!]]
 	
 	ext-type!: alias struct! [
 		name		[c-string!]
-		destructor	[destructor!]
+		destructor	[int-ptr!]
+		node?		[logic!]
 	]
 	
 	record!: alias struct! [
 		header [integer!]
 		handle [int-ptr!]								;-- stored native-width external handle
+		node   [node-handle!]							;-- stable node-backed resource handle
 		next   [integer!]
 	]
 	
@@ -40,19 +43,37 @@ externals: context [
 	free: tail-record									;-- head of free slots list (index)
 	size: 1000											;-- starting records pool
 	
-	register: func [									;-- register a new external class
+	register-type: func [
 		name	[c-string!]								;-- internal class name
 		fun		[int-ptr!]								;-- pointer to a destructor function
+		node?	[logic!]
 		return: [integer!]								;-- return assigned type ID
 		/local
 			id  [integer!]
 	][
 		top/name: name
-		top/destructor: as destructor! fun
+		top/destructor: fun
+		top/node?: node?
 		id: (as-integer top - types) / size? ext-type!
 		assert id + 1 < max-types
 		top: top + 1
 		id + 1											;-- return a 1-based value (0 reserved for "no type")
+	]
+
+	register: func [									;-- register a native external class
+		name [c-string!]
+		fun  [int-ptr!]
+		return: [integer!]
+	][
+		register-type name fun no
+	]
+
+	register-node: func [								;-- register a node-backed external class
+		name [c-string!]
+		fun  [int-ptr!]
+		return: [integer!]
+	][
+		register-type name fun yes
 	]
 	
 	format: func [										;-- clears fully or partially a list of records
@@ -65,6 +86,7 @@ externals: context [
 		loop nb [										;-- build free slots list
 			p/header: flag-free							;-- no type when not in use (disables destructor)
 			p/handle: null
+			p/node:   0
 			p/next:   i									;-- store index of next slot
 			i: i + 1
 			p: p + 1
@@ -97,9 +119,38 @@ externals: context [
 		free: rec/next
 		rec/header: type								;-- implicit reset of flag-free
 		rec/handle: handle
+		rec/node:   0
 		rec/next: used
 		used: new
 		#if debug? = yes [if verbose > 0 [print-line ["stored at: " new]]]
+		new
+	]
+
+	store-node: func [
+		handle [node-handle!]
+		type   [integer!]
+		return: [integer!]
+		/local
+			rec [record!]
+			next new half [integer!]
+	][
+		rec: list + free
+		if rec/next = tail-record [
+			assert free < size
+			half: size
+			size: size * 2
+			list: as record! realloc as byte-ptr! list size * size? record!
+			format list + half half
+			rec: list + free
+			rec/next: half
+		]
+		new: free
+		free: rec/next
+		rec/header: type
+		rec/handle: null
+		rec/node: handle
+		rec/next: used
+		used: new
 		new
 	]
 
@@ -112,6 +163,7 @@ externals: context [
 		assert idx < size
 		rec: list + idx
 		assert rec/header and flag-free = 0
+		assert zero? rec/node
 		rec/handle
 	]
 	
@@ -125,8 +177,14 @@ externals: context [
 		assert type < (as-integer top - types)
 		if type > 0 [									;-- if type id defined, call destructor
 			ext: types + (type - 1)						;-- 1-based value
-			#if debug? = yes [if verbose > 0 [print-line ["destructor: " as int-ptr! :ext/destructor ", on: " rec/handle]]]
-			if null <> :ext/destructor [ext/destructor rec/handle]
+			#if debug? = yes [if verbose > 0 [print-line ["destructor: " ext/destructor]]]
+			if ext/destructor <> null [
+				either ext/node? [
+					(as node-destructor! ext/destructor) rec/node
+				][
+					(as destructor! ext/destructor) rec/handle
+				]
+			]
 		]
 	]
 	
@@ -153,6 +211,7 @@ externals: context [
 		
 		rec/header: flag-free
 		rec/handle: null
+		rec/node:   0
 		rec/next:   free
 		free: (as-integer rec - list) / size? record!	;-- insert rec at head of free list
 		-1
@@ -221,6 +280,7 @@ externals: context [
 				
 				rec/header: flag-free					;-- no type when not in use
 				rec/handle: null
+				rec/node:   0
 				rec/next:   free
 				free: (as-integer rec - list) / size? record!
 			][

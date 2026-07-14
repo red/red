@@ -581,7 +581,7 @@ OS-image: context [
 		inode: as img-node! (as series! node/value) + 1
 		inode/handle: handle
 		stable: node-handle-of node
-		inode/extID: externals/store as int-ptr! stable image/ext-type
+		inode/extID: externals/store-node stable image/ext-type
 		node
 	]
 
