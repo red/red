@@ -153,7 +153,11 @@ OS-make-font: func [
 	]
 
 	blk: as red-block! values + FONT_OBJ_PARENT
-	if all [face <> null TYPE_OF(blk) <> TYPE_BLOCK][
+	if all [
+		face <> null
+		TYPE_OF(face) = TYPE_OBJECT						;-- reject stale hWnd back-refs (pre-store WM_PAINT)
+		TYPE_OF(blk) <> TYPE_BLOCK
+	][
 		blk: block/make-at as red-block! values + FONT_OBJ_PARENT 4
 		block/rs-append blk as red-value! face
 		blk/head: 1

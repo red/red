@@ -496,8 +496,8 @@ face!: object [				;-- keep in sync with facet! enum
 					modify new 'owned reduce [self word]
 				]
 			]
-			if word = 'font  [link-sub-to-parent self 'font old new]
-			if word = 'para  [link-sub-to-parent self 'para old new]
+			if all [state word = 'font][link-sub-to-parent self 'font old new]	;-- linked on realization otherwise
+			if all [state word = 'para][link-sub-to-parent self 'para old new]
 			
 			if find [field text] type [
 				if all [word = 'text any [not options not find options 'sync options/sync]][
@@ -573,7 +573,7 @@ font!: object [											;-- keep in sync with font-facet! enum
 				tab "new  :" type? :new
 			]
 		]
-		if word <> 'state [
+		unless find [state parent] word [
 			if any [series? :old object? :old][modify old 'owned none]
 			if any [series? :new object? :new][modify new 'owned reduce [self word]]
 
@@ -587,7 +587,7 @@ font!: object [											;-- keep in sync with font-facet! enum
 	on-deep-change*: function [owner word target action new index part][
 		if all [
 			state
-			word <> 'state
+			not find [state parent] word
 			not find [remove clear take] action
 		][
 			system/view/platform/update-font self (index? word) - 1
