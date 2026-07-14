@@ -118,6 +118,18 @@ externals: context [
 		]
 	]
 	
+	update: func [										;-- replace the resource handle of a live record
+		idx		[integer!]								;-- record index
+		handle	[int-ptr!]								;-- new resource handle
+		/local
+			rec [record!]
+	][
+		assert idx < size
+		rec: list + idx
+		assert rec/header and flag-free = 0
+		rec/handle: as-integer handle
+	]
+
 	remove: func [										;-- remove a record directly
 		idx		[integer!]								;-- record index
 		call?	[logic!]								;-- YES: call destructor also

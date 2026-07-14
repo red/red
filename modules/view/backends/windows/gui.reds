@@ -985,6 +985,7 @@ init: func [
 	collector/register as int-ptr! :on-gc-mark
 	time-meter/start _time_meter	
 	font-ext-type: externals/register "font" as-integer :delete-font
+	tl-ext-type: externals/register "text-layout" as-integer :release-text-layout
 ]
 
 use-dark-mode?: func [

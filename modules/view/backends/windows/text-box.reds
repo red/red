@@ -22,6 +22,17 @@ Red/System [
 hidden-hwnd:  as handle! 0
 line-metrics: as DWRITE_LINE_METRICS 0
 max-line-cnt: 0
+tl-ext-type:  -1
+
+release-text-layout: func [									;-- GC destructor for cached rich-text layouts
+	layout [handle!]
+	/local
+		IUnk [IUnknown]
+		this [this!]
+][
+	this: as this! layout
+	COM_SAFE_RELEASE(IUnk this)
+]
 
 OS-text-box-color: func [
 	target	[handle!]
@@ -315,6 +326,8 @@ OS-text-box-layout: func [
 		fmt		[this!]
 		layout	[this!]
 		pt		[red-point2d!]
+		hndl	[red-handle!]
+		ext-id	[integer!]
 ][
 	values: object/get-values box
 	type: as red-word! values + FACE_OBJ_TYPE
@@ -336,10 +349,13 @@ OS-text-box-layout: func [
 	]
 
 	pval: null
+	ext-id: -1
 	para: either sym = rich-text [
 		state: as red-block! values + FACE_OBJ_EXT3
 		either TYPE_OF(state) = TYPE_BLOCK [
 			pval: block/rs-head state
+			hndl: as red-handle! pval
+			if TYPE_OF(hndl) = TYPE_HANDLE [ext-id: hndl/extID]
 			int: as red-integer! pval
 			layout: as this! int/value
 			COM_SAFE_RELEASE(IUnk layout)		;-- release previous text layout
@@ -377,7 +393,15 @@ OS-text-box-layout: func [
 
 	if pval <> null [copy-cell as red-value! str pval + 2]		;-- save text
 	layout: create-text-layout str fmt w h
-	if pval <> null [handle/make-at pval as-integer layout handle/CLASS_RICHTEXT]
+	if pval <> null [
+		hndl: handle/make-at pval as-integer layout handle/CLASS_RICHTEXT
+		either ext-id >= 0 [							;-- track the layout so GC releases it with the face
+			externals/update ext-id as int-ptr! layout
+			hndl/extID: ext-id
+		][
+			hndl/extID: externals/store as int-ptr! layout tl-ext-type
+		]
+	]
 	;-- base font foreground; data ranges layer above
 	if TYPE_OF(font) = TYPE_OBJECT [
 		fcolor: as red-tuple! (object/get-values font) + FONT_OBJ_COLOR
