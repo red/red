@@ -4033,6 +4033,17 @@ system-dialect: make-profilable context [
 				]
 			]
 		]
+
+		external-abi-call?: func [spec [block!] /local attribs][
+			to logic! any [
+				spec/2 = 'import
+				spec/5 = 'callback
+				all [
+					attribs: get-attributes spec/4
+					any [find attribs 'cdecl find attribs 'stdcall]
+				]
+			]
+		]
 		
 		get-caller: func [name [word!] /root /local list found? stk][
 			stk: exclude expr-call-stack [as #body #test]
@@ -4045,27 +4056,37 @@ system-dialect: make-profilable context [
 			all [not found? not tail? next list list/1]
 		]
 		
-		pass-struct-pointer?: func [spec [block!] slots [integer!]][
+		pass-struct-pointer?: func [spec [block!] slots [integer!] size [integer!]][
 			all [
 				spec/2 = 'import						 ;-- system ABI is enforced on imports only
-				spec/3 = 'cdecl							 ;-- stdcall applies to R/S or Windows ABI
-				any [
-					all [1 < slots job/target = 'ARM]	 ;-- ARM requires it only for struct > 4 bytes
-					all [1 < slots job/target = 'X86-64] ;-- MS x64 ABI passes structs > 8 bytes by pointer
-					all [
-						not find [Windows macOS FreeBSD NetBSD] job/OS	 ;-- fallback on Linux ABI
-						job/target <> 'ARM
+				case [
+					job/target = 'ARM [
+						all [spec/3 = 'cdecl 1 < slots]	 ;-- ARM requires it only for struct > 4 bytes
+					]
+					job/target = 'X86-64 [
+						all [
+							job/OS = 'Windows
+							find [cdecl stdcall] spec/3
+							not find [1 2 4 8] size		 ;-- Win64 passes other aggregate sizes indirectly
+						]
+					]
+					true [
+						all [
+							spec/3 = 'cdecl
+							not find [Windows macOS FreeBSD NetBSD] job/OS
+						]
 					]
 				]
 			]
 		]
 		
-		process-returned-struct: func [name [word!] spec [block!] args [block!] /local alloc? slots caller][
+		process-returned-struct: func [name [word!] spec [block!] args [block!] /local alloc? slots size caller][
 			if all [
 				slots: emitter/struct-slots?/check spec/4
+				size: emitter/struct-size?/check spec/4
 				any [
 					2 < slots							;-- R/S and Windows ABI
-					pass-struct-pointer? spec slots		;-- check other cases
+					pass-struct-pointer? spec slots size	;-- check other cases
 				]
 			][
 				unless caller: get-caller name [
@@ -4107,7 +4128,7 @@ system-dialect: make-profilable context [
 			name [word!] args [block!]
 			/local
 				list type res align? left right dup var-arity? saved? arg expr spec fspec comp-nested
-				types slots struct-type struct-slots temp-slots scan-types
+				types slots struct-type struct-slots struct-size temp-slots scan-types
 				saved-call-arg-index saved-call-stack-slots saved-call-pad-slots
 				saved-call-extra-slots saved-call-shadow-slots saved-call-float-reg-count
 				saved-call-struct-temp-slots saved-call-variadic? saved-call-arg-types
@@ -4203,7 +4224,8 @@ system-dialect: make-profilable context [
 							if all [scan-types not tag? expr block? scan-types/1 struct-by-value? scan-types/1][
 								struct-type: resolve-aliased scan-types/1
 								struct-slots: emitter/struct-slots?/direct struct-type/2
-								if pass-struct-pointer? spec struct-slots [
+								struct-size: emitter/struct-size?/direct struct-type/2
+								if pass-struct-pointer? spec struct-slots struct-size [
 									temp-slots: temp-slots + struct-slots
 								]
 							]
@@ -4224,13 +4246,22 @@ system-dialect: make-profilable context [
 							either all [types not tag? expr block? types/1 struct-by-value? types/1][
 								struct-type: resolve-aliased types/1
 								struct-slots: emitter/struct-slots?/direct struct-type/2
+								struct-size: emitter/struct-size?/direct struct-type/2
 								either all [
 									job/target = 'X86-64
-									pass-struct-pointer? spec struct-slots
+									pass-struct-pointer? spec struct-slots struct-size
 								][
 									emitter/push-struct-ref expr struct-type
 								][
-									emitter/push-struct expr struct-type
+									either all [
+										job/target = 'X86-64
+										job/OS <> 'Windows
+										external-abi-call? spec
+									][
+										emitter/push-struct/sysv expr struct-type
+									][
+										emitter/push-struct expr struct-type
+									]
 								]
 							][
 								emitter/target/emit-argument expr fspec ;-- let target define how arguments are passed
@@ -4564,7 +4595,13 @@ system-dialect: make-profilable context [
 					word? expr/1
 					any [not subrc? throw-error "cannot return a struct by value from a subroutine"]
 					spec: select functions expr/1
-					pass-struct-pointer? spec emitter/struct-slots?/check spec/4
+					any [
+						2 < emitter/struct-slots?/check spec/4
+						pass-struct-pointer?
+							spec
+							emitter/struct-slots?/check spec/4
+							emitter/struct-size?/check spec/4
+					]
 					store?: no							;-- avoid emitting assignment code
 				]
 				if all [

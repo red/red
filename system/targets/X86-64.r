@@ -228,13 +228,82 @@ make-profilable make target-class [
 		]
 	]
 
-	stack-arg-count?: func [n [integer!]][max 0 n - 6]
-	stack-pad-count?: func [n [integer!] /local count][
-		count: either win64? [max 0 n - 4][stack-arg-count? n]
-		either odd? count [1][0]
+	hidden-ret-ptr?: func [fspec [block!] /local ret size][
+		to logic! any [
+			emitter/struct-ptr? fspec/4
+			all [
+				win64?
+				compiler/external-abi-call? fspec
+				ret: select fspec/4 compiler/return-def
+				'value = last ret
+				size: emitter/struct-size? ret
+				not find [1 2 4 8] size
+			]
+		]
 	]
-	hidden-ret-ptr?: func [fspec [block!]][
-		to logic! emitter/struct-ptr? fspec
+	external-abi?: func [fspec [block!] /local attrs][
+		to logic! all [
+			attrs: compiler/get-attributes fspec
+			any [find attrs 'cdecl find attrs 'stdcall]
+		]
+	]
+	sysv-merge-class: func [classes [block!] index [integer!] class [word!] /local old][
+		old: pick classes index
+		poke classes index case [
+			any [old = 'integer class = 'integer] ['integer]
+			old = 'no-class [class]
+			true [old]
+		]
+	]
+	sysv-mark-class: func [classes [block!] offset [integer!] size [integer!] class [word!] /local first-index last-index][
+		if zero? size [exit]
+		first-index: (to integer! (offset / stack-width)) + 1
+		last-index: (to integer! ((offset + size - 1) / stack-width)) + 1
+		for index first-index last-index 1 [
+			sysv-merge-class classes index class
+		]
+	]
+	sysv-classify-type: func [type [block!] offset [integer!] classes [block!] /local resolved size class][
+		resolved: compiler/resolve-aliased type
+		either all [
+			'value = last type
+			find [struct! union!] resolved/1
+		][
+			sysv-classify-spec resolved/2 offset classes
+		][
+			size: emitter/size-of? type
+			unless size [size: emitter/size-of? resolved]
+			class: either compiler/any-float? resolved ['sse]['integer]
+			sysv-mark-class classes offset size class
+		]
+	]
+	sysv-classify-spec: func [spec [block!] base [integer!] classes [block!] /local payload members][
+		either compiler/union-spec? spec [
+			payload: emitter/union-payload-offset? spec
+			if compiler/tagged-union? spec [
+				sysv-classify-type spec/2 base classes
+			]
+			members: compiler/union-members spec
+			foreach [name type] members [
+				sysv-classify-type type (base + payload) classes
+			]
+		][
+			foreach [name type] spec [
+				sysv-classify-type type (base + emitter/member-offset? spec name) classes
+			]
+		]
+	]
+	sysv-aggregate-classes: func [type [block!] /local resolved spec size slots classes][
+		resolved: compiler/resolve-aliased type
+		spec: resolved/2
+		size: emitter/struct-size?/direct spec
+		if size > 16 [return [memory]]
+		slots: round/ceiling size / stack-width
+		classes: make block! slots
+		insert/dup classes 'no-class slots
+		sysv-classify-spec spec 0 classes
+		replace/all classes 'no-class 'integer
+		classes
 	]
 	emit-call-stack-cleanup: func [n [integer!] /local slots size pad-slots][
 		pad-slots: either n = length? call-arg-types [call-pad-slots][0]
@@ -247,6 +316,46 @@ make-profilable make target-class [
 			][
 				emit #{4883C4}						;-- ADD rsp, imm8
 				emit to-bin8 size
+			]
+		]
+	]
+	emit-normalize-sysv-return: func [fspec [block!] /local ret classes][
+		unless all [
+			not win64?
+			compiler/external-abi-call? fspec
+			ret: select fspec/4 compiler/return-def
+			'value = last ret
+			not emitter/struct-ptr? fspec/4
+		][exit]
+		classes: sysv-aggregate-classes ret
+		case [
+			classes = [sse] [
+				emit #{66480F7EC0}				;-- MOVQ rax, xmm0
+			]
+			classes = [integer sse] [
+				emit #{66480F7EC2}				;-- MOVQ rdx, xmm0
+			]
+			classes = [sse integer] [
+				emit #{4889C2}					;-- MOV rdx, rax
+				emit #{66480F7EC0}				;-- MOVQ rax, xmm0
+			]
+			classes = [sse sse] [
+				emit #{66480F7EC0}				;-- MOVQ rax, xmm0
+				emit #{66480F7ECA}				;-- MOVQ rdx, xmm1
+			]
+			true []
+		]
+	]
+	emit-align-call-stack: func [/local live-slots source-offset target-offset][
+		live-slots: call-stack-slots + call-extra-slots + call-shadow-slots
+		call-pad-slots: either odd? live-slots [1][0]
+		if positive? call-pad-slots [
+			emit-reserve-stack call-pad-slots
+			repeat index call-stack-slots [
+				target-offset: (index - 1) * stack-width
+				source-offset: target-offset + stack-width
+				emit-rsp-ref #{488B4424} #{488B8424} source-offset	;-- MOV rax, [rsp+source]
+				emit-rsp-ref #{48894424} #{48898424} target-offset	;-- MOV [rsp+target], rax
 			]
 		]
 	]
@@ -269,7 +378,11 @@ make-profilable make target-class [
 		]
 	]
 
-	emit-call-register-loads: func [n [integer!] /local types int-reg float-reg stack-offset stack-write-offset type slot][
+	emit-call-register-loads: func [
+		n [integer!]
+		/local types int-reg float-reg stack-offset stack-write-offset type slot
+			force-stack? aggregate-stack?
+	][
 		types: either zero? n [
 			copy []
 		][
@@ -347,7 +460,30 @@ make-profilable make target-class [
 			call-shadow-slots: 4
 		][
 			foreach type types [
-				either compiler/any-float? type [
+				force-stack?: no
+				if 2 <= length? type [
+					case [
+						type/2 = 'sysv-memory [force-stack?: yes]
+						type/2 = 'sysv-aggregate [
+							if type/6 = 1 [
+								aggregate-stack?: any [
+									(int-reg + type/4) > 6
+									(float-reg + type/5) > 8
+								]
+							]
+							force-stack?: aggregate-stack?
+						]
+						true []
+					]
+				]
+				either force-stack? [
+					if stack-write-offset <> stack-offset [
+						emit-rsp-ref #{488B4424} #{488B8424} stack-offset		;-- MOV rax, [rsp+disp]
+						emit-rsp-ref #{48894424} #{48898424} stack-write-offset	;-- MOV [rsp+disp], rax
+					]
+					stack-offset: stack-offset + stack-width
+					stack-write-offset: stack-write-offset + stack-width
+				][either compiler/any-float? type [
 					either float-reg < 8 [
 						either positive? stack-offset [
 							emit either type/1 = 'float32! [#{F30F10}][#{F20F10}]
@@ -411,14 +547,108 @@ make-profilable make target-class [
 						stack-offset: stack-offset + stack-width
 						stack-write-offset: stack-write-offset + stack-width
 					]
-				]
+				]]
 			]
 		]
 		call-stack-slots: stack-offset / stack-width
 		call-float-reg-count: float-reg
 	]
 
-	emit-arg-spills: func [locals [block!] /local regs offset name type count stack-offset int-count float-count stack-count slot ret-ptr? agg-slots base][
+	emit-load-win64-arg-slot: func [index [integer!] /local src-offset][
+		either index <= 4 [
+			emit pick [
+				#{4889C8}		;-- MOV rax, rcx
+				#{4889D0}		;-- MOV rax, rdx
+				#{4C89C0}		;-- MOV rax, r8
+				#{4C89C8}		;-- MOV rax, r9
+			] index
+		][
+			src-offset: 16 + ((index - 1) * stack-width)
+			emit-rbp-ref src-offset #{488B45}		;-- MOV rax, [rbp+disp]
+		]
+	]
+	emit-copy-rax-to-r11: func [size [integer!] /local qwords remainder offset][
+		qwords: to integer! (size / stack-width)
+		remainder: size // stack-width
+		repeat index qwords [
+			offset: (index - 1) * stack-width
+			case [
+				zero? offset [emit #{4C8B10}]				;-- MOV r10, [rax]
+				offset <= 127 [emit #{4C8B50} emit to-bin8 offset]
+				true [emit #{4C8B90} emit to-bin32 offset]
+			]
+			case [
+				zero? offset [emit #{4D8913}]				;-- MOV [r11], r10
+				offset <= 127 [emit #{4D8953} emit to-bin8 offset]
+				true [emit #{4D8993} emit to-bin32 offset]
+			]
+		]
+		offset: qwords * stack-width
+		if remainder >= 4 [
+			case [
+				zero? offset [emit #{448B10}]
+				offset <= 127 [emit #{448B50} emit to-bin8 offset]
+				true [emit #{448B90} emit to-bin32 offset]
+			]
+			case [
+				zero? offset [emit #{458913}]
+				offset <= 127 [emit #{458953} emit to-bin8 offset]
+				true [emit #{458993} emit to-bin32 offset]
+			]
+			offset: offset + 4
+			remainder: remainder - 4
+		]
+		if remainder >= 2 [
+			case [
+				zero? offset [emit #{66448B10}]
+				offset <= 127 [emit #{66448B50} emit to-bin8 offset]
+				true [emit #{66448B90} emit to-bin32 offset]
+			]
+			case [
+				zero? offset [emit #{66458913}]
+				offset <= 127 [emit #{66458953} emit to-bin8 offset]
+				true [emit #{66458993} emit to-bin32 offset]
+			]
+			offset: offset + 2
+			remainder: remainder - 2
+		]
+		if remainder = 1 [
+			case [
+				zero? offset [emit #{448A10}]
+				offset <= 127 [emit #{448A50} emit to-bin8 offset]
+				true [emit #{448A90} emit to-bin32 offset]
+			]
+			case [
+				zero? offset [emit #{458813}]
+				offset <= 127 [emit #{458853} emit to-bin8 offset]
+				true [emit #{458893} emit to-bin32 offset]
+			]
+		]
+	]
+	emit-copy-rbp-slots: func [source [integer!] target [integer!] slots [integer!] /local part][
+		repeat index slots [
+			part: (index - 1) * stack-width
+			emit-rbp-ref (source + part) #{4C8B55}	;-- MOV r10, [rbp+source]
+			emit-rbp-ref (target + part) #{4C8955}	;-- MOV [rbp+target], r10
+		]
+	]
+	emit-store-sysv-float-arg: func [index [integer!] offset [integer!]][
+		emit #{F20F11}							;-- MOVSD [rbp+disp], xmmN
+		either all [offset >= -128 offset <= 127] [
+			emit pick [#{45} #{4D} #{55} #{5D} #{65} #{6D} #{75} #{7D}] index
+			emit to-bin8 offset
+		][
+			emit pick [#{85} #{8D} #{95} #{9D} #{A5} #{AD} #{B5} #{BD}] index
+			emit to-bin32 offset
+		]
+	]
+
+	emit-arg-spills: func [
+		locals [block!]
+		/local regs offset name type count stack-offset int-count float-count stack-count
+			slot ret-ptr? agg-slots agg-size base external? classes class int-needed
+			float-needed aggregate-stack?
+	][
 		clear by-value-args
 		regs: [
 			#{57}		;-- PUSH rdi
@@ -433,6 +663,7 @@ make-profilable make target-class [
 		int-count: 0
 		float-count: 0
 		stack-count: 0
+		external?: external-abi? locals
 		ret-ptr?: to logic! emitter/struct-ptr? locals
 		if ret-ptr? [
 			offset: offset - stack-width
@@ -451,12 +682,27 @@ make-profilable make target-class [
 			any [
 				set name word! set type block! (
 					agg-slots: none
+					agg-size: none
 					if 'value = last type [
 						append by-value-args name
 						agg-slots: emitter/struct-slots? type
+						agg-size: emitter/struct-size? type
 					]
 					either win64? [
-						either all [agg-slots agg-slots > 1] [
+						either all [
+							external?
+							agg-slots
+							not find [1 2 4 8] agg-size
+						][
+							count: count + 1
+							emit-load-win64-arg-slot count
+							base: offset - (agg-slots * stack-width)
+							emit-reserve-stack agg-slots
+							emit-rbp-ref base #{4C8D5D}	;-- LEA r11, [rbp+base]
+							emit-copy-rax-to-r11 agg-size
+							patch-stack-offset name base
+							offset: base
+						][either all [agg-slots agg-slots > 1] [
 							base: offset - (agg-slots * stack-width)
 							emit-reserve-stack agg-slots
 							repeat i agg-slots [
@@ -486,9 +732,48 @@ make-profilable make target-class [
 								emit-rbp-ref offset #{488945}		;-- MOV [rbp+disp], rax
 								patch-stack-offset name offset
 							]
-						]
+						]]
 					][
-						either all [agg-slots agg-slots > 1] [
+						either all [external? agg-slots] [
+							classes: sysv-aggregate-classes type
+							int-needed: 0
+							float-needed: 0
+							unless classes/1 = 'memory [
+								foreach class classes [
+									either class = 'sse [
+										float-needed: float-needed + 1
+									][
+										int-needed: int-needed + 1
+									]
+								]
+							]
+							aggregate-stack?: any [
+								classes/1 = 'memory
+								(int-count + int-needed) > 6
+								(float-count + float-needed) > 8
+							]
+							base: offset - (agg-slots * stack-width)
+							emit-reserve-stack agg-slots
+							either aggregate-stack? [
+								stack-offset: 16 + (stack-count * stack-width)
+								emit-copy-rbp-slots stack-offset base agg-slots
+								stack-count: stack-count + agg-slots
+							][
+								index: 0
+								foreach class classes [
+									either class = 'sse [
+										float-count: float-count + 1
+										emit-store-sysv-float-arg float-count base + (index * stack-width)
+									][
+										int-count: int-count + 1
+										emit-store-arg-slot int-count base + (index * stack-width)
+									]
+									index: index + 1
+								]
+							]
+							patch-stack-offset name base
+							offset: base
+						][either all [agg-slots agg-slots > 1] [
 							base: offset - (agg-slots * stack-width)
 							emit-reserve-stack agg-slots
 							repeat i agg-slots [
@@ -537,7 +822,7 @@ make-profilable make target-class [
 								patch-stack-offset name offset
 								stack-count: stack-count + 1
 							]
-						]]
+						]]]
 					]
 				)
 				| set-word! block!
@@ -952,6 +1237,41 @@ make-profilable make target-class [
 	patch-sub-call: func [buffer [binary!] ptr [integer!] offset [integer!]][
 		change/part at buffer ptr to-bin32 negate offset + 5 - 1 4
 	]
+	emit-sysv-aggregate-return: func [classes [block!]][
+		case [
+			classes = [integer] [
+				emit #{488B00}						;-- MOV rax, [rax]
+			]
+			classes = [sse] [
+				emit #{F20F1000}					;-- MOVSD xmm0, [rax]
+			]
+			classes = [integer integer] [
+				emit #{488B5008}					;-- MOV rdx, [rax+8]
+				emit #{488B00}						;-- MOV rax, [rax]
+			]
+			classes = [integer sse] [
+				emit #{F20F104008}				;-- MOVSD xmm0, [rax+8]
+				emit #{488B00}						;-- MOV rax, [rax]
+			]
+			classes = [sse integer] [
+				emit #{F20F1000}					;-- MOVSD xmm0, [rax]
+				emit #{488B4008}					;-- MOV rax, [rax+8]
+			]
+			classes = [sse sse] [
+				emit #{F20F1000}					;-- MOVSD xmm0, [rax]
+				emit #{F20F104808}				;-- MOVSD xmm1, [rax+8]
+			]
+			true [compiler/throw-error ["unsupported SysV aggregate return classes:" mold classes]]
+		]
+	]
+	emit-hidden-return-copy: func [vars [block!] size [integer!]][
+		unless tag? vars/1 [
+			compiler/throw-error "Function has no aggregate return pointer"
+		]
+		emit-rbp-ref vars/2 #{4C8B5D}			;-- MOV r11, [rbp+ret-ptr]
+		emit-copy-rax-to-r11 size
+		emit #{4C89D8}							;-- MOV rax, r11
+	]
 	emit-prolog: func [name [word!] locals [block!] bitmap [integer!] /local locals-size reg-count local-slots][
 		reg-count: register-argument-count? locals
 		locals-offset: 4 * stack-width + (reg-count * stack-width)
@@ -976,27 +1296,22 @@ make-profilable make target-class [
 	]
 	emit-epilog: func [
 		name [word!] locals [block!] args-size [integer!] locals-size [integer!] /with slots [integer! none!] /closing
-		/local vars ret-ptr?
+		/local vars ret-ptr? ret ret-size sysv-classes
 	][
 		if slots [
 			ret-ptr?: to logic! emitter/struct-ptr? locals
-			either ret-ptr? [
+			ret: select locals compiler/return-def
+			ret-size: emitter/struct-size? ret
+			either all [
+				not win64?
+				external-abi? locals
+				not ret-ptr?
+			][
+				sysv-classes: sysv-aggregate-classes ret
+				emit-sysv-aggregate-return sysv-classes
+			][either ret-ptr? [
 				vars: emitter/stack
-				unless tag? vars/1 [
-					compiler/throw-error ["Function" name "has no return pointer in" mold locals]
-				]
-				either all [vars/2 >= -128 vars/2 <= 127][
-					emit #{488B7D}					;-- MOV rdi, [rbp+disp8]
-					emit to-bin8 vars/2
-				][
-					emit #{488BBD}					;-- MOV rdi, [rbp+disp32]
-					emit to-bin32 vars/2
-				]
-				emit #{4889C6}						;-- MOV rsi, rax
-				emit #{4889F8}						;-- MOV rax, rdi
-				emit #{B9}							;-- MOV ecx, <slots>
-				emit to-bin32 slots
-				emit #{F348A5}						;-- REP MOVSQ
+				emit-hidden-return-copy vars ret-size
 			][
 				case [
 					slots = 1 [
@@ -1008,24 +1323,10 @@ make-profilable make target-class [
 					]
 					true [
 						vars: emitter/stack
-						unless tag? vars/1 [
-							compiler/throw-error ["Function" name "has no return pointer in" mold locals]
-						]
-						either all [vars/2 >= -128 vars/2 <= 127][
-							emit #{488B7D}			;-- MOV rdi, [rbp+disp8]
-							emit to-bin8 vars/2
-						][
-							emit #{488BBD}			;-- MOV rdi, [rbp+disp32]
-							emit to-bin32 vars/2
-						]
-						emit #{4889C6}				;-- MOV rsi, rax
-						emit #{4889F8}				;-- MOV rax, rdi
-						emit #{B9}					;-- MOV ecx, <slots>
-						emit to-bin32 slots
-						emit #{F348A5}				;-- REP MOVSQ
+						emit-hidden-return-copy vars ret-size
 					]
 				]
-			]
+			]]
 		]
 		if closing [emit-load 0]
 		emit #{C9}									;-- LEAVE
@@ -1203,6 +1504,7 @@ make-profilable make target-class [
 		if all [compiler/variadic? args/1 fspec/3 <> 'cdecl][emit-variadic-data args]
 		n: length? call-arg-types
 		emit-call-register-loads n
+		emit-align-call-stack
 		if win64? [emit-reserve-stack 4]
 		if all [not win64? compiler/find-attribute fspec/4 'variadic] [
 			emit #{B0}								;-- MOV al, imm8 (SysV variadic FP register count)
@@ -1210,6 +1512,7 @@ make-profilable make target-class [
 		]
 		emit either win64? [#{FF15}][#{E8}]			;-- CALL [rip+disp32] / rel32
 		emit-reloc-disp32 spec
+		emit-normalize-sysv-return fspec
 		emit-call-stack-cleanup n
 		call-arg-index: max 0 call-arg-index - n
 		remove/part skip tail call-arg-types negate n n
@@ -1229,6 +1532,7 @@ make-profilable make target-class [
 		if all [compiler/variadic? args/1 fspec/3 <> 'cdecl][emit-variadic-data args]
 		n: length? call-arg-types
 		emit-call-register-loads n
+		emit-align-call-stack
 		if win64? [emit-reserve-stack 4]
 		either routine [
 			target: either all [2 <= length? fspec 'local = last fspec][
@@ -1250,6 +1554,7 @@ make-profilable make target-class [
 			emit #{E8}								;-- CALL rel32
 			emit-reloc-disp32 spec
 		]
+		emit-normalize-sysv-return fspec
 		emit-call-stack-cleanup n
 		call-arg-index: max 0 call-arg-index - n
 		remove/part skip tail call-arg-types negate n n
@@ -1801,7 +2106,7 @@ make-profilable make target-class [
 	]
 	emit-argument: func [arg fspec [block!] /local value arg-type argc hidden?][
 		argc: compiler/get-arity fspec/4
-		hidden?: hidden-ret-ptr? fspec/4
+		hidden?: hidden-ret-ptr? fspec
 		if hidden? [argc: argc + 1]
 		if arg = #_ [
 			if compiler/find-attribute fspec/4 'typed [
@@ -1821,10 +2126,7 @@ make-profilable make target-class [
 			call-arg-index: 0
 			clear call-arg-types
 			call-stack-slots: 0
-			call-pad-slots: stack-pad-count? argc
-			if positive? call-pad-slots [
-				emit-reserve-stack call-pad-slots	;-- stack-argument alignment pad
-			]
+			call-pad-slots: 0
 		]
 		call-arg-index: call-arg-index + 1
 		if tag? arg [
@@ -3124,9 +3426,45 @@ make-profilable make target-class [
 			]
 		]
 	]
-	emit-push-struct: func [slots [integer!]][		;-- number of 64-bit stack slots
-		repeat i slots [
-			append/only call-arg-types [integer!]
+	emit-push-struct: func [
+		slots [integer!]
+		/sysv type [block!]
+		/local classes class descriptors int-count float-count index base-type descriptor
+	][										;-- number of 64-bit stack slots
+		either sysv [
+			classes: sysv-aggregate-classes type
+			either classes/1 = 'memory [
+				repeat index slots [
+					append/only call-arg-types [integer! sysv-memory]
+				]
+			][
+				int-count: 0
+				float-count: 0
+				foreach class classes [
+					either class = 'sse [
+						float-count: float-count + 1
+					][
+						int-count: int-count + 1
+					]
+				]
+				descriptors: make block! slots
+				index: 0
+				foreach class classes [
+					index: index + 1
+					base-type: either class = 'sse ['float!]['integer!]
+					descriptor: reduce [
+						base-type 'sysv-aggregate slots int-count float-count index
+					]
+					append/only descriptors descriptor
+				]
+				foreach descriptor reverse descriptors [
+					append/only call-arg-types descriptor
+				]
+			]
+		][
+			repeat index slots [
+				append/only call-arg-types [integer!]
+			]
 		]
 		either slots <= 5 [
 			repeat i slots - 1 [
@@ -3136,11 +3474,8 @@ make-profilable make target-class [
 			emit #{FF30}							;-- PUSH qword [rax]
 		][
 			emit-reserve-stack slots
-			emit #{4889C6}							;-- MOV rsi, rax
-			emit #{4889E7}							;-- MOV rdi, rsp
-			emit #{B9}								;-- MOV ecx, <slots>
-			emit to-bin32 slots
-			emit #{F348A5}							;-- REP MOVSQ
+			emit #{4C8D1C24}						;-- LEA r11, [rsp]
+				emit-copy-rax-to-r11 (slots * stack-width)
 		]
 	]
 	emit-push-struct-ref: func [slots [integer!] /local offset][
@@ -3149,26 +3484,17 @@ make-profilable make target-class [
 		]
 		offset: ((length? call-arg-types) + call-struct-temp-slots - slots) * stack-width
 		call-struct-temp-slots: call-struct-temp-slots - slots
-		emit #{4889C6}								;-- MOV rsi, rax
 		either offset <= 127 [
-			emit #{488D7C24}						;-- LEA rdi, [rsp+disp8]
+			emit #{4C8D5C24}						;-- LEA r11, [rsp+disp8]
 			emit to-bin8 offset
 		][
-			emit #{488DBC24}						;-- LEA rdi, [rsp+disp32]
+			emit #{4C8D9C24}						;-- LEA r11, [rsp+disp32]
 			emit to-bin32 offset
 		]
-		emit #{B9}									;-- MOV ecx, <slots>
-		emit to-bin32 slots
-		emit #{F348A5}								;-- REP MOVSQ
-		either offset <= 127 [
-			emit #{488D4424}						;-- LEA rax, [rsp+disp8]
-			emit to-bin8 offset
-		][
-			emit #{488D8424}						;-- LEA rax, [rsp+disp32]
-			emit to-bin32 offset
-		]
+		emit-copy-rax-to-r11 (slots * stack-width)
+		emit #{4C89D8}							;-- MOV rax, r11
 		append/only call-arg-types [pointer! [byte!]]
-		emit-push <last>
+		emit #{50}								;-- PUSH rax
 	]
 	emit-store-union-tag: func [spec [block!] name [word!] reg [word!] /local id tag type][
 		if all [

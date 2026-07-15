@@ -923,8 +923,31 @@ emitter: make-profilable context [
 		]
 		round/ceiling size / target/stack-width
 	]
+
+	struct-size?: func [spec [block!] /direct /check /local size][
+		if check [
+			unless all [
+				spec: select spec compiler/return-def
+				'value = last spec
+			][
+				return none
+			]
+		]
+		unless direct [
+			if not find [struct! union!] spec/1 [
+				spec: compiler/find-aliased spec/1
+				if not find [struct! union!] spec/1 [return none]
+			]
+			spec: spec/2
+		]
+		either compiler/union-spec? spec [
+			union-size? spec
+		][
+			member-offset? spec none
+		]
+	]
 	
-	struct-ptr?: func [spec [block!] /local ret][
+	struct-ptr?: func [spec [block!] /local ret size attrs][
 		all [
 			ret: select spec compiler/return-def
 			'value = last ret
@@ -932,9 +955,11 @@ emitter: make-profilable context [
 				all [
 					target/target = 'X86-64
 					compiler/job/OS = 'Windows
-					block? spec/1
-					find spec/1 'cdecl
-					1 < struct-slots? ret
+					attrs: compiler/get-attributes spec
+					attrs
+					any [find attrs 'cdecl find attrs 'stdcall]
+					size: struct-size? ret
+					not find [1 2 4 8] size
 				]
 				all [
 					target/target = 'ARM
@@ -1175,9 +1200,13 @@ emitter: make-profilable context [
 		append data-buf bits-buf
 	]
 	
-	push-struct: func [expr spec [block!]][
+	push-struct: func [expr spec [block!] /sysv][
 		target/emit-load expr
-		target/emit-push-struct struct-slots?/direct spec/2
+		either sysv [
+			target/emit-push-struct/sysv struct-slots?/direct spec/2 spec
+		][
+			target/emit-push-struct struct-slots?/direct spec/2
+		]
 	]
 
 	push-struct-ref: func [expr spec [block!]][
