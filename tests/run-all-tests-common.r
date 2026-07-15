@@ -85,6 +85,9 @@ qt/library-target: all-tests-config/library-target
 qt/target-platform: all-tests-config/target-platform
 qt/dependency-dir: all-tests-config/dependency-dir
 if all-tests-config/log-file [qt/log-file: all-tests-config/log-file]
+if in all-tests-config 'compile-flag [
+	qt/compile-flag: all-tests-config/compile-flag
+]
 
 if binary-compiler? [
 	qt/binary-compiler?: binary-compiler?
@@ -94,11 +97,12 @@ if binary-compiler? [
 qt/setup-temp-files
 
 external-failures: 0
+target-label: any [all-tests-config/compile-target "Host"]
 if all-tests-config/prepare-command [
-	if 0 <> run-external-phase "Windows x86-64 preparation" all-tests-config/prepare-command [
+	if 0 <> run-external-phase (rejoin [target-label " preparation"]) all-tests-config/prepare-command [
 		external-failures: external-failures + 1
 		unless exists? qt/log-file [write qt/log-file ""]
-		write/append qt/log-file "Windows x86-64 preparation failed.^/"
+		write/append qt/log-file rejoin [target-label " preparation failed.^/"]
 		system/options/quiet: store-quiet-mode
 		change-dir store-current-dir
 		quit/return 1
@@ -146,7 +150,7 @@ run-all-script clean-path join root-dir %system/tests/ %run-all.r
 ***end-run-quiet***
 
 if all-tests-config/native-command [
-	if 0 <> run-external-phase "Windows x86-64 native tests" all-tests-config/native-command [
+	if 0 <> run-external-phase (rejoin [target-label " native tests"]) all-tests-config/native-command [
 		external-failures: external-failures + 1
 	]
 ]

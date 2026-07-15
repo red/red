@@ -1197,7 +1197,7 @@ context [
 
 	build-relro: func [target-arch [word!] symbols [block!]] [
 		;; @@ Use NOBITS section (filesize 0, memsize n) instead?
-		array/initial length? symbols make-struct machine-word-struct? target-arch none
+		array/initial length? symbols make-struct machine-word-struct? target-arch reduce [0]
 	]
 
 	build-dynamic: func [
@@ -1666,7 +1666,7 @@ context [
 		+ (any [all [job-type = 'dll 1] 0])
 		+ (any [all [job-type = 'dll select symbols 'on-unload 1] 0])
 		+ (any [all [PIE? 1] 0])
-		+ (any [all [plt-count > 0 4] 0])
+		+ (any [all [elf64-target? target plt-count > 0 4] 0])
 		+ (any [all [target <> 'ARM 1] 0])				;-- dt-rpath
 		+ length? [
 			hash

@@ -3222,7 +3222,7 @@ OS-do-draw: func [
 		surf	[handle!]
 		w		[integer!]
 		h		[integer!]
-		bitmap	[integer!]
+		bitmap	[int-ptr!]
 		data	[int-ptr!]
 		stride	[integer!]
 ][

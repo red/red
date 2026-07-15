@@ -306,7 +306,7 @@ call-with-array*: func [
 		xcode		[int-ptr!]
 		size ref-pos arg-pos nb id	[integer!]
 		native? t?	[logic!]
-		call		[function! [return: [integer!]]]	;-- compiler expects an integer returned when invoked on do*, parse*
+		call		[function! [[custom] return: [integer!]]]	;-- compiler expects an integer returned when invoked on do*, parse*
 		callx64		[function! [
 			a1  [integer!] a2  [integer!] a3  [integer!] a4  [integer!]
 			a5  [integer!] a6  [integer!] a7  [integer!] a8  [integer!]
@@ -322,7 +322,7 @@ call-with-array*: func [
 	count: count - 3
 	
 	p: either native? [natives/table][actions/table]
-	call: as function! [return: [integer!]] p/id
+	call: as function! [[custom] return: [integer!]] p/id
 	xcode: as int-ptr! p/id
 
 	#either target = 'X86-64 [
@@ -381,7 +381,7 @@ call-with-array*: func [
 	][
 		system/stack/top: ref-array
 		if native? [push yes]
-		call
+		call size
 	]
 ]
 
