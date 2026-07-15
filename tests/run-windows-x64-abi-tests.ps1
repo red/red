@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-	[string]$Compiler = 'D:\EE\QTool\rebcmdview.exe',
+	[string]$Compiler,
 	[int]$CompileTimeoutSeconds = 120,
 	[int]$RunTimeoutSeconds = 20,
 	[switch]$KeepArtifactsOnFailure
@@ -8,6 +8,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
+. (Join-Path $PSScriptRoot 'windows-x64-test-tools.ps1')
+$Compiler = Resolve-RedTestCompiler $Compiler $root
 $sourceDir = Join-Path $root 'system\tests\source\units'
 $artifactDir = Join-Path $root 'build\windows-x64-abi-tests'
 $tests = @(

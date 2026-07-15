@@ -33,6 +33,7 @@ create-dylib-auto-test: func [
 		"Darwin"	[".dylib"]
 		"Windows"	[".dll"]
 		"MSDOS"		[".dll"]
+		"Windows-X86-64-DLL" [".dll"]
 	][
 		".so"	
 	]
@@ -41,6 +42,7 @@ create-dylib-auto-test: func [
 	
 	;; update the test header with the current make file length and write it
 	replace test-script-header "###make-length###" length? read %make-dylib-auto-test.r
+	replace test-script-header "###target###" target
 	write file-out test-script-header
 	
 	;; update the #include statements, write them and the tests
@@ -48,7 +50,7 @@ create-dylib-auto-test: func [
 		dll1-name: join %libtest-dll1 suffix
 		dll2-name: join %libtest-dll2 suffix 
 		either any [
-			find ["Windows" "MSDOS"] target
+			find ["Windows" "MSDOS" "Windows-X86-64-DLL"] target
 			exe-dir-out = %./ 
 		][
 			replace libs "***test-dll1***" dll1-name

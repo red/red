@@ -53,6 +53,12 @@ qt: make object! [
   
   ;; default binary compiler path
   bin-compiler: base-dir/build/bin/red
+
+  ;; optional compiler targets used by cross-target test runners
+  compile-target: none
+  library-target: none
+  target-platform: none
+  dependency-dir: none
   
   ;; default script header to be inserted into code supplied in string form
   script-header: "Red []"
@@ -174,8 +180,19 @@ qt: make object! [
   	  		comp                          	;; compilation script
   	  		cmd                           	;; compilation cmd
   	  		exe								;; executable name
+			actual-target
+			platform
+			target-args
   ][
     clear comp-output
+
+	actual-target: either lib [any [library-target target]][compile-target]
+	platform: either lib [any [target-platform target]][target-platform]
+	target-args: either actual-target [
+		rejoin [" -t " actual-target " "]
+	][
+		copy " "
+	]
     
     ;; workout executable name
     either find/last/tail src "/" [
@@ -185,7 +202,7 @@ qt: make object! [
     ]
     exe: copy/part exe find exe "."
     either lib [
-      switch/default target [
+      switch/default platform [
       	"MSDOS"		[exe: join exe [".dll"]]
         "Windows"	[exe: join exe [".dll"]]
         "Darwin"   	[exe: join exe [".dylib"]]
@@ -212,11 +229,11 @@ qt: make object! [
     	either lib [
     		cmd: join "" [to-local-file bin-compiler compile-flag " -o " 
     					  to-local-file runnable-dir/:exe
-    					  " -dlib -t " target " "
+					  " -dlib " target-args
     					  to-local-file src
     		]
     	][
-    		cmd: join "" [to-local-file bin-compiler compile-flag " -o " 
+			cmd: join "" [to-local-file bin-compiler compile-flag target-args " -o "
     					  to-local-file runnable-dir/:exe " "
     					  to-local-file src	
     		]  		
@@ -228,13 +245,13 @@ qt: make object! [
     	  REBOL []
     	  halt: :quit
     	  echo (comp-echo)
-    	  do/args (reduce base-dir/red.r) (join "" [compile-flag " -o "
+	  do/args (reduce base-dir/red.r) (join "" [compile-flag target-args " -o "
     	  	  	  reduce runnable-dir/:exe " ###lib###***src***" 
     	  ])
     	  echo none
     	]
     	either lib [
-    		replace comp "###lib###" join "-dlib -t " [target " "]
+			replace comp "###lib###" "-dlib "
     	][
     		replace comp "###lib###" ""
     	]
@@ -644,10 +661,12 @@ qt: make object! [
      when necessary.} 
     auto-test-file [file!]
     make-file [file!]
-    /lib-test
-    /local
+     /target expected-target [string!]
+     /local
       stored-length   ; the length of the make... .r file used to build auto tests
       stored-file-length
+	  stored-target
+	  generated-target
       digit
       number
       rule
@@ -659,6 +678,18 @@ qt: make object! [
       parse/all read auto-test-file rule
       stored-length
     ]
+
+	stored-target: does [
+		generated-target: none
+		parse/all read auto-test-file [
+			any [
+				thru ";target:" copy generated-target to newline
+				(generated-target: trim generated-target)
+				| skip
+			]
+		]
+		generated-target
+	]
     digit: charset [#"0" - #"9"]
     number: [some digit]
     rule: [
@@ -673,6 +704,7 @@ qt: make object! [
       not exists? auto-test-file
       stored-file-length <> length? read make-file
       0:00 < difference modified? make-file modified? auto-test-file
+	  all [target expected-target <> stored-target]
     ][
       print ["Making" auto-test-file " - it will take a while"]
       do make-file

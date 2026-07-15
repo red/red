@@ -13,12 +13,15 @@ change-dir %../
 
 ===start-group=== "dylib compiles"
 
-		dll-target: switch/default fourth system/version [
-			2 ["Darwin"]
-			3 ["MSDOS"]
-			7 ["FreeBSD"]
-		][
-			"Linux"
+		dll-target: any [
+			qt/library-target
+			switch/default fourth system/version [
+				2 ["Darwin"]
+				3 ["MSDOS"]
+				7 ["FreeBSD"]
+			][
+				"Linux"
+			]
 		]
 										;; source should be relative to 
 										;; runnable dir

@@ -50,10 +50,12 @@ ptr-ptr!: alias struct! [value [int-ptr!]]
 	ptr-slot!: alias struct! [value [byte-ptr!]]
 	#define vararg-ptr! [pointer! [uint64!]]
 	#define AS_NATIVE_SLOT(value) [as uint64! value]
+	#define NATIVE_SLOT_NONE FFFFFFFFFFFFFFFFh
 ][
 	ptr-slot!: alias struct! [value [int-ptr!]]
 	#define vararg-ptr! int-ptr!
 	#define AS_NATIVE_SLOT(value) [value]
+	#define NATIVE_SLOT_NONE -1
 ]
 #define func-table! vararg-ptr!
 #define ptr-value!	  [ptr-ptr! value]
@@ -151,7 +153,7 @@ str-array!: alias struct! [
 		type	 [integer!]
 		_align0	 [integer!]
 		value	 [float32!]
-		_padding [integer!]
+		_padding [int64!]
 	]
 
 	typed-float!: alias struct! [

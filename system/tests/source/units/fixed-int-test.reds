@@ -140,16 +140,16 @@ fi-callback-ret-u64: func [[callback] return: [uint64!]][FFFFFFFFFFFFFFFFh]
 
 fi-variadic-score: func [
 	[variadic]
-	count [integer!] list [int-ptr!]
+	count [integer!] list [vararg-ptr!]
 	return: [integer!]
 	/local score [integer!]
 ][
 	score: 0
 	if 4 = count [score: score + 1]
-	if -2 = list/1 [score: score + 1]
-	if 250 = list/2 [score: score + 1]
-	if -300 = list/3 [score: score + 1]
-	if 60000 = list/4 [score: score + 1]
+	if -2 = vararg-to-integer list/1 [score: score + 1]
+	if 250 = vararg-to-integer list/2 [score: score + 1]
+	if -300 = vararg-to-integer list/3 [score: score + 1]
+	if 60000 = vararg-to-integer list/4 [score: score + 1]
 	score
 ]
 

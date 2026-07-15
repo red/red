@@ -104,7 +104,6 @@ make-profilable make target-class [
 		/local spec
 	][
 		if object? name [name: compiler/unbox name]
-		if word? name [name: compiler/resolve-ns name]
 		spec: either block? name [name][all [word? name select emitter/symbols name]]
 		if none? spec [
 			compiler/throw-error ["unknown variable:" name]
@@ -711,8 +710,11 @@ make-profilable make target-class [
 				emit #{58}							;-- POP rax
 			]
 			word? value [
-				unless emitter/local-offset? value [value: compiler/resolve-ns value]
 				type: compiler/get-type value
+				unless block? type [
+					value: compiler/resolve-ns value
+					type: compiler/get-type value
+				]
 				unless block? type [
 					compiler/throw-error ["x86-64 secondary operand has no type:" mold value]
 				]
@@ -1044,18 +1046,46 @@ make-profilable make target-class [
 	]
 	emit-stack-align: :noop
 	emit-float-trash-last: :noop
-	emit-casting: func [value [object!] alt? [logic!] /push /local type][
+	emit-casting: func [
+		value [object!]
+		alt? [logic!]
+		/push
+		/local type to-width
+	][
 		type: compiler/get-type value/data
 		case [
 			value/type/1 = 'logic! [
-				emit either compiler/int64? type [#{4885C0}][#{85C0}]
+				emit case [
+					any [compiler/int64? type compiler/any-pointer? type] [#{4885C0}]
+					all [compiler/integer-type? type (compiler/integer-width? type) = 1] [#{84C0}]
+					all [compiler/integer-type? type (compiler/integer-width? type) = 2] [#{6685C0}]
+					true [#{85C0}]
+				]
 				emit #{0F95C0}						;-- SETNZ al
 				emit #{0FB6C0}						;-- MOVZX eax, al
+			]
+			all [
+				compiler/any-pointer? value/type
+				compiler/signed-integer? type
+				not compiler/int64? type
+			][
+				emit #{4863C0}						;-- MOVSXD rax, eax
 			]
 			all [
 				compiler/integer-type? value/type
 				compiler/integer-type? type
 			][
+				to-width: compiler/integer-width? value/type
+				if to-width < 4 [
+					emit case [
+						to-width = 1 [
+							either compiler/signed-integer? value/type [#{0FBEC0}][#{0FB6C0}]
+						]
+						true [
+							either compiler/signed-integer? value/type [#{0FBFC0}][#{0FB7C0}]
+						]
+					]
+				]
 				if all [
 					value/type/1 = 'int64!
 					compiler/signed-integer? type
@@ -1303,6 +1333,7 @@ make-profilable make target-class [
 		type: any [all [boxed boxed/type] compiler/last-type]
 		if block? type [
 			switch type/1 [
+				byte!  [emit #{0FB6C0}]				;-- MOVZX eax, al
 				int8!  [emit #{0FBEC0}]				;-- MOVSX eax, al
 				uint8! [emit #{0FB6C0}]				;-- MOVZX eax, al
 				int16! [emit #{0FBFC0}]				;-- MOVSX eax, ax
@@ -1317,11 +1348,16 @@ make-profilable make target-class [
 	emit-integer-operation: func [
 		name [word!]
 		args [block!]
-		/local right imm? type wide? right-block? right-last? right-type scale right-loaded? right-signed? left-type mod? signed-op? ptr-wide-imm?
+		/local right right-source imm? type wide? right-block? right-last? right-type scale right-loaded? right-signed? left-type mod? signed-op? ptr-wide-imm? cast-width cast-mask cast-sign
 	][
 		type: compiler/resolve-aliased compiler/resolve-expr-type args/1
+		if all [object? args/1 logic? args/1/keep?] [compiler/cast args/1]
 		set-width/type type/1
-		right: compiler/unbox args/2
+		right: either all [object? args/2 logic? args/2/keep?] [
+			compiler/cast args/2
+		][
+			compiler/unbox args/2
+		]
 		right-block?: block? right
 		right-last?: right = <last>
 		right-loaded?: no
@@ -1333,7 +1369,21 @@ make-profilable make target-class [
 		]
 		if char? right [right: to integer! right]
 		if logic? right [right: to integer! right]
+		right-source: either object? args/2 [args/2][right]
 		imm?: all [not right-block? integer? right]
+		if all [
+			imm?
+			object? args/2
+			compiler/integer-type? args/2/type
+			(cast-width: compiler/integer-width? args/2/type) < 4
+		][
+			cast-mask: either cast-width = 1 [255][65535]
+			right: right and cast-mask
+			if compiler/signed-integer? args/2/type [
+				cast-sign: either cast-width = 1 [128][32768]
+				if right >= cast-sign [right: right - (cast-mask + 1)]
+			]
+		]
 		if not imm? [
 			right-signed?: compiler/signed-integer? compiler/resolve-expr-type args/2
 		]
@@ -1359,7 +1409,7 @@ make-profilable make target-class [
 				either imm? [
 					right: right * scale
 				][
-					unless right-loaded? [emit-load-ecx right]
+					unless right-loaded? [emit-load-ecx right-source]
 					if right-signed? [emit #{4863C9}]	;-- MOVSXD rcx, ecx
 					emit #{4869C9}					;-- IMUL rcx, rcx, imm32
 					emit to-bin32 scale
@@ -1374,13 +1424,13 @@ make-profilable make target-class [
 			find [+ -] name
 			find [pointer! c-string! struct! union! any-pointer!] type/1
 		][
-			unless right-loaded? [emit-load-ecx right]
+			unless right-loaded? [emit-load-ecx right-source]
 			emit #{4863C9}							;-- MOVSXD rcx, ecx
 			right-loaded?: yes
 		]
 		mod?: select mod-rem-func name
 		if any [name = divide-sym mod?] [
-			unless right-block? [emit-load-ecx right]
+			unless right-block? [emit-load-ecx right-source]
 			signed-op?: compiler/signed-integer? type
 			either signed-op? [
 				if all [compiler/overflow-check? width = 4 not wide?][
@@ -1429,7 +1479,7 @@ make-profilable make target-class [
 						emit either wide? [#{4885C0}][#{85C0}] ;-- TEST rax/eax, rax/eax
 					][
 						either all [wide? ptr-wide-imm? integer? right negative? right][
-							emit-load-ecx right
+							emit-load-ecx right-source
 							emit #{4839C8}			;-- CMP rax, rcx
 						][
 							emit either wide? [#{483D}][#{3D}] ;-- CMP rax/eax, imm32
@@ -1437,7 +1487,7 @@ make-profilable make target-class [
 						]
 					]
 					][
-						unless right-loaded? [emit-load-ecx right]
+						unless right-loaded? [emit-load-ecx right-source]
 						emit either wide? [#{4839C8}][#{39C8}] ;-- CMP rax/eax, rcx/ecx
 					]
 				]
@@ -1457,7 +1507,7 @@ make-profilable make target-class [
 				]
 			]
 			true [
-				unless right-loaded? [emit-load-ecx right]
+				unless right-loaded? [emit-load-ecx right-source]
 				switch/default name [
 					+	[emit either wide? [#{4801C8}][#{01C8}]]	;-- ADD rax/eax, rcx/ecx
 					-	[emit either wide? [#{4829C8}][#{29C8}]]	;-- SUB rax/eax, rcx/ecx
@@ -1502,6 +1552,7 @@ make-profilable make target-class [
 		]
 		if not find comparison-op name [
 			switch type/1 [
+				byte!  [emit #{0FB6C0}]				;-- MOVZX eax, al
 				int8!  [emit #{0FBEC0}]				;-- MOVSX eax, al
 				uint8! [emit #{0FB6C0}]				;-- MOVZX eax, al
 				int16! [emit #{0FBFC0}]				;-- MOVSX eax, ax
@@ -1889,8 +1940,10 @@ make-profilable make target-class [
 				]
 			]
 			decimal? value [
-				spec: emitter/store-value none value [float!]
-				emit-float-ref spec/2 #{C5FB1005}
+				type: either all [with cast/type/1 = 'float32!][[float32!]][[float!]]
+				spec: emitter/store-value none value type
+				emit-float-ref spec/2 either type/1 = 'float32! [#{C5FA1005}][#{C5FB1005}]
+				compiler/last-type: type
 			]
 			string? value [
 				emit-load-literal [c-string!] value
@@ -2010,15 +2063,6 @@ make-profilable make target-class [
 				compiler/throw-error ["x86-64 load not supported yet:" mold value]
 			]
 		]
-		if all [
-			with
-			not all [
-				compiler/integer-type? cast/type
-				compiler/integer-type? compiler/get-type cast/data
-			]
-		][
-			emit-casting cast no
-		]
 	]
 	emit-load-literal: func [type [block! none!] value /local spec][
 		unless type [type: compiler/get-type value]
@@ -2121,6 +2165,11 @@ make-profilable make target-class [
 		type: compiler/get-variable-spec name
 		agg-type: compiler/resolve-aliased type
 		store-type: either block? agg-type [agg-type][type]
+		if all [binary? value store-type/1 = 'float32!][
+			emit #{B8}								;-- MOV eax, imm32
+			emit copy/part value 4
+			emit #{C5F96EC0}						;-- VMOVD xmm0, eax
+		]
 		if all [
 			block? value
 			empty? value
@@ -2654,9 +2703,9 @@ make-profilable make target-class [
 					case [
 						compiler/any-float? mtype [
 							emit either size = 4 [
-								either last? [#{C5FA1104}][#{C5FA110C}]
+								#{C5FA1104}
 							][
-								either last? [#{C5FB1104}][#{C5FB110C}]
+								#{C5FB1104}
 							]
 							emit-index-sib either last? ['rax]['rdx] size
 						]

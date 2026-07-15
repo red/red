@@ -1139,7 +1139,7 @@ interpreter: context [
 						if t? [
 							ref-slot: as red-refinement! value - 1
 							idx: ref-slot/index
-							if ref-array/idx <> AS_NATIVE_SLOT(-1) [fire [TO_ERROR(script dup-refine) path]]
+							if ref-array/idx <> NATIVE_SLOT_NONE [fire [TO_ERROR(script dup-refine) path]]
 							ref-array/idx: AS_NATIVE_SLOT(arg-cnt)
 						]
 					]

@@ -14,13 +14,16 @@ make-dir dir-out
 exe-dir-out: clean-path %../../../../quick-test/runnable/
 make-dir exe-dir-out
 
-dll-target: switch/default fourth system/version [
-	2 ["Darwin"]
-	3 ["MSDOS"]
-	7 ["FreeBSD"]
-][
-	"Linux"
+dll-target: any [
+	qt/library-target
+	switch/default fourth system/version [
+		2 ["Darwin"]
+		3 ["MSDOS"]
+		7 ["FreeBSD"]
+	][
+		"Linux"
+	]
 ]
 
-compile-test-dylibs dll-target dir-out
+compile-test-dylibs dll-target exe-dir-out
 create-dylib-auto-test dll-target dir-out exe-dir-out

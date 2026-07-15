@@ -15,5 +15,34 @@ unless value? 'qt [
 ]
 
 make-dir qt/tests-dir/source/units/auto-tests
-qt/make-if-needed? 	%source/units/auto-tests/dylib-auto-test.reds
-					%source/units/make-dylib-auto-test.r
+dll-target: any [
+	qt/library-target
+	switch/default fourth system/version [
+		2 ["Darwin"]
+		3 ["MSDOS"]
+		7 ["FreeBSD"]
+	][
+		"Linux"
+	]
+]
+qt/make-if-needed?/target
+	%source/units/auto-tests/dylib-auto-test.reds
+	%source/units/make-dylib-auto-test.r
+	dll-target
+
+dll-extension: switch/default dll-target [
+	"Darwin"               [".dylib"]
+	"MSDOS"                [".dll"]
+	"Windows"              [".dll"]
+	"Windows-X86-64-DLL"   [".dll"]
+][
+	".so"
+]
+dll1: to file! rejoin ["libtest-dll1" dll-extension]
+dll2: to file! rejoin ["libtest-dll2" dll-extension]
+unless all [
+	exists? join qt/runnable-dir dll1
+	exists? join qt/runnable-dir dll2
+][
+	do join qt/tests-dir %source/units/make-dylib-auto-test.r
+]

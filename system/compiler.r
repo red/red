@@ -2919,6 +2919,7 @@ system-dialect: make-profilable context [
 		]
 		
 		comp-as: has [ctype ptr? expr type k?][
+			k?: no
 			ctype: pc/2
 			if ptr?: find [pointer! struct! union! function!] ctype [
 				if pc/2 = 'union! [pc/3: normalize-union-spec pc/3]
@@ -4544,12 +4545,6 @@ system-dialect: make-profilable context [
 						boxed
 						not decimal? unbox expr
 						not decimal? boxed/data
-						not all [
-							job/target = 'X86-64
-							path? boxed/data
-							any-float? boxed/type
-							any-float? get-type boxed/data
-						]
 					][
 						emitter/target/emit-casting boxed no	;-- insert runtime type casting if required
 						boxed/type

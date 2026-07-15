@@ -9,7 +9,7 @@ REBOL [
 ]
 
 
-install-libs: has [lib][
+install-libs: has [lib source][
 	lib: switch/default system/version/4 [
 		2 [%libstructlib.dylib]
 		3 [%structlib.dll]
@@ -17,7 +17,12 @@ install-libs: has [lib][
 	][
 		%libstructlib.so
 	]
-	write/binary join qt/runnable-dir lib read/binary join %libs/ lib
+	source: either qt/dependency-dir [
+		join qt/dependency-dir lib
+	][
+		join %libs/ lib
+	]
+	write/binary join qt/runnable-dir lib read/binary source
 ]
 
 install-libs

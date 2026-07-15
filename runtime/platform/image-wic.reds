@@ -245,7 +245,7 @@ OS-image: context [
 		Release						[Release!]
 		GetSize						[function! [this [this!] pWidth [int-ptr!] pHeight [int-ptr!] return: [integer!]]]
 		GetStride					[function! [this [this!] stride [int-ptr!] return: [integer!]]]
-		GetDataPointer				[function! [this [this!] size [int-ptr!] data [int-ptr!] return: [integer!]]]
+		GetDataPointer				[function! [this [this!] size [int-ptr!] data [ptr-ptr!] return: [integer!]]]
 		GetPixelFormat				[function! [this [this!] pPixelFormat [int-ptr!] return: [integer!]]]
 	]
 
@@ -615,14 +615,14 @@ OS-image: context [
 			this	[this!]
 			lock	[IWICBitmapLock]
 			size	[integer!]
-			data	[integer!]
+			data	[int-ptr!]
 	][
 		this: as this! handle
 		lock: as IWICBitmapLock this/vtbl
 		lock/GetStride this stride
-		size: 0 data: 0
-		lock/GetDataPointer this :size :data
-		as int-ptr! data
+		size: 0 data: null
+		lock/GetDataPointer this :size as ptr-ptr! :data
+		data
 	]
 
 	get-data-pixel-format: func [
@@ -661,7 +661,7 @@ OS-image: context [
 			lthis	[this!]
 			lock	[IWICBitmapLock]
 			size	[integer!]
-			data	[integer!]
+			data	[int-ptr!]
 			scan0	[int-ptr!]
 			ret		[integer!]
 	][
@@ -673,9 +673,9 @@ OS-image: context [
 		IB/Lock this rect WICBitmapLockRead :ilock
 		lthis: ilock/value
 		lock: as IWICBitmapLock lthis/vtbl
-		size: 0 data: 0
-		lock/GetDataPointer lthis :size :data
-		scan0: as int-ptr! data
+		size: 0 data: null
+		lock/GetDataPointer lthis :size as ptr-ptr! :data
+		scan0: data
 		scan0: scan0 + index
 		ret: scan0/1
 		lock/Release lthis
@@ -697,7 +697,7 @@ OS-image: context [
 			lthis	[this!]
 			lock	[IWICBitmapLock]
 			size	[integer!]
-			data	[integer!]
+			data	[int-ptr!]
 			scan0	[int-ptr!]
 			inode	[img-node!]
 	][
@@ -709,9 +709,9 @@ OS-image: context [
 		IB/Lock this rect WICBitmapLockRead :ilock
 		lthis: ilock/value
 		lock: as IWICBitmapLock lthis/vtbl
-		size: 0 data: 0
-		lock/GetDataPointer lthis :size :data
-		scan0: as int-ptr! data
+		size: 0 data: null
+		lock/GetDataPointer lthis :size as ptr-ptr! :data
+		scan0: data
 		scan0: scan0 + index
 		scan0/1: color
 		lock/Release lthis
@@ -858,7 +858,7 @@ OS-image: context [
 			lthis	[this!]
 			lock	[IWICBitmapLock]
 			size	[integer!]
-			data	[integer!]
+			data	[int-ptr!]
 			scan0	[int-ptr!]
 			end		[int-ptr!]
 			a		[integer!]
@@ -886,10 +886,10 @@ OS-image: context [
 		lthis: ilock/value
 		lock: as IWICBitmapLock lthis/vtbl
 
-		size: 0 data: 0
-		lock/GetDataPointer lthis :size :data
+		size: 0 data: null
+		lock/GetDataPointer lthis :size as ptr-ptr! :data
 
-		scan0: as int-ptr! data
+		scan0: data
 		end: scan0 + (width * height)
 
 		either null? color [
@@ -1119,7 +1119,7 @@ OS-image: context [
 			lthis	[this!]
 			lock	[IWICBitmapLock]
 			size	[integer!]
-			data	[integer!]
+			data	[int-ptr!]
 			bitmap	[integer!]
 	][
 		this: get-buffer resolve-node image/node
@@ -1133,8 +1133,8 @@ OS-image: context [
 		IB/Lock this rect WICBitmapLockRead :ilock
 		lthis: ilock/value
 		lock: as IWICBitmapLock lthis/vtbl
-		size: 0 data: 0
-		lock/GetDataPointer lthis :size :data
+		size: 0 data: null
+		lock/GetDataPointer lthis :size as ptr-ptr! :data
 		bitmap: CreateBitmap w h 1 32 as byte-ptr! data
 		lock/Release lthis
 		bitmap
@@ -1181,7 +1181,7 @@ OS-image: context [
 			lthis	[this!]
 			lock	[IWICBitmapLock]
 			size	[integer!]
-			data	[integer!]
+			data	[int-ptr!]
 			bitmap	[integer!]
 			inode	[img-node!]
 	][
@@ -1201,8 +1201,8 @@ OS-image: context [
 		IB/Lock this rect WICBitmapLockRead ilock
 		lthis: ilock/value
 		lock: as IWICBitmapLock lthis/vtbl
-		size: 0 data: 0
-		lock/GetDataPointer lthis :size :data
+		size: 0 data: null
+		lock/GetDataPointer lthis :size as ptr-ptr! :data
 		bitmap: 0
 		;-- GdipCreateBitmapFromScan0 uses data without copying it
 		GdipCreateBitmapFromScan0 w h w * 4 PixelFormat32bppARGB as byte-ptr! data :bitmap

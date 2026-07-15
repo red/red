@@ -274,6 +274,11 @@ Make sure the changes pass all the existing tests, add relevant tests to the tes
 
         >> do %run-all-tests.r
 
+On Windows, the corresponding x86-64 compiler, runtime, ABI, DLL, and View
+suite can be run with:
+
+        >> do/args %run-all-tests-x64.r "--batch"
+
 # Git integration with console built from sources
 
 If you want git version included in your Red console built from sources, use this command:

@@ -3,6 +3,34 @@ name: Windows
 on: [push, pull_request]
 
 jobs:
+  Windows-X64-All:
+
+    runs-on: windows-latest
+    timeout-minutes: 90
+
+    steps:
+    - uses: actions/checkout@v6
+    - name: setup red repo
+      run: |
+        $url = "http://static.red-lang.org/build/rebview.exe"
+        $output = "$Env:GITHUB_WORKSPACE\rebview.exe"
+        (New-Object System.Net.WebClient).DownloadFile($url, $output)
+    - name: run all Windows x86-64 tests
+      run: rebview.exe -qws run-all-tests-x64.r --batch
+      shell: cmd
+
+    - uses: actions/upload-artifact@v7
+      if: failure()
+      with:
+        name: windows-x64-all-test-logs
+        if-no-files-found: ignore
+        path: |
+          quick-test/quick-test-x64.log
+          build/windows-x64-all-tests/**
+          build/windows-x64-*/**/*.log
+          build/windows-x64-*/**/*.result
+          build/windows-window-long-ptr-tests/**
+
   Core:
 
     runs-on: windows-latest

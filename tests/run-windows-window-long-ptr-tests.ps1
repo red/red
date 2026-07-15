@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
-	[string]$Compiler = 'D:\EE\QTool\rebcmdview.exe',
-	[string]$Dumpbin = 'C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Tools\MSVC\14.50.35717\bin\Hostx64\x64\dumpbin.exe',
+	[string]$Compiler,
+	[string]$Dumpbin,
 	[int]$CompileTimeoutSeconds = 240,
 	[int]$RunTimeoutSeconds = 60,
 	[switch]$KeepArtifactsOnFailure
@@ -9,6 +9,9 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
+. (Join-Path $PSScriptRoot 'windows-x64-test-tools.ps1')
+$Compiler = Resolve-RedTestCompiler $Compiler $root
+$Dumpbin = Resolve-VcTool 'dumpbin' $Dumpbin
 $artifactDir = Join-Path $root 'build\windows-window-long-ptr-tests'
 $source = Join-Path $root 'tests\source\view\windows-x64-minimal.red'
 $succeeded = $false

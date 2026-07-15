@@ -63,7 +63,8 @@ print ["This test started at" start-time]
   --run-test-file-quiet %source/units/logic-test.reds       
   --run-test-file-quiet %source/units/byte-test.reds
   --run-test-file-quiet %source/units/c-string-test.reds
-  --run-test-file-quiet %source/units/struct-test.reds
+  if all [qt/compile-target find qt/compile-target "X86-64"] [--run-test-file-quiet %source/units/struct-x64-test.reds]
+  unless all [qt/compile-target find qt/compile-target "X86-64"] [--run-test-file-quiet %source/units/struct-test.reds]
   --run-test-file-quiet %source/units/union-test.reds
   --run-test-file-quiet %source/units/pointer-test.reds
   --run-test-file-quiet %source/units/cast-test.reds
@@ -85,7 +86,8 @@ print ["This test started at" start-time]
 
 ===start-group=== "Native functions tests"
   --run-test-file-quiet %source/units/not-test.reds
-  --run-test-file-quiet %source/units/size-test.reds
+  if all [qt/compile-target find qt/compile-target "X86-64"] [--run-test-file-quiet %source/units/size-x64-test.reds]
+  unless all [qt/compile-target find qt/compile-target "X86-64"] [--run-test-file-quiet %source/units/size-test.reds]
   --run-test-file-quiet %source/units/fixed-int-test.reds
   --run-test-file-quiet %source/units/int64-test.reds
   --run-test-file-quiet %source/units/function-test.reds

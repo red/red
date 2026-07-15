@@ -1,8 +1,8 @@
 [CmdletBinding()]
 param(
-	[string]$Compiler = 'D:\EE\QTool\rebcmdview.exe',
-	[string]$Dumpbin = 'C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Tools\MSVC\14.50.35717\bin\Hostx64\x64\dumpbin.exe',
-	[string]$Cdb = 'C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\cdb.exe',
+	[string]$Compiler,
+	[string]$Dumpbin,
+	[string]$Cdb,
 	[int]$Runs = 3,
 	[int]$CompileTimeoutSeconds = 240,
 	[int]$RunTimeoutSeconds = 30,
@@ -11,6 +11,10 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
+. (Join-Path $PSScriptRoot 'windows-x64-test-tools.ps1')
+$Compiler = Resolve-RedTestCompiler $Compiler $root
+$Dumpbin = Resolve-VcTool 'dumpbin' $Dumpbin
+$Cdb = Resolve-Cdb $Cdb
 $source = Join-Path $root 'tests\source\runtime\x64-red-smoke.red'
 $artifactDir = Join-Path $root 'build\windows-x64-tests'
 $executable = Join-Path $artifactDir 'windows-x64-red-smoke.exe'
@@ -56,7 +60,6 @@ function Require-Tool([string]$Path, [string]$Name) {
 try {
 	Require-Tool $Compiler 'Red compiler'
 	Require-Tool $Dumpbin 'dumpbin'
-	Require-Tool $Cdb 'cdb'
 	New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
 
 	$compileArgs = @(
@@ -104,7 +107,7 @@ try {
 	$succeeded = $true
 }
 catch {
-	if (Test-Path -LiteralPath $executable) {
+	if ($Cdb -and (Test-Path -LiteralPath $executable)) {
 		$cdbLog = Join-Path $artifactDir 'cdb-failure.log'
 		try {
 			Invoke-CheckedProcess -FilePath $Cdb -ArgumentList @('-logo', $cdbLog, '-c', '.lastevent; .ecxr; kv; r; u @rip L10; q', $executable) `

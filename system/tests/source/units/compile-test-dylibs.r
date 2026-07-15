@@ -9,6 +9,8 @@ REBOL [
 compile-test-dylibs: func [
 	target [string!]
 	dir-out [file!]
+	/local
+		dlls output dll lib source compiler cmd status
 ][
 
 	;; use win-call if running Rebol 2.7.8 under Windows
@@ -26,18 +28,25 @@ compile-test-dylibs: func [
 		%libtest-dll2.reds
 	]
 	
-	output: copy ""
+	dir-out: clean-path dir-out
+	compiler: clean-path join qt/base-dir %red.r
+	output: make string! 4096
 	foreach dll dlls [
 		lib: copy dll
 		lib: to file! replace lib ".reds" ""
 		lib: dir-out/:lib
+		source: clean-path join qt/tests-dir join %source/units/ dll
 		cmd: join "" [
 			to-local-file system/options/boot " -sc "
-            to-local-file clean-path %../../red.r
-            " -dlib  -t " target " -o " lib " "
-    		to-local-file clean-path join %source/units/ dll
-    	]
+			to-local-file compiler
+			" -dlib -t " target " -o " lib " "
+			to-local-file source
+		]
 		clear output
-		call/output cmd output
+		status: call/wait/output cmd output
+		unless all [status = 0 find output "output file size :"] [
+			print output
+			do make error! rejoin ["Failed to compile test DLL: " source]
+		]
 	]	
 ]
