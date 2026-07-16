@@ -216,6 +216,7 @@ Cross-compilation targets:
     Linux        : GNU/Linux, x86, console (+ GUI) applications
     Linux-GTK    : GNU/Linux, x86, GUI only applications
     Linux-musl   : GNU/Linux, x86, musl libc
+    Linux-ARM64  : GNU/Linux, ARMv8/AArch64, console applications
     Linux-ARM    : GNU/Linux, ARMv5, armel (soft-float)
     RPi          : GNU/Linux, ARMv7, armhf (hard-float)
     RPi-GTK      : GNU/Linux, ARMv7, armhf (hard-float), GUI only applications
@@ -278,6 +279,11 @@ On Windows, the corresponding x86-64 compiler, runtime, ABI, DLL, and View
 suite can be run with:
 
         >> do/args %run-all-tests-x64.r "--batch"
+
+The Linux ARM64 Red/System release package can be cross-compiled on Windows
+and run on an AArch64 host available over SSH with:
+
+        PS> .\tests\run-arm64-system-tests.ps1 -Remote <ssh-host>
 
 # Git integration with console built from sources
 

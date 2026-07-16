@@ -175,6 +175,9 @@ compile-test-dylibs target arm-dir
 
 ;; copy the bash script and mark it as executable
 write/binary arm-dir/run-all.sh trim/with read/binary %run-all.sh "^M"
+if target = "Linux-ARM64" [
+	write/binary arm-dir/validate-arm64-elf.sh trim/with read/binary %validate-arm64-elf.sh "^M"
+]
 unless system/version/4 = 3 [
 	runner: open arm-dir/run-all.sh
 	set-modes runner [

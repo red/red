@@ -88,6 +88,7 @@ print ["This test started at" start-time]
   --run-test-file-quiet %source/units/not-test.reds
   if all [qt/compile-target any [find qt/compile-target "X86-64" find qt/compile-target "ARM64"]] [--run-test-file-quiet %source/units/size-x64-test.reds]
   unless all [qt/compile-target any [find qt/compile-target "X86-64" find qt/compile-target "ARM64"]] [--run-test-file-quiet %source/units/size-test.reds]
+  --run-test-file-quiet %source/units/integer-test.reds
   --run-test-file-quiet %source/units/fixed-int-test.reds
   --run-test-file-quiet %source/units/int64-test.reds
   --run-test-file-quiet %source/units/function-test.reds

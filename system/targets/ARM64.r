@@ -2089,13 +2089,14 @@ make-profilable make target-class [
 
 	emit-prolog: func [
 		name [word!] locals [block!] bitmap [integer!]
-		/local argc arg-slots slots base i hfa field-type field-size locals-size frame-size offset int-reg fp-reg stack-arg arg-name arg-type resolved pos ret-ptr? cdecl?
+		/local argc arg-slots slots base i hfa field-type field-size locals-size frame-size offset int-reg fp-reg stack-arg arg-name arg-type resolved pos ret-ptr? fspec external? pointer-reg slot-offset
 	][
 		clear by-value-args
 		argc: argument-count? locals
 		arg-slots: argument-slot-count? locals
 		ret-ptr?: to logic! emitter/struct-ptr? locals
-		cdecl?: all [not empty? locals block? locals/1 find locals/1 'cdecl]
+		fspec: select compiler/functions name
+		external?: to logic! all [fspec compiler/external-abi-call? fspec]
 		locals-offset: 4 * stack-width + (arg-slots * stack-width)
 		locals-size: either pos: find locals /local [emitter/calc-locals-offsets pos][0]
 		frame-size: round/to/ceiling locals-offset + locals-size 16
@@ -2116,10 +2117,10 @@ make-profilable make target-class [
 		offset: -40
 		int-reg: fp-reg: stack-arg: 0
 		if ret-ptr? [
-			emit-frame-insn #{F8000000} offset either cdecl? [8][0]
+			emit-frame-insn #{F8000000} offset either external? [8][0]
 			patch-stack-offset <ret-ptr> offset
 			offset: offset - stack-width
-			int-reg: either cdecl? [0][1]
+			int-reg: either external? [0][1]
 		]
 		parse locals [
 			opt block!
@@ -2132,6 +2133,27 @@ make-profilable make target-class [
 						append by-value-args arg-name
 						base: offset - ((slots - 1) * stack-width)
 						case [
+							all [external? not hfa/1 slots > 2][
+								either int-reg < 8 [
+									pointer-reg: int-reg
+									int-reg: int-reg + 1
+								][
+									emit-frame-insn #{F8400000} 16 + (stack-arg * 8) 16
+									pointer-reg: 16
+									stack-arg: stack-arg + 1
+								]
+								repeat i slots [
+									slot-offset: (i - 1) * stack-width
+									either slot-offset <= 32760 [
+										emit-i32 (to integer! #{F9400011}) or (pointer-reg * 32)
+											or ((i - 1) * 1024)       ; LDR x17, [xN, #slot]
+									][
+										emit-register-offset pointer-reg 15 slot-offset 15
+										emit-i32 #{F94001F1}       ; LDR x17, [x15]
+									]
+									emit-frame-insn #{F8000000} base + slot-offset 17
+								]
+							]
 							all [hfa/1 fp-reg + hfa/3 <= 8][
 								field-type: reduce [either hfa/2 ['float32!]['float!]]
 								field-size: either hfa/2 [4][8]

@@ -45,6 +45,9 @@ va-twice: func [n [integer!] return: [integer!]][n + n]	;-- used as a nested-cal
 	--test-- "va-int-5"							;-- two integers spill onto the stack
 		sprintf [vararg-buf "%d %d %d %d %d" 1 2 3 4 5]
 		--assert streq? vararg-buf "1 2 3 4 5"
+	--test-- "va-int-9"							;-- spills after x0-x7 on AArch64
+		sprintf [vararg-buf "%d %d %d %d %d %d %d %d %d" 1 2 3 4 5 6 7 8 9]
+		--assert streq? vararg-buf "1 2 3 4 5 6 7 8 9"
 ===end-group===
 
 ===start-group=== "variadic float (double) arguments"
@@ -57,6 +60,14 @@ va-twice: func [n [integer!] return: [integer!]][n + n]	;-- used as a nested-cal
 	--test-- "va-dbl-dbl"
 		sprintf [vararg-buf "%.2f %.2f" 1.5 2.5]
 		--assert streq? vararg-buf "1.50 2.50"
+	--test-- "va-dbl-10"							;-- spills after v0-v7 on AArch64
+		sprintf [vararg-buf "%.1f %.1f %.1f %.1f %.1f %.1f %.1f %.1f %.1f %.1f"
+			1.5 2.5 3.5 4.5 5.5 6.5 7.5 8.5 9.5 10.5]
+		--assert streq? vararg-buf "1.5 2.5 3.5 4.5 5.5 6.5 7.5 8.5 9.5 10.5"
+	--test-- "va-mixed-bank-spill"
+		sprintf [vararg-buf "%d %.1f %d %.1f %d %.1f %d %.1f %d %.1f %d %.1f %d %.1f %d %.1f %d %.1f"
+			1 1.5 2 2.5 3 3.5 4 4.5 5 5.5 6 6.5 7 7.5 8 8.5 9 9.5]
+		--assert streq? vararg-buf "1 1.5 2 2.5 3 3.5 4 4.5 5 5.5 6 6.5 7 7.5 8 8.5 9 9.5"
 ===end-group===
 
 ===start-group=== "FP arg followed by a stacked arg (ARM AAPCS call-site SP alignment)"

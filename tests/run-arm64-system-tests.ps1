@@ -85,7 +85,10 @@ try {
 		throw "ARM64 test package was not created: $packageDir"
 	}
 	$packageFiles = @(Get-ChildItem -LiteralPath $packageDir -File)
-	$excluded = @('run-all.sh', 'libtest-dll1.so', 'libtest-dll2.so', 'libstructlib.so', 'structlib.c')
+	$excluded = @(
+		'run-all.sh', 'validate-arm64-elf.sh', 'libtest-dll1.so', 'libtest-dll2.so',
+		'libstructlib.so', 'structlib.c'
+	)
 	$expectedTests = @($packageFiles | Where-Object { $_.Name -notin $excluded }).Count
 	$expectedSmokes = @(Get-ChildItem -LiteralPath (Join-Path $root 'system\tests\source\units') `
 		-Filter 'arm64-*.reds' -File).Count + 1 # generated long-branch smoke
@@ -106,15 +109,14 @@ try {
 	$copyArgs = @($packageFiles.FullName) + "${Remote}:$remoteDir/"
 	Invoke-CheckedProcess -FilePath $scp -ArgumentList $copyArgs -TimeoutSeconds 180 | Out-Null
 
-	$header = Invoke-CheckedProcess -FilePath $ssh `
-		-ArgumentList @($Remote, "readelf -hW $remoteDir/array-test") -TimeoutSeconds 30
-	if ($header -notmatch 'Class:\s+ELF64' -or $header -notmatch 'Type:\s+DYN' -or
-		$header -notmatch 'Machine:\s+AArch64') {
-		throw "Generated executable is not an AArch64 ELF64 PIE`n$header"
+	$validationOutput = Invoke-CheckedProcess -FilePath $ssh `
+		-ArgumentList @(
+			$Remote,
+			"cd $remoteDir && sh ./validate-arm64-elf.sh ./array-test ./libtest-dll1.so"
+		) -TimeoutSeconds 30
+	if ($validationOutput -notmatch 'ARM64 ELF validation passed:') {
+		throw "ARM64 ELF validator did not report success`n$validationOutput"
 	}
-	$dynamic = Invoke-CheckedProcess -FilePath $ssh `
-		-ArgumentList @($Remote, "readelf -dW $remoteDir/array-test") -TimeoutSeconds 30
-	if ($dynamic -match 'TEXTREL') { throw 'Generated ARM64 executable contains TEXTREL' }
 
 	$runOutput = Invoke-CheckedProcess -FilePath $ssh `
 		-ArgumentList @($Remote, "cd $remoteDir && sh ./run-all.sh") `

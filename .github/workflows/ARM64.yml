@@ -23,6 +23,8 @@ jobs:
         expected=$((expected + 1)) # generated long-branch smoke
         actual=$(find "$package" -maxdepth 1 -name 'arm64-*' | wc -l)
         test "$actual" -eq "$expected"
+        sh "$package/validate-arm64-elf.sh" \
+          "$package/array-test" "$package/libtest-dll1.so"
 
     - name: Upload ARM64 test package
       uses: actions/upload-artifact@v7

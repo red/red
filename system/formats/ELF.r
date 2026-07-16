@@ -515,7 +515,7 @@ context [
 			]
 		]
 
-		if empty? dynamic-linker [
+		if any [empty? dynamic-linker job/type = 'dll] [
 			remove-elements structure [".interp"]
 		]
 

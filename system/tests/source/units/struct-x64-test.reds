@@ -595,6 +595,24 @@ struct-x64-local
 			callBigOverflowCallback: "callBigOverflowCallback" [
 				callback [int-ptr!] return: [integer!]
 			]
+			returnHugeBoundary: "returnHugeBoundary" [
+				a1 [integer!] a2 [integer!] a3 [integer!] a4 [integer!]
+				a5 [integer!] a6 [integer!] a7 [integer!] a8 [integer!]
+				h [huge! value] tail [integer!] return: [huge! value]
+			]
+			callHugeBoundaryCallback: "callHugeBoundaryCallback" [
+				callback [int-ptr!] return: [integer!]
+			]
+			checkMixedExhaustion: "checkMixedExhaustion" [
+				i1 [integer!] d1 [float!] i2 [integer!] d2 [float!]
+				i3 [integer!] d3 [float!] i4 [integer!] d4 [float!]
+				i5 [integer!] d5 [float!] i6 [integer!] d6 [float!]
+				i7 [integer!] d7 [float!] i8 [integer!] d8 [float!]
+				i9 [integer!] d9 [float!] return: [integer!]
+			]
+			callMixedExhaustionCallback: "callMixedExhaustionCallback" [
+				callback [int-ptr!] return: [integer!]
+			]
 
 			set_callback3999:   "set_callback"   [ptr [int-ptr!]]
 			test_callback3999:  "test_callback"  [return: [float32!]]
@@ -619,6 +637,7 @@ struct-x64-local
 	t8: declare triple8!
 	pd: declare paird!
 	qf: declare quadf32!
+	hr: declare huge!
 
 	s1/b1: #"A"
 
@@ -762,6 +781,40 @@ struct-x64-local
 		][1][0]
 	]
 
+	huge-boundary-callback: func [
+		[cdecl]
+		a1 [integer!] a2 [integer!] a3 [integer!] a4 [integer!]
+		a5 [integer!] a6 [integer!] a7 [integer!] a8 [integer!]
+		value [huge! value]
+		tail [integer!]
+		return: [huge! value]
+		/local result [huge! value]
+	][
+		result/w1: a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8
+		result/w2: tail
+		result/w3: value/w3
+		result/w4: value/w4
+		result/w5: value/w5
+		result/w6: value/w6
+		result
+	]
+
+	mixed-exhaustion-callback: func [
+		[cdecl]
+		i1 [integer!] d1 [float!] i2 [integer!] d2 [float!]
+		i3 [integer!] d3 [float!] i4 [integer!] d4 [float!]
+		i5 [integer!] d5 [float!] i6 [integer!] d6 [float!]
+		i7 [integer!] d7 [float!] i8 [integer!] d8 [float!]
+		i9 [integer!] d9 [float!]
+		return: [integer!]
+	][
+		either all [
+			i1 = 1 i2 = 2 i3 = 3 i4 = 4 i5 = 5 i6 = 6 i7 = 7 i8 = 8 i9 = 9
+			d1 = 1.5 d2 = 2.5 d3 = 3.5 d4 = 4.5 d5 = 5.5
+			d6 = 6.5 d7 = 7.5 d8 = 8.5 d9 = 9.5
+		][1][0]
+	]
+
 	--test-- "x64-native-aggregate-abi"
 		--assert 67 = checkTriple8 t8 7
 		--assert 67 = checkTriple8Std t8 7
@@ -783,6 +836,19 @@ struct-x64-local
 		--assert 1 = callQuadF32OverflowCallback as int-ptr! :quadf32-overflow-callback
 		--assert 1 = checkBigOverflow 1 2 3 4 5 6 7 s3 8 42
 		--assert 1 = callBigOverflowCallback as int-ptr! :big-overflow-callback
+		hr: returnHugeBoundary 1 2 3 4 5 6 7 8 s4 9
+		--assert hr/w1 = 36
+		--assert hr/w2 = 9
+		--assert hr/w3 = 3.0
+		--assert hr/w4 = 4
+		--assert hr/w5 = 5
+		--assert hr/w6 = 6.0
+		--assert 1 = callHugeBoundaryCallback as int-ptr! :huge-boundary-callback
+		--assert 1 = checkMixedExhaustion
+			1 1.5 2 2.5 3 3.5 4 4.5 5 5.5 6 6.5 7 7.5 8 8.5 9 9.5
+		#if target = 'ARM64 [
+			--assert 1 = callMixedExhaustionCallback as int-ptr! :mixed-exhaustion-callback
+		]
 
 		t8: returnTriple8
 		--assert (as integer! t8/one) = 11

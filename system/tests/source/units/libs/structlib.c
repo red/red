@@ -235,6 +235,48 @@ EXPORT int callBigOverflowCallback(
 	return callback(1, 2, 3, 4, 5, 6, 7, b, 8, 42);
 }
 
+EXPORT huge returnHugeBoundary(
+	int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8,
+	huge h, int tail
+) {
+	huge result = h;
+	result.one = a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8;
+	result.two = tail;
+	return result;
+}
+
+EXPORT int callHugeBoundaryCallback(
+	huge (*callback)(int, int, int, int, int, int, int, int, huge, int)
+) {
+	huge h = { 1, 2, 3.5, 4, 5, 6.5 };
+	huge result = callback(1, 2, 3, 4, 5, 6, 7, 8, h, 9);
+	return result.one == 36 && result.two == 9 && result.three == 3.5 &&
+		result.four == 4 && result.five == 5 && result.six == 6.5;
+}
+
+EXPORT int checkMixedExhaustion(
+	int i1, double d1, int i2, double d2, int i3, double d3,
+	int i4, double d4, int i5, double d5, int i6, double d6,
+	int i7, double d7, int i8, double d8, int i9, double d9
+) {
+	return i1 == 1 && i2 == 2 && i3 == 3 && i4 == 4 && i5 == 5 &&
+		i6 == 6 && i7 == 7 && i8 == 8 && i9 == 9 &&
+		d1 == 1.5 && d2 == 2.5 && d3 == 3.5 && d4 == 4.5 && d5 == 5.5 &&
+		d6 == 6.5 && d7 == 7.5 && d8 == 8.5 && d9 == 9.5;
+}
+
+EXPORT int callMixedExhaustionCallback(
+	int (*callback)(
+		int, double, int, double, int, double, int, double, int, double,
+		int, double, int, double, int, double, int, double
+	)
+) {
+	return callback(
+		1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5,
+		6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5
+	);
+}
+
 /* Regression test on issue #3999 */
 
 typedef struct {

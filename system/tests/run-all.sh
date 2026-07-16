@@ -12,7 +12,7 @@ if ! "${CC:-cc}" -shared -fPIC -O2 -o libstructlib.so structlib.c; then
 fi
 for exe in *;
  do
-  if [ "$exe" != "run-all.sh" ] && [ "$exe" != "quick-test.log" ] && [ "$exe" != "libtest-dll1.so" ] && [ "$exe" != "libtest-dll2.so" ] && [ "$exe" != "libstructlib.so" ] && [ "$exe" != "structlib.c" ]
+  if [ "$exe" != "run-all.sh" ] && [ "$exe" != "validate-arm64-elf.sh" ] && [ "$exe" != "quick-test.log" ] && [ "$exe" != "libtest-dll1.so" ] && [ "$exe" != "libtest-dll2.so" ] && [ "$exe" != "libstructlib.so" ] && [ "$exe" != "structlib.c" ]
    then
      total=$((total + 1));
      chmod +x "$exe";
