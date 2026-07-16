@@ -34,6 +34,18 @@ Red/System [
 		if marker <> 99 [sys-exit 8]
 		value
 	]
+	check-spilled-quad: func [
+		a [integer!] b [integer!] c [integer!] d [integer!]
+		e [integer!] f [integer!] g [integer!]
+		value [quad! value] tail [integer!] marker [integer!]
+		return: [integer!]
+	][
+		either all [
+			a = 1 b = 2 c = 3 d = 4 e = 5 f = 6 g = 7
+			value/a = 1 value/b = 2 value/c = 4 value/d = 8
+			tail = 9 marker = 42
+		][1][0]
+	]
 
 	p: declare pair!
 	q: declare quad!
@@ -63,6 +75,7 @@ Red/System [
 	rq: return-local-quad q
 	if rq/a <> 1 [sys-exit 12]
 	if rq/d <> 8 [sys-exit 13]
+	if 1 <> check-spilled-quad 1 2 3 4 5 6 7 q 9 42 [sys-exit 16]
 
 	l/a: 1
 	l/b: 2

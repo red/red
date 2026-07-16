@@ -69,6 +69,13 @@ typedef struct paird {
 	double two;
 } paird;
 
+typedef struct quadf32 {
+	float one;
+	float two;
+	float three;
+	float four;
+} quadf32;
+
 
 
 EXPORT tiny returnTiny(void) {
@@ -135,6 +142,11 @@ EXPORT paird returnPairD(void) {
 	return p;
 }
 
+EXPORT quadf32 returnQuadF32(void) {
+	quadf32 q = { 1.25f, 2.5f, 3.75f, 4.5f };
+	return q;
+}
+
 EXPORT int checkTriple8(triple8 t, int bias) {
 	return t.one + t.two + t.three + bias;
 }
@@ -149,6 +161,10 @@ EXPORT int checkBig(big b) {
 
 EXPORT int checkPairD(paird p) {
 	return p.one == 12.5 && p.two == 29.5;
+}
+
+EXPORT int checkQuadF32(quadf32 q) {
+	return q.one == 1.25f && q.two == 2.5f && q.three == 3.75f && q.four == 4.5f;
 }
 
 EXPORT int callTriple8Callback(int (*callback)(triple8, int)) {
@@ -183,6 +199,40 @@ EXPORT int checkPairDOverflow(
 	return d1 == 1.0 && d2 == 2.0 && d3 == 3.0 && d4 == 4.0 &&
 		d5 == 5.0 && d6 == 6.0 && d7 == 7.0 &&
 		p.one == 12.5 && p.two == 29.5 && tail == 8.0 && marker == 42;
+}
+
+EXPORT int checkQuadF32Overflow(
+	float f1, float f2, float f3, float f4, float f5, float f6, float f7,
+	quadf32 q, float tail, int marker
+) {
+	return f1 == 1.0f && f2 == 2.0f && f3 == 3.0f && f4 == 4.0f &&
+		f5 == 5.0f && f6 == 6.0f && f7 == 7.0f &&
+		q.one == 1.25f && q.two == 2.5f && q.three == 3.75f && q.four == 4.5f &&
+		tail == 8.0f && marker == 42;
+}
+
+EXPORT int callQuadF32OverflowCallback(
+	int (*callback)(float, float, float, float, float, float, float, quadf32, float, int)
+) {
+	quadf32 q = { 1.25f, 2.5f, 3.75f, 4.5f };
+	return callback(1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, q, 8.0f, 42);
+}
+
+EXPORT int checkBigOverflow(
+	int a1, int a2, int a3, int a4, int a5, int a6, int a7,
+	big b, int tail, int marker
+) {
+	return a1 == 1 && a2 == 2 && a3 == 3 && a4 == 4 &&
+		a5 == 5 && a6 == 6 && a7 == 7 &&
+		b.one == 123 && b.two == 456 && b.three == 3.14 &&
+		tail == 8 && marker == 42;
+}
+
+EXPORT int callBigOverflowCallback(
+	int (*callback)(int, int, int, int, int, int, int, big, int, int)
+) {
+	big b = { 123, 456, 3.14 };
+	return callback(1, 2, 3, 4, 5, 6, 7, b, 8, 42);
 }
 
 /* Regression test on issue #3999 */

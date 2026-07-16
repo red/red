@@ -530,6 +530,7 @@ struct-x64-local
 	hugef32!: alias struct! [w1 [float32!] w2 [integer!] w3 [float32!] w4 [integer!] w5 [integer!] w6 [float32!]]
 	triple8!: alias struct! [one [byte!] two [byte!] three [byte!]]
 	paird!:   alias struct! [one [float!] two [float!]]
+	quadf32!: alias struct! [one [float32!] two [float32!] three [float32!] four [float32!]]
 	super!:   alias struct! [f1 [float!] f2 [float!] f3 [float!] f4 [float!] f5 [float!] f6 [float!]]
 
 	nested1!: alias struct! [f1	[integer!] sub [tiny! value] f2	[integer!]]
@@ -556,9 +557,11 @@ struct-x64-local
 			returnHugef32: "returnHugef32" [h [hugef32! value] a [integer!] b [integer!] return: [hugef32! value]]
 			returnTriple8: "returnTriple8" [return: [triple8! value]]
 			returnPairD:   "returnPairD"   [return: [paird! value]]
+			returnQuadF32: "returnQuadF32" [return: [quadf32! value]]
 			checkTriple8:  "checkTriple8"  [t [triple8! value] bias [integer!] return: [integer!]]
 			checkBig:      "checkBig"      [b [big! value] return: [integer!]]
 			checkPairD:    "checkPairD"    [p [paird! value] return: [integer!]]
+			checkQuadF32:  "checkQuadF32"  [q [quadf32! value] return: [integer!]]
 			callTriple8Callback: "callTriple8Callback" [callback [int-ptr!] return: [integer!]]
 			callPairDCallback:   "callPairDCallback"   [callback [int-ptr!] return: [integer!]]
 			callBigReturnCallback: "callBigReturnCallback" [callback [int-ptr!] return: [integer!]]
@@ -573,6 +576,24 @@ struct-x64-local
 				d5 [float!] d6 [float!] d7 [float!]
 				p [paird! value] tail [float!] marker [integer!]
 				return: [integer!]
+			]
+			checkQuadF32Overflow: "checkQuadF32Overflow" [
+				f1 [float32!] f2 [float32!] f3 [float32!] f4 [float32!]
+				f5 [float32!] f6 [float32!] f7 [float32!]
+				q [quadf32! value] tail [float32!] marker [integer!]
+				return: [integer!]
+			]
+			callQuadF32OverflowCallback: "callQuadF32OverflowCallback" [
+				callback [int-ptr!] return: [integer!]
+			]
+			checkBigOverflow: "checkBigOverflow" [
+				a1 [integer!] a2 [integer!] a3 [integer!] a4 [integer!]
+				a5 [integer!] a6 [integer!] a7 [integer!]
+				b [big! value] tail [integer!] marker [integer!]
+				return: [integer!]
+			]
+			callBigOverflowCallback: "callBigOverflowCallback" [
+				callback [int-ptr!] return: [integer!]
 			]
 
 			set_callback3999:   "set_callback"   [ptr [int-ptr!]]
@@ -597,6 +618,7 @@ struct-x64-local
 	s4: declare huge!
 	t8: declare triple8!
 	pd: declare paird!
+	qf: declare quadf32!
 
 	s1/b1: #"A"
 
@@ -618,6 +640,10 @@ struct-x64-local
 	t8/three: as byte! 30
 	pd/one: 12.5
 	pd/two: 29.5
+	qf/one: as float32! 1.25
+	qf/two: as float32! 2.5
+	qf/three: as float32! 3.75
+	qf/four: as float32! 4.5
 
 	triple8-callback: func [
 		[cdecl]
@@ -701,11 +727,47 @@ struct-x64-local
 		value
 	]
 
+	quadf32-overflow-callback: func [
+		[cdecl]
+		f1 [float32!] f2 [float32!] f3 [float32!] f4 [float32!]
+		f5 [float32!] f6 [float32!] f7 [float32!]
+		value [quadf32! value]
+		tail [float32!]
+		marker [integer!]
+		return: [integer!]
+	][
+		either all [
+			f1 = as float32! 1.0 f2 = as float32! 2.0
+			f3 = as float32! 3.0 f4 = as float32! 4.0
+			f5 = as float32! 5.0 f6 = as float32! 6.0 f7 = as float32! 7.0
+			value/one = as float32! 1.25 value/two = as float32! 2.5
+			value/three = as float32! 3.75 value/four = as float32! 4.5
+			tail = as float32! 8.0 marker = 42
+		][1][0]
+	]
+
+	big-overflow-callback: func [
+		[cdecl]
+		a1 [integer!] a2 [integer!] a3 [integer!] a4 [integer!]
+		a5 [integer!] a6 [integer!] a7 [integer!]
+		value [big! value]
+		tail [integer!]
+		marker [integer!]
+		return: [integer!]
+	][
+		either all [
+			a1 = 1 a2 = 2 a3 = 3 a4 = 4 a5 = 5 a6 = 6 a7 = 7
+			value/one = 123 value/two = 456 value/three = 3.14
+			tail = 8 marker = 42
+		][1][0]
+	]
+
 	--test-- "x64-native-aggregate-abi"
 		--assert 67 = checkTriple8 t8 7
 		--assert 67 = checkTriple8Std t8 7
 		--assert 1 = checkBig s3
 		--assert 1 = checkPairD pd
+		--assert 1 = checkQuadF32 qf
 		--assert 13 = callTriple8Callback as int-ptr! :triple8-callback
 		--assert 42 = callPairDCallback as int-ptr! :paird-callback
 		--assert 13 = callTriple8Callback as int-ptr! :triple8-stdcall-callback
@@ -714,6 +776,13 @@ struct-x64-local
 		--assert 1 = callBigReturnCallback as int-ptr! :big-return-metadata-callback
 		--assert 1 = checkNineDoubles 42 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0
 		--assert 1 = checkPairDOverflow 1.0 2.0 3.0 4.0 5.0 6.0 7.0 pd 8.0 42
+		--assert 1 = checkQuadF32Overflow
+			(as float32! 1.0) (as float32! 2.0) (as float32! 3.0) (as float32! 4.0)
+			(as float32! 5.0) (as float32! 6.0) (as float32! 7.0)
+			qf (as float32! 8.0) 42
+		--assert 1 = callQuadF32OverflowCallback as int-ptr! :quadf32-overflow-callback
+		--assert 1 = checkBigOverflow 1 2 3 4 5 6 7 s3 8 42
+		--assert 1 = callBigOverflowCallback as int-ptr! :big-overflow-callback
 
 		t8: returnTriple8
 		--assert (as integer! t8/one) = 11
@@ -734,6 +803,11 @@ struct-x64-local
 		pd: returnPairD
 		--assert pd/one = 12.5
 		--assert pd/two = 29.5
+		qf: returnQuadF32
+		--assert qf/one = as float32! 1.25
+		--assert qf/two = as float32! 2.5
+		--assert qf/three = as float32! 3.75
+		--assert qf/four = as float32! 4.5
 
 	sbvf1: func [s [tiny! value] v [integer!]][
 		s/b1: #"x"
