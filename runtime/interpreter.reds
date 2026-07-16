@@ -557,8 +557,8 @@ interpreter: context [
 			extern?	[logic!]
 			entry	[int-ptr!]
 			rargs	[routine-call-args!]
-			call	[function! [return: [integer!]]]
-			callf	[function! [return: [float!]]]
+			call	[function! [[custom] return: [integer!]]]
+			callf	[function! [[custom] return: [float!]]]
 			callex	[function! [[cdecl custom] return: [integer!]]]
 	][
 		extern?: rt/header and flag-extern-code <> 0
@@ -608,7 +608,7 @@ interpreter: context [
 				rargs/f1: 0.0 rargs/f2: 0.0 rargs/f3: 0.0 rargs/f4: 0.0
 				rargs/f5: 0.0 rargs/f6: 0.0 rargs/f7: 0.0 rargs/f8: 0.0
 			][
-				call: as function! [return: [integer!]] entry
+				call: as function! [[custom] return: [integer!]] entry
 			]
 
 			s: resolve-series rt/spec
@@ -705,7 +705,7 @@ interpreter: context [
 							#either OS = 'Windows [
 								ret: either zero? float-total [invoke-routine-int-win64 entry rargs][invoke-routine-int-x64 entry rargs]
 							][ret: invoke-routine-int-x64 entry rargs]
-						][ret: call]
+						][ret: call args]
 						bool: as red-logic! stack/arguments
 						bool/header: TYPE_LOGIC
 						bool/value: ret <> 0
@@ -715,7 +715,7 @@ interpreter: context [
 							#either OS = 'Windows [
 								ret: either zero? float-total [invoke-routine-int-win64 entry rargs][invoke-routine-int-x64 entry rargs]
 							][ret: invoke-routine-int-x64 entry rargs]
-						][ret: call]
+						][ret: call args]
 						int: as red-integer! stack/arguments
 						int/header: TYPE_INTEGER
 						int/value: ret
@@ -724,8 +724,8 @@ interpreter: context [
 						#either target = 'X86-64 [
 							retf: invoke-routine-float-x64 entry rargs
 						][
-							callf: as function! [return: [float!]] entry
-							retf: callf
+							callf: as function! [[custom] return: [float!]] entry
+							retf: callf args
 						]
 						fl: as red-float! stack/arguments
 						fl/header: TYPE_FLOAT
@@ -737,7 +737,7 @@ interpreter: context [
 				#either OS = 'Windows [
 					either zero? float-total [invoke-routine-int-win64 entry rargs][invoke-routine-int-x64 entry rargs]
 				][invoke-routine-int-x64 entry rargs]
-			][call]]
+			][call args]]
 		]
 	]
 	
@@ -893,6 +893,7 @@ interpreter: context [
 			required? function? routine? set? get? apply? native? ifx? some? t? safer? ref? [logic!]
 			fetch-arg get-spec-word	[subroutine!]
 			calln				[function! []]
+			call-custom			[function! [[custom]]]
 			callx64				[function! [
 				a1  [integer!] a2  [integer!] a3  [integer!] a4  [integer!]
 				a5  [integer!] a6  [integer!] a7  [integer!] a8  [integer!]
@@ -1223,8 +1224,13 @@ interpreter: context [
 					]
 				]
 			][
-				calln: as function! [] xcode			;-- IA-32 arguments are already on the native stack
-				calln
+				either ref-array = null [
+					calln: as function! [] xcode
+					calln
+				][
+					call-custom: as function! [[custom]] xcode
+					call-custom int/value				;-- IA-32 arguments are already on the native stack
+				]
 			]
 		]
 		pc

@@ -2,6 +2,8 @@
 	Shared library for testing
 */
 
+#include <stdint.h>
+
 #ifdef _MSC_VER
 	#define EXPORT __declspec(dllexport)
 #else
@@ -13,48 +15,59 @@ typedef struct tiny {
 } tiny;
 
 typedef struct small {
-	long one;
-	long two;
+	int32_t one;
+	int32_t two;
 } small;
 
 typedef struct big {
-	long one;
-	long two;
+	int32_t one;
+	int32_t two;
 	double three;
 } big;
 
 typedef struct huge {
-	long one;
-	long two;
+	int32_t one;
+	int32_t two;
 	double three;
-	long four;
-	long five;
+	int32_t four;
+	int32_t five;
 	double six;
 } huge;
 
 typedef struct huge3 {
-	long one;
-	long two;
-	long three;
-	long four;
-	long five;
-	long six;
+	int32_t one;
+	int32_t two;
+	int32_t three;
+	int32_t four;
+	int32_t five;
+	int32_t six;
 } huge3;
 
 typedef struct bigf32 {
-	long one;
-	long two;
+	int32_t one;
+	int32_t two;
 	float three;
 } bigf32;
 
 typedef struct hugef32 {
 	float one;
-	long two;
+	int32_t two;
 	float three;
-	long four;
-	long five;
+	int32_t four;
+	int32_t five;
 	float six;
 } hugef32;
+
+typedef struct triple8 {
+	uint8_t one;
+	uint8_t two;
+	uint8_t three;
+} triple8;
+
+typedef struct paird {
+	double one;
+	double two;
+} paird;
 
 
 
@@ -105,6 +118,71 @@ EXPORT hugef32 returnHugef32(hugef32 h, int a, int b) {
 	t.two = b;
 	t.six = h.six;
 	return t;
+}
+
+EXPORT triple8 returnTriple8(void) {
+	triple8 t = { 11, 22, 33 };
+	return t;
+}
+
+EXPORT triple8 returnTriple8Std(void) {
+	triple8 t = { 44, 55, 66 };
+	return t;
+}
+
+EXPORT paird returnPairD(void) {
+	paird p = { 12.5, 29.5 };
+	return p;
+}
+
+EXPORT int checkTriple8(triple8 t, int bias) {
+	return t.one + t.two + t.three + bias;
+}
+
+EXPORT int checkTriple8Std(triple8 t, int bias) {
+	return t.one + t.two + t.three + bias;
+}
+
+EXPORT int checkBig(big b) {
+	return b.one == 123 && b.two == 456 && b.three == 3.14;
+}
+
+EXPORT int checkPairD(paird p) {
+	return p.one == 12.5 && p.two == 29.5;
+}
+
+EXPORT int callTriple8Callback(int (*callback)(triple8, int)) {
+	triple8 t = { 1, 2, 3 };
+	return callback(t, 7);
+}
+
+EXPORT int callPairDCallback(int (*callback)(paird, int)) {
+	paird p = { 10.5, 20.5 };
+	return callback(p, 11);
+}
+
+EXPORT int callBigReturnCallback(big (*callback)(int32_t)) {
+	big b = callback(5);
+	return b.one == 123 && b.two == 456 && b.three == 3.14;
+}
+
+EXPORT int checkNineDoubles(
+	int marker,
+	double d1, double d2, double d3, double d4, double d5,
+	double d6, double d7, double d8, double d9
+) {
+	return marker == 42 &&
+		d1 == 1.0 && d2 == 2.0 && d3 == 3.0 && d4 == 4.0 && d5 == 5.0 &&
+		d6 == 6.0 && d7 == 7.0 && d8 == 8.0 && d9 == 9.0;
+}
+
+EXPORT int checkPairDOverflow(
+	double d1, double d2, double d3, double d4, double d5, double d6, double d7,
+	paird p, double tail, int marker
+) {
+	return d1 == 1.0 && d2 == 2.0 && d3 == 3.0 && d4 == 4.0 &&
+		d5 == 5.0 && d6 == 6.0 && d7 == 7.0 &&
+		p.one == 12.5 && p.two == 29.5 && tail == 8.0 && marker == 42;
 }
 
 /* Regression test on issue #3999 */

@@ -503,7 +503,7 @@ change-image: func [
 	/local
 		w h	hh	[integer!]
 		new-img	[red-image!]
-		bmp		[integer!]
+		bmp		[int-ptr!]
 		stride	[integer!]
 		data	[int-ptr!]
 		i ii sz	[integer!]

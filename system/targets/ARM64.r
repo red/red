@@ -561,11 +561,12 @@ make-profilable make target-class [
 	prepare-call-args: func [
 		n [integer!]
 		/indirect-result
-		/local types classes type int-reg fp-reg stack-args out-size source target class stack-index first?
+		/local types classes type int-reg fp-reg stack-size out-size source target class first?
+			aggregate-stack-left aggregate-stack-base aggregate-field-size
 	][
 		types: reverse copy/deep call-arg-types
 		classes: make block! n
-		int-reg: fp-reg: stack-args: 0
+		int-reg: fp-reg: stack-size: aggregate-stack-left: 0
 		first?: yes
 		foreach type types [
 			type: compiler/resolve-aliased type
@@ -573,13 +574,47 @@ make-profilable make target-class [
 				all [indirect-result first?] [
 					append/only classes reduce ['result 8 type]
 				]
+				all [5 <= length? type type/2 = 'arm64-aggregate] [
+					if type/5 = 1 [
+						either type/3 = 'hfa [
+							if (fp-reg + type/4) > 8 [
+								fp-reg: 8
+								aggregate-stack-left: type/4
+							]
+						][
+							if (int-reg + type/4) > 8 [
+								int-reg: 8
+								aggregate-stack-left: type/4
+							]
+						]
+						if positive? aggregate-stack-left [
+							aggregate-field-size: either float32-type? type [4][8]
+							aggregate-stack-base: stack-size
+							stack-size: stack-size + round/to/ceiling
+								(type/4 * aggregate-field-size) 8
+						]
+					]
+					either positive? aggregate-stack-left [
+						target: aggregate-stack-base + ((type/5 - 1) * aggregate-field-size)
+						append/only classes reduce ['stack target type aggregate-field-size]
+						aggregate-stack-left: aggregate-stack-left - 1
+					][
+						either type/3 = 'hfa [
+							append/only classes reduce ['fp fp-reg type]
+							fp-reg: fp-reg + 1
+						][
+							append/only classes reduce ['int int-reg type]
+							int-reg: int-reg + 1
+						]
+					]
+				]
 				compiler/any-float? type [
 					either fp-reg < 8 [
 						append/only classes reduce ['fp fp-reg type]
 						fp-reg: fp-reg + 1
 					][
-						append/only classes reduce ['stack stack-args type]
-						stack-args: stack-args + 1
+						append/only classes reduce ['stack stack-size type]
+						stack-size: stack-size + 8
 					]
 				]
 				true [
@@ -587,20 +622,19 @@ make-profilable make target-class [
 						append/only classes reduce ['int int-reg type]
 						int-reg: int-reg + 1
 					][
-						append/only classes reduce ['stack stack-args type]
-						stack-args: stack-args + 1
+						append/only classes reduce ['stack stack-size type]
+						stack-size: stack-size + 8
 					]
 				]
 			]
 			first?: no
 		]
 
-		out-size: round/to/ceiling stack-args * 8 16
+		out-size: round/to/ceiling stack-size 16
 		if positive? out-size [
 			if out-size > 4095 [compiler/throw-error "ARM64 outgoing argument area is too large"]
 			emit-i32 (to integer! #{D10003FF}) or (out-size * 1024) ; SUB sp, sp, out-size
 		]
-		stack-index: 0
 		repeat i n [
 			class: classes/:i
 			source: out-size + ((i - 1) * 16)
@@ -612,10 +646,14 @@ make-profilable make target-class [
 						source class/2
 				]
 				stack [
-					target: stack-index * 8
-					emit-sp-insn #{F8400000} source 16
-					emit-sp-insn #{F8000000} target 16
-					stack-index: stack-index + 1
+					target: class/2
+					either all [4 <= length? class class/4 = 4][
+						emit-sp-insn #{B8400000} source 16
+						emit-sp-insn #{B8000000} target 16
+					][
+						emit-sp-insn #{F8400000} source 16
+						emit-sp-insn #{F8000000} target 16
+					]
 				]
 			]
 		]
@@ -1198,9 +1236,13 @@ make-profilable make target-class [
 		emit-cset 0                                           ; EQ
 	]
 
-	emit-push-struct: func [slots [integer!] /local hfa field-type field-size i][
+	emit-push-struct: func [
+		slots [integer!]
+		/aggregate type [block!]
+		/local hfa field-type field-size i descriptor
+	][
 		emit-i32 #{AA0003E3}                                  ; MOV x3, x0
-		hfa: homogeneous-aggregate? compiler/last-type
+		hfa: homogeneous-aggregate? any [type compiler/last-type]
 		either hfa/1 [
 			field-type: reduce [either hfa/2 ['float32!]['float!]]
 			field-size: either hfa/2 [4][8]
@@ -1208,7 +1250,8 @@ make-profilable make target-class [
 				emit-load-memory field-type 3 (i - 1) * field-size
 				emit-i32 #{D10043FF}                          ; SUB sp, sp, #16
 				emit-i32 either hfa/2 [#{BC0003E0}][#{FC0003E0}]
-				append/only call-arg-types field-type
+				descriptor: reduce [field-type/1 'arm64-aggregate 'hfa hfa/3 i]
+				append/only call-arg-types descriptor
 				call-arg-index: call-arg-index + 1
 			]
 		][
@@ -1216,7 +1259,8 @@ make-profilable make target-class [
 				emit-load-memory [uint64!] 3 (i - 1) * stack-width
 				emit-i32 #{D10043FF}                          ; SUB sp, sp, #16
 				emit-i32 #{F90003E0}                          ; STR x0, [sp]
-				append/only call-arg-types [uint64!]
+				descriptor: reduce ['uint64! 'arm64-aggregate 'integer slots i]
+				append/only call-arg-types descriptor
 				call-arg-index: call-arg-index + 1
 			]
 		]
@@ -2052,11 +2096,24 @@ make-profilable make target-class [
 							]
 							]
 							true [
-							repeat i slots [
-								emit-frame-insn #{F8400000} 16 + (stack-arg * 8) 16
-								emit-frame-insn #{F8000000} base + ((i - 1) * 8) 16
-								stack-arg: stack-arg + 1
-							]
+								either hfa/1 [
+									fp-reg: 8
+									field-size: either hfa/2 [4][8]
+									repeat i hfa/3 [
+										emit-frame-fp-insn either hfa/2 [#{BC400000}][#{FC400000}]
+											16 + (stack-arg * 8) + ((i - 1) * field-size) 16
+										emit-frame-fp-insn either hfa/2 [#{BC000000}][#{FC000000}]
+											base + ((i - 1) * field-size) 16
+									]
+									stack-arg: stack-arg + slots
+								][
+									int-reg: 8
+									repeat i slots [
+										emit-frame-insn #{F8400000} 16 + (stack-arg * 8) 16
+										emit-frame-insn #{F8000000} base + ((i - 1) * 8) 16
+										stack-arg: stack-arg + 1
+									]
+								]
 							]
 						]
 						patch-stack-offset arg-name base

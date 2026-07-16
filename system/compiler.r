@@ -2263,8 +2263,12 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		encode-pointers: func [name specs [block!] /local list offset b][
-			list: emitter/encode-ptr-bitmap specs
+		encode-pointers: func [name specs [block!] /metadata fspec [block!] /local list offset b][
+			list: either metadata [
+				emitter/encode-ptr-bitmap/metadata specs fspec
+			][
+				emitter/encode-ptr-bitmap specs
+			]
 			if verbose > 5 [
 				print [name ":" mold specs]
 				foreach n list [
@@ -2287,7 +2291,7 @@ system-dialect: make-profilable context [
 			]]
 		]
 		
-		fetch-func: func [name /local specs type cc attribs offset][
+		fetch-func: func [name /local specs type cc attribs offset fspec][
 			name: to word! name
 			store-ns-symbol name
 			if ns-path [add-ns-symbol pc/-1]
@@ -2322,11 +2326,12 @@ system-dialect: make-profilable context [
 					find attribs 'stdcall [cc: 'stdcall]	;-- get ready when fastcall will be the default cc
 				]
 			]
-			offset: encode-pointers name specs
+			add-function type reduce [name none specs] cc
+			fspec: second find-functions name
+			offset: encode-pointers/metadata name specs fspec
 			if all [job/libRedRT? job/type = 'dll][
 				offset: offset or to integer! #40000000		;-- set bit 30 flag on bitmap offset for libRedRT code
 			]
-			add-function type reduce [name none specs] cc
 			emitter/add-native name
 			repend natives [
 				name specs pc/3 script
@@ -2383,10 +2388,19 @@ system-dialect: make-profilable context [
 			expr
 		]
 		
-		flag-callback: func [name [word!] cc [word! none!] /local spec][
-			spec: second find-functions name
+		flag-callback: func [name [word!] cc [word! none!] /local entry spec native offset][
+			entry: find-functions name
+			spec: second entry
 			spec/3: any [cc job/export-ABI all [job/red-pass? spec/3] 'cdecl]
 			unless spec/5 = 'callback [append spec 'callback]
+			;-- #export can add a hidden return slot after the bitmap was first encoded.
+			if native: find/skip natives entry/1 8 [
+				offset: encode-pointers/metadata entry/1 native/2 spec
+				if all [job/libRedRT? job/type = 'dll][
+					offset: offset or to integer! #40000000
+				]
+				native/8: offset
+			]
 		]
 		
 		process-export: has [defs cc ns entry spec list name sym][
@@ -4034,6 +4048,17 @@ system-dialect: make-profilable context [
 				]
 			]
 		]
+
+		external-abi-call?: func [spec [block!] /local attribs][
+			to logic! any [
+				spec/2 = 'import
+				spec/5 = 'callback
+				all [
+					attribs: get-attributes spec/4
+					any [find attribs 'cdecl find attribs 'stdcall]
+				]
+			]
+		]
 		
 		get-caller: func [name [word!] /root /local list found? stk][
 			stk: exclude expr-call-stack [as #body #test]
@@ -4054,33 +4079,66 @@ system-dialect: make-profilable context [
 			]
 		]
 
-		pass-struct-pointer?: func [spec [block!] slots [integer!] /result][
+		pass-struct-pointer?: func [
+			spec [block!] slots [integer!] size [integer!]
+			/result
+			/aggregate aggregate-type [block!]
+		][
 			all [
 				spec/2 = 'import						 ;-- system ABI is enforced on imports only
-				spec/3 = 'cdecl							 ;-- stdcall applies to R/S or Windows ABI
-				any [
-					all [1 < slots job/target = 'ARM]	 ;-- ARM requires it only for struct > 4 bytes
-					all [
-						2 < slots
-						job/target = 'ARM64
-						not all [result arm64-hfa-result? spec]
-					]							 ;-- AAPCS64 uses an indirect result above 16 bytes, except HFAs
-					all [1 < slots job/target = 'X86-64] ;-- MS x64 ABI passes structs > 8 bytes by pointer
-					all [
-						not find [Windows macOS FreeBSD NetBSD] job/OS	 ;-- fallback on Linux ABI
-						not find [ARM ARM64] job/target
+				case [
+					job/target = 'ARM [
+						all [spec/3 = 'cdecl 1 < slots]	 ;-- ARM requires it only for struct > 4 bytes
+					]
+					job/target = 'ARM64 [
+						all [
+							spec/3 = 'cdecl
+							2 < slots
+							not either result [
+								arm64-hfa-result? spec
+							][
+								all [aggregate first emitter/target/homogeneous-aggregate? aggregate-type]
+							]
+						]
+					]
+					job/target = 'X86-64 [
+						all [
+							job/OS = 'Windows
+							find [cdecl stdcall] spec/3
+							not find [1 2 4 8] size		 ;-- Win64 passes other aggregate sizes indirectly
+						]
+					]
+					true [
+						all [
+							spec/3 = 'cdecl
+							not find [Windows macOS FreeBSD NetBSD] job/OS
+						]
 					]
 				]
 			]
 		]
+
+		hidden-struct-return?: func [spec [block!] slots [integer!] size [integer!]][
+			to logic! any [
+				all [
+					2 < slots
+					any [job/target <> 'ARM64 not arm64-hfa-result? spec]
+				]
+				pass-struct-pointer?/result spec slots size
+				all [
+					job/target = 'X86-64
+					job/OS = 'Windows
+					external-abi-call? spec
+					not find [1 2 4 8] size
+				]
+			]
+		]
 		
-		process-returned-struct: func [name [word!] spec [block!] args [block!] /local alloc? slots caller][
+		process-returned-struct: func [name [word!] spec [block!] args [block!] /local alloc? slots size caller][
 			if all [
 				slots: emitter/struct-slots?/check spec/4
-				any [
-					all [2 < slots not arm64-hfa-result? spec] ;-- R/S and Windows ABI, except AAPCS64 HFAs
-					pass-struct-pointer?/result spec slots	;-- check other cases
-				]
+				size: emitter/struct-size?/check spec/4
+				hidden-struct-return? spec slots size
 			][
 				unless caller: get-caller name [
 					caller: either tail? pc [
@@ -4121,7 +4179,7 @@ system-dialect: make-profilable context [
 			name [word!] args [block!]
 			/local
 				list type res align? left right dup var-arity? saved? arg expr spec fspec comp-nested
-				types slots struct-type struct-slots temp-slots scan-types
+				types slots struct-type struct-slots struct-size temp-slots scan-types
 				saved-call-arg-index saved-call-stack-slots saved-call-pad-slots
 				saved-call-extra-slots saved-call-shadow-slots saved-call-float-reg-count
 				saved-call-struct-temp-slots saved-call-variadic? saved-call-arg-types
@@ -4217,7 +4275,8 @@ system-dialect: make-profilable context [
 							if all [scan-types not tag? expr block? scan-types/1 struct-by-value? scan-types/1][
 								struct-type: resolve-aliased scan-types/1
 								struct-slots: emitter/struct-slots?/direct struct-type/2
-								if pass-struct-pointer? spec struct-slots [
+								struct-size: emitter/struct-size?/direct struct-type/2
+								if pass-struct-pointer?/aggregate spec struct-slots struct-size struct-type [
 									temp-slots: temp-slots + struct-slots
 								]
 							]
@@ -4238,13 +4297,22 @@ system-dialect: make-profilable context [
 							either all [types not tag? expr block? types/1 struct-by-value? types/1][
 								struct-type: resolve-aliased types/1
 								struct-slots: emitter/struct-slots?/direct struct-type/2
+								struct-size: emitter/struct-size?/direct struct-type/2
 								either all [
 									find [X86-64 ARM64] job/target
-									pass-struct-pointer? spec struct-slots
+									pass-struct-pointer?/aggregate spec struct-slots struct-size struct-type
 								][
 									emitter/push-struct-ref expr struct-type
 								][
-									emitter/push-struct expr struct-type
+									either all [
+										job/target = 'X86-64
+										job/OS <> 'Windows
+										external-abi-call? spec
+									][
+										emitter/push-struct/sysv expr struct-type
+									][
+										emitter/push-struct expr struct-type
+									]
 								]
 							][
 								emitter/target/emit-argument expr fspec ;-- let target define how arguments are passed
@@ -4578,7 +4646,10 @@ system-dialect: make-profilable context [
 					word? expr/1
 					any [not subrc? throw-error "cannot return a struct by value from a subroutine"]
 					spec: select functions expr/1
-					pass-struct-pointer?/result spec emitter/struct-slots?/check spec/4
+					hidden-struct-return?
+						spec
+						emitter/struct-slots?/check spec/4
+						emitter/struct-size?/check spec/4
 					store?: no							;-- avoid emitting assignment code
 				]
 				if all [

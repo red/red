@@ -923,8 +923,31 @@ emitter: make-profilable context [
 		]
 		round/ceiling size / target/stack-width
 	]
+
+	struct-size?: func [spec [block!] /direct /check /local size][
+		if check [
+			unless all [
+				spec: select spec compiler/return-def
+				'value = last spec
+			][
+				return none
+			]
+		]
+		unless direct [
+			if not find [struct! union!] spec/1 [
+				spec: compiler/find-aliased spec/1
+				if not find [struct! union!] spec/1 [return none]
+			]
+			spec: spec/2
+		]
+		either compiler/union-spec? spec [
+			union-size? spec
+		][
+			member-offset? spec none
+		]
+	]
 	
-	struct-ptr?: func [spec [block!] /local ret][
+	struct-ptr?: func [spec [block!] /metadata fspec [block!] /local ret size attrs external?][
 		all [
 			ret: select spec compiler/return-def
 			'value = last ret
@@ -932,9 +955,15 @@ emitter: make-profilable context [
 				all [
 					target/target = 'X86-64
 					compiler/job/OS = 'Windows
-					block? spec/1
-					find spec/1 'cdecl
-					1 < struct-slots? ret
+					external?: any [
+						all [metadata compiler/external-abi-call? fspec]
+						all [
+							attrs: compiler/get-attributes spec
+							any [find attrs 'cdecl find attrs 'stdcall]
+						]
+					]
+					size: struct-size? ret
+					not find [1 2 4 8] size
 				]
 				all [
 					target/target = 'ARM
@@ -962,8 +991,13 @@ emitter: make-profilable context [
 		]
 	]
 	
-	arguments-size?: func [locals [block!] /push /local size name type width offset ret-ptr?][
-		size: pick 4x0 ret-ptr?: to logic! struct-ptr? locals
+	arguments-size?: func [locals [block!] /push /metadata fspec [block!] /local size name type width offset ret-ptr?][
+		ret-ptr?: to logic! either metadata [
+			struct-ptr?/metadata locals fspec
+		][
+			struct-ptr? locals
+		]
+		size: pick 4x0 ret-ptr?
 		if push [
 			clear stack
 			if ret-ptr? [repend stack [<ret-ptr> target/args-offset]]
@@ -1064,7 +1098,7 @@ emitter: make-profilable context [
 		]
 	]
 
-	encode-ptr-bitmap: func [locals [block!] /local ts out bits i name spec step store pos arg-slots local-slots slots n args-done?][
+	encode-ptr-bitmap: func [locals [block!] /metadata fspec [block!] /local ts out bits i name spec step store pos arg-slots local-slots slots n args-done? ret-ptr?][
 		;; Encode pointer type stack slots in arguments and locals using 31-bit bitarrays
 		;; Bit 31 (highest bit) if set, is used to denote more slots.
 		;; First bitarrays are for arguments, '- is used to separate args from locals.
@@ -1080,7 +1114,12 @@ emitter: make-profilable context [
 		out: make block! 3
 		bits: i: 0
 		args-done?: no
-		if all [target/target = 'X86-64 struct-ptr? locals] [i: 1]
+		ret-ptr?: to logic! either metadata [
+			struct-ptr?/metadata locals fspec
+		][
+			struct-ptr? locals
+		]
+		if all [target/target = 'X86-64 ret-ptr?] [i: 1]
 		
 		store: [
 			bits: bits or extension-flag				;-- set bit 31 to 1 to denote extension
@@ -1181,9 +1220,17 @@ emitter: make-profilable context [
 		append data-buf bits-buf
 	]
 	
-	push-struct: func [expr spec [block!]][
+	push-struct: func [expr spec [block!] /sysv][
 		target/emit-load expr
-		target/emit-push-struct struct-slots?/direct spec/2
+		either sysv [
+			target/emit-push-struct/sysv struct-slots?/direct spec/2 spec
+		][
+			either target/target = 'ARM64 [
+				target/emit-push-struct/aggregate struct-slots?/direct spec/2 spec
+			][
+				target/emit-push-struct struct-slots?/direct spec/2
+			]
+		]
 	]
 
 	push-struct-ref: func [expr spec [block!]][
@@ -1239,7 +1286,7 @@ emitter: make-profilable context [
 		(abs total) - extra
 	]
 	
-	enter: func [name [word!] locals [block!] offset [integer!] /local ret args-sz locals-sz extras pos][
+	enter: func [name [word!] locals [block!] offset [integer!] /local ret args-sz locals-sz extras pos fspec][
 		symbols/:name/2: tail-ptr						;-- store function's entry point
 		all [
 			spec: find/last symbols name
@@ -1249,7 +1296,12 @@ emitter: make-profilable context [
 		clear exits										;-- reset exit-points list
 
 		;-- Implements Red/System calling convention -- (STDCALL)
-		args-sz: arguments-size?/push locals
+		fspec: select compiler/functions name
+		args-sz: either fspec [
+			arguments-size?/push/metadata locals fspec
+		][
+			arguments-size?/push locals
+		]
 		
 		set [locals-sz extras] target/emit-prolog name locals offset
 		if verbose >= 2 [print ["args+locals stack:" mold emitter/stack]]

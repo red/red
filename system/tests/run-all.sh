@@ -5,7 +5,7 @@ failures=0;
 passed=0;
 total=0;
 if [ -f structlib.c ]; then
-  if ! "${CC:-cc}" -shared -fPIC -O2 -Dlong=int -o libstructlib.so structlib.c; then
+if ! "${CC:-cc}" -shared -fPIC -O2 -o libstructlib.so structlib.c; then
     echo "****** failed to build libstructlib.so *****";
     exit 1;
   fi

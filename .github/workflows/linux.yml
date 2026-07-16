@@ -3,6 +3,36 @@ name: Linux-x86
 on: [push, pull_request]
 
 jobs:
+  Linux-X64-All:
+    runs-on: ubuntu-24.04
+    name: Run Linux x86-64 Tests
+    timeout-minutes: 90
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+    - name: Set up Linux x86-64 test dependencies
+      run: |
+        sudo dpkg --add-architecture i386
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+          binutils ca-certificates curl file gawk gcc libc6:i386 libc6-dev \
+          libcurl4t64 libgtk-3-0t64
+        curl --fail --location --silent --show-error https://static.red-lang.org/tmp/rebol -o rebol
+        chmod +x rebol
+        file rebol
+        ./rebol -v
+    - name: Build and run Linux x86-64 tests
+      run: '"$GITHUB_WORKSPACE/rebol" -qws run-all-tests-linux-x64.r --batch'
+
+    - uses: actions/upload-artifact@v7
+      if: failure()
+      with:
+        name: Linux-x64-all-test-logs
+        if-no-files-found: ignore
+        path: |
+          quick-test/quick-test-linux-x64.log
+          build/linux-x64-all-tests/**
+
   Linux-Red-Tests:
     runs-on: ubuntu-latest
     name: Run Linux-x86 Tests

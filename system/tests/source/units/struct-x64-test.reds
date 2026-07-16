@@ -528,6 +528,8 @@ struct-x64-local
 	huge!:    alias struct! [w1 [integer!] w2 [integer!] w3 [float!] w4 [integer!] w5 [integer!] w6 [float!]]
 	hugeI!:   alias struct! [w1 [integer!] w2 [integer!] w3 [integer!] w4 [integer!] w5 [integer!] w6 [integer!]]
 	hugef32!: alias struct! [w1 [float32!] w2 [integer!] w3 [float32!] w4 [integer!] w5 [integer!] w6 [float32!]]
+	triple8!: alias struct! [one [byte!] two [byte!] three [byte!]]
+	paird!:   alias struct! [one [float!] two [float!]]
 	super!:   alias struct! [f1 [float!] f2 [float!] f3 [float!] f4 [float!] f5 [float!] f6 [float!]]
 
 	nested1!: alias struct! [f1	[integer!] sub [tiny! value] f2	[integer!]]
@@ -552,6 +554,26 @@ struct-x64-local
 			returnHuge2:   "returnHuge2"   [h [huge! value] a [integer!] b [integer!] return: [huge! value]]
 			returnHuge3:   "returnHuge3"   [h [hugeI! value] a [integer!] b [integer!] return: [hugeI! value]]
 			returnHugef32: "returnHugef32" [h [hugef32! value] a [integer!] b [integer!] return: [hugef32! value]]
+			returnTriple8: "returnTriple8" [return: [triple8! value]]
+			returnPairD:   "returnPairD"   [return: [paird! value]]
+			checkTriple8:  "checkTriple8"  [t [triple8! value] bias [integer!] return: [integer!]]
+			checkBig:      "checkBig"      [b [big! value] return: [integer!]]
+			checkPairD:    "checkPairD"    [p [paird! value] return: [integer!]]
+			callTriple8Callback: "callTriple8Callback" [callback [int-ptr!] return: [integer!]]
+			callPairDCallback:   "callPairDCallback"   [callback [int-ptr!] return: [integer!]]
+			callBigReturnCallback: "callBigReturnCallback" [callback [int-ptr!] return: [integer!]]
+			checkNineDoubles: "checkNineDoubles" [
+				marker [integer!]
+				d1 [float!] d2 [float!] d3 [float!] d4 [float!] d5 [float!]
+				d6 [float!] d7 [float!] d8 [float!] d9 [float!]
+				return: [integer!]
+			]
+			checkPairDOverflow: "checkPairDOverflow" [
+				d1 [float!] d2 [float!] d3 [float!] d4 [float!]
+				d5 [float!] d6 [float!] d7 [float!]
+				p [paird! value] tail [float!] marker [integer!]
+				return: [integer!]
+			]
 
 			set_callback3999:   "set_callback"   [ptr [int-ptr!]]
 			test_callback3999:  "test_callback"  [return: [float32!]]
@@ -563,10 +585,18 @@ struct-x64-local
 			test_callback3999G: "test_callbackG" [return: [float!]]
 		]
 	]
+	#import [
+		STRUCTLIB-file stdcall [
+			returnTriple8Std: "returnTriple8Std" [return: [triple8! value]]
+			checkTriple8Std:  "checkTriple8Std"  [t [triple8! value] bias [integer!] return: [integer!]]
+		]
+	]
 	s1: declare tiny!
 	s2: declare small!
 	s3: declare big!
 	s4: declare huge!
+	t8: declare triple8!
+	pd: declare paird!
 
 	s1/b1: #"A"
 
@@ -583,6 +613,127 @@ struct-x64-local
 	s4/w4: 4
 	s4/w5: 5
 	s4/w6: 6.0
+	t8/one: as byte! 10
+	t8/two: as byte! 20
+	t8/three: as byte! 30
+	pd/one: 12.5
+	pd/two: 29.5
+
+	triple8-callback: func [
+		[cdecl]
+		value [triple8! value]
+		bias [integer!]
+		return: [integer!]
+	][
+		(as integer! value/one) + (as integer! value/two) + (as integer! value/three) + bias
+	]
+
+	paird-callback: func [
+		[cdecl]
+		value [paird! value]
+		bias [integer!]
+		return: [integer!]
+	][
+		either all [value/one = 10.5 value/two = 20.5 bias = 11][42][0]
+	]
+
+	triple8-stdcall-callback: func [
+		[stdcall]
+		value [triple8! value]
+		bias [integer!]
+		return: [integer!]
+	][
+		(as integer! value/one) + (as integer! value/two) + (as integer! value/three) + bias
+	]
+
+	big-return-callback: func [
+		[cdecl]
+		base [integer!]
+		return: [big! value]
+		/local value [big! value]
+	][
+		value/one: 118 + base
+		value/two: 451 + base
+		value/three: 3.14
+		value
+	]
+
+	local-triple8-cdecl: func [
+		[cdecl]
+		return: [triple8! value]
+		/local value [triple8! value]
+	][
+		value/one: as byte! 71
+		value/two: as byte! 72
+		value/three: as byte! 73
+		value
+	]
+
+	local-triple8-stdcall: func [
+		[stdcall]
+		return: [triple8! value]
+		/local value [triple8! value]
+	][
+		value/one: as byte! 81
+		value/two: as byte! 82
+		value/three: as byte! 83
+		value
+	]
+
+	paird-metadata-callback: func [
+		[callback]
+		value [paird! value]
+		bias [integer!]
+		return: [integer!]
+	][
+		either all [value/one = 10.5 value/two = 20.5 bias = 11][43][0]
+	]
+
+	big-return-metadata-callback: func [
+		[callback]
+		base [integer!]
+		return: [big! value]
+		/local value [big! value]
+	][
+		value/one: 118 + base
+		value/two: 451 + base
+		value/three: 3.14
+		value
+	]
+
+	--test-- "x64-native-aggregate-abi"
+		--assert 67 = checkTriple8 t8 7
+		--assert 67 = checkTriple8Std t8 7
+		--assert 1 = checkBig s3
+		--assert 1 = checkPairD pd
+		--assert 13 = callTriple8Callback as int-ptr! :triple8-callback
+		--assert 42 = callPairDCallback as int-ptr! :paird-callback
+		--assert 13 = callTriple8Callback as int-ptr! :triple8-stdcall-callback
+		--assert 1 = callBigReturnCallback as int-ptr! :big-return-callback
+		--assert 43 = callPairDCallback as int-ptr! :paird-metadata-callback
+		--assert 1 = callBigReturnCallback as int-ptr! :big-return-metadata-callback
+		--assert 1 = checkNineDoubles 42 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0
+		--assert 1 = checkPairDOverflow 1.0 2.0 3.0 4.0 5.0 6.0 7.0 pd 8.0 42
+
+		t8: returnTriple8
+		--assert (as integer! t8/one) = 11
+		--assert (as integer! t8/two) = 22
+		--assert (as integer! t8/three) = 33
+		t8: returnTriple8Std
+		--assert (as integer! t8/one) = 44
+		--assert (as integer! t8/two) = 55
+		--assert (as integer! t8/three) = 66
+		t8: local-triple8-cdecl
+		--assert (as integer! t8/one) = 71
+		--assert (as integer! t8/two) = 72
+		--assert (as integer! t8/three) = 73
+		t8: local-triple8-stdcall
+		--assert (as integer! t8/one) = 81
+		--assert (as integer! t8/two) = 82
+		--assert (as integer! t8/three) = 83
+		pd: returnPairD
+		--assert pd/one = 12.5
+		--assert pd/two = 29.5
 
 	sbvf1: func [s [tiny! value] v [integer!]][
 		s/b1: #"x"
