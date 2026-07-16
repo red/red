@@ -20,6 +20,7 @@ jobs:
         package=quick-test/runnable/arm-tests/system
         test -f "$package/run-all.sh"
         expected=$(find system/tests/source/units -maxdepth 1 -name 'arm64-*.reds' | wc -l)
+        expected=$((expected + 1)) # generated long-branch smoke
         actual=$(find "$package" -maxdepth 1 -name 'arm64-*' | wc -l)
         test "$actual" -eq "$expected"
 

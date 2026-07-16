@@ -198,9 +198,54 @@ make-profilable make target-class [
 		if pos: find/skip emitter/stack name 2 [pos/2: offset]
 	]
 
-	emit-frame-insn: func [base [binary!] offset [integer!] reg [integer!]][
+	emit-register-offset: func [
+		base [integer!] target [integer!] offset [integer!] scratch [integer!]
+		/local opcode
+	][
+		if zero? offset [
+			emit-i32 (to integer! #{AA0003E0}) or (base * 65536) or target
+			exit
+		]
+		emit-mov-imm64/reg (abs offset) 'uint64! scratch
+		opcode: either negative? offset [#{CB000000}][#{8B000000}]
+		emit-i32 (opcode-int opcode) or (scratch * 65536) or (base * 32) or target
+	]
+
+	emit-adjust-stack: func [size [integer!] release? [logic!] /local pages chunk tail opcode][
+		unless positive? size [exit]
+		pages: to integer! (size / 4096)
+		tail: size // 4096
+		opcode: either release? [#{914003FF}][#{D14003FF}]
+		while [positive? pages][
+			chunk: min pages 4095
+			emit-i32 (opcode-int opcode) or (chunk * 1024)
+			pages: pages - chunk
+		]
+		if positive? tail [
+			opcode: either release? [#{910003FF}][#{D10003FF}]
+			emit-i32 (opcode-int opcode) or (tail * 1024)
+		]
+	]
+
+	emit-sp-offset-address: func [
+		target [integer!] offset [integer!] protected [integer! none!]
+		/local amount opcode
+	][
+		emit-i32 (to integer! #{910003E0}) or target             ; ADD xTarget, sp, #0
+		if zero? offset [exit]
+		amount: 17
+		if any [amount = target amount = protected][amount: 15]
+		emit-mov-imm64/reg (abs offset) 'uint64! amount
+		opcode: either negative? offset [#{CB000000}][#{8B000000}]
+		emit-i32 (opcode-int opcode) or (amount * 65536) or (target * 32) or target
+	]
+
+	emit-frame-insn: func [base [binary!] offset [integer!] reg [integer!] /local address][
 		if any [offset < -256 offset > 255][
-			compiler/throw-error ["ARM64 frame offset is out of unscaled range:" offset]
+			address: either reg = 16 [17][16]
+			emit-register-offset 29 address offset address
+			emit-i32 (opcode-int base) or (address * 32) or reg
+			exit
 		]
 		emit-i32 (opcode-int base) or ((offset and 511) * 4096) or (29 * 32) or reg
 	]
@@ -274,14 +319,10 @@ make-profilable make target-class [
 		emit-frame-insn #{38000000} offset 31                  ; STURB wzr, [x29, #offset]
 	]
 
-	emit-local-address: func [name [word!] /local offset opcode][
+	emit-local-address: func [name [word!] /local offset][
 		offset: emitter/local-offset? name
 		unless offset [compiler/throw-error ["unknown ARM64 local:" name]]
-		if any [offset < -4095 offset > 4095][
-			compiler/throw-error ["ARM64 local address offset is out of range:" offset]
-		]
-		opcode: either negative? offset [#{D10003A0}][#{910003A0}]
-		emit-i32 (opcode-int opcode) or ((abs offset) * 1024)
+		emit-register-offset 29 0 offset 16
 	]
 
 	emit-load: func [value /with cast [object!] /local raw raw-type local-spec type info][
@@ -408,7 +449,10 @@ make-profilable make target-class [
 		emit-i32 #{910043FF}                                  ; ADD sp, sp, #16
 	]
 
-	emit-sp-insn: func [base [binary!] offset [integer!] reg [integer!] /local scaled scale][
+	emit-sp-insn: func [
+		base [binary!] offset [integer!] reg [integer!]
+		/local scaled scale address amount opcode
+	][
 		scale: either any [base = #{BC400000} base = #{BC000000}][4][8]
 		scaled: switch base [
 			#{F8400000} [#{F9400000}]
@@ -423,7 +467,10 @@ make-profilable make target-class [
 			exit
 		]
 		if any [offset < -256 offset > 255][
-			compiler/throw-error ["ARM64 SP offset is out of unscaled range:" offset]
+			address: either reg = 16 [17][16]
+			emit-sp-offset-address address offset reg
+			emit-i32 (opcode-int base) or (address * 32) or reg
+			exit
 		]
 		emit-i32 (opcode-int base) or ((offset and 511) * 4096) or (31 * 32) or reg
 	]
@@ -517,11 +564,9 @@ make-profilable make target-class [
 		total: either args/1 = #typed [item-count / 3][item-count]
 		data-size: item-count * stack-width
 		packed-size: round/to/ceiling data-size 16
-		if packed-size > 4095 [compiler/throw-error "ARM64 variadic argument list is too large"]
-
 		;-- Compact the low eight bytes of each aligned staging cell into
 		;-- the 24-byte typed-value records used by the 64-bit runtime.
-		emit-i32 (to integer! #{D10003FF}) or (packed-size * 1024) ; SUB sp, sp, packed-size
+		emit-adjust-stack packed-size no
 		repeat i item-count [
 			source: packed-size + ((i - 1) * 16)
 			target: (i - 1) * stack-width
@@ -590,8 +635,8 @@ make-profilable make target-class [
 						if positive? aggregate-stack-left [
 							aggregate-field-size: either float32-type? type [4][8]
 							aggregate-stack-base: stack-size
-							stack-size: stack-size + round/to/ceiling
-								(type/4 * aggregate-field-size) 8
+			stack-size: stack-size + (round/to/ceiling
+				(type/4 * aggregate-field-size) 8)
 						]
 					]
 					either positive? aggregate-stack-left [
@@ -632,8 +677,7 @@ make-profilable make target-class [
 
 		out-size: round/to/ceiling stack-size 16
 		if positive? out-size [
-			if out-size > 4095 [compiler/throw-error "ARM64 outgoing argument area is too large"]
-			emit-i32 (to integer! #{D10003FF}) or (out-size * 1024) ; SUB sp, sp, out-size
+			emit-adjust-stack out-size no
 		]
 		repeat i n [
 			class: classes/:i
@@ -661,10 +705,7 @@ make-profilable make target-class [
 	]
 
 	emit-call-stack-cleanup: func [size [integer!]][
-		if positive? size [
-			if size > 4095 [compiler/throw-error "ARM64 call stack cleanup is too large"]
-			emit-i32 (to integer! #{910003FF}) or (size * 1024) ; ADD sp, sp, size
-		]
+		emit-adjust-stack size yes
 	]
 
 	emit-call-native: func [
@@ -967,12 +1008,9 @@ make-profilable make target-class [
 
 	emit-variable: func [name [word! object!]][emit-load name]
 
-	emit-memory-address-offset: func [base [integer!] offset [integer!] /local opcode][
-		if any [offset < -4095 offset > 4095][
-			compiler/throw-error ["ARM64 memory address offset is too large:" offset]
-		]
-		opcode: either negative? offset [#{D1000000}][#{91000000}]
-		emit-i32 (opcode-int opcode) or ((abs offset) * 1024) or (base * 32) ; x0 = base +/- offset
+	emit-memory-address-offset: func [base [integer!] offset [integer!] /local scratch][
+		scratch: either base = 16 [17][16]
+		emit-register-offset base 0 offset scratch
 	]
 
 	emit-load-memory: func [type [block!] base offset [integer!] /local opcode][
@@ -1266,17 +1304,24 @@ make-profilable make target-class [
 		]
 	]
 
-	emit-push-struct-ref: func [slots [integer!] /local offset i][
+	emit-push-struct-ref: func [slots [integer!] /local offset i slot-offset][
 		if call-struct-temp-slots < slots [
 			compiler/throw-error "ARM64 struct argument temporary stack space was not reserved"
 		]
 		offset: ((length? call-arg-types) * 16)
 			+ ((call-struct-temp-slots - slots) * stack-width)
-		if offset > 4095 [compiler/throw-error "ARM64 struct argument temporary offset is too large"]
-		emit-i32 (to integer! #{910003F0}) or (offset * 1024) ; ADD x16, sp, #offset
+		emit-sp-offset-address 16 offset 0
 		repeat i slots [
-			emit-i32 (to integer! #{F9400011}) or ((i - 1) * 1024) ; LDR x17, [x0, #slot]
-			emit-i32 (to integer! #{F9000211}) or ((i - 1) * 1024) ; STR x17, [x16, #slot]
+			slot-offset: (i - 1) * stack-width
+			either slot-offset <= 32760 [
+				emit-i32 (to integer! #{F9400011}) or ((i - 1) * 1024) ; LDR x17, [x0, #slot]
+				emit-i32 (to integer! #{F9000211}) or ((i - 1) * 1024) ; STR x17, [x16, #slot]
+			][
+				emit-register-offset 0 15 slot-offset 15
+				emit-i32 #{F94001F1}                              ; LDR x17, [x15]
+				emit-register-offset 16 15 slot-offset 15
+				emit-i32 #{F90001F1}                              ; STR x17, [x15]
+			]
 		]
 		call-struct-temp-slots: call-struct-temp-slots - slots
 		emit-i32 #{AA1003E0}                                  ; MOV x0, x16
@@ -1687,7 +1732,7 @@ make-profilable make target-class [
 		code [binary!] op [word! block! logic! none!]
 		offset [integer! none!] parity [logic! none!]
 		/back?
-		/local distance cond original keep?
+		/local distance cond original keep? bytes far-distance
 	][
 		distance: (length? code) - any [offset 0]
 		cond: none
@@ -1712,6 +1757,14 @@ make-profilable make target-class [
 			]
 		]
 		distance: either back? [negate distance][distance + 4]
+		if all [cond any [distance < -1048576 distance > 1048572]][
+			bytes: make binary! 8
+			append bytes to-bin32 encode-branch 8 (cond xor 1)
+			far-distance: either back? [distance - 4][distance]
+			append bytes to-bin32 encode-branch far-distance none
+			insert any [all [back? tail code] code] bytes
+			return 8
+		]
 		insert any [all [back? tail code] code] to-bin32 encode-branch distance cond
 		4
 	]
@@ -2050,8 +2103,7 @@ make-profilable make target-class [
 		emit-i32 #{A9BF7BFD}                                  ; STP x29, x30, [sp, #-16]!
 		emit-i32 #{910003FD}                                  ; MOV x29, sp
 		if positive? frame-size [
-			if frame-size > 4095 [compiler/throw-error "ARM64 frame is too large"]
-			emit-i32 (to integer! #{D10003FF}) or (frame-size * 1024) ; SUB sp, sp, frame-size
+			emit-adjust-stack frame-size no
 		]
 
 		;-- catch ID, resume address, bitmap offset, and parent Red frame
@@ -2202,10 +2254,7 @@ make-profilable make target-class [
 
 	emit-reserve-stack: func [slots [integer!] /local size][
 		size: round/to/ceiling slots * stack-width 16
-		if size > 4095 [compiler/throw-error "ARM64 reserved stack area is too large"]
-		if positive? size [
-			emit-i32 (to integer! #{D10003FF}) or (size * 1024) ; SUB sp, sp, size
-		]
+		emit-adjust-stack size no
 	]
 	emit-release-stack: func [slots [integer!] /bytes][]
 

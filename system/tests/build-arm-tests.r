@@ -151,6 +151,11 @@ if target = "Linux-ARM64" [
 		][append smoke-files join %source/units/ file]
 	]
 	foreach smoke-file sort smoke-files [compile-test clean-path smoke-file]
+	generated-smoke: arm-dir/arm64-long-branch-smoke.reds
+	do %source/units/generate-arm64-long-branch-smoke.r
+	generate-arm64-long-branch-smoke generated-smoke
+	compile-test generated-smoke
+	if exists? generated-smoke [delete generated-smoke]
 ]
 
 ;; generate the dylib tests

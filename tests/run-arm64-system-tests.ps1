@@ -88,7 +88,7 @@ try {
 	$excluded = @('run-all.sh', 'libtest-dll1.so', 'libtest-dll2.so', 'libstructlib.so', 'structlib.c')
 	$expectedTests = @($packageFiles | Where-Object { $_.Name -notin $excluded }).Count
 	$expectedSmokes = @(Get-ChildItem -LiteralPath (Join-Path $root 'system\tests\source\units') `
-		-Filter 'arm64-*.reds' -File).Count
+		-Filter 'arm64-*.reds' -File).Count + 1 # generated long-branch smoke
 	if ($expectedSmokes -eq 0 -or $expectedTests -lt $expectedSmokes) {
 		throw "Invalid package counts: tests=$expectedTests smokes=$expectedSmokes"
 	}
