@@ -39,10 +39,11 @@ static-link: context [
 	objects:    make block! 10		;-- [path object ...] every merged object
 	needed:     make hash!  64		;-- referenced symbol names (drives archive member pulling)
 	seed-hash:  make hash!  64		;-- user #import names (+ '_'-decorated forms on PE/Mach-O)
-	comdat-keys: make hash!  32		;-- COMDAT / SHT_GROUP key => [kind base size] of the kept copy
+	comdat-keys: make hash!  32		;-- COMDAT / SHT_GROUP key => [kind base size obj name] of the kept copy's primary member
 	alias-table: make hash! 32		;-- name => fallback name (weak defaults, /alternatename)
 	default-libs: make block! 8		;-- accumulated /defaultlib names (lowercased)
 	crt-sections: make block! 16	;-- deferred .CRT$X?? contributions [name section obj ...]
+	tls-pe-sections: make block! 8	;-- deferred PE .tls$ contributions [name section obj ...]
 	absorbed:   make hash!  64		;-- object paths whose aliases/directives are recorded
 	;-- Auto-pulling the MSVC static CRT (P2) is gated off: the CRT hardens
 	;-- read-only-after-init data with runtime VirtualProtect, which Red's
@@ -69,6 +70,7 @@ static-link: context [
 	tls-end:    none
 	tls-index:  none				;-- data offsets for synthesized PE TLS runtime symbols
 	tls-dir:    none
+	tls-dir-kind: 'data				;-- section the published directory lives in: data | crodata
 
 	;-- Read-only external data (PE): merged into its own page-aligned .rdata
 	;-- output section so the MSVC CRT's read-only-after-init page hardening
@@ -726,6 +728,33 @@ static-link: context [
 		foreach obj objs [merge-sections job obj]
 	]
 
+	;-- MSVC's grouped-section rule again, for the PE TLS template: tlssup.obj
+	;-- brackets user .tls$ data between its bare .tls (__tls_start) and
+	;-- .tls$ZZZ (__tls_end) marker sections, so contributions must be laid
+	;-- out sorted by full section name for the CRT TLS directory's raw-data
+	;-- bounds to enclose the template.
+	finalize-pe-tls-sections: func [
+		job [object!]
+		/local data name section obj a base objs
+	][
+		if empty? tls-pe-sections [exit]
+		sort/skip tls-pe-sections 3
+		data: job/sections/data/2
+		objs: make block! 8
+		foreach [name section obj] tls-pe-sections [
+			a: reader/sec-align section
+			if a > max-align [max-align: a]
+			pad-to data a
+			base: length? data
+			unless tls-start [tls-start: base]
+			append data reader/sec-data section
+			tls-end: length? data
+			reader/set-sec-base section 'data base
+			unless find objs obj [append objs obj]
+		]
+		foreach obj objs [merge-sections job obj]
+	]
+
 	;-- Ordering key for the deferred ELF C++ lists: crtbegin*'s contribution
 	;-- opens the run, crtend's closes it, prioritized .init_array.NNNNN
 	;-- entries come before plain ones (ld's SORT_BY_INIT_PRIORITY rule),
@@ -894,19 +923,30 @@ static-link: context [
 				reduce [48 1 rt]
 			]
 		][
+			;-- ebx (cursor) and esi (saved SP) are CALLEE-SAVED. The SysV
+			;-- i386 psABI (GCC >= 4.5) and Darwin both demand a 16-byte-
+			;-- aligned SP at every call site -- constructors spilling SSE
+			;-- registers to aligned stack slots fault without the AND. The
+			;-- process-entry SP is restored before falling into Red's own
+			;-- entry, which parses argc/argv straight off it.
 			append stub #{53}					;-- push ebx
-			append stub #{BB00000000}			;-- mov ebx, __red_ctors_start	(abs32 @2)
-			append stub #{81FB00000000}			;-- cmp ebx, __red_ctors_end	(abs32 @8)
+			append stub #{56}					;-- push esi
+			append stub #{89E6}					;-- mov esi, esp
+			append stub #{83E4F0}				;-- and esp, -16
+			append stub #{BB00000000}			;-- mov ebx, __red_ctors_start	(abs32 @8)
+			append stub #{81FB00000000}			;-- cmp ebx, __red_ctors_end	(abs32 @14)
 			append stub #{7307}					;-- jae done
 			append stub #{FF13}					;-- call [ebx]
 			append stub #{83C304}				;-- add ebx, 4
 			append stub #{EBF1}					;-- jmp -> cmp
-			append stub #{5B}					;-- done: pop ebx
+			append stub #{89F4}					;-- done: mov esp, esi
+			append stub #{5E}					;-- pop esi
+			append stub #{5B}					;-- pop ebx
 			append stub #{E9}					;-- jmp rel32 -> Red entry (code offset 0)
-			append stub le32 (0 - (off + 27))
+			append stub le32 (0 - (off + 36))
 			relocs: reduce [
-				reduce [2 0 rt]					;-- [r-va r-sym abs32]
-				reduce [8 1 rt]
+				reduce [8 0 rt]					;-- [r-va r-sym abs32]
+				reduce [14 1 rt]
 			]
 		]
 		append code stub
@@ -952,6 +992,7 @@ static-link: context [
 		clear alias-table
 		clear default-libs
 		clear crt-sections
+		clear tls-pe-sections
 		clear absorbed
 		crt-mode?: none
 		crt-entry: none
@@ -972,6 +1013,7 @@ static-link: context [
 		tls-end: none
 		tls-index: none
 		tls-dir: none
+		tls-dir-kind: 'data
 		crodata-buf: make binary! 4096
 		crodata-base: none
 		cafter-buf: make binary! 256
@@ -1058,6 +1100,8 @@ static-link: context [
 		merge-objects job static-libs
 		;-- Pass 1a: lay out the deferred .CRT$X?? initializer tables.
 		finalize-crt-sections job
+		;-- Pass 1a2: lay out the deferred PE .tls$ template, name-sorted.
+		finalize-pe-tls-sections job
 		;-- Pass 1b: lay out the deferred ELF .eh_frame run + .init_array table.
 		finalize-elf-cpp job
 		job/static-align: max-align					;-- ELF.r aligns .data to this
@@ -1558,12 +1602,11 @@ static-link: context [
 					merged?: true
 				]
 				kind = 'tls [
-					pad-to data a
-					base: length? data
-					if none? tls-start [tls-start: base]
-					append data reader/sec-data section
-					tls-end: length? data
-					reader/set-sec-base section 'data base
+					;-- deferred: PE .tls$ contributions are laid out sorted
+					;-- by full section name, so that tlssup.obj's bare .tls /
+					;-- .tls$ZZZ markers bracket the user template (see
+					;-- finalize-pe-tls-sections)
+					repend tls-pe-sections [copy reader/sec-name section  section  obj]
 					poke section 11 true
 					merged?: true
 				]
@@ -1649,6 +1692,7 @@ static-link: context [
 						reader/sec-base-offset section
 						reader/sec-size section
 						obj
+						copy reader/sec-name section
 					]
 				]
 			]
@@ -1720,8 +1764,8 @@ static-link: context [
 		]
 		if sect <= 0 [exit]
 		section: pick obj/sections sect
+		if 'none = reader/sec-base-kind section [exit]	;-- dropped section, or deferred and not yet laid out
 		kind: either (reader/sec-kind section) = 'tls ['tls][reader/sec-base-kind section]
-		if kind = 'none [exit]							;-- symbol lives in a dropped section
 		base: reader/sec-base-offset section
 		name: reader/sym-name sym
 		new-weak: reader/sym-weak? sym
@@ -1834,7 +1878,7 @@ static-link: context [
 								name = "__tls_used"
 								name = "___tls_used"
 							][
-								unless tls-start [
+								unless any [tls-start  not empty? tls-pe-sections][
 									abort reduce ["TLS runtime symbol without .tls section:" name "(in" path ")"]
 								]
 							]
@@ -2090,28 +2134,174 @@ static-link: context [
 
 	;-- Mach-O common (tentative) definitions -- zero-init globals like
 	;-- ImGui's `ImGuiContext* GImGui` that the compiler emits as
-	;-- (__DATA,__common) external. Allocate one zeroed slot per unique name
-	;-- in .data (largest wins), define it so references resolve to real
-	;-- writable storage instead of a bogus function import.
+	;-- (__DATA,__common) external. Coalesce by name across all objects,
+	;-- LARGEST size and STRICTEST alignment winning (ld64's rule), then
+	;-- allocate one zeroed slot per unique name in .data, defining it so
+	;-- references resolve to real writable storage instead of a bogus
+	;-- function import. A real definition elsewhere beats every tentative
+	;-- one and leaves the commons unallocated.
 	merge-commons: func [
-		job [object!] /local data path obj sym nm sz base entry
+		job [object!] /local data path obj sym nm sz a base entry commons
 	][
 		if obj-format <> 'Mach-o [exit]
-		data: job/sections/data/2
+		commons: make block! 16						;-- name [size align] pairs
 		foreach [path obj] objects [
 			foreach sym obj/symbols [
 				sz: reader/sym-common-size sym
 				if sz > 0 [
 					nm: reader/sym-name sym
-					either entry: select sym-addr nm [
-						none							;-- already allocated (first/largest wins)
+					a: reader/sym-common-align sym
+					if zero? a [					;-- unspecified: ld64 picks a pow2 >= size,
+						a: case [					;-- capped at 16 bytes
+							sz >= 16 [16]
+							sz >= 8  [8]
+							true     [4]
+						]
+					]
+					either entry: select commons nm [
+						entry/1: max entry/1 sz
+						entry/2: max entry/2 a
 					][
-						pad-to data 4
-						base: length? data
-						insert/dup tail data null max 4 sz
-						repend sym-addr [nm reduce ['data base false]]
+						repend commons [nm reduce [sz a]]
 					]
 				]
+			]
+		]
+		data: job/sections/data/2
+		foreach [nm entry] commons [
+			unless select sym-addr nm [
+				pad-to data max 4 entry/2
+				base: length? data
+				insert/dup tail data null max 4 entry/1
+				repend sym-addr [nm reduce ['data base false]]
+			]
+		]
+	]
+
+	;-- Apple assemblers emit __eh_frame with NO relocations on the FDE
+	;-- pc-begin and LSDA fields: both are implicit pcrel values, valid only
+	;-- in the object's rigid section layout (the scattered-SECTDIFF
+	;-- personality slot is the lone relocated field). ld64 re-encodes them
+	;-- during layout; so must we, once every image address is final --
+	;-- otherwise libunwind computes function ranges off by each section's
+	;-- displacement delta and the first throw dies parsing garbage.
+	rewrite-macho-ehframe: func [
+		job [object!] code-va [integer!] data-va [integer!] rodata-va [integer!]
+		/local buf u32at put32 uleb-at enc-size map-va pos
+			cb0 sec-va size off0 len id ver aug cies enc pair fpos0 tgt
+	][
+		if any [obj-format <> 'Mach-o  empty? eh-frames][exit]
+		buf: ehframe-buf
+		u32at: func [p [integer!]][					;-- LE, sign carried by 32-bit wrap
+			(to integer! buf/:p)
+				or (shift/left to integer! buf/(p + 1) 8)
+				or (shift/left to integer! buf/(p + 2) 16)
+				or (shift/left to integer! buf/(p + 3) 24)
+		]
+		put32: func [p [integer!] v [integer!]][
+			change at buf p le32 v
+		]
+		uleb-at: func [/local v s b][				;-- reads at pos, advances it
+			v: 0 s: 0
+			until [
+				b: to integer! buf/:pos
+				pos: pos + 1
+				v: v or shift/left (b and 127) s
+				s: s + 7
+				b < 128
+			]
+			v
+		]
+		enc-size: func [e [integer!]][				;-- DW_EH_PE value size in bytes
+			switch/default e and 15 [2 [2] 3 [4] 4 [8] 11 [4] 12 [8]][4]
+		]
+		map-va: func [obj [object!] t [integer!] /local s][
+			foreach s obj/sections [
+				if all [
+					'none <> reader/sec-base-kind s
+					t >= reader/sec-vmaddr s
+					t < ((reader/sec-vmaddr s) + reader/sec-size s)
+				][
+					return (reader/sec-base-offset s) + (t - reader/sec-vmaddr s)
+						+ switch/default reader/sec-base-kind s [
+							code	 [code-va]
+							data	 [data-va]
+							rodata	 [rodata-va]
+							eh-frame [ehframe-base]
+						][abort reduce ["eh_frame pcrel target in unsupported section kind:" reader/sec-base-kind s]]
+				]
+			]
+			abort reduce ["eh_frame pcrel target outside every live section:" t]
+		]
+		foreach [seq obj section] eh-frames [
+			cb0:	reader/sec-base-offset section	;-- chunk offset in ehframe-buf
+			sec-va:	reader/sec-vmaddr section		;-- chunk address in the OBJECT layout
+			size:	reader/sec-size section
+			cies:	make block! 8					;-- chunk-relative CIE offset -> [lsda-enc fde-enc]
+			off0:	0
+			while [off0 < size][
+				len: u32at cb0 + off0 + 1
+				if zero? len [break]				;-- explicit terminator
+				id: u32at cb0 + off0 + 5
+				either zero? id [
+					;-- CIE: capture the L/R encodings, skip the P field
+					pos: cb0 + off0 + 9
+					ver: to integer! buf/:pos
+					pos: pos + 1
+					unless ver = 1 [abort reduce ["unsupported Mach-O eh_frame CIE version:" ver]]
+					aug: copy ""
+					while [0 <> to integer! buf/:pos][
+						append aug to char! buf/:pos
+						pos: pos + 1
+					]
+					pos: pos + 1
+					uleb-at								;-- code alignment factor
+					uleb-at								;-- data alignment factor (sleb, value unused)
+					pos: pos + 1						;-- v1 return-address register (byte)
+					pair: reduce [255 0]
+					if find aug #"z" [
+						uleb-at							;-- augmentation length
+						foreach ch aug [
+							switch ch [
+								#"P" [
+									enc: to integer! buf/:pos
+									pos: pos + 1 + enc-size enc	;-- personality: own SECTDIFF reloc
+								]
+								#"L" [
+									pair/1: to integer! buf/:pos
+									pos: pos + 1
+								]
+								#"R" [
+									pair/2: to integer! buf/:pos
+									pos: pos + 1
+								]
+							]
+						]
+					]
+					append cies off0
+					append/only cies pair
+				][
+					;-- FDE: re-encode pc-begin, then the LSDA augmentation field
+					pair: select cies (off0 + 4) - id
+					unless pair [abort "Mach-O eh_frame FDE references a CIE outside its chunk"]
+					unless find [16 27] pair/2 [		;-- pcrel absptr / pcrel sdata4
+						abort reduce ["unsupported Mach-O eh_frame FDE encoding:" pair/2]
+					]
+					fpos0: off0 + 8
+					tgt: map-va obj sec-va + fpos0 + u32at cb0 + fpos0 + 1
+					put32 cb0 + fpos0 + 1 tgt - (ehframe-base + cb0 + fpos0)
+					if pair/1 <> 255 [
+						unless find [16 27] pair/1 [
+							abort reduce ["unsupported Mach-O eh_frame LSDA encoding:" pair/1]
+						]
+						pos: cb0 + off0 + 17			;-- past pc-range: augmentation length
+						uleb-at
+						fpos0: pos - cb0 - 1			;-- LSDA field (chunk-relative)
+						tgt: map-va obj sec-va + fpos0 + u32at cb0 + fpos0 + 1
+						put32 cb0 + fpos0 + 1 tgt - (ehframe-base + cb0 + fpos0)
+					]
+				]
+				off0: off0 + 4 + len
 			]
 		]
 	]
@@ -2630,13 +2820,16 @@ static-link: context [
 
 		;-- the MSVC CRT provides the real TLS directory (tlssup.obj's
 		;-- __tls_used, complete with the $XL callback bounds): point the
-		;-- PE data directory at it instead of synthesizing one
+		;-- PE data directory at it instead of synthesizing one. It lives
+		;-- in .rdata$T, so on PE it lands in the crodata section
 		if all [
 			none? tls-dir
 			entry: select sym-addr "__tls_used"
-			entry/1 = 'data
+			find [data crodata] entry/1
 		][
 			tls-dir: entry/2
+			tls-dir-kind: entry/1
+			ensure-symbol "___tls_used" entry/1 entry/2
 			ensure-symbol "__tls_array" 'absolute 44
 			exit
 		]
@@ -2668,8 +2861,10 @@ static-link: context [
 		ensure-symbol "___tls_used" 'data tls-dir
 	]
 
-	pe-tls-rva?: func [data-rva [integer!]][
-		either tls-dir [data-rva + tls-dir][0]
+	pe-tls-rva?: func [data-rva [integer!] crodata-rva [integer!]][
+		either tls-dir [
+			tls-dir + either tls-dir-kind = 'crodata [crodata-rva][data-rva]
+		][0]
 	]
 
 	pe-tls-size?: func [][
@@ -2819,15 +3014,18 @@ static-link: context [
 		obj		[object!]
 		sym		[block!]
 		path
-		/local target-info tsect tsection tkind toff ckey entry
+		/local target-info tsect tsection tkind toff ckey entry tname twin
 	][
 		;-- weak externals resolve by name too: a strong definition wins,
 		;-- else resolve-sym-addr follows the alias chain to the recorded
-		;-- default (??_E -> ??_G, oldnames, /alternatename)
+		;-- default (??_E -> ??_G, oldnames, /alternatename). Mach-O common
+		;-- (tentative) definitions resolve to the slot merge-commons
+		;-- allocated -- they are neither defined nor undefined externals
 		target-info: either any [
 			reader/is-defined-external? sym
 			reader/is-undefined-external? sym
 			reader/sym-weak? sym
+			all [obj-format = 'Mach-o  0 < reader/sym-common-size sym]
 		][
 			resolve-sym-addr reader/sym-name sym
 		][none]
@@ -2840,11 +3038,36 @@ static-link: context [
 				tkind: reader/sec-base-kind tsection
 				if tkind = 'none [
 					;-- a duplicate-COMDAT twin: redirect into the kept copy,
-					;-- where the symbol's offset transfers unchanged
+					;-- where the symbol's offset transfers unchanged. An ELF
+					;-- group can span several sections (function text, its
+					;-- LSDA, rodata): members pair BY NAME across the twin
+					;-- groups and each lands at its own base -- the recorded
+					;-- entry only anchors the group's primary member
 					if all [
 						ckey: reader/sec-comdat-key tsection
 						entry: select comdat-keys ckey
 					][
+						tname: reader/sec-name tsection
+						unless tname = entry/5 [
+							foreach twin entry/4/sections [
+								if all [
+									ckey = reader/sec-comdat-key twin
+									tname = reader/sec-name twin
+									'none <> reader/sec-base-kind twin
+								][
+									return reduce [
+										reader/sec-base-kind twin
+										(reader/sec-base-offset twin) + reader/sym-value sym
+										false
+									]
+								]
+							]
+							;-- no same-name member in the kept instance: twin
+							;-- groups from variant TUs may differ in composition
+							;-- (libstdc++'s cow/non-cow locale members share one
+							;-- key) -- anchor to the primary member as before;
+							;-- only the twin's own dead FDE ever points here
+						]
 						return reduce [entry/1  entry/2 + reader/sym-value sym  false]
 					]
 					abort reduce [

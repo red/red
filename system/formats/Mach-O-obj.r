@@ -570,4 +570,11 @@ macho-obj: context [
 			(sym/2) > 0
 		][sym/2][0]
 	]
+
+	;-- Alignment of a common definition, from n_desc's GET_COMM_ALIGN
+	;-- nibble (a log2 value; 0 = unspecified, the linker picks a default).
+	sym-common-align: func [sym [block!] /local a][
+		a: (shift/logical sym/5 8) and 15
+		either zero? a [0][shift/left 1 a]
+	]
 ]

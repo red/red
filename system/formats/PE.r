@@ -785,7 +785,7 @@ context [
 		n
 	]
 
-	build-opt-header: func [job [object!] /local oh code-page code-base ep entry flags data-rva][
+	build-opt-header: func [job [object!] /local oh code-page code-base ep entry flags data-rva crodata-rva][
 		code-page: ep-mem-page
 		code-base: code-page * memory-align
 		
@@ -853,7 +853,11 @@ context [
 		oh/IAT-addr:			named-sect-addr? job 'idata
 		oh/IAT-size:			length? job/sections/idata/2
 		data-rva:				section-addr?/memory job 'data
-		oh/TLS-addr:			static-link/pe-tls-rva? data-rva
+		crodata-rva:			any [
+			all [find job/sections 'crodata  section-addr?/memory job 'crodata]
+			0
+		]
+		oh/TLS-addr:			static-link/pe-tls-rva? data-rva crodata-rva
 		oh/TLS-size:			static-link/pe-tls-size?
 		
 		if job/type = 'dll [

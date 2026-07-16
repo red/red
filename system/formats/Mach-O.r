@@ -965,6 +965,11 @@ context [
 		;; Apply external C object relocations (static linking).
 		if find job/sections 'ehframe [
 			static-link/ehframe-base: get-section-addr '__eh_frame
+			static-link/rewrite-macho-ehframe				;-- re-encode the relocless pcrel
+				job											;-- pc-begin/LSDA fields against
+				get-section-addr '__text					;-- the final image layout
+				get-section-addr '__data
+				either find job/sections 'rodata [get-section-addr '__const][0]
 		]
 		static-link/apply-relocs
 			job
@@ -996,10 +1001,14 @@ context [
 			append out job/sections/code/2
 			pad4 out
 			append out job/sections/rodata/2
-			emit-page-aligned out #{}
 		][
-			emit-page-aligned out job/sections/code/2
+			append out job/sections/code/2
 		]
+		if find job/sections 'ehframe [				;-- __TEXT,__eh_frame payload (word-aligned,
+			pad4 out								;-- mirrors the prepare-headers file layout)
+			append out job/sections/ehframe/2
+		]
+		emit-page-aligned out #{}
 
 		data: job/sections/data/2
 		if find job/sections 'initfuncs [
