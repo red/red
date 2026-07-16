@@ -89,4 +89,59 @@ Red [
 
 ===end-group===
 
+===start-group=== "#rejoin"
+
+	--test-- "#rejoin-1"
+		--assert [ rejoin ["" ()] ] == [#rejoin "()"]
+		--assert [ rejoin ["" []] ] == [#rejoin "([])"]
+
+	--test-- "#rejoin-2" --assert [#rejoin "(\(\\\))"    ] == ["((\\))"]				;-- escaping & string grouping
+	--test-- "#rejoin-3" --assert [#rejoin %"(\(\\\))"   ] == [%"((\\))"]				;-- 1st string is the return type
+	--test-- "#rejoin-4" --assert [#rejoin %"({(})(\\\))"] == [rejoin [%"" "((\\))"]]
+	--test-- "#rejoin-5" --assert [#rejoin "()"          ] == [rejoin ["" ()]    ]
+	--test-- "#rejoin-6" --assert [#rejoin "([])"        ] == [rejoin ["" []]    ]		;-- paren removal from obvious cases
+	--test-- "#rejoin-7" --assert [#rejoin "(1)"         ] == [rejoin ["" 1]     ]
+	--test-- "#rejoin-8" --assert [#rejoin "('x)"        ] == [rejoin ["" 'x]    ]
+	--test-- "#rejoin-9" --assert [#rejoin "(x)"         ] == [rejoin ["" (x)]   ]
+
+	--test-- "#rejoin-11-expansion-within-rejoin"
+		--assert [ #rejoin "(append {1} #rejoin {2(1 + 2)})" ]
+			== [ rejoin ["" (append "1" rejoin ["2" (1 + 2)])] ]
+	
+	--test-- "#rejoin-12"
+		--assert [ #rejoin "(1 + 2)(\text)" ]
+			== [ rejoin ["" (1 + 2) "(text)"] ]
+	
+	--test-- "#rejoin-13-line-comments"
+		--assert [rejoin ["" (1 + 2 * 3)]] == [#rejoin {(;-- comment
+			1 + 2 * 3									;-- another
+		)}]
+
+	--test-- "#rejoin-14"
+		--assert [#rejoin <tag flag=(mold 1 + 2)/>] == [
+			rejoin [
+				<tag flag=>								;-- result is a <tag>
+				(mold 1 + 2)
+				{/}										;-- other strings should be normal, or we'll have <<">> result
+			]
+		]
+		
+	--test-- "#rejoin-15"
+		--assert [#rejoin %"()() - (1 + 2)) - (\(<abc)))>) - (func)(1)()()"] == [
+			rejoin [
+				%""										;-- 1st string is of argument/result type, even empty
+				() ()									;-- () makes an unset, no empty strings inbetween
+				" - "									;-- subsequent fragments are of string! type
+				(1 + 2)									;-- 2+ tokens are parenthesized
+				") - ("									;-- literal parens
+				<abc)))>								;-- an explicit tag! - not a string!; without parens around
+				" - "
+				(func)									;-- words are parenthesized
+				1										;-- single token does not need parens
+				() ()									;-- no unnecessary empty strings
+			]
+		]
+  
+===end-group===
+
 ~~~end-file~~~
