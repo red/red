@@ -190,6 +190,8 @@ context [
 			BSS					#{C0000080}	;-- [read write uninitialized]
 			data				#{C0000040}	;-- [read write initialized]
 			rodata				#{40000040}	;-- [read initialized]
+			crodata				#{40000040}	;-- [read initialized] (static-linked read-only C data)
+			cafter				#{C0000040}	;-- [read write initialized] (read-only-after-init: CFG pointers)
 			export				#{40000040}	;-- [read initialized]
 			import				#{40000040}	;-- [read initialized]
 			idata				#{40000040}	;-- [read initialized]
@@ -803,7 +805,15 @@ context [
 				code-base + entry/2 - 1
 			]
 		][
-			code-base									;-- exe: entry point
+			;-- exe: Red's start sits at the beginning of CODE. When the
+			;-- statically-linked MSVC CRT owns startup, the entry moves to
+			;-- the merged mainCRTStartup, which initializes the CRT and
+			;-- calls back into Red's start as `_main`.
+			either static-link/crt-entry [
+				code-base + static-link/crt-entry
+			][
+				code-base								;-- exe: entry point
+			]
 		]
 		oh: make-struct optional-header none
 
@@ -878,6 +888,8 @@ context [
 			code	".text"
 			data  	".data"
 			rodata	".rdata"
+			crodata	".rdata"
+			cafter	".data"
 			import	".rdata"
 			export	".edata"
 			rsrc	".rsrc"
@@ -1220,6 +1232,16 @@ context [
 
 		resolve-import-refs job							;-- resolve DLL imports references
 		resolve-data-refs job							;-- resolve data references
+		;-- read-only static data lives in its own page-aligned section when
+		;-- the static linker emitted one; hand its base VA to apply-relocs.
+		static-link/crodata-base: all [
+			find job/sections 'crodata
+			base-address + section-addr?/memory job 'crodata
+		]
+		static-link/cafter-base: all [
+			find job/sections 'cafter
+			base-address + section-addr?/memory job 'cafter
+		]
 		static-link/apply-relocs job					;-- patch external C object relocations
 			entry-point-address? job
 			(base-address + section-addr?/memory job 'data)

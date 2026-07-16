@@ -95,8 +95,16 @@ macho-obj: context [
 	;-- and flags (the low byte of flags is the section type).
 	section-kind: func [segname [string!] sectname [string!] flags [integer!] /local stype][
 		stype: flags and 255
+		;-- NAME wins over the section-type byte: __eh_frame's type (9) and
+		;-- __compact_unwind's (6) collide with S_MOD_INIT/S_*_POINTERS.
 		case [
+			sectname = "__eh_frame"        ['eh-frame]			;-- raw DWARF, found by name at runtime
+			sectname = "__compact_unwind"  [none]				;-- Darwin compact unwind: we use DWARF
+			sectname = "__gcc_except_tab"  ['rdata]				;-- LSDA (read-only)
 			any [stype = S_ZEROFILL  stype = S_GB_ZEROFILL]      ['bss]
+			stype = 9                                            ['init-array]	;-- S_MOD_INIT_FUNC_POINTERS
+			stype = 10                                           [none]		;-- dtors-at-exit: not run (parity)
+			any [stype = 6  stype = 7]                           ['nl-pointers]	;-- indirect symbol slots
 			(flags and S_ATTR_PURE_INSTRUCTIONS) <> 0            ['code]
 			sectname = "__text"                                  ['code]
 			segname = "__TEXT"                                   ['rdata]	;-- __cstring/__const
@@ -166,6 +174,7 @@ macho-obj: context [
 			sec-bases v
 			s-type s-length s-pcrel r-va w0-p w1-p min-sect sub-sect sec-x
 			min-off sub-off
+			sec-stypes sec-res1 dysym-off dysym-cnt n-slots ent-pos
 	][
 		;-- Mach header (28 bytes)
 		if (length? bin) < 28 [return none]
@@ -182,9 +191,13 @@ macho-obj: context [
 		;-- object's section layout, so we subtract the section base to
 		;-- recover the section-relative offset COFF/ELF readers report.
 		sec-bases:  copy []
+		sec-stypes: copy []		;-- parallel: section type (low flag byte)
+		sec-res1:   copy []		;-- parallel: reserved1 (indirect-table start)
 		symtab-off: 0
 		symtab-cnt: 0
 		str-off:    0
+		dysym-off:  0			;-- LC_DYSYMTAB indirect-symbol table
+		dysym-cnt:  0
 		lc-pos: 29											;-- first load command (offset 28)
 		i: 0
 		while [i < ncmds][
@@ -202,6 +215,8 @@ macho-obj: context [
 						sec-size: u32-le bin (sec-pos + 36)
 						sec-off:  u32-le bin (sec-pos + 40)
 						flags:    u32-le bin (sec-pos + 56)
+						append sec-stypes (flags and 255)
+						append sec-res1 (u32-le bin (sec-pos + 60))		;-- reserved1
 						kind:     section-kind segname sectname flags
 						data: either all [kind  kind <> 'bss  sec-size > 0][
 							copy/part at bin (sec-off + 1) sec-size
@@ -230,6 +245,10 @@ macho-obj: context [
 					symtab-off: u32-le bin (lc-pos + 8)
 					symtab-cnt: u32-le bin (lc-pos + 12)
 					str-off:    u32-le bin (lc-pos + 16)
+				]
+				cmd = 11 [									;-- LC_DYSYMTAB
+					dysym-off: u32-le bin (lc-pos + 56)		;-- indirectsymoff
+					dysym-cnt: u32-le bin (lc-pos + 60)		;-- nindirectsyms
 				]
 			]
 			lc-pos: lc-pos + cmdsize
@@ -337,9 +356,36 @@ macho-obj: context [
 							append/only relocs reduce [r-va 0 -1]
 						]
 					][
-						;-- Other scattered kinds (VANILLA, TLV, etc.) are
-						;-- rare in our world and left unsupported for now.
-						append/only relocs reduce [r-va 0 -1]
+						;-- Scattered VANILLA: a reference to a local address
+						;-- (r_value) carrying an addend -- the field holds
+						;-- r_value + addend. Map r_value to its section and
+						;-- rebase the field so the generic `target-va + addend`
+						;-- path applies (same normalization as a non-extern
+						;-- VANILLA). Any other scattered kind stays unsupported.
+						either all [s-type = GENERIC_RELOC_VANILLA  s-length = 2][
+							min-sect: none
+							k: 1
+							foreach sec-x sections [
+								if all [w1 >= sec-x/9  w1 < (sec-x/9 + sec-x/5)][min-sect: k]
+								k: k + 1
+							]
+							either min-sect [
+								append/only relocs reduce [
+									r-va
+									n-real + min-sect - 1				;-- synth section sym
+									(shift/left GENERIC_RELOC_VANILLA 4)
+										or (shift/left s-length 2)
+										or (shift/left s-pcrel 1)
+								]
+								sec-x: pick sections min-sect
+								v: i32-le sec/4 (r-va + 1)
+								change at sec/4 (r-va + 1) to-le32 (v - sec-x/9)
+							][
+								append/only relocs reduce [r-va 0 -1]
+							]
+						][
+							append/only relocs reduce [r-va 0 -1]
+						]
 					]
 				][
 					w1: u32-le bin (r-pos + 4)
@@ -358,16 +404,17 @@ macho-obj: context [
 							or (shift/left ((shift/logical w1 25) and 3) 2)
 							or (shift/left ((shift/logical w1 24) and 1) 1)
 					]
-					;-- Mach-O non-extern abs32 relocations store the target's
-					;-- absolute address (target_section_vmaddr + offset) in the
-					;-- section data. Normalize to a section-relative offset so
-					;-- the linker's generic `target-va + addend` works the same
-					;-- way it does for COFF/ELF.
+					;-- Mach-O non-extern relocations store the TARGET's absolute
+					;-- object-layout address in the section data (abs32: the
+					;-- address itself; pcrel: folded into the displacement).
+					;-- Normalize to a target-section-relative offset so the
+					;-- linker's generic `target-va + addend` works the same way
+					;-- it does for COFF/ELF (the scattered-VANILLA path below
+					;-- performs the same rebase for its own entries).
 					if all [
 						r-extern = 0
 						(shift/logical w1 28) = GENERIC_RELOC_VANILLA
 						((shift/logical w1 25) and 3) = 2		;-- 4-byte field
-						((shift/logical w1 24) and 1) = 0		;-- non-pcrel
 					][
 						v: i32-le sec/4 ((w0 and 16777215) + 1)
 						change at sec/4 ((w0 and 16777215) + 1)
@@ -382,6 +429,30 @@ macho-obj: context [
 			clear at sec 10
 		]
 
+		;-- Non-lazy symbol-pointer slots (__IMPORT,__pointers) bind through
+		;-- the LC_DYSYMTAB indirect table, not relocations: synthesize one
+		;-- abs32 per slot so the merged section's pointers fill exactly like
+		;-- ordinary data relocations. INDIRECT_SYMBOL_LOCAL/ABS entries
+		;-- (high bits set -- checked bytewise, the value overflows Rebol's
+		;-- 32-bit integers) keep their own local relocations and are skipped.
+		if dysym-cnt > 0 [
+			k: 1
+			foreach sec sections [
+				if find [6 7] pick sec-stypes k [			;-- (non-)lazy pointers
+					n-slots: to integer! sec/5 / 4
+					j: 0
+					while [j < n-slots][
+						ent-pos: dysym-off + (((pick sec-res1 k) + j) * 4) + 1
+						unless 64 <= byte-at bin (ent-pos + 3) [	;-- LOCAL/ABS flags
+							append/only sec/6 reduce [j * 4  u32-le bin ent-pos  8]
+						]
+						j: j + 1
+					]
+				]
+				k: k + 1
+			]
+		]
+
 		make object! compose/only [
 			path:     (path)
 			sections: (sections)
@@ -389,12 +460,32 @@ macho-obj: context [
 		]
 	]
 
+	;-- Explain why load-from-bin returned NONE for a buffer. The static
+	;-- linker aborts with this diagnosis -- an unlinkable object names its
+	;-- actual format instead of surfacing later as missing symbols.
+	reject-reason: func [bin [binary!]][
+		if (length? bin) < 28 [return "truncated or empty object"]
+		if #{4243C0DE} = copy/part bin 4 [
+			return "LLVM bitcode (compiled with -flto); rebuild without link-time optimization"
+		]
+		if MH_MAGIC + 1 = u32-le bin 1 [
+			return "64-bit Mach-O object; this build targets 32-bit x86"
+		]
+		unless MH_MAGIC = u32-le bin 1 [
+			return "not a Mach-O object; this build links Mach-O objects"
+		]
+		unless CPU_TYPE_I386 = u32-le bin 5 [
+			return "Mach-O object for a foreign CPU; this build targets i386"
+		]
+		"not a relocatable Mach-O object (MH_OBJECT expected)"
+	]
+
 	;-- Load a Mach-O i386 object file from disk. Halts on invalid input.
 	load: func [path [file!] /local bin obj][
 		bin: read/binary path
 		obj: load-from-bin bin path
 		if none? obj [
-			print ["*** Linker Error: not a Mach-O i386 object:" path]
+			print ["*** Linker Error: cannot link" path "--" reject-reason bin]
 			halt
 		]
 		obj
@@ -410,6 +501,20 @@ macho-obj: context [
 	sec-relocs:      func [s [block!]][s/6]
 	sec-base-kind:   func [s [block!]][s/7]
 	sec-base-offset: func [s [block!]][s/8]
+	sec-selection: func [s [block!]][none]			;-- COFF-only concepts
+	sec-assoc:     func [s [block!]][none]
+
+	;-- Only the COALESCED sections (__textcoal_nt, __datacoal_nt,
+	;-- __const_coal -- weak template/vtable duplicates) are treated as
+	;-- comdat/first-wins. Regular sections (__text/__data/__const/__common/
+	;-- __bss) are NOT: they must go unconditionally live like ELF/PE keepable
+	;-- sections, else a definition-holding section (e.g. GImGui in __common)
+	;-- referenced only cross-TU can be left dark by pull order.
+	sec-comdat?:   func [s [block!]][to logic! find s/1 "coal"]
+
+	;-- No COFF-style undefined-with-default weak externals in Mach-O.
+	sym-weak-default: func [sym [block!]][none]
+
 	;-- Mach-O coalesces weak definitions at the SYMBOL level (N_WEAK_DEF),
 	;-- not via per-section group keys, so there is no section-level key.
 	sec-comdat-key:  func [s [block!]][none]
@@ -442,12 +547,27 @@ macho-obj: context [
 		]
 	]
 
-	;-- An undefined external: external linkage, N_UNDF type.
+	;-- An undefined external: external linkage, N_UNDF type, and NO size --
+	;-- a non-zero n_value marks a common (tentative) definition instead,
+	;-- which the linker allocates rather than imports.
 	is-undefined-external?: func [sym [block!]][
 		all [
 			(sym/4 and N_STAB) = 0
 			(sym/4 and N_EXT) <> 0
 			(sym/4 and N_TYPE) = N_UNDF
+			(sym/2) = 0
 		]
+	]
+
+	;-- A common (tentative) definition -- (__DATA,__common) external, N_UNDF
+	;-- with n_value carrying the byte size. Returns the size (0 if not a
+	;-- common). The linker zero-allocates one slot per unique name.
+	sym-common-size: func [sym [block!]][
+		either all [
+			(sym/4 and N_STAB) = 0
+			(sym/4 and N_EXT) <> 0
+			(sym/4 and N_TYPE) = N_UNDF
+			(sym/2) > 0
+		][sym/2][0]
 	]
 ]

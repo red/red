@@ -835,7 +835,9 @@ context [
 		ut/size:		get-struct-size 'uthread
 		ut/flavor:		1								;-- x86_THREAD_STATE32
 		ut/count:		16
-		ut/eip:			get-section-addr '__text
+		;-- C++ static links enter through the linker's ctor-walk stub, which
+		;-- falls into Red's own entry (__text start) once initializers ran
+		ut/eip:			(get-section-addr '__text) + any [static-link/cpp-entry 0]
 		form-struct ut
 	]
 	
@@ -905,6 +907,11 @@ context [
 				section	__const	 	 ?	 ?	 ?	 ?	 -		  rodata   word
 			]
 		]
+		if find job/sections 'ehframe [			;-- statically-linked C++ unwind tables:
+			append pick find segments '__TEXT 9 [ ;-- libunwind locates __eh_frame by NAME
+				section	__eh_frame	 ?	 ?	 ?	 ?	 -		  ehframe  word
+			]
+		]
 		
 		base-address: 	any [job/base-address defs/base-address]
 		dynamic-linker: any [job/dynamic-linker ""]
@@ -956,6 +963,9 @@ context [
 		resolve-data-refs job
 		
 		;; Apply external C object relocations (static linking).
+		if find job/sections 'ehframe [
+			static-link/ehframe-base: get-section-addr '__eh_frame
+		]
 		static-link/apply-relocs
 			job
 			get-section-addr '__text
