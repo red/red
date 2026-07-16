@@ -241,11 +241,8 @@ make-profilable make target-class [
 			]
 		]
 	]
-	external-abi?: func [fspec [block!] /local attrs][
-		to logic! all [
-			attrs: compiler/get-attributes fspec
-			any [find attrs 'cdecl find attrs 'stdcall]
-		]
+	external-abi?: func [fspec [block! none!]][
+		to logic! all [fspec compiler/external-abi-call? fspec]
 	]
 	sysv-merge-class: func [classes [block!] index [integer!] class [word!] /local old][
 		old: pick classes index
@@ -644,10 +641,11 @@ make-profilable make target-class [
 	]
 
 	emit-arg-spills: func [
+		function-name [word!]
 		locals [block!]
 		/local regs offset name type count stack-offset int-count float-count stack-count
 			slot ret-ptr? agg-slots agg-size base external? classes class int-needed
-			float-needed aggregate-stack?
+			float-needed aggregate-stack? fspec
 	][
 		clear by-value-args
 		regs: [
@@ -663,8 +661,13 @@ make-profilable make target-class [
 		int-count: 0
 		float-count: 0
 		stack-count: 0
-		external?: external-abi? locals
-		ret-ptr?: to logic! emitter/struct-ptr? locals
+		fspec: select compiler/functions function-name
+		external?: external-abi? fspec
+		ret-ptr?: to logic! either fspec [
+			emitter/struct-ptr?/metadata locals fspec
+		][
+			emitter/struct-ptr? locals
+		]
 		if ret-ptr? [
 			offset: offset - stack-width
 			either win64? [
@@ -843,14 +846,19 @@ make-profilable make target-class [
 		]
 		count
 	]
-	register-argument-count?: func [locals [block!] /local count name type ret-ptr? agg-slots][
+	register-argument-count?: func [name [word!] locals [block!] /local count arg type ret-ptr? agg-slots fspec][
 		count: 0
-		ret-ptr?: to logic! emitter/struct-ptr? locals
+		fspec: select compiler/functions name
+		ret-ptr?: to logic! either fspec [
+			emitter/struct-ptr?/metadata locals fspec
+		][
+			emitter/struct-ptr? locals
+		]
 		if ret-ptr? [count: 1]
 		parse locals [
 			opt block!
 			any [
-				set name word! set type block! (
+				set arg word! set type block! (
 					agg-slots: either 'value = last type [emitter/struct-slots? type][1]
 					count: count + agg-slots
 				)
@@ -1273,7 +1281,7 @@ make-profilable make target-class [
 		emit #{4C89D8}							;-- MOV rax, r11
 	]
 	emit-prolog: func [name [word!] locals [block!] bitmap [integer!] /local locals-size reg-count local-slots][
-		reg-count: register-argument-count? locals
+		reg-count: register-argument-count? name locals
 		locals-offset: 4 * stack-width + (reg-count * stack-width)
 		locals-size: either find locals /local [
 			emitter/calc-locals-offsets find locals /local
@@ -1284,7 +1292,7 @@ make-profilable make target-class [
 		emit #{6A00}								;-- PUSH 0		; catch resume address
 		emit-push bitmap							;-- args/locals bitmap offset
 		emit #{6A00}								;-- last known parent Red frame
-		emit-arg-spills locals
+		emit-arg-spills name locals
 		local-slots: (round/to/ceiling locals-size stack-width) / stack-width
 		if locals-size <> 0 [
 			emit-reserve-stack local-slots
@@ -1296,15 +1304,20 @@ make-profilable make target-class [
 	]
 	emit-epilog: func [
 		name [word!] locals [block!] args-size [integer!] locals-size [integer!] /with slots [integer! none!] /closing
-		/local vars ret-ptr? ret ret-size sysv-classes
+		/local vars ret-ptr? ret ret-size sysv-classes fspec
 	][
 		if slots [
-			ret-ptr?: to logic! emitter/struct-ptr? locals
+			fspec: select compiler/functions name
+			ret-ptr?: to logic! either fspec [
+				emitter/struct-ptr?/metadata locals fspec
+			][
+				emitter/struct-ptr? locals
+			]
 			ret: select locals compiler/return-def
 			ret-size: emitter/struct-size? ret
 			either all [
 				not win64?
-				external-abi? locals
+				external-abi? fspec
 				not ret-ptr?
 			][
 				sysv-classes: sysv-aggregate-classes ret

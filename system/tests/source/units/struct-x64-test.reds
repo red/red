@@ -658,6 +658,49 @@ struct-x64-local
 		value
 	]
 
+	local-triple8-cdecl: func [
+		[cdecl]
+		return: [triple8! value]
+		/local value [triple8! value]
+	][
+		value/one: as byte! 71
+		value/two: as byte! 72
+		value/three: as byte! 73
+		value
+	]
+
+	local-triple8-stdcall: func [
+		[stdcall]
+		return: [triple8! value]
+		/local value [triple8! value]
+	][
+		value/one: as byte! 81
+		value/two: as byte! 82
+		value/three: as byte! 83
+		value
+	]
+
+	paird-metadata-callback: func [
+		[callback]
+		value [paird! value]
+		bias [integer!]
+		return: [integer!]
+	][
+		either all [value/one = 10.5 value/two = 20.5 bias = 11][43][0]
+	]
+
+	big-return-metadata-callback: func [
+		[callback]
+		base [integer!]
+		return: [big! value]
+		/local value [big! value]
+	][
+		value/one: 118 + base
+		value/two: 451 + base
+		value/three: 3.14
+		value
+	]
+
 	--test-- "x64-native-aggregate-abi"
 		--assert 67 = checkTriple8 t8 7
 		--assert 67 = checkTriple8Std t8 7
@@ -667,6 +710,8 @@ struct-x64-local
 		--assert 42 = callPairDCallback as int-ptr! :paird-callback
 		--assert 13 = callTriple8Callback as int-ptr! :triple8-stdcall-callback
 		--assert 1 = callBigReturnCallback as int-ptr! :big-return-callback
+		--assert 43 = callPairDCallback as int-ptr! :paird-metadata-callback
+		--assert 1 = callBigReturnCallback as int-ptr! :big-return-metadata-callback
 		--assert 1 = checkNineDoubles 42 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0
 		--assert 1 = checkPairDOverflow 1.0 2.0 3.0 4.0 5.0 6.0 7.0 pd 8.0 42
 
@@ -678,6 +723,14 @@ struct-x64-local
 		--assert (as integer! t8/one) = 44
 		--assert (as integer! t8/two) = 55
 		--assert (as integer! t8/three) = 66
+		t8: local-triple8-cdecl
+		--assert (as integer! t8/one) = 71
+		--assert (as integer! t8/two) = 72
+		--assert (as integer! t8/three) = 73
+		t8: local-triple8-stdcall
+		--assert (as integer! t8/one) = 81
+		--assert (as integer! t8/two) = 82
+		--assert (as integer! t8/three) = 83
 		pd: returnPairD
 		--assert pd/one = 12.5
 		--assert pd/two = 29.5

@@ -2262,8 +2262,12 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		encode-pointers: func [name specs [block!] /local list offset b][
-			list: emitter/encode-ptr-bitmap specs
+		encode-pointers: func [name specs [block!] /metadata fspec [block!] /local list offset b][
+			list: either metadata [
+				emitter/encode-ptr-bitmap/metadata specs fspec
+			][
+				emitter/encode-ptr-bitmap specs
+			]
 			if verbose > 5 [
 				print [name ":" mold specs]
 				foreach n list [
@@ -2286,7 +2290,7 @@ system-dialect: make-profilable context [
 			]]
 		]
 		
-		fetch-func: func [name /local specs type cc attribs offset][
+		fetch-func: func [name /local specs type cc attribs offset fspec][
 			name: to word! name
 			store-ns-symbol name
 			if ns-path [add-ns-symbol pc/-1]
@@ -2321,11 +2325,12 @@ system-dialect: make-profilable context [
 					find attribs 'stdcall [cc: 'stdcall]	;-- get ready when fastcall will be the default cc
 				]
 			]
-			offset: encode-pointers name specs
+			add-function type reduce [name none specs] cc
+			fspec: second find-functions name
+			offset: encode-pointers/metadata name specs fspec
 			if all [job/libRedRT? job/type = 'dll][
 				offset: offset or to integer! #40000000		;-- set bit 30 flag on bitmap offset for libRedRT code
 			]
-			add-function type reduce [name none specs] cc
 			emitter/add-native name
 			repend natives [
 				name specs pc/3 script
@@ -2382,10 +2387,19 @@ system-dialect: make-profilable context [
 			expr
 		]
 		
-		flag-callback: func [name [word!] cc [word! none!] /local spec][
-			spec: second find-functions name
+		flag-callback: func [name [word!] cc [word! none!] /local entry spec native offset][
+			entry: find-functions name
+			spec: second entry
 			spec/3: any [cc job/export-ABI all [job/red-pass? spec/3] 'cdecl]
 			unless spec/5 = 'callback [append spec 'callback]
+			;-- #export can add a hidden return slot after the bitmap was first encoded.
+			if native: find/skip natives entry/1 8 [
+				offset: encode-pointers/metadata entry/1 native/2 spec
+				if all [job/libRedRT? job/type = 'dll][
+					offset: offset or to integer! #40000000
+				]
+				native/8: offset
+			]
 		]
 		
 		process-export: has [defs cc ns entry spec list name sym][
@@ -4079,15 +4093,25 @@ system-dialect: make-profilable context [
 				]
 			]
 		]
+
+		hidden-struct-return?: func [spec [block!] slots [integer!] size [integer!]][
+			to logic! any [
+				2 < slots
+				pass-struct-pointer? spec slots size
+				all [
+					job/target = 'X86-64
+					job/OS = 'Windows
+					external-abi-call? spec
+					not find [1 2 4 8] size
+				]
+			]
+		]
 		
 		process-returned-struct: func [name [word!] spec [block!] args [block!] /local alloc? slots size caller][
 			if all [
 				slots: emitter/struct-slots?/check spec/4
 				size: emitter/struct-size?/check spec/4
-				any [
-					2 < slots							;-- R/S and Windows ABI
-					pass-struct-pointer? spec slots size	;-- check other cases
-				]
+				hidden-struct-return? spec slots size
 			][
 				unless caller: get-caller name [
 					caller: either tail? pc [
@@ -4595,13 +4619,10 @@ system-dialect: make-profilable context [
 					word? expr/1
 					any [not subrc? throw-error "cannot return a struct by value from a subroutine"]
 					spec: select functions expr/1
-					any [
-						2 < emitter/struct-slots?/check spec/4
-						pass-struct-pointer?
-							spec
-							emitter/struct-slots?/check spec/4
-							emitter/struct-size?/check spec/4
-					]
+					hidden-struct-return?
+						spec
+						emitter/struct-slots?/check spec/4
+						emitter/struct-size?/check spec/4
 					store?: no							;-- avoid emitting assignment code
 				]
 				if all [
